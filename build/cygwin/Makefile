@@ -4,7 +4,7 @@
 #
 # Author: x264 by Laurent Aimar <fenrir@via.ecp.fr>
 #
-# $Id: Makefile,v 1.2 2004/06/10 18:13:38 fenrir Exp $
+# $Id: Makefile,v 1.3 2004/06/14 05:47:51 chenm001 Exp $
 ##############################################################################
 
 # Current dir
@@ -95,6 +95,12 @@ x264.exe: $(DIR_BUILD) $(OBJECTS) x264.obj
 	@cd $(DIR_BUILD) && \
 	$(CC) $(CFLAGS) -o x264.exe x264.obj libx264.a -lm && \
 	cp -f x264.exe $(DIR_SRC)
+
+checkasm.exe: $(DIR_BUILD) libx264.a $(OBJECTS) testing/checkasm.obj
+	@echo " L: $(@F)"
+	@cd $(DIR_BUILD) && \
+	$(CC) $(CFLAGS) -o checkasm.exe testing/checkasm.obj libx264.a -lm && \
+	cp -f checkasm.exe $(DIR_SRC)
 
 clean:
 	@echo " Cl: Object files and target lib"
