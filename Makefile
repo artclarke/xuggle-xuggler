@@ -32,7 +32,8 @@ ifeq ($(ARCH),X86)
 CFLAGS+=-DHAVE_MMXEXT -DHAVE_SSE2
 SRCS+= common/i386/mc-c.c common/i386/dct-c.c common/i386/predict.c
 ASMSRC= common/i386/dct-a.asm common/i386/cpu-a.asm \
-        common/i386/pixel-a.asm common/i386/mc-a.asm
+        common/i386/pixel-a.asm common/i386/mc-a.asm \
+        common/i386/mc-a2.asm common/i386/predict-a.asm
 OBJASM= $(ASMSRC:%.asm=%.o)
 endif
 

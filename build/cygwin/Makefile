@@ -22,7 +22,8 @@ SRC_C= common/mc.c common/predict.c common/pixel.c common/macroblock.c \
        encoder/encoder.c encoder/eval.c \
        common/i386/mc-c.c common/i386/dct-c.c common/i386/predict.c
 
-SRC_ASM= common/i386/dct-a.asm common/i386/cpu-a.asm common/i386/pixel-a.asm common/i386/mc-a.asm
+SRC_ASM= common/i386/dct-a.asm common/i386/cpu-a.asm common/i386/pixel-a.asm \
+         common/i386/mc-a.asm common/i386/mc-a2.asm common/i386/predict-a.asm
 
 # Alias
 RM= rm -rf

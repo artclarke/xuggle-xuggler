@@ -36,6 +36,8 @@
 #include "common/clip1.h"
 #include "mc.h"
 
+#if 0
+
 #if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3)
 #define USED_UINT64(foo) \
     static const uint64_t foo __asm__ (#foo) __attribute__((used))
@@ -1021,6 +1023,7 @@ static void motion_compensation_luma_sse2( uint8_t *src, int i_src_stride,
     MOTION_COMPENSATION_LUMA
 }
 
+#endif
 
 void mc_luma_mmx( uint8_t *src[4], int i_src_stride,
               uint8_t *dst,    int i_dst_stride,
@@ -1141,6 +1144,7 @@ void x264_mc_sse2_init( x264_mc_functions_t *pf )
     pf->get_ref   = get_ref_mmx;
 }
 
+#if 0
 void get_funcs_mmx(pf_mc_t *int_h, pf_mc_t *int_v, pf_mc_t *int_hv)
 {
     *int_h = mc_hh_w16;
@@ -1154,3 +1158,4 @@ void get_funcs_sse2(pf_mc_t *int_h, pf_mc_t *int_v, pf_mc_t *int_hv)
     *int_v = mc_hv_w16;
     *int_hv = mc_hc_w16;
 }
+#endif

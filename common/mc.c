@@ -37,14 +37,11 @@
 #include "clip1.h"
 #include "frame.h"
 
-#ifdef _MSC_VER
-#undef HAVE_MMXEXT  /* not finished now */
-#endif
 #ifdef HAVE_MMXEXT
-#   include "i386/mc.h"
+#include "i386/mc.h"
 #endif
 #ifdef ARCH_PPC
-#   include "ppc/mc.h"
+#include "ppc/mc.h"
 #endif
 
 
@@ -425,6 +422,14 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 void get_funcs_mmx(pf_mc_t*, pf_mc_t*, pf_mc_t*);
 void get_funcs_sse2(pf_mc_t*, pf_mc_t*, pf_mc_t*);
 
+extern void x264_horizontal_filter_mmxext( uint8_t *dst, int i_dst_stride,
+                                           uint8_t *src, int i_src_stride,
+                                           int i_width, int i_height );
+extern void x264_center_filter_mmxext( uint8_t *dst1, int i_dst1_stride,
+                                       uint8_t *dst2, int i_dst2_stride,
+                                       uint8_t *src, int i_src_stride,
+                                       int i_width, int i_height );
+
 void x264_frame_filter( int cpu, x264_frame_t *frame )
 {
     const int x_inc = 16, y_inc = 16;
@@ -435,6 +440,7 @@ void x264_frame_filter( int cpu, x264_frame_t *frame )
     pf_mc_t int_v = mc_hv;
     pf_mc_t int_hv = mc_hc;
 
+#if 0
 #ifdef HAVE_MMXEXT
     if( cpu&X264_CPU_MMXEXT )
         get_funcs_mmx(&int_h, &int_v, &int_hv);
@@ -444,24 +450,41 @@ void x264_frame_filter( int cpu, x264_frame_t *frame )
     if( cpu&X264_CPU_SSE2 )
         get_funcs_sse2(&int_h, &int_v, &int_hv);
 #endif
+#endif
 
-    for( y = -8; y < frame->i_lines[0]+8; y += y_inc ) {
-        
-        uint8_t *p_in = frame->plane[0] + y * stride - 8;
-        uint8_t *p_h  = frame->filtered[1] + y * stride - 8;
-        uint8_t *p_v  = frame->filtered[2] + y * stride - 8;
-        uint8_t *p_hv = frame->filtered[3] + y * stride - 8;
-
-        for( x = -8; x < stride - 64 + 8; x += x_inc )
+#ifdef HAVE_MMXEXT
+    if ( cpu & X264_CPU_MMXEXT )
+    {
+        x264_horizontal_filter_mmxext(frame->filtered[1] - 8 * stride - 8, stride,
+            frame->plane[0] - 8 * stride - 8, stride,
+            stride - 48, frame->i_lines[0] + 16);
+        x264_center_filter_mmxext(frame->filtered[2] - 8 * stride - 8, stride,
+            frame->filtered[3] - 8 * stride - 8, stride,
+            frame->plane[0] - 8 * stride - 8, stride,
+            stride - 48, frame->i_lines[0] + 16);
+    }
+    else
+    {
+#else
+    {
+#endif
+        for( y = -8; y < frame->i_lines[0]+8; y += y_inc )
         {
-            int_h(  p_in, stride, p_h,  stride, x_inc, y_inc );
-            int_v(  p_in, stride, p_v,  stride, x_inc, y_inc );
-            int_hv( p_in, stride, p_hv, stride, x_inc, y_inc );
+            uint8_t *p_in = frame->plane[0] + y * stride - 8;
+            uint8_t *p_h  = frame->filtered[1] + y * stride - 8;
+            uint8_t *p_v  = frame->filtered[2] + y * stride - 8;
+            uint8_t *p_hv = frame->filtered[3] + y * stride - 8;
+            for( x = -8; x < stride - 64 + 8; x += x_inc )
+            {
+                int_h(  p_in, stride, p_h,  stride, x_inc, y_inc );
+                int_v(  p_in, stride, p_v,  stride, x_inc, y_inc );
+                int_hv( p_in, stride, p_hv, stride, x_inc, y_inc );
 
-            p_h += x_inc;
-            p_v += x_inc;
-            p_hv += x_inc;
-            p_in += x_inc;
+                p_h += x_inc;
+                p_v += x_inc;
+                p_hv += x_inc;
+                p_in += x_inc;
+            }
         }
     }
 }
