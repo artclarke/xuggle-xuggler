@@ -77,6 +77,8 @@ cglobal x264_mc_copy_w8_mmxext
 cglobal x264_mc_copy_w16_mmxext
 cglobal x264_mc_copy_w16_sse2
 
+cglobal x264_mc_chroma_sse
+
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
@@ -391,4 +393,97 @@ ALIGN 4
     pop     edi
     pop     esi
     pop     ebx
+    ret
+
+
+SECTION .rodata
+
+ALIGN 16
+eights    times 4   dw 8
+thirty2s  times 4   dw 32
+
+SECTION .text
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   void x264_mc_chroma_sse( uint8_t *src, int i_src_stride,
+;                               uint8_t *dst, int i_dst_stride,
+;                               int dx, int dy,
+;                               int i_height, int i_width )
+;-----------------------------------------------------------------------------
+
+x264_mc_chroma_sse:
+
+    pxor    mm3, mm3
+
+    pshufw  mm5, [esp+20], 0    ; mm5 - dx
+    pshufw  mm6, [esp+24], 0    ; mm6 - dy
+
+    movq    mm4, [eights]
+    movq    mm0, mm4
+
+    psubw   mm4, mm5            ; mm4 - 8-dx
+    psubw   mm0, mm6            ; mm0 - 8-dy
+
+    movq    mm7, mm5
+    pmullw  mm5, mm0            ; mm5 = dx*(8-dy) =     cB
+    pmullw  mm7, mm6            ; mm7 = dx*dy =         cD
+    pmullw  mm6, mm4            ; mm6 = (8-dx)*dy =     cC
+    pmullw  mm4, mm0            ; mm4 = (8-dx)*(8-dy) = cA
+
+    push    edi
+
+    mov     eax, [esp+4+4]     ; src
+    mov     edi, [esp+4+12]    ; dst
+    mov     ecx, [esp+4+8]     ; i_src_stride
+    mov     edx, [esp+4+28]    ; i_height
+
+ALIGN 4
+.height_loop
+
+    movd    mm1, [eax+ecx]
+    movd    mm0, [eax]
+    punpcklbw mm1, mm3          ; 00 px1 | 00 px2 | 00 px3 | 00 px4
+    punpcklbw mm0, mm3
+    pmullw  mm1, mm6            ; 2nd line * cC
+    pmullw  mm0, mm4            ; 1st line * cA
+
+    paddw   mm0, mm1            ; mm0 <- result
+
+    movd    mm2, [eax+1]
+    movd    mm1, [eax+ecx+1]
+    punpcklbw mm2, mm3
+    punpcklbw mm1, mm3
+
+    paddw   mm0, [thirty2s]
+
+    pmullw  mm2, mm5            ; line * cB
+    pmullw  mm1, mm7            ; line * cD
+    paddw   mm0, mm2
+    paddw   mm0, mm1
+
+    psrlw   mm0, 6
+    packuswb mm0, mm3           ; 00 00 00 00 px1 px2 px3 px4
+    movd    [edi], mm0
+
+    add     eax, ecx
+    add     edi, [esp+4+16]
+
+    dec     edx
+    jnz     .height_loop
+
+    mov     eax, [esp+4+32]
+    sub     eax, 8
+    jnz     .finish              ; width != 8 so assume 4
+
+    mov     [esp+4+32], eax
+    mov     edi, [esp+4+12]    ; dst
+    mov     eax, [esp+4+4]     ; src
+    mov     edx, [esp+4+28]    ; i_height
+    add     edi, 4
+    add     eax, 4
+    jmp    .height_loop
+
+.finish
+    pop     edi
     ret

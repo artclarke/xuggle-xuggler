@@ -27,4 +27,8 @@
 void x264_mc_mmxext_init( x264_mc_functions_t *pf );
 void x264_mc_sse2_init( x264_mc_functions_t *pf );
 
+void x264_mc_chroma_sse( uint8_t *src, int i_src_stride,
+                         uint8_t *dst, int i_dst_stride,
+                         int dx, int dy,
+                         int i_height, int i_width );
 #endif
