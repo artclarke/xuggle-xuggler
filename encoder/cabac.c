@@ -510,13 +510,13 @@ static inline void x264_cabac_mb_sub_b_partition( x264_t *h, int i_sub )
     {
         x264_cabac_encode_decision( &h->cabac, 36, 1 );
         x264_cabac_encode_decision( &h->cabac, 37, 0 );
-        x264_cabac_encode_decision( &h->cabac, 38, 0 );
+        x264_cabac_encode_decision( &h->cabac, 39, 0 );
     }
     else if( i_sub == D_L1_8x8 )
     {
         x264_cabac_encode_decision( &h->cabac, 36, 1 );
         x264_cabac_encode_decision( &h->cabac, 37, 0 );
-        x264_cabac_encode_decision( &h->cabac, 38, 1 );
+        x264_cabac_encode_decision( &h->cabac, 39, 1 );
     }
     else if( i_sub == D_BI_8x8 )
     {
