@@ -124,6 +124,8 @@ typedef struct
         unsigned int intra;     /* intra flags */
         unsigned int inter;     /* inter flags */
 
+        int          i_subpel_refine; /* subpixel motion estimation quality */
+
         int          b_psnr;    /* Do we compute PSNR stats (save a few % of cpu) */
     } analyse;
 

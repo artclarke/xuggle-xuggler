@@ -132,6 +132,7 @@ static void Help( void )
              "                                  - i4x4\n"
              "                                  - psub16x16,psub8x8\n"
              "                                  - none, all\n"
+             "      --subme <integer>       Subpixel motion estimation quality\n"
              "\n"
              "  -s, --sar width:height      Specify Sample Aspect Ratio\n"
              "  -o, --output                Specify output file\n"
@@ -176,6 +177,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_QCOMP 266
 #define OPT_NOPSNR 267
 #define OPT_QUIET 268
+#define OPT_SUBME 269
 
         static struct option long_options[] =
         {
@@ -196,6 +198,7 @@ static int  Parse( int argc, char **argv,
             { "sar",     required_argument, NULL, 's' },
             { "output",  required_argument, NULL, 'o' },
             { "analyse", required_argument, NULL, 'A' },
+            { "subme",   required_argument, NULL, OPT_SUBME },
             { "rcsens",  required_argument, NULL, OPT_RCSENS },
             { "rcbuf",   required_argument, NULL, OPT_RCBUF },
             { "rcinitbuf",required_argument, NULL, OPT_RCIBUF },
@@ -303,6 +306,9 @@ static int  Parse( int argc, char **argv,
                 if( strstr( optarg, "i4x4" ) )      param->analyse.inter |= X264_ANALYSE_I4x4;
                 if( strstr( optarg, "psub16x16" ) ) param->analyse.inter |= X264_ANALYSE_PSUB16x16;
                 if( strstr( optarg, "psub8x8" ) )   param->analyse.inter |= X264_ANALYSE_PSUB8x8;
+                break;
+            case OPT_SUBME:
+                param->analyse.i_subpel_refine = atoi(optarg);
                 break;
             case OPT_RCBUF:
                 param->rc.i_rc_buffer_size = atoi(optarg);

@@ -347,6 +347,11 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->param.i_cabac_init_idc = x264_clip3( h->param.i_cabac_init_idc, -1, 2 );
 
+    if( param->analyse.i_subpel_refine < 0 )
+	param->analyse.i_subpel_refine = 0;
+    if( param->analyse.i_subpel_refine > 5 )
+	param->analyse.i_subpel_refine = 5;
+
     /* VUI */
     if( h->param.vui.i_sar_width > 0 && h->param.vui.i_sar_height > 0 )
     {

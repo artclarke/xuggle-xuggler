@@ -28,6 +28,20 @@
 #include "../core/common.h"
 #include "me.h"
 
+/* presets selected from good points on the speed-vs-quality curve of several test videos
+ * subpel_iters[i_subpel_refine] = { refine_hpel, refine_qpel, me_hpel, me_qpel }
+ * where me_* are the number of EPZS iterations run on all candidate block types,
+ * and refine_* are run only on the winner. */
+const static int subpel_iterations[][4] = 
+   {{1,0,0,0},
+    {1,1,0,0},
+    {1,2,0,0},
+    {0,2,1,0},
+    {0,2,1,1},
+    {0,2,1,2}};
+
+static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters );
+
 void x264_me_search( x264_t *h, x264_me_t *m )
 {
     const int i_pixel = m->i_pixel;
@@ -35,6 +49,7 @@ void x264_me_search( x264_t *h, x264_me_t *m )
     int bmx, bmy;
     uint8_t *p_fref = m->p_fref;
     int i_iter;
+    int hpel, qpel;
 
 
     /* init with mvp */
@@ -118,9 +133,22 @@ void x264_me_search( x264_t *h, x264_me_t *m )
     m->cost = h->pixf.satd[i_pixel]( m->p_fenc, m->i_stride, p_fref, m->i_stride ) +
                 m->lm * ( bs_size_se( m->mv[0] - m->mvp[0] ) +
                           bs_size_se( m->mv[1] - m->mvp[1] ) );
+
+    hpel = subpel_iterations[h->param.analyse.i_subpel_refine][2];
+    qpel = subpel_iterations[h->param.analyse.i_subpel_refine][3];
+    if( hpel || qpel )
+	refine_subpel( h, m, hpel, qpel );
 }
 
 void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
+{
+    int hpel = subpel_iterations[h->param.analyse.i_subpel_refine][0];
+    int qpel = subpel_iterations[h->param.analyse.i_subpel_refine][1];
+    if( hpel || qpel )
+	refine_subpel( h, m, hpel, qpel );
+}
+
+static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters )
 {
     const int bw = x264_pixel_size[m->i_pixel].w;
     const int bh = x264_pixel_size[m->i_pixel].h;
@@ -128,66 +156,47 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
     DECLARE_ALIGNED( uint8_t, pix[4][16*16], 16 );
     int cost[4];
     int best;
+    int step, i;
 
     int bmx = m->mv[0];
     int bmy = m->mv[1];
 
-    h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[0], 16, bmx + 0, bmy - 2, bw, bh );
-    h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[1], 16, bmx + 0, bmy + 2, bw, bh );
-    h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[2], 16, bmx - 2, bmy + 0, bw, bh );
-    h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[3], 16, bmx + 2, bmy + 0, bw, bh );
-
-    cost[0] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[0], 16 ) +
-              m->lm * ( bs_size_se( bmx + 0 - m->mvp[0] ) + bs_size_se( bmy - 2 - m->mvp[1] ) );
-    cost[1] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[1], 16 ) +
-              m->lm * ( bs_size_se( bmx + 0 - m->mvp[0] ) + bs_size_se( bmy + 2 - m->mvp[1] ) );
-    cost[2] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[2], 16 ) +
-              m->lm * ( bs_size_se( bmx - 2 - m->mvp[0] ) + bs_size_se( bmy + 0 - m->mvp[1] ) );
-    cost[3] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[3], 16 ) +
-              m->lm * ( bs_size_se( bmx + 2 - m->mvp[0] ) + bs_size_se( bmy + 0 - m->mvp[1] ) );
-
-    best = 0;
-    if( cost[1] < cost[0] )    best = 1;
-    if( cost[2] < cost[best] ) best = 2;
-    if( cost[3] < cost[best] ) best = 3;
-
-    if( cost[best] < m->cost )
+    for( step = 2; step >= 1; step-- )
     {
-        m->cost = cost[best];
-        if( best == 0 )      bmy -= 2;
-        else if( best == 1 ) bmy += 2;
-        else if( best == 2 ) bmx -= 2;
-        else if( best == 3 ) bmx += 2;
-    }
-
-    h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[0], 16, bmx + 0, bmy - 1, bw, bh );
-    h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[1], 16, bmx + 0, bmy + 1, bw, bh );
-    h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[2], 16, bmx - 1, bmy + 0, bw, bh );
-    h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[3], 16, bmx + 1, bmy + 0, bw, bh );
-
-    cost[0] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[0], 16 ) +
-              m->lm * ( bs_size_se( bmx + 0 - m->mvp[0] ) + bs_size_se( bmy - 1 - m->mvp[1] ) );
-    cost[1] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[1], 16 ) +
-              m->lm * ( bs_size_se( bmx + 0 - m->mvp[0] ) + bs_size_se( bmy + 1 - m->mvp[1] ) );
-    cost[2] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[2], 16 ) +
-              m->lm * ( bs_size_se( bmx - 1 - m->mvp[0] ) + bs_size_se( bmy + 0 - m->mvp[1] ) );
-    cost[3] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[3], 16 ) +
-              m->lm * ( bs_size_se( bmx + 1 - m->mvp[0] ) + bs_size_se( bmy + 0 - m->mvp[1] ) );
-
-    best = 0;
-    if( cost[1] < cost[0] )    best = 1;
-    if( cost[2] < cost[best] ) best = 2;
-    if( cost[3] < cost[best] ) best = 3;
-
-    if( cost[best] < m->cost )
-    {
-        m->cost = cost[best];
-        if( best == 0 )      bmy--;
-        else if( best == 1 ) bmy++;
-        else if( best == 2 ) bmx--;
-        else if( best == 3 ) bmx++;
+	for( i = step>1 ? hpel_iters : qpel_iters; i > 0; i-- )
+        {
+            h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[0], 16, bmx + 0, bmy - step, bw, bh );
+            h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[1], 16, bmx + 0, bmy + step, bw, bh );
+            h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[2], 16, bmx - step, bmy + 0, bw, bh );
+            h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[3], 16, bmx + step, bmy + 0, bw, bh );
+    
+            cost[0] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[0], 16 ) +
+                      m->lm * ( bs_size_se( bmx + 0 - m->mvp[0] ) + bs_size_se( bmy - step - m->mvp[1] ) );
+            cost[1] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[1], 16 ) +
+                      m->lm * ( bs_size_se( bmx + 0 - m->mvp[0] ) + bs_size_se( bmy + step - m->mvp[1] ) );
+            cost[2] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[2], 16 ) +
+                      m->lm * ( bs_size_se( bmx - step - m->mvp[0] ) + bs_size_se( bmy + 0 - m->mvp[1] ) );
+            cost[3] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[3], 16 ) +
+                      m->lm * ( bs_size_se( bmx + step - m->mvp[0] ) + bs_size_se( bmy + 0 - m->mvp[1] ) );
+    
+            best = 0;
+            if( cost[1] < cost[0] )    best = 1;
+            if( cost[2] < cost[best] ) best = 2;
+            if( cost[3] < cost[best] ) best = 3;
+    
+            if( cost[best] < m->cost )
+            {
+                m->cost = cost[best];
+                if( best == 0 )      bmy -= step;
+                else if( best == 1 ) bmy += step;
+                else if( best == 2 ) bmx -= step;
+                else if( best == 3 ) bmx += step;
+            }
+            else break;
+	}
     }
 
     m->mv[0] = bmx;
     m->mv[1] = bmy;
 }
+

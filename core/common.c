@@ -96,6 +96,7 @@ void    x264_param_default( x264_param_t *param )
     /* */
     param->analyse.intra = X264_ANALYSE_I4x4;
     param->analyse.inter = X264_ANALYSE_I4x4 | X264_ANALYSE_PSUB16x16;
+    param->analyse.i_subpel_refine = 1;
     param->analyse.b_psnr = 1;
 }
 
