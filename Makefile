@@ -6,11 +6,11 @@
 #SYS_MACOSX=1
 
 SRCS_COMMON= core/mc.c core/predict.c core/pixel.c core/macroblock.c \
-    	     core/frame.c core/dct.c core/cpu.c core/cabac.c \
-      		 core/common.c core/mdate.c core/csp.c \
-      		 encoder/analyse.c encoder/me.c encoder/ratecontrol.c \
-      		 encoder/set.c encoder/macroblock.c encoder/cabac.c \
-			 encoder/cavlc.c encoder/encoder.c encoder/eval.c x264.c
+             core/frame.c core/dct.c core/cpu.c core/cabac.c \
+             core/common.c core/mdate.c core/csp.c \
+             encoder/analyse.c encoder/me.c encoder/ratecontrol.c \
+             encoder/set.c encoder/macroblock.c encoder/cabac.c \
+             encoder/cavlc.c encoder/encoder.c encoder/eval.c x264.c
 
 ifdef SYS_MACOSX
 PFLAGS=-DARCH_PPC -DSYS_MACOSX -faltivec
