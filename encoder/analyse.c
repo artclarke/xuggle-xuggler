@@ -74,6 +74,9 @@ typedef struct
 
 
     /* I: Intra part */
+    /* Take some shortcuts in intra search if intra is deemed unlikely */
+    int b_fast_intra;
+
     /* Luma part 16x16 and 4x4 modes stats */
     int i_sad_i16x16;
     int i_predict16x16;
@@ -169,6 +172,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     h->mb.i_subpel_refine = h->param.analyse.i_subpel_refine;
     h->mb.b_chroma_me = h->param.analyse.b_chroma_me && h->sh.i_type == SLICE_TYPE_P
                         && h->mb.i_subpel_refine >= 5;
+    a->b_fast_intra = 0;
 
     /* I: Intra part */
     a->i_sad_i16x16 =
@@ -229,6 +233,23 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
             a->i_cost8x8bi     =
             a->i_cost16x8bi    =
             a->i_cost8x16bi    = COST_MAX;
+        }
+
+        /* Fast intra decision */
+        if( h->mb.i_mb_xy > 4 )
+        {
+            const unsigned int i_neighbour = h->mb.i_neighbour;
+            if(   ((i_neighbour&MB_LEFT) && IS_INTRA( h->mb.type[h->mb.i_mb_xy - 1] ))
+               || ((i_neighbour&MB_TOP) && IS_INTRA( h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride] ))
+               || (((i_neighbour&(MB_TOP|MB_LEFT)) == (MB_TOP|MB_LEFT)) && IS_INTRA( h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride-1 ] ))
+               || ((i_neighbour&MB_TOPRIGHT) && IS_INTRA( h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride+1 ] ))
+               || (h->sh.i_type == SLICE_TYPE_P && IS_INTRA( h->fref0[0]->mb_type[h->mb.i_mb_xy] ))
+               || (h->mb.i_mb_xy < 3*(h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_16x16])) )
+            { /* intra is likely */ }
+            else
+            {
+                a->b_fast_intra = 1;
+            }
         }
     }
 }
@@ -368,7 +389,7 @@ static void predict_4x4_mode_available( unsigned int i_neighbour, int idx, int *
     }
 }
 
-static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *res )
+static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *res, int i_cost_inter )
 {
     const unsigned int flags = h->sh.i_type == SLICE_TYPE_I ? h->param.analyse.intra : h->param.analyse.inter;
     const int i_stride = h->mb.pic.i_stride[0];
@@ -407,6 +428,12 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *res )
     /* cavlc mb type prefix */
     if( h->sh.i_type == SLICE_TYPE_B )
         res->i_sad_i16x16 += res->i_lambda * i_mb_b_cost_table[I_16x16];
+
+    if( res->b_fast_intra )
+    {
+        if( res->i_sad_i16x16 > 2*i_cost_inter )
+            return;
+    }
 
     /* 4x4 prediction selection */
     if( flags & X264_ANALYSE_I4x4 )
@@ -1289,7 +1316,7 @@ void x264_macroblock_analyse( x264_t *h )
     /*--------------------------- Do the analysis ---------------------------*/
     if( h->sh.i_type == SLICE_TYPE_I )
     {
-        x264_mb_analyse_intra( h, &analysis );
+        x264_mb_analyse_intra( h, &analysis, COST_MAX );
 
         if( analysis.i_sad_i4x4 < analysis.i_sad_i16x16 )
             h->mb.i_type = I_4x4;
@@ -1462,7 +1489,7 @@ void x264_macroblock_analyse( x264_t *h )
                 }
             }
 
-            x264_mb_analyse_intra( h, &analysis );
+            x264_mb_analyse_intra( h, &analysis, i_cost );
             if( h->mb.b_chroma_me &&
                 ( analysis.i_sad_i16x16 < i_cost
              || ( analysis.i_sad_i4x4 < i_cost )))
@@ -1656,7 +1683,7 @@ void x264_macroblock_analyse( x264_t *h )
             }
 
             /* best intra mode */
-            x264_mb_analyse_intra( h, &analysis );
+            x264_mb_analyse_intra( h, &analysis, i_cost );
 
             if( analysis.i_sad_i16x16 < i_cost )
             {
