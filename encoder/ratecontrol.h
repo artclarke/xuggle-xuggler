@@ -24,29 +24,13 @@
 #ifndef _RATECONTROL_H
 #define _RATECONTROL_H 1
 
-struct x264_ratecontrol_t
-{
-    float fps;
-    int   i_iframe;
+int  x264_ratecontrol_new   ( x264_t * );
+void x264_ratecontrol_delete( x264_t * );
 
-    int i_bitrate;
-    int i_qp_last;
-    int i_qp;
-
-    int i_slice_type;
-
-    int     i_frames;
-    int64_t i_size;
-
-};
-
-
-x264_ratecontrol_t *x264_ratecontrol_new   ( x264_param_t * );
-void                x264_ratecontrol_delete( x264_ratecontrol_t * );
-
-void x264_ratecontrol_start( x264_ratecontrol_t *, int i_slice_type );
-int  x264_ratecontrol_qp( x264_ratecontrol_t * );
-void x264_ratecontrol_end( x264_ratecontrol_t *, int bits );
+void x264_ratecontrol_start( x264_t *, int i_slice_type );
+void x264_ratecontrol_mb( x264_t *, int bits );
+int  x264_ratecontrol_qp( x264_t * );
+void x264_ratecontrol_end( x264_t *, int bits );
 
 #endif
 

@@ -36,7 +36,7 @@
 #include "macroblock.h"
 
 //#define DEBUG_MB_TYPE
-#define DEBUG_DUMP_FRAME 1
+#define DEBUG_DUMP_FRAME 0
 
 static int64_t i_mtime_encode_frame = 0;
 
@@ -396,7 +396,10 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     x264_csp_init( h->param.cpu, h->param.i_csp, &h->csp );
 
     /* rate control */
-    h->rc = x264_ratecontrol_new( &h->param );
+    x264_ratecontrol_new( h );
+
+    h->i_last_intra_size = 0;
+    h->i_last_inter_size = 0;
 
     /* stat */
     h->stat.i_slice_count[SLICE_TYPE_I] = 0;
@@ -676,6 +679,8 @@ static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_id
         const int i_mb_y = mb_xy / h->sps->i_mb_width;
         const int i_mb_x = mb_xy % h->sps->i_mb_width;
 
+        int mb_spos = bs_pos(&h->out.bs);
+
         /* load cache */
         x264_macroblock_cache_load( h, i_mb_x, i_mb_y );
 
@@ -741,6 +746,8 @@ static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_id
         x264_macroblock_cache_save( h );
 
         i_mb_count[h->mb.i_type]++;
+
+        x264_ratecontrol_mb(h, bs_pos(&h->out.bs) - mb_spos);
     }
 
     if( h->param.b_cabac )
@@ -878,20 +885,6 @@ int     x264_encoder_encode( x264_t *h,
         }
 
         fenc->i_poc = h->i_poc;
-        if( fenc->i_type == X264_TYPE_IDR )
-        {
-            h->frames.i_last_idr = 0;
-            h->frames.i_last_i = 0;
-        }
-        else if( fenc->i_type == X264_TYPE_I )
-        {
-            h->frames.i_last_idr++;
-            h->frames.i_last_i = 0;
-        }
-        else
-        {
-            h->frames.i_last_i++;
-        }
 
         /* 3: Update current/next */
         if( fenc->i_type == X264_TYPE_B )
@@ -941,6 +934,23 @@ int     x264_encoder_encode( x264_t *h,
     }
     x264_frame_put( h->frames.unused, h->fenc );  /* Safe to do it now, we don't use frames.unused for the rest */
 
+do_encode:
+
+    if( h->fenc->i_type == X264_TYPE_IDR )
+    {
+        h->frames.i_last_idr = 0;
+        h->frames.i_last_i = 0;
+    }
+    else if( h->fenc->i_type == X264_TYPE_I )
+    {
+        h->frames.i_last_idr++;
+        h->frames.i_last_i = 0;
+    }
+    else
+    {
+        h->frames.i_last_i++;
+    }
+
     /* ------------------- Setup frame context ----------------------------- */
     /* 5: Init data dependant of frame type */
     TIMER_START( i_mtime_encode_frame );
@@ -980,8 +990,8 @@ int     x264_encoder_encode( x264_t *h,
 
     /* ------------------- Init                ----------------------------- */
     /* Init the rate control */
-    x264_ratecontrol_start( h->rc, i_slice_type );
-    i_global_qp = x264_ratecontrol_qp( h->rc );
+    x264_ratecontrol_start( h, i_slice_type );
+    i_global_qp = x264_ratecontrol_qp( h );
     if( h->fenc->i_qpplus1 > 0 )
     {
         i_global_qp = x264_clip3( h->fenc->i_qpplus1 - 1, 0, 51 );
@@ -1021,6 +1031,59 @@ int     x264_encoder_encode( x264_t *h,
     /* Write the slice */
     x264_slice_write( h, i_nal_type, i_nal_ref_idc, i_mb_count );
 
+#if 1
+    if( i_slice_type != SLICE_TYPE_I)
+    {
+        /* Bad P will be reencoded as I */
+        if( i_slice_type == SLICE_TYPE_P &&
+            h->out.nal[h->out.i_nal-1].i_payload > h->i_last_intra_size +
+            h->i_last_intra_size * (3+h->i_last_intra_qp - i_global_qp) / 16 &&
+            i_mb_count[I_4x4] + i_mb_count[I_16x16] > i_mb_count[P_SKIP] + i_mb_count[P_L0]/2 &&
+            h->out.nal[h->out.i_nal-1].i_payload > 2 * h->i_last_inter_size &&
+            h->frames.i_last_i > 4)
+        {
+
+            fprintf( stderr, "scene cut at %d size=%d last I:%d last P:%d Intra:%d Skip:%d PL0:%d\n",
+                     h->i_frame - 1,
+                     h->out.nal[h->out.i_nal-1].i_payload,
+                      h->i_last_intra_size, h->i_last_inter_size,
+                     i_mb_count[I_4x4] + i_mb_count[I_16x16],
+                     i_mb_count[P_SKIP],
+                     i_mb_count[P_L0] );
+
+            /* Restore frame num */
+            h->i_frame_num--;
+
+            /* Do IDR if needed and if we can (won't work with B frames) */
+            if( h->frames.next[0] == NULL &&
+                h->frames.i_last_idr + 1 >= h->param.i_idrframe )
+            {
+                /* Reset */
+                h->i_poc       = 0;
+                h->i_frame_num = 0;
+
+                /* Reinit field of fenc */
+                h->fenc->i_type = X264_TYPE_IDR;
+                h->fenc->i_poc = h->i_poc;
+
+                /* Next Poc */
+                h->i_poc += 2;
+            }
+            else
+            {
+                h->fenc->i_type = X264_TYPE_I;
+            }
+            goto do_encode;
+        }
+        h->i_last_inter_size = h->out.nal[h->out.i_nal-1].i_payload;
+    }
+    else
+    {
+        h->i_last_intra_size = h->out.nal[h->out.i_nal-1].i_payload;
+        h->i_last_intra_qp = i_global_qp;
+    }
+#endif
+
     /* End bitstream, set output  */
     *pi_nal = h->out.i_nal;
     *pp_nal = &h->out.nal[0];
@@ -1050,11 +1113,11 @@ int     x264_encoder_encode( x264_t *h,
     /* increase frame count */
     h->i_frame++;
 
-    /* update rc */
-    x264_ratecontrol_end( h->rc, h->out.nal[h->out.i_nal-1].i_payload * 8 );
-
     /* restore CPU state (before using float again) */
     x264_cpu_restore( h->param.cpu );
+
+    /* update rc */
+    x264_ratecontrol_end( h, h->out.nal[h->out.i_nal-1].i_payload * 8 );
 
     TIMER_STOP( i_mtime_encode_frame );
 
@@ -1077,8 +1140,9 @@ int     x264_encoder_encode( x264_t *h,
     }
 
     /* print stat */
-    fprintf( stderr, "frame=%4d NAL=%d Slice:%c Poc:%-3d I4x4:%-5d I16x16:%-5d P:%-5d SKIP:%-3d size=%d bytes PSNR Y:%2.2f U:%2.2f V:%2.2f\n",
+    fprintf( stderr, "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I4x4:%-5d I16x16:%-5d P:%-5d SKIP:%-3d size=%d bytes PSNR Y:%2.2f U:%2.2f V:%2.2f\n",
              h->i_frame - 1,
+             i_global_qp,
              i_nal_ref_idc,
              i_slice_type == SLICE_TYPE_I ? 'I' : (i_slice_type == SLICE_TYPE_P ? 'P' : 'B' ),
              frame_psnr->i_poc,
@@ -1225,7 +1289,7 @@ void    x264_encoder_close  ( x264_t *h )
     }
 
     /* rc */
-    x264_ratecontrol_delete( h->rc );
+    x264_ratecontrol_delete( h );
 
     x264_macroblock_cache_end( h );
     x264_free( h->out.p_bitstream );

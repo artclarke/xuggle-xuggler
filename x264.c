@@ -111,8 +111,15 @@ static void Help( void )
              "  -r, --ref <integer>         Number of references\n"
              "  -n, --nf                    Disable loop filter\n"
              "  -f, --filter <alpha:beta>   Loop filter AplhaCO and Beta parameters\n"
+             "\n"
              "  -q, --qp <integer>          Set QP\n"
-             "  -B, --bitrate <integer>     Set bitrate [broken]\n"
+             "  -B, --bitrate <integer>     Set bitrate\n"
+             "      --qpmin <integer>       Set min QP\n"
+             "      --qpmax <integer>       Set max QP\n"
+             "      --qpstep <integer>      Set max QP step\n"
+             "      --rcsens <integer>      RC sensitivity\n"
+             "      --rcbuf <integer>       Size of VBV buffer\n"
+             "      --rcinitbuf <integer>   Initial VBV buffer occupancy\n"
              "\n"
              "  -A, --analyse <string>      Analyse options:\n"
              "                                  - i4x4\n"
@@ -147,6 +154,14 @@ static int  Parse( int argc, char **argv,
     for( ;; )
     {
         int long_options_index;
+#define OPT_QPMIN 256
+#define OPT_QPMAX 257
+#define OPT_QPSTEP 258
+#define OPT_RCSENS 259
+#define OPT_IPRATIO 260
+#define OPT_PBRATIO 261
+#define OPT_RCBUF 262
+#define OPT_RCIBUF 263
         static struct option long_options[] =
         {
             { "help",    no_argument,       NULL, 'h' },
@@ -158,11 +173,19 @@ static int  Parse( int argc, char **argv,
             { "filter",  required_argument, NULL, 'f' },
             { "cabac",   no_argument,       NULL, 'c' },
             { "qp",      required_argument, NULL, 'q' },
+            { "qpmin",   required_argument, NULL, OPT_QPMIN },
+            { "qpmax",   required_argument, NULL, OPT_QPMAX },
+            { "qpstep",  required_argument, NULL, OPT_QPSTEP },
             { "ref",     required_argument, NULL, 'r' },
             { "no-asm",  no_argument,       NULL, 'C' },
             { "sar",     required_argument, NULL, 's' },
             { "output",  required_argument, NULL, 'o' },
             { "analyse", required_argument, NULL, 'A' },
+            { "rcsens",  required_argument, NULL, OPT_RCSENS },
+            { "rcbuf",   required_argument, NULL, OPT_RCBUF },
+            { "rcinitbuf",required_argument, NULL, OPT_RCIBUF },
+            { "ipratio", required_argument, NULL, OPT_IPRATIO },
+            { "pbratio", required_argument, NULL, OPT_PBRATIO },
             {0, 0, 0, 0}
         };
 
@@ -186,6 +209,7 @@ static int  Parse( int argc, char **argv,
                 break;
             case 'B':
                 param->i_bitrate = atol( optarg );
+                param->b_cbr = 1;
                 break;
             case 'b':
                 param->i_bframe = atol( optarg );
@@ -211,6 +235,15 @@ static int  Parse( int argc, char **argv,
             }
             case 'q':
                 param->i_qp_constant = atoi( optarg );
+                break;
+            case OPT_QPMIN:
+                param->i_qp_min = atoi( optarg );
+                break;
+            case OPT_QPMAX:
+                param->i_qp_max = atoi( optarg );
+                break;
+            case OPT_QPSTEP:
+                param->i_qp_step = atoi( optarg );
                 break;
             case 'r':
                 param->i_frame_reference = atoi( optarg );
@@ -250,7 +283,21 @@ static int  Parse( int argc, char **argv,
                 if( strstr( optarg, "psub16x16" ) ) param->analyse.inter |= X264_ANALYSE_PSUB16x16;
                 if( strstr( optarg, "psub8x8" ) )   param->analyse.inter |= X264_ANALYSE_PSUB8x8;
                 break;
-
+            case OPT_RCBUF:
+                param->i_rc_buffer_size = atoi(optarg);
+                break;
+            case OPT_RCIBUF:
+                param->i_rc_init_buffer = atoi(optarg);
+                break;
+            case OPT_RCSENS:
+                param->i_rc_sens = atoi(optarg);
+                break;
+            case OPT_IPRATIO:
+                param->f_ip_factor = atoi(optarg);
+                break;
+            case OPT_PBRATIO:
+                param->f_pb_factor = atoi(optarg);
+                break;
             default:
                 fprintf( stderr, "unknown option (%c)\n", optopt );
                 return -1;

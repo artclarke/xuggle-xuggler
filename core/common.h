@@ -314,6 +314,10 @@ struct x264_t
     /* rate control encoding only */
     x264_ratecontrol_t *rc;
 
+    int i_last_inter_size;
+    int i_last_intra_size;
+    int i_last_intra_qp;
+
     /* stats */
     struct
     {

@@ -30,6 +30,7 @@
 #include "../core/macroblock.h"
 #include "macroblock.h"
 #include "me.h"
+#include "ratecontrol.h"
 
 typedef struct
 {
@@ -846,8 +847,7 @@ void x264_macroblock_analyse( x264_t *h )
     x264_mb_analysis_t analysis;
     int i;
 
-    /* qp TODO implement a nice RC */
-    h->mb.qp[h->mb.i_mb_xy] = x264_clip3( h->pps->i_pic_init_qp + h->sh.i_qp_delta + 0, 0, 51 );
+    h->mb.qp[h->mb.i_mb_xy] = x264_ratecontrol_qp(h);
 
     /* FIXME check if it's 12 */
     if( h->mb.qp[h->mb.i_mb_xy] - h->mb.i_last_qp < -12 )

@@ -104,7 +104,17 @@ typedef struct
     int         i_cabac_init_idc;
 
     int         i_qp_constant;  /* 1-51 */
-    int         i_bitrate;      /* not working yet */
+    int         i_qp_min;       /* min allowed QP value */
+    int         i_qp_max;       /* max allowed QP value */
+    int         i_qp_step;      /* max QP step between frames */
+
+    int         b_cbr;          /* constant bitrate */
+    int         i_bitrate;
+    int         i_rc_buffer_size;
+    int         i_rc_init_buffer;
+    int         i_rc_sens;      /* rate control sensitivity */
+    float       f_ip_factor;
+    float       f_pb_factor;
 
     /* Encoder analyser parameters */
     struct
