@@ -44,6 +44,38 @@ static const uint8_t block_idx_xy[4][4] =
     { 5, 7, 13, 15}
 };
 
+static inline void x264_cabac_mb_type_intra( x264_t *h, int i_mb_type,
+                    int ctx0, int ctx1, int ctx2, int ctx3, int ctx4, int ctx5 )
+{
+    if( i_mb_type == I_4x4 )
+    {
+        x264_cabac_encode_decision( &h->cabac, ctx0, 0 );
+    }
+    else if( i_mb_type == I_PCM )
+    {
+        x264_cabac_encode_decision( &h->cabac, ctx0, 1 );
+        x264_cabac_encode_terminal( &h->cabac,       1 );
+    }
+    else
+    {
+        x264_cabac_encode_decision( &h->cabac, ctx0, 1 );
+        x264_cabac_encode_terminal( &h->cabac,       0 );
+
+        x264_cabac_encode_decision( &h->cabac, ctx1, ( h->mb.i_cbp_luma == 0 ? 0 : 1 ));
+        if( h->mb.i_cbp_chroma == 0 )
+        {
+            x264_cabac_encode_decision( &h->cabac, ctx2, 0 );
+        }
+        else
+        {
+            x264_cabac_encode_decision( &h->cabac, ctx2, 1 );
+            x264_cabac_encode_decision( &h->cabac, ctx3, ( h->mb.i_cbp_chroma == 1 ? 0 : 1 ) );
+        }
+        x264_cabac_encode_decision( &h->cabac, ctx4, ( (h->mb.i_intra16x16_pred_mode / 2) ? 1 : 0 ));
+        x264_cabac_encode_decision( &h->cabac, ctx5, ( (h->mb.i_intra16x16_pred_mode % 2) ? 1 : 0 ));
+    }
+}
+
 static void x264_cabac_mb_type( x264_t *h )
 {
     const int i_mb_type = h->mb.i_type;
@@ -60,33 +92,7 @@ static void x264_cabac_mb_type( x264_t *h )
             ctx++;
         }
 
-        if( i_mb_type == I_4x4 )
-        {
-            x264_cabac_encode_decision( &h->cabac, 3 + ctx, 0 );
-        }
-        else if( i_mb_type == I_PCM )
-        {
-            x264_cabac_encode_decision( &h->cabac, 3 + ctx, 1 );
-            x264_cabac_encode_terminal( &h->cabac, 1 );
-        }
-        else    /* I_16x16 */
-        {
-            x264_cabac_encode_decision( &h->cabac, 3 + ctx, 1 );
-            x264_cabac_encode_terminal( &h->cabac, 0 );
-
-            x264_cabac_encode_decision( &h->cabac, 3 + 3, ( h->mb.i_cbp_luma == 0 ? 0 : 1 ));
-            if( h->mb.i_cbp_chroma == 0 )
-            {
-                x264_cabac_encode_decision( &h->cabac, 3 + 4, 0 );
-            }
-            else
-            {
-                x264_cabac_encode_decision( &h->cabac, 3 + 4, 1 );
-                x264_cabac_encode_decision( &h->cabac, 3 + 5, ( h->mb.i_cbp_chroma == 1 ? 0 : 1 ) );
-            }
-            x264_cabac_encode_decision( &h->cabac, 3 + 6, ( (h->mb.i_intra16x16_pred_mode / 2) ? 1 : 0 ));
-            x264_cabac_encode_decision( &h->cabac, 3 + 7, ( (h->mb.i_intra16x16_pred_mode % 2) ? 1 : 0 ));
-        }
+        x264_cabac_mb_type_intra( h, i_mb_type, 3+ctx, 3+3, 3+4, 3+5, 3+6, 3+7 );
     }
     else if( h->sh.i_type == SLICE_TYPE_P )
     {
@@ -118,42 +124,13 @@ static void x264_cabac_mb_type( x264_t *h )
             x264_cabac_encode_decision( &h->cabac, 15, 0 );
             x264_cabac_encode_decision( &h->cabac, 16, 1 );
         }
-        else if( i_mb_type == I_4x4 )
-        {
-            /* prefix */
-            x264_cabac_encode_decision( &h->cabac, 14, 1 );
-
-            x264_cabac_encode_decision( &h->cabac, 17, 0 );
-        }
-        else if( i_mb_type == I_PCM )
-        {
-            /* prefix */
-            x264_cabac_encode_decision( &h->cabac, 14, 1 );
-
-            x264_cabac_encode_decision( &h->cabac, 17, 1 );
-            x264_cabac_encode_terminal( &h->cabac, 1 ); /*ctxIdx == 276 */
-        }
-        else /* intra 16x16 */
+        else /* intra */
         {
             /* prefix */
             x264_cabac_encode_decision( &h->cabac, 14, 1 );
 
             /* suffix */
-            x264_cabac_encode_decision( &h->cabac, 17, 1 );
-            x264_cabac_encode_terminal( &h->cabac, 0 ); /*ctxIdx == 276 */
-
-            x264_cabac_encode_decision( &h->cabac, 17+1, ( h->mb.i_cbp_luma == 0 ? 0 : 1 ));
-            if( h->mb.i_cbp_chroma == 0 )
-            {
-                x264_cabac_encode_decision( &h->cabac, 17+2, 0 );
-            }
-            else
-            {
-                x264_cabac_encode_decision( &h->cabac, 17+2, 1 );
-                x264_cabac_encode_decision( &h->cabac, 17+2, ( h->mb.i_cbp_chroma == 1 ? 0 : 1 ) );
-            }
-            x264_cabac_encode_decision( &h->cabac, 17+3, ( (h->mb.i_intra16x16_pred_mode / 2) ? 1 : 0 ));
-            x264_cabac_encode_decision( &h->cabac, 17+3, ( (h->mb.i_intra16x16_pred_mode % 2) ? 1 : 0 ));
+            x264_cabac_mb_type_intra( h, i_mb_type, 17+0, 17+1, 17+2, 17+2, 17+3, 17+3 );
         }
     }
     else if( h->sh.i_type == SLICE_TYPE_B )
@@ -193,35 +170,8 @@ static void x264_cabac_mb_type( x264_t *h )
             x264_cabac_encode_decision( &h->cabac, 27+5,   0 );
             x264_cabac_encode_decision( &h->cabac, 27+5,   1 );
 
-            /* Suffix */
-            if( i_mb_type == I_4x4 )
-            {
-                x264_cabac_encode_decision( &h->cabac, 32, 0 );
-            }
-            else if( i_mb_type == I_PCM )
-            {
-                x264_cabac_encode_decision( &h->cabac, 32, 1 );
-                x264_cabac_encode_terminal( &h->cabac,     1 );
-            }
-            else
-            {
-                x264_cabac_encode_decision( &h->cabac, 32, 1 );
-                x264_cabac_encode_terminal( &h->cabac,     0 );
-
-                /* TODO */
-                x264_cabac_encode_decision( &h->cabac, 32+1, ( h->mb.i_cbp_luma == 0 ? 0 : 1 ));
-                if( h->mb.i_cbp_chroma == 0 )
-                {
-                    x264_cabac_encode_decision( &h->cabac, 32+2, 0 );
-                }
-                else
-                {
-                    x264_cabac_encode_decision( &h->cabac, 32+2, 1 );
-                    x264_cabac_encode_decision( &h->cabac, 32+2, ( h->mb.i_cbp_chroma == 1 ? 0 : 1 ) );
-                }
-                x264_cabac_encode_decision( &h->cabac, 32+3, ( (h->mb.i_intra16x16_pred_mode / 2) ? 1 : 0 ));
-                x264_cabac_encode_decision( &h->cabac, 32+3, ( (h->mb.i_intra16x16_pred_mode % 2) ? 1 : 0 ));
-            }
+            /* suffix */
+            x264_cabac_mb_type_intra( h, i_mb_type, 32+0, 32+1, 32+2, 32+2, 32+3, 32+3 );
         }
         else
         {
