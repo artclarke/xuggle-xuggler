@@ -347,10 +347,6 @@ void x264_mb_predict_mv_pskip( x264_t *h, int mv[2] )
     {
         x264_mb_predict_mv_16x16( h, 0, 0, mv );
     }
-
-    /* FIXME: ensure that mvp doesn't extend past picture edge + padding.
-     * we can't just clip the mv here, since the original value may be
-     * needed for predicting other mvs. */
 }
 
 static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
@@ -455,8 +451,6 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
         }
     }
 
-    /* FIXME: clip mv ? */
-    
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, ref[0] );
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, ref[1] );
     x264_macroblock_cache_mv(  h, 0, 0, 4, 4, 0, mv[0][0], mv[0][1] );
@@ -580,8 +574,8 @@ static inline void x264_mb_mc_0xywh( x264_t *h, int x, int y, int width, int hei
 {
     const int i8 = x264_scan8[0]+x+8*y;
     const int i_ref = h->mb.cache.ref[0][i8];
-    const int mvx   = h->mb.cache.mv[0][i8][0];
-    const int mvy   = h->mb.cache.mv[0][i8][1];
+    const int mvx   = x264_clip3( h->mb.cache.mv[0][i8][0], h->mb.mv_min[0], h->mb.mv_max[0] );
+    const int mvy   = x264_clip3( h->mb.cache.mv[0][i8][1], h->mb.mv_min[1], h->mb.mv_max[1] );
 
     h->mc[MC_LUMA]( &h->mb.pic.p_fref[0][i_ref][0][4*y * h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0],
                     &h->mb.pic.p_fdec[0][4*y * h->mb.pic.i_stride[0]+4*x],           h->mb.pic.i_stride[0],
@@ -599,8 +593,8 @@ static inline void x264_mb_mc_1xywh( x264_t *h, int x, int y, int width, int hei
 {
     const int i8 = x264_scan8[0]+x+8*y;
     const int i_ref = h->mb.cache.ref[1][i8];
-    const int mvx   = h->mb.cache.mv[1][i8][0];
-    const int mvy   = h->mb.cache.mv[1][i8][1];
+    const int mvx   = x264_clip3( h->mb.cache.mv[1][i8][0], h->mb.mv_min[0], h->mb.mv_max[0] );
+    const int mvy   = x264_clip3( h->mb.cache.mv[1][i8][1], h->mb.mv_min[1], h->mb.mv_max[1] );
 
     h->mc[MC_LUMA]( &h->mb.pic.p_fref[1][i_ref][0][4*y * h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0],
                     &h->mb.pic.p_fdec[0][4*y *h->mb.pic.i_stride[0]+4*x],            h->mb.pic.i_stride[0],
@@ -620,12 +614,12 @@ static inline void x264_mb_mc_01xywh( x264_t *h, int x, int y, int width, int he
     const int i8 = x264_scan8[0]+x+8*y;
 
     const int i_ref0 = h->mb.cache.ref[0][i8];
-    const int mvx0   = h->mb.cache.mv[0][i8][0];
-    const int mvy0   = h->mb.cache.mv[0][i8][1];
+    const int mvx0   = x264_clip3( h->mb.cache.mv[0][i8][0], h->mb.mv_min[0], h->mb.mv_max[0] );
+    const int mvy0   = x264_clip3( h->mb.cache.mv[0][i8][1], h->mb.mv_min[1], h->mb.mv_max[1] );
 
     const int i_ref1 = h->mb.cache.ref[1][i8];
-    const int mvx1   = h->mb.cache.mv[1][i8][0];
-    const int mvy1   = h->mb.cache.mv[1][i8][1];
+    const int mvx1   = x264_clip3( h->mb.cache.mv[1][i8][0], h->mb.mv_min[0], h->mb.mv_max[0] );
+    const int mvy1   = x264_clip3( h->mb.cache.mv[1][i8][1], h->mb.mv_min[1], h->mb.mv_max[1] );
     DECLARE_ALIGNED( uint8_t, tmp[16*16], 16 );
     int     i_mode = 0;
 

@@ -512,8 +512,10 @@ static void x264_macroblock_encode_skip( x264_t *h )
  *****************************************************************************/
 void x264_macroblock_encode_pskip( x264_t *h )
 {
-    const int mvx = h->mb.cache.mv[0][x264_scan8[0]][0];
-    const int mvy = h->mb.cache.mv[0][x264_scan8[0]][1];
+    const int mvx = x264_clip3( h->mb.cache.mv[0][x264_scan8[0]][0],
+                                h->mb.mv_min[0], h->mb.mv_max[0] );
+    const int mvy = x264_clip3( h->mb.cache.mv[0][x264_scan8[0]][1],
+                                h->mb.mv_min[1], h->mb.mv_max[1] );
 
     /* Motion compensation XXX probably unneeded */
     h->mc[MC_LUMA]( h->mb.pic.p_fref[0][0][0], h->mb.pic.i_stride[0],
@@ -786,7 +788,6 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
     int i_qp;
     int mvp[2];
     int ch;
-    int n;
 
     int i8x8, i4x4;
     int i_decimate_mb;
@@ -798,13 +799,8 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
     {
         /* Get the MV */
         x264_mb_predict_mv_pskip( h, mvp );
-
-        mvp[0] = x264_clip3( mvp[0],
-                             4*( -16*h->mb.i_mb_x - 24 ),
-                             4*( 16*( h->sps->i_mb_width - h->mb.i_mb_x ) + 8 ) );
-        mvp[1] = x264_clip3( mvp[1],
-                             4*( -16*h->mb.i_mb_y - 24 ),
-                             4*( 16*( h->sps->i_mb_height - h->mb.i_mb_y ) + 8 ) );
+        mvp[0] = x264_clip3( mvp[0], h->mb.mv_min[0], h->mb.mv_max[0] );
+        mvp[1] = x264_clip3( mvp[1], h->mb.mv_min[1], h->mb.mv_max[1] );
 
         /* Motion compensation */
         h->mc[MC_LUMA]( h->mb.pic.p_fref[0][0][0], h->mb.pic.i_stride[0],
