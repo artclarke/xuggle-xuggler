@@ -31,6 +31,10 @@
 #endif
 #include <stdarg.h>
 
+#ifdef _MSC_VER
+#define snprintf _snprintf
+#endif
+
 #include "x264.h"
 #include "bs.h"
 #include "set.h"

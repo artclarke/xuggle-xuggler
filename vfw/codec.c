@@ -26,7 +26,6 @@
 
 #include <stdio.h> /* debug only */
 #include <io.h>
-#include <unistd.h>
 
 #define X264_MAX(a,b) ( (a)>(b) ? (a) : (b) )
 
