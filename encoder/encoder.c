@@ -1326,7 +1326,7 @@ void    x264_encoder_close  ( x264_t *h )
 
                  x264_psnr( h->stat.i_sqe_global[SLICE_TYPE_I] + h->stat.i_sqe_global[SLICE_TYPE_P]+ h->stat.i_sqe_global[SLICE_TYPE_B],
                             i_count * i_yuv_size ),
-                 fps * 8*(h->stat.i_slice_size[SLICE_TYPE_I]+h->stat.i_slice_size[SLICE_TYPE_P]+h->stat.i_slice_size[SLICE_TYPE_B]) / i_count / 1024,
+                 fps * 8*(h->stat.i_slice_size[SLICE_TYPE_I]+h->stat.i_slice_size[SLICE_TYPE_P]+h->stat.i_slice_size[SLICE_TYPE_B]) / i_count / 1000,
                  (double)1000000.0 * (double)i_count / (double)i_mtime_encode_frame );
     }
 #endif
