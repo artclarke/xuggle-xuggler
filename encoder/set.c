@@ -152,9 +152,10 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     if( param->i_fps_num > 0 && param->i_fps_den > 0)
     {
         sps->vui.b_timing_info_present = 1;
+        /* The standard is confusing me, but this seems to work best
+           with other encoders */
         sps->vui.i_num_units_in_tick = param->i_fps_den;
-        /* only frame pictures supported for now, so double time_scale */
-        sps->vui.i_time_scale = param->i_fps_num * 2;
+        sps->vui.i_time_scale = param->i_fps_num;
         sps->vui.b_fixed_frame_rate = 1;
     }
     sps->b_vui |= sps->vui.b_timing_info_present;
@@ -216,42 +217,34 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
     bs_write( s, 1, sps->b_vui );
     if( sps->b_vui )
     {
-	bs_write1( s, sps->vui.b_aspect_ratio_info_present );
-	if( sps->vui.b_aspect_ratio_info_present )
-	{
-	    int i;
-	    static const struct { int w, h; int sar; } sar[] =
+        bs_write1( s, sps->vui.b_aspect_ratio_info_present );
+        if( sps->vui.b_aspect_ratio_info_present )
+        {
+            int i;
+            static const struct { int w, h; int sar; } sar[] =
             {
-		{ 1,   1, 1 }, { 12, 11, 2 }, { 10, 11, 3 }, { 16, 11, 4 },
-		{ 40, 33, 5 }, { 24, 11, 6 }, { 20, 11, 7 }, { 32, 11, 8 },
-		{ 80, 33, 9 }, { 18, 11, 10}, { 15, 11, 11}, { 64, 33, 12},
-		{ 160,99, 13}, { 0, 0, -1 }
-	    };
-	    for( i = 0; sar[i].sar != -1; i++ )
-	    {
-		if( sar[i].w == sps->vui.i_sar_width &&
-		    sar[i].h == sps->vui.i_sar_height )
-		    break;
-	    }
-	    if( sar[i].sar != -1 )
-	    {
-		bs_write( s, 8, sar[i].sar );
-	    }
-	    else
-	    {
-		bs_write( s, 8, 255);   /* aspect_ration_idc (extented) */
-		bs_write( s, 16, sps->vui.i_sar_width );
-		bs_write( s, 16, sps->vui.i_sar_height );
-	    }
-	}
-
-	bs_write1( s, sps->vui.b_timing_info_present );
-	if( sps->vui.b_timing_info_present )
-	{
-	    bs_write( s, 32, sps->vui.i_num_units_in_tick );
-	    bs_write( s, 32, sps->vui.i_time_scale );
-	    bs_write1( s, sps->vui.b_fixed_frame_rate );
-	}
+                { 1,   1, 1 }, { 12, 11, 2 }, { 10, 11, 3 }, { 16, 11, 4 },
+                { 40, 33, 5 }, { 24, 11, 6 }, { 20, 11, 7 }, { 32, 11, 8 },
+                { 80, 33, 9 }, { 18, 11, 10}, { 15, 11, 11}, { 64, 33, 12},
+                { 160,99, 13}, { 0, 0, -1 }
+            };
+            for( i = 0; sar[i].sar != -1; i++ )
+            {
+                if( sar[i].w == sps->vui.i_sar_width &&
+                    sar[i].h == sps->vui.i_sar_height )
+                    break;
+            }
+            if( sar[i].sar != -1 )
+            {
+                bs_write( s, 8, sar[i].sar );
+            }
+            else
+            {
+                bs_write( s, 8, 255);   /* aspect_ration_idc (extented) */
+                bs_write( s, 16, sps->vui.i_sar_width );
+                bs_write( s, 16, sps->vui.i_sar_height );
+            }
+        }
 
         bs_write1( s, 0 );      /* overscan_info_present_flag */
 
@@ -262,7 +255,15 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
         bs_write1( s, 0 );      /* colour description present flag */
 #endif
         bs_write1( s, 0 );      /* chroma_loc_info_present_flag */
-        bs_write1( s, 0 );      /* timing_info_present_flag */
+
+        bs_write1( s, sps->vui.b_timing_info_present );
+        if( sps->vui.b_timing_info_present )
+        {
+            bs_write( s, 32, sps->vui.i_num_units_in_tick );
+            bs_write( s, 32, sps->vui.i_time_scale );
+            bs_write1( s, sps->vui.b_fixed_frame_rate );
+        }
+
         bs_write1( s, 0 );      /* nal_hrd_parameters_present_flag */
         bs_write1( s, 0 );      /* vcl_hrd_parameters_present_flag */
         bs_write1( s, 0 );      /* pic_struct_present_flag */
