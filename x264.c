@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
 
 #include <math.h>
 
@@ -37,8 +36,8 @@
 #include <fcntl.h>  /* _O_BINARY */
 #endif
 
-#include "x264.h"
 #include "core/common.h"
+#include "x264.h"
 
 #define DATA_MAX 3000000
 uint8_t data[DATA_MAX];

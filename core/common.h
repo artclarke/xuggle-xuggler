@@ -24,7 +24,11 @@
 #ifndef _COMMON_H
 #define _COMMON_H 1
 
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#else
+#include <inttypes.h>
+#endif
 
 #include "../x264.h"
 #include "bs.h"

@@ -21,8 +21,12 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include <stdlib.h>
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#else
+#include <inttypes.h>
+#endif
+#include <stdlib.h>
 
 #include "x264.h"
 

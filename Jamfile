@@ -40,11 +40,17 @@ if $(OSPLAT) = X86
     SOURCES_X264 += $(SOURCES_X86) ;
     ASFLAGS       = -f elf ;
 
+    if $(OS) != BEOS
+    {
+        DEFINES += HAVE_STDINT_H ;
+    }
+
     # Don't ask
     NOARUPDATE = false ;
 }
 if $(OSPLAT) = PPC
 {
+    DEFINES      += HAVE_STDINT_H ;
     SOURCES_X264 += $(SOURCES_ALTIVEC) ;
     OPTIM        += -falign-loops=16 ;
 
@@ -60,7 +66,10 @@ if $(OSPLAT) = PPC
 Library libx264 : $(SOURCES_X264) ;
 
 # x264
-LINKLIBS += -lm ;
+if $(OS) != BEOS
+{
+    LINKLIBS += -lm ;
+}
 LinkLibraries x264 : libx264.a ;
 Main x264 : x264.c ;
 

@@ -24,8 +24,12 @@
 /* XXX predict4x4 are inspired from ffmpeg h264 decoder
  */
 
-#include <stdlib.h>
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#else
+#include <inttypes.h>
+#endif
+#include <stdlib.h>
 
 #include "x264.h"
 #include "predict.h"
