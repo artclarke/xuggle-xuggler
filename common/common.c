@@ -55,6 +55,8 @@ void    x264_param_default( x264_param_t *param )
     param->i_fps_num       = 25;
     param->i_fps_den       = 1;
     param->i_maxframes     = 0;
+    param->i_level_idc     = 40; /* level 4.0 is sufficient for 720x576 with 
+                                    16 reference frames */
 
     /* Encoder parameters */
     param->i_frame_reference = 1;

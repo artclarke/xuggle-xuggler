@@ -94,6 +94,7 @@ typedef struct
     int         i_width;
     int         i_height;
     int         i_csp;  /* CSP of encoded bitstream, only i420 supported */
+    int         i_level_idc; 
 
     struct
     {

@@ -43,10 +43,8 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->i_profile_idc      = PROFILE_MAIN;
     else
         sps->i_profile_idc      = PROFILE_BASELINE;
+    sps->i_level_idc = param->i_level_idc;
 
-    /* FIXME: level 4.0 is sufficient for 720x576 with 16 reference frames,
-     * but this should be adjustable */
-    sps->i_level_idc        = 40;
     sps->b_constraint_set0  = 0;
     sps->b_constraint_set1  = 0;
     sps->b_constraint_set2  = 0;
@@ -213,7 +211,7 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
             }
             else
             {
-                bs_write( s, 8, 255);   /* aspect_ration_idc (extented) */
+                bs_write( s, 8, 255);   /* aspect_ratio_idc (extented) */
                 bs_write( s, 16, sps->vui.i_sar_width );
                 bs_write( s, 16, sps->vui.i_sar_height );
             }

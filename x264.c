@@ -139,6 +139,7 @@ static void Help( x264_param_t *defaults )
              "                                  - none, spatial, temporal\n"
              "  -m, --subme <integer>       Subpixel motion estimation quality: 1=fast, 5=best. [%d]\n"
              "\n"
+             "      --level <integer>       Specify IDC level\n"
              "  -s, --sar width:height      Specify Sample Aspect Ratio\n"
              "      --fps <float|rational>  Specify framerate\n"
              "      --frames <integer>      Maximum number of frames to encode\n"
@@ -213,6 +214,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_FRAMES 273
 #define OPT_FPS 274
 #define OPT_DIRECT 275
+#define OPT_LEVEL 276
 
         static struct option long_options[] =
         {
@@ -238,6 +240,7 @@ static int  Parse( int argc, char **argv,
             { "analyse", required_argument, NULL, 'A' },
             { "direct",  required_argument, NULL, OPT_DIRECT },
             { "subme",   required_argument, NULL, 'm' },
+            { "level",   required_argument, NULL, OPT_LEVEL },
             { "rcsens",  required_argument, NULL, OPT_RCSENS },
             { "rcbuf",   required_argument, NULL, OPT_RCBUF },
             { "rcinitbuf",required_argument,NULL, OPT_RCIBUF },
@@ -384,6 +387,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case 'm':
                 param->analyse.i_subpel_refine = atoi(optarg);
+                break;
+            case OPT_LEVEL:
+                param->i_level_idc = atoi(optarg);
                 break;
             case OPT_RCBUF:
                 param->rc.i_rc_buffer_size = atoi(optarg);
