@@ -263,9 +263,12 @@ struct x264_t
         int     i_b8_xy;
         int     i_b4_xy;
 
-        /* Allowed MV range to stay within the picture + emulated edge pixels */
+        /* Allowed qpel MV range to stay within the picture + emulated edge pixels */
         int     mv_min[2];
         int     mv_max[2];
+        /* Fullpel MV range for motion search */
+        int     mv_min_fpel[2];
+        int     mv_max_fpel[2];
 
         unsigned int i_neighbour;
 

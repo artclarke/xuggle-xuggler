@@ -154,12 +154,16 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
         int i;
 
         /* Calculate max allowed MV range */
-        h->mb.mv_min[0] = 4*( -16*h->mb.i_mb_x - 24 );
-        h->mb.mv_max[0] = 4*( 16*( h->sps->i_mb_width - h->mb.i_mb_x ) + 8 );
+        h->mb.mv_min_fpel[0] = -16*h->mb.i_mb_x - 8;
+        h->mb.mv_max_fpel[0] = 16*( h->sps->i_mb_width - h->mb.i_mb_x ) - 8;
+        h->mb.mv_min[0] = 4*( h->mb.mv_min_fpel[0] - 16 );
+        h->mb.mv_max[0] = 4*( h->mb.mv_max_fpel[0] + 16 );
         if( h->mb.i_mb_x == 0)
         {
-            h->mb.mv_min[1] = 4*( -16*h->mb.i_mb_y - 24 );
-            h->mb.mv_max[1] = 4*( 16*( h->sps->i_mb_height - h->mb.i_mb_y ) + 8 );
+            h->mb.mv_min_fpel[1] = -16*h->mb.i_mb_y - 8;
+            h->mb.mv_max_fpel[1] = 16*( h->sps->i_mb_height - h->mb.i_mb_y ) - 8;
+            h->mb.mv_min[1] = 4*( h->mb.mv_min_fpel[1] - 16 );
+            h->mb.mv_max[1] = 4*( h->mb.mv_max_fpel[1] + 16 );
         }
 
         a->l0.me16x16.cost = -1;
