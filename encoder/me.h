@@ -30,7 +30,7 @@ typedef struct
     int      i_pixel;   /* PIXEL_WxH */
     int      lm;        /* lambda motion */
 
-    uint8_t *p_fref;
+    uint8_t *p_fref[4];
     uint8_t *p_fenc;
     int      i_stride;
 

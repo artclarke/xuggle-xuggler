@@ -31,15 +31,21 @@
  * width == 16-> height == 8 or 16
  * */
 
-typedef void (*x264_mc_function_t)(uint8_t *, int, uint8_t *, int,
-                          int mvx, int mvy,
-                          int i_width, int i_height );
-enum
+typedef struct
 {
-    MC_LUMA   = 0,
-    MC_CHROMA = 1,
-};
+    void (*mc_luma)(uint8_t **, int, uint8_t *, int,
+                    int mvx, int mvy,
+                    int i_width, int i_height );
 
-void x264_mc_init( int cpu, x264_mc_function_t pf[2] );
+    uint8_t* (*get_ref)(uint8_t **, int, uint8_t *, int *,
+                        int mvx, int mvy,
+                        int i_width, int i_height );
+
+    void (*mc_chroma)(uint8_t *, int, uint8_t *, int,
+                      int mvx, int mvy,
+                      int i_width, int i_height );
+} x264_mc_functions_t;
+
+void x264_mc_init( int cpu, x264_mc_functions_t *pf );
 
 #endif

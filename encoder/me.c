@@ -62,7 +62,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     const int i_pixel = m->i_pixel;
     int bmx, bmy, bcost;
     int omx, omy;
-    uint8_t *p_fref = m->p_fref;
+    uint8_t *p_fref = m->p_fref[0];
     int i_iter;
 
     const int mv_x_min = h->mb.mv_min_fpel[0];
@@ -198,10 +198,10 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     {
 	for( i = step>1 ? hpel_iters : qpel_iters; i > 0; i-- )
         {
-            h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[0], 16, bmx + 0, bmy - step, bw, bh );
-            h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[1], 16, bmx + 0, bmy + step, bw, bh );
-            h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[2], 16, bmx - step, bmy + 0, bw, bh );
-            h->mc[MC_LUMA]( m->p_fref, m->i_stride, pix[3], 16, bmx + step, bmy + 0, bw, bh );
+            h->mc.mc_luma( m->p_fref, m->i_stride, pix[0], 16, bmx + 0, bmy - step, bw, bh );
+            h->mc.mc_luma( m->p_fref, m->i_stride, pix[1], 16, bmx + 0, bmy + step, bw, bh );
+            h->mc.mc_luma( m->p_fref, m->i_stride, pix[2], 16, bmx - step, bmy + 0, bw, bh );
+            h->mc.mc_luma( m->p_fref, m->i_stride, pix[3], 16, bmx + step, bmy + 0, bw, bh );
     
             cost[0] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[0], 16 ) +
                       m->lm * ( bs_size_se( bmx + 0 - m->mvp[0] ) + bs_size_se( bmy - step - m->mvp[1] ) );

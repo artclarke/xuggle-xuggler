@@ -453,7 +453,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     x264_pixel_init( h->param.cpu, &h->pixf );
     x264_dct_init( h->param.cpu, &h->dctf );
-    x264_mc_init( h->param.cpu, h->mc );
+    x264_mc_init( h->param.cpu, &h->mc );
     x264_csp_init( h->param.cpu, h->param.i_csp, &h->csp );
 
     /* rate control */
@@ -665,6 +665,12 @@ static inline void x264_reference_update( x264_t *h )
     }
     /* expand border */
     x264_frame_expand_border( h->fdec );
+
+    /* create filtered images */
+    x264_frame_filter( h->param.cpu, h->fdec );
+
+    /* expand border of filtered images */
+    x264_frame_expand_border_filtered( h->fdec );
 
     /* move frame in the buffer */
     h->fdec = h->frames.reference[h->param.i_frame_reference+1];

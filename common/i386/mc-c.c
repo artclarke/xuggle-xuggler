@@ -1021,12 +1021,136 @@ static void motion_compensation_luma_sse2( uint8_t *src, int i_src_stride,
     MOTION_COMPENSATION_LUMA
 }
 
-void x264_mc_mmxext_init( x264_mc_function_t pf[2] )
+
+void mc_luma_mmx( uint8_t *src[4], int i_src_stride,
+              uint8_t *dst,    int i_dst_stride,
+              int mvx,int mvy,
+              int i_width, int i_height )
 {
-    pf[MC_LUMA]   = motion_compensation_luma_mmxext;
-}
-void x264_mc_sse2_init( x264_mc_function_t pf[2] )
-{
-    pf[MC_LUMA]   = motion_compensation_luma_sse2;
+    uint8_t *src1, *src2;
+
+    /* todo : fixme... */
+    int correction = ((mvx&3) == 3 && (mvy&3) == 1 || (mvx&3) == 1 && (mvy&3) == 3) ? 1:0;
+
+    int hpel1x = mvx>>1;
+    int hpel1y = (mvy+1-correction)>>1;
+    int filter1 = (hpel1x & 1) + ( (hpel1y & 1) << 1 );
+
+
+    src1 = src[filter1] + (hpel1y >> 1) * i_src_stride + (hpel1x >> 1);
+
+    if ( (mvx|mvy) & 1 ) /* qpel interpolation needed */
+    {
+        int hpel2x = (mvx+1)>>1;
+        int hpel2y = (mvy+correction)>>1;
+        int filter2 = (hpel2x & 1) + ( (hpel2y & 1) <<1 );
+
+        src2 = src[filter2] + (hpel2y >> 1) * i_src_stride + (hpel2x >> 1);
+
+        switch(i_width) {
+        case 4:
+            x264_pixel_avg_w4_mmxext( dst, i_dst_stride, src1, i_src_stride,
+                          src2, i_src_stride, i_height );
+            break;
+        case 8:
+            x264_pixel_avg_w8_mmxext( dst, i_dst_stride, src1, i_src_stride,
+                          src2, i_src_stride, i_height );
+            break;
+        case 16:
+        default:
+            x264_pixel_avg_w16_mmxext(dst, i_dst_stride, src1, i_src_stride,
+                          src2, i_src_stride, i_height );
+        }
+    }
+    else
+    {
+        switch(i_width) {
+        case 4:
+            x264_mc_copy_w4_mmxext( src1, i_src_stride, dst, i_dst_stride, i_height );
+            break;
+        case 8:
+            x264_mc_copy_w8_mmxext( src1, i_src_stride, dst, i_dst_stride, i_height );
+            break;
+        case 16:
+            x264_mc_copy_w16_mmxext( src1, i_src_stride, dst, i_dst_stride, i_height );
+            break;
+        }
+
+    }
 }
 
+uint8_t *get_ref_mmx( uint8_t *src[4], int i_src_stride,
+                      uint8_t *dst,   int *i_dst_stride,
+                      int mvx,int mvy,
+                      int i_width, int i_height )
+{
+    uint8_t *src1, *src2;
+
+    /* todo : fixme... */
+    int correction = ((mvx&3) == 3 && (mvy&3) == 1 || (mvx&3) == 1 && (mvy&3) == 3) ? 1:0;
+
+    int hpel1x = mvx>>1;
+    int hpel1y = (mvy+1-correction)>>1;
+    int filter1 = (hpel1x & 1) + ( (hpel1y & 1) << 1 );
+
+
+    src1 = src[filter1] + (hpel1y >> 1) * i_src_stride + (hpel1x >> 1);
+
+    if ( (mvx|mvy) & 1 ) /* qpel interpolation needed */
+    {
+        int hpel2x = (mvx+1)>>1;
+        int hpel2y = (mvy+correction)>>1;
+        int filter2 = (hpel2x & 1) + ( (hpel2y & 1) <<1 );
+
+        src2 = src[filter2] + (hpel2y >> 1) * i_src_stride + (hpel2x >> 1);
+    
+        switch(i_width) {
+        case 4:
+            x264_pixel_avg_w4_mmxext( dst, *i_dst_stride, src1, i_src_stride,
+                          src2, i_src_stride, i_height );
+            break;
+        case 8:
+            x264_pixel_avg_w8_mmxext( dst, *i_dst_stride, src1, i_src_stride,
+                          src2, i_src_stride, i_height );
+            break;
+        case 16:
+        default:
+            x264_pixel_avg_w16_mmxext(dst, *i_dst_stride, src1, i_src_stride,
+                          src2, i_src_stride, i_height );
+        }
+        return dst;
+
+    }
+    else
+    {
+        *i_dst_stride = i_src_stride;
+        return src1;
+    }
+}
+
+
+void x264_mc_mmxext_init( x264_mc_functions_t *pf )
+{
+    pf->mc_luma   = mc_luma_mmx;
+    pf->get_ref   = get_ref_mmx;
+}
+void x264_mc_sse2_init( x264_mc_functions_t *pf )
+{
+    /* todo: use sse2 */
+    pf->mc_luma   = mc_luma_mmx;
+    pf->get_ref   = get_ref_mmx;
+}
+
+void get_funcs_mmx(pf_mc_t *int_h, pf_mc_t *int_v, pf_mc_t *int_hv)
+{
+    *int_h = mc_hh_w16;
+    *int_v = mc_hv_w16;
+    *int_hv = mc_hc_w16;
+}
+
+void get_funcs_sse2(pf_mc_t *int_h, pf_mc_t *int_v, pf_mc_t *int_hv)
+{
+    *int_h = mc_hh_w16;
+    *int_v = mc_hv_w16;
+    *int_hv = mc_hc_w16;
+}

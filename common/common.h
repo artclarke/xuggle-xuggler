@@ -305,7 +305,7 @@ struct x264_t
             uint8_t *p_fdec[3];
 
             /* pointer over mb of the references */
-            uint8_t *p_fref[2][16][3];
+            uint8_t *p_fref[2][16][4+2]; /* last: lN, lH, lV, lHV, cU, cV */
 
             /* common stride */
             int     i_stride[3];
@@ -393,7 +393,7 @@ struct x264_t
     x264_predict_t      predict_4x4[9+3];
 
     x264_pixel_function_t pixf;
-    x264_mc_function_t    mc[2];
+    x264_mc_functions_t   mc;
     x264_dct_function_t   dctf;
     x264_csp_function_t   csp;
 

@@ -518,16 +518,16 @@ void x264_macroblock_encode_pskip( x264_t *h )
                                 h->mb.mv_min[1], h->mb.mv_max[1] );
 
     /* Motion compensation XXX probably unneeded */
-    h->mc[MC_LUMA]( h->mb.pic.p_fref[0][0][0], h->mb.pic.i_stride[0],
+    h->mc.mc_luma( h->mb.pic.p_fref[0][0], h->mb.pic.i_stride[0],
                     h->mb.pic.p_fdec[0],       h->mb.pic.i_stride[0],
                     mvx, mvy, 16, 16 );
 
     /* Chroma MC */
-    h->mc[MC_CHROMA]( h->mb.pic.p_fref[0][0][1], h->mb.pic.i_stride[1],
+    h->mc.mc_chroma( h->mb.pic.p_fref[0][0][4], h->mb.pic.i_stride[1],
                       h->mb.pic.p_fdec[1],       h->mb.pic.i_stride[1],
                       mvx, mvy, 8, 8 );
 
-    h->mc[MC_CHROMA]( h->mb.pic.p_fref[0][0][2], h->mb.pic.i_stride[2],
+    h->mc.mc_chroma( h->mb.pic.p_fref[0][0][5], h->mb.pic.i_stride[2],
                       h->mb.pic.p_fdec[2],       h->mb.pic.i_stride[2],
                       mvx, mvy, 8, 8 );
 
@@ -803,8 +803,8 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
         mvp[1] = x264_clip3( mvp[1], h->mb.mv_min[1], h->mb.mv_max[1] );
 
         /* Motion compensation */
-        h->mc[MC_LUMA]( h->mb.pic.p_fref[0][0][0], h->mb.pic.i_stride[0],
-                        h->mb.pic.p_fdec[0],       h->mb.pic.i_stride[0],
+        h->mc.mc_luma( h->mb.pic.p_fref[0][0], h->mb.pic.i_stride[0],
+                        h->mb.pic.p_fdec[0],   h->mb.pic.i_stride[0],
                         mvp[0], mvp[1], 16, 16 );
     }
 
@@ -843,7 +843,7 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
 
         if( !b_bidir )
         {
-            h->mc[MC_CHROMA]( h->mb.pic.p_fref[0][0][1+ch], i_stride,
+            h->mc.mc_chroma( h->mb.pic.p_fref[0][0][4+ch], i_stride,
                               h->mb.pic.p_fdec[1+ch],       i_stride,
                               mvp[0], mvp[1], 8, 8 );
         }

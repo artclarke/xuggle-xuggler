@@ -35,6 +35,7 @@
 
 #include "mc.h"
 #include "clip1.h"
+#include "frame.h"
 
 #ifdef _MSC_VER
 #undef HAVE_MMXEXT  /* not finished now */
@@ -270,6 +271,80 @@ static void motion_compensation_luma( uint8_t *src, int i_src_stride,
     pf_mc[mvy&0x03][mvx&0x03]( src, i_src_stride, dst, i_dst_stride, i_width, i_height );
 }
 
+void mc_luma( uint8_t *src[4], int i_src_stride,
+              uint8_t *dst,    int i_dst_stride,
+              int mvx,int mvy,
+              int i_width, int i_height )
+{
+    uint8_t *src1, *src2;
+
+    /* todo : fixme... */
+    int correction = ((mvx&3) == 3 && (mvy&3) == 1 || (mvx&3) == 1 && (mvy&3) == 3) ? 1:0;
+
+    int hpel1x = mvx>>1;
+    int hpel1y = (mvy+1-correction)>>1;
+    int filter1 = (hpel1x & 1) + ( (hpel1y & 1) << 1 );
+
+
+    src1 = src[filter1] + (hpel1y >> 1) * i_src_stride + (hpel1x >> 1);
+
+    if ( (mvx|mvy) & 1 ) /* qpel interpolation needed */
+    {
+        int hpel2x = (mvx+1)>>1;
+        int hpel2y = (mvy+correction)>>1;
+        int filter2 = (hpel2x & 1) + ( (hpel2y & 1) <<1 );
+
+        src2 = src[filter2] + (hpel2y >> 1) * i_src_stride + (hpel2x >> 1);
+    
+        pixel_avg( dst, i_dst_stride, src1, i_src_stride,
+                   src2, i_src_stride, i_width, i_height );
+
+    }
+    else
+    {
+        mc_copy( src1, i_src_stride, dst, i_dst_stride, i_width, i_height );
+
+    }
+}
+
+uint8_t *get_ref( uint8_t *src[4], int i_src_stride,
+                  uint8_t *dst,    int * i_dst_stride,
+                  int mvx,int mvy,
+                  int i_width, int i_height )
+{
+    uint8_t *src1, *src2;
+
+    /* todo : fixme... */
+    int correction = ((mvx&3) == 3 && (mvy&3) == 1 || (mvx&3) == 1 && (mvy&3) == 3) ? 1:0;
+
+    int hpel1x = mvx>>1;
+    int hpel1y = (mvy+1-correction)>>1;
+    int filter1 = (hpel1x & 1) + ( (hpel1y & 1) << 1 );
+
+
+    src1 = src[filter1] + (hpel1y >> 1) * i_src_stride + (hpel1x >> 1);
+
+    if ( (mvx|mvy) & 1 ) /* qpel interpolation needed */
+    {
+        int hpel2x = (mvx+1)>>1;
+        int hpel2y = (mvy+correction)>>1;
+        int filter2 = (hpel2x & 1) + ( (hpel2y & 1) <<1 );
+
+        src2 = src[filter2] + (hpel2y >> 1) * i_src_stride + (hpel2x >> 1);
+    
+        pixel_avg( dst, *i_dst_stride, src1, i_src_stride,
+                   src2, i_src_stride, i_width, i_height );
+
+        return dst;
+
+    }
+    else
+    {
+        *i_dst_stride = i_src_stride;
+        return src1;
+    }
+}
+
 /* full chroma mc (ie until 1/8 pixel)*/
 static void motion_compensation_chroma( uint8_t *src, int i_src_stride,
                                         uint8_t *dst, int i_dst_stride,
@@ -304,10 +379,11 @@ static void motion_compensation_chroma( uint8_t *src, int i_src_stride,
     }
 }
 
-void x264_mc_init( int cpu, x264_mc_function_t pf[2] )
+void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 {
-    pf[MC_LUMA]   = motion_compensation_luma;
-    pf[MC_CHROMA] = motion_compensation_chroma;
+    pf->mc_luma   = mc_luma;
+    pf->get_ref   = get_ref;
+    pf->mc_chroma = motion_compensation_chroma;
 
 #ifdef HAVE_MMXEXT
     if( cpu&X264_CPU_MMXEXT )
@@ -317,10 +393,54 @@ void x264_mc_init( int cpu, x264_mc_function_t pf[2] )
     if( cpu&X264_CPU_SSE2 )
         x264_mc_sse2_init( pf );
 #endif
-
+/*
 #ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC )
         x264_mc_altivec_init( pf );
 #endif
+*/
 }
 
+void get_funcs_mmx(pf_mc_t*, pf_mc_t*, pf_mc_t*);
+void get_funcs_sse2(pf_mc_t*, pf_mc_t*, pf_mc_t*);
+
+void x264_frame_filter( int cpu, x264_frame_t *frame )
+{
+    const int x_inc = 16, y_inc = 16;
+    const int stride = frame->i_stride[0];
+    int x, y;
+
+    pf_mc_t int_h = mc_hh;
+    pf_mc_t int_v = mc_hv;
+    pf_mc_t int_hv = mc_hc;
+
+#ifdef HAVE_MMXEXT
+    if( cpu&X264_CPU_MMXEXT )
+        get_funcs_mmx(&int_h, &int_v, &int_hv);
+#endif
+
+#ifdef HAVE_SSE2
+    if( cpu&X264_CPU_SSE2 )
+        get_funcs_sse2(&int_h, &int_v, &int_hv);
+#endif
+
+    for( y = -8; y < frame->i_lines[0]+8; y += y_inc ) {
+        
+        uint8_t *p_in = frame->plane[0] + y * stride - 8;
+        uint8_t *p_h  = frame->filtered[1] + y * stride - 8;
+        uint8_t *p_v  = frame->filtered[2] + y * stride - 8;
+        uint8_t *p_hv = frame->filtered[3] + y * stride - 8;
+
+        for( x = -8; x < stride - 64 + 8; x += x_inc )
+        {
+            int_h(  p_in, stride, p_h,  stride, x_inc, y_inc );
+            int_v(  p_in, stride, p_v,  stride, x_inc, y_inc );
+            int_hv( p_in, stride, p_hv, stride, x_inc, y_inc );
+
+            p_h += x_inc;
+            p_v += x_inc;
+            p_hv += x_inc;
+            p_in += x_inc;
+        }
+    }
+}

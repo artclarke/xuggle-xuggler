@@ -577,15 +577,15 @@ static inline void x264_mb_mc_0xywh( x264_t *h, int x, int y, int width, int hei
     const int mvx   = x264_clip3( h->mb.cache.mv[0][i8][0], h->mb.mv_min[0], h->mb.mv_max[0] );
     const int mvy   = x264_clip3( h->mb.cache.mv[0][i8][1], h->mb.mv_min[1], h->mb.mv_max[1] );
 
-    h->mc[MC_LUMA]( &h->mb.pic.p_fref[0][i_ref][0][4*y * h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0],
+    h->mc.mc_luma( h->mb.pic.p_fref[0][i_ref], h->mb.pic.i_stride[0],
                     &h->mb.pic.p_fdec[0][4*y * h->mb.pic.i_stride[0]+4*x],           h->mb.pic.i_stride[0],
-                    mvx, mvy, 4*width, 4*height );
+                    mvx + 4*4*x, mvy + 4*4*y, 4*width, 4*height );
 
-    h->mc[MC_CHROMA]( &h->mb.pic.p_fref[0][i_ref][1][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
+    h->mc.mc_chroma( &h->mb.pic.p_fref[0][i_ref][4][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
                       &h->mb.pic.p_fdec[1][2*y*h->mb.pic.i_stride[1]+2*x],           h->mb.pic.i_stride[1],
                       mvx, mvy, 2*width, 2*height );
 
-    h->mc[MC_CHROMA]( &h->mb.pic.p_fref[0][i_ref][2][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
+    h->mc.mc_chroma( &h->mb.pic.p_fref[0][i_ref][5][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
                       &h->mb.pic.p_fdec[2][2*y*h->mb.pic.i_stride[2]+2*x],           h->mb.pic.i_stride[2],
                       mvx, mvy, 2*width, 2*height );
 }
@@ -596,15 +596,15 @@ static inline void x264_mb_mc_1xywh( x264_t *h, int x, int y, int width, int hei
     const int mvx   = x264_clip3( h->mb.cache.mv[1][i8][0], h->mb.mv_min[0], h->mb.mv_max[0] );
     const int mvy   = x264_clip3( h->mb.cache.mv[1][i8][1], h->mb.mv_min[1], h->mb.mv_max[1] );
 
-    h->mc[MC_LUMA]( &h->mb.pic.p_fref[1][i_ref][0][4*y * h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0],
+    h->mc.mc_luma( h->mb.pic.p_fref[1][i_ref], h->mb.pic.i_stride[0],
                     &h->mb.pic.p_fdec[0][4*y *h->mb.pic.i_stride[0]+4*x],            h->mb.pic.i_stride[0],
-                    mvx, mvy, 4*width, 4*height );
+                    mvx + 4*4*x, mvy + 4*4*y, 4*width, 4*height );
 
-    h->mc[MC_CHROMA]( &h->mb.pic.p_fref[1][i_ref][1][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
+    h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref][4][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
                       &h->mb.pic.p_fdec[1][2*y*h->mb.pic.i_stride[1]+2*x],           h->mb.pic.i_stride[1],
                       mvx, mvy, 2*width, 2*height );
 
-    h->mc[MC_CHROMA]( &h->mb.pic.p_fref[1][i_ref][2][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
+    h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref][5][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
                       &h->mb.pic.p_fdec[2][2*y*h->mb.pic.i_stride[2]+2*x],           h->mb.pic.i_stride[2],
                       mvx, mvy, 2*width, 2*height );
 }
@@ -631,26 +631,26 @@ static inline void x264_mb_mc_01xywh( x264_t *h, int x, int y, int width, int he
     else if( width == 1 && height == 2 ) i_mode = PIXEL_4x8;
     else if( width == 1 && height == 1 ) i_mode = PIXEL_4x4;
 
-    h->mc[MC_LUMA]( &h->mb.pic.p_fref[0][i_ref0][0][4*y * h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0],
+    h->mc.mc_luma( h->mb.pic.p_fref[0][i_ref0], h->mb.pic.i_stride[0],
                     &h->mb.pic.p_fdec[0][4*y *h->mb.pic.i_stride[0]+4*x],             h->mb.pic.i_stride[0],
-                    mvx0, mvy0, 4*width, 4*height );
-    h->mc[MC_CHROMA]( &h->mb.pic.p_fref[0][i_ref0][1][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
+                    mvx0 + 4*4*x, mvy0 + 4*4*y, 4*width, 4*height );
+    h->mc.mc_chroma( &h->mb.pic.p_fref[0][i_ref0][4][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
                       &h->mb.pic.p_fdec[1][2*y*h->mb.pic.i_stride[1]+2*x],            h->mb.pic.i_stride[1],
                       mvx0, mvy0, 2*width, 2*height );
-    h->mc[MC_CHROMA]( &h->mb.pic.p_fref[0][i_ref0][2][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
+    h->mc.mc_chroma( &h->mb.pic.p_fref[0][i_ref0][5][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
                       &h->mb.pic.p_fdec[2][2*y*h->mb.pic.i_stride[2]+2*x],            h->mb.pic.i_stride[2],
                       mvx0, mvy0, 2*width, 2*height );
 
 
-    h->mc[MC_LUMA]( &h->mb.pic.p_fref[1][i_ref1][0][4*y * h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0],
-                    tmp, 16, mvx1, mvy1, 4*width, 4*height );
+    h->mc.mc_luma( h->mb.pic.p_fref[1][i_ref1], h->mb.pic.i_stride[0],
+                    tmp, 16, mvx1 + 4*4*x, mvy1 + 4*4*y, 4*width, 4*height );
     h->pixf.avg[i_mode]( &h->mb.pic.p_fdec[0][4*y *h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0], tmp, 16 );
 
-    h->mc[MC_CHROMA]( &h->mb.pic.p_fref[1][i_ref1][1][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
+    h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref1][4][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
                       tmp, 16, mvx1, mvy1, 2*width, 2*height );
     h->pixf.avg[i_mode]( &h->mb.pic.p_fdec[1][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1], tmp, 16 );
 
-    h->mc[MC_CHROMA]( &h->mb.pic.p_fref[1][i_ref1][2][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
+    h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref1][5][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
                       tmp, 16, mvx1, mvy1, 2*width, 2*height );
     h->pixf.avg[i_mode]( &h->mb.pic.p_fdec[2][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2], tmp, 16 );
 }
@@ -946,11 +946,13 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
 
         for( j = 0; j < h->i_ref0; j++ )
         {
-            h->mb.pic.p_fref[0][j][i] = &h->fref0[j]->plane[i][ w * ( i_mb_x + i_mb_y * i_stride )];
+            h->mb.pic.p_fref[0][j][i==0 ? 0:i+3] = &h->fref0[j]->plane[i][ w * ( i_mb_x + i_mb_y * i_stride )];
+            h->mb.pic.p_fref[0][j][i+1] = &h->fref0[j]->filtered[i+1][ 16 * ( i_mb_x + i_mb_y * h->fdec->i_stride[0] )];
         }
         for( j = 0; j < h->i_ref1; j++ )
         {
-            h->mb.pic.p_fref[1][j][i] = &h->fref1[j]->plane[i][ w * ( i_mb_x + i_mb_y * i_stride )];
+            h->mb.pic.p_fref[1][j][i==0 ? 0:i+3] = &h->fref1[j]->plane[i][ w * ( i_mb_x + i_mb_y * i_stride )];
+            h->mb.pic.p_fref[1][j][i+1] = &h->fref1[j]->filtered[i+1][ 16 * ( i_mb_x + i_mb_y * h->fdec->i_stride[0] )];
         }
     }
 

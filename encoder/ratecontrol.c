@@ -43,7 +43,9 @@
 #ifdef SYS_FREEBSD
 #define exp2f(x) powf( 2, (x) )
 #endif
-
+#ifdef _MSC_VER
+#define exp2f(x) pow( 2, (x) )
+#endif
 
 typedef struct
 {

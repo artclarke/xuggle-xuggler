@@ -66,6 +66,17 @@ x264_frame_t *x264_frame_new( x264_t *h )
     frame->buffer[3] = NULL;
     frame->plane[3] = NULL;
 
+    frame->filtered[0] = frame->plane[0];
+    for( i = 0; i < 3; i++ )
+    {
+        frame->buffer[4+i] = x264_malloc( frame->i_stride[0] *
+                                        ( frame->i_lines[0] + 64 ) );
+
+        frame->filtered[i+1] = ((uint8_t*)frame->buffer[4+i]) +
+                          frame->i_stride[0] * 32 + 32;
+    }
+
+
     frame->i_poc = -1;
     frame->i_type = X264_TYPE_AUTO;
     frame->i_qpplus1 = 0;
@@ -92,6 +103,10 @@ void x264_frame_delete( x264_frame_t *frame )
 {
     int i;
     for( i = 0; i < frame->i_plane; i++ )
+    {
+        x264_free( frame->buffer[i] );
+    }
+    for( i = 4; i < 7; i++ ) /* filtered planes */
     {
         x264_free( frame->buffer[i] );
     }
@@ -179,6 +194,47 @@ void x264_frame_expand_border( x264_frame_t *frame )
 #undef PPIXEL
     }
 }
+
+void x264_frame_expand_border_filtered( x264_frame_t *frame )
+{
+
+    /* during filtering, 8 extra pixels were filtered on each edge. 
+       we want to expand border from the last filtered pixel */
+    int w;
+    int i, y;
+    for( i = 1; i < 4; i++ )
+    {
+#define PPIXEL(x, y) ( frame->filtered[i] + (x) +(y)*frame->i_stride[0] )
+        w = 32;
+
+        for( y = 8; y < w; y++ )
+        {
+            /* upper band */
+            memcpy( PPIXEL(-8,-y-1), PPIXEL(-8,-8), frame->i_stride[0] - 2 * w + 16 );
+            /* up left corner */
+            memset( PPIXEL(-w,-y-1), PPIXEL(-8,-8)[0], w - 8 );
+            /* up right corner */
+            memset( PPIXEL(frame->i_stride[0] - 2*w + 8,-y-1), PPIXEL( frame->i_stride[0]-1-2*w+8,-8)[0], w - 8 );
+
+            /* lower band */
+            memcpy( PPIXEL(-8, frame->i_lines[0]+y), PPIXEL(-8,frame->i_lines[0]+7), frame->i_stride[0] - 2 * w + 16 );
+            /* low left corner */
+            memset( PPIXEL(-w, frame->i_lines[0]+y), PPIXEL(-8,frame->i_lines[0]+7)[0], w - 8);
+            /* low right corner */
+            memset( PPIXEL(frame->i_stride[0]-2*w+8, frame->i_lines[0]+y), PPIXEL(frame->i_stride[0]+7-2*w,frame->i_lines[0]+7)[0], w-8);
+
+        }
+        for( y = -8; y < frame->i_lines[0]+8; y++ )
+        {
+            /* left band */
+            memset( PPIXEL( -w, y ), PPIXEL( -8, y )[0], w - 8 );
+            /* right band */
+            memset( PPIXEL( frame->i_stride[0]-2*w + 8, y ), PPIXEL( frame->i_stride[0] + 7 - 2*w, y )[0], w - 8 );
+        }
+#undef PPIXEL
+    }
+}
+
 
 /* FIXME theses tables are duplicated with the ones in macroblock.c */
 static const uint8_t block_idx_xy[4][4] =
