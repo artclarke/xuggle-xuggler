@@ -50,6 +50,14 @@ static const struct {
     {  4,  4 }
 };
 
+static const int x264_size2pixel[5][5] = {
+    { 0, },
+    { 0, PIXEL_4x4, PIXEL_8x4, 0, 0 },
+    { 0, PIXEL_4x8, PIXEL_8x8, 0, PIXEL_16x8 },
+    { 0, },
+    { 0, 0,        PIXEL_8x16, 0, PIXEL_16x16 }
+};
+
 typedef struct
 {
     x264_pixel_sad_t  sad[7];

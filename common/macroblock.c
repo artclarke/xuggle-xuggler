@@ -613,34 +613,13 @@ static inline void x264_mb_mc_01xywh( x264_t *h, int x, int y, int width, int he
 {
     const int i8 = x264_scan8[0]+x+8*y;
 
-    const int i_ref0 = h->mb.cache.ref[0][i8];
-    const int mvx0   = x264_clip3( h->mb.cache.mv[0][i8][0], h->mb.mv_min[0], h->mb.mv_max[0] );
-    const int mvy0   = x264_clip3( h->mb.cache.mv[0][i8][1], h->mb.mv_min[1], h->mb.mv_max[1] );
-
     const int i_ref1 = h->mb.cache.ref[1][i8];
     const int mvx1   = x264_clip3( h->mb.cache.mv[1][i8][0], h->mb.mv_min[0], h->mb.mv_max[0] );
     const int mvy1   = x264_clip3( h->mb.cache.mv[1][i8][1], h->mb.mv_min[1], h->mb.mv_max[1] );
     DECLARE_ALIGNED( uint8_t, tmp[16*16], 16 );
-    int     i_mode = 0;
+    int i_mode = x264_size2pixel[height][width];
 
-    if( width == 4 && height == 4 ) i_mode = PIXEL_16x16;
-    else if( width == 4 && height == 2 ) i_mode = PIXEL_16x8;
-    else if( width == 2 && height == 4 ) i_mode = PIXEL_8x16;
-    else if( width == 2 && height == 2 ) i_mode = PIXEL_8x8;
-    else if( width == 2 && height == 1 ) i_mode = PIXEL_8x4;
-    else if( width == 1 && height == 2 ) i_mode = PIXEL_4x8;
-    else if( width == 1 && height == 1 ) i_mode = PIXEL_4x4;
-
-    h->mc.mc_luma( h->mb.pic.p_fref[0][i_ref0], h->mb.pic.i_stride[0],
-                    &h->mb.pic.p_fdec[0][4*y *h->mb.pic.i_stride[0]+4*x],             h->mb.pic.i_stride[0],
-                    mvx0 + 4*4*x, mvy0 + 4*4*y, 4*width, 4*height );
-    h->mc.mc_chroma( &h->mb.pic.p_fref[0][i_ref0][4][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
-                      &h->mb.pic.p_fdec[1][2*y*h->mb.pic.i_stride[1]+2*x],            h->mb.pic.i_stride[1],
-                      mvx0, mvy0, 2*width, 2*height );
-    h->mc.mc_chroma( &h->mb.pic.p_fref[0][i_ref0][5][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
-                      &h->mb.pic.p_fdec[2][2*y*h->mb.pic.i_stride[2]+2*x],            h->mb.pic.i_stride[2],
-                      mvx0, mvy0, 2*width, 2*height );
-
+    x264_mb_mc_0xywh( h, x, y, width, height );
 
     h->mc.mc_luma( h->mb.pic.p_fref[1][i_ref1], h->mb.pic.i_stride[0],
                     tmp, 16, mvx1 + 4*4*x, mvy1 + 4*4*y, 4*width, 4*height );
@@ -786,13 +765,10 @@ void x264_mb_mc( x264_t *h )
     }
     else if( h->mb.i_type == B_SKIP || h->mb.i_type == B_DIRECT )
     {
-        int i;
-        for( i = 0; i < 4; i++ )
-        {
-            const int x = 2*(i%2);
-            const int y = 2*(i/2);
-            x264_mb_mc_direct8x8( h, x, y );
-        }
+        x264_mb_mc_direct8x8( h, 0, 0 );
+        x264_mb_mc_direct8x8( h, 2, 0 );
+        x264_mb_mc_direct8x8( h, 0, 2 );
+        x264_mb_mc_direct8x8( h, 2, 2 );
     }
     else    /* B_*x* */
     {
