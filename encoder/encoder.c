@@ -1120,14 +1120,14 @@ do_encode:
         int64_t i_inter_cost = h->stat.frame.i_inter_cost;
         int64_t i_intra_cost = h->stat.frame.i_intra_cost;
 
+        float f_bias;
+        int i_gop_size = h->fenc->i_frame - h->frames.i_last_idr;
         float f_thresh_max = h->param.i_scenecut_threshold / 100.0;
         /* ratio of 10 pulled out of thin air */
         float f_thresh_min = f_thresh_max * h->param.i_keyint_min
                              / ( h->param.i_keyint_max * 4 );
         if( h->param.i_keyint_min == h->param.i_keyint_max )
              f_thresh_min= f_thresh_max;
-        float f_bias;
-        int i_gop_size = h->fenc->i_frame - h->frames.i_last_idr;
 
         /* macroblock_analyse() doesn't further analyse skipped mbs,
          * so we have to guess their cost */
