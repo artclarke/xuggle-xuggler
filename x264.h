@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 0x000c
+#define X264_BUILD 0x000d
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -50,6 +50,10 @@ typedef struct x264_t x264_t;
 #define X264_ANALYSE_I4x4       0x0001  /* Analyse i4x4 */
 #define X264_ANALYSE_PSUB16x16  0x0010  /* Analyse p16x8, p8x16 and p8x8 */
 #define X264_ANALYSE_PSUB8x8    0x0020  /* Analyse p8x4, p4x8, p4x4 */
+#define X264_ANALYSE_BSUB16x16  0x0100  /* Analyse b16x8, b8x16 and b8x8 */
+#define X264_DIRECT_PRED_NONE        0
+#define X264_DIRECT_PRED_TEMPORAL    1
+#define X264_DIRECT_PRED_SPATIAL     2
 
 /* Colorspace type
  */
@@ -126,6 +130,8 @@ typedef struct
     {
         unsigned int intra;     /* intra flags */
         unsigned int inter;     /* inter flags */
+
+        int          i_direct_mv_pred; /* spatial vs temporal mv prediction */
 
         int          i_subpel_refine; /* subpixel motion estimation quality */
 

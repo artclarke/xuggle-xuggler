@@ -84,7 +84,8 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     sps->b_frame_mbs_only = 1;
     sps->b_mb_adaptive_frame_field = 0;
     sps->b_direct8x8_inference = 0;
-    if( sps->b_frame_mbs_only == 0 )
+    if( sps->b_frame_mbs_only == 0 ||
+        !(param->analyse.inter & X264_ANALYSE_PSUB8x8) )
     {
         sps->b_direct8x8_inference = 1;
     }

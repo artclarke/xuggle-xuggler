@@ -140,7 +140,7 @@ static void x264_slice_header_init( x264_slice_header_t *sh, x264_param_t *param
 
     sh->i_redundant_pic_cnt = 0;
 
-    sh->b_direct_spatial_mv_pred = 1;
+    sh->b_direct_spatial_mv_pred = ( param->analyse.i_direct_mv_pred == X264_DIRECT_PRED_SPATIAL );
 
     sh->b_num_ref_idx_override = 0;
     sh->i_num_ref_idx_l0_active = 1;
@@ -407,6 +407,8 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->pps = &h->pps_array[0];
     x264_pps_init( h->pps, 0, &h->param, h->sps);
+    
+    h->mb.i_mb_count = h->sps->i_mb_width * h->sps->i_mb_height;
 
     /* Init frames. */
     for( i = 0; i < X264_BFRAME_MAX + 1; i++ )
@@ -629,6 +631,12 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
 static inline void x264_reference_update( x264_t *h )
 {
     int i;
+
+    /* save mvs for B-frame prediction */
+    if( h->param.i_bframe )
+    {
+        x264_macroblock_direct_ref_save( h );
+    }
 
     /* apply deblocking filter to the current decoded picture */
     if( h->param.b_deblocking_filter )
@@ -1166,7 +1174,7 @@ do_encode:
             h->i_frame_num--;
 
             /* Do IDR if needed and if we can (won't work with B frames) */
-            if( h->frames.next[0] == NULL &&
+            if( h->frames.current[0] == NULL &&
                 h->frames.i_last_idr + 1 >= h->param.i_idrframe )
             {
                 /* Reset */

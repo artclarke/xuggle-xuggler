@@ -491,6 +491,21 @@ static void x264_mb_encode_8x8( x264_t *h, int b_inter, int i_qscale )
     }
 }
 
+static void x264_macroblock_encode_skip( x264_t *h )
+{
+    int i;
+    h->mb.i_cbp_luma = 0x00;
+    h->mb.i_cbp_chroma = 0x00;
+
+    for( i = 0; i < 16+8; i++ )
+    {
+        h->mb.cache.non_zero_count[x264_scan8[i]] = 0;
+    }
+
+    /* store cbp */
+    h->mb.cbp[h->mb.i_mb_xy] = 0;
+}
+
 /*****************************************************************************
  * x264_macroblock_encode_pskip:
  *  Encode an already marked skip block
@@ -499,7 +514,6 @@ void x264_macroblock_encode_pskip( x264_t *h )
 {
     const int mvx = h->mb.cache.mv[0][x264_scan8[0]][0];
     const int mvy = h->mb.cache.mv[0][x264_scan8[0]][1];
-    int i;
 
     /* Motion compensation XXX probably unneeded */
     h->mc[MC_LUMA]( h->mb.pic.p_fref[0][0][0], h->mb.pic.i_stride[0],
@@ -515,16 +529,7 @@ void x264_macroblock_encode_pskip( x264_t *h )
                       h->mb.pic.p_fdec[2],       h->mb.pic.i_stride[2],
                       mvx, mvy, 8, 8 );
 
-    h->mb.i_cbp_luma = 0x00;
-    h->mb.i_cbp_chroma = 0x00;
-
-    for( i = 0; i < 16+8; i++ )
-    {
-        h->mb.cache.non_zero_count[x264_scan8[i]] = 0;
-    }
-
-    /* store cbp */
-    h->mb.cbp[h->mb.i_mb_xy] = 0;
+    x264_macroblock_encode_skip( h );
 }
 
 /*****************************************************************************
@@ -540,6 +545,13 @@ void x264_macroblock_encode( x264_t *h )
     {
         /* A bit special */
         x264_macroblock_encode_pskip( h );
+        return;
+    }
+    if( h->mb.i_type == B_SKIP )
+    {
+        /* XXX motion compensation is probably unneeded */
+        x264_mb_mc( h );
+        x264_macroblock_encode_skip( h );
         return;
     }
 
@@ -750,14 +762,22 @@ void x264_macroblock_encode( x264_t *h )
             }
         }
     }
+
+    /* Check for B_SKIP */
+    if( h->mb.i_type == B_DIRECT &&
+        h->mb.i_cbp_luma == 0x00 && h->mb.i_cbp_chroma== 0x00 )
+    {
+        h->mb.type[h->mb.i_mb_xy] = h->mb.i_type = B_SKIP;
+        h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp;  /* Needed */
+    }
 }
 
 /*****************************************************************************
- * x264_macroblock_probe_pskip:
- *  Check if the current MB could be encoded as a P_SKIP (it supposes you use
+ * x264_macroblock_probe_skip:
+ *  Check if the current MB could be encoded as a [PB]_SKIP (it supposes you use
  *  the previous QP
  *****************************************************************************/
-int x264_macroblock_probe_pskip( x264_t *h )
+int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
 {
     DECLARE_ALIGNED( int16_t, dct4x4[16][4][4], 16 );
     DECLARE_ALIGNED( int16_t, dct2x2[2][2], 16 );
@@ -771,30 +791,33 @@ int x264_macroblock_probe_pskip( x264_t *h )
     int i8x8, i4x4;
     int i_decimate_mb;
 
-    /* quantification scale */
+    /* quantization scale */
     i_qp = h->mb.qp[h->mb.i_mb_xy];
 
-    /* Get the MV */
-    x264_mb_predict_mv_pskip( h, mvp );
+    if( !b_bidir )
+    {
+        /* Get the MV */
+        x264_mb_predict_mv_pskip( h, mvp );
 
-    /* Special case, need to clip the vector */
-    n = 16 * h->mb.i_mb_x + mvp[0];
-    if( n < -24 )
-        mvp[0] = -24 - 16*h->mb.i_mb_x;
-    else if( n > 16 * h->sps->i_mb_width + 24 )
-        mvp[0] = 16 * ( h->sps->i_mb_width - h->mb.i_mb_x ) + 24;
+        /* Special case, need to clip the vector */
+        n = 16 * h->mb.i_mb_x + mvp[0];
+        if( n < -24 )
+            mvp[0] = -24 - 16*h->mb.i_mb_x;
+        else if( n > 16 * h->sps->i_mb_width + 24 )
+            mvp[0] = 16 * ( h->sps->i_mb_width - h->mb.i_mb_x ) + 24;
 
-    n = 16 * h->mb.i_mb_y + mvp[1];
-    if( n < -24 )
-        mvp[1] = -24 - 16*h->mb.i_mb_y;
-    else if( n > 16 * h->sps->i_mb_height + 8 )
-        mvp[1] = 16 * ( h->sps->i_mb_height - h->mb.i_mb_y ) + 8;
+        n = 16 * h->mb.i_mb_y + mvp[1];
+        if( n < -24 )
+            mvp[1] = -24 - 16*h->mb.i_mb_y;
+        else if( n > 16 * h->sps->i_mb_height + 8 )
+            mvp[1] = 16 * ( h->sps->i_mb_height - h->mb.i_mb_y ) + 8;
 
 
-    /* Motion compensation */
-    h->mc[MC_LUMA]( h->mb.pic.p_fref[0][0][0], h->mb.pic.i_stride[0],
-                    h->mb.pic.p_fdec[0],       h->mb.pic.i_stride[0],
-                    mvp[0], mvp[1], 16, 16 );
+        /* Motion compensation */
+        h->mc[MC_LUMA]( h->mb.pic.p_fref[0][0][0], h->mb.pic.i_stride[0],
+                        h->mb.pic.p_fdec[0],       h->mb.pic.i_stride[0],
+                        mvp[0], mvp[1], 16, 16 );
+    }
 
     /* get luma diff */
     h->dctf.sub16x16_dct( dct4x4, h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0],
@@ -829,9 +852,12 @@ int x264_macroblock_probe_pskip( x264_t *h )
         uint8_t  *p_src = h->mb.pic.p_fenc[1+ch];
         uint8_t  *p_dst = h->mb.pic.p_fdec[1+ch];
 
-        h->mc[MC_CHROMA]( h->mb.pic.p_fref[0][0][1+ch], i_stride,
-                          h->mb.pic.p_fdec[1+ch],       i_stride,
-                          mvp[0], mvp[1], 8, 8 );
+        if( !b_bidir )
+        {
+            h->mc[MC_CHROMA]( h->mb.pic.p_fref[0][0][1+ch], i_stride,
+                              h->mb.pic.p_fdec[1+ch],       i_stride,
+                              mvp[0], mvp[1], 8, 8 );
+        }
 
         h->dctf.sub8x8_dct( dct4x4, p_src, i_stride, p_dst, i_stride );
 

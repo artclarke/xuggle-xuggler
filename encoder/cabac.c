@@ -612,9 +612,9 @@ static inline void x264_cabac_mb_ref( x264_t *h, int i_list, int idx )
     int i_ref  = h->mb.cache.ref[i_list][i8];
     int ctx  = 0;
 
-    if( i_refa > 0 )
+    if( i_refa > 0 && !h->mb.cache.skip[i8 - 1])
         ctx++;
-    if( i_refb > 0 )
+    if( i_refb > 0 && !h->mb.cache.skip[i8 - 8])
         ctx += 2;
 
     while( i_ref > 0 )
@@ -704,6 +704,47 @@ static inline void  x264_cabac_mb_mvd( x264_t *h, int i_list, int idx, int width
 
     /* save value */
     x264_macroblock_cache_mvd( h, block_idx_x[idx], block_idx_y[idx], width, height, i_list, mdx, mdy );
+}
+
+static inline void x264_cabac_mb8x8_mvd( x264_t *h, int i_list )
+{
+    int i;
+    for( i = 0; i < 4; i++ )
+    {
+        if( !x264_mb_partition_listX_table[i_list][ h->mb.i_sub_partition[i] ] )
+        {
+            continue;
+        }
+
+        switch( h->mb.i_sub_partition[i] )
+        {
+            case D_L0_8x8:
+            case D_L1_8x8:
+            case D_BI_8x8:
+                x264_cabac_mb_mvd( h, i_list, 4*i, 2, 2 );
+                break;
+            case D_L0_8x4:
+            case D_L1_8x4:
+            case D_BI_8x4:
+                x264_cabac_mb_mvd( h, i_list, 4*i+0, 2, 1 );
+                x264_cabac_mb_mvd( h, i_list, 4*i+2, 2, 1 );
+                break;
+            case D_L0_4x8:
+            case D_L1_4x8:
+            case D_BI_4x8:
+                x264_cabac_mb_mvd( h, i_list, 4*i+0, 1, 2 );
+                x264_cabac_mb_mvd( h, i_list, 4*i+1, 1, 2 );
+                break;
+            case D_L0_4x4:
+            case D_L1_4x4:
+            case D_BI_4x4:
+                x264_cabac_mb_mvd( h, i_list, 4*i+0, 1, 1 );
+                x264_cabac_mb_mvd( h, i_list, 4*i+1, 1, 1 );
+                x264_cabac_mb_mvd( h, i_list, 4*i+2, 1, 1 );
+                x264_cabac_mb_mvd( h, i_list, 4*i+3, 1, 1 );
+                break;
+        }
+    }
 }
 
 static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
@@ -964,6 +1005,7 @@ void x264_macroblock_write_cabac( x264_t *h, bs_t *s )
     const int i_mb_pos_start = bs_pos( s );
     int       i_mb_pos_tex;
 
+    int i_list;
     int i;
 
     /* Write the MB type */
@@ -1060,40 +1102,36 @@ void x264_macroblock_write_cabac( x264_t *h, bs_t *s )
             x264_cabac_mb_ref( h, 0, 12 );
         }
 
-        for( i = 0; i < 4; i++ )
-        {
-            switch( h->mb.i_sub_partition[i] )
-            {
-                case D_L0_8x8:
-                    x264_cabac_mb_mvd( h, 0, 4*i, 2, 2 );
-                    break;
-                case D_L0_8x4:
-                    x264_cabac_mb_mvd( h, 0, 4*i+0, 2, 1 );
-                    x264_cabac_mb_mvd( h, 0, 4*i+2, 2, 1 );
-                    break;
-                case D_L0_4x8:
-                    x264_cabac_mb_mvd( h, 0, 4*i+0, 1, 2 );
-                    x264_cabac_mb_mvd( h, 0, 4*i+1, 1, 2 );
-                    break;
-                case D_L0_4x4:
-                    x264_cabac_mb_mvd( h, 0, 4*i+0, 1, 1 );
-                    x264_cabac_mb_mvd( h, 0, 4*i+1, 1, 1 );
-                    x264_cabac_mb_mvd( h, 0, 4*i+2, 1, 1 );
-                    x264_cabac_mb_mvd( h, 0, 4*i+3, 1, 1 );
-                    break;
-            }
-        }
+        x264_cabac_mb8x8_mvd( h, 0 );
     }
     else if( i_mb_type == B_8x8 )
     {
-        /* TODO */
-        fprintf( stderr, "Arggg B_8x8\n" );
-        return;
+        /* sub mb type */
+        x264_cabac_mb_sub_b_partition( h, h->mb.i_sub_partition[0] );
+        x264_cabac_mb_sub_b_partition( h, h->mb.i_sub_partition[1] );
+        x264_cabac_mb_sub_b_partition( h, h->mb.i_sub_partition[2] );
+        x264_cabac_mb_sub_b_partition( h, h->mb.i_sub_partition[3] );
+
+        /* ref */
+        for( i_list = 0; i_list < 2; i_list++ )
+        {
+            if( ( i_list ? h->sh.i_num_ref_idx_l1_active : h->sh.i_num_ref_idx_l0_active ) == 1 )
+                continue;
+            for( i = 0; i < 4; i++ )
+            {
+                if( x264_mb_partition_listX_table[0][ h->mb.i_sub_partition[i] ] )
+                {
+                    x264_cabac_mb_ref( h, i_list, 4*i );
+                }
+            }
+        }
+
+        x264_cabac_mb8x8_mvd( h, 0 );
+        x264_cabac_mb8x8_mvd( h, 1 );
     }
     else if( i_mb_type != B_DIRECT )
     {
         /* All B mode */
-        int i_list;
         int b_list[2][2];
 
         /* init ref list utilisations */

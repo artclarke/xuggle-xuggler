@@ -37,6 +37,7 @@ enum macroblock_position_e
 /* XXX mb_type isn't the one written in the bitstream -> only internal usage */
 #define IS_INTRA(type) ( (type) == I_4x4 || (type) == I_16x16 )
 #define IS_SKIP(type)  ( (type) == P_SKIP || (type) == B_SKIP )
+#define IS_DIRECT(type)  ( (type) == B_DIRECT )
 enum mb_class_e
 {
     I_4x4           = 0,
@@ -118,6 +119,21 @@ enum mb_partition_e
     D_16x16         = 16,
 };
 
+static const int x264_mb_partition_listX_table[2][17] =
+{{
+    1, 1, 1, 1, /* D_L0_* */
+    0, 0, 0, 0, /* D_L1_* */
+    1, 1, 1, 1, /* D_BI_* */
+    0,          /* D_DIRECT_8x8 */
+    0, 0, 0, 0  /* 8x8 .. 16x16 */
+},
+{
+    0, 0, 0, 0, /* D_L0_* */
+    1, 1, 1, 1, /* D_L1_* */
+    1, 1, 1, 1, /* D_BI_* */
+    0,          /* D_DIRECT_8x8 */
+    0, 0, 0, 0  /* 8x8 .. 16x16 */
+}};
 static const int x264_mb_partition_count_table[17] =
 {
     /* sub L0 */
@@ -137,6 +153,8 @@ void x264_macroblock_cache_load( x264_t *h, int, int );
 void x264_macroblock_cache_save( x264_t *h );
 void x264_macroblock_cache_end( x264_t *h );
 
+void x264_macroblock_direct_ref_save( x264_t *h );
+
 void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int i_qscale );
 void x264_mb_dequant_2x2_dc( int16_t dct[2][2], int i_qscale );
 void x264_mb_dequant_4x4( int16_t dct[4][4], int i_qscale );
@@ -150,14 +168,23 @@ void x264_mb_predict_mv_16x16( x264_t *h, int i_list, int i_ref, int mvp[2] );
  *      h->mb. need only valid values from other blocks */
 void x264_mb_predict_mv_pskip( x264_t *h, int mv[2] );
 /* x264_mb_predict_mv:
- *      set mvp with predicted mv for all blocks except P_SKIP
+ *      set mvp with predicted mv for all blocks except SKIP and DIRECT
  *      h->mb. need valid ref/partition/sub of current block to be valid
  *      and valid mv/ref from other blocks . */
 void x264_mb_predict_mv( x264_t *h, int i_list, int idx, int i_width, int mvp[2] );
+/* x264_mb_predict_mv_direct16x16:
+ *      set h->mb.cache.mv and h->mb.cache.ref for B_SKIP or B_DIRECT
+ *      h->mb. need only valid values from other blocks
+ *      return 1 on success, 0 on failure */
+int x264_mb_predict_mv_direct16x16( x264_t *h );
+/* x264_mb_load_mv_direct8x8:
+ *      set h->mb.cache.mv and h->mb.cache.ref for B_DIRECT
+ *      must be called only after x264_mb_predict_mv_direct16x16 */
+void x264_mb_load_mv_direct8x8( x264_t *h, int idx );
 /* x264_mb_predict_mv_ref16x16:
  *      set mvc with D_16x16 prediction.
  *      uses all neighbors, even those that didn't end up using this ref.
- *      need only valid values from other blocks */
+ *      h->mb. need only valid values from other blocks */
 void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int mvc[4][2], int *i_mvc );
 
 
@@ -201,6 +228,17 @@ static inline void x264_macroblock_cache_mvd( x264_t *h, int x, int y, int width
         {
             h->mb.cache.mvd[i_list][X264_SCAN8_0+x+dx+8*(y+dy)][0] = mdx;
             h->mb.cache.mvd[i_list][X264_SCAN8_0+x+dx+8*(y+dy)][1] = mdy;
+        }
+    }
+}
+static inline void x264_macroblock_cache_skip( x264_t *h, int x, int y, int width, int height, int b_skip )
+{
+    int dy, dx;
+    for( dy = 0; dy < height; dy++ )
+    {
+        for( dx = 0; dx < width; dx++ )
+        {
+            h->mb.cache.skip[X264_SCAN8_0+x+dx+8*(y+dy)] = b_skip;
         }
     }
 }

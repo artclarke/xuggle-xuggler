@@ -171,7 +171,7 @@ int x264_ratecontrol_new( x264_t *h )
 
     rc->gop_size = h->param.i_iframe;
     rc->bitrate = h->param.rc.i_bitrate * 1000;
-    rc->nmb = ((h->param.i_width + 15) / 16) * ((h->param.i_height + 15) / 16);
+    rc->nmb = h->mb.i_mb_count;
 
     rc->qp = h->param.rc.i_qp_constant;
     rc->qpa = rc->qp;

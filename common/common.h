@@ -250,6 +250,8 @@ struct x264_t
     /* MB table and cache for current frame/mb */
     struct
     {
+        int     i_mb_count;                 /* number of mbs in a frame */
+
         /* Strides */
         int     i_mb_stride;
 
@@ -270,7 +272,15 @@ struct x264_t
         int16_t (*mv[2])[2];                /* mb mv. set to 0 for intra mb */
         int16_t (*mvd[2])[2];               /* mb mv difference with predict. set to 0 if intra. cabac only */
         int8_t   *ref[2];                   /* mb ref. set to -1 if non used (intra or Lx only) */
-        int16_t (*mvr[2][16])[2];           /* mb mv for each possible ref */
+        int16_t (*mvr[2][16])[2];           /* 16x16 mv for each possible ref */
+        int8_t  *skipbp;                    /* block pattern for SKIP or DIRECT (sub)mbs. B-frames + cabac only */
+
+        /* for B_SKIP and B_DIRECT motion prediction */
+        struct
+        {
+            int16_t (*mv)[2];               /* keep only L0 */
+            int8_t   *ref;
+        } list1ref0;
 
         /* current value */
         int     i_type;
@@ -313,6 +323,12 @@ struct x264_t
             /* 0 if non avaible */
             int16_t mv[2][X264_SCAN8_SIZE][2];
             int16_t mvd[2][X264_SCAN8_SIZE][2];
+
+            /* 1 if SKIP or DIRECT. set only for B-frames + CABAC */
+            int8_t  skip[X264_SCAN8_SIZE];
+
+            int16_t direct_mv[2][X264_SCAN8_SIZE][2];
+            int8_t  direct_ref[2][X264_SCAN8_SIZE];
         } cache;
 
         /* */

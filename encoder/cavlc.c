@@ -41,6 +41,10 @@ static const uint8_t inter_cbp_to_golomb[48]=
   1, 32, 33, 36, 34, 37, 44, 40, 35, 45, 38, 41, 39, 42, 43, 19,
   6, 24, 25, 20, 26, 21, 46, 28, 27, 47, 22, 29, 23, 30, 31, 12
 };
+static const uint8_t sub_mb_type_p_to_golomb[4]=
+{ 3, 1, 2, 0 };
+static const uint8_t sub_mb_type_b_to_golomb[13]=
+{ 10,  4,  5,  1, 11,  6,  7,  2, 12,  8,  9,  3,  0 };
 
 static const uint8_t block_idx_x[16] =
 {
@@ -257,6 +261,72 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int *l, i
     }
 }
 
+static void x264_sub_mb_mv_write_cavlc( x264_t *h, bs_t *s, int i_list )
+{
+    int i;
+    for( i = 0; i < 4; i++ )
+    {
+        int mvp[2];
+
+        if( !x264_mb_partition_listX_table[i_list][ h->mb.i_sub_partition[i] ] )
+        {
+            continue;
+        }
+
+        switch( h->mb.i_sub_partition[i] )
+        {
+            case D_L0_8x8:
+            case D_L1_8x8:
+            case D_BI_8x8:
+                x264_mb_predict_mv( h, i_list, 4*i, 2, mvp );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i]][0] - mvp[0] );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i]][1] - mvp[1] );
+                break;
+            case D_L0_8x4:
+            case D_L1_8x4:
+            case D_BI_8x4:
+                x264_mb_predict_mv( h, i_list, 4*i+0, 2, mvp );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i]][0] - mvp[0] );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i]][1] - mvp[1] );
+
+                x264_mb_predict_mv( h, i_list, 4*i+2, 2, mvp );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i+2]][0] - mvp[0] );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i+2]][1] - mvp[1] );
+                break;
+            case D_L0_4x8:
+            case D_L1_4x8:
+            case D_BI_4x8:
+                x264_mb_predict_mv( h, i_list, 4*i+0, 1, mvp );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i]][0] - mvp[0] );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i]][1] - mvp[1] );
+
+                x264_mb_predict_mv( h, i_list, 4*i+1, 1, mvp );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i+1]][0] - mvp[0] );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i+1]][1] - mvp[1] );
+                break;
+            case D_L0_4x4:
+            case D_L1_4x4:
+            case D_BI_4x4:
+                x264_mb_predict_mv( h, i_list, 4*i+0, 1, mvp );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i]][0] - mvp[0] );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i]][1] - mvp[1] );
+
+                x264_mb_predict_mv( h, i_list, 4*i+1, 1, mvp );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i+1]][0] - mvp[0] );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i+1]][1] - mvp[1] );
+
+                x264_mb_predict_mv( h, i_list, 4*i+2, 1, mvp );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i+2]][0] - mvp[0] );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i+2]][1] - mvp[1] );
+
+                x264_mb_predict_mv( h, i_list, 4*i+3, 1, mvp );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i+3]][0] - mvp[0] );
+                bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[4*i+3]][1] - mvp[1] );
+                break;
+        }
+    }
+}
+
 /*****************************************************************************
  * x264_macroblock_write:
  *****************************************************************************/
@@ -421,21 +491,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         /* sub mb type */
         for( i = 0; i < 4; i++ )
         {
-            switch( h->mb.i_sub_partition[i] )
-            {
-                case D_L0_8x8:
-                    bs_write_ue( s, 0 );
-                    break;
-                case D_L0_8x4:
-                    bs_write_ue( s, 1 );
-                    break;
-                case D_L0_4x8:
-                    bs_write_ue( s, 2 );
-                    break;
-                case D_L0_4x4:
-                    bs_write_ue( s, 3 );
-                    break;
-            }
+            bs_write_ue( s, sub_mb_type_p_to_golomb[ h->mb.i_sub_partition[i] ] );
         }
         /* ref0 */
         if( h->sh.i_num_ref_idx_l0_active > 1 && b_sub_ref0 )
@@ -445,59 +501,36 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
             bs_write_te( s, h->sh.i_num_ref_idx_l0_active - 1, h->mb.cache.ref[0][x264_scan8[8]] );
             bs_write_te( s, h->sh.i_num_ref_idx_l0_active - 1, h->mb.cache.ref[0][x264_scan8[12]] );
         }
-        for( i = 0; i < 4; i++ )
-        {
-            int mvp[2];
 
-            switch( h->mb.i_sub_partition[i] )
-            {
-                case D_L0_8x8:
-                    x264_mb_predict_mv( h, 0, 4*i, 2, mvp );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i]][0] - mvp[0] );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i]][1] - mvp[1] );
-                    break;
-                case D_L0_8x4:
-                    x264_mb_predict_mv( h, 0, 4*i+0, 2, mvp );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i]][0] - mvp[0] );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i]][1] - mvp[1] );
-
-                    x264_mb_predict_mv( h, 0, 4*i+2, 2, mvp );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i+2]][0] - mvp[0] );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i+2]][1] - mvp[1] );
-                    break;
-                case D_L0_4x8:
-                    x264_mb_predict_mv( h, 0, 4*i+0, 1, mvp );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i]][0] - mvp[0] );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i]][1] - mvp[1] );
-
-                    x264_mb_predict_mv( h, 0, 4*i+1, 1, mvp );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i+1]][0] - mvp[0] );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i+1]][1] - mvp[1] );
-                    break;
-                case D_L0_4x4:
-                    x264_mb_predict_mv( h, 0, 4*i+0, 1, mvp );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i]][0] - mvp[0] );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i]][1] - mvp[1] );
-
-                    x264_mb_predict_mv( h, 0, 4*i+1, 1, mvp );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i+1]][0] - mvp[0] );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i+1]][1] - mvp[1] );
-
-                    x264_mb_predict_mv( h, 0, 4*i+2, 1, mvp );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i+2]][0] - mvp[0] );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i+2]][1] - mvp[1] );
-
-                    x264_mb_predict_mv( h, 0, 4*i+3, 1, mvp );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i+3]][0] - mvp[0] );
-                    bs_write_se( s, h->mb.cache.mv[0][x264_scan8[4*i+3]][1] - mvp[1] );
-                    break;
-            }
-        }
+        x264_sub_mb_mv_write_cavlc( h, s, 0 );
     }
     else if( i_mb_type == B_8x8 )
     {
-        fprintf( stderr, "invalid/unhandled mb_type (B_8x8)\n" );
-        return;
+        bs_write_ue( s, 22 );
+
+        /* sub mb type */
+        for( i = 0; i < 4; i++ )
+        {
+            bs_write_ue( s, sub_mb_type_b_to_golomb[ h->mb.i_sub_partition[i] ] );
+        }
+        /* ref */
+        for( i = 0; i < 4; i++ )
+        {
+            if( x264_mb_partition_listX_table[0][ h->mb.i_sub_partition[i] ] )
+            {
+                bs_write_te( s, h->sh.i_num_ref_idx_l0_active - 1, h->mb.cache.ref[0][x264_scan8[i*4]] );
+            }
+        }
+        for( i = 0; i < 4; i++ )
+        {
+            if( x264_mb_partition_listX_table[1][ h->mb.i_sub_partition[i] ] )
+            {
+                bs_write_te( s, h->sh.i_num_ref_idx_l1_active - 1, h->mb.cache.ref[1][x264_scan8[i*4]] );
+            }
+        }
+        /* mvd */
+        x264_sub_mb_mv_write_cavlc( h, s, 0 );
+        x264_sub_mb_mv_write_cavlc( h, s, 1 );
     }
     else if( i_mb_type != B_DIRECT )
     {
