@@ -8,7 +8,7 @@ AS = nasm ;
 # Flags
 # To profile: -fprofile-arcs
 # Once done : -fbranch-probabilities
-CCFLAGS = -g -Wall -W ;
+CCFLAGS = -g -Wall ;
 
 # Globals defines
 DEFINES = DEBUG __X264__ ARCH_$(OSPLAT) SYS_$(OS) ;
@@ -61,6 +61,7 @@ if $(OSPLAT) = PPC
     if $(OS) = MACOSX
     {
         CCFLAGS += -faltivec ;
+        LINKLIBS += -lmx ;
     }
     if $(OS) = LINUX
     {
