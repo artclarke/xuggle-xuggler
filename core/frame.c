@@ -116,7 +116,7 @@ void x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src 
             break;
 
         default:
-            fprintf( stderr, "Arg invalid CSP\n" );
+            x264_log( h, X264_LOG_ERROR, "Arg invalid CSP\n" );
             break;
     }
 }
@@ -639,7 +639,7 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
                         else
                         {
                             /* FIXME */
-                            fprintf( stderr, "deblocking filter doesn't work yet with B slice\n" );
+                            x264_log( h, X264_LOG_ERROR, "deblocking filter doesn't work yet with B slice\n" );
                             return;
                         }
                     }

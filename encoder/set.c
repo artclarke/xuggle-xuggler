@@ -107,46 +107,13 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     }
 
     sps->b_vui = 0;
+    sps->vui.b_aspect_ratio_info_present = 0;
 
     if( param->vui.i_sar_width > 0 && param->vui.i_sar_height > 0 )
     {
-        int w = param->vui.i_sar_width;
-        int h = param->vui.i_sar_height;
-        int a = w, b = h;
-
-        while( b != 0 )
-        {
-            int t = a;
-
-            a = b;
-            b = t % b;
-        }
-
-        w /= a;
-        h /= a;
-        while( w > 65535 || h > 65535 )
-        {
-            w /= 2;
-            h /= 2;
-        }
-
-        if( w == 0 || h == 0 )
-        {
-            fprintf( stderr, "x264: cannot create valid sample aspect ratio\n" );
-            sps->vui.b_aspect_ratio_info_present = 0;
-        }
-        else if( w == h )
-        {
-            fprintf( stderr, "x264: no need for a SAR\n" );
-            sps->vui.b_aspect_ratio_info_present = 0;
-        }
-        else
-        {
-            fprintf( stderr, "x264: using SAR=%d/%d\n", w, h );
-            sps->vui.b_aspect_ratio_info_present = 1;
-            sps->vui.i_sar_width = w;
-            sps->vui.i_sar_height= h;
-        }
+        sps->vui.b_aspect_ratio_info_present = 1;
+        sps->vui.i_sar_width = param->vui.i_sar_width;
+        sps->vui.i_sar_height= param->vui.i_sar_height;
     }
     sps->b_vui |= sps->vui.b_aspect_ratio_info_present;
 

@@ -341,6 +341,48 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->param.i_cabac_init_idc = x264_clip3( h->param.i_cabac_init_idc, -1, 2 );
 
+    /* VUI */
+    if( h->param.vui.i_sar_width > 0 && h->param.vui.i_sar_height > 0 )
+    {
+        int w = param->vui.i_sar_width;
+        int h = param->vui.i_sar_height;
+        int a = w, b = h;
+
+        while( b != 0 )
+        {
+            int t = a;
+
+            a = b;
+            b = t % b;
+        }
+
+        w /= a;
+        h /= a;
+        while( w > 65535 || h > 65535 )
+        {
+            w /= 2;
+            h /= 2;
+        }
+
+        h->param.vui.i_sar_width = 0;
+        h->param.vui.i_sar_height = 0;
+        if( w == 0 || h == 0 )
+        {
+            x264_log( h, X264_LOG_ERROR, "cannot create valid sample aspect ratio\n" );
+        }
+        else if( w == h )
+        {
+            x264_log( h, X264_LOG_INFO, "no need for a SAR\n" );
+        }
+        else
+        {
+            x264_log( h, X264_LOG_INFO, "using SAR=%d/%d\n", w, h );
+            h->param.vui.i_sar_width = w;
+            h->param.vui.i_sar_height = h;
+        }
+    }
+
+
     /* Init x264_t */
     h->out.i_nal = 0;
     h->out.i_bitstream = 1000000; /* FIXME estimate max size (idth/height) */

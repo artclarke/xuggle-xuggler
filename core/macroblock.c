@@ -485,7 +485,7 @@ void x264_mb_mc( x264_t *h )
     }
     else if( h->mb.i_type == B_8x8 || h->mb.i_type == B_DIRECT )
     {
-        fprintf( stderr, "mc_luma with unsupported mb\n" );
+        x264_log( h, X264_LOG_ERROR, "mc_luma with unsupported mb\n" );
         return;
     }
     else    /* B_*x* */
