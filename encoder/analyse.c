@@ -70,6 +70,7 @@ typedef struct
     /* conduct the analysis using this lamda and QP */
     int i_lambda;
     int i_qp;
+    int16_t *p_cost_mv;
 
 
     /* I: Intra part */
@@ -135,6 +136,27 @@ static const int i_sub_mb_p_cost_table[4] = {
     5, 3, 3, 1
 };
 
+/* initialize an array of lambda*nbits for all possible mvs */
+static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
+{
+    static int16_t *p_cost_mv[52];
+
+    if( !p_cost_mv[a->i_qp] )
+    {
+        /* could be faster, but isn't called many times */
+        int i;
+        p_cost_mv[a->i_qp] = x264_malloc( (2*4*h->param.analyse.i_mv_range + 1) * sizeof(int16_t) );
+        p_cost_mv[a->i_qp] += 4*h->param.analyse.i_mv_range;
+        for( i = 0; i <= 4*h->param.analyse.i_mv_range; i++ )
+        {
+            p_cost_mv[a->i_qp][-i] =
+            p_cost_mv[a->i_qp][i]  = a->i_lambda * bs_size_se( i );
+        }
+    }
+
+    a->p_cost_mv = p_cost_mv[a->i_qp];
+}
+
 static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
 {
     memset( a, 0, sizeof( x264_mb_analysis_t ) );
@@ -152,19 +174,22 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     if( h->sh.i_type != SLICE_TYPE_I )
     {
         int i;
+        int i_fmv_range = h->param.analyse.i_mv_range - 16;
 
         /* Calculate max allowed MV range */
-        h->mb.mv_min_fpel[0] = -16*h->mb.i_mb_x - 8;
-        h->mb.mv_max_fpel[0] = 16*( h->sps->i_mb_width - h->mb.i_mb_x ) - 8;
+#define CLIP_FMV(mv) x264_clip3( mv, -i_fmv_range, i_fmv_range )
+        h->mb.mv_min_fpel[0] = CLIP_FMV( -16*h->mb.i_mb_x - 8 );
+        h->mb.mv_max_fpel[0] = CLIP_FMV( 16*( h->sps->i_mb_width - h->mb.i_mb_x ) - 8 );
         h->mb.mv_min[0] = 4*( h->mb.mv_min_fpel[0] - 16 );
         h->mb.mv_max[0] = 4*( h->mb.mv_max_fpel[0] + 16 );
         if( h->mb.i_mb_x == 0)
         {
-            h->mb.mv_min_fpel[1] = -16*h->mb.i_mb_y - 8;
-            h->mb.mv_max_fpel[1] = 16*( h->sps->i_mb_height - h->mb.i_mb_y ) - 8;
+            h->mb.mv_min_fpel[1] = CLIP_FMV( -16*h->mb.i_mb_y - 8 );
+            h->mb.mv_max_fpel[1] = CLIP_FMV( 16*( h->sps->i_mb_height - h->mb.i_mb_y ) - 8 );
             h->mb.mv_min[1] = 4*( h->mb.mv_min_fpel[1] - 16 );
             h->mb.mv_max[1] = 4*( h->mb.mv_max_fpel[1] + 16 );
         }
+#undef CLIP_FMV
 
         a->l0.me16x16.cost = -1;
         a->l0.i_cost8x8    = -1;
@@ -502,14 +527,14 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
 
     /* 16x16 Search on all ref frame */
     m.i_pixel = PIXEL_16x16;
-    m.lm      = a->i_lambda;
+    m.p_cost_mv = a->p_cost_mv;
     m.p_fenc  = h->mb.pic.p_fenc[0];
     m.i_stride= h->mb.pic.i_stride[0];
 
     a->l0.me16x16.cost = INT_MAX;
     for( i_ref = 0; i_ref < h->i_ref0; i_ref++ )
     {
-        const int i_ref_cost = m.lm * bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, i_ref );
+        const int i_ref_cost = a->i_lambda * bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, i_ref );
         i_fullpel_thresh -= i_ref_cost;
 
         /* search with ref */
@@ -533,7 +558,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     }
 
     /* subtract ref cost, so we don't have to add it for the other P types */
-    a->l0.me16x16.cost -= m.lm * bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, a->l0.i_ref );
+    a->l0.me16x16.cost -= a->i_lambda * bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, a->l0.i_ref );
 
     /* Set global ref, needed for all others modes */
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.i_ref );
@@ -560,7 +585,7 @@ static void x264_mb_analyse_inter_p8x8( x264_t *h, x264_mb_analysis_t *a )
         const int y8 = i/2;
 
         m->i_pixel = PIXEL_8x8;
-        m->lm      = a->i_lambda;
+        m->p_cost_mv = a->p_cost_mv;
 
         m->p_fenc  = &p_fenc[8*(y8*h->mb.pic.i_stride[0]+x8)];
         m->i_stride= h->mb.pic.i_stride[0];
@@ -598,7 +623,7 @@ static void x264_mb_analyse_inter_p16x8( x264_t *h, x264_mb_analysis_t *a )
         x264_me_t *m = &a->l0.me16x8[i];
 
         m->i_pixel = PIXEL_16x8;
-        m->lm      = a->i_lambda;
+        m->p_cost_mv = a->p_cost_mv;
 
         m->p_fenc  = &p_fenc[8*i*h->mb.pic.i_stride[0]];
         m->i_stride= h->mb.pic.i_stride[0];
@@ -633,7 +658,7 @@ static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a )
         x264_me_t *m = &a->l0.me8x16[i];
 
         m->i_pixel = PIXEL_8x16;
-        m->lm      = a->i_lambda;
+        m->p_cost_mv = a->p_cost_mv;
 
         m->p_fenc  = &p_fenc[8*i];
         m->i_stride= h->mb.pic.i_stride[0];
@@ -673,7 +698,7 @@ static void x264_mb_analyse_inter_p4x4( x264_t *h, x264_mb_analysis_t *a, int i8
         x264_me_t *m = &a->l0.me4x4[i8x8][i4x4];
 
         m->i_pixel = PIXEL_4x4;
-        m->lm      = a->i_lambda;
+        m->p_cost_mv = a->p_cost_mv;
 
         m->p_fenc  = &p_fenc[4*(y4*h->mb.pic.i_stride[0]+x4)];
         m->i_stride= h->mb.pic.i_stride[0];
@@ -712,7 +737,7 @@ static void x264_mb_analyse_inter_p8x4( x264_t *h, x264_mb_analysis_t *a, int i8
         x264_me_t *m = &a->l0.me8x4[i8x8][i8x4];
 
         m->i_pixel = PIXEL_8x4;
-        m->lm      = a->i_lambda;
+        m->p_cost_mv = a->p_cost_mv;
 
         m->p_fenc  = &p_fenc[4*(y4*h->mb.pic.i_stride[0]+x4)];
         m->i_stride= h->mb.pic.i_stride[0];
@@ -748,7 +773,7 @@ static void x264_mb_analyse_inter_p4x8( x264_t *h, x264_mb_analysis_t *a, int i8
         x264_me_t *m = &a->l0.me4x8[i8x8][i4x8];
 
         m->i_pixel = PIXEL_4x8;
-        m->lm      = a->i_lambda;
+        m->p_cost_mv = a->p_cost_mv;
 
         m->p_fenc  = &p_fenc[4*(y4*h->mb.pic.i_stride[0]+x4)];
         m->i_stride= h->mb.pic.i_stride[0];
@@ -805,7 +830,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 
     /* 16x16 Search on all ref frame */
     m.i_pixel = PIXEL_16x16;
-    m.lm      = a->i_lambda;
+    m.p_cost_mv = a->p_cost_mv;
     m.p_fenc  = h->mb.pic.p_fenc[0];
     m.i_stride= h->mb.pic.i_stride[0];
 
@@ -820,7 +845,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
         x264_me_search_ref( h, &m, mvc, i_mvc, p_fullpel_thresh );
 
         /* add ref cost */
-        m.cost += m.lm * bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, i_ref );
+        m.cost += a->i_lambda * bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, i_ref );
 
         if( m.cost < a->l0.me16x16.cost )
         {
@@ -833,7 +858,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
         h->mb.mvr[0][i_ref][h->mb.i_mb_xy][1] = m.mv[1];
     }
     /* subtract ref cost, so we don't have to add it for the other MB types */
-    a->l0.me16x16.cost -= m.lm * bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, a->l0.i_ref );
+    a->l0.me16x16.cost -= a->i_lambda * bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, a->l0.i_ref );
 
     /* ME for list 1 */
     /* not using fullpel_thresh since we don't yet do more than 1 list 1 ref */
@@ -847,7 +872,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
         x264_me_search( h, &m, mvc, i_mvc );
 
         /* add ref cost */
-        m.cost += m.lm * bs_size_te( h->sh.i_num_ref_idx_l1_active - 1, i_ref );
+        m.cost += a->i_lambda * bs_size_te( h->sh.i_num_ref_idx_l1_active - 1, i_ref );
 
         if( m.cost < a->l1.me16x16.cost )
         {
@@ -860,7 +885,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
         h->mb.mvr[1][i_ref][h->mb.i_mb_xy][1] = m.mv[1];
     }
     /* subtract ref cost, so we don't have to add it for the other MB types */
-    a->l1.me16x16.cost -= m.lm * bs_size_te( h->sh.i_num_ref_idx_l1_active - 1, a->l1.i_ref );
+    a->l1.me16x16.cost -= a->i_lambda * bs_size_te( h->sh.i_num_ref_idx_l1_active - 1, a->l1.i_ref );
 
     /* Set global ref, needed for other modes? */
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.i_ref );
@@ -894,13 +919,11 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 
     h->pixf.avg[PIXEL_16x16]( pix1, 16, src2, stride2 );
 
-    a->i_cost16x16bi = h->pixf.satd[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0], pix1, 16 ) +
-                       a->i_lambda * ( bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, a->l0.i_ref ) +
-                                       bs_size_te( h->sh.i_num_ref_idx_l1_active - 1, a->l1.i_ref ) +
-                                       bs_size_se( a->l0.me16x16.mv[0] - a->l0.me16x16.mvp[0] ) +
-                                       bs_size_se( a->l0.me16x16.mv[1] - a->l0.me16x16.mvp[1] ) +
-                                       bs_size_se( a->l1.me16x16.mv[0] - a->l1.me16x16.mvp[0] ) +
-                                       bs_size_se( a->l1.me16x16.mv[1] - a->l1.me16x16.mvp[1] ) );
+    a->i_cost16x16bi = h->pixf.satd[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0], pix1, 16 )
+                     + a->i_lambda * ( bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, a->l0.i_ref )
+                                     + bs_size_te( h->sh.i_num_ref_idx_l1_active - 1, a->l1.i_ref ) )
+                     + a->l0.me16x16.cost_mv
+                     + a->l1.me16x16.cost_mv;
 
     /* mb type cost */
     a->i_cost16x16bi   += a->i_lambda * i_mb_b_cost_table[B_BI_BI];
@@ -1000,7 +1023,7 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
             x264_me_t *m = &lX->me8x8[i];
 
             m->i_pixel = PIXEL_8x8;
-            m->lm      = a->i_lambda;
+            m->p_cost_mv = a->p_cost_mv;
 
             m->p_fenc = p_fenc_i;
             m->i_stride = h->mb.pic.i_stride[0];
@@ -1014,8 +1037,7 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
             /* BI mode */
             h->mc.mc_luma( m->p_fref, m->i_stride, pix[l], 8,
                             m->mv[0], m->mv[1], 8, 8 );
-            i_part_cost_bi += a->i_lambda * ( bs_size_se( m->mv[0] - m->mvp[0] ) +
-                                              bs_size_se( m->mv[1] - m->mvp[1] ) );
+            i_part_cost_bi += m->cost_mv;
             /* FIXME: ref cost */
         }
 
@@ -1088,7 +1110,7 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
             x264_me_t *m = &lX->me16x8[i];
 
             m->i_pixel = PIXEL_16x8;
-            m->lm      = a->i_lambda;
+            m->p_cost_mv = a->p_cost_mv;
 
             m->p_fenc  = p_fenc_i;
             m->i_stride= i_ref_stride;
@@ -1106,8 +1128,7 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
             h->mc.mc_luma( m->p_fref, m->i_stride, pix[l], 8,
                             m->mv[0], m->mv[1], 8, 8 );
             /* FIXME: ref cost */
-            i_part_cost_bi += a->i_lambda * ( bs_size_se( m->mv[0] - m->mvp[0] ) +
-                                              bs_size_se( m->mv[1] - m->mvp[1] ) );
+            i_part_cost_bi += m->cost_mv;
         }
 
         h->pixf.avg[PIXEL_16x8]( pix[0], 8, pix[1], 8 );
@@ -1172,7 +1193,7 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
             x264_me_t *m = &lX->me8x16[i];
 
             m->i_pixel = PIXEL_8x16;
-            m->lm      = a->i_lambda;
+            m->p_cost_mv = a->p_cost_mv;
 
             m->p_fenc  = p_fenc_i;
             m->i_stride= i_ref_stride;
@@ -1190,8 +1211,7 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
             h->mc.mc_luma( m->p_fref, m->i_stride, pix[l], 8,
                             m->mv[0], m->mv[1], 8, 8 );
             /* FIXME: ref cost */
-            i_part_cost_bi += a->i_lambda * ( bs_size_se( m->mv[0] - m->mvp[0] ) +
-                                              bs_size_se( m->mv[1] - m->mvp[1] ) );
+            i_part_cost_bi += m->cost_mv;
         }
 
         h->pixf.avg[PIXEL_8x16]( pix[0], 8, pix[1], 8 );
@@ -1276,6 +1296,8 @@ void x264_macroblock_analyse( x264_t *h )
             const unsigned int flags = h->param.analyse.inter;
             int i_type;
             int i_partition;
+
+            x264_mb_analyse_load_costs( h, &analysis );
 
             x264_mb_analyse_inter_p16x16( h, &analysis );
             if( flags & X264_ANALYSE_PSUB16x16 )
@@ -1453,6 +1475,8 @@ void x264_macroblock_analyse( x264_t *h )
             const unsigned int flags = h->param.analyse.inter;
             int i_partition;
             int i_cost;
+
+            x264_mb_analyse_load_costs( h, &analysis );
 
             /* select best inter mode */
             /* direct must be first */

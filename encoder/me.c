@@ -46,9 +46,9 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 #define COST_MV( mx, my ) \
 { \
     int cost = h->pixf.sad[i_pixel]( m->p_fenc, m->i_stride,       \
-                   &p_fref[(my)*m->i_stride+(mx)], m->i_stride ) + \
-               m->lm * ( bs_size_se(((mx)<<2) - m->mvp[0] ) +      \
-                         bs_size_se(((my)<<2) - m->mvp[1] ) );     \
+                   &p_fref[(my)*m->i_stride+(mx)], m->i_stride )   \
+             + p_cost_mvx[ (mx)<<2 ]  \
+             + p_cost_mvy[ (my)<<2 ]; \
     if( cost < bcost ) \
     {                  \
         bcost = cost;  \
@@ -69,6 +69,12 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     const int mv_y_min = h->mb.mv_min_fpel[1];
     const int mv_x_max = h->mb.mv_max_fpel[0];
     const int mv_y_max = h->mb.mv_max_fpel[1];
+
+    /* FIXME could theoretically run off the end of the prepared array of costs,
+     * if some mv predictors are very far from mvp */
+    const int16_t *p_cost_mvx = m->p_cost_mv - m->mvp[0];
+    const int16_t *p_cost_mvy = m->p_cost_mv - m->mvp[1];
+
 
     /* init with mvp */
     /* XXX: We don't need to clamp because the way diamond work, we will
@@ -145,10 +151,10 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     m->mv[1] = bmy << 2;
 
     /* compute the real cost */
+    m->cost_mv = p_cost_mvx[ m->mv[0] ] + p_cost_mvy[ m->mv[1] ];
     m->cost = h->pixf.satd[i_pixel]( m->p_fenc, m->i_stride,
-                    &p_fref[bmy * m->i_stride + bmx], m->i_stride ) +
-                m->lm * ( bs_size_se( m->mv[0] - m->mvp[0] ) +
-                          bs_size_se( m->mv[1] - m->mvp[1] ) );
+                    &p_fref[bmy * m->i_stride + bmx], m->i_stride )
+            + m->cost_mv;
 
     /* subpel refine */
     if( h->param.analyse.i_subpel_refine >= 3 )
@@ -185,6 +191,8 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 {
     const int bw = x264_pixel_size[m->i_pixel].w;
     const int bh = x264_pixel_size[m->i_pixel].h;
+    const int16_t *p_cost_mvx = m->p_cost_mv - m->mvp[0];
+    const int16_t *p_cost_mvy = m->p_cost_mv - m->mvp[1];
 
     DECLARE_ALIGNED( uint8_t, pix[4][16*16], 16 );
     uint8_t * src[4];
@@ -207,13 +215,13 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
             src[3] = h->mc.get_ref( m->p_fref, m->i_stride, pix[3], &stride[3], bmx + step, bmy + 0, bw, bh );
     
             cost[0] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, src[0], stride[0] ) +
-                      m->lm * ( bs_size_se( bmx + 0 - m->mvp[0] ) + bs_size_se( bmy - step - m->mvp[1] ) );
+                      p_cost_mvx[ bmx + 0 ] + p_cost_mvy[ bmy - step ];
             cost[1] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, src[1], stride[1] ) +
-                      m->lm * ( bs_size_se( bmx + 0 - m->mvp[0] ) + bs_size_se( bmy + step - m->mvp[1] ) );
+                      p_cost_mvx[ bmx + 0 ] + p_cost_mvy[ bmy + step ];
             cost[2] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, src[2], stride[2] ) +
-                      m->lm * ( bs_size_se( bmx - step - m->mvp[0] ) + bs_size_se( bmy + 0 - m->mvp[1] ) );
+                      p_cost_mvx[ bmx - step ] + p_cost_mvy[ bmy + 0 ];
             cost[3] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, src[3], stride[3] ) +
-                      m->lm * ( bs_size_se( bmx + step - m->mvp[0] ) + bs_size_se( bmy + 0 - m->mvp[1] ) );
+                      p_cost_mvx[ bmx + step ] + p_cost_mvy[ bmy + 0 ];
     
             best = 0;
             if( cost[1] < cost[0] )    best = 1;
@@ -234,5 +242,6 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 
     m->mv[0] = bmx;
     m->mv[1] = bmy;
+    m->cost_mv = p_cost_mvx[ bmx ] + p_cost_mvy[ bmy ];
 }
 

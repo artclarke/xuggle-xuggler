@@ -28,7 +28,7 @@ typedef struct
 {
     /* input */
     int      i_pixel;   /* PIXEL_WxH */
-    int      lm;        /* lambda motion */
+    int16_t *p_cost_mv; /* lambda * nbits for each possible mv */
 
     uint8_t *p_fref[4];
     uint8_t *p_fenc;
@@ -37,7 +37,8 @@ typedef struct
     int mvp[2];
 
     /* output */
-    int cost;           /* satd + lm * nbits */
+    int cost_mv;        /* lambda * nbits for the chosen mv */
+    int cost;           /* satd + lambda * nbits */
     int mv[2];
 } x264_me_t;
 

@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 0x000e
+#define X264_BUILD 0x000f
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -135,6 +135,8 @@ typedef struct
         int          i_direct_mv_pred; /* spatial vs temporal mv prediction */
 
         int          i_subpel_refine; /* subpixel motion estimation quality */
+
+        int          i_mv_range; /* maximum length of a mv (in pixels) */
 
         int          b_psnr;    /* Do we compute PSNR stats (save a few % of cpu) */
     } analyse;
