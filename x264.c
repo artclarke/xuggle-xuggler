@@ -140,7 +140,7 @@ static void Help( x264_param_t *defaults )
              "      --no-cabac              Disable CABAC\n"
              "  -r, --ref <integer>         Number of reference frames [%d]\n"
              "  -n, --nf                    Disable loop filter\n"
-             "  -f, --filter <alpha:beta>   Loop filter AplhaCO and Beta parameters [%d]\n"
+             "  -f, --filter <alpha:beta>   Loop filter AlphaC0 and Beta parameters [%d]\n"
              "\n"
              "  -q, --qp <integer>          Set QP [%d]\n"
              "  -B, --bitrate <integer>     Set bitrate\n"
@@ -162,9 +162,9 @@ static void Help( x264_param_t *defaults )
              "      --qblur <float>         reduce fluctuations in QP (after curve compression) [%.1f]\n"
              "\n"
 
-             "  -A, --analyse <string>      Analyse options: [\"i4x4|psub16x16|bsub16x16\"]\n"
+             "  -A, --analyse <string>      Analyse options: [\"i4x4|p8x8|b8x8\"]\n"
              "                                  - i4x4\n"
-             "                                  - psub16x16, psub8x8, bsub16x16\n"
+             "                                  - p8x8, p4x4, b8x8\n"
              "                                  - none, all\n"
              "      --direct <string>       Direct MV prediction mode [\"temporal\"]\n"
              "                                  - none, spatial, temporal\n"
@@ -433,10 +433,10 @@ static int  Parse( int argc, char **argv,
                 if( strstr( optarg, "none" ) )  param->analyse.inter = 0x000000;
                 if( strstr( optarg, "all" ) )   param->analyse.inter = X264_ANALYSE_I4x4|X264_ANALYSE_PSUB16x16|X264_ANALYSE_PSUB8x8|X264_ANALYSE_BSUB16x16;
 
-                if( strstr( optarg, "i4x4" ) )      param->analyse.inter |= X264_ANALYSE_I4x4;
-                if( strstr( optarg, "psub16x16" ) ) param->analyse.inter |= X264_ANALYSE_PSUB16x16;
-                if( strstr( optarg, "psub8x8" ) )   param->analyse.inter |= X264_ANALYSE_PSUB8x8;
-                if( strstr( optarg, "bsub16x16" ) ) param->analyse.inter |= X264_ANALYSE_BSUB16x16;
+                if( strstr( optarg, "i4x4" ) )  param->analyse.inter |= X264_ANALYSE_I4x4;
+                if( strstr( optarg, "p8x8" ) )  param->analyse.inter |= X264_ANALYSE_PSUB16x16;
+                if( strstr( optarg, "p4x4" ) )  param->analyse.inter |= X264_ANALYSE_PSUB8x8;
+                if( strstr( optarg, "b8x8" ) )  param->analyse.inter |= X264_ANALYSE_BSUB16x16;
                 break;
             case OPT_DIRECT:
                 if( strstr( optarg, "temporal" ) )
