@@ -89,8 +89,8 @@
         tmp1 = vec_ld( 0, p );                        \
         tmp2 = vec_ld( 16, p );                       \
         align = vec_lvsr( 0, p );                     \
-        mask = vec_perm( (vector unsigned char) (0),  \
-                         (vector unsigned char) (-1), \
+        mask = vec_perm( (vector unsigned char) {0},  \
+                         (vector unsigned char) {1},  \
                          align);                      \
         v = vec_perm( v, v, align);                   \
         tmp1 = vec_sel( tmp1, v, mask );              \
