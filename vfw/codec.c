@@ -28,6 +28,7 @@
 #include <io.h>
 
 #define X264_MAX(a,b) ( (a)>(b) ? (a) : (b) )
+#define X264_MIN(a,b) ( (a)<(b) ? (a) : (b) )
 
 /* get_csp:
  *  return a valid x264 CSP or X264_CSP_NULL if unsuported */
@@ -285,7 +286,7 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
                 if( config->b_fast1pass )
                 {
                     /* adjust or turn off some flags to gain speed, if needed */
-                    param.analyse.i_subpel_refine = X264_MAX( 3, param.analyse.i_subpel_refine - 1 );
+                    param.analyse.i_subpel_refine = X264_MAX( X264_MIN( 3, param.analyse.i_subpel_refine - 1 ), 1 );
                     param.i_frame_reference = ( param.i_frame_reference + 1 ) >> 1;
                     param.analyse.inter &= ( ~X264_ANALYSE_PSUB8x8 );
                     param.analyse.inter &= ( ~X264_ANALYSE_BSUB16x16 );
