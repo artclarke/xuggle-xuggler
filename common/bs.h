@@ -285,7 +285,7 @@ static inline void bs_align_1( bs_t *s )
 {
     if( s->i_left != 8 )
     {
-        bs_write( s, s->i_left, 1 );
+        bs_write( s, s->i_left, ~0 );
     }
 }
 
