@@ -1052,20 +1052,31 @@ do_encode:
 #if 1
     if( i_slice_type != SLICE_TYPE_I)
     {
+        int i_bias;
+
+        int i_mb_i = i_mb_count[I_4x4] + i_mb_count[I_16x16];
+        int i_mb   = h->sps->i_mb_width * h->sps->i_mb_height;
+        if( h->param.i_iframe > 0 )
+            i_bias = 30 * X264_MIN( 3*h->frames.i_last_i, h->param.i_iframe )  / h->param.i_iframe;
+        else
+            i_bias = 15;
+
         /* Bad P will be reencoded as I */
         if( i_slice_type == SLICE_TYPE_P &&
+            100 * i_mb_i >= (100 - i_bias) * i_mb )
+            /*
             h->out.nal[h->out.i_nal-1].i_payload > h->i_last_intra_size +
             h->i_last_intra_size * (3+h->i_last_intra_qp - i_global_qp) / 16 &&
             i_mb_count[I_4x4] + i_mb_count[I_16x16] > i_mb_count[P_SKIP] + i_mb_count[P_L0]/2 &&
             h->out.nal[h->out.i_nal-1].i_payload > 2 * h->i_last_inter_size &&
-            h->frames.i_last_i > 4)
+            h->frames.i_last_i > 4)*/
         {
 
-            fprintf( stderr, "scene cut at %d size=%d last I:%d last P:%d Intra:%d Skip:%d PL0:%d\n",
+            fprintf( stderr, "scene cut at %d size=%d last I:%d last P:%d Intra:%d Inter=%d Ratio=%d Bias=%d (Skip:%d PL0:%d)\n",
                      h->i_frame - 1,
                      h->out.nal[h->out.i_nal-1].i_payload,
                       h->i_last_intra_size, h->i_last_inter_size,
-                     i_mb_count[I_4x4] + i_mb_count[I_16x16],
+                     i_mb_i, i_mb, 100 * i_mb_i / i_mb, i_bias,
                      i_mb_count[P_SKIP],
                      i_mb_count[P_L0] );
 
