@@ -405,6 +405,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         h->param.rc.f_qblur = 0;
     if( h->param.rc.f_complexity_blur < 0 )
         h->param.rc.f_complexity_blur = 0;
+    h->param.rc.i_qp_constant = x264_clip3(h->param.rc.i_qp_constant, 0, 51);
 
     /* VUI */
     if( h->param.vui.i_sar_width > 0 && h->param.vui.i_sar_height > 0 )
