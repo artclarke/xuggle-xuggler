@@ -129,7 +129,7 @@ static void Help( x264_param_t *defaults )
              "\n"
              "  -h, --help                  Print this help\n"
              "\n"
-             "  -I, --keyint <integer  >    Maximum GOP size [%d]\n"
+             "  -I, --keyint <integer>      Maximum GOP size [%d]\n"
              "  -i, --min-keyint <integer>  Minimum GOP size [%d]\n"
              "      --scenecut <integer>    How aggresively to insert extra I frames [%d]\n"
              "  -b, --bframe <integer>      Number of B-frames between I and P [%d]\n"
@@ -140,7 +140,7 @@ static void Help( x264_param_t *defaults )
              "      --no-cabac              Disable CABAC\n"
              "  -r, --ref <integer>         Number of reference frames [%d]\n"
              "  -n, --nf                    Disable loop filter\n"
-             "  -f, --filter <alpha:beta>   Loop filter AlphaC0 and Beta parameters [%d]\n"
+             "  -f, --filter <alpha:beta>   Loop filter AlphaC0 and Beta parameters [%d:%d]\n"
              "\n"
              "  -q, --qp <integer>          Set QP [%d]\n"
              "  -B, --bitrate <integer>     Set bitrate\n"
@@ -154,7 +154,10 @@ static void Help( x264_param_t *defaults )
              "      --pbratio <float>       QP factor between P and B [%.2f]\n"
              "      --chroma-qp-offset <integer>  QP difference between chroma and luma [%d]\n"
              "\n"
-             "  -p, --pass <1|2>            Enable 2 pass ratecontrol\n"
+             "  -p, --pass <1|2|3>          Enable multipass ratecontrol:\n"
+             "                                  - 1: First pass, creates stats file\n"
+             "                                  - 2: Last pass, does not overwrite stats file\n"
+             "                                  - 3: Nth pass, overwrites stats file\n"
              "      --stats <string>        Filename for 2 pass stats [\"%s\"]\n"
              "      --rceq <string>         Ratecontrol equation [\"%s\"]\n"
              "      --qcomp <float>         0.0 => CBR, 1.0 => CQP [%.2f]\n"
@@ -171,7 +174,7 @@ static void Help( x264_param_t *defaults )
              "  -w, --weightb               Weighted prediction for B-frames\n"
              "  -m, --subme <integer>       Subpixel motion estimation quality: 1=fast, 5=best. [%d]\n"
              "\n"
-             "      --level <integer>       Specify IDC level\n"
+             "      --level <integer>       Specify level (as defined by Annex A)\n"
              "  -s, --sar width:height      Specify Sample Aspect Ratio\n"
              "      --fps <float|rational>  Specify framerate\n"
              "      --frames <integer>      Maximum number of frames to encode\n"
@@ -190,6 +193,7 @@ static void Help( x264_param_t *defaults )
             defaults->i_bframe_bias,
             defaults->i_frame_reference,
             defaults->i_deblocking_filter_alphac0,
+            defaults->i_deblocking_filter_beta,
             defaults->rc.i_qp_constant,
             defaults->rc.i_qp_min,
             defaults->rc.i_qp_max,
