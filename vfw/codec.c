@@ -222,6 +222,8 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
     param.rc.f_qcompress = (float)config->i_curve_comp / 100;
 
     param.i_bframe = config->i_bframe;
+    if( config->i_bframe > 1 )
+        param.analyse.b_weighted_bipred = 1;
     param.analyse.i_subpel_refine = config->i_subpel_refine + 1; /* 0..4 -> 1..5 */
 
     /* bframe prediction - gui goes alphabetically, so 1=SPATIAL, 2=TEMPORAL */
