@@ -162,7 +162,7 @@ static inline void mc_hh_w4( uint8_t *src, int i_src,
 static inline void mc_hh_w8( uint8_t *src, int i_src,
                              uint8_t *dst, int i_dst, int i_height )
 {
-    int x, y;
+    long x, y;
     DECLARE_ALIGNED( int16_t, tmp[8], 16 );
 
     LOAD_ZERO;

@@ -38,7 +38,7 @@
 /* Macros to load aligned or unaligned data without risking buffer
    overflows. */
 #define LOAD_16( p, v )                                \
-    if( (int) p & 0xF )                                \
+    if( (long) p & 0xF )                               \
     {                                                  \
         v = vec_perm( vec_ld( 0, p ), vec_ld( 16, p ), \
                       vec_lvsl( 0, p ) );              \
@@ -49,11 +49,11 @@
     }
 
 #define LOAD_8( p, v )                                             \
-    if( !( (int) p & 0xF ) )                                       \
+    if( !( (long) p & 0xF ) )                                      \
     {                                                              \
         v = vec_ld( 0, p );                                        \
     }                                                              \
-    else if( ( (int) p & 0xF ) < 9 )                               \
+    else if( ( (long) p & 0xF ) < 9 )                              \
     {                                                              \
         v = vec_perm( vec_ld( 0, p ), (vector unsigned char) zero, \
                       vec_lvsl( 0, p ) );                          \
@@ -65,11 +65,11 @@
     }
 
 #define LOAD_4( p, v )                                             \
-    if( !( (int) p & 0xF ) )                                       \
+    if( !( (long) p & 0xF ) )                                      \
     {                                                              \
         v = vec_ld( 0, p );                                        \
     }                                                              \
-    else if( ( (int) p & 0xF ) < 13 )                              \
+    else if( ( (long) p & 0xF ) < 13 )                             \
     {                                                              \
         v = vec_perm( vec_ld( 0, p ), (vector unsigned char) zero, \
                       vec_lvsl( 0, p ) );                          \
@@ -82,7 +82,7 @@
 
 /* Store aligned or unaligned data */
 #define STORE_16( v, p )                              \
-    if( (int) p & 0xF )                               \
+    if( (long) p & 0xF )                              \
     {                                                 \
         vector unsigned char tmp1, tmp2;              \
         vector unsigned char align, mask;             \
