@@ -33,8 +33,6 @@
 #include "../core/cpu.h"
 #include "ratecontrol.h"
 
-#define DEBUG_RC 0
-
 #ifdef SYS_MACOSX
 #define exp2f(x) ( (float) exp2( (x) ) )
 #endif
@@ -93,10 +91,23 @@ int x264_ratecontrol_new( x264_t *h )
     rc->qpm = rc->qp;
 
     rc->buffer_size = h->param.i_rc_buffer_size * 1000;
-    if(rc->buffer_size <= 0)
-        rc->buffer_size = rc->bitrate / 2;
     rc->buffer_fullness = h->param.i_rc_init_buffer;
     rc->rcbufrate = rc->bitrate / rc->fps;
+
+    if(rc->buffer_size < rc->rcbufrate){
+        x264_log(h, X264_LOG_WARNING, "rc buffer size %i too small\n",
+                 rc->buffer_size);
+        rc->buffer_size = 0;
+    }
+
+    if(rc->buffer_size <= 0)
+        rc->buffer_size = rc->bitrate / 2;
+
+    if(rc->buffer_fullness > rc->buffer_size || rc->buffer_fullness < 0){
+        x264_log(h, X264_LOG_WARNING, "invalid initial buffer fullness %i\n",
+                 rc->buffer_fullness);
+        rc->buffer_fullness = 0;
+    }
 
     bpp = rc->bitrate / (rc->fps * h->param.i_width * h->param.i_height);
     if(bpp <= 0.6)
@@ -111,10 +122,8 @@ int x264_ratecontrol_new( x264_t *h )
 
     rc->bits_last_gop = 0;
 
-#if DEBUG_RC
-    fprintf(stderr, "%f fps, %i bps, bufsize %i\n",
-         rc->fps, rc->bitrate, rc->buffer_size);
-#endif
+    x264_log(h, X264_LOG_DEBUG, "%f fps, %i bps, bufsize %i\n",
+             rc->fps, rc->bitrate, rc->buffer_size);
 
     h->rc = rc;
 
@@ -169,10 +178,8 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
 
         kp = h->param.f_ip_factor * h->param.f_pb_factor;
 
-#if DEBUG_RC
-        fprintf(stderr, "gbuf=%i bits_gop=%i frames=%i gop_qp=%i\n",
-                gbuf, rc->bits_gop, rc->frames, rc->gop_qp);
-#endif
+        x264_log(h, X264_LOG_DEBUG,"gbuf=%i bits_gop=%i frames=%i gop_qp=%i\n",
+                 gbuf, rc->bits_gop, rc->frames, rc->gop_qp);
 
         rc->bits_last_gop = 0;
         rc->frames = 0;
@@ -189,8 +196,8 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
         break;
 
     default:
-        fprintf(stderr, "x264: ratecontrol: unknown slice type %i\n",
-                i_slice_type);
+        x264_log(h, X264_LOG_WARNING, "ratecontrol: unknown slice type %i\n",
+                 i_slice_type);
         kp = 1.0;
         break;
     }
@@ -242,10 +249,8 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
     rc->qp = x264_clip3(rc->qp, h->param.i_qp_min, h->param.i_qp_max);
     rc->qpm = rc->qp;
 
-#if DEBUG_RC > 1
-    fprintf(stderr, "fbits=%i, qp=%i, z=%i, min=%i, max=%i\n",
-         rc->fbits, rc->qpm, zn, minbits, maxbits);
-#endif
+    x264_log(h, X264_LOG_DEBUG, "fbits=%i, qp=%i, z=%i, min=%i, max=%i\n",
+             rc->fbits, rc->qpm, zn, minbits, maxbits);
 
     rc->fbits -= rc->overhead;
     rc->ufbits = 0;
@@ -319,7 +324,8 @@ void x264_ratecontrol_end( x264_t *h, int bits )
 
     rc->buffer_fullness += rc->rcbufrate - bits;
     if(rc->buffer_fullness < 0){
-        fprintf(stderr, "x264: buffer underflow %i\n", rc->buffer_fullness);
+        x264_log(h, X264_LOG_WARNING, "buffer underflow %i\n",
+                 rc->buffer_fullness);
         rc->buffer_fullness = 0;
     }
 
@@ -338,19 +344,11 @@ void x264_ratecontrol_end( x264_t *h, int bits )
 
     rc->overhead = bits - rc->ufbits;
 
-#if DEBUG_RC > 1
-    fprintf(stderr, " bits=%i, qp=%i, z=%i, zr=%6.3f, buf=%i\n",
-         bits, rc->qpa, rc->nzcoeffs,
-         (float) rc->nzcoeffs / rc->ncoeffs, rc->buffer_fullness);
-#endif
+    x264_log(h, X264_LOG_DEBUG, "bits=%i, qp=%i, z=%i, zr=%6.3f, buf=%i\n",
+             bits, rc->qpa, rc->nzcoeffs, (float) rc->nzcoeffs / rc->ncoeffs,
+             rc->buffer_fullness);
 
     rc->bits_last_gop += bits;
     rc->frames++;
     rc->mb = 0;
 }
-
-/*
-  Local Variables:
-  indent-tabs-mode: nil
-  End:
-*/
