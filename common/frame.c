@@ -699,24 +699,31 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
                         {
                             bS[i] = 2;
                         }
-                        else if( i_slice_type == SLICE_TYPE_P )
-                        {
-                            if( h->mb.ref[0][mb_8x8+(x/2)+(y/2)*s8x8] != h->mb.ref[0][mbn_8x8+(xn/2)+(yn/2)*s8x8] ||
-                                abs( h->mb.mv[0][mb_4x4+x+y*s4x4][0] - h->mb.mv[0][mbn_4x4+xn+yn*s4x4][0] ) >= 4 ||
-                                abs( h->mb.mv[0][mb_4x4+x+y*s4x4][1] - h->mb.mv[0][mbn_4x4+xn+yn*s4x4][1] ) >= 4 )
-                            {
-                                bS[i] = 1;
-                            }
-                            else
-                            {
-                                bS[i] = 0;
-                            }
-                        }
                         else
                         {
-                            /* FIXME */
-                            x264_log( h, X264_LOG_ERROR, "deblocking filter doesn't work yet with B slice\n" );
-                            return;
+                            /* FIXME: A given frame may occupy more than one position in
+                             * the reference list. So we should compare the frame numbers,
+                             * not the indices in the ref list.
+                             * No harm yet, as we don't generate that case.*/
+
+                            int i8p= mb_8x8+(x/2)+(y/2)*s8x8;
+                            int i8q= mbn_8x8+(xn/2)+(yn/2)*s8x8;
+                            int i4p= mb_4x4+x+y*s4x4;
+                            int i4q= mbn_4x4+xn+yn*s4x4;
+                            int l;
+
+                            bS[i] = 0;
+
+                            for( l = 0; l < 1 + (i_slice_type == SLICE_TYPE_B); l++ )
+                            {
+                                if( h->mb.ref[l][i8p] != h->mb.ref[l][i8q] ||
+                                    abs( h->mb.mv[l][i4p][0] - h->mb.mv[l][i4q][0] ) >= 4 ||
+                                    abs( h->mb.mv[l][i4p][1] - h->mb.mv[l][i4q][1] ) >= 4 )
+                                {
+                                    bS[i] = 1;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
