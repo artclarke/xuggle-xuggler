@@ -487,6 +487,8 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     x264_me_t m;
     int i_ref;
     int mvc[4][2], i_mvc;
+    int i_fullpel_thresh = INT_MAX;
+    int *p_fullpel_thresh = h->i_ref0>1 ? &i_fullpel_thresh : NULL;
 
     /* 16x16 Search on all ref frame */
     m.i_pixel = PIXEL_16x16;
@@ -498,14 +500,17 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     a->l0.me16x16.cost = INT_MAX;
     for( i_ref = 0; i_ref < h->i_ref0; i_ref++ )
     {
+        const int i_ref_cost = m.lm * bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, i_ref );
+        i_fullpel_thresh -= i_ref_cost;
+
         /* search with ref */
         m.p_fref = h->mb.pic.p_fref[0][i_ref][0];
         x264_mb_predict_mv_16x16( h, 0, i_ref, m.mvp );
         x264_mb_predict_mv_ref16x16( h, 0, i_ref, mvc, &i_mvc );
-        x264_me_search( h, &m, mvc, i_mvc );
+        x264_me_search_ref( h, &m, mvc, i_mvc, p_fullpel_thresh );
 
-        /* add ref cost */
-        m.cost += m.lm * bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, i_ref );
+        m.cost += i_ref_cost;
+        i_fullpel_thresh += i_ref_cost;
 
         if( m.cost < a->l0.me16x16.cost )
         {

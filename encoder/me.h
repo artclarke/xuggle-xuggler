@@ -43,7 +43,10 @@ typedef struct
     int mv[2];
 } x264_me_t;
 
-void x264_me_search( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc );
+void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int *p_fullpel_thresh );
+static inline void x264_me_search( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc )
+    { x264_me_search_ref( h, m, mvc, i_mvc, NULL ); }
+
 void x264_me_refine_qpel( x264_t *h, x264_me_t *m );
 
 #endif

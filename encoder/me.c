@@ -5,6 +5,7 @@
  * $Id: me.c,v 1.1 2004/06/03 19:27:08 fenrir Exp $
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
+ *          Loren Merritt <lorenm@u.washington.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,14 +43,27 @@ const static int subpel_iterations[][4] =
 
 static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters );
 
-void x264_me_search( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc )
+#define COST_MV( mx, my ) \
+{ \
+    int cost = h->pixf.sad[i_pixel]( m->p_fenc, m->i_stride,       \
+                   &p_fref[(my)*m->i_stride+(mx)], m->i_stride ) + \
+               m->lm * ( bs_size_se(((mx)<<2) - m->mvp[0] ) +      \
+                         bs_size_se(((my)<<2) - m->mvp[1] ) );     \
+    if( cost < bcost ) \
+    {                  \
+        bcost = cost;  \
+        bmx = mx;      \
+        bmy = my;      \
+    } \
+}
+
+void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int *p_fullpel_thresh )
 {
     const int i_pixel = m->i_pixel;
-    int bcost;
-    int bmx, bmy;
+    int bmx, bmy, bcost;
+    int omx, omy;
     uint8_t *p_fref = m->p_fref;
     int i_iter;
-    int hpel, qpel;
 
 
     /* init with mvp */
@@ -61,70 +75,64 @@ void x264_me_search( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc )
     bmx = x264_clip3( ( m->mvp[0] + 2 ) >> 2, -m->i_mv_range, m->i_mv_range );
     bmy = x264_clip3( ( m->mvp[1] + 2 ) >> 2, -m->i_mv_range, m->i_mv_range );
 
-    p_fref = &m->p_fref[bmy * m->i_stride + bmx];
-    bcost = h->pixf.sad[i_pixel]( m->p_fenc, m->i_stride, p_fref, m->i_stride );
+    bcost = h->pixf.sad[i_pixel]( m->p_fenc, m->i_stride,
+                &p_fref[bmy * m->i_stride + bmx], m->i_stride );
 
-
-    /* try a candidate if provided */
+    /* try extra predictors if provided */
     for( i_iter = 0; i_iter < i_mvc; i_iter++ )
     {
         const int mx = x264_clip3( ( mvc[i_iter][0] + 2 ) >> 2, -m->i_mv_range, m->i_mv_range );
         const int my = x264_clip3( ( mvc[i_iter][1] + 2 ) >> 2, -m->i_mv_range, m->i_mv_range );
         if( mx != bmx || my != bmy )
-        {
-            uint8_t *p_fref2 = &m->p_fref[my*m->i_stride+mx];
-            int cost = h->pixf.sad[i_pixel]( m->p_fenc, m->i_stride, p_fref2, m->i_stride ) +
-                       m->lm * ( bs_size_se( mx - m->mvp[0] ) + bs_size_se( my - m->mvp[1] ) );
-            if( cost < bcost )
-            {
-                bmx = mx;
-                bmy = my;
-                bcost = cost;
-                p_fref = p_fref2;
-            }
-        }
+            COST_MV( mx, my );
     }
+    
+    COST_MV( 0, 0 );
 
-    /* Don't need to test mv_range each time, we won't go outside picture+padding */
-    /* diamond */
-    for( i_iter = 0; i_iter < 16; i_iter++ )
+    if( h->param.analyse.i_subpel_refine >= 2 )
     {
-        int best = 0;
-        int cost[4];
+        /* hexagon search */
+        /* Don't need to test mv_range each time, we won't go outside picture+padding */
+        omx = bmx;
+        omy = bmy;
+        for( i_iter = 0; i_iter < 8; i_iter++ )
+        {
+            COST_MV( omx-2, omy   );
+            COST_MV( omx-1, omy+2 );
+            COST_MV( omx+1, omy+2 );
+            COST_MV( omx+2, omy   );
+            COST_MV( omx+1, omy-2 );
+            COST_MV( omx-1, omy-2 );
 
-#define COST_MV( c, dx, dy ) \
-        (c) = h->pixf.sad[i_pixel]( m->p_fenc, m->i_stride,                    \
-                               &p_fref[(dy)*m->i_stride+(dx)], m->i_stride ) + \
-              m->lm * ( bs_size_se(((bmx+(dx))<<2) - m->mvp[0] ) +         \
-                        bs_size_se(((bmy+(dy))<<2) - m->mvp[1] ) )
-
-        COST_MV( cost[0],  0, -1 );
-        COST_MV( cost[1],  0,  1 );
-        COST_MV( cost[2], -1,  0 );
-        COST_MV( cost[3],  1,  0 );
-#undef COST_MV
-
-        if( cost[1] < cost[0] )    best = 1;
-        if( cost[2] < cost[best] ) best = 2;
-        if( cost[3] < cost[best] ) best = 3;
-
-        if( bcost <= cost[best] )
-            break;
-
-        bcost = cost[best];
-
-        if( best == 0 ) {
-            bmy--;
-            p_fref -= m->i_stride;
-        } else if( best == 1 ) {
-            bmy++;
-            p_fref += m->i_stride;
-        } else if( best == 2 ) {
-            bmx--;
-            p_fref--;
-        } else if( best == 3 ) {
-            bmx++;
-            p_fref++;
+            if( bmx == omx && bmy == omy )
+                break;
+            omx = bmx;
+            omy = bmy;
+        }
+    
+        /* square refine */
+        COST_MV( omx-1, omy-1 );
+        COST_MV( omx-1, omy   );
+        COST_MV( omx-1, omy+1 );
+        COST_MV( omx  , omy-1 );
+        COST_MV( omx  , omy+1 );
+        COST_MV( omx+1, omy-1 );
+        COST_MV( omx+1, omy   );
+        COST_MV( omx+1, omy+1 );
+    }
+    else
+    {
+        /* diamond search */
+        for( i_iter = 0; i_iter < 16; i_iter++ )
+        {
+            omx = bmx;
+            omy = bmy;
+            COST_MV( omx  , omy-1 );
+            COST_MV( omx  , omy+1 );
+            COST_MV( omx-1, omy   );
+            COST_MV( omx+1, omy   );
+            if( bmx == omx && bmy == omy )
+                break;
         }
     }
 
@@ -133,21 +141,37 @@ void x264_me_search( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc )
     m->mv[1] = bmy << 2;
 
     /* compute the real cost */
-    m->cost = h->pixf.satd[i_pixel]( m->p_fenc, m->i_stride, p_fref, m->i_stride ) +
+    m->cost = h->pixf.satd[i_pixel]( m->p_fenc, m->i_stride,
+                    &p_fref[bmy * m->i_stride + bmx], m->i_stride ) +
                 m->lm * ( bs_size_se( m->mv[0] - m->mvp[0] ) +
                           bs_size_se( m->mv[1] - m->mvp[1] ) );
 
-    hpel = subpel_iterations[h->param.analyse.i_subpel_refine][2];
-    qpel = subpel_iterations[h->param.analyse.i_subpel_refine][3];
-    if( hpel || qpel )
-	refine_subpel( h, m, hpel, qpel );
+    /* subpel refine */
+    if( h->param.analyse.i_subpel_refine >= 3 )
+    {
+        int hpel, qpel;
+
+        /* early termination (when examining multiple reference frames) */
+        if( p_fullpel_thresh )
+        {
+            if( (m->cost*7)>>3 > *p_fullpel_thresh )
+                return;
+            else if( m->cost < *p_fullpel_thresh )
+                *p_fullpel_thresh = m->cost;
+        }
+
+        hpel = subpel_iterations[h->param.analyse.i_subpel_refine][2];
+        qpel = subpel_iterations[h->param.analyse.i_subpel_refine][3];
+        refine_subpel( h, m, hpel, qpel );
+    }
 }
+#undef COST_MV
 
 void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
 {
     int hpel = subpel_iterations[h->param.analyse.i_subpel_refine][0];
     int qpel = subpel_iterations[h->param.analyse.i_subpel_refine][1];
-    if( hpel || qpel )
+//  if( hpel || qpel )
 	refine_subpel( h, m, hpel, qpel );
 }
 
