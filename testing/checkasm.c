@@ -252,9 +252,6 @@ static int check_mc()
     x264_mc_mmxext_init( mc_asm );
 #endif
 
-    memset( buf3, 0, 32*32 );
-    memset( buf4, 0, 32*32 );
-
     /* Do the MC */
 #define MC_TEST( t, w, h ) \
         if( mc_asm[t] ) \
