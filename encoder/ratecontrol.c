@@ -40,7 +40,7 @@
 #ifdef SYS_MACOSX
 #define exp2f(x) ( (float) exp2( (x) ) )
 #endif
-#ifdef SYS_FREEBSD
+#if defined(SYS_FREEBSD) || defined(SYS_BEOS)
 #define exp2f(x) powf( 2, (x) )
 #endif
 #ifdef _MSC_VER
