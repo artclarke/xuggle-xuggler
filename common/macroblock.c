@@ -524,11 +524,24 @@ void x264_mb_load_mv_direct8x8( x264_t *h, int idx )
 }
 
 /* This just improves encoder performance, it's not part of the spec */
-void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int mvc[4][2], int *i_mvc )
+void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int mvc[5][2], int *i_mvc )
 {
     int16_t (*mvr)[2] = h->mb.mvr[i_list][i_ref];
-
     int i = 0;
+
+    /* temporal */
+    if( h->sh.i_type == SLICE_TYPE_B )
+    {
+        if( h->mb.cache.ref[i_list][x264_scan8[12]] == i_ref )
+        {
+            int16_t *mvp = h->mb.cache.mv[i_list][x264_scan8[12]];
+            mvc[i][0] = mvp[0];
+            mvc[i][1] = mvp[1];
+            i++;
+        }
+    }
+
+    /* spatial */
     if( h->mb.i_mb_x > 0 )
     {
         int i_mb_l = h->mb.i_mb_xy - 1;

@@ -184,7 +184,7 @@ void x264_mb_load_mv_direct8x8( x264_t *h, int idx );
  *      set mvc with D_16x16 prediction.
  *      uses all neighbors, even those that didn't end up using this ref.
  *      h->mb. need only valid values from other blocks */
-void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int mvc[4][2], int *i_mvc );
+void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int mvc[5][2], int *i_mvc );
 
 
 int  x264_mb_predict_intra4x4_mode( x264_t *h, int idx );
