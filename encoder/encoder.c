@@ -344,6 +344,8 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->param.i_cabac_init_idc = x264_clip3( h->param.i_cabac_init_idc, -1, 2 );
 
     param->analyse.i_subpel_refine = x264_clip3( param->analyse.i_subpel_refine, 1, 5 );
+    if( param->analyse.inter & X264_ANALYSE_PSUB8x8 )
+        param->analyse.inter &= X264_ANALYSE_PSUB16x16;
 
     if( h->param.rc.f_qblur < 0 )
         h->param.rc.f_qblur = 0;

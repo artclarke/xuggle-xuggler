@@ -104,6 +104,8 @@ struct x264_ratecontrol_t
     double last_qscale;
     double last_qscale_for[5];  /* last qscale for a specific pict type, used for max_diff & ipb factor stuff  */
     int last_non_b_pict_type;
+    double accum_p_qp;          /* for determining I-frame quant */
+    double accum_p_norm;
     double lmin[5];             /* min qscale by frame type */
     double lmax[5];
     double lstep;               /* max change (multiply) in qscale per frame */
@@ -134,7 +136,7 @@ static inline double qscale2bits(ratecontrol_entry_t *rce, double qscale)
 {
     if(qscale<0.1)
     {
-        fprintf(stderr, "qscale<0.1\n");
+//      fprintf(stderr, "qscale<0.1\n");
         qscale = 0.1;
     }
     return (double)(rce->i_tex_bits + rce->p_tex_bits + .1) * rce->qscale / qscale;
@@ -531,7 +533,11 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
 {
     if( h->param.rc.b_stat_read )
     {
-        assert(frame_num < h->rc->num_entries);
+        if( frame_num >= h->rc->num_entries )
+        {
+            x264_log(h, X264_LOG_ERROR, "More input frames than in the 1st pass\n");
+            return X264_TYPE_P;
+        }
         switch( h->rc->entry[frame_num].new_pict_type )
         {
             case SLICE_TYPE_I:
@@ -688,12 +694,6 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
     if(bits<0.0) bits=0.0;
     bits += 1.0; //avoid 1/0 issues
 
-    /* I/B difference */
-    if( pict_type==SLICE_TYPE_I && h->param.rc.f_ip_factor > 0 )
-        bits *= h->param.rc.f_ip_factor;
-    else if( pict_type==SLICE_TYPE_B && h->param.rc.f_pb_factor > 0 )
-        bits /= h->param.rc.f_pb_factor;
-
     return bits2qscale(rce, bits);
 }
 
@@ -705,13 +705,24 @@ static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
     // force I/B quants as a function of P quants
     const double last_p_q    = rcc->last_qscale_for[SLICE_TYPE_P];
     const double last_non_b_q= rcc->last_qscale_for[rcc->last_non_b_pict_type];
-    if( pict_type == SLICE_TYPE_I && h->param.rc.f_ip_factor < 0 )
-        q = last_p_q / fabs( h->param.rc.f_ip_factor );
-    else if( pict_type == SLICE_TYPE_B
-             && ( h->param.rc.f_pb_factor < 0 || rce->i_tex_bits + rce->p_tex_bits == 0 ) )
-        q = last_non_b_q * fabs( h->param.rc.f_pb_factor );
-    else if( pict_type == SLICE_TYPE_P && rce->i_tex_bits + rce->p_tex_bits == 0 )
+    if( pict_type == SLICE_TYPE_I )
+    {
+        if( rcc->accum_p_norm > 0 && h->param.rc.f_ip_factor > 0 )
+            q = qp2qscale(rcc->accum_p_qp / rcc->accum_p_norm);
+        q /= fabs( h->param.rc.f_ip_factor );
+    }
+    else if( pict_type == SLICE_TYPE_B )
+    {
+        if( h->param.rc.f_pb_factor > 0 )
+            q = last_non_b_q;
+        q  *= fabs( h->param.rc.f_pb_factor );
+    }
+    else if( pict_type == SLICE_TYPE_P
+             && rcc->last_non_b_pict_type == SLICE_TYPE_P
+             && rce->i_tex_bits + rce->p_tex_bits == 0 )
+    {
         q = last_p_q;
+    }
 
     /* last qscale / qdiff stuff */
     if(rcc->last_non_b_pict_type==pict_type || pict_type!=SLICE_TYPE_I)
@@ -727,6 +738,17 @@ static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
     rcc->last_qscale_for[pict_type] = q;
     if(pict_type!=SLICE_TYPE_B)
         rcc->last_non_b_pict_type = pict_type;
+    if(pict_type==SLICE_TYPE_I)
+    {
+        rcc->accum_p_norm = 0;
+        rcc->accum_p_qp = 0;
+    }
+    if(pict_type==SLICE_TYPE_P)
+    {
+        float mask = 1 - pow( (float)rce->i_count / rcc->nmb, 2 );
+        rcc->accum_p_qp   = mask * (qscale2qp(q) + rcc->accum_p_qp);
+        rcc->accum_p_norm = mask * (1 + rcc->accum_p_norm);
+    }
     return q;
 }
 
@@ -767,17 +789,23 @@ static float rate_estimate_qscale(x264_t *h, int pict_type)
 
     rce = &rcc->entry[picture_number];
 
-    if(pict_type!=SLICE_TYPE_I)
-        assert(pict_type == rce->new_pict_type);
+    assert(pict_type == rce->new_pict_type);
 
-    diff = (int64_t)total_bits - (int64_t)rce->expected_bits;
-    br_compensation = (rcc->buffer_size - diff) / rcc->buffer_size;
-    if(br_compensation<=0.0) br_compensation=0.001;
+    if(rce->pict_type == SLICE_TYPE_B)
+    {
+        return rcc->last_qscale * h->param.rc.f_pb_factor;
+    }
+    else
+    {
+        diff = (int64_t)total_bits - (int64_t)rce->expected_bits;
+        br_compensation = (rcc->buffer_size - diff) / rcc->buffer_size;
+        br_compensation = x264_clip3f(br_compensation, .5, 2);
 
-    q = rce->new_qscale / br_compensation;
-    q = x264_clip3f(q, lmin, lmax);
-    rcc->last_qscale = q;
-    return q;
+        q = rce->new_qscale / br_compensation;
+        q = x264_clip3f(q, lmin, lmax);
+        rcc->last_qscale = q;
+        return q;
+    }
 }
 
 static int init_pass2( x264_t *h )
@@ -789,7 +817,6 @@ static int init_pass2( x264_t *h )
     double qblur = h->param.rc.f_qblur;
     double cplxblur = h->param.rc.f_complexity_blur;
     const int filter_size = (int)(qblur*4) | 1;
-    const int cplx_filter_size = (int)(cplxblur*2);
     double expected_bits;
     double *qscale, *blurred_qscale;
     int i;
@@ -812,32 +839,28 @@ static int init_pass2( x264_t *h )
         return -1;
     }
 
-    if(cplxblur<.01)
-        cplxblur = .01;
     for(i=0; i<rcc->num_entries; i++){
         ratecontrol_entry_t *rce = &rcc->entry[i];
-        double weight, weight_sum = 0;
+        double weight_sum = 0;
         double cplx_sum = 0;
-        double mask = 1.0;
+        double weight = 1.0;
         int j;
         /* weighted average of cplx of future frames */
-        for(j=1; j<cplx_filter_size && j<rcc->num_entries-i; j++){
+        for(j=1; j<cplxblur*2 && j<rcc->num_entries-i; j++){
             ratecontrol_entry_t *rcj = &rcc->entry[i+j];
-            mask *= (double)(rcc->nmb + rcj->i_count) / rcc->nmb;
-            weight = mask * exp(-j*j/(cplxblur*cplxblur));
+            weight *= 1 - pow( (float)rcj->i_count / rcc->nmb, 2 );
             if(weight < .0001)
                 break;
             weight_sum += weight;
             cplx_sum += weight * (rcj->i_tex_bits + rcj->p_tex_bits) * rce->qscale;
         }
         /* weighted average of cplx of past frames */
-        mask = 1.0;
-        for(j=0; j<cplx_filter_size && j<=i; j++){
+        weight = 1.0;
+        for(j=0; j<cplxblur*2 && j<=i; j++){
             ratecontrol_entry_t *rcj = &rcc->entry[i-j];
-            weight = mask * exp(-j*j/(cplxblur*cplxblur));
             weight_sum += weight;
             cplx_sum += weight * (rcj->i_tex_bits + rcj->p_tex_bits) * rce->qscale;
-            mask *= (double)(rcc->nmb + rcj->i_count) / rcc->nmb;
+            weight *= 1 - pow( (float)rcj->i_count / rcc->nmb, 2 );
             if(weight < .0001)
                 break;
         }
