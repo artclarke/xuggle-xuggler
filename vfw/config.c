@@ -78,8 +78,8 @@ static const reg_int_t reg_int_table[] =
     /* Advance dialog */
     { "cabac",          &reg.b_cabac,           1 },
     { "loop_filter",    &reg.b_filter,          1 },
-    { "keyint_max",     &reg.i_keyint_min,      25 },
-    { "keyint_min",     &reg.i_keyint_max,      250 },
+    { "keyint_max",     &reg.i_keyint_max,      250 },
+    { "keyint_min",     &reg.i_keyint_min,      25 },
     { "refmax",         &reg.i_refmax,          1 },
     { "bmax",           &reg.i_bframe,          0 },
     { "direct_pred",    &reg.i_direct_mv_pred,  1 },
