@@ -33,7 +33,7 @@
  * subpel_iters[i_subpel_refine] = { refine_hpel, refine_qpel, me_hpel, me_qpel }
  * where me_* are the number of EPZS iterations run on all candidate block types,
  * and refine_* are run only on the winner. */
-const static int subpel_iterations[][4] = 
+static const int subpel_iterations[][4] = 
    {{1,0,0,0},
     {1,1,0,0},
     {1,2,0,0},

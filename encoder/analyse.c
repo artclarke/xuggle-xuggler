@@ -1177,11 +1177,9 @@ void x264_macroblock_analyse( x264_t *h )
 
     h->mb.qp[h->mb.i_mb_xy] = x264_ratecontrol_qp(h);
 
-    /* FIXME check if it's 12 */
-    if( h->mb.qp[h->mb.i_mb_xy] - h->mb.i_last_qp < -12 )
-        h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp - 12;
-    else if( h->mb.qp[h->mb.i_mb_xy] - h->mb.i_last_qp > 12 )
-        h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp + 12;
+    /* prevent QP from varying too fast. FIXME what's a sane limit? */
+    h->mb.qp[h->mb.i_mb_xy] = x264_clip3( h->mb.qp[h->mb.i_mb_xy],
+                                          h->mb.i_last_qp - 12, h->mb.i_last_qp + 12 );
 
     /* init analysis */
     x264_mb_analyse_init( h, &analysis, h->mb.qp[h->mb.i_mb_xy] );
