@@ -292,7 +292,6 @@ struct x264_t
         
         /* Search parameters */
         int     i_subpel_refine;
-
         /* Allowed qpel MV range to stay within the picture + emulated edge pixels */
         int     mv_min[2];
         int     mv_max[2];
@@ -367,6 +366,7 @@ struct x264_t
         /* */
         int     i_last_qp;  /* last qp */
         int     i_last_dqp; /* last delta qp */
+        int     b_variable_qp; /* whether qp is allowed to vary per macroblock */
 
         /* B_direct and weighted prediction */
         int     dist_scale_factor[16][16];

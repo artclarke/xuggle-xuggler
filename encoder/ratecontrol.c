@@ -188,6 +188,9 @@ int x264_ratecontrol_new( x264_t *h )
     rc->qp_constant[SLICE_TYPE_I] = x264_clip3( (int)( qscale2qp( qp2qscale( h->param.rc.i_qp_constant ) / fabs( h->param.rc.f_ip_factor )) + 0.5 ), 0, 51 );
     rc->qp_constant[SLICE_TYPE_B] = x264_clip3( (int)( qscale2qp( qp2qscale( h->param.rc.i_qp_constant ) * fabs( h->param.rc.f_pb_factor )) + 0.5 ), 0, 51 );
 
+    /* Currently there is no adaptive quant, and per-MB ratecontrol is used only in CBR. */
+    h->mb.b_variable_qp = h->param.rc.b_cbr && !h->param.rc.b_stat_read;
+
     /* Init 1pass CBR algo */
     if( h->param.rc.b_cbr ){
         rc->buffer_size = h->param.rc.i_rc_buffer_size * 1000;
@@ -520,9 +523,6 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     int rcoeffs;
     int dqp;
     int i;
-
-    if( !h->param.rc.b_cbr || h->param.rc.b_stat_read )
-        return;
 
     x264_cpu_restore( h->param.cpu );
 
@@ -907,7 +907,7 @@ static int init_pass2( x264_t *h )
         }
         /* weighted average of cplx of past frames */
         weight = 1.0;
-        for(j=0; j<cplxblur*2 && j<=i; j++){
+        for(j=0; j<=cplxblur*2 && j<=i; j++){
             ratecontrol_entry_t *rcj = &rcc->entry[i-j];
             weight_sum += weight;
             cplx_sum += weight * qscale2bits(rcj, 1);

@@ -119,10 +119,12 @@ static void x264_frame_dump( x264_t *h, x264_frame_t *fr, char *name )
 
 
 /* Fill "default" values */
-static void x264_slice_header_init( x264_slice_header_t *sh, x264_param_t *param,
+static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
                                     x264_sps_t *sps, x264_pps_t *pps,
-                                    int i_type, int i_idr_pic_id, int i_frame )
+                                    int i_type, int i_idr_pic_id, int i_frame, int i_qp )
 {
+    x264_param_t *param = &h->param;
+
     /* First we fill all field */
     sh->sps = sps;
     sh->pps = pps;
@@ -154,11 +156,14 @@ static void x264_slice_header_init( x264_slice_header_t *sh, x264_param_t *param
 
     sh->i_cabac_init_idc = param->i_cabac_init_idc;
 
-    sh->i_qp_delta = 0;
+    sh->i_qp_delta = i_qp - pps->i_pic_init_qp;
     sh->b_sp_for_swidth = 0;
     sh->i_qs_delta = 0;
 
-    if( param->b_deblocking_filter )
+    /* If effective qp <= 15, deblocking would have no effect anyway */
+    if( param->b_deblocking_filter
+        && ( h->mb.b_variable_qp
+        || 15 < i_qp + X264_MAX(param->i_deblocking_filter_alphac0, param->i_deblocking_filter_beta) ) )
     {
         sh->i_disable_deblocking_filter_idc = 0;
     }
@@ -666,7 +671,7 @@ static inline void x264_reference_update( x264_t *h )
     int i;
 
     /* apply deblocking filter to the current decoded picture */
-    if( h->param.b_deblocking_filter )
+    if( !h->sh.i_disable_deblocking_filter_idc )
     {
         TIMER_START( i_mtime_filter );
         x264_frame_deblocking_filter( h, h->sh.i_type );
@@ -719,14 +724,14 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_slice_type,
     /* ------------------------ Create slice header  ----------------------- */
     if( i_nal_type == NAL_SLICE_IDR )
     {
-        x264_slice_header_init( &h->sh, &h->param, h->sps, h->pps, i_slice_type, h->i_idr_pic_id, h->i_frame_num - 1 );
+        x264_slice_header_init( h, &h->sh, h->sps, h->pps, i_slice_type, h->i_idr_pic_id, h->i_frame_num - 1, i_global_qp );
 
         /* increment id */
         h->i_idr_pic_id = ( h->i_idr_pic_id + 1 ) % 65536;
     }
     else
     {
-        x264_slice_header_init( &h->sh, &h->param, h->sps, h->pps, i_slice_type, -1, h->i_frame_num - 1 );
+        x264_slice_header_init( h, &h->sh, h->sps, h->pps, i_slice_type, -1, h->i_frame_num - 1, i_global_qp );
 
         /* always set the real higher num of ref frame used */
         h->sh.b_num_ref_idx_override = 1;
@@ -747,9 +752,6 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_slice_type,
     {
         /* Nothing to do ? */
     }
-
-    /* global qp */
-    h->sh.i_qp_delta = i_global_qp - h->pps->i_pic_init_qp;
 
     /* get adapative cabac model if needed */
     if( h->param.b_cabac )
@@ -869,7 +871,8 @@ static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_id
 
         h->stat.frame.i_mb_count[h->mb.i_type]++;
 
-        x264_ratecontrol_mb(h, bs_pos(&h->out.bs) - mb_spos);
+        if( h->mb.b_variable_qp )
+            x264_ratecontrol_mb(h, bs_pos(&h->out.bs) - mb_spos);
     }
 
     if( h->param.b_cabac )
