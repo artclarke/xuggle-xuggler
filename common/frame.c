@@ -33,6 +33,7 @@ x264_frame_t *x264_frame_new( x264_t *h )
     x264_frame_t   *frame = x264_malloc( sizeof( x264_frame_t ) );
     int i;
 
+    int i_mb_count = h->mb.i_mb_count;
     int i_stride;
     int i_lines;
 
@@ -71,6 +72,19 @@ x264_frame_t *x264_frame_new( x264_t *h )
     frame->i_pts = -1;
     frame->i_frame = -1;
 
+    frame->mv[0]  = x264_malloc( 2*16 * i_mb_count * sizeof( int16_t ) );
+    frame->ref[0] = x264_malloc( 4 * i_mb_count * sizeof( int8_t ) );
+    if( h->param.i_bframe )
+    {
+        frame->mv[1]  = x264_malloc( 2*16 * i_mb_count * sizeof( int16_t ) );
+        frame->ref[1] = x264_malloc( 4 * i_mb_count * sizeof( int8_t ) );
+    }
+    else
+    {
+        frame->mv[1]  = NULL;
+        frame->ref[1] = NULL;
+    }
+
     return frame;
 }
 
@@ -81,6 +95,10 @@ void x264_frame_delete( x264_frame_t *frame )
     {
         x264_free( frame->buffer[i] );
     }
+    x264_free( frame->mv[0] );
+    x264_free( frame->mv[1] );
+    x264_free( frame->ref[0] );
+    x264_free( frame->ref[1] );
     x264_free( frame );
 }
 

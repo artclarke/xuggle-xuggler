@@ -254,11 +254,15 @@ struct x264_t
 
         /* Strides */
         int     i_mb_stride;
+        int     i_b8_stride;
+        int     i_b4_stride;
 
         /* Current index */
         int     i_mb_x;
         int     i_mb_y;
         int     i_mb_xy;
+        int     i_b8_xy;
+        int     i_b4_xy;
 
         unsigned int i_neighbour;
 
@@ -274,13 +278,6 @@ struct x264_t
         int8_t   *ref[2];                   /* mb ref. set to -1 if non used (intra or Lx only) */
         int16_t (*mvr[2][16])[2];           /* 16x16 mv for each possible ref */
         int8_t  *skipbp;                    /* block pattern for SKIP or DIRECT (sub)mbs. B-frames + cabac only */
-
-        /* for B_SKIP and B_DIRECT motion prediction */
-        struct
-        {
-            int16_t (*mv)[2];               /* keep only L0 */
-            int8_t   *ref;
-        } list1ref0;
 
         /* current value */
         int     i_type;

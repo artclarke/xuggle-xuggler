@@ -632,12 +632,6 @@ static inline void x264_reference_update( x264_t *h )
 {
     int i;
 
-    /* save mvs for B-frame prediction */
-    if( h->param.i_bframe )
-    {
-        x264_macroblock_direct_ref_save( h );
-    }
-
     /* apply deblocking filter to the current decoded picture */
     if( h->param.b_deblocking_filter )
     {
@@ -714,6 +708,8 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_slice_type,
             h->sh.i_cabac_init_idc = x264_cabac_model_get( &h->cabac, i_slice_type );
         }
     }
+
+    x264_macroblock_slice_init( h );
 }
 
 static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_idc )

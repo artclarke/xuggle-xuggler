@@ -43,6 +43,12 @@ typedef struct
      * allocated data are stored in buffer */
     void    *buffer[4];
 
+    /* motion data */
+    int16_t (*mv[2])[2];
+    int8_t  *ref[2];
+    int     i_ref[2];
+    int     ref_poc[2][16];
+
 } x264_frame_t;
 
 x264_frame_t *x264_frame_new( x264_t *h );
