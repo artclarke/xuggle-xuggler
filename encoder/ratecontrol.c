@@ -46,6 +46,9 @@
 #ifdef _MSC_VER
 #define exp2f(x) pow( 2, (x) )
 #endif
+#ifdef WIN32 // POSIX says that rename() removes the destination, but win32 doesn't.
+#define rename(src,dst) (unlink(dst), rename(src,dst))
+#endif
 
 typedef struct
 {
@@ -335,14 +338,9 @@ int x264_ratecontrol_new( x264_t *h )
      * and move it to the real name only when it's complete */
     if( h->param.rc.b_stat_write )
     {
-        if( h->param.rc.b_stat_read && !strcmp( h->param.rc.psz_stat_in, h->param.rc.psz_stat_out ) )
-        {
-            rc->psz_stat_file_tmpname = x264_malloc( strlen(h->param.rc.psz_stat_out) + 5 );
-            strcpy( rc->psz_stat_file_tmpname, h->param.rc.psz_stat_out );
-            strcat( rc->psz_stat_file_tmpname, ".new" );
-        }
-        else
-            rc->psz_stat_file_tmpname = h->param.rc.psz_stat_out;
+        rc->psz_stat_file_tmpname = x264_malloc( strlen(h->param.rc.psz_stat_out) + 6 );
+        strcpy( rc->psz_stat_file_tmpname, h->param.rc.psz_stat_out );
+        strcat( rc->psz_stat_file_tmpname, ".temp" );
 
         rc->p_stat_file_out = fopen( rc->psz_stat_file_tmpname, "wb" );
         if( rc->p_stat_file_out == NULL )
@@ -362,12 +360,13 @@ void x264_ratecontrol_delete( x264_t *h )
     if( rc->p_stat_file_out )
     {
         fclose( rc->p_stat_file_out );
-        if( rc->psz_stat_file_tmpname != h->param.rc.psz_stat_out )
-        {
-            if( h->i_frame >= rc->num_entries - h->param.i_bframe )
-                rename( rc->psz_stat_file_tmpname, h->param.rc.psz_stat_out );
-            x264_free( rc->psz_stat_file_tmpname );
-        }
+        if( h->i_frame >= rc->num_entries - h->param.i_bframe )
+            if( rename( rc->psz_stat_file_tmpname, h->param.rc.psz_stat_out ) != 0 )
+            {
+                x264_log( h, X264_LOG_ERROR, "failed to rename \"%s\" to \"%s\"\n",
+                          rc->psz_stat_file_tmpname, h->param.rc.psz_stat_out );
+            }
+        x264_free( rc->psz_stat_file_tmpname );
     }
     if( rc->entry )
         x264_free(rc->entry);
