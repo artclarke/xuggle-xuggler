@@ -136,19 +136,19 @@ static inline double qscale2qp(double qscale)
     return 12.0 + 6.0 * log(qscale/0.85) / log(2.0);
 }
 
-/* FIXME: The multiplier actually seems to be closer to
- * bits = tex * pow(qscale, 1.25) + mv * pow(qscale, 0.5)
- * MV bits levels off at about qp<=10, but that's only due to inaccuracy in
- * the qscale used for motion estimation. */
+/* Texture bitrate is not quite inversely proportional to qscale,
+ * probably due the the changing number of SKIP blocks.
+ * MV bits level off at about qp<=12, because the lambda used
+ * for motion estimation is constant there. */
 static inline double qscale2bits(ratecontrol_entry_t *rce, double qscale)
 {
     if(qscale<0.1)
         qscale = 0.1;
-    return (rce->i_tex_bits + rce->p_tex_bits + .1) * rce->qscale / qscale
-           + rce->mv_bits * pow( rce->qscale / qscale, 0.5 );
+    return (rce->i_tex_bits + rce->p_tex_bits + .1) * pow( rce->qscale / qscale, 1.1 )
+           + rce->mv_bits * pow( X264_MAX(rce->qscale, 12) / X264_MAX(qscale, 12), 0.5 );
 }
 
-// there is no analytical inverse to the above
+/* There is no analytical inverse to the above formula. */
 #if 0
 static inline double bits2qscale(ratecontrol_entry_t *rce, double bits)
 {
@@ -998,11 +998,19 @@ static int init_pass2( x264_t *h )
         avgq = qscale2qp(avgq / rcc->num_entries);
 
         x264_log(h, X264_LOG_ERROR, "Error: 2pass curve failed to converge\n");
-        x264_log(h, X264_LOG_ERROR, "expected: %.0f KiB, available: %.0f KiB, avg QP: %.4f\n", expected_bits/8192., all_available_bits/8192., avgq);
+        x264_log(h, X264_LOG_ERROR, "target: %.2f kbit/s, got: %.2f kbit/s, avg QP: %.4f\n",
+                 (float)h->param.rc.i_bitrate,
+                 expected_bits * rcc->fps / (rcc->num_entries * 1000.),
+                 avgq);
         if(expected_bits < all_available_bits && avgq < h->param.rc.i_qp_min + 2)
-            x264_log(h, X264_LOG_ERROR, "try reducing bitrate or reducing qp_min\n");
-        else if(expected_bits > all_available_bits && avgq > h->param.rc.i_qp_min - 2)
-            x264_log(h, X264_LOG_ERROR, "try increasing bitrate or increasing qp_max\n");
+            x264_log(h, X264_LOG_ERROR, "try reducing target bitrate or reducing qp_min (currently %d)\n", h->param.rc.i_qp_min);
+        else if(expected_bits > all_available_bits && avgq > h->param.rc.i_qp_max - 2)
+        {
+            if(h->param.rc.i_qp_max < 51)
+                x264_log(h, X264_LOG_ERROR, "try increasing target bitrate or increasing qp_max (currently %d)\n", h->param.rc.i_qp_max);
+            else
+                x264_log(h, X264_LOG_ERROR, "try increasing target bitrate\n");
+        }
         else
             x264_log(h, X264_LOG_ERROR, "internal error\n");
         return -1;

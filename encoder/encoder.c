@@ -57,6 +57,7 @@ static int64_t i_mtime_filter = 0;
 #define TIMER_STOP( d )
 #endif
 
+#define NALU_OVERHEAD 5 // startcode + NAL type costs 5 bytes per frame
 
 /****************************************************************************
  *
@@ -884,6 +885,7 @@ static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_id
 
     /* Compute misc bits */
     h->stat.frame.i_misc_bits = bs_pos( &h->out.bs )
+                              + NALU_OVERHEAD * 8
                               - h->stat.frame.i_itex_bits
                               - h->stat.frame.i_ptex_bits
                               - h->stat.frame.i_hdr_bits;
@@ -1270,7 +1272,7 @@ do_encode:
     /* ---------------------- Compute/Print statistics --------------------- */
     /* Slice stat */
     h->stat.i_slice_count[i_slice_type]++;
-    h->stat.i_slice_size[i_slice_type] += bs_pos( &h->out.bs) / 8;
+    h->stat.i_slice_size[i_slice_type] += bs_pos( &h->out.bs ) / 8 + NALU_OVERHEAD;
     h->stat.i_slice_qp[i_slice_type] += i_global_qp;
 
     for( i = 0; i < 18; i++ )
