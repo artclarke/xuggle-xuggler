@@ -49,7 +49,7 @@ static void    SigIntHandler( int a )
     i_ctrl_c = 1;
 }
 
-static void Help( void );
+static void Help( x264_param_t *defaults );
 static int  Parse( int argc, char **argv, x264_param_t  *param, FILE **p_fin, FILE **p_fout, int *pb_decompress );
 static int  Encode( x264_param_t  *param, FILE *fyuv,  FILE *fout );
 static int  Decode( x264_param_t  *param, FILE *fh26l, FILE *fout );
@@ -94,7 +94,7 @@ int main( int argc, char **argv )
 /*****************************************************************************
  * Help:
  *****************************************************************************/
-static void Help( void )
+static void Help( x264_param_t *defaults )
 {
     fprintf( stderr,
              "x264 build:0x%4.4x\n"
@@ -102,40 +102,42 @@ static void Help( void )
              "\n"
              "  -h, --help                  Print this help\n"
              "\n"
-             "  -I, --idrframe <integer>    Each 'number' I frames are IDR frames\n"
-             "  -i, --iframe <integer>      Max interval between I frames\n"
-             "      --scenecut <integer>    How aggresively to insert extra I frames\n"
-             "  -b, --bframe <integer>      Number of B-frames between I and P\n"
+             "  -I, --idrframe <integer>    Each 'number' I frames are IDR frames [%d]\n"
+             "  -i, --iframe <integer>      Max interval between I frames [%d]\n"
+             "      --scenecut <integer>    How aggresively to insert extra I frames [%d]\n"
+             "  -b, --bframe <integer>      Number of B-frames between I and P [%d]\n"
              "\n"
              "  -c, --cabac                 Enable CABAC\n"
-             "  -r, --ref <integer>         Number of references\n"
+             "  -r, --ref <integer>         Number of reference frames [%d]\n"
              "  -n, --nf                    Disable loop filter\n"
-             "  -f, --filter <alpha:beta>   Loop filter AplhaCO and Beta parameters\n"
+             "  -f, --filter <alpha:beta>   Loop filter AplhaCO and Beta parameters [%d]\n"
              "\n"
-             "  -q, --qp <integer>          Set QP\n"
+             "  -q, --qp <integer>          Set QP [%d]\n"
              "  -B, --bitrate <integer>     Set bitrate\n"
-             "      --qpmin <integer>       Set min QP\n"
-             "      --qpmax <integer>       Set max QP\n"
-             "      --qpstep <integer>      Set max QP step\n"
-             "      --rcsens <integer>      RC sensitivity\n"
-             "      --rcbuf <integer>       Size of VBV buffer\n"
-             "      --rcinitbuf <integer>   Initial VBV buffer occupancy\n"
-             "      --ipratio <float>       QP factor between I and P\n"
-             "      --pbratio <float>       QP factor between P and B\n"
+             "      --qpmin <integer>       Set min QP [%d]\n"
+             "      --qpmax <integer>       Set max QP [%d]\n"
+             "      --qpstep <integer>      Set max QP step [%d]\n"
+             "      --rcsens <integer>      CBR ratecontrol sensitivity [%d]\n"
+             "      --rcbuf <integer>       Size of VBV buffer [%d]\n"
+             "      --rcinitbuf <integer>   Initial VBV buffer occupancy [%d]\n"
+             "      --ipratio <float>       QP factor between I and P [%.2f]\n"
+             "      --pbratio <float>       QP factor between P and B [%.2f]\n"
              "\n"
              "  -p, --pass <1|2>            Enable 2 pass ratecontrol\n"
-             "      --stats <string>        Filename for 2 pass stats\n"
-             "      --rceq <string>         Ratecontrol equation\n"
-             "      --qcomp <float>         0.0 => CBR, 1.0 => CQP, 0.6 => default\n"
-             "      --cplxblur <float>      reduce fluctuations in QP (before curve compression)\n"
-             "      --qblur <float>         reduce fluctuations in QP (after curve compression)\n"
+             "      --stats <string>        Filename for 2 pass stats [\"%s\"]\n"
+             "      --rceq <string>         Ratecontrol equation [\"%s\"]\n"
+             "      --qcomp <float>         0.0 => CBR, 1.0 => CQP [%.2f]\n"
+             "      --cplxblur <float>      reduce fluctuations in QP (before curve compression) [%.1f]\n"
+             "      --qblur <float>         reduce fluctuations in QP (after curve compression) [%.1f]\n"
              "\n"
 
-             "  -A, --analyse <string>      Analyse options:\n"
+             "  -A, --analyse <string>      Analyse options: [\"i4x4|psub16x16|bsub16x16\"]\n"
              "                                  - i4x4\n"
-             "                                  - psub16x16,psub8x8\n"
+             "                                  - psub16x16, psub8x8, bsub16x16\n"
              "                                  - none, all\n"
-             "      --subme <integer>       Subpixel motion estimation quality\n"
+             "      --direct <string>       Direct MV prediction mode [\"temporal\"]\n"
+             "                                  - none, spatial, temporal\n"
+             "  -m, --subme <integer>       Subpixel motion estimation quality: 1=fast, 5=best. [%d]\n"
              "\n"
              "  -s, --sar width:height      Specify Sample Aspect Ratio\n"
              "      --fps <float|rational>  Specify framerate\n"
@@ -146,7 +148,28 @@ static void Help( void )
              "      --no-psnr               Disable PSNR computaion\n"
              "      --quiet                 Quiet Mode\n"
              "\n",
-            X264_BUILD
+            X264_BUILD,
+            defaults->i_idrframe,
+            defaults->i_iframe,
+            defaults->i_scenecut_threshold,
+            defaults->i_bframe,
+            defaults->i_frame_reference,
+            defaults->i_deblocking_filter_alphac0,
+            defaults->rc.i_qp_constant,
+            defaults->rc.i_qp_min,
+            defaults->rc.i_qp_max,
+            defaults->rc.i_qp_step,
+            defaults->rc.i_rc_sens,
+            defaults->rc.i_rc_buffer_size,
+            defaults->rc.i_rc_init_buffer,
+            defaults->rc.f_ip_factor,
+            defaults->rc.f_pb_factor,
+            defaults->rc.psz_stat_out,
+            defaults->rc.psz_rc_eq,
+            defaults->rc.f_qcompress,
+            defaults->rc.f_complexity_blur,
+            defaults->rc.f_qblur,
+            defaults->analyse.i_subpel_refine
            );
 }
 
@@ -158,6 +181,7 @@ static int  Parse( int argc, char **argv,
                    FILE **p_fin, FILE **p_fout, int *pb_decompress )
 {
     char *psz_filename = NULL;
+    x264_param_t defaults = *param;
 
     /* Default output */
     *p_fout = stdout;
@@ -182,12 +206,12 @@ static int  Parse( int argc, char **argv,
 #define OPT_QCOMP 266
 #define OPT_NOPSNR 267
 #define OPT_QUIET 268
-#define OPT_SUBME 269
 #define OPT_SCENECUT 270
 #define OPT_QBLUR 271
 #define OPT_CPLXBLUR 272
 #define OPT_FRAMES 273
 #define OPT_FPS 274
+#define OPT_DIRECT 275
 
         static struct option long_options[] =
         {
@@ -211,10 +235,11 @@ static int  Parse( int argc, char **argv,
             { "frames",  required_argument, NULL, OPT_FRAMES },
             { "output",  required_argument, NULL, 'o' },
             { "analyse", required_argument, NULL, 'A' },
-            { "subme",   required_argument, NULL, OPT_SUBME },
+            { "direct",  required_argument, NULL, OPT_DIRECT },
+            { "subme",   required_argument, NULL, 'm' },
             { "rcsens",  required_argument, NULL, OPT_RCSENS },
             { "rcbuf",   required_argument, NULL, OPT_RCBUF },
-            { "rcinitbuf",required_argument, NULL, OPT_RCIBUF },
+            { "rcinitbuf",required_argument,NULL, OPT_RCIBUF },
             { "ipratio", required_argument, NULL, OPT_IPRATIO },
             { "pbratio", required_argument, NULL, OPT_PBRATIO },
             { "pass",    required_argument, NULL, 'p' },
@@ -241,7 +266,7 @@ static int  Parse( int argc, char **argv,
         switch( c )
         {
             case 'h':
-                Help();
+                Help( &defaults );
                 return -1;
 
             case 0:
@@ -343,8 +368,19 @@ static int  Parse( int argc, char **argv,
                 if( strstr( optarg, "i4x4" ) )      param->analyse.inter |= X264_ANALYSE_I4x4;
                 if( strstr( optarg, "psub16x16" ) ) param->analyse.inter |= X264_ANALYSE_PSUB16x16;
                 if( strstr( optarg, "psub8x8" ) )   param->analyse.inter |= X264_ANALYSE_PSUB8x8;
+                if( strstr( optarg, "bsub16x16" ) ) param->analyse.inter |= X264_ANALYSE_BSUB16x16;
                 break;
-            case OPT_SUBME:
+            case OPT_DIRECT:
+                if( strstr( optarg, "temporal" ) )
+                    param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_TEMPORAL;
+                else if( strstr( optarg, "spatial" ) )
+                    param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_SPATIAL;
+                else if( strstr( optarg, "none" ) )
+                    param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_NONE;
+                else
+                    param->analyse.i_direct_mv_pred = atoi( optarg );
+                break;
+            case 'm':
                 param->analyse.i_subpel_refine = atoi(optarg);
                 break;
             case OPT_RCBUF:
@@ -405,7 +441,7 @@ static int  Parse( int argc, char **argv,
     /* Get the file name */
     if( optind > argc - 1 )
     {
-        Help();
+        Help( &defaults );
         return -1;
     }
     psz_filename = argv[optind++];
@@ -435,7 +471,7 @@ static int  Parse( int argc, char **argv,
             }
             if( psz_size == NULL )
             {
-                Help();
+                Help( &defaults );
                 return -1;
             }
             fprintf( stderr, "x264: file name gives %dx%d\n", atoi(psz), atoi(x+1) );

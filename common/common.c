@@ -59,7 +59,7 @@ void    x264_param_default( x264_param_t *param )
     /* Encoder parameters */
     param->i_frame_reference = 1;
     param->i_idrframe = 2;
-    param->i_iframe = 60;
+    param->i_iframe = 250;
     param->i_bframe = 0;
     param->i_scenecut_threshold = 40;
 
@@ -74,7 +74,7 @@ void    x264_param_default( x264_param_t *param )
     param->rc.i_bitrate = 3000;
     param->rc.i_rc_buffer_size = 0;
     param->rc.i_rc_init_buffer = 0;
-    param->rc.i_rc_sens = 100;
+    param->rc.i_rc_sens = 10;
     param->rc.i_qp_constant = 26;
     param->rc.i_qp_min = 0;
     param->rc.i_qp_max = 51;
@@ -100,7 +100,7 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.intra = X264_ANALYSE_I4x4;
     param->analyse.inter = X264_ANALYSE_I4x4 | X264_ANALYSE_PSUB16x16 | X264_ANALYSE_BSUB16x16;
     param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_TEMPORAL;
-    param->analyse.i_subpel_refine = 1;
+    param->analyse.i_subpel_refine = 3;
     param->analyse.b_psnr = 1;
 }
 
