@@ -24,6 +24,8 @@
 #ifndef _X264_H
 #define _X264_H 1
 
+#include <stdarg.h>
+
 #define X264_BUILD 0x000b
 
 /* x264_t:
