@@ -1,0 +1,174 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (Canada) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENC)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_CAN
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_MAINCONFIG DIALOG DISCARDABLE  0, 0, 225, 231
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "x264 Configuration"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,120,210,46,14
+    PUSHBUTTON      "Cancel",IDCANCEL,168,210,50,14
+    CONTROL         "Slider1",IDC_BITRATESLIDER,"msctls_trackbar32",TBS_BOTH | 
+                    TBS_NOTICKS | WS_TABSTOP,13,31,175,15
+    EDITTEXT        IDC_BITRATEEDIT,191,32,27,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Average Bitrate (kbps)",IDC_STATIC,59,20,73,8
+    GROUPBOX        "1 Pass, Target Bitrate",IDC_STATIC,7,7,211,47
+    LTEXT           "0",IDC_BITRATELOW,14,19,22,8
+    LTEXT           "2500",IDC_BITRATEHIGH,166,21,17,8
+    PUSHBUTTON      "Load Defaults",IDC_DEFAULTS,7,210,57,14
+    PUSHBUTTON      "Advanced",IDC_ADVANCED,67,210,49,14
+    CONTROL         "Slider1",IDC_QUANTSLIDER,"msctls_trackbar32",TBS_BOTH | 
+                    TBS_NOTICKS | WS_TABSTOP,13,81,175,15
+    EDITTEXT        IDC_QUANTEDIT,191,82,27,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Quantizer",IDC_STATIC,81,71,31,8
+    GROUPBOX        "1 Pass, Target Quality",IDC_STATIC,7,57,211,47
+    LTEXT           "0 (High Quality)",IDC_BITRATELOW2,14,70,50,8
+    LTEXT           "51 (Low Quality)",IDC_BITRATEHIGH2,131,71,53,8
+    GROUPBOX        "2 Pass (Best Quality at a Given Bitrate)",IDC_STATIC,7,
+                    109,211,63
+    LTEXT           "Not Yet Implemented",IDC_STATIC,79,139,67,8
+    GROUPBOX        "Mode Select",IDC_MODE,7,176,211,30
+    CONTROL         "1 Pass, Bitrate",IDC_RADIOBITRATE,"Button",
+                    BS_AUTORADIOBUTTON | WS_DISABLED,14,188,58,10
+    CONTROL         "1 Pass, Quantizer",IDC_RADIOQUANT,"Button",
+                    BS_AUTORADIOBUTTON,85,188,75,10
+    CONTROL         "Two Pass",IDC_RADIOTWOPASS,"Button",BS_AUTORADIOBUTTON | 
+                    WS_DISABLED,168,188,43,10
+END
+
+IDD_ADVANCED DIALOG DISCARDABLE  0, 0, 220, 110
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "x264 Advanced Settings"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,163,89,50,14
+    CONTROL         "Enable CABAC",IDC_CABAC,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,13,25,61,10
+    CONTROL         "Deblocking Filter",IDC_LOOPFILTER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,13,38,72,10
+    EDITTEXT        IDC_IDRFRAMES,183,22,24,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Max Number of IDR-Frames:",IDC_STATIC,91,25,89,8
+    GROUPBOX        "Advanced Settings",IDC_STATIC,7,7,206,79
+    EDITTEXT        IDC_KEYFRAME,174,62,33,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Max Reference Frames:",IDC_STATIC,96,66,76,8
+    EDITTEXT        IDC_IFRAMES,183,38,24,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Max Keyframe Interval:",IDC_STATIC,108,41,72,8
+    EDITTEXT        IDC_FOURCC,41,63,25,14,ES_AUTOHSCROLL
+    LTEXT           "FourCC:",IDC_STATIC,13,66,26,8
+END
+
+IDD_ABOUT DIALOG DISCARDABLE  0, 0, 213, 130
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About x264"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,158,109,48,14
+    CTEXT           "Copyright 2004 Laurent Aimar, Justin Clay, Min Chen\n\nThis program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation",
+                    IDC_STATIC,7,47,199,51
+    PUSHBUTTON      "Visit Homepage",IDC_HOMEPAGE,7,109,77,14
+    CTEXT           "BUILD",IDC_BUILD,40,18,122,8,SS_CENTERIMAGE
+    LTEXT           "x264 H.264 Codec",IDC_X264,68,8,66,8,SS_CENTERIMAGE
+END
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_MAINCONFIG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 218
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 224
+    END
+
+    IDD_ADVANCED, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 213
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 103
+    END
+
+    IDD_ABOUT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 192
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 80
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (Canada) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
