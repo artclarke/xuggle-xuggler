@@ -303,7 +303,10 @@ int x264_nal_decode( x264_nal_t *nal, void *p_data, int i_data )
  ****************************************************************************/
 void *x264_malloc( int i_size )
 {
-#ifdef HAVE_MALLOC_H
+#ifdef SYS_MACOSX
+    /* Mac OS X always returns 16 bytes aligned memory */
+    return malloc( i_size );
+#elif defined( HAVE_MALLOC_H )
     return memalign( 16, i_size );
 #else
     uint8_t * buf;
@@ -325,7 +328,7 @@ void x264_free( void *p )
 {
     if( p )
     {
-#ifdef HAVE_MALLOC_H
+#if defined( HAVE_MALLOC_H ) || defined( SYS_MACOSX )
         free( p );
 #else
         free( *( ( ( void **) p ) - 1 ) );
