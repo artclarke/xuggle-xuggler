@@ -2,7 +2,7 @@
  * mc.c: h264 encoder library (Motion Compensation)
  *****************************************************************************
  * Copyright (C) 2003 Laurent Aimar
- * $Id: mc-c.c,v 1.2 2004/06/09 19:35:07 fenrir Exp $
+ * $Id: mc-c.c,v 1.3 2004/06/10 18:13:38 fenrir Exp $
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *
@@ -38,7 +38,7 @@
     static const uint64_t foo __asm__ (#foo) __attribute__((unused))
 #endif
 
-UNUSED_UINT64( x264_w0x10 ) = 0x0010001000100010ULL;
+USED_UINT64( x264_w0x10 ) = 0x0010001000100010ULL;
 
 
 #define MMX_ZERO( MMZ ) \

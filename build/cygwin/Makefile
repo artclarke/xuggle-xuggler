@@ -4,7 +4,7 @@
 #
 # Author: x264 by Laurent Aimar <fenrir@via.ecp.fr>
 #
-# $Id: Makefile,v 1.1 2004/06/03 19:27:06 fenrir Exp $
+# $Id: Makefile,v 1.2 2004/06/10 18:13:38 fenrir Exp $
 ##############################################################################
 
 # Current dir
@@ -55,7 +55,7 @@ LDFLAGS += -L$(DIR_LIB) -lx264
 # ASM
 ##############################################################################
 AS= nasm
-ASFLAGS= -f gnuwin32 -DPREFIX
+ASFLAGS= -f win32 -DPREFIX
 ##############################################################################
 # Rules
 ##############################################################################
@@ -93,7 +93,7 @@ libx264.a: $(DIR_BUILD) $(OBJECTS)
 x264.exe: $(DIR_BUILD) $(OBJECTS) x264.obj
 	@echo " L: $(@F)"
 	@cd $(DIR_BUILD) && \
-	$(CC) $(CFLAGS) -o x264 x264.obj libx264.a -lm && \
+	$(CC) $(CFLAGS) -o x264.exe x264.obj libx264.a -lm && \
 	cp -f x264.exe $(DIR_SRC)
 
 clean:
