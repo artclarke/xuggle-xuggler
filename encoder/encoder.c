@@ -69,11 +69,19 @@ static int64_t x264_sqe( x264_t *h, uint8_t *pix1, int i_pix_stride, uint8_t *pi
     int64_t i_sqe = 0;
     int x, y;
 
-    for( y = 0; y < i_height; y += 16 )
-        for( x = 0; x < i_width; x += 16 )
-            i_sqe += h->pixf.ssd[PIXEL_16x16]( pix1+y*i_pix_stride+x, i_pix_stride,
-                                               pix2+y*i_pix2_stride+x, i_pix2_stride );
-
+#define SSD(size) i_sqe += h->pixf.ssd[size]( pix1+y*i_pix_stride+x, i_pix_stride, \
+                                              pix2+y*i_pix2_stride+x, i_pix2_stride );
+    for( y = 0; y < i_height-15; y += 16 )
+    {
+        for( x = 0; x < i_width-15; x += 16 )
+            SSD(PIXEL_16x16);
+        if( x < i_width-7 )
+            SSD(PIXEL_8x16);
+    }
+    if( y < i_height-7 )
+        for( x = 0; x < i_width-7; x += 8 )
+            SSD(PIXEL_8x8);
+#undef SSD
     x264_cpu_restore( h->param.cpu );
 
     return i_sqe;
