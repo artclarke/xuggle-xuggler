@@ -957,8 +957,6 @@ int     x264_encoder_encode( x264_t *h,
             if( h->frames.i_last_i + bframes + 1 >= h->param.i_iframe
                 && frm->i_type != X264_TYPE_IDR )
             {
-                fprintf(stderr,"exceeded I-int: i_last_i(%d) + bframes(%d) + 1 >= i_iframe(%d) \n",
-                        h->frames.i_last_i, bframes, h->param.i_iframe);
                 if(    frm->i_type == X264_TYPE_P
                     || frm->i_type == X264_TYPE_B )
                     x264_log( h, X264_LOG_ERROR, "specified frame type is not compatible with keyframe interval\n" );
@@ -971,8 +969,6 @@ int     x264_encoder_encode( x264_t *h,
                    ( h->frames.i_last_idr + 1 >= h->param.i_idrframe
                      && (bframes == 0 || !h->param.rc.b_stat_read ))))
             {
-                fprintf(stderr,"exceeded IDR-int: i_last_idr(%d) + 1 >= i_idrframe(%d) \n",
-                        h->frames.i_last_idr, h->param.i_idrframe);;
                 frm->i_type = X264_TYPE_IDR;
                 if( bframes > 0 )
                 {
