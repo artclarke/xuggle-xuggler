@@ -1,9 +1,14 @@
-# Makefile: tuned for i386/MMX system only
+# Makefile
 
-# For FreeBSD, remove -DHAVE_MALLOC_H and add -DSYS_FREEBSD
+# Uncomment the line for your platform
+ARCH=X86
+#ARCH=PPC
 
-# Uncomment this for Mac OS X
-#SYS_MACOSX=1
+# Uncomment the line for you operating system
+SYS=LINUX
+#SYS=MACOSX
+#SYS=BEOS
+#SYS=FREEBSD
 
 SRCS_COMMON= common/mc.c common/predict.c common/pixel.c common/macroblock.c \
              common/frame.c common/dct.c common/cpu.c common/cabac.c \
@@ -12,22 +17,53 @@ SRCS_COMMON= common/mc.c common/predict.c common/pixel.c common/macroblock.c \
              encoder/set.c encoder/macroblock.c encoder/cabac.c \
              encoder/cavlc.c encoder/encoder.c encoder/eval.c
 
-ifdef SYS_MACOSX
-PFLAGS=-DARCH_PPC -DSYS_MACOSX -faltivec
-SRCS= $(SRCS_COMMON) common/ppc/mc.c common/ppc/pixel.c
-else
-PFLAGS=-DARCH_X86 -DHAVE_MMXEXT -DHAVE_SSE2 -DHAVE_MALLOC_H
-SRCS= $(SRCS_COMMON) common/i386/mc-c.c common/i386/dct-c.c common/i386/predict.c
-ASMSRC= common/i386/dct-a.asm common/i386/cpu-a.asm common/i386/pixel-a.asm common/i386/mc-a.asm
-OBJASM= $(ASMSRC:%.asm=%.o)
-endif
-
+# Compiler, global flags
 CC=gcc
-CFLAGS=-Wall -I. -O4 -funroll-loops -D__X264__ $(PFLAGS)
+CFLAGS=-Wall -I. -O4 -funroll-loops -D__X264__ -DARCH_$(ARCH) -DSYS_$(SYS)
 ifdef NDEBUG
 CFLAGS+=-s -DNDEBUG
 else
 CFLAGS+=-g -DDEBUG
+endif
+
+# MMX/SSE optims
+ifeq ($(ARCH),X86)
+CFLAGS+=-DHAVE_MMXEXT -DHAVE_SSE2
+SRCS= $(SRCS_COMMON) common/i386/mc-c.c common/i386/dct-c.c \
+      common/i386/predict.c
+ASMSRC= common/i386/dct-a.asm common/i386/cpu-a.asm \
+        common/i386/pixel-a.asm common/i386/mc-a.asm
+OBJASM= $(ASMSRC:%.asm=%.o)
+endif
+
+# AltiVec optims
+ifeq ($(ARCH),PPC)
+ifeq ($(SYS),MACOSX)
+CFLAGS+=-faltivec
+else
+CFLAGS+=-maltivec -mabi=altivec
+endif
+SRCS= $(SRCS_COMMON) common/ppc/mc.c common/ppc/pixel.c
+endif
+
+# stdint.h: everyone but BeOS
+ifneq ($(SYS),BEOS)
+CFLAGS+=-DHAVE_STDINT_H
+endif
+
+# malloc.h: everyone but OS X and FreeBSD
+ifneq ($(SYS),MACOSX)
+ifneq ($(SYS),FREEBSD)
+CFLAGS+=-DHAVE_MALLOC_H
+endif
+endif
+
+# Math libraries we have to link to
+ifneq ($(SYS),BEOS)
+MATHLIBS=-lm
+endif
+ifeq ($(SYS),MACOSX)
+MATHLIBS+=-lmx
 endif
 
 AS= nasm
@@ -46,17 +82,18 @@ libx264.a: $(OBJS) $(OBJASM)
 	ranlib libx264.a
 
 x264: libx264.a x264.o
-	$(CC) $(CFLAGS) -o x264 x264.o libx264.a -lm
+	$(CC) $(CFLAGS) -o x264 x264.o libx264.a $(MATHLIBS)
 
 checkasm: testing/checkasm.c libx264.a
-	$(CC) $(CFLAGS) -o checkasm $< libx264.a -lm
+	$(CC) $(CFLAGS) -o checkasm $< libx264.a $(MATHLIBS)
 
 %.o: %.asm
 	$(AS) $(ASFLAGS) -o $@ $<
 
 .depend: $(SRCS) x264.c
 	rm -f .depend
-	$(foreach SRC, $(SRCS) x264.c, $(CC) $(CFLAGS) $(SRC) -MM -MT $(SRC:%.c=%.o) 1>> .depend;)
+# Hacky - because gcc 2.9x doesn't have -MT
+	$(foreach SRC, $(SRCS) x264.c, ( echo -n "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM ) 1>> .depend;)
 
 depend: .depend
 ifneq ($(wildcard .depend),)
