@@ -167,118 +167,52 @@ void x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src 
 
 
 
+void plane_expand_border( uint8_t *pix, int i_stride, int i_height, int i_pad )
+{
+#define PPIXEL(x, y) ( pix + (x) + (y)*i_stride )
+    const int i_width = i_stride - 2*i_pad;
+    int y;
+
+    for( y = 0; y < i_height; y++ )
+    {
+        /* left band */
+        memset( PPIXEL(-i_pad, y), PPIXEL(0, y)[0], i_pad );
+        /* right band */
+        memset( PPIXEL(i_width, y), PPIXEL(i_width-1, y)[0], i_pad );
+    }
+    /* upper band */
+    for( y = 0; y < i_pad; y++ )
+        memcpy( PPIXEL(-i_pad, -y-1), PPIXEL(-i_pad, 0), i_stride );
+    /* lower band */
+    for( y = 0; y < i_pad; y++ )
+        memcpy( PPIXEL(-i_pad, i_height+y), PPIXEL(-i_pad, i_height-1), i_stride );
+#undef PPIXEL
+}
+
 void x264_frame_expand_border( x264_frame_t *frame )
 {
-    int w;
-    int i, y;
+    int i;
     for( i = 0; i < frame->i_plane; i++ )
     {
-#define PPIXEL(x, y) ( frame->plane[i] + (x) +(y)*frame->i_stride[i] )
-        w = ( i == 0 ) ? 32 : 16;
-
-        for( y = 0; y < w; y++ )
-        {
-            /* upper band */
-            memcpy( PPIXEL(0,-y-1), PPIXEL(0,0), frame->i_stride[i] - 2 * w);
-            /* up left corner */
-            memset( PPIXEL(-w,-y-1 ), PPIXEL(0,0)[0], w );
-            /* up right corner */
-            memset( PPIXEL(frame->i_stride[i] - 2*w,-y-1), PPIXEL( frame->i_stride[i]-1-2*w,0)[0], w );
-
-            /* lower band */
-            memcpy( PPIXEL(0, frame->i_lines[i]+y), PPIXEL(0,frame->i_lines[i]-1), frame->i_stride[i] - 2 * w );
-            /* low left corner */
-            memset( PPIXEL(-w, frame->i_lines[i]+y), PPIXEL(0,frame->i_lines[i]-1)[0], w);
-            /* low right corner */
-            memset( PPIXEL(frame->i_stride[i]-2*w, frame->i_lines[i]+y), PPIXEL(frame->i_stride[i]-1-2*w,frame->i_lines[i]-1)[0], w);
-
-        }
-        for( y = 0; y < frame->i_lines[i]; y++ )
-        {
-            /* left band */
-            memset( PPIXEL( -w, y ), PPIXEL( 0, y )[0], w );
-            /* right band */
-            memset( PPIXEL( frame->i_stride[i]-2*w, y ), PPIXEL( frame->i_stride[i] - 1-2*w, y )[0], w );
-        }
-#undef PPIXEL
+        int i_pad = i ? 16 : 32;
+        plane_expand_border( frame->plane[i], frame->i_stride[i], frame->i_lines[i], i_pad );
     }
 }
 
 void x264_frame_expand_border_filtered( x264_frame_t *frame )
 {
-
     /* during filtering, 8 extra pixels were filtered on each edge. 
        we want to expand border from the last filtered pixel */
-    int w;
-    int i, y;
+    int i;
     for( i = 1; i < 4; i++ )
-    {
-#define PPIXEL(x, y) ( frame->filtered[i] + (x) +(y)*frame->i_stride[0] )
-        w = 32;
-
-        for( y = 8; y < w; y++ )
-        {
-            /* upper band */
-            memcpy( PPIXEL(-8,-y-1), PPIXEL(-8,-8), frame->i_stride[0] - 2 * w + 16 );
-            /* up left corner */
-            memset( PPIXEL(-w,-y-1), PPIXEL(-8,-8)[0], w - 8 );
-            /* up right corner */
-            memset( PPIXEL(frame->i_stride[0] - 2*w + 8,-y-1), PPIXEL( frame->i_stride[0]-1-2*w+8,-8)[0], w - 8 );
-
-            /* lower band */
-            memcpy( PPIXEL(-8, frame->i_lines[0]+y), PPIXEL(-8,frame->i_lines[0]+7), frame->i_stride[0] - 2 * w + 16 );
-            /* low left corner */
-            memset( PPIXEL(-w, frame->i_lines[0]+y), PPIXEL(-8,frame->i_lines[0]+7)[0], w - 8);
-            /* low right corner */
-            memset( PPIXEL(frame->i_stride[0]-2*w+8, frame->i_lines[0]+y), PPIXEL(frame->i_stride[0]+7-2*w,frame->i_lines[0]+7)[0], w-8);
-
-        }
-        for( y = -8; y < frame->i_lines[0]+8; y++ )
-        {
-            /* left band */
-            memset( PPIXEL( -w, y ), PPIXEL( -8, y )[0], w - 8 );
-            /* right band */
-            memset( PPIXEL( frame->i_stride[0]-2*w + 8, y ), PPIXEL( frame->i_stride[0] + 7 - 2*w, y )[0], w - 8 );
-        }
-#undef PPIXEL
-    }
+        plane_expand_border( frame->filtered[i] - 8*frame->i_stride[0] - 8, frame->i_stride[0], frame->i_lines[0]+2*8, 24 );
 }
 
 void x264_frame_expand_lowres( x264_frame_t *frame )
 {
-    int w = 32;
-    int i, y;
+    int i;
     for( i = 0; i < 4; i++ )
-    {
-        int i_stride = frame->i_stride_lowres;
-        int i_lines = frame->i_lines_lowres;
-#define PPIXEL(x, y) ( frame->lowres[i] + (x) +(y)*i_stride )
-        for( y = 0; y < w; y++ )
-        {
-            /* upper band */
-            memcpy( PPIXEL(0,-y-1), PPIXEL(0,0), i_stride - 2 * w);
-            /* up left corner */
-            memset( PPIXEL(-w,-y-1 ), PPIXEL(0,0)[0], w );
-            /* up right corner */
-            memset( PPIXEL(i_stride - 2*w,-y-1), PPIXEL( i_stride-1-2*w,0)[0], w );
-
-            /* lower band */
-            memcpy( PPIXEL(0, i_lines+y), PPIXEL(0,i_lines-1), i_stride - 2 * w );
-            /* low left corner */
-            memset( PPIXEL(-w, i_lines+y), PPIXEL(0,i_lines-1)[0], w);
-            /* low right corner */
-            memset( PPIXEL(i_stride-2*w, i_lines+y), PPIXEL(i_stride-1-2*w,i_lines-1)[0], w);
-
-        }
-        for( y = 0; y < i_lines; y++ )
-        {
-            /* left band */
-            memset( PPIXEL( -w, y ), PPIXEL( 0, y )[0], w );
-            /* right band */
-            memset( PPIXEL( i_stride-2*w, y ), PPIXEL( i_stride - 1-2*w, y )[0], w );
-        }
-#undef PPIXEL
-    }
+        plane_expand_border( frame->lowres[i], frame->i_stride_lowres, frame->i_lines_lowres, 32 );
 }
 
 
