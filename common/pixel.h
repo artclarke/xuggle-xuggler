@@ -25,6 +25,7 @@
 #define _PIXEL_H 1
 
 typedef int  (*x264_pixel_sad_t) ( uint8_t *, int, uint8_t *, int );
+typedef int  (*x264_pixel_ssd_t) ( uint8_t *, int, uint8_t *, int );
 typedef int  (*x264_pixel_satd_t)( uint8_t *, int, uint8_t *, int );
 typedef void (*x264_pixel_avg_t) ( uint8_t *, int, uint8_t *, int );
 typedef void (*x264_pixel_avg_weight_t) ( uint8_t *, int, uint8_t *, int, int );
@@ -65,6 +66,7 @@ static const int x264_size2pixel[5][5] = {
 typedef struct
 {
     x264_pixel_sad_t  sad[7];
+    x264_pixel_ssd_t  ssd[7];
     x264_pixel_satd_t satd[7];
     x264_pixel_avg_t  avg[10];
     x264_pixel_avg_weight_t avg_weight[10];

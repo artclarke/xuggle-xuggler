@@ -45,6 +45,7 @@
 #endif
 #ifdef _MSC_VER
 #define exp2f(x) pow( 2, (x) )
+#define sqrtf sqrt
 #endif
 #ifdef WIN32 // POSIX says that rename() removes the destination, but win32 doesn't.
 #define rename(src,dst) (unlink(dst), rename(src,dst))

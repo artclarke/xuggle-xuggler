@@ -72,6 +72,38 @@ PIXEL_SAD_C( pixel_sad_8x4,    8,  4 )
 PIXEL_SAD_C( pixel_sad_4x8,    4,  8 )
 PIXEL_SAD_C( pixel_sad_4x4,    4,  4 )
 
+
+/****************************************************************************
+ * pixel_ssd_WxH
+ ****************************************************************************/
+#define PIXEL_SSD_C( name, lx, ly ) \
+static int name( uint8_t *pix1, int i_stride_pix1,  \
+                 uint8_t *pix2, int i_stride_pix2 ) \
+{                                                   \
+    int i_sum = 0;                                  \
+    int x, y;                                       \
+    for( y = 0; y < ly; y++ )                       \
+    {                                               \
+        for( x = 0; x < lx; x++ )                   \
+        {                                           \
+            int d = pix1[x] - pix2[x];              \
+            i_sum += d*d;                           \
+        }                                           \
+        pix1 += i_stride_pix1;                      \
+        pix2 += i_stride_pix2;                      \
+    }                                               \
+    return i_sum;                                   \
+}
+
+PIXEL_SSD_C( pixel_ssd_16x16, 16, 16 )
+PIXEL_SSD_C( pixel_ssd_16x8,  16,  8 )
+PIXEL_SSD_C( pixel_ssd_8x16,   8, 16 )
+PIXEL_SSD_C( pixel_ssd_8x8,    8,  8 )
+PIXEL_SSD_C( pixel_ssd_8x4,    8,  4 )
+PIXEL_SSD_C( pixel_ssd_4x8,    4,  8 )
+PIXEL_SSD_C( pixel_ssd_4x4,    4,  4 )
+
+
 static void pixel_sub_4x4( int16_t diff[4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 {
     int y, x;
@@ -243,6 +275,14 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     pixf->sad[PIXEL_4x8]   = pixel_sad_4x8;
     pixf->sad[PIXEL_4x4]   = pixel_sad_4x4;
 
+    pixf->ssd[PIXEL_16x16] = pixel_ssd_16x16;
+    pixf->ssd[PIXEL_16x8]  = pixel_ssd_16x8;
+    pixf->ssd[PIXEL_8x16]  = pixel_ssd_8x16;
+    pixf->ssd[PIXEL_8x8]   = pixel_ssd_8x8;
+    pixf->ssd[PIXEL_8x4]   = pixel_ssd_8x4;
+    pixf->ssd[PIXEL_4x8]   = pixel_ssd_4x8;
+    pixf->ssd[PIXEL_4x4]   = pixel_ssd_4x4;
+
     pixf->satd[PIXEL_16x16]= pixel_satd_16x16;
     pixf->satd[PIXEL_16x8] = pixel_satd_16x8;
     pixf->satd[PIXEL_8x16] = pixel_satd_8x16;
@@ -284,6 +324,14 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->sad[PIXEL_4x8  ] = x264_pixel_sad_4x8_mmxext;
         pixf->sad[PIXEL_4x4]   = x264_pixel_sad_4x4_mmxext;
 
+        pixf->ssd[PIXEL_16x16] = x264_pixel_ssd_16x16_mmxext;
+        pixf->ssd[PIXEL_16x8]  = x264_pixel_ssd_16x8_mmxext;
+        pixf->ssd[PIXEL_8x16]  = x264_pixel_ssd_8x16_mmxext;
+        pixf->ssd[PIXEL_8x8]   = x264_pixel_ssd_8x8_mmxext;
+        pixf->ssd[PIXEL_8x4]   = x264_pixel_ssd_8x4_mmxext;
+        pixf->ssd[PIXEL_4x8]   = x264_pixel_ssd_4x8_mmxext;
+        pixf->ssd[PIXEL_4x4]   = x264_pixel_ssd_4x4_mmxext;
+  
         pixf->satd[PIXEL_16x16]= x264_pixel_satd_16x16_mmxext;
         pixf->satd[PIXEL_16x8] = x264_pixel_satd_16x8_mmxext;
         pixf->satd[PIXEL_8x16] = x264_pixel_satd_8x16_mmxext;

@@ -770,6 +770,7 @@ static int  Encode( x264_param_t  *param, hnd_t hin, FILE *fout )
 
         /* Do not force any parameters */
         pic.i_type = X264_TYPE_AUTO;
+        pic.i_qpplus1 = 0;
         if( x264_encoder_encode( h, &nal, &i_nal, &pic, &pic ) < 0 )
         {
             fprintf( stderr, "x264_encoder_encode failed\n" );
