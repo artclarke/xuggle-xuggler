@@ -72,6 +72,7 @@ static const reg_int_t reg_int_table[] =
     { "encoding_type",  &reg.i_encoding_type,   1 },
     { "passbitrate",    &reg.i_2passbitrate,    800 },
     { "pass_number",    &reg.i_pass,            1 },
+    { "fast1pass",      &reg.b_fast1pass,       1 },
 
     /* Advance dialog */
     { "cabac",          &reg.b_cabac,           1 },
@@ -80,7 +81,7 @@ static const reg_int_t reg_int_table[] =
     { "keyint_min",     &reg.i_keyint_max,      250},
     { "refmax",         &reg.i_refmax,          1 },
     { "bmax",           &reg.i_bframe,          0 },
-    {"direct_pred",     &reg.i_direct_mv_pred,  2 },
+    {"direct_pred",     &reg.i_direct_mv_pred,  1 },
     {"inloop_a",        &reg.i_inloop_a,        0 },
     {"inloop_b",        &reg.i_inloop_b,        0 },
 
@@ -205,6 +206,7 @@ static void main_enable_item( HWND hDlg, CONFIG * config )
         EnableWindow( GetDlgItem( hDlg, IDC_2PASS2 ), FALSE );
         EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE ), FALSE );
         EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE_S ), FALSE );
+        EnableWindow( GetDlgItem( hDlg, IDC_FAST1PASS ), FALSE );
         break;
 
     case 1 : /* 1 Pass, Quantizer Based */
@@ -218,6 +220,7 @@ static void main_enable_item( HWND hDlg, CONFIG * config )
         EnableWindow( GetDlgItem( hDlg, IDC_2PASS2 ), FALSE );
         EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE ), FALSE );
         EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE_S ), FALSE );
+        EnableWindow( GetDlgItem( hDlg, IDC_FAST1PASS ), FALSE );
         break;
     
     case 2 : /* 2 Pass */
@@ -231,7 +234,7 @@ static void main_enable_item( HWND hDlg, CONFIG * config )
         EnableWindow( GetDlgItem( hDlg, IDC_2PASS2 ), TRUE );
         EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE ), config->i_pass > 1 );
         EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE_S ), config->i_pass > 1 );
-
+        EnableWindow( GetDlgItem( hDlg, IDC_FAST1PASS ), config->i_pass == 1);
         break;
     }
 
@@ -241,7 +244,6 @@ static void main_enable_item( HWND hDlg, CONFIG * config )
                         (LPARAM) MAKELONG( 0, QUANT_MAX ) );
     SendDlgItemMessage( hDlg, IDC_2PASSBITRATE_S, TBM_SETRANGE, TRUE,
                         (LPARAM) MAKELONG( 0, BITRATE_MAX ) );
-
 
 }
 
@@ -284,6 +286,7 @@ static void main_update_dlg( HWND hDlg, CONFIG * config )
                         config->i_qp );
     SendDlgItemMessage( hDlg, IDC_2PASSBITRATE_S, TBM_SETPOS, TRUE,
                         config->i_2passbitrate );
+    CheckDlgButton( hDlg, IDC_FAST1PASS, config->b_fast1pass ? BST_CHECKED : BST_UNCHECKED );
 
 }
 
@@ -355,6 +358,9 @@ BOOL CALLBACK callback_main( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
                 config->i_pass = 2; /* 2nd pass */
                 main_enable_item( hDlg,  config );
                 main_update_dlg( hDlg, config );
+                break;
+            case IDC_FAST1PASS :
+                config->b_fast1pass = ( IsDlgButtonChecked( hDlg, IDC_FAST1PASS ) == BST_CHECKED );
                 break;
             }
             break;
@@ -444,7 +450,6 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
 {
     char fourcc[5];
 
-    SendDlgItemMessage(hDlg, IDC_DIRECTPRED, CB_ADDSTRING, 0, (LPARAM)"None");
     SendDlgItemMessage(hDlg, IDC_DIRECTPRED, CB_ADDSTRING, 0, (LPARAM)"Spatial");
     SendDlgItemMessage(hDlg, IDC_DIRECTPRED, CB_ADDSTRING, 0, (LPARAM)"Temporal");
 

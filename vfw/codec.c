@@ -165,11 +165,10 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
     param.i_bframe = config->i_bframe;
     param.analyse.i_subpel_refine = config->i_subpel_refine + 1; /* 0..4 -> 1..5 */
 
-    /* bframe prediction - gui goes alphabetically, so 0=NONE, 1=SPATIAL, 2=TEMPORAL */
+    /* bframe prediction - gui goes alphabetically, so 1=SPATIAL, 2=TEMPORAL */
     switch(config->i_direct_mv_pred) {
-        case 0: param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_NONE; break;
-        case 1: param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_SPATIAL; break;
-        case 2: param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_TEMPORAL; break;
+        case 0: param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_SPATIAL; break;
+        case 1: param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_TEMPORAL; break;
     }
     param.i_deblocking_filter_alphac0 = config->i_inloop_a;
     param.i_deblocking_filter_beta = config->i_inloop_b;
@@ -197,8 +196,22 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
         case 2: /* 2 PASS */
             param.rc.psz_stat_out = param.rc.psz_stat_in = statsfile;
             if (config->i_pass == 1)
+            {
                 param.rc.b_stat_write = 1;
-            else {    
+                if (config->b_fast1pass)
+                {
+                    /* adjust or turn off some flags to gain speed, if needed */
+                    if (param.analyse.i_subpel_refine > 1)
+                        param.analyse.i_subpel_refine --;
+                    if (param.analyse.i_subpel_refine > 3)
+                        param.analyse.i_subpel_refine = 3;
+                    param.i_frame_reference = (param.i_frame_reference + 1) >> 1;
+                    param.analyse.inter &= (~X264_ANALYSE_PSUB8x8);
+                    param.analyse.inter &= (~X264_ANALYSE_BSUB16x16);
+                }
+            }    
+            else
+            {    
                 param.rc.i_bitrate = config->i_2passbitrate;
                 param.rc.b_stat_read = 1;
                 param.rc.b_cbr = 1;

@@ -43,6 +43,8 @@ typedef struct
     int i_2passbitrate;
     int i_pass;
 
+    int b_fast1pass;    /* turns off some flags during 1st pass */    
+
     /* Our config */
     int i_refmax;
     int i_keyint_max;

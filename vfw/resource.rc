@@ -78,7 +78,7 @@ BEGIN
     GROUPBOX        "",IDC_STATIC,7,57,211,47
     LTEXT           "0 (High Quality)",IDC_BITRATELOW2,14,70,50,8
     LTEXT           "51 (Low Quality)",IDC_BITRATEHIGH2,131,71,53,8
-    GROUPBOX        "",IDC_STATIC,7,109,211,63
+    GROUPBOX        "",IDC_STATIC,7,109,211,73
     CONTROL         "1 Pass, Bitrate",IDC_RADIOBITRATE,"Button",
                     BS_AUTORADIOBUTTON,13,7,58,10
     CONTROL         "1 Pass, Quantizer",IDC_RADIOQUANT,"Button",
@@ -90,11 +90,13 @@ BEGIN
     CONTROL         "Second Pass",IDC_2PASS2,"Button",BS_AUTORADIOBUTTON,87,
                     126,58,10
     CONTROL         "Slider1",IDC_2PASSBITRATE_S,"msctls_trackbar32",
-                    TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,13,149,175,15
-    EDITTEXT        IDC_2PASSBITRATE,189,149,27,14,ES_AUTOHSCROLL | 
+                    TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,13,148,175,15
+    EDITTEXT        IDC_2PASSBITRATE,189,148,27,14,ES_AUTOHSCROLL | 
                     ES_NUMBER
     LTEXT           "0",IDC_BITRATELOW3,14,136,22,8
     LTEXT           "5000",IDC_BITRATEHIGH3,166,136,17,8
+    CONTROL         "Fast first pass",IDC_FAST1PASS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+                    20,166,61,10
 END
 
 IDD_ADVANCED DIALOG DISCARDABLE  0, 0, 302, 258
