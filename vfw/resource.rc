@@ -95,62 +95,63 @@ BEGIN
                     ES_NUMBER
     LTEXT           "0",IDC_BITRATELOW3,14,136,22,8
     LTEXT           "5000",IDC_BITRATEHIGH3,166,136,17,8
-    CONTROL         "Fast first pass",IDC_FAST1PASS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    20,166,61,10
+    CONTROL         "Fast first pass",IDC_FAST1PASS,"Button",BS_AUTOCHECKBOX |
+                    WS_TABSTOP,20,166,61,10
 END
 
-IDD_ADVANCED DIALOG DISCARDABLE  0, 0, 302, 258
+IDD_ADVANCED DIALOG DISCARDABLE  0, 0, 302, 262
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "x264 Advanced Settings"
 FONT 8, "MS Sans Serif"
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,245,237,50,14
+    DEFPUSHBUTTON   "OK",IDOK,245,243,50,14
+    GROUPBOX        "H.264 Features",IDC_STATIC,7,7,288,79
     CONTROL         "CABAC",IDC_CABAC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
                     16,23,61,10
-    EDITTEXT        IDC_KEYINTMIN,68,126,22,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Intra closer than",IDC_STATIC,13,128,53,8
-    GROUPBOX        "H.264 features",IDC_STATIC,7,7,288,228
-    EDITTEXT        IDC_REFFRAMES,255,20,33,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Max Reference Frames:",IDC_STATIC,170,24,80,8
-    EDITTEXT        IDC_KEYINTMAX,114,107,24,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Max IDR-Keyframe Interval:",IDC_STATIC,13,110,95,8
-    EDITTEXT        IDC_IPRATIO,258,99,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Keyframe boost (%):",IDC_STATIC,188,102,68,8
-    EDITTEXT        IDC_PBRATIO,258,119,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "B-frames reduction (%):",IDC_STATIC,178,122,75,8
-    EDITTEXT        IDC_FOURCC,258,139,25,14,ES_AUTOHSCROLL
-    LTEXT           "FourCC:",IDC_STATIC,224,142,26,8
-    CONTROL         "8x16, 16x8 and 8x8 B-frame search",IDC_B16X16,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,17,189,127,10
-    EDITTEXT        IDC_BFRAME,256,40,33,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Max B-Frames:",IDC_STATIC,198,43,51,8
-    CONTROL         "4x4 Intra search",IDC_I4X4,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,165,189,82,10
-    CONTROL         "8x16, 16x8 and 8x8 P-frame search",IDC_P16X16,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,17,171,127,10
-    CONTROL         "4x8, 8x4 and 4x4 P-frame search",IDC_P8X8,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,165,172,119,10
-    COMBOBOX        IDC_SUBPEL,117,208,70,77,CBS_DROPDOWN | CBS_SORT | 
-                    WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Subpixel refinement precision",IDC_STATIC,17,211,92,8
-    COMBOBOX        IDC_DIRECTPRED,220,63,70,67,CBS_DROPDOWNLIST | CBS_SORT | 
-                    WS_VSCROLL | WS_TABSTOP
-    LTEXT           "B-frame prediction mode:",IDC_STATIC,133,65,84,8
     CONTROL         "Slider1",IDC_INLOOP_A,"msctls_trackbar32",TBS_NOTICKS | 
                     WS_TABSTOP,56,53,47,10
-    GROUPBOX        "",IDC_STATIC,7,40,115,44
+    GROUPBOX        "",IDC_STATIC,7,40,115,41
     LTEXT           "Strength (A)",IDC_STATIC,15,53,39,8
     CONTROL         "Slider1",IDC_INLOOP_B,"msctls_trackbar32",TBS_NOTICKS | 
                     WS_TABSTOP,56,66,47,10
     LTEXT           "Strength (B)",IDC_STATIC,15,66,39,8
-    LTEXT           "frames are coded as non-IDR",IDC_STATIC,93,128,
-                    60,16
-    GROUPBOX        "More Encoder Settings",IDC_STATIC,7,88,288,71
     LTEXT           "0",IDC_LOOPA_TXT,109,53,8,8
     LTEXT           "0",IDC_LOOPB_TXT,109,66,8,8
-    GROUPBOX        "Macroblock Partitions",IDC_STATIC,7,154,288,81
-    CONTROL         "Deblocking Filter",IDC_LOOPFILTER,"Button",
+    CONTROL         "Deblocking filter",IDC_LOOPFILTER,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,16,39,69,10
+    LTEXT           "Max reference frames:",IDC_STATIC,184,23,80,8
+    EDITTEXT        IDC_REFFRAMES,263,20,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Max B-frames:",IDC_STATIC,210,43,51,8
+    EDITTEXT        IDC_BFRAME,263,40,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "B-frames prediction mode:",IDC_STATIC,143,65,87,8
+    COMBOBOX        IDC_DIRECTPRED,232,63,58,67,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "More Encoder Settings",IDC_STATIC,7,88,145,74
+    LTEXT           "Max IDR-keyframe interval:",IDC_STATIC,16,103,95,8
+    EDITTEXT        IDC_KEYINTMAX,114,100,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Min IDR-keyframe interval:",IDC_STATIC,16,123,90,8
+    EDITTEXT        IDC_KEYINTMIN,114,120,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "FourCC:",IDC_STATIC,16,143,26,8
+    EDITTEXT        IDC_FOURCC,114,140,25,14,ES_AUTOHSCROLL
+    GROUPBOX        "Ratecontrol",IDC_STATIC,159,88,136,74
+    LTEXT           "Keyframe boost (%):",IDC_STATIC,168,103,68,8
+    EDITTEXT        IDC_IPRATIO,258,100,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "B-frames reduction (%):",IDC_STATIC,168,123,75,8
+    EDITTEXT        IDC_PBRATIO,258,120,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Bitrate variability (%):",IDC_STATIC,168,143,75,8
+    EDITTEXT        IDC_CURVECOMP,258,140,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    GROUPBOX        "Macroblock Partitions",IDC_STATIC,7,164,288,76
+    CONTROL         "8x16, 16x8 and 8x8 P-frame search",IDC_P16X16,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,17,181,127,10
+    CONTROL         "4x8, 8x4 and 4x4 P-frame search",IDC_P8X8,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,165,181,119,10
+    CONTROL         "8x16, 16x8 and 8x8 B-frame search",IDC_B16X16,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,17,197,127,10
+    CONTROL         "4x4 Intra search",IDC_I4X4,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,165,197,82,10
+    LTEXT           "Subpixel refinement precision:",IDC_STATIC,17,218,95,8
+    COMBOBOX        IDC_SUBPEL,118,216,70,77,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
 END
 
 IDD_ABOUT DIALOG DISCARDABLE  0, 0, 213, 130

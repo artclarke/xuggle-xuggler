@@ -69,6 +69,7 @@ typedef struct
     
     int i_key_boost;
     int i_b_red;
+    int i_curve_comp;
 
     /* vfw interface */
     int b_save;

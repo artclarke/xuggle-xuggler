@@ -163,6 +163,7 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
     param.b_cabac = config->b_cabac;
     param.rc.f_ip_factor = 1 + (float)config->i_key_boost / 100;
     param.rc.f_pb_factor = 1 + (float)config->i_b_red / 100;
+    param.rc.f_qcompress = (float)config->i_curve_comp / 100;
 
     param.i_bframe = config->i_bframe;
     param.analyse.i_subpel_refine = config->i_subpel_refine + 1; /* 0..4 -> 1..5 */

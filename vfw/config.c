@@ -78,21 +78,22 @@ static const reg_int_t reg_int_table[] =
     { "cabac",          &reg.b_cabac,           1 },
     { "loop_filter",    &reg.b_filter,          1 },
     { "keyint_max",     &reg.i_keyint_min,      25 },
-    { "keyint_min",     &reg.i_keyint_max,      250},
+    { "keyint_min",     &reg.i_keyint_max,      250 },
     { "refmax",         &reg.i_refmax,          1 },
     { "bmax",           &reg.i_bframe,          0 },
-    {"direct_pred",     &reg.i_direct_mv_pred,  1 },
-    {"inloop_a",        &reg.i_inloop_a,        0 },
-    {"inloop_b",        &reg.i_inloop_b,        0 },
-    {"key_boost",       &reg.i_key_boost,       40 },
-    {"b_red",           &reg.i_b_red,           30 },
+    { "direct_pred",    &reg.i_direct_mv_pred,  1 },
+    { "inloop_a",       &reg.i_inloop_a,        0 },
+    { "inloop_b",       &reg.i_inloop_b,        0 },
+    { "key_boost",      &reg.i_key_boost,       40 },
+    { "b_red",          &reg.i_b_red,           30 },
+    { "curve_comp",     &reg.i_curve_comp,      60 },
 
     /* analysis */
-    {"i4x4",            &reg.b_i4x4,            1 },
-    {"psub16x16",       &reg.b_psub16x16,       1 },
-    {"psub8x8",         &reg.b_psub8x8,         1 },
-    {"bsub16x16",       &reg.b_bsub16x16,       1 },
-    {"subpel",          &reg.i_subpel_refine,   4 }
+    { "i4x4",           &reg.b_i4x4,            1 },
+    { "psub16x16",      &reg.b_psub16x16,       1 },
+    { "psub8x8",        &reg.b_psub8x8,         1 },
+    { "bsub16x16",      &reg.b_bsub16x16,       1 },
+    { "subpel",         &reg.i_subpel_refine,   4 }
 
 };
 
@@ -480,6 +481,7 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
     SetDlgItemInt( hDlg, IDC_BFRAME, config->i_bframe, FALSE );
     SetDlgItemInt( hDlg, IDC_IPRATIO, config->i_key_boost, FALSE );
     SetDlgItemInt( hDlg, IDC_PBRATIO, config->i_b_red, FALSE );
+    SetDlgItemInt( hDlg, IDC_CURVECOMP, config->i_curve_comp, FALSE );
 
     SendDlgItemMessage(hDlg, IDC_DIRECTPRED, CB_SETCURSEL, (config->i_direct_mv_pred), 0);
     SendDlgItemMessage(hDlg, IDC_SUBPEL, CB_SETCURSEL, (config->i_subpel_refine), 0);
@@ -591,6 +593,19 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                 {
                     config->i_b_red = 50;
                     SetDlgItemInt( hDlg, IDC_PBRATIO, config->i_b_red, FALSE );
+                }                        
+                break;
+            case IDC_CURVECOMP:
+                config->i_curve_comp = GetDlgItemInt( hDlg, IDC_CURVECOMP, FALSE, FALSE );
+                if( config->i_curve_comp < 0 )
+                {
+                    config->i_curve_comp = 0;
+                    SetDlgItemInt( hDlg, IDC_CURVECOMP, config->i_curve_comp, FALSE );
+                }
+                else if( config->i_curve_comp > 100 )
+                {
+                    config->i_curve_comp = 100;
+                    SetDlgItemInt( hDlg, IDC_CURVECOMP, config->i_curve_comp, FALSE );
                 }                        
                 break;
             }
