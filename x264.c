@@ -138,6 +138,7 @@ static void Help( void )
              "      --subme <integer>       Subpixel motion estimation quality\n"
              "\n"
              "  -s, --sar width:height      Specify Sample Aspect Ratio\n"
+             "      --frames <integer>      Maximum number of frames to encode\n"
              "  -o, --output                Specify output file\n"
              "\n"
              "      --no-asm                Disable any CPU optims\n"
@@ -184,6 +185,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_SCENECUT 270
 #define OPT_QBLUR 271
 #define OPT_CPLXBLUR 272
+#define OPT_FRAMES 273
 
         static struct option long_options[] =
         {
@@ -203,6 +205,7 @@ static int  Parse( int argc, char **argv,
             { "ref",     required_argument, NULL, 'r' },
             { "no-asm",  no_argument,       NULL, 'C' },
             { "sar",     required_argument, NULL, 's' },
+            { "frames",  required_argument, NULL, OPT_FRAMES },
             { "output",  required_argument, NULL, 'o' },
             { "analyse", required_argument, NULL, 'A' },
             { "subme",   required_argument, NULL, OPT_SUBME },
@@ -292,6 +295,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case 'C':
                 param->cpu = 0;
+                break;
+            case OPT_FRAMES:
+                param->i_maxframes = atoi( optarg );
                 break;
             case'o':
                 if( ( *p_fout = fopen( optarg, "wb" ) ) == NULL )
@@ -619,6 +625,9 @@ static int  Encode( x264_param_t  *param, FILE *fyuv, FILE *fout )
         x264_nal_t  *nal;
 
         int         i;
+
+        if (param->i_maxframes!=0 && i_frame>=param->i_maxframes)
+            break;
 
         /* read a frame */
         if( fread( pic.img.plane[0], 1, param->i_width * param->i_height, fyuv ) <= 0 ||
