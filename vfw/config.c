@@ -82,10 +82,11 @@ static const reg_int_t reg_int_table[] =
     { "keyint_max",     &reg.i_keyint_max,      250 },
     { "keyint_min",     &reg.i_keyint_min,      25 },
     { "refmax",         &reg.i_refmax,          1 },
-    { "bmax",           &reg.i_bframe,          0 },
+    { "bmax",           &reg.i_bframe,          2 },
     { "direct_pred",    &reg.i_direct_mv_pred,  1 },
+    { "b_refs",         &reg.b_b_refs,          0 },
+    { "b_wpred",        &reg.b_b_wpred,         1 },
     { "inloop_a",       &reg.i_inloop_a,        0 },
-    { "inloop_b",       &reg.i_inloop_b,        0 },
     { "key_boost",      &reg.i_key_boost,       40 },
     { "b_red",          &reg.i_b_red,           30 },
     { "curve_comp",     &reg.i_curve_comp,      60 },
@@ -512,6 +513,10 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
                     config->b_cabac ? BST_CHECKED : BST_UNCHECKED );
     CheckDlgButton( hDlg,IDC_LOOPFILTER,
                     config->b_filter ? BST_CHECKED: BST_UNCHECKED );
+    CheckDlgButton( hDlg,IDC_WBPRED,
+                    config->b_b_wpred ? BST_CHECKED: BST_UNCHECKED );
+    CheckDlgButton( hDlg,IDC_BREFS,
+                    config->b_b_refs ? BST_CHECKED: BST_UNCHECKED );
     CheckDlgButton( hDlg,IDC_P16X16,
                     config->b_psub16x16 ? BST_CHECKED: BST_UNCHECKED );
     CheckDlgButton( hDlg,IDC_P8X8,
@@ -534,17 +539,14 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
 
     SendDlgItemMessage( hDlg, IDC_INLOOP_A, TBM_SETRANGE, TRUE,
                         (LPARAM) MAKELONG( -6, 6 ) );
-    SendDlgItemMessage( hDlg, IDC_INLOOP_B, TBM_SETRANGE, TRUE,
-                        (LPARAM) MAKELONG( -6, 6 ) );
-
     SendDlgItemMessage( hDlg, IDC_INLOOP_A, TBM_SETPOS, TRUE,
                         config->i_inloop_a );
-    SendDlgItemMessage( hDlg, IDC_INLOOP_B, TBM_SETPOS, TRUE,
-                        config->i_inloop_b );
     set_dlgitem_int( hDlg, IDC_LOOPA_TXT, config->i_inloop_a);
-    set_dlgitem_int( hDlg, IDC_LOOPB_TXT, config->i_inloop_b);
 
     EnableWindow( GetDlgItem( hDlg, IDC_P8X8 ), config->b_psub16x16 );
+    EnableWindow( GetDlgItem( hDlg, IDC_BREFS ), config->i_bframe > 1 );
+    EnableWindow( GetDlgItem( hDlg, IDC_WBPRED ), config->i_bframe > 1 );
+    EnableWindow( GetDlgItem( hDlg, IDC_DIRECTPRED ), config->i_bframe > 0 );
 
     memcpy( fourcc, config->fcc, 4 );
     fourcc[4] = '\0';
@@ -579,6 +581,12 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                 break;
             case IDC_LOOPFILTER :
                 config->b_filter = ( IsDlgButtonChecked( hDlg, IDC_LOOPFILTER ) == BST_CHECKED );
+                break;
+            case IDC_BREFS :
+                config->b_b_refs = ( IsDlgButtonChecked( hDlg, IDC_BREFS ) == BST_CHECKED );
+                break;
+            case IDC_WBPRED :
+                config->b_b_wpred = ( IsDlgButtonChecked( hDlg, IDC_WBPRED ) == BST_CHECKED );
                 break;
             case IDC_P16X16 :
                 config->b_psub16x16 = ( IsDlgButtonChecked( hDlg, IDC_P16X16 ) == BST_CHECKED );
@@ -617,6 +625,14 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                 break;
             case IDC_BFRAME :
                 config->i_bframe = GetDlgItemInt( hDlg, IDC_BFRAME, FALSE, FALSE );
+                if( config->i_bframe > 5 )
+                {
+                    config->i_bframe = 5;
+                    SetDlgItemInt( hDlg, IDC_BFRAME, config->i_bframe, FALSE );
+                }
+                EnableWindow( GetDlgItem( hDlg, IDC_BREFS ), config->i_bframe > 1 );
+                EnableWindow( GetDlgItem( hDlg, IDC_WBPRED ), config->i_bframe > 1 );
+                EnableWindow( GetDlgItem( hDlg, IDC_DIRECTPRED ), config->i_bframe > 0 );
                 break;
             case IDC_IPRATIO :
                 config->i_key_boost = GetDlgItemInt( hDlg, IDC_IPRATIO, FALSE, FALSE );
@@ -675,10 +691,6 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
         if( (HWND) lParam == GetDlgItem( hDlg, IDC_INLOOP_A ) ) {
                 config->i_inloop_a = SendDlgItemMessage( hDlg, IDC_INLOOP_A, TBM_GETPOS, 0, 0 );
                 set_dlgitem_int( hDlg, IDC_LOOPA_TXT, config->i_inloop_a);
-
-        } else if ( (HWND) lParam == GetDlgItem( hDlg, IDC_INLOOP_B ) ) {
-                config->i_inloop_b = SendDlgItemMessage( hDlg, IDC_INLOOP_B, TBM_GETPOS, 0, 0 );
-                set_dlgitem_int( hDlg, IDC_LOOPB_TXT, config->i_inloop_b);
         }
         break;
         case WM_CLOSE:

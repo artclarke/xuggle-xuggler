@@ -105,58 +105,59 @@ BEGIN
     PUSHBUTTON      "...",IDC_STATSFILE_BROWSE,177,185,18,11
 END
 
-IDD_ADVANCED DIALOG DISCARDABLE  0, 0, 302, 262
+IDD_ADVANCED DIALOG DISCARDABLE  0, 0, 302, 267
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "x264 Advanced Settings"
 FONT 8, "MS Sans Serif"
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,245,243,50,14
-    GROUPBOX        "H.264 Features",IDC_STATIC,7,7,288,79
+    DEFPUSHBUTTON   "OK",IDOK,245,250,50,14
+    GROUPBOX        "H.264 Features",IDC_STATIC,7,7,145,88
     CONTROL         "CABAC",IDC_CABAC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
                     16,23,61,10
-    CONTROL         "Slider1",IDC_INLOOP_A,"msctls_trackbar32",TBS_NOTICKS | 
-                    WS_TABSTOP,56,53,47,10
-    GROUPBOX        "",IDC_STATIC,7,40,115,41
-    LTEXT           "Strength",IDC_STATIC,15,53,39,8
-    CONTROL         "Slider1",IDC_INLOOP_B,"msctls_trackbar32",TBS_NOTICKS | 
-                    WS_TABSTOP,56,66,47,10
-    LTEXT           "Threshold",IDC_STATIC,15,66,39,8
-    LTEXT           "0",IDC_LOOPA_TXT,109,53,8,8
-    LTEXT           "0",IDC_LOOPB_TXT,109,66,8,8
+    GROUPBOX        "",IDC_STATIC,12,39,113,28
     CONTROL         "Deblocking filter",IDC_LOOPFILTER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,16,39,69,10
-    LTEXT           "Max reference frames:",IDC_STATIC,184,23,80,8
-    EDITTEXT        IDC_REFFRAMES,263,20,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Max B-frames:",IDC_STATIC,210,43,51,8
-    EDITTEXT        IDC_BFRAME,263,40,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "B-frames prediction mode:",IDC_STATIC,143,65,87,8
-    COMBOBOX        IDC_DIRECTPRED,232,63,58,67,CBS_DROPDOWNLIST | CBS_SORT | 
+                    BS_AUTOCHECKBOX | WS_TABSTOP,16,38,64,10
+    LTEXT           "Strength",IDC_STATIC,22,51,37,8
+    CONTROL         "Slider1",IDC_INLOOP_A,"msctls_trackbar32",TBS_NOTICKS | 
+                    WS_TABSTOP,56,52,47,10
+    LTEXT           "0",IDC_LOOPA_TXT,109,51,8,8
+    LTEXT           "Max reference frames:",IDC_STATIC,16,76,80,8
+    EDITTEXT        IDC_REFFRAMES,114,73,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    GROUPBOX        "B-frames",IDC_STATIC,159,7,136,88
+    LTEXT           "Max consecutive:",IDC_STATIC,168,25,80,8
+    EDITTEXT        IDC_BFRAME,258,22,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Direct mode:",IDC_STATIC,168,46,50,8
+    COMBOBOX        IDC_DIRECTPRED,229,44,55,67,CBS_DROPDOWNLIST | CBS_SORT | 
                     WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "More Encoder Settings",IDC_STATIC,7,88,145,74
-    LTEXT           "Max IDR-frame interval:",IDC_STATIC,16,103,95,8
-    EDITTEXT        IDC_KEYINTMAX,114,100,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Min IDR-frame interval:",IDC_STATIC,16,123,90,8
-    EDITTEXT        IDC_KEYINTMIN,114,120,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "FourCC:",IDC_STATIC,16,143,26,8
-    EDITTEXT        IDC_FOURCC,114,140,25,14,ES_AUTOHSCROLL
-    GROUPBOX        "Ratecontrol",IDC_STATIC,159,88,136,74
-    LTEXT           "Keyframe boost (%):",IDC_STATIC,168,103,68,8
-    EDITTEXT        IDC_IPRATIO,258,100,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "B-frames reduction (%):",IDC_STATIC,168,123,75,8
-    EDITTEXT        IDC_PBRATIO,258,120,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Bitrate variability (%):",IDC_STATIC,168,143,75,8
-    EDITTEXT        IDC_CURVECOMP,258,140,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    GROUPBOX        "Macroblock Partitions",IDC_STATIC,7,164,288,76
+    CONTROL         "Use as references",IDC_BREFS,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,168,64,80,10
+    CONTROL         "Weighted biprediction",IDC_WBPRED,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,168,79,82,10
+    GROUPBOX        "More Encoder Settings",IDC_STATIC,7,98,145,74
+    LTEXT           "Max IDR-frame interval:",IDC_STATIC,16,113,95,8
+    EDITTEXT        IDC_KEYINTMAX,114,110,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Min IDR-frame interval:",IDC_STATIC,16,133,90,8
+    EDITTEXT        IDC_KEYINTMIN,114,130,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "FourCC:",IDC_STATIC,16,153,26,8
+    EDITTEXT        IDC_FOURCC,114,150,25,14,ES_AUTOHSCROLL
+    GROUPBOX        "Ratecontrol",IDC_STATIC,159,98,136,74
+    LTEXT           "Keyframe boost (%):",IDC_STATIC,168,113,68,8
+    EDITTEXT        IDC_IPRATIO,258,110,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "B-frames reduction (%):",IDC_STATIC,168,133,75,8
+    EDITTEXT        IDC_PBRATIO,258,130,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Bitrate variability (%):",IDC_STATIC,168,153,75,8
+    EDITTEXT        IDC_CURVECOMP,258,150,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    GROUPBOX        "Macroblock Partitions",IDC_STATIC,7,174,288,73
     CONTROL         "8x16, 16x8 and 8x8 P-frame search",IDC_P16X16,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,17,181,127,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,17,190,127,10
     CONTROL         "4x8, 8x4 and 4x4 P-frame search",IDC_P8X8,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,165,181,119,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,165,190,119,10
     CONTROL         "8x16, 16x8 and 8x8 B-frame search",IDC_B16X16,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,17,197,127,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,17,206,127,10
     CONTROL         "4x4 Intra search",IDC_I4X4,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,165,197,82,10
-    LTEXT           "Partition decision quality:",IDC_STATIC,17,218,95,8
-    COMBOBOX        IDC_SUBPEL,104,216,70,77,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_TABSTOP,165,206,82,10
+    LTEXT           "Partition decision quality:",IDC_STATIC,17,227,95,8
+    COMBOBOX        IDC_SUBPEL,104,225,70,77,CBS_DROPDOWNLIST | CBS_SORT | 
                     WS_VSCROLL | WS_TABSTOP
 END
 

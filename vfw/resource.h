@@ -54,9 +54,7 @@
 #define IDC_2PASS1                      1041
 #define IDC_2PASS2                      1042
 #define IDC_INLOOP_A                    1044
-#define IDC_INLOOP_B                    1045
 #define IDC_LOOPA_TXT                   1047
-#define IDC_LOOPB_TXT                   1048
 #define IDC_FAST1PASS                   1049
 #define IDC_IPRATIO                     1050
 #define IDC_PBRATIO                     1051
@@ -66,6 +64,8 @@
 #define IDC_STATSFILE_BROWSE            1055
 #define IDC_CONSOLE                     1056
 #define IDC_COPYCLIP                    1057
+#define IDC_BREFS                       1058
+#define IDC_WBPRED                      1059
 
 // Next default values for new objects
 // 
@@ -73,7 +73,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        105
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1058
+#define _APS_NEXT_CONTROL_VALUE         1060
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

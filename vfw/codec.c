@@ -223,8 +223,10 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
     param.rc.f_qcompress = (float)config->i_curve_comp / 100;
 
     param.i_bframe = config->i_bframe;
-    if( config->i_bframe > 1 )
+    if( config->i_bframe > 1 && config->b_b_wpred)
         param.analyse.b_weighted_bipred = 1;
+    if( config->i_bframe > 1 && config->b_b_refs)
+        param.b_bframe_pyramid = 1;
     param.analyse.i_subpel_refine = config->i_subpel_refine + 1; /* 0..4 -> 1..5 */
 
     /* bframe prediction - gui goes alphabetically, so 1=SPATIAL, 2=TEMPORAL */
@@ -233,7 +235,7 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
         case 1: param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_TEMPORAL; break;
     }
     param.i_deblocking_filter_alphac0 = config->i_inloop_a;
-    param.i_deblocking_filter_beta = config->i_inloop_b;
+    param.i_deblocking_filter_beta = config->i_inloop_a;
 
     if( config->b_bsub16x16 )
         param.analyse.inter |= X264_ANALYSE_BSUB16x16;
@@ -283,6 +285,7 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
             {
                 statsfilename_renumber( param.rc.psz_stat_out, config->stats, 1 );
                 param.rc.b_stat_write = 1;
+                param.rc.i_qp_constant = 24;
                 if( config->b_fast1pass )
                 {
                     /* adjust or turn off some flags to gain speed, if needed */

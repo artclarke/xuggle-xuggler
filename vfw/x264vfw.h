@@ -66,8 +66,10 @@ typedef struct
     int i_direct_mv_pred;
 
     int i_inloop_a;
-    int i_inloop_b;
-    
+
+    int b_b_refs;
+    int b_b_wpred;
+
     int i_key_boost;
     int i_b_red;
     int i_curve_comp;
