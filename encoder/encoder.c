@@ -296,7 +296,7 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
 x264_t *x264_encoder_open   ( x264_param_t *param )
 {
     x264_t *h = x264_malloc( sizeof( x264_t ) );
-    int i;
+    int i, i_slice;
 
     /* Create a copy of param */
     memcpy( &h->param, param, sizeof( x264_param_t ) );
@@ -457,30 +457,18 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->i_last_inter_size = 0;
 
     /* stat */
-    h->stat.i_slice_count[SLICE_TYPE_I] = 0;
-    h->stat.i_slice_count[SLICE_TYPE_P] = 0;
-    h->stat.i_slice_count[SLICE_TYPE_B] = 0;
-    h->stat.i_slice_size[SLICE_TYPE_I] = 0;
-    h->stat.i_slice_size[SLICE_TYPE_P] = 0;
-    h->stat.i_slice_size[SLICE_TYPE_B] = 0;
-
-    h->stat.i_sqe_global[SLICE_TYPE_I] = 0;
-    h->stat.f_psnr_average[SLICE_TYPE_I] = 0.0;
-    h->stat.f_psnr_mean_y[SLICE_TYPE_I] = h->stat.f_psnr_mean_u[SLICE_TYPE_I] = h->stat.f_psnr_mean_v[SLICE_TYPE_I] = 0.0;
-
-    h->stat.i_sqe_global[SLICE_TYPE_P] = 0;
-    h->stat.f_psnr_average[SLICE_TYPE_P] = 0.0;
-    h->stat.f_psnr_mean_y[SLICE_TYPE_P] = h->stat.f_psnr_mean_u[SLICE_TYPE_P] = h->stat.f_psnr_mean_v[SLICE_TYPE_P] = 0.0;
-
-    h->stat.i_sqe_global[SLICE_TYPE_B] = 0;
-    h->stat.f_psnr_average[SLICE_TYPE_B] = 0.0;
-    h->stat.f_psnr_mean_y[SLICE_TYPE_B] = h->stat.f_psnr_mean_u[SLICE_TYPE_B] = h->stat.f_psnr_mean_v[SLICE_TYPE_B] = 0.0;
-
-    for( i = 0; i < 17; i++ )
+    for( i_slice = 0; i_slice < 5; i_slice++ )
     {
-        h->stat.i_mb_count[SLICE_TYPE_I][i] = 0;
-        h->stat.i_mb_count[SLICE_TYPE_P][i] = 0;
-        h->stat.i_mb_count[SLICE_TYPE_B][i] = 0;
+        h->stat.i_slice_count[i_slice] = 0;
+        h->stat.i_slice_size[i_slice] = 0;
+        h->stat.i_slice_qp[i_slice] = 0;
+
+        h->stat.i_sqe_global[i_slice] = 0;
+        h->stat.f_psnr_average[i_slice] = 0.0;
+        h->stat.f_psnr_mean_y[i_slice] = h->stat.f_psnr_mean_u[i_slice] = h->stat.f_psnr_mean_v[i_slice] = 0.0;
+        
+        for( i = 0; i < 18; i++ )
+            h->stat.i_mb_count[i_slice][i] = 0;
     }
 
     x264_log( h, X264_LOG_INFO, "using cpu capabilities %s%s%s%s%s%s\n",
@@ -733,7 +721,7 @@ static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_id
     h->stat.frame.i_misc_bits =
     h->stat.frame.i_intra_cost =
     h->stat.frame.i_inter_cost = 0;
-    for( i = 0; i < 17; i++ )
+    for( i = 0; i < 18; i++ )
         h->stat.frame.i_mb_count[i] = 0;
 
     /* Slice */
@@ -892,6 +880,8 @@ int     x264_encoder_encode( x264_t *h,
     int i;
 
     int   i_global_qp;
+
+    char psz_message[80];
 
     /* no data out */
     *pi_nal = 0;
@@ -1080,6 +1070,7 @@ do_encode:
     pic->i_type     =
     h->fdec->i_type = h->fenc->i_type;
     h->fdec->i_poc  = h->fenc->i_poc;
+    h->fdec->i_frame = h->fenc->i_frame;
 
 
 
@@ -1244,8 +1235,9 @@ do_encode:
     /* Slice stat */
     h->stat.i_slice_count[i_slice_type]++;
     h->stat.i_slice_size[i_slice_type] += bs_pos( &h->out.bs) / 8;
+    h->stat.i_slice_qp[i_slice_type] += i_global_qp;
 
-    for( i = 0; i < 17; i++ )
+    for( i = 0; i < 18; i++ )
     {
         h->stat.i_mb_count[h->sh.i_type][i] += h->stat.frame.i_mb_count[i];
     }
@@ -1265,63 +1257,48 @@ do_encode:
         h->stat.f_psnr_mean_u[i_slice_type] += x264_psnr( i_sqe_u, h->param.i_width * h->param.i_height / 4 );
         h->stat.f_psnr_mean_v[i_slice_type] += x264_psnr( i_sqe_v, h->param.i_width * h->param.i_height / 4 );
 
-        x264_log( h, X264_LOG_DEBUG,
-                  "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I4x4:%-4d I16x16:%-4d P:%-4d SKIP:%-4d size=%d bytes PSNR Y:%2.2f U:%2.2f V:%2.2f\n",
-                  h->i_frame - 1,
-                  i_global_qp,
-                  i_nal_ref_idc,
-                  i_slice_type == SLICE_TYPE_I ? 'I' : (i_slice_type == SLICE_TYPE_P ? 'P' : 'B' ),
-                  frame_psnr->i_poc,
-                  h->stat.frame.i_mb_count[I_4x4],
-                  h->stat.frame.i_mb_count[I_16x16],
-                  h->stat.frame.i_mb_count[P_L0] + h->stat.frame.i_mb_count[P_8x8],
-                  h->stat.frame.i_mb_count[P_SKIP],
-                  h->out.nal[h->out.i_nal-1].i_payload,
+        snprintf( psz_message, 80, " PSNR Y:%2.2f U:%2.2f V:%2.2f",
                   x264_psnr( i_sqe_y, h->param.i_width * h->param.i_height ),
                   x264_psnr( i_sqe_u, h->param.i_width * h->param.i_height / 4),
                   x264_psnr( i_sqe_v, h->param.i_width * h->param.i_height / 4) );
+        psz_message[79] = '\0';
     }
     else
     {
-        x264_log( h, X264_LOG_DEBUG,
-                  "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I4x4:%-4d I16x16:%-4d P:%-4d SKIP:%-4d size=%d bytes\n",
-                  h->i_frame - 1,
-                  i_global_qp,
-                  i_nal_ref_idc,
-                  i_slice_type == SLICE_TYPE_I ? 'I' : (i_slice_type == SLICE_TYPE_P ? 'P' : 'B' ),
-                  frame_psnr->i_poc,
-                  h->stat.frame.i_mb_count[I_4x4],
-                  h->stat.frame.i_mb_count[I_16x16],
-                  h->stat.frame.i_mb_count[P_L0] + h->stat.frame.i_mb_count[P_8x8],
-                  h->stat.frame.i_mb_count[P_SKIP],
-                  h->out.nal[h->out.i_nal-1].i_payload );
+        psz_message[0] = '\0';
     }
+    
+    x264_log( h, X264_LOG_DEBUG,
+                  "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I4x4:%-4d I16x16:%-4d P:%-4d SKIP:%-4d size=%d bytes%s\n",
+              h->i_frame - 1,
+              i_global_qp,
+              i_nal_ref_idc,
+              i_slice_type == SLICE_TYPE_I ? 'I' : (i_slice_type == SLICE_TYPE_P ? 'P' : 'B' ),
+              frame_psnr->i_poc,
+              h->stat.frame.i_mb_count[I_4x4],
+              h->stat.frame.i_mb_count[I_16x16],
+              h->stat.frame.i_mb_count_p,
+              h->stat.frame.i_mb_count_skip,
+              h->out.nal[h->out.i_nal-1].i_payload,
+              psz_message );
 
 
 #ifdef DEBUG_MB_TYPE
+{
+    static const char mb_chars[] = { 'i', 'I', 'C', 'P', '8', 'S',
+        'D', '<', 'X', 'B', 'X', '>', 'B', 'B', 'B', 'B', '8', 'S' };
+    int mb_xy;
     for( mb_xy = 0; mb_xy < h->sps->i_mb_width * h->sps->i_mb_height; mb_xy++ )
     {
-        const int i_mb_y = mb_xy / h->sps->i_mb_width;
-        const int i_mb_x = mb_xy % h->sps->i_mb_width;
-
-        if( i_mb_y > 0 && i_mb_x == 0 )
-            fprintf( stderr, "\n" );
-
-        if( h->mb.type[mb_xy] == I_4x4 )
-            fprintf( stderr, "i" );
-        else if( h->mb.type[mb_xy] == I_16x16 )
-            fprintf( stderr, "I" );
-        else if( h->mb.type[mb_xy] == P_SKIP )
-            fprintf( stderr, "S" );
-        else if( h->mb.type[mb_xy] == P_8x8 )
-            fprintf( stderr, "8" );
-        else if( h->mb.type[mb_xy] == P_L0 )
-            fprintf( stderr, "P" );
+        if( h->mb.type[mb_xy] < 18 && h->mb.type[mb_xy] >= 0 )
+            fprintf( stderr, "%c ", mb_chars[ h->mb.type[mb_xy] ] );
         else
-            fprintf( stderr, "?" );
+            fprintf( stderr, "? " );
 
-        fprintf( stderr, " " );
+        if( (mb_xy+1) % h->sps->i_mb_width == 0 )
+            fprintf( stderr, "\n" );
     }
+}
 #endif
 
 #ifdef DEBUG_DUMP_FRAME
@@ -1357,63 +1334,76 @@ void    x264_encoder_close  ( x264_t *h )
               (int)(100*i_mtime_write/i_mtime_total), i_mtime_write/1000,
               (int)(100*i_mtime_filter/i_mtime_total), i_mtime_filter/1000 );
 
-    /* Slices used and PNSR */
-    if( h->stat.i_slice_count[SLICE_TYPE_I] > 0 )
+    /* Slices used and PSNR */
+    for( i=0; i<5; i++ )
     {
-        const int i_count = h->stat.i_slice_count[SLICE_TYPE_I];
-        x264_log( h, X264_LOG_INFO,
-                  "slice I:%-4d Avg size:%-5lld PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
-                   i_count,
-                   h->stat.i_slice_size[SLICE_TYPE_I] / i_count,
-                   h->stat.f_psnr_mean_y[SLICE_TYPE_I] / i_count, h->stat.f_psnr_mean_u[SLICE_TYPE_I] / i_count, h->stat.f_psnr_mean_v[SLICE_TYPE_I] / i_count,
-                   h->stat.f_psnr_average[SLICE_TYPE_I] / i_count,
-                   x264_psnr( h->stat.i_sqe_global[SLICE_TYPE_I], i_count * i_yuv_size ),
-                   x264_mse( h->stat.i_sqe_global[SLICE_TYPE_I], i_count * i_yuv_size ) * h->stat.i_slice_size[SLICE_TYPE_I] / i_count );
-    }
-    if( h->stat.i_slice_count[SLICE_TYPE_P] > 0 )
-    {
-        const int i_count = h->stat.i_slice_count[SLICE_TYPE_P];
-        x264_log( h, X264_LOG_INFO,
-                  "slice P:%-4d Avg size:%-5lld PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
-                  i_count,
-                  h->stat.i_slice_size[SLICE_TYPE_P] / i_count,
-                  h->stat.f_psnr_mean_y[SLICE_TYPE_P] / i_count, h->stat.f_psnr_mean_u[SLICE_TYPE_P] / i_count, h->stat.f_psnr_mean_v[SLICE_TYPE_P] / i_count,
-                  h->stat.f_psnr_average[SLICE_TYPE_P] / i_count,
-                  x264_psnr( h->stat.i_sqe_global[SLICE_TYPE_P], i_count * i_yuv_size ),
-                  x264_mse( h->stat.i_sqe_global[SLICE_TYPE_P], i_count * i_yuv_size ) * h->stat.i_slice_size[SLICE_TYPE_P] / i_count );
-    }
-    if( h->stat.i_slice_count[SLICE_TYPE_B] > 0 )
-    {
-        const int i_count = h->stat.i_slice_count[SLICE_TYPE_B];
-        x264_log( h, X264_LOG_INFO,
-                  "slice B:%-4d Avg size:%-5lld PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
-                   h->stat.i_slice_count[SLICE_TYPE_B],
-                   h->stat.i_slice_size[SLICE_TYPE_B] / i_count,
-                   h->stat.f_psnr_mean_y[SLICE_TYPE_B] / i_count, h->stat.f_psnr_mean_u[SLICE_TYPE_B] / i_count, h->stat.f_psnr_mean_v[SLICE_TYPE_B] / i_count,
-                   h->stat.f_psnr_average[SLICE_TYPE_B] / i_count,
-                   x264_psnr( h->stat.i_sqe_global[SLICE_TYPE_B], i_count * i_yuv_size ),
-                   x264_mse( h->stat.i_sqe_global[SLICE_TYPE_B], i_count * i_yuv_size ) * h->stat.i_slice_size[SLICE_TYPE_B] / i_count );
+        static const int slice_order[] = { SLICE_TYPE_I, SLICE_TYPE_SI, SLICE_TYPE_P, SLICE_TYPE_SP, SLICE_TYPE_B };
+        static const char *slice_name[] = { "P", "B", "I", "SP", "SI" };
+        int i_slice = slice_order[i];
+
+        if( h->stat.i_slice_count[i_slice] > 0 )
+        {
+            const int i_count = h->stat.i_slice_count[i_slice];
+            if( h->param.analyse.b_psnr )
+            {
+                x264_log( h, X264_LOG_INFO,
+                          "slice %s:%-4d Avg QP:%5.2f Avg size:%-5lld PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
+                          slice_name[i_slice],
+                          i_count,
+                          (float)h->stat.i_slice_qp[i_slice] / i_count,
+                          h->stat.i_slice_size[i_slice] / i_count,
+                          h->stat.f_psnr_mean_y[i_slice] / i_count, h->stat.f_psnr_mean_u[i_slice] / i_count, h->stat.f_psnr_mean_v[i_slice] / i_count,
+                          h->stat.f_psnr_average[i_slice] / i_count,
+                          x264_psnr( h->stat.i_sqe_global[i_slice], i_count * i_yuv_size ),
+                          x264_mse( h->stat.i_sqe_global[i_slice], i_count * i_yuv_size ) * h->stat.i_slice_size[i_slice] / i_count );
+            }
+            else
+            {
+                x264_log( h, X264_LOG_INFO,
+                          "slice %s:%-4d Avg QP:%5.2f Avg size:%-5lld\n",
+                          slice_name[i_slice],
+                          i_count,
+                          (float)h->stat.i_slice_qp[i_slice] / i_count,
+                          h->stat.i_slice_size[i_slice] / i_count );
+            }
+        }
     }
 
     /* MB types used */
     if( h->stat.i_slice_count[SLICE_TYPE_I] > 0 )
     {
-        const int i_count =  h->stat.i_slice_count[SLICE_TYPE_I];
+        const int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_I];
+        const int i_count = h->stat.i_slice_count[SLICE_TYPE_I];
         x264_log( h, X264_LOG_INFO,
-                  "slice I      Avg I4x4:%-5lld I16x16:%-5lld\n",
-                  h->stat.i_mb_count[SLICE_TYPE_I][I_4x4]  / i_count,
-                  h->stat.i_mb_count[SLICE_TYPE_I][I_16x16]/ i_count );
+                  "slice I      Avg I4x4:%-4lld I16x16:%-4lld\n",
+                  i_mb_count[I_4x4]  / i_count,
+                  i_mb_count[I_16x16]/ i_count );
     }
     if( h->stat.i_slice_count[SLICE_TYPE_P] > 0 )
     {
+        const int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_P];
         const int i_count = h->stat.i_slice_count[SLICE_TYPE_P];
         x264_log( h, X264_LOG_INFO,
-                  "slice P      Avg I4x4:%-5lld I16x16:%-5lld P:%-5lld P8x8:%-5lld PSKIP:%-5lld\n",
-                  h->stat.i_mb_count[SLICE_TYPE_P][I_4x4]  / i_count,
-                  h->stat.i_mb_count[SLICE_TYPE_P][I_16x16]/ i_count,
-                  h->stat.i_mb_count[SLICE_TYPE_P][P_L0] / i_count,
-                  h->stat.i_mb_count[SLICE_TYPE_P][P_8x8] / i_count,
-                  h->stat.i_mb_count[SLICE_TYPE_P][P_SKIP] /i_count );
+                  "slice P      Avg I4x4:%-4lld I16x16:%-4lld P:%-4lld P8x8:%-4lld PSKIP:%-4lld\n",
+                  i_mb_count[I_4x4]  / i_count,
+                  i_mb_count[I_16x16]/ i_count,
+                  i_mb_count[P_L0]   / i_count,
+                  i_mb_count[P_8x8]  / i_count,
+                  i_mb_count[P_SKIP] / i_count );
+    }
+    if( h->stat.i_slice_count[SLICE_TYPE_B] > 0 )
+    {
+        const int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_B];
+        const int i_count = h->stat.i_slice_count[SLICE_TYPE_B];
+        x264_log( h, X264_LOG_INFO,
+                  "slice B      Avg I4x4:%-4lld I16x16:%-4lld P:%-4lld B:%-4lld B8x8:%-4lld DIRECT:%-4lld BSKIP:%-4lld\n",
+                  i_mb_count[I_4x4]    / i_count,
+                  i_mb_count[I_16x16]  / i_count,
+                  (i_mb_count[B_L0_L0] + i_mb_count[B_L1_L1] + i_mb_count[B_L1_L0] + i_mb_count[B_L0_L1]) / i_count,
+                  (i_mb_count[B_BI_BI] + i_mb_count[B_L0_BI] + i_mb_count[B_L1_BI] + i_mb_count[B_BI_L0] + i_mb_count[B_BI_L1]) / i_count,
+                  i_mb_count[B_8x8]    / i_count,
+                  i_mb_count[B_DIRECT] / i_count,
+                  i_mb_count[B_SKIP]   / i_count );
     }
 
     if( h->stat.i_slice_count[SLICE_TYPE_I] + h->stat.i_slice_count[SLICE_TYPE_P] + h->stat.i_slice_count[SLICE_TYPE_B] > 0 )

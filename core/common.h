@@ -343,6 +343,8 @@ struct x264_t
             int i_misc_bits;
             /* MB type counts */
             int i_mb_count[18];
+            int i_mb_count_p;
+            int i_mb_count_skip;
             /* Estimated (SATD) cost as Intra/Predicted frame */
             /* XXX: both omit the cost of MBs coded as P_SKIP */
             int i_intra_cost;
@@ -354,6 +356,7 @@ struct x264_t
         /* per slice info */
         int   i_slice_count[5];
         int64_t i_slice_size[5];
+        int     i_slice_qp[5];
         /* */
         int64_t i_sqe_global[5];
         float   f_psnr_average[5];
