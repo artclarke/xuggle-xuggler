@@ -1478,6 +1478,9 @@ void    x264_encoder_close  ( x264_t *h )
         x264_frame_delete( h->frames.reference[i] );
     }
 
+    /* rc */
+    x264_ratecontrol_delete( h );
+
     /* param */
     if( h->param.rc.psz_stat_out )
         free( h->param.rc.psz_stat_out );
@@ -1485,9 +1488,6 @@ void    x264_encoder_close  ( x264_t *h )
         free( h->param.rc.psz_stat_in );
     if( h->param.rc.psz_rc_eq )
         free( h->param.rc.psz_rc_eq );
-
-    /* rc */
-    x264_ratecontrol_delete( h );
 
     x264_macroblock_cache_end( h );
     x264_free( h->out.p_bitstream );
