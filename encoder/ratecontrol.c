@@ -35,6 +35,10 @@
 
 #define DEBUG_RC 0
 
+#ifdef SYS_MACOSX
+#define exp2f(x) ( (float) exp2( (x) ) )
+#endif
+
 struct x264_ratecontrol_t
 {
     /* constants */
