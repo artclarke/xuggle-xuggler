@@ -333,14 +333,10 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     /* Fix parameters values */
     h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, 15 );
     if( h->param.i_idrframe <= 0 )
-    {
         h->param.i_idrframe = 1;
-    }
     if( h->param.i_iframe <= 0 )
-    {
         h->param.i_iframe = 1;
-    }
-    h->param.i_bframe  = x264_clip3( h->param.i_bframe , 0, X264_BFRAME_MAX );
+    h->param.i_bframe = x264_clip3( h->param.i_bframe, 0, X264_BFRAME_MAX );
 
     h->param.i_deblocking_filter_alphac0 = x264_clip3( h->param.i_deblocking_filter_alphac0, -6, 6 );
     h->param.i_deblocking_filter_beta    = x264_clip3( h->param.i_deblocking_filter_beta, -6, 6 );
@@ -348,6 +344,11 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->param.i_cabac_init_idc = x264_clip3( h->param.i_cabac_init_idc, -1, 2 );
 
     param->analyse.i_subpel_refine = x264_clip3( param->analyse.i_subpel_refine, 0, 5 );
+
+    if( h->param.rc.f_qblur < 0 )
+        h->param.rc.f_qblur = 0;
+    if( h->param.rc.f_complexity_blur < 0 )
+        h->param.rc.f_complexity_blur = 0;
 
     /* VUI */
     if( h->param.vui.i_sar_width > 0 && h->param.vui.i_sar_height > 0 )

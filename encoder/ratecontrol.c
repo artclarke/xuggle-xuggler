@@ -60,8 +60,7 @@ typedef struct
     int i_count;
     int p_count;
     int s_count;
-    int f_code;
-    int b_code;
+    float blurred_complexity;
 } ratecontrol_entry_t;
 
 struct x264_ratecontrol_t
@@ -100,12 +99,13 @@ struct x264_ratecontrol_t
     FILE *p_stat_file_out;
 
     int num_entries;            /* number of ratecontrol_entry_ts */
-    ratecontrol_entry_t *entry;
+    ratecontrol_entry_t *entry; /* FIXME: copy needed data and free this once init is done */
     double last_qscale;
     double last_qscale_for[5];  /* last qscale for a specific pict type, used for max_diff & ipb factor stuff  */
     int last_non_b_pict_type;
     double lmin[5];             /* min qscale by frame type */
     double lmax[5];
+    double lstep;               /* max change (multiply) in qscale per frame */
     double i_cplx_sum[5];       /* estimated total texture bits in intra MBs at qscale=1 */
     double p_cplx_sum[5];
     double mv_bits_sum[5];
@@ -131,12 +131,12 @@ static inline double qscale2qp(double qscale)
 
 static inline double qscale2bits(ratecontrol_entry_t *rce, double qscale)
 {
-    if(qscale<=0.0)
+    if(qscale<0.1)
     {
-        fprintf(stderr, "qscale<=0.0\n");
+        fprintf(stderr, "qscale<0.1\n");
         qscale = 0.1;
     }
-    return (double)(rce->i_tex_bits + rce->p_tex_bits + 1) * rce->qscale / qscale;
+    return (double)(rce->i_tex_bits + rce->p_tex_bits + .1) * rce->qscale / qscale;
 }
 
 static inline double bits2qscale(ratecontrol_entry_t *rce, double bits)
@@ -146,7 +146,7 @@ static inline double bits2qscale(ratecontrol_entry_t *rce, double bits)
         fprintf(stderr, "bits<0.9\n");
         bits = 1.0;
     }
-    return rce->qscale * (double)(rce->i_tex_bits + rce->p_tex_bits + 1) / bits;
+    return rce->qscale * (double)(rce->i_tex_bits + rce->p_tex_bits + .1) / bits;
 }
 
 
@@ -215,6 +215,7 @@ int x264_ratecontrol_new( x264_t *h )
     }
 
 
+    rc->lstep = exp2f(h->param.rc.i_qp_step / 6.0);
     for( i = 0; i < 5; i++ )
     {
         rc->last_qscale_for[i] = qp2qscale(26);
@@ -378,8 +379,7 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
                 qp--;
 #endif
             qp = x264_clip3(qp, rc->gop_qp - 4, rc->gop_qp + 4);
-            qp =
-                x264_clip3(qp, h->param.rc.i_qp_min, h->param.rc.i_qp_max);
+            qp = x264_clip3(qp, h->param.rc.i_qp_min, h->param.rc.i_qp_max);
             rc->gop_qp = qp;
         } else if(rc->frames > 4){
             rc->gop_qp = rc->init_qp;
@@ -616,7 +616,6 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
 {
     x264_ratecontrol_t *rcc= h->rc;
     double bits;
-    //double q, avg_cplx;
     const int pict_type = rce->new_pict_type;
 
     double const_values[]={
@@ -636,6 +635,7 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
         rcc->p_cplx_sum[SLICE_TYPE_P] / rcc->frame_count[SLICE_TYPE_P],
         rcc->p_cplx_sum[SLICE_TYPE_B] / rcc->frame_count[SLICE_TYPE_B],
         (rcc->i_cplx_sum[pict_type] + rcc->p_cplx_sum[pict_type]) / rcc->frame_count[pict_type],
+        rce->blurred_complexity,
         0
     };
     static const char *const_names[]={
@@ -655,6 +655,7 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
         "avgPPTex",
         "avgBPTex",
         "avgTex",
+        "blurTex",
         NULL
     };
     static double (*func1[])(void *, double)={
@@ -669,6 +670,10 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
     };
 
     bits = x264_eval((char*)h->param.rc.psz_rc_eq, const_values, const_names, func1, func1_names, NULL, NULL, rce);
+
+    // avoid NaN's in the rc_eq
+    if(bits != bits || rce->i_tex_bits + rce->p_tex_bits == 0)
+        bits = 0;
 
     bits *= rate_factor;
     if(bits<0.0) bits=0.0;
@@ -700,42 +705,35 @@ static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
     if(rcc->last_non_b_pict_type==pict_type || pict_type!=SLICE_TYPE_I)
     {
         double last_q = rcc->last_qscale_for[pict_type];
-        const double max_qscale = qp2qscale(qscale2qp(last_q) + h->param.rc.i_qp_step);
-        const double min_qscale = qp2qscale(qscale2qp(last_q) - h->param.rc.i_qp_step);
+        double max_qscale = last_q * rcc->lstep;
+        double min_qscale = last_q / rcc->lstep;
 
         if     (q > max_qscale) q = max_qscale;
         else if(q < min_qscale) q = min_qscale;
     }
 
-    rcc->last_qscale_for[pict_type] = q; //Note we can't do that after blurring
+    rcc->last_qscale_for[pict_type] = q;
     if(pict_type!=SLICE_TYPE_B)
         rcc->last_non_b_pict_type = pict_type;
     return q;
 }
 
-static double modify_qscale( x264_t *h, ratecontrol_entry_t *rce, double q )
+// clip a qscale to between lmin and lmax
+static double clip_qscale( x264_t *h, ratecontrol_entry_t *rce, double q )
 {
-    x264_ratecontrol_t *rcc = h->rc;
-    const int pict_type = rce->new_pict_type;
-    double lmin = rcc->lmin[pict_type];
-    double lmax = rcc->lmax[pict_type];
+    double lmin = h->rc->lmin[rce->new_pict_type];
+    double lmax = h->rc->lmax[rce->new_pict_type];
 
-    if(lmin==lmax /* || !h->param.b_qsquish */){
-        if     (q<lmin) q = lmin;
-        else if(q>lmax) q = lmax;
+    if(lmin==lmax){
+        return lmin;
     }else{
         double min2 = log(lmin);
         double max2 = log(lmax);
-
-        q = log(q);
-        q = (q - min2)/(max2-min2) - 0.5;
-        q *= -4.0;
-        q = 1.0/(1.0 + exp(q));
+        q = (log(q) - min2)/(max2-min2) - 0.5;
+        q = 1.0/(1.0 + exp(-4*q));
         q = q*(max2-min2) + min2;
-
-        q = exp(q);
+        return exp(q);
     }
-    return q;
 }
 
 // update qscale for 1 frame based on actual bits used so far
@@ -749,7 +747,6 @@ static float rate_estimate_qscale(x264_t *h, int pict_type)
     ratecontrol_entry_t *rce;
     double lmin = rcc->lmin[pict_type];
     double lmax = rcc->lmax[pict_type];
-    int64_t wanted_bits;
     int64_t total_bits = 8*(h->stat.i_slice_size[SLICE_TYPE_I]
                           + h->stat.i_slice_size[SLICE_TYPE_P]
                           + h->stat.i_slice_size[SLICE_TYPE_B]);
@@ -761,17 +758,12 @@ static float rate_estimate_qscale(x264_t *h, int pict_type)
     if(pict_type!=SLICE_TYPE_I)
         assert(pict_type == rce->new_pict_type);
 
-    wanted_bits = rce->expected_bits;
-
-    diff = total_bits - wanted_bits;
+    diff = (int64_t)total_bits - (int64_t)rce->expected_bits;
     br_compensation = (rcc->buffer_size - diff) / rcc->buffer_size;
     if(br_compensation<=0.0) br_compensation=0.001;
 
     q = rce->new_qscale / br_compensation;
-
-    if     (q<lmin) q=lmin;
-    else if(q>lmax) q=lmax;
-
+    q = x264_clip3f(q, lmin, lmax);
     rcc->last_qscale = q;
     return q;
 }
@@ -783,7 +775,9 @@ static int init_pass2( x264_t *h )
     uint64_t all_available_bits = (uint64_t)(h->param.rc.i_bitrate * 1000 * (double)rcc->num_entries / rcc->fps);
     double rate_factor, step, step_mult;
     double qblur = h->param.rc.f_qblur;
+    double cplxblur = h->param.rc.f_complexity_blur;
     const int filter_size = (int)(qblur*4) | 1;
+    const int cplx_filter_size = (int)(cplxblur*2);
     double expected_bits;
     double *qscale, *blurred_qscale;
     int i;
@@ -806,19 +800,51 @@ static int init_pass2( x264_t *h )
         return -1;
     }
 
+    if(cplxblur<.01)
+        cplxblur = .01;
+    for(i=0; i<rcc->num_entries; i++){
+        ratecontrol_entry_t *rce = &rcc->entry[i];
+        double weight, weight_sum = 0;
+        double cplx_sum = 0;
+        double mask = 1.0;
+        int j;
+        /* weighted average of cplx of future frames */
+        for(j=1; j<cplx_filter_size && j<rcc->num_entries-i; j++){
+            ratecontrol_entry_t *rcj = &rcc->entry[i+j];
+            mask *= (double)(rcc->nmb + rcj->i_count) / rcc->nmb;
+            weight = mask * exp(-j*j/(cplxblur*cplxblur));
+            if(weight < .0001)
+                break;
+            weight_sum += weight;
+            cplx_sum += weight * (rcj->i_tex_bits + rcj->p_tex_bits) * rce->qscale;
+        }
+        /* weighted average of cplx of past frames */
+        mask = 1.0;
+        for(j=0; j<cplx_filter_size && j<=i; j++){
+            ratecontrol_entry_t *rcj = &rcc->entry[i-j];
+            weight = mask * exp(-j*j/(cplxblur*cplxblur));
+            weight_sum += weight;
+            cplx_sum += weight * (rcj->i_tex_bits + rcj->p_tex_bits) * rce->qscale;
+            mask *= (double)(rcc->nmb + rcj->i_count) / rcc->nmb;
+            if(weight < .0001)
+                break;
+        }
+        rce->blurred_complexity = cplx_sum / weight_sum;
+    }
+
     qscale = x264_malloc(sizeof(double)*rcc->num_entries);
     if(filter_size > 1)
         blurred_qscale = x264_malloc(sizeof(double)*rcc->num_entries);
     else
         blurred_qscale = qscale;
 
-    expected_bits = 0;
+    expected_bits = 1;
     for(i=0; i<rcc->num_entries; i++)
         expected_bits += qscale2bits(&rcc->entry[i], get_qscale(h, &rcc->entry[i], 1.0));
     step_mult = all_available_bits / expected_bits;
 
     rate_factor = 0;
-    for(step = 1E4 * step_mult; step > 1E-7 * step_mult; step*=0.5){
+    for(step = 1E4 * step_mult; step > 1E-7 * step_mult; step *= 0.5){
         expected_bits = 0;
         rate_factor += step;
 
@@ -859,7 +885,7 @@ static int init_pass2( x264_t *h )
         for(i=0; i<rcc->num_entries; i++){
             ratecontrol_entry_t *rce = &rcc->entry[i];
             double bits;
-            rce->new_qscale = modify_qscale(h, rce, blurred_qscale[i]);
+            rce->new_qscale = clip_qscale(h, rce, blurred_qscale[i]);
             assert(rce->new_qscale >= 0);
             bits = qscale2bits(rce, rce->new_qscale) + rce->mv_bits + rce->misc_bits;
 
@@ -879,9 +905,8 @@ static int init_pass2( x264_t *h )
     {
         double avgq = 0;
         for(i=0; i<rcc->num_entries; i++)
-            if(rcc->entry[i].new_pict_type == SLICE_TYPE_P)
-                avgq += rcc->entry[i].new_qscale;
-        avgq = qscale2qp(avgq / rcc->frame_count[SLICE_TYPE_P]);
+            avgq += rcc->entry[i].new_qscale;
+        avgq = qscale2qp(avgq / rcc->num_entries);
 
         x264_log(h, X264_LOG_ERROR, "Error: 2pass curve failed to converge\n");
         x264_log(h, X264_LOG_ERROR, "expected bits: %llu, available: %llu, avg QP: %.4lf\n", (uint64_t)expected_bits, all_available_bits, avgq);

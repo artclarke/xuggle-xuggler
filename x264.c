@@ -127,6 +127,8 @@ static void Help( void )
              "      --stats <string>        Filename for 2 pass stats\n"
              "      --rceq <string>         Ratecontrol equation\n"
              "      --qcomp <float>         0.0 => CBR, 1.0 => CQP, 0.6 => default\n"
+             "      --cplxblur <float>      reduce fluctuations in QP (before curve compression)\n"
+             "      --qblur <float>         reduce fluctuations in QP (after curve compression)\n"
              "\n"
 
              "  -A, --analyse <string>      Analyse options:\n"
@@ -180,6 +182,8 @@ static int  Parse( int argc, char **argv,
 #define OPT_QUIET 268
 #define OPT_SUBME 269
 #define OPT_SCENECUT 270
+#define OPT_QBLUR 271
+#define OPT_CPLXBLUR 272
 
         static struct option long_options[] =
         {
@@ -211,6 +215,8 @@ static int  Parse( int argc, char **argv,
             { "stats",   required_argument, NULL, OPT_RCSTATS },
             { "rceq",    required_argument, NULL, OPT_RCEQ },
             { "qcomp",   required_argument, NULL, OPT_QCOMP },
+            { "qblur",   required_argument, NULL, OPT_QBLUR },
+            { "cplxblur",required_argument, NULL, OPT_CPLXBLUR },
             { "no-psnr", no_argument,       NULL, OPT_NOPSNR },
             { "quiet",   no_argument,       NULL, OPT_QUIET },
             {0, 0, 0, 0}
@@ -353,7 +359,12 @@ static int  Parse( int argc, char **argv,
             case OPT_QCOMP:
                 param->rc.f_qcompress = atof(optarg);
                 break;
-
+            case OPT_QBLUR:
+                param->rc.f_qblur = atof(optarg);
+                break;
+            case OPT_CPLXBLUR:
+                param->rc.f_complexity_blur = atof(optarg);
+                break;
             case OPT_NOPSNR:
                 param->analyse.b_psnr = 0;
                 break;

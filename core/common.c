@@ -78,16 +78,17 @@ void    x264_param_default( x264_param_t *param )
     param->rc.i_qp_min = 0;
     param->rc.i_qp_max = 51;
     param->rc.i_qp_step = 4;
-    param->rc.f_ip_factor = 2.0;
-    param->rc.f_pb_factor = 2.0;
+    param->rc.f_ip_factor = 1.4;
+    param->rc.f_pb_factor = 1.4;
 
     param->rc.b_stat_write = 0;
     param->rc.psz_stat_out = "x264_2pass.log";
     param->rc.b_stat_read = 0;
     param->rc.psz_stat_in = "x264_2pass.log";
-    param->rc.psz_rc_eq = "(tex^qComp)*(avgTex^(1-qComp))";
+    param->rc.psz_rc_eq = "tex*blurTex^(qComp-1)";
     param->rc.f_qcompress = 0.6;
     param->rc.f_qblur = 0.5;
+    param->rc.f_complexity_blur = 20;
 
     /* Log */
     param->pf_log = x264_log_default;

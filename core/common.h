@@ -68,20 +68,13 @@ void x264_log( x264_t *h, int i_level, const char *psz_fmt, ... );
 
 static inline int x264_clip3( int v, int i_min, int i_max )
 {
-    if( v < i_min )
-    {
-        return i_min;
-    }
-    else if( v > i_max )
-    {
-        return i_max;
-    }
-    else
-    {
-        return v;
-    }
+    return ( (v < i_min) ? i_min : (v > i_max) ? i_max : v );
 }
 
+static inline float x264_clip3f( float v, float f_min, float f_max )
+{
+    return ( (v < f_min) ? f_min : (v > f_max) ? f_max : v );
+}
 
 /****************************************************************************
  *

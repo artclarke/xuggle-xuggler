@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 0x000b
+#define X264_BUILD 0x000c
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -158,6 +158,7 @@ typedef struct
         char        *psz_rc_eq;     /* 2 pass rate control equation */
         float       f_qcompress;    /* 0.0 => cbr, 1.0 => constant qp */
         float       f_qblur;        /* temporally blur quants */
+        float       f_complexity_blur; /* temporally blur complexity */
     } rc;
 
 } x264_param_t;
