@@ -135,6 +135,8 @@ typedef struct
     {
         unsigned int intra;     /* intra flags */
         unsigned int inter;     /* inter flags */
+
+        int          b_psnr;    /* Do we compute PSNR stats (save a few % of cpu) */
     } analyse;
 
 } x264_param_t;
