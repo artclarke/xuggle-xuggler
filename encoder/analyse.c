@@ -1366,7 +1366,7 @@ void x264_macroblock_analyse( x264_t *h )
                                       analysis.l0.me4x4[i8x8][3].cost;
                             break;
                         default:
-                            fprintf( stderr, "internal error (!8x8 && !4x4)" );
+                            x264_log( h, X264_LOG_ERROR, "internal error (!8x8 && !4x4)\n" );
                             break;
                     }
                 }
@@ -1551,7 +1551,7 @@ void x264_macroblock_analyse( x264_t *h )
                     break;
 
                 default:
-                    fprintf( stderr, "internal error P_L0 and partition=%d\n", h->mb.i_partition );
+                    x264_log( h, X264_LOG_ERROR, "internal error P_L0 and partition=%d\n", h->mb.i_partition );
                     break;
             }
             break;
@@ -1583,7 +1583,7 @@ void x264_macroblock_analyse( x264_t *h )
                         x264_macroblock_cache_mv( h, x+1, y+1, 1, 1, 0, analysis.l0.me4x4[i][3].mv[0], analysis.l0.me4x4[i][3].mv[1] );
                         break;
                     default:
-                        fprintf( stderr, "internal error\n" );
+                        x264_log( h, X264_LOG_ERROR, "internal error\n" );
                         break;
                 }
             }
@@ -1656,7 +1656,7 @@ void x264_macroblock_analyse( x264_t *h )
                 x264_mb_cache_mv_b8x16( h, &analysis, 1, 1 );
                 break;
             default:
-                fprintf( stderr, "internal error (invalid MB type)\n" );
+                x264_log( h, X264_LOG_ERROR, "internal error (invalid MB type)\n" );
                 break;
             }
     }

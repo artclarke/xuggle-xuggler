@@ -279,7 +279,7 @@ static void x264_cabac_mb_type( x264_t *h )
                         idx++;
                     break;
                 default:
-                    fprintf( stderr, "error in B mb type\n" );
+                    x264_log(h, X264_LOG_ERROR, "error in B mb type\n" );
                     return;
             }
 
@@ -294,7 +294,7 @@ static void x264_cabac_mb_type( x264_t *h )
     }
     else
     {
-        fprintf( stderr, "unknown SLICE_TYPE unsupported in x264_macroblock_write_cabac\n" );
+        x264_log(h, X264_LOG_ERROR, "unknown SLICE_TYPE unsupported in x264_macroblock_write_cabac\n" );
     }
 }
 

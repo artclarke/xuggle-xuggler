@@ -226,7 +226,7 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int *l, i
 
             if( i_level_code >= ( 1 << 12 ) || i_level_code < 0 )
             {
-                fprintf( stderr, "OVERFLOW levelcode=%d\n", i_level_code );
+                x264_log(h, X264_LOG_ERROR, "OVERFLOW levelcode=%d\n", i_level_code );
             }
 
             bs_write( s, 12, i_level_code );    /* check overflow ?? */
@@ -360,7 +360,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
             i_mb_i_offset = 23;
             break;
         default:
-            fprintf( stderr, "internal error or slice unsupported\n" );
+            x264_log(h, X264_LOG_ERROR, "internal error or slice unsupported\n" );
             return;
     }
 
@@ -632,7 +632,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
     }
     else
     {
-        fprintf( stderr, "invalid/unhandled mb_type\n" );
+        x264_log(h, X264_LOG_ERROR, "invalid/unhandled mb_type\n" );
         return;
     }
 
