@@ -24,6 +24,8 @@
 #ifndef _ME_H
 #define _ME_H 1
 
+#define COST_MAX (1<<28)
+
 typedef struct
 {
     /* input */

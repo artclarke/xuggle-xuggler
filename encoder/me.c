@@ -83,7 +83,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
      * them yourself */
     bmx = x264_clip3( ( m->mvp[0] + 2 ) >> 2, mv_x_min, mv_x_max );
     bmy = x264_clip3( ( m->mvp[1] + 2 ) >> 2, mv_y_min, mv_y_max );
-    bcost = 1<<30;
+    bcost = COST_MAX;
     COST_MV( bmx, bmy );
     /* I don't know why this helps */
     bcost -= p_cost_mvx[ bmx<<2 ] + p_cost_mvy[ bmy<<2 ];
@@ -239,7 +239,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     {
 	for( i = step>1 ? hpel_iters : qpel_iters; i > 0; i-- )
         {
-            int bcost = 1<<30;
+            int bcost = COST_MAX;
             int bdir = 0;
             COST_MV( bmx, bmy - step, 0 );
             COST_MV( bmx, bmy + step, 1 );

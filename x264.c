@@ -100,7 +100,6 @@ int main( int argc, char **argv )
 #endif
 
     x264_param_default( &param );
-    param.b_cabac = 0;
 
     /* Parse command line */
     if( Parse( argc, argv, &param, &hin, &fout, &b_decompress ) < 0 )
@@ -138,7 +137,7 @@ static void Help( x264_param_t *defaults )
              "      --b-bias <integer>      Influences how often B-frames are used [%d]\n"
              "      --b-pyramid             Keep some B-frames as references\n"
              "\n"
-             "  -c, --cabac                 Enable CABAC\n"
+             "      --no-cabac              Disable CABAC\n"
              "  -r, --ref <integer>         Number of reference frames [%d]\n"
              "  -n, --nf                    Disable loop filter\n"
              "  -f, --filter <alpha:beta>   Loop filter AplhaCO and Beta parameters [%d]\n"
@@ -263,6 +262,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_BPYRAMID 279
 #define OPT_CHROMA_QP 280
 #define OPT_NO_CHROMA_ME 281
+#define OPT_NO_CABAC 282
 
         static struct option long_options[] =
         {
@@ -277,7 +277,7 @@ static int  Parse( int argc, char **argv,
             { "scenecut",required_argument, NULL, OPT_SCENECUT },
             { "nf",      no_argument,       NULL, 'n' },
             { "filter",  required_argument, NULL, 'f' },
-            { "cabac",   no_argument,       NULL, 'c' },
+            { "no-cabac",no_argument,       NULL, OPT_NO_CABAC },
             { "qp",      required_argument, NULL, 'q' },
             { "qpmin",   required_argument, NULL, OPT_QPMIN },
             { "qpmax",   required_argument, NULL, OPT_QPMAX },
@@ -383,8 +383,8 @@ static int  Parse( int argc, char **argv,
             case 'r':
                 param->i_frame_reference = atoi( optarg );
                 break;
-            case 'c':
-                param->b_cabac = 1;
+            case OPT_NO_CABAC:
+                param->b_cabac = 0;
                 break;
             case 'x':
                 *pb_decompress = 1;
