@@ -971,68 +971,16 @@ int     x264_encoder_encode( x264_t *h,
 
     if( h->frames.current[0] == NULL )
     {
+        int bframes = 0;
         /* 2: Select frame types */
-        x264_frame_t *frm;
-        int bframes;
-
         if( h->frames.next[0] == NULL )
             return 0;
 
-        if( h->param.rc.b_stat_read )
-        {
-            /* Use the frame types from the first pass */
-            for( i = 0; h->frames.next[i] != NULL; i++ )
-                h->frames.next[i]->i_type =
-                    x264_ratecontrol_slice_type( h, h->frames.next[i]->i_frame );
-        }
-        else if( h->param.i_bframe && h->param.b_bframe_adaptive )
-            x264_voptype_analyse( h );
-
-        for( bframes = 0;; bframes++ )
-        {
-            frm = h->frames.next[bframes];
-
-            /* Limit GOP size */
-            if( frm->i_frame - h->frames.i_last_idr >= h->param.i_keyint_max )
-            {
-                if( frm->i_type == X264_TYPE_AUTO )
-                    frm->i_type = X264_TYPE_IDR;
-                if( frm->i_type != X264_TYPE_IDR )
-                    x264_log( h, X264_LOG_ERROR, "specified frame type (%d) is not compatible with keyframe interval\n", frm->i_type );
-            }
-            if( frm->i_type == X264_TYPE_IDR )
-            {
-                h->i_poc = 0;
-                h->i_frame_num = 0;
-
-                /* Close GOP */
-                if( bframes > 0 )
-                {
-                    bframes--;
-                    h->frames.next[bframes]->i_type = X264_TYPE_P;
-                }
-            }
-
-            if( bframes == h->param.i_bframe
-                || h->frames.next[bframes+1] == NULL )
-            {
-                if( frm->i_type == X264_TYPE_B )
-                    x264_log( h, X264_LOG_ERROR, "specified frame type is not compatible with max B-frames\n" );
-                if(    frm->i_type == X264_TYPE_AUTO
-                    || frm->i_type == X264_TYPE_B )
-                    frm->i_type = X264_TYPE_P;
-            }
-
-            frm->i_poc = h->i_poc;
-            h->i_poc += 2;
-
-            if( frm->i_type != X264_TYPE_AUTO && frm->i_type != X264_TYPE_B )
-                break;
-
-            frm->i_type = X264_TYPE_B;
-        }
+        x264_slicetype_decide( h );
 
         /* 3: move some B-frames and 1 non-B to encode queue */
+        while( h->frames.next[bframes]->i_type == X264_TYPE_B )
+            bframes++;
         x264_frame_put( h->frames.current, h->frames.next[bframes] );
         while( bframes-- )
             x264_frame_put( h->frames.current, x264_frame_get( h->frames.next ) );

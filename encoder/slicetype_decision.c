@@ -1,5 +1,5 @@
 /*****************************************************************************
- * voptype_decision.c: h264 encoder library
+ * slicetype_decision.c: h264 encoder library
  *****************************************************************************
  * Copyright (C) 2005 Loren Merritt
  *
@@ -51,7 +51,7 @@ static void x264_mb_analyse_load_costs_lowres( x264_t *h, x264_mb_analysis_t *a 
 }
 
 
-int x264_voptype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
+int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
                           x264_frame_t **frames, int p0, int p1, int b )
 {
     x264_frame_t *fref0 = frames[p0];
@@ -185,7 +185,7 @@ int x264_voptype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
 #undef TRY_BIDIR
 #undef SAVE_MVS
 
-int x264_voptype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
+int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
                              x264_frame_t **frames, int p0, int p1, int b )
 {
     int i_score = 0;
@@ -208,7 +208,7 @@ int x264_voptype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
 
     for( h->mb.i_mb_y = 1; h->mb.i_mb_y < h->sps->i_mb_height - 1; h->mb.i_mb_y++ )
         for( h->mb.i_mb_x = 1; h->mb.i_mb_x < h->sps->i_mb_width - 1; h->mb.i_mb_x++ )
-            i_score += x264_voptype_mb_cost( h, a, frames, p0, p1, b );
+            i_score += x264_slicetype_mb_cost( h, a, frames, p0, p1, b );
 
     if( b != p1 )
         i_score = i_score * 100 / (120 + h->param.i_bframe_bias);
@@ -219,7 +219,7 @@ int x264_voptype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
 //           (b<p1?'B':'P'), b-p0, p1-b, i_score, frames[b]->i_intra_mbs[b-p0] );
 }
 
-void x264_voptype_analyse( x264_t *h )
+void x264_slicetype_analyse( x264_t *h )
 {
     x264_mb_analysis_t a;
     x264_frame_t *frames[X264_BFRAME_MAX+3] = { NULL, };
@@ -270,7 +270,7 @@ no_b_frames:
         for( p1 = 1; frames[p1]; p1++ )
             for( p0 = X264_MAX(0, p1 - h->param.i_bframe - 1); p0 < p1; p0++ )
                 for( b = p0+1; b <= p1; b++ )
-                    x264_voptype_frame_cost( h, &a, frames, p0, p1, b );
+                    x264_slicetype_frame_cost( h, &a, frames, p0, p1, b );
         p1--;
 
         paths[0].score = 0;
@@ -308,13 +308,13 @@ no_b_frames:
         int i_mb_count = (h->sps->i_mb_width - 2) * (h->sps->i_mb_height - 2);
         int cost1p0, cost2p0, cost1b1, cost2p1;
 
-        cost2p1 = x264_voptype_frame_cost( h, &a, frames, 0, 2, 2 );
+        cost2p1 = x264_slicetype_frame_cost( h, &a, frames, 0, 2, 2 );
         if( frames[2]->i_intra_mbs[2] > i_mb_count / 2 )
             goto no_b_frames;
 
-        cost2p0 = x264_voptype_frame_cost( h, &a, frames, 1, 2, 2 );
-        cost1p0 = x264_voptype_frame_cost( h, &a, frames, 0, 1, 1 );
-        cost1b1 = x264_voptype_frame_cost( h, &a, frames, 0, 2, 1 );
+        cost2p0 = x264_slicetype_frame_cost( h, &a, frames, 1, 2, 2 );
+        cost1p0 = x264_slicetype_frame_cost( h, &a, frames, 0, 1, 1 );
+        cost1b1 = x264_slicetype_frame_cost( h, &a, frames, 0, 2, 1 );
 //      fprintf( stderr, "PP: %d + %d <=> BP: %d + %d \n",
 //               cost1p0, cost2p0, cost1b1, cost2p1 );
         if( cost1p0 + cost2p0 < cost1b1 + cost2p1 )
@@ -328,7 +328,7 @@ no_b_frames:
         for( j = 2; j <= X264_MIN( h->param.i_bframe, num_frames-1 ); j++ )
         {
             int pthresh = X264_MAX(INTER_THRESH - P_SENS_BIAS * (j-1), INTER_THRESH/10);
-            int pcost = x264_voptype_frame_cost( h, &a, frames, 0, j+1, j+1 );
+            int pcost = x264_slicetype_frame_cost( h, &a, frames, 0, j+1, j+1 );
 //          fprintf( stderr, "frm%d+%d: %d <=> %d, I:%d/%d \n",
 //                   frames[0]->i_frame, j-1, pthresh, pcost/i_mb_count,
 //                   frames[j+1]->i_intra_mbs[j+1], i_mb_count );
@@ -342,4 +342,68 @@ no_b_frames:
         }
     }
 #endif
+}
+
+void x264_slicetype_decide( x264_t *h )
+{
+    x264_frame_t *frm;
+    int bframes;
+    int i;
+
+    if( h->frames.next[0] == NULL )
+        return;
+
+    if( h->param.rc.b_stat_read )
+    {
+        /* Use the frame types from the first pass */
+        for( i = 0; h->frames.next[i] != NULL; i++ )
+            h->frames.next[i]->i_type =
+                x264_ratecontrol_slice_type( h, h->frames.next[i]->i_frame );
+    }
+    else if( h->param.i_bframe && h->param.b_bframe_adaptive )
+        x264_slicetype_analyse( h );
+
+    for( bframes = 0;; bframes++ )
+    {
+        frm = h->frames.next[bframes];
+
+        /* Limit GOP size */
+        if( frm->i_frame - h->frames.i_last_idr >= h->param.i_keyint_max )
+        {
+            if( frm->i_type == X264_TYPE_AUTO )
+                frm->i_type = X264_TYPE_IDR;
+            if( frm->i_type != X264_TYPE_IDR )
+                x264_log( h, X264_LOG_ERROR, "specified frame type (%d) is not compatible with keyframe interval\n", frm->i_type );
+        }
+        if( frm->i_type == X264_TYPE_IDR )
+        {
+            h->i_poc = 0;
+            h->i_frame_num = 0;
+
+            /* Close GOP */
+            if( bframes > 0 )
+            {
+                bframes--;
+                h->frames.next[bframes]->i_type = X264_TYPE_P;
+            }
+        }
+
+        if( bframes == h->param.i_bframe
+            || h->frames.next[bframes+1] == NULL )
+        {
+            if( frm->i_type == X264_TYPE_B )
+                x264_log( h, X264_LOG_ERROR, "specified frame type is not compatible with max B-frames\n" );
+            if(    frm->i_type == X264_TYPE_AUTO
+                || frm->i_type == X264_TYPE_B )
+                frm->i_type = X264_TYPE_P;
+        }
+
+        frm->i_poc = h->i_poc;
+        h->i_poc += 2;
+
+        if( frm->i_type != X264_TYPE_AUTO && frm->i_type != X264_TYPE_B )
+            break;
+
+        frm->i_type = X264_TYPE_B;
+    }
 }

@@ -1797,5 +1797,5 @@ void x264_macroblock_analyse( x264_t *h )
     }
 }
 
-#include "voptype_decision.c"
+#include "slicetype_decision.c"
 
