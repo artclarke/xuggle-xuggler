@@ -240,7 +240,7 @@ struct x264_t
     {
         DECLARE_ALIGNED( int, luma16x16_dc[16], 16 );
         DECLARE_ALIGNED( int, chroma_dc[2][4], 16 );
-        struct
+        union
         {
             DECLARE_ALIGNED( int, residual_ac[15], 16 );
             DECLARE_ALIGNED( int, luma4x4[16], 16 );
