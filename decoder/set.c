@@ -26,7 +26,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "../core/common.h"
+#include "../common/common.h"
 #include "set.h"
 
 /* return -1 if invalid, else the id */

@@ -35,7 +35,7 @@
 #include <fcntl.h>  /* _O_BINARY */
 #endif
 
-#include "../core/bs.h"
+#include "../common/bs.h"
 
 #define DATA_MAX 3000000
 uint8_t data[DATA_MAX];

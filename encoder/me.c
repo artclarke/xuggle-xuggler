@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../core/common.h"
+#include "../common/common.h"
 #include "me.h"
 
 /* presets selected from good points on the speed-vs-quality curve of several test videos

@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "./core" /I "./encode" /I "./decode" /I "../../extras" /I "../.." /D "NDEBUG" /D "_LIB" /D "WIN32" /D "_MBCS" /D "__X264__" /D "HAVE_MMXEXT" /D "ARCH_X86" /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "./common" /I "./encode" /I "./decode" /I "../../extras" /I "../.." /D "NDEBUG" /D "_LIB" /D "WIN32" /D "_MBCS" /D "__X264__" /D "HAVE_MMXEXT" /D "ARCH_X86" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x804 /d "NDEBUG"
 # ADD RSC /l 0x804 /d "NDEBUG"
@@ -65,7 +65,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "./core" /I "./encode" /I "./decode" /I "../../extras" /I "../.." /D "_DEBUG" /D "_LIB" /D "WIN32" /D "_MBCS" /D "__X264__" /D "HAVE_MMXEXT" /D "ARCH_X86" /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "./common" /I "./encode" /I "./decode" /I "../../extras" /I "../.." /D "_DEBUG" /D "_LIB" /D "WIN32" /D "_MBCS" /D "__X264__" /D "HAVE_MMXEXT" /D "ARCH_X86" /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x804 /d "_DEBUG"
 # ADD RSC /l 0x804 /d "_DEBUG"
@@ -253,59 +253,59 @@ SOURCE=..\..\encoder\set.c
 # PROP Default_Filter ".h"
 # Begin Source File
 
-SOURCE=..\..\core\bs.h
+SOURCE=..\..\common\bs.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\cabac.h
+SOURCE=..\..\common\cabac.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\clip1.h
+SOURCE=..\..\common\clip1.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\common.h
+SOURCE=..\..\common\common.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\cpu.h
+SOURCE=..\..\common\cpu.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\csp.h
+SOURCE=..\..\common\csp.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\dct.h
+SOURCE=..\..\common\dct.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\frame.h
+SOURCE=..\..\common\frame.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\macroblock.h
+SOURCE=..\..\common\macroblock.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\mc.h
+SOURCE=..\..\common\mc.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\pixel.h
+SOURCE=..\..\common\pixel.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\predict.h
+SOURCE=..\..\common\predict.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\set.h
+SOURCE=..\..\common\set.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\vlc.h
+SOURCE=..\..\common\vlc.h
 # End Source File
 # End Group
 # Begin Group "I386"
@@ -313,13 +313,13 @@ SOURCE=..\..\core\vlc.h
 # PROP Default_Filter "*.h,*.c,*.asm"
 # Begin Source File
 
-SOURCE=..\..\core\i386\cpu.asm
+SOURCE=..\..\common\i386\cpu.asm
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Release
-InputPath=..\..\core\i386\cpu.asm
+InputPath=..\..\common\i386\cpu.asm
 InputName=cpu
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -331,7 +331,7 @@ InputName=cpu
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Debug
-InputPath=..\..\core\i386\cpu.asm
+InputPath=..\..\common\i386\cpu.asm
 InputName=cpu
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -344,17 +344,17 @@ InputName=cpu
 # End Source File
 # Begin Source File
 
-SOURCE="..\..\core\i386\dct-c.c"
+SOURCE="..\..\common\i386\dct-c.c"
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\i386\dct.asm
+SOURCE=..\..\common\i386\dct.asm
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Release
-InputPath=..\..\core\i386\dct.asm
+InputPath=..\..\common\i386\dct.asm
 InputName=dct
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -366,7 +366,7 @@ InputName=dct
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Debug
-InputPath=..\..\core\i386\dct.asm
+InputPath=..\..\common\i386\dct.asm
 InputName=dct
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -379,11 +379,11 @@ InputName=dct
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\i386\dct.h
+SOURCE=..\..\common\i386\dct.h
 # End Source File
 # Begin Source File
 
-SOURCE="..\..\core\i386\mc-c.c"
+SOURCE="..\..\common\i386\mc-c.c"
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
@@ -396,13 +396,13 @@ SOURCE="..\..\core\i386\mc-c.c"
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\i386\mc.asm
+SOURCE=..\..\common\i386\mc.asm
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Release
-InputPath=..\..\core\i386\mc.asm
+InputPath=..\..\common\i386\mc.asm
 InputName=mc
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -414,7 +414,7 @@ InputName=mc
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Debug
-InputPath=..\..\core\i386\mc.asm
+InputPath=..\..\common\i386\mc.asm
 InputName=mc
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -427,13 +427,13 @@ InputName=mc
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\i386\pixel.asm
+SOURCE=..\..\common\i386\pixel.asm
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Release
-InputPath=..\..\core\i386\pixel.asm
+InputPath=..\..\common\i386\pixel.asm
 InputName=pixel
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -445,7 +445,7 @@ InputName=pixel
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Debug
-InputPath=..\..\core\i386\pixel.asm
+InputPath=..\..\common\i386\pixel.asm
 InputName=pixel
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -458,12 +458,12 @@ InputName=pixel
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\i386\pixel.h
+SOURCE=..\..\common\i386\pixel.h
 # End Source File
 # End Group
 # Begin Source File
 
-SOURCE=..\..\core\cabac.c
+SOURCE=..\..\common\cabac.c
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
@@ -478,7 +478,7 @@ SOURCE=..\..\core\cabac.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\common.c
+SOURCE=..\..\common\common.c
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
@@ -493,7 +493,7 @@ SOURCE=..\..\core\common.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\cpu.c
+SOURCE=..\..\common\cpu.c
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
@@ -508,11 +508,11 @@ SOURCE=..\..\core\cpu.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\csp.c
+SOURCE=..\..\common\csp.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\dct.c
+SOURCE=..\..\common\dct.c
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
@@ -527,7 +527,7 @@ SOURCE=..\..\core\dct.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\frame.c
+SOURCE=..\..\common\frame.c
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
@@ -542,7 +542,7 @@ SOURCE=..\..\core\frame.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\macroblock.c
+SOURCE=..\..\common\macroblock.c
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
@@ -557,7 +557,7 @@ SOURCE=..\..\core\macroblock.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\mc.c
+SOURCE=..\..\common\mc.c
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
@@ -572,7 +572,7 @@ SOURCE=..\..\core\mc.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\mdate.c
+SOURCE=..\..\common\mdate.c
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
@@ -587,7 +587,7 @@ SOURCE=..\..\core\mdate.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\pixel.c
+SOURCE=..\..\common\pixel.c
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
@@ -602,7 +602,7 @@ SOURCE=..\..\core\pixel.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\predict.c
+SOURCE=..\..\common\predict.c
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 

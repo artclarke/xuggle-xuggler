@@ -3,14 +3,14 @@
 #include <string.h>
 
 #
-#include "core/common.h"
+#include "common/common.h"
 #ifdef HAVE_MMXEXT
-#include "core/i386/pixel.h"
-#include "core/i386/dct.h"
-#include "core/i386/mc.h"
+#include "common/i386/pixel.h"
+#include "common/i386/dct.h"
+#include "common/i386/mc.h"
 #endif
 #ifdef ARCH_PPC
-#include "core/ppc/pixel.h"
+#include "common/ppc/pixel.h"
 #endif
 
 /* buf1, buf2: initialised to randome data and shouldn't write into them */

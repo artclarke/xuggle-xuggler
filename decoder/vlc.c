@@ -25,8 +25,8 @@
 #include <stdio.h>
 #include <inttypes.h>
 
-#include "../core/common.h"
-#include "../core/vlc.h"
+#include "../common/common.h"
+#include "../common/vlc.h"
 #include "vlc.h"
 
 

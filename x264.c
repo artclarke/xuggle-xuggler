@@ -36,7 +36,7 @@
 #include <fcntl.h>  /* _O_BINARY */
 #endif
 
-#include "core/common.h"
+#include "common/common.h"
 #include "x264.h"
 
 #define DATA_MAX 3000000

@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../core/common.h"
+#include "../common/common.h"
 #include "macroblock.h"
 
 static const uint8_t block_idx_x[16] =

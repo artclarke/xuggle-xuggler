@@ -32,8 +32,8 @@
 #include <stdarg.h>
 
 #include "../x264.h"
-#include "../core/bs.h"
-#include "../core/set.h"
+#include "../common/bs.h"
+#include "../common/set.h"
 
 void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 {

@@ -5,20 +5,20 @@
 # Uncomment this for Mac OS X
 #SYS_MACOSX=1
 
-SRCS_COMMON= core/mc.c core/predict.c core/pixel.c core/macroblock.c \
-             core/frame.c core/dct.c core/cpu.c core/cabac.c \
-             core/common.c core/mdate.c core/csp.c \
+SRCS_COMMON= common/mc.c common/predict.c common/pixel.c common/macroblock.c \
+             common/frame.c common/dct.c common/cpu.c common/cabac.c \
+             common/common.c common/mdate.c common/csp.c \
              encoder/analyse.c encoder/me.c encoder/ratecontrol.c \
              encoder/set.c encoder/macroblock.c encoder/cabac.c \
              encoder/cavlc.c encoder/encoder.c encoder/eval.c x264.c
 
 ifdef SYS_MACOSX
 PFLAGS=-DARCH_PPC -DSYS_MACOSX -faltivec
-SRCS= $(SRCS_COMMON) core/ppc/mc.c core/ppc/pixel.c
+SRCS= $(SRCS_COMMON) common/ppc/mc.c common/ppc/pixel.c
 else
 PFLAGS=-DARCH_X86 -DHAVE_MMXEXT -DHAVE_SSE2 -DHAVE_MALLOC_H
-SRCS= $(SRCS_COMMON) core/i386/mc-c.c core/i386/dct-c.c core/i386/predict.c
-ASMSRC= core/i386/dct.asm core/i386/cpu.asm core/i386/pixel.asm  core/i386/mc.asm
+SRCS= $(SRCS_COMMON) common/i386/mc-c.c common/i386/dct-c.c common/i386/predict.c
+ASMSRC= common/i386/dct.asm common/i386/cpu.asm common/i386/pixel.asm common/i386/mc.asm
 OBJASM= $(ASMSRC:%.asm=%.o)
 endif
 
