@@ -13,6 +13,8 @@ DIR_CUR=$(shell pwd)
 # Path to src
 DIR_SRC=$(DIR_CUR)/../..
 
+DIR_INSTALL="/usr/local"
+
 # Sources
 SRC_C= common/mc.c common/predict.c common/pixel.c common/macroblock.c \
        common/frame.c common/dct.c common/cpu.c common/cabac.c \
@@ -118,3 +120,7 @@ clean:
 	@echo " Cl: Object files and target lib"
 	@$(RM) $(DIR_BUILD)
 
+install: x264.exe
+	install x264.h $(DIR_INSTALL)/include/
+	install libx264.a $(DIR_INSTALL)/lib/
+	install x264.exe $(DIR_INSTALL)/bin/

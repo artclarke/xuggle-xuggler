@@ -106,6 +106,12 @@ clean:
 
 distclean: clean
 
+DIR_INSTALL="/usr/local"
+install: x264
+	install x264.h $(DIR_INSTALL)/include/
+	install libx264.a $(DIR_INSTALL)/lib/
+	install x264 $(DIR_INSTALL)/bin/
+
 etags: TAGS
 
 TAGS:
