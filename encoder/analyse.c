@@ -847,8 +847,14 @@ void x264_macroblock_analyse( x264_t *h )
     x264_mb_analysis_t analysis;
     int i;
 
-    /* qp TODO */
+    /* qp TODO implement a nice RC */
     h->mb.qp[h->mb.i_mb_xy] = x264_clip3( h->pps->i_pic_init_qp + h->sh.i_qp_delta + 0, 0, 51 );
+
+    /* FIXME check if it's 12 */
+    if( h->mb.qp[h->mb.i_mb_xy] - h->mb.i_last_qp < -12 )
+        h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp - 12;
+    else if( h->mb.qp[h->mb.i_mb_xy] - h->mb.i_last_qp > 12 )
+        h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp + 12;
 
     /* init analysis */
     x264_mb_analyse_init( h, &analysis, h->mb.qp[h->mb.i_mb_xy] );
@@ -871,11 +877,10 @@ void x264_macroblock_analyse( x264_t *h )
         int i_cost;
 
         /* Fast P_SKIP detection */
-        if( analysis.i_qp == h->mb.i_last_qp &&
-            ( ( (i_neighbour&MB_LEFT) && h->mb.type[h->mb.i_mb_xy - 1] == P_SKIP ) ||
-              ( (i_neighbour&MB_TOP) && h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride] == P_SKIP ) ||
-              ( ((i_neighbour&(MB_TOP|MB_LEFT)) == (MB_TOP|MB_LEFT) ) && h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride-1 ] == P_SKIP ) ||
-              ( (i_neighbour&MB_TOPRIGHT) && h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride+1 ] == P_SKIP ) ) )
+        if( ( (i_neighbour&MB_LEFT) && h->mb.type[h->mb.i_mb_xy - 1] == P_SKIP ) ||
+            ( (i_neighbour&MB_TOP) && h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride] == P_SKIP ) ||
+            ( ((i_neighbour&(MB_TOP|MB_LEFT)) == (MB_TOP|MB_LEFT) ) && h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride-1 ] == P_SKIP ) ||
+            ( (i_neighbour&MB_TOPRIGHT) && h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride+1 ] == P_SKIP ) )
         {
             b_skip = x264_macroblock_probe_pskip( h );
         }

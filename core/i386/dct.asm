@@ -277,13 +277,16 @@ x264_add4x4_idct_mmxext:
     ; Load dct coeffs
     mov     eax, [esp+12]   ; dct
     movq    mm0, [eax+ 0]
-    movq    mm1, [eax+ 8]
-    movq    mm2, [eax+16]
-    movq    mm3, [eax+24]
+    movq    mm4, [eax+ 8]
+    movq    mm3, [eax+16]
+    movq    mm1, [eax+24]
     
     mov     eax, [esp+ 4]   ; p_dst
     mov     ecx, [esp+ 8]   ; i_dst
     lea     edx, [ecx+ecx*2]
+
+    ; out:mm0, mm1, mm2, mm3
+    MMX_TRANSPOSE       mm0, mm4, mm3, mm1, mm2
 
     MMX_SUMSUB_BA       mm2, mm0                        ; mm2=s02  mm0=d02
     MMX_SUMSUBD2_AB     mm1, mm3, mm5, mm4              ; mm1=s13  mm4=d13 ( well 1 + 3>>1 and 1>>1 + 3)
@@ -298,16 +301,13 @@ x264_add4x4_idct_mmxext:
 
     MMX_SUMSUB_BADC     mm2, mm3, mm4, mm1              ; mm2=s02+s13  mm3=s02-s13  mm4=d02+d13  mm1=d02-d13
 
-    ; in: mm2, mm4, mm1, mm3  out: mm2, mm3, mm0, mm1
-    MMX_TRANSPOSE       mm2, mm4, mm1, mm3, mm0
-
     MMX_ZERO            mm7
     movq                mm6, [x264_mmx_32]
     
-    MMX_STORE_DIFF_4P   mm2, mm4, mm6, mm7, [eax]
-    MMX_STORE_DIFF_4P   mm3, mm4, mm6, mm7, [eax+ecx]
-    MMX_STORE_DIFF_4P   mm0, mm4, mm6, mm7, [eax+ecx*2]
-    MMX_STORE_DIFF_4P   mm1, mm4, mm6, mm7, [eax+edx]
+    MMX_STORE_DIFF_4P   mm2, mm0, mm6, mm7, [eax]
+    MMX_STORE_DIFF_4P   mm4, mm0, mm6, mm7, [eax+ecx]
+    MMX_STORE_DIFF_4P   mm1, mm0, mm6, mm7, [eax+ecx*2]
+    MMX_STORE_DIFF_4P   mm3, mm0, mm6, mm7, [eax+edx]
 
     ret
 

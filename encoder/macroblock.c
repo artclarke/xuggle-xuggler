@@ -724,12 +724,19 @@ void x264_macroblock_encode( x264_t *h )
     /* store cbp */
     h->mb.cbp[h->mb.i_mb_xy] = (i_cbp_dc << 8) | (h->mb.i_cbp_chroma << 4) | h->mb.i_cbp_luma;
 
+    if( h->mb.i_type != I_16x16 && h->mb.i_cbp_luma == 0 && h->mb.i_cbp_chroma == 0 )
+    {
+        /* It won'y change anything at the decoder side but it is needed else the
+         * decoder will fail to read the next QP */
+        h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp;
+    }
+
+
     /* Check for P_SKIP
      * XXX: in the me perhaps we should take x264_mb_predict_mv_pskip into account
      *      (if multiple mv give same result)*/
     if( h->mb.i_type == P_L0 && h->mb.i_partition == D_16x16 &&
-        h->mb.i_cbp_luma == 0x00 && h->mb.i_cbp_chroma== 0x00 &&
-        h->mb.qp[h->mb.i_mb_xy] == h->mb.i_last_qp )
+        h->mb.i_cbp_luma == 0x00 && h->mb.i_cbp_chroma== 0x00 )
     {
         if( h->mb.cache.ref[0][x264_scan8[0]] == 0 )
         {
@@ -740,6 +747,7 @@ void x264_macroblock_encode( x264_t *h )
                 h->mb.cache.mv[0][x264_scan8[0]][1] == mvp[1] )
             {
                 h->mb.type[h->mb.i_mb_xy] = h->mb.i_type = P_SKIP;
+                h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp;  /* Needed */
             }
         }
     }

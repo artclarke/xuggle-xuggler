@@ -892,6 +892,9 @@ void x264_macroblock_cache_save( x264_t *h )
 
     int i;
 
+    if( IS_SKIP( h->mb.i_type ) )
+        h->mb.qp[i_mb_xy] = h->mb.i_last_qp;
+
     h->mb.i_last_dqp = h->mb.qp[i_mb_xy] - h->mb.i_last_qp;
     h->mb.i_last_qp = h->mb.qp[i_mb_xy];
 

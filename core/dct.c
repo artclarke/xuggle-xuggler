@@ -197,29 +197,30 @@ static void add4x4_idct( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
 
     for( i = 0; i < 4; i++ )
     {
-        const int s02 = dct[0][i]      + dct[2][i];
-        const int d02 = dct[0][i]      - dct[2][i];
-        const int s13 = dct[1][i]      + (dct[3][i]>>1);
-        const int d13 = (dct[1][i]>>1) -  dct[3][i];
+        const int s02 =  dct[i][0]     +  dct[i][2];
+        const int d02 =  dct[i][0]     -  dct[i][2];
+        const int s13 =  dct[i][1]     + (dct[i][3]>>1);
+        const int d13 = (dct[i][1]>>1) -  dct[i][3];
 
-        tmp[0][i] = s02 + s13;
-        tmp[1][i] = d02 + d13;
-        tmp[2][i] = d02 - d13;
-        tmp[3][i] = s02 - s13;
+        tmp[i][0] = s02 + s13;
+        tmp[i][1] = d02 + d13;
+        tmp[i][2] = d02 - d13;
+        tmp[i][3] = s02 - s13;
     }
 
     for( i = 0; i < 4; i++ )
     {
-        const int s02 =  tmp[i][0]     +  tmp[i][2];
-        const int d02 =  tmp[i][0]     -  tmp[i][2];
-        const int s13 =  tmp[i][1]     + (tmp[i][3]>>1);
-        const int d13 = (tmp[i][1]>>1) -  tmp[i][3];
+        const int s02 =  tmp[0][i]     +  tmp[2][i];
+        const int d02 =  tmp[0][i]     -  tmp[2][i];
+        const int s13 =  tmp[1][i]     + (tmp[3][i]>>1);
+        const int d13 = (tmp[1][i]>>1) -   tmp[3][i];
 
-        d[i][0] = ( s02 + s13 + 32 ) >> 6;
-        d[i][1] = ( d02 + d13 + 32 ) >> 6;
-        d[i][2] = ( d02 - d13 + 32 ) >> 6;
-        d[i][3] = ( s02 - s13 + 32 ) >> 6;
+        d[0][i] = ( s02 + s13 + 32 ) >> 6;
+        d[1][i] = ( d02 + d13 + 32 ) >> 6;
+        d[2][i] = ( d02 - d13 + 32 ) >> 6;
+        d[3][i] = ( s02 - s13 + 32 ) >> 6;
     }
+
 
     for( y = 0; y < 4; y++ )
     {

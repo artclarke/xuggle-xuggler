@@ -37,7 +37,7 @@
 #include "macroblock.h"
 
 //#define DEBUG_MB_TYPE
-//#define DEBUG_DUMP_FRAME 1
+#define DEBUG_DUMP_FRAME 1
 
 static int64_t i_mtime_encode_frame = 0;
 
