@@ -1,0 +1,67 @@
+# $Id: Jamfile,v 1.1 2004/06/03 19:27:06 fenrir Exp $
+#
+
+# Compilers
+CC = gcc ;
+AS = nasm ;
+
+# Flags
+# To profile: -fprofile-arcs
+# Once done : -fbranch-probabilities
+CCFLAGS = -g -Wall -W ;
+
+# Globals defines
+DEFINES = DEBUG __X264__ ;
+
+# Optims
+OPTIM = -O3 -funroll-loops ;
+
+# Headers rep
+HDRS = . core core/i366 decoder encoder ;
+
+SOURCES_C = core/mc.c core/predict.c core/pixel.c core/macroblock.c
+            core/frame.c core/dct.c core/cpu.c core/cabac.c
+            core/common.c core/mdate.c core/csp.c
+            encoder/analyse.c encoder/me.c encoder/ratecontrol.c
+            encoder/set.c encoder/macroblock.c encoder/cabac.c encoder/cavlc.c
+            encoder/encoder.c ;
+
+SOURCES_X86 = core/i386/cpu.asm ;
+SOURCES_MMX = core/i386/mc-c.c core/i386/dct-c.c core/i386/predict.c core/i386/dct.asm core/i386/pixel.asm core/i386/mc.asm ;
+
+SOURCES_ALTIVEC = core/ppc/mc.c core/ppc/pixel.c ;
+
+# libx264
+SOURCES_X264 = $(SOURCES_C) ;
+if $(OS) = LINUX
+{
+    DEFINES      += ARCH_X86 HAVE_MMXEXT HAVE_MALLOC_H ;
+    SOURCES_X264 += $(SOURCES_MMX) ;
+    SOURCES_X264 += $(SOURCES_X86) ;
+    ASFLAGS = -f elf ;
+
+    # Don't ask why
+    NOARUPDATE = false ;
+}
+if $(OS) = MACOSX
+{
+    DEFINES      += HAVE_ALTIVEC ;
+    SOURCES_X264 += $(SOURCES_ALTIVEC) ;
+    CCFLAGS      += -faltivec ;
+#    OPTIM        += -falign-loops=16 ;
+}
+Library libx264 : $(SOURCES_X264) ;
+
+# x264
+LINKLIBS += -lm ;
+LinkLibraries x264 : libx264.a ;
+Main x264 : x264.c ;
+
+# checkasm
+LinkLibraries checkasm : libx264.a ;
+Main checkasm : testing/checkasm.c ;
+
+# XXX Do not remove *.o files
+actions quietly updated piecemeal together RmTemps
+{
+}

@@ -1,0 +1,111 @@
+/****************************************************************************
+ * DCT/IDCT functions
+ ****************************************************************************/
+/* be carefull that "dct" could be equal to "luma" (ie dct_4x4(dct,dct) )*/
+static void dct_2x2_dc( int16_t dct[2][2], int16_t chroma[2][2] )
+{
+    int tmp[2][2];
+
+    tmp[0][0] = chroma[0][0] + chroma[0][1];
+    tmp[1][0] = chroma[0][0] - chroma[0][1];
+    tmp[0][1] = chroma[1][0] + chroma[1][1];
+    tmp[1][1] = chroma[1][0] - chroma[1][1];
+
+    dct[0][0] = tmp[0][0] + tmp[0][1];
+    dct[0][1] = tmp[1][0] + tmp[1][1];
+    dct[1][0] = tmp[0][0] - tmp[0][1];
+    dct[1][1] = tmp[1][0] - tmp[1][1];
+}
+
+static void idct_2x2_dc( int16_t dct[2][2], int16_t chroma[2][2] )
+{
+    dct_2x2_dc( chroma, dct );
+}
+
+static void dct_4x4_dc( int16_t dct[4][4], int16_t luma[4][4] )
+{
+    int16_t tmp[4][4];
+    int i;
+
+    for( i = 0; i < 4; i++ )
+    {
+        tmp[0][i] = luma[i][0] + luma[i][1] + luma[i][2] + luma[i][3];
+        tmp[1][i] = luma[i][0] + luma[i][1] - luma[i][2] - luma[i][3];
+        tmp[2][i] = luma[i][0] - luma[i][1] - luma[i][2] + luma[i][3];
+        tmp[3][i] = luma[i][0] - luma[i][1] + luma[i][2] - luma[i][3];
+    }
+
+    for( i = 0; i < 4; i++ )
+    {
+        dct[0][i] = ( tmp[i][0] + tmp[i][1] + tmp[i][2] + tmp[i][3] + 1) / 2;
+        dct[1][i] = ( tmp[i][0] + tmp[i][1] - tmp[i][2] - tmp[i][3] + 1) / 2;
+        dct[2][i] = ( tmp[i][0] - tmp[i][1] - tmp[i][2] + tmp[i][3] + 1) / 2;
+        dct[3][i] = ( tmp[i][0] - tmp[i][1] + tmp[i][2] - tmp[i][3] + 1) / 2;
+    }
+}
+
+static void dct_4x4( int16_t dct[4][4], int16_t luma[4][4] )
+{
+    int16_t tmp[4][4];
+    int i;
+
+    for( i = 0; i < 4; i++ )
+    {
+        tmp[0][i] =   luma[i][0] +   luma[i][1] +   luma[i][2] +   luma[i][3];
+        tmp[1][i] = 2*luma[i][0] +   luma[i][1] -   luma[i][2] - 2*luma[i][3];
+        tmp[2][i] =   luma[i][0] -   luma[i][1] -   luma[i][2] +   luma[i][3];
+        tmp[3][i] =   luma[i][0] - 2*luma[i][1] + 2*luma[i][2] -   luma[i][3];
+    }
+
+    for( i = 0; i < 4; i++ )
+    {
+        dct[0][i] =   tmp[i][0] +   tmp[i][1] +   tmp[i][2] +   tmp[i][3];
+        dct[1][i] = 2*tmp[i][0] +   tmp[i][1] -   tmp[i][2] - 2*tmp[i][3];
+        dct[2][i] =   tmp[i][0] -   tmp[i][1] -   tmp[i][2] +   tmp[i][3];
+        dct[3][i] =   tmp[i][0] - 2*tmp[i][1] + 2*tmp[i][2] -   tmp[i][3];
+    }
+}
+
+static void idct_4x4( int16_t dct[4][4], int16_t luma[4][4] )
+{
+    int16_t tmp[4][4];
+    int i;
+
+    for( i = 0; i < 4; i++ )
+    {
+        tmp[0][i] = dct[0][i]   +  dct[1][i]     + dct[2][i]   + (dct[3][i]>>1);
+        tmp[1][i] = dct[0][i]   + (dct[1][i]>>1) - dct[2][i]   -  dct[3][i];
+        tmp[2][i] = dct[0][i]   - (dct[1][i]>>1) - dct[2][i]   +  dct[3][i];
+        tmp[3][i] = dct[0][i]   -  dct[1][i]     + dct[2][i]   - (dct[3][i]>>1);
+    }
+
+    for( i = 0; i < 4; i++ )
+    {
+        /* XXX XXX use >> 6 and not / 64 -> doesn't give the same result :((((((((( */
+        luma[i][0] = ( tmp[i][0] +  tmp[i][1]     + tmp[i][2] + (tmp[i][3]>>1) + 32 ) >> 6;
+        luma[i][1] = ( tmp[i][0] + (tmp[i][1]>>1) - tmp[i][2] -  tmp[i][3]     + 32 ) >> 6;
+        luma[i][2] = ( tmp[i][0] - (tmp[i][1]>>1) - tmp[i][2] +  tmp[i][3]     + 32 ) >> 6;
+        luma[i][3] = ( tmp[i][0] -  tmp[i][1]     + tmp[i][2] - (tmp[i][3]>>1) + 32 ) >> 6;
+    }
+}
+static void idct_4x4_dc( int16_t dct[4][4], int16_t luma[4][4] )
+{
+    int16_t tmp[4][4];
+    int i;
+
+    for( i = 0; i < 4; i++ )
+    {
+        tmp[0][i] = dct[0][i] + dct[1][i] + dct[2][i] + dct[3][i];
+        tmp[1][i] = dct[0][i] + dct[1][i] - dct[2][i] - dct[3][i];
+        tmp[2][i] = dct[0][i] - dct[1][i] - dct[2][i] + dct[3][i];
+        tmp[3][i] = dct[0][i] - dct[1][i] + dct[2][i] - dct[3][i];
+    }
+
+    for( i = 0; i < 4; i++ )
+    {
+        luma[i][0] = ( tmp[i][0] + tmp[i][1] + tmp[i][2] + tmp[i][3] ) ;
+        luma[i][1] = ( tmp[i][0] + tmp[i][1] - tmp[i][2] - tmp[i][3] ) ;
+        luma[i][2] = ( tmp[i][0] - tmp[i][1] - tmp[i][2] + tmp[i][3] ) ;
+        luma[i][3] = ( tmp[i][0] - tmp[i][1] + tmp[i][2] - tmp[i][3] ) ;
+    }
+}

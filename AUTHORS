@@ -1,0 +1,35 @@
+# $Id: AUTHORS,v 1.1 2004/06/03 19:27:06 fenrir Exp $
+# 
+# The format of this file was inspired by the Linux kernel CREDITS file.
+# Authors are listed alphabetically.
+# 
+# The fields are: name (N), email (E), web-address (W), CVS account login (C),
+# PGP key ID and fingerprint (P), description (D), and snail-mail address (S).
+
+N: Laurent Aimar
+E: fenrir AT via.ecp DOT fr
+C: fenrir
+D: Intial import, maintainer
+D: i386 asm (mmx/mmx2)
+S: France
+
+N: Eric Petit
+E: titer AT videolan DOT org
+C: titer
+D: Altivec
+D: BeOS and MacOS X ports.
+S: France
+
+N: Min Chen
+E: chenm001 AT 163 DOT com
+C: chenm001
+D: Win32/VC 6.0 port
+D: gcc asm to nasm conversion
+D: vfw interface
+S: China
+
+N: Justin Clay
+E: justin_clay AT hotmail DOT com
+C: wheatgerm
+D: Inital work on vfw
+S: Nova Scotia, Canada

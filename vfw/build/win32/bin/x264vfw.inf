@@ -1,0 +1,91 @@
+; x264 Codec install
+
+[Version]
+Signature = "$CHICAGO$"
+Class = MEDIA
+
+[SourceDisksNames]
+1="x264 Codec Install Disk",, 0001
+
+[SourceDisksFiles]
+x264vfw.dll=1
+x264vfw.inf=1
+
+[Installable.Drivers]
+x264 = 1:x264vfw.dll, "vidc.X264", "x264 H.264 Video Codec" , , ,
+
+[DefaultInstall]
+CopyFiles=H264.Copy.Inf,H264.Copy
+Updateinis = H264.Updateini
+DelReg = H264.DelConfig
+addreg = H264.AddReg,H264.AddReg9x,H264.DoReg
+MediaType = SOFTWARE
+
+[DefaultInstall.ntx86]
+CopyFiles=H264.Copy.Inf,H264.Copy
+DelReg = H264.DelConfig
+addreg = H264.AddReg,H264.AddRegNT,H264.DoReg
+MediaType = SOFTWARE
+
+[Remove_x264]
+AddReg = H264.Unregister
+DelReg = H264.DelReg
+DelFiles = H264.Copy,H264.Copy.Inf
+UpdateInis = H264.DelIni
+
+[H264.Copy]
+x264vfw.dll
+
+[H264.Copy.Inf]
+x264vfw.inf
+
+[H264.UpdateIni]
+system.ini, drivers32,,"vidc.X264=x264vfw.dll"
+
+[H264.DelIni]
+system.ini, drivers32,"vidc.X264=x264vfw.dll",
+
+[H264.AddReg]
+
+[H264.AddReg9x]
+HKLM,SYSTEM\CurrentControlSet\Control\MediaResources\icm\vidc.X264,Description,,%x264%
+HKLM,SYSTEM\CurrentControlSet\Control\MediaResources\icm\vidc.X264,Driver,,x264vfw.dll
+HKLM,SYSTEM\CurrentControlSet\Control\MediaResources\icm\vidc.X264,FriendlyName,,"x264"
+
+HKLM,%UnInstallPath%,DisplayName,,%UninstallDispName%
+HKLM,%UnInstallPath%,UninstallString,,"%10%\rundll.exe setupx.dll,InstallHinfSection Remove_x264 132 %17%\%InfFile%"
+
+[H264.AddRegNT]
+HKLM,SOFTWARE\Microsoft\Windows NT\CurrentVersion\drivers.desc,x264vfw.dll,,%x264%
+HKLM,SOFTWARE\Microsoft\Windows NT\CurrentVersion\drivers32,vidc.X264,,x264vfw.dll
+
+HKLM,%UnInstallPath%,DisplayName,,%UninstallDispName%
+HKLM,%UnInstallPath%,UninstallString,,"%11%\rundll32.exe setupapi,InstallHinfSection Remove_x264 132 %17%\%InfFile%"
+
+[H264.DoReg]
+;HKLM,Software\Microsoft\Windows\CurrentVersion\RunOnce\Setup,"Registering x264 Direct Show ;Decoder...",,"%11%\regsvr32.exe /s %11%\x264.ax"
+
+[H264.DelReg]
+HKLM,SYSTEM\CurrentControlSet\Control\MediaResources\icm\vidc.X264
+
+HKLM,SOFTWARE\Microsoft\Windows NT\CurrentVersion\drivers.desc,x264vfw.dll,,""
+HKLM,%UnInstallPath%
+
+[H264.Unregister]
+;HKLM,Software\Microsoft\Windows\CurrentVersion\RunOnce\Setup,"Unregistering x264 Direct Show ;Decoder...",,"%11%\regsvr32.exe /s /u %11%\x264.ax"
+
+[H264.DelConfig]
+HKCU,Software\GNU\x264
+
+[DestinationDirs]
+DefaultDestDir = 11	; LDID_SYS
+H264.Copy = 11
+H264.Copy.Inf = 17
+
+[Strings]
+x264="x264 H.264 Video Codec"
+InfFile="x264vfw.inf"
+UninstallDispName="x264 H.264/AVC CODEC"
+UnInstallPath="Software\Microsoft\Windows\CurrentVersion\Uninstall\x264"
+MediaClassName="Media Devices"
+mfgname="Fenrir, Justin, CM"
