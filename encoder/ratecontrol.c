@@ -144,7 +144,7 @@ static inline double bits2qscale(ratecontrol_entry_t *rce, double bits)
 {
     if(bits<0.9)
     {
-        fprintf(stderr, "bits<0.9\n");
+//      fprintf(stderr, "bits<0.9\n");
         bits = 1.0;
     }
     return rce->qscale * (double)(rce->i_tex_bits + rce->p_tex_bits + .1) / bits;
@@ -710,9 +710,12 @@ static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
     const double last_p_q    = rcc->last_qscale_for[SLICE_TYPE_P];
     const double last_non_b_q= rcc->last_qscale_for[rcc->last_non_b_pict_type];
     if( pict_type == SLICE_TYPE_I && h->param.rc.f_ip_factor < 0 )
-        q = last_p_q     / -h->param.rc.f_ip_factor;
-    else if(pict_type==SLICE_TYPE_B && h->param.rc.f_pb_factor < 0)
-        q = last_non_b_q * -h->param.rc.f_pb_factor;
+        q = last_p_q / fabs( h->param.rc.f_ip_factor );
+    else if( pict_type == SLICE_TYPE_B
+             && ( h->param.rc.f_pb_factor < 0 || rce->i_tex_bits + rce->p_tex_bits == 0 ) )
+        q = last_non_b_q * fabs( h->param.rc.f_pb_factor );
+    else if( pict_type == SLICE_TYPE_P && rce->i_tex_bits + rce->p_tex_bits == 0 )
+        q = last_p_q;
 
     /* last qscale / qdiff stuff */
     if(rcc->last_non_b_pict_type==pict_type || pict_type!=SLICE_TYPE_I)

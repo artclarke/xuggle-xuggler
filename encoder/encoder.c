@@ -561,6 +561,25 @@ static x264_frame_t *x264_frame_get( x264_frame_t *list[X264_BFRAME_MAX+1] )
     return frame;
 }
 
+/* Sort queued frames into input order */
+static void x264_frame_sort( x264_frame_t *list[X264_BFRAME_MAX+1] )
+{
+    int i, b_ok;
+    do {
+        b_ok = 1;
+        for( i = 0; i < X264_BFRAME_MAX && list[i+1]; i++ )
+        {
+            if( list[i]->i_frame > list[i+1]->i_frame )
+            {
+                x264_frame_t *tmp = list[i+1];
+                list[i+1] = list[i];
+                list[i] = tmp;
+                b_ok = 0;
+            }
+        }
+    } while( !b_ok );
+}
+
 static inline void x264_reference_build_list( x264_t *h, int i_poc )
 {
     int i;
@@ -896,118 +915,99 @@ int     x264_encoder_encode( x264_t *h,
     TIMER_START( i_mtime_encode_frame );
     if( pic != NULL )
     {
-        /* Copy the picture to a frame, init the frame and move it to a buffer */
-        /* 1: get a frame */
+        /* 1: Copy the picture to a frame and move it to a buffer */
         x264_frame_t *fenc = x264_frame_get( h->frames.unused );
 
         x264_frame_copy_picture( h, fenc, pic );
 
         fenc->i_frame = h->frames.i_input++;
 
-        /* 2: get its type */
+        x264_frame_put( h->frames.next, fenc );
+
+        if( h->frames.i_input <= h->param.i_bframe )
+        {
+            /* Nothing yet to encode */
+            /* waiting for filling bframe buffer */
+            pic->i_type = X264_TYPE_AUTO;
+            return 0;
+        }
+    }
+
+    if( h->frames.current[0] == NULL )
+    {
+        /* 2: Select frame types */
+        x264_frame_t *frm;
+        int bframes;
+
+        if( h->frames.next[0] == NULL )
+            return 0;
+
         if( h->param.rc.b_stat_read )
         {
-            /* XXX: trusts that the first pass used compatible B and IDR frequencies */
-            fenc->i_type = x264_ratecontrol_slice_type( h, fenc->i_frame );
-            if( fenc->i_type == X264_TYPE_I && h->frames.next[0] == NULL &&
-                h->frames.i_last_idr + 1 >= h->param.i_idrframe )
+            /* Use the frame types from the first pass */
+            for( i = 0; h->frames.next[i] != NULL; i++ )
+                h->frames.next[i]->i_type =
+                    x264_ratecontrol_slice_type( h, h->frames.next[i]->i_frame );
+        }
+
+        for( bframes = 0;; bframes++ )
+        {
+            frm = h->frames.next[bframes];
+
+            if( h->frames.i_last_i + bframes + 1 >= h->param.i_iframe
+                && frm->i_type != X264_TYPE_IDR )
             {
-                fenc->i_type = X264_TYPE_IDR;
-                h->i_poc       = 0;
+                fprintf(stderr,"exceeded I-int: i_last_i(%d) + bframes(%d) + 1 >= i_iframe(%d) \n",
+                        h->frames.i_last_i, bframes, h->param.i_iframe);
+                if(    frm->i_type == X264_TYPE_P
+                    || frm->i_type == X264_TYPE_B )
+                    x264_log( h, X264_LOG_ERROR, "specified frame type is not compatible with keyframe interval\n" );
+
+                frm->i_type = X264_TYPE_I;
+            }
+
+            if( frm->i_type == X264_TYPE_IDR
+                || ( frm->i_type == X264_TYPE_I &&
+                   ( h->frames.i_last_idr + 1 >= h->param.i_idrframe
+                     && (bframes == 0 || !h->param.rc.b_stat_read ))))
+            {
+                fprintf(stderr,"exceeded IDR-int: i_last_idr(%d) + 1 >= i_idrframe(%d) \n",
+                        h->frames.i_last_idr, h->param.i_idrframe);;
+                frm->i_type = X264_TYPE_IDR;
+                if( bframes > 0 )
+                {
+                    bframes--;
+                    h->frames.next[bframes]->i_type = X264_TYPE_P;
+                }
+
+                h->i_poc = 0;
                 h->i_frame_num = 0;
             }
-        }
-        else if( ( h->frames.i_last_i + 1 >= h->param.i_iframe && h->frames.i_last_idr + 1 >= h->param.i_idrframe ) ||
-            pic->i_type == X264_TYPE_IDR )
-        {
-            /* IDR */
-            fenc->i_type = X264_TYPE_IDR;
 
-            h->i_poc       = 0;
-            h->i_frame_num = 0;
-
-            /* Last schedule B frames need to be encoded as P */
-            if( h->frames.next[0] != NULL )
+            if( bframes == h->param.i_bframe
+                || h->frames.next[bframes+1] == NULL )
             {
-                x264_frame_t *tmp;
-                int i = 0;
-
-                while( h->frames.next[i+1] != NULL ) i++;
-                h->frames.next[i]->i_type = X264_TYPE_P;
-
-                /* remove this P from next */
-                tmp = h->frames.next[i];
-                h->frames.next[i] = NULL;
-
-                /* move this P + Bs to current */
-                x264_frame_put( h->frames.current, tmp );
-                while( ( tmp = x264_frame_get( h->frames.next ) ) )
-                {
-                    x264_frame_put( h->frames.current, tmp );
-                }
+                if( frm->i_type == X264_TYPE_B )
+                    x264_log( h, X264_LOG_ERROR, "specified frame type is not compatible with max B-frames\n" );
+                if(    frm->i_type == X264_TYPE_AUTO
+                    || frm->i_type == X264_TYPE_B )
+                    frm->i_type = X264_TYPE_P;
             }
-        }
-        else if( h->param.i_bframe > 0 )
-        {
-            if( h->frames.i_last_i  + 1 >= h->param.i_iframe )
-                fenc->i_type = X264_TYPE_I;
-            else if( h->frames.next[h->param.i_bframe-1] != NULL )
-                fenc->i_type = X264_TYPE_P;
-            else if( pic->i_type == X264_TYPE_AUTO )
-                fenc->i_type = X264_TYPE_B;
-            else
-                fenc->i_type = pic->i_type;
-        }
-        else
-        {
-            if( pic->i_type == X264_TYPE_AUTO )
-            {
-                if( h->frames.i_last_i + 1 >= h->param.i_iframe )
-                    fenc->i_type = X264_TYPE_I;
-                else
-                    fenc->i_type = X264_TYPE_P;
-            }
-            else
-            {
-                fenc->i_type = pic->i_type;
-            }
+
+            frm->i_poc = h->i_poc;
+            h->i_poc += 2;
+
+            if( frm->i_type != X264_TYPE_AUTO && frm->i_type != X264_TYPE_B )
+                break;
+
+            frm->i_type = X264_TYPE_B;
         }
 
-        fenc->i_poc = h->i_poc;
-
-        /* 3: Update current/next */
-        if( fenc->i_type == X264_TYPE_B )
-        {
-            x264_frame_put( h->frames.next, fenc );
-        }
-        else
-        {
-            x264_frame_put( h->frames.current, fenc );
-            while( ( fenc = x264_frame_get( h->frames.next ) ) )
-            {
-                x264_frame_put( h->frames.current, fenc );
-            }
-        }
-        h->i_poc += 2;
-    }
-    else    /* No more picture, begin encoding of last frames */
-    {
-        /* Move all next frames to current and mark the last one as a P */
-        x264_frame_t *tmp;
-        int i = -1;
-        while( h->frames.next[i+1] != NULL ) i++;
-        if( i >= 0 )
-        {
-            h->frames.next[i]->i_type = X264_TYPE_P;
-            tmp = h->frames.next[i];
-            h->frames.next[i] = NULL;
-
-            x264_frame_put( h->frames.current, tmp );
-            while( ( tmp = x264_frame_get( h->frames.next ) ) )
-            {
-                x264_frame_put( h->frames.current, tmp );
-            }
-        }
+        /* 3: move some B-frames and 1 non-B to encode queue */
+        x264_frame_put( h->frames.current, h->frames.next[bframes] );
+        while( bframes-- )
+            x264_frame_put( h->frames.current, x264_frame_get( h->frames.next ) );
+        x264_frame_get( h->frames.next );
     }
     TIMER_STOP( i_mtime_encode_frame );
 
@@ -1021,7 +1021,6 @@ int     x264_encoder_encode( x264_t *h,
         pic->i_type = X264_TYPE_AUTO;
         return 0;
     }
-    x264_frame_put( h->frames.unused, h->fenc );  /* Safe to do it now, we don't use frames.unused for the rest */
 
 do_encode:
 
@@ -1122,7 +1121,7 @@ do_encode:
     x264_slice_write( h, i_nal_type, i_nal_ref_idc );
 
     /* XXX: this scene cut won't work with B frame (it may never create IDR -> bad) */
-    if( i_slice_type != SLICE_TYPE_I && !h->param.rc.b_stat_read 
+    if( i_slice_type == SLICE_TYPE_P && !h->param.rc.b_stat_read 
         && h->param.i_scenecut_threshold >= 0 )
     {
         int i_bias;
@@ -1146,8 +1145,7 @@ do_encode:
         i_bias = X264_MIN( i_bias, 100 );
 
         /* Bad P will be reencoded as I */
-        if( i_slice_type == SLICE_TYPE_P &&
-            i_mb_s < i_mb &&
+        if( i_mb_s < i_mb &&
             100 * i_inter_cost >= (100 - i_bias) * i_intra_cost )
             /* 100 * i_mb_i >= (100 - i_bias) * i_mb ) */
             /*
@@ -1159,7 +1157,7 @@ do_encode:
         {
 
             x264_log( h, X264_LOG_DEBUG, "scene cut at %d size=%d last I:%d last P:%d Intra:%lld Inter:%lld Ratio:%lld Bias=%d (I:%d P:%d Skip:%d)\n",
-                      h->i_frame - 1,
+                      h->fenc->i_frame,
                       h->out.nal[h->out.i_nal-1].i_payload,
                       h->i_last_intra_size, h->i_last_inter_size,
                       i_intra_cost, i_inter_cost,
@@ -1169,20 +1167,41 @@ do_encode:
             /* Restore frame num */
             h->i_frame_num--;
 
-            /* Do IDR if needed and if we can (won't work with B frames) */
-            if( h->frames.current[0] == NULL &&
-                h->frames.i_last_idr + 1 >= h->param.i_idrframe )
+            /* Do IDR if needed */
+            if( h->frames.i_last_idr + 1 >= h->param.i_idrframe )
             {
-                /* Reset */
-                h->i_poc       = 0;
-                h->i_frame_num = 0;
+                /* If using B-frames, make sure GOP is closed */
+                for( i = 0; h->frames.current[i] && h->frames.current[i]->i_type == X264_TYPE_B; i++ );
+                if( i > 0 )
+                {
+                    /* We don't know which frame is the scene cut, so we can't
+                     * assign an I-frame yet. Instead, change the previous
+                     * B-frame to P, and rearrange coding order. */
+                    x264_frame_t *tmp = h->frames.current[i-1];
+                    h->frames.current[i-1] = h->fenc;
+                    h->fenc = tmp;
+                    h->fenc->i_type = X264_TYPE_P;
+                }
+                else
+                {
+                    x264_frame_t *tmp;
 
-                /* Reinit field of fenc */
-                h->fenc->i_type = X264_TYPE_IDR;
-                h->fenc->i_poc = h->i_poc;
+                    /* Reset */
+                    h->i_poc       = 0;
+                    h->i_frame_num = 0;
 
-                /* Next Poc */
-                h->i_poc += 2;
+                    /* Reinit field of fenc */
+                    h->fenc->i_type = X264_TYPE_IDR;
+                    h->fenc->i_poc = h->i_poc;
+
+                    /* Next Poc */
+                    h->i_poc += 2;
+
+                    /* Put enqueued frames back in the pool */
+                    while( (tmp = x264_frame_get( h->frames.current ) ) != NULL )
+                        x264_frame_put( h->frames.next, tmp );
+                    x264_frame_sort( h->frames.next );
+                }
             }
             else
             {
@@ -1232,6 +1251,8 @@ do_encode:
 
     /* update rc */
     x264_ratecontrol_end( h, h->out.nal[h->out.i_nal-1].i_payload * 8 );
+
+    x264_frame_put( h->frames.unused, h->fenc );
 
     TIMER_STOP( i_mtime_encode_frame );
 
