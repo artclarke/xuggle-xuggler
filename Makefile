@@ -3,6 +3,7 @@
 #  SRCS: core/ppc/mc.c core/ppc/pixel.c 
 #  Defines: HAVE_PPC
 #  CFLAGS: -faltivec
+# For FreeBSD, remove -DHAVE_MALLOC_H and add -DSYS_FREEBSD
 #
 PFLAGS=-DARCH_X86 -DHAVE_MMXEXT -DHAVE_SSE2
 CC=gcc

@@ -35,7 +35,7 @@ SOURCES_ALTIVEC = core/ppc/mc.c core/ppc/pixel.c ;
 SOURCES_X264 = $(SOURCES_C) ;
 if $(OSPLAT) = X86
 {
-    DEFINES      += HAVE_MALLOC_H HAVE_MMXEXT HAVE_SSE2 ;
+    DEFINES      += HAVE_MMXEXT HAVE_SSE2 ;
     SOURCES_X264 += $(SOURCES_MMX) ;
     SOURCES_X264 += $(SOURCES_X86) ;
     ASFLAGS       = -f elf ;
@@ -43,6 +43,10 @@ if $(OSPLAT) = X86
     if $(OS) != BEOS
     {
         DEFINES += HAVE_STDINT_H ;
+    }
+    if $(OS) != FREEBSD
+    {
+        DEFINES += HAVE_MALLOC_H ;
     }
 
     # Don't ask

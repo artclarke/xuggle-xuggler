@@ -40,6 +40,9 @@
 #ifdef SYS_MACOSX
 #define exp2f(x) ( (float) exp2( (x) ) )
 #endif
+#ifdef SYS_FREEBSD
+#define exp2f(x) powf( 2, (x) )
+#endif
 
 
 typedef struct
