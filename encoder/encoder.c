@@ -298,8 +298,14 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     x264_t *h = x264_malloc( sizeof( x264_t ) );
     int i;
 
-    /* */
+    /* Create a copy of param */
     memcpy( &h->param, param, sizeof( x264_param_t ) );
+    if( h->param.rc.psz_stat_out )
+        h->param.rc.psz_stat_out = strdup( h->param.rc.psz_stat_out );
+    if( h->param.rc.psz_stat_in )
+        h->param.rc.psz_stat_in = strdup( h->param.rc.psz_stat_in );
+    if( h->param.rc.psz_rc_eq )
+        h->param.rc.psz_rc_eq = strdup( h->param.rc.psz_rc_eq );
 
     /* Check parameters validity */
     if( param->i_width <= 0  || param->i_height <= 0 )
@@ -417,6 +423,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     }
     h->frames.i_last_idr = h->param.i_idrframe;
     h->frames.i_last_i   = h->param.i_iframe;
+    h->frames.i_input    = 0;
 
     h->i_ref0 = 0;
     h->i_ref1 = 0;
@@ -896,8 +903,22 @@ int     x264_encoder_encode( x264_t *h,
 
         x264_frame_copy_picture( h, fenc, pic );
 
+        fenc->i_frame = h->frames.i_input++;
+
         /* 2: get its type */
-        if( ( h->frames.i_last_i + 1 >= h->param.i_iframe && h->frames.i_last_idr + 1 >= h->param.i_idrframe ) ||
+        if( h->param.rc.b_stat_read )
+        {
+            /* XXX: trusts that the first pass used compatible B and IDR frequencies */
+            fenc->i_type = x264_ratecontrol_slice_type( h, fenc->i_frame );
+            if( fenc->i_type == X264_TYPE_I && h->frames.next[0] == NULL &&
+                h->frames.i_last_idr + 1 >= h->param.i_idrframe )
+            {
+                fenc->i_type = X264_TYPE_IDR;
+                h->i_poc       = 0;
+                h->i_frame_num = 0;
+            }
+        }
+        else if( ( h->frames.i_last_i + 1 >= h->param.i_iframe && h->frames.i_last_idr + 1 >= h->param.i_idrframe ) ||
             pic->i_type == X264_TYPE_IDR )
         {
             /* IDR */
@@ -1101,7 +1122,7 @@ do_encode:
     x264_slice_write( h, i_nal_type, i_nal_ref_idc );
 
     /* XXX: this scene cut won't work with B frame (it may never create IDR -> bad) */
-    if( i_slice_type != SLICE_TYPE_I)
+    if( i_slice_type != SLICE_TYPE_I && !h->param.rc.b_stat_read )
     {
         int i_bias;
 
@@ -1127,7 +1148,7 @@ do_encode:
                       h->i_frame - 1,
                       h->out.nal[h->out.i_nal-1].i_payload,
                       h->i_last_intra_size, h->i_last_inter_size,
-                      i_mb_i, i_mb, 100 * i_mb_i / i_mb, i_bias,
+                      i_mb_i, i_mb - i_mb_i, 100 * i_mb_i / i_mb, i_bias,
                       h->stat.frame.i_mb_count[P_SKIP],
                       h->stat.frame.i_mb_count[P_L0] );
 
@@ -1415,6 +1436,14 @@ void    x264_encoder_close  ( x264_t *h )
     {
         x264_frame_delete( h->frames.reference[i] );
     }
+
+    /* param */
+    if( h->param.rc.psz_stat_out )
+        free( h->param.rc.psz_stat_out );
+    if( h->param.rc.psz_stat_in )
+        free( h->param.rc.psz_stat_in );
+    if( h->param.rc.psz_rc_eq )
+        free( h->param.rc.psz_rc_eq );
 
     /* rc */
     x264_ratecontrol_delete( h );

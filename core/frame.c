@@ -68,6 +68,8 @@ x264_frame_t *x264_frame_new( x264_t *h )
     frame->i_poc = -1;
     frame->i_type = X264_TYPE_AUTO;
     frame->i_qpplus1 = 0;
+    frame->i_pts = -1;
+    frame->i_frame = -1;
 
     return frame;
 }

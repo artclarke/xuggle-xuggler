@@ -31,6 +31,7 @@ typedef struct
     int     i_type;
     int     i_qpplus1;
     int64_t i_pts;
+    int     i_frame;    /* Presentation frame number */
 
     /* YUV buffer */
     int     i_plane;

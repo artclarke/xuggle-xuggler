@@ -224,6 +224,8 @@ struct x264_t
 
         int i_last_idr; /* How many I non IDR frames from last IDR */
         int i_last_i;   /* How many P/B frames from last I */
+
+        int i_input;    /* Number of input frames already accepted */
     } frames;
 
     /* current frame being encoded */

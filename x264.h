@@ -24,7 +24,7 @@
 #ifndef _X264_H
 #define _X264_H 1
 
-#define X264_BUILD 0x0009
+#define X264_BUILD 0x000a
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -112,18 +112,6 @@ typedef struct
     int         b_cabac;
     int         i_cabac_init_idc;
 
-    int         i_qp_constant;  /* 1-51 */
-    int         i_qp_min;       /* min allowed QP value */
-    int         i_qp_max;       /* max allowed QP value */
-    int         i_qp_step;      /* max QP step between frames */
-
-    int         b_cbr;          /* constant bitrate */
-    int         i_bitrate;
-    int         i_rc_buffer_size;
-    int         i_rc_init_buffer;
-    int         i_rc_sens;      /* rate control sensitivity */
-    float       f_ip_factor;
-    float       f_pb_factor;
 
     /* Log */
     void        (*pf_log)( void *, int i_level, const char *psz, va_list );
@@ -138,6 +126,34 @@ typedef struct
 
         int          b_psnr;    /* Do we compute PSNR stats (save a few % of cpu) */
     } analyse;
+
+    /* Rate control parameters */
+    struct
+    {
+        int         i_qp_constant;  /* 1-51 */
+        int         i_qp_min;       /* min allowed QP value */
+        int         i_qp_max;       /* max allowed QP value */
+        int         i_qp_step;      /* max QP step between frames */
+
+        int         b_cbr;          /* constant bitrate */
+        int         i_bitrate;
+        int         i_rc_buffer_size;
+        int         i_rc_init_buffer;
+        int         i_rc_sens;      /* rate control sensitivity */
+        float       f_ip_factor;
+        float       f_pb_factor;
+
+        /* 2pass */
+        int         b_stat_write;   /* Enable stat writing in psz_stat_out */
+        char        *psz_stat_out;
+        int         b_stat_read;    /* Read stat from psz_stat_in and use it */
+        char        *psz_stat_in;
+
+        /* 2pass params (same than ffmpeg ones) */
+        char        *psz_rc_eq;     /* 2 pass rate control equation */
+        float       f_qcompress;    /* 0.0 => cbr, 1.0 => constant qp */
+        float       f_qblur;        /* temporally blur quants */
+    } rc;
 
 } x264_param_t;
 

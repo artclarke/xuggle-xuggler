@@ -68,17 +68,25 @@ void    x264_param_default( x264_param_t *param )
     param->b_cabac = 0;
     param->i_cabac_init_idc = -1;
 
-    param->b_cbr = 0;
-    param->i_bitrate = 3000;
-    param->i_rc_buffer_size = 0;
-    param->i_rc_init_buffer = 0;
-    param->i_rc_sens = 100;
-    param->i_qp_constant = 26;
-    param->i_qp_min = 0;
-    param->i_qp_max = 51;
-    param->i_qp_step = 4;
-    param->f_ip_factor = 2.0;
-    param->f_pb_factor = 2.0;
+    param->rc.b_cbr = 0;
+    param->rc.i_bitrate = 3000;
+    param->rc.i_rc_buffer_size = 0;
+    param->rc.i_rc_init_buffer = 0;
+    param->rc.i_rc_sens = 100;
+    param->rc.i_qp_constant = 26;
+    param->rc.i_qp_min = 0;
+    param->rc.i_qp_max = 51;
+    param->rc.i_qp_step = 4;
+    param->rc.f_ip_factor = 2.0;
+    param->rc.f_pb_factor = 2.0;
+
+    param->rc.b_stat_write = 0;
+    param->rc.psz_stat_out = "x264_2pass.log";
+    param->rc.b_stat_read = 0;
+    param->rc.psz_stat_in = "x264_2pass.log";
+    param->rc.psz_rc_eq = "(tex^qComp)*(avgTex^(1-qComp))";
+    param->rc.f_qcompress = 0.6;
+    param->rc.f_qblur = 0.5;
 
     /* Log */
     param->pf_log = x264_log_default;

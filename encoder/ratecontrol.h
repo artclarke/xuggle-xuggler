@@ -28,6 +28,7 @@ int  x264_ratecontrol_new   ( x264_t * );
 void x264_ratecontrol_delete( x264_t * );
 
 void x264_ratecontrol_start( x264_t *, int i_slice_type );
+int  x264_ratecontrol_slice_type( x264_t *, int i_frame );
 void x264_ratecontrol_mb( x264_t *, int bits );
 int  x264_ratecontrol_qp( x264_t * );
 void x264_ratecontrol_end( x264_t *, int bits );

@@ -120,6 +120,12 @@ static void Help( void )
              "      --rcbuf <integer>       Size of VBV buffer\n"
              "      --rcinitbuf <integer>   Initial VBV buffer occupancy\n"
              "\n"
+             "  -p, --pass <1|2>            Enable 2 pass ratecontrol\n"
+             "      --stats <string>        Filename for 2 pass stats\n"
+             "      --rceq <string>         Ratecontrol equation\n"
+             "      --qcomp <float>         0.0 => CBR, 1.0 => CQP, 0.6 => default\n"
+             "\n"
+
              "  -A, --analyse <string>      Analyse options:\n"
              "                                  - i4x4\n"
              "                                  - psub16x16,psub8x8\n"
@@ -161,6 +167,10 @@ static int  Parse( int argc, char **argv,
 #define OPT_PBRATIO 261
 #define OPT_RCBUF 262
 #define OPT_RCIBUF 263
+#define OPT_RCSTATS 264
+#define OPT_RCEQ 265
+#define OPT_QCOMP 266
+
         static struct option long_options[] =
         {
             { "help",    no_argument,       NULL, 'h' },
@@ -185,12 +195,16 @@ static int  Parse( int argc, char **argv,
             { "rcinitbuf",required_argument, NULL, OPT_RCIBUF },
             { "ipratio", required_argument, NULL, OPT_IPRATIO },
             { "pbratio", required_argument, NULL, OPT_PBRATIO },
+            { "pass",    required_argument, NULL, 'p' },
+            { "stats",   required_argument, NULL, OPT_RCSTATS },
+            { "rceq",    required_argument, NULL, OPT_RCEQ },
+            { "qcomp",   required_argument, NULL, OPT_QCOMP },
             {0, 0, 0, 0}
         };
 
         int c;
 
-        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:no:s:A:",
+        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:no:s:A:p:",
                          long_options, &long_options_index);
 
         if( c == -1 )
@@ -207,8 +221,8 @@ static int  Parse( int argc, char **argv,
             case 0:
                 break;
             case 'B':
-                param->i_bitrate = atol( optarg );
-                param->b_cbr = 1;
+                param->rc.i_bitrate = atol( optarg );
+                param->rc.b_cbr = 1;
                 break;
             case 'b':
                 param->i_bframe = atol( optarg );
@@ -233,16 +247,16 @@ static int  Parse( int argc, char **argv,
                 break;
             }
             case 'q':
-                param->i_qp_constant = atoi( optarg );
+                param->rc.i_qp_constant = atoi( optarg );
                 break;
             case OPT_QPMIN:
-                param->i_qp_min = atoi( optarg );
+                param->rc.i_qp_min = atoi( optarg );
                 break;
             case OPT_QPMAX:
-                param->i_qp_max = atoi( optarg );
+                param->rc.i_qp_max = atoi( optarg );
                 break;
             case OPT_QPSTEP:
-                param->i_qp_step = atoi( optarg );
+                param->rc.i_qp_step = atoi( optarg );
                 break;
             case 'r':
                 param->i_frame_reference = atoi( optarg );
@@ -283,19 +297,41 @@ static int  Parse( int argc, char **argv,
                 if( strstr( optarg, "psub8x8" ) )   param->analyse.inter |= X264_ANALYSE_PSUB8x8;
                 break;
             case OPT_RCBUF:
-                param->i_rc_buffer_size = atoi(optarg);
+                param->rc.i_rc_buffer_size = atoi(optarg);
                 break;
             case OPT_RCIBUF:
-                param->i_rc_init_buffer = atoi(optarg);
+                param->rc.i_rc_init_buffer = atoi(optarg);
                 break;
             case OPT_RCSENS:
-                param->i_rc_sens = atoi(optarg);
+                param->rc.i_rc_sens = atoi(optarg);
                 break;
             case OPT_IPRATIO:
-                param->f_ip_factor = atoi(optarg);
+                param->rc.f_ip_factor = atoi(optarg);
                 break;
             case OPT_PBRATIO:
-                param->f_pb_factor = atoi(optarg);
+                param->rc.f_pb_factor = atoi(optarg);
+                break;
+            case 'p':
+            {
+                int i_pass = atoi(optarg);
+                if( i_pass == 1 )
+                    param->rc.b_stat_write = 1;
+                else if( i_pass == 2 )
+                    param->rc.b_stat_read = 1;
+                else if( i_pass > 2 )   /* XXX untested */
+                    param->rc.b_stat_read =
+                    param->rc.b_stat_write = 1;
+                break;
+            }
+            case OPT_RCSTATS:
+                param->rc.psz_stat_in = optarg;
+                param->rc.psz_stat_out = optarg;
+                break;
+            case OPT_RCEQ:
+                param->rc.psz_rc_eq = optarg;
+               break;
+            case OPT_QCOMP:
+                param->rc.f_qcompress = atof(optarg);
                 break;
             default:
                 fprintf( stderr, "unknown option (%c)\n", optopt );
