@@ -2,7 +2,7 @@
  * mc.c: h264 encoder library (Motion Compensation)
  *****************************************************************************
  * Copyright (C) 2003 Laurent Aimar
- * $Id: mc-c.c,v 1.3 2004/06/10 18:13:38 fenrir Exp $
+ * $Id: mc-c.c,v 1.4 2004/06/17 09:01:19 chenm001 Exp $
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *
@@ -180,6 +180,7 @@ static inline int x264_tapfilter1( uint8_t *pix )
     return pix[-2] - 5*pix[-1] + 20*(pix[0] + pix[1]) - 5*pix[ 2] + pix[ 3];
 }
 
+#if 0
 static inline void pixel_avg_w4( uint8_t *dst,  int i_dst_stride,
                                  uint8_t *src1, int i_src1_stride,
                                  uint8_t *src2, int i_src2_stride,
@@ -197,6 +198,13 @@ static inline void pixel_avg_w4( uint8_t *dst,  int i_dst_stride,
         src2 += i_src2_stride;
     }
 }
+#else
+extern void pixel_avg_w4( uint8_t *dst,  int i_dst_stride,
+                          uint8_t *src1, int i_src1_stride,
+                          uint8_t *src2, int i_src2_stride,
+                          int i_height );
+#endif
+
 static inline void pixel_avg_w8( uint8_t *dst,  int i_dst_stride,
                                  uint8_t *src1, int i_src1_stride,
                                  uint8_t *src2, int i_src2_stride,

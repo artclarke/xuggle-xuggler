@@ -302,7 +302,7 @@ SOURCE=..\..\core\i386\cpu.asm
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
-# Begin Custom Build
+# Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Release
 InputPath=..\..\core\i386\cpu.asm
 InputName=cpu
@@ -314,7 +314,7 @@ InputName=cpu
 
 !ELSEIF  "$(CFG)" == "libx264 - Win32 Debug"
 
-# Begin Custom Build
+# Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Debug
 InputPath=..\..\core\i386\cpu.asm
 InputName=cpu
@@ -337,7 +337,7 @@ SOURCE=..\..\core\i386\dct.asm
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
-# Begin Custom Build
+# Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Release
 InputPath=..\..\core\i386\dct.asm
 InputName=dct
@@ -349,7 +349,7 @@ InputName=dct
 
 !ELSEIF  "$(CFG)" == "libx264 - Win32 Debug"
 
-# Begin Custom Build
+# Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Debug
 InputPath=..\..\core\i386\dct.asm
 InputName=dct
@@ -368,11 +368,55 @@ SOURCE=..\..\core\i386\dct.h
 # End Source File
 # Begin Source File
 
+SOURCE="..\..\core\i386\mc-c.c"
+
+!IF  "$(CFG)" == "libx264 - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "libx264 - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\core\i386\mc.asm
+
+!IF  "$(CFG)" == "libx264 - Win32 Release"
+
+# Begin Custom Build - Assembly $(InputPath)
+IntDir=.\Release
+InputPath=..\..\core\i386\mc.asm
+InputName=mc
+
+"$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	nasm -f win32 -DPREFIX -o $(IntDir)\$(InputName).obj $(InputPath)
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "libx264 - Win32 Debug"
+
+# Begin Custom Build - Assembly $(InputPath)
+IntDir=.\Debug
+InputPath=..\..\core\i386\mc.asm
+InputName=mc
+
+"$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	nasm -f win32 -DPREFIX -o $(IntDir)\$(InputName).obj $(InputPath)
+
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\core\i386\pixel.asm
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
-# Begin Custom Build
+# Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Release
 InputPath=..\..\core\i386\pixel.asm
 InputName=pixel
@@ -384,7 +428,7 @@ InputName=pixel
 
 !ELSEIF  "$(CFG)" == "libx264 - Win32 Debug"
 
-# Begin Custom Build
+# Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Debug
 InputPath=..\..\core\i386\pixel.asm
 InputName=pixel
@@ -450,13 +494,6 @@ SOURCE=..\..\core\cpu.c
 # Begin Source File
 
 SOURCE=..\..\core\csp.c
-
-!IF  "$(CFG)" == "libx264 - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "libx264 - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
