@@ -1361,7 +1361,7 @@ void    x264_encoder_close  ( x264_t *h )
     {
         const int i_count = h->stat.i_slice_count[SLICE_TYPE_I];
         x264_log( h, X264_LOG_INFO,
-                  "slice I:%-4d Avg size:%-5d PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
+                  "slice I:%-4d Avg size:%-5lld PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
                    i_count,
                    h->stat.i_slice_size[SLICE_TYPE_I] / i_count,
                    h->stat.f_psnr_mean_y[SLICE_TYPE_I] / i_count, h->stat.f_psnr_mean_u[SLICE_TYPE_I] / i_count, h->stat.f_psnr_mean_v[SLICE_TYPE_I] / i_count,
@@ -1373,7 +1373,7 @@ void    x264_encoder_close  ( x264_t *h )
     {
         const int i_count = h->stat.i_slice_count[SLICE_TYPE_P];
         x264_log( h, X264_LOG_INFO,
-                  "slice P:%-4d Avg size:%-5d PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
+                  "slice P:%-4d Avg size:%-5lld PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
                   i_count,
                   h->stat.i_slice_size[SLICE_TYPE_P] / i_count,
                   h->stat.f_psnr_mean_y[SLICE_TYPE_P] / i_count, h->stat.f_psnr_mean_u[SLICE_TYPE_P] / i_count, h->stat.f_psnr_mean_v[SLICE_TYPE_P] / i_count,
@@ -1385,7 +1385,7 @@ void    x264_encoder_close  ( x264_t *h )
     {
         const int i_count = h->stat.i_slice_count[SLICE_TYPE_B];
         x264_log( h, X264_LOG_INFO,
-                  "slice B:%-4d Avg size:%-5d PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
+                  "slice B:%-4d Avg size:%-5lld PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
                    h->stat.i_slice_count[SLICE_TYPE_B],
                    h->stat.i_slice_size[SLICE_TYPE_B] / i_count,
                    h->stat.f_psnr_mean_y[SLICE_TYPE_B] / i_count, h->stat.f_psnr_mean_u[SLICE_TYPE_B] / i_count, h->stat.f_psnr_mean_v[SLICE_TYPE_B] / i_count,
@@ -1399,7 +1399,7 @@ void    x264_encoder_close  ( x264_t *h )
     {
         const int i_count =  h->stat.i_slice_count[SLICE_TYPE_I];
         x264_log( h, X264_LOG_INFO,
-                  "slice I      Avg I4x4:%-5d I16x16:%-5d\n",
+                  "slice I      Avg I4x4:%-5lld I16x16:%-5lld\n",
                   h->stat.i_mb_count[SLICE_TYPE_I][I_4x4]  / i_count,
                   h->stat.i_mb_count[SLICE_TYPE_I][I_16x16]/ i_count );
     }
@@ -1407,7 +1407,7 @@ void    x264_encoder_close  ( x264_t *h )
     {
         const int i_count = h->stat.i_slice_count[SLICE_TYPE_P];
         x264_log( h, X264_LOG_INFO,
-                  "slice P      Avg I4x4:%-5d I16x16:%-5d P:%-5d P8x8:%-5d PSKIP:%-5d\n",
+                  "slice P      Avg I4x4:%-5lld I16x16:%-5lld P:%-5lld P8x8:%-5lld PSKIP:%-5lld\n",
                   h->stat.i_mb_count[SLICE_TYPE_P][I_4x4]  / i_count,
                   h->stat.i_mb_count[SLICE_TYPE_P][I_16x16]/ i_count,
                   h->stat.i_mb_count[SLICE_TYPE_P][P_L0] / i_count,
