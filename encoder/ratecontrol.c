@@ -867,7 +867,7 @@ static int init_pass2( x264_t *h )
             expected_bits += bits;
         }
 
-//printf("expected:%f available:%d factor:%f\n", expected_bits, (int)all_available_bits, rate_factor);
+//printf("expected:%llu available:%llu factor:%lf avgQ:%lf\n", (uint64_t)expected_bits, all_available_bits, rate_factor);
         if(expected_bits > all_available_bits) rate_factor -= step;
     }
 
@@ -875,9 +875,20 @@ static int init_pass2( x264_t *h )
     if(filter_size > 1)
         x264_free(blurred_qscale);
 
-    if(fabs(expected_bits/all_available_bits - 1.0) > 0.01 )
+    if(fabs(expected_bits/all_available_bits - 1.0) > 0.01)
     {
-        x264_log( h, X264_LOG_ERROR, "Error: 2pass curve failed to converge\n");
+        double avgq = 0;
+        for(i=0; i<rcc->num_entries; i++)
+            if(rcc->entry[i].new_pict_type == SLICE_TYPE_P)
+                avgq += rcc->entry[i].new_qscale;
+        avgq = qscale2qp(avgq / rcc->frame_count[SLICE_TYPE_P]);
+
+        x264_log(h, X264_LOG_ERROR, "Error: 2pass curve failed to converge\n");
+        x264_log(h, X264_LOG_ERROR, "expected bits: %llu, available: %llu, avg QP: %.4lf\n", (uint64_t)expected_bits, all_available_bits, avgq);
+        if(expected_bits < all_available_bits && avgq < h->param.rc.i_qp_min + 1)
+            x264_log(h, X264_LOG_ERROR, "try reducing bitrate or reducing qp_min\n");
+        if(expected_bits > all_available_bits && avgq > h->param.rc.i_qp_min - 1)
+            x264_log(h, X264_LOG_ERROR, "try increasing bitrate or increasing qp_max\n");
         return -1;
     }
 
