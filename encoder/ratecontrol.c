@@ -970,11 +970,13 @@ static int init_pass2( x264_t *h )
         avgq = qscale2qp(avgq / rcc->num_entries);
 
         x264_log(h, X264_LOG_ERROR, "Error: 2pass curve failed to converge\n");
-        x264_log(h, X264_LOG_ERROR, "expected bits: %llu, available: %llu, avg QP: %.4lf\n", (uint64_t)expected_bits, all_available_bits, avgq);
-        if(expected_bits < all_available_bits && avgq < h->param.rc.i_qp_min + 1)
+        x264_log(h, X264_LOG_ERROR, "expected: %.0f KiB, available: %.0f KiB, avg QP: %.4f\n", expected_bits/8192., all_available_bits/8192., avgq);
+        if(expected_bits < all_available_bits && avgq < h->param.rc.i_qp_min + 2)
             x264_log(h, X264_LOG_ERROR, "try reducing bitrate or reducing qp_min\n");
-        if(expected_bits > all_available_bits && avgq > h->param.rc.i_qp_min - 1)
+        else if(expected_bits > all_available_bits && avgq > h->param.rc.i_qp_min - 2)
             x264_log(h, X264_LOG_ERROR, "try increasing bitrate or increasing qp_max\n");
+        else
+            x264_log(h, X264_LOG_ERROR, "internal error\n");
         return -1;
     }
 

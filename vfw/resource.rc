@@ -83,11 +83,11 @@ BEGIN
                     BS_AUTORADIOBUTTON,13,7,77,10
     CONTROL         "Single Pass - Quantizer",IDC_RADIOQUANT,"Button",
                     BS_AUTORADIOBUTTON,13,57,87,10
-    CONTROL         "Two Pass",IDC_RADIOTWOPASS,"Button",BS_AUTORADIOBUTTON,
-                    13,108,45,10
-    CONTROL         "First Pass",IDC_2PASS1,"Button",BS_AUTORADIOBUTTON | 
+    CONTROL         "Multipass",IDC_RADIOTWOPASS,"Button",BS_AUTORADIOBUTTON,
+                    13,108,43,10
+    CONTROL         "First pass",IDC_2PASS1,"Button",BS_AUTORADIOBUTTON | 
                     WS_GROUP,27,123,46,10
-    CONTROL         "Second Pass",IDC_2PASS2,"Button",BS_AUTORADIOBUTTON,87,
+    CONTROL         "Nth pass",IDC_2PASS2,"Button",BS_AUTORADIOBUTTON,87,
                     123,58,10
     CONTROL         "Slider1",IDC_2PASSBITRATE_S,"msctls_trackbar32",
                     TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,13,148,175,15

@@ -323,7 +323,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     if( param->i_width % 16 != 0 || param->i_height % 16 != 0 )
     {
-        x264_log( h, X264_LOG_ERROR, "width %% 16 != 0 pr height %% 16 != 0 (%dx%d)\n",
+        x264_log( h, X264_LOG_ERROR, "width %% 16 != 0 or height %% 16 != 0 (%dx%d)\n",
                  param->i_width, param->i_height );
         free( h );
         return NULL;

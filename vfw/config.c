@@ -74,7 +74,7 @@ static const reg_int_t reg_int_table[] =
     { "passbitrate",    &reg.i_2passbitrate,    800 },
     { "pass_number",    &reg.i_pass,            1 },
     { "fast1pass",      &reg.b_fast1pass,       1 },
-    { "updatestats",    &reg.b_updatestats,     0 },
+    { "updatestats",    &reg.b_updatestats,     1 },
 
     /* Advance dialog */
     { "cabac",          &reg.b_cabac,           1 },
@@ -101,7 +101,7 @@ static const reg_int_t reg_int_table[] =
 
 static const reg_str_t reg_str_table[] =
 {
-    { "fourcc",         reg.fcc,         "h264",                5 },
+    { "fourcc",         reg.fcc,         "H264",                5 },
     { "statsfile",      reg.stats,       ".\\x264.stats",       MAX_PATH }
 };
 
@@ -620,9 +620,9 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                     config->i_key_boost = 0;
                     SetDlgItemInt( hDlg, IDC_IPRATIO, config->i_key_boost, FALSE );
                 }
-                else if (config->i_key_boost > 60)
+                else if (config->i_key_boost > 70)
                 {
-                    config->i_key_boost = 60;
+                    config->i_key_boost = 70;
                     SetDlgItemInt( hDlg, IDC_IPRATIO, config->i_key_boost, FALSE );
                 }                        
                 break;
@@ -633,9 +633,9 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                     config->i_b_red = 0;
                     SetDlgItemInt( hDlg, IDC_PBRATIO, config->i_b_red, FALSE );
                 }
-                else if (config->i_b_red > 50)
+                else if (config->i_b_red > 60)
                 {
-                    config->i_b_red = 50;
+                    config->i_b_red = 60;
                     SetDlgItemInt( hDlg, IDC_PBRATIO, config->i_b_red, FALSE );
                 }                        
                 break;
