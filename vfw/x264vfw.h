@@ -88,6 +88,9 @@ typedef struct
     /* handle */
     x264_t *h;
 
+    /* error console handle */
+    HWND *hCons;
+
     /* XXX: needed ? */
     unsigned int fincr;
     unsigned int fbase;
@@ -112,6 +115,7 @@ void config_reg_save( CONFIG * config );
 BOOL CALLBACK callback_about( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
 BOOL CALLBACK callback_main ( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
 BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
+BOOL CALLBACK callback_err_console( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
 
 /* Dll instance */
 extern HINSTANCE g_hInst;

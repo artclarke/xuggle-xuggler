@@ -131,6 +131,32 @@ LRESULT compress_frames_info(CODEC * codec, ICCOMPRESSFRAMES * icf )
     return ICERR_OK;
 }
 
+static void x264_log_vfw( void *p_private, int i_level, const char *psz_fmt, va_list arg )
+{ 
+    char error_msg[1024];
+    int idx;
+    HWND *hCons = p_private;
+
+    vsprintf( error_msg, psz_fmt, arg );
+    
+    /* strip final linefeeds (required) */
+    idx=strlen( error_msg ) - 1;
+    while( idx >= 0 && error_msg[idx] == '\n' )
+        error_msg[idx--] = 0;
+
+    if(!( *hCons ) ) {
+        *hCons = CreateDialog( g_hInst, MAKEINTRESOURCE( IDD_ERRCONSOLE ), NULL, 
+                 callback_err_console );
+        //ShowWindow( *hCons, SW_SHOW );
+    }
+    idx = SendDlgItemMessage( *hCons, IDC_CONSOLE, LB_ADDSTRING, 0, ( LPARAM )error_msg );
+    
+    /* make sure that the last item added is visible (autoscroll) */
+    if( idx >= 0 ) 
+        SendDlgItemMessage( *hCons, IDC_CONSOLE, LB_SETTOPINDEX, ( WPARAM )idx, 0 );
+
+}
+
 static void statsfilename_renumber( char *dest, char *src, int i_pass )
 {
     char *last_dot = strrchr( src, '.' );
@@ -169,8 +195,13 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
 
     param.rc.psz_stat_out = malloc (MAX_PATH);
     param.rc.psz_stat_in = malloc (MAX_PATH);
+  
+    param.i_log_level = X264_LOG_ERROR;
+    param.pf_log = x264_log_vfw;
+    param.p_log_private = malloc( sizeof( HWND ) );
+    *( ( HWND * )param.p_log_private ) = NULL; /* error console window handle */
+    codec->hCons = ( HWND * )param.p_log_private;
 
-    param.i_log_level = X264_LOG_NONE;
     param.analyse.b_psnr = 0;
     param.analyse.inter = 0;
     param.analyse.intra = X264_ANALYSE_I4x4;
@@ -294,6 +325,7 @@ LRESULT compress_end(CODEC * codec)
         codec->h = NULL;
     }
 
+    free( codec->hCons );
     return ICERR_OK;
 }
 
