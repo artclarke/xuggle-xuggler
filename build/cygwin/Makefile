@@ -44,7 +44,12 @@ CFLAGS += -D__X264__ -D_CYGWIN
 CFLAGS += $(PFLAGS)
 
 # Optional Compiler options
-CFLAGS += -g -Wall -DDEBUG
+ifdef NDEBUG
+CFLAGS += -s -DNDEBUG
+else
+CFLAGS += -g -DDEBUG
+endif
+CFLAGS += -Wall
 CFLAGS += -O3
 CFLAGS += -finline-functions
 CFLAGS += -funroll-loops

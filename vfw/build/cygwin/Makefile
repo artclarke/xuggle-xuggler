@@ -96,6 +96,9 @@ $(DLL): $(DIR_BUILD) $(OBJECTS)
 	-o $@ \
 	$(OBJECTS) driverproc.def \
 	-lgdi32 -lwinmm -lcomdlg32 -lcomctl32 $(LDFLAGS) 
+ifdef NDEBUG
+	@strip $(DIR_BUILD)/$(DLL)
+endif
 
 clean:
 	@echo " Cl: Object files and target lib"
