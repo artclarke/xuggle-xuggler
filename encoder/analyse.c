@@ -133,6 +133,9 @@ static const int i_mb_b16x8_cost_table[16] = {
 static const int i_sub_mb_b_cost_table[13] = {
     7, 5, 5, 3, 7, 5, 7, 3, 7, 7, 7, 5, 1
 };
+static const int i_sub_mb_p_cost_table[4] = {
+    5, 3, 3, 1
+};
 
 static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
 {
@@ -558,6 +561,9 @@ static void x264_mb_analyse_inter_p8x8( x264_t *h, x264_mb_analysis_t *a )
         mvc[i_mvc][0] = m->mv[0];
         mvc[i_mvc][1] = m->mv[1];
         i_mvc++;
+
+        /* mb type cost */
+        m->cost += a->i_lambda * i_sub_mb_p_cost_table[D_L0_8x8];
     }
 
     a->l0.i_cost8x8 = a->l0.me8x8[0].cost + a->l0.me8x8[1].cost +
@@ -672,7 +678,8 @@ static void x264_mb_analyse_inter_p4x4( x264_t *h, x264_mb_analysis_t *a, int i8
     a->l0.i_cost4x4[i8x8] = a->l0.me4x4[i8x8][0].cost +
                          a->l0.me4x4[i8x8][1].cost +
                          a->l0.me4x4[i8x8][2].cost +
-                         a->l0.me4x4[i8x8][3].cost;
+                         a->l0.me4x4[i8x8][3].cost +
+                         a->i_lambda * i_sub_mb_p_cost_table[D_L0_4x4];
 }
 
 static void x264_mb_analyse_inter_p8x4( x264_t *h, x264_mb_analysis_t *a, int i8x8 )
@@ -708,7 +715,8 @@ static void x264_mb_analyse_inter_p8x4( x264_t *h, x264_mb_analysis_t *a, int i8
         x264_macroblock_cache_mv( h, x4, y4, 2, 1, 0, m->mv[0], m->mv[1] );
     }
 
-    a->l0.i_cost8x4[i8x8] = a->l0.me8x4[i8x8][0].cost + a->l0.me8x4[i8x8][1].cost;
+    a->l0.i_cost8x4[i8x8] = a->l0.me8x4[i8x8][0].cost + a->l0.me8x4[i8x8][1].cost +
+                            a->i_lambda * i_sub_mb_p_cost_table[D_L0_8x4];
 }
 
 static void x264_mb_analyse_inter_p4x8( x264_t *h, x264_mb_analysis_t *a, int i8x8 )
@@ -744,7 +752,8 @@ static void x264_mb_analyse_inter_p4x8( x264_t *h, x264_mb_analysis_t *a, int i8
         x264_macroblock_cache_mv( h, x4, y4, 1, 2, 0, m->mv[0], m->mv[1] );
     }
 
-    a->l0.i_cost4x8[i8x8] = a->l0.me4x8[i8x8][0].cost + a->l0.me4x8[i8x8][1].cost;
+    a->l0.i_cost4x8[i8x8] = a->l0.me4x8[i8x8][0].cost + a->l0.me4x8[i8x8][1].cost +
+                            a->i_lambda * i_sub_mb_p_cost_table[D_L0_4x8];
 }
 
 static void x264_mb_analyse_inter_direct( x264_t *h, x264_mb_analysis_t *a )
