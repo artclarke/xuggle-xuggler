@@ -10,7 +10,7 @@ SRCS_COMMON= common/mc.c common/predict.c common/pixel.c common/macroblock.c \
              common/common.c common/mdate.c common/csp.c \
              encoder/analyse.c encoder/me.c encoder/ratecontrol.c \
              encoder/set.c encoder/macroblock.c encoder/cabac.c \
-             encoder/cavlc.c encoder/encoder.c encoder/eval.c x264.c
+             encoder/cavlc.c encoder/encoder.c encoder/eval.c
 
 ifdef SYS_MACOSX
 PFLAGS=-DARCH_PPC -DSYS_MACOSX -faltivec
