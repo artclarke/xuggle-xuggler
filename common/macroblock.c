@@ -505,6 +505,7 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int mvc[5][2
     {
         if( h->mb.cache.ref[i_list][x264_scan8[12]] == i_ref )
         {
+            /* FIXME: use direct_mv to be clearer? */
             int16_t *mvp = h->mb.cache.mv[i_list][x264_scan8[12]];
             mvc[i][0] = mvp[0];
             mvc[i][1] = mvp[1];
@@ -516,24 +517,31 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int mvc[5][2
     if( h->mb.i_mb_x > 0 )
     {
         int i_mb_l = h->mb.i_mb_xy - 1;
-        mvc[i][0] = mvr[i_mb_l][0];
-        mvc[i][1] = mvr[i_mb_l][1];
-        i++;
+        /* skip MBs didn't go through the whole search process, so mvr is undefined */
+        if( !IS_SKIP( h->mb.type[i_mb_l] ) )
+        {
+            mvc[i][0] = mvr[i_mb_l][0];
+            mvc[i][1] = mvr[i_mb_l][1];
+            i++;
+        }
     }
     if( h->mb.i_mb_y > 0 )
     {
         int i_mb_t = h->mb.i_mb_xy - h->mb.i_mb_stride;
-        mvc[i][0] = mvr[i_mb_t][0];
-        mvc[i][1] = mvr[i_mb_t][1];
-        i++;
+        if( !IS_SKIP( h->mb.type[i_mb_t] ) )
+        {
+            mvc[i][0] = mvr[i_mb_t][0];
+            mvc[i][1] = mvr[i_mb_t][1];
+            i++;
+        }
 
-        if( h->mb.i_mb_x > 0 )
+        if( h->mb.i_mb_x > 0 && !IS_SKIP( h->mb.type[i_mb_t - 1] ) )
         {
             mvc[i][0] = mvr[i_mb_t - 1][0];
             mvc[i][1] = mvr[i_mb_t - 1][1];
             i++;
         }
-        if( h->mb.i_mb_x < h->mb.i_mb_stride - 1 )
+        if( h->mb.i_mb_x < h->mb.i_mb_stride - 1 && !IS_SKIP( h->mb.type[i_mb_t + 1] ) )
         {
             mvc[i][0] = mvr[i_mb_t + 1][0];
             mvc[i][1] = mvr[i_mb_t + 1][1];
