@@ -24,7 +24,7 @@
 #ifndef _X264_H
 #define _X264_H 1
 
-#define X264_BUILD 0x0008
+#define X264_BUILD 0x0009
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
