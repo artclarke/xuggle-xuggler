@@ -64,23 +64,18 @@ static int64_t i_mtime_filter = 0;
  ******************************* x264 libs **********************************
  *
  ****************************************************************************/
-static int64_t x264_sqe( uint8_t *pix1, int i_pix_stride, uint8_t *pix2, int i_pix2_stride, int i_width, int i_height )
+static int64_t x264_sqe( x264_t *h, uint8_t *pix1, int i_pix_stride, uint8_t *pix2, int i_pix2_stride, int i_width, int i_height )
 {
     int64_t i_sqe = 0;
-
     int x, y;
 
-    for( y = 0; y < i_height; y++ )
-    {
-        for( x = 0; x < i_width; x++ )
-        {
-            int tmp;
+    for( y = 0; y < i_height; y += 16 )
+        for( x = 0; x < i_width; x += 16 )
+            i_sqe += h->pixf.ssd[PIXEL_16x16]( pix1+y*i_pix_stride+x, i_pix_stride,
+                                               pix2+y*i_pix2_stride+x, i_pix2_stride );
 
-            tmp = pix1[y*i_pix_stride+x] - pix2[y*i_pix2_stride+x];
+    x264_cpu_restore( h->param.cpu );
 
-            i_sqe += tmp * tmp;
-        }
-    }
     return i_sqe;
 }
 
@@ -1343,9 +1338,9 @@ do_encode:
         int64_t i_sqe_y, i_sqe_u, i_sqe_v;
 
         /* PSNR */
-        i_sqe_y = x264_sqe( frame_psnr->plane[0], frame_psnr->i_stride[0], h->fenc->plane[0], h->fenc->i_stride[0], h->param.i_width, h->param.i_height );
-        i_sqe_u = x264_sqe( frame_psnr->plane[1], frame_psnr->i_stride[1], h->fenc->plane[1], h->fenc->i_stride[1], h->param.i_width/2, h->param.i_height/2);
-        i_sqe_v = x264_sqe( frame_psnr->plane[2], frame_psnr->i_stride[2], h->fenc->plane[2], h->fenc->i_stride[2], h->param.i_width/2, h->param.i_height/2);
+        i_sqe_y = x264_sqe( h, frame_psnr->plane[0], frame_psnr->i_stride[0], h->fenc->plane[0], h->fenc->i_stride[0], h->param.i_width, h->param.i_height );
+        i_sqe_u = x264_sqe( h, frame_psnr->plane[1], frame_psnr->i_stride[1], h->fenc->plane[1], h->fenc->i_stride[1], h->param.i_width/2, h->param.i_height/2);
+        i_sqe_v = x264_sqe( h, frame_psnr->plane[2], frame_psnr->i_stride[2], h->fenc->plane[2], h->fenc->i_stride[2], h->param.i_width/2, h->param.i_height/2);
 
         h->stat.i_sqe_global[i_slice_type] += i_sqe_y + i_sqe_u + i_sqe_v;
         h->stat.f_psnr_average[i_slice_type] += x264_psnr( i_sqe_y + i_sqe_u + i_sqe_v, 3 * h->param.i_width * h->param.i_height / 2 );
