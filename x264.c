@@ -119,6 +119,8 @@ static void Help( void )
              "      --rcsens <integer>      RC sensitivity\n"
              "      --rcbuf <integer>       Size of VBV buffer\n"
              "      --rcinitbuf <integer>   Initial VBV buffer occupancy\n"
+             "      --ipratio <float>       QP factor between I and P\n"
+             "      --pbratio <float>       QP factor between P and B\n"
              "\n"
              "  -p, --pass <1|2>            Enable 2 pass ratecontrol\n"
              "      --stats <string>        Filename for 2 pass stats\n"
@@ -312,10 +314,10 @@ static int  Parse( int argc, char **argv,
                 param->rc.i_rc_sens = atoi(optarg);
                 break;
             case OPT_IPRATIO:
-                param->rc.f_ip_factor = atoi(optarg);
+                param->rc.f_ip_factor = atof(optarg);
                 break;
             case OPT_PBRATIO:
-                param->rc.f_pb_factor = atoi(optarg);
+                param->rc.f_pb_factor = atof(optarg);
                 break;
             case 'p':
             {
