@@ -6,7 +6,7 @@
  *
  * Authors: Måns Rullgård <mru@mru.ath.cx>
  * 2 pass code: Michael Niedermayer <michaelni@gmx.at>
- *              Loren Merritt
+ *              Loren Merritt <lorenm@u.washington.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,7 +101,7 @@ struct x264_ratecontrol_t
     double last_qscale;
     double last_qscale_for[5];  /* last qscale for a specific pict type, used for max_diff & ipb factor stuff  */
     int last_non_b_pict_type;
-    double lmin[5];                /* min qscale by frame type */
+    double lmin[5];             /* min qscale by frame type */
     double lmax[5];
     double i_cplx_sum[5];       /* estimated total texture bits in intra MBs at qscale=1 */
     double p_cplx_sum[5];
@@ -115,7 +115,7 @@ static float rate_estimate_qscale( x264_t *h, int pict_type );
 
 /* Terminology:
  * qp = h.264's quantizer
- * qscale = an arbitrary linear scale, mappable to qp
+ * qscale = linearized quantizer = Lagrange multiplier
  */
 static inline double qp2qscale(double qp)
 {
@@ -337,7 +337,6 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
 
     rc->slice_type = i_slice_type;
 
-    /* Needed ? */
     x264_cpu_restore( h->param.cpu );
 
     if( h->param.rc.b_stat_read )
@@ -551,7 +550,7 @@ void x264_ratecontrol_end( x264_t *h, int bits )
         fprintf( rc->p_stat_file_out,
                  "in:%d out:%d type:%d q:%.3f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d;\n",
                  h->fenc->i_frame, h->i_frame-1,
-                 rc->slice_type, (float)rc->qpm,
+                 rc->slice_type, (float)rc->qpa,
                  h->stat.frame.i_itex_bits, h->stat.frame.i_ptex_bits,
                  h->stat.frame.i_hdr_bits, h->stat.frame.i_misc_bits,
                  h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_16x16],
@@ -610,10 +609,6 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
     double bits;
     //double q, avg_cplx;
     const int pict_type = rce->new_pict_type;
-
-    x264_cpu_restore( h->param.cpu );
-
-    //avg_cplx = (rcc->i_cplx_sum[pict_type] + rcc->p_cplx_sum[pict_type]) / rcc->frame_count[pict_type];
 
     double const_values[]={
         rce->i_tex_bits * rce->qscale,
