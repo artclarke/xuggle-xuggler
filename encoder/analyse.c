@@ -292,7 +292,8 @@ static void predict_4x4_mode_available( unsigned int i_neighbour, int idx, int *
     {
         *mode++ = I_PRED_4x4_DC_LEFT;
         *mode++ = I_PRED_4x4_H;
-        *pi_count = 2;
+        *mode++ = I_PRED_4x4_HU;
+        *pi_count = 3;
     }
     else if( !b_a && b_b )
     {
