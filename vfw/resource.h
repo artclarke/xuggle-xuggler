@@ -25,12 +25,12 @@
 #define IDC_BITRATEHIGH                 1011
 #define IDC_BFRAMES                     1012
 #define IDC_BITRATEHIGH2                1012
-#define IDC_IDRFRAMES                   1012
+#define IDC_KEYINTMIN                   1012
 #define IDC_BFRAMES2                    1013
-#define IDC_IFRAMES                     1013
+#define IDC_KEYINTMAX                   1013
 #define IDC_BITRATELOW3                 1013
 #define IDC_EDIT3                       1014
-#define IDC_KEYFRAME                    1014
+#define IDC_REFFRAMES                   1014
 #define IDC_BITRATEHIGH3                1014
 #define IDC_BFRAME                      1015
 #define IDC_DEFAULTS                    1016
@@ -57,6 +57,8 @@
 #define IDC_LOOPA_TXT                   1047
 #define IDC_LOOPB_TXT                   1048
 #define IDC_FAST1PASS                   1049
+#define IDC_IPRATIO                     1050
+#define IDC_PBRATIO                     1051
 
 // Next default values for new objects
 // 
@@ -64,7 +66,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        104
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1050
+#define _APS_NEXT_CONTROL_VALUE         1052
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

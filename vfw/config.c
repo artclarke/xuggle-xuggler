@@ -84,6 +84,8 @@ static const reg_int_t reg_int_table[] =
     {"direct_pred",     &reg.i_direct_mv_pred,  1 },
     {"inloop_a",        &reg.i_inloop_a,        0 },
     {"inloop_b",        &reg.i_inloop_b,        0 },
+    {"key_boost",       &reg.i_key_boost,       40 },
+    {"b_red",           &reg.i_b_red,           30 },
 
     /* analysis */
     {"i4x4",            &reg.b_i4x4,            1 },
@@ -472,10 +474,12 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
     CheckDlgButton( hDlg,IDC_I4X4,
                     config->b_i4x4 ? BST_CHECKED: BST_UNCHECKED );
 
-    SetDlgItemInt( hDlg, IDC_IDRFRAMES, config->i_keyint_min, FALSE );
-    SetDlgItemInt( hDlg, IDC_IFRAMES, config->i_keyint_max, FALSE );
-    SetDlgItemInt( hDlg, IDC_KEYFRAME, config->i_refmax, FALSE );
+    SetDlgItemInt( hDlg, IDC_KEYINTMIN, config->i_keyint_min, FALSE );
+    SetDlgItemInt( hDlg, IDC_KEYINTMAX, config->i_keyint_max, FALSE );
+    SetDlgItemInt( hDlg, IDC_REFFRAMES, config->i_refmax, FALSE );
     SetDlgItemInt( hDlg, IDC_BFRAME, config->i_bframe, FALSE );
+    SetDlgItemInt( hDlg, IDC_IPRATIO, config->i_key_boost, FALSE );
+    SetDlgItemInt( hDlg, IDC_PBRATIO, config->i_b_red, FALSE );
 
     SendDlgItemMessage(hDlg, IDC_DIRECTPRED, CB_SETCURSEL, (config->i_direct_mv_pred), 0);
     SendDlgItemMessage(hDlg, IDC_SUBPEL, CB_SETCURSEL, (config->i_subpel_refine), 0);
@@ -548,20 +552,46 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
         case EN_CHANGE :
             switch( LOWORD( wParam ) )
             {
-            case IDC_IDRFRAMES :
-                config->i_keyint_min = GetDlgItemInt( hDlg, IDC_IDRFRAMES, FALSE, FALSE );
+            case IDC_KEYINTMIN :
+                config->i_keyint_min = GetDlgItemInt( hDlg, IDC_KEYINTMIN, FALSE, FALSE );
                 break;
-            case IDC_IFRAMES :
-                config->i_keyint_max = GetDlgItemInt( hDlg, IDC_IFRAMES, FALSE, FALSE );
+            case IDC_KEYINTMAX :
+                config->i_keyint_max = GetDlgItemInt( hDlg, IDC_KEYINTMAX, FALSE, FALSE );
                 break;
-            case IDC_KEYFRAME :
-                config->i_refmax = GetDlgItemInt( hDlg, IDC_KEYFRAME, FALSE, FALSE );
+            case IDC_REFFRAMES :
+                config->i_refmax = GetDlgItemInt( hDlg, IDC_REFFRAMES, FALSE, FALSE );
                 break;
             case IDC_FOURCC :
                 GetDlgItemText( hDlg, IDC_FOURCC, config->fcc, 5 );
                 break;
             case IDC_BFRAME :
                 config->i_bframe = GetDlgItemInt( hDlg, IDC_BFRAME, FALSE, FALSE );
+                break;
+            case IDC_IPRATIO :
+                config->i_key_boost = GetDlgItemInt( hDlg, IDC_IPRATIO, FALSE, FALSE );
+                if (config->i_key_boost < 0)
+                {
+                    config->i_key_boost = 0;
+                    SetDlgItemInt( hDlg, IDC_IPRATIO, config->i_key_boost, FALSE );
+                }
+                else if (config->i_key_boost > 60)
+                {
+                    config->i_key_boost = 60;
+                    SetDlgItemInt( hDlg, IDC_IPRATIO, config->i_key_boost, FALSE );
+                }                        
+                break;
+            case IDC_PBRATIO :
+                config->i_b_red = GetDlgItemInt( hDlg, IDC_PBRATIO, FALSE, FALSE );
+                if (config->i_b_red < 0)
+                {
+                    config->i_b_red = 0;
+                    SetDlgItemInt( hDlg, IDC_PBRATIO, config->i_b_red, FALSE );
+                }
+                else if (config->i_b_red > 50)
+                {
+                    config->i_b_red = 50;
+                    SetDlgItemInt( hDlg, IDC_PBRATIO, config->i_b_red, FALSE );
+                }                        
                 break;
             }
             break;

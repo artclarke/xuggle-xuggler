@@ -107,15 +107,19 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,245,237,50,14
     CONTROL         "CABAC",IDC_CABAC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
                     16,23,61,10
-    EDITTEXT        IDC_IDRFRAMES,68,126,22,14,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_KEYINTMIN,68,126,22,14,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "Intra closer than",IDC_STATIC,13,128,53,8
     GROUPBOX        "H.264 features",IDC_STATIC,7,7,288,228
-    EDITTEXT        IDC_KEYFRAME,255,20,33,14,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_REFFRAMES,255,20,33,14,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "Max Reference Frames:",IDC_STATIC,170,24,80,8
-    EDITTEXT        IDC_IFRAMES,114,107,24,14,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_KEYINTMAX,114,107,24,14,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "Max IDR-Keyframe Interval:",IDC_STATIC,13,110,95,8
-    EDITTEXT        IDC_FOURCC,223,107,25,14,ES_AUTOHSCROLL
-    LTEXT           "FourCC:",IDC_STATIC,193,110,26,8
+    EDITTEXT        IDC_IPRATIO,258,99,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Keyframe boost (%):",IDC_STATIC,188,102,68,8
+    EDITTEXT        IDC_PBRATIO,258,119,25,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "B-frames reduction (%):",IDC_STATIC,178,122,75,8
+    EDITTEXT        IDC_FOURCC,258,139,25,14,ES_AUTOHSCROLL
+    LTEXT           "FourCC:",IDC_STATIC,224,142,26,8
     CONTROL         "8x16, 16x8 and 8x8 B-frame search",IDC_B16X16,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,17,189,127,10
     EDITTEXT        IDC_BFRAME,256,40,33,14,ES_AUTOHSCROLL | ES_NUMBER
@@ -129,7 +133,7 @@ BEGIN
     COMBOBOX        IDC_SUBPEL,117,208,70,77,CBS_DROPDOWN | CBS_SORT | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Subpixel refinement precision",IDC_STATIC,17,211,92,8
-    COMBOBOX        IDC_DIRECTPRED,220,63,70,67,CBS_DROPDOWN | CBS_SORT | 
+    COMBOBOX        IDC_DIRECTPRED,220,63,70,67,CBS_DROPDOWNLIST | CBS_SORT | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "B-frame prediction mode:",IDC_STATIC,133,65,84,8
     CONTROL         "Slider1",IDC_INLOOP_A,"msctls_trackbar32",TBS_NOTICKS | 
@@ -141,8 +145,7 @@ BEGIN
     LTEXT           "Strength (B)",IDC_STATIC,15,66,39,8
     LTEXT           "frames are coded as non-IDR",IDC_STATIC,93,128,
                     60,16
-    GROUPBOX        "More Encoder Settings",IDC_STATIC,7,93,145,66
-    GROUPBOX        "VfW settings",IDC_STATIC,151,93,144,66
+    GROUPBOX        "More Encoder Settings",IDC_STATIC,7,88,288,71
     LTEXT           "0",IDC_LOOPA_TXT,109,53,8,8
     LTEXT           "0",IDC_LOOPB_TXT,109,66,8,8
     GROUPBOX        "Macroblock Partitions",IDC_STATIC,7,154,288,81
@@ -156,11 +159,11 @@ CAPTION "About x264"
 FONT 8, "MS Sans Serif"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,158,109,48,14
-    CTEXT           "Copyright 2004 Laurent Aimar, Justin Clay, Min Chen\n\nThis program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation",
-                    IDC_STATIC,7,47,199,51
+    CTEXT           "Copyright 2005 Laurent Aimar, Justin Clay, Min Chen,\nEric Petit, Måns Rullgård, Loren Merritt\n\nThis program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation",
+                    IDC_STATIC,7,47,199,51 
     PUSHBUTTON      "Visit Homepage",IDC_HOMEPAGE,7,109,77,14
-    CTEXT           "BUILD",IDC_BUILD,40,18,122,8,SS_CENTERIMAGE
-    LTEXT           "x264 H.264 Codec",IDC_X264,68,8,66,8,SS_CENTERIMAGE
+    CTEXT           "BUILD",IDC_BUILD,34,20,145,8,SS_CENTERIMAGE
+    LTEXT           "x264 - H.264/MPEG-4 AVC codec",IDC_X264,53,8,145,8,SS_CENTERIMAGE
 END
 
 

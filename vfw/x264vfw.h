@@ -66,6 +66,9 @@ typedef struct
 
     int i_inloop_a;
     int i_inloop_b;
+    
+    int i_key_boost;
+    int i_b_red;
 
     /* vfw interface */
     int b_save;
