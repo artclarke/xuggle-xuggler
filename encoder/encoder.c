@@ -344,9 +344,9 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     /* VUI */
     if( h->param.vui.i_sar_width > 0 && h->param.vui.i_sar_height > 0 )
     {
-        int w = param->vui.i_sar_width;
-        int h = param->vui.i_sar_height;
-        int a = w, b = h;
+        int i_w = param->vui.i_sar_width;
+        int i_h = param->vui.i_sar_height;
+        int a = i_w, b = i_h;
 
         while( b != 0 )
         {
@@ -356,29 +356,29 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
             b = t % b;
         }
 
-        w /= a;
-        h /= a;
-        while( w > 65535 || h > 65535 )
+        i_w /= a;
+        i_h /= a;
+        while( i_w > 65535 || i_h > 65535 )
         {
-            w /= 2;
-            h /= 2;
+            i_w /= 2;
+            i_h /= 2;
         }
 
         h->param.vui.i_sar_width = 0;
         h->param.vui.i_sar_height = 0;
-        if( w == 0 || h == 0 )
+        if( i_w == 0 || i_h == 0 )
         {
             x264_log( h, X264_LOG_ERROR, "cannot create valid sample aspect ratio\n" );
         }
-        else if( w == h )
+        else if( i_w == i_h )
         {
             x264_log( h, X264_LOG_INFO, "no need for a SAR\n" );
         }
         else
         {
-            x264_log( h, X264_LOG_INFO, "using SAR=%d/%d\n", w, h );
-            h->param.vui.i_sar_width = w;
-            h->param.vui.i_sar_height = h;
+            x264_log( h, X264_LOG_INFO, "using SAR=%d/%d\n", i_w, i_h );
+            h->param.vui.i_sar_width = i_w;
+            h->param.vui.i_sar_height = i_h;
         }
     }
 
