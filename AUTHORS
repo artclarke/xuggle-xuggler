@@ -39,3 +39,9 @@ E: mru AT mru.ath DOT cx
 C: mru
 D: Rate control
 S: Oslo, Norway
+
+N: Loren Merritt
+E: lorenm AT u.washington DOT edu
+C: ?
+D: Two pass rate control
+S: ?
