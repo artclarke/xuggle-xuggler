@@ -1265,7 +1265,7 @@ do_encode:
         h->stat.f_psnr_mean_v[i_slice_type] += x264_psnr( i_sqe_v, h->param.i_width * h->param.i_height / 4 );
 
         x264_log( h, X264_LOG_DEBUG,
-                  "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I4x4:%-5d I16x16:%-5d P:%-5d SKIP:%-3d size=%d bytes PSNR Y:%2.2f U:%2.2f V:%2.2f\n",
+                  "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I4x4:%-4d I16x16:%-4d P:%-4d SKIP:%-4d size=%d bytes PSNR Y:%2.2f U:%2.2f V:%2.2f\n",
                   h->i_frame - 1,
                   i_global_qp,
                   i_nal_ref_idc,
@@ -1283,7 +1283,7 @@ do_encode:
     else
     {
         x264_log( h, X264_LOG_DEBUG,
-                  "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I4x4:%-5d I16x16:%-5d P:%-5d SKIP:%-3d size=%d bytes\n",
+                  "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I4x4:%-4d I16x16:%-4d P:%-4d SKIP:%-4d size=%d bytes\n",
                   h->i_frame - 1,
                   i_global_qp,
                   i_nal_ref_idc,
