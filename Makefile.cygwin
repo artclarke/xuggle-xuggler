@@ -17,7 +17,7 @@ AS= nasm
 #for cygwin
 ASFLAGS=-f win32 -DPREFIX $(PFLAGS)
           
-ASMSRC= common/i386/dct.asm common/i386/cpu.asm common/i386/pixel.asm common/i386/mc.asm
+ASMSRC= common/i386/dct-a.asm common/i386/cpu-a.asm common/i386/pixel-a.asm common/i386/mc-a.asm
 OBJASM= $(ASMSRC:%.asm=%.o)
 
 OBJS = $(SRCS:%.c=%.o)

@@ -310,16 +310,16 @@ SOURCE=..\..\common\vlc.h
 # End Group
 # Begin Group "I386"
 
-# PROP Default_Filter "*.h,*.c,*.asm"
+# PROP Default_Filter "*.h,*.c,*-a.asm"
 # Begin Source File
 
-SOURCE=..\..\common\i386\cpu.asm
+SOURCE=..\..\common\i386\cpu-a.asm
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Release
-InputPath=..\..\common\i386\cpu.asm
+InputPath=..\..\common\i386\cpu-a.asm
 InputName=cpu
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -331,7 +331,7 @@ InputName=cpu
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Debug
-InputPath=..\..\common\i386\cpu.asm
+InputPath=..\..\common\i386\cpu-a.asm
 InputName=cpu
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -348,13 +348,13 @@ SOURCE="..\..\common\i386\dct-c.c"
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\common\i386\dct.asm
+SOURCE=..\..\common\i386\dct-a.asm
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Release
-InputPath=..\..\common\i386\dct.asm
+InputPath=..\..\common\i386\dct-a.asm
 InputName=dct
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -366,7 +366,7 @@ InputName=dct
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Debug
-InputPath=..\..\common\i386\dct.asm
+InputPath=..\..\common\i386\dct-a.asm
 InputName=dct
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -396,13 +396,13 @@ SOURCE="..\..\common\i386\mc-c.c"
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\common\i386\mc.asm
+SOURCE=..\..\common\i386\mc-a.asm
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Release
-InputPath=..\..\common\i386\mc.asm
+InputPath=..\..\common\i386\mc-a.asm
 InputName=mc
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -414,7 +414,7 @@ InputName=mc
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Debug
-InputPath=..\..\common\i386\mc.asm
+InputPath=..\..\common\i386\mc-a.asm
 InputName=mc
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -427,13 +427,13 @@ InputName=mc
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\common\i386\pixel.asm
+SOURCE=..\..\common\i386\pixel-a.asm
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Release
-InputPath=..\..\common\i386\pixel.asm
+InputPath=..\..\common\i386\pixel-a.asm
 InputName=pixel
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -445,7 +445,7 @@ InputName=pixel
 
 # Begin Custom Build - Assembly $(InputPath)
 IntDir=.\Debug
-InputPath=..\..\common\i386\pixel.asm
+InputPath=..\..\common\i386\pixel-a.asm
 InputName=pixel
 
 "$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"

@@ -18,7 +18,7 @@ SRCS= $(SRCS_COMMON) common/ppc/mc.c common/ppc/pixel.c
 else
 PFLAGS=-DARCH_X86 -DHAVE_MMXEXT -DHAVE_SSE2 -DHAVE_MALLOC_H
 SRCS= $(SRCS_COMMON) common/i386/mc-c.c common/i386/dct-c.c common/i386/predict.c
-ASMSRC= common/i386/dct.asm common/i386/cpu.asm common/i386/pixel.asm common/i386/mc.asm
+ASMSRC= common/i386/dct-a.asm common/i386/cpu-a.asm common/i386/pixel-a.asm common/i386/mc-a.asm
 OBJASM= $(ASMSRC:%.asm=%.o)
 endif
 
