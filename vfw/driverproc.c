@@ -119,15 +119,15 @@ LRESULT WINAPI DriverProc( DWORD dwDriverId, HDRVR hDriver, UINT uMsg, LPARAM lP
                 CONFIG temp;
 
                 codec->config.b_save = FALSE;
-			    memcpy( &temp, &codec->config, sizeof(CONFIG) );
+                memcpy( &temp, &codec->config, sizeof(CONFIG) );
 
                 DialogBoxParam( g_hInst, MAKEINTRESOURCE(IDD_MAINCONFIG), (HWND)lParam1, callback_main, (LPARAM)&temp );
 
-			    if( temp.b_save )
-			    {
-				    memcpy( &codec->config, &temp, sizeof(CONFIG) );
+                if( temp.b_save )
+                {
+                    memcpy( &codec->config, &temp, sizeof(CONFIG) );
                     config_reg_save( &codec->config );
-			    }
+                }
             }
             return ICERR_OK;
 
@@ -215,9 +215,11 @@ LRESULT WINAPI DriverProc( DWORD dwDriverId, HDRVR hDriver, UINT uMsg, LPARAM lP
             }
             return ICERR_UNSUPPORTED;
 #endif
-
         default:
-            return DefDriverProc( dwDriverId, hDriver, uMsg, lParam1, lParam2 );
+        if (uMsg < DRV_USER)
+            return DefDriverProc(dwDriverId, hDriver, uMsg, lParam1, lParam2);
+        else 
+            return ICERR_UNSUPPORTED;
     }
 }
 

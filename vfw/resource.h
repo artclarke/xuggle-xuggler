@@ -13,17 +13,26 @@
 #define IDC_CABAC                       1005
 #define IDC_BITRATEEDIT2                1005
 #define IDC_QUANTEDIT                   1005
+#define IDC_B16X16                      1006
+#define IDC_2PASSBITRATE_S              1006
 #define IDC_LOOPFILTER                  1007
+#define IDC_2PASSBITRATE                1007
+#define IDC_I4X4                        1008
 #define IDC_BITRATELOW                  1009
+#define IDC_P16X16                      1009
 #define IDC_BITRATELOW2                 1010
+#define IDC_P8X8                        1010
 #define IDC_BITRATEHIGH                 1011
 #define IDC_BFRAMES                     1012
 #define IDC_BITRATEHIGH2                1012
 #define IDC_IDRFRAMES                   1012
 #define IDC_BFRAMES2                    1013
 #define IDC_IFRAMES                     1013
+#define IDC_BITRATELOW3                 1013
 #define IDC_EDIT3                       1014
 #define IDC_KEYFRAME                    1014
+#define IDC_BITRATEHIGH3                1014
+#define IDC_BFRAME                      1015
 #define IDC_DEFAULTS                    1016
 #define IDC_CHECK3                      1017
 #define IDC_ADVANCED                    1018
@@ -39,6 +48,14 @@
 #define IDC_X264                        1035
 #define IDC_BUILD                       1036
 #define IDC_FOURCC                      1039
+#define IDC_SUBPEL                      1040
+#define IDC_DIRECTPRED                  1041
+#define IDC_2PASS1                      1041
+#define IDC_2PASS2                      1042
+#define IDC_INLOOP_A                    1044
+#define IDC_INLOOP_B                    1045
+#define IDC_LOOPA_TXT                   1047
+#define IDC_LOOPB_TXT                   1048
 
 // Next default values for new objects
 // 
@@ -46,7 +63,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        104
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1040
+#define _APS_NEXT_CONTROL_VALUE         1049
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

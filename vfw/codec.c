@@ -24,6 +24,8 @@
 
 #include "x264vfw.h"
 
+#include <stdio.h> /* debug only */
+
 /* get_csp:
  *  return a valid x264 CSP or X264_CSP_NULL if unsuported */
 static int get_csp( BITMAPINFOHEADER *hdr )
@@ -130,6 +132,7 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
 {
     CONFIG *config = &codec->config;
     x264_param_t param;
+    static char statsfile[] = ".\\x264.stats";
 
     /* Destroy previous handle */
     if( codec->h != NULL )
@@ -141,37 +144,66 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
     /* Get default param */
     x264_param_default( &param );
 
+    param.i_log_level = X264_LOG_NONE;
+    param.analyse.b_psnr = 0;
+    param.analyse.inter = param.analyse.intra = 0;
+
     /* Set params: TODO to complete */
     param.i_width = lpbiInput->bmiHeader.biWidth;
     param.i_height= lpbiInput->bmiHeader.biHeight;
 
-    if( codec->fbase > 0 )
-        param.f_fps   = (float)codec->fincr / (float)codec->fbase;
+    param.i_fps_num = codec->fbase;
+    param.i_fps_den = codec->fincr;
 
     param.i_frame_reference = config->i_refmax;
     param.i_idrframe = config->i_idrframe;
     param.i_iframe   = config->i_iframe;
-    param.i_qp_constant = config->i_qp;
     param.b_deblocking_filter = config->b_filter;
     param.b_cabac = config->b_cabac;
 
-    param.analyse.intra = 0;
-    param.analyse.inter = 0;
+    param.i_bframe = config->i_bframe;
+    param.analyse.i_subpel_refine = config->i_subpel_refine + 1; /* 0..4 -> 1..5 */
+
+    /* bframe prediction - gui goes alphabetically, so 0=NONE, 1=SPATIAL, 2=TEMPORAL */
+    switch(config->i_direct_mv_pred) {
+        case 0: param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_NONE; break;
+        case 1: param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_SPATIAL; break;
+        case 2: param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_TEMPORAL; break;
+    }
+    param.i_deblocking_filter_alphac0 = config->i_inloop_a;
+    param.i_deblocking_filter_beta = config->i_inloop_b;
+
+    if( config->b_bsub16x16 )
+        param.analyse.inter |= X264_ANALYSE_BSUB16x16;
+
     if( config->b_psub16x16 )
         param.analyse.inter |= X264_ANALYSE_PSUB16x16;
     if( config->b_psub8x8 )
         param.analyse.inter |= X264_ANALYSE_PSUB8x8;
-    if( config->b_i4x4 )
-    {
+    if( config->b_i4x4 ) {
         param.analyse.intra |= X264_ANALYSE_I4x4;
         param.analyse.inter |= X264_ANALYSE_I4x4;
     }
 
-    switch( config->mode )
+    switch( config->i_encoding_type )
     {
-        case 0: /* 1 PASS */
+        case 0: /* 1 PASS CBR */
+            param.rc.b_cbr = 1;
+            param.rc.i_bitrate = config->bitrate;
+            break;
+        case 1: /* 1 PASS CQ */
+            param.rc.i_qp_constant = config->i_qp;
             break;
         default:
+        case 2: /* 2 PASS */
+            param.rc.psz_stat_out = param.rc.psz_stat_in = ".\\x264.stats";
+            if (config->i_pass == 1)
+                param.rc.b_stat_write = 1;
+            else {    
+                param.rc.i_bitrate = config->i_2passbitrate;
+                param.rc.b_stat_read = 1;
+                param.rc.b_cbr = 1;
+            }
             break;
     }
 
@@ -253,15 +285,18 @@ LRESULT compress( CODEC *codec, ICCOMPRESS *icc )
     /* encode it */
     x264_encoder_encode( codec->h, &nal, &i_nal, &pic );
 
-    /* create bitstream */
+    /* create bitstream, unless we're dropping it in 1st pass */
     i_out = 0;
-    for( i = 0; i < i_nal; i++ )
-    {
-        int i_size = outhdr->biSizeImage - i_out;
-        x264_nal_encode( (uint8_t*)icc->lpOutput + i_out, &i_size, 1, &nal[i] );
 
-        i_out += i_size;
+    if (codec->config.i_encoding_type != 2 || codec->config.i_pass > 1) {
+        for( i = 0; i < i_nal; i++ ) {
+            int i_size = outhdr->biSizeImage - i_out;
+            x264_nal_encode( (uint8_t*)icc->lpOutput + i_out, &i_size, 1, &nal[i] );
+
+            i_out += i_size;
+        }
     }
+
     outhdr->biSizeImage = i_out;
 
     /* Set key frame only for IDR, as they are real synch point, I frame
