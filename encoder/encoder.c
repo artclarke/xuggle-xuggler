@@ -36,7 +36,8 @@
 #include "macroblock.h"
 
 //#define DEBUG_MB_TYPE
-#define DEBUG_DUMP_FRAME 0
+//#define DEBUG_DUMP_FRAME
+#define DEBUG_PRINT_STAT
 
 static int64_t i_mtime_encode_frame = 0;
 
@@ -58,9 +59,8 @@ static int64_t i_mtime_filter = 0;
  ******************************* x264 libs **********************************
  *
  ****************************************************************************/
-
-
-static float x264_psnr( uint8_t *pix1, int i_pix_stride, uint8_t *pix2, int i_pix2_stride, int i_width, int i_height )
+#ifdef DEBUG_PRINT_STAT
+static float x264_sqe( uint8_t *pix1, int i_pix_stride, uint8_t *pix2, int i_pix2_stride, int i_width, int i_height )
 {
     int64_t i_sqe = 0;
 
@@ -77,15 +77,25 @@ static float x264_psnr( uint8_t *pix1, int i_pix_stride, uint8_t *pix2, int i_pi
             i_sqe += tmp * tmp;
         }
     }
-
-    if( i_sqe == 0 )
-    {
-        return -1.0;
-    }
-    return (float)(10.0 * log( (double)65025.0 * (double)i_height * (double)i_width / (double)i_sqe ) / log( 10.0 ));
+    return i_sqe;
 }
 
-#if DEBUG_DUMP_FRAME
+static float x264_mse( int64_t i_sqe, int64_t i_size )
+{
+    return (double)i_sqe / ((double)65025.0 * (double)i_size);
+}
+
+static float x264_psnr( int64_t i_sqe, int64_t i_size )
+{
+    double f_mse = (double)i_sqe / ((double)65025.0 * (double)i_size);
+    if( f_mse <= 0.0000000001 ) /* Max 100dB */
+        return 100;
+
+    return (float)(-10.0 * log( f_mse ) / log( 10.0 ));
+}
+#endif
+
+#ifdef DEBUG_DUMP_FRAME
 static void x264_frame_dump( x264_t *h, x264_frame_t *fr, char *name )
 {
     FILE * f = fopen( name, "a" );
@@ -409,9 +419,17 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->stat.i_slice_size[SLICE_TYPE_P] = 0;
     h->stat.i_slice_size[SLICE_TYPE_B] = 0;
 
-    h->stat.f_psnr_y[SLICE_TYPE_I] = 0.0; h->stat.f_psnr_u[SLICE_TYPE_I] = 0.0; h->stat.f_psnr_v[SLICE_TYPE_I] = 0.0;
-    h->stat.f_psnr_y[SLICE_TYPE_P] = 0.0; h->stat.f_psnr_u[SLICE_TYPE_P] = 0.0; h->stat.f_psnr_v[SLICE_TYPE_P] = 0.0;
-    h->stat.f_psnr_y[SLICE_TYPE_B] = 0.0; h->stat.f_psnr_u[SLICE_TYPE_B] = 0.0; h->stat.f_psnr_v[SLICE_TYPE_B] = 0.0;
+    h->stat.i_sqe_global[SLICE_TYPE_I] = 0;
+    h->stat.f_psnr_average[SLICE_TYPE_I] = 0.0;
+    h->stat.f_psnr_mean_y[SLICE_TYPE_I] = h->stat.f_psnr_mean_u[SLICE_TYPE_I] = h->stat.f_psnr_mean_v[SLICE_TYPE_I] = 0.0;
+
+    h->stat.i_sqe_global[SLICE_TYPE_P] = 0;
+    h->stat.f_psnr_average[SLICE_TYPE_P] = 0.0;
+    h->stat.f_psnr_mean_y[SLICE_TYPE_P] = h->stat.f_psnr_mean_u[SLICE_TYPE_P] = h->stat.f_psnr_mean_v[SLICE_TYPE_P] = 0.0;
+
+    h->stat.i_sqe_global[SLICE_TYPE_B] = 0;
+    h->stat.f_psnr_average[SLICE_TYPE_B] = 0.0;
+    h->stat.f_psnr_mean_y[SLICE_TYPE_B] = h->stat.f_psnr_mean_u[SLICE_TYPE_B] = h->stat.f_psnr_mean_v[SLICE_TYPE_B] = 0.0;
 
     for( i = 0; i < 17; i++ )
     {
@@ -799,14 +817,14 @@ int     x264_encoder_encode( x264_t *h,
                              x264_nal_t **pp_nal, int *pi_nal,
                              x264_picture_t *pic )
 {
-    x264_frame_t   *frame_psnr = h->fdec; /* just to kept the current decoded frame for psnr calculation */
+    x264_frame_t   *frame_psnr = h->fdec; /* just to keep the current decoded frame for psnr calculation */
     int     i_nal_type;
     int     i_nal_ref_idc;
     int     i_slice_type;
 
     int i;
 
-    float psnr_y, psnr_u, psnr_v;
+    int64_t i_sqe_y, i_sqe_u, i_sqe_v;
 
     int   i_global_qp;
 
@@ -1122,17 +1140,21 @@ do_encode:
     TIMER_STOP( i_mtime_encode_frame );
 
     /* ---------------------- Compute/Print statistics --------------------- */
+#ifdef DEBUG_PRINT_STAT
     /* PSNR */
-    psnr_y = x264_psnr( frame_psnr->plane[0], frame_psnr->i_stride[0], h->fenc->plane[0], h->fenc->i_stride[0], h->param.i_width, h->param.i_height );
-    psnr_u = x264_psnr( frame_psnr->plane[1], frame_psnr->i_stride[1], h->fenc->plane[1], h->fenc->i_stride[1], h->param.i_width/2, h->param.i_height/2);
-    psnr_v = x264_psnr( frame_psnr->plane[2], frame_psnr->i_stride[2], h->fenc->plane[2], h->fenc->i_stride[2], h->param.i_width/2, h->param.i_height/2);
+    i_sqe_y = x264_sqe( frame_psnr->plane[0], frame_psnr->i_stride[0], h->fenc->plane[0], h->fenc->i_stride[0], h->param.i_width, h->param.i_height );
+    i_sqe_u = x264_sqe( frame_psnr->plane[1], frame_psnr->i_stride[1], h->fenc->plane[1], h->fenc->i_stride[1], h->param.i_width/2, h->param.i_height/2);
+    i_sqe_v = x264_sqe( frame_psnr->plane[2], frame_psnr->i_stride[2], h->fenc->plane[2], h->fenc->i_stride[2], h->param.i_width/2, h->param.i_height/2);
 
     /* Slice stat */
     h->stat.i_slice_count[i_slice_type]++;
     h->stat.i_slice_size[i_slice_type] += bs_pos( &h->out.bs) / 8;
-    h->stat.f_psnr_y[i_slice_type] += psnr_y;
-    h->stat.f_psnr_u[i_slice_type] += psnr_u;
-    h->stat.f_psnr_v[i_slice_type] += psnr_v;
+
+    h->stat.i_sqe_global[i_slice_type] += i_sqe_y + i_sqe_u + i_sqe_v;
+    h->stat.f_psnr_average[i_slice_type] += x264_psnr( i_sqe_y + i_sqe_u + i_sqe_v, 3 * h->param.i_width * h->param.i_height / 2 );
+    h->stat.f_psnr_mean_y[i_slice_type] += x264_psnr( i_sqe_y, h->param.i_width * h->param.i_height );
+    h->stat.f_psnr_mean_u[i_slice_type] += x264_psnr( i_sqe_u, h->param.i_width * h->param.i_height / 4 );
+    h->stat.f_psnr_mean_v[i_slice_type] += x264_psnr( i_sqe_v, h->param.i_width * h->param.i_height / 4 );
 
     for( i = 0; i < 17; i++ )
     {
@@ -1151,7 +1173,9 @@ do_encode:
              i_mb_count[P_L0] + i_mb_count[P_8x8],
              i_mb_count[P_SKIP],
              h->out.nal[h->out.i_nal-1].i_payload,
-             psnr_y, psnr_u, psnr_v );
+             x264_psnr( i_sqe_y, h->param.i_width * h->param.i_height ),
+             x264_psnr( i_sqe_u, h->param.i_width * h->param.i_height / 4),
+             x264_psnr( i_sqe_v, h->param.i_width * h->param.i_height / 4) );
 #ifdef DEBUG_MB_TYPE
     for( mb_xy = 0; mb_xy < h->sps->i_mb_width * h->sps->i_mb_height; mb_xy++ )
     {
@@ -1177,8 +1201,9 @@ do_encode:
         fprintf( stderr, " " );
     }
 #endif
+#endif
 
-#if DEBUG_DUMP_FRAME
+#ifdef DEBUG_DUMP_FRAME
     /* Dump reconstructed frame */
     x264_frame_dump( h, frame_psnr, "fdec.yuv" );
 #endif
@@ -1201,8 +1226,10 @@ do_encode:
 void    x264_encoder_close  ( x264_t *h )
 {
     int64_t i_mtime_total = i_mtime_analyse + i_mtime_encode + i_mtime_write + i_mtime_filter + 1;
+    int64_t i_yuv_size = 3 * h->param.i_width * h->param.i_height / 2;
     int i;
 
+#ifdef DEBUG_PRINT_STAT
     fprintf( stderr, "x264: analyse=%d(%lldms) encode=%d(%lldms) write=%d(%lldms) filter=%d(%lldms)\n",
              (int)(100*i_mtime_analyse/i_mtime_total), i_mtime_analyse/1000,
              (int)(100*i_mtime_encode/i_mtime_total), i_mtime_encode/1000,
@@ -1213,34 +1240,35 @@ void    x264_encoder_close  ( x264_t *h )
     if( h->stat.i_slice_count[SLICE_TYPE_I] > 0 )
     {
         const int i_count = h->stat.i_slice_count[SLICE_TYPE_I];
-        fprintf( stderr, "x264: slice I:%-4d Avg size:%-5d PSNR Y:%2.2f U:%2.2f V:%2.2f PSNR-Y/Size:%2.2f\n",
+        fprintf( stderr, "x264: slice I:%-4d Avg size:%-5d PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
                  i_count,
                  h->stat.i_slice_size[SLICE_TYPE_I] / i_count,
-                 h->stat.f_psnr_y[SLICE_TYPE_I] / i_count,
-                 h->stat.f_psnr_u[SLICE_TYPE_I] / i_count,
-                 h->stat.f_psnr_v[SLICE_TYPE_I] / i_count,
-                 1000*h->stat.f_psnr_y[SLICE_TYPE_I] / h->stat.i_slice_size[SLICE_TYPE_I] );
+                 h->stat.f_psnr_mean_y[SLICE_TYPE_I] / i_count, h->stat.f_psnr_mean_u[SLICE_TYPE_I] / i_count, h->stat.f_psnr_mean_v[SLICE_TYPE_I] / i_count,
+                 h->stat.f_psnr_average[SLICE_TYPE_I] / i_count,
+                 x264_psnr( h->stat.i_sqe_global[SLICE_TYPE_I], i_count * i_yuv_size ),
+                 x264_mse( h->stat.i_sqe_global[SLICE_TYPE_I], i_count * i_yuv_size ) * h->stat.i_slice_size[SLICE_TYPE_I] / i_count );
     }
     if( h->stat.i_slice_count[SLICE_TYPE_P] > 0 )
     {
         const int i_count = h->stat.i_slice_count[SLICE_TYPE_P];
-        fprintf( stderr, "x264: slice P:%-4d Avg size:%-5d PSNR Y:%2.2f U:%2.2f V:%2.2f PSNR-Y/Size:%2.2f\n",
-                i_count,
-                h->stat.i_slice_size[SLICE_TYPE_P] / i_count,
-                h->stat.f_psnr_y[SLICE_TYPE_P] / i_count,
-                h->stat.f_psnr_u[SLICE_TYPE_P] / i_count,
-                h->stat.f_psnr_v[SLICE_TYPE_P] / i_count,
-                1000.0*h->stat.f_psnr_y[SLICE_TYPE_P] / h->stat.i_slice_size[SLICE_TYPE_P] );
+        fprintf( stderr, "x264: slice P:%-4d Avg size:%-5d PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
+                 i_count,
+                 h->stat.i_slice_size[SLICE_TYPE_P] / i_count,
+                 h->stat.f_psnr_mean_y[SLICE_TYPE_P] / i_count, h->stat.f_psnr_mean_u[SLICE_TYPE_P] / i_count, h->stat.f_psnr_mean_v[SLICE_TYPE_P] / i_count,
+                 h->stat.f_psnr_average[SLICE_TYPE_P] / i_count,
+                 x264_psnr( h->stat.i_sqe_global[SLICE_TYPE_P], i_count * i_yuv_size ),
+                 x264_mse( h->stat.i_sqe_global[SLICE_TYPE_P], i_count * i_yuv_size ) * h->stat.i_slice_size[SLICE_TYPE_P] / i_count );
     }
     if( h->stat.i_slice_count[SLICE_TYPE_B] > 0 )
     {
-        fprintf( stderr, "x264: slice B:%-4d Avg size:%-5d PSNR Y:%2.2f U:%2.2f V:%2.2f PSNR-Y/Size:%2.2f\n",
-                h->stat.i_slice_count[SLICE_TYPE_B],
-                h->stat.i_slice_size[SLICE_TYPE_B] / h->stat.i_slice_count[SLICE_TYPE_B],
-                h->stat.f_psnr_y[SLICE_TYPE_B] / h->stat.i_slice_count[SLICE_TYPE_B],
-                h->stat.f_psnr_u[SLICE_TYPE_B] / h->stat.i_slice_count[SLICE_TYPE_B],
-                h->stat.f_psnr_v[SLICE_TYPE_B] / h->stat.i_slice_count[SLICE_TYPE_B],
-                1000*h->stat.f_psnr_y[SLICE_TYPE_B] / h->stat.i_slice_size[SLICE_TYPE_B] );
+        const int i_count = h->stat.i_slice_count[SLICE_TYPE_B];
+        fprintf( stderr, "x264: slice B:%-4d Avg size:%-5d PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
+                 h->stat.i_slice_count[SLICE_TYPE_B],
+                 h->stat.i_slice_size[SLICE_TYPE_B] / i_count,
+                 h->stat.f_psnr_mean_y[SLICE_TYPE_B] / i_count, h->stat.f_psnr_mean_u[SLICE_TYPE_B] / i_count, h->stat.f_psnr_mean_v[SLICE_TYPE_B] / i_count,
+                 h->stat.f_psnr_average[SLICE_TYPE_B] / i_count,
+                 x264_psnr( h->stat.i_sqe_global[SLICE_TYPE_B], i_count * i_yuv_size ),
+                 x264_mse( h->stat.i_sqe_global[SLICE_TYPE_B], i_count * i_yuv_size ) * h->stat.i_slice_size[SLICE_TYPE_B] / i_count );
     }
 
     /* MB types used */
@@ -1262,18 +1290,25 @@ void    x264_encoder_close  ( x264_t *h )
                  h->stat.i_mb_count[SLICE_TYPE_P][P_SKIP] /i_count );
     }
 
+    if( h->stat.i_slice_count[SLICE_TYPE_I] + h->stat.i_slice_count[SLICE_TYPE_P] + h->stat.i_slice_count[SLICE_TYPE_B] > 0 )
     {
         const int i_count = h->stat.i_slice_count[SLICE_TYPE_I] +
                             h->stat.i_slice_count[SLICE_TYPE_P] +
                             h->stat.i_slice_count[SLICE_TYPE_B];
 
-        fprintf( stderr, "x264: overall PSNR Y:%2.2f U:%2.2f V:%2.2f kb/s:%.1f fps:%.3f\n",
-                 (h->stat.f_psnr_y[SLICE_TYPE_I]+h->stat.f_psnr_y[SLICE_TYPE_P]+h->stat.f_psnr_y[SLICE_TYPE_B]) / i_count,
-                 (h->stat.f_psnr_u[SLICE_TYPE_I]+h->stat.f_psnr_u[SLICE_TYPE_P]+h->stat.f_psnr_u[SLICE_TYPE_B]) / i_count,
-                 (h->stat.f_psnr_v[SLICE_TYPE_I]+h->stat.f_psnr_v[SLICE_TYPE_P]+h->stat.f_psnr_v[SLICE_TYPE_B]) / i_count,
+        fprintf( stderr, "x264: overall PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f kb/s:%.1f fps:%.3f\n",
+                 (h->stat.f_psnr_mean_y[SLICE_TYPE_I] + h->stat.f_psnr_mean_y[SLICE_TYPE_P] + h->stat.f_psnr_mean_y[SLICE_TYPE_B]) / i_count,
+                 (h->stat.f_psnr_mean_u[SLICE_TYPE_I] + h->stat.f_psnr_mean_u[SLICE_TYPE_P] + h->stat.f_psnr_mean_u[SLICE_TYPE_B]) / i_count,
+                 (h->stat.f_psnr_mean_v[SLICE_TYPE_I] + h->stat.f_psnr_mean_v[SLICE_TYPE_P] + h->stat.f_psnr_mean_v[SLICE_TYPE_B]) / i_count,
+
+                 (h->stat.f_psnr_average[SLICE_TYPE_I] + h->stat.f_psnr_average[SLICE_TYPE_P] + h->stat.f_psnr_average[SLICE_TYPE_B]) / i_count,
+
+                 x264_psnr( h->stat.i_sqe_global[SLICE_TYPE_I] + h->stat.i_sqe_global[SLICE_TYPE_P]+ h->stat.i_sqe_global[SLICE_TYPE_B],
+                            i_count * i_yuv_size ),
                  h->param.f_fps * 8*(h->stat.i_slice_size[SLICE_TYPE_I]+h->stat.i_slice_size[SLICE_TYPE_P]+h->stat.i_slice_size[SLICE_TYPE_B]) / i_count / 1024,
                  (double)1000000.0 * (double)i_count / (double)i_mtime_encode_frame );
     }
+#endif
 
     /* frames */
     for( i = 0; i < X264_BFRAME_MAX + 1; i++ )

@@ -324,9 +324,13 @@ struct x264_t
         /* per slice info */
         int   i_slice_count[5];
         int   i_slice_size[5];
-        float f_psnr_y[5];
-        float f_psnr_u[5];
-        float f_psnr_v[5];
+        /* */
+        int64_t i_sqe_global[5];
+        float   f_psnr_average[5];
+        float   f_psnr_mean_y[5];
+        float   f_psnr_mean_u[5];
+        float   f_psnr_mean_v[5];
+        /* */
         int   i_mb_count[5][18];
     } stat;
 
