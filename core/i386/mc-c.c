@@ -2,7 +2,7 @@
  * mc.c: h264 encoder library (Motion Compensation)
  *****************************************************************************
  * Copyright (C) 2003 Laurent Aimar
- * $Id: mc-c.c,v 1.4 2004/06/17 09:01:19 chenm001 Exp $
+ * $Id: mc-c.c,v 1.5 2004/06/18 01:59:58 chenm001 Exp $
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *
@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "x264.h"   /* DECLARE_ALIGNED */
 #include "../mc.h"
 #include "../clip1.h"
 #include "mc.h"
@@ -198,12 +199,6 @@ static inline void pixel_avg_w4( uint8_t *dst,  int i_dst_stride,
         src2 += i_src2_stride;
     }
 }
-#else
-extern void pixel_avg_w4( uint8_t *dst,  int i_dst_stride,
-                          uint8_t *src1, int i_src1_stride,
-                          uint8_t *src2, int i_src2_stride,
-                          int i_height );
-#endif
 
 static inline void pixel_avg_w8( uint8_t *dst,  int i_dst_stride,
                                  uint8_t *src1, int i_src1_stride,
@@ -251,6 +246,20 @@ static inline void pixel_avg_w16( uint8_t *dst,  int i_dst_stride,
         src2 += i_src2_stride;
     }
 }
+#else
+extern void pixel_avg_w4( uint8_t *dst,  int i_dst_stride,
+                          uint8_t *src1, int i_src1_stride,
+                          uint8_t *src2, int i_src2_stride,
+                          int i_height );
+extern void pixel_avg_w8( uint8_t *dst,  int i_dst_stride,
+                          uint8_t *src1, int i_src1_stride,
+                          uint8_t *src2, int i_src2_stride,
+                          int i_height );
+extern void pixel_avg_w16( uint8_t *dst,  int i_dst_stride,
+                           uint8_t *src1, int i_src1_stride,
+                           uint8_t *src2, int i_src2_stride,
+                           int i_height );
+#endif
 
 typedef void (*pf_mc_t)(uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height );
 
@@ -803,34 +812,34 @@ static inline void mc_hc_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int 
 /* mc I+H */
 static void mc_xy10_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
-    uint8_t tmp[16*16];
+    DECLARE_ALIGNED(uint8_t, tmp[16*16], 16);
     mc_hh_w16( src, i_src_stride, tmp, 16, i_height );
     pixel_avg_w16( dst, i_dst_stride, src, i_src_stride, tmp, 16, i_height );
 }
 static void mc_xy30_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
-    uint8_t tmp[16*16];
+    DECLARE_ALIGNED(uint8_t, tmp[16*16], 16);
     mc_hh_w16( src, i_src_stride, tmp, 16, i_height );
     pixel_avg_w16( dst, i_dst_stride, src+1, i_src_stride, tmp, 16, i_height );
 }
 /* mc I+V */
 static void mc_xy01_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
-    uint8_t tmp[16*16];
+    DECLARE_ALIGNED(uint8_t, tmp[16*16], 16);
     mc_hv_w16( src, i_src_stride, tmp, 16, i_height );
     pixel_avg_w16( dst, i_dst_stride, src, i_src_stride, tmp, 16, i_height );
 }
 static void mc_xy03_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
-    uint8_t tmp[16*16];
+    DECLARE_ALIGNED(uint8_t, tmp[16*16], 16);
     mc_hv_w16( src, i_src_stride, tmp, 16, i_height );
     pixel_avg_w16( dst, i_dst_stride, src+i_src_stride, i_src_stride, tmp, 16, i_height );
 }
 /* H+V */
 static void mc_xy11_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
+    DECLARE_ALIGNED(uint8_t, tmp1[16*16], 16);
+    DECLARE_ALIGNED(uint8_t, tmp2[16*16], 16);
 
     mc_hv_w16( src, i_src_stride, tmp1, 16, i_height );
     mc_hh_w16( src, i_src_stride, tmp2, 16, i_height );
@@ -838,8 +847,8 @@ static void mc_xy11_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst
 }
 static void mc_xy31_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
+    DECLARE_ALIGNED(uint8_t, tmp1[16*16], 16);
+    DECLARE_ALIGNED(uint8_t, tmp2[16*16], 16);
 
     mc_hv_w16( src+1, i_src_stride, tmp1, 16, i_height );
     mc_hh_w16( src,   i_src_stride, tmp2, 16, i_height );
@@ -847,8 +856,8 @@ static void mc_xy31_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst
 }
 static void mc_xy13_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
+    DECLARE_ALIGNED(uint8_t, tmp1[16*16], 16);
+    DECLARE_ALIGNED(uint8_t, tmp2[16*16], 16);
 
     mc_hv_w16( src,              i_src_stride, tmp1, 16, i_height );
     mc_hh_w16( src+i_src_stride, i_src_stride, tmp2, 16, i_height );
@@ -856,8 +865,8 @@ static void mc_xy13_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst
 }
 static void mc_xy33_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
+    DECLARE_ALIGNED(uint8_t, tmp1[16*16], 16);
+    DECLARE_ALIGNED(uint8_t, tmp2[16*16], 16);
 
     mc_hv_w16( src+1,            i_src_stride, tmp1, 16, i_height );
     mc_hh_w16( src+i_src_stride, i_src_stride, tmp2, 16, i_height );
@@ -865,8 +874,8 @@ static void mc_xy33_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst
 }
 static void mc_xy21_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
+    DECLARE_ALIGNED(uint8_t, tmp1[16*16], 16);
+    DECLARE_ALIGNED(uint8_t, tmp2[16*16], 16);
 
     mc_hc_w16( src, i_src_stride, tmp1, 16, i_height );
     mc_hh_w16( src, i_src_stride, tmp2, 16, i_height );
@@ -874,8 +883,8 @@ static void mc_xy21_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst
 }
 static void mc_xy12_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
+    DECLARE_ALIGNED(uint8_t, tmp1[16*16], 16);
+    DECLARE_ALIGNED(uint8_t, tmp2[16*16], 16);
 
     mc_hc_w16( src, i_src_stride, tmp1, 16, i_height );
     mc_hv_w16( src, i_src_stride, tmp2, 16, i_height );
@@ -883,8 +892,8 @@ static void mc_xy12_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst
 }
 static void mc_xy32_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
+    DECLARE_ALIGNED(uint8_t, tmp1[16*16], 16);
+    DECLARE_ALIGNED(uint8_t, tmp2[16*16], 16);
 
     mc_hc_w16( src,   i_src_stride, tmp1, 16, i_height );
     mc_hv_w16( src+1, i_src_stride, tmp2, 16, i_height );
@@ -892,8 +901,8 @@ static void mc_xy32_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst
 }
 static void mc_xy23_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
+    DECLARE_ALIGNED(uint8_t, tmp1[16*16], 16);
+    DECLARE_ALIGNED(uint8_t, tmp2[16*16], 16);
 
     mc_hc_w16( src,              i_src_stride, tmp1, 16, i_height );
     mc_hh_w16( src+i_src_stride, i_src_stride, tmp2, 16, i_height );

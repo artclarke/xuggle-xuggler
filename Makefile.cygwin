@@ -1,7 +1,8 @@
 # Makefile: tuned for i386/MMX cygwin system only
 #
+PFLAGS=-DARCH_X86 -DHAVE_MMXEXT -DHAVE_SSE2
 CC=gcc
-CFLAGS=-g -Wall -I. -mno-cygwin -DDEBUG -O4 -funroll-loops -D__X264__ -UHAVE_MALLOC_H -DHAVE_MMXEXT -DARCH_X86
+CFLAGS=-g -Wall -I. -mno-cygwin -DDEBUG -O4 -funroll-loops -D__X264__ -UHAVE_MALLOC_H $(PFLAGS)
 
 SRCS=  core/mc.c core/predict.c core/pixel.c core/macroblock.c \
        core/frame.c core/dct.c core/cpu.c core/cabac.c \
@@ -14,8 +15,8 @@ SRCS=  core/mc.c core/predict.c core/pixel.c core/macroblock.c \
 
 AS= nasm
 #for cygwin
-ASFLAGS=-f win32 -DPREFIX
-
+ASFLAGS=-f win32 -DPREFIX $(PFLAGS)
+          
 ASMSRC= core/i386/dct.asm core/i386/cpu.asm core/i386/pixel.asm core/i386/mc.asm
 OBJASM= $(ASMSRC:%.asm=%.o)
 

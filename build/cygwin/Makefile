@@ -4,7 +4,7 @@
 #
 # Author: x264 by Laurent Aimar <fenrir@via.ecp.fr>
 #
-# $Id: Makefile,v 1.3 2004/06/14 05:47:51 chenm001 Exp $
+# $Id: Makefile,v 1.4 2004/06/18 02:00:40 chenm001 Exp $
 ##############################################################################
 
 # Current dir
@@ -28,6 +28,11 @@ SRC_ASM= core/i386/dct.asm core/i386/cpu.asm core/i386/pixel.asm core/i386/mc.as
 RM= rm -rf
 
 ##############################################################################
+# PFLAGS
+##############################################################################
+PFLAGS=-DARCH_X86 -DHAVE_MMXEXT -UHAVE_SSE2
+
+##############################################################################
 # CFLAGS
 ##############################################################################
 
@@ -35,7 +40,8 @@ RM= rm -rf
 # The `mingw-runtime` package is required when building with -mno-cygwin
 CFLAGS += -I$(DIR_SRC)
 CFLAGS += -mno-cygwin
-CFLAGS += -D__X264__ -DARCH_X86 -DHAVE_MMXEXT -D_CYGWIN
+CFLAGS += -D__X264__ -D_CYGWIN
+CFLAGS += $(PFLAGS)
 
 # Optional Compiler options
 CFLAGS += -g -Wall -DDEBUG
@@ -55,7 +61,7 @@ LDFLAGS += -L$(DIR_LIB) -lx264
 # ASM
 ##############################################################################
 AS= nasm
-ASFLAGS= -f win32 -DPREFIX
+ASFLAGS= -f win32 -DPREFIX $(PFLAGS)
 ##############################################################################
 # Rules
 ##############################################################################

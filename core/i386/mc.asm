@@ -2,7 +2,7 @@
 ;* mc.asm: h264 encoder library
 ;*****************************************************************************
 ;* Copyright (C) 2003 x264 project
-;* $Id: mc.asm,v 1.2 2004/06/17 09:01:19 chenm001 Exp $
+;* $Id: mc.asm,v 1.3 2004/06/18 01:59:58 chenm001 Exp $
 ;*
 ;* Authors: Min Chen <chenm001.163.com> (converted to nasm)
 ;*          Laurent Aimar <fenrir@via.ecp.fr> (init algorithm)
@@ -111,6 +111,95 @@ ALIGN 4
     ret
 
                           
+cglobal pixel_avg_w8
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+; void pixel_avg_w8( uint8_t *dst,  int i_dst_stride,
+;                    uint8_t *src1, int i_src1_stride,
+;                    uint8_t *src2, int i_src2_stride,
+;                    int i_height );
+;-----------------------------------------------------------------------------
+pixel_avg_w8:
+    push        ebp
+    push        ebx
+    push        esi
+    push        edi
+
+    mov         edi, [esp+20]       ; dst
+    mov         ebx, [esp+28]       ; src1
+    mov         ecx, [esp+36]       ; src2
+    mov         esi, [esp+24]       ; i_dst_stride
+    mov         eax, [esp+32]       ; i_src1_stride
+    mov         edx, [esp+40]       ; i_src2_stride
+    mov         ebp, [esp+44]       ; i_height
+ALIGN 4
+.height_loop    
+    movq        mm0, [ebx]
+    pavgb       mm0, [ecx]
+    movq        [edi], mm0
+    dec         ebp
+    lea         ebx, [ebx+eax]
+    lea         ecx, [ecx+edx]
+    lea         edi, [edi+esi]
+    jne         .height_loop
+
+    pop         edi
+    pop         esi
+    pop         ebx
+    pop         ebp
+    ret
+
+
+cglobal pixel_avg_w16
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+; void pixel_avg_w16( uint8_t *dst,  int i_dst_stride,
+;                     uint8_t *src1, int i_src1_stride,
+;                     uint8_t *src2, int i_src2_stride,
+;                     int i_height );
+;-----------------------------------------------------------------------------
+pixel_avg_w16:
+    push        ebp
+    push        ebx
+    push        esi
+    push        edi
+
+    mov         edi, [esp+20]       ; dst
+    mov         ebx, [esp+28]       ; src1
+    mov         ecx, [esp+36]       ; src2
+    mov         esi, [esp+24]       ; i_dst_stride
+    mov         eax, [esp+32]       ; i_src1_stride
+    mov         edx, [esp+40]       ; i_src2_stride
+    mov         ebp, [esp+44]       ; i_height
+ALIGN 4
+.height_loop    
+%ifndef HAVE_SSE2
+    movq        mm0, [ebx  ]
+    movq        mm1, [ebx+8]
+    pavgb       mm0, [ecx  ]
+    pavgb       mm1, [ecx+8]
+    movq        [edi  ], mm0
+    movq        [edi+8], mm1
+%else
+    movdqu      xmm0, [ebx]
+    pavgb       xmm0, [ecx]
+    movdqu      [edi], xmm0
+%endif
+    dec         ebp
+    lea         ebx, [ebx+eax]
+    lea         ecx, [ecx+edx]
+    lea         edi, [edi+esi]
+    jne         .height_loop
+
+    pop         edi
+    pop         esi
+    pop         ebx
+    pop         ebp
+    ret
+
+
 cglobal mc_copy_w4
 
 ALIGN 16
@@ -201,6 +290,7 @@ mc_copy_w16:
     mov     ecx, [esp+32]       ; i_height
 ALIGN 4
 .height_loop
+%ifndef HAVE_SSE2
     movq    mm0, [esi]
     movq    mm1, [esi+8]
     movq    [edi], mm0
@@ -221,10 +311,20 @@ ALIGN 4
     movq    [edi+edx+8], mm7
     lea     esi, [esi+ebx*2]
     lea     edi, [edi+edx*2]
-    
     sub     ecx, byte 4
     jnz     .height_loop
-
+%else
+    movdqu  xmm0, [esi]
+    movdqu  xmm1, [esi+ebx]
+    movdqu  [edi], xmm0
+    movdqu  [edi+edx], xmm1
+    dec     ecx
+    dec     ecx
+    lea     esi, [esi+ebx*2]
+    lea     edi, [edi+edx*2]
+    jnz     .height_loop
+%endif
+    
     pop     edi
     pop     esi
     pop     ebx

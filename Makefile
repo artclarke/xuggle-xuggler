@@ -4,8 +4,9 @@
 #  Defines: HAVE_ALTIVEC
 #  CFLAGS: -faltivec
 #
+PFLAGS=-DARCH_X86 -DHAVE_MMXEXT -DHAVE_SSE2
 CC=gcc
-CFLAGS=-g -Wall -I. -DDEBUG -O4 -funroll-loops -D__X264__ -DHAVE_MALLOC_H -DHAVE_MMXEXT -DARCH_X86
+CFLAGS=-g -Wall -I. -DDEBUG -O4 -funroll-loops -D__X264__ -DHAVE_MALLOC_H $(PFLAGS)
 
 SRCS=  core/mc.c core/predict.c core/pixel.c core/macroblock.c \
        core/frame.c core/dct.c core/cpu.c core/cabac.c \
@@ -18,7 +19,7 @@ SRCS=  core/mc.c core/predict.c core/pixel.c core/macroblock.c \
 
 AS= nasm
 # for linux
-ASFLAGS=-f elf
+ASFLAGS=-f elf $(PFLAGS)
 # for cygwin
 #ASFLAGS=-f gnuwin32 -DPREFIX
 
