@@ -173,10 +173,6 @@ int x264_ratecontrol_new( x264_t *h )
     rc->bitrate = h->param.rc.i_bitrate * 1000;
     rc->nmb = h->mb.i_mb_count;
 
-    rc->qp = h->param.rc.i_qp_constant;
-    rc->qpa = rc->qp;
-    rc->qpm = rc->qp;
-
     rc->qp_constant[SLICE_TYPE_P] = h->param.rc.i_qp_constant;
     rc->qp_constant[SLICE_TYPE_I] = x264_clip3( (int)( qscale2qp( qp2qscale( h->param.rc.i_qp_constant ) / fabs( h->param.rc.f_ip_factor )) + 0.5 ), 0, 51 );
     rc->qp_constant[SLICE_TYPE_B] = x264_clip3( (int)( qscale2qp( qp2qscale( h->param.rc.i_qp_constant ) * fabs( h->param.rc.f_pb_factor )) + 0.5 ), 0, 51 );
@@ -351,7 +347,13 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
 
     x264_cpu_restore( h->param.cpu );
 
-    if( h->param.rc.b_stat_read )
+    if( !h->param.rc.b_cbr )
+    {
+        rc->qpm = rc->qpa = rc->qp =
+            rc->qp_constant[ i_slice_type ];
+        return;
+    }
+    else if( h->param.rc.b_stat_read )
     {
         int frame = h->fenc->i_frame;
         ratecontrol_entry_t *rce = &h->rc->entry[frame];
@@ -361,12 +363,6 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
         rce->new_qscale = rate_estimate_qscale( h, i_slice_type );
         rc->qpm = rc->qpa = rc->qp = rce->new_qp =
             (int)(qscale2qp(rce->new_qscale) + 0.5);
-        return;
-    }
-    else if( !h->param.rc.b_cbr )
-    {
-        rc->qpm = rc->qpa = rc->qp =
-            rc->qp_constant[ i_slice_type ];
         return;
     }
 
