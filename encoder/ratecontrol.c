@@ -243,6 +243,9 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     int dqp;
     int i;
 
+    if( !h->param.b_cbr )
+        return;
+
     x264_cpu_restore( h->param.cpu );
 
     rc->qps += rc->qpm;
