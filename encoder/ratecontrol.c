@@ -48,13 +48,13 @@
 typedef struct
 {
     int pict_type;
+    int idr;
     float qscale;
     int mv_bits;
     int i_tex_bits;
     int p_tex_bits;
     int misc_bits;
     uint64_t expected_bits;
-    int new_pict_type;
     float new_qscale;
     int new_qp;
     int i_count;
@@ -268,7 +268,7 @@ int x264_ratecontrol_new( x264_t *h )
         /* init all to skipped p frames */
         for(i=0; i<rc->num_entries; i++){
             ratecontrol_entry_t *rce = &rc->entry[i];
-            rce->pict_type = rce->new_pict_type = SLICE_TYPE_P;
+            rce->pict_type = SLICE_TYPE_P;
             rce->qscale = rce->new_qscale = qp2qscale(20);
             rce->misc_bits = rc->nmb + 10;
             rce->new_qp = 0;
@@ -278,7 +278,8 @@ int x264_ratecontrol_new( x264_t *h )
         p = stats_in;
         for(i=0; i < rc->num_entries - h->param.i_bframe; i++){
             ratecontrol_entry_t *rce;
-            int picture_number;
+            int frame_number;
+            char pict_type;
             int e;
             char *next;
             float qp;
@@ -288,15 +289,23 @@ int x264_ratecontrol_new( x264_t *h )
                 (*next)=0; //sscanf is unbelievably slow on looong strings
                 next++;
             }
-            e = sscanf(p, " in:%d ", &picture_number);
+            e = sscanf(p, " in:%d ", &frame_number);
 
-            assert(picture_number >= 0);
-            assert(picture_number < rc->num_entries);
-            rce = &rc->entry[picture_number];
+            assert(frame_number >= 0);
+            assert(frame_number < rc->num_entries);
+            rce = &rc->entry[frame_number];
 
-            e += sscanf(p, " in:%*d out:%*d type:%d q:%f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d",
-                   &rce->pict_type, &qp, &rce->i_tex_bits, &rce->p_tex_bits,
+            e += sscanf(p, " in:%*d out:%*d type:%c q:%f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d",
+                   &pict_type, &qp, &rce->i_tex_bits, &rce->p_tex_bits,
                    &rce->mv_bits, &rce->misc_bits, &rce->i_count, &rce->p_count, &rce->s_count);
+
+            switch(pict_type){
+                case 'I': rce->idr = 1;
+                case 'i': rce->pict_type = SLICE_TYPE_I; break;
+                case 'P': rce->pict_type = SLICE_TYPE_P; break;
+                case 'B': rce->pict_type = SLICE_TYPE_B; break;
+                default:  e = -1; break;
+            }
             if(e != 10){
                 x264_log(h, X264_LOG_ERROR, "statistics are damaged at line %d, parser out=%d\n", i, e);
                 return -1;
@@ -358,9 +367,9 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
     else if( h->param.rc.b_stat_read )
     {
         int frame = h->fenc->i_frame;
-        ratecontrol_entry_t *rce = &h->rc->entry[frame];
-
+        ratecontrol_entry_t *rce;
         assert( frame >= 0 && frame < rc->num_entries );
+        rce = &h->rc->entry[frame];
 
         rce->new_qscale = rate_estimate_qscale( h, i_slice_type );
         rc->qpm = rc->qpa = rc->qp = rce->new_qp =
@@ -538,10 +547,10 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
             x264_log(h, X264_LOG_ERROR, "More input frames than in the 1st pass\n");
             return X264_TYPE_P;
         }
-        switch( h->rc->entry[frame_num].new_pict_type )
+        switch( h->rc->entry[frame_num].pict_type )
         {
             case SLICE_TYPE_I:
-                return X264_TYPE_I;
+                return h->rc->entry[frame_num].idr ? X264_TYPE_IDR : X264_TYPE_I;
 
             case SLICE_TYPE_B:
                 return X264_TYPE_B;
@@ -571,10 +580,12 @@ void x264_ratecontrol_end( x264_t *h, int bits )
 
     if( h->param.rc.b_stat_write )
     {
+        char c_type = rc->slice_type==SLICE_TYPE_I ? (h->fenc->i_poc==0 ? 'I' : 'i')
+                    : rc->slice_type==SLICE_TYPE_P ? 'P' : 'B';
         fprintf( rc->p_stat_file_out,
-                 "in:%d out:%d type:%d q:%.3f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d;\n",
+                 "in:%d out:%d type:%c q:%.3f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d;\n",
                  h->fenc->i_frame, h->i_frame-1,
-                 rc->slice_type, rc->qpa,
+                 c_type, rc->qpa,
                  h->stat.frame.i_itex_bits, h->stat.frame.i_ptex_bits,
                  h->stat.frame.i_hdr_bits, h->stat.frame.i_misc_bits,
                  h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_16x16],
@@ -631,7 +642,7 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
 {
     x264_ratecontrol_t *rcc= h->rc;
     double bits;
-    const int pict_type = rce->new_pict_type;
+    const int pict_type = rce->pict_type;
 
     double const_values[]={
         rce->i_tex_bits * rce->qscale,
@@ -700,7 +711,7 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
 static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
 {
     x264_ratecontrol_t *rcc = h->rc;
-    const int pict_type = rce->new_pict_type;
+    const int pict_type = rce->pict_type;
 
     // force I/B quants as a function of P quants
     const double last_p_q    = rcc->last_qscale_for[SLICE_TYPE_P];
@@ -755,8 +766,8 @@ static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
 // clip a qscale to between lmin and lmax
 static double clip_qscale( x264_t *h, ratecontrol_entry_t *rce, double q )
 {
-    double lmin = h->rc->lmin[rce->new_pict_type];
-    double lmax = h->rc->lmax[rce->new_pict_type];
+    double lmin = h->rc->lmin[rce->pict_type];
+    double lmax = h->rc->lmax[rce->pict_type];
 
     if(lmin==lmax){
         return lmin;
@@ -789,7 +800,7 @@ static float rate_estimate_qscale(x264_t *h, int pict_type)
 
     rce = &rcc->entry[picture_number];
 
-    assert(pict_type == rce->new_pict_type);
+    assert(pict_type == rce->pict_type);
 
     if(rce->pict_type == SLICE_TYPE_B)
     {
@@ -824,12 +835,11 @@ static int init_pass2( x264_t *h )
     /* find total/average complexity & const_bits */
     for(i=0; i<rcc->num_entries; i++){
         ratecontrol_entry_t *rce = &rcc->entry[i];
-        rce->new_pict_type = rce->pict_type;
         all_const_bits += rce->mv_bits + rce->misc_bits;
-        rcc->i_cplx_sum[rce->new_pict_type] += rce->i_tex_bits * rce->qscale;
-        rcc->p_cplx_sum[rce->new_pict_type] += rce->p_tex_bits * rce->qscale;
-        rcc->mv_bits_sum[rce->new_pict_type] += rce->mv_bits;
-        rcc->frame_count[rce->new_pict_type] ++;
+        rcc->i_cplx_sum[rce->pict_type] += rce->i_tex_bits * rce->qscale;
+        rcc->p_cplx_sum[rce->pict_type] += rce->p_tex_bits * rce->qscale;
+        rcc->mv_bits_sum[rce->pict_type] += rce->mv_bits;
+        rcc->frame_count[rce->pict_type] ++;
     }
 
     if( all_available_bits < all_const_bits)
@@ -899,7 +909,6 @@ static int init_pass2( x264_t *h )
             assert(filter_size%2==1);
             for(i=0; i<rcc->num_entries; i++){
                 ratecontrol_entry_t *rce = &rcc->entry[i];
-                const int pict_type = rce->new_pict_type;
                 int j;
                 double q=0.0, sum=0.0;
 
@@ -908,7 +917,7 @@ static int init_pass2( x264_t *h )
                     double d = index-i;
                     double coeff = qblur==0 ? 1.0 : exp(-d*d/(qblur*qblur));
                     if(index < 0 || index >= rcc->num_entries) continue;
-                    if(pict_type != rcc->entry[index].new_pict_type) continue;
+                    if(rce->pict_type != rcc->entry[index].pict_type) continue;
                     q += qscale[index] * coeff;
                     sum += coeff;
                 }

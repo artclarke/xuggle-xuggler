@@ -37,9 +37,10 @@
 
 //#define DEBUG_MB_TYPE
 //#define DEBUG_DUMP_FRAME
+//#define DEBUG_BENCHMARK
 
+#ifdef DEBUG_BENCHMARK
 static int64_t i_mtime_encode_frame = 0;
-
 static int64_t i_mtime_analyse = 0;
 static int64_t i_mtime_encode = 0;
 static int64_t i_mtime_write = 0;
@@ -51,6 +52,10 @@ static int64_t i_mtime_filter = 0;
 #define TIMER_STOP( d ) \
         d += x264_mdate() - d##start;\
     }
+#else
+#define TIMER_START( d )
+#define TIMER_STOP( d )
+#endif
 
 
 /****************************************************************************
@@ -344,7 +349,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 5 );
     if( h->param.analyse.inter & X264_ANALYSE_PSUB8x8 )
-        h->param.analyse.inter &= X264_ANALYSE_PSUB16x16;
+        h->param.analyse.inter |= X264_ANALYSE_PSUB16x16;
 
     if( h->param.rc.f_qblur < 0 )
         h->param.rc.f_qblur = 0;
@@ -427,7 +432,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         /* 2 = 1 backward ref  + 1 fdec */
         h->frames.reference[i] = x264_frame_new( h );
     }
-    h->frames.i_last_idr = h->param.i_keyint_max;
+    h->frames.i_last_idr = - h->param.i_keyint_max;
     h->frames.i_input    = 0;
 
     h->i_ref0 = 0;
@@ -955,15 +960,15 @@ int     x264_encoder_encode( x264_t *h,
             frm = h->frames.next[bframes];
 
             /* Limit GOP size */
-            if( ( h->frames.i_last_idr + bframes + 1 >= h->param.i_keyint_min
-                  && frm->i_type == X264_TYPE_I )
-               || h->frames.i_last_idr + bframes + 1 >= h->param.i_keyint_max )
+            if( frm->i_frame - h->frames.i_last_idr >= h->param.i_keyint_max )
             {
-                if(    frm->i_type == X264_TYPE_P
-                    || frm->i_type == X264_TYPE_B )
-                    x264_log( h, X264_LOG_ERROR, "specified frame type is not compatible with keyframe interval\n" );
-
-                frm->i_type = X264_TYPE_IDR;
+                if( frm->i_type == X264_TYPE_AUTO )
+                    frm->i_type = X264_TYPE_IDR;
+                if( frm->i_type != X264_TYPE_IDR )
+                    x264_log( h, X264_LOG_ERROR, "specified frame type (%d) is not compatible with keyframe interval\n", frm->i_type );
+            }
+            if( frm->i_type == X264_TYPE_IDR )
+            {
                 h->i_poc = 0;
                 h->i_frame_num = 0;
 
@@ -1017,11 +1022,7 @@ do_encode:
 
     if( h->fenc->i_type == X264_TYPE_IDR )
     {
-        h->frames.i_last_idr = 0;
-    }
-    else
-    {
-        h->frames.i_last_idr++;
+        h->frames.i_last_idr = h->fenc->i_frame;
     }
 
     /* ------------------- Setup frame context ----------------------------- */
@@ -1126,21 +1127,22 @@ do_encode:
         if( h->param.i_keyint_min == h->param.i_keyint_max )
              f_thresh_min= f_thresh_max;
         float f_bias;
+        int i_gop_size = h->fenc->i_frame - h->frames.i_last_idr;
 
         /* macroblock_analyse() doesn't further analyse skipped mbs,
          * so we have to guess their cost */
         if( i_mb_s < i_mb )
             i_intra_cost = i_intra_cost * i_mb / (i_mb - i_mb_s);
 
-        if( h->frames.i_last_idr < h->param.i_keyint_min / 4 )
+        if( i_gop_size < h->param.i_keyint_min / 4 )
             f_bias = f_thresh_min / 4;
-        else if( h->frames.i_last_idr <= h->param.i_keyint_min )
-            f_bias = f_thresh_min * h->frames.i_last_idr / h->param.i_keyint_min;
+        else if( i_gop_size <= h->param.i_keyint_min )
+            f_bias = f_thresh_min * i_gop_size / h->param.i_keyint_min;
         else
         {
             f_bias = f_thresh_min
                      + ( f_thresh_max - f_thresh_min )
-                       * ( h->frames.i_last_idr - h->param.i_keyint_min )
+                       * ( i_gop_size - h->param.i_keyint_min )
                        / ( h->param.i_keyint_max - h->param.i_keyint_min );
         }
         f_bias = X264_MIN( f_bias, 1.0 );
@@ -1157,12 +1159,12 @@ do_encode:
             h->frames.i_last_i > 4)*/
         {
 
-            x264_log( h, X264_LOG_DEBUG, "scene cut at %d size=%d I_cost:%lld P_cost:%lld ratio:%.3f bias=%.3f last_IDR:%d (I:%d P:%d Skip:%d)\n",
+            x264_log( h, X264_LOG_DEBUG, "scene cut at %d size=%d Icost:%lld Pcost:%lld ratio:%.3f bias=%.3f lastIDR:%d (I:%d P:%d Skip:%d)\n",
                       h->fenc->i_frame,
                       h->out.nal[h->out.i_nal-1].i_payload,
                       i_intra_cost, i_inter_cost,
                       (float)i_inter_cost / i_intra_cost,
-                      f_bias, h->frames.i_last_idr,
+                      f_bias, i_gop_size,
                       i_mb_i, i_mb_p, i_mb_s );
 
             /* Restore frame num */
@@ -1185,7 +1187,7 @@ do_encode:
                 h->fenc->i_type = X264_TYPE_P;
             }
             /* Do IDR if needed */
-            else if( h->frames.i_last_idr + 1 >= h->param.i_keyint_min )
+            else if( i_gop_size >= h->param.i_keyint_min )
             {
                 x264_frame_t *tmp;
 
@@ -1351,16 +1353,20 @@ do_encode:
  ****************************************************************************/
 void    x264_encoder_close  ( x264_t *h )
 {
+#ifdef DEBUG_BENCHMARK
     int64_t i_mtime_total = i_mtime_analyse + i_mtime_encode + i_mtime_write + i_mtime_filter + 1;
+#endif
     int64_t i_yuv_size = 3 * h->param.i_width * h->param.i_height / 2;
     int i;
 
+#ifdef DEBUG_BENCHMARK
     x264_log( h, X264_LOG_INFO,
               "analyse=%d(%lldms) encode=%d(%lldms) write=%d(%lldms) filter=%d(%lldms)\n",
               (int)(100*i_mtime_analyse/i_mtime_total), i_mtime_analyse/1000,
               (int)(100*i_mtime_encode/i_mtime_total), i_mtime_encode/1000,
               (int)(100*i_mtime_write/i_mtime_total), i_mtime_write/1000,
               (int)(100*i_mtime_filter/i_mtime_total), i_mtime_filter/1000 );
+#endif
 
     /* Slices used and PSNR */
     for( i=0; i<5; i++ )
@@ -1443,7 +1449,7 @@ void    x264_encoder_close  ( x264_t *h )
 
         if( h->param.analyse.b_psnr )
             x264_log( h, X264_LOG_INFO,
-                      "PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f kb/s:%.1f fps:%.3f\n",
+                      "PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f kb/s:%.1f\n",
                       (h->stat.f_psnr_mean_y[SLICE_TYPE_I] + h->stat.f_psnr_mean_y[SLICE_TYPE_P] + h->stat.f_psnr_mean_y[SLICE_TYPE_B]) / i_count,
                       (h->stat.f_psnr_mean_u[SLICE_TYPE_I] + h->stat.f_psnr_mean_u[SLICE_TYPE_P] + h->stat.f_psnr_mean_u[SLICE_TYPE_B]) / i_count,
                       (h->stat.f_psnr_mean_v[SLICE_TYPE_I] + h->stat.f_psnr_mean_v[SLICE_TYPE_P] + h->stat.f_psnr_mean_v[SLICE_TYPE_B]) / i_count,
@@ -1452,13 +1458,11 @@ void    x264_encoder_close  ( x264_t *h )
 
                       x264_psnr( h->stat.i_sqe_global[SLICE_TYPE_I] + h->stat.i_sqe_global[SLICE_TYPE_P]+ h->stat.i_sqe_global[SLICE_TYPE_B],
                                  i_count * i_yuv_size ),
-                      fps * 8*(h->stat.i_slice_size[SLICE_TYPE_I]+h->stat.i_slice_size[SLICE_TYPE_P]+h->stat.i_slice_size[SLICE_TYPE_B]) / i_count / 1000,
-                      (double)1000000.0 * (double)i_count / (double)i_mtime_encode_frame );
+                      fps * 8*(h->stat.i_slice_size[SLICE_TYPE_I]+h->stat.i_slice_size[SLICE_TYPE_P]+h->stat.i_slice_size[SLICE_TYPE_B]) / i_count / 1000 );
         else
             x264_log( h, X264_LOG_INFO,
-                      "kb/s:%.1f fps:%.3f\n",
-                      fps * 8*(h->stat.i_slice_size[SLICE_TYPE_I]+h->stat.i_slice_size[SLICE_TYPE_P]+h->stat.i_slice_size[SLICE_TYPE_B]) / i_count / 1000,
-                      (double)1000000.0 * (double)i_count / (double)i_mtime_encode_frame );
+                      "kb/s:%.1f\n",
+                      fps * 8*(h->stat.i_slice_size[SLICE_TYPE_I]+h->stat.i_slice_size[SLICE_TYPE_P]+h->stat.i_slice_size[SLICE_TYPE_B]) / i_count / 1000 );
     }
 
     /* frames */
