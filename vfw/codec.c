@@ -43,8 +43,6 @@ static int get_csp( BITMAPINFOHEADER *hdr )
         case FOURCC_YV12:
             return X264_CSP_YV12;
 
-        /* The following colorspaces are not yet accepted by the core */
-        /*
         case FOURCC_YUYV:
         case FOURCC_YUY2:
             return X264_CSP_YUYV;
@@ -60,7 +58,6 @@ static int get_csp( BITMAPINFOHEADER *hdr )
             else
                 return X264_CSP_NONE;
         }
-        */
 
         default:
             return X264_CSP_NONE;
