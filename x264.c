@@ -147,6 +147,7 @@ static void Help( x264_param_t *defaults )
              "      --no-asm                Disable any CPU optims\n"
              "      --no-psnr               Disable PSNR computaion\n"
              "      --quiet                 Quiet Mode\n"
+             "  -v, --verbose               Print stats for each frame\n"
              "\n",
             X264_BUILD,
             defaults->i_idrframe,
@@ -250,12 +251,13 @@ static int  Parse( int argc, char **argv,
             { "cplxblur",required_argument, NULL, OPT_CPLXBLUR },
             { "no-psnr", no_argument,       NULL, OPT_NOPSNR },
             { "quiet",   no_argument,       NULL, OPT_QUIET },
+            { "verbose", no_argument,       NULL, 'v' },
             {0, 0, 0, 0}
         };
 
         int c;
 
-        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:no:s:A:p:",
+        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:nf:o:s:A:m:p:v",
                          long_options, &long_options_index);
 
         if( c == -1 )
@@ -431,6 +433,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case OPT_QUIET:
                 param->i_log_level = X264_LOG_NONE;
+                break;
+            case 'v':
+                param->i_log_level = X264_LOG_DEBUG;
                 break;
             default:
                 fprintf( stderr, "unknown option (%c)\n", optopt );
