@@ -1159,11 +1159,11 @@ do_encode:
             h->frames.i_last_i > 4)*/
         {
 
-            x264_log( h, X264_LOG_DEBUG, "scene cut at %d size=%d Icost:%lld Pcost:%lld ratio:%.3f bias=%.3f lastIDR:%d (I:%d P:%d Skip:%d)\n",
+            x264_log( h, X264_LOG_DEBUG, "scene cut at %d size=%d Icost:%.0f Pcost:%.0f ratio:%.3f bias=%.3f lastIDR:%d (I:%d P:%d Skip:%d)\n",
                       h->fenc->i_frame,
                       h->out.nal[h->out.i_nal-1].i_payload,
-                      i_intra_cost, i_inter_cost,
-                      (float)i_inter_cost / i_intra_cost,
+                      (double)i_intra_cost, (double)i_inter_cost,
+                      (double)i_inter_cost / i_intra_cost,
                       f_bias, i_gop_size,
                       i_mb_i, i_mb_p, i_mb_s );
 
@@ -1381,11 +1381,11 @@ void    x264_encoder_close  ( x264_t *h )
             if( h->param.analyse.b_psnr )
             {
                 x264_log( h, X264_LOG_INFO,
-                          "slice %s:%-4d Avg QP:%5.2f Avg size:%-5lld PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
+                          "slice %s:%-4d Avg QP:%5.2f Avg size:%6.0f PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
                           slice_name[i_slice],
                           i_count,
-                          (float)h->stat.i_slice_qp[i_slice] / i_count,
-                          h->stat.i_slice_size[i_slice] / i_count,
+                          (double)h->stat.i_slice_qp[i_slice] / i_count,
+                          (double)h->stat.i_slice_size[i_slice] / i_count,
                           h->stat.f_psnr_mean_y[i_slice] / i_count, h->stat.f_psnr_mean_u[i_slice] / i_count, h->stat.f_psnr_mean_v[i_slice] / i_count,
                           h->stat.f_psnr_average[i_slice] / i_count,
                           x264_psnr( h->stat.i_sqe_global[i_slice], i_count * i_yuv_size ),
@@ -1394,11 +1394,11 @@ void    x264_encoder_close  ( x264_t *h )
             else
             {
                 x264_log( h, X264_LOG_INFO,
-                          "slice %s:%-4d Avg QP:%5.2f Avg size:%-5lld\n",
+                          "slice %s:%-4d Avg QP:%5.2f Avg size:%6.0f\n",
                           slice_name[i_slice],
                           i_count,
-                          (float)h->stat.i_slice_qp[i_slice] / i_count,
-                          h->stat.i_slice_size[i_slice] / i_count );
+                          (double)h->stat.i_slice_qp[i_slice] / i_count,
+                          (double)h->stat.i_slice_size[i_slice] / i_count );
             }
         }
     }
@@ -1407,18 +1407,18 @@ void    x264_encoder_close  ( x264_t *h )
     if( h->stat.i_slice_count[SLICE_TYPE_I] > 0 )
     {
         const int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_I];
-        const int i_count = h->stat.i_slice_count[SLICE_TYPE_I];
+        const double i_count = h->stat.i_slice_count[SLICE_TYPE_I] * h->mb.i_mb_count / 100.0;
         x264_log( h, X264_LOG_INFO,
-                  "slice I      Avg I4x4:%-4lld I16x16:%-4lld\n",
+                  "slice I   Avg I4x4:%.1f%%  I16x16:%.1f%%\n",
                   i_mb_count[I_4x4]  / i_count,
                   i_mb_count[I_16x16]/ i_count );
     }
     if( h->stat.i_slice_count[SLICE_TYPE_P] > 0 )
     {
         const int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_P];
-        const int i_count = h->stat.i_slice_count[SLICE_TYPE_P];
+        const double i_count = h->stat.i_slice_count[SLICE_TYPE_P] * h->mb.i_mb_count / 100.0;
         x264_log( h, X264_LOG_INFO,
-                  "slice P      Avg I4x4:%-4lld I16x16:%-4lld P:%-4lld P8x8:%-4lld PSKIP:%-4lld\n",
+                  "slice P   Avg I4x4:%.1f%%  I16x16:%.1f%%  P:%.1f%%  P8x8:%.1f%%  PSKIP:%.1f%%\n",
                   i_mb_count[I_4x4]  / i_count,
                   i_mb_count[I_16x16]/ i_count,
                   i_mb_count[P_L0]   / i_count,
@@ -1428,9 +1428,9 @@ void    x264_encoder_close  ( x264_t *h )
     if( h->stat.i_slice_count[SLICE_TYPE_B] > 0 )
     {
         const int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_B];
-        const int i_count = h->stat.i_slice_count[SLICE_TYPE_B];
+        const double i_count = h->stat.i_slice_count[SLICE_TYPE_B] * h->mb.i_mb_count / 100.0;
         x264_log( h, X264_LOG_INFO,
-                  "slice B      Avg I4x4:%-4lld I16x16:%-4lld P:%-4lld B:%-4lld B8x8:%-4lld DIRECT:%-4lld BSKIP:%-4lld\n",
+                  "slice B   Avg I4x4:%.1f%%  I16x16:%.1f%%  P:%.1f%%  B:%.1f%%  B8x8:%.1f%%  DIRECT:%.1f%%  BSKIP:%.1f%%\n",
                   i_mb_count[I_4x4]    / i_count,
                   i_mb_count[I_16x16]  / i_count,
                   (i_mb_count[B_L0_L0] + i_mb_count[B_L1_L1] + i_mb_count[B_L1_L0] + i_mb_count[B_L0_L1]) / i_count,
