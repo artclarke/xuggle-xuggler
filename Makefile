@@ -50,7 +50,8 @@ checkasm: testing/checkasm.c libx264.a
 	$(AS) $(ASFLAGS) -o $@ $<
 
 .depend: $(SRCS) x264.c
-	$(CC) -MM $(CFLAGS) $(SRCS) x264.c 1> .depend
+	rm -f .depend
+	$(foreach SRC, $(SRCS) x264.c, $(CC) $(CFLAGS) $(SRC) -MM -MT $(SRC:%.c=%.o) 1>> .depend;)
 
 depend: .depend
 ifneq ($(wildcard .depend),)
