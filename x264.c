@@ -138,6 +138,7 @@ static void Help( void )
              "      --subme <integer>       Subpixel motion estimation quality\n"
              "\n"
              "  -s, --sar width:height      Specify Sample Aspect Ratio\n"
+             "      --fps <float|rational>  Specify framerate\n"
              "      --frames <integer>      Maximum number of frames to encode\n"
              "  -o, --output                Specify output file\n"
              "\n"
@@ -186,6 +187,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_QBLUR 271
 #define OPT_CPLXBLUR 272
 #define OPT_FRAMES 273
+#define OPT_FPS 274
 
         static struct option long_options[] =
         {
@@ -205,6 +207,7 @@ static int  Parse( int argc, char **argv,
             { "ref",     required_argument, NULL, 'r' },
             { "no-asm",  no_argument,       NULL, 'C' },
             { "sar",     required_argument, NULL, 's' },
+            { "fps",     required_argument, NULL, OPT_FPS },
             { "frames",  required_argument, NULL, OPT_FRAMES },
             { "output",  required_argument, NULL, 'o' },
             { "analyse", required_argument, NULL, 'A' },
@@ -315,6 +318,22 @@ static int  Parse( int argc, char **argv,
                     param->vui.i_sar_height = atoi( p + 1 );
                 }
                 break;
+            }
+            case OPT_FPS:
+            {
+                float fps;
+                if( sscanf( optarg, "%d/%d", &param->i_fps_num, &param->i_fps_den ) == 2 )
+                    ;
+                else if( sscanf( optarg, "%f", &fps ) )
+                {
+                    param->i_fps_num = (int)(fps * 1000 + .5);
+                    param->i_fps_den = 1000;
+                }
+                else
+                {
+                    fprintf( stderr, "bad fps `%s'\n", optarg );
+                    return -1;
+                }
             }
             case 'A':
                 param->analyse.inter = 0;
@@ -677,7 +696,7 @@ static int  Encode( x264_param_t  *param, FILE *fyuv, FILE *fout )
         double fps = (double)i_frame * (double)1000000 /
                      (double)( i_end - i_start );
 
-        fprintf( stderr, "encoded %d frames %ffps %lld kb/s\n", i_frame, fps, i_file * 8 * 25 / i_frame / 1000 );
+        fprintf( stderr, "encoded %d frames, %.2f fps, %.2f kb/s\n", i_frame, fps, (double) i_file * 8 * param->i_fps_num / ( param->i_fps_den * i_frame * 1000 ) );
     }
 
     return 0;
