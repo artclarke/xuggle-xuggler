@@ -85,8 +85,6 @@ typedef struct
     int i_predict8x8;
 
     /* II: Inter part P/B frame */
-    int i_mv_range;
-
     x264_mb_analysis_list_t l0;
     x264_mb_analysis_list_t l1;
 
@@ -153,7 +151,6 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     /* II: Inter part P/B frame */
     if( h->sh.i_type != SLICE_TYPE_I )
     {
-        int dmb;
         int i;
 
         /* Calculate max allowed MV range */
@@ -164,18 +161,6 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
             h->mb.mv_min[1] = 4*( -16*h->mb.i_mb_y - 24 );
             h->mb.mv_max[1] = 4*( 16*( h->sps->i_mb_height - h->mb.i_mb_y ) + 8 );
         }
-
-        /* Calculate max start MV range */
-        /* FIXME: use the above ranges */
-        dmb = h->mb.i_mb_x;
-        if( h->mb.i_mb_y < dmb )
-            dmb = h->mb.i_mb_y;
-        if( h->sps->i_mb_width - h->mb.i_mb_x < dmb )
-            dmb = h->sps->i_mb_width - h->mb.i_mb_x;
-        if( h->sps->i_mb_height - h->mb.i_mb_y < dmb )
-            dmb = h->sps->i_mb_height - h->mb.i_mb_y;
-
-        a->i_mv_range = 16*dmb + 8;
 
         a->l0.me16x16.cost = -1;
         a->l0.i_cost8x8    = -1;
@@ -510,7 +495,6 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     m.lm      = a->i_lambda;
     m.p_fenc  = h->mb.pic.p_fenc[0];
     m.i_stride= h->mb.pic.i_stride[0];
-    m.i_mv_range = a->i_mv_range;
 
     a->l0.me16x16.cost = INT_MAX;
     for( i_ref = 0; i_ref < h->i_ref0; i_ref++ )
@@ -571,7 +555,6 @@ static void x264_mb_analyse_inter_p8x8( x264_t *h, x264_mb_analysis_t *a )
         m->p_fenc = &p_fenc[8*(y8*h->mb.pic.i_stride[0]+x8)];
         m->p_fref = &p_fref[8*(y8*h->mb.pic.i_stride[0]+x8)];
         m->i_stride= h->mb.pic.i_stride[0];
-        m->i_mv_range = a->i_mv_range;
 
         x264_mb_predict_mv( h, 0, 4*i, 2, m->mvp );
         x264_me_search( h, m, mvc, i_mvc );
@@ -610,7 +593,6 @@ static void x264_mb_analyse_inter_p16x8( x264_t *h, x264_mb_analysis_t *a )
         m->p_fenc = &p_fenc[8*i*h->mb.pic.i_stride[0]];
         m->p_fref = &p_fref[8*i*h->mb.pic.i_stride[0]];
         m->i_stride= h->mb.pic.i_stride[0];
-        m->i_mv_range = a->i_mv_range;
 
         mvc[0][0] = a->l0.me8x8[2*i].mv[0];
         mvc[0][1] = a->l0.me8x8[2*i].mv[1];
@@ -646,7 +628,6 @@ static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a )
         m->p_fenc  = &p_fenc[8*i];
         m->p_fref  = &p_fref[8*i];
         m->i_stride= h->mb.pic.i_stride[0];
-        m->i_mv_range = a->i_mv_range;
 
         mvc[0][0] = a->l0.me8x8[i].mv[0];
         mvc[0][1] = a->l0.me8x8[i].mv[1];
@@ -687,7 +668,6 @@ static void x264_mb_analyse_inter_p4x4( x264_t *h, x264_mb_analysis_t *a, int i8
         m->p_fenc  = &p_fenc[4*(y4*h->mb.pic.i_stride[0]+x4)];
         m->p_fref  = &p_fref[4*(y4*h->mb.pic.i_stride[0]+x4)];
         m->i_stride= h->mb.pic.i_stride[0];
-        m->i_mv_range = a->i_mv_range;
 
         x264_mb_predict_mv( h, 0, idx, 1, m->mvp );
         x264_me_search( h, m, &a->l0.me8x8[i8x8].mv, i_mvc );
@@ -727,7 +707,6 @@ static void x264_mb_analyse_inter_p8x4( x264_t *h, x264_mb_analysis_t *a, int i8
         m->p_fenc  = &p_fenc[4*(y4*h->mb.pic.i_stride[0]+x4)];
         m->p_fref  = &p_fref[4*(y4*h->mb.pic.i_stride[0]+x4)];
         m->i_stride= h->mb.pic.i_stride[0];
-        m->i_mv_range = a->i_mv_range;
 
         x264_mb_predict_mv( h, 0, idx, 2, m->mvp );
         x264_me_search( h, m, &a->l0.me4x4[i8x8][0].mv, i_mvc );
@@ -764,7 +743,6 @@ static void x264_mb_analyse_inter_p4x8( x264_t *h, x264_mb_analysis_t *a, int i8
         m->p_fenc  = &p_fenc[4*(y4*h->mb.pic.i_stride[0]+x4)];
         m->p_fref  = &p_fref[4*(y4*h->mb.pic.i_stride[0]+x4)];
         m->i_stride= h->mb.pic.i_stride[0];
-        m->i_mv_range = a->i_mv_range;
 
         x264_mb_predict_mv( h, 0, idx, 1, m->mvp );
         x264_me_search( h, m, &a->l0.me4x4[i8x8][0].mv, i_mvc );
@@ -818,7 +796,6 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     m.lm      = a->i_lambda;
     m.p_fenc  = h->mb.pic.p_fenc[0];
     m.i_stride= h->mb.pic.i_stride[0];
-    m.i_mv_range = a->i_mv_range;
 
     /* ME for List 0 */
     a->l0.me16x16.cost = INT_MAX;
@@ -989,7 +966,6 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
             m->p_fenc = p_fenc_i;
             m->p_fref = &p_fref[l][8*(y8*h->mb.pic.i_stride[0]+x8)];
             m->i_stride = h->mb.pic.i_stride[0];
-            m->i_mv_range = a->i_mv_range;
 
             x264_mb_predict_mv( h, l, 4*i, 2, m->mvp );
             x264_me_search( h, m, &lX->me16x16.mv, 1 );
@@ -1068,7 +1044,6 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
             m->p_fenc  = p_fenc_i;
             m->i_stride= i_ref_stride;
             m->p_fref  = &p_fref[l][8*i*i_ref_stride];
-            m->i_mv_range = a->i_mv_range;
 
             mvc[0][0] = lX->me8x8[2*i].mv[0];
             mvc[0][1] = lX->me8x8[2*i].mv[1];
@@ -1143,7 +1118,6 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
             m->p_fenc  = p_fenc_i;
             m->p_fref  = &p_fref[l][8*i];
             m->i_stride= i_ref_stride;
-            m->i_mv_range = a->i_mv_range;
 
             mvc[0][0] = lX->me8x8[i].mv[0];
             mvc[0][1] = lX->me8x8[i].mv[1];

@@ -34,8 +34,6 @@ typedef struct
     uint8_t *p_fenc;
     int      i_stride;
 
-    int i_mv_range;
-
     int mvp[2];
 
     /* output */

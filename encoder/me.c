@@ -65,6 +65,10 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     uint8_t *p_fref = m->p_fref;
     int i_iter;
 
+    const int mv_x_min = h->mb.mv_min[0] + 16;
+    const int mv_y_min = h->mb.mv_min[1] + 16;
+    const int mv_x_max = h->mb.mv_max[0] - 16;
+    const int mv_y_max = h->mb.mv_max[1] - 16;
 
     /* init with mvp */
     /* XXX: We don't need to clamp because the way diamond work, we will
@@ -72,8 +76,8 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
      * with componant magnitude greater.
      * XXX: if some vector can go outside, (accelerator, ....) you need to clip
      * them yourself */
-    bmx = x264_clip3( ( m->mvp[0] + 2 ) >> 2, -m->i_mv_range, m->i_mv_range );
-    bmy = x264_clip3( ( m->mvp[1] + 2 ) >> 2, -m->i_mv_range, m->i_mv_range );
+    bmx = x264_clip3( ( m->mvp[0] + 2 ) >> 2, mv_x_min, mv_x_max );
+    bmy = x264_clip3( ( m->mvp[1] + 2 ) >> 2, mv_y_min, mv_y_max );
 
     bcost = h->pixf.sad[i_pixel]( m->p_fenc, m->i_stride,
                 &p_fref[bmy * m->i_stride + bmx], m->i_stride );
@@ -81,8 +85,8 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     /* try extra predictors if provided */
     for( i_iter = 0; i_iter < i_mvc; i_iter++ )
     {
-        const int mx = x264_clip3( ( mvc[i_iter][0] + 2 ) >> 2, -m->i_mv_range, m->i_mv_range );
-        const int my = x264_clip3( ( mvc[i_iter][1] + 2 ) >> 2, -m->i_mv_range, m->i_mv_range );
+        const int mx = x264_clip3( ( mvc[i_iter][0] + 2 ) >> 2, mv_x_min, mv_x_max );
+        const int my = x264_clip3( ( mvc[i_iter][1] + 2 ) >> 2, mv_y_min, mv_y_max );
         if( mx != bmx || my != bmy )
             COST_MV( mx, my );
     }
