@@ -46,7 +46,7 @@
 
 /* description */
 #define X264_NAME        "x264"
-#define X264_DEF_TEXT    "Are you sure you want to load default vaules"
+#define X264_DEF_TEXT    "Are you sure you want to load default values"
 
 /* Registery handling */
 typedef struct
@@ -76,8 +76,8 @@ static const reg_int_t reg_int_table[] =
     /* Advance dialog */
     { "cabac",          &reg.b_cabac,           1 },
     { "loop_filter",    &reg.b_filter,          1 },
-    { "idrframe",       &reg.i_keyint_min,      10 },
-    { "iframe",         &reg.i_keyint_max,      250},
+    { "keyint_max",     &reg.i_keyint_min,      25 },
+    { "keyint_min",     &reg.i_keyint_max,      250},
     { "refmax",         &reg.i_refmax,          1 },
     { "bmax",           &reg.i_bframe,          0 },
     {"direct_pred",     &reg.i_direct_mv_pred,  2 },
@@ -87,9 +87,9 @@ static const reg_int_t reg_int_table[] =
     /* analysis */
     {"i4x4",            &reg.b_i4x4,            1 },
     {"psub16x16",       &reg.b_psub16x16,       1 },
-    {"psub8x8",         &reg.b_psub8x8,         0 },
+    {"psub8x8",         &reg.b_psub8x8,         1 },
     {"bsub16x16",       &reg.b_bsub16x16,       1 },
-    {"subpel",          &reg.i_subpel_refine,   3 }
+    {"subpel",          &reg.i_subpel_refine,   4 }
 
 };
 

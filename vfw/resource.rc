@@ -109,7 +109,7 @@ BEGIN
     LTEXT           "Intra closer than",IDC_STATIC,13,128,53,8
     GROUPBOX        "H.264 features",IDC_STATIC,7,7,288,228
     EDITTEXT        IDC_KEYFRAME,255,20,33,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Max Reference Frames:",IDC_STATIC,170,24,76,8
+    LTEXT           "Max Reference Frames:",IDC_STATIC,170,24,80,8
     EDITTEXT        IDC_IFRAMES,114,107,24,14,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "Max IDR-Keyframe Interval:",IDC_STATIC,13,110,95,8
     EDITTEXT        IDC_FOURCC,223,107,25,14,ES_AUTOHSCROLL
@@ -117,19 +117,19 @@ BEGIN
     CONTROL         "8x16, 16x8 and 8x8 B-frame search",IDC_B16X16,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,17,189,127,10
     EDITTEXT        IDC_BFRAME,256,40,33,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Max B-Frames:",IDC_STATIC,197,43,48,8
-    CONTROL         "4x4 INTRA search",IDC_I4X4,"Button",BS_AUTOCHECKBOX | 
+    LTEXT           "Max B-Frames:",IDC_STATIC,198,43,51,8
+    CONTROL         "4x4 Intra search",IDC_I4X4,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,165,189,82,10
     CONTROL         "8x16, 16x8 and 8x8 P-frame search",IDC_P16X16,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,17,171,127,10
-    CONTROL         "4x8, 8x4 and 4x4 P frame search",IDC_P8X8,"Button",
+    CONTROL         "4x8, 8x4 and 4x4 P-frame search",IDC_P8X8,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,165,172,119,10
     COMBOBOX        IDC_SUBPEL,117,208,70,77,CBS_DROPDOWN | CBS_SORT | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Subpixel refinement precision",IDC_STATIC,17,211,92,8
     COMBOBOX        IDC_DIRECTPRED,220,63,70,67,CBS_DROPDOWN | CBS_SORT | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "BFRAME prediction mode:",IDC_STATIC,133,65,84,8
+    LTEXT           "B-frame prediction mode:",IDC_STATIC,133,65,84,8
     CONTROL         "Slider1",IDC_INLOOP_A,"msctls_trackbar32",TBS_NOTICKS | 
                     WS_TABSTOP,56,53,47,10
     GROUPBOX        "",IDC_STATIC,7,40,115,44
@@ -143,7 +143,7 @@ BEGIN
     GROUPBOX        "VfW settings",IDC_STATIC,151,93,144,66
     LTEXT           "0",IDC_LOOPA_TXT,109,53,8,8
     LTEXT           "0",IDC_LOOPB_TXT,109,66,8,8
-    GROUPBOX        "Motion Search Precision",IDC_STATIC,7,154,288,81
+    GROUPBOX        "Macroblock Partitions",IDC_STATIC,7,154,288,81
     CONTROL         "Deblocking Filter",IDC_LOOPFILTER,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,16,39,69,10
 END

@@ -146,7 +146,8 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
 
     param.i_log_level = X264_LOG_NONE;
     param.analyse.b_psnr = 0;
-    param.analyse.inter = param.analyse.intra = 0;
+    param.analyse.inter = 0;
+    param.analyse.intra = X264_ANALYSE_I4x4;
 
     /* Set params: TODO to complete */
     param.i_width = lpbiInput->bmiHeader.biWidth;
@@ -180,10 +181,8 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
         param.analyse.inter |= X264_ANALYSE_PSUB16x16;
     if( config->b_psub8x8 )
         param.analyse.inter |= X264_ANALYSE_PSUB8x8;
-    if( config->b_i4x4 ) {
-        param.analyse.intra |= X264_ANALYSE_I4x4;
+    if( config->b_i4x4 )
         param.analyse.inter |= X264_ANALYSE_I4x4;
-    }
 
     switch( config->i_encoding_type )
     {
@@ -196,7 +195,7 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
             break;
         default:
         case 2: /* 2 PASS */
-            param.rc.psz_stat_out = param.rc.psz_stat_in = ".\\x264.stats";
+            param.rc.psz_stat_out = param.rc.psz_stat_in = statsfile;
             if (config->i_pass == 1)
                 param.rc.b_stat_write = 1;
             else {    
