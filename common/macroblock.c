@@ -357,6 +357,7 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
     
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, 0 );
     
+    /* FIXME: optimize per block size */
     for( i = 0; i < 4; i++ )
     {
         const int x8 = 2*(i%2);
@@ -372,11 +373,19 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
         }
         else
         {
-            int tb = x264_clip3( h->fdec->i_poc     - h->fref0[i_ref]->i_poc, -128, 127 );
-            int td = x264_clip3( h->fref1[0]->i_poc - h->fref0[i_ref]->i_poc, -128, 127 );
-            int tx = (16384 + (abs(td) >> 1)) / td;
-            int dist_scale_factor = x264_clip3( (tb * tx + 32) >> 6, -1024, 1023 );
+            int poc0 = h->fref0[i_ref]->i_poc;
+            int poc1 = h->fref1[0]->i_poc;
+            int td = x264_clip3( poc1 - poc0, -128, 127 );
+            int dist_scale_factor;
             int x4, y4;
+            if( td == 0 /* || pic0 is a long-term ref */ )
+                dist_scale_factor = 256;
+            else
+            {
+                int tb = x264_clip3( h->fdec->i_poc - poc0, -128, 127 );
+                int tx = (16384 + (abs(td) >> 1)) / td;
+                dist_scale_factor = x264_clip3( (tb * tx + 32) >> 6, -1024, 1023 );
+            }
 
             x264_macroblock_cache_ref( h, x8, y8, 2, 2, 0, i_ref );
 
@@ -384,19 +393,11 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
                 for( x4 = x8; x4 < x8+2; x4++ )
                 {
                     const int16_t *mv_col = h->mb.list1ref0.mv[ i_mb_4x4 + x4 + y4 * 4 * h->mb.i_mb_stride ];
-                    if( td == 0 /* || pic0 is a long-term ref */ )
-                    {
-                        x264_macroblock_cache_mv( h, x4, y4, 1, 1, 0, mv_col[0], mv_col[1] );
-                        x264_macroblock_cache_mv( h, x4, y4, 1, 1, 1, 0, 0 );
-                    }
-                    else
-                    {
-                        int mv_l0[2];
-                        mv_l0[0] = ( dist_scale_factor * mv_col[0] + 128 ) >> 8;
-                        mv_l0[1] = ( dist_scale_factor * mv_col[1] + 128 ) >> 8;
-                        x264_macroblock_cache_mv( h, x4, y4, 1, 1, 0, mv_l0[0], mv_l0[1] );
-                        x264_macroblock_cache_mv( h, x4, y4, 1, 1, 1, mv_l0[0] - mv_col[0], mv_l0[1] - mv_col[1] );
-                    }
+                    int mv_l0[2];
+                    mv_l0[0] = ( dist_scale_factor * mv_col[0] + 128 ) >> 8;
+                    mv_l0[1] = ( dist_scale_factor * mv_col[1] + 128 ) >> 8;
+                    x264_macroblock_cache_mv( h, x4, y4, 1, 1, 0, mv_l0[0], mv_l0[1] );
+                    x264_macroblock_cache_mv( h, x4, y4, 1, 1, 1, mv_l0[0] - mv_col[0], mv_l0[1] - mv_col[1] );
                 }
         }
     }
