@@ -106,6 +106,7 @@ struct x264_ratecontrol_t
     int last_non_b_pict_type;
     double accum_p_qp;          /* for determining I-frame quant */
     double accum_p_norm;
+    double last_accum_p_norm;
     double lmin[5];             /* min qscale by frame type */
     double lmax[5];
     double lstep;               /* max change (multiply) in qscale per frame */
@@ -718,15 +719,24 @@ static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
     const double last_non_b_q= rcc->last_qscale_for[rcc->last_non_b_pict_type];
     if( pict_type == SLICE_TYPE_I )
     {
-        if( rcc->accum_p_norm > 0 && h->param.rc.f_ip_factor > 0 )
-            q = qp2qscale(rcc->accum_p_qp / rcc->accum_p_norm);
-        q /= fabs( h->param.rc.f_ip_factor );
+        double iq = q;
+        double pq = qp2qscale( rcc->accum_p_qp / rcc->accum_p_norm );
+        double ip_factor = fabs( h->param.rc.f_ip_factor );
+        /* don't apply ip_factor if the following frame is also I */
+        if( rcc->accum_p_norm <= 0 )
+            q = iq;
+        else if( h->param.rc.f_ip_factor < 0 )
+            q = iq / ip_factor;
+        else if( rcc->accum_p_norm >= 1 )
+            q = pq / ip_factor;
+        else
+            q = rcc->accum_p_norm * pq / ip_factor + (1 - rcc->accum_p_norm) * iq;
     }
     else if( pict_type == SLICE_TYPE_B )
     {
         if( h->param.rc.f_pb_factor > 0 )
             q = last_non_b_q;
-        q  *= fabs( h->param.rc.f_pb_factor );
+        q *= fabs( h->param.rc.f_pb_factor );
     }
     else if( pict_type == SLICE_TYPE_P
              && rcc->last_non_b_pict_type == SLICE_TYPE_P
@@ -736,7 +746,10 @@ static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
     }
 
     /* last qscale / qdiff stuff */
-    if(rcc->last_non_b_pict_type==pict_type || pict_type!=SLICE_TYPE_I)
+    /* TODO take intro account whether the I-frame is a scene cut
+     * or just a seek point */
+    if(rcc->last_non_b_pict_type==pict_type
+       && (pict_type!=SLICE_TYPE_I || rcc->last_accum_p_norm < 1))
     {
         double last_q = rcc->last_qscale_for[pict_type];
         double max_qscale = last_q * rcc->lstep;
@@ -751,6 +764,7 @@ static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
         rcc->last_non_b_pict_type = pict_type;
     if(pict_type==SLICE_TYPE_I)
     {
+        rcc->last_accum_p_norm = rcc->accum_p_norm;
         rcc->accum_p_norm = 0;
         rcc->accum_p_qp = 0;
     }
@@ -892,6 +906,9 @@ static int init_pass2( x264_t *h )
     for(step = 1E4 * step_mult; step > 1E-7 * step_mult; step *= 0.5){
         expected_bits = 0;
         rate_factor += step;
+
+        rcc->last_non_b_pict_type = -1;
+        rcc->last_accum_p_norm = 1;
 
         /* find qscale */
         for(i=0; i<rcc->num_entries; i++){
