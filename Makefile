@@ -25,12 +25,12 @@ CFLAGS+=-s -DNDEBUG
 else
 CFLAGS+=-g -DDEBUG
 endif
+SRCS= $(SRCS_COMMON)
 
 # MMX/SSE optims
 ifeq ($(ARCH),X86)
 CFLAGS+=-DHAVE_MMXEXT -DHAVE_SSE2
-SRCS= $(SRCS_COMMON) common/i386/mc-c.c common/i386/dct-c.c \
-      common/i386/predict.c
+SRCS+= common/i386/mc-c.c common/i386/dct-c.c common/i386/predict.c
 ASMSRC= common/i386/dct-a.asm common/i386/cpu-a.asm \
         common/i386/pixel-a.asm common/i386/mc-a.asm
 OBJASM= $(ASMSRC:%.asm=%.o)
@@ -43,7 +43,7 @@ CFLAGS+=-faltivec
 else
 CFLAGS+=-maltivec -mabi=altivec
 endif
-SRCS= $(SRCS_COMMON) common/ppc/mc.c common/ppc/pixel.c
+SRCS+= common/ppc/mc.c common/ppc/pixel.c
 endif
 
 # stdint.h: everyone but BeOS
@@ -93,7 +93,7 @@ checkasm: testing/checkasm.c libx264.a
 .depend: $(SRCS) x264.c
 	rm -f .depend
 # Hacky - because gcc 2.9x doesn't have -MT
-	$(foreach SRC, $(SRCS) x264.c, ( echo -n "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM ) 1>> .depend;)
+	$(foreach SRC, $(SRCS) x264.c, ( echo -n "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM -g0 ) 1>> .depend;)
 
 depend: .depend
 ifneq ($(wildcard .depend),)
