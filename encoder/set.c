@@ -377,3 +377,29 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
     bs_rbsp_trailing( s );
 }
 
+void x264_sei_version_write( bs_t *s )
+{
+    int i;
+    // random ID number generated according to ISO-11578
+    const uint8_t uuid[16] = {
+        0xdc, 0x45, 0xe9, 0xbd, 0xe6, 0xd9, 0x48, 0xb7,
+        0x96, 0x2c, 0xd8, 0x20, 0xd9, 0x23, 0xee, 0xef
+    };
+    char version[256];
+    int length;
+    sprintf( version, "x264 - core 0x%x - H.264/MPEG-4 AVC codec - Copyleft 2005 - http://www.videolan.org/x264.html",
+             X264_BUILD );
+    length = strlen(version)+1+16;
+
+    bs_write( s, 8, 0x5 ); // payload_type = user_data_unregistered
+    while( length > 255 )
+        bs_write( s, 8, 255 ), length -= 255;
+    bs_write( s, 8, length ); // payload_size
+
+    for( i = 0; i < 16; i++ )
+        bs_write( s, 8, uuid[i] );
+    for( i = 0; i < length-16; i++ )
+        bs_write( s, 8, version[i] );
+
+    bs_rbsp_trailing( s );
+}

@@ -526,6 +526,11 @@ int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
     /* Put SPS and PPS */
     if( h->i_frame == 0 )
     {
+        /* identify ourself */
+        x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
+        x264_sei_version_write( &h->out.bs );
+        x264_nal_end( h );
+
         /* generate sequence parameters */
         x264_nal_start( h, NAL_SPS, NAL_PRIORITY_HIGHEST );
         x264_sps_write( &h->out.bs, h->sps );
@@ -1103,6 +1108,14 @@ do_encode:
     /* Write SPS and PPS */
     if( i_nal_type == NAL_SLICE_IDR )
     {
+        if( h->fenc->i_frame == 0 )
+        {
+            /* identify ourself */
+            x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
+            x264_sei_version_write( &h->out.bs );
+            x264_nal_end( h );
+        }
+
         /* generate sequence parameters */
         x264_nal_start( h, NAL_SPS, NAL_PRIORITY_HIGHEST );
         x264_sps_write( &h->out.bs, h->sps );
