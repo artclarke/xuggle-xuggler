@@ -25,5 +25,6 @@
 #define _ANALYSE_H 1
 
 void x264_macroblock_analyse( x264_t *h );
+void x264_voptype_analyse( x264_t *h );
 
 #endif

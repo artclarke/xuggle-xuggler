@@ -73,9 +73,18 @@ x264_frame_t *x264_frame_new( x264_t *h )
                                         ( frame->i_lines[0] + 64 ) );
 
         frame->filtered[i+1] = ((uint8_t*)frame->buffer[4+i]) +
-                          frame->i_stride[0] * 32 + 32;
+                                frame->i_stride[0] * 32 + 32;
     }
 
+    frame->i_stride_lowres = frame->i_stride[0]/2;
+    frame->i_lines_lowres = frame->i_lines[0]/2;
+    for( i = 0; i < 4; i++ )
+    {
+        frame->buffer[7+i] = x264_malloc( frame->i_stride_lowres *
+                                        ( frame->i_lines[0]/2 + 64 ) );
+        frame->lowres[i] = ((uint8_t*)frame->buffer[7+i]) +
+                            frame->i_stride_lowres * 32 + 32;
+    }
 
     frame->i_poc = -1;
     frame->i_type = X264_TYPE_AUTO;
@@ -106,7 +115,7 @@ void x264_frame_delete( x264_frame_t *frame )
     {
         x264_free( frame->buffer[i] );
     }
-    for( i = 4; i < 7; i++ ) /* filtered planes */
+    for( i = 4; i < 11; i++ ) /* filtered planes */
     {
         x264_free( frame->buffer[i] );
     }
@@ -230,6 +239,43 @@ void x264_frame_expand_border_filtered( x264_frame_t *frame )
             memset( PPIXEL( -w, y ), PPIXEL( -8, y )[0], w - 8 );
             /* right band */
             memset( PPIXEL( frame->i_stride[0]-2*w + 8, y ), PPIXEL( frame->i_stride[0] + 7 - 2*w, y )[0], w - 8 );
+        }
+#undef PPIXEL
+    }
+}
+
+void x264_frame_expand_lowres( x264_frame_t *frame )
+{
+    int w = 32;
+    int i, y;
+    for( i = 0; i < 4; i++ )
+    {
+        int i_stride = frame->i_stride_lowres;
+        int i_lines = frame->i_lines_lowres;
+#define PPIXEL(x, y) ( frame->lowres[i] + (x) +(y)*i_stride )
+        for( y = 0; y < w; y++ )
+        {
+            /* upper band */
+            memcpy( PPIXEL(0,-y-1), PPIXEL(0,0), i_stride - 2 * w);
+            /* up left corner */
+            memset( PPIXEL(-w,-y-1 ), PPIXEL(0,0)[0], w );
+            /* up right corner */
+            memset( PPIXEL(i_stride - 2*w,-y-1), PPIXEL( i_stride-1-2*w,0)[0], w );
+
+            /* lower band */
+            memcpy( PPIXEL(0, i_lines+y), PPIXEL(0,i_lines-1), i_stride - 2 * w );
+            /* low left corner */
+            memset( PPIXEL(-w, i_lines+y), PPIXEL(0,i_lines-1)[0], w);
+            /* low right corner */
+            memset( PPIXEL(i_stride-2*w, i_lines+y), PPIXEL(i_stride-1-2*w,i_lines-1)[0], w);
+
+        }
+        for( y = 0; y < i_lines; y++ )
+        {
+            /* left band */
+            memset( PPIXEL( -w, y ), PPIXEL( 0, y )[0], w );
+            /* right band */
+            memset( PPIXEL( i_stride-2*w, y ), PPIXEL( i_stride - 1-2*w, y )[0], w );
         }
 #undef PPIXEL
     }

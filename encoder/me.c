@@ -99,7 +99,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     
     COST_MV( 0, 0 );
 
-    if( h->param.analyse.i_subpel_refine >= 2 )
+    if( h->mb.i_subpel_refine >= 2 )
     {
         /* hexagon search */
         /* Don't need to test mv_range each time, we won't go outside picture+padding */
@@ -157,7 +157,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
             + m->cost_mv;
 
     /* subpel refine */
-    if( h->param.analyse.i_subpel_refine >= 3 )
+    if( h->mb.i_subpel_refine >= 3 )
     {
         int hpel, qpel;
 
@@ -172,8 +172,8 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
                 *p_fullpel_thresh = m->cost;
         }
 
-        hpel = subpel_iterations[h->param.analyse.i_subpel_refine][2];
-        qpel = subpel_iterations[h->param.analyse.i_subpel_refine][3];
+        hpel = subpel_iterations[h->mb.i_subpel_refine][2];
+        qpel = subpel_iterations[h->mb.i_subpel_refine][3];
         refine_subpel( h, m, hpel, qpel );
     }
 }
@@ -181,8 +181,8 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
 
 void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
 {
-    int hpel = subpel_iterations[h->param.analyse.i_subpel_refine][0];
-    int qpel = subpel_iterations[h->param.analyse.i_subpel_refine][1];
+    int hpel = subpel_iterations[h->mb.i_subpel_refine][0];
+    int qpel = subpel_iterations[h->mb.i_subpel_refine][1];
 //  if( hpel || qpel )
 	refine_subpel( h, m, hpel, qpel );
 }

@@ -52,6 +52,8 @@
 #define X264_MIN(a,b) ( (a)<(b) ? (a) : (b) )
 #define X264_MAX(a,b) ( (a)>(b) ? (a) : (b) )
 #define X264_ABS(a)   ( (a)< 0 ? -(a) : (a) )
+#define X264_MIN3(a,b,c) X264_MIN((a),X264_MIN((b),(c)))
+#define X264_MIN4(a,b,c,d) X264_MIN((a),X264_MIN3((b),(c),(d)))
 
 /****************************************************************************
  * Generals functions
@@ -79,6 +81,23 @@ static inline float x264_clip3f( float v, float f_min, float f_max )
 {
     return ( (v < f_min) ? f_min : (v > f_max) ? f_max : v );
 }
+
+static inline int x264_median( int a, int b, int c )
+{
+    int min = a, max =a;
+    if( b < min )
+        min = b;
+    else
+        max = b;    /* no need to do 'b > max' (more consuming than always doing affectation) */
+
+    if( c < min )
+        min = c;
+    else if( c > max )
+        max = c;
+
+    return a + b + c - min - max;
+}
+
 
 /****************************************************************************
  *
@@ -215,6 +234,8 @@ struct x264_t
         x264_frame_t *next[X264_BFRAME_MAX+1];
         /* Unused frames */
         x264_frame_t *unused[X264_BFRAME_MAX+1];
+        /* For adaptive B decision */
+        x264_frame_t *last_nonb;
 
         /* frames used for reference +1 for decoding */
         x264_frame_t *reference[16+1];
@@ -222,6 +243,8 @@ struct x264_t
         int i_last_idr; /* Frame number of the last IDR */
 
         int i_input;    /* Number of input frames already accepted */
+        
+        int i_delay;    /* Number of frames buffered for B reordering */
     } frames;
 
     /* current frame being encoded */
@@ -266,6 +289,9 @@ struct x264_t
         int     i_mb_xy;
         int     i_b8_xy;
         int     i_b4_xy;
+        
+        /* Search parameters */
+        int     i_subpel_refine;
 
         /* Allowed qpel MV range to stay within the picture + emulated edge pixels */
         int     mv_min[2];

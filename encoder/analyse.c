@@ -176,6 +176,8 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
         int i;
         int i_fmv_range = h->param.analyse.i_mv_range - 16;
 
+        h->mb.i_subpel_refine = h->param.analyse.i_subpel_refine;
+
         /* Calculate max allowed MV range */
 #define CLIP_FMV(mv) x264_clip3( mv, -i_fmv_range, i_fmv_range )
         h->mb.mv_min_fpel[0] = CLIP_FMV( -16*h->mb.i_mb_x - 8 );
@@ -1794,4 +1796,6 @@ void x264_macroblock_analyse( x264_t *h )
             }
     }
 }
+
+#include "voptype_decision.c"
 

@@ -444,3 +444,40 @@ void x264_frame_filter( int cpu, x264_frame_t *frame )
         }
     }
 }
+
+void x264_frame_init_lowres( int cpu, x264_frame_t *frame )
+{
+    // FIXME: tapfilter?
+    const int i_stride = frame->i_stride[0];
+    const int i_stride2 = frame->i_stride_lowres;
+    const int i_width2 = i_stride2 - 64;
+    int x, y, i;
+    for( y = 0; y < frame->i_lines_lowres - 1; y++ )
+    {
+        uint8_t *src0 = &frame->plane[0][2*y*i_stride];
+        uint8_t *src1 = src0+i_stride;
+        uint8_t *src2 = src1+i_stride;
+        uint8_t *dst0 = &frame->lowres[0][y*i_stride2];
+        uint8_t *dsth = &frame->lowres[1][y*i_stride2];
+        uint8_t *dstv = &frame->lowres[2][y*i_stride2];
+        uint8_t *dstc = &frame->lowres[3][y*i_stride2];
+        for( x = 0; x < i_width2 - 1; x++ )
+        {
+            dst0[x] = (src0[2*x  ] + src0[2*x+1] + src1[2*x  ] + src1[2*x+1] + 2) >> 2;
+            dsth[x] = (src0[2*x+1] + src0[2*x+2] + src1[2*x+1] + src1[2*x+2] + 2) >> 2;
+            dstv[x] = (src1[2*x  ] + src1[2*x+1] + src2[2*x  ] + src2[2*x+1] + 2) >> 2;
+            dstc[x] = (src1[2*x+1] + src1[2*x+2] + src2[2*x+1] + src2[2*x+2] + 2) >> 2;
+        }
+        dst0[x] = (src0[2*x  ] + src0[2*x+1] + src1[2*x  ] + src1[2*x+1] + 2) >> 2;
+        dstv[x] = (src1[2*x  ] + src1[2*x+1] + src2[2*x  ] + src2[2*x+1] + 2) >> 2;
+        dsth[x] = (src0[2*x+1] + src1[2*x+1] + 1) >> 1;
+        dstc[x] = (src1[2*x+1] + src2[2*x+1] + 1) >> 1;
+    }
+    for( i = 0; i < 4; i++ )
+        memcpy( &frame->lowres[i][y*i_stride2], &frame->lowres[i][(y-1)*i_stride2], i_width2 );
+
+    for( y = 0; y < 16; y++ )
+        for( x = 0; x < 16; x++ )
+            frame->i_cost_est[x][y] = -1;
+}
+

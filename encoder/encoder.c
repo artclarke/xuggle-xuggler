@@ -341,7 +341,10 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     if( h->param.i_keyint_max <= 0 )
         h->param.i_keyint_max = 1;
     h->param.i_keyint_min = x264_clip3( h->param.i_keyint_min, 1, h->param.i_keyint_max/2+1 );
+
     h->param.i_bframe = x264_clip3( h->param.i_bframe, 0, X264_BFRAME_MAX );
+    h->param.i_bframe_bias = x264_clip3( h->param.i_bframe_bias, -90, 100 );
+    h->frames.i_delay = h->param.i_bframe;
 
     h->param.i_deblocking_filter_alphac0 = x264_clip3( h->param.i_deblocking_filter_alphac0, -6, 6 );
     h->param.i_deblocking_filter_beta    = x264_clip3( h->param.i_deblocking_filter_beta, -6, 6 );
@@ -424,7 +427,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         h->frames.next[i]    = NULL;
         h->frames.unused[i]  = NULL;
     }
-    for( i = 0; i < 1 + h->param.i_bframe; i++ )
+    for( i = 0; i < 1 + h->frames.i_delay; i++ )
     {
         h->frames.unused[i] =  x264_frame_new( h );
     }
@@ -678,6 +681,18 @@ static inline void x264_reference_update( x264_t *h )
     /* expand border of filtered images */
     x264_frame_expand_border_filtered( h->fdec );
 
+    /* move lowres copy of the image to the ref frame */
+    for( i = 0; i < 4; i++)
+    {
+        uint8_t *tmp = h->fdec->lowres[i];
+        h->fdec->lowres[i] = h->fenc->lowres[i];
+        h->fenc->lowres[i] = tmp;
+    }
+
+    /* adaptive B decision needs a pointer, since it can't use the ref lists */
+    if( h->sh.i_type != SLICE_TYPE_B )
+        h->frames.last_nonb = h->fdec;
+
     /* move frame in the buffer */
     h->fdec = h->frames.reference[h->param.i_frame_reference+1];
     for( i = h->param.i_frame_reference+1; i > 0; i-- )
@@ -911,7 +926,8 @@ static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_id
  ****************************************************************************/
 int     x264_encoder_encode( x264_t *h,
                              x264_nal_t **pp_nal, int *pi_nal,
-                             x264_picture_t *pic )
+                             x264_picture_t *pic_in,
+                             x264_picture_t *pic_out )
 {
     x264_frame_t   *frame_psnr = h->fdec; /* just to keep the current decoded frame for psnr calculation */
     int     i_nal_type;
@@ -931,22 +947,24 @@ int     x264_encoder_encode( x264_t *h,
 
     /* ------------------- Setup new frame from picture -------------------- */
     TIMER_START( i_mtime_encode_frame );
-    if( pic != NULL )
+    if( pic_in != NULL )
     {
         /* 1: Copy the picture to a frame and move it to a buffer */
         x264_frame_t *fenc = x264_frame_get( h->frames.unused );
 
-        x264_frame_copy_picture( h, fenc, pic );
+        x264_frame_copy_picture( h, fenc, pic_in );
 
         fenc->i_frame = h->frames.i_input++;
 
         x264_frame_put( h->frames.next, fenc );
 
-        if( h->frames.i_input <= h->param.i_bframe )
+        x264_frame_init_lowres( h->param.cpu, fenc );
+
+        if( h->frames.i_input <= h->frames.i_delay )
         {
             /* Nothing yet to encode */
             /* waiting for filling bframe buffer */
-            pic->i_type = X264_TYPE_AUTO;
+            pic_out->i_type = X264_TYPE_AUTO;
             return 0;
         }
     }
@@ -967,6 +985,8 @@ int     x264_encoder_encode( x264_t *h,
                 h->frames.next[i]->i_type =
                     x264_ratecontrol_slice_type( h, h->frames.next[i]->i_frame );
         }
+        else if( h->param.i_bframe && h->param.b_bframe_adaptive )
+            x264_voptype_analyse( h );
 
         for( bframes = 0;; bframes++ )
         {
@@ -1027,7 +1047,7 @@ int     x264_encoder_encode( x264_t *h,
     {
         /* Nothing yet to encode (ex: waiting for I/P with B frames) */
         /* waiting for filling bframe buffer */
-        pic->i_type = X264_TYPE_AUTO;
+        pic_out->i_type = X264_TYPE_AUTO;
         return 0;
     }
 
@@ -1069,7 +1089,6 @@ do_encode:
         i_slice_type = SLICE_TYPE_B;
     }
 
-    pic->i_type     =
     h->fdec->i_type = h->fenc->i_type;
     h->fdec->i_poc  = h->fenc->i_poc;
     h->fdec->i_frame = h->fenc->i_frame;
@@ -1080,10 +1099,8 @@ do_encode:
     /* Init the rate control */
     x264_ratecontrol_start( h, i_slice_type );
     i_global_qp = x264_ratecontrol_qp( h );
-    if( h->fenc->i_qpplus1 > 0 )
-    {
-        i_global_qp = x264_clip3( h->fenc->i_qpplus1 - 1, 0, 51 );
-    }
+    pic_out->i_qpplus1 =
+    h->fdec->i_qpplus1 = i_global_qp + 1;
 
     /* build ref list 0/1 */
     x264_reference_build_list( h, h->fdec->i_poc );
@@ -1251,12 +1268,12 @@ do_encode:
 
     /* Set output picture properties */
     if( i_slice_type == SLICE_TYPE_I )
-        pic->i_type = i_nal_type == NAL_SLICE_IDR ? X264_TYPE_IDR : X264_TYPE_I;
+        pic_out->i_type = i_nal_type == NAL_SLICE_IDR ? X264_TYPE_IDR : X264_TYPE_I;
     else if( i_slice_type == SLICE_TYPE_P )
-        pic->i_type = X264_TYPE_P;
+        pic_out->i_type = X264_TYPE_P;
     else
-        pic->i_type = X264_TYPE_B;
-    pic->i_pts = h->fenc->i_pts;
+        pic_out->i_type = X264_TYPE_B;
+    pic_out->i_pts = h->fenc->i_pts;
 
     /* ---------------------- Update encoder state ------------------------- */
     /* update cabac */

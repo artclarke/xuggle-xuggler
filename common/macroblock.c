@@ -166,22 +166,6 @@ void x264_mb_dequant_4x4( int16_t dct[4][4], int i_qscale )
     }
 }
 
-static inline int x264_median( int a, int b, int c )
-{
-    int min = a, max =a;
-    if( b < min )
-        min = b;
-    else
-        max = b;    /* no need to do 'b > max' (more consuming than always doing affectation) */
-
-    if( c < min )
-        min = c;
-    else if( c > max )
-        max = c;
-
-    return a + b + c - min - max;
-}
-
 void x264_mb_predict_mv( x264_t *h, int i_list, int idx, int i_width, int mvp[2] )
 {
     const int i8 = x264_scan8[idx];

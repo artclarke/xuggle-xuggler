@@ -106,6 +106,8 @@ static void Help( x264_param_t *defaults )
              "  -i, --min-keyint <integer>  Minimum GOP size [%d]\n"
              "      --scenecut <integer>    How aggresively to insert extra I frames [%d]\n"
              "  -b, --bframe <integer>      Number of B-frames between I and P [%d]\n"
+             "      --no-b-adapt            Disable adaptive B-frame decision\n"
+             "      --b-bias <integer>      Influences how often B-frames are used [%d]\n"
              "\n"
              "  -c, --cabac                 Enable CABAC\n"
              "  -r, --ref <integer>         Number of reference frames [%d]\n"
@@ -156,6 +158,7 @@ static void Help( x264_param_t *defaults )
             defaults->i_keyint_min,
             defaults->i_scenecut_threshold,
             defaults->i_bframe,
+            defaults->i_bframe_bias,
             defaults->i_frame_reference,
             defaults->i_deblocking_filter_alphac0,
             defaults->rc.i_qp_constant,
@@ -216,12 +219,16 @@ static int  Parse( int argc, char **argv,
 #define OPT_FPS 274
 #define OPT_DIRECT 275
 #define OPT_LEVEL 276
+#define OPT_NOBADAPT 277
+#define OPT_BBIAS 278
 
         static struct option long_options[] =
         {
             { "help",    no_argument,       NULL, 'h' },
             { "bitrate", required_argument, NULL, 'B' },
             { "bframe",  required_argument, NULL, 'b' },
+            { "no-b-adapt", no_argument,    NULL, OPT_NOBADAPT },
+            { "b-bias",  required_argument, NULL, OPT_BBIAS },
             { "min-keyint",required_argument,NULL,'i' },
             { "keyint",  required_argument, NULL, 'I' },
             { "scenecut",required_argument, NULL, OPT_SCENECUT },
@@ -284,6 +291,12 @@ static int  Parse( int argc, char **argv,
                 break;
             case 'b':
                 param->i_bframe = atol( optarg );
+                break;
+            case OPT_NOBADAPT:
+                param->b_bframe_adaptive = 0;
+                break;
+            case OPT_BBIAS:
+                param->i_bframe_bias = atol( optarg );
                 break;
             case 'i':
                 param->i_keyint_min = atol( optarg );
@@ -710,7 +723,7 @@ static int  Encode( x264_param_t  *param, FILE *fyuv, FILE *fout )
 
         /* Do not force any parameters */
         pic.i_type = X264_TYPE_AUTO;
-        if( x264_encoder_encode( h, &nal, &i_nal, &pic ) < 0 )
+        if( x264_encoder_encode( h, &nal, &i_nal, &pic, &pic ) < 0 )
         {
             fprintf( stderr, "x264_encoder_encode failed\n" );
         }

@@ -64,6 +64,8 @@ void    x264_param_default( x264_param_t *param )
     param->i_keyint_min = 100;
     param->i_bframe = 0;
     param->i_scenecut_threshold = 40;
+    param->b_bframe_adaptive = 1;
+    param->i_bframe_bias = 0;
 
     param->b_deblocking_filter = 1;
     param->i_deblocking_filter_alphac0 = 0;

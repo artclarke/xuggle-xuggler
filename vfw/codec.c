@@ -386,7 +386,7 @@ LRESULT compress( CODEC *codec, ICCOMPRESS *icc )
     }
 
     /* encode it */
-    x264_encoder_encode( codec->h, &nal, &i_nal, &pic );
+    x264_encoder_encode( codec->h, &nal, &i_nal, &pic, &pic );
 
     /* create bitstream, unless we're dropping it in 1st pass */
     i_out = 0;

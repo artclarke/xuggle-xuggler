@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 0x0012
+#define X264_BUILD 0x0013
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -113,6 +113,8 @@ typedef struct
     int         i_keyint_min;       /* Scenecuts closer together than this are coded as I, not IDR. */
     int         i_scenecut_threshold; /* how aggressively to insert extra I frames */
     int         i_bframe;   /* how many b-frame between 2 references pictures */
+    int         b_bframe_adaptive;
+    int         i_bframe_bias;
 
     int         b_deblocking_filter;
     int         i_deblocking_filter_alphac0;    /* [-6, 6] -6 light filter, 6 strong */
@@ -269,7 +271,7 @@ x264_t *x264_encoder_open   ( x264_param_t * );
 int     x264_encoder_headers( x264_t *, x264_nal_t **, int * );
 /* x264_encoder_encode:
  *      encode one picture */
-int     x264_encoder_encode ( x264_t *, x264_nal_t **, int *, x264_picture_t * );
+int     x264_encoder_encode ( x264_t *, x264_nal_t **, int *, x264_picture_t *, x264_picture_t * );
 /* x264_encoder_close:
  *      close an encoder handler */
 void    x264_encoder_close  ( x264_t * );
