@@ -42,7 +42,7 @@ const static int subpel_iterations[][4] =
 
 static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters );
 
-void x264_me_search( x264_t *h, x264_me_t *m )
+void x264_me_search( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc )
 {
     const int i_pixel = m->i_pixel;
     int bcost;
@@ -66,19 +66,22 @@ void x264_me_search( x264_t *h, x264_me_t *m )
 
 
     /* try a candidate if provided */
-    if( m->b_mvc )
+    for( i_iter = 0; i_iter < i_mvc; i_iter++ )
     {
-        const int mx = x264_clip3( ( m->mvc[0] + 2 ) >> 2, -m->i_mv_range, m->i_mv_range );
-        const int my = x264_clip3( ( m->mvc[1] + 2 ) >> 2, -m->i_mv_range, m->i_mv_range );
-        uint8_t *p_fref2 = &m->p_fref[my*m->i_stride+mx];
-        int cost = h->pixf.sad[i_pixel]( m->p_fenc, m->i_stride, p_fref2, m->i_stride ) +
-                   m->lm * ( bs_size_se( m->mvc[0] - m->mvp[0] ) + bs_size_se( m->mvc[1] - m->mvp[1] ) );
-        if( cost < bcost )
+        const int mx = x264_clip3( ( mvc[i_iter][0] + 2 ) >> 2, -m->i_mv_range, m->i_mv_range );
+        const int my = x264_clip3( ( mvc[i_iter][1] + 2 ) >> 2, -m->i_mv_range, m->i_mv_range );
+        if( mx != bmx || my != bmy )
         {
-            bmx = mx;
-            bmy = my;
-            bcost = cost;
-            p_fref = p_fref2;
+            uint8_t *p_fref2 = &m->p_fref[my*m->i_stride+mx];
+            int cost = h->pixf.sad[i_pixel]( m->p_fenc, m->i_stride, p_fref2, m->i_stride ) +
+                       m->lm * ( bs_size_se( mx - m->mvp[0] ) + bs_size_se( my - m->mvp[1] ) );
+            if( cost < bcost )
+            {
+                bmx = mx;
+                bmy = my;
+                bcost = cost;
+                p_fref = p_fref2;
+            }
         }
     }
 

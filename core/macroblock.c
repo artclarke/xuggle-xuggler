@@ -349,6 +349,41 @@ void x264_mb_predict_mv_pskip( x264_t *h, int mv[2] )
     }
 }
 
+void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int mvc[4][2], int *i_mvc )
+{
+    int16_t (*mvr)[2] = h->mb.mvr[i_list][i_ref];
+
+    int i = 0;
+    if( h->mb.i_mb_x > 0 )
+    {
+        int i_mb_l = h->mb.i_mb_xy - 1;
+        mvc[i][0] = mvr[i_mb_l][0];
+        mvc[i][1] = mvr[i_mb_l][1];
+        i++;
+    }
+    if( h->mb.i_mb_y > 0 )
+    {
+        int i_mb_t = h->mb.i_mb_xy - h->mb.i_mb_stride;
+        mvc[i][0] = mvr[i_mb_t][0];
+        mvc[i][1] = mvr[i_mb_t][1];
+        i++;
+
+        if( h->mb.i_mb_x > 0 )
+        {
+            mvc[i][0] = mvr[i_mb_t - 1][0];
+            mvc[i][1] = mvr[i_mb_t - 1][1];
+            i++;
+        }
+        if( h->mb.i_mb_x < h->mb.i_mb_stride - 1 )
+        {
+            mvc[i][0] = mvr[i_mb_t + 1][0];
+            mvc[i][1] = mvr[i_mb_t + 1][1];
+            i++;
+        }
+    }
+    *i_mvc = i;
+}
+
 static inline void x264_mb_mc_0xywh( x264_t *h, int x, int y, int width, int height )
 {
     const int i8 = x264_scan8[0]+x+8*y;
@@ -532,7 +567,8 @@ void x264_mb_mc( x264_t *h )
 
 void x264_macroblock_cache_init( x264_t *h )
 {
-    int i_mb_count  = h->sps->i_mb_width * h->sps->i_mb_height;
+    int i, j;
+    int i_mb_count = h->sps->i_mb_width * h->sps->i_mb_height;
 
     h->mb.i_mb_stride = h->sps->i_mb_width;
 
@@ -558,12 +594,20 @@ void x264_macroblock_cache_init( x264_t *h )
         h->mb.mvd[1] = x264_malloc( 2*16 * i_mb_count * sizeof( int16_t ) );
     }
 
+    for( i=0; i<2; i++ )
+        for( j=0; j<16; j++ ) /* FIXME: alloc no more than param.i_frame_reference */
+            h->mb.mvr[i][j] = x264_malloc( 2 * i_mb_count * sizeof( int16_t ) );
+
     /* init with not avaiable (for top right idx=7,15) */
     memset( h->mb.cache.ref[0], -2, X264_SCAN8_SIZE * sizeof( int8_t ) );
     memset( h->mb.cache.ref[1], -2, X264_SCAN8_SIZE * sizeof( int8_t ) );
 }
 void x264_macroblock_cache_end( x264_t *h )
 {
+    int i, j;
+    for( i=0; i<2; i++ )
+        for( j=0; j<16; j++ )
+            x264_free( h->mb.mvr[i][j] );
     if( h->param.b_cabac )
     {
         x264_free( h->mb.chroma_pred_mode );

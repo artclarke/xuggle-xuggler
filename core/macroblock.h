@@ -143,17 +143,22 @@ void x264_mb_dequant_4x4( int16_t dct[4][4], int i_qscale );
 
 /* x264_mb_predict_mv_16x16:
  *      set mvp with predicted mv for D_16x16 block
- *      h->mb. need only valid values from others block */
+ *      h->mb. need only valid values from other blocks */
 void x264_mb_predict_mv_16x16( x264_t *h, int i_list, int i_ref, int mvp[2] );
 /* x264_mb_predict_mv_pskip:
  *      set mvp with predicted mv for P_SKIP
- *      h->mb. need only valid values from others block */
+ *      h->mb. need only valid values from other blocks */
 void x264_mb_predict_mv_pskip( x264_t *h, int mv[2] );
 /* x264_mb_predict_mv:
  *      set mvp with predicted mv for all blocks except P_SKIP
  *      h->mb. need valid ref/partition/sub of current block to be valid
- *      and valid mv/ref from others block . */
+ *      and valid mv/ref from other blocks . */
 void x264_mb_predict_mv( x264_t *h, int i_list, int idx, int i_width, int mvp[2] );
+/* x264_mb_predict_mv_ref16x16:
+ *      set mvc with D_16x16 prediction.
+ *      uses all neighbors, even those that didn't end up using this ref.
+ *      need only valid values from other blocks */
+void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int mvc[4][2], int *i_mvc );
 
 
 int  x264_mb_predict_intra4x4_mode( x264_t *h, int idx );

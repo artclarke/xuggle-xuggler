@@ -269,7 +269,8 @@ struct x264_t
         int8_t  *chroma_pred_mode;          /* chroma_pred_mode. cabac only. for non intra I_PRED_CHROMA_DC(0) */
         int16_t (*mv[2])[2];                /* mb mv. set to 0 for intra mb */
         int16_t (*mvd[2])[2];               /* mb mv difference with predict. set to 0 if intra. cabac only */
-        int8_t   *ref[2];                   /* mb ref. set to -1 if non used (intra or Lx only */
+        int8_t   *ref[2];                   /* mb ref. set to -1 if non used (intra or Lx only) */
+        int16_t (*mvr[2][16])[2];           /* mb mv for each possible ref */
 
         /* current value */
         int     i_type;

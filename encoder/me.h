@@ -38,15 +38,12 @@ typedef struct
 
     int mvp[2];
 
-    int b_mvc;
-    int mvc[2];
-
     /* output */
     int cost;           /* satd + lm * nbits */
     int mv[2];
 } x264_me_t;
 
-void x264_me_search( x264_t *h, x264_me_t *m );
+void x264_me_search( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc );
 void x264_me_refine_qpel( x264_t *h, x264_me_t *m );
 
 #endif
