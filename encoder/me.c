@@ -151,7 +151,9 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     {
         int hpel, qpel;
 
-        /* early termination (when examining multiple reference frames) */
+        /* early termination (when examining multiple reference frames)
+         * FIXME: this can update fullpel_thresh even if the match
+         *        ref is rejected after subpel refinement */
         if( p_fullpel_thresh )
         {
             if( (m->cost*7)>>3 > *p_fullpel_thresh )
