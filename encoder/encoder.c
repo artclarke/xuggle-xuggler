@@ -1121,10 +1121,8 @@ do_encode:
 
     /* ------------------- Init                ----------------------------- */
     /* Init the rate control */
-    x264_ratecontrol_start( h, i_slice_type );
+    x264_ratecontrol_start( h, i_slice_type, h->fenc->i_qpplus1 );
     i_global_qp = x264_ratecontrol_qp( h );
-    if( h->fenc->i_qpplus1 > 0)
-        i_global_qp = h->fenc->i_qpplus1 - 1;
 
     pic_out->i_qpplus1 =
     h->fdec->i_qpplus1 = i_global_qp + 1;

@@ -100,6 +100,7 @@ struct x264_ratecontrol_t
     int nzcoeffs;               /* # of 0-quantized coefficients */
     int ncoeffs;                /* total # of coefficients */
     int overhead;
+    int qp_force;
 
     /* 2pass stuff */
     FILE *p_stat_file_out;
@@ -377,7 +378,7 @@ void x264_ratecontrol_delete( x264_t *h )
     x264_free( rc );
 }
 
-void x264_ratecontrol_start( x264_t *h, int i_slice_type )
+void x264_ratecontrol_start( x264_t *h, int i_slice_type, int i_force_qp )
 {
     x264_ratecontrol_t *rc = h->rc;
     int gframes, iframes, pframes, bframes;
@@ -391,10 +392,14 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
 
     x264_cpu_restore( h->param.cpu );
 
+    rc->qp_force = i_force_qp;
+
     if( !h->param.rc.b_cbr )
     {
         int q;
-        if( i_slice_type == SLICE_TYPE_B && h->fdec->b_kept_as_ref )
+        if( i_force_qp )
+            q = i_force_qp - 1;
+        else if( i_slice_type == SLICE_TYPE_B && h->fdec->b_kept_as_ref )
             q = ( rc->qp_constant[ SLICE_TYPE_B ] + rc->qp_constant[ SLICE_TYPE_P ] ) / 2;
         else
             q = rc->qp_constant[ i_slice_type ];
@@ -506,8 +511,12 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
     else if(rc->fbits < 1.2 * minbits)
         rc->qp -= 1;
 
-    rc->qp = x264_clip3(rc->qp, h->param.rc.i_qp_min, h->param.rc.i_qp_max);
-    rc->qpm = rc->qp;
+    if( i_force_qp > 0 ) {
+        rc->qpm = rc->qpa = rc->qp = i_force_qp - 1;
+    } else {
+        rc->qp = rc->qpm =
+            x264_clip3(rc->qp, h->param.rc.i_qp_min, h->param.rc.i_qp_max);
+    }
 
     x264_log(h, X264_LOG_DEBUG, "fbits=%i, qp=%i, z=%i, min=%i, max=%i\n",
              rc->fbits, rc->qpm, zn, minbits, maxbits);
@@ -542,6 +551,8 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     if(rc->mb < rc->nmb / 16)
         return;
     else if(rc->mb == rc->nmb)
+        return;
+    else if(rc->qp_force > 0)
         return;
 
     rcoeffs = (rc->nmb - rc->mb) * 16 * 24;
