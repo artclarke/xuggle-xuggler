@@ -154,6 +154,8 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y );
 void x264_macroblock_cache_save( x264_t *h );
 void x264_macroblock_cache_end( x264_t *h );
 
+void x264_macroblock_bipred_init( x264_t *h );
+
 void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int i_qscale );
 void x264_mb_dequant_2x2_dc( int16_t dct[2][2], int i_qscale );
 void x264_mb_dequant_4x4( int16_t dct[4][4], int i_qscale );

@@ -373,19 +373,8 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
         }
         else
         {
-            int poc0 = h->fref0[i_ref]->i_poc;
-            int poc1 = h->fref1[0]->i_poc;
-            int td = x264_clip3( poc1 - poc0, -128, 127 );
-            int dist_scale_factor;
+            const int dist_scale_factor = h->mb.dist_scale_factor[i_ref][0];
             int x4, y4;
-            if( td == 0 /* || pic0 is a long-term ref */ )
-                dist_scale_factor = 256;
-            else
-            {
-                int tb = x264_clip3( h->fdec->i_poc - poc0, -128, 127 );
-                int tx = (16384 + (abs(td) >> 1)) / td;
-                dist_scale_factor = x264_clip3( (tb * tx + 32) >> 6, -1024, 1023 );
-            }
 
             x264_macroblock_cache_ref( h, x8, y8, 2, 2, 0, i_ref );
 
@@ -623,15 +612,34 @@ static inline void x264_mb_mc_01xywh( x264_t *h, int x, int y, int width, int he
 
     h->mc.mc_luma( h->mb.pic.p_fref[1][i_ref1], h->mb.pic.i_stride[0],
                     tmp, 16, mvx1 + 4*4*x, mvy1 + 4*4*y, 4*width, 4*height );
-    h->pixf.avg[i_mode]( &h->mb.pic.p_fdec[0][4*y *h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0], tmp, 16 );
 
-    h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref1][4][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
-                      tmp, 16, mvx1, mvy1, 2*width, 2*height );
-    h->pixf.avg[i_mode]( &h->mb.pic.p_fdec[1][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1], tmp, 16 );
+    if( h->param.analyse.b_weighted_bipred )
+    {
+        const int i_ref0 = h->mb.cache.ref[0][i8];
+        const int weight = h->mb.bipred_weight[i_ref0][i_ref1];
 
-    h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref1][5][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
-                      tmp, 16, mvx1, mvy1, 2*width, 2*height );
-    h->pixf.avg[i_mode]( &h->mb.pic.p_fdec[2][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2], tmp, 16 );
+        h->pixf.avg_weight[i_mode]( &h->mb.pic.p_fdec[0][4*y *h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0], tmp, 16, weight );
+
+        h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref1][4][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
+                          tmp, 16, mvx1, mvy1, 2*width, 2*height );
+        h->pixf.avg_weight[i_mode+3]( &h->mb.pic.p_fdec[1][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1], tmp, 16, weight );
+
+        h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref1][5][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
+                          tmp, 16, mvx1, mvy1, 2*width, 2*height );
+        h->pixf.avg_weight[i_mode+3]( &h->mb.pic.p_fdec[2][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2], tmp, 16, weight );
+    }
+    else
+    {
+        h->pixf.avg[i_mode]( &h->mb.pic.p_fdec[0][4*y *h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0], tmp, 16 );
+
+        h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref1][4][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
+                          tmp, 16, mvx1, mvy1, 2*width, 2*height );
+        h->pixf.avg[i_mode+3]( &h->mb.pic.p_fdec[1][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1], tmp, 16 );
+
+        h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref1][5][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
+                          tmp, 16, mvx1, mvy1, 2*width, 2*height );
+        h->pixf.avg[i_mode+3]( &h->mb.pic.p_fdec[2][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2], tmp, 16 );
+    }
 }
 
 static void x264_mb_mc_direct8x8( x264_t *h, int x, int y )
@@ -1369,6 +1377,38 @@ void x264_macroblock_cache_save( x264_t *h )
             }
             else
                 h->mb.skipbp[i_mb_xy] = 0;
+        }
+    }
+}
+
+void x264_macroblock_bipred_init( x264_t *h )
+{
+    int i_ref0, i_ref1;
+    for( i_ref0 = 0; i_ref0 < h->i_ref0; i_ref0++ )
+    {
+        int poc0 = h->fref0[i_ref0]->i_poc;
+        for( i_ref1 = 0; i_ref1 < h->i_ref1; i_ref1++ )
+        {
+            int dist_scale_factor;
+            int poc1 = h->fref1[i_ref1]->i_poc;
+            int td = x264_clip3( poc1 - poc0, -128, 127 );
+            if( td == 0 /* || pic0 is a long-term ref */ )
+                dist_scale_factor = 256;
+            else
+            {
+                int tb = x264_clip3( h->fdec->i_poc - poc0, -128, 127 );
+                int tx = (16384 + (abs(td) >> 1)) / td;
+                dist_scale_factor = x264_clip3( (tb * tx + 32) >> 6, -1024, 1023 );
+            }
+            h->mb.dist_scale_factor[i_ref0][i_ref1] = dist_scale_factor;
+
+            dist_scale_factor >>= 2;
+            if( h->param.analyse.b_weighted_bipred
+                  && dist_scale_factor >= -64
+                  && dist_scale_factor <= 128 )
+                h->mb.bipred_weight[i_ref0][i_ref1] = 64 - dist_scale_factor;
+            else
+                h->mb.bipred_weight[i_ref0][i_ref1] = 32;
         }
     }
 }

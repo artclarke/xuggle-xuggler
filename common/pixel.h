@@ -27,6 +27,7 @@
 typedef int  (*x264_pixel_sad_t) ( uint8_t *, int, uint8_t *, int );
 typedef int  (*x264_pixel_satd_t)( uint8_t *, int, uint8_t *, int );
 typedef void (*x264_pixel_avg_t) ( uint8_t *, int, uint8_t *, int );
+typedef void (*x264_pixel_avg_weight_t) ( uint8_t *, int, uint8_t *, int, int );
 
 enum
 {
@@ -37,6 +38,9 @@ enum
     PIXEL_8x4   = 4,
     PIXEL_4x8   = 5,
     PIXEL_4x4   = 6,
+    PIXEL_4x2   = 7,
+    PIXEL_2x4   = 8,
+    PIXEL_2x2   = 9,
 };
 
 static const struct {
@@ -62,7 +66,8 @@ typedef struct
 {
     x264_pixel_sad_t  sad[7];
     x264_pixel_satd_t satd[7];
-    x264_pixel_avg_t  avg[7];
+    x264_pixel_avg_t  avg[10];
+    x264_pixel_avg_weight_t avg_weight[10];
 } x264_pixel_function_t;
 
 void x264_pixel_init( int cpu, x264_pixel_function_t *pixf );

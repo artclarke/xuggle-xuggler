@@ -1083,6 +1083,9 @@ do_encode:
     /* build ref list 0/1 */
     x264_reference_build_list( h, h->fdec->i_poc );
 
+    if( i_slice_type == SLICE_TYPE_B )
+        x264_macroblock_bipred_init( h );
+
     /* increase frame num but only once for B frame */
     if( i_slice_type != SLICE_TYPE_B || h->sh.i_type != SLICE_TYPE_B )
     {

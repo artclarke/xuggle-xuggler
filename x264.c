@@ -137,6 +137,7 @@ static void Help( x264_param_t *defaults )
              "                                  - none, all\n"
              "      --direct <string>       Direct MV prediction mode [\"temporal\"]\n"
              "                                  - none, spatial, temporal\n"
+             "  -w, --weightb               Weighted prediction for B-frames\n"
              "  -m, --subme <integer>       Subpixel motion estimation quality: 1=fast, 5=best. [%d]\n"
              "\n"
              "      --level <integer>       Specify IDC level\n"
@@ -239,6 +240,7 @@ static int  Parse( int argc, char **argv,
             { "output",  required_argument, NULL, 'o' },
             { "analyse", required_argument, NULL, 'A' },
             { "direct",  required_argument, NULL, OPT_DIRECT },
+            { "weightb", no_argument,       NULL, 'w' },
             { "subme",   required_argument, NULL, 'm' },
             { "level",   required_argument, NULL, OPT_LEVEL },
             { "rcsens",  required_argument, NULL, OPT_RCSENS },
@@ -260,7 +262,7 @@ static int  Parse( int argc, char **argv,
 
         int c;
 
-        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:nf:o:s:A:m:p:v",
+        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:nf:o:s:A:m:p:vw",
                          long_options, &long_options_index);
 
         if( c == -1 )
@@ -384,6 +386,9 @@ static int  Parse( int argc, char **argv,
                     param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_NONE;
                 else
                     param->analyse.i_direct_mv_pred = atoi( optarg );
+                break;
+            case 'w':
+                param->analyse.b_weighted_bipred = 1;
                 break;
             case 'm':
                 param->analyse.i_subpel_refine = atoi(optarg);

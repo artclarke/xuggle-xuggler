@@ -342,6 +342,9 @@ struct x264_t
         int     i_last_qp;  /* last qp */
         int     i_last_dqp; /* last delta qp */
 
+        /* B_direct and weighted prediction */
+        int     dist_scale_factor[16][16];
+        int     bipred_weight[16][16];
     } mb;
 
     /* rate control encoding only */

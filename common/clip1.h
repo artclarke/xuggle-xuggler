@@ -68,4 +68,9 @@ static inline uint8_t x264_mc_clip1( int x )
     return x264_mc_clip1_table[x+80];
 }
 
+static inline uint8_t x264_clip_uint8( int x )
+{
+    return x&(~255) ? (-x)>>31 : x;
+}
+
 #endif

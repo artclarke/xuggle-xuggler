@@ -292,7 +292,7 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
     pps->i_num_ref_idx_l1_active = 1;
 
     pps->b_weighted_pred = 0;
-    pps->b_weighted_bipred = 0;
+    pps->b_weighted_bipred = param->analyse.b_weighted_bipred ? 2 : 0;
 
     pps->i_pic_init_qp = 26;
     pps->i_pic_init_qs = 26;
