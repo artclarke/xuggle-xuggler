@@ -144,10 +144,11 @@ static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
     if( !p_cost_mv[a->i_qp] )
     {
         /* could be faster, but isn't called many times */
+        /* factor of 4 from qpel, 2 from sign, and 2 because mv can be opposite from mvp */
         int i;
-        p_cost_mv[a->i_qp] = x264_malloc( (2*4*h->param.analyse.i_mv_range + 1) * sizeof(int16_t) );
-        p_cost_mv[a->i_qp] += 4*h->param.analyse.i_mv_range;
-        for( i = 0; i <= 4*h->param.analyse.i_mv_range; i++ )
+        p_cost_mv[a->i_qp] = x264_malloc( (4*4*h->param.analyse.i_mv_range + 1) * sizeof(int16_t) );
+        p_cost_mv[a->i_qp] += 2*4*h->param.analyse.i_mv_range;
+        for( i = 0; i <= 2*4*h->param.analyse.i_mv_range; i++ )
         {
             p_cost_mv[a->i_qp][-i] =
             p_cost_mv[a->i_qp][i]  = a->i_lambda * bs_size_se( i );

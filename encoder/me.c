@@ -70,8 +70,6 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     const int mv_x_max = h->mb.mv_max_fpel[0];
     const int mv_y_max = h->mb.mv_max_fpel[1];
 
-    /* FIXME could theoretically run off the end of the prepared array of costs,
-     * if some mv predictors are very far from mvp */
     const int16_t *p_cost_mvx = m->p_cost_mv - m->mvp[0];
     const int16_t *p_cost_mvy = m->p_cost_mv - m->mvp[1];
 
