@@ -68,7 +68,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
 
     uint8_t pix1[9*9], pix2[8*8];
     x264_me_t m[2];
-    int mvc[3][2], i_mvc;
+    int mvc[4][2], i_mvc;
     int i_bcost = INT_MAX;
     int i_cost_bak;
     int l, i;
@@ -174,8 +174,8 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         for( i = I_PRED_CHROMA_DC; i <= I_PRED_CHROMA_P; i++ )
         {
             int i_cost;
-            h->predict_8x8[i]( &pix1[9], 9 );
-            i_cost = h->pixf.satd[PIXEL_8x8]( &pix1[9], 9, src, i_stride ) + intra_penalty;
+            h->predict_8x8[i]( &pix1[10], 9 );
+            i_cost = h->pixf.satd[PIXEL_8x8]( &pix1[10], 9, src, i_stride ) + intra_penalty;
             i_bcost = X264_MIN( i_bcost, i_cost );
         }
         if( i_bcost != i_cost_bak )
