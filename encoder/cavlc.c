@@ -41,10 +41,20 @@ static const uint8_t inter_cbp_to_golomb[48]=
   1, 32, 33, 36, 34, 37, 44, 40, 35, 45, 38, 41, 39, 42, 43, 19,
   6, 24, 25, 20, 26, 21, 46, 28, 27, 47, 22, 29, 23, 30, 31, 12
 };
+static const uint8_t mb_type_b_to_golomb[3][9]=
+{
+    { 4,  8, 12, 10,  6, 14, 16, 18, 20 }, /* D_16x8 */
+    { 5,  9, 13, 11,  7, 15, 17, 19, 21 }, /* D_8x16 */
+    { 1, -1, -1, -1,  2, -1, -1, -1,  3 }  /* D_16x16 */
+};
 static const uint8_t sub_mb_type_p_to_golomb[4]=
-{ 3, 1, 2, 0 };
+{
+    3, 1, 2, 0
+};
 static const uint8_t sub_mb_type_b_to_golomb[13]=
-{ 10,  4,  5,  1, 11,  6,  7,  2, 12,  8,  9,  3,  0 };
+{
+    10,  4,  5,  1, 11,  6,  7,  2, 12,  8,  9,  3,  0
+};
 
 static const uint8_t block_idx_x[16] =
 {
@@ -549,48 +559,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         }
 
 
-        if( h->mb.i_partition == D_16x16 )
-        {
-            if( b_list[0][0] && b_list[1][0] )
-            {
-                bs_write_ue( s, 3 );
-            }
-            else if( b_list[1][0] )
-            {
-                bs_write_ue( s, 2 );
-            }
-            else
-            {
-                bs_write_ue( s, 1 );
-            }
-        }
-        else
-        {
-            if( i_mb_type == B_BI_BI )
-            {
-                bs_write_ue( s, 20 + (h->mb.i_partition == D_16x8 ? 0 : 1 ) );
-            }
-            else if( b_list[0][0] && b_list[1][0] )
-            {
-                /* B_BI_LX* */
-                bs_write_ue( s, 16 + (b_list[0][1]?0:2) + (h->mb.i_partition == D_16x8?0:1) );
-            }
-            else if( b_list[0][1] && b_list[1][1] )
-            {
-                /* B_LX_BI */
-                bs_write_ue( s, 12 + (b_list[0][1]?0:2) + (h->mb.i_partition == D_16x8?0:1) );
-            }
-            else if( b_list[1][1] )
-            {
-                /* B_LX_L1 */
-                bs_write_ue( s, 6 + (b_list[0][0]?2:0) + (h->mb.i_partition == D_16x8?0:1) );
-            }
-            else if( b_list[0][1] )
-            {
-                /* B_LX_L0 */
-                bs_write_ue( s, 4 + (b_list[0][0]?0:6) + (h->mb.i_partition == D_16x8?0:1) );
-            }
-        }
+        bs_write_ue( s, mb_type_b_to_golomb[ h->mb.i_partition - D_16x8 ][ i_mb_type - B_L0_L0 ] );
 
         for( i_list = 0; i_list < 2; i_list++ )
         {
