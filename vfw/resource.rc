@@ -7,7 +7,10 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
+#include <windows.h>
+#ifndef IDC_STATIC
+#define IDC_STATIC (-1)
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -192,20 +195,6 @@ BEGIN
     END
 END
 #endif    // APSTUDIO_INVOKED
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog Info
-//
-
-IDD_ADVANCED DLGINIT
-BEGIN
-    IDC_DIRECTPRED, 0x403, 22, 0
-0x6f4e, 0x656e, 0x542c, 0x6d65, 0x6f70, 0x6172, 0x2c6c, 0x7053, 0x7461, 
-0x6169, 0x006c, 
-    0
-END
 
 #endif    // English (Canada) resources
 /////////////////////////////////////////////////////////////////////////////
