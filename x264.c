@@ -739,6 +739,42 @@ static int  Decode( x264_param_t  *param, FILE *fh26l, FILE *fout )
 #endif
 }
 
+static int  Encode_frame( x264_t *h, FILE *fout, x264_picture_t *pic )
+{
+    x264_picture_t pic_out;
+    x264_nal_t *nal;
+    int i_nal, i;
+    int i_file = 0;
+
+    /* Do not force any parameters */
+    if( pic )
+    {
+        pic->i_type = X264_TYPE_AUTO;
+        pic->i_qpplus1 = 0;
+    }
+    if( x264_encoder_encode( h, &nal, &i_nal, pic, &pic_out ) < 0 )
+    {
+        fprintf( stderr, "x264_encoder_encode failed\n" );
+    }
+
+    for( i = 0; i < i_nal; i++ )
+    {
+        int i_size;
+        int i_data;
+
+        i_data = DATA_MAX;
+        if( ( i_size = x264_nal_encode( data, &i_data, 1, &nal[i] ) ) > 0 )
+        {
+            i_file += fwrite( data, 1, i_size, fout );
+        }
+        else if( i_size < 0 )
+        {
+            fprintf( stderr, "need to increase buffer size (size=%d)\n", -i_size );
+        }
+    }
+    return i_file;
+}
+
 /*****************************************************************************
  * Encode:
  *****************************************************************************/
@@ -750,6 +786,7 @@ static int  Encode( x264_param_t  *param, hnd_t hin, FILE *fout )
     int     i_frame, i_frame_total;
     int64_t i_start, i_end;
     int64_t i_file;
+    int     i_frame_size;
 
     i_frame_total = p_get_frame_total( hin, param->i_width, param->i_height );
 
@@ -765,11 +802,6 @@ static int  Encode( x264_param_t  *param, hnd_t hin, FILE *fout )
     i_start = x264_mdate();
     for( i_frame = 0, i_file = 0; i_ctrl_c == 0 && i_frame < i_frame_total; i_frame++ )
     {
-        int         i_nal;
-        x264_nal_t  *nal;
-
-        int         i;
-
         if (param->i_maxframes!=0 && i_frame>=param->i_maxframes)
             break;
 
@@ -777,31 +809,14 @@ static int  Encode( x264_param_t  *param, hnd_t hin, FILE *fout )
         if ( p_read_frame( &pic, hin, param->i_width, param->i_height ) )
             break;
 
-        /* Do not force any parameters */
-        pic.i_type = X264_TYPE_AUTO;
-        pic.i_qpplus1 = 0;
-        if( x264_encoder_encode( h, &nal, &i_nal, &pic, &pic ) < 0 )
-        {
-            fprintf( stderr, "x264_encoder_encode failed\n" );
-        }
-
-        for( i = 0; i < i_nal; i++ )
-        {
-            int i_size;
-            int i_data;
-
-            i_data = DATA_MAX;
-            if( ( i_size = x264_nal_encode( data, &i_data, 1, &nal[i] ) ) > 0 )
-            {
-                i_file += fwrite( data, 1, i_size, fout );
-            }
-            else if( i_size < 0 )
-            {
-                fprintf( stderr,
-                         "need to increase buffer size (size=%d)\n", -i_size );
-            }
-        }
+        i_file += Encode_frame( h, fout, &pic );
     }
+    /* Flush delayed B-frames */
+    do {
+        i_file +=
+        i_frame_size = Encode_frame( h, fout, NULL );
+    } while( i_frame_size );
+
     i_end = x264_mdate();
     x264_picture_clean( &pic );
     x264_encoder_close( h );
