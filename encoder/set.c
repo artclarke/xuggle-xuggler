@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <math.h>
 
 #include "x264.h"
 #include "common/bs.h"
@@ -132,6 +133,19 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->vui.b_fixed_frame_rate = 1;
     }
     sps->b_vui |= sps->vui.b_timing_info_present;
+
+    sps->vui.b_bitstream_restriction = param->i_bframe > 0;
+    if( sps->vui.b_bitstream_restriction )
+    {
+        sps->vui.b_motion_vectors_over_pic_boundaries = 1;
+        sps->vui.i_max_bytes_per_pic_denom = 0;
+        sps->vui.i_max_bits_per_mb_denom = 0;
+        sps->vui.i_log2_max_mv_length_horizontal =
+        sps->vui.i_log2_max_mv_length_vertical = (int)(log(param->analyse.i_mv_range*4-1)/log(2)) + 1;
+        sps->vui.i_num_reorder_frames = param->b_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
+        sps->vui.i_max_dec_frame_buffering = param->i_frame_reference + sps->vui.i_num_reorder_frames + 1;
+    }
+    sps->b_vui |= sps->vui.b_bitstream_restriction;
 }
 
 
@@ -240,7 +254,17 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
         bs_write1( s, 0 );      /* nal_hrd_parameters_present_flag */
         bs_write1( s, 0 );      /* vcl_hrd_parameters_present_flag */
         bs_write1( s, 0 );      /* pic_struct_present_flag */
-        bs_write1( s, 0 );      /* bitstream_restriction_flag */
+        bs_write1( s, sps->vui.b_bitstream_restriction );
+        if( sps->vui.b_bitstream_restriction )
+        {
+            bs_write1( s, sps->vui.b_motion_vectors_over_pic_boundaries );
+            bs_write_ue( s, sps->vui.i_max_bytes_per_pic_denom );
+            bs_write_ue( s, sps->vui.i_max_bits_per_mb_denom );
+            bs_write_ue( s, sps->vui.i_log2_max_mv_length_horizontal );
+            bs_write_ue( s, sps->vui.i_log2_max_mv_length_vertical );
+            bs_write_ue( s, sps->vui.i_num_reorder_frames );
+            bs_write_ue( s, sps->vui.i_max_dec_frame_buffering );
+        }
     }
 
     bs_rbsp_trailing( s );

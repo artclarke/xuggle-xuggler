@@ -83,6 +83,15 @@ typedef struct
         int i_time_scale;
         int b_fixed_frame_rate;
 
+        int b_bitstream_restriction;
+        int b_motion_vectors_over_pic_boundaries;
+        int i_max_bytes_per_pic_denom;
+        int i_max_bits_per_mb_denom;
+        int i_log2_max_mv_length_horizontal;
+        int i_log2_max_mv_length_vertical;
+        int i_num_reorder_frames;
+        int i_max_dec_frame_buffering;
+
         /* FIXME to complete */
     } vui;
 } x264_sps_t;

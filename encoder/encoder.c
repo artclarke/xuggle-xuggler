@@ -396,6 +396,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     if( h->param.analyse.inter & X264_ANALYSE_PSUB8x8 )
         h->param.analyse.inter |= X264_ANALYSE_PSUB16x16;
     h->param.analyse.i_chroma_qp_offset = x264_clip3(h->param.analyse.i_chroma_qp_offset, -12, 12);
+    h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 2048);
 
     if( h->param.rc.f_qblur < 0 )
         h->param.rc.f_qblur = 0;
