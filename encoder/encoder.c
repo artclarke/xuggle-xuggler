@@ -440,7 +440,8 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     x264_csp_init( h->param.cpu, h->param.i_csp, &h->csp );
 
     /* rate control */
-    x264_ratecontrol_new( h );
+    if( x264_ratecontrol_new( h ) < 0 )
+        return NULL;
 
     h->i_last_intra_size = 0;
     h->i_last_inter_size = 0;
@@ -709,14 +710,19 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_slice_type,
     }
 }
 
-static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_idc, int i_mb_count[18] )
+static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_idc )
 {
     int i_skip;
     int mb_xy;
     int i;
 
     /* Init stats */
-    for( i = 0; i < 17; i++ ) i_mb_count[i] = 0;
+    h->stat.frame.i_hdr_bits  =
+    h->stat.frame.i_itex_bits =
+    h->stat.frame.i_ptex_bits =
+    h->stat.frame.i_misc_bits = 0;
+    for( i = 0; i < 17; i++ )
+        h->stat.frame.i_mb_count[i] = 0;
 
     /* Slice */
     x264_nal_start( h, i_nal_type, i_nal_ref_idc );
@@ -725,7 +731,7 @@ static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_id
     x264_slice_header_write( &h->out.bs, &h->sh, i_nal_ref_idc );
     if( h->param.b_cabac )
     {
-        /* alignement needed */
+        /* alignment needed */
         bs_align_1( &h->out.bs );
 
         /* init cabac */
@@ -806,7 +812,7 @@ static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_id
         /* save cache */
         x264_macroblock_cache_save( h );
 
-        i_mb_count[h->mb.i_type]++;
+        h->stat.frame.i_mb_count[h->mb.i_type]++;
 
         x264_ratecontrol_mb(h, bs_pos(&h->out.bs) - mb_spos);
     }
@@ -841,6 +847,12 @@ static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_id
     }
 
     x264_nal_end( h );
+
+    /* Compute misc bits */
+    h->stat.frame.i_misc_bits = bs_pos( &h->out.bs )
+                              - h->stat.frame.i_itex_bits
+                              - h->stat.frame.i_ptex_bits
+                              - h->stat.frame.i_hdr_bits;
 }
 
 /****************************************************************************
@@ -868,8 +880,6 @@ int     x264_encoder_encode( x264_t *h,
     int i;
 
     int   i_global_qp;
-
-    int i_mb_count[18];
 
     /* no data out */
     *pi_nal = 0;
@@ -1088,14 +1098,14 @@ do_encode:
     }
 
     /* Write the slice */
-    x264_slice_write( h, i_nal_type, i_nal_ref_idc, i_mb_count );
+    x264_slice_write( h, i_nal_type, i_nal_ref_idc );
 
     /* XXX: this scene cut won't work with B frame (it may never create IDR -> bad) */
     if( i_slice_type != SLICE_TYPE_I)
     {
         int i_bias;
 
-        int i_mb_i = i_mb_count[I_4x4] + i_mb_count[I_16x16];
+        int i_mb_i = h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_16x16];
         int i_mb   = h->sps->i_mb_width * h->sps->i_mb_height;
         if( h->param.i_iframe > 0 )
             i_bias = 30 * X264_MIN( 3*h->frames.i_last_i, h->param.i_iframe )  / h->param.i_iframe;
@@ -1118,8 +1128,8 @@ do_encode:
                       h->out.nal[h->out.i_nal-1].i_payload,
                       h->i_last_intra_size, h->i_last_inter_size,
                       i_mb_i, i_mb, 100 * i_mb_i / i_mb, i_bias,
-                      i_mb_count[P_SKIP],
-                      i_mb_count[P_L0] );
+                      h->stat.frame.i_mb_count[P_SKIP],
+                      h->stat.frame.i_mb_count[P_L0] );
 
             /* Restore frame num */
             h->i_frame_num--;
@@ -1197,7 +1207,7 @@ do_encode:
 
     for( i = 0; i < 17; i++ )
     {
-        h->stat.i_mb_count[h->sh.i_type][i] += i_mb_count[i];
+        h->stat.i_mb_count[h->sh.i_type][i] += h->stat.frame.i_mb_count[i];
     }
 
     if( h->param.analyse.b_psnr )
@@ -1222,12 +1232,12 @@ do_encode:
                   i_nal_ref_idc,
                   i_slice_type == SLICE_TYPE_I ? 'I' : (i_slice_type == SLICE_TYPE_P ? 'P' : 'B' ),
                   frame_psnr->i_poc,
-                   i_mb_count[I_4x4],
-                  i_mb_count[I_16x16],
-                  i_mb_count[P_L0] + i_mb_count[P_8x8],
-                  i_mb_count[P_SKIP],
+                  h->stat.frame.i_mb_count[I_4x4],
+                  h->stat.frame.i_mb_count[I_16x16],
+                  h->stat.frame.i_mb_count[P_L0] + h->stat.frame.i_mb_count[P_8x8],
+                  h->stat.frame.i_mb_count[P_SKIP],
                   h->out.nal[h->out.i_nal-1].i_payload,
-                   x264_psnr( i_sqe_y, h->param.i_width * h->param.i_height ),
+                  x264_psnr( i_sqe_y, h->param.i_width * h->param.i_height ),
                   x264_psnr( i_sqe_u, h->param.i_width * h->param.i_height / 4),
                   x264_psnr( i_sqe_v, h->param.i_width * h->param.i_height / 4) );
     }
@@ -1238,12 +1248,12 @@ do_encode:
                   h->i_frame - 1,
                   i_global_qp,
                   i_nal_ref_idc,
-                   i_slice_type == SLICE_TYPE_I ? 'I' : (i_slice_type == SLICE_TYPE_P ? 'P' : 'B' ),
+                  i_slice_type == SLICE_TYPE_I ? 'I' : (i_slice_type == SLICE_TYPE_P ? 'P' : 'B' ),
                   frame_psnr->i_poc,
-                  i_mb_count[I_4x4],
-                  i_mb_count[I_16x16],
-                  i_mb_count[P_L0] + i_mb_count[P_8x8],
-                  i_mb_count[P_SKIP],
+                  h->stat.frame.i_mb_count[I_4x4],
+                  h->stat.frame.i_mb_count[I_16x16],
+                  h->stat.frame.i_mb_count[P_L0] + h->stat.frame.i_mb_count[P_8x8],
+                  h->stat.frame.i_mb_count[P_SKIP],
                   h->out.nal[h->out.i_nal-1].i_payload );
     }
 

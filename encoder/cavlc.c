@@ -263,6 +263,8 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int *l, i
 void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
 {
     const int i_mb_type = h->mb.i_type;
+    const int i_mb_pos_start = bs_pos( s );
+    int       i_mb_pos_tex;
     int i_mb_i_offset;
     int i;
 
@@ -632,6 +634,9 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         return;
     }
 
+    i_mb_pos_tex = bs_pos( s );
+    h->stat.frame.i_hdr_bits += i_mb_pos_tex - i_mb_pos_start;
+
     /* Coded block patern */
     if( i_mb_type == I_4x4 )
     {
@@ -684,4 +689,9 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
             }
         }
     }
+
+    if( IS_INTRA( i_mb_type ) )
+        h->stat.frame.i_itex_bits += bs_pos(s) - i_mb_pos_tex;
+    else
+        h->stat.frame.i_ptex_bits += bs_pos(s) - i_mb_pos_tex;
 }

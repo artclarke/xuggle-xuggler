@@ -335,6 +335,22 @@ struct x264_t
     /* stats */
     struct
     {
+        /* Current frame stats */
+        struct
+        {
+            /* Headers bits (MV+Ref+MB Block Type */
+            int i_hdr_bits;
+            /* Texture bits (Intra/Predicted) */
+            int i_itex_bits;
+            int i_ptex_bits;
+            /* ? */
+            int i_misc_bits;
+            /* MB type counts */
+            int i_mb_count[18];
+        } frame;
+
+        /* Cummulated stats */
+
         /* per slice info */
         int   i_slice_count[5];
         int   i_slice_size[5];
@@ -346,6 +362,7 @@ struct x264_t
         float   f_psnr_mean_v[5];
         /* */
         int   i_mb_count[5][18];
+
     } stat;
 
     /* CPU functions dependants */

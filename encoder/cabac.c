@@ -961,6 +961,9 @@ static void block_residual_write_cabac( x264_t *h, int i_ctxBlockCat, int i_idx,
 void x264_macroblock_write_cabac( x264_t *h, bs_t *s )
 {
     const int i_mb_type = h->mb.i_type;
+    const int i_mb_pos_start = bs_pos( s );
+    int       i_mb_pos_tex;
+
     int i;
 
     /* Write the MB type */
@@ -1141,6 +1144,9 @@ void x264_macroblock_write_cabac( x264_t *h, bs_t *s )
         }
     }
 
+    i_mb_pos_tex = bs_pos( s );
+    h->stat.frame.i_hdr_bits += i_mb_pos_tex - i_mb_pos_start;
+
     if( i_mb_type != I_16x16 )
     {
         x264_cabac_mb_cbp_luma( h );
@@ -1190,5 +1196,10 @@ void x264_macroblock_write_cabac( x264_t *h, bs_t *s )
             }
         }
     }
+
+    if( IS_INTRA( i_mb_type ) )
+        h->stat.frame.i_itex_bits += bs_pos(s) - i_mb_pos_tex;
+    else
+        h->stat.frame.i_ptex_bits += bs_pos(s) - i_mb_pos_tex;
 }
 
