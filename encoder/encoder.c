@@ -357,7 +357,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     {
         x264_log( h, X264_LOG_ERROR, "invalid width x height (%dx%d)\n",
                   param->i_width, param->i_height );
-        free( h );
+        x264_free( h );
         return NULL;
     }
 
@@ -365,13 +365,13 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     {
         x264_log( h, X264_LOG_ERROR, "width %% 16 != 0 or height %% 16 != 0 (%dx%d)\n",
                  param->i_width, param->i_height );
-        free( h );
+        x264_free( h );
         return NULL;
     }
     if( param->i_csp != X264_CSP_I420 )
     {
         x264_log( h, X264_LOG_ERROR, "invalid CSP (only I420 supported)\n" );
-        free( h );
+        x264_free( h );
         return NULL;
     }
 
