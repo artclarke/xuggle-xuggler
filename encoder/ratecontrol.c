@@ -83,10 +83,10 @@ struct x264_ratecontrol_t
     int bits_last_gop;          /* bits consumed in gop */
     int qp;                     /* qp for current frame */
     int qpm;                    /* qp for next MB */
-    int qpa;                    /* average qp for last frame */
+    float qpa;                  /* average qp for last frame */
     int qps;
-    int qp_avg_p;               /* average QP for P frames */
-    int qp_last_p;
+    float qp_avg_p;             /* average QP for P frames */
+    float qp_last_p;
     int fbits;                  /* bits allocated for current frame */
     int ufbits;                 /* bits used for current frame */
     int nzcoeffs;               /* # of 0-quantized coefficients */
@@ -347,7 +347,8 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
         assert( frame >= 0 && frame < rc->num_entries );
 
         rce->new_qscale = rate_estimate_qscale( h, i_slice_type );
-        rc->qpm = rc->qp = rce->new_qp = (int)(qscale2qp(rce->new_qscale) + 0.5);
+        rc->qpm = rc->qpa = rc->qp = rce->new_qp =
+            (int)(qscale2qp(rce->new_qscale) + 0.5);
         return;
     }
     else if( !h->param.rc.b_cbr )
@@ -361,7 +362,7 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
         rc->bits_gop = gbuf - rc->buffer_size / 2;
 
         if(!rc->mb && rc->pframes){
-            int qp = (float) rc->qp_avg_p / rc->pframes + 0.5;
+            int qp = rc->qp_avg_p / rc->pframes + 0.5;
 #if 0 /* JM does this without explaining why */
             int gdq = (float) rc->gop_size / 15 + 0.5;
             if(gdq > 2)
@@ -433,10 +434,10 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
         else
             zn = 0;
         zn = x264_clip3(zn, 0, rc->ncoeffs);
-        dqp = h->param.rc.i_rc_sens * exp2f((float) rc->qpa / 6) *
+        dqp = h->param.rc.i_rc_sens * exp2f(rc->qpa / 6) *
             (zn - rc->nzcoeffs) / rc->nzcoeffs;
         dqp = x264_clip3(dqp, -h->param.rc.i_qp_step, h->param.rc.i_qp_step);
-        rc->qp = rc->qpa + dqp;
+        rc->qp = (int)(rc->qpa + dqp + .5);
     }
 
     if(rc->fbits > 0.9 * maxbits)
@@ -545,12 +546,14 @@ void x264_ratecontrol_end( x264_t *h, int bits )
 {
     x264_ratecontrol_t *rc = h->rc;
 
+    x264_cpu_restore( h->param.cpu );
+
     if( h->param.rc.b_stat_write )
     {
         fprintf( rc->p_stat_file_out,
                  "in:%d out:%d type:%d q:%.3f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d;\n",
                  h->fenc->i_frame, h->i_frame-1,
-                 rc->slice_type, (float)rc->qpa,
+                 rc->slice_type, rc->qpa,
                  h->stat.frame.i_itex_bits, h->stat.frame.i_ptex_bits,
                  h->stat.frame.i_hdr_bits, h->stat.frame.i_misc_bits,
                  h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_16x16],
@@ -568,7 +571,7 @@ void x264_ratecontrol_end( x264_t *h, int bits )
         rc->buffer_fullness = 0;
     }
 
-    rc->qpa = rc->qps / rc->mb;
+    rc->qpa = (float)rc->qps / rc->mb;
     if(rc->slice_type == SLICE_TYPE_P){
         rc->qp_avg_p += rc->qpa;
         rc->qp_last_p = rc->qpa;
@@ -583,7 +586,7 @@ void x264_ratecontrol_end( x264_t *h, int bits )
 
     rc->overhead = bits - rc->ufbits;
 
-    x264_log(h, X264_LOG_DEBUG, "bits=%i, qp=%i, z=%i, zr=%6.3f, buf=%i\n",
+    x264_log(h, X264_LOG_DEBUG, "bits=%i, qp=%.1f, z=%i, zr=%6.3f, buf=%i\n",
              bits, rc->qpa, rc->nzcoeffs, (float) rc->nzcoeffs / rc->ncoeffs,
              rc->buffer_fullness);
 
