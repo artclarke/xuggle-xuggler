@@ -29,6 +29,7 @@
 #else
 #include <inttypes.h>
 #endif
+#include <stdarg.h>
 
 #include "../x264.h"
 #include "bs.h"
@@ -41,10 +42,16 @@
 #include "cabac.h"
 #include "csp.h"
 
+/****************************************************************************
+ * Macros
+ ****************************************************************************/
 #define X264_MIN(a,b) ( (a)<(b) ? (a) : (b) )
 #define X264_MAX(a,b) ( (a)>(b) ? (a) : (b) )
 #define X264_ABS(a)   ( (a)< 0 ? -(a) : (a) )
 
+/****************************************************************************
+ * Generals functions
+ ****************************************************************************/
 /* x264_malloc : will do or emulate a memalign
  * XXX you HAVE TO use x264_free for buffer allocated
  * with x264_malloc
@@ -55,6 +62,9 @@ void  x264_free( void * );
 
 /* mdate: return the current date in microsecond */
 int64_t x264_mdate( void );
+
+/* log */
+void x264_log( x264_t *h, int i_level, const char *psz_fmt, ... );
 
 static inline int x264_clip3( int v, int i_min, int i_max )
 {
@@ -72,6 +82,10 @@ static inline int x264_clip3( int v, int i_min, int i_max )
     }
 }
 
+
+/****************************************************************************
+ *
+ ****************************************************************************/
 enum slice_type_e
 {
     SLICE_TYPE_P  = 0,

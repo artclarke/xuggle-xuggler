@@ -437,6 +437,15 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         h->stat.i_mb_count[SLICE_TYPE_P][i] = 0;
         h->stat.i_mb_count[SLICE_TYPE_B][i] = 0;
     }
+
+    x264_log( h, X264_LOG_INFO, "using cpu capabilities %s%s%s%s%s%s\n",
+             param->cpu&X264_CPU_MMX ? "MMX " : "",
+             param->cpu&X264_CPU_MMXEXT ? "MMXEXT " : "",
+             param->cpu&X264_CPU_SSE ? "SSE " : "",
+             param->cpu&X264_CPU_SSE2 ? "SSE2 " : "",
+             param->cpu&X264_CPU_3DNOW ? "3DNow! " : "",
+             param->cpu&X264_CPU_ALTIVEC ? "Altivec " : "" );
+
     return h;
 }
 

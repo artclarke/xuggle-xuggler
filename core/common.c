@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
@@ -31,6 +32,8 @@
 
 #include "common.h"
 #include "cpu.h"
+
+static void x264_log_default( void *, int, const char *, va_list );
 
 /****************************************************************************
  * x264_param_default:
@@ -42,14 +45,6 @@ void    x264_param_default( x264_param_t *param )
 
     /* CPU autodetect */
     param->cpu = x264_cpu_detect();
-    fprintf( stderr, "x264: cpu capabilities: %s%s%s%s%s%s\n",
-             param->cpu&X264_CPU_MMX ? "MMX " : "",
-             param->cpu&X264_CPU_MMXEXT ? "MMXEXT " : "",
-             param->cpu&X264_CPU_SSE ? "SSE " : "",
-             param->cpu&X264_CPU_SSE2 ? "SSE2 " : "",
-             param->cpu&X264_CPU_3DNOW ? "3DNow! " : "",
-             param->cpu&X264_CPU_ALTIVEC ? "Altivec " : "" );
-
 
     /* Video properties */
     param->i_csp           = X264_CSP_I420;
@@ -85,8 +80,53 @@ void    x264_param_default( x264_param_t *param )
     param->f_ip_factor = 2.0;
     param->f_pb_factor = 2.0;
 
+    /* Log */
+    param->pf_log = x264_log_default;
+    param->p_log_private = NULL;
+    param->i_log_level = X264_LOG_INFO;
+
+    /* */
     param->analyse.intra = X264_ANALYSE_I4x4;
     param->analyse.inter = X264_ANALYSE_I4x4 | X264_ANALYSE_PSUB16x16;
+}
+
+/****************************************************************************
+ * x264_log:
+ ****************************************************************************/
+void x264_log( x264_t *h, int i_level, const char *psz_fmt, ... )
+{
+    if( i_level <= h->param.i_log_level )
+    {
+        va_list arg;
+        va_start( arg, psz_fmt );
+        h->param.pf_log( h->param.p_log_private, i_level, psz_fmt, arg );
+        va_end( arg );
+    }
+}
+
+static void x264_log_default( void *p_unused, int i_level, const char *psz_fmt, va_list arg )
+{
+    char *psz_prefix;
+    switch( i_level )
+    {
+        case X264_LOG_ERROR:
+            psz_prefix = "error";
+            break;
+        case X264_LOG_WARNING:
+            psz_prefix = "warning";
+            break;
+        case X264_LOG_INFO:
+            psz_prefix = "info";
+            break;
+        case X264_LOG_DEBUG:
+            psz_prefix = "debug";
+            break;
+        default:
+            psz_prefix = "unknown";
+            break;
+    }
+    fprintf( stderr, "x264 [%s]: ", psz_prefix );
+    vfprintf( stderr, psz_fmt, arg );
 }
 
 /****************************************************************************

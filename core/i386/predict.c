@@ -30,6 +30,7 @@
 #include <inttypes.h>
 #endif
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include "x264.h"   /* for keyword inline */
 #include "../predict.h"

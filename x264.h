@@ -71,6 +71,14 @@ typedef struct x264_t x264_t;
 #define X264_TYPE_P             0x0003
 #define X264_TYPE_B             0x0004
 
+/* Log level
+ */
+#define X264_LOG_NONE          (-1)
+#define X264_LOG_ERROR          0
+#define X264_LOG_WARNING        1
+#define X264_LOG_INFO           2
+#define X264_LOG_DEBUG          3
+
 typedef struct
 {
     /* CPU flags */
@@ -116,6 +124,11 @@ typedef struct
     int         i_rc_sens;      /* rate control sensitivity */
     float       f_ip_factor;
     float       f_pb_factor;
+
+    /* Log */
+    void        (*pf_log)( void *, int i_level, const char *psz, va_list );
+    void        *p_log_private;
+    int         i_log_level;
 
     /* Encoder analyser parameters */
     struct
