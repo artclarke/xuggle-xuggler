@@ -224,6 +224,7 @@ void x264_voptype_analyse( x264_t *h )
     x264_mb_analysis_t a;
     x264_frame_t *frames[X264_BFRAME_MAX+3] = { NULL, };
     int num_frames;
+    int keyint_limit;
     int j;
 
     if( !h->frames.last_nonb )
@@ -231,7 +232,8 @@ void x264_voptype_analyse( x264_t *h )
     frames[0] = h->frames.last_nonb;
     for( j = 0; h->frames.next[j]; j++ )
         frames[j+1] = h->frames.next[j];
-    num_frames = j;
+    keyint_limit = h->param.i_keyint_max - frames[0]->i_frame + h->frames.i_last_idr - 1;
+    num_frames = X264_MIN( j, keyint_limit );
     if( num_frames == 0 )
         return;
     if( num_frames == 1 )
