@@ -104,7 +104,7 @@ libx264.a: $(DIR_BUILD) $(OBJECTS)
 x264.exe: $(DIR_BUILD) $(OBJECTS) x264.obj
 	@echo " L: $(@F)"
 	@cd $(DIR_BUILD) && \
-	$(CC) $(CFLAGS) -o x264.exe x264.obj libx264.a -lm && \
+	$(CC) $(CFLAGS) -o x264.exe x264.obj libx264.a -lm -lvfw32 && \
 	cp -f x264.exe $(DIR_SRC)
 
 checkasm.exe: $(DIR_BUILD) libx264.a $(OBJECTS) testing/checkasm.obj
