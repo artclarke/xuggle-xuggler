@@ -52,8 +52,11 @@ include .depend
 endif
 
 clean:
-	rm -f $(OBJS) $(OBJASM) *.a x264.o .depend x264
+	rm -f $(OBJS) $(OBJASM) *.a x264.o .depend x264 TAGS
 
-distclean:
-	rm -f $(OBJS) $(OBJASM) *.a x264.o .depend x264
+distclean: clean
 
+etags: TAGS
+
+TAGS:
+	etags $(SRCS)
