@@ -393,12 +393,10 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     if( cpu&X264_CPU_SSE2 )
         x264_mc_sse2_init( pf );
 #endif
-/*
 #ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC )
         x264_mc_altivec_init( pf );
 #endif
-*/
 }
 
 void get_funcs_mmx(pf_mc_t*, pf_mc_t*, pf_mc_t*);
