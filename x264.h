@@ -52,8 +52,8 @@ typedef struct x264_t x264_t;
 #define X264_ANALYSE_PSUB8x8    0x0020  /* Analyse p8x4, p4x8, p4x4 */
 #define X264_ANALYSE_BSUB16x16  0x0100  /* Analyse b16x8, b8x16 and b8x8 */
 #define X264_DIRECT_PRED_NONE        0
-#define X264_DIRECT_PRED_TEMPORAL    1
-#define X264_DIRECT_PRED_SPATIAL     2
+#define X264_DIRECT_PRED_SPATIAL     1
+#define X264_DIRECT_PRED_TEMPORAL    2
 
 /* Colorspace type
  */
