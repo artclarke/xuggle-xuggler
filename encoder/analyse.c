@@ -375,6 +375,9 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *res )
             res->i_sad_i16x16     = i_sad;
         }
     }
+    /* cavlc mb type prefix */
+    if( h->sh.i_type == SLICE_TYPE_B )
+        res->i_sad_i16x16 += res->i_lambda * i_mb_b_cost_table[I_16x16];
 
     /* 4x4 prediction selection */
     if( flags & X264_ANALYSE_I4x4 )
@@ -431,6 +434,8 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *res )
                 x264_mb_pred_mode4x4_fix[res->i_predict4x4[x][y]];
         }
         res->i_sad_i4x4 += res->i_lambda * 24;    /* from JVT (SATD0) */
+        if( h->sh.i_type == SLICE_TYPE_B )
+            res->i_sad_i4x4 += res->i_lambda * i_mb_b_cost_table[I_4x4];
     }
 }
 
@@ -1492,9 +1497,6 @@ void x264_macroblock_analyse( x264_t *h )
 
             /* best intra mode */
             x264_mb_analyse_intra( h, &analysis );
-            /* mb type cost */
-            analysis.i_sad_i16x16 += analysis.i_lambda * i_mb_b_cost_table[I_16x16];
-            analysis.i_sad_i4x4   += analysis.i_lambda * i_mb_b_cost_table[I_4x4];
 
             if( analysis.i_sad_i16x16 >= 0 && analysis.i_sad_i16x16 < i_cost )
             {
