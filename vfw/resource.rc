@@ -117,10 +117,10 @@ BEGIN
     CONTROL         "Slider1",IDC_INLOOP_A,"msctls_trackbar32",TBS_NOTICKS | 
                     WS_TABSTOP,56,53,47,10
     GROUPBOX        "",IDC_STATIC,7,40,115,41
-    LTEXT           "Strength (A)",IDC_STATIC,15,53,39,8
+    LTEXT           "Strength",IDC_STATIC,15,53,39,8
     CONTROL         "Slider1",IDC_INLOOP_B,"msctls_trackbar32",TBS_NOTICKS | 
                     WS_TABSTOP,56,66,47,10
-    LTEXT           "Strength (B)",IDC_STATIC,15,66,39,8
+    LTEXT           "Threshold",IDC_STATIC,15,66,39,8
     LTEXT           "0",IDC_LOOPA_TXT,109,53,8,8
     LTEXT           "0",IDC_LOOPB_TXT,109,66,8,8
     CONTROL         "Deblocking filter",IDC_LOOPFILTER,"Button",
@@ -133,9 +133,9 @@ BEGIN
     COMBOBOX        IDC_DIRECTPRED,232,63,58,67,CBS_DROPDOWNLIST | CBS_SORT | 
                     WS_VSCROLL | WS_TABSTOP
     GROUPBOX        "More Encoder Settings",IDC_STATIC,7,88,145,74
-    LTEXT           "Max IDR-keyframe interval:",IDC_STATIC,16,103,95,8
+    LTEXT           "Max IDR-frame interval:",IDC_STATIC,16,103,95,8
     EDITTEXT        IDC_KEYINTMAX,114,100,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Min IDR-keyframe interval:",IDC_STATIC,16,123,90,8
+    LTEXT           "Min IDR-frame interval:",IDC_STATIC,16,123,90,8
     EDITTEXT        IDC_KEYINTMIN,114,120,25,14,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "FourCC:",IDC_STATIC,16,143,26,8
     EDITTEXT        IDC_FOURCC,114,140,25,14,ES_AUTOHSCROLL
@@ -155,8 +155,8 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,17,197,127,10
     CONTROL         "4x4 Intra search",IDC_I4X4,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,165,197,82,10
-    LTEXT           "Subpixel refinement precision:",IDC_STATIC,17,218,95,8
-    COMBOBOX        IDC_SUBPEL,118,216,70,77,CBS_DROPDOWNLIST | CBS_SORT | 
+    LTEXT           "Partition decision quality:",IDC_STATIC,17,218,95,8
+    COMBOBOX        IDC_SUBPEL,104,216,70,77,CBS_DROPDOWNLIST | CBS_SORT | 
                     WS_VSCROLL | WS_TABSTOP
 END
 
