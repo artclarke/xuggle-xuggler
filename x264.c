@@ -126,6 +126,7 @@ static void Help( x264_param_t *defaults )
              "      --rcinitbuf <integer>   Initial VBV buffer occupancy [%d]\n"
              "      --ipratio <float>       QP factor between I and P [%.2f]\n"
              "      --pbratio <float>       QP factor between P and B [%.2f]\n"
+             "      --chroma-qp-offset <integer>  QP difference between chroma and luma [%d]\n"
              "\n"
              "  -p, --pass <1|2>            Enable 2 pass ratecontrol\n"
              "      --stats <string>        Filename for 2 pass stats [\"%s\"]\n"
@@ -172,6 +173,7 @@ static void Help( x264_param_t *defaults )
             defaults->rc.i_rc_init_buffer,
             defaults->rc.f_ip_factor,
             defaults->rc.f_pb_factor,
+            defaults->analyse.i_chroma_qp_offset,
             defaults->rc.psz_stat_out,
             defaults->rc.psz_rc_eq,
             defaults->rc.f_qcompress,
@@ -224,6 +226,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_NOBADAPT 277
 #define OPT_BBIAS 278
 #define OPT_BPYRAMID 279
+#define OPT_CHROMA_QP 280
 
         static struct option long_options[] =
         {
@@ -259,6 +262,7 @@ static int  Parse( int argc, char **argv,
             { "rcinitbuf",required_argument,NULL, OPT_RCIBUF },
             { "ipratio", required_argument, NULL, OPT_IPRATIO },
             { "pbratio", required_argument, NULL, OPT_PBRATIO },
+            { "chroma-qp-offset", required_argument, NULL, OPT_CHROMA_QP },
             { "pass",    required_argument, NULL, 'p' },
             { "stats",   required_argument, NULL, OPT_RCSTATS },
             { "rceq",    required_argument, NULL, OPT_RCEQ },
@@ -430,6 +434,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case OPT_PBRATIO:
                 param->rc.f_pb_factor = atof(optarg);
+                break;
+            case OPT_CHROMA_QP:
+                param->analyse.i_chroma_qp_offset = atoi(optarg);
                 break;
             case 'p':
             {

@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 20
+#define X264_BUILD 21
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -144,6 +144,8 @@ typedef struct
         int          i_mv_range; /* maximum length of a mv (in pixels) */
 
         int          b_weighted_bipred; /* implicit weighting for B-frames */
+
+        int          i_chroma_qp_offset;
 
         int          b_psnr;    /* Do we compute PSNR stats (save a few % of cpu) */
     } analyse;

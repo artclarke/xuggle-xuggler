@@ -299,7 +299,7 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
     pps->i_pic_init_qp = 26;
     pps->i_pic_init_qs = 26;
 
-    pps->i_chroma_qp_index_offset = 0;
+    pps->i_chroma_qp_index_offset = param->analyse.i_chroma_qp_offset;
     pps->b_deblocking_filter_control = 1;
     pps->b_constrained_intra_pred = 0;
     pps->b_redundant_pic_cnt = 0;
