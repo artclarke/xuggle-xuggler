@@ -54,8 +54,7 @@ General:
 
  Build:
  ######
- * Port gcc inlined asm to nasm file (BUT without any speed loss else
-   that will be rejected).
+ * Finish to port gcc inlined asm to nasm file.
 
 Coding issue:
 -------------
