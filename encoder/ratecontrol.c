@@ -231,7 +231,7 @@ int x264_ratecontrol_new( x264_t *h )
 
         /* read 1st pass stats */
         assert( h->param.rc.psz_stat_in );
-        stats_file = fopen( h->param.rc.psz_stat_in, "r");
+        stats_file = fopen( h->param.rc.psz_stat_in, "rb");
         if(!stats_file)
         {
             x264_log(h, X264_LOG_ERROR, "ratecontrol_init: can't open stats file\n");
@@ -303,7 +303,7 @@ int x264_ratecontrol_new( x264_t *h )
     /* Open output file */
     if( h->param.rc.b_stat_write )
     {
-        rc->p_stat_file_out = fopen( h->param.rc.psz_stat_out, "w" );
+        rc->p_stat_file_out = fopen( h->param.rc.psz_stat_out, "wb" );
         if( rc->p_stat_file_out == NULL )
         {
             x264_log(h, X264_LOG_ERROR, "ratecontrol_init: can't open stats file\n");
