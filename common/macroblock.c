@@ -341,21 +341,23 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
     
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, 0 );
     
+    if( IS_INTRA( h->fref1[0]->mb_type[ h->mb.i_mb_xy ] ) )
+    {
+        x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, 0 );
+        x264_macroblock_cache_mv(  h, 0, 0, 4, 4, 0, 0, 0 );
+        x264_macroblock_cache_mv(  h, 0, 0, 4, 4, 1, 0, 0 );
+        return 1;
+    }
+
     /* FIXME: optimize per block size */
     for( i = 0; i < 4; i++ )
     {
         const int x8 = 2*(i%2);
         const int y8 = 2*(i/2);
-        /* TODO: MapColToList0 */
-        const int i_ref = h->fref1[0]->ref[0][ i_mb_8x8 + x8/2 + y8 * h->mb.i_mb_stride ];
+        const int i_part_8x8 = i_mb_8x8 + x8/2 + y8 * h->mb.i_mb_stride;
+        const int i_ref = h->mb.map_col_to_list0[ h->fref1[0]->ref[0][ i_part_8x8 ] ];
 
-        if( i_ref == -1 )
-        {
-            x264_macroblock_cache_ref( h, x8, y8, 2, 2, 0, 0 );
-            x264_macroblock_cache_mv(  h, x8, y8, 2, 2, 0, 0, 0 );
-            x264_macroblock_cache_mv(  h, x8, y8, 2, 2, 1, 0, 0 );
-        }
-        else
+        if( i_ref >= 0 )
         {
             const int dist_scale_factor = h->mb.dist_scale_factor[i_ref][0];
             int x4, y4;
@@ -372,6 +374,12 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
                     x264_macroblock_cache_mv( h, x4, y4, 1, 1, 0, mv_l0[0], mv_l0[1] );
                     x264_macroblock_cache_mv( h, x4, y4, 1, 1, 1, mv_l0[0] - mv_col[0], mv_l0[1] - mv_col[1] );
                 }
+        }
+        else
+        {
+            /* the colocated ref isn't in the current list0 */
+            /* FIXME: we might still be able to use direct_8x8 on some partitions */
+            return 0;
         }
     }
 
@@ -821,7 +829,6 @@ void x264_macroblock_cache_init( x264_t *h )
     h->mb.i_b8_stride = h->sps->i_mb_width * 2;
     h->mb.i_b4_stride = h->sps->i_mb_width * 4;
 
-    h->mb.type= x264_malloc( i_mb_count * sizeof( int8_t) );
     h->mb.qp  = x264_malloc( i_mb_count * sizeof( int8_t) );
     h->mb.cbp = x264_malloc( i_mb_count * sizeof( int16_t) );
     h->mb.skipbp = x264_malloc( i_mb_count * sizeof( int8_t) );
@@ -840,8 +847,11 @@ void x264_macroblock_cache_init( x264_t *h )
     }
 
     for( i=0; i<2; i++ )
-        for( j=0; j < ( i ? 1 : h->param.i_frame_reference ); j++ )
+    {
+        int i_refs = i ? 1 + h->param.b_bframe_pyramid : h->param.i_frame_reference;
+        for( j=0; j < i_refs; j++ )
             h->mb.mvr[i][j] = x264_malloc( 2 * i_mb_count * sizeof( int16_t ) );
+    }
 
     /* init with not avaiable (for top right idx=7,15) */
     memset( h->mb.cache.ref[0], -2, X264_SCAN8_SIZE * sizeof( int8_t ) );
@@ -851,8 +861,11 @@ void x264_macroblock_cache_end( x264_t *h )
 {
     int i, j;
     for( i=0; i<2; i++ )
-        for( j=0; j < ( i ? 1 : h->param.i_frame_reference ); j++ )
+    {
+        int i_refs = i ? 1 + h->param.b_bframe_pyramid : h->param.i_frame_reference;
+        for( j=0; j < i_refs; j++ )
             x264_free( h->mb.mvr[i][j] );
+    }
     if( h->param.b_cabac )
     {
         x264_free( h->mb.chroma_pred_mode );
@@ -864,16 +877,16 @@ void x264_macroblock_cache_end( x264_t *h )
     x264_free( h->mb.skipbp );
     x264_free( h->mb.cbp );
     x264_free( h->mb.qp );
-    x264_free( h->mb.type );
 }
 void x264_macroblock_slice_init( x264_t *h )
 {
-    int i;
+    int i, j;
 
     h->mb.mv[0] = h->fdec->mv[0];
     h->mb.mv[1] = h->fdec->mv[1];
     h->mb.ref[0] = h->fdec->ref[0];
     h->mb.ref[1] = h->fdec->ref[1];
+    h->mb.type = h->fdec->mb_type;
 
     h->fdec->i_ref[0] = h->i_ref0;
     h->fdec->i_ref[1] = h->i_ref1;
@@ -883,6 +896,20 @@ void x264_macroblock_slice_init( x264_t *h )
     {
         for( i = 0; i < h->i_ref1; i++ )
             h->fdec->ref_poc[1][i] = h->fref1[i]->i_poc;
+
+        h->mb.map_col_to_list0[-1] = -1;
+        h->mb.map_col_to_list0[-2] = -2;
+        for( i = 0; i < h->fref1[0]->i_ref[0]; i++ )
+        {
+            int poc = h->fref1[0]->ref_poc[0][i];
+            h->mb.map_col_to_list0[i] = -2;
+            for( j = 0; j < h->i_ref0; j++ )
+                if( h->fref0[j]->i_poc == poc )
+                {
+                    h->mb.map_col_to_list0[i] = j;
+                    break;
+                }
+        }
     }
 }
 

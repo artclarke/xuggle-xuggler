@@ -91,7 +91,9 @@ x264_frame_t *x264_frame_new( x264_t *h )
     frame->i_qpplus1 = 0;
     frame->i_pts = -1;
     frame->i_frame = -1;
+    frame->i_frame_num = -1;
 
+    frame->mb_type= x264_malloc( i_mb_count * sizeof( int8_t) );
     frame->mv[0]  = x264_malloc( 2*16 * i_mb_count * sizeof( int16_t ) );
     frame->ref[0] = x264_malloc( 4 * i_mb_count * sizeof( int8_t ) );
     if( h->param.i_bframe )
@@ -119,6 +121,7 @@ void x264_frame_delete( x264_frame_t *frame )
     {
         x264_free( frame->buffer[i] );
     }
+    x264_free( frame->mb_type );
     x264_free( frame->mv[0] );
     x264_free( frame->mv[1] );
     x264_free( frame->ref[0] );

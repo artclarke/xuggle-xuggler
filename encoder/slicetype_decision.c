@@ -377,31 +377,33 @@ void x264_slicetype_decide( x264_t *h )
         }
         if( frm->i_type == X264_TYPE_IDR )
         {
-            h->i_poc = 0;
-            h->i_frame_num = 0;
-
             /* Close GOP */
             if( bframes > 0 )
             {
                 bframes--;
                 h->frames.next[bframes]->i_type = X264_TYPE_P;
             }
+            else
+            {
+                h->i_poc = 0;
+                h->i_frame_num = 0;
+            }
         }
 
         if( bframes == h->param.i_bframe
             || h->frames.next[bframes+1] == NULL )
         {
-            if( frm->i_type == X264_TYPE_B )
+            if( IS_X264_TYPE_B( frm->i_type ) )
                 x264_log( h, X264_LOG_ERROR, "specified frame type is not compatible with max B-frames\n" );
-            if(    frm->i_type == X264_TYPE_AUTO
-                || frm->i_type == X264_TYPE_B )
+            if( frm->i_type == X264_TYPE_AUTO
+                || IS_X264_TYPE_B( frm->i_type ) )
                 frm->i_type = X264_TYPE_P;
         }
 
         frm->i_poc = h->i_poc;
         h->i_poc += 2;
 
-        if( frm->i_type != X264_TYPE_AUTO && frm->i_type != X264_TYPE_B )
+        if( frm->i_type != X264_TYPE_AUTO && frm->i_type != X264_TYPE_B && frm->i_type != X264_TYPE_BREF )
             break;
 
         frm->i_type = X264_TYPE_B;

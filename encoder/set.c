@@ -79,7 +79,9 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 
     sps->i_num_ref_frames = param->i_frame_reference;
     if( param->i_bframe )
-        sps->i_num_ref_frames++; /* for 2 ref in B */
+        sps->i_num_ref_frames++; /* for backwards ref in B */
+    if( param->b_bframe_pyramid )
+        sps->i_num_ref_frames++; /* for 2nd backwards ref */
     sps->b_gaps_in_frame_num_value_allowed = 0;
     sps->i_mb_width = ( param->i_width + 15 ) / 16;
     sps->i_mb_height= ( param->i_height + 15 )/ 16;

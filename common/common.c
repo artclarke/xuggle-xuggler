@@ -61,17 +61,18 @@ void    x264_param_default( x264_param_t *param )
     /* Encoder parameters */
     param->i_frame_reference = 1;
     param->i_keyint_max = 250;
-    param->i_keyint_min = 100;
+    param->i_keyint_min = 25;
     param->i_bframe = 0;
     param->i_scenecut_threshold = 40;
     param->b_bframe_adaptive = 1;
     param->i_bframe_bias = 0;
+    param->b_bframe_pyramid = 0;
 
     param->b_deblocking_filter = 1;
     param->i_deblocking_filter_alphac0 = 0;
     param->i_deblocking_filter_beta = 0;
 
-    param->b_cabac = 0;
+    param->b_cabac = 1;
     param->i_cabac_init_idc = -1;
 
     param->rc.b_cbr = 0;

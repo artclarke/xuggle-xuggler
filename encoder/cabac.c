@@ -1069,7 +1069,7 @@ void x264_macroblock_write_cabac( x264_t *h, bs_t *s )
                 continue;
             for( i = 0; i < 4; i++ )
             {
-                if( x264_mb_partition_listX_table[0][ h->mb.i_sub_partition[i] ] )
+                if( x264_mb_partition_listX_table[i_list][ h->mb.i_sub_partition[i] ] )
                 {
                     x264_cabac_mb_ref( h, i_list, 4*i );
                 }

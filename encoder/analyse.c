@@ -874,7 +874,8 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     a->l0.me16x16.cost -= a->i_lambda * bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, a->l0.i_ref );
 
     /* ME for list 1 */
-    /* not using fullpel_thresh since we don't yet do more than 1 list 1 ref */
+    i_fullpel_thresh = INT_MAX;
+    p_fullpel_thresh = h->i_ref1>1 ? &i_fullpel_thresh : NULL;
     a->l1.me16x16.cost = INT_MAX;
     for( i_ref = 0; i_ref < h->i_ref1; i_ref++ )
     {
@@ -882,7 +883,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
         LOAD_HPELS( m.p_fref, h->mb.pic.p_fref[1][i_ref], 0 );
         x264_mb_predict_mv_16x16( h, 1, i_ref, m.mvp );
         x264_mb_predict_mv_ref16x16( h, 1, i_ref, mvc, &i_mvc );
-        x264_me_search( h, &m, mvc, i_mvc );
+        x264_me_search_ref( h, &m, mvc, i_mvc, p_fullpel_thresh );
 
         /* add ref cost */
         m.cost += a->i_lambda * bs_size_te( h->sh.i_num_ref_idx_l1_active - 1, i_ref );

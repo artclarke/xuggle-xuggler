@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 0x0013
+#define X264_BUILD 0x0014
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -75,7 +75,10 @@ typedef struct x264_t x264_t;
 #define X264_TYPE_IDR           0x0001
 #define X264_TYPE_I             0x0002
 #define X264_TYPE_P             0x0003
-#define X264_TYPE_B             0x0004
+#define X264_TYPE_BREF          0x0004  /* Non-disposable B-frame */
+#define X264_TYPE_B             0x0005
+#define IS_X264_TYPE_I(x) ((x)==X264_TYPE_I || (x)==X264_TYPE_IDR)
+#define IS_X264_TYPE_B(x) ((x)==X264_TYPE_B || (x)==X264_TYPE_BREF)
 
 /* Log level
  */
@@ -115,6 +118,7 @@ typedef struct
     int         i_bframe;   /* how many b-frame between 2 references pictures */
     int         b_bframe_adaptive;
     int         i_bframe_bias;
+    int         b_bframe_pyramid;   /* Keep some B-frames as references */
 
     int         b_deblocking_filter;
     int         i_deblocking_filter_alphac0;    /* [-6, 6] -6 light filter, 6 strong */

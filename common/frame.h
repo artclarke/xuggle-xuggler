@@ -32,6 +32,8 @@ typedef struct
     int     i_qpplus1;
     int64_t i_pts;
     int     i_frame;    /* Presentation frame number */
+    int     i_frame_num; /* Coded frame number */
+    int     b_kept_as_ref;
 
     /* YUV buffer */
     int     i_plane;
@@ -48,6 +50,7 @@ typedef struct
     void    *buffer[11];
 
     /* motion data */
+    int8_t  *mb_type;
     int16_t (*mv[2])[2];
     int8_t  *ref[2];
     int     i_ref[2];

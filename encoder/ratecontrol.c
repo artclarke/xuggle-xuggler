@@ -53,7 +53,7 @@
 typedef struct
 {
     int pict_type;
-    int idr;
+    int kept_as_ref;
     float qscale;
     int mv_bits;
     int i_tex_bits;
@@ -313,10 +313,11 @@ int x264_ratecontrol_new( x264_t *h )
                    &rce->mv_bits, &rce->misc_bits, &rce->i_count, &rce->p_count, &rce->s_count);
 
             switch(pict_type){
-                case 'I': rce->idr = 1;
+                case 'I': rce->kept_as_ref = 1;
                 case 'i': rce->pict_type = SLICE_TYPE_I; break;
                 case 'P': rce->pict_type = SLICE_TYPE_P; break;
-                case 'B': rce->pict_type = SLICE_TYPE_B; break;
+                case 'B': rce->kept_as_ref = 1;
+                case 'b': rce->pict_type = SLICE_TYPE_B; break;
                 default:  e = -1; break;
             }
             if(e != 10){
@@ -392,8 +393,12 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
 
     if( !h->param.rc.b_cbr )
     {
-        rc->qpm = rc->qpa = rc->qp =
-            rc->qp_constant[ i_slice_type ];
+        int q;
+        if( i_slice_type == SLICE_TYPE_B && h->fdec->b_kept_as_ref )
+            q = ( rc->qp_constant[ SLICE_TYPE_B ] + rc->qp_constant[ SLICE_TYPE_P ] ) / 2;
+        else
+            q = rc->qp_constant[ i_slice_type ];
+        rc->qpm = rc->qpa = rc->qp = q;
         return;
     }
     else if( h->param.rc.b_stat_read )
@@ -579,10 +584,10 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
         switch( h->rc->entry[frame_num].pict_type )
         {
             case SLICE_TYPE_I:
-                return h->rc->entry[frame_num].idr ? X264_TYPE_IDR : X264_TYPE_I;
+                return h->rc->entry[frame_num].kept_as_ref ? X264_TYPE_IDR : X264_TYPE_I;
 
             case SLICE_TYPE_B:
-                return X264_TYPE_B;
+                return h->rc->entry[frame_num].kept_as_ref ? X264_TYPE_BREF : X264_TYPE_B;
 
             case SLICE_TYPE_P:
             default:
@@ -610,7 +615,8 @@ void x264_ratecontrol_end( x264_t *h, int bits )
     if( h->param.rc.b_stat_write )
     {
         char c_type = rc->slice_type==SLICE_TYPE_I ? (h->fenc->i_poc==0 ? 'I' : 'i')
-                    : rc->slice_type==SLICE_TYPE_P ? 'P' : 'B';
+                    : rc->slice_type==SLICE_TYPE_P ? 'P'
+                    : h->fenc->b_kept_as_ref ? 'B' : 'b';
         fprintf( rc->p_stat_file_out,
                  "in:%d out:%d type:%c q:%.3f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d;\n",
                  h->fenc->i_frame, h->i_frame-1,
@@ -763,7 +769,8 @@ static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
     {
         if( h->param.rc.f_pb_factor > 0 )
             q = last_non_b_q;
-        q *= fabs( h->param.rc.f_pb_factor );
+        if( !rce->kept_as_ref )
+            q *= fabs( h->param.rc.f_pb_factor );
     }
     else if( pict_type == SLICE_TYPE_P
              && rcc->last_non_b_pict_type == SLICE_TYPE_P
@@ -845,7 +852,10 @@ static float rate_estimate_qscale(x264_t *h, int pict_type)
 
     if(rce->pict_type == SLICE_TYPE_B)
     {
-        return rcc->last_qscale * h->param.rc.f_pb_factor;
+        if(rce->kept_as_ref)
+            return rcc->last_qscale * sqrtf(h->param.rc.f_pb_factor);
+        else
+            return rcc->last_qscale * h->param.rc.f_pb_factor;
     }
     else
     {

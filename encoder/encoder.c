@@ -124,6 +124,7 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
                                     int i_type, int i_idr_pic_id, int i_frame, int i_qp )
 {
     x264_param_t *param = &h->param;
+    int i;
 
     /* First we fill all field */
     sh->sps = sps;
@@ -154,6 +155,25 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
     sh->i_num_ref_idx_l0_active = 1;
     sh->i_num_ref_idx_l1_active = 1;
 
+    sh->b_ref_pic_list_reordering_l0 = h->b_ref_reorder[0];
+    sh->b_ref_pic_list_reordering_l1 = h->b_ref_reorder[1];
+
+    /* If the ref list isn't in the default order, construct reordering header */
+    /* List1 reordering isn't needed yet */
+    if( sh->b_ref_pic_list_reordering_l0 )
+    {
+        int pred_frame_num = i_frame;
+        for( i = 0; i < h->i_ref0; i++ )
+        {
+            int diff = h->fref0[i]->i_frame_num - pred_frame_num;
+            if( diff == 0 )
+                x264_log( h, X264_LOG_ERROR, "diff frame num == 0\n" );
+            sh->ref_pic_list_order[0][i].idc = ( diff > 0 );
+            sh->ref_pic_list_order[0][i].arg = abs( diff ) - 1;
+            pred_frame_num = h->fref0[i]->i_frame_num;
+        }
+    }
+
     sh->i_cabac_init_idc = param->i_cabac_init_idc;
 
     sh->i_qp_delta = i_qp - pps->i_pic_init_qp;
@@ -177,6 +197,8 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
 
 static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal_ref_idc )
 {
+    int i;
+
     bs_write_ue( s, sh->i_first_mb );
     bs_write_ue( s, sh->i_type + 5 );   /* same type things */
     bs_write_ue( s, sh->i_pps_id );
@@ -229,20 +251,29 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
     /* ref pic list reordering */
     if( sh->i_type != SLICE_TYPE_I )
     {
-        int b_ref_pic_list_reordering_l0 = 0;
-        bs_write1( s, b_ref_pic_list_reordering_l0 );
-        if( b_ref_pic_list_reordering_l0 )
+        bs_write1( s, sh->b_ref_pic_list_reordering_l0 );
+        if( sh->b_ref_pic_list_reordering_l0 )
         {
-            /* FIXME */
+            for( i = 0; i < sh->i_num_ref_idx_l0_active; i++ )
+            {
+                bs_write_ue( s, sh->ref_pic_list_order[0][i].idc );
+                bs_write_ue( s, sh->ref_pic_list_order[0][i].arg );
+                        
+            }
+            bs_write_ue( s, 3 );
         }
     }
     if( sh->i_type == SLICE_TYPE_B )
     {
-        int b_ref_pic_list_reordering_l1 = 0;
-        bs_write1( s, b_ref_pic_list_reordering_l1 );
-        if( b_ref_pic_list_reordering_l1 )
+        bs_write1( s, sh->b_ref_pic_list_reordering_l1 );
+        if( sh->b_ref_pic_list_reordering_l1 )
         {
-            /* FIXME */
+            for( i = 0; i < sh->i_num_ref_idx_l1_active; i++ )
+            {
+                bs_write_ue( s, sh->ref_pic_list_order[1][i].idc );
+                bs_write_ue( s, sh->ref_pic_list_order[1][i].arg );
+            }
+            bs_write_ue( s, 3 );
         }
     }
 
@@ -349,7 +380,12 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->param.i_bframe = x264_clip3( h->param.i_bframe, 0, X264_BFRAME_MAX );
     h->param.i_bframe_bias = x264_clip3( h->param.i_bframe_bias, -90, 100 );
+    h->param.b_bframe_pyramid = h->param.b_bframe_pyramid && h->param.i_bframe;
     h->frames.i_delay = h->param.i_bframe;
+    h->frames.i_max_ref0 = h->param.i_frame_reference;
+    h->frames.i_max_ref1 = h->param.b_bframe_pyramid ? 2
+                            : h->param.i_bframe ? 1 : 0;
+    h->frames.i_max_dpb = h->frames.i_max_ref0 + h->frames.i_max_ref1 + 1;
 
     h->param.i_deblocking_filter_alphac0 = x264_clip3( h->param.i_deblocking_filter_alphac0, -6, 6 );
     h->param.i_deblocking_filter_beta    = x264_clip3( h->param.i_deblocking_filter_beta, -6, 6 );
@@ -436,11 +472,11 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     {
         h->frames.unused[i] =  x264_frame_new( h );
     }
-    for( i = 0; i < 2 + h->param.i_frame_reference; i++ )
+    for( i = 0; i < h->frames.i_max_dpb; i++ )
     {
-        /* 2 = 1 backward ref  + 1 fdec */
         h->frames.reference[i] = x264_frame_new( h );
     }
+    h->frames.reference[h->frames.i_max_dpb] = NULL;
     h->frames.i_last_idr = - h->param.i_keyint_max;
     h->frames.i_input    = 0;
 
@@ -560,35 +596,40 @@ int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
 static void x264_frame_put( x264_frame_t *list[X264_BFRAME_MAX], x264_frame_t *frame )
 {
     int i = 0;
-
-    while( list[i] != NULL ) i++;
-
+    while( list[i] ) i++;
     list[i] = frame;
+}
+
+static void x264_frame_push( x264_frame_t *list[X264_BFRAME_MAX], x264_frame_t *frame )
+{
+    int i = 0;
+    while( list[i] ) i++;
+    while( i-- )
+        list[i+1] = list[i];
+    list[0] = frame;
 }
 
 static x264_frame_t *x264_frame_get( x264_frame_t *list[X264_BFRAME_MAX+1] )
 {
     x264_frame_t *frame = list[0];
     int i;
-
-    for( i = 0; i < X264_BFRAME_MAX; i++ )
-    {
+    for( i = 0; i < X264_BFRAME_MAX && list[i]; i++ )
         list[i] = list[i+1];
-    }
-    list[X264_BFRAME_MAX] = NULL;
-
     return frame;
 }
 
-/* Sort queued frames into input order */
-static void x264_frame_sort( x264_frame_t *list[X264_BFRAME_MAX+1] )
+static void x264_frame_sort( x264_frame_t *list[X264_BFRAME_MAX+1], int b_dts )
 {
     int i, b_ok;
     do {
         b_ok = 1;
         for( i = 0; i < X264_BFRAME_MAX && list[i+1]; i++ )
         {
-            if( list[i]->i_frame > list[i+1]->i_frame )
+            int dtype = list[i]->i_type - list[i+1]->i_type;
+            int dtime = list[i]->i_frame - list[i+1]->i_frame;
+            int swap = b_dts ? dtype > 0 || ( dtype == 0 && dtime > 0 )
+                             : dtime > 0;
+            if( swap )
             {
                 x264_frame_t *tmp = list[i+1];
                 list[i+1] = list[i];
@@ -598,8 +639,10 @@ static void x264_frame_sort( x264_frame_t *list[X264_BFRAME_MAX+1] )
         }
     } while( !b_ok );
 }
+#define x264_frame_sort_dts(list) x264_frame_sort(list, 1)
+#define x264_frame_sort_pts(list) x264_frame_sort(list, 0)
 
-static inline void x264_reference_build_list( x264_t *h, int i_poc )
+static inline void x264_reference_build_list( x264_t *h, int i_poc, int i_slice_type )
 {
     int i;
     int b_ok;
@@ -607,7 +650,7 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
     /* build ref list 0/1 */
     h->i_ref0 = 0;
     h->i_ref1 = 0;
-    for( i = 1; i < h->param.i_frame_reference+2; i++ )
+    for( i = 1; i < h->frames.i_max_dpb; i++ )
     {
         if( h->frames.reference[i]->i_poc >= 0 )
         {
@@ -621,6 +664,7 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
             }
         }
     }
+
     /* Order ref0 from higher to lower poc */
     do
     {
@@ -656,14 +700,22 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
         }
     } while( !b_ok );
 
-    if( h->i_ref0 > h->param.i_frame_reference )
+    /* In the standard, a P-frame's ref list is sorted by frame_num.
+     * We use POC, but check whether explicit reordering is needed */
+    h->b_ref_reorder[0] =
+    h->b_ref_reorder[1] = 0;
+    if( i_slice_type == SLICE_TYPE_P )
     {
-        h->i_ref0 = h->param.i_frame_reference;
+        for( i = 0; i < h->i_ref0 - 1; i++ )
+            if( h->fref0[i]->i_frame_num < h->fref0[i+1]->i_frame_num )
+            {
+                h->b_ref_reorder[0] = 1;
+                break;
+            }
     }
-    if( h->i_ref1 > 1 )
-    {
-        h->i_ref1 = 1;
-    }
+
+    h->i_ref0 = X264_MIN( h->i_ref0, h->frames.i_max_ref0 );
+    h->i_ref1 = X264_MIN( h->i_ref1, h->frames.i_max_ref1 );
 }
 
 static inline void x264_reference_update( x264_t *h )
@@ -699,8 +751,9 @@ static inline void x264_reference_update( x264_t *h )
         h->frames.last_nonb = h->fdec;
 
     /* move frame in the buffer */
-    h->fdec = h->frames.reference[h->param.i_frame_reference+1];
-    for( i = h->param.i_frame_reference+1; i > 0; i-- )
+    /* FIXME: override to forget earliest pts, not earliest dts */
+    h->fdec = h->frames.reference[h->frames.i_max_dpb-1];
+    for( i = h->frames.i_max_dpb-1; i > 0; i-- )
     {
         h->frames.reference[i] = h->frames.reference[i-1];
     }
@@ -712,7 +765,7 @@ static inline void x264_reference_reset( x264_t *h )
     int i;
 
     /* reset ref pictures */
-    for( i = 1; i < h->param.i_frame_reference+2; i++ )
+    for( i = 1; i < h->frames.i_max_dpb; i++ )
     {
         h->frames.reference[i]->i_poc = -1;
     }
@@ -738,6 +791,8 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_slice_type,
         h->sh.i_num_ref_idx_l0_active = h->i_ref0 <= 0 ? 1 : h->i_ref0;
         h->sh.i_num_ref_idx_l1_active = h->i_ref1 <= 0 ? 1 : h->i_ref1;
     }
+
+    h->fdec->i_frame_num = h->sh.i_frame_num;
 
     if( h->sps->i_poc_type == 0 )
     {
@@ -982,12 +1037,19 @@ int     x264_encoder_encode( x264_t *h,
         x264_slicetype_decide( h );
 
         /* 3: move some B-frames and 1 non-B to encode queue */
-        while( h->frames.next[bframes]->i_type == X264_TYPE_B )
+        while( IS_X264_TYPE_B( h->frames.next[bframes]->i_type ) )
             bframes++;
-        x264_frame_put( h->frames.current, h->frames.next[bframes] );
+        x264_frame_put( h->frames.current, x264_frame_get( &h->frames.next[bframes] ) );
+        /* FIXME: when max B-frames > 3, BREF may no longer be centered after GOP closing */
+        if( h->param.b_bframe_pyramid && bframes > 1 )
+        {
+            x264_frame_t *mid = x264_frame_get( &h->frames.next[bframes/2] );
+            mid->i_type = X264_TYPE_BREF;
+            x264_frame_put( h->frames.current, mid );
+            bframes--;
+        }
         while( bframes-- )
             x264_frame_put( h->frames.current, x264_frame_get( h->frames.next ) );
-        x264_frame_get( h->frames.next );
     }
     TIMER_STOP( i_mtime_encode_frame );
 
@@ -1033,6 +1095,12 @@ do_encode:
         i_nal_ref_idc = NAL_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
         i_slice_type = SLICE_TYPE_P;
     }
+    else if( h->fenc->i_type == X264_TYPE_BREF )
+    {
+        i_nal_type    = NAL_SLICE;
+        i_nal_ref_idc = NAL_PRIORITY_HIGH; /* maybe add MMCO to forget it? -> low */
+        i_slice_type = SLICE_TYPE_B;
+    }
     else    /* B frame */
     {
         i_nal_type    = NAL_SLICE;
@@ -1043,6 +1111,8 @@ do_encode:
     h->fdec->i_type = h->fenc->i_type;
     h->fdec->i_poc  = h->fenc->i_poc;
     h->fdec->i_frame = h->fenc->i_frame;
+    h->fenc->b_kept_as_ref =
+    h->fdec->b_kept_as_ref = i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE;
 
 
 
@@ -1054,7 +1124,7 @@ do_encode:
     h->fdec->i_qpplus1 = i_global_qp + 1;
 
     /* build ref list 0/1 */
-    x264_reference_build_list( h, h->fdec->i_poc );
+    x264_reference_build_list( h, h->fdec->i_poc, i_slice_type );
 
     if( i_slice_type == SLICE_TYPE_B )
         x264_macroblock_bipred_init( h );
@@ -1101,7 +1171,6 @@ do_encode:
     /* restore CPU state (before using float again) */
     x264_cpu_restore( h->param.cpu );
 
-    /* XXX: this scene cut won't work with B frame (it may never create IDR -> bad) */
     if( i_slice_type == SLICE_TYPE_P && !h->param.rc.b_stat_read 
         && h->param.i_scenecut_threshold >= 0 )
     {
@@ -1150,6 +1219,7 @@ do_encode:
             h->out.nal[h->out.i_nal-1].i_payload > 2 * h->i_last_inter_size &&
             h->frames.i_last_i > 4)*/
         {
+            int b;
 
             x264_log( h, X264_LOG_DEBUG, "scene cut at %d size=%d Icost:%.0f Pcost:%.0f ratio:%.3f bias=%.3f lastIDR:%d (I:%d P:%d Skip:%d)\n",
                       h->fenc->i_frame,
@@ -1162,8 +1232,8 @@ do_encode:
             /* Restore frame num */
             h->i_frame_num--;
 
-            for( i = 0; h->frames.current[i] && h->frames.current[i]->i_type == X264_TYPE_B; i++ );
-            if( i > 0 )
+            for( b = 0; h->frames.current[b] && IS_X264_TYPE_B( h->frames.current[b]->i_type ); b++ );
+            if( b > 0 )
             {
                 /* If using B-frames, force GOP to be closed.
                  * Even if this frame is going to be I and not IDR, forcing a
@@ -1173,10 +1243,14 @@ do_encode:
                  * we can't assign an I-frame. Instead, change the previous
                  * B-frame to P, and rearrange coding order. */
 
-                x264_frame_t *tmp = h->frames.current[i-1];
-                h->frames.current[i-1] = h->fenc;
-                h->fenc = tmp;
+                if( h->param.b_bframe_adaptive || b > 1 )
+                    h->fenc->i_type = X264_TYPE_AUTO;
+                x264_frame_sort_pts( h->frames.current );
+                x264_frame_push( h->frames.next, h->fenc );
+                h->fenc = h->frames.current[b-1];
+                h->frames.current[b-1] = NULL;
                 h->fenc->i_type = X264_TYPE_P;
+                x264_frame_sort_dts( h->frames.current );
             }
             /* Do IDR if needed */
             else if( i_gop_size >= h->param.i_keyint_min )
@@ -1197,7 +1271,7 @@ do_encode:
                 /* Put enqueued frames back in the pool */
                 while( (tmp = x264_frame_get( h->frames.current ) ) != NULL )
                     x264_frame_put( h->frames.next, tmp );
-                x264_frame_sort( h->frames.next );
+                x264_frame_sort_pts( h->frames.next );
             }
             else
             {
@@ -1465,7 +1539,7 @@ void    x264_encoder_close  ( x264_t *h )
         if( h->frames.unused[i] )  x264_frame_delete( h->frames.unused[i] );
     }
     /* ref frames */
-    for( i = 0; i < h->param.i_frame_reference+2; i++ )
+    for( i = 0; i < h->frames.i_max_dpb; i++ )
     {
         x264_frame_delete( h->frames.reference[i] );
     }

@@ -140,6 +140,13 @@ typedef struct
     int i_num_ref_idx_l0_active;
     int i_num_ref_idx_l1_active;
 
+    int b_ref_pic_list_reordering_l0;
+    int b_ref_pic_list_reordering_l1;
+    struct {
+        int idc;
+        int arg;
+    } ref_pic_list_order[2][16];
+
     int i_cabac_init_idc;
 
     int i_qp_delta;
@@ -237,13 +244,16 @@ struct x264_t
         /* For adaptive B decision */
         x264_frame_t *last_nonb;
 
-        /* frames used for reference +1 for decoding */
-        x264_frame_t *reference[16+1];
+        /* frames used for reference +1 for decoding +1 sentinel */
+        x264_frame_t *reference[16+2+1+1];
 
         int i_last_idr; /* Frame number of the last IDR */
 
         int i_input;    /* Number of input frames already accepted */
-        
+
+        int i_max_dpb;  /* Number of frames allocated in the decoded picture buffer */
+        int i_max_ref0;
+        int i_max_ref1;
         int i_delay;    /* Number of frames buffered for B reordering */
     } frames;
 
@@ -258,6 +268,7 @@ struct x264_t
     x264_frame_t    *fref0[16];       /* ref list 0 */
     int             i_ref1;
     x264_frame_t    *fref1[16];       /* ref list 1 */
+    int             b_ref_reorder[2];
 
 
 
@@ -371,6 +382,9 @@ struct x264_t
         /* B_direct and weighted prediction */
         int     dist_scale_factor[16][16];
         int     bipred_weight[16][16];
+        /* maps fref1[0]'s ref indices into the current list0 */
+        int     map_col_to_list0_buf[2]; // for negative indices
+        int     map_col_to_list0[16];
     } mb;
 
     /* rate control encoding only */
