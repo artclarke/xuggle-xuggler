@@ -34,8 +34,6 @@
  *  return a valid x264 CSP or X264_CSP_NULL if unsuported */
 static int get_csp( BITMAPINFOHEADER *hdr )
 {
-    int i_vlip = hdr->biHeight < 0 ? 0 : X264_CSP_VFLIP;
-
     switch( hdr->biCompression )
     {
         case FOURCC_I420:
@@ -45,17 +43,24 @@ static int get_csp( BITMAPINFOHEADER *hdr )
         case FOURCC_YV12:
             return X264_CSP_YV12;
 
+        /* The following colorspaces are not yet accepted by the core */
+        /*
         case FOURCC_YUYV:
         case FOURCC_YUY2:
             return X264_CSP_YUYV;
 
         case BI_RGB:
+        {
+            int i_vflip = hdr->biHeight < 0 ? 0 : X264_CSP_VFLIP;
+
             if( hdr->biBitCount == 24 )
-                return X264_CSP_BGR | i_vlip;
+                return X264_CSP_BGR | i_vflip;
             if( hdr->biBitCount == 32 )
-                return X264_CSP_BGRA | i_vlip;
+                return X264_CSP_BGRA | i_vflip;
             else
                 return X264_CSP_NONE;
+        }
+        */
 
         default:
             return X264_CSP_NONE;
