@@ -23,7 +23,12 @@ OBJASM= $(ASMSRC:%.asm=%.o)
 endif
 
 CC=gcc
-CFLAGS=-g -Wall -I. -DDEBUG -O4 -funroll-loops -D__X264__ $(PFLAGS)
+CFLAGS=-Wall -I. -O4 -funroll-loops -D__X264__ $(PFLAGS)
+ifdef NDEBUG
+CFLAGS+=-s -DNDEBUG
+else
+CFLAGS+=-g -DDEBUG
+endif
 
 AS= nasm
 # for linux

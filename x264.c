@@ -365,7 +365,7 @@ static int  Parse( int argc, char **argv,
             case 'A':
                 param->analyse.inter = 0;
                 if( strstr( optarg, "none" ) )  param->analyse.inter = 0x000000;
-                if( strstr( optarg, "all" ) )   param->analyse.inter = X264_ANALYSE_I4x4|X264_ANALYSE_PSUB16x16|X264_ANALYSE_PSUB8x8;
+                if( strstr( optarg, "all" ) )   param->analyse.inter = X264_ANALYSE_I4x4|X264_ANALYSE_PSUB16x16|X264_ANALYSE_PSUB8x8|X264_ANALYSE_BSUB16x16;
 
                 if( strstr( optarg, "i4x4" ) )      param->analyse.inter |= X264_ANALYSE_I4x4;
                 if( strstr( optarg, "psub16x16" ) ) param->analyse.inter |= X264_ANALYSE_PSUB16x16;
@@ -407,7 +407,7 @@ static int  Parse( int argc, char **argv,
                     param->rc.b_stat_write = 1;
                 else if( i_pass == 2 )
                     param->rc.b_stat_read = 1;
-                else if( i_pass > 2 )   /* XXX untested */
+                else if( i_pass > 2 )
                     param->rc.b_stat_read =
                     param->rc.b_stat_write = 1;
                 break;

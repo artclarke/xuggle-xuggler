@@ -20,16 +20,16 @@ General:
 
  * Inter coding:
     - D_4x8 D_8x4 and D_4x4 ME P block -> done but too slow.
-    - B_ types.
-    - scene change detection.
+    - B_SUB8x8 types.
+    - better SKIP detection.
     - long terme ?
     - ...
 
- * B frame: B_L0/L1/BI work in cavlc (need more testing).
-    -> need to do all others mb type (first B_DIRECT and B_SKIP)
-    -> cabac
-    -> look at weighted prediction (should give bettter result)
+ * B frame: B_L0/L1/BI/SKIP/DIRECT work (need more testing).
+    -> adaptive placement of B-frames
+    -> look at weighted prediction (should give better result)
     -> better analyse algo (as always ;)
+    -> joint motion estimation of BI types
 
  * Speed issue (oprofile is your friend)
     - mc.c:30% and pixel.c:20% (mc is used by ME)
