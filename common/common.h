@@ -303,6 +303,7 @@ struct x264_t
         
         /* Search parameters */
         int     i_subpel_refine;
+        int     b_chroma_me;
         /* Allowed qpel MV range to stay within the picture + emulated edge pixels */
         int     mv_min[2];
         int     mv_max[2];

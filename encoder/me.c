@@ -45,8 +45,8 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 
 #define COST_MV( mx, my ) \
 { \
-    int cost = h->pixf.sad[i_pixel]( m->p_fenc, m->i_stride,       \
-                   &p_fref[(my)*m->i_stride+(mx)], m->i_stride )   \
+    int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], m->i_stride[0],     \
+                   &p_fref[(my)*m->i_stride[0]+(mx)], m->i_stride[0] ) \
              + p_cost_mvx[ (mx)<<2 ]  \
              + p_cost_mvy[ (my)<<2 ]; \
     if( cost < bcost ) \
@@ -60,6 +60,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int *p_fullpel_thresh )
 {
     const int i_pixel = m->i_pixel;
+    const int b_chroma_me = h->mb.b_chroma_me && i_pixel <= PIXEL_8x8;
     int bmx, bmy, bcost;
     int omx, omy;
     uint8_t *p_fref = m->p_fref[0];
@@ -82,9 +83,10 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
      * them yourself */
     bmx = x264_clip3( ( m->mvp[0] + 2 ) >> 2, mv_x_min, mv_x_max );
     bmy = x264_clip3( ( m->mvp[1] + 2 ) >> 2, mv_y_min, mv_y_max );
-
-    bcost = h->pixf.sad[i_pixel]( m->p_fenc, m->i_stride,
-                &p_fref[bmy * m->i_stride + bmx], m->i_stride );
+    bcost = 1<<30;
+    COST_MV( bmx, bmy );
+    /* I don't know why this helps */
+    bcost -= p_cost_mvx[ bmx<<2 ] + p_cost_mvy[ bmy<<2 ];
 
     /* try extra predictors if provided */
     for( i_iter = 0; i_iter < i_mvc; i_iter++ )
@@ -150,9 +152,19 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
 
     /* compute the real cost */
     m->cost_mv = p_cost_mvx[ m->mv[0] ] + p_cost_mvy[ m->mv[1] ];
-    m->cost = h->pixf.satd[i_pixel]( m->p_fenc, m->i_stride,
-                    &p_fref[bmy * m->i_stride + bmx], m->i_stride )
+    m->cost = h->pixf.satd[i_pixel]( m->p_fenc[0], m->i_stride[0],
+                    &p_fref[bmy * m->i_stride[0] + bmx], m->i_stride[0] )
             + m->cost_mv;
+    if( b_chroma_me )
+    {
+        const int bw = x264_pixel_size[m->i_pixel].w;
+        const int bh = x264_pixel_size[m->i_pixel].h;
+        DECLARE_ALIGNED( uint8_t, pix[8*8*2], 16 );
+        h->mc.mc_chroma( m->p_fref[4], m->i_stride[1], pix, 8, m->mv[0], m->mv[1], bw/2, bh/2 );
+        h->mc.mc_chroma( m->p_fref[5], m->i_stride[1], pix+8*8, 8, m->mv[0], m->mv[1], bw/2, bh/2 );
+        m->cost += h->pixf.satd[i_pixel+3]( m->p_fenc[1], m->i_stride[1], pix, 8 )
+                 + h->pixf.satd[i_pixel+3]( m->p_fenc[2], m->i_stride[1], pix+8*8, 8 );
+    }
 
     /* subpel refine */
     if( h->mb.i_subpel_refine >= 3 )
@@ -185,18 +197,39 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
 	refine_subpel( h, m, hpel, qpel );
 }
 
+#define COST_MV( mx, my, dir ) \
+{ \
+    int stride = 16; \
+    uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix, &stride, mx, my, bw, bh ); \
+    int cost = h->pixf.satd[i_pixel]( m->p_fenc[0], m->i_stride[0], src, stride ) \
+             + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
+    if( b_chroma_me && cost < bcost ) \
+    { \
+        h->mc.mc_chroma( m->p_fref[4], m->i_stride[1], pix, 8, mx, my, bw/2, bh/2 ); \
+        cost += h->pixf.satd[i_pixel+3]( m->p_fenc[1], m->i_stride[1], pix, 8 ); \
+        if( cost < bcost ) \
+        { \
+            h->mc.mc_chroma( m->p_fref[5], m->i_stride[1], pix, 8, mx, my, bw/2, bh/2 ); \
+            cost += h->pixf.satd[i_pixel+3]( m->p_fenc[2], m->i_stride[1], pix, 8 ); \
+        } \
+    } \
+    if( cost < bcost ) \
+    {                  \
+        bcost = cost;  \
+        bdir = dir;    \
+    } \
+}
+
 static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters )
 {
     const int bw = x264_pixel_size[m->i_pixel].w;
     const int bh = x264_pixel_size[m->i_pixel].h;
     const int16_t *p_cost_mvx = m->p_cost_mv - m->mvp[0];
     const int16_t *p_cost_mvy = m->p_cost_mv - m->mvp[1];
+    const int i_pixel = m->i_pixel;
+    const int b_chroma_me = h->mb.b_chroma_me && i_pixel <= PIXEL_8x8;
 
-    DECLARE_ALIGNED( uint8_t, pix[4][16*16], 16 );
-    uint8_t * src[4];
-    int stride[4];
-    int cost[4];
-    int best;
+    DECLARE_ALIGNED( uint8_t, pix[16*16], 16 );
     int step, i;
 
     int bmx = m->mv[0];
@@ -206,33 +239,20 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     {
 	for( i = step>1 ? hpel_iters : qpel_iters; i > 0; i-- )
         {
-            stride[0] = stride[1] = stride[2] = stride[3] = 16;
-            src[0] = h->mc.get_ref( m->p_fref, m->i_stride, pix[0], &stride[0], bmx + 0, bmy - step, bw, bh );
-            src[1] = h->mc.get_ref( m->p_fref, m->i_stride, pix[1], &stride[1], bmx + 0, bmy + step, bw, bh );
-            src[2] = h->mc.get_ref( m->p_fref, m->i_stride, pix[2], &stride[2], bmx - step, bmy + 0, bw, bh );
-            src[3] = h->mc.get_ref( m->p_fref, m->i_stride, pix[3], &stride[3], bmx + step, bmy + 0, bw, bh );
+            int bcost = 1<<30;
+            int bdir = 0;
+            COST_MV( bmx, bmy - step, 0 );
+            COST_MV( bmx, bmy + step, 1 );
+            COST_MV( bmx - step, bmy, 2 );
+            COST_MV( bmx + step, bmy, 3 );
     
-            cost[0] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, src[0], stride[0] ) +
-                      p_cost_mvx[ bmx + 0 ] + p_cost_mvy[ bmy - step ];
-            cost[1] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, src[1], stride[1] ) +
-                      p_cost_mvx[ bmx + 0 ] + p_cost_mvy[ bmy + step ];
-            cost[2] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, src[2], stride[2] ) +
-                      p_cost_mvx[ bmx - step ] + p_cost_mvy[ bmy + 0 ];
-            cost[3] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, src[3], stride[3] ) +
-                      p_cost_mvx[ bmx + step ] + p_cost_mvy[ bmy + 0 ];
-    
-            best = 0;
-            if( cost[1] < cost[0] )    best = 1;
-            if( cost[2] < cost[best] ) best = 2;
-            if( cost[3] < cost[best] ) best = 3;
-    
-            if( cost[best] < m->cost )
+            if( bcost < m->cost )
             {
-                m->cost = cost[best];
-                if( best == 0 )      bmy -= step;
-                else if( best == 1 ) bmy += step;
-                else if( best == 2 ) bmx -= step;
-                else if( best == 3 ) bmx += step;
+                m->cost = bcost;
+                if( bdir == 0 )      bmy -= step;
+                else if( bdir == 1 ) bmy += step;
+                else if( bdir == 2 ) bmx -= step;
+                else if( bdir == 3 ) bmx += step;
             }
             else break;
 	}

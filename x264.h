@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 21
+#define X264_BUILD 22
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -141,6 +141,7 @@ typedef struct
 
         int          i_direct_mv_pred; /* spatial vs temporal mv prediction */
         int          i_subpel_refine; /* subpixel motion estimation quality */
+        int          b_chroma_me; /* chroma ME for subpel and mode decision in P-frames */
         int          i_mv_range; /* maximum length of a mv (in pixels) */
 
         int          b_weighted_bipred; /* implicit weighting for B-frames */

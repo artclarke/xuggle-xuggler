@@ -262,6 +262,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_BBIAS 278
 #define OPT_BPYRAMID 279
 #define OPT_CHROMA_QP 280
+#define OPT_NO_CHROMA_ME 281
 
         static struct option long_options[] =
         {
@@ -291,6 +292,7 @@ static int  Parse( int argc, char **argv,
             { "direct",  required_argument, NULL, OPT_DIRECT },
             { "weightb", no_argument,       NULL, 'w' },
             { "subme",   required_argument, NULL, 'm' },
+            { "no-chroma-me", no_argument,  NULL, OPT_NO_CHROMA_ME },
             { "level",   required_argument, NULL, OPT_LEVEL },
             { "rcsens",  required_argument, NULL, OPT_RCSENS },
             { "rcbuf",   required_argument, NULL, OPT_RCBUF },
@@ -451,6 +453,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case 'm':
                 param->analyse.i_subpel_refine = atoi(optarg);
+                break;
+            case OPT_NO_CHROMA_ME:
+                param->analyse.b_chroma_me = 0;
                 break;
             case OPT_LEVEL:
                 param->i_level_idc = atoi(optarg);

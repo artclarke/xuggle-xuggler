@@ -106,6 +106,7 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.inter = X264_ANALYSE_I4x4 | X264_ANALYSE_PSUB16x16 | X264_ANALYSE_BSUB16x16;
     param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_TEMPORAL;
     param->analyse.i_subpel_refine = 5;
+    param->analyse.b_chroma_me = 1;
     param->analyse.i_mv_range = 512;
     param->analyse.i_chroma_qp_offset = 0;
     param->analyse.b_psnr = 1;

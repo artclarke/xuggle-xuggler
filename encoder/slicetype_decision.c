@@ -73,6 +73,13 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     int i_cost_bak;
     int l, i;
 
+#define LOAD_HPELS_LUMA(dst, src) \
+    { \
+        (dst)[0] = &(src)[0][i_pel_offset]; \
+        (dst)[1] = &(src)[1][i_pel_offset]; \
+        (dst)[2] = &(src)[2][i_pel_offset]; \
+        (dst)[3] = &(src)[3][i_pel_offset]; \
+    }
 #define SAVE_MVS( mv0, mv1 ) \
     { \
         fenc->mv[0][i_mb_xy][0] = mv0[0]; \
@@ -85,13 +92,13 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         int stride2 = 8; \
         uint8_t *src2; \
         int i_cost; \
-        h->mc.mc_luma( m[0].p_fref, m[0].i_stride, pix1, 8, \
+        h->mc.mc_luma( m[0].p_fref, m[0].i_stride[0], pix1, 8, \
                        (mv0)[0], (mv0)[1], 8, 8 ); \
-        src2 = h->mc.get_ref( m[1].p_fref, m[1].i_stride, pix2, &stride2, \
+        src2 = h->mc.get_ref( m[1].p_fref, m[1].i_stride[0], pix2, &stride2, \
                        (mv1)[0], (mv1)[1], 8, 8 ); \
         h->pixf.avg[PIXEL_8x8]( pix1, 8, src2, stride2 ); \
         i_cost = penalty + h->pixf.satd[PIXEL_8x8]( \
-                           m[0].p_fenc, m[0].i_stride, pix1, 8 ); \
+                           m[0].p_fenc[0], m[0].i_stride[0], pix1, 8 ); \
         if( i_bcost > i_cost ) \
         { \
             i_bcost = i_cost; \
@@ -101,9 +108,9 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
 
     m[0].i_pixel = PIXEL_8x8;
     m[0].p_cost_mv = a->p_cost_mv;
-    m[0].i_stride = i_stride;
-    m[0].p_fenc = &fenc->lowres[0][ i_pel_offset ];
-    LOAD_HPELS( m[0].p_fref, fref0->lowres, i_pel_offset );
+    m[0].i_stride[0] = i_stride;
+    m[0].p_fenc[0] = &fenc->lowres[0][ i_pel_offset ];
+    LOAD_HPELS_LUMA( m[0].p_fref, fref0->lowres );
 
     if( b_bidir )
     {
@@ -112,7 +119,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         int mv0[2] = {0,0};
 
         m[1] = m[0];
-        LOAD_HPELS( m[1].p_fref, fref1->lowres, i_pel_offset );
+        LOAD_HPELS_LUMA( m[1].p_fref, fref1->lowres );
 
         dmv[0][0] = ( mvr[0] * dist_scale_factor + 128 ) >> 8;
         dmv[0][1] = ( mvr[1] * dist_scale_factor + 128 ) >> 8;
@@ -247,6 +254,7 @@ no_b_frames:
     a.i_lambda = i_qp0_cost_table[ a.i_qp ];
     x264_mb_analyse_load_costs_lowres( h, &a );
     h->mb.i_subpel_refine = 4; // 3 should be enough, but not tweaking for speed now
+    h->mb.b_chroma_me = 0;
 
     h->mb.mv_min_fpel[0] =
     h->mb.mv_min_fpel[1] = -16;

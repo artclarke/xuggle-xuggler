@@ -30,9 +30,9 @@ typedef struct
     int      i_pixel;   /* PIXEL_WxH */
     int16_t *p_cost_mv; /* lambda * nbits for each possible mv */
 
-    uint8_t *p_fref[4];
-    uint8_t *p_fenc;
-    int      i_stride;
+    uint8_t *p_fref[6];
+    uint8_t *p_fenc[3];
+    int      i_stride[2];
 
     int mvp[2];
 
