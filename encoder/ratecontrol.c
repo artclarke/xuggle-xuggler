@@ -73,6 +73,7 @@ struct x264_ratecontrol_t
     int buffer_size;
     int rcbufrate;
     int init_qp;
+    int qp_constant[5];
 
     /* 1st pass stuff */
     int gop_qp;
@@ -175,6 +176,10 @@ int x264_ratecontrol_new( x264_t *h )
     rc->qp = h->param.rc.i_qp_constant;
     rc->qpa = rc->qp;
     rc->qpm = rc->qp;
+
+    rc->qp_constant[SLICE_TYPE_P] = h->param.rc.i_qp_constant;
+    rc->qp_constant[SLICE_TYPE_I] = x264_clip3( (int)( qscale2qp( qp2qscale( h->param.rc.i_qp_constant ) / fabs( h->param.rc.f_ip_factor )) + 0.5 ), 0, 51 );
+    rc->qp_constant[SLICE_TYPE_B] = x264_clip3( (int)( qscale2qp( qp2qscale( h->param.rc.i_qp_constant ) * fabs( h->param.rc.f_pb_factor )) + 0.5 ), 0, 51 );
 
     /* Init 1pass CBR algo */
     if( h->param.rc.b_cbr ){
@@ -360,6 +365,8 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
     }
     else if( !h->param.rc.b_cbr )
     {
+        rc->qpm = rc->qpa = rc->qp =
+            rc->qp_constant[ i_slice_type ];
         return;
     }
 
