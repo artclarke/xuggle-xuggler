@@ -24,7 +24,7 @@
 #ifndef _ENCODER_MACROBLOCK_H
 #define _ENCODER_MACROBLOCK_H 1
 
-#include "../common/macroblock.h"
+#include "common/macroblock.h"
 
 int x264_macroblock_probe_skip( x264_t *h, int b_bidir );
 

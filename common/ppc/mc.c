@@ -32,8 +32,8 @@
 #endif
 
 #include "x264.h"
-#include "../mc.h"
-#include "../clip1.h"
+#include "common/mc.h"
+#include "common/clip1.h"
 #include "mc.h"
 #include "ppccommon.h"
 

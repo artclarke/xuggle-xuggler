@@ -31,7 +31,7 @@
 #endif
 #include <stdarg.h>
 
-#include "../x264.h"
+#include "x264.h"
 #include "bs.h"
 #include "set.h"
 #include "predict.h"

@@ -30,7 +30,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "../x264.h"
+#include "x264.h"
 #include "pixel.h"
 
 #ifdef HAVE_MMXEXT

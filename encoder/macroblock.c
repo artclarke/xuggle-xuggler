@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../common/common.h"
+#include "common/common.h"
 #include "macroblock.h"
 
 

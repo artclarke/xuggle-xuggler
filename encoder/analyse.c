@@ -27,8 +27,8 @@
 #include <math.h>
 #include <limits.h>
 
-#include "../common/common.h"
-#include "../common/macroblock.h"
+#include "common/common.h"
+#include "common/macroblock.h"
 #include "macroblock.h"
 #include "me.h"
 #include "ratecontrol.h"

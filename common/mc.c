@@ -31,7 +31,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "../x264.h"
+#include "x264.h"
 
 #include "mc.h"
 #include "clip1.h"

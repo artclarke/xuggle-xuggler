@@ -32,7 +32,7 @@
 #endif
 
 #include "x264.h"
-#include "../pixel.h"
+#include "common/pixel.h"
 #include "pixel.h"
 #include "ppccommon.h"
 

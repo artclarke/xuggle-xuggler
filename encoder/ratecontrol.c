@@ -32,9 +32,9 @@
 #include <limits.h>
 #include <assert.h>
 
-#include "../common/common.h"
-#include "../common/cpu.h"
-#include "../common/macroblock.h"
+#include "common/common.h"
+#include "common/cpu.h"
+#include "common/macroblock.h"
 #include "ratecontrol.h"
 
 #ifdef SYS_MACOSX

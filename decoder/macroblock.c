@@ -26,8 +26,8 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "../common/common.h"
-#include "../common/vlc.h"
+#include "common/common.h"
+#include "common/vlc.h"
 #include "vlc.h"
 #include "macroblock.h"
 

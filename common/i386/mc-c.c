@@ -32,8 +32,8 @@
 #include <stdarg.h>
 
 #include "x264.h"   /* DECLARE_ALIGNED */
-#include "../mc.h"
-#include "../clip1.h"
+#include "common/mc.h"
+#include "common/clip1.h"
 #include "mc.h"
 
 #if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3)

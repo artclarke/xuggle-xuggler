@@ -33,7 +33,7 @@
 #include <stdarg.h>
 
 #include "x264.h"   /* for keyword inline */
-#include "../predict.h"
+#include "common/predict.h"
 #include "predict.h"
 
 static inline int clip_uint8( int a )

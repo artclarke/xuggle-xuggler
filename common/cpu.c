@@ -30,7 +30,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "../x264.h"
+#include "x264.h"
 #include "cpu.h"
 
 #ifdef ARCH_X86

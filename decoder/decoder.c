@@ -26,9 +26,9 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "../common/common.h"
-#include "../common/cpu.h"
-#include "../common/vlc.h"
+#include "common/common.h"
+#include "common/cpu.h"
+#include "common/vlc.h"
 
 #include "macroblock.h"
 #include "set.h"
