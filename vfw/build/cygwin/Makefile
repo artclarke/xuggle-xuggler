@@ -3,7 +3,7 @@
 # Makefile for x264 VFW driver
 #
 # Author: XviD project:
-#            - ??? <cutka at szm.sk>,
+#            - Milan Cutka <cutka at szm.sk>,
 #            - Edouard Gomez <ed.gomez at free.fr>
 #            - Peter Ross <pross@xvid.org>
 # Ported to x264 by Laurent Aimar <fenrir@via.ecp.fr>
@@ -108,13 +108,13 @@ install:
 	@echo " I: x264vfw.dll"
 	@cp $(DIR_BUILD)/$(DLL) $(DLL)
 	@cp $(DIR_SRC)/build/win32/bin/x264vfw.inf .
-	@rundll32.exe setupapi,InstallHinfSection DefaultInstall 132 ./x264vfw.inf
+	@rundll32.exe setupapi,InstallHinfSection DefaultInstall 132 $(DIR_CUR)/x264vfw.inf
 	@rm $(DLL)
 	@rm x264vfw.inf
 
 uninstall:
 	@echo " U: x264vfw.dll"
 	@cp $(DIR_SRC)/build/win32/bin/x264vfw.inf .
-	@rundll32.exe setupapi,InstallHinfSection Remove_x264 132 ./x264vfw.inf
+	@rundll32.exe setupapi,InstallHinfSection Remove_x264 132 $(DIR_CUR)/x264vfw.inf
 	@rm x264vfw.inf
 
