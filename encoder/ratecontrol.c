@@ -33,6 +33,8 @@
 #include "../core/cpu.h"
 #include "ratecontrol.h"
 
+#define DEBUG_RC 0
+
 struct x264_ratecontrol_t
 {
     /* constants */
@@ -100,8 +102,10 @@ int x264_ratecontrol_new( x264_t *h )
 
     rc->bits_last_gop = 0;
 
-/*     fprintf(stderr, "%f fps, %i bps, bufsize %i\n", */
-/*          rc->fps, rc->bitrate, rc->buffer_size); */
+#if DEBUG_RC
+    fprintf(stderr, "%f fps, %i bps, bufsize %i\n",
+         rc->fps, rc->bitrate, rc->buffer_size);
+#endif
 
     h->rc = rc;
 
@@ -195,7 +199,7 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
 
     if(i_slice_type == SLICE_TYPE_I){
         rc->qp = rc->gop_qp;
-    } else if(rc->ncoeffs){
+    } else if(rc->ncoeffs && rc->ufbits){
         int dqp;
 
         zn = rc->ncoeffs -
@@ -218,8 +222,10 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
     rc->qp = x264_clip3(rc->qp, h->param.i_qp_min, h->param.i_qp_max);
     rc->qpm = rc->qp;
 
-/*     fprintf(stderr, "fbits=%i, qp=%i, z=%i, min=%i, max=%i\n", */
-/*          rc->fbits, rc->qpm, zn, minbits, maxbits); */
+#if DEBUG_RC
+    fprintf(stderr, "fbits=%i, qp=%i, z=%i, min=%i, max=%i\n",
+         rc->fbits, rc->qpm, zn, minbits, maxbits);
+#endif
 
     rc->fbits -= rc->overhead;
     rc->ufbits = 0;
@@ -295,9 +301,11 @@ void x264_ratecontrol_end( x264_t *h, int bits )
 
     rc->overhead = bits - rc->ufbits;
 
-/*     fprintf(stderr, " bits=%i, qp=%i, z=%i, zr=%6.3f, buf=%i\n", */
-/*          bits, rc->qpa, rc->nzcoeffs, */
-/*          (float) rc->nzcoeffs / rc->ncoeffs, rc->buffer_fullness); */
+#if DEBUG_RC
+    fprintf(stderr, " bits=%i, qp=%i, z=%i, zr=%6.3f, buf=%i\n",
+         bits, rc->qpa, rc->nzcoeffs,
+         (float) rc->nzcoeffs / rc->ncoeffs, rc->buffer_fullness);
+#endif
 
     rc->bits_last_gop += bits;
     rc->frames++;
