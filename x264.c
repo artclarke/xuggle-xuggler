@@ -477,41 +477,30 @@ static int  Parse( int argc, char **argv,
 
     if( !(*pb_decompress) )
     {
-        char *psz_size = NULL;
-        char *p;
-
-
         if( optind > argc - 1 )
         {
-            char *psz = psz_filename;
-            char *x = NULL;
+            char *psz;
             /* try to parse the file name */
-            while( *psz )
+            for( psz = psz_filename; *psz; psz++ )
             {
-                while( *psz && ( *psz < '0' || *psz > '9' ) ) psz++;
-                x = strchr( psz, 'x' );
-                if( !x )
-                    break;
-                if( ( x[1] >= '0' && x[1] <= '9' ) )
+                if( *psz >= '0' && *psz <= '9'
+                    && sscanf( psz, "%ux%u", &param->i_width, &param->i_height ) == 2 )
                 {
-                    psz_size = psz;
+                    fprintf( stderr, "x264: file name gives %dx%d\n", param->i_width, param->i_height );
                     break;
                 }
             }
-            if( psz_size == NULL )
-            {
-                Help( &defaults );
-                return -1;
-            }
-            fprintf( stderr, "x264: file name gives %dx%d\n", atoi(psz), atoi(x+1) );
         }
         else
         {
-            psz_size = argv[optind++];
+            sscanf( argv[optind++], "%ux%u", &param->i_width, &param->i_height );
         }
 
-        param->i_width           = strtol( psz_size, &p, 0 );
-        param->i_height          = strtol( p+1, &p, 0 );
+        if( !param->i_width || !param->i_height )
+        {
+            Help( &defaults );
+            return -1;
+        }
     }
 
     /* open the input */
