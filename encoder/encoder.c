@@ -380,7 +380,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->param.i_bframe = x264_clip3( h->param.i_bframe, 0, X264_BFRAME_MAX );
     h->param.i_bframe_bias = x264_clip3( h->param.i_bframe_bias, -90, 100 );
-    h->param.b_bframe_pyramid = h->param.b_bframe_pyramid && h->param.i_bframe;
+    h->param.b_bframe_pyramid = h->param.b_bframe_pyramid && h->param.i_bframe > 1;
     h->frames.i_delay = h->param.i_bframe;
     h->frames.i_max_ref0 = h->param.i_frame_reference;
     h->frames.i_max_ref1 = h->param.b_bframe_pyramid ? 2

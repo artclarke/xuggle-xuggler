@@ -98,7 +98,7 @@ int main( int argc, char **argv )
 static void Help( x264_param_t *defaults )
 {
     fprintf( stderr,
-             "x264 build:0x%4.4x\n"
+             "x264 build:%d\n"
              "Syntax: x264 [options] [-o out.h26l] in.yuv widthxheigh\n"
              "\n"
              "  -h, --help                  Print this help\n"

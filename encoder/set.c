@@ -379,7 +379,7 @@ void x264_sei_version_write( bs_t *s )
     };
     char version[256];
     int length;
-    sprintf( version, "x264 - core 0x%x - H.264/MPEG-4 AVC codec - Copyleft 2005 - http://www.videolan.org/x264.html",
+    sprintf( version, "x264 - core %d - H.264/MPEG-4 AVC codec - Copyleft 2005 - http://www.videolan.org/x264.html",
              X264_BUILD );
     length = strlen(version)+1+16;
 
