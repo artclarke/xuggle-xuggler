@@ -373,7 +373,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     }
 
     /* Fix parameters values */
-    h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, 15 );
+    h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, 16 );
     if( h->param.i_keyint_max <= 0 )
         h->param.i_keyint_max = 1;
     h->param.i_keyint_min = x264_clip3( h->param.i_keyint_min, 1, h->param.i_keyint_max/2+1 );

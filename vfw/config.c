@@ -606,9 +606,9 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                 break;
             case IDC_REFFRAMES :
                 config->i_refmax = GetDlgItemInt( hDlg, IDC_REFFRAMES, FALSE, FALSE );
-                if( config->i_refmax > 15 )
+                if( config->i_refmax > 16 )
                 {
-                    config->i_refmax = 15;
+                    config->i_refmax = 16;
                     SetDlgItemInt( hDlg, IDC_REFFRAMES, config->i_refmax, FALSE );
                 }
                 break;

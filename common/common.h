@@ -265,9 +265,9 @@ struct x264_t
 
     /* references lists */
     int             i_ref0;
-    x264_frame_t    *fref0[16];       /* ref list 0 */
+    x264_frame_t    *fref0[16+3];     /* ref list 0 */
     int             i_ref1;
-    x264_frame_t    *fref1[16];       /* ref list 1 */
+    x264_frame_t    *fref1[16+3];     /* ref list 1 */
     int             b_ref_reorder[2];
 
 

@@ -852,7 +852,7 @@ static float rate_estimate_qscale(x264_t *h, int pict_type)
 
     if(rce->pict_type == SLICE_TYPE_B)
     {
-        if(rce->kept_as_ref)
+        if(h->fenc->b_kept_as_ref)
             return rcc->last_qscale * sqrtf(h->param.rc.f_pb_factor);
         else
             return rcc->last_qscale * h->param.rc.f_pb_factor;
