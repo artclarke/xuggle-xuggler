@@ -794,6 +794,8 @@ static void x264_mb_analyse_inter_direct( x264_t *h, x264_mb_analysis_t *a )
 static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 {
     uint8_t pix1[16*16], pix2[16*16];
+    uint8_t *src2;
+    int stride2 = 16;
 
     x264_me_t m;
     int i_ref;
@@ -865,15 +867,32 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, a->l1.i_ref );
 
     /* get cost of BI mode */
-    h->mc.mc_luma( h->mb.pic.p_fref[0][a->l0.i_ref], h->mb.pic.i_stride[0],
-                    pix1, 16,
-                    a->l0.me16x16.mv[0], a->l0.me16x16.mv[1],
-                    16, 16 );
-    h->mc.mc_luma( h->mb.pic.p_fref[1][a->l1.i_ref], h->mb.pic.i_stride[0],
-                    pix2, 16,
-                    a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
-                    16, 16 );
-    h->pixf.avg[PIXEL_16x16]( pix1, 16, pix2, 16 );
+    if ( ((a->l0.me16x16.mv[0] | a->l0.me16x16.mv[1]) & 1) == 0 )
+    {
+        /* l0 reference is halfpel, so get_ref on it will make it faster */
+        src2 = h->mc.get_ref( h->mb.pic.p_fref[0][a->l0.i_ref], h->mb.pic.i_stride[0],
+                        pix2, &stride2,
+                        a->l0.me16x16.mv[0], a->l0.me16x16.mv[1],
+                        16, 16 );
+        h->mc.mc_luma( h->mb.pic.p_fref[1][a->l1.i_ref], h->mb.pic.i_stride[0],
+                        pix1, 16,
+                        a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
+                        16, 16 );
+    } 
+    else
+    {
+        /* if l0 was qpel, we'll use get_ref on l1 instead */
+        h->mc.mc_luma( h->mb.pic.p_fref[0][a->l0.i_ref], h->mb.pic.i_stride[0],
+                        pix1, 16,
+                        a->l0.me16x16.mv[0], a->l0.me16x16.mv[1],
+                        16, 16 );
+        src2 = h->mc.get_ref( h->mb.pic.p_fref[1][a->l1.i_ref], h->mb.pic.i_stride[0],
+                        pix2, &stride2,
+                        a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
+                        16, 16 );
+    }
+
+    h->pixf.avg[PIXEL_16x16]( pix1, 16, src2, stride2 );
 
     a->i_cost16x16bi = h->pixf.satd[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0], pix1, 16 ) +
                        a->i_lambda * ( bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, a->l0.i_ref ) +

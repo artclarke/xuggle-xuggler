@@ -187,6 +187,8 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     const int bh = x264_pixel_size[m->i_pixel].h;
 
     DECLARE_ALIGNED( uint8_t, pix[4][16*16], 16 );
+    uint8_t * src[4];
+    int stride[4];
     int cost[4];
     int best;
     int step, i;
@@ -198,18 +200,19 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     {
 	for( i = step>1 ? hpel_iters : qpel_iters; i > 0; i-- )
         {
-            h->mc.mc_luma( m->p_fref, m->i_stride, pix[0], 16, bmx + 0, bmy - step, bw, bh );
-            h->mc.mc_luma( m->p_fref, m->i_stride, pix[1], 16, bmx + 0, bmy + step, bw, bh );
-            h->mc.mc_luma( m->p_fref, m->i_stride, pix[2], 16, bmx - step, bmy + 0, bw, bh );
-            h->mc.mc_luma( m->p_fref, m->i_stride, pix[3], 16, bmx + step, bmy + 0, bw, bh );
+            stride[0] = stride[1] = stride[2] = stride[3] = 16;
+            src[0] = h->mc.get_ref( m->p_fref, m->i_stride, pix[0], &stride[0], bmx + 0, bmy - step, bw, bh );
+            src[1] = h->mc.get_ref( m->p_fref, m->i_stride, pix[1], &stride[1], bmx + 0, bmy + step, bw, bh );
+            src[2] = h->mc.get_ref( m->p_fref, m->i_stride, pix[2], &stride[2], bmx - step, bmy + 0, bw, bh );
+            src[3] = h->mc.get_ref( m->p_fref, m->i_stride, pix[3], &stride[3], bmx + step, bmy + 0, bw, bh );
     
-            cost[0] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[0], 16 ) +
+            cost[0] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, src[0], stride[0] ) +
                       m->lm * ( bs_size_se( bmx + 0 - m->mvp[0] ) + bs_size_se( bmy - step - m->mvp[1] ) );
-            cost[1] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[1], 16 ) +
+            cost[1] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, src[1], stride[1] ) +
                       m->lm * ( bs_size_se( bmx + 0 - m->mvp[0] ) + bs_size_se( bmy + step - m->mvp[1] ) );
-            cost[2] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[2], 16 ) +
+            cost[2] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, src[2], stride[2] ) +
                       m->lm * ( bs_size_se( bmx - step - m->mvp[0] ) + bs_size_se( bmy + 0 - m->mvp[1] ) );
-            cost[3] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, pix[3], 16 ) +
+            cost[3] = h->pixf.satd[m->i_pixel]( m->p_fenc, m->i_stride, src[3], stride[3] ) +
                       m->lm * ( bs_size_se( bmx + step - m->mvp[0] ) + bs_size_se( bmy + 0 - m->mvp[1] ) );
     
             best = 0;
