@@ -213,12 +213,12 @@ struct x264_t
 
     /* frame number/poc */
     int             i_frame;
-    int             i_poc;
 
     int             i_frame_offset; /* decoding only */
     int             i_frame_num;    /* decoding only */
     int             i_poc_msb;      /* decoding only */
     int             i_poc_lsb;      /* decoding only */
+    int             i_poc;          /* decoding only */
 
     /* We use only one SPS and one PPS */
     x264_sps_t      sps_array[32];

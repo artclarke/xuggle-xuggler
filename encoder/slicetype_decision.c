@@ -385,7 +385,6 @@ void x264_slicetype_decide( x264_t *h )
             }
             else
             {
-                h->i_poc = 0;
                 h->i_frame_num = 0;
             }
         }
@@ -399,9 +398,6 @@ void x264_slicetype_decide( x264_t *h )
                 || IS_X264_TYPE_B( frm->i_type ) )
                 frm->i_type = X264_TYPE_P;
         }
-
-        frm->i_poc = h->i_poc;
-        h->i_poc += 2;
 
         if( frm->i_type != X264_TYPE_AUTO && frm->i_type != X264_TYPE_B && frm->i_type != X264_TYPE_BREF )
             break;

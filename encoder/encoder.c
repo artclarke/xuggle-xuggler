@@ -450,7 +450,6 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->i_frame = 0;
     h->i_frame_num = 0;
-    h->i_poc   = 0;
     h->i_idr_pic_id = 0;
 
     h->sps = &h->sps_array[0];
@@ -1108,8 +1107,9 @@ do_encode:
         i_slice_type = SLICE_TYPE_B;
     }
 
+    h->fdec->i_poc =
+    h->fenc->i_poc = 2 * (h->fenc->i_frame - h->frames.i_last_idr);
     h->fdec->i_type = h->fenc->i_type;
-    h->fdec->i_poc  = h->fenc->i_poc;
     h->fdec->i_frame = h->fenc->i_frame;
     h->fenc->b_kept_as_ref =
     h->fdec->b_kept_as_ref = i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE;
@@ -1258,15 +1258,11 @@ do_encode:
                 x264_frame_t *tmp;
 
                 /* Reset */
-                h->i_poc       = 0;
                 h->i_frame_num = 0;
 
                 /* Reinit field of fenc */
                 h->fenc->i_type = X264_TYPE_IDR;
                 h->fenc->i_poc = 0;
-
-                /* Next Poc */
-                h->i_poc += 2;
 
                 /* Put enqueued frames back in the pool */
                 while( (tmp = x264_frame_get( h->frames.current ) ) != NULL )
