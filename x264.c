@@ -135,6 +135,8 @@ static void Help( void )
              "  -o, --output                Specify output file\n"
              "\n"
              "      --no-asm                Disable any CPU optims\n"
+             "      --no-psnr               Disable PSNR computaion\n"
+             "      --quiet                 Quiet Mode\n"
              "\n",
             X264_BUILD
            );
@@ -170,6 +172,8 @@ static int  Parse( int argc, char **argv,
 #define OPT_RCSTATS 264
 #define OPT_RCEQ 265
 #define OPT_QCOMP 266
+#define OPT_NOPSNR 267
+#define OPT_QUIET 268
 
         static struct option long_options[] =
         {
@@ -199,6 +203,8 @@ static int  Parse( int argc, char **argv,
             { "stats",   required_argument, NULL, OPT_RCSTATS },
             { "rceq",    required_argument, NULL, OPT_RCEQ },
             { "qcomp",   required_argument, NULL, OPT_QCOMP },
+            { "no-psnr", no_argument,       NULL, OPT_NOPSNR },
+            { "quiet",   no_argument,       NULL, OPT_QUIET },
             {0, 0, 0, 0}
         };
 
@@ -332,6 +338,13 @@ static int  Parse( int argc, char **argv,
                break;
             case OPT_QCOMP:
                 param->rc.f_qcompress = atof(optarg);
+                break;
+
+            case OPT_NOPSNR:
+                param->analyse.b_psnr = 0;
+                break;
+            case OPT_QUIET:
+                param->i_log_level = X264_LOG_NONE;
                 break;
             default:
                 fprintf( stderr, "unknown option (%c)\n", optopt );
