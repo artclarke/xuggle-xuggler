@@ -332,10 +332,9 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     /* Fix parameters values */
     h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, 15 );
-    if( h->param.i_idrframe <= 0 )
-        h->param.i_idrframe = 1;
-    if( h->param.i_iframe <= 0 )
-        h->param.i_iframe = 1;
+    if( h->param.i_keyint_max <= 0 )
+        h->param.i_keyint_max = 1;
+    h->param.i_keyint_min = x264_clip3( h->param.i_keyint_min, 1, h->param.i_keyint_max/2+1 );
     h->param.i_bframe = x264_clip3( h->param.i_bframe, 0, X264_BFRAME_MAX );
 
     h->param.i_deblocking_filter_alphac0 = x264_clip3( h->param.i_deblocking_filter_alphac0, -6, 6 );
@@ -343,9 +342,9 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->param.i_cabac_init_idc = x264_clip3( h->param.i_cabac_init_idc, -1, 2 );
 
-    param->analyse.i_subpel_refine = x264_clip3( param->analyse.i_subpel_refine, 1, 5 );
-    if( param->analyse.inter & X264_ANALYSE_PSUB8x8 )
-        param->analyse.inter &= X264_ANALYSE_PSUB16x16;
+    h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 5 );
+    if( h->param.analyse.inter & X264_ANALYSE_PSUB8x8 )
+        h->param.analyse.inter &= X264_ANALYSE_PSUB16x16;
 
     if( h->param.rc.f_qblur < 0 )
         h->param.rc.f_qblur = 0;
@@ -428,8 +427,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         /* 2 = 1 backward ref  + 1 fdec */
         h->frames.reference[i] = x264_frame_new( h );
     }
-    h->frames.i_last_idr = h->param.i_idrframe;
-    h->frames.i_last_i   = h->param.i_iframe;
+    h->frames.i_last_idr = h->param.i_keyint_max;
     h->frames.i_input    = 0;
 
     h->i_ref0 = 0;
@@ -956,30 +954,25 @@ int     x264_encoder_encode( x264_t *h,
         {
             frm = h->frames.next[bframes];
 
-            if( h->frames.i_last_i + bframes + 1 >= h->param.i_iframe
-                && frm->i_type != X264_TYPE_IDR )
+            /* Limit GOP size */
+            if( ( h->frames.i_last_idr + bframes + 1 >= h->param.i_keyint_min
+                  && frm->i_type == X264_TYPE_I )
+               || h->frames.i_last_idr + bframes + 1 >= h->param.i_keyint_max )
             {
                 if(    frm->i_type == X264_TYPE_P
                     || frm->i_type == X264_TYPE_B )
                     x264_log( h, X264_LOG_ERROR, "specified frame type is not compatible with keyframe interval\n" );
 
-                frm->i_type = X264_TYPE_I;
-            }
-
-            if( frm->i_type == X264_TYPE_IDR
-                || ( frm->i_type == X264_TYPE_I &&
-                   ( h->frames.i_last_idr + 1 >= h->param.i_idrframe
-                     && (bframes == 0 || !h->param.rc.b_stat_read ))))
-            {
                 frm->i_type = X264_TYPE_IDR;
+                h->i_poc = 0;
+                h->i_frame_num = 0;
+
+                /* Close GOP */
                 if( bframes > 0 )
                 {
                     bframes--;
                     h->frames.next[bframes]->i_type = X264_TYPE_P;
                 }
-
-                h->i_poc = 0;
-                h->i_frame_num = 0;
             }
 
             if( bframes == h->param.i_bframe
@@ -1025,16 +1018,10 @@ do_encode:
     if( h->fenc->i_type == X264_TYPE_IDR )
     {
         h->frames.i_last_idr = 0;
-        h->frames.i_last_i = 0;
-    }
-    else if( h->fenc->i_type == X264_TYPE_I )
-    {
-        h->frames.i_last_idr++;
-        h->frames.i_last_i = 0;
     }
     else
     {
-        h->frames.i_last_i++;
+        h->frames.i_last_idr++;
     }
 
     /* ------------------- Setup frame context ----------------------------- */
@@ -1118,12 +1105,13 @@ do_encode:
     /* Write the slice */
     x264_slice_write( h, i_nal_type, i_nal_ref_idc );
 
+    /* restore CPU state (before using float again) */
+    x264_cpu_restore( h->param.cpu );
+
     /* XXX: this scene cut won't work with B frame (it may never create IDR -> bad) */
     if( i_slice_type == SLICE_TYPE_P && !h->param.rc.b_stat_read 
         && h->param.i_scenecut_threshold >= 0 )
     {
-        int i_bias;
-
         int i_mb_i = h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_16x16];
         int i_mb_p = h->stat.frame.i_mb_count[P_L0] + h->stat.frame.i_mb_count[P_8x8];
         int i_mb_s = h->stat.frame.i_mb_count[P_SKIP];
@@ -1131,21 +1119,36 @@ do_encode:
         int64_t i_inter_cost = h->stat.frame.i_inter_cost;
         int64_t i_intra_cost = h->stat.frame.i_intra_cost;
 
+        float f_thresh_max = h->param.i_scenecut_threshold / 100.0;
+        /* ratio of 10 pulled out of thin air */
+        float f_thresh_min = f_thresh_max * h->param.i_keyint_min
+                             / ( h->param.i_keyint_max * 4 );
+        if( h->param.i_keyint_min == h->param.i_keyint_max )
+             f_thresh_min= f_thresh_max;
+        float f_bias;
+
         /* macroblock_analyse() doesn't further analyse skipped mbs,
          * so we have to guess their cost */
         if( i_mb_s < i_mb )
             i_intra_cost = i_intra_cost * i_mb / (i_mb - i_mb_s);
 
-        if( h->param.i_iframe > 0 )
-            i_bias = h->param.i_scenecut_threshold * h->frames.i_last_i / h->param.i_iframe;
+        if( h->frames.i_last_idr < h->param.i_keyint_min / 4 )
+            f_bias = f_thresh_min / 4;
+        else if( h->frames.i_last_idr <= h->param.i_keyint_min )
+            f_bias = f_thresh_min * h->frames.i_last_idr / h->param.i_keyint_min;
         else
-            i_bias = 15;
-        i_bias = X264_MIN( i_bias, 100 );
+        {
+            f_bias = f_thresh_min
+                     + ( f_thresh_max - f_thresh_min )
+                       * ( h->frames.i_last_idr - h->param.i_keyint_min )
+                       / ( h->param.i_keyint_max - h->param.i_keyint_min );
+        }
+        f_bias = X264_MIN( f_bias, 1.0 );
 
         /* Bad P will be reencoded as I */
         if( i_mb_s < i_mb &&
-            100 * i_inter_cost >= (100 - i_bias) * i_intra_cost )
-            /* 100 * i_mb_i >= (100 - i_bias) * i_mb ) */
+            i_inter_cost >= (1.0 - f_bias) * i_intra_cost )
+            /* i_mb_i >= (1.0 - f_bias) * i_mb ) */
             /*
             h->out.nal[h->out.i_nal-1].i_payload > h->i_last_intra_size +
             h->i_last_intra_size * (3+h->i_last_intra_qp - i_global_qp) / 16 &&
@@ -1154,52 +1157,53 @@ do_encode:
             h->frames.i_last_i > 4)*/
         {
 
-            x264_log( h, X264_LOG_DEBUG, "scene cut at %d size=%d last I:%d last P:%d Intra:%lld Inter:%lld Ratio:%lld Bias=%d (I:%d P:%d Skip:%d)\n",
+            x264_log( h, X264_LOG_DEBUG, "scene cut at %d size=%d I_cost:%lld P_cost:%lld ratio:%.3f bias=%.3f last_IDR:%d (I:%d P:%d Skip:%d)\n",
                       h->fenc->i_frame,
                       h->out.nal[h->out.i_nal-1].i_payload,
-                      h->i_last_intra_size, h->i_last_inter_size,
                       i_intra_cost, i_inter_cost,
-                      100 * i_inter_cost / i_intra_cost,
-                      i_bias, i_mb_i, i_mb_p, i_mb_s );
+                      (float)i_inter_cost / i_intra_cost,
+                      f_bias, h->frames.i_last_idr,
+                      i_mb_i, i_mb_p, i_mb_s );
 
             /* Restore frame num */
             h->i_frame_num--;
 
-            /* Do IDR if needed */
-            if( h->frames.i_last_idr + 1 >= h->param.i_idrframe )
+            for( i = 0; h->frames.current[i] && h->frames.current[i]->i_type == X264_TYPE_B; i++ );
+            if( i > 0 )
             {
-                /* If using B-frames, make sure GOP is closed */
-                for( i = 0; h->frames.current[i] && h->frames.current[i]->i_type == X264_TYPE_B; i++ );
-                if( i > 0 )
-                {
-                    /* We don't know which frame is the scene cut, so we can't
-                     * assign an I-frame yet. Instead, change the previous
-                     * B-frame to P, and rearrange coding order. */
-                    x264_frame_t *tmp = h->frames.current[i-1];
-                    h->frames.current[i-1] = h->fenc;
-                    h->fenc = tmp;
-                    h->fenc->i_type = X264_TYPE_P;
-                }
-                else
-                {
-                    x264_frame_t *tmp;
+                /* If using B-frames, force GOP to be closed.
+                 * Even if this frame is going to be I and not IDR, forcing a
+                 * P-frame before the scenecut will probably help compression.
+                 * 
+                 * We don't yet know exactly which frame is the scene cut, so
+                 * we can't assign an I-frame. Instead, change the previous
+                 * B-frame to P, and rearrange coding order. */
 
-                    /* Reset */
-                    h->i_poc       = 0;
-                    h->i_frame_num = 0;
+                x264_frame_t *tmp = h->frames.current[i-1];
+                h->frames.current[i-1] = h->fenc;
+                h->fenc = tmp;
+                h->fenc->i_type = X264_TYPE_P;
+            }
+            /* Do IDR if needed */
+            else if( h->frames.i_last_idr + 1 >= h->param.i_keyint_min )
+            {
+                x264_frame_t *tmp;
 
-                    /* Reinit field of fenc */
-                    h->fenc->i_type = X264_TYPE_IDR;
-                    h->fenc->i_poc = h->i_poc;
+                /* Reset */
+                h->i_poc       = 0;
+                h->i_frame_num = 0;
 
-                    /* Next Poc */
-                    h->i_poc += 2;
+                /* Reinit field of fenc */
+                h->fenc->i_type = X264_TYPE_IDR;
+                h->fenc->i_poc = 0;
 
-                    /* Put enqueued frames back in the pool */
-                    while( (tmp = x264_frame_get( h->frames.current ) ) != NULL )
-                        x264_frame_put( h->frames.next, tmp );
-                    x264_frame_sort( h->frames.next );
-                }
+                /* Next Poc */
+                h->i_poc += 2;
+
+                /* Put enqueued frames back in the pool */
+                while( (tmp = x264_frame_get( h->frames.current ) ) != NULL )
+                    x264_frame_put( h->frames.next, tmp );
+                x264_frame_sort( h->frames.next );
             }
             else
             {
@@ -1245,6 +1249,7 @@ do_encode:
     h->i_frame++;
 
     /* restore CPU state (before using float again) */
+    /* XXX: not needed? (done above) */
     x264_cpu_restore( h->param.cpu );
 
     /* update rc */

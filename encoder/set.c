@@ -50,7 +50,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     sps->b_constraint_set2  = 0;
 
     sps->i_log2_max_frame_num = 4;  /* at least 4 */
-    while( (1 << sps->i_log2_max_frame_num) <= param->i_idrframe * param->i_iframe )
+    while( (1 << sps->i_log2_max_frame_num) <= param->i_keyint_max )
     {
         sps->i_log2_max_frame_num++;
     }

@@ -215,8 +215,7 @@ struct x264_t
         /* frames used for reference +1 for decoding */
         x264_frame_t *reference[16+1];
 
-        int i_last_idr; /* How many I non IDR frames from last IDR */
-        int i_last_i;   /* How many P/B frames from last I */
+        int i_last_idr; /* How many frames since last IDR */
 
         int i_input;    /* Number of input frames already accepted */
     } frames;

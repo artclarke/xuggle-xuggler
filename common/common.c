@@ -58,8 +58,8 @@ void    x264_param_default( x264_param_t *param )
 
     /* Encoder parameters */
     param->i_frame_reference = 1;
-    param->i_idrframe = 2;
-    param->i_iframe = 250;
+    param->i_keyint_max = 250;
+    param->i_keyint_min = 100;
     param->i_bframe = 0;
     param->i_scenecut_threshold = 40;
 

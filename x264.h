@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 0x000d
+#define X264_BUILD 0x000e
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -108,8 +108,8 @@ typedef struct
 
     /* Bitstream parameters */
     int         i_frame_reference;  /* Maximum number of reference frames */
-    int         i_idrframe; /* every i_idrframe I frame are marked as IDR */
-    int         i_iframe;   /* every i_iframe are intra */
+    int         i_keyint_max;       /* Force an IDR keyframe at this interval */
+    int         i_keyint_min;       /* Scenecuts closer together than this are coded as I, not IDR. */
     int         i_scenecut_threshold; /* how aggressively to insert extra I frames */
     int         i_bframe;   /* how many b-frame between 2 references pictures */
 

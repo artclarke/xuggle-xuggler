@@ -102,8 +102,8 @@ static void Help( x264_param_t *defaults )
              "\n"
              "  -h, --help                  Print this help\n"
              "\n"
-             "  -I, --idrframe <integer>    Each 'number' I frames are IDR frames [%d]\n"
-             "  -i, --iframe <integer>      Max interval between I frames [%d]\n"
+             "  -I, --keyint <integer  >    Maximum GOP size [%d]\n"
+             "  -i, --min-keyint <integer>  Minimum GOP size [%d]\n"
              "      --scenecut <integer>    How aggresively to insert extra I frames [%d]\n"
              "  -b, --bframe <integer>      Number of B-frames between I and P [%d]\n"
              "\n"
@@ -150,8 +150,8 @@ static void Help( x264_param_t *defaults )
              "  -v, --verbose               Print stats for each frame\n"
              "\n",
             X264_BUILD,
-            defaults->i_idrframe,
-            defaults->i_iframe,
+            defaults->i_keyint_max,
+            defaults->i_keyint_min,
             defaults->i_scenecut_threshold,
             defaults->i_bframe,
             defaults->i_frame_reference,
@@ -219,8 +219,8 @@ static int  Parse( int argc, char **argv,
             { "help",    no_argument,       NULL, 'h' },
             { "bitrate", required_argument, NULL, 'B' },
             { "bframe",  required_argument, NULL, 'b' },
-            { "iframe",  required_argument, NULL, 'i' },
-            { "idrframe",required_argument, NULL, 'I' },
+            { "min-keyint",required_argument,NULL,'i' },
+            { "keyint",  required_argument, NULL, 'I' },
             { "scenecut",required_argument, NULL, OPT_SCENECUT },
             { "nf",      no_argument,       NULL, 'n' },
             { "filter",  required_argument, NULL, 'f' },
@@ -281,10 +281,10 @@ static int  Parse( int argc, char **argv,
                 param->i_bframe = atol( optarg );
                 break;
             case 'i':
-                param->i_iframe = atol( optarg );
+                param->i_keyint_min = atol( optarg );
                 break;
             case 'I':
-                param->i_idrframe = atol( optarg );
+                param->i_keyint_max = atol( optarg );
                 break;
             case OPT_SCENECUT:
                 param->i_scenecut_threshold = atol( optarg );

@@ -171,7 +171,7 @@ int x264_ratecontrol_new( x264_t *h )
     else
         rc->fps = 25.0;
 
-    rc->gop_size = h->param.i_iframe;
+    rc->gop_size = h->param.i_keyint_max;
     rc->bitrate = h->param.rc.i_bitrate * 1000;
     rc->nmb = h->mb.i_mb_count;
 
