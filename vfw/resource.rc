@@ -64,39 +64,45 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,168,210,50,14
     CONTROL         "Slider1",IDC_BITRATESLIDER,"msctls_trackbar32",TBS_BOTH | 
                     TBS_NOTICKS | WS_TABSTOP,13,31,175,15
-    EDITTEXT        IDC_BITRATEEDIT,189,32,27,14,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_BITRATEEDIT,189,32,26,14,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "Average Bitrate (kbps)",IDC_STATIC,59,20,73,8
     GROUPBOX        "",IDC_STATIC,7,7,211,47
-    LTEXT           "0",IDC_BITRATELOW,14,19,22,8
-    LTEXT           "5000",IDC_BITRATEHIGH,166,21,17,8
+    LTEXT           "0",IDC_BITRATELOW,16,20,22,8
+    LTEXT           "5000",IDC_BITRATEHIGH,166,20,17,8
     PUSHBUTTON      "Load Defaults",IDC_DEFAULTS,7,210,57,14
     PUSHBUTTON      "Advanced",IDC_ADVANCED,67,210,49,14
     CONTROL         "Slider1",IDC_QUANTSLIDER,"msctls_trackbar32",TBS_BOTH | 
                     TBS_NOTICKS | WS_TABSTOP,13,81,175,15
-    EDITTEXT        IDC_QUANTEDIT,189,82,27,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Quantizer",IDC_STATIC,81,71,31,8
+    EDITTEXT        IDC_QUANTEDIT,189,82,26,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Quantizer",IDC_STATIC,83,71,31,8
     GROUPBOX        "",IDC_STATIC,7,57,211,47
-    LTEXT           "0 (High Quality)",IDC_BITRATELOW2,14,70,50,8
+    LTEXT           "0 (High Quality)",IDC_BITRATELOW2,16,71,50,8
     LTEXT           "51 (Low Quality)",IDC_BITRATEHIGH2,131,71,53,8
-    GROUPBOX        "",IDC_STATIC,7,109,211,73
-    CONTROL         "1 Pass, Bitrate",IDC_RADIOBITRATE,"Button",
-                    BS_AUTORADIOBUTTON,13,7,58,10
-    CONTROL         "1 Pass, Quantizer",IDC_RADIOQUANT,"Button",
-                    BS_AUTORADIOBUTTON,13,57,75,10
+    GROUPBOX        "",IDC_STATIC,7,108,211,95
+    CONTROL         "Single Pass - Bitrate",IDC_RADIOBITRATE,"Button",
+                    BS_AUTORADIOBUTTON,13,7,77,10
+    CONTROL         "Single Pass - Quantizer",IDC_RADIOQUANT,"Button",
+                    BS_AUTORADIOBUTTON,13,57,87,10
     CONTROL         "Two Pass",IDC_RADIOTWOPASS,"Button",BS_AUTORADIOBUTTON,
-                    13,109,43,10
+                    13,108,45,10
     CONTROL         "First Pass",IDC_2PASS1,"Button",BS_AUTORADIOBUTTON | 
-                    WS_GROUP,27,126,46,10
+                    WS_GROUP,27,123,46,10
     CONTROL         "Second Pass",IDC_2PASS2,"Button",BS_AUTORADIOBUTTON,87,
-                    126,58,10
+                    123,58,10
     CONTROL         "Slider1",IDC_2PASSBITRATE_S,"msctls_trackbar32",
                     TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,13,148,175,15
-    EDITTEXT        IDC_2PASSBITRATE,189,148,27,14,ES_AUTOHSCROLL | 
+    EDITTEXT        IDC_2PASSBITRATE,189,148,26,14,ES_AUTOHSCROLL | 
                     ES_NUMBER
-    LTEXT           "0",IDC_BITRATELOW3,14,136,22,8
-    LTEXT           "5000",IDC_BITRATEHIGH3,166,136,17,8
+    LTEXT           "Target Bitrate (kbps)",IDC_STATIC,63,137,73,8
+    LTEXT           "0",IDC_BITRATELOW3,16,137,22,8
+    LTEXT           "5000",IDC_BITRATEHIGH3,166,137,17,8
     CONTROL         "Fast first pass",IDC_FAST1PASS,"Button",BS_AUTOCHECKBOX |
-                    WS_TABSTOP,20,166,61,10
+                    WS_TABSTOP,20,167,61,10
+    CONTROL         "Update statsfile",IDC_UPDATESTATS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,112,167,80,10
+    LTEXT           "Statsfile name:",IDC_STATIC,20,185,52,8
+    EDITTEXT        IDC_STATSFILE,72,184,100,13,ES_AUTOHSCROLL | WS_TABSTOP
+    PUSHBUTTON      "...",IDC_STATSFILE_BROWSE,177,185,18,11
 END
 
 IDD_ADVANCED DIALOG DISCARDABLE  0, 0, 302, 262

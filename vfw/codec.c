@@ -132,7 +132,6 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
 {
     CONFIG *config = &codec->config;
     x264_param_t param;
-    static char statsfile[] = ".\\x264.stats";
 
     /* Destroy previous handle */
     if( codec->h != NULL )
@@ -197,7 +196,7 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
             break;
         default:
         case 2: /* 2 PASS */
-            param.rc.psz_stat_out = param.rc.psz_stat_in = statsfile;
+            param.rc.psz_stat_out = param.rc.psz_stat_in = config->stats;
             if (config->i_pass == 1)
             {
                 param.rc.b_stat_write = 1;
@@ -218,6 +217,8 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
                 param.rc.i_bitrate = config->i_2passbitrate;
                 param.rc.b_stat_read = 1;
                 param.rc.b_cbr = 1;
+                if( config->b_updatestats )
+                    param.rc.b_stat_write = 1;
             }
             break;
     }

@@ -46,7 +46,7 @@
 
 /* description */
 #define X264_NAME        "x264"
-#define X264_DEF_TEXT    "Are you sure you want to load default values"
+#define X264_DEF_TEXT    "Are you sure you want to load default values?"
 
 /* Registery handling */
 typedef struct
@@ -73,6 +73,7 @@ static const reg_int_t reg_int_table[] =
     { "passbitrate",    &reg.i_2passbitrate,    800 },
     { "pass_number",    &reg.i_pass,            1 },
     { "fast1pass",      &reg.b_fast1pass,       1 },
+    { "updatestats",    &reg.b_updatestats,     0 },
 
     /* Advance dialog */
     { "cabac",          &reg.b_cabac,           1 },
@@ -99,7 +100,8 @@ static const reg_int_t reg_int_table[] =
 
 static const reg_str_t reg_str_table[] =
 {
-    { "fourcc",         reg.fcc,                "h264" }
+    { "fourcc",         reg.fcc,                "h264" },
+    { "statsfile",      reg.stats,              ".\\x264.stats" }
 };
 
 void config_reg_load( CONFIG *config )
@@ -124,12 +126,12 @@ void config_reg_load( CONFIG *config )
     /* Read strings */
     for( i = 0; i < sizeof( reg_str_table )/sizeof( reg_str_t); i++ )
     {
-        i_size = 5;   /* fourcc + 1 FIXME ugly */
+        i_size = MAX_PATH;
         if( RegQueryValueEx( hKey, reg_str_table[i].reg_value, 0, 0,
                              (LPBYTE)reg_str_table[i].config_str,
                              &i_size ) != ERROR_SUCCESS )
-            memcpy( reg_str_table[i].config_str,
-                    reg_str_table[i].default_str, 5 );
+            lstrcpy( reg_str_table[i].config_str,
+                     reg_str_table[i].default_str );
     }
 
     RegCloseKey( hKey );
@@ -166,7 +168,7 @@ void config_reg_save( CONFIG *config )
     {
         RegSetValueEx( hKey, reg_str_table[i].reg_value, 0, REG_SZ,
                        (LPBYTE)reg_str_table[i].config_str,
-                        5 );    /* FIXME */
+                        MAX_PATH );
     }
 
     RegCloseKey( hKey );
@@ -210,6 +212,9 @@ static void main_enable_item( HWND hDlg, CONFIG * config )
         EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE ), FALSE );
         EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE_S ), FALSE );
         EnableWindow( GetDlgItem( hDlg, IDC_FAST1PASS ), FALSE );
+        EnableWindow( GetDlgItem( hDlg, IDC_UPDATESTATS ), FALSE );
+        EnableWindow( GetDlgItem( hDlg, IDC_STATSFILE ), FALSE );
+        EnableWindow( GetDlgItem( hDlg, IDC_STATSFILE_BROWSE ), FALSE );
         break;
 
     case 1 : /* 1 Pass, Quantizer Based */
@@ -224,6 +229,9 @@ static void main_enable_item( HWND hDlg, CONFIG * config )
         EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE ), FALSE );
         EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE_S ), FALSE );
         EnableWindow( GetDlgItem( hDlg, IDC_FAST1PASS ), FALSE );
+        EnableWindow( GetDlgItem( hDlg, IDC_UPDATESTATS ), FALSE );
+        EnableWindow( GetDlgItem( hDlg, IDC_STATSFILE ), FALSE );
+        EnableWindow( GetDlgItem( hDlg, IDC_STATSFILE_BROWSE ), FALSE );
         break;
     
     case 2 : /* 2 Pass */
@@ -238,6 +246,9 @@ static void main_enable_item( HWND hDlg, CONFIG * config )
         EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE ), config->i_pass > 1 );
         EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE_S ), config->i_pass > 1 );
         EnableWindow( GetDlgItem( hDlg, IDC_FAST1PASS ), config->i_pass == 1);
+        EnableWindow( GetDlgItem( hDlg, IDC_UPDATESTATS ), config->i_pass > 1 );
+        EnableWindow( GetDlgItem( hDlg, IDC_STATSFILE ), TRUE );
+        EnableWindow( GetDlgItem( hDlg, IDC_STATSFILE_BROWSE ), TRUE );
         break;
     }
 
@@ -256,6 +267,7 @@ static void main_update_dlg( HWND hDlg, CONFIG * config )
     SetDlgItemInt( hDlg, IDC_BITRATEEDIT, config->bitrate, FALSE );
     SetDlgItemInt( hDlg, IDC_QUANTEDIT, config->i_qp, FALSE );
     SetDlgItemInt( hDlg, IDC_2PASSBITRATE, config->i_2passbitrate, FALSE );
+    SetDlgItemText( hDlg, IDC_STATSFILE, config->stats );
 
     switch( config->i_encoding_type )
     {
@@ -290,6 +302,7 @@ static void main_update_dlg( HWND hDlg, CONFIG * config )
     SendDlgItemMessage( hDlg, IDC_2PASSBITRATE_S, TBM_SETPOS, TRUE,
                         config->i_2passbitrate );
     CheckDlgButton( hDlg, IDC_FAST1PASS, config->b_fast1pass ? BST_CHECKED : BST_UNCHECKED );
+    CheckDlgButton( hDlg, IDC_UPDATESTATS, config->b_updatestats ? BST_CHECKED : BST_UNCHECKED );
 
 }
 
@@ -318,7 +331,7 @@ BOOL CALLBACK callback_main( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
             {
             case IDOK :
                 config->b_save = TRUE;
-                EndDialog( hDlg, LOWORD(wParam) );
+			    EndDialog( hDlg, LOWORD(wParam) );
                 break;
             case IDCANCEL :
                 config->b_save = FALSE;
@@ -365,6 +378,34 @@ BOOL CALLBACK callback_main( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
             case IDC_FAST1PASS :
                 config->b_fast1pass = ( IsDlgButtonChecked( hDlg, IDC_FAST1PASS ) == BST_CHECKED );
                 break;
+            case IDC_UPDATESTATS :
+                config->b_updatestats = ( IsDlgButtonChecked( hDlg, IDC_UPDATESTATS ) == BST_CHECKED );
+                break;
+            case IDC_STATSFILE_BROWSE :
+                {
+                OPENFILENAME ofn;
+                char tmp[MAX_PATH];
+
+                GetDlgItemText( hDlg, IDC_STATSFILE, tmp, MAX_PATH );
+
+                memset( &ofn, 0, sizeof( OPENFILENAME ) );
+                ofn.lStructSize = sizeof( OPENFILENAME );
+
+                ofn.hwndOwner = hDlg;
+                ofn.lpstrFilter = "Statsfile (*.stats)\0*.stats\0All files (*.*)\0*.*\0\0";
+                ofn.lpstrFile = tmp;
+                ofn.nMaxFile = MAX_PATH;
+                ofn.Flags = OFN_PATHMUSTEXIST;
+
+                if( config->i_pass == 1 )
+                    ofn.Flags |= OFN_OVERWRITEPROMPT;
+                else ofn.Flags |= OFN_FILEMUSTEXIST;
+
+                if( ( config->i_pass == 1 && GetSaveFileName( &ofn ) ) || 
+                    ( config->i_pass > 1 && GetOpenFileName( &ofn ) ) )
+                    SetDlgItemText( hDlg, IDC_STATSFILE, tmp );
+                }
+                break;
             }
             break;
         case EN_CHANGE :
@@ -381,6 +422,10 @@ BOOL CALLBACK callback_main( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
             case IDC_2PASSBITRATE :
                 config->i_2passbitrate = GetDlgItemInt( hDlg, IDC_2PASSBITRATE, FALSE, FALSE );
                 SendDlgItemMessage( hDlg, IDC_2PASSBITRATE_S, TBM_SETPOS, TRUE, config->i_2passbitrate );
+                break;
+            case IDC_STATSFILE :
+                if( GetDlgItemText( hDlg, IDC_STATSFILE, config->stats, MAX_PATH ) == 0 )
+                    lstrcpy( config->stats, ".\\x264.stats" );
                 break;
             }
             break;
@@ -500,10 +545,8 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
 
     EnableWindow( GetDlgItem( hDlg, IDC_P8X8 ), config->b_psub16x16 );
 
-
     memcpy( fourcc, config->fcc, 4 );
     fourcc[4] = '\0';
-
     SetDlgItemText( hDlg, IDC_FOURCC, fourcc );
 }
 
