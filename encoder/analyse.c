@@ -832,6 +832,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     uint8_t pix1[16*16], pix2[16*16];
     uint8_t *src2;
     int stride2 = 16;
+    int src2_ref, pix1_ref;
 
     x264_me_t m;
     int i_ref;
@@ -914,6 +915,8 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
                         pix1, 16,
                         a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
                         16, 16 );
+        src2_ref = a->l0.i_ref;
+        pix1_ref = a->l1.i_ref;
     } 
     else
     {
@@ -926,9 +929,15 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
                         pix2, &stride2,
                         a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
                         16, 16 );
+        src2_ref = a->l1.i_ref;
+        pix1_ref = a->l0.i_ref;
     }
 
-    WEIGHTED_AVG( PIXEL_16x16, pix1, 16, src2, stride2 );
+    if( h->param.analyse.b_weighted_bipred )
+        h->pixf.avg_weight[PIXEL_16x16]( pix1, 16, src2, stride2,
+                h->mb.bipred_weight[pix1_ref][src2_ref] );
+    else
+        h->pixf.avg[PIXEL_16x16]( pix1, 16, src2, stride2 );
 
     a->i_cost16x16bi = h->pixf.satd[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0], pix1, 16 )
                      + a->i_lambda * ( bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, a->l0.i_ref )
