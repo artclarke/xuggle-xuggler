@@ -1,4 +1,4 @@
-/*****************************************************************************
+/***************************************************-*- coding: iso-8859-1 -*-
  * ratecontrol.c: h264 encoder library (Rate Control)
  *****************************************************************************
  * Copyright (C) 2003 Laurent Aimar
@@ -154,11 +154,16 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
             qp =
                 x264_clip3(qp, h->param.i_qp_min, h->param.i_qp_max);
             rc->gop_qp = qp;
-        } else {
+        } else if(rc->frames > 4){
             rc->gop_qp = rc->init_qp;
         }
 
         kp = h->param.f_ip_factor * h->param.f_pb_factor;
+
+#if DEBUG_RC
+        fprintf(stderr, "gbuf=%i bits_gop=%i frames=%i gop_qp=%i\n",
+                gbuf, rc->bits_gop, rc->frames, rc->gop_qp);
+#endif
 
         rc->bits_last_gop = 0;
         rc->frames = 0;
@@ -200,10 +205,16 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
     if(i_slice_type == SLICE_TYPE_I){
         rc->qp = rc->gop_qp;
     } else if(rc->ncoeffs && rc->ufbits){
-        int dqp;
+        int dqp, nonzc;
 
-        zn = rc->ncoeffs -
-            rc->fbits * (rc->ncoeffs - rc->nzcoeffs) / rc->ufbits;
+        nonzc = (rc->ncoeffs - rc->nzcoeffs);
+        if(nonzc == 0)
+            zn = rc->ncoeffs;
+        else if(rc->fbits < INT_MAX / nonzc)
+            zn = rc->ncoeffs - rc->fbits * nonzc / rc->ufbits;
+        else
+            zn = 0;
+        zn = x264_clip3(zn, 0, rc->ncoeffs);
         dqp = h->param.i_rc_sens * exp2f((float) rc->qpa / 6) *
             (zn - rc->nzcoeffs) / rc->nzcoeffs;
         dqp = x264_clip3(dqp, -h->param.i_qp_step, h->param.i_qp_step);
@@ -222,7 +233,7 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
     rc->qp = x264_clip3(rc->qp, h->param.i_qp_min, h->param.i_qp_max);
     rc->qpm = rc->qp;
 
-#if DEBUG_RC
+#if DEBUG_RC > 1
     fprintf(stderr, "fbits=%i, qp=%i, z=%i, min=%i, max=%i\n",
          rc->fbits, rc->qpm, zn, minbits, maxbits);
 #endif
@@ -239,7 +250,8 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
 {
     x264_ratecontrol_t *rc = h->rc;
     int rbits;
-    int zn, enz;
+    int zn, enz, nonz;
+    int rcoeffs;
     int dqp;
     int i;
 
@@ -261,13 +273,20 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     else if(rc->mb == rc->nmb)
         return;
 
+    rcoeffs = (rc->nmb - rc->mb) * 16 * 24;
     rbits = rc->fbits - rc->ufbits;
 /*     if(rbits < 0) */
 /*      rbits = 0; */
 
-    zn = (rc->nmb - rc->mb) * 16 * 24;
-    if(rc->ufbits)
-        zn -= rbits * (rc->ncoeffs - rc->nzcoeffs) / rc->ufbits;
+/*     zn = (rc->nmb - rc->mb) * 16 * 24; */
+    nonz = (rc->ncoeffs - rc->nzcoeffs);
+    if(nonz == 0)
+        zn = rcoeffs;
+    else if(rc->ufbits && rbits < INT_MAX / nonz)
+        zn = rcoeffs - rbits * nonz / rc->ufbits;
+    else
+        zn = 0;
+    zn = x264_clip3(zn, 0, rcoeffs);
     enz = rc->nzcoeffs * (rc->nmb - rc->mb) / rc->mb;
     dqp = (float) 2*h->param.i_rc_sens * exp2f((float) rc->qps / rc->mb / 6) *
         (zn - enz) / enz;
@@ -300,11 +319,17 @@ void x264_ratecontrol_end( x264_t *h, int bits )
         rc->qp_avg_p += rc->qpa;
         rc->qp_last_p = rc->qpa;
         rc->pframes++;
+    } else if(rc->slice_type == SLICE_TYPE_I){
+        float err = (float) rc->ufbits / rc->fbits;
+        if(err > 1.1)
+            rc->gop_qp++;
+        else if(err < 0.9)
+            rc->gop_qp--;
     }
 
     rc->overhead = bits - rc->ufbits;
 
-#if DEBUG_RC
+#if DEBUG_RC > 1
     fprintf(stderr, " bits=%i, qp=%i, z=%i, zr=%6.3f, buf=%i\n",
          bits, rc->qpa, rc->nzcoeffs,
          (float) rc->nzcoeffs / rc->ncoeffs, rc->buffer_fullness);
@@ -315,3 +340,8 @@ void x264_ratecontrol_end( x264_t *h, int bits )
     rc->mb = 0;
 }
 
+/*
+  Local Variables:
+  indent-tabs-mode: nil
+  End:
+*/
