@@ -61,6 +61,7 @@ typedef struct
     char *reg_value;
     char *config_str;
     char *default_str;
+    int max_len;  /* maximum string length, including the terminating NULL char */
 } reg_str_t;
 
 CONFIG reg;
@@ -100,8 +101,8 @@ static const reg_int_t reg_int_table[] =
 
 static const reg_str_t reg_str_table[] =
 {
-    { "fourcc",         reg.fcc,                "h264" },
-    { "statsfile",      reg.stats,              ".\\x264.stats" }
+    { "fourcc",         reg.fcc,         "h264",                5 },
+    { "statsfile",      reg.stats,       ".\\x264.stats",       MAX_PATH }
 };
 
 void config_reg_load( CONFIG *config )
@@ -126,7 +127,7 @@ void config_reg_load( CONFIG *config )
     /* Read strings */
     for( i = 0; i < sizeof( reg_str_table )/sizeof( reg_str_t); i++ )
     {
-        i_size = MAX_PATH;
+        i_size = reg_str_table[i].max_len;
         if( RegQueryValueEx( hKey, reg_str_table[i].reg_value, 0, 0,
                              (LPBYTE)reg_str_table[i].config_str,
                              &i_size ) != ERROR_SUCCESS )
@@ -168,7 +169,7 @@ void config_reg_save( CONFIG *config )
     {
         RegSetValueEx( hKey, reg_str_table[i].reg_value, 0, REG_SZ,
                        (LPBYTE)reg_str_table[i].config_str,
-                        MAX_PATH );
+                        lstrlen(reg_str_table[i].config_str)+1 );
     }
 
     RegCloseKey( hKey );
