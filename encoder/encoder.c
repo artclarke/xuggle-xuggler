@@ -1304,6 +1304,12 @@ do_encode:
         pic_out->i_type = X264_TYPE_B;
     pic_out->i_pts = h->fenc->i_pts;
 
+    pic_out->img.i_plane = h->fdec->i_plane;
+    for(i = 0; i < 4; i++){
+        pic_out->img.i_stride[i] = h->fdec->i_stride[i];
+        pic_out->img.plane[i] = h->fdec->plane[i];
+    }
+
     /* ---------------------- Update encoder state ------------------------- */
     /* update cabac */
     if( h->param.b_cabac )
