@@ -306,15 +306,16 @@ void x264_mc_init( int cpu, x264_mc_function_t pf[2] )
 
 #ifdef HAVE_MMXEXT
     if( cpu&X264_CPU_MMXEXT )
-    {
         x264_mc_mmxext_init( pf );
-    }
 #endif
+#ifdef HAVE_SSE2
+    if( cpu&X264_CPU_SSE2 )
+        x264_mc_sse2_init( pf );
+#endif
+
 #ifdef HAVE_ALTIVEC
     if( cpu&X264_CPU_ALTIVEC )
-    {
         x264_mc_altivec_init( pf );
-    }
 #endif
 }
 

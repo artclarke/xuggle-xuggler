@@ -67,16 +67,25 @@ ALIGN 16
 
 SECTION .text
 
-cglobal pixel_avg_w4
+cglobal x264_pixel_avg_w4_mmxext
+cglobal x264_pixel_avg_w8_mmxext
+cglobal x264_pixel_avg_w16_mmxext
+cglobal x264_pixel_avg_w16_sse2
+
+cglobal x264_mc_copy_w4_mmxext
+cglobal x264_mc_copy_w8_mmxext
+cglobal x264_mc_copy_w16_mmxext
+cglobal x264_mc_copy_w16_sse2
+
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-; void pixel_avg_w4( uint8_t *dst,  int i_dst_stride,
-;                    uint8_t *src1, int i_src1_stride,
-;                    uint8_t *src2, int i_src2_stride,
-;                    int i_height );
+; void x264_pixel_avg_w4_mmxext( uint8_t *dst,  int i_dst_stride,
+;                                uint8_t *src1, int i_src1_stride,
+;                                uint8_t *src2, int i_src2_stride,
+;                                int i_height );
 ;-----------------------------------------------------------------------------
-pixel_avg_w4:
+x264_pixel_avg_w4_mmxext:
     push        ebp
     push        ebx
     push        esi
@@ -111,16 +120,15 @@ ALIGN 4
     ret
 
                           
-cglobal pixel_avg_w8
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-; void pixel_avg_w8( uint8_t *dst,  int i_dst_stride,
-;                    uint8_t *src1, int i_src1_stride,
-;                    uint8_t *src2, int i_src2_stride,
-;                    int i_height );
+; void x264_pixel_avg_w8_mmxext( uint8_t *dst,  int i_dst_stride,
+;                                uint8_t *src1, int i_src1_stride,
+;                                uint8_t *src2, int i_src2_stride,
+;                                int i_height );
 ;-----------------------------------------------------------------------------
-pixel_avg_w8:
+x264_pixel_avg_w8_mmxext:
     push        ebp
     push        ebx
     push        esi
@@ -151,16 +159,15 @@ ALIGN 4
     ret
 
 
-cglobal pixel_avg_w16
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-; void pixel_avg_w16( uint8_t *dst,  int i_dst_stride,
-;                     uint8_t *src1, int i_src1_stride,
-;                     uint8_t *src2, int i_src2_stride,
-;                     int i_height );
+; void x264_pixel_avg_w16_mmxext( uint8_t *dst,  int i_dst_stride,
+;                                 uint8_t *src1, int i_src1_stride,
+;                                 uint8_t *src2, int i_src2_stride,
+;                                 int i_height );
 ;-----------------------------------------------------------------------------
-pixel_avg_w16:
+x264_pixel_avg_w16_mmxext:
     push        ebp
     push        ebx
     push        esi
@@ -175,18 +182,50 @@ pixel_avg_w16:
     mov         ebp, [esp+44]       ; i_height
 ALIGN 4
 .height_loop    
-%ifndef HAVE_SSE2
     movq        mm0, [ebx  ]
     movq        mm1, [ebx+8]
     pavgb       mm0, [ecx  ]
     pavgb       mm1, [ecx+8]
     movq        [edi  ], mm0
     movq        [edi+8], mm1
-%else
+    dec         ebp
+    lea         ebx, [ebx+eax]
+    lea         ecx, [ecx+edx]
+    lea         edi, [edi+esi]
+    jne         .height_loop
+
+    pop         edi
+    pop         esi
+    pop         ebx
+    pop         ebp
+    ret
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+; void x264_pixel_avg_w16_sse2( uint8_t *dst,  int i_dst_stride,
+;                               uint8_t *src1, int i_src1_stride,
+;                               uint8_t *src2, int i_src2_stride,
+;                               int i_height );
+;-----------------------------------------------------------------------------
+x264_pixel_avg_w16_sse2:
+    push        ebp
+    push        ebx
+    push        esi
+    push        edi
+
+    mov         edi, [esp+20]       ; dst
+    mov         ebx, [esp+28]       ; src1
+    mov         ecx, [esp+36]       ; src2
+    mov         esi, [esp+24]       ; i_dst_stride
+    mov         eax, [esp+32]       ; i_src1_stride
+    mov         edx, [esp+40]       ; i_src2_stride
+    mov         ebp, [esp+44]       ; i_height
+ALIGN 4
+.height_loop    
     movdqu      xmm0, [ebx]
     pavgb       xmm0, [ecx]
     movdqu      [edi], xmm0
-%endif
+
     dec         ebp
     lea         ebx, [ebx+eax]
     lea         ecx, [ecx+edx]
@@ -200,13 +239,13 @@ ALIGN 4
     ret
 
 
-cglobal mc_copy_w4
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void mc_copy_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
+;  void x264_mc_copy_w4_mmxext( uint8_t *src, int i_src_stride,
+;                               uint8_t *dst, int i_dst_stride, int i_height )
 ;-----------------------------------------------------------------------------
-mc_copy_w4:
+x264_mc_copy_w4_mmxext:
     push    ebx
     push    esi
     push    edi
@@ -237,9 +276,10 @@ cglobal mc_copy_w8
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void mc_copy_w8( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
+;   void x264_mc_copy_w8_mmxext( uint8_t *src, int i_src_stride,
+;                                uint8_t *dst, int i_dst_stride, int i_height )
 ;-----------------------------------------------------------------------------
-mc_copy_w8:
+x264_mc_copy_w8_mmxext:
     push    ebx
     push    esi
     push    edi
@@ -276,9 +316,10 @@ cglobal mc_copy_w16
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void mc_copy_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
+;   void x264_mc_copy_w16_mmxext( uint8_t *src, int i_src_stride,
+;                                 uint8_t *dst, int i_dst_stride, int i_height )
 ;-----------------------------------------------------------------------------
-mc_copy_w16:
+x264_mc_copy_w16_mmxext:
     push    ebx
     push    esi
     push    edi
@@ -288,9 +329,9 @@ mc_copy_w16:
     mov     ebx, [esp+20]       ; i_src_stride
     mov     edx, [esp+28]       ; i_dst_stride
     mov     ecx, [esp+32]       ; i_height
+
 ALIGN 4
 .height_loop
-%ifndef HAVE_SSE2
     movq    mm0, [esi]
     movq    mm1, [esi+8]
     movq    [edi], mm0
@@ -313,7 +354,30 @@ ALIGN 4
     lea     edi, [edi+edx*2]
     sub     ecx, byte 4
     jnz     .height_loop
-%else
+    
+    pop     edi
+    pop     esi
+    pop     ebx
+    ret
+
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   void x264_mc_copy_w16_sse2( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
+;-----------------------------------------------------------------------------
+x264_mc_copy_w16_sse2:
+    push    ebx
+    push    esi
+    push    edi
+
+    mov     esi, [esp+16]       ; src
+    mov     edi, [esp+24]       ; dst
+    mov     ebx, [esp+20]       ; i_src_stride
+    mov     edx, [esp+28]       ; i_dst_stride
+    mov     ecx, [esp+32]       ; i_height
+
+ALIGN 4
+.height_loop
     movdqu  xmm0, [esi]
     movdqu  xmm1, [esi+ebx]
     movdqu  [edi], xmm0
@@ -323,7 +387,6 @@ ALIGN 4
     lea     esi, [esi+ebx*2]
     lea     edi, [edi+edx*2]
     jnz     .height_loop
-%endif
     
     pop     edi
     pop     esi

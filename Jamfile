@@ -35,7 +35,7 @@ SOURCES_ALTIVEC = core/ppc/mc.c core/ppc/pixel.c ;
 SOURCES_X264 = $(SOURCES_C) ;
 if $(OS) = LINUX
 {
-    DEFINES      += ARCH_X86 HAVE_MMXEXT HAVE_MALLOC_H ;
+    DEFINES      += ARCH_X86 HAVE_MMXEXT HAVE_SSE2 HAVE_MALLOC_H ;
     SOURCES_X264 += $(SOURCES_MMX) ;
     SOURCES_X264 += $(SOURCES_X86) ;
     ASFLAGS = -f elf ;

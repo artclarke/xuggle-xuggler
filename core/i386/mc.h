@@ -25,5 +25,6 @@
 #define _I386_MC_H 1
 
 void x264_mc_mmxext_init( x264_mc_function_t pf[2] );
+void x264_mc_sse2_init( x264_mc_function_t pf[2] );
 
 #endif

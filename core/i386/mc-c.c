@@ -181,107 +181,87 @@ static inline int x264_tapfilter1( uint8_t *pix )
     return pix[-2] - 5*pix[-1] + 20*(pix[0] + pix[1]) - 5*pix[ 2] + pix[ 3];
 }
 
-#if 0
-static inline void pixel_avg_w4( uint8_t *dst,  int i_dst_stride,
-                                 uint8_t *src1, int i_src1_stride,
-                                 uint8_t *src2, int i_src2_stride,
-                                 int i_height )
-{
-    int x, y;
-    for( y = 0; y < i_height; y++ )
-    {
-        for( x = 0; x < 4; x++ )
-        {
-            dst[x] = ( src1[x] + src2[x] + 1 ) >> 1;
-        }
-        dst  += i_dst_stride;
-        src1 += i_src1_stride;
-        src2 += i_src2_stride;
-    }
-}
-
-static inline void pixel_avg_w8( uint8_t *dst,  int i_dst_stride,
-                                 uint8_t *src1, int i_src1_stride,
-                                 uint8_t *src2, int i_src2_stride,
-                                 int i_height )
-{
-    int y;
-    for( y = 0; y < i_height; y++ )
-    {
-        asm volatile(
-            "movq (%1), %%mm0\n"
-            "movq (%2), %%mm1\n"
-            "pavgb %%mm1, %%mm0\n"
-            "movq %%mm0, (%0)\n"
-            : : "r"(dst), "r"(src1), "r"(src2)
-            );
-        dst  += i_dst_stride;
-        src1 += i_src1_stride;
-        src2 += i_src2_stride;
-    }
-}
-static inline void pixel_avg_w16( uint8_t *dst,  int i_dst_stride,
-                                  uint8_t *src1, int i_src1_stride,
-                                  uint8_t *src2, int i_src2_stride,
-                                  int i_height )
-{
-    int y;
-
-    for( y = 0; y < i_height; y++ )
-    {
-        asm volatile(
-            "movq (%1), %%mm0\n"
-            "movq 8(%1), %%mm2\n"
-            "movq (%2), %%mm1\n"
-            "movq 8(%2), %%mm3\n"
-
-            "pavgb %%mm1, %%mm0\n"
-            "movq %%mm0, (%0)\n"
-            "pavgb %%mm3, %%mm2\n"
-            "movq %%mm2, 8(%0)\n"
-            : : "r"(dst), "r"(src1), "r"(src2)
-            );
-        dst  += i_dst_stride;
-        src1 += i_src1_stride;
-        src2 += i_src2_stride;
-    }
-}
-#else
-extern void pixel_avg_w4( uint8_t *dst,  int i_dst_stride,
-                          uint8_t *src1, int i_src1_stride,
-                          uint8_t *src2, int i_src2_stride,
-                          int i_height );
-extern void pixel_avg_w8( uint8_t *dst,  int i_dst_stride,
-                          uint8_t *src1, int i_src1_stride,
-                          uint8_t *src2, int i_src2_stride,
-                          int i_height );
-extern void pixel_avg_w16( uint8_t *dst,  int i_dst_stride,
-                           uint8_t *src1, int i_src1_stride,
-                           uint8_t *src2, int i_src2_stride,
-                           int i_height );
-#endif
-
 typedef void (*pf_mc_t)(uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height );
+
+/* NASM functions */
+extern void x264_pixel_avg_w4_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int  );
+extern void x264_pixel_avg_w8_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int  );
+extern void x264_pixel_avg_w16_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int  );
+extern void x264_pixel_avg_w16_sse2( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int  );
+
+/* Macro to define NxM functions */
+/* mc I+H */
+#define MC_IH( name, cpu, width, height, off )  \
+static void name##_w##width##_##cpu( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height ) \
+{                                                               \
+    DECLARE_ALIGNED( uint8_t, tmp[width*height], width );       \
+                                                                \
+    mc_hh_w##width( src, i_src_stride, tmp, width, i_height );  \
+    x264_pixel_avg_w##width##_##cpu( dst, i_dst_stride,         \
+                                     src+(off), i_src_stride,   \
+                                     tmp, width, i_height );    \
+}
+
+/* mc I+V */
+#define MC_IV( name, cpu, width, height, off )  \
+static void name##_w##width##_##cpu( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height ) \
+{                                                               \
+    DECLARE_ALIGNED( uint8_t, tmp[width*height], width );       \
+                                                                \
+    mc_hv_w##width( src, i_src_stride, tmp, width, i_height );  \
+    x264_pixel_avg_w##width##_##cpu( dst, i_dst_stride,         \
+                                     src+(off), i_src_stride,   \
+                                     tmp, width, i_height );    \
+}
+
+/* mc H+V */
+#define MC_HV( name, cpu, width, height, off1, off2 ) \
+static void name##_w##width##_##cpu( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height ) \
+{                                                               \
+    DECLARE_ALIGNED( uint8_t, tmp1[width*height], width );      \
+    DECLARE_ALIGNED( uint8_t, tmp2[width*height], width );      \
+                                                                \
+    mc_hv_w##width( src+(off1), i_src_stride, tmp1, width, i_height );  \
+    mc_hh_w##width( src+(off2), i_src_stride, tmp2, width, i_height );  \
+    x264_pixel_avg_w##width##_##cpu( dst, i_dst_stride,         \
+                                     tmp1, width, tmp2, width,  \
+                                     i_height );                \
+}
+
+/* mc C+H */
+#define MC_CH( name, cpu, width, height, off ) \
+static void name##_w##width##_##cpu( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height ) \
+{                                                               \
+    DECLARE_ALIGNED( uint8_t, tmp1[width*height], width );      \
+    DECLARE_ALIGNED( uint8_t, tmp2[width*height], width );      \
+                                                                \
+    mc_hc_w##width( src,       i_src_stride, tmp1, width, i_height );  \
+    mc_hh_w##width( src+(off), i_src_stride, tmp2, width, i_height );  \
+    x264_pixel_avg_w##width##_##cpu( dst, i_dst_stride,         \
+                                     tmp1, width, tmp2, width,  \
+                                     i_height );                \
+}
+
+/* mc C+V */
+#define MC_CV( name, cpu, width, height, off ) \
+static void name##_w##width##_##cpu( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height ) \
+{                                                               \
+    DECLARE_ALIGNED( uint8_t, tmp1[width*height], width );      \
+    DECLARE_ALIGNED( uint8_t, tmp2[width*height], width );      \
+                                                                \
+    mc_hc_w##width( src,       i_src_stride, tmp1, width, i_height );  \
+    mc_hv_w##width( src+(off), i_src_stride, tmp2, width, i_height );  \
+    x264_pixel_avg_w##width##_##cpu( dst, i_dst_stride,         \
+                                     tmp1, width, tmp2, width,  \
+                                     i_height );                \
+}
+
 
 /*****************************************************************************
  * MC with width == 4 (height <= 8)
  *****************************************************************************/
-#if 0
-static void mc_copy_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
-{
-    int y;
 
-    for( y = 0; y < i_height; y++ )
-    {
-        memcpy( dst, src, 4 );
-
-        src += i_src_stride;
-        dst += i_dst_stride;
-    }
-}
-#else
-extern void mc_copy_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height );
-#endif
+extern void x264_mc_copy_w4_mmxext( uint8_t *, int, uint8_t *, int, int );
 
 static inline void mc_hh_w4( uint8_t *src, int i_src, uint8_t *dst, int i_dst, int i_height )
 {
@@ -384,7 +364,24 @@ static inline void mc_hc_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i
     }
 }
 
-/* mc I+H */
+MC_IH( mc_xy10, mmxext, 4, 8, 0 )
+MC_IH( mc_xy30, mmxext, 4, 8, 1 )
+
+MC_IV( mc_xy01, mmxext, 4, 8, 0 )
+MC_IV( mc_xy03, mmxext, 4, 8, i_src_stride )
+
+MC_HV( mc_xy11, mmxext, 4, 8, 0, 0 )
+MC_HV( mc_xy31, mmxext, 4, 8, 1, 0 )
+MC_HV( mc_xy13, mmxext, 4, 8, 0, i_src_stride )
+MC_HV( mc_xy33, mmxext, 4, 8, 1, i_src_stride )
+
+MC_CH( mc_xy21, mmxext, 4, 8, 0 )
+MC_CH( mc_xy23, mmxext, 4, 8, i_src_stride )
+
+MC_CV( mc_xy12, mmxext, 4, 8, 0 )
+MC_CV( mc_xy32, mmxext, 4, 8, 1 )
+
+#if 0
 static void mc_xy10_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
     uint8_t tmp[4*8];
@@ -397,7 +394,7 @@ static void mc_xy30_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_
     mc_hh_w4( src, i_src_stride, tmp, 4, i_height );
     pixel_avg_w4( dst, i_dst_stride, src+1, i_src_stride, tmp, 4, i_height );
 }
-/* mc I+V */
+
 static void mc_xy01_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
     uint8_t tmp[4*8];
@@ -410,7 +407,7 @@ static void mc_xy03_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_
     mc_hv_w4( src, i_src_stride, tmp, 4, i_height );
     pixel_avg_w4( dst, i_dst_stride, src+i_src_stride, i_src_stride, tmp, 4, i_height );
 }
-/* H+V */
+
 static void mc_xy11_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
     uint8_t tmp1[4*8];
@@ -447,6 +444,7 @@ static void mc_xy33_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_
     mc_hh_w4( src+i_src_stride, i_src_stride, tmp2, 4, i_height );
     pixel_avg_w4( dst, i_dst_stride, tmp1, 4, tmp2, 4, i_height );
 }
+
 static void mc_xy21_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
     uint8_t tmp1[4*8];
@@ -456,6 +454,16 @@ static void mc_xy21_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_
     mc_hh_w4( src, i_src_stride, tmp2, 4, i_height );
     pixel_avg_w4( dst, i_dst_stride, tmp1, 4, tmp2, 4, i_height );
 }
+static void mc_xy23_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
+{
+    uint8_t tmp1[4*8];
+    uint8_t tmp2[4*8];
+
+    mc_hc_w4( src,              i_src_stride, tmp1, 4, i_height );
+    mc_hh_w4( src+i_src_stride, i_src_stride, tmp2, 4, i_height );
+    pixel_avg_w4( dst, i_dst_stride, tmp1, 4, tmp2, 4, i_height );
+}
+
 static void mc_xy12_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
     uint8_t tmp1[4*8];
@@ -474,36 +482,12 @@ static void mc_xy32_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_
     mc_hv_w4( src+1, i_src_stride, tmp2, 4, i_height );
     pixel_avg_w4( dst, i_dst_stride, tmp1, 4, tmp2, 4, i_height );
 }
-static void mc_xy23_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
-{
-    uint8_t tmp1[4*8];
-    uint8_t tmp2[4*8];
-
-    mc_hc_w4( src,              i_src_stride, tmp1, 4, i_height );
-    mc_hh_w4( src+i_src_stride, i_src_stride, tmp2, 4, i_height );
-    pixel_avg_w4( dst, i_dst_stride, tmp1, 4, tmp2, 4, i_height );
-}
-
+#endif
 
 /*****************************************************************************
  * MC with width == 8 (height <= 16)
  *****************************************************************************/
-#if 0
-static void mc_copy_w8( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
-{
-    int y;
-
-    for( y = 0; y < i_height; y++ )
-    {
-        memcpy( dst, src, 8 );
-
-        src += i_src_stride;
-        dst += i_dst_stride;
-    }
-}
-#else
-extern void mc_copy_w8( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height );
-#endif
+extern void x264_mc_copy_w8_mmxext( uint8_t *, int, uint8_t *, int, int );
 
 static inline void mc_hh_w8( uint8_t *src, int i_src, uint8_t *dst, int i_dst, int i_height )
 {
@@ -670,6 +654,24 @@ static inline void mc_hc_w8( uint8_t *src, int i_src_stride, uint8_t *dst, int i
     }
 }
 
+MC_IH( mc_xy10, mmxext, 8, 16, 0 )
+MC_IH( mc_xy30, mmxext, 8, 16, 1 )
+
+MC_IV( mc_xy01, mmxext, 8, 16, 0 )
+MC_IV( mc_xy03, mmxext, 8, 16, i_src_stride )
+
+MC_HV( mc_xy11, mmxext, 8, 16, 0, 0 )
+MC_HV( mc_xy31, mmxext, 8, 16, 1, 0 )
+MC_HV( mc_xy13, mmxext, 8, 16, 0, i_src_stride )
+MC_HV( mc_xy33, mmxext, 8, 16, 1, i_src_stride )
+
+MC_CH( mc_xy21, mmxext, 8, 16, 0 )
+MC_CH( mc_xy23, mmxext, 8, 16, i_src_stride )
+
+MC_CV( mc_xy12, mmxext, 8, 16, 0 )
+MC_CV( mc_xy32, mmxext, 8, 16, 1 )
+
+#if 0
 /* mc I+H */
 static void mc_xy10_w8( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
@@ -769,27 +771,15 @@ static void mc_xy23_w8( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_
     mc_hh_w8( src+i_src_stride, i_src_stride, tmp2, 8, i_height );
     pixel_avg_w8( dst, i_dst_stride, tmp1, 8, tmp2, 8, i_height );
 }
-
+#endif
 
 /*****************************************************************************
  * MC with width == 16 (height <= 16)
  *****************************************************************************/
-#if 0
-static void mc_copy_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
-{
-    int y;
 
-    for( y = 0; y < i_height; y++ )
-    {
-        memcpy( dst, src, 16 );
+extern void x264_mc_copy_w16_mmxext( uint8_t *, int, uint8_t *, int, int );
+extern void x264_mc_copy_w16_sse2( uint8_t *, int, uint8_t *, int, int );
 
-        src += i_src_stride;
-        dst += i_dst_stride;
-    }
-}
-#else
-extern void mc_copy_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height );
-#endif
 static inline void mc_hh_w16( uint8_t *src, int i_src, uint8_t *dst, int i_dst, int i_height )
 {
     mc_hh_w4( &src[ 0], i_src, &dst[ 0], i_dst, i_height );
@@ -809,6 +799,44 @@ static inline void mc_hc_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int 
     mc_hc_w8( &src[8], i_src_stride, &dst[8], i_dst_stride, i_height );
 }
 
+/* MMX avg/copy */
+MC_IH( mc_xy10, mmxext, 16, 16, 0 )
+MC_IH( mc_xy30, mmxext, 16, 16, 1 )
+
+MC_IV( mc_xy01, mmxext, 16, 16, 0 )
+MC_IV( mc_xy03, mmxext, 16, 16, i_src_stride )
+
+MC_HV( mc_xy11, mmxext, 16, 16, 0, 0 )
+MC_HV( mc_xy31, mmxext, 16, 16, 1, 0 )
+MC_HV( mc_xy13, mmxext, 16, 16, 0, i_src_stride )
+MC_HV( mc_xy33, mmxext, 16, 16, 1, i_src_stride )
+
+MC_CH( mc_xy21, mmxext, 16, 16, 0 )
+MC_CH( mc_xy23, mmxext, 16, 16, i_src_stride )
+
+MC_CV( mc_xy12, mmxext, 16, 16, 0 )
+MC_CV( mc_xy32, mmxext, 16, 16, 1 )
+
+/* SSE2 avg/copy */
+MC_IH( mc_xy10, sse2, 16, 16, 0 )
+MC_IH( mc_xy30, sse2, 16, 16, 1 )
+
+MC_IV( mc_xy01, sse2, 16, 16, 0 )
+MC_IV( mc_xy03, sse2, 16, 16, i_src_stride )
+
+MC_HV( mc_xy11, sse2, 16, 16, 0, 0 )
+MC_HV( mc_xy31, sse2, 16, 16, 1, 0 )
+MC_HV( mc_xy13, sse2, 16, 16, 0, i_src_stride )
+MC_HV( mc_xy33, sse2, 16, 16, 1, i_src_stride )
+
+MC_CH( mc_xy21, sse2, 16, 16, 0 )
+MC_CH( mc_xy23, sse2, 16, 16, i_src_stride )
+
+MC_CV( mc_xy12, sse2, 16, 16, 0 )
+MC_CV( mc_xy32, sse2, 16, 16, 1 )
+
+
+#if 0
 /* mc I+H */
 static void mc_xy10_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height )
 {
@@ -908,55 +936,92 @@ static void mc_xy23_w16( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst
     mc_hh_w16( src+i_src_stride, i_src_stride, tmp2, 16, i_height );
     pixel_avg_w16( dst, i_dst_stride, tmp1, 16, tmp2, 16, i_height );
 }
+#endif
 
-static void motion_compensation_luma( uint8_t *src, int i_src_stride,
-                                      uint8_t *dst, int i_dst_stride,
-                                      int mvx,int mvy,
-                                      int i_width, int i_height )
+#define MOTION_COMPENSATION_LUMA \
+    src += (mvy >> 2) * i_src_stride + (mvx >> 2);  \
+    if( i_width == 4 )                              \
+    {                                               \
+        pf_mc[0][mvy&0x03][mvx&0x03]( src, i_src_stride, dst, i_dst_stride, i_height ); \
+    }                                               \
+    else if( i_width == 8 )                         \
+    {                                               \
+        pf_mc[1][mvy&0x03][mvx&0x03]( src, i_src_stride, dst, i_dst_stride, i_height ); \
+    }                                               \
+    else if( i_width == 16 )                        \
+    {                                               \
+        pf_mc[2][mvy&0x03][mvx&0x03]( src, i_src_stride, dst, i_dst_stride, i_height ); \
+    }                                               \
+    else                                            \
+    {                                               \
+        fprintf( stderr, "Error: motion_compensation_luma called with invalid width" ); \
+    }
+
+static void motion_compensation_luma_mmxext( uint8_t *src, int i_src_stride,
+                                             uint8_t *dst, int i_dst_stride,
+                                             int mvx,int mvy,
+                                             int i_width, int i_height )
 {
     static const pf_mc_t pf_mc[3][4][4] =    /*XXX [dqy][dqx] */
     {
         {
-            { mc_copy_w4,  mc_xy10_w4,    mc_hh_w4,      mc_xy30_w4 },
-            { mc_xy01_w4,  mc_xy11_w4,    mc_xy21_w4,    mc_xy31_w4 },
-            { mc_hv_w4,    mc_xy12_w4,    mc_hc_w4,      mc_xy32_w4 },
-            { mc_xy03_w4,  mc_xy13_w4,    mc_xy23_w4,    mc_xy33_w4 },
+            { x264_mc_copy_w4_mmxext,   mc_xy10_w4_mmxext,    mc_hh_w4,             mc_xy30_w4_mmxext },
+            { mc_xy01_w4_mmxext,        mc_xy11_w4_mmxext,    mc_xy21_w4_mmxext,    mc_xy31_w4_mmxext },
+            { mc_hv_w4,                 mc_xy12_w4_mmxext,    mc_hc_w4,             mc_xy32_w4_mmxext },
+            { mc_xy03_w4_mmxext,        mc_xy13_w4_mmxext,    mc_xy23_w4_mmxext,    mc_xy33_w4_mmxext },
         },
         {
-            { mc_copy_w8,  mc_xy10_w8,    mc_hh_w8,      mc_xy30_w8 },
-            { mc_xy01_w8,  mc_xy11_w8,    mc_xy21_w8,    mc_xy31_w8 },
-            { mc_hv_w8,    mc_xy12_w8,    mc_hc_w8,      mc_xy32_w8 },
-            { mc_xy03_w8,  mc_xy13_w8,    mc_xy23_w8,    mc_xy33_w8 },
+            { x264_mc_copy_w8_mmxext,   mc_xy10_w8_mmxext,    mc_hh_w8,             mc_xy30_w8_mmxext },
+            { mc_xy01_w8_mmxext,        mc_xy11_w8_mmxext,    mc_xy21_w8_mmxext,    mc_xy31_w8_mmxext },
+            { mc_hv_w8,                 mc_xy12_w8_mmxext,    mc_hc_w8,             mc_xy32_w8_mmxext },
+            { mc_xy03_w8_mmxext,        mc_xy13_w8_mmxext,    mc_xy23_w8_mmxext,    mc_xy33_w8_mmxext },
         },
         {
-            { mc_copy_w16,  mc_xy10_w16,    mc_hh_w16,      mc_xy30_w16 },
-            { mc_xy01_w16,  mc_xy11_w16,    mc_xy21_w16,    mc_xy31_w16 },
-            { mc_hv_w16,    mc_xy12_w16,    mc_hc_w16,      mc_xy32_w16 },
-            { mc_xy03_w16,  mc_xy13_w16,    mc_xy23_w16,    mc_xy33_w16 },
+            { x264_mc_copy_w16_mmxext,   mc_xy10_w16_mmxext,    mc_hh_w16,             mc_xy30_w16_mmxext },
+            { mc_xy01_w16_mmxext,        mc_xy11_w16_mmxext,    mc_xy21_w16_mmxext,    mc_xy31_w16_mmxext },
+            { mc_hv_w16,                 mc_xy12_w16_mmxext,    mc_hc_w16,             mc_xy32_w16_mmxext },
+            { mc_xy03_w16_mmxext,        mc_xy13_w16_mmxext,    mc_xy23_w16_mmxext,    mc_xy33_w16_mmxext },
         }
     };
 
-    src += (mvy >> 2) * i_src_stride + (mvx >> 2);
-    if( i_width == 4 )
+    MOTION_COMPENSATION_LUMA
+}
+
+static void motion_compensation_luma_sse2( uint8_t *src, int i_src_stride,
+                                           uint8_t *dst, int i_dst_stride,
+                                           int mvx,int mvy,
+                                           int i_width, int i_height )
+{
+    static const pf_mc_t pf_mc[3][4][4] =    /*XXX [dqy][dqx] */
     {
-        pf_mc[0][mvy&0x03][mvx&0x03]( src, i_src_stride, dst, i_dst_stride, i_height );
-    }
-    else if( i_width == 8 )
-    {
-        pf_mc[1][mvy&0x03][mvx&0x03]( src, i_src_stride, dst, i_dst_stride, i_height );
-    }
-    else if( i_width == 16 )
-    {
-        pf_mc[2][mvy&0x03][mvx&0x03]( src, i_src_stride, dst, i_dst_stride, i_height );
-    }
-    else
-    {
-        fprintf( stderr, "Error: motion_compensation_luma called with invalid width" );
-    }
+        {
+            { x264_mc_copy_w4_mmxext,   mc_xy10_w4_mmxext,    mc_hh_w4,             mc_xy30_w4_mmxext },
+            { mc_xy01_w4_mmxext,        mc_xy11_w4_mmxext,    mc_xy21_w4_mmxext,    mc_xy31_w4_mmxext },
+            { mc_hv_w4,                 mc_xy12_w4_mmxext,    mc_hc_w4,             mc_xy32_w4_mmxext },
+            { mc_xy03_w4_mmxext,        mc_xy13_w4_mmxext,    mc_xy23_w4_mmxext,    mc_xy33_w4_mmxext },
+        },
+        {
+            { x264_mc_copy_w8_mmxext,   mc_xy10_w8_mmxext,    mc_hh_w8,             mc_xy30_w8_mmxext },
+            { mc_xy01_w8_mmxext,        mc_xy11_w8_mmxext,    mc_xy21_w8_mmxext,    mc_xy31_w8_mmxext },
+            { mc_hv_w8,                 mc_xy12_w8_mmxext,    mc_hc_w8,             mc_xy32_w8_mmxext },
+            { mc_xy03_w8_mmxext,        mc_xy13_w8_mmxext,    mc_xy23_w8_mmxext,    mc_xy33_w8_mmxext },
+        },
+        {
+            { x264_mc_copy_w16_sse2,   mc_xy10_w16_sse2,    mc_hh_w16,             mc_xy30_w16_sse2 },
+            { mc_xy01_w16_sse2,        mc_xy11_w16_sse2,    mc_xy21_w16_sse2,    mc_xy31_w16_sse2 },
+            { mc_hv_w16,                 mc_xy12_w16_sse2,    mc_hc_w16,             mc_xy32_w16_sse2 },
+            { mc_xy03_w16_sse2,        mc_xy13_w16_sse2,    mc_xy23_w16_sse2,    mc_xy33_w16_sse2 },
+        }
+    };
+    MOTION_COMPENSATION_LUMA
 }
 
 void x264_mc_mmxext_init( x264_mc_function_t pf[2] )
 {
-    pf[MC_LUMA]   = motion_compensation_luma;
+    pf[MC_LUMA]   = motion_compensation_luma_mmxext;
+}
+void x264_mc_sse2_init( x264_mc_function_t pf[2] )
+{
+    pf[MC_LUMA]   = motion_compensation_luma_sse2;
 }
 
