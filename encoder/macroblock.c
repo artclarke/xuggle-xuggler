@@ -799,19 +799,12 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
         /* Get the MV */
         x264_mb_predict_mv_pskip( h, mvp );
 
-        /* Special case, need to clip the vector */
-        n = 16 * h->mb.i_mb_x + mvp[0];
-        if( n < -24 )
-            mvp[0] = -24 - 16*h->mb.i_mb_x;
-        else if( n > 16 * h->sps->i_mb_width + 24 )
-            mvp[0] = 16 * ( h->sps->i_mb_width - h->mb.i_mb_x ) + 24;
-
-        n = 16 * h->mb.i_mb_y + mvp[1];
-        if( n < -24 )
-            mvp[1] = -24 - 16*h->mb.i_mb_y;
-        else if( n > 16 * h->sps->i_mb_height + 8 )
-            mvp[1] = 16 * ( h->sps->i_mb_height - h->mb.i_mb_y ) + 8;
-
+        mvp[0] = x264_clip3( mvp[0],
+                             4*( -16*h->mb.i_mb_x - 24 ),
+                             4*( 16*( h->sps->i_mb_width - h->mb.i_mb_x ) + 8 ) );
+        mvp[1] = x264_clip3( mvp[1],
+                             4*( -16*h->mb.i_mb_y - 24 ),
+                             4*( 16*( h->sps->i_mb_height - h->mb.i_mb_y ) + 8 ) );
 
         /* Motion compensation */
         h->mc[MC_LUMA]( h->mb.pic.p_fref[0][0][0], h->mb.pic.i_stride[0],

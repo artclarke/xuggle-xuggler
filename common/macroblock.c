@@ -347,6 +347,10 @@ void x264_mb_predict_mv_pskip( x264_t *h, int mv[2] )
     {
         x264_mb_predict_mv_16x16( h, 0, 0, mv );
     }
+
+    /* FIXME: ensure that mvp doesn't extend past picture edge + padding.
+     * we can't just clip the mv here, since the original value may be
+     * needed for predicting other mvs. */
 }
 
 static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
