@@ -176,40 +176,43 @@ int x264_ratecontrol_new( x264_t *h )
     rc->qpa = rc->qp;
     rc->qpm = rc->qp;
 
-    rc->buffer_size = h->param.rc.i_rc_buffer_size * 1000;
-    rc->buffer_fullness = h->param.rc.i_rc_init_buffer;
-    rc->rcbufrate = rc->bitrate / rc->fps;
+    /* Init 1pass CBR algo */
+    if( h->param.rc.b_cbr ){
+        rc->buffer_size = h->param.rc.i_rc_buffer_size * 1000;
+        rc->buffer_fullness = h->param.rc.i_rc_init_buffer;
+        rc->rcbufrate = rc->bitrate / rc->fps;
 
-    if(rc->buffer_size < rc->rcbufrate){
-        x264_log(h, X264_LOG_WARNING, "rc buffer size %i too small\n",
-                 rc->buffer_size);
-        rc->buffer_size = 0;
+        if(rc->buffer_size < rc->rcbufrate){
+            x264_log(h, X264_LOG_WARNING, "rc buffer size %i too small\n",
+                     rc->buffer_size);
+            rc->buffer_size = 0;
+        }
+
+        if(rc->buffer_size <= 0)
+            rc->buffer_size = rc->bitrate / 2;
+
+        if(rc->buffer_fullness > rc->buffer_size || rc->buffer_fullness < 0){
+            x264_log(h, X264_LOG_WARNING, "invalid initial buffer fullness %i\n",
+                     rc->buffer_fullness);
+            rc->buffer_fullness = 0;
+        }
+
+        bpp = rc->bitrate / (rc->fps * h->param.i_width * h->param.i_height);
+        if(bpp <= 0.6)
+            rc->init_qp = 31;
+        else if(bpp <= 1.4)
+            rc->init_qp = 25;
+        else if(bpp <= 2.4)
+            rc->init_qp = 20;
+        else
+            rc->init_qp = 10;
+        rc->gop_qp = rc->init_qp;
+
+        rc->bits_last_gop = 0;
+
+        x264_log(h, X264_LOG_DEBUG, "%f fps, %i bps, bufsize %i\n",
+                 rc->fps, rc->bitrate, rc->buffer_size);
     }
-
-    if(rc->buffer_size <= 0)
-        rc->buffer_size = rc->bitrate / 2;
-
-    if(rc->buffer_fullness > rc->buffer_size || rc->buffer_fullness < 0){
-        x264_log(h, X264_LOG_WARNING, "invalid initial buffer fullness %i\n",
-                 rc->buffer_fullness);
-        rc->buffer_fullness = 0;
-    }
-
-    bpp = rc->bitrate / (rc->fps * h->param.i_width * h->param.i_height);
-    if(bpp <= 0.6)
-        rc->init_qp = 31;
-    else if(bpp <= 1.4)
-        rc->init_qp = 25;
-    else if(bpp <= 2.4)
-        rc->init_qp = 20;
-    else
-        rc->init_qp = 10;
-    rc->gop_qp = rc->init_qp;
-
-    rc->bits_last_gop = 0;
-
-    x264_log(h, X264_LOG_DEBUG, "%f fps, %i bps, bufsize %i\n",
-             rc->fps, rc->bitrate, rc->buffer_size);
 
 
     for( i = 0; i < 5; i++ )
