@@ -57,7 +57,8 @@ void    x264_param_default( x264_param_t *param )
     param->i_height        = 0;
     param->vui.i_sar_width = 0;
     param->vui.i_sar_height= 0;
-    param->f_fps           = 25.0;
+    param->i_fps_num       = 25;
+    param->i_fps_den       = 1;
 
     /* Encoder parameters */
     param->i_frame_reference = 1;

@@ -1306,6 +1306,7 @@ void    x264_encoder_close  ( x264_t *h )
         const int i_count = h->stat.i_slice_count[SLICE_TYPE_I] +
                             h->stat.i_slice_count[SLICE_TYPE_P] +
                             h->stat.i_slice_count[SLICE_TYPE_B];
+	float fps = (float) h->param.i_fps_num / h->param.i_fps_den;
 
         fprintf( stderr, "x264: overall PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f kb/s:%.1f fps:%.3f\n",
                  (h->stat.f_psnr_mean_y[SLICE_TYPE_I] + h->stat.f_psnr_mean_y[SLICE_TYPE_P] + h->stat.f_psnr_mean_y[SLICE_TYPE_B]) / i_count,
@@ -1316,7 +1317,7 @@ void    x264_encoder_close  ( x264_t *h )
 
                  x264_psnr( h->stat.i_sqe_global[SLICE_TYPE_I] + h->stat.i_sqe_global[SLICE_TYPE_P]+ h->stat.i_sqe_global[SLICE_TYPE_B],
                             i_count * i_yuv_size ),
-                 h->param.f_fps * 8*(h->stat.i_slice_size[SLICE_TYPE_I]+h->stat.i_slice_size[SLICE_TYPE_P]+h->stat.i_slice_size[SLICE_TYPE_B]) / i_count / 1024,
+                 fps * 8*(h->stat.i_slice_size[SLICE_TYPE_I]+h->stat.i_slice_size[SLICE_TYPE_P]+h->stat.i_slice_size[SLICE_TYPE_B]) / i_count / 1024,
                  (double)1000000.0 * (double)i_count / (double)i_mtime_encode_frame );
     }
 #endif

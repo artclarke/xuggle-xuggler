@@ -73,7 +73,6 @@ int main( int argc, char **argv )
 #endif
 
     x264_param_default( &param );
-    param.f_fps = 25.0;
 
     /* Parse command line */
     if( Parse( argc, argv, &param, &fin, &fout, &b_decompress ) < 0 )

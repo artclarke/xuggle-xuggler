@@ -74,11 +74,17 @@ typedef struct
     int b_vui;
     struct
     {
+        int b_aspect_ratio_info_present;
         int i_sar_width;
         int i_sar_height;
+
+        int b_timing_info_present;
+        int i_num_units_in_tick;
+        int i_time_scale;
+        int b_fixed_frame_rate;
+
         /* FIXME to complete */
     } vui;
-
 } x264_sps_t;
 
 typedef struct

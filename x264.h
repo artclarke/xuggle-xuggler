@@ -88,7 +88,8 @@ typedef struct
         int         i_sar_width;
     } vui;
 
-    float       f_fps;  /* Used for rate control only */
+    int         i_fps_num;
+    int         i_fps_den;
 
     /* Bitstream parameters */
     int         i_frame_reference;  /* Maximum number of reference frames */

@@ -1,5 +1,5 @@
 /*****************************************************************************
- * set: h264 encoder (SPS and SPS init and write)
+ * set: h264 encoder (SPS and PPS init and write)
  *****************************************************************************
  * Copyright (C) 2003 Laurent Aimar
  * $Id: set.c,v 1.1 2004/06/03 19:27:08 fenrir Exp $
@@ -105,6 +105,8 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->crop.i_bottom  = 0;
     }
 
+    sps->b_vui = 0;
+
     if( param->vui.i_sar_width > 0 && param->vui.i_sar_height > 0 )
     {
         int w = param->vui.i_sar_width;
@@ -130,25 +132,32 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         if( w == 0 || h == 0 )
         {
             fprintf( stderr, "x264: cannot create valid sample aspect ratio\n" );
-            sps->b_vui = 0;
+            sps->vui.b_aspect_ratio_info_present = 0;
         }
         else if( w == h )
         {
             fprintf( stderr, "x264: no need for a SAR\n" );
-            sps->b_vui = 0;
+            sps->vui.b_aspect_ratio_info_present = 0;
         }
         else
         {
             fprintf( stderr, "x264: using SAR=%d/%d\n", w, h );
-            sps->b_vui = 1;
+            sps->vui.b_aspect_ratio_info_present = 1;
             sps->vui.i_sar_width = w;
             sps->vui.i_sar_height= h;
         }
     }
-    else
+    sps->b_vui |= sps->vui.b_aspect_ratio_info_present;
+
+    if( param->i_fps_num > 0 && param->i_fps_den > 0)
     {
-        sps->b_vui = 0;
+        sps->vui.b_timing_info_present = 1;
+        sps->vui.i_num_units_in_tick = param->i_fps_den;
+        /* only frame pictures supported for now, so double time_scale */
+        sps->vui.i_time_scale = param->i_fps_num * 2;
+        sps->vui.b_fixed_frame_rate = 1;
     }
+    sps->b_vui |= sps->vui.b_timing_info_present;
 }
 
 
@@ -207,30 +216,42 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
     bs_write( s, 1, sps->b_vui );
     if( sps->b_vui )
     {
-        int i;
-        static const struct { int w, h; int sar; } sar[] =
-        {
-            { 1,   1, 1 }, { 12, 11, 2 }, { 10, 11, 3 }, { 16, 11, 4 },
-            { 40, 33, 5 }, { 24, 11, 6 }, { 20, 11, 7 }, { 32, 11, 8 },
-            { 80, 33, 9 }, { 18, 11, 10}, { 15, 11, 11}, { 64, 33, 12},
-            { 160,99, 13}, { 0, 0, -1 }
-        };
-        bs_write1( s, 1 );      /* aspect_ratio_info_present_flag */
-        for( i = 0; sar[i].sar != -1; i++ )
-        {
-            if( sar[i].w == sps->vui.i_sar_width && sar[i].h == sps->vui.i_sar_height )
-                break;
-        }
-        if( sar[i].sar != -1 )
-        {
-            bs_write( s, 8, sar[i].sar );
-        }
-        else
-        {
-            bs_write( s, 8, 255);   /* aspect_ration_idc (extented) */
-            bs_write( s, 16, sps->vui.i_sar_width );
-            bs_write( s, 16, sps->vui.i_sar_height );
-        }
+	bs_write1( s, sps->vui.b_aspect_ratio_info_present );
+	if( sps->vui.b_aspect_ratio_info_present )
+	{
+	    int i;
+	    static const struct { int w, h; int sar; } sar[] =
+            {
+		{ 1,   1, 1 }, { 12, 11, 2 }, { 10, 11, 3 }, { 16, 11, 4 },
+		{ 40, 33, 5 }, { 24, 11, 6 }, { 20, 11, 7 }, { 32, 11, 8 },
+		{ 80, 33, 9 }, { 18, 11, 10}, { 15, 11, 11}, { 64, 33, 12},
+		{ 160,99, 13}, { 0, 0, -1 }
+	    };
+	    for( i = 0; sar[i].sar != -1; i++ )
+	    {
+		if( sar[i].w == sps->vui.i_sar_width &&
+		    sar[i].h == sps->vui.i_sar_height )
+		    break;
+	    }
+	    if( sar[i].sar != -1 )
+	    {
+		bs_write( s, 8, sar[i].sar );
+	    }
+	    else
+	    {
+		bs_write( s, 8, 255);   /* aspect_ration_idc (extented) */
+		bs_write( s, 16, sps->vui.i_sar_width );
+		bs_write( s, 16, sps->vui.i_sar_height );
+	    }
+	}
+
+	bs_write1( s, sps->vui.b_timing_info_present );
+	if( sps->vui.b_timing_info_present )
+	{
+	    bs_write( s, 32, sps->vui.i_num_units_in_tick );
+	    bs_write( s, 32, sps->vui.i_time_scale );
+	    bs_write1( s, sps->vui.b_fixed_frame_rate );
+	}
 
         bs_write1( s, 0 );      /* overscan_info_present_flag */
 

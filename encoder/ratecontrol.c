@@ -74,7 +74,12 @@ int x264_ratecontrol_new( x264_t *h )
 
     memset(rc, 0, sizeof(*rc));
 
-    rc->fps = h->param.f_fps > 0.1 ? h->param.f_fps : 25.0f;
+    /* FIXME: use integers */
+    if(h->param.i_fps_num > 0 && h->param.i_fps_den > 0)
+        rc->fps = (float) h->param.i_fps_num / h->param.i_fps_den;
+    else
+        rc->fps = 25.0;
+
     rc->gop_size = h->param.i_iframe;
     rc->bitrate = h->param.i_bitrate * 1000;
     rc->nmb = ((h->param.i_width + 15) / 16) * ((h->param.i_height + 15) / 16);
