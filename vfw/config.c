@@ -76,8 +76,8 @@ static const reg_int_t reg_int_table[] =
     /* Advance dialog */
     { "cabac",          &reg.b_cabac,           1 },
     { "loop_filter",    &reg.b_filter,          1 },
-    { "idrframe",       &reg.i_idrframe,        1 },
-    { "iframe",         &reg.i_iframe,          250},
+    { "idrframe",       &reg.i_keyint_min,      10 },
+    { "iframe",         &reg.i_keyint_max,      250},
     { "refmax",         &reg.i_refmax,          1 },
     { "bmax",           &reg.i_bframe,          0 },
     {"direct_pred",     &reg.i_direct_mv_pred,  2 },
@@ -467,8 +467,8 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
     CheckDlgButton( hDlg,IDC_I4X4,
                     config->b_i4x4 ? BST_CHECKED: BST_UNCHECKED );
 
-    SetDlgItemInt( hDlg, IDC_IDRFRAMES, config->i_idrframe, FALSE );
-    SetDlgItemInt( hDlg, IDC_IFRAMES, config->i_iframe, FALSE );
+    SetDlgItemInt( hDlg, IDC_IDRFRAMES, config->i_keyint_min, FALSE );
+    SetDlgItemInt( hDlg, IDC_IFRAMES, config->i_keyint_max, FALSE );
     SetDlgItemInt( hDlg, IDC_KEYFRAME, config->i_refmax, FALSE );
     SetDlgItemInt( hDlg, IDC_BFRAME, config->i_bframe, FALSE );
 
@@ -544,10 +544,10 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
             switch( LOWORD( wParam ) )
             {
             case IDC_IDRFRAMES :
-                config->i_idrframe = GetDlgItemInt( hDlg, IDC_IDRFRAMES, FALSE, FALSE );
+                config->i_keyint_min = GetDlgItemInt( hDlg, IDC_IDRFRAMES, FALSE, FALSE );
                 break;
             case IDC_IFRAMES :
-                config->i_iframe = GetDlgItemInt( hDlg, IDC_IFRAMES, FALSE, FALSE );
+                config->i_keyint_max = GetDlgItemInt( hDlg, IDC_IFRAMES, FALSE, FALSE );
                 break;
             case IDC_KEYFRAME :
                 config->i_refmax = GetDlgItemInt( hDlg, IDC_KEYFRAME, FALSE, FALSE );

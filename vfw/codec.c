@@ -156,8 +156,8 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
     param.i_fps_den = codec->fincr;
 
     param.i_frame_reference = config->i_refmax;
-    param.i_idrframe = config->i_idrframe;
-    param.i_iframe   = config->i_iframe;
+    param.i_keyint_min = config->i_keyint_min;
+    param.i_keyint_max   = config->i_keyint_max;
     param.b_deblocking_filter = config->b_filter;
     param.b_cabac = config->b_cabac;
 

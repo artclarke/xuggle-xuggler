@@ -45,8 +45,8 @@ typedef struct
 
     /* Our config */
     int i_refmax;
-    int i_idrframe;
-    int i_iframe;
+    int i_keyint_max;
+    int i_keyint_min;
 
     int i_qp;
     int b_filter;

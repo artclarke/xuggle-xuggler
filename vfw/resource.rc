@@ -105,13 +105,13 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,245,237,50,14
     CONTROL         "CABAC",IDC_CABAC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
                     16,23,61,10
-    EDITTEXT        IDC_IDRFRAMES,36,126,22,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Every",IDC_STATIC,15,128,19,8
+    EDITTEXT        IDC_IDRFRAMES,68,126,22,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Intra closer than",IDC_STATIC,13,128,53,8
     GROUPBOX        "H.264 features",IDC_STATIC,7,7,288,228
     EDITTEXT        IDC_KEYFRAME,255,20,33,14,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "Max Reference Frames:",IDC_STATIC,170,24,76,8
     EDITTEXT        IDC_IFRAMES,114,107,24,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Max Keyframe Interval:",IDC_STATIC,13,110,76,8
+    LTEXT           "Max IDR-Keyframe Interval:",IDC_STATIC,13,110,95,8
     EDITTEXT        IDC_FOURCC,223,107,25,14,ES_AUTOHSCROLL
     LTEXT           "FourCC:",IDC_STATIC,193,110,26,8
     CONTROL         "8x16, 16x8 and 8x8 B-frame search",IDC_B16X16,"Button",
@@ -137,8 +137,8 @@ BEGIN
     CONTROL         "Slider1",IDC_INLOOP_B,"msctls_trackbar32",TBS_NOTICKS | 
                     WS_TABSTOP,56,66,47,10
     LTEXT           "Strength (B)",IDC_STATIC,15,66,39,8
-    LTEXT           "th INTRA frame\n  becomes a keyframe",IDC_STATIC,61,128,
-                    85,16
+    LTEXT           "frames are coded as non-IDR",IDC_STATIC,93,128,
+                    60,16
     GROUPBOX        "More Encoder Settings",IDC_STATIC,7,93,145,66
     GROUPBOX        "VfW settings",IDC_STATIC,151,93,144,66
     LTEXT           "0",IDC_LOOPA_TXT,109,53,8,8
