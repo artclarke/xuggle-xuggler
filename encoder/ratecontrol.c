@@ -83,7 +83,7 @@ int x264_ratecontrol_new( x264_t *h )
     rc->qpa = rc->qp;
     rc->qpm = rc->qp;
 
-    rc->buffer_size = h->param.i_rc_buffer_size;
+    rc->buffer_size = h->param.i_rc_buffer_size * 1000;
     if(rc->buffer_size <= 0)
         rc->buffer_size = rc->bitrate / 2;
     rc->buffer_fullness = h->param.i_rc_init_buffer;
@@ -221,14 +221,14 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type )
         rc->qp = rc->qpa + dqp;
     }
 
-    if(rc->fbits > 0.8 * maxbits)
-        rc->qp += 1;
-    else if(rc->fbits > 0.9 * maxbits)
+    if(rc->fbits > 0.9 * maxbits)
         rc->qp += 2;
-    else if(rc->fbits < 1.2 * minbits)
-        rc->qp -= 1;
+    else if(rc->fbits > 0.8 * maxbits)
+        rc->qp += 1;
     else if(rc->fbits < 1.1 * minbits)
         rc->qp -= 2;
+    else if(rc->fbits < 1.2 * minbits)
+        rc->qp -= 1;
 
     rc->qp = x264_clip3(rc->qp, h->param.i_qp_min, h->param.i_qp_max);
     rc->qpm = rc->qp;
