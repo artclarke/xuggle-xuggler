@@ -349,6 +349,10 @@ struct x264_t
             int i_misc_bits;
             /* MB type counts */
             int i_mb_count[18];
+            /* Estimated (SATD) cost as Intra/Predicted frame */
+            /* XXX: both omit the cost of MBs coded as P_SKIP */
+            int i_intra_cost;
+            int i_inter_cost;
         } frame;
 
         /* Cummulated stats */

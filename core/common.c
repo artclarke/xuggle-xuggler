@@ -60,6 +60,7 @@ void    x264_param_default( x264_param_t *param )
     param->i_idrframe = 2;
     param->i_iframe = 60;
     param->i_bframe = 0;
+    param->i_scenecut_threshold = 40;
 
     param->b_deblocking_filter = 1;
     param->i_deblocking_filter_alphac0 = 0;

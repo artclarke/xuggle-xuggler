@@ -24,7 +24,7 @@
 #ifndef _X264_H
 #define _X264_H 1
 
-#define X264_BUILD 0x000a
+#define X264_BUILD 0x000b
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -103,6 +103,7 @@ typedef struct
     int         i_frame_reference;  /* Maximum number of reference frames */
     int         i_idrframe; /* every i_idrframe I frame are marked as IDR */
     int         i_iframe;   /* every i_iframe are intra */
+    int         i_scenecut_threshold; /* how aggressively to insert extra I frames */
     int         i_bframe;   /* how many b-frame between 2 references pictures */
 
     int         b_deblocking_filter;

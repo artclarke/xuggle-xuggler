@@ -859,6 +859,7 @@ void x264_macroblock_analyse( x264_t *h )
 
         int b_skip = 0;
         int i_cost;
+        int i_intra_cost, i_intra_type;
 
         /* Fast P_SKIP detection */
         if( ( (i_neighbour&MB_LEFT) && h->mb.type[h->mb.i_mb_xy - 1] == P_SKIP ) ||
@@ -1017,17 +1018,23 @@ void x264_macroblock_analyse( x264_t *h )
             }
 
             x264_mb_analyse_intra( h, &analysis );
-            if( analysis.i_sad_i16x16 >= 0 && analysis.i_sad_i16x16 < i_cost )
+            i_intra_type = I_16x16;
+            i_intra_cost = analysis.i_sad_i16x16;
+
+            if( analysis.i_sad_i4x4 >=0 && analysis.i_sad_i4x4 < i_intra_cost )
             {
-                h->mb.i_type = I_16x16;
-                i_cost = analysis.i_sad_i16x16;
+                i_intra_type = I_4x4;
+                i_intra_cost = analysis.i_sad_i4x4;
             }
 
-            if( analysis.i_sad_i4x4 >=0 && analysis.i_sad_i4x4 < i_cost )
+            if( i_intra_cost >= 0 && i_intra_cost < i_cost )
             {
-                h->mb.i_type = I_4x4;
-                i_cost = analysis.i_sad_i4x4;
+                h->mb.i_type = i_intra_type;
+                i_cost = i_intra_cost;
             }
+
+            h->stat.frame.i_intra_cost += i_intra_cost;
+            h->stat.frame.i_inter_cost += i_cost;
         }
     }
     else if( h->sh.i_type == SLICE_TYPE_B )

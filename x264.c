@@ -103,7 +103,8 @@ static void Help( void )
              "  -h, --help                  Print this help\n"
              "\n"
              "  -I, --idrframe <integer>    Each 'number' I frames are IDR frames\n"
-             "  -i, --iframe <integer>      Frequency of I frames\n"
+             "  -i, --iframe <integer>      Max interval between I frames\n"
+             "      --scenecut <integer>    How aggresively to insert extra I frames\n"
              "  -b, --bframe <integer>      Number of B-frames between I and P\n"
              "\n"
              "  -c, --cabac                 Enable CABAC\n"
@@ -178,6 +179,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_NOPSNR 267
 #define OPT_QUIET 268
 #define OPT_SUBME 269
+#define OPT_SCENECUT 270
 
         static struct option long_options[] =
         {
@@ -186,6 +188,7 @@ static int  Parse( int argc, char **argv,
             { "bframe",  required_argument, NULL, 'b' },
             { "iframe",  required_argument, NULL, 'i' },
             { "idrframe",required_argument, NULL, 'I' },
+            { "scenecut",required_argument, NULL, OPT_SCENECUT },
             { "nf",      no_argument,       NULL, 'n' },
             { "filter",  required_argument, NULL, 'f' },
             { "cabac",   no_argument,       NULL, 'c' },
@@ -243,6 +246,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case 'I':
                 param->i_idrframe = atol( optarg );
+                break;
+            case OPT_SCENECUT:
+                param->i_scenecut_threshold = atol( optarg );
                 break;
             case 'n':
                 param->b_deblocking_filter = 0;

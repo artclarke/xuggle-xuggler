@@ -347,10 +347,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->param.i_cabac_init_idc = x264_clip3( h->param.i_cabac_init_idc, -1, 2 );
 
-    if( param->analyse.i_subpel_refine < 0 )
-	param->analyse.i_subpel_refine = 0;
-    if( param->analyse.i_subpel_refine > 5 )
-	param->analyse.i_subpel_refine = 5;
+    param->analyse.i_subpel_refine = x264_clip3( param->analyse.i_subpel_refine, 0, 5 );
 
     /* VUI */
     if( h->param.vui.i_sar_width > 0 && h->param.vui.i_sar_height > 0 )
@@ -732,7 +729,9 @@ static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_id
     h->stat.frame.i_hdr_bits  =
     h->stat.frame.i_itex_bits =
     h->stat.frame.i_ptex_bits =
-    h->stat.frame.i_misc_bits = 0;
+    h->stat.frame.i_misc_bits =
+    h->stat.frame.i_intra_cost =
+    h->stat.frame.i_inter_cost = 0;
     for( i = 0; i < 17; i++ )
         h->stat.frame.i_mb_count[i] = 0;
 
@@ -1127,20 +1126,34 @@ do_encode:
     x264_slice_write( h, i_nal_type, i_nal_ref_idc );
 
     /* XXX: this scene cut won't work with B frame (it may never create IDR -> bad) */
-    if( i_slice_type != SLICE_TYPE_I && !h->param.rc.b_stat_read )
+    if( i_slice_type != SLICE_TYPE_I && !h->param.rc.b_stat_read 
+        && h->param.i_scenecut_threshold >= 0 )
     {
         int i_bias;
 
         int i_mb_i = h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_16x16];
+        int i_mb_p = h->stat.frame.i_mb_count[P_L0] + h->stat.frame.i_mb_count[P_8x8];
+        int i_mb_s = h->stat.frame.i_mb_count[P_SKIP];
         int i_mb   = h->sps->i_mb_width * h->sps->i_mb_height;
+        int64_t i_inter_cost = h->stat.frame.i_inter_cost;
+        int64_t i_intra_cost = h->stat.frame.i_intra_cost;
+
+        /* macroblock_analyse() doesn't further analyse skipped mbs,
+         * so we have to guess their cost */
+        if( i_mb_s < i_mb )
+            i_intra_cost = i_intra_cost * i_mb / (i_mb - i_mb_s);
+
         if( h->param.i_iframe > 0 )
-            i_bias = 30 * X264_MIN( 3*h->frames.i_last_i, h->param.i_iframe )  / h->param.i_iframe;
+            i_bias = h->param.i_scenecut_threshold * h->frames.i_last_i / h->param.i_iframe;
         else
             i_bias = 15;
+        i_bias = X264_MIN( i_bias, 100 );
 
         /* Bad P will be reencoded as I */
         if( i_slice_type == SLICE_TYPE_P &&
-            100 * i_mb_i >= (100 - i_bias) * i_mb )
+            i_mb_s < i_mb &&
+            100 * i_inter_cost >= (100 - i_bias) * i_intra_cost )
+            /* 100 * i_mb_i >= (100 - i_bias) * i_mb ) */
             /*
             h->out.nal[h->out.i_nal-1].i_payload > h->i_last_intra_size +
             h->i_last_intra_size * (3+h->i_last_intra_qp - i_global_qp) / 16 &&
@@ -1149,13 +1162,13 @@ do_encode:
             h->frames.i_last_i > 4)*/
         {
 
-            x264_log( h, X264_LOG_DEBUG, "scene cut at %d size=%d last I:%d last P:%d Intra:%d Inter=%d Ratio=%d Bias=%d (Skip:%d PL0:%d)\n",
+            x264_log( h, X264_LOG_DEBUG, "scene cut at %d size=%d last I:%d last P:%d Intra:%lld Inter:%lld Ratio:%lld Bias=%d (I:%d P:%d Skip:%d)\n",
                       h->i_frame - 1,
                       h->out.nal[h->out.i_nal-1].i_payload,
                       h->i_last_intra_size, h->i_last_inter_size,
-                      i_mb_i, i_mb - i_mb_i, 100 * i_mb_i / i_mb, i_bias,
-                      h->stat.frame.i_mb_count[P_SKIP],
-                      h->stat.frame.i_mb_count[P_L0] );
+                      i_intra_cost, i_inter_cost,
+                      100 * i_inter_cost / i_intra_cost,
+                      i_bias, i_mb_i, i_mb_p, i_mb_s );
 
             /* Restore frame num */
             h->i_frame_num--;
