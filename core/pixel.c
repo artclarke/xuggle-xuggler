@@ -31,7 +31,7 @@
 #ifdef HAVE_MMXEXT
 #   include "i386/pixel.h"
 #endif
-#ifdef HAVE_ALTIVEC
+#ifdef ARCH_PPC
 #   include "ppc/pixel.h"
 #endif
 
@@ -218,7 +218,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->satd[PIXEL_4x4]  = x264_pixel_satd_4x4_mmxext;
     }
 #endif
-#ifdef HAVE_ALTIVEC
+#ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC )
     {
         x264_pixel_altivec_init( pixf );

@@ -11,13 +11,13 @@ AS = nasm ;
 CCFLAGS = -g -Wall -W ;
 
 # Globals defines
-DEFINES = DEBUG __X264__ ;
+DEFINES = DEBUG __X264__ ARCH_$(OSPLAT) SYS_$(OS) ;
 
 # Optims
 OPTIM = -O3 -funroll-loops ;
 
 # Headers rep
-HDRS = . core core/i366 decoder encoder ;
+HDRS = . core core/i386 decoder encoder ;
 
 SOURCES_C = core/mc.c core/predict.c core/pixel.c core/macroblock.c
             core/frame.c core/dct.c core/cpu.c core/cabac.c
@@ -33,22 +33,29 @@ SOURCES_ALTIVEC = core/ppc/mc.c core/ppc/pixel.c ;
 
 # libx264
 SOURCES_X264 = $(SOURCES_C) ;
-if $(OS) = LINUX
+if $(OSPLAT) = X86
 {
-    DEFINES      += ARCH_X86 HAVE_MMXEXT HAVE_SSE2 HAVE_MALLOC_H ;
+    DEFINES      += HAVE_MALLOC_H HAVE_MMXEXT HAVE_SSE2 ;
     SOURCES_X264 += $(SOURCES_MMX) ;
     SOURCES_X264 += $(SOURCES_X86) ;
-    ASFLAGS = -f elf ;
+    ASFLAGS       = -f elf ;
 
-    # Don't ask why
+    # Don't ask
     NOARUPDATE = false ;
 }
-if $(OS) = MACOSX
+if $(OSPLAT) = PPC
 {
-    DEFINES      += HAVE_ALTIVEC ;
     SOURCES_X264 += $(SOURCES_ALTIVEC) ;
-    CCFLAGS      += -faltivec ;
-#    OPTIM        += -falign-loops=16 ;
+    OPTIM        += -falign-loops=16 ;
+
+    if $(OS) = MACOSX
+    {
+        CCFLAGS += -faltivec ;
+    }
+    if $(OS) = LINUX
+    {
+        CCFLAGS += -maltivec -mabi=altivec ;
+    }
 }
 Library libx264 : $(SOURCES_X264) ;
 

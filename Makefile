@@ -1,7 +1,7 @@
 # Makefile: tuned for i386/MMX system only
 # For ppc append
 #  SRCS: core/ppc/mc.c core/ppc/pixel.c 
-#  Defines: HAVE_ALTIVEC
+#  Defines: HAVE_PPC
 #  CFLAGS: -faltivec
 #
 PFLAGS=-DARCH_X86 -DHAVE_MMXEXT -DHAVE_SSE2

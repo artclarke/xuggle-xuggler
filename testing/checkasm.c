@@ -9,7 +9,7 @@
 #include "core/i386/dct.h"
 #include "core/i386/mc.h"
 #endif
-#ifdef HAVE_ALTIVEC
+#ifdef ARCH_PPC
 #include "core/ppc/pixel.h"
 #endif
 
@@ -30,7 +30,7 @@ static int check_pixel()
 #ifdef HAVE_MMXEXT
     x264_pixel_init( X264_CPU_MMX|X264_CPU_MMXEXT, &pixel_asm );
 #endif
-#ifdef HAVE_ALTIVEC
+#ifdef ARCH_PPC
     x264_pixel_altivec_init( &pixel_asm );
 #endif
 
@@ -311,7 +311,7 @@ int main()
 
 #ifdef HAVE_MMXEXT
     fprintf( stderr, "x264: MMXEXT against C\n" );
-#elif HAVE_ALTIVEC
+#elif ARCH_PPC
     fprintf( stderr, "x264: ALTIVEC against C\n" );
 #endif
 

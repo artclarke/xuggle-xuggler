@@ -37,7 +37,7 @@
 #ifdef HAVE_MMXEXT
 #   include "i386/mc.h"
 #endif
-#ifdef HAVE_ALTIVEC
+#ifdef ARCH_PPC
 #   include "ppc/mc.h"
 #endif
 
@@ -313,7 +313,7 @@ void x264_mc_init( int cpu, x264_mc_function_t pf[2] )
         x264_mc_sse2_init( pf );
 #endif
 
-#ifdef HAVE_ALTIVEC
+#ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC )
         x264_mc_altivec_init( pf );
 #endif

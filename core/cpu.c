@@ -194,12 +194,13 @@ uint32_t x264_cpu_detect( void )
 }
 #endif
 
-#elif defined( HAVE_ALTIVEC )
-#include <sys/sysctl.h>
+#elif defined( ARCH_PPC )
 
+#ifdef SYS_MACOSX
+#include <sys/sysctl.h>
 uint32_t x264_cpu_detect( void )
 {
-    /* Thx VLC */
+    /* Thank you VLC */
     uint32_t cpu = 0;
     int      selectors[2] = { CTL_HW, HW_VECTORUNIT };
     int      has_altivec = 0;
@@ -213,6 +214,14 @@ uint32_t x264_cpu_detect( void )
 
     return cpu;
 }
+
+#elif defined( SYS_LINUX )
+uint32_t x264_cpu_detect( void )
+{
+    /* FIXME (Linux PPC) */
+    return X264_CPU_ALTIVEC;
+}
+#endif
 
 void     x264_cpu_restore( uint32_t cpu )
 {

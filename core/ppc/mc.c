@@ -26,6 +26,10 @@
 #include <string.h>
 #include <stdint.h>
 
+#ifdef SYS_LINUX
+#include <altivec.h>
+#endif
+
 #include "x264.h"
 #include "../mc.h"
 #include "../clip1.h"
