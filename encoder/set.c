@@ -35,6 +35,7 @@
 #include "x264.h"
 #include "common/bs.h"
 #include "common/set.h"
+#include "config.h"
 
 void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 {
@@ -403,8 +404,8 @@ void x264_sei_version_write( bs_t *s )
     };
     char version[256];
     int length;
-    sprintf( version, "x264 - core %d - H.264/MPEG-4 AVC codec - Copyleft 2005 - http://www.videolan.org/x264.html",
-             X264_BUILD );
+    sprintf( version, "x264 - core %d%s - H.264/MPEG-4 AVC codec - Copyleft 2005 - http://www.videolan.org/x264.html",
+             X264_BUILD, X264_VERSION );
     length = strlen(version)+1+16;
 
     bs_write( s, 8, 0x5 ); // payload_type = user_data_unregistered

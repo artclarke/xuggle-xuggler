@@ -98,6 +98,12 @@ $(DIR_BUILD):
 	@mkdir -p $(DIR_BUILD)/$(@D)
 	@$(CC) $(CFLAGS) -c -o $(DIR_BUILD)/$@ $<
 
+encoder/set.c: config.h
+config.h:
+	@echo " C: $@"
+	@cd $(DIR_SRC) && \
+	./version.sh
+
 libx264.a: $(DIR_BUILD) $(OBJECTS)
 	@echo " L: $(@F)"
 	@cd $(DIR_BUILD) && \
@@ -118,7 +124,7 @@ checkasm.exe: $(DIR_BUILD) libx264.a $(OBJECTS) testing/checkasm.obj
 
 clean:
 	@echo " Cl: Object files and target lib"
-	@$(RM) $(DIR_BUILD)
+	@$(RM) $(DIR_BUILD) $(DIR_SRC)/config.h
 
 install: x264.exe
 	install x264.h $(DIR_INSTALL)/include/

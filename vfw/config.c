@@ -31,6 +31,7 @@
  **************************************************************************/
 
 #include "x264vfw.h"
+#include "config.h"
 #include <stdio.h>  /* sprintf */
 #include <commctrl.h>
 
@@ -470,7 +471,7 @@ BOOL CALLBACK callback_about( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
     case WM_INITDIALOG :
     {
         char temp[1024];
-        sprintf( temp, "Core %d, build %s %s", X264_BUILD, __DATE__, __TIME__ );
+        sprintf( temp, "Core %d%s, build %s %s", X264_BUILD, X264_VERSION, __DATE__, __TIME__ );
         SetDlgItemText( hDlg, IDC_BUILD,  temp );
         break;
     }

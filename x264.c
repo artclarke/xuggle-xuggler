@@ -43,6 +43,7 @@
 #endif
 
 #include "common/common.h"
+#include "config.h"
 #include "x264.h"
 
 #define DATA_MAX 3000000
@@ -124,8 +125,8 @@ int main( int argc, char **argv )
 static void Help( x264_param_t *defaults )
 {
     fprintf( stderr,
-             "x264 build:%d\n"
-             "Syntax: x264 [options] [-o out.h26l] in.yuv widthxheigh\n"
+             "x264 build:%d%s\n"
+             "Syntax: x264 [options] [-o out.264] in.yuv widthxheigh\n"
              "\n"
              "  -h, --help                  Print this help\n"
              "\n"
@@ -185,7 +186,7 @@ static void Help( x264_param_t *defaults )
              "      --quiet                 Quiet Mode\n"
              "  -v, --verbose               Print stats for each frame\n"
              "\n",
-            X264_BUILD,
+            X264_BUILD, X264_VERSION,
             defaults->i_keyint_max,
             defaults->i_keyint_min,
             defaults->i_scenecut_threshold,
