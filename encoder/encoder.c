@@ -461,7 +461,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->mb.i_mb_count = h->sps->i_mb_width * h->sps->i_mb_height;
 
     /* Init frames. */
-    for( i = 0; i < X264_BFRAME_MAX + 1; i++ )
+    for( i = 0; i < X264_BFRAME_MAX + 3; i++ )
     {
         h->frames.current[i] = NULL;
         h->frames.next[i]    = NULL;
@@ -478,6 +478,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->frames.reference[h->frames.i_max_dpb] = NULL;
     h->frames.i_last_idr = - h->param.i_keyint_max;
     h->frames.i_input    = 0;
+    h->frames.last_nonb  = NULL;
 
     h->i_ref0 = 0;
     h->i_ref1 = 0;
@@ -612,7 +613,7 @@ static x264_frame_t *x264_frame_get( x264_frame_t *list[X264_BFRAME_MAX+1] )
 {
     x264_frame_t *frame = list[0];
     int i;
-    for( i = 0; i < X264_BFRAME_MAX && list[i]; i++ )
+    for( i = 0; list[i]; i++ )
         list[i] = list[i+1];
     return frame;
 }
@@ -622,7 +623,7 @@ static void x264_frame_sort( x264_frame_t *list[X264_BFRAME_MAX+1], int b_dts )
     int i, b_ok;
     do {
         b_ok = 1;
-        for( i = 0; i < X264_BFRAME_MAX && list[i+1]; i++ )
+        for( i = 0; list[i+1]; i++ )
         {
             int dtype = list[i]->i_type - list[i+1]->i_type;
             int dtime = list[i]->i_frame - list[i+1]->i_frame;
@@ -1528,7 +1529,7 @@ void    x264_encoder_close  ( x264_t *h )
     }
 
     /* frames */
-    for( i = 0; i < X264_BFRAME_MAX + 1; i++ )
+    for( i = 0; i < X264_BFRAME_MAX + 3; i++ )
     {
         if( h->frames.current[i] ) x264_frame_delete( h->frames.current[i] );
         if( h->frames.next[i] )    x264_frame_delete( h->frames.next[i] );

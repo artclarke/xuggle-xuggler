@@ -235,17 +235,17 @@ struct x264_t
 
     struct
     {
-        /* Frames to be encoded */
-        x264_frame_t *current[X264_BFRAME_MAX+1];
-        /* Temporary buffer (eg B frames pending until we reach the I/P) */
-        x264_frame_t *next[X264_BFRAME_MAX+1];
+        /* Frames to be encoded (whose types have been decided) */
+        x264_frame_t *current[X264_BFRAME_MAX+3];
+        /* Temporary buffer (frames types not yet decided) */
+        x264_frame_t *next[X264_BFRAME_MAX+3];
         /* Unused frames */
-        x264_frame_t *unused[X264_BFRAME_MAX+1];
+        x264_frame_t *unused[X264_BFRAME_MAX+3];
         /* For adaptive B decision */
         x264_frame_t *last_nonb;
 
-        /* frames used for reference +1 for decoding +1 sentinel */
-        x264_frame_t *reference[16+2+1+1];
+        /* frames used for reference +1 for decoding + sentinels */
+        x264_frame_t *reference[16+2+1+2];
 
         int i_last_idr; /* Frame number of the last IDR */
 

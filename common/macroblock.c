@@ -939,23 +939,23 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
     {
         const int w = (i == 0 ? 16 : 8);
         const int i_stride = h->fdec->i_stride[i];
+        const int i_xy = i_mb_x + i_mb_y * i_stride;
         int   j;
 
         h->mb.pic.i_stride[i] = i_stride;
 
-        h->mb.pic.p_fenc[i] = &h->fenc->plane[i][ w * ( i_mb_x + i_mb_y * i_stride )];
-
-        h->mb.pic.p_fdec[i] = &h->fdec->plane[i][ w * ( i_mb_x + i_mb_y * i_stride )];
+        h->mb.pic.p_fenc[i] = &h->fenc->plane[i][w*i_xy];
+        h->mb.pic.p_fdec[i] = &h->fdec->plane[i][w*i_xy];
 
         for( j = 0; j < h->i_ref0; j++ )
         {
-            h->mb.pic.p_fref[0][j][i==0 ? 0:i+3] = &h->fref0[j]->plane[i][ w * ( i_mb_x + i_mb_y * i_stride )];
-            h->mb.pic.p_fref[0][j][i+1] = &h->fref0[j]->filtered[i+1][ 16 * ( i_mb_x + i_mb_y * h->fdec->i_stride[0] )];
+            h->mb.pic.p_fref[0][j][i==0 ? 0:i+3] = &h->fref0[j]->plane[i][w*i_xy];
+            h->mb.pic.p_fref[0][j][i+1] = &h->fref0[j]->filtered[i+1][16*i_xy];
         }
         for( j = 0; j < h->i_ref1; j++ )
         {
-            h->mb.pic.p_fref[1][j][i==0 ? 0:i+3] = &h->fref1[j]->plane[i][ w * ( i_mb_x + i_mb_y * i_stride )];
-            h->mb.pic.p_fref[1][j][i+1] = &h->fref1[j]->filtered[i+1][ 16 * ( i_mb_x + i_mb_y * h->fdec->i_stride[0] )];
+            h->mb.pic.p_fref[1][j][i==0 ? 0:i+3] = &h->fref1[j]->plane[i][w*i_xy];
+            h->mb.pic.p_fref[1][j][i+1] = &h->fref1[j]->filtered[i+1][16*i_xy];
         }
     }
 
