@@ -102,7 +102,7 @@ static const reg_int_t reg_int_table[] =
 static const reg_str_t reg_str_table[] =
 {
     { "fourcc",         reg.fcc,         "H264",                5 },
-    { "statsfile",      reg.stats,       ".\\x264.stats",       MAX_PATH }
+    { "statsfile",      reg.stats,       ".\\x264.stats",       MAX_PATH-4 } // -4 because we add pass number
 };
 
 void config_reg_load( CONFIG *config )
@@ -248,8 +248,8 @@ static void main_enable_item( HWND hDlg, CONFIG * config )
         EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE_S ), config->i_pass > 1 );
         EnableWindow( GetDlgItem( hDlg, IDC_FAST1PASS ), config->i_pass == 1);
         EnableWindow( GetDlgItem( hDlg, IDC_UPDATESTATS ), config->i_pass > 1 );
-        EnableWindow( GetDlgItem( hDlg, IDC_STATSFILE ), TRUE );
-        EnableWindow( GetDlgItem( hDlg, IDC_STATSFILE_BROWSE ), TRUE );
+        EnableWindow( GetDlgItem( hDlg, IDC_STATSFILE ), config->i_pass == 1 );
+        EnableWindow( GetDlgItem( hDlg, IDC_STATSFILE_BROWSE ), config->i_pass == 1 );
         break;
     }
 
@@ -395,7 +395,7 @@ BOOL CALLBACK callback_main( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
                 ofn.hwndOwner = hDlg;
                 ofn.lpstrFilter = "Statsfile (*.stats)\0*.stats\0All files (*.*)\0*.*\0\0";
                 ofn.lpstrFile = tmp;
-                ofn.nMaxFile = MAX_PATH;
+                ofn.nMaxFile = MAX_PATH-4;
                 ofn.Flags = OFN_PATHMUSTEXIST;
 
                 if( config->i_pass == 1 )

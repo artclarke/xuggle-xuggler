@@ -25,6 +25,10 @@
 #include "x264vfw.h"
 
 #include <stdio.h> /* debug only */
+#include <io.h>
+#include <unistd.h>
+
+#define X264_MAX(a,b) ( (a)>(b) ? (a) : (b) )
 
 /* get_csp:
  *  return a valid x264 CSP or X264_CSP_NULL if unsuported */
@@ -127,11 +131,31 @@ LRESULT compress_frames_info(CODEC * codec, ICCOMPRESSFRAMES * icf )
     return ICERR_OK;
 }
 
+static void statsfilename_renumber( char *dest, char *src, int i_pass )
+{
+    char *last_dot = strrchr( src, '.' );
+    char *last_slash = X264_MAX( strrchr( src, '/' ), strrchr( src, '\\' ) );
+    char pass_str[5];
+
+    sprintf( pass_str, "-%i", i_pass );
+    strcpy( dest, src );
+    if( last_slash < last_dot ) {
+        dest[ last_dot - src ] = 0;
+        strcat( dest, pass_str );
+        strcat( dest, last_dot );
+    }
+    else
+    {
+        strcat( dest, pass_str );
+    }
+}
+
 /* */
 LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiOutput )
 {
     CONFIG *config = &codec->config;
     x264_param_t param;
+    int pass_number;
 
     /* Destroy previous handle */
     if( codec->h != NULL )
@@ -142,6 +166,9 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
 
     /* Get default param */
     x264_param_default( &param );
+
+    param.rc.psz_stat_out = malloc (MAX_PATH);
+    param.rc.psz_stat_in = malloc (MAX_PATH);
 
     param.i_log_level = X264_LOG_NONE;
     param.analyse.b_psnr = 0;
@@ -177,11 +204,12 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
 
     if( config->b_bsub16x16 )
         param.analyse.inter |= X264_ANALYSE_BSUB16x16;
-
     if( config->b_psub16x16 )
+    {
         param.analyse.inter |= X264_ANALYSE_PSUB16x16;
-    if( config->b_psub8x8 )
-        param.analyse.inter |= X264_ANALYSE_PSUB8x8;
+        if( config->b_psub8x8 )
+            param.analyse.inter |= X264_ANALYSE_PSUB8x8;
+    }
     if( config->b_i4x4 )
         param.analyse.inter |= X264_ANALYSE_I4x4;
 
@@ -196,35 +224,61 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
             break;
         default:
         case 2: /* 2 PASS */
-            param.rc.psz_stat_out = param.rc.psz_stat_in = config->stats;
-            if (config->i_pass == 1)
+        {
+            for( pass_number = 1; pass_number < 99; pass_number++ )
             {
+                FILE *f;
+                statsfilename_renumber( param.rc.psz_stat_out, config->stats, pass_number );
+                if( ( f = fopen( param.rc.psz_stat_out, "r" ) ) != NULL )
+                {
+                    fclose( f );
+                    if( config->i_pass == 1 )
+                        unlink( param.rc.psz_stat_out );
+                }
+                else break;
+            }
+
+            if( config->i_pass > pass_number )
+            {
+                /* missing 1st pass statsfile */
+                free( param.rc.psz_stat_out );
+                free( param.rc.psz_stat_in );
+                return ICERR_ERROR;
+            }
+
+            if( config->i_pass == 1 )
+            {
+                statsfilename_renumber( param.rc.psz_stat_out, config->stats, 1 );
                 param.rc.b_stat_write = 1;
-                if (config->b_fast1pass)
+                if( config->b_fast1pass )
                 {
                     /* adjust or turn off some flags to gain speed, if needed */
-                    if (param.analyse.i_subpel_refine > 1)
-                        param.analyse.i_subpel_refine --;
-                    if (param.analyse.i_subpel_refine > 3)
-                        param.analyse.i_subpel_refine = 3;
-                    param.i_frame_reference = (param.i_frame_reference + 1) >> 1;
-                    param.analyse.inter &= (~X264_ANALYSE_PSUB8x8);
-                    param.analyse.inter &= (~X264_ANALYSE_BSUB16x16);
+                    param.analyse.i_subpel_refine = X264_MAX( 3, param.analyse.i_subpel_refine - 1 );
+                    param.i_frame_reference = ( param.i_frame_reference + 1 ) >> 1;
+                    param.analyse.inter &= ( ~X264_ANALYSE_PSUB8x8 );
+                    param.analyse.inter &= ( ~X264_ANALYSE_BSUB16x16 );
                 }
-            }    
+            }
             else
-            {    
+            {
+                statsfilename_renumber( param.rc.psz_stat_in, config->stats, pass_number - 1 );
                 param.rc.i_bitrate = config->i_2passbitrate;
-                param.rc.b_stat_read = 1;
                 param.rc.b_cbr = 1;
+                param.rc.b_stat_read = 1;
                 if( config->b_updatestats )
                     param.rc.b_stat_write = 1;
             }
+
             break;
+        }
     }
 
     /* Open the encoder */
     codec->h = x264_encoder_open( &param );
+
+    free( param.rc.psz_stat_out );
+    free( param.rc.psz_stat_in );
+
     if( codec->h == NULL )
         return ICERR_ERROR;
 
@@ -304,7 +358,7 @@ LRESULT compress( CODEC *codec, ICCOMPRESS *icc )
     /* create bitstream, unless we're dropping it in 1st pass */
     i_out = 0;
 
-    if (codec->config.i_encoding_type != 2 || codec->config.i_pass > 1) {
+    if( codec->config.i_encoding_type != 2 || codec->config.i_pass > 1 ) {
         for( i = 0; i < i_nal; i++ ) {
             int i_size = outhdr->biSizeImage - i_out;
             x264_nal_encode( (uint8_t*)icc->lpOutput + i_out, &i_size, 1, &nal[i] );
