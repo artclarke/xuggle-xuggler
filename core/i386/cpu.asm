@@ -53,6 +53,9 @@ ALIGN 16
 x264_cpu_cpuid_test:
     pushfd
     push    ebx
+    push    ebp
+    push    esi
+    push    edi
 
     pushfd
     pop     eax
@@ -64,6 +67,9 @@ x264_cpu_cpuid_test:
     pop     eax
     xor     eax, ebx
     
+    pop     edi
+    pop     esi
+    pop     ebp
     pop     ebx
     popfd
     ret
