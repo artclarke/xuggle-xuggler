@@ -216,6 +216,21 @@ SOURCE=..\..\encoder\ratecontrol.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\encoder\eval.c
+
+!IF  "$(CFG)" == "libx264 - Win32 Release"
+
+# PROP Intermediate_Dir "obj/enc_release"
+
+!ELSEIF  "$(CFG)" == "libx264 - Win32 Debug"
+
+# PROP Intermediate_Dir "obj/enc_debug"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\encoder\set.c
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"

@@ -19,7 +19,7 @@ SRC_C= core/mc.c core/predict.c core/pixel.c core/macroblock.c \
        core/common.c core/mdate.c core/csp.c \
        encoder/analyse.c encoder/me.c encoder/ratecontrol.c \
        encoder/set.c encoder/macroblock.c encoder/cabac.c encoder/cavlc.c \
-       encoder/encoder.c \
+       encoder/encoder.c encoder/eval.c \
        core/i386/mc-c.c core/i386/dct-c.c core/i386/predict.c
 
 SRC_ASM= core/i386/dct.asm core/i386/cpu.asm core/i386/pixel.asm core/i386/mc.asm
