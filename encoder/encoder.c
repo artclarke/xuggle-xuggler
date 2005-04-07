@@ -1165,6 +1165,7 @@ do_encode:
 
         x264_nal_start(h, NAL_AUD, NAL_PRIORITY_DISPOSABLE);
         bs_write(&h->out.bs, 3, pic_type);
+        bs_rbsp_trailing(&h->out.bs);
         x264_nal_end(h);
     }
 
