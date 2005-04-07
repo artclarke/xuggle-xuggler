@@ -180,6 +180,7 @@ typedef struct
         float       f_complexity_blur; /* temporally blur complexity */
     } rc;
 
+    int b_aud;                  /* generate access unit delimiters */
 } x264_param_t;
 
 /* x264_param_default:
@@ -235,7 +236,8 @@ enum nal_unit_type_e
     NAL_SLICE_IDR   = 5,    /* ref_idc != 0 */
     NAL_SEI         = 6,    /* ref_idc == 0 */
     NAL_SPS         = 7,
-    NAL_PPS         = 8
+    NAL_PPS         = 8,
+    NAL_AUD         = 9,
     /* ref_idc == 0 for 6,9,10,11,12 */
 };
 enum nal_priority_e

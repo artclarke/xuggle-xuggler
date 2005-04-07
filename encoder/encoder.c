@@ -1151,6 +1151,23 @@ do_encode:
     h->out.i_nal = 0;
     bs_init( &h->out.bs, h->out.p_bitstream, h->out.i_bitstream );
 
+    if(h->param.b_aud){
+        int pic_type;
+
+        if(i_slice_type == SLICE_TYPE_I)
+            pic_type = 0;
+        else if(i_slice_type == SLICE_TYPE_P)
+            pic_type = 1;
+        else if(i_slice_type == SLICE_TYPE_B)
+            pic_type = 2;
+        else
+            pic_type = 7;
+
+        x264_nal_start(h, NAL_AUD, NAL_PRIORITY_DISPOSABLE);
+        bs_write(&h->out.bs, 3, pic_type);
+        x264_nal_end(h);
+    }
+
     /* Write SPS and PPS */
     if( i_nal_type == NAL_SLICE_IDR )
     {

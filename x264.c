@@ -185,6 +185,7 @@ static void Help( x264_param_t *defaults )
              "      --no-psnr               Disable PSNR computaion\n"
              "      --quiet                 Quiet Mode\n"
              "  -v, --verbose               Print stats for each frame\n"
+             "      --aud                   Use access unit delimiters\n"
              "\n",
             X264_BUILD, X264_VERSION,
             defaults->i_keyint_max,
@@ -268,6 +269,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_CHROMA_QP 280
 #define OPT_NO_CHROMA_ME 281
 #define OPT_NO_CABAC 282
+#define OPT_AUD 283
 
         static struct option long_options[] =
         {
@@ -314,6 +316,7 @@ static int  Parse( int argc, char **argv,
             { "no-psnr", no_argument,       NULL, OPT_NOPSNR },
             { "quiet",   no_argument,       NULL, OPT_QUIET },
             { "verbose", no_argument,       NULL, 'v' },
+            { "aud",     no_argument,       NULL, OPT_AUD },
             {0, 0, 0, 0}
         };
 
@@ -519,6 +522,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case 'v':
                 param->i_log_level = X264_LOG_DEBUG;
+                break;
+            case OPT_AUD:
+                param->b_aud = 1;
                 break;
             default:
                 fprintf( stderr, "unknown option (%c)\n", optopt );

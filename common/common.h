@@ -205,7 +205,7 @@ struct x264_t
     struct
     {
         int         i_nal;
-        x264_nal_t  nal[4];         /* for now 4 is enough */
+        x264_nal_t  nal[5];         /* for now 5 is enough */
         int         i_bitstream;    /* size of p_bitstream */
         uint8_t     *p_bitstream;   /* will hold data for all nal */
         bs_t        bs;

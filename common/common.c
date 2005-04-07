@@ -110,6 +110,8 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.i_mv_range = 512;
     param->analyse.i_chroma_qp_offset = 0;
     param->analyse.b_psnr = 1;
+
+    param->b_aud = 0;
 }
 
 /****************************************************************************
