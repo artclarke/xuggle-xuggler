@@ -98,8 +98,8 @@ $(DIR_BUILD):
 	@mkdir -p $(DIR_BUILD)/$(@D)
 	@$(CC) $(CFLAGS) -c -o $(DIR_BUILD)/$@ $<
 
-encoder/set.c: config.h
-config.h:
+encoder/set.obj: config.h
+config.h: $(wildcard $(DIR_SRC)/.svn/entries $(DIR_SRC)/*/.svn/entries $(DIR_SRC)/*/*/.svn/entries)
 	@echo " C: $@"
 	@cd $(DIR_SRC) && \
 	./version.sh

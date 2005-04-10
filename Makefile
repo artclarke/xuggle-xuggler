@@ -96,7 +96,7 @@ checkasm: testing/checkasm.c libx264.a
 # Hacky - because gcc 2.9x doesn't have -MT
 	$(foreach SRC, $(SRCS) x264.c, ( echo -n "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM -g0 ) 1>> .depend;)
 
-config.h: $(wildcard .svn/entries */.svn/entries)
+config.h: $(wildcard .svn/entries */.svn/entries */*/.svn/entries)
 	./version.sh
 
 depend: .depend
