@@ -1,7 +1,7 @@
 #! /bin/sh
 
 CC="gcc"
-CFLAGS="-Wall -I. -O4 -funroll-loops -D__X264__"
+CFLAGS="-g -Wall -I. -O4 -funroll-loops -D__X264__"
 LDFLAGS=""
 
 AS="nasm"

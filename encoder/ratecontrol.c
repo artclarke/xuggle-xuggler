@@ -37,9 +37,6 @@
 #include "common/macroblock.h"
 #include "ratecontrol.h"
 
-#ifdef SYS_MACOSX
-#define exp2f(x) ( (float) exp2( (x) ) )
-#endif
 #if defined(SYS_FREEBSD) || defined(SYS_BEOS)
 #define exp2f(x) powf( 2, (x) )
 #endif

@@ -35,7 +35,7 @@ libx264.a: $(OBJS) $(OBJASM)
 x264: libx264.a x264.o
 	$(CC) -o $@ x264.o libx264.a $(LDFLAGS)
 
-checkasm: testing/checkasm.c libx264.a
+checkasm: testing/checkasm.o libx264.a
 	$(CC) -o $@ $< libx264.a $(LDFLAGS)
 
 %.o: %.asm
