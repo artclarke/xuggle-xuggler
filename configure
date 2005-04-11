@@ -38,6 +38,9 @@ case "$UNAMEM" in
     ARCH="X86"
     CFLAGS="$CFLAGS -DHAVE_MMXEXT -DHAVE_SSE2"
     ;;
+  x86_64)
+    ARCH="X86_64"
+    ;;
   "Power Macintosh"|ppc)
     ARCH="PPC"
     if [ $SYS = MACOSX ]
