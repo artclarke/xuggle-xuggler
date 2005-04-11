@@ -26,6 +26,12 @@ case "$UNAMES" in
     CFLAGS="$CFLAGS -DHAVE_MALLOC_H"
     LDFLAGS="$LDFLAGS -lm"
     ;;
+  CYGWIN*)
+    SYS="CYGWIN"
+    CFLAGS="$CFLAGS -mno-cygwin"
+    LDFLAGS="$LDFLAGS -mno-cygwin"
+    ASFLAGS="-f win32 -DPREFIX"
+    ;;
   *)
     echo "Unknown system $UNAMES, edit the configure"
     exit 1
