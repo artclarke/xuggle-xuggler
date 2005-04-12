@@ -1,5 +1,23 @@
 #! /bin/sh
 
+if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
+
+echo "Usage: ./configure [options]"
+echo ""
+echo "available options:"
+echo ""
+echo "  --help                   print this message"
+echo "  --enable-avis-input      enables avisynth input (cygwin only)"
+echo "  --enable-mp4-output      enables mp4 output (using gpac)"
+echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS"
+echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS"
+echo ""
+exit 1
+fi
+
+avis_input="off"
+mp4_output="off"
+
 CC="gcc"
 CFLAGS="-g -Wall -I. -O4 -funroll-loops -D__X264__"
 LDFLAGS=""
@@ -30,6 +48,10 @@ case "$UNAMES" in
     SYS="CYGWIN"
     CFLAGS="$CFLAGS -mno-cygwin"
     LDFLAGS="$LDFLAGS -mno-cygwin"
+    ASFLAGS="-f win32 -DPREFIX"
+    ;;
+  MINGW32*)
+    SYS="MINGW32"
     ASFLAGS="-f win32 -DPREFIX"
     ;;
   *)
@@ -64,6 +86,35 @@ esac
 
 CFLAGS="$CFLAGS -DARCH_$ARCH -DSYS_$SYS"
 
+# parse options
+
+for opt do
+    case "$opt" in
+        --enable-avis-input)
+            if [ $SYS = CYGWIN ]; then
+                CFLAGS="$CFLAGS -DAVIS_INPUT"
+                LDFLAGS="$LDFLAGS -lvfw32"
+                avis_input="on"
+            fi
+            ;;
+        --enable-mp4-output)
+            CFLAGS="$CFLAGS -DMP4_OUTPUT"
+            LDFLAGS="$LDFLAGS -lm4systems_static"
+            if [ $SYS = CYGWIN -o $SYS = MINGW ]; then
+                LDFLAGS="$LDFLAGS -lwinmm"
+            fi
+            mp4_output="on"
+            ;;
+        --extra-cflags=*) CFLAGS="$CFLAGS ${opt#--extra-cflags=}"
+            ;;
+        --extra-ldflags=*) LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
+            ;;
+        *)
+            echo "Unknown option $opt, ignored"
+            ;;
+    esac
+done
+
 rm -f config.mak
 cat > config.mak << EOF
 ARCH=$ARCH
@@ -75,8 +126,10 @@ AS=$AS
 ASFLAGS=$ASFLAGS
 EOF
 
-echo "Platform: $ARCH"
-echo "System:   $SYS"
+echo "Platform:   $ARCH"
+echo "System:     $SYS"
+echo "avis input: $avis_input"
+echo "mp4 output: $mp4_output"
 echo
 echo "You can run 'make' now."
 

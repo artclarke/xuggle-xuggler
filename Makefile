@@ -41,7 +41,7 @@ checkasm: testing/checkasm.o libx264.a
 %.o: %.asm
 	$(AS) $(ASFLAGS) -o $@ $<
 
-.depend: $(SRCS) x264.c config.h
+.depend: config.mak config.h
 	rm -f .depend
 # Hacky - because gcc 2.9x doesn't have -MT
 	$(foreach SRC, $(SRCS) x264.c, ( echo -n "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM -g0 ) 1>> .depend;)
