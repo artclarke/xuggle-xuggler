@@ -239,32 +239,52 @@ static int check_dct()
 
 static int check_mc()
 {
-#if 0
-    x264_mc_function_t mc_c[2] = {0};
-    x264_mc_function_t mc_asm[2] = {0};
-    uint8_t *src = &buf1[2*32+2];
-    uint8_t *dst1 = &buf3[2*32+2];
-    uint8_t *dst2 = &buf4[2*32+2];
+    x264_mc_functions_t mc_c = {0,0,0};
+    x264_mc_functions_t mc_a = {0,0,0};
+
+    uint8_t *src     = &buf1[2*32+2];
+    uint8_t *src2[4] = { &buf1[2*32+2],  &buf1[7*32+2],
+                         &buf1[12*32+2], &buf1[17*32+2] };
+    uint8_t *dst1    = &buf3[2*32+2];
+    uint8_t *dst2    = &buf4[2*32+2];
+
     int dx, dy;
     int ret = 0, ok[2] = { 1, 1 };
 
-    x264_mc_init( 0, mc_c );
+    x264_mc_init( 0, &mc_c );
 #ifdef HAVE_MMXEXT
-    x264_mc_mmxext_init( mc_asm );
+    x264_mc_mmxext_init( &mc_a );
+#endif
+#ifdef ARCH_PPC
+    x264_mc_altivec_init( &mc_a );
 #endif
 
-    /* Do the MC */
-#define MC_TEST( t, w, h ) \
-        if( mc_asm[t] ) \
+#define MC_TEST_LUMA( w, h ) \
+        if( mc_a.mc_luma ) \
         { \
-            memset(dst1, 0xCD, (h) * 16); \
-            mc_c[t]( src, 32, dst1, 16, dx, dy, w, h );     \
-            memset(dst2, 0xCD, (h) * 16); \
-            mc_asm[t]( src, 32, dst2, 16, dx, dy, w, h );   \
+            memset(buf1, 0xCD, 1024); \
+            memset(buf3, 0xCD, 1024); \
+            memset(buf4, 0xCD, 1024); \
+            mc_c.mc_luma( src2, 32, dst1, 16, dx, dy, w, h );     \
+            mc_a.mc_luma( src2, 32, dst2, 16, dx, dy, w, h );   \
             if( memcmp( dst1, dst2, 16*16 ) )               \
             { \
-                fprintf( stderr, "mc["#t"][mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h );   \
-                ok[t] = 0; \
+                fprintf( stderr, "mc_luma[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h );   \
+                ok[0] = 0; \
+            } \
+        }
+
+#define MC_TEST_CHROMA( w, h ) \
+        if( mc_a.mc_chroma ) \
+        { \
+            memset(dst1, 0xCD, (h) * 16); \
+            mc_c.mc_chroma( src, 32, dst1, 16, dx, dy, w, h );     \
+            memset(dst2, 0xCD, (h) * 16); \
+            mc_a.mc_chroma( src, 32, dst2, 16, dx, dy, w, h );   \
+            if( memcmp( dst1, dst2, 16*16 ) )               \
+            { \
+                fprintf( stderr, "mc_chroma[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h );   \
+                ok[1] = 0; \
             } \
         }
 
@@ -272,24 +292,25 @@ static int check_mc()
     {
         for( dx = 0; dx < 4; dx++ )
         {
-            MC_TEST( 0, 16, 16 );
-            MC_TEST( 0, 16, 8 );
-            MC_TEST( 0, 8, 16 );
-            MC_TEST( 0, 8, 8 );
-            MC_TEST( 0, 8, 4 );
-            MC_TEST( 0, 4, 8 );
-            MC_TEST( 0, 4, 4 );
+            MC_TEST_LUMA( 16, 16 );
+            MC_TEST_LUMA( 16, 8 );
+            MC_TEST_LUMA( 8, 16 );
+            MC_TEST_LUMA( 8, 8 );
+            MC_TEST_LUMA( 8, 4 );
+            MC_TEST_LUMA( 4, 8 );
+            MC_TEST_LUMA( 4, 4 );
 
-            MC_TEST( 1, 8, 8 );
-            MC_TEST( 1, 8, 4 );
-            MC_TEST( 1, 4, 8 );
-            MC_TEST( 1, 4, 4 );
-            MC_TEST( 1, 4, 2 );
-            MC_TEST( 1, 2, 4 );
-            MC_TEST( 1, 2, 2 );
+            MC_TEST_CHROMA( 8, 8 );
+            MC_TEST_CHROMA( 8, 4 );
+            MC_TEST_CHROMA( 4, 8 );
+            MC_TEST_CHROMA( 4, 4 );
+            MC_TEST_CHROMA( 4, 2 );
+            MC_TEST_CHROMA( 2, 4 );
+            MC_TEST_CHROMA( 2, 2 );
         }
     }
-#undef MC_TEST
+#undef MC_TEST_LUMA
+#undef MC_TEST_CHROMA
     if( ok[0] )
         fprintf( stderr, " - mc luma :             [OK]\n" );
     else {
@@ -303,9 +324,6 @@ static int check_mc()
         fprintf( stderr, " - mc chroma :           [FAILED]\n" );
     }
     return ret;
-#else
-    return 0;
-#endif
 }
 
 int main()
