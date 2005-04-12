@@ -149,8 +149,8 @@ int main( int argc, char **argv )
 static void Help( x264_param_t *defaults )
 {
     fprintf( stderr,
-             "x264 build:%d%s\n"
-             "Syntax: x264 [options] [-o outfile] infile [widthxheight]\n"
+             "x264 core:%d%s\n"
+             "Syntax: x264 [options] -o outfile infile [widthxheight]\n"
              "\n"
              "Infile can be raw YUV 4:2:0 (in which case resolution is required),\n"
              "  or AVI or Avisynth if compiled with AVIS support (%s).\n"
@@ -172,7 +172,7 @@ static void Help( x264_param_t *defaults )
              "\n"
              "      --no-cabac              Disable CABAC\n"
              "  -r, --ref <integer>         Number of reference frames [%d]\n"
-             "  -n, --nf                    Disable loop filter\n"
+             "      --nf                    Disable loop filter\n"
              "  -f, --filter <alpha:beta>   Loop filter AlphaC0 and Beta parameters [%d:%d]\n"
              "\n"
              "  -q, --qp <integer>          Set QP [%d]\n"
@@ -205,6 +205,7 @@ static void Help( x264_param_t *defaults )
              "                                  - none, spatial, temporal\n"
              "  -w, --weightb               Weighted prediction for B-frames\n"
              "  -m, --subme <integer>       Subpixel motion estimation quality: 1=fast, 5=best. [%d]\n"
+             "      --no-chroma-me          Ignore chroma in motion estimation\n"
              "\n"
              "      --level <integer>       Specify level (as defined by Annex A)\n"
              "  -s, --sar width:height      Specify Sample Aspect Ratio\n"
@@ -269,8 +270,8 @@ static int  Parse( int argc, char **argv,
     char b_avis = 0;
 
     /* Default output */
-    *p_hout = stdout;
-    *p_hin  = stdin;
+    *p_hout = NULL;
+    *p_hin  = NULL;
     *pb_decompress = 0;
 
     /* Default input file driver */
@@ -370,7 +371,7 @@ static int  Parse( int argc, char **argv,
 
         int c;
 
-        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:nf:o:s:A:m:p:vw",
+        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:f:o:s:A:m:p:vw",
                          long_options, &long_options_index);
 
         if( c == -1 )
@@ -452,17 +453,22 @@ static int  Parse( int argc, char **argv,
                 param->i_maxframes = atoi( optarg );
                 break;
             case'o':
-#ifdef MP4_OUTPUT
-                if (!strncmp(optarg + strlen(optarg) - 4, ".mp4", 4))
+                if( !strncasecmp(optarg + strlen(optarg) - 4, ".mp4", 4) )
                 {
-                        p_open_outfile = open_file_mp4;
-                        p_write_nalu = write_nalu_mp4;
-                        p_set_outfile_param = set_param_mp4;
-                        p_set_eop = set_eop_mp4;
-                        p_close_outfile = close_file_mp4;
-                }
+#ifdef MP4_OUTPUT
+                    p_open_outfile = open_file_mp4;
+                    p_write_nalu = write_nalu_mp4;
+                    p_set_outfile_param = set_param_mp4;
+                    p_set_eop = set_eop_mp4;
+                    p_close_outfile = close_file_mp4;
+#else
+                    fprintf( stderr, "not compiled with MP4 output support\n" );
+                    return -1;
 #endif
-                if (p_open_outfile( optarg, p_hout ))
+                }
+                if( !strcmp(optarg, "-") )
+                    *p_hout = stdout;
+                else if( p_open_outfile( optarg, p_hout ) )
                 {
                     fprintf( stderr, "cannot open output file `%s'\n", optarg );
                     return -1;
@@ -591,7 +597,7 @@ static int  Parse( int argc, char **argv,
     }
 
     /* Get the file name */
-    if( optind > argc - 1 )
+    if( optind > argc - 1 || !*p_hout )
     {
         Help( &defaults );
         return -1;
@@ -623,7 +629,7 @@ static int  Parse( int argc, char **argv,
         while( psz > psz_filename && *psz != '.' )
             psz--;
 
-        if( !strncmp( psz, ".avi", 4 ) || !strncmp( psz, ".avs", 4 ) )
+        if( !strncasecmp( psz, ".avi", 4 ) || !strncasecmp( psz, ".avs", 4 ) )
             b_avis = 1;
 
         if( !b_avis && ( !param->i_width || !param->i_height ) )
@@ -641,15 +647,18 @@ static int  Parse( int argc, char **argv,
     }
     else
     {
-#ifdef AVIS_INPUT
         if( b_avis )
         {
+#ifdef AVIS_INPUT
             p_open_infile = open_file_avis;
             p_get_frame_total = get_frame_total_avis;
             p_read_frame = read_frame_avis;
             p_close_infile = close_file_avis;
-        }
+#else
+            fprintf( stderr, "not compiled with AVIS input support\n" );
+            return -1;
 #endif
+        }
         if( p_open_infile( psz_filename, p_hin, param ) )
         {
             fprintf( stderr, "could not open input file '%s'\n", psz_filename );
@@ -838,7 +847,7 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
         }
     }
     if (i_nal)
-    	p_set_eop( hout, &pic_out );
+        p_set_eop( hout, &pic_out );
 
     return i_file;
 }
@@ -878,16 +887,16 @@ static int  Encode( x264_param_t  *param, hnd_t hin, hnd_t hout )
     x264_picture_alloc( &pic, X264_CSP_I420, param->i_width, param->i_height );
 
     i_start = x264_mdate();
+    /* Encode frames */
     for( i_frame = 0, i_file = 0; i_ctrl_c == 0 && i_frame < i_frame_total; i_frame++ )
     {
-        if (param->i_maxframes!=0 && i_frame>=param->i_maxframes)
+        if( param->i_maxframes!=0 && i_frame>=param->i_maxframes )
             break;
 
-        /* read a frame */
-        if ( p_read_frame( &pic, hin, param->i_width, param->i_height ) )
+        if( p_read_frame( &pic, hin, param->i_width, param->i_height ) )
             break;
 
-		pic.i_pts = i_frame * param->i_fps_den;
+        pic.i_pts = i_frame * param->i_fps_den;
 
         i_file += Encode_frame( h, hout, &pic );
     }
@@ -1121,46 +1130,46 @@ typedef struct
 
 static void recompute_bitrate_mp4(M4File *p_file, int i_track)
 {
-	u32 i, count, di, timescale, time_wnd, rate;
-	u64 offset;
-	Double br;
-	ESDescriptor *esd;
+    u32 i, count, di, timescale, time_wnd, rate;
+    u64 offset;
+    Double br;
+    ESDescriptor *esd;
 
-	esd = M4_GetStreamDescriptor(p_file, i_track, 1);
-	if (!esd) return;
+    esd = M4_GetStreamDescriptor(p_file, i_track, 1);
+    if (!esd) return;
 
-	esd->decoderConfig->avgBitrate = 0;
-	esd->decoderConfig->maxBitrate = 0;
-	rate = time_wnd = 0;
+    esd->decoderConfig->avgBitrate = 0;
+    esd->decoderConfig->maxBitrate = 0;
+    rate = time_wnd = 0;
 
-	timescale = M4_GetMediaTimeScale(p_file, i_track);
-	count = M4_GetSampleCount(p_file, i_track);
-	for (i=0; i<count; i++) {
-		M4Sample *samp = M4_GetSampleInfo(p_file, i_track, i+1, &di, &offset);
+    timescale = M4_GetMediaTimeScale(p_file, i_track);
+    count = M4_GetSampleCount(p_file, i_track);
+    for (i=0; i<count; i++) {
+        M4Sample *samp = M4_GetSampleInfo(p_file, i_track, i+1, &di, &offset);
 
-		if (samp->dataLength>esd->decoderConfig->bufferSizeDB) esd->decoderConfig->bufferSizeDB = samp->dataLength;
+        if (samp->dataLength>esd->decoderConfig->bufferSizeDB) esd->decoderConfig->bufferSizeDB = samp->dataLength;
 
-		if (esd->decoderConfig->bufferSizeDB < samp->dataLength) esd->decoderConfig->bufferSizeDB = samp->dataLength;
-		esd->decoderConfig->avgBitrate += samp->dataLength;
-		rate += samp->dataLength;
-		if (samp->DTS > time_wnd + timescale) {
-			if (rate > esd->decoderConfig->maxBitrate) esd->decoderConfig->maxBitrate = rate;
-			time_wnd = samp->DTS;
-			rate = 0;
-		}
+        if (esd->decoderConfig->bufferSizeDB < samp->dataLength) esd->decoderConfig->bufferSizeDB = samp->dataLength;
+        esd->decoderConfig->avgBitrate += samp->dataLength;
+        rate += samp->dataLength;
+        if (samp->DTS > time_wnd + timescale) {
+            if (rate > esd->decoderConfig->maxBitrate) esd->decoderConfig->maxBitrate = rate;
+            time_wnd = samp->DTS;
+            rate = 0;
+        }
 
-		M4_DeleteSample(&samp);
-	}
+        M4_DeleteSample(&samp);
+    }
 
-	br = (Double) (s64) M4_GetMediaDuration(p_file, i_track);
-	br /= timescale;
-	esd->decoderConfig->avgBitrate = (u32) (esd->decoderConfig->avgBitrate / br);
-	/*move to bps*/
-	esd->decoderConfig->avgBitrate *= 8;
-	esd->decoderConfig->maxBitrate *= 8;
+    br = (Double) (s64) M4_GetMediaDuration(p_file, i_track);
+    br /= timescale;
+    esd->decoderConfig->avgBitrate = (u32) (esd->decoderConfig->avgBitrate / br);
+    /*move to bps*/
+    esd->decoderConfig->avgBitrate *= 8;
+    esd->decoderConfig->maxBitrate *= 8;
 
-	M4_ChangeStreamDescriptor(p_file, i_track, 1, esd);
-	OD_DeleteDescriptor((Descriptor **)&esd);
+    M4_ChangeStreamDescriptor(p_file, i_track, 1, esd);
+    OD_DeleteDescriptor((Descriptor **)&esd);
 }
 
 
@@ -1184,7 +1193,7 @@ static int close_file_mp4( hnd_t handle )
 
     if (p_mp4->p_file)
     {
-    	recompute_bitrate_mp4(p_mp4->p_file, p_mp4->i_track);
+        recompute_bitrate_mp4(p_mp4->p_file, p_mp4->i_track);
         M4_SetMoviePLIndication(p_mp4->p_file, M4_PL_VISUAL, 0x15);
         M4_ModifyAlternateBrand(p_mp4->p_file, H264_AVC_File, 1);
         M4_SetStorageMode(p_mp4->p_file, M4_FLAT);
@@ -1240,8 +1249,8 @@ static int set_param_mp4( hnd_t handle, x264_param_t *p_param )
 
     p_mp4->i_time_res = p_param->i_fps_num;
     p_mp4->i_time_inc = p_param->i_fps_den;
-   	p_mp4->i_init_delay = p_param->i_bframe ? (p_param->b_bframe_pyramid ? 2 : 1) : 0;
-   	p_mp4->i_init_delay *= p_mp4->i_time_inc;
+    p_mp4->i_init_delay = p_param->i_bframe ? (p_param->b_bframe_pyramid ? 2 : 1) : 0;
+    p_mp4->i_init_delay *= p_mp4->i_time_inc;
     fprintf(stderr, "mp4 [info]: initial delay %d\n", p_mp4->i_init_delay);
 
     return 0;
@@ -1295,13 +1304,13 @@ static int write_nalu_mp4( hnd_t handle, uint8_t *p_nalu, int i_size )
     case 0x1:
     case 0x5:
     case 0x6:
-    	    psize = i_size - 4 ;
-            memcpy(p_mp4->p_sample->data + p_mp4->p_sample->dataLength, p_nalu, i_size);
-            p_mp4->p_sample->data[p_mp4->p_sample->dataLength + 0] = (psize >> 24) & 0xff;
-            p_mp4->p_sample->data[p_mp4->p_sample->dataLength + 1] = (psize >> 16) & 0xff;
-            p_mp4->p_sample->data[p_mp4->p_sample->dataLength + 2] = (psize >> 8) & 0xff;
-            p_mp4->p_sample->data[p_mp4->p_sample->dataLength + 3] = (psize >> 0) & 0xff;
-            p_mp4->p_sample->dataLength += i_size;
+        psize = i_size - 4 ;
+        memcpy(p_mp4->p_sample->data + p_mp4->p_sample->dataLength, p_nalu, i_size);
+        p_mp4->p_sample->data[p_mp4->p_sample->dataLength + 0] = (psize >> 24) & 0xff;
+        p_mp4->p_sample->data[p_mp4->p_sample->dataLength + 1] = (psize >> 16) & 0xff;
+        p_mp4->p_sample->data[p_mp4->p_sample->dataLength + 2] = (psize >> 8) & 0xff;
+        p_mp4->p_sample->data[p_mp4->p_sample->dataLength + 3] = (psize >> 0) & 0xff;
+        p_mp4->p_sample->dataLength += i_size;
         break;
     }
 
