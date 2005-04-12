@@ -35,6 +35,7 @@ case "$UNAMES" in
     ;;
   Darwin)
     SYS="MACOSX"
+    CFLAGS="$CFLAGS -falign-loops=16"
     LDFLAGS="$LDFLAGS -lm -lmx"
     ;;
   FreeBSD)

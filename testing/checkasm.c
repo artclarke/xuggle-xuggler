@@ -11,6 +11,7 @@
 #endif
 #ifdef ARCH_PPC
 #include "common/ppc/pixel.h"
+#include "common/ppc/mc.h"
 #endif
 
 /* buf1, buf2: initialised to randome data and shouldn't write into them */
@@ -262,12 +263,11 @@ static int check_mc()
 #define MC_TEST_LUMA( w, h ) \
         if( mc_a.mc_luma ) \
         { \
-            memset(buf1, 0xCD, 1024); \
             memset(buf3, 0xCD, 1024); \
             memset(buf4, 0xCD, 1024); \
             mc_c.mc_luma( src2, 32, dst1, 16, dx, dy, w, h );     \
             mc_a.mc_luma( src2, 32, dst2, 16, dx, dy, w, h );   \
-            if( memcmp( dst1, dst2, 16*16 ) )               \
+            if( memcmp( buf3, buf4, 1024 ) )               \
             { \
                 fprintf( stderr, "mc_luma[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h );   \
                 ok[0] = 0; \
@@ -277,11 +277,11 @@ static int check_mc()
 #define MC_TEST_CHROMA( w, h ) \
         if( mc_a.mc_chroma ) \
         { \
-            memset(dst1, 0xCD, (h) * 16); \
+            memset(buf3, 0xCD, 1024); \
+            memset(buf4, 0xCD, 1024); \
             mc_c.mc_chroma( src, 32, dst1, 16, dx, dy, w, h );     \
-            memset(dst2, 0xCD, (h) * 16); \
             mc_a.mc_chroma( src, 32, dst2, 16, dx, dy, w, h );   \
-            if( memcmp( dst1, dst2, 16*16 ) )               \
+            if( memcmp( buf3, buf4, 1024 ) )               \
             { \
                 fprintf( stderr, "mc_chroma[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h );   \
                 ok[1] = 0; \

@@ -44,21 +44,21 @@ static int name( uint8_t *pix1, int i_pix1,            \
     int y;                                             \
     DECLARE_ALIGNED( int, sum, 16 );                   \
                                                        \
-    LOAD_ZERO;                                         \
-    vector_u8_t  pix1v, pix2v;                         \
-    vector_s32_t sumv = zero_s32;                      \
+    LOAD_ZERO;                                     \
+    vec_u8_t  pix1v, pix2v;                            \
+    vec_s32_t sumv = zero_s32v;                        \
     for( y = 0; y < ly; y++ )                          \
     {                                                  \
         LOAD_##lx( pix1, pix1v );                      \
         LOAD_##lx( pix2, pix2v );                      \
-        sumv = (vector_s32_t) vec_sum4s(               \
+        sumv = (vec_s32_t) vec_sum4s(                  \
                    vec_sub( vec_max( pix1v, pix2v ),   \
                             vec_min( pix1v, pix2v ) ), \
-                   (vector_u32_t) sumv );              \
+                   (vec_u32_t) sumv );                 \
         pix1 += i_pix1;                                \
         pix2 += i_pix2;                                \
     }                                                  \
-    sumv = vec_sum##a( sumv, zero_s32 );               \
+    sumv = vec_sum##a( sumv, zero_s32v );              \
     vec_ste( vec_splat( sumv, b ), 0, &sum );          \
     return sum;                                        \
 }
@@ -76,12 +76,12 @@ static inline int pixel_satd_8x8_altivec( uint8_t *pix1, int i_pix1,
     DECLARE_ALIGNED( int, i_satd, 16 );
 
     LOAD_ZERO;
-    vector_s32_t satdv = zero_s32;
-    vector_u8_t  pix1u8v, pix2u8v;
-    vector_s16_t pix1s16v, pix2s16v;
-    vector_s16_t diffv[8];
-    vector_s16_t tmpv[8];
-    vector_s16_t s01v, s23v, d01v, d23v;
+    vec_s32_t satdv = zero_s32v;
+    vec_u8_t  pix1u8v, pix2u8v;
+    vec_s16_t pix1s16v, pix2s16v;
+    vec_s16_t diffv[8];
+    vec_s16_t tmpv[8];
+    vec_s16_t s01v, s23v, d01v, d23v;
 
     /* Diff 8x8 */
     for( i = 0; i < 8; i++ )
@@ -90,8 +90,8 @@ static inline int pixel_satd_8x8_altivec( uint8_t *pix1, int i_pix1,
         LOAD_8( pix2, pix2u8v );
 
         /* u8 -> s16 conversion */
-        pix1s16v = (vector_s16_t) vec_mergeh( zero_u8, pix1u8v );
-        pix2s16v = (vector_s16_t) vec_mergeh( zero_u8, pix2u8v );
+        CONVERT_U8_TO_S16( pix1u8v, pix1s16v );
+        CONVERT_U8_TO_S16( pix2u8v, pix2s16v );
 
         diffv[i] = vec_sub( pix1s16v, pix2s16v );
 
@@ -115,7 +115,7 @@ static inline int pixel_satd_8x8_altivec( uint8_t *pix1, int i_pix1,
     {
         satdv = vec_sum4s( vec_abs( tmpv[i] ), satdv );
     }
-    satdv = vec_sums( satdv, zero_s32 );
+    satdv = vec_sums( satdv, zero_s32v );
 
     /* Done */
     vec_ste( vec_splat( satdv, 3 ), 0, &i_satd );
@@ -158,12 +158,12 @@ static inline int pixel_satd_4x4_altivec( uint8_t *pix1, int i_pix1,
     DECLARE_ALIGNED( int, i_satd, 16 );
 
     LOAD_ZERO;
-    vector_s32_t satdv = zero_s32;
-    vector_u8_t  pix1u8v, pix2u8v;
-    vector_s16_t pix1s16v, pix2s16v;
-    vector_s16_t diffv[4];
-    vector_s16_t tmpv[4];
-    vector_s16_t s01v, s23v, d01v, d23v;
+    vec_s32_t satdv = zero_s32v;
+    vec_u8_t  pix1u8v, pix2u8v;
+    vec_s16_t pix1s16v, pix2s16v;
+    vec_s16_t diffv[4];
+    vec_s16_t tmpv[4];
+    vec_s16_t s01v, s23v, d01v, d23v;
 
     /* Diff 4x8 */
     for( i = 0; i < 4; i++ )
@@ -171,9 +171,8 @@ static inline int pixel_satd_4x4_altivec( uint8_t *pix1, int i_pix1,
         LOAD_4( pix1, pix1u8v );
         LOAD_4( pix2, pix2u8v );
 
-        /* u8 -> s16 conversion */
-        pix1s16v = (vector_s16_t) vec_mergeh( zero_u8, pix1u8v );
-        pix2s16v = (vector_s16_t) vec_mergeh( zero_u8, pix2u8v );
+        CONVERT_U8_TO_S16( pix1u8v, pix1s16v );
+        CONVERT_U8_TO_S16( pix2u8v, pix2s16v );
 
         diffv[i] = vec_sub( pix1s16v, pix2s16v );
 
@@ -195,7 +194,7 @@ static inline int pixel_satd_4x4_altivec( uint8_t *pix1, int i_pix1,
     {
         satdv = vec_sum4s( vec_abs( tmpv[i] ), satdv );
     }
-    satdv = vec_sum2s( satdv, zero_s32 );
+    satdv = vec_sum2s( satdv, zero_s32v );
 
     /* Done */
     vec_ste( vec_splat( satdv, 1 ), 0, &i_satd );
