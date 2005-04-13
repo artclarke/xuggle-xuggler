@@ -1193,11 +1193,13 @@ static int close_file_mp4( hnd_t handle )
 
     if (p_mp4->p_file)
     {
+        if (p_mp4->i_init_delay)
+            M4_SetCTSPackMode(p_mp4->p_file, p_mp4->i_track, 0);
         recompute_bitrate_mp4(p_mp4->p_file, p_mp4->i_track);
         M4_SetMoviePLIndication(p_mp4->p_file, M4_PL_VISUAL, 0x15);
-        M4_ModifyAlternateBrand(p_mp4->p_file, H264_AVC_File, 1);
+        M4_SetMovieVersionInfo(p_mp4->p_file, H264_AVC_File, 0);
         M4_SetStorageMode(p_mp4->p_file, M4_FLAT);
-        M4_MovieCloseEx(p_mp4->p_file, NULL, NULL);
+        M4_MovieClose(p_mp4->p_file);
     }
 
     free(p_mp4);
@@ -1251,7 +1253,11 @@ static int set_param_mp4( hnd_t handle, x264_param_t *p_param )
     p_mp4->i_time_inc = p_param->i_fps_den;
     p_mp4->i_init_delay = p_param->i_bframe ? (p_param->b_bframe_pyramid ? 2 : 1) : 0;
     p_mp4->i_init_delay *= p_mp4->i_time_inc;
-    fprintf(stderr, "mp4 [info]: initial delay %d\n", p_mp4->i_init_delay);
+    fprintf(stderr, "mp4 [info]: initial delay %d (scale %d)\n", 
+        p_mp4->i_init_delay, p_mp4->i_time_res);
+
+    if (p_mp4->i_init_delay)
+        M4_SetCTSPackMode(p_mp4->p_file, p_mp4->i_track, 1);
 
     return 0;
 }
@@ -1326,11 +1332,8 @@ static int set_eop_mp4( hnd_t handle, x264_picture_t *p_picture )
 
     p_mp4->p_sample->IsRAP = p_picture->i_type == X264_TYPE_IDR ? 1 : 0;
     p_mp4->p_sample->DTS = dts;
+    p_mp4->p_sample->CTS_Offset = offset;
     M4_AddSample(p_mp4->p_file, p_mp4->i_track, p_mp4->i_descidx, p_mp4->p_sample);
-
-    // set cts offset
-    if (p_mp4->i_init_delay)
-        M4_SetSampleCTSOffset(p_mp4->p_file, p_mp4->i_track, p_mp4->i_numframe, offset);
 
     p_mp4->p_sample->dataLength = 0;
     p_mp4->i_numframe++;
