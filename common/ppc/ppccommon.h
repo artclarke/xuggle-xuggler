@@ -22,6 +22,15 @@
  *****************************************************************************/
 
 /***********************************************************************
+ * For constant vectors, use parentheses on OS X and braces on Linux
+ **********************************************************************/
+#ifdef SYS_MACOSX
+#define CV(a...) (a)
+#else
+#define CV(a...) {a}
+#endif
+
+/***********************************************************************
  * Vector types
  **********************************************************************/
 #define vec_u8_t  vector unsigned char
@@ -44,165 +53,214 @@
 #define zero_s32v (vec_s32_t) zerov
 
 /***********************************************************************
- * CONVERT_*
+ * Conversions
  **********************************************************************/
-#define CONVERT_U8_TO_U16( s, d ) \
-    d = (vec_u16_t) vec_mergeh( zero_u8v, (vec_u8_t) s )
-#define CONVERT_U8_TO_S16( s, d ) \
-    d = (vec_s16_t) vec_mergeh( zero_u8v, (vec_u8_t) s )
-#define CONVERT_U16_TO_U8( s, d ) \
-    d = (vec_u8_t) vec_pack( (vec_u16_t) s, zero_u16v )
-#define CONVERT_S16_TO_U8( s, d ) \
-    d = (vec_u8_t) vec_pack( (vec_s16_t) s, zero_s16v )
+static inline vec_u16_t vec_u8_to_u16( vec_u8_t v )
+{
+    LOAD_ZERO;
+    return (vec_u16_t) vec_mergeh( zero_u8v, v );
+}
+static inline vec_u8_t vec_u16_to_u8( vec_u16_t v )
+{
+    LOAD_ZERO;
+    return (vec_u8_t) vec_pack( v, zero_u16v );
+}
+#define vec_u8_to_s16(v) (vec_s16_t) vec_u8_to_u16(v)
+#define vec_s16_to_u8(v) vec_u16_to_u8( (vec_u16_t) v )
 
 /***********************************************************************
- * LOAD_16
- ***********************************************************************
- * p: uint8_t *
- * v: vec_u8_t
- * Loads 16 bytes from p into v
+ * vec_load16
  **********************************************************************/
-#define LOAD_16( p, v )                                \
-    if( (long) p & 0xF )                               \
-    {                                                  \
-        v = vec_perm( vec_ld( 0, p ), vec_ld( 16, p ), \
-                      vec_lvsl( 0, p ) );              \
-    }                                                  \
-    else                                               \
-    {                                                  \
-        v = vec_ld( 0, p );                            \
+static inline vec_u8_t vec_load16( uint8_t * p )
+{
+    if( (long) p & 0xF )
+    {
+        vec_u8_t hv, lv, perm;
+        hv   = vec_ld( 0, p );
+        lv   = vec_ld( 16, p );
+        perm = vec_lvsl( 0, p );
+        return vec_perm( hv, lv, perm );
     }
+    return vec_ld( 0, p );
+}
 
 /***********************************************************************
- * LOAD_8
- ***********************************************************************
- * p: uint8_t *
- * v: vec_u8_t
- * Loads 8 bytes from p into the first half of v
+ * vec_load8
  **********************************************************************/
-#define LOAD_8( p, v )                                 \
-    if( !( (long) p & 0xF ) )                          \
-    {                                                  \
-        v = vec_ld( 0, p );                            \
-    }                                                  \
-    else if( ( (long) p & 0xF ) < 9 )                  \
-    {                                                  \
-        v = vec_perm( vec_ld( 0, p ), zero_u8v,        \
-                      vec_lvsl( 0, p ) );              \
-    }                                                  \
-    else                                               \
-    {                                                  \
-        v = vec_perm( vec_ld( 0, p ), vec_ld( 16, p ), \
-                      vec_lvsl( 0, p ) );              \
+static inline vec_u8_t vec_load8( uint8_t * p )
+{
+    long align = (long) p & 0xF;
+
+    if( align )
+    {
+        vec_u8_t hv, perm;
+        hv   = vec_ld( 0, p );
+        perm = vec_lvsl( 0, p );
+        if( align > 8 )
+        {
+            vec_u8_t lv;
+            lv = vec_ld( 16, p );
+            return vec_perm( hv, lv, perm );
+        }
+        return vec_perm( hv, hv, perm );
     }
+    return vec_ld( 0, p );
+}
 
 /***********************************************************************
- * LOAD_4
- ***********************************************************************
- * p: uint8_t *
- * v: vec_u8_t
- * Loads 4 bytes from p into the first quarter of v
+ * vec_load4
  **********************************************************************/
-#define LOAD_4( p, v )                                 \
-    if( !( (long) p & 0xF ) )                          \
-    {                                                  \
-        v = vec_ld( 0, p );                            \
-    }                                                  \
-    else if( ( (long) p & 0xF ) < 13 )                 \
-    {                                                  \
-        v = vec_perm( vec_ld( 0, p ), zero_u8v,        \
-                      vec_lvsl( 0, p ) );              \
-    }                                                  \
-    else                                               \
-    {                                                  \
-        v = vec_perm( vec_ld( 0, p ), vec_ld( 16, p ), \
-                      vec_lvsl( 0, p ) );              \
+static inline vec_u8_t vec_load4( uint8_t * p )
+{
+    long align = (long) p & 0xF;
+
+    if( align )
+    {
+        vec_u8_t hv, perm;
+        hv   = vec_ld( 0, p );
+        perm = vec_lvsl( 0, p );
+        if( align > 12 )
+        {
+            vec_u8_t lv;
+            lv = vec_ld( 16, p );
+            return vec_perm( hv, lv, perm );
+        }
+        return vec_perm( hv, hv, perm );
     }
+    return vec_ld( 0, p );
+}
 
 /***********************************************************************
- * STORE_16
- ***********************************************************************
- * v: vec_u8_t
- * p: uint8_t *
- * Stores the 16 bytes from v at address p
+ * vec_store16
  **********************************************************************/
-#define STORE_16( v, p )                  \
-    if( (long) p & 0xF )                  \
-    {                                     \
-        vec_u8_t hv, lv, tmp1, tmp2;      \
-        hv   = vec_ld( 0, p );            \
-        lv   = vec_ld( 16, p );           \
-        tmp2 = vec_lvsl( 0, p );          \
-        tmp1 = vec_perm( lv, hv, tmp2 );  \
-        tmp2 = vec_lvsr( 0, p );          \
-        hv   = vec_perm( tmp1, v, tmp2 ); \
-        lv   = vec_perm( v, tmp1, tmp2 ); \
-        vec_st( lv, 16, p );              \
-        vec_st( hv, 0, p );               \
-    }                                     \
-    else                                  \
-    {                                     \
-        vec_st( v, 0, p );                \
+static inline void vec_store16( vec_u8_t v, uint8_t * p )
+{
+    if( (long) p & 0xF )
+    {
+        vec_u8_t hv, lv, tmp1, tmp2;
+        hv   = vec_ld( 0, p );
+        lv   = vec_ld( 16, p );
+        tmp2 = vec_lvsl( 0, p );
+        tmp1 = vec_perm( lv, hv, tmp2 );
+        tmp2 = vec_lvsr( 0, p );
+        hv   = vec_perm( tmp1, v, tmp2 );
+        lv   = vec_perm( v, tmp1, tmp2 );
+        vec_st( lv, 16, p );
+        vec_st( hv, 0, p );
+        return;
     }
+    vec_st( v, 0, p );
+}
 
-/* FIXME We can do better than that */
-#define STORE_8( v, p ) \
-    { \
-        DECLARE_ALIGNED( uint8_t, _p[16], 16 ); \
-        vec_st( v, 0, _p ); \
-        memcpy( p, _p, 8 ); \
+/***********************************************************************
+ * vec_store8
+ **********************************************************************/
+static inline void vec_store8( vec_u8_t v, uint8_t * p )
+{
+    LOAD_ZERO;
+    long     align;
+    vec_u8_t hv, sel;
+
+    align = (long) p & 0xF;
+    hv    = vec_ld( 0, p );
+    sel   = (vec_u8_t) CV(-1,-1,-1,-1,-1,-1,-1,-1,0,0,0,0,0,0,0,0);
+
+    if( align )
+    {
+        vec_u8_t perm;
+        perm = vec_lvsr( 0, p );
+        v    = vec_perm( v, v, perm );
+        if( align > 8 )
+        {
+            vec_u8_t lv, hsel, lsel;
+            lv   = vec_ld( 16, p );
+            hsel = vec_perm( zero_u8v, sel, perm );
+            lsel = vec_perm( sel, zero_u8v, perm );
+            hv   = vec_sel( hv, v, hsel );
+            lv   = vec_sel( lv, v, lsel );
+            vec_st( lv, 16, p );
+        }
+        else
+        {
+            sel = vec_perm( sel, sel, perm );
+            hv  = vec_sel( hv, v, sel );
+        }
     }
+    else
+    {
+        hv = vec_sel( hv, v, sel );
+    }
+    vec_st( hv, 0, p );
+}
 
-/* Transpose 8x8 (vec_s16_t [8]) */
-#define TRANSPOSE8x8( a, b )           \
-    b[0] = vec_mergeh( a[0], a[4] ); \
-    b[1] = vec_mergel( a[0], a[4] ); \
-    b[2] = vec_mergeh( a[1], a[5] ); \
-    b[3] = vec_mergel( a[1], a[5] ); \
-    b[4] = vec_mergeh( a[2], a[6] ); \
-    b[5] = vec_mergel( a[2], a[6] ); \
-    b[6] = vec_mergeh( a[3], a[7] ); \
-    b[7] = vec_mergel( a[3], a[7] ); \
-    a[0] = vec_mergeh( b[0], b[4] ); \
-    a[1] = vec_mergel( b[0], b[4] ); \
-    a[2] = vec_mergeh( b[1], b[5] ); \
-    a[3] = vec_mergel( b[1], b[5] ); \
-    a[4] = vec_mergeh( b[2], b[6] ); \
-    a[5] = vec_mergel( b[2], b[6] ); \
-    a[6] = vec_mergeh( b[3], b[7] ); \
-    a[7] = vec_mergel( b[3], b[7] ); \
-    b[0] = vec_mergeh( a[0], a[4] ); \
-    b[1] = vec_mergel( a[0], a[4] ); \
-    b[2] = vec_mergeh( a[1], a[5] ); \
-    b[3] = vec_mergel( a[1], a[5] ); \
-    b[4] = vec_mergeh( a[2], a[6] ); \
-    b[5] = vec_mergel( a[2], a[6] ); \
-    b[6] = vec_mergeh( a[3], a[7] ); \
+/***********************************************************************
+ * vec_transpose8x8
+ **********************************************************************/
+static inline void vec_transpose8x8( vec_s16_t * a, vec_s16_t * b )
+{
+    b[0] = vec_mergeh( a[0], a[4] );
+    b[1] = vec_mergel( a[0], a[4] );
+    b[2] = vec_mergeh( a[1], a[5] );
+    b[3] = vec_mergel( a[1], a[5] );
+    b[4] = vec_mergeh( a[2], a[6] );
+    b[5] = vec_mergel( a[2], a[6] );
+    b[6] = vec_mergeh( a[3], a[7] );
     b[7] = vec_mergel( a[3], a[7] );
+    a[0] = vec_mergeh( b[0], b[4] );
+    a[1] = vec_mergel( b[0], b[4] );
+    a[2] = vec_mergeh( b[1], b[5] );
+    a[3] = vec_mergel( b[1], b[5] );
+    a[4] = vec_mergeh( b[2], b[6] );
+    a[5] = vec_mergel( b[2], b[6] );
+    a[6] = vec_mergeh( b[3], b[7] );
+    a[7] = vec_mergel( b[3], b[7] );
+    b[0] = vec_mergeh( a[0], a[4] );
+    b[1] = vec_mergel( a[0], a[4] );
+    b[2] = vec_mergeh( a[1], a[5] );
+    b[3] = vec_mergel( a[1], a[5] );
+    b[4] = vec_mergeh( a[2], a[6] );
+    b[5] = vec_mergel( a[2], a[6] );
+    b[6] = vec_mergeh( a[3], a[7] );
+    b[7] = vec_mergel( a[3], a[7] );
+}
 
-/* Transpose 4x4 (vec_s16_t [4]) */
-#define TRANSPOSE4x4( a, b ) \
-    (b)[0] = vec_mergeh( (a)[0], zero_s16v ); \
-    (b)[1] = vec_mergeh( (a)[1], zero_s16v ); \
-    (b)[2] = vec_mergeh( (a)[2], zero_s16v ); \
-    (b)[3] = vec_mergeh( (a)[3], zero_s16v ); \
-    (a)[0] = vec_mergeh( (b)[0], (b)[2] );   \
-    (a)[1] = vec_mergel( (b)[0], (b)[2] );   \
-    (a)[2] = vec_mergeh( (b)[1], (b)[3] );   \
-    (a)[3] = vec_mergel( (b)[1], (b)[3] );   \
-    (b)[0] = vec_mergeh( (a)[0], (a)[2] );   \
-    (b)[1] = vec_mergel( (a)[0], (a)[2] );   \
-    (b)[2] = vec_mergeh( (a)[1], (a)[3] );   \
-    (b)[3] = vec_mergel( (a)[1], (a)[3] );
+/***********************************************************************
+ * vec_transpose4x4
+ **********************************************************************/
+static inline void vec_transpose4x4( vec_s16_t * a, vec_s16_t * b )
+{
+#define WHATEVER a[0]
+    b[0] = vec_mergeh( a[0], WHATEVER );
+    b[1] = vec_mergeh( a[1], WHATEVER );
+    b[2] = vec_mergeh( a[2], WHATEVER );
+    b[3] = vec_mergeh( a[3], WHATEVER );
+    a[0] = vec_mergeh( b[0], b[2] );
+    a[1] = vec_mergel( b[0], b[2] );
+    a[2] = vec_mergeh( b[1], b[3] );
+    a[3] = vec_mergel( b[1], b[3] );
+    b[0] = vec_mergeh( a[0], a[2] );
+    b[1] = vec_mergel( a[0], a[2] );
+    b[2] = vec_mergeh( a[1], a[3] );
+    b[3] = vec_mergel( a[1], a[3] );
+#undef WHATEVER
+}
 
-/* Hadamar (vec_s16_t [4]) */
-#define HADAMAR( a, b ) \
-    s01v   = vec_add( (a)[0], (a)[1] ); \
-    s23v   = vec_add( (a)[2], (a)[3] ); \
-    d01v   = vec_sub( (a)[0], (a)[1] ); \
-    d23v   = vec_sub( (a)[2], (a)[3] ); \
-    (b)[0] = vec_add( s01v, s23v );     \
-    (b)[1] = vec_sub( s01v, s23v );     \
-    (b)[2] = vec_sub( d01v, d23v );     \
-    (b)[3] = vec_add( d01v, d23v );
-
+/***********************************************************************
+ * vec_hadamar
+ ***********************************************************************
+ * b[0] = a[0] + a[1] + a[2] + a[3]
+ * b[1] = a[0] + a[1] - a[2] - a[3]
+ * b[2] = a[0] - a[1] - a[2] + a[3]
+ * b[3] = a[0] - a[1] + a[2] - a[3]
+ **********************************************************************/
+static inline void vec_hadamar( vec_s16_t * a, vec_s16_t * b )
+{
+    b[2] = vec_add( a[0], a[1] );
+    b[3] = vec_add( a[2], a[3] );
+    a[0] = vec_sub( a[0], a[1] );
+    a[2] = vec_sub( a[2], a[3] );
+    b[0] = vec_add( b[2], b[3] );
+    b[1] = vec_sub( b[2], b[3] );
+    b[2] = vec_sub( a[0], a[2] );
+    b[3] = vec_add( a[0], a[2] );
+}

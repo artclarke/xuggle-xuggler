@@ -44,13 +44,13 @@ static int name( uint8_t *pix1, int i_pix1,            \
     int y;                                             \
     DECLARE_ALIGNED( int, sum, 16 );                   \
                                                        \
-    LOAD_ZERO;                                     \
+    LOAD_ZERO;                                         \
     vec_u8_t  pix1v, pix2v;                            \
     vec_s32_t sumv = zero_s32v;                        \
     for( y = 0; y < ly; y++ )                          \
     {                                                  \
-        LOAD_##lx( pix1, pix1v );                      \
-        LOAD_##lx( pix2, pix2v );                      \
+        pix1v = vec_load##lx( pix1 );                  \
+        pix2v = vec_load##lx( pix2 );                  \
         sumv = (vec_s32_t) vec_sum4s(                  \
                    vec_sub( vec_max( pix1v, pix2v ),   \
                             vec_min( pix1v, pix2v ) ), \
@@ -81,17 +81,15 @@ static inline int pixel_satd_8x8_altivec( uint8_t *pix1, int i_pix1,
     vec_s16_t pix1s16v, pix2s16v;
     vec_s16_t diffv[8];
     vec_s16_t tmpv[8];
-    vec_s16_t s01v, s23v, d01v, d23v;
 
     /* Diff 8x8 */
     for( i = 0; i < 8; i++ )
     {
-        LOAD_8( pix1, pix1u8v );
-        LOAD_8( pix2, pix2u8v );
+        pix1u8v = vec_load8( pix1 );
+        pix2u8v = vec_load8( pix2 );
 
-        /* u8 -> s16 conversion */
-        CONVERT_U8_TO_S16( pix1u8v, pix1s16v );
-        CONVERT_U8_TO_S16( pix2u8v, pix2s16v );
+        pix1s16v = vec_u8_to_s16( pix1u8v );
+        pix2s16v = vec_u8_to_s16( pix2u8v );
 
         diffv[i] = vec_sub( pix1s16v, pix2s16v );
 
@@ -100,15 +98,15 @@ static inline int pixel_satd_8x8_altivec( uint8_t *pix1, int i_pix1,
     }
 
     /* Hadamar H */
-    HADAMAR( &diffv[0], &tmpv[0] );
-    HADAMAR( &diffv[4], &tmpv[4] );
+    vec_hadamar( &diffv[0], &tmpv[0] );
+    vec_hadamar( &diffv[4], &tmpv[4] );
 
     /* Transpose */
-    TRANSPOSE8x8( tmpv, diffv );
+    vec_transpose8x8( tmpv, diffv );
 
     /* Hadamar V */
-    HADAMAR( &diffv[0], &tmpv[0] );
-    HADAMAR( &diffv[4], &tmpv[4] );
+    vec_hadamar( &diffv[0], &tmpv[0] );
+    vec_hadamar( &diffv[4], &tmpv[4] );
 
     /* Sum of absolute values */
     for( i = 0; i < 8; i++ )
@@ -163,16 +161,15 @@ static inline int pixel_satd_4x4_altivec( uint8_t *pix1, int i_pix1,
     vec_s16_t pix1s16v, pix2s16v;
     vec_s16_t diffv[4];
     vec_s16_t tmpv[4];
-    vec_s16_t s01v, s23v, d01v, d23v;
 
     /* Diff 4x8 */
     for( i = 0; i < 4; i++ )
     {
-        LOAD_4( pix1, pix1u8v );
-        LOAD_4( pix2, pix2u8v );
+        pix1u8v = vec_load4( pix1 );
+        pix2u8v = vec_load4( pix2 );
 
-        CONVERT_U8_TO_S16( pix1u8v, pix1s16v );
-        CONVERT_U8_TO_S16( pix2u8v, pix2s16v );
+        pix1s16v = vec_u8_to_s16( pix1u8v );
+        pix2s16v = vec_u8_to_s16( pix2u8v );
 
         diffv[i] = vec_sub( pix1s16v, pix2s16v );
 
@@ -181,13 +178,13 @@ static inline int pixel_satd_4x4_altivec( uint8_t *pix1, int i_pix1,
     }
 
     /* Hadamar H */
-    HADAMAR( diffv, tmpv );
+    vec_hadamar( diffv, tmpv );
 
     /* Transpose */
-    TRANSPOSE4x4( tmpv, diffv );
+    vec_transpose4x4( tmpv, diffv );
 
     /* Hadamar V */
-    HADAMAR( diffv, tmpv );
+    vec_hadamar( diffv, tmpv );
 
     /* Sum of absolute values */
     for( i = 0; i < 4; i++ )
