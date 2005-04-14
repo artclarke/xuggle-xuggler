@@ -499,6 +499,7 @@ static int  Parse( int argc, char **argv,
                     fprintf( stderr, "bad fps `%s'\n", optarg );
                     return -1;
                 }
+                break;
             }
             case 'A':
                 param->analyse.inter = 0;
