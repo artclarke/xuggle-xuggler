@@ -164,7 +164,7 @@ static void Help( x264_param_t *defaults )
              "\n"
              "  -I, --keyint <integer>      Maximum GOP size [%d]\n"
              "  -i, --min-keyint <integer>  Minimum GOP size [%d]\n"
-             "      --scenecut <integer>    How aggresively to insert extra I frames [%d]\n"
+             "      --scenecut <integer>    How aggressively to insert extra I-frames [%d]\n"
              "  -b, --bframe <integer>      Number of B-frames between I and P [%d]\n"
              "      --no-b-adapt            Disable adaptive B-frame decision\n"
              "      --b-bias <integer>      Influences how often B-frames are used [%d]\n"
@@ -193,11 +193,11 @@ static void Help( x264_param_t *defaults )
              "                                  - 3: Nth pass, overwrites stats file\n"
              "      --stats <string>        Filename for 2 pass stats [\"%s\"]\n"
              "      --rceq <string>         Ratecontrol equation [\"%s\"]\n"
-             "      --qcomp <float>         0.0 => CBR, 1.0 => CQP [%.2f]\n"
-             "      --cplxblur <float>      reduce fluctuations in QP (before curve compression) [%.1f]\n"
-             "      --qblur <float>         reduce fluctuations in QP (after curve compression) [%.1f]\n"
+             "      --qcomp <float>         QP curve compression: 0.0 => CBR, 1.0 => CQP [%.2f]\n"
+             "      --cplxblur <float>      Reduce fluctuations in QP (before curve compression) [%.1f]\n"
+             "      --qblur <float>         Reduce fluctuations in QP (after curve compression) [%.1f]\n"
              "\n"
-             "  -A, --analyse <string>      Analyse options: [\"i4x4|p8x8|b8x8\"]\n"
+             "  -A, --analyse <string>      Analyse options: [\"i4x4,p8x8,b8x8\"]\n"
              "                                  - i4x4\n"
              "                                  - p8x8, p4x4, b8x8\n"
              "                                  - none, all\n"
@@ -208,13 +208,13 @@ static void Help( x264_param_t *defaults )
              "      --no-chroma-me          Ignore chroma in motion estimation\n"
              "\n"
              "      --level <integer>       Specify level (as defined by Annex A)\n"
-             "  -s, --sar width:height      Specify Sample Aspect Ratio\n"
+             "      --sar width:height      Specify Sample Aspect Ratio\n"
              "      --fps <float|rational>  Specify framerate\n"
              "      --frames <integer>      Maximum number of frames to encode\n"
              "  -o, --output                Specify output file\n"
              "\n"
-             "      --no-asm                Disable any CPU optims\n"
-             "      --no-psnr               Disable PSNR computaion\n"
+             "      --no-asm                Disable all CPU optimizations\n"
+             "      --no-psnr               Disable PSNR computation\n"
              "      --quiet                 Quiet Mode\n"
              "  -v, --verbose               Print stats for each frame\n"
              "      --aud                   Use access unit delimiters\n"
@@ -371,7 +371,7 @@ static int  Parse( int argc, char **argv,
 
         int c;
 
-        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:f:o:s:A:m:p:vw",
+        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:f:o:A:m:p:vw",
                          long_options, &long_options_index);
 
         if( c == -1 )
