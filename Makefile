@@ -33,7 +33,7 @@ libx264.a: $(OBJS) $(OBJASM)
 	ranlib libx264.a
 
 x264: libx264.a x264.o
-	$(CC) -o $@ x264.o libx264.a $(LDFLAGS)
+	$(CC) -o $@ x264.o libx264.a $(CFLAGS) $(LDFLAGS)
 
 checkasm: testing/checkasm.o libx264.a
 	$(CC) -o $@ $< libx264.a $(LDFLAGS)
@@ -58,6 +58,7 @@ clean:
 	rm -f $(OBJS) $(OBJASM) config.h *.a x264.o .depend x264 TAGS
 
 distclean: clean
+	rm -f config.mak
 
 DIR_INSTALL="/usr/local"
 install: x264

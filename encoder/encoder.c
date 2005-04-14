@@ -87,11 +87,6 @@ static int64_t x264_sqe( x264_t *h, uint8_t *pix1, int i_pix_stride, uint8_t *pi
     return i_sqe;
 }
 
-static float x264_mse( int64_t i_sqe, int64_t i_size )
-{
-    return (double)i_sqe / ((double)65025.0 * (double)i_size);
-}
-
 static float x264_psnr( int64_t i_sqe, int64_t i_size )
 {
     double f_mse = (double)i_sqe / ((double)65025.0 * (double)i_size);
@@ -1475,15 +1470,14 @@ void    x264_encoder_close  ( x264_t *h )
             if( h->param.analyse.b_psnr )
             {
                 x264_log( h, X264_LOG_INFO,
-                          "slice %s:%-4d Avg QP:%5.2f Avg size:%6.0f PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f MSE*Size:%5.3f\n",
+                          "slice %s:%-4d Avg QP:%5.2f Avg size:%6.0f PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f\n",
                           slice_name[i_slice],
                           i_count,
                           (double)h->stat.i_slice_qp[i_slice] / i_count,
                           (double)h->stat.i_slice_size[i_slice] / i_count,
                           h->stat.f_psnr_mean_y[i_slice] / i_count, h->stat.f_psnr_mean_u[i_slice] / i_count, h->stat.f_psnr_mean_v[i_slice] / i_count,
                           h->stat.f_psnr_average[i_slice] / i_count,
-                          x264_psnr( h->stat.i_sqe_global[i_slice], i_count * i_yuv_size ),
-                          x264_mse( h->stat.i_sqe_global[i_slice], i_count * i_yuv_size ) * h->stat.i_slice_size[i_slice] / i_count );
+                          x264_psnr( h->stat.i_sqe_global[i_slice], i_count * i_yuv_size ) );
             }
             else
             {
