@@ -1199,7 +1199,7 @@ static int close_file_mp4( hnd_t handle )
         recompute_bitrate_mp4(p_mp4->p_file, p_mp4->i_track);
         M4_SetMoviePLIndication(p_mp4->p_file, M4_PL_VISUAL, 0x15);
         M4_SetMovieVersionInfo(p_mp4->p_file, H264_AVC_File, 0);
-        M4_SetStorageMode(p_mp4->p_file, M4_FLAT);
+        M4_SetStorageMode(p_mp4->p_file, M4_STREAMABLE);
         M4_MovieClose(p_mp4->p_file);
     }
 
@@ -1218,7 +1218,7 @@ static int open_file_mp4( char *psz_filename, hnd_t *p_handle )
         return -1;
 
     memset(p_mp4, 0, sizeof(mp4_t));
-    p_mp4->p_file = M4_MovieOpen(psz_filename, M4_OPEN_WRITE);
+    p_mp4->p_file = M4_MovieOpen(psz_filename, M4_WRITE_EDIT);
 
     if ((p_mp4->p_sample = M4_NewSample()) == NULL)
     {
