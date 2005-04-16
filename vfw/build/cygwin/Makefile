@@ -11,6 +11,8 @@
 # $Id: Makefile,v 1.1 2004/06/03 19:29:33 fenrir Exp $
 ##############################################################################
 
+include config.mak
+
 # Dll to build
 DLL=x264vfw.dll
 
@@ -95,10 +97,7 @@ $(DLL): $(DIR_BUILD) $(OBJECTS)
 	-mno-cygwin -shared -Wl,-dll,--out-implib,$@.a,--enable-stdcall-fixup \
 	-o $@ \
 	$(OBJECTS) driverproc.def \
-	-lgdi32 -lwinmm -lcomdlg32 -lcomctl32 $(LDFLAGS) 
-ifdef NDEBUG
-	@strip $(DIR_BUILD)/$(DLL)
-endif
+	-lgdi32 -lwinmm -lcomdlg32 -lcomctl32 $(LDFLAGS) $(CFLAGS)
 
 clean:
 	@echo " Cl: Object files and target lib"

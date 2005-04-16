@@ -9,9 +9,10 @@ echo ""
 echo "  --help                   print this message"
 echo "  --enable-avis-input      enables avisynth input (win32 only)"
 echo "  --enable-mp4-output      enables mp4 output (using gpac)"
+echo "  --enable-vfw             compiles the VfW frontend"
+echo "  --enable-debug           adds -g, doesn't strip"
 echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS"
 echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS"
-echo "  --enable-debug           adds -g, doesn't strip"
 echo ""
 exit 1
 fi
@@ -19,6 +20,7 @@ fi
 avis_input="no"
 mp4_output="no"
 debug="no"
+vfw="no"
 
 CC="gcc"
 CFLAGS="-Wall -I. -O4 -funroll-loops -D__X264__"
@@ -116,14 +118,20 @@ for opt do
             CFLAGS="$CFLAGS -g"
             debug="yes"
             ;;
+        --enable-vfw)
+            vfw="yes"
+            ;;
         *)
             echo "Unknown option $opt, ignored"
             ;;
     esac
 done
 
+VFWFLAGS=
 if [ "$debug" != "yes" ]; then
     CFLAGS="$CFLAGS -s"
+    LDFLAGS="$LDFLAGS -s"
+    VFWFLAGS="-s"
 fi
 
 rm -f config.mak
@@ -135,12 +143,20 @@ CFLAGS=$CFLAGS
 LDFLAGS=$LDFLAGS
 AS=$AS
 ASFLAGS=$ASFLAGS
+VFW=$vfw
 EOF
+
+if [ "$vfw" == "yes" ]; then
+    rm -f vfw/build/cygwin/config.mak
+    echo "LDFLAGS=$VFWFLAGS" > vfw/build/cygwin/config.mak
+    echo "default: x264vfw.dll" >> config.mak
+fi
 
 echo "Platform:   $ARCH"
 echo "System:     $SYS"
 echo "avis input: $avis_input"
 echo "mp4 output: $mp4_output"
+echo "vfw:        $vfw"
 echo "debug:      $debug"
 echo
 echo "You can run 'make' now."
