@@ -101,8 +101,8 @@ static int close_file_mp4( hnd_t handle );
 #endif
 
 static void Help( x264_param_t *defaults );
-static int  Parse( int argc, char **argv, x264_param_t  *param, hnd_t *p_hin, hnd_t *p_hout, int *pb_decompress );
-static int  Encode( x264_param_t  *param, hnd_t hin,  hnd_t hout );
+static int  Parse( int argc, char **argv, x264_param_t  *param, hnd_t *p_hin, hnd_t *p_hout, int *pb_decompress, int *b_progress );
+static int  Encode( x264_param_t  *param, hnd_t hin,  hnd_t hout, int b_progress );
 static int  Decode( x264_param_t  *param, FILE *fh26l, hnd_t hout );
 
 
@@ -117,6 +117,7 @@ int main( int argc, char **argv )
     hnd_t   hin;
 
     int     b_decompress;
+    int     b_progress;
     int     i_ret;
 
 #ifdef _MSC_VER
@@ -127,7 +128,7 @@ int main( int argc, char **argv )
     x264_param_default( &param );
 
     /* Parse command line */
-    if( Parse( argc, argv, &param, &hin, &hout, &b_decompress ) < 0 )
+    if( Parse( argc, argv, &param, &hin, &hout, &b_decompress, &b_progress ) < 0 )
     {
         return -1;
     }
@@ -138,7 +139,7 @@ int main( int argc, char **argv )
     if( b_decompress )
         i_ret = Decode( &param, hin, hout );
     else
-        i_ret = Encode( &param, hin, hout );
+        i_ret = Encode( &param, hin, hout, b_progress );
 
     return i_ret;
 }
@@ -217,6 +218,7 @@ static void Help( x264_param_t *defaults )
              "      --no-psnr               Disable PSNR computation\n"
              "      --quiet                 Quiet Mode\n"
              "  -v, --verbose               Print stats for each frame\n"
+             "      --progress              Show a progress indicator while encoding\n"
              "      --aud                   Use access unit delimiters\n"
              "\n",
             X264_BUILD, X264_VERSION,
@@ -262,7 +264,7 @@ static void Help( x264_param_t *defaults )
  *****************************************************************************/
 static int  Parse( int argc, char **argv,
                    x264_param_t  *param,
-                   hnd_t *p_hin, hnd_t *p_hout, int *pb_decompress )
+                   hnd_t *p_hin, hnd_t *p_hout, int *pb_decompress, int *b_progress )
 {
     char *psz_filename = NULL;
     x264_param_t defaults = *param;
@@ -273,6 +275,7 @@ static int  Parse( int argc, char **argv,
     *p_hout = NULL;
     *p_hin  = NULL;
     *pb_decompress = 0;
+    *b_progress = 0;
 
     /* Default input file driver */
     p_open_infile = open_file_yuv;
@@ -319,6 +322,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_NO_CHROMA_ME 281
 #define OPT_NO_CABAC 282
 #define OPT_AUD 283
+#define OPT_PROGRESS 284
 
         static struct option long_options[] =
         {
@@ -365,6 +369,7 @@ static int  Parse( int argc, char **argv,
             { "no-psnr", no_argument,       NULL, OPT_NOPSNR },
             { "quiet",   no_argument,       NULL, OPT_QUIET },
             { "verbose", no_argument,       NULL, 'v' },
+            { "progress",no_argument,       NULL, OPT_PROGRESS },
             { "aud",     no_argument,       NULL, OPT_AUD },
             {0, 0, 0, 0}
         };
@@ -591,6 +596,9 @@ static int  Parse( int argc, char **argv,
             case OPT_AUD:
                 param->b_aud = 1;
                 break;
+            case OPT_PROGRESS:
+                *b_progress = 1;
+                break;
             default:
                 fprintf( stderr, "unknown option (%c)\n", optopt );
                 return -1;
@@ -615,7 +623,8 @@ static int  Parse( int argc, char **argv,
                 if( *psz >= '0' && *psz <= '9'
                     && sscanf( psz, "%ux%u", &param->i_width, &param->i_height ) == 2 )
                 {
-                    fprintf( stderr, "x264: file name gives %dx%d\n", param->i_width, param->i_height );
+                    if( param->i_log_level > X264_LOG_NONE )
+                        fprintf( stderr, "x264: file name gives %dx%d\n", param->i_width, param->i_height );
                     break;
                 }
             }
@@ -856,7 +865,7 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
 /*****************************************************************************
  * Encode:
  *****************************************************************************/
-static int  Encode( x264_param_t  *param, hnd_t hin, hnd_t hout )
+static int  Encode( x264_param_t  *param, hnd_t hin, hnd_t hout, int b_progress )
 {
     x264_t *h;
     x264_picture_t pic;
@@ -865,6 +874,7 @@ static int  Encode( x264_param_t  *param, hnd_t hin, hnd_t hout )
     int64_t i_start, i_end;
     int64_t i_file;
     int     i_frame_size;
+    int     i_progress;
 
     i_frame_total = p_get_frame_total( hin, param->i_width, param->i_height );
 
@@ -889,17 +899,29 @@ static int  Encode( x264_param_t  *param, hnd_t hin, hnd_t hout )
 
     i_start = x264_mdate();
     /* Encode frames */
-    for( i_frame = 0, i_file = 0; i_ctrl_c == 0 && i_frame < i_frame_total; i_frame++ )
+    if( param->i_maxframes > 0 && param->i_maxframes < i_frame_total )
+        i_frame_total = param->i_maxframes;
+    for( i_frame = 0, i_file = 0, i_progress = 0; i_ctrl_c == 0 && i_frame < i_frame_total; )
     {
-        if( param->i_maxframes!=0 && i_frame>=param->i_maxframes )
-            break;
-
         if( p_read_frame( &pic, hin, param->i_width, param->i_height ) )
             break;
 
         pic.i_pts = i_frame * param->i_fps_den;
 
         i_file += Encode_frame( h, hout, &pic );
+
+        i_frame++;
+
+        /* update status line (up to 1000 times per input file) */
+        if( b_progress && param->i_log_level < X264_LOG_DEBUG && 
+            i_frame * 1000 / i_frame_total > i_progress )
+        {
+            int64_t i_elapsed = x264_mdate() - i_start;
+            double fps = i_elapsed > 0 ? i_frame * 1000000. / i_elapsed : 0;
+            i_progress = i_frame * 1000 / i_frame_total;
+            fprintf( stderr, "encoded frames: %d/%d (%.1f%%), %.2f fps   \r", i_frame, 
+                     i_frame_total, (float)i_progress / 10, fps);
+        }
     }
     /* Flush delayed B-frames */
     do {
