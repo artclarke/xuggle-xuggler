@@ -920,7 +920,8 @@ static int  Encode( x264_param_t  *param, hnd_t hin, hnd_t hout, int b_progress 
             double fps = i_elapsed > 0 ? i_frame * 1000000. / i_elapsed : 0;
             i_progress = i_frame * 1000 / i_frame_total;
             fprintf( stderr, "encoded frames: %d/%d (%.1f%%), %.2f fps   \r", i_frame, 
-                     i_frame_total, (float)i_progress / 10, fps);
+                     i_frame_total, (float)i_progress / 10, fps );
+            fflush( stderr ); // needed in windows
         }
     }
     /* Flush delayed B-frames */
