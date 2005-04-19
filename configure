@@ -77,6 +77,9 @@ case "$UNAMEM" in
     ;;
   x86_64)
     ARCH="X86_64"
+    CFLAGS="$CFLAGS -DHAVE_MMXEXT -DHAVE_SSE2"
+    AS="yasm"
+    ASFLAGS="-f elf -m amd64"
     ;;
   "Power Macintosh"|ppc)
     ARCH="PPC"

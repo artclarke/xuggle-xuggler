@@ -18,7 +18,7 @@
 ;* Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 ;*****************************************************************************
 
-BITS 32
+BITS 64
 
 ;=============================================================================
 ; Macros and other preprocessor constants
@@ -37,7 +37,7 @@ BITS 32
 ; Read only data
 ;=============================================================================
 
-SECTION .rodata data align=16
+SECTION .rodata
 
 ALIGN 16
 mmx_dw_one:
@@ -51,22 +51,8 @@ mmx_dw_5:
 
 SECTION .data
 
-width:
-    dd 0
-height:
-    dd 0
-dstp1:
-    dd 0
-dstp2:
-    dd 0
 buffer:
-    dd 0
-dst1:
-    dd 0
-dst2:
-    dd 0
-src:
-    dd 0
+    dq 0
 
 
 ;=============================================================================
@@ -108,10 +94,10 @@ src:
 %endmacro
 
 %macro FILT_ALL 1
-    LOAD_4      mm1, mm2, mm3, mm4, [%1], [%1 + ecx], [%1 + 2 * ecx], [%1 + ebx], mm0
+    LOAD_4      mm1, mm2, mm3, mm4, [%1], [%1 + rcx], [%1 + 2 * rcx], [%1 + rbx], mm0
     FILT_2      mm1, mm2
-    movd        mm5, [%1 + 4 * ecx]
-    movd        mm6, [%1 + edx]
+    movd        mm5, [%1 + 4 * rcx]
+    movd        mm6, [%1 + rdx]
     FILT_4      mm1, mm3, mm4
     punpcklbw   mm5, mm0
     punpcklbw   mm6, mm0
@@ -146,134 +132,118 @@ cglobal x264_center_filter_mmxext
 ALIGN 16
 x264_center_filter_mmxext :
 
-    push        edi
-    push        esi
-    push        ebx
-    push        ebp
+    push        rbp
+    mov         rbp,    rsp
+    push        rbx
+    push        r12
+    push        r13
+    push        r14
+    push        r15
 
-    mov         esi,      [esp + 36]         ; src
+    mov         r12,    r8                  ; src
+    movsxd      r13,    r9d                 ; src_stride
+    mov         r10,    rdx                 ; dst2
+    movsxd      r11,    ecx                 ; dst2_stride
+    mov         r8,     rdi                 ; dst1
+    movsxd      r9,     esi                 ; dst1_stride
+    movsxd      r14, dword [rbp + 16]       ; width
+    movsxd      r15, dword [rbp + 24]       ; height
 
-    mov         edx,      [esp + 20]         ; dst1
-    mov         [dst1],   edx
+    mov         rsi,      r12               ; src
 
-    mov         edi,      [esp + 28]         ; dst2
-    mov         [dst2],   edi
+    mov         rcx,      r13               ; src_stride
 
-    mov         eax,      [esp + 44]         ; width
-    mov         [width],  eax
+    sub         rsp,      rcx
+    sub         rsp,      rcx                ; rsp is now at the beginning of the buffer
+    mov         [buffer], rsp               ; buffer
 
-    mov         eax,      [esp + 48]         ; height
-    mov         [height], eax
+    ;sub        rsi,      2
+    sub         rsi,      rcx
+    sub         rsi,      rcx                ; rsi - 2 - 2 * stride
+    mov         r12,      rsi
 
-    mov         eax,      [esp + 24]         ; dst1_stride
-    mov         [dstp1],  eax
+    ;sub        rdi,      2
 
-    mov         eax,      [esp + 32]         ; dst2_stride
-    mov         [dstp2],  eax
-
-    mov         ecx,      [esp + 40]         ; src_stride
-
-    sub         esp,      ecx
-    sub         esp,      ecx                ; esp is now at the beginning of the buffer
-    mov         [buffer], esp
-
-    ;sub        esi,      2
-    sub         esi,      ecx
-    sub         esi,      ecx                ; esi - 2 - 2 * stride
-    mov         [src],    esi
-
-    ;sub        edi,      2
-
-    mov         ebx,      ecx
-    shl         ebx,      1
-    add         ebx,      ecx                ; 3 * src_stride
-
-    mov         edx,      ecx
-    shl         edx,      1
-    add         edx,      ebx                ; 5 * src_stride
+    lea         rbx,      [rcx+rcx*2]       ; 3 * src_stride
+    lea         rdx,      [rcx+rcx*4]       ; 5 * src_stride
 
     pxor        mm0,      mm0                ; 0 ---> mm0
     movq        mm7,      [mmx_dd_one]       ; for rounding
 
-    mov         ebp,      [height]
+    mov         rbp,      r15
 
 loopcy:
 
-    dec         ebp
-    mov         eax,    [width]
-    mov         edi,    [dst1]
-    mov         esp,    [buffer]
-    mov         esi,    [src]
+    dec         rbp
+    mov         rax,    r14
+    mov         rdi,    r8
+    mov         rsp,    [buffer]
+    mov         rsi,    r12
 
-    FILT_ALL    esi
+    FILT_ALL    rsi
 
     pshufw      mm2,    mm1, 0
-    movq        [esp],  mm2
-    add         esp,    8
-    movq        [esp],  mm1
-    add         esp,    8
+    movq        [rsp],  mm2
+    movq        [rsp+8],mm1
     paddw       mm1,    [mmx_dw_one]
     psraw       mm1,    5
+    add         rsp,    16
 
     packuswb    mm1,    mm1
-    movd        [edi],  mm1
+    movd        [rdi],  mm1
 
-    sub         eax,    8
-    add         edi,    4
-    add         esi,    4
+    sub         rax,    8
+    add         rdi,    4
+    add         rsi,    4
 
 loopcx1:
 
-    sub         eax,    4
+    sub         rax,    4
 
-    FILT_ALL    esi
+    FILT_ALL    rsi
 
-    movq        [esp],  mm1
+    movq        [rsp],  mm1
     paddw       mm1,    [mmx_dw_one]
     psraw       mm1,    5
     packuswb    mm1,    mm1
-    movd        [edi],  mm1
+    movd        [rdi],  mm1
 
-    add         esp,    8
-    add         esi,    4
-    add         edi,    4
-    test        eax,    eax
+    add         rsp,    8
+    add         rsi,    4
+    add         rdi,    4
+    test        rax,    rax
     jnz         loopcx1
 
-    FILT_ALL    esi
+    FILT_ALL    rsi
 
     pshufw      mm2,    mm1,  7
-    movq        [esp],  mm1
-    add         esp,    8
-    movq        [esp],  mm2
+    movq        [rsp],  mm1
+    movq        [rsp+8],  mm2
     paddw       mm1,    [mmx_dw_one]
     psraw       mm1,    5
     packuswb    mm1,    mm1
-    movd        [edi],  mm1
+    movd        [rdi],  mm1
+    add         rsp,    8
 
-    mov         esi,    [src]
-    add         esi,    ecx
-    mov         [src],  esi
+    add         r12,    rcx
 
-    mov         edi,    [dst1]
-    add         edi,    [dstp1]
-    mov         [dst1], edi
+    add         r8,     r9
 
-    mov         eax,    [width]
-    mov         edi,    [dst2]
-    mov         esp,    [buffer]
-    add         esp,    4
+    mov         rax,    r14
+    mov         rdi,    r10
+    mov         rsp,    [buffer]
+    add         rsp,    4
 
 loopcx2:
 
-    sub         eax,    4
+    sub         rax,    4
 
-    movq        mm2,    [esp + 2 * eax + 2]
-    movq        mm3,    [esp + 2 * eax + 4]
-    movq        mm4,    [esp + 2 * eax + 6]
-    movq        mm5,    [esp + 2 * eax + 8]
-    movq        mm1,    [esp + 2 * eax]
-    movq        mm6,    [esp + 2 * eax + 10]
+    movq        mm2,    [rsp + 2 * rax + 2]
+    movq        mm3,    [rsp + 2 * rax + 4]
+    movq        mm4,    [rsp + 2 * rax + 6]
+    movq        mm5,    [rsp + 2 * rax + 8]
+    movq        mm1,    [rsp + 2 * rax]
+    movq        mm6,    [rsp + 2 * rax + 10]
     paddw       mm2,    mm5
     paddw       mm3,    mm4
     paddw       mm1,    mm6
@@ -308,25 +278,27 @@ loopcx2:
     packssdw    mm2,    mm3
     packuswb    mm2,    mm0
 
-    movd        [edi + eax], mm2
+    movd        [rdi + rax], mm2
 
-    test        eax,    eax
+    test        rax,    rax
     jnz         loopcx2
 
-    add         edi,    [dstp2]
-    mov         [dst2], edi
+    add         rdi,    r11
+    mov         r10,    rdi
 
-    test        ebp,    ebp
+    test        rbp,    rbp
     jnz         loopcy
 
-    mov         esp,    [buffer]
-    shl         ecx,    1
-    add         esp,    ecx
+    mov         rsp,    [buffer]
+    shl         rcx,    1
+    add         rsp,    rcx
 
-    pop         ebp
-    pop         ebx
-    pop         esi
-    pop         edi
+    pop         r15
+    pop         r14
+    pop         r13
+    pop         r12
+    pop         rbx
+    pop         rbp
 
     ret
 
@@ -340,44 +312,44 @@ loopcx2:
 
 ALIGN 16
 x264_horizontal_filter_mmxext :
-    push edi
-    push esi
+    movsxd      r10,    esi                  ; dst_stride
+    movsxd      r11,    ecx                  ; src_stride
 
-    mov         edi,    [esp + 12]           ; dst
-    mov         esi,    [esp + 20]           ; src
+;   mov         rdi,    rdi                  ; dst
+    mov         rsi,    rdx                  ; src
 
     pxor        mm0,    mm0
     movq        mm7,    [mmx_dw_one]
 
-    mov         ecx,    [esp + 32]           ; height
+    movsxd      rcx,    r9d                  ; height
 
-    sub         esi,    2
+    sub         rsi,    2
 
 loophy:
 
-    dec         ecx
-    mov         eax,    [esp + 28]           ; width
+    dec         rcx
+    movsxd      rax,    r8d                  ; width
 
 loophx:
 
-    sub         eax,    8
+    sub         rax,    8
 
-    LOAD_4      mm1,    mm2, mm3, mm4, [esi + eax], [esi + eax + 1], [esi + eax + 2], [esi + eax + 3], mm0
+    LOAD_4      mm1,    mm2, mm3, mm4, [rsi + rax], [rsi + rax + 1], [rsi + rax + 2], [rsi + rax + 3], mm0
     FILT_2      mm1,    mm2
-    movd        mm5,    [esi + eax + 4]
-    movd        mm6,    [esi + eax + 5]
+    movd        mm5,    [rsi + rax + 4]
+    movd        mm6,    [rsi + rax + 5]
     FILT_4      mm1,    mm3, mm4
-    movd        mm2,    [esi + eax + 4]
-    movd        mm3,    [esi + eax + 6]
+    movd        mm2,    [rsi + rax + 4]
+    movd        mm3,    [rsi + rax + 6]
     punpcklbw   mm5,    mm0
     punpcklbw   mm6,    mm0
     FILT_6      mm1,    mm5, mm6, mm7
-    movd        mm4,    [esi + eax + 7]
-    movd        mm5,    [esi + eax + 8]
+    movd        mm4,    [rsi + rax + 7]
+    movd        mm5,    [rsi + rax + 8]
     punpcklbw   mm2,    mm0
     punpcklbw   mm3,    mm0                  ; mm2(1), mm3(20), mm6(-5) ready
     FILT_2      mm2,    mm6
-    movd        mm6,    [esi + eax + 9]
+    movd        mm6,    [rsi + rax + 9]
     punpcklbw   mm4,    mm0
     punpcklbw   mm5,    mm0                  ; mm2(1-5), mm3(20), mm4(20), mm5(-5) ready
     FILT_4      mm2,    mm3, mm4
@@ -385,18 +357,15 @@ loophx:
     FILT_6      mm2,    mm5, mm6, mm7
 
     packuswb    mm1,    mm2
-    movq        [edi + eax],  mm1
+    movq        [rdi + rax],  mm1
 
-    test        eax,    eax
+    test        rax,    rax
     jnz         loophx
 
-    add         esi,    [esp + 24]           ; src_pitch
-    add         edi,    [esp + 16]           ; dst_pitch
+    add         rsi,    r11                  ; src_pitch
+    add         rdi,    r10                  ; dst_pitch
 
-    test        ecx,    ecx
+    test        rcx,    rcx
     jnz         loophy
-
-    pop         esi
-    pop         edi
 
     ret

@@ -21,7 +21,7 @@
 ;* Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 ;*****************************************************************************
 
-BITS 32
+BITS 64
 
 ;=============================================================================
 ; Macros and other preprocessor constants
@@ -51,27 +51,23 @@ ALIGN 16
 ;   int __cdecl x264_cpu_cpuid_test( void ) return 0 if unsupported
 ;-----------------------------------------------------------------------------
 x264_cpu_cpuid_test:
-    pushfd
-    push    ebx
-    push    ebp
-    push    esi
-    push    edi
+    pushfq
+    push    rbx
+    push    rbp
 
-    pushfd
-    pop     eax
+    pushfq
+    pop     rax
     mov     ebx, eax
     xor     eax, 0x200000
-    push    eax
-    popfd
-    pushfd
-    pop     eax
+    push    rax
+    popfq
+    pushfq
+    pop     rax
     xor     eax, ebx
     
-    pop     edi
-    pop     esi
-    pop     ebp
-    pop     ebx
-    popfd
+    pop     rbp
+    pop     rbx
+    popfq
     ret
 
 ALIGN 16
@@ -80,31 +76,21 @@ ALIGN 16
 ;-----------------------------------------------------------------------------
 x264_cpu_cpuid:
 
-    push    ebp
-    mov     ebp,    esp
-    push    ebx
-    push    esi
-    push    edi
+    push    rbp
+    push    rbx
+    mov	    r10,    rcx
+    mov     r11,    rdx
     
-    mov     eax,    [ebp +  8]
+    mov     eax,    edi
     cpuid
 
-    mov     esi,    [ebp + 12]
-    mov     [esi],  eax
+    mov     [rsi],  eax
+    mov     [r11],  ebx
+    mov     [r10],  ecx
+    mov     [r8],  edx
 
-    mov     esi,    [ebp + 16]
-    mov     [esi],  ebx
-
-    mov     esi,    [ebp + 20]
-    mov     [esi],  ecx
-
-    mov     esi,    [ebp + 24]
-    mov     [esi],  edx
-
-    pop     edi
-    pop     esi
-    pop     ebx
-    pop     ebp
+    pop     rbx
+    pop     rbp
     ret
 
 ALIGN 16

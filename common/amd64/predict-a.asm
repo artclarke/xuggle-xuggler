@@ -18,7 +18,7 @@
 ;* Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 ;*****************************************************************************
 
-BITS 32
+BITS 64
 
 ;=============================================================================
 ; Macros and other preprocessor constants
@@ -32,14 +32,6 @@ BITS 32
         global %1
     %endif
 %endmacro
-
-;=============================================================================
-; Read only data
-;=============================================================================
-
-SECTION .rodata data align=16
-
-SECTION .data
 
 ;=============================================================================
 ; Macros
@@ -67,28 +59,21 @@ cglobal predict_16x16_v_mmx
 
 ALIGN 16
 predict_8x8_v_mmx :
+    movsxd      rcx, esi        ; i_stride
 
-    ;push       edi
-    ;push       esi
+    sub         rdi             , rcx               ; esi <-- line -1
 
-    mov         edx             , [esp + 4]
-    mov         ecx             , [esp + 8]
-    sub         edx             , ecx               ; esi <-- line -1
-
-    movq        mm0             , [edx]
-    movq        [edx + ecx]     , mm0               ; 0
-    movq        [edx + 2 * ecx] , mm0               ; 1
-    movq        [edx + 4 * ecx] , mm0               ; 3
-    movq        [edx + 8 * ecx] , mm0               ; 7
-    add         edx             , ecx               ; esi <-- line 0
-    movq        [edx + 2 * ecx] , mm0               ; 2
-    movq        [edx + 4 * ecx] , mm0               ; 4
-    lea         edx             , [edx + 4 * ecx]   ; esi <-- line 4
-    movq        [edx + ecx]     , mm0               ; 5
-    movq        [edx + 2 * ecx] , mm0               ; 6
-
-    ;pop        esi
-    ;pop        edi
+    movq        mm0             , [rdi]
+    movq        [rdi + rcx]     , mm0               ; 0
+    movq        [rdi + 2 * rcx] , mm0               ; 1
+    movq        [rdi + 4 * rcx] , mm0               ; 3
+    movq        [rdi + 8 * rcx] , mm0               ; 7
+    add         rdi             , rcx               ; esi <-- line 0
+    movq        [rdi + 2 * rcx] , mm0               ; 2
+    movq        [rdi + 4 * rcx] , mm0               ; 4
+    lea         rdi             , [rdi + 4 * rcx]   ; esi <-- line 4
+    movq        [rdi + rcx]     , mm0               ; 5
+    movq        [rdi + 2 * rcx] , mm0               ; 6
 
     ret
 
@@ -100,42 +85,32 @@ predict_8x8_v_mmx :
 
 ALIGN 16
 predict_16x16_v_mmx :
+    movsxd      rcx, esi                ; i_stride
 
-    ;push       edi
-    ;push       esi
+    sub         rdi, rcx                ; esi <-- line -1
 
-    mov         edx, [esp + 4]
-    mov         ecx, [esp + 8]
-    sub         edx, ecx                ; esi <-- line -1
+    movq        mm0, [rdi]
+    movq        mm1, [rdi + 8]
+    lea         rax, [rcx + 2 * rcx]    ; rax <-- 3* stride
 
-    movq        mm0, [edx]
-    movq        mm1, [edx + 8]
-    mov         eax, ecx
-    shl         eax, 1
-    add         eax, ecx                ; eax <-- 3* stride
-
-    SAVE_0_1    (edx + ecx)             ; 0
-    SAVE_0_1    (edx + 2 * ecx)         ; 1
-    SAVE_0_1    (edx + eax)             ; 2
-    SAVE_0_1    (edx + 4 * ecx)         ; 3
-    SAVE_0_1    (edx + 2 * eax)         ; 5
-    SAVE_0_1    (edx + 8 * ecx)         ; 7
-    SAVE_0_1    (edx + 4 * eax)         ; 11
-    add         edx, ecx                ; esi <-- line 0
-    SAVE_0_1    (edx + 4 * ecx)         ; 4
-    SAVE_0_1    (edx + 2 * eax)         ; 6
-    SAVE_0_1    (edx + 8 * ecx)         ; 8
-    SAVE_0_1    (edx + 4 * eax)         ; 12
-    lea         edx, [edx + 8 * ecx]    ; esi <-- line 8
-    SAVE_0_1    (edx + ecx)             ; 9
-    SAVE_0_1    (edx + 2 * ecx)         ; 10
-    lea         edx, [edx + 4 * ecx]    ; esi <-- line 12
-    SAVE_0_1    (edx + ecx)             ; 13
-    SAVE_0_1    (edx + 2 * ecx)         ; 14
-    SAVE_0_1    (edx + eax)             ; 15
-
-
-    ;pop        esi
-    ;pop        edi
+    SAVE_0_1    (rdi + rcx)             ; 0
+    SAVE_0_1    (rdi + 2 * rcx)         ; 1
+    SAVE_0_1    (rdi + rax)             ; 2
+    SAVE_0_1    (rdi + 4 * rcx)         ; 3
+    SAVE_0_1    (rdi + 2 * rax)         ; 5
+    SAVE_0_1    (rdi + 8 * rcx)         ; 7
+    SAVE_0_1    (rdi + 4 * rax)         ; 11
+    add         rdi, rcx                ; esi <-- line 0
+    SAVE_0_1    (rdi + 4 * rcx)         ; 4
+    SAVE_0_1    (rdi + 2 * rax)         ; 6
+    SAVE_0_1    (rdi + 8 * rcx)         ; 8
+    SAVE_0_1    (rdi + 4 * rax)         ; 12
+    lea         rdi, [rdi + 8 * rcx]    ; esi <-- line 8
+    SAVE_0_1    (rdi + rcx)             ; 9
+    SAVE_0_1    (rdi + 2 * rcx)         ; 10
+    lea         rdi, [rdi + 4 * rcx]    ; esi <-- line 12
+    SAVE_0_1    (rdi + rcx)             ; 13
+    SAVE_0_1    (rdi + 2 * rcx)         ; 14
+    SAVE_0_1    (rdi + rax)             ; 15
 
     ret
