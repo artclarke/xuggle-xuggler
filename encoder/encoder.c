@@ -383,7 +383,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->frames.i_max_ref0 = h->param.i_frame_reference;
     h->frames.i_max_ref1 = h->param.b_bframe_pyramid ? 2
                             : h->param.i_bframe ? 1 : 0;
-    h->frames.i_max_dpb = h->frames.i_max_ref0 + h->frames.i_max_ref1 + 1;
+    h->frames.i_max_dpb = X264_MIN( 16, h->frames.i_max_ref0 + h->frames.i_max_ref1 ) + 1;
 
     h->param.i_deblocking_filter_alphac0 = x264_clip3( h->param.i_deblocking_filter_alphac0, -6, 6 );
     h->param.i_deblocking_filter_beta    = x264_clip3( h->param.i_deblocking_filter_beta, -6, 6 );
@@ -723,8 +723,9 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc, int i_slice_
             }
     }
 
-    h->i_ref0 = X264_MIN( h->i_ref0, h->frames.i_max_ref0 );
     h->i_ref1 = X264_MIN( h->i_ref1, h->frames.i_max_ref1 );
+    h->i_ref0 = X264_MIN( h->i_ref0, h->frames.i_max_ref0 );
+    h->i_ref0 = X264_MIN( h->i_ref0, 16 - h->i_ref1 );
 }
 
 static inline void x264_reference_update( x264_t *h )

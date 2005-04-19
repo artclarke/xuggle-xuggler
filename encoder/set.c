@@ -33,9 +33,8 @@
 #include <math.h>
 
 #include "x264.h"
-#include "common/bs.h"
-#include "common/set.h"
 #include "config.h"
+#include "common/common.h"
 
 void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 {
@@ -79,11 +78,10 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         }
     }
 
-    sps->i_num_ref_frames = param->i_frame_reference;
-    if( param->i_bframe )
-        sps->i_num_ref_frames++; /* for backwards ref in B */
-    if( param->b_bframe_pyramid )
-        sps->i_num_ref_frames++; /* for 2nd backwards ref */
+    sps->vui.i_num_reorder_frames = param->b_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
+    sps->vui.i_max_dec_frame_buffering =
+    sps->i_num_ref_frames = X264_MIN(16, param->i_frame_reference + sps->vui.i_num_reorder_frames + 1);
+
     sps->b_gaps_in_frame_num_value_allowed = 0;
     sps->i_mb_width = ( param->i_width + 15 ) / 16;
     sps->i_mb_height= ( param->i_height + 15 )/ 16;
@@ -143,8 +141,6 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->vui.i_max_bits_per_mb_denom = 0;
         sps->vui.i_log2_max_mv_length_horizontal =
         sps->vui.i_log2_max_mv_length_vertical = (int)(log(param->analyse.i_mv_range*4-1)/log(2)) + 1;
-        sps->vui.i_num_reorder_frames = param->b_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
-        sps->vui.i_max_dec_frame_buffering = param->i_frame_reference + sps->vui.i_num_reorder_frames + 1;
     }
     sps->b_vui |= sps->vui.b_bitstream_restriction;
 }
