@@ -23,11 +23,13 @@ debug="no"
 vfw="no"
 
 CC="gcc"
-CFLAGS="-Wall -I. -O4 -funroll-loops -D__X264__"
+CFLAGS="-Wall -I. -O4 -funroll-loops -ffast-math -D__X264__"
 LDFLAGS=""
 
 AS="nasm"
 ASFLAGS="-f elf"
+
+EXE=""
 
 UNAMES="`uname -s`"
 case "$UNAMES" in
@@ -54,10 +56,12 @@ case "$UNAMES" in
     CFLAGS="$CFLAGS -mno-cygwin"
     LDFLAGS="$LDFLAGS -mno-cygwin"
     ASFLAGS="-f win32 -DPREFIX"
+    EXE=".exe"
     ;;
   MINGW*)
     SYS="MINGW"
     ASFLAGS="-f win32 -DPREFIX"
+    EXE=".exe"
     ;;
   *)
     echo "Unknown system $UNAMES, edit the configure"
@@ -110,9 +114,13 @@ for opt do
             fi
             mp4_output="yes"
             ;;
-        --extra-cflags=*) CFLAGS="$CFLAGS ${opt#--extra-cflags=}"
+        --extra-cflags=*)
+            CFLAGS="$CFLAGS ${opt#--extra-cflags=}"
+            VFW_CFLAGS="${opt#--extra-cflags=}"
             ;;
-        --extra-ldflags=*) LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
+        --extra-ldflags=*)
+            LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
+            VFW_LDFLAGS="${opt#--extra-ldflags=}"
             ;;
         --enable-debug)
             CFLAGS="$CFLAGS -g"
@@ -131,7 +139,7 @@ VFWFLAGS=
 if [ "$debug" != "yes" ]; then
     CFLAGS="$CFLAGS -s"
     LDFLAGS="$LDFLAGS -s"
-    VFWFLAGS="-s"
+    VFW_LDFLAGS="$VFW_LDFLAGS -s"
 fi
 
 rm -f config.mak
@@ -144,11 +152,15 @@ LDFLAGS=$LDFLAGS
 AS=$AS
 ASFLAGS=$ASFLAGS
 VFW=$vfw
+EXE=$EXE
 EOF
 
 if [ "$vfw" == "yes" ]; then
     rm -f vfw/build/cygwin/config.mak
-    echo "LDFLAGS=$VFWFLAGS" > vfw/build/cygwin/config.mak
+    cat > vfw/build/cygwin/config.mak << EOF
+CFLAGS=$VFW_CFLAGS
+LDFLAGS=$VFW_LDFLAGS
+EOF
     echo "default: x264vfw.dll" >> config.mak
 fi
 

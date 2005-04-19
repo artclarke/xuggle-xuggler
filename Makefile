@@ -26,13 +26,13 @@ endif
 OBJS = $(SRCS:%.c=%.o)
 DEP  = depend
 
-default: $(DEP) x264
+default: $(DEP) x264$(EXE)
 
-libx264.a: $(DEP) $(OBJS) $(OBJASM)
+libx264.a: .depend $(OBJS) $(OBJASM)
 	ar rc libx264.a $(OBJS) $(OBJASM)
 	ranlib libx264.a
 
-x264: libx264.a x264.o
+x264$(EXE): libx264.a x264.o
 	$(CC) -o $@ x264.o libx264.a $(LDFLAGS)
 
 x264vfw.dll: libx264.a $(wildcard vfw/*.c vfw/*.h)
@@ -58,7 +58,8 @@ include .depend
 endif
 
 clean:
-	rm -f $(OBJS) $(OBJASM) config.h *.a x264.o .depend x264 TAGS
+	rm -f $(OBJS) $(OBJASM) config.h *.a x264.o x264 x264.exe .depend TAGS
+	rm -rf vfw/build/cygwin/bin
 
 distclean: clean
 	rm -f config.mak vfw/build/cygwin/config.mak

@@ -97,7 +97,7 @@ $(DLL): $(DIR_BUILD) $(OBJECTS)
 	-mno-cygwin -shared -Wl,-dll,--out-implib,$@.a,--enable-stdcall-fixup \
 	-o $@ \
 	$(OBJECTS) driverproc.def \
-	-lgdi32 -lwinmm -lcomdlg32 -lcomctl32 $(LDFLAGS) $(CFLAGS)
+	-lgdi32 -lwinmm -lcomdlg32 -lcomctl32 $(LDFLAGS)
 
 clean:
 	@echo " Cl: Object files and target lib"
