@@ -205,6 +205,11 @@ static void Help( x264_param_t *defaults )
              "      --direct <string>       Direct MV prediction mode [\"temporal\"]\n"
              "                                  - none, spatial, temporal\n"
              "  -w, --weightb               Weighted prediction for B-frames\n"
+             "      --me <string>           Integer pixel motion estimation method [\"%s\"]\n"
+             "                                  - dia: diamond search, radius 1 (fast)\n"
+             "                                  - hex: hexagonal search, radius 2\n"
+             "                                  - esa: exhaustive search algorithm (slow)\n"
+             "      --merange <integer>     Maximum motion vector search range [%d]\n"
              "  -m, --subme <integer>       Subpixel motion estimation quality: 1=fast, 5=best. [%d]\n"
              "      --no-chroma-me          Ignore chroma in motion estimation\n"
              "\n"
@@ -255,6 +260,10 @@ static void Help( x264_param_t *defaults )
             defaults->rc.f_qcompress,
             defaults->rc.f_complexity_blur,
             defaults->rc.f_qblur,
+            defaults->analyse.i_me_method==X264_ME_DIA ? "dia"
+            : defaults->analyse.i_me_method==X264_ME_HEX ? "hex"
+            : defaults->analyse.i_me_method==X264_ME_ESA ? "esa" : NULL,
+            defaults->analyse.i_me_range,
             defaults->analyse.i_subpel_refine
            );
 }
@@ -323,6 +332,8 @@ static int  Parse( int argc, char **argv,
 #define OPT_NO_CABAC 282
 #define OPT_AUD 283
 #define OPT_PROGRESS 284
+#define OPT_ME 285
+#define OPT_MERANGE 286
 
         static struct option long_options[] =
         {
@@ -351,6 +362,8 @@ static int  Parse( int argc, char **argv,
             { "analyse", required_argument, NULL, 'A' },
             { "direct",  required_argument, NULL, OPT_DIRECT },
             { "weightb", no_argument,       NULL, 'w' },
+            { "me",      required_argument, NULL, OPT_ME },
+            { "merange", required_argument, NULL, OPT_MERANGE },
             { "subme",   required_argument, NULL, 'm' },
             { "no-chroma-me", no_argument,  NULL, OPT_NO_CHROMA_ME },
             { "level",   required_argument, NULL, OPT_LEVEL },
@@ -528,6 +541,22 @@ static int  Parse( int argc, char **argv,
                 break;
             case 'w':
                 param->analyse.b_weighted_bipred = 1;
+                break;
+            case OPT_ME:
+                if( strstr( optarg, "dia" ) )
+                    param->analyse.i_me_method = X264_ME_DIA;
+                else if( strstr( optarg, "hex" ) )
+                    param->analyse.i_me_method = X264_ME_HEX;
+                else if( strstr( optarg, "esa" ) )
+                    param->analyse.i_me_method = X264_ME_ESA;
+                else
+                {
+                    fprintf( stderr, "bad ME method `%s'\n", optarg );
+                    return -1;
+                }
+                break;
+            case OPT_MERANGE:
+                param->analyse.i_me_range = atoi(optarg);
                 break;
             case 'm':
                 param->analyse.i_subpel_refine = atoi(optarg);

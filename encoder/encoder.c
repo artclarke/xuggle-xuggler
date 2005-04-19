@@ -390,6 +390,14 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->param.i_cabac_init_idc = x264_clip3( h->param.i_cabac_init_idc, -1, 2 );
 
+    if( h->param.analyse.i_me_method != X264_ME_DIA &&
+        h->param.analyse.i_me_method != X264_ME_HEX &&
+        h->param.analyse.i_me_method != X264_ME_ESA )
+        h->param.analyse.i_me_method = X264_ME_HEX;
+    if( h->param.analyse.i_me_range < 2 )
+        h->param.analyse.i_me_range = 2;
+    if( h->param.analyse.i_me_range > 16 && h->param.analyse.i_me_method != X264_ME_ESA )
+        h->param.analyse.i_me_range = 16;
     h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 5 );
     if( h->param.analyse.inter & X264_ANALYSE_PSUB8x8 )
         h->param.analyse.inter |= X264_ANALYSE_PSUB16x16;

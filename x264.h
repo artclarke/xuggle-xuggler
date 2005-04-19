@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 22
+#define X264_BUILD 23
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -54,6 +54,9 @@ typedef struct x264_t x264_t;
 #define X264_DIRECT_PRED_NONE        0
 #define X264_DIRECT_PRED_SPATIAL     1
 #define X264_DIRECT_PRED_TEMPORAL    2
+#define X264_ME_DIA                  0
+#define X264_ME_HEX                  1
+#define X264_ME_ESA                  2
 
 /* Colorspace type
  */
@@ -140,6 +143,8 @@ typedef struct
         unsigned int inter;     /* inter flags */
 
         int          i_direct_mv_pred; /* spatial vs temporal mv prediction */
+        int          i_me_method; /* motion estimation algorithm to use (X264_ME_*) */
+        int          i_me_range; /* integer pixel motion estimation search range (from predicted mv) */
         int          i_subpel_refine; /* subpixel motion estimation quality */
         int          b_chroma_me; /* chroma ME for subpel and mode decision in P-frames */
         int          i_mv_range; /* maximum length of a mv (in pixels) */

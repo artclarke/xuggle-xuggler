@@ -60,6 +60,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int *p_fullpel_thresh )
 {
     const int i_pixel = m->i_pixel;
+    const unsigned int i_me_range = h->param.analyse.i_me_range;
     const int b_chroma_me = h->mb.b_chroma_me && i_pixel <= PIXEL_8x8;
     int bmx, bmy, bcost;
     int omx, omy;
@@ -99,13 +100,27 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     
     COST_MV( 0, 0 );
 
-    if( h->mb.i_subpel_refine >= 2 )
-    {
+    switch( h->param.analyse.i_me_method ) {
+    case X264_ME_DIA:
+        /* diamond search */
+        for( i_iter = 0; i_iter < i_me_range; i_iter++ )
+        {
+            omx = bmx;
+            omy = bmy;
+            COST_MV( omx  , omy-1 );
+            COST_MV( omx  , omy+1 );
+            COST_MV( omx-1, omy   );
+            COST_MV( omx+1, omy   );
+            if( bmx == omx && bmy == omy )
+                break;
+        }
+        break;
+    case X264_ME_HEX:
         /* hexagon search */
         /* Don't need to test mv_range each time, we won't go outside picture+padding */
         omx = bmx;
         omy = bmy;
-        for( i_iter = 0; i_iter < 8; i_iter++ )
+        for( i_iter = 0; i_iter < i_me_range/2; i_iter++ )
         {
             COST_MV( omx-2, omy   );
             COST_MV( omx-1, omy+2 );
@@ -129,21 +144,20 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
         COST_MV( omx+1, omy-1 );
         COST_MV( omx+1, omy   );
         COST_MV( omx+1, omy+1 );
-    }
-    else
-    {
-        /* diamond search */
-        for( i_iter = 0; i_iter < 16; i_iter++ )
+        break;
+    case X264_ME_ESA:
         {
-            omx = bmx;
-            omy = bmy;
-            COST_MV( omx  , omy-1 );
-            COST_MV( omx  , omy+1 );
-            COST_MV( omx-1, omy   );
-            COST_MV( omx+1, omy   );
-            if( bmx == omx && bmy == omy )
-                break;
+            const int min_x = X264_MAX( bmx - i_me_range, mv_x_min-8);
+            const int min_y = X264_MAX( bmy - i_me_range, mv_y_min-8);
+            const int max_x = X264_MIN( bmx + i_me_range, mv_x_max+8);
+            const int max_y = X264_MIN( bmy + i_me_range, mv_y_max+8);
+            for( omy = min_y; omy <= max_y; omy++ )
+                for( omx = min_x; omx <= max_x; omx++ )
+                {
+                    COST_MV( omx, omy );
+                }
         }
+        break;
     }
 
     /* -> qpel mv */
