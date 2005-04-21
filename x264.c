@@ -436,11 +436,8 @@ static int  Parse( int argc, char **argv,
             case 'f':
             {
                 char *p = strchr( optarg, ':' );
-                if( p )
-                {
-                    param->i_deblocking_filter_alphac0 = atoi( optarg );
-                    param->i_deblocking_filter_beta = atoi( p );
-                }
+                param->i_deblocking_filter_alphac0 = atoi( optarg );
+                param->i_deblocking_filter_beta = p ? atoi( p+1 ) : param->i_deblocking_filter_alphac0;
                 break;
             }
             case 'q':
@@ -1246,12 +1243,9 @@ static int close_file_mp4( hnd_t handle )
 
     if (p_mp4->p_file)
     {
-        if (p_mp4->i_init_delay)
-            M4_SetCTSPackMode(p_mp4->p_file, p_mp4->i_track, 0);
         recompute_bitrate_mp4(p_mp4->p_file, p_mp4->i_track);
         M4_SetMoviePLIndication(p_mp4->p_file, M4_PL_VISUAL, 0x15);
-        M4_SetMovieVersionInfo(p_mp4->p_file, H264_AVC_File, 0);
-        M4_SetStorageMode(p_mp4->p_file, M4_STREAMABLE);
+        M4_SetStorageMode(p_mp4->p_file, M4_FLAT);
         M4_MovieClose(p_mp4->p_file);
     }
 
@@ -1270,13 +1264,15 @@ static int open_file_mp4( char *psz_filename, hnd_t *p_handle )
         return -1;
 
     memset(p_mp4, 0, sizeof(mp4_t));
-    p_mp4->p_file = M4_MovieOpen(psz_filename, M4_WRITE_EDIT);
+    p_mp4->p_file = M4_MovieOpen(psz_filename, M4_OPEN_WRITE);
 
     if ((p_mp4->p_sample = M4_NewSample()) == NULL)
     {
         close_file_mp4( p_mp4 );
         return -1;
     }
+
+    M4_SetMovieVersionInfo(p_mp4->p_file, H264_AVC_File, 0);
 
     *p_handle = p_mp4;
 
@@ -1308,9 +1304,6 @@ static int set_param_mp4( hnd_t handle, x264_param_t *p_param )
     p_mp4->i_init_delay *= p_mp4->i_time_inc;
     fprintf(stderr, "mp4 [info]: initial delay %d (scale %d)\n", 
         p_mp4->i_init_delay, p_mp4->i_time_res);
-
-    if (p_mp4->i_init_delay)
-        M4_SetCTSPackMode(p_mp4->p_file, p_mp4->i_track, 1);
 
     return 0;
 }
