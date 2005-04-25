@@ -20,7 +20,7 @@ endif
 
 # MMX/SSE optims
 ifeq ($(ARCH),X86_64)
-SRCS   += common/amd64/mc-c.c common/amd64/dct-c.c common/amd64/predict.c
+SRCS   += common/i386/mc-c.c common/i386/dct-c.c common/i386/predict.c
 ASMSRC  = common/amd64/dct-a.asm common/amd64/cpu-a.asm \
           common/amd64/pixel-a.asm common/amd64/mc-a.asm \
           common/amd64/mc-a2.asm common/amd64/predict-a.asm

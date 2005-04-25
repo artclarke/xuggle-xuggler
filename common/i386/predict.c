@@ -153,7 +153,7 @@ static void predict_16x16_h( uint8_t *src, int i_stride )
     }
 }
 
-extern predict_16x16_v_mmx( uint8_t *src, int i_stride );
+extern void predict_16x16_v_mmx( uint8_t *src, int i_stride );
 
 #if 0
 static void predict_16x16_v( uint8_t *src, int i_stride )

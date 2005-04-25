@@ -36,6 +36,16 @@
 #include "common/clip1.h"
 #include "mc.h"
 
+/* NASM functions */
+extern void x264_pixel_avg_w4_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int );
+extern void x264_pixel_avg_w8_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int );
+extern void x264_pixel_avg_w16_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int );
+extern void x264_pixel_avg_w16_sse2( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int );
+extern void x264_mc_copy_w4_mmxext( uint8_t *, int, uint8_t *, int, int );
+extern void x264_mc_copy_w8_mmxext( uint8_t *, int, uint8_t *, int, int );
+extern void x264_mc_copy_w16_mmxext( uint8_t *, int, uint8_t *, int, int );
+extern void x264_mc_copy_w16_sse2( uint8_t *, int, uint8_t *, int, int );
+
 #if 0
 
 #if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3)
@@ -190,12 +200,6 @@ static inline int x264_tapfilter1( uint8_t *pix )
 
 typedef void (*pf_mc_t)(uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_height );
 
-/* NASM functions */
-extern void x264_pixel_avg_w4_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int  );
-extern void x264_pixel_avg_w8_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int  );
-extern void x264_pixel_avg_w16_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int  );
-extern void x264_pixel_avg_w16_sse2( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int  );
-
 /* Macro to define NxM functions */
 /* mc I+H */
 #define MC_IH( name, cpu, width, height, off )  \
@@ -267,8 +271,6 @@ static void name##_w##width##_##cpu( uint8_t *src, int i_src_stride, uint8_t *ds
 /*****************************************************************************
  * MC with width == 4 (height <= 8)
  *****************************************************************************/
-
-extern void x264_mc_copy_w4_mmxext( uint8_t *, int, uint8_t *, int, int );
 
 static inline void mc_hh_w4( uint8_t *src, int i_src, uint8_t *dst, int i_dst, int i_height )
 {
@@ -494,7 +496,6 @@ static void mc_xy32_w4( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_
 /*****************************************************************************
  * MC with width == 8 (height <= 16)
  *****************************************************************************/
-extern void x264_mc_copy_w8_mmxext( uint8_t *, int, uint8_t *, int, int );
 
 static inline void mc_hh_w8( uint8_t *src, int i_src, uint8_t *dst, int i_dst, int i_height )
 {
@@ -784,9 +785,6 @@ static void mc_xy23_w8( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_
  * MC with width == 16 (height <= 16)
  *****************************************************************************/
 
-extern void x264_mc_copy_w16_mmxext( uint8_t *, int, uint8_t *, int, int );
-extern void x264_mc_copy_w16_sse2( uint8_t *, int, uint8_t *, int, int );
-
 static inline void mc_hh_w16( uint8_t *src, int i_src, uint8_t *dst, int i_dst, int i_height )
 {
     mc_hh_w4( &src[ 0], i_src, &dst[ 0], i_dst, i_height );
@@ -1032,13 +1030,10 @@ void mc_luma_mmx( uint8_t *src[4], int i_src_stride,
 {
     uint8_t *src1, *src2;
 
-    /* todo : fixme... */
-    int correction = ((mvx&3) == 3 && (mvy&3) == 1 || (mvx&3) == 1 && (mvy&3) == 3) ? 1:0;
-
+    int correction = (mvx&1) && (mvy&1) && ((mvx&2) ^ (mvy&2));
     int hpel1x = mvx>>1;
     int hpel1y = (mvy+1-correction)>>1;
     int filter1 = (hpel1x & 1) + ( (hpel1y & 1) << 1 );
-
 
     src1 = src[filter1] + (hpel1y >> 1) * i_src_stride + (hpel1x >> 1);
 
@@ -1078,7 +1073,6 @@ void mc_luma_mmx( uint8_t *src[4], int i_src_stride,
             x264_mc_copy_w16_mmxext( src1, i_src_stride, dst, i_dst_stride, i_height );
             break;
         }
-
     }
 }
 
@@ -1089,13 +1083,10 @@ uint8_t *get_ref_mmx( uint8_t *src[4], int i_src_stride,
 {
     uint8_t *src1, *src2;
 
-    /* todo : fixme... */
-    int correction = ((mvx&3) == 3 && (mvy&3) == 1 || (mvx&3) == 1 && (mvy&3) == 3) ? 1:0;
-
+    int correction = (mvx&1) && (mvy&1) && ((mvx&2) ^ (mvy&2));
     int hpel1x = mvx>>1;
     int hpel1y = (mvy+1-correction)>>1;
     int filter1 = (hpel1x & 1) + ( (hpel1y & 1) << 1 );
-
 
     src1 = src[filter1] + (hpel1y >> 1) * i_src_stride + (hpel1x >> 1);
 

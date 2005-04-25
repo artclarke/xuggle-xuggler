@@ -151,6 +151,7 @@ static inline void mc_hc( uint8_t *src, int i_src_stride, uint8_t *dst, int i_ds
     }
 }
 
+#if 0
 /* mc I+H */
 static void mc_xy10( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
 {
@@ -267,21 +268,19 @@ static void motion_compensation_luma( uint8_t *src, int i_src_stride,
     src += (mvy >> 2) * i_src_stride + (mvx >> 2);
     pf_mc[mvy&0x03][mvx&0x03]( src, i_src_stride, dst, i_dst_stride, i_width, i_height );
 }
+#endif
 
-void mc_luma( uint8_t *src[4], int i_src_stride,
-              uint8_t *dst,    int i_dst_stride,
-              int mvx,int mvy,
-              int i_width, int i_height )
+static void mc_luma( uint8_t *src[4], int i_src_stride,
+                     uint8_t *dst,    int i_dst_stride,
+                     int mvx,int mvy,
+                     int i_width, int i_height )
 {
     uint8_t *src1, *src2;
 
-    /* todo : fixme... */
-    int correction = ((mvx&3) == 3 && (mvy&3) == 1 || (mvx&3) == 1 && (mvy&3) == 3) ? 1:0;
-
+    int correction = (mvx&1) && (mvy&1) && ((mvx&2) ^ (mvy&2));
     int hpel1x = mvx>>1;
     int hpel1y = (mvy+1-correction)>>1;
     int filter1 = (hpel1x & 1) + ( (hpel1y & 1) << 1 );
-
 
     src1 = src[filter1] + (hpel1y >> 1) * i_src_stride + (hpel1x >> 1);
 
@@ -295,29 +294,24 @@ void mc_luma( uint8_t *src[4], int i_src_stride,
     
         pixel_avg( dst, i_dst_stride, src1, i_src_stride,
                    src2, i_src_stride, i_width, i_height );
-
     }
     else
     {
         mc_copy( src1, i_src_stride, dst, i_dst_stride, i_width, i_height );
-
     }
 }
 
-uint8_t *get_ref( uint8_t *src[4], int i_src_stride,
-                  uint8_t *dst,    int * i_dst_stride,
-                  int mvx,int mvy,
-                  int i_width, int i_height )
+static uint8_t *get_ref( uint8_t *src[4], int i_src_stride,
+                         uint8_t *dst,    int * i_dst_stride,
+                         int mvx,int mvy,
+                         int i_width, int i_height )
 {
     uint8_t *src1, *src2;
 
-    /* todo : fixme... */
-    int correction = ((mvx&3) == 3 && (mvy&3) == 1 || (mvx&3) == 1 && (mvy&3) == 3) ? 1:0;
-
+    int correction = (mvx&1) && (mvy&1) && ((mvx&2) ^ (mvy&2));
     int hpel1x = mvx>>1;
     int hpel1y = (mvy+1-correction)>>1;
     int filter1 = (hpel1x & 1) + ( (hpel1y & 1) << 1 );
-
 
     src1 = src[filter1] + (hpel1y >> 1) * i_src_stride + (hpel1x >> 1);
 
@@ -333,7 +327,6 @@ uint8_t *get_ref( uint8_t *src[4], int i_src_stride,
                    src2, i_src_stride, i_width, i_height );
 
         return dst;
-
     }
     else
     {
@@ -419,8 +412,10 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 #endif
 }
 
+#if 0
 void get_funcs_mmx(pf_mc_t*, pf_mc_t*, pf_mc_t*);
 void get_funcs_sse2(pf_mc_t*, pf_mc_t*, pf_mc_t*);
+#endif
 
 extern void x264_horizontal_filter_mmxext( uint8_t *dst, int i_dst_stride,
                                            uint8_t *src, int i_src_stride,
@@ -464,10 +459,8 @@ void x264_frame_filter( int cpu, x264_frame_t *frame )
             stride - 48, frame->i_lines[0] + 16);
     }
     else
-    {
-#else
-    {
 #endif
+    {
         for( y = -8; y < frame->i_lines[0]+8; y += y_inc )
         {
             uint8_t *p_in = frame->plane[0] + y * stride - 8;

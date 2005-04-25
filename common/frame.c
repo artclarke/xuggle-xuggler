@@ -170,7 +170,7 @@ void x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src 
 
 
 
-void plane_expand_border( uint8_t *pix, int i_stride, int i_height, int i_pad )
+static void plane_expand_border( uint8_t *pix, int i_stride, int i_height, int i_pad )
 {
 #define PPIXEL(x, y) ( pix + (x) + (y)*i_stride )
     const int i_width = i_stride - 2*i_pad;

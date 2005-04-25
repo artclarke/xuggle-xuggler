@@ -640,7 +640,7 @@ static const int x264_transition_mps[64] =
 };
 
 #define FIX8(f) ((int)(f*(1<<8)))
-static int x264_cabac_probability[128] =
+static const int x264_cabac_probability[128] =
 {
     FIX8(0.9812), FIX8(0.9802), FIX8(0.9792), FIX8(0.9781),
     FIX8(0.9769), FIX8(0.9757), FIX8(0.9744), FIX8(0.9730),
@@ -676,7 +676,7 @@ static int x264_cabac_probability[128] =
     FIX8(0.0219), FIX8(0.0208), FIX8(0.0198), FIX8(0.0187)
 };
 /* -ln2(probability) */
-static int x264_cabac_entropy[128] =
+static const int x264_cabac_entropy[128] =
 {
     FIX8(0.0273), FIX8(0.0288), FIX8(0.0303), FIX8(0.0320),
     FIX8(0.0337), FIX8(0.0355), FIX8(0.0375), FIX8(0.0395),
