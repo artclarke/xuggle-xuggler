@@ -33,8 +33,10 @@
 #include <math.h>
 
 #include "x264.h"
-#include "config.h"
 #include "common/common.h"
+#ifndef _MSC_VER
+#include "config.h"
+#endif
 
 void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 {

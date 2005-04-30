@@ -31,9 +31,14 @@
  **************************************************************************/
 
 #include "x264vfw.h"
-#include "config.h"
 #include <stdio.h>  /* sprintf */
 #include <commctrl.h>
+
+#ifdef _MSC_VER
+#define X264_VERSION ""
+#else
+#include "config.h"
+#endif
 
 /* Registry */
 #define X264_REG_KEY    HKEY_CURRENT_USER

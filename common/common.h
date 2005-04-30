@@ -33,6 +33,7 @@
 
 #ifdef _MSC_VER
 #define snprintf _snprintf
+#define X264_VERSION "" // no configure script for msvc
 #endif
 
 #include "x264.h"

@@ -445,6 +445,68 @@ InputName=pixel-a
 # End Source File
 # Begin Source File
 
+SOURCE="..\..\common\i386\mc-a2.asm"
+
+!IF  "$(CFG)" == "libx264 - Win32 Release"
+
+# Begin Custom Build - Assembly $(InputPath)
+IntDir=.\Release
+InputPath=..\..\common\i386\mc-a2.asm
+InputName=mc-a2
+
+"$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	nasm -f win32 -DPREFIX -o $(IntDir)\$(InputName).obj $(InputPath)
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "libx264 - Win32 Debug"
+
+# Begin Custom Build - Assembly $(InputPath)
+IntDir=.\Debug
+InputPath=..\..\common\i386\mc-a2.asm
+InputName=mc-a2
+
+"$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	nasm -f win32 -DPREFIX -o $(IntDir)\$(InputName).obj $(InputPath)
+
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE="..\..\common\i386\predict-a.asm"
+
+!IF  "$(CFG)" == "libx264 - Win32 Release"
+
+# Begin Custom Build - Assembly $(InputPath)
+IntDir=.\Release
+InputPath=..\..\common\i386\predict-a.asm
+InputName=predict-a
+
+"$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	nasm -f win32 -DPREFIX -o $(IntDir)\$(InputName).obj $(InputPath)
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "libx264 - Win32 Debug"
+
+# Begin Custom Build - Assembly $(InputPath)
+IntDir=.\Debug
+InputPath=..\..\common\i386\predict-a.asm
+InputName=predict-a
+
+"$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	nasm -f win32 -DPREFIX -o $(IntDir)\$(InputName).obj $(InputPath)
+
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\common\i386\pixel.h
 # End Source File
 # End Group
@@ -590,6 +652,21 @@ SOURCE=..\..\common\pixel.c
 # Begin Source File
 
 SOURCE=..\..\common\predict.c
+
+!IF  "$(CFG)" == "libx264 - Win32 Release"
+
+# PROP Intermediate_Dir "obj/core_release"
+
+!ELSEIF  "$(CFG)" == "libx264 - Win32 Debug"
+
+# PROP Intermediate_Dir "obj/core_debug"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\common\i386\mc-c.c
 
 !IF  "$(CFG)" == "libx264 - Win32 Release"
 

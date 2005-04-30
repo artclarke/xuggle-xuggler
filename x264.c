@@ -46,8 +46,10 @@
 #endif
 
 #include "common/common.h"
-#include "config.h"
 #include "x264.h"
+#ifndef _MSC_VER
+#include "config.h"
+#endif
 
 #define DATA_MAX 3000000
 uint8_t data[DATA_MAX];
