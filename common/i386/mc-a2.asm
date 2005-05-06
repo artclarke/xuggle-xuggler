@@ -49,24 +49,16 @@ mmx_dw_20:
 mmx_dw_5:
     times 4 dw -5
 
-SECTION .data
-
-width:
-    dd 0
-height:
-    dd 0
-dstp1:
-    dd 0
-dstp2:
-    dd 0
-buffer:
-    dd 0
-dst1:
-    dd 0
-dst2:
-    dd 0
-src:
-    dd 0
+%assign twidth  0
+%assign theight 4
+%assign tdstp1  8
+%assign tdstp2  12
+%assign tdst1   16
+%assign tdst2   20
+%assign tsrc    24
+%assign tsrcp   28
+%assign toffset 32
+%assign tbuffer 36
 
 
 ;=============================================================================
@@ -151,67 +143,58 @@ x264_center_filter_mmxext :
     push        ebx
     push        ebp
 
-    mov         esi,      [esp + 36]         ; src
+    mov         edx,      [esp + 40]         ; src_stride
+    lea         edx,      [edx + edx + 18 + tbuffer]
+    sub         esp,      edx
+    mov         [esp + toffset] ,edx
+    
+    mov         eax,      [esp + edx + 20]   ; dst1
+    mov         [esp + tdst1]   ,eax
+    
+    mov         eax,      [esp + edx + 28]   ; dst2
+    mov         [esp + tdst2]   ,eax
+    
+    mov         eax,      [esp + edx + 44]   ; width
+    mov         [esp + twidth]  ,eax
+    
+    mov         eax,      [esp + edx + 48]   ; height
+    mov         [esp + theight] ,eax
+    
+    mov         eax,      [esp + edx + 24]   ; dst1_stride
+    mov         [esp + tdstp1]  ,eax
+    
+    mov         eax,      [esp + edx + 32]   ; dst2_stride
+    mov         [esp + tdstp2]  ,eax
 
-    mov         edx,      [esp + 20]         ; dst1
-    mov         [dst1],   edx
+    mov         ecx,      [esp + edx + 40]   ; src_stride
+    mov         [esp + tsrcp]   ,ecx
+    
+    mov         eax,      [esp + edx + 36]   ; src
+    sub         eax,      ecx
+    sub         eax,      ecx
+    mov         [esp + tsrc]    ,eax         ; src - 2 * src_stride
 
-    mov         edi,      [esp + 28]         ; dst2
-    mov         [dst2],   edi
-
-    mov         eax,      [esp + 44]         ; width
-    mov         [width],  eax
-
-    mov         eax,      [esp + 48]         ; height
-    mov         [height], eax
-
-    mov         eax,      [esp + 24]         ; dst1_stride
-    mov         [dstp1],  eax
-
-    mov         eax,      [esp + 32]         ; dst2_stride
-    mov         [dstp2],  eax
-
-    mov         ecx,      [esp + 40]         ; src_stride
-
-    sub         esp,      ecx
-    sub         esp,      ecx                ; esp is now at the beginning of the buffer
-    mov         [buffer], esp
-
-    ;sub        esi,      2
-    sub         esi,      ecx
-    sub         esi,      ecx                ; esi - 2 - 2 * stride
-    mov         [src],    esi
-
-    ;sub        edi,      2
-
-    mov         ebx,      ecx
-    shl         ebx,      1
-    add         ebx,      ecx                ; 3 * src_stride
-
-    mov         edx,      ecx
-    shl         edx,      1
-    add         edx,      ebx                ; 5 * src_stride
+    lea         ebx,      [ecx + ecx * 2]    ; 3 * src_stride
+    lea         edx,      [ecx + ecx * 4]    ; 5 * src_stride
 
     pxor        mm0,      mm0                ; 0 ---> mm0
     movq        mm7,      [mmx_dd_one]       ; for rounding
 
-    mov         ebp,      [height]
 
 loopcy:
 
-    dec         ebp
-    mov         eax,    [width]
-    mov         edi,    [dst1]
-    mov         esp,    [buffer]
-    mov         esi,    [src]
+    mov         eax,    [esp + twidth]
+    mov         edi,    [esp + tdst1]
+    lea         ebp,    [esp + tbuffer]
+    mov         esi,    [esp + tsrc]
 
     FILT_ALL    esi
 
     pshufw      mm2,    mm1, 0
-    movq        [esp],  mm2
-    add         esp,    8
-    movq        [esp],  mm1
-    add         esp,    8
+    movq        [ebp],  mm2
+    add         ebp,    8
+    movq        [ebp],  mm1
+    add         ebp,    8
     paddw       mm1,    [mmx_dw_one]
     psraw       mm1,    5
 
@@ -228,13 +211,13 @@ loopcx1:
 
     FILT_ALL    esi
 
-    movq        [esp],  mm1
+    movq        [ebp],  mm1
     paddw       mm1,    [mmx_dw_one]
     psraw       mm1,    5
     packuswb    mm1,    mm1
     movd        [edi],  mm1
 
-    add         esp,    8
+    add         ebp,    8
     add         esi,    4
     add         edi,    4
     test        eax,    eax
@@ -243,37 +226,35 @@ loopcx1:
     FILT_ALL    esi
 
     pshufw      mm2,    mm1,  7
-    movq        [esp],  mm1
-    add         esp,    8
-    movq        [esp],  mm2
+    movq        [ebp],  mm1
+    add         ebp,    8
+    movq        [ebp],  mm2
     paddw       mm1,    [mmx_dw_one]
     psraw       mm1,    5
     packuswb    mm1,    mm1
     movd        [edi],  mm1
 
-    mov         esi,    [src]
+    mov         esi,    [esp + tsrc]
     add         esi,    ecx
-    mov         [src],  esi
+    mov         [esp + tsrc],  esi
 
-    mov         edi,    [dst1]
-    add         edi,    [dstp1]
-    mov         [dst1], edi
+    mov         edi,    [esp + tdst1]
+    add         edi,    [esp + tdstp1]
+    mov         [esp + tdst1], edi
 
-    mov         eax,    [width]
-    mov         edi,    [dst2]
-    mov         esp,    [buffer]
-    add         esp,    4
+    mov         eax,    [esp + twidth]
+    mov         edi,    [esp + tdst2]
 
 loopcx2:
 
     sub         eax,    4
 
-    movq        mm2,    [esp + 2 * eax + 2]
-    movq        mm3,    [esp + 2 * eax + 4]
-    movq        mm4,    [esp + 2 * eax + 6]
-    movq        mm5,    [esp + 2 * eax + 8]
-    movq        mm1,    [esp + 2 * eax]
-    movq        mm6,    [esp + 2 * eax + 10]
+    movq        mm2,    [esp + 2 * eax + 2  + 4 + tbuffer]
+    movq        mm3,    [esp + 2 * eax + 4  + 4 + tbuffer]
+    movq        mm4,    [esp + 2 * eax + 6  + 4 + tbuffer]
+    movq        mm5,    [esp + 2 * eax + 8  + 4 + tbuffer]
+    movq        mm1,    [esp + 2 * eax      + 4 + tbuffer]
+    movq        mm6,    [esp + 2 * eax + 10 + 4 + tbuffer]
     paddw       mm2,    mm5
     paddw       mm3,    mm4
     paddw       mm1,    mm6
@@ -313,15 +294,16 @@ loopcx2:
     test        eax,    eax
     jnz         loopcx2
 
-    add         edi,    [dstp2]
-    mov         [dst2], edi
+    add         edi,    [esp + tdstp2]
+    mov         [esp + tdst2], edi
 
+    mov         ebp,    [esp + theight]
+    dec         ebp
     test        ebp,    ebp
+    mov         [esp + theight], ebp
     jnz         loopcy
 
-    mov         esp,    [buffer]
-    shl         ecx,    1
-    add         esp,    ecx
+    add         esp,    [esp + toffset]
 
     pop         ebp
     pop         ebx
