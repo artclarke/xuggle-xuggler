@@ -183,7 +183,8 @@ x264_center_filter_mmxext :
 
 loopcy:
 
-    mov         eax,    [esp + twidth]
+;   mov         eax,    [esp + twidth]
+    xor         eax,    eax
     mov         edi,    [esp + tdst1]
     lea         ebp,    [esp + tbuffer]
     mov         esi,    [esp + tsrc]
@@ -191,63 +192,53 @@ loopcy:
     FILT_ALL    esi
 
     pshufw      mm2,    mm1, 0
+    movq        [ebp + 8],  mm1
     movq        [ebp],  mm2
-    add         ebp,    8
-    movq        [ebp],  mm1
-    add         ebp,    8
     paddw       mm1,    [mmx_dw_one]
     psraw       mm1,    5
 
     packuswb    mm1,    mm1
     movd        [edi],  mm1
 
-    sub         eax,    8
-    add         edi,    4
+    add         eax,    8
     add         esi,    4
 
 loopcx1:
 
-    sub         eax,    4
-
     FILT_ALL    esi
 
-    movq        [ebp],  mm1
+    movq        [ebp + 2 * eax],  mm1
     paddw       mm1,    [mmx_dw_one]
     psraw       mm1,    5
     packuswb    mm1,    mm1
-    movd        [edi],  mm1
+    movd        [edi + eax - 4],  mm1
 
-    add         ebp,    8
     add         esi,    4
-    add         edi,    4
-    test        eax,    eax
+    add         eax,    4
+    cmp         eax,    [esp + twidth]
     jnz         loopcx1
 
     FILT_ALL    esi
 
     pshufw      mm2,    mm1,  7
-    movq        [ebp],  mm1
-    add         ebp,    8
-    movq        [ebp],  mm2
+    movq        [ebp + 2 * eax],  mm1
+    movq        [ebp + 2 * eax + 8],  mm2
     paddw       mm1,    [mmx_dw_one]
     psraw       mm1,    5
     packuswb    mm1,    mm1
-    movd        [edi],  mm1
+    movd        [edi + eax - 4],  mm1
 
     mov         esi,    [esp + tsrc]
     add         esi,    ecx
     mov         [esp + tsrc],  esi
 
-    mov         edi,    [esp + tdst1]
     add         edi,    [esp + tdstp1]
     mov         [esp + tdst1], edi
 
-    mov         eax,    [esp + twidth]
     mov         edi,    [esp + tdst2]
+    xor         eax,    eax
 
 loopcx2:
-
-    sub         eax,    4
 
     movq        mm2,    [esp + 2 * eax + 2  + 4 + tbuffer]
     movq        mm3,    [esp + 2 * eax + 4  + 4 + tbuffer]
@@ -291,7 +282,8 @@ loopcx2:
 
     movd        [edi + eax], mm2
 
-    test        eax,    eax
+    add         eax,    4
+    cmp         eax,    [esp + twidth]
     jnz         loopcx2
 
     add         edi,    [esp + tdstp2]
@@ -338,11 +330,11 @@ x264_horizontal_filter_mmxext :
 loophy:
 
     dec         ecx
-    mov         eax,    [esp + 28]           ; width
+    xor         eax,    eax
 
 loophx:
 
-    sub         eax,    8
+    prefetchnta [esi + eax + 48]       
 
     LOAD_4      mm1,    mm2, mm3, mm4, [esi + eax], [esi + eax + 1], [esi + eax + 2], [esi + eax + 3], mm0
     FILT_2      mm1,    mm2
@@ -369,7 +361,8 @@ loophx:
     packuswb    mm1,    mm2
     movq        [edi + eax],  mm1
 
-    test        eax,    eax
+    add         eax,    8
+    cmp         eax,    [esp + 28]           ; width
     jnz         loophx
 
     add         esi,    [esp + 24]           ; src_pitch
