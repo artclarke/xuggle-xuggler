@@ -49,11 +49,7 @@ mmx_dw_20:
 mmx_dw_5:
     times 4 dw -5
 
-SECTION .data
-
-buffer:
-    dq 0
-
+%assign tbuffer 0
 
 ;=============================================================================
 ; Macros
@@ -133,117 +129,95 @@ ALIGN 16
 x264_center_filter_mmxext :
 
     push        rbp
-    mov         rbp,    rsp
     push        rbx
     push        r12
     push        r13
     push        r14
     push        r15
+    mov         rbp,    rsp
 
-    mov         r12,    r8                  ; src
     movsxd      r13,    r9d                 ; src_stride
+    mov         r12,    r8                  ; src
+    sub         r12,    r13
+    sub         r12,    r13                 ; tsrc = src - 2 * src_stride
+
+    ; use 24 instead of 18 (used in i386/mc-a2.asm) to keep rsp aligned
+    lea         rax,    [r13 + r13 + 24 + tbuffer]
+    sub         rsp,    rax
+
     mov         r10,    rdx                 ; dst2
     movsxd      r11,    ecx                 ; dst2_stride
     mov         r8,     rdi                 ; dst1
     movsxd      r9,     esi                 ; dst1_stride
-    movsxd      r14, dword [rbp + 16]       ; width
-    movsxd      r15, dword [rbp + 24]       ; height
+    movsxd      r14,    dword [rbp + 56]    ; width
+    movsxd      r15,    dword [rbp + 64]    ; height
 
-    mov         rsi,      r12               ; src
-
-    mov         rcx,      r13               ; src_stride
-
-    sub         rsp,      rcx
-    sub         rsp,      rcx                ; rsp is now at the beginning of the buffer
-    mov         [buffer], rsp               ; buffer
-
-    ;sub        rsi,      2
-    sub         rsi,      rcx
-    sub         rsi,      rcx                ; rsi - 2 - 2 * stride
-    mov         r12,      rsi
-
-    ;sub        rdi,      2
-
-    lea         rbx,      [rcx+rcx*2]       ; 3 * src_stride
-    lea         rdx,      [rcx+rcx*4]       ; 5 * src_stride
+    mov         rcx,    r13                 ; src_stride
+    lea         rbx,    [r13 + r13 * 2]     ; 3 * src_stride
+    lea         rdx,    [r13 + r13 * 4]     ; 5 * src_stride
 
     pxor        mm0,      mm0                ; 0 ---> mm0
     movq        mm7,      [mmx_dd_one]       ; for rounding
 
-    mov         rbp,      r15
-
 loopcy:
 
-    dec         rbp
-    mov         rax,    r14
-    mov         rdi,    r8
-    mov         rsp,    [buffer]
-    mov         rsi,    r12
+    xor         rax,    rax
+    mov         rsi,    r12             ; tsrc
 
     FILT_ALL    rsi
 
     pshufw      mm2,    mm1, 0
-    movq        [rsp],  mm2
-    movq        [rsp+8],mm1
+    movq        [rsp + tbuffer],  mm2
+    movq        [rsp + tbuffer + 8],  mm1
     paddw       mm1,    [mmx_dw_one]
     psraw       mm1,    5
-    add         rsp,    16
 
     packuswb    mm1,    mm1
-    movd        [rdi],  mm1
+    movd        [r8],   mm1             ; dst1[0] = mm1
 
-    sub         rax,    8
-    add         rdi,    4
+    add         rax,    8
     add         rsi,    4
+    lea         rdi,    [r8 - 4]        ; rdi = dst1 - 4
 
 loopcx1:
 
-    sub         rax,    4
-
     FILT_ALL    rsi
 
-    movq        [rsp],  mm1
+    movq        [rsp + tbuffer + 2 * rax],  mm1
     paddw       mm1,    [mmx_dw_one]
     psraw       mm1,    5
     packuswb    mm1,    mm1
-    movd        [rdi],  mm1
+    movd        [rdi + rax],  mm1   ; dst1[rax - 4] = mm1
 
-    add         rsp,    8
     add         rsi,    4
-    add         rdi,    4
-    test        rax,    rax
+    add         rax,    4
+    cmp         rax,    r14         ; cmp rax, width
     jnz         loopcx1
 
     FILT_ALL    rsi
 
     pshufw      mm2,    mm1,  7
-    movq        [rsp],  mm1
-    movq        [rsp+8],  mm2
+    movq        [rsp + tbuffer + 2 * rax],  mm1
+    movq        [rsp + tbuffer + 2 * rax + 8],  mm2
     paddw       mm1,    [mmx_dw_one]
     psraw       mm1,    5
     packuswb    mm1,    mm1
-    movd        [rdi],  mm1
-    add         rsp,    8
+    movd        [rdi + rax],  mm1   ; dst1[rax - 4] = mm1
 
-    add         r12,    rcx
+    add         r12,    r13         ; tsrc = tsrc + src_stride
 
-    add         r8,     r9
+    add         r8,     r9          ; dst1 = dst1 + dst1_stride
 
-    mov         rax,    r14
-    mov         rdi,    r10
-    mov         rsp,    [buffer]
-    add         rsp,    4
+    xor         rax,    rax
 
 loopcx2:
 
-    sub         rax,    4
-
-    movq        mm2,    [rsp + 2 * rax + 2]
-    movq        mm3,    [rsp + 2 * rax + 4]
-    movq        mm4,    [rsp + 2 * rax + 6]
-    movq        mm5,    [rsp + 2 * rax + 8]
-    movq        mm1,    [rsp + 2 * rax]
-    movq        mm6,    [rsp + 2 * rax + 10]
+    movq        mm2,    [rsp + 2 * rax + 2  + 4 + tbuffer]
+    movq        mm3,    [rsp + 2 * rax + 4  + 4 + tbuffer]
+    movq        mm4,    [rsp + 2 * rax + 6  + 4 + tbuffer]
+    movq        mm5,    [rsp + 2 * rax + 8  + 4 + tbuffer]
+    movq        mm1,    [rsp + 2 * rax      + 4 + tbuffer]
+    movq        mm6,    [rsp + 2 * rax + 10 + 4 + tbuffer]
     paddw       mm2,    mm5
     paddw       mm3,    mm4
     paddw       mm1,    mm6
@@ -278,20 +252,19 @@ loopcx2:
     packssdw    mm2,    mm3
     packuswb    mm2,    mm0
 
-    movd        [rdi + rax], mm2
+    movd        [r10 + rax], mm2    ; dst2[rax] = mm2
 
-    test        rax,    rax
+    add         rax,    4
+    cmp         rax,    r14         ; cmp rax, width
     jnz         loopcx2
 
-    add         rdi,    r11
-    mov         r10,    rdi
+    add         r10,    r11         ; dst2 += dst2_stride
 
-    test        rbp,    rbp
+    dec         r15                 ; height
+    test        r15,    r15
     jnz         loopcy
 
-    mov         rsp,    [buffer]
-    shl         rcx,    1
-    add         rsp,    rcx
+    mov         rsp,    rbp
 
     pop         r15
     pop         r14
@@ -314,6 +287,7 @@ ALIGN 16
 x264_horizontal_filter_mmxext :
     movsxd      r10,    esi                  ; dst_stride
     movsxd      r11,    ecx                  ; src_stride
+    movsxd      r8,     r8d                  ; width
 
 ;   mov         rdi,    rdi                  ; dst
     mov         rsi,    rdx                  ; src
@@ -328,11 +302,11 @@ x264_horizontal_filter_mmxext :
 loophy:
 
     dec         rcx
-    movsxd      rax,    r8d                  ; width
+    xor         rax,    rax
 
 loophx:
 
-    sub         rax,    8
+    prefetchnta [rsi + rax + 48]       
 
     LOAD_4      mm1,    mm2, mm3, mm4, [rsi + rax], [rsi + rax + 1], [rsi + rax + 2], [rsi + rax + 3], mm0
     FILT_2      mm1,    mm2
@@ -359,7 +333,8 @@ loophx:
     packuswb    mm1,    mm2
     movq        [rdi + rax],  mm1
 
-    test        rax,    rax
+    add         rax,    8
+    cmp         rax,    r8                   ; cmp rax, width
     jnz         loophx
 
     add         rsi,    r11                  ; src_pitch
