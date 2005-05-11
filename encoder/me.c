@@ -100,7 +100,8 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     
     COST_MV( 0, 0 );
 
-    switch( h->param.analyse.i_me_method ) {
+    switch( h->mb.i_me_method )
+    {
     case X264_ME_DIA:
         /* diamond search */
         for( i_iter = 0; i_iter < i_me_range; i_iter++ )

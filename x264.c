@@ -168,7 +168,7 @@ static void Help( x264_param_t *defaults )
              "  -I, --keyint <integer>      Maximum GOP size [%d]\n"
              "  -i, --min-keyint <integer>  Minimum GOP size [%d]\n"
              "      --scenecut <integer>    How aggressively to insert extra I-frames [%d]\n"
-             "  -b, --bframe <integer>      Number of B-frames between I and P [%d]\n"
+             "  -b, --bframes <integer>     Number of B-frames between I and P [%d]\n"
              "      --no-b-adapt            Disable adaptive B-frame decision\n"
              "      --b-bias <integer>      Influences how often B-frames are used [%d]\n"
              "      --b-pyramid             Keep some B-frames as references\n"
@@ -183,9 +183,11 @@ static void Help( x264_param_t *defaults )
              "      --qpmin <integer>       Set min QP [%d]\n"
              "      --qpmax <integer>       Set max QP [%d]\n"
              "      --qpstep <integer>      Set max QP step [%d]\n"
-             "      --rcsens <integer>      CBR ratecontrol sensitivity [%d]\n"
-             "      --rcbuf <integer>       Size of VBV buffer [%d]\n"
-             "      --rcinitbuf <integer>   Initial VBV buffer occupancy [%d]\n"
+             "      --ratetol <float>       Allowed variance of average bitrate [%.1f]\n"
+             "      --vbv-maxrate <integer> Max local bitrate [%d]\n"
+             "      --vbv-bufsize <integer> Size of VBV buffer [%d]\n"
+             "      --vbv-init <float>      Initial VBV buffer occupancy [%.1f]\n"
+             "\n"
              "      --ipratio <float>       QP factor between I and P [%.2f]\n"
              "      --pbratio <float>       QP factor between P and B [%.2f]\n"
              "      --chroma-qp-offset <integer>  QP difference between chroma and luma [%d]\n"
@@ -251,9 +253,10 @@ static void Help( x264_param_t *defaults )
             defaults->rc.i_qp_min,
             defaults->rc.i_qp_max,
             defaults->rc.i_qp_step,
-            defaults->rc.i_rc_sens,
-            defaults->rc.i_rc_buffer_size,
-            defaults->rc.i_rc_init_buffer,
+            defaults->rc.f_rate_tolerance,
+            defaults->rc.i_vbv_max_bitrate,
+            defaults->rc.i_vbv_buffer_size,
+            defaults->rc.f_vbv_buffer_init,
             defaults->rc.f_ip_factor,
             defaults->rc.f_pb_factor,
             defaults->analyse.i_chroma_qp_offset,
@@ -309,11 +312,9 @@ static int  Parse( int argc, char **argv,
 #define OPT_QPMIN 256
 #define OPT_QPMAX 257
 #define OPT_QPSTEP 258
-#define OPT_RCSENS 259
 #define OPT_IPRATIO 260
 #define OPT_PBRATIO 261
-#define OPT_RCBUF 262
-#define OPT_RCIBUF 263
+#define OPT_RATETOL 262
 #define OPT_RCSTATS 264
 #define OPT_RCEQ 265
 #define OPT_QCOMP 266
@@ -336,12 +337,15 @@ static int  Parse( int argc, char **argv,
 #define OPT_PROGRESS 284
 #define OPT_ME 285
 #define OPT_MERANGE 286
+#define OPT_VBVMAXRATE 287
+#define OPT_VBVBUFSIZE 288
+#define OPT_VBVINIT 289
 
         static struct option long_options[] =
         {
             { "help",    no_argument,       NULL, 'h' },
             { "bitrate", required_argument, NULL, 'B' },
-            { "bframe",  required_argument, NULL, 'b' },
+            { "bframes", required_argument, NULL, 'b' },
             { "no-b-adapt", no_argument,    NULL, OPT_NOBADAPT },
             { "b-bias",  required_argument, NULL, OPT_BBIAS },
             { "b-pyramid", no_argument,     NULL, OPT_BPYRAMID },
@@ -369,9 +373,10 @@ static int  Parse( int argc, char **argv,
             { "subme",   required_argument, NULL, 'm' },
             { "no-chroma-me", no_argument,  NULL, OPT_NO_CHROMA_ME },
             { "level",   required_argument, NULL, OPT_LEVEL },
-            { "rcsens",  required_argument, NULL, OPT_RCSENS },
-            { "rcbuf",   required_argument, NULL, OPT_RCBUF },
-            { "rcinitbuf",required_argument,NULL, OPT_RCIBUF },
+            { "ratetol", required_argument, NULL, OPT_RATETOL },
+            { "vbv-maxrate", required_argument, NULL, OPT_VBVMAXRATE },
+            { "vbv-bufsize", required_argument, NULL, OPT_VBVBUFSIZE },
+            { "vbv-init", required_argument,NULL,  OPT_VBVINIT },
             { "ipratio", required_argument, NULL, OPT_IPRATIO },
             { "pbratio", required_argument, NULL, OPT_PBRATIO },
             { "chroma-qp-offset", required_argument, NULL, OPT_CHROMA_QP },
@@ -566,14 +571,17 @@ static int  Parse( int argc, char **argv,
             case OPT_LEVEL:
                 param->i_level_idc = atoi(optarg);
                 break;
-            case OPT_RCBUF:
-                param->rc.i_rc_buffer_size = atoi(optarg);
+            case OPT_RATETOL:
+                param->rc.f_rate_tolerance = atof(optarg);
                 break;
-            case OPT_RCIBUF:
-                param->rc.i_rc_init_buffer = atoi(optarg);
+            case OPT_VBVMAXRATE:
+                param->rc.i_vbv_max_bitrate = atoi( optarg );
                 break;
-            case OPT_RCSENS:
-                param->rc.i_rc_sens = atoi(optarg);
+            case OPT_VBVBUFSIZE:
+                param->rc.i_vbv_buffer_size = atoi( optarg );
+                break;
+            case OPT_VBVINIT:
+                param->rc.f_vbv_buffer_init = atof(optarg);
                 break;
             case OPT_IPRATIO:
                 param->rc.f_ip_factor = atof(optarg);

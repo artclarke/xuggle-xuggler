@@ -251,8 +251,8 @@ static void main_enable_item( HWND hDlg, CONFIG * config )
 
         EnableWindow( GetDlgItem( hDlg, IDC_2PASS1 ), TRUE );
         EnableWindow( GetDlgItem( hDlg, IDC_2PASS2 ), TRUE );
-        EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE ), config->i_pass > 1 );
-        EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE_S ), config->i_pass > 1 );
+        EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE ), TRUE );
+        EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE_S ), TRUE );
         EnableWindow( GetDlgItem( hDlg, IDC_FAST1PASS ), config->i_pass == 1);
         EnableWindow( GetDlgItem( hDlg, IDC_UPDATESTATS ), config->i_pass > 1 );
         EnableWindow( GetDlgItem( hDlg, IDC_STATSFILE ), config->i_pass == 1 );
@@ -297,8 +297,8 @@ static void main_update_dlg( HWND hDlg, CONFIG * config )
         else 
             CheckRadioButton(hDlg,
                              IDC_2PASS1, IDC_2PASS2, IDC_2PASS2);
-        EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE ), config->i_pass > 1 );
-        EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE_S ), config->i_pass > 1 );
+        EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE ), TRUE );
+        EnableWindow( GetDlgItem( hDlg, IDC_2PASSBITRATE_S ), TRUE );
 
         break;
     }

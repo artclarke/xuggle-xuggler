@@ -169,6 +169,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     a->i_qp = i_qp;
     a->i_lambda = i_qp0_cost_table[i_qp];
 
+    h->mb.i_me_method = h->param.analyse.i_me_method;
     h->mb.i_subpel_refine = h->param.analyse.i_subpel_refine;
     h->mb.b_chroma_me = h->param.analyse.b_chroma_me && h->sh.i_type == SLICE_TYPE_P
                         && h->mb.i_subpel_refine >= 5;

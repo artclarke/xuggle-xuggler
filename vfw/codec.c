@@ -252,7 +252,7 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
 
     switch( config->i_encoding_type )
     {
-        case 0: /* 1 PASS CBR */
+        case 0: /* 1 PASS ABR */
             param.rc.b_cbr = 1;
             param.rc.i_bitrate = config->bitrate;
             break;
@@ -283,11 +283,14 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
                 return ICERR_ERROR;
             }
 
+            param.rc.i_bitrate = config->i_2passbitrate;
+            param.rc.b_cbr = 1;
+
             if( config->i_pass == 1 )
             {
                 statsfilename_renumber( param.rc.psz_stat_out, config->stats, 1 );
                 param.rc.b_stat_write = 1;
-                param.rc.i_qp_constant = 24;
+                param.rc.f_rate_tolerance = 4;
                 if( config->b_fast1pass )
                 {
                     /* adjust or turn off some flags to gain speed, if needed */
@@ -300,11 +303,10 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
             else
             {
                 statsfilename_renumber( param.rc.psz_stat_in, config->stats, pass_number - 1 );
-                param.rc.i_bitrate = config->i_2passbitrate;
-                param.rc.b_cbr = 1;
                 param.rc.b_stat_read = 1;
                 if( config->b_updatestats )
                     param.rc.b_stat_write = 1;
+                param.rc.f_rate_tolerance = 1;
             }
 
             break;

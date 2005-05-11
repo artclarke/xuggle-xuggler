@@ -1128,15 +1128,15 @@ do_encode:
 
 
     /* ------------------- Init                ----------------------------- */
+    /* build ref list 0/1 */
+    x264_reference_build_list( h, h->fdec->i_poc, i_slice_type );
+
     /* Init the rate control */
     x264_ratecontrol_start( h, i_slice_type, h->fenc->i_qpplus1 );
     i_global_qp = x264_ratecontrol_qp( h );
 
     pic_out->i_qpplus1 =
     h->fdec->i_qpplus1 = i_global_qp + 1;
-
-    /* build ref list 0/1 */
-    x264_reference_build_list( h, h->fdec->i_poc, i_slice_type );
 
     if( i_slice_type == SLICE_TYPE_B )
         x264_macroblock_bipred_init( h );

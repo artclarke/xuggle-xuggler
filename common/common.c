@@ -76,12 +76,13 @@ void    x264_param_default( x264_param_t *param )
     param->i_cabac_init_idc = -1;
 
     param->rc.b_cbr = 0;
-    param->rc.i_bitrate = 3000;
-    param->rc.i_rc_buffer_size = 0;
-    param->rc.i_rc_init_buffer = 0;
-    param->rc.i_rc_sens = 10;
+    param->rc.i_bitrate = 1000;
+    param->rc.f_rate_tolerance = 1.0;
+    param->rc.i_vbv_max_bitrate = 0;
+    param->rc.i_vbv_buffer_size = 0;
+    param->rc.f_vbv_buffer_init = 0.9;
     param->rc.i_qp_constant = 26;
-    param->rc.i_qp_min = 0;
+    param->rc.i_qp_min = 10;
     param->rc.i_qp_max = 51;
     param->rc.i_qp_step = 4;
     param->rc.f_ip_factor = 1.4;

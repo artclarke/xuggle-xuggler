@@ -112,6 +112,8 @@ enum slice_type_e
     SLICE_TYPE_SI = 4
 };
 
+static const char slice_type_to_char[] = { 'P', 'B', 'I', 'S', 'S' };
+
 typedef struct
 {
     x264_sps_t *sps;
@@ -303,6 +305,7 @@ struct x264_t
         int     i_b4_xy;
         
         /* Search parameters */
+        int     i_me_method;
         int     i_subpel_refine;
         int     b_chroma_me;
         /* Allowed qpel MV range to stay within the picture + emulated edge pixels */
