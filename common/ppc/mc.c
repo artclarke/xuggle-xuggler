@@ -88,12 +88,14 @@ static inline void pixel_avg_w16( uint8_t *dst,  int i_dst,
 {
     int y;
     vec_u8_t src1v, src2v;
+    PREP_LOAD;
+    PREP_STORE16;
     for( y = 0; y < i_height; y++ )
     {
-        src1v = vec_load16( src1 );
-        src2v = vec_load16( src2 );
+        VEC_LOAD( src1, src1v, 16 );
+        VEC_LOAD( src2, src2v, 16 );
         src1v = vec_avg( src1v, src2v );
-        vec_store16( src1v, dst );
+        VEC_STORE16( src1v, dst );
 
         dst  += i_dst;
         src1 += i_src1;
@@ -118,567 +120,6 @@ MC_COPY( mc_copy_w4,  4  )
 MC_COPY( mc_copy_w8,  8  )
 MC_COPY( mc_copy_w16, 16 )
 
-/* TAP_FILTER:
-   a is source (vec_s16_t [6])
-   b is a temporary vec_s16_t
-   c is the result
-
-   c   = src[0] + a[5] - 5 * ( a[1] + a[4] ) + 20 * ( a[2] + a[3] );
-   c  += 16;
-   c >>= 5;
-   c  += 80; */
-#define TAP_FILTER( a, b, c )                       \
-    c = vec_add( a[0], a[5] );                      \
-    b = vec_add( a[1], a[4] );                      \
-    c = vec_sub( c, b );                            \
-    b = vec_sl( b, vec_splat_u16( 2 ) );            \
-    c = vec_sub( c, b );                            \
-    b = vec_add( a[2], a[3] );                      \
-    b = vec_sl( b, vec_splat_u16( 2 ) );            \
-    c = vec_add( c, b );                            \
-    b = vec_sl( b, vec_splat_u16( 2 ) );            \
-    c = vec_add( c, b );                            \
-    c = vec_add( c, vec_splat_s16( 8 ) );           \
-    c = vec_add( c, vec_splat_s16( 8 ) );           \
-    c = vec_sr( c, vec_splat_u16( 5 ) );            \
-    c = vec_add( c, vec_sl( vec_splat_s16( 5 ),     \
-                            vec_splat_u16( 4 ) ) );
-
-/* mc_hh */
-static inline void mc_hh_w4( uint8_t *src, int i_src,
-                             uint8_t *dst, int i_dst, int i_height )
-{
-    int x, y;
-    for( y = 0; y < i_height; y++ )
-    {
-        for( x = 0; x < 4; x++ )
-        {
-            dst[x] = x264_mc_clip1( ( x264_tapfilter1( &src[x] ) +
-                                      16 ) >> 5 );
-        }
-        src += i_src;
-        dst += i_dst;
-    }
-}
-static inline void mc_hh_w8( uint8_t *src, int i_src,
-                             uint8_t *dst, int i_dst, int i_height )
-{
-    long x, y;
-    DECLARE_ALIGNED( int16_t, tmp[8], 16 );
-
-    LOAD_ZERO;
-    vec_u8_t    loadv;
-    vec_s16_t   srcv[6];
-    vec_u8_t  * _srcv = (vec_u8_t*) srcv;
-    vec_s16_t   dstv;
-    vec_s16_t   tmpv;
-
-    for( y = 0; y < i_height; y++ )
-    {
-        loadv = vec_load16( &src[-2] );
-
-        for( x = 0; x < 6; x++ )
-        {
-            _srcv[x] = vec_perm( loadv, zero_u8v,
-                                 vec_lvsl( 0, (int*) x ) );
-            srcv[x] = vec_u8_to_s16( _srcv[x] );
-        }
-
-        TAP_FILTER( srcv, tmpv, dstv );
-        vec_st( dstv, 0, tmp );
-
-        for( x = 0; x < 8; x++ )
-        {
-            dst[x] = x264_mc_clip1_table[tmp[x]];
-        }
-
-        src += i_src;
-        dst += i_dst;
-    }
-}
-static inline void mc_hh_w16( uint8_t *src, int i_src,
-                              uint8_t *dst, int i_dst, int i_height )
-{
-    mc_hh_w8( &src[0], i_src, &dst[0], i_dst, i_height );
-    mc_hh_w8( &src[8], i_src, &dst[8], i_dst, i_height );
-}
-
-/* mc_hv */
-static inline void mc_hv_w4( uint8_t *src, int i_src,
-                             uint8_t *dst, int i_dst, int i_height )
-{
-    int x, y;
-    for( y = 0; y < i_height; y++ )
-    {
-        for( x = 0; x < 4; x++ )
-        {
-            dst[x] = x264_mc_clip1( ( x264_tapfilter( &src[x], i_src ) +
-                                      16 ) >> 5 );
-        }
-        src += i_src;
-        dst += i_dst;
-    }
-}
-static inline void mc_hv_w8( uint8_t *src, int i_src,
-                             uint8_t *dst, int i_dst, int i_height )
-{
-    int x, y;
-    DECLARE_ALIGNED( int16_t, tmp[8], 16 );
-
-    vec_s16_t   srcv[6];
-    vec_u8_t  * _srcv = (vec_u8_t*) srcv;
-    vec_s16_t   dstv;
-    vec_s16_t   tmpv;
-
-    for( y = 0; y < i_height; y++ )
-    {
-        if( y )
-        {
-            for( x = 0; x < 5; x++ )
-            {
-                srcv[x] = srcv[x+1];
-            }
-            _srcv[5] = vec_load8( &src[3*i_src] );
-            srcv[5]  = vec_u8_to_s16( _srcv[5] );
-        }
-        else
-        {
-            for( x = 0; x < 6; x++ )
-            {
-                _srcv[x] = vec_load8( &src[(x-2)*i_src] );
-                srcv[x] = vec_u8_to_s16( _srcv[x] );
-            }
-        }
-
-        TAP_FILTER( srcv, tmpv, dstv );
-        vec_st( dstv, 0, tmp );
-
-        for( x = 0; x < 8; x++ )
-        {
-            dst[x] = x264_mc_clip1_table[tmp[x]];
-        }
-        src += i_src;
-        dst += i_dst;
-    }
-}
-static inline void mc_hv_w16( uint8_t *src, int i_src,
-                              uint8_t *dst, int i_dst, int i_height )
-{
-    mc_hv_w8( &src[0], i_src, &dst[0], i_dst, i_height );
-    mc_hv_w8( &src[8], i_src, &dst[8], i_dst, i_height );
-}
-
-/* mc_hc */
-static inline void mc_hc_w4( uint8_t *src, int i_src,
-                             uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t *out;
-    uint8_t *pix;
-    int x, y;
-
-    for( x = 0; x < 4; x++ )
-    {
-        int tap[6];
-
-        pix = &src[x];
-        out = &dst[x];
-
-        tap[0] = x264_tapfilter1( &pix[-2*i_src] );
-        tap[1] = x264_tapfilter1( &pix[-1*i_src] );
-        tap[2] = x264_tapfilter1( &pix[ 0*i_src] );
-        tap[3] = x264_tapfilter1( &pix[ 1*i_src] );
-        tap[4] = x264_tapfilter1( &pix[ 2*i_src] );
-
-        for( y = 0; y < i_height; y++ )
-        {
-            tap[5] = x264_tapfilter1( &pix[ 3*i_src] );
-
-            *out = x264_mc_clip1( ( tap[0] - 5*tap[1] + 20 * tap[2] +
-                                    20 * tap[3] -5*tap[4] + tap[5] +
-                                    512 ) >> 10 );
-
-            /* Next line */
-            pix += i_src;
-            out += i_dst;
-            tap[0] = tap[1];
-            tap[1] = tap[2];
-            tap[2] = tap[3];
-            tap[3] = tap[4];
-            tap[4] = tap[5];
-        }
-    }
-}
-static inline void mc_hc_w8( uint8_t *src, int i_src,
-                             uint8_t *dst, int i_dst, int i_height )
-{
-    /* TODO: optimize */
-    mc_hc_w4( &src[0], i_src, &dst[0], i_dst, i_height );
-    mc_hc_w4( &src[4], i_src, &dst[4], i_dst, i_height );
-}
-static inline void mc_hc_w16( uint8_t *src, int i_src,
-                              uint8_t *dst, int i_dst, int i_height )
-{
-    mc_hc_w8( &src[0], i_src, &dst[0], i_dst, i_height );
-    mc_hc_w8( &src[8], i_src, &dst[8], i_dst, i_height );
-}
-
-/* mc I+H */
-static void mc_xy10_w4( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp[16*4];
-    mc_hh_w4( src, i_src, tmp, 4, i_height );
-    pixel_avg_w4( dst, i_dst, src, i_src, tmp, 4, i_height );
-}
-static void mc_xy10_w8( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp[16*8];
-    mc_hh_w8( src, i_src, tmp, 8, i_height );
-    pixel_avg_w8( dst, i_dst, src, i_src, tmp, 8, i_height );
-}
-static void mc_xy10_w16( uint8_t *src, int i_src,
-                         uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp[16*16];
-    mc_hh_w16( src, i_src, tmp, 16, i_height );
-    pixel_avg_w16( dst, i_dst, src, i_src, tmp, 16, i_height );
-}
-
-static void mc_xy30_w4( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp[16*4];
-    mc_hh_w4( src, i_src, tmp, 4, i_height );
-    pixel_avg_w4( dst, i_dst, src + 1, i_src, tmp, 4, i_height );
-}
-static void mc_xy30_w8( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp[16*8];
-    mc_hh_w8( src, i_src, tmp, 8, i_height );
-    pixel_avg_w8( dst, i_dst, src + 1, i_src, tmp, 8, i_height );
-}
-static void mc_xy30_w16( uint8_t *src, int i_src,
-                         uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp[16*16];
-    mc_hh_w16( src, i_src, tmp, 16, i_height );
-    pixel_avg_w16( dst, i_dst, src + 1, i_src, tmp, 16, i_height );
-}
-
-/* mc I+V */
-static void mc_xy01_w4( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp[16*4];
-    mc_hv_w4( src, i_src, tmp, 4, i_height );
-    pixel_avg_w4( dst, i_dst, src, i_src, tmp, 4, i_height );
-}
-static void mc_xy01_w8( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp[16*8];
-    mc_hv_w8( src, i_src, tmp, 8, i_height );
-    pixel_avg_w8( dst, i_dst, src, i_src, tmp, 8, i_height );
-}
-static void mc_xy01_w16( uint8_t *src, int i_src,
-                         uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp[16*16];
-    mc_hv_w16( src, i_src, tmp, 16, i_height );
-    pixel_avg_w16( dst, i_dst, src, i_src, tmp, 16, i_height );
-}
-
-static void mc_xy03_w4( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp[16*4];
-    mc_hv_w4( src, i_src, tmp, 4, i_height );
-    pixel_avg_w4( dst, i_dst, src + i_src, i_src, tmp, 4, i_height );
-}
-static void mc_xy03_w8( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp[16*8];
-    mc_hv_w8( src, i_src, tmp, 8, i_height );
-    pixel_avg_w8( dst, i_dst, src + i_src, i_src, tmp, 8, i_height );
-}
-static void mc_xy03_w16( uint8_t *src, int i_src,
-                         uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp[16*16];
-    mc_hv_w16( src, i_src, tmp, 16, i_height );
-    pixel_avg_w16( dst, i_dst, src + i_src, i_src, tmp, 16, i_height );
-}
-
-/* H+V */
-static void mc_xy11_w4( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*4];
-    uint8_t tmp2[16*4];
-    mc_hv_w4( src, i_src, tmp1, 4, i_height );
-    mc_hh_w4( src, i_src, tmp2, 4, i_height );
-    pixel_avg_w4( dst, i_dst, tmp1, 4, tmp2, 4, i_height );
-}
-static void mc_xy11_w8( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*8];
-    uint8_t tmp2[16*8];
-    mc_hv_w8( src, i_src, tmp1, 8, i_height );
-    mc_hh_w8( src, i_src, tmp2, 8, i_height );
-    pixel_avg_w8( dst, i_dst, tmp1, 8, tmp2, 8, i_height );
-}
-static void mc_xy11_w16( uint8_t *src, int i_src,
-                         uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-    mc_hv_w16( src, i_src, tmp1, 16, i_height );
-    mc_hh_w16( src, i_src, tmp2, 16, i_height );
-    pixel_avg_w16( dst, i_dst, tmp1, 16, tmp2, 16, i_height );
-}
-
-static void mc_xy31_w4( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*4];
-    uint8_t tmp2[16*4];
-    mc_hv_w4( src+1, i_src, tmp1, 4, i_height );
-    mc_hh_w4( src,   i_src, tmp2, 4, i_height );
-    pixel_avg_w4( dst, i_dst, tmp1, 4, tmp2, 4, i_height );
-}
-static void mc_xy31_w8( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*8];
-    uint8_t tmp2[16*8];
-    mc_hv_w8( src+1, i_src, tmp1, 8, i_height );
-    mc_hh_w8( src,   i_src, tmp2, 8, i_height );
-    pixel_avg_w8( dst, i_dst, tmp1, 8, tmp2, 8, i_height );
-}
-static void mc_xy31_w16( uint8_t *src, int i_src,
-                         uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-    mc_hv_w16( src+1, i_src, tmp1, 16, i_height );
-    mc_hh_w16( src,   i_src, tmp2, 16, i_height );
-    pixel_avg_w16( dst, i_dst, tmp1, 16, tmp2, 16, i_height );
-}
-
-static void mc_xy13_w4( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*4];
-    uint8_t tmp2[16*4];
-    mc_hv_w4( src,       i_src, tmp1, 4, i_height );
-    mc_hh_w4( src+i_src, i_src, tmp2, 4, i_height );
-    pixel_avg_w4( dst, i_dst, tmp1, 4, tmp2, 4, i_height );
-}
-static void mc_xy13_w8( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*8];
-    uint8_t tmp2[16*8];
-    mc_hv_w8( src,       i_src, tmp1, 8, i_height );
-    mc_hh_w8( src+i_src, i_src, tmp2, 8, i_height );
-    pixel_avg_w8( dst, i_dst, tmp1, 8, tmp2, 8, i_height );
-}
-static void mc_xy13_w16( uint8_t *src, int i_src,
-                         uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-    mc_hv_w16( src,       i_src, tmp1, 16, i_height );
-    mc_hh_w16( src+i_src, i_src, tmp2, 16, i_height );
-    pixel_avg_w16( dst, i_dst, tmp1, 16, tmp2, 16, i_height );
-}
-
-static void mc_xy33_w4( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*4];
-    uint8_t tmp2[16*4];
-    mc_hv_w4( src+1,     i_src, tmp1, 4, i_height );
-    mc_hh_w4( src+i_src, i_src, tmp2, 4, i_height );
-    pixel_avg_w4( dst, i_dst, tmp1, 4, tmp2, 4, i_height );
-}
-static void mc_xy33_w8( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*8];
-    uint8_t tmp2[16*8];
-    mc_hv_w8( src+1,     i_src, tmp1, 8, i_height );
-    mc_hh_w8( src+i_src, i_src, tmp2, 8, i_height );
-    pixel_avg_w8( dst, i_dst, tmp1, 8, tmp2, 8, i_height );
-}
-static void mc_xy33_w16( uint8_t *src, int i_src,
-                         uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-    mc_hv_w16( src+1,     i_src, tmp1, 16, i_height );
-    mc_hh_w16( src+i_src, i_src, tmp2, 16, i_height );
-    pixel_avg_w16( dst, i_dst, tmp1, 16, tmp2, 16, i_height );
-}
-
-static void mc_xy21_w4( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*4];
-    uint8_t tmp2[16*4];
-    mc_hc_w4( src, i_src, tmp1, 4, i_height );
-    mc_hh_w4( src, i_src, tmp2, 4, i_height );
-    pixel_avg_w4( dst, i_dst, tmp1, 4, tmp2, 4, i_height );
-}
-static void mc_xy21_w8( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*8];
-    uint8_t tmp2[16*8];
-    mc_hc_w8( src, i_src, tmp1, 8, i_height );
-    mc_hh_w8( src, i_src, tmp2, 8, i_height );
-    pixel_avg_w8( dst, i_dst, tmp1, 8, tmp2, 8, i_height );
-}
-static void mc_xy21_w16( uint8_t *src, int i_src,
-                         uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-    mc_hc_w16( src, i_src, tmp1, 16, i_height );
-    mc_hh_w16( src, i_src, tmp2, 16, i_height );
-    pixel_avg_w16( dst, i_dst, tmp1, 16, tmp2, 16, i_height );
-}
-
-static void mc_xy12_w4( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*4];
-    uint8_t tmp2[16*4];
-    mc_hc_w4( src, i_src, tmp1, 4, i_height );
-    mc_hv_w4( src, i_src, tmp2, 4, i_height );
-    pixel_avg_w4( dst, i_dst, tmp1, 4, tmp2, 4, i_height );
-}
-static void mc_xy12_w8( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*8];
-    uint8_t tmp2[16*8];
-    mc_hc_w8( src, i_src, tmp1, 8, i_height );
-    mc_hv_w8( src, i_src, tmp2, 8, i_height );
-    pixel_avg_w8( dst, i_dst, tmp1, 8, tmp2, 8, i_height );
-}
-static void mc_xy12_w16( uint8_t *src, int i_src,
-                         uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-    mc_hc_w16( src, i_src, tmp1, 16, i_height );
-    mc_hv_w16( src, i_src, tmp2, 16, i_height );
-    pixel_avg_w16( dst, i_dst, tmp1, 16, tmp2, 16, i_height );
-}
-
-static void mc_xy32_w4( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*4];
-    uint8_t tmp2[16*4];
-    mc_hc_w4( src,   i_src, tmp1, 4, i_height );
-    mc_hv_w4( src+1, i_src, tmp2, 4, i_height );
-    pixel_avg_w4( dst, i_dst, tmp1, 4, tmp2, 4, i_height );
-}
-static void mc_xy32_w8( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*8];
-    uint8_t tmp2[16*8];
-    mc_hc_w8( src,   i_src, tmp1, 8, i_height );
-    mc_hv_w8( src+1, i_src, tmp2, 8, i_height );
-    pixel_avg_w8( dst, i_dst, tmp1, 8, tmp2, 8, i_height );
-}
-static void mc_xy32_w16( uint8_t *src, int i_src,
-                         uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-    mc_hc_w16( src,   i_src, tmp1, 16, i_height );
-    mc_hv_w16( src+1, i_src, tmp2, 16, i_height );
-    pixel_avg_w16( dst, i_dst, tmp1, 16, tmp2, 16, i_height );
-}
-
-static void mc_xy23_w4( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*4];
-    uint8_t tmp2[16*4];
-    mc_hc_w4( src,       i_src, tmp1, 4, i_height );
-    mc_hh_w4( src+i_src, i_src, tmp2, 4, i_height );
-    pixel_avg_w4( dst, i_dst, tmp1, 4, tmp2, 4, i_height );
-}
-static void mc_xy23_w8( uint8_t *src, int i_src,
-                        uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*8];
-    uint8_t tmp2[16*8];
-    mc_hc_w8( src,       i_src, tmp1, 8, i_height );
-    mc_hh_w8( src+i_src, i_src, tmp2, 8, i_height );
-    pixel_avg_w8( dst, i_dst, tmp1, 8, tmp2, 8, i_height );
-}
-static void mc_xy23_w16( uint8_t *src, int i_src,
-                         uint8_t *dst, int i_dst, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-    mc_hc_w16( src,       i_src, tmp1, 16, i_height );
-    mc_hh_w16( src+i_src, i_src, tmp2, 16, i_height );
-    pixel_avg_w16( dst, i_dst, tmp1, 16, tmp2, 16, i_height );
-}
-
-static void motion_compensation_luma( uint8_t *src, int i_src,
-                                      uint8_t *dst, int i_dst,
-                                      int mvx,int mvy,
-                                      int i_width, int i_height )
-{
-    static const pf_mc_t pf_mc[3][4][4] =    /*XXX [dqy][dqx] */
-    {
-        {
-            { mc_copy_w4,  mc_xy10_w4,    mc_hh_w4,      mc_xy30_w4 },
-            { mc_xy01_w4,  mc_xy11_w4,    mc_xy21_w4,    mc_xy31_w4 },
-            { mc_hv_w4,    mc_xy12_w4,    mc_hc_w4,      mc_xy32_w4 },
-            { mc_xy03_w4,  mc_xy13_w4,    mc_xy23_w4,    mc_xy33_w4 },
-        },
-        {
-            { mc_copy_w8,  mc_xy10_w8,    mc_hh_w8,      mc_xy30_w8 },
-            { mc_xy01_w8,  mc_xy11_w8,    mc_xy21_w8,    mc_xy31_w8 },
-            { mc_hv_w8,    mc_xy12_w8,    mc_hc_w8,      mc_xy32_w8 },
-            { mc_xy03_w8,  mc_xy13_w8,    mc_xy23_w8,    mc_xy33_w8 },
-        },
-        {
-            { mc_copy_w16,  mc_xy10_w16,    mc_hh_w16,      mc_xy30_w16 },
-            { mc_xy01_w16,  mc_xy11_w16,    mc_xy21_w16,    mc_xy31_w16 },
-            { mc_hv_w16,    mc_xy12_w16,    mc_hc_w16,      mc_xy32_w16 },
-            { mc_xy03_w16,  mc_xy13_w16,    mc_xy23_w16,    mc_xy33_w16 },
-        }
-    };
-
-    src += (mvy >> 2) * i_src + (mvx >> 2);
-    if( i_width == 4 )
-    {
-        pf_mc[0][mvy&0x03][mvx&0x03]( src, i_src, dst, i_dst, i_height );
-    }
-    else if( i_width == 8 )
-    {
-        pf_mc[1][mvy&0x03][mvx&0x03]( src, i_src, dst, i_dst, i_height );
-    }
-    else if( i_width == 16 )
-    {
-        pf_mc[2][mvy&0x03][mvx&0x03]( src, i_src, dst, i_dst, i_height );
-    }
-}
-
 void mc_luma_altivec( uint8_t *src[4], int i_src_stride,
                       uint8_t *dst,    int i_dst_stride,
                       int mvx, int mvy,
@@ -687,7 +128,7 @@ void mc_luma_altivec( uint8_t *src[4], int i_src_stride,
     uint8_t *src1, *src2;
     
     /* todo : fixme... */
-    int correction = ((mvx&3) == 3 && (mvy&3) == 1 || (mvx&3) == 1 && (mvy&3) == 3) ? 1:0;
+    int correction = (((mvx&3) == 3 && (mvy&3) == 1) || ((mvx&3) == 1 && (mvy&3) == 3)) ? 1:0;
     
     int hpel1x = mvx>>1;
     int hpel1y = (mvy+1-correction)>>1;
@@ -745,7 +186,7 @@ uint8_t *get_ref_altivec( uint8_t *src[4], int i_src_stride,
     uint8_t *src1, *src2;
     
     /* todo : fixme... */
-    int correction = ((mvx&3) == 3 && (mvy&3) == 1 || (mvx&3) == 1 && (mvy&3) == 3) ? 1:0;
+    int correction = (((mvx&3) == 3 && (mvy&3) == 1) || ((mvx&3) == 1 && (mvy&3) == 3)) ? 1:0;
     
     int hpel1x = mvx>>1;
     int hpel1y = (mvy+1-correction)>>1;
@@ -786,10 +227,10 @@ uint8_t *get_ref_altivec( uint8_t *src[4], int i_src_stride,
     }
 }
 
-static void mc_chroma_altivec( uint8_t *src, int i_src_stride,
-                               uint8_t *dst, int i_dst_stride,
-                               int mvx, int mvy,
-                               int i_width, int i_height )
+static void mc_chroma_c( uint8_t *src, int i_src_stride,
+                         uint8_t *dst, int i_dst_stride,
+                         int mvx, int mvy,
+                         int i_width, int i_height )
 {
     uint8_t *srcp;
     int x, y;
@@ -805,70 +246,178 @@ static void mc_chroma_altivec( uint8_t *src, int i_src_stride,
     src  += (mvy >> 3) * i_src_stride + (mvx >> 3);
     srcp  = &src[i_src_stride];
 
-    if( i_width < 8 )
+    /* TODO: optimize */
+    for( y = 0; y < i_height; y++ )
     {
-        /* TODO: optimize */
-        for( y = 0; y < i_height; y++ )
+        for( x = 0; x < i_width; x++ )
         {
-            for( x = 0; x < i_width; x++ )
-            {
-                dst[x] = ( coeff[0]*src[x]  + coeff[1]*src[x+1] +
-                           coeff[2]*srcp[x] + coeff[3]*srcp[x+1] + 32 ) >> 6;
-            }
-            dst  += i_dst_stride;
-
-            src   = srcp;
-            srcp += i_src_stride;
+            dst[x] = ( coeff[0]*src[x]  + coeff[1]*src[x+1] +
+                       coeff[2]*srcp[x] + coeff[3]*srcp[x+1] + 32 ) >> 6;
         }
-        return;
+        dst  += i_dst_stride;
+
+        src   = srcp;
+        srcp += i_src_stride;
     }
+}
+
+#define DO_PROCESS(a) \
+        src##a##v_16 = vec_u8_to_u16( src##a##v_8 ); \
+        src##a##v_16 = vec_mladd( coeff##a##v, src##a##v_16, zero_u16v ); \
+        dstv_16      = vec_add( dstv_16, src##a##v_16 )
+
+static void mc_chroma_altivec_4xh( uint8_t *src, int i_src_stride,
+                                   uint8_t *dst, int i_dst_stride,
+                                   int mvx, int mvy,
+                                   int i_height )
+{
+    uint8_t *srcp;
+    int y;
+    int d8x = mvx & 0x07;
+    int d8y = mvy & 0x07;
+
+    DECLARE_ALIGNED( uint16_t, coeff[4], 16 );
+    coeff[0] = (8-d8x)*(8-d8y);
+    coeff[1] = d8x    *(8-d8y);
+    coeff[2] = (8-d8x)*d8y;
+    coeff[3] = d8x    *d8y;
+
+    src  += (mvy >> 3) * i_src_stride + (mvx >> 3);
+    srcp  = &src[i_src_stride];
     
-    /* We now assume that i_width == 8 */
     LOAD_ZERO;
-    vec_u16_t   coeffv[4];
-    vec_u16_t   k32v;
-    vec_u8_t    srcv_8[4];
-    vec_u16_t   srcv_16[4];
+    PREP_LOAD;
+    PREP_STORE4;
+    vec_u16_t   coeff0v, coeff1v, coeff2v, coeff3v;
+    vec_u8_t    src0v_8, src1v_8, src2v_8, src3v_8;
+    vec_u16_t   src0v_16, src1v_16, src2v_16, src3v_16;
     vec_u8_t    dstv_8;
     vec_u16_t   dstv_16;
     vec_u8_t    permv;
     vec_u16_t   shiftv;
+    vec_u16_t   k32v;
     
-    coeffv[0] = vec_ld( 0, coeff );
-    coeffv[3] = vec_splat( coeffv[0], 3 );
-    coeffv[2] = vec_splat( coeffv[0], 2 );
-    coeffv[1] = vec_splat( coeffv[0], 1 );
-    coeffv[0] = vec_splat( coeffv[0], 0 );
-    k32v      = vec_sl( vec_splat_u16( 1 ), vec_splat_u16( 5 ) );
-    permv     = vec_lvsl( 0, (uint8_t *) 1 );
-    shiftv    = vec_splat_u16( 6 );
+    coeff0v = vec_ld( 0, coeff );
+    coeff3v = vec_splat( coeff0v, 3 );
+    coeff2v = vec_splat( coeff0v, 2 );
+    coeff1v = vec_splat( coeff0v, 1 );
+    coeff0v = vec_splat( coeff0v, 0 );
+    k32v    = vec_sl( vec_splat_u16( 1 ), vec_splat_u16( 5 ) );
+    permv   = vec_lvsl( 0, (uint8_t *) 1 );
+    shiftv  = vec_splat_u16( 6 );
 
-    srcv_8[2] = vec_load16( src );
-    srcv_8[3] = vec_perm( srcv_8[2], srcv_8[2], permv );
+    VEC_LOAD( src, src2v_8, 5 );
+    src3v_8 = vec_perm( src2v_8, src2v_8, permv );
 
     for( y = 0; y < i_height; y++ )
     {
-        int i;
-
-        srcv_8[0] = srcv_8[2];
-        srcv_8[1] = srcv_8[3];
-        srcv_8[2] = vec_load16( srcp );
-        srcv_8[3] = vec_perm( srcv_8[2], srcv_8[2], permv );
+        src0v_8 = src2v_8;
+        src1v_8 = src3v_8;
+        VEC_LOAD( srcp, src2v_8, 5 );
+        src3v_8 = vec_perm( src2v_8, src2v_8, permv );
 
         dstv_16 = k32v;
-        for( i = 0; i < 4; i++ )
-        {
-            srcv_16[i] = vec_u8_to_u16( srcv_8[i] );
-            srcv_16[i] = vec_mladd( coeffv[i], srcv_16[i], zero_u16v );
-            dstv_16 = vec_add( dstv_16, srcv_16[i] );
-        }
+
+        DO_PROCESS( 0 );
+        DO_PROCESS( 1 );
+        DO_PROCESS( 2 );
+        DO_PROCESS( 3 );
+
         dstv_16 = vec_sr( dstv_16, shiftv );
         dstv_8  = vec_u16_to_u8( dstv_16 );
-        vec_store8( dstv_8, dst );
+        VEC_STORE4( dstv_8, dst );
 
         dst  += i_dst_stride;
         srcp += i_src_stride;
     }
+}
+
+static void mc_chroma_altivec_8xh( uint8_t *src, int i_src_stride,
+                                   uint8_t *dst, int i_dst_stride,
+                                   int mvx, int mvy,
+                                   int i_height )
+{
+    uint8_t *srcp;
+    int y;
+    int d8x = mvx & 0x07;
+    int d8y = mvy & 0x07;
+
+    DECLARE_ALIGNED( uint16_t, coeff[4], 16 );
+    coeff[0] = (8-d8x)*(8-d8y);
+    coeff[1] = d8x    *(8-d8y);
+    coeff[2] = (8-d8x)*d8y;
+    coeff[3] = d8x    *d8y;
+
+    src  += (mvy >> 3) * i_src_stride + (mvx >> 3);
+    srcp  = &src[i_src_stride];
+    
+    LOAD_ZERO;
+    PREP_LOAD;
+    PREP_STORE8;
+    vec_u16_t   coeff0v, coeff1v, coeff2v, coeff3v;
+    vec_u8_t    src0v_8, src1v_8, src2v_8, src3v_8;
+    vec_u16_t   src0v_16, src1v_16, src2v_16, src3v_16;
+    vec_u8_t    dstv_8;
+    vec_u16_t   dstv_16;
+    vec_u8_t    permv;
+    vec_u16_t   shiftv;
+    vec_u16_t   k32v;
+    
+    coeff0v = vec_ld( 0, coeff );
+    coeff3v = vec_splat( coeff0v, 3 );
+    coeff2v = vec_splat( coeff0v, 2 );
+    coeff1v = vec_splat( coeff0v, 1 );
+    coeff0v = vec_splat( coeff0v, 0 );
+    k32v    = vec_sl( vec_splat_u16( 1 ), vec_splat_u16( 5 ) );
+    permv   = vec_lvsl( 0, (uint8_t *) 1 );
+    shiftv  = vec_splat_u16( 6 );
+
+    VEC_LOAD( src, src2v_8, 9 );
+    src3v_8 = vec_perm( src2v_8, src2v_8, permv );
+
+    for( y = 0; y < i_height; y++ )
+    {
+        src0v_8 = src2v_8;
+        src1v_8 = src3v_8;
+        VEC_LOAD( srcp, src2v_8, 9 );
+        src3v_8 = vec_perm( src2v_8, src2v_8, permv );
+
+        dstv_16 = k32v;
+
+        DO_PROCESS( 0 );
+        DO_PROCESS( 1 );
+        DO_PROCESS( 2 );
+        DO_PROCESS( 3 );
+
+        dstv_16 = vec_sr( dstv_16, shiftv );
+        dstv_8  = vec_u16_to_u8( dstv_16 );
+        VEC_STORE8( dstv_8, dst );
+
+        dst  += i_dst_stride;
+        srcp += i_src_stride;
+    }
+}
+
+static void mc_chroma_altivec( uint8_t *src, int i_src_stride,
+                               uint8_t *dst, int i_dst_stride,
+                               int mvx, int mvy,
+                               int i_width, int i_height )
+{
+    if( i_width == 8 )
+    {
+        mc_chroma_altivec_8xh( src, i_src_stride, dst, i_dst_stride,
+                               mvx, mvy, i_height );
+        return;
+    }
+    if( i_width == 4 )
+    {
+        mc_chroma_altivec_4xh( src, i_src_stride, dst, i_dst_stride,
+                               mvx, mvy, i_height );
+        return;
+    }
+
+    mc_chroma_c( src, i_src_stride, dst, i_dst_stride,
+                 mvx, mvy, i_width, i_height );
 }
 
 void x264_mc_altivec_init( x264_mc_functions_t *pf )
