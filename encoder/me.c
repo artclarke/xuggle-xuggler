@@ -211,7 +211,7 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
 	refine_subpel( h, m, hpel, qpel );
 }
 
-#define COST_MV( mx, my, dir ) \
+#define COST_MV( mx, my ) \
 { \
     int stride = 16; \
     uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix, &stride, mx, my, bw, bh ); \
@@ -230,7 +230,8 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
     if( cost < bcost ) \
     {                  \
         bcost = cost;  \
-        bdir = dir;    \
+        bmx = mx;      \
+        bmy = my;      \
     } \
 }
 
@@ -248,30 +249,34 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 
     int bmx = m->mv[0];
     int bmy = m->mv[1];
+    int bcost = m->cost;
+
+    /* try the subpel component of the predicted mv if it's close to
+     * the result of the fullpel search */
+    if( hpel_iters )
+    {
+        int mx = X264_ABS(bmx - m->mvp[0]) < 4 ? m->mvp[0] : bmx;
+        int my = X264_ABS(bmy - m->mvp[1]) < 4 ? m->mvp[1] : bmy;
+        if( mx != bmx || my != bmy )
+            COST_MV( mx, my );
+    }
 
     for( step = 2; step >= 1; step-- )
     {
 	for( i = step>1 ? hpel_iters : qpel_iters; i > 0; i-- )
         {
-            int bcost = COST_MAX;
-            int bdir = 0;
-            COST_MV( bmx, bmy - step, 0 );
-            COST_MV( bmx, bmy + step, 1 );
-            COST_MV( bmx - step, bmy, 2 );
-            COST_MV( bmx + step, bmy, 3 );
-    
-            if( bcost < m->cost )
-            {
-                m->cost = bcost;
-                if( bdir == 0 )      bmy -= step;
-                else if( bdir == 1 ) bmy += step;
-                else if( bdir == 2 ) bmx -= step;
-                else if( bdir == 3 ) bmx += step;
-            }
-            else break;
+            int omx = bmx;
+            int omy = bmy;
+            COST_MV( omx, omy - step );
+            COST_MV( omx, omy + step );
+            COST_MV( omx - step, omy );
+            COST_MV( omx + step, omy );
+            if( bmx == omx && bmy == omy )
+                break;
 	}
     }
 
+    m->cost = bcost;
     m->mv[0] = bmx;
     m->mv[1] = bmy;
     m->cost_mv = p_cost_mvx[ bmx ] + p_cost_mvy[ bmy ];
