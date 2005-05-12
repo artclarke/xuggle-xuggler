@@ -516,5 +516,7 @@ void x264_frame_init_lowres( int cpu, x264_frame_t *frame )
     for( y = 0; y < 16; y++ )
         for( x = 0; x < 16; x++ )
             frame->i_cost_est[x][y] = -1;
+
+    x264_frame_expand_border_lowres( frame );
 }
 

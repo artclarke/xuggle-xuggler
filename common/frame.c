@@ -211,7 +211,7 @@ void x264_frame_expand_border_filtered( x264_frame_t *frame )
         plane_expand_border( frame->filtered[i] - 8*frame->i_stride[0] - 8, frame->i_stride[0], frame->i_lines[0]+2*8, 24 );
 }
 
-void x264_frame_expand_lowres( x264_frame_t *frame )
+void x264_frame_expand_border_lowres( x264_frame_t *frame )
 {
     int i;
     for( i = 0; i < 4; i++ )
