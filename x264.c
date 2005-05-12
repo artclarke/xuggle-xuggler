@@ -61,6 +61,9 @@ static int     i_ctrl_c = 0;
 static void    SigIntHandler( int a )
 {
     i_ctrl_c = 1;
+#if VISUALIZE
+    exit(0);
+#endif
 }
 
 /* input file operation function pointers */
@@ -228,6 +231,7 @@ static void Help( x264_param_t *defaults )
              "      --quiet                 Quiet Mode\n"
              "  -v, --verbose               Print stats for each frame\n"
              "      --progress              Show a progress indicator while encoding\n"
+             "      --visualize             Show MB types overlayed on the encoded video\n"
              "      --aud                   Use access unit delimiters\n"
              "\n",
             X264_BUILD, X264_VERSION,
@@ -340,6 +344,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_VBVMAXRATE 287
 #define OPT_VBVBUFSIZE 288
 #define OPT_VBVINIT 289
+#define OPT_VISUALIZE 290
 
         static struct option long_options[] =
         {
@@ -390,6 +395,7 @@ static int  Parse( int argc, char **argv,
             { "quiet",   no_argument,       NULL, OPT_QUIET },
             { "verbose", no_argument,       NULL, 'v' },
             { "progress",no_argument,       NULL, OPT_PROGRESS },
+            { "visualize",no_argument,      NULL, OPT_VISUALIZE },
             { "aud",     no_argument,       NULL, OPT_AUD },
             {0, 0, 0, 0}
         };
@@ -634,6 +640,13 @@ static int  Parse( int argc, char **argv,
                 break;
             case OPT_PROGRESS:
                 *b_progress = 1;
+                break;
+            case OPT_VISUALIZE:
+#ifdef VISUALIZE
+                param->b_visualize = 1;
+#else
+                fprintf( stderr, "not compiled with visualization support\n" );
+#endif
                 break;
             default:
                 fprintf( stderr, "unknown option (%c)\n", optopt );

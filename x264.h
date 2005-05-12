@@ -135,6 +135,7 @@ typedef struct
     void        (*pf_log)( void *, int i_level, const char *psz, va_list );
     void        *p_log_private;
     int         i_log_level;
+    int         b_visualize;
 
     /* Encoder analyser parameters */
     struct

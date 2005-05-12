@@ -35,6 +35,10 @@
 #include "ratecontrol.h"
 #include "macroblock.h"
 
+#if VISUALIZE
+#include "common/visualize.h"
+#endif
+
 //#define DEBUG_MB_TYPE
 //#define DEBUG_DUMP_FRAME
 //#define DEBUG_BENCHMARK
@@ -863,6 +867,11 @@ static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_id
     h->mb.i_last_qp = h->pps->i_pic_init_qp + h->sh.i_qp_delta;
     h->mb.i_last_dqp = 0;
 
+#if VISUALIZE
+    if( h->param.b_visualize )
+        x264_visualize_init( h );
+#endif
+
     for( mb_xy = 0, i_skip = 0; mb_xy < h->sps->i_mb_width * h->sps->i_mb_height; mb_xy++ )
     {
         const int i_mb_y = mb_xy / h->sps->i_mb_width;
@@ -931,6 +940,11 @@ static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_id
         }
         TIMER_STOP( i_mtime_write );
 
+#if VISUALIZE
+        if( h->param.b_visualize )
+            x264_visualize_mb( h );
+#endif
+
         /* save cache */
         x264_macroblock_cache_save( h );
 
@@ -970,6 +984,14 @@ static inline void x264_slice_write( x264_t *h, int i_nal_type, int i_nal_ref_id
     }
 
     x264_nal_end( h );
+
+#if VISUALIZE
+    if( h->param.b_visualize )
+    {
+        x264_visualize_show( h );
+        x264_visualize_close( h );
+    }
+#endif
 
     /* Compute misc bits */
     h->stat.frame.i_misc_bits = bs_pos( &h->out.bs )

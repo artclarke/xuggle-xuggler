@@ -455,6 +455,10 @@ struct x264_t
     x264_vlc_table_t *x264_total_zeros_lookup[15];
     x264_vlc_table_t *x264_total_zeros_dc_lookup[3];
     x264_vlc_table_t *x264_run_before_lookup[7];
+
+#if VISUALIZE
+    struct visualize_t *visualize;
+#endif
 };
 
 #endif

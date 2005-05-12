@@ -11,6 +11,7 @@ echo "  --enable-avis-input      enables avisynth input (win32 only)"
 echo "  --enable-mp4-output      enables mp4 output (using gpac)"
 echo "  --enable-vfw             compiles the VfW frontend"
 echo "  --enable-debug           adds -g, doesn't strip"
+echo "  --enable-visualize       enables visualization (X11 only)"
 echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS"
 echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS"
 echo ""
@@ -21,6 +22,7 @@ avis_input="no"
 mp4_output="no"
 debug="no"
 vfw="no"
+vis="no"
 
 CC="gcc"
 CFLAGS="-Wall -I. -O4 -funroll-loops -ffast-math -D__X264__"
@@ -132,6 +134,11 @@ for opt do
         --enable-vfw)
             vfw="yes"
             ;;
+        --enable-visualize)
+            LDFLAGS="$LDFLAGS -L/usr/X11R6/lib -lX11"
+            CFLAGS="$CFLAGS -DVISUALIZE=1"
+            vis="yes"
+            ;;
         *)
             echo "Unknown option $opt, ignored"
             ;;
@@ -156,6 +163,7 @@ AS=$AS
 ASFLAGS=$ASFLAGS
 VFW=$vfw
 EXE=$EXE
+VIS=$vis
 EOF
 
 if [ "$vfw" == "yes" ]; then
@@ -173,6 +181,7 @@ echo "avis input: $avis_input"
 echo "mp4 output: $mp4_output"
 echo "vfw:        $vfw"
 echo "debug:      $debug"
+echo "visualize:  $vis"
 echo
 echo "You can run 'make' now."
 

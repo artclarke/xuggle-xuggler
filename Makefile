@@ -9,6 +9,11 @@ SRCS = common/mc.c common/predict.c common/pixel.c common/macroblock.c \
        encoder/set.c encoder/macroblock.c encoder/cabac.c \
        encoder/cavlc.c encoder/encoder.c encoder/eval.c
 
+# Visualization sources
+ifeq ($(VIS),yes)
+SRCS   += common/visualize.c common/display-x11.c
+endif
+
 # MMX/SSE optims
 ifeq ($(ARCH),X86)
 SRCS   += common/i386/mc-c.c common/i386/dct-c.c common/i386/predict.c
