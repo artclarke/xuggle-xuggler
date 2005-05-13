@@ -57,30 +57,39 @@ uint8_t data[DATA_MAX];
 typedef void *hnd_t;
 
 /* Ctrl-C handler */
-static int     i_ctrl_c = 0;
+static int     b_ctrl_c = 0;
+static int     b_exit_on_ctrl_c = 0;
 static void    SigIntHandler( int a )
 {
-    i_ctrl_c = 1;
-#if VISUALIZE
-    exit(0);
-#endif
+    if( b_exit_on_ctrl_c )
+        exit(0);
+    b_ctrl_c = 1;
 }
+
+typedef struct {
+    int b_decompress;
+    int b_progress;
+    int i_maxframes;
+    int i_seek;
+    hnd_t hin;
+    hnd_t hout;
+} cli_opt_t;
 
 /* input file operation function pointers */
 static int (*p_open_infile)( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param );
 static int (*p_get_frame_total)( hnd_t handle, int i_width, int i_height );
-static int (*p_read_frame)( x264_picture_t *p_pic, hnd_t handle, int i_width, int i_height );
+static int (*p_read_frame)( x264_picture_t *p_pic, hnd_t handle, int i_frame, int i_width, int i_height );
 static int (*p_close_infile)( hnd_t handle );
 
 static int open_file_yuv( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param );
 static int get_frame_total_yuv( hnd_t handle, int i_width, int i_height );
-static int read_frame_yuv( x264_picture_t *p_pic, hnd_t handle, int i_width, int i_height );
+static int read_frame_yuv( x264_picture_t *p_pic, hnd_t handle, int i_frame, int i_width, int i_height );
 static int close_file_yuv( hnd_t handle );
 
 #ifdef AVIS_INPUT
 static int open_file_avis( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param );
 static int get_frame_total_avis( hnd_t handle, int i_width, int i_height );
-static int read_frame_avis( x264_picture_t *p_pic, hnd_t handle, int i_width, int i_height );
+static int read_frame_avis( x264_picture_t *p_pic, hnd_t handle, int i_frame, int i_width, int i_height );
 static int close_file_avis( hnd_t handle );
 #endif
 
@@ -106,9 +115,8 @@ static int close_file_mp4( hnd_t handle );
 #endif
 
 static void Help( x264_param_t *defaults );
-static int  Parse( int argc, char **argv, x264_param_t  *param, hnd_t *p_hin, hnd_t *p_hout, int *pb_decompress, int *b_progress );
-static int  Encode( x264_param_t  *param, hnd_t hin,  hnd_t hout, int b_progress );
-static int  Decode( x264_param_t  *param, FILE *fh26l, hnd_t hout );
+static int  Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt );
+static int  Encode( x264_param_t *param, cli_opt_t *opt );
 
 
 /****************************************************************************
@@ -117,13 +125,7 @@ static int  Decode( x264_param_t  *param, FILE *fh26l, hnd_t hout );
 int main( int argc, char **argv )
 {
     x264_param_t param;
-
-    hnd_t   hout;
-    hnd_t   hin;
-
-    int     b_decompress;
-    int     b_progress;
-    int     i_ret;
+    cli_opt_t opt;
 
 #ifdef _MSC_VER
     _setmode(_fileno(stdin), _O_BINARY);    /* thanks to Marcos Morais <morais at dee.ufcg.edu.br> */
@@ -133,20 +135,13 @@ int main( int argc, char **argv )
     x264_param_default( &param );
 
     /* Parse command line */
-    if( Parse( argc, argv, &param, &hin, &hout, &b_decompress, &b_progress ) < 0 )
-    {
+    if( Parse( argc, argv, &param, &opt ) < 0 )
         return -1;
-    }
 
     /* Control-C handler */
     signal( SIGINT, SigIntHandler );
 
-    if( b_decompress )
-        i_ret = Decode( &param, hin, hout );
-    else
-        i_ret = Encode( &param, hin, hout, b_progress );
-
-    return i_ret;
+    return Encode( &param, &opt );
 }
 
 /*****************************************************************************
@@ -223,6 +218,7 @@ static void Help( x264_param_t *defaults )
              "      --level <integer>       Specify level (as defined by Annex A)\n"
              "      --sar width:height      Specify Sample Aspect Ratio\n"
              "      --fps <float|rational>  Specify framerate\n"
+             "      --seek <integer>        First frame to encode\n"
              "      --frames <integer>      Maximum number of frames to encode\n"
              "  -o, --output                Specify output file\n"
              "\n"
@@ -281,19 +277,14 @@ static void Help( x264_param_t *defaults )
  * Parse:
  *****************************************************************************/
 static int  Parse( int argc, char **argv,
-                   x264_param_t  *param,
-                   hnd_t *p_hin, hnd_t *p_hout, int *pb_decompress, int *b_progress )
+                   x264_param_t *param, cli_opt_t *opt )
 {
     char *psz_filename = NULL;
     x264_param_t defaults = *param;
     char *psz;
     char b_avis = 0;
 
-    /* Default output */
-    *p_hout = NULL;
-    *p_hin  = NULL;
-    *pb_decompress = 0;
-    *b_progress = 0;
+    memset( opt, 0, sizeof(cli_opt_t) );
 
     /* Default input file driver */
     p_open_infile = open_file_yuv;
@@ -345,6 +336,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_VBVBUFSIZE 288
 #define OPT_VBVINIT 289
 #define OPT_VISUALIZE 290
+#define OPT_SEEK 291
 
         static struct option long_options[] =
         {
@@ -369,6 +361,7 @@ static int  Parse( int argc, char **argv,
             { "sar",     required_argument, NULL, 's' },
             { "fps",     required_argument, NULL, OPT_FPS },
             { "frames",  required_argument, NULL, OPT_FRAMES },
+            { "seek",    required_argument, NULL, OPT_SEEK },
             { "output",  required_argument, NULL, 'o' },
             { "analyse", required_argument, NULL, 'A' },
             { "direct",  required_argument, NULL, OPT_DIRECT },
@@ -472,13 +465,16 @@ static int  Parse( int argc, char **argv,
                 param->b_cabac = 0;
                 break;
             case 'x':
-                *pb_decompress = 1;
+                opt->b_decompress = 1;
                 break;
             case 'C':
                 param->cpu = 0;
                 break;
             case OPT_FRAMES:
-                param->i_maxframes = atoi( optarg );
+                opt->i_maxframes = atoi( optarg );
+                break;
+            case OPT_SEEK:
+                opt->i_seek = atoi( optarg );
                 break;
             case'o':
                 if( !strncasecmp(optarg + strlen(optarg) - 4, ".mp4", 4) )
@@ -495,8 +491,8 @@ static int  Parse( int argc, char **argv,
 #endif
                 }
                 if( !strcmp(optarg, "-") )
-                    *p_hout = stdout;
-                else if( p_open_outfile( optarg, p_hout ) )
+                    opt->hout = stdout;
+                else if( p_open_outfile( optarg, &opt->hout ) )
                 {
                     fprintf( stderr, "cannot open output file `%s'\n", optarg );
                     return -1;
@@ -639,11 +635,12 @@ static int  Parse( int argc, char **argv,
                 param->b_aud = 1;
                 break;
             case OPT_PROGRESS:
-                *b_progress = 1;
+                opt->b_progress = 1;
                 break;
             case OPT_VISUALIZE:
 #ifdef VISUALIZE
                 param->b_visualize = 1;
+                b_exit_on_ctrl_c = 1;
 #else
                 fprintf( stderr, "not compiled with visualization support\n" );
 #endif
@@ -655,14 +652,14 @@ static int  Parse( int argc, char **argv,
     }
 
     /* Get the file name */
-    if( optind > argc - 1 || !*p_hout )
+    if( optind > argc - 1 || !opt->hout )
     {
         Help( &defaults );
         return -1;
     }
     psz_filename = argv[optind++];
 
-    if( !(*pb_decompress) )
+    if( !opt->b_decompress )
     {
         if( optind > argc - 1 )
         {
@@ -701,7 +698,7 @@ static int  Parse( int argc, char **argv,
     /* open the input */
     if( !strcmp( psz_filename, "-" ) )
     {
-        *p_hin = stdin;
+        opt->hin = stdin;
         optind++;
     }
     else
@@ -718,7 +715,7 @@ static int  Parse( int argc, char **argv,
             return -1;
 #endif
         }
-        if( p_open_infile( psz_filename, p_hin, param ) )
+        if( p_open_infile( psz_filename, &opt->hin, param ) )
         {
             fprintf( stderr, "could not open input file '%s'\n", psz_filename );
             return -1;
@@ -731,11 +728,11 @@ static int  Parse( int argc, char **argv,
 /*****************************************************************************
  * Decode:
  *****************************************************************************/
+#if 0
 static int  Decode( x264_param_t  *param, FILE *fh26l, hnd_t hout )
 {
     fprintf( stderr, "decompressor not working (help is welcome)\n" );
     return -1;
-#if 0
     x264_nal_t nal;
     int i_data;
     int b_eof;
@@ -753,7 +750,7 @@ static int  Decode( x264_param_t  *param, FILE *fh26l, hnd_t hout )
     i_data  = 0;
     nal.p_payload = malloc( DATA_MAX );
 
-    while( !i_ctrl_c )
+    while( !b_ctrl_c )
     {
         uint8_t *p, *p_next, *end;
         int i_size;
@@ -869,8 +866,8 @@ static int  Decode( x264_param_t  *param, FILE *fh26l, hnd_t hout )
                      (double)( i_end - i_start );
         fprintf( stderr, "decoded %d frames %ffps\n", i_frame, fps );
     }
-#endif
 }
+#endif
 
 static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
 {
@@ -914,7 +911,7 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
 /*****************************************************************************
  * Encode:
  *****************************************************************************/
-static int  Encode( x264_param_t  *param, hnd_t hin, hnd_t hout, int b_progress )
+static int  Encode( x264_param_t *param, cli_opt_t *opt )
 {
     x264_t *h;
     x264_picture_t pic;
@@ -925,21 +922,21 @@ static int  Encode( x264_param_t  *param, hnd_t hin, hnd_t hout, int b_progress 
     int     i_frame_size;
     int     i_progress;
 
-    i_frame_total = p_get_frame_total( hin, param->i_width, param->i_height );
+    i_frame_total = p_get_frame_total( opt->hin, param->i_width, param->i_height );
 
     if( ( h = x264_encoder_open( param ) ) == NULL )
     {
         fprintf( stderr, "x264_encoder_open failed\n" );
-        p_close_infile( hin );
-        p_close_outfile( hout );
+        p_close_infile( opt->hin );
+        p_close_outfile( opt->hout );
         return -1;
     }
 
-    if( p_set_outfile_param( hout, param ) )
+    if( p_set_outfile_param( opt->hout, param ) )
     {
         fprintf( stderr, "can't set outfile param\n" );
-        p_close_infile( hin );
-        p_close_outfile( hout );
+        p_close_infile( opt->hin );
+        p_close_outfile( opt->hout );
         return -1;
     }
 
@@ -948,27 +945,29 @@ static int  Encode( x264_param_t  *param, hnd_t hin, hnd_t hout, int b_progress 
 
     i_start = x264_mdate();
     /* Encode frames */
-    if( param->i_maxframes > 0 && param->i_maxframes < i_frame_total )
-        i_frame_total = param->i_maxframes;
-    for( i_frame = 0, i_file = 0, i_progress = 0; i_ctrl_c == 0 && i_frame < i_frame_total; )
+    i_frame_total -= opt->i_seek;
+    if( opt->i_maxframes > 0 && opt->i_maxframes < i_frame_total )
+        i_frame_total = opt->i_maxframes;
+    for( i_frame = 0, i_file = 0, i_progress = 0;
+         b_ctrl_c == 0 && (i_frame < i_frame_total || i_frame_total == 0); )
     {
-        if( p_read_frame( &pic, hin, param->i_width, param->i_height ) )
+        if( p_read_frame( &pic, opt->hin, i_frame + opt->i_seek, param->i_width, param->i_height ) )
             break;
 
         pic.i_pts = i_frame * param->i_fps_den;
 
-        i_file += Encode_frame( h, hout, &pic );
+        i_file += Encode_frame( h, opt->hout, &pic );
 
         i_frame++;
 
         /* update status line (up to 1000 times per input file) */
-        if( b_progress && param->i_log_level < X264_LOG_DEBUG && 
+        if( opt->b_progress && param->i_log_level < X264_LOG_DEBUG && 
             i_frame * 1000 / i_frame_total > i_progress )
         {
             int64_t i_elapsed = x264_mdate() - i_start;
             double fps = i_elapsed > 0 ? i_frame * 1000000. / i_elapsed : 0;
             i_progress = i_frame * 1000 / i_frame_total;
-            fprintf( stderr, "encoded frames: %d/%d (%.1f%%), %.2f fps   \r", i_frame, 
+            fprintf( stderr, "encoded frames: %d/%d (%.1f%%), %.2f fps   \r", i_frame,
                      i_frame_total, (float)i_progress / 10, fps );
             fflush( stderr ); // needed in windows
         }
@@ -976,7 +975,7 @@ static int  Encode( x264_param_t  *param, hnd_t hin, hnd_t hout, int b_progress 
     /* Flush delayed B-frames */
     do {
         i_file +=
-        i_frame_size = Encode_frame( h, hout, NULL );
+        i_frame_size = Encode_frame( h, opt->hout, NULL );
     } while( i_frame_size );
 
     i_end = x264_mdate();
@@ -984,22 +983,26 @@ static int  Encode( x264_param_t  *param, hnd_t hin, hnd_t hout, int b_progress 
     x264_encoder_close( h );
     fprintf( stderr, "\n" );
 
-    p_close_infile( hin );
-    p_close_outfile( hout );
+    if( b_ctrl_c )
+        fprintf( stderr, "aborted at input frame %d\n", opt->i_seek + i_frame );
+
+    p_close_infile( opt->hin );
+    p_close_outfile( opt->hout );
 
     if( i_frame > 0 )
     {
         double fps = (double)i_frame * (double)1000000 /
                      (double)( i_end - i_start );
 
-        fprintf( stderr, "encoded %d frames, %.2f fps, %.2f kb/s\n", i_frame, fps, (double) i_file * 8 * param->i_fps_num / ( param->i_fps_den * i_frame * 1000 ) );
+        fprintf( stderr, "encoded %d frames, %.2f fps, %.2f kb/s\n", i_frame, fps,
+                 (double) i_file * 8 * param->i_fps_num / ( param->i_fps_den * i_frame * 1000 ) );
     }
 
     return 0;
 }
 
 /* raw 420 yuv file operation */
-static int open_file_yuv( char *psz_filename, hnd_t *p_handle , x264_param_t *p_param )
+static int open_file_yuv( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
 {
     if ((*p_handle = fopen(psz_filename, "rb")) == NULL)
         return -1;
@@ -1021,14 +1024,21 @@ static int get_frame_total_yuv( hnd_t handle, int i_width, int i_height )
     return i_frame_total;
 }
 
-static int read_frame_yuv( x264_picture_t *p_pic, hnd_t handle, int i_width, int i_height )
+static int read_frame_yuv( x264_picture_t *p_pic, hnd_t handle, int i_frame, int i_width, int i_height )
 {
+    static int prev_frame = -1;
     FILE *f = (FILE *)handle;
+
+    if( i_frame != prev_frame+1 )
+        if( fseek( f, i_frame * i_width * i_height * 3 / 2, SEEK_SET ) )
+            return -1;
 
     if( fread( p_pic->img.plane[0], 1, i_width * i_height, f ) <= 0
             || fread( p_pic->img.plane[1], 1, i_width * i_height / 4, f ) <= 0
             || fread( p_pic->img.plane[2], 1, i_width * i_height / 4, f ) <= 0 )
         return -1;
+
+    prev_frame = i_frame;
 
     return 0;
 }
@@ -1121,17 +1131,14 @@ static int get_frame_total_avis( hnd_t handle, int i_width, int i_height )
     return info.dwLength;
 }
 
-static int read_frame_avis( x264_picture_t *p_pic, hnd_t handle, int i_width, int i_height )
+static int read_frame_avis( x264_picture_t *p_pic, hnd_t handle, int i_frame, int i_width, int i_height )
 {
-    static int i_index = 0;
     PAVISTREAM p_avi = (PAVISTREAM)handle;
     
     p_pic->img.i_csp = X264_CSP_YV12;
     
-    if(  AVIStreamRead(p_avi, i_index, 1, p_pic->img.plane[0], i_width * i_height * 3 / 2, NULL, NULL ) )
+    if( AVIStreamRead(p_avi, i_frame, 1, p_pic->img.plane[0], i_width * i_height * 3 / 2, NULL, NULL ) )
         return -1;
-
-    i_index++;
 
     return 0;
 }

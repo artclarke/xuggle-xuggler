@@ -111,7 +111,6 @@ typedef struct
 
     int         i_fps_num;
     int         i_fps_den;
-    int         i_maxframes;        /* Maximum number of frames to read from input file and encode, 0=unlimited */
 
     /* Bitstream parameters */
     int         i_frame_reference;  /* Maximum number of reference frames */
