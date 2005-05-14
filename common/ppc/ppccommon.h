@@ -68,16 +68,16 @@
 
 /***********************************************************************
  * PREP_LOAD: declares two vectors required to perform unaligned loads
- * VEC_LOAD:  loads n bytes from address p into vector v
+ * VEC_LOAD:  loads n bytes from u8 * p into vector v of type t
  **********************************************************************/
 #define PREP_LOAD \
     vec_u8_t _hv, _lv
 
-#define VEC_LOAD( p, v, n )       \
-    _hv = vec_ld( 0, p );         \
-    v   = vec_lvsl( 0, p );       \
-    _lv = vec_ld( n - 1, p );     \
-    v   = vec_perm( _hv, _lv, v )
+#define VEC_LOAD( p, v, n, t )                  \
+    _hv = vec_ld( 0, p );                       \
+    v   = (t) vec_lvsl( 0, p );                 \
+    _lv = vec_ld( n - 1, p );                   \
+    v   = (t) vec_perm( _hv, _lv, (vec_u8_t) v )
 
 /***********************************************************************
  * PREP_STORE##n: declares required vectors to store n bytes to a

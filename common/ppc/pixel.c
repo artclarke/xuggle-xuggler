@@ -53,8 +53,8 @@ static int name( uint8_t *pix1, int i_pix1,            \
     vec_s32_t sumv = zero_s32v;                        \
     for( y = 0; y < ly; y++ )                          \
     {                                                  \
-        VEC_LOAD( pix1, pix1v, lx );                   \
-        VEC_LOAD( pix2, pix2v, lx );                   \
+        VEC_LOAD( pix1, pix1v, lx, vec_u8_t );         \
+        VEC_LOAD( pix2, pix2v, lx, vec_u8_t );         \
         sumv = (vec_s32_t) vec_sum4s(                  \
                    vec_sub( vec_max( pix1v, pix2v ),   \
                             vec_min( pix1v, pix2v ) ), \
@@ -155,18 +155,18 @@ PIXEL_SAD_ALTIVEC( pixel_sad_8x8_altivec,   8,  8,  2s, 1 )
  * Loads n bytes from p1 and p2, do the diff of the high elements into
  * d, increments p1 and p2 by i1 and i2
  **********************************************************************/
-#define PREP_DIFF \
-    LOAD_ZERO; \
-    PREP_LOAD; \
+#define PREP_DIFF           \
+    LOAD_ZERO;              \
+    PREP_LOAD;              \
     vec_s16_t pix1v, pix2v;
 
-#define VEC_DIFF_H(p1,i1,p2,i2,n,d) \
-    VEC_LOAD( p1, pix1v, n ); \
-    pix1v = vec_u8_to_s16( pix1v ); \
-    VEC_LOAD( p2, pix2v, n ); \
-    pix2v = vec_u8_to_s16( pix2v ); \
-    d     = vec_sub( pix1v, pix2v ); \
-    p1   += i1; \
+#define VEC_DIFF_H(p1,i1,p2,i2,n,d)      \
+    VEC_LOAD( p1, pix1v, n, vec_s16_t ); \
+    pix1v = vec_u8_to_s16( pix1v );      \
+    VEC_LOAD( p2, pix2v, n, vec_s16_t ); \
+    pix2v = vec_u8_to_s16( pix2v );      \
+    d     = vec_sub( pix1v, pix2v );     \
+    p1   += i1;                          \
     p2   += i2
 
 /***********************************************************************
@@ -180,16 +180,16 @@ PIXEL_SAD_ALTIVEC( pixel_sad_8x8_altivec,   8,  8,  2s, 1 )
  * dh, the diff of the low elements into dl, increments p1 and p2 by i1
  * and i2
  **********************************************************************/
-#define VEC_DIFF_HL(p1,i1,p2,i2,dh,dl) \
-    VEC_LOAD( p1, pix1v, 16 ); \
-    temp0v = vec_u8_to_s16_h( pix1v ); \
-    temp1v = vec_u8_to_s16_l( pix1v ); \
-    VEC_LOAD( p2, pix2v, 16 ); \
-    temp2v = vec_u8_to_s16_h( pix2v ); \
-    temp3v = vec_u8_to_s16_l( pix2v ); \
-    dh     = vec_sub( temp0v, temp2v ); \
-    dl     = vec_sub( temp1v, temp3v ); \
-    p1    += i1; \
+#define VEC_DIFF_HL(p1,i1,p2,i2,dh,dl)    \
+    VEC_LOAD( p1, pix1v, 16, vec_s16_t ); \
+    temp0v = vec_u8_to_s16_h( pix1v );    \
+    temp1v = vec_u8_to_s16_l( pix1v );    \
+    VEC_LOAD( p2, pix2v, 16, vec_s16_t ); \
+    temp2v = vec_u8_to_s16_h( pix2v );    \
+    temp3v = vec_u8_to_s16_l( pix2v );    \
+    dh     = vec_sub( temp0v, temp2v );   \
+    dl     = vec_sub( temp1v, temp3v );   \
+    p1    += i1;                          \
     p2    += i2
 
 /***********************************************************************

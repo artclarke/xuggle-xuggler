@@ -92,8 +92,8 @@ static inline void pixel_avg_w16( uint8_t *dst,  int i_dst,
     PREP_STORE16;
     for( y = 0; y < i_height; y++ )
     {
-        VEC_LOAD( src1, src1v, 16 );
-        VEC_LOAD( src2, src2v, 16 );
+        VEC_LOAD( src1, src1v, 16, vec_u8_t );
+        VEC_LOAD( src2, src2v, 16, vec_u8_t );
         src1v = vec_avg( src1v, src2v );
         VEC_STORE16( src1v, dst );
 
@@ -306,14 +306,14 @@ static void mc_chroma_altivec_4xh( uint8_t *src, int i_src_stride,
     permv   = vec_lvsl( 0, (uint8_t *) 1 );
     shiftv  = vec_splat_u16( 6 );
 
-    VEC_LOAD( src, src2v_8, 5 );
+    VEC_LOAD( src, src2v_8, 5, vec_u8_t );
     src3v_8 = vec_perm( src2v_8, src2v_8, permv );
 
     for( y = 0; y < i_height; y++ )
     {
         src0v_8 = src2v_8;
         src1v_8 = src3v_8;
-        VEC_LOAD( srcp, src2v_8, 5 );
+        VEC_LOAD( srcp, src2v_8, 5, vec_u8_t );
         src3v_8 = vec_perm( src2v_8, src2v_8, permv );
 
         dstv_16 = k32v;
@@ -372,14 +372,14 @@ static void mc_chroma_altivec_8xh( uint8_t *src, int i_src_stride,
     permv   = vec_lvsl( 0, (uint8_t *) 1 );
     shiftv  = vec_splat_u16( 6 );
 
-    VEC_LOAD( src, src2v_8, 9 );
+    VEC_LOAD( src, src2v_8, 9, vec_u8_t );
     src3v_8 = vec_perm( src2v_8, src2v_8, permv );
 
     for( y = 0; y < i_height; y++ )
     {
         src0v_8 = src2v_8;
         src1v_8 = src3v_8;
-        VEC_LOAD( srcp, src2v_8, 9 );
+        VEC_LOAD( srcp, src2v_8, 9, vec_u8_t );
         src3v_8 = vec_perm( src2v_8, src2v_8, permv );
 
         dstv_16 = k32v;
