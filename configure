@@ -166,7 +166,7 @@ EXE=$EXE
 VIS=$vis
 EOF
 
-if [ "$vfw" == "yes" ]; then
+if [ "$vfw" = "yes" ]; then
     rm -f vfw/build/cygwin/config.mak
     cat > vfw/build/cygwin/config.mak << EOF
 CFLAGS=$VFW_CFLAGS
