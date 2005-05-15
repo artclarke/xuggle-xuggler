@@ -35,6 +35,9 @@
 #ifdef HAVE_MMXEXT
 #   include "i386/dct.h"
 #endif
+#ifdef ARCH_PPC
+#   include "ppc/dct.h"
+#endif
 
 
 static inline int clip_uint8( int a )
@@ -288,6 +291,14 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
 
         dctf->dct4x4dc  = x264_dct4x4dc_mmxext;
         dctf->idct4x4dc = x264_idct4x4dc_mmxext;
+    }
+#endif
+#ifdef ARCH_PPC
+    if( cpu&X264_CPU_ALTIVEC )
+    {
+        dctf->sub4x4_dct    = x264_sub4x4_dct_altivec;
+        dctf->sub8x8_dct    = x264_sub8x8_dct_altivec;
+        dctf->sub16x16_dct  = x264_sub16x16_dct_altivec;
     }
 #endif
 }
