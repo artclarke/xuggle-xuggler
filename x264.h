@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 24
+#define X264_BUILD 25
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -281,6 +281,10 @@ int x264_nal_decode( x264_nal_t *nal, void *, int );
 /* x264_encoder_open:
  *      create a new encoder handler, all parameters from x264_param_t are copied */
 x264_t *x264_encoder_open   ( x264_param_t * );
+/* x264_encoder_reconfig:
+ *      change encoder options while encoding,
+ *      analysis-related parameters from x264_param_t are copied */
+int     x264_encoder_reconfig( x264_t *, x264_param_t * );
 /* x264_encoder_headers:
  *      return the SPS and PPS that will be used for the whole stream */
 int     x264_encoder_headers( x264_t *, x264_nal_t **, int * );

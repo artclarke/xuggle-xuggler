@@ -334,47 +334,27 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
  *
  ****************************************************************************/
 
-/****************************************************************************
- * x264_encoder_open:
- ****************************************************************************/
-x264_t *x264_encoder_open   ( x264_param_t *param )
+static int x264_validate_parameters( x264_t *h )
 {
-    x264_t *h = x264_malloc( sizeof( x264_t ) );
-    int i, i_slice;
-
-    /* Create a copy of param */
-    memcpy( &h->param, param, sizeof( x264_param_t ) );
-    if( h->param.rc.psz_stat_out )
-        h->param.rc.psz_stat_out = strdup( h->param.rc.psz_stat_out );
-    if( h->param.rc.psz_stat_in )
-        h->param.rc.psz_stat_in = strdup( h->param.rc.psz_stat_in );
-    if( h->param.rc.psz_rc_eq )
-        h->param.rc.psz_rc_eq = strdup( h->param.rc.psz_rc_eq );
-
-    /* Check parameters validity */
-    if( param->i_width <= 0  || param->i_height <= 0 )
+    if( h->param.i_width <= 0 || h->param.i_height <= 0 )
     {
         x264_log( h, X264_LOG_ERROR, "invalid width x height (%dx%d)\n",
-                  param->i_width, param->i_height );
-        x264_free( h );
-        return NULL;
+                  h->param.i_width, h->param.i_height );
+        return -1;
     }
 
-    if( param->i_width % 16 != 0 || param->i_height % 16 != 0 )
+    if( h->param.i_width % 16 != 0 || h->param.i_height % 16 != 0 )
     {
         x264_log( h, X264_LOG_ERROR, "width %% 16 != 0 or height %% 16 != 0 (%dx%d)\n",
-                 param->i_width, param->i_height );
-        x264_free( h );
-        return NULL;
+                  h->param.i_width, h->param.i_height );
+        return -1;
     }
-    if( param->i_csp != X264_CSP_I420 )
+    if( h->param.i_csp != X264_CSP_I420 )
     {
         x264_log( h, X264_LOG_ERROR, "invalid CSP (only I420 supported)\n" );
-        x264_free( h );
-        return NULL;
+        return -1;
     }
 
-    /* Fix parameters values */
     h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, 16 );
     if( h->param.i_keyint_max <= 0 )
         h->param.i_keyint_max = 1;
@@ -403,8 +383,8 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     if( h->param.analyse.i_me_range > 16 && h->param.analyse.i_me_method != X264_ME_ESA )
         h->param.analyse.i_me_range = 16;
     h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 5 );
-    if( h->param.analyse.inter & X264_ANALYSE_PSUB8x8 )
-        h->param.analyse.inter |= X264_ANALYSE_PSUB16x16;
+    if( !(h->param.analyse.inter & X264_ANALYSE_PSUB16x16) )
+        h->param.analyse.inter &= ~X264_ANALYSE_PSUB8x8;
     h->param.analyse.i_chroma_qp_offset = x264_clip3(h->param.analyse.i_chroma_qp_offset, -12, 12);
     h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 2048);
 
@@ -413,6 +393,33 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     if( h->param.rc.f_complexity_blur < 0 )
         h->param.rc.f_complexity_blur = 0;
     h->param.rc.i_qp_constant = x264_clip3(h->param.rc.i_qp_constant, 0, 51);
+
+    return 0;
+}
+
+/****************************************************************************
+ * x264_encoder_open:
+ ****************************************************************************/
+x264_t *x264_encoder_open   ( x264_param_t *param )
+{
+    x264_t *h = x264_malloc( sizeof( x264_t ) );
+    int i, i_slice;
+
+    /* Create a copy of param */
+    memcpy( &h->param, param, sizeof( x264_param_t ) );
+
+    if( x264_validate_parameters( h ) < 0 )
+    {
+        x264_free( h );
+        return NULL;
+    }
+
+    if( h->param.rc.psz_stat_out )
+        h->param.rc.psz_stat_out = strdup( h->param.rc.psz_stat_out );
+    if( h->param.rc.psz_stat_in )
+        h->param.rc.psz_stat_in = strdup( h->param.rc.psz_stat_in );
+    if( h->param.rc.psz_rc_eq )
+        h->param.rc.psz_rc_eq = strdup( h->param.rc.psz_rc_eq );
 
     /* VUI */
     if( h->param.vui.i_sar_width > 0 && h->param.vui.i_sar_height > 0 )
@@ -545,6 +552,25 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
              param->cpu&X264_CPU_ALTIVEC ? "Altivec " : "" );
 
     return h;
+}
+
+/****************************************************************************
+ * x264_encoder_reconfig:
+ ****************************************************************************/
+int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
+{
+    h->param.i_bframe_bias = param->i_bframe_bias;
+    h->param.i_deblocking_filter_alphac0 = param->i_deblocking_filter_alphac0;
+    h->param.i_deblocking_filter_beta    = param->i_deblocking_filter_beta;
+    h->param.analyse.i_me_method = param->analyse.i_me_method;
+    h->param.analyse.i_me_range = param->analyse.i_me_range;
+    h->param.analyse.i_subpel_refine = param->analyse.i_subpel_refine;
+    h->param.analyse.intra = param->analyse.intra;
+    h->param.analyse.inter = param->analyse.inter;
+    if( h->sps->b_direct8x8_inference && h->param.i_bframe
+        && h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_TEMPORAL )
+        h->param.analyse.inter &= ~X264_ANALYSE_PSUB8x8;
+    return x264_validate_parameters( h );
 }
 
 /* internal usage */
