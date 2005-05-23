@@ -139,7 +139,7 @@ void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int i_qscale )
     else
     {
         const int i_dmf = dequant_mf[i_qscale%6][0][0];
-        const int f = 1 << ( 1 + i_qbits );
+        const int f = -i_qbits; // 1 << (-1-i_qbits)
 
         for( y = 0; y < 4; y++ )
         {
