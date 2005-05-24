@@ -193,8 +193,9 @@ typedef struct
         float       f_qcompress;    /* 0.0 => cbr, 1.0 => constant qp */
         float       f_qblur;        /* temporally blur quants */
         float       f_complexity_blur; /* temporally blur complexity */
-        int         i_zones;
         x264_zone_t *zones;         /* ratecontrol overrides */
+        int         i_zones;        /* sumber of zone_t's */
+        char        *psz_zones;     /* alternate method of specifying zones */
     } rc;
 
     int b_aud;                  /* generate access unit delimiters */

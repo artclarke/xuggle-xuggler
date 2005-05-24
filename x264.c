@@ -641,31 +641,7 @@ static int  Parse( int argc, char **argv,
                 param->rc.f_complexity_blur = atof(optarg);
                 break;
             case OPT_ZONES:
-                {
-                    int i;
-                    char *p;
-                    param->rc.i_zones = 1;
-                    for( p = optarg; *p; p++ )
-                        param->rc.i_zones += (*p == '/');
-                    param->rc.zones = (x264_zone_t*)malloc( param->rc.i_zones * sizeof(x264_zone_t) );
-                    p = optarg;
-                    for( i = 0; i < param->rc.i_zones; i++)
-                    {
-                        x264_zone_t *z = &param->rc.zones[i];
-                        if( 3 == sscanf(p, "%u,%u,q=%u", &z->i_start, &z->i_end, &z->i_qp) )
-                            z->b_force_qp = 1;
-                        else if( 3 == sscanf(p, "%u,%u,b=%f", &z->i_start, &z->i_end, &z->f_bitrate_factor) )
-                            z->b_force_qp = 0;
-                        else
-                        {
-                            char *slash = strchr(p, '/');
-                            if(slash) *slash = '\0';
-                            fprintf( stderr, "invalid zone: \"%s\"\n", p );
-                            return -1;
-                        }
-                        p = strchr(p, '/') + 1;
-                    }
-                }
+                param->rc.psz_zones = optarg;
                 break;
             case OPT_NOPSNR:
                 param->analyse.b_psnr = 0;
