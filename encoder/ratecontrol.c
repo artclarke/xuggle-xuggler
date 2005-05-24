@@ -218,6 +218,10 @@ int x264_ratecontrol_new( x264_t *h )
     }
     else if( h->param.rc.i_vbv_max_bitrate || h->param.rc.i_vbv_buffer_size )
         x264_log(h, X264_LOG_ERROR, "VBV maxrate or buffer size specified, but not both.\n");
+    if(rc->rate_tolerance < 0.01) {
+        x264_log(h, X264_LOG_ERROR, "bitrate tolerance too small, using .01\n");
+        rc->rate_tolerance = 0.01;
+    }
 
     if( rc->b_abr )
     {

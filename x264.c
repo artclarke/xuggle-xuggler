@@ -223,7 +223,8 @@ static void Help( x264_param_t *defaults )
              "      --me <string>           Integer pixel motion estimation method [\"%s\"]\n"
              "                                  - dia: diamond search, radius 1 (fast)\n"
              "                                  - hex: hexagonal search, radius 2\n"
-             "                                  - esa: exhaustive search algorithm (slow)\n"
+             "                                  - umh: uneven multi-hexagon search\n"
+             "                                  - esa: exhaustive search (slow)\n"
              "      --merange <integer>     Maximum motion vector search range [%d]\n"
              "  -m, --subme <integer>       Subpixel motion estimation quality: 1=fast, 5=best. [%d]\n"
              "      --no-chroma-me          Ignore chroma in motion estimation\n"
@@ -282,6 +283,7 @@ static void Help( x264_param_t *defaults )
             defaults->rc.f_qblur,
             defaults->analyse.i_me_method==X264_ME_DIA ? "dia"
             : defaults->analyse.i_me_method==X264_ME_HEX ? "hex"
+            : defaults->analyse.i_me_method==X264_ME_UMH ? "umh"
             : defaults->analyse.i_me_method==X264_ME_ESA ? "esa" : NULL,
             defaults->analyse.i_me_range,
             defaults->analyse.i_subpel_refine
@@ -566,13 +568,12 @@ static int  Parse( int argc, char **argv,
                 param->analyse.b_weighted_bipred = 1;
                 break;
             case OPT_ME:
-                if( strstr( optarg, "dia" ) )
-                    param->analyse.i_me_method = X264_ME_DIA;
-                else if( strstr( optarg, "hex" ) )
-                    param->analyse.i_me_method = X264_ME_HEX;
-                else if( strstr( optarg, "esa" ) )
-                    param->analyse.i_me_method = X264_ME_ESA;
-                else
+                param->analyse.i_me_method = 
+                    strstr( optarg, "dia" ) ? X264_ME_DIA :
+                    strstr( optarg, "hex" ) ? X264_ME_HEX :
+                    strstr( optarg, "umh" ) ? X264_ME_UMH :
+                    strstr( optarg, "esa" ) ? X264_ME_ESA : -1;
+                if( param->analyse.i_me_method == -1 )
                 {
                     fprintf( stderr, "bad ME method `%s'\n", optarg );
                     return -1;
