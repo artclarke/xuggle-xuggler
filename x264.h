@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 25
+#define X264_BUILD 26
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -90,6 +90,14 @@ typedef struct x264_t x264_t;
 #define X264_LOG_WARNING        1
 #define X264_LOG_INFO           2
 #define X264_LOG_DEBUG          3
+
+typedef struct
+{
+    int i_start, i_end;
+    int b_force_qp;
+    int i_qp;
+    float f_bitrate_factor;
+} x264_zone_t;
 
 typedef struct
 {
@@ -179,11 +187,13 @@ typedef struct
         int         b_stat_read;    /* Read stat from psz_stat_in and use it */
         char        *psz_stat_in;
 
-        /* 2pass params (same than ffmpeg ones) */
+        /* 2pass params (same as ffmpeg ones) */
         char        *psz_rc_eq;     /* 2 pass rate control equation */
         float       f_qcompress;    /* 0.0 => cbr, 1.0 => constant qp */
         float       f_qblur;        /* temporally blur quants */
         float       f_complexity_blur; /* temporally blur complexity */
+        int         i_zones;
+        x264_zone_t *zones;         /* ratecontrol overrides */
     } rc;
 
     int b_aud;                  /* generate access unit delimiters */

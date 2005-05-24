@@ -163,6 +163,8 @@ static void Help( x264_param_t *defaults )
              "\n"
              "  -h, --help                  Print this help\n"
              "\n"
+             "Frame-type options:\n"
+             "\n"
              "  -I, --keyint <integer>      Maximum GOP size [%d]\n"
              "  -i, --min-keyint <integer>  Minimum GOP size [%d]\n"
              "      --scenecut <integer>    How aggressively to insert extra I-frames [%d]\n"
@@ -175,6 +177,8 @@ static void Help( x264_param_t *defaults )
              "  -r, --ref <integer>         Number of reference frames [%d]\n"
              "      --nf                    Disable loop filter\n"
              "  -f, --filter <alpha:beta>   Loop filter AlphaC0 and Beta parameters [%d:%d]\n"
+             "\n"
+             "Ratecontrol:\n"
              "\n"
              "  -q, --qp <integer>          Set QP [%d]\n"
              "  -B, --bitrate <integer>     Set bitrate\n"
@@ -200,9 +204,18 @@ static void Help( x264_param_t *defaults )
              "      --cplxblur <float>      Reduce fluctuations in QP (before curve compression) [%.1f]\n"
              "      --qblur <float>         Reduce fluctuations in QP (after curve compression) [%.1f]\n"
              "\n"
+             "      --zones <zone0>/<zone1>/...\n"
+             "                              Tweak the bitrate of some regions of the video\n"
+             "                              Each zone is of the form\n"
+             "                                  <start frame>,<end frame>,<option>\n"
+             "                                  where <option> is either\n"
+             "                                      q=<integer> (force QP)\n"
+             "                                  or  b=<float> (bitrate multiplier)\n"
+             "\n"
+             "Analysis:\n"
+             "\n"
              "  -A, --analyse <string>      Analyse options: [\"i4x4,p8x8,b8x8\"]\n"
-             "                                  - i4x4\n"
-             "                                  - p8x8, p4x4, b8x8\n"
+             "                                  - i4x4, p8x8, p4x4, b8x8\n"
              "                                  - none, all\n"
              "      --direct <string>       Direct MV prediction mode [\"temporal\"]\n"
              "                                  - none, spatial, temporal\n"
@@ -214,6 +227,8 @@ static void Help( x264_param_t *defaults )
              "      --merange <integer>     Maximum motion vector search range [%d]\n"
              "  -m, --subme <integer>       Subpixel motion estimation quality: 1=fast, 5=best. [%d]\n"
              "      --no-chroma-me          Ignore chroma in motion estimation\n"
+             "\n"
+             "Input/Output:\n"
              "\n"
              "      --level <integer>       Specify level (as defined by Annex A)\n"
              "      --sar width:height      Specify Sample Aspect Ratio\n"
@@ -337,6 +352,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_VBVINIT 289
 #define OPT_VISUALIZE 290
 #define OPT_SEEK 291
+#define OPT_ZONES 292
 
         static struct option long_options[] =
         {
@@ -384,6 +400,7 @@ static int  Parse( int argc, char **argv,
             { "qcomp",   required_argument, NULL, OPT_QCOMP },
             { "qblur",   required_argument, NULL, OPT_QBLUR },
             { "cplxblur",required_argument, NULL, OPT_CPLXBLUR },
+            { "zones",   required_argument, NULL, OPT_ZONES },
             { "no-psnr", no_argument,       NULL, OPT_NOPSNR },
             { "quiet",   no_argument,       NULL, OPT_QUIET },
             { "verbose", no_argument,       NULL, 'v' },
@@ -621,6 +638,33 @@ static int  Parse( int argc, char **argv,
                 break;
             case OPT_CPLXBLUR:
                 param->rc.f_complexity_blur = atof(optarg);
+                break;
+            case OPT_ZONES:
+                {
+                    int i;
+                    char *p;
+                    param->rc.i_zones = 1;
+                    for( p = optarg; *p; p++ )
+                        param->rc.i_zones += (*p == '/');
+                    param->rc.zones = (x264_zone_t*)malloc( param->rc.i_zones * sizeof(x264_zone_t) );
+                    p = optarg;
+                    for( i = 0; i < param->rc.i_zones; i++)
+                    {
+                        x264_zone_t *z = &param->rc.zones[i];
+                        if( 3 == sscanf(p, "%u,%u,q=%u", &z->i_start, &z->i_end, &z->i_qp) )
+                            z->b_force_qp = 1;
+                        else if( 3 == sscanf(p, "%u,%u,b=%f", &z->i_start, &z->i_end, &z->f_bitrate_factor) )
+                            z->b_force_qp = 0;
+                        else
+                        {
+                            char *slash = strchr(p, '/');
+                            if(slash) *slash = '\0';
+                            fprintf( stderr, "invalid zone: \"%s\"\n", p );
+                            return -1;
+                        }
+                        p = strchr(p, '/') + 1;
+                    }
+                }
                 break;
             case OPT_NOPSNR:
                 param->analyse.b_psnr = 0;

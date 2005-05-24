@@ -126,6 +126,9 @@ struct x264_ratecontrol_t
     double p_cplx_sum[5];
     double mv_bits_sum[5];
     int frame_count[5];         /* number of frames of each type */
+
+    int i_zones;
+    x264_zone_t *zones;
 };
 
 
@@ -248,6 +251,30 @@ int x264_ratecontrol_new( x264_t *h )
     rc->lmin[SLICE_TYPE_B] *= fabs(h->param.f_pb_factor);
     rc->lmax[SLICE_TYPE_B] *= fabs(h->param.f_pb_factor);
 #endif
+
+    if( h->param.rc.i_zones > 0 )
+    {
+        for( i = 0; i < h->param.rc.i_zones; i++ )
+        {
+            x264_zone_t z = h->param.rc.zones[i];
+            if( z.i_start < 0 || z.i_start > z.i_end )
+            {
+                x264_log( h, X264_LOG_ERROR, "invalid zone: start=%d end=%d\n",
+                          z.i_start, z.i_end );
+                return -1;
+            }
+            else if( !z.b_force_qp && z.f_bitrate_factor <= 0 )
+            {
+                x264_log( h, X264_LOG_ERROR, "invalid zone: bitrate_factor=%f\n",
+                          z.f_bitrate_factor );
+                return -1;
+            }
+        }
+
+        rc->i_zones = h->param.rc.i_zones;
+        rc->zones = x264_malloc( rc->i_zones * sizeof(x264_zone_t) );
+        memcpy( rc->zones, h->param.rc.zones, rc->i_zones * sizeof(x264_zone_t) );
+    }
 
     /* Load stat file and init 2pass algo */
     if( h->param.rc.b_stat_read )
@@ -383,8 +410,8 @@ void x264_ratecontrol_delete( x264_t *h )
             }
         x264_free( rc->psz_stat_file_tmpname );
     }
-    if( rc->entry )
-        x264_free(rc->entry);
+    x264_free( rc->entry );
+    x264_free( rc->zones );
     x264_free( rc );
 }
 
@@ -543,11 +570,12 @@ double x264_eval( char *s, double *const_value, const char **const_name,
 /**
  * modify the bitrate curve from pass1 for one frame
  */
-static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor)
+static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor, int frame_num)
 {
     x264_ratecontrol_t *rcc= h->rc;
     const int pict_type = rce->pict_type;
     double q;
+    int i;
 
     double const_values[]={
         rce->i_tex_bits * rce->qscale,
@@ -601,13 +629,28 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
     };
 
     q = x264_eval((char*)h->param.rc.psz_rc_eq, const_values, const_names, func1, func1_names, NULL, NULL, rce);
-    q /= rate_factor;
 
     // avoid NaN's in the rc_eq
     if(q != q || rce->i_tex_bits + rce->p_tex_bits + rce->mv_bits == 0)
         q = rcc->last_qscale;
-    else
+    else {
+        rcc->last_rceq = q;
+        q /= rate_factor;
         rcc->last_qscale = q;
+    }
+
+    for( i = rcc->i_zones-1; i >= 0; i-- )
+    {
+        x264_zone_t *z = &rcc->zones[i];
+        if( frame_num >= z->i_start && frame_num <= z->i_end )
+        {
+            if( z->b_force_qp )
+                q = qp2qscale(z->i_qp);
+            else
+                q /= z->f_bitrate_factor;
+            break;
+        }
+    }
 
     return q;
 }
@@ -835,13 +878,12 @@ static float rate_estimate_qscale(x264_t *h, int pict_type)
             rce.s_count = 0;
             rce.qscale = 1;
             rce.pict_type = pict_type;
-            rcc->last_rceq = get_qscale(h, &rce, 1);
+            q = get_qscale(h, &rce, rcc->wanted_bits_window / rcc->cplxr_sum, h->fenc->i_frame);
 
             wanted_bits = h->fenc->i_frame * rcc->bitrate / rcc->fps;
             abr_buffer *= X264_MAX( 1, sqrt(h->fenc->i_frame/25) );
             overflow = x264_clip3f( 1.0 + (total_bits - wanted_bits) / abr_buffer, .5, 2 );
-
-            q = rcc->last_rceq * overflow * rcc->cplxr_sum / rcc->wanted_bits_window;
+            q *= overflow;
 
             if( pict_type == SLICE_TYPE_I
                 /* should test _next_ pict type, but that isn't decided yet */
@@ -959,7 +1001,7 @@ static int init_pass2( x264_t *h )
 
     expected_bits = 1;
     for(i=0; i<rcc->num_entries; i++)
-        expected_bits += qscale2bits(&rcc->entry[i], get_qscale(h, &rcc->entry[i], 1.0));
+        expected_bits += qscale2bits(&rcc->entry[i], get_qscale(h, &rcc->entry[i], 1.0, i));
     step_mult = all_available_bits / expected_bits;
 
     rate_factor = 0;
@@ -974,7 +1016,7 @@ static int init_pass2( x264_t *h )
 
         /* find qscale */
         for(i=0; i<rcc->num_entries; i++){
-            qscale[i] = get_qscale(h, &rcc->entry[i], rate_factor);
+            qscale[i] = get_qscale(h, &rcc->entry[i], rate_factor, i);
         }
 
         /* fixed I/B qscale relative to P */

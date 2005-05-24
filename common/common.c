@@ -95,6 +95,7 @@ void    x264_param_default( x264_param_t *param )
     param->rc.f_qcompress = 0.6;
     param->rc.f_qblur = 0.5;
     param->rc.f_complexity_blur = 20;
+    param->rc.i_zones = 0;
 
     /* Log */
     param->pf_log = x264_log_default;
