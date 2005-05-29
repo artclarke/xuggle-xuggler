@@ -132,11 +132,16 @@ for opt do
         --enable-pthread)
             CFLAGS="$CFLAGS -DHAVE_PTHREAD=1"
             pthread="yes"
-            if [ $SYS = MINGW ]; then
+            case $SYS in
+              MINGW)
                 LDFLAGS="$LDFLAGS -lpthreadGC2"
-            else
+                ;;
+              BEOS)
+                ;;
+              *)
                 LDFLAGS="$LDFLAGS -lpthread"
-            fi
+                ;;
+            esac
             ;;
         --enable-debug)
             CFLAGS="$CFLAGS -g"

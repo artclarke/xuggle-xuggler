@@ -27,7 +27,14 @@
 #include <math.h>
 
 #if HAVE_PTHREAD
+#ifdef SYS_BEOS
+#include <kernel/OS.h>
+#define pthread_t               thread_id
+#define pthread_create(t,u,f,d) *(t)=spawn_thread(f,"",10,d)
+#define pthread_join(t,s)       wait_for_thread(t,(long*)s)
+#else
 #include <pthread.h>
+#endif
 #endif
 
 #include "common/common.h"
