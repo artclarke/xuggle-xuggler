@@ -83,11 +83,11 @@ static void x264_cabac_mb_type( x264_t *h )
     if( h->sh.i_type == SLICE_TYPE_I )
     {
         int ctx = 0;
-        if( h->mb.i_mb_x > 0 && h->mb.type[h->mb.i_mb_xy - 1] != I_4x4 )
+        if( h->mb.i_mb_type_left >= 0 && h->mb.i_mb_type_left != I_4x4 )
         {
             ctx++;
         }
-        if( h->mb.i_mb_y > 0 && h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride] != I_4x4 )
+        if( h->mb.i_mb_type_top >= 0 && h->mb.i_mb_type_top != I_4x4 )
         {
             ctx++;
         }
@@ -136,11 +136,11 @@ static void x264_cabac_mb_type( x264_t *h )
     else if( h->sh.i_type == SLICE_TYPE_B )
     {
         int ctx = 0;
-        if( h->mb.i_mb_x > 0 && h->mb.type[h->mb.i_mb_xy - 1] != B_SKIP && h->mb.type[h->mb.i_mb_xy - 1] != B_DIRECT )
+        if( h->mb.i_mb_type_left >= 0 && h->mb.i_mb_type_left != B_SKIP && h->mb.i_mb_type_left != B_DIRECT )
         {
             ctx++;
         }
-        if( h->mb.i_mb_y > 0 && h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride] != B_SKIP && h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride] != B_DIRECT )
+        if( h->mb.i_mb_type_top >= 0 && h->mb.i_mb_type_top != B_SKIP && h->mb.i_mb_type_top != B_DIRECT )
         {
             ctx++;
         }
@@ -274,11 +274,11 @@ static void x264_cabac_mb_intra8x8_pred_mode( x264_t *h )
     int       ctx = 0;
 
     /* No need to test for I4x4 or I_16x16 as cache_save handle that */
-    if( h->mb.i_mb_x > 0 && h->mb.chroma_pred_mode[h->mb.i_mb_xy - 1] != 0 )
+    if( (h->mb.i_neighbour & MB_LEFT) && h->mb.chroma_pred_mode[h->mb.i_mb_xy - 1] != 0 )
     {
         ctx++;
     }
-    if( h->mb.i_mb_y > 0 && h->mb.chroma_pred_mode[h->mb.i_mb_xy - h->mb.i_mb_stride] != 0 )
+    if( (h->mb.i_neighbour & MB_TOP) && h->mb.chroma_pred_mode[h->mb.i_mb_xy - h->mb.i_mb_stride] != 0 )
     {
         ctx++;
     }
@@ -312,12 +312,12 @@ static void x264_cabac_mb_cbp_luma( x264_t *h )
 
         if( x > 0 )
             i_mba_xy = h->mb.i_mb_xy;
-        else if( h->mb.i_mb_x > 0 )
+        else if( h->mb.i_neighbour & MB_LEFT )
             i_mba_xy = h->mb.i_mb_xy - 1;
 
         if( y > 0 )
             i_mbb_xy = h->mb.i_mb_xy;
-        else if( h->mb.i_mb_y > 0 )
+        else if( h->mb.i_neighbour & MB_TOP )
             i_mbb_xy = h->mb.i_mb_xy - h->mb.i_mb_stride;
 
 
@@ -351,12 +351,12 @@ static void x264_cabac_mb_cbp_chroma( x264_t *h )
     int ctx;
 
     /* No need to test for SKIP/PCM */
-    if( h->mb.i_mb_x > 0 )
+    if( h->mb.i_neighbour & MB_LEFT )
     {
         cbp_a = (h->mb.cbp[h->mb.i_mb_xy - 1] >> 4)&0x3;
     }
 
-    if( h->mb.i_mb_y > 0 )
+    if( h->mb.i_neighbour & MB_TOP )
     {
         cbp_b = (h->mb.cbp[h->mb.i_mb_xy - h->mb.i_mb_stride] >> 4)&0x3;
     }
@@ -388,7 +388,7 @@ static void x264_cabac_mb_qp_delta( x264_t *h )
     int ctx;
 
     /* No need to test for PCM / SKIP */
-    if( i_mbn_xy >= 0 && h->mb.i_last_dqp != 0 &&
+    if( i_mbn_xy >= h->sh.i_first_mb && h->mb.i_last_dqp != 0 &&
         ( h->mb.type[i_mbn_xy] == I_16x16 || (h->mb.cbp[i_mbn_xy]&0x3f) ) )
         ctx = 1;
     else
@@ -410,11 +410,11 @@ void x264_cabac_mb_skip( x264_t *h, int b_skip )
 {
     int ctx = 0;
 
-    if( h->mb.i_mb_x > 0 && !IS_SKIP( h->mb.type[h->mb.i_mb_xy -1]) )
+    if( h->mb.i_mb_type_left >= 0 && !IS_SKIP( h->mb.i_mb_type_left ) )
     {
         ctx++;
     }
-    if( h->mb.i_mb_y > 0 && !IS_SKIP( h->mb.type[h->mb.i_mb_xy -h->mb.i_mb_stride]) )
+    if( h->mb.i_mb_type_top >= 0 && !IS_SKIP( h->mb.i_mb_type_top ) )
     {
         ctx++;
     }
@@ -708,7 +708,7 @@ static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
 
     if( i_cat == 0 )
     {
-        if( h->mb.i_mb_x > 0 )
+        if( h->mb.i_neighbour & MB_LEFT )
         {
             i_mba_xy = h->mb.i_mb_xy -1;
             if( h->mb.type[i_mba_xy] == I_16x16 )
@@ -716,7 +716,7 @@ static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
                 i_nza = h->mb.cbp[i_mba_xy]&0x100;
             }
         }
-        if( h->mb.i_mb_y > 0 )
+        if( h->mb.i_neighbour & MB_TOP )
         {
             i_mbb_xy = h->mb.i_mb_xy - h->mb.i_mb_stride;
             if( h->mb.type[i_mbb_xy] == I_16x16 )
@@ -732,12 +732,12 @@ static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
 
         if( x > 0 )
             i_mba_xy = h->mb.i_mb_xy;
-        else if( h->mb.i_mb_x > 0 )
+        else if( h->mb.i_neighbour & MB_LEFT )
             i_mba_xy = h->mb.i_mb_xy -1;
 
         if( y > 0 )
             i_mbb_xy = h->mb.i_mb_xy;
-        else if( h->mb.i_mb_y > 0 )
+        else if( h->mb.i_neighbour & MB_TOP )
             i_mbb_xy = h->mb.i_mb_xy - h->mb.i_mb_stride;
 
         /* no need to test for skip/pcm */
@@ -761,7 +761,7 @@ static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
     else if( i_cat == 3 )
     {
         /* no need to test skip/pcm */
-        if( h->mb.i_mb_x > 0 )
+        if( h->mb.i_neighbour & MB_LEFT )
         {
             i_mba_xy = h->mb.i_mb_xy -1;
             if( h->mb.cbp[i_mba_xy]&0x30 )
@@ -769,7 +769,7 @@ static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
                 i_nza = h->mb.cbp[i_mba_xy]&( 0x02 << ( 8 + i_idx) );
             }
         }
-        if( h->mb.i_mb_y > 0 )
+        if( h->mb.i_neighbour & MB_TOP )
         {
             i_mbb_xy = h->mb.i_mb_xy - h->mb.i_mb_stride;
             if( h->mb.cbp[i_mbb_xy]&0x30 )
@@ -784,12 +784,12 @@ static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
 
         if( idxc == 1 || idxc == 3 )
             i_mba_xy = h->mb.i_mb_xy;
-        else if( h->mb.i_mb_x > 0 )
+        else if( h->mb.i_neighbour & MB_LEFT )
             i_mba_xy = h->mb.i_mb_xy - 1;
 
         if( idxc == 2 || idxc == 3 )
             i_mbb_xy = h->mb.i_mb_xy;
-        else if( h->mb.i_mb_y > 0 )
+        else if( h->mb.i_neighbour & MB_TOP )
             i_mbb_xy = h->mb.i_mb_xy - h->mb.i_mb_stride;
 
         /* no need to test skip/pcm */

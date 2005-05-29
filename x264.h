@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 27
+#define X264_BUILD 28
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -104,6 +104,7 @@ typedef struct
 {
     /* CPU flags */
     unsigned int cpu;
+    int         i_threads;  /* divide each frame into multiple slices, encode in parallel */
 
     /* Video Properties */
     int         i_width;

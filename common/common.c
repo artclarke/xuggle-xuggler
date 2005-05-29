@@ -45,6 +45,7 @@ void    x264_param_default( x264_param_t *param )
 
     /* CPU autodetect */
     param->cpu = x264_cpu_detect();
+    param->i_threads = 1;
 
     /* Video properties */
     param->i_csp           = X264_CSP_I420;

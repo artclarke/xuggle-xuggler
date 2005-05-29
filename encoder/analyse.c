@@ -237,7 +237,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
         }
 
         /* Fast intra decision */
-        if( h->mb.i_mb_xy > 4 )
+        if( h->mb.i_mb_xy - h->sh.i_first_mb > 4 )
         {
             const unsigned int i_neighbour = h->mb.i_neighbour;
             if(   ((i_neighbour&MB_LEFT) && IS_INTRA( h->mb.type[h->mb.i_mb_xy - 1] ))
@@ -245,7 +245,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
                || (((i_neighbour&(MB_TOP|MB_LEFT)) == (MB_TOP|MB_LEFT)) && IS_INTRA( h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride-1 ] ))
                || ((i_neighbour&MB_TOPRIGHT) && IS_INTRA( h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride+1 ] ))
                || (h->sh.i_type == SLICE_TYPE_P && IS_INTRA( h->fref0[0]->mb_type[h->mb.i_mb_xy] ))
-               || (h->mb.i_mb_xy < 3*(h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_16x16])) )
+               || (h->mb.i_mb_xy - h->sh.i_first_mb < 3*(h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_16x16])) )
             { /* intra is likely */ }
             else
             {

@@ -29,6 +29,7 @@ enum macroblock_position_e
     MB_LEFT     = 0x01,
     MB_TOP      = 0x02,
     MB_TOPRIGHT = 0x04,
+    MB_TOPLEFT  = 0x08,
 
     MB_PRIVATE  = 0x10,
 };

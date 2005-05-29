@@ -10,6 +10,7 @@ echo "  --help                   print this message"
 echo "  --enable-avis-input      enables avisynth input (win32 only)"
 echo "  --enable-mp4-output      enables mp4 output (using gpac)"
 echo "  --enable-vfw             compiles the VfW frontend"
+echo "  --enable-pthread         enables multithreaded encoding"
 echo "  --enable-debug           adds -g, doesn't strip"
 echo "  --enable-visualize       enables visualization (X11 only)"
 echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS"
@@ -20,6 +21,7 @@ fi
 
 avis_input="no"
 mp4_output="no"
+pthread="no"
 debug="no"
 vfw="no"
 vis="no"
@@ -127,6 +129,15 @@ for opt do
             LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
             VFW_LDFLAGS="${opt#--extra-ldflags=}"
             ;;
+        --enable-pthread)
+            CFLAGS="$CFLAGS -DHAVE_PTHREAD=1"
+            pthread="yes"
+            if [ $SYS = MINGW ]; then
+                LDFLAGS="$LDFLAGS -lpthreadGC2"
+            else
+                LDFLAGS="$LDFLAGS -lpthread"
+            fi
+            ;;
         --enable-debug)
             CFLAGS="$CFLAGS -g"
             debug="yes"
@@ -179,6 +190,7 @@ echo "Platform:   $ARCH"
 echo "System:     $SYS"
 echo "avis input: $avis_input"
 echo "mp4 output: $mp4_output"
+echo "pthread:    $pthread"
 echo "vfw:        $vfw"
 echo "debug:      $debug"
 echo "visualize:  $vis"

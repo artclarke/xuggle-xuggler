@@ -121,6 +121,7 @@ typedef struct
 
     int i_type;
     int i_first_mb;
+    int i_last_mb;
 
     int i_pps_id;
 
@@ -195,6 +196,8 @@ static const int x264_scan8[16+2*4] =
 */
 
 #define X264_BFRAME_MAX 16
+#define X264_SLICE_MAX 4
+#define X264_NAL_MAX (4 + X264_SLICE_MAX)
 
 typedef struct x264_ratecontrol_t   x264_ratecontrol_t;
 typedef struct x264_vlc_table_t     x264_vlc_table_t;
@@ -204,11 +207,13 @@ struct x264_t
     /* encoder parameters */
     x264_param_t    param;
 
+    x264_t *thread[X264_SLICE_MAX];
+
     /* bitstream output */
     struct
     {
         int         i_nal;
-        x264_nal_t  nal[5];         /* for now 5 is enough */
+        x264_nal_t  nal[X264_NAL_MAX];
         int         i_bitstream;    /* size of p_bitstream */
         uint8_t     *p_bitstream;   /* will hold data for all nal */
         bs_t        bs;
@@ -222,6 +227,10 @@ struct x264_t
     int             i_poc_msb;      /* decoding only */
     int             i_poc_lsb;      /* decoding only */
     int             i_poc;          /* decoding only */
+
+    int             i_thread_num;   /* threads only */
+    int             i_nal_type;     /* threads only */
+    int             i_nal_ref_idc;  /* threads only */
 
     /* We use only one SPS and one PPS */
     x264_sps_t      sps_array[32];
@@ -315,7 +324,10 @@ struct x264_t
         int     mv_min_fpel[2];
         int     mv_max_fpel[2];
 
+        /* neighboring MBs */
         unsigned int i_neighbour;
+        int     i_mb_type_top; 
+        int     i_mb_type_left; 
 
         /* mb table */
         int8_t  *type;                      /* mb type */

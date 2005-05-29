@@ -238,6 +238,7 @@ static void Help( x264_param_t *defaults )
              "      --frames <integer>      Maximum number of frames to encode\n"
              "  -o, --output                Specify output file\n"
              "\n"
+             "      --threads <integer>     Parallel encoding (uses slices)\n"
              "      --no-asm                Disable all CPU optimizations\n"
              "      --no-psnr               Disable PSNR computation\n"
              "      --quiet                 Quiet Mode\n"
@@ -355,6 +356,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_VISUALIZE 290
 #define OPT_SEEK 291
 #define OPT_ZONES 292
+#define OPT_THREADS 293
 
         static struct option long_options[] =
         {
@@ -403,6 +405,7 @@ static int  Parse( int argc, char **argv,
             { "qblur",   required_argument, NULL, OPT_QBLUR },
             { "cplxblur",required_argument, NULL, OPT_CPLXBLUR },
             { "zones",   required_argument, NULL, OPT_ZONES },
+            { "threads", required_argument, NULL, OPT_THREADS },
             { "no-psnr", no_argument,       NULL, OPT_NOPSNR },
             { "quiet",   no_argument,       NULL, OPT_QUIET },
             { "verbose", no_argument,       NULL, 'v' },
@@ -642,6 +645,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case OPT_ZONES:
                 param->rc.psz_zones = optarg;
+                break;
+            case OPT_THREADS:
+                param->i_threads = atoi(optarg);
                 break;
             case OPT_NOPSNR:
                 param->analyse.b_psnr = 0;
