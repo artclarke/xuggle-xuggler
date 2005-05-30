@@ -19,6 +19,12 @@ echo ""
 exit 1
 fi
 
+prefix='/usr/local'
+eprefix='${prefix}'
+bindir='${eprefix}/bin'
+libdir='${eprefix}/lib'
+includedir='${prefix}/include'
+
 avis_input="no"
 mp4_output="no"
 pthread="no"
@@ -105,7 +111,23 @@ CFLAGS="$CFLAGS -DARCH_$ARCH -DSYS_$SYS"
 # parse options
 
 for opt do
+    optarg="${opt#*=}"
     case "$opt" in
+	--prefix=*)
+	    prefix="$optarg"
+	    ;;
+	--exec-prefix=*)
+	    eprefix="$optarg"
+	    ;;
+	--bindir=*)
+	    bindir="$optarg"
+	    ;;
+	--libdir=*)
+	    libdir="$optarg"
+	    ;;
+	--includedir=*)
+	    includedir="$optarg"
+	    ;;
         --enable-avis-input)
             if [ $SYS = CYGWIN -o $SYS = MINGW ]; then
                 CFLAGS="$CFLAGS -DAVIS_INPUT"
@@ -170,6 +192,11 @@ fi
 
 rm -f config.mak
 cat > config.mak << EOF
+prefix=$prefix
+eprefix=$eprefix
+bindir=$bindir
+libdir=$libdir
+includedir=$includedir
 ARCH=$ARCH
 SYS=$SYS
 CC=$CC

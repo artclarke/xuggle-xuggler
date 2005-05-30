@@ -78,12 +78,11 @@ clean:
 distclean: clean
 	rm -f config.mak vfw/build/cygwin/config.mak
 
-DIR_INSTALL="/usr/local"
 install: x264
-	install -d $(DIR_INSTALL)/include $(DIR_INSTALL)/lib $(DIR_INSTALL)/bin
-	install x264.h $(DIR_INSTALL)/include/
-	install libx264.a $(DIR_INSTALL)/lib/
-	install x264 $(DIR_INSTALL)/bin/
+	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(libdir) $(DESTDIR)$(includedir)
+	install -m 644 x264.h $(DESTDIR)$(includedir)
+	install -m 644 libx264.a $(DESTDIR)$(libdir)
+	install x264 $(DESTDIR)$(bindir)
 
 etags: TAGS
 
