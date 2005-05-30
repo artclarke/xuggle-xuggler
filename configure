@@ -27,7 +27,7 @@ vfw="no"
 vis="no"
 
 CC="gcc"
-CFLAGS="-Wall -I. -O4 -funroll-loops -ffast-math -D__X264__"
+CFLAGS="-Wall -I. -O4 -ffast-math -D__X264__"
 LDFLAGS=""
 
 AS="nasm"
@@ -163,7 +163,7 @@ done
 
 VFWFLAGS=
 if [ "$debug" != "yes" ]; then
-    CFLAGS="$CFLAGS -s"
+    CFLAGS="$CFLAGS -s -fomit-frame-pointer"
     LDFLAGS="$LDFLAGS -s"
     VFW_LDFLAGS="$VFW_LDFLAGS -s"
 fi

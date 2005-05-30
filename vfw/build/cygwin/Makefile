@@ -44,12 +44,7 @@ CFLAGS += -mno-cygwin
 
 # Optional Compiler options
 CFLAGS += -Wall
-CFLAGS += -O2
-CFLAGS += -fstrength-reduce
-CFLAGS += -finline-functions
-CFLAGS += -fgcse
-CFLAGS += -freduce-all-givs
-CFLAGS += -ffast-math
+CFLAGS += -O3
 
 ##############################################################################
 # Compiler flags for linking stage
