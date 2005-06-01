@@ -328,6 +328,8 @@ struct x264_t
         unsigned int i_neighbour;
         int     i_mb_type_top; 
         int     i_mb_type_left; 
+        int     i_mb_type_topleft; 
+        int     i_mb_type_topright; 
 
         /* mb table */
         int8_t  *type;                      /* mb type */

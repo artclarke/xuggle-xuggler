@@ -239,11 +239,10 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
         /* Fast intra decision */
         if( h->mb.i_mb_xy - h->sh.i_first_mb > 4 )
         {
-            const unsigned int i_neighbour = h->mb.i_neighbour;
-            if(   ((i_neighbour&MB_LEFT) && IS_INTRA( h->mb.type[h->mb.i_mb_xy - 1] ))
-               || ((i_neighbour&MB_TOP) && IS_INTRA( h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride] ))
-               || (((i_neighbour&(MB_TOP|MB_LEFT)) == (MB_TOP|MB_LEFT)) && IS_INTRA( h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride-1 ] ))
-               || ((i_neighbour&MB_TOPRIGHT) && IS_INTRA( h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride+1 ] ))
+            if(   IS_INTRA( h->mb.i_mb_type_left )
+               || IS_INTRA( h->mb.i_mb_type_top )
+               || IS_INTRA( h->mb.i_mb_type_topleft )
+               || IS_INTRA( h->mb.i_mb_type_topright )
                || (h->sh.i_type == SLICE_TYPE_P && IS_INTRA( h->fref0[0]->mb_type[h->mb.i_mb_xy] ))
                || (h->mb.i_mb_xy - h->sh.i_first_mb < 3*(h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_16x16])) )
             { /* intra is likely */ }
@@ -263,7 +262,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
 /* Max = 4 */
 static void predict_16x16_mode_available( unsigned int i_neighbour, int *mode, int *pi_count )
 {
-    if( ( i_neighbour & (MB_LEFT|MB_TOP) ) == (MB_LEFT|MB_TOP) )
+    if( i_neighbour & MB_TOPLEFT )
     {
         /* top and left avaible */
         *mode++ = I_PRED_16x16_V;
@@ -272,14 +271,14 @@ static void predict_16x16_mode_available( unsigned int i_neighbour, int *mode, i
         *mode++ = I_PRED_16x16_P;
         *pi_count = 4;
     }
-    else if( ( i_neighbour & MB_LEFT ) )
+    else if( i_neighbour & MB_LEFT )
     {
         /* left available*/
         *mode++ = I_PRED_16x16_DC_LEFT;
         *mode++ = I_PRED_16x16_H;
         *pi_count = 2;
     }
-    else if( ( i_neighbour & MB_TOP ) )
+    else if( i_neighbour & MB_TOP )
     {
         /* top available*/
         *mode++ = I_PRED_16x16_DC_TOP;
@@ -297,7 +296,7 @@ static void predict_16x16_mode_available( unsigned int i_neighbour, int *mode, i
 /* Max = 4 */
 static void predict_8x8_mode_available( unsigned int i_neighbour, int *mode, int *pi_count )
 {
-    if( ( i_neighbour & (MB_LEFT|MB_TOP) ) == (MB_LEFT|MB_TOP) )
+    if( i_neighbour & MB_TOPLEFT )
     {
         /* top and left avaible */
         *mode++ = I_PRED_CHROMA_V;
@@ -306,14 +305,14 @@ static void predict_8x8_mode_available( unsigned int i_neighbour, int *mode, int
         *mode++ = I_PRED_CHROMA_P;
         *pi_count = 4;
     }
-    else if( ( i_neighbour & MB_LEFT ) )
+    else if( i_neighbour & MB_LEFT )
     {
         /* left available*/
         *mode++ = I_PRED_CHROMA_DC_LEFT;
         *mode++ = I_PRED_CHROMA_H;
         *pi_count = 2;
     }
-    else if( ( i_neighbour & MB_TOP ) )
+    else if( i_neighbour & MB_TOP )
     {
         /* top available*/
         *mode++ = I_PRED_CHROMA_DC_TOP;
@@ -1326,17 +1325,15 @@ void x264_macroblock_analyse( x264_t *h )
     }
     else if( h->sh.i_type == SLICE_TYPE_P )
     {
-        const unsigned int i_neighbour = h->mb.i_neighbour;
-
         int b_skip = 0;
         int i_cost;
         int i_intra_cost, i_intra_type;
 
         /* Fast P_SKIP detection */
-        if( ( (i_neighbour&MB_LEFT) && h->mb.type[h->mb.i_mb_xy - 1] == P_SKIP ) ||
-            ( (i_neighbour&MB_TOP) && h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride] == P_SKIP ) ||
-            ( ((i_neighbour&(MB_TOP|MB_LEFT)) == (MB_TOP|MB_LEFT) ) && h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride-1 ] == P_SKIP ) ||
-            ( (i_neighbour&MB_TOPRIGHT) && h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride+1 ] == P_SKIP ) )
+        if( ( h->mb.i_mb_type_left == P_SKIP ) ||
+            ( h->mb.i_mb_type_top == P_SKIP ) ||
+            ( h->mb.i_mb_type_topleft == P_SKIP ) ||
+            ( h->mb.i_mb_type_topright == P_SKIP ) )
         {
             b_skip = x264_macroblock_probe_pskip( h );
         }
