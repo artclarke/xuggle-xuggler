@@ -911,6 +911,8 @@ void x264_macroblock_slice_init( x264_t *h )
                 }
         }
     }
+    if( h->sh.i_type == SLICE_TYPE_P )
+        memset( h->mb.cache.skip, 0, X264_SCAN8_SIZE * sizeof( int8_t ) );
 }
 
 
@@ -1210,25 +1212,18 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
         }
 
         /* load skip */
-        if( h->param.b_cabac )
+        if( h->sh.i_type == SLICE_TYPE_B && h->param.b_cabac )
         {
-            if( h->sh.i_type == SLICE_TYPE_B )
+            memset( h->mb.cache.skip, 0, X264_SCAN8_SIZE * sizeof( int8_t ) );
+            if( i_left_xy >= 0 )
             {
-                memset( h->mb.cache.skip, 0, X264_SCAN8_SIZE * sizeof( int8_t ) );
-                if( i_left_xy >= 0 )
-                {
-                    h->mb.cache.skip[x264_scan8[0] - 1] = h->mb.skipbp[i_left_xy] & 0x2;
-                    h->mb.cache.skip[x264_scan8[8] - 1] = h->mb.skipbp[i_left_xy] & 0x8;
-                }
-                if( i_top_xy >= 0 )
-                {
-                    h->mb.cache.skip[x264_scan8[0] - 8] = h->mb.skipbp[i_top_xy] & 0x4;
-                    h->mb.cache.skip[x264_scan8[4] - 8] = h->mb.skipbp[i_top_xy] & 0x8;
-                }
+                h->mb.cache.skip[x264_scan8[0] - 1] = h->mb.skipbp[i_left_xy] & 0x2;
+                h->mb.cache.skip[x264_scan8[8] - 1] = h->mb.skipbp[i_left_xy] & 0x8;
             }
-            else if( h->mb.i_mb_xy == 0 && h->sh.i_type == SLICE_TYPE_P )
+            if( i_top_xy >= 0 )
             {
-                memset( h->mb.cache.skip, 0, X264_SCAN8_SIZE * sizeof( int8_t ) );
+                h->mb.cache.skip[x264_scan8[0] - 8] = h->mb.skipbp[i_top_xy] & 0x4;
+                h->mb.cache.skip[x264_scan8[4] - 8] = h->mb.skipbp[i_top_xy] & 0x8;
             }
         }
     }

@@ -908,11 +908,6 @@ static int x264_slice_write( x264_t *h )
     h->mb.i_last_qp = h->pps->i_pic_init_qp + h->sh.i_qp_delta;
     h->mb.i_last_dqp = 0;
 
-#if VISUALIZE
-    if( h->param.b_visualize )
-        x264_visualize_init( h );
-#endif
-
     for( mb_xy = h->sh.i_first_mb, i_skip = 0; mb_xy < h->sh.i_last_mb; mb_xy++ )
     {
         const int i_mb_y = mb_xy / h->sps->i_mb_width;
@@ -1012,14 +1007,6 @@ static int x264_slice_write( x264_t *h )
 
     x264_nal_end( h );
 
-#if VISUALIZE
-    if( h->param.b_visualize )
-    {
-        x264_visualize_show( h );
-        x264_visualize_close( h );
-    }
-#endif
-
     /* Compute misc bits */
     h->stat.frame.i_misc_bits = bs_pos( &h->out.bs )
                               + NALU_OVERHEAD * 8
@@ -1032,16 +1019,22 @@ static int x264_slice_write( x264_t *h )
 
 static inline int x264_slices_write( x264_t *h )
 {
+    int i_frame_size;
+
+#if VISUALIZE
+    if( h->param.b_visualize )
+        x264_visualize_init( h );
+#endif
+
     if( h->param.i_threads == 1 )
     {
         x264_slice_write( h );
-        return h->out.nal[h->out.i_nal-1].i_payload;
+        i_frame_size = h->out.nal[h->out.i_nal-1].i_payload;
     }
     else
     {
         int i_nal = h->out.i_nal;
         int i_bs_size = h->out.i_bitstream / h->param.i_threads;
-        int i_frame_size;
         int i;
         /* duplicate contexts */
         for( i = 0; i < h->param.i_threads; i++ )
@@ -1086,8 +1079,17 @@ static inline int x264_slices_write( x264_t *h )
                 ((int*)&h->stat.frame)[j] += ((int*)&t->stat.frame)[j];
         }
         h->out.i_nal = i_nal + h->param.i_threads;
-        return i_frame_size;
     }
+
+#if VISUALIZE
+    if( h->param.b_visualize )
+    {
+        x264_visualize_show( h );
+        x264_visualize_close( h );
+    }
+#endif
+
+    return i_frame_size;
 }
 
 /****************************************************************************
