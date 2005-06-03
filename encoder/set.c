@@ -40,12 +40,14 @@
 
 void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 {
-    sps->i_id               = i_id;
+    sps->i_id = i_id;
 
-    if( param->b_cabac || param->i_bframe > 0 )
-        sps->i_profile_idc      = PROFILE_MAIN;
+    if( param->analyse.b_transform_8x8 )
+        sps->i_profile_idc  = PROFILE_HIGH;
+    else if( param->b_cabac || param->i_bframe > 0 )
+        sps->i_profile_idc  = PROFILE_MAIN;
     else
-        sps->i_profile_idc      = PROFILE_BASELINE;
+        sps->i_profile_idc  = PROFILE_BASELINE;
     sps->i_level_idc = param->i_level_idc;
 
     sps->b_constraint_set0  = 0;
@@ -160,6 +162,16 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
     bs_write( s, 8, sps->i_level_idc );
 
     bs_write_ue( s, sps->i_id );
+
+    if( sps->i_profile_idc >= PROFILE_HIGH )
+    {
+        bs_write_ue( s, 1 ); // chroma_format_idc = 4:2:0
+        bs_write_ue( s, 0 ); // bit_depth_luma_minus8
+        bs_write_ue( s, 0 ); // bit_depth_chroma_minus8
+        bs_write( s, 1, 0 ); // qpprime_y_zero_transform_bypass_flag
+        bs_write( s, 1, 0 ); // seq_scaling_matrix_present_flag
+    }
+
     bs_write_ue( s, sps->i_log2_max_frame_num - 4 );
     bs_write_ue( s, sps->i_poc_type );
     if( sps->i_poc_type == 0 )
@@ -326,6 +338,8 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
     pps->b_deblocking_filter_control = 1;
     pps->b_constrained_intra_pred = 0;
     pps->b_redundant_pic_cnt = 0;
+
+    pps->b_transform_8x8_mode = param->analyse.b_transform_8x8 ? 1 : 0;
 }
 
 void x264_pps_write( bs_t *s, x264_pps_t *pps )
@@ -388,6 +402,13 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
     bs_write( s, 1, pps->b_deblocking_filter_control );
     bs_write( s, 1, pps->b_constrained_intra_pred );
     bs_write( s, 1, pps->b_redundant_pic_cnt );
+
+    if( pps->b_transform_8x8_mode )
+    {
+        bs_write( s, 1, pps->b_transform_8x8_mode );
+        bs_write( s, 1, 0 ); // pic_scaling_matrix_present_flag
+        bs_write_se( s, 0 ); // second_chroma_qp_index_offset
+    }
 
     bs_rbsp_trailing( s );
 }

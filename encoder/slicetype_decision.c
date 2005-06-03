@@ -197,7 +197,7 @@ lowres_intra_mb:
         for( i = I_PRED_CHROMA_DC; i <= I_PRED_CHROMA_P; i++ )
         {
             int i_cost;
-            h->predict_8x8[i]( &pix1[10], 9 );
+            h->predict_8x8c[i]( &pix1[10], 9 );
             i_cost = h->pixf.satd[PIXEL_8x8]( &pix1[10], 9, src, i_stride ) + intra_penalty;
             i_bcost = X264_MIN( i_bcost, i_cost );
         }

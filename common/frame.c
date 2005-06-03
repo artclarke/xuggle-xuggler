@@ -644,6 +644,18 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
         const int mb_4x4 = 4 * s4x4 * mb_y + 4 * mb_x;
         int i_edge;
         int i_dir;
+        const int b_8x8_transform = h->mb.mb_transform_size[mb_xy];
+
+        /* cavlc + 8x8 transform stores nnz per 16 coeffs for the purpose of
+         * entropy coding, but per 64 coeffs for the purpose of deblocking */
+        if( !h->param.b_cabac && b_8x8_transform )
+        {
+            uint32_t *nnz = (uint32_t*)h->mb.non_zero_count[mb_xy];
+            if( nnz[0] ) nnz[0] = 0x01010101;
+            if( nnz[1] ) nnz[1] = 0x01010101;
+            if( nnz[2] ) nnz[2] = 0x01010101;
+            if( nnz[3] ) nnz[3] = 0x01010101;
+        }
 
         /* i_dir == 0 -> vertical edge
          * i_dir == 1 -> horizontal edge */
@@ -719,9 +731,12 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
                 if( i_dir == 0 )
                 {
                     /* vertical edge */
-                    deblocking_filter_edgev( h, &h->fdec->plane[0][16 * mb_y * h->fdec->i_stride[0]+ 16 * mb_x + 4 * i_edge],
-                                                h->fdec->i_stride[0], bS, (i_qp+i_qpn+1) >> 1);
-                    if( (i_edge % 2) == 0  )
+                    if( !b_8x8_transform || !(i_edge & 1) )
+                    {
+                        deblocking_filter_edgev( h, &h->fdec->plane[0][16 * mb_y * h->fdec->i_stride[0]+ 16 * mb_x + 4 * i_edge],
+                                                 h->fdec->i_stride[0], bS, (i_qp+i_qpn+1) >> 1);
+                    }
+                    if( !(i_edge & 1) )
                     {
                         /* U/V planes */
                         int i_qpc = ( i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )] +
@@ -735,10 +750,13 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
                 else
                 {
                     /* horizontal edge */
-                    deblocking_filter_edgeh( h, &h->fdec->plane[0][(16*mb_y + 4 * i_edge) * h->fdec->i_stride[0]+ 16 * mb_x],
-                                                h->fdec->i_stride[0], bS, (i_qp+i_qpn+1) >> 1 );
+                    if( !b_8x8_transform || !(i_edge & 1) )
+                    {
+                        deblocking_filter_edgeh( h, &h->fdec->plane[0][(16*mb_y + 4 * i_edge) * h->fdec->i_stride[0]+ 16 * mb_x],
+                                                 h->fdec->i_stride[0], bS, (i_qp+i_qpn+1) >> 1 );
+                    }
                     /* U/V planes */
-                    if( ( i_edge % 2  ) == 0 )
+                    if( !(i_edge & 1) )
                     {
                         int i_qpc = ( i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )] +
                                       i_chroma_qp_table[x264_clip3( i_qpn + h->pps->i_chroma_qp_index_offset, 0, 51 )] + 1 ) >> 1;

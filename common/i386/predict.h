@@ -25,7 +25,7 @@
 #define _I386_PREDICT_H 1
 
 void x264_predict_16x16_init_mmxext ( x264_predict_t pf[7] );
-void x264_predict_8x8_init_mmxext   ( x264_predict_t pf[7] );
+void x264_predict_8x8c_init_mmxext  ( x264_predict_t pf[7] );
 void x264_predict_4x4_init_mmxext   ( x264_predict_t pf[12] );
 
 #endif

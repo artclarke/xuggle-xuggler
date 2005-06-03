@@ -39,5 +39,26 @@ void x264_macroblock_write_cavlc ( x264_t *h, bs_t *s );
 
 void x264_cabac_mb_skip( x264_t *h, int b_skip );
 
+static inline int array_non_zero( int *v, int i_count )
+{
+    int i;
+    for( i = 0; i < i_count; i++ )
+        if( v[i] ) return 1;
+    return 0;
+}
+
+static inline int array_non_zero_count( int *v, int i_count )
+{
+    int i;
+    int i_nz;
+
+    for( i = 0, i_nz = 0; i < i_count; i++ )
+        if( v[i] )
+            i_nz++;
+
+    return i_nz;
+}
+
+
 #endif
 

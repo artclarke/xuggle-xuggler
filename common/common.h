@@ -289,6 +289,8 @@ struct x264_t
     {
         DECLARE_ALIGNED( int, luma16x16_dc[16], 16 );
         DECLARE_ALIGNED( int, chroma_dc[2][4], 16 );
+        // FIXME merge with union
+        DECLARE_ALIGNED( int, luma8x8[4][64], 16 );
         union
         {
             DECLARE_ALIGNED( int, residual_ac[15], 16 );
@@ -326,6 +328,8 @@ struct x264_t
 
         /* neighboring MBs */
         unsigned int i_neighbour;
+        unsigned int i_neighbour8[4];       /* neighbours of each 8x8 or 4x4 block that are available */
+        unsigned int i_neighbour4[16];      /* at the time the block is coded */
         int     i_mb_type_top; 
         int     i_mb_type_left; 
         int     i_mb_type_topleft; 
@@ -343,11 +347,13 @@ struct x264_t
         int8_t   *ref[2];                   /* mb ref. set to -1 if non used (intra or Lx only) */
         int16_t (*mvr[2][16])[2];           /* 16x16 mv for each possible ref */
         int8_t  *skipbp;                    /* block pattern for SKIP or DIRECT (sub)mbs. B-frames + cabac only */
+        int8_t  *mb_transform_size;         /* transform_size_8x8_flag of each mb */
 
         /* current value */
         int     i_type;
         int     i_partition;
         int     i_sub_partition[4];
+        int     b_transform_8x8;
 
         int     i_cbp_luma;
         int     i_cbp_chroma;
@@ -373,7 +379,7 @@ struct x264_t
         /* cache */
         struct
         {
-            /* real intra4x4_pred_mode if I_4X4, I_PRED_4x4_DC if mb available, -1 if not */
+            /* real intra4x4_pred_mode if I_4X4 or I_8X8, I_PRED_4x4_DC if mb available, -1 if not */
             int     intra4x4_pred_mode[X264_SCAN8_SIZE];
 
             /* i_non_zero_count if availble else 0x80 */
@@ -391,6 +397,9 @@ struct x264_t
 
             int16_t direct_mv[2][X264_SCAN8_SIZE][2];
             int8_t  direct_ref[2][X264_SCAN8_SIZE];
+
+            /* top and left neighbors. 1=>8x8, 0=>4x4 */
+            int8_t  transform_size[2];
         } cache;
 
         /* */
@@ -427,7 +436,7 @@ struct x264_t
             /* ? */
             int i_misc_bits;
             /* MB type counts */
-            int i_mb_count[18];
+            int i_mb_count[19];
             int i_mb_count_p;
             int i_mb_count_skip;
             /* Estimated (SATD) cost as Intra/Predicted frame */
@@ -449,13 +458,14 @@ struct x264_t
         float   f_psnr_mean_u[5];
         float   f_psnr_mean_v[5];
         /* */
-        int64_t i_mb_count[5][18];
+        int64_t i_mb_count[5][19];
 
     } stat;
 
     /* CPU functions dependants */
     x264_predict_t      predict_16x16[4+3];
-    x264_predict_t      predict_8x8[4+3];
+    x264_predict_t      predict_8x8c[4+3];
+    x264_predict8x8_t   predict_8x8[9+3];
     x264_predict_t      predict_4x4[9+3];
 
     x264_pixel_function_t pixf;

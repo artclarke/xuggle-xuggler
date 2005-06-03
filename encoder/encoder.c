@@ -50,7 +50,7 @@
 #endif
 
 //#define DEBUG_MB_TYPE
-//#define DEBUG_DUMP_FRAME
+#define DEBUG_DUMP_FRAME
 //#define DEBUG_BENCHMARK
 
 #ifdef DEBUG_BENCHMARK
@@ -408,6 +408,11 @@ static int x264_validate_parameters( x264_t *h )
     h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 5 );
     if( !(h->param.analyse.inter & X264_ANALYSE_PSUB16x16) )
         h->param.analyse.inter &= ~X264_ANALYSE_PSUB8x8;
+    if( !h->param.analyse.b_transform_8x8 )
+    {
+        h->param.analyse.inter &= ~X264_ANALYSE_I8x8;
+        h->param.analyse.intra &= ~X264_ANALYSE_I8x8;
+    }
     h->param.analyse.i_chroma_qp_offset = x264_clip3(h->param.analyse.i_chroma_qp_offset, -12, 12);
     h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 2048);
 
@@ -426,7 +431,9 @@ static int x264_validate_parameters( x264_t *h )
 x264_t *x264_encoder_open   ( x264_param_t *param )
 {
     x264_t *h = x264_malloc( sizeof( x264_t ) );
-    int i, i_slice;
+    int i;
+
+    memset( h, 0, sizeof( x264_t ) );
 
     /* Create a copy of param */
     memcpy( &h->param, param, sizeof( x264_param_t ) );
@@ -536,6 +543,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     /* init CPU functions */
     x264_predict_16x16_init( h->param.cpu, h->predict_16x16 );
+    x264_predict_8x8c_init( h->param.cpu, h->predict_8x8c );
     x264_predict_8x8_init( h->param.cpu, h->predict_8x8 );
     x264_predict_4x4_init( h->param.cpu, h->predict_4x4 );
 
@@ -547,21 +555,6 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     /* rate control */
     if( x264_ratecontrol_new( h ) < 0 )
         return NULL;
-
-    /* stat */
-    for( i_slice = 0; i_slice < 5; i_slice++ )
-    {
-        h->stat.i_slice_count[i_slice] = 0;
-        h->stat.i_slice_size[i_slice] = 0;
-        h->stat.i_slice_qp[i_slice] = 0;
-
-        h->stat.i_sqe_global[i_slice] = 0;
-        h->stat.f_psnr_average[i_slice] = 0.0;
-        h->stat.f_psnr_mean_y[i_slice] = h->stat.f_psnr_mean_u[i_slice] = h->stat.f_psnr_mean_v[i_slice] = 0.0;
-        
-        for( i = 0; i < 18; i++ )
-            h->stat.i_mb_count[i_slice][i] = 0;
-    }
 
     x264_log( h, X264_LOG_INFO, "using cpu capabilities %s%s%s%s%s%s\n",
              param->cpu&X264_CPU_MMX ? "MMX " : "",
@@ -889,6 +882,7 @@ static int x264_slice_write( x264_t *h )
     int i_skip;
     int mb_xy;
 
+    /* init stats */
     memset( &h->stat.frame, 0, sizeof(h->stat.frame) );
 
     /* Slice */
@@ -1468,7 +1462,7 @@ do_encode:
     h->stat.i_slice_size[i_slice_type] += i_frame_size + NALU_OVERHEAD;
     h->stat.i_slice_qp[i_slice_type] += i_global_qp;
 
-    for( i = 0; i < 18; i++ )
+    for( i = 0; i < 19; i++ )
     {
         h->stat.i_mb_count[h->sh.i_type][i] += h->stat.frame.i_mb_count[i];
     }
@@ -1500,13 +1494,14 @@ do_encode:
     }
     
     x264_log( h, X264_LOG_DEBUG,
-                  "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I4x4:%-4d I16x16:%-4d P:%-4d SKIP:%-4d size=%d bytes%s\n",
+                  "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I4:%-4d I8:%-4d I16:%-4d P:%-4d SKIP:%-4d size=%d bytes%s\n",
               h->i_frame - 1,
               i_global_qp,
               i_nal_ref_idc,
               i_slice_type == SLICE_TYPE_I ? 'I' : (i_slice_type == SLICE_TYPE_P ? 'P' : 'B' ),
               frame_psnr->i_poc,
               h->stat.frame.i_mb_count[I_4x4],
+              h->stat.frame.i_mb_count[I_8x8],
               h->stat.frame.i_mb_count[I_16x16],
               h->stat.frame.i_mb_count_p,
               h->stat.frame.i_mb_count_skip,
@@ -1516,12 +1511,12 @@ do_encode:
 
 #ifdef DEBUG_MB_TYPE
 {
-    static const char mb_chars[] = { 'i', 'I', 'C', 'P', '8', 'S',
+    static const char mb_chars[] = { 'i', 'i', 'I', 'C', 'P', '8', 'S',
         'D', '<', 'X', 'B', 'X', '>', 'B', 'B', 'B', 'B', '8', 'S' };
     int mb_xy;
     for( mb_xy = 0; mb_xy < h->sps->i_mb_width * h->sps->i_mb_height; mb_xy++ )
     {
-        if( h->mb.type[mb_xy] < 18 && h->mb.type[mb_xy] >= 0 )
+        if( h->mb.type[mb_xy] < 19 && h->mb.type[mb_xy] >= 0 )
             fprintf( stderr, "%c ", mb_chars[ h->mb.type[mb_xy] ] );
         else
             fprintf( stderr, "? " );
@@ -1609,8 +1604,9 @@ void    x264_encoder_close  ( x264_t *h )
         const int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_I];
         const double i_count = h->stat.i_slice_count[SLICE_TYPE_I] * h->mb.i_mb_count / 100.0;
         x264_log( h, X264_LOG_INFO,
-                  "slice I   Avg I4x4:%.1f%%  I16x16:%.1f%%\n",
+                  "slice I   Avg I4x4:%.1f%%  I8x8:%.1f%%  I16x16:%.1f%%\n",
                   i_mb_count[I_4x4]  / i_count,
+                  i_mb_count[I_8x8]  / i_count,
                   i_mb_count[I_16x16]/ i_count );
     }
     if( h->stat.i_slice_count[SLICE_TYPE_P] > 0 )
@@ -1618,8 +1614,9 @@ void    x264_encoder_close  ( x264_t *h )
         const int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_P];
         const double i_count = h->stat.i_slice_count[SLICE_TYPE_P] * h->mb.i_mb_count / 100.0;
         x264_log( h, X264_LOG_INFO,
-                  "slice P   Avg I4x4:%.1f%%  I16x16:%.1f%%  P:%.1f%%  P8x8:%.1f%%  PSKIP:%.1f%%\n",
+                  "slice P   Avg I4x4:%.1f%%  I8x8:%.1f%%  I16x16:%.1f%%  P:%.1f%%  P8x8:%.1f%%  PSKIP:%.1f%%\n",
                   i_mb_count[I_4x4]  / i_count,
+                  i_mb_count[I_8x8]  / i_count,
                   i_mb_count[I_16x16]/ i_count,
                   i_mb_count[P_L0]   / i_count,
                   i_mb_count[P_8x8]  / i_count,
@@ -1630,8 +1627,9 @@ void    x264_encoder_close  ( x264_t *h )
         const int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_B];
         const double i_count = h->stat.i_slice_count[SLICE_TYPE_B] * h->mb.i_mb_count / 100.0;
         x264_log( h, X264_LOG_INFO,
-                  "slice B   Avg I4x4:%.1f%%  I16x16:%.1f%%  P:%.1f%%  B:%.1f%%  B8x8:%.1f%%  DIRECT:%.1f%%  BSKIP:%.1f%%\n",
+                  "slice B   Avg I4x4:%.1f%%  I8x8:%.1f%%  I16x16:%.1f%%  P:%.1f%%  B:%.1f%%  B8x8:%.1f%%  DIRECT:%.1f%%  BSKIP:%.1f%%\n",
                   i_mb_count[I_4x4]    / i_count,
+                  i_mb_count[I_8x8]    / i_count,
                   i_mb_count[I_16x16]  / i_count,
                   (i_mb_count[B_L0_L0] + i_mb_count[B_L1_L1] + i_mb_count[B_L1_L0] + i_mb_count[B_L0_L1]) / i_count,
                   (i_mb_count[B_BI_BI] + i_mb_count[B_L0_BI] + i_mb_count[B_L1_BI] + i_mb_count[B_BI_L0] + i_mb_count[B_BI_L1]) / i_count,

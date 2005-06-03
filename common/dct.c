@@ -256,6 +256,136 @@ static void add16x16_idct( uint8_t *p_dst, int i_dst, int16_t dct[16][4][4] )
     add8x8_idct( &p_dst[8*i_dst+8], i_dst, &dct[12] );
 }
 
+/****************************************************************************
+ * 8x8 transform:
+ ****************************************************************************/
+
+static inline void dct8_1d( int16_t src[8][8], int16_t dst[8][8] )
+{
+    int i;
+    for( i = 0; i < 8; i++ )
+    {
+        const int s07 = src[i][0] + src[i][7];
+        const int s16 = src[i][1] + src[i][6];
+        const int s25 = src[i][2] + src[i][5];
+        const int s34 = src[i][3] + src[i][4];
+  
+        const int a0 = s07 + s34;
+        const int a1 = s16 + s25;
+        const int a2 = s07 - s34;
+        const int a3 = s16 - s25;
+  
+        const int d07 = src[i][0] - src[i][7];
+        const int d16 = src[i][1] - src[i][6];
+        const int d25 = src[i][2] - src[i][5];
+        const int d34 = src[i][3] - src[i][4];
+  
+        const int a4 = d16 + d25 + (d07 + (d07>>1));
+        const int a5 = d07 - d34 - (d25 + (d25>>1));
+        const int a6 = d07 + d34 - (d16 + (d16>>1));
+        const int a7 = d16 - d25 + (d34 + (d34>>1));
+  
+        dst[0][i] =  a0 + a1;
+        dst[1][i] =  a4 + (a7>>2);
+        dst[2][i] =  a2 + (a3>>1);
+        dst[3][i] =  a5 + (a6>>2);
+        dst[4][i] =  a0 - a1;
+        dst[5][i] =  a6 - (a5>>2);
+        dst[6][i] = (a2>>1) - a3;
+        dst[7][i] = (a4>>2) - a7;
+    }
+}
+
+static void sub8x8_dct8( int16_t dct[8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+{
+    int16_t d[8][8];
+    int16_t tmp[8][8];
+    int y, x;
+
+    for( y = 0; y < 8; y++ )
+    {
+        for( x = 0; x < 8; x++ )
+        {
+            d[y][x] = pix1[x] - pix2[x];
+        }
+        pix1 += i_pix1;
+        pix2 += i_pix2;
+    }
+
+    dct8_1d( d, tmp );
+    dct8_1d( tmp, dct );
+}
+
+static void sub16x16_dct8( int16_t dct[4][8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+{
+    sub8x8_dct8( dct[0],  pix1,             i_pix1,  pix2,             i_pix2 );
+    sub8x8_dct8( dct[1], &pix1[8],          i_pix1, &pix2[8],          i_pix2 );
+    sub8x8_dct8( dct[2], &pix1[8*i_pix1],   i_pix1, &pix2[8*i_pix2],   i_pix2 );
+    sub8x8_dct8( dct[3], &pix1[8*i_pix1+8], i_pix1, &pix2[8*i_pix2+8], i_pix2 );
+}
+
+static inline void idct8_1d( int16_t src[8][8], int16_t dst[8][8] )
+{
+    int i;
+    for( i = 0; i < 8; i++ )
+    {
+        const int a0 =  src[i][0] + src[i][4];
+        const int a2 =  src[i][0] - src[i][4];
+        const int a4 = (src[i][2]>>1) - src[i][6];
+        const int a6 = (src[i][6]>>1) + src[i][2];
+
+        const int b0 = a0 + a6;
+        const int b2 = a2 + a4;
+        const int b4 = a2 - a4;
+        const int b6 = a0 - a6;
+
+        const int a1 = -src[i][3] + src[i][5] - src[i][7] - (src[i][7]>>1);
+        const int a3 =  src[i][1] + src[i][7] - src[i][3] - (src[i][3]>>1);
+        const int a5 = -src[i][1] + src[i][7] + src[i][5] + (src[i][5]>>1);
+        const int a7 =  src[i][3] + src[i][5] + src[i][1] + (src[i][1]>>1);
+
+        const int b1 = (a7>>2) + a1;
+        const int b3 =  a3 + (a5>>2);
+        const int b5 = (a3>>2) - a5;
+        const int b7 =  a7 - (a1>>2);
+
+        dst[0][i] = b0 + b7;
+        dst[7][i] = b0 - b7;
+        dst[1][i] = b2 + b5;
+        dst[6][i] = b2 - b5;
+        dst[2][i] = b4 + b3;
+        dst[5][i] = b4 - b3;
+        dst[3][i] = b6 + b1;
+        dst[4][i] = b6 - b1;
+    }
+}
+
+static void add8x8_idct8( uint8_t *p_dst, int i_dst, int16_t dct[8][8] )
+{
+    int16_t d[8][8];
+    int16_t tmp[8][8];
+    int y, x;
+
+    idct8_1d( dct, tmp );
+    idct8_1d( tmp, d );
+
+    for( y = 0; y < 8; y++ )
+    {
+        for( x = 0; x < 8; x++ )
+        {
+            p_dst[x] = clip_uint8( p_dst[x] + ((d[y][x] + 32) >> 6) );
+        }
+        p_dst += i_dst;
+    }
+}
+
+static void add16x16_idct8( uint8_t *p_dst, int i_dst, int16_t dct[4][8][8] )
+{
+    add8x8_idct8( &p_dst[0],         i_dst, dct[0] );
+    add8x8_idct8( &p_dst[8],         i_dst, dct[1] );
+    add8x8_idct8( &p_dst[8*i_dst],   i_dst, dct[2] );
+    add8x8_idct8( &p_dst[8*i_dst+8], i_dst, dct[3] );
+}
 
 
 /****************************************************************************
@@ -269,8 +399,14 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
     dctf->sub8x8_dct    = sub8x8_dct;
     dctf->add8x8_idct   = add8x8_idct;
 
-    dctf->sub16x16_dct    = sub16x16_dct;
-    dctf->add16x16_idct   = add16x16_idct;
+    dctf->sub16x16_dct  = sub16x16_dct;
+    dctf->add16x16_idct = add16x16_idct;
+
+    dctf->sub8x8_dct8   = sub8x8_dct8;
+    dctf->add8x8_idct8  = add8x8_idct8;
+
+    dctf->sub16x16_dct8  = sub16x16_dct8;
+    dctf->add16x16_idct8 = add16x16_idct8;
 
     dctf->dct4x4dc  = dct4x4dc;
     dctf->idct4x4dc = idct4x4dc;

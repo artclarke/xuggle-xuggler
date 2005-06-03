@@ -147,6 +147,7 @@ void x264_visualize_show( x264_t *h )
     static const stringlist_t mb_types[] = {
         /* Block types marked as NULL will not be drawn */
         { I_4x4   , "red" },
+        { I_8x8   , "#ff5640" },
         { I_16x16 , "#ff8060" },
         { I_PCM   , "violet" },
         { P_L0    , "SlateBlue" },
@@ -256,7 +257,7 @@ void x264_visualize_show( x264_t *h )
             }
         }
 
-        if (v->i_type==I_4x4 || v->i_type==I_16x16 || v->i_type==I_PCM) {
+        if (IS_INTRA(v->i_type) || v->i_type==I_PCM) {
             /* Intra coded */
             if (v->i_type==I_16x16) {
                 switch (v->i_intra16x16_pred_mode) {
@@ -278,42 +279,44 @@ void x264_visualize_show( x264_t *h )
                     break;
                 }
             }
-            if (v->i_type==I_4x4) {
-                for (i=0; i<4; i++) for (j=0; j<4; j++) {
+            if (v->i_type==I_4x4 || v->i_type==I_8x8) {
+                const int di = v->i_type==I_8x8 ? 2 : 1;
+                const int zoom2 = zoom * di;
+                for (i=0; i<4; i+=di) for (j=0; j<4; j+=di) {
                     const int x0 = x + j*4*zoom;
                     const int y0 = y + i*4*zoom;
-                    if (drawbox) disp_rect(0, x0, y0, x0+4*zoom, y0+4*zoom);
+                    if (drawbox) disp_rect(0, x0, y0, x0+4*zoom2, y0+4*zoom2);
                     switch (v->intra4x4_pred_mode[i][j]) {
                     case I_PRED_4x4_V:		/* Vertical */
-                        disp_line(0, x0+0*zoom, y0+1*zoom, x0+4*zoom, y0+1*zoom);
+                        disp_line(0, x0+0*zoom2, y0+1*zoom2, x0+4*zoom2, y0+1*zoom2);
                         break;
                     case I_PRED_4x4_H:		/* Horizontal */
-                        disp_line(0, x0+1*zoom, y0+0*zoom, x0+1*zoom, y0+4*zoom);
+                        disp_line(0, x0+1*zoom2, y0+0*zoom2, x0+1*zoom2, y0+4*zoom2);
                         break;
                     case I_PRED_4x4_DC:		/* DC, average from top and left sides */
                     case I_PRED_4x4_DC_LEFT:
                     case I_PRED_4x4_DC_TOP:
                     case I_PRED_4x4_DC_128:
-                        disp_line(0, x0+1*zoom, y0+1*zoom, x0+4*zoom, y0+1*zoom);
-                        disp_line(0, x0+1*zoom, y0+1*zoom, x0+1*zoom, y0+4*zoom);
+                        disp_line(0, x0+1*zoom2, y0+1*zoom2, x0+4*zoom2, y0+1*zoom2);
+                        disp_line(0, x0+1*zoom2, y0+1*zoom2, x0+1*zoom2, y0+4*zoom2);
                         break;
                     case I_PRED_4x4_DDL:	/* Topright-bottomleft */
-                        disp_line(0, x0+0*zoom, y0+0*zoom, x0+4*zoom, y0+4*zoom);
+                        disp_line(0, x0+0*zoom2, y0+0*zoom2, x0+4*zoom2, y0+4*zoom2);
                         break;
                     case I_PRED_4x4_DDR:	/* Topleft-bottomright */
-                        disp_line(0, x0+0*zoom, y0+4*zoom, x0+4*zoom, y0+0*zoom);
+                        disp_line(0, x0+0*zoom2, y0+4*zoom2, x0+4*zoom2, y0+0*zoom2);
                         break;
                     case I_PRED_4x4_VR:		/* Mix of topleft-bottomright and vertical */
-                        disp_line(0, x0+0*zoom, y0+2*zoom, x0+4*zoom, y0+1*zoom);
+                        disp_line(0, x0+0*zoom2, y0+2*zoom2, x0+4*zoom2, y0+1*zoom2);
                         break;
                     case I_PRED_4x4_HD:		/* Mix of topleft-bottomright and horizontal */
-                        disp_line(0, x0+2*zoom, y0+0*zoom, x0+1*zoom, y0+4*zoom);
+                        disp_line(0, x0+2*zoom2, y0+0*zoom2, x0+1*zoom2, y0+4*zoom2);
                         break;
                     case I_PRED_4x4_VL:		/* Mix of topright-bottomleft and vertical */
-                        disp_line(0, x0+0*zoom, y0+1*zoom, x0+4*zoom, y0+2*zoom);
+                        disp_line(0, x0+0*zoom2, y0+1*zoom2, x0+4*zoom2, y0+2*zoom2);
                         break;
                     case I_PRED_4x4_HU:		/* Mix of topright-bottomleft and horizontal */
-                        disp_line(0, x0+1*zoom, y0+0*zoom, x0+2*zoom, y0+4*zoom);
+                        disp_line(0, x0+1*zoom2, y0+0*zoom2, x0+2*zoom2, y0+4*zoom2);
                         break;
                     }
                 }

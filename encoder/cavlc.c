@@ -397,12 +397,15 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         }
         return;
     }
-    else if( i_mb_type == I_4x4 )
+    else if( i_mb_type == I_4x4 || i_mb_type == I_8x8 )
     {
+        int di = i_mb_type == I_8x8 ? 4 : 1;
         bs_write_ue( s, i_mb_i_offset + 0 );
+        if( h->pps->b_transform_8x8_mode )
+            bs_write1( s, h->mb.b_transform_8x8 );
 
         /* Prediction: Luma */
-        for( i = 0; i < 16; i++ )
+        for( i = 0; i < 16; i += di )
         {
             int i_pred = x264_mb_predict_intra4x4_mode( h, i );
             int i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[i]];
@@ -640,13 +643,20 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
     h->stat.frame.i_hdr_bits += i_mb_pos_tex - i_mb_pos_start;
 
     /* Coded block patern */
-    if( i_mb_type == I_4x4 )
+    if( i_mb_type == I_4x4 || i_mb_type == I_8x8 )
     {
         bs_write_ue( s, intra4x4_cbp_to_golomb[( h->mb.i_cbp_chroma << 4 )|h->mb.i_cbp_luma] );
     }
     else if( i_mb_type != I_16x16 )
     {
         bs_write_ue( s, inter_cbp_to_golomb[( h->mb.i_cbp_chroma << 4 )|h->mb.i_cbp_luma] );
+    }
+
+    /* transform size 8x8 flag */
+    if( h->pps->b_transform_8x8_mode && h->mb.i_cbp_luma && !IS_INTRA(i_mb_type)
+        && x264_mb_transform_8x8_allowed( h, i_mb_type ) )
+    {
+        bs_write1( s, h->mb.b_transform_8x8 );
     }
 
     /* write residual */
@@ -669,6 +679,19 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
     else if( h->mb.i_cbp_luma != 0 || h->mb.i_cbp_chroma != 0 )
     {
         bs_write_se( s, h->mb.qp[h->mb.i_mb_xy] - h->mb.i_last_qp );
+
+        /* shuffle 8x8 dct coeffs into 4x4 lists */
+        if( h->mb.b_transform_8x8 )
+        {
+            int i4;
+            for( i4 = 0; i4 < 16; i4++ )
+            {
+                for( i = 0; i < 16; i++ )
+                    h->dct.block[i4].luma4x4[i] = h->dct.luma8x8[i4>>2][(i4&3)+i*4];
+                h->mb.cache.non_zero_count[x264_scan8[i4]] =
+                    array_non_zero_count( h->dct.block[i4].luma4x4, 16 );
+            }
+        }
 
         for( i = 0; i < 16; i++ )
         {

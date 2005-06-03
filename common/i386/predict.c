@@ -177,7 +177,7 @@ static void predict_16x16_v( uint8_t *src, int i_stride )
 /****************************************************************************
  * 8x8 prediction for intra chroma block DC, H, V, P
  ****************************************************************************/
-static void predict_8x8_dc_128( uint8_t *src, int i_stride )
+static void predict_8x8c_dc_128( uint8_t *src, int i_stride )
 {
     int y;
 
@@ -191,7 +191,7 @@ static void predict_8x8_dc_128( uint8_t *src, int i_stride )
         src += i_stride;
     }
 }
-static void predict_8x8_dc_left( uint8_t *src, int i_stride )
+static void predict_8x8c_dc_left( uint8_t *src, int i_stride )
 {
     int y;
     uint32_t dc0 = 0, dc1 = 0;
@@ -222,7 +222,7 @@ static void predict_8x8_dc_left( uint8_t *src, int i_stride )
     }
 
 }
-static void predict_8x8_dc_top( uint8_t *src, int i_stride )
+static void predict_8x8c_dc_top( uint8_t *src, int i_stride )
 {
     int y, x;
     uint32_t dc0 = 0, dc1 = 0;
@@ -244,7 +244,7 @@ static void predict_8x8_dc_top( uint8_t *src, int i_stride )
         src += i_stride;
     }
 }
-static void predict_8x8_dc( uint8_t *src, int i_stride )
+static void predict_8x8c_dc( uint8_t *src, int i_stride )
 {
     int y;
     int s0 = 0, s1 = 0, s2 = 0, s3 = 0;
@@ -291,7 +291,7 @@ static void predict_8x8_dc( uint8_t *src, int i_stride )
     }
 }
 
-static void predict_8x8_h( uint8_t *src, int i_stride )
+static void predict_8x8c_h( uint8_t *src, int i_stride )
 {
     int i;
 
@@ -307,10 +307,10 @@ static void predict_8x8_h( uint8_t *src, int i_stride )
     }
 }
 
-extern void predict_8x8_v_mmx( uint8_t *src, int i_stride );
+extern void predict_8x8c_v_mmx( uint8_t *src, int i_stride );
 
 #if 0
-static void predict_8x8_v( uint8_t *src, int i_stride )
+static void predict_8x8c_v( uint8_t *src, int i_stride )
 {
     int i;
 
@@ -326,7 +326,7 @@ static void predict_8x8_v( uint8_t *src, int i_stride )
 
 
 /****************************************************************************
- * 4x4 prediction for intra luma block DC, H, V, P
+ * 4x4 prediction for intra luma block
  ****************************************************************************/
 static void predict_4x4_dc_128( uint8_t *src, int i_stride )
 {
@@ -422,14 +422,14 @@ void x264_predict_16x16_init_mmxext( x264_predict_t pf[7] )
     pf[I_PRED_16x16_DC_128 ]= predict_16x16_dc_128;
 }
 
-void x264_predict_8x8_init_mmxext( x264_predict_t pf[7] )
+void x264_predict_8x8c_init_mmxext( x264_predict_t pf[7] )
 {
-    pf[I_PRED_CHROMA_V ]     = predict_8x8_v_mmx;
-    pf[I_PRED_CHROMA_H ]     = predict_8x8_h;
-    pf[I_PRED_CHROMA_DC]     = predict_8x8_dc;
-    pf[I_PRED_CHROMA_DC_LEFT]= predict_8x8_dc_left;
-    pf[I_PRED_CHROMA_DC_TOP ]= predict_8x8_dc_top;
-    pf[I_PRED_CHROMA_DC_128 ]= predict_8x8_dc_128;
+    pf[I_PRED_CHROMA_V ]     = predict_8x8c_v_mmx;
+    pf[I_PRED_CHROMA_H ]     = predict_8x8c_h;
+    pf[I_PRED_CHROMA_DC]     = predict_8x8c_dc;
+    pf[I_PRED_CHROMA_DC_LEFT]= predict_8x8c_dc_left;
+    pf[I_PRED_CHROMA_DC_TOP ]= predict_8x8c_dc_top;
+    pf[I_PRED_CHROMA_DC_128 ]= predict_8x8c_dc_128;
 }
 
 void x264_predict_4x4_init_mmxext( x264_predict_t pf[12] )

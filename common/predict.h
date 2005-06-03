@@ -25,6 +25,7 @@
 #define _PREDICT_H 1
 
 typedef void (*x264_predict_t)( uint8_t *src, int i_stride );
+typedef void (*x264_predict8x8_t)( uint8_t *src, int i_stride, int i_neighbor );
 
 enum intra_chroma_pred_e
 {
@@ -37,7 +38,7 @@ enum intra_chroma_pred_e
     I_PRED_CHROMA_DC_TOP  = 5,
     I_PRED_CHROMA_DC_128  = 6
 };
-static const int x264_mb_pred_mode8x8_fix[7] =
+static const int x264_mb_pred_mode8x8c_fix[7] =
 {
     I_PRED_CHROMA_DC, I_PRED_CHROMA_H, I_PRED_CHROMA_V, I_PRED_CHROMA_P,
     I_PRED_CHROMA_DC, I_PRED_CHROMA_DC,I_PRED_CHROMA_DC
@@ -76,17 +77,38 @@ enum intra4x4_pred_e
     I_PRED_4x4_DC_TOP  = 10,
     I_PRED_4x4_DC_128  = 11,
 };
-static const int x264_mb_pred_mode4x4_fix[12] =
+static const int x264_mb_pred_mode4x4_fix[13] =
 {
+    -1,
     I_PRED_4x4_V,   I_PRED_4x4_H,   I_PRED_4x4_DC,
     I_PRED_4x4_DDL, I_PRED_4x4_DDR, I_PRED_4x4_VR,
     I_PRED_4x4_HD,  I_PRED_4x4_VL,  I_PRED_4x4_HU,
     I_PRED_4x4_DC,  I_PRED_4x4_DC,  I_PRED_4x4_DC
 };
+#define x264_mb_pred_mode4x4_fix(t) x264_mb_pred_mode4x4_fix[(t)+1]
+
+/* must use the same numbering as intra4x4_pred_e */
+enum intra8x8_pred_e
+{
+    I_PRED_8x8_V  = 0,
+    I_PRED_8x8_H  = 1,
+    I_PRED_8x8_DC = 2,
+    I_PRED_8x8_DDL= 3,
+    I_PRED_8x8_DDR= 4,
+    I_PRED_8x8_VR = 5,
+    I_PRED_8x8_HD = 6,
+    I_PRED_8x8_VL = 7,
+    I_PRED_8x8_HU = 8,
+
+    I_PRED_8x8_DC_LEFT = 9,
+    I_PRED_8x8_DC_TOP  = 10,
+    I_PRED_8x8_DC_128  = 11,
+};
 
 void x264_predict_16x16_init ( int cpu, x264_predict_t pf[7] );
-void x264_predict_8x8_init   ( int cpu, x264_predict_t pf[7] );
+void x264_predict_8x8c_init  ( int cpu, x264_predict_t pf[7] );
 void x264_predict_4x4_init   ( int cpu, x264_predict_t pf[12] );
+void x264_predict_8x8_init   ( int cpu, x264_predict8x8_t pf[12] );
 
 
 #endif

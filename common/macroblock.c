@@ -54,23 +54,71 @@ static const int dequant_mf[6][4][4] =
     { {18, 23, 18, 23}, {23, 29, 23, 29}, {18, 23, 18, 23}, {23, 29, 23, 29} }
 };
 
-#if 0
-static const int i_chroma_qp_table[52] =
+static const int dequant8_mf[6][8][8] =
 {
-     0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
-    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-    20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-    29, 30, 31, 32, 32, 33, 34, 34, 35, 35,
-    36, 36, 37, 37, 37, 38, 38, 38, 39, 39,
-    39, 39
+  {
+    {20, 19, 25, 19, 20, 19, 25, 19},
+    {19, 18, 24, 18, 19, 18, 24, 18},
+    {25, 24, 32, 24, 25, 24, 32, 24},
+    {19, 18, 24, 18, 19, 18, 24, 18},
+    {20, 19, 25, 19, 20, 19, 25, 19},
+    {19, 18, 24, 18, 19, 18, 24, 18},
+    {25, 24, 32, 24, 25, 24, 32, 24},
+    {19, 18, 24, 18, 19, 18, 24, 18}
+  }, {
+    {22, 21, 28, 21, 22, 21, 28, 21},
+    {21, 19, 26, 19, 21, 19, 26, 19},
+    {28, 26, 35, 26, 28, 26, 35, 26},
+    {21, 19, 26, 19, 21, 19, 26, 19},
+    {22, 21, 28, 21, 22, 21, 28, 21},
+    {21, 19, 26, 19, 21, 19, 26, 19},
+    {28, 26, 35, 26, 28, 26, 35, 26},
+    {21, 19, 26, 19, 21, 19, 26, 19}
+  }, {
+    {26, 24, 33, 24, 26, 24, 33, 24},
+    {24, 23, 31, 23, 24, 23, 31, 23},
+    {33, 31, 42, 31, 33, 31, 42, 31},
+    {24, 23, 31, 23, 24, 23, 31, 23},
+    {26, 24, 33, 24, 26, 24, 33, 24},
+    {24, 23, 31, 23, 24, 23, 31, 23},
+    {33, 31, 42, 31, 33, 31, 42, 31},
+    {24, 23, 31, 23, 24, 23, 31, 23}
+  }, {
+    {28, 26, 35, 26, 28, 26, 35, 26},
+    {26, 25, 33, 25, 26, 25, 33, 25},
+    {35, 33, 45, 33, 35, 33, 45, 33},
+    {26, 25, 33, 25, 26, 25, 33, 25},
+    {28, 26, 35, 26, 28, 26, 35, 26},
+    {26, 25, 33, 25, 26, 25, 33, 25},
+    {35, 33, 45, 33, 35, 33, 45, 33},
+    {26, 25, 33, 25, 26, 25, 33, 25}
+  }, {
+    {32, 30, 40, 30, 32, 30, 40, 30},
+    {30, 28, 38, 28, 30, 28, 38, 28},
+    {40, 38, 51, 38, 40, 38, 51, 38},
+    {30, 28, 38, 28, 30, 28, 38, 28},
+    {32, 30, 40, 30, 32, 30, 40, 30},
+    {30, 28, 38, 28, 30, 28, 38, 28},
+    {40, 38, 51, 38, 40, 38, 51, 38},
+    {30, 28, 38, 28, 30, 28, 38, 28}
+  }, {
+    {36, 34, 46, 34, 36, 34, 46, 34},
+    {34, 32, 43, 32, 34, 32, 43, 32},
+    {46, 43, 58, 43, 46, 43, 58, 43},
+    {34, 32, 43, 32, 34, 32, 43, 32},
+    {36, 34, 46, 34, 36, 34, 46, 34},
+    {34, 32, 43, 32, 34, 32, 43, 32},
+    {46, 43, 58, 43, 46, 43, 58, 43},
+    {34, 32, 43, 32, 34, 32, 43, 32}
+  }
 };
-#endif
 
 int x264_mb_predict_intra4x4_mode( x264_t *h, int idx )
 {
     const int ma = h->mb.cache.intra4x4_pred_mode[x264_scan8[idx] - 1];
     const int mb = h->mb.cache.intra4x4_pred_mode[x264_scan8[idx] - 8];
-    const int m  = X264_MIN( ma, mb );
+    const int m  = X264_MIN( x264_mb_pred_mode4x4_fix(ma),
+                             x264_mb_pred_mode4x4_fix(mb) );
 
     if( m < 0 )
         return I_PRED_4x4_DC;
@@ -90,6 +138,24 @@ int x264_mb_predict_non_zero_code( x264_t *h, int idx )
         i_ret = ( i_ret + 1 ) >> 1;
     }
     return i_ret & 0x7f;
+}
+
+int x264_mb_transform_8x8_allowed( x264_t *h, int i_mb_type )
+{
+    int i;
+    if( i_mb_type == P_8x8 || i_mb_type == B_8x8 )
+    {
+        for( i = 0; i < 4; i++ )
+            if( !IS_SUB8x8(h->mb.i_sub_partition[i])
+                || ( h->mb.i_sub_partition[i] == D_DIRECT_8x8 && !h->sps->b_direct8x8_inference ) )
+            {
+                return 0;
+            }
+    }
+    if( i_mb_type == B_DIRECT && !h->sps->b_direct8x8_inference )
+        return 0;
+
+    return 1;
 }
 
 /****************************************************************************
@@ -163,6 +229,44 @@ void x264_mb_dequant_4x4( int16_t dct[4][4], int i_qscale )
         dct[y][1] = ( dct[y][1] * dequant_mf[i_mf][y][1] ) << i_qbits;
         dct[y][2] = ( dct[y][2] * dequant_mf[i_mf][y][2] ) << i_qbits;
         dct[y][3] = ( dct[y][3] * dequant_mf[i_mf][y][3] ) << i_qbits;
+    }
+}
+
+void x264_mb_dequant_8x8( int16_t dct[8][8], int i_qscale )
+{
+    const int i_mf = i_qscale%6;
+    int y;
+
+    if( i_qscale >= 12 )
+    {
+        const int i_qbits = (i_qscale/6) - 2;
+        for( y = 0; y < 8; y++ )
+        {
+            dct[y][0] = ( dct[y][0] * dequant8_mf[i_mf][y][0] ) << i_qbits;
+            dct[y][1] = ( dct[y][1] * dequant8_mf[i_mf][y][1] ) << i_qbits;
+            dct[y][2] = ( dct[y][2] * dequant8_mf[i_mf][y][2] ) << i_qbits;
+            dct[y][3] = ( dct[y][3] * dequant8_mf[i_mf][y][3] ) << i_qbits;
+            dct[y][4] = ( dct[y][4] * dequant8_mf[i_mf][y][4] ) << i_qbits;
+            dct[y][5] = ( dct[y][5] * dequant8_mf[i_mf][y][5] ) << i_qbits;
+            dct[y][6] = ( dct[y][6] * dequant8_mf[i_mf][y][6] ) << i_qbits;
+            dct[y][7] = ( dct[y][7] * dequant8_mf[i_mf][y][7] ) << i_qbits;
+        }
+    }
+    else
+    {
+        const int i_qbits = 2 - (i_qscale/6);
+        const int i_round = i_qbits; // 1<<(i_qbits-1)
+        for( y = 0; y < 8; y++ )
+        {
+            dct[y][0] = ( dct[y][0] * dequant8_mf[i_mf][y][0] + i_round ) >> i_qbits;
+            dct[y][1] = ( dct[y][1] * dequant8_mf[i_mf][y][1] + i_round ) >> i_qbits;
+            dct[y][2] = ( dct[y][2] * dequant8_mf[i_mf][y][2] + i_round ) >> i_qbits;
+            dct[y][3] = ( dct[y][3] * dequant8_mf[i_mf][y][3] + i_round ) >> i_qbits;
+            dct[y][4] = ( dct[y][4] * dequant8_mf[i_mf][y][4] + i_round ) >> i_qbits;
+            dct[y][5] = ( dct[y][5] * dequant8_mf[i_mf][y][5] + i_round ) >> i_qbits;
+            dct[y][6] = ( dct[y][6] * dequant8_mf[i_mf][y][6] + i_round ) >> i_qbits;
+            dct[y][7] = ( dct[y][7] * dequant8_mf[i_mf][y][7] + i_round ) >> i_qbits;
+        }
     }
 }
 
@@ -829,9 +933,10 @@ void x264_macroblock_cache_init( x264_t *h )
     h->mb.i_b8_stride = h->sps->i_mb_width * 2;
     h->mb.i_b4_stride = h->sps->i_mb_width * 4;
 
-    h->mb.qp  = x264_malloc( i_mb_count * sizeof( int8_t) );
-    h->mb.cbp = x264_malloc( i_mb_count * sizeof( int16_t) );
-    h->mb.skipbp = x264_malloc( i_mb_count * sizeof( int8_t) );
+    h->mb.qp  = x264_malloc( i_mb_count * sizeof(int8_t) );
+    h->mb.cbp = x264_malloc( i_mb_count * sizeof(int16_t) );
+    h->mb.skipbp = x264_malloc( i_mb_count * sizeof(int8_t) );
+    h->mb.mb_transform_size = x264_malloc( i_mb_count * sizeof(int8_t) );
 
     /* 0 -> 3 top(4), 4 -> 6 : left(3) */
     h->mb.intra4x4_pred_mode = x264_malloc( i_mb_count * 7 * sizeof( int8_t ) );
@@ -874,6 +979,7 @@ void x264_macroblock_cache_end( x264_t *h )
     }
     x264_free( h->mb.intra4x4_pred_mode );
     x264_free( h->mb.non_zero_count );
+    x264_free( h->mb.mb_transform_size );
     x264_free( h->mb.skipbp );
     x264_free( h->mb.cbp );
     x264_free( h->mb.qp );
@@ -1070,6 +1176,14 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
     else
         h->mb.i_mb_type_topleft = -1;
 
+    if( h->param.analyse.b_transform_8x8 )
+    {
+        h->mb.cache.transform_size[0] = (h->mb.i_neighbour&MB_LEFT)
+                                      && h->mb.mb_transform_size[i_left_xy];
+        h->mb.cache.transform_size[1] = (h->mb.i_neighbour&MB_TOP)
+                                      && h->mb.mb_transform_size[i_top_xy];
+    }
+
     /* load ref/mv/mvd */
     if( h->sh.i_type != SLICE_TYPE_I )
     {
@@ -1237,12 +1351,37 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
             }
         }
     }
+
+    // FIXME skip this if I_4x4 and I_8x8 are disabled?
+    // assumes MB_TOPRIGHT = MB_TOP<<1
+    h->mb.i_neighbour4[0] =
+    h->mb.i_neighbour8[0] = (h->mb.i_neighbour & (MB_TOP|MB_LEFT|MB_TOPLEFT))
+                            | ((h->mb.i_neighbour & MB_TOP) ? MB_TOPRIGHT : 0);
+    h->mb.i_neighbour4[4] =
+    h->mb.i_neighbour4[1] = MB_LEFT | ((h->mb.i_neighbour & MB_TOP) ? (MB_TOP|MB_TOPLEFT|MB_TOPRIGHT) : 0);
+    h->mb.i_neighbour4[2] =
+    h->mb.i_neighbour4[8] =
+    h->mb.i_neighbour4[10] =
+    h->mb.i_neighbour8[2] = MB_TOP|MB_TOPRIGHT | ((h->mb.i_neighbour & MB_LEFT) ? (MB_LEFT|MB_TOPLEFT) : 0);
+    h->mb.i_neighbour4[3] =
+    h->mb.i_neighbour4[7] =
+    h->mb.i_neighbour4[11] =
+    h->mb.i_neighbour4[13] =
+    h->mb.i_neighbour4[15] =
+    h->mb.i_neighbour8[3] = MB_LEFT|MB_TOP|MB_TOPLEFT;
+    h->mb.i_neighbour4[5] =
+    h->mb.i_neighbour8[1] = MB_LEFT | (h->mb.i_neighbour & MB_TOPRIGHT)
+                            | ((h->mb.i_neighbour & MB_TOP) ? MB_TOP|MB_TOPLEFT : 0);
+    h->mb.i_neighbour4[6] =
+    h->mb.i_neighbour4[9] =
+    h->mb.i_neighbour4[12] =
+    h->mb.i_neighbour4[14] = MB_LEFT|MB_TOP|MB_TOPLEFT|MB_TOPRIGHT;
 }
 
 void x264_macroblock_cache_save( x264_t *h )
 {
     const int i_mb_xy = h->mb.i_mb_xy;
-    const int i_mb_type = h->mb.i_type;
+    const int i_mb_type = x264_mb_type_fix[h->mb.i_type];
     const int s8x8 = h->mb.i_b8_stride;
     const int s4x4 = h->mb.i_b4_stride;
     const int i_mb_4x4 = h->mb.i_b4_xy;
@@ -1294,6 +1433,8 @@ void x264_macroblock_cache_save( x264_t *h )
             h->mb.non_zero_count[i_mb_xy][i] = h->mb.cache.non_zero_count[x264_scan8[i]];
         }
     }
+
+    h->mb.mb_transform_size[i_mb_xy] = h->mb.b_transform_8x8;
 
     if( !IS_INTRA( i_mb_type ) )
     {

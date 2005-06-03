@@ -36,35 +36,43 @@ enum macroblock_position_e
 
 
 /* XXX mb_type isn't the one written in the bitstream -> only internal usage */
-#define IS_INTRA(type) ( (type) == I_4x4 || (type) == I_16x16 )
+#define IS_INTRA(type) ( (type) == I_4x4 || (type) == I_8x8 || (type) == I_16x16 )
 #define IS_SKIP(type)  ( (type) == P_SKIP || (type) == B_SKIP )
 #define IS_DIRECT(type)  ( (type) == B_DIRECT )
 enum mb_class_e
 {
     I_4x4           = 0,
-    I_16x16         = 1,
-    I_PCM           = 2,
+    I_8x8           = 1,
+    I_16x16         = 2,
+    I_PCM           = 3,
 
-    P_L0            = 3,
-    P_8x8           = 4,
-    P_SKIP          = 5,
+    P_L0            = 4,
+    P_8x8           = 5,
+    P_SKIP          = 6,
 
-    B_DIRECT        = 6,
-    B_L0_L0         = 7,
-    B_L0_L1         = 8,
-    B_L0_BI         = 9,
-    B_L1_L0         = 10,
-    B_L1_L1         = 11,
-    B_L1_BI         = 12,
-    B_BI_L0         = 13,
-    B_BI_L1         = 14,
-    B_BI_BI         = 15,
-    B_8x8           = 16,
-    B_SKIP          = 17,
+    B_DIRECT        = 7,
+    B_L0_L0         = 8,
+    B_L0_L1         = 9,
+    B_L0_BI         = 10,
+    B_L1_L0         = 11,
+    B_L1_L1         = 12,
+    B_L1_BI         = 13,
+    B_BI_L0         = 14,
+    B_BI_L1         = 15,
+    B_BI_BI         = 16,
+    B_8x8           = 17,
+    B_SKIP          = 18,
 };
-static const int x264_mb_type_list0_table[18][2] =
+static const int x264_mb_type_fix[19] =
 {
-    {0,0}, {0,0}, {0,0},    /* INTRA */
+    I_4x4, I_4x4, I_16x16, I_PCM,
+    P_L0, P_8x8, P_SKIP,
+    B_DIRECT, B_L0_L0, B_L0_L1, B_L0_BI, B_L1_L0, B_L1_L1,
+    B_L1_BI, B_BI_L0, B_BI_L1, B_BI_BI, B_8x8, B_SKIP
+};
+static const int x264_mb_type_list0_table[19][2] =
+{
+    {0,0}, {0,0}, {0,0}, {0,0}, /* INTRA */
     {1,1},                  /* P_L0 */
     {0,0},                  /* P_8x8 */
     {1,1},                  /* P_SKIP */
@@ -75,9 +83,9 @@ static const int x264_mb_type_list0_table[18][2] =
     {0,0},                  /* B_8x8 */
     {0,0}                   /* B_SKIP */
 };
-static const int x264_mb_type_list1_table[18][2] =
+static const int x264_mb_type_list1_table[19][2] =
 {
-    {0,0}, {0,0}, {0,0},    /* INTRA */
+    {0,0}, {0,0}, {0,0}, {0,0}, /* INTRA */
     {0,0},                  /* P_L0 */
     {0,0},                  /* P_8x8 */
     {0,0},                  /* P_SKIP */
@@ -160,6 +168,7 @@ void x264_macroblock_bipred_init( x264_t *h );
 void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int i_qscale );
 void x264_mb_dequant_2x2_dc( int16_t dct[2][2], int i_qscale );
 void x264_mb_dequant_4x4( int16_t dct[4][4], int i_qscale );
+void x264_mb_dequant_8x8( int16_t dct[8][8], int i_qscale );
 
 /* x264_mb_predict_mv_16x16:
  *      set mvp with predicted mv for D_16x16 block
@@ -192,8 +201,10 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int mvc[5][2
 
 int  x264_mb_predict_intra4x4_mode( x264_t *h, int idx );
 int  x264_mb_predict_non_zero_code( x264_t *h, int idx );
+int  x264_mb_transform_8x8_allowed( x264_t *h, int i_mb_type );
 
 void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale );
+void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qscale );
 
 void x264_mb_mc( x264_t *h );
 
@@ -243,6 +254,11 @@ static inline void x264_macroblock_cache_skip( x264_t *h, int x, int y, int widt
             h->mb.cache.skip[X264_SCAN8_0+x+dx+8*(y+dy)] = b_skip;
         }
     }
+}
+static inline void x264_macroblock_cache_intra8x8_pred( x264_t *h, int x, int y, int i_mode )
+{
+    int *cache = &h->mb.cache.intra4x4_pred_mode[X264_SCAN8_0+x+8*y];
+    cache[0] = cache[1] = cache[8] = cache[9] = i_mode;
 }
 
 #endif

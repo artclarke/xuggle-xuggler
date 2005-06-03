@@ -28,7 +28,11 @@ enum profile_e
 {
     PROFILE_BASELINE = 66,
     PROFILE_MAIN = 77,
-    PROFILE_EXTENTED = 88
+    PROFILE_EXTENTED = 88,
+    PROFILE_HIGH = 100,
+    PROFILE_HIGH10 = 110,
+    PROFILE_HIGH422 = 122,
+    PROFILE_HIGH444 = 144
 };
 
 typedef struct
@@ -133,6 +137,9 @@ typedef struct
     int b_deblocking_filter_control;
     int b_constrained_intra_pred;
     int b_redundant_pic_cnt;
+
+    int b_transform_8x8_mode;
+
 } x264_pps_t;
 
 #endif

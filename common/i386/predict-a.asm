@@ -56,17 +56,17 @@ SECTION .data
 
 SECTION .text
 
-cglobal predict_8x8_v_mmx
+cglobal predict_8x8c_v_mmx
 cglobal predict_16x16_v_mmx
 
 ;-----------------------------------------------------------------------------
 ;
-; void predict_8x8_v_mmx( uint8_t *src, int i_stride )
+; void predict_8x8c_v_mmx( uint8_t *src, int i_stride )
 ;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
-predict_8x8_v_mmx :
+predict_8x8c_v_mmx :
 
     ;push       edi
     ;push       esi

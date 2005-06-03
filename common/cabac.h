@@ -34,12 +34,13 @@ typedef struct
     } slice[3];
 
     /* context */
+    /* states 436-459 are for interlacing, so are omitted for now */
     struct
     {
         int i_state;
         int i_mps;
         int i_count;
-    } ctxstate[399];
+    } ctxstate[436];
 
     /* state */
     int i_low;
