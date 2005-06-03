@@ -50,7 +50,7 @@
 #endif
 
 //#define DEBUG_MB_TYPE
-#define DEBUG_DUMP_FRAME
+//#define DEBUG_DUMP_FRAME
 //#define DEBUG_BENCHMARK
 
 #ifdef DEBUG_BENCHMARK
