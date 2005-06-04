@@ -290,6 +290,7 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
     pps->b_pic_order = 0;
     pps->i_num_slice_groups = 1;
 
+#if 0
     if( pps->i_num_slice_groups > 1 )
     {
         int i;
@@ -325,6 +326,7 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
             }
         }
     }
+#endif
     pps->i_num_ref_idx_l0_active = 1;
     pps->i_num_ref_idx_l1_active = 1;
 
@@ -351,6 +353,7 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
     bs_write( s, 1, pps->b_pic_order );
     bs_write_ue( s, pps->i_num_slice_groups - 1 );
 
+#if 0
     if( pps->i_num_slice_groups > 1 )
     {
         int i;
@@ -389,6 +392,7 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
             }
         }
     }
+#endif
 
     bs_write_ue( s, pps->i_num_ref_idx_l0_active - 1 );
     bs_write_ue( s, pps->i_num_ref_idx_l1_active - 1 );

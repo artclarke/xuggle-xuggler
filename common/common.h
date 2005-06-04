@@ -233,9 +233,9 @@ struct x264_t
     int             i_nal_ref_idc;  /* threads only */
 
     /* We use only one SPS and one PPS */
-    x264_sps_t      sps_array[32];
+    x264_sps_t      sps_array[1];
     x264_sps_t      *sps;
-    x264_pps_t      pps_array[256];
+    x264_pps_t      pps_array[1];
     x264_pps_t      *pps;
     int             i_idr_pic_id;
 
