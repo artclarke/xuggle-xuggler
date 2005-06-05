@@ -260,60 +260,56 @@ static void add16x16_idct( uint8_t *p_dst, int i_dst, int16_t dct[16][4][4] )
  * 8x8 transform:
  ****************************************************************************/
 
-static inline void dct8_1d( int16_t src[8][8], int16_t dst[8][8] )
-{
-    int i;
-    for( i = 0; i < 8; i++ )
-    {
-        const int s07 = src[i][0] + src[i][7];
-        const int s16 = src[i][1] + src[i][6];
-        const int s25 = src[i][2] + src[i][5];
-        const int s34 = src[i][3] + src[i][4];
-  
-        const int a0 = s07 + s34;
-        const int a1 = s16 + s25;
-        const int a2 = s07 - s34;
-        const int a3 = s16 - s25;
-  
-        const int d07 = src[i][0] - src[i][7];
-        const int d16 = src[i][1] - src[i][6];
-        const int d25 = src[i][2] - src[i][5];
-        const int d34 = src[i][3] - src[i][4];
-  
-        const int a4 = d16 + d25 + (d07 + (d07>>1));
-        const int a5 = d07 - d34 - (d25 + (d25>>1));
-        const int a6 = d07 + d34 - (d16 + (d16>>1));
-        const int a7 = d16 - d25 + (d34 + (d34>>1));
-  
-        dst[0][i] =  a0 + a1;
-        dst[1][i] =  a4 + (a7>>2);
-        dst[2][i] =  a2 + (a3>>1);
-        dst[3][i] =  a5 + (a6>>2);
-        dst[4][i] =  a0 - a1;
-        dst[5][i] =  a6 - (a5>>2);
-        dst[6][i] = (a2>>1) - a3;
-        dst[7][i] = (a4>>2) - a7;
-    }
+#define DCT8_1D {\
+    const int s07 = SRC(0) + SRC(7);\
+    const int s16 = SRC(1) + SRC(6);\
+    const int s25 = SRC(2) + SRC(5);\
+    const int s34 = SRC(3) + SRC(4);\
+    const int a0 = s07 + s34;\
+    const int a1 = s16 + s25;\
+    const int a2 = s07 - s34;\
+    const int a3 = s16 - s25;\
+    const int d07 = SRC(0) - SRC(7);\
+    const int d16 = SRC(1) - SRC(6);\
+    const int d25 = SRC(2) - SRC(5);\
+    const int d34 = SRC(3) - SRC(4);\
+    const int a4 = d16 + d25 + (d07 + (d07>>1));\
+    const int a5 = d07 - d34 - (d25 + (d25>>1));\
+    const int a6 = d07 + d34 - (d16 + (d16>>1));\
+    const int a7 = d16 - d25 + (d34 + (d34>>1));\
+    SRC(0) =  a0 + a1     ;\
+    SRC(1) =  a4 + (a7>>2);\
+    SRC(2) =  a2 + (a3>>1);\
+    SRC(3) =  a5 + (a6>>2);\
+    SRC(4) =  a0 - a1     ;\
+    SRC(5) =  a6 - (a5>>2);\
+    SRC(6) = (a2>>1) - a3 ;\
+    SRC(7) = (a4>>2) - a7 ;\
 }
 
 static void sub8x8_dct8( int16_t dct[8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 {
-    int16_t d[8][8];
-    int16_t tmp[8][8];
-    int y, x;
+    int y, x, i;
 
     for( y = 0; y < 8; y++ )
     {
         for( x = 0; x < 8; x++ )
         {
-            d[y][x] = pix1[x] - pix2[x];
+            dct[y][x] = pix1[x] - pix2[x];
         }
         pix1 += i_pix1;
         pix2 += i_pix2;
     }
 
-    dct8_1d( d, tmp );
-    dct8_1d( tmp, dct );
+#define SRC(x) dct[i][x]
+    for( i = 0; i < 8; i++ )
+        DCT8_1D
+#undef SRC
+
+#define SRC(x) dct[x][i]
+    for( i = 0; i < 8; i++ )
+        DCT8_1D
+#undef SRC
 }
 
 static void sub16x16_dct8( int16_t dct[4][8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
@@ -324,67 +320,60 @@ static void sub16x16_dct8( int16_t dct[4][8][8], uint8_t *pix1, int i_pix1, uint
     sub8x8_dct8( dct[3], &pix1[8*i_pix1+8], i_pix1, &pix2[8*i_pix2+8], i_pix2 );
 }
 
-static inline void idct8_1d( int16_t src[8][8], int16_t dst[8][8] )
+#define IDCT8_1D {\
+    const int a0 =  SRC(0) + SRC(4);\
+    const int a2 =  SRC(0) - SRC(4);\
+    const int a4 = (SRC(2)>>1) - SRC(6);\
+    const int a6 = (SRC(6)>>1) + SRC(2);\
+    const int b0 = a0 + a6;\
+    const int b2 = a2 + a4;\
+    const int b4 = a2 - a4;\
+    const int b6 = a0 - a6;\
+    const int a1 = -SRC(3) + SRC(5) - SRC(7) - (SRC(7)>>1);\
+    const int a3 =  SRC(1) + SRC(7) - SRC(3) - (SRC(3)>>1);\
+    const int a5 = -SRC(1) + SRC(7) + SRC(5) + (SRC(5)>>1);\
+    const int a7 =  SRC(3) + SRC(5) + SRC(1) + (SRC(1)>>1);\
+    const int b1 = (a7>>2) + a1;\
+    const int b3 =  a3 + (a5>>2);\
+    const int b5 = (a3>>2) - a5;\
+    const int b7 =  a7 - (a1>>2);\
+    DST(0, b0 + b7);\
+    DST(1, b2 + b5);\
+    DST(2, b4 + b3);\
+    DST(3, b6 + b1);\
+    DST(4, b6 - b1);\
+    DST(5, b4 - b3);\
+    DST(6, b2 - b5);\
+    DST(7, b0 - b7);\
+}
+
+static void add8x8_idct8( uint8_t *dst, int i_dst, int16_t dct[8][8] )
 {
     int i;
+
+    dct[0][0] += 32; // rounding for the >>6 at the end
+
+#define SRC(x)     dct[i][x]
+#define DST(x,rhs) dct[i][x] = (rhs)
     for( i = 0; i < 8; i++ )
-    {
-        const int a0 =  src[i][0] + src[i][4];
-        const int a2 =  src[i][0] - src[i][4];
-        const int a4 = (src[i][2]>>1) - src[i][6];
-        const int a6 = (src[i][6]>>1) + src[i][2];
+        IDCT8_1D
+#undef SRC
+#undef DST
 
-        const int b0 = a0 + a6;
-        const int b2 = a2 + a4;
-        const int b4 = a2 - a4;
-        const int b6 = a0 - a6;
-
-        const int a1 = -src[i][3] + src[i][5] - src[i][7] - (src[i][7]>>1);
-        const int a3 =  src[i][1] + src[i][7] - src[i][3] - (src[i][3]>>1);
-        const int a5 = -src[i][1] + src[i][7] + src[i][5] + (src[i][5]>>1);
-        const int a7 =  src[i][3] + src[i][5] + src[i][1] + (src[i][1]>>1);
-
-        const int b1 = (a7>>2) + a1;
-        const int b3 =  a3 + (a5>>2);
-        const int b5 = (a3>>2) - a5;
-        const int b7 =  a7 - (a1>>2);
-
-        dst[0][i] = b0 + b7;
-        dst[7][i] = b0 - b7;
-        dst[1][i] = b2 + b5;
-        dst[6][i] = b2 - b5;
-        dst[2][i] = b4 + b3;
-        dst[5][i] = b4 - b3;
-        dst[3][i] = b6 + b1;
-        dst[4][i] = b6 - b1;
-    }
+#define SRC(x)     dct[x][i]
+#define DST(x,rhs) dst[i + x*i_dst] = clip_uint8( dst[i + x*i_dst] + ((rhs) >> 6) );
+    for( i = 0; i < 8; i++ )
+        IDCT8_1D
+#undef SRC
+#undef DST
 }
 
-static void add8x8_idct8( uint8_t *p_dst, int i_dst, int16_t dct[8][8] )
+static void add16x16_idct8( uint8_t *dst, int i_dst, int16_t dct[4][8][8] )
 {
-    int16_t d[8][8];
-    int16_t tmp[8][8];
-    int y, x;
-
-    idct8_1d( dct, tmp );
-    idct8_1d( tmp, d );
-
-    for( y = 0; y < 8; y++ )
-    {
-        for( x = 0; x < 8; x++ )
-        {
-            p_dst[x] = clip_uint8( p_dst[x] + ((d[y][x] + 32) >> 6) );
-        }
-        p_dst += i_dst;
-    }
-}
-
-static void add16x16_idct8( uint8_t *p_dst, int i_dst, int16_t dct[4][8][8] )
-{
-    add8x8_idct8( &p_dst[0],         i_dst, dct[0] );
-    add8x8_idct8( &p_dst[8],         i_dst, dct[1] );
-    add8x8_idct8( &p_dst[8*i_dst],   i_dst, dct[2] );
-    add8x8_idct8( &p_dst[8*i_dst+8], i_dst, dct[3] );
+    add8x8_idct8( &dst[0],         i_dst, dct[0] );
+    add8x8_idct8( &dst[8],         i_dst, dct[1] );
+    add8x8_idct8( &dst[8*i_dst],   i_dst, dct[2] );
+    add8x8_idct8( &dst[8*i_dst+8], i_dst, dct[3] );
 }
 
 
