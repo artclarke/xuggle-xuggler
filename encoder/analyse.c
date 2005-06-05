@@ -1566,10 +1566,12 @@ void x264_macroblock_analyse( x264_t *h )
             x264_mb_analyse_intra( h, &analysis, i_cost );
             if( h->mb.b_chroma_me &&
                 ( analysis.i_sad_i16x16 < i_cost
-             || ( analysis.i_sad_i4x4 < i_cost )))
+             ||   analysis.i_sad_i8x8 < i_cost
+             ||   analysis.i_sad_i4x4 < i_cost ))
             {
                 x264_mb_analyse_intra_chroma( h, &analysis );
                 analysis.i_sad_i16x16 += analysis.i_sad_i8x8chroma;
+                analysis.i_sad_i8x8 += analysis.i_sad_i8x8chroma;
                 analysis.i_sad_i4x4 += analysis.i_sad_i8x8chroma;
             }
 
