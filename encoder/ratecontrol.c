@@ -540,14 +540,16 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
 void x264_ratecontrol_end( x264_t *h, int bits )
 {
     x264_ratecontrol_t *rc = h->rc;
+    const int *mbs = h->stat.frame.i_mb_count;
     int i;
 
     x264_cpu_restore( h->param.cpu );
 
-    h->stat.frame.i_mb_count_skip = h->stat.frame.i_mb_count[P_SKIP] + h->stat.frame.i_mb_count[B_SKIP];
-    h->stat.frame.i_mb_count_p = h->stat.frame.i_mb_count[P_L0] + h->stat.frame.i_mb_count[P_8x8];
+    h->stat.frame.i_mb_count_skip = mbs[P_SKIP] + mbs[B_SKIP];
+    h->stat.frame.i_mb_count_i = mbs[I_16x16] + mbs[I_8x8] + mbs[I_4x4];
+    h->stat.frame.i_mb_count_p = mbs[P_L0] + mbs[P_8x8];
     for( i = B_DIRECT; i < B_8x8; i++ )
-        h->stat.frame.i_mb_count_p += h->stat.frame.i_mb_count[i];
+        h->stat.frame.i_mb_count_p += mbs[i];
 
     if( h->param.rc.b_stat_write )
     {
@@ -560,7 +562,7 @@ void x264_ratecontrol_end( x264_t *h, int bits )
                  c_type, rc->qpa,
                  h->stat.frame.i_itex_bits, h->stat.frame.i_ptex_bits,
                  h->stat.frame.i_hdr_bits, h->stat.frame.i_misc_bits,
-                 h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_16x16],
+                 h->stat.frame.i_mb_count_i,
                  h->stat.frame.i_mb_count_p,
                  h->stat.frame.i_mb_count_skip);
     }

@@ -1321,9 +1321,10 @@ do_encode:
     if( i_slice_type == SLICE_TYPE_P && !h->param.rc.b_stat_read 
         && h->param.i_scenecut_threshold >= 0 )
     {
-        int i_mb_i = h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_16x16];
-        int i_mb_p = h->stat.frame.i_mb_count[P_L0] + h->stat.frame.i_mb_count[P_8x8];
-        int i_mb_s = h->stat.frame.i_mb_count[P_SKIP];
+        const int *mbs = h->stat.frame.i_mb_count;
+        int i_mb_i = mbs[I_16x16] + mbs[I_8x8] + mbs[I_4x4];
+        int i_mb_p = mbs[P_L0] + mbs[P_8x8];
+        int i_mb_s = mbs[P_SKIP];
         int i_mb   = h->sps->i_mb_width * h->sps->i_mb_height;
         int64_t i_inter_cost = h->stat.frame.i_inter_cost;
         int64_t i_intra_cost = h->stat.frame.i_intra_cost;
@@ -1361,7 +1362,7 @@ do_encode:
         {
             int b;
 
-            x264_log( h, X264_LOG_DEBUG, "scene cut at %d size=%d Icost:%.0f Pcost:%.0f ratio:%.3f bias=%.3f lastIDR:%d (I:%d P:%d Skip:%d)\n",
+            x264_log( h, X264_LOG_DEBUG, "scene cut at %d Icost:%.0f Pcost:%.0f ratio:%.3f bias=%.3f lastIDR:%d (I:%d P:%d S:%d)\n",
                       h->fenc->i_frame, i_frame_size,
                       (double)i_intra_cost, (double)i_inter_cost,
                       (double)i_inter_cost / i_intra_cost,
@@ -1500,15 +1501,13 @@ do_encode:
     }
     
     x264_log( h, X264_LOG_DEBUG,
-                  "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I4:%-4d I8:%-4d I16:%-4d P:%-4d SKIP:%-4d size=%d bytes%s\n",
+                  "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I:%-4d P:%-4d SKIP:%-4d size=%d bytes%s\n",
               h->i_frame - 1,
               i_global_qp,
               i_nal_ref_idc,
               i_slice_type == SLICE_TYPE_I ? 'I' : (i_slice_type == SLICE_TYPE_P ? 'P' : 'B' ),
               frame_psnr->i_poc,
-              h->stat.frame.i_mb_count[I_4x4],
-              h->stat.frame.i_mb_count[I_8x8],
-              h->stat.frame.i_mb_count[I_16x16],
+              h->stat.frame.i_mb_count_i,
               h->stat.frame.i_mb_count_p,
               h->stat.frame.i_mb_count_skip,
               i_frame_size,

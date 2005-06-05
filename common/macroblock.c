@@ -140,11 +140,13 @@ int x264_mb_predict_non_zero_code( x264_t *h, int idx )
     return i_ret & 0x7f;
 }
 
-int x264_mb_transform_8x8_allowed( x264_t *h, int i_mb_type )
+int x264_mb_transform_8x8_allowed( x264_t *h )
 {
-    int i;
-    if( i_mb_type == P_8x8 || i_mb_type == B_8x8 )
+    if( IS_SKIP( h->mb.i_type ) )
+        return 0;
+    if( h->mb.i_type == P_8x8 || h->mb.i_type == B_8x8 )
     {
+        int i;
         for( i = 0; i < 4; i++ )
             if( !IS_SUB8x8(h->mb.i_sub_partition[i])
                 || ( h->mb.i_sub_partition[i] == D_DIRECT_8x8 && !h->sps->b_direct8x8_inference ) )
@@ -152,7 +154,7 @@ int x264_mb_transform_8x8_allowed( x264_t *h, int i_mb_type )
                 return 0;
             }
     }
-    if( i_mb_type == B_DIRECT && !h->sps->b_direct8x8_inference )
+    if( h->mb.i_type == B_DIRECT && !h->sps->b_direct8x8_inference )
         return 0;
 
     return 1;
@@ -1178,10 +1180,9 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
 
     if( h->param.analyse.b_transform_8x8 )
     {
-        h->mb.cache.transform_size[0] = (h->mb.i_neighbour&MB_LEFT)
-                                      && h->mb.mb_transform_size[i_left_xy];
-        h->mb.cache.transform_size[1] = (h->mb.i_neighbour&MB_TOP)
-                                      && h->mb.mb_transform_size[i_top_xy];
+        h->mb.cache.i_neighbour_transform_size =
+            ( i_left_type >= 0 && h->mb.mb_transform_size[i_left_xy] )
+          + ( i_top_type  >= 0 && h->mb.mb_transform_size[i_top_xy]  );
     }
 
     /* load ref/mv/mvd */
@@ -1352,8 +1353,6 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
         }
     }
 
-    // FIXME skip this if I_4x4 and I_8x8 are disabled?
-    // assumes MB_TOPRIGHT = MB_TOP<<1
     h->mb.i_neighbour4[0] =
     h->mb.i_neighbour8[0] = (h->mb.i_neighbour & (MB_TOP|MB_LEFT|MB_TOPLEFT))
                             | ((h->mb.i_neighbour & MB_TOP) ? MB_TOPRIGHT : 0);
@@ -1388,6 +1387,8 @@ void x264_macroblock_cache_save( x264_t *h )
     const int i_mb_8x8 = h->mb.i_b8_xy;
 
     int i;
+
+    h->mb.type[i_mb_xy] = i_mb_type;
 
     if( IS_SKIP( h->mb.i_type ) )
         h->mb.qp[i_mb_xy] = h->mb.i_last_qp;

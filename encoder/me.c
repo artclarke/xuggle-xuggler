@@ -60,7 +60,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int *p_fullpel_thresh )
 {
     const int i_pixel = m->i_pixel;
-    const unsigned int i_me_range = h->param.analyse.i_me_range;
+    const int i_me_range = h->param.analyse.i_me_range;
     const int b_chroma_me = h->mb.b_chroma_me && i_pixel <= PIXEL_8x8;
     int bmx, bmy, bcost;
     int omx, omy, pmx, pmy;

@@ -398,8 +398,9 @@ struct x264_t
             int16_t direct_mv[2][X264_SCAN8_SIZE][2];
             int8_t  direct_ref[2][X264_SCAN8_SIZE];
 
-            /* top and left neighbors. 1=>8x8, 0=>4x4 */
-            int8_t  transform_size[2];
+            /* number of neighbors (top and left) that used 8x8 dct */
+            int     i_neighbour_transform_size;
+            int     b_transform_8x8_allowed;
         } cache;
 
         /* */
@@ -437,6 +438,7 @@ struct x264_t
             int i_misc_bits;
             /* MB type counts */
             int i_mb_count[19];
+            int i_mb_count_i;
             int i_mb_count_p;
             int i_mb_count_skip;
             /* Estimated (SATD) cost as Intra/Predicted frame */

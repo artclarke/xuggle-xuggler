@@ -830,19 +830,18 @@ void x264_macroblock_encode( x264_t *h )
      * XXX: in the me perhaps we should take x264_mb_predict_mv_pskip into account
      *      (if multiple mv give same result)*/
     if( h->mb.i_type == P_L0 && h->mb.i_partition == D_16x16 &&
-        h->mb.i_cbp_luma == 0x00 && h->mb.i_cbp_chroma== 0x00 )
+        h->mb.i_cbp_luma == 0x00 && h->mb.i_cbp_chroma== 0x00 &&
+        h->mb.cache.ref[0][x264_scan8[0]] == 0 )
     {
-        if( h->mb.cache.ref[0][x264_scan8[0]] == 0 )
-        {
-            int mvp[2];
+        int mvp[2];
 
-            x264_mb_predict_mv_pskip( h, mvp );
-            if( h->mb.cache.mv[0][x264_scan8[0]][0] == mvp[0] &&
-                h->mb.cache.mv[0][x264_scan8[0]][1] == mvp[1] )
-            {
-                h->mb.type[h->mb.i_mb_xy] = h->mb.i_type = P_SKIP;
-                h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp;  /* Needed */
-            }
+        x264_mb_predict_mv_pskip( h, mvp );
+        if( h->mb.cache.mv[0][x264_scan8[0]][0] == mvp[0] &&
+            h->mb.cache.mv[0][x264_scan8[0]][1] == mvp[1] )
+        {
+            h->mb.i_type = P_SKIP;
+            h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp;  /* Needed */
+            /* XXX qp reset may have issues when used in RD instead of the real encode*/
         }
     }
 
@@ -850,7 +849,7 @@ void x264_macroblock_encode( x264_t *h )
     if( h->mb.i_type == B_DIRECT &&
         h->mb.i_cbp_luma == 0x00 && h->mb.i_cbp_chroma== 0x00 )
     {
-        h->mb.type[h->mb.i_mb_xy] = h->mb.i_type = B_SKIP;
+        h->mb.i_type = B_SKIP;
         h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp;  /* Needed */
     }
 

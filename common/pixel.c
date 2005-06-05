@@ -104,20 +104,25 @@ PIXEL_SSD_C( pixel_ssd_4x8,    4,  8 )
 PIXEL_SSD_C( pixel_ssd_4x4,    4,  4 )
 
 
-static void pixel_sub_4x4( int16_t diff[4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+static inline void pixel_sub_wxh( int16_t *diff, int i_size,
+                                  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 {
     int y, x;
-    for( y = 0; y < 4; y++ )
+    for( y = 0; y < i_size; y++ )
     {
-        for( x = 0; x < 4; x++ )
+        for( x = 0; x < i_size; x++ )
         {
-            diff[y][x] = pix1[x] - pix2[x];
+            diff[x + y*i_size] = pix1[x] - pix2[x];
         }
         pix1 += i_pix1;
         pix2 += i_pix2;
     }
 }
 
+
+/****************************************************************************
+ * pixel_satd_WxH: sum of 4x4 Hadamard transformed differences
+ ****************************************************************************/
 static int pixel_satd_wxh( uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2, int i_width, int i_height )
 {
     int16_t tmp[4][4];
@@ -131,7 +136,7 @@ static int pixel_satd_wxh( uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2,
         {
             int d;
 
-            pixel_sub_4x4( diff, &pix1[x], i_pix1, &pix2[x], i_pix2 );
+            pixel_sub_wxh( (int16_t*)diff, 4, &pix1[x], i_pix1, &pix2[x], i_pix2 );
 
             for( d = 0; d < 4; d++ )
             {
@@ -177,6 +182,83 @@ PIXEL_SATD_C( pixel_satd_8x8,   8, 8 )
 PIXEL_SATD_C( pixel_satd_8x4,   8, 4 )
 PIXEL_SATD_C( pixel_satd_4x8,   4, 8 )
 PIXEL_SATD_C( pixel_satd_4x4,   4, 4 )
+
+
+/****************************************************************************
+ * pixel_sa8d_WxH: sum of 8x8 Hadamard transformed differences
+ ****************************************************************************/
+#define SA8D_1D {\
+    const int a0 = SRC(0) + SRC(4);\
+    const int a4 = SRC(0) - SRC(4);\
+    const int a1 = SRC(1) + SRC(5);\
+    const int a5 = SRC(1) - SRC(5);\
+    const int a2 = SRC(2) + SRC(6);\
+    const int a6 = SRC(2) - SRC(6);\
+    const int a3 = SRC(3) + SRC(7);\
+    const int a7 = SRC(3) - SRC(7);\
+    const int b0 = a0 + a2;\
+    const int b2 = a0 - a2;\
+    const int b1 = a1 + a3;\
+    const int b3 = a1 - a3;\
+    const int b4 = a4 + a6;\
+    const int b6 = a4 - a6;\
+    const int b5 = a5 + a7;\
+    const int b7 = a5 - a7;\
+    DST(0, b0 + b1);\
+    DST(1, b0 - b1);\
+    DST(2, b2 + b3);\
+    DST(3, b2 - b3);\
+    DST(4, b4 + b5);\
+    DST(5, b4 - b5);\
+    DST(6, b6 + b7);\
+    DST(7, b6 - b7);\
+}
+
+static inline int pixel_sa8d_wxh( uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2,
+                                  int i_width, int i_height )
+{
+    int16_t diff[8][8];
+    int i_satd = 0;
+    int x, y;
+
+    for( y = 0; y < i_height; y += 8 )
+    {
+        for( x = 0; x < i_width; x += 8 )
+        {
+            int i;
+            pixel_sub_wxh( (int16_t*)diff, 8, pix1+x, i_pix1, pix2+x, i_pix2 );
+
+#define SRC(x)     diff[i][x]
+#define DST(x,rhs) diff[i][x] = (rhs)
+            for( i = 0; i < 8; i++ )
+                SA8D_1D
+#undef SRC
+#undef DST
+
+#define SRC(x)     diff[x][i]
+#define DST(x,rhs) i_satd += abs(rhs)
+            for( i = 0; i < 8; i++ )
+                SA8D_1D
+#undef SRC
+#undef DST
+        }
+        pix1 += 8 * i_pix1;
+        pix2 += 8 * i_pix2;
+    }
+
+    return i_satd;
+}
+
+#define PIXEL_SA8D_C( width, height ) \
+static int pixel_sa8d_##width##x##height( uint8_t *pix1, int i_stride_pix1, \
+                 uint8_t *pix2, int i_stride_pix2 ) \
+{ \
+    return ( pixel_sa8d_wxh( pix1, i_stride_pix1, pix2, i_stride_pix2, width, height ) + 2 ) >> 2; \
+}
+PIXEL_SA8D_C( 16, 16 )
+PIXEL_SA8D_C( 16, 8 )
+PIXEL_SA8D_C( 8, 16 )
+PIXEL_SA8D_C( 8, 8 )
 
 
 static inline void pixel_avg_wxh( uint8_t *dst, int i_dst, uint8_t *src, int i_src, int width, int height )
@@ -290,6 +372,11 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     pixf->satd[PIXEL_8x4]  = pixel_satd_8x4;
     pixf->satd[PIXEL_4x8]  = pixel_satd_4x8;
     pixf->satd[PIXEL_4x4]  = pixel_satd_4x4;
+
+    pixf->sa8d[PIXEL_16x16]= pixel_sa8d_16x16;
+    pixf->sa8d[PIXEL_16x8] = pixel_sa8d_16x8;
+    pixf->sa8d[PIXEL_8x16] = pixel_sa8d_8x16;
+    pixf->sa8d[PIXEL_8x8]  = pixel_sa8d_8x8;
 
     pixf->avg[PIXEL_16x16]= pixel_avg_16x16;
     pixf->avg[PIXEL_16x8] = pixel_avg_16x8;

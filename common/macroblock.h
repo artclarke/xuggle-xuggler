@@ -201,7 +201,12 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int mvc[5][2
 
 int  x264_mb_predict_intra4x4_mode( x264_t *h, int idx );
 int  x264_mb_predict_non_zero_code( x264_t *h, int idx );
-int  x264_mb_transform_8x8_allowed( x264_t *h, int i_mb_type );
+
+/* x264_mb_transform_8x8_allowed:
+ *      check whether any partition is smaller than 8x8 (or at least
+ *      might be, according to just partition type.)
+ *      doesn't check for intra or cbp */
+int  x264_mb_transform_8x8_allowed( x264_t *h );
 
 void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale );
 void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qscale );

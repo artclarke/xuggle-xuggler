@@ -686,27 +686,27 @@ static void predict_8x8_dc_128( uint8_t *src, int i_stride, int i_neighbor )
 }
 static void predict_8x8_dc_left( uint8_t *src, int i_stride, int i_neighbor )
 {
-    PREDICT_8x8_LOAD_LEFT;
+    PREDICT_8x8_LOAD_LEFT
     const uint32_t dc = ((l0+l1+l2+l3+l4+l5+l6+l7+4) >> 3) * 0x01010101;
     PREDICT_8x8_DC(dc);
 }
 static void predict_8x8_dc_top( uint8_t *src, int i_stride, int i_neighbor )
 {
-    PREDICT_8x8_LOAD_TOP;
+    PREDICT_8x8_LOAD_TOP
     const uint32_t dc = ((t0+t1+t2+t3+t4+t5+t6+t7+4) >> 3) * 0x01010101;
     PREDICT_8x8_DC(dc);
 }
 static void predict_8x8_dc( uint8_t *src, int i_stride, int i_neighbor )
 {
-    PREDICT_8x8_LOAD_LEFT;
-    PREDICT_8x8_LOAD_TOP;
+    PREDICT_8x8_LOAD_LEFT
+    PREDICT_8x8_LOAD_TOP
     const uint32_t dc = ((l0+l1+l2+l3+l4+l5+l6+l7
                          +t0+t1+t2+t3+t4+t5+t6+t7+8) >> 4) * 0x01010101;
     PREDICT_8x8_DC(dc);
 }
 static void predict_8x8_h( uint8_t *src, int i_stride, int i_neighbor )
 {
-    PREDICT_8x8_LOAD_LEFT;
+    PREDICT_8x8_LOAD_LEFT
 #define ROW(y) ((uint32_t*)(src+y*i_stride))[0] =\
                ((uint32_t*)(src+y*i_stride))[1] = 0x01010101U * l##y
     ROW(0); ROW(1); ROW(2); ROW(3); ROW(4); ROW(5); ROW(6); ROW(7);
@@ -729,8 +729,8 @@ static void predict_8x8_v( uint8_t *src, int i_stride, int i_neighbor )
 }
 static void predict_8x8_ddl( uint8_t *src, int i_stride, int i_neighbor )
 {
-    PREDICT_8x8_LOAD_TOP;
-    PREDICT_8x8_LOAD_TOPRIGHT;
+    PREDICT_8x8_LOAD_TOP
+    PREDICT_8x8_LOAD_TOPRIGHT
     SRC(0,0)= (t0 + 2*t1 + t2 + 2) >> 2;
     SRC(0,1)=SRC(1,0)= (t1 + 2*t2 + t3 + 2) >> 2;
     SRC(0,2)=SRC(1,1)=SRC(2,0)= (t2 + 2*t3 + t4 + 2) >> 2;
@@ -749,9 +749,9 @@ static void predict_8x8_ddl( uint8_t *src, int i_stride, int i_neighbor )
 }
 static void predict_8x8_ddr( uint8_t *src, int i_stride, int i_neighbor )
 {
-    PREDICT_8x8_LOAD_TOP;
-    PREDICT_8x8_LOAD_LEFT;
-    PREDICT_8x8_LOAD_TOPLEFT;
+    PREDICT_8x8_LOAD_TOP
+    PREDICT_8x8_LOAD_LEFT
+    PREDICT_8x8_LOAD_TOPLEFT
     SRC(0,7)= (l7 + 2*l6 + l5 + 2) >> 2;
     SRC(0,6)=SRC(1,7)= (l6 + 2*l5 + l4 + 2) >> 2;
     SRC(0,5)=SRC(1,6)=SRC(2,7)= (l5 + 2*l4 + l3 + 2) >> 2;
@@ -771,9 +771,9 @@ static void predict_8x8_ddr( uint8_t *src, int i_stride, int i_neighbor )
 }
 static void predict_8x8_vr( uint8_t *src, int i_stride, int i_neighbor )
 {
-    PREDICT_8x8_LOAD_TOP;
-    PREDICT_8x8_LOAD_LEFT;
-    PREDICT_8x8_LOAD_TOPLEFT;
+    PREDICT_8x8_LOAD_TOP
+    PREDICT_8x8_LOAD_LEFT
+    PREDICT_8x8_LOAD_TOPLEFT
     /* produce warning as l7 is unused */
     SRC(0,6)= (l5 + 2*l4 + l3 + 2) >> 2;
     SRC(0,7)= (l6 + 2*l5 + l4 + 2) >> 2;
@@ -800,9 +800,9 @@ static void predict_8x8_vr( uint8_t *src, int i_stride, int i_neighbor )
 }
 static void predict_8x8_hd( uint8_t *src, int i_stride, int i_neighbor )
 {
-    PREDICT_8x8_LOAD_TOP;
-    PREDICT_8x8_LOAD_LEFT;
-    PREDICT_8x8_LOAD_TOPLEFT;
+    PREDICT_8x8_LOAD_TOP
+    PREDICT_8x8_LOAD_LEFT
+    PREDICT_8x8_LOAD_TOPLEFT
     /* produce warning as t7 is unused */
     SRC(0,7)= (l6 + l7 + 1) >> 1;
     SRC(1,7)= (l5 + 2*l6 + l7 + 2) >> 2;
@@ -829,8 +829,8 @@ static void predict_8x8_hd( uint8_t *src, int i_stride, int i_neighbor )
 }
 static void predict_8x8_vl( uint8_t *src, int i_stride, int i_neighbor )
 {
-    PREDICT_8x8_LOAD_TOP;
-    PREDICT_8x8_LOAD_TOPRIGHT;
+    PREDICT_8x8_LOAD_TOP
+    PREDICT_8x8_LOAD_TOPRIGHT
     SRC(0,0)= (t0 + t1 + 1) >> 1;
     SRC(0,1)= (t0 + 2*t1 + t2 + 2) >> 2;
     SRC(0,2)=SRC(1,0)= (t1 + t2 + 1) >> 1;
@@ -856,7 +856,7 @@ static void predict_8x8_vl( uint8_t *src, int i_stride, int i_neighbor )
 }
 static void predict_8x8_hu( uint8_t *src, int i_stride, int i_neighbor )
 {
-    PREDICT_8x8_LOAD_LEFT;
+    PREDICT_8x8_LOAD_LEFT
     SRC(0,0)= (l0 + l1 + 1) >> 1;
     SRC(1,0)= (l0 + 2*l1 + l2 + 2) >> 2;
     SRC(0,1)=SRC(2,0)= (l1 + l2 + 1) >> 1;

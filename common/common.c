@@ -105,7 +105,8 @@ void    x264_param_default( x264_param_t *param )
 
     /* */
     param->analyse.intra = X264_ANALYSE_I4x4 | X264_ANALYSE_I8x8;
-    param->analyse.inter = X264_ANALYSE_I4x4 | X264_ANALYSE_PSUB16x16 | X264_ANALYSE_BSUB16x16;
+    param->analyse.inter = X264_ANALYSE_I4x4 | X264_ANALYSE_I8x8
+                         | X264_ANALYSE_PSUB16x16 | X264_ANALYSE_BSUB16x16;
     param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_TEMPORAL;
     param->analyse.i_me_method = X264_ME_HEX;
     param->analyse.i_me_range = 16;

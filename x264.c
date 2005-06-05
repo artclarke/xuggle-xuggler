@@ -214,9 +214,10 @@ static void Help( x264_param_t *defaults )
              "\n"
              "Analysis:\n"
              "\n"
-             "  -A, --analyse <string>      Analyse options: [\"i4x4,p8x8,b8x8\"]\n"
-             "                                  - i4x4, p8x8, p4x4, b8x8\n"
+             "  -A, --analyse <string>      Partitions to consider [\"p8x8,b8x8,i8x8,i4x4\"]\n"
+             "                                  - p8x8, p4x4, b8x8, i8x8, i4x4\n"
              "                                  - none, all\n"
+             "                                  (p4x4 requires p8x8. i8x8 requires --8x8dct.)\n"
              "      --direct <string>       Direct MV prediction mode [\"temporal\"]\n"
              "                                  - none, spatial, temporal\n"
              "  -w, --weightb               Weighted prediction for B-frames\n"
@@ -228,6 +229,7 @@ static void Help( x264_param_t *defaults )
              "      --merange <integer>     Maximum motion vector search range [%d]\n"
              "  -m, --subme <integer>       Subpixel motion estimation quality: 1=fast, 5=best. [%d]\n"
              "      --no-chroma-me          Ignore chroma in motion estimation\n"
+             "  -8, --8x8dct                Adaptive spatial transform size\n"
              "\n"
              "Input/Output:\n"
              "\n"
@@ -390,6 +392,7 @@ static int  Parse( int argc, char **argv,
             { "merange", required_argument, NULL, OPT_MERANGE },
             { "subme",   required_argument, NULL, 'm' },
             { "no-chroma-me", no_argument,  NULL, OPT_NO_CHROMA_ME },
+            { "8x8dct",  no_argument,       NULL, '8' },
             { "level",   required_argument, NULL, OPT_LEVEL },
             { "ratetol", required_argument, NULL, OPT_RATETOL },
             { "vbv-maxrate", required_argument, NULL, OPT_VBVMAXRATE },
@@ -417,7 +420,7 @@ static int  Parse( int argc, char **argv,
 
         int c;
 
-        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:f:o:A:m:p:vw",
+        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:f:o:A:m:p:vw8",
                          long_options, &long_options_index);
 
         if( c == -1 )
@@ -549,10 +552,11 @@ static int  Parse( int argc, char **argv,
             }
             case 'A':
                 param->analyse.inter = 0;
-                if( strstr( optarg, "none" ) )  param->analyse.inter = 0x000000;
-                if( strstr( optarg, "all" ) )   param->analyse.inter = X264_ANALYSE_I4x4|X264_ANALYSE_PSUB16x16|X264_ANALYSE_PSUB8x8|X264_ANALYSE_BSUB16x16;
+                if( strstr( optarg, "none" ) )  param->analyse.inter =  0;
+                if( strstr( optarg, "all" ) )   param->analyse.inter = ~0;
 
                 if( strstr( optarg, "i4x4" ) )  param->analyse.inter |= X264_ANALYSE_I4x4;
+                if( strstr( optarg, "i8x8" ) )  param->analyse.inter |= X264_ANALYSE_I8x8;
                 if( strstr( optarg, "p8x8" ) )  param->analyse.inter |= X264_ANALYSE_PSUB16x16;
                 if( strstr( optarg, "p4x4" ) )  param->analyse.inter |= X264_ANALYSE_PSUB8x8;
                 if( strstr( optarg, "b8x8" ) )  param->analyse.inter |= X264_ANALYSE_BSUB16x16;
@@ -590,6 +594,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case OPT_NO_CHROMA_ME:
                 param->analyse.b_chroma_me = 0;
+                break;
+            case '8':
+                param->analyse.b_transform_8x8 = 1;
                 break;
             case OPT_LEVEL:
                 param->i_level_idc = atoi(optarg);

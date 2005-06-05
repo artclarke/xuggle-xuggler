@@ -135,22 +135,28 @@ static void idct4x4dc( int16_t d[4][4] )
     }
 }
 
-static void sub4x4_dct( int16_t dct[4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+static inline void pixel_sub_wxh( int16_t *diff, int i_size,
+                                  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 {
-    int16_t d[4][4];
-    int16_t tmp[4][4];
     int y, x;
-    int i;
-
-    for( y = 0; y < 4; y++ )
+    for( y = 0; y < i_size; y++ )
     {
-        for( x = 0; x < 4; x++ )
+        for( x = 0; x < i_size; x++ )
         {
-            d[y][x] = pix1[x] - pix2[x];
+            diff[x + y*i_size] = pix1[x] - pix2[x];
         }
         pix1 += i_pix1;
         pix2 += i_pix2;
     }
+}
+
+static void sub4x4_dct( int16_t dct[4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+{
+    int16_t d[4][4];
+    int16_t tmp[4][4];
+    int i;
+
+    pixel_sub_wxh( (int16_t*)d, 4, pix1, i_pix1, pix2, i_pix2 );
 
     for( i = 0; i < 4; i++ )
     {
@@ -289,17 +295,9 @@ static void add16x16_idct( uint8_t *p_dst, int i_dst, int16_t dct[16][4][4] )
 
 static void sub8x8_dct8( int16_t dct[8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 {
-    int y, x, i;
+    int i;
 
-    for( y = 0; y < 8; y++ )
-    {
-        for( x = 0; x < 8; x++ )
-        {
-            dct[y][x] = pix1[x] - pix2[x];
-        }
-        pix1 += i_pix1;
-        pix2 += i_pix2;
-    }
+    pixel_sub_wxh( (int16_t*)dct, 8, pix1, i_pix1, pix2, i_pix2 );
 
 #define SRC(x) dct[i][x]
     for( i = 0; i < 8; i++ )

@@ -514,6 +514,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *res, int i_cos
                 i_mode = predict_mode[i];
                 h->predict_8x8[i_mode]( p_dst_by, i_stride, h->mb.i_neighbour );
 
+                /* could use sa8d, but it doesn't seem worth the speed cost (without mmx at least) */
                 i_sad = h->pixf.satd[PIXEL_8x8]( p_dst_by, i_stride,
                                                  p_src_by, i_stride );
 
@@ -533,7 +534,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *res, int i_cos
 
             x264_macroblock_cache_intra8x8_pred( h, 2*x, 2*y, res->i_predict4x4[x][y] );
         }
-//      res->i_sad_i8x8 += res->i_lambda * something;    // FIXME
+        // FIXME some bias like in i4x4?
         if( h->sh.i_type == SLICE_TYPE_B )
             res->i_sad_i8x8 += res->i_lambda * i_mb_b_cost_table[I_8x8];
     }
@@ -1342,6 +1343,29 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
     a->i_cost8x16bi += a->i_lambda * i_mb_b16x8_cost_table[a->i_mb_type8x16];
 }
 
+static inline void x264_mb_analyse_transform( x264_t *h )
+{
+    if( h->param.analyse.b_transform_8x8
+        && !IS_INTRA( h->mb.i_type )
+        && x264_mb_transform_8x8_allowed( h ) )
+    {
+        int i_cost4, i_cost8;
+
+        /* FIXME only luma mc is needed */
+        x264_mb_mc( h );
+
+        i_cost8 = h->pixf.sa8d[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0],
+                                             h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0] );
+        i_cost4 = h->pixf.satd[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0],
+                                             h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0] );
+        h->mb.b_transform_8x8 = i_cost8 < i_cost4;
+        h->mb.cache.b_transform_8x8_allowed = 1;
+    }
+    else
+        h->mb.cache.b_transform_8x8_allowed = 0;
+}
+
+
 /*****************************************************************************
  * x264_macroblock_analyse:
  *****************************************************************************/
@@ -1552,6 +1576,11 @@ void x264_macroblock_analyse( x264_t *h )
             i_intra_type = I_16x16;
             i_intra_cost = analysis.i_sad_i16x16;
 
+            if( analysis.i_sad_i8x8 < i_intra_cost )
+            {
+                i_intra_type = I_8x8;
+                i_intra_cost = analysis.i_sad_i8x8;
+            }
             if( analysis.i_sad_i4x4 < i_intra_cost )
             {
                 i_intra_type = I_4x4;
@@ -1740,6 +1769,11 @@ void x264_macroblock_analyse( x264_t *h )
                 h->mb.i_type = I_16x16;
                 i_cost = analysis.i_sad_i16x16;
             }
+            if( analysis.i_sad_i8x8 < i_cost )
+            {
+                h->mb.i_type = I_8x8;
+                i_cost = analysis.i_sad_i8x8;
+            }
             if( analysis.i_sad_i4x4 < i_cost )
             {
                 h->mb.i_type = I_4x4;
@@ -1749,7 +1783,6 @@ void x264_macroblock_analyse( x264_t *h )
     }
 
     /*-------------------- Update MB from the analysis ----------------------*/
-    h->mb.type[h->mb.i_mb_xy] = x264_mb_type_fix[h->mb.i_type];
     switch( h->mb.i_type )
     {
         case I_4x4:
@@ -1902,6 +1935,8 @@ void x264_macroblock_analyse( x264_t *h )
                 break;
             }
     }
+
+    x264_mb_analyse_transform( h );
 }
 
 #include "slicetype_decision.c"

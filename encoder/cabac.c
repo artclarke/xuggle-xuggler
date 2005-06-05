@@ -78,7 +78,7 @@ static inline void x264_cabac_mb_type_intra( x264_t *h, int i_mb_type,
 
 static void x264_cabac_mb_type( x264_t *h )
 {
-    const int i_mb_type = x264_mb_type_fix[h->mb.i_type];
+    const int i_mb_type = h->mb.i_type;
 
     if( h->sh.i_type == SLICE_TYPE_I )
     {
@@ -557,9 +557,8 @@ static inline void x264_cabac_mb_sub_b_partition( x264_t *h, int i_sub )
 
 static inline void x264_cabac_mb_transform_size( x264_t *h )
 {
-    int ctx = ( h->mb.cache.transform_size[0] == 1 )
-            + ( h->mb.cache.transform_size[1] == 1 );
-    x264_cabac_encode_decision( &h->cabac, 399 + ctx, h->mb.b_transform_8x8 );
+    int ctx = 399 + h->mb.cache.i_neighbour_transform_size;
+    x264_cabac_encode_decision( &h->cabac, ctx, h->mb.b_transform_8x8 );
 }
 
 static inline void x264_cabac_mb_ref( x264_t *h, int i_list, int idx )
@@ -1154,8 +1153,7 @@ void x264_macroblock_write_cabac( x264_t *h, bs_t *s )
         x264_cabac_mb_cbp_chroma( h );
     }
 
-    if( h->pps->b_transform_8x8_mode && h->mb.i_cbp_luma && !IS_INTRA(i_mb_type)
-        && x264_mb_transform_8x8_allowed( h, i_mb_type ) )
+    if( h->mb.cache.b_transform_8x8_allowed && h->mb.i_cbp_luma && !IS_INTRA(i_mb_type) )
     {
         x264_cabac_mb_transform_size( h );
     }
