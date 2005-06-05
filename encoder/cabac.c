@@ -453,105 +453,40 @@ static inline void x264_cabac_mb_sub_p_partition( x264_t *h, int i_sub )
 
 static inline void x264_cabac_mb_sub_b_partition( x264_t *h, int i_sub )
 {
-    if( i_sub == D_DIRECT_8x8 )
-    {
-        x264_cabac_encode_decision( &h->cabac, 36, 0 );
+#define WRITE_SUB_3(a,b,c) {\
+        x264_cabac_encode_decision( &h->cabac, 36, a );\
+        x264_cabac_encode_decision( &h->cabac, 37, b );\
+        x264_cabac_encode_decision( &h->cabac, 39, c );\
     }
-    else if( i_sub == D_L0_8x8 )
-    {
-        x264_cabac_encode_decision( &h->cabac, 36, 1 );
-        x264_cabac_encode_decision( &h->cabac, 37, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
+#define WRITE_SUB_5(a,b,c,d,e) {\
+        x264_cabac_encode_decision( &h->cabac, 36, a );\
+        x264_cabac_encode_decision( &h->cabac, 37, b );\
+        x264_cabac_encode_decision( &h->cabac, 38, c );\
+        x264_cabac_encode_decision( &h->cabac, 39, d );\
+        x264_cabac_encode_decision( &h->cabac, 39, e );\
     }
-    else if( i_sub == D_L1_8x8 )
-    {
-        x264_cabac_encode_decision( &h->cabac, 36, 1 );
-        x264_cabac_encode_decision( &h->cabac, 37, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 1 );
+#define WRITE_SUB_6(a,b,c,d,e,f) {\
+        WRITE_SUB_5(a,b,c,d,e)\
+        x264_cabac_encode_decision( &h->cabac, 39, f );\
     }
-    else if( i_sub == D_BI_8x8 )
+
+    switch( i_sub )
     {
-        x264_cabac_encode_decision( &h->cabac, 36, 1 );
-        x264_cabac_encode_decision( &h->cabac, 37, 1 );
-        x264_cabac_encode_decision( &h->cabac, 38, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
-    }
-    else if( i_sub == D_L0_8x4 )
-    {
-        x264_cabac_encode_decision( &h->cabac, 36, 1 );
-        x264_cabac_encode_decision( &h->cabac, 37, 1 );
-        x264_cabac_encode_decision( &h->cabac, 38, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 1 );
-    }
-    else if( i_sub == D_L0_4x8 )
-    {
-        x264_cabac_encode_decision( &h->cabac, 36, 1 );
-        x264_cabac_encode_decision( &h->cabac, 37, 1 );
-        x264_cabac_encode_decision( &h->cabac, 38, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 1 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
-    }
-    else if( i_sub == D_L1_8x4 )
-    {
-        x264_cabac_encode_decision( &h->cabac, 36, 1 );
-        x264_cabac_encode_decision( &h->cabac, 37, 1 );
-        x264_cabac_encode_decision( &h->cabac, 38, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 1 );
-        x264_cabac_encode_decision( &h->cabac, 39, 1 );
-    }
-    else if( i_sub == D_L1_4x8 )
-    {
-        x264_cabac_encode_decision( &h->cabac, 36, 1 );
-        x264_cabac_encode_decision( &h->cabac, 37, 1 );
-        x264_cabac_encode_decision( &h->cabac, 38, 1 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
-    }
-    else if( i_sub == D_BI_8x4 )
-    {
-        x264_cabac_encode_decision( &h->cabac, 36, 1 );
-        x264_cabac_encode_decision( &h->cabac, 37, 1 );
-        x264_cabac_encode_decision( &h->cabac, 38, 1 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 1 );
-    }
-    else if( i_sub == D_BI_4x8 )
-    {
-        x264_cabac_encode_decision( &h->cabac, 36, 1 );
-        x264_cabac_encode_decision( &h->cabac, 37, 1 );
-        x264_cabac_encode_decision( &h->cabac, 38, 1 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 1 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
-    }
-    else if( i_sub == D_L0_4x4 )
-    {
-        x264_cabac_encode_decision( &h->cabac, 36, 1 );
-        x264_cabac_encode_decision( &h->cabac, 37, 1 );
-        x264_cabac_encode_decision( &h->cabac, 38, 1 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
-        x264_cabac_encode_decision( &h->cabac, 39, 1 );
-        x264_cabac_encode_decision( &h->cabac, 39, 1 );
-    }
-    else if( i_sub == D_L1_4x4 )
-    {
-        x264_cabac_encode_decision( &h->cabac, 36, 1 );
-        x264_cabac_encode_decision( &h->cabac, 37, 1 );
-        x264_cabac_encode_decision( &h->cabac, 38, 1 );
-        x264_cabac_encode_decision( &h->cabac, 39, 1 );
-        x264_cabac_encode_decision( &h->cabac, 39, 0 );
-    }
-    else if( i_sub == D_BI_4x4 )
-    {
-        x264_cabac_encode_decision( &h->cabac, 36, 1 );
-        x264_cabac_encode_decision( &h->cabac, 37, 1 );
-        x264_cabac_encode_decision( &h->cabac, 38, 1 );
-        x264_cabac_encode_decision( &h->cabac, 39, 1 );
-        x264_cabac_encode_decision( &h->cabac, 39, 1 );
+        case D_DIRECT_8x8:
+            x264_cabac_encode_decision( &h->cabac, 36, 0 );
+            break;
+        case D_L0_8x8: WRITE_SUB_3(1,0,0); break;
+        case D_L1_8x8: WRITE_SUB_3(1,0,1); break;
+        case D_BI_8x8: WRITE_SUB_5(1,1,0,0,0); break;
+        case D_L0_8x4: WRITE_SUB_5(1,1,0,0,1); break;
+        case D_L0_4x8: WRITE_SUB_5(1,1,0,1,0); break;
+        case D_L1_8x4: WRITE_SUB_5(1,1,0,1,1); break;
+        case D_L1_4x8: WRITE_SUB_6(1,1,1,0,0,0); break;
+        case D_BI_8x4: WRITE_SUB_6(1,1,1,0,0,1); break;
+        case D_BI_4x8: WRITE_SUB_6(1,1,1,0,1,0); break;
+        case D_L0_4x4: WRITE_SUB_6(1,1,1,0,1,1); break;
+        case D_L1_4x4: WRITE_SUB_5(1,1,1,1,0); break;
+        case D_BI_4x4: WRITE_SUB_5(1,1,1,1,1); break;
     }
 }
 
