@@ -155,10 +155,7 @@ for opt do
             CFLAGS="$CFLAGS -DHAVE_PTHREAD=1"
             pthread="yes"
             case $SYS in
-              MINGW)
-                LDFLAGS="$LDFLAGS -lpthreadGC2"
-                ;;
-              BEOS)
+              MINGW|CYGWIN|BEOS)
                 ;;
               *)
                 LDFLAGS="$LDFLAGS -lpthread"

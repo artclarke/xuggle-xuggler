@@ -32,6 +32,12 @@
 #define pthread_t               thread_id
 #define pthread_create(t,u,f,d) *(t)=spawn_thread(f,"",10,d)
 #define pthread_join(t,s)       wait_for_thread(t,(long*)s)
+#elif defined(__WIN32__)
+#include <windows.h>
+#define pthread_t               HANDLE
+#define pthread_create(t,u,f,d) *(t)=CreateThread(NULL,0,f,d,0,NULL)
+#define pthread_join(t,s)       WaitForSingleObject(t,INFINITE); \
+                                CloseHandle(t)
 #else
 #include <pthread.h>
 #endif
