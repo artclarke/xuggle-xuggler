@@ -73,7 +73,7 @@ void    x264_param_default( x264_param_t *param )
     param->i_deblocking_filter_beta = 0;
 
     param->b_cabac = 1;
-    param->i_cabac_init_idc = -1;
+    param->i_cabac_init_idc = 0;
 
     param->rc.b_cbr = 0;
     param->rc.i_bitrate = 1000;
