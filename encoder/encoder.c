@@ -1363,7 +1363,7 @@ do_encode:
             int b;
 
             x264_log( h, X264_LOG_DEBUG, "scene cut at %d Icost:%.0f Pcost:%.0f ratio:%.3f bias=%.3f lastIDR:%d (I:%d P:%d S:%d)\n",
-                      h->fenc->i_frame, i_frame_size,
+                      h->fenc->i_frame,
                       (double)i_intra_cost, (double)i_inter_cost,
                       (double)i_inter_cost / i_intra_cost,
                       f_bias, i_gop_size,
