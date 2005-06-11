@@ -16,6 +16,9 @@ include config.mak
 # Dll to build
 DLL=x264vfw.dll
 
+# Installer executable
+INST_EXE=x264vfw.exe
+
 # Current dir
 DIR_CUR=$(shell pwd)
 
@@ -112,3 +115,13 @@ uninstall:
 	@rundll32.exe setupapi,InstallHinfSection Remove_x264 132 $(DIR_CUR)/x264vfw.inf
 	@rm x264vfw.inf
 
+##############################################################################
+# Builds the NSIS installer script for Windows.
+# NSIS 2.x is required and makensis.exe should be in the path
+##############################################################################
+
+build-installer: $(DLL)
+	@cp $(DIR_BUILD)/$(DLL) $(DIR_SRC)/installer
+	@makensis $(DIR_SRC)/installer/x264-conf.nsi
+	@mv $(DIR_SRC)/installer/$(INST_EXE) $(DIR_BUILD)
+	@rm $(DIR_SRC)/installer/$(DLL)

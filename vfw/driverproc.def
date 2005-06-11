@@ -4,5 +4,5 @@ DESCRIPTION  'X264 H.264/AVC Video Codec'
 
 EXPORTS
 	DriverProc
-	;Configure
+	Configure
 
