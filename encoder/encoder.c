@@ -971,6 +971,11 @@ static int x264_slice_write( x264_t *h )
         x264_macroblock_cache_save( h );
 
         h->stat.frame.i_mb_count[h->mb.i_type]++;
+        if( h->mb.i_cbp_luma && !IS_INTRA(h->mb.i_type) )
+        {
+            h->stat.frame.i_mb_count_8x8dct[0] ++;
+            h->stat.frame.i_mb_count_8x8dct[1] += h->mb.b_transform_8x8;
+        }
 
         if( h->mb.b_variable_qp )
             x264_ratecontrol_mb(h, bs_pos(&h->out.bs) - mb_spos);
@@ -1470,9 +1475,9 @@ do_encode:
     h->stat.i_slice_qp[i_slice_type] += i_global_qp;
 
     for( i = 0; i < 19; i++ )
-    {
         h->stat.i_mb_count[h->sh.i_type][i] += h->stat.frame.i_mb_count[i];
-    }
+    for( i = 0; i < 2; i++ )
+        h->stat.i_mb_count_8x8dct[i] += h->stat.frame.i_mb_count_8x8dct[i];
 
     if( h->param.analyse.b_psnr )
     {
@@ -1649,23 +1654,30 @@ void    x264_encoder_close  ( x264_t *h )
                             h->stat.i_slice_count[SLICE_TYPE_P] +
                             h->stat.i_slice_count[SLICE_TYPE_B];
         float fps = (float) h->param.i_fps_num / h->param.i_fps_den;
+#define SUM3(p) (p[SLICE_TYPE_I] + p[SLICE_TYPE_P] + p[SLICE_TYPE_B])
+#define SUM3b(p,o) (p[SLICE_TYPE_I][o] + p[SLICE_TYPE_P][o] + p[SLICE_TYPE_B][o])
+        float f_bitrate = fps * SUM3(h->stat.i_slice_size) / i_count / 125;
+
+        if( h->param.analyse.b_transform_8x8 )
+        {
+            int64_t i_i8x8 = SUM3b( h->stat.i_mb_count, I_8x8 );
+            int64_t i_intra = i_i8x8 + SUM3b( h->stat.i_mb_count, I_4x4 ) + SUM3b( h->stat.i_mb_count, I_16x16 );
+            x264_log( h, X264_LOG_INFO, "8x8 transform  intra:%.1f%%  inter:%.1f%%\n",
+                      100. * i_i8x8 / i_intra,
+                      100. * h->stat.i_mb_count_8x8dct[1] / h->stat.i_mb_count_8x8dct[0] );
+        }
 
         if( h->param.analyse.b_psnr )
             x264_log( h, X264_LOG_INFO,
                       "PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f kb/s:%.1f\n",
-                      (h->stat.f_psnr_mean_y[SLICE_TYPE_I] + h->stat.f_psnr_mean_y[SLICE_TYPE_P] + h->stat.f_psnr_mean_y[SLICE_TYPE_B]) / i_count,
-                      (h->stat.f_psnr_mean_u[SLICE_TYPE_I] + h->stat.f_psnr_mean_u[SLICE_TYPE_P] + h->stat.f_psnr_mean_u[SLICE_TYPE_B]) / i_count,
-                      (h->stat.f_psnr_mean_v[SLICE_TYPE_I] + h->stat.f_psnr_mean_v[SLICE_TYPE_P] + h->stat.f_psnr_mean_v[SLICE_TYPE_B]) / i_count,
-
-                      (h->stat.f_psnr_average[SLICE_TYPE_I] + h->stat.f_psnr_average[SLICE_TYPE_P] + h->stat.f_psnr_average[SLICE_TYPE_B]) / i_count,
-
-                      x264_psnr( h->stat.i_sqe_global[SLICE_TYPE_I] + h->stat.i_sqe_global[SLICE_TYPE_P]+ h->stat.i_sqe_global[SLICE_TYPE_B],
-                                 i_count * i_yuv_size ),
-                      fps * 8*(h->stat.i_slice_size[SLICE_TYPE_I]+h->stat.i_slice_size[SLICE_TYPE_P]+h->stat.i_slice_size[SLICE_TYPE_B]) / i_count / 1000 );
+                      SUM3( h->stat.f_psnr_mean_y ) / i_count,
+                      SUM3( h->stat.f_psnr_mean_u ) / i_count,
+                      SUM3( h->stat.f_psnr_mean_v ) / i_count,
+                      SUM3( h->stat.f_psnr_average ) / i_count,
+                      x264_psnr( SUM3( h->stat.i_sqe_global ), i_count * i_yuv_size ),
+                      f_bitrate );
         else
-            x264_log( h, X264_LOG_INFO,
-                      "kb/s:%.1f\n",
-                      fps * 8*(h->stat.i_slice_size[SLICE_TYPE_I]+h->stat.i_slice_size[SLICE_TYPE_P]+h->stat.i_slice_size[SLICE_TYPE_B]) / i_count / 1000 );
+            x264_log( h, X264_LOG_INFO, "kb/s:%.1f\n", f_bitrate );
     }
 
     /* frames */
