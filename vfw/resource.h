@@ -68,6 +68,10 @@
 #define IDC_WBPRED                      1059
 #define IDC_THREADS                     1060
 #define IDC_THREADEDIT                  1061
+#define IDC_SAR_W                       1062
+#define IDC_SAR_H                       1063
+#define IDC_I8X8                        1064
+#define IDC_DCT8X8                      1065
 
 // Next default values for new objects
 // 
@@ -75,7 +79,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        105
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1062
+#define _APS_NEXT_CONTROL_VALUE         1066
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

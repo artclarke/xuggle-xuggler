@@ -97,9 +97,13 @@ static const reg_int_t reg_int_table[] =
     { "key_boost",      &reg.i_key_boost,       40 },
     { "b_red",          &reg.i_b_red,           30 },
     { "curve_comp",     &reg.i_curve_comp,      60 },
+    { "sar_width",      &reg.i_sar_width,       1 },
+    { "sar_height",     &reg.i_sar_height,      1 },
 
     /* analysis */
     { "i4x4",           &reg.b_i4x4,            1 },
+    { "i8x8",           &reg.b_i8x8,            1 },
+    { "dct8x8",         &reg.b_dct8x8,          1 },
     { "psub16x16",      &reg.b_psub16x16,       1 },
     { "psub8x8",        &reg.b_psub8x8,         1 },
     { "bsub16x16",      &reg.b_bsub16x16,       1 },
@@ -546,11 +550,19 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
                     config->b_bsub16x16 ? BST_CHECKED: BST_UNCHECKED );
     CheckDlgButton( hDlg,IDC_I4X4,
                     config->b_i4x4 ? BST_CHECKED: BST_UNCHECKED );
+    CheckDlgButton( hDlg,IDC_I8X8,
+                    config->b_i8x8 ? BST_CHECKED: BST_UNCHECKED );
+    CheckDlgButton( hDlg,IDC_DCT8X8,
+                    config->b_dct8x8 ? BST_CHECKED: BST_UNCHECKED );
 
     SetDlgItemInt( hDlg, IDC_KEYINTMIN, config->i_keyint_min, FALSE );
     SetDlgItemInt( hDlg, IDC_KEYINTMAX, config->i_keyint_max, FALSE );
     SetDlgItemInt( hDlg, IDC_REFFRAMES, config->i_refmax, FALSE );
     SetDlgItemInt( hDlg, IDC_BFRAME, config->i_bframe, FALSE );
+
+    SetDlgItemInt( hDlg, IDC_SAR_W, config->i_sar_width,  FALSE );
+    SetDlgItemInt( hDlg, IDC_SAR_H, config->i_sar_height, FALSE );
+
     SetDlgItemInt( hDlg, IDC_IPRATIO, config->i_key_boost, FALSE );
     SetDlgItemInt( hDlg, IDC_PBRATIO, config->i_b_red, FALSE );
     SetDlgItemInt( hDlg, IDC_CURVECOMP, config->i_curve_comp, FALSE );
@@ -568,6 +580,7 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
     EnableWindow( GetDlgItem( hDlg, IDC_BREFS ), config->i_bframe > 1 );
     EnableWindow( GetDlgItem( hDlg, IDC_WBPRED ), config->i_bframe > 1 );
     EnableWindow( GetDlgItem( hDlg, IDC_DIRECTPRED ), config->i_bframe > 0 );
+    EnableWindow( GetDlgItem( hDlg, IDC_I8X8 ), config->b_dct8x8 );
 
     memcpy( fourcc, config->fcc, 4 );
     fourcc[4] = '\0';
@@ -622,6 +635,13 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
             case IDC_I4X4 :
                 config->b_i4x4 = ( IsDlgButtonChecked( hDlg, IDC_I4X4 ) == BST_CHECKED );
                 break;
+            case IDC_I8X8 :
+                config->b_i8x8 = ( IsDlgButtonChecked( hDlg, IDC_I8X8 ) == BST_CHECKED );
+                break;
+            case IDC_DCT8X8 :
+                config->b_dct8x8 = ( IsDlgButtonChecked( hDlg, IDC_DCT8X8 ) == BST_CHECKED );
+                EnableWindow( GetDlgItem( hDlg, IDC_I8X8 ), config->b_dct8x8 );
+                break;
             }
             break;
         case EN_CHANGE :
@@ -632,6 +652,12 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                 break;
             case IDC_KEYINTMAX :
                 config->i_keyint_max = GetDlgItemInt( hDlg, IDC_KEYINTMAX, FALSE, FALSE );
+                break;
+            case IDC_SAR_W :
+                config->i_sar_width = GetDlgItemInt( hDlg, IDC_SAR_W, FALSE, FALSE );
+                break;
+            case IDC_SAR_H :
+                config->i_sar_height = GetDlgItemInt( hDlg, IDC_SAR_H, FALSE, FALSE );
                 break;
             case IDC_REFFRAMES :
                 config->i_refmax = GetDlgItemInt( hDlg, IDC_REFFRAMES, FALSE, FALSE );

@@ -56,10 +56,12 @@ typedef struct
 
     int b_cabac;
 
+    int b_i8x8;
     int b_i4x4;
     int b_psub16x16;
     int b_psub8x8;
     int b_bsub16x16;
+    int b_dct8x8;
 
     int i_bframe;
     int i_subpel_refine;
@@ -74,6 +76,9 @@ typedef struct
     int i_key_boost;
     int i_b_red;
     int i_curve_comp;
+
+    int i_sar_width;
+    int i_sar_height;
 
     /* vfw interface */
     int b_save;

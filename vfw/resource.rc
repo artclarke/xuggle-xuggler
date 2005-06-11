@@ -107,12 +107,12 @@ BEGIN
     EDITTEXT        IDC_THREADEDIT,52,211,19,14,ES_AUTOHSCROLL | ES_NUMBER
 END
 
-IDD_ADVANCED DIALOG DISCARDABLE  0, 0, 302, 267
+IDD_ADVANCED DIALOG DISCARDABLE  0, 0, 302, 306
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "x264 Advanced Settings"
 FONT 8, "MS Sans Serif"
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,245,250,50,14
+    DEFPUSHBUTTON   "OK",IDOK,245,290,50,14
     GROUPBOX        "H.264 Features",IDC_STATIC,7,7,145,88
     CONTROL         "CABAC",IDC_CABAC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
                     16,23,61,10
@@ -135,7 +135,7 @@ BEGIN
                     WS_TABSTOP,168,64,80,10
     CONTROL         "Weighted biprediction",IDC_WBPRED,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,168,79,82,10
-    GROUPBOX        "More Encoder Settings",IDC_STATIC,7,98,145,74
+    GROUPBOX        "More Encoder Settings",IDC_STATIC,7,98,145,107
     LTEXT           "Max IDR-frame interval:",IDC_STATIC,16,113,95,8
     EDITTEXT        IDC_KEYINTMAX,114,110,25,14,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "Min IDR-frame interval:",IDC_STATIC,16,133,90,8
@@ -149,18 +149,26 @@ BEGIN
     EDITTEXT        IDC_PBRATIO,258,130,25,14,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "Bitrate variability (%):",IDC_STATIC,168,153,75,8
     EDITTEXT        IDC_CURVECOMP,258,150,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    GROUPBOX        "Macroblock Partitions",IDC_STATIC,7,174,288,73
+    GROUPBOX        "Macroblock Partitions",IDC_STATIC,7,210,288,73
     CONTROL         "8x16, 16x8 and 8x8 P-frame search",IDC_P16X16,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,17,190,127,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,17,226,127,10
     CONTROL         "4x8, 8x4 and 4x4 P-frame search",IDC_P8X8,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,165,190,119,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,165,226,119,10
     CONTROL         "8x16, 16x8 and 8x8 B-frame search",IDC_B16X16,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,17,206,127,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,17,242,127,10
     CONTROL         "4x4 Intra search",IDC_I4X4,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,165,206,82,10
-    LTEXT           "Partition decision quality:",IDC_STATIC,17,227,95,8
-    COMBOBOX        IDC_SUBPEL,104,225,70,77,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_TABSTOP,165,242,82,10
+    LTEXT           "Partition decision quality:",IDC_STATIC,128,263,80,8
+    COMBOBOX        IDC_SUBPEL,215,261,70,77,CBS_DROPDOWNLIST | CBS_SORT | 
                     WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_SAR_W,84,170,21,14,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_SAR_H,118,170,21,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Pixel Aspect Ratio",IDC_STATIC,16,172,58,8
+    LTEXT           ":",IDC_STATIC,109,172,8,8
+    CONTROL         "8x8 Intra search",IDC_I8X8,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,17,257,67,10
+    CONTROL         "8x8 DCT",IDC_DCT8X8,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,17,270,44,10
 END
 
 IDD_ABOUT DIALOG DISCARDABLE  0, 0, 213, 130
@@ -207,7 +215,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 295
         TOPMARGIN, 7
-        BOTTOMMARGIN, 251
+        BOTTOMMARGIN, 290
     END
 
     IDD_ABOUT, DIALOG

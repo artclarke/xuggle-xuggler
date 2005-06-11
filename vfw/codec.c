@@ -207,8 +207,6 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
     codec->hCons = ( HWND * )param.p_log_private;
 
     param.analyse.b_psnr = 0;
-    param.analyse.inter = 0;
-    param.analyse.intra = X264_ANALYSE_I4x4;
 
     /* Set params: TODO to complete */
     param.i_width = lpbiInput->bmiHeader.biWidth;
@@ -225,6 +223,8 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
     param.rc.f_ip_factor = 1 + (float)config->i_key_boost / 100;
     param.rc.f_pb_factor = 1 + (float)config->i_b_red / 100;
     param.rc.f_qcompress = (float)config->i_curve_comp / 100;
+    param.vui.i_sar_width = config->i_sar_width;
+    param.vui.i_sar_height = config->i_sar_height;
 
     param.i_bframe = config->i_bframe;
     if( config->i_bframe > 1 && config->b_b_wpred)
@@ -241,6 +241,7 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
     param.i_deblocking_filter_alphac0 = config->i_inloop_a;
     param.i_deblocking_filter_beta = config->i_inloop_a;
 
+    param.analyse.inter = 0;
     if( config->b_bsub16x16 )
         param.analyse.inter |= X264_ANALYSE_BSUB16x16;
     if( config->b_psub16x16 )
@@ -251,6 +252,10 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
     }
     if( config->b_i4x4 )
         param.analyse.inter |= X264_ANALYSE_I4x4;
+    if( config->b_i8x8 )
+        param.analyse.inter |= X264_ANALYSE_I8x8;
+
+    param.analyse.b_transform_8x8 = config->b_dct8x8;
 
     switch( config->i_encoding_type )
     {
