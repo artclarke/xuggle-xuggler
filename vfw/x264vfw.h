@@ -64,6 +64,7 @@ typedef struct
     int i_bframe;
     int i_subpel_refine;
     int i_direct_mv_pred;
+    int i_threads;
 
     int i_inloop_a;
 

@@ -197,6 +197,8 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
 
     param.rc.psz_stat_out = malloc (MAX_PATH);
     param.rc.psz_stat_in = malloc (MAX_PATH);
+
+    param.i_threads = config->i_threads;
   
     param.i_log_level = X264_LOG_ERROR;
     param.pf_log = x264_log_vfw;

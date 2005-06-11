@@ -81,6 +81,7 @@ static const reg_int_t reg_int_table[] =
     { "pass_number",    &reg.i_pass,            1 },
     { "fast1pass",      &reg.b_fast1pass,       1 },
     { "updatestats",    &reg.b_updatestats,     1 },
+    { "threads",        &reg.i_threads,         1 },
 
     /* Advance dialog */
     { "cabac",          &reg.b_cabac,           1 },
@@ -276,6 +277,7 @@ static void main_update_dlg( HWND hDlg, CONFIG * config )
     SetDlgItemInt( hDlg, IDC_QUANTEDIT, config->i_qp, FALSE );
     SetDlgItemInt( hDlg, IDC_2PASSBITRATE, config->i_2passbitrate, FALSE );
     SetDlgItemText( hDlg, IDC_STATSFILE, config->stats );
+    SetDlgItemInt( hDlg, IDC_THREADEDIT, config->i_threads, FALSE );
 
     switch( config->i_encoding_type )
     {
@@ -419,6 +421,19 @@ BOOL CALLBACK callback_main( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
         case EN_CHANGE :
             switch( LOWORD( wParam ) )
             {
+            case IDC_THREADEDIT :
+                config->i_threads = GetDlgItemInt( hDlg, IDC_THREADEDIT, FALSE, FALSE );
+                if (config->i_threads < 1)
+                {
+                    config->i_threads = 1;
+                    SetDlgItemInt( hDlg, IDC_THREADEDIT, config->i_threads, FALSE );
+                }
+                else if (config->i_threads > 4)
+                {
+                    config->i_threads = 4;
+                    SetDlgItemInt( hDlg, IDC_THREADEDIT, config->i_threads, FALSE );
+                }                        
+                break;
             case IDC_BITRATEEDIT :
                 config->bitrate = GetDlgItemInt( hDlg, IDC_BITRATEEDIT, FALSE, FALSE );
                 SendDlgItemMessage( hDlg, IDC_BITRATESLIDER, TBM_SETPOS, TRUE, config->bitrate );
