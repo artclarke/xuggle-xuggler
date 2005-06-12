@@ -7,6 +7,7 @@
 #define IDD_ADVANCED                    102
 #define IDD_ABOUT                       103
 #define IDD_ERRCONSOLE                  104
+#define IDD_DEBUG                       105
 #define IDC_BITRATESLIDER               1002
 #define IDC_BITRATEEDIT                 1003
 #define IDC_BITRATESLIDER2              1004
@@ -72,14 +73,29 @@
 #define IDC_SAR_H                       1063
 #define IDC_I8X8                        1064
 #define IDC_DCT8X8                      1065
+#define IDC_ME_METHOD                   1066
+#define IDC_CHROMAME                    1067
+#define IDC_MERANGE                     1068
+#define IDC_BADAPT                      1070
+#define IDC_BBIASSLIDER                 1072
+#define IDC_BBIAS                       1073
+#define IDC_QPMIN                       1074
+#define IDC_QPMAX                       1075
+#define IDC_QPSTEP                      1076
+#define IDC_INLOOP_B                    1077
+#define IDC_LOOPB_TXT                   1078
+#define IDC_LOG                         1079
+#define IDC_DEBUG                       1084
+#define IDC_CPU_MMX                     1086
+#define IDC_SCENECUT                    1087
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        105
+#define _APS_NEXT_RESOURCE_VALUE        106
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1066
+#define _APS_NEXT_CONTROL_VALUE         1088
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

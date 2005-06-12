@@ -50,6 +50,10 @@ typedef struct
     int i_refmax;
     int i_keyint_max;
     int i_keyint_min;
+    int i_scenecut_threshold;
+    int i_qp_min;
+    int i_qp_max;
+    int i_qp_step;
 
     int i_qp;
     int b_filter;
@@ -65,13 +69,19 @@ typedef struct
 
     int i_bframe;
     int i_subpel_refine;
+    int i_me_method;
+    int i_me_range;
+    int b_chroma_me;
     int i_direct_mv_pred;
     int i_threads;
 
     int i_inloop_a;
+    int i_inloop_b;
 
     int b_b_refs;
     int b_b_wpred;
+    int i_bframe_bias;
+    int b_bframe_adaptive;
 
     int i_key_boost;
     int i_b_red;
@@ -79,6 +89,8 @@ typedef struct
 
     int i_sar_width;
     int i_sar_height;
+
+    int i_log_level;
 
     /* vfw interface */
     int b_save;
@@ -121,6 +133,7 @@ void config_reg_save( CONFIG * config );
 
 /* Dialog callbacks */
 BOOL CALLBACK callback_about( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
+BOOL CALLBACK callback_debug( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
 BOOL CALLBACK callback_main ( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
 BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
 BOOL CALLBACK callback_err_console( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );

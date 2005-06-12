@@ -197,10 +197,9 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
 
     param.rc.psz_stat_out = malloc (MAX_PATH);
     param.rc.psz_stat_in = malloc (MAX_PATH);
-
     param.i_threads = config->i_threads;
-  
-    param.i_log_level = X264_LOG_ERROR;
+
+    param.i_log_level = config->i_log_level - 1;
     param.pf_log = x264_log_vfw;
     param.p_log_private = malloc( sizeof( HWND ) );
     *( ( HWND * )param.p_log_private ) = NULL; /* error console window handle */
@@ -218,8 +217,13 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
     param.i_frame_reference = config->i_refmax;
     param.i_keyint_min = config->i_keyint_min;
     param.i_keyint_max = config->i_keyint_max;
+    param.i_scenecut_threshold = config->i_scenecut_threshold;
+    param.rc.i_qp_min = config->i_qp_min;
+    param.rc.i_qp_max = config->i_qp_max;
+    param.rc.i_qp_step = config->i_qp_step;
     param.b_deblocking_filter = config->b_filter;
     param.b_cabac = config->b_cabac;
+    param.analyse.b_chroma_me = config->b_chroma_me;
     param.rc.f_ip_factor = 1 + (float)config->i_key_boost / 100;
     param.rc.f_pb_factor = 1 + (float)config->i_b_red / 100;
     param.rc.f_qcompress = (float)config->i_curve_comp / 100;
@@ -231,7 +235,11 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
         param.analyse.b_weighted_bipred = 1;
     if( config->i_bframe > 1 && config->b_b_refs)
         param.b_bframe_pyramid = 1;
+    param.b_bframe_adaptive = config->b_bframe_adaptive;
+    param.i_bframe_bias = config->i_bframe_bias;
     param.analyse.i_subpel_refine = config->i_subpel_refine + 1; /* 0..4 -> 1..5 */
+    param.analyse.i_me_method = config->i_me_method;
+    param.analyse.i_me_range = config->i_me_range;
 
     /* bframe prediction - gui goes alphabetically, so 1=SPATIAL, 2=TEMPORAL */
     switch(config->i_direct_mv_pred) {
@@ -239,8 +247,7 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
         case 1: param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_TEMPORAL; break;
     }
     param.i_deblocking_filter_alphac0 = config->i_inloop_a;
-    param.i_deblocking_filter_beta = config->i_inloop_a;
-
+    param.i_deblocking_filter_beta = config->i_inloop_b;
     param.analyse.inter = 0;
     if( config->b_bsub16x16 )
         param.analyse.inter |= X264_ANALYSE_BSUB16x16;
@@ -254,7 +261,6 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
         param.analyse.inter |= X264_ANALYSE_I4x4;
     if( config->b_i8x8 )
         param.analyse.inter |= X264_ANALYSE_I8x8;
-
     param.analyse.b_transform_8x8 = config->b_dct8x8;
 
     switch( config->i_encoding_type )

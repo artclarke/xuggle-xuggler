@@ -88,17 +88,26 @@ static const reg_int_t reg_int_table[] =
     { "loop_filter",    &reg.b_filter,          1 },
     { "keyint_max",     &reg.i_keyint_max,      250 },
     { "keyint_min",     &reg.i_keyint_min,      25 },
+    { "scenecut",       &reg.i_scenecut_threshold, 40 },
+    { "qp_min",         &reg.i_qp_min,         10 },
+    { "qp_max",         &reg.i_qp_max,         51 },
+    { "qp_step",        &reg.i_qp_step,         4 },
     { "refmax",         &reg.i_refmax,          1 },
     { "bmax",           &reg.i_bframe,          2 },
     { "direct_pred",    &reg.i_direct_mv_pred,  1 },
     { "b_refs",         &reg.b_b_refs,          0 },
+    { "b_bias",         &reg.i_bframe_bias,     0 },
+    { "b_adapt",        &reg.b_bframe_adaptive, 1 },
     { "b_wpred",        &reg.b_b_wpred,         1 },
     { "inloop_a",       &reg.i_inloop_a,        0 },
+    { "inloop_b",       &reg.i_inloop_b,        0 },
     { "key_boost",      &reg.i_key_boost,       40 },
     { "b_red",          &reg.i_b_red,           30 },
     { "curve_comp",     &reg.i_curve_comp,      60 },
     { "sar_width",      &reg.i_sar_width,       1 },
     { "sar_height",     &reg.i_sar_height,      1 },
+
+    { "log_level",      &reg.i_log_level,       1 },
 
     /* analysis */
     { "i4x4",           &reg.b_i4x4,            1 },
@@ -107,6 +116,9 @@ static const reg_int_t reg_int_table[] =
     { "psub16x16",      &reg.b_psub16x16,       1 },
     { "psub8x8",        &reg.b_psub8x8,         1 },
     { "bsub16x16",      &reg.b_bsub16x16,       1 },
+    { "me_method",      &reg.i_me_method,       1 },
+    { "me_range",       &reg.i_me_range,       16 },
+    { "chroma_me",      &reg.b_chroma_me,       1 },
     { "subpel",         &reg.i_subpel_refine,   4 }
 
 };
@@ -356,6 +368,11 @@ BOOL CALLBACK callback_main( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
                                 (HWND)lParam, callback_advanced,
                                 (LPARAM)config );
                 break;
+            case IDC_DEBUG :
+                DialogBoxParam( g_hInst, MAKEINTRESOURCE(IDD_DEBUG),
+                                (HWND)lParam, callback_debug,
+                                (LPARAM)config );
+                break;
             case IDC_DEFAULTS :
                 if( MessageBox( hDlg, X264_DEF_TEXT, X264_NAME, MB_YESNO ) == IDYES )
                 {
@@ -513,6 +530,71 @@ BOOL CALLBACK callback_about( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 
     return 1;
 }
+static void debug_update_dlg( HWND hDlg, CONFIG * config )
+{
+    char fourcc[5];
+
+    SendDlgItemMessage(hDlg, IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"None");
+    SendDlgItemMessage(hDlg, IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"Error");
+    SendDlgItemMessage(hDlg, IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"Warning");
+    SendDlgItemMessage(hDlg, IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"Info");
+    SendDlgItemMessage(hDlg, IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"Debug");
+    SendDlgItemMessage(hDlg, IDC_LOG, CB_SETCURSEL, (config->i_log_level), 0);
+
+    memcpy( fourcc, config->fcc, 4 );
+    fourcc[4] = '\0';
+    SetDlgItemText( hDlg, IDC_FOURCC, fourcc );
+
+}
+BOOL CALLBACK callback_debug( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam )
+{
+    CONFIG* config = (CONFIG*)GetWindowLong(hDlg, GWL_USERDATA);
+
+    switch( uMsg )
+    {
+    case WM_INITDIALOG :
+        SetWindowLong( hDlg, GWL_USERDATA, lParam );
+        config = (CONFIG*)lParam;
+        debug_update_dlg( hDlg, config );
+        break;
+
+    case WM_COMMAND:
+        switch ( HIWORD( wParam ) )
+        {
+        case BN_CLICKED :
+            switch( LOWORD( wParam ) )
+            {
+            case IDOK :
+                EndDialog( hDlg, LOWORD( wParam ) );
+                break;
+            case IDCANCEL :
+                EndDialog( hDlg, LOWORD( wParam ) );
+                break;
+            }
+        case EN_CHANGE :
+            switch( LOWORD( wParam ) )
+            {
+            case IDC_FOURCC :
+                GetDlgItemText( hDlg, IDC_FOURCC, config->fcc, 5 );
+                break;
+            }
+            break;
+            case LBN_SELCHANGE :
+                switch ( LOWORD( wParam ) ) {
+                case IDC_LOG:
+                    config->i_log_level = SendDlgItemMessage(hDlg, IDC_LOG, CB_GETCURSEL, 0, 0);
+                    break;
+                }
+            break;
+        }
+        break;
+
+    default :
+        return 0;
+    }
+
+    return 1;
+}
 
 static void set_dlgitem_int(HWND hDlg, UINT item, int value)
 {
@@ -523,7 +605,14 @@ static void set_dlgitem_int(HWND hDlg, UINT item, int value)
 
 static void adv_update_dlg( HWND hDlg, CONFIG * config )
 {
-    char fourcc[5];
+    SendDlgItemMessage(hDlg, IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Diamond Search");
+    SendDlgItemMessage(hDlg, IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Hexagonal Search");
+    SendDlgItemMessage(hDlg, IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Uneven Multi-Hexagon");
+    SendDlgItemMessage(hDlg, IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Exhaustive Search");
+
+    SetDlgItemInt( hDlg, IDC_MERANGE, config->i_me_range, FALSE );
+    CheckDlgButton( hDlg,IDC_CHROMAME,
+                    config->b_chroma_me ? BST_CHECKED: BST_UNCHECKED );
 
     SendDlgItemMessage(hDlg, IDC_DIRECTPRED, CB_ADDSTRING, 0, (LPARAM)"Spatial");
     SendDlgItemMessage(hDlg, IDC_DIRECTPRED, CB_ADDSTRING, 0, (LPARAM)"Temporal");
@@ -540,6 +629,8 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
                     config->b_filter ? BST_CHECKED: BST_UNCHECKED );
     CheckDlgButton( hDlg,IDC_WBPRED,
                     config->b_b_wpred ? BST_CHECKED: BST_UNCHECKED );
+    CheckDlgButton( hDlg,IDC_BADAPT,
+                    config->b_bframe_adaptive ? BST_CHECKED: BST_UNCHECKED );
     CheckDlgButton( hDlg,IDC_BREFS,
                     config->b_b_refs ? BST_CHECKED: BST_UNCHECKED );
     CheckDlgButton( hDlg,IDC_P16X16,
@@ -557,8 +648,18 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
 
     SetDlgItemInt( hDlg, IDC_KEYINTMIN, config->i_keyint_min, FALSE );
     SetDlgItemInt( hDlg, IDC_KEYINTMAX, config->i_keyint_max, FALSE );
+    SetDlgItemInt( hDlg, IDC_SCENECUT, config->i_scenecut_threshold, TRUE );
     SetDlgItemInt( hDlg, IDC_REFFRAMES, config->i_refmax, FALSE );
     SetDlgItemInt( hDlg, IDC_BFRAME, config->i_bframe, FALSE );
+    SetDlgItemInt( hDlg, IDC_QPMIN, config->i_qp_min, FALSE );
+    SetDlgItemInt( hDlg, IDC_QPMAX, config->i_qp_max, FALSE );
+    SetDlgItemInt( hDlg, IDC_QPSTEP, config->i_qp_step, FALSE );
+
+    SetDlgItemInt( hDlg, IDC_BBIAS, config->i_bframe_bias, TRUE );
+    SendDlgItemMessage( hDlg, IDC_BBIASSLIDER, TBM_SETRANGE, TRUE,
+                        (LPARAM) MAKELONG( -100, 100 ) );
+    SendDlgItemMessage( hDlg, IDC_BBIASSLIDER, TBM_SETPOS, TRUE,
+                        config->i_bframe_bias );
 
     SetDlgItemInt( hDlg, IDC_SAR_W, config->i_sar_width,  FALSE );
     SetDlgItemInt( hDlg, IDC_SAR_H, config->i_sar_height, FALSE );
@@ -569,22 +670,31 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
 
     SendDlgItemMessage(hDlg, IDC_DIRECTPRED, CB_SETCURSEL, (config->i_direct_mv_pred), 0);
     SendDlgItemMessage(hDlg, IDC_SUBPEL, CB_SETCURSEL, (config->i_subpel_refine), 0);
+    SendDlgItemMessage(hDlg, IDC_ME_METHOD, CB_SETCURSEL, (config->i_me_method), 0);
 
     SendDlgItemMessage( hDlg, IDC_INLOOP_A, TBM_SETRANGE, TRUE,
                         (LPARAM) MAKELONG( -6, 6 ) );
     SendDlgItemMessage( hDlg, IDC_INLOOP_A, TBM_SETPOS, TRUE,
                         config->i_inloop_a );
     set_dlgitem_int( hDlg, IDC_LOOPA_TXT, config->i_inloop_a);
+    SendDlgItemMessage( hDlg, IDC_INLOOP_B, TBM_SETRANGE, TRUE,
+                        (LPARAM) MAKELONG( -6, 6 ) );
+    SendDlgItemMessage( hDlg, IDC_INLOOP_B, TBM_SETPOS, TRUE,
+                        config->i_inloop_b );
+    set_dlgitem_int( hDlg, IDC_LOOPB_TXT, config->i_inloop_b);
 
     EnableWindow( GetDlgItem( hDlg, IDC_P8X8 ), config->b_psub16x16 );
     EnableWindow( GetDlgItem( hDlg, IDC_BREFS ), config->i_bframe > 1 );
     EnableWindow( GetDlgItem( hDlg, IDC_WBPRED ), config->i_bframe > 1 );
+    EnableWindow( GetDlgItem( hDlg, IDC_BADAPT ), config->i_bframe > 0 );
+    EnableWindow( GetDlgItem( hDlg, IDC_BBIAS ), config->i_bframe > 0 );
+    EnableWindow( GetDlgItem( hDlg, IDC_BBIASSLIDER ), config->i_bframe > 0 );
     EnableWindow( GetDlgItem( hDlg, IDC_DIRECTPRED ), config->i_bframe > 0 );
     EnableWindow( GetDlgItem( hDlg, IDC_I8X8 ), config->b_dct8x8 );
+    EnableWindow( GetDlgItem( hDlg, IDC_MERANGE ), config->i_me_method > 1 );
+    EnableWindow( GetDlgItem( hDlg, IDC_INLOOP_A ), config->b_filter );
+    EnableWindow( GetDlgItem( hDlg, IDC_INLOOP_B ), config->b_filter );
 
-    memcpy( fourcc, config->fcc, 4 );
-    fourcc[4] = '\0';
-    SetDlgItemText( hDlg, IDC_FOURCC, fourcc );
 }
 
 /* advanced configuration dialog process */
@@ -615,12 +725,17 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                 break;
             case IDC_LOOPFILTER :
                 config->b_filter = ( IsDlgButtonChecked( hDlg, IDC_LOOPFILTER ) == BST_CHECKED );
+                EnableWindow( GetDlgItem( hDlg, IDC_INLOOP_A ), config->b_filter );
+                EnableWindow( GetDlgItem( hDlg, IDC_INLOOP_B ), config->b_filter );
                 break;
             case IDC_BREFS :
                 config->b_b_refs = ( IsDlgButtonChecked( hDlg, IDC_BREFS ) == BST_CHECKED );
                 break;
             case IDC_WBPRED :
                 config->b_b_wpred = ( IsDlgButtonChecked( hDlg, IDC_WBPRED ) == BST_CHECKED );
+                break;
+            case IDC_BADAPT :
+                config->b_bframe_adaptive = ( IsDlgButtonChecked( hDlg, IDC_BADAPT ) == BST_CHECKED );
                 break;
             case IDC_P16X16 :
                 config->b_psub16x16 = ( IsDlgButtonChecked( hDlg, IDC_P16X16 ) == BST_CHECKED );
@@ -642,6 +757,9 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                 config->b_dct8x8 = ( IsDlgButtonChecked( hDlg, IDC_DCT8X8 ) == BST_CHECKED );
                 EnableWindow( GetDlgItem( hDlg, IDC_I8X8 ), config->b_dct8x8 );
                 break;
+            case IDC_CHROMAME :
+                config->b_chroma_me = ( IsDlgButtonChecked( hDlg, IDC_CHROMAME ) == BST_CHECKED );
+                break;
             }
             break;
         case EN_CHANGE :
@@ -652,6 +770,54 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                 break;
             case IDC_KEYINTMAX :
                 config->i_keyint_max = GetDlgItemInt( hDlg, IDC_KEYINTMAX, FALSE, FALSE );
+                break;
+            case IDC_SCENECUT :
+                config->i_scenecut_threshold = GetDlgItemInt( hDlg, IDC_SCENECUT, FALSE, TRUE );
+                if( config->i_scenecut_threshold > 100 )
+                {
+                    config->i_scenecut_threshold = 100;
+                    SetDlgItemInt( hDlg, IDC_SCENECUT, config->i_scenecut_threshold, TRUE );
+                } else if ( config->i_scenecut_threshold < -1 )
+                {
+                    config->i_scenecut_threshold = -1;
+                    SetDlgItemInt( hDlg, IDC_SCENECUT, config->i_scenecut_threshold, TRUE );
+                }
+                break;
+            case IDC_QPMIN :
+                config->i_qp_min = GetDlgItemInt( hDlg, IDC_QPMIN, FALSE, FALSE );
+                if( config->i_qp_min > 51 )
+                {
+                    config->i_qp_min = 51;
+                    SetDlgItemInt( hDlg, IDC_QPMIN, config->i_qp_min, FALSE );
+                } else if ( config->i_qp_min < 1 )
+                {
+                    config->i_qp_min = 1;
+                    SetDlgItemInt( hDlg, IDC_QPMIN, config->i_qp_min, FALSE );
+                }
+                break;
+            case IDC_QPMAX :
+                config->i_qp_max = GetDlgItemInt( hDlg, IDC_QPMAX, FALSE, FALSE );
+                if( config->i_qp_max > 51 )
+                {
+                    config->i_qp_max = 51;
+                    SetDlgItemInt( hDlg, IDC_QPMAX, config->i_qp_max, FALSE );
+                } else if ( config->i_qp_max < 1 )
+                {
+                    config->i_qp_max = 1;
+                    SetDlgItemInt( hDlg, IDC_QPMAX, config->i_qp_max, FALSE );
+                }
+                break;
+            case IDC_QPSTEP :
+                config->i_qp_step = GetDlgItemInt( hDlg, IDC_QPSTEP, FALSE, FALSE );
+                if( config->i_qp_step > 50 )
+                {
+                    config->i_qp_step = 50;
+                    SetDlgItemInt( hDlg, IDC_QPSTEP, config->i_qp_step, FALSE );
+                } else if ( config->i_qp_step < 1 )
+                {
+                    config->i_qp_step = 1;
+                    SetDlgItemInt( hDlg, IDC_QPSTEP, config->i_qp_step, FALSE );
+                }
                 break;
             case IDC_SAR_W :
                 config->i_sar_width = GetDlgItemInt( hDlg, IDC_SAR_W, FALSE, FALSE );
@@ -667,9 +833,19 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                     SetDlgItemInt( hDlg, IDC_REFFRAMES, config->i_refmax, FALSE );
                 }
                 break;
-            case IDC_FOURCC :
-                GetDlgItemText( hDlg, IDC_FOURCC, config->fcc, 5 );
+            case IDC_MERANGE :
+                config->i_me_range = GetDlgItemInt( hDlg, IDC_MERANGE, FALSE, FALSE );
+                if( config->i_me_range > 64 )
+                {
+                    config->i_me_range = 64;
+                    SetDlgItemInt( hDlg, IDC_MERANGE, config->i_me_range, FALSE );
+                } else if( config->i_me_range < 4 )
+                {
+                    config->i_me_range = 4;
+                    SetDlgItemInt( hDlg, IDC_MERANGE, config->i_me_range, FALSE );
+                }
                 break;
+
             case IDC_BFRAME :
                 config->i_bframe = GetDlgItemInt( hDlg, IDC_BFRAME, FALSE, FALSE );
                 if( config->i_bframe > 5 )
@@ -680,6 +856,23 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                 EnableWindow( GetDlgItem( hDlg, IDC_BREFS ), config->i_bframe > 1 );
                 EnableWindow( GetDlgItem( hDlg, IDC_WBPRED ), config->i_bframe > 1 );
                 EnableWindow( GetDlgItem( hDlg, IDC_DIRECTPRED ), config->i_bframe > 0 );
+                EnableWindow( GetDlgItem( hDlg, IDC_BADAPT ), config->i_bframe > 0 );
+                EnableWindow( GetDlgItem( hDlg, IDC_BBIAS ), config->i_bframe > 0 );
+                EnableWindow( GetDlgItem( hDlg, IDC_BBIASSLIDER ), config->i_bframe > 0 );
+                break;
+            case IDC_BBIAS :
+                config->i_bframe_bias = GetDlgItemInt( hDlg, IDC_BBIAS, FALSE, TRUE );
+                SendDlgItemMessage(hDlg, IDC_BBIASSLIDER, TBM_SETPOS, 1,
+                config->i_bframe_bias);
+                if( config->i_bframe_bias > 100 )
+                {
+                    config->i_bframe_bias = 100;
+                    SetDlgItemInt( hDlg, IDC_BBIAS, config->i_bframe_bias, TRUE );
+                } else if ( config->i_bframe_bias < -100 )
+                {
+                    config->i_bframe_bias = -100;
+                    SetDlgItemInt( hDlg, IDC_BBIAS, config->i_bframe_bias, TRUE );
+                }
                 break;
             case IDC_IPRATIO :
                 config->i_key_boost = GetDlgItemInt( hDlg, IDC_IPRATIO, FALSE, FALSE );
@@ -730,6 +923,10 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                 case IDC_SUBPEL:
                     config->i_subpel_refine = SendDlgItemMessage(hDlg, IDC_SUBPEL, CB_GETCURSEL, 0, 0);
                     break;
+                case IDC_ME_METHOD:
+                    config->i_me_method = SendDlgItemMessage(hDlg, IDC_ME_METHOD, CB_GETCURSEL, 0, 0);
+                    EnableWindow( GetDlgItem( hDlg, IDC_MERANGE ), config->i_me_method > 1 );
+                    break;
                 }
             break;
         }
@@ -738,6 +935,14 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
         if( (HWND) lParam == GetDlgItem( hDlg, IDC_INLOOP_A ) ) {
                 config->i_inloop_a = SendDlgItemMessage( hDlg, IDC_INLOOP_A, TBM_GETPOS, 0, 0 );
                 set_dlgitem_int( hDlg, IDC_LOOPA_TXT, config->i_inloop_a);
+        }
+        if( (HWND) lParam == GetDlgItem( hDlg, IDC_INLOOP_B ) ) {
+                config->i_inloop_b = SendDlgItemMessage( hDlg, IDC_INLOOP_B, TBM_GETPOS, 0, 0 );
+                set_dlgitem_int( hDlg, IDC_LOOPB_TXT, config->i_inloop_b);
+        }
+        if( (HWND) lParam == GetDlgItem( hDlg, IDC_BBIASSLIDER ) ) {
+                config->i_bframe_bias = SendDlgItemMessage( hDlg, IDC_BBIASSLIDER, TBM_GETPOS, 0, 0 );
+                set_dlgitem_int( hDlg, IDC_BBIAS, config->i_bframe_bias);
         }
         break;
         case WM_CLOSE:
