@@ -112,7 +112,7 @@ static const reg_int_t reg_int_table[] =
     /* analysis */
     { "i4x4",           &reg.b_i4x4,            1 },
     { "i8x8",           &reg.b_i8x8,            1 },
-    { "dct8x8",         &reg.b_dct8x8,          1 },
+    { "dct8x8",         &reg.b_dct8x8,          0 },
     { "psub16x16",      &reg.b_psub16x16,       1 },
     { "psub8x8",        &reg.b_psub8x8,         1 },
     { "bsub16x16",      &reg.b_bsub16x16,       1 },
@@ -621,7 +621,8 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
     SendDlgItemMessage(hDlg, IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"2");
     SendDlgItemMessage(hDlg, IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"3");
     SendDlgItemMessage(hDlg, IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"4");
-    SendDlgItemMessage(hDlg, IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"5 (Max Quality)");
+    SendDlgItemMessage(hDlg, IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"5 (High Quality)");
+    SendDlgItemMessage(hDlg, IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"6 (RDO - Slowest)");
 
     CheckDlgButton( hDlg,IDC_CABAC,
                     config->b_cabac ? BST_CHECKED : BST_UNCHECKED );
@@ -694,7 +695,7 @@ static void adv_update_dlg( HWND hDlg, CONFIG * config )
     EnableWindow( GetDlgItem( hDlg, IDC_MERANGE ), config->i_me_method > 1 );
     EnableWindow( GetDlgItem( hDlg, IDC_INLOOP_A ), config->b_filter );
     EnableWindow( GetDlgItem( hDlg, IDC_INLOOP_B ), config->b_filter );
-
+    EnableWindow( GetDlgItem( hDlg, IDC_CHROMAME ), config->i_subpel_refine >= 4 );
 }
 
 /* advanced configuration dialog process */
@@ -759,6 +760,19 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                 break;
             case IDC_CHROMAME :
                 config->b_chroma_me = ( IsDlgButtonChecked( hDlg, IDC_CHROMAME ) == BST_CHECKED );
+                break;
+            }
+            break;
+        case EN_KILLFOCUS :
+        	  switch( LOWORD( wParam ) )
+        	  {
+            case IDC_MERANGE :
+                config->i_me_range = GetDlgItemInt( hDlg, IDC_MERANGE, FALSE, FALSE );
+                if( config->i_me_range < 4 )
+                {
+                    config->i_me_range = 4;
+                    SetDlgItemInt( hDlg, IDC_MERANGE, config->i_me_range, FALSE );
+                }
                 break;
             }
             break;
@@ -839,10 +853,6 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                 {
                     config->i_me_range = 64;
                     SetDlgItemInt( hDlg, IDC_MERANGE, config->i_me_range, FALSE );
-                } else if( config->i_me_range < 4 )
-                {
-                    config->i_me_range = 4;
-                    SetDlgItemInt( hDlg, IDC_MERANGE, config->i_me_range, FALSE );
                 }
                 break;
 
@@ -922,6 +932,7 @@ BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
                     break;
                 case IDC_SUBPEL:
                     config->i_subpel_refine = SendDlgItemMessage(hDlg, IDC_SUBPEL, CB_GETCURSEL, 0, 0);
+                    EnableWindow( GetDlgItem( hDlg, IDC_CHROMAME ), config->i_subpel_refine >= 4 );
                     break;
                 case IDC_ME_METHOD:
                     config->i_me_method = SendDlgItemMessage(hDlg, IDC_ME_METHOD, CB_GETCURSEL, 0, 0);
