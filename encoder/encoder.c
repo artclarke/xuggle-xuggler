@@ -412,7 +412,7 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.i_me_range = 4;
     if( h->param.analyse.i_me_range > 16 && h->param.analyse.i_me_method <= X264_ME_HEX )
         h->param.analyse.i_me_range = 16;
-    h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 5 );
+    h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 6 );
     if( !(h->param.analyse.inter & X264_ANALYSE_PSUB16x16) )
         h->param.analyse.inter &= ~X264_ANALYSE_PSUB8x8;
     if( !h->param.analyse.b_transform_8x8 )
@@ -944,7 +944,7 @@ static int x264_slice_write( x264_t *h )
             {
                 if( h->sh.i_type != SLICE_TYPE_I )
                     x264_cabac_mb_skip( h, 0 );
-                x264_macroblock_write_cabac( h, &h->out.bs );
+                x264_macroblock_write_cabac( h, &h->cabac );
             }
         }
         else

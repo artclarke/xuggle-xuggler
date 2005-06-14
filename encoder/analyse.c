@@ -1,10 +1,11 @@
 /*****************************************************************************
  * analyse.c: h264 encoder library
  *****************************************************************************
- * Copyright (C) 2003 Laurent Aimar
+ * Copyright (C) 2003 x264 project
  * $Id: analyse.c,v 1.1 2004/06/03 19:27:08 fenrir Exp $
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
+ *          Loren Merritt <lorenm@u.washington.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +33,8 @@
 #include "macroblock.h"
 #include "me.h"
 #include "ratecontrol.h"
+#include "analyse.h"
+#include "rdo.c"
 
 typedef struct
 {
@@ -69,13 +72,16 @@ typedef struct
 {
     /* conduct the analysis using this lamda and QP */
     int i_lambda;
+    int i_lambda2;
     int i_qp;
     int16_t *p_cost_mv;
+    int b_mbrd;
 
 
     /* I: Intra part */
     /* Take some shortcuts in intra search if intra is deemed unlikely */
     int b_fast_intra;
+    int i_best_satd;
 
     /* Luma part */
     int i_sad_i16x16;
@@ -111,6 +117,7 @@ typedef struct
 
 } x264_mb_analysis_t;
 
+/* lambda = pow(2,qp/6-2) */
 static const int i_qp0_cost_table[52] = {
    1, 1, 1, 1, 1, 1, 1, 1,  /*  0-7 */
    1, 1, 1, 1,              /*  8-11 */
@@ -119,6 +126,19 @@ static const int i_qp0_cost_table[52] = {
    6, 7, 8, 9,10,11,13,14,  /* 28-35 */
   16,18,20,23,25,29,32,36,  /* 36-43 */
   40,45,51,57,64,72,81,91   /* 44-51 */
+};
+
+/* pow(lambda,2) * .9 */
+static const int i_qp0_cost2_table[52] = {
+   1,   1,   1,   1,   1,   1, /*  0-5  */
+   1,   1,   1,   1,   1,   1, /*  6-11 */
+   1,   1,   1,   2,   2,   3, /* 12-17 */
+   4,   5,   6,   7,   9,  11, /* 18-23 */
+  14,  18,  23,  29,  36,  46, /* 24-29 */
+  58,  73,  91, 115, 145, 183, /* 30-35 */
+ 230, 290, 366, 461, 581, 731, /* 36-41 */
+ 922,1161,1463,1843,2322,2926, /* 42-47 */
+3686,4645,5852,7373
 };
 
 static const uint8_t block_idx_x[16] = {
@@ -141,6 +161,8 @@ static const int i_sub_mb_b_cost_table[13] = {
 static const int i_sub_mb_p_cost_table[4] = {
     5, 3, 3, 1
 };
+
+static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a );
 
 /* initialize an array of lambda*nbits for all possible mvs */
 static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
@@ -171,12 +193,13 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     /* conduct the analysis using this lamda and QP */
     a->i_qp = i_qp;
     a->i_lambda = i_qp0_cost_table[i_qp];
+    a->i_lambda2 = i_qp0_cost2_table[i_qp];
+    a->b_mbrd = h->param.analyse.i_subpel_refine >= 6 && h->sh.i_type != SLICE_TYPE_B;
 
     h->mb.i_me_method = h->param.analyse.i_me_method;
     h->mb.i_subpel_refine = h->param.analyse.i_subpel_refine;
     h->mb.b_chroma_me = h->param.analyse.b_chroma_me && h->sh.i_type == SLICE_TYPE_P
                         && h->mb.i_subpel_refine >= 5;
-    a->b_fast_intra = 0;
 
     h->mb.b_transform_8x8 = 0;
 
@@ -185,6 +208,9 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     a->i_sad_i8x8   =
     a->i_sad_i4x4   =
     a->i_sad_i8x8chroma = COST_MAX;
+
+    a->b_fast_intra = 0;
+    a->i_best_satd = COST_MAX;
 
     /* II: Inter part P/B frame */
     if( h->sh.i_type != SLICE_TYPE_I )
@@ -245,7 +271,8 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
         /* Fast intra decision */
         if( h->mb.i_mb_xy - h->sh.i_first_mb > 4 )
         {
-            if(   IS_INTRA( h->mb.i_mb_type_left )
+            if( a->b_mbrd
+               || IS_INTRA( h->mb.i_mb_type_left )
                || IS_INTRA( h->mb.i_mb_type_top )
                || IS_INTRA( h->mb.i_mb_type_topleft )
                || IS_INTRA( h->mb.i_mb_type_topright )
@@ -382,17 +409,72 @@ static void predict_4x4_mode_available( unsigned int i_neighbour,
     }
 }
 
-static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *res, int i_cost_inter )
+static void x264_mb_analyse_intra_chroma( x264_t *h, x264_mb_analysis_t *a )
+{
+    int i;
+
+    int i_max;
+    int predict_mode[9];
+
+    uint8_t *p_dstc[2], *p_srcc[2];
+    int      i_stride[2];
+
+    if( a->i_sad_i8x8chroma < COST_MAX )
+        return;
+
+    /* 8x8 prediction selection for chroma */
+    p_dstc[0] = h->mb.pic.p_fdec[1];
+    p_dstc[1] = h->mb.pic.p_fdec[2];
+    p_srcc[0] = h->mb.pic.p_fenc[1];
+    p_srcc[1] = h->mb.pic.p_fenc[2];
+
+    i_stride[0] = h->mb.pic.i_stride[1];
+    i_stride[1] = h->mb.pic.i_stride[2];
+
+    predict_8x8chroma_mode_available( h->mb.i_neighbour, predict_mode, &i_max );
+    a->i_sad_i8x8chroma = COST_MAX;
+    for( i = 0; i < i_max; i++ )
+    {
+        int i_sad;
+        int i_mode;
+
+        i_mode = predict_mode[i];
+
+        /* we do the prediction */
+        h->predict_8x8c[i_mode]( p_dstc[0], i_stride[0] );
+        h->predict_8x8c[i_mode]( p_dstc[1], i_stride[1] );
+
+        /* we calculate the cost */
+        i_sad = h->pixf.satd[PIXEL_8x8]( p_dstc[0], i_stride[0],
+                                         p_srcc[0], i_stride[0] ) +
+                h->pixf.satd[PIXEL_8x8]( p_dstc[1], i_stride[1],
+                                         p_srcc[1], i_stride[1] ) +
+                a->i_lambda * bs_size_ue( x264_mb_pred_mode8x8c_fix[i_mode] );
+
+        /* if i_score is lower it is better */
+        if( a->i_sad_i8x8chroma > i_sad )
+        {
+            a->i_predict8x8chroma = i_mode;
+            a->i_sad_i8x8chroma   = i_sad;
+        }
+    }
+
+    h->mb.i_chroma_pred_mode = a->i_predict8x8chroma;
+}
+
+static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_cost_inter )
 {
     const unsigned int flags = h->sh.i_type == SLICE_TYPE_I ? h->param.analyse.intra : h->param.analyse.inter;
     const int i_stride = h->mb.pic.i_stride[0];
     uint8_t  *p_src = h->mb.pic.p_fenc[0];
     uint8_t  *p_dst = h->mb.pic.p_fdec[0];
+    int      f8_satd_rd_ratio = 0;
 
     int i, idx;
-
     int i_max;
     int predict_mode[9];
+
+    const int i_satd_thresh = a->i_best_satd * 5/4 + a->i_lambda * 10;
 
     /*---------------- Try all mode and calculate their score ---------------*/
 
@@ -404,34 +486,45 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *res, int i_cos
         int i_mode;
 
         i_mode = predict_mode[i];
-
-        /* we do the prediction */
         h->predict_16x16[i_mode]( p_dst, i_stride );
 
-        /* we calculate the diff and get the square sum of the diff */
         i_sad = h->pixf.satd[PIXEL_16x16]( p_dst, i_stride, p_src, i_stride ) +
-                res->i_lambda * bs_size_ue( x264_mb_pred_mode16x16_fix[i_mode] );
-        /* if i_score is lower it is better */
-        if( res->i_sad_i16x16 > i_sad )
+                a->i_lambda * bs_size_ue( x264_mb_pred_mode16x16_fix[i_mode] );
+        if( a->i_sad_i16x16 > i_sad )
         {
-            res->i_predict16x16 = i_mode;
-            res->i_sad_i16x16     = i_sad;
+            a->i_predict16x16 = i_mode;
+            a->i_sad_i16x16   = i_sad;
         }
     }
-    /* cavlc mb type prefix */
-    if( h->sh.i_type == SLICE_TYPE_B )
-        res->i_sad_i16x16 += res->i_lambda * i_mb_b_cost_table[I_16x16];
 
-    if( res->b_fast_intra )
+    if( a->b_mbrd )
     {
-        if( res->i_sad_i16x16 > 2*i_cost_inter )
+        f8_satd_rd_ratio = ((unsigned)i_cost_inter << 8) / a->i_best_satd + 1;
+        x264_mb_analyse_intra_chroma( h, a );
+        if( h->mb.b_chroma_me )
+            a->i_sad_i16x16 += a->i_sad_i8x8chroma;
+        if( a->i_sad_i16x16 < i_satd_thresh )
+        {
+            h->mb.i_type = I_16x16;
+            h->mb.i_intra16x16_pred_mode = a->i_predict16x16;
+            a->i_sad_i16x16 = x264_rd_cost_mb( h, a->i_lambda2 );
+        }
+        else
+            a->i_sad_i16x16 = a->i_sad_i16x16 * f8_satd_rd_ratio >> 8;
+    }
+    else
+    {
+        if( h->sh.i_type == SLICE_TYPE_B )
+            /* cavlc mb type prefix */
+            a->i_sad_i16x16 += a->i_lambda * i_mb_b_cost_table[I_16x16];
+        if( a->b_fast_intra && a->i_sad_i16x16 > 2*i_cost_inter )
             return;
     }
 
     /* 4x4 prediction selection */
     if( flags & X264_ANALYSE_I4x4 )
     {
-        res->i_sad_i4x4 = 0;
+        a->i_sad_i4x4 = 0;
         for( idx = 0; idx < 16; idx++ )
         {
             uint8_t *p_src_by;
@@ -455,40 +548,51 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *res, int i_cos
                 int i_mode;
 
                 i_mode = predict_mode[i];
-
-                /* we do the prediction */
                 h->predict_4x4[i_mode]( p_dst_by, i_stride );
 
-                /* we calculate diff and get the square sum of the diff */
                 i_sad = h->pixf.satd[PIXEL_4x4]( p_dst_by, i_stride,
-                                                 p_src_by, i_stride );
+                                                 p_src_by, i_stride )
+                      + a->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) ? 1 : 4);
 
-                i_sad += res->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix[i_mode] ? 1 : 4);
-
-                /* if i_score is lower it is better */
                 if( i_best > i_sad )
                 {
-                    res->i_predict4x4[x][y] = i_mode;
+                    a->i_predict4x4[x][y] = i_mode;
                     i_best = i_sad;
                 }
             }
-            res->i_sad_i4x4 += i_best;
+            a->i_sad_i4x4 += i_best;
 
             /* we need to encode this block now (for next ones) */
-            h->predict_4x4[res->i_predict4x4[x][y]]( p_dst_by, i_stride );
-            x264_mb_encode_i4x4( h, idx, res->i_qp );
+            h->predict_4x4[a->i_predict4x4[x][y]]( p_dst_by, i_stride );
+            x264_mb_encode_i4x4( h, idx, a->i_qp );
 
-            h->mb.cache.intra4x4_pred_mode[x264_scan8[idx]] = res->i_predict4x4[x][y];
+            h->mb.cache.intra4x4_pred_mode[x264_scan8[idx]] = a->i_predict4x4[x][y];
         }
-        res->i_sad_i4x4 += res->i_lambda * 24;    /* from JVT (SATD0) */
-        if( h->sh.i_type == SLICE_TYPE_B )
-            res->i_sad_i4x4 += res->i_lambda * i_mb_b_cost_table[I_4x4];
+
+        a->i_sad_i4x4 += a->i_lambda * 24;    /* from JVT (SATD0) */
+        if( a->b_mbrd )
+        {
+            if( h->mb.b_chroma_me )
+                a->i_sad_i4x4 += a->i_sad_i8x8chroma;
+            if( a->i_sad_i4x4 < i_satd_thresh )
+            {
+                h->mb.i_type = I_4x4;
+                a->i_sad_i4x4 = x264_rd_cost_mb( h, a->i_lambda2 );
+            }
+            else
+                a->i_sad_i4x4 = a->i_sad_i4x4 * f8_satd_rd_ratio >> 8;
+        }
+        else
+        {
+            if( h->sh.i_type == SLICE_TYPE_B )
+                a->i_sad_i4x4 += a->i_lambda * i_mb_b_cost_table[I_4x4];
+        }
     }
 
     /* 8x8 prediction selection */
     if( flags & X264_ANALYSE_I8x8 )
     {
-        res->i_sad_i8x8 = 0;
+        a->i_sad_i8x8 = 0;
         for( idx = 0; idx < 4; idx++ )
         {
             uint8_t *p_src_by;
@@ -516,81 +620,43 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *res, int i_cos
 
                 /* could use sa8d, but it doesn't seem worth the speed cost (without mmx at least) */
                 i_sad = h->pixf.satd[PIXEL_8x8]( p_dst_by, i_stride,
-                                                 p_src_by, i_stride );
-
-                i_sad += res->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix[i_mode] ? 1 : 4);
+                                                 p_src_by, i_stride )
+                      + a->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) ? 1 : 4);
 
                 if( i_best > i_sad )
                 {
-                    res->i_predict8x8[x][y] = i_mode;
+                    a->i_predict8x8[x][y] = i_mode;
                     i_best = i_sad;
                 }
             }
-            res->i_sad_i8x8 += i_best;
+            a->i_sad_i8x8 += i_best;
 
             /* we need to encode this block now (for next ones) */
-            h->predict_8x8[res->i_predict8x8[x][y]]( p_dst_by, i_stride, h->mb.i_neighbour );
-            x264_mb_encode_i8x8( h, idx, res->i_qp );
+            h->predict_8x8[a->i_predict8x8[x][y]]( p_dst_by, i_stride, h->mb.i_neighbour );
+            x264_mb_encode_i8x8( h, idx, a->i_qp );
 
-            x264_macroblock_cache_intra8x8_pred( h, 2*x, 2*y, res->i_predict4x4[x][y] );
+            x264_macroblock_cache_intra8x8_pred( h, 2*x, 2*y, a->i_predict8x8[x][y] );
         }
-        // FIXME some bias like in i4x4?
-        if( h->sh.i_type == SLICE_TYPE_B )
-            res->i_sad_i8x8 += res->i_lambda * i_mb_b_cost_table[I_8x8];
-    }
-}
 
-static void x264_mb_analyse_intra_chroma( x264_t *h, x264_mb_analysis_t *res )
-{
-    int i;
-
-    int i_max;
-    int predict_mode[9];
-
-    uint8_t *p_dstc[2], *p_srcc[2];
-    int      i_stride[2];
-
-    if( res->i_sad_i8x8chroma < COST_MAX )
-        return;
-
-    /* 8x8 prediction selection for chroma */
-    p_dstc[0] = h->mb.pic.p_fdec[1];
-    p_dstc[1] = h->mb.pic.p_fdec[2];
-    p_srcc[0] = h->mb.pic.p_fenc[1];
-    p_srcc[1] = h->mb.pic.p_fenc[2];
-
-    i_stride[0] = h->mb.pic.i_stride[1];
-    i_stride[1] = h->mb.pic.i_stride[2];
-
-    predict_8x8chroma_mode_available( h->mb.i_neighbour, predict_mode, &i_max );
-    res->i_sad_i8x8chroma = COST_MAX;
-    for( i = 0; i < i_max; i++ )
-    {
-        int i_sad;
-        int i_mode;
-
-        i_mode = predict_mode[i];
-
-        /* we do the prediction */
-        h->predict_8x8c[i_mode]( p_dstc[0], i_stride[0] );
-        h->predict_8x8c[i_mode]( p_dstc[1], i_stride[1] );
-
-        /* we calculate the cost */
-        i_sad = h->pixf.satd[PIXEL_8x8]( p_dstc[0], i_stride[0],
-                                         p_srcc[0], i_stride[0] ) +
-                h->pixf.satd[PIXEL_8x8]( p_dstc[1], i_stride[1],
-                                         p_srcc[1], i_stride[1] ) +
-                res->i_lambda * bs_size_ue( x264_mb_pred_mode8x8c_fix[i_mode] );
-
-        /* if i_score is lower it is better */
-        if( res->i_sad_i8x8chroma > i_sad )
+        if( a->b_mbrd )
         {
-            res->i_predict8x8chroma = i_mode;
-            res->i_sad_i8x8chroma   = i_sad;
+            if( h->mb.b_chroma_me )
+                a->i_sad_i8x8 += a->i_sad_i8x8chroma;
+            if( a->i_sad_i8x8 < i_satd_thresh )
+            {
+                h->mb.i_type = I_8x8;
+                a->i_sad_i8x8 = x264_rd_cost_mb( h, a->i_lambda2 );
+            }
+            else
+                a->i_sad_i8x8 = a->i_sad_i8x8 * f8_satd_rd_ratio >> 8;
+        }
+        else
+        {
+            // FIXME some bias like in i4x4?
+            if( h->sh.i_type == SLICE_TYPE_B )
+                a->i_sad_i8x8 += a->i_lambda * i_mb_b_cost_table[I_8x8];
         }
     }
-
-    h->mb.i_chroma_pred_mode = res->i_predict8x8chroma;
 }
 
 #define LOAD_FENC( m, src, xoff, yoff) \
@@ -646,11 +712,22 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
         h->mb.mvr[0][i_ref][h->mb.i_mb_xy][1] = m.mv[1];
     }
 
-    /* subtract ref cost, so we don't have to add it for the other P types */
-    a->l0.me16x16.cost -= a->i_lambda * bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, a->l0.i_ref );
-
     /* Set global ref, needed for all others modes */
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.i_ref );
+
+    if( a->b_mbrd )
+    {
+        a->i_best_satd = a->l0.me16x16.cost;
+        h->mb.i_type = P_L0;
+        h->mb.i_partition = D_16x16;
+        x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 0, a->l0.me16x16.mv[0], a->l0.me16x16.mv[1] );
+        a->l0.me16x16.cost = x264_rd_cost_mb( h, a->i_lambda2 );
+    }
+    else
+    {
+        /* subtract ref cost, so we don't have to add it for the other P types */
+        a->l0.me16x16.cost -= a->i_lambda * bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, a->l0.i_ref );
+    }
 }
 
 static void x264_mb_analyse_inter_p8x8( x264_t *h, x264_mb_analysis_t *a )
@@ -693,7 +770,16 @@ static void x264_mb_analyse_inter_p8x8( x264_t *h, x264_mb_analysis_t *a )
     }
 
     a->l0.i_cost8x8 = a->l0.me8x8[0].cost + a->l0.me8x8[1].cost +
-                   a->l0.me8x8[2].cost + a->l0.me8x8[3].cost;
+                      a->l0.me8x8[2].cost + a->l0.me8x8[3].cost;
+    if( a->b_mbrd )
+    {
+        if( a->i_best_satd > a->l0.i_cost8x8 )
+            a->i_best_satd = a->l0.i_cost8x8;
+        h->mb.i_type = P_8x8;
+        h->mb.i_sub_partition[0] = h->mb.i_sub_partition[1] =
+        h->mb.i_sub_partition[2] = h->mb.i_sub_partition[3] = D_L0_8x8;
+        a->l0.i_cost8x8 = x264_rd_cost_mb( h, a->i_lambda2 );
+    }
 }
 
 static void x264_mb_analyse_inter_p16x8( x264_t *h, x264_mb_analysis_t *a )
@@ -728,6 +814,13 @@ static void x264_mb_analyse_inter_p16x8( x264_t *h, x264_mb_analysis_t *a )
     }
 
     a->l0.i_cost16x8 = a->l0.me16x8[0].cost + a->l0.me16x8[1].cost;
+    if( a->b_mbrd )
+    {
+        if( a->i_best_satd > a->l0.i_cost16x8 )
+            a->i_best_satd = a->l0.i_cost16x8;
+        h->mb.i_type = P_L0;
+        a->l0.i_cost16x8 = x264_rd_cost_mb( h, a->i_lambda2 );
+    }
 }
 
 static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a )
@@ -762,6 +855,13 @@ static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a )
     }
 
     a->l0.i_cost8x16 = a->l0.me8x16[0].cost + a->l0.me8x16[1].cost;
+    if( a->b_mbrd )
+    {
+        if( a->i_best_satd > a->l0.i_cost8x16 )
+            a->i_best_satd = a->l0.i_cost8x16;
+        h->mb.i_type = P_L0;
+        a->l0.i_cost8x16 = x264_rd_cost_mb( h, a->i_lambda2 );
+    }
 }
 
 static int x264_mb_analyse_inter_p4x4_chroma( x264_t *h, x264_mb_analysis_t *a, uint8_t **p_fref, int i8x8, int pixel )
@@ -1345,12 +1445,13 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
 
 static inline void x264_mb_analyse_transform( x264_t *h )
 {
-    if( h->param.analyse.b_transform_8x8
-        && !IS_INTRA( h->mb.i_type )
-        && x264_mb_transform_8x8_allowed( h ) )
+    h->mb.cache.b_transform_8x8_allowed =
+        h->param.analyse.b_transform_8x8
+        && !IS_INTRA( h->mb.i_type ) && x264_mb_transform_8x8_allowed( h );
+
+    if( h->mb.cache.b_transform_8x8_allowed )
     {
         int i_cost4, i_cost8;
-
         /* FIXME only luma mc is needed */
         x264_mb_mc( h );
 
@@ -1358,11 +1459,33 @@ static inline void x264_mb_analyse_transform( x264_t *h )
                                              h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0] );
         i_cost4 = h->pixf.satd[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0],
                                              h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0] );
+
         h->mb.b_transform_8x8 = i_cost8 < i_cost4;
-        h->mb.cache.b_transform_8x8_allowed = 1;
     }
-    else
-        h->mb.cache.b_transform_8x8_allowed = 0;
+}
+
+static inline void x264_mb_analyse_transform_rd( x264_t *h, x264_mb_analysis_t *a, int *i_cost )
+{
+    h->mb.cache.b_transform_8x8_allowed =
+        h->param.analyse.b_transform_8x8 && x264_mb_transform_8x8_allowed( h );
+
+    if( h->mb.cache.b_transform_8x8_allowed )
+    {
+        int i_cost8;
+        x264_analyse_update_cache( h, a );
+        h->mb.b_transform_8x8 = !h->mb.b_transform_8x8;
+        /* FIXME only luma is needed, but the score for comparison already includes chroma */
+        i_cost8 = x264_rd_cost_mb( h, a->i_lambda2 );
+
+        if( *i_cost >= i_cost8 )
+        {
+            if( *i_cost > 0 )
+                a->i_best_satd = (int64_t)a->i_best_satd * i_cost8 / *i_cost;
+            *i_cost = i_cost8;
+        }
+        else
+            h->mb.b_transform_8x8 = !h->mb.b_transform_8x8;
+    }
 }
 
 
@@ -1374,11 +1497,8 @@ void x264_macroblock_analyse( x264_t *h )
     x264_mb_analysis_t analysis;
     int i;
 
-    h->mb.qp[h->mb.i_mb_xy] = x264_ratecontrol_qp(h);
-
-    /* prevent QP from varying too fast. FIXME what's a sane limit? */
-    h->mb.qp[h->mb.i_mb_xy] = x264_clip3( h->mb.qp[h->mb.i_mb_xy],
-                                          h->mb.i_last_qp - 12, h->mb.i_last_qp + 12 );
+    h->mb.i_qp =
+    h->mb.qp[h->mb.i_mb_xy] = x264_ratecontrol_qp( h );
 
     /* init analysis */
     x264_mb_analyse_init( h, &analysis, h->mb.qp[h->mb.i_mb_xy] );
@@ -1424,6 +1544,7 @@ void x264_macroblock_analyse( x264_t *h )
             const unsigned int flags = h->param.analyse.inter;
             int i_type;
             int i_partition;
+            int i_thresh16x8;
 
             x264_mb_analyse_load_costs( h, &analysis );
 
@@ -1443,46 +1564,63 @@ void x264_macroblock_analyse( x264_t *h )
 
                 i_type = P_8x8;
                 i_partition = D_8x8;
-                h->mb.i_sub_partition[0] = D_L0_8x8;
-                h->mb.i_sub_partition[1] = D_L0_8x8;
-                h->mb.i_sub_partition[2] = D_L0_8x8;
-                h->mb.i_sub_partition[3] = D_L0_8x8;
+                h->mb.i_sub_partition[0] = h->mb.i_sub_partition[1] =
+                h->mb.i_sub_partition[2] = h->mb.i_sub_partition[3] = D_L0_8x8;
 
                 i_cost = analysis.l0.i_cost8x8;
 
                 /* Do sub 8x8 */
                 if( flags & X264_ANALYSE_PSUB8x8 )
                 {
+                    int i_cost_bak = i_cost;
+                    int b_sub8x8 = 0;
                     for( i = 0; i < 4; i++ )
                     {
                         x264_mb_analyse_inter_p4x4( h, &analysis, i );
                         if( analysis.l0.i_cost4x4[i] < analysis.l0.me8x8[i].cost )
                         {
-                            int i_cost8x8;
-
+                            int i_cost8x8 = analysis.l0.i_cost4x4[i];
                             h->mb.i_sub_partition[i] = D_L0_4x4;
-                            i_cost8x8 = analysis.l0.i_cost4x4[i];
 
                             x264_mb_analyse_inter_p8x4( h, &analysis, i );
-                            if( analysis.l0.i_cost8x4[i] < analysis.l0.i_cost4x4[i] )
+                            if( analysis.l0.i_cost8x4[i] < i_cost8x8 )
                             {
                                 h->mb.i_sub_partition[i] = D_L0_8x4;
                                 i_cost8x8 = analysis.l0.i_cost8x4[i];
                             }
 
                             x264_mb_analyse_inter_p4x8( h, &analysis, i );
-                            if( analysis.l0.i_cost4x8[i] < analysis.l0.i_cost4x4[i] )
+                            if( analysis.l0.i_cost4x8[i] < i_cost8x8 )
                             {
                                 h->mb.i_sub_partition[i] = D_L0_4x8;
                                 i_cost8x8 = analysis.l0.i_cost4x8[i];
                             }
 
                             i_cost += i_cost8x8 - analysis.l0.me8x8[i].cost;
+                            b_sub8x8 = 1;
+                        }
+                    }
+                    /* TODO: RD per subpartition */
+                    if( b_sub8x8 && analysis.b_mbrd )
+                    {
+                        i_cost = x264_rd_cost_mb( h, analysis.i_lambda2 );
+                        if( i_cost > i_cost_bak )
+                        {
+                            i_cost = i_cost_bak;
+                            h->mb.i_sub_partition[0] = h->mb.i_sub_partition[1] =
+                            h->mb.i_sub_partition[2] = h->mb.i_sub_partition[3] = D_L0_8x8;
                         }
                     }
                 }
+            }
 
-                /* Now do sub 16x8/8x16 */
+            /* Now do 16x8/8x16 */
+            i_thresh16x8 = analysis.l0.me8x8[1].cost_mv + analysis.l0.me8x8[2].cost_mv;
+            if( analysis.b_mbrd )
+                i_thresh16x8 = i_thresh16x8 * analysis.i_lambda2 / analysis.i_lambda;
+            if( ( flags & X264_ANALYSE_PSUB16x16 ) &&
+                analysis.l0.i_cost8x8 < analysis.l0.me16x16.cost + i_thresh16x8 )
+            {
                 x264_mb_analyse_inter_p16x8( h, &analysis );
                 if( analysis.l0.i_cost16x8 < i_cost )
                 {
@@ -1500,28 +1638,33 @@ void x264_macroblock_analyse( x264_t *h )
                 }
             }
 
-            h->mb.i_type = i_type;
             h->mb.i_partition = i_partition;
 
             /* refine qpel */
-            if( h->mb.i_partition == D_16x16 )
+            //FIXME mb_type costs?
+            if( analysis.b_mbrd )
+            {
+                h->mb.i_type = i_type;
+                x264_mb_analyse_transform_rd( h, &analysis, &i_cost );
+            }
+            else if( i_partition == D_16x16 )
             {
                 x264_me_refine_qpel( h, &analysis.l0.me16x16 );
                 i_cost = analysis.l0.me16x16.cost;
             }
-            else if( h->mb.i_partition == D_16x8 )
+            else if( i_partition == D_16x8 )
             {
                 x264_me_refine_qpel( h, &analysis.l0.me16x8[0] );
                 x264_me_refine_qpel( h, &analysis.l0.me16x8[1] );
                 i_cost = analysis.l0.me16x8[0].cost + analysis.l0.me16x8[1].cost;
             }
-            else if( h->mb.i_partition == D_8x16 )
+            else if( i_partition == D_8x16 )
             {
                 x264_me_refine_qpel( h, &analysis.l0.me8x16[0] );
                 x264_me_refine_qpel( h, &analysis.l0.me8x16[1] );
                 i_cost = analysis.l0.me8x16[0].cost + analysis.l0.me8x16[1].cost;
             }
-            else if( h->mb.i_partition == D_8x8 )
+            else if( i_partition == D_8x8 )
             {
                 int i8x8;
                 i_cost = 0;
@@ -1564,10 +1707,10 @@ void x264_macroblock_analyse( x264_t *h )
             }
 
             x264_mb_analyse_intra( h, &analysis, i_cost );
-            if( h->mb.b_chroma_me &&
+            if( h->mb.b_chroma_me && !analysis.b_mbrd &&
                 ( analysis.i_sad_i16x16 < i_cost
-             ||   analysis.i_sad_i8x8 < i_cost
-             ||   analysis.i_sad_i4x4 < i_cost ))
+               || analysis.i_sad_i8x8 < i_cost
+               || analysis.i_sad_i4x4 < i_cost ))
             {
                 x264_mb_analyse_intra_chroma( h, &analysis );
                 analysis.i_sad_i16x16 += analysis.i_sad_i8x8chroma;
@@ -1591,10 +1734,11 @@ void x264_macroblock_analyse( x264_t *h )
 
             if( i_intra_cost < i_cost )
             {
-                h->mb.i_type = i_intra_type;
+                i_type = i_intra_type;
                 i_cost = i_intra_cost;
             }
 
+            h->mb.i_type = i_type;
             h->stat.frame.i_intra_cost += i_intra_cost;
             h->stat.frame.i_inter_cost += i_cost;
         }
@@ -1784,47 +1928,56 @@ void x264_macroblock_analyse( x264_t *h )
         }
     }
 
-    /*-------------------- Update MB from the analysis ----------------------*/
+    x264_analyse_update_cache( h, &analysis );
+
+    if( !analysis.b_mbrd )
+        x264_mb_analyse_transform( h );
+}
+
+/*-------------------- Update MB from the analysis ----------------------*/
+static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a  )
+{
+    int i;
+
     switch( h->mb.i_type )
     {
         case I_4x4:
             for( i = 0; i < 16; i++ )
             {
                 h->mb.cache.intra4x4_pred_mode[x264_scan8[i]] =
-                    analysis.i_predict4x4[block_idx_x[i]][block_idx_y[i]];
+                    a->i_predict4x4[block_idx_x[i]][block_idx_y[i]];
             }
 
-            x264_mb_analyse_intra_chroma( h, &analysis );
+            x264_mb_analyse_intra_chroma( h, a );
             break;
         case I_8x8:
-            h->mb.b_transform_8x8 = 1;
             for( i = 0; i < 4; i++ )
                 x264_macroblock_cache_intra8x8_pred( h, 2*(i&1), 2*(i>>1),
-                    analysis.i_predict8x8[i&1][i>>1] );
+                    a->i_predict8x8[i&1][i>>1] );
 
-            x264_mb_analyse_intra_chroma( h, &analysis );
+            x264_mb_analyse_intra_chroma( h, a );
             break;
         case I_16x16:
-            h->mb.i_intra16x16_pred_mode = analysis.i_predict16x16;
-            x264_mb_analyse_intra_chroma( h, &analysis );
+            h->mb.i_intra16x16_pred_mode = a->i_predict16x16;
+            x264_mb_analyse_intra_chroma( h, a );
             break;
 
         case P_L0:
-            x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, analysis.l0.i_ref );
+            x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.i_ref );
             switch( h->mb.i_partition )
             {
                 case D_16x16:
-                    x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 0, analysis.l0.me16x16.mv[0], analysis.l0.me16x16.mv[1] );
+                    x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 0, a->l0.me16x16.mv[0], a->l0.me16x16.mv[1] );
                     break;
 
                 case D_16x8:
-                    x264_macroblock_cache_mv ( h, 0, 0, 4, 2, 0, analysis.l0.me16x8[0].mv[0], analysis.l0.me16x8[0].mv[1] );
-                    x264_macroblock_cache_mv ( h, 0, 2, 4, 2, 0, analysis.l0.me16x8[1].mv[0], analysis.l0.me16x8[1].mv[1] );
+                    x264_macroblock_cache_mv ( h, 0, 0, 4, 2, 0, a->l0.me16x8[0].mv[0], a->l0.me16x8[0].mv[1] );
+                    x264_macroblock_cache_mv ( h, 0, 2, 4, 2, 0, a->l0.me16x8[1].mv[0], a->l0.me16x8[1].mv[1] );
                     break;
 
                 case D_8x16:
-                    x264_macroblock_cache_mv ( h, 0, 0, 2, 4, 0, analysis.l0.me8x16[0].mv[0], analysis.l0.me8x16[0].mv[1] );
-                    x264_macroblock_cache_mv ( h, 2, 0, 2, 4, 0, analysis.l0.me8x16[1].mv[0], analysis.l0.me8x16[1].mv[1] );
+                    x264_macroblock_cache_mv ( h, 0, 0, 2, 4, 0, a->l0.me8x16[0].mv[0], a->l0.me8x16[0].mv[1] );
+                    x264_macroblock_cache_mv ( h, 2, 0, 2, 4, 0, a->l0.me8x16[1].mv[0], a->l0.me8x16[1].mv[1] );
                     break;
 
                 default:
@@ -1834,7 +1987,7 @@ void x264_macroblock_analyse( x264_t *h )
             break;
 
         case P_8x8:
-            x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, analysis.l0.i_ref );
+            x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.i_ref );
             for( i = 0; i < 4; i++ )
             {
                 const int x = 2*(i%2);
@@ -1843,21 +1996,21 @@ void x264_macroblock_analyse( x264_t *h )
                 switch( h->mb.i_sub_partition[i] )
                 {
                     case D_L0_8x8:
-                        x264_macroblock_cache_mv( h, x, y, 2, 2, 0, analysis.l0.me8x8[i].mv[0], analysis.l0.me8x8[i].mv[1] );
+                        x264_macroblock_cache_mv( h, x, y, 2, 2, 0, a->l0.me8x8[i].mv[0], a->l0.me8x8[i].mv[1] );
                         break;
                     case D_L0_8x4:
-                        x264_macroblock_cache_mv( h, x, y+0, 2, 1, 0, analysis.l0.me8x4[i][0].mv[0], analysis.l0.me8x4[i][0].mv[1] );
-                        x264_macroblock_cache_mv( h, x, y+1, 2, 1, 0, analysis.l0.me8x4[i][1].mv[0], analysis.l0.me8x4[i][1].mv[1] );
+                        x264_macroblock_cache_mv( h, x, y+0, 2, 1, 0, a->l0.me8x4[i][0].mv[0], a->l0.me8x4[i][0].mv[1] );
+                        x264_macroblock_cache_mv( h, x, y+1, 2, 1, 0, a->l0.me8x4[i][1].mv[0], a->l0.me8x4[i][1].mv[1] );
                         break;
                     case D_L0_4x8:
-                        x264_macroblock_cache_mv( h, x+0, y, 1, 2, 0, analysis.l0.me4x8[i][0].mv[0], analysis.l0.me4x8[i][0].mv[1] );
-                        x264_macroblock_cache_mv( h, x+1, y, 1, 2, 0, analysis.l0.me4x8[i][1].mv[0], analysis.l0.me4x8[i][1].mv[1] );
+                        x264_macroblock_cache_mv( h, x+0, y, 1, 2, 0, a->l0.me4x8[i][0].mv[0], a->l0.me4x8[i][0].mv[1] );
+                        x264_macroblock_cache_mv( h, x+1, y, 1, 2, 0, a->l0.me4x8[i][1].mv[0], a->l0.me4x8[i][1].mv[1] );
                         break;
                     case D_L0_4x4:
-                        x264_macroblock_cache_mv( h, x+0, y+0, 1, 1, 0, analysis.l0.me4x4[i][0].mv[0], analysis.l0.me4x4[i][0].mv[1] );
-                        x264_macroblock_cache_mv( h, x+1, y+0, 1, 1, 0, analysis.l0.me4x4[i][1].mv[0], analysis.l0.me4x4[i][1].mv[1] );
-                        x264_macroblock_cache_mv( h, x+0, y+1, 1, 1, 0, analysis.l0.me4x4[i][2].mv[0], analysis.l0.me4x4[i][2].mv[1] );
-                        x264_macroblock_cache_mv( h, x+1, y+1, 1, 1, 0, analysis.l0.me4x4[i][3].mv[0], analysis.l0.me4x4[i][3].mv[1] );
+                        x264_macroblock_cache_mv( h, x+0, y+0, 1, 1, 0, a->l0.me4x4[i][0].mv[0], a->l0.me4x4[i][0].mv[1] );
+                        x264_macroblock_cache_mv( h, x+1, y+0, 1, 1, 0, a->l0.me4x4[i][1].mv[0], a->l0.me4x4[i][1].mv[1] );
+                        x264_macroblock_cache_mv( h, x+0, y+1, 1, 1, 0, a->l0.me4x4[i][2].mv[0], a->l0.me4x4[i][2].mv[1] );
+                        x264_macroblock_cache_mv( h, x+1, y+1, 1, 1, 0, a->l0.me4x4[i][3].mv[0], a->l0.me4x4[i][3].mv[1] );
                         break;
                     default:
                         x264_log( h, X264_LOG_ERROR, "internal error\n" );
@@ -1890,7 +2043,7 @@ void x264_macroblock_analyse( x264_t *h )
         case B_8x8:
             /* optimize: cache might not need to be rewritten */
             for( i = 0; i < 4; i++ )
-                x264_mb_cache_mv_b8x8( h, &analysis, i, 1 );
+                x264_mb_cache_mv_b8x8( h, a, i, 1 );
             break;
 
         default: /* the rest of the B types */
@@ -1900,8 +2053,8 @@ void x264_macroblock_analyse( x264_t *h )
                 switch( h->mb.i_type )
                 {
                 case B_L0_L0:
-                    x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, analysis.l0.i_ref );
-                    x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 0, analysis.l0.me16x16.mv[0], analysis.l0.me16x16.mv[1] );
+                    x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.i_ref );
+                    x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 0, a->l0.me16x16.mv[0], a->l0.me16x16.mv[1] );
 
                     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, -1 );
                     x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 1,  0, 0 );
@@ -1912,33 +2065,31 @@ void x264_macroblock_analyse( x264_t *h )
                     x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 0,  0, 0 );
                     x264_macroblock_cache_mvd( h, 0, 0, 4, 4, 0,  0, 0 );
 
-                    x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, analysis.l1.i_ref );
-                    x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 1, analysis.l1.me16x16.mv[0], analysis.l1.me16x16.mv[1] );
+                    x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, a->l1.i_ref );
+                    x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 1, a->l1.me16x16.mv[0], a->l1.me16x16.mv[1] );
                     break;
                 case B_BI_BI:
-                    x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, analysis.l0.i_ref );
-                    x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 0, analysis.l0.me16x16.mv[0], analysis.l0.me16x16.mv[1] );
+                    x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.i_ref );
+                    x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 0, a->l0.me16x16.mv[0], a->l0.me16x16.mv[1] );
 
-                    x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, analysis.l1.i_ref );
-                    x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 1, analysis.l1.me16x16.mv[0], analysis.l1.me16x16.mv[1] );
+                    x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, a->l1.i_ref );
+                    x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 1, a->l1.me16x16.mv[0], a->l1.me16x16.mv[1] );
                     break;
                 }
                 break;
             case D_16x8:
-                x264_mb_cache_mv_b16x8( h, &analysis, 0, 1 );
-                x264_mb_cache_mv_b16x8( h, &analysis, 1, 1 );
+                x264_mb_cache_mv_b16x8( h, a, 0, 1 );
+                x264_mb_cache_mv_b16x8( h, a, 1, 1 );
                 break;
             case D_8x16:
-                x264_mb_cache_mv_b8x16( h, &analysis, 0, 1 );
-                x264_mb_cache_mv_b8x16( h, &analysis, 1, 1 );
+                x264_mb_cache_mv_b8x16( h, a, 0, 1 );
+                x264_mb_cache_mv_b8x16( h, a, 1, 1 );
                 break;
             default:
                 x264_log( h, X264_LOG_ERROR, "internal error (invalid MB type)\n" );
                 break;
             }
     }
-
-    x264_mb_analyse_transform( h );
 }
 
 #include "slicetype_decision.c"

@@ -404,6 +404,7 @@ struct x264_t
         } cache;
 
         /* */
+        int     i_qp;       /* current qp */
         int     i_last_qp;  /* last qp */
         int     i_last_dqp; /* last delta qp */
         int     b_variable_qp; /* whether qp is allowed to vary per macroblock */

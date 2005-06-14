@@ -75,5 +75,9 @@ void x264_cabac_encode_bypass( x264_cabac_t *cb, int b );
 void x264_cabac_encode_terminal( x264_cabac_t *cb, int b );
 void x264_cabac_encode_flush( x264_cabac_t *cb );
 
+static inline int x264_cabac_pos( x264_cabac_t *cb )
+{
+    return bs_pos( cb->s ) + cb->i_bits_outstanding;
+}
 
 #endif

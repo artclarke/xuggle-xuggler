@@ -39,7 +39,8 @@ static const int subpel_iterations[][4] =
     {1,2,0,0},
     {0,2,1,0},
     {0,2,1,1},
-    {0,2,1,2}};
+    {0,2,1,2},
+    {0,0,2,3}};
 
 static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters );
 

@@ -450,13 +450,13 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
                 }
             }
         }
-        bs_write_ue( s, h->mb.i_chroma_pred_mode );
+        bs_write_ue( s, x264_mb_pred_mode8x8c_fix[ h->mb.i_chroma_pred_mode ] );
     }
     else if( i_mb_type == I_16x16 )
     {
         bs_write_ue( s, i_mb_i_offset + 1 + h->mb.i_intra16x16_pred_mode +
                         h->mb.i_cbp_chroma * 4 + ( h->mb.i_cbp_luma == 0 ? 0 : 12 ) );
-        bs_write_ue( s, h->mb.i_chroma_pred_mode );
+        bs_write_ue( s, x264_mb_pred_mode8x8c_fix[ h->mb.i_chroma_pred_mode ] );
     }
     else if( i_mb_type == P_L0 )
     {

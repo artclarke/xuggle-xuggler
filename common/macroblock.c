@@ -1485,7 +1485,7 @@ void x264_macroblock_cache_save( x264_t *h )
     if( h->param.b_cabac )
     {
         if( i_mb_type == I_4x4 || i_mb_type == I_16x16 )
-            h->mb.chroma_pred_mode[i_mb_xy] = h->mb.i_chroma_pred_mode;
+            h->mb.chroma_pred_mode[i_mb_xy] = x264_mb_pred_mode8x8c_fix[ h->mb.i_chroma_pred_mode ];
         else
             h->mb.chroma_pred_mode[i_mb_xy] = I_PRED_CHROMA_DC;
 

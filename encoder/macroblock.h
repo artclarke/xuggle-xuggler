@@ -34,7 +34,7 @@ static inline int x264_macroblock_probe_bskip( x264_t *h )
     { return x264_macroblock_probe_skip( h, 1 ); }
 
 void x264_macroblock_encode      ( x264_t *h );
-void x264_macroblock_write_cabac ( x264_t *h, bs_t *s );
+void x264_macroblock_write_cabac ( x264_t *h, x264_cabac_t *cb );
 void x264_macroblock_write_cavlc ( x264_t *h, bs_t *s );
 
 void x264_cabac_mb_skip( x264_t *h, int b_skip );

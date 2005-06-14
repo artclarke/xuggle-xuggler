@@ -587,7 +587,7 @@ void x264_macroblock_encode_pskip( x264_t *h )
 void x264_macroblock_encode( x264_t *h )
 {
     int i_cbp_dc = 0;
-    int i_qscale;
+    int i_qp = h->mb.i_qp;
     int i;
 
     if( h->mb.i_type == P_SKIP )
@@ -604,23 +604,22 @@ void x264_macroblock_encode( x264_t *h )
         return;
     }
 
-    /* quantification scale */
-    i_qscale = h->mb.qp[h->mb.i_mb_xy];
-
     if( h->mb.i_type == I_16x16 )
     {
         const int i_mode = h->mb.i_intra16x16_pred_mode;
+        h->mb.b_transform_8x8 = 0;
         /* do the right prediction */
         h->predict_16x16[i_mode]( h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0] );
 
         /* encode the 16x16 macroblock */
-        x264_mb_encode_i16x16( h, i_qscale );
+        x264_mb_encode_i16x16( h, i_qp );
 
         /* fix the pred mode value */
         h->mb.i_intra16x16_pred_mode = x264_mb_pred_mode16x16_fix[i_mode];
     }
     else if( h->mb.i_type == I_8x8 )
     {
+        h->mb.b_transform_8x8 = 1;
         for( i = 0; i < 4; i++ )
         {
             const int i_dst = h->mb.pic.i_stride[0];
@@ -628,12 +627,13 @@ void x264_macroblock_encode( x264_t *h )
             int      i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[4*i]];
 
             h->predict_8x8[i_mode]( p_dst, i_dst, h->mb.i_neighbour8[i] );
-            x264_mb_encode_i8x8( h, i, i_qscale );
+            x264_mb_encode_i8x8( h, i, i_qp );
             h->mb.cache.intra4x4_pred_mode[x264_scan8[4*i]] = x264_mb_pred_mode4x4_fix(i_mode);
         }
     }
     else if( h->mb.i_type == I_4x4 )
     {
+        h->mb.b_transform_8x8 = 0;
         for( i = 0; i < 16; i++ )
         {
             const int i_dst = h->mb.pic.i_stride[0];
@@ -641,7 +641,7 @@ void x264_macroblock_encode( x264_t *h )
             int      i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[i]];
 
             h->predict_4x4[i_mode]( p_dst, i_dst );
-            x264_mb_encode_i4x4( h, i, i_qscale );
+            x264_mb_encode_i4x4( h, i, i_qp );
             h->mb.cache.intra4x4_pred_mode[x264_scan8[i]] = x264_mb_pred_mode4x4_fix(i_mode);
         }
     }
@@ -664,9 +664,9 @@ void x264_macroblock_encode( x264_t *h )
             {
                 int i_decimate_8x8;
 
-                quant_8x8( dct8x8[idx], i_qscale, 0 );
+                quant_8x8( dct8x8[idx], i_qp, 0 );
                 scan_zigzag_8x8full( h->dct.luma8x8[idx], dct8x8[idx] );
-                x264_mb_dequant_8x8( dct8x8[idx], i_qscale );
+                x264_mb_dequant_8x8( dct8x8[idx], i_qp );
 
                 i_decimate_8x8 = x264_mb_decimate_score( h->dct.luma8x8[idx], 64 );
                 i_decimate_mb += i_decimate_8x8;
@@ -699,9 +699,9 @@ void x264_macroblock_encode( x264_t *h )
                 {
                     idx = i8x8 * 4 + i4x4;
 
-                    quant_4x4( dct4x4[idx], i_qscale, 0 );
+                    quant_4x4( dct4x4[idx], i_qp, 0 );
                     scan_zigzag_4x4full( h->dct.block[idx].luma4x4, dct4x4[idx] );
-                    x264_mb_dequant_4x4( dct4x4[idx], i_qscale );
+                    x264_mb_dequant_4x4( dct4x4[idx], i_qp );
 
                     i_decimate_8x8 += x264_mb_decimate_score( h->dct.block[idx].luma4x4, 16 );
                 }
@@ -733,20 +733,16 @@ void x264_macroblock_encode( x264_t *h )
     }
 
     /* encode chroma */
-    i_qscale = i_chroma_qp_table[x264_clip3( i_qscale + h->pps->i_chroma_qp_index_offset, 0, 51 )];
+    i_qp = i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )];
     if( IS_INTRA( h->mb.i_type ) )
     {
         const int i_mode = h->mb.i_chroma_pred_mode;
-        /* do the right prediction */
         h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[1], h->mb.pic.i_stride[1] );
         h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[2], h->mb.pic.i_stride[2] );
-
-        /* fix the pred mode value */
-        h->mb.i_chroma_pred_mode = x264_mb_pred_mode8x8c_fix[i_mode];
     }
 
     /* encode the 8x8 blocks */
-    x264_mb_encode_8x8_chroma( h, !IS_INTRA( h->mb.i_type ), i_qscale );
+    x264_mb_encode_8x8_chroma( h, !IS_INTRA( h->mb.i_type ), i_qp );
 
     /* Calculate the Luma/Chroma patern and non_zero_count */
     h->mb.i_cbp_luma = 0x00;
@@ -841,7 +837,7 @@ void x264_macroblock_encode( x264_t *h )
         {
             h->mb.i_type = P_SKIP;
             h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp;  /* Needed */
-            /* XXX qp reset may have issues when used in RD instead of the real encode*/
+            /* XXX qp reset may have issues when used in RD instead of the real encode */
         }
     }
 
@@ -868,15 +864,12 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
     DECLARE_ALIGNED( int16_t, dct2x2[2][2], 16 );
     DECLARE_ALIGNED( int,     dctscan[16], 16 );
 
-    int i_qp;
+    int i_qp = h->mb.i_qp;
     int mvp[2];
     int ch;
 
     int i8x8, i4x4;
     int i_decimate_mb;
-
-    /* quantization scale */
-    i_qp = h->mb.qp[h->mb.i_mb_xy];
 
     if( !b_bidir )
     {
