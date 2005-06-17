@@ -222,12 +222,12 @@ CAPTION "About x264"
 FONT 8, "MS Sans Serif"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,158,109,48,14
-    CTEXT           "Copyright 2005 Laurent Aimar, Justin Clay, Min Chen,\nEric Petit, Måns Rullgård, Loren Merritt\n\nThis program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation",
-                    IDC_STATIC,7,47,199,51
     PUSHBUTTON      "Visit Homepage",IDC_HOMEPAGE,7,109,77,14
     CTEXT           "BUILD",IDC_BUILD,13,20,173,8,SS_CENTERIMAGE
     LTEXT           "x264 - H.264/MPEG-4 AVC codec",IDC_X264,53,8,145,8,
                     SS_CENTERIMAGE
+    CTEXT           "Copyright 2005 Laurent Aimar, Justin Clay, Min Chen,\nEric Petit, Måns Rullgård, Loren Merritt\n\nThis program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation",
+                    IDC_STATIC,7,47,199,51
 END
 
 IDD_ERRCONSOLE DIALOG DISCARDABLE  0, 0, 264, 130
