@@ -98,6 +98,9 @@ typedef struct
 
         /* FIXME to complete */
     } vui;
+
+    int b_qpprime_y_zero_transform_bypass;
+
 } x264_sps_t;
 
 typedef struct

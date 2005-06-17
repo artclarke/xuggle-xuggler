@@ -383,6 +383,15 @@ static int x264_validate_parameters( x264_t *h )
     }
 #endif
 
+    if( !h->param.rc.b_cbr && h->param.rc.i_qp_constant == 0 )
+    {
+        h->mb.b_lossless = 1;
+        h->param.analyse.b_transform_8x8 = 0;
+        h->param.rc.f_ip_factor = 1;
+        h->param.rc.f_pb_factor = 1;
+        h->param.analyse.b_psnr = 0;
+    }
+
     h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, 16 );
     if( h->param.i_keyint_max <= 0 )
         h->param.i_keyint_max = 1;
@@ -559,6 +568,10 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     x264_mc_init( h->param.cpu, &h->mc );
     x264_csp_init( h->param.cpu, h->param.i_csp, &h->csp );
 
+    memcpy( h->pixf.mbcmp,
+            ( h->mb.b_lossless || h->param.analyse.i_subpel_refine <= 1 ) ? h->pixf.sad : h->pixf.satd,
+            sizeof(h->pixf.mbcmp) );
+
     /* rate control */
     if( x264_ratecontrol_new( h ) < 0 )
         return NULL;
@@ -594,6 +607,11 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     if( h->sps->b_direct8x8_inference && h->param.i_bframe
         && h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_TEMPORAL )
         h->param.analyse.inter &= ~X264_ANALYSE_PSUB8x8;
+
+    memcpy( h->pixf.mbcmp,
+            ( h->mb.b_lossless || h->param.analyse.i_subpel_refine <= 1 ) ? h->pixf.sad : h->pixf.satd,
+            sizeof(h->pixf.mbcmp) );
+
     return x264_validate_parameters( h );
 }
 

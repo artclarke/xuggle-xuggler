@@ -246,7 +246,7 @@ umh_small_hex:
 
     /* compute the real cost */
     m->cost_mv = p_cost_mvx[ m->mv[0] ] + p_cost_mvy[ m->mv[1] ];
-    m->cost = h->pixf.satd[i_pixel]( m->p_fenc[0], m->i_stride[0],
+    m->cost = h->pixf.mbcmp[i_pixel]( m->p_fenc[0], m->i_stride[0],
                     &p_fref[bmy * m->i_stride[0] + bmx], m->i_stride[0] )
             + m->cost_mv;
     if( b_chroma_me )
@@ -256,8 +256,8 @@ umh_small_hex:
         DECLARE_ALIGNED( uint8_t, pix[8*8*2], 16 );
         h->mc.mc_chroma( m->p_fref[4], m->i_stride[1], pix, 8, m->mv[0], m->mv[1], bw/2, bh/2 );
         h->mc.mc_chroma( m->p_fref[5], m->i_stride[1], pix+8*8, 8, m->mv[0], m->mv[1], bw/2, bh/2 );
-        m->cost += h->pixf.satd[i_pixel+3]( m->p_fenc[1], m->i_stride[1], pix, 8 )
-                 + h->pixf.satd[i_pixel+3]( m->p_fenc[2], m->i_stride[1], pix+8*8, 8 );
+        m->cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[1], m->i_stride[1], pix, 8 )
+                 + h->pixf.mbcmp[i_pixel+3]( m->p_fenc[2], m->i_stride[1], pix+8*8, 8 );
     }
 
     /* subpel refine */
@@ -295,16 +295,16 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
 { \
     int stride = 16; \
     uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix, &stride, mx, my, bw, bh ); \
-    int cost = h->pixf.satd[i_pixel]( m->p_fenc[0], m->i_stride[0], src, stride ) \
+    int cost = h->pixf.mbcmp[i_pixel]( m->p_fenc[0], m->i_stride[0], src, stride ) \
              + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
     if( b_chroma_me && cost < bcost ) \
     { \
         h->mc.mc_chroma( m->p_fref[4], m->i_stride[1], pix, 8, mx, my, bw/2, bh/2 ); \
-        cost += h->pixf.satd[i_pixel+3]( m->p_fenc[1], m->i_stride[1], pix, 8 ); \
+        cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[1], m->i_stride[1], pix, 8 ); \
         if( cost < bcost ) \
         { \
             h->mc.mc_chroma( m->p_fref[5], m->i_stride[1], pix, 8, mx, my, bw/2, bh/2 ); \
-            cost += h->pixf.satd[i_pixel+3]( m->p_fenc[2], m->i_stride[1], pix, 8 ); \
+            cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[2], m->i_stride[1], pix, 8 ); \
         } \
     } \
     if( cost < bcost ) \

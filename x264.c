@@ -180,7 +180,7 @@ static void Help( x264_param_t *defaults )
              "\n"
              "Ratecontrol:\n"
              "\n"
-             "  -q, --qp <integer>          Set QP [%d]\n"
+             "  -q, --qp <integer>          Set QP (0=lossless) [%d]\n"
              "  -B, --bitrate <integer>     Set bitrate\n"
              "      --qpmin <integer>       Set min QP [%d]\n"
              "      --qpmax <integer>       Set max QP [%d]\n"

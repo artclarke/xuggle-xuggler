@@ -67,6 +67,7 @@ typedef struct
     x264_pixel_cmp_t  ssd[7];
     x264_pixel_cmp_t satd[7];
     x264_pixel_cmp_t sa8d[4];
+    x264_pixel_cmp_t mbcmp[7]; /* either satd or sad for subpel refine and mode decision */
     x264_pixel_avg_t  avg[10];
     x264_pixel_avg_weight_t avg_weight[10];
 } x264_pixel_function_t;

@@ -179,6 +179,27 @@ static inline void scan_zigzag_2x2_dc( int level[4], int16_t dct[2][2] )
 }
 #undef ZIG
 
+#define ZIG(i,y,x) {\
+    int o = x+y*i_stride;\
+    level[i] = p_src[o] - p_dst[o];\
+    p_dst[o] = p_src[o];\
+}
+static inline void sub_zigzag_4x4full( int level[16], const uint8_t *p_src, uint8_t *p_dst, int i_stride )
+{
+    ZIG( 0,0,0) ZIG( 1,0,1) ZIG( 2,1,0) ZIG( 3,2,0)
+    ZIG( 4,1,1) ZIG( 5,0,2) ZIG( 6,0,3) ZIG( 7,1,2)
+    ZIG( 8,2,1) ZIG( 9,3,0) ZIG(10,3,1) ZIG(11,2,2)
+    ZIG(12,1,3) ZIG(13,2,3) ZIG(14,3,2) ZIG(15,3,3)
+}
+static inline void sub_zigzag_4x4( int level[15], const uint8_t *p_src, uint8_t *p_dst, int i_stride )
+{
+                ZIG( 0,0,1) ZIG( 1,1,0) ZIG( 2,2,0)
+    ZIG( 3,1,1) ZIG( 4,0,2) ZIG( 5,0,3) ZIG( 6,1,2)
+    ZIG( 7,2,1) ZIG( 8,3,0) ZIG( 9,3,1) ZIG(10,2,2)
+    ZIG(11,1,3) ZIG(12,2,3) ZIG(13,3,2) ZIG(14,3,3)
+}
+#undef ZIG
+
 static void quant_8x8( int16_t dct[8][8], int i_qscale, int b_intra )
 {
     const int i_qbits = 16 + i_qscale / 6;
@@ -405,6 +426,12 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale )
     uint8_t *p_dst = &h->mb.pic.p_fdec[0][i_offset];
     int16_t dct4x4[4][4];
 
+    if( h->mb.b_lossless )
+    {
+        sub_zigzag_4x4full( h->dct.block[idx].luma4x4, p_src, p_dst, i_stride );
+        return;
+    }
+
     h->dctf.sub4x4_dct( dct4x4, p_src, i_stride, p_dst, i_stride );
     quant_4x4( dct4x4, i_qscale, 1 );
     scan_zigzag_4x4full( h->dct.block[idx].luma4x4, dct4x4 );
@@ -438,6 +465,19 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
     int16_t dct4x4[16+1][4][4];
 
     int i;
+
+    if( h->mb.b_lossless )
+    {
+        for( i = 0; i < 16; i++ )
+        {
+            int o = block_idx_x[i]*4 + block_idx_y[i]*4*i_stride;
+            sub_zigzag_4x4( h->dct.block[i].residual_ac, p_src+o, p_dst+o, i_stride );
+            dct4x4[0][block_idx_y[i]][block_idx_x[i]] = p_src[o] - p_dst[o];
+            p_dst[o] = p_src[o];
+        }
+        scan_zigzag_4x4full( h->dct.luma16x16_dc, dct4x4[0] );
+        return;
+    }
 
     h->dctf.sub16x16_dct( &dct4x4[1], p_src, i_stride, p_dst, i_stride );
     for( i = 0; i < 16; i++ )
@@ -483,6 +523,18 @@ static void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
         int16_t dct2x2[2][2];
         int16_t dct4x4[4][4][4];
 
+        if( h->mb.b_lossless )
+        {
+            for( i = 0; i < 4; i++ )
+            {
+                int o = block_idx_x[i]*4 + block_idx_y[i]*4*i_stride;
+                sub_zigzag_4x4( h->dct.block[16+i+ch*4].residual_ac, p_src+o, p_dst+o, i_stride );
+                h->dct.chroma_dc[ch][i] = p_src[o] - p_dst[o];
+                p_dst[o] = p_src[o];
+            }
+            continue;
+        }
+            
         h->dctf.sub8x8_dct( dct4x4, p_src, i_stride, p_dst, i_stride );
         /* calculate dct coeffs */
         for( i = 0; i < 4; i++ )
@@ -653,7 +705,15 @@ void x264_macroblock_encode( x264_t *h )
         /* Motion compensation */
         x264_mb_mc( h );
 
-        if( h->mb.b_transform_8x8 )
+        if( h->mb.b_lossless )
+        {
+            for( i4x4 = 0; i4x4 < 16; i4x4++ )
+            {
+                int o = block_idx_x[i4x4]*4 + block_idx_y[i4x4]*4 * h->mb.pic.i_stride[0];
+                sub_zigzag_4x4full( h->dct.block[i4x4].luma4x4, h->mb.pic.p_fenc[0]+o, h->mb.pic.p_fdec[0]+o, h->mb.pic.i_stride[0] );
+            }
+        }
+        else if( h->mb.b_transform_8x8 )
         {
             int16_t dct8x8[4][8][8];
             h->dctf.sub16x16_dct8( dct8x8,
@@ -758,8 +818,8 @@ void x264_macroblock_encode( x264_t *h )
     }
     else if( h->mb.b_transform_8x8 )
     {
-        /* coded_block_flag is enough for CABAC,
-         * but CAVLC needs the full non_zero_count. */
+        /* coded_block_flag is enough for CABAC.
+         * the full non_zero_count is done only in CAVLC. */
         for( i = 0; i < 4; i++ )
         {
             const int nz = array_non_zero( h->dct.luma8x8[i], 64 );

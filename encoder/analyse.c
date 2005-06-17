@@ -445,10 +445,10 @@ static void x264_mb_analyse_intra_chroma( x264_t *h, x264_mb_analysis_t *a )
         h->predict_8x8c[i_mode]( p_dstc[1], i_stride[1] );
 
         /* we calculate the cost */
-        i_sad = h->pixf.satd[PIXEL_8x8]( p_dstc[0], i_stride[0],
-                                         p_srcc[0], i_stride[0] ) +
-                h->pixf.satd[PIXEL_8x8]( p_dstc[1], i_stride[1],
-                                         p_srcc[1], i_stride[1] ) +
+        i_sad = h->pixf.mbcmp[PIXEL_8x8]( p_dstc[0], i_stride[0],
+                                          p_srcc[0], i_stride[0] ) +
+                h->pixf.mbcmp[PIXEL_8x8]( p_dstc[1], i_stride[1],
+                                          p_srcc[1], i_stride[1] ) +
                 a->i_lambda * bs_size_ue( x264_mb_pred_mode8x8c_fix[i_mode] );
 
         /* if i_score is lower it is better */
@@ -488,7 +488,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_cost_
         i_mode = predict_mode[i];
         h->predict_16x16[i_mode]( p_dst, i_stride );
 
-        i_sad = h->pixf.satd[PIXEL_16x16]( p_dst, i_stride, p_src, i_stride ) +
+        i_sad = h->pixf.mbcmp[PIXEL_16x16]( p_dst, i_stride, p_src, i_stride ) +
                 a->i_lambda * bs_size_ue( x264_mb_pred_mode16x16_fix[i_mode] );
         if( a->i_sad_i16x16 > i_sad )
         {
@@ -550,8 +550,8 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_cost_
                 i_mode = predict_mode[i];
                 h->predict_4x4[i_mode]( p_dst_by, i_stride );
 
-                i_sad = h->pixf.satd[PIXEL_4x4]( p_dst_by, i_stride,
-                                                 p_src_by, i_stride )
+                i_sad = h->pixf.mbcmp[PIXEL_4x4]( p_dst_by, i_stride,
+                                                  p_src_by, i_stride )
                       + a->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) ? 1 : 4);
 
                 if( i_best > i_sad )
@@ -619,8 +619,8 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_cost_
                 h->predict_8x8[i_mode]( p_dst_by, i_stride, h->mb.i_neighbour );
 
                 /* could use sa8d, but it doesn't seem worth the speed cost (without mmx at least) */
-                i_sad = h->pixf.satd[PIXEL_8x8]( p_dst_by, i_stride,
-                                                 p_src_by, i_stride )
+                i_sad = h->pixf.mbcmp[PIXEL_8x8]( p_dst_by, i_stride,
+                                                  p_src_by, i_stride )
                       + a->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) ? 1 : 4);
 
                 if( i_best > i_sad )
@@ -892,8 +892,8 @@ static int x264_mb_analyse_inter_p4x4_chroma( x264_t *h, x264_mb_analysis_t *a, 
         CHROMA4x4MC( 2,4, a->l0.me4x8[i8x8][1], 2,0 );
     }
 
-    return h->pixf.satd[PIXEL_4x4]( &h->mb.pic.p_fenc[1][off], i_stride, pix1, 8 )
-         + h->pixf.satd[PIXEL_4x4]( &h->mb.pic.p_fenc[2][off], i_stride, pix2, 8 );
+    return h->pixf.mbcmp[PIXEL_4x4]( &h->mb.pic.p_fenc[1][off], i_stride, pix1, 8 )
+         + h->pixf.mbcmp[PIXEL_4x4]( &h->mb.pic.p_fenc[2][off], i_stride, pix2, 8 );
 }
 
 static void x264_mb_analyse_inter_p4x4( x264_t *h, x264_mb_analysis_t *a, int i8x8 )
@@ -1028,7 +1028,7 @@ static void x264_mb_analyse_inter_direct( x264_t *h, x264_mb_analysis_t *a )
         const int off = 8 * x8 + 8 * i_stride * y8;
         a->i_cost16x16direct +=
         a->i_cost8x8direct[i] =
-            h->pixf.satd[PIXEL_8x8]( &p_fenc[0][off], i_stride, &p_fdec[0][off], i_stride );
+            h->pixf.mbcmp[PIXEL_8x8]( &p_fenc[0][off], i_stride, &p_fdec[0][off], i_stride );
 
         /* mb type cost */
         a->i_cost8x8direct[i] += a->i_lambda * i_sub_mb_b_cost_table[D_DIRECT_8x8];
@@ -1158,7 +1158,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     else
         h->pixf.avg[PIXEL_16x16]( pix1, 16, src2, stride2 );
 
-    a->i_cost16x16bi = h->pixf.satd[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0], pix1, 16 )
+    a->i_cost16x16bi = h->pixf.mbcmp[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0], pix1, 16 )
                      + a->i_lambda * ( bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, a->l0.i_ref )
                                      + bs_size_te( h->sh.i_num_ref_idx_l1_active - 1, a->l1.i_ref ) )
                      + a->l0.me16x16.cost_mv
@@ -1269,7 +1269,7 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
         }
 
         WEIGHTED_AVG( PIXEL_8x8, pix[0], 8, pix[1], 8 );
-        i_part_cost_bi += h->pixf.satd[PIXEL_8x8]( a->l0.me8x8[i].p_fenc[0], h->mb.pic.i_stride[0], pix[0], 8 )
+        i_part_cost_bi += h->pixf.mbcmp[PIXEL_8x8]( a->l0.me8x8[i].p_fenc[0], h->mb.pic.i_stride[0], pix[0], 8 )
                         + a->i_lambda * i_sub_mb_b_cost_table[D_BI_8x8];
         a->l0.me8x8[i].cost += a->i_lambda * i_sub_mb_b_cost_table[D_L0_8x8];
         a->l1.me8x8[i].cost += a->i_lambda * i_sub_mb_b_cost_table[D_L1_8x8];
@@ -1346,7 +1346,7 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
         }
 
         WEIGHTED_AVG( PIXEL_16x8, pix[0], 16, pix[1], 16 );
-        i_part_cost_bi += h->pixf.satd[PIXEL_16x8]( a->l0.me16x8[i].p_fenc[0], h->mb.pic.i_stride[0], pix[0], 16 );
+        i_part_cost_bi += h->pixf.mbcmp[PIXEL_16x8]( a->l0.me16x8[i].p_fenc[0], h->mb.pic.i_stride[0], pix[0], 16 );
 
         i_part_cost = a->l0.me16x8[i].cost;
         a->i_mb_partition16x8[i] = D_L0_8x8; /* not actually 8x8, only the L0 matters */
@@ -1416,7 +1416,7 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
         }
 
         WEIGHTED_AVG( PIXEL_8x16, pix[0], 8, pix[1], 8 );
-        i_part_cost_bi += h->pixf.satd[PIXEL_8x16]( a->l0.me8x16[i].p_fenc[0], h->mb.pic.i_stride[0], pix[0], 8 );
+        i_part_cost_bi += h->pixf.mbcmp[PIXEL_8x16]( a->l0.me8x16[i].p_fenc[0], h->mb.pic.i_stride[0], pix[0], 8 );
 
         i_part_cost = a->l0.me8x16[i].cost;
         a->i_mb_partition8x16[i] = D_L0_8x8;
@@ -1526,10 +1526,11 @@ void x264_macroblock_analyse( x264_t *h )
         int i_intra_cost, i_intra_type;
 
         /* Fast P_SKIP detection */
-        if( ( h->mb.i_mb_type_left == P_SKIP ) ||
+        if( !h->mb.b_lossless &&
+           (( h->mb.i_mb_type_left == P_SKIP ) ||
             ( h->mb.i_mb_type_top == P_SKIP ) ||
             ( h->mb.i_mb_type_topleft == P_SKIP ) ||
-            ( h->mb.i_mb_type_topright == P_SKIP ) )
+            ( h->mb.i_mb_type_topright == P_SKIP )))
         {
             b_skip = x264_macroblock_probe_pskip( h );
         }
@@ -1755,7 +1756,7 @@ void x264_macroblock_analyse( x264_t *h )
 
             /* Conditioning the probe on neighboring block types
              * doesn't seem to help speed or quality. */
-            b_skip = x264_macroblock_probe_bskip( h );
+            b_skip = !h->mb.b_lossless && x264_macroblock_probe_bskip( h );
         }
 
         if( !b_skip )

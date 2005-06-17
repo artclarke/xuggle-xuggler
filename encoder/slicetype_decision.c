@@ -121,7 +121,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         src2 = h->mc.get_ref( m[1].p_fref, m[1].i_stride[0], pix2, &stride2, \
                        (mv1)[0], (mv1)[1], 8, 8 ); \
         h->pixf.avg[PIXEL_8x8]( pix1, 8, src2, stride2 ); \
-        i_cost = penalty + h->pixf.satd[PIXEL_8x8]( \
+        i_cost = penalty + h->pixf.mbcmp[PIXEL_8x8]( \
                            m[0].p_fenc[0], m[0].i_stride[0], pix1, 8 ); \
         if( i_bcost > i_cost ) \
         { \
@@ -198,7 +198,7 @@ lowres_intra_mb:
         {
             int i_cost;
             h->predict_8x8c[i]( &pix1[10], 9 );
-            i_cost = h->pixf.satd[PIXEL_8x8]( &pix1[10], 9, src, i_stride ) + intra_penalty;
+            i_cost = h->pixf.mbcmp[PIXEL_8x8]( &pix1[10], 9, src, i_stride ) + intra_penalty;
             i_bcost = X264_MIN( i_bcost, i_cost );
         }
         if( i_bcost != i_cost_bak )
