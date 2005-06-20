@@ -239,6 +239,11 @@ struct x264_t
     x264_pps_t      *pps;
     int             i_idr_pic_id;
 
+    int             dequant4_mf[4][6][4][4];
+    int             dequant8_mf[2][6][8][8];
+    int             quant4_mf[4][6][4][4];
+    int             quant8_mf[2][6][8][8];
+
     /* Slice header */
     x264_slice_header_t sh;
 

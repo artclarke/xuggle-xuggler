@@ -4,7 +4,7 @@ include config.mak
 
 SRCS = common/mc.c common/predict.c common/pixel.c common/macroblock.c \
        common/frame.c common/dct.c common/cpu.c common/cabac.c \
-       common/common.c common/mdate.c common/csp.c \
+       common/common.c common/mdate.c common/csp.c common/set.c\
        encoder/analyse.c encoder/me.c encoder/ratecontrol.c \
        encoder/set.c encoder/macroblock.c encoder/cabac.c \
        encoder/cavlc.c encoder/encoder.c encoder/eval.c

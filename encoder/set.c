@@ -34,9 +34,36 @@
 
 #include "x264.h"
 #include "common/common.h"
+#include "common/macroblock.h"
 #ifndef _MSC_VER
 #include "config.h"
 #endif
+
+static const uint8_t *const x264_cqm_jvt[6] =
+{
+    x264_cqm_jvt4i, x264_cqm_jvt4p,
+    x264_cqm_jvt4i, x264_cqm_jvt4p,
+    x264_cqm_jvt8i, x264_cqm_jvt8p
+};
+
+static void scaling_list_write( bs_t *s, x264_pps_t *pps, int idx )
+{
+    const int len = idx<4 ? 16 : 64;
+    const int *zigzag = idx<4 ? x264_zigzag_scan4 : x264_zigzag_scan8;
+    const uint8_t *list = pps->scaling_list[idx];
+    const uint8_t *def_list = (idx==CQM_4IC) ? pps->scaling_list[CQM_4IY]
+                            : (idx==CQM_4PC) ? pps->scaling_list[CQM_4PY]
+                            : x264_cqm_jvt[idx];
+    int j;
+    if( memcmp( list, def_list, len ) )
+    {
+        bs_write( s, 1, 1 ); // scaling_list_present_flag
+        for( j = 0; j < len; j++ )
+            bs_write_se( s, list[zigzag[j]] - (j>0 ? list[zigzag[j-1]] : 8) ); // delta
+    }
+    else
+        bs_write( s, 1, 0 ); // scaling_list_present_flag
+}
 
 void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 {
@@ -45,7 +72,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     sps->b_qpprime_y_zero_transform_bypass = !param->rc.b_cbr && param->rc.i_qp_constant == 0;
     if( sps->b_qpprime_y_zero_transform_bypass )
         sps->i_profile_idc  = PROFILE_HIGH444;
-    else if( param->analyse.b_transform_8x8 )
+    else if( param->analyse.b_transform_8x8 || param->i_cqm_preset != X264_CQM_FLAT )
         sps->i_profile_idc  = PROFILE_HIGH;
     else if( param->b_cabac || param->i_bframe > 0 )
         sps->i_profile_idc  = PROFILE_MAIN;
@@ -286,6 +313,8 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
 
 void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *sps )
 {
+    int i, j;
+
     pps->i_id = i_id;
     pps->i_sps_id = sps->i_id;
     pps->b_cabac = param->b_cabac;
@@ -296,8 +325,6 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
 #if 0
     if( pps->i_num_slice_groups > 1 )
     {
-        int i;
-
         pps->i_slice_group_map_type = 0;
         if( pps->i_slice_group_map_type == 0 )
         {
@@ -345,6 +372,31 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
     pps->b_redundant_pic_cnt = 0;
 
     pps->b_transform_8x8_mode = param->analyse.b_transform_8x8 ? 1 : 0;
+
+    pps->i_cqm_preset = param->i_cqm_preset;
+    switch( pps->i_cqm_preset )
+    {
+    case X264_CQM_FLAT:
+        for( i = 0; i < 6; i++ )
+            pps->scaling_list[i] = x264_cqm_flat16;
+        break;
+    case X264_CQM_JVT:
+        for( i = 0; i < 6; i++ )
+            pps->scaling_list[i] = x264_cqm_jvt[i];
+        break;
+    case X264_CQM_CUSTOM:
+        pps->scaling_list[CQM_4IY] = param->cqm_4iy;
+        pps->scaling_list[CQM_4IC] = param->cqm_4ic;
+        pps->scaling_list[CQM_4PY] = param->cqm_4py;
+        pps->scaling_list[CQM_4PC] = param->cqm_4pc;
+        pps->scaling_list[CQM_8IY+4] = param->cqm_8iy;
+        pps->scaling_list[CQM_8PY+4] = param->cqm_8py;
+        for( i = 0; i < 6; i++ )
+            for( j = 0; j < (i<4?16:64); j++ )
+                if( pps->scaling_list[i][j] == 0 )
+                    pps->scaling_list[i] = x264_cqm_jvt[i];
+        break;
+    }
 }
 
 void x264_pps_write( bs_t *s, x264_pps_t *pps )
@@ -410,11 +462,25 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
     bs_write( s, 1, pps->b_constrained_intra_pred );
     bs_write( s, 1, pps->b_redundant_pic_cnt );
 
-    if( pps->b_transform_8x8_mode )
+    if( pps->b_transform_8x8_mode || pps->i_cqm_preset != X264_CQM_FLAT )
     {
         bs_write( s, 1, pps->b_transform_8x8_mode );
-        bs_write( s, 1, 0 ); // pic_scaling_matrix_present_flag
-        bs_write_se( s, 0 ); // second_chroma_qp_index_offset
+        bs_write( s, 1, (pps->i_cqm_preset != X264_CQM_FLAT) );
+        if( pps->i_cqm_preset != X264_CQM_FLAT )
+        {
+            scaling_list_write( s, pps, CQM_4IY );
+            scaling_list_write( s, pps, CQM_4IC );
+            bs_write( s, 1, 0 ); // Cr = Cb
+            scaling_list_write( s, pps, CQM_4PY );
+            scaling_list_write( s, pps, CQM_4PC );
+            bs_write( s, 1, 0 ); // Cr = Cb
+            if( pps->b_transform_8x8_mode )
+            {
+                scaling_list_write( s, pps, CQM_8IY+4 );
+                scaling_list_write( s, pps, CQM_8PY+4 );
+            }
+        }
+        bs_write_se( s, pps->i_chroma_qp_index_offset );
     }
 
     bs_rbsp_trailing( s );

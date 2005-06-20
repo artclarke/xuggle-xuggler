@@ -59,6 +59,9 @@ typedef struct x264_t x264_t;
 #define X264_ME_HEX                  1
 #define X264_ME_UMH                  2
 #define X264_ME_ESA                  3
+#define X264_CQM_FLAT                0
+#define X264_CQM_JVT                 1
+#define X264_CQM_CUSTOM              2
 
 /* Colorspace type
  */
@@ -140,6 +143,13 @@ typedef struct
     int         b_cabac;
     int         i_cabac_init_idc;
 
+    int         i_cqm_preset;
+    int8_t      cqm_4iy[16];        /* used only if i_cqm_preset == X264_CQM_CUSTOM */
+    int8_t      cqm_4ic[16];
+    int8_t      cqm_4py[16];
+    int8_t      cqm_4pc[16];
+    int8_t      cqm_8iy[64];
+    int8_t      cqm_8py[64];
 
     /* Log */
     void        (*pf_log)( void *, int i_level, const char *psz, va_list );

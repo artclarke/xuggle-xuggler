@@ -232,6 +232,17 @@ static void Help( x264_param_t *defaults )
              "      --no-chroma-me          Ignore chroma in motion estimation\n"
              "  -8, --8x8dct                Adaptive spatial transform size\n"
              "\n"
+             "      --cqm <string>          Preset quant matrices [\"flat\"]\n"
+             "                                  - jvt, flat\n"
+             "      --cqm4 <list>           Set all 4x4 quant matrices\n"
+             "                                  Takes a comma-separated list of 16 integers.\n"
+             "      --cqm8 <list>           Set all 8x8 quant matrices\n"
+             "                                  Takes a comma-separated list of 64 integers.\n"
+             "      --cqm4i, --cqm4p, --cqm8i, --cqm8p\n"
+             "                              Set both luma and chroma quant matrices\n"
+             "      --cqm4iy, --cqm4ic, --cqm4py, --cqm4pc\n"
+             "                              Set individual quant matrices\n"
+             "\n"
              "Input/Output:\n"
              "\n"
              "      --level <integer>       Specify level (as defined by Annex A)\n"
@@ -294,6 +305,18 @@ static void Help( x264_param_t *defaults )
            );
 }
 
+static int parse_cqm( const char *str, uint8_t *cqm, int length )
+{
+    int i = 0;
+    do {
+        int coef;
+        if( !sscanf( str, "%d", &coef ) || coef < 1 || coef > 255 )
+            return -1;
+        cqm[i++] = coef;
+    } while( i < length && (str = strchr( str, ',' )) && str++ );
+    return (i == length) ? 0 : -1;
+}
+
 /*****************************************************************************
  * Parse:
  *****************************************************************************/
@@ -324,6 +347,7 @@ static int  Parse( int argc, char **argv,
     opterr = 0; // no error message
     for( ;; )
     {
+        int b_error = 0;
         int long_options_index;
 #define OPT_QPMIN 256
 #define OPT_QPMAX 257
@@ -360,6 +384,17 @@ static int  Parse( int argc, char **argv,
 #define OPT_SEEK 291
 #define OPT_ZONES 292
 #define OPT_THREADS 293
+#define OPT_CQM 294
+#define OPT_CQM4 295
+#define OPT_CQM4I 296
+#define OPT_CQM4IY 297
+#define OPT_CQM4IC 298
+#define OPT_CQM4P 299
+#define OPT_CQM4PY 300
+#define OPT_CQM4PC 301
+#define OPT_CQM8 302
+#define OPT_CQM8I 303
+#define OPT_CQM8P 304
 
         static struct option long_options[] =
         {
@@ -416,6 +451,17 @@ static int  Parse( int argc, char **argv,
             { "progress",no_argument,       NULL, OPT_PROGRESS },
             { "visualize",no_argument,      NULL, OPT_VISUALIZE },
             { "aud",     no_argument,       NULL, OPT_AUD },
+            { "cqm",     required_argument, NULL, OPT_CQM },
+            { "cqm4",    required_argument, NULL, OPT_CQM4 },
+            { "cqm4i",   required_argument, NULL, OPT_CQM4I },
+            { "cqm4iy",  required_argument, NULL, OPT_CQM4IY },
+            { "cqm4ic",  required_argument, NULL, OPT_CQM4IC },
+            { "cqm4p",   required_argument, NULL, OPT_CQM4P },
+            { "cqm4py",  required_argument, NULL, OPT_CQM4PY },
+            { "cqm4pc",  required_argument, NULL, OPT_CQM4PC },
+            { "cqm8",    required_argument, NULL, OPT_CQM8 },
+            { "cqm8i",   required_argument, NULL, OPT_CQM8I },
+            { "cqm8p",   required_argument, NULL, OPT_CQM8P },
             {0, 0, 0, 0}
         };
 
@@ -680,9 +726,72 @@ static int  Parse( int argc, char **argv,
                 fprintf( stderr, "not compiled with visualization support\n" );
 #endif
                 break;
+            case OPT_CQM:
+                if( strstr( optarg, "flat" ) )
+                    param->i_cqm_preset = X264_CQM_FLAT;
+                else if( strstr( optarg, "jvt" ) )
+                    param->i_cqm_preset = X264_CQM_JVT;
+                else
+                {
+                    fprintf( stderr, "bad CQM preset `%s'\n", optarg );
+                    return -1;
+                }
+                break;
+            case OPT_CQM4:
+                param->i_cqm_preset = X264_CQM_CUSTOM;
+                b_error |= parse_cqm( optarg, param->cqm_4iy, 16 );
+                b_error |= parse_cqm( optarg, param->cqm_4ic, 16 );
+                b_error |= parse_cqm( optarg, param->cqm_4py, 16 );
+                b_error |= parse_cqm( optarg, param->cqm_4pc, 16 );
+                break;
+            case OPT_CQM8:
+                param->i_cqm_preset = X264_CQM_CUSTOM;
+                b_error |= parse_cqm( optarg, param->cqm_8iy, 64 );
+                b_error |= parse_cqm( optarg, param->cqm_8py, 64 );
+                break;
+            case OPT_CQM4I:
+                param->i_cqm_preset = X264_CQM_CUSTOM;
+                b_error |= parse_cqm( optarg, param->cqm_4iy, 16 );
+                b_error |= parse_cqm( optarg, param->cqm_4ic, 16 );
+                break;
+            case OPT_CQM4P:
+                param->i_cqm_preset = X264_CQM_CUSTOM;
+                b_error |= parse_cqm( optarg, param->cqm_4py, 16 );
+                b_error |= parse_cqm( optarg, param->cqm_4pc, 16 );
+                break;
+            case OPT_CQM4IY:
+                param->i_cqm_preset = X264_CQM_CUSTOM;
+                b_error |= parse_cqm( optarg, param->cqm_4iy, 16 );
+                break;
+            case OPT_CQM4IC:
+                param->i_cqm_preset = X264_CQM_CUSTOM;
+                b_error |= parse_cqm( optarg, param->cqm_4ic, 16 );
+                break;
+            case OPT_CQM4PY:
+                param->i_cqm_preset = X264_CQM_CUSTOM;
+                b_error |= parse_cqm( optarg, param->cqm_4iy, 16 );
+                break;
+            case OPT_CQM4PC:
+                param->i_cqm_preset = X264_CQM_CUSTOM;
+                b_error |= parse_cqm( optarg, param->cqm_4ic, 16 );
+                break;
+            case OPT_CQM8I:
+                param->i_cqm_preset = X264_CQM_CUSTOM;
+                b_error |= parse_cqm( optarg, param->cqm_8iy, 64 );
+                break;
+            case OPT_CQM8P:
+                param->i_cqm_preset = X264_CQM_CUSTOM;
+                b_error |= parse_cqm( optarg, param->cqm_8py, 64 );
+                break;
             default:
                 fprintf( stderr, "unknown option (%c)\n", optopt );
                 return -1;
+        }
+
+        if( b_error )
+        {
+            fprintf( stderr, "bad argument (%s)\n", optarg );
+            return -1;
         }
     }
 

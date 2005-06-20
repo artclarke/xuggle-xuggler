@@ -387,6 +387,7 @@ static int x264_validate_parameters( x264_t *h )
     {
         h->mb.b_lossless = 1;
         h->param.analyse.b_transform_8x8 = 0;
+        h->param.i_cqm_preset = X264_CQM_FLAT;
         h->param.rc.f_ip_factor = 1;
         h->param.rc.f_pb_factor = 1;
         h->param.analyse.b_psnr = 0;
@@ -413,6 +414,9 @@ static int x264_validate_parameters( x264_t *h )
     /* don't yet support merging of cabac stats */
     if( h->param.i_threads > 1 && h->param.i_cabac_init_idc == -1 )
         h->param.i_cabac_init_idc = 0;
+
+    if( h->param.i_cqm_preset < X264_CQM_FLAT || h->param.i_cqm_preset > X264_CQM_CUSTOM )
+        h->param.i_cqm_preset = X264_CQM_FLAT;
 
     if( h->param.analyse.i_me_method < X264_ME_DIA ||
         h->param.analyse.i_me_method > X264_ME_ESA )
@@ -523,6 +527,8 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->pps = &h->pps_array[0];
     x264_pps_init( h->pps, 0, &h->param, h->sps);
+
+    x264_cqm_init( h );
     
     h->mb.i_mb_count = h->sps->i_mb_width * h->sps->i_mb_height;
 

@@ -116,6 +116,14 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.i_chroma_qp_offset = 0;
     param->analyse.b_psnr = 1;
 
+    param->i_cqm_preset = X264_CQM_FLAT;
+    memset( param->cqm_4iy, 16, 16 );
+    memset( param->cqm_4ic, 16, 16 );
+    memset( param->cqm_4py, 16, 16 );
+    memset( param->cqm_4pc, 16, 16 );
+    memset( param->cqm_8iy, 16, 64 );
+    memset( param->cqm_8py, 16, 64 );
+
     param->b_aud = 0;
 }
 

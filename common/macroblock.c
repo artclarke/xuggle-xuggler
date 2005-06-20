@@ -163,34 +163,35 @@ int x264_mb_transform_8x8_allowed( x264_t *h )
 /****************************************************************************
  * Scan and Quant functions
  ****************************************************************************/
-void x264_mb_dequant_2x2_dc( int16_t dct[2][2], int i_qscale )
+void x264_mb_dequant_2x2_dc( int16_t dct[2][2], int dequant_mf[6][4][4], int i_qscale )
 {
-    const int i_qbits = i_qscale/6 - 1;
+    const int i_qbits = i_qscale/6 - 5;
 
     if( i_qbits >= 0 )
     {
         const int i_dmf = dequant_mf[i_qscale%6][0][0] << i_qbits;
 
-        dct[0][0] = dct[0][0] * i_dmf;
-        dct[0][1] = dct[0][1] * i_dmf;
-        dct[1][0] = dct[1][0] * i_dmf;
-        dct[1][1] = dct[1][1] * i_dmf;
+        dct[0][0] *= i_dmf;
+        dct[0][1] *= i_dmf;
+        dct[1][0] *= i_dmf;
+        dct[1][1] *= i_dmf;
     }
     else
     {
         const int i_dmf = dequant_mf[i_qscale%6][0][0];
+        // chroma DC is truncated, not rounded
 
-        dct[0][0] = ( dct[0][0] * i_dmf ) >> 1;
-        dct[0][1] = ( dct[0][1] * i_dmf ) >> 1;
-        dct[1][0] = ( dct[1][0] * i_dmf ) >> 1;
-        dct[1][1] = ( dct[1][1] * i_dmf ) >> 1;
+        dct[0][0] = ( dct[0][0] * i_dmf ) >> (-i_qbits);
+        dct[0][1] = ( dct[0][1] * i_dmf ) >> (-i_qbits);
+        dct[1][0] = ( dct[1][0] * i_dmf ) >> (-i_qbits);
+        dct[1][1] = ( dct[1][1] * i_dmf ) >> (-i_qbits);
     }
 }
 
-void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int i_qscale )
+void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qscale )
 {
-    const int i_qbits = i_qscale/6 - 2;
-    int x,y;
+    const int i_qbits = i_qscale/6 - 6;
+    int y;
 
     if( i_qbits >= 0 )
     {
@@ -198,76 +199,89 @@ void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int i_qscale )
 
         for( y = 0; y < 4; y++ )
         {
-            for( x = 0; x < 4; x++ )
-            {
-                dct[y][x] = dct[y][x] * i_dmf;
-            }
+            dct[y][0] *= i_dmf;
+            dct[y][1] *= i_dmf;
+            dct[y][2] *= i_dmf;
+            dct[y][3] *= i_dmf;
         }
     }
     else
     {
         const int i_dmf = dequant_mf[i_qscale%6][0][0];
-        const int f = -i_qbits; // 1 << (-1-i_qbits)
+        const int f = 1 << (-i_qbits-1);
 
         for( y = 0; y < 4; y++ )
         {
-            for( x = 0; x < 4; x++ )
-            {
-                dct[y][x] = ( dct[y][x] * i_dmf + f ) >> (-i_qbits);
-            }
+            dct[y][0] = ( dct[y][0] * i_dmf + f ) >> (-i_qbits);
+            dct[y][1] = ( dct[y][1] * i_dmf + f ) >> (-i_qbits);
+            dct[y][2] = ( dct[y][2] * i_dmf + f ) >> (-i_qbits);
+            dct[y][3] = ( dct[y][3] * i_dmf + f ) >> (-i_qbits);
         }
     }
 }
 
-void x264_mb_dequant_4x4( int16_t dct[4][4], int i_qscale )
+void x264_mb_dequant_4x4( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qscale )
 {
     const int i_mf = i_qscale%6;
-    const int i_qbits = i_qscale/6;
+    const int i_qbits = i_qscale/6 - 4;
     int y;
 
-    for( y = 0; y < 4; y++ )
+    if( i_qbits >= 0 )
     {
-        dct[y][0] = ( dct[y][0] * dequant_mf[i_mf][y][0] ) << i_qbits;
-        dct[y][1] = ( dct[y][1] * dequant_mf[i_mf][y][1] ) << i_qbits;
-        dct[y][2] = ( dct[y][2] * dequant_mf[i_mf][y][2] ) << i_qbits;
-        dct[y][3] = ( dct[y][3] * dequant_mf[i_mf][y][3] ) << i_qbits;
-    }
-}
-
-void x264_mb_dequant_8x8( int16_t dct[8][8], int i_qscale )
-{
-    const int i_mf = i_qscale%6;
-    int y;
-
-    if( i_qscale >= 12 )
-    {
-        const int i_qbits = (i_qscale/6) - 2;
-        for( y = 0; y < 8; y++ )
+        for( y = 0; y < 4; y++ )
         {
-            dct[y][0] = ( dct[y][0] * dequant8_mf[i_mf][y][0] ) << i_qbits;
-            dct[y][1] = ( dct[y][1] * dequant8_mf[i_mf][y][1] ) << i_qbits;
-            dct[y][2] = ( dct[y][2] * dequant8_mf[i_mf][y][2] ) << i_qbits;
-            dct[y][3] = ( dct[y][3] * dequant8_mf[i_mf][y][3] ) << i_qbits;
-            dct[y][4] = ( dct[y][4] * dequant8_mf[i_mf][y][4] ) << i_qbits;
-            dct[y][5] = ( dct[y][5] * dequant8_mf[i_mf][y][5] ) << i_qbits;
-            dct[y][6] = ( dct[y][6] * dequant8_mf[i_mf][y][6] ) << i_qbits;
-            dct[y][7] = ( dct[y][7] * dequant8_mf[i_mf][y][7] ) << i_qbits;
+            dct[y][0] = ( dct[y][0] * dequant_mf[i_mf][y][0] ) << i_qbits;
+            dct[y][1] = ( dct[y][1] * dequant_mf[i_mf][y][1] ) << i_qbits;
+            dct[y][2] = ( dct[y][2] * dequant_mf[i_mf][y][2] ) << i_qbits;
+            dct[y][3] = ( dct[y][3] * dequant_mf[i_mf][y][3] ) << i_qbits;
         }
     }
     else
     {
-        const int i_qbits = 2 - (i_qscale/6);
-        const int i_round = i_qbits; // 1<<(i_qbits-1)
+        const int f = 1 << (-i_qbits-1);
+        for( y = 0; y < 4; y++ )
+        {
+            dct[y][0] = ( dct[y][0] * dequant_mf[i_mf][y][0] + f ) >> (-i_qbits);
+            dct[y][1] = ( dct[y][1] * dequant_mf[i_mf][y][1] + f ) >> (-i_qbits);
+            dct[y][2] = ( dct[y][2] * dequant_mf[i_mf][y][2] + f ) >> (-i_qbits);
+            dct[y][3] = ( dct[y][3] * dequant_mf[i_mf][y][3] + f ) >> (-i_qbits);
+        }
+    }
+}
+
+void x264_mb_dequant_8x8( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qscale )
+{
+    const int i_mf = i_qscale%6;
+    const int i_qbits = i_qscale/6 - 6;
+    int y;
+
+    if( i_qbits >= 0 )
+    {
         for( y = 0; y < 8; y++ )
         {
-            dct[y][0] = ( dct[y][0] * dequant8_mf[i_mf][y][0] + i_round ) >> i_qbits;
-            dct[y][1] = ( dct[y][1] * dequant8_mf[i_mf][y][1] + i_round ) >> i_qbits;
-            dct[y][2] = ( dct[y][2] * dequant8_mf[i_mf][y][2] + i_round ) >> i_qbits;
-            dct[y][3] = ( dct[y][3] * dequant8_mf[i_mf][y][3] + i_round ) >> i_qbits;
-            dct[y][4] = ( dct[y][4] * dequant8_mf[i_mf][y][4] + i_round ) >> i_qbits;
-            dct[y][5] = ( dct[y][5] * dequant8_mf[i_mf][y][5] + i_round ) >> i_qbits;
-            dct[y][6] = ( dct[y][6] * dequant8_mf[i_mf][y][6] + i_round ) >> i_qbits;
-            dct[y][7] = ( dct[y][7] * dequant8_mf[i_mf][y][7] + i_round ) >> i_qbits;
+            dct[y][0] = ( dct[y][0] * dequant_mf[i_mf][y][0] ) << i_qbits;
+            dct[y][1] = ( dct[y][1] * dequant_mf[i_mf][y][1] ) << i_qbits;
+            dct[y][2] = ( dct[y][2] * dequant_mf[i_mf][y][2] ) << i_qbits;
+            dct[y][3] = ( dct[y][3] * dequant_mf[i_mf][y][3] ) << i_qbits;
+            dct[y][4] = ( dct[y][4] * dequant_mf[i_mf][y][4] ) << i_qbits;
+            dct[y][5] = ( dct[y][5] * dequant_mf[i_mf][y][5] ) << i_qbits;
+            dct[y][6] = ( dct[y][6] * dequant_mf[i_mf][y][6] ) << i_qbits;
+            dct[y][7] = ( dct[y][7] * dequant_mf[i_mf][y][7] ) << i_qbits;
+        }
+    }
+    else
+    {
+        const int f = 1 << (-i_qbits-1);
+        for( y = 0; y < 8; y++ )
+        {
+            dct[y][0] = ( dct[y][0] * dequant_mf[i_mf][y][0] + f ) >> (-i_qbits);
+            dct[y][1] = ( dct[y][1] * dequant_mf[i_mf][y][1] + f ) >> (-i_qbits);
+            dct[y][2] = ( dct[y][2] * dequant_mf[i_mf][y][2] + f ) >> (-i_qbits);
+            dct[y][3] = ( dct[y][3] * dequant_mf[i_mf][y][3] + f ) >> (-i_qbits);
+            dct[y][4] = ( dct[y][4] * dequant_mf[i_mf][y][4] + f ) >> (-i_qbits);
+            dct[y][5] = ( dct[y][5] * dequant_mf[i_mf][y][5] + f ) >> (-i_qbits);
+            dct[y][6] = ( dct[y][6] * dequant_mf[i_mf][y][6] + f ) >> (-i_qbits);
+            dct[y][7] = ( dct[y][7] * dequant_mf[i_mf][y][7] + f ) >> (-i_qbits);
         }
     }
 }

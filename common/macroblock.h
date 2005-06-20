@@ -157,6 +157,19 @@ static const int x264_mb_partition_count_table[17] =
     4, 2, 2, 1
 };
 
+static const int x264_zigzag_scan4[16] =
+{
+    0,  1,  4,  8,  5,  2,  3,  6,  9, 12, 13, 10,  7, 11, 14, 15
+};
+static const int x264_zigzag_scan8[64] =
+{
+    0,  1,  8, 16,  9,  2,  3, 10, 17, 24, 32, 25, 18, 11,  4,  5,
+   12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13,  6,  7, 14, 21, 28,
+   35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51,
+   58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63
+};  
+
+
 void x264_macroblock_cache_init( x264_t *h );
 void x264_macroblock_slice_init( x264_t *h );
 void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y );
@@ -165,10 +178,10 @@ void x264_macroblock_cache_end( x264_t *h );
 
 void x264_macroblock_bipred_init( x264_t *h );
 
-void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int i_qscale );
-void x264_mb_dequant_2x2_dc( int16_t dct[2][2], int i_qscale );
-void x264_mb_dequant_4x4( int16_t dct[4][4], int i_qscale );
-void x264_mb_dequant_8x8( int16_t dct[8][8], int i_qscale );
+void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qscale );
+void x264_mb_dequant_2x2_dc( int16_t dct[2][2], int dequant_mf[6][4][4], int i_qscale );
+void x264_mb_dequant_4x4( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qscale );
+void x264_mb_dequant_8x8( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qscale );
 
 /* x264_mb_predict_mv_16x16:
  *      set mvp with predicted mv for D_16x16 block
