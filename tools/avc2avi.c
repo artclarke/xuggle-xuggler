@@ -451,9 +451,36 @@ void h264_parser_parse( h264_t *h, nal_t *nal, int *pb_nal_start )
     {
         int i_tmp;
 
-        bs_skip( &s, 8 + 1+1+1 + 5 + 8 );
+        i_tmp = bs_read( &s, 8 );
+        bs_skip( &s, 1+1+1 + 5 + 8 );
         /* sps id */
         bs_read_ue( &s );
+
+        if( i_tmp >= 100 )
+        {
+            bs_read_ue( &s ); // chroma_format_idc
+            bs_read_ue( &s ); // bit_depth_luma_minus8
+            bs_read_ue( &s ); // bit_depth_chroma_minus8
+            bs_skip( &s, 1 ); // qpprime_y_zero_transform_bypass_flag
+            if( bs_read( &s, 1 ) ) // seq_scaling_matrix_present_flag
+            {
+                int i, j;
+                for( i = 0; i < 8; i++ )
+                {
+                    if( bs_read( &s, 1 ) ) // seq_scaling_list_present_flag[i]
+                    {
+                        uint8_t i_tmp = 8;
+                        for( j = 0; j < (i<6?16:64); j++ )
+                        {
+                            i_tmp += bs_read_se( &s );
+                            if( i_tmp == 0 )
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+
         /* Skip i_log2_max_frame_num */
         h->i_log2_max_frame_num = bs_read_ue( &s ) + 4;
         /* Read poc_type */

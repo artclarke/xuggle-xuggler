@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 31
+#define X264_BUILD 32
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
