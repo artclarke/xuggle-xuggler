@@ -515,7 +515,9 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     /* Init x264_t */
     h->out.i_nal = 0;
-    h->out.i_bitstream = 1000000; /* FIXME estimate max size (idth/height) */
+    h->out.i_bitstream = X264_MAX( 1000000, h->param.i_width * h->param.i_height * 1.7
+        * ( h->param.rc.b_cbr ? pow( 0.5, h->param.rc.i_qp_min )
+          : pow( 0.5, h->param.rc.i_qp_constant ) * X264_MAX( 1, h->param.rc.f_ip_factor )));
     h->out.p_bitstream = x264_malloc( h->out.i_bitstream );
 
     h->i_frame = 0;

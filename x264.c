@@ -501,9 +501,13 @@ static int  Parse( int argc, char **argv,
                 break;
             case 'i':
                 param->i_keyint_min = atol( optarg );
+                if( param->i_keyint_max < param->i_keyint_min )
+                    param->i_keyint_max = param->i_keyint_min;
                 break;
             case 'I':
                 param->i_keyint_max = atol( optarg );
+                if( param->i_keyint_min > param->i_keyint_max )
+                    param->i_keyint_min = param->i_keyint_max;
                 break;
             case OPT_SCENECUT:
                 param->i_scenecut_threshold = atol( optarg );
