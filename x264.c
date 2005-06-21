@@ -234,6 +234,8 @@ static void Help( x264_param_t *defaults )
              "\n"
              "      --cqm <string>          Preset quant matrices [\"flat\"]\n"
              "                                  - jvt, flat\n"
+             "      --cqmfile <string>      Read quant matrices from a JM-compatible file\n"
+             "                                  Overrides any other --cqm* options.\n"
              "      --cqm4 <list>           Set all 4x4 quant matrices\n"
              "                                  Takes a comma-separated list of 16 integers.\n"
              "      --cqm8 <list>           Set all 8x8 quant matrices\n"
@@ -395,6 +397,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_CQM8 302
 #define OPT_CQM8I 303
 #define OPT_CQM8P 304
+#define OPT_CQMFILE 305
 
         static struct option long_options[] =
         {
@@ -452,6 +455,7 @@ static int  Parse( int argc, char **argv,
             { "visualize",no_argument,      NULL, OPT_VISUALIZE },
             { "aud",     no_argument,       NULL, OPT_AUD },
             { "cqm",     required_argument, NULL, OPT_CQM },
+            { "cqmfile", required_argument, NULL, OPT_CQMFILE },
             { "cqm4",    required_argument, NULL, OPT_CQM4 },
             { "cqm4i",   required_argument, NULL, OPT_CQM4I },
             { "cqm4iy",  required_argument, NULL, OPT_CQM4IY },
@@ -740,6 +744,9 @@ static int  Parse( int argc, char **argv,
                     fprintf( stderr, "bad CQM preset `%s'\n", optarg );
                     return -1;
                 }
+                break;
+            case OPT_CQMFILE:
+                param->psz_cqm_file = optarg;
                 break;
             case OPT_CQM4:
                 param->i_cqm_preset = X264_CQM_CUSTOM;

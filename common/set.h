@@ -215,5 +215,6 @@ static const uint8_t x264_cqm_flat16[64] =
 };
 
 void x264_cqm_init( x264_t *h );
+int  x264_cqm_parse_file( x264_t *h, const char *filename );
 
 #endif

@@ -387,3 +387,34 @@ void *x264_realloc( void *p, int i_size )
 #endif
 }
 
+/****************************************************************************
+ * x264_slurp_file:
+ ****************************************************************************/
+char *x264_slurp_file( const char *filename )
+{
+    int b_error = 0;
+    int i_size;
+    char *buf;
+    FILE *fh = fopen( filename, "rb" );
+    if( !fh )
+        return NULL;
+    b_error |= fseek( fh, 0, SEEK_END ) < 0;
+    b_error |= ( i_size = ftell( fh ) ) <= 0;
+    b_error |= fseek( fh, 0, SEEK_SET ) < 0;
+    if( b_error )
+        return NULL;
+    buf = x264_malloc( i_size+2 );
+    if( buf == NULL )
+        return NULL;
+    b_error |= fread( buf, 1, i_size, fh ) != i_size;
+    if( buf[i_size-1] != '\n' )
+        buf[i_size++] = '\n';
+    buf[i_size] = 0;
+    fclose( fh );
+    if( b_error )
+    {
+        x264_free( buf );
+        return NULL;
+    }
+    return buf;
+}

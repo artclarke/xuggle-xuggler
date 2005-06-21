@@ -21,6 +21,8 @@
  *****************************************************************************/
 
 #include "common.h"
+#include <stdio.h>
+#include <string.h>
 
 static const int dequant4_scale[6][3] =
 {
@@ -103,5 +105,79 @@ void x264_cqm_init( x264_t *h )
                 h->  quant8_mf[i_list][q][0][i] = def_quant8[q][i] * 16 / h->pps->scaling_list[4+i_list][i];
             }
     }
+}
+
+int x264_cqm_parse_jmlist( x264_t *h, const char *buf, const char *name,
+                           uint8_t *cqm, const uint8_t *jvt, int length )
+{
+    char *p;
+    char *nextvar;
+    int i;
+
+    p = strstr( buf, name );
+    if( !p )
+    {
+        memset( cqm, 16, length );
+        return 0;
+    }
+
+    p += strlen( name );
+    if( *p == 'U' || *p == 'V' )
+        p++;
+
+    nextvar = strstr( p, "INT" );
+
+    for( i = 0; i < length && (p = strpbrk( p, " \t\n," )) && (p = strpbrk( p, "0123456789" )); i++ )
+    {
+        int coef = -1;
+        sscanf( p, "%d", &coef );
+        if( i == 0 && coef == 0 )
+        {
+            memcpy( cqm, jvt, length );
+            return 0;
+        }
+        if( coef < 1 || coef > 255 )
+        {
+            x264_log( h, X264_LOG_ERROR, "bad coefficient in list '%s'\n", name );
+            return -1;
+        }
+        cqm[i] = coef;
+    }
+
+    if( (nextvar && p > nextvar) || i != length )
+    {
+        x264_log( h, X264_LOG_ERROR, "not enough coefficients in list '%s'\n", name );
+        return -1;
+    }
+
+    return 0;
+}
+
+int x264_cqm_parse_file( x264_t *h, const char *filename )
+{
+    char *buf, *p;
+    int b_error = 0;
+
+    h->param.i_cqm_preset = X264_CQM_CUSTOM;
+    
+    buf = x264_slurp_file( filename );
+    if( !buf )
+    {
+        x264_log( h, X264_LOG_ERROR, "can't open file '%s'\n", filename );
+        return -1;
+    }
+
+    while( (p = strchr( buf, '#' )) != NULL )
+        memset( p, ' ', strcspn( p, "\n" ) );
+
+    b_error |= x264_cqm_parse_jmlist( h, buf, "INTRA4X4_LUMA",   h->param.cqm_4iy, x264_cqm_jvt4i, 16 );
+    b_error |= x264_cqm_parse_jmlist( h, buf, "INTRA4X4_CHROMA", h->param.cqm_4ic, x264_cqm_jvt4i, 16 );
+    b_error |= x264_cqm_parse_jmlist( h, buf, "INTER4X4_LUMA",   h->param.cqm_4py, x264_cqm_jvt4p, 16 );
+    b_error |= x264_cqm_parse_jmlist( h, buf, "INTER4X4_CHROMA", h->param.cqm_4pc, x264_cqm_jvt4p, 16 );
+    b_error |= x264_cqm_parse_jmlist( h, buf, "INTRA8X8_LUMA",   h->param.cqm_8iy, x264_cqm_jvt8i, 64 );
+    b_error |= x264_cqm_parse_jmlist( h, buf, "INTER8X8_LUMA",   h->param.cqm_8py, x264_cqm_jvt8p, 64 );
+
+    x264_free( buf );
+    return b_error;
 }
 

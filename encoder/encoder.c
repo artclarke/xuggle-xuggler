@@ -464,6 +464,13 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         return NULL;
     }
 
+    if( h->param.psz_cqm_file )
+        if( x264_cqm_parse_file( h, h->param.psz_cqm_file ) < 0 )
+        {
+            x264_free( h );
+            return NULL;
+        }
+
     if( h->param.rc.psz_stat_out )
         h->param.rc.psz_stat_out = strdup( h->param.rc.psz_stat_out );
     if( h->param.rc.psz_stat_in )

@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 32
+#define X264_BUILD 33
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -144,6 +144,7 @@ typedef struct
     int         i_cabac_init_idc;
 
     int         i_cqm_preset;
+    char        *psz_cqm_file;      /* JM format */
     int8_t      cqm_4iy[16];        /* used only if i_cqm_preset == X264_CQM_CUSTOM */
     int8_t      cqm_4ic[16];
     int8_t      cqm_4py[16];

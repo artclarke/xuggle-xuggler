@@ -67,6 +67,9 @@ void *x264_malloc( int );
 void *x264_realloc( void *p, int i_size );
 void  x264_free( void * );
 
+/* x264_slurp_file: malloc space for the whole file and read it */
+char *x264_slurp_file( const char *filename );
+
 /* mdate: return the current date in microsecond */
 int64_t x264_mdate( void );
 
