@@ -40,7 +40,7 @@
 #if defined(SYS_FREEBSD) || defined(SYS_BEOS)
 #define exp2f(x) powf( 2, (x) )
 #endif
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(SYS_SunOS)
 #define exp2f(x) pow( 2, (x) )
 #define sqrtf sqrt
 #endif

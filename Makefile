@@ -37,6 +37,13 @@ ifeq ($(ARCH),PPC)
 SRCS += common/ppc/mc.c common/ppc/pixel.c common/ppc/dct.c
 endif
 
+ifneq ($(HAVE_GETOPT_LONG),1)
+SRCS += extras/getopt.c
+CFLAGS += -DHAVE_GETOPT_LONG=0
+else
+CFLAGS += -DHAVE_GETOPT_LONG=1
+endif
+
 OBJS = $(SRCS:%.c=%.o)
 DEP  = depend
 

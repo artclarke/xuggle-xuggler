@@ -63,10 +63,14 @@ char *optarg;	/* argument associated with option */
 __weak_alias(getopt_long,_getopt_long)
 #endif
 
+#if 0
 #ifndef __CYGWIN__
 #define __progname __argv[0]
 #else
 extern char *__progname;
+#endif
+#else
+char *__progname = "x264";
 #endif
 
 #define IGNORE_FIRST	(*options == '-' || *options == '+')

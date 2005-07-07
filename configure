@@ -35,6 +35,7 @@ vis="no"
 CC="gcc"
 CFLAGS="-Wall -I. -O4 -ffast-math -D__X264__"
 LDFLAGS=""
+HAVE_GETOPT_LONG=1
 
 AS="nasm"
 ASFLAGS="-f elf"
@@ -73,6 +74,12 @@ case "$UNAMES" in
     ASFLAGS="-f win32 -DPREFIX"
     EXE=".exe"
     ;;
+  SunOS)
+    SYS="SunOS"
+    CFLAGS="$CFLAGS -DHAVE_MALLOC_H"
+    LDFLAGS="$LDFLAGS -lm"
+    HAVE_GETOPT_LONG=0
+    ;;
   *)
     echo "Unknown system $UNAMES, edit the configure"
     exit 1
@@ -99,6 +106,9 @@ case "$UNAMEM" in
     else
       CFLAGS="$CFLAGS -maltivec -mabi=altivec"
     fi
+    ;;
+  sun*)
+    ARCH="Sparc"
     ;;
   *)
     echo "Unknown platform $UNAMEM, edit the configure"
@@ -204,6 +214,7 @@ ASFLAGS=$ASFLAGS
 VFW=$vfw
 EXE=$EXE
 VIS=$vis
+HAVE_GETOPT_LONG=$HAVE_GETOPT_LONG
 EOF
 
 if [ "$vfw" = "yes" ]; then
