@@ -38,27 +38,19 @@ BITS 32
 
 %macro SAD_INC_2x16P 0
     movq    mm1,    [eax]
-    movq    mm2,    [ecx]
-    movq    mm3,    [eax+8]
-    movq    mm4,    [ecx+8]
-
-    psadbw  mm1,    mm2
-    psadbw  mm3,    mm4
-    paddw   mm0,    mm1
-    paddw   mm0,    mm3
-
-    movq    mm1,    [eax+ebx]
-    movq    mm2,    [ecx+edx]
-    movq    mm3,    [eax+ebx+8]
-    movq    mm4,    [ecx+edx+8]
-
-    psadbw  mm1,    mm2
-    psadbw  mm3,    mm4
-    paddw   mm0,    mm1
-    paddw   mm0,    mm3
-
+    movq    mm2,    [eax+8]
+    movq    mm3,    [eax+ebx]
+    movq    mm4,    [eax+ebx+8]
+    psadbw  mm1,    [ecx]
+    psadbw  mm2,    [ecx+8]
+    psadbw  mm3,    [ecx+edx]
+    psadbw  mm4,    [ecx+edx+8]
     lea     eax,    [eax+2*ebx]
+    paddw   mm1,    mm2
+    paddw   mm3,    mm4
     lea     ecx,    [ecx+2*edx]
+       paddw   mm0,    mm1
+       paddw   mm0,    mm3
 %endmacro
 
 %macro SAD_INC_2x8P 0
