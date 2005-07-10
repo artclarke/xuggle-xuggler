@@ -30,18 +30,20 @@
 #include <windows.h>
 #define pthread_t               HANDLE
 #define pthread_create(t,u,f,d) *(t)=CreateThread(NULL,0,f,d,0,NULL)
-#define pthread_join(t,s)       WaitForSingleObject(t,INFINITE); \
-                                CloseHandle(t)
+#define pthread_join(t,s)       { WaitForSingleObject(t,INFINITE); \
+                                  CloseHandle(t); } 
 #define HAVE_PTHREAD 1
-#elif HAVE_PTHREAD
-#ifdef SYS_BEOS
+
+#elif defined(SYS_BEOS)
 #include <kernel/OS.h>
 #define pthread_t               thread_id
-#define pthread_create(t,u,f,d) *(t)=spawn_thread(f,"",10,d)
+#define pthread_create(t,u,f,d) { *(t)=spawn_thread(f,"",10,d); \
+                                  resume_thread(*(t)); }
 #define pthread_join(t,s)       wait_for_thread(t,(long*)s)
-#else
+#define HAVE_PTHREAD 1
+
+#elif HAVE_PTHREAD
 #include <pthread.h>
-#endif
 #endif
 
 #include "common/common.h"
