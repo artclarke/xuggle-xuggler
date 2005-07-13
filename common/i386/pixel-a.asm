@@ -49,22 +49,18 @@ BITS 32
     paddw   mm1,    mm2
     paddw   mm3,    mm4
     lea     ecx,    [ecx+2*edx]
-       paddw   mm0,    mm1
-       paddw   mm0,    mm3
+    paddw   mm0,    mm1
+    paddw   mm0,    mm3
 %endmacro
 
 %macro SAD_INC_2x8P 0
     movq    mm1,    [eax]
-    movq    mm2,    [ecx]
-    movq    mm3,    [eax+ebx]
-    movq    mm4,    [ecx+edx]
-
-    psadbw  mm1,    mm2
-    psadbw  mm3,    mm4
-    paddw   mm0,    mm1
-    paddw   mm0,    mm3
-
+    movq    mm2,    [eax+ebx]
+    psadbw  mm1,    [ecx]
+    psadbw  mm2,    [ecx+edx]
     lea     eax,    [eax+2*ebx]
+    paddw   mm0,    mm1
+    paddw   mm0,    mm2
     lea     ecx,    [ecx+2*edx]
 %endmacro
 

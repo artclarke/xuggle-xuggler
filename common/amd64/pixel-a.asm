@@ -38,41 +38,29 @@ BITS 64
 
 %macro SAD_INC_2x16P 0
     movq    mm1,    [rax]
-    movq    mm2,    [rcx]
-    movq    mm3,    [rax+8]
-    movq    mm4,    [rcx+8]
-
-    psadbw  mm1,    mm2
-    psadbw  mm3,    mm4
-    paddw   mm0,    mm1
-    paddw   mm0,    mm3
-
-    movq    mm1,    [rax+rbx]
-    movq    mm2,    [rcx+rdx]
-    movq    mm3,    [rax+rbx+8]
-    movq    mm4,    [rcx+rdx+8]
-
-    psadbw  mm1,    mm2
-    psadbw  mm3,    mm4
-    paddw   mm0,    mm1
-    paddw   mm0,    mm3
-
+    movq    mm2,    [rax+8]
+    movq    mm3,    [rax+rbx]
+    movq    mm4,    [rax+rbx+8]
+    psadbw  mm1,    [rcx]
+    psadbw  mm2,    [rcx+8]
+    psadbw  mm3,    [rcx+rdx]
+    psadbw  mm4,    [rcx+rdx+8]
     lea     rax,    [rax+2*rbx]
+    paddw   mm1,    mm2
+    paddw   mm3,    mm4
     lea     rcx,    [rcx+2*rdx]
+    paddw   mm0,    mm1
+    paddw   mm0,    mm3
 %endmacro
 
 %macro SAD_INC_2x8P 0
     movq    mm1,    [rax]
-    movq    mm2,    [rcx]
-    movq    mm3,    [rax+rbx]
-    movq    mm4,    [rcx+rdx]
-
-    psadbw  mm1,    mm2
-    psadbw  mm3,    mm4
-    paddw   mm0,    mm1
-    paddw   mm0,    mm3
-
+    movq    mm2,    [rax+rbx]
+    psadbw  mm1,    [rcx]
+    psadbw  mm2,    [rcx+rdx]
     lea     rax,    [rax+2*rbx]
+    paddw   mm0,    mm1
+    paddw   mm0,    mm2
     lea     rcx,    [rcx+2*rdx]
 %endmacro
 
