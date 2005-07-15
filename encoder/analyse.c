@@ -1170,6 +1170,36 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     a->l1.me16x16.cost += a->i_lambda * i_mb_b_cost_table[B_L1_L1];
 }
 
+static inline void x264_mb_cache_mv_p8x8( x264_t *h, x264_mb_analysis_t *a, int i )
+{
+    const int x = 2*(i%2);
+    const int y = 2*(i/2);
+
+    switch( h->mb.i_sub_partition[i] )
+    {
+        case D_L0_8x8:
+            x264_macroblock_cache_mv( h, x, y, 2, 2, 0, a->l0.me8x8[i].mv[0], a->l0.me8x8[i].mv[1] );
+            break;
+        case D_L0_8x4:
+            x264_macroblock_cache_mv( h, x, y+0, 2, 1, 0, a->l0.me8x4[i][0].mv[0], a->l0.me8x4[i][0].mv[1] );
+            x264_macroblock_cache_mv( h, x, y+1, 2, 1, 0, a->l0.me8x4[i][1].mv[0], a->l0.me8x4[i][1].mv[1] );
+            break;
+        case D_L0_4x8:
+            x264_macroblock_cache_mv( h, x+0, y, 1, 2, 0, a->l0.me4x8[i][0].mv[0], a->l0.me4x8[i][0].mv[1] );
+            x264_macroblock_cache_mv( h, x+1, y, 1, 2, 0, a->l0.me4x8[i][1].mv[0], a->l0.me4x8[i][1].mv[1] );
+            break;
+        case D_L0_4x4:
+            x264_macroblock_cache_mv( h, x+0, y+0, 1, 1, 0, a->l0.me4x4[i][0].mv[0], a->l0.me4x4[i][0].mv[1] );
+            x264_macroblock_cache_mv( h, x+1, y+0, 1, 1, 0, a->l0.me4x4[i][1].mv[0], a->l0.me4x4[i][1].mv[1] );
+            x264_macroblock_cache_mv( h, x+0, y+1, 1, 1, 0, a->l0.me4x4[i][2].mv[0], a->l0.me4x4[i][2].mv[1] );
+            x264_macroblock_cache_mv( h, x+1, y+1, 1, 1, 0, a->l0.me4x4[i][3].mv[0], a->l0.me4x4[i][3].mv[1] );
+            break;
+        default:
+            x264_log( h, X264_LOG_ERROR, "internal error\n" );
+            break;
+    }
+}
+
 #define CACHE_MV_BI(x,y,dx,dy,me0,me1,part) \
     if( x264_mb_partition_listX_table[0][part] ) \
     { \
@@ -1600,6 +1630,7 @@ void x264_macroblock_analyse( x264_t *h )
                             i_cost += i_cost8x8 - analysis.l0.me8x8[i].cost;
                             b_sub8x8 = 1;
                         }
+                        x264_mb_cache_mv_p8x8( h, &analysis, i );
                     }
                     /* TODO: RD per subpartition */
                     if( b_sub8x8 && analysis.b_mbrd )
@@ -1990,34 +2021,7 @@ static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a  )
         case P_8x8:
             x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.i_ref );
             for( i = 0; i < 4; i++ )
-            {
-                const int x = 2*(i%2);
-                const int y = 2*(i/2);
-
-                switch( h->mb.i_sub_partition[i] )
-                {
-                    case D_L0_8x8:
-                        x264_macroblock_cache_mv( h, x, y, 2, 2, 0, a->l0.me8x8[i].mv[0], a->l0.me8x8[i].mv[1] );
-                        break;
-                    case D_L0_8x4:
-                        x264_macroblock_cache_mv( h, x, y+0, 2, 1, 0, a->l0.me8x4[i][0].mv[0], a->l0.me8x4[i][0].mv[1] );
-                        x264_macroblock_cache_mv( h, x, y+1, 2, 1, 0, a->l0.me8x4[i][1].mv[0], a->l0.me8x4[i][1].mv[1] );
-                        break;
-                    case D_L0_4x8:
-                        x264_macroblock_cache_mv( h, x+0, y, 1, 2, 0, a->l0.me4x8[i][0].mv[0], a->l0.me4x8[i][0].mv[1] );
-                        x264_macroblock_cache_mv( h, x+1, y, 1, 2, 0, a->l0.me4x8[i][1].mv[0], a->l0.me4x8[i][1].mv[1] );
-                        break;
-                    case D_L0_4x4:
-                        x264_macroblock_cache_mv( h, x+0, y+0, 1, 1, 0, a->l0.me4x4[i][0].mv[0], a->l0.me4x4[i][0].mv[1] );
-                        x264_macroblock_cache_mv( h, x+1, y+0, 1, 1, 0, a->l0.me4x4[i][1].mv[0], a->l0.me4x4[i][1].mv[1] );
-                        x264_macroblock_cache_mv( h, x+0, y+1, 1, 1, 0, a->l0.me4x4[i][2].mv[0], a->l0.me4x4[i][2].mv[1] );
-                        x264_macroblock_cache_mv( h, x+1, y+1, 1, 1, 0, a->l0.me4x4[i][3].mv[0], a->l0.me4x4[i][3].mv[1] );
-                        break;
-                    default:
-                        x264_log( h, X264_LOG_ERROR, "internal error\n" );
-                        break;
-                }
-            }
+                x264_mb_cache_mv_p8x8( h, a, i );
             break;
 
         case P_SKIP:
