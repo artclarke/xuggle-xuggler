@@ -57,6 +57,10 @@ case "$UNAMES" in
     SYS="FREEBSD"
     LDFLAGS="$LDFLAGS -lm"
     ;;
+  NetBSD)
+    SYS="NETBSD"
+    LDFLAGS="$LDFLAGS -lm"
+    ;;
   Linux)
     SYS="LINUX"
     CFLAGS="$CFLAGS -DHAVE_MALLOC_H"
