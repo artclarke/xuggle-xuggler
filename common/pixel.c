@@ -40,6 +40,9 @@
 #ifdef ARCH_PPC
 #   include "ppc/pixel.h"
 #endif
+#ifdef ARCH_UltraSparc
+#   include "sparc/pixel.h"
+#endif
 
 
 /****************************************************************************
@@ -433,6 +436,9 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     {
         x264_pixel_altivec_init( pixf );
     }
+#endif
+#ifdef ARCH_UltraSparc
+      pixf->sad[PIXEL_8x8] = x264_pixel_sad_8x8_vis;
 #endif
 }
 

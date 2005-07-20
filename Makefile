@@ -37,6 +37,12 @@ ifeq ($(ARCH),PPC)
 SRCS += common/ppc/mc.c common/ppc/pixel.c common/ppc/dct.c
 endif
 
+# VIS optims
+ifeq ($(ARCH),UltraSparc)
+ASMSRC += common/sparc/pixel.asm
+OBJASM  = $(ASMSRC:%.asm=%.o)
+endif
+
 ifneq ($(HAVE_GETOPT_LONG),1)
 SRCS += extras/getopt.c
 CFLAGS += -DHAVE_GETOPT_LONG=0
