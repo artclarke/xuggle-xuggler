@@ -438,7 +438,10 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     }
 #endif
 #ifdef ARCH_UltraSparc
-      pixf->sad[PIXEL_8x8] = x264_pixel_sad_8x8_vis;
+      pixf->sad[PIXEL_8x8]   = x264_pixel_sad_8x8_vis;
+      pixf->sad[PIXEL_8x16]  = x264_pixel_sad_8x16_vis;
+      pixf->sad[PIXEL_16x8]  = x264_pixel_sad_16x8_vis;
+      pixf->sad[PIXEL_16x16] = x264_pixel_sad_16x16_vis;
 #endif
 }
 

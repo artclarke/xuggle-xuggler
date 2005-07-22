@@ -25,5 +25,8 @@
 #define _SPARC_PIXEL_H 1
 
 int x264_pixel_sad_8x8_vis( uint8_t *, int, uint8_t *, int );
+int x264_pixel_sad_8x16_vis( uint8_t *, int, uint8_t *, int );
+int x264_pixel_sad_16x8_vis( uint8_t *, int, uint8_t *, int );
+int x264_pixel_sad_16x16_vis( uint8_t *, int, uint8_t *, int );
 
 #endif
