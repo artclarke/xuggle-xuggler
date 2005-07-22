@@ -59,8 +59,8 @@ libx264.a: .depend $(OBJS) $(OBJASM)
 	ar rc libx264.a $(OBJS) $(OBJASM)
 	ranlib libx264.a
 
-x264$(EXE): libx264.a x264.o
-	$(CC) -o $@ x264.o libx264.a $(LDFLAGS)
+x264$(EXE): libx264.a x264.o matroska.o
+	$(CC) -o $@ x264.o matroska.o libx264.a $(LDFLAGS)
 
 x264vfw.dll: libx264.a $(wildcard vfw/*.c vfw/*.h)
 	make -C vfw/build/cygwin
@@ -74,7 +74,7 @@ checkasm: testing/checkasm.o libx264.a
 .depend: config.mak config.h
 	rm -f .depend
 # Hacky - because gcc 2.9x doesn't have -MT
-	$(foreach SRC, $(SRCS) x264.c, ( echo -n "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM -g0 ) 1>> .depend;)
+	$(foreach SRC, $(SRCS) x264.c matroska.c, ( echo -n "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM -g0 ) 1>> .depend;)
 
 config.h: $(wildcard .svn/entries */.svn/entries */*/.svn/entries)
 	./version.sh
@@ -85,7 +85,7 @@ include .depend
 endif
 
 clean:
-	rm -f $(OBJS) $(OBJASM) config.h *.a x264.o x264 x264.exe .depend TAGS
+	rm -f $(OBJS) $(OBJASM) config.h *.a x264.o matroska.o x264 x264.exe .depend TAGS
 	rm -rf vfw/build/cygwin/bin
 
 distclean: clean
