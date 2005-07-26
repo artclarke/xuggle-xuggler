@@ -153,7 +153,7 @@ static const int i_mb_b_cost_table[19] = {
     9, 9, 9, 9, 0, 0, 0, 1, 3, 7, 7, 7, 3, 7, 7, 7, 5, 9, 0
 };
 static const int i_mb_b16x8_cost_table[17] = {
-    0, 0, 0, 0, 0, 0, 0, 5, 7, 7, 7, 5, 7, 9, 9, 9, 9
+    0, 0, 0, 0, 0, 0, 0, 0, 5, 7, 7, 7, 5, 7, 9, 9, 9
 };
 static const int i_sub_mb_b_cost_table[13] = {
     7, 5, 5, 3, 7, 5, 7, 3, 7, 7, 7, 5, 1
