@@ -96,6 +96,7 @@ install: x264
 	install -m 644 x264.h $(DESTDIR)$(includedir)
 	install -m 644 libx264.a $(DESTDIR)$(libdir)
 	install x264 $(DESTDIR)$(bindir)
+	ranlib $(DESTDIR)$(libdir)/libx264.a
 
 etags: TAGS
 
