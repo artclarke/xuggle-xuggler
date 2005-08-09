@@ -34,6 +34,7 @@
 #include "matroska.h"
 
 #define	CLSIZE	  1048576
+#define	CHECK(x)  do { if ((x) < 0) return -1; } while (0)
 
 struct mk_Context {
   struct mk_Context *next, **prev, *parent;
@@ -113,72 +114,79 @@ static int	  mk_appendContextData(mk_Context *c, const void *data, unsigned size
   return 0;
 }
 
-static void	  mk_writeID(mk_Context *c, unsigned id) {
+static int	  mk_writeID(mk_Context *c, unsigned id) {
   unsigned char	  c_id[4] = { id >> 24, id >> 16, id >> 8, id };
 
   if (c_id[0])
-    mk_appendContextData(c, c_id, 4);
-  else if (c_id[1])
-    mk_appendContextData(c, c_id+1, 3);
-  else if (c_id[2])
-    mk_appendContextData(c, c_id+2, 2);
-  else
-    mk_appendContextData(c, c_id+3, 1);
+    return mk_appendContextData(c, c_id, 4);
+  if (c_id[1])
+    return mk_appendContextData(c, c_id+1, 3);
+  if (c_id[2])
+    return mk_appendContextData(c, c_id+2, 2);
+  return mk_appendContextData(c, c_id+3, 1);
 }
 
-static void	  mk_writeSize(mk_Context *c, unsigned size) {
+static int	  mk_writeSize(mk_Context *c, unsigned size) {
   unsigned char	  c_size[5] = { 0x08, size >> 24, size >> 16, size >> 8, size };
 
   if (size < 0x7f) {
     c_size[4] |= 0x80;
-    mk_appendContextData(c, c_size+4, 1);
-  } else if (size < 0x3fff) {
+    return mk_appendContextData(c, c_size+4, 1);
+  }
+  if (size < 0x3fff) {
     c_size[3] |= 0x40;
-    mk_appendContextData(c, c_size+3, 2);
-  } else if (size < 0x1fffff) {
+    return mk_appendContextData(c, c_size+3, 2);
+  }
+  if (size < 0x1fffff) {
     c_size[2] |= 0x20;
-    mk_appendContextData(c, c_size+2, 3);
-  } else if (size < 0x0fffffff) {
+    return mk_appendContextData(c, c_size+2, 3);
+  }
+  if (size < 0x0fffffff) {
     c_size[1] |= 0x10;
-    mk_appendContextData(c, c_size+1, 4);
-  } else
-    mk_appendContextData(c, c_size, 5);
+    return mk_appendContextData(c, c_size+1, 4);
+  }
+  return mk_appendContextData(c, c_size, 5);
 }
 
-static void	  mk_flushContextID(mk_Context *c) {
+static int	  mk_flushContextID(mk_Context *c) {
   unsigned char	ff = 0xff;
 
   if (c->id == 0)
-    return;
+    return 0;
 
-  mk_writeID(c->parent, c->id);
-  mk_appendContextData(c->parent, &ff, 1);
+  CHECK(mk_writeID(c->parent, c->id));
+  CHECK(mk_appendContextData(c->parent, &ff, 1));
 
   c->id = 0;
+
+  return 0;
 }
 
-static void	  mk_flushContextData(mk_Context *c) {
+static int	  mk_flushContextData(mk_Context *c) {
   if (c->d_cur == 0)
-    return;
+    return 0;
 
   if (c->parent)
-    mk_appendContextData(c->parent, c->data, c->d_cur);
+    CHECK(mk_appendContextData(c->parent, c->data, c->d_cur));
   else
-    fwrite(c->data, c->d_cur, 1, c->owner->fp);
+    if (fwrite(c->data, c->d_cur, 1, c->owner->fp) != 1)
+      return -1;
 
   c->d_cur = 0;
+
+  return 0;
 }
 
-static unsigned	  mk_closeContext(mk_Context *c, unsigned off) {
+static int	  mk_closeContext(mk_Context *c, unsigned *off) {
   if (c->id) {
-    mk_writeID(c->parent, c->id);
-    mk_writeSize(c->parent, c->d_cur);
+    CHECK(mk_writeID(c->parent, c->id));
+    CHECK(mk_writeSize(c->parent, c->d_cur));
   }
 
-  if (c->parent)
-    off += c->parent->d_cur;
+  if (c->parent && off != NULL)
+    *off += c->parent->d_cur;
 
-  mk_flushContextData(c);
+  CHECK(mk_flushContextData(c));
 
   if (c->next)
     c->next->prev = c->prev;
@@ -186,7 +194,7 @@ static unsigned	  mk_closeContext(mk_Context *c, unsigned off) {
   c->next = c->owner->freelist;
   c->owner->freelist = c;
 
-  return off;
+  return 0;
 }
 
 static void	  mk_destroyContexts(mk_Writer *w) {
@@ -207,47 +215,51 @@ static void	  mk_destroyContexts(mk_Writer *w) {
   w->freelist = w->actlist = w->root = NULL;
 }
 
-static void	  mk_writeStr(mk_Context *c, unsigned id, const char *str) {
+static int	  mk_writeStr(mk_Context *c, unsigned id, const char *str) {
   size_t  len = strlen(str);
 
-  mk_writeID(c, id);
-  mk_writeSize(c, len);
-  mk_appendContextData(c, str, len);
+  CHECK(mk_writeID(c, id));
+  CHECK(mk_writeSize(c, len));
+  CHECK(mk_appendContextData(c, str, len));
+  return 0;
 }
 
-static void	  mk_writeBin(mk_Context *c, unsigned id, const void *data, unsigned size) {
-  mk_writeID(c, id);
-  mk_writeSize(c, size);
-  mk_appendContextData(c, data, size);
+static int	  mk_writeBin(mk_Context *c, unsigned id, const void *data, unsigned size) {
+  CHECK(mk_writeID(c, id));
+  CHECK(mk_writeSize(c, size));
+  CHECK(mk_appendContextData(c, data, size));
+  return 0;
 }
 
-static void	  mk_writeUInt(mk_Context *c, unsigned id, uint64_t ui) {
+static int	  mk_writeUInt(mk_Context *c, unsigned id, int64_t ui) {
   unsigned char	  c_ui[8] = { ui >> 56, ui >> 48, ui >> 40, ui >> 32, ui >> 24, ui >> 16, ui >> 8, ui };
   unsigned	  i = 0;
 
-  mk_writeID(c, id);
+  CHECK(mk_writeID(c, id));
   while (i < 7 && c_ui[i] == 0)
     ++i;
-  mk_writeSize(c, 8 - i);
-  mk_appendContextData(c, c_ui+i, 8 - i);
+  CHECK(mk_writeSize(c, 8 - i));
+  CHECK(mk_appendContextData(c, c_ui+i, 8 - i));
+  return 0;
 }
 
-static void	  mk_writeSInt(mk_Context *c, unsigned id, int64_t si) {
+static int  	  mk_writeSInt(mk_Context *c, unsigned id, int64_t si) {
   unsigned char	  c_si[8] = { si >> 56, si >> 48, si >> 40, si >> 32, si >> 24, si >> 16, si >> 8, si };
   unsigned	  i = 0;
 
-  mk_writeID(c, id);
+  CHECK(mk_writeID(c, id));
   if (si < 0)
     while (i < 7 && c_si[i] == 0xff && c_si[i+1] & 0x80)
       ++i;
   else
     while (i < 7 && c_si[i] == 0 && !(c_si[i+1] & 0x80))
       ++i;
-  mk_writeSize(c, 8 - i);
-  mk_appendContextData(c, c_si+i, 8 - i);
+  CHECK(mk_writeSize(c, 8 - i));
+  CHECK(mk_appendContextData(c, c_si+i, 8 - i));
+  return 0;
 }
 
-static void	  mk_writeFloatRaw(mk_Context *c, float f) {
+static int	  mk_writeFloatRaw(mk_Context *c, float f) {
   union {
     float f;
     unsigned u;
@@ -260,13 +272,14 @@ static void	  mk_writeFloatRaw(mk_Context *c, float f) {
   c_f[2] = u.u >> 8;
   c_f[3] = u.u;
 
-  mk_appendContextData(c, c_f, 4);
+  return mk_appendContextData(c, c_f, 4);
 }
 
-static void	  mk_writeFloat(mk_Context *c, unsigned id, float f) {
-  mk_writeID(c, id);
-  mk_writeSize(c, 4);
-  mk_writeFloatRaw(c, f);
+static int	  mk_writeFloat(mk_Context *c, unsigned id, float f) {
+  CHECK(mk_writeID(c, id));
+  CHECK(mk_writeSize(c, 4));
+  CHECK(mk_writeFloatRaw(c, f));
+  return 0;
 }
 
 static unsigned	  mk_ebmlSizeSize(unsigned s) {
@@ -338,71 +351,72 @@ int	  mk_writeHeader(mk_Writer *w, const char *writingApp,
 
   if ((c = mk_createContext(w, w->root, 0x1a45dfa3)) == NULL) // EBML
     return -1;
-  mk_writeUInt(c, 0x4286, 1); // EBMLVersion
-  mk_writeUInt(c, 0x42f7, 1); // EBMLReadVersion
-  mk_writeUInt(c, 0x42f2, 4); // EBMLMaxIDLength
-  mk_writeUInt(c, 0x42f3, 8); // EBMLMaxSizeLength
-  mk_writeStr(c, 0x4282, "matroska"); // DocType
-  mk_writeUInt(c, 0x4287, 1); // DocTypeVersion
-  mk_writeUInt(c, 0x4285, 1); // DocTypeReadversion
-  mk_closeContext(c, 0);
+  CHECK(mk_writeUInt(c, 0x4286, 1)); // EBMLVersion
+  CHECK(mk_writeUInt(c, 0x42f7, 1)); // EBMLReadVersion
+  CHECK(mk_writeUInt(c, 0x42f2, 4)); // EBMLMaxIDLength
+  CHECK(mk_writeUInt(c, 0x42f3, 8)); // EBMLMaxSizeLength
+  CHECK(mk_writeStr(c, 0x4282, "matroska")); // DocType
+  CHECK(mk_writeUInt(c, 0x4287, 1)); // DocTypeVersion
+  CHECK(mk_writeUInt(c, 0x4285, 1)); // DocTypeReadversion
+  CHECK(mk_closeContext(c, 0));
 
   if ((c = mk_createContext(w, w->root, 0x18538067)) == NULL) // Segment
     return -1;
-  mk_flushContextID(c);
-  mk_closeContext(c, 0);
+  CHECK(mk_flushContextID(c));
+  CHECK(mk_closeContext(c, 0));
 
   if ((c = mk_createContext(w, w->root, 0x1549a966)) == NULL) // SegmentInfo
     return -1;
-  mk_writeStr(c, 0x4d80, "Haali Matroska Writer b0");
-  mk_writeStr(c, 0x5741, writingApp);
-  mk_writeUInt(c, 0x2ad7b1, w->timescale);
-  mk_writeFloat(c, 0x4489, 0);
-  w->duration_ptr = mk_closeContext(c, c->d_cur - 4);
+  CHECK(mk_writeStr(c, 0x4d80, "Haali Matroska Writer b0"));
+  CHECK(mk_writeStr(c, 0x5741, writingApp));
+  CHECK(mk_writeUInt(c, 0x2ad7b1, w->timescale));
+  CHECK(mk_writeFloat(c, 0x4489, 0));
+  w->duration_ptr = c->d_cur - 4;
+  CHECK(mk_closeContext(c, &w->duration_ptr));
 
   if ((c = mk_createContext(w, w->root, 0x1654ae6b)) == NULL) // tracks
     return -1;
   if ((ti = mk_createContext(w, c, 0xae)) == NULL) // TrackEntry
     return -1;
-  mk_writeUInt(ti, 0xd7, 1); // TrackNumber
-  mk_writeUInt(ti, 0x73c5, 1); // TrackUID
-  mk_writeUInt(ti, 0x83, 1); // TrackType
-  mk_writeUInt(ti, 0x9c, 0); // FlagLacing
-  mk_writeStr(ti, 0x86, codecID); // CodecID
+  CHECK(mk_writeUInt(ti, 0xd7, 1)); // TrackNumber
+  CHECK(mk_writeUInt(ti, 0x73c5, 1)); // TrackUID
+  CHECK(mk_writeUInt(ti, 0x83, 1)); // TrackType
+  CHECK(mk_writeUInt(ti, 0x9c, 0)); // FlagLacing
+  CHECK(mk_writeStr(ti, 0x86, codecID)); // CodecID
   if (codecPrivateSize)
-    mk_writeBin(ti, 0x63a2, codecPrivate, codecPrivateSize); // CodecPrivate
+    CHECK(mk_writeBin(ti, 0x63a2, codecPrivate, codecPrivateSize)); // CodecPrivate
   if (default_frame_duration)
-    mk_writeUInt(ti, 0x23e383, default_frame_duration); // DefaultDuration
+    CHECK(mk_writeUInt(ti, 0x23e383, default_frame_duration)); // DefaultDuration
 
   if ((v = mk_createContext(w, ti, 0xe0)) == NULL) // Video
     return -1;
-  mk_writeUInt(v, 0xb0, width);
-  mk_writeUInt(v, 0xba, height);
-  mk_writeUInt(v, 0x54b0, d_width);
-  mk_writeUInt(v, 0x54ba, d_height);
-  mk_closeContext(v, 0);
+  CHECK(mk_writeUInt(v, 0xb0, width));
+  CHECK(mk_writeUInt(v, 0xba, height));
+  CHECK(mk_writeUInt(v, 0x54b0, d_width));
+  CHECK(mk_writeUInt(v, 0x54ba, d_height));
+  CHECK(mk_closeContext(v, 0));
 
-  mk_closeContext(ti, 0);
+  CHECK(mk_closeContext(ti, 0));
 
-  mk_closeContext(c, 0);
+  CHECK(mk_closeContext(c, 0));
 
-  mk_flushContextData(w->root);
+  CHECK(mk_flushContextData(w->root));
 
   w->wrote_header = 1;
 
   return 0;
 }
 
-static void mk_closeCluster(mk_Writer *w) {
+static int mk_closeCluster(mk_Writer *w) {
   if (w->cluster == NULL)
-    return;
-  mk_closeContext(w->cluster, 0);
+    return 0;
+  CHECK(mk_closeContext(w->cluster, 0));
   w->cluster = NULL;
-  mk_flushContextData(w->root);
+  CHECK(mk_flushContextData(w->root));
+  return 0;
 }
 
-int	  mk_flushFrame(mk_Writer *w)
-{
+int	  mk_flushFrame(mk_Writer *w) {
   int64_t	delta, ref = 0;
   unsigned	fsize, bgsize;
   unsigned char	c_delta_flags[3];
@@ -412,7 +426,7 @@ int	  mk_flushFrame(mk_Writer *w)
 
   delta = w->frame_tc/w->timescale - w->cluster_tc_scaled;
   if (delta > 32767ll || delta < -32768ll)
-    mk_closeCluster(w);
+    CHECK(mk_closeCluster(w));
 
   if (w->cluster == NULL) {
     w->cluster_tc_scaled = w->frame_tc / w->timescale;
@@ -420,7 +434,7 @@ int	  mk_flushFrame(mk_Writer *w)
     if (w->cluster == NULL)
       return -1;
 
-    mk_writeUInt(w->cluster, 0xe7, w->cluster_tc_scaled); // Timecode
+    CHECK(mk_writeUInt(w->cluster, 0xe7, w->cluster_tc_scaled)); // Timecode
 
     delta = 0;
   }
@@ -432,28 +446,28 @@ int	  mk_flushFrame(mk_Writer *w)
     bgsize += 1 + 1 + mk_ebmlSIntSize(ref);
   }
 
-  mk_writeID(w->cluster, 0xa0); // BlockGroup
-  mk_writeSize(w->cluster, bgsize);
-  mk_writeID(w->cluster, 0xa1); // Block
-  mk_writeSize(w->cluster, fsize + 4);
-  mk_writeSize(w->cluster, 1); // track number
+  CHECK(mk_writeID(w->cluster, 0xa0)); // BlockGroup
+  CHECK(mk_writeSize(w->cluster, bgsize));
+  CHECK(mk_writeID(w->cluster, 0xa1)); // Block
+  CHECK(mk_writeSize(w->cluster, fsize + 4));
+  CHECK(mk_writeSize(w->cluster, 1)); // track number
 
   c_delta_flags[0] = delta >> 8;
   c_delta_flags[1] = delta;
   c_delta_flags[2] = 0;
-  mk_appendContextData(w->cluster, c_delta_flags, 3);
+  CHECK(mk_appendContextData(w->cluster, c_delta_flags, 3));
   if (w->frame) {
-    mk_appendContextData(w->cluster, w->frame->data, w->frame->d_cur);
+    CHECK(mk_appendContextData(w->cluster, w->frame->data, w->frame->d_cur));
     w->frame->d_cur = 0;
   }
   if (!w->keyframe)
-    mk_writeSInt(w->cluster, 0xfb, ref); // ReferenceBlock
+    CHECK(mk_writeSInt(w->cluster, 0xfb, ref)); // ReferenceBlock
 
   w->in_frame = 0;
   w->prev_frame_tc_scaled = w->cluster_tc_scaled + delta;
 
   if (w->cluster->d_cur > CLSIZE)
-    mk_closeCluster(w);
+    CHECK(mk_closeCluster(w));
 
   return 0;
 }
@@ -492,34 +506,19 @@ int	  mk_addFrameData(mk_Writer *w, const void *data, unsigned size) {
   return mk_appendContextData(w->frame, data, size);
 }
 
-void	  mk_close(mk_Writer *w) {
-  mk_flushFrame(w);
-  mk_closeCluster(w);
+int	  mk_close(mk_Writer *w) {
+  int	ret = 0;
+  if (mk_flushFrame(w) < 0 || mk_closeCluster(w) < 0)
+    ret = -1;
   if (w->wrote_header) {
     fseek(w->fp, w->duration_ptr, SEEK_SET);
-    mk_writeFloatRaw(w->root, (float)((double)(w->max_frame_tc+w->def_duration) / w->timescale));
-    mk_flushContextData(w->root);
+    if (mk_writeFloatRaw(w->root, (float)((double)(w->max_frame_tc+w->def_duration) / w->timescale)) < 0 ||
+	mk_flushContextData(w->root) < 0)
+      ret = -1;
   }
   mk_destroyContexts(w);
   fclose(w->fp);
   free(w);
+  return ret;
 }
 
-#ifdef TESTING
-int   main(int argc, char **argv) {
-  char	  f[4] = { 1, 2, 3, 4 };
-  mk_Writer *w = mk_createWriter("foo.mkv");
-  mk_writeHeader(w, "mktest", "V_MPEG/ISO/AVC", NULL, 0, 40000000, 352, 288, 3, 4);
-  mk_startFrame(w);
-  mk_setFrameFlags(w, 0, 1);
-  mk_addFrameData(w, f, 1);
-  mk_startFrame(w);
-  mk_setFrameFlags(w, 40000000, 0);
-  mk_addFrameData(w, f, 2);
-  mk_startFrame(w);
-  mk_setFrameFlags(w, 80000000, 0);
-  mk_addFrameData(w, f, 4);
-  mk_close(w);
-  return 0;
-}
-#endif

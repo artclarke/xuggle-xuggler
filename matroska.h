@@ -39,6 +39,6 @@ int  mk_writeHeader( mk_Writer *w, const char *writingApp,
 int  mk_startFrame( mk_Writer *w );
 int  mk_addFrameData( mk_Writer *w, const void *data, unsigned size );
 int  mk_setFrameFlags( mk_Writer *w, int64_t timestamp, int keyframe );
-void mk_close( mk_Writer *w );
+int  mk_close( mk_Writer *w );
 
 #endif

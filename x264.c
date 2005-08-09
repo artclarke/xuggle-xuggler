@@ -1714,14 +1714,19 @@ static int set_param_mkv( hnd_t handle, x264_param_t *p_param )
 
     if( dw > 0 && dh > 0 )
     {
+	int64_t	a = dw, b = dh;
+
         for (;;)
         {
-            int64_t c = dw % dh;
+            int64_t c = a % b;
             if( c == 0 )
               break;
-            dw = dh;
-            dh = c;
+            a = b;
+            b = c;
         }
+
+	dw /= b;
+	dh /= b;
     }
 
     p_mkv->d_width = (int)dw;
@@ -1767,17 +1772,19 @@ static int write_nalu_mkv( hnd_t handle, uint8_t *p_nalu, int i_size )
     case 0x1:
     case 0x5:
     case 0x6:
-        if (!p_mkv->b_writing_frame)
+        if( !p_mkv->b_writing_frame )
         {
+            if( mk_startFrame(p_mkv->w) < 0 )
+		return -1;
             p_mkv->b_writing_frame = 1;
-            mk_startFrame(p_mkv->w);
         }
         psize = i_size - 4 ;
         dsize[0] = psize >> 16;
         dsize[1] = psize >> 8;
         dsize[2] = psize;
-        mk_addFrameData(p_mkv->w, dsize, 3);
-        mk_addFrameData(p_mkv->w, p_nalu + 4, i_size - 4);
+        if( mk_addFrameData(p_mkv->w, dsize, 3) < 0 ||
+	    mk_addFrameData(p_mkv->w, p_nalu + 4, i_size - 4) < 0 )
+	    return -1;
         break;
 
     default:
@@ -1785,7 +1792,7 @@ static int write_nalu_mkv( hnd_t handle, uint8_t *p_nalu, int i_size )
     }
 
     if( !p_mkv->b_header_written && p_mkv->pps && p_mkv->sps &&
-        !write_header_mkv(p_mkv) )
+        write_header_mkv(p_mkv) < 0 )
         return -1;
 
     return i_size;
@@ -1806,16 +1813,17 @@ static int set_eop_mkv( hnd_t handle, x264_picture_t *p_picture )
 static int close_file_mkv( hnd_t handle )
 {
     mkv_t *p_mkv = handle;
+    int   ret;
 
     if( p_mkv->sps )
         free( p_mkv->sps );
     if( p_mkv->pps )
         free( p_mkv->pps );
 
-    mk_close(p_mkv->w);
+    ret = mk_close(p_mkv->w);
 
     free( p_mkv );
 
-    return 0;
+    return ret;
 }
 
