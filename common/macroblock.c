@@ -499,6 +499,9 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
         {
             /* the colocated ref isn't in the current list0 */
             /* FIXME: we might still be able to use direct_8x8 on some partitions */
+            /* FIXME: with B-pyramid + extensive ref list reordering
+             *   (not currently used), we would also have to check
+             *   l1mv1 like in spatial mode */
             return 0;
         }
     }
@@ -512,8 +515,11 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
     int mv[2][2];
     int i_list;
     int i8, i4;
-    const int8_t *l1ref = &h->fref1[0]->ref[0][ h->mb.i_b8_xy ];
-    const int16_t (*l1mv)[2] = (const int16_t (*)[2]) &h->fref1[0]->mv[0][ h->mb.i_b4_xy ];
+    const int8_t *l1ref0 = &h->fref1[0]->ref[0][ h->mb.i_b8_xy ];
+    const int8_t *l1ref1 = &h->fref1[0]->ref[1][ h->mb.i_b8_xy ];
+    const int16_t (*l1mv0)[2] = (const int16_t (*)[2]) &h->fref1[0]->mv[0][ h->mb.i_b4_xy ];
+    const int16_t (*l1mv1)[2] = (const int16_t (*)[2]) &h->fref1[0]->mv[1][ h->mb.i_b4_xy ];
+    const int intra_col = IS_INTRA( h->fref1[0]->mb_type[ h->mb.i_mb_xy ] );
 
     for( i_list=0; i_list<2; i_list++ )
     {
@@ -562,8 +568,10 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
     {
         const int x8 = i8%2;
         const int y8 = i8/2;
-        if( l1ref[ x8 + y8 * h->mb.i_b8_stride ] == 0 )
+        const int o8 = x8 + y8 * h->mb.i_b8_stride;
+        if( !intra_col && ( l1ref0[o8] == 0 || ( l1ref0[o8] < 0 && l1ref1[o8] == 0 ) ) )
         {
+            const int16_t (*l1mv)[2] = (l1ref0[o8] == 0) ? l1mv0 : l1mv1;
             for( i4=0; i4<4; i4++ )
             {
                 const int x4 = i4%2 + 2*x8;
