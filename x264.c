@@ -676,7 +676,7 @@ static int  Parse( int argc, char **argv,
                 param->i_level_idc = atoi(optarg);
                 break;
             case OPT_RATETOL:
-                param->rc.f_rate_tolerance = atof(optarg);
+                param->rc.f_rate_tolerance = !strncmp("inf", optarg, 3) ? 1e9 : atof(optarg);
                 break;
             case OPT_VBVMAXRATE:
                 param->rc.i_vbv_max_bitrate = atoi( optarg );
