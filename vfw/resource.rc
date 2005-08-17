@@ -181,7 +181,7 @@ BEGIN
                     SS_CENTERIMAGE
     EDITTEXT        IDC_SAR_W,232,79,21,14,ES_AUTOHSCROLL | ES_NUMBER
     EDITTEXT        IDC_SAR_H,266,79,21,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Pixel Aspect Ratio",IDC_STATIC,164,79,58,14,
+    LTEXT           "Sample AR",IDC_STATIC,164,79,58,14,
                     SS_CENTERIMAGE
     LTEXT           ":",IDC_STATIC,257,81,8,8
     CONTROL         "8x8 Intra search",IDC_I8X8,"Button",BS_AUTOCHECKBOX | 
