@@ -24,6 +24,11 @@
 #ifndef _X264_H
 #define _X264_H 1
 
+#if !defined(_STDINT_H) && !defined(_STDINT_H_) && \
+    !defined(_INTTYPES_H) && !defined(_INTTYPES_H_)
+#warning You must include stdint.h or inttypes.h before x264.h
+#endif
+
 #include <stdarg.h>
 
 #define X264_BUILD 34
