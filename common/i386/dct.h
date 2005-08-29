@@ -35,4 +35,10 @@ void x264_add16x16_idct_mmxext( uint8_t *p_dst, int i_dst, int16_t dct[16][4][4]
 void x264_dct4x4dc_mmxext( int16_t d[4][4] );
 void x264_idct4x4dc_mmxext( int16_t d[4][4] );
 
+void x264_sub8x8_dct8_mmxext( int16_t dct[8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
+void x264_sub16x16_dct8_mmxext( int16_t dct[4][8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
+
+void x264_add8x8_idct8_mmxext( uint8_t *dst, int i_dst, int16_t dct[8][8] );
+void x264_add16x16_idct8_mmxext( uint8_t *dst, int i_dst, int16_t dct[4][8][8] );
+
 #endif

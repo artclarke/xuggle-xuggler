@@ -412,6 +412,12 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
         dctf->add8x8_idct   = x264_add8x8_idct_mmxext;
         dctf->add16x16_idct = x264_add16x16_idct_mmxext;
 
+        dctf->sub8x8_dct8   = x264_sub8x8_dct8_mmxext;
+        dctf->sub16x16_dct8 = x264_sub16x16_dct8_mmxext;
+
+        dctf->add8x8_idct8  = x264_add8x8_idct8_mmxext;
+        dctf->add16x16_idct8= x264_add16x16_idct8_mmxext;
+
         dctf->dct4x4dc  = x264_dct4x4dc_mmxext;
         dctf->idct4x4dc = x264_idct4x4dc_mmxext;
     }
