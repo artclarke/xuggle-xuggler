@@ -26,7 +26,11 @@
 
 #if !defined(_STDINT_H) && !defined(_STDINT_H_) && \
     !defined(_INTTYPES_H) && !defined(_INTTYPES_H_)
-#warning You must include stdint.h or inttypes.h before x264.h
+# ifdef _MSC_VER
+#  pragma message("You must include stdint.h or inttypes.h before x264.h")
+# else
+#  warning You must include stdint.h or inttypes.h before x264.h
+# endif
 #endif
 
 #include <stdarg.h>
