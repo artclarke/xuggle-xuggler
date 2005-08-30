@@ -354,7 +354,6 @@ x264_add4x4_idct_mmxext:
 %endmacro
 
 cglobal x264_pixel_sub_8x8_mmx
-cglobal x264_pixel_sub_8x8_mmx
 cglobal x264_xdct8_mmxext
 cglobal x264_ydct8_mmx
 cglobal x264_ydct8_sse2
