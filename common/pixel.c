@@ -431,6 +431,28 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->satd[PIXEL_4x4]  = x264_pixel_satd_4x4_mmxext;
     }
 #endif
+
+#ifdef HAVE_SSE2
+    // disable on AMD processors since it is slower
+    if( (cpu&X264_CPU_SSE2) && !(cpu&X264_CPU_3DNOW) )
+    {
+        pixf->sad[PIXEL_16x16] = x264_pixel_sad_16x16_sse2;
+        pixf->sad[PIXEL_16x8 ] = x264_pixel_sad_16x8_sse2;
+
+        pixf->satd[PIXEL_16x16]= x264_pixel_satd_16x16_sse2;
+        pixf->satd[PIXEL_16x8] = x264_pixel_satd_16x8_sse2;
+        pixf->satd[PIXEL_8x16] = x264_pixel_satd_8x16_sse2;
+        pixf->satd[PIXEL_8x8]  = x264_pixel_satd_8x8_sse2;
+        pixf->satd[PIXEL_8x4]  = x264_pixel_satd_8x4_sse2;
+    }
+    // these are faster on both Intel and AMD
+    if( cpu&X264_CPU_SSE2 )
+    {
+        pixf->ssd[PIXEL_16x16] = x264_pixel_ssd_16x16_sse2;
+        pixf->ssd[PIXEL_16x8]  = x264_pixel_ssd_16x8_sse2;
+    }
+#endif
+
 #ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC )
     {

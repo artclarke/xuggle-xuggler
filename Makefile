@@ -19,7 +19,8 @@ ifeq ($(ARCH),X86)
 SRCS   += common/i386/mc-c.c common/i386/dct-c.c common/i386/predict.c
 ASMSRC  = common/i386/dct-a.asm common/i386/cpu-a.asm \
           common/i386/pixel-a.asm common/i386/mc-a.asm \
-          common/i386/mc-a2.asm common/i386/predict-a.asm
+          common/i386/mc-a2.asm common/i386/predict-a.asm \
+          common/i386/pixel-sse2.asm
 OBJASM  = $(ASMSRC:%.asm=%.o)
 endif
 
@@ -28,7 +29,8 @@ ifeq ($(ARCH),X86_64)
 SRCS   += common/i386/mc-c.c common/i386/dct-c.c common/i386/predict.c
 ASMSRC  = common/amd64/dct-a.asm common/amd64/cpu-a.asm \
           common/amd64/pixel-a.asm common/amd64/mc-a.asm \
-          common/amd64/mc-a2.asm common/amd64/predict-a.asm
+          common/amd64/mc-a2.asm common/amd64/predict-a.asm \
+          common/amd64/pixel-sse2.asm
 OBJASM  = $(ASMSRC:%.asm=%.o)
 endif
 
