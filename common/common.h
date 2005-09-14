@@ -46,6 +46,7 @@
 #include "dct.h"
 #include "cabac.h"
 #include "csp.h"
+#include "quant.h"
 
 /****************************************************************************
  * Macros
@@ -486,6 +487,7 @@ struct x264_t
     x264_mc_functions_t   mc;
     x264_dct_function_t   dctf;
     x264_csp_function_t   csp;
+    x264_quant_function_t quantf;
 
     /* vlc table for decoding purpose only */
     x264_vlc_table_t *x264_coeff_token_lookup[5];

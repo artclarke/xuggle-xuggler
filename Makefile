@@ -4,7 +4,8 @@ include config.mak
 
 SRCS = common/mc.c common/predict.c common/pixel.c common/macroblock.c \
        common/frame.c common/dct.c common/cpu.c common/cabac.c \
-       common/common.c common/mdate.c common/csp.c common/set.c\
+       common/common.c common/mdate.c common/csp.c common/set.c \
+       common/quant.c \
        encoder/analyse.c encoder/me.c encoder/ratecontrol.c \
        encoder/set.c encoder/macroblock.c encoder/cabac.c \
        encoder/cavlc.c encoder/encoder.c encoder/eval.c
@@ -20,7 +21,7 @@ SRCS   += common/i386/mc-c.c common/i386/dct-c.c common/i386/predict.c
 ASMSRC  = common/i386/dct-a.asm common/i386/cpu-a.asm \
           common/i386/pixel-a.asm common/i386/mc-a.asm \
           common/i386/mc-a2.asm common/i386/predict-a.asm \
-          common/i386/pixel-sse2.asm
+          common/i386/pixel-sse2.asm common/i386/quant-a.asm
 OBJASM  = $(ASMSRC:%.asm=%.o)
 endif
 
@@ -30,7 +31,7 @@ SRCS   += common/i386/mc-c.c common/i386/dct-c.c common/i386/predict.c
 ASMSRC  = common/amd64/dct-a.asm common/amd64/cpu-a.asm \
           common/amd64/pixel-a.asm common/amd64/mc-a.asm \
           common/amd64/mc-a2.asm common/amd64/predict-a.asm \
-          common/amd64/pixel-sse2.asm
+          common/amd64/pixel-sse2.asm common/amd64/quant-a.asm
 OBJASM  = $(ASMSRC:%.asm=%.o)
 endif
 

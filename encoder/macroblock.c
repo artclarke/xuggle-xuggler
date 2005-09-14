@@ -144,78 +144,35 @@ static inline void sub_zigzag_4x4( int level[15], const uint8_t *p_src, uint8_t 
 }
 #undef ZIG
 
-static void quant_8x8( int16_t dct[8][8], int quant_mf[6][8][8], int i_qscale, int b_intra )
+static void quant_8x8( x264_t *h, int16_t dct[8][8], int quant_mf[6][8][8], int i_qscale, int b_intra )
 {
     const int i_qbits = 16 + i_qscale / 6;
     const int i_mf = i_qscale % 6;
     const int f = ( 1 << i_qbits ) / ( b_intra ? 3 : 6 );
-
-    int x,y;
-    for( y = 0; y < 8; y++ )
-    {
-        for( x = 0; x < 8; x++ )
-        {
-            if( dct[y][x] > 0 )
-                dct[y][x] = ( f + dct[y][x] * quant_mf[i_mf][y][x] ) >> i_qbits;
-            else
-                dct[y][x] = - ( ( f - dct[y][x] * quant_mf[i_mf][y][x] ) >> i_qbits );
-        }
-    }
+    h->quantf.quant_8x8_core( dct, quant_mf[i_mf], i_qbits, f );
 }
-static void quant_4x4( int16_t dct[4][4], int quant_mf[6][4][4], int i_qscale, int b_intra )
+static void quant_4x4( x264_t *h, int16_t dct[4][4], int quant_mf[6][4][4], int i_qscale, int b_intra )
 {
     const int i_qbits = 15 + i_qscale / 6;
     const int i_mf = i_qscale % 6;
     const int f = ( 1 << i_qbits ) / ( b_intra ? 3 : 6 );
-
-    int x,y;
-    for( y = 0; y < 4; y++ )
-    {
-        for( x = 0; x < 4; x++ )
-        {
-            if( dct[y][x] > 0 )
-                dct[y][x] = ( f + dct[y][x] * quant_mf[i_mf][y][x] ) >> i_qbits;
-            else
-                dct[y][x] = - ( ( f - dct[y][x] * quant_mf[i_mf][y][x] ) >> i_qbits );
-        }
-    }
+    h->quantf.quant_4x4_core( dct, quant_mf[i_mf], i_qbits, f );
 }
-static void quant_4x4_dc( int16_t dct[4][4], int quant_mf[6][4][4], int i_qscale )
+static void quant_4x4_dc( x264_t *h, int16_t dct[4][4], int quant_mf[6][4][4], int i_qscale )
 {
-    const int i_qbits = 15 + i_qscale / 6;
-    const int f2 = ( 2 << i_qbits ) / 3;
-    const int i_qmf = quant_mf[i_qscale%6][0][0];
-    int x,y;
-
-    for( y = 0; y < 4; y++ )
-    {
-        for( x = 0; x < 4; x++ )
-        {
-            if( dct[y][x] > 0 )
-                dct[y][x] =( f2 + dct[y][x]  * i_qmf) >> ( 1 + i_qbits );
-            else
-                dct[y][x] = - ( ( f2 - dct[y][x]  * i_qmf ) >> (1 + i_qbits ) );
-        }
-    }
+    const int i_qbits = 16 + i_qscale / 6;
+    const int i_mf = i_qscale % 6;
+    const int f = ( 1 << i_qbits ) / 3;
+    h->quantf.quant_4x4_dc_core( dct, quant_mf[i_mf][0][0], i_qbits, f );
 }
-static void quant_2x2_dc( int16_t dct[2][2], int quant_mf[6][4][4], int i_qscale, int b_intra )
+static void quant_2x2_dc( x264_t *h, int16_t dct[2][2], int quant_mf[6][4][4], int i_qscale, int b_intra )
 {
-    int const i_qbits = 15 + i_qscale / 6;
-    const int f2 = ( 2 << i_qbits ) / ( b_intra ? 3 : 6 );
-    const int i_qmf = quant_mf[i_qscale%6][0][0];
-
-    int x,y;
-    for( y = 0; y < 2; y++ )
-    {
-        for( x = 0; x < 2; x++ )
-        {
-            if( dct[y][x] > 0 )
-                dct[y][x] =( f2 + dct[y][x]  * i_qmf) >> ( 1 + i_qbits );
-            else
-                dct[y][x] = - ( ( f2 - dct[y][x]  * i_qmf ) >> (1 + i_qbits ) );
-        }
-    }
+    const int i_qbits = 16 + i_qscale / 6;
+    const int i_mf = i_qscale % 6;
+    const int f = ( 1 << i_qbits ) / ( b_intra ? 3 : 6 );
+    h->quantf.quant_2x2_dc_core( dct, quant_mf[i_mf][0][0], i_qbits, f );
 }
+
 #if 0
 /* From a JVT doc */
 static const int f_deadzone_intra[4][4][2] = /* [num][den] */
@@ -377,7 +334,7 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale )
     }
 
     h->dctf.sub4x4_dct( dct4x4, p_src, i_stride, p_dst, i_stride );
-    quant_4x4( dct4x4, h->quant4_mf[CQM_4IY], i_qscale, 1 );
+    quant_4x4( h, dct4x4, h->quant4_mf[CQM_4IY], i_qscale, 1 );
     scan_zigzag_4x4full( h->dct.block[idx].luma4x4, dct4x4 );
     x264_mb_dequant_4x4( dct4x4, h->dequant4_mf[CQM_4IY], i_qscale );
 
@@ -394,7 +351,7 @@ void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qscale )
     int16_t dct8x8[8][8];
 
     h->dctf.sub8x8_dct8( dct8x8, p_src, i_stride, p_dst, i_stride );
-    quant_8x8( dct8x8, h->quant8_mf[CQM_8IY], i_qscale, 1 );
+    quant_8x8( h, dct8x8, h->quant8_mf[CQM_8IY], i_qscale, 1 );
     scan_zigzag_8x8full( h->dct.luma8x8[idx], dct8x8 );
     x264_mb_dequant_8x8( dct8x8, h->dequant8_mf[CQM_8IY], i_qscale );
     h->dctf.add8x8_idct8( p_dst, i_stride, dct8x8 );
@@ -430,13 +387,13 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
         dct4x4[0][block_idx_y[i]][block_idx_x[i]] = dct4x4[1+i][0][0];
 
         /* quant/scan/dequant */
-        quant_4x4( dct4x4[1+i], h->quant4_mf[CQM_4IY], i_qscale, 1 );
+        quant_4x4( h, dct4x4[1+i], h->quant4_mf[CQM_4IY], i_qscale, 1 );
         scan_zigzag_4x4( h->dct.block[i].residual_ac, dct4x4[1+i] );
         x264_mb_dequant_4x4( dct4x4[1+i], h->dequant4_mf[CQM_4IY], i_qscale );
     }
 
     h->dctf.dct4x4dc( dct4x4[0] );
-    quant_4x4_dc( dct4x4[0], h->quant4_mf[CQM_4IY], i_qscale );
+    quant_4x4_dc( h, dct4x4[0], h->quant4_mf[CQM_4IY], i_qscale );
     scan_zigzag_4x4full( h->dct.luma16x16_dc, dct4x4[0] );
 
     /* output samples to fdec */
@@ -486,7 +443,7 @@ static void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
             /* copy dc coeff */
             dct2x2[block_idx_y[i]][block_idx_x[i]] = dct4x4[i][0][0];
 
-            quant_4x4( dct4x4[i], h->quant4_mf[CQM_4IC + b_inter], i_qscale, b_inter ? 0 : 1 );
+            quant_4x4( h, dct4x4[i], h->quant4_mf[CQM_4IC + b_inter], i_qscale, !b_inter );
             scan_zigzag_4x4( h->dct.block[16+i+ch*4].residual_ac, dct4x4[i] );
             x264_mb_dequant_4x4( dct4x4[i], h->dequant4_mf[CQM_4IC + b_inter], i_qscale );
 
@@ -497,7 +454,7 @@ static void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
         }
 
         h->dctf.dct2x2dc( dct2x2 );
-        quant_2x2_dc( dct2x2, h->quant4_mf[CQM_4IC + b_inter], i_qscale, b_inter ? 0 : 1 );
+        quant_2x2_dc( h, dct2x2, h->quant4_mf[CQM_4IC + b_inter], i_qscale, !b_inter );
         scan_zigzag_2x2_dc( h->dct.chroma_dc[ch], dct2x2 );
 
         /* output samples to fdec */
@@ -668,7 +625,7 @@ void x264_macroblock_encode( x264_t *h )
             {
                 int i_decimate_8x8;
 
-                quant_8x8( dct8x8[idx], h->quant8_mf[CQM_8PY], i_qp, 0 );
+                quant_8x8( h, dct8x8[idx], h->quant8_mf[CQM_8PY], i_qp, 0 );
                 scan_zigzag_8x8full( h->dct.luma8x8[idx], dct8x8[idx] );
                 x264_mb_dequant_8x8( dct8x8[idx], h->dequant8_mf[CQM_8PY], i_qp );
 
@@ -703,7 +660,7 @@ void x264_macroblock_encode( x264_t *h )
                 {
                     idx = i8x8 * 4 + i4x4;
 
-                    quant_4x4( dct4x4[idx], h->quant4_mf[CQM_4PY], i_qp, 0 );
+                    quant_4x4( h, dct4x4[idx], h->quant4_mf[CQM_4PY], i_qp, 0 );
                     scan_zigzag_4x4full( h->dct.block[idx].luma4x4, dct4x4[idx] );
                     x264_mb_dequant_4x4( dct4x4[idx], h->dequant4_mf[CQM_4PY], i_qp );
 
@@ -899,7 +856,7 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
         {
             const int idx = i8x8 * 4 + i4x4;
 
-            quant_4x4( dct4x4[idx], (int(*)[4][4])def_quant4_mf, i_qp, 0 );
+            quant_4x4( h, dct4x4[idx], (int(*)[4][4])def_quant4_mf, i_qp, 0 );
             scan_zigzag_4x4full( dctscan, dct4x4[idx] );
 
             i_decimate_mb += x264_mb_decimate_score( dctscan, 16 );
@@ -936,7 +893,7 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
         dct2x2[1][0] = dct4x4[2][0][0];
         dct2x2[1][1] = dct4x4[3][0][0];
         h->dctf.dct2x2dc( dct2x2 );
-        quant_2x2_dc( dct2x2, (int(*)[4][4])def_quant4_mf, i_qp, 0 );
+        quant_2x2_dc( h, dct2x2, (int(*)[4][4])def_quant4_mf, i_qp, 0 );
         if( dct2x2[0][0] || dct2x2[0][1] || dct2x2[1][0] || dct2x2[1][1]  )
         {
             /* can't be */
@@ -946,7 +903,7 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
         /* calculate dct coeffs */
         for( i4x4 = 0, i_decimate_mb = 0; i4x4 < 4; i4x4++ )
         {
-            quant_4x4( dct4x4[i4x4], (int(*)[4][4])def_quant4_mf, i_qp, 0 );
+            quant_4x4( h, dct4x4[i4x4], (int(*)[4][4])def_quant4_mf, i_qp, 0 );
             scan_zigzag_4x4( dctscan, dct4x4[i4x4] );
 
             i_decimate_mb += x264_mb_decimate_score( dctscan, 15 );
