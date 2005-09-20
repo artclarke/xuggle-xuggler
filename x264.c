@@ -1128,7 +1128,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         if( p_read_frame( &pic, opt->hin, i_frame + opt->i_seek, param->i_width, param->i_height ) )
             break;
 
-        pic.i_pts = i_frame * param->i_fps_den;
+        pic.i_pts = (int64_t)i_frame * param->i_fps_den;
 
         i_file += Encode_frame( h, opt->hout, &pic );
 
@@ -1801,8 +1801,7 @@ static int write_nalu_mkv( hnd_t handle, uint8_t *p_nalu, int i_size )
 static int set_eop_mkv( hnd_t handle, x264_picture_t *p_picture )
 {
     mkv_t *p_mkv = handle;
-    int64_t i_stamp = (int64_t)p_picture->i_pts * (int64_t)1000000000 /
-                      p_mkv->fps_num;
+    int64_t i_stamp = (int64_t)(p_picture->i_pts * 1e9 / p_mkv->fps_num);
 
     p_mkv->b_writing_frame = 0;
 
