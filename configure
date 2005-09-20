@@ -111,7 +111,7 @@ case "$UNAMEM" in
       CFLAGS="$CFLAGS -maltivec -mabi=altivec"
     fi
     ;;
-  sun4m|sun4d)
+  sun4m|sun4d|sparc|sparc64)
     ARCH="Sparc"
     ;;
   sun4u)
@@ -120,6 +120,24 @@ case "$UNAMEM" in
     LDFLAGS="$LDFLAGS -mcpu=ultrasparc"
     AS="as"
     ASFLAGS="-xarch=v8plusa"
+    ;;
+  ia64)
+    ARCH="IA64"
+    ;;
+  mips|mipsel)
+    ARCH="MIPS"
+    ;;
+  m68k)
+    ARCH="M68K"
+    ;;
+  arm)
+    ARCH="ARM"
+    ;;
+  s390|s390x)
+    ARCH="S390"
+    ;;
+  parisc|parisc64)
+    ARCH="PARISC"
     ;;
   *)
     echo "Unknown platform $UNAMEM, edit the configure"
