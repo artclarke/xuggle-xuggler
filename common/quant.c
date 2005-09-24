@@ -22,13 +22,9 @@
 
 #include "common.h"
 
-void x264_quant_8x8_core16_mmx( int16_t dct[8][8], int quant_mf[8][8], int i_qbits, int f );
-void x264_quant_4x4_core16_mmx( int16_t dct[4][4], int quant_mf[4][4], int i_qbits, int f );
-void x264_quant_8x8_core32_mmx( int16_t dct[8][8], int quant_mf[8][8], int i_qbits, int f );
-void x264_quant_4x4_core32_mmx( int16_t dct[4][4], int quant_mf[4][4], int i_qbits, int f );
-void x264_quant_4x4_dc_core32_mmx( int16_t dct[4][4], int i_quant_mf, int i_qbits, int f );
-void x264_quant_2x2_dc_core32_mmx( int16_t dct[2][2], int i_quant_mf, int i_qbits, int f );
-
+#ifdef HAVE_MMXEXT
+#include "i386/quant.h"
+#endif
 
 #define QUANT_ONE( coef, mf ) \
 { \
@@ -70,7 +66,7 @@ static void quant_2x2_dc_core( int16_t dct[2][2], int i_quant_mf, int i_qbits, i
 
 void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 {
-    const char *name[4] = { "C", "C", "C", "C" };
+    int i, maxQ8=0, maxQ4=0, maxQdc=0;
 
     pf->quant_8x8_core = quant_8x8_core;
     pf->quant_4x4_core = quant_4x4_core;
@@ -78,34 +74,64 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     pf->quant_2x2_dc_core = quant_2x2_dc_core;
 
 #ifdef HAVE_MMXEXT
-    if( cpu&X264_CPU_MMX )
+
+    /* determine the biggest coeffient in all quant8_mf tables */
+    for( i = 0; i < 2*6*8*8; i++ )
     {
-        int i;
-
-        pf->quant_8x8_core = x264_quant_8x8_core16_mmx;
-        pf->quant_4x4_core = x264_quant_4x4_core16_mmx;
-        pf->quant_4x4_dc_core = x264_quant_4x4_dc_core32_mmx;
-        pf->quant_2x2_dc_core = x264_quant_2x2_dc_core32_mmx;
-
-        name[0] = name[1] = "16MMX";
-        name[2] = name[3] = "32MMX";
-
-        for( i = 0; i < 2*6*8*8; i++ )
-            if( (***h->quant8_mf)[i] >= 0x8000 )
-            {
-                pf->quant_8x8_core = x264_quant_8x8_core32_mmx;
-                name[0] = "32MMX";
-            }
-
-        for( i = 0; i < 4*6*4*4; i++ )
-            if( (***h->quant4_mf)[i] >= 0x8000 )
-            {
-                pf->quant_4x4_core = x264_quant_4x4_core32_mmx;
-                name[1] = "32MMX";
-            }
+        int q = h->quant8_mf[0][0][0][i];
+        if( maxQ8 < q )
+            maxQ8 = q;
     }
-#endif
 
-    x264_log( h, X264_LOG_DEBUG, "using quant functions 8x8=%s 4x4=%s dc4x4=%s dc2x2=%s\n",
-              name[0], name[1], name[2], name[3] );
+    /* determine the biggest coeffient in all quant4_mf tables ( maxQ4 )
+       and the biggest DC coefficient if all quant4_mf tables ( maxQdc ) */
+    for( i = 0; i < 4*6*4*4; i++ )
+    {
+        int q = h->quant4_mf[0][0][0][i];
+        if( maxQ4 < q )
+            maxQ4 = q;
+        if( maxQdc < q && i%16 == 0 )
+            maxQdc = q;
+    }
+
+    /* select quant_8x8 based on CPU and maxQ8 */
+    if( maxQ8 < (1<<15) && cpu&X264_CPU_MMX )
+        pf->quant_8x8_core = x264_quant_8x8_core15_mmx;
+    else
+    if( maxQ8 < (1<<16) && cpu&X264_CPU_MMXEXT )
+        pf->quant_8x8_core = x264_quant_8x8_core16_mmxext;
+    else
+    if( cpu&X264_CPU_MMXEXT )
+        pf->quant_8x8_core = x264_quant_8x8_core32_mmxext;
+
+    /* select quant_4x4 based on CPU and maxQ4 */
+    if( maxQ4 < (1<<15) && cpu&X264_CPU_MMX )
+        pf->quant_4x4_core = x264_quant_4x4_core15_mmx;
+    else
+    if( maxQ4 < (1<<16) && cpu&X264_CPU_MMXEXT )
+        pf->quant_4x4_core = x264_quant_4x4_core16_mmxext;
+    else
+    if( cpu&X264_CPU_MMXEXT )
+        pf->quant_4x4_core = x264_quant_4x4_core32_mmxext;
+
+    /* select quant_XxX_dc based on CPU and maxQdc */
+    if( maxQdc < (1<<16) && cpu&X264_CPU_MMXEXT )
+    {
+        pf->quant_4x4_dc_core = x264_quant_4x4_dc_core16_mmxext;
+        pf->quant_2x2_dc_core = x264_quant_2x2_dc_core16_mmxext;
+    }
+    else
+    if( maxQdc < (1<<15) && cpu&X264_CPU_MMX )
+    {
+        pf->quant_4x4_dc_core = x264_quant_4x4_dc_core15_mmx;
+        pf->quant_2x2_dc_core = x264_quant_2x2_dc_core15_mmx;
+    }
+    else
+    if( cpu&X264_CPU_MMXEXT )
+    {
+        pf->quant_4x4_dc_core = x264_quant_4x4_dc_core32_mmxext;
+        pf->quant_2x2_dc_core = x264_quant_2x2_dc_core32_mmxext;
+    }
+
+#endif  /* HAVE_MMXEXT */
 }
