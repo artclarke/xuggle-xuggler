@@ -1,4 +1,4 @@
-//Microsoft Developer Studio generated resource script.
+// Microsoft Visual C++ generated resource script.
 //
 #include "resource.h"
 
@@ -7,13 +7,202 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include <windows.h>
-#ifndef IDC_STATIC
-#define IDC_STATIC (-1)
-#endif
+#include "afxres.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_MAINCONFIG DIALOGEX 0, 0, 204, 222
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "x264 Configuration"
+FONT 8, "MS Sans Serif", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,156,204,42,14
+    CONTROL         "",IDC_TAB1,"SysTabControl32",TCS_MULTILINE | WS_TABSTOP,0,0,204,200,WS_EX_TRANSPARENT
+    PUSHBUTTON      "Load Defaults",IDC_DEFAULTS,6,204,54,14
+    PUSHBUTTON      "Cancel",IDCANCEL,108,204,42,14
+END
+
+IDD_TAB_BITRATE DIALOGEX 0, 0, 200, 188
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    CONTROL         108,IDC_LOGO,"Static",SS_BITMAP,31,12,136,39,WS_EX_CLIENTEDGE
+    COMBOBOX        IDC_BITRATEMODE,30,66,138,66,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Average Bitrate (kbps)",IDC_BITRATELABEL,30,84,90,12
+    CONTROL         "",IDC_BITRATESLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,24,95,150,18
+    EDITTEXT        IDC_BITRATEEDIT,144,84,24,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "0",IDC_BITRATELOW,30,114,66,12
+    RTEXT           "5000",IDC_BITRATEHIGH,108,114,60,12
+    CONTROL         "Update Statsfile",IDC_UPDATESTATS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,138,72,12
+    LTEXT           "Statsfile name",IDC_STATIC,12,156,48,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_STATSFILE,60,156,102,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_STATSFILE_BROWSE,168,156,18,12
+END
+
+IDD_TAB_IPFRAMES DIALOGEX 0, 0, 200, 188
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    GROUPBOX        "I Frames",IDC_STATIC,6,2,186,40,WS_DISABLED
+    GROUPBOX        "P Frames",IDC_STATIC,6,44,186,51,WS_DISABLED
+    GROUPBOX        "B Frames",IDC_STATIC,6,98,186,82,WS_DISABLED
+    CONTROL         "8x8 DCT",IDC_DCT8X8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,30,12,42,12,WS_EX_TRANSPARENT
+    CONTROL         "8x8 Intra search",IDC_I8X8,"Button",BS_AUTOCHECKBOX | BS_VCENTER | WS_TABSTOP,30,24,66,12,WS_EX_TRANSPARENT
+    CONTROL         "4x4 Intra search",IDC_I4X4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,108,24,66,12,WS_EX_TRANSPARENT
+    CONTROL         "8x16, 16x8 and 8x8 P-frame search",IDC_P16X16,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,30,54,127,12,WS_EX_TRANSPARENT
+    CONTROL         "4x8, 8x4 and 4x4 P-frame search",IDC_P8X8,"Button",BS_AUTOCHECKBOX | BS_VCENTER | WS_TABSTOP,30,66,119,12,WS_EX_TRANSPARENT
+    LTEXT           "Max ref frames",IDC_STATIC,30,78,52,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_REFFRAMES,84,78,24,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Adaptive",IDC_BADAPT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,30,120,43,12,WS_EX_TRANSPARENT
+    CONTROL         "Use as references",IDC_BREFS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,30,108,71,12,WS_EX_TRANSPARENT
+    CONTROL         "Weighted biprediction",IDC_WBPRED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,78,120,82,12,WS_EX_TRANSPARENT
+    CONTROL         "8x16, 16x8 and 8x8 B-frame search",IDC_B16X16,"Button",BS_AUTOCHECKBOX | BS_VCENTER | WS_TABSTOP,30,132,127,12,WS_EX_TRANSPARENT
+    LTEXT           "Max consecutive",IDC_STATIC,30,148,60,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_BFRAME,126,148,24,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Bias",IDC_STATIC,30,162,14,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    CONTROL         "",IDC_BBIASSLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,48,162,72,12,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_BBIAS,126,162,24,12,ES_AUTOHSCROLL
+END
+
+IDD_TAB_RATECONTROL DIALOGEX 0, 0, 200, 188
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    GROUPBOX        "Bitrate",IDC_STATIC,6,2,186,58,WS_DISABLED
+    GROUPBOX        "Quality",IDC_STATIC,6,62,186,58,WS_DISABLED
+    GROUPBOX        "Scene Cuts",IDC_STATIC,6,122,186,58,WS_DISABLED
+    LTEXT           "Keyframe boost (%)",IDC_STATIC,42,12,68,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "B-frames reduction (%)",IDC_STATIC,42,27,78,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "Bitrate variability (%)",IDC_STATIC,42,40,68,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "Min QP",IDC_STATIC,42,72,24,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "Max QP",IDC_STATIC,42,86,26,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "Max QP Step",IDC_STATIC,42,100,43,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "Scene Cut Threshold",IDC_STATIC,42,132,72,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "Min IDR-frame interval",IDC_STATIC,42,146,78,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "Max IDR-frame interval",IDC_STATIC,42,160,78,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_IPRATIO,126,12,24,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_PBRATIO,126,26,24,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_CURVECOMP,126,40,24,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_QPMIN,126,72,24,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_QPMAX,126,86,24,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_QPSTEP,126,100,24,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_SCENECUT,126,132,24,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_KEYINTMIN,126,146,24,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_KEYINTMAX,126,160,24,12,ES_AUTOHSCROLL | ES_NUMBER
+END
+
+IDD_TAB_MISC DIALOGEX 0, 0, 200, 188
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    LTEXT           "Strength",IDC_STATIC,78,144,36,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "Threshold",IDC_STATIC,78,157,36,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "0",IDC_LOOPA_TXT,162,144,12,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "0",IDC_LOOPB_TXT,162,157,12,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    GROUPBOX        "Motion Estimation",IDC_STATIC,6,2,186,74,WS_DISABLED
+    LTEXT           "Partition decision",IDC_STATIC,30,12,60,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "Method",IDC_STATIC,30,27,30,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "Direct mode",IDC_STATIC,30,42,42,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "Range",IDC_STATIC,30,57,24,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    GROUPBOX        "Debug",IDC_STATIC,96,80,96,46,WS_DISABLED
+    LTEXT           "Log Mode",IDC_STATIC,102,90,36,12,SS_CENTERIMAGE
+    LTEXT           "FourCC",IDC_STATIC,102,108,36,12,SS_CENTERIMAGE
+    LTEXT           "Sample AR",IDC_STATIC,6,90,36,12,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    LTEXT           "Threads",IDC_THREADS,6,108,30,12,SS_CENTERIMAGE
+    CTEXT           ":",IDC_STATIC,57,90,12,12,SS_CENTERIMAGE
+    CONTROL         "CABAC",IDC_CABAC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,126,39,12,WS_EX_TRANSPARENT
+    CONTROL         "Deblocking filter:",IDC_LOOPFILTER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,144,66,12
+    CONTROL         "",IDC_INLOOP_A,"msctls_trackbar32",TBS_NOTICKS | WS_TABSTOP,114,145,42,12,WS_EX_TRANSPARENT
+    CONTROL         "",IDC_INLOOP_B,"msctls_trackbar32",TBS_NOTICKS | WS_TABSTOP,114,157,42,12,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_SAR_W,42,90,18,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_SAR_H,66,90,18,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_THREADEDIT,42,108,18,12,ES_AUTOHSCROLL | ES_NUMBER
+    COMBOBOX        IDC_LOG,138,90,48,67,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_FOURCC,138,108,30,12,ES_AUTOHSCROLL
+    CTEXT           "BUILD",IDC_BUILDREV,12,174,174,8,SS_CENTERIMAGE | WS_DISABLED
+    CONTROL         "Chroma ME",IDC_CHROMAME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,126,57,48,12,WS_EX_TRANSPARENT
+    COMBOBOX        IDC_SUBPEL,90,12,84,77,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_ME_METHOD,84,27,90,67,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_MERANGE,60,57,24,12,ES_AUTOHSCROLL | ES_NUMBER
+    COMBOBOX        IDC_DIRECTPRED,120,42,54,67,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_MAINCONFIG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 197
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 215
+    END
+
+    IDD_TAB_BITRATE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 193
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 181
+    END
+
+    IDD_TAB_IPFRAMES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 193
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 181
+    END
+
+    IDD_TAB_RATECONTROL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 193
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 181
+    END
+
+    IDD_TAB_MISC, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 193
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 181
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_LOGO                BITMAP                  "x264.bmp"
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
 
 /////////////////////////////////////////////////////////////////////////////
 // English (Canada) resources
@@ -29,209 +218,21 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_CAN
 // Dialog
 //
 
-IDD_DEBUG DIALOG DISCARDABLE  0, 0, 186, 95
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION
-CAPTION "Debug"
-FONT 8, "MS Sans Serif"
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,129,7,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,129,24,50,14
-    COMBOBOX        IDC_LOG,48,14,48,55,CBS_DROPDOWNLIST | WS_VSCROLL |
-                    WS_TABSTOP
-    LTEXT           "Log Mode",IDC_STATIC,13,17,33,8
-    LTEXT           "FourCC:",IDC_STATIC,13,36,26,14,SS_CENTERIMAGE
-    EDITTEXT        IDC_FOURCC,48,36,25,14,ES_AUTOHSCROLL
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE
-BEGIN
-    IDD_DEBUG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 179
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 88
-    END
-END
-#endif    // APSTUDIO_INVOKED
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_MAINCONFIG DIALOG DISCARDABLE  0, 0, 225, 253
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "x264 Configuration"
-FONT 8, "MS Sans Serif"
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,120,232,46,14
-    PUSHBUTTON      "Cancel",IDCANCEL,168,232,50,14
-    CONTROL         "Slider1",IDC_BITRATESLIDER,"msctls_trackbar32",TBS_BOTH | 
-                    TBS_NOTICKS | WS_TABSTOP,13,31,175,15
-    EDITTEXT        IDC_BITRATEEDIT,189,32,26,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Average Bitrate (kbps)",IDC_STATIC,59,20,73,8
-    GROUPBOX        "",IDC_STATIC,7,7,211,47
-    LTEXT           "0",IDC_BITRATELOW,16,20,22,8
-    LTEXT           "5000",IDC_BITRATEHIGH,166,20,17,8
-    PUSHBUTTON      "Load Defaults",IDC_DEFAULTS,7,232,57,14
-    PUSHBUTTON      "Advanced",IDC_ADVANCED,67,232,49,14
-    CONTROL         "Slider1",IDC_QUANTSLIDER,"msctls_trackbar32",TBS_BOTH | 
-                    TBS_NOTICKS | WS_TABSTOP,13,81,175,15
-    EDITTEXT        IDC_QUANTEDIT,189,82,26,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Quantizer",IDC_STATIC,83,71,31,8
-    GROUPBOX        "",IDC_STATIC,7,57,211,47
-    LTEXT           "0 (High Quality)",IDC_BITRATELOW2,16,71,50,8
-    LTEXT           "51 (Low Quality)",IDC_BITRATEHIGH2,131,71,53,8
-    GROUPBOX        "",IDC_STATIC,7,108,211,95
-    CONTROL         "Single Pass - Bitrate",IDC_RADIOBITRATE,"Button",
-                    BS_AUTORADIOBUTTON,13,7,77,10
-    CONTROL         "Single Pass - Quantizer",IDC_RADIOQUANT,"Button",
-                    BS_AUTORADIOBUTTON,13,57,87,10
-    CONTROL         "Multipass",IDC_RADIOTWOPASS,"Button",BS_AUTORADIOBUTTON,
-                    13,108,43,10
-    CONTROL         "First pass",IDC_2PASS1,"Button",BS_AUTORADIOBUTTON | 
-                    WS_GROUP,27,123,46,10
-    CONTROL         "Nth pass",IDC_2PASS2,"Button",BS_AUTORADIOBUTTON,87,
-                    123,58,10
-    CONTROL         "Slider1",IDC_2PASSBITRATE_S,"msctls_trackbar32",
-                    TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,13,148,175,15
-    EDITTEXT        IDC_2PASSBITRATE,189,148,26,14,ES_AUTOHSCROLL | 
-                    ES_NUMBER
-    LTEXT           "Target Bitrate (kbps)",IDC_STATIC,63,137,73,8
-    LTEXT           "0",IDC_BITRATELOW3,16,137,22,8
-    LTEXT           "5000",IDC_BITRATEHIGH3,166,137,17,8
-    CONTROL         "Fast first pass",IDC_FAST1PASS,"Button",BS_AUTOCHECKBOX |
-                    WS_TABSTOP,20,167,61,10
-    CONTROL         "Update statsfile",IDC_UPDATESTATS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,112,167,80,10
-    LTEXT           "Statsfile name:",IDC_STATIC,20,185,52,8
-    EDITTEXT        IDC_STATSFILE,72,184,100,13,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDC_STATSFILE_BROWSE,177,185,18,11
-    LTEXT           "Threads",IDC_THREADS,102,214,27,8
-    EDITTEXT        IDC_THREADEDIT,132,211,19,14,ES_AUTOHSCROLL | ES_NUMBER
-    PUSHBUTTON      "Debug",IDC_DEBUG,7,214,57,14
-END
-
-IDD_ADVANCED DIALOG DISCARDABLE  0, 0, 489, 247
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "x264 Advanced Settings"
-FONT 8, "MS Sans Serif"
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,432,231,50,14
-    GROUPBOX        "H.264 Features",IDC_STATIC,7,7,145,91
-    CONTROL         "CABAC",IDC_CABAC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    16,18,39,10
-    GROUPBOX        "",IDC_STATIC,12,36,136,40
-    CONTROL         "Deblocking filter",IDC_LOOPFILTER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,16,35,64,10
-    LTEXT           "Strength",IDC_STATIC,16,48,51,10,SS_CENTERIMAGE
-    CONTROL         "Slider1",IDC_INLOOP_A,"msctls_trackbar32",TBS_NOTICKS | 
-                    WS_TABSTOP,71,48,50,10
-    LTEXT           "0",IDC_LOOPA_TXT,130,48,8,10,SS_CENTERIMAGE
-    LTEXT           "Max ref frames:",IDC_STATIC,16,80,52,14,SS_CENTERIMAGE
-    EDITTEXT        IDC_REFFRAMES,122,80,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    GROUPBOX        "B-frames",IDC_STATIC,7,98,290,36
-    LTEXT           "Max consecutive:",IDC_STATIC,16,116,60,8
-    EDITTEXT        IDC_BFRAME,80,113,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Direct mode:",IDC_STATIC,300,200,43,12,SS_CENTERIMAGE
-    COMBOBOX        IDC_DIRECTPRED,420,200,55,67,CBS_DROPDOWNLIST |
-                    WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_SUBPEL,383,152,93,77,CBS_DROPDOWNLIST | CBS_SORT |
-                    WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Use as references",IDC_BREFS,"Button",BS_AUTOCHECKBOX | 
-                    BS_LEFTTEXT | WS_TABSTOP,113,108,71,10
-    CONTROL         "Weighted biprediction",IDC_WBPRED,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,165,168,82,12
-    GROUPBOX        "More Encoder Settings",IDC_STATIC,155,7,141,91
-    LTEXT           "Max IDR-frame interval:",IDC_STATIC,164,18,95,14,
-                    SS_CENTERIMAGE
-    EDITTEXT        IDC_KEYINTMAX,262,18,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Min IDR-frame interval:",IDC_STATIC,164,36,90,14,
-                    SS_CENTERIMAGE
-    EDITTEXT        IDC_KEYINTMIN,262,36,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    GROUPBOX        "Ratecontrol",IDC_STATIC,300,7,182,128
-    LTEXT           "Keyframe boost (%):",IDC_STATIC,362,18,68,14,
-                    SS_CENTERIMAGE
-    EDITTEXT        IDC_IPRATIO,444,18,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "B-frames reduction (%):",IDC_STATIC,362,36,75,14,
-                    SS_CENTERIMAGE
-    EDITTEXT        IDC_PBRATIO,444,36,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Bitrate variability (%):",IDC_STATIC,362,54,75,14,
-                    SS_CENTERIMAGE
-    EDITTEXT        IDC_CURVECOMP,444,54,25,14,ES_AUTOHSCROLL | ES_NUMBER
-    GROUPBOX        "Analysis:",IDC_STATIC,7,136,475,90
-    CONTROL         "8x16, 16x8 and 8x8 P-frame search",IDC_P16X16,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,17,152,127,12
-    CONTROL         "4x8, 8x4 and 4x4 P-frame search",IDC_P8X8,"Button",
-                    BS_AUTOCHECKBOX | BS_VCENTER | WS_TABSTOP,165,152,119,12
-    CONTROL         "8x16, 16x8 and 8x8 B-frame search",IDC_B16X16,"Button",
-                    BS_AUTOCHECKBOX | BS_VCENTER | WS_TABSTOP,17,168,127,12
-    CONTROL         "4x4 Intra search",IDC_I4X4,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,165,184,82,12
-    LTEXT           "Partition decision quality:",IDC_STATIC,300,152,80,12,
-                    SS_CENTERIMAGE
-    EDITTEXT        IDC_SAR_W,232,79,21,14,ES_AUTOHSCROLL | ES_NUMBER
-    EDITTEXT        IDC_SAR_H,266,79,21,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Sample AR",IDC_STATIC,164,79,58,14,
-                    SS_CENTERIMAGE
-    LTEXT           ":",IDC_STATIC,257,81,8,8
-    CONTROL         "8x8 Intra search",IDC_I8X8,"Button",BS_AUTOCHECKBOX | 
-                    BS_VCENTER | WS_TABSTOP,17,184,67,12
-    CONTROL         "8x8 DCT",IDC_DCT8X8,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,17,200,44,12
-    LTEXT           "ME Method",IDC_STATIC,300,168,38,12,SS_CENTERIMAGE
-    CONTROL         "Chroma ME",IDC_CHROMAME,"Button",BS_AUTOCHECKBOX |
-                    WS_TABSTOP,165,200,53,12
-    LTEXT           "ME Range",IDC_STATIC,300,184,35,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_MERANGE,384,184,24,14,ES_AUTOHSCROLL | ES_NUMBER
-    COMBOBOX        IDC_ME_METHOD,384,168,92,67,CBS_DROPDOWNLIST |
-                    WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Adaptive",IDC_BADAPT,"Button",BS_AUTOCHECKBOX |
-                    BS_LEFTTEXT | WS_TABSTOP,141,120,43,10
-    LTEXT           "Bias",IDC_STATIC,227,119,14,10,SS_CENTERIMAGE
-    CONTROL         "Slider1",IDC_BBIASSLIDER,"msctls_trackbar32",TBS_BOTH |
-                    TBS_NOTICKS | WS_TABSTOP,215,106,73,10
-    EDITTEXT        IDC_BBIAS,255,117,29,14,ES_AUTOHSCROLL
-    LTEXT           "Min QP",IDC_STATIC,362,72,24,14,SS_CENTERIMAGE
-    LTEXT           "Max QP",IDC_STATIC,362,90,26,14,SS_CENTERIMAGE
-    LTEXT           "Max QP Step",IDC_STATIC,362,108,43,14,SS_CENTERIMAGE
-    EDITTEXT        IDC_QPMIN,444,72,25,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_QPMAX,444,90,25,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_QPSTEP,444,108,25,14,ES_AUTOHSCROLL
-    CONTROL         "Slider2",IDC_INLOOP_B,"msctls_trackbar32",TBS_NOTICKS |
-                    WS_TABSTOP,71,62,50,10
-    LTEXT           "Threshold",IDC_STATIC,16,62,48,10,SS_CENTERIMAGE
-    LTEXT           "0",IDC_LOOPB_TXT,130,62,8,10
-    LTEXT           "Scene Cut Threshold",IDC_STATIC,164,52,68,14,
-                    SS_CENTERIMAGE
-    EDITTEXT        IDC_SCENECUT,262,54,25,14,ES_AUTOHSCROLL
-END
-
-IDD_ABOUT DIALOG DISCARDABLE  0, 0, 213, 130
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_ABOUT DIALOGEX 0, 0, 213, 130
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About x264"
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,158,109,48,14
     PUSHBUTTON      "Visit Homepage",IDC_HOMEPAGE,7,109,77,14
-    CTEXT           "BUILD",IDC_BUILD,13,20,173,8,SS_CENTERIMAGE
-    LTEXT           "x264 - H.264/MPEG-4 AVC codec",IDC_X264,53,8,145,8,
-                    SS_CENTERIMAGE
-    CTEXT           "Copyright 2005 Laurent Aimar, Justin Clay, Min Chen,\nEric Petit, Måns Rullgård, Loren Merritt\n\nThis program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation",
-                    IDC_STATIC,7,47,199,51
+    CTEXT           "BUILD",IDC_BUILD,6,18,199,8
+    CTEXT           "x264 - H.264/MPEG-4 AVC codec",IDC_X264,6,6,199,8
+    CTEXT           "This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation.",IDC_STATIC,6,78,199,26
+    CTEXT           "Copyright 2005 Laurent Aimar, Justin Clay, Min Chen,\nEric Petit, Måns Rullgård, Loren Merritt",IDC_STATIC,6,48,199,18
 END
 
-IDD_ERRCONSOLE DIALOG DISCARDABLE  0, 0, 264, 130
-STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION
+IDD_ERRCONSOLE DIALOG  0, 0, 264, 130
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION
 CAPTION "x264 error console"
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -241,59 +242,24 @@ BEGIN
 END
 
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
-BEGIN
-    IDD_MAINCONFIG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 218
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 246
-    END
-
-    IDD_ADVANCED, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 482
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 231
-    END
-
-    IDD_ABOUT, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 192
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 80
-    END
-END
-#endif    // APSTUDIO_INVOKED
-
-
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE DISCARDABLE
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE DISCARDABLE
+2 TEXTINCLUDE 
 BEGIN
     "#include ""afxres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE DISCARDABLE
+3 TEXTINCLUDE 
 BEGIN
     "\r\n"
     "\0"

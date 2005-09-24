@@ -129,13 +129,13 @@ LRESULT compress(CODEC *, ICCOMPRESS *);
 /* config functions */
 void config_reg_load( CONFIG * config );
 void config_reg_save( CONFIG * config );
-
+static void tabs_enable_items( HWND hDlg, CONFIG * config );
+static void tabs_update_items( HWND hDlg, CONFIG * config );
 
 /* Dialog callbacks */
-BOOL CALLBACK callback_about( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
-BOOL CALLBACK callback_debug( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
 BOOL CALLBACK callback_main ( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
-BOOL CALLBACK callback_advanced( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
+BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
+BOOL CALLBACK callback_about( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
 BOOL CALLBACK callback_err_console( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
 
 /* Dll instance */

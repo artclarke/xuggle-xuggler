@@ -1,13 +1,16 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Developer Studio generated include file.
+// Microsoft Visual C++ generated include file.
 // Used by resource.rc
 //
 #define IDD_DIALOG1                     101
-#define IDD_MAINCONFIG                  101
-#define IDD_ADVANCED                    102
 #define IDD_ABOUT                       103
 #define IDD_ERRCONSOLE                  104
-#define IDD_DEBUG                       105
+#define IDD_TAB_BITRATE                 106
+#define IDD_MAINCONFIG                  107
+#define IDB_LOGO                        108
+#define IDD_TAB_IPFRAMES                109
+#define IDD_TAB_RATECONTROL             113
+#define IDD_TAB_MISC                    114
 #define IDC_BITRATESLIDER               1002
 #define IDC_BITRATEEDIT                 1003
 #define IDC_BITRATESLIDER2              1004
@@ -88,14 +91,19 @@
 #define IDC_DEBUG                       1084
 #define IDC_CPU_MMX                     1086
 #define IDC_SCENECUT                    1087
+#define IDC_TAB1                        1089
+#define IDC_BITRATEMODE                 1091
+#define IDC_BITRATELABEL                1092
+#define IDC_LOGO                        1093
+#define IDC_BUILDREV                    1095
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        106
+#define _APS_NEXT_RESOURCE_VALUE        109
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1088
+#define _APS_NEXT_CONTROL_VALUE         1096
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
