@@ -593,6 +593,10 @@ void x264_macroblock_encode( x264_t *h )
             uint8_t  *p_dst = &h->mb.pic.p_fdec[0][4 * block_idx_x[i] + 4 * block_idx_y[i] * i_dst];
             int      i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[i]];
 
+            if( (h->mb.i_neighbour4[i] & (MB_TOPRIGHT|MB_TOP)) == MB_TOP )
+                /* emulate missing topright samples */
+                *(uint32_t*) &p_dst[4 - i_dst] = p_dst[3 - i_dst] * 0x01010101U;
+
             h->predict_4x4[i_mode]( p_dst, i_dst );
             x264_mb_encode_i4x4( h, i, i_qp );
             h->mb.cache.intra4x4_pred_mode[x264_scan8[i]] = x264_mb_pred_mode4x4_fix(i_mode);

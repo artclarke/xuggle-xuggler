@@ -364,23 +364,21 @@ static void predict_8x8chroma_mode_available( unsigned int i_neighbour, int *mod
 static void predict_4x4_mode_available( unsigned int i_neighbour,
                                         int *mode, int *pi_count )
 {
-    /* FIXME even when b_tr == 0 there is some case where missing pixels
-     * are emulated and thus more mode are available TODO
-     * analysis and encode should be fixed too */
     int b_l = i_neighbour & MB_LEFT;
     int b_t = i_neighbour & MB_TOP;
-    int b_tr = i_neighbour & MB_TOPRIGHT;
 
     if( b_l && b_t )
     {
         *mode++ = I_PRED_4x4_DC;
         *mode++ = I_PRED_4x4_H;
         *mode++ = I_PRED_4x4_V;
+        *mode++ = I_PRED_4x4_DDL;
         *mode++ = I_PRED_4x4_DDR;
         *mode++ = I_PRED_4x4_VR;
         *mode++ = I_PRED_4x4_HD;
+        *mode++ = I_PRED_4x4_VL;
         *mode++ = I_PRED_4x4_HU;
-        *pi_count = 7;
+        *pi_count = 9;
     }
     else if( b_l )
     {
@@ -393,19 +391,14 @@ static void predict_4x4_mode_available( unsigned int i_neighbour,
     {
         *mode++ = I_PRED_4x4_DC_TOP;
         *mode++ = I_PRED_4x4_V;
-        *pi_count = 2;
+        *mode++ = I_PRED_4x4_DDL;
+        *mode++ = I_PRED_4x4_VL;
+        *pi_count = 4;
     }
     else
     {
         *mode++ = I_PRED_4x4_DC_128;
         *pi_count = 1;
-    }
-
-    if( b_t && b_tr )
-    {
-        *mode++ = I_PRED_4x4_DDL;
-        *mode++ = I_PRED_4x4_VL;
-        (*pi_count) += 2;
     }
 }
 
@@ -542,6 +535,11 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_cost_
 
             i_best = COST_MAX;
             predict_4x4_mode_available( h->mb.i_neighbour4[idx], predict_mode, &i_max );
+
+            if( (h->mb.i_neighbour4[i] & (MB_TOPRIGHT|MB_TOP)) == MB_TOP )
+                /* emulate missing topright samples */
+                *(uint32_t*) &p_dst_by[4 - i_stride] = p_dst_by[3 - i_stride] * 0x01010101U;
+
             for( i = 0; i < i_max; i++ )
             {
                 int i_sad;
