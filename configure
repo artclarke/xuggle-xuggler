@@ -176,7 +176,7 @@ for opt do
             ;;
         --enable-mp4-output)
             CFLAGS="$CFLAGS -DMP4_OUTPUT"
-            LDFLAGS="$LDFLAGS -lm4systems_static"
+            LDFLAGS="$LDFLAGS -lgpac_static"
             if [ $SYS = CYGWIN -o $SYS = MINGW ]; then
                 LDFLAGS="$LDFLAGS -lwinmm"
             fi

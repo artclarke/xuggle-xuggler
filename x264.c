@@ -42,7 +42,7 @@
 #endif
 
 #ifdef MP4_OUTPUT
-#include <gpac/m4_author.h>
+#include <gpac/isomedia.h>
 #endif
 
 
@@ -1368,9 +1368,9 @@ static int close_file_bsf( hnd_t handle )
 
 typedef struct
 {
-    M4File *p_file;
-    AVCConfig *p_config;
-    M4Sample *p_sample;
+    GF_ISOFile *p_file;
+    GF_AVCConfig *p_config;
+    GF_ISOSample *p_sample;
     int i_track;
     int i_descidx;
     int i_time_inc;
@@ -1382,24 +1382,24 @@ typedef struct
 } mp4_t;
 
 
-static void recompute_bitrate_mp4(M4File *p_file, int i_track)
+static void recompute_bitrate_mp4(GF_ISOFile *p_file, int i_track)
 {
     u32 i, count, di, timescale, time_wnd, rate;
     u64 offset;
     Double br;
-    ESDescriptor *esd;
+    GF_ESD *esd;
 
-    esd = M4_GetStreamDescriptor(p_file, i_track, 1);
+    esd = gf_isom_get_esd(p_file, i_track, 1);
     if (!esd) return;
 
     esd->decoderConfig->avgBitrate = 0;
     esd->decoderConfig->maxBitrate = 0;
     rate = time_wnd = 0;
 
-    timescale = M4_GetMediaTimeScale(p_file, i_track);
-    count = M4_GetSampleCount(p_file, i_track);
+    timescale = gf_isom_get_media_timescale(p_file, i_track);
+    count = gf_isom_get_sample_count(p_file, i_track);
     for (i=0; i<count; i++) {
-        M4Sample *samp = M4_GetSampleInfo(p_file, i_track, i+1, &di, &offset);
+        GF_ISOSample *samp = gf_isom_get_sample_info(p_file, i_track, i+1, &di, &offset);
 
         if (samp->dataLength>esd->decoderConfig->bufferSizeDB) esd->decoderConfig->bufferSizeDB = samp->dataLength;
 
@@ -1412,18 +1412,18 @@ static void recompute_bitrate_mp4(M4File *p_file, int i_track)
             rate = 0;
         }
 
-        M4_DeleteSample(&samp);
+        gf_isom_sample_del(&samp);
     }
 
-    br = (Double) (s64) M4_GetMediaDuration(p_file, i_track);
+    br = (Double) (s64) gf_isom_get_media_duration(p_file, i_track);
     br /= timescale;
     esd->decoderConfig->avgBitrate = (u32) (esd->decoderConfig->avgBitrate / br);
     /*move to bps*/
     esd->decoderConfig->avgBitrate *= 8;
     esd->decoderConfig->maxBitrate *= 8;
 
-    M4_ChangeStreamDescriptor(p_file, i_track, 1, esd);
-    OD_DeleteDescriptor((Descriptor **)&esd);
+    gf_isom_change_mpeg4_description(p_file, i_track, 1, esd);
+    gf_odf_desc_del((GF_Descriptor *) esd);
 }
 
 
@@ -1435,22 +1435,22 @@ static int close_file_mp4( hnd_t handle )
         return 0;
 
     if (p_mp4->p_config)
-        AVC_DeleteConfig(p_mp4->p_config);
+        gf_odf_avc_cfg_del(p_mp4->p_config);
 
     if (p_mp4->p_sample)
     {
         if (p_mp4->p_sample->data)
             free(p_mp4->p_sample->data);
 
-        M4_DeleteSample(&p_mp4->p_sample);
+        gf_isom_sample_del(&p_mp4->p_sample);
     }
 
     if (p_mp4->p_file)
     {
         recompute_bitrate_mp4(p_mp4->p_file, p_mp4->i_track);
-        M4_SetMoviePLIndication(p_mp4->p_file, M4_PL_VISUAL, 0x15);
-        M4_SetStorageMode(p_mp4->p_file, M4_FLAT);
-        M4_MovieClose(p_mp4->p_file);
+        gf_isom_set_pl_indication(p_mp4->p_file, GF_ISOM_PL_VISUAL, 0x15);
+        gf_isom_set_storage_mode(p_mp4->p_file, GF_ISOM_STORE_FLAT);
+        gf_isom_close(p_mp4->p_file);
     }
 
     free(p_mp4);
@@ -1468,15 +1468,15 @@ static int open_file_mp4( char *psz_filename, hnd_t *p_handle )
         return -1;
 
     memset(p_mp4, 0, sizeof(mp4_t));
-    p_mp4->p_file = M4_MovieOpen(psz_filename, M4_OPEN_WRITE);
+    p_mp4->p_file = gf_isom_open(psz_filename, GF_ISOM_OPEN_WRITE, NULL);
 
-    if ((p_mp4->p_sample = M4_NewSample()) == NULL)
+    if ((p_mp4->p_sample = gf_isom_sample_new()) == NULL)
     {
         close_file_mp4( p_mp4 );
         return -1;
     }
 
-    M4_SetMovieVersionInfo(p_mp4->p_file, H264_AVC_File, 0);
+    gf_isom_set_brand_info(p_mp4->p_file, GF_ISOM_BRAND_AVC1, 0);
 
     *p_handle = p_mp4;
 
@@ -1488,14 +1488,14 @@ static int set_param_mp4( hnd_t handle, x264_param_t *p_param )
 {
     mp4_t *p_mp4 = (mp4_t *)handle;
 
-    p_mp4->i_track = M4_NewTrack(p_mp4->p_file, 0, M4_VisualMediaType, 
+    p_mp4->i_track = gf_isom_new_track(p_mp4->p_file, 0, GF_ISOM_MEDIA_VISUAL, 
         p_param->i_fps_num);
 
-    p_mp4->p_config = AVC_NewConfig();
-    M4_AVC_NewStreamConfig(p_mp4->p_file, p_mp4->i_track, p_mp4->p_config, 
+    p_mp4->p_config = gf_odf_avc_cfg_new();
+    gf_isom_avc_config_new(p_mp4->p_file, p_mp4->i_track, p_mp4->p_config, 
         NULL, NULL, &p_mp4->i_descidx);
 
-    M4_SetVisualEntrySize(p_mp4->p_file, p_mp4->i_track, p_mp4->i_descidx, 
+    gf_isom_set_visual_info(p_mp4->p_file, p_mp4->i_track, p_mp4->i_descidx, 
         p_param->i_width, p_param->i_height);
 
     p_mp4->p_sample->data = (char *)malloc(p_param->i_width * p_param->i_height * 3 / 2);
@@ -1516,7 +1516,7 @@ static int set_param_mp4( hnd_t handle, x264_param_t *p_param )
 static int write_nalu_mp4( hnd_t handle, uint8_t *p_nalu, int i_size )
 {
     mp4_t *p_mp4 = (mp4_t *)handle;
-    AVCConfigSlot *p_slot;
+    GF_AVCConfigSlot *p_slot;
     uint8_t type = p_nalu[4] & 0x1f;
     int psize;
 
@@ -1530,11 +1530,11 @@ static int write_nalu_mp4( hnd_t handle, uint8_t *p_nalu, int i_size )
             p_mp4->p_config->AVCProfileIndication = p_nalu[5];
             p_mp4->p_config->profile_compatibility = p_nalu[6];
             p_mp4->p_config->AVCLevelIndication = p_nalu[7];
-            p_slot = (AVCConfigSlot *)malloc(sizeof(AVCConfigSlot));
+            p_slot = (GF_AVCConfigSlot *)malloc(sizeof(GF_AVCConfigSlot));
             p_slot->size = i_size - 4;
             p_slot->data = (char *)malloc(p_slot->size);
             memcpy(p_slot->data, p_nalu + 4, i_size - 4);
-            ChainAddEntry(p_mp4->p_config->sequenceParameterSets, p_slot);
+            gf_list_add(p_mp4->p_config->sequenceParameterSets, p_slot);
             p_slot = NULL;
             p_mp4->b_sps = 1;
         }
@@ -1544,15 +1544,15 @@ static int write_nalu_mp4( hnd_t handle, uint8_t *p_nalu, int i_size )
     case 0x08:
         if (!p_mp4->b_pps)
         {
-            p_slot = (AVCConfigSlot *)malloc(sizeof(AVCConfigSlot));
+            p_slot = (GF_AVCConfigSlot *)malloc(sizeof(GF_AVCConfigSlot));
             p_slot->size = i_size - 4;
             p_slot->data = (char *)malloc(p_slot->size);
             memcpy(p_slot->data, p_nalu + 4, i_size - 4);
-            ChainAddEntry(p_mp4->p_config->pictureParameterSets, p_slot);
+            gf_list_add(p_mp4->p_config->pictureParameterSets, p_slot);
             p_slot = NULL;
             p_mp4->b_pps = 1;
             if (p_mp4->b_sps)
-                M4_AVC_UpdateStreamConfig(p_mp4->p_file, p_mp4->i_track, 1, p_mp4->p_config);
+                gf_isom_avc_config_update(p_mp4->p_file, p_mp4->i_track, 1, p_mp4->p_config);
         }
         break;
 
@@ -1583,7 +1583,7 @@ static int set_eop_mp4( hnd_t handle, x264_picture_t *p_picture )
     p_mp4->p_sample->IsRAP = p_picture->i_type == X264_TYPE_IDR ? 1 : 0;
     p_mp4->p_sample->DTS = dts;
     p_mp4->p_sample->CTS_Offset = offset;
-    M4_AddSample(p_mp4->p_file, p_mp4->i_track, p_mp4->i_descidx, p_mp4->p_sample);
+    gf_isom_add_sample(p_mp4->p_file, p_mp4->i_track, p_mp4->i_descidx, p_mp4->p_sample);
 
     p_mp4->p_sample->dataLength = 0;
     p_mp4->i_numframe++;
