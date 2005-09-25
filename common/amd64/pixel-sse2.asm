@@ -26,6 +26,12 @@ BITS 64
 ; Macros and other preprocessor constants
 ;=============================================================================
 
+%ifdef __PIC__
+    %define GLOBAL wrt rip
+%else
+    %define GLOBAL
+%endif
+
 %macro cglobal 1
     %ifdef PREFIX
         global _%1
@@ -402,7 +408,7 @@ x264_pixel_ssd_16x8_sse2:
     movdqa  %2, %1
     psrldq  %1, 2
     paddusw %1, %2
-    pand    %1, [pd_0000ffff]
+    pand    %1, [pd_0000ffff GLOBAL]
     movdqa  %2, %1
     psrldq  %1, 4
     paddd   %1, %2

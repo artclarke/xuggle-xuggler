@@ -36,6 +36,12 @@ BITS 64
 ; Macros and other preprocessor constants
 ;=============================================================================
 
+%ifdef __PIC__
+	%define GLOBAL wrt rip
+%else
+	%define GLOBAL
+%endif
+
 %macro cglobal 1
 	%ifdef PREFIX
 		global _%1
@@ -390,7 +396,7 @@ x264_mc_chroma_sse:
     pshufw  mm5, mm0, 0    ; mm5 - dx
     pshufw  mm6, mm1, 0    ; mm6 - dy
 
-    movq    mm4, [eights]
+    movq    mm4, [eights GLOBAL]
     movq    mm0, mm4
 
     psubw   mm4, mm5            ; mm4 - 8-dx
@@ -431,7 +437,7 @@ ALIGN 4
     punpcklbw mm2, mm3
     punpcklbw mm1, mm3
 
-    paddw   mm0, [thirty2s]
+    paddw   mm0, [thirty2s GLOBAL]
 
     pmullw  mm2, mm5            ; line * cB
     pmullw  mm1, mm7            ; line * cD

@@ -24,6 +24,12 @@ BITS 64
 ; Macros and other preprocessor constants
 ;=============================================================================
 
+%ifdef __PIC__
+    %define GLOBAL wrt rip
+%else
+    %define GLOBAL
+%endif
+
 %macro cglobal 1
     %ifdef PREFIX
         global _%1
@@ -156,8 +162,8 @@ x264_center_filter_mmxext :
     lea         rbx,    [r13 + r13 * 2]     ; 3 * src_stride
     lea         rdx,    [r13 + r13 * 4]     ; 5 * src_stride
 
-    pxor        mm0,      mm0                ; 0 ---> mm0
-    movq        mm7,      [mmx_dd_one]       ; for rounding
+    pxor        mm0,    mm0                 ; 0 ---> mm0
+    movq        mm7,    [mmx_dd_one GLOBAL] ; for rounding
 
 loopcy:
 
@@ -169,7 +175,7 @@ loopcy:
     pshufw      mm2,    mm1, 0
     movq        [rsp + tbuffer],  mm2
     movq        [rsp + tbuffer + 8],  mm1
-    paddw       mm1,    [mmx_dw_one]
+    paddw       mm1,    [mmx_dw_one GLOBAL]
     psraw       mm1,    5
 
     packuswb    mm1,    mm1
@@ -184,7 +190,7 @@ loopcx1:
     FILT_ALL    rsi
 
     movq        [rsp + tbuffer + 2 * rax],  mm1
-    paddw       mm1,    [mmx_dw_one]
+    paddw       mm1,    [mmx_dw_one GLOBAL]
     psraw       mm1,    5
     packuswb    mm1,    mm1
     movd        [rdi + rax],  mm1   ; dst1[rax - 4] = mm1
@@ -199,7 +205,7 @@ loopcx1:
     pshufw      mm2,    mm1,  7
     movq        [rsp + tbuffer + 2 * rax],  mm1
     movq        [rsp + tbuffer + 2 * rax + 8],  mm2
-    paddw       mm1,    [mmx_dw_one]
+    paddw       mm1,    [mmx_dw_one GLOBAL]
     psraw       mm1,    5
     packuswb    mm1,    mm1
     movd        [rdi + rax],  mm1   ; dst1[rax - 4] = mm1
@@ -222,15 +228,15 @@ loopcx2:
     paddw       mm3,    mm4
     paddw       mm1,    mm6
 
-    movq        mm5,    [mmx_dw_20]
-    movq        mm4,    [mmx_dw_5]
+    movq        mm5,    [mmx_dw_20 GLOBAL]
+    movq        mm4,    [mmx_dw_5 GLOBAL]
     movq        mm6,    mm1
     pxor        mm7,    mm7
 
     punpckhwd   mm5,    mm2
     punpcklwd   mm4,    mm3
-    punpcklwd   mm2,    [mmx_dw_20]
-    punpckhwd   mm3,    [mmx_dw_5]
+    punpcklwd   mm2,    [mmx_dw_20 GLOBAL]
+    punpckhwd   mm3,    [mmx_dw_5 GLOBAL]
 
     pcmpgtw     mm7,    mm1
 
@@ -243,8 +249,8 @@ loopcx2:
     paddd       mm2,    mm1
     paddd       mm3,    mm6
 
-    paddd       mm2,    [mmx_dd_one]
-    paddd       mm3,    [mmx_dd_one]
+    paddd       mm2,    [mmx_dd_one GLOBAL]
+    paddd       mm3,    [mmx_dd_one GLOBAL]
 
     psrad       mm2,    10
     psrad       mm3,    10
@@ -293,7 +299,7 @@ x264_horizontal_filter_mmxext :
     mov         rsi,    rdx                  ; src
 
     pxor        mm0,    mm0
-    movq        mm7,    [mmx_dw_one]
+    movq        mm7,    [mmx_dw_one GLOBAL]
 
     movsxd      rcx,    r9d                  ; height
 
