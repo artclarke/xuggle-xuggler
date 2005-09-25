@@ -368,12 +368,6 @@ ALIGN 16
 eights    times 4   dw 8
 thirty2s  times 4   dw 32
 
-SECTION .data
-x264_mc_chroma_sse_dx:
-    dw  0
-x264_mc_chroma_sse_dy:
-    dw  0
-
 SECTION .text
 
 ALIGN 16
@@ -388,13 +382,13 @@ x264_mc_chroma_sse:
     push    r12
     push    r13
 
-    mov     [x264_mc_chroma_sse_dx], r8d
-    mov     [x264_mc_chroma_sse_dy], r9d
+    movd    mm0, r8d
+    movd    mm1, r9d
 
     pxor    mm3, mm3
 
-    pshufw  mm5, [x264_mc_chroma_sse_dx], 0    ; mm5 - dx
-    pshufw  mm6, [x264_mc_chroma_sse_dy], 0    ; mm6 - dy
+    pshufw  mm5, mm0, 0    ; mm5 - dx
+    pshufw  mm6, mm1, 0    ; mm6 - dy
 
     movq    mm4, [eights]
     movq    mm0, mm4
