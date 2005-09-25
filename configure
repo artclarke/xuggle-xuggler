@@ -13,6 +13,7 @@ echo "  --enable-vfw             compiles the VfW frontend"
 echo "  --enable-pthread         enables multithreaded encoding"
 echo "  --enable-debug           adds -g, doesn't strip"
 echo "  --enable-visualize       enables visualization (X11 only)"
+echo "  --extra-asflags=EASFLAGS add EASFLAGS to ASFLAGS"
 echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS"
 echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS"
 echo ""
@@ -181,6 +182,9 @@ for opt do
                 LDFLAGS="$LDFLAGS -lwinmm"
             fi
             mp4_output="yes"
+            ;;
+        --extra-asflags=*)
+            ASFLAGS="$ASFLAGS ${opt#--extra-asflags=}"
             ;;
         --extra-cflags=*)
             CFLAGS="$CFLAGS ${opt#--extra-cflags=}"
