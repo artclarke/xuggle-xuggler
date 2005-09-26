@@ -536,7 +536,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_cost_
             i_best = COST_MAX;
             predict_4x4_mode_available( h->mb.i_neighbour4[idx], predict_mode, &i_max );
 
-            if( (h->mb.i_neighbour4[i] & (MB_TOPRIGHT|MB_TOP)) == MB_TOP )
+            if( (h->mb.i_neighbour4[idx] & (MB_TOPRIGHT|MB_TOP)) == MB_TOP )
                 /* emulate missing topright samples */
                 *(uint32_t*) &p_dst_by[4 - i_stride] = p_dst_by[3 - i_stride] * 0x01010101U;
 
