@@ -315,7 +315,6 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
         else
         {
             bs_write1( s, 0 );  /* adaptive_ref_pic_marking_mode_flag */
-            /* FIXME */
         }
     }
 
@@ -403,11 +402,6 @@ static int x264_validate_parameters( x264_t *h )
     h->param.i_bframe = x264_clip3( h->param.i_bframe, 0, X264_BFRAME_MAX );
     h->param.i_bframe_bias = x264_clip3( h->param.i_bframe_bias, -90, 100 );
     h->param.b_bframe_pyramid = h->param.b_bframe_pyramid && h->param.i_bframe > 1;
-    h->frames.i_delay = h->param.i_bframe;
-    h->frames.i_max_ref0 = h->param.i_frame_reference;
-    h->frames.i_max_ref1 = h->param.b_bframe_pyramid ? 2
-                            : h->param.i_bframe ? 1 : 0;
-    h->frames.i_max_dpb = X264_MIN( 16, h->frames.i_max_ref0 + h->frames.i_max_ref1 ) + 1;
 
     h->param.i_deblocking_filter_alphac0 = x264_clip3( h->param.i_deblocking_filter_alphac0, -6, 6 );
     h->param.i_deblocking_filter_beta    = x264_clip3( h->param.i_deblocking_filter_beta, -6, 6 );
@@ -544,6 +538,11 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->mb.i_mb_count = h->sps->i_mb_width * h->sps->i_mb_height;
 
     /* Init frames. */
+    h->frames.i_delay = h->param.i_bframe;
+    h->frames.i_max_ref0 = h->param.i_frame_reference;
+    h->frames.i_max_ref1 = h->sps->vui.i_num_reorder_frames;
+    h->frames.i_max_dpb  = h->sps->vui.i_max_dec_frame_buffering + 1;
+
     for( i = 0; i < X264_BFRAME_MAX + 3; i++ )
     {
         h->frames.current[i] = NULL;
@@ -851,7 +850,6 @@ static inline void x264_reference_update( x264_t *h )
         h->frames.last_nonb = h->fdec;
 
     /* move frame in the buffer */
-    /* FIXME: override to forget earliest pts, not earliest dts */
     h->fdec = h->frames.reference[h->frames.i_max_dpb-1];
     for( i = h->frames.i_max_dpb-1; i > 0; i-- )
     {

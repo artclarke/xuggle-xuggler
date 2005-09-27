@@ -977,8 +977,8 @@ void x264_macroblock_cache_init( x264_t *h )
 
     for( i=0; i<2; i++ )
     {
-        int i_refs = i ? 1 + h->param.b_bframe_pyramid : h->param.i_frame_reference;
-        for( j=0; j < i_refs; j++ )
+        int i_refs = (i ? 1 : h->param.i_frame_reference) + h->param.b_bframe_pyramid;
+        for( j=0; j < i_refs && j < 16; j++ )
             h->mb.mvr[i][j] = x264_malloc( 2 * i_mb_count * sizeof( int16_t ) );
     }
 
