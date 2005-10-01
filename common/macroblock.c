@@ -746,27 +746,27 @@ static inline void x264_mb_mc_01xywh( x264_t *h, int x, int y, int width, int he
         const int i_ref0 = h->mb.cache.ref[0][i8];
         const int weight = h->mb.bipred_weight[i_ref0][i_ref1];
 
-        h->pixf.avg_weight[i_mode]( &h->mb.pic.p_fdec[0][4*y *h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0], tmp, 16, weight );
+        h->mc.avg_weight[i_mode]( &h->mb.pic.p_fdec[0][4*y *h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0], tmp, 16, weight );
 
         h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref1][4][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
                           tmp, 16, mvx1, mvy1, 2*width, 2*height );
-        h->pixf.avg_weight[i_mode+3]( &h->mb.pic.p_fdec[1][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1], tmp, 16, weight );
+        h->mc.avg_weight[i_mode+3]( &h->mb.pic.p_fdec[1][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1], tmp, 16, weight );
 
         h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref1][5][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
                           tmp, 16, mvx1, mvy1, 2*width, 2*height );
-        h->pixf.avg_weight[i_mode+3]( &h->mb.pic.p_fdec[2][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2], tmp, 16, weight );
+        h->mc.avg_weight[i_mode+3]( &h->mb.pic.p_fdec[2][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2], tmp, 16, weight );
     }
     else
     {
-        h->pixf.avg[i_mode]( &h->mb.pic.p_fdec[0][4*y *h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0], tmp, 16 );
+        h->mc.avg[i_mode]( &h->mb.pic.p_fdec[0][4*y *h->mb.pic.i_stride[0]+4*x], h->mb.pic.i_stride[0], tmp, 16 );
 
         h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref1][4][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1],
                           tmp, 16, mvx1, mvy1, 2*width, 2*height );
-        h->pixf.avg[i_mode+3]( &h->mb.pic.p_fdec[1][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1], tmp, 16 );
+        h->mc.avg[i_mode+3]( &h->mb.pic.p_fdec[1][2*y*h->mb.pic.i_stride[1]+2*x], h->mb.pic.i_stride[1], tmp, 16 );
 
         h->mc.mc_chroma( &h->mb.pic.p_fref[1][i_ref1][5][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2],
                           tmp, 16, mvx1, mvy1, 2*width, 2*height );
-        h->pixf.avg[i_mode+3]( &h->mb.pic.p_fdec[2][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2], tmp, 16 );
+        h->mc.avg[i_mode+3]( &h->mb.pic.p_fdec[2][2*y*h->mb.pic.i_stride[2]+2*x], h->mb.pic.i_stride[2], tmp, 16 );
     }
 }
 

@@ -1038,10 +1038,10 @@ static void x264_mb_analyse_inter_direct( x264_t *h, x264_mb_analysis_t *a )
 #define WEIGHTED_AVG( size, pix1, stride1, src2, stride2 ) \
     { \
         if( h->param.analyse.b_weighted_bipred ) \
-            h->pixf.avg_weight[size]( pix1, stride1, src2, stride2, \
+            h->mc.avg_weight[size]( pix1, stride1, src2, stride2, \
                     h->mb.bipred_weight[a->l0.i_ref][a->l1.i_ref] ); \
         else \
-            h->pixf.avg[size]( pix1, stride1, src2, stride2 ); \
+            h->mc.avg[size]( pix1, stride1, src2, stride2 ); \
     }
 
 static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
@@ -1151,10 +1151,10 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     }
 
     if( h->param.analyse.b_weighted_bipred )
-        h->pixf.avg_weight[PIXEL_16x16]( pix1, 16, src2, stride2,
+        h->mc.avg_weight[PIXEL_16x16]( pix1, 16, src2, stride2,
                 h->mb.bipred_weight[pix1_ref][src2_ref] );
     else
-        h->pixf.avg[PIXEL_16x16]( pix1, 16, src2, stride2 );
+        h->mc.avg[PIXEL_16x16]( pix1, 16, src2, stride2 );
 
     a->i_cost16x16bi = h->pixf.mbcmp[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0], pix1, 16 )
                      + a->i_lambda * ( bs_size_te( h->sh.i_num_ref_idx_l0_active - 1, a->l0.i_ref )

@@ -32,6 +32,7 @@
 #include <stdarg.h>
 
 #include "x264.h"   /* DECLARE_ALIGNED */
+#include "common/pixel.h"
 #include "common/mc.h"
 #include "common/clip1.h"
 #include "mc.h"
