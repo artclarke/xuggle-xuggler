@@ -42,10 +42,38 @@ extern void x264_pixel_avg_w4_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *
 extern void x264_pixel_avg_w8_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int );
 extern void x264_pixel_avg_w16_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int );
 extern void x264_pixel_avg_w16_sse2( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int );
+extern void x264_pixel_avg_weight_4x4_mmxext( uint8_t *, int, uint8_t *, int, int );
+extern void x264_pixel_avg_weight_w8_mmxext( uint8_t *, int, uint8_t *, int, int, int );
+extern void x264_pixel_avg_weight_w16_mmxext( uint8_t *, int, uint8_t *, int, int, int );
 extern void x264_mc_copy_w4_mmxext( uint8_t *, int, uint8_t *, int, int );
 extern void x264_mc_copy_w8_mmxext( uint8_t *, int, uint8_t *, int, int );
 extern void x264_mc_copy_w16_mmxext( uint8_t *, int, uint8_t *, int, int );
 extern void x264_mc_copy_w16_sse2( uint8_t *, int, uint8_t *, int, int );
+
+#define AVG(W,H) \
+static void x264_pixel_avg_ ## W ## x ## H ## _mmxext( uint8_t *dst, int i_dst, uint8_t *src, int i_src ) \
+{ \
+    x264_pixel_avg_w ## W ## _mmxext( dst, i_dst, dst, i_dst, src, i_src, H ); \
+}
+AVG(16,16)
+AVG(16,8)
+AVG(8,16)
+AVG(8,8)
+AVG(8,4)
+AVG(4,8)
+AVG(4,4)
+AVG(4,2)
+
+#define AVG_WEIGHT(W,H) \
+void x264_pixel_avg_weight_ ## W ## x ## H ## _mmxext( uint8_t *dst, int i_dst, uint8_t *src, int i_src, int i_weight_dst ) \
+{ \
+    x264_pixel_avg_weight_w ## W ## _mmxext( dst, i_dst, src, i_src, i_weight_dst, H ); \
+}
+AVG_WEIGHT(16,16)
+AVG_WEIGHT(16,8)
+AVG_WEIGHT(8,16)
+AVG_WEIGHT(8,8)
+AVG_WEIGHT(8,4)
 
 #if 0
 
@@ -1128,6 +1156,23 @@ void x264_mc_mmxext_init( x264_mc_functions_t *pf )
 {
     pf->mc_luma   = mc_luma_mmx;
     pf->get_ref   = get_ref_mmx;
+
+    pf->avg[PIXEL_16x16] = x264_pixel_avg_16x16_mmxext;
+    pf->avg[PIXEL_16x8]  = x264_pixel_avg_16x8_mmxext;
+    pf->avg[PIXEL_8x16]  = x264_pixel_avg_8x16_mmxext;
+    pf->avg[PIXEL_8x8]   = x264_pixel_avg_8x8_mmxext;
+    pf->avg[PIXEL_8x4]   = x264_pixel_avg_8x4_mmxext;
+    pf->avg[PIXEL_4x8]   = x264_pixel_avg_4x8_mmxext;
+    pf->avg[PIXEL_4x4]   = x264_pixel_avg_4x4_mmxext;
+    pf->avg[PIXEL_4x2]   = x264_pixel_avg_4x2_mmxext;
+    
+    pf->avg_weight[PIXEL_16x16] = x264_pixel_avg_weight_16x16_mmxext;
+    pf->avg_weight[PIXEL_16x8]  = x264_pixel_avg_weight_16x8_mmxext;
+    pf->avg_weight[PIXEL_8x16]  = x264_pixel_avg_weight_8x16_mmxext;
+    pf->avg_weight[PIXEL_8x8]   = x264_pixel_avg_weight_8x8_mmxext;
+    pf->avg_weight[PIXEL_8x4]   = x264_pixel_avg_weight_8x4_mmxext;
+    pf->avg_weight[PIXEL_4x4]   = x264_pixel_avg_weight_4x4_mmxext;
+    // avg_weight_4x8 is rare and 4x2 is not used
 }
 void x264_mc_sse2_init( x264_mc_functions_t *pf )
 {

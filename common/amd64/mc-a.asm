@@ -74,6 +74,10 @@ cglobal x264_pixel_avg_w8_mmxext
 cglobal x264_pixel_avg_w16_mmxext
 cglobal x264_pixel_avg_w16_sse2
 
+cglobal x264_pixel_avg_weight_4x4_mmxext
+cglobal x264_pixel_avg_weight_w8_mmxext
+cglobal x264_pixel_avg_weight_w16_mmxext
+
 cglobal x264_mc_copy_w4_mmxext
 cglobal x264_mc_copy_w8_mmxext
 cglobal x264_mc_copy_w16_mmxext
@@ -243,6 +247,98 @@ ALIGN 4
     pop         r13
     pop         r12
     pop         rbp
+    ret
+
+
+
+;=============================================================================
+; weighted prediction
+;=============================================================================
+; implicit bipred only:
+; assumes log2_denom = 5, offset = 0, weight1 + weight2 = 64
+
+%macro BIWEIGHT_4P_MMX 2
+    movd      mm0, %1
+    movd      mm1, %2
+    punpcklbw mm0, mm7
+    punpcklbw mm1, mm7
+    pmullw    mm0, mm4
+    pmullw    mm1, mm5
+    paddw     mm0, mm1
+    paddw     mm0, mm6
+    psraw     mm0, 6
+    pmaxsw    mm0, mm7
+    packuswb  mm0, mm0
+    movd      %1,  mm0
+%endmacro
+
+%macro BIWEIGHT_START_MMX 0
+;   mov     rdi, rdi      ; dst
+    movsxd  rsi, esi      ; i_dst
+;   mov     rdx, rdx      ; src
+    movsxd  rcx, ecx      ; i_src
+;   movsxd  r8,  r8d      ; i_weight_dst
+;   movsxd  r9,  r9d      ; i_height
+
+    movd    mm4, r8d
+    pshufw  mm4, mm4, 0   ; weight_dst
+    movq    mm5, [pw_64]
+    psubw   mm5, mm4      ; weight_src
+    movq    mm6, [pw_32]  ; rounding
+    pxor    mm7, mm7
+
+    ALIGN 4
+    .height_loop
+%endmacro
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   int __cdecl x264_pixel_avg_weight_w16_mmxext( uint8_t *, int, uint8_t *, int, int, int )
+;-----------------------------------------------------------------------------
+x264_pixel_avg_weight_w16_mmxext:
+    BIWEIGHT_START_MMX
+
+    BIWEIGHT_4P_MMX  [rdi   ], [rdx   ]
+    BIWEIGHT_4P_MMX  [rdi+ 4], [rdx+ 4]
+    BIWEIGHT_4P_MMX  [rdi+ 8], [rdx+ 8]
+    BIWEIGHT_4P_MMX  [rdi+12], [rdx+12]
+
+    add  rdi, rsi
+    add  rdx, rcx
+    dec  r9d
+    jnz  .height_loop
+    ret
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   int __cdecl x264_pixel_avg_weight_w8_mmxext( uint8_t *, int, uint8_t *, int, int, int )
+;-----------------------------------------------------------------------------
+x264_pixel_avg_weight_w8_mmxext:
+    BIWEIGHT_START_MMX
+
+    BIWEIGHT_4P_MMX  [rdi      ], [rdx      ]
+    BIWEIGHT_4P_MMX  [rdi+4    ], [rdx+4    ]
+    BIWEIGHT_4P_MMX  [rdi+rsi  ], [rdx+rcx  ]
+    BIWEIGHT_4P_MMX  [rdi+rsi+4], [rdx+rcx+4]
+
+    lea  rdi, [rdi+rsi*2]
+    lea  rdx, [rdx+rcx*2]
+    sub  r9d, byte 2
+    jnz  .height_loop
+    ret
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   int __cdecl x264_pixel_avg_weight_4x4_mmxext( uint8_t *, int, uint8_t *, int, int )
+;-----------------------------------------------------------------------------
+x264_pixel_avg_weight_4x4_mmxext:
+    BIWEIGHT_START_MMX
+    BIWEIGHT_4P_MMX  [rdi      ], [rdx      ]
+    BIWEIGHT_4P_MMX  [rdi+rsi  ], [rdx+rcx  ]
+    BIWEIGHT_4P_MMX  [rdi+rsi*2], [rdx+rcx*2]
+    add  rdi, rsi
+    add  rdx, rcx
+    BIWEIGHT_4P_MMX  [rdi+rsi*2], [rdx+rcx*2]
     ret
 
 
