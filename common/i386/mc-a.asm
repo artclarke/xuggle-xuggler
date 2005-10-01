@@ -326,7 +326,7 @@ x264_pixel_avg_weight_w8_mmxext:
     BIWEIGHT_4P_MMX  [edi+esi+4], [edx+ecx+4]
 
     lea  edi, [edi+esi*2]
-    lea  edx, [edi+ecx*2]
+    lea  edx, [edx+ecx*2]
     sub  eax, byte 2
     jnz  .height_loop
     BIWEIGHT_END_MMX
