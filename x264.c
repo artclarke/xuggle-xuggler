@@ -1136,13 +1136,19 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
 
         /* update status line (up to 1000 times per input file) */
         if( opt->b_progress && param->i_log_level < X264_LOG_DEBUG && 
-            i_frame * 1000 / i_frame_total > i_progress )
+            ( i_frame_total ? i_frame * 1000 / i_frame_total > i_progress
+                            : i_frame % 10 == 0 ) )
         {
             int64_t i_elapsed = x264_mdate() - i_start;
             double fps = i_elapsed > 0 ? i_frame * 1000000. / i_elapsed : 0;
-            i_progress = i_frame * 1000 / i_frame_total;
-            fprintf( stderr, "encoded frames: %d/%d (%.1f%%), %.2f fps   \r", i_frame,
-                     i_frame_total, (float)i_progress / 10, fps );
+            if( i_frame_total )
+            {
+                i_progress = i_frame * 1000 / i_frame_total;
+                fprintf( stderr, "encoded frames: %d/%d (%.1f%%), %.2f fps   \r", i_frame,
+                         i_frame_total, (float)i_progress / 10, fps );
+            }
+            else
+                fprintf( stderr, "encoded frames: %d, %.2f fps   \r", i_frame, fps );
             fflush( stderr ); // needed in windows
         }
     }
