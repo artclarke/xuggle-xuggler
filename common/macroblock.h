@@ -156,6 +156,10 @@ static const int x264_mb_partition_count_table[17] =
     /* Partition */
     4, 2, 2, 1
 };
+static const int x264_mb_partition_pixel_table[17] =
+{
+    6, 4, 5, 3, 6, 4, 5, 3, 6, 4, 5, 3, 3, 3, 1, 2, 0
+};
 
 static const int x264_zigzag_scan4[16] =
 {

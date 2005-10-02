@@ -453,6 +453,8 @@ struct x264_t
             int i_mb_count_p;
             int i_mb_count_skip;
             int i_mb_count_8x8dct[2];
+            int i_mb_count_size[7];
+            int i_mb_count_ref[16];
             /* Estimated (SATD) cost as Intra/Predicted frame */
             /* XXX: both omit the cost of MBs coded as P_SKIP */
             int i_intra_cost;
@@ -474,6 +476,8 @@ struct x264_t
         /* */
         int64_t i_mb_count[5][19];
         int64_t i_mb_count_8x8dct[2];
+        int64_t i_mb_count_size[2][7];
+        int64_t i_mb_count_ref[2][16];
 
     } stat;
 

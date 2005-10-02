@@ -922,6 +922,7 @@ static int x264_slice_write( x264_t *h )
 {
     int i_skip;
     int mb_xy;
+    int i;
 
     /* init stats */
     memset( &h->stat.frame, 0, sizeof(h->stat.frame) );
@@ -1005,7 +1006,25 @@ static int x264_slice_write( x264_t *h )
         /* save cache */
         x264_macroblock_cache_save( h );
 
+        /* accumulate mb stats */
         h->stat.frame.i_mb_count[h->mb.i_type]++;
+        if( !IS_SKIP(h->mb.i_type) && !IS_INTRA(h->mb.i_type) && !IS_DIRECT(h->mb.i_type) )
+        {
+            if( h->mb.i_partition != D_8x8 )
+                h->stat.frame.i_mb_count_size[ x264_mb_partition_pixel_table[ h->mb.i_partition ] ] += 4;
+            else
+                for( i = 0; i < 4; i++ )
+                    h->stat.frame.i_mb_count_size[ x264_mb_partition_pixel_table[ h->mb.i_sub_partition[i] ] ] ++;
+            if( h->param.i_frame_reference > 1 )
+            {
+                for( i = 0; i < 4; i++ )
+                {
+                    int i_ref = h->mb.cache.ref[0][ x264_scan8[4*i] ];
+                    if( i_ref >= 0 )
+                        h->stat.frame.i_mb_count_ref[i_ref] ++;
+                }
+            }
+        }
         if( h->mb.i_cbp_luma && !IS_INTRA(h->mb.i_type) )
         {
             h->stat.frame.i_mb_count_8x8dct[0] ++;
@@ -1510,6 +1529,13 @@ do_encode:
         h->stat.i_mb_count[h->sh.i_type][i] += h->stat.frame.i_mb_count[i];
     for( i = 0; i < 2; i++ )
         h->stat.i_mb_count_8x8dct[i] += h->stat.frame.i_mb_count_8x8dct[i];
+    if( h->sh.i_type != SLICE_TYPE_I )
+    {
+        for( i = 0; i < 7; i++ )
+            h->stat.i_mb_count_size[h->sh.i_type][i] += h->stat.frame.i_mb_count_size[i];
+        for( i = 0; i < 16; i++ )
+            h->stat.i_mb_count_ref[h->sh.i_type][i] += h->stat.frame.i_mb_count_ref[i];
+    }
 
     if( h->param.analyse.b_psnr )
     {
@@ -1619,7 +1645,7 @@ void    x264_encoder_close  ( x264_t *h )
             if( h->param.analyse.b_psnr )
             {
                 x264_log( h, X264_LOG_INFO,
-                          "slice %s:%-4d Avg QP:%5.2f Avg size:%6.0f PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f\n",
+                          "slice %s:%-5d Avg QP:%5.2f  size:%6.0f  PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f\n",
                           slice_name[i_slice],
                           i_count,
                           (double)h->stat.i_slice_qp[i_slice] / i_count,
@@ -1631,7 +1657,7 @@ void    x264_encoder_close  ( x264_t *h )
             else
             {
                 x264_log( h, X264_LOG_INFO,
-                          "slice %s:%-4d Avg QP:%5.2f Avg size:%6.0f\n",
+                          "slice %s:%-5d Avg QP:%5.2f  size:%6.0f\n",
                           slice_name[i_slice],
                           i_count,
                           (double)h->stat.i_slice_qp[i_slice] / i_count,
@@ -1646,36 +1672,41 @@ void    x264_encoder_close  ( x264_t *h )
         const int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_I];
         const double i_count = h->stat.i_slice_count[SLICE_TYPE_I] * h->mb.i_mb_count / 100.0;
         x264_log( h, X264_LOG_INFO,
-                  "slice I   Avg I4x4:%.1f%%  I8x8:%.1f%%  I16x16:%.1f%%\n",
-                  i_mb_count[I_4x4]  / i_count,
+                  "mb I  I16..4: %4.1f%% %4.1f%% %4.1f%%\n",
+                  i_mb_count[I_16x16]/ i_count,
                   i_mb_count[I_8x8]  / i_count,
-                  i_mb_count[I_16x16]/ i_count );
+                  i_mb_count[I_4x4]  / i_count );
     }
     if( h->stat.i_slice_count[SLICE_TYPE_P] > 0 )
     {
         const int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_P];
+        const int64_t *i_mb_size = h->stat.i_mb_count_size[SLICE_TYPE_P];
         const double i_count = h->stat.i_slice_count[SLICE_TYPE_P] * h->mb.i_mb_count / 100.0;
         x264_log( h, X264_LOG_INFO,
-                  "slice P   Avg I4x4:%.1f%%  I8x8:%.1f%%  I16x16:%.1f%%  P:%.1f%%  P8x8:%.1f%%  PSKIP:%.1f%%\n",
-                  i_mb_count[I_4x4]  / i_count,
-                  i_mb_count[I_8x8]  / i_count,
+                  "mb P  I16..4: %4.1f%% %4.1f%% %4.1f%%  P16..4: %4.1f%% %4.1f%% %4.1f%% %4.1f%% %4.1f%%    skip:%4.1f%%\n",
                   i_mb_count[I_16x16]/ i_count,
-                  i_mb_count[P_L0]   / i_count,
-                  i_mb_count[P_8x8]  / i_count,
+                  i_mb_count[I_8x8]  / i_count,
+                  i_mb_count[I_4x4]  / i_count,
+                  i_mb_size[PIXEL_16x16] / (i_count*4),
+                  (i_mb_size[PIXEL_16x8] + i_mb_size[PIXEL_8x16]) / (i_count*4),
+                  i_mb_size[PIXEL_8x8] / (i_count*4),
+                  (i_mb_size[PIXEL_8x4] + i_mb_size[PIXEL_4x8]) / (i_count*4),
+                  i_mb_size[PIXEL_4x4] / (i_count*4),
                   i_mb_count[P_SKIP] / i_count );
     }
     if( h->stat.i_slice_count[SLICE_TYPE_B] > 0 )
     {
         const int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_B];
+        const int64_t *i_mb_size = h->stat.i_mb_count_size[SLICE_TYPE_B];
         const double i_count = h->stat.i_slice_count[SLICE_TYPE_B] * h->mb.i_mb_count / 100.0;
         x264_log( h, X264_LOG_INFO,
-                  "slice B   Avg I4x4:%.1f%%  I8x8:%.1f%%  I16x16:%.1f%%  P:%.1f%%  B:%.1f%%  B8x8:%.1f%%  DIRECT:%.1f%%  BSKIP:%.1f%%\n",
-                  i_mb_count[I_4x4]    / i_count,
-                  i_mb_count[I_8x8]    / i_count,
+                  "mb B  I16..4: %4.1f%% %4.1f%% %4.1f%%  B16..8: %4.1f%% %4.1f%% %4.1f%%  direct:%4.1f%%  skip:%4.1f%%\n",
                   i_mb_count[I_16x16]  / i_count,
-                  (i_mb_count[B_L0_L0] + i_mb_count[B_L1_L1] + i_mb_count[B_L1_L0] + i_mb_count[B_L0_L1]) / i_count,
-                  (i_mb_count[B_BI_BI] + i_mb_count[B_L0_BI] + i_mb_count[B_L1_BI] + i_mb_count[B_BI_L0] + i_mb_count[B_BI_L1]) / i_count,
-                  i_mb_count[B_8x8]    / i_count,
+                  i_mb_count[I_8x8]    / i_count,
+                  i_mb_count[I_4x4]    / i_count,
+                  i_mb_size[PIXEL_16x16] / (i_count*4),
+                  (i_mb_size[PIXEL_16x8] + i_mb_size[PIXEL_8x16]) / (i_count*4),
+                  i_mb_size[PIXEL_8x8] / (i_count*4),
                   i_mb_count[B_DIRECT] / i_count,
                   i_mb_count[B_SKIP]   / i_count );
     }
@@ -1693,15 +1724,39 @@ void    x264_encoder_close  ( x264_t *h )
         if( h->param.analyse.b_transform_8x8 )
         {
             int64_t i_i8x8 = SUM3b( h->stat.i_mb_count, I_8x8 );
-            int64_t i_intra = i_i8x8 + SUM3b( h->stat.i_mb_count, I_4x4 ) + SUM3b( h->stat.i_mb_count, I_16x16 );
+            int64_t i_intra = i_i8x8 + SUM3b( h->stat.i_mb_count, I_4x4 )
+                                     + SUM3b( h->stat.i_mb_count, I_16x16 );
             x264_log( h, X264_LOG_INFO, "8x8 transform  intra:%.1f%%  inter:%.1f%%\n",
                       100. * i_i8x8 / i_intra,
                       100. * h->stat.i_mb_count_8x8dct[1] / h->stat.i_mb_count_8x8dct[0] );
         }
 
+        if( h->param.i_frame_reference > 1 )
+        {
+            int i_slice;
+            for( i_slice = 0; i_slice < 2; i_slice++ )
+            {
+                char buf[200];
+                char *p = buf;
+                int64_t i_den = 0;
+                int i_max = 0;
+                for( i = 0; i < h->param.i_frame_reference; i++ )
+                    if( h->stat.i_mb_count_ref[i_slice][i] )
+                    {
+                        i_den += h->stat.i_mb_count_ref[i_slice][i];
+                        i_max = i;
+                    }
+                if( i_max == 0 )
+                    continue;
+                for( i = 0; i <= i_max; i++ )
+                    p += sprintf( p, " %4.1f%%", 100. * h->stat.i_mb_count_ref[i_slice][i] / i_den );
+                x264_log( h, X264_LOG_INFO, "ref %c %s\n", i_slice==SLICE_TYPE_P ? 'P' : 'B', buf );
+            }
+        }
+
         if( h->param.analyse.b_psnr )
             x264_log( h, X264_LOG_INFO,
-                      "PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f kb/s:%.1f\n",
+                      "PSNR Mean Y:%6.3f U:%6.3f V:%6.3f Avg:%6.3f Global:%6.3f kb/s:%.2f\n",
                       SUM3( h->stat.f_psnr_mean_y ) / i_count,
                       SUM3( h->stat.f_psnr_mean_u ) / i_count,
                       SUM3( h->stat.f_psnr_mean_v ) / i_count,

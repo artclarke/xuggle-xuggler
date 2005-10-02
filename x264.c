@@ -843,8 +843,8 @@ static int  Parse( int argc, char **argv,
                 if( *psz >= '0' && *psz <= '9'
                     && sscanf( psz, "%ux%u", &param->i_width, &param->i_height ) == 2 )
                 {
-                    if( param->i_log_level > X264_LOG_NONE )
-                        fprintf( stderr, "x264: file name gives %dx%d\n", param->i_width, param->i_height );
+                    if( param->i_log_level >= X264_LOG_INFO )
+                        fprintf( stderr, "x264 [info]: file name gives %dx%d\n", param->i_width, param->i_height );
                     break;
                 }
             }
