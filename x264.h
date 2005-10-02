@@ -154,12 +154,12 @@ typedef struct
 
     int         i_cqm_preset;
     char        *psz_cqm_file;      /* JM format */
-    int8_t      cqm_4iy[16];        /* used only if i_cqm_preset == X264_CQM_CUSTOM */
-    int8_t      cqm_4ic[16];
-    int8_t      cqm_4py[16];
-    int8_t      cqm_4pc[16];
-    int8_t      cqm_8iy[64];
-    int8_t      cqm_8py[64];
+    uint8_t     cqm_4iy[16];        /* used only if i_cqm_preset == X264_CQM_CUSTOM */
+    uint8_t     cqm_4ic[16];
+    uint8_t     cqm_4py[16];
+    uint8_t     cqm_4pc[16];
+    uint8_t     cqm_8iy[64];
+    uint8_t     cqm_8py[64];
 
     /* Log */
     void        (*pf_log)( void *, int i_level, const char *psz, va_list );

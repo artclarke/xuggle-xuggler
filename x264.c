@@ -567,7 +567,7 @@ static int  Parse( int argc, char **argv,
             case OPT_SEEK:
                 opt->i_seek = atoi( optarg );
                 break;
-            case'o':
+            case 'o':
                 if( !strncasecmp(optarg + strlen(optarg) - 4, ".mp4", 4) )
                 {
 #ifdef MP4_OUTPUT
@@ -581,14 +581,14 @@ static int  Parse( int argc, char **argv,
                     return -1;
 #endif
                 }
-        else if( !strncasecmp(optarg + strlen(optarg) - 4, ".mkv", 4) )
-        {
-            p_open_outfile = open_file_mkv;
+                else if( !strncasecmp(optarg + strlen(optarg) - 4, ".mkv", 4) )
+                {
+                    p_open_outfile = open_file_mkv;
                     p_write_nalu = write_nalu_mkv;
                     p_set_outfile_param = set_param_mkv;
                     p_set_eop = set_eop_mkv;
                     p_close_outfile = close_file_mkv;
-        }
+                }
                 if( !strcmp(optarg, "-") )
                     opt->hout = stdout;
                 else if( p_open_outfile( optarg, &opt->hout ) )
@@ -1720,7 +1720,7 @@ static int set_param_mkv( hnd_t handle, x264_param_t *p_param )
 
     if( dw > 0 && dh > 0 )
     {
-	int64_t	a = dw, b = dh;
+        int64_t a = dw, b = dh;
 
         for (;;)
         {
@@ -1731,8 +1731,8 @@ static int set_param_mkv( hnd_t handle, x264_param_t *p_param )
             b = c;
         }
 
-	dw /= b;
-	dh /= b;
+        dw /= b;
+        dh /= b;
     }
 
     p_mkv->d_width = (int)dw;
@@ -1781,7 +1781,7 @@ static int write_nalu_mkv( hnd_t handle, uint8_t *p_nalu, int i_size )
         if( !p_mkv->b_writing_frame )
         {
             if( mk_startFrame(p_mkv->w) < 0 )
-		return -1;
+                return -1;
             p_mkv->b_writing_frame = 1;
         }
         psize = i_size - 4 ;
@@ -1789,8 +1789,8 @@ static int write_nalu_mkv( hnd_t handle, uint8_t *p_nalu, int i_size )
         dsize[1] = psize >> 8;
         dsize[2] = psize;
         if( mk_addFrameData(p_mkv->w, dsize, 3) < 0 ||
-	    mk_addFrameData(p_mkv->w, p_nalu + 4, i_size - 4) < 0 )
-	    return -1;
+            mk_addFrameData(p_mkv->w, p_nalu + 4, i_size - 4) < 0 )
+            return -1;
         break;
 
     default:

@@ -389,6 +389,7 @@ static int x264_validate_parameters( x264_t *h )
         h->mb.b_lossless = 1;
         h->param.analyse.b_transform_8x8 = 0;
         h->param.i_cqm_preset = X264_CQM_FLAT;
+        h->param.psz_cqm_file = NULL;
         h->param.rc.f_ip_factor = 1;
         h->param.rc.f_pb_factor = 1;
         h->param.analyse.b_psnr = 0;

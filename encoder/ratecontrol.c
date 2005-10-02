@@ -263,25 +263,16 @@ int x264_ratecontrol_new( x264_t *h )
     /* Load stat file and init 2pass algo */
     if( h->param.rc.b_stat_read )
     {
-        int stats_size;
         char *p, *stats_in;
-        FILE *stats_file;
 
         /* read 1st pass stats */
         assert( h->param.rc.psz_stat_in );
-        stats_file = fopen( h->param.rc.psz_stat_in, "rb");
-        if(!stats_file)
+        stats_in = x264_slurp_file( h->param.rc.psz_stat_in );
+        if( !stats_in )
         {
             x264_log(h, X264_LOG_ERROR, "ratecontrol_init: can't open stats file\n");
             return -1;
         }
-        // FIXME: error checking
-        fseek(stats_file, 0, SEEK_END);
-        stats_size = ftell(stats_file);
-        fseek(stats_file, 0, SEEK_SET);
-        stats_in = x264_malloc(stats_size+10);
-        fread(stats_in, 1, stats_size, stats_file);
-        fclose(stats_file);
 
         /* find number of pics */
         p = stats_in;
