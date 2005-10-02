@@ -1295,11 +1295,8 @@ do_encode:
     if( i_slice_type == SLICE_TYPE_B )
         x264_macroblock_bipred_init( h );
 
-    /* increase frame num but only once for B frame */
-    if( i_slice_type != SLICE_TYPE_B || h->sh.i_type != SLICE_TYPE_B )
-    {
+    if( h->fenc->b_kept_as_ref )
         h->i_frame_num++;
-    }
 
     /* ------------------------ Create slice header  ----------------------- */
     x264_slice_init( h, i_nal_type, i_slice_type, i_global_qp );
