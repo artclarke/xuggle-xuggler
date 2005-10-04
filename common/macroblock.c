@@ -631,59 +631,77 @@ void x264_mb_load_mv_direct8x8( x264_t *h, int idx )
 }
 
 /* This just improves encoder performance, it's not part of the spec */
-void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int mvc[5][2], int *i_mvc )
+void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int mvc[8][2], int *i_mvc )
 {
     int16_t (*mvr)[2] = h->mb.mvr[i_list][i_ref];
     int i = 0;
 
-    /* temporal */
-    if( h->sh.i_type == SLICE_TYPE_B )
-    {
-        if( h->mb.cache.ref[i_list][x264_scan8[12]] == i_ref )
-        {
-            /* FIXME: use direct_mv to be clearer? */
-            int16_t *mvp = h->mb.cache.mv[i_list][x264_scan8[12]];
-            mvc[i][0] = mvp[0];
-            mvc[i][1] = mvp[1];
-            i++;
-        }
+#define SET_MVP(mvp) { \
+        mvc[i][0] = mvp[0]; \
+        mvc[i][1] = mvp[1]; \
+        i++; \
     }
 
-    /* spatial */
+    /* b_direct */
+    if( h->sh.i_type == SLICE_TYPE_B
+        && h->mb.cache.ref[i_list][x264_scan8[12]] == i_ref )
+    {
+        SET_MVP( h->mb.cache.mv[i_list][x264_scan8[12]] );
+    }
+
+    /* spatial predictors */
     if( h->mb.i_neighbour & MB_LEFT )
     {
         int i_mb_l = h->mb.i_mb_xy - 1;
         /* skip MBs didn't go through the whole search process, so mvr is undefined */
         if( !IS_SKIP( h->mb.type[i_mb_l] ) )
-        {
-            mvc[i][0] = mvr[i_mb_l][0];
-            mvc[i][1] = mvr[i_mb_l][1];
-            i++;
-        }
+            SET_MVP( mvr[i_mb_l] );
     }
     if( h->mb.i_neighbour & MB_TOP )
     {
         int i_mb_t = h->mb.i_mb_xy - h->mb.i_mb_stride;
         if( !IS_SKIP( h->mb.type[i_mb_t] ) )
-        {
-            mvc[i][0] = mvr[i_mb_t][0];
-            mvc[i][1] = mvr[i_mb_t][1];
-            i++;
-        }
+            SET_MVP( mvr[i_mb_t] );
 
         if( h->mb.i_neighbour & MB_TOPLEFT && !IS_SKIP( h->mb.type[i_mb_t - 1] ) )
-        {
-            mvc[i][0] = mvr[i_mb_t - 1][0];
-            mvc[i][1] = mvr[i_mb_t - 1][1];
-            i++;
-        }
+            SET_MVP( mvr[i_mb_t-1] );
         if( h->mb.i_mb_x < h->mb.i_mb_stride - 1 && !IS_SKIP( h->mb.type[i_mb_t + 1] ) )
-        {
-            mvc[i][0] = mvr[i_mb_t + 1][0];
-            mvc[i][1] = mvr[i_mb_t + 1][1];
-            i++;
-        }
+            SET_MVP( mvr[i_mb_t+1] );
     }
+#undef SET_MVP
+
+    /* temporal predictors */
+    if( h->fref0[0]->i_ref[0] > 0 )
+    {
+        x264_frame_t *l0 = h->fref0[0];
+        int ref_col_cur, ref_col_prev = -1;
+        int scale = 0;
+
+#define SET_TMVP(dx, dy) { \
+            int i_b4 = h->mb.i_b4_xy + dx*4 + dy*4*h->mb.i_b4_stride; \
+            int i_b8 = h->mb.i_b8_xy + dx*2 + dy*2*h->mb.i_b8_stride; \
+            ref_col_cur = l0->ref[0][i_b8]; \
+            if( ref_col_cur >= 0 ) \
+            { \
+                /* TODO: calc once per frame and tablize? */\
+                if( ref_col_cur != ref_col_prev ) \
+                    scale = 256 * (h->fenc->i_poc - h->fref0[i_ref]->i_poc) \
+                                / (l0->i_poc - l0->ref_poc[0][ref_col_cur]); \
+                mvc[i][0] = l0->mv[0][i_b4][0] * scale / 256; \
+                mvc[i][1] = l0->mv[0][i_b4][1] * scale / 256; \
+                i++; \
+                ref_col_prev = ref_col_cur; \
+            } \
+        }
+
+        SET_TMVP(0,0);
+        if( h->mb.i_mb_x < h->sps->i_mb_width-1 )
+            SET_TMVP(1,0);
+        if( h->mb.i_mb_y < h->sps->i_mb_height-1 )
+            SET_TMVP(0,1);
+#undef SET_TMVP
+    }
+
     *i_mvc = i;
 }
 

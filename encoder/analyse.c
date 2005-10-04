@@ -675,7 +675,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
 {
     x264_me_t m;
     int i_ref;
-    int mvc[4][2], i_mvc;
+    int mvc[7][2], i_mvc;
     int i_fullpel_thresh = INT_MAX;
     int *p_fullpel_thresh = h->i_ref0>1 ? &i_fullpel_thresh : NULL;
 
@@ -1053,7 +1053,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 
     x264_me_t m;
     int i_ref;
-    int mvc[5][2], i_mvc;
+    int mvc[8][2], i_mvc;
     int i_fullpel_thresh = INT_MAX;
     int *p_fullpel_thresh = h->i_ref0>1 ? &i_fullpel_thresh : NULL;
 
