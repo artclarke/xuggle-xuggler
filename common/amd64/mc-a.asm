@@ -282,9 +282,9 @@ ALIGN 4
 
     movd    mm4, r8d
     pshufw  mm4, mm4, 0   ; weight_dst
-    movq    mm5, [pw_64]
+    movq    mm5, [pw_64 GLOBAL]
     psubw   mm5, mm4      ; weight_src
-    movq    mm6, [pw_32]  ; rounding
+    movq    mm6, [pw_32 GLOBAL] ; rounding
     pxor    mm7, mm7
 
     ALIGN 4
