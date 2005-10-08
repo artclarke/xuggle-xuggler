@@ -566,9 +566,6 @@ void x264_macroblock_encode( x264_t *h )
 
         /* encode the 16x16 macroblock */
         x264_mb_encode_i16x16( h, i_qp );
-
-        /* fix the pred mode value */
-        h->mb.i_intra16x16_pred_mode = x264_mb_pred_mode16x16_fix[i_mode];
     }
     else if( h->mb.i_type == I_8x8 )
     {
@@ -581,7 +578,6 @@ void x264_macroblock_encode( x264_t *h )
 
             h->predict_8x8[i_mode]( p_dst, i_dst, h->mb.i_neighbour8[i] );
             x264_mb_encode_i8x8( h, i, i_qp );
-            h->mb.cache.intra4x4_pred_mode[x264_scan8[4*i]] = x264_mb_pred_mode4x4_fix(i_mode);
         }
     }
     else if( h->mb.i_type == I_4x4 )
@@ -599,7 +595,6 @@ void x264_macroblock_encode( x264_t *h )
 
             h->predict_4x4[i_mode]( p_dst, i_dst );
             x264_mb_encode_i4x4( h, i, i_qp );
-            h->mb.cache.intra4x4_pred_mode[x264_scan8[i]] = x264_mb_pred_mode4x4_fix(i_mode);
         }
     }
     else    /* Inter MB */
@@ -779,14 +774,6 @@ void x264_macroblock_encode( x264_t *h )
     /* store cbp */
     h->mb.cbp[h->mb.i_mb_xy] = (i_cbp_dc << 8) | (h->mb.i_cbp_chroma << 4) | h->mb.i_cbp_luma;
 
-    if( h->mb.i_type != I_16x16 && h->mb.i_cbp_luma == 0 && h->mb.i_cbp_chroma == 0 )
-    {
-        /* It won'y change anything at the decoder side but it is needed else the
-         * decoder will fail to read the next QP */
-        h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp;
-    }
-
-
     /* Check for P_SKIP
      * XXX: in the me perhaps we should take x264_mb_predict_mv_pskip into account
      *      (if multiple mv give same result)*/
@@ -801,8 +788,6 @@ void x264_macroblock_encode( x264_t *h )
             h->mb.cache.mv[0][x264_scan8[0]][1] == mvp[1] )
         {
             h->mb.i_type = P_SKIP;
-            h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp;  /* Needed */
-            /* XXX qp reset may have issues when used in RD instead of the real encode */
         }
     }
 
@@ -811,11 +796,7 @@ void x264_macroblock_encode( x264_t *h )
         h->mb.i_cbp_luma == 0x00 && h->mb.i_cbp_chroma== 0x00 )
     {
         h->mb.i_type = B_SKIP;
-        h->mb.qp[h->mb.i_mb_xy] = h->mb.i_last_qp;  /* Needed */
     }
-
-    if( h->mb.i_cbp_luma == 0 && h->mb.i_type != I_8x8 )
-        h->mb.b_transform_8x8 = 0;
 }
 
 /*****************************************************************************

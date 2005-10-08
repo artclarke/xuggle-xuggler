@@ -193,7 +193,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     memset( a, 0, sizeof( x264_mb_analysis_t ) );
 
     /* conduct the analysis using this lamda and QP */
-    a->i_qp = i_qp;
+    a->i_qp = h->mb.i_qp = i_qp;
     a->i_lambda = i_qp0_cost_table[i_qp];
     a->i_lambda2 = i_qp0_cost2_table[i_qp];
     a->b_mbrd = h->param.analyse.i_subpel_refine >= 6 && h->sh.i_type != SLICE_TYPE_B;
@@ -1643,18 +1643,15 @@ static inline void x264_mb_analyse_transform_rd( x264_t *h, x264_mb_analysis_t *
 void x264_macroblock_analyse( x264_t *h )
 {
     x264_mb_analysis_t analysis;
+    int i_cost = COST_MAX;
     int i;
 
-    h->mb.i_qp =
-    h->mb.qp[h->mb.i_mb_xy] = x264_ratecontrol_qp( h );
-
     /* init analysis */
-    x264_mb_analyse_init( h, &analysis, h->mb.qp[h->mb.i_mb_xy] );
+    x264_mb_analyse_init( h, &analysis, x264_ratecontrol_qp( h ) );
 
     /*--------------------------- Do the analysis ---------------------------*/
     if( h->sh.i_type == SLICE_TYPE_I )
     {
-        int i_cost;
         x264_mb_analyse_intra( h, &analysis, COST_MAX );
 
         i_cost = analysis.i_sad_i16x16;
@@ -1670,7 +1667,6 @@ void x264_macroblock_analyse( x264_t *h )
     else if( h->sh.i_type == SLICE_TYPE_P )
     {
         int b_skip = 0;
-        int i_cost;
         int i_intra_cost, i_intra_type;
 
         /* Fast P_SKIP detection */
@@ -1917,7 +1913,6 @@ void x264_macroblock_analyse( x264_t *h )
         {
             const unsigned int flags = h->param.analyse.inter;
             int i_partition;
-            int i_cost;
 
             x264_mb_analyse_load_costs( h, &analysis );
 

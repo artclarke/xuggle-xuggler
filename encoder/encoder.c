@@ -198,6 +198,7 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
 
     sh->i_cabac_init_idc = param->i_cabac_init_idc;
 
+    sh->i_qp = i_qp;
     sh->i_qp_delta = i_qp - pps->i_pic_init_qp;
     sh->b_sp_for_swidth = 0;
     sh->i_qs_delta = 0;
@@ -939,10 +940,10 @@ static int x264_slice_write( x264_t *h )
         bs_align_1( &h->out.bs );
 
         /* init cabac */
-        x264_cabac_context_init( &h->cabac, h->sh.i_type, h->sh.pps->i_pic_init_qp + h->sh.i_qp_delta, h->sh.i_cabac_init_idc );
+        x264_cabac_context_init( &h->cabac, h->sh.i_type, h->sh.i_qp, h->sh.i_cabac_init_idc );
         x264_cabac_encode_init ( &h->cabac, &h->out.bs );
     }
-    h->mb.i_last_qp = h->pps->i_pic_init_qp + h->sh.i_qp_delta;
+    h->mb.i_last_qp = h->sh.i_qp;
     h->mb.i_last_dqp = 0;
 
     for( mb_xy = h->sh.i_first_mb, i_skip = 0; mb_xy < h->sh.i_last_mb; mb_xy++ )
@@ -1497,7 +1498,7 @@ do_encode:
     /* update cabac */
     if( h->param.b_cabac && h->param.i_cabac_init_idc == -1 )
     {
-        x264_cabac_model_update( &h->cabac, i_slice_type, h->sh.pps->i_pic_init_qp + h->sh.i_qp_delta );
+        x264_cabac_model_update( &h->cabac, i_slice_type, h->sh.i_qp );
     }
 
     /* handle references */

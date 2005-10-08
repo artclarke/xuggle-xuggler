@@ -431,7 +431,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         for( i = 0; i < 16; i += di )
         {
             int i_pred = x264_mb_predict_intra4x4_mode( h, i );
-            int i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[i]];
+            int i_mode = x264_mb_pred_mode4x4_fix( h->mb.cache.intra4x4_pred_mode[x264_scan8[i]] );
 
             if( i_pred == i_mode)
             {
@@ -454,7 +454,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
     }
     else if( i_mb_type == I_16x16 )
     {
-        bs_write_ue( s, i_mb_i_offset + 1 + h->mb.i_intra16x16_pred_mode +
+        bs_write_ue( s, i_mb_i_offset + 1 + x264_mb_pred_mode16x16_fix[h->mb.i_intra16x16_pred_mode] +
                         h->mb.i_cbp_chroma * 4 + ( h->mb.i_cbp_luma == 0 ? 0 : 12 ) );
         bs_write_ue( s, x264_mb_pred_mode8x8c_fix[ h->mb.i_chroma_pred_mode ] );
     }
@@ -684,7 +684,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
     /* write residual */
     if( i_mb_type == I_16x16 )
     {
-        bs_write_se( s, h->mb.qp[h->mb.i_mb_xy] - h->mb.i_last_qp );
+        bs_write_se( s, h->mb.i_qp - h->mb.i_last_qp );
 
         /* DC Luma */
         block_residual_write_cavlc( h, s, BLOCK_INDEX_LUMA_DC , h->dct.luma16x16_dc, 16 );
@@ -696,7 +696,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
     }
     else if( h->mb.i_cbp_luma != 0 || h->mb.i_cbp_chroma != 0 )
     {
-        bs_write_se( s, h->mb.qp[h->mb.i_mb_xy] - h->mb.i_last_qp );
+        bs_write_se( s, h->mb.i_qp - h->mb.i_last_qp );
         x264_macroblock_luma_write_cavlc( h, s );
     }
     if( h->mb.i_cbp_chroma != 0 )

@@ -55,7 +55,9 @@
 #define X264_MAX(a,b) ( (a)>(b) ? (a) : (b) )
 #define X264_ABS(a)   ( (a)< 0 ? -(a) : (a) )
 #define X264_MIN3(a,b,c) X264_MIN((a),X264_MIN((b),(c)))
+#define X264_MAX3(a,b,c) X264_MAX((a),X264_MAX((b),(c)))
 #define X264_MIN4(a,b,c,d) X264_MIN((a),X264_MIN3((b),(c),(d)))
+#define X264_MAX4(a,b,c,d) X264_MAX((a),X264_MAX3((b),(c),(d)))
 
 /****************************************************************************
  * Generals functions
@@ -157,6 +159,7 @@ typedef struct
 
     int i_cabac_init_idc;
 
+    int i_qp;
     int i_qp_delta;
     int b_sp_for_swidth;
     int i_qs_delta;

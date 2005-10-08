@@ -1430,11 +1430,12 @@ void x264_macroblock_cache_save( x264_t *h )
 
     h->mb.type[i_mb_xy] = i_mb_type;
 
-    if( IS_SKIP( h->mb.i_type ) )
-        h->mb.qp[i_mb_xy] = h->mb.i_last_qp;
+    if( h->mb.i_type != I_16x16 && h->mb.i_cbp_luma == 0 && h->mb.i_cbp_chroma == 0 )
+        h->mb.i_qp = h->mb.i_last_qp;
+    h->mb.qp[i_mb_xy] = h->mb.i_qp;
 
-    h->mb.i_last_dqp = h->mb.qp[i_mb_xy] - h->mb.i_last_qp;
-    h->mb.i_last_qp = h->mb.qp[i_mb_xy];
+    h->mb.i_last_dqp = h->mb.i_qp - h->mb.i_last_qp;
+    h->mb.i_last_qp = h->mb.i_qp;
 
     /* save intra4x4 */
     if( i_mb_type == I_4x4 )
@@ -1475,6 +1476,8 @@ void x264_macroblock_cache_save( x264_t *h )
         }
     }
 
+    if( h->mb.i_cbp_luma == 0 && h->mb.i_type != I_8x8 )
+        h->mb.b_transform_8x8 = 0;
     h->mb.mb_transform_size[i_mb_xy] = h->mb.b_transform_8x8;
 
     if( !IS_INTRA( i_mb_type ) )

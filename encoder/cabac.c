@@ -71,6 +71,8 @@ static inline void x264_cabac_mb_type_intra( x264_t *h, x264_cabac_t *cb, int i_
     }
     else
     {
+        int i_pred = x264_mb_pred_mode16x16_fix[h->mb.i_intra16x16_pred_mode];
+
         x264_cabac_encode_decision( cb, ctx0, 1 );
         x264_cabac_encode_terminal( cb,       0 );
 
@@ -84,8 +86,8 @@ static inline void x264_cabac_mb_type_intra( x264_t *h, x264_cabac_t *cb, int i_
             x264_cabac_encode_decision( cb, ctx2, 1 );
             x264_cabac_encode_decision( cb, ctx3, ( h->mb.i_cbp_chroma == 1 ? 0 : 1 ) );
         }
-        x264_cabac_encode_decision( cb, ctx4, ( (h->mb.i_intra16x16_pred_mode / 2) ? 1 : 0 ));
-        x264_cabac_encode_decision( cb, ctx5, ( (h->mb.i_intra16x16_pred_mode % 2) ? 1 : 0 ));
+        x264_cabac_encode_decision( cb, ctx4, ( (i_pred / 2) ? 1 : 0 ));
+        x264_cabac_encode_decision( cb, ctx5, ( (i_pred % 2) ? 1 : 0 ));
     }
 }
 
@@ -397,7 +399,7 @@ static void x264_cabac_mb_cbp_chroma( x264_t *h, x264_cabac_t *cb )
 static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
 {
     int i_mbn_xy = h->mb.i_mb_xy - 1;
-    int i_dqp = h->mb.qp[h->mb.i_mb_xy] - h->mb.i_last_qp;
+    int i_dqp = h->mb.i_qp - h->mb.i_last_qp;
     int val = i_dqp <= 0 ? (-2*i_dqp) : (2*i_dqp - 1);
     int ctx;
 
@@ -917,7 +919,7 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
             for( i = 0; i < 16; i += di )
             {
                 const int i_pred = x264_mb_predict_intra4x4_mode( h, i );
-                const int i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[i]];
+                const int i_mode = x264_mb_pred_mode4x4_fix( h->mb.cache.intra4x4_pred_mode[x264_scan8[i]] );
                 x264_cabac_mb_intra4x4_pred_mode( cb, i_pred, i_mode );
             }
         }
