@@ -53,6 +53,13 @@ void    x264_param_default( x264_param_t *param )
     param->i_height        = 0;
     param->vui.i_sar_width = 0;
     param->vui.i_sar_height= 0;
+    param->vui.i_overscan  = 0;  /* undef */
+    param->vui.i_vidformat = 5;  /* undef */
+    param->vui.b_fullrange = 0;  /* off */
+    param->vui.i_colorprim = 2;  /* undef */
+    param->vui.i_transfer  = 2;  /* undef */
+    param->vui.i_colmatrix = 2;  /* undef */
+    param->vui.i_chroma_loc= 0;  /* left center */
     param->i_fps_num       = 25;
     param->i_fps_den       = 1;
     param->i_level_idc     = 40; /* level 4.0 is sufficient for 720x576 with 

@@ -157,7 +157,45 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->vui.i_sar_height= param->vui.i_sar_height;
     }
     sps->b_vui |= sps->vui.b_aspect_ratio_info_present;
+    
+    sps->vui.b_overscan_info_present = ( param->vui.i_overscan ? 1 : 0 );
+    if( sps->vui.b_overscan_info_present )
+        sps->vui.b_overscan_info = ( param->vui.i_overscan == 2 ? 1 : 0 );
+    sps->b_vui |= sps->vui.b_overscan_info_present;
+    
+    sps->vui.b_signal_type_present = 0;
+    sps->vui.i_vidformat = ( param->vui.i_vidformat <= 5 ? param->vui.i_vidformat : 5 );
+    sps->vui.b_fullrange = ( param->vui.b_fullrange ? 1 : 0 );
+    sps->vui.b_color_description_present = 0;
 
+    sps->vui.i_colorprim = ( param->vui.i_colorprim <=  9 ? param->vui.i_colorprim : 2 );
+    sps->vui.i_transfer  = ( param->vui.i_transfer  <= 11 ? param->vui.i_transfer  : 2 );
+    sps->vui.i_colmatrix = ( param->vui.i_colmatrix <=  9 ? param->vui.i_colmatrix : 2 );
+    if( sps->vui.i_colorprim != 2 ||
+        sps->vui.i_transfer  != 2 ||
+        sps->vui.i_colmatrix != 2 )
+    {
+        sps->vui.b_color_description_present = 1;
+    }
+
+    if( sps->vui.i_vidformat != 5 ||
+        sps->vui.b_fullrange ||
+        sps->vui.b_color_description_present )
+    {
+        sps->vui.b_signal_type_present = 1;
+    }
+    sps->b_vui |= sps->vui.b_signal_type_present;
+    
+    /* FIXME: not sufficient for interlaced video */
+    sps->vui.b_chroma_loc_info_present = ( param->vui.i_chroma_loc ? 1 : 0 );
+    if( sps->vui.b_chroma_loc_info_present )
+    {
+        sps->vui.i_chroma_loc_top = param->vui.i_chroma_loc;
+        sps->vui.i_chroma_loc_bottom = param->vui.i_chroma_loc;
+    }
+    sps->b_vui |= sps->vui.b_chroma_loc_info_present;
+
+    sps->vui.b_timing_info_present = 0;
     if( param->i_fps_num > 0 && param->i_fps_den > 0)
     {
         sps->vui.b_timing_info_present = 1;
@@ -276,15 +314,30 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
             }
         }
 
-        bs_write1( s, 0 );      /* overscan_info_present_flag */
+        bs_write1( s, sps->vui.b_overscan_info_present );
+        if( sps->vui.b_overscan_info_present )
+            bs_write1( s, sps->vui.b_overscan_info );
 
-        bs_write1( s, 0 );      /* video_signal_type_present_flag */
-#if 0
-        bs_write( s, 3, 5 );    /* unspecified video format */
-        bs_write1( s, 1 );      /* video full range flag */
-        bs_write1( s, 0 );      /* colour description present flag */
-#endif
-        bs_write1( s, 0 );      /* chroma_loc_info_present_flag */
+        bs_write1( s, sps->vui.b_signal_type_present );
+        if( sps->vui.b_signal_type_present )
+        {
+            bs_write( s, 3, sps->vui.i_vidformat );
+            bs_write1( s, sps->vui.b_fullrange );
+            bs_write1( s, sps->vui.b_color_description_present );
+            if( sps->vui.b_color_description_present )
+            {
+                bs_write( s, 8, sps->vui.i_colorprim );
+                bs_write( s, 8, sps->vui.i_transfer );
+                bs_write( s, 8, sps->vui.i_colmatrix );
+            }
+        }
+
+        bs_write1( s, sps->vui.b_chroma_loc_info_present );
+        if( sps->vui.b_chroma_loc_info_present )
+        {
+            bs_write_ue( s, sps->vui.i_chroma_loc_top );
+            bs_write_ue( s, sps->vui.i_chroma_loc_bottom );
+        }
 
         bs_write1( s, sps->vui.b_timing_info_present );
         if( sps->vui.b_timing_info_present )

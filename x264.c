@@ -154,6 +154,19 @@ int main( int argc, char **argv )
     return Encode( &param, &opt );
 }
 
+static char const *overscan_str[] = { "undef", "show", "crop", NULL };
+static char const *vidformat_str[] = { "component", "pal", "ntsc", "secam", "mac", "undef", NULL };
+static char const *fullrange_str[] = { "off", "on", NULL };
+static char const *colorprim_str[] = { "", "bt709", "undef", "", "bt470m", "bt470bg", "smpte170m", "smpte240m", "film", NULL };
+static char const *transfer_str[] = { "", "bt709", "undef", "", "bt470m", "bt470bg", "smpte170m", "smpte240m", "linear", "log100", "log316", NULL };
+static char const *colmatrix_str[] = { "GBR", "bt709", "undef", "", "fcc", "bt470bg", "smpte170m", "smpte240m", "YCgCo", NULL };
+
+static char const *strtable_lookup( char const * table[], int index )
+{
+    int i = 0; while( table[i] ) i++;
+    return ( ( index >= 0 && index < i ) ? table[ index ] : "???" );
+}
+
 /*****************************************************************************
  * Help:
  *****************************************************************************/
@@ -256,10 +269,31 @@ static void Help( x264_param_t *defaults )
              "      --cqm4iy, --cqm4ic, --cqm4py, --cqm4pc\n"
              "                              Set individual quant matrices\n"
              "\n"
+             "Video Usability Info (Annex E):\n"
+             "The VUI settings are not used by the encoder but are merely suggestions to\n"
+             "the playback equipment. See doc/vui.txt for details. Use at your own risk.\n"
+             "\n"
+             "      --sar width:height      Specify Sample Aspect Ratio\n"
+             "      --overscan <string>     Specify crop overscan setting [\"%s\"]\n"
+             "                                  - undef, show, crop\n"
+             "      --videoformat <string>  Specify video format [\"%s\"]\n"
+             "                                  - component, pal, ntsc, secam, mac, undef\n"
+             "      --fullrange <string>    Specify full range samples setting [\"%s\"]\n"
+             "                                  - off, on\n"
+             "      --colorprim <string>    Specify color primaries [\"%s\"]\n"
+             "                                  - undef, bt709, bt470m, bt470bg\n"
+             "                                    smpte170m, smpte240m, film\n"
+             "      --transfer <string>     Specify transfer characteristics [\"%s\"]\n"
+             "                                  - undef, bt709, bt470m, bt470bg, linear,\n"
+             "                                    log100, log316, smpte170m, smpte240m\n"
+             "      --colormatrix <string>  Specify color matrix setting [\"%s\"]\n"
+             "                                  - undef, bt709, fcc, bt470bg\n"
+             "                                    smpte170m, smpte240m, GBR, YCgCo\n"
+             "      --chromaloc <integer>   Specify chroma sample location (0 to 5) [%d]\n"
+             "\n"
              "Input/Output:\n"
              "\n"
              "      --level <integer>       Specify level (as defined by Annex A)\n"
-             "      --sar width:height      Specify Sample Aspect Ratio\n"
              "      --fps <float|rational>  Specify framerate\n"
              "      --seek <integer>        First frame to encode\n"
              "      --frames <integer>      Maximum number of frames to encode\n"
@@ -314,8 +348,27 @@ static void Help( x264_param_t *defaults )
             : defaults->analyse.i_me_method==X264_ME_UMH ? "umh"
             : defaults->analyse.i_me_method==X264_ME_ESA ? "esa" : NULL,
             defaults->analyse.i_me_range,
-            defaults->analyse.i_subpel_refine
+            defaults->analyse.i_subpel_refine,
+            strtable_lookup( overscan_str, defaults->vui.i_overscan ),
+            strtable_lookup( vidformat_str, defaults->vui.i_vidformat ),
+            strtable_lookup( fullrange_str, defaults->vui.b_fullrange ),
+            strtable_lookup( colorprim_str, defaults->vui.i_colorprim ),
+            strtable_lookup( transfer_str, defaults->vui.i_transfer ),
+            strtable_lookup( colmatrix_str, defaults->vui.i_colmatrix ),
+            defaults->vui.i_chroma_loc
            );
+}
+
+static int parse_enum( const char *arg, const char **names, int *dst )
+{
+    int i;
+    for( i = 0; names[i]; i++ )
+        if( !strcmp( arg, names[i] ) )
+        {
+            *dst = i;
+            return 0;
+        }
+    return -1;
 }
 
 static int parse_cqm( const char *str, uint8_t *cqm, int length )
@@ -409,6 +462,14 @@ static int  Parse( int argc, char **argv,
 #define OPT_CQM8I 303
 #define OPT_CQM8P 304
 #define OPT_CQMFILE 305
+#define OPT_SAR 306
+#define OPT_OVERSCAN 307
+#define OPT_VIDFORMAT 308
+#define OPT_FULLRANGE 309
+#define OPT_COLOURPRIM 310
+#define OPT_TRANSFER 311
+#define OPT_COLOURMATRIX 312
+#define OPT_CHROMALOC 313
 
         static struct option long_options[] =
         {
@@ -430,7 +491,7 @@ static int  Parse( int argc, char **argv,
             { "qpstep",  required_argument, NULL, OPT_QPSTEP },
             { "ref",     required_argument, NULL, 'r' },
             { "no-asm",  no_argument,       NULL, 'C' },
-            { "sar",     required_argument, NULL, 's' },
+            { "sar",     required_argument, NULL, OPT_SAR },
             { "fps",     required_argument, NULL, OPT_FPS },
             { "frames",  required_argument, NULL, OPT_FRAMES },
             { "seek",    required_argument, NULL, OPT_SEEK },
@@ -477,6 +538,13 @@ static int  Parse( int argc, char **argv,
             { "cqm8",    required_argument, NULL, OPT_CQM8 },
             { "cqm8i",   required_argument, NULL, OPT_CQM8I },
             { "cqm8p",   required_argument, NULL, OPT_CQM8P },
+            { "overscan", required_argument, NULL, OPT_OVERSCAN },
+            { "videoformat", required_argument, NULL, OPT_VIDFORMAT },
+            { "fullrange", required_argument, NULL, OPT_FULLRANGE },
+            { "colorprim", required_argument, NULL, OPT_COLOURPRIM },
+            { "transfer", required_argument, NULL, OPT_TRANSFER },
+            { "colormatrix", required_argument, NULL, OPT_COLOURMATRIX },
+            { "chromaloc", required_argument, NULL, OPT_CHROMALOC },
             {0, 0, 0, 0}
         };
 
@@ -597,7 +665,7 @@ static int  Parse( int argc, char **argv,
                     return -1;
                 }
                 break;
-            case 's':
+            case OPT_SAR:
             {
                 char *p = strchr( optarg, ':' );
                 if( p )
@@ -813,6 +881,28 @@ static int  Parse( int argc, char **argv,
                 param->i_cqm_preset = X264_CQM_CUSTOM;
                 b_error |= parse_cqm( optarg, param->cqm_8py, 64 );
                 break;
+            case OPT_OVERSCAN:
+                b_error |= parse_enum( optarg, overscan_str, &param->vui.i_overscan );
+                break;
+            case OPT_VIDFORMAT:
+                b_error |= parse_enum( optarg, vidformat_str, &param->vui.i_vidformat );
+                break;
+            case OPT_FULLRANGE:
+                b_error |= parse_enum( optarg, fullrange_str, &param->vui.b_fullrange );
+                break;
+            case OPT_COLOURPRIM:
+                b_error |= parse_enum( optarg, colorprim_str, &param->vui.i_colorprim );
+                break;
+            case OPT_TRANSFER:
+                b_error |= parse_enum( optarg, transfer_str, &param->vui.i_transfer );
+                break;
+            case OPT_COLOURMATRIX:
+                b_error |= parse_enum( optarg, colmatrix_str, &param->vui.i_colmatrix );
+                break;
+            case OPT_CHROMALOC:
+                param->vui.i_chroma_loc = atoi( optarg );
+                b_error = ( param->vui.i_chroma_loc < 0 || param->vui.i_chroma_loc > 5 );
+                break;
             default:
                 fprintf( stderr, "unknown option (%c)\n", optopt );
                 return -1;
@@ -820,7 +910,7 @@ static int  Parse( int argc, char **argv,
 
         if( b_error )
         {
-            fprintf( stderr, "bad argument (%s)\n", optarg );
+            fprintf( stderr, "bad argument: %s %s\n", argv[optind-2], optarg );
             return -1;
         }
     }

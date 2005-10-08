@@ -94,6 +94,21 @@ typedef struct
         int b_aspect_ratio_info_present;
         int i_sar_width;
         int i_sar_height;
+        
+        int b_overscan_info_present;
+        int b_overscan_info;
+
+        int b_signal_type_present;
+        int i_vidformat;
+        int b_fullrange;
+        int b_color_description_present;
+        int i_colorprim;
+        int i_transfer;
+        int i_colmatrix;
+
+        int b_chroma_loc_info_present;
+        int i_chroma_loc_top;
+        int i_chroma_loc_bottom;
 
         int b_timing_info_present;
         int i_num_units_in_tick;

@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 34
+#define X264_BUILD 35
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -130,6 +130,16 @@ typedef struct
         /* they will be reduced to be 0 < x <= 65535 and prime */
         int         i_sar_height;
         int         i_sar_width;
+
+        int         i_overscan;    /* 0=undef, 1=no overscan, 2=overscan */
+        
+        /* see h264 annex E for the values of the following */
+        int         i_vidformat;
+        int         b_fullrange;
+        int         i_colorprim;
+        int         i_transfer;
+        int         i_colmatrix;
+        int         i_chroma_loc;    /* both top & bottom */
     } vui;
 
     int         i_fps_num;
