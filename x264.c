@@ -154,14 +154,14 @@ int main( int argc, char **argv )
     return Encode( &param, &opt );
 }
 
-static char const *overscan_str[] = { "undef", "show", "crop", NULL };
-static char const *vidformat_str[] = { "component", "pal", "ntsc", "secam", "mac", "undef", NULL };
-static char const *fullrange_str[] = { "off", "on", NULL };
-static char const *colorprim_str[] = { "", "bt709", "undef", "", "bt470m", "bt470bg", "smpte170m", "smpte240m", "film", NULL };
-static char const *transfer_str[] = { "", "bt709", "undef", "", "bt470m", "bt470bg", "smpte170m", "smpte240m", "linear", "log100", "log316", NULL };
-static char const *colmatrix_str[] = { "GBR", "bt709", "undef", "", "fcc", "bt470bg", "smpte170m", "smpte240m", "YCgCo", NULL };
+static const char * const overscan_str[] = { "undef", "show", "crop", NULL };
+static const char * const vidformat_str[] = { "component", "pal", "ntsc", "secam", "mac", "undef", NULL };
+static const char * const fullrange_str[] = { "off", "on", NULL };
+static const char * const colorprim_str[] = { "", "bt709", "undef", "", "bt470m", "bt470bg", "smpte170m", "smpte240m", "film", NULL };
+static const char * const transfer_str[] = { "", "bt709", "undef", "", "bt470m", "bt470bg", "smpte170m", "smpte240m", "linear", "log100", "log316", NULL };
+static const char * const colmatrix_str[] = { "GBR", "bt709", "undef", "", "fcc", "bt470bg", "smpte170m", "smpte240m", "YCgCo", NULL };
 
-static char const *strtable_lookup( char const * table[], int index )
+static char const *strtable_lookup( const char * const table[], int index )
 {
     int i = 0; while( table[i] ) i++;
     return ( ( index >= 0 && index < i ) ? table[ index ] : "???" );
@@ -242,7 +242,7 @@ static void Help( x264_param_t *defaults )
              "                                  - p8x8, p4x4, b8x8, i8x8, i4x4\n"
              "                                  - none, all\n"
              "                                  (p4x4 requires p8x8. i8x8 requires --8x8dct.)\n"
-             "      --direct <string>       Direct MV prediction mode [\"temporal\"]\n"
+             "      --direct <string>       Direct MV prediction mode [\"%s\"]\n"
              "                                  - none, spatial, temporal\n"
              "  -w, --weightb               Weighted prediction for B-frames\n"
              "      --me <string>           Integer pixel motion estimation method [\"%s\"]\n"
@@ -343,10 +343,8 @@ static void Help( x264_param_t *defaults )
             defaults->rc.f_qcompress,
             defaults->rc.f_complexity_blur,
             defaults->rc.f_qblur,
-            defaults->analyse.i_me_method==X264_ME_DIA ? "dia"
-            : defaults->analyse.i_me_method==X264_ME_HEX ? "hex"
-            : defaults->analyse.i_me_method==X264_ME_UMH ? "umh"
-            : defaults->analyse.i_me_method==X264_ME_ESA ? "esa" : NULL,
+            strtable_lookup( x264_direct_pred_names, defaults->analyse.i_direct_mv_pred ),
+            strtable_lookup( x264_motion_est_names, defaults->analyse.i_me_method ),
             defaults->analyse.i_me_range,
             defaults->analyse.i_subpel_refine,
             strtable_lookup( overscan_str, defaults->vui.i_overscan ),
@@ -359,7 +357,7 @@ static void Help( x264_param_t *defaults )
            );
 }
 
-static int parse_enum( const char *arg, const char **names, int *dst )
+static int parse_enum( const char *arg, const char * const *names, int *dst )
 {
     int i;
     for( i = 0; names[i]; i++ )
@@ -704,29 +702,13 @@ static int  Parse( int argc, char **argv,
                 if( strstr( optarg, "b8x8" ) )  param->analyse.inter |= X264_ANALYSE_BSUB16x16;
                 break;
             case OPT_DIRECT:
-                if( strstr( optarg, "temporal" ) )
-                    param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_TEMPORAL;
-                else if( strstr( optarg, "spatial" ) )
-                    param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_SPATIAL;
-                else if( strstr( optarg, "none" ) )
-                    param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_NONE;
-                else
-                    param->analyse.i_direct_mv_pred = atoi( optarg );
+                b_error |= parse_enum( optarg, x264_direct_pred_names, &param->analyse.i_direct_mv_pred );
                 break;
             case 'w':
                 param->analyse.b_weighted_bipred = 1;
                 break;
             case OPT_ME:
-                param->analyse.i_me_method = 
-                    strstr( optarg, "dia" ) ? X264_ME_DIA :
-                    strstr( optarg, "hex" ) ? X264_ME_HEX :
-                    strstr( optarg, "umh" ) ? X264_ME_UMH :
-                    strstr( optarg, "esa" ) ? X264_ME_ESA : -1;
-                if( param->analyse.i_me_method == -1 )
-                {
-                    fprintf( stderr, "bad ME method `%s'\n", optarg );
-                    return -1;
-                }
+                b_error |= parse_enum( optarg, x264_motion_est_names, &param->analyse.i_me_method );
                 break;
             case OPT_MERANGE:
                 param->analyse.i_me_range = atoi(optarg);
