@@ -253,6 +253,7 @@ static void Help( x264_param_t *defaults )
              "      --merange <integer>     Maximum motion vector search range [%d]\n"
              "  -m, --subme <integer>       Subpixel motion estimation and partition\n"
              "                                  decision quality: 1=fast, 6=best. [%d]\n"
+             "      --mixed-refs            Decide references on a per partition basis\n"
              "      --no-chroma-me          Ignore chroma in motion estimation\n"
              "  -8, --8x8dct                Adaptive spatial transform size\n"
              "\n"
@@ -468,6 +469,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_TRANSFER 311
 #define OPT_COLOURMATRIX 312
 #define OPT_CHROMALOC 313
+#define OPT_MIXED_REFS 314
 
         static struct option long_options[] =
         {
@@ -500,6 +502,7 @@ static int  Parse( int argc, char **argv,
             { "me",      required_argument, NULL, OPT_ME },
             { "merange", required_argument, NULL, OPT_MERANGE },
             { "subme",   required_argument, NULL, 'm' },
+            { "mixed-refs", no_argument,    NULL, OPT_MIXED_REFS },
             { "no-chroma-me", no_argument,  NULL, OPT_NO_CHROMA_ME },
             { "8x8dct",  no_argument,       NULL, '8' },
             { "level",   required_argument, NULL, OPT_LEVEL },
@@ -715,6 +718,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case 'm':
                 param->analyse.i_subpel_refine = atoi(optarg);
+                break;
+            case OPT_MIXED_REFS:
+                param->analyse.b_mixed_references = 1;
                 break;
             case OPT_NO_CHROMA_ME:
                 param->analyse.b_chroma_me = 0;

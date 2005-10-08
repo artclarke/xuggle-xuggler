@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 35
+#define X264_BUILD 36
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -187,17 +187,16 @@ typedef struct
         unsigned int inter;     /* inter partitions */
 
         int          b_transform_8x8;
-
+        int          b_weighted_bipred; /* implicit weighting for B-frames */
         int          i_direct_mv_pred; /* spatial vs temporal mv prediction */
+        int          i_chroma_qp_offset;
+
         int          i_me_method; /* motion estimation algorithm to use (X264_ME_*) */
         int          i_me_range; /* integer pixel motion estimation search range (from predicted mv) */
+        int          i_mv_range; /* maximum length of a mv (in pixels) */
         int          i_subpel_refine; /* subpixel motion estimation quality */
         int          b_chroma_me; /* chroma ME for subpel and mode decision in P-frames */
-        int          i_mv_range; /* maximum length of a mv (in pixels) */
-
-        int          b_weighted_bipred; /* implicit weighting for B-frames */
-
-        int          i_chroma_qp_offset;
+        int          b_mixed_references; /* allow each mb partition in P-frames to have it's own reference number */
 
         int          b_psnr;    /* Do we compute PSNR stats (save a few % of cpu) */
     } analyse;
