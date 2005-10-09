@@ -34,7 +34,6 @@
 
 #include "common/common.h"
 #include "common/cpu.h"
-#include "common/macroblock.h"
 #include "ratecontrol.h"
 
 #if defined(SYS_FREEBSD) || defined(SYS_BEOS) || defined(SYS_NETBSD)

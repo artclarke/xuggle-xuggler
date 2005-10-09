@@ -34,7 +34,6 @@
 
 #include "x264.h"
 #include "common/common.h"
-#include "common/macroblock.h"
 #ifndef _MSC_VER
 #include "config.h"
 #endif

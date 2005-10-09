@@ -509,5 +509,8 @@ struct x264_t
 #endif
 };
 
+// included at the end because it needs x264_t
+#include "macroblock.h"
+
 #endif
 

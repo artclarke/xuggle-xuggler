@@ -29,7 +29,6 @@
 #include <limits.h>
 
 #include "common/common.h"
-#include "common/macroblock.h"
 #include "macroblock.h"
 #include "me.h"
 #include "ratecontrol.h"
@@ -141,13 +140,6 @@ static const int i_qp0_cost2_table[52] = {
  230, 290, 366, 461, 581, 731, /* 36-41 */
  922,1161,1463,1843,2322,2926, /* 42-47 */
 3686,4645,5852,7373
-};
-
-static const uint8_t block_idx_x[16] = {
-    0, 1, 0, 1, 2, 3, 2, 3, 0, 1, 0, 1, 2, 3, 2, 3
-};
-static const uint8_t block_idx_y[16] = {
-    0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3
 };
 
 /* TODO: calculate CABAC costs */

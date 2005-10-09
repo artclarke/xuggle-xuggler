@@ -33,7 +33,6 @@
 #include <stdarg.h>
 
 #include "common.h"
-#include "macroblock.h"
 
 #ifdef _MSC_VER
 #undef HAVE_MMXEXT  /* not finished now */

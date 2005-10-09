@@ -56,22 +56,6 @@ static const uint8_t sub_mb_type_b_to_golomb[13]=
     10,  4,  5,  1, 11,  6,  7,  2, 12,  8,  9,  3,  0
 };
 
-static const uint8_t block_idx_x[16] =
-{
-    0, 1, 0, 1, 2, 3, 2, 3, 0, 1, 0, 1, 2, 3, 2, 3
-};
-static const uint8_t block_idx_y[16] =
-{
-    0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3
-};
-static const uint8_t block_idx_xy[4][4] =
-{
-    { 0, 2, 8,  10},
-    { 1, 3, 9,  11},
-    { 4, 6, 12, 14},
-    { 5, 7, 13, 15}
-};
-
 #define BLOCK_INDEX_CHROMA_DC   (-1)
 #define BLOCK_INDEX_LUMA_DC     (-2)
 

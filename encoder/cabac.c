@@ -28,22 +28,6 @@
 #include "common/common.h"
 #include "macroblock.h"
 
-static const uint8_t block_idx_x[16] =
-{
-    0, 1, 0, 1, 2, 3, 2, 3, 0, 1, 0, 1, 2, 3, 2, 3
-};
-static const uint8_t block_idx_y[16] =
-{
-    0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3
-};
-static const uint8_t block_idx_xy[4][4] =
-{
-    { 0, 2, 8,  10},
-    { 1, 3, 9,  11},
-    { 4, 6, 12, 14},
-    { 5, 7, 13, 15}
-};
-
 static inline void x264_cabac_encode_ue_bypass( x264_cabac_t *cb, int exp_bits, int val )
 {
     int k;
