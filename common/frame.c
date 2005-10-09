@@ -37,6 +37,8 @@ x264_frame_t *x264_frame_new( x264_t *h )
     int i_stride;
     int i_lines;
 
+    memset( frame, 0, sizeof(x264_frame_t) );
+
     /* allocate frame data (+64 for extra data for me) */
     i_stride = ( ( h->param.i_width  + 15 )&0xfffff0 )+ 64;
     i_lines  = ( ( h->param.i_height + 15 )&0xfffff0 );
@@ -76,14 +78,17 @@ x264_frame_t *x264_frame_new( x264_t *h )
                                 frame->i_stride[0] * 32 + 32;
     }
 
-    frame->i_stride_lowres = frame->i_stride[0]/2 + 32;
-    frame->i_lines_lowres = frame->i_lines[0]/2;
-    for( i = 0; i < 4; i++ )
+    if( h->frames.b_have_lowres )
     {
-        frame->buffer[7+i] = x264_malloc( frame->i_stride_lowres *
-                                        ( frame->i_lines[0]/2 + 64 ) );
-        frame->lowres[i] = ((uint8_t*)frame->buffer[7+i]) +
-                            frame->i_stride_lowres * 32 + 32;
+        frame->i_stride_lowres = frame->i_stride[0]/2 + 32;
+        frame->i_lines_lowres = frame->i_lines[0]/2;
+        for( i = 0; i < 4; i++ )
+        {
+            frame->buffer[7+i] = x264_malloc( frame->i_stride_lowres *
+                                            ( frame->i_lines[0]/2 + 64 ) );
+            frame->lowres[i] = ((uint8_t*)frame->buffer[7+i]) +
+                                frame->i_stride_lowres * 32 + 32;
+        }
     }
 
     frame->i_poc = -1;

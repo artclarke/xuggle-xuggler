@@ -544,6 +544,8 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->frames.i_max_ref0 = h->param.i_frame_reference;
     h->frames.i_max_ref1 = h->sps->vui.i_num_reorder_frames;
     h->frames.i_max_dpb  = h->sps->vui.i_max_dec_frame_buffering + 1;
+    h->frames.b_have_lowres = !h->param.rc.b_stat_read
+                            && ( h->param.rc.b_cbr || h->param.b_bframe_adaptive );
 
     for( i = 0; i < X264_BFRAME_MAX + 3; i++ )
     {
@@ -1201,7 +1203,8 @@ int     x264_encoder_encode( x264_t *h,
 
         x264_frame_put( h->frames.next, fenc );
 
-        x264_frame_init_lowres( h->param.cpu, fenc );
+        if( h->frames.b_have_lowres )
+            x264_frame_init_lowres( h->param.cpu, fenc );
 
         if( h->frames.i_input <= h->frames.i_delay )
         {
