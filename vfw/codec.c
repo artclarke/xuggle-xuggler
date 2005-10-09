@@ -134,27 +134,27 @@ LRESULT compress_frames_info(CODEC * codec, ICCOMPRESSFRAMES * icf )
 }
 
 static void x264_log_vfw( void *p_private, int i_level, const char *psz_fmt, va_list arg )
-{ 
+{
     char error_msg[1024];
     int idx;
     HWND *hCons = p_private;
 
     vsprintf( error_msg, psz_fmt, arg );
-    
+
     /* strip final linefeeds (required) */
     idx=strlen( error_msg ) - 1;
     while( idx >= 0 && error_msg[idx] == '\n' )
         error_msg[idx--] = 0;
 
     if(!( *hCons ) ) {
-        *hCons = CreateDialog( g_hInst, MAKEINTRESOURCE( IDD_ERRCONSOLE ), NULL, 
+        *hCons = CreateDialog( g_hInst, MAKEINTRESOURCE( IDD_ERRCONSOLE ), NULL,
                  callback_err_console );
         //ShowWindow( *hCons, SW_SHOW );
     }
     idx = SendDlgItemMessage( *hCons, IDC_CONSOLE, LB_ADDSTRING, 0, ( LPARAM )error_msg );
-    
+
     /* make sure that the last item added is visible (autoscroll) */
-    if( idx >= 0 ) 
+    if( idx >= 0 )
         SendDlgItemMessage( *hCons, IDC_CONSOLE, LB_SETTOPINDEX, ( WPARAM )idx, 0 );
 
 }

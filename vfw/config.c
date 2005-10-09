@@ -76,10 +76,10 @@ HWND hTabs[8];
 static const reg_int_t reg_int_table[] =
 {
     /* Main dialog */
-    { "bitrate",        &reg.bitrate,           800 },
-    { "quantizer",      &reg.i_qp,              26 },
+    { "bitrate",        &reg.bitrate,         800 },
+    { "quantizer",      &reg.i_qp,             26 },
     { "encoding_type",  &reg.i_encoding_type,   1 },
-    { "passbitrate",    &reg.i_2passbitrate,    800 },
+    { "passbitrate",    &reg.i_2passbitrate,  800 },
     { "pass_number",    &reg.i_pass,            1 },
     { "fast1pass",      &reg.b_fast1pass,       1 },
     { "updatestats",    &reg.b_updatestats,     1 },
@@ -88,8 +88,8 @@ static const reg_int_t reg_int_table[] =
     /* Advance dialog */
     { "cabac",          &reg.b_cabac,           1 },
     { "loop_filter",    &reg.b_filter,          1 },
-    { "keyint_max",     &reg.i_keyint_max,      250 },
-    { "keyint_min",     &reg.i_keyint_min,      25 },
+    { "keyint_max",     &reg.i_keyint_max,    250 },
+    { "keyint_min",     &reg.i_keyint_min,     25 },
     { "scenecut",       &reg.i_scenecut_threshold, 40 },
     { "qp_min",         &reg.i_qp_min,         10 },
     { "qp_max",         &reg.i_qp_max,         51 },
@@ -103,9 +103,9 @@ static const reg_int_t reg_int_table[] =
     { "b_wpred",        &reg.b_b_wpred,         1 },
     { "inloop_a",       &reg.i_inloop_a,        0 },
     { "inloop_b",       &reg.i_inloop_b,        0 },
-    { "key_boost",      &reg.i_key_boost,       40 },
-    { "b_red",          &reg.i_b_red,           30 },
-    { "curve_comp",     &reg.i_curve_comp,      60 },
+    { "key_boost",      &reg.i_key_boost,      40 },
+    { "b_red",          &reg.i_b_red,          30 },
+    { "curve_comp",     &reg.i_curve_comp,     60 },
     { "sar_width",      &reg.i_sar_width,       1 },
     { "sar_height",     &reg.i_sar_height,      1 },
 
@@ -205,7 +205,7 @@ void config_reg_save( CONFIG *config )
     {
         RegSetValueEx( hKey, reg_str_table[i].reg_value, 0, REG_SZ,
                        (LPBYTE)reg_str_table[i].config_str,
-                        lstrlen(reg_str_table[i].config_str)+1 );
+                       lstrlen(reg_str_table[i].config_str)+1 );
     }
 
     RegCloseKey( hKey );
@@ -235,64 +235,64 @@ void config_reg_defaults( CONFIG *config )
 
 BOOL CALLBACK callback_main( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam )
 {
-	TCITEM tie;
+    TCITEM tie;
     CONFIG* config = (CONFIG*)GetWindowLong(hDlg, GWL_USERDATA);
 
     switch( uMsg )
     {
     case WM_INITDIALOG :
-		{
-			RECT rect;
-			HWND hTabCtrl = GetDlgItem( hDlg, IDC_TAB1 );
-			SetWindowLong( hDlg, GWL_USERDATA, lParam );
-			config = (CONFIG*)lParam;
+        {
+            RECT rect;
+            HWND hTabCtrl = GetDlgItem( hDlg, IDC_TAB1 );
+            SetWindowLong( hDlg, GWL_USERDATA, lParam );
+            config = (CONFIG*)lParam;
 
-			// insert tabs in tab control
-			tie.mask = TCIF_TEXT; 
-			tie.iImage = -1; 
-			tie.pszText = "Bitrate";			TabCtrl_InsertItem(hTabCtrl, 0, &tie);
-			tie.pszText = "Rate Control";		TabCtrl_InsertItem(hTabCtrl, 1, &tie);
-			tie.pszText = "MBs&&Frames";     TabCtrl_InsertItem(hTabCtrl, 2, &tie);
-			tie.pszText = "More...";			TabCtrl_InsertItem(hTabCtrl, 3, &tie);
-			hTabs[0] = CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_TAB_BITRATE),		hDlg, (DLGPROC)callback_tabs, lParam);
-			hTabs[1] = CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_TAB_RATECONTROL),	hDlg, (DLGPROC)callback_tabs, lParam);
-			hTabs[2] = CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_TAB_IPFRAMES),	hDlg, (DLGPROC)callback_tabs, lParam);
-			hTabs[3] = CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_TAB_MISC),		hDlg, (DLGPROC)callback_tabs, lParam);
-			GetClientRect(hDlg, &rect);
-			TabCtrl_AdjustRect(hTabCtrl, FALSE, &rect);
-			MoveWindow(hTabs[0], rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top-40, TRUE);
-			MoveWindow(hTabs[1], rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top-40, TRUE);
-			MoveWindow(hTabs[2], rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top-40, TRUE);
-			MoveWindow(hTabs[3], rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top-40, TRUE);
+            // insert tabs in tab control
+            tie.mask = TCIF_TEXT;
+            tie.iImage = -1;
+            tie.pszText = "Bitrate";         TabCtrl_InsertItem(hTabCtrl, 0, &tie);
+            tie.pszText = "Rate Control";    TabCtrl_InsertItem(hTabCtrl, 1, &tie);
+            tie.pszText = "MBs&&Frames";     TabCtrl_InsertItem(hTabCtrl, 2, &tie);
+            tie.pszText = "More...";         TabCtrl_InsertItem(hTabCtrl, 3, &tie);
+            hTabs[0] = CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_TAB_BITRATE),     hDlg, (DLGPROC)callback_tabs, lParam);
+            hTabs[1] = CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_TAB_RATECONTROL), hDlg, (DLGPROC)callback_tabs, lParam);
+            hTabs[2] = CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_TAB_IPFRAMES),    hDlg, (DLGPROC)callback_tabs, lParam);
+            hTabs[3] = CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_TAB_MISC),        hDlg, (DLGPROC)callback_tabs, lParam);
+            GetClientRect(hDlg, &rect);
+            TabCtrl_AdjustRect(hTabCtrl, FALSE, &rect);
+            MoveWindow(hTabs[0], rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top-40, TRUE);
+            MoveWindow(hTabs[1], rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top-40, TRUE);
+            MoveWindow(hTabs[2], rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top-40, TRUE);
+            MoveWindow(hTabs[3], rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top-40, TRUE);
 
-			tabs_enable_items( hDlg, config );
+            tabs_enable_items( hDlg, config );
             tabs_update_items( hDlg, config );
-			ShowWindow( hTabs[0], SW_SHOW );
-			BringWindowToTop( hTabs[0] );
-			UpdateWindow( hDlg );
-			break;
-		}
+            ShowWindow( hTabs[0], SW_SHOW );
+            BringWindowToTop( hTabs[0] );
+            UpdateWindow( hDlg );
+            break;
+        }
 
-	case WM_NOTIFY:
-		{
-			NMHDR FAR *tem = (NMHDR FAR *)lParam;
-			if (tem->code == TCN_SELCHANGING)
-			{
-				HWND hTabCtrl = GetDlgItem( hDlg, IDC_TAB1 );
-				int num = TabCtrl_GetCurSel(hTabCtrl);
-				ShowWindow( hTabs[num], SW_HIDE );
-				UpdateWindow( hDlg );
-			} 
-			else if (tem->code == TCN_SELCHANGE)
-			{
-				HWND hTabCtrl = GetDlgItem( hDlg, IDC_TAB1 );
-				int num = TabCtrl_GetCurSel(hTabCtrl);
-				ShowWindow( hTabs[num], SW_SHOW );
-				BringWindowToTop( hTabs[num] );
-				UpdateWindow( hDlg );
-			}
-			break;
-		}
+    case WM_NOTIFY:
+        {
+            NMHDR FAR *tem = (NMHDR FAR *)lParam;
+            if (tem->code == TCN_SELCHANGING)
+            {
+                HWND hTabCtrl = GetDlgItem( hDlg, IDC_TAB1 );
+                int num = TabCtrl_GetCurSel(hTabCtrl);
+                ShowWindow( hTabs[num], SW_HIDE );
+                UpdateWindow( hDlg );
+            }
+            else if (tem->code == TCN_SELCHANGE)
+            {
+                HWND hTabCtrl = GetDlgItem( hDlg, IDC_TAB1 );
+                int num = TabCtrl_GetCurSel(hTabCtrl);
+                ShowWindow( hTabs[num], SW_SHOW );
+                BringWindowToTop( hTabs[num] );
+                UpdateWindow( hDlg );
+            }
+            break;
+        }
 
     case WM_COMMAND:
         switch ( HIWORD( wParam ) )
@@ -302,7 +302,7 @@ BOOL CALLBACK callback_main( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
             {
             case IDOK :
                 config->b_save = TRUE;
-			    EndDialog( hDlg, LOWORD(wParam) );
+                EndDialog( hDlg, LOWORD(wParam) );
                 break;
 
             case IDCANCEL :
@@ -318,8 +318,8 @@ BOOL CALLBACK callback_main( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
                     tabs_update_items( hDlg, config );
                 }
                 break;
-			}
-		}
+            }
+        }
 
     default :
         return 0;
@@ -333,58 +333,58 @@ BOOL CALLBACK callback_main( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
 
 void tabs_enable_items( HWND hDlg, CONFIG * config )
 {
-	char szTmp[1024];
+    char szTmp[1024];
     sprintf( szTmp, "Core %d%s, build %s %s", X264_BUILD, X264_VERSION, __DATE__, __TIME__ );
     SetDlgItemText( hTabs[3], IDC_BUILDREV,  szTmp );
 
-	switch( config->i_encoding_type )
+    switch( config->i_encoding_type )
     {
     case 0 : /* 1 Pass, Bitrate Based */
-		SetDlgItemText( hTabs[0], IDC_BITRATELABEL, "Average Bitrate" );
-		SetDlgItemText( hTabs[0], IDC_BITRATELOW, "0" );
-		sprintf(szTmp, "%d", BITRATE_MAX);
-		SetDlgItemText( hTabs[0], IDC_BITRATEHIGH, szTmp );
-		SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_SETRANGE, TRUE,
-							(LPARAM) MAKELONG( 0, BITRATE_MAX ) );
+        SetDlgItemText( hTabs[0], IDC_BITRATELABEL, "Average Bitrate" );
+        SetDlgItemText( hTabs[0], IDC_BITRATELOW, "0" );
+        sprintf(szTmp, "%d", BITRATE_MAX);
+        SetDlgItemText( hTabs[0], IDC_BITRATEHIGH, szTmp );
+        SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_SETRANGE, TRUE,
+                            (LPARAM) MAKELONG( 0, BITRATE_MAX ) );
         EnableWindow( GetDlgItem( hTabs[0], IDC_UPDATESTATS ), FALSE );
         EnableWindow( GetDlgItem( hTabs[0], IDC_STATSFILE ), FALSE );
         EnableWindow( GetDlgItem( hTabs[0], IDC_STATSFILE_BROWSE ), FALSE );
         break;
 
     case 1 : /* 1 Pass, Quantizer Based */
-		SetDlgItemText( hTabs[0], IDC_BITRATELABEL, "Quantizer" );
-		SetDlgItemText( hTabs[0], IDC_BITRATELOW, "0 (High Quality)" );
-		sprintf(szTmp, "(Low Quality) %d", QUANT_MAX);
-		SetDlgItemText( hTabs[0], IDC_BITRATEHIGH, szTmp );
-		SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_SETRANGE, TRUE,
-							(LPARAM) MAKELONG( 0, QUANT_MAX ) );
+        SetDlgItemText( hTabs[0], IDC_BITRATELABEL, "Quantizer" );
+        SetDlgItemText( hTabs[0], IDC_BITRATELOW, "0 (High Quality)" );
+        sprintf(szTmp, "(Low Quality) %d", QUANT_MAX);
+        SetDlgItemText( hTabs[0], IDC_BITRATEHIGH, szTmp );
+        SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_SETRANGE, TRUE,
+                            (LPARAM) MAKELONG( 0, QUANT_MAX ) );
         EnableWindow( GetDlgItem( hTabs[0], IDC_UPDATESTATS ), FALSE );
         EnableWindow( GetDlgItem( hTabs[0], IDC_STATSFILE ), FALSE );
         EnableWindow( GetDlgItem( hTabs[0], IDC_STATSFILE_BROWSE ), FALSE );
         break;
-    
+
     case 2 : /* 2 Pass */
-		SetDlgItemText( hTabs[0], IDC_BITRATELABEL, "Target Bitrate" );
-		SetDlgItemText( hTabs[0], IDC_BITRATELOW, "0" );
-		sprintf(szTmp, "%d", BITRATE_MAX);
-		SetDlgItemText( hTabs[0], IDC_BITRATEHIGH, szTmp );
-		SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_SETRANGE, TRUE,
-							(LPARAM) MAKELONG( 0, BITRATE_MAX ) );
+        SetDlgItemText( hTabs[0], IDC_BITRATELABEL, "Target Bitrate" );
+        SetDlgItemText( hTabs[0], IDC_BITRATELOW, "0" );
+        sprintf(szTmp, "%d", BITRATE_MAX);
+        SetDlgItemText( hTabs[0], IDC_BITRATEHIGH, szTmp );
+        SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_SETRANGE, TRUE,
+                            (LPARAM) MAKELONG( 0, BITRATE_MAX ) );
         EnableWindow( GetDlgItem( hTabs[0], IDC_UPDATESTATS ), TRUE );
         EnableWindow( GetDlgItem( hTabs[0], IDC_STATSFILE ), TRUE );
         EnableWindow( GetDlgItem( hTabs[0], IDC_STATSFILE_BROWSE ), TRUE );
         break;
     }
 
-    EnableWindow( GetDlgItem( hTabs[1], IDC_DIRECTPRED	), config->i_bframe > 0 );
-	EnableWindow( GetDlgItem( hTabs[3], IDC_INLOOP_A	), config->b_filter );
-	EnableWindow( GetDlgItem( hTabs[3], IDC_INLOOP_B	), config->b_filter );
-    EnableWindow( GetDlgItem( hTabs[2], IDC_P8X8		), config->b_psub16x16 );
-    EnableWindow( GetDlgItem( hTabs[2], IDC_I8X8		), config->b_dct8x8 );
-    EnableWindow( GetDlgItem( hTabs[2], IDC_BREFS		), config->i_bframe > 1 );
-    EnableWindow( GetDlgItem( hTabs[2], IDC_WBPRED		), config->i_bframe > 1 );
-    EnableWindow( GetDlgItem( hTabs[2], IDC_BADAPT		), config->i_bframe > 0 );
-    EnableWindow( GetDlgItem( hTabs[2], IDC_BBIAS		), config->i_bframe > 0 );
+    EnableWindow( GetDlgItem( hTabs[1], IDC_DIRECTPRED  ), config->i_bframe > 0 );
+    EnableWindow( GetDlgItem( hTabs[3], IDC_INLOOP_A    ), config->b_filter );
+    EnableWindow( GetDlgItem( hTabs[3], IDC_INLOOP_B    ), config->b_filter );
+    EnableWindow( GetDlgItem( hTabs[2], IDC_P8X8        ), config->b_psub16x16 );
+    EnableWindow( GetDlgItem( hTabs[2], IDC_I8X8        ), config->b_dct8x8 );
+    EnableWindow( GetDlgItem( hTabs[2], IDC_BREFS       ), config->i_bframe > 1 );
+    EnableWindow( GetDlgItem( hTabs[2], IDC_WBPRED      ), config->i_bframe > 1 );
+    EnableWindow( GetDlgItem( hTabs[2], IDC_BADAPT      ), config->i_bframe > 0 );
+    EnableWindow( GetDlgItem( hTabs[2], IDC_BBIAS       ), config->i_bframe > 0 );
     EnableWindow( GetDlgItem( hTabs[2], IDC_BBIASSLIDER ), config->i_bframe > 0 );
     EnableWindow( GetDlgItem( hTabs[3], IDC_MERANGE     ), config->i_me_method > 1 );
     EnableWindow( GetDlgItem( hTabs[3], IDC_CHROMAME    ), config->i_subpel_refine >= 4 );
@@ -394,52 +394,52 @@ void tabs_update_items( HWND hDlg, CONFIG * config )
 {
     char fourcc[5];
 
-	/* update bitrate tab */
-	if (SendMessage( GetDlgItem(hTabs[0],IDC_BITRATEMODE), CB_GETCOUNT, 0, 0 ) == 0)
-	{
-		SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_ADDSTRING, 0, (LPARAM)"Single Pass - Bitrate");
-		SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_ADDSTRING, 0, (LPARAM)"Single Pass - Quantizer");
-		SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_ADDSTRING, 0, (LPARAM)"Multipass - First Pass");
-		SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_ADDSTRING, 0, (LPARAM)"Multipass - First Pass (fast)");
-		SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_ADDSTRING, 0, (LPARAM)"Multipass - Nth Pass");
-	}
-	switch( config->i_encoding_type )
+    /* update bitrate tab */
+    if (SendMessage( GetDlgItem(hTabs[0],IDC_BITRATEMODE), CB_GETCOUNT, 0, 0 ) == 0)
+    {
+        SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_ADDSTRING, 0, (LPARAM)"Single Pass - Bitrate");
+        SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_ADDSTRING, 0, (LPARAM)"Single Pass - Quantizer");
+        SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_ADDSTRING, 0, (LPARAM)"Multipass - First Pass");
+        SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_ADDSTRING, 0, (LPARAM)"Multipass - First Pass (fast)");
+        SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_ADDSTRING, 0, (LPARAM)"Multipass - Nth Pass");
+    }
+    switch( config->i_encoding_type )
     {
     case 0 : /* 1 Pass, Bitrate Based */
-		SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_SETCURSEL, 0, 0);
-		SetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, config->bitrate, FALSE );
-		SendDlgItemMessage(hTabs[0], IDC_BITRATESLIDER, TBM_SETPOS, TRUE,
-						   config->bitrate );
+        SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_SETCURSEL, 0, 0);
+        SetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, config->bitrate, FALSE );
+        SendDlgItemMessage(hTabs[0], IDC_BITRATESLIDER, TBM_SETPOS, TRUE,
+                           config->bitrate );
         break;
     case 1 : /* 1 Pass, Quantizer Based */
-		SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_SETCURSEL, 1, 0);
-		SetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, config->i_qp, FALSE );
-		SendDlgItemMessage(hTabs[0], IDC_BITRATESLIDER, TBM_SETPOS, TRUE,
-						   config->i_qp );
+        SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_SETCURSEL, 1, 0);
+        SetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, config->i_qp, FALSE );
+        SendDlgItemMessage(hTabs[0], IDC_BITRATESLIDER, TBM_SETPOS, TRUE,
+                           config->i_qp );
         break;
     case 2 : /* 2 Pass */
-		if (config->i_pass >= 2) {
-			SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_SETCURSEL, 4, 0);
-		} else if (config->b_fast1pass) {
-			SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_SETCURSEL, 3, 0);
-		} else {
-			SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_SETCURSEL, 2, 0);
-		}
-		SetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, config->i_2passbitrate, FALSE );
-		SendDlgItemMessage(hTabs[0], IDC_BITRATESLIDER, TBM_SETPOS, TRUE,
-						   config->i_2passbitrate );
+        if (config->i_pass >= 2) {
+            SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_SETCURSEL, 4, 0);
+        } else if (config->b_fast1pass) {
+            SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_SETCURSEL, 3, 0);
+        } else {
+            SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_SETCURSEL, 2, 0);
+        }
+        SetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, config->i_2passbitrate, FALSE );
+        SendDlgItemMessage(hTabs[0], IDC_BITRATESLIDER, TBM_SETPOS, TRUE,
+                           config->i_2passbitrate );
         break;
-	}
+    }
 
-	CheckDlgButton( hTabs[0], IDC_UPDATESTATS, config->b_updatestats ? BST_CHECKED : BST_UNCHECKED );
+    CheckDlgButton( hTabs[0], IDC_UPDATESTATS, config->b_updatestats ? BST_CHECKED : BST_UNCHECKED );
     SetDlgItemText( hTabs[0], IDC_STATSFILE, config->stats );
 
-	/* update rate control tab */
-	if (SendMessage( GetDlgItem(hTabs[1],IDC_DIRECTPRED), CB_GETCOUNT, 0, 0 ) == 0)
-	{
-		SendDlgItemMessage(hTabs[1], IDC_DIRECTPRED, CB_ADDSTRING, 0, (LPARAM)"Spatial");
-		SendDlgItemMessage(hTabs[1], IDC_DIRECTPRED, CB_ADDSTRING, 0, (LPARAM)"Temporal");
-	}
+    /* update rate control tab */
+    if (SendMessage( GetDlgItem(hTabs[1],IDC_DIRECTPRED), CB_GETCOUNT, 0, 0 ) == 0)
+    {
+        SendDlgItemMessage(hTabs[1], IDC_DIRECTPRED, CB_ADDSTRING, 0, (LPARAM)"Spatial");
+        SendDlgItemMessage(hTabs[1], IDC_DIRECTPRED, CB_ADDSTRING, 0, (LPARAM)"Temporal");
+    }
     SetDlgItemInt( hTabs[1], IDC_QPMIN, config->i_qp_min, FALSE );
     SetDlgItemInt( hTabs[1], IDC_QPMAX, config->i_qp_max, FALSE );
     SetDlgItemInt( hTabs[1], IDC_QPSTEP, config->i_qp_step, FALSE );
@@ -448,23 +448,23 @@ void tabs_update_items( HWND hDlg, CONFIG * config )
     SetDlgItemInt( hTabs[1], IDC_CURVECOMP, config->i_curve_comp, FALSE );
     SendDlgItemMessage(hTabs[1], IDC_DIRECTPRED, CB_SETCURSEL, (config->i_direct_mv_pred), 0);
 
-	/* update debug tab */
-	if (SendMessage( GetDlgItem(hTabs[3],IDC_LOG), CB_GETCOUNT, 0, 0 ) == 0)
-	{
-		SendDlgItemMessage(hTabs[3], IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"None");
-		SendDlgItemMessage(hTabs[3], IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"Error");
-		SendDlgItemMessage(hTabs[3], IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"Warning");
-		SendDlgItemMessage(hTabs[3], IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"Info");
-		SendDlgItemMessage(hTabs[3], IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"Debug");
-	}
+    /* update debug tab */
+    if (SendMessage( GetDlgItem(hTabs[3],IDC_LOG), CB_GETCOUNT, 0, 0 ) == 0)
+    {
+        SendDlgItemMessage(hTabs[3], IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"None");
+        SendDlgItemMessage(hTabs[3], IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"Error");
+        SendDlgItemMessage(hTabs[3], IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"Warning");
+        SendDlgItemMessage(hTabs[3], IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"Info");
+        SendDlgItemMessage(hTabs[3], IDC_LOG, CB_ADDSTRING, 0, (LPARAM)"Debug");
+    }
     SendDlgItemMessage(hTabs[3], IDC_LOG, CB_SETCURSEL, (config->i_log_level), 0);
 
     memcpy( fourcc, config->fcc, 4 );
     fourcc[4] = '\0';
     SetDlgItemText( hTabs[3], IDC_FOURCC, fourcc );
 
-	/* update misc. tab */
-	SetDlgItemInt( hTabs[3], IDC_THREADEDIT, config->i_threads, FALSE );
+    /* update misc. tab */
+    SetDlgItemInt( hTabs[3], IDC_THREADEDIT, config->i_threads, FALSE );
     CheckDlgButton( hTabs[3],IDC_CABAC,
                     config->b_cabac ? BST_CHECKED : BST_UNCHECKED );
     CheckDlgButton( hTabs[3],IDC_LOOPFILTER,
@@ -484,7 +484,7 @@ void tabs_update_items( HWND hDlg, CONFIG * config )
                         config->i_inloop_b );
     set_dlgitem_int( hTabs[3], IDC_LOOPB_TXT, config->i_inloop_b);
 
-	/* update i/p-frames tab */
+    /* update i/p-frames tab */
     CheckDlgButton( hTabs[2],IDC_P16X16,
                     config->b_psub16x16 ? BST_CHECKED: BST_UNCHECKED );
     CheckDlgButton( hTabs[2],IDC_P8X8,
@@ -495,9 +495,9 @@ void tabs_update_items( HWND hDlg, CONFIG * config )
                     config->b_i8x8 ? BST_CHECKED: BST_UNCHECKED );
     CheckDlgButton( hTabs[2],IDC_DCT8X8,
                     config->b_dct8x8 ? BST_CHECKED: BST_UNCHECKED );
-	SetDlgItemInt( hTabs[2], IDC_REFFRAMES, config->i_refmax, FALSE );
+    SetDlgItemInt( hTabs[2], IDC_REFFRAMES, config->i_refmax, FALSE );
 
-	/* update b-frames tab */
+    /* update b-frames tab */
     CheckDlgButton( hTabs[2],IDC_WBPRED,
                     config->b_b_wpred ? BST_CHECKED: BST_UNCHECKED );
     CheckDlgButton( hTabs[2],IDC_BADAPT,
@@ -513,25 +513,25 @@ void tabs_update_items( HWND hDlg, CONFIG * config )
     SendDlgItemMessage( hTabs[2], IDC_BBIASSLIDER, TBM_SETPOS, TRUE,
                         config->i_bframe_bias );
 
-	/* update scene-cuts tab */
+    /* update scene-cuts tab */
     SetDlgItemInt( hTabs[1], IDC_KEYINTMIN, config->i_keyint_min, FALSE );
     SetDlgItemInt( hTabs[1], IDC_KEYINTMAX, config->i_keyint_max, FALSE );
     SetDlgItemInt( hTabs[1], IDC_SCENECUT, config->i_scenecut_threshold, TRUE );
 
-	/* update motion estimation tab */
-	if (SendMessage( GetDlgItem(hTabs[3],IDC_ME_METHOD), CB_GETCOUNT, 0, 0 ) == 0)
-	{
-		SendDlgItemMessage(hTabs[3], IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Diamond Search");
-		SendDlgItemMessage(hTabs[3], IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Hexagonal Search");
-		SendDlgItemMessage(hTabs[3], IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Uneven Multi-Hexagon");
-		SendDlgItemMessage(hTabs[3], IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Exhaustive Search");
-		SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"1 (Fastest)");
-		SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"2");
-		SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"3");
-		SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"4");
-		SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"5 (High Quality)");
-		SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"6 (RDO - Slowest)");
-	}
+    /* update motion estimation tab */
+    if (SendMessage( GetDlgItem(hTabs[3],IDC_ME_METHOD), CB_GETCOUNT, 0, 0 ) == 0)
+    {
+        SendDlgItemMessage(hTabs[3], IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Diamond Search");
+        SendDlgItemMessage(hTabs[3], IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Hexagonal Search");
+        SendDlgItemMessage(hTabs[3], IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Uneven Multi-Hexagon");
+        SendDlgItemMessage(hTabs[3], IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Exhaustive Search");
+        SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"1 (Fastest)");
+        SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"2");
+        SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"3");
+        SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"4");
+        SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"5 (High Quality)");
+        SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"6 (RDO - Slowest)");
+    }
 
     SendDlgItemMessage(hTabs[3], IDC_ME_METHOD, CB_SETCURSEL, (config->i_me_method), 0);
     SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_SETCURSEL, (config->i_subpel_refine), 0);
@@ -546,17 +546,17 @@ BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
     switch( uMsg )
     {
     case WM_INITDIALOG :
-    	
-		SetWindowLong( hDlg, GWL_USERDATA, lParam );
-		config = (CONFIG*)lParam;
-		break;
+
+        SetWindowLong( hDlg, GWL_USERDATA, lParam );
+        config = (CONFIG*)lParam;
+        break;
 
     case WM_COMMAND:
 
         switch ( HIWORD( wParam ) )
         {
         case BN_CLICKED :
-        	
+
             switch( LOWORD( wParam ) )
             {
             case IDC_CABAC :
@@ -622,7 +622,7 @@ BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
                     ofn.Flags |= OFN_OVERWRITEPROMPT;
                 else ofn.Flags |= OFN_FILEMUSTEXIST;
 
-                if( ( config->i_pass == 1 && GetSaveFileName( &ofn ) ) || 
+                if( ( config->i_pass == 1 && GetSaveFileName( &ofn ) ) ||
                     ( config->i_pass > 1 && GetOpenFileName( &ofn ) ) )
                     SetDlgItemText( hTabs[0], IDC_STATSFILE, tmp );
                 }
@@ -648,25 +648,25 @@ BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
                 {
                     config->i_threads = 4;
                     SetDlgItemInt( hTabs[3], IDC_THREADEDIT, config->i_threads, FALSE );
-                }                        
+                }
                 break;
             case IDC_BITRATEEDIT :
-				switch (config->i_encoding_type)
-				{
-				case 0:
-					config->bitrate = GetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, FALSE, FALSE );
-					SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_SETPOS, TRUE, config->bitrate );
-					break;
-				case 1:
-					config->i_qp = GetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, FALSE, FALSE );
-					SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_SETPOS, TRUE, config->i_qp );
-					break;
-				case 2:
-					config->i_2passbitrate = GetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, FALSE, FALSE );
-					SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_SETPOS, TRUE, config->i_2passbitrate );
-					break;
-				}
-				break;
+                switch (config->i_encoding_type)
+                {
+                case 0:
+                    config->bitrate = GetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, FALSE, FALSE );
+                    SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_SETPOS, TRUE, config->bitrate );
+                    break;
+                case 1:
+                    config->i_qp = GetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, FALSE, FALSE );
+                    SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_SETPOS, TRUE, config->i_qp );
+                    break;
+                case 2:
+                    config->i_2passbitrate = GetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, FALSE, FALSE );
+                    SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_SETPOS, TRUE, config->i_2passbitrate );
+                    break;
+                }
+                break;
             case IDC_STATSFILE :
                 if( GetDlgItemText( hTabs[0], IDC_STATSFILE, config->stats, MAX_PATH ) == 0 )
                     lstrcpy( config->stats, ".\\x264.stats" );
@@ -787,7 +787,7 @@ BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
                 {
                     config->i_key_boost = 70;
                     SetDlgItemInt( hTabs[1], IDC_IPRATIO, config->i_key_boost, FALSE );
-                }                        
+                }
                 break;
             case IDC_PBRATIO :
                 config->i_b_red = GetDlgItemInt( hTabs[1], IDC_PBRATIO, FALSE, FALSE );
@@ -800,7 +800,7 @@ BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
                 {
                     config->i_b_red = 60;
                     SetDlgItemInt( hTabs[1], IDC_PBRATIO, config->i_b_red, FALSE );
-                }                        
+                }
                 break;
             case IDC_CURVECOMP:
                 config->i_curve_comp = GetDlgItemInt( hTabs[1], IDC_CURVECOMP, FALSE, FALSE );
@@ -813,15 +813,15 @@ BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
                 {
                     config->i_curve_comp = 100;
                     SetDlgItemInt( hTabs[1], IDC_CURVECOMP, config->i_curve_comp, FALSE );
-                }                        
+                }
                 break;
             }
             break;
 
         case LBN_SELCHANGE :
-        	
-            switch ( LOWORD( wParam ) ) 
-			{
+
+            switch ( LOWORD( wParam ) )
+            {
             case IDC_DIRECTPRED:
                 config->i_direct_mv_pred = SendDlgItemMessage(hTabs[1], IDC_DIRECTPRED, CB_GETCURSEL, 0, 0);
                 break;
@@ -836,40 +836,40 @@ BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
             case IDC_LOG:
                 config->i_log_level = SendDlgItemMessage(hTabs[3], IDC_LOG, CB_GETCURSEL, 0, 0);
                 break;
-			case IDC_BITRATEMODE:
-				switch(SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_GETCURSEL, 0, 0))
-				{
-				case 0:
-					config->i_encoding_type = 0;
-					break;
-				case 1:
-					config->i_encoding_type = 1;
-					break;
-				case 2:
-					config->i_encoding_type = 2;
-					config->i_pass = 1;
-					config->b_fast1pass = FALSE;
-					break;
-				case 3:
-					config->i_encoding_type = 2;
-					config->i_pass = 1;
-					config->b_fast1pass = TRUE;
-					break;
-				case 4:
-					config->i_encoding_type = 2;
-					config->i_pass = 2;
-					break;
-				}
-				tabs_enable_items( hDlg, config );
-				tabs_update_items( hDlg, config );
-				break;
-			}
-	        break;
+            case IDC_BITRATEMODE:
+                switch(SendDlgItemMessage(hTabs[0], IDC_BITRATEMODE, CB_GETCURSEL, 0, 0))
+                {
+                case 0:
+                    config->i_encoding_type = 0;
+                    break;
+                case 1:
+                    config->i_encoding_type = 1;
+                    break;
+                case 2:
+                    config->i_encoding_type = 2;
+                    config->i_pass = 1;
+                    config->b_fast1pass = FALSE;
+                    break;
+                case 3:
+                    config->i_encoding_type = 2;
+                    config->i_pass = 1;
+                    config->b_fast1pass = TRUE;
+                    break;
+                case 4:
+                    config->i_encoding_type = 2;
+                    config->i_pass = 2;
+                    break;
+                }
+                tabs_enable_items( hDlg, config );
+                tabs_update_items( hDlg, config );
+                break;
+            }
+            break;
 
         case EN_KILLFOCUS :
-        	
-			switch( LOWORD( wParam ) )
-			{
+
+            switch( LOWORD( wParam ) )
+            {
             case IDC_MERANGE :
                 config->i_me_range = GetDlgItemInt( hTabs[3], IDC_MERANGE, FALSE, FALSE );
                 if( config->i_me_range < 4 )
@@ -880,46 +880,46 @@ BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
                 break;
             }
             break;
-		}
+        }
         break;
 
     case WM_HSCROLL :
-    	
+
         if( (HWND) lParam == GetDlgItem( hTabs[0], IDC_BITRATESLIDER ) )
         {
-			switch (config->i_encoding_type)
-			{
-			case 0:
-				config->bitrate = SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_GETPOS, 0, 0 );
-				SetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, config->bitrate, FALSE );
-				break;
-			case 1:
-				config->i_qp = SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_GETPOS, 0, 0 );
-				SetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, config->i_qp, FALSE );
-				break;
-			case 2:
-				config->i_2passbitrate = SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_GETPOS, 0, 0 );
-				SetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, config->i_2passbitrate, FALSE );
-				break;
-			}
-			break;
+            switch (config->i_encoding_type)
+            {
+            case 0:
+                config->bitrate = SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_GETPOS, 0, 0 );
+                SetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, config->bitrate, FALSE );
+                break;
+            case 1:
+                config->i_qp = SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_GETPOS, 0, 0 );
+                SetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, config->i_qp, FALSE );
+                break;
+            case 2:
+                config->i_2passbitrate = SendDlgItemMessage( hTabs[0], IDC_BITRATESLIDER, TBM_GETPOS, 0, 0 );
+                SetDlgItemInt( hTabs[0], IDC_BITRATEEDIT, config->i_2passbitrate, FALSE );
+                break;
+            }
+            break;
         }
-		else if( (HWND) lParam == GetDlgItem( hTabs[3], IDC_INLOOP_A ) ) 
-		{
-			config->i_inloop_a = SendDlgItemMessage( hTabs[3], IDC_INLOOP_A, TBM_GETPOS, 0, 0 );
-			set_dlgitem_int( hTabs[3], IDC_LOOPA_TXT, config->i_inloop_a);
-		}
-		else if( (HWND) lParam == GetDlgItem( hTabs[3], IDC_INLOOP_B ) ) 
-		{
-			config->i_inloop_b = SendDlgItemMessage( hTabs[3], IDC_INLOOP_B, TBM_GETPOS, 0, 0 );
-			set_dlgitem_int( hTabs[3], IDC_LOOPB_TXT, config->i_inloop_b);
-		}
-		else if( (HWND) lParam == GetDlgItem( hTabs[2], IDC_BBIASSLIDER ) ) 
-		{
-			config->i_bframe_bias = SendDlgItemMessage( hTabs[2], IDC_BBIASSLIDER, TBM_GETPOS, 0, 0 );
-			set_dlgitem_int( hTabs[2], IDC_BBIAS, config->i_bframe_bias);
-		}
-		break;
+        else if( (HWND) lParam == GetDlgItem( hTabs[3], IDC_INLOOP_A ) )
+        {
+            config->i_inloop_a = SendDlgItemMessage( hTabs[3], IDC_INLOOP_A, TBM_GETPOS, 0, 0 );
+            set_dlgitem_int( hTabs[3], IDC_LOOPA_TXT, config->i_inloop_a);
+        }
+        else if( (HWND) lParam == GetDlgItem( hTabs[3], IDC_INLOOP_B ) )
+        {
+            config->i_inloop_b = SendDlgItemMessage( hTabs[3], IDC_INLOOP_B, TBM_GETPOS, 0, 0 );
+            set_dlgitem_int( hTabs[3], IDC_LOOPB_TXT, config->i_inloop_b);
+        }
+        else if( (HWND) lParam == GetDlgItem( hTabs[2], IDC_BBIASSLIDER ) )
+        {
+            config->i_bframe_bias = SendDlgItemMessage( hTabs[2], IDC_BBIASSLIDER, TBM_GETPOS, 0, 0 );
+            set_dlgitem_int( hTabs[2], IDC_BBIAS, config->i_bframe_bias);
+        }
+        break;
 
     default :
         return 0;
@@ -966,7 +966,7 @@ BOOL CALLBACK callback_err_console( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     {
     case WM_INITDIALOG :
         break;
-    case WM_DESTROY : 
+    case WM_DESTROY :
         break;
     case WM_COMMAND :
         if( HIWORD( wParam ) == BN_CLICKED ) {
@@ -978,7 +978,7 @@ BOOL CALLBACK callback_err_console( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
                 if( OpenClipboard( hWnd ) )
                     {
                         int i;
-                        int num_lines = SendDlgItemMessage( hWnd, IDC_CONSOLE, 
+                        int num_lines = SendDlgItemMessage( hWnd, IDC_CONSOLE,
                                         LB_GETCOUNT, 0, 0 );
                         int text_size;
                         char *buffer;
@@ -989,12 +989,12 @@ BOOL CALLBACK callback_err_console( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 
                         /* calculate text size */
                         for( i = 0, text_size = 0; i < num_lines; i++ )
-                            text_size += SendDlgItemMessage( hWnd, IDC_CONSOLE, 
+                            text_size += SendDlgItemMessage( hWnd, IDC_CONSOLE,
                                    LB_GETTEXTLEN, ( WPARAM )i, 0 );
 
                         /* CR-LF for each line + terminating NULL */
                         text_size += 2 * num_lines + 1;
-                        
+
                         EmptyClipboard( );
                         clipbuffer = GlobalAlloc( GMEM_MOVEABLE | GMEM_DDESHARE,
                                      text_size );
@@ -1002,9 +1002,9 @@ BOOL CALLBACK callback_err_console( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 
                         /* concatenate lines of text in the global buffer */
                         for( i = 0; i < num_lines; i++ )
-                        {                            
+                        {
                             char msg_buf[1024];
-                            
+
                             SendDlgItemMessage( hWnd, IDC_CONSOLE, LB_GETTEXT,
                                               ( WPARAM )i, ( LPARAM )msg_buf );
                             strcat( msg_buf, "\r\n" );
