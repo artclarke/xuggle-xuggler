@@ -252,7 +252,7 @@ BOOL CALLBACK callback_main( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
 			tie.iImage = -1; 
 			tie.pszText = "Bitrate";			TabCtrl_InsertItem(hTabCtrl, 0, &tie);
 			tie.pszText = "Rate Control";		TabCtrl_InsertItem(hTabCtrl, 1, &tie);
-			tie.pszText = "I/P/B Frames";		TabCtrl_InsertItem(hTabCtrl, 2, &tie);
+			tie.pszText = "MBs&&Frames";     TabCtrl_InsertItem(hTabCtrl, 2, &tie);
 			tie.pszText = "More...";			TabCtrl_InsertItem(hTabCtrl, 3, &tie);
 			hTabs[0] = CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_TAB_BITRATE),		hDlg, (DLGPROC)callback_tabs, lParam);
 			hTabs[1] = CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_TAB_RATECONTROL),	hDlg, (DLGPROC)callback_tabs, lParam);
@@ -435,12 +435,18 @@ void tabs_update_items( HWND hDlg, CONFIG * config )
     SetDlgItemText( hTabs[0], IDC_STATSFILE, config->stats );
 
 	/* update rate control tab */
+	if (SendMessage( GetDlgItem(hTabs[1],IDC_DIRECTPRED), CB_GETCOUNT, 0, 0 ) == 0)
+	{
+		SendDlgItemMessage(hTabs[1], IDC_DIRECTPRED, CB_ADDSTRING, 0, (LPARAM)"Spatial");
+		SendDlgItemMessage(hTabs[1], IDC_DIRECTPRED, CB_ADDSTRING, 0, (LPARAM)"Temporal");
+	}
     SetDlgItemInt( hTabs[1], IDC_QPMIN, config->i_qp_min, FALSE );
     SetDlgItemInt( hTabs[1], IDC_QPMAX, config->i_qp_max, FALSE );
     SetDlgItemInt( hTabs[1], IDC_QPSTEP, config->i_qp_step, FALSE );
     SetDlgItemInt( hTabs[1], IDC_IPRATIO, config->i_key_boost, FALSE );
     SetDlgItemInt( hTabs[1], IDC_PBRATIO, config->i_b_red, FALSE );
     SetDlgItemInt( hTabs[1], IDC_CURVECOMP, config->i_curve_comp, FALSE );
+    SendDlgItemMessage(hTabs[1], IDC_DIRECTPRED, CB_SETCURSEL, (config->i_direct_mv_pred), 0);
 
 	/* update debug tab */
 	if (SendMessage( GetDlgItem(hTabs[3],IDC_LOG), CB_GETCOUNT, 0, 0 ) == 0)
@@ -519,8 +525,6 @@ void tabs_update_items( HWND hDlg, CONFIG * config )
 		SendDlgItemMessage(hTabs[3], IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Hexagonal Search");
 		SendDlgItemMessage(hTabs[3], IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Uneven Multi-Hexagon");
 		SendDlgItemMessage(hTabs[3], IDC_ME_METHOD, CB_ADDSTRING, 0, (LPARAM)"Exhaustive Search");
-		SendDlgItemMessage(hTabs[3], IDC_DIRECTPRED, CB_ADDSTRING, 0, (LPARAM)"Spatial");
-		SendDlgItemMessage(hTabs[3], IDC_DIRECTPRED, CB_ADDSTRING, 0, (LPARAM)"Temporal");
 		SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"1 (Fastest)");
 		SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"2");
 		SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_ADDSTRING, 0, (LPARAM)"3");
@@ -530,7 +534,6 @@ void tabs_update_items( HWND hDlg, CONFIG * config )
 	}
 
     SendDlgItemMessage(hTabs[3], IDC_ME_METHOD, CB_SETCURSEL, (config->i_me_method), 0);
-    SendDlgItemMessage(hTabs[3], IDC_DIRECTPRED, CB_SETCURSEL, (config->i_direct_mv_pred), 0);
     SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_SETCURSEL, (config->i_subpel_refine), 0);
     SetDlgItemInt( hTabs[3], IDC_MERANGE, config->i_me_range, FALSE );
     CheckDlgButton( hTabs[3],IDC_CHROMAME,
@@ -754,7 +757,7 @@ BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
                 }
                 EnableWindow( GetDlgItem( hTabs[2], IDC_BREFS ), config->i_bframe > 1 );
                 EnableWindow( GetDlgItem( hTabs[2], IDC_WBPRED ), config->i_bframe > 1 );
-                EnableWindow( GetDlgItem( hTabs[3], IDC_DIRECTPRED ), config->i_bframe > 0 );
+                EnableWindow( GetDlgItem( hTabs[1], IDC_DIRECTPRED ), config->i_bframe > 0 );
                 EnableWindow( GetDlgItem( hTabs[2], IDC_BADAPT ), config->i_bframe > 0 );
                 EnableWindow( GetDlgItem( hTabs[2], IDC_BBIAS ), config->i_bframe > 0 );
                 EnableWindow( GetDlgItem( hTabs[2], IDC_BBIASSLIDER ), config->i_bframe > 0 );
@@ -820,7 +823,7 @@ BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
             switch ( LOWORD( wParam ) ) 
 			{
             case IDC_DIRECTPRED:
-                config->i_direct_mv_pred = SendDlgItemMessage(hTabs[3], IDC_DIRECTPRED, CB_GETCURSEL, 0, 0);
+                config->i_direct_mv_pred = SendDlgItemMessage(hTabs[1], IDC_DIRECTPRED, CB_GETCURSEL, 0, 0);
                 break;
             case IDC_SUBPEL:
                 config->i_subpel_refine = SendDlgItemMessage(hTabs[3], IDC_SUBPEL, CB_GETCURSEL, 0, 0);
