@@ -971,7 +971,6 @@ void x264_cabac_encode_init( x264_cabac_t *cb, bs_t *s )
     cb->i_range = 0x01FE;
     cb->b_first_bit= 1;
     cb->i_bits_outstanding = 0;
-    cb->i_sym_cnt = 0;
     cb->s = s;
 }
 
@@ -1056,8 +1055,6 @@ void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx, int b )
     cb->ctxstate[i_ctx].i_count++;
 
     x264_cabac_encode_renorm( cb );
-
-    cb->i_sym_cnt++;
 }
 
 void x264_cabac_encode_bypass( x264_cabac_t *cb, int b )
@@ -1089,7 +1086,6 @@ void x264_cabac_encode_bypass( x264_cabac_t *cb, int b )
             cb->i_bits_outstanding++;
         }
     }
-    cb->i_sym_cnt++;
 }
 
 void x264_cabac_encode_terminal( x264_cabac_t *cb, int b )
@@ -1105,8 +1101,6 @@ void x264_cabac_encode_terminal( x264_cabac_t *cb, int b )
         cb->i_range = 2;
     }
     x264_cabac_encode_renorm( cb );
-
-    cb->i_sym_cnt++;
 }
 
 void x264_cabac_encode_flush( x264_cabac_t *cb )

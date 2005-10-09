@@ -1051,16 +1051,25 @@ static int x264_slice_write( x264_t *h )
 
     if( h->param.b_cabac )
     {
-        int i_cabac_word;
         x264_cabac_encode_flush( &h->cabac );
-        /* TODO cabac stuffing things (p209) */
-        i_cabac_word = (((3 * h->cabac.i_sym_cnt - 3 * 96 * h->sps->i_mb_width * h->sps->i_mb_height)/32) - bs_pos( &h->out.bs)/8)/3;
+
+#if 0
+        /* The standard doesn't explain why one should perform cabac byte stuffing,
+         * and I see no possible reason. Decoding works fine without it;
+         * JM and libavcodec don't even check whether it's present.
+         * Stuffing can cost up to 25% of the total bitrate and 3% of encode time
+         * in lossless mode. */
+
+        int i_cabac_word = ((h->cabac.i_sym_cnt
+                             - 96 * h->sps->i_mb_width * h->sps->i_mb_height) * 3/32
+                           - bs_pos(&h->out.bs)/8)/3;
 
         while( i_cabac_word > 0 )
         {
             bs_write( &h->out.bs, 16, 0x0000 );
             i_cabac_word--;
         }
+#endif
     }
     else
     {

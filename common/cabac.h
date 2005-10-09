@@ -46,8 +46,6 @@ typedef struct
     int i_low;
     int i_range;
 
-    int i_sym_cnt;
-
     /* bit stream */
     int b_first_bit;
     int i_bits_outstanding;
