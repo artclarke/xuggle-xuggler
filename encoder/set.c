@@ -129,22 +129,12 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->b_direct8x8_inference = 1;
     }
 
-    if( param->i_width % 16 != 0 || param->i_height % 16 != 0 )
-    {
-        sps->b_crop = 1;
-        sps->crop.i_left    = 0;
-        sps->crop.i_right   = ( 16 - param->i_width % 16)/2;
-        sps->crop.i_top     = 0;
-        sps->crop.i_bottom  = ( 16 - param->i_height % 16)/2;
-    }
-    else
-    {
-        sps->b_crop = 0;
-        sps->crop.i_left    = 0;
-        sps->crop.i_right   = 0;
-        sps->crop.i_top     = 0;
-        sps->crop.i_bottom  = 0;
-    }
+    sps->crop.i_left   = 0;
+    sps->crop.i_top    = 0;
+    sps->crop.i_right  = (- param->i_width)  & 15;
+    sps->crop.i_bottom = (- param->i_height) & 15;
+    sps->b_crop = sps->crop.i_left  || sps->crop.i_top ||
+                  sps->crop.i_right || sps->crop.i_bottom;
 
     sps->b_vui = 0;
     sps->vui.b_aspect_ratio_info_present = 0;
@@ -275,10 +265,10 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
     bs_write( s, 1, sps->b_crop );
     if( sps->b_crop )
     {
-        bs_write_ue( s, sps->crop.i_left );
-        bs_write_ue( s, sps->crop.i_right );
-        bs_write_ue( s, sps->crop.i_top );
-        bs_write_ue( s, sps->crop.i_bottom );
+        bs_write_ue( s, sps->crop.i_left   / 2 );
+        bs_write_ue( s, sps->crop.i_right  / 2 );
+        bs_write_ue( s, sps->crop.i_top    / 2 );
+        bs_write_ue( s, sps->crop.i_bottom / 2 );
     }
 
     bs_write( s, 1, sps->b_vui );

@@ -87,29 +87,6 @@ static int64_t i_mtime_filter = 0;
  ******************************* x264 libs **********************************
  *
  ****************************************************************************/
-static int64_t x264_sqe( x264_t *h, uint8_t *pix1, int i_pix_stride, uint8_t *pix2, int i_pix2_stride, int i_width, int i_height )
-{
-    int64_t i_sqe = 0;
-    int x, y;
-
-#define SSD(size) i_sqe += h->pixf.ssd[size]( pix1+y*i_pix_stride+x, i_pix_stride, \
-                                              pix2+y*i_pix2_stride+x, i_pix2_stride );
-    for( y = 0; y < i_height-15; y += 16 )
-    {
-        for( x = 0; x < i_width-15; x += 16 )
-            SSD(PIXEL_16x16);
-        if( x < i_width-7 )
-            SSD(PIXEL_8x16);
-    }
-    if( y < i_height-7 )
-        for( x = 0; x < i_width-7; x += 8 )
-            SSD(PIXEL_8x8);
-#undef SSD
-    x264_cpu_restore( h->param.cpu );
-
-    return i_sqe;
-}
-
 static float x264_psnr( int64_t i_sqe, int64_t i_size )
 {
     double f_mse = (double)i_sqe / ((double)65025.0 * (double)i_size);
@@ -363,9 +340,9 @@ static int x264_validate_parameters( x264_t *h )
         return -1;
     }
 
-    if( h->param.i_width % 16 != 0 || h->param.i_height % 16 != 0 )
+    if( h->param.i_width % 2 || h->param.i_height % 2 )
     {
-        x264_log( h, X264_LOG_ERROR, "width %% 16 != 0 or height %% 16 != 0 (%dx%d)\n",
+        x264_log( h, X264_LOG_ERROR, "width or height not divisible by 2 (%dx%d)\n",
                   h->param.i_width, h->param.i_height );
         return -1;
     }
@@ -376,7 +353,7 @@ static int x264_validate_parameters( x264_t *h )
     }
 
     h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_SLICE_MAX );
-    h->param.i_threads = X264_MIN( h->param.i_threads, h->param.i_height / 16 );
+    h->param.i_threads = X264_MIN( h->param.i_threads, (h->param.i_height + 15) / 16 );
 #if !(HAVE_PTHREAD)
     if( h->param.i_threads > 1 )
     {
@@ -394,6 +371,13 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.f_ip_factor = 1;
         h->param.rc.f_pb_factor = 1;
         h->param.analyse.b_psnr = 0;
+    }
+
+    if( ( h->param.i_width % 16 || h->param.i_height % 16 ) && !h->mb.b_lossless )
+    {
+        x264_log( h, X264_LOG_WARNING, 
+                  "width or height not divisible by 16 (%dx%d), compression will suffer.\n",
+                  h->param.i_width, h->param.i_height );
     }
 
     h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, 16 );
@@ -1208,6 +1192,9 @@ int     x264_encoder_encode( x264_t *h,
 
         x264_frame_copy_picture( h, fenc, pic_in );
 
+        if( h->param.i_width % 16 || h->param.i_height % 16 )
+            x264_frame_expand_border_mod16( h, fenc );
+
         fenc->i_frame = h->frames.i_input++;
 
         x264_frame_put( h->frames.next, fenc );
@@ -1556,9 +1543,10 @@ do_encode:
         int64_t i_sqe_y, i_sqe_u, i_sqe_v;
 
         /* PSNR */
-        i_sqe_y = x264_sqe( h, frame_psnr->plane[0], frame_psnr->i_stride[0], h->fenc->plane[0], h->fenc->i_stride[0], h->param.i_width, h->param.i_height );
-        i_sqe_u = x264_sqe( h, frame_psnr->plane[1], frame_psnr->i_stride[1], h->fenc->plane[1], h->fenc->i_stride[1], h->param.i_width/2, h->param.i_height/2);
-        i_sqe_v = x264_sqe( h, frame_psnr->plane[2], frame_psnr->i_stride[2], h->fenc->plane[2], h->fenc->i_stride[2], h->param.i_width/2, h->param.i_height/2);
+        i_sqe_y = x264_pixel_ssd_wxh( &h->pixf, frame_psnr->plane[0], frame_psnr->i_stride[0], h->fenc->plane[0], h->fenc->i_stride[0], h->param.i_width, h->param.i_height );
+        i_sqe_u = x264_pixel_ssd_wxh( &h->pixf, frame_psnr->plane[1], frame_psnr->i_stride[1], h->fenc->plane[1], h->fenc->i_stride[1], h->param.i_width/2, h->param.i_height/2);
+        i_sqe_v = x264_pixel_ssd_wxh( &h->pixf, frame_psnr->plane[2], frame_psnr->i_stride[2], h->fenc->plane[2], h->fenc->i_stride[2], h->param.i_width/2, h->param.i_height/2);
+        x264_cpu_restore( h->param.cpu );
 
         h->stat.i_sqe_global[i_slice_type] += i_sqe_y + i_sqe_u + i_sqe_v;
         h->stat.f_psnr_average[i_slice_type] += x264_psnr( i_sqe_y + i_sqe_u + i_sqe_v, 3 * h->param.i_width * h->param.i_height / 2 );

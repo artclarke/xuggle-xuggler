@@ -106,6 +106,43 @@ PIXEL_SSD_C( pixel_ssd_8x4,    8,  4 )
 PIXEL_SSD_C( pixel_ssd_4x8,    4,  8 )
 PIXEL_SSD_C( pixel_ssd_4x4,    4,  4 )
 
+int64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2, int i_width, int i_height )
+{
+    int64_t i_ssd = 0;
+    int x, y;
+
+#define SSD(size) i_ssd += pf->ssd[size]( pix1 + y*i_pix1 + x, i_pix1, \
+                                          pix2 + y*i_pix2 + x, i_pix2 );
+    for( y = 0; y < i_height-15; y += 16 )
+    {
+        for( x = 0; x < i_width-15; x += 16 )
+            SSD(PIXEL_16x16);
+        if( x < i_width-7 )
+            SSD(PIXEL_8x16);
+    }
+    if( y < i_height-7 )
+        for( x = 0; x < i_width-7; x += 8 )
+            SSD(PIXEL_8x8);
+#undef SSD
+
+#define SSD1 { int d = pix1[y*i_pix1+x] - pix2[y*i_pix2+x]; i_ssd += d*d; }
+    if( i_width % 8 != 0 )
+    {
+        for( y = 0; y < (i_height & ~7); y++ )
+            for( x = i_width & ~7; x < i_width; x++ )
+                SSD1;
+    }
+    if( i_height % 8 != 0 )
+    {
+        for( y = i_height & ~7; y < i_height; y++ )
+            for( x = 0; x < i_width; x++ )
+                SSD1;
+    }
+#undef SSD1
+
+    return i_ssd;
+}
+
 
 static inline void pixel_sub_wxh( int16_t *diff, int i_size,
                                   uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )

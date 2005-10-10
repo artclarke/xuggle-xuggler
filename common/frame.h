@@ -72,6 +72,7 @@ void          x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_pictur
 void          x264_frame_expand_border( x264_frame_t *frame );
 void          x264_frame_expand_border_filtered( x264_frame_t *frame );
 void          x264_frame_expand_border_lowres( x264_frame_t *frame );
+void          x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame );
 
 void          x264_frame_deblocking_filter( x264_t *h, int i_slice_type );
 
