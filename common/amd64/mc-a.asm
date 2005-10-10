@@ -373,8 +373,6 @@ ALIGN 4
 
     ret
 
-cglobal mc_copy_w8
-
 ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void x264_mc_copy_w8_mmxext( uint8_t *src, int i_src_stride,
@@ -407,8 +405,6 @@ ALIGN 4
     jnz     .height_loop
 
     ret
-
-cglobal mc_copy_w16
 
 ALIGN 16
 ;-----------------------------------------------------------------------------

@@ -122,7 +122,6 @@ mmx_dw_5:
 
 SECTION .text
 
-cglobal x264_vertical_filter_mmxext
 cglobal x264_horizontal_filter_mmxext
 cglobal x264_center_filter_mmxext
 
