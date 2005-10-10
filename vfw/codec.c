@@ -348,6 +348,7 @@ LRESULT compress_end(CODEC * codec)
     }
 
     free( codec->hCons );
+    codec->hCons = NULL;
     return ICERR_OK;
 }
 
