@@ -262,6 +262,9 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
     if( config->b_i8x8 )
         param.analyse.inter |= X264_ANALYSE_I8x8;
     param.analyse.b_transform_8x8 = config->b_dct8x8;
+    if( config->b_mixedref )
+        param.analyse.b_mixed_references = 1;
+
 
     switch( config->i_encoding_type )
     {

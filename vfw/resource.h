@@ -77,6 +77,7 @@
 #define IDC_I8X8                        1064
 #define IDC_DCT8X8                      1065
 #define IDC_ME_METHOD                   1066
+#define IDC_MIXEDREF                    1066
 #define IDC_CHROMAME                    1067
 #define IDC_MERANGE                     1068
 #define IDC_BADAPT                      1070

@@ -121,7 +121,8 @@ static const reg_int_t reg_int_table[] =
     { "me_method",      &reg.i_me_method,       1 },
     { "me_range",       &reg.i_me_range,       16 },
     { "chroma_me",      &reg.b_chroma_me,       1 },
-    { "subpel",         &reg.i_subpel_refine,   4 }
+    { "subpel",         &reg.i_subpel_refine,   4 },
+    { "mixedref",       &reg.b_mixedref,        0 }
 
 };
 
@@ -495,6 +496,8 @@ void tabs_update_items( HWND hDlg, CONFIG * config )
                     config->b_i8x8 ? BST_CHECKED: BST_UNCHECKED );
     CheckDlgButton( hTabs[2],IDC_DCT8X8,
                     config->b_dct8x8 ? BST_CHECKED: BST_UNCHECKED );
+    CheckDlgButton( hTabs[2],IDC_MIXEDREF,
+                    config->b_mixedref ? BST_CHECKED: BST_UNCHECKED );
     SetDlgItemInt( hTabs[2], IDC_REFFRAMES, config->i_refmax, FALSE );
 
     /* update b-frames tab */
@@ -595,6 +598,9 @@ BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
             case IDC_DCT8X8 :
                 config->b_dct8x8 = ( IsDlgButtonChecked( hTabs[2], IDC_DCT8X8 ) == BST_CHECKED );
                 EnableWindow( GetDlgItem( hTabs[2], IDC_I8X8 ), config->b_dct8x8 );
+                break;
+            case IDC_MIXEDREF :
+                config->b_mixedref = ( IsDlgButtonChecked( hTabs[2], IDC_MIXEDREF ) == BST_CHECKED );
                 break;
             case IDC_CHROMAME :
                 config->b_chroma_me = ( IsDlgButtonChecked( hTabs[3], IDC_CHROMAME ) == BST_CHECKED );

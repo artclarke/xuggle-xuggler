@@ -66,6 +66,7 @@ typedef struct
     int b_psub8x8;
     int b_bsub16x16;
     int b_dct8x8;
+    int b_mixedref;
 
     int i_bframe;
     int i_subpel_refine;
