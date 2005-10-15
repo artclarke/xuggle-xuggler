@@ -36,13 +36,13 @@
 static const int subpel_iterations[][4] = 
    {{1,0,0,0},
     {1,1,0,0},
-    {1,2,0,0},
+    {0,1,1,0},
     {0,2,1,0},
     {0,2,1,1},
     {0,2,1,2},
     {0,0,2,3}};
 
-static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters );
+static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters, int *p_halfpel_thresh, int b_refine_qpel );
 
 #define COST_MV( mx, my ) \
 { \
@@ -58,11 +58,10 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     } \
 }
 
-void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int *p_fullpel_thresh )
+void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int *p_halfpel_thresh )
 {
     const int i_pixel = m->i_pixel;
     const int i_me_range = h->param.analyse.i_me_range;
-    const int b_chroma_me = h->mb.b_chroma_me && i_pixel <= PIXEL_8x8;
     int bmx, bmy, bcost;
     int omx, omy, pmx, pmy;
     uint8_t *p_fref = m->p_fref[0];
@@ -86,7 +85,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     bmx = pmx = x264_clip3( ( m->mvp[0] + 2 ) >> 2, mv_x_min, mv_x_max );
     bmy = pmy = x264_clip3( ( m->mvp[1] + 2 ) >> 2, mv_y_min, mv_y_max );
     bcost = COST_MAX;
-    COST_MV( bmx, bmy );
+    COST_MV( pmx, pmy );
     /* I don't know why this helps */
     bcost -= p_cost_mvx[ bmx<<2 ] + p_cost_mvy[ bmy<<2 ];
 
@@ -246,39 +245,16 @@ umh_small_hex:
 
     /* compute the real cost */
     m->cost_mv = p_cost_mvx[ m->mv[0] ] + p_cost_mvy[ m->mv[1] ];
-    m->cost = h->pixf.mbcmp[i_pixel]( m->p_fenc[0], m->i_stride[0],
-                    &p_fref[bmy * m->i_stride[0] + bmx], m->i_stride[0] )
-            + m->cost_mv;
-    if( b_chroma_me )
-    {
-        const int bw = x264_pixel_size[m->i_pixel].w;
-        const int bh = x264_pixel_size[m->i_pixel].h;
-        DECLARE_ALIGNED( uint8_t, pix[8*8*2], 16 );
-        h->mc.mc_chroma( m->p_fref[4], m->i_stride[1], pix, 8, m->mv[0], m->mv[1], bw/2, bh/2 );
-        h->mc.mc_chroma( m->p_fref[5], m->i_stride[1], pix+8*8, 8, m->mv[0], m->mv[1], bw/2, bh/2 );
-        m->cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[1], m->i_stride[1], pix, 8 )
-                 + h->pixf.mbcmp[i_pixel+3]( m->p_fenc[2], m->i_stride[1], pix+8*8, 8 );
-    }
-
+    m->cost = bcost;
+    if( bmx == pmx && bmy == pmy )
+        m->cost += m->cost_mv;
+    
     /* subpel refine */
-    if( h->mb.i_subpel_refine >= 3 )
+    if( h->mb.i_subpel_refine >= 2 )
     {
-        int hpel, qpel;
-
-        /* early termination (when examining multiple reference frames)
-         * FIXME: this can update fullpel_thresh even if the match
-         *        ref is rejected after subpel refinement */
-        if( p_fullpel_thresh )
-        {
-            if( (m->cost*7)>>3 > *p_fullpel_thresh )
-                return;
-            else if( m->cost < *p_fullpel_thresh )
-                *p_fullpel_thresh = m->cost;
-        }
-
-        hpel = subpel_iterations[h->mb.i_subpel_refine][2];
-        qpel = subpel_iterations[h->mb.i_subpel_refine][3];
-        refine_subpel( h, m, hpel, qpel );
+        int hpel = subpel_iterations[h->mb.i_subpel_refine][2];
+        int qpel = subpel_iterations[h->mb.i_subpel_refine][3];
+        refine_subpel( h, m, hpel, qpel, p_halfpel_thresh, 0 );
     }
 }
 #undef COST_MV
@@ -291,10 +267,24 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
     if( m->i_pixel <= PIXEL_8x8 && h->sh.i_type == SLICE_TYPE_P )
         m->cost -= m->i_ref_cost;
 	
-    refine_subpel( h, m, hpel, qpel );
+    refine_subpel( h, m, hpel, qpel, NULL, 1 );
 }
 
-#define COST_MV( mx, my ) \
+#define COST_MV_SAD( mx, my ) \
+{ \
+    int stride = 16; \
+    uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix, &stride, mx, my, bw, bh ); \
+    int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], m->i_stride[0], src, stride ) \
+             + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
+    if( cost < bcost ) \
+    {                  \
+        bcost = cost;  \
+        bmx = mx;      \
+        bmy = my;      \
+    } \
+}
+
+#define COST_MV_SATD( mx, my ) \
 { \
     int stride = 16; \
     uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix, &stride, mx, my, bw, bh ); \
@@ -318,7 +308,7 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
     } \
 }
 
-static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters )
+static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters, int *p_halfpel_thresh, int b_refine_qpel )
 {
     const int bw = x264_pixel_size[m->i_pixel].w;
     const int bh = x264_pixel_size[m->i_pixel].h;
@@ -328,11 +318,13 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     const int b_chroma_me = h->mb.b_chroma_me && i_pixel <= PIXEL_8x8;
 
     DECLARE_ALIGNED( uint8_t, pix[16*16], 16 );
-    int step, i;
+    int omx, omy;
+    int i;
 
     int bmx = m->mv[0];
     int bmy = m->mv[1];
     int bcost = m->cost;
+
 
     /* try the subpel component of the predicted mv if it's close to
      * the result of the fullpel search */
@@ -341,22 +333,54 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
         int mx = X264_ABS(bmx - m->mvp[0]) < 4 ? m->mvp[0] : bmx;
         int my = X264_ABS(bmy - m->mvp[1]) < 4 ? m->mvp[1] : bmy;
         if( mx != bmx || my != bmy )
-            COST_MV( mx, my );
+            COST_MV_SAD( mx, my );
+    }
+    
+    /* hpel search */
+    for( i = hpel_iters; i > 0; i-- )
+    {
+        omx = bmx;
+        omy = bmy;
+        COST_MV_SAD( omx, omy - 2 );
+        COST_MV_SAD( omx, omy + 2 );
+        COST_MV_SAD( omx - 2, omy );
+        COST_MV_SAD( omx + 2, omy );
+        if( bmx == omx && bmy == omy )
+            break;
+    }
+    
+    if( !b_refine_qpel )
+    {
+        bcost = COST_MAX;
+        COST_MV_SATD( bmx, bmy );
+    }
+    
+    /* early termination when examining multiple reference frames */
+    if( p_halfpel_thresh )
+    {
+        if( (bcost*7)>>3 > *p_halfpel_thresh )
+        {
+            m->cost = bcost;
+            m->mv[0] = bmx;
+            m->mv[1] = bmy;
+            // don't need cost_mv
+            return;
+        }
+        else if( bcost < *p_halfpel_thresh )
+            *p_halfpel_thresh = bcost;
     }
 
-    for( step = 2; step >= 1; step-- )
+    /* qpel search */
+    for( i = qpel_iters; i > 0; i-- )
     {
-	for( i = step>1 ? hpel_iters : qpel_iters; i > 0; i-- )
-        {
-            int omx = bmx;
-            int omy = bmy;
-            COST_MV( omx, omy - step );
-            COST_MV( omx, omy + step );
-            COST_MV( omx - step, omy );
-            COST_MV( omx + step, omy );
-            if( bmx == omx && bmy == omy )
-                break;
-	}
+        omx = bmx;
+        omy = bmy;
+        COST_MV_SATD( omx, omy - 1 );
+        COST_MV_SATD( omx, omy + 1 );
+        COST_MV_SATD( omx - 1, omy );
+        COST_MV_SATD( omx + 1, omy );
+        if( bmx == omx && bmy == omy )
+            break;
     }
 
     m->cost = bcost;
