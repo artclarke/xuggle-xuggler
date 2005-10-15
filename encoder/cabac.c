@@ -30,6 +30,9 @@
 
 static inline void x264_cabac_encode_ue_bypass( x264_cabac_t *cb, int exp_bits, int val )
 {
+#ifdef RDO_SKIP_BS
+    cb->f8_bits_encoded += ( bs_size_ue( val + (1<<exp_bits)-1 ) - exp_bits ) << 8;
+#else
     int k;
     for( k = exp_bits; val >= (1<<k); k++ )
     {
@@ -39,6 +42,7 @@ static inline void x264_cabac_encode_ue_bypass( x264_cabac_t *cb, int exp_bits, 
     x264_cabac_encode_bypass( cb, 0 );
     while( k-- )
         x264_cabac_encode_bypass( cb, (val >> k)&0x01 );
+#endif
 }
 
 static inline void x264_cabac_mb_type_intra( x264_t *h, x264_cabac_t *cb, int i_mb_type,
@@ -52,6 +56,7 @@ static inline void x264_cabac_mb_type_intra( x264_t *h, x264_cabac_t *cb, int i_
     {
         x264_cabac_encode_decision( cb, ctx0, 1 );
         x264_cabac_encode_terminal( cb,       1 );
+        x264_cabac_encode_flush( cb );
     }
     else
     {
@@ -851,14 +856,14 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
 
 void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
 {
-    bs_t *s = cb->s;
     const int i_mb_type = h->mb.i_type;
-    const int i_mb_pos_start = x264_cabac_pos( cb );
-    int       i_mb_pos_tex = 0;
-    const int b_update_stats = (cb == &h->cabac);
-
     int i_list;
     int i;
+
+#ifndef RDO_SKIP_BS
+    const int i_mb_pos_start = x264_cabac_pos( cb );
+    int       i_mb_pos_tex;
+#endif
 
     /* Write the MB type */
     x264_cabac_mb_type( h, cb );
@@ -866,6 +871,10 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
     /* PCM special block type UNTESTED */
     if( i_mb_type == I_PCM )
     {
+#ifdef RDO_SKIP_BS
+        cb->f8_bits_encoded += (384*8) << 8;
+#else
+        bs_t *s = cb->s;
         bs_align_0( s );    /* not sure */
         /* Luma */
         for( i = 0; i < 16*16; i++ )
@@ -889,6 +898,7 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
             bs_write( s, 8, h->fenc->plane[2][y*h->mb.pic.i_stride[2]+x] );
         }
         x264_cabac_encode_init( cb, s );
+#endif
         return;
     }
 
@@ -1034,11 +1044,10 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
         }
     }
 
-    if( b_update_stats )
-    {
-        i_mb_pos_tex = x264_cabac_pos( cb );
-        h->stat.frame.i_hdr_bits += i_mb_pos_tex - i_mb_pos_start;
-    }
+#ifndef RDO_SKIP_BS
+    i_mb_pos_tex = x264_cabac_pos( cb );
+    h->stat.frame.i_hdr_bits += i_mb_pos_tex - i_mb_pos_start;
+#endif
 
     if( i_mb_type != I_16x16 )
     {
@@ -1091,12 +1100,11 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
         }
     }
 
-    if( b_update_stats )
-    {
-        if( IS_INTRA( i_mb_type ) )
-            h->stat.frame.i_itex_bits += x264_cabac_pos( cb ) - i_mb_pos_tex;
-        else
-            h->stat.frame.i_ptex_bits += x264_cabac_pos( cb ) - i_mb_pos_tex;
-    }
+#ifndef RDO_SKIP_BS
+    if( IS_INTRA( i_mb_type ) )
+        h->stat.frame.i_itex_bits += x264_cabac_pos( cb ) - i_mb_pos_tex;
+    else
+        h->stat.frame.i_ptex_bits += x264_cabac_pos( cb ) - i_mb_pos_tex;
+#endif
 }
 

@@ -716,7 +716,6 @@ static const int x264_transition_mps[64] =
     49,50,51,52,53,54,55,56,57,58,59,60,61,62,62,63,
 };
 
-#define FIX8(f) ((int)(f*(1<<8)))
 static const int x264_cabac_probability[128] =
 {
     FIX8(0.9812), FIX8(0.9802), FIX8(0.9792), FIX8(0.9781),
@@ -788,8 +787,6 @@ static const int x264_cabac_entropy[128] =
     FIX8(5.2106), FIX8(5.2859), FIX8(5.3610), FIX8(5.4362),
     FIX8(5.5114), FIX8(5.5866), FIX8(5.6618), FIX8(5.7370)
 };
-
-#undef FIX8
 
 
 /*****************************************************************************
@@ -1113,3 +1110,23 @@ void x264_cabac_encode_flush( x264_cabac_t *cb )
     bs_align_0( cb->s );
 }
 
+/*****************************************************************************
+ *
+ *****************************************************************************/
+void x264_cabac_size_decision( x264_cabac_t *cb, int i_ctx, int b )
+{
+    int i_state = cb->ctxstate[i_ctx].i_state;
+    int i_mps   = cb->ctxstate[i_ctx].i_mps;
+
+    if( b != i_mps )
+    {
+        cb->ctxstate[i_ctx].i_mps ^= ( i_state == 0 );
+        cb->ctxstate[i_ctx].i_state = x264_transition_lps[i_state];
+        cb->f8_bits_encoded += x264_cabac_entropy[ 64 + i_state ];
+    }
+    else
+    {
+        cb->ctxstate[i_ctx].i_state = x264_transition_mps[i_state];
+        cb->f8_bits_encoded += x264_cabac_entropy[ 63 - i_state ];
+    }
+}

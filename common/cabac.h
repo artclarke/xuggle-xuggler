@@ -49,6 +49,7 @@ typedef struct
     /* bit stream */
     int b_first_bit;
     int i_bits_outstanding;
+    int f8_bits_encoded; // only if using x264_cabac_size_decision()
     bs_t *s;
 
 } x264_cabac_t;
@@ -72,6 +73,8 @@ void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx_idx, int b );
 void x264_cabac_encode_bypass( x264_cabac_t *cb, int b );
 void x264_cabac_encode_terminal( x264_cabac_t *cb, int b );
 void x264_cabac_encode_flush( x264_cabac_t *cb );
+/* don't write the bitstream, just calculate cost: */
+void x264_cabac_size_decision( x264_cabac_t *cb, int i_ctx, int b );
 
 static inline int x264_cabac_pos( x264_cabac_t *cb )
 {

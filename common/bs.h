@@ -33,6 +33,7 @@ typedef struct bs_s
     uint8_t *p_end;
 
     int     i_left;    /* i_count number of available bits */
+    int     i_bits_encoded; /* RD only */
 } bs_t;
 
 static inline void bs_init( bs_t *s, void *p_data, int i_data )
