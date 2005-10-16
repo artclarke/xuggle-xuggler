@@ -12,6 +12,7 @@ echo "  --enable-mp4-output      enables mp4 output (using gpac)"
 echo "  --enable-vfw             compiles the VfW frontend"
 echo "  --enable-pthread         enables multithreaded encoding"
 echo "  --enable-debug           adds -g, doesn't strip"
+echo "  --enable-gprof           adds -pg, doesn't strip"
 echo "  --enable-visualize       enables visualization (X11 only)"
 echo "  --extra-asflags=EASFLAGS add EASFLAGS to ASFLAGS"
 echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS"
@@ -30,6 +31,7 @@ avis_input="no"
 mp4_output="no"
 pthread="no"
 debug="no"
+gprof="no"
 vfw="no"
 vis="no"
 
@@ -153,21 +155,21 @@ CFLAGS="$CFLAGS -DARCH_$ARCH -DSYS_$SYS"
 for opt do
     optarg="${opt#*=}"
     case "$opt" in
-	--prefix=*)
-	    prefix="$optarg"
-	    ;;
-	--exec-prefix=*)
-	    eprefix="$optarg"
-	    ;;
-	--bindir=*)
-	    bindir="$optarg"
-	    ;;
-	--libdir=*)
-	    libdir="$optarg"
-	    ;;
-	--includedir=*)
-	    includedir="$optarg"
-	    ;;
+        --prefix=*)
+            prefix="$optarg"
+            ;;
+        --exec-prefix=*)
+            eprefix="$optarg"
+            ;;
+        --bindir=*)
+            bindir="$optarg"
+            ;;
+        --libdir=*)
+            libdir="$optarg"
+            ;;
+        --includedir=*)
+            includedir="$optarg"
+            ;;
         --enable-avis-input)
             if [ $SYS = CYGWIN -o $SYS = MINGW ]; then
                 CFLAGS="$CFLAGS -DAVIS_INPUT"
@@ -209,6 +211,11 @@ for opt do
             CFLAGS="$CFLAGS -g"
             debug="yes"
             ;;
+        --enable-gprof)
+            CFLAGS="$CFLAGS -pg"
+            LDFLAGS="$LDFLAGS -pg"
+            gprof="yes"
+            ;;
         --enable-vfw)
             vfw="yes"
             ;;
@@ -224,7 +231,7 @@ for opt do
 done
 
 VFWFLAGS=
-if [ "$debug" != "yes" ]; then
+if [ "$debug" != "yes" -a "$gprof" != "yes" ]; then
     CFLAGS="$CFLAGS -s -fomit-frame-pointer"
     LDFLAGS="$LDFLAGS -s"
     VFW_LDFLAGS="$VFW_LDFLAGS -s"
@@ -266,6 +273,7 @@ echo "mp4 output: $mp4_output"
 echo "pthread:    $pthread"
 echo "vfw:        $vfw"
 echo "debug:      $debug"
+echo "gprof:      $gprof"
 echo "visualize:  $vis"
 echo
 echo "You can run 'make' now."
