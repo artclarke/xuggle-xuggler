@@ -301,16 +301,6 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
         bs_write_ue( s, sh->i_cabac_init_idc );
     }
     bs_write_se( s, sh->i_qp_delta );      /* slice qp delta */
-#if 0
-    if( sh->i_type == SLICE_TYPE_SP || sh->i_type == SLICE_TYPE_SI )
-    {
-        if( sh->i_type == SLICE_TYPE_SP )
-        {
-            bs_write1( s, sh->b_sp_for_swidth );
-        }
-        bs_write_se( s, sh->i_qs_delta );
-    }
-#endif
 
     if( sh->pps->b_deblocking_filter_control )
     {
@@ -1037,23 +1027,6 @@ static int x264_slice_write( x264_t *h )
     {
         x264_cabac_encode_flush( &h->cabac );
 
-#if 0
-        /* The standard doesn't explain why one should perform cabac byte stuffing,
-         * and I see no possible reason. Decoding works fine without it;
-         * JM and libavcodec don't even check whether it's present.
-         * Stuffing can cost up to 25% of the total bitrate and 3% of encode time
-         * in lossless mode. */
-
-        int i_cabac_word = ((h->cabac.i_sym_cnt
-                             - 96 * h->sps->i_mb_width * h->sps->i_mb_height) * 3/32
-                           - bs_pos(&h->out.bs)/8)/3;
-
-        while( i_cabac_word > 0 )
-        {
-            bs_write( &h->out.bs, 16, 0x0000 );
-            i_cabac_word--;
-        }
-#endif
     }
     else
     {
@@ -1600,16 +1573,6 @@ do_encode:
 #ifdef DEBUG_DUMP_FRAME
     /* Dump reconstructed frame */
     x264_frame_dump( h, frame_psnr, "fdec.yuv" );
-#endif
-#if 0
-    if( h->i_ref0 > 0 )
-    {
-        x264_frame_dump( h, h->fref0[0], "ref0.yuv" );
-    }
-    if( h->i_ref1 > 0 )
-    {
-        x264_frame_dump( h, h->fref1[0], "ref1.yuv" );
-    }
 #endif
     return 0;
 }

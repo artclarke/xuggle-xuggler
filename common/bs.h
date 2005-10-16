@@ -97,48 +97,6 @@ static inline uint32_t bs_read( bs_t *s, int i_count )
     return( i_result );
 }
 
-#if 0
-/* Only > i386 */
-static uint32_t bswap32( uint32_t x )
-{
-    asm( "bswap   %0": "=r" (x):"0" (x));
-    return x;
-}
-/* work only for i_count <= 32 - 7 */
-static inline uint32_t bs_read( bs_t *s, int i_count )
-{
-    if( s->p < s->p_end && i_count > 0 )
-    {
-#if 0
-        uint32_t i_cache = ((s->p[0] << 24)+(s->p[1] << 16)+(s->p[2] << 8)+s->p[3]) << (8-s->i_left);
-#else
-        uint32_t i_cache = bswap32( *((uint32_t*)s->p) ) << (8-s->i_left);
-#endif
-        uint32_t i_ret = i_cache >> ( 32 - i_count);
-
-        s->i_left -= i_count;
-#if 0
-        if( s->i_left <= 0 )
-        {
-            int i_skip = (8-s->i_left) >> 3;
-
-            s->p += i_skip;
-
-            s->i_left += i_skip << 3;
-        }
-#else
-        while( s->i_left <= 0 )
-        {
-            s->p++;
-            s->i_left += 8;
-        }
-#endif
-        return i_ret;
-    }
-    return 0;
-}
-
-#endif
 static inline uint32_t bs_read1( bs_t *s )
 {
 
@@ -160,17 +118,12 @@ static inline uint32_t bs_read1( bs_t *s )
 }
 static inline uint32_t bs_show( bs_t *s, int i_count )
 {
-#if 0
-    bs_t     s_tmp = *s;
-    return bs_read( &s_tmp, i_count );
-#else
     if( s->p < s->p_end && i_count > 0 )
     {
         uint32_t i_cache = ((s->p[0] << 24)+(s->p[1] << 16)+(s->p[2] << 8)+s->p[3]) << (8-s->i_left);
         return( i_cache >> ( 32 - i_count) );
     }
     return 0;
-#endif
 }
 
 /* TODO optimize */

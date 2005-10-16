@@ -259,6 +259,8 @@ void x264_slicetype_analyse( x264_t *h )
     int num_frames;
     int keyint_limit;
     int j;
+    int i_mb_count = (h->sps->i_mb_width - 2) * (h->sps->i_mb_height - 2);
+    int cost1p0, cost2p0, cost1b1, cost2p1;
 
     if( !h->frames.last_nonb )
         return;
@@ -278,91 +280,38 @@ no_b_frames:
 
     x264_lowres_context_init( h, &a );
 
-#if 0
-    /* BFS over possible frame types for minimum total SATD cost.
-     * requires higher encoding delay to be effective. */
-    {
-        int p0, p1, b;
-        struct {
-            int64_t score;
-            char path[X264_BFRAME_MAX+1];
-        } paths[X264_BFRAME_MAX+1];
+    cost2p1 = x264_slicetype_frame_cost( h, &a, frames, 0, 2, 2 );
+    if( frames[2]->i_intra_mbs[2] > i_mb_count / 2 )
+        goto no_b_frames;
 
-        for( p1 = 1; frames[p1]; p1++ )
-            for( p0 = X264_MAX(0, p1 - h->param.i_bframe - 1); p0 < p1; p0++ )
-                for( b = p0+1; b <= p1; b++ )
-                    x264_slicetype_frame_cost( h, &a, frames, p0, p1, b );
-        p1--;
-
-        paths[0].score = 0;
-
-        for( j = 1; j <= p1; j++ )
-        {
-            int k, i;
-            paths[j].score = INT_MAX;
-            
-            for( k = 1; k <= X264_MIN( j, h->param.i_bframe + 1 ); k++ )
-            {
-                int64_t sum = paths[j-k].score;
-                for( i = 0; i < k; i++ )
-                    sum += frames[j-k+i+1]->i_cost_est[(j-k+i+1) - (j-k)][j - (j-k+i+1)];
-                if( sum < paths[j].score )
-                {
-                    paths[j].score = sum;
-                    for( i = 0; i < j-k; i++ )
-                        paths[j].path[i] = paths[j-k].path[i];
-                    for( i = j-k; i < j-1; i++ )
-                        paths[j].path[i] = 'B';
-                    paths[j].path[j-1] = 'P';
-                    paths[j].path[j] = 0;
-                    fprintf( stderr, "path: %-8s %7lld \n", paths[j].path, sum );
-                }
-            }
-        }
-
-        for( j = 0; paths[p1].path[j] == 'B'; j++ )
-            frames[j+1]->i_type = X264_TYPE_B;
-        frames[j+1]->i_type = X264_TYPE_P;
-    }
-#else
-    {
-        int i_mb_count = (h->sps->i_mb_width - 2) * (h->sps->i_mb_height - 2);
-        int cost1p0, cost2p0, cost1b1, cost2p1;
-
-        cost2p1 = x264_slicetype_frame_cost( h, &a, frames, 0, 2, 2 );
-        if( frames[2]->i_intra_mbs[2] > i_mb_count / 2 )
-            goto no_b_frames;
-
-        cost2p0 = x264_slicetype_frame_cost( h, &a, frames, 1, 2, 2 );
-        cost1p0 = x264_slicetype_frame_cost( h, &a, frames, 0, 1, 1 );
-        cost1b1 = x264_slicetype_frame_cost( h, &a, frames, 0, 2, 1 );
-//      fprintf( stderr, "PP: %d + %d <=> BP: %d + %d \n",
-//               cost1p0, cost2p0, cost1b1, cost2p1 );
-        if( cost1p0 + cost2p0 < cost1b1 + cost2p1 )
-            goto no_b_frames;
+    cost2p0 = x264_slicetype_frame_cost( h, &a, frames, 1, 2, 2 );
+    cost1p0 = x264_slicetype_frame_cost( h, &a, frames, 0, 1, 1 );
+    cost1b1 = x264_slicetype_frame_cost( h, &a, frames, 0, 2, 1 );
+//  fprintf( stderr, "PP: %d + %d <=> BP: %d + %d \n",
+//           cost1p0, cost2p0, cost1b1, cost2p1 );
+    if( cost1p0 + cost2p0 < cost1b1 + cost2p1 )
+        goto no_b_frames;
 
 // arbitrary and untuned
 #define INTER_THRESH 300
 #define P_SENS_BIAS (50 - h->param.i_bframe_bias)
-        frames[1]->i_type = X264_TYPE_B;
+    frames[1]->i_type = X264_TYPE_B;
 
-        for( j = 2; j <= X264_MIN( h->param.i_bframe, num_frames-1 ); j++ )
+    for( j = 2; j <= X264_MIN( h->param.i_bframe, num_frames-1 ); j++ )
+    {
+        int pthresh = X264_MAX(INTER_THRESH - P_SENS_BIAS * (j-1), INTER_THRESH/10);
+        int pcost = x264_slicetype_frame_cost( h, &a, frames, 0, j+1, j+1 );
+//      fprintf( stderr, "frm%d+%d: %d <=> %d, I:%d/%d \n",
+//               frames[0]->i_frame, j-1, pthresh, pcost/i_mb_count,
+//               frames[j+1]->i_intra_mbs[j+1], i_mb_count );
+        if( pcost > pthresh*i_mb_count || frames[j+1]->i_intra_mbs[j+1] > i_mb_count/3 )
         {
-            int pthresh = X264_MAX(INTER_THRESH - P_SENS_BIAS * (j-1), INTER_THRESH/10);
-            int pcost = x264_slicetype_frame_cost( h, &a, frames, 0, j+1, j+1 );
-//          fprintf( stderr, "frm%d+%d: %d <=> %d, I:%d/%d \n",
-//                   frames[0]->i_frame, j-1, pthresh, pcost/i_mb_count,
-//                   frames[j+1]->i_intra_mbs[j+1], i_mb_count );
-            if( pcost > pthresh*i_mb_count || frames[j+1]->i_intra_mbs[j+1] > i_mb_count/3 )
-            {
-                frames[j]->i_type = X264_TYPE_P;
-                break;
-            }
-            else
-                frames[j]->i_type = X264_TYPE_B;
+            frames[j]->i_type = X264_TYPE_P;
+            break;
         }
+        else
+            frames[j]->i_type = X264_TYPE_B;
     }
-#endif
 }
 
 void x264_slicetype_decide( x264_t *h )

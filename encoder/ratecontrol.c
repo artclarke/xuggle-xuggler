@@ -162,16 +162,6 @@ static inline double qscale2bits(ratecontrol_entry_t *rce, double qscale)
            + rce->mv_bits * pow( X264_MAX(rce->qscale, 12) / X264_MAX(qscale, 12), 0.5 );
 }
 
-/* There is no analytical inverse to the above formula. */
-#if 0
-static inline double bits2qscale(ratecontrol_entry_t *rce, double bits)
-{
-    if(bits<1.0)
-        bits = 1.0;
-    return (rce->i_tex_bits + rce->p_tex_bits + rce->mv_bits + .1) * rce->qscale / bits;
-}
-#endif
-
 
 int x264_ratecontrol_new( x264_t *h )
 {
@@ -249,12 +239,6 @@ int x264_ratecontrol_new( x264_t *h )
         rc->pred[i].count= 1.0;
         rc->pred[i].decay= 0.5;
     }
-#if 0 // FIXME: do we want to assign lmin/lmax based on ip_factor, or leave them all the same?
-    rc->lmin[SLICE_TYPE_I] /= fabs(h->param.f_ip_factor);
-    rc->lmax[SLICE_TYPE_I] /= fabs(h->param.f_ip_factor);
-    rc->lmin[SLICE_TYPE_B] *= fabs(h->param.f_pb_factor);
-    rc->lmax[SLICE_TYPE_B] *= fabs(h->param.f_pb_factor);
-#endif
 
     if( parse_zones( h ) < 0 )
         return -1;

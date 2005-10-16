@@ -234,125 +234,6 @@ static inline void mc_hc( uint8_t *src, int i_src_stride, uint8_t *dst, int i_ds
     }
 }
 
-#if 0
-/* mc I+H */
-static void mc_xy10( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    uint8_t tmp[16*16];
-    mc_hh( src, i_src_stride, tmp, i_width, i_width, i_height );
-    pixel_avg( dst, i_dst_stride, src, i_src_stride, tmp, i_width, i_width, i_height );
-}
-static void mc_xy30( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    uint8_t tmp[16*16];
-    mc_hh( src, i_src_stride, tmp, i_width, i_width, i_height );
-    pixel_avg( dst, i_dst_stride, src+1, i_src_stride, tmp, i_width, i_width, i_height );
-}
-/* mc I+V */
-static void mc_xy01( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    uint8_t tmp[16*16];
-    mc_hv( src, i_src_stride, tmp, i_width, i_width, i_height );
-    pixel_avg( dst, i_dst_stride, src, i_src_stride, tmp, i_width, i_width, i_height );
-}
-static void mc_xy03( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    uint8_t tmp[16*16];
-    mc_hv( src, i_src_stride, tmp, i_width, i_width, i_height );
-    pixel_avg( dst, i_dst_stride, src+i_src_stride, i_src_stride, tmp, i_width, i_width, i_height );
-}
-/* H+V */
-static void mc_xy11( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-
-    mc_hv( src, i_src_stride, tmp1, i_width, i_width, i_height );
-    mc_hh( src, i_src_stride, tmp2, i_width, i_width, i_height );
-    pixel_avg( dst, i_dst_stride, tmp1, i_width, tmp2, i_width, i_width, i_height );
-}
-static void mc_xy31( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-
-    mc_hv( src+1, i_src_stride, tmp1, i_width, i_width, i_height );
-    mc_hh( src,   i_src_stride, tmp2, i_width, i_width, i_height );
-    pixel_avg( dst, i_dst_stride, tmp1, i_width, tmp2, i_width, i_width, i_height );
-}
-static void mc_xy13( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-
-    mc_hv( src,              i_src_stride, tmp1, i_width, i_width, i_height );
-    mc_hh( src+i_src_stride, i_src_stride, tmp2, i_width, i_width, i_height );
-    pixel_avg( dst, i_dst_stride, tmp1, i_width, tmp2, i_width, i_width, i_height );
-}
-static void mc_xy33( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-
-    mc_hv( src+1,            i_src_stride, tmp1, i_width, i_width, i_height );
-    mc_hh( src+i_src_stride, i_src_stride, tmp2, i_width, i_width, i_height );
-    pixel_avg( dst, i_dst_stride, tmp1, i_width, tmp2, i_width, i_width, i_height );
-}
-static void mc_xy21( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-
-    mc_hc( src, i_src_stride, tmp1, i_width, i_width, i_height );
-    mc_hh( src, i_src_stride, tmp2, i_width, i_width, i_height );
-    pixel_avg( dst, i_dst_stride, tmp1, i_width, tmp2, i_width, i_width, i_height );
-}
-static void mc_xy12( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-
-    mc_hc( src, i_src_stride, tmp1, i_width, i_width, i_height );
-    mc_hv( src, i_src_stride, tmp2, i_width, i_width, i_height );
-    pixel_avg( dst, i_dst_stride, tmp1, i_width, tmp2, i_width, i_width, i_height );
-}
-static void mc_xy32( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-
-    mc_hc( src,   i_src_stride, tmp1, i_width, i_width, i_height );
-    mc_hv( src+1, i_src_stride, tmp2, i_width, i_width, i_height );
-    pixel_avg( dst, i_dst_stride, tmp1, i_width, tmp2, i_width, i_width, i_height );
-}
-static void mc_xy23( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    uint8_t tmp1[16*16];
-    uint8_t tmp2[16*16];
-
-    mc_hc( src,              i_src_stride, tmp1, i_width, i_width, i_height );
-    mc_hh( src+i_src_stride, i_src_stride, tmp2, i_width, i_width, i_height );
-    pixel_avg( dst, i_dst_stride, tmp1, i_width, tmp2, i_width, i_width, i_height );
-}
-
-static void motion_compensation_luma( uint8_t *src, int i_src_stride,
-                                      uint8_t *dst, int i_dst_stride,
-                                      int mvx,int mvy,
-                                      int i_width, int i_height )
-{
-    static pf_mc_t pf_mc[4][4] =    /*XXX [dqy][dqx] */
-    {
-        { mc_copy,  mc_xy10,    mc_hh,      mc_xy30 },
-        { mc_xy01,  mc_xy11,    mc_xy21,    mc_xy31 },
-        { mc_hv,    mc_xy12,    mc_hc,      mc_xy32 },
-        { mc_xy03,  mc_xy13,    mc_xy23,    mc_xy33 },
-    };
-
-    src += (mvy >> 2) * i_src_stride + (mvx >> 2);
-    pf_mc[mvy&0x03][mvx&0x03]( src, i_src_stride, dst, i_dst_stride, i_width, i_height );
-}
-#endif
-
 static void mc_luma( uint8_t *src[4], int i_src_stride,
                      uint8_t *dst,    int i_dst_stride,
                      int mvx,int mvy,
@@ -517,11 +398,6 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 #endif
 }
 
-#if 0
-void get_funcs_mmx(pf_mc_t*, pf_mc_t*, pf_mc_t*);
-void get_funcs_sse2(pf_mc_t*, pf_mc_t*, pf_mc_t*);
-#endif
-
 extern void x264_horizontal_filter_mmxext( uint8_t *dst, int i_dst_stride,
                                            uint8_t *src, int i_src_stride,
                                            int i_width, int i_height );
@@ -539,18 +415,6 @@ void x264_frame_filter( int cpu, x264_frame_t *frame )
     pf_mc_t int_h = mc_hh;
     pf_mc_t int_v = mc_hv;
     pf_mc_t int_hv = mc_hc;
-
-#if 0
-#ifdef HAVE_MMXEXT
-    if( cpu&X264_CPU_MMXEXT )
-        get_funcs_mmx(&int_h, &int_v, &int_hv);
-#endif
-
-#ifdef HAVE_SSE2
-    if( cpu&X264_CPU_SSE2 )
-        get_funcs_sse2(&int_h, &int_v, &int_hv);
-#endif
-#endif
 
 #ifdef HAVE_MMXEXT
     if ( cpu & X264_CPU_MMXEXT )

@@ -141,23 +141,6 @@ typedef struct
     int b_pic_order;
     int i_num_slice_groups;
 
-#if 0
-    /* FIXME: if this stuff is ever needed, move SPS/PPS from x264_t
-     * to the heap, to avoid excessive memcpy'ing with threads. */
-    int i_slice_group_map_type;
-    /* i_slice_group_map_type == 0 */
-    int i_run_length[256];      /* FIXME */
-    /* i_slice_group_map_type == 2 */
-    int i_top_left[256];        /* FIXME */
-    int i_bottom_right[256];    /* FIXME */
-    /* i_slice_group_map_type == 3, 4, 5 */
-    int b_slice_group_change_direction;
-    int i_slice_group_change_rate;
-    /* i_slice_group_map_type == 6 */
-    int i_pic_size_in_map_units;
-    int i_slice_group_id[256];  /* FIXME */
-#endif
-
     int i_num_ref_idx_l0_active;
     int i_num_ref_idx_l1_active;
 

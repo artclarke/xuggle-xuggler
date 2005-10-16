@@ -366,41 +366,6 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
     pps->b_pic_order = 0;
     pps->i_num_slice_groups = 1;
 
-#if 0
-    if( pps->i_num_slice_groups > 1 )
-    {
-        pps->i_slice_group_map_type = 0;
-        if( pps->i_slice_group_map_type == 0 )
-        {
-            for( i = 0; i < pps->i_num_slice_groups; i++ )
-            {
-                pps->i_run_length[i] = 1;
-            }
-        }
-        else if( pps->i_slice_group_map_type == 2 )
-        {
-            for( i = 0; i < pps->i_num_slice_groups; i++ )
-            {
-                pps->i_top_left[i] = 0;
-                pps->i_bottom_right[i] = 0;
-            }
-        }
-        else if( pps->i_slice_group_map_type >= 3 &&
-                 pps->i_slice_group_map_type <= 5 )
-        {
-            pps->b_slice_group_change_direction = 0;
-            pps->i_slice_group_change_rate = 0;
-        }
-        else if( pps->i_slice_group_map_type == 6 )
-        {
-            pps->i_pic_size_in_map_units = 1;
-            for( i = 0; i < pps->i_pic_size_in_map_units; i++ )
-            {
-                pps->i_slice_group_id[i] = 0;
-            }
-        }
-    }
-#endif
     pps->i_num_ref_idx_l0_active = 1;
     pps->i_num_ref_idx_l1_active = 1;
 
@@ -451,47 +416,6 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
     bs_write( s, 1, pps->b_cabac );
     bs_write( s, 1, pps->b_pic_order );
     bs_write_ue( s, pps->i_num_slice_groups - 1 );
-
-#if 0
-    if( pps->i_num_slice_groups > 1 )
-    {
-        int i;
-
-        bs_write_ue( s, pps->i_slice_group_map_type );
-        if( pps->i_slice_group_map_type == 0 )
-        {
-            for( i = 0; i < pps->i_num_slice_groups; i++ )
-            {
-                bs_write_ue( s, pps->i_run_length[i] - 1 );
-            }
-        }
-        else if( pps->i_slice_group_map_type == 2 )
-        {
-            for( i = 0; i < pps->i_num_slice_groups; i++ )
-            {
-                bs_write_ue( s, pps->i_top_left[i] );
-                bs_write_ue( s, pps->i_bottom_right[i] );
-            }
-        }
-        else if( pps->i_slice_group_map_type >= 3 &&
-                 pps->i_slice_group_map_type <= 5 )
-        {
-            bs_write( s, 1, pps->b_slice_group_change_direction );
-            bs_write_ue( s, pps->b_slice_group_change_direction - 1 );
-        }
-        else if( pps->i_slice_group_map_type == 6 )
-        {
-            bs_write_ue( s, pps->i_pic_size_in_map_units - 1 );
-            for( i = 0; i < pps->i_pic_size_in_map_units; i++ )
-            {
-                /* FIXME */
-                /* bs_write( s, ceil( log2( pps->i_pic_size_in_map_units +1 ) ),
-                 *              pps->i_slice_group_id[i] );
-                 */
-            }
-        }
-    }
-#endif
 
     bs_write_ue( s, pps->i_num_ref_idx_l0_active - 1 );
     bs_write_ue( s, pps->i_num_ref_idx_l1_active - 1 );

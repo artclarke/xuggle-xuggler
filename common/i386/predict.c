@@ -155,24 +155,6 @@ static void predict_16x16_h( uint8_t *src, int i_stride )
 
 extern void predict_16x16_v_mmx( uint8_t *src, int i_stride );
 
-#if 0
-static void predict_16x16_v( uint8_t *src, int i_stride )
-{
-    int i;
-
-    asm volatile(
-        "movq  (%0), %%mm0\n"
-        "movq 8(%0), %%mm1\n" :: "r"(&src[-i_stride]) );
-
-    for( i = 0; i < 16; i++ )
-    {
-        asm volatile(
-            "movq %%mm0,  (%0)\n"
-            "movq %%mm1, 8(%0)\n" :: "r"(src) );
-        src += i_stride;
-    }
-}
-#endif
 
 /****************************************************************************
  * 8x8 prediction for intra chroma block DC, H, V, P
@@ -308,21 +290,6 @@ static void predict_8x8c_h( uint8_t *src, int i_stride )
 }
 
 extern void predict_8x8c_v_mmx( uint8_t *src, int i_stride );
-
-#if 0
-static void predict_8x8c_v( uint8_t *src, int i_stride )
-{
-    int i;
-
-    asm volatile( "movq  (%0), %%mm0\n" :: "r"(&src[-i_stride]) );
-
-    for( i = 0; i < 8; i++ )
-    {
-        asm volatile( "movq %%mm0,  (%0)\n" :: "r"(src) );
-        src += i_stride;
-    }
-}
-#endif
 
 
 /****************************************************************************

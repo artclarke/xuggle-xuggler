@@ -344,22 +344,6 @@ int     x264_encoder_encode ( x264_t *, x264_nal_t **, int *, x264_picture_t *, 
 void    x264_encoder_close  ( x264_t * );
 
 /* XXX: decoder isn't working so no need to export it */
-#if 0
-/****************************************************************************
- * Decoder functions:
- ****************************************************************************
- * XXX: Not yet working so do not try ...
- ****************************************************************************/
-/* x264_decoder_open:
- */
-x264_t *x264_decoder_open   ( x264_param_t * );
-/* x264_decoder_decode:
- */
-int     x264_decoder_decode ( x264_t *, x264_picture_t **, x264_nal_t * );
-/* x264_decoder_close:
- */
-void    x264_decoder_close  ( x264_t * );
-#endif
 
 /****************************************************************************
  * Private stuff for internal usage:
