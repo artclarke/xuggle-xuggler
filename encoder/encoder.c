@@ -352,6 +352,10 @@ static int x264_validate_parameters( x264_t *h )
     }
 #endif
 
+    if( h->param.rc.i_rf_constant > 0 )
+        h->param.rc.i_qp_constant = h->param.rc.i_rf_constant;
+    h->param.rc.i_rf_constant = x264_clip3( h->param.rc.i_rf_constant, 0, 51 );
+    h->param.rc.i_qp_constant = x264_clip3( h->param.rc.i_qp_constant, 0, 51 );
     if( !h->param.rc.b_cbr && h->param.rc.i_qp_constant == 0 )
     {
         h->mb.b_lossless = 1;
@@ -412,7 +416,6 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.f_qblur = 0;
     if( h->param.rc.f_complexity_blur < 0 )
         h->param.rc.f_complexity_blur = 0;
-    h->param.rc.i_qp_constant = x264_clip3(h->param.rc.i_qp_constant, 0, 51);
 
     return 0;
 }
@@ -519,7 +522,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->frames.i_max_ref1 = h->sps->vui.i_num_reorder_frames;
     h->frames.i_max_dpb  = h->sps->vui.i_max_dec_frame_buffering + 1;
     h->frames.b_have_lowres = !h->param.rc.b_stat_read
-                            && ( h->param.rc.b_cbr || h->param.b_bframe_adaptive );
+        && ( h->param.rc.b_cbr || h->param.rc.i_rf_constant || h->param.b_bframe_adaptive );
 
     for( i = 0; i < X264_BFRAME_MAX + 3; i++ )
     {

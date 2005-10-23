@@ -206,6 +206,7 @@ static void Help( x264_param_t *defaults )
              "\n"
              "  -q, --qp <integer>          Set QP (0=lossless) [%d]\n"
              "  -B, --bitrate <integer>     Set bitrate\n"
+             "      --crf <integer>         Quality-based VBR (nominal QP)\n"
              "      --qpmin <integer>       Set min QP [%d]\n"
              "      --qpmax <integer>       Set max QP [%d]\n"
              "      --qpstep <integer>      Set max QP step [%d]\n"
@@ -470,6 +471,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_COLOURMATRIX 312
 #define OPT_CHROMALOC 313
 #define OPT_MIXED_REFS 314
+#define OPT_CRF 315
 
         static struct option long_options[] =
         {
@@ -489,6 +491,7 @@ static int  Parse( int argc, char **argv,
             { "qpmin",   required_argument, NULL, OPT_QPMIN },
             { "qpmax",   required_argument, NULL, OPT_QPMAX },
             { "qpstep",  required_argument, NULL, OPT_QPSTEP },
+            { "crf",     required_argument, NULL, OPT_CRF },
             { "ref",     required_argument, NULL, 'r' },
             { "no-asm",  no_argument,       NULL, 'C' },
             { "sar",     required_argument, NULL, OPT_SAR },
@@ -570,6 +573,9 @@ static int  Parse( int argc, char **argv,
             case 'B':
                 param->rc.i_bitrate = atol( optarg );
                 param->rc.b_cbr = 1;
+                break;
+            case OPT_CRF:
+                param->rc.i_rf_constant = atol( optarg );
                 break;
             case 'b':
                 param->i_bframe = atol( optarg );

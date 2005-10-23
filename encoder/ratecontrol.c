@@ -105,6 +105,7 @@ struct x264_ratecontrol_t
     double cbr_decay;
     double short_term_cplxsum;
     double short_term_cplxcount;
+    double rate_factor_constant;
 
     /* 2pass stuff */
     FILE *p_stat_file_out;
@@ -173,7 +174,7 @@ int x264_ratecontrol_new( x264_t *h )
     h->rc = rc = x264_malloc( sizeof( x264_ratecontrol_t ) );
     memset(rc, 0, sizeof(*rc));
 
-    rc->b_abr = h->param.rc.b_cbr && !h->param.rc.b_stat_read;
+    rc->b_abr = ( h->param.rc.b_cbr || h->param.rc.i_rf_constant ) && !h->param.rc.b_stat_read;
     rc->b_2pass = h->param.rc.b_cbr && h->param.rc.b_stat_read;
     h->mb.b_variable_qp = 0;
     
@@ -189,6 +190,8 @@ int x264_ratecontrol_new( x264_t *h )
     rc->last_non_b_pict_type = -1;
     rc->cbr_decay = 1.0;
 
+    if( rc->b_2pass && h->param.rc.i_rf_constant )
+        x264_log(h, X264_LOG_ERROR, "constant rate-factor is incompatible with 2pass.\n");
     if( h->param.rc.i_vbv_max_bitrate < h->param.rc.i_bitrate &&
         h->param.rc.i_vbv_max_bitrate > 0)
         x264_log(h, X264_LOG_ERROR, "max bitrate less than average bitrate, ignored.\n");
@@ -217,11 +220,19 @@ int x264_ratecontrol_new( x264_t *h )
     {
         /* FIXME shouldn't need to arbitrarily specify a QP,
          * but this is more robust than BPP measures */
-#define ABR_INIT_QP 24
+#define ABR_INIT_QP ( h->param.rc.i_rf_constant > 0 ? h->param.rc.i_rf_constant : 24 )
         rc->accum_p_norm = .01;
         rc->accum_p_qp = ABR_INIT_QP * rc->accum_p_norm;
         rc->cplxr_sum = .01;
         rc->wanted_bits_window = .01;
+    }
+
+    if( h->param.rc.i_rf_constant )
+    {
+        /* arbitrary rescaling to make CRF somewhat similar to QP */
+        double base_cplx = h->mb.i_mb_count * (h->param.i_bframe ? 120 : 80);
+        rc->rate_factor_constant = pow( base_cplx, 1 - h->param.rc.f_qcompress )
+                                 / qp2qscale( h->param.rc.i_rf_constant );
     }
 
     rc->qp_constant[SLICE_TYPE_P] = h->param.rc.i_qp_constant;
@@ -895,12 +906,21 @@ static float rate_estimate_qscale(x264_t *h, int pict_type)
             rce.s_count = 0;
             rce.qscale = 1;
             rce.pict_type = pict_type;
-            q = get_qscale(h, &rce, rcc->wanted_bits_window / rcc->cplxr_sum, h->fenc->i_frame);
 
-            wanted_bits = h->fenc->i_frame * rcc->bitrate / rcc->fps;
-            abr_buffer *= X264_MAX( 1, sqrt(h->fenc->i_frame/25) );
-            overflow = x264_clip3f( 1.0 + (total_bits - wanted_bits) / abr_buffer, .5, 2 );
-            q *= overflow;
+            if( h->param.rc.i_rf_constant )
+            {
+                q = get_qscale( h, &rce, rcc->rate_factor_constant, h->fenc->i_frame );
+                overflow = 1;
+            }
+            else
+            {
+                q = get_qscale( h, &rce, rcc->wanted_bits_window / rcc->cplxr_sum, h->fenc->i_frame );
+
+                wanted_bits = h->fenc->i_frame * rcc->bitrate / rcc->fps;
+                abr_buffer *= X264_MAX( 1, sqrt(h->fenc->i_frame/25) );
+                overflow = x264_clip3f( 1.0 + (total_bits - wanted_bits) / abr_buffer, .5, 2 );
+                q *= overflow;
+            }
 
             if( pict_type == SLICE_TYPE_I
                 /* should test _next_ pict type, but that isn't decided yet */
