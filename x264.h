@@ -353,6 +353,7 @@ void    x264_encoder_close  ( x264_t * );
 #   ifdef _MSC_VER
 #       define inline __inline
 #       define DECLARE_ALIGNED( type, var, n ) __declspec(align(n)) type var
+#		define strncasecmp(s1, s2, n) strnicmp(s1, s2, n)
 #   else
 #       define DECLARE_ALIGNED( type, var, n ) type var __attribute__((aligned(n)))
 #   endif

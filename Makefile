@@ -33,6 +33,7 @@ ASMSRC  = common/amd64/dct-a.asm common/amd64/cpu-a.asm \
           common/amd64/mc-a2.asm common/amd64/predict-a.asm \
           common/amd64/pixel-sse2.asm common/amd64/quant-a.asm
 OBJASM  = $(ASMSRC:%.asm=%.o)
+ASFLAGS += -Icommon/amd64
 endif
 
 # AltiVec optims
@@ -71,6 +72,7 @@ x264vfw.dll: libx264.a $(wildcard vfw/*.c vfw/*.h)
 checkasm: testing/checkasm.o libx264.a
 	$(CC) -o $@ $< libx264.a $(LDFLAGS)
 
+common/amd64/*.o: common/amd64/amd64inc.asm
 %.o: %.asm
 	$(AS) $(ASFLAGS) -o $@ $<
 

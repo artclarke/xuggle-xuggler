@@ -36,20 +36,7 @@ BITS 64
 ; Macros and other preprocessor constants
 ;=============================================================================
 
-%ifdef __PIC__
-	%define GLOBAL wrt rip
-%else
-	%define GLOBAL
-%endif
-
-%macro cglobal 1
-	%ifdef PREFIX
-		global _%1
-		%define %1 _%1
-	%else
-		global %1
-	%endif
-%endmacro
+%include "amd64inc.asm"
 
 %macro MMX_ZERO 1
     pxor    %1, %1
@@ -165,13 +152,13 @@ cglobal x264_dct4x4dc_mmxext
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl dct4x4dc( int16_t d[4][4] )
+;   void dct4x4dc( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
 x264_dct4x4dc_mmxext:
-    movq    mm0,        [rdi+ 0]
-    movq    mm1,        [rdi+ 8]
-    movq    mm2,        [rdi+16]
-    movq    mm3,        [rdi+24]
+    movq    mm0,        [parm1q+ 0]
+    movq    mm1,        [parm1q+ 8]
+    movq    mm2,        [parm1q+16]
+    movq    mm3,        [parm1q+24]
 
     MMX_SUMSUB_BADC     mm1, mm0, mm3, mm2          ; mm1=s01  mm0=d01  mm3=s23  mm2=d23
     MMX_SUMSUB_BADC     mm3, mm1, mm2, mm0          ; mm3=s01+s23  mm1=s01-s23  mm2=d01+d23  mm0=d01-d23
@@ -187,28 +174,28 @@ x264_dct4x4dc_mmxext:
     paddw   mm0,        mm6
     paddw   mm4,        mm6
     psraw   mm0,        1
-    movq    [rdi+ 0],   mm0
+    movq    [parm1q+ 0],mm0
     psraw   mm4,        1
-    movq    [rdi+ 8],   mm4
+    movq    [parm1q+ 8],mm4
     paddw   mm1,        mm6
     paddw   mm3,        mm6
     psraw   mm1,        1
-    movq    [rdi+16],   mm1
+    movq    [parm1q+16],mm1
     psraw   mm3,        1
-    movq    [rdi+24],   mm3
+    movq    [parm1q+24],mm3
     ret
 
 cglobal x264_idct4x4dc_mmxext
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_idct4x4dc_mmxext( int16_t d[4][4] )
+;   void x264_idct4x4dc_mmxext( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
 x264_idct4x4dc_mmxext:
-    movq    mm0, [rdi+ 0]
-    movq    mm1, [rdi+ 8]
-    movq    mm2, [rdi+16]
-    movq    mm3, [rdi+24]
+    movq    mm0, [parm1q+ 0]
+    movq    mm1, [parm1q+ 8]
+    movq    mm2, [parm1q+16]
+    movq    mm3, [parm1q+24]
 
     MMX_SUMSUB_BADC     mm1, mm0, mm3, mm2          ; mm1=s01  mm0=d01  mm3=s23  mm2=d23
     MMX_SUMSUB_BADC     mm3, mm1, mm2, mm0          ; mm3=s01+s23 mm1=s01-s23 mm2=d01+d23 mm0=d01-d23
@@ -220,24 +207,33 @@ x264_idct4x4dc_mmxext:
 
     MMX_TRANSPOSE       mm0, mm2, mm3, mm4, mm1     ; in: mm0, mm2, mm3, mm4  out: mm0, mm4, mm1, mm3
 
-    movq    [rdi+ 0],   mm0
-    movq    [rdi+ 8],   mm4
-    movq    [rdi+16],   mm1
-    movq    [rdi+24],   mm3
+    movq    [parm1q+ 0], mm0
+    movq    [parm1q+ 8], mm4
+    movq    [parm1q+16], mm1
+    movq    [parm1q+24], mm3
     ret
 
 cglobal x264_sub4x4_dct_mmxext
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_sub4x4_dct_mmxext( int16_t dct[4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+;   void x264_sub4x4_dct_mmxext( int16_t dct[4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 ;-----------------------------------------------------------------------------
 x264_sub4x4_dct_mmxext:
-    push    rbx
-    mov     rax, rsi        ; pix1
-    movsxd  rbx, edx        ; i_pix1
-;   mov     rcx, rcx        ; pix2
-    movsxd  rdx, r8d        ; i_pix2
+    firstpush  rbx
+    pushreg    rbx
+    endprolog
+    
+    mov     r10, parm1q     ; dct
+    mov     rax, parm2q     ; pix1
+%ifdef WIN64
+    mov     rcx, parm4q     ; pix2
+    movsxd  rdx, dword [rsp+40+8] ; i_pix2
+    movsxd  rbx, parm3d     ; i_pix1
+%else
+    movsxd  rbx, parm3d     ; i_pix1
+    movsxd  rdx, parm5d     ; i_pix2
+%endif
 
     MMX_ZERO    mm7
 
@@ -265,29 +261,30 @@ x264_sub4x4_dct_mmxext:
     ; transpose in: mm1, mm2, mm3, mm0, out: mm1, mm0, mm4, mm3
     MMX_TRANSPOSE       mm1, mm2, mm3, mm0, mm4
 
-    movq    [rdi+ 0],   mm1 ; dct
-    movq    [rdi+ 8],   mm0
-    movq    [rdi+16],   mm4
-    movq    [rdi+24],   mm3
+    movq    [r10+ 0],   mm1 ; dct
+    movq    [r10+ 8],   mm0
+    movq    [r10+16],   mm4
+    movq    [r10+24],   mm3
 
     pop     rbx
     ret
+    endfunc
 
 cglobal x264_add4x4_idct_mmxext
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_add4x4_idct_mmxext( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
+;   void x264_add4x4_idct_mmxext( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
 x264_add4x4_idct_mmxext:
     ; Load dct coeffs
-    movq    mm0, [rdx+ 0]   ; dct
-    movq    mm4, [rdx+ 8]
-    movq    mm3, [rdx+16]
-    movq    mm1, [rdx+24]
+    movq    mm0, [parm3q+ 0] ; dct
+    movq    mm4, [parm3q+ 8]
+    movq    mm3, [parm3q+16]
+    movq    mm1, [parm3q+24]
     
-    mov     rax, rdi        ; p_dst
-    movsxd  rcx, esi        ; i_dst
+    mov     rax, parm1q      ; p_dst
+    movsxd  rcx, parm2d      ; i_dst
     lea     rdx, [rcx+rcx*2]
 
     ; out:mm0, mm1, mm2, mm3
@@ -365,24 +362,24 @@ cglobal x264_pixel_add_8x8_mmx
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_pixel_sub_8x8_mmx( int16_t *diff, uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
+;   void x264_pixel_sub_8x8_mmx( int16_t *diff, uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
 ;-----------------------------------------------------------------------------
 x264_pixel_sub_8x8_mmx:
 ;   mov     rdi, rdi        ; diff
 ;   mov     rsi, rsi        ; pix1
-    movsxd  rdx, edx        ; i_pix1
+;   movsxd  rdx, edx        ; i_pix1
 ;   mov     rcx, rcx        ; pix2
-    movsxd  r8,  r8d        ; i_pix2
+    movsxd  r10, parm5d     ; i_pix2
 
     MMX_ZERO    mm7
 
     %assign disp 0
     %rep  8
-    MMX_LOAD_DIFF_8P mm0, mm1, mm2, mm3, [rsi], [rcx], mm7
-    movq        [rdi+disp], mm0
-    movq        [rdi+disp+8], mm1
-    add         rsi, rdx
-    add         rcx, r8
+    MMX_LOAD_DIFF_8P mm0, mm1, mm2, mm3, [parm2q], [parm4q], mm7
+    movq        [parm1q+disp], mm0
+    movq        [parm1q+disp+8], mm1
+    add         parm2q, parm3q
+    add         parm4q, r10
     %assign disp disp+16
     %endrep
 
@@ -390,7 +387,7 @@ x264_pixel_sub_8x8_mmx:
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_xdct8_mmxext( int16_t dest[8][8] );
+;   void x264_xdct8_mmxext( int16_t dest[8][8] );
 ;-----------------------------------------------------------------------------
 x264_xdct8_mmxext:
 
@@ -406,8 +403,8 @@ x264_xdct8_mmxext:
     %assign disp 0
     %rep 8
     
-    movq        mm0, [rdi+disp]
-    movq        mm1, [rdi+disp+8]
+    movq        mm0, [parm1q+disp]
+    movq        mm1, [parm1q+disp+8]
 
     pshufw      mm2, mm1, 00011011b
     movq        mm1, mm0
@@ -447,8 +444,8 @@ x264_xdct8_mmxext:
     punpcklwd   mm0, mm1                ; (low)dst0/dst1/dst2/dst3(high)
     punpckhwd   mm2, mm1                ; (low)dst4/dst5/dst6/dst7(high)
 
-    movq        [rdi+disp], mm0
-    movq        [rdi+disp+8], mm2
+    movq        [parm1q+disp], mm0
+    movq        [parm1q+disp+8], mm2
 
     %assign disp disp+16
     %endrep
@@ -457,7 +454,7 @@ x264_xdct8_mmxext:
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_ydct8_mmx( int16_t dest[8][8] );
+;   void x264_ydct8_mmx( int16_t dest[8][8] );
 ;-----------------------------------------------------------------------------
 x264_ydct8_mmx:
 
@@ -468,17 +465,17 @@ x264_ydct8_mmx:
     %assign disp 0
     %rep 2
     
-    MMX_LOADSUMSUB  mm2, mm3, [rdi+disp+0*16], [rdi+disp+7*16] ; mm2 = s07, mm3 = d07
-    MMX_LOADSUMSUB  mm1, mm5, [rdi+disp+1*16], [rdi+disp+6*16] ; mm1 = s16, mm5 = d16
-    MMX_LOADSUMSUB  mm0, mm6, [rdi+disp+2*16], [rdi+disp+5*16] ; mm0 = s25, mm6 = d25
-    MMX_LOADSUMSUB  mm4, mm7, [rdi+disp+3*16], [rdi+disp+4*16] ; mm4 = s34, mm7 = d34
+    MMX_LOADSUMSUB  mm2, mm3, [parm1q+disp+0*16], [parm1q+disp+7*16] ; mm2 = s07, mm3 = d07
+    MMX_LOADSUMSUB  mm1, mm5, [parm1q+disp+1*16], [parm1q+disp+6*16] ; mm1 = s16, mm5 = d16
+    MMX_LOADSUMSUB  mm0, mm6, [parm1q+disp+2*16], [parm1q+disp+5*16] ; mm0 = s25, mm6 = d25
+    MMX_LOADSUMSUB  mm4, mm7, [parm1q+disp+3*16], [parm1q+disp+4*16] ; mm4 = s34, mm7 = d34
 
     MMX_SUMSUB_BA   mm4, mm2        ; mm4 = a0, mm2 = a2
     MMX_SUMSUB_BA   mm0, mm1        ; mm0 = a1, mm1 = a3
     MMX_SUMSUB_BA   mm0, mm4        ; mm0 = dst0, mm1 = dst4
 
-    movq    [rdi+disp+0*16], mm0
-    movq    [rdi+disp+4*16], mm4
+    movq    [parm1q+disp+0*16], mm0
+    movq    [parm1q+disp+4*16], mm4
 
     movq    mm0, mm1         ; a3
     psraw   mm0, 1           ; a3>>1
@@ -486,8 +483,8 @@ x264_ydct8_mmx:
     psraw   mm2, 1           ; a2>>1
     psubw   mm2, mm1         ; (a2>>1) - a3
 
-    movq    [rdi+disp+2*16], mm0
-    movq    [rdi+disp+6*16], mm2
+    movq    [parm1q+disp+2*16], mm0
+    movq    [parm1q+disp+6*16], mm2
 
     movq    mm0, mm6
     psraw   mm0, 1
@@ -528,10 +525,10 @@ x264_ydct8_mmx:
     psubw   mm0, mm3         ; (a4>>2) - a7
     psubw   mm2, mm1         ; a6 - (a5>>2)
 
-    movq    [rdi+disp+1*16], mm7
-    movq    [rdi+disp+3*16], mm6
-    movq    [rdi+disp+5*16], mm2
-    movq    [rdi+disp+7*16], mm0
+    movq    [parm1q+disp+1*16], mm7
+    movq    [parm1q+disp+3*16], mm6
+    movq    [parm1q+disp+5*16], mm2
+    movq    [parm1q+disp+7*16], mm0
 
     %assign disp disp+8
     %endrep
@@ -540,7 +537,7 @@ x264_ydct8_mmx:
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_xidct8_mmxext( int16_t dest[8][8] );
+;   void x264_xidct8_mmxext( int16_t dest[8][8] );
 ;-----------------------------------------------------------------------------
 x264_xidct8_mmxext:
 
@@ -556,8 +553,8 @@ x264_xidct8_mmxext:
     %assign disp 0
     %rep 8
 
-    pshufw      mm0, [rdi+disp], 11011000b      ; (low)d0,d2,d1,d3(high)
-    pshufw      mm2, [rdi+disp+8], 11011000b    ; (low)d4,d6,d5,d7(high)
+    pshufw      mm0, [parm1q+disp], 11011000b   ; (low)d0,d2,d1,d3(high)
+    pshufw      mm2, [parm1q+disp+8], 11011000b ; (low)d4,d6,d5,d7(high)
     movq        mm1, mm0
     punpcklwd   mm0, mm2                ; (low)d0,d4,d2,d6(high)
     punpckhwd   mm1, mm2                ; (low)d1,d5,d3,d7(high)
@@ -593,8 +590,8 @@ x264_xidct8_mmxext:
     psubw       mm3, mm1
     paddw       mm0, mm2
 
-    movq        [rdi+disp], mm0
-    movq        [rdi+disp+8], mm3
+    movq        [parm1q+disp], mm0
+    movq        [parm1q+disp+8], mm3
 
     %assign disp disp+16
     %endrep
@@ -603,7 +600,7 @@ x264_xidct8_mmxext:
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_yidct8_mmx( int16_t dest[8][8] );
+;   void x264_yidct8_mmx( int16_t dest[8][8] );
 ;-----------------------------------------------------------------------------
 x264_yidct8_mmx:
 
@@ -614,10 +611,10 @@ x264_yidct8_mmx:
     %assign disp 0
     %rep 2
 
-    movq        mm1, [rdi+disp+1*16]    ; mm1 = d1
-    movq        mm3, [rdi+disp+3*16]    ; mm3 = d3
-    movq        mm5, [rdi+disp+5*16]    ; mm5 = d5
-    movq        mm7, [rdi+disp+7*16]    ; mm7 = d7
+    movq        mm1, [parm1q+disp+1*16] ; mm1 = d1
+    movq        mm3, [parm1q+disp+3*16] ; mm3 = d3
+    movq        mm5, [parm1q+disp+5*16] ; mm5 = d5
+    movq        mm7, [parm1q+disp+7*16] ; mm7 = d7
 
     movq        mm4, mm7
     psraw       mm4, 1
@@ -658,8 +655,8 @@ x264_yidct8_mmx:
     psubw       mm5, mm4                ; mm5 = f5
     psubw       mm7, mm0                ; mm7 = f7
 
-    movq        mm2, [rdi+disp+2*16]    ; mm2 = d2
-    movq        mm6, [rdi+disp+6*16]    ; mm6 = d6
+    movq        mm2, [parm1q+disp+2*16] ; mm2 = d2
+    movq        mm6, [parm1q+disp+6*16] ; mm6 = d6
     movq        mm4, mm2
     movq        mm0, mm6
     psraw       mm4, 1
@@ -667,8 +664,8 @@ x264_yidct8_mmx:
     psubw       mm4, mm0                ; mm4 = a4
     paddw       mm6, mm2                ; mm6 = a6
 
-    movq        mm2, [rdi+disp+0*16]    ; mm2 = d0
-    movq        mm0, [rdi+disp+4*16]    ; mm0 = d4
+    movq        mm2, [parm1q+disp+0*16] ; mm2 = d0
+    movq        mm0, [parm1q+disp+4*16] ; mm0 = d4
     MMX_SUMSUB_BA   mm0, mm2                ; mm0 = a0, mm2 = a2
 
     MMX_SUMSUB_BA   mm6, mm0                ; mm6 = f0, mm0 = f6
@@ -688,14 +685,14 @@ x264_yidct8_mmx:
     psraw       mm1, 6
     psraw       mm0, 6
 
-    movq        [rdi+disp+0*16], mm7
-    movq        [rdi+disp+1*16], mm5
-    movq        [rdi+disp+2*16], mm3
-    movq        [rdi+disp+3*16], mm1
-    movq        [rdi+disp+4*16], mm0
-    movq        [rdi+disp+5*16], mm2
-    movq        [rdi+disp+6*16], mm4
-    movq        [rdi+disp+7*16], mm6
+    movq        [parm1q+disp+0*16], mm7
+    movq        [parm1q+disp+1*16], mm5
+    movq        [parm1q+disp+2*16], mm3
+    movq        [parm1q+disp+3*16], mm1
+    movq        [parm1q+disp+4*16], mm0
+    movq        [parm1q+disp+5*16], mm2
+    movq        [parm1q+disp+6*16], mm4
+    movq        [parm1q+disp+7*16], mm6
 
     %assign disp disp+8
     %endrep
@@ -704,19 +701,19 @@ x264_yidct8_mmx:
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_pixel_add_8x8_mmx( unit8_t *dst, int i_dst, int16_t src[8][8] );
+;   void x264_pixel_add_8x8_mmx( unit8_t *dst, int i_dst, int16_t src[8][8] );
 ;-----------------------------------------------------------------------------
 x264_pixel_add_8x8_mmx:
 ;   mov     rdi, rdi        ; dst
-    movsxd  rsi, esi        ; i_dst
+;   movsxd  rsi, esi        ; i_dst
 ;   mov     rdx, rdx        ; src
 
     MMX_ZERO    mm7
 
     %assign disp 0
     %rep 8
-    MMX_STORE_DIFF_8P   mm0, mm1, [rdi], [rdx+disp], [rdx+disp+8], mm7
-    add         rdi, rsi
+    MMX_STORE_DIFF_8P   mm0, mm1, [parm1q], [parm3q+disp], [parm3q+disp+8], mm7
+    add         parm1q, parm2q
     %assign disp disp+16
     %endrep
     ret

@@ -27,14 +27,7 @@ BITS 64
 ; Macros and other preprocessor constants
 ;=============================================================================
 
-%macro cglobal 1
-	%ifdef PREFIX
-		global _%1
-		%define %1 _%1
-	%else
-		global %1
-	%endif
-%endmacro
+%include "amd64inc.asm"
 
 ;=============================================================================
 ; Code
@@ -48,54 +41,65 @@ cglobal x264_emms
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   int __cdecl x264_cpu_cpuid_test( void ) return 0 if unsupported
+;   int x264_cpu_cpuid_test( void ) return 0 if unsupported
 ;-----------------------------------------------------------------------------
 x264_cpu_cpuid_test:
-    pushfq
-    push    rbx
-    push    rbp
+    firstpush rbx
+    pushreg  rbx
+    push     rbp
+    pushreg  rbp
+    mov      rbp, rsp
+    setframe rbp, 0
+    endprolog
 
     pushfq
     pop     rax
     mov     ebx, eax
     xor     eax, 0x200000
     push    rax
+    
     popfq
     pushfq
     pop     rax
     xor     eax, ebx
     
+    lea     rsp, [rbp]
     pop     rbp
     pop     rbx
-    popfq
     ret
+    endfunc
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   int __cdecl x264_cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
+;   int x264_cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
 ;-----------------------------------------------------------------------------
 x264_cpu_cpuid:
-
-    push    rbp
-    push    rbx
-    mov	    r10,    rcx
-    mov     r11,    rdx
+    firstpush rbx
+    pushreg   rbx
+    endprolog
     
-    mov     eax,    edi
+    mov     r10,   parm4q
+    mov     r11,   parm3q
+    mov     r9,    parm2q
+%ifdef WIN64
+    mov     r8,    [rsp+40+8]
+%endif    
+    
+    mov     eax,   parm1d
     cpuid
 
-    mov     [rsi],  eax
-    mov     [r11],  ebx
-    mov     [r10],  ecx
+    mov     [r9],  eax
+    mov     [r11], ebx
+    mov     [r10], ecx
     mov     [r8],  edx
 
     pop     rbx
-    pop     rbp
     ret
+    endfunc
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_emms( void )
+;   void x264_emms( void )
 ;-----------------------------------------------------------------------------
 x264_emms:
     emms

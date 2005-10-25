@@ -24,14 +24,7 @@ BITS 64
 ; Macros and other preprocessor constants
 ;=============================================================================
 
-%macro cglobal 1
-    %ifdef PREFIX
-        global _%1
-        %define %1 _%1
-    %else
-        global %1
-    %endif
-%endmacro
+%include "amd64inc.asm"
 
 ;=============================================================================
 ; Macros
@@ -59,21 +52,19 @@ cglobal predict_16x16_v_mmx
 
 ALIGN 16
 predict_8x8c_v_mmx :
-    movsxd      rcx, esi        ; i_stride
+    sub         parm1q, parm2q  ; esi <-- line -1
 
-    sub         rdi             , rcx               ; esi <-- line -1
-
-    movq        mm0             , [rdi]
-    movq        [rdi + rcx]     , mm0               ; 0
-    movq        [rdi + 2 * rcx] , mm0               ; 1
-    movq        [rdi + 4 * rcx] , mm0               ; 3
-    movq        [rdi + 8 * rcx] , mm0               ; 7
-    add         rdi             , rcx               ; esi <-- line 0
-    movq        [rdi + 2 * rcx] , mm0               ; 2
-    movq        [rdi + 4 * rcx] , mm0               ; 4
-    lea         rdi             , [rdi + 4 * rcx]   ; esi <-- line 4
-    movq        [rdi + rcx]     , mm0               ; 5
-    movq        [rdi + 2 * rcx] , mm0               ; 6
+    movq        mm0,                   [parm1q]
+    movq        [parm1q + parm2q],     mm0          ; 0
+    movq        [parm1q + 2 * parm2q], mm0          ; 1
+    movq        [parm1q + 4 * parm2q], mm0          ; 3
+    movq        [parm1q + 8 * parm2q], mm0          ; 7
+    add         parm1q,                parm2q       ; <-- line 0
+    movq        [parm1q + 2 * parm2q], mm0          ; 2
+    movq        [parm1q + 4 * parm2q], mm0          ; 4
+    lea         parm1q,                [parm1q + 4 * parm2q] ; <-- line 4
+    movq        [parm1q + parm2q],     mm0          ; 5
+    movq        [parm1q + 2 * parm2q], mm0          ; 6
 
     ret
 
@@ -85,32 +76,30 @@ predict_8x8c_v_mmx :
 
 ALIGN 16
 predict_16x16_v_mmx :
-    movsxd      rcx, esi                ; i_stride
+    sub         parm1q, parm2q                 ; line -1
 
-    sub         rdi, rcx                ; esi <-- line -1
+    movq        mm0, [parm1q]
+    movq        mm1, [parm1q + 8]
+    lea         rax, [parm2q + 2 * parm2q]     ; 3 * stride
 
-    movq        mm0, [rdi]
-    movq        mm1, [rdi + 8]
-    lea         rax, [rcx + 2 * rcx]    ; rax <-- 3* stride
-
-    SAVE_0_1    (rdi + rcx)             ; 0
-    SAVE_0_1    (rdi + 2 * rcx)         ; 1
-    SAVE_0_1    (rdi + rax)             ; 2
-    SAVE_0_1    (rdi + 4 * rcx)         ; 3
-    SAVE_0_1    (rdi + 2 * rax)         ; 5
-    SAVE_0_1    (rdi + 8 * rcx)         ; 7
-    SAVE_0_1    (rdi + 4 * rax)         ; 11
-    add         rdi, rcx                ; esi <-- line 0
-    SAVE_0_1    (rdi + 4 * rcx)         ; 4
-    SAVE_0_1    (rdi + 2 * rax)         ; 6
-    SAVE_0_1    (rdi + 8 * rcx)         ; 8
-    SAVE_0_1    (rdi + 4 * rax)         ; 12
-    lea         rdi, [rdi + 8 * rcx]    ; esi <-- line 8
-    SAVE_0_1    (rdi + rcx)             ; 9
-    SAVE_0_1    (rdi + 2 * rcx)         ; 10
-    lea         rdi, [rdi + 4 * rcx]    ; esi <-- line 12
-    SAVE_0_1    (rdi + rcx)             ; 13
-    SAVE_0_1    (rdi + 2 * rcx)         ; 14
-    SAVE_0_1    (rdi + rax)             ; 15
+    SAVE_0_1    (parm1q + parm2q)              ; 0
+    SAVE_0_1    (parm1q + 2 * parm2q)          ; 1
+    SAVE_0_1    (parm1q + rax)                 ; 2
+    SAVE_0_1    (parm1q + 4 * parm2q)          ; 3
+    SAVE_0_1    (parm1q + 2 * rax)             ; 5
+    SAVE_0_1    (parm1q + 8 * parm2q)          ; 7
+    SAVE_0_1    (parm1q + 4 * rax)             ; 11
+    add         parm1q, parm2q                 ; <-- line 0
+    SAVE_0_1    (parm1q + 4 * parm2q)          ; 4
+    SAVE_0_1    (parm1q + 2 * rax)             ; 6
+    SAVE_0_1    (parm1q + 8 * parm2q)          ; 8
+    SAVE_0_1    (parm1q + 4 * rax)             ; 12
+    lea         parm1q, [parm1q + 8 * parm2q]  ; <-- line 8
+    SAVE_0_1    (parm1q + parm2q)              ; 9
+    SAVE_0_1    (parm1q + 2 * parm2q)          ; 10
+    lea         parm1q, [parm1q + 4 * parm2q]  ; <-- line 12
+    SAVE_0_1    (parm1q + parm2q)              ; 13
+    SAVE_0_1    (parm1q + 2 * parm2q)          ; 14
+    SAVE_0_1    (parm1q + rax)                 ; 15
 
     ret

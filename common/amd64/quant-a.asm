@@ -33,14 +33,7 @@
 
 BITS 64
 
-%macro cglobal 1
-    %ifdef PREFIX
-        global _%1
-        %define %1 _%1
-    %else
-        global %1
-    %endif
-%endmacro
+%include "amd64inc.asm"
 
 ALIGN 16
 
@@ -64,16 +57,16 @@ cglobal x264_quant_8x8_core32_mmxext
 %macro MMX_QUANT_AC_START 0
 ;   mov         rdi, rdi        ; &dct[0][0]
 ;   mov         rsi, rsi        ; &quant_mf[0][0]
-    movd        mm6, edx        ; i_qbits
-    movd        mm7, ecx        ; f
+    movd        mm6, parm3d     ; i_qbits
+    movd        mm7, parm4d     ; f
     punpckldq   mm7, mm7        ; f in each dword
 %endmacro
 
 %macro MMX_QUANT15_DC_START 0
 ;   mov         rdi, rdi        ; &dct[0][0]
-    movd        mm5, rsi        ; i_qmf
-    movd        mm6, edx        ; i_qbits
-    movd        mm7, ecx        ; f
+    movd        mm5, parm2d     ; i_qmf
+    movd        mm6, parm3d     ; i_qbits
+    movd        mm7, parm4d     ; f
     punpcklwd   mm5, mm5
     punpcklwd   mm5, mm5        ; i_qmf in each word
     punpckldq   mm7, mm7        ; f in each dword
@@ -112,61 +105,61 @@ cglobal x264_quant_8x8_core32_mmxext
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_quant_2x2_dc_core15_mmx( int16_t dct[2][2],
+;   void x264_quant_2x2_dc_core15_mmx( int16_t dct[2][2],
 ;       int const i_qmf, int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
 x264_quant_2x2_dc_core15_mmx:
     MMX_QUANT15_DC_START
-    MMX_QUANT15_1x4 [rdi], mm5, mm6, mm7
+    MMX_QUANT15_1x4 [parm1q], mm5, mm6, mm7
     ret
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_quant_4x4_dc_core15_mmx( int16_t dct[4][4],
+;   void x264_quant_4x4_dc_core15_mmx( int16_t dct[4][4],
 ;       int const i_qmf, int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
 x264_quant_4x4_dc_core15_mmx:
     MMX_QUANT15_DC_START
 
 %rep 4
-    MMX_QUANT15_1x4 [rdi], mm5, mm6, mm7
-    add         rdi, byte 8
+    MMX_QUANT15_1x4 [parm1q], mm5, mm6, mm7
+    add         parm1q, byte 8
 %endrep
 
     ret
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_quant_4x4_core15_mmx( int16_t dct[4][4],
+;   void x264_quant_4x4_core15_mmx( int16_t dct[4][4],
 ;       int const quant_mf[4][4], int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
 x264_quant_4x4_core15_mmx:
     MMX_QUANT_AC_START
 
 %rep 4
-    movq        mm5, [rsi]
-    packssdw    mm5, [rsi+8]
-    MMX_QUANT15_1x4 [rdi], mm5, mm6, mm7
-    add         rsi, byte 16
-    add         rdi, byte 8
+    movq        mm5, [parm2q]
+    packssdw    mm5, [parm2q+8]
+    MMX_QUANT15_1x4 [parm1q], mm5, mm6, mm7
+    add         parm2q, byte 16
+    add         parm1q, byte 8
 %endrep
 
     ret
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_quant_8x8_core15_mmx( int16_t dct[8][8],
+;   void x264_quant_8x8_core15_mmx( int16_t dct[8][8],
 ;       int const quant_mf[8][8], int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
 x264_quant_8x8_core15_mmx:
     MMX_QUANT_AC_START
 
 %rep 16
-    movq        mm5, [rsi]
-    packssdw    mm5, [rsi+8]
-    MMX_QUANT15_1x4 [rdi], mm5, mm6, mm7
-    add         rsi, byte 16
-    add         rdi, byte 8
+    movq        mm5, [parm2q]
+    packssdw    mm5, [parm2q+8]
+    MMX_QUANT15_1x4 [parm1q], mm5, mm6, mm7
+    add         parm2q, byte 16
+    add         parm1q, byte 8
 %endrep
 
     ret
@@ -175,9 +168,9 @@ x264_quant_8x8_core15_mmx:
 
 %macro MMXEXT_QUANT16_DC_START 0
 ;   mov         rdi, rdi        ; &dct[0][0]
-    movd        mm5, rsi        ; i_qmf
-    movd        mm6, edx        ; i_qbits
-    movd        mm7, ecx        ; f
+    movd        mm5, parm2d     ; i_qmf
+    movd        mm6, parm3d     ; i_qbits
+    movd        mm7, parm4d     ; f
     pshufw      mm5, mm5, 0     ; i_qmf in each word
     punpckldq   mm7, mm7        ; f in each dword
 %endmacro
@@ -215,63 +208,63 @@ x264_quant_8x8_core15_mmx:
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_quant_2x2_dc_core16_mmxext( int16_t dct[2][2],
+;   void x264_quant_2x2_dc_core16_mmxext( int16_t dct[2][2],
 ;       int const i_qmf, int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
 x264_quant_2x2_dc_core16_mmxext:
     MMXEXT_QUANT16_DC_START
-    MMXEXT_QUANT16_1x4 [rdi], mm5, mm6, mm7
+    MMXEXT_QUANT16_1x4 [parm1q], mm5, mm6, mm7
     ret
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_quant_4x4_dc_core16_mmxext( int16_t dct[4][4],
+;   void x264_quant_4x4_dc_core16_mmxext( int16_t dct[4][4],
 ;       int const i_qmf, int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
 x264_quant_4x4_dc_core16_mmxext:
     MMXEXT_QUANT16_DC_START
 
 %rep 4
-    MMXEXT_QUANT16_1x4 [rdi], mm5, mm6, mm7
-    add         rdi, byte 8
+    MMXEXT_QUANT16_1x4 [parm1q], mm5, mm6, mm7
+    add         parm1q, byte 8
 %endrep
 
     ret
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_quant_4x4_core16_mmxext( int16_t dct[4][4],
+;   void x264_quant_4x4_core16_mmxext( int16_t dct[4][4],
 ;       int const quant_mf[4][4], int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
 x264_quant_4x4_core16_mmxext:
     MMX_QUANT_AC_START
 
 %rep 4
-    pshufw      mm5, [rsi], 10110001b
-    paddw       mm5, [rsi+8]
+    pshufw      mm5, [parm2q], 10110001b
+    paddw       mm5, [parm2q+8]
     pshufw      mm5, mm5, 10001101b
-    MMXEXT_QUANT16_1x4 [rdi], mm5, mm6, mm7
-    add         rsi, byte 16
-    add         rdi, byte 8
+    MMXEXT_QUANT16_1x4 [parm1q], mm5, mm6, mm7
+    add         parm2q, byte 16
+    add         parm1q, byte 8
 %endrep
 
     ret
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_quant_8x8_core16_mmxext( int16_t dct[8][8],
+;   void x264_quant_8x8_core16_mmxext( int16_t dct[8][8],
 ;       int const quant_mf[8][8], int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
 x264_quant_8x8_core16_mmxext:
     MMX_QUANT_AC_START
 
 %rep 16
-    pshufw      mm5, [rsi], 10110001b
-    paddw       mm5, [rsi+8]
+    pshufw      mm5, [parm2q], 10110001b
+    paddw       mm5, [parm2q+8]
     pshufw      mm5, mm5, 10001101b
-    MMXEXT_QUANT16_1x4 [rdi], mm5, mm6, mm7
-    add         rsi, byte 16
-    add         rdi, byte 8
+    MMXEXT_QUANT16_1x4 [parm1q], mm5, mm6, mm7
+    add         parm2q, byte 16
+    add         parm1q, byte 8
 %endrep
 
     ret
@@ -280,9 +273,9 @@ x264_quant_8x8_core16_mmxext:
 
 %macro MMX_QUANT32_DC_START 0
 ;   mov         rdi, rdi        ; &dct[0][0]
-    movd        mm5, rsi        ; i_qmf
-    movd        mm6, edx        ; i_qbits
-    movd        mm7, ecx        ; f
+    movd        mm5, parm2d     ; i_qmf
+    movd        mm6, parm3d     ; i_qbits
+    movd        mm7, parm4d     ; f
     punpckldq   mm5, mm5        ; i_qmf in each dword
     punpckldq   mm7, mm7        ; f in each dword
 %endmacro
@@ -326,57 +319,57 @@ x264_quant_8x8_core16_mmxext:
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_quant_2x2_dc_core32_mmxext( int16_t dct[2][2],
+;   void x264_quant_2x2_dc_core32_mmxext( int16_t dct[2][2],
 ;       int const i_qmf, int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
 x264_quant_2x2_dc_core32_mmxext:
     MMX_QUANT32_DC_START
-    MMXEXT_QUANT32_1x4 [rdi], mm5, mm5, mm6, mm7
+    MMXEXT_QUANT32_1x4 [parm1q], mm5, mm5, mm6, mm7
     ret
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_quant_4x4_dc_core32_mmxext( int16_t dct[4][4],
+;   void x264_quant_4x4_dc_core32_mmxext( int16_t dct[4][4],
 ;       int const i_qmf, int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
 x264_quant_4x4_dc_core32_mmxext:
     MMX_QUANT32_DC_START
 
 %rep 4
-    MMXEXT_QUANT32_1x4 [rdi], mm5, mm5, mm6, mm7
-    add         rdi, byte 8
+    MMXEXT_QUANT32_1x4 [parm1q], mm5, mm5, mm6, mm7
+    add         parm1q, byte 8
 %endrep
 
     ret
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_quant_4x4_core32_mmxext( int16_t dct[4][4],
+;   void x264_quant_4x4_core32_mmxext( int16_t dct[4][4],
 ;       int const quant_mf[4][4], int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
 x264_quant_4x4_core32_mmxext:
     MMX_QUANT_AC_START
 
 %rep 4
-    MMXEXT_QUANT32_1x4 [rdi], [rsi], [rsi+8], mm6, mm7
-    add         rdi, byte 8
-    add         rsi, byte 16
+    MMXEXT_QUANT32_1x4 [parm1q], [parm2q], [parm2q+8], mm6, mm7
+    add         parm1q, byte 8
+    add         parm2q, byte 16
 %endrep
 
     ret
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_quant_8x8_core32_mmxext( int16_t dct[8][8],
+;   void x264_quant_8x8_core32_mmxext( int16_t dct[8][8],
 ;       int const quant_mf[8][8], int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
 x264_quant_8x8_core32_mmxext:
     MMX_QUANT_AC_START
 
 %rep 16
-    MMXEXT_QUANT32_1x4 [rdi], [rsi], [rsi+8], mm6, mm7
-    add         rdi, byte 8
-    add         rsi, byte 16
+    MMXEXT_QUANT32_1x4 [parm1q], [parm2q], [parm2q+8], mm6, mm7
+    add         parm1q, byte 8
+    add         parm2q, byte 16
 %endrep
 
     ret
