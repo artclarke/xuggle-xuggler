@@ -24,6 +24,8 @@
 #ifndef _FRAME_H
 #define _FRAME_H 1
 
+#include <inttypes.h>
+
 typedef struct
 {
     /* */
@@ -64,6 +66,20 @@ typedef struct
 
 } x264_frame_t;
 
+typedef void (*x264_deblock_inter_t)( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+typedef void (*x264_deblock_intra_t)( uint8_t *pix, int stride, int alpha, int beta );
+typedef struct
+{
+    x264_deblock_inter_t deblock_v_luma;
+    x264_deblock_inter_t deblock_h_luma;
+    x264_deblock_inter_t deblock_v_chroma;
+    x264_deblock_inter_t deblock_h_chroma;
+    x264_deblock_intra_t deblock_v_luma_intra;
+    x264_deblock_intra_t deblock_h_luma_intra;
+    x264_deblock_intra_t deblock_v_chroma_intra;
+    x264_deblock_intra_t deblock_h_chroma_intra;
+} x264_deblock_function_t;
+
 x264_frame_t *x264_frame_new( x264_t *h );
 void          x264_frame_delete( x264_frame_t *frame );
 
@@ -78,5 +94,7 @@ void          x264_frame_deblocking_filter( x264_t *h, int i_slice_type );
 
 void          x264_frame_filter( int cpu, x264_frame_t *frame );
 void          x264_frame_init_lowres( int cpu, x264_frame_t *frame );
+
+void          x264_deblock_init( int cpu, x264_deblock_function_t *pf );
 
 #endif

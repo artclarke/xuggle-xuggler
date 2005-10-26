@@ -296,6 +296,68 @@ static int check_mc( int cpu_ref, int cpu_new )
     return ret;
 }
 
+static int check_deblock( int cpu_ref, int cpu_new )
+{
+    x264_deblock_function_t db_c;
+    x264_deblock_function_t db_ref;
+    x264_deblock_function_t db_a;
+    int ret = 0, ok = 1, used_asm = 0;
+    int alphas[36], betas[36];
+    int8_t tcs[36][4];
+    int a, c, i, j;
+
+    x264_deblock_init( 0, &db_c );
+    x264_deblock_init( cpu_ref, &db_ref );
+    x264_deblock_init( cpu_new, &db_a );
+
+    /* not exactly the real values of a,b,tc but close enough */
+    a = 255; c = 250;
+    for( i = 35; i >= 0; i-- )
+    {
+        alphas[i] = a;
+        betas[i] = (i+1)/2;
+        tcs[i][0] = tcs[i][2] = (c+6)/10;
+        tcs[i][1] = tcs[i][3] = (c+9)/20;
+        a = a*9/10;
+        c = c*9/10;
+    }
+
+#define TEST_DEBLOCK( name, ... ) \
+    for( i = 0; i < 36; i++ ) \
+    { \
+        for( j = 0; j < 1024; j++ ) \
+            /* two distributions of random to excersize different failure modes */\
+            buf1[j] = rand() & (i&1 ? 0xf : 0xff ); \
+        memcpy( buf3, buf1, 1024 ); \
+        memcpy( buf4, buf1, 1024 ); \
+        if( db_a.name != db_ref.name ) \
+        { \
+            used_asm = 1; \
+            db_c.name( &buf3[8*32], 32, alphas[i], betas[i], ##__VA_ARGS__ ); \
+            db_a.name( &buf4[8*32], 32, alphas[i], betas[i], ##__VA_ARGS__ ); \
+            if( memcmp( buf3, buf4, 1024 ) )               \
+            { \
+                ok = 0; \
+                fprintf( stderr, #name "(a=%d, b=%d): [FAILED]\n", alphas[i], betas[i] ); \
+                break; \
+            } \
+        } \
+    }
+
+    TEST_DEBLOCK( deblock_h_luma, tcs[i] );
+    TEST_DEBLOCK( deblock_v_luma, tcs[i] );
+    TEST_DEBLOCK( deblock_h_chroma, tcs[i] );
+    TEST_DEBLOCK( deblock_v_chroma, tcs[i] );
+    TEST_DEBLOCK( deblock_h_luma_intra );
+    TEST_DEBLOCK( deblock_v_luma_intra );
+    TEST_DEBLOCK( deblock_h_chroma_intra );
+    TEST_DEBLOCK( deblock_v_chroma_intra );
+
+    report( "deblock :" );
+
+    return ret;
+}
+
 static int check_quant( int cpu_ref, int cpu_new )
 {
     x264_quant_function_t qf_c;
@@ -368,6 +430,7 @@ int check_all( int cpu_ref, int cpu_new )
     return check_pixel( cpu_ref, cpu_new )
          + check_dct( cpu_ref, cpu_new )
          + check_mc( cpu_ref, cpu_new )
+         + check_deblock( cpu_ref, cpu_new )
          + check_quant( cpu_ref, cpu_new );
 }
 

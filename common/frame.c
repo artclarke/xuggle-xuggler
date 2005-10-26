@@ -293,355 +293,191 @@ static inline int clip_uint8( int a )
         return a;
 }
 
-static inline void deblocking_filter_edgev( x264_t *h, uint8_t *pix, int i_pix_stride, int bS[4], int i_QP )
+static inline void deblock_luma_c( uint8_t *pix, int xstride, int ystride, int alpha, int beta, int8_t *tc0 )
 {
     int i, d;
-    const int i_index_a = x264_clip3( i_QP + h->sh.i_alpha_c0_offset, 0, 51 );
-    const int alpha = i_alpha_table[i_index_a];
-    const int beta  = i_beta_table[x264_clip3( i_QP + h->sh.i_beta_offset, 0, 51 )];
-
-    for( i = 0; i < 4; i++ )
-    {
-        if( bS[i] == 0 )
-        {
-            pix += 4 * i_pix_stride;
+    for( i = 0; i < 4; i++ ) {
+        if( tc0[i] < 0 ) {
+            pix += 4*ystride;
             continue;
         }
-
-        if( bS[i] < 4 )
-        {
-            const int tc0 = i_tc0_table[i_index_a][bS[i] - 1];
-
-            /* 4px edge length */
-            for( d = 0; d < 4; d++ )
-            {
-                const int p0 = pix[-1];
-                const int p1 = pix[-2];
-                const int p2 = pix[-3];
-                const int q0 = pix[0];
-                const int q1 = pix[1];
-                const int q2 = pix[2];
-
-                if( abs( p0 - q0 ) < alpha &&
-                    abs( p1 - p0 ) < beta &&
-                    abs( q1 - q0 ) < beta )
-                {
-                    int tc = tc0;
-                    int i_delta;
-
-                    if( abs( p2 - p0 ) < beta )
-                    {
-                        pix[-2] = p1 + x264_clip3( ( p2 + ( ( p0 + q0 + 1 ) >> 1 ) - ( p1 << 1 ) ) >> 1, -tc0, tc0 );
-                        tc++;
-                    }
-                    if( abs( q2 - q0 ) < beta )
-                    {
-                        pix[1] = q1 + x264_clip3( ( q2 + ( ( p0 + q0 + 1 ) >> 1 ) - ( q1 << 1 ) ) >> 1, -tc0, tc0 );
-                        tc++;
-                    }
-
-                    i_delta = x264_clip3( (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3, -tc, tc );
-                    pix[-1] = clip_uint8( p0 + i_delta );    /* p0' */
-                    pix[0]  = clip_uint8( q0 - i_delta );    /* q0' */
+        for( d = 0; d < 4; d++ ) {
+            const int p2 = pix[-3*xstride];
+            const int p1 = pix[-2*xstride];
+            const int p0 = pix[-1*xstride];
+            const int q0 = pix[ 0*xstride];
+            const int q1 = pix[ 1*xstride];
+            const int q2 = pix[ 2*xstride];
+   
+            if( X264_ABS( p0 - q0 ) < alpha &&
+                X264_ABS( p1 - p0 ) < beta &&
+                X264_ABS( q1 - q0 ) < beta ) {
+   
+                int tc = tc0[i];
+                int delta;
+   
+                if( X264_ABS( p2 - p0 ) < beta ) {
+                    pix[-2*xstride] = p1 + x264_clip3( (( p2 + ((p0 + q0 + 1) >> 1)) >> 1) - p1, -tc0[i], tc0[i] );
+                    tc++; 
                 }
-                pix += i_pix_stride;
-            }
-        }
-        else
-        {
-            /* 4px edge length */
-            for( d = 0; d < 4; d++ )
-            {
-                const int p0 = pix[-1];
-                const int p1 = pix[-2];
-                const int p2 = pix[-3];
-
-                const int q0 = pix[0];
-                const int q1 = pix[1];
-                const int q2 = pix[2];
-
-                if( abs( p0 - q0 ) < alpha &&
-                    abs( p1 - p0 ) < beta &&
-                    abs( q1 - q0 ) < beta )
-                {
-                    if( abs( p0 - q0 ) < (( alpha >> 2 ) + 2 ) )
-                    {
-                        if( abs( p2 - p0 ) < beta )
-                        {
-                            const int p3 = pix[-4];
-                            /* p0', p1', p2' */
-                            pix[-1] = ( p2 + 2*p1 + 2*p0 + 2*q0 + q1 + 4 ) >> 3;
-                            pix[-2] = ( p2 + p1 + p0 + q0 + 2 ) >> 2;
-                            pix[-3] = ( 2*p3 + 3*p2 + p1 + p0 + q0 + 4 ) >> 3;
-                        }
-                        else
-                        {
-                            /* p0' */
-                            pix[-1] = ( 2*p1 + p0 + q1 + 2 ) >> 2;
-                        }
-                        if( abs( q2 - q0 ) < beta )
-                        {
-                            const int q3 = pix[3];
-                            /* q0', q1', q2' */
-                            pix[0] = ( p1 + 2*p0 + 2*q0 + 2*q1 + q2 + 4 ) >> 3;
-                            pix[1] = ( p0 + q0 + q1 + q2 + 2 ) >> 2;
-                            pix[2] = ( 2*q3 + 3*q2 + q1 + q0 + p0 + 4 ) >> 3;
-                        }
-                        else
-                        {
-                            /* q0' */
-                            pix[0] = ( 2*q1 + q0 + p1 + 2 ) >> 2;
-                        }
-                    }
-                    else
-                    {
-                        /* p0', q0' */
-                        pix[-1] = ( 2*p1 + p0 + q1 + 2 ) >> 2;
-                        pix[0] = ( 2*q1 + q0 + p1 + 2 ) >> 2;
-                    }
+                if( X264_ABS( q2 - q0 ) < beta ) {
+                    pix[ 1*xstride] = q1 + x264_clip3( (( q2 + ((p0 + q0 + 1) >> 1)) >> 1) - q1, -tc0[i], tc0[i] );
+                    tc++;
                 }
-                pix += i_pix_stride;
+    
+                delta = x264_clip3( (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3, -tc, tc );
+                pix[-1*xstride] = clip_uint8( p0 + delta );    /* p0' */
+                pix[ 0*xstride] = clip_uint8( q0 - delta );    /* q0' */
             }
+            pix += ystride;
         }
     }
 }
+static void deblock_v_luma_c( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+{
+    deblock_luma_c( pix, stride, 1, alpha, beta, tc0 ); 
+}
+static void deblock_h_luma_c( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+{
+    deblock_luma_c( pix, 1, stride, alpha, beta, tc0 );
+}
 
-static inline void deblocking_filter_edgecv( x264_t *h, uint8_t *pix, int i_pix_stride, int bS[4], int i_QP )
+static inline void deblock_chroma_c( uint8_t *pix, int xstride, int ystride, int alpha, int beta, int8_t *tc0 )
 {
     int i, d;
-    const int i_index_a = x264_clip3( i_QP + h->sh.i_alpha_c0_offset, 0, 51 );
-    const int alpha = i_alpha_table[i_index_a];
-    const int beta  = i_beta_table[x264_clip3( i_QP + h->sh.i_beta_offset, 0, 51 )];
-
-    for( i = 0; i < 4; i++ )
-    {
-        if( bS[i] == 0 )
-        {
-            pix += 2 * i_pix_stride;
+    for( i = 0; i < 4; i++ ) {
+        const int tc = tc0[i];
+        if( tc <= 0 ) {
+            pix += 2*ystride;
             continue;
         }
+        for( d = 0; d < 2; d++ ) {
+            const int p1 = pix[-2*xstride];
+            const int p0 = pix[-1*xstride];
+            const int q0 = pix[ 0*xstride];
+            const int q1 = pix[ 1*xstride];
 
-        if( bS[i] < 4 )
-        {
-            const int tc = i_tc0_table[i_index_a][bS[i] - 1] + 1;
-            /* 2px edge length (because we use same bS than the one for luma) */
-            for( d = 0; d < 2; d++ )
-            {
-                const int p0 = pix[-1];
-                const int p1 = pix[-2];
-                const int q0 = pix[0];
-                const int q1 = pix[1];
+            if( X264_ABS( p0 - q0 ) < alpha &&
+                X264_ABS( p1 - p0 ) < beta &&
+                X264_ABS( q1 - q0 ) < beta ) {
 
-                if( abs( p0 - q0 ) < alpha &&
-                    abs( p1 - p0 ) < beta &&
-                    abs( q1 - q0 ) < beta )
-                {
-                    const int i_delta = x264_clip3( (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3, -tc, tc );
-
-                    pix[-1] = clip_uint8( p0 + i_delta );    /* p0' */
-                    pix[0]  = clip_uint8( q0 - i_delta );    /* q0' */
-                }
-                pix += i_pix_stride;
+                int delta = x264_clip3( (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3, -tc, tc );
+                pix[-1*xstride] = clip_uint8( p0 + delta );    /* p0' */
+                pix[ 0*xstride] = clip_uint8( q0 - delta );    /* q0' */
             }
-        }
-        else
-        {
-            /* 2px edge length (because we use same bS than the one for luma) */
-            for( d = 0; d < 2; d++ )
-            {
-                const int p0 = pix[-1];
-                const int p1 = pix[-2];
-                const int q0 = pix[0];
-                const int q1 = pix[1];
-
-                if( abs( p0 - q0 ) < alpha &&
-                    abs( p1 - p0 ) < beta &&
-                    abs( q1 - q0 ) < beta )
-                {
-                    pix[-1] = ( 2*p1 + p0 + q1 + 2 ) >> 2;   /* p0' */
-                    pix[0]  = ( 2*q1 + q0 + p1 + 2 ) >> 2;   /* q0' */
-                }
-                pix += i_pix_stride;
-            }
+            pix += ystride;
         }
     }
 }
-
-static inline void deblocking_filter_edgeh( x264_t *h, uint8_t *pix, int i_pix_stride, int bS[4], int i_QP )
-{
-    int i, d;
-    const int i_index_a = x264_clip3( i_QP + h->sh.i_alpha_c0_offset, 0, 51 );
-    const int alpha = i_alpha_table[i_index_a];
-    const int beta  = i_beta_table[x264_clip3( i_QP + h->sh.i_beta_offset, 0, 51 )];
-
-    int i_pix_next  = i_pix_stride;
-
-    for( i = 0; i < 4; i++ )
-    {
-        if( bS[i] == 0 )
-        {
-            pix += 4;
-            continue;
-        }
-
-        if( bS[i] < 4 )
-        {
-            const int tc0 = i_tc0_table[i_index_a][bS[i] - 1];
-            /* 4px edge length */
-            for( d = 0; d < 4; d++ )
-            {
-                const int p0 = pix[-i_pix_next];
-                const int p1 = pix[-2*i_pix_next];
-                const int p2 = pix[-3*i_pix_next];
-                const int q0 = pix[0];
-                const int q1 = pix[1*i_pix_next];
-                const int q2 = pix[2*i_pix_next];
-
-                if( abs( p0 - q0 ) < alpha &&
-                    abs( p1 - p0 ) < beta &&
-                    abs( q1 - q0 ) < beta )
-                {
-                    int tc = tc0;
-                    int i_delta;
-
-                    if( abs( p2 - p0 ) < beta )
-                    {
-                        pix[-2*i_pix_next] = p1 + x264_clip3( ( p2 + ( ( p0 + q0 + 1 ) >> 1 ) - ( p1 << 1 ) ) >> 1, -tc0, tc0 );
-                        tc++;
-                    }
-                    if( abs( q2 - q0 ) < beta )
-                    {
-                        pix[i_pix_next] = q1 + x264_clip3( ( q2 + ( ( p0 + q0 + 1 ) >> 1 ) - ( q1 << 1 ) ) >> 1, -tc0, tc0 );
-                        tc++;
-                    }
-
-                    i_delta = x264_clip3( (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3, -tc, tc );
-                    pix[-i_pix_next] = clip_uint8( p0 + i_delta );    /* p0' */
-                    pix[0]           = clip_uint8( q0 - i_delta );    /* q0' */
-                }
-                pix++;
-            }
-        }
-        else
-        {
-            /* 4px edge length */
-            for( d = 0; d < 4; d++ )
-            {
-                const int p0 = pix[-i_pix_next];
-                const int p1 = pix[-2*i_pix_next];
-                const int p2 = pix[-3*i_pix_next];
-                const int q0 = pix[0];
-                const int q1 = pix[1*i_pix_next];
-                const int q2 = pix[2*i_pix_next];
-
-                if( abs( p0 - q0 ) < alpha &&
-                    abs( p1 - p0 ) < beta &&
-                    abs( q1 - q0 ) < beta )
-                {
-                    const int p3 = pix[-4*i_pix_next];
-                    const int q3 = pix[ 3*i_pix_next];
-
-                    if( abs( p0 - q0 ) < (( alpha >> 2 ) + 2 ) )
-                    {
-                        if( abs( p2 - p0 ) < beta )
-                        {
-                            /* p0', p1', p2' */
-                            pix[-1*i_pix_next] = ( p2 + 2*p1 + 2*p0 + 2*q0 + q1 + 4 ) >> 3;
-                            pix[-2*i_pix_next] = ( p2 + p1 + p0 + q0 + 2 ) >> 2;
-                            pix[-3*i_pix_next] = ( 2*p3 + 3*p2 + p1 + p0 + q0 + 4 ) >> 3;
-                        }
-                        else
-                        {
-                            /* p0' */
-                            pix[-1*i_pix_next] = ( 2*p1 + p0 + q1 + 2 ) >> 2;
-                        }
-                        if( abs( q2 - q0 ) < beta )
-                        {
-                            /* q0', q1', q2' */
-                            pix[0*i_pix_next] = ( p1 + 2*p0 + 2*q0 + 2*q1 + q2 + 4 ) >> 3;
-                            pix[1*i_pix_next] = ( p0 + q0 + q1 + q2 + 2 ) >> 2;
-                            pix[2*i_pix_next] = ( 2*q3 + 3*q2 + q1 + q0 + p0 + 4 ) >> 3;
-                        }
-                        else
-                        {
-                            /* q0' */
-                            pix[0*i_pix_next] = ( 2*q1 + q0 + p1 + 2 ) >> 2;
-                        }
-                    }
-                    else
-                    {
-                        /* p0' */
-                        pix[-1*i_pix_next] = ( 2*p1 + p0 + q1 + 2 ) >> 2;
-                        /* q0' */
-                        pix[0*i_pix_next] = ( 2*q1 + q0 + p1 + 2 ) >> 2;
-                    }
-                }
-                pix++;
-            }
-
-        }
-    }
+static void deblock_v_chroma_c( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+{   
+    deblock_chroma_c( pix, stride, 1, alpha, beta, tc0 );
+}
+static void deblock_h_chroma_c( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+{   
+    deblock_chroma_c( pix, 1, stride, alpha, beta, tc0 );
 }
 
-static inline void deblocking_filter_edgech( x264_t *h, uint8_t *pix, int i_pix_stride, int bS[4], int i_QP )
+static inline void deblock_luma_intra_c( uint8_t *pix, int xstride, int ystride, int alpha, int beta )
 {
-    int i, d;
-    const int i_index_a = x264_clip3( i_QP + h->sh.i_alpha_c0_offset, 0, 51 );
-    const int alpha = i_alpha_table[i_index_a];
-    const int beta  = i_beta_table[x264_clip3( i_QP + h->sh.i_beta_offset, 0, 51 )];
+    int d;
+    for( d = 0; d < 16; d++ ) {
+        const int p2 = pix[-3*xstride];
+        const int p1 = pix[-2*xstride];
+        const int p0 = pix[-1*xstride];
+        const int q0 = pix[ 0*xstride];
+        const int q1 = pix[ 1*xstride];
+        const int q2 = pix[ 2*xstride];
 
-    int i_pix_next  = i_pix_stride;
+        if( X264_ABS( p0 - q0 ) < alpha &&
+            X264_ABS( p1 - p0 ) < beta &&
+            X264_ABS( q1 - q0 ) < beta ) {
 
-    for( i = 0; i < 4; i++ )
-    {
-        if( bS[i] == 0 )
-        {
-            pix += 2;
-            continue;
-        }
-        if( bS[i] < 4 )
-        {
-            int tc = i_tc0_table[i_index_a][bS[i] - 1] + 1;
-            /* 2px edge length (see deblocking_filter_edgecv) */
-            for( d = 0; d < 2; d++ )
-            {
-                const int p0 = pix[-1*i_pix_next];
-                const int p1 = pix[-2*i_pix_next];
-                const int q0 = pix[0];
-                const int q1 = pix[1*i_pix_next];
-
-                if( abs( p0 - q0 ) < alpha &&
-                    abs( p1 - p0 ) < beta &&
-                    abs( q1 - q0 ) < beta )
+            if(X264_ABS( p0 - q0 ) < ((alpha >> 2) + 2) ){
+                if( X264_ABS( p2 - p0 ) < beta)
                 {
-                    int i_delta = x264_clip3( (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3, -tc, tc );
-
-                    pix[-i_pix_next] = clip_uint8( p0 + i_delta );    /* p0' */
-                    pix[0]           = clip_uint8( q0 - i_delta );    /* q0' */
+                    const int p3 = pix[-4*xstride];
+                    /* p0', p1', p2' */
+                    pix[-1*xstride] = ( p2 + 2*p1 + 2*p0 + 2*q0 + q1 + 4 ) >> 3;
+                    pix[-2*xstride] = ( p2 + p1 + p0 + q0 + 2 ) >> 2;
+                    pix[-3*xstride] = ( 2*p3 + 3*p2 + p1 + p0 + q0 + 4 ) >> 3;
+                } else {
+                    /* p0' */
+                    pix[-1*xstride] = ( 2*p1 + p0 + q1 + 2 ) >> 2;
                 }
-                pix++;
+                if( X264_ABS( q2 - q0 ) < beta)
+                {
+                    const int q3 = pix[3*xstride];
+                    /* q0', q1', q2' */
+                    pix[0*xstride] = ( p1 + 2*p0 + 2*q0 + 2*q1 + q2 + 4 ) >> 3;
+                    pix[1*xstride] = ( p0 + q0 + q1 + q2 + 2 ) >> 2;
+                    pix[2*xstride] = ( 2*q3 + 3*q2 + q1 + q0 + p0 + 4 ) >> 3;
+                } else {
+                    /* q0' */
+                    pix[0*xstride] = ( 2*q1 + q0 + p1 + 2 ) >> 2;
+                }
+            }else{
+                /* p0', q0' */
+                pix[-1*xstride] = ( 2*p1 + p0 + q1 + 2 ) >> 2;
+                pix[ 0*xstride] = ( 2*q1 + q0 + p1 + 2 ) >> 2;
             }
         }
-        else
-        {
-            /* 2px edge length (see deblocking_filter_edgecv) */
-            for( d = 0; d < 2; d++ )
-            {
-                const int p0 = pix[-1*i_pix_next];
-                const int p1 = pix[-2*i_pix_next];
-                const int q0 = pix[0];
-                const int q1 = pix[1*i_pix_next];
+        pix += ystride;
+    }
+}
+static void deblock_v_luma_intra_c( uint8_t *pix, int stride, int alpha, int beta )
+{   
+    deblock_luma_intra_c( pix, stride, 1, alpha, beta );
+}
+static void deblock_h_luma_intra_c( uint8_t *pix, int stride, int alpha, int beta )
+{   
+    deblock_luma_intra_c( pix, 1, stride, alpha, beta );
+}
 
-                if( abs( p0 - q0 ) < alpha &&
-                    abs( p1 - p0 ) < beta &&
-                    abs( q1 - q0 ) < beta )
-                {
-                    pix[-i_pix_next] = ( 2*p1 + p0 + q1 + 2 ) >> 2;   /* p0' */
-                    pix[0]           = ( 2*q1 + q0 + p1 + 2 ) >> 2;   /* q0' */
-                }
-                pix++;
-            }
+static inline void deblock_chroma_intra_c( uint8_t *pix, int xstride, int ystride, int alpha, int beta )
+{   
+    int d; 
+    for( d = 0; d < 8; d++ ) {
+        const int p1 = pix[-2*xstride];
+        const int p0 = pix[-1*xstride];
+        const int q0 = pix[ 0*xstride];
+        const int q1 = pix[ 1*xstride];
+
+        if( X264_ABS( p0 - q0 ) < alpha &&
+            X264_ABS( p1 - p0 ) < beta &&
+            X264_ABS( q1 - q0 ) < beta ) {
+
+            pix[-1*xstride] = (2*p1 + p0 + q1 + 2) >> 2;   /* p0' */
+            pix[ 0*xstride] = (2*q1 + q0 + p1 + 2) >> 2;   /* q0' */
         }
+
+        pix += ystride;
+    }
+}
+static void deblock_v_chroma_intra_c( uint8_t *pix, int stride, int alpha, int beta )
+{   
+    deblock_chroma_intra_c( pix, stride, 1, alpha, beta );
+}
+static void deblock_h_chroma_intra_c( uint8_t *pix, int stride, int alpha, int beta )
+{   
+    deblock_chroma_intra_c( pix, 1, stride, alpha, beta );
+}
+
+static inline void deblock_edge( x264_t *h, uint8_t *pix, int i_stride, int bS[4], int i_qp, int b_chroma,
+                                 x264_deblock_inter_t pf_inter, x264_deblock_intra_t pf_intra )
+{
+    int i;
+    const int index_a = x264_clip3( i_qp + h->sh.i_alpha_c0_offset, 0, 51 );
+    const int alpha = i_alpha_table[index_a];
+    const int beta  = i_beta_table[x264_clip3( i_qp + h->sh.i_beta_offset, 0, 51 )];
+
+    if( bS[0] < 4 ) {
+        int8_t tc[4]; 
+        for(i=0; i<4; i++)
+            tc[i] = (bS[i] ? i_tc0_table[index_a][bS[i] - 1] : -1) + b_chroma;
+        pf_inter( pix, i_stride, alpha, beta, tc );
+    } else {
+        pf_intra( pix, i_stride, alpha, beta );
     }
 }
 
@@ -748,18 +584,21 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
                     /* vertical edge */
                     if( !b_8x8_transform || !(i_edge & 1) )
                     {
-                        deblocking_filter_edgev( h, &h->fdec->plane[0][16 * mb_y * h->fdec->i_stride[0]+ 16 * mb_x + 4 * i_edge],
-                                                 h->fdec->i_stride[0], bS, (i_qp+i_qpn+1) >> 1);
+                        deblock_edge( h, &h->fdec->plane[0][16*mb_y * h->fdec->i_stride[0] + 16*mb_x + 4*i_edge],
+                                      h->fdec->i_stride[0], bS, (i_qp+i_qpn+1) >> 1, 0,
+                                      h->loopf.deblock_h_luma, h->loopf.deblock_h_luma_intra );
                     }
                     if( !(i_edge & 1) )
                     {
                         /* U/V planes */
                         int i_qpc = ( i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )] +
                                       i_chroma_qp_table[x264_clip3( i_qpn + h->pps->i_chroma_qp_index_offset, 0, 51 )] + 1 ) >> 1;
-                        deblocking_filter_edgecv( h, &h->fdec->plane[1][8*(mb_y*h->fdec->i_stride[1]+mb_x)+i_edge*2],
-                                                      h->fdec->i_stride[1], bS, i_qpc );
-                        deblocking_filter_edgecv( h, &h->fdec->plane[2][8*(mb_y*h->fdec->i_stride[2]+mb_x)+i_edge*2],
-                                                  h->fdec->i_stride[2], bS, i_qpc );
+                        deblock_edge( h, &h->fdec->plane[1][8*(mb_y*h->fdec->i_stride[1]+mb_x)+2*i_edge],
+                                      h->fdec->i_stride[1], bS, i_qpc, 1,
+                                      h->loopf.deblock_h_chroma, h->loopf.deblock_h_chroma_intra );
+                        deblock_edge( h, &h->fdec->plane[2][8*(mb_y*h->fdec->i_stride[2]+mb_x)+2*i_edge],
+                                      h->fdec->i_stride[2], bS, i_qpc, 1,
+                                      h->loopf.deblock_h_chroma, h->loopf.deblock_h_chroma_intra );
                     }
                 }
                 else
@@ -767,18 +606,21 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
                     /* horizontal edge */
                     if( !b_8x8_transform || !(i_edge & 1) )
                     {
-                        deblocking_filter_edgeh( h, &h->fdec->plane[0][(16*mb_y + 4 * i_edge) * h->fdec->i_stride[0]+ 16 * mb_x],
-                                                 h->fdec->i_stride[0], bS, (i_qp+i_qpn+1) >> 1 );
+                        deblock_edge( h, &h->fdec->plane[0][(16*mb_y + 4*i_edge) * h->fdec->i_stride[0] + 16*mb_x],
+                                      h->fdec->i_stride[0], bS, (i_qp+i_qpn+1) >> 1, 0,
+                                      h->loopf.deblock_v_luma, h->loopf.deblock_v_luma_intra );
                     }
                     /* U/V planes */
                     if( !(i_edge & 1) )
                     {
                         int i_qpc = ( i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )] +
                                       i_chroma_qp_table[x264_clip3( i_qpn + h->pps->i_chroma_qp_index_offset, 0, 51 )] + 1 ) >> 1;
-                        deblocking_filter_edgech( h, &h->fdec->plane[1][8*(mb_y*h->fdec->i_stride[1]+mb_x)+i_edge*2*h->fdec->i_stride[1]],
-                                                 h->fdec->i_stride[1], bS, i_qpc );
-                        deblocking_filter_edgech( h, &h->fdec->plane[2][8*(mb_y*h->fdec->i_stride[2]+mb_x)+i_edge*2*h->fdec->i_stride[2]],
-                                                 h->fdec->i_stride[2], bS, i_qpc );
+                        deblock_edge( h, &h->fdec->plane[1][8*(mb_y*h->fdec->i_stride[1]+mb_x)+2*i_edge*h->fdec->i_stride[1]],
+                                      h->fdec->i_stride[1], bS, i_qpc, 1,
+                                      h->loopf.deblock_v_chroma, h->loopf.deblock_v_chroma_intra );
+                        deblock_edge( h, &h->fdec->plane[2][8*(mb_y*h->fdec->i_stride[2]+mb_x)+2*i_edge*h->fdec->i_stride[2]],
+                                      h->fdec->i_stride[2], bS, i_qpc, 1,
+                                      h->loopf.deblock_v_chroma, h->loopf.deblock_v_chroma_intra );
                     }
                 }
             }
@@ -794,6 +636,53 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
     }
 }
 
+void x264_deblock_v_chroma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_h_chroma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_v_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
+void x264_deblock_h_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
 
+#ifdef ARCH_X86_64
+void x264_deblock_v_luma_sse2( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_h_luma_sse2( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+#else
+void x264_deblock_h_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_v8_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 
+void x264_deblock_v_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+{
+    x264_deblock_v8_luma_mmxext( pix,   stride, alpha, beta, tc0   );
+    x264_deblock_v8_luma_mmxext( pix+8, stride, alpha, beta, tc0+2 );
+}
+#endif
+
+void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
+{
+    pf->deblock_v_luma = deblock_v_luma_c;
+    pf->deblock_h_luma = deblock_h_luma_c;
+    pf->deblock_v_chroma = deblock_v_chroma_c;
+    pf->deblock_h_chroma = deblock_h_chroma_c;
+    pf->deblock_v_luma_intra = deblock_v_luma_intra_c;
+    pf->deblock_h_luma_intra = deblock_h_luma_intra_c;
+    pf->deblock_v_chroma_intra = deblock_v_chroma_intra_c;
+    pf->deblock_h_chroma_intra = deblock_h_chroma_intra_c;
+
+    if( cpu&X264_CPU_MMXEXT )
+    {
+        pf->deblock_v_chroma = x264_deblock_v_chroma_mmxext;
+        pf->deblock_h_chroma = x264_deblock_h_chroma_mmxext;
+        pf->deblock_v_chroma_intra = x264_deblock_v_chroma_intra_mmxext;
+        pf->deblock_h_chroma_intra = x264_deblock_h_chroma_intra_mmxext;
+
+#ifdef ARCH_X86_64
+        if( cpu&X264_CPU_SSE2 )
+        {
+            pf->deblock_v_luma = x264_deblock_v_luma_sse2;
+            pf->deblock_h_luma = x264_deblock_h_luma_sse2;
+        }
+#else
+        pf->deblock_v_luma = x264_deblock_v_luma_mmxext;
+        pf->deblock_h_luma = x264_deblock_h_luma_mmxext;
+#endif
+    }
+}
 

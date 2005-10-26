@@ -566,6 +566,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     x264_mc_init( h->param.cpu, &h->mc );
     x264_csp_init( h->param.cpu, h->param.i_csp, &h->csp );
     x264_quant_init( h, h->param.cpu, &h->quantf );
+    x264_deblock_init( h->param.cpu, &h->loopf );
 
     memcpy( h->pixf.mbcmp,
             ( h->mb.b_lossless || h->param.analyse.i_subpel_refine <= 1 ) ? h->pixf.sad : h->pixf.satd,
