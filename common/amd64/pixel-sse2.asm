@@ -47,18 +47,18 @@ cglobal x264_pixel_satd_8x16_sse2
 cglobal x264_pixel_satd_16x16_sse2
 
 %macro SAD_INC_4x16P_SSE2 0
-    movdqu  xmm1,   [parm3q]
-    movdqu  xmm2,   [parm3q+parm4q]
-    lea     rdx,    [parm3q+2*parm4q]
-    movdqu  xmm3,   [parm3q]
-    movdqu  xmm4,   [parm3q+parm4q]
-    psadbw  xmm1,   [parm1q]
-    psadbw  xmm2,   [parm1q+parm2q]
-    lea     rdi,    [parm1q+2*parm2q]
-    psadbw  xmm3,   [parm1q]
-    psadbw  xmm4,   [parm1q+parm2q]
-    lea     rdi,    [parm1q+2*parm2q]
-    lea     rdx,    [parm3q+2*parm4q]
+    movdqu  xmm1,   [rdx]
+    movdqu  xmm2,   [rdx+rcx]
+    lea     rdx,    [rdx+2*rcx]
+    movdqu  xmm3,   [rdx]
+    movdqu  xmm4,   [rdx+rcx]
+    psadbw  xmm1,   [rdi]
+    psadbw  xmm2,   [rdi+rsi]
+    lea     rdi,    [rdi+2*rsi]
+    psadbw  xmm3,   [rdi]
+    psadbw  xmm4,   [rdi+rsi]
+    lea     rdi,    [rdi+2*rsi]
+    lea     rdx,    [rdx+2*rcx]
     paddw   xmm1,   xmm2
     paddw   xmm3,   xmm4
     paddw   xmm0,   xmm1
@@ -67,9 +67,9 @@ cglobal x264_pixel_satd_16x16_sse2
 
 %macro SAD_START_SSE2 0
 ;   mov     rdi, rdi            ; pix1
-;   movsxd  rsi, esi            ; stride1
+    movsxd  rsi, esi            ; stride1
 ;   mov     rdx, rdx            ; pix2
-;   movsxd  rcx, ecx            ; stride2
+    movsxd  rcx, ecx            ; stride2
 %endmacro
 
 %macro SAD_END_SSE2 0
@@ -103,27 +103,27 @@ x264_pixel_sad_16x16_sse2:
     movdqu xmm5, [rdx+rcx]
     lea    rdx,  [rdx+2*rcx]
     paddw  xmm2, xmm3
-    movdqu xmm1, [rdx]
-    movdqu xmm3, [rdx+rcx]
+    movdqu xmm6, [rdx]
+    movdqu xmm7, [rdx+rcx]
     lea    rdx,  [rdx+2*rcx]
     paddw  xmm0, xmm2
     psadbw xmm4, [rdi]
     psadbw xmm5, [rdi+rsi]
     lea    rdi,  [rdi+2*rsi]
-    movdqu xmm2, [rdx]
+    movdqu xmm1, [rdx]
     paddw  xmm4, xmm5
-    psadbw xmm1, [rdi]
-    psadbw xmm3, [rdi+rsi]
+    psadbw xmm6, [rdi]
+    psadbw xmm7, [rdi+rsi]
     lea    rdi,  [rdi+2*rsi]
     movdqu xmm2, [rdx+rcx]
     lea    rdx,  [rdx+2*rcx]
-    paddw  xmm1, xmm3
+    paddw  xmm6, xmm7
     movdqu xmm3, [rdx]
     paddw  xmm0, xmm4
     movdqu xmm4, [rdx+rcx]
     lea    rdx,  [rdx+2*rcx]
-    paddw  xmm0, xmm1
-    psadbw xmm2, [rdi]
+    paddw  xmm0, xmm6
+    psadbw xmm1, [rdi]
     psadbw xmm2, [rdi+rsi]
     lea    rdi,  [rdi+2*rsi]
     movdqu xmm5, [rdx]
