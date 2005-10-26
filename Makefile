@@ -69,7 +69,7 @@ x264$(EXE): libx264.a x264.o matroska.o
 x264vfw.dll: libx264.a $(wildcard vfw/*.c vfw/*.h)
 	make -C vfw/build/cygwin
 
-checkasm: testing/checkasm.o libx264.a
+checkasm: tools/checkasm.o libx264.a
 	$(CC) -o $@ $< libx264.a $(LDFLAGS)
 
 common/amd64/*.o: common/amd64/amd64inc.asm
@@ -91,6 +91,8 @@ endif
 
 clean:
 	rm -f $(OBJS) $(OBJASM) config.h *.a x264.o matroska.o x264 x264.exe .depend TAGS
+	rm -f checkasm checkasm.exe tools/checkasm.o
+	rm -f tools/avc2avi tools/avc2avi.exe tools/avc2avi.o
 	rm -rf vfw/build/cygwin/bin
 
 distclean: clean
