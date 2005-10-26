@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 37
+#define X264_BUILD 38
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -127,6 +127,7 @@ typedef struct
     int         i_height;
     int         i_csp;  /* CSP of encoded bitstream, only i420 supported */
     int         i_level_idc; 
+    int         i_frame_total; /* number of frames to encode if known, else 0 */
 
     struct
     {

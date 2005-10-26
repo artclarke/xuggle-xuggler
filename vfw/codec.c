@@ -130,6 +130,7 @@ LRESULT compress_frames_info(CODEC * codec, ICCOMPRESSFRAMES * icf )
 {
     codec->fincr = icf->dwScale;
     codec->fbase = icf->dwRate;
+    codec->config.i_frame_total = icf->lFrameCount;
     return ICERR_OK;
 }
 
@@ -213,6 +214,7 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
 
     param.i_fps_num = codec->fbase;
     param.i_fps_den = codec->fincr;
+    param.i_frame_total = config->i_frame_total;
 
     param.i_frame_reference = config->i_refmax;
     param.i_keyint_min = config->i_keyint_min;

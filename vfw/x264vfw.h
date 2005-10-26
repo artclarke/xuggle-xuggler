@@ -46,6 +46,8 @@ typedef struct
     int b_fast1pass;    /* turns off some flags during 1st pass */    
     int b_updatestats;  /* updates the statsfile during 2nd pass */
 
+    int i_frame_total;
+
     /* Our config */
     int i_refmax;
     int i_keyint_max;

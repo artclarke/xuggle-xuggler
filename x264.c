@@ -73,7 +73,6 @@ static void    SigIntHandler( int a )
 typedef struct {
     int b_decompress;
     int b_progress;
-    int i_maxframes;
     int i_seek;
     hnd_t hin;
     hnd_t hout;
@@ -637,7 +636,7 @@ static int  Parse( int argc, char **argv,
                 param->cpu = 0;
                 break;
             case OPT_FRAMES:
-                opt->i_maxframes = atoi( optarg );
+                param->i_frame_total = atoi( optarg );
                 break;
             case OPT_SEEK:
                 opt->i_seek = atoi( optarg );
@@ -1041,6 +1040,11 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     int     i_progress;
 
     i_frame_total = p_get_frame_total( opt->hin, param->i_width, param->i_height );
+    i_frame_total -= opt->i_seek;
+    if( ( i_frame_total == 0 || param->i_frame_total < i_frame_total )
+        && param->i_frame_total > 0 )
+        i_frame_total = param->i_frame_total;
+    param->i_frame_total = i_frame_total;
 
     if( ( h = x264_encoder_open( param ) ) == NULL )
     {
@@ -1062,10 +1066,8 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     x264_picture_alloc( &pic, X264_CSP_I420, param->i_width, param->i_height );
 
     i_start = x264_mdate();
+
     /* Encode frames */
-    i_frame_total -= opt->i_seek;
-    if( opt->i_maxframes > 0 && opt->i_maxframes < i_frame_total )
-        i_frame_total = opt->i_maxframes;
     for( i_frame = 0, i_file = 0, i_progress = 0;
          b_ctrl_c == 0 && (i_frame < i_frame_total || i_frame_total == 0); )
     {

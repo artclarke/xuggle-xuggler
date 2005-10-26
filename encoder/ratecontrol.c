@@ -277,11 +277,25 @@ int x264_ratecontrol_new( x264_t *h )
             x264_log(h, X264_LOG_ERROR, "empty stats file\n");
             return -1;
         }
-        i += h->param.i_bframe;
-        rc->entry = (ratecontrol_entry_t*) x264_malloc(i*sizeof(ratecontrol_entry_t));
-        memset(rc->entry, 0, i*sizeof(ratecontrol_entry_t));
-        /* FIXME: num_entries is sometimes treated as number of frames in the video */
-        rc->num_entries= i;
+        rc->num_entries = i;
+
+        if( h->param.i_frame_total < rc->num_entries )
+        {
+            x264_log( h, X264_LOG_WARNING, "2nd pass has fewer frames than 1st pass (%d vs %d)\n",
+                      h->param.i_frame_total, rc->num_entries );
+        }
+        if( h->param.i_frame_total > rc->num_entries + h->param.i_bframe )
+        {
+            x264_log( h, X264_LOG_ERROR, "2nd pass has more frames than 1st pass (%d vs %d)\n",
+                      h->param.i_frame_total, rc->num_entries );
+            return -1;
+        }
+
+        /* FIXME: ugly padding because VfW drops delayed B-frames */
+        rc->num_entries += h->param.i_bframe;
+
+        rc->entry = (ratecontrol_entry_t*) x264_malloc(rc->num_entries * sizeof(ratecontrol_entry_t));
+        memset(rc->entry, 0, rc->num_entries * sizeof(ratecontrol_entry_t));
 
         /* init all to skipped p frames */
         for(i=0; i<rc->num_entries; i++){
@@ -495,20 +509,42 @@ int x264_ratecontrol_qp( x264_t *h )
 /* In 2pass, force the same frame types as in the 1st pass */
 int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
 {
+    x264_ratecontrol_t *rc = h->rc;
     if( h->param.rc.b_stat_read )
     {
-        if( frame_num >= h->rc->num_entries )
+        if( frame_num >= rc->num_entries )
         {
-            x264_log(h, X264_LOG_ERROR, "More input frames than in the 1st pass\n");
+            /* We could try to initialize everything required for ABR and
+             * adaptive B-frames, but that would be complicated.
+             * So just calculate the average QP used so far. */
+
+            h->param.rc.i_qp_constant = (h->stat.i_slice_count[SLICE_TYPE_P] == 0) ? 24
+                                      : 1 + h->stat.i_slice_qp[SLICE_TYPE_P] / h->stat.i_slice_count[SLICE_TYPE_P];
+            rc->qp_constant[SLICE_TYPE_P] = x264_clip3( h->param.rc.i_qp_constant, 0, 51 );
+            rc->qp_constant[SLICE_TYPE_I] = x264_clip3( (int)( qscale2qp( qp2qscale( h->param.rc.i_qp_constant ) / fabs( h->param.rc.f_ip_factor )) + 0.5 ), 0, 51 );
+            rc->qp_constant[SLICE_TYPE_B] = x264_clip3( (int)( qscale2qp( qp2qscale( h->param.rc.i_qp_constant ) * fabs( h->param.rc.f_pb_factor )) + 0.5 ), 0, 51 );
+
+            x264_log(h, X264_LOG_ERROR, "2nd pass has more frames than 1st pass (%d)\n", rc->num_entries);
+            x264_log(h, X264_LOG_ERROR, "continuing anyway, at constant QP=%d\n", h->param.rc.i_qp_constant);
+            if( h->param.b_bframe_adaptive )
+                x264_log(h, X264_LOG_ERROR, "disabling adaptive B-frames\n");
+
+            rc->b_abr = 0;
+            rc->b_2pass = 0;
+            h->param.rc.b_cbr = 0;
+            h->param.rc.b_stat_read = 0;
+            h->param.b_bframe_adaptive = 0;
+            if( h->param.i_bframe > 1 )
+                h->param.i_bframe = 1;
             return X264_TYPE_P;
         }
-        switch( h->rc->entry[frame_num].pict_type )
+        switch( rc->entry[frame_num].pict_type )
         {
             case SLICE_TYPE_I:
-                return h->rc->entry[frame_num].kept_as_ref ? X264_TYPE_IDR : X264_TYPE_I;
+                return rc->entry[frame_num].kept_as_ref ? X264_TYPE_IDR : X264_TYPE_I;
 
             case SLICE_TYPE_B:
-                return h->rc->entry[frame_num].kept_as_ref ? X264_TYPE_BREF : X264_TYPE_B;
+                return rc->entry[frame_num].kept_as_ref ? X264_TYPE_BREF : X264_TYPE_B;
 
             case SLICE_TYPE_P:
             default:
