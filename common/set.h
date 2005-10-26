@@ -211,6 +211,12 @@ static const uint8_t x264_cqm_flat16[64] =
     16,16,16,16,16,16,16,16,
     16,16,16,16,16,16,16,16
 };
+static const uint8_t * const x264_cqm_jvt[6] =
+{
+    x264_cqm_jvt4i, x264_cqm_jvt4p,
+    x264_cqm_jvt4i, x264_cqm_jvt4p,
+    x264_cqm_jvt8i, x264_cqm_jvt8p
+};
 
 void x264_cqm_init( x264_t *h );
 int  x264_cqm_parse_file( x264_t *h, const char *filename );

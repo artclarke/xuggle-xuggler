@@ -38,13 +38,6 @@
 #include "config.h"
 #endif
 
-static const uint8_t *const x264_cqm_jvt[6] =
-{
-    x264_cqm_jvt4i, x264_cqm_jvt4p,
-    x264_cqm_jvt4i, x264_cqm_jvt4p,
-    x264_cqm_jvt8i, x264_cqm_jvt8p
-};
-
 static void scaling_list_write( bs_t *s, x264_pps_t *pps, int idx )
 {
     const int len = idx<4 ? 16 : 64;
