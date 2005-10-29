@@ -199,6 +199,16 @@ static const int i_chroma_qp_table[52] =
     39, 39
 };
 
+enum cabac_ctx_block_cat_e
+{
+    DCT_LUMA_DC   = 0,
+    DCT_LUMA_AC   = 1,
+    DCT_LUMA_4x4  = 2,
+    DCT_CHROMA_DC = 3,
+    DCT_CHROMA_AC = 4,
+    DCT_LUMA_8x8  = 5,
+};
+
 
 void x264_macroblock_cache_init( x264_t *h );
 void x264_macroblock_slice_init( x264_t *h );
