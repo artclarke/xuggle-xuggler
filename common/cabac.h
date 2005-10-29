@@ -39,7 +39,6 @@ typedef struct
     {
         int i_state;
         int i_mps;
-        int i_count;
     } ctxstate[436];
 
     /* state */
@@ -63,10 +62,6 @@ int  x264_cabac_decode_decision( x264_cabac_t *cb, int i_ctx_idx );
 int  x264_cabac_decode_bypass  ( x264_cabac_t *cb );
 int  x264_cabac_decode_terminal( x264_cabac_t *cb );
 
-/* encoder only: adaptive model init */
-void x264_cabac_model_init( x264_cabac_t *cb );
-int  x264_cabac_model_get ( x264_cabac_t *cb, int i_slice_type );
-void x264_cabac_model_update( x264_cabac_t *cb, int i_slice_type, int i_qp );
 /* encoder only: */
 void x264_cabac_encode_init ( x264_cabac_t *cb, bs_t *s );
 void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx_idx, int b );

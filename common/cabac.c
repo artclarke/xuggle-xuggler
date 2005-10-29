@@ -821,7 +821,6 @@ void x264_cabac_context_init( x264_cabac_t *cb, int i_slice_type, int i_qp, int 
             cb->ctxstate[i].i_state = i_pre_state - 64;
             cb->ctxstate[i].i_mps = 1;
         }
-        cb->ctxstate[i].i_count = 0;
     }
 }
 
@@ -902,66 +901,9 @@ int  x264_cabac_decode_terminal( x264_cabac_t *cb )
     return 0;
 }
 
-
 /*****************************************************************************
  *
  *****************************************************************************/
-void x264_cabac_model_init( x264_cabac_t *cb )
-{
-    int i;
-
-    for( i = 0; i < 3; i++ )
-    {
-        cb->slice[i].i_model = 0;
-        cb->slice[i].i_cost  = -1;
-    }
-}
-
-int  x264_cabac_model_get ( x264_cabac_t *cb, int i_slice_type )
-{
-    return cb->slice[i_slice_type].i_model;
-}
-
-void x264_cabac_model_update( x264_cabac_t *cb, int i_slice_type, int i_qp )
-{
-    int i;
-
-    if( i_slice_type == SLICE_TYPE_I )
-    {
-        return;
-    }
-    cb->slice[i_slice_type].i_cost = -1;
-
-    for( i = 0; i < 3; i++ )
-    {
-        int i_ctx;
-        int i_cost;
-
-        i_cost = 0; /* fix8 */
-
-        for( i_ctx = 0; i_ctx < 436; i_ctx++ )
-        {
-            int i_weight;
-            int i_model_state;
-            int i_ctx_state;
-
-            i_weight = X264_MIN( (1<<8), (cb->ctxstate[i_ctx].i_count<<8) / 32 );
-            i_model_state = x264_clip3( ((x264_cabac_context_init_PB[i][i_ctx][0] * i_qp)>>4) +
-                                          x264_cabac_context_init_PB[i][i_ctx][1], 0, 127 );
-            i_ctx_state   = cb->ctxstate[i_ctx].i_mps ? 64 + cb->ctxstate[i_ctx].i_state : 63 - cb->ctxstate[i_ctx].i_state;
-
-            i_cost += (i_weight * (( x264_cabac_probability[      i_ctx_state] * x264_cabac_entropy[      i_model_state] +
-                                     x264_cabac_probability[127 - i_ctx_state] * x264_cabac_entropy[127 - i_model_state] ) >> 8))>>8;
-        }
-
-        if( cb->slice[i_slice_type].i_cost == -1 || cb->slice[i_slice_type].i_cost > i_cost )
-        {
-            cb->slice[i_slice_type].i_model= i;
-            cb->slice[i_slice_type].i_cost = i_cost;
-        }
-    }
-}
-
 void x264_cabac_encode_init( x264_cabac_t *cb, bs_t *s )
 {
     cb->i_low   = 0;
@@ -1049,7 +991,6 @@ void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx, int b )
     {
         cb->ctxstate[i_ctx].i_state = x264_transition_mps[i_state];
     }
-    cb->ctxstate[i_ctx].i_count++;
 
     x264_cabac_encode_renorm( cb );
 }

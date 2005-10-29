@@ -387,10 +387,7 @@ static int x264_validate_parameters( x264_t *h )
     h->param.i_deblocking_filter_alphac0 = x264_clip3( h->param.i_deblocking_filter_alphac0, -6, 6 );
     h->param.i_deblocking_filter_beta    = x264_clip3( h->param.i_deblocking_filter_beta, -6, 6 );
 
-    h->param.i_cabac_init_idc = x264_clip3( h->param.i_cabac_init_idc, -1, 2 );
-    /* don't yet support merging of cabac stats */
-    if( h->param.i_threads > 1 && h->param.i_cabac_init_idc == -1 )
-        h->param.i_cabac_init_idc = 0;
+    h->param.i_cabac_init_idc = x264_clip3( h->param.i_cabac_init_idc, 0, 2 );
 
     if( h->param.i_cqm_preset < X264_CQM_FLAT || h->param.i_cqm_preset > X264_CQM_CUSTOM )
         h->param.i_cqm_preset = X264_CQM_FLAT;
@@ -551,9 +548,6 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     /* init mb cache */
     x264_macroblock_cache_init( h );
-
-    /* init cabac adaptive model */
-    x264_cabac_model_init( &h->cabac );
 
     /* init CPU functions */
     x264_predict_16x16_init( h->param.cpu, h->predict_16x16 );
@@ -887,15 +881,6 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_slice_type,
     else
     {
         /* Nothing to do ? */
-    }
-
-    /* get adapative cabac model if needed */
-    if( h->param.b_cabac )
-    {
-        if( h->param.i_cabac_init_idc == -1 )
-        {
-            h->sh.i_cabac_init_idc = x264_cabac_model_get( &h->cabac, i_slice_type );
-        }
     }
 
     x264_macroblock_slice_init( h );
@@ -1472,11 +1457,6 @@ do_encode:
     }
 
     /* ---------------------- Update encoder state ------------------------- */
-    /* update cabac */
-    if( h->param.b_cabac && h->param.i_cabac_init_idc == -1 )
-    {
-        x264_cabac_model_update( &h->cabac, i_slice_type, h->sh.i_qp );
-    }
 
     /* handle references */
     if( i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE )
