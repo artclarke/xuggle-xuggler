@@ -26,27 +26,15 @@
 
 typedef struct
 {
-    /* model */
-    struct
-    {
-        int i_model;
-        int i_cost;
-    } slice[3];
-
     /* context */
-    /* states 436-459 are for interlacing, so are omitted for now */
-    struct
-    {
-        int i_state;
-        int i_mps;
-    } ctxstate[436];
+    /* #436-459 are for interlacing, so are omitted for now */
+    uint8_t state[436];
 
     /* state */
     int i_low;
     int i_range;
 
     /* bit stream */
-    int b_first_bit;
     int i_bits_outstanding;
     int f8_bits_encoded; // only if using x264_cabac_size_decision()
     bs_t *s;

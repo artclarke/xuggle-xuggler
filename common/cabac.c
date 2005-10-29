@@ -27,13 +27,6 @@
 
 #include "common.h"
 
-//#define TRACE 1
-
-/* Debugging purpose ONLY !!!! */
-#ifdef TRACE
-static int binCount = 0;
-#endif
-
 
 static const int x264_cabac_context_init_I[460][2] =
 {
@@ -675,8 +668,33 @@ static const int x264_cabac_context_init_PB[3][460][2] =
     }
 };
 
-static const int x264_cabac_range_lps[64][4] =
+/* FIXME could avoid this duplication by reversing the order of states
+ * with MPS=0, but that would uglify the other tables */
+static const int x264_cabac_range_lps[128][4] =
 {
+    {   2,   2,   2,   2 },
+    {   6,   7,   8,   9 }, {   6,   7,   9,  10 }, {   6,   8,   9,  11 },
+    {   7,   8,  10,  11 }, {   7,   9,  10,  12 }, {   7,   9,  11,  12 },
+    {   8,   9,  11,  13 }, {   8,  10,  12,  14 }, {   9,  11,  12,  14 },
+    {   9,  11,  13,  15 }, {  10,  12,  14,  16 }, {  10,  12,  15,  17 },
+    {  11,  13,  15,  18 }, {  11,  14,  16,  19 }, {  12,  14,  17,  20 },
+    {  12,  15,  18,  21 }, {  13,  16,  19,  22 }, {  14,  17,  20,  23 },
+    {  14,  18,  21,  24 }, {  15,  19,  22,  25 }, {  16,  20,  23,  27 },
+    {  17,  21,  25,  28 }, {  18,  22,  26,  30 }, {  19,  23,  27,  31 },
+    {  20,  24,  29,  33 }, {  21,  26,  30,  35 }, {  22,  27,  32,  37 },
+    {  23,  28,  33,  39 }, {  24,  30,  35,  41 }, {  26,  31,  37,  43 },
+    {  27,  33,  39,  45 }, {  29,  35,  41,  48 }, {  30,  37,  43,  50 },
+    {  32,  39,  46,  53 }, {  33,  41,  48,  56 }, {  35,  43,  51,  59 },
+    {  37,  45,  54,  62 }, {  39,  48,  56,  65 }, {  41,  50,  59,  69 },
+    {  43,  53,  63,  72 }, {  46,  56,  66,  76 }, {  48,  59,  69,  80 },
+    {  51,  62,  73,  85 }, {  53,  65,  77,  89 }, {  56,  69,  81,  94 },
+    {  59,  72,  86,  99 }, {  62,  76,  90, 104 }, {  66,  80,  95, 110 },
+    {  69,  85, 100, 116 }, {  73,  89, 105, 122 }, {  77,  94, 111, 128 },
+    {  81,  99, 117, 135 }, {  85, 104, 123, 142 }, {  90, 110, 130, 150 },
+    {  95, 116, 137, 158 }, { 100, 122, 144, 166 }, { 105, 128, 152, 175 },
+    { 111, 135, 160, 185 }, { 116, 142, 169, 195 }, { 123, 150, 178, 205 },
+    { 128, 158, 187, 216 }, { 128, 167, 197, 227 }, { 128, 176, 208, 240 },
+
     { 128, 176, 208, 240 }, { 128, 167, 197, 227 }, { 128, 158, 187, 216 },
     { 123, 150, 178, 205 }, { 116, 142, 169, 195 }, { 111, 135, 160, 185 },
     { 105, 128, 152, 175 }, { 100, 122, 144, 166 }, {  95, 116, 137, 158 },
@@ -701,20 +719,26 @@ static const int x264_cabac_range_lps[64][4] =
     {   2,   2,   2,   2 },
 };
 
-static const int x264_transition_lps[64] =
-{
-     0, 0, 1, 2, 2, 4, 4, 5, 6, 7, 8, 9, 9,11,11,12,
-    13,13,15,15,16,16,18,18,19,19,21,21,22,22,23,24,
-    24,25,26,26,27,27,28,29,29,30,30,30,31,32,32,33,
-    33,33,34,34,35,35,35,36,36,36,37,37,37,38,38,63
-};
-static const int x264_transition_mps[64] =
-{
-     1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,
-    17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,
-    49,50,51,52,53,54,55,56,57,58,59,60,61,62,62,63,
-};
+static const int x264_cabac_transition[2][128] =
+{{
+      0,  1,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+     15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+     31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46,
+     47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62,
+     63, 64, 65, 66, 66, 68, 68, 69, 70, 71, 72, 73, 73, 75, 75, 76,
+     77, 77, 79, 79, 80, 80, 82, 82, 83, 83, 85, 85, 86, 86, 87, 88,
+     88, 89, 90, 90, 91, 91, 92, 93, 93, 94, 94, 94, 95, 96, 96, 97,
+     97, 97, 98, 98, 99, 99, 99,100,100,100,101,101,101,102,102,127,
+},{
+      0, 25, 25, 26, 26, 26, 27, 27, 27, 28, 28, 28, 29, 29, 30, 30,
+     30, 31, 31, 32, 33, 33, 33, 34, 34, 35, 36, 36, 37, 37, 38, 39,
+     39, 40, 41, 41, 42, 42, 44, 44, 45, 45, 47, 47, 48, 48, 50, 50,
+     51, 52, 52, 54, 54, 55, 56, 57, 58, 59, 59, 61, 61, 62, 63, 64,
+     65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80,
+     81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96,
+     97, 98, 99,100,101,102,103,104,105,106,107,108,109,110,111,112,
+    113,114,115,116,117,118,119,120,121,122,123,124,125,126,126,127,
+}};
 
 static const int x264_cabac_probability[128] =
 {
@@ -808,19 +832,7 @@ void x264_cabac_context_init( x264_cabac_t *cb, int i_slice_type, int i_qp, int 
 
     for( i = 0; i < 436; i++ )
     {
-        int i_pre_state;
-
-        i_pre_state = x264_clip3( (((*cabac_context_init)[i][0] * i_qp) >> 4) + (*cabac_context_init)[i][1], 1, 126 );
-        if( i_pre_state <= 63 )
-        {
-            cb->ctxstate[i].i_state = 63 - i_pre_state;
-            cb->ctxstate[i].i_mps = 0;
-        }
-        else
-        {
-            cb->ctxstate[i].i_state = i_pre_state - 64;
-            cb->ctxstate[i].i_mps = 1;
-        }
+        cb->state[i] = x264_clip3( (((*cabac_context_init)[i][0] * i_qp) >> 4) + (*cabac_context_init)[i][1], 1, 126 );
     }
 }
 
@@ -845,34 +857,22 @@ static inline void x264_cabac_decode_renorm( x264_cabac_t *cb )
 
 int  x264_cabac_decode_decision( x264_cabac_t *cb, int i_ctx )
 {
-    int i_state = cb->ctxstate[i_ctx].i_state;
-    int i_mps   = cb->ctxstate[i_ctx].i_mps;
-
+    int i_state = cb->state[i_ctx];
     int i_range_lps = x264_cabac_range_lps[i_state][(cb->i_range>>6)&0x03];
 
-    int val;
+    int val = (i_state >> 6);
 
     cb->i_range -= i_range_lps;
 
     if( cb->i_low >= cb->i_range )
     {
-        val = 1 - i_mps;
+        val ^= 1;
 
         cb->i_low -= cb->i_range;
         cb->i_range= i_range_lps;
-
-        if( i_state == 0 )
-        {
-            cb->ctxstate[i_ctx].i_mps = 1 - i_mps;
-        }
-        cb->ctxstate[i_ctx].i_state = x264_transition_lps[i_state];
     }
-    else
-    {
-        val = i_mps;
 
-        cb->ctxstate[i_ctx].i_state = x264_transition_mps[i_state];
-    }
+    cb->state[i_ctx] = x264_cabac_transition[val][i_state];
 
     x264_cabac_decode_renorm( cb );
 
@@ -908,50 +908,45 @@ void x264_cabac_encode_init( x264_cabac_t *cb, bs_t *s )
 {
     cb->i_low   = 0;
     cb->i_range = 0x01FE;
-    cb->b_first_bit= 1;
     cb->i_bits_outstanding = 0;
     cb->s = s;
+    s->i_left++; // the first bit will be shifted away and not written
 }
 
 static inline void x264_cabac_putbit( x264_cabac_t *cb, int b )
 {
-    if( cb->b_first_bit )
-    {
-        cb->b_first_bit = 0;
-    }
-    else
-    {
-        bs_write1( cb->s, b );
-    }
+    bs_write1( cb->s, b );
 
-    while( cb->i_bits_outstanding > 0 )
+    if( cb->i_bits_outstanding > 0 )
     {
-        bs_write1( cb->s, 1 - b );
-        cb->i_bits_outstanding--;
+        while( cb->i_bits_outstanding > 32 )
+        {
+            bs_write1( cb->s, 1-b );
+            cb->i_bits_outstanding--;
+        }
+        bs_write( cb->s, cb->i_bits_outstanding, (1-b)*(~0) );
+        cb->i_bits_outstanding = 0;
     }
 }
 
 static inline void x264_cabac_encode_renorm( x264_cabac_t *cb )
 {
     /* RenormE */
-    while( cb->i_range < 0x0100 )
+    while( cb->i_range < 0x100 )
     {
         if( cb->i_low < 0x100 )
         {
             x264_cabac_putbit( cb, 0 );
         }
+        else if( cb->i_low >= 0x200 )
+        {
+            cb->i_low -= 0x200;
+            x264_cabac_putbit( cb, 1 );
+        }
         else
         {
-            if( cb->i_low >= 0x200 )
-            {
-                cb->i_low -= 0x200;
-                x264_cabac_putbit( cb, 1 );
-            }
-            else
-            {
-                cb->i_low -= 0x100;
-                cb->i_bits_outstanding++;
-            }
+            cb->i_low -= 0x100;
+            cb->i_bits_outstanding++;
         }
 
         cb->i_range <<= 1;
@@ -961,77 +956,45 @@ static inline void x264_cabac_encode_renorm( x264_cabac_t *cb )
 
 void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx, int b )
 {
-    int i_state = cb->ctxstate[i_ctx].i_state;
-    int i_mps   = cb->ctxstate[i_ctx].i_mps;
-
+    int i_state = cb->state[i_ctx];
     int i_range_lps = x264_cabac_range_lps[i_state][(cb->i_range>>6)&0x03];
-
-#ifdef TRACE
-    if( binCount >= 0 )
-    {
-        fprintf( stderr, "%d  ctx=%d b=%d\n", binCount, i_ctx, b );
-    }
-    fprintf( stderr, "%d  0x%04x  %d  %d\n", binCount++, cb->i_range, i_state, i_mps );
-#endif
 
     cb->i_range -= i_range_lps;
 
-    if( b != i_mps )
+    if( b != (i_state >> 6) )
     {
         cb->i_low += cb->i_range;
         cb->i_range = i_range_lps;
+    }
 
-        if( i_state == 0 )
-        {
-            cb->ctxstate[i_ctx].i_mps = 1 - i_mps;
-        }
-        cb->ctxstate[i_ctx].i_state = x264_transition_lps[i_state];
-    }
-    else
-    {
-        cb->ctxstate[i_ctx].i_state = x264_transition_mps[i_state];
-    }
+    cb->state[i_ctx] = x264_cabac_transition[b][i_state];
 
     x264_cabac_encode_renorm( cb );
 }
 
 void x264_cabac_encode_bypass( x264_cabac_t *cb, int b )
 {
-#ifdef TRACE
-    fprintf( stderr, "%d  0x%04x\n", binCount++, cb->i_range );
-#endif
-
     cb->i_low <<= 1;
-    if( b )
-    {
-        cb->i_low += cb->i_range;
-    }
+    cb->i_low += b * cb->i_range;
 
     if( cb->i_low >= 0x400 )
     {
         x264_cabac_putbit( cb, 1 );
         cb->i_low -= 0x400;
     }
+    else if( cb->i_low < 0x200 )
+    {
+        x264_cabac_putbit( cb, 0 );
+    }
     else
     {
-        if( cb->i_low < 0x200 )
-        {
-            x264_cabac_putbit( cb, 0 );
-        }
-        else
-        {
-            cb->i_low -= 0x200;
-            cb->i_bits_outstanding++;
-        }
+        cb->i_low -= 0x200;
+        cb->i_bits_outstanding++;
     }
 }
 
 void x264_cabac_encode_terminal( x264_cabac_t *cb, int b )
 {
-#ifdef TRACE
-    fprintf( stderr, "%d  0x%04x\n", binCount++, cb->i_range );
-#endif
-
     cb->i_range -= 2;
     if( b )
     {
@@ -1056,18 +1019,7 @@ void x264_cabac_encode_flush( x264_cabac_t *cb )
  *****************************************************************************/
 void x264_cabac_size_decision( x264_cabac_t *cb, int i_ctx, int b )
 {
-    int i_state = cb->ctxstate[i_ctx].i_state;
-    int i_mps   = cb->ctxstate[i_ctx].i_mps;
-
-    if( b != i_mps )
-    {
-        cb->ctxstate[i_ctx].i_mps ^= ( i_state == 0 );
-        cb->ctxstate[i_ctx].i_state = x264_transition_lps[i_state];
-        cb->f8_bits_encoded += x264_cabac_entropy[ 64 + i_state ];
-    }
-    else
-    {
-        cb->ctxstate[i_ctx].i_state = x264_transition_mps[i_state];
-        cb->f8_bits_encoded += x264_cabac_entropy[ 63 - i_state ];
-    }
+    int i_state = cb->state[i_ctx];
+    cb->state[i_ctx] = x264_cabac_transition[b][i_state];
+    cb->f8_bits_encoded += x264_cabac_entropy[ b ? 127 - i_state : i_state ];
 }
