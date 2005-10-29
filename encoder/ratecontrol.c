@@ -279,7 +279,7 @@ int x264_ratecontrol_new( x264_t *h )
         }
         rc->num_entries = i;
 
-        if( h->param.i_frame_total < rc->num_entries )
+        if( h->param.i_frame_total < rc->num_entries && h->param.i_frame_total > 0 )
         {
             x264_log( h, X264_LOG_WARNING, "2nd pass has fewer frames than 1st pass (%d vs %d)\n",
                       h->param.i_frame_total, rc->num_entries );
