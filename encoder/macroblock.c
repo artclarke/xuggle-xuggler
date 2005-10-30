@@ -336,21 +336,8 @@ static void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
         if( b_inter && i_decimate_score < 7 )
         {
             /* Near null chroma 8x8 block so make it null (bits saving) */
-            for( i = 0; i < 4; i++ )
-            {
-                int x, y;
-                for( x = 0; x < 15; x++ )
-                {
-                    h->dct.block[16+i+ch*4].residual_ac[x] = 0;
-                }
-                for( x = 0; x < 4; x++ )
-                {
-                    for( y = 0; y < 4; y++ )
-                    {
-                        dct4x4[i][x][y] = 0;
-                    }
-                }
-            }
+            memset( dct4x4, 0, sizeof( dct4x4 ) );
+            memset( &h->dct.block[16+ch*4], 0, 4 * sizeof( *h->dct.block ) );
         }
 
         /* calculate dct coeffs */
@@ -542,23 +529,13 @@ void x264_macroblock_encode( x264_t *h )
                 i_decimate_mb += i_decimate_8x8;
                 if( i_decimate_8x8 < 4 )
                 {
-                    for( i4x4 = 0; i4x4 < 4; i4x4++ )
-                    {
-                        int x, y;
-                        idx = i8x8 * 4 + i4x4;
-                        for( i = 0; i < 16; i++ )
-                            h->dct.block[idx].luma4x4[i] = 0;
-                        for( x = 0; x < 4; x++ )
-                            for( y = 0; y < 4; y++ )
-                                dct4x4[idx][x][y] = 0;
-                    }
+                    memset( &dct4x4[i8x8*4], 0, 4 * sizeof( *dct4x4 ) );
+                    memset( &h->dct.block[i8x8*4], 0, 4 * sizeof( *h->dct.block ) );
                 }
             }
 
             if( i_decimate_mb < 6 )
-                for( idx = 0; idx < 16; idx++ )
-                    for( i = 0; i < 16; i++ )
-                        h->dct.block[idx].luma4x4[i] = 0;
+                memset( h->dct.block, 0, 16 * sizeof( *h->dct.block ) );
             else
                 h->dctf.add16x16_idct( h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0], dct4x4 );
         }
