@@ -1089,9 +1089,11 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
             double fps = i_elapsed > 0 ? i_frame * 1000000. / i_elapsed : 0;
             if( i_frame_total )
             {
+                int eta = i_elapsed * (i_frame_total - i_frame) / ((int64_t)i_frame * 1000000);
                 i_progress = i_frame * 1000 / i_frame_total;
-                fprintf( stderr, "encoded frames: %d/%d (%.1f%%), %.2f fps   \r", i_frame,
-                         i_frame_total, (float)i_progress / 10, fps );
+                fprintf( stderr, "encoded frames: %d/%d (%.1f%%), %.2f fps, eta %d:%02d:%02d  \r",
+                         i_frame, i_frame_total, (float)i_progress / 10, fps,
+                         eta/3600, (eta/60)%60, eta%60 );
             }
             else
                 fprintf( stderr, "encoded frames: %d, %.2f fps   \r", i_frame, fps );
