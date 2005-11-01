@@ -958,7 +958,7 @@ static float rate_estimate_qscale(x264_t *h, int pict_type)
                 q *= overflow;
             }
 
-            if( pict_type == SLICE_TYPE_I
+            if( pict_type == SLICE_TYPE_I && h->param.i_keyint_max > 1
                 /* should test _next_ pict type, but that isn't decided yet */
                 && rcc->last_non_b_pict_type != SLICE_TYPE_I )
             {
@@ -968,7 +968,7 @@ static float rate_estimate_qscale(x264_t *h, int pict_type)
             }
             else
             {
-                if( h->stat.i_slice_count[SLICE_TYPE_P] < 5 )
+                if( h->stat.i_slice_count[h->param.i_keyint_max > 1 ? SLICE_TYPE_P : SLICE_TYPE_I] < 5 )
                 {
                     float w = h->stat.i_slice_count[SLICE_TYPE_P] / 5.;
                     float q2 = qp2qscale(ABR_INIT_QP);
