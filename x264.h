@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 38
+#define X264_BUILD 39
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -198,6 +198,7 @@ typedef struct
         int          i_subpel_refine; /* subpixel motion estimation quality */
         int          b_chroma_me; /* chroma ME for subpel and mode decision in P-frames */
         int          b_mixed_references; /* allow each mb partition in P-frames to have it's own reference number */
+        int          i_trellis;  /* trellis RD quantization */
 
         int          b_psnr;    /* Do we compute PSNR stats (save a few % of cpu) */
     } analyse;

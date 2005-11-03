@@ -256,6 +256,10 @@ static void Help( x264_param_t *defaults )
              "      --mixed-refs            Decide references on a per partition basis\n"
              "      --no-chroma-me          Ignore chroma in motion estimation\n"
              "  -8, --8x8dct                Adaptive spatial transform size\n"
+             "  -t, --trellis <integer>     Trellis RD quantization. Requires CABAC. [%d]\n"
+             "                                  - 0: disabled\n"
+             "                                  - 1: enabled only on the final encode of a MB\n"
+             "                                  - 2: enabled on all mode decisions\n"
              "\n"
              "      --cqm <string>          Preset quant matrices [\"flat\"]\n"
              "                                  - jvt, flat\n"
@@ -348,6 +352,7 @@ static void Help( x264_param_t *defaults )
             strtable_lookup( x264_motion_est_names, defaults->analyse.i_me_method ),
             defaults->analyse.i_me_range,
             defaults->analyse.i_subpel_refine,
+            defaults->analyse.i_trellis,
             strtable_lookup( overscan_str, defaults->vui.i_overscan ),
             strtable_lookup( vidformat_str, defaults->vui.i_vidformat ),
             strtable_lookup( fullrange_str, defaults->vui.b_fullrange ),
@@ -507,6 +512,7 @@ static int  Parse( int argc, char **argv,
             { "mixed-refs", no_argument,    NULL, OPT_MIXED_REFS },
             { "no-chroma-me", no_argument,  NULL, OPT_NO_CHROMA_ME },
             { "8x8dct",  no_argument,       NULL, '8' },
+            { "trellis", required_argument, NULL, 't' },
             { "level",   required_argument, NULL, OPT_LEVEL },
             { "ratetol", required_argument, NULL, OPT_RATETOL },
             { "vbv-maxrate", required_argument, NULL, OPT_VBVMAXRATE },
@@ -553,7 +559,7 @@ static int  Parse( int argc, char **argv,
 
         int c;
 
-        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:f:o:A:m:p:vw8",
+        c = getopt_long( argc, argv, "hi:I:b:r:cxB:q:f:o:A:m:p:t:vw8",
                          long_options, &long_options_index);
 
         if( c == -1 )
@@ -732,6 +738,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case '8':
                 param->analyse.b_transform_8x8 = 1;
+                break;
+            case 't':
+                param->analyse.i_trellis = atoi(optarg);
                 break;
             case OPT_LEVEL:
                 param->i_level_idc = atoi(optarg);

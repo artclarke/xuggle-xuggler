@@ -409,6 +409,8 @@ static int x264_validate_parameters( x264_t *h )
     }
     h->param.analyse.i_chroma_qp_offset = x264_clip3(h->param.analyse.i_chroma_qp_offset, -12, 12);
     h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 2048);
+    if( !h->param.b_cabac )
+        h->param.analyse.i_trellis = 0;
 
     if( h->param.rc.f_qblur < 0 )
         h->param.rc.f_qblur = 0;
@@ -546,8 +548,8 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->fdec = h->frames.reference[0];
 
-    /* init mb cache */
     x264_macroblock_cache_init( h );
+    x264_rdo_init( );
 
     /* init CPU functions */
     x264_predict_16x16_init( h->param.cpu, h->predict_16x16 );
@@ -596,6 +598,7 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     h->param.analyse.i_me_method = param->analyse.i_me_method;
     h->param.analyse.i_me_range = param->analyse.i_me_range;
     h->param.analyse.i_subpel_refine = param->analyse.i_subpel_refine;
+    h->param.analyse.i_trellis = param->analyse.i_trellis;
     h->param.analyse.intra = param->analyse.intra;
     h->param.analyse.inter = param->analyse.inter;
     if( h->sps->b_direct8x8_inference && h->param.i_bframe

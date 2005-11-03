@@ -1023,3 +1023,15 @@ void x264_cabac_size_decision( x264_cabac_t *cb, int i_ctx, int b )
     cb->state[i_ctx] = x264_cabac_transition[b][i_state];
     cb->f8_bits_encoded += x264_cabac_entropy[ b ? 127 - i_state : i_state ];
 }
+
+int x264_cabac_size_decision2( uint8_t *state, int b )
+{
+    int i_state = *state;
+    *state = x264_cabac_transition[b][i_state];
+    return x264_cabac_entropy[ b ? 127 - i_state : i_state ];
+}
+
+int x264_cabac_size_decision_noup( uint8_t *state, int b )
+{
+    return x264_cabac_entropy[ b ? 127 - *state : *state ];
+}

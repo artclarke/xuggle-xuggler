@@ -105,6 +105,15 @@ void x264_cqm_init( x264_t *h )
                 h->  quant8_mf[i_list][q][0][i] = def_quant8[q][i] * 16 / h->pps->scaling_list[4+i_list][i];
             }
     }
+    for( q = 0; q < 52; q++ )
+    {
+        for( i_list = 0; i_list < 4; i_list++ )
+            for( i = 0; i < 16; i++ )
+                h->unquant4_mf[i_list][q][i] = (1 << (q/6 + 15 + 8)) / h->quant4_mf[i_list][q%6][0][i];
+        for( i_list = 0; i_list < 2; i_list++ )
+            for( i = 0; i < 64; i++ )
+                h->unquant8_mf[i_list][q][i] = (1 << (q/6 + 16 + 8)) / h->quant8_mf[i_list][q%6][0][i];
+    }
 }
 
 int x264_cqm_parse_jmlist( x264_t *h, const char *buf, const char *name,

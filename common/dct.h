@@ -24,6 +24,54 @@
 #ifndef _DCT_H
 #define _DCT_H 1
 
+/* the inverse of the scaling factors introduced by 8x8 fdct */
+#define W(i) (i==0 ? FIX8(1.0000) :\
+              i==1 ? FIX8(0.8859) :\
+              i==2 ? FIX8(1.6000) :\
+              i==3 ? FIX8(0.9415) :\
+              i==4 ? FIX8(1.2651) :\
+              i==5 ? FIX8(1.1910) :0)
+static const int x264_dct8_weight_tab[64] = {
+    W(0), W(3), W(4), W(3),  W(0), W(3), W(4), W(3),
+    W(3), W(1), W(5), W(1),  W(3), W(1), W(5), W(1),
+    W(4), W(5), W(2), W(5),  W(4), W(5), W(2), W(5),
+    W(3), W(1), W(5), W(1),  W(3), W(1), W(5), W(1),
+
+    W(0), W(3), W(4), W(3),  W(0), W(3), W(4), W(3),
+    W(3), W(1), W(5), W(1),  W(3), W(1), W(5), W(1),
+    W(4), W(5), W(2), W(5),  W(4), W(5), W(2), W(5),
+    W(3), W(1), W(5), W(1),  W(3), W(1), W(5), W(1)
+};
+#undef W
+
+/* inverse squared */
+#define W(i) (i==0 ? FIX8(3.125) :\
+              i==1 ? FIX8(1.25) :\
+              i==2 ? FIX8(0.5) :0)
+static const int x264_dct4_weight2_zigzag[16] = {
+    W(0), W(1), W(1), W(0), W(2), W(0), W(1), W(1),
+    W(1), W(1), W(2), W(0), W(2), W(1), W(1), W(2)
+};
+#undef W
+
+#define W(i) (i==0 ? FIX8(1.00000) :\
+              i==1 ? FIX8(0.78487) :\
+              i==2 ? FIX8(2.56132) :\
+              i==3 ? FIX8(0.88637) :\
+              i==4 ? FIX8(1.60040) :\
+              i==5 ? FIX8(1.41850) :0)
+static const int x264_dct8_weight2_zigzag[64] = {
+    W(0), W(3), W(3), W(4), W(1), W(4), W(3), W(5),
+    W(5), W(3), W(0), W(1), W(2), W(1), W(0), W(3),
+    W(3), W(5), W(5), W(3), W(3), W(4), W(1), W(4),
+    W(1), W(4), W(1), W(4), W(3), W(5), W(5), W(3),
+    W(3), W(5), W(5), W(3), W(1), W(2), W(1), W(0),
+    W(1), W(2), W(1), W(5), W(5), W(3), W(3), W(5),
+    W(5), W(1), W(4), W(1), W(4), W(1), W(3), W(5),
+    W(5), W(3), W(1), W(2), W(1), W(5), W(5), W(1)
+};
+#undef W
+
 typedef struct
 {
     void (*sub4x4_dct)   ( int16_t dct[4][4],  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );

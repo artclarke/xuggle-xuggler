@@ -58,6 +58,8 @@ void x264_cabac_encode_terminal( x264_cabac_t *cb, int b );
 void x264_cabac_encode_flush( x264_cabac_t *cb );
 /* don't write the bitstream, just calculate cost: */
 void x264_cabac_size_decision( x264_cabac_t *cb, int i_ctx, int b );
+int  x264_cabac_size_decision2( uint8_t *state, int b );
+int  x264_cabac_size_decision_noup( uint8_t *state, int b );
 
 static inline int x264_cabac_pos( x264_cabac_t *cb )
 {

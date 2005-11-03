@@ -194,7 +194,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     h->mb.i_subpel_refine = h->param.analyse.i_subpel_refine;
     h->mb.b_chroma_me = h->param.analyse.b_chroma_me && h->sh.i_type == SLICE_TYPE_P
                         && h->mb.i_subpel_refine >= 5;
-
+    h->mb.b_trellis = h->param.analyse.i_trellis > 1;
     h->mb.b_transform_8x8 = 0;
 
     /* I: Intra part */
@@ -2074,6 +2074,8 @@ void x264_macroblock_analyse( x264_t *h )
 
     if( !analysis.b_mbrd )
         x264_mb_analyse_transform( h );
+
+    h->mb.b_trellis = h->param.analyse.i_trellis;
 }
 
 /*-------------------- Update MB from the analysis ----------------------*/
