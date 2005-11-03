@@ -49,8 +49,6 @@
 
 static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
 {
-    // backup mb_type because x264_macroblock_encode may change it to skip
-    int i_type_bak = h->mb.i_type;
     int b_transform_bak = h->mb.b_transform_8x8;
     int i_ssd;
     int i_bits;
@@ -82,7 +80,7 @@ static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
         x264_macroblock_size_cavlc( h, &bs_tmp );
         i_bits = bs_tmp.i_bits_encoded * i_lambda2;
     }
-    h->mb.i_type = i_type_bak;
+
     h->mb.b_transform_8x8 = b_transform_bak;
 
     return i_ssd + i_bits;

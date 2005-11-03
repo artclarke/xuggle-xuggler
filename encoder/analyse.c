@@ -1686,6 +1686,10 @@ void x264_macroblock_analyse( x264_t *h )
             x264_mb_analyse_load_costs( h, &analysis );
 
             x264_mb_analyse_inter_p16x16( h, &analysis );
+
+            if( analysis.b_mbrd && h->mb.i_type == P_SKIP )
+                return;
+
             if( flags & X264_ANALYSE_PSUB16x16 )
             {
                 if( h->param.analyse.b_mixed_references )
