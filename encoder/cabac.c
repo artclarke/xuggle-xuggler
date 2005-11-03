@@ -179,71 +179,39 @@ static void x264_cabac_mb_type( x264_t *h, x264_cabac_t *cb )
         }
         else
         {
-            static const int i_mb_len[21] =
+            static const int i_mb_len[9*3] =
             {
-                3, 6, 6,    /* L0 L0 */
-                3, 6, 6,    /* L1 L1 */
-                6, 7, 7,    /* BI BI */
-
-                6, 6,       /* L0 L1 */
-                6, 6,       /* L1 L0 */
-                7, 7,       /* L0 BI */
-                7, 7,       /* L1 BI */
-                7, 7,       /* BI L0 */
-                7, 7,       /* BI L1 */
+                6, 6, 3,    /* L0 L0 */
+                6, 6, 0,    /* L0 L1 */
+                7, 7, 0,    /* L0 BI */
+                6, 6, 0,    /* L1 L0 */
+                6, 6, 3,    /* L1 L1 */
+                7, 7, 0,    /* L1 BI */
+                7, 7, 0,    /* BI L0 */
+                7, 7, 0,    /* BI L1 */
+                7, 7, 6,    /* BI BI */
             };
-            static const int i_mb_bits[21][7] =
+            static const int i_mb_bits[9*3][7] =
             {
-                { 1, 0, 0, },            { 1, 1, 0, 0, 0, 1, },    { 1, 1, 0, 0, 1, 0, },   /* L0 L0 */
-                { 1, 0, 1, },            { 1, 1, 0, 0, 1, 1, },    { 1, 1, 0, 1, 0, 0, },   /* L1 L1 */
-                { 1, 1, 0, 0, 0, 0 ,},   { 1, 1, 1, 1, 0, 0 , 0 }, { 1, 1, 1, 1, 0, 0 , 1 },/* BI BI */
-
-                { 1, 1, 0, 1, 0, 1, },   { 1, 1, 0, 1, 1, 0, },     /* L0 L1 */
-                { 1, 1, 0, 1, 1, 1, },   { 1, 1, 1, 1, 1, 0, },     /* L1 L0 */
-                { 1, 1, 1, 0, 0, 0, 0 }, { 1, 1, 1, 0, 0, 0, 1 },   /* L0 BI */
-                { 1, 1, 1, 0, 0, 1, 0 }, { 1, 1, 1, 0, 0, 1, 1 },   /* L1 BI */
-                { 1, 1, 1, 0, 1, 0, 0 }, { 1, 1, 1, 0, 1, 0, 1 },   /* BI L0 */
-                { 1, 1, 1, 0, 1, 1, 0 }, { 1, 1, 1, 0, 1, 1, 1 }    /* BI L1 */
+                { 1,1,0,0,0,1   }, { 1,1,0,0,1,0,  }, { 1,0,0 },       /* L0 L0 */
+                { 1,1,0,1,0,1   }, { 1,1,0,1,1,0   }, {},              /* L0 L1 */
+                { 1,1,1,0,0,0,0 }, { 1,1,1,0,0,0,1 }, {},              /* L0 BI */
+                { 1,1,0,1,1,1   }, { 1,1,1,1,1,0   }, {},              /* L1 L0 */
+                { 1,1,0,0,1,1   }, { 1,1,0,1,0,0   }, { 1,0,1 },       /* L1 L1 */
+                { 1,1,1,0,0,1,0 }, { 1,1,1,0,0,1,1 }, {},              /* L1 BI */
+                { 1,1,1,0,1,0,0 }, { 1,1,1,0,1,0,1 }, {},              /* BI L0 */
+                { 1,1,1,0,1,1,0 }, { 1,1,1,0,1,1,1 }, {},              /* BI L1 */
+                { 1,1,1,1,0,0,0 }, { 1,1,1,1,0,0,1 }, { 1,1,0,0,0,0 }, /* BI BI */
             };
 
-            const int i_partition = h->mb.i_partition;
-            int idx = 0;
+            const int idx = (i_mb_type - B_L0_L0) * 3 + (h->mb.i_partition - D_16x8);
             int i;
-            switch( i_mb_type )
-            {
-                /* D_16x16, D_16x8, D_8x16 */
-                case B_BI_BI: idx += 3;
-                case B_L1_L1: idx += 3;
-                case B_L0_L0:
-                    if( i_partition == D_16x8 )
-                        idx += 1;
-                    else if( i_partition == D_8x16 )
-                        idx += 2;
-                    break;
-
-                /* D_16x8, D_8x16 */
-                case B_BI_L1: idx += 2;
-                case B_BI_L0: idx += 2;
-                case B_L1_BI: idx += 2;
-                case B_L0_BI: idx += 2;
-                case B_L1_L0: idx += 2;
-                case B_L0_L1:
-                    idx += 3*3;
-                    if( i_partition == D_8x16 )
-                        idx++;
-                    break;
-                default:
-                    x264_log(h, X264_LOG_ERROR, "error in B mb type\n" );
-                    return;
-            }
 
             x264_cabac_encode_decision( cb, 27+ctx, i_mb_bits[idx][0] );
             x264_cabac_encode_decision( cb, 27+3,   i_mb_bits[idx][1] );
-            x264_cabac_encode_decision( cb, 27+(i_mb_bits[idx][1] != 0 ? 4 : 5), i_mb_bits[idx][2] );
+            x264_cabac_encode_decision( cb, 27+5-i_mb_bits[idx][1], i_mb_bits[idx][2] );
             for( i = 3; i < i_mb_len[idx]; i++ )
-            {
                 x264_cabac_encode_decision( cb, 27+5, i_mb_bits[idx][i] );
-            }
         }
     }
     else
