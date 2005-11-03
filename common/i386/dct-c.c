@@ -31,7 +31,6 @@
 
 #include "x264.h"
 
-#include "common/dct.h"
 #include "dct.h"
 
 

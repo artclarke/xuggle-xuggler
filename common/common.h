@@ -36,6 +36,21 @@
 #define X264_VERSION "" // no configure script for msvc
 #endif
 
+/****************************************************************************
+ * Macros
+ ****************************************************************************/
+#define X264_MIN(a,b) ( (a)<(b) ? (a) : (b) )
+#define X264_MAX(a,b) ( (a)>(b) ? (a) : (b) )
+#define X264_MIN3(a,b,c) X264_MIN((a),X264_MIN((b),(c)))
+#define X264_MAX3(a,b,c) X264_MAX((a),X264_MAX((b),(c)))
+#define X264_MIN4(a,b,c,d) X264_MIN((a),X264_MIN3((b),(c),(d)))
+#define X264_MAX4(a,b,c,d) X264_MAX((a),X264_MAX3((b),(c),(d)))
+#define XCHG(type,a,b) { type t = a; a = b; b = t; }
+#define FIX8(f) ((int)(f*(1<<8)+.5))
+
+/****************************************************************************
+ * Includes
+ ****************************************************************************/
 #include "x264.h"
 #include "bs.h"
 #include "set.h"
@@ -47,17 +62,6 @@
 #include "cabac.h"
 #include "csp.h"
 #include "quant.h"
-
-/****************************************************************************
- * Macros
- ****************************************************************************/
-#define X264_MIN(a,b) ( (a)<(b) ? (a) : (b) )
-#define X264_MAX(a,b) ( (a)>(b) ? (a) : (b) )
-#define X264_MIN3(a,b,c) X264_MIN((a),X264_MIN((b),(c)))
-#define X264_MAX3(a,b,c) X264_MAX((a),X264_MAX((b),(c)))
-#define X264_MIN4(a,b,c,d) X264_MIN((a),X264_MIN3((b),(c),(d)))
-#define X264_MAX4(a,b,c,d) X264_MAX((a),X264_MAX3((b),(c),(d)))
-#define FIX8(f) ((int)(f*(1<<8)+.5))
 
 /****************************************************************************
  * Generals functions

@@ -31,7 +31,7 @@
 
 #include "x264.h"
 
-#include "dct.h"
+#include "common.h"
 #ifdef HAVE_MMXEXT
 #   include "i386/dct.h"
 #endif

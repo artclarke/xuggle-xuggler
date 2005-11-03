@@ -706,9 +706,7 @@ static void x264_frame_sort( x264_frame_t *list[X264_BFRAME_MAX+1], int b_dts )
                              : dtime > 0;
             if( swap )
             {
-                x264_frame_t *tmp = list[i+1];
-                list[i+1] = list[i];
-                list[i] = tmp;
+                XCHG( x264_frame_t*, list[i], list[i+1] );
                 b_ok = 0;
             }
         }
@@ -748,10 +746,7 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc, int i_slice_
         {
             if( h->fref0[i]->i_poc < h->fref0[i+1]->i_poc )
             {
-                x264_frame_t *tmp = h->fref0[i+1];
-
-                h->fref0[i+1] = h->fref0[i];
-                h->fref0[i] = tmp;
+                XCHG( x264_frame_t*, h->fref0[i], h->fref0[i+1] );
                 b_ok = 0;
                 break;
             }
@@ -765,10 +760,7 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc, int i_slice_
         {
             if( h->fref1[i]->i_poc > h->fref1[i+1]->i_poc )
             {
-                x264_frame_t *tmp = h->fref1[i+1];
-
-                h->fref1[i+1] = h->fref1[i];
-                h->fref1[i] = tmp;
+                XCHG( x264_frame_t*, h->fref1[i], h->fref1[i+1] );
                 b_ok = 0;
                 break;
             }
@@ -816,11 +808,7 @@ static inline void x264_reference_update( x264_t *h )
 
     /* move lowres copy of the image to the ref frame */
     for( i = 0; i < 4; i++)
-    {
-        uint8_t *tmp = h->fdec->lowres[i];
-        h->fdec->lowres[i] = h->fenc->lowres[i];
-        h->fenc->lowres[i] = tmp;
-    }
+        XCHG( uint8_t*, h->fdec->lowres[i], h->fenc->lowres[i] );
 
     /* adaptive B decision needs a pointer, since it can't use the ref lists */
     if( h->sh.i_type != SLICE_TYPE_B )
