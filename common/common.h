@@ -53,7 +53,6 @@
  ****************************************************************************/
 #define X264_MIN(a,b) ( (a)<(b) ? (a) : (b) )
 #define X264_MAX(a,b) ( (a)>(b) ? (a) : (b) )
-#define X264_ABS(a)   ( (a)< 0 ? -(a) : (a) )
 #define X264_MIN3(a,b,c) X264_MIN((a),X264_MIN((b),(c)))
 #define X264_MAX3(a,b,c) X264_MAX((a),X264_MAX((b),(c)))
 #define X264_MIN4(a,b,c,d) X264_MIN((a),X264_MIN3((b),(c),(d)))

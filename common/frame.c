@@ -309,18 +309,18 @@ static inline void deblock_luma_c( uint8_t *pix, int xstride, int ystride, int a
             const int q1 = pix[ 1*xstride];
             const int q2 = pix[ 2*xstride];
    
-            if( X264_ABS( p0 - q0 ) < alpha &&
-                X264_ABS( p1 - p0 ) < beta &&
-                X264_ABS( q1 - q0 ) < beta ) {
+            if( abs( p0 - q0 ) < alpha &&
+                abs( p1 - p0 ) < beta &&
+                abs( q1 - q0 ) < beta ) {
    
                 int tc = tc0[i];
                 int delta;
    
-                if( X264_ABS( p2 - p0 ) < beta ) {
+                if( abs( p2 - p0 ) < beta ) {
                     pix[-2*xstride] = p1 + x264_clip3( (( p2 + ((p0 + q0 + 1) >> 1)) >> 1) - p1, -tc0[i], tc0[i] );
                     tc++; 
                 }
-                if( X264_ABS( q2 - q0 ) < beta ) {
+                if( abs( q2 - q0 ) < beta ) {
                     pix[ 1*xstride] = q1 + x264_clip3( (( q2 + ((p0 + q0 + 1) >> 1)) >> 1) - q1, -tc0[i], tc0[i] );
                     tc++;
                 }
@@ -357,9 +357,9 @@ static inline void deblock_chroma_c( uint8_t *pix, int xstride, int ystride, int
             const int q0 = pix[ 0*xstride];
             const int q1 = pix[ 1*xstride];
 
-            if( X264_ABS( p0 - q0 ) < alpha &&
-                X264_ABS( p1 - p0 ) < beta &&
-                X264_ABS( q1 - q0 ) < beta ) {
+            if( abs( p0 - q0 ) < alpha &&
+                abs( p1 - p0 ) < beta &&
+                abs( q1 - q0 ) < beta ) {
 
                 int delta = x264_clip3( (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3, -tc, tc );
                 pix[-1*xstride] = clip_uint8( p0 + delta );    /* p0' */
@@ -389,12 +389,12 @@ static inline void deblock_luma_intra_c( uint8_t *pix, int xstride, int ystride,
         const int q1 = pix[ 1*xstride];
         const int q2 = pix[ 2*xstride];
 
-        if( X264_ABS( p0 - q0 ) < alpha &&
-            X264_ABS( p1 - p0 ) < beta &&
-            X264_ABS( q1 - q0 ) < beta ) {
+        if( abs( p0 - q0 ) < alpha &&
+            abs( p1 - p0 ) < beta &&
+            abs( q1 - q0 ) < beta ) {
 
-            if(X264_ABS( p0 - q0 ) < ((alpha >> 2) + 2) ){
-                if( X264_ABS( p2 - p0 ) < beta)
+            if(abs( p0 - q0 ) < ((alpha >> 2) + 2) ){
+                if( abs( p2 - p0 ) < beta)
                 {
                     const int p3 = pix[-4*xstride];
                     /* p0', p1', p2' */
@@ -405,7 +405,7 @@ static inline void deblock_luma_intra_c( uint8_t *pix, int xstride, int ystride,
                     /* p0' */
                     pix[-1*xstride] = ( 2*p1 + p0 + q1 + 2 ) >> 2;
                 }
-                if( X264_ABS( q2 - q0 ) < beta)
+                if( abs( q2 - q0 ) < beta)
                 {
                     const int q3 = pix[3*xstride];
                     /* q0', q1', q2' */
@@ -443,9 +443,9 @@ static inline void deblock_chroma_intra_c( uint8_t *pix, int xstride, int ystrid
         const int q0 = pix[ 0*xstride];
         const int q1 = pix[ 1*xstride];
 
-        if( X264_ABS( p0 - q0 ) < alpha &&
-            X264_ABS( p1 - p0 ) < beta &&
-            X264_ABS( q1 - q0 ) < beta ) {
+        if( abs( p0 - q0 ) < alpha &&
+            abs( p1 - p0 ) < beta &&
+            abs( q1 - q0 ) < beta ) {
 
             pix[-1*xstride] = (2*p1 + p0 + q1 + 2) >> 2;   /* p0' */
             pix[ 0*xstride] = (2*q1 + q0 + p1 + 2) >> 2;   /* q0' */

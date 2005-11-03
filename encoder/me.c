@@ -330,8 +330,8 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
      * the result of the fullpel search */
     if( hpel_iters )
     {
-        int mx = X264_ABS(bmx - m->mvp[0]) < 4 ? m->mvp[0] : bmx;
-        int my = X264_ABS(bmy - m->mvp[1]) < 4 ? m->mvp[1] : bmy;
+        int mx = abs(bmx - m->mvp[0]) < 4 ? m->mvp[0] : bmx;
+        int my = abs(bmy - m->mvp[1]) < 4 ? m->mvp[1] : bmy;
         if( mx != bmx || my != bmy )
             COST_MV_SAD( mx, my );
     }
