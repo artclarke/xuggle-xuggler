@@ -317,7 +317,8 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
     } \
 }
 
-#define COST_MV_SATD( mx, my ) \
+#define COST_MV_SATD( mx, my, dir ) \
+if( b_refine_qpel || (dir^1) != odir ) \
 { \
     int stride = 16; \
     uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix, &stride, mx, my, bw, bh ); \
@@ -338,6 +339,7 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
         bcost = cost;  \
         bmx = mx;      \
         bmy = my;      \
+        bdir = dir;    \
     } \
 }
 
@@ -357,6 +359,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     int bmx = m->mv[0];
     int bmy = m->mv[1];
     int bcost = m->cost;
+    int odir = -1, bdir;
 
 
     /* try the subpel component of the predicted mv if it's close to
@@ -385,7 +388,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     if( !b_refine_qpel )
     {
         bcost = COST_MAX;
-        COST_MV_SATD( bmx, bmy );
+        COST_MV_SATD( bmx, bmy, -1 );
     }
     
     /* early termination when examining multiple reference frames */
@@ -404,14 +407,16 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     }
 
     /* qpel search */
+    bdir = -1;
     for( i = qpel_iters; i > 0; i-- )
     {
+        odir = bdir;
         omx = bmx;
         omy = bmy;
-        COST_MV_SATD( omx, omy - 1 );
-        COST_MV_SATD( omx, omy + 1 );
-        COST_MV_SATD( omx - 1, omy );
-        COST_MV_SATD( omx + 1, omy );
+        COST_MV_SATD( omx, omy - 1, 0 );
+        COST_MV_SATD( omx, omy + 1, 1 );
+        COST_MV_SATD( omx - 1, omy, 2 );
+        COST_MV_SATD( omx + 1, omy, 3 );
         if( bmx == omx && bmy == omy )
             break;
     }
