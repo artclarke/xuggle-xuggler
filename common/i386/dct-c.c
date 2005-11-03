@@ -77,6 +77,25 @@ void x264_add16x16_idct_mmxext( uint8_t *p_dst, int i_dst, int16_t dct[16][4][4]
  * dct8/idct8 functions
  ***********************/
 
+#ifdef ARCH_X86_64
+void x264_sub16x16_dct8_sse2( int16_t dct[4][8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+{
+    x264_sub8x8_dct8_sse2( dct[0], pix1,            i_pix1, pix2,            i_pix2 );
+    x264_sub8x8_dct8_sse2( dct[1], pix1+8,          i_pix1, pix2+8,          i_pix2 );
+    x264_sub8x8_dct8_sse2( dct[2], pix1+8*i_pix1,   i_pix1, pix2+8*i_pix2,   i_pix2 );
+    x264_sub8x8_dct8_sse2( dct[3], pix1+8*i_pix1+8, i_pix1, pix2+8*i_pix2+8, i_pix2 );
+}
+
+void x264_add16x16_idct8_sse2( uint8_t *p_dst, int i_dst, int16_t dct[4][8][8] )
+{
+    x264_add8x8_idct8_sse2( p_dst,           i_dst, dct[0] );
+    x264_add8x8_idct8_sse2( p_dst+8,         i_dst, dct[1] );
+    x264_add8x8_idct8_sse2( p_dst+8*i_dst,   i_dst, dct[2] );
+    x264_add8x8_idct8_sse2( p_dst+8*i_dst+8, i_dst, dct[3] );
+}
+
+#else // ARCH_X86
+
 void x264_pixel_sub_8x8_mmx( int16_t *diff, uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
 void x264_pixel_add_8x8_mmx( uint8_t *pix, int i_pix, uint16_t *diff );
 void x264_xdct8_mmxext( int16_t dct[8][8] );
@@ -93,10 +112,10 @@ inline void x264_sub8x8_dct8_mmxext( int16_t dct[8][8], uint8_t *pix1, int i_pix
 
 void x264_sub16x16_dct8_mmxext( int16_t dct[4][8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 {
-    x264_sub8x8_dct8_mmxext( dct[0],  pix1,             i_pix1,  pix2,             i_pix2 );
-    x264_sub8x8_dct8_mmxext( dct[1], &pix1[8],          i_pix1, &pix2[8],          i_pix2 );
-    x264_sub8x8_dct8_mmxext( dct[2], &pix1[8*i_pix1],   i_pix1, &pix2[8*i_pix2],   i_pix2 );
-    x264_sub8x8_dct8_mmxext( dct[3], &pix1[8*i_pix1+8], i_pix1, &pix2[8*i_pix2+8], i_pix2 );
+    x264_sub8x8_dct8_mmxext( dct[0], pix1,            i_pix1, pix2,            i_pix2 );
+    x264_sub8x8_dct8_mmxext( dct[1], pix1+8,          i_pix1, pix2+8,          i_pix2 );
+    x264_sub8x8_dct8_mmxext( dct[2], pix1+8*i_pix1,   i_pix1, pix2+8*i_pix2,   i_pix2 );
+    x264_sub8x8_dct8_mmxext( dct[3], pix1+8*i_pix1+8, i_pix1, pix2+8*i_pix2+8, i_pix2 );
 }
 
 inline void x264_add8x8_idct8_mmxext( uint8_t *dst, int i_dst, int16_t dct[8][8] )
@@ -109,8 +128,9 @@ inline void x264_add8x8_idct8_mmxext( uint8_t *dst, int i_dst, int16_t dct[8][8]
 
 void x264_add16x16_idct8_mmxext( uint8_t *dst, int i_dst, int16_t dct[4][8][8] )
 {
-    x264_add8x8_idct8_mmxext( &dst[0],         i_dst, dct[0] );
-    x264_add8x8_idct8_mmxext( &dst[8],         i_dst, dct[1] );
-    x264_add8x8_idct8_mmxext( &dst[8*i_dst],   i_dst, dct[2] );
-    x264_add8x8_idct8_mmxext( &dst[8*i_dst+8], i_dst, dct[3] );
+    x264_add8x8_idct8_mmxext( dst,           i_dst, dct[0] );
+    x264_add8x8_idct8_mmxext( dst+8,         i_dst, dct[1] );
+    x264_add8x8_idct8_mmxext( dst+8*i_dst,   i_dst, dct[2] );
+    x264_add8x8_idct8_mmxext( dst+8*i_dst+8, i_dst, dct[3] );
 }
+#endif

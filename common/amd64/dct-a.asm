@@ -50,6 +50,14 @@ BITS 64
     psubw       %1, %2
 %endmacro
 
+%macro MMX_LOAD_DIFF_8P 5
+    movq        %1, %4
+    punpcklbw   %1, %3
+    movq        %2, %5
+    punpcklbw   %2, %3
+    psubw       %1, %2
+%endmacro
+
 %macro MMX_SUMSUB_BA 2
     paddw   %1, %2
     paddw   %2, %2
@@ -82,26 +90,38 @@ BITS 64
     psubw   %4, %3
 %endmacro
 
-%macro SBUTTERFLYwd 3
-    movq        %3, %1
-    punpcklwd   %1, %2
-    punpckhwd   %3, %2
-%endmacro
-
-%macro SBUTTERFLYdq 3
-    movq        %3, %1
-    punpckldq   %1, %2
-    punpckhdq   %3, %2
+%macro SBUTTERFLY 5
+    mov%1       %5, %3
+    punpckl%2   %3, %4
+    punpckh%2   %5, %4
 %endmacro
 
 ;-----------------------------------------------------------------------------
 ; input ABCD output ADTC
 ;-----------------------------------------------------------------------------
 %macro MMX_TRANSPOSE 5
-    SBUTTERFLYwd %1, %2, %5
-    SBUTTERFLYwd %3, %4, %2
-    SBUTTERFLYdq %1, %3, %4
-    SBUTTERFLYdq %5, %2, %3
+    SBUTTERFLY q, wd, %1, %2, %5
+    SBUTTERFLY q, wd, %3, %4, %2
+    SBUTTERFLY q, dq, %1, %3, %4
+    SBUTTERFLY q, dq, %5, %2, %3
+%endmacro
+
+;-----------------------------------------------------------------------------
+; input ABCDEFGH output AFHDTECB 
+;-----------------------------------------------------------------------------
+%macro SSE2_TRANSPOSE8x8 9
+    SBUTTERFLY dqa, wd, %1, %2, %9
+    SBUTTERFLY dqa, wd, %3, %4, %2
+    SBUTTERFLY dqa, wd, %5, %6, %4
+    SBUTTERFLY dqa, wd, %7, %8, %6
+    SBUTTERFLY dqa, dq, %1, %3, %8
+    SBUTTERFLY dqa, dq, %9, %2, %3
+    SBUTTERFLY dqa, dq, %5, %7, %2
+    SBUTTERFLY dqa, dq, %4, %6, %7
+    SBUTTERFLY dqa, qdq, %1, %5, %6
+    SBUTTERFLY dqa, qdq, %9, %4, %5
+    SBUTTERFLY dqa, qdq, %8, %2, %4
+    SBUTTERFLY dqa, qdq, %3, %7, %2
 %endmacro
 
 %macro MMX_STORE_DIFF_4P 5
@@ -114,33 +134,22 @@ BITS 64
     movd        %5, %1
 %endmacro
 
-;%macro 
-;%endmacro
+%macro MMX_STORE_DIFF_8P 4
+    psraw       %1, 6
+    movq        %2, %4
+    punpcklbw   %2, %3
+    paddsw      %1, %2
+    packuswb    %1, %1  
+    movq        %4, %1
+%endmacro
 
 ;=============================================================================
-; Local Data (Read Only)
+; Constants
 ;=============================================================================
 
-%ifdef FORMAT_COFF
-SECTION .rodata
-%else
-SECTION .rodata
-%endif
-
-;-----------------------------------------------------------------------------
-; Various memory constants (trigonometric values or rounding values)
-;-----------------------------------------------------------------------------
-
-ALIGN 16
-x264_mmx_1:        dw  1,  1,  1,  1
-x264_mmx_32:       dw 32, 32, 32, 32
-x264_mmx_PPNN:     dw  1,  1, -1, -1
-x264_mmx_PNPN:     dw  1, -1,  1, -1 
-x264_mmx_PNNP:     dw  1, -1, -1,  1 
-x264_mmx_PPPN:     dw  1,  1,  1, -1 
-x264_mmx_PPNP:     dw  1,  1, -1,  1 
-x264_mmx_2121:     dw  2,  1,  2,  1 
-x264_mmx_p2n2p1p1: dw  2, -2,  1,  1
+SECTION .rodata align=16
+pw_1:  times 8 dw 1
+pw_32: times 8 dw 32
 
 ;=============================================================================
 ; Code
@@ -170,7 +179,7 @@ x264_dct4x4dc_mmxext:
 
     MMX_TRANSPOSE       mm0, mm2, mm3, mm4, mm1     ; in: mm0, mm2, mm3, mm4  out: mm0, mm4, mm1, mm3
 
-    movq    mm6,        [x264_mmx_1 GLOBAL]
+    movq    mm6,        [pw_1 GLOBAL]
     paddw   mm0,        mm6
     paddw   mm4,        mm6
     psraw   mm0,        1
@@ -304,7 +313,7 @@ x264_add4x4_idct_mmxext:
     MMX_SUMSUB_BADC     mm2, mm3, mm4, mm1              ; mm2=s02+s13  mm3=s02-s13  mm4=d02+d13  mm1=d02-d13
 
     MMX_ZERO            mm7
-    movq                mm6, [x264_mmx_32 GLOBAL]
+    movq                mm6, [pw_32 GLOBAL]
     
     MMX_STORE_DIFF_4P   mm2, mm0, mm6, mm7, [rax]
     MMX_STORE_DIFF_4P   mm4, mm0, mm6, mm7, [rax+rcx]
@@ -319,402 +328,188 @@ x264_add4x4_idct_mmxext:
 ; 8x8 Transform
 ; =============================================================================
 
-; -----------------------------------------------------------------------------
-; input 2x8 unsigned bytes (%5,%6), zero (%7) output: difference (%1,%2)
-; -----------------------------------------------------------------------------
-%macro MMX_LOAD_DIFF_8P 7
-    movq            %1, %5
-    movq            %2, %1
-    punpcklbw       %1, %7
-    punpckhbw       %2, %7
-    movq            %3, %6
-    movq            %4, %3
-    punpcklbw       %3, %7
-    punpckhbw       %4, %7
-    psubw           %1, %3
-    psubw           %2, %4
-%endmacro
- 
-%macro MMX_LOADSUMSUB 4     ; returns %1=%3+%4, %2=%3-%4
-    movq            %2, %3
-    movq            %1, %4
-    MMX_SUMSUB_BA   %1, %2
+; in:  ABCDEFGH
+; out: FBCGEDHI
+%macro DCT8_1D 10
+    MMX_SUMSUB_BA  %8, %1 ; %8=s07, %1=d07
+    MMX_SUMSUB_BA  %7, %2 ; %7=s16, %2=d16
+    MMX_SUMSUB_BA  %6, %3 ; %6=s25, %3=d25
+    MMX_SUMSUB_BA  %5, %4 ; %5=s34, %4=d34
+
+    MMX_SUMSUB_BA  %5, %8 ; %5=a0, %8=a2
+    MMX_SUMSUB_BA  %6, %7 ; %6=a1, %7=a3
+
+    movdqa  %9, %1
+    psraw   %9, 1
+    paddw   %9, %1
+    paddw   %9, %2
+    paddw   %9, %3 ; %9=a4
+
+    movdqa  %10, %4
+    psraw   %10, 1
+    paddw   %10, %4
+    paddw   %10, %2
+    psubw   %10, %3 ; %10=a7
+
+    MMX_SUMSUB_BA  %4, %1
+    psubw   %1, %3
+    psubw   %4, %2
+    psraw   %3, 1
+    psraw   %2, 1
+    psubw   %1, %3 ; %1=a5
+    psubw   %4, %2 ; %4=a6
+
+    MMX_SUMSUB_BA  %6, %5 ; %6=b0, %5=b4
+
+    movdqa  %2, %10
+    psraw   %2, 2
+    paddw   %2, %9 ; %2=b1
+    psraw   %9, 2
+    psubw   %9, %10 ; %9=b7
+
+    movdqa  %3, %7
+    psraw   %3, 1
+    paddw   %3, %8 ; %3=b2
+    psraw   %8, 1
+    psubw   %8, %7 ; %8=b6
+
+    movdqa  %7, %4
+    psraw   %7, 2
+    paddw   %7, %1 ; %7=b3
+    psraw   %1, 2
+    psubw   %4, %1 ; %4=b5
 %endmacro
 
-%macro MMX_STORE_DIFF_8P 6
-    movq            %1, %3
-    movq            %2, %1
-    punpcklbw       %1, %6
-    punpckhbw       %2, %6
-    paddw           %1, %4
-    paddw           %2, %5
-    packuswb        %1, %2
-    movq            %3, %1
-%endmacro
-
-cglobal x264_pixel_sub_8x8_mmx
-cglobal x264_xdct8_mmxext
-cglobal x264_ydct8_mmx
-
-cglobal x264_xidct8_mmxext
-cglobal x264_yidct8_mmx
-cglobal x264_pixel_add_8x8_mmx
+cglobal x264_sub8x8_dct8_sse2
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void x264_pixel_sub_8x8_mmx( int16_t *diff, uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
+;   void __cdecl x264_sub8x8_dct8_sse2( int16_t dct[8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 ;-----------------------------------------------------------------------------
-x264_pixel_sub_8x8_mmx:
-;   mov     rdi, rdi        ; diff
+x264_sub8x8_dct8_sse2:
+;   mov     rdi, rdi        ; dct
 ;   mov     rsi, rsi        ; pix1
-;   movsxd  rdx, edx        ; i_pix1
+    movsxd  rdx, edx        ; i_pix1
 ;   mov     rcx, rcx        ; pix2
-    movsxd  r10, parm5d     ; i_pix2
+    movsxd  r8,  r8d        ; i_pix2
 
-    MMX_ZERO    mm7
+    MMX_ZERO  xmm9
 
-    %assign disp 0
-    %rep  8
-    MMX_LOAD_DIFF_8P mm0, mm1, mm2, mm3, [parm2q], [parm4q], mm7
-    movq        [parm1q+disp], mm0
-    movq        [parm1q+disp+8], mm1
-    add         parm2q, parm3q
-    add         parm4q, r10
-    %assign disp disp+16
-    %endrep
+    MMX_LOAD_DIFF_8P  xmm0, xmm8, xmm9, [rsi      ], [rcx]
+    MMX_LOAD_DIFF_8P  xmm1, xmm8, xmm9, [rsi+rdx  ], [rcx+r8]
+    MMX_LOAD_DIFF_8P  xmm2, xmm8, xmm9, [rsi+rdx*2], [rcx+r8*2]
+    lea  r9,  [rdx+rdx*2]
+    lea  r10, [r8+r8*2]
+    add  rsi, r9
+    add  rcx, r10
+    MMX_LOAD_DIFF_8P  xmm3, xmm8, xmm9, [rsi      ], [rcx]
+    MMX_LOAD_DIFF_8P  xmm4, xmm8, xmm9, [rsi+rdx  ], [rcx+r8]
+    MMX_LOAD_DIFF_8P  xmm5, xmm8, xmm9, [rsi+rdx*2], [rcx+r8*2]
+    MMX_LOAD_DIFF_8P  xmm6, xmm8, xmm9, [rsi+r9   ], [rcx+r10]
+    MMX_LOAD_DIFF_8P  xmm7, xmm8, xmm9, [rsi+rdx*4], [rcx+r8*4]
+
+    SSE2_TRANSPOSE8x8 xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8
+    DCT8_1D           xmm0, xmm5, xmm7, xmm3, xmm8, xmm4, xmm2, xmm1, xmm6, xmm9
+    SSE2_TRANSPOSE8x8 xmm4, xmm5, xmm7, xmm2, xmm8, xmm3, xmm1, xmm6, xmm0
+    DCT8_1D           xmm4, xmm3, xmm6, xmm2, xmm0, xmm8, xmm7, xmm5, xmm1, xmm9
+
+    movdqa  [rdi+0x00], xmm8
+    movdqa  [rdi+0x10], xmm3
+    movdqa  [rdi+0x20], xmm6
+    movdqa  [rdi+0x30], xmm7
+    movdqa  [rdi+0x40], xmm0
+    movdqa  [rdi+0x50], xmm2
+    movdqa  [rdi+0x60], xmm5
+    movdqa  [rdi+0x70], xmm1
 
     ret
 
-ALIGN 16
-;-----------------------------------------------------------------------------
-;   void x264_xdct8_mmxext( int16_t dest[8][8] );
-;-----------------------------------------------------------------------------
-x264_xdct8_mmxext:
 
-    movq        mm5, [x264_mmx_PPNN GLOBAL]
-    movq        mm6, [x264_mmx_PNNP GLOBAL]
-    movq        mm4, [x264_mmx_PPPN GLOBAL]
-    movq        mm7, [x264_mmx_PPNP GLOBAL]
+; in:  ABCDEFGH
+; out: IBHDEACG
+%macro IDCT8_1D 10
+    MMX_SUMSUB_BA  %5, %1 ; %5=a0, %1=a2
+    movdqa  %10, %3
+    psraw   %3, 1
+    psubw   %3, %7 ; %3=a4
+    psraw   %7, 1
+    paddw   %7, %10 ; %7=a6
 
-    ;-------------------------------------------------------------------------
-    ; horizontal dct ( compute 1 row at a time -> 8 loops )
-    ;-------------------------------------------------------------------------
-
-    %assign disp 0
-    %rep 8
+    movdqa  %9, %2
+    psraw   %9, 1
+    paddw   %9, %2
+    paddw   %9, %4
+    paddw   %9, %6 ; %9=a7
     
-    movq        mm0, [parm1q+disp]
-    movq        mm1, [parm1q+disp+8]
+    movdqa  %10, %6
+    psraw   %10, 1
+    paddw   %10, %6
+    paddw   %10, %8
+    psubw   %10, %2 ; %10=a5
 
-    pshufw      mm2, mm1, 00011011b
-    movq        mm1, mm0
-    paddw       mm0, mm2                ; (low)s07/s16/d25/s34(high)
-    psubw       mm1, mm2                ; (low)d07/d16/d25/d34(high)
+    psubw   %2, %4
+    psubw   %6, %4
+    paddw   %2, %8
+    psubw   %6, %8
+    psraw   %4, 1
+    psraw   %8, 1
+    psubw   %2, %4 ; %2=a3
+    psubw   %6, %8 ; %6=a1
 
-    pshufw      mm2, mm0, 00011011b     ; (low)s34/s25/s16/s07(high)
-    pmullw      mm0, mm5                ; (low)s07/s16/-s25/-s34(high)
-    paddw       mm0, mm2                ; (low)a0/a1/a3/a2(high)
+    MMX_SUMSUB_BA %7, %5 ; %7=b0, %5=b6
+    MMX_SUMSUB_BA %3, %1 ; %3=b2, %1=b4
 
-    movq        mm3, mm1
-    psraw       mm1, 1                  ; (low)d07/d16/d25/d34(high) (x>>1)
-    pshufw      mm2, mm3, 10110001b     ; (low)d16/d07/d34/d25(high)
-    paddw       mm1, mm3                ; (low)d07/d16/d25/d34(high) (x+(x>>1))
-    pshufw      mm3, mm2, 00011011b     ; (low)d25/d34/d07/d16(high)
-    pmullw      mm2, mm5                ; (low)d16/d07/-d34/-d25(high)
-    pmullw      mm1, mm6                ; (low)d07/-d16/-d25/d34(high) (x+(x>>1))
-    paddw       mm3, mm2
-    paddw       mm1, mm3                ; (low)a4/a6/a5/a7(high)
+    movdqa  %4, %9
+    psraw   %4, 2
+    paddw   %4, %6 ; %4=b1
+    psraw   %6, 2
+    psubw   %9, %6 ; %9=b7
 
+    movdqa  %8, %10
+    psraw   %8, 2
+    paddw   %8, %2 ; %8=b3
+    psraw   %2, 2
+    psubw   %2, %10 ; %2=b5
 
-    pshufw      mm2, mm0, 11001001b     ; (low)a1/a3/a0/a2(high)
-    pshufw      mm0, mm0, 10011100b     ; (low)a0/a2/a1/a3(high)
-    pmullw      mm2, [x264_mmx_2121 GLOBAL]
-    pmullw      mm0, mm5                ; (low)a0/a2/-a1/-a3(high)
-    psraw       mm2, 1                  ; (low)a1/a3>>1/a0/a2>>1(high)
-    paddw       mm0, mm2                ; (low)dst0/dst2/dst4/dst6(high)
+    MMX_SUMSUB_BA %9, %7 ; %9=c0, %7=c7
+    MMX_SUMSUB_BA %2, %3 ; %2=c1, %3=c6
+    MMX_SUMSUB_BA %8, %1 ; %8=c2, %1=c5
+    MMX_SUMSUB_BA %4, %5 ; %4=c3, %5=c4
+%endmacro
 
-    pshufw      mm1, mm1, 00100111b     ; (low)a7/a6/a5/a4(high)
-    pshufw      mm2, mm1, 00011011b     ; (low)a4/a5/a6/a7(high)
-    psraw       mm1, 2                  ; (low)a7>>2/a6>>2/a5>>2/a4>>2(high)
-    pmullw      mm2, mm4                ; (low)a4/a5/a6/-a7(high)
-    pmullw      mm1, mm7                ; (low)a7>>2/a6>>2/-a5>>2/a4>>2(high)
-    paddw       mm1, mm2                ; (low)dst1/dst3/dst5/dst7(high)
-
-    movq        mm2, mm0
-    punpcklwd   mm0, mm1                ; (low)dst0/dst1/dst2/dst3(high)
-    punpckhwd   mm2, mm1                ; (low)dst4/dst5/dst6/dst7(high)
-
-    movq        [parm1q+disp], mm0
-    movq        [parm1q+disp+8], mm2
-
-    %assign disp disp+16
-    %endrep
-
-    ret
+cglobal x264_add8x8_idct8_sse2
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void x264_ydct8_mmx( int16_t dest[8][8] );
+;   void __cdecl x264_add8x8_idct8_sse2( uint8_t *p_dst, int i_dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
-x264_ydct8_mmx:
+x264_add8x8_idct8_sse2:
+    movsxd  rsi, esi          ; i_dst
+    movdqa  xmm0, [rdx+0x00]  ; dct
+    movdqa  xmm1, [rdx+0x10]
+    movdqa  xmm2, [rdx+0x20]
+    movdqa  xmm3, [rdx+0x30]
+    movdqa  xmm4, [rdx+0x40]
+    movdqa  xmm5, [rdx+0x50]
+    movdqa  xmm6, [rdx+0x60]
+    movdqa  xmm7, [rdx+0x70]
 
-    ;-------------------------------------------------------------------------
-    ; vertical dct ( compute 4 columns at a time -> 2 loops )
-    ;-------------------------------------------------------------------------
-
-    %assign disp 0
-    %rep 2
-    
-    MMX_LOADSUMSUB  mm2, mm3, [parm1q+disp+0*16], [parm1q+disp+7*16] ; mm2 = s07, mm3 = d07
-    MMX_LOADSUMSUB  mm1, mm5, [parm1q+disp+1*16], [parm1q+disp+6*16] ; mm1 = s16, mm5 = d16
-    MMX_LOADSUMSUB  mm0, mm6, [parm1q+disp+2*16], [parm1q+disp+5*16] ; mm0 = s25, mm6 = d25
-    MMX_LOADSUMSUB  mm4, mm7, [parm1q+disp+3*16], [parm1q+disp+4*16] ; mm4 = s34, mm7 = d34
-
-    MMX_SUMSUB_BA   mm4, mm2        ; mm4 = a0, mm2 = a2
-    MMX_SUMSUB_BA   mm0, mm1        ; mm0 = a1, mm1 = a3
-    MMX_SUMSUB_BA   mm0, mm4        ; mm0 = dst0, mm1 = dst4
-
-    movq    [parm1q+disp+0*16], mm0
-    movq    [parm1q+disp+4*16], mm4
-
-    movq    mm0, mm1         ; a3
-    psraw   mm0, 1           ; a3>>1
-    paddw   mm0, mm2         ; a2 + (a3>>1)
-    psraw   mm2, 1           ; a2>>1
-    psubw   mm2, mm1         ; (a2>>1) - a3
-
-    movq    [parm1q+disp+2*16], mm0
-    movq    [parm1q+disp+6*16], mm2
-
-    movq    mm0, mm6
-    psraw   mm0, 1
-    paddw   mm0, mm6         ; d25+(d25>>1)
-    movq    mm1, mm3
-    psubw   mm1, mm7         ; a5 = d07-d34-(d25+(d25>>1))
-    psubw   mm1, mm0
-
-    movq    mm0, mm5
-    psraw   mm0, 1
-    paddw   mm0, mm5         ; d16+(d16>>1)
-    movq    mm2, mm3
-    paddw   mm2, mm7         ; a6 = d07+d34-(d16+(d16>>1))
-    psubw   mm2, mm0
-
-    movq    mm0, mm3
-    psraw   mm0, 1
-    paddw   mm0, mm3         ; d07+(d07>>1)
-    paddw   mm0, mm5
-    paddw   mm0, mm6         ; a4 = d16+d25+(d07+(d07>>1))
-
-    movq    mm3, mm7
-    psraw   mm3, 1
-    paddw   mm3, mm7         ; d34+(d34>>1)
-    paddw   mm3, mm5
-    psubw   mm3, mm6         ; a7 = d16-d25+(d34+(d34>>1))
-
-    movq    mm7, mm3
-    psraw   mm7, 2
-    paddw   mm7, mm0         ; a4 + (a7>>2)
-
-    movq    mm6, mm2
-    psraw   mm6, 2
-    paddw   mm6, mm1         ; a5 + (a6>>2)
-
-    psraw   mm0, 2
-    psraw   mm1, 2
-    psubw   mm0, mm3         ; (a4>>2) - a7
-    psubw   mm2, mm1         ; a6 - (a5>>2)
-
-    movq    [parm1q+disp+1*16], mm7
-    movq    [parm1q+disp+3*16], mm6
-    movq    [parm1q+disp+5*16], mm2
-    movq    [parm1q+disp+7*16], mm0
-
-    %assign disp disp+8
-    %endrep
+    SSE2_TRANSPOSE8x8 xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8
+    IDCT8_1D          xmm0, xmm5, xmm7, xmm3, xmm8, xmm4, xmm2, xmm1, xmm9, xmm6
+    SSE2_TRANSPOSE8x8 xmm9, xmm5, xmm1, xmm3, xmm8, xmm0, xmm7, xmm2, xmm4
+    paddw             xmm9, [pw_32 GLOBAL] ; rounding for the >>6 at the end
+    IDCT8_1D          xmm9, xmm0, xmm2, xmm3, xmm4, xmm8, xmm1, xmm5, xmm6, xmm7
+ 
+    MMX_ZERO  xmm15
+    MMX_STORE_DIFF_8P   xmm6, xmm14, xmm15, [rdi]
+    MMX_STORE_DIFF_8P   xmm0, xmm14, xmm15, [rdi+rsi]
+    MMX_STORE_DIFF_8P   xmm5, xmm14, xmm15, [rdi+rsi*2]
+    lea  rax, [rsi+rsi*2]
+    add  rdi, rax
+    MMX_STORE_DIFF_8P   xmm3, xmm14, xmm15, [rdi]
+    MMX_STORE_DIFF_8P   xmm4, xmm14, xmm15, [rdi+rsi]
+    MMX_STORE_DIFF_8P   xmm9, xmm14, xmm15, [rdi+rsi*2]
+    MMX_STORE_DIFF_8P   xmm2, xmm14, xmm15, [rdi+rax]
+    MMX_STORE_DIFF_8P   xmm1, xmm14, xmm15, [rdi+rsi*4]
 
     ret
-
-ALIGN 16
-;-----------------------------------------------------------------------------
-;   void x264_xidct8_mmxext( int16_t dest[8][8] );
-;-----------------------------------------------------------------------------
-x264_xidct8_mmxext:
-
-    movq        mm4, [x264_mmx_PPNN GLOBAL]
-    movq        mm5, [x264_mmx_PNPN GLOBAL]
-    movq        mm6, [x264_mmx_PPNP GLOBAL]
-    movq        mm7, [x264_mmx_PPPN GLOBAL]
-
-    ;-------------------------------------------------------------------------
-    ; horizontal idct ( compute 1 row at a time -> 8 loops )
-    ;-------------------------------------------------------------------------
-
-    %assign disp 0
-    %rep 8
-
-    pshufw      mm0, [parm1q+disp], 11011000b   ; (low)d0,d2,d1,d3(high)
-    pshufw      mm2, [parm1q+disp+8], 11011000b ; (low)d4,d6,d5,d7(high)
-    movq        mm1, mm0
-    punpcklwd   mm0, mm2                ; (low)d0,d4,d2,d6(high)
-    punpckhwd   mm1, mm2                ; (low)d1,d5,d3,d7(high)
-
-    pshufw      mm2, mm0, 10110001b     ; (low)d4,d0,d6,d2(high)
-    pmullw      mm0, [x264_mmx_p2n2p1p1 GLOBAL]
-                                        ; (low)2*d0,-2*d4,d2,d6(high)
-    pmullw      mm2, mm6                ; (low)d4,d0,-d6,d2(high)
-    psraw       mm0, 1                  ; (low)d0,-d4,d2>>1,d6>>1(high)
-    paddw       mm0, mm2                ; (low)e0,e2,e4,e6(high)
-
-    movq        mm3, mm1                ; (low)d1,d5,d3,d7(high)
-    psraw       mm1, 1                  ; (low)d1>>1,d5>>1,d3>>1,d7>>1(high)
-    pshufw      mm2, mm3, 10110001b     ; (low)d5,d1,d7,d3(high)
-    paddw       mm1, mm3                ; (low)d1+(d1>>1),d5+(d5>>1),d3+(d3>>1),d7+(d7>>1)(high)
-    pshufw      mm3, mm2, 00011011b     ; (low)d3,d7,d1,d5(high)
-    pmullw      mm1, mm4                ; (low)d1+(d1>>1),d5+(d5>>1),-d3-(d3>>1),-d7-(d7>>1)(high)
-    pmullw      mm2, mm5                ; (low)d5,-d1,d7,-d3(high)
-    paddw       mm1, mm3
-    paddw       mm1, mm2                ; (low)e7,e5,e3,e1(high)
-
-    pshufw      mm2, mm0, 00011011b     ; (low)e6,e4,e2,e0(high)
-    pmullw      mm0, mm4                ; (low)e0,e2,-e4,-e6(high)
-    pshufw      mm3, mm1, 00011011b     ; (low)e1,e3,e5,e7(high)
-    psraw       mm1, 2                  ; (low)e7>>2,e5>>2,e3>>2,e1>>2(high)
-    pmullw      mm3, mm6                ; (low)e1,e3,-e5,e7(high)
-    pmullw      mm1, mm7                ; (low)e7>>2,e5>>2,e3>>2,-e1>>2(high)
-    paddw       mm0, mm2                ; (low)f0,f2,f4,f6(high)
-    paddw       mm1, mm3                ; (low)f1,f3,f5,f7(high)
-
-    pshufw      mm3, mm0, 00011011b     ; (low)f6,f4,f2,f0(high)
-    pshufw      mm2, mm1, 00011011b     ; (low)f7,f5,f3,f1(high)
-    psubw       mm3, mm1
-    paddw       mm0, mm2
-
-    movq        [parm1q+disp], mm0
-    movq        [parm1q+disp+8], mm3
-
-    %assign disp disp+16
-    %endrep
-
-    ret
-
-ALIGN 16
-;-----------------------------------------------------------------------------
-;   void x264_yidct8_mmx( int16_t dest[8][8] );
-;-----------------------------------------------------------------------------
-x264_yidct8_mmx:
-
-    ;-------------------------------------------------------------------------
-    ; vertical idct ( compute 4 columns at a time -> 2 loops )
-    ;-------------------------------------------------------------------------
-
-    %assign disp 0
-    %rep 2
-
-    movq        mm1, [parm1q+disp+1*16] ; mm1 = d1
-    movq        mm3, [parm1q+disp+3*16] ; mm3 = d3
-    movq        mm5, [parm1q+disp+5*16] ; mm5 = d5
-    movq        mm7, [parm1q+disp+7*16] ; mm7 = d7
-
-    movq        mm4, mm7
-    psraw       mm4, 1
-    movq        mm0, mm5
-    psubw       mm0, mm7
-    psubw       mm0, mm4
-    psubw       mm0, mm3                ; mm0 = e1
-
-    movq        mm6, mm3
-    psraw       mm6, 1
-    movq        mm2, mm7
-    psubw       mm2, mm6
-    psubw       mm2, mm3
-    paddw       mm2, mm1                ; mm2 = e3
-
-    movq        mm4, mm5
-    psraw       mm4, 1
-    paddw       mm4, mm5
-    paddw       mm4, mm7
-    psubw       mm4, mm1                ; mm4 = e5
-
-    movq        mm6, mm1
-    psraw       mm6, 1
-    paddw       mm6, mm1
-    paddw       mm6, mm5
-    paddw       mm6, mm3                ; mm6 = e7
-
-    movq        mm1, mm0
-    movq        mm3, mm4
-    movq        mm5, mm2
-    movq        mm7, mm6
-    psraw       mm6, 2
-    psraw       mm3, 2
-    psraw       mm5, 2
-    psraw       mm0, 2
-    paddw       mm1, mm6                ; mm1 = f1
-    paddw       mm3, mm2                ; mm3 = f3
-    psubw       mm5, mm4                ; mm5 = f5
-    psubw       mm7, mm0                ; mm7 = f7
-
-    movq        mm2, [parm1q+disp+2*16] ; mm2 = d2
-    movq        mm6, [parm1q+disp+6*16] ; mm6 = d6
-    movq        mm4, mm2
-    movq        mm0, mm6
-    psraw       mm4, 1
-    psraw       mm6, 1
-    psubw       mm4, mm0                ; mm4 = a4
-    paddw       mm6, mm2                ; mm6 = a6
-
-    movq        mm2, [parm1q+disp+0*16] ; mm2 = d0
-    movq        mm0, [parm1q+disp+4*16] ; mm0 = d4
-    MMX_SUMSUB_BA   mm0, mm2                ; mm0 = a0, mm2 = a2
-
-    MMX_SUMSUB_BA   mm6, mm0                ; mm6 = f0, mm0 = f6
-    MMX_SUMSUB_BA   mm4, mm2                ; mm4 = f2, mm2 = f4
-
-    MMX_SUMSUB_BA   mm7, mm6                ; mm7 = g0, mm6 = g7
-    MMX_SUMSUB_BA   mm5, mm4                ; mm5 = g1, mm4 = g6
-    MMX_SUMSUB_BA   mm3, mm2                ; mm3 = g2, mm2 = g5
-    MMX_SUMSUB_BA   mm1, mm0                ; mm1 = g3, mm0 = g4
-
-    psraw       mm7, 6
-    psraw       mm6, 6
-    psraw       mm5, 6
-    psraw       mm4, 6
-    psraw       mm3, 6
-    psraw       mm2, 6
-    psraw       mm1, 6
-    psraw       mm0, 6
-
-    movq        [parm1q+disp+0*16], mm7
-    movq        [parm1q+disp+1*16], mm5
-    movq        [parm1q+disp+2*16], mm3
-    movq        [parm1q+disp+3*16], mm1
-    movq        [parm1q+disp+4*16], mm0
-    movq        [parm1q+disp+5*16], mm2
-    movq        [parm1q+disp+6*16], mm4
-    movq        [parm1q+disp+7*16], mm6
-
-    %assign disp disp+8
-    %endrep
-
-    ret
-
-ALIGN 16
-;-----------------------------------------------------------------------------
-;   void x264_pixel_add_8x8_mmx( unit8_t *dst, int i_dst, int16_t src[8][8] );
-;-----------------------------------------------------------------------------
-x264_pixel_add_8x8_mmx:
-;   mov     rdi, rdi        ; dst
-;   movsxd  rsi, esi        ; i_dst
-;   mov     rdx, rdx        ; src
-
-    MMX_ZERO    mm7
-
-    %assign disp 0
-    %rep 8
-    MMX_STORE_DIFF_8P   mm0, mm1, [parm1q], [parm3q+disp], [parm3q+disp+8], mm7
-    add         parm1q, parm2q
-    %assign disp disp+16
-    %endrep
-    ret
-
