@@ -44,7 +44,7 @@ static const int subpel_iterations[][4] =
 
 static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters, int *p_halfpel_thresh, int b_refine_qpel );
 
-#define COST_MV( mx, my ) \
+#define COST_MV_INT( mx, my, bd, d ) \
 { \
     int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], m->i_stride[0],     \
                    &p_fref[(my)*m->i_stride[0]+(mx)], m->i_stride[0] ) \
@@ -55,8 +55,22 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
         bcost = cost;  \
         bmx = mx;      \
         bmy = my;      \
+        if( bd ) \
+            dir = d; \
     } \
 }
+#define COST_MV( mx, my )         COST_MV_INT( mx, my, 0, 0 )
+#define COST_MV_DIR( mx, my, d )  COST_MV_INT( mx, my, 1, d )
+
+#define DIA1_ITER( mx, my )\
+    {\
+        omx = mx; omy = my;\
+        COST_MV( omx  , omy-1 );/*  1  */\
+        COST_MV( omx  , omy+1 );/* 101 */\
+        COST_MV( omx-1, omy   );/*  1  */\
+        COST_MV( omx+1, omy   );\
+    }
+
 
 void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int *p_halfpel_thresh )
 {
@@ -66,6 +80,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     int omx, omy, pmx, pmy;
     uint8_t *p_fref = m->p_fref[0];
     int i, j;
+    int dir;
 
     int mv_x_min = h->mb.mv_min_fpel[0];
     int mv_y_min = h->mb.mv_min_fpel[1];
@@ -109,16 +124,6 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     {
     case X264_ME_DIA:
         /* diamond search, radius 1 */
-#define DIA1_ITER(mx, my)\
-        {\
-            omx = mx;\
-            omy = my;\
-            COST_MV( omx  , omy-1 );\
-            COST_MV( omx  , omy+1 );\
-            COST_MV( omx-1, omy   );\
-            COST_MV( omx+1, omy   );\
-        }
-
         for( i = 0; i < i_me_range; i++ )
         {
             DIA1_ITER( bmx, bmy );
@@ -128,25 +133,47 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
         break;
 
     case X264_ME_HEX:
+me_hex2:
         /* hexagon search, radius 2 */
-#define HEX2_ITER(mx, my)\
-        {\
-            omx = mx;\
-            omy = my;\
-            COST_MV( omx-2, omy   );\
-            COST_MV( omx-1, omy+2 );\
-            COST_MV( omx+1, omy+2 );\
-            COST_MV( omx+2, omy   );\
-            COST_MV( omx+1, omy-2 );\
-            COST_MV( omx-1, omy-2 );\
-        }
-
+#if 0
         for( i = 0; i < i_me_range/2; i++ )
         {
-            HEX2_ITER( bmx, bmy );
+            omx = bmx; omy = bmy;
+            COST_MV( omx-2, omy   );
+            COST_MV( omx-1, omy+2 );
+            COST_MV( omx+1, omy+2 );
+            COST_MV( omx+2, omy   );
+            COST_MV( omx+1, omy-2 );
+            COST_MV( omx-1, omy-2 );
             if( bmx == omx && bmy == omy )
                 break;
         }
+#else
+        /* equivalent to the above, but eliminates duplicate candidates */
+        dir = -1;
+        omx = bmx; omy = bmy;
+        COST_MV_DIR( omx-2, omy,   0 );
+        COST_MV_DIR( omx-1, omy+2, 1 );
+        COST_MV_DIR( omx+1, omy+2, 2 );
+        COST_MV_DIR( omx+2, omy,   3 );
+        COST_MV_DIR( omx+1, omy-2, 4 );
+        COST_MV_DIR( omx-1, omy-2, 5 );
+        if( dir != -1 )
+        {
+            for( i = 1; i < i_me_range/2; i++ )
+            {
+                static const int hex2[8][2] = {{-1,-2}, {-2,0}, {-1,2}, {1,2}, {2,0}, {1,-2}, {-1,-2}, {-2,0}};
+                static const int mod6[8] = {5,0,1,2,3,4,5,0};
+                const int odir = mod6[dir+1];
+                omx = bmx; omy = bmy;
+                COST_MV_DIR( omx + hex2[odir+0][0], omy + hex2[odir+0][1], odir-1 );
+                COST_MV_DIR( omx + hex2[odir+1][0], omy + hex2[odir+1][1], odir   );
+                COST_MV_DIR( omx + hex2[odir+2][0], omy + hex2[odir+2][1], odir+1 );
+                if( bmx == omx && bmy == omy )
+                    break;
+            }
+        }
+#endif
         /* square refine */
         DIA1_ITER( bmx, bmy );
         COST_MV( omx-1, omy-1 );
@@ -156,73 +183,79 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
         break;
 
     case X264_ME_UMH:
-        /* Uneven-cross Multi-Hexagon-grid Search
-         * as in JM, except without early termination */
-
-        DIA1_ITER( pmx, pmy );
-        if( pmx || pmy )
-            DIA1_ITER( 0, 0 );
-        DIA1_ITER( bmx, bmy );
-
-        if(i_pixel == PIXEL_4x4)
-            goto umh_small_hex;
-
-        /* cross */
-        omx = bmx; omy = bmy;
-        for( i = 1; i < i_me_range; i+=2 )
         {
-            if( omx + i <= mv_x_max )
-                COST_MV( omx + i, omy );
-            if( omx - i >= mv_x_min )
-                COST_MV( omx - i, omy );
-        }
-        for( i = 1; i < i_me_range/2; i+=2 )
-        {
-            if( omy + i <= mv_y_max )
-                COST_MV( omx, omy + i );
-            if( omy - i >= mv_y_min )
-                COST_MV( omx, omy - i );
-        }
+            /* Uneven-cross Multi-Hexagon-grid Search
+             * as in JM, except without early termination */
 
-        /* 5x5 ESA */
-        omx = bmx; omy = bmy;
-        for( i = 0; i < 24; i++ )
-        {
-            static const int square2_x[24] = {1,1,0,-1,-1,-1, 0, 1, 2,2,2,2,1,0,-1,-2,-2,-2,-2,-2,-1, 0, 1, 2};
-            static const int square2_y[24] = {0,1,1, 1, 0,-1,-1,-1,-1,0,1,2,2,2, 2, 2, 1, 0,-1,-2,-2,-2,-2,-2};
-            COST_MV( omx + square2_x[i], omy + square2_y[i] );
-        }
-        /* hexagon grid */
-        omx = bmx; omy = bmy;
-        for( i = 1; i <= i_me_range/4; i++ )
-        {
-            int bounds_check = 4*i > X264_MIN4( mv_x_max-omx, mv_y_max-omy, omx-mv_x_min, omy-mv_y_min );
-            for( j = 0; j < 16; j++ )
+            int ucost;
+            int cross_start;
+
+            /* refine predictors */
+            DIA1_ITER( pmx, pmy );
+            if( pmx || pmy )
+                DIA1_ITER( 0, 0 );
+
+            if(i_pixel == PIXEL_4x4)
+                goto me_hex2;
+
+            ucost = bcost;
+            if( (bmx || bmy) && (bmx!=pmx || bmy!=pmy) )
+                DIA1_ITER( bmx, bmy );
+
+            /* cross */
+            omx = bmx; omy = bmy;
+            cross_start = ( bcost == ucost ) ? 3 : 1;
+            for( i = cross_start; i < i_me_range; i+=2 )
             {
-                static const int hex4_x[16] = {0,-2,-4,-4,-4,-4,-4,-2, 0, 2, 4, 4,4,4,4,2};
-                static const int hex4_y[16] = {4, 3, 2, 1, 0,-1,-2,-3,-4,-3,-2,-1,0,1,2,3};
-                int mx = omx + hex4_x[j]*i;
-                int my = omy + hex4_y[j]*i;
-                if( !bounds_check || ( mx >= mv_x_min && mx <= mv_x_max
-                                    && my >= mv_y_min && my <= mv_y_max ) )
-                    COST_MV( mx, my );
+                if( omx + i <= mv_x_max )
+                    COST_MV( omx + i, omy );
+                if( omx - i >= mv_x_min )
+                    COST_MV( omx - i, omy );
             }
+            for( i = cross_start; i < i_me_range/2; i+=2 )
+            {
+                if( omy + i <= mv_y_max )
+                    COST_MV( omx, omy + i );
+                if( omy - i >= mv_y_min )
+                    COST_MV( omx, omy - i );
+            }
+
+            /* 5x5 ESA */
+            omx = bmx; omy = bmy;
+            for( i = (bcost == ucost) ? 4 : 0; i < 24; i++ )
+            {
+                static const int square2[24][2] = {
+                    { 1, 0}, { 0, 1}, {-1, 0}, { 0,-1},
+                    { 1, 1}, {-1, 1}, {-1,-1}, { 1,-1},
+                    { 2,-1}, { 2, 0}, { 2, 1}, { 2, 2},
+                    { 1, 2}, { 0, 2}, {-1, 2}, {-2, 2},
+                    {-2, 1}, {-2, 0}, {-2,-1}, {-2,-2},
+                    {-1,-2}, { 0,-2}, { 1,-2}, { 2,-2}
+                };
+                COST_MV( omx + square2[i][0], omy + square2[i][1] );
+            }
+            /* hexagon grid */
+            omx = bmx; omy = bmy;
+            for( i = 1; i <= i_me_range/4; i++ )
+            {
+                int bounds_check = 4*i > X264_MIN4( mv_x_max-omx, mv_y_max-omy, omx-mv_x_min, omy-mv_y_min );
+                for( j = 0; j < 16; j++ )
+                {
+                    static const int hex4[16][2] = {
+                        {-4, 2}, {-4, 1}, {-4, 0}, {-4,-1}, {-4,-2},
+                        { 4,-2}, { 4,-1}, { 4, 0}, { 4, 1}, { 4, 2},
+                        { 2, 3}, { 0, 4}, {-2, 3},
+                        {-2,-3}, { 0,-4}, { 2,-3},
+                    };
+                    int mx = omx + hex4[j][0]*i;
+                    int my = omy + hex4[j][1]*i;
+                    if( !bounds_check || ( mx >= mv_x_min && mx <= mv_x_max
+                                        && my >= mv_y_min && my <= mv_y_max ) )
+                        COST_MV( mx, my );
+                }
+            }
+            goto me_hex2;
         }
-umh_small_hex:
-        /* iterative search */
-        for( i = 0; i < i_me_range; i++ )
-        {
-            HEX2_ITER( bmx, bmy );
-            if( bmx == omx && bmy == omy )
-                break;
-        }
-        for( i = 0; i < i_me_range; i++ )
-        {
-            DIA1_ITER( bmx, bmy );
-            if( bmx == omx && bmy == omy )
-                break;
-        }
-        break;
 
     case X264_ME_ESA:
         {
