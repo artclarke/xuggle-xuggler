@@ -1123,7 +1123,8 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
                      (double)( i_end - i_start );
 
         fprintf( stderr, "encoded %d frames, %.2f fps, %.2f kb/s\n", i_frame, fps,
-                 (double) i_file * 8 * param->i_fps_num / ( param->i_fps_den * i_frame * 1000 ) );
+                 (double) i_file * 8 * param->i_fps_num /
+                 ( (double) param->i_fps_den * i_frame * 1000 ) );
     }
 
     return 0;
