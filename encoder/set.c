@@ -473,3 +473,54 @@ void x264_sei_version_write( bs_t *s )
 
     bs_rbsp_trailing( s );
 }
+
+const x264_level_t x264_levels[] =
+{
+    { 10,   1485,    99,   152064,     64,    175,  64, 64,  0, 0, 0, 1 },
+    {  9,   1485,    99,   152064,    128,    350,  64, 64,  0, 0, 0, 1 },
+    { 11,   3000,   396,   345600,    192,    500, 128, 64,  0, 0, 0, 1 },
+    { 12,   6000,   396,   912384,    384,   1000, 128, 64,  0, 0, 0, 1 },
+    { 13,  11880,   396,   912384,    768,   2000, 128, 64,  0, 0, 0, 1 },
+    { 20,  11880,   396,   912384,   2000,   2000, 128, 64,  0, 0, 0, 1 },
+    { 21,  19800,   792,  1824768,   4000,   4000, 256, 64,  0, 0, 0, 0 },
+    { 22,  20250,  1620,  3110400,   4000,   4000, 256, 64,  0, 0, 0, 0 },
+    { 30,  40500,  1620,  3110400,  10000,  10000, 256, 32, 22, 0, 1, 0 },
+    { 31, 108000,  3600,  6912000,  14000,  14000, 512, 16, 60, 1, 1, 0 },
+    { 32, 216000,  5120,  7864320,  20000,  20000, 512, 16, 60, 1, 1, 0 },
+    { 40, 245760,  8192, 12582912,  20000,  25000, 512, 16, 60, 1, 1, 0 },
+    { 41, 245760,  8192, 12582912,  50000,  62500, 512, 16, 24, 1, 1, 0 },
+    { 42, 522240,  8704, 13369344,  50000,  62500, 512, 16, 24, 1, 1, 1 },
+    { 50, 589824, 22080, 42393600, 135000, 135000, 512, 16, 24, 1, 1, 1 },
+    { 51, 983040, 36864, 70778880, 240000, 240000, 512, 16, 24, 1, 1, 1 },
+    { 0 }
+};
+
+void x264_validate_levels( x264_t *h )
+{
+    int mbs;
+
+    const x264_level_t *l = x264_levels;
+    while( l->level_idc != 0 && l->level_idc != h->param.i_level_idc )
+        l++;
+
+    mbs = h->sps->i_mb_width * h->sps->i_mb_height;
+    if( l->frame_size < mbs
+        || l->frame_size*8 < h->sps->i_mb_width * h->sps->i_mb_width
+        || l->frame_size*8 < h->sps->i_mb_height * h->sps->i_mb_height )
+        x264_log( h, X264_LOG_WARNING, "frame MB size (%dx%d) > level limit (%d)\n",
+                  h->sps->i_mb_width, h->sps->i_mb_height, l->frame_size );
+
+#define CHECK( name, limit, val ) \
+    if( (val) > (limit) ) \
+        x264_log( h, X264_LOG_WARNING, name " (%d) > level limit (%d)\n", (int)(val), (limit) );
+
+    CHECK( "DPB size", l->dpb, mbs * 384 * h->sps->i_num_ref_frames );
+    CHECK( "VBV bitrate", l->bitrate, h->param.rc.i_vbv_max_bitrate );
+    CHECK( "VBV buffer", l->cpb, h->param.rc.i_vbv_buffer_size );
+    CHECK( "MV range", l->mv_range, h->param.analyse.i_mv_range );
+
+    if( h->param.i_fps_den > 0 )
+        CHECK( "MB rate", l->mbps, (int64_t)mbs * h->param.i_fps_num / h->param.i_fps_den );
+
+    /* TODO check the rest of the limits */
+}

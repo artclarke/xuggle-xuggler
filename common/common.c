@@ -120,7 +120,7 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.i_me_range = 16;
     param->analyse.i_subpel_refine = 5;
     param->analyse.b_chroma_me = 1;
-    param->analyse.i_mv_range = 512;
+    param->analyse.i_mv_range = -1; // set from level_idc
     param->analyse.i_chroma_qp_offset = 0;
     param->analyse.b_psnr = 1;
 

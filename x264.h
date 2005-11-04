@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 39
+#define X264_BUILD 40
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -239,6 +239,24 @@ typedef struct
 
     int b_aud;                  /* generate access unit delimiters */
 } x264_param_t;
+
+typedef struct {
+    int level_idc;
+    int mbps;        // max macroblock processing rate (macroblocks/sec)
+    int frame_size;  // max frame size (macroblocks)
+    int dpb;         // max decoded picture buffer (bytes)
+    int bitrate;     // max bitrate (kbit/sec)
+    int cpb;         // max vbv buffer (kbit)
+    int mv_range;    // max vertical mv component range (pixels)
+    int mvs_per_2mb; // max mvs per 2 consecutive mbs.
+    int slice_rate;  // ??
+    int bipred8x8;   // limit bipred to >=8x8
+    int direct8x8;   // limit b_direct to >=8x8
+    int frame_only;  // forbid interlacing
+} x264_level_t;
+
+/* all of the levels defined in the standard, terminated by .level_idc=0 */
+extern const x264_level_t x264_levels[];
 
 /* x264_param_default:
  *      fill x264_param_t with default values and do CPU detection */

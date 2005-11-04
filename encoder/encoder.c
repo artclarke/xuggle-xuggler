@@ -365,6 +365,7 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.f_ip_factor = 1;
         h->param.rc.f_pb_factor = 1;
         h->param.analyse.b_psnr = 0;
+        h->param.analyse.i_chroma_qp_offset = 0;
     }
 
     if( ( h->param.i_width % 16 || h->param.i_height % 16 ) && !h->mb.b_lossless )
@@ -408,9 +409,23 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.intra &= ~X264_ANALYSE_I8x8;
     }
     h->param.analyse.i_chroma_qp_offset = x264_clip3(h->param.analyse.i_chroma_qp_offset, -12, 12);
-    h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 2048);
     if( !h->param.b_cabac )
         h->param.analyse.i_trellis = 0;
+
+    {
+        const x264_level_t *l = x264_levels;
+        while( l->level_idc != 0 && l->level_idc != h->param.i_level_idc )
+            l++;
+        if( l->level_idc == 0 )
+        {
+            x264_log( h, X264_LOG_ERROR, "invalid level_idc: %d\n", h->param.i_level_idc );
+            return -1;
+        }
+        if( h->param.analyse.i_mv_range <= 0 )
+            h->param.analyse.i_mv_range = l->mv_range;
+        else
+            h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 2048);
+    }
 
     if( h->param.rc.f_qblur < 0 )
         h->param.rc.f_qblur = 0;
@@ -511,6 +526,8 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->pps = &h->pps_array[0];
     x264_pps_init( h->pps, 0, &h->param, h->sps);
+
+    x264_validate_levels( h );
 
     x264_cqm_init( h );
     
