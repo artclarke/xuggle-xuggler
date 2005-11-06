@@ -50,4 +50,7 @@ void x264_quant_4x4_dc_core32_mmxext( int16_t dct[4][4],
 void x264_quant_2x2_dc_core32_mmxext( int16_t dct[2][2],
     int const i_qmf, int const i_qbits, int const f );
 
+void x264_dequant_4x4_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp );
+void x264_dequant_8x8_mmx( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp );
+
 #endif

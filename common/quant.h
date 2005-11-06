@@ -29,8 +29,14 @@ typedef struct
     void (*quant_4x4_core)( int16_t dct[4][4], int quant_mf[4][4], int i_qbits, int f );
     void (*quant_4x4_dc_core)( int16_t dct[4][4], int i_quant_mf, int i_qbits, int f );
     void (*quant_2x2_dc_core)( int16_t dct[2][2], int i_quant_mf, int i_qbits, int f );
+
+    void (*dequant_4x4)( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp );
+    void (*dequant_8x8)( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp );
 } x264_quant_function_t;
 
 void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf );
+
+void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qscale );
+void x264_mb_dequant_2x2_dc( int16_t dct[2][2], int dequant_mf[6][4][4], int i_qscale );
 
 #endif

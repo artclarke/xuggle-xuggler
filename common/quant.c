@@ -63,6 +63,132 @@ static void quant_2x2_dc_core( int16_t dct[2][2], int i_quant_mf, int i_qbits, i
     QUANT_ONE( dct[0][3], i_quant_mf );
 }
 
+#define DEQUANT_SHL( x ) \
+    dct[y][x] = ( dct[y][x] * dequant_mf[i_mf][y][x] ) << i_qbits
+
+#define DEQUANT_SHR( x ) \
+    dct[y][x] = ( dct[y][x] * dequant_mf[i_mf][y][x] + f ) >> (-i_qbits)
+
+static void dequant_4x4( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
+{
+    const int i_mf = i_qp%6;
+    const int i_qbits = i_qp/6 - 4;
+    int y;
+
+    if( i_qbits >= 0 )
+    {
+        for( y = 0; y < 4; y++ )
+        {
+            DEQUANT_SHL( 0 );
+            DEQUANT_SHL( 1 );
+            DEQUANT_SHL( 2 );
+            DEQUANT_SHL( 3 );
+        }
+    }
+    else
+    {
+        const int f = 1 << (-i_qbits-1);
+        for( y = 0; y < 4; y++ )
+        {
+            DEQUANT_SHR( 0 );
+            DEQUANT_SHR( 1 );
+            DEQUANT_SHR( 2 );
+            DEQUANT_SHR( 3 );
+        }
+    }
+}
+
+static void dequant_8x8( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp )
+{
+    const int i_mf = i_qp%6;
+    const int i_qbits = i_qp/6 - 6;
+    int y;
+
+    if( i_qbits >= 0 )
+    {
+        for( y = 0; y < 8; y++ )
+        {
+            DEQUANT_SHL( 0 );
+            DEQUANT_SHL( 1 );
+            DEQUANT_SHL( 2 );
+            DEQUANT_SHL( 3 );
+            DEQUANT_SHL( 4 );
+            DEQUANT_SHL( 5 );
+            DEQUANT_SHL( 6 );
+            DEQUANT_SHL( 7 );
+        }
+    }
+    else
+    {
+        const int f = 1 << (-i_qbits-1);
+        for( y = 0; y < 8; y++ )
+        {
+            DEQUANT_SHR( 0 );
+            DEQUANT_SHR( 1 );
+            DEQUANT_SHR( 2 );
+            DEQUANT_SHR( 3 );
+            DEQUANT_SHR( 4 );
+            DEQUANT_SHR( 5 );
+            DEQUANT_SHR( 6 );
+            DEQUANT_SHR( 7 );
+        }
+    }
+}
+
+void x264_mb_dequant_2x2_dc( int16_t dct[2][2], int dequant_mf[6][4][4], int i_qp )
+{
+    const int i_qbits = i_qp/6 - 5;
+
+    if( i_qbits >= 0 )
+    {
+        const int i_dmf = dequant_mf[i_qp%6][0][0] << i_qbits;
+        dct[0][0] *= i_dmf;
+        dct[0][1] *= i_dmf;
+        dct[1][0] *= i_dmf;
+        dct[1][1] *= i_dmf;
+    }
+    else
+    {
+        const int i_dmf = dequant_mf[i_qp%6][0][0];
+        // chroma DC is truncated, not rounded
+        dct[0][0] = ( dct[0][0] * i_dmf ) >> (-i_qbits);
+        dct[0][1] = ( dct[0][1] * i_dmf ) >> (-i_qbits);
+        dct[1][0] = ( dct[1][0] * i_dmf ) >> (-i_qbits);
+        dct[1][1] = ( dct[1][1] * i_dmf ) >> (-i_qbits);
+    }
+}
+
+void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
+{
+    const int i_qbits = i_qp/6 - 6;
+    int y;
+
+    if( i_qbits >= 0 )
+    {
+        const int i_dmf = dequant_mf[i_qp%6][0][0] << i_qbits;
+
+        for( y = 0; y < 4; y++ )
+        {
+            dct[y][0] *= i_dmf;
+            dct[y][1] *= i_dmf;
+            dct[y][2] *= i_dmf;
+            dct[y][3] *= i_dmf;
+        }
+    }
+    else
+    {
+        const int i_dmf = dequant_mf[i_qp%6][0][0];
+        const int f = 1 << (-i_qbits-1);
+
+        for( y = 0; y < 4; y++ )
+        {
+            dct[y][0] = ( dct[y][0] * i_dmf + f ) >> (-i_qbits);
+            dct[y][1] = ( dct[y][1] * i_dmf + f ) >> (-i_qbits);
+            dct[y][2] = ( dct[y][2] * i_dmf + f ) >> (-i_qbits);
+            dct[y][3] = ( dct[y][3] * i_dmf + f ) >> (-i_qbits);
+        }
+    }
+}
 
 void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 {
@@ -72,6 +198,9 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     pf->quant_4x4_core = quant_4x4_core;
     pf->quant_4x4_dc_core = quant_4x4_dc_core;
     pf->quant_2x2_dc_core = quant_2x2_dc_core;
+
+    pf->dequant_4x4 = dequant_4x4;
+    pf->dequant_8x8 = dequant_8x8;
 
 #ifdef HAVE_MMXEXT
 
@@ -133,5 +262,13 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->quant_2x2_dc_core = x264_quant_2x2_dc_core32_mmxext;
     }
 
+    if( cpu&X264_CPU_MMXEXT )
+    {
+        /* dequant is not subject to the above CQM-dependent overflow issues,
+         * as long as the inputs are in the range generable by dct+quant.
+         * that is not guaranteed by the standard, but is true within x264 */
+        pf->dequant_4x4 = x264_dequant_4x4_mmx;
+        pf->dequant_8x8 = x264_dequant_8x8_mmx;
+    }
 #endif  /* HAVE_MMXEXT */
 }

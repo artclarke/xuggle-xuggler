@@ -365,7 +365,8 @@ static int check_quant( int cpu_ref, int cpu_new )
     x264_quant_function_t qf_a;
     int16_t dct1[64], dct2[64];
     uint8_t cqm_buf[64];
-    int ret = 0, ok = 1, used_asm = 0;
+    int ret = 0, ok, used_asm;
+    int oks[2] = {1,1}, used_asms[2] = {0,0};
     int i, i_cqm;
     x264_t h_buf;
     x264_t *h = &h_buf;
@@ -400,14 +401,14 @@ static int check_quant( int cpu_ref, int cpu_new )
 #define TEST_QUANT( name, cqm ) \
         if( qf_a.name != qf_ref.name ) \
         { \
-            used_asm = 1; \
+            used_asms[0] = 1; \
             for( i = 0; i < 64; i++ ) \
-                dct1[i] = dct2[i] = rand() & 0xfff; \
+                dct1[i] = dct2[i] = (rand() & 0x1fff) - 0xfff; \
             qf_c.name( (void*)dct1, cqm, 20, (1<<20)/6 ); \
             qf_a.name( (void*)dct2, cqm, 20, (1<<20)/6 ); \
             if( memcmp( dct1, dct2, 64*2 ) )       \
             { \
-                ok = 0; \
+                oks[0] = 0; \
                 fprintf( stderr, #name "(cqm=%d): [FAILED]\n", i_cqm ); \
             } \
         }
@@ -418,9 +419,38 @@ static int check_quant( int cpu_ref, int cpu_new )
         TEST_QUANT( quant_4x4_core, *h->quant4_mf[CQM_4PY] );
         TEST_QUANT( quant_4x4_dc_core, ***h->quant4_mf[CQM_4IY] );
         TEST_QUANT( quant_2x2_dc_core, ***h->quant4_mf[CQM_4IC] );
+
+#define TEST_DEQUANT( name, quant, dqm, cqm, shift ) \
+        if( qf_a.name != qf_ref.name ) \
+        { \
+            int qp; \
+            used_asms[1] = 1; \
+            for( qp = 51; qp > 0; qp-- ) \
+            { \
+                for( i = 0; i < 64; i++ ) \
+                    dct1[i] = dct2[i] = (rand() & 0x1fff) - 0xfff; \
+                qf_c.quant( (void*)dct1, cqm[qp%6], shift+qp/6, 0 ); \
+                memcpy( dct2, dct1, sizeof(dct2) ); \
+                qf_c.name( (void*)dct1, dqm, qp ); \
+                qf_a.name( (void*)dct2, dqm, qp ); \
+                if( memcmp( dct1, dct2, 64*2 ) ) \
+                { \
+                    oks[1] = 0; \
+                    fprintf( stderr, #name "(qp=%d, cqm=%d): [FAILED]\n", qp, i_cqm ); \
+                    break; \
+                } \
+            } \
+        }
+
+        TEST_DEQUANT( dequant_8x8, quant_8x8_core, h->dequant8_mf[CQM_8PY], h->quant8_mf[CQM_8PY], 16 );
+        TEST_DEQUANT( dequant_4x4, quant_4x4_core, h->dequant4_mf[CQM_4PY], h->quant4_mf[CQM_4PY], 15 );
     }
 
+    ok = oks[0]; used_asm = used_asms[0];
     report( "quant :" );
+
+    ok = oks[1]; used_asm = used_asms[1];
+    report( "dequant :" );
 
     return ret;
 }

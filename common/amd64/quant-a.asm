@@ -35,7 +35,9 @@ BITS 64
 
 %include "amd64inc.asm"
 
-ALIGN 16
+SECTION .rodata
+pw_1:  times 4 dw 1
+pd_1:  times 2 dd 1
 
 SECTION .text
 
@@ -53,6 +55,9 @@ cglobal x264_quant_2x2_dc_core32_mmxext
 cglobal x264_quant_4x4_dc_core32_mmxext
 cglobal x264_quant_4x4_core32_mmxext
 cglobal x264_quant_8x8_core32_mmxext
+
+cglobal x264_dequant_4x4_mmx
+cglobal x264_dequant_8x8_mmx
 
 %macro MMX_QUANT_AC_START 0
 ;   mov         rdi, rdi        ; &dct[0][0]
@@ -374,3 +379,139 @@ x264_quant_8x8_core32_mmxext:
 
     ret
 
+
+;=============================================================================
+; dequant
+;=============================================================================
+
+%macro DEQUANT16_L_1x4 3
+;;; %1      dct[y][x]
+;;; %2,%3   dequant_mf[i_mf][y][x]
+;;; mm5     i_qbits
+
+    movq     mm1, %2
+    movq     mm2, %3
+    movq     mm0, %1
+    packssdw mm1, mm2
+    pmullw   mm0, mm1
+    psllw    mm0, mm5
+    movq     %1,  mm0
+%endmacro
+
+%macro DEQUANT16_R_1x4 3
+;;; %1      dct[y][x]
+;;; %2,%3   dequant_mf[i_mf][y][x]
+;;; mm5     -i_qbits
+;;; mm6     f as words
+
+    movq     mm1, %2
+    movq     mm2, %3
+    movq     mm0, %1
+    packssdw mm1, mm2
+    pmullw   mm0, mm1
+    paddw    mm0, mm6
+    psraw    mm0, mm5
+    movq     %1,  mm0
+%endmacro
+
+%macro DEQUANT32_R_1x4 3
+;;; %1      dct[y][x]
+;;; %2,%3   dequant_mf[i_mf][y][x]
+;;; mm5     -i_qbits
+;;; mm6     f as dwords
+;;; mm7     0
+
+    movq      mm0, %1
+    movq      mm1, mm0
+    punpcklwd mm0, mm0
+    punpckhwd mm1, mm1
+
+    movq      mm2, mm0
+    movq      mm3, mm1
+    pmulhw    mm0, %2
+    pmulhw    mm1, %3
+    pmullw    mm2, %2
+    pmullw    mm3, %3
+    pslld     mm0, 16
+    pslld     mm1, 16
+    paddd     mm0, mm2
+    paddd     mm1, mm3
+
+    paddd     mm0, mm6
+    paddd     mm1, mm6
+    psrad     mm0, mm5
+    psrad     mm1, mm5
+
+    packssdw  mm0, mm1
+    movq      %1,  mm0
+%endmacro
+
+%macro DEQUANT_WxH 3
+ALIGN 16
+;;; void x264_dequant_4x4_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
+%1:
+;   mov  rdi, rdi   ; dct
+;   mov  rsi, rsi   ; dequant_mf
+;   mov  edx, edx   ; i_qp
+
+    imul eax, edx, 0x2b
+    shr  eax, 8     ; i_qbits = i_qp / 6
+    lea  ecx, [eax+eax*2]
+    sub  edx, ecx
+    sub  edx, ecx   ; i_mf = i_qp % 6
+    shl  edx, %3+2
+    movsxd rdx, edx
+    add  rsi, rdx   ; dequant_mf[i_mf]
+
+    sub  eax, %3
+    cmp  eax, -2
+    jle  .rshift32  ; dct * dequant overflows 16bit
+    cmp  eax, -1
+    jle  .rshift16  ; negative qbits => rightshift
+
+.lshift:
+    movd mm5, eax
+
+%rep %2
+    DEQUANT16_L_1x4 [rdi], [rsi], [rsi+8]
+    add  rsi, byte 16
+    add  rdi, byte 8
+%endrep
+
+    ret
+
+.rshift16:
+    neg   eax
+    movd  mm5, eax
+    movq  mm6, [pw_1]
+    pxor  mm7, mm7
+    psllw mm6, mm5
+    psrlw mm6, 1
+
+%rep %2
+    DEQUANT16_R_1x4 [rdi], [rsi], [rsi+8]
+    add  rsi, byte 16
+    add  rdi, byte 8
+%endrep
+
+    ret
+
+.rshift32:
+    neg   eax
+    movd  mm5, eax
+    movq  mm6, [pd_1]
+    pxor  mm7, mm7
+    pslld mm6, mm5
+    psrld mm6, 1
+
+%rep %2
+    DEQUANT32_R_1x4 [rdi], [rsi], [rsi+8]
+    add  rsi, byte 16
+    add  rdi, byte 8
+%endrep
+
+    ret
+%endmacro
+
+DEQUANT_WxH x264_dequant_4x4_mmx, 4, 4
+DEQUANT_WxH x264_dequant_8x8_mmx, 16, 6
