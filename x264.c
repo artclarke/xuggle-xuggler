@@ -298,7 +298,7 @@ static void Help( x264_param_t *defaults )
              "\n"
              "Input/Output:\n"
              "\n"
-             "      --level <integer>       Specify level (as defined by Annex A)\n"
+             "      --level <string>        Specify level (as defined by Annex A)\n"
              "      --fps <float|rational>  Specify framerate\n"
              "      --seek <integer>        First frame to encode\n"
              "      --frames <integer>      Maximum number of frames to encode\n"
@@ -743,7 +743,10 @@ static int  Parse( int argc, char **argv,
                 param->analyse.i_trellis = atoi(optarg);
                 break;
             case OPT_LEVEL:
-                param->i_level_idc = atoi(optarg);
+                if( atof(optarg) < 6 )
+                    param->i_level_idc = (int)(10*atof(optarg)+.5);
+                else
+                    param->i_level_idc = atoi(optarg);
                 break;
             case OPT_RATETOL:
                 param->rc.f_rate_tolerance = !strncmp("inf", optarg, 3) ? 1e9 : atof(optarg);
