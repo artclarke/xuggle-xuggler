@@ -625,23 +625,16 @@ void x264_macroblock_encode( x264_t *h )
             h->mb.i_cbp_chroma = 0x02;    /* dc+ac (we can't do only ac) */
         }
     }
-    if( h->mb.i_cbp_chroma == 0x00 &&
-        ( array_non_zero_count( h->dct.chroma_dc[0], 4 ) > 0 || array_non_zero_count( h->dct.chroma_dc[1], 4 ) ) > 0 )
+    if( h->mb.i_cbp_chroma == 0x00 && array_non_zero( h->dct.chroma_dc[0], 8 ) )
     {
         h->mb.i_cbp_chroma = 0x01;    /* dc only */
     }
 
     if( h->param.b_cabac )
     {
-        if( h->mb.i_type == I_16x16 && array_non_zero_count( h->dct.luma16x16_dc, 16 ) > 0 )
-            i_cbp_dc = 0x01;
-        else
-            i_cbp_dc = 0x00;
-
-        if( array_non_zero_count( h->dct.chroma_dc[0], 4 ) > 0 )
-            i_cbp_dc |= 0x02;
-        if( array_non_zero_count( h->dct.chroma_dc[1], 4 ) > 0 )
-            i_cbp_dc |= 0x04;
+        i_cbp_dc = ( h->mb.i_type == I_16x16 && array_non_zero( h->dct.luma16x16_dc, 16 ) )
+                 | array_non_zero( h->dct.chroma_dc[0], 4 ) << 1
+                 | array_non_zero( h->dct.chroma_dc[1], 4 ) << 2;
     }
 
     /* store cbp */

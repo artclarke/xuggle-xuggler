@@ -608,7 +608,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_cost_
                 int i_mode;
 
                 i_mode = predict_mode[i];
-                h->predict_8x8[i_mode]( p_dst_by, i_stride, h->mb.i_neighbour );
+                h->predict_8x8[i_mode]( p_dst_by, i_stride, h->mb.i_neighbour8[idx] );
 
                 /* could use sa8d, but it doesn't seem worth the speed cost (without mmx at least) */
                 i_sad = h->pixf.mbcmp[PIXEL_8x8]( p_dst_by, i_stride,
