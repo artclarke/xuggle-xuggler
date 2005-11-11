@@ -483,7 +483,7 @@ ALIGN 16
 .rshift16:
     neg   eax
     movd  mm5, eax
-    movq  mm6, [pw_1]
+    movq  mm6, [pw_1 GLOBAL]
     pxor  mm7, mm7
     psllw mm6, mm5
     psrlw mm6, 1
@@ -499,7 +499,7 @@ ALIGN 16
 .rshift32:
     neg   eax
     movd  mm5, eax
-    movq  mm6, [pd_1]
+    movq  mm6, [pd_1 GLOBAL]
     pxor  mm7, mm7
     pslld mm6, mm5
     psrld mm6, 1
