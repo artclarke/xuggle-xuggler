@@ -127,6 +127,9 @@ case "$UNAMEM" in
   ia64)
     ARCH="IA64"
     ;;
+  alpha)
+    ARCH="ALPHA"
+    ;;
   mips|mipsel)
     ARCH="MIPS"
     ;;
