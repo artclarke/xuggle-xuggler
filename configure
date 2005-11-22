@@ -22,9 +22,9 @@ exit 1
 fi
 
 prefix='/usr/local'
-eprefix='${prefix}'
-bindir='${eprefix}/bin'
-libdir='${eprefix}/lib'
+exec_prefix='${prefix}'
+bindir='${exec_prefix}/bin'
+libdir='${exec_prefix}/lib'
 includedir='${prefix}/include'
 
 avis_input="no"
@@ -162,7 +162,7 @@ for opt do
             prefix="$optarg"
             ;;
         --exec-prefix=*)
-            eprefix="$optarg"
+            exec_prefix="$optarg"
             ;;
         --bindir=*)
             bindir="$optarg"
@@ -243,7 +243,7 @@ fi
 rm -f config.mak
 cat > config.mak << EOF
 prefix=$prefix
-eprefix=$eprefix
+exec_prefix=$exec_prefix
 bindir=$bindir
 libdir=$libdir
 includedir=$includedir
@@ -268,6 +268,22 @@ LDFLAGS=$VFW_LDFLAGS
 EOF
     echo "default: x264vfw.dll" >> config.mak
 fi
+
+# x264.pc file creation
+rm -f x264.pc
+cat > x264.pc << EOF
+prefix=$prefix
+exec_prefix=$exec_prefix
+libdir=$libdir
+includedir=$includedir
+
+Name: x264
+Description: H.264 (MPEG4 AVC) encoder library
+Version:
+Libs: -L$libdir -lx264
+Cflags: -I$includedir
+EOF
+
 
 echo "Platform:   $ARCH"
 echo "System:     $SYS"

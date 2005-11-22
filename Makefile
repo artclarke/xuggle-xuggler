@@ -92,7 +92,7 @@ include .depend
 endif
 
 clean:
-	rm -f $(OBJS) $(OBJASM) config.h *.a x264.o matroska.o x264 x264.exe .depend TAGS
+	rm -f $(OBJS) $(OBJASM) config.h *.a x264.o matroska.o x264 x264.exe .depend TAGS x264.pc
 	rm -f checkasm checkasm.exe tools/checkasm.o
 	rm -f tools/avc2avi tools/avc2avi.exe tools/avc2avi.o
 	rm -rf vfw/build/cygwin/bin
@@ -101,11 +101,18 @@ distclean: clean
 	rm -f config.mak vfw/build/cygwin/config.mak
 
 install: x264
-	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(libdir) $(DESTDIR)$(includedir)
+	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(includedir)
+	install -d $(DESTDIR)$(libdir) $(DESTDIR)$(libdir)/pkgconfig
 	install -m 644 x264.h $(DESTDIR)$(includedir)
 	install -m 644 libx264.a $(DESTDIR)$(libdir)
+	install -m 644 x264.pc $(DESTDIR)$(libdir)/pkgconfig
 	install x264 $(DESTDIR)$(bindir)
 	ranlib $(DESTDIR)$(libdir)/libx264.a
+
+.PHONY: uninstall
+uninstall:
+	rm -f $(DESTDIR)$(includedir)/x264.h $(DESTDIR)$(libdir)/libx264.a
+	rm -f $(DESTDIR)$(bindir)/x264 $(DESTDIR)$(libdir)/pkgconfig/x264.pc
 
 etags: TAGS
 
