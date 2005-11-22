@@ -437,6 +437,18 @@ static int parse_zones( x264_t *h )
     return 0;
 }
 
+void x264_ratecontrol_summary( x264_t *h )
+{
+    x264_ratecontrol_t *rc = h->rc;
+    if( rc->b_abr && !h->param.rc.i_rf_constant && !h->param.rc.i_vbv_max_bitrate )
+    {
+        double base_cplx = h->mb.i_mb_count * (h->param.i_bframe ? 120 : 80);
+        x264_log( h, X264_LOG_INFO, "final ratefactor: %.2f\n", 
+                  qscale2qp( pow( base_cplx, 1 - h->param.rc.f_qcompress )
+                             * rc->cplxr_sum / rc->wanted_bits_window ) );
+    }
+}
+
 void x264_ratecontrol_delete( x264_t *h )
 {
     x264_ratecontrol_t *rc = h->rc;

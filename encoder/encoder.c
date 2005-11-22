@@ -1669,6 +1669,8 @@ void    x264_encoder_close  ( x264_t *h )
                   i_mb_count[B_SKIP]   / i_count );
     }
 
+    x264_ratecontrol_summary( h );
+
     if( h->stat.i_slice_count[SLICE_TYPE_I] + h->stat.i_slice_count[SLICE_TYPE_P] + h->stat.i_slice_count[SLICE_TYPE_B] > 0 )
     {
         const int i_count = h->stat.i_slice_count[SLICE_TYPE_I] +
