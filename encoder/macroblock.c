@@ -332,7 +332,6 @@ static void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
             /* no trellis; it doesn't seem to help chroma noticeably */
             quant_4x4( h, dct4x4[i], h->quant4_mf[CQM_4IC + b_inter], i_qscale, !b_inter );
             scan_zigzag_4x4( h->dct.block[16+i+ch*4].residual_ac, dct4x4[i] );
-            h->quantf.dequant_4x4( dct4x4[i], h->dequant4_mf[CQM_4IC + b_inter], i_qscale );
 
             if( b_inter )
             {
@@ -354,12 +353,17 @@ static void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
             memset( dct4x4, 0, sizeof( dct4x4 ) );
             memset( &h->dct.block[16+ch*4], 0, 4 * sizeof( *h->dct.block ) );
         }
+        else
+        {
+            for( i = 0; i < 4; i++ )
+                h->quantf.dequant_4x4( dct4x4[i], h->dequant4_mf[CQM_4IC + b_inter], i_qscale );
+        }
 
         /* calculate dct coeffs */
         for( i = 0; i < 4; i++ )
         {
             /* copy dc coeff */
-            dct4x4[i][0][0] = dct2x2[block_idx_y[i]][block_idx_x[i]];
+            dct4x4[i][0][0] = dct2x2[0][i];
         }
         h->dctf.add8x8_idct( p_dst, i_stride, dct4x4 );
     }
@@ -490,6 +494,7 @@ void x264_macroblock_encode( x264_t *h )
         else if( h->mb.b_transform_8x8 )
         {
             int16_t dct8x8[4][8][8];
+            int nnz8x8[4] = {1,1,1,1};
             h->dctf.sub16x16_dct8( dct8x8,
                                    h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0],
                                    h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0] );
@@ -502,7 +507,6 @@ void x264_macroblock_encode( x264_t *h )
                     quant_8x8( h, dct8x8[idx], h->quant8_mf[CQM_8PY], i_qp, 0 );
 
                 scan_zigzag_8x8full( h->dct.luma8x8[idx], dct8x8[idx] );
-                h->quantf.dequant_8x8( dct8x8[idx], h->dequant8_mf[CQM_8PY], i_qp );
 
                 if( !h->mb.b_trellis )
                 {
@@ -512,6 +516,7 @@ void x264_macroblock_encode( x264_t *h )
                     {
                         memset( h->dct.luma8x8[idx], 0, sizeof( h->dct.luma8x8[idx] ) );
                         memset( dct8x8[idx], 0, sizeof( dct8x8[idx] ) );
+                        nnz8x8[idx] = 0;
                     }
                 }
             }
@@ -519,11 +524,20 @@ void x264_macroblock_encode( x264_t *h )
             if( i_decimate_mb < 6 && !h->mb.b_trellis )
                 memset( h->dct.luma8x8, 0, sizeof( h->dct.luma8x8 ) );
             else
-                h->dctf.add16x16_idct8( h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0], dct8x8 );
+            {
+                const int stride = h->mb.pic.i_stride[0];
+                for( idx = 0; idx < 4; idx++ )
+                    if( nnz8x8[idx] )
+                    {
+                        h->quantf.dequant_8x8( dct8x8[idx], h->dequant8_mf[CQM_8PY], i_qp );
+                        h->dctf.add8x8_idct8( &h->mb.pic.p_fdec[0][(idx&1)*8 + (idx>>1)*8*stride], stride, dct8x8[idx] );
+                    }
+            }
         }
         else
         {
             int16_t dct4x4[16][4][4];
+            int nnz8x8[4] = {1,1,1,1};
             h->dctf.sub16x16_dct( dct4x4,
                                   h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0],
                                   h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0] );
@@ -544,7 +558,6 @@ void x264_macroblock_encode( x264_t *h )
                         quant_4x4( h, dct4x4[idx], h->quant4_mf[CQM_4PY], i_qp, 0 );
 
                     scan_zigzag_4x4full( h->dct.block[idx].luma4x4, dct4x4[idx] );
-                    h->quantf.dequant_4x4( dct4x4[idx], h->dequant4_mf[CQM_4PY], i_qp );
 
                     i_decimate_8x8 += x264_mb_decimate_score( h->dct.block[idx].luma4x4, 16 );
                 }
@@ -555,13 +568,23 @@ void x264_macroblock_encode( x264_t *h )
                 {
                     memset( &dct4x4[i8x8*4], 0, 4 * sizeof( *dct4x4 ) );
                     memset( &h->dct.block[i8x8*4], 0, 4 * sizeof( *h->dct.block ) );
+                    nnz8x8[i8x8] = 0;
                 }
             }
 
             if( i_decimate_mb < 6 )
                 memset( h->dct.block, 0, 16 * sizeof( *h->dct.block ) );
             else
-                h->dctf.add16x16_idct( h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0], dct4x4 );
+            {
+                const int stride = h->mb.pic.i_stride[0];
+                for( i8x8 = 0; i8x8 < 4; i8x8++ )
+                    if( nnz8x8[i8x8] )
+                    {
+                        for( i = 0; i < 4; i++ )
+                            h->quantf.dequant_4x4( dct4x4[i8x8*4+i], h->dequant4_mf[CQM_4PY], i_qp );
+                        h->dctf.add8x8_idct( &h->mb.pic.p_fdec[0][(i8x8&1)*8 + (i8x8>>1)*8*stride], stride, &dct4x4[i8x8*4] );
+                    }
+            }
         }
     }
 
