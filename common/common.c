@@ -62,8 +62,7 @@ void    x264_param_default( x264_param_t *param )
     param->vui.i_chroma_loc= 0;  /* left center */
     param->i_fps_num       = 25;
     param->i_fps_den       = 1;
-    param->i_level_idc     = 40; /* level 4.0 is sufficient for 720x576 with 
-                                    16 reference frames */
+    param->i_level_idc     = 51; /* as close to "unrestricted" as we can get */
 
     /* Encoder parameters */
     param->i_frame_reference = 1;
