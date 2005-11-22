@@ -259,15 +259,48 @@ int x264_ratecontrol_new( x264_t *h )
     /* Load stat file and init 2pass algo */
     if( h->param.rc.b_stat_read )
     {
-        char *p, *stats_in;
+        char *p, *stats_in, *stats_buf;
 
         /* read 1st pass stats */
         assert( h->param.rc.psz_stat_in );
-        stats_in = x264_slurp_file( h->param.rc.psz_stat_in );
-        if( !stats_in )
+        stats_buf = stats_in = x264_slurp_file( h->param.rc.psz_stat_in );
+        if( !stats_buf )
         {
             x264_log(h, X264_LOG_ERROR, "ratecontrol_init: can't open stats file\n");
             return -1;
+        }
+
+        /* check whether 1st pass options were compatible with current options */
+        if( !strncmp( stats_buf, "#options:", 9 ) )
+        {
+            int i;
+            char *opts = stats_buf;
+            stats_in = strchr( stats_buf, '\n' );
+            if( !stats_in )
+                return -1;
+            *stats_in = '\0';
+            stats_in++;
+
+            if( ( p = strstr( opts, "bframes=" ) ) && sscanf( p, "bframes=%d", &i )
+                && h->param.i_bframe != i )
+            {
+                x264_log( h, X264_LOG_ERROR, "different number of B-frames than 1st pass (%d vs %d)\n",
+                          h->param.i_bframe, i );
+                return -1;
+            }
+
+            /* since B-adapt doesn't (yet) take into account B-pyramid,
+             * the converse is not a problem */
+            if( strstr( opts, "b_pyramid=1" ) && !h->param.b_bframe_pyramid )
+                x264_log( h, X264_LOG_WARNING, "1st pass used B-pyramid, 2nd doesn't\n" );
+
+            if( ( p = strstr( opts, "keyint=" ) ) && sscanf( p, "keyint=%d", &i )
+                && h->param.i_keyint_max != i )
+                x264_log( h, X264_LOG_WARNING, "different keyint than 1st pass (%d vs %d)\n",
+                          h->param.i_keyint_max, i );
+
+            if( strstr( opts, "qp=0" ) && h->param.rc.b_cbr )
+                x264_log( h, X264_LOG_WARNING, "1st pass was lossless, bitrate prediction will be inaccurate\n" );
         }
 
         /* find number of pics */
@@ -352,7 +385,7 @@ int x264_ratecontrol_new( x264_t *h )
             p = next;
         }
 
-        x264_free(stats_in);
+        x264_free(stats_buf);
 
         if(h->param.rc.b_cbr)
         {
@@ -365,6 +398,8 @@ int x264_ratecontrol_new( x264_t *h )
      * and move it to the real name only when it's complete */
     if( h->param.rc.b_stat_write )
     {
+        char *p;
+
         rc->psz_stat_file_tmpname = x264_malloc( strlen(h->param.rc.psz_stat_out) + 6 );
         strcpy( rc->psz_stat_file_tmpname, h->param.rc.psz_stat_out );
         strcat( rc->psz_stat_file_tmpname, ".temp" );
@@ -375,6 +410,10 @@ int x264_ratecontrol_new( x264_t *h )
             x264_log(h, X264_LOG_ERROR, "ratecontrol_init: can't open stats file\n");
             return -1;
         }
+
+        p = x264_param2string( &h->param, 1 );
+        fprintf( rc->p_stat_file_out, "#options: %s\n", p );
+        x264_free( p );
     }
 
     return 0;

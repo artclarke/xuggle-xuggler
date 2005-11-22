@@ -366,6 +366,7 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.f_pb_factor = 1;
         h->param.analyse.b_psnr = 0;
         h->param.analyse.i_chroma_qp_offset = 0;
+        h->param.analyse.i_trellis = 0;
     }
 
     if( ( h->param.i_width % 16 || h->param.i_height % 16 ) && !h->mb.b_lossless )
@@ -401,6 +402,11 @@ static int x264_validate_parameters( x264_t *h )
     if( h->param.analyse.i_me_range > 16 && h->param.analyse.i_me_method <= X264_ME_HEX )
         h->param.analyse.i_me_range = 16;
     h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 6 );
+    h->param.analyse.b_bframe_rdo = h->param.analyse.b_bframe_rdo && h->param.analyse.i_subpel_refine >= 6;
+    h->param.analyse.b_mixed_references = h->param.analyse.b_mixed_references && h->param.i_frame_reference > 1;
+    h->param.analyse.inter &= X264_ANALYSE_PSUB16x16|X264_ANALYSE_PSUB8x8|X264_ANALYSE_BSUB16x16|
+                              X264_ANALYSE_I4x4|X264_ANALYSE_I8x8;
+    h->param.analyse.intra &= X264_ANALYSE_I4x4|X264_ANALYSE_I8x8;
     if( !(h->param.analyse.inter & X264_ANALYSE_PSUB16x16) )
         h->param.analyse.inter &= ~X264_ANALYSE_PSUB8x8;
     if( !h->param.analyse.b_transform_8x8 )
@@ -667,7 +673,7 @@ int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
     {
         /* identify ourself */
         x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
-        x264_sei_version_write( &h->out.bs );
+        x264_sei_version_write( h, &h->out.bs );
         x264_nal_end( h );
 
         /* generate sequence parameters */
@@ -1325,7 +1331,7 @@ do_encode:
         {
             /* identify ourself */
             x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
-            x264_sei_version_write( &h->out.bs );
+            x264_sei_version_write( h, &h->out.bs );
             x264_nal_end( h );
         }
 

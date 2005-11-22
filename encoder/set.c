@@ -447,7 +447,7 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
     bs_rbsp_trailing( s );
 }
 
-void x264_sei_version_write( bs_t *s )
+void x264_sei_version_write( x264_t *h, bs_t *s )
 {
     int i;
     // random ID number generated according to ISO-11578
@@ -455,16 +455,21 @@ void x264_sei_version_write( bs_t *s )
         0xdc, 0x45, 0xe9, 0xbd, 0xe6, 0xd9, 0x48, 0xb7,
         0x96, 0x2c, 0xd8, 0x20, 0xd9, 0x23, 0xee, 0xef
     };
-    char version[256];
+    char version[1200];
     int length;
-    sprintf( version, "x264 - core %d%s - H.264/MPEG-4 AVC codec - Copyleft 2005 - http://www.videolan.org/x264.html",
-             X264_BUILD, X264_VERSION );
+    char *opts = x264_param2string( &h->param, 0 );
+
+    sprintf( version, "x264 - core %d%s - H.264/MPEG-4 AVC codec - "
+             "Copyleft 2005 - http://www.videolan.org/x264.html - options: %s",
+             X264_BUILD, X264_VERSION, opts );
+    x264_free( opts );
     length = strlen(version)+1+16;
 
     bs_write( s, 8, 0x5 ); // payload_type = user_data_unregistered
-    while( length > 255 )
-        bs_write( s, 8, 255 ), length -= 255;
-    bs_write( s, 8, length ); // payload_size
+    // payload_size
+    for( i = 0; i <= length-255; i += 255 )
+        bs_write( s, 8, 255 );
+    bs_write( s, 8, length-i );
 
     for( i = 0; i < 16; i++ )
         bs_write( s, 8, uuid[i] );

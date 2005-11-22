@@ -80,6 +80,10 @@ char *x264_slurp_file( const char *filename );
 /* mdate: return the current date in microsecond */
 int64_t x264_mdate( void );
 
+/* x264_param2string: return a (malloced) string containing most of
+ * the encoding options */
+char *x264_param2string( x264_param_t *p, int b_res );
+
 /* log */
 void x264_log( x264_t *h, int i_level, const char *psz_fmt, ... );
 
