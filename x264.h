@@ -239,7 +239,7 @@ typedef struct
     } rc;
 
     int b_aud;                  /* generate access unit delimiters */
-    int b_repeat_headers        /* put SPS/PPS before each keyframe */
+    int b_repeat_headers;       /* put SPS/PPS before each keyframe */
 } x264_param_t;
 
 typedef struct {
