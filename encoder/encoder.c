@@ -1325,7 +1325,7 @@ do_encode:
     h->i_nal_ref_idc = i_nal_ref_idc;
 
     /* Write SPS and PPS */
-    if( i_nal_type == NAL_SLICE_IDR )
+    if( i_nal_type == NAL_SLICE_IDR && h->param.b_repeat_headers )
     {
         if( h->fenc->i_frame == 0 )
         {

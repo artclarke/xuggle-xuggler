@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 40
+#define X264_BUILD 41
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -239,6 +239,7 @@ typedef struct
     } rc;
 
     int b_aud;                  /* generate access unit delimiters */
+    int b_repeat_headers        /* put SPS/PPS before each keyframe */
 } x264_param_t;
 
 typedef struct {
