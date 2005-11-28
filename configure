@@ -26,6 +26,7 @@ exec_prefix='${prefix}'
 bindir='${exec_prefix}/bin'
 libdir='${exec_prefix}/lib'
 includedir='${prefix}/include'
+DEVNULL='/dev/null'
 
 avis_input="no"
 mp4_output="no"
@@ -75,11 +76,13 @@ case "$UNAMES" in
     LDFLAGS="$LDFLAGS -mno-cygwin"
     ASFLAGS="-f win32 -DPREFIX"
     EXE=".exe"
+    DEVNULL="NUL"
     ;;
   MINGW*)
     SYS="MINGW"
     ASFLAGS="-f win32 -DPREFIX"
     EXE=".exe"
+    DEVNULL="NUL"
     ;;
   SunOS)
     SYS="SunOS"
@@ -258,6 +261,7 @@ VFW=$vfw
 EXE=$EXE
 VIS=$vis
 HAVE_GETOPT_LONG=$HAVE_GETOPT_LONG
+DEVNULL=$DEVNULL
 EOF
 
 if [ "$vfw" = "yes" ]; then
@@ -295,5 +299,5 @@ echo "debug:      $debug"
 echo "gprof:      $gprof"
 echo "visualize:  $vis"
 echo
-echo "You can run 'make' now."
+echo "You can run 'make' or 'make fprofiled' now."
 

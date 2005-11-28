@@ -59,6 +59,7 @@ endif
 OBJS = $(SRCS:%.c=%.o)
 DEP  = depend
 
+.PHONY: default fprofiled clean distclean install uninstall
 default: $(DEP) x264$(EXE)
 
 libx264.a: .depend $(OBJS) $(OBJASM)
@@ -91,11 +92,37 @@ ifneq ($(wildcard .depend),)
 include .depend
 endif
 
+SRC2 = $(SRCS) x264.c matroska.c
+# These should cover most of the important codepaths
+OPT0 = --crf 30 -b1 -m1 -r1 --me dia --no-cabac
+OPT1 = --crf 18 -b2 -m3 -r3 --me hex -8 --cqm jvt --direct spatial
+OPT2 = --crf 24 -b3 -m6 -r6 --me umh -8 -w -t1 -A all --b-pyramid --b-rdo --mixed-refs
+
+ifeq (,$(VIDS))
+fprofiled:
+	@echo 'usage: make fprofiled VIDS="infile1 infile2 ..."'
+	@echo 'where infiles are anything that x264 understands,'
+	@echo 'i.e. YUV with resolution in the filename, or avisynth.'
+else
+fprofiled:
+	make clean
+	sed -i -e 's/CFLAGS.*/& -fprofile-generate/; s/LDFLAGS.*/& -fprofile-generate/' config.mak
+	make x264$(EXE)
+	$(foreach V, $(VIDS), $(foreach I, 0 1 2, ./x264$(EXE) $(OPT$I) $(V) --progress -o $(DEVNULL) ;))
+	rm -f $(SRC2:%.c=%.o)
+	sed -i -e 's/-fprofile-generate/-fprofile-use/' config.mak
+	make
+	rm -f $(SRC2:%.c=%.gcda) $(SRC2:%.c=%.gcno)
+	sed -i -e 's/ *-fprofile-\(generate\|use\)//g' config.mak
+endif
+
 clean:
 	rm -f $(OBJS) $(OBJASM) config.h *.a x264.o matroska.o x264 x264.exe .depend TAGS x264.pc
 	rm -f checkasm checkasm.exe tools/checkasm.o
 	rm -f tools/avc2avi tools/avc2avi.exe tools/avc2avi.o
 	rm -rf vfw/build/cygwin/bin
+	rm -f $(SRC2:%.c=%.gcda) $(SRC2:%.c=%.gcno)
+	- sed -i -e 's/ *-fprofile-\(generate\|use\)//g' config.mak
 
 distclean: clean
 	rm -f config.mak vfw/build/cygwin/config.mak
@@ -109,7 +136,6 @@ install: x264
 	install x264 $(DESTDIR)$(bindir)
 	ranlib $(DESTDIR)$(libdir)/libx264.a
 
-.PHONY: uninstall
 uninstall:
 	rm -f $(DESTDIR)$(includedir)/x264.h $(DESTDIR)$(libdir)/libx264.a
 	rm -f $(DESTDIR)$(bindir)/x264 $(DESTDIR)$(libdir)/pkgconfig/x264.pc
