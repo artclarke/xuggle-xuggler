@@ -273,6 +273,8 @@ EOF
     echo "default: x264vfw.dll" >> config.mak
 fi
 
+./version.sh
+
 # x264.pc file creation
 rm -f x264.pc
 cat > x264.pc << EOF
@@ -283,7 +285,7 @@ includedir=$includedir
 
 Name: x264
 Description: H.264 (MPEG4 AVC) encoder library
-Version:
+Version: $(grep POINTVER < config.h | sed -e 's/.* "//; s/".*//')
 Libs: -L$libdir -lx264
 Cflags: -I$includedir
 EOF

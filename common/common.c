@@ -131,6 +131,7 @@ void    x264_param_default( x264_param_t *param )
     memset( param->cqm_8iy, 16, 64 );
     memset( param->cqm_8py, 16, 64 );
 
+    param->b_repeat_headers = 1;
     param->b_aud = 0;
 }
 
