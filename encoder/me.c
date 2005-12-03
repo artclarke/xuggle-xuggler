@@ -40,7 +40,7 @@ static const int subpel_iterations[][4] =
     {0,2,1,0},
     {0,2,1,1},
     {0,2,1,2},
-    {0,0,2,3}};
+    {0,0,2,2}};
 
 static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters, int *p_halfpel_thresh, int b_refine_qpel );
 
@@ -303,7 +303,8 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
     refine_subpel( h, m, hpel, qpel, NULL, 1 );
 }
 
-#define COST_MV_SAD( mx, my ) \
+#define COST_MV_SAD( mx, my, dir ) \
+if( b_refine_qpel || (dir^1) != odir ) \
 { \
     int stride = 16; \
     uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix, &stride, mx, my, bw, bh ); \
@@ -314,6 +315,7 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
         bcost = cost;  \
         bmx = mx;      \
         bmy = my;      \
+        bdir = dir;    \
     } \
 }
 
@@ -362,25 +364,26 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     int odir = -1, bdir;
 
 
-    /* try the subpel component of the predicted mv if it's close to
-     * the result of the fullpel search */
+    /* try the subpel component of the predicted mv */
     if( hpel_iters )
     {
         int mx = x264_clip3( m->mvp[0], h->mb.mv_min[0], h->mb.mv_max[0] );
         int my = x264_clip3( m->mvp[1], h->mb.mv_min[1], h->mb.mv_max[1] );
         if( mx != bmx || my != bmy )
-            COST_MV_SAD( mx, my );
+            COST_MV_SAD( mx, my, -1 );
     }
     
     /* hpel search */
+    bdir = -1;
     for( i = hpel_iters; i > 0; i-- )
     {
+        odir = bdir;
         omx = bmx;
         omy = bmy;
-        COST_MV_SAD( omx, omy - 2 );
-        COST_MV_SAD( omx, omy + 2 );
-        COST_MV_SAD( omx - 2, omy );
-        COST_MV_SAD( omx + 2, omy );
+        COST_MV_SAD( omx, omy - 2, 0 );
+        COST_MV_SAD( omx, omy + 2, 1 );
+        COST_MV_SAD( omx - 2, omy, 2 );
+        COST_MV_SAD( omx + 2, omy, 3 );
         if( bmx == omx && bmy == omy )
             break;
     }
