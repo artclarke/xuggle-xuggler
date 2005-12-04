@@ -1468,6 +1468,8 @@ static int set_param_mp4( hnd_t handle, x264_param_t *p_param )
     gf_isom_avc_config_new(p_mp4->p_file, p_mp4->i_track, p_mp4->p_config, 
         NULL, NULL, &p_mp4->i_descidx);
 
+    gf_isom_set_track_enabled(p_mp4->p_file, p_mp4->i_track, 1);
+
     gf_isom_set_visual_info(p_mp4->p_file, p_mp4->i_track, p_mp4->i_descidx, 
         p_param->i_width, p_param->i_height);
 
