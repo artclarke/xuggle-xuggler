@@ -79,13 +79,13 @@ common/amd64/*.o: common/amd64/amd64inc.asm
 %.o: %.asm
 	$(AS) $(ASFLAGS) -o $@ $<
 
-.depend: config.mak config.h
+.depend: config.mak
 	rm -f .depend
 # Hacky - because gcc 2.9x doesn't have -MT
 	$(foreach SRC, $(SRCS) x264.c matroska.c, ( echo -n "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM -g0 ) 1>> .depend;)
 
-config.h: $(wildcard .svn/entries */.svn/entries */*/.svn/entries)
-	./version.sh
+config.mak: $(wildcard .svn/entries */.svn/entries */*/.svn/entries)
+	./configure $(CONFIGURE_ARGS)
 
 depend: .depend
 ifneq ($(wildcard .depend),)
