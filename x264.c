@@ -261,6 +261,7 @@ static void Help( x264_param_t *defaults )
              "                                  - 0: disabled\n"
              "                                  - 1: enabled only on the final encode of a MB\n"
              "                                  - 2: enabled on all mode decisions\n"
+             "      --no-fast-pskip         Disables early SKIP detection on P-frames\n"
              "\n"
              "      --cqm <string>          Preset quant matrices [\"flat\"]\n"
              "                                  - jvt, flat\n"
@@ -478,6 +479,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_MIXED_REFS 314
 #define OPT_CRF 315
 #define OPT_B_RDO 316
+#define OPT_NO_FAST_PSKIP 317
 
         static struct option long_options[] =
         {
@@ -516,6 +518,7 @@ static int  Parse( int argc, char **argv,
             { "no-chroma-me", no_argument,  NULL, OPT_NO_CHROMA_ME },
             { "8x8dct",  no_argument,       NULL, '8' },
             { "trellis", required_argument, NULL, 't' },
+            { "no-fast-pskip", no_argument, NULL, OPT_NO_FAST_PSKIP },
             { "level",   required_argument, NULL, OPT_LEVEL },
             { "ratetol", required_argument, NULL, OPT_RATETOL },
             { "vbv-maxrate", required_argument, NULL, OPT_VBVMAXRATE },
@@ -747,6 +750,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case 't':
                 param->analyse.i_trellis = atoi(optarg);
+                break;
+            case OPT_NO_FAST_PSKIP:
+                param->analyse.b_fast_pskip = 0;
                 break;
             case OPT_LEVEL:
                 if( atof(optarg) < 6 )

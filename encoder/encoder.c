@@ -367,6 +367,7 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.b_psnr = 0;
         h->param.analyse.i_chroma_qp_offset = 0;
         h->param.analyse.i_trellis = 0;
+        h->param.analyse.b_fast_pskip = 0;
     }
 
     if( ( h->param.i_width % 16 || h->param.i_height % 16 ) && !h->mb.b_lossless )

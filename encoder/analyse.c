@@ -1766,7 +1766,7 @@ void x264_macroblock_analyse( x264_t *h )
         int i_intra_cost, i_intra_type;
 
         /* Fast P_SKIP detection */
-        if( !h->mb.b_lossless &&
+        if( h->param.analyse.b_fast_pskip &&
            (( h->mb.i_mb_type_left == P_SKIP ) ||
             ( h->mb.i_mb_type_top == P_SKIP ) ||
             ( h->mb.i_mb_type_topleft == P_SKIP ) ||
