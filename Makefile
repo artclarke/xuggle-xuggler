@@ -118,7 +118,7 @@ fprofiled:
 endif
 
 clean:
-	rm -f $(OBJS) $(OBJASM) config.h *.a x264.o matroska.o x264 x264.exe .depend TAGS
+	rm -f $(OBJS) $(OBJASM) *.a x264.o matroska.o x264 x264.exe .depend TAGS
 	rm -f checkasm checkasm.exe tools/checkasm.o
 	rm -f tools/avc2avi tools/avc2avi.exe tools/avc2avi.o
 	rm -rf vfw/build/cygwin/bin
@@ -126,7 +126,7 @@ clean:
 	- sed -e 's/ *-fprofile-\(generate\|use\)//g' config.mak > config.mak2 && mv config.mak2 config.mak
 
 distclean: clean
-	rm -f config.mak vfw/build/cygwin/config.mak x264.pc
+	rm -f config.mak config.h vfw/build/cygwin/config.mak x264.pc
 
 install: x264
 	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(includedir)

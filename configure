@@ -21,6 +21,18 @@ echo ""
 exit 1
 fi
 
+cc_check() {
+    rm -f conftest*
+    cat > conftest.c << EOF
+#include <$1>
+int main () { return 0; }
+EOF
+    $CC $CFLAGS $LDFLAGS $2 conftest.c -o $DEVNULL 2>$DEVNULL
+    TMP="$?"
+    rm -f conftest.c
+    return $TMP
+}
+
 prefix='/usr/local'
 exec_prefix='${prefix}'
 bindir='${exec_prefix}/bin'
@@ -28,9 +40,9 @@ libdir='${exec_prefix}/lib'
 includedir='${prefix}/include'
 DEVNULL='/dev/null'
 
-avis_input="no"
-mp4_output="no"
-pthread="no"
+avis_input="auto"
+mp4_output="auto"
+pthread="auto"
 debug="no"
 gprof="no"
 vfw="no"
@@ -77,12 +89,14 @@ case "$UNAMES" in
     ASFLAGS="-f win32 -DPREFIX"
     EXE=".exe"
     DEVNULL="NUL"
+    vfw="yes"
     ;;
   MINGW*)
     SYS="MINGW"
     ASFLAGS="-f win32 -DPREFIX"
     EXE=".exe"
     DEVNULL="NUL"
+    vfw="yes"
     ;;
   SunOS)
     SYS="SunOS"
@@ -177,19 +191,16 @@ for opt do
             includedir="$optarg"
             ;;
         --enable-avis-input)
-            if [ $SYS = CYGWIN -o $SYS = MINGW ]; then
-                CFLAGS="$CFLAGS -DAVIS_INPUT"
-                LDFLAGS="$LDFLAGS -lvfw32"
-                avis_input="yes"
-            fi
+            avis_input="yes"
+            ;;
+        --disable-avis-input)
+            avis_input="no"
             ;;
         --enable-mp4-output)
-            CFLAGS="$CFLAGS -DMP4_OUTPUT"
-            LDFLAGS="$LDFLAGS -lgpac_static"
-            if [ $SYS = CYGWIN -o $SYS = MINGW ]; then
-                LDFLAGS="$LDFLAGS -lwinmm"
-            fi
             mp4_output="yes"
+            ;;
+        --disable-mp4-output)
+            mp4_output="no"
             ;;
         --extra-asflags=*)
             ASFLAGS="$ASFLAGS ${opt#--extra-asflags=}"
@@ -203,15 +214,10 @@ for opt do
             VFW_LDFLAGS="${opt#--extra-ldflags=}"
             ;;
         --enable-pthread)
-            CFLAGS="$CFLAGS -DHAVE_PTHREAD=1"
             pthread="yes"
-            case $SYS in
-              MINGW|CYGWIN|BEOS)
-                ;;
-              *)
-                LDFLAGS="$LDFLAGS -lpthread"
-                ;;
-            esac
+            ;;
+        --disable-pthread)
+            pthread="no"
             ;;
         --enable-debug)
             CFLAGS="$CFLAGS -g"
@@ -225,6 +231,9 @@ for opt do
         --enable-vfw)
             vfw="yes"
             ;;
+        --disable-vfw)
+            vfw="no"
+            ;;
         --enable-visualize)
             LDFLAGS="$LDFLAGS -L/usr/X11R6/lib -lX11"
             CFLAGS="$CFLAGS -DVISUALIZE=1"
@@ -236,12 +245,61 @@ for opt do
     esac
 done
 
-VFWFLAGS=
+# autodetect options that weren't forced nor disabled
+
+if test "$pthread" = "auto" ; then
+    case $SYS in
+        MINGW|CYGWIN|BEOS)
+            pthread="yes"
+            ;;
+        *)
+            pthread="no"
+            cc_check pthread.h -lpthread && pthread="yes"
+            ;;
+    esac
+fi
+if test "$pthread" = "yes" ; then
+    CFLAGS="$CFLAGS -DHAVE_PTHREAD=1"
+    case $SYS in
+        MINGW|CYGWIN|BEOS)
+            ;;
+        *) LDFLAGS="$LDFLAGS -lpthread"
+            ;;
+    esac
+fi
+
+MP4_LDFLAGS="-lgpac_static"
+if [ $SYS = CYGWIN -o $SYS = MINGW ]; then
+    MP4_LDFLAGS="$MP4_LDFLAGS -lwinmm"
+fi
+if [ "$mp4_output" = "auto" ] ; then
+    mp4_output="no"
+    cc_check gpac/isomedia.h "$MP4_LDFLAGS" && mp4_output="yes"
+fi
+if [ "$mp4_output" = "yes" ] ; then
+    CFLAGS="$CFLAGS -DMP4_OUTPUT"
+    LDFLAGS="$LDFLAGS $MP4_LDFLAGS"
+fi
+
+if [ "$avis_input" = "auto" ] ; then
+    if [ $SYS = CYGWIN -o $SYS = MINGW ]; then
+        avis_input="yes"
+    else
+        avis_input="no";
+    fi
+fi
+if [ "$avis_input" = "yes" ] ; then
+    CFLAGS="$CFLAGS -DAVIS_INPUT"
+    LDFLAGS="$LDFLAGS -lvfw32"
+fi
+
 if [ "$debug" != "yes" -a "$gprof" != "yes" ]; then
     CFLAGS="$CFLAGS -s -fomit-frame-pointer"
     LDFLAGS="$LDFLAGS -s"
     VFW_LDFLAGS="$VFW_LDFLAGS -s"
 fi
+
+# generate config files
 
 rm -f config.mak
 cat > config.mak << EOF
@@ -276,7 +334,6 @@ fi
 
 ./version.sh
 
-# x264.pc file creation
 rm -f x264.pc
 cat > x264.pc << EOF
 prefix=$prefix
