@@ -83,6 +83,7 @@ typedef struct
     /* Take some shortcuts in intra search if intra is deemed unlikely */
     int b_fast_intra;
     int i_best_satd;
+    int b_try_pskip;
 
     /* Luma part */
     int i_sad_i16x16;
@@ -701,6 +702,21 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
         x264_mb_predict_mv_ref16x16( h, 0, i_ref, mvc, &i_mvc );
         x264_me_search_ref( h, &m, mvc, i_mvc, p_halfpel_thresh );
 
+        /* early termination
+         * SSD threshold would probably be better than SATD */
+        if( i_ref == 0 && a->b_try_pskip && m.cost-m.cost_mv < 300*a->i_lambda )
+        {
+            int mvskip[2];
+            x264_mb_predict_mv_pskip( h, mvskip );
+            if( abs(m.mv[0]-mvskip[0]) + abs(m.mv[1]-mvskip[1]) <= 1
+                && x264_macroblock_probe_pskip( h ) )
+            {
+                h->mb.i_type = P_SKIP;
+                x264_analyse_update_cache( h, a );
+                return;
+            }
+        }
+
         m.cost += i_ref_cost;
         i_halfpel_thresh += i_ref_cost;
 
@@ -716,10 +732,10 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
 
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.me16x16.i_ref );
 
+    h->mb.i_type = P_L0;
     if( a->b_mbrd )
     {
         a->i_best_satd = a->l0.me16x16.cost;
-        h->mb.i_type = P_L0;
         h->mb.i_partition = D_16x16;
         x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 0, a->l0.me16x16.mv[0], a->l0.me16x16.mv[1] );
         a->l0.me16x16.cost = x264_rd_cost_mb( h, a->i_lambda2 );
@@ -1766,13 +1782,16 @@ void x264_macroblock_analyse( x264_t *h )
         int i_intra_cost, i_intra_type;
 
         /* Fast P_SKIP detection */
-        if( h->param.analyse.b_fast_pskip &&
-           (( h->mb.i_mb_type_left == P_SKIP ) ||
-            ( h->mb.i_mb_type_top == P_SKIP ) ||
-            ( h->mb.i_mb_type_topleft == P_SKIP ) ||
-            ( h->mb.i_mb_type_topright == P_SKIP )))
+        analysis.b_try_pskip = 0;
+        if( h->param.analyse.b_fast_pskip )
         {
-            b_skip = x264_macroblock_probe_pskip( h );
+            if( h->param.analyse.i_subpel_refine >= 3 )
+                analysis.b_try_pskip = 1;
+            else if( h->mb.i_mb_type_left == P_SKIP ||
+                     h->mb.i_mb_type_top == P_SKIP ||
+                     h->mb.i_mb_type_topleft == P_SKIP ||
+                     h->mb.i_mb_type_topright == P_SKIP )
+                b_skip = x264_macroblock_probe_pskip( h );
         }
 
         if( b_skip )
@@ -1791,7 +1810,7 @@ void x264_macroblock_analyse( x264_t *h )
 
             x264_mb_analyse_inter_p16x16( h, &analysis );
 
-            if( analysis.b_mbrd && h->mb.i_type == P_SKIP )
+            if( h->mb.i_type == P_SKIP )
                 return;
 
             if( flags & X264_ANALYSE_PSUB16x16 )
