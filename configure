@@ -27,9 +27,9 @@ cc_check() {
 #include <$1>
 int main () { return 0; }
 EOF
-    $CC $CFLAGS $LDFLAGS $2 conftest.c -o $DEVNULL 2>$DEVNULL
+    $CC $CFLAGS $LDFLAGS $2 conftest.c -o conftest 2>$DEVNULL
     TMP="$?"
-    rm -f conftest.c
+    rm -f conftest.c conftest
     return $TMP
 }
 
