@@ -90,6 +90,12 @@ x264_frame_t *x264_frame_new( x264_t *h )
         }
     }
 
+    if( h->param.analyse.i_me_method == X264_ME_ESA )
+    {
+        frame->buffer[11] = x264_malloc( frame->i_stride[0] * (frame->i_lines[0] + 64) * sizeof(uint16_t) );
+        frame->integral = (uint16_t*)frame->buffer[11] + frame->i_stride[0] * 32 + 32;
+    }
+
     frame->i_poc = -1;
     frame->i_type = X264_TYPE_AUTO;
     frame->i_qpplus1 = 0;
@@ -121,7 +127,7 @@ void x264_frame_delete( x264_frame_t *frame )
     {
         x264_free( frame->buffer[i] );
     }
-    for( i = 4; i < 11; i++ ) /* filtered planes */
+    for( i = 4; i < 12; i++ ) /* filtered planes */
     {
         x264_free( frame->buffer[i] );
     }

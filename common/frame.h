@@ -46,10 +46,11 @@ typedef struct
     uint8_t *plane[4];
     uint8_t *filtered[4]; /* plane[0], H, V, HV */
     uint8_t *lowres[4]; /* half-size copy of input frame: Orig, H, V, HV */
+    uint16_t *integral;
 
     /* for unrestricted mv we allocate more data than needed
      * allocated data are stored in buffer */
-    void    *buffer[11];
+    void    *buffer[12];
 
     /* motion data */
     int8_t  *mb_type;

@@ -263,11 +263,32 @@ me_hex2:
             const int min_y = X264_MAX( bmy - i_me_range, mv_y_min);
             const int max_x = X264_MIN( bmx + i_me_range, mv_x_max);
             const int max_y = X264_MIN( bmy + i_me_range, mv_y_max);
-            for( omy = min_y; omy <= max_y; omy++ )
-                for( omx = min_x; omx <= max_x; omx++ )
+            int mx, my;
+#if 0
+            /* plain old exhaustive search */
+            for( my = min_y; my <= max_y; my++ )
+                for( mx = min_x; mx <= max_x; mx++ )
+                    COST_MV( mx, my );
+#else
+            /* successive elimination by comparing DC before a full SAD,
+             * because sum(abs(diff)) >= abs(diff(sum)). */
+            const int stride = m->i_stride[0];
+            const int dw = x264_pixel_size[i_pixel].w;
+            const int dh = x264_pixel_size[i_pixel].h * stride;
+            static uint8_t zero[16*16] = {0,};
+            const int enc_dc = h->pixf.sad[i_pixel]( m->p_fenc[0], stride, zero, 16 );
+            const uint16_t *integral_base = &m->integral[ -1 - 1*stride ];
+
+            for( my = min_y; my <= max_y; my++ )
+                for( mx = min_x; mx <= max_x; mx++ )
                 {
-                    COST_MV( omx, omy );
+                    const uint16_t *integral = &integral_base[ mx + my * stride ];
+                    const uint16_t ref_dc = integral[  0 ] + integral[ dh + dw ]
+                                          - integral[ dw ] - integral[ dh ];
+                    if( abs( ref_dc - enc_dc ) < bcost - p_cost_mvx[ (mx)<<2 ] - p_cost_mvy[ (my)<<2 ] )
+                        COST_MV( mx, my );
                 }
+#endif
         }
         break;
     }

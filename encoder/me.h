@@ -36,6 +36,7 @@ typedef struct
 
     uint8_t *p_fref[6];
     uint8_t *p_fenc[3];
+    uint16_t *integral;
     int      i_stride[2];
 
     int mvp[2];

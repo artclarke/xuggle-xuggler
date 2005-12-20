@@ -395,6 +395,7 @@ struct x264_t
 
             /* pointer over mb of the references */
             uint8_t *p_fref[2][16][4+2]; /* last: lN, lH, lV, lHV, cU, cV */
+            uint16_t *p_integral[2][16];
 
             /* common stride */
             int     i_stride[3];

@@ -907,6 +907,14 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
         }
     }
 
+    if( h->fdec->integral )
+    {
+        for( i = 0; i < h->i_ref0; i++ )
+            h->mb.pic.p_integral[0][i] = &h->fref0[i]->integral[ 16 * ( i_mb_x + i_mb_y * h->fdec->i_stride[0] )];
+        for( i = 0; i < h->i_ref1; i++ )
+            h->mb.pic.p_integral[1][i] = &h->fref1[i]->integral[ 16 * ( i_mb_x + i_mb_y * h->fdec->i_stride[0] )];
+    }
+
     /* load cache */
     if( i_mb_xy >= h->sh.i_first_mb + h->mb.i_mb_stride )
     {
