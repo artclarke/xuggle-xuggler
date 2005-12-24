@@ -1557,9 +1557,9 @@ static int write_nalu_mp4( hnd_t handle, uint8_t *p_nalu, int i_size )
 static int set_eop_mp4( hnd_t handle, x264_picture_t *p_picture )
 {
     mp4_t *p_mp4 = (mp4_t *)handle;
-    uint32_t dts = p_mp4->i_numframe * p_mp4->i_time_inc;
-    uint32_t pts = p_picture->i_pts;
-    int offset = p_mp4->i_init_delay + pts - dts;
+    uint64_t dts = (uint64_t)p_mp4->i_numframe * p_mp4->i_time_inc;
+    uint64_t pts = (uint64_t)p_picture->i_pts;
+    int32_t offset = p_mp4->i_init_delay + pts - dts;
 
     p_mp4->p_sample->IsRAP = p_picture->i_type == X264_TYPE_IDR ? 1 : 0;
     p_mp4->p_sample->DTS = dts;
