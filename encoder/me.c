@@ -459,8 +459,8 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 }
 
 #define BIME_CACHE2(a,b) \
-    BIME_CACHE( a, b) \
-    BIME_CACHE(-a,-b)
+    BIME_CACHE(a,b) \
+    BIME_CACHE(-(a),-(b))
 
 #define COST_BIMV_SATD( m0x, m0y, m1x, m1y ) \
 if( pass == 0 || !visited[(m0x)&7][(m0y)&7][(m1x)&7][(m1y)&7] ) \
@@ -491,8 +491,8 @@ if( pass == 0 || !visited[(m0x)&7][(m0y)&7][(m1x)&7][(m1y)&7] ) \
     COST_BIMV_SATD(om0x+a, om0y+b, om1x+c, om1y+d)
 
 #define CHECK_BIDIR2(a,b,c,d) \
-    CHECK_BIDIR( a ,b, c, d) \
-    CHECK_BIDIR(-a,-b,-c,-d)
+    CHECK_BIDIR(a,b,c,d) \
+    CHECK_BIDIR(-(a),-(b),-(c),-(d))
 
 #define CHECK_BIDIR8(a,b,c,d) \
     CHECK_BIDIR2(a,b,c,d) \
