@@ -52,5 +52,6 @@ static inline void x264_me_search( x264_t *h, x264_me_t *m, int (*mvc)[2], int i
     { x264_me_search_ref( h, m, mvc, i_mvc, NULL ); }
 
 void x264_me_refine_qpel( x264_t *h, x264_me_t *m );
+int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight );
 
 #endif

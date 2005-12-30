@@ -462,9 +462,10 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " bframes=%d", p->i_bframe );
     if( p->i_bframe )
     {
-        s += sprintf( s, " b_pyramid=%d b_adapt=%d b_bias=%d direct=%d wpredb=%d",
+        s += sprintf( s, " b_pyramid=%d b_adapt=%d b_bias=%d direct=%d wpredb=%d bime=%d",
                       p->b_bframe_pyramid, p->b_bframe_adaptive, p->i_bframe_bias,
-                      p->analyse.i_direct_mv_pred, p->analyse.b_weighted_bipred );
+                      p->analyse.i_direct_mv_pred, p->analyse.b_weighted_bipred,
+                      p->analyse.b_bidir_me );
     }
 
     s += sprintf( s, " keyint=%d keyint_min=%d scenecut=%d",

@@ -451,3 +451,112 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     m->cost_mv = p_cost_mvx[ bmx ] + p_cost_mvy[ bmy ];
 }
 
+#define BIME_CACHE( dx, dy ) \
+{ \
+    int i = 4 + 3*dx + dy; \
+    h->mc.mc_luma( m0->p_fref, m0->i_stride[0], pix0[i], bw, om0x+dx, om0y+dy, bw, bh ); \
+    h->mc.mc_luma( m1->p_fref, m1->i_stride[0], pix1[i], bw, om1x+dx, om1y+dy, bw, bh ); \
+}
+
+#define BIME_CACHE2(a,b) \
+    BIME_CACHE( a, b) \
+    BIME_CACHE(-a,-b)
+
+#define COST_BIMV_SATD( m0x, m0y, m1x, m1y ) \
+if( pass == 0 || !visited[(m0x)&7][(m0y)&7][(m1x)&7][(m1y)&7] ) \
+{ \
+    int cost; \
+    int i0 = 4 + 3*(m0x-om0x) + (m0y-om0y); \
+    int i1 = 4 + 3*(m1x-om1x) + (m1y-om1y); \
+    visited[(m0x)&7][(m0y)&7][(m1x)&7][(m1y)&7] = 1; \
+    memcpy( pix, pix0[i0], bs ); \
+    if( i_weight == 32 ) \
+        h->mc.avg[i_pixel]( pix, bw, pix1[i1], bw ); \
+    else \
+        h->mc.avg_weight[i_pixel]( pix, bw, pix1[i1], bw, i_weight ); \
+    cost = h->pixf.mbcmp[i_pixel]( m0->p_fenc[0], m0->i_stride[0], pix, bw ) \
+         + p_cost_m0x[ m0x ] + p_cost_m0y[ m0y ] \
+         + p_cost_m1x[ m1x ] + p_cost_m1y[ m1y ]; \
+    if( cost < bcost ) \
+    {                  \
+        bcost = cost;  \
+        bm0x = m0x;    \
+        bm0y = m0y;    \
+        bm1x = m1x;    \
+        bm1y = m1y;    \
+    } \
+}
+
+#define CHECK_BIDIR(a,b,c,d) \
+    COST_BIMV_SATD(om0x+a, om0y+b, om1x+c, om1y+d)
+
+#define CHECK_BIDIR2(a,b,c,d) \
+    CHECK_BIDIR( a ,b, c, d) \
+    CHECK_BIDIR(-a,-b,-c,-d)
+
+#define CHECK_BIDIR8(a,b,c,d) \
+    CHECK_BIDIR2(a,b,c,d) \
+    CHECK_BIDIR2(b,c,d,a) \
+    CHECK_BIDIR2(c,d,a,b) \
+    CHECK_BIDIR2(d,a,b,c)
+
+int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight )
+{
+    const int i_pixel = m0->i_pixel;
+    const int bw = x264_pixel_size[i_pixel].w;
+    const int bh = x264_pixel_size[i_pixel].h;
+    const int bs = bw*bh;
+    const int16_t *p_cost_m0x = m0->p_cost_mv - x264_clip3( m0->mvp[0], h->mb.mv_min[0], h->mb.mv_max[0] );
+    const int16_t *p_cost_m0y = m0->p_cost_mv - x264_clip3( m0->mvp[1], h->mb.mv_min[0], h->mb.mv_max[0] );
+    const int16_t *p_cost_m1x = m1->p_cost_mv - x264_clip3( m1->mvp[0], h->mb.mv_min[0], h->mb.mv_max[0] );
+    const int16_t *p_cost_m1y = m1->p_cost_mv - x264_clip3( m1->mvp[1], h->mb.mv_min[0], h->mb.mv_max[0] );
+    DECLARE_ALIGNED( uint8_t, pix0[9][16*16], 16 );
+    DECLARE_ALIGNED( uint8_t, pix1[9][16*16], 16 );
+    DECLARE_ALIGNED( uint8_t, pix[16*16], 16 );
+    int bm0x = m0->mv[0], om0x = bm0x;
+    int bm0y = m0->mv[1], om0y = bm0y;
+    int bm1x = m1->mv[0], om1x = bm1x;
+    int bm1y = m1->mv[1], om1y = bm1y;
+    int bcost = COST_MAX;
+    int pass = 0;
+    uint8_t visited[8][8][8][8];
+    memset( visited, 0, sizeof(visited) );
+
+    BIME_CACHE( 0, 0 );
+    CHECK_BIDIR( 0, 0, 0, 0 );
+
+    for( pass = 0; pass < 8; pass++ )
+    {
+        /* check all mv pairs that differ in at most 2 components from the current mvs. */
+        /* doesn't do chroma ME. this probably doesn't matter, as the gains
+         * from bidir ME are the same with and without chroma ME. */
+
+        BIME_CACHE2( 1, 0 );
+        BIME_CACHE2( 0, 1 );
+        BIME_CACHE2( 1, 1 );
+        BIME_CACHE2( 1,-1 );
+
+        CHECK_BIDIR8( 0, 0, 0, 1 );
+        CHECK_BIDIR8( 0, 0, 1, 1 );
+        CHECK_BIDIR2( 0, 1, 0, 1 );
+        CHECK_BIDIR2( 1, 0, 1, 0 );
+        CHECK_BIDIR8( 0, 0,-1, 1 );
+        CHECK_BIDIR2( 0,-1, 0, 1 );
+        CHECK_BIDIR2(-1, 0, 1, 0 );
+
+        if( om0x == bm0x && om0y == bm0y && om1x == bm1x && om1y == bm1y )
+            break;
+
+        om0x = bm0x;
+        om0y = bm0y;
+        om1x = bm1x;
+        om1y = bm1y;
+        BIME_CACHE( 0, 0 );
+    }
+
+    m0->mv[0] = bm0x;
+    m0->mv[1] = bm0y;
+    m1->mv[0] = bm1x;
+    m1->mv[1] = bm1y;
+    return bcost;
+}

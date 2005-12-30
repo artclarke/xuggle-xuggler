@@ -256,6 +256,7 @@ static void Help( x264_param_t *defaults )
              "      --b-rdo                 RD based mode decision for B-frames. Requires subme 6.\n"
              "      --mixed-refs            Decide references on a per partition basis\n"
              "      --no-chroma-me          Ignore chroma in motion estimation\n"
+             "      --bime                  Jointly optimize both MVs in B-frames\n"
              "  -8, --8x8dct                Adaptive spatial transform size\n"
              "  -t, --trellis <integer>     Trellis RD quantization. Requires CABAC. [%d]\n"
              "                                  - 0: disabled\n"
@@ -480,6 +481,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_CRF 315
 #define OPT_B_RDO 316
 #define OPT_NO_FAST_PSKIP 317
+#define OPT_BIME 318
 
         static struct option long_options[] =
         {
@@ -513,9 +515,10 @@ static int  Parse( int argc, char **argv,
             { "me",      required_argument, NULL, OPT_ME },
             { "merange", required_argument, NULL, OPT_MERANGE },
             { "subme",   required_argument, NULL, 'm' },
-            { "b-rdo", no_argument,    NULL, OPT_B_RDO },
+            { "b-rdo",   no_argument,       NULL, OPT_B_RDO },
             { "mixed-refs", no_argument,    NULL, OPT_MIXED_REFS },
             { "no-chroma-me", no_argument,  NULL, OPT_NO_CHROMA_ME },
+            { "bime",    no_argument,       NULL, OPT_BIME },
             { "8x8dct",  no_argument,       NULL, '8' },
             { "trellis", required_argument, NULL, 't' },
             { "no-fast-pskip", no_argument, NULL, OPT_NO_FAST_PSKIP },
@@ -744,6 +747,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case OPT_NO_CHROMA_ME:
                 param->analyse.b_chroma_me = 0;
+                break;
+            case OPT_BIME:
+                param->analyse.b_bidir_me = 1;
                 break;
             case '8':
                 param->analyse.b_transform_8x8 = 1;
