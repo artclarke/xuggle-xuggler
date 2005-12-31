@@ -890,11 +890,11 @@ static int  Parse( int argc, char **argv,
                 break;
             case OPT_CQM4PY:
                 param->i_cqm_preset = X264_CQM_CUSTOM;
-                b_error |= parse_cqm( optarg, param->cqm_4iy, 16 );
+                b_error |= parse_cqm( optarg, param->cqm_4py, 16 );
                 break;
             case OPT_CQM4PC:
                 param->i_cqm_preset = X264_CQM_CUSTOM;
-                b_error |= parse_cqm( optarg, param->cqm_4ic, 16 );
+                b_error |= parse_cqm( optarg, param->cqm_4pc, 16 );
                 break;
             case OPT_CQM8I:
                 param->i_cqm_preset = X264_CQM_CUSTOM;

@@ -46,15 +46,31 @@ static void scaling_list_write( bs_t *s, x264_pps_t *pps, int idx )
     const uint8_t *def_list = (idx==CQM_4IC) ? pps->scaling_list[CQM_4IY]
                             : (idx==CQM_4PC) ? pps->scaling_list[CQM_4PY]
                             : x264_cqm_jvt[idx];
-    int j;
-    if( memcmp( list, def_list, len ) )
+    if( !memcmp( list, def_list, len ) )
+        bs_write( s, 1, 0 ); // scaling_list_present_flag
+    else if( !memcmp( list, x264_cqm_jvt[idx], len ) )
     {
         bs_write( s, 1, 1 ); // scaling_list_present_flag
-        for( j = 0; j < len; j++ )
-            bs_write_se( s, list[zigzag[j]] - (j>0 ? list[zigzag[j-1]] : 8) ); // delta
+        bs_write_se( s, -8 ); // use jvt list
     }
     else
-        bs_write( s, 1, 0 ); // scaling_list_present_flag
+    {
+        int j, run;
+        bs_write( s, 1, 1 ); // scaling_list_present_flag
+
+        // try run-length compression of trailing values
+        for( run = len; run > 1; run-- )
+            if( list[zigzag[run-1]] != list[zigzag[run-2]] )
+                break;
+        if( run < len && len - run < bs_size_se( (int8_t)-list[zigzag[run]] ) )
+            run = len;
+
+        for( j = 0; j < run; j++ )
+            bs_write_se( s, (int8_t)(list[zigzag[j]] - (j>0 ? list[zigzag[j-1]] : 8)) ); // delta
+
+        if( run < len )
+            bs_write_se( s, (int8_t)-list[zigzag[run]] );
+    }
 }
 
 void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
