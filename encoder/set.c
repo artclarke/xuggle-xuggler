@@ -120,11 +120,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         }
     }
 
-    sps->vui.i_num_reorder_frames = param->b_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
-    /* extra slot with pyramid so that we don't have to override the
-     * order of forgetting old pictures */
-    sps->vui.i_max_dec_frame_buffering =
-    sps->i_num_ref_frames = X264_MIN(16, param->i_frame_reference + sps->vui.i_num_reorder_frames + param->b_bframe_pyramid);
+    sps->b_vui = 1;
 
     sps->b_gaps_in_frame_num_value_allowed = 0;
     sps->i_mb_width = ( param->i_width + 15 ) / 16;
@@ -145,21 +141,17 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     sps->b_crop = sps->crop.i_left  || sps->crop.i_top ||
                   sps->crop.i_right || sps->crop.i_bottom;
 
-    sps->b_vui = 0;
     sps->vui.b_aspect_ratio_info_present = 0;
-
     if( param->vui.i_sar_width > 0 && param->vui.i_sar_height > 0 )
     {
         sps->vui.b_aspect_ratio_info_present = 1;
         sps->vui.i_sar_width = param->vui.i_sar_width;
         sps->vui.i_sar_height= param->vui.i_sar_height;
     }
-    sps->b_vui |= sps->vui.b_aspect_ratio_info_present;
     
     sps->vui.b_overscan_info_present = ( param->vui.i_overscan ? 1 : 0 );
     if( sps->vui.b_overscan_info_present )
         sps->vui.b_overscan_info = ( param->vui.i_overscan == 2 ? 1 : 0 );
-    sps->b_vui |= sps->vui.b_overscan_info_present;
     
     sps->vui.b_signal_type_present = 0;
     sps->vui.i_vidformat = ( param->vui.i_vidformat <= 5 ? param->vui.i_vidformat : 5 );
@@ -182,7 +174,6 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     {
         sps->vui.b_signal_type_present = 1;
     }
-    sps->b_vui |= sps->vui.b_signal_type_present;
     
     /* FIXME: not sufficient for interlaced video */
     sps->vui.b_chroma_loc_info_present = ( param->vui.i_chroma_loc ? 1 : 0 );
@@ -191,7 +182,6 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->vui.i_chroma_loc_top = param->vui.i_chroma_loc;
         sps->vui.i_chroma_loc_bottom = param->vui.i_chroma_loc;
     }
-    sps->b_vui |= sps->vui.b_chroma_loc_info_present;
 
     sps->vui.b_timing_info_present = 0;
     if( param->i_fps_num > 0 && param->i_fps_den > 0)
@@ -203,9 +193,14 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->vui.i_time_scale = param->i_fps_num;
         sps->vui.b_fixed_frame_rate = 1;
     }
-    sps->b_vui |= sps->vui.b_timing_info_present;
 
-    sps->vui.b_bitstream_restriction = param->i_bframe > 0;
+    sps->vui.i_num_reorder_frames = param->b_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
+    /* extra slot with pyramid so that we don't have to override the
+     * order of forgetting old pictures */
+    sps->vui.i_max_dec_frame_buffering =
+    sps->i_num_ref_frames = X264_MIN(16, param->i_frame_reference + sps->vui.i_num_reorder_frames + param->b_bframe_pyramid);
+
+    sps->vui.b_bitstream_restriction = 1;
     if( sps->vui.b_bitstream_restriction )
     {
         sps->vui.b_motion_vectors_over_pic_boundaries = 1;
@@ -214,7 +209,6 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->vui.i_log2_max_mv_length_horizontal =
         sps->vui.i_log2_max_mv_length_vertical = (int)(log(param->analyse.i_mv_range*4-1)/log(2)) + 1;
     }
-    sps->b_vui |= sps->vui.b_bitstream_restriction;
 }
 
 
