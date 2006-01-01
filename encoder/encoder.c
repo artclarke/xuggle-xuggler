@@ -352,6 +352,8 @@ static int x264_validate_parameters( x264_t *h )
     }
 #endif
 
+    if( h->param.rc.b_cbr )
+        h->param.rc.i_rf_constant = 0;
     if( h->param.rc.i_rf_constant > 0 )
         h->param.rc.i_qp_constant = h->param.rc.i_rf_constant;
     h->param.rc.i_rf_constant = x264_clip3( h->param.rc.i_rf_constant, 0, 51 );
@@ -418,6 +420,7 @@ static int x264_validate_parameters( x264_t *h )
     h->param.analyse.i_chroma_qp_offset = x264_clip3(h->param.analyse.i_chroma_qp_offset, -12, 12);
     if( !h->param.b_cabac )
         h->param.analyse.i_trellis = 0;
+    h->param.analyse.i_trellis = x264_clip3( h->param.analyse.i_trellis, 0, 2 );
 
     {
         const x264_level_t *l = x264_levels;
@@ -438,6 +441,20 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.f_qblur = 0;
     if( h->param.rc.f_complexity_blur < 0 )
         h->param.rc.f_complexity_blur = 0;
+
+    /* ensure the booleans are 0 or 1 so they can be used in math */
+#define BOOLIFY(x) h->param.x = !!h->param.x
+    BOOLIFY( b_cabac );
+    BOOLIFY( b_deblocking_filter );
+    BOOLIFY( analyse.b_transform_8x8 );
+    BOOLIFY( analyse.b_weighted_bipred );
+    BOOLIFY( analyse.b_bidir_me );
+    BOOLIFY( analyse.b_chroma_me );
+    BOOLIFY( analyse.b_fast_pskip );
+    BOOLIFY( rc.b_cbr );
+    BOOLIFY( rc.b_stat_write );
+    BOOLIFY( rc.b_stat_read );
+#undef BOOLIFY
 
     return 0;
 }

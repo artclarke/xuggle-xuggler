@@ -192,8 +192,14 @@ int x264_ratecontrol_new( x264_t *h )
 
     if( rc->b_2pass && h->param.rc.i_rf_constant )
         x264_log(h, X264_LOG_ERROR, "constant rate-factor is incompatible with 2pass.\n");
-    if( h->param.rc.i_vbv_max_bitrate && !h->param.rc.b_cbr && !h->param.rc.i_rf_constant )
+    if( h->param.rc.i_vbv_buffer_size && !h->param.rc.b_cbr && !h->param.rc.i_rf_constant )
         x264_log(h, X264_LOG_ERROR, "VBV is incompatible with constant QP.\n");
+    if( h->param.rc.i_vbv_buffer_size && h->param.rc.b_cbr
+        && h->param.rc.i_vbv_max_bitrate == 0 )
+    {
+        x264_log( h, X264_LOG_DEBUG, "VBV maxrate unspecified, assuming CBR\n" );
+        h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate;
+    }
     if( h->param.rc.i_vbv_max_bitrate < h->param.rc.i_bitrate &&
         h->param.rc.i_vbv_max_bitrate > 0)
         x264_log(h, X264_LOG_ERROR, "max bitrate less than average bitrate, ignored.\n");
