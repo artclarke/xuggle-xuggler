@@ -295,9 +295,8 @@ static void quant_trellis_cabac( x264_t *h, int16_t *dct,
         // that are better left coded, especially at QP > 40.
         for( abs_level = q; abs_level >= q-1; abs_level-- )
         {
-            int u = (unquant_mf[zigzag[i]] * abs_level + 128) >> 8;
-            int64_t d = i_coef - u;
-            uint64_t ssd = d*d * coef_weight[i];
+            int d = i_coef - ((unquant_mf[zigzag[i]] * abs_level + 128) >> 8);
+            uint64_t ssd = (int64_t)d*d * coef_weight[i];
 
             for( j = 0; j < 8; j++ )
             {
@@ -309,7 +308,7 @@ static void quant_trellis_cabac( x264_t *h, int16_t *dct,
                 /* code the proposed level, and count how much entropy it would take */
                 if( abs_level || node_ctx )
                 {
-                    uint64_t f8_bits = cost_sig[ abs_level != 0 ];
+                    unsigned f8_bits = cost_sig[ abs_level != 0 ];
                     if( abs_level )
                     {
                         const int i_prefix = X264_MIN( abs_level - 1, 14 );
@@ -330,7 +329,7 @@ static void quant_trellis_cabac( x264_t *h, int16_t *dct,
                             node_ctx = coeff_abs_level_transition[0][node_ctx];
                         }
                     }
-                    n.score += f8_bits * i_lambda2 >> ( CABAC_SIZE_BITS - LAMBDA_BITS );
+                    n.score += (uint64_t)f8_bits * i_lambda2 >> ( CABAC_SIZE_BITS - LAMBDA_BITS );
                 }
 
                 n.score += ssd;
