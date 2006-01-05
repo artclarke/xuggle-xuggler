@@ -1618,7 +1618,7 @@ static int write_header_mkv( mkv_t *p_mkv )
     avcC[1] = p_mkv->sps[1];
     avcC[2] = p_mkv->sps[2];
     avcC[3] = p_mkv->sps[3];
-    avcC[4] = 0xfe; // nalu size length is three bytes
+    avcC[4] = 0xff; // nalu size length is four bytes
     avcC[5] = 0xe1; // one sps
 
     avcC[6] = p_mkv->sps_len >> 8;
@@ -1726,7 +1726,7 @@ static int write_nalu_mkv( hnd_t handle, uint8_t *p_nalu, int i_size )
 {
     mkv_t *p_mkv = handle;
     uint8_t type = p_nalu[4] & 0x1f;
-    uint8_t dsize[3];
+    uint8_t dsize[4];
     int psize;
 
     switch( type )
@@ -1766,10 +1766,11 @@ static int write_nalu_mkv( hnd_t handle, uint8_t *p_nalu, int i_size )
             p_mkv->b_writing_frame = 1;
         }
         psize = i_size - 4 ;
-        dsize[0] = psize >> 16;
-        dsize[1] = psize >> 8;
-        dsize[2] = psize;
-        if( mk_addFrameData(p_mkv->w, dsize, 3) < 0 ||
+        dsize[0] = psize >> 24;
+        dsize[1] = psize >> 16;
+        dsize[2] = psize >> 8;
+        dsize[3] = psize;
+        if( mk_addFrameData(p_mkv->w, dsize, 4) < 0 ||
             mk_addFrameData(p_mkv->w, p_nalu + 4, i_size - 4) < 0 )
             return -1;
         break;
