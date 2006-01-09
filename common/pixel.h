@@ -25,6 +25,7 @@
 #define _PIXEL_H 1
 
 typedef int  (*x264_pixel_cmp_t) ( uint8_t *, int, uint8_t *, int );
+typedef int  (*x264_pixel_cmp_pde_t) ( uint8_t *, int, uint8_t *, int, int );
 
 enum
 {
@@ -66,6 +67,11 @@ typedef struct
     x264_pixel_cmp_t satd[7];
     x264_pixel_cmp_t sa8d[4];
     x264_pixel_cmp_t mbcmp[7]; /* either satd or sad for subpel refine and mode decision */
+
+    /* partial distortion elimination:
+     * terminate early if partial score is worse than a threshold.
+     * may be NULL, in which case just use sad instead. */
+    x264_pixel_cmp_pde_t sad_pde[7];
 } x264_pixel_function_t;
 
 void x264_pixel_init( int cpu, x264_pixel_function_t *pixf );

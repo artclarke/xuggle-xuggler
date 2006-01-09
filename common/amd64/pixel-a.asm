@@ -262,6 +262,10 @@ cglobal x264_pixel_sad_8x4_mmxext
 cglobal x264_pixel_sad_4x8_mmxext
 cglobal x264_pixel_sad_4x4_mmxext
 
+cglobal x264_pixel_sad_pde_16x16_mmxext
+cglobal x264_pixel_sad_pde_16x8_mmxext
+cglobal x264_pixel_sad_pde_8x16_mmxext
+
 cglobal x264_pixel_ssd_16x16_mmxext
 cglobal x264_pixel_ssd_16x8_mmxext
 cglobal x264_pixel_ssd_8x16_mmxext
@@ -373,6 +377,64 @@ x264_pixel_sad_4x4_mmxext:
     SAD_START
     SAD_INC_2x4P
     SAD_INC_2x4P
+    SAD_END
+
+
+
+%macro PDE_CHECK 0
+    movd eax, mm0
+    cmp  eax, parm5d ; prev_score
+    jl   .continue
+    ret
+ALIGN 4
+.continue:
+%endmacro
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   int __cdecl x264_pixel_sad_pde_16x16_mmxext (uint8_t *, int, uint8_t *, int, int )
+;-----------------------------------------------------------------------------
+x264_pixel_sad_pde_16x16_mmxext:
+    SAD_START
+    SAD_INC_2x16P
+    SAD_INC_2x16P
+    SAD_INC_2x16P
+    SAD_INC_2x16P
+    PDE_CHECK
+    SAD_INC_2x16P
+    SAD_INC_2x16P
+    SAD_INC_2x16P
+    SAD_INC_2x16P
+    SAD_END
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   int __cdecl x264_pixel_sad_pde_16x8_mmxext (uint8_t *, int, uint8_t *, int, int )
+;-----------------------------------------------------------------------------
+x264_pixel_sad_pde_16x8_mmxext:
+    SAD_START
+    SAD_INC_2x16P
+    SAD_INC_2x16P
+    PDE_CHECK
+    SAD_INC_2x16P
+    SAD_INC_2x16P
+    SAD_END
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   int __cdecl x264_pixel_sad_pde_8x16_mmxext (uint8_t *, int, uint8_t *, int, int )
+;-----------------------------------------------------------------------------
+x264_pixel_sad_pde_8x16_mmxext:
+    SAD_START
+    SAD_INC_2x8P
+    SAD_INC_2x8P
+    SAD_INC_2x8P
+    SAD_INC_2x8P
+    PDE_CHECK
+    SAD_INC_2x8P
+    SAD_INC_2x8P
+    SAD_INC_2x8P
+    SAD_INC_2x8P
     SAD_END
 
 

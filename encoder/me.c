@@ -62,6 +62,19 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 #define COST_MV( mx, my )         COST_MV_INT( mx, my, 0, 0 )
 #define COST_MV_DIR( mx, my, d )  COST_MV_INT( mx, my, 1, d )
 
+#define COST_MV_PDE( mx, my ) \
+{ \
+    int cost = h->pixf.sad_pde[i_pixel]( m->p_fenc[0], m->i_stride[0], \
+                   &p_fref[(my)*m->i_stride[0]+(mx)], m->i_stride[0], \
+                   bcost - p_cost_mvx[ (mx)<<2 ] - p_cost_mvy[ (my)<<2 ] ); \
+    if( cost < bcost - p_cost_mvx[ (mx)<<2 ] - p_cost_mvy[ (my)<<2 ] ) \
+    {                  \
+        bcost = cost + p_cost_mvx[ (mx)<<2 ] + p_cost_mvy[ (my)<<2 ];  \
+        bmx = mx;      \
+        bmy = my;      \
+    } \
+}
+
 #define DIA1_ITER( mx, my )\
     {\
         omx = mx; omy = my;\
@@ -234,24 +247,40 @@ me_hex2:
                 };
                 COST_MV( omx + square2[i][0], omy + square2[i][1] );
             }
+
             /* hexagon grid */
             omx = bmx; omy = bmy;
             for( i = 1; i <= i_me_range/4; i++ )
             {
-                int bounds_check = 4*i > X264_MIN4( mv_x_max-omx, mv_y_max-omy, omx-mv_x_min, omy-mv_y_min );
-                for( j = 0; j < 16; j++ )
+                static const int hex4[16][2] = {
+                    {-4, 2}, {-4, 1}, {-4, 0}, {-4,-1}, {-4,-2},
+                    { 4,-2}, { 4,-1}, { 4, 0}, { 4, 1}, { 4, 2},
+                    { 2, 3}, { 0, 4}, {-2, 3},
+                    {-2,-3}, { 0,-4}, { 2,-3},
+                };
+                const int bounds_check = 4*i > X264_MIN4( mv_x_max-omx, mv_y_max-omy, omx-mv_x_min, omy-mv_y_min );
+
+                if( h->pixf.sad_pde[i_pixel] )
                 {
-                    static const int hex4[16][2] = {
-                        {-4, 2}, {-4, 1}, {-4, 0}, {-4,-1}, {-4,-2},
-                        { 4,-2}, { 4,-1}, { 4, 0}, { 4, 1}, { 4, 2},
-                        { 2, 3}, { 0, 4}, {-2, 3},
-                        {-2,-3}, { 0,-4}, { 2,-3},
-                    };
-                    int mx = omx + hex4[j][0]*i;
-                    int my = omy + hex4[j][1]*i;
-                    if( !bounds_check || ( mx >= mv_x_min && mx <= mv_x_max
-                                        && my >= mv_y_min && my <= mv_y_max ) )
-                        COST_MV( mx, my );
+                    for( j = 0; j < 16; j++ )
+                    {
+                        int mx = omx + hex4[j][0]*i;
+                        int my = omy + hex4[j][1]*i;
+                        if( !bounds_check || ( mx >= mv_x_min && mx <= mv_x_max
+                                            && my >= mv_y_min && my <= mv_y_max ) )
+                            COST_MV_PDE( mx, my );
+                    }
+                }
+                else
+                {
+                    for( j = 0; j < 16; j++ )
+                    {
+                        int mx = omx + hex4[j][0]*i;
+                        int my = omy + hex4[j][1]*i;
+                        if( !bounds_check || ( mx >= mv_x_min && mx <= mv_x_max
+                                            && my >= mv_y_min && my <= mv_y_max ) )
+                            COST_MV( mx, my );
+                    }
                 }
             }
             goto me_hex2;
@@ -279,15 +308,32 @@ me_hex2:
             const int enc_dc = h->pixf.sad[i_pixel]( m->p_fenc[0], stride, zero, 16 );
             const uint16_t *integral_base = &m->integral[ -1 - 1*stride ];
 
-            for( my = min_y; my <= max_y; my++ )
-                for( mx = min_x; mx <= max_x; mx++ )
-                {
-                    const uint16_t *integral = &integral_base[ mx + my * stride ];
-                    const uint16_t ref_dc = integral[  0 ] + integral[ dh + dw ]
-                                          - integral[ dw ] - integral[ dh ];
-                    if( abs( ref_dc - enc_dc ) < bcost - p_cost_mvx[ (mx)<<2 ] - p_cost_mvy[ (my)<<2 ] )
-                        COST_MV( mx, my );
-                }
+            if( h->pixf.sad_pde[i_pixel] )
+            {
+                for( my = min_y; my <= max_y; my++ )
+                    for( mx = min_x; mx <= max_x; mx++ )
+                    {
+                        const uint16_t *integral = &integral_base[ mx + my * stride ];
+                        const uint16_t ref_dc = integral[  0 ] + integral[ dh + dw ]
+                                              - integral[ dw ] - integral[ dh ];
+                        const int bsad = bcost - p_cost_mvx[ (mx)<<2 ] - p_cost_mvy[ (my)<<2 ];
+                        if( abs( ref_dc - enc_dc ) < bsad )
+                            COST_MV_PDE( mx, my );
+                    }
+            }
+            else
+            {
+                for( my = min_y; my <= max_y; my++ )
+                    for( mx = min_x; mx <= max_x; mx++ )
+                    {
+                        const uint16_t *integral = &integral_base[ mx + my * stride ];
+                        const uint16_t ref_dc = integral[  0 ] + integral[ dh + dw ]
+                                              - integral[ dw ] - integral[ dh ];
+                        const int bsad = bcost - p_cost_mvx[ (mx)<<2 ] - p_cost_mvy[ (my)<<2 ];
+                        if( abs( ref_dc - enc_dc ) < bsad )
+                            COST_MV( mx, my );
+                    }
+            }
 #endif
         }
         break;
