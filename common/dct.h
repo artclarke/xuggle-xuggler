@@ -48,6 +48,12 @@ static const int x264_dct8_weight_tab[64] = {
 #define W(i) (i==0 ? FIX8(3.125) :\
               i==1 ? FIX8(1.25) :\
               i==2 ? FIX8(0.5) :0)
+static const int x264_dct4_weight2_tab[16] = {
+    W(0), W(1), W(0), W(1),
+    W(1), W(2), W(1), W(2),
+    W(0), W(1), W(0), W(1),
+    W(1), W(2), W(1), W(2)
+};
 static const int x264_dct4_weight2_zigzag[16] = {
     W(0), W(1), W(1), W(0), W(2), W(0), W(1), W(1),
     W(1), W(1), W(2), W(0), W(2), W(1), W(1), W(2)
@@ -60,6 +66,17 @@ static const int x264_dct4_weight2_zigzag[16] = {
               i==3 ? FIX8(0.88637) :\
               i==4 ? FIX8(1.60040) :\
               i==5 ? FIX8(1.41850) :0)
+static const int x264_dct8_weight2_tab[64] = {
+    W(0), W(3), W(4), W(3),  W(0), W(3), W(4), W(3),
+    W(3), W(1), W(5), W(1),  W(3), W(1), W(5), W(1),
+    W(4), W(5), W(2), W(5),  W(4), W(5), W(2), W(5),
+    W(3), W(1), W(5), W(1),  W(3), W(1), W(5), W(1),
+
+    W(0), W(3), W(4), W(3),  W(0), W(3), W(4), W(3),
+    W(3), W(1), W(5), W(1),  W(3), W(1), W(5), W(1),
+    W(4), W(5), W(2), W(5),  W(4), W(5), W(2), W(5),
+    W(3), W(1), W(5), W(1),  W(3), W(1), W(5), W(1)
+};
 static const int x264_dct8_weight2_zigzag[64] = {
     W(0), W(3), W(3), W(4), W(1), W(4), W(3), W(5),
     W(5), W(3), W(0), W(1), W(2), W(1), W(0), W(3),

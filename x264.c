@@ -263,6 +263,7 @@ static void Help( x264_param_t *defaults )
              "                                  - 1: enabled only on the final encode of a MB\n"
              "                                  - 2: enabled on all mode decisions\n"
              "      --no-fast-pskip         Disables early SKIP detection on P-frames\n"
+             "      --nr <integer>          Noise reduction [%d]\n"
              "\n"
              "      --cqm <string>          Preset quant matrices [\"flat\"]\n"
              "                                  - jvt, flat\n"
@@ -356,6 +357,7 @@ static void Help( x264_param_t *defaults )
             defaults->analyse.i_me_range,
             defaults->analyse.i_subpel_refine,
             defaults->analyse.i_trellis,
+            defaults->analyse.i_noise_reduction,
             strtable_lookup( overscan_str, defaults->vui.i_overscan ),
             strtable_lookup( vidformat_str, defaults->vui.i_vidformat ),
             strtable_lookup( fullrange_str, defaults->vui.b_fullrange ),
@@ -482,6 +484,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_B_RDO 316
 #define OPT_NO_FAST_PSKIP 317
 #define OPT_BIME 318
+#define OPT_NR 319
 
         static struct option long_options[] =
         {
@@ -544,6 +547,7 @@ static int  Parse( int argc, char **argv,
             { "progress",no_argument,       NULL, OPT_PROGRESS },
             { "visualize",no_argument,      NULL, OPT_VISUALIZE },
             { "aud",     no_argument,       NULL, OPT_AUD },
+            { "nr",      required_argument, NULL, OPT_NR },
             { "cqm",     required_argument, NULL, OPT_CQM },
             { "cqmfile", required_argument, NULL, OPT_CQMFILE },
             { "cqm4",    required_argument, NULL, OPT_CQM4 },
@@ -843,6 +847,9 @@ static int  Parse( int argc, char **argv,
 #else
                 fprintf( stderr, "not compiled with visualization support\n" );
 #endif
+                break;
+            case OPT_NR:
+                param->analyse.i_noise_reduction = atoi(optarg);
                 break;
             case OPT_CQM:
                 if( strstr( optarg, "flat" ) )

@@ -261,6 +261,10 @@ struct x264_t
     int             unquant4_mf[4][52][16];
     int             unquant8_mf[2][52][64];
 
+    uint32_t        nr_residual_sum[4][64];
+    uint32_t        nr_offset[4][64];
+    uint32_t        nr_count[4];
+
     /* Slice header */
     x264_slice_header_t sh;
 
@@ -343,6 +347,8 @@ struct x264_t
         int     i_subpel_refine;
         int     b_chroma_me;
         int     b_trellis;
+        int     b_noise_reduction;
+
         /* Allowed qpel MV range to stay within the picture + emulated edge pixels */
         int     mv_min[2];
         int     mv_max[2];

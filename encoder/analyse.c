@@ -198,6 +198,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
                         && h->mb.i_subpel_refine >= 5;
     h->mb.b_trellis = h->param.analyse.i_trellis > 1;
     h->mb.b_transform_8x8 = 0;
+    h->mb.b_noise_reduction = 0;
 
     /* I: Intra part */
     a->i_sad_i16x16 =
@@ -2271,6 +2272,7 @@ void x264_macroblock_analyse( x264_t *h )
         x264_mb_analyse_transform( h );
 
     h->mb.b_trellis = h->param.analyse.i_trellis;
+    h->mb.b_noise_reduction = h->param.analyse.i_noise_reduction;
 }
 
 /*-------------------- Update MB from the analysis ----------------------*/

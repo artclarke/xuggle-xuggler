@@ -370,6 +370,7 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.i_chroma_qp_offset = 0;
         h->param.analyse.i_trellis = 0;
         h->param.analyse.b_fast_pskip = 0;
+        h->param.analyse.i_noise_reduction = 0;
     }
 
     if( ( h->param.i_width % 16 || h->param.i_height % 16 ) && !h->mb.b_lossless )
@@ -421,6 +422,7 @@ static int x264_validate_parameters( x264_t *h )
     if( !h->param.b_cabac )
         h->param.analyse.i_trellis = 0;
     h->param.analyse.i_trellis = x264_clip3( h->param.analyse.i_trellis, 0, 2 );
+    h->param.analyse.i_noise_reduction = x264_clip3( h->param.analyse.i_noise_reduction, 0, 1<<16 );
 
     {
         const x264_level_t *l = x264_levels;
@@ -1507,6 +1509,8 @@ do_encode:
     x264_ratecontrol_end( h, i_frame_size * 8 );
 
     x264_frame_put( h->frames.unused, h->fenc );
+
+    x264_noise_reduction_update( h );
 
     TIMER_STOP( i_mtime_encode_frame );
 
