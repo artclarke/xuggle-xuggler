@@ -25,13 +25,15 @@ cc_check() {
     rm -f conftest*
     cat > conftest.c << EOF
 #include <$1>
-int main () { return 0; }
+int main () { $3 return 0; }
 EOF
     $CC $CFLAGS $LDFLAGS $2 conftest.c -o conftest 2>$DEVNULL
     TMP="$?"
     rm -f conftest.c conftest
     return $TMP
 }
+
+rm -f config.h config.mak x264.pc
 
 prefix='/usr/local'
 exec_prefix='${prefix}'
@@ -277,7 +279,7 @@ if [ "$mp4_output" = "auto" ] ; then
     cc_check gpac/isomedia.h "$MP4_LDFLAGS" && mp4_output="yes"
 fi
 if [ "$mp4_output" = "yes" ] ; then
-    CFLAGS="$CFLAGS -DMP4_OUTPUT"
+    echo "#define MP4_OUTPUT" >> config.h
     LDFLAGS="$LDFLAGS $MP4_LDFLAGS"
 fi
 
@@ -289,7 +291,7 @@ if [ "$avis_input" = "auto" ] ; then
     fi
 fi
 if [ "$avis_input" = "yes" ] ; then
-    CFLAGS="$CFLAGS -DAVIS_INPUT"
+    echo "#define AVIS_INPUT" >> config.h
     LDFLAGS="$LDFLAGS -lvfw32"
 fi
 
@@ -299,9 +301,16 @@ if [ "$debug" != "yes" -a "$gprof" != "yes" ]; then
     VFW_LDFLAGS="$VFW_LDFLAGS -s"
 fi
 
+if cc_check "stdio.h" "" "fseeko(stdin,0,0);" ; then
+    echo "#define fseek fseeko" >> config.h
+    echo "#define ftell ftello" >> config.h
+elif cc_check "stdio.h" "" "fseeko64(stdin,0,0);" ; then
+    echo "#define fseek fseeko64" >> config.h
+    echo "#define ftell ftello64" >> config.h
+fi
+
 # generate config files
 
-rm -f config.mak
 cat > config.mak << EOF
 prefix=$prefix
 exec_prefix=$exec_prefix
@@ -334,7 +343,6 @@ fi
 
 ./version.sh
 
-rm -f x264.pc
 cat > x264.pc << EOF
 prefix=$prefix
 exec_prefix=$exec_prefix

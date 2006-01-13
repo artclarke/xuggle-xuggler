@@ -21,6 +21,9 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
+#define _LARGEFILE_SOURCE
+#define _FILE_OFFSET_BITS 64
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -36,6 +39,10 @@
 #include <fcntl.h>  /* _O_BINARY */
 #endif
 
+#ifndef _MSC_VER
+#include "config.h"
+#endif
+
 #ifdef AVIS_INPUT
 #include <windows.h>
 #include <vfw.h>
@@ -48,10 +55,6 @@
 
 #include "common/common.h"
 #include "x264.h"
-
-#ifndef _MSC_VER
-#include "config.h"
-#endif
 
 #include "matroska.h"
 
@@ -1182,7 +1185,7 @@ static int get_frame_total_yuv( hnd_t handle, int i_width, int i_height )
 
     if( !fseek( f, 0, SEEK_END ) )
     {
-        int64_t i_size = ftell( f );
+        off_t i_size = ftell( f );
         fseek( f, 0, SEEK_SET );
         i_frame_total = (int)(i_size / ( i_width * i_height * 3 / 2 ));
     }
@@ -1196,7 +1199,7 @@ static int read_frame_yuv( x264_picture_t *p_pic, hnd_t handle, int i_frame, int
     FILE *f = (FILE *)handle;
 
     if( i_frame != prev_frame+1 )
-        if( fseek( f, i_frame * i_width * i_height * 3 / 2, SEEK_SET ) )
+        if( fseek( f, (off_t)i_frame * i_width * i_height * 3 / 2, SEEK_SET ) )
             return -1;
 
     if( fread( p_pic->img.plane[0], 1, i_width * i_height, f ) <= 0
