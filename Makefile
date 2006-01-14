@@ -15,6 +15,9 @@ ifeq ($(VIS),yes)
 SRCS   += common/visualize.c common/display-x11.c
 endif
 
+# No optims on OS X / Intel yet because of nasm limitations
+ifneq ($(SYS),MACOSX)
+
 # MMX/SSE optims
 ifeq ($(ARCH),X86)
 SRCS   += common/i386/mc-c.c common/i386/dct-c.c common/i386/predict.c
@@ -37,6 +40,8 @@ ASMSRC  = common/amd64/dct-a.asm common/amd64/cpu-a.asm \
 OBJASM  = $(ASMSRC:%.asm=%.o)
 ASFLAGS += -Icommon/amd64
 endif
+
+endif # SYS_MACOSX
 
 # AltiVec optims
 ifeq ($(ARCH),PPC)
