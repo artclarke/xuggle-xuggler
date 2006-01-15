@@ -116,10 +116,10 @@ UNAMEM="`uname -m`"
 case "$UNAMEM" in
   i386|i486|i586|i686|BePC)
     ARCH="X86"
-    if [ $SYS != MACOSX ]
+    CFLAGS="$CFLAGS -DHAVE_MMXEXT -DHAVE_SSE2"
+    if [ $SYS = MACOSX ]
     then
-      # No optims on OS X / Intel yet because of nasm limitations
-      CFLAGS="$CFLAGS -DHAVE_MMXEXT -DHAVE_SSE2"
+      ASFLAGS="-f macho -DPREFIX"
     fi
     ;;
   x86_64)
