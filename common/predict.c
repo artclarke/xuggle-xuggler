@@ -21,16 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-/* XXX predict4x4 are inspired from ffmpeg h264 decoder
- */
+/* predict4x4 are inspired from ffmpeg h264 decoder */
 
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#else
-#include <inttypes.h>
-#endif
-#include <stdlib.h>
-#include <stdarg.h>
 
 #include "common.h"
 

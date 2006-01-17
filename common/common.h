@@ -30,6 +30,7 @@
 #include <inttypes.h>
 #endif
 #include <stdarg.h>
+#include <stdlib.h>
 
 #ifdef _MSC_VER
 #define snprintf _snprintf

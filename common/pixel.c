@@ -21,17 +21,9 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#else
-#include <inttypes.h>
-#endif
-#include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 
-#include "x264.h"
-#include "pixel.h"
+#include "common.h"
 #include "clip1.h"
 
 #ifdef HAVE_MMXEXT

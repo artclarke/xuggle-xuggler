@@ -26,7 +26,6 @@
 #else
 #include <inttypes.h>
 #endif
-#include <stdlib.h>
 
 #if !(defined(_MSC_VER) || defined(__MINGW32__))
 #include <sys/time.h>

@@ -25,7 +25,6 @@
 
 #define _ISOC99_SOURCE
 #undef NDEBUG // always check asserts, the speed effect is far too small to disable them
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
