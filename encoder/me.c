@@ -105,8 +105,8 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     if( h->mb.i_me_method == X264_ME_UMH )
     {
         /* clamp mvp to inside frame+padding, so that we don't have to check it each iteration */
-        p_cost_mvx = m->p_cost_mv - x264_clip3( m->mvp[0], h->mb.mv_min[0], h->mb.mv_max[0] );
-        p_cost_mvy = m->p_cost_mv - x264_clip3( m->mvp[1], h->mb.mv_min[1], h->mb.mv_max[1] );
+        p_cost_mvx = m->p_cost_mv - x264_clip3( m->mvp[0], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
+        p_cost_mvy = m->p_cost_mv - x264_clip3( m->mvp[1], h->mb.mv_min_spel[1], h->mb.mv_max_spel[1] );
     }
 
     bmx = pmx = x264_clip3( ( m->mvp[0] + 2 ) >> 2, mv_x_min, mv_x_max );
@@ -433,8 +433,8 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     /* try the subpel component of the predicted mv */
     if( hpel_iters )
     {
-        int mx = x264_clip3( m->mvp[0], h->mb.mv_min[0], h->mb.mv_max[0] );
-        int my = x264_clip3( m->mvp[1], h->mb.mv_min[1], h->mb.mv_max[1] );
+        int mx = x264_clip3( m->mvp[0], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
+        int my = x264_clip3( m->mvp[1], h->mb.mv_min_spel[1], h->mb.mv_max_spel[1] );
         if( mx != bmx || my != bmy )
             COST_MV_SAD( mx, my, -1 );
     }
@@ -551,10 +551,10 @@ int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight 
     const int bw = x264_pixel_size[i_pixel].w;
     const int bh = x264_pixel_size[i_pixel].h;
     const int bs = bw*bh;
-    const int16_t *p_cost_m0x = m0->p_cost_mv - x264_clip3( m0->mvp[0], h->mb.mv_min[0], h->mb.mv_max[0] );
-    const int16_t *p_cost_m0y = m0->p_cost_mv - x264_clip3( m0->mvp[1], h->mb.mv_min[0], h->mb.mv_max[0] );
-    const int16_t *p_cost_m1x = m1->p_cost_mv - x264_clip3( m1->mvp[0], h->mb.mv_min[0], h->mb.mv_max[0] );
-    const int16_t *p_cost_m1y = m1->p_cost_mv - x264_clip3( m1->mvp[1], h->mb.mv_min[0], h->mb.mv_max[0] );
+    const int16_t *p_cost_m0x = m0->p_cost_mv - x264_clip3( m0->mvp[0], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
+    const int16_t *p_cost_m0y = m0->p_cost_mv - x264_clip3( m0->mvp[1], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
+    const int16_t *p_cost_m1x = m1->p_cost_mv - x264_clip3( m1->mvp[0], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
+    const int16_t *p_cost_m1y = m1->p_cost_mv - x264_clip3( m1->mvp[1], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
     DECLARE_ALIGNED( uint8_t, pix0[9][16*16], 16 );
     DECLARE_ALIGNED( uint8_t, pix1[9][16*16], 16 );
     DECLARE_ALIGNED( uint8_t, pix[16*16], 16 );

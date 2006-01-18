@@ -359,6 +359,10 @@ struct x264_t
         /* Allowed qpel MV range to stay within the picture + emulated edge pixels */
         int     mv_min[2];
         int     mv_max[2];
+        /* Subpel MV range for motion search.
+         * same mv_min/max but includes levels' i_mv_range. */
+        int     mv_min_spel[2];
+        int     mv_max_spel[2];
         /* Fullpel MV range for motion search */
         int     mv_min_fpel[2];
         int     mv_max_fpel[2];

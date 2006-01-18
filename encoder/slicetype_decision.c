@@ -61,6 +61,10 @@ static void x264_lowres_context_init( x264_t *h, x264_mb_analysis_t *a )
     h->mb.mv_min_fpel[1] = -16;
     h->mb.mv_max_fpel[0] =
     h->mb.mv_max_fpel[1] = 16;
+    h->mb.mv_min_spel[0] =
+    h->mb.mv_min_spel[1] = -4*32;
+    h->mb.mv_max_spel[0] =
+    h->mb.mv_max_spel[1] = 4*32;
     h->mb.mv_min[0] =
     h->mb.mv_min[1] = -4*32;
     h->mb.mv_max[0] =

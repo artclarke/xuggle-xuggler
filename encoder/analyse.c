@@ -168,9 +168,9 @@ static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
         /* could be faster, but isn't called many times */
         /* factor of 4 from qpel, 2 from sign, and 2 because mv can be opposite from mvp */
         int i;
-        p_cost_mv[a->i_qp] = x264_malloc( (4*4*h->param.analyse.i_mv_range + 1) * sizeof(int16_t) );
-        p_cost_mv[a->i_qp] += 2*4*h->param.analyse.i_mv_range;
-        for( i = 0; i <= 2*4*h->param.analyse.i_mv_range; i++ )
+        p_cost_mv[a->i_qp] = x264_malloc( (4*4*2048 + 1) * sizeof(int16_t) );
+        p_cost_mv[a->i_qp] += 2*4*2048;
+        for( i = 0; i <= 2*4*2048; i++ )
         {
             p_cost_mv[a->i_qp][-i] =
             p_cost_mv[a->i_qp][i]  = a->i_lambda * bs_size_se( i );
@@ -216,16 +216,20 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
 
         /* Calculate max allowed MV range */
 #define CLIP_FMV(mv) x264_clip3( mv, -i_fmv_range, i_fmv_range )
+        h->mb.mv_min[0] = 4*( -16*h->mb.i_mb_x - 24 );
+        h->mb.mv_max[0] = 4*( 16*( h->sps->i_mb_width - h->mb.i_mb_x - 1 ) + 24 );
         h->mb.mv_min_fpel[0] = CLIP_FMV( -16*h->mb.i_mb_x - 8 );
-        h->mb.mv_max_fpel[0] = CLIP_FMV( 16*( h->sps->i_mb_width - h->mb.i_mb_x ) - 8 );
-        h->mb.mv_min[0] = 4*( h->mb.mv_min_fpel[0] - 16 );
-        h->mb.mv_max[0] = 4*( h->mb.mv_max_fpel[0] + 16 );
+        h->mb.mv_max_fpel[0] = CLIP_FMV( 16*( h->sps->i_mb_width - h->mb.i_mb_x - 1 ) + 8 );
+        h->mb.mv_min_spel[0] = 4*( h->mb.mv_min_fpel[0] - 16 );
+        h->mb.mv_max_spel[0] = 4*( h->mb.mv_max_fpel[0] + 16 );
         if( h->mb.i_mb_x == 0)
         {
+            h->mb.mv_min[1] = 4*( -16*h->mb.i_mb_y - 24 );
+            h->mb.mv_max[1] = 4*( 16*( h->sps->i_mb_height - h->mb.i_mb_y - 1 ) + 24 );
             h->mb.mv_min_fpel[1] = CLIP_FMV( -16*h->mb.i_mb_y - 8 );
-            h->mb.mv_max_fpel[1] = CLIP_FMV( 16*( h->sps->i_mb_height - h->mb.i_mb_y ) - 8 );
-            h->mb.mv_min[1] = 4*( h->mb.mv_min_fpel[1] - 16 );
-            h->mb.mv_max[1] = 4*( h->mb.mv_max_fpel[1] + 16 );
+            h->mb.mv_max_fpel[1] = CLIP_FMV( 16*( h->sps->i_mb_height - h->mb.i_mb_y - 1 ) + 8 );
+            h->mb.mv_min_spel[1] = 4*( h->mb.mv_min_fpel[1] - 16 );
+            h->mb.mv_max_spel[1] = 4*( h->mb.mv_max_fpel[1] + 16 );
         }
 #undef CLIP_FMV
 
