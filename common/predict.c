@@ -448,19 +448,19 @@ static void predict_4x4_v( uint8_t *src, int i_stride )
     const int l0 = src[-1+0*i_stride];   \
     const int l1 = src[-1+1*i_stride];   \
     const int l2 = src[-1+2*i_stride];   \
-    const int l3 = src[-1+3*i_stride];
+    UNUSED const int l3 = src[-1+3*i_stride];
 
 #define PREDICT_4x4_LOAD_TOP \
     const int t0 = src[0-1*i_stride];   \
     const int t1 = src[1-1*i_stride];   \
     const int t2 = src[2-1*i_stride];   \
-    const int t3 = src[3-1*i_stride];
+    UNUSED const int t3 = src[3-1*i_stride];
 
 #define PREDICT_4x4_LOAD_TOP_RIGHT \
     const int t4 = src[4-1*i_stride];   \
     const int t5 = src[5-1*i_stride];   \
     const int t6 = src[6-1*i_stride];   \
-    const int t7 = src[7-1*i_stride];
+    UNUSED const int t7 = src[7-1*i_stride];
 
 
 static void predict_4x4_ddl( uint8_t *src, int i_stride )
@@ -640,7 +640,7 @@ static void predict_4x4_hu( uint8_t *src, int i_stride )
     const int l0 = ((i_neighbor&MB_TOPLEFT ? SRC(-1,-1) : SRC(-1,0)) \
                      + 2*SRC(-1,0) + SRC(-1,1) + 2) >> 2; \
     PL(1) PL(2) PL(3) PL(4) PL(5) PL(6) \
-    const int l7 = (SRC(-1,6) + 3*SRC(-1,7) + 2) >> 2;
+    UNUSED const int l7 = (SRC(-1,6) + 3*SRC(-1,7) + 2) >> 2;
 
 #define PT(x) \
     const int t##x = (SRC(x-1,-1) + 2*SRC(x,-1) + SRC(x+1,-1) + 2) >> 2;
@@ -648,7 +648,7 @@ static void predict_4x4_hu( uint8_t *src, int i_stride )
     const int t0 = ((i_neighbor&MB_TOPLEFT ? SRC(-1,-1) : SRC(0,-1)) \
                      + 2*SRC(0,-1) + SRC(1,-1) + 2) >> 2; \
     PT(1) PT(2) PT(3) PT(4) PT(5) PT(6) \
-    const int t7 = ((i_neighbor&MB_TOPRIGHT ? SRC(8,-1) : SRC(7,-1)) \
+    UNUSED const int t7 = ((i_neighbor&MB_TOPRIGHT ? SRC(8,-1) : SRC(7,-1)) \
                      + 2*SRC(7,-1) + SRC(6,-1) + 2) >> 2; \
 
 #define PTR(x) \
