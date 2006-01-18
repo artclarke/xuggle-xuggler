@@ -83,11 +83,53 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
         COST_MV( omx+1, omy   );\
     }
 
+#define DIA2 \
+    {\
+        COST_MV( omx  , omy-2 );\
+        COST_MV( omx-1, omy-1 );/*   1   */\
+        COST_MV( omx+1, omy-1 );/*  1 1  */\
+        COST_MV( omx-2, omy   );/* 1 0 1 */\
+        COST_MV( omx+2, omy   );/*  1 1  */\
+        COST_MV( omx-1, omy+1 );/*   1   */\
+        COST_MV( omx+1, omy+1 );\
+        COST_MV( omx  , omy+2 );\
+    }\
+
+#define OCT2 \
+    {\
+        COST_MV( omx-1, omy-2 );\
+        COST_MV( omx+1, omy-2 );/*  1 1  */\
+        COST_MV( omx-2, omy-1 );/* 1   1 */\
+        COST_MV( omx+2, omy-1 );/*   0   */\
+        COST_MV( omx-2, omy+1 );/* 1   1 */\
+        COST_MV( omx+2, omy+1 );/*  1 1  */\
+        COST_MV( omx-1, omy+2 );\
+        COST_MV( omx+1, omy+2 );\
+    }
+
+#define CROSS( start, x_max, y_max ) \
+    { \
+        for( i = start; i < x_max; i+=2 ) \
+        { \
+            if( omx + i <= mv_x_max ) \
+                COST_MV( omx + i, omy ); \
+            if( omx - i >= mv_x_min ) \
+                COST_MV( omx - i, omy ); \
+        } \
+        for( i = start; i < y_max; i+=2 ) \
+        { \
+            if( omy + i <= mv_y_max ) \
+                COST_MV( omx, omy + i ); \
+            if( omy - i >= mv_y_min ) \
+                COST_MV( omx, omy - i ); \
+        } \
+    }
+
 
 void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int *p_halfpel_thresh )
 {
     const int i_pixel = m->i_pixel;
-    const int i_me_range = h->param.analyse.i_me_range;
+    int i_me_range = h->param.analyse.i_me_range;
     int bmx, bmy, bcost;
     int omx, omy, pmx, pmy;
     uint8_t *p_fref = m->p_fref[0];
@@ -197,12 +239,15 @@ me_hex2:
     case X264_ME_UMH:
         {
             /* Uneven-cross Multi-Hexagon-grid Search
-             * as in JM, except without early termination */
+             * as in JM, except with different early termination */
 
-            int ucost;
-            int cross_start;
+            static const int x264_pixel_size_shift[7] = { 0, 1, 1, 2, 3, 3, 4 };
+
+            int ucost1, ucost2;
+            int cross_start = 1;
 
             /* refine predictors */
+            ucost1 = bcost;
             DIA1_ITER( pmx, pmy );
             if( pmx || pmy )
                 DIA1_ITER( 0, 0 );
@@ -210,31 +255,93 @@ me_hex2:
             if(i_pixel == PIXEL_4x4)
                 goto me_hex2;
 
-            ucost = bcost;
+            ucost2 = bcost;
             if( (bmx || bmy) && (bmx!=pmx || bmy!=pmy) )
                 DIA1_ITER( bmx, bmy );
-
-            /* cross */
+            if( bcost == ucost2 )
+                cross_start = 3;
             omx = bmx; omy = bmy;
-            cross_start = ( bcost == ucost ) ? 3 : 1;
-            for( i = cross_start; i < i_me_range; i+=2 )
+
+            /* early termination */
+#define SAD_THRESH(v) ( bcost < ( v >> x264_pixel_size_shift[i_pixel] ) )
+            if( bcost == ucost2 && SAD_THRESH(2000) )
             {
-                if( omx + i <= mv_x_max )
-                    COST_MV( omx + i, omy );
-                if( omx - i >= mv_x_min )
-                    COST_MV( omx - i, omy );
+                DIA2;
+                if( bcost == ucost1 && SAD_THRESH(500) )
+                    break;
+                if( bcost == ucost2 )
+                {
+                    int range = (i_me_range>>1) | 1;
+                    CROSS( 3, range, range );
+                    OCT2;
+                    if( bcost == ucost2 )
+                        break;
+                    cross_start = range + 2;
+                }
             }
-            for( i = cross_start; i < i_me_range/2; i+=2 )
+
+            /* adaptive search range */
+            if( i_mvc ) 
             {
-                if( omy + i <= mv_y_max )
-                    COST_MV( omx, omy + i );
-                if( omy - i >= mv_y_min )
-                    COST_MV( omx, omy - i );
+                /* range multipliers based on casual inspection of some statistics of
+                 * average distance between current predictor and final mv found by ESA.
+                 * these have not been tuned much by actual encoding. */
+                static const int range_mul[4][4] =
+                {
+                    { 3, 3, 4, 4 },
+                    { 3, 4, 4, 4 },
+                    { 4, 4, 4, 5 },
+                    { 4, 4, 5, 6 },
+                };
+                int mvd;
+                int sad_ctx, mvd_ctx;
+
+                if( i_mvc == 1 )
+                {
+                    if( i_pixel == PIXEL_16x16 )
+                        /* mvc is probably the same as mvp, so the difference isn't meaningful.
+                         * but prediction usually isn't too bad, so just use medium range */
+                        mvd = 25;
+                    else
+                        mvd = abs( m->mvp[0] - mvc[0][0] )
+                            + abs( m->mvp[1] - mvc[0][1] );
+                }
+                else
+                {
+                    /* calculate the degree of agreement between predictors. */
+                    /* in 16x16, mvc includes all the neighbors used to make mvp,
+                     * so don't count mvp separately. */
+                    int i_denom = i_mvc - 1;
+                    mvd = 0;
+                    if( i_pixel != PIXEL_16x16 )
+                    {
+                        mvd = abs( m->mvp[0] - mvc[0][0] )
+                            + abs( m->mvp[1] - mvc[0][1] );
+                        i_denom++;
+                    }
+                    for( i = 0; i < i_mvc-1; i++ )
+                        mvd += abs( mvc[i][0] - mvc[i+1][0] )
+                             + abs( mvc[i][1] - mvc[i+1][1] );
+                    mvd /= i_denom; //FIXME idiv
+                }
+
+                sad_ctx = SAD_THRESH(1000) ? 0
+                        : SAD_THRESH(2000) ? 1
+                        : SAD_THRESH(4000) ? 2 : 3;
+                mvd_ctx = mvd < 10 ? 0
+                        : mvd < 20 ? 1
+                        : mvd < 40 ? 2 : 3;
+
+                i_me_range = i_me_range * range_mul[mvd_ctx][sad_ctx] / 4;
             }
+
+            /* FIXME if the above DIA2/OCT2/CROSS found a new mv, it has not updated omx/omy.
+             * we are still centered on the same place as the DIA2. is this desirable? */
+            CROSS( cross_start, i_me_range, i_me_range/2 );
 
             /* 5x5 ESA */
             omx = bmx; omy = bmy;
-            for( i = (bcost == ucost) ? 4 : 0; i < 24; i++ )
+            for( i = (bcost == ucost2) ? 4 : 0; i < 24; i++ )
             {
                 static const int square2[24][2] = {
                     { 1, 0}, { 0, 1}, {-1, 0}, { 0,-1},
