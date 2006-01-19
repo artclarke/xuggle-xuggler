@@ -179,10 +179,8 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     if( param->i_fps_num > 0 && param->i_fps_den > 0)
     {
         sps->vui.b_timing_info_present = 1;
-        /* The standard is confusing me, but this seems to work best
-           with other encoders */
         sps->vui.i_num_units_in_tick = param->i_fps_den;
-        sps->vui.i_time_scale = param->i_fps_num;
+        sps->vui.i_time_scale = param->i_fps_num * 2;
         sps->vui.b_fixed_frame_rate = 1;
     }
 
