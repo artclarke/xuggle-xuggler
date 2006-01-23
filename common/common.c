@@ -457,6 +457,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " cqm=%d", p->i_cqm_preset );
     s += sprintf( s, " chroma_qp_offset=%d", p->analyse.i_chroma_qp_offset );
     s += sprintf( s, " slices=%d", p->i_threads );
+    s += sprintf( s, " nr=%d", p->analyse.i_noise_reduction );
 
     s += sprintf( s, " bframes=%d", p->i_bframe );
     if( p->i_bframe )
@@ -470,7 +471,9 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " keyint=%d keyint_min=%d scenecut=%d",
                   p->i_keyint_max, p->i_keyint_min, p->i_scenecut_threshold );
 
-    s += sprintf( s, " pass=%d", p->rc.b_stat_read ? 2 : 1 );
+    s += sprintf( s, " rc=%s", p->rc.b_stat_read && p->rc.b_cbr ? "2pass" :
+                               p->rc.b_cbr ? p->rc.i_vbv_buffer_size ? "cbr" : "abr" :
+                               p->rc.i_rf_constant ? "crf" : "cqp" );
     if( p->rc.b_cbr || p->rc.i_rf_constant )
     {
         if( p->rc.i_rf_constant )
@@ -484,7 +487,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
         if( p->rc.b_stat_read )
             s += sprintf( s, " cplxblur=%.1f qblur=%.1f",
                           p->rc.f_complexity_blur, p->rc.f_qblur );
-        if( p->rc.i_vbv_max_bitrate && p->rc.i_vbv_buffer_size )
+        if( p->rc.i_vbv_buffer_size )
             s += sprintf( s, " vbv_maxrate=%d vbv_bufsize=%d",
                           p->rc.i_vbv_max_bitrate, p->rc.i_vbv_buffer_size );
     }

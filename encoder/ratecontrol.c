@@ -189,8 +189,11 @@ int x264_ratecontrol_new( x264_t *h )
     rc->last_non_b_pict_type = -1;
     rc->cbr_decay = 1.0;
 
-    if( rc->b_2pass && h->param.rc.i_rf_constant )
+    if( h->param.rc.i_rf_constant && h->param.rc.b_stat_read )
+    {
         x264_log(h, X264_LOG_ERROR, "constant rate-factor is incompatible with 2pass.\n");
+        return -1;
+    }
     if( h->param.rc.i_vbv_buffer_size && !h->param.rc.b_cbr && !h->param.rc.i_rf_constant )
         x264_log(h, X264_LOG_ERROR, "VBV is incompatible with constant QP.\n");
     if( h->param.rc.i_vbv_buffer_size && h->param.rc.b_cbr
@@ -216,8 +219,8 @@ int x264_ratecontrol_new( x264_t *h )
         rc->cbr_decay = 1.0 - rc->buffer_rate / rc->buffer_size
                       * 0.5 * X264_MAX(0, 1.5 - rc->buffer_rate * rc->fps / rc->bitrate);
     }
-    else if( h->param.rc.i_vbv_max_bitrate || h->param.rc.i_vbv_buffer_size )
-        x264_log(h, X264_LOG_ERROR, "VBV maxrate or buffer size specified, but not both.\n");
+    else if( h->param.rc.i_vbv_max_bitrate )
+        x264_log(h, X264_LOG_ERROR, "VBV maxrate specified, but no bufsize.\n");
     if(rc->rate_tolerance < 0.01) {
         x264_log(h, X264_LOG_ERROR, "bitrate tolerance too small, using .01\n");
         rc->rate_tolerance = 0.01;
