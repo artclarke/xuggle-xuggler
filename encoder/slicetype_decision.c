@@ -56,19 +56,6 @@ static void x264_lowres_context_init( x264_t *h, x264_mb_analysis_t *a )
     h->mb.i_me_method = X264_MIN( X264_ME_HEX, h->param.analyse.i_me_method ); // maybe dia?
     h->mb.i_subpel_refine = 4; // 3 should be enough, but not tweaking for speed now
     h->mb.b_chroma_me = 0;
-
-    h->mb.mv_min_fpel[0] =
-    h->mb.mv_min_fpel[1] = -16;
-    h->mb.mv_max_fpel[0] =
-    h->mb.mv_max_fpel[1] = 16;
-    h->mb.mv_min_spel[0] =
-    h->mb.mv_min_spel[1] = -4*32;
-    h->mb.mv_max_spel[0] =
-    h->mb.mv_max_spel[1] = 4*32;
-    h->mb.mv_min[0] =
-    h->mb.mv_min[1] = -4*32;
-    h->mb.mv_max[0] =
-    h->mb.mv_max[1] = 4*32;
 }
 
 int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
@@ -95,6 +82,19 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
 
     if( !p0 && !p1 && !b )
         goto lowres_intra_mb;
+
+    // no need for h->mb.mv_min[]
+    h->mb.mv_min_fpel[0] = -16*h->mb.i_mb_x - 8;
+    h->mb.mv_max_fpel[0] = 16*( h->sps->i_mb_width - h->mb.i_mb_x - 1 ) + 8;
+    h->mb.mv_min_spel[0] = 4*( h->mb.mv_min_fpel[0] - 16 );
+    h->mb.mv_max_spel[0] = 4*( h->mb.mv_max_fpel[0] + 16 );
+    if( h->mb.i_mb_x <= 1)
+    {
+        h->mb.mv_min_fpel[1] = -16*h->mb.i_mb_y - 8;
+        h->mb.mv_max_fpel[1] = 16*( h->sps->i_mb_height - h->mb.i_mb_y - 1 ) + 8;
+        h->mb.mv_min_spel[1] = 4*( h->mb.mv_min_fpel[1] - 16 );
+        h->mb.mv_max_spel[1] = 4*( h->mb.mv_max_fpel[1] + 16 );
+    }
 
 #define LOAD_HPELS_LUMA(dst, src) \
     { \
@@ -153,7 +153,8 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         dmv[1][1] = dmv[0][1] - mvr[1];
 
         TRY_BIDIR( dmv[0], dmv[1], 0 );
-        TRY_BIDIR( mv0, mv0, 0 );
+        if( dmv[0][0] || dmv[0][1] || dmv[1][0] || dmv[1][1] );
+           TRY_BIDIR( mv0, mv0, 0 );
 //      if( i_bcost < 60 ) // arbitrary threshold
 //          return i_bcost;
     }
@@ -161,7 +162,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     i_cost_bak = i_bcost;
     for( l = 0; l < 1 + b_bidir; l++ )
     {
-        int16_t (*fenc_mv)[2] = &fenc->mv[0][i_mb_xy];
+        int16_t (*fenc_mv)[2] = &fenc->mv[l][i_mb_xy];
         mvc[0][0] = fenc_mv[-1][0];
         mvc[0][1] = fenc_mv[-1][1];
         mvc[1][0] = fenc_mv[-i_mb_stride][0];
@@ -179,7 +180,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         i_bcost = X264_MIN( i_bcost, m[l].cost + 3 );
     }
 
-    if( b_bidir )
+    if( b_bidir && (m[0].mv[0] || m[0].mv[1] || m[1].mv[0] || m[1].mv[1]) )
         TRY_BIDIR( m[0].mv, m[1].mv, 5 );
 
     if( i_bcost < i_cost_bak )
@@ -231,9 +232,9 @@ int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
 
     /* Init MVs so that we don't have to check edge conditions when loading predictors. */
     /* FIXME: not needed every time */
-    memset( frames[p1]->mv[0], 0, h->sps->i_mb_height * h->sps->i_mb_width * 2*sizeof(int) );
+    memset( frames[b]->mv[0], 0, h->sps->i_mb_height * h->sps->i_mb_width * 2*sizeof(int) );
     if( b != p1 )
-        memset( frames[p1]->mv[1], 0, h->sps->i_mb_height * h->sps->i_mb_width * 2*sizeof(int) );
+        memset( frames[b]->mv[1], 0, h->sps->i_mb_height * h->sps->i_mb_width * 2*sizeof(int) );
 
     if( b == p1 )
         frames[b]->i_intra_mbs[b-p0] = 0;
