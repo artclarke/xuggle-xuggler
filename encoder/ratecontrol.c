@@ -756,7 +756,7 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
     q = x264_eval((char*)h->param.rc.psz_rc_eq, const_values, const_names, func1, func1_names, NULL, NULL, rce);
 
     // avoid NaN's in the rc_eq
-    if(q != q || rce->i_tex_bits + rce->p_tex_bits + rce->mv_bits == 0)
+    if(!isfinite(q) || rce->i_tex_bits + rce->p_tex_bits + rce->mv_bits == 0)
         q = rcc->last_qscale;
     else {
         rcc->last_rceq = q;
@@ -1029,7 +1029,7 @@ static float rate_estimate_qscale(x264_t *h, int pict_type)
             }
             else
             {
-                if( h->stat.i_slice_count[h->param.i_keyint_max > 1 ? SLICE_TYPE_P : SLICE_TYPE_I] < 5 )
+                if( h->stat.i_slice_count[SLICE_TYPE_P] + h->stat.i_slice_count[SLICE_TYPE_I] < 6 )
                 {
                     float w = h->stat.i_slice_count[SLICE_TYPE_P] / 5.;
                     float q2 = qp2qscale(ABR_INIT_QP);
