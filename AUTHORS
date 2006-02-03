@@ -1,4 +1,4 @@
-# $Id: AUTHORS,v 1.1 2004/06/03 19:27:06 fenrir Exp $
+# Contributors to x264
 # 
 # The format of this file was inspired by the Linux kernel CREDITS file.
 # Authors are listed alphabetically.
@@ -6,33 +6,58 @@
 # The fields are: name (N), email (E), web-address (W), CVS account login (C),
 # PGP key ID and fingerprint (P), description (D), and snail-mail address (S).
 
-N: Laurent Aimar
-E: fenrir AT via.ecp DOT fr
-C: fenrir
-D: Intial import, maintainer
-D: i386 asm (mmx/mmx2)
-S: France
+N: Alex Izvorski
+E: aizvorski AT gmail DOT com
+D: x86 asm (sse2)
+
+N: Alex Wright
+E: alexw0885 AT hotmail DOT com
+D: Motion estimation (subpel and mixed refs)
+D: B-RDO
+
+N: Andrew Dunstan
+D: win64 asm port
+
+N: bobololo
+D: Avisynth input
+D: MP4 muxing
+
+N: Christian Heine
+E: sennindemokrit AT gmx DOT net
+D: x86 asm
 
 N: Eric Petit
 E: titer AT videolan DOT org
 C: titer
-D: Altivec
+D: Altivec asm
 D: BeOS and MacOS X ports.
 S: France
 
-N: Min Chen
-E: chenm001 AT 163 DOT com
-C: chenm001
-D: Win32/VC 6.0 port
-D: gcc asm to nasm conversion
-D: vfw interface
-S: China
+N: Francesco Corriga
+D: VfW
 
 N: Justin Clay
 E: justin_clay AT hotmail DOT com
 C: wheatgerm
-D: Inital work on vfw
+D: Inital work on VfW
 S: Nova Scotia, Canada
+
+N: Laurent Aimar
+E: fenrir AT via.ecp DOT fr
+C: fenrir
+D: Intial import, former maintainer
+D: x86 asm (mmx/mmx2)
+S: France
+
+N: Loren Merritt
+E: lorenm AT u.washington DOT edu
+C: pengvado
+D: maintainer
+D: All areas of encoder analysis and algorithms
+D: Motion estimation, rate control, macroblock & frame decisions, RDO, etc.
+D: Multithreading
+D: x86 and x86_64 asm (mmx/mmx2/sse2)
+S: USA
 
 N: Mans Rullgard
 E: mru AT inprovide DOT com
@@ -40,8 +65,35 @@ C: mru
 D: Rate control
 S: Southampton, UK
 
-N: Loren Merritt
-E: lorenm AT u.washington DOT edu
-C: ?
-D: Two pass rate control
-S: ?
+N: Michael Niedermayer
+E: michaelni AT gmx DOT at
+D: Rate control
+
+N: Mike Matsnev
+E: mike AT po DOT cs DOT msu DOT su
+D: Matroska muxing
+
+N: Min Chen
+E: chenm001 AT 163 DOT com
+C: chenm001
+D: Win32/VC 6.0 port
+D: gcc asm to nasm conversion
+D: VfW
+S: China
+
+N: Phil Jensen
+E: philj AT csufresno DOT edu
+D: SPARC asm
+
+N: Radek Czyz
+E: radoslaw AT syskin DOT cjb DOT net
+D: Cached motion compensation
+
+N: Riccardo Stievano
+E: walkunafraid AT tin DOT it
+D: VfW
+
+N: Tuukka Toivonen
+E: tuukkat AT ee DOT oulu DOT fi
+D: Visualization
+
