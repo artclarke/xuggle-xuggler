@@ -232,9 +232,9 @@ int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
 
     /* Init MVs so that we don't have to check edge conditions when loading predictors. */
     /* FIXME: not needed every time */
-    memset( frames[b]->mv[0], 0, h->sps->i_mb_height * h->sps->i_mb_width * 2*sizeof(int) );
+    memset( frames[b]->mv[0], 0, h->sps->i_mb_height * h->sps->i_mb_width * 2*sizeof(int16_t) );
     if( b != p1 )
-        memset( frames[b]->mv[1], 0, h->sps->i_mb_height * h->sps->i_mb_width * 2*sizeof(int) );
+        memset( frames[b]->mv[1], 0, h->sps->i_mb_height * h->sps->i_mb_width * 2*sizeof(int16_t) );
 
     if( b == p1 )
         frames[b]->i_intra_mbs[b-p0] = 0;
@@ -288,9 +288,9 @@ no_b_frames:
     if( frames[2]->i_intra_mbs[2] > i_mb_count / 2 )
         goto no_b_frames;
 
-    cost2p0 = x264_slicetype_frame_cost( h, &a, frames, 1, 2, 2 );
-    cost1p0 = x264_slicetype_frame_cost( h, &a, frames, 0, 1, 1 );
     cost1b1 = x264_slicetype_frame_cost( h, &a, frames, 0, 2, 1 );
+    cost1p0 = x264_slicetype_frame_cost( h, &a, frames, 0, 1, 1 );
+    cost2p0 = x264_slicetype_frame_cost( h, &a, frames, 1, 2, 2 );
 //  fprintf( stderr, "PP: %d + %d <=> BP: %d + %d \n",
 //           cost1p0, cost2p0, cost1b1, cost2p1 );
     if( cost1p0 + cost2p0 < cost1b1 + cost2p1 )
