@@ -1185,7 +1185,7 @@ static int get_frame_total_yuv( hnd_t handle, int i_width, int i_height )
 
     if( !fseek( f, 0, SEEK_END ) )
     {
-        off_t i_size = ftell( f );
+        uint64_t i_size = ftell( f );
         fseek( f, 0, SEEK_SET );
         i_frame_total = (int)(i_size / ( i_width * i_height * 3 / 2 ));
     }
@@ -1199,7 +1199,7 @@ static int read_frame_yuv( x264_picture_t *p_pic, hnd_t handle, int i_frame, int
     FILE *f = (FILE *)handle;
 
     if( i_frame != prev_frame+1 )
-        if( fseek( f, (off_t)i_frame * i_width * i_height * 3 / 2, SEEK_SET ) )
+        if( fseek( f, (uint64_t)i_frame * i_width * i_height * 3 / 2, SEEK_SET ) )
             return -1;
 
     if( fread( p_pic->img.plane[0], 1, i_width * i_height, f ) <= 0
