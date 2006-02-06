@@ -26,6 +26,7 @@
 
 
 #include "common.h"
+#include "clip1.h"
 
 #ifdef _MSC_VER
 #undef HAVE_MMXEXT  /* not finished now */
@@ -34,16 +35,8 @@
 #   include "i386/predict.h"
 #endif
 
-static inline int clip_uint8( int a )
-{
-    if (a&(~255))
-        return (-a)>>31;
-    else
-        return a;
-}
-
 /****************************************************************************
- * 16x16 prediction for intra block DC, H, V, P
+ * 16x16 prediction for intra luma block
  ****************************************************************************/
 
 #define PREDICT_16x16_DC(v) \
@@ -62,7 +55,6 @@ static void predict_16x16_dc( uint8_t *src, int i_stride )
     uint32_t dc = 0;
     int i;
 
-    /* calculate DC value */
     for( i = 0; i < 16; i++ )
     {
         dc += src[-1 + i * i_stride];
@@ -162,13 +154,11 @@ static void predict_16x16_p( uint8_t *src, int i_stride )
 
     for( y = 0; y < 16; y++ )
     {
+        int pix = i00;
         for( x = 0; x < 16; x++ )
         {
-            int pix;
-
-            pix = (i00+b*x)>>5;
-
-            src[x] = clip_uint8( pix );
+            src[x] = x264_clip_uint8( pix>>5 );
+            pix += b;
         }
         src += i_stride;
         i00 += c;
@@ -335,10 +325,11 @@ static void predict_8x8c_p( uint8_t *src, int i_stride )
 
     for( y = 0; y < 8; y++ )
     {
+        int pix = i00;
         for( x = 0; x < 8; x++ )
         {
-            int pix = (i00 +b*x) >> 5;
-            src[x] = clip_uint8( pix );
+            src[x] = x264_clip_uint8( pix>>5 );
+            pix += b;
         }
         src += i_stride;
         i00 += c;
@@ -881,6 +872,13 @@ void x264_predict_8x8_init( int cpu, x264_predict8x8_t pf[12] )
     pf[I_PRED_8x8_DC_LEFT]= predict_8x8_dc_left;
     pf[I_PRED_8x8_DC_TOP] = predict_8x8_dc_top;
     pf[I_PRED_8x8_DC_128] = predict_8x8_dc_128;
+
+#ifdef HAVE_MMXEXT
+    if( cpu&X264_CPU_MMXEXT )
+    {
+        x264_predict_8x8_init_mmxext( pf );
+    }
+#endif
 }
 
 void x264_predict_4x4_init( int cpu, x264_predict_t pf[12] )

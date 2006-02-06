@@ -33,7 +33,7 @@ extern void predict_16x16_v_mmx( uint8_t *src, int i_stride );
 extern void predict_8x8c_v_mmx( uint8_t *src, int i_stride );
 
 /****************************************************************************
- * 16x16 prediction for intra block
+ * 16x16 prediction for intra luma block
  ****************************************************************************/
 
 #define PREDICT_16x16_DC(v) \
@@ -167,5 +167,9 @@ void x264_predict_8x8c_init_mmxext( x264_predict_t pf[7] )
     pf[I_PRED_CHROMA_H ]     = predict_8x8c_h;
     pf[I_PRED_CHROMA_DC_LEFT]= predict_8x8c_dc_left;
     pf[I_PRED_CHROMA_DC_TOP ]= predict_8x8c_dc_top;
+}
+
+void x264_predict_8x8_init_mmxext( x264_predict8x8_t pf[12] )
+{
 }
 

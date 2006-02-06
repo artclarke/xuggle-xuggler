@@ -499,12 +499,18 @@ static int check_intra( int cpu_ref, int cpu_new )
 
     for( i = 0; i < 12; i++ )
         INTRA_TEST( predict_4x4, i );
-    for( i = 0; i < 12; i++ )
-        INTRA_TEST( predict_8x8, i, 0xf );
     for( i = 0; i < 7; i++ )
         INTRA_TEST( predict_8x8c, i );
     for( i = 0; i < 7; i++ )
         INTRA_TEST( predict_16x16, i );
+    for( i = 0; i < 12; i++ )
+        INTRA_TEST( predict_8x8, i, 0xf );
+    INTRA_TEST( predict_8x8, I_PRED_8x8_V,  MB_LEFT|MB_TOP );
+    INTRA_TEST( predict_8x8, I_PRED_8x8_DC, MB_LEFT|MB_TOP );
+    INTRA_TEST( predict_8x8, I_PRED_8x8_V,  MB_LEFT|MB_TOP|MB_TOPLEFT );
+    INTRA_TEST( predict_8x8, I_PRED_8x8_DC, MB_LEFT|MB_TOP|MB_TOPLEFT );
+    INTRA_TEST( predict_8x8, I_PRED_8x8_V,  MB_LEFT|MB_TOP|MB_TOPRIGHT );
+    INTRA_TEST( predict_8x8, I_PRED_8x8_DC, MB_LEFT|MB_TOP|MB_TOPRIGHT );
 
     report( "intra pred :" );
     return ret;
