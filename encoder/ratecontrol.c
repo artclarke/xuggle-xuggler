@@ -38,6 +38,9 @@
 #if defined(SYS_FREEBSD) || defined(SYS_BEOS) || defined(SYS_NETBSD)
 #define exp2f(x) powf( 2, (x) )
 #endif
+#if defined(_MSC_VER)
+#define isfinite _finite
+#endif
 #if defined(_MSC_VER) || defined(SYS_SunOS)
 #define exp2f(x) pow( 2, (x) )
 #define sqrtf sqrt
