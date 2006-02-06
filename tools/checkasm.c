@@ -455,11 +455,67 @@ static int check_quant( int cpu_ref, int cpu_new )
     return ret;
 }
 
+static int check_intra( int cpu_ref, int cpu_new )
+{
+    int ret = 0, ok = 1, used_asm = 0;
+    int i;
+    struct
+    {
+        x264_predict_t      predict_16x16[4+3];
+        x264_predict_t      predict_8x8c[4+3];
+        x264_predict8x8_t   predict_8x8[9+3];
+        x264_predict_t      predict_4x4[9+3];
+    } ip_c, ip_ref, ip_a;
+
+    x264_predict_16x16_init( 0, ip_c.predict_16x16 );
+    x264_predict_8x8c_init( 0, ip_c.predict_8x8c );
+    x264_predict_8x8_init( 0, ip_c.predict_8x8 );
+    x264_predict_4x4_init( 0, ip_c.predict_4x4 );
+
+    x264_predict_16x16_init( cpu_ref, ip_ref.predict_16x16 );
+    x264_predict_8x8c_init( cpu_ref, ip_ref.predict_8x8c );
+    x264_predict_8x8_init( cpu_ref, ip_ref.predict_8x8 );
+    x264_predict_4x4_init( cpu_ref, ip_ref.predict_4x4 );
+
+    x264_predict_16x16_init( cpu_new, ip_a.predict_16x16 );
+    x264_predict_8x8c_init( cpu_new, ip_a.predict_8x8c );
+    x264_predict_8x8_init( cpu_new, ip_a.predict_8x8 );
+    x264_predict_4x4_init( cpu_new, ip_a.predict_4x4 );
+
+#define INTRA_TEST( name, dir, ... ) \
+    if( ip_a.name[dir] != ip_ref.name[dir] )\
+    { \
+        used_asm = 1; \
+        memcpy( buf3, buf1, 32*20 );\
+        memcpy( buf4, buf1, 32*20 );\
+        ip_c.name[dir]( buf3+48, 32, ##__VA_ARGS__ );\
+        ip_a.name[dir]( buf4+48, 32, ##__VA_ARGS__ );\
+        if( memcmp( buf3, buf4, 32*20 ) )\
+        {\
+            fprintf( stderr, #name "[%d] :  [FAILED]\n", dir );\
+            ok = 0;\
+        }\
+    }
+
+    for( i = 0; i < 12; i++ )
+        INTRA_TEST( predict_4x4, i );
+    for( i = 0; i < 12; i++ )
+        INTRA_TEST( predict_8x8, i, 0xf );
+    for( i = 0; i < 7; i++ )
+        INTRA_TEST( predict_8x8c, i );
+    for( i = 0; i < 7; i++ )
+        INTRA_TEST( predict_16x16, i );
+
+    report( "intra pred :" );
+    return ret;
+}
+
 int check_all( int cpu_ref, int cpu_new )
 {
     return check_pixel( cpu_ref, cpu_new )
          + check_dct( cpu_ref, cpu_new )
          + check_mc( cpu_ref, cpu_new )
+         + check_intra( cpu_ref, cpu_new )
          + check_deblock( cpu_ref, cpu_new )
          + check_quant( cpu_ref, cpu_new );
 }

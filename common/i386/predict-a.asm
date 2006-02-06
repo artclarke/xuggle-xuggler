@@ -33,12 +33,6 @@ BITS 32
     %endif
 %endmacro
 
-;=============================================================================
-; Read only data
-;=============================================================================
-
-SECTION .rodata data align=16
-
 SECTION .data
 
 ;=============================================================================
@@ -68,27 +62,21 @@ cglobal predict_16x16_v_mmx
 ALIGN 16
 predict_8x8c_v_mmx :
 
-    ;push       edi
-    ;push       esi
-
     mov         edx             , [esp + 4]
     mov         ecx             , [esp + 8]
-    sub         edx             , ecx               ; esi <-- line -1
+    sub         edx             , ecx               ; edx <-- line -1
 
     movq        mm0             , [edx]
     movq        [edx + ecx]     , mm0               ; 0
     movq        [edx + 2 * ecx] , mm0               ; 1
     movq        [edx + 4 * ecx] , mm0               ; 3
     movq        [edx + 8 * ecx] , mm0               ; 7
-    add         edx             , ecx               ; esi <-- line 0
+    add         edx             , ecx               ; edx <-- line 0
     movq        [edx + 2 * ecx] , mm0               ; 2
     movq        [edx + 4 * ecx] , mm0               ; 4
-    lea         edx             , [edx + 4 * ecx]   ; esi <-- line 4
+    lea         edx             , [edx + 4 * ecx]   ; edx <-- line 4
     movq        [edx + ecx]     , mm0               ; 5
     movq        [edx + 2 * ecx] , mm0               ; 6
-
-    ;pop        esi
-    ;pop        edi
 
     ret
 
@@ -101,18 +89,13 @@ predict_8x8c_v_mmx :
 ALIGN 16
 predict_16x16_v_mmx :
 
-    ;push       edi
-    ;push       esi
-
     mov         edx, [esp + 4]
     mov         ecx, [esp + 8]
-    sub         edx, ecx                ; esi <-- line -1
+    sub         edx, ecx                ; edx <-- line -1
 
     movq        mm0, [edx]
     movq        mm1, [edx + 8]
-    mov         eax, ecx
-    shl         eax, 1
-    add         eax, ecx                ; eax <-- 3* stride
+    lea         eax, [ecx + 2*ecx]      ; eax <-- 3* stride
 
     SAVE_0_1    (edx + ecx)             ; 0
     SAVE_0_1    (edx + 2 * ecx)         ; 1
@@ -121,21 +104,17 @@ predict_16x16_v_mmx :
     SAVE_0_1    (edx + 2 * eax)         ; 5
     SAVE_0_1    (edx + 8 * ecx)         ; 7
     SAVE_0_1    (edx + 4 * eax)         ; 11
-    add         edx, ecx                ; esi <-- line 0
+    add         edx, ecx                ; edx <-- line 0
     SAVE_0_1    (edx + 4 * ecx)         ; 4
     SAVE_0_1    (edx + 2 * eax)         ; 6
     SAVE_0_1    (edx + 8 * ecx)         ; 8
     SAVE_0_1    (edx + 4 * eax)         ; 12
-    lea         edx, [edx + 8 * ecx]    ; esi <-- line 8
+    lea         edx, [edx + 8 * ecx]    ; edx <-- line 8
     SAVE_0_1    (edx + ecx)             ; 9
     SAVE_0_1    (edx + 2 * ecx)         ; 10
-    lea         edx, [edx + 4 * ecx]    ; esi <-- line 12
+    lea         edx, [edx + 4 * ecx]    ; edx <-- line 12
     SAVE_0_1    (edx + ecx)             ; 13
     SAVE_0_1    (edx + 2 * ecx)         ; 14
     SAVE_0_1    (edx + eax)             ; 15
-
-
-    ;pop        esi
-    ;pop        edi
 
     ret
