@@ -132,12 +132,8 @@ x264_center_filter_mmxext :
 
     push        edi
     push        esi
-    ; commented out because it seems useless --sam
-    ;push        ebx
-    PUSH_EBX_IF_PIC
+    push        ebx
     push        ebp
-
-    GET_GOT_IN_EBX_IF_PIC
 
     mov         edx,      [esp + 40]         ; src_stride
     lea         edx,      [edx + edx + 18 + tbuffer]
@@ -170,9 +166,11 @@ x264_center_filter_mmxext :
     sub         eax,      ecx
     mov         [esp + tsrc]    ,eax         ; src - 2 * src_stride
 
-    ; commented out because it seems useless --sam
-    ;lea         ebx,      [ecx + ecx * 2]    ; 3 * src_stride
+    lea         ebx,      [ecx + ecx * 2]    ; 3 * src_stride
     lea         edx,      [ecx + ecx * 4]    ; 5 * src_stride
+
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
 
     pxor        mm0,      mm0                ; 0 ---> mm0
     movq        mm7,      [mmx_dd_one GLOBAL] ; for rounding
@@ -186,7 +184,10 @@ loopcy:
     lea         ebp,    [esp + tbuffer]
     mov         esi,    [esp + tsrc]
 
+    POP_EBX_IF_PIC
     FILT_ALL    esi
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
 
     pshufw      mm2,    mm1, 0
     movq        [ebp + 8],  mm1
@@ -202,7 +203,10 @@ loopcy:
 
 loopcx1:
 
+    POP_EBX_IF_PIC
     FILT_ALL    esi
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
 
     movq        [ebp + 2 * eax],  mm1
     paddw       mm1,    [mmx_dw_one GLOBAL]
@@ -215,7 +219,10 @@ loopcx1:
     cmp         eax,    [esp + twidth]
     jnz         loopcx1
 
+    POP_EBX_IF_PIC
     FILT_ALL    esi
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
 
     pshufw      mm2,    mm1,  7
     movq        [ebp + 2 * eax],  mm1
@@ -292,12 +299,12 @@ loopcx2:
     mov         [esp + theight], ebp
     jnz         loopcy
 
+    POP_EBX_IF_PIC
+
     add         esp,    [esp + toffset]
 
     pop         ebp
-    ; commented out because it seems useless --sam
-    ;pop         ebx
-    POP_EBX_IF_PIC
+    pop         ebx
     pop         esi
     pop         edi
 
