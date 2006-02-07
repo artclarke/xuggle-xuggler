@@ -24,6 +24,7 @@ ASMSRC  = common/i386/dct-a.asm common/i386/cpu-a.asm \
           common/i386/pixel-sse2.asm common/i386/quant-a.asm \
           common/i386/deblock-a.asm
 OBJASM  = $(ASMSRC:%.asm=%.o)
+ASFLAGS += -Icommon/i386/
 endif
 
 # MMX/SSE optims
@@ -73,6 +74,7 @@ checkasm: tools/checkasm.o libx264.a
 	$(CC) -o $@ $< libx264.a $(LDFLAGS)
 
 common/amd64/*.o: common/amd64/amd64inc.asm
+common/i386/*.o: common/i386/i386inc.asm
 %.o: %.asm
 	$(AS) $(ASFLAGS) -o $@ $<
 

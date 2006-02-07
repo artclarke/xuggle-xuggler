@@ -959,6 +959,9 @@
 				Name="I386"
 				Filter="*.h,*.c,*-a.asm">
 				<File
+					RelativePath="..\..\common\i386\i386inc.asm">
+				</File>
+				<File
 					RelativePath="..\..\common\i386\cpu-a.asm">
 					<FileConfiguration
 						Name="Release|Win32">

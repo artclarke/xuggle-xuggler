@@ -33,14 +33,7 @@
 
 BITS 32
 
-%macro cglobal 1
-    %ifdef PREFIX
-        global _%1
-        %define %1 _%1
-    %else
-        global %1
-    %endif
-%endmacro
+%include "i386inc.asm"
 
 SECTION .rodata
 pw_1:  times 4 dw 1
@@ -489,7 +482,10 @@ ALIGN 16
 
 .rshift16:
     neg   eax
-    movq  mm6, [pw_1]
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
+    movq  mm6, [pw_1 GLOBAL]
+    POP_EBX_IF_PIC
     movd  mm5, eax
     pxor  mm7, mm7
     psllw mm6, mm5
@@ -508,7 +504,10 @@ ALIGN 16
 
 .rshift32:
     neg   eax
-    movq  mm6, [pd_1]
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
+    movq  mm6, [pd_1 GLOBAL]
+    POP_EBX_IF_PIC
     movd  mm5, eax
     pxor  mm7, mm7
     pslld mm6, mm5

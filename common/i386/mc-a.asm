@@ -36,14 +36,7 @@ BITS 32
 ; Macros and other preprocessor constants
 ;=============================================================================
 
-%macro cglobal 1
-	%ifdef PREFIX
-		global _%1
-		%define %1 _%1
-	%else
-		global %1
-	%endif
-%endmacro
+%include "i386inc.asm"
 
 ;=============================================================================
 ; Constants
@@ -272,18 +265,21 @@ ALIGN 4
 %macro BIWEIGHT_START_MMX 0
     push    edi
     push    esi
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
     mov     edi, [esp+12] ; dst
     mov     esi, [esp+16] ; i_dst
     mov     edx, [esp+20] ; src
     mov     ecx, [esp+24] ; i_src
 
-    pshufw  mm4, [esp+28], 0 ; weight_dst
-    movq    mm5, [pw_64]
-    psubw   mm5, mm4      ; weight_src
-    movq    mm6, [pw_32]  ; rounding
+    pshufw  mm4, [esp+28], 0    ; weight_dst
+    movq    mm5, [pw_64 GLOBAL]
+    psubw   mm5, mm4            ; weight_src
+    movq    mm6, [pw_32 GLOBAL] ; rounding
     pxor    mm7, mm7
 %endmacro
 %macro BIWEIGHT_END_MMX 0
+    POP_EBX_IF_PIC
     pop     esi
     pop     edi
     ret
@@ -516,12 +512,15 @@ ALIGN 16
 
 x264_mc_chroma_sse:
 
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
+
     pxor    mm3, mm3
 
     pshufw  mm5, [esp+20], 0    ; mm5 - dx
     pshufw  mm6, [esp+24], 0    ; mm6 - dy
 
-    movq    mm4, [pw_8]
+    movq    mm4, [pw_8 GLOBAL]
     movq    mm0, mm4
 
     psubw   mm4, mm5            ; mm4 - 8-dx
@@ -557,7 +556,7 @@ ALIGN 4
     punpcklbw mm2, mm3
     punpcklbw mm1, mm3
 
-    paddw   mm0, [pw_32]
+    paddw   mm0, [pw_32 GLOBAL]
 
     pmullw  mm2, mm5            ; line * cB
     pmullw  mm1, mm7            ; line * cD
@@ -588,4 +587,5 @@ ALIGN 4
 
 .finish
     pop     edi
+    POP_EBX_IF_PIC
     ret

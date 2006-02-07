@@ -24,14 +24,7 @@ BITS 32
 ; Macros and other preprocessor constants
 ;=============================================================================
 
-%macro cglobal 1
-    %ifdef PREFIX
-        global _%1
-        %define %1 _%1
-    %else
-        global %1
-    %endif
-%endmacro
+%include "i386inc.asm"
 
 ;=============================================================================
 ; Read only data
@@ -139,8 +132,12 @@ x264_center_filter_mmxext :
 
     push        edi
     push        esi
-    push        ebx
+    ; commented out because it seems useless --sam
+    ;push        ebx
+    PUSH_EBX_IF_PIC
     push        ebp
+
+    GET_GOT_IN_EBX_IF_PIC
 
     mov         edx,      [esp + 40]         ; src_stride
     lea         edx,      [edx + edx + 18 + tbuffer]
@@ -173,11 +170,12 @@ x264_center_filter_mmxext :
     sub         eax,      ecx
     mov         [esp + tsrc]    ,eax         ; src - 2 * src_stride
 
-    lea         ebx,      [ecx + ecx * 2]    ; 3 * src_stride
+    ; commented out because it seems useless --sam
+    ;lea         ebx,      [ecx + ecx * 2]    ; 3 * src_stride
     lea         edx,      [ecx + ecx * 4]    ; 5 * src_stride
 
     pxor        mm0,      mm0                ; 0 ---> mm0
-    movq        mm7,      [mmx_dd_one]       ; for rounding
+    movq        mm7,      [mmx_dd_one GLOBAL] ; for rounding
 
 
 loopcy:
@@ -193,7 +191,7 @@ loopcy:
     pshufw      mm2,    mm1, 0
     movq        [ebp + 8],  mm1
     movq        [ebp],  mm2
-    paddw       mm1,    [mmx_dw_one]
+    paddw       mm1,    [mmx_dw_one GLOBAL]
     psraw       mm1,    5
 
     packuswb    mm1,    mm1
@@ -207,7 +205,7 @@ loopcx1:
     FILT_ALL    esi
 
     movq        [ebp + 2 * eax],  mm1
-    paddw       mm1,    [mmx_dw_one]
+    paddw       mm1,    [mmx_dw_one GLOBAL]
     psraw       mm1,    5
     packuswb    mm1,    mm1
     movd        [edi + eax - 4],  mm1
@@ -222,7 +220,7 @@ loopcx1:
     pshufw      mm2,    mm1,  7
     movq        [ebp + 2 * eax],  mm1
     movq        [ebp + 2 * eax + 8],  mm2
-    paddw       mm1,    [mmx_dw_one]
+    paddw       mm1,    [mmx_dw_one GLOBAL]
     psraw       mm1,    5
     packuswb    mm1,    mm1
     movd        [edi + eax - 4],  mm1
@@ -249,15 +247,15 @@ loopcx2:
     paddw       mm3,    mm4
     paddw       mm1,    mm6
 
-    movq        mm5,    [mmx_dw_20]
-    movq        mm4,    [mmx_dw_5]
+    movq        mm5,    [mmx_dw_20 GLOBAL]
+    movq        mm4,    [mmx_dw_5 GLOBAL]
     movq        mm6,    mm1
     pxor        mm7,    mm7
 
     punpckhwd   mm5,    mm2
     punpcklwd   mm4,    mm3
-    punpcklwd   mm2,    [mmx_dw_20]
-    punpckhwd   mm3,    [mmx_dw_5]
+    punpcklwd   mm2,    [mmx_dw_20 GLOBAL]
+    punpckhwd   mm3,    [mmx_dw_5 GLOBAL]
 
     pcmpgtw     mm7,    mm1
 
@@ -270,8 +268,8 @@ loopcx2:
     paddd       mm2,    mm1
     paddd       mm3,    mm6
 
-    paddd       mm2,    [mmx_dd_one]
-    paddd       mm3,    [mmx_dd_one]
+    paddd       mm2,    [mmx_dd_one GLOBAL]
+    paddd       mm3,    [mmx_dd_one GLOBAL]
 
     psrad       mm2,    10
     psrad       mm3,    10
@@ -297,7 +295,9 @@ loopcx2:
     add         esp,    [esp + toffset]
 
     pop         ebp
-    pop         ebx
+    ; commented out because it seems useless --sam
+    ;pop         ebx
+    POP_EBX_IF_PIC
     pop         esi
     pop         edi
 
@@ -320,7 +320,10 @@ x264_horizontal_filter_mmxext :
     mov         esi,    [esp + 20]           ; src
 
     pxor        mm0,    mm0
-    movq        mm7,    [mmx_dw_one]
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
+    movq        mm7,    [mmx_dw_one GLOBAL]
+    POP_EBX_IF_PIC
 
     mov         ecx,    [esp + 32]           ; height
 

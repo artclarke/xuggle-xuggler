@@ -26,15 +26,7 @@ BITS 32
 ; Macros and other preprocessor constants
 ;=============================================================================
 
-%macro cglobal 1
-    %ifdef PREFIX
-        global _%1
-        %define %1 _%1
-    %else
-        global %1
-    %endif
-%endmacro
-
+%include "i386inc.asm"
 
 %ifdef FORMAT_COFF
 SECTION .rodata data
@@ -409,12 +401,14 @@ x264_pixel_ssd_16x8_sse2:
 %endmacro
 
 %macro SUM_MM_SSE2 2    ; sum junk
+    ; ebx is no longer used at this point, so no push needed
+    GET_GOT_IN_EBX_IF_PIC
     ; each column sum of SATD is necessarily even, so we don't lose any precision by shifting first.
     psrlw   %1, 1
     movdqa  %2, %1
     psrldq  %1, 2
     paddusw %1, %2
-    pand    %1, [pd_0000ffff]
+    pand    %1, [pd_0000ffff GLOBAL]
     movdqa  %2, %1
     psrldq  %1, 4
     paddd   %1, %2

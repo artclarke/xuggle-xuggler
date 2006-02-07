@@ -38,14 +38,7 @@ BITS 32
 ; Macros and other preprocessor constants
 ;=============================================================================
 
-%macro cglobal 1
-	%ifdef PREFIX
-		global _%1
-		%define %1 _%1
-	%else
-		global %1
-	%endif
-%endmacro
+%include "i386inc.asm"
 
 %macro MMX_ZERO 1
     pxor    %1, %1
@@ -161,6 +154,8 @@ ALIGN 16
 ;   void __cdecl dct4x4dc( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
 x264_dct4x4dc_mmxext:
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
     mov     eax,        [esp+ 4]
     movq    mm0,        [eax+ 0]
     movq    mm1,        [eax+ 8]
@@ -177,7 +172,7 @@ x264_dct4x4dc_mmxext:
 
     MMX_TRANSPOSE       mm0, mm2, mm3, mm4, mm1     ; in: mm0, mm2, mm3, mm4  out: mm0, mm4, mm1, mm3
 
-    movq    mm6,        [x264_mmx_1]
+    movq    mm6,        [x264_mmx_1 GLOBAL]
     paddw   mm0,        mm6
     paddw   mm4,        mm6
     psraw   mm0,        1
@@ -190,6 +185,7 @@ x264_dct4x4dc_mmxext:
     movq    [eax+16],   mm1
     psraw   mm3,        1
     movq    [eax+24],   mm3
+    POP_EBX_IF_PIC
     ret
 
 cglobal x264_idct4x4dc_mmxext
@@ -276,6 +272,8 @@ ALIGN 16
 ;   void __cdecl x264_add4x4_idct_mmxext( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
 x264_add4x4_idct_mmxext:
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
 
     ; Load dct coeffs
     mov     eax, [esp+12]   ; dct
@@ -305,13 +303,14 @@ x264_add4x4_idct_mmxext:
     MMX_SUMSUB_BADC     mm2, mm3, mm4, mm1              ; mm2=s02+s13  mm3=s02-s13  mm4=d02+d13  mm1=d02-d13
 
     MMX_ZERO            mm7
-    movq                mm6, [x264_mmx_32]
+    movq                mm6, [x264_mmx_32 GLOBAL]
     
     MMX_STORE_DIFF_4P   mm2, mm0, mm6, mm7, [eax]
     MMX_STORE_DIFF_4P   mm4, mm0, mm6, mm7, [eax+ecx]
     MMX_STORE_DIFF_4P   mm1, mm0, mm6, mm7, [eax+ecx*2]
     MMX_STORE_DIFF_4P   mm3, mm0, mm6, mm7, [eax+edx]
 
+    POP_EBX_IF_PIC
     ret
 
 
@@ -396,12 +395,14 @@ ALIGN 16
 ;   void __cdecl x264_xdct8_mmxext( int16_t dest[8][8] );
 ;-----------------------------------------------------------------------------
 x264_xdct8_mmxext:
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
 
     mov         eax, [esp+04]           ; dest
-    movq        mm5, [x264_mmx_PPNN]
-    movq        mm6, [x264_mmx_PNNP]
-    movq        mm4, [x264_mmx_PPPN]
-    movq        mm7, [x264_mmx_PPNP]
+    movq        mm5, [x264_mmx_PPNN GLOBAL]
+    movq        mm6, [x264_mmx_PNNP GLOBAL]
+    movq        mm4, [x264_mmx_PPPN GLOBAL]
+    movq        mm7, [x264_mmx_PPNP GLOBAL]
 
     ;-------------------------------------------------------------------------
     ; horizontal dct ( compute 1 row at a time -> 8 loops )
@@ -435,7 +436,7 @@ x264_xdct8_mmxext:
 
     pshufw      mm2, mm0, 11001001b     ; (low)a1/a3/a0/a2(high)
     pshufw      mm0, mm0, 10011100b     ; (low)a0/a2/a1/a3(high)
-    pmullw      mm2, [x264_mmx_2121]
+    pmullw      mm2, [x264_mmx_2121 GLOBAL]
     pmullw      mm0, mm5                ; (low)a0/a2/-a1/-a3(high)
     psraw       mm2, 1                  ; (low)a1/a3>>1/a0/a2>>1(high)
     paddw       mm0, mm2                ; (low)dst0/dst2/dst4/dst6(high)
@@ -457,6 +458,7 @@ x264_xdct8_mmxext:
     %assign disp disp+16
     %endrep
 
+    POP_EBX_IF_PIC
     ret
 
 ALIGN 16
@@ -549,12 +551,14 @@ ALIGN 16
 ;   void __cdecl x264_xidct8_mmxext( int16_t dest[8][8] );
 ;-----------------------------------------------------------------------------
 x264_xidct8_mmxext:
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
 
     mov         eax, [esp+04]           ; dest
-    movq        mm4, [x264_mmx_PPNN]
-    movq        mm5, [x264_mmx_PNPN]
-    movq        mm6, [x264_mmx_PPNP]
-    movq        mm7, [x264_mmx_PPPN]
+    movq        mm4, [x264_mmx_PPNN GLOBAL]
+    movq        mm5, [x264_mmx_PNPN GLOBAL]
+    movq        mm6, [x264_mmx_PPNP GLOBAL]
+    movq        mm7, [x264_mmx_PPPN GLOBAL]
 
     ;-------------------------------------------------------------------------
     ; horizontal idct ( compute 1 row at a time -> 8 loops )
@@ -570,7 +574,7 @@ x264_xidct8_mmxext:
     punpckhwd   mm1, mm2                ; (low)d1,d5,d3,d7(high)
 
     pshufw      mm2, mm0, 10110001b     ; (low)d4,d0,d6,d2(high)
-    pmullw      mm0, [x264_mmx_p2n2p1p1]; (low)2*d0,-2*d4,d2,d6(high)
+    pmullw      mm0, [x264_mmx_p2n2p1p1 GLOBAL]; (low)2*d0,-2*d4,d2,d6(high)
     pmullw      mm2, mm6                ; (low)d4,d0,-d6,d2(high)
     psraw       mm0, 1                  ; (low)d0,-d4,d2>>1,d6>>1(high)
     paddw       mm0, mm2                ; (low)e0,e2,e4,e6(high)
@@ -605,6 +609,7 @@ x264_xidct8_mmxext:
     %assign disp disp+16
     %endrep
 
+    POP_EBX_IF_PIC
     ret
 
 ALIGN 16

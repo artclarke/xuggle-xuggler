@@ -26,14 +26,7 @@ BITS 32
 ; Macros and other preprocessor constants
 ;=============================================================================
 
-%macro cglobal 1
-    %ifdef PREFIX
-        global _%1
-        %define %1 _%1
-    %else
-        global %1
-    %endif
-%endmacro
+%include "i386inc.asm"
 
 %macro SAVE_0_1 1
     movq        [%1]         , mm0
@@ -79,7 +72,7 @@ cglobal predict_16x16_dc_top_mmxext
     pavgb       mm1, mm2
     pxor        mm2, mm3
     movq        %1 , %2
-    pand        mm2, [pb_1]
+    pand        mm2, [pb_1 GLOBAL]
     psubusb     mm1, mm2
     pavgb       %1 , mm1     ; %1 = (t[n-1] + t[n]*2 + t[n+1] + 2) >> 2
 %endmacro
@@ -120,6 +113,8 @@ cglobal predict_16x16_dc_top_mmxext
 
 ALIGN 16
 predict_8x8_v_mmxext:
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
 
     PRED8x8_LOAD_TOP
     lea         eax, [ecx + 2*ecx]
@@ -133,6 +128,7 @@ predict_8x8_v_mmxext:
     movq        [edx + eax], mm0        ; 5
     movq        [edx + 4*ecx], mm0      ; 6
 
+    POP_EBX_IF_PIC
     ret
 
 ;-----------------------------------------------------------------------------
@@ -143,6 +139,8 @@ predict_8x8_v_mmxext:
 
 ALIGN 16
 predict_8x8_dc_core_mmxext:
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
 
     mov         eax, [esp + 16]
     movq        mm1, [eax-1]
@@ -154,7 +152,7 @@ predict_8x8_dc_core_mmxext:
     pxor        mm1, mm1
     psadbw      mm0, mm1
     psadbw      mm4, mm1
-    paddw       mm0, [pw_8]
+    paddw       mm0, [pw_8 GLOBAL]
     paddw       mm0, mm4
     psrlw       mm0, 4
     pshufw      mm0, mm0, 0
@@ -171,6 +169,7 @@ predict_8x8_dc_core_mmxext:
     movq        [edx + eax], mm0        ; 5
     movq        [edx + 4*ecx], mm0      ; 6
 
+    POP_EBX_IF_PIC
     ret
 
 ;-----------------------------------------------------------------------------
@@ -208,6 +207,8 @@ predict_8x8c_v_mmx :
 
 ALIGN 16
 predict_8x8c_dc_core_mmxext:
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
 
     mov         edx, [esp + 4]
     mov         ecx, [esp + 8]
@@ -225,7 +226,7 @@ predict_8x8c_dc_core_mmxext:
     paddw       mm0, [esp + 12]
     pshufw      mm2, [esp + 16], 0
     psrlw       mm0, 3
-    paddw       mm1, [pw_2]
+    paddw       mm1, [pw_2 GLOBAL]
     movq        mm3, mm2
     pshufw      mm1, mm1, 0
     pshufw      mm0, mm0, 0     ; dc0 (w)
@@ -247,6 +248,7 @@ predict_8x8c_dc_core_mmxext:
     movq        [edx +   eax], mm2 ; 6
     movq        [edx + 4*ecx], mm2 ; 7
 
+    POP_EBX_IF_PIC
     ret
 
 ;-----------------------------------------------------------------------------
@@ -257,6 +259,8 @@ predict_8x8c_dc_core_mmxext:
 
 ALIGN 16
 predict_8x8c_p_core_mmx:
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
 
     mov         edx, [esp + 4]
     mov         ecx, [esp + 8]
@@ -268,7 +272,7 @@ predict_8x8c_p_core_mmx:
     pshufw      mm2, mm2, 0
     pshufw      mm4, mm4, 0
     movq        mm1, mm2
-    pmullw      mm2, [pw_3210]
+    pmullw      mm2, [pw_3210 GLOBAL]
     psllw       mm1, 2
     paddsw      mm0, mm2        ; mm0 = {i+0*b, i+1*b, i+2*b, i+3*b}
     paddsw      mm1, mm0        ; mm1 = {i+4*b, i+5*b, i+6*b, i+7*b}
@@ -293,6 +297,7 @@ ALIGN 4
     jg          .loop
 
     nop
+    POP_EBX_IF_PIC
     ret
 
 ;-----------------------------------------------------------------------------
@@ -303,6 +308,9 @@ ALIGN 4
 
 ALIGN 16
 predict_16x16_p_core_mmx:
+
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
 
     mov         edx, [esp + 4]
     mov         ecx, [esp + 8]
@@ -315,7 +323,7 @@ predict_16x16_p_core_mmx:
     pshufw      mm4, mm4, 0
     movq        mm5, mm2
     movq        mm1, mm2
-    pmullw      mm5, [pw_3210]
+    pmullw      mm5, [pw_3210 GLOBAL]
     psllw       mm2, 3
     psllw       mm1, 2
     movq        mm3, mm2
@@ -355,6 +363,7 @@ ALIGN 4
     jg          .loop
 
     nop
+    POP_EBX_IF_PIC
     ret
 
 ;-----------------------------------------------------------------------------
@@ -431,14 +440,18 @@ ALIGN 4
     jg          .loop
 
     pop         edi
-    ret
 %endmacro
 
 ALIGN 16
 predict_16x16_dc_core_mmxext:
-PRED16x16_DC [esp+12], 5
+    PRED16x16_DC [esp+12], 5
+    ret
 
 ALIGN 16
 predict_16x16_dc_top_mmxext:
-PRED16x16_DC [pw_8], 4
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
+    PRED16x16_DC [pw_8 GLOBAL], 4
+    POP_EBX_IF_PIC
+    ret
 

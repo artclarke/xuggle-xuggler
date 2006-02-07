@@ -22,14 +22,7 @@
 
 BITS 32
 
-%macro cglobal 1
-    %ifdef PREFIX
-        global _%1
-        %define %1 _%1
-    %else
-        global %1
-    %endif
-%endmacro
+%include "i386inc.asm"
 
 SECTION .rodata align=16
 pb_01: times 16 db 0x01
@@ -192,19 +185,19 @@ cglobal x264_deblock_h_chroma_intra_mmxext
     pxor    mm4, mm2
     ; b = p0^(q1>>2)
     psrlw   mm3, 2
-    pand    mm3, [pb_3f]
+    pand    mm3, [pb_3f GLOBAL]
     movq    mm5, mm1
     pxor    mm5, mm3
     ; c = q0^(p1>>2)
     psrlw   mm0, 2
-    pand    mm0, [pb_3f]
+    pand    mm0, [pb_3f GLOBAL]
     movq    mm6, mm2
     pxor    mm6, mm0
     ; d = (c^b) & ~(b^a) & 1
     pxor    mm6, mm5
     pxor    mm5, mm4
     pandn   mm5, mm6
-    pand    mm5, [pb_01]
+    pand    mm5, [pb_01 GLOBAL]
     ; delta = (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3
     ;       = (avg(q0, p1>>2) + (d&a))
     ;       - (avg(p0, q1>>2) + (d^(d&a)))
@@ -234,10 +227,10 @@ cglobal x264_deblock_h_chroma_intra_mmxext
 %macro LUMA_Q1_MMX 6
     movq    %6, mm1
     pavgb   %6, mm2
-    pavgb   %2, %6       ; avg(p2,avg(p0,q0))
+    pavgb   %2, %6             ; avg(p2,avg(p0,q0))
     pxor    %6, %3
-    pand    %6, [pb_01]  ; (p2^avg(p0,q0))&1
-    psubusb %2, %6       ; (p2+((p0+q0+1)>>1))>>1
+    pand    %6, [pb_01 GLOBAL] ; (p2^avg(p0,q0))&1
+    psubusb %2, %6             ; (p2+((p0+q0+1)>>1))>>1
     movq    %6, %1
     psubusb %6, %5
     paddusb %5, %1
@@ -254,6 +247,8 @@ ALIGN 16
 ;   void x264_deblock_v8_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 x264_deblock_v8_luma_mmxext:
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
     push    edi
     push    esi
     mov     edi, [esp+12] ; pix
@@ -279,7 +274,7 @@ x264_deblock_v8_luma_mmxext:
     punpcklbw mm4, mm4
     punpcklbw mm4, mm4 ; tc = 4x tc0[1], 4x tc0[0]
     movq   [esp+8], mm4 ; tc
-    pcmpgtb mm4, [pb_ff]
+    pcmpgtb mm4, [pb_ff GLOBAL]
     pand    mm4, mm7
     movq   [esp+0], mm4 ; mask
 
@@ -289,7 +284,7 @@ x264_deblock_v8_luma_mmxext:
     pcmpeqb mm6, mm4
     pand    mm6, mm4
     pand    mm4, [esp+8] ; tc
-    movq    mm7, [pb_01]
+    movq    mm7, [pb_01 GLOBAL]
     pand    mm7, mm6
     pand    mm6, mm4
     paddb   mm7, mm4
@@ -303,18 +298,19 @@ x264_deblock_v8_luma_mmxext:
     pand    mm6, mm5
     movq    mm5, [esp+8] ; tc
     pand    mm5, mm6
-    pand    mm6, [pb_01]
+    pand    mm6, [pb_01 GLOBAL]
     paddb   mm7, mm6
     movq    mm3, [edi+esi]
     LUMA_Q1_MMX  mm3, mm4, [edi+2*esi], [edi+esi], mm5, mm6
 
-    DEBLOCK_P0_Q0_MMX
+    DEBLOCK_P0_Q0_MMX ; XXX: make sure ebx has the GOT in PIC mode
     movq    [eax+2*esi], mm1
     movq    [edi], mm2
 
     add     esp, 16
     pop     esi
     pop     edi
+    POP_EBX_IF_PIC
     ret
 
 
@@ -434,7 +430,8 @@ x264_deblock_v_chroma_mmxext:
     movd       mm6, [ebx]
     punpcklbw  mm6, mm6
     pand       mm7, mm6
-    DEBLOCK_P0_Q0_MMX
+    GET_GOT_IN_EBX_IF_PIC ; no need to push ebx, it's already been done
+    DEBLOCK_P0_Q0_MMX ; XXX: make sure ebx has the GOT in PIC mode
 
     movq  [eax+esi], mm1
     movq  [edi], mm2
@@ -461,7 +458,7 @@ x264_deblock_h_chroma_mmxext:
     movd       mm6, [ebx]
     punpcklbw  mm6, mm6
     pand       mm7, mm6
-    DEBLOCK_P0_Q0_MMX
+    DEBLOCK_P0_Q0_MMX ; XXX: make sure ebx has the GOT in PIC mode
 
     movq  mm0, [esp+8]
     movq  mm3, [esp+0]
@@ -478,7 +475,7 @@ x264_deblock_h_chroma_mmxext:
 %macro CHROMA_INTRA_P0 3
     movq    mm4, %1
     pxor    mm4, %3
-    pand    mm4, [pb_01]  ; mm4 = (p0^q1)&1
+    pand    mm4, [pb_01 GLOBAL]  ; mm4 = (p0^q1)&1
     pavgb   %1,  %3
     psubusb %1,  mm4
     pavgb   %1,  %2       ; dst = avg(p1, avg(p0,q1) - ((p0^q1)&1))
@@ -504,13 +501,16 @@ ALIGN 16
 ;-----------------------------------------------------------------------------
 x264_deblock_v_chroma_intra_mmxext:
     CHROMA_V_START
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
     movq  mm0, [eax]
     movq  mm1, [eax+esi]
     movq  mm2, [edi]
     movq  mm3, [edi+esi]
-    CHROMA_INTRA_BODY
+    CHROMA_INTRA_BODY ; XXX: make sure ebx has the GOT in PIC mode
     movq  [eax+esi], mm1
     movq  [edi], mm2
+    POP_EBX_IF_PIC
     CHROMA_END
 
 ALIGN 16
@@ -519,9 +519,13 @@ ALIGN 16
 ;-----------------------------------------------------------------------------
 x264_deblock_h_chroma_intra_mmxext:
     CHROMA_H_START
+    PUSH_EBX_IF_PIC
+    GET_GOT_IN_EBX_IF_PIC
     TRANSPOSE4x8_LOAD  PASS8ROWS(eax, edi, esi, ebp)
-    CHROMA_INTRA_BODY
+    CHROMA_INTRA_BODY ; XXX: make sure ebx has the GOT in PIC mode
     TRANSPOSE8x4_STORE PASS8ROWS(eax, edi, esi, ebp)
-    pop  ebp
+    POP_EBX_IF_PIC
+    pop  ebp ; needed because of CHROMA_H_START
+    POP_EBX_IF_PIC
     CHROMA_END
 
