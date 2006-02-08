@@ -70,7 +70,7 @@ cglobal x264_mc_copy_w8_mmxext
 cglobal x264_mc_copy_w16_mmxext
 cglobal x264_mc_copy_w16_sse2
 
-cglobal x264_mc_chroma_sse
+cglobal x264_mc_chroma_mmxext
 
 ;=============================================================================
 ; pixel avg
@@ -403,13 +403,13 @@ ALIGN 4
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void x264_mc_chroma_sse( uint8_t *src, int i_src_stride,
+;   void x264_mc_chroma_mmxext( uint8_t *src, int i_src_stride,
 ;                               uint8_t *dst, int i_dst_stride,
 ;                               int dx, int dy,
-;                               int i_height, int i_width )
+;                               int i_width, int i_height )
 ;-----------------------------------------------------------------------------
 
-x264_mc_chroma_sse:
+x264_mc_chroma_mmxext:
     movd    mm0, parm5d
     movd    mm1, parm6d
 
@@ -432,7 +432,7 @@ x264_mc_chroma_sse:
 
     mov     rax, parm1q
     mov     r10, parm3q
-    mov     r11d, parm7d
+    mov     r11d, parm8d
 
 ALIGN 4
 .height_loop
@@ -468,14 +468,12 @@ ALIGN 4
     dec     r11d
     jnz     .height_loop
 
-    mov     eax, parm8d         ; i_width
-    sub     eax, 8
+    sub     parm7d, 8
     jnz     .finish             ; width != 8 so assume 4
 
-    mov     parm8d, eax         ; i_width
     mov     r10, parm3q         ; dst
     mov     rax, parm1q         ; src
-    mov     r11d, parm7d        ; i_height
+    mov     r11d, parm8d        ; i_height
     add     r10, 4
     add     rax, 4
     jmp    .height_loop

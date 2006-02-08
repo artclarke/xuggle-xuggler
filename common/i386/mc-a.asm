@@ -74,7 +74,7 @@ cglobal x264_mc_copy_w8_mmxext
 cglobal x264_mc_copy_w16_mmxext
 cglobal x264_mc_copy_w16_sse2
 
-cglobal x264_mc_chroma_sse
+cglobal x264_mc_chroma_mmxext
 
 ;=============================================================================
 ; pixel avg
@@ -504,27 +504,27 @@ ALIGN 4
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void x264_mc_chroma_sse( uint8_t *src, int i_src_stride,
+;   void x264_mc_chroma_mmxext( uint8_t *src, int i_src_stride,
 ;                               uint8_t *dst, int i_dst_stride,
 ;                               int dx, int dy,
-;                               int i_height, int i_width )
+;                               int i_width, int i_height )
 ;-----------------------------------------------------------------------------
 
-x264_mc_chroma_sse:
+x264_mc_chroma_mmxext:
 
     PUSH_EBX_IF_PIC
     GET_GOT_IN_EBX_IF_PIC
 
     pxor    mm3, mm3
 
-    pshufw  mm5, [esp+20], 0    ; mm5 - dx
-    pshufw  mm6, [esp+24], 0    ; mm6 - dy
+    pshufw  mm5, [esp+20], 0    ; mm5 = dx
+    pshufw  mm6, [esp+24], 0    ; mm6 = dy
 
     movq    mm4, [pw_8 GLOBAL]
     movq    mm0, mm4
 
-    psubw   mm4, mm5            ; mm4 - 8-dx
-    psubw   mm0, mm6            ; mm0 - 8-dy
+    psubw   mm4, mm5            ; mm4 = 8-dx
+    psubw   mm0, mm6            ; mm0 = 8-dy
 
     movq    mm7, mm5
     pmullw  mm5, mm0            ; mm5 = dx*(8-dy) =     cB
@@ -537,7 +537,7 @@ x264_mc_chroma_sse:
     mov     eax, [esp+4+4]     ; src
     mov     edi, [esp+4+12]    ; dst
     mov     ecx, [esp+4+8]     ; i_src_stride
-    mov     edx, [esp+4+28]    ; i_height
+    mov     edx, [esp+4+32]    ; i_height
 
 ALIGN 4
 .height_loop
@@ -573,14 +573,12 @@ ALIGN 4
     dec     edx
     jnz     .height_loop
 
-    mov     eax, [esp+4+32]
-    sub     eax, 8
-    jnz     .finish              ; width != 8 so assume 4
+    sub     [esp+4+28], dword 8
+    jnz     .finish            ; width != 8 so assume 4
 
-    mov     [esp+4+32], eax
     mov     edi, [esp+4+12]    ; dst
     mov     eax, [esp+4+4]     ; src
-    mov     edx, [esp+4+28]    ; i_height
+    mov     edx, [esp+4+32]    ; i_height
     add     edi, 4
     add     eax, 4
     jmp    .height_loop
