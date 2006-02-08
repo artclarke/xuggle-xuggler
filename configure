@@ -14,6 +14,7 @@ echo "  --enable-pthread         enables multithreaded encoding"
 echo "  --enable-debug           adds -g, doesn't strip"
 echo "  --enable-gprof           adds -pg, doesn't strip"
 echo "  --enable-visualize       enables visualization (X11 only)"
+echo "  --enable-pic             build position-independent code"
 echo "  --extra-asflags=EASFLAGS add EASFLAGS to ASFLAGS"
 echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS"
 echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS"
@@ -47,6 +48,7 @@ mp4_output="auto"
 pthread="auto"
 debug="no"
 gprof="no"
+pic="no"
 vfw="no"
 vis="no"
 
@@ -234,6 +236,11 @@ for opt do
             LDFLAGS="$LDFLAGS -pg"
             gprof="yes"
             ;;
+        --enable-pic)
+            CFLAGS="$CFLAGS -fPIC"
+            ASFLAGS="$ASFLAGS -D__PIC__"
+            pic="yes"
+            ;;
         --enable-vfw)
             vfw="yes"
             ;;
@@ -369,6 +376,7 @@ echo "pthread:    $pthread"
 echo "vfw:        $vfw"
 echo "debug:      $debug"
 echo "gprof:      $gprof"
+echo "PIC:        $pic"
 echo "visualize:  $vis"
 echo
 echo "You can run 'make' or 'make fprofiled' now."
