@@ -14,7 +14,7 @@
 #include "common/ppc/mc.h"
 #endif
 
-/* buf1, buf2: initialised to randome data and shouldn't write into them */
+/* buf1, buf2: initialised to random data and shouldn't write into them */
 uint8_t * buf1, * buf2;
 /* buf3, buf4: used to store output */
 uint8_t * buf3, * buf4;
@@ -526,7 +526,7 @@ int check_all( int cpu_ref, int cpu_new )
          + check_quant( cpu_ref, cpu_new );
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     int ret = 0;
     int i;
@@ -537,7 +537,9 @@ int main()
     buf4 = x264_malloc( 1024 );
     buf5 = x264_malloc( 1024 );
 
-    srand( x264_mdate() );
+    i = ( argc > 1 ) ? atoi(argv[1]) : x264_mdate();
+    fprintf( stderr, "x264: using random seed %u\n", i );
+    srand( i );
 
     for( i = 0; i < 1024; i++ )
     {
