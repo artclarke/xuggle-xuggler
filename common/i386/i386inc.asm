@@ -35,28 +35,61 @@ BITS 32
     %endif
 %endmacro
 
+; PIC support macros. All these macros are totally harmless when __PIC__ is
+; not defined but can ruin everything if misused in PIC mode. On x86, shared
+; objects cannot directly access global variables by address, they need to
+; go through the GOT (global offset table). Most OSes do not care about it
+; and let you load non-shared .so objects (Linux, Win32...). However, OS X
+; requires PIC code in its .dylib objects.
+;
+; - GLOBAL should be used as a suffix for global addressing, eg.
+;     mov eax, [foo GLOBAL]
+;   instead of
+;     mov eax, [foo]
+;
+; - picgetgot computes the GOT address into the given register in PIC
+;   mode, otherwise does nothing. You need to do this before using GLOBAL.
+;
+; - picpush and picpop respectively push and pop the given register
+;   in PIC mode, otherwise do nothing. You should always use them around
+;   picgetgot except when sure that the register is no longer used and is
+;   being restored later by other means.
+;
+; - picesp is defined to compensate the changing of esp when pushing
+;   a register into the stack, eg.
+;     mov eax, [esp + 8]
+;     pushpic  ebx
+;     mov eax, [picesp + 12]
+;   instead of
+;     mov eax, [esp + 8]
+;     pushpic  ebx
+;     mov eax, [esp + 12]
+;
 %ifdef __PIC__
     extern _GLOBAL_OFFSET_TABLE_
-    %define GLOBAL wrt ..gotpc
-    %macro GET_GOT_IN_EBX_IF_PIC 0 
+    ; FIXME: find an elegant way to use registers other than ebx
+    %define GLOBAL + ebx wrt ..gotoff
+    %macro picgetgot 1
         call %%getgot 
       %%getgot: 
-        pop ebx 
-        add ebx, _GLOBAL_OFFSET_TABLE_ + $$ - %%getgot wrt ..gotpc 
+        pop %1 
+        add %1, _GLOBAL_OFFSET_TABLE_ + $$ - %%getgot wrt ..gotpc 
     %endmacro
-    %macro PUSH_EBX_IF_PIC 0
-        push ebx
+    %macro picpush 1
+        push %1
     %endmacro
-    %macro POP_EBX_IF_PIC 0
-        pop ebx
+    %macro picpop 1
+        pop %1
     %endmacro
+    %define picesp esp+4
 %else
     %define GLOBAL
-    %macro GET_GOT_IN_EBX_IF_PIC 0 
+    %macro picgetgot 1
     %endmacro
-    %macro PUSH_EBX_IF_PIC 0
+    %macro picpush 1
     %endmacro
-    %macro POP_EBX_IF_PIC 0
+    %macro picpop 1
     %endmacro
+    %define picesp esp
 %endif
 

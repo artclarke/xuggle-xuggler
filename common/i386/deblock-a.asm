@@ -247,14 +247,14 @@ ALIGN 16
 ;   void x264_deblock_v8_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 x264_deblock_v8_luma_mmxext:
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
+    picpush ebx
+    picgetgot ebx
     push    edi
     push    esi
-    mov     edi, [esp+12] ; pix
-    mov     esi, [esp+16] ; stride
-    mov     edx, [esp+20] ; alpha
-    mov     ecx, [esp+24] ; beta
+    mov     edi, [picesp+12] ; pix
+    mov     esi, [picesp+16] ; stride
+    mov     edx, [picesp+20] ; alpha
+    mov     ecx, [picesp+24] ; beta
     dec     edx
     dec     ecx
     mov     eax, edi
@@ -269,7 +269,7 @@ x264_deblock_v8_luma_mmxext:
     movq    mm3, [edi+esi]   ; q1
     LOAD_MASK_MMX  edx, ecx
 
-    mov     ecx, [esp+44] ; tc0, use only the low 16 bits
+    mov     ecx, [picesp+44] ; tc0, use only the low 16 bits
     movd    mm4, [ecx]
     punpcklbw mm4, mm4
     punpcklbw mm4, mm4 ; tc = 4x tc0[1], 4x tc0[0]
@@ -310,7 +310,7 @@ x264_deblock_v8_luma_mmxext:
     add     esp, 16
     pop     esi
     pop     edi
-    POP_EBX_IF_PIC
+    picpop  ebx
     ret
 
 
@@ -430,7 +430,7 @@ x264_deblock_v_chroma_mmxext:
     movd       mm6, [ebx]
     punpcklbw  mm6, mm6
     pand       mm7, mm6
-    GET_GOT_IN_EBX_IF_PIC ; no need to push ebx, it's already been done
+    picgetgot  ebx ; no need to push ebx, it's already been done
     DEBLOCK_P0_Q0_MMX ; XXX: make sure ebx has the GOT in PIC mode
 
     movq  [eax+esi], mm1
@@ -458,6 +458,7 @@ x264_deblock_h_chroma_mmxext:
     movd       mm6, [ebx]
     punpcklbw  mm6, mm6
     pand       mm7, mm6
+    picgetgot  ebx ; no need to push ebx, it's already been done
     DEBLOCK_P0_Q0_MMX ; XXX: make sure ebx has the GOT in PIC mode
 
     movq  mm0, [esp+8]
@@ -501,8 +502,8 @@ ALIGN 16
 ;-----------------------------------------------------------------------------
 x264_deblock_v_chroma_intra_mmxext:
     CHROMA_V_START
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
+    picpush ebx
+    picgetgot ebx
     movq  mm0, [eax]
     movq  mm1, [eax+esi]
     movq  mm2, [edi]
@@ -510,7 +511,7 @@ x264_deblock_v_chroma_intra_mmxext:
     CHROMA_INTRA_BODY ; XXX: make sure ebx has the GOT in PIC mode
     movq  [eax+esi], mm1
     movq  [edi], mm2
-    POP_EBX_IF_PIC
+    picpop ebx
     CHROMA_END
 
 ALIGN 16
@@ -519,13 +520,12 @@ ALIGN 16
 ;-----------------------------------------------------------------------------
 x264_deblock_h_chroma_intra_mmxext:
     CHROMA_H_START
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
+    picpush ebx
+    picgetgot ebx
     TRANSPOSE4x8_LOAD  PASS8ROWS(eax, edi, esi, ebp)
     CHROMA_INTRA_BODY ; XXX: make sure ebx has the GOT in PIC mode
     TRANSPOSE8x4_STORE PASS8ROWS(eax, edi, esi, ebp)
-    POP_EBX_IF_PIC
+    picpop ebx
     pop  ebp ; needed because of CHROMA_H_START
-    POP_EBX_IF_PIC
     CHROMA_END
 

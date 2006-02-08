@@ -402,7 +402,7 @@ x264_pixel_ssd_16x8_sse2:
 
 %macro SUM_MM_SSE2 2    ; sum junk
     ; ebx is no longer used at this point, so no push needed
-    GET_GOT_IN_EBX_IF_PIC
+    picgetgot ebx
     ; each column sum of SATD is necessarily even, so we don't lose any precision by shifting first.
     psrlw   %1, 1
     movdqa  %2, %1

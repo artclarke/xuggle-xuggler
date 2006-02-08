@@ -154,13 +154,14 @@ ALIGN 16
 ;   void __cdecl dct4x4dc( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
 x264_dct4x4dc_mmxext:
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
     mov     eax,        [esp+ 4]
     movq    mm0,        [eax+ 0]
     movq    mm1,        [eax+ 8]
     movq    mm2,        [eax+16]
     movq    mm3,        [eax+24]
+
+    picpush ebx
+    picgetgot ebx
 
     MMX_SUMSUB_BADC     mm1, mm0, mm3, mm2          ; mm1=s01  mm0=d01  mm3=s23  mm2=d23
     MMX_SUMSUB_BADC     mm3, mm1, mm2, mm0          ; mm3=s01+s23  mm1=s01-s23  mm2=d01+d23  mm0=d01-d23
@@ -185,7 +186,7 @@ x264_dct4x4dc_mmxext:
     movq    [eax+16],   mm1
     psraw   mm3,        1
     movq    [eax+24],   mm3
-    POP_EBX_IF_PIC
+    picpop  ebx
     ret
 
 cglobal x264_idct4x4dc_mmxext
@@ -272,9 +273,6 @@ ALIGN 16
 ;   void __cdecl x264_add4x4_idct_mmxext( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
 x264_add4x4_idct_mmxext:
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
-
     ; Load dct coeffs
     mov     eax, [esp+12]   ; dct
     movq    mm0, [eax+ 0]
@@ -285,6 +283,9 @@ x264_add4x4_idct_mmxext:
     mov     eax, [esp+ 4]   ; p_dst
     mov     ecx, [esp+ 8]   ; i_dst
     lea     edx, [ecx+ecx*2]
+
+    picpush ebx
+    picgetgot ebx
 
     ; out:mm0, mm1, mm2, mm3
     MMX_TRANSPOSE       mm0, mm4, mm3, mm1, mm2
@@ -310,7 +311,7 @@ x264_add4x4_idct_mmxext:
     MMX_STORE_DIFF_4P   mm1, mm0, mm6, mm7, [eax+ecx*2]
     MMX_STORE_DIFF_4P   mm3, mm0, mm6, mm7, [eax+edx]
 
-    POP_EBX_IF_PIC
+    picpop  ebx
     ret
 
 
@@ -395,10 +396,11 @@ ALIGN 16
 ;   void __cdecl x264_xdct8_mmxext( int16_t dest[8][8] );
 ;-----------------------------------------------------------------------------
 x264_xdct8_mmxext:
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
-
     mov         eax, [esp+04]           ; dest
+
+    picpush     ebx
+    picgetgot   ebx
+
     movq        mm5, [x264_mmx_PPNN GLOBAL]
     movq        mm6, [x264_mmx_PNNP GLOBAL]
     movq        mm4, [x264_mmx_PPPN GLOBAL]
@@ -458,7 +460,7 @@ x264_xdct8_mmxext:
     %assign disp disp+16
     %endrep
 
-    POP_EBX_IF_PIC
+    picpop      ebx
     ret
 
 ALIGN 16
@@ -551,10 +553,11 @@ ALIGN 16
 ;   void __cdecl x264_xidct8_mmxext( int16_t dest[8][8] );
 ;-----------------------------------------------------------------------------
 x264_xidct8_mmxext:
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
-
     mov         eax, [esp+04]           ; dest
+
+    picpush     ebx
+    picgetgot   ebx
+
     movq        mm4, [x264_mmx_PPNN GLOBAL]
     movq        mm5, [x264_mmx_PNPN GLOBAL]
     movq        mm6, [x264_mmx_PPNP GLOBAL]
@@ -609,7 +612,7 @@ x264_xidct8_mmxext:
     %assign disp disp+16
     %endrep
 
-    POP_EBX_IF_PIC
+    picpop      ebx
     ret
 
 ALIGN 16

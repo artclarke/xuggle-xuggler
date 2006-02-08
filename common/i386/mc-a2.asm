@@ -169,8 +169,8 @@ x264_center_filter_mmxext :
     lea         ebx,      [ecx + ecx * 2]    ; 3 * src_stride
     lea         edx,      [ecx + ecx * 4]    ; 5 * src_stride
 
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
+    picpush     ebx
+    picgetgot   ebx
 
     pxor        mm0,      mm0                ; 0 ---> mm0
     movq        mm7,      [mmx_dd_one GLOBAL] ; for rounding
@@ -178,21 +178,23 @@ x264_center_filter_mmxext :
 
 loopcy:
 
-;   mov         eax,    [esp + twidth]
+;   mov         eax,    [picesp + twidth]
     xor         eax,    eax
-    mov         edi,    [esp + tdst1]
-    lea         ebp,    [esp + tbuffer]
-    mov         esi,    [esp + tsrc]
+    mov         edi,    [picesp + tdst1]
+    lea         ebp,    [picesp + tbuffer]
+    mov         esi,    [picesp + tsrc]
 
-    POP_EBX_IF_PIC
+    ; Overwrite mm7, the value set above is never used
+    movd        mm7,    [mmx_dw_one GLOBAL]
+
+    picpop      ebx
+
     FILT_ALL    esi
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
 
     pshufw      mm2,    mm1, 0
     movq        [ebp + 8],  mm1
     movq        [ebp],  mm2
-    paddw       mm1,    [mmx_dw_one GLOBAL]
+    paddw       mm1,    mm7
     psraw       mm1,    5
 
     packuswb    mm1,    mm1
@@ -203,13 +205,10 @@ loopcy:
 
 loopcx1:
 
-    POP_EBX_IF_PIC
     FILT_ALL    esi
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
 
     movq        [ebp + 2 * eax],  mm1
-    paddw       mm1,    [mmx_dw_one GLOBAL]
+    paddw       mm1,    mm7
     psraw       mm1,    5
     packuswb    mm1,    mm1
     movd        [edi + eax - 4],  mm1
@@ -219,15 +218,12 @@ loopcx1:
     cmp         eax,    [esp + twidth]
     jnz         loopcx1
 
-    POP_EBX_IF_PIC
     FILT_ALL    esi
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
 
     pshufw      mm2,    mm1,  7
     movq        [ebp + 2 * eax],  mm1
     movq        [ebp + 2 * eax + 8],  mm2
-    paddw       mm1,    [mmx_dw_one GLOBAL]
+    paddw       mm1,    mm7
     psraw       mm1,    5
     packuswb    mm1,    mm1
     movd        [edi + eax - 4],  mm1
@@ -242,14 +238,17 @@ loopcx1:
     mov         edi,    [esp + tdst2]
     xor         eax,    eax
 
+    picpush     ebx
+    picgetgot   ebx
+
 loopcx2:
 
-    movq        mm2,    [esp + 2 * eax + 2  + 4 + tbuffer]
-    movq        mm3,    [esp + 2 * eax + 4  + 4 + tbuffer]
-    movq        mm4,    [esp + 2 * eax + 6  + 4 + tbuffer]
-    movq        mm5,    [esp + 2 * eax + 8  + 4 + tbuffer]
-    movq        mm1,    [esp + 2 * eax      + 4 + tbuffer]
-    movq        mm6,    [esp + 2 * eax + 10 + 4 + tbuffer]
+    movq        mm2,    [picesp + 2 * eax + 2  + 4 + tbuffer]
+    movq        mm3,    [picesp + 2 * eax + 4  + 4 + tbuffer]
+    movq        mm4,    [picesp + 2 * eax + 6  + 4 + tbuffer]
+    movq        mm5,    [picesp + 2 * eax + 8  + 4 + tbuffer]
+    movq        mm1,    [picesp + 2 * eax      + 4 + tbuffer]
+    movq        mm6,    [picesp + 2 * eax + 10 + 4 + tbuffer]
     paddw       mm2,    mm5
     paddw       mm3,    mm4
     paddw       mm1,    mm6
@@ -287,19 +286,19 @@ loopcx2:
     movd        [edi + eax], mm2
 
     add         eax,    4
-    cmp         eax,    [esp + twidth]
+    cmp         eax,    [picesp + twidth]
     jnz         loopcx2
 
-    add         edi,    [esp + tdstp2]
-    mov         [esp + tdst2], edi
+    add         edi,    [picesp + tdstp2]
+    mov         [picesp + tdst2], edi
 
-    mov         ebp,    [esp + theight]
+    mov         ebp,    [picesp + theight]
     dec         ebp
     test        ebp,    ebp
-    mov         [esp + theight], ebp
+    mov         [picesp + theight], ebp
     jnz         loopcy
 
-    POP_EBX_IF_PIC
+    picpop      ebx
 
     add         esp,    [esp + toffset]
 
@@ -327,10 +326,10 @@ x264_horizontal_filter_mmxext :
     mov         esi,    [esp + 20]           ; src
 
     pxor        mm0,    mm0
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
+    picpush     ebx
+    picgetgot   ebx
     movq        mm7,    [mmx_dw_one GLOBAL]
-    POP_EBX_IF_PIC
+    picpop      ebx
 
     mov         ecx,    [esp + 32]           ; height
 

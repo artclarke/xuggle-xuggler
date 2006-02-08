@@ -265,21 +265,21 @@ ALIGN 4
 %macro BIWEIGHT_START_MMX 0
     push    edi
     push    esi
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
-    mov     edi, [esp+12] ; dst
-    mov     esi, [esp+16] ; i_dst
-    mov     edx, [esp+20] ; src
-    mov     ecx, [esp+24] ; i_src
+    picpush ebx
+    picgetgot ebx
+    mov     edi, [picesp+12]    ; dst
+    mov     esi, [picesp+16]    ; i_dst
+    mov     edx, [picesp+20]    ; src
+    mov     ecx, [picesp+24]    ; i_src
 
-    pshufw  mm4, [esp+28], 0    ; weight_dst
+    pshufw  mm4, [picesp+28], 0 ; weight_dst
     movq    mm5, [pw_64 GLOBAL]
     psubw   mm5, mm4            ; weight_src
     movq    mm6, [pw_32 GLOBAL] ; rounding
     pxor    mm7, mm7
 %endmacro
 %macro BIWEIGHT_END_MMX 0
-    POP_EBX_IF_PIC
+    picpop  ebx
     pop     esi
     pop     edi
     ret
@@ -291,7 +291,7 @@ ALIGN 16
 ;-----------------------------------------------------------------------------
 x264_pixel_avg_weight_w16_mmxext:
     BIWEIGHT_START_MMX
-    mov     eax, [esp+32] ; i_height
+    mov     eax, [picesp+32] ; i_height
     ALIGN 4
     .height_loop
 
@@ -312,7 +312,7 @@ ALIGN 16
 ;-----------------------------------------------------------------------------
 x264_pixel_avg_weight_w8_mmxext:
     BIWEIGHT_START_MMX
-    mov     eax, [esp+32]
+    mov     eax, [picesp+32]
     ALIGN 4
     .height_loop
 
@@ -512,13 +512,13 @@ ALIGN 16
 
 x264_mc_chroma_mmxext:
 
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
+    picpush ebx
+    picgetgot ebx
 
     pxor    mm3, mm3
 
-    pshufw  mm5, [esp+20], 0    ; mm5 = dx
-    pshufw  mm6, [esp+24], 0    ; mm6 = dy
+    pshufw  mm5, [picesp+20], 0    ; mm5 = dx
+    pshufw  mm6, [picesp+24], 0    ; mm6 = dy
 
     movq    mm4, [pw_8 GLOBAL]
     movq    mm0, mm4
@@ -534,10 +534,10 @@ x264_mc_chroma_mmxext:
 
     push    edi
 
-    mov     eax, [esp+4+4]     ; src
-    mov     edi, [esp+4+12]    ; dst
-    mov     ecx, [esp+4+8]     ; i_src_stride
-    mov     edx, [esp+4+32]    ; i_height
+    mov     eax, [picesp+4+4]   ; src
+    mov     edi, [picesp+4+12]  ; dst
+    mov     ecx, [picesp+4+8]   ; i_src_stride
+    mov     edx, [picesp+4+32]  ; i_height
 
 ALIGN 4
 .height_loop
@@ -568,22 +568,22 @@ ALIGN 4
     movd    [edi], mm0
 
     add     eax, ecx
-    add     edi, [esp+4+16]
+    add     edi, [picesp+4+16]
 
     dec     edx
     jnz     .height_loop
 
-    sub     [esp+4+28], dword 8
+    sub     [picesp+4+28], dword 8
     jnz     .finish            ; width != 8 so assume 4
 
-    mov     edi, [esp+4+12]    ; dst
-    mov     eax, [esp+4+4]     ; src
-    mov     edx, [esp+4+32]    ; i_height
+    mov     edi, [picesp+4+12] ; dst
+    mov     eax, [picesp+4+4]  ; src
+    mov     edx, [picesp+4+32] ; i_height
     add     edi, 4
     add     eax, 4
     jmp    .height_loop
 
 .finish
     pop     edi
-    POP_EBX_IF_PIC
+    picpop  ebx
     ret

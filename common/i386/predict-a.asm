@@ -78,9 +78,9 @@ cglobal predict_16x16_dc_top_mmxext
 %endmacro
 
 %macro PRED8x8_LOAD_TOP 0
-    mov         edx, [esp + 4]
-    mov         ecx, [esp + 8]
-    mov         eax, [esp +12]
+    mov         edx, [picesp + 4]
+    mov         ecx, [picesp + 8]
+    mov         eax, [picesp +12]
     sub         edx, ecx
 
     and         eax, 12
@@ -92,7 +92,7 @@ cglobal predict_16x16_dc_top_mmxext
     mov         al,  [edx]
     mov         ah,  [edx]
     pinsrw      mm1, ax, 0
-    mov         eax, [esp +12]
+    mov         eax, [picesp + 12]
 .have_topleft:
 
     and         eax, byte 4
@@ -113,8 +113,8 @@ cglobal predict_16x16_dc_top_mmxext
 
 ALIGN 16
 predict_8x8_v_mmxext:
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
+    picpush     ebx
+    picgetgot   ebx
 
     PRED8x8_LOAD_TOP
     lea         eax, [ecx + 2*ecx]
@@ -128,7 +128,7 @@ predict_8x8_v_mmxext:
     movq        [edx + eax], mm0        ; 5
     movq        [edx + 4*ecx], mm0      ; 6
 
-    POP_EBX_IF_PIC
+    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
@@ -139,10 +139,10 @@ predict_8x8_v_mmxext:
 
 ALIGN 16
 predict_8x8_dc_core_mmxext:
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
+    picpush     ebx
+    picgetgot   ebx
 
-    mov         eax, [esp + 16]
+    mov         eax, [picesp + 16]
     movq        mm1, [eax-1]
     movq        mm2, [eax+1]
     PRED8x8_LOWPASS mm4, [eax]
@@ -169,7 +169,7 @@ predict_8x8_dc_core_mmxext:
     movq        [edx + eax], mm0        ; 5
     movq        [edx + 4*ecx], mm0      ; 6
 
-    POP_EBX_IF_PIC
+    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
@@ -207,11 +207,11 @@ predict_8x8c_v_mmx :
 
 ALIGN 16
 predict_8x8c_dc_core_mmxext:
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
+    picpush     ebx
+    picgetgot   ebx
 
-    mov         edx, [esp + 4]
-    mov         ecx, [esp + 8]
+    mov         edx, [picesp + 4]
+    mov         ecx, [picesp + 8]
     sub         edx, ecx
     lea         eax, [ecx + 2*ecx]
 
@@ -223,8 +223,8 @@ predict_8x8c_dc_core_mmxext:
     psadbw      mm1, mm2        ; s1
     psadbw      mm0, mm2        ; s0
 
-    paddw       mm0, [esp + 12]
-    pshufw      mm2, [esp + 16], 0
+    paddw       mm0, [picesp + 12]
+    pshufw      mm2, [picesp + 16], 0
     psrlw       mm0, 3
     paddw       mm1, [pw_2 GLOBAL]
     movq        mm3, mm2
@@ -248,7 +248,7 @@ predict_8x8c_dc_core_mmxext:
     movq        [edx +   eax], mm2 ; 6
     movq        [edx + 4*ecx], mm2 ; 7
 
-    POP_EBX_IF_PIC
+    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
@@ -259,15 +259,15 @@ predict_8x8c_dc_core_mmxext:
 
 ALIGN 16
 predict_8x8c_p_core_mmx:
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
+    picpush     ebx
+    picgetgot   ebx
 
-    mov         edx, [esp + 4]
-    mov         ecx, [esp + 8]
+    mov         edx, [picesp + 4]
+    mov         ecx, [picesp + 8]
 
-    movd        mm0, [esp +12]
-    movd        mm2, [esp +16]
-    movd        mm4, [esp +20]
+    movd        mm0, [picesp +12]
+    movd        mm2, [picesp +16]
+    movd        mm4, [picesp +20]
     pshufw      mm0, mm0, 0
     pshufw      mm2, mm2, 0
     pshufw      mm4, mm4, 0
@@ -297,7 +297,7 @@ ALIGN 4
     jg          .loop
 
     nop
-    POP_EBX_IF_PIC
+    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
@@ -309,15 +309,15 @@ ALIGN 4
 ALIGN 16
 predict_16x16_p_core_mmx:
 
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
+    picpush     ebx
+    picgetgot   ebx
 
-    mov         edx, [esp + 4]
-    mov         ecx, [esp + 8]
+    mov         edx, [picesp + 4]
+    mov         ecx, [picesp + 8]
 
-    movd        mm0, [esp +12]
-    movd        mm2, [esp +16]
-    movd        mm4, [esp +20]
+    movd        mm0, [picesp +12]
+    movd        mm2, [picesp +16]
+    movd        mm4, [picesp +20]
     pshufw      mm0, mm0, 0     ; FIXME shuf these directly from memory
     pshufw      mm2, mm2, 0     ;       if there is stack alignment?
     pshufw      mm4, mm4, 0
@@ -363,7 +363,7 @@ ALIGN 4
     jg          .loop
 
     nop
-    POP_EBX_IF_PIC
+    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
@@ -411,9 +411,9 @@ predict_16x16_v_mmx :
 ;
 ;-----------------------------------------------------------------------------
 
-%macro PRED16x16_DC 2
-    mov         edx, [esp + 4]
-    mov         ecx, [esp + 8]
+%macro PRED16x16_DC 3
+    mov         edx, [%3 + 4]
+    mov         ecx, [%3 + 8]
     sub         edx, ecx                ; edx <-- line -1
 
     pxor        mm0, mm0
@@ -444,14 +444,14 @@ ALIGN 4
 
 ALIGN 16
 predict_16x16_dc_core_mmxext:
-    PRED16x16_DC [esp+12], 5
+    PRED16x16_DC [esp+12], 5, esp
     ret
 
 ALIGN 16
 predict_16x16_dc_top_mmxext:
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
-    PRED16x16_DC [pw_8 GLOBAL], 4
-    POP_EBX_IF_PIC
+    picpush ebx
+    picgetgot ebx
+    PRED16x16_DC [pw_8 GLOBAL], 4, picesp
+    picpop ebx
     ret
 

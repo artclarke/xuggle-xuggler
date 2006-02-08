@@ -258,6 +258,14 @@ SECTION .text
 
 %endif ;linux
 
+; PIC support macros. On x86_64 we just use RIP-relative addressing, which is
+; much simpler than the GOT handling we need to perform on x86.
+;
+; - GLOBAL should be used as a suffix for global addressing, eg.
+;     mov eax, [foo GLOBAL]
+;   instead of
+;     mov eax, [foo]
+;
 %ifdef __PIC__
     %define GLOBAL wrt rip
 %else

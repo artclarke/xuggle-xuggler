@@ -482,10 +482,10 @@ ALIGN 16
 
 .rshift16:
     neg   eax
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
+    picpush ebx
+    picgetgot ebx
     movq  mm6, [pw_1 GLOBAL]
-    POP_EBX_IF_PIC
+    picpop ebx
     movd  mm5, eax
     pxor  mm7, mm7
     psllw mm6, mm5
@@ -504,10 +504,10 @@ ALIGN 16
 
 .rshift32:
     neg   eax
-    PUSH_EBX_IF_PIC
-    GET_GOT_IN_EBX_IF_PIC
+    picpush ebx
+    picgetgot ebx
     movq  mm6, [pd_1 GLOBAL]
-    POP_EBX_IF_PIC
+    picpop ebx
     movd  mm5, eax
     pxor  mm7, mm7
     pslld mm6, mm5
