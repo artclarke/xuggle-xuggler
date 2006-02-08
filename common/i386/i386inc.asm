@@ -66,15 +66,32 @@ BITS 32
 ;     mov eax, [esp + 12]
 ;
 %ifdef __PIC__
-    extern _GLOBAL_OFFSET_TABLE_
-    ; FIXME: find an elegant way to use registers other than ebx
-    %define GLOBAL + ebx wrt ..gotoff
-    %macro picgetgot 1
-        call %%getgot 
-      %%getgot: 
-        pop %1 
-        add %1, _GLOBAL_OFFSET_TABLE_ + $$ - %%getgot wrt ..gotpc 
-    %endmacro
+    %ifdef FORMAT_MACHO
+        ; There is no real global offset table on OS X, but we still
+        ; need to reference our variables by offset.
+        %define GLOBAL + ebx
+        %macro picgetgot 1
+            call %%getgot 
+          %%getgot: 
+            pop %1 
+            sub %1, %%getgot
+        %endmacro
+    %else
+        %ifdef FORMAT_ELF
+            %define GOT _GLOBAL_OFFSET_TABLE_
+        %else ; for a.out
+            %define GOT __GLOBAL_OFFSET_TABLE_
+        %endif
+        extern GOT
+        ; FIXME: find an elegant way to use registers other than ebx
+        %define GLOBAL + ebx wrt ..gotoff
+        %macro picgetgot 1
+            call %%getgot 
+          %%getgot: 
+            pop %1 
+            add %1, GOT + $$ - %%getgot wrt ..gotpc 
+        %endmacro
+    %endif
     %macro picpush 1
         push %1
     %endmacro
