@@ -173,19 +173,14 @@ x264_center_filter_mmxext :
     picgetgot   ebx
 
     pxor        mm0,      mm0                ; 0 ---> mm0
-    movq        mm7,      [mmx_dd_one GLOBAL] ; for rounding
 
 
 loopcy:
 
-;   mov         eax,    [picesp + twidth]
-    xor         eax,    eax
     mov         edi,    [picesp + tdst1]
     lea         ebp,    [picesp + tbuffer]
     mov         esi,    [picesp + tsrc]
-
-    ; Overwrite mm7, the value set above is never used
-    movd        mm7,    [mmx_dw_one GLOBAL]
+    movq        mm7,    [mmx_dw_one GLOBAL]
 
     picpop      ebx
 
@@ -200,7 +195,7 @@ loopcy:
     packuswb    mm1,    mm1
     movd        [edi],  mm1
 
-    add         eax,    8
+    mov         eax,    8
     add         esi,    4
 
 loopcx1:
@@ -236,7 +231,8 @@ loopcx1:
     mov         [esp + tdst1], edi
 
     mov         edi,    [esp + tdst2]
-    xor         eax,    eax
+;   mov         eax,    [esp + twidth]
+    sub         eax,    4
 
     picpush     ebx
     picgetgot   ebx
@@ -285,9 +281,8 @@ loopcx2:
 
     movd        [edi + eax], mm2
 
-    add         eax,    4
-    cmp         eax,    [picesp + twidth]
-    jnz         loopcx2
+    sub         eax,    4
+    jge         loopcx2
 
     add         edi,    [picesp + tdstp2]
     mov         [picesp + tdst2], edi
