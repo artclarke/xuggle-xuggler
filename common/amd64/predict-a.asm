@@ -3,6 +3,8 @@
 ;*****************************************************************************
 ;* Copyright (C) 2005 x264 project
 ;*
+;* Authors: Loren Merritt <lorenm@u.washington.edu>
+;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
 ;* the Free Software Foundation; either version 2 of the License, or
@@ -26,14 +28,28 @@ BITS 64
 
 %include "amd64inc.asm"
 
-;=============================================================================
-; Macros
-;=============================================================================
-
 %macro SAVE_0_1 1
     movq        [%1]         , mm0
     movq        [%1 + 8]     , mm1
 %endmacro
+
+%macro SAVE_0_0 1
+    movq        [%1]         , mm0
+    movq        [%1 + 8]     , mm0
+%endmacro
+
+
+SECTION .rodata align=16
+
+ALIGN 8
+pw_2: times 4 dw 2
+pw_8: times 4 dw 8
+pb_1: times 8 db 1
+pw_3210:
+    dw 0
+    dw 1
+    dw 2
+    dw 3
 
 ;=============================================================================
 ; Code
@@ -41,8 +57,110 @@ BITS 64
 
 SECTION .text
 
+cglobal predict_8x8_v_mmxext
+cglobal predict_8x8_dc_core_mmxext
 cglobal predict_8x8c_v_mmx
+cglobal predict_8x8c_dc_core_mmxext
+cglobal predict_8x8c_p_core_mmx
+cglobal predict_16x16_p_core_mmx
 cglobal predict_16x16_v_mmx
+cglobal predict_16x16_dc_core_mmxext
+cglobal predict_16x16_dc_top_mmxext
+
+
+
+%macro PRED8x8_LOWPASS 2
+    movq        mm3, mm1
+    pavgb       mm1, mm2
+    pxor        mm2, mm3
+    movq        %1 , %2
+    pand        mm2, [pb_1 GLOBAL]
+    psubusb     mm1, mm2
+    pavgb       %1 , mm1     ; %1 = (t[n-1] + t[n]*2 + t[n+1] + 2) >> 2
+%endmacro
+
+%macro PRED8x8_LOAD_TOP 0
+    sub         parm1q, parm2q
+
+    and         parm3d, 12
+    movq        mm1, [parm1q-1]
+    movq        mm2, [parm1q+1]
+
+    cmp         parm3d, byte 8
+    jge         .have_topleft
+    mov         al,  [parm1q]
+    mov         ah,  [parm1q]
+    pinsrw      mm1, eax, 0
+.have_topleft:
+
+    and         parm3d, byte 4
+    jne         .have_topright
+    mov         al,  [parm1q+7]
+    mov         ah,  [parm1q+7]
+    pinsrw      mm2, eax, 3
+.have_topright:
+
+    PRED8x8_LOWPASS mm0, [parm1q]
+%endmacro
+
+;-----------------------------------------------------------------------------
+;
+; void predict_8x8_v_mmxext( uint8_t *src, int i_stride, int i_neighbors )
+;
+;-----------------------------------------------------------------------------
+
+ALIGN 16
+predict_8x8_v_mmxext:
+    PRED8x8_LOAD_TOP
+
+    lea         rax, [parm2q + 2*parm2q]
+    movq        [parm1q +   parm2q], mm0      ; 0
+    movq        [parm1q + 2*parm2q], mm0      ; 1
+    movq        [parm1q + 4*parm2q], mm0      ; 3
+    movq        [parm1q + 8*parm2q], mm0      ; 7
+    add         parm1q, rax
+    movq        [parm1q], mm0                 ; 2
+    movq        [parm1q + 2*parm2q], mm0      ; 4
+    movq        [parm1q +   rax   ], mm0      ; 5
+    movq        [parm1q + 4*parm2q], mm0      ; 6
+
+    ret
+
+;-----------------------------------------------------------------------------
+;
+; void predict_8x8_dc_core_mmxext( uint8_t *src, int i_stride, int i_neighbors, uint8_t *pix_left );
+;
+;-----------------------------------------------------------------------------
+
+ALIGN 16
+predict_8x8_dc_core_mmxext:
+    movq        mm1, [parm4q-1]
+    movq        mm2, [parm4q+1]
+    PRED8x8_LOWPASS mm4, [parm4q]
+
+    PRED8x8_LOAD_TOP
+
+    pxor        mm1, mm1
+    psadbw      mm0, mm1
+    psadbw      mm4, mm1
+    paddw       mm0, [pw_8 GLOBAL]
+    paddw       mm0, mm4
+    psrlw       mm0, 4
+    pshufw      mm0, mm0, 0
+    packuswb    mm0, mm0
+
+    lea         rax, [parm2q + 2*parm2q]
+    movq        [parm1q +   parm2q], mm0      ; 0
+    movq        [parm1q + 2*parm2q], mm0      ; 1
+    movq        [parm1q + 4*parm2q], mm0      ; 3
+    movq        [parm1q + 8*parm2q], mm0      ; 7
+    add         parm1q, rax
+    movq        [parm1q], mm0                 ; 2
+    movq        [parm1q + 2*parm2q], mm0      ; 4
+    movq        [parm1q +   rax   ], mm0      ; 5
+    movq        [parm1q + 4*parm2q], mm0      ; 6
+
+    ret
 
 ;-----------------------------------------------------------------------------
 ;
@@ -68,6 +186,154 @@ predict_8x8c_v_mmx :
 
     ret
 
+;-----------------------------------------------------------------------------
+;
+; void predict_8x8c_dc_core_mmxext( uint8_t *src, int i_stride, int s2, int s3 )
+;
+;-----------------------------------------------------------------------------
+
+ALIGN 16
+predict_8x8c_dc_core_mmxext:
+    sub         parm1q, parm2q
+    lea         rax, [parm2q + 2*parm2q]
+
+    movq        mm0, [parm1q]
+    pxor        mm1, mm1
+    pxor        mm2, mm2
+    punpckhbw   mm1, mm0
+    punpcklbw   mm0, mm2
+    psadbw      mm1, mm2        ; s1
+    psadbw      mm0, mm2        ; s0
+
+    movd        mm4, parm3d
+    movd        mm5, parm4d
+    paddw       mm0, mm4
+    pshufw      mm2, mm5, 0
+    psrlw       mm0, 3
+    paddw       mm1, [pw_2 GLOBAL]
+    movq        mm3, mm2
+    pshufw      mm1, mm1, 0
+    pshufw      mm0, mm0, 0     ; dc0 (w)
+    paddw       mm3, mm1
+    psrlw       mm3, 3          ; dc3 (w)
+    psrlw       mm2, 2          ; dc2 (w)
+    psrlw       mm1, 2          ; dc1 (w)
+
+    packuswb    mm0, mm1        ; dc0,dc1 (b)
+    packuswb    mm2, mm3        ; dc2,dc3 (b)
+
+    movq        [parm1q +   parm2q], mm0 ; 0
+    movq        [parm1q + 2*parm2q], mm0 ; 1
+    movq        [parm1q +   rax   ], mm0 ; 2
+    movq        [parm1q + 4*parm2q], mm0 ; 3
+    lea         parm1q, [parm1q + 4*parm2q]
+    movq        [parm1q +   parm2q], mm2 ; 4
+    movq        [parm1q + 2*parm2q], mm2 ; 5
+    movq        [parm1q +   rax   ], mm2 ; 6
+    movq        [parm1q + 4*parm2q], mm2 ; 7
+
+    ret
+
+;-----------------------------------------------------------------------------
+;
+; void predict_8x8c_p_core_mmx( uint8_t *src, int i_stride, int i00, int b, int c )
+;
+;-----------------------------------------------------------------------------
+
+ALIGN 16
+predict_8x8c_p_core_mmx:
+    movd        mm0, parm3d
+    movd        mm2, parm4d
+    movd        mm4, parm5d
+    pshufw      mm0, mm0, 0
+    pshufw      mm2, mm2, 0
+    pshufw      mm4, mm4, 0
+    movq        mm1, mm2
+    pmullw      mm2, [pw_3210 GLOBAL]
+    psllw       mm1, 2
+    paddsw      mm0, mm2        ; mm0 = {i+0*b, i+1*b, i+2*b, i+3*b}
+    paddsw      mm1, mm0        ; mm1 = {i+4*b, i+5*b, i+6*b, i+7*b}
+    pxor        mm5, mm5
+
+    mov         eax, 8
+ALIGN 4
+.loop:
+    movq        mm6, mm0
+    movq        mm7, mm1
+    psraw       mm6, 5
+    psraw       mm7, 5
+    pmaxsw      mm6, mm5
+    pmaxsw      mm7, mm5
+    packuswb    mm6, mm7
+    movq        [parm1q], mm6
+
+    paddsw      mm0, mm4
+    paddsw      mm1, mm4
+    add         parm1q, parm2q
+    dec         eax
+    jg          .loop
+
+    nop
+    ret
+
+;-----------------------------------------------------------------------------
+;
+; void predict_16x16_p_core_mmx( uint8_t *src, int i_stride, int i00, int b, int c )
+;
+;-----------------------------------------------------------------------------
+
+ALIGN 16
+predict_16x16_p_core_mmx:
+    movd        mm0, parm3d
+    movd        mm2, parm4d
+    movd        mm4, parm5d
+    pshufw      mm0, mm0, 0
+    pshufw      mm2, mm2, 0
+    pshufw      mm4, mm4, 0
+    movq        mm5, mm2
+    movq        mm1, mm2
+    pmullw      mm5, [pw_3210 GLOBAL]
+    psllw       mm2, 3
+    psllw       mm1, 2
+    movq        mm3, mm2
+    paddsw      mm0, mm5        ; mm0 = {i+ 0*b, i+ 1*b, i+ 2*b, i+ 3*b}
+    paddsw      mm1, mm0        ; mm1 = {i+ 4*b, i+ 5*b, i+ 6*b, i+ 7*b}
+    paddsw      mm2, mm0        ; mm2 = {i+ 8*b, i+ 9*b, i+10*b, i+11*b}
+    paddsw      mm3, mm1        ; mm3 = {i+12*b, i+13*b, i+14*b, i+15*b}
+    pxor        mm5, mm5
+
+    mov         eax, 16
+ALIGN 4
+.loop:
+    movq        mm6, mm0
+    movq        mm7, mm1
+    psraw       mm6, 5
+    psraw       mm7, 5
+    pmaxsw      mm6, mm5
+    pmaxsw      mm7, mm5
+    packuswb    mm6, mm7
+    movq        [parm1q], mm6
+
+    movq        mm6, mm2
+    movq        mm7, mm3
+    psraw       mm6, 5
+    psraw       mm7, 5
+    pmaxsw      mm6, mm5
+    pmaxsw      mm7, mm5
+    packuswb    mm6, mm7
+    movq        [parm1q+8], mm6
+
+    paddsw      mm0, mm4
+    paddsw      mm1, mm4
+    paddsw      mm2, mm4
+    paddsw      mm3, mm4
+    add         parm1q, parm2q
+    dec         eax
+    jg          .loop
+
+    nop
+    ret
+    
 ;-----------------------------------------------------------------------------
 ;
 ; void predict_16x16_v_mmx( uint8_t *src, int i_stride )
@@ -103,3 +369,48 @@ predict_16x16_v_mmx :
     SAVE_0_1    (parm1q + rax)                 ; 15
 
     ret
+
+;-----------------------------------------------------------------------------
+;
+; void predict_16x16_dc_core_mmxext( uint8_t *src, int i_stride, int i_dc_left )
+;
+;-----------------------------------------------------------------------------
+
+%macro PRED16x16_DC 2
+    sub         parm1q, parm2q                ; parm1q <-- line -1
+
+    pxor        mm0, mm0
+    pxor        mm1, mm1
+    psadbw      mm0, [parm1q]
+    psadbw      mm1, [parm1q + 8]
+    paddusw     mm0, mm1
+    paddusw     mm0, %1
+    psrlw       mm0, %2                       ; dc
+    pshufw      mm0, mm0, 0
+    lea         r8,  [parm2q + 2*parm2q]      ; eax <-- 3* stride
+    packuswb    mm0, mm0                      ; dc in bytes
+
+    mov         eax, 4
+ALIGN 4
+.loop:
+    SAVE_0_0    (parm1q +     parm2q)         ; 0
+    SAVE_0_0    (parm1q + 2 * parm2q)         ; 1
+    SAVE_0_0    (parm1q +     r8    )         ; 2
+    SAVE_0_0    (parm1q + 4 * parm2q)         ; 3
+    dec         eax
+    lea         parm1q, [parm1q + 4 * parm2q]
+    jg          .loop
+    nop
+%endmacro
+
+ALIGN 16
+predict_16x16_dc_core_mmxext:
+    movd         mm2, parm3d
+    PRED16x16_DC mm2, 5
+    ret
+
+ALIGN 16
+predict_16x16_dc_top_mmxext:
+    PRED16x16_DC [pw_8 GLOBAL], 4
+    ret
+

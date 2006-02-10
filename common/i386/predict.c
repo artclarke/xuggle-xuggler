@@ -21,14 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#else
-#include <inttypes.h>
-#endif
-
-#include "common/clip1.h"
 #include "common/common.h"
+#include "common/clip1.h"
 #include "predict.h"
 
 extern void predict_16x16_v_mmx( uint8_t *src, int i_stride );
@@ -132,27 +126,130 @@ static void predict_8x8_dc( uint8_t *src, int i_stride, int i_neighbor )
     predict_8x8_dc_core_mmxext( src, i_stride, i_neighbor, l+1 );
 }
 
+#ifdef ARCH_X86_64
+static void predict_16x16_h( uint8_t *src, int i_stride )
+{
+    int y;
+    for( y = 0; y < 16; y++ )
+    {
+        const uint64_t v = 0x0101010101010101ULL * src[-1];
+        uint64_t *p = (uint64_t*)src;
+        p[0] = p[1] = v;
+        src += i_stride;
+    }
+}
+
+static void predict_8x8c_h( uint8_t *src, int i_stride )
+{
+    int y;
+    for( y = 0; y < 8; y++ )
+    {
+        *(uint64_t*)src = 0x0101010101010101ULL * src[-1];
+        src += i_stride;
+    }
+}
+
+static void predict_16x16_dc_left( uint8_t *src, int i_stride )
+{
+    uint32_t s = 0;
+    uint64_t dc; 
+    int y;
+    
+    for( y = 0; y < 16; y++ )
+    {
+        s += src[-1 + y * i_stride];
+    }   
+    dc = (( s + 8 ) >> 4) * 0x0101010101010101ULL;
+    
+    for( y = 0; y < 16; y++ )
+    {
+        uint64_t *p = (uint64_t*)src;
+        p[0] = p[1] = dc;
+        src += i_stride;
+    }
+}
+
+static void predict_8x8c_dc_left( uint8_t *src, int i_stride )
+{
+    int y;
+    uint32_t s0 = 0, s1 = 0;
+    uint64_t dc0, dc1;
+
+    for( y = 0; y < 4; y++ )
+    {
+        s0 += src[y * i_stride     - 1];
+        s1 += src[(y+4) * i_stride - 1];
+    }
+    dc0 = (( s0 + 2 ) >> 2) * 0x0101010101010101ULL;
+    dc1 = (( s1 + 2 ) >> 2) * 0x0101010101010101ULL;
+
+    for( y = 0; y < 4; y++ )
+    {
+        *(uint64_t*)src = dc0;
+        src += i_stride;
+    }
+    for( y = 0; y < 4; y++ )
+    {
+        *(uint64_t*)src = dc1;
+        src += i_stride;
+    }
+
+}
+
+static void predict_8x8c_dc_top( uint8_t *src, int i_stride )
+{
+    int y, x;
+    uint32_t s0 = 0, s1 = 0;
+    uint64_t dc;
+
+    for( x = 0; x < 4; x++ )
+    {
+        s0 += src[x     - i_stride];
+        s1 += src[x + 4 - i_stride];
+    }
+    dc = (( s0 + 2 ) >> 2) * 0x01010101
+       + (( s1 + 2 ) >> 2) * 0x0101010100000000ULL;
+
+    for( y = 0; y < 8; y++ )
+    {
+        *(uint64_t*)src = dc;
+        src += i_stride;
+    }
+}
+#endif
+
 /****************************************************************************
  * Exported functions:
  ****************************************************************************/
 void x264_predict_16x16_init_mmxext( x264_predict_t pf[7] )
 {
-    pf[I_PRED_16x16_V] = predict_16x16_v_mmx;
-    pf[I_PRED_16x16_DC] = predict_16x16_dc;
-    pf[I_PRED_16x16_DC_TOP] = predict_16x16_dc_top_mmxext;
-    pf[I_PRED_16x16_P] = predict_16x16_p;
+    pf[I_PRED_16x16_V]       = predict_16x16_v_mmx;
+    pf[I_PRED_16x16_DC]      = predict_16x16_dc;
+    pf[I_PRED_16x16_DC_TOP]  = predict_16x16_dc_top_mmxext;
+    pf[I_PRED_16x16_P]       = predict_16x16_p;
+
+#ifdef ARCH_X86_64
+    pf[I_PRED_16x16_H]       = predict_16x16_h;
+    pf[I_PRED_16x16_DC_LEFT] = predict_16x16_dc_left;
+#endif
 }
 
 void x264_predict_8x8c_init_mmxext( x264_predict_t pf[7] )
 {
-    pf[I_PRED_CHROMA_V] = predict_8x8c_v_mmx;
-    pf[I_PRED_CHROMA_P] = predict_8x8c_p;
-    pf[I_PRED_CHROMA_DC] = predict_8x8c_dc;
+    pf[I_PRED_CHROMA_V]       = predict_8x8c_v_mmx;
+    pf[I_PRED_CHROMA_P]       = predict_8x8c_p;
+    pf[I_PRED_CHROMA_DC]      = predict_8x8c_dc;
+
+#ifdef ARCH_X86_64
+    pf[I_PRED_CHROMA_H]       = predict_8x8c_h;
+    pf[I_PRED_CHROMA_DC_LEFT] = predict_8x8c_dc_left;
+    pf[I_PRED_CHROMA_DC_TOP]  = predict_8x8c_dc_top;
+#endif
 }
 
 void x264_predict_8x8_init_mmxext( x264_predict8x8_t pf[12] )
 {
-    pf[I_PRED_8x8_V] = predict_8x8_v_mmxext;
+    pf[I_PRED_8x8_V]  = predict_8x8_v_mmxext;
     pf[I_PRED_8x8_DC] = predict_8x8_dc;
 }
 

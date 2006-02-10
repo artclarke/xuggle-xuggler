@@ -91,7 +91,7 @@ cglobal predict_16x16_dc_top_mmxext
     jge         .have_topleft
     mov         al,  [edx]
     mov         ah,  [edx]
-    pinsrw      mm1, ax, 0
+    pinsrw      mm1, eax, 0
     mov         eax, [picesp + 12]
 .have_topleft:
 
@@ -99,7 +99,7 @@ cglobal predict_16x16_dc_top_mmxext
     jne         .have_topright
     mov         al,  [edx+7]
     mov         ah,  [edx+7]
-    pinsrw      mm2, ax, 3
+    pinsrw      mm2, eax, 3
 .have_topright:
 
     PRED8x8_LOWPASS mm0, [edx]
@@ -133,7 +133,7 @@ predict_8x8_v_mmxext:
 
 ;-----------------------------------------------------------------------------
 ;
-; void predict_8x8_dc_core_mmxext( uint8_t *src, int i_stride, int i_neighbors, int i_dc_left );
+; void predict_8x8_dc_core_mmxext( uint8_t *src, int i_stride, int i_neighbors, uint8_t *pix_left );
 ;
 ;-----------------------------------------------------------------------------
 
@@ -264,13 +264,9 @@ predict_8x8c_p_core_mmx:
 
     mov         edx, [picesp + 4]
     mov         ecx, [picesp + 8]
-
-    movd        mm0, [picesp +12]
-    movd        mm2, [picesp +16]
-    movd        mm4, [picesp +20]
-    pshufw      mm0, mm0, 0
-    pshufw      mm2, mm2, 0
-    pshufw      mm4, mm4, 0
+    pshufw      mm0, [picesp +12], 0
+    pshufw      mm2, [picesp +16], 0
+    pshufw      mm4, [picesp +20], 0
     movq        mm1, mm2
     pmullw      mm2, [pw_3210 GLOBAL]
     psllw       mm1, 2
@@ -314,13 +310,9 @@ predict_16x16_p_core_mmx:
 
     mov         edx, [picesp + 4]
     mov         ecx, [picesp + 8]
-
-    movd        mm0, [picesp +12]
-    movd        mm2, [picesp +16]
-    movd        mm4, [picesp +20]
-    pshufw      mm0, mm0, 0     ; FIXME shuf these directly from memory
-    pshufw      mm2, mm2, 0     ;       if there is stack alignment?
-    pshufw      mm4, mm4, 0
+    pshufw      mm0, [picesp +12], 0
+    pshufw      mm2, [picesp +16], 0
+    pshufw      mm4, [picesp +20], 0
     movq        mm5, mm2
     movq        mm1, mm2
     pmullw      mm5, [pw_3210 GLOBAL]
