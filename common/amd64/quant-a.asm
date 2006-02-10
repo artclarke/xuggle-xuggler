@@ -36,7 +36,6 @@ BITS 64
 %include "amd64inc.asm"
 
 SECTION .rodata
-pw_1:  times 4 dw 1
 pd_1:  times 2 dd 1
 
 SECTION .text
@@ -398,22 +397,6 @@ x264_quant_8x8_core32_mmxext:
     movq     %1,  mm0
 %endmacro
 
-%macro DEQUANT16_R_1x4 3
-;;; %1      dct[y][x]
-;;; %2,%3   dequant_mf[i_mf][y][x]
-;;; mm5     -i_qbits
-;;; mm6     f as words
-
-    movq     mm1, %2
-    movq     mm2, %3
-    movq     mm0, %1
-    packssdw mm1, mm2
-    pmullw   mm0, mm1
-    paddw    mm0, mm6
-    psraw    mm0, mm5
-    movq     %1,  mm0
-%endmacro
-
 %macro DEQUANT32_R_1x4 3
 ;;; %1      dct[y][x]
 ;;; %2,%3   dequant_mf[i_mf][y][x]
@@ -464,32 +447,13 @@ ALIGN 16
     add  rsi, rdx   ; dequant_mf[i_mf]
 
     sub  eax, %3
-    cmp  eax, -2
-    jle  .rshift32  ; dct * dequant overflows 16bit
-    cmp  eax, -1
-    jle  .rshift16  ; negative qbits => rightshift
+    jl   .rshift32  ; negative qbits => rightshift
 
 .lshift:
     movd mm5, eax
 
 %rep %2
     DEQUANT16_L_1x4 [rdi], [rsi], [rsi+8]
-    add  rsi, byte 16
-    add  rdi, byte 8
-%endrep
-
-    ret
-
-.rshift16:
-    neg   eax
-    movd  mm5, eax
-    movq  mm6, [pw_1 GLOBAL]
-    pxor  mm7, mm7
-    psllw mm6, mm5
-    psrlw mm6, 1
-
-%rep %2
-    DEQUANT16_R_1x4 [rdi], [rsi], [rsi+8]
     add  rsi, byte 16
     add  rdi, byte 8
 %endrep

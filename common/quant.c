@@ -262,7 +262,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->quant_2x2_dc_core = x264_quant_2x2_dc_core32_mmxext;
     }
 
-    if( cpu&X264_CPU_MMXEXT )
+    if( cpu&X264_CPU_MMX )
     {
         /* dequant is not subject to the above CQM-dependent overflow issues,
          * as long as the inputs are in the range generable by dct+quant.

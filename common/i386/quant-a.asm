@@ -36,7 +36,6 @@ BITS 32
 %include "i386inc.asm"
 
 SECTION .rodata
-pw_1:  times 4 dw 1
 pd_1:  times 2 dd 1
 
 SECTION .text
@@ -461,10 +460,7 @@ ALIGN 16
     mov  ecx, [esp+4] ; dct
 
     sub  eax, %3
-    jge  .lshift
-    cmp  eax, byte -1
-    je   .rshift16    ; negative qbits => rightshift
-    jmp  .rshift32    ; dct * dequant overflows 16bit
+    jl   .rshift32    ; negative qbits => rightshift
 
 .lshift:
     movd mm5, eax
@@ -476,28 +472,6 @@ ALIGN 16
     sub  eax, byte 8
 %endrep
     jge  .loopl16
-
-    nop
-    ret
-
-.rshift16:
-    neg   eax
-    picpush ebx
-    picgetgot ebx
-    movq  mm6, [pw_1 GLOBAL]
-    picpop ebx
-    movd  mm5, eax
-    pxor  mm7, mm7
-    psllw mm6, mm5
-    psrlw mm6, 1
-
-    mov  eax, 8*(%2-1)
-.loopr16
-%rep 2
-    DEQUANT16_R_1x4 [ecx+eax], [edx+eax*2], [edx+eax*2+8]
-    sub  eax, byte 8
-%endrep
-    jge  .loopr16
 
     nop
     ret
