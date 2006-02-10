@@ -30,29 +30,11 @@
 #include "me.h"
 
 
-static void x264_mb_analyse_load_costs_lowres( x264_t *h, x264_mb_analysis_t *a )
-{
-    static int16_t *p_cost_mv;
-
-    if( !p_cost_mv )
-    {
-        int i;
-        x264_cpu_restore( h->param.cpu );
-        p_cost_mv = x264_malloc( (2*2*h->param.analyse.i_mv_range + 1) * sizeof(int16_t) );
-        p_cost_mv += 2*h->param.analyse.i_mv_range;
-        for( i = 0; i <= 2*h->param.analyse.i_mv_range; i++ )
-            p_cost_mv[-i] =
-            p_cost_mv[i]  = (int)( a->i_lambda * (1 + 2*log(2*i+1)/log(2)) );
-    }
-
-    a->p_cost_mv = p_cost_mv;
-}
-
 static void x264_lowres_context_init( x264_t *h, x264_mb_analysis_t *a )
 {
     a->i_qp = 12; // arbitrary, but low because SATD scores are 1/4 normal
     a->i_lambda = i_qp0_cost_table[ a->i_qp ];
-    x264_mb_analyse_load_costs_lowres( h, a );
+    x264_mb_analyse_load_costs( h, a );
     h->mb.i_me_method = X264_MIN( X264_ME_HEX, h->param.analyse.i_me_method ); // maybe dia?
     h->mb.i_subpel_refine = 4; // 3 should be enough, but not tweaking for speed now
     h->mb.b_chroma_me = 0;
