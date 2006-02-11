@@ -30,7 +30,7 @@ int main () { $3 return 0; }
 EOF
     $CC $CFLAGS $LDFLAGS $2 conftest.c -o conftest 2>$DEVNULL
     TMP="$?"
-    rm -f conftest.c conftest
+    rm -f conftest.c conftest*
     return $TMP
 }
 
