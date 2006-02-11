@@ -99,7 +99,10 @@ typedef struct
     int b_save;
     /* fourcc used */
     char fcc[4+1];
-    int  i_encoding_type;
+    int i_encoding_type;
+    int i_trellis;
+    int b_bidir_me;
+    int i_noise_reduction;
 } CONFIG;
 
 /* CODEC: vfw codec instance
