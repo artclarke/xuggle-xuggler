@@ -66,16 +66,16 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         goto lowres_intra_mb;
 
     // no need for h->mb.mv_min[]
-    h->mb.mv_min_fpel[0] = -16*h->mb.i_mb_x - 8;
-    h->mb.mv_max_fpel[0] = 16*( h->sps->i_mb_width - h->mb.i_mb_x - 1 ) + 8;
-    h->mb.mv_min_spel[0] = 4*( h->mb.mv_min_fpel[0] - 16 );
-    h->mb.mv_max_spel[0] = 4*( h->mb.mv_max_fpel[0] + 16 );
+    h->mb.mv_min_fpel[0] = -8*h->mb.i_mb_x - 4;
+    h->mb.mv_max_fpel[0] = 8*( h->sps->i_mb_width - h->mb.i_mb_x - 1 ) + 4;
+    h->mb.mv_min_spel[0] = 4*( h->mb.mv_min_fpel[0] - 8 );
+    h->mb.mv_max_spel[0] = 4*( h->mb.mv_max_fpel[0] + 8 );
     if( h->mb.i_mb_x <= 1)
     {
-        h->mb.mv_min_fpel[1] = -16*h->mb.i_mb_y - 8;
-        h->mb.mv_max_fpel[1] = 16*( h->sps->i_mb_height - h->mb.i_mb_y - 1 ) + 8;
-        h->mb.mv_min_spel[1] = 4*( h->mb.mv_min_fpel[1] - 16 );
-        h->mb.mv_max_spel[1] = 4*( h->mb.mv_max_fpel[1] + 16 );
+        h->mb.mv_min_fpel[1] = -8*h->mb.i_mb_y - 4;
+        h->mb.mv_max_fpel[1] = 8*( h->sps->i_mb_height - h->mb.i_mb_y - 1 ) + 4;
+        h->mb.mv_min_spel[1] = 4*( h->mb.mv_min_fpel[1] - 8 );
+        h->mb.mv_max_spel[1] = 4*( h->mb.mv_max_fpel[1] + 8 );
     }
 
 #define LOAD_HPELS_LUMA(dst, src) \
@@ -94,6 +94,11 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
             fenc->mv[1][i_mb_xy][0] = mv1[0]; \
             fenc->mv[1][i_mb_xy][1] = mv1[1]; \
         } \
+    }
+#define CLIP_MV( mv ) \
+    { \
+        mv[0] = x264_clip3( mv[0], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] ); \
+        mv[1] = x264_clip3( mv[1], h->mb.mv_min_spel[1], h->mb.mv_max_spel[1] ); \
     }
 #define TRY_BIDIR( mv0, mv1, penalty ) \
     { \
@@ -133,6 +138,8 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         dmv[0][1] = ( mvr[1] * dist_scale_factor + 128 ) >> 8;
         dmv[1][0] = dmv[0][0] - mvr[0];
         dmv[1][1] = dmv[0][1] - mvr[1];
+        CLIP_MV( dmv[0] );
+        CLIP_MV( dmv[1] );
 
         TRY_BIDIR( dmv[0], dmv[1], 0 );
         if( dmv[0][0] || dmv[0][1] || dmv[1][0] || dmv[1][1] );
