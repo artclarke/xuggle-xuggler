@@ -642,7 +642,7 @@ BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
                 config->b_bframe_adaptive = ( IsDlgButtonChecked( hTabs[2], IDC_BADAPT ) == BST_CHECKED );
                 break;
             case IDC_BIDIR_ME :
-                config->b_bidir_me = ( IsDlgButtonChecked( hTabs[2], IDC_BIDIR_ME ) == BST_UNCHECKED );
+                config->b_bidir_me = ( IsDlgButtonChecked( hTabs[2], IDC_BIDIR_ME ) == BST_CHECKED );
                 break;
             case IDC_P8X8 :
                 config->b_psub16x16 = ( IsDlgButtonChecked( hTabs[2], IDC_P8X8 ) == BST_CHECKED );
@@ -807,11 +807,6 @@ BOOL CALLBACK callback_tabs( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam 
                 if( config->i_refmax > 16 )
                 {
                     config->i_refmax = 16;
-                    SetDlgItemInt( hTabs[3], IDC_REFFRAMES, config->i_refmax, FALSE );
-                }
-                if( config->i_refmax < 1 )
-                {
-                    config->i_refmax = 1;
                     SetDlgItemInt( hTabs[3], IDC_REFFRAMES, config->i_refmax, FALSE );
                 }
                 break;
