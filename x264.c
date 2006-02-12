@@ -629,6 +629,7 @@ static int  Parse( int argc, char **argv,
             case 'f':
             {
                 char *p = strchr( optarg, ':' );
+                if( !p ) p = strchr( optarg, ',' );
                 param->i_deblocking_filter_alphac0 = atoi( optarg );
                 param->i_deblocking_filter_beta = p ? atoi( p+1 ) : param->i_deblocking_filter_alphac0;
                 break;
@@ -696,6 +697,7 @@ static int  Parse( int argc, char **argv,
             case OPT_SAR:
             {
                 char *p = strchr( optarg, ':' );
+                if( !p ) p = strchr( optarg, '/' );
                 if( p )
                 {
                     param->vui.i_sar_width = atoi( optarg );
