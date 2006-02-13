@@ -2057,7 +2057,11 @@ void x264_macroblock_analyse( x264_t *h )
         {
             h->mb.i_type = B_SKIP;
             x264_mb_mc( h );
-            if( analysis.b_mbrd )
+            if( h->mb.b_lossless )
+            {
+                /* chance of skip is too small to bother */
+            }
+            else if( analysis.b_mbrd )
             {
                 i_bskip_cost = ssd_mb( h );
 
@@ -2073,7 +2077,7 @@ void x264_macroblock_analyse( x264_t *h )
             {
                 /* Conditioning the probe on neighboring block types
                  * doesn't seem to help speed or quality. */
-                b_skip = !h->mb.b_lossless && x264_macroblock_probe_bskip( h );
+                b_skip = x264_macroblock_probe_bskip( h );
             }
         }
 
