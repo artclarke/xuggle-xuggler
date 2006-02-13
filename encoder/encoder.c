@@ -643,9 +643,6 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     h->param.analyse.i_trellis = param->analyse.i_trellis;
     h->param.analyse.intra = param->analyse.intra;
     h->param.analyse.inter = param->analyse.inter;
-    if( h->sps->b_direct8x8_inference && h->param.i_bframe
-        && h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_TEMPORAL )
-        h->param.analyse.inter &= ~X264_ANALYSE_PSUB8x8;
 
     memcpy( h->pixf.mbcmp,
             ( h->mb.b_lossless || h->param.analyse.i_subpel_refine <= 1 ) ? h->pixf.sad : h->pixf.satd,

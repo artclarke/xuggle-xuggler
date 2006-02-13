@@ -463,10 +463,6 @@ struct x264_t
     /* rate control encoding only */
     x264_ratecontrol_t *rc;
 
-    int i_last_inter_size;
-    int i_last_intra_size;
-    int i_last_intra_qp;
-
     /* stats */
     struct
     {
@@ -497,7 +493,7 @@ struct x264_t
         /* Cummulated stats */
 
         /* per slice info */
-        int   i_slice_count[5];
+        int     i_slice_count[5];
         int64_t i_slice_size[5];
         int     i_slice_qp[5];
         /* */

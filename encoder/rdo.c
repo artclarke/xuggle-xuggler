@@ -47,6 +47,16 @@
 #include "cabac.c"
 
 
+static int ssd_mb( x264_t *h )
+{
+    return h->pixf.ssd[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0],
+                                     h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0] )
+         + h->pixf.ssd[PIXEL_8x8](   h->mb.pic.p_fenc[1], h->mb.pic.i_stride[1],
+                                     h->mb.pic.p_fdec[1], h->mb.pic.i_stride[1] )
+         + h->pixf.ssd[PIXEL_8x8](   h->mb.pic.p_fenc[2], h->mb.pic.i_stride[2],
+                                     h->mb.pic.p_fdec[2], h->mb.pic.i_stride[2] );
+}
+
 static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
 {
     int b_transform_bak = h->mb.b_transform_8x8;
@@ -55,12 +65,7 @@ static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
 
     x264_macroblock_encode( h );
 
-    i_ssd = h->pixf.ssd[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0],
-                                      h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0] )
-          + h->pixf.ssd[PIXEL_8x8](   h->mb.pic.p_fenc[1], h->mb.pic.i_stride[1],
-                                      h->mb.pic.p_fdec[1], h->mb.pic.i_stride[1] )
-          + h->pixf.ssd[PIXEL_8x8](   h->mb.pic.p_fenc[2], h->mb.pic.i_stride[2],
-                                      h->mb.pic.p_fdec[2], h->mb.pic.i_stride[2] );
+    i_ssd = ssd_mb( h );
 
     if( IS_SKIP( h->mb.i_type ) )
     {

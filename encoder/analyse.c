@@ -2059,12 +2059,7 @@ void x264_macroblock_analyse( x264_t *h )
             x264_mb_mc( h );
             if( analysis.b_mbrd )
             {
-                i_bskip_cost = h->pixf.ssd[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0],
-                                                         h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0] )
-                             + h->pixf.ssd[PIXEL_8x8](   h->mb.pic.p_fenc[1], h->mb.pic.i_stride[1],
-                                                         h->mb.pic.p_fdec[1], h->mb.pic.i_stride[1] )
-                             + h->pixf.ssd[PIXEL_8x8](   h->mb.pic.p_fenc[2], h->mb.pic.i_stride[2],
-                                                         h->mb.pic.p_fdec[2], h->mb.pic.i_stride[2] );
+                i_bskip_cost = ssd_mb( h );
 
                 /* 6 = minimum cavlc cost of a non-skipped MB */
                 if( i_bskip_cost <= 6 * analysis.i_lambda2 )

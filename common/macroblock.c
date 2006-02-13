@@ -254,43 +254,58 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
 {
     int i_mb_4x4 = 16 * h->mb.i_mb_stride * h->mb.i_mb_y + 4 * h->mb.i_mb_x;
     int i_mb_8x8 =  4 * h->mb.i_mb_stride * h->mb.i_mb_y + 2 * h->mb.i_mb_x;
-    int i;
+    int i8, i4;
+    int b8x8;
+    const int type_col = h->fref1[0]->mb_type[ h->mb.i_mb_xy ];
     
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, 0 );
     
-    if( IS_INTRA( h->fref1[0]->mb_type[ h->mb.i_mb_xy ] ) )
+    if( IS_INTRA( type_col ) )
     {
         x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, 0 );
         x264_macroblock_cache_mv(  h, 0, 0, 4, 4, 0, 0, 0 );
         x264_macroblock_cache_mv(  h, 0, 0, 4, 4, 1, 0, 0 );
         return 1;
     }
+    b8x8 = h->sps->b_direct8x8_inference ||
+           (type_col != P_8x8 && type_col != B_SKIP && type_col != B_DIRECT && type_col != B_8x8);
 
-    /* FIXME: optimize per block size */
-    for( i = 0; i < 4; i++ )
+    for( i8 = 0; i8 < 4; i8++ )
     {
-        const int x8 = 2*(i%2);
-        const int y8 = 2*(i/2);
-        const int i_part_8x8 = i_mb_8x8 + x8/2 + y8 * h->mb.i_mb_stride;
+        const int x8 = i8%2;
+        const int y8 = i8/2;
+        const int i_part_8x8 = i_mb_8x8 + x8 + y8 * h->mb.i_b8_stride;
         const int i_ref = h->mb.map_col_to_list0[ h->fref1[0]->ref[0][ i_part_8x8 ] ];
 
         if( i_ref >= 0 )
         {
             const int dist_scale_factor = h->mb.dist_scale_factor[i_ref][0];
-            int x4, y4;
 
-            x264_macroblock_cache_ref( h, x8, y8, 2, 2, 0, i_ref );
+            x264_macroblock_cache_ref( h, 2*x8, 2*y8, 2, 2, 0, i_ref );
 
-            for( y4 = y8; y4 < y8+2; y4++ )
-                for( x4 = x8; x4 < x8+2; x4++ )
+            if( b8x8 )
+            {
+                const int16_t *mv_col = h->fref1[0]->mv[0][ i_mb_4x4 + 3*x8 + 3*y8 * h->mb.i_b4_stride];
+                int mv_l0[2];
+                mv_l0[0] = ( dist_scale_factor * mv_col[0] + 128 ) >> 8;
+                mv_l0[1] = ( dist_scale_factor * mv_col[1] + 128 ) >> 8;
+                x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 0, mv_l0[0], mv_l0[1] );
+                x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 1, mv_l0[0] - mv_col[0], mv_l0[1] - mv_col[1] );
+            }
+            else
+            {
+                for( i4 = 0; i4 < 4; i4++ )
                 {
-                    const int16_t *mv_col = h->fref1[0]->mv[0][ i_mb_4x4 + x4 + y4 * 4 * h->mb.i_mb_stride ];
+                    const int x4 = i4%2 + 2*x8;
+                    const int y4 = i4/2 + 2*y8;
+                    const int16_t *mv_col = h->fref1[0]->mv[0][ i_mb_4x4 + x4 + y4 * h->mb.i_b4_stride ];
                     int mv_l0[2];
                     mv_l0[0] = ( dist_scale_factor * mv_col[0] + 128 ) >> 8;
                     mv_l0[1] = ( dist_scale_factor * mv_col[1] + 128 ) >> 8;
                     x264_macroblock_cache_mv( h, x4, y4, 1, 1, 0, mv_l0[0], mv_l0[1] );
                     x264_macroblock_cache_mv( h, x4, y4, 1, 1, 1, mv_l0[0] - mv_col[0], mv_l0[1] - mv_col[1] );
                 }
+            }
         }
         else
         {
@@ -312,11 +327,12 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
     int mv[2][2];
     int i_list;
     int i8, i4;
+    int b8x8;
     const int8_t *l1ref0 = &h->fref1[0]->ref[0][ h->mb.i_b8_xy ];
     const int8_t *l1ref1 = &h->fref1[0]->ref[1][ h->mb.i_b8_xy ];
     const int16_t (*l1mv0)[2] = (const int16_t (*)[2]) &h->fref1[0]->mv[0][ h->mb.i_b4_xy ];
     const int16_t (*l1mv1)[2] = (const int16_t (*)[2]) &h->fref1[0]->mv[1][ h->mb.i_b4_xy ];
-    const int intra_col = IS_INTRA( h->fref1[0]->mb_type[ h->mb.i_mb_xy ] );
+    const int type_col = h->fref1[0]->mb_type[ h->mb.i_mb_xy ];
 
     for( i_list=0; i_list<2; i_list++ )
     {
@@ -360,26 +376,45 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
     x264_macroblock_cache_mv(  h, 0, 0, 4, 4, 0, mv[0][0], mv[0][1] );
     x264_macroblock_cache_mv(  h, 0, 0, 4, 4, 1, mv[1][0], mv[1][1] );
 
+    if( IS_INTRA( type_col ) )
+        return 1;
+    b8x8 = h->sps->b_direct8x8_inference ||
+           (type_col != P_8x8 && type_col != B_SKIP && type_col != B_DIRECT && type_col != B_8x8);
+
     /* col_zero_flag */
     for( i8=0; i8<4; i8++ )
     {
         const int x8 = i8%2;
         const int y8 = i8/2;
         const int o8 = x8 + y8 * h->mb.i_b8_stride;
-        if( !intra_col && ( l1ref0[o8] == 0 || ( l1ref0[o8] < 0 && l1ref1[o8] == 0 ) ) )
+        if( l1ref0[o8] == 0 || ( l1ref0[o8] < 0 && l1ref1[o8] == 0 ) )
         {
             const int16_t (*l1mv)[2] = (l1ref0[o8] == 0) ? l1mv0 : l1mv1;
-            for( i4=0; i4<4; i4++ )
+            if( b8x8 )
             {
-                const int x4 = i4%2 + 2*x8;
-                const int y4 = i4/2 + 2*y8;
-                const int16_t *mvcol = l1mv[x4 + y4 * h->mb.i_b4_stride];
+                const int16_t *mvcol = l1mv[3*x8 + 3*y8 * h->mb.i_b4_stride];
                 if( abs( mvcol[0] ) <= 1 && abs( mvcol[1] ) <= 1 )
                 {
                     if( ref[0] == 0 )
-                        x264_macroblock_cache_mv( h, x4, y4, 1, 1, 0, 0, 0 );
+                        x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 0, 0, 0 );
                     if( ref[1] == 0 )
-                        x264_macroblock_cache_mv( h, x4, y4, 1, 1, 1, 0, 0 );
+                        x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 1, 0, 0 );
+                }
+            }
+            else
+            {
+                for( i4=0; i4<4; i4++ )
+                {
+                    const int x4 = i4%2 + 2*x8;
+                    const int y4 = i4/2 + 2*y8;
+                    const int16_t *mvcol = l1mv[x4 + y4 * h->mb.i_b4_stride];
+                    if( abs( mvcol[0] ) <= 1 && abs( mvcol[1] ) <= 1 )
+                    {
+                        if( ref[0] == 0 )
+                            x264_macroblock_cache_mv( h, x4, y4, 1, 1, 0, 0, 0 );
+                        if( ref[1] == 0 )
+                            x264_macroblock_cache_mv( h, x4, y4, 1, 1, 1, 0, 0 );
+                    }
                 }
             }
         }
