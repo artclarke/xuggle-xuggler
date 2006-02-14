@@ -162,7 +162,8 @@ static inline double qscale2bits(ratecontrol_entry_t *rce, double qscale)
     if(qscale<0.1)
         qscale = 0.1;
     return (rce->i_tex_bits + rce->p_tex_bits + .1) * pow( rce->qscale / qscale, 1.1 )
-           + rce->mv_bits * pow( X264_MAX(rce->qscale, 12) / X264_MAX(qscale, 12), 0.5 );
+           + rce->mv_bits * pow( X264_MAX(rce->qscale, 12) / X264_MAX(qscale, 12), 0.5 )
+           + rce->misc_bits;
 }
 
 
@@ -1108,14 +1109,14 @@ static int init_pass2( x264_t *h )
             if(weight < .0001)
                 break;
             weight_sum += weight;
-            cplx_sum += weight * qscale2bits(rcj, 1);
+            cplx_sum += weight * (qscale2bits(rcj, 1) - rcc->entry[j].misc_bits);
         }
         /* weighted average of cplx of past frames */
         weight = 1.0;
         for(j=0; j<=cplxblur*2 && j<=i; j++){
             ratecontrol_entry_t *rcj = &rcc->entry[i-j];
             weight_sum += weight;
-            cplx_sum += weight * qscale2bits(rcj, 1);
+            cplx_sum += weight * (qscale2bits(rcj, 1) - rcc->entry[j].misc_bits);
             weight *= 1 - pow( (float)rcj->i_count / rcc->nmb, 2 );
             if(weight < .0001)
                 break;
@@ -1189,7 +1190,7 @@ static int init_pass2( x264_t *h )
             double bits;
             rce->new_qscale = clip_qscale(h, rce->pict_type, blurred_qscale[i]);
             assert(rce->new_qscale >= 0);
-            bits = qscale2bits(rce, rce->new_qscale) + rce->misc_bits;
+            bits = qscale2bits(rce, rce->new_qscale);
 
             rce->expected_bits = expected_bits;
             expected_bits += bits;
