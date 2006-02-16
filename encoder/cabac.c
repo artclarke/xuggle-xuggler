@@ -356,7 +356,6 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
 {
     int i_mbn_xy = h->mb.i_mb_xy - 1;
     int i_dqp = h->mb.i_qp - h->mb.i_last_qp;
-    int val = i_dqp <= 0 ? (-2*i_dqp) : (2*i_dqp - 1);
     int ctx;
 
     /* No need to test for PCM / SKIP */
@@ -366,14 +365,20 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
     else
         ctx = 0;
 
-    while( val > 0 )
+    if( i_dqp != 0 )
     {
-        x264_cabac_encode_decision( cb, 60 + ctx, 1 );
-        if( ctx < 2 )
-            ctx = 2;
-        else
-            ctx = 3;
-        val--;
+        int val = i_dqp <= 0 ? (-2*i_dqp) : (2*i_dqp - 1);
+        /* dqp is interpreted modulo 52 */
+        if( val > 52 )
+            val = 103 - val;
+        while( val-- )
+        {
+            x264_cabac_encode_decision( cb, 60 + ctx, 1 );
+            if( ctx < 2 )
+                ctx = 2;
+            else
+                ctx = 3;
+        }
     }
     x264_cabac_encode_decision( cb, 60 + ctx, 0 );
 }
