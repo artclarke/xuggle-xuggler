@@ -106,13 +106,13 @@ void mc_luma_mmx( uint8_t *src[4], int i_src_stride,
     {
         switch(i_width) {
         case 4:
-            x264_mc_copy_w4_mmxext( src1, i_src_stride, dst, i_dst_stride, i_height );
+            x264_mc_copy_w4_mmxext( dst, i_dst_stride, src1, i_src_stride, i_height );
             break;
         case 8:
-            x264_mc_copy_w8_mmxext( src1, i_src_stride, dst, i_dst_stride, i_height );
+            x264_mc_copy_w8_mmxext( dst, i_dst_stride, src1, i_src_stride, i_height );
             break;
         case 16:
-            x264_mc_copy_w16_mmxext( src1, i_src_stride, dst, i_dst_stride, i_height );
+            x264_mc_copy_w16_mmxext( dst, i_dst_stride, src1, i_src_stride, i_height );
             break;
         }
     }
@@ -186,6 +186,10 @@ void x264_mc_mmxext_init( x264_mc_functions_t *pf )
     pf->avg_weight[PIXEL_8x4]   = x264_pixel_avg_weight_8x4_mmxext;
     pf->avg_weight[PIXEL_4x4]   = x264_pixel_avg_weight_4x4_mmxext;
     // avg_weight_4x8 is rare and 4x2 is not used
+
+    pf->copy[PIXEL_16x16] = x264_mc_copy_w16_mmxext;
+    pf->copy[PIXEL_8x8]   = x264_mc_copy_w8_mmxext;
+    pf->copy[PIXEL_4x4]   = x264_mc_copy_w4_mmxext;
 }
 void x264_mc_sse2_init( x264_mc_functions_t *pf )
 {

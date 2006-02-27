@@ -47,6 +47,9 @@ typedef struct
 
     void (*avg[10])( uint8_t *dst, int, uint8_t *src, int );
     void (*avg_weight[10])( uint8_t *dst, int, uint8_t *src, int, int i_weight );
+
+    /* only 16x16, 8x8, and 4x4 defined */
+    void (*copy[7])( uint8_t *dst, int, uint8_t *src, int, int i_height );
 } x264_mc_functions_t;
 
 void x264_mc_init( int cpu, x264_mc_functions_t *pf );

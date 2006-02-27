@@ -357,10 +357,10 @@ x264_mc_copy_w4_mmxext:
     push    esi
     push    edi
 
-    mov     esi, [esp+16]       ; src
-    mov     edi, [esp+24]       ; dst
-    mov     ebx, [esp+20]       ; i_src_stride
-    mov     edx, [esp+28]       ; i_dst_stride
+    mov     esi, [esp+24]       ; src
+    mov     edi, [esp+16]       ; dst
+    mov     ebx, [esp+28]       ; i_src_stride
+    mov     edx, [esp+20]       ; i_dst_stride
     mov     ecx, [esp+32]       ; i_height
 ALIGN 4
 .height_loop
@@ -389,10 +389,10 @@ x264_mc_copy_w8_mmxext:
     push    esi
     push    edi
 
-    mov     esi, [esp+16]       ; src
-    mov     edi, [esp+24]       ; dst
-    mov     ebx, [esp+20]       ; i_src_stride
-    mov     edx, [esp+28]       ; i_dst_stride
+    mov     esi, [esp+24]       ; src
+    mov     edi, [esp+16]       ; dst
+    mov     ebx, [esp+28]       ; i_src_stride
+    mov     edx, [esp+20]       ; i_dst_stride
     mov     ecx, [esp+32]       ; i_height
 ALIGN 4
 .height_loop
@@ -427,10 +427,10 @@ x264_mc_copy_w16_mmxext:
     push    esi
     push    edi
 
-    mov     esi, [esp+16]       ; src
-    mov     edi, [esp+24]       ; dst
-    mov     ebx, [esp+20]       ; i_src_stride
-    mov     edx, [esp+28]       ; i_dst_stride
+    mov     esi, [esp+24]       ; src
+    mov     edi, [esp+16]       ; dst
+    mov     ebx, [esp+28]       ; i_src_stride
+    mov     edx, [esp+20]       ; i_dst_stride
     mov     ecx, [esp+32]       ; i_height
 
 ALIGN 4
@@ -473,10 +473,10 @@ x264_mc_copy_w16_sse2:
     push    esi
     push    edi
 
-    mov     esi, [esp+16]       ; src
-    mov     edi, [esp+24]       ; dst
-    mov     ebx, [esp+20]       ; i_src_stride
-    mov     edx, [esp+28]       ; i_dst_stride
+    mov     esi, [esp+24]       ; src
+    mov     edi, [esp+16]       ; dst
+    mov     ebx, [esp+28]       ; i_src_stride
+    mov     edx, [esp+20]       ; i_dst_stride
     mov     ecx, [esp+32]       ; i_height
 
 ALIGN 4

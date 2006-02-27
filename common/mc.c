@@ -343,6 +343,15 @@ static void motion_compensation_chroma_mmxext( uint8_t *src, int i_src_stride,
 }
 #endif
 
+#define MC_COPY(W) \
+static void mc_copy_w##W( uint8_t *dst, int i_dst, uint8_t *src, int i_src, int i_height ) \
+{ \
+    mc_copy( src, i_src, dst, i_dst, W, i_height ); \
+}
+MC_COPY( 16 )
+MC_COPY( 8 )
+MC_COPY( 4 )
+
 void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 {
     pf->mc_luma   = mc_luma;
@@ -370,6 +379,10 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->avg_weight[PIXEL_4x2]  = pixel_avg_weight_4x2;
     pf->avg_weight[PIXEL_2x4]  = pixel_avg_weight_2x4;
     pf->avg_weight[PIXEL_2x2]  = pixel_avg_weight_2x2;
+
+    pf->copy[PIXEL_16x16] = mc_copy_w16;
+    pf->copy[PIXEL_8x8]   = mc_copy_w8;
+    pf->copy[PIXEL_4x4]   = mc_copy_w4;
 
 #ifdef HAVE_MMXEXT
     if( cpu&X264_CPU_MMXEXT ) {
