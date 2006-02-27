@@ -49,12 +49,12 @@
 
 static int ssd_mb( x264_t *h )
 {
-    return h->pixf.ssd[PIXEL_16x16]( h->mb.pic.p_fenc[0], h->mb.pic.i_stride[0],
-                                     h->mb.pic.p_fdec[0], h->mb.pic.i_stride[0] )
-         + h->pixf.ssd[PIXEL_8x8](   h->mb.pic.p_fenc[1], h->mb.pic.i_stride[1],
-                                     h->mb.pic.p_fdec[1], h->mb.pic.i_stride[1] )
-         + h->pixf.ssd[PIXEL_8x8](   h->mb.pic.p_fenc[2], h->mb.pic.i_stride[2],
-                                     h->mb.pic.p_fdec[2], h->mb.pic.i_stride[2] );
+    return h->pixf.ssd[PIXEL_16x16]( h->mb.pic.p_fenc[0], FENC_STRIDE,
+                                     h->mb.pic.p_fdec[0], FDEC_STRIDE )
+         + h->pixf.ssd[PIXEL_8x8](   h->mb.pic.p_fenc[1], FENC_STRIDE,
+                                     h->mb.pic.p_fdec[1], FDEC_STRIDE )
+         + h->pixf.ssd[PIXEL_8x8](   h->mb.pic.p_fenc[2], FENC_STRIDE,
+                                     h->mb.pic.p_fdec[2], FDEC_STRIDE );
 }
 
 static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )

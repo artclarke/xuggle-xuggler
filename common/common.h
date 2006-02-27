@@ -404,6 +404,12 @@ struct x264_t
 
         struct
         {
+            /* space for p_fenc and p_fdec */
+#define FENC_STRIDE 16
+#define FDEC_STRIDE 32
+            DECLARE_ALIGNED( uint8_t, fenc_buf[24*FENC_STRIDE], 16 );
+            DECLARE_ALIGNED( uint8_t, fdec_buf[27*FDEC_STRIDE], 16 );
+
             /* pointer over mb of the frame to be compressed */
             uint8_t *p_fenc[3];
 
@@ -414,7 +420,7 @@ struct x264_t
             uint8_t *p_fref[2][16][4+2]; /* last: lN, lH, lV, lHV, cU, cV */
             uint16_t *p_integral[2][16];
 
-            /* common stride */
+            /* fref stride */
             int     i_stride[3];
         } pic;
 

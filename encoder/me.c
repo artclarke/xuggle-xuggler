@@ -45,7 +45,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 
 #define COST_MV_INT( mx, my, bd, d ) \
 { \
-    int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], m->i_stride[0],     \
+    int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE, \
                    &p_fref[(my)*m->i_stride[0]+(mx)], m->i_stride[0] ) \
              + p_cost_mvx[ (mx)<<2 ]  \
              + p_cost_mvy[ (my)<<2 ]; \
@@ -63,7 +63,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 
 #define COST_MV_PDE( mx, my ) \
 { \
-    int cost = h->pixf.sad_pde[i_pixel]( m->p_fenc[0], m->i_stride[0], \
+    int cost = h->pixf.sad_pde[i_pixel]( m->p_fenc[0], FENC_STRIDE, \
                    &p_fref[(my)*m->i_stride[0]+(mx)], m->i_stride[0], \
                    bcost - p_cost_mvx[ (mx)<<2 ] - p_cost_mvy[ (my)<<2 ] ); \
     if( cost < bcost - p_cost_mvx[ (mx)<<2 ] - p_cost_mvy[ (my)<<2 ] ) \
@@ -411,7 +411,7 @@ me_hex2:
             const int dw = x264_pixel_size[i_pixel].w;
             const int dh = x264_pixel_size[i_pixel].h * stride;
             static uint8_t zero[16*16] = {0,};
-            const int enc_dc = h->pixf.sad[i_pixel]( m->p_fenc[0], stride, zero, 16 );
+            const int enc_dc = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE, zero, 16 );
             const uint16_t *integral_base = &m->integral[ -1 - 1*stride ];
 
             if( h->pixf.sad_pde[i_pixel] )
@@ -481,7 +481,7 @@ if( b_refine_qpel || (dir^1) != odir ) \
 { \
     int stride = 16; \
     uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix, &stride, mx, my, bw, bh ); \
-    int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], m->i_stride[0], src, stride ) \
+    int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE, src, stride ) \
              + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
     if( cost < bcost ) \
     {                  \
@@ -497,16 +497,16 @@ if( b_refine_qpel || (dir^1) != odir ) \
 { \
     int stride = 16; \
     uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix, &stride, mx, my, bw, bh ); \
-    int cost = h->pixf.mbcmp[i_pixel]( m->p_fenc[0], m->i_stride[0], src, stride ) \
+    int cost = h->pixf.mbcmp[i_pixel]( m->p_fenc[0], FENC_STRIDE, src, stride ) \
              + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
     if( b_chroma_me && cost < bcost ) \
     { \
         h->mc.mc_chroma( m->p_fref[4], m->i_stride[1], pix, 8, mx, my, bw/2, bh/2 ); \
-        cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[1], m->i_stride[1], pix, 8 ); \
+        cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[1], FENC_STRIDE, pix, 8 ); \
         if( cost < bcost ) \
         { \
             h->mc.mc_chroma( m->p_fref[5], m->i_stride[1], pix, 8, mx, my, bw/2, bh/2 ); \
-            cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[2], m->i_stride[1], pix, 8 ); \
+            cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[2], FENC_STRIDE, pix, 8 ); \
         } \
     } \
     if( cost < bcost ) \
@@ -626,7 +626,7 @@ if( pass == 0 || !visited[(m0x)&7][(m0y)&7][(m1x)&7][(m1y)&7] ) \
         h->mc.avg[i_pixel]( pix, bw, pix1[i1], bw ); \
     else \
         h->mc.avg_weight[i_pixel]( pix, bw, pix1[i1], bw, i_weight ); \
-    cost = h->pixf.mbcmp[i_pixel]( m0->p_fenc[0], m0->i_stride[0], pix, bw ) \
+    cost = h->pixf.mbcmp[i_pixel]( m0->p_fenc[0], FENC_STRIDE, pix, bw ) \
          + p_cost_m0x[ m0x ] + p_cost_m0y[ m0y ] \
          + p_cost_m1x[ m1x ] + p_cost_m1y[ m1y ]; \
     if( cost < bcost ) \

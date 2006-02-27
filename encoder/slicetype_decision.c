@@ -62,6 +62,9 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     int i_cost_bak;
     int l, i;
 
+    h->mb.pic.p_fenc[0] = h->mb.pic.fenc_buf;
+    h->mc.copy[PIXEL_8x8]( h->mb.pic.p_fenc[0], FENC_STRIDE, &fenc->lowres[0][i_pel_offset], i_stride, 8 );
+
     if( !p0 && !p1 && !b )
         goto lowres_intra_mb;
 
@@ -111,7 +114,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
                        (mv1)[0], (mv1)[1], 8, 8 ); \
         h->mc.avg[PIXEL_8x8]( pix1, 8, src2, stride2 ); \
         i_cost = penalty + h->pixf.mbcmp[PIXEL_8x8]( \
-                           m[0].p_fenc[0], m[0].i_stride[0], pix1, 8 ); \
+                           m[0].p_fenc[0], FENC_STRIDE, pix1, 8 ); \
         if( i_bcost > i_cost ) \
         { \
             i_bcost = i_cost; \
@@ -122,7 +125,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     m[0].i_pixel = PIXEL_8x8;
     m[0].p_cost_mv = a->p_cost_mv;
     m[0].i_stride[0] = i_stride;
-    m[0].p_fenc[0] = &fenc->lowres[0][ i_pel_offset ];
+    m[0].p_fenc[0] = h->mb.pic.p_fenc[0];
     LOAD_HPELS_LUMA( m[0].p_fref, fref0->lowres );
 
     if( b_bidir )
@@ -177,19 +180,22 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
 
 lowres_intra_mb:
     {
-        uint8_t *src = &fenc->lowres[0][ i_pel_offset ];
+        uint8_t pix_buf[9*FDEC_STRIDE];
+        uint8_t *pix = &pix_buf[8+FDEC_STRIDE - 1];
+        uint8_t *src = &fenc->lowres[0][i_pel_offset - 1];
         int intra_penalty = 5 + 10 * b_bidir;
         i_cost_bak = i_bcost;
 
-        memcpy( pix1, src-i_stride-1, 9 );
+        memcpy( pix-FDEC_STRIDE, src-i_stride, 9 );
         for( i=0; i<8; i++ )
-            pix1[(i+1)*9] = src[-1+i*i_stride];
+            pix[i*FDEC_STRIDE] = src[i*i_stride];
+        pix++;
 
         for( i = I_PRED_CHROMA_DC; i <= I_PRED_CHROMA_P; i++ )
         {
             int i_cost;
-            h->predict_8x8c[i]( &pix1[10], 9 );
-            i_cost = h->pixf.mbcmp[PIXEL_8x8]( &pix1[10], 9, src, i_stride ) + intra_penalty;
+            h->predict_8x8c[i]( pix, FDEC_STRIDE );
+            i_cost = h->pixf.mbcmp[PIXEL_8x8]( pix, FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE ) + intra_penalty;
             i_bcost = X264_MIN( i_bcost, i_cost );
         }
         if( i_bcost != i_cost_bak )
