@@ -572,8 +572,8 @@ static int check_intra( int cpu_ref, int cpu_new )
         used_asm = 1; \
         memcpy( buf3, buf1, 32*20 );\
         memcpy( buf4, buf1, 32*20 );\
-        ip_c.name[dir]( buf3+48, FDEC_STRIDE, ##__VA_ARGS__ );\
-        ip_a.name[dir]( buf4+48, FDEC_STRIDE, ##__VA_ARGS__ );\
+        ip_c.name[dir]( buf3+48, ##__VA_ARGS__ );\
+        ip_a.name[dir]( buf4+48, ##__VA_ARGS__ );\
         if( memcmp( buf3, buf4, 32*20 ) )\
         {\
             fprintf( stderr, #name "[%d] :  [FAILED]\n", dir );\

@@ -25,17 +25,17 @@
 #include "common/clip1.h"
 #include "predict.h"
 
-extern void predict_16x16_v_mmx( uint8_t *src, int i_stride );
-extern void predict_16x16_dc_core_mmxext( uint8_t *src, int i_stride, int i_dc_left );
-extern void predict_16x16_dc_top_mmxext( uint8_t *src, int i_stride );
-extern void predict_16x16_p_core_mmx( uint8_t *src, int i_stride, int i00, int b, int c );
-extern void predict_8x8c_p_core_mmx( uint8_t *src, int i_stride, int i00, int b, int c );
-extern void predict_8x8c_dc_core_mmxext( uint8_t *src, int i_stride, int s2, int s3 );
-extern void predict_8x8c_v_mmx( uint8_t *src, int i_stride );
-extern void predict_8x8_v_mmxext( uint8_t *src, int i_stride, int i_neighbors );
-extern void predict_8x8_dc_core_mmxext( uint8_t *src, int i_stride, int i_neighbors, uint8_t *pix_left );
+extern void predict_16x16_v_mmx( uint8_t *src );
+extern void predict_16x16_dc_core_mmxext( uint8_t *src, int i_dc_left );
+extern void predict_16x16_dc_top_mmxext( uint8_t *src );
+extern void predict_16x16_p_core_mmx( uint8_t *src, int i00, int b, int c );
+extern void predict_8x8c_p_core_mmx( uint8_t *src, int i00, int b, int c );
+extern void predict_8x8c_dc_core_mmxext( uint8_t *src, int s2, int s3 );
+extern void predict_8x8c_v_mmx( uint8_t *src );
+extern void predict_8x8_v_mmxext( uint8_t *src, int i_neighbors );
+extern void predict_8x8_dc_core_mmxext( uint8_t *src, int i_neighbors, uint8_t *pix_left );
 
-static void predict_16x16_p( uint8_t *src, int i_stride )
+static void predict_16x16_p( uint8_t *src )
 {
     int a, b, c, i;
     int H = 0;
@@ -53,10 +53,10 @@ static void predict_16x16_p( uint8_t *src, int i_stride )
     c = ( 5 * V + 32 ) >> 6;
     i00 = a - b * 7 - c * 7 + 16;
 
-    predict_16x16_p_core_mmx( src, FDEC_STRIDE, i00, b, c );
+    predict_16x16_p_core_mmx( src, i00, b, c );
 }
 
-static void predict_8x8c_p( uint8_t *src, int i_stride )
+static void predict_8x8c_p( uint8_t *src )
 {
     int a, b, c, i;
     int H = 0;
@@ -74,10 +74,10 @@ static void predict_8x8c_p( uint8_t *src, int i_stride )
     c = ( 17 * V + 16 ) >> 5;
     i00 = a -3*b -3*c + 16;
 
-    predict_8x8c_p_core_mmx( src, FDEC_STRIDE, i00, b, c );
+    predict_8x8c_p_core_mmx( src, i00, b, c );
 }
 
-static void predict_16x16_dc( uint8_t *src, int i_stride )
+static void predict_16x16_dc( uint8_t *src )
 {
     uint32_t dc=16;
     int i;
@@ -88,10 +88,10 @@ static void predict_16x16_dc( uint8_t *src, int i_stride )
         dc += src[-1 + (i+1) * FDEC_STRIDE];
     }
 
-    predict_16x16_dc_core_mmxext( src, FDEC_STRIDE, dc );
+    predict_16x16_dc_core_mmxext( src, dc );
 }
 
-static void predict_8x8c_dc( uint8_t *src, int i_stride )
+static void predict_8x8c_dc( uint8_t *src )
 {
     int s2 = 4
        + src[-1 + 0*FDEC_STRIDE]
@@ -105,11 +105,11 @@ static void predict_8x8c_dc( uint8_t *src, int i_stride )
        + src[-1 + 6*FDEC_STRIDE]
        + src[-1 + 7*FDEC_STRIDE];
 
-    predict_8x8c_dc_core_mmxext( src, FDEC_STRIDE, s2, s3 );
+    predict_8x8c_dc_core_mmxext( src, s2, s3 );
 }
 
 #define SRC(x,y) src[(x)+(y)*FDEC_STRIDE]
-static void predict_8x8_dc( uint8_t *src, int i_stride, int i_neighbor )
+static void predict_8x8_dc( uint8_t *src, int i_neighbor )
 {
     uint8_t l[10];
     l[0] = i_neighbor&MB_TOPLEFT ? SRC(-1,-1) : SRC(-1,0);
@@ -123,11 +123,11 @@ static void predict_8x8_dc( uint8_t *src, int i_stride, int i_neighbor )
     l[8] =
     l[9] = SRC(-1,7);
 
-    predict_8x8_dc_core_mmxext( src, FDEC_STRIDE, i_neighbor, l+1 );
+    predict_8x8_dc_core_mmxext( src, i_neighbor, l+1 );
 }
 
 #ifdef ARCH_X86_64
-static void predict_16x16_h( uint8_t *src, int i_stride )
+static void predict_16x16_h( uint8_t *src )
 {
     int y;
     for( y = 0; y < 16; y++ )
@@ -139,7 +139,7 @@ static void predict_16x16_h( uint8_t *src, int i_stride )
     }
 }
 
-static void predict_8x8c_h( uint8_t *src, int i_stride )
+static void predict_8x8c_h( uint8_t *src )
 {
     int y;
     for( y = 0; y < 8; y++ )
@@ -149,7 +149,7 @@ static void predict_8x8c_h( uint8_t *src, int i_stride )
     }
 }
 
-static void predict_16x16_dc_left( uint8_t *src, int i_stride )
+static void predict_16x16_dc_left( uint8_t *src )
 {
     uint32_t s = 0;
     uint64_t dc; 
@@ -169,7 +169,7 @@ static void predict_16x16_dc_left( uint8_t *src, int i_stride )
     }
 }
 
-static void predict_8x8c_dc_left( uint8_t *src, int i_stride )
+static void predict_8x8c_dc_left( uint8_t *src )
 {
     int y;
     uint32_t s0 = 0, s1 = 0;
@@ -196,7 +196,7 @@ static void predict_8x8c_dc_left( uint8_t *src, int i_stride )
 
 }
 
-static void predict_8x8c_dc_top( uint8_t *src, int i_stride )
+static void predict_8x8c_dc_top( uint8_t *src )
 {
     int y, x;
     uint32_t s0 = 0, s1 = 0;

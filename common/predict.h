@@ -24,8 +24,8 @@
 #ifndef _PREDICT_H
 #define _PREDICT_H 1
 
-typedef void (*x264_predict_t)( uint8_t *src, int i_stride );
-typedef void (*x264_predict8x8_t)( uint8_t *src, int i_stride, int i_neighbor );
+typedef void (*x264_predict_t)( uint8_t *src );
+typedef void (*x264_predict8x8_t)( uint8_t *src, int i_neighbor );
 
 enum intra_chroma_pred_e
 {

@@ -446,7 +446,7 @@ void x264_macroblock_encode( x264_t *h )
         const int i_mode = h->mb.i_intra16x16_pred_mode;
         h->mb.b_transform_8x8 = 0;
         /* do the right prediction */
-        h->predict_16x16[i_mode]( h->mb.pic.p_fdec[0], FDEC_STRIDE );
+        h->predict_16x16[i_mode]( h->mb.pic.p_fdec[0] );
 
         /* encode the 16x16 macroblock */
         x264_mb_encode_i16x16( h, i_qp );
@@ -456,11 +456,10 @@ void x264_macroblock_encode( x264_t *h )
         h->mb.b_transform_8x8 = 1;
         for( i = 0; i < 4; i++ )
         {
-            const int i_dst = FDEC_STRIDE;
-            uint8_t  *p_dst = &h->mb.pic.p_fdec[0][8 * (i&1) + 8 * (i>>1) * i_dst];
+            uint8_t  *p_dst = &h->mb.pic.p_fdec[0][8 * (i&1) + 8 * (i>>1) * FDEC_STRIDE];
             int      i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[4*i]];
 
-            h->predict_8x8[i_mode]( p_dst, i_dst, h->mb.i_neighbour8[i] );
+            h->predict_8x8[i_mode]( p_dst, h->mb.i_neighbour8[i] );
             x264_mb_encode_i8x8( h, i, i_qp );
         }
     }
@@ -469,15 +468,14 @@ void x264_macroblock_encode( x264_t *h )
         h->mb.b_transform_8x8 = 0;
         for( i = 0; i < 16; i++ )
         {
-            const int i_dst = FDEC_STRIDE;
-            uint8_t  *p_dst = &h->mb.pic.p_fdec[0][4 * block_idx_x[i] + 4 * block_idx_y[i] * i_dst];
+            uint8_t  *p_dst = &h->mb.pic.p_fdec[0][4 * block_idx_x[i] + 4 * block_idx_y[i] * FDEC_STRIDE];
             int      i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[i]];
 
             if( (h->mb.i_neighbour4[i] & (MB_TOPRIGHT|MB_TOP)) == MB_TOP )
                 /* emulate missing topright samples */
-                *(uint32_t*) &p_dst[4 - i_dst] = p_dst[3 - i_dst] * 0x01010101U;
+                *(uint32_t*) &p_dst[4-FDEC_STRIDE] = p_dst[3-FDEC_STRIDE] * 0x01010101U;
 
-            h->predict_4x4[i_mode]( p_dst, i_dst );
+            h->predict_4x4[i_mode]( p_dst );
             x264_mb_encode_i4x4( h, i, i_qp );
         }
     }
@@ -604,8 +602,8 @@ void x264_macroblock_encode( x264_t *h )
     if( IS_INTRA( h->mb.i_type ) )
     {
         const int i_mode = h->mb.i_chroma_pred_mode;
-        h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[1], FDEC_STRIDE );
-        h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[2], FDEC_STRIDE );
+        h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[1] );
+        h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[2] );
     }
 
     /* encode the 8x8 blocks */

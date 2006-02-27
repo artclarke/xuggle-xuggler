@@ -28,14 +28,33 @@ BITS 64
 
 %include "amd64inc.asm"
 
-%macro SAVE_0_1 1
-    movq        [%1]         , mm0
-    movq        [%1 + 8]     , mm1
+%macro STORE8x8 2
+    movq        [parm1q + 1*FDEC_STRIDE], %1
+    movq        [parm1q + 2*FDEC_STRIDE], %1
+    movq        [parm1q + 3*FDEC_STRIDE], %1
+    movq        [parm1q + 4*FDEC_STRIDE], %1
+    movq        [parm1q + 5*FDEC_STRIDE], %2
+    movq        [parm1q + 6*FDEC_STRIDE], %2
+    movq        [parm1q + 7*FDEC_STRIDE], %2
+    movq        [parm1q + 8*FDEC_STRIDE], %2
 %endmacro
 
-%macro SAVE_0_0 1
-    movq        [%1]         , mm0
-    movq        [%1 + 8]     , mm0
+%macro STORE16x16 2
+    mov         eax, 4
+ALIGN 4
+.loop:
+    movq        [parm1q + 1*FDEC_STRIDE], %1
+    movq        [parm1q + 2*FDEC_STRIDE], %1
+    movq        [parm1q + 3*FDEC_STRIDE], %1
+    movq        [parm1q + 4*FDEC_STRIDE], %1
+    movq        [parm1q + 1*FDEC_STRIDE + 8], %2
+    movq        [parm1q + 2*FDEC_STRIDE + 8], %2
+    movq        [parm1q + 3*FDEC_STRIDE + 8], %2
+    movq        [parm1q + 4*FDEC_STRIDE + 8], %2
+    dec         eax
+    lea         parm1q, [parm1q + 4*FDEC_STRIDE]
+    jnz         .loop
+    nop
 %endmacro
 
 
@@ -80,20 +99,20 @@ cglobal predict_16x16_dc_top_mmxext
 %endmacro
 
 %macro PRED8x8_LOAD_TOP 0
-    sub         parm1q, parm2q
+    sub         parm1q, FDEC_STRIDE
 
-    and         parm3d, 12
+    and         parm2d, 12
     movq        mm1, [parm1q-1]
     movq        mm2, [parm1q+1]
 
-    cmp         parm3d, byte 8
+    cmp         parm2d, byte 8
     jge         .have_topleft
     mov         al,  [parm1q]
     mov         ah,  [parm1q]
     pinsrw      mm1, eax, 0
 .have_topleft:
 
-    and         parm3d, byte 4
+    and         parm2d, byte 4
     jne         .have_topright
     mov         al,  [parm1q+7]
     mov         ah,  [parm1q+7]
@@ -105,38 +124,27 @@ cglobal predict_16x16_dc_top_mmxext
 
 ;-----------------------------------------------------------------------------
 ;
-; void predict_8x8_v_mmxext( uint8_t *src, int i_stride, int i_neighbors )
+; void predict_8x8_v_mmxext( uint8_t *src, int i_neighbors )
 ;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
 predict_8x8_v_mmxext:
     PRED8x8_LOAD_TOP
-
-    lea         rax, [parm2q + 2*parm2q]
-    movq        [parm1q +   parm2q], mm0      ; 0
-    movq        [parm1q + 2*parm2q], mm0      ; 1
-    movq        [parm1q + 4*parm2q], mm0      ; 3
-    movq        [parm1q + 8*parm2q], mm0      ; 7
-    add         parm1q, rax
-    movq        [parm1q], mm0                 ; 2
-    movq        [parm1q + 2*parm2q], mm0      ; 4
-    movq        [parm1q +   rax   ], mm0      ; 5
-    movq        [parm1q + 4*parm2q], mm0      ; 6
-
+    STORE8x8    mm0, mm0
     ret
 
 ;-----------------------------------------------------------------------------
 ;
-; void predict_8x8_dc_core_mmxext( uint8_t *src, int i_stride, int i_neighbors, uint8_t *pix_left );
+; void predict_8x8_dc_core_mmxext( uint8_t *src, int i_neighbors, uint8_t *pix_left );
 ;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
 predict_8x8_dc_core_mmxext:
-    movq        mm1, [parm4q-1]
-    movq        mm2, [parm4q+1]
-    PRED8x8_LOWPASS mm4, [parm4q]
+    movq        mm1, [parm3q-1]
+    movq        mm2, [parm3q+1]
+    PRED8x8_LOWPASS mm4, [parm3q]
 
     PRED8x8_LOAD_TOP
 
@@ -149,53 +157,31 @@ predict_8x8_dc_core_mmxext:
     pshufw      mm0, mm0, 0
     packuswb    mm0, mm0
 
-    lea         rax, [parm2q + 2*parm2q]
-    movq        [parm1q +   parm2q], mm0      ; 0
-    movq        [parm1q + 2*parm2q], mm0      ; 1
-    movq        [parm1q + 4*parm2q], mm0      ; 3
-    movq        [parm1q + 8*parm2q], mm0      ; 7
-    add         parm1q, rax
-    movq        [parm1q], mm0                 ; 2
-    movq        [parm1q + 2*parm2q], mm0      ; 4
-    movq        [parm1q +   rax   ], mm0      ; 5
-    movq        [parm1q + 4*parm2q], mm0      ; 6
-
+    STORE8x8    mm0, mm0
     ret
 
 ;-----------------------------------------------------------------------------
 ;
-; void predict_8x8c_v_mmx( uint8_t *src, int i_stride )
+; void predict_8x8c_v_mmx( uint8_t *src )
 ;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
 predict_8x8c_v_mmx :
-    sub         parm1q, parm2q  ; esi <-- line -1
-
-    movq        mm0,                   [parm1q]
-    movq        [parm1q + parm2q],     mm0          ; 0
-    movq        [parm1q + 2 * parm2q], mm0          ; 1
-    movq        [parm1q + 4 * parm2q], mm0          ; 3
-    movq        [parm1q + 8 * parm2q], mm0          ; 7
-    add         parm1q,                parm2q       ; <-- line 0
-    movq        [parm1q + 2 * parm2q], mm0          ; 2
-    movq        [parm1q + 4 * parm2q], mm0          ; 4
-    lea         parm1q,                [parm1q + 4 * parm2q] ; <-- line 4
-    movq        [parm1q + parm2q],     mm0          ; 5
-    movq        [parm1q + 2 * parm2q], mm0          ; 6
-
+    sub         parm1q, FDEC_STRIDE
+    movq        mm0, [parm1q]
+    STORE8x8    mm0, mm0
     ret
 
 ;-----------------------------------------------------------------------------
 ;
-; void predict_8x8c_dc_core_mmxext( uint8_t *src, int i_stride, int s2, int s3 )
+; void predict_8x8c_dc_core_mmxext( uint8_t *src, int s2, int s3 )
 ;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
 predict_8x8c_dc_core_mmxext:
-    sub         parm1q, parm2q
-    lea         rax, [parm2q + 2*parm2q]
+    sub         parm1q, FDEC_STRIDE
 
     movq        mm0, [parm1q]
     pxor        mm1, mm1
@@ -205,8 +191,8 @@ predict_8x8c_dc_core_mmxext:
     psadbw      mm1, mm2        ; s1
     psadbw      mm0, mm2        ; s0
 
-    movd        mm4, parm3d
-    movd        mm5, parm4d
+    movd        mm4, parm2d
+    movd        mm5, parm3d
     paddw       mm0, mm4
     pshufw      mm2, mm5, 0
     psrlw       mm0, 3
@@ -222,29 +208,20 @@ predict_8x8c_dc_core_mmxext:
     packuswb    mm0, mm1        ; dc0,dc1 (b)
     packuswb    mm2, mm3        ; dc2,dc3 (b)
 
-    movq        [parm1q +   parm2q], mm0 ; 0
-    movq        [parm1q + 2*parm2q], mm0 ; 1
-    movq        [parm1q +   rax   ], mm0 ; 2
-    movq        [parm1q + 4*parm2q], mm0 ; 3
-    lea         parm1q, [parm1q + 4*parm2q]
-    movq        [parm1q +   parm2q], mm2 ; 4
-    movq        [parm1q + 2*parm2q], mm2 ; 5
-    movq        [parm1q +   rax   ], mm2 ; 6
-    movq        [parm1q + 4*parm2q], mm2 ; 7
-
+    STORE8x8    mm0, mm2
     ret
 
 ;-----------------------------------------------------------------------------
 ;
-; void predict_8x8c_p_core_mmx( uint8_t *src, int i_stride, int i00, int b, int c )
+; void predict_8x8c_p_core_mmx( uint8_t *src, int i00, int b, int c )
 ;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
 predict_8x8c_p_core_mmx:
-    movd        mm0, parm3d
-    movd        mm2, parm4d
-    movd        mm4, parm5d
+    movd        mm0, parm2d
+    movd        mm2, parm3d
+    movd        mm4, parm4d
     pshufw      mm0, mm0, 0
     pshufw      mm2, mm2, 0
     pshufw      mm4, mm4, 0
@@ -269,7 +246,7 @@ ALIGN 4
 
     paddsw      mm0, mm4
     paddsw      mm1, mm4
-    add         parm1q, parm2q
+    add         parm1q, FDEC_STRIDE
     dec         eax
     jg          .loop
 
@@ -278,15 +255,15 @@ ALIGN 4
 
 ;-----------------------------------------------------------------------------
 ;
-; void predict_16x16_p_core_mmx( uint8_t *src, int i_stride, int i00, int b, int c )
+; void predict_16x16_p_core_mmx( uint8_t *src, int i00, int b, int c )
 ;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
 predict_16x16_p_core_mmx:
-    movd        mm0, parm3d
-    movd        mm2, parm4d
-    movd        mm4, parm5d
+    movd        mm0, parm2d
+    movd        mm2, parm3d
+    movd        mm4, parm4d
     pshufw      mm0, mm0, 0
     pshufw      mm2, mm2, 0
     pshufw      mm4, mm4, 0
@@ -327,7 +304,7 @@ ALIGN 4
     paddsw      mm1, mm4
     paddsw      mm2, mm4
     paddsw      mm3, mm4
-    add         parm1q, parm2q
+    add         parm1q, FDEC_STRIDE
     dec         eax
     jg          .loop
 
@@ -336,48 +313,26 @@ ALIGN 4
     
 ;-----------------------------------------------------------------------------
 ;
-; void predict_16x16_v_mmx( uint8_t *src, int i_stride )
+; void predict_16x16_v_mmx( uint8_t *src )
 ;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
 predict_16x16_v_mmx :
-    sub         parm1q, parm2q                 ; line -1
-
+    sub         parm1q, FDEC_STRIDE
     movq        mm0, [parm1q]
     movq        mm1, [parm1q + 8]
-    lea         rax, [parm2q + 2 * parm2q]     ; 3 * stride
-
-    SAVE_0_1    (parm1q + parm2q)              ; 0
-    SAVE_0_1    (parm1q + 2 * parm2q)          ; 1
-    SAVE_0_1    (parm1q + rax)                 ; 2
-    SAVE_0_1    (parm1q + 4 * parm2q)          ; 3
-    SAVE_0_1    (parm1q + 2 * rax)             ; 5
-    SAVE_0_1    (parm1q + 8 * parm2q)          ; 7
-    SAVE_0_1    (parm1q + 4 * rax)             ; 11
-    add         parm1q, parm2q                 ; <-- line 0
-    SAVE_0_1    (parm1q + 4 * parm2q)          ; 4
-    SAVE_0_1    (parm1q + 2 * rax)             ; 6
-    SAVE_0_1    (parm1q + 8 * parm2q)          ; 8
-    SAVE_0_1    (parm1q + 4 * rax)             ; 12
-    lea         parm1q, [parm1q + 8 * parm2q]  ; <-- line 8
-    SAVE_0_1    (parm1q + parm2q)              ; 9
-    SAVE_0_1    (parm1q + 2 * parm2q)          ; 10
-    lea         parm1q, [parm1q + 4 * parm2q]  ; <-- line 12
-    SAVE_0_1    (parm1q + parm2q)              ; 13
-    SAVE_0_1    (parm1q + 2 * parm2q)          ; 14
-    SAVE_0_1    (parm1q + rax)                 ; 15
-
+    STORE16x16  mm0, mm1
     ret
 
 ;-----------------------------------------------------------------------------
 ;
-; void predict_16x16_dc_core_mmxext( uint8_t *src, int i_stride, int i_dc_left )
+; void predict_16x16_dc_core_mmxext( uint8_t *src, int i_dc_left )
 ;
 ;-----------------------------------------------------------------------------
 
 %macro PRED16x16_DC 2
-    sub         parm1q, parm2q                ; parm1q <-- line -1
+    sub         parm1q, FDEC_STRIDE
 
     pxor        mm0, mm0
     pxor        mm1, mm1
@@ -387,25 +342,14 @@ predict_16x16_v_mmx :
     paddusw     mm0, %1
     psrlw       mm0, %2                       ; dc
     pshufw      mm0, mm0, 0
-    lea         r8,  [parm2q + 2*parm2q]      ; eax <-- 3* stride
     packuswb    mm0, mm0                      ; dc in bytes
 
-    mov         eax, 4
-ALIGN 4
-.loop:
-    SAVE_0_0    (parm1q +     parm2q)         ; 0
-    SAVE_0_0    (parm1q + 2 * parm2q)         ; 1
-    SAVE_0_0    (parm1q +     r8    )         ; 2
-    SAVE_0_0    (parm1q + 4 * parm2q)         ; 3
-    dec         eax
-    lea         parm1q, [parm1q + 4 * parm2q]
-    jg          .loop
-    nop
+    STORE16x16  mm0, mm0
 %endmacro
 
 ALIGN 16
 predict_16x16_dc_core_mmxext:
-    movd         mm2, parm3d
+    movd         mm2, parm2d
     PRED16x16_DC mm2, 5
     ret
 

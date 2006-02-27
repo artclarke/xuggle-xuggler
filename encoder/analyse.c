@@ -430,8 +430,8 @@ static void x264_mb_analyse_intra_chroma( x264_t *h, x264_mb_analysis_t *a )
         i_mode = predict_mode[i];
 
         /* we do the prediction */
-        h->predict_8x8c[i_mode]( p_dstc[0], FDEC_STRIDE );
-        h->predict_8x8c[i_mode]( p_dstc[1], FDEC_STRIDE );
+        h->predict_8x8c[i_mode]( p_dstc[0] );
+        h->predict_8x8c[i_mode]( p_dstc[1] );
 
         /* we calculate the cost */
         i_sad = h->pixf.mbcmp[PIXEL_8x8]( p_dstc[0], FDEC_STRIDE,
@@ -478,7 +478,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_cost_
         int i_mode;
 
         i_mode = predict_mode[i];
-        h->predict_16x16[i_mode]( p_dst, FDEC_STRIDE );
+        h->predict_16x16[i_mode]( p_dst );
 
         i_sad = h->pixf.mbcmp[PIXEL_16x16]( p_dst, FDEC_STRIDE, p_src, FENC_STRIDE ) +
                 a->i_lambda * bs_size_ue( x264_mb_pred_mode16x16_fix[i_mode] );
@@ -545,7 +545,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_cost_
                 int i_mode;
 
                 i_mode = predict_mode[i];
-                h->predict_4x4[i_mode]( p_dst_by, FDEC_STRIDE );
+                h->predict_4x4[i_mode]( p_dst_by );
 
                 i_sad = h->pixf.mbcmp[PIXEL_4x4]( p_dst_by, FDEC_STRIDE,
                                                   p_src_by, FENC_STRIDE )
@@ -560,7 +560,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_cost_
             a->i_sad_i4x4 += i_best;
 
             /* we need to encode this block now (for next ones) */
-            h->predict_4x4[a->i_predict4x4[x][y]]( p_dst_by, FDEC_STRIDE );
+            h->predict_4x4[a->i_predict4x4[x][y]]( p_dst_by );
             x264_mb_encode_i4x4( h, idx, a->i_qp );
 
             h->mb.cache.intra4x4_pred_mode[x264_scan8[idx]] = a->i_predict4x4[x][y];
@@ -613,7 +613,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_cost_
                 int i_mode;
 
                 i_mode = predict_mode[i];
-                h->predict_8x8[i_mode]( p_dst_by, FDEC_STRIDE, h->mb.i_neighbour8[idx] );
+                h->predict_8x8[i_mode]( p_dst_by, h->mb.i_neighbour8[idx] );
 
                 /* could use sa8d, but it doesn't seem worth the speed cost (without mmx at least) */
                 i_sad = h->pixf.mbcmp[PIXEL_8x8]( p_dst_by, FDEC_STRIDE,
@@ -629,7 +629,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_cost_
             a->i_sad_i8x8 += i_best;
 
             /* we need to encode this block now (for next ones) */
-            h->predict_8x8[a->i_predict8x8[x][y]]( p_dst_by, FDEC_STRIDE, h->mb.i_neighbour );
+            h->predict_8x8[a->i_predict8x8[x][y]]( p_dst_by, h->mb.i_neighbour );
             x264_mb_encode_i8x8( h, idx, a->i_qp );
 
             x264_macroblock_cache_intra8x8_pred( h, 2*x, 2*y, a->i_predict8x8[x][y] );

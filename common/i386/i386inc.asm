@@ -110,3 +110,4 @@ BITS 32
     %define picesp esp
 %endif
 
+%assign FDEC_STRIDE 32
