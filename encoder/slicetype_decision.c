@@ -142,7 +142,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         CLIP_MV( dmv[1] );
 
         TRY_BIDIR( dmv[0], dmv[1], 0 );
-        if( dmv[0][0] || dmv[0][1] || dmv[1][0] || dmv[1][1] );
+        if( dmv[0][0] || dmv[0][1] || dmv[1][0] || dmv[1][1] )
            TRY_BIDIR( mv0, mv0, 0 );
 //      if( i_bcost < 60 ) // arbitrary threshold
 //          return i_bcost;
@@ -177,14 +177,13 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
 
 lowres_intra_mb:
     {
-        uint8_t *src = &fenc->lowres[0][ i_pel_offset - i_stride - 1 ];
+        uint8_t *src = &fenc->lowres[0][ i_pel_offset ];
         int intra_penalty = 5 + 10 * b_bidir;
         i_cost_bak = i_bcost;
 
-        memcpy( pix1, src, 9 );
-        for( i=1; i<9; i++, src += i_stride )
-            pix1[i*9] = src[0];
-        src = &fenc->lowres[0][ i_pel_offset ];
+        memcpy( pix1, src-i_stride-1, 9 );
+        for( i=0; i<8; i++ )
+            pix1[(i+1)*9] = src[-1+i*i_stride];
 
         for( i = I_PRED_CHROMA_DC; i <= I_PRED_CHROMA_P; i++ )
         {
