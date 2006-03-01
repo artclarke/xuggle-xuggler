@@ -120,11 +120,7 @@ BITS 32
 ; Local Data (Read Only)
 ;=============================================================================
 
-%ifdef FORMAT_COFF
-SECTION .rodata data
-%else
-SECTION .rodata data align=16
-%endif
+SECTION_RODATA
 
 ;-----------------------------------------------------------------------------
 ; Various memory constants (trigonometric values or rounding values)

@@ -24,7 +24,7 @@ BITS 32
 
 %include "i386inc.asm"
 
-SECTION .rodata align=16
+SECTION_RODATA
 pb_01: times 16 db 0x01
 pb_3f: times 16 db 0x3f
 pb_ff: times 16 db 0xff

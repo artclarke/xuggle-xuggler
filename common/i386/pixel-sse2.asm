@@ -28,11 +28,7 @@ BITS 32
 
 %include "i386inc.asm"
 
-%ifdef FORMAT_COFF
-SECTION .rodata data
-%else
-SECTION .rodata data align=16
-%endif
+SECTION_RODATA
 
 pd_0000ffff: times 4 dd 0x0000ffff
 

@@ -30,7 +30,7 @@ BITS 32
 ; Read only data
 ;=============================================================================
 
-SECTION .rodata data align=16
+SECTION_RODATA
 
 ALIGN 16
 mmx_dw_one:

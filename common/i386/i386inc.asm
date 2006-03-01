@@ -26,12 +26,24 @@ BITS 32
 ; Macros and other preprocessor constants
 ;=============================================================================
 
+; Symbol prefix for C linkage
 %macro cglobal 1
     %ifdef PREFIX
         global _%1
         %define %1 _%1
     %else
         global %1
+    %endif
+%endmacro
+
+; Name of the .rodata section. On OS X we cannot use .rodata because NASM
+; is unable to compute address offsets outside of .text so we use the .text
+; section instead until NASM is fixed.
+%macro SECTION_RODATA 0
+    %ifidn __OUTPUT_FORMAT__,macho
+        SECTION .text
+    %else
+        SECTION .rodata data align=16
     %endif
 %endmacro
 

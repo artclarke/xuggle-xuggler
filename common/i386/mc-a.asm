@@ -42,11 +42,7 @@ BITS 32
 ; Constants
 ;=============================================================================
 
-%ifdef FORMAT_COFF
-SECTION .rodata data
-%else
-SECTION .rodata data align=16
-%endif
+SECTION_RODATA
 
 ALIGN 16
 pw_4:  times 4 dw  4

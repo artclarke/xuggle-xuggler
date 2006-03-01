@@ -52,7 +52,7 @@ BITS 32
 %endmacro
 
 
-SECTION .rodata data align=16
+SECTION_RODATA
 
 ALIGN 8
 pw_2: times 4 dw 2
