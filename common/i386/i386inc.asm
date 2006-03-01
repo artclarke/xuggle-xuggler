@@ -111,3 +111,10 @@ BITS 32
 %endif
 
 %assign FDEC_STRIDE 32
+
+; This is needed for ELF, otherwise the GNU linker assumes the stack is
+; executable by default.
+%ifidn __OUTPUT_FORMAT__,elf
+SECTION .note.GNU-stack noalloc noexec nowrite progbits
+%endif
+
