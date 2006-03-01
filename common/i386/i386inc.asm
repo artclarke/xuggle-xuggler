@@ -66,7 +66,7 @@ BITS 32
 ;     mov eax, [esp + 12]
 ;
 %ifdef __PIC__
-    %ifdef FORMAT_MACHO
+    %ifidn __OUTPUT_FORMAT__,macho
         ; There is no real global offset table on OS X, but we still
         ; need to reference our variables by offset.
         %define GLOBAL + ebx
@@ -77,7 +77,7 @@ BITS 32
             sub %1, %%getgot
         %endmacro
     %else
-        %ifdef FORMAT_ELF
+        %ifidn __OUTPUT_FORMAT__,elf
             %define GOT _GLOBAL_OFFSET_TABLE_
         %else ; for a.out
             %define GOT __GLOBAL_OFFSET_TABLE_

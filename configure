@@ -58,7 +58,7 @@ LDFLAGS=""
 HAVE_GETOPT_LONG=1
 
 AS="nasm"
-ASFLAGS="-f elf -DFORMAT_ELF"
+ASFLAGS="-f elf"
 
 EXE=""
 
@@ -120,10 +120,10 @@ case "$UNAMEM" in
     ARCH="X86"
     CFLAGS="$CFLAGS -DHAVE_MMXEXT -DHAVE_SSE2"
     if [ "$SYS" = MACOSX ]; then
-      ASFLAGS="-f macho -DPREFIX -DFORMAT_MACHO"
+      ASFLAGS="-f macho -DPREFIX"
     fi
     if [ "$SYS" = FREEBSD -o "$SYS" = NETBSD ]; then
-      ASFLAGS="-f aoutb -DFORMAT_AOUTB"
+      ASFLAGS="-f aoutb"
     fi
     ;;
   x86_64)
