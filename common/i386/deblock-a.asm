@@ -185,19 +185,19 @@ cglobal x264_deblock_h_chroma_intra_mmxext
     pxor    mm4, mm2
     ; b = p0^(q1>>2)
     psrlw   mm3, 2
-    pand    mm3, [pb_3f GLOBAL]
+    pand    mm3, [pb_3f GOT_ebx]
     movq    mm5, mm1
     pxor    mm5, mm3
     ; c = q0^(p1>>2)
     psrlw   mm0, 2
-    pand    mm0, [pb_3f GLOBAL]
+    pand    mm0, [pb_3f GOT_ebx]
     movq    mm6, mm2
     pxor    mm6, mm0
     ; d = (c^b) & ~(b^a) & 1
     pxor    mm6, mm5
     pxor    mm5, mm4
     pandn   mm5, mm6
-    pand    mm5, [pb_01 GLOBAL]
+    pand    mm5, [pb_01 GOT_ebx]
     ; delta = (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3
     ;       = (avg(q0, p1>>2) + (d&a))
     ;       - (avg(p0, q1>>2) + (d^(d&a)))
@@ -227,10 +227,10 @@ cglobal x264_deblock_h_chroma_intra_mmxext
 %macro LUMA_Q1_MMX 6
     movq    %6, mm1
     pavgb   %6, mm2
-    pavgb   %2, %6             ; avg(p2,avg(p0,q0))
+    pavgb   %2, %6              ; avg(p2,avg(p0,q0))
     pxor    %6, %3
-    pand    %6, [pb_01 GLOBAL] ; (p2^avg(p0,q0))&1
-    psubusb %2, %6             ; (p2+((p0+q0+1)>>1))>>1
+    pand    %6, [pb_01 GOT_ebx] ; (p2^avg(p0,q0))&1
+    psubusb %2, %6              ; (p2+((p0+q0+1)>>1))>>1
     movq    %6, %1
     psubusb %6, %5
     paddusb %5, %1
@@ -274,7 +274,7 @@ x264_deblock_v8_luma_mmxext:
     punpcklbw mm4, mm4
     punpcklbw mm4, mm4 ; tc = 4x tc0[1], 4x tc0[0]
     movq   [esp+8], mm4 ; tc
-    pcmpgtb mm4, [pb_ff GLOBAL]
+    pcmpgtb mm4, [pb_ff GOT_ebx]
     pand    mm4, mm7
     movq   [esp+0], mm4 ; mask
 
@@ -284,7 +284,7 @@ x264_deblock_v8_luma_mmxext:
     pcmpeqb mm6, mm4
     pand    mm6, mm4
     pand    mm4, [esp+8] ; tc
-    movq    mm7, [pb_01 GLOBAL]
+    movq    mm7, [pb_01 GOT_ebx]
     pand    mm7, mm6
     pand    mm6, mm4
     paddb   mm7, mm4
@@ -298,7 +298,7 @@ x264_deblock_v8_luma_mmxext:
     pand    mm6, mm5
     movq    mm5, [esp+8] ; tc
     pand    mm5, mm6
-    pand    mm6, [pb_01 GLOBAL]
+    pand    mm6, [pb_01 GOT_ebx]
     paddb   mm7, mm6
     movq    mm3, [edi+esi]
     LUMA_Q1_MMX  mm3, mm4, [edi+2*esi], [edi+esi], mm5, mm6
@@ -476,7 +476,7 @@ x264_deblock_h_chroma_mmxext:
 %macro CHROMA_INTRA_P0 3
     movq    mm4, %1
     pxor    mm4, %3
-    pand    mm4, [pb_01 GLOBAL]  ; mm4 = (p0^q1)&1
+    pand    mm4, [pb_01 GOT_ebx]  ; mm4 = (p0^q1)&1
     pavgb   %1,  %3
     psubusb %1,  mm4
     pavgb   %1,  %2       ; dst = avg(p1, avg(p0,q1) - ((p0^q1)&1))

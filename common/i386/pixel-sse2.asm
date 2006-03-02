@@ -404,7 +404,7 @@ x264_pixel_ssd_16x8_sse2:
     movdqa  %2, %1
     psrldq  %1, 2
     paddusw %1, %2
-    pand    %1, [pd_0000ffff GLOBAL]
+    pand    %1, [pd_0000ffff GOT_ebx]
     movdqa  %2, %1
     psrldq  %1, 4
     paddd   %1, %2

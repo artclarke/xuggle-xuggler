@@ -54,13 +54,14 @@ BITS 32
 ; and let you load non-shared .so objects (Linux, Win32...). However, OS X
 ; requires PIC code in its .dylib objects.
 ;
-; - GLOBAL should be used as a suffix for global addressing, eg.
-;     mov eax, [foo GLOBAL]
+; - GOT_* should be used as a suffix for global addressing, eg.
+;     picgetgot ebx
+;     mov eax, [foo GOT_ebx]
 ;   instead of
 ;     mov eax, [foo]
 ;
 ; - picgetgot computes the GOT address into the given register in PIC
-;   mode, otherwise does nothing. You need to do this before using GLOBAL.
+;   mode, otherwise does nothing. You need to do this before using GOT_*.
 ;
 ; - picpush and picpop respectively push and pop the given register
 ;   in PIC mode, otherwise do nothing. You should always use them around
@@ -81,7 +82,10 @@ BITS 32
     %ifidn __OUTPUT_FORMAT__,macho
         ; There is no real global offset table on OS X, but we still
         ; need to reference our variables by offset.
-        %define GLOBAL + ebx
+        %define GOT_eax + eax
+        %define GOT_ebx + ebx
+        %define GOT_ecx + ecx
+        %define GOT_edx + edx
         %macro picgetgot 1
             call %%getgot 
           %%getgot: 
@@ -95,8 +99,10 @@ BITS 32
             %define GOT __GLOBAL_OFFSET_TABLE_
         %endif
         extern GOT
-        ; FIXME: find an elegant way to use registers other than ebx
-        %define GLOBAL + ebx wrt ..gotoff
+        %define GOT_eax + eax wrt ..gotoff
+        %define GOT_ebx + ebx wrt ..gotoff
+        %define GOT_ecx + ecx wrt ..gotoff
+        %define GOT_edx + edx wrt ..gotoff
         %macro picgetgot 1
             call %%getgot 
           %%getgot: 
@@ -112,7 +118,10 @@ BITS 32
     %endmacro
     %define picesp esp+4
 %else
-    %define GLOBAL
+    %define GOT_eax
+    %define GOT_ebx
+    %define GOT_ecx
+    %define GOT_edx
     %macro picgetgot 1
     %endmacro
     %macro picpush 1

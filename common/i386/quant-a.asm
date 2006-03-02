@@ -480,7 +480,7 @@ ALIGN 16
     neg   eax
     picpush ebx
     picgetgot ebx
-    movq  mm6, [pd_1 GLOBAL]
+    movq  mm6, [pd_1 GOT_ebx]
     picpop ebx
     movd  mm5, eax
     pxor  mm7, mm7

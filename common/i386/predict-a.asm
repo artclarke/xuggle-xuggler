@@ -85,7 +85,7 @@ cglobal predict_16x16_dc_top_mmxext
     pavgb       mm1, mm2
     pxor        mm2, mm3
     movq        %1 , %2
-    pand        mm2, [pb_1 GLOBAL]
+    pand        mm2, [pb_1 GOT_ebx]
     psubusb     mm1, mm2
     pavgb       %1 , mm1     ; %1 = (t[n-1] + t[n]*2 + t[n+1] + 2) >> 2
 %endmacro
@@ -157,7 +157,7 @@ predict_8x8_dc_core_mmxext:
     pxor        mm1, mm1
     psadbw      mm0, mm1
     psadbw      mm4, mm1
-    paddw       mm0, [pw_8 GLOBAL]
+    paddw       mm0, [pw_8 GOT_ebx]
     paddw       mm0, mm4
     psrlw       mm0, 4
     pshufw      mm0, mm0, 0
@@ -212,7 +212,7 @@ predict_8x8c_dc_core_mmxext:
     paddw       mm0, [picesp +  8]
     pshufw      mm2, [picesp + 12], 0
     psrlw       mm0, 3
-    paddw       mm1, [pw_2 GLOBAL]
+    paddw       mm1, [pw_2 GOT_ebx]
     movq        mm3, mm2
     pshufw      mm1, mm1, 0
     pshufw      mm0, mm0, 0     ; dc0 (w)
@@ -246,7 +246,7 @@ predict_8x8c_p_core_mmx:
     pshufw      mm2, [picesp +12], 0
     pshufw      mm4, [picesp +16], 0
     movq        mm1, mm2
-    pmullw      mm2, [pw_3210 GLOBAL]
+    pmullw      mm2, [pw_3210 GOT_ebx]
     psllw       mm1, 2
     paddsw      mm0, mm2        ; mm0 = {i+0*b, i+1*b, i+2*b, i+3*b}
     paddsw      mm1, mm0        ; mm1 = {i+4*b, i+5*b, i+6*b, i+7*b}
@@ -293,7 +293,7 @@ predict_16x16_p_core_mmx:
     pshufw      mm4, [picesp +16], 0
     movq        mm5, mm2
     movq        mm1, mm2
-    pmullw      mm5, [pw_3210 GLOBAL]
+    pmullw      mm5, [pw_3210 GOT_ebx]
     psllw       mm2, 3
     psllw       mm1, 2
     movq        mm3, mm2
@@ -421,7 +421,7 @@ ALIGN 16
 predict_16x16_dc_top_mmxext:
     picpush ebx
     picgetgot ebx
-    PRED16x16_DC [pw_8 GLOBAL], 4, picesp
+    PRED16x16_DC [pw_8 GOT_ebx], 4, picesp
     picpop ebx
     ret
 

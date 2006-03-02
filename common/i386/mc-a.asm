@@ -268,10 +268,10 @@ ALIGN 4
     mov     edx, [picesp+20]    ; src
     mov     ecx, [picesp+24]    ; i_src
 
-    pshufw  mm4, [picesp+28], 0 ; weight_dst
-    movq    mm5, [pw_64 GLOBAL]
-    psubw   mm5, mm4            ; weight_src
-    movq    mm6, [pw_32 GLOBAL] ; rounding
+    pshufw  mm4, [picesp+28], 0  ; weight_dst
+    movq    mm5, [pw_64 GOT_ebx]
+    psubw   mm5, mm4             ; weight_src
+    movq    mm6, [pw_32 GOT_ebx] ; rounding
     pxor    mm7, mm7
 %endmacro
 %macro BIWEIGHT_END_MMX 0
@@ -516,7 +516,7 @@ x264_mc_chroma_mmxext:
     pshufw  mm5, [picesp+20], 0    ; mm5 = dx
     pshufw  mm6, [picesp+24], 0    ; mm6 = dy
 
-    movq    mm4, [pw_8 GLOBAL]
+    movq    mm4, [pw_8 GOT_ebx]
     movq    mm0, mm4
 
     psubw   mm4, mm5            ; mm4 = 8-dx
@@ -552,7 +552,7 @@ ALIGN 4
     punpcklbw mm2, mm3
     punpcklbw mm1, mm3
 
-    paddw   mm0, [pw_32 GLOBAL]
+    paddw   mm0, [pw_32 GOT_ebx]
 
     pmullw  mm2, mm5            ; line * cB
     pmullw  mm1, mm7            ; line * cD
