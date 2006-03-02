@@ -58,7 +58,7 @@ LDFLAGS=""
 HAVE_GETOPT_LONG=1
 
 AS="nasm"
-ASFLAGS="-f elf"
+ASFLAGS=""
 
 EXE=""
 
@@ -90,14 +90,12 @@ case "$UNAMES" in
     SYS="CYGWIN"
     CFLAGS="$CFLAGS -mno-cygwin"
     LDFLAGS="$LDFLAGS -mno-cygwin"
-    ASFLAGS="-f win32 -DPREFIX"
     EXE=".exe"
     DEVNULL="NUL"
     vfw="yes"
     ;;
   MINGW*)
     SYS="MINGW"
-    ASFLAGS="-f win32 -DPREFIX"
     EXE=".exe"
     DEVNULL="NUL"
     vfw="yes"
@@ -119,11 +117,16 @@ case "$UNAMEM" in
   i386|i486|i586|i686|BePC)
     ARCH="X86"
     CFLAGS="$CFLAGS -DHAVE_MMXEXT -DHAVE_SSE2"
+    AS="nasm"
+    ASFLAGS="-O2"
     if [ "$SYS" = MACOSX ]; then
-      ASFLAGS="-f macho -DPREFIX"
-    fi
-    if [ "$SYS" = FREEBSD -o "$SYS" = NETBSD ]; then
-      ASFLAGS="-f aoutb"
+      ASFLAGS="$ASFLAGS -f macho -DPREFIX"
+    elif [ "$SYS" = CYGWIN -o "$SYS" = MINGW ]; then
+      ASFLAGS="$ASFLAGS -f win32 -DPREFIX"
+    elif [ "$SYS" = FREEBSD -o "$SYS" = NETBSD ]; then
+      ASFLAGS="$ASFLAGS -f aoutb"
+    else
+      ASFLAGS="$ASFLAGS -f elf"
     fi
     ;;
   x86_64)
