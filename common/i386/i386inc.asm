@@ -42,6 +42,7 @@ BITS 32
 %macro SECTION_RODATA 0
     %ifidn __OUTPUT_FORMAT__,macho
         SECTION .text
+        fakegot:
     %else
         SECTION .rodata data align=16
     %endif
@@ -82,15 +83,15 @@ BITS 32
     %ifidn __OUTPUT_FORMAT__,macho
         ; There is no real global offset table on OS X, but we still
         ; need to reference our variables by offset.
-        %define GOT_eax + eax
-        %define GOT_ebx + ebx
-        %define GOT_ecx + ecx
-        %define GOT_edx + edx
+        %define GOT_eax - fakegot + eax
+        %define GOT_ebx - fakegot + ebx
+        %define GOT_ecx - fakegot + ecx
+        %define GOT_edx - fakegot + edx
         %macro picgetgot 1
             call %%getgot 
           %%getgot: 
             pop %1 
-            sub %1, %%getgot
+            add %1, $$ - %%getgot
         %endmacro
     %else
         %ifidn __OUTPUT_FORMAT__,elf
