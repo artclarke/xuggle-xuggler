@@ -147,7 +147,14 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
 
     sh->i_redundant_pic_cnt = 0;
 
-    sh->b_direct_spatial_mv_pred = ( param->analyse.i_direct_mv_pred == X264_DIRECT_PRED_SPATIAL );
+    if( !h->mb.b_direct_auto_read )
+    {
+        if( h->mb.b_direct_auto_write )
+            sh->b_direct_spatial_mv_pred = ( h->stat.i_direct_score[1] > h->stat.i_direct_score[0] );
+        else
+            sh->b_direct_spatial_mv_pred = ( param->analyse.i_direct_mv_pred == X264_DIRECT_PRED_SPATIAL );
+    }
+    /* else b_direct_spatial_mv_pred was read from the 2pass statsfile */
 
     sh->b_num_ref_idx_override = 0;
     sh->i_num_ref_idx_l0_active = 1;
@@ -388,6 +395,9 @@ static int x264_validate_parameters( x264_t *h )
     h->param.i_bframe_bias = x264_clip3( h->param.i_bframe_bias, -90, 100 );
     h->param.b_bframe_pyramid = h->param.b_bframe_pyramid && h->param.i_bframe > 1;
     h->param.b_bframe_adaptive = h->param.b_bframe_adaptive && h->param.i_bframe > 0;
+    h->mb.b_direct_auto_write = h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_AUTO
+                                && h->param.i_bframe
+                                && ( h->param.rc.b_stat_write || !h->param.rc.b_stat_read );
 
     h->param.i_deblocking_filter_alphac0 = x264_clip3( h->param.i_deblocking_filter_alphac0, -6, 6 );
     h->param.i_deblocking_filter_beta    = x264_clip3( h->param.i_deblocking_filter_beta, -6, 6 );
@@ -1527,6 +1537,21 @@ do_encode:
         for( i = 0; i < 16; i++ )
             h->stat.i_mb_count_ref[h->sh.i_type][i] += h->stat.frame.i_mb_count_ref[i];
     }
+    if( i_slice_type == SLICE_TYPE_B )
+    {
+        h->stat.i_direct_frames[ h->sh.b_direct_spatial_mv_pred ] ++;
+        if( h->mb.b_direct_auto_write )
+        {
+            //FIXME somewhat arbitrary time constants
+            if( h->stat.i_direct_score[0] + h->stat.i_direct_score[1] > h->mb.i_mb_count )
+            {
+                for( i = 0; i < 2; i++ )
+                    h->stat.i_direct_score[i] = h->stat.i_direct_score[i] * 9/10;
+            }
+            for( i = 0; i < 2; i++ )
+                h->stat.i_direct_score[i] += h->stat.frame.i_direct_score[i];
+        }
+    }
 
     if( h->param.analyse.b_psnr )
     {
@@ -1713,6 +1738,14 @@ void    x264_encoder_close  ( x264_t *h )
             x264_log( h, X264_LOG_INFO, "8x8 transform  intra:%.1f%%  inter:%.1f%%\n",
                       100. * i_i8x8 / i_intra,
                       100. * h->stat.i_mb_count_8x8dct[1] / h->stat.i_mb_count_8x8dct[0] );
+        }
+
+        if( h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_AUTO
+            && h->stat.i_slice_count[SLICE_TYPE_B] )
+        {
+            x264_log( h, X264_LOG_INFO, "direct mvs  spatial:%.1f%%  temporal:%.1f%%\n",
+                      h->stat.i_direct_frames[1] * 100. / h->stat.i_slice_count[SLICE_TYPE_B],
+                      h->stat.i_direct_frames[0] * 100. / h->stat.i_slice_count[SLICE_TYPE_B] );
         }
 
         if( h->param.i_frame_reference > 1 )

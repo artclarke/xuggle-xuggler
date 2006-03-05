@@ -2051,11 +2051,33 @@ void x264_macroblock_analyse( x264_t *h )
         int i_bskip_cost = COST_MAX;
         int b_skip = 0;
 
-        analysis.b_direct_available = x264_mb_predict_mv_direct16x16( h );
+        h->mb.i_type = B_SKIP;
+        if( h->mb.b_direct_auto_write )
+        {
+            /* direct=auto heuristic: prefer whichever mode allows more Skip macroblocks */
+            for( i = 0; i < 2; i++ )
+            {
+                int b_changed = 1;
+                h->sh.b_direct_spatial_mv_pred ^= 1;
+                analysis.b_direct_available = x264_mb_predict_mv_direct16x16( h, i && analysis.b_direct_available ? &b_changed : NULL );
+                if( analysis.b_direct_available )
+                {
+                    if( b_changed )
+                    {
+                        x264_mb_mc( h );
+                        b_skip = x264_macroblock_probe_bskip( h );
+                    }
+                    h->stat.frame.i_direct_score[ h->sh.b_direct_spatial_mv_pred ] += b_skip;
+                }
+            }
+        }
+        else
+            analysis.b_direct_available = x264_mb_predict_mv_direct16x16( h, NULL );
+
         if( analysis.b_direct_available )
         {
-            h->mb.i_type = B_SKIP;
-            x264_mb_mc( h );
+            if( !h->mb.b_direct_auto_write )
+                x264_mb_mc( h );
             if( h->mb.b_lossless )
             {
                 /* chance of skip is too small to bother */
@@ -2072,7 +2094,7 @@ void x264_macroblock_analyse( x264_t *h )
                     return;
                 }
             }
-            else
+            else if( !h->mb.b_direct_auto_write )
             {
                 /* Conditioning the probe on neighboring block types
                  * doesn't seem to help speed or quality. */

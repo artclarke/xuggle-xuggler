@@ -246,7 +246,7 @@ static void Help( x264_param_t *defaults )
              "                                  - none, all\n"
              "                                  (p4x4 requires p8x8. i8x8 requires --8x8dct.)\n"
              "      --direct <string>       Direct MV prediction mode [\"%s\"]\n"
-             "                                  - none, spatial, temporal\n"
+             "                                  - none, spatial, temporal, auto\n"
              "  -w, --weightb               Weighted prediction for B-frames\n"
              "      --me <string>           Integer pixel motion estimation method [\"%s\"]\n"
              "                                  - dia: diamond search, radius 1 (fast)\n"

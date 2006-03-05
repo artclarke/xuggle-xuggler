@@ -69,6 +69,7 @@ typedef struct
     int p_count;
     int s_count;
     float blurred_complexity;
+    char direct_mode;
 } ratecontrol_entry_t;
 
 typedef struct
@@ -380,10 +381,12 @@ int x264_ratecontrol_new( x264_t *h )
                 return -1;
             }
             rce = &rc->entry[frame_number];
+            rce->direct_mode = 0;
 
-            e += sscanf(p, " in:%*d out:%*d type:%c q:%f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d",
+            e += sscanf(p, " in:%*d out:%*d type:%c q:%f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d d:%c",
                    &pict_type, &qp, &rce->i_tex_bits, &rce->p_tex_bits,
-                   &rce->mv_bits, &rce->misc_bits, &rce->i_count, &rce->p_count, &rce->s_count);
+                   &rce->mv_bits, &rce->misc_bits, &rce->i_count, &rce->p_count,
+                   &rce->s_count, &rce->direct_mode);
 
             switch(pict_type){
                 case 'I': rce->kept_as_ref = 1;
@@ -393,7 +396,7 @@ int x264_ratecontrol_new( x264_t *h )
                 case 'b': rce->pict_type = SLICE_TYPE_B; break;
                 default:  e = -1; break;
             }
-            if(e != 10){
+            if(e < 10){
                 x264_log(h, X264_LOG_ERROR, "statistics are damaged at line %d, parser out=%d\n", i, e);
                 return -1;
             }
@@ -528,11 +531,26 @@ void x264_ratecontrol_delete( x264_t *h )
 void x264_ratecontrol_start( x264_t *h, int i_slice_type, int i_force_qp )
 {
     x264_ratecontrol_t *rc = h->rc;
+    ratecontrol_entry_t *rce = NULL;
 
     x264_cpu_restore( h->param.cpu );
 
     rc->qp_force = i_force_qp;
     rc->slice_type = i_slice_type;
+
+    if( h->param.rc.b_stat_read )
+    {
+        int frame = h->fenc->i_frame;
+        assert( frame >= 0 && frame < rc->num_entries );
+        rce = h->rc->rce = &h->rc->entry[frame];
+
+        if( i_slice_type == SLICE_TYPE_B
+            && h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_AUTO )
+        {
+            h->sh.b_direct_spatial_mv_pred = ( rce->direct_mode == 's' );
+            h->mb.b_direct_auto_read = ( rce->direct_mode == 's' || rce->direct_mode == 't' );
+        }
+    }
 
     if( i_force_qp )
     {
@@ -545,11 +563,6 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type, int i_force_qp )
     }
     else if( rc->b_2pass )
     {
-        int frame = h->fenc->i_frame;
-        ratecontrol_entry_t *rce;
-        assert( frame >= 0 && frame < rc->num_entries );
-        rce = h->rc->rce = &h->rc->entry[frame];
-
         rce->new_qscale = rate_estimate_qscale( h, i_slice_type );
         rc->qpa = rc->qp = rce->new_qp =
             x264_clip3( (int)(qscale2qp(rce->new_qscale) + 0.5), 0, 51 );
@@ -646,15 +659,22 @@ void x264_ratecontrol_end( x264_t *h, int bits )
         char c_type = rc->slice_type==SLICE_TYPE_I ? (h->fenc->i_poc==0 ? 'I' : 'i')
                     : rc->slice_type==SLICE_TYPE_P ? 'P'
                     : h->fenc->b_kept_as_ref ? 'B' : 'b';
+        int dir_frame = h->stat.frame.i_direct_score[1] - h->stat.frame.i_direct_score[0];
+        int dir_avg = h->stat.i_direct_score[1] - h->stat.i_direct_score[0];
+        char c_direct = h->mb.b_direct_auto_write ?
+                        ( dir_frame>0 ? 's' : dir_frame<0 ? 't' : 
+                          dir_avg>0 ? 's' : dir_avg<0 ? 't' : '-' )
+                        : '-';
         fprintf( rc->p_stat_file_out,
-                 "in:%d out:%d type:%c q:%.2f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d;\n",
+                 "in:%d out:%d type:%c q:%.2f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d d:%c;\n",
                  h->fenc->i_frame, h->i_frame-1,
                  c_type, rc->qpa,
                  h->stat.frame.i_itex_bits, h->stat.frame.i_ptex_bits,
                  h->stat.frame.i_hdr_bits, h->stat.frame.i_misc_bits,
                  h->stat.frame.i_mb_count_i,
                  h->stat.frame.i_mb_count_p,
-                 h->stat.frame.i_mb_count_skip);
+                 h->stat.frame.i_mb_count_skip,
+                 c_direct);
     }
 
     if( rc->b_abr )

@@ -457,6 +457,8 @@ struct x264_t
         int     i_last_dqp; /* last delta qp */
         int     b_variable_qp; /* whether qp is allowed to vary per macroblock */
         int     b_lossless;
+        int     b_direct_auto_read; /* take stats for --direct auto from the 2pass log */
+        int     b_direct_auto_write; /* analyse direct modes, to use and/or save */
 
         /* B_direct and weighted prediction */
         int     dist_scale_factor[16][16];
@@ -494,6 +496,8 @@ struct x264_t
             /* XXX: both omit the cost of MBs coded as P_SKIP */
             int i_intra_cost;
             int i_inter_cost;
+            /* Adaptive direct mv pred */
+            int i_direct_score[2];
         } frame;
 
         /* Cummulated stats */
@@ -513,6 +517,9 @@ struct x264_t
         int64_t i_mb_count_8x8dct[2];
         int64_t i_mb_count_size[2][7];
         int64_t i_mb_count_ref[2][16];
+        /* */
+        int     i_direct_score[2];
+        int     i_direct_frames[2];
 
     } stat;
 

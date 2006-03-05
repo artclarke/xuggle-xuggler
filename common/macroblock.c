@@ -423,7 +423,7 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
     return 1;
 }
 
-int x264_mb_predict_mv_direct16x16( x264_t *h )
+int x264_mb_predict_mv_direct16x16( x264_t *h, int *b_changed )
 {
     int b_available;
     if( h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_NONE )
@@ -432,6 +432,29 @@ int x264_mb_predict_mv_direct16x16( x264_t *h )
         b_available = x264_mb_predict_mv_direct16x16_spatial( h );
     else
         b_available = x264_mb_predict_mv_direct16x16_temporal( h );
+
+    if( b_changed != NULL && b_available )
+    {
+        int type_col = h->fref1[0]->mb_type[ h->mb.i_mb_xy ];
+        if( IS_INTRA(type_col) || type_col == P_SKIP )
+        {
+            *b_changed = h->mb.cache.direct_ref[0][0] != h->mb.cache.ref[0][X264_SCAN8_0]
+                      || h->mb.cache.direct_ref[1][0] != h->mb.cache.ref[1][X264_SCAN8_0]
+                      || *(uint32_t*)h->mb.cache.direct_mv[0][X264_SCAN8_0] != *(uint32_t*)h->mb.cache.mv[0][X264_SCAN8_0]
+                      || *(uint32_t*)h->mb.cache.direct_mv[1][X264_SCAN8_0] != *(uint32_t*)h->mb.cache.mv[1][X264_SCAN8_0];
+        }
+        else
+        {
+            int i, l;
+            *b_changed = 0;
+            for( l = 0; l < 2; l++ )
+                for( i = 0; i < 4; i++ )
+                    *b_changed |= h->mb.cache.direct_ref[l][i] != h->mb.cache.ref[l][x264_scan8[i*4]];
+            *b_changed = *b_changed || memcmp(h->mb.cache.direct_mv, h->mb.cache.mv, sizeof(h->mb.cache.mv));
+        }
+        if( !*b_changed )
+            return b_available;
+    }
 
     /* cache ref & mv */
     if( b_available )
