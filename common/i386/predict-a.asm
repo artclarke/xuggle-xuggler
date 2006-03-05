@@ -74,8 +74,8 @@ cglobal predict_8x8_v_mmxext
 cglobal predict_8x8_dc_core_mmxext
 cglobal predict_8x8c_v_mmx
 cglobal predict_8x8c_dc_core_mmxext
-cglobal predict_8x8c_p_core_mmx
-cglobal predict_16x16_p_core_mmx
+cglobal predict_8x8c_p_core_mmxext
+cglobal predict_16x16_p_core_mmxext
 cglobal predict_16x16_v_mmx
 cglobal predict_16x16_dc_core_mmxext
 cglobal predict_16x16_dc_top_mmxext
@@ -103,7 +103,7 @@ cglobal predict_16x16_dc_top_mmxext
     cmp         eax, byte 8
     jge         .have_topleft
     mov         al,  [edx]
-    mov         ah,  [edx]
+    mov         ah,  al
     pinsrw      mm1, eax, 0
     mov         eax, [picesp + 8]
 .have_topleft:
@@ -111,7 +111,7 @@ cglobal predict_16x16_dc_top_mmxext
     and         eax, byte 4
     jne         .have_topright
     mov         al,  [edx+7]
-    mov         ah,  [edx+7]
+    mov         ah,  al
     pinsrw      mm2, eax, 3
 .have_topright:
 
@@ -231,12 +231,12 @@ predict_8x8c_dc_core_mmxext:
 
 ;-----------------------------------------------------------------------------
 ;
-; void predict_8x8c_p_core_mmx( uint8_t *src, int i00, int b, int c )
+; void predict_8x8c_p_core_mmxext( uint8_t *src, int i00, int b, int c )
 ;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
-predict_8x8c_p_core_mmx:
+predict_8x8c_p_core_mmxext:
     picpush     ebx
     picgetgot   ebx
 
@@ -250,19 +250,16 @@ predict_8x8c_p_core_mmx:
     psllw       mm1, 2
     paddsw      mm0, mm2        ; mm0 = {i+0*b, i+1*b, i+2*b, i+3*b}
     paddsw      mm1, mm0        ; mm1 = {i+4*b, i+5*b, i+6*b, i+7*b}
-    pxor        mm5, mm5
 
     mov         eax, 8
 ALIGN 4
 .loop:
-    movq        mm6, mm0
-    movq        mm7, mm1
+    movq        mm5, mm0
+    movq        mm6, mm1
+    psraw       mm5, 5
     psraw       mm6, 5
-    psraw       mm7, 5
-    pmaxsw      mm6, mm5
-    pmaxsw      mm7, mm5
-    packuswb    mm6, mm7
-    movq        [edx], mm6
+    packuswb    mm5, mm6
+    movq        [edx], mm5
 
     paddsw      mm0, mm4
     paddsw      mm1, mm4
@@ -276,12 +273,12 @@ ALIGN 4
 
 ;-----------------------------------------------------------------------------
 ;
-; void predict_16x16_p_core_mmx( uint8_t *src, int i00, int b, int c )
+; void predict_16x16_p_core_mmxext( uint8_t *src, int i00, int b, int c )
 ;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
-predict_16x16_p_core_mmx:
+predict_16x16_p_core_mmxext:
 
     picpush     ebx
     picgetgot   ebx
@@ -301,28 +298,23 @@ predict_16x16_p_core_mmx:
     paddsw      mm1, mm0        ; mm1 = {i+ 4*b, i+ 5*b, i+ 6*b, i+ 7*b}
     paddsw      mm2, mm0        ; mm2 = {i+ 8*b, i+ 9*b, i+10*b, i+11*b}
     paddsw      mm3, mm1        ; mm3 = {i+12*b, i+13*b, i+14*b, i+15*b}
-    pxor        mm5, mm5
 
     mov         eax, 16
 ALIGN 4
 .loop:
-    movq        mm6, mm0
-    movq        mm7, mm1
+    movq        mm5, mm0
+    movq        mm6, mm1
+    psraw       mm5, 5
     psraw       mm6, 5
-    psraw       mm7, 5
-    pmaxsw      mm6, mm5
-    pmaxsw      mm7, mm5
-    packuswb    mm6, mm7
-    movq        [edx], mm6
+    packuswb    mm5, mm6
+    movq        [edx], mm5
 
-    movq        mm6, mm2
-    movq        mm7, mm3
+    movq        mm5, mm2
+    movq        mm6, mm3
+    psraw       mm5, 5
     psraw       mm6, 5
-    psraw       mm7, 5
-    pmaxsw      mm6, mm5
-    pmaxsw      mm7, mm5
-    packuswb    mm6, mm7
-    movq        [edx+8], mm6
+    packuswb    mm5, mm6
+    movq        [edx+8], mm5
 
     paddsw      mm0, mm4
     paddsw      mm1, mm4
