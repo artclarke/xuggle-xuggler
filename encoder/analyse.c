@@ -369,16 +369,20 @@ static void predict_4x4_mode_available( unsigned int i_neighbour,
 
     if( b_l && b_t )
     {
+        *pi_count = 6;
         *mode++ = I_PRED_4x4_DC;
         *mode++ = I_PRED_4x4_H;
         *mode++ = I_PRED_4x4_V;
         *mode++ = I_PRED_4x4_DDL;
-        *mode++ = I_PRED_4x4_DDR;
-        *mode++ = I_PRED_4x4_VR;
-        *mode++ = I_PRED_4x4_HD;
+        if( i_neighbour & MB_TOPLEFT )
+        {
+            *mode++ = I_PRED_4x4_DDR;
+            *mode++ = I_PRED_4x4_VR;
+            *mode++ = I_PRED_4x4_HD;
+            *pi_count += 3;
+        }
         *mode++ = I_PRED_4x4_VL;
         *mode++ = I_PRED_4x4_HU;
-        *pi_count = 9;
     }
     else if( b_l )
     {
@@ -629,7 +633,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_cost_
             a->i_sad_i8x8 += i_best;
 
             /* we need to encode this block now (for next ones) */
-            h->predict_8x8[a->i_predict8x8[x][y]]( p_dst_by, h->mb.i_neighbour );
+            h->predict_8x8[a->i_predict8x8[x][y]]( p_dst_by, h->mb.i_neighbour8[idx] );
             x264_mb_encode_i8x8( h, idx, a->i_qp );
 
             x264_macroblock_cache_intra8x8_pred( h, 2*x, 2*y, a->i_predict8x8[x][y] );
