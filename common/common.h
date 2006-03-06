@@ -268,9 +268,9 @@ struct x264_t
     int             unquant4_mf[4][52][16];
     int             unquant8_mf[2][52][64];
 
-    uint32_t        nr_residual_sum[4][64];
-    uint32_t        nr_offset[4][64];
-    uint32_t        nr_count[4];
+    uint32_t        nr_residual_sum[2][64];
+    uint32_t        nr_offset[2][64];
+    uint32_t        nr_count[2];
 
     /* Slice header */
     x264_slice_header_t sh;

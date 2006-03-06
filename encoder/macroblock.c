@@ -207,8 +207,6 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale )
 
     h->dctf.sub4x4_dct( dct4x4, p_src, FENC_STRIDE, p_dst, FDEC_STRIDE );
 
-    if( h->mb.b_noise_reduction )
-        x264_denoise_dct( h, (int16_t*)dct4x4 );
     if( h->mb.b_trellis )
         x264_quant_4x4_trellis( h, dct4x4, CQM_4IY, i_qscale, DCT_LUMA_4x4, 1 );
     else
@@ -231,8 +229,6 @@ void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qscale )
 
     h->dctf.sub8x8_dct8( dct8x8, p_src, FENC_STRIDE, p_dst, FDEC_STRIDE );
 
-    if( h->mb.b_noise_reduction )
-        x264_denoise_dct( h, (int16_t*)dct8x8 );
     if( h->mb.b_trellis )
         x264_quant_8x8_trellis( h, dct8x8, CQM_8IY, i_qscale, 1 );
     else 
@@ -273,8 +269,6 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
         dct4x4[0][block_idx_y[i]][block_idx_x[i]] = dct4x4[1+i][0][0];
 
         /* quant/scan/dequant */
-        if( h->mb.b_noise_reduction )
-            x264_denoise_dct( h, (int16_t*)dct4x4[i] );
         if( h->mb.b_trellis )
             x264_quant_4x4_trellis( h, dct4x4[1+i], CQM_4IY, i_qscale, DCT_LUMA_AC, 1 );
         else
@@ -807,13 +801,12 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
 void x264_noise_reduction_update( x264_t *h )
 {
     int cat, i;
-    for( cat = 0; cat < 4; cat++ )
+    for( cat = 0; cat < 2; cat++ )
     {
-        int b_8x8 = cat >= 2;
-        int size = b_8x8 ? 64 : 16;
-        const int *weight = b_8x8 ? x264_dct8_weight2_tab : x264_dct4_weight2_tab;
+        int size = cat ? 64 : 16;
+        const int *weight = cat ? x264_dct8_weight2_tab : x264_dct4_weight2_tab;
 
-        if( h->nr_count[cat] > (b_8x8 ? (1<<16) : (1<<18)) )
+        if( h->nr_count[cat] > (cat ? (1<<16) : (1<<18)) )
         {
             for( i = 0; i < size; i++ )
                 h->nr_residual_sum[cat][i] >>= 1;
@@ -830,12 +823,12 @@ void x264_noise_reduction_update( x264_t *h )
 
 void x264_denoise_dct( x264_t *h, int16_t *dct )
 {
-    const int cat = !IS_INTRA(h->mb.i_type) + 2*h->mb.b_transform_8x8;
+    const int cat = h->mb.b_transform_8x8;
     int i;
 
     h->nr_count[cat]++;
 
-    for( i = (cat >= 2 ? 63 : 15); i >= 1; i-- )
+    for( i = (cat ? 63 : 15); i >= 1; i-- )
     {
         int level = dct[i];
         if( level )
