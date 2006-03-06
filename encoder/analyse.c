@@ -2069,6 +2069,8 @@ void x264_macroblock_analyse( x264_t *h )
                     }
                     h->stat.frame.i_direct_score[ h->sh.b_direct_spatial_mv_pred ] += b_skip;
                 }
+                else
+                    b_skip = 0;
             }
         }
         else
