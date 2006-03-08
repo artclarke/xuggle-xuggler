@@ -64,14 +64,14 @@ libx264.a: .depend $(OBJS) $(OBJASM)
 	ar rc libx264.a $(OBJS) $(OBJASM)
 	ranlib libx264.a
 
-x264$(EXE): libx264.a x264.o matroska.o
-	$(CC) -o $@ x264.o matroska.o libx264.a $(LDFLAGS)
+x264$(EXE): x264.o matroska.o muxers.o libx264.a 
+	$(CC) -o $@ $+ $(LDFLAGS)
 
 x264vfw.dll: libx264.a $(wildcard vfw/*.c vfw/*.h)
 	make -C vfw/build/cygwin
 
 checkasm: tools/checkasm.o libx264.a
-	$(CC) -o $@ $< libx264.a $(LDFLAGS)
+	$(CC) -o $@ $+ $(LDFLAGS)
 
 common/amd64/*.o: common/amd64/amd64inc.asm
 common/i386/*.o: common/i386/i386inc.asm
@@ -81,7 +81,7 @@ common/i386/*.o: common/i386/i386inc.asm
 .depend: config.mak
 	rm -f .depend
 # Hacky - because gcc 2.9x doesn't have -MT
-	$(foreach SRC, $(SRCS) x264.c matroska.c, ( echo -n "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM -g0 ) 1>> .depend;)
+	$(foreach SRC, $(SRCS) x264.c matroska.c muxers.c, ( echo -n "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM -g0 ) 1>> .depend;)
 
 config.mak: $(wildcard .svn/entries */.svn/entries */*/.svn/entries)
 	./configure $(CONFIGURE_ARGS)
