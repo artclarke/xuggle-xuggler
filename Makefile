@@ -10,6 +10,8 @@ SRCS = common/mc.c common/predict.c common/pixel.c common/macroblock.c \
        encoder/set.c encoder/macroblock.c encoder/cabac.c \
        encoder/cavlc.c encoder/encoder.c encoder/eval.c
 
+SRCCLI = x264.c matroska.c muxers.c
+
 # Visualization sources
 ifeq ($(VIS),yes)
 SRCS   += common/visualize.c common/display-x11.c
@@ -55,6 +57,7 @@ SRCS += extras/getopt.c
 endif
 
 OBJS = $(SRCS:%.c=%.o)
+OBJCLI = $(SRCCLI:%.c=%.o)
 DEP  = depend
 
 .PHONY: default fprofiled clean distclean install uninstall
@@ -64,7 +67,7 @@ libx264.a: .depend $(OBJS) $(OBJASM)
 	ar rc libx264.a $(OBJS) $(OBJASM)
 	ranlib libx264.a
 
-x264$(EXE): x264.o matroska.o muxers.o libx264.a 
+x264$(EXE): $(OBJCLI) libx264.a 
 	$(CC) -o $@ $+ $(LDFLAGS)
 
 x264vfw.dll: libx264.a $(wildcard vfw/*.c vfw/*.h)
@@ -81,7 +84,7 @@ common/i386/*.o: common/i386/i386inc.asm
 .depend: config.mak
 	rm -f .depend
 # Hacky - because gcc 2.9x doesn't have -MT
-	$(foreach SRC, $(SRCS) x264.c matroska.c muxers.c, ( echo -n "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM -g0 ) 1>> .depend;)
+	$(foreach SRC, $(SRCS) $(SRCCLI), ( echo -n "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM -g0 ) 1>> .depend;)
 
 config.mak: $(wildcard .svn/entries */.svn/entries */*/.svn/entries)
 	./configure $(CONFIGURE_ARGS)
@@ -91,7 +94,7 @@ ifneq ($(wildcard .depend),)
 include .depend
 endif
 
-SRC2 = $(SRCS) x264.c matroska.c
+SRC2 = $(SRCS) $(SRCCLI)
 # These should cover most of the important codepaths
 OPT0 = --crf 30 -b1 -m1 -r1 --me dia --no-cabac
 OPT1 = --crf 18 -b2 -m3 -r3 --me hex -8 --cqm jvt --direct spatial
@@ -117,7 +120,7 @@ fprofiled:
 endif
 
 clean:
-	rm -f $(OBJS) $(OBJASM) *.a x264.o matroska.o x264 x264.exe .depend TAGS
+	rm -f $(OBJS) $(OBJASM) $(OBJCLI) *.a x264 x264.exe .depend TAGS
 	rm -f checkasm checkasm.exe tools/checkasm.o
 	rm -f tools/avc2avi tools/avc2avi.exe tools/avc2avi.o
 	rm -rf vfw/build/cygwin/bin
