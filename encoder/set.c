@@ -30,6 +30,14 @@
 #include "config.h"
 #endif
 
+static void transpose( uint8_t *buf, int w )
+{
+    int i, j;
+    for( i = 0; i < w; i++ )
+        for( j = 0; j < i; j++ )
+            XCHG( uint8_t, buf[w*i+j], buf[w*j+i] );
+}
+
 static void scaling_list_write( bs_t *s, x264_pps_t *pps, int idx )
 {
     const int len = idx<4 ? 16 : 64;
@@ -387,6 +395,13 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
             pps->scaling_list[i] = x264_cqm_jvt[i];
         break;
     case X264_CQM_CUSTOM:
+        /* match the transposed DCT & zigzag */
+        transpose( param->cqm_4iy, 4 );
+        transpose( param->cqm_4ic, 4 );
+        transpose( param->cqm_4py, 4 );
+        transpose( param->cqm_4pc, 4 );
+        transpose( param->cqm_8iy, 8 );
+        transpose( param->cqm_8py, 8 );
         pps->scaling_list[CQM_4IY] = param->cqm_4iy;
         pps->scaling_list[CQM_4IC] = param->cqm_4ic;
         pps->scaling_list[CQM_4PY] = param->cqm_4py;

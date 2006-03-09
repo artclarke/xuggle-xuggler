@@ -50,10 +50,8 @@ static const int def_quant4_mf[6][4][4] =
 /****************************************************************************
  * Scan and Quant functions
  ****************************************************************************/
-//static const int scan_zigzag_x[16]={0, 1, 0, 0, 1, 2, 3, 2, 1, 0, 1, 2, 3, 3, 2, 3};
-//static const int scan_zigzag_y[16]={0, 0, 1, 2, 1, 0, 0, 1, 2, 3, 3, 2, 1, 2, 3, 3};
 
-#define ZIG(i,y,x) level[i] = dct[y][x];
+#define ZIG(i,y,x) level[i] = dct[x][y];
 static inline void scan_zigzag_8x8full( int level[64], int16_t dct[8][8] )
 {
     ZIG( 0,0,0) ZIG( 1,0,1) ZIG( 2,1,0) ZIG( 3,2,0)

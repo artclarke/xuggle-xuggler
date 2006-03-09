@@ -52,8 +52,8 @@ static void dct2x2dc( int16_t d[2][2] )
     tmp[1][1] = d[1][0] - d[1][1];
 
     d[0][0] = tmp[0][0] + tmp[0][1];
-    d[0][1] = tmp[1][0] + tmp[1][1];
-    d[1][0] = tmp[0][0] - tmp[0][1];
+    d[1][0] = tmp[1][0] + tmp[1][1];
+    d[0][1] = tmp[0][0] - tmp[0][1];
     d[1][1] = tmp[1][0] - tmp[1][1];
 }
 
@@ -84,10 +84,10 @@ static void dct4x4dc( int16_t d[4][4] )
         s23 = tmp[i][2] + tmp[i][3];
         d23 = tmp[i][2] - tmp[i][3];
 
-        d[0][i] = ( s01 + s23 + 1 ) >> 1;
-        d[1][i] = ( s01 - s23 + 1 ) >> 1;
-        d[2][i] = ( d01 - d23 + 1 ) >> 1;
-        d[3][i] = ( d01 + d23 + 1 ) >> 1;
+        d[i][0] = ( s01 + s23 + 1 ) >> 1;
+        d[i][1] = ( s01 - s23 + 1 ) >> 1;
+        d[i][2] = ( d01 - d23 + 1 ) >> 1;
+        d[i][3] = ( d01 + d23 + 1 ) >> 1;
     }
 }
 
@@ -100,10 +100,10 @@ static void idct4x4dc( int16_t d[4][4] )
 
     for( i = 0; i < 4; i++ )
     {
-        s01 = d[0][i] + d[1][i];
-        d01 = d[0][i] - d[1][i];
-        s23 = d[2][i] + d[3][i];
-        d23 = d[2][i] - d[3][i];
+        s01 = d[i][0] + d[i][1];
+        d01 = d[i][0] - d[i][1];
+        s23 = d[i][2] + d[i][3];
+        d23 = d[i][2] - d[i][3];
 
         tmp[0][i] = s01 + s23;
         tmp[1][i] = s01 - s23;
@@ -168,10 +168,10 @@ static void sub4x4_dct( int16_t dct[4][4], uint8_t *pix1, int i_pix1, uint8_t *p
         const int d03 = tmp[i][0] - tmp[i][3];
         const int d12 = tmp[i][1] - tmp[i][2];
 
-        dct[0][i] =   s03 +   s12;
-        dct[1][i] = 2*d03 +   d12;
-        dct[2][i] =   s03 -   s12;
-        dct[3][i] =   d03 - 2*d12;
+        dct[i][0] =   s03 +   s12;
+        dct[i][1] = 2*d03 +   d12;
+        dct[i][2] =   s03 -   s12;
+        dct[i][3] =   d03 - 2*d12;
     }
 }
 
@@ -201,10 +201,10 @@ static void add4x4_idct( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
 
     for( i = 0; i < 4; i++ )
     {
-        const int s02 =  dct[i][0]     +  dct[i][2];
-        const int d02 =  dct[i][0]     -  dct[i][2];
-        const int s13 =  dct[i][1]     + (dct[i][3]>>1);
-        const int d13 = (dct[i][1]>>1) -  dct[i][3];
+        const int s02 =  dct[0][i]     +  dct[2][i];
+        const int d02 =  dct[0][i]     -  dct[2][i];
+        const int s13 =  dct[1][i]     + (dct[3][i]>>1);
+        const int d13 = (dct[1][i]>>1) -  dct[3][i];
 
         tmp[i][0] = s02 + s13;
         tmp[i][1] = d02 + d13;
@@ -217,7 +217,7 @@ static void add4x4_idct( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
         const int s02 =  tmp[0][i]     +  tmp[2][i];
         const int d02 =  tmp[0][i]     -  tmp[2][i];
         const int s13 =  tmp[1][i]     + (tmp[3][i]>>1);
-        const int d13 = (tmp[1][i]>>1) -   tmp[3][i];
+        const int d13 = (tmp[1][i]>>1) -  tmp[3][i];
 
         d[0][i] = ( s02 + s13 + 32 ) >> 6;
         d[1][i] = ( d02 + d13 + 32 ) >> 6;
@@ -273,31 +273,36 @@ static void add16x16_idct( uint8_t *p_dst, int i_dst, int16_t dct[16][4][4] )
     const int a5 = d07 - d34 - (d25 + (d25>>1));\
     const int a6 = d07 + d34 - (d16 + (d16>>1));\
     const int a7 = d16 - d25 + (d34 + (d34>>1));\
-    SRC(0) =  a0 + a1     ;\
-    SRC(1) =  a4 + (a7>>2);\
-    SRC(2) =  a2 + (a3>>1);\
-    SRC(3) =  a5 + (a6>>2);\
-    SRC(4) =  a0 - a1     ;\
-    SRC(5) =  a6 - (a5>>2);\
-    SRC(6) = (a2>>1) - a3 ;\
-    SRC(7) = (a4>>2) - a7 ;\
+    DST(0) =  a0 + a1     ;\
+    DST(1) =  a4 + (a7>>2);\
+    DST(2) =  a2 + (a3>>1);\
+    DST(3) =  a5 + (a6>>2);\
+    DST(4) =  a0 - a1     ;\
+    DST(5) =  a6 - (a5>>2);\
+    DST(6) = (a2>>1) - a3 ;\
+    DST(7) = (a4>>2) - a7 ;\
 }
 
 static void sub8x8_dct8( int16_t dct[8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 {
     int i;
+    int16_t tmp[8][8];
 
-    pixel_sub_wxh( (int16_t*)dct, 8, pix1, i_pix1, pix2, i_pix2 );
+    pixel_sub_wxh( (int16_t*)tmp, 8, pix1, i_pix1, pix2, i_pix2 );
 
-#define SRC(x) dct[x][i]
+#define SRC(x) tmp[x][i]
+#define DST(x) tmp[x][i]
     for( i = 0; i < 8; i++ )
         DCT8_1D
 #undef SRC
+#undef DST
 
-#define SRC(x) dct[i][x]
+#define SRC(x) tmp[i][x]
+#define DST(x) dct[x][i]
     for( i = 0; i < 8; i++ )
         DCT8_1D
 #undef SRC
+#undef DST
 }
 
 static void sub16x16_dct8( int16_t dct[4][8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
@@ -341,14 +346,14 @@ static void add8x8_idct8( uint8_t *dst, int i_dst, int16_t dct[8][8] )
 
     dct[0][0] += 32; // rounding for the >>6 at the end
 
-#define SRC(x)     dct[i][x]
-#define DST(x,rhs) dct[i][x] = (rhs)
+#define SRC(x)     dct[x][i]
+#define DST(x,rhs) dct[x][i] = (rhs)
     for( i = 0; i < 8; i++ )
         IDCT8_1D
 #undef SRC
 #undef DST
 
-#define SRC(x)     dct[x][i]
+#define SRC(x)     dct[i][x]
 #define DST(x,rhs) dst[i + x*i_dst] = clip_uint8( dst[i + x*i_dst] + ((rhs) >> 6) );
     for( i = 0; i < 8; i++ )
         IDCT8_1D
@@ -404,15 +409,18 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
 
         dctf->dct4x4dc  = x264_dct4x4dc_mmxext;
         dctf->idct4x4dc = x264_idct4x4dc_mmxext;
+    }
 
 #ifndef ARCH_X86_64
-        dctf->sub8x8_dct8   = x264_sub8x8_dct8_mmxext;
-        dctf->sub16x16_dct8 = x264_sub16x16_dct8_mmxext;
+    if( cpu&X264_CPU_MMX )
+    {
+        dctf->sub8x8_dct8   = x264_sub8x8_dct8_mmx;
+        dctf->sub16x16_dct8 = x264_sub16x16_dct8_mmx;
 
-        dctf->add8x8_idct8  = x264_add8x8_idct8_mmxext;
-        dctf->add16x16_idct8= x264_add16x16_idct8_mmxext;
-#endif
+        dctf->add8x8_idct8  = x264_add8x8_idct8_mmx;
+        dctf->add16x16_idct8= x264_add16x16_idct8_mmx;
     }
+#endif
 #endif
 
 #if defined(HAVE_SSE2) && defined(ARCH_X86_64)
@@ -425,7 +433,7 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
         dctf->add16x16_idct8= x264_add16x16_idct8_sse2;
     }
 #endif
-
+/* FIXME altivec dct is not transposed yet
 #ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC )
     {
@@ -434,5 +442,6 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
         dctf->sub16x16_dct  = x264_sub16x16_dct_altivec;
     }
 #endif
+*/
 }
 

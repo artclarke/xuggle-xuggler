@@ -177,21 +177,19 @@ x264_dct4x4dc_mmxext:
     MMX_SUMSUB_BADC     mm2, mm3, mm0, mm4          ; mm2=s01  mm3=d01  mm0=s23  mm4=d23
     MMX_SUMSUB_BADC     mm0, mm2, mm4, mm3          ; mm0=s01+s23  mm2=s01-s23  mm4=d01+d23  mm3=d01-d23
 
-    MMX_TRANSPOSE       mm0, mm2, mm3, mm4, mm1     ; in: mm0, mm2, mm3, mm4  out: mm0, mm4, mm1, mm3
-
     movq    mm6,        [pw_1 GLOBAL]
     paddw   mm0,        mm6
-    paddw   mm4,        mm6
+    paddw   mm2,        mm6
     psraw   mm0,        1
     movq    [parm1q+ 0],mm0
-    psraw   mm4,        1
-    movq    [parm1q+ 8],mm4
-    paddw   mm1,        mm6
+    psraw   mm2,        1
+    movq    [parm1q+ 8],mm2
     paddw   mm3,        mm6
-    psraw   mm1,        1
-    movq    [parm1q+16],mm1
+    paddw   mm4,        mm6
     psraw   mm3,        1
-    movq    [parm1q+24],mm3
+    movq    [parm1q+16],mm3
+    psraw   mm4,        1
+    movq    [parm1q+24],mm4
     ret
 
 cglobal x264_idct4x4dc_mmxext
@@ -214,12 +212,10 @@ x264_idct4x4dc_mmxext:
     MMX_SUMSUB_BADC     mm2, mm3, mm0, mm4          ; mm2=s01  mm3=d01  mm0=s23  mm4=d23
     MMX_SUMSUB_BADC     mm0, mm2, mm4, mm3          ; mm0=s01+s23  mm2=s01-s23  mm4=d01+d23  mm3=d01-d23
 
-    MMX_TRANSPOSE       mm0, mm2, mm3, mm4, mm1     ; in: mm0, mm2, mm3, mm4  out: mm0, mm4, mm1, mm3
-
     movq    [parm1q+ 0], mm0
-    movq    [parm1q+ 8], mm4
-    movq    [parm1q+16], mm1
-    movq    [parm1q+24], mm3
+    movq    [parm1q+ 8], mm2
+    movq    [parm1q+16], mm3
+    movq    [parm1q+24], mm4
     ret
 
 cglobal x264_sub4x4_dct_mmxext
@@ -267,13 +263,10 @@ x264_sub4x4_dct_mmxext:
     MMX_SUMSUB_BA       mm1, mm3                    ; mm1=s03+s12      mm3=s03-s12
     MMX_SUMSUB2_AB      mm2, mm4, mm0               ; mm2=2.d03+d12    mm0=d03-2.d12
 
-    ; transpose in: mm1, mm2, mm3, mm0, out: mm1, mm0, mm4, mm3
-    MMX_TRANSPOSE       mm1, mm2, mm3, mm0, mm4
-
     movq    [r10+ 0],   mm1 ; dct
-    movq    [r10+ 8],   mm0
-    movq    [r10+16],   mm4
-    movq    [r10+24],   mm3
+    movq    [r10+ 8],   mm2
+    movq    [r10+16],   mm3
+    movq    [r10+24],   mm0
 
     pop     rbx
     ret
@@ -288,16 +281,13 @@ ALIGN 16
 x264_add4x4_idct_mmxext:
     ; Load dct coeffs
     movq    mm0, [parm3q+ 0] ; dct
-    movq    mm4, [parm3q+ 8]
-    movq    mm3, [parm3q+16]
-    movq    mm1, [parm3q+24]
+    movq    mm1, [parm3q+ 8]
+    movq    mm2, [parm3q+16]
+    movq    mm3, [parm3q+24]
     
     mov     rax, parm1q      ; p_dst
     movsxd  rcx, parm2d      ; i_dst
     lea     rdx, [rcx+rcx*2]
-
-    ; out:mm0, mm1, mm2, mm3
-    MMX_TRANSPOSE       mm0, mm4, mm3, mm1, mm2
 
     MMX_SUMSUB_BA       mm2, mm0                        ; mm2=s02  mm0=d02
     MMX_SUMSUBD2_AB     mm1, mm3, mm5, mm4              ; mm1=s13  mm4=d13 ( well 1 + 3>>1 and 1>>1 + 3)
@@ -408,19 +398,18 @@ x264_sub8x8_dct8_sse2:
     MMX_LOAD_DIFF_8P  xmm6, xmm8, xmm9, [rsi+r9   ], [rcx+r10]
     MMX_LOAD_DIFF_8P  xmm7, xmm8, xmm9, [rsi+rdx*4], [rcx+r8*4]
 
-    SSE2_TRANSPOSE8x8 xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8
-    DCT8_1D           xmm0, xmm5, xmm7, xmm3, xmm8, xmm4, xmm2, xmm1, xmm6, xmm9
-    SSE2_TRANSPOSE8x8 xmm4, xmm5, xmm7, xmm2, xmm8, xmm3, xmm1, xmm6, xmm0
-    DCT8_1D           xmm4, xmm3, xmm6, xmm2, xmm0, xmm8, xmm7, xmm5, xmm1, xmm9
+    DCT8_1D           xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9
+    SSE2_TRANSPOSE8x8 xmm5, xmm1, xmm2, xmm6, xmm4, xmm3, xmm7, xmm8, xmm0
+    DCT8_1D           xmm5, xmm3, xmm8, xmm6, xmm0, xmm4, xmm2, xmm1, xmm7, xmm9
 
-    movdqa  [rdi+0x00], xmm8
+    movdqa  [rdi+0x00], xmm4
     movdqa  [rdi+0x10], xmm3
-    movdqa  [rdi+0x20], xmm6
-    movdqa  [rdi+0x30], xmm7
+    movdqa  [rdi+0x20], xmm8
+    movdqa  [rdi+0x30], xmm2
     movdqa  [rdi+0x40], xmm0
-    movdqa  [rdi+0x50], xmm2
-    movdqa  [rdi+0x60], xmm5
-    movdqa  [rdi+0x70], xmm1
+    movdqa  [rdi+0x50], xmm6
+    movdqa  [rdi+0x60], xmm1
+    movdqa  [rdi+0x70], xmm7
 
     ret
 
@@ -494,22 +483,21 @@ x264_add8x8_idct8_sse2:
     movdqa  xmm6, [rdx+0x60]
     movdqa  xmm7, [rdx+0x70]
 
-    SSE2_TRANSPOSE8x8 xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8
-    IDCT8_1D          xmm0, xmm5, xmm7, xmm3, xmm8, xmm4, xmm2, xmm1, xmm9, xmm6
-    SSE2_TRANSPOSE8x8 xmm9, xmm5, xmm1, xmm3, xmm8, xmm0, xmm7, xmm2, xmm4
+    IDCT8_1D          xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm9, xmm8
+    SSE2_TRANSPOSE8x8 xmm9, xmm1, xmm7, xmm3, xmm4, xmm0, xmm2, xmm6, xmm5
     paddw             xmm9, [pw_32 GLOBAL] ; rounding for the >>6 at the end
-    IDCT8_1D          xmm9, xmm0, xmm2, xmm3, xmm4, xmm8, xmm1, xmm5, xmm6, xmm7
+    IDCT8_1D          xmm9, xmm0, xmm6, xmm3, xmm5, xmm4, xmm7, xmm1, xmm8, xmm2
  
     MMX_ZERO  xmm15
-    MMX_STORE_DIFF_8P   xmm6, xmm14, xmm15, [rdi]
+    MMX_STORE_DIFF_8P   xmm8, xmm14, xmm15, [rdi]
     MMX_STORE_DIFF_8P   xmm0, xmm14, xmm15, [rdi+rsi]
-    MMX_STORE_DIFF_8P   xmm5, xmm14, xmm15, [rdi+rsi*2]
+    MMX_STORE_DIFF_8P   xmm1, xmm14, xmm15, [rdi+rsi*2]
     lea  rax, [rsi+rsi*2]
     add  rdi, rax
     MMX_STORE_DIFF_8P   xmm3, xmm14, xmm15, [rdi]
-    MMX_STORE_DIFF_8P   xmm4, xmm14, xmm15, [rdi+rsi]
+    MMX_STORE_DIFF_8P   xmm5, xmm14, xmm15, [rdi+rsi]
     MMX_STORE_DIFF_8P   xmm9, xmm14, xmm15, [rdi+rsi*2]
-    MMX_STORE_DIFF_8P   xmm2, xmm14, xmm15, [rdi+rax]
-    MMX_STORE_DIFF_8P   xmm1, xmm14, xmm15, [rdi+rsi*4]
+    MMX_STORE_DIFF_8P   xmm6, xmm14, xmm15, [rdi+rax]
+    MMX_STORE_DIFF_8P   xmm7, xmm14, xmm15, [rdi+rsi*4]
 
     ret
