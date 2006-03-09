@@ -105,8 +105,8 @@ void x264_yidct8_mmx( int16_t dct[8][8] );       // including >>6 at the end
 inline void x264_sub8x8_dct8_mmxext( int16_t dct[8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 {
     x264_pixel_sub_8x8_mmx( (int16_t *)dct, pix1, i_pix1, pix2, i_pix2 );
-    x264_xdct8_mmxext( dct );
     x264_ydct8_mmx( dct );
+    x264_xdct8_mmxext( dct );
 }
 
 void x264_sub16x16_dct8_mmxext( int16_t dct[4][8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )

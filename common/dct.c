@@ -289,12 +289,12 @@ static void sub8x8_dct8( int16_t dct[8][8], uint8_t *pix1, int i_pix1, uint8_t *
 
     pixel_sub_wxh( (int16_t*)dct, 8, pix1, i_pix1, pix2, i_pix2 );
 
-#define SRC(x) dct[i][x]
+#define SRC(x) dct[x][i]
     for( i = 0; i < 8; i++ )
         DCT8_1D
 #undef SRC
 
-#define SRC(x) dct[x][i]
+#define SRC(x) dct[i][x]
     for( i = 0; i < 8; i++ )
         DCT8_1D
 #undef SRC
