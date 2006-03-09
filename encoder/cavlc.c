@@ -254,6 +254,18 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int *l, i
     }
 }
 
+static void cavlc_qp_delta( x264_t *h, bs_t *s )
+{
+    int i_dqp = h->mb.i_qp - h->mb.i_last_qp;
+    if( i_dqp )
+    {
+        i_dqp = i_dqp <= 0 ? (-2*i_dqp) : (2*i_dqp - 1);
+        if( i_dqp > 52 )
+            i_dqp = 103 - i_dqp;
+    }
+    bs_write_ue( s, i_dqp );
+}
+
 static void x264_sub_mb_mv_write_cavlc( x264_t *h, bs_t *s, int i_list )
 {
     int i;
@@ -676,7 +688,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
     /* write residual */
     if( i_mb_type == I_16x16 )
     {
-        bs_write_se( s, h->mb.i_qp - h->mb.i_last_qp );
+        cavlc_qp_delta( h, s );
 
         /* DC Luma */
         block_residual_write_cavlc( h, s, BLOCK_INDEX_LUMA_DC , h->dct.luma16x16_dc, 16 );
@@ -688,7 +700,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
     }
     else if( h->mb.i_cbp_luma != 0 || h->mb.i_cbp_chroma != 0 )
     {
-        bs_write_se( s, h->mb.i_qp - h->mb.i_last_qp );
+        cavlc_qp_delta( h, s );
         x264_macroblock_luma_write_cavlc( h, s );
     }
     if( h->mb.i_cbp_chroma != 0 )

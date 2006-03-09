@@ -189,7 +189,7 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
     /* If effective qp <= 15, deblocking would have no effect anyway */
     if( param->b_deblocking_filter
         && ( h->mb.b_variable_qp
-        || 15 < i_qp + X264_MAX(param->i_deblocking_filter_alphac0, param->i_deblocking_filter_beta) ) )
+        || 15 < i_qp + 2 * X264_MAX(param->i_deblocking_filter_alphac0, param->i_deblocking_filter_beta) ) )
     {
         sh->i_disable_deblocking_filter_idc = 0;
     }
@@ -633,6 +633,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
              param->cpu&X264_CPU_ALTIVEC ? "Altivec " : "" );
 
     h->thread[0] = h;
+    h->i_thread_num = 0;
     for( i = 1; i < param->i_threads; i++ )
         h->thread[i] = x264_malloc( sizeof(x264_t) );
 
@@ -1087,6 +1088,7 @@ static inline int x264_slices_write( x264_t *h )
 
     if( h->param.i_threads == 1 )
     {
+        x264_ratecontrol_threads_start( h );
         x264_slice_write( h );
         i_frame_size = h->out.nal[h->out.i_nal-1].i_payload;
     }
@@ -1104,11 +1106,13 @@ static inline int x264_slices_write( x264_t *h )
                 memcpy( t, h, sizeof(x264_t) );
                 t->out.p_bitstream += i*i_bs_size;
                 bs_init( &t->out.bs, t->out.p_bitstream, i_bs_size );
+                t->i_thread_num = i;
             }
             t->sh.i_first_mb = (i    * h->sps->i_mb_height / h->param.i_threads) * h->sps->i_mb_width;
             t->sh.i_last_mb = ((i+1) * h->sps->i_mb_height / h->param.i_threads) * h->sps->i_mb_width;
             t->out.i_nal = i_nal + i;
         }
+        x264_ratecontrol_threads_start( h );
 
         /* dispatch */
 #if HAVE_PTHREAD
@@ -1498,23 +1502,20 @@ do_encode:
 
     /* ---------------------- Update encoder state ------------------------- */
 
+    /* update rc */
+    x264_cpu_restore( h->param.cpu );
+    x264_ratecontrol_end( h, i_frame_size * 8 );
+
     /* handle references */
     if( i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE )
-    {
         x264_reference_update( h );
-    }
+    x264_frame_put( h->frames.unused, h->fenc );
 
     /* increase frame count */
     h->i_frame++;
 
     /* restore CPU state (before using float again) */
-    /* XXX: not needed? (done above) */
     x264_cpu_restore( h->param.cpu );
-
-    /* update rc */
-    x264_ratecontrol_end( h, i_frame_size * 8 );
-
-    x264_frame_put( h->frames.unused, h->fenc );
 
     x264_noise_reduction_update( h );
 

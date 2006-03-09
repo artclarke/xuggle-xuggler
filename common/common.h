@@ -55,6 +55,10 @@
 #define UNUSED
 #endif
 
+#define X264_BFRAME_MAX 16
+#define X264_SLICE_MAX 4
+#define X264_NAL_MAX (4 + X264_SLICE_MAX)
+
 /****************************************************************************
  * Includes
  ****************************************************************************/
@@ -216,10 +220,6 @@ static const int x264_scan8[16+2*4] =
  4   R R   L L L L
  5   R R
 */
-
-#define X264_BFRAME_MAX 16
-#define X264_SLICE_MAX 4
-#define X264_NAL_MAX (4 + X264_SLICE_MAX)
 
 typedef struct x264_ratecontrol_t   x264_ratecontrol_t;
 typedef struct x264_vlc_table_t     x264_vlc_table_t;
