@@ -250,7 +250,7 @@ int x264_ratecontrol_new( x264_t *h )
         rc->rate_tolerance = 0.01;
     }
 
-    h->mb.b_variable_qp = rc->b_vbv;
+    h->mb.b_variable_qp = rc->b_vbv && !rc->b_2pass;
 
     if( rc->b_abr )
     {
@@ -657,7 +657,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     h->fdec->i_row_bits[y] += bits;
     rc->qpa += rc->qpm;
 
-    if( h->mb.i_mb_x != h->sps->i_mb_width - 1 || !rc->b_vbv )
+    if( h->mb.i_mb_x != h->sps->i_mb_width - 1 || !h->mb.b_variable_qp )
         return;
 
     h->fdec->i_row_qp[y] = rc->qpm;
@@ -777,7 +777,7 @@ void x264_ratecontrol_end( x264_t *h, int bits )
     for( i = B_DIRECT; i < B_8x8; i++ )
         h->stat.frame.i_mb_count_p += mbs[i];
 
-    if( rc->b_vbv )
+    if( h->mb.b_variable_qp )
     {
         for( i = 1; i < h->param.i_threads; i++ )
             rc->qpa += rc[i].qpa;
@@ -838,7 +838,7 @@ void x264_ratecontrol_end( x264_t *h, int bits )
         rc->expected_bits_sum += qscale2bits( rc->rce, qp2qscale(rc->rce->new_qp) );
     }
 
-    if( rc->b_vbv )
+    if( h->mb.b_variable_qp )
     {
         if( rc->slice_type == SLICE_TYPE_B )
         {
@@ -1303,7 +1303,7 @@ void x264_ratecontrol_threads_start( x264_t *h )
             rc[t] = rc[0];
     }
 
-    if( !rc->b_vbv || rc->slice_type == SLICE_TYPE_B )
+    if( !h->mb.b_variable_qp || rc->slice_type == SLICE_TYPE_B )
         return;
 
     for( t = 0; t < h->param.i_threads; t++ )
