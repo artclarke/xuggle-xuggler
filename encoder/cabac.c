@@ -369,7 +369,7 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
     {
         int val = i_dqp <= 0 ? (-2*i_dqp) : (2*i_dqp - 1);
         /* dqp is interpreted modulo 52 */
-        if( val > 52 )
+        if( val >= 51 && val != 52 )
             val = 103 - val;
         while( val-- )
         {

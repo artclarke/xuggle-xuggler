@@ -259,11 +259,12 @@ static void cavlc_qp_delta( x264_t *h, bs_t *s )
     int i_dqp = h->mb.i_qp - h->mb.i_last_qp;
     if( i_dqp )
     {
-        i_dqp = i_dqp <= 0 ? (-2*i_dqp) : (2*i_dqp - 1);
-        if( i_dqp > 52 )
-            i_dqp = 103 - i_dqp;
+        if( i_dqp < -26 )
+            i_dqp += 52;
+        else if( i_dqp > 25 )
+            i_dqp -= 52;
     }
-    bs_write_ue( s, i_dqp );
+    bs_write_se( s, i_dqp );
 }
 
 static void x264_sub_mb_mv_write_cavlc( x264_t *h, bs_t *s, int i_list )
