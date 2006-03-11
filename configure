@@ -15,6 +15,7 @@ echo "  --enable-debug           adds -g, doesn't strip"
 echo "  --enable-gprof           adds -pg, doesn't strip"
 echo "  --enable-visualize       enables visualization (X11 only)"
 echo "  --enable-pic             build position-independent code"
+echo "  --enable-shared          build libx264.so"
 echo "  --extra-asflags=EASFLAGS add EASFLAGS to ASFLAGS"
 echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS"
 echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS"
@@ -51,6 +52,7 @@ gprof="no"
 pic="no"
 vfw="no"
 vis="no"
+shared="no"
 
 CC="gcc"
 CFLAGS="-Wall -I. -O4 -ffast-math -D__X264__"
@@ -92,13 +94,11 @@ case "$UNAMES" in
     LDFLAGS="$LDFLAGS -mno-cygwin"
     EXE=".exe"
     DEVNULL="NUL"
-    vfw="yes"
     ;;
   MINGW*)
     SYS="MINGW"
     EXE=".exe"
     DEVNULL="NUL"
-    vfw="yes"
     ;;
   SunOS)
     SYS="SunOS"
@@ -242,8 +242,6 @@ for opt do
             gprof="yes"
             ;;
         --enable-pic)
-            CFLAGS="$CFLAGS -fPIC"
-            ASFLAGS="$ASFLAGS -D__PIC__"
             pic="yes"
             ;;
         --enable-vfw)
@@ -251,6 +249,12 @@ for opt do
             ;;
         --disable-vfw)
             vfw="no"
+            ;;
+        --enable-shared)
+            shared="yes"
+            if [ $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" ] ; then
+                pic="yes"
+            fi
             ;;
         --enable-visualize)
             LDFLAGS="$LDFLAGS -L/usr/X11R6/lib -lX11"
@@ -311,6 +315,11 @@ if [ "$avis_input" = "yes" ] ; then
     LDFLAGS="$LDFLAGS -lvfw32"
 fi
 
+if [ "$pic" = "yes" ] ; then
+    CFLAGS="$CFLAGS -fPIC"
+    ASFLAGS="$ASFLAGS -D__PIC__"
+fi
+
 if [ "$debug" != "yes" -a "$gprof" != "yes" ]; then
     CFLAGS="$CFLAGS -s -fomit-frame-pointer"
     LDFLAGS="$LDFLAGS -s"
@@ -357,6 +366,12 @@ EOF
     echo "default: x264vfw.dll" >> config.mak
 fi
 
+if [ "$shared" = "yes" ]; then
+    API=`grep '#define X264_BUILD' < x264.h | cut -f 3 -d ' '`
+    echo "SONAME=libx264.so.$API" >> config.mak
+    echo 'default: $(SONAME)' >> config.mak
+fi
+
 ./version.sh
 
 cat > x264.pc << EOF
@@ -382,6 +397,7 @@ echo "vfw:        $vfw"
 echo "debug:      $debug"
 echo "gprof:      $gprof"
 echo "PIC:        $pic"
+echo "shared:     $shared"
 echo "visualize:  $vis"
 echo
 echo "You can run 'make' or 'make fprofiled' now."

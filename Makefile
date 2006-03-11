@@ -67,6 +67,9 @@ libx264.a: .depend $(OBJS) $(OBJASM)
 	ar rc libx264.a $(OBJS) $(OBJASM)
 	ranlib libx264.a
 
+$(SONAME): .depend $(OBJS) $(OBJASM)
+	$(CC) -shared -o $@ $(OBJS) $(OBJASM) -Wl,-soname,$(SONAME)
+
 x264$(EXE): $(OBJCLI) libx264.a 
 	$(CC) -o $@ $+ $(LDFLAGS)
 
@@ -120,7 +123,7 @@ fprofiled:
 endif
 
 clean:
-	rm -f $(OBJS) $(OBJASM) $(OBJCLI) *.a x264 x264.exe .depend TAGS
+	rm -f $(OBJS) $(OBJASM) $(OBJCLI) $(SONAME) *.a x264 x264.exe .depend TAGS
 	rm -f checkasm checkasm.exe tools/checkasm.o
 	rm -f tools/avc2avi tools/avc2avi.exe tools/avc2avi.o
 	rm -rf vfw/build/cygwin/bin
@@ -130,7 +133,7 @@ clean:
 distclean: clean
 	rm -f config.mak config.h vfw/build/cygwin/config.mak x264.pc
 
-install: x264
+install: x264 $(SONAME)
 	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(includedir)
 	install -d $(DESTDIR)$(libdir) $(DESTDIR)$(libdir)/pkgconfig
 	install -m 644 x264.h $(DESTDIR)$(includedir)
@@ -138,10 +141,13 @@ install: x264
 	install -m 644 x264.pc $(DESTDIR)$(libdir)/pkgconfig
 	install x264 $(DESTDIR)$(bindir)
 	ranlib $(DESTDIR)$(libdir)/libx264.a
+	$(if $(SONAME), ln -sf $(DESTDIR)$(libdir)/$(SONAME) $(DESTDIR)$(libdir)/libx264.so)
+	$(if $(SONAME), install -m 755 $(SONAME) $(DESTDIR)$(libdir))
 
 uninstall:
 	rm -f $(DESTDIR)$(includedir)/x264.h $(DESTDIR)$(libdir)/libx264.a
 	rm -f $(DESTDIR)$(bindir)/x264 $(DESTDIR)$(libdir)/pkgconfig/x264.pc
+	$(if $(SONAME), rm -f $(DESTDIR)$(libdir)/$(SONAME) $(DESTDIR)$(libdir)/libx264.so)
 
 etags: TAGS
 
