@@ -1194,7 +1194,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     uint8_t pix1[16*16], pix2[16*16];
     uint8_t *src2;
     int stride2 = 16;
-    int src2_ref, pix1_ref;
+    int weight;
 
     x264_me_t m;
     int i_ref;
@@ -1266,6 +1266,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, a->l1.i_ref );
 
     /* get cost of BI mode */
+    weight = h->mb.bipred_weight[a->l0.i_ref][a->l1.i_ref];
     if ( ((a->l0.me16x16.mv[0] | a->l0.me16x16.mv[1]) & 1) == 0 )
     {
         /* l0 reference is halfpel, so get_ref on it will make it faster */
@@ -1277,8 +1278,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
                         pix1, 16,
                         a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
                         16, 16 );
-        src2_ref = a->l0.i_ref;
-        pix1_ref = a->l1.i_ref;
+        weight = 64 - weight;
     } 
     else
     {
@@ -1291,13 +1291,10 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
                         pix2, &stride2,
                         a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
                         16, 16 );
-        src2_ref = a->l1.i_ref;
-        pix1_ref = a->l0.i_ref;
     }
 
     if( h->param.analyse.b_weighted_bipred )
-        h->mc.avg_weight[PIXEL_16x16]( pix1, 16, src2, stride2,
-                h->mb.bipred_weight[pix1_ref][src2_ref] );
+        h->mc.avg_weight[PIXEL_16x16]( pix1, 16, src2, stride2, weight );
     else
         h->mc.avg[PIXEL_16x16]( pix1, 16, src2, stride2 );
 
