@@ -65,9 +65,9 @@ cglobal x264_pixel_avg_weight_4x4_mmxext
 cglobal x264_pixel_avg_weight_w8_mmxext
 cglobal x264_pixel_avg_weight_w16_mmxext
 
-cglobal x264_mc_copy_w4_mmxext
-cglobal x264_mc_copy_w8_mmxext
-cglobal x264_mc_copy_w16_mmxext
+cglobal x264_mc_copy_w4_mmx
+cglobal x264_mc_copy_w8_mmx
+cglobal x264_mc_copy_w16_mmx
 cglobal x264_mc_copy_w16_sse2
 
 cglobal x264_mc_chroma_mmxext
@@ -288,10 +288,10 @@ x264_pixel_avg_weight_4x4_mmxext:
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;  void x264_mc_copy_w4_mmxext( uint8_t *dst, int i_dst_stride,
-;                               uint8_t *src, int i_src_stride, int i_height )
+;  void x264_mc_copy_w4_mmx( uint8_t *dst, int i_dst_stride,
+;                            uint8_t *src, int i_src_stride, int i_height )
 ;-----------------------------------------------------------------------------
-x264_mc_copy_w4_mmxext:
+x264_mc_copy_w4_mmx:
     mov     eax, parm5d         ; i_height
     
 ALIGN 4
@@ -310,10 +310,10 @@ ALIGN 4
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void x264_mc_copy_w8_mmxext( uint8_t *dst, int i_dst_stride,
-;                                uint8_t *src, int i_src_stride, int i_height )
+;   void x264_mc_copy_w8_mmx( uint8_t *dst, int i_dst_stride,
+;                             uint8_t *src, int i_src_stride, int i_height )
 ;-----------------------------------------------------------------------------
-x264_mc_copy_w8_mmxext:
+x264_mc_copy_w8_mmx:
     mov     eax, parm5d         ; i_height
 
     lea     r10, [parm4q+parm4q*2] ; 3 * i_src_stride
@@ -339,10 +339,10 @@ ALIGN 4
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void x264_mc_copy_w16_mmxext( uint8_t *dst, int i_dst_stride,
-;                                 uint8_t *src, int i_src_stride, int i_height )
+;   void x264_mc_copy_w16_mmx( uint8_t *dst, int i_dst_stride,
+;                              uint8_t *src, int i_src_stride, int i_height )
 ;-----------------------------------------------------------------------------
-x264_mc_copy_w16_mmxext:
+x264_mc_copy_w16_mmx:
     mov     eax, parm5d         ; i_height
     
     lea     r10, [parm4q+parm4q*2] ; 3 * i_src_stride

@@ -24,16 +24,16 @@
 #ifndef _I386_DCT_H
 #define _I386_DCT_H 1
 
-void x264_sub4x4_dct_mmxext( int16_t dct[4][4],  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
-void x264_sub8x8_dct_mmxext( int16_t dct[4][4][4],  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
-void x264_sub16x16_dct_mmxext( int16_t dct[16][4][4],  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
+void x264_sub4x4_dct_mmx( int16_t dct[4][4],  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
+void x264_sub8x8_dct_mmx( int16_t dct[4][4][4],  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
+void x264_sub16x16_dct_mmx( int16_t dct[16][4][4],  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
 
-void x264_add4x4_idct_mmxext( uint8_t *p_dst, int i_dst, int16_t dct[4][4] );
-void x264_add8x8_idct_mmxext( uint8_t *p_dst, int i_dst, int16_t dct[4][4][4] );
-void x264_add16x16_idct_mmxext( uint8_t *p_dst, int i_dst, int16_t dct[16][4][4] );
+void x264_add4x4_idct_mmx( uint8_t *p_dst, int i_dst, int16_t dct[4][4] );
+void x264_add8x8_idct_mmx( uint8_t *p_dst, int i_dst, int16_t dct[4][4][4] );
+void x264_add16x16_idct_mmx( uint8_t *p_dst, int i_dst, int16_t dct[16][4][4] );
 
-void x264_dct4x4dc_mmxext( int16_t d[4][4] );
-void x264_idct4x4dc_mmxext( int16_t d[4][4] );
+void x264_dct4x4dc_mmx( int16_t d[4][4] );
+void x264_idct4x4dc_mmx( int16_t d[4][4] );
 
 void x264_sub8x8_dct8_mmx( int16_t dct[8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
 void x264_sub16x16_dct8_mmx( int16_t dct[4][8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );

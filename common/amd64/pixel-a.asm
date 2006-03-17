@@ -266,13 +266,13 @@ cglobal x264_pixel_sad_pde_16x16_mmxext
 cglobal x264_pixel_sad_pde_16x8_mmxext
 cglobal x264_pixel_sad_pde_8x16_mmxext
 
-cglobal x264_pixel_ssd_16x16_mmxext
-cglobal x264_pixel_ssd_16x8_mmxext
-cglobal x264_pixel_ssd_8x16_mmxext
-cglobal x264_pixel_ssd_8x8_mmxext
-cglobal x264_pixel_ssd_8x4_mmxext
-cglobal x264_pixel_ssd_4x8_mmxext
-cglobal x264_pixel_ssd_4x4_mmxext
+cglobal x264_pixel_ssd_16x16_mmx
+cglobal x264_pixel_ssd_16x8_mmx
+cglobal x264_pixel_ssd_8x16_mmx
+cglobal x264_pixel_ssd_8x8_mmx
+cglobal x264_pixel_ssd_8x4_mmx
+cglobal x264_pixel_ssd_4x8_mmx
+cglobal x264_pixel_ssd_4x4_mmx
 
 cglobal x264_pixel_satd_4x4_mmxext
 cglobal x264_pixel_satd_4x8_mmxext
@@ -470,22 +470,22 @@ x264_pixel_sad_pde_8x16_mmxext:
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   int x264_pixel_ssd_16x16_mmxext (uint8_t *, int, uint8_t *, int )
+;   int x264_pixel_ssd_16x16_mmx (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-x264_pixel_ssd_16x16_mmxext:
+x264_pixel_ssd_16x16_mmx:
     SSD_START
     SSD_INC_8x16P
     SSD_INC_8x16P
     SSD_END
 
 ALIGN 16
-x264_pixel_ssd_16x8_mmxext:
+x264_pixel_ssd_16x8_mmx:
     SSD_START
     SSD_INC_8x16P
     SSD_END
 
 ALIGN 16
-x264_pixel_ssd_8x16_mmxext:
+x264_pixel_ssd_8x16_mmx:
     SSD_START
     SSD_INC_4x8P
     SSD_INC_4x8P
@@ -494,27 +494,27 @@ x264_pixel_ssd_8x16_mmxext:
     SSD_END
 
 ALIGN 16
-x264_pixel_ssd_8x8_mmxext:
+x264_pixel_ssd_8x8_mmx:
     SSD_START
     SSD_INC_4x8P
     SSD_INC_4x8P
     SSD_END
 
 ALIGN 16
-x264_pixel_ssd_8x4_mmxext:
+x264_pixel_ssd_8x4_mmx:
     SSD_START
     SSD_INC_4x8P
     SSD_END
 
 ALIGN 16
-x264_pixel_ssd_4x8_mmxext:
+x264_pixel_ssd_4x8_mmx:
     SSD_START
     SSD_INC_4x4P
     SSD_INC_4x4P
     SSD_END
 
 ALIGN 16
-x264_pixel_ssd_4x4_mmxext:
+x264_pixel_ssd_4x4_mmx:
     SSD_START
     SSD_INC_4x4P
     SSD_END

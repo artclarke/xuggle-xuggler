@@ -276,9 +276,7 @@ x264_center_filter_mmxext :
     jnz         .loopcx2
 
     add         r10,    r11         ; dst2 += dst2_stride
-
     dec         r15                 ; height
-    test        r15,    r15
     jnz         .loopcy
 
     lea         rsp,    [rbp]
@@ -326,7 +324,6 @@ x264_horizontal_filter_mmxext :
 
 loophy:
 
-    dec         rcx
     xor         rax,    rax
 
 loophx:
@@ -365,7 +362,7 @@ loophx:
     add         rdx,    r11                  ; src_pitch
     add         r9,     r10                  ; dst_pitch
 
-    test        rcx,    rcx
+    dec         rcx
     jnz         loophy
 
     ret

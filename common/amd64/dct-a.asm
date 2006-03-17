@@ -157,13 +157,13 @@ pw_32: times 8 dw 32
 
 SECTION .text
 
-cglobal x264_dct4x4dc_mmxext
+cglobal x264_dct4x4dc_mmx
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void dct4x4dc( int16_t d[4][4] )
+;   void x264_dct4x4dc_mmx( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
-x264_dct4x4dc_mmxext:
+x264_dct4x4dc_mmx:
     movq    mm0,        [parm1q+ 0]
     movq    mm1,        [parm1q+ 8]
     movq    mm2,        [parm1q+16]
@@ -192,13 +192,13 @@ x264_dct4x4dc_mmxext:
     movq    [parm1q+24],mm4
     ret
 
-cglobal x264_idct4x4dc_mmxext
+cglobal x264_idct4x4dc_mmx
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void x264_idct4x4dc_mmxext( int16_t d[4][4] )
+;   void x264_idct4x4dc_mmx( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
-x264_idct4x4dc_mmxext:
+x264_idct4x4dc_mmx:
     movq    mm0, [parm1q+ 0]
     movq    mm1, [parm1q+ 8]
     movq    mm2, [parm1q+16]
@@ -218,13 +218,13 @@ x264_idct4x4dc_mmxext:
     movq    [parm1q+24], mm4
     ret
 
-cglobal x264_sub4x4_dct_mmxext
+cglobal x264_sub4x4_dct_mmx
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void x264_sub4x4_dct_mmxext( int16_t dct[4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+;   void x264_sub4x4_dct_mmx( int16_t dct[4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 ;-----------------------------------------------------------------------------
-x264_sub4x4_dct_mmxext:
+x264_sub4x4_dct_mmx:
     firstpush  rbx
     pushreg    rbx
     endprolog
@@ -272,13 +272,13 @@ x264_sub4x4_dct_mmxext:
     ret
     endfunc
 
-cglobal x264_add4x4_idct_mmxext
+cglobal x264_add4x4_idct_mmx
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void x264_add4x4_idct_mmxext( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
+;   void x264_add4x4_idct_mmx( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
-x264_add4x4_idct_mmxext:
+x264_add4x4_idct_mmx:
     ; Load dct coeffs
     movq    mm0, [parm3q+ 0] ; dct
     movq    mm1, [parm3q+ 8]

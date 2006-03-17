@@ -328,6 +328,17 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     pixf->sa8d[PIXEL_8x8]  = pixel_sa8d_8x8;
 
 #ifdef HAVE_MMXEXT
+    if( cpu&X264_CPU_MMX )
+    {
+        pixf->ssd[PIXEL_16x16] = x264_pixel_ssd_16x16_mmx;
+        pixf->ssd[PIXEL_16x8]  = x264_pixel_ssd_16x8_mmx;
+        pixf->ssd[PIXEL_8x16]  = x264_pixel_ssd_8x16_mmx;
+        pixf->ssd[PIXEL_8x8]   = x264_pixel_ssd_8x8_mmx;
+        pixf->ssd[PIXEL_8x4]   = x264_pixel_ssd_8x4_mmx;
+        pixf->ssd[PIXEL_4x8]   = x264_pixel_ssd_4x8_mmx;
+        pixf->ssd[PIXEL_4x4]   = x264_pixel_ssd_4x4_mmx;
+    }
+
     if( cpu&X264_CPU_MMXEXT )
     {
         pixf->sad[PIXEL_16x16] = x264_pixel_sad_16x16_mmxext;
@@ -342,14 +353,6 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->sad_pde[PIXEL_16x8 ] = x264_pixel_sad_pde_16x8_mmxext;
         pixf->sad_pde[PIXEL_8x16 ] = x264_pixel_sad_pde_8x16_mmxext;
 
-        pixf->ssd[PIXEL_16x16] = x264_pixel_ssd_16x16_mmxext;
-        pixf->ssd[PIXEL_16x8]  = x264_pixel_ssd_16x8_mmxext;
-        pixf->ssd[PIXEL_8x16]  = x264_pixel_ssd_8x16_mmxext;
-        pixf->ssd[PIXEL_8x8]   = x264_pixel_ssd_8x8_mmxext;
-        pixf->ssd[PIXEL_8x4]   = x264_pixel_ssd_8x4_mmxext;
-        pixf->ssd[PIXEL_4x8]   = x264_pixel_ssd_4x8_mmxext;
-        pixf->ssd[PIXEL_4x4]   = x264_pixel_ssd_4x4_mmxext;
-  
         pixf->satd[PIXEL_16x16]= x264_pixel_satd_16x16_mmxext;
         pixf->satd[PIXEL_16x8] = x264_pixel_satd_16x8_mmxext;
         pixf->satd[PIXEL_8x16] = x264_pixel_satd_8x16_mmxext;
@@ -388,10 +391,10 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     }
 #endif
 #ifdef ARCH_UltraSparc
-      pixf->sad[PIXEL_8x8]   = x264_pixel_sad_8x8_vis;
-      pixf->sad[PIXEL_8x16]  = x264_pixel_sad_8x16_vis;
-      pixf->sad[PIXEL_16x8]  = x264_pixel_sad_16x8_vis;
-      pixf->sad[PIXEL_16x16] = x264_pixel_sad_16x16_vis;
+    pixf->sad[PIXEL_8x8]   = x264_pixel_sad_8x8_vis;
+    pixf->sad[PIXEL_8x16]  = x264_pixel_sad_8x16_vis;
+    pixf->sad[PIXEL_16x8]  = x264_pixel_sad_16x8_vis;
+    pixf->sad[PIXEL_16x16] = x264_pixel_sad_16x16_vis;
 #endif
 }
 

@@ -287,10 +287,7 @@ loopcx2:
     add         edi,    [picesp + tdstp2]
     mov         [picesp + tdst2], edi
 
-    mov         ebp,    [picesp + theight]
-    dec         ebp
-    test        ebp,    ebp
-    mov         [picesp + theight], ebp
+    dec         dword [picesp + theight]
     jnz         loopcy
 
     picpop      ebx
@@ -332,7 +329,6 @@ x264_horizontal_filter_mmxext :
 
 loophy:
 
-    dec         ecx
     xor         eax,    eax
 
 loophx:
@@ -371,7 +367,7 @@ loophx:
     add         esi,    [esp + 24]           ; src_pitch
     add         edi,    [esp + 16]           ; dst_pitch
 
-    test        ecx,    ecx
+    dec         ecx
     jnz         loophy
 
     pop         esi

@@ -35,9 +35,9 @@ extern void x264_pixel_avg_w16_sse2( uint8_t *,  int, uint8_t *, int, uint8_t *,
 extern void x264_pixel_avg_weight_4x4_mmxext( uint8_t *, int, uint8_t *, int, int );
 extern void x264_pixel_avg_weight_w8_mmxext( uint8_t *, int, uint8_t *, int, int, int );
 extern void x264_pixel_avg_weight_w16_mmxext( uint8_t *, int, uint8_t *, int, int, int );
-extern void x264_mc_copy_w4_mmxext( uint8_t *, int, uint8_t *, int, int );
-extern void x264_mc_copy_w8_mmxext( uint8_t *, int, uint8_t *, int, int );
-extern void x264_mc_copy_w16_mmxext( uint8_t *, int, uint8_t *, int, int );
+extern void x264_mc_copy_w4_mmx( uint8_t *, int, uint8_t *, int, int );
+extern void x264_mc_copy_w8_mmx( uint8_t *, int, uint8_t *, int, int );
+extern void x264_mc_copy_w16_mmx( uint8_t *, int, uint8_t *, int, int );
 extern void x264_mc_copy_w16_sse2( uint8_t *, int, uint8_t *, int, int );
 
 #define AVG(W,H) \
@@ -73,13 +73,13 @@ static void (* const x264_pixel_avg_wtab_mmxext[5])( uint8_t *, int, uint8_t *, 
     NULL,
     x264_pixel_avg_w16_mmxext
 };
-static void (* const x264_mc_copy_wtab_mmxext[5])( uint8_t *, int, uint8_t *, int, int ) =
+static void (* const x264_mc_copy_wtab_mmx[5])( uint8_t *, int, uint8_t *, int, int ) =
 {
     NULL,
-    x264_mc_copy_w4_mmxext,
-    x264_mc_copy_w8_mmxext,
+    x264_mc_copy_w4_mmx,
+    x264_mc_copy_w8_mmx,
     NULL,
-    x264_mc_copy_w16_mmxext
+    x264_mc_copy_w16_mmx
 };
 static const int hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
 static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
@@ -102,7 +102,7 @@ void mc_luma_mmx( uint8_t *src[4], int i_src_stride,
     }
     else
     {
-        x264_mc_copy_wtab_mmxext[i_width>>2](
+        x264_mc_copy_wtab_mmx[i_width>>2](
                 dst, i_dst_stride, src1, i_src_stride, i_height );
     }
 }
@@ -155,9 +155,9 @@ void x264_mc_mmxext_init( x264_mc_functions_t *pf )
     pf->avg_weight[PIXEL_4x4]   = x264_pixel_avg_weight_4x4_mmxext;
     // avg_weight_4x8 is rare and 4x2 is not used
 
-    pf->copy[PIXEL_16x16] = x264_mc_copy_w16_mmxext;
-    pf->copy[PIXEL_8x8]   = x264_mc_copy_w8_mmxext;
-    pf->copy[PIXEL_4x4]   = x264_mc_copy_w4_mmxext;
+    pf->copy[PIXEL_16x16] = x264_mc_copy_w16_mmx;
+    pf->copy[PIXEL_8x8]   = x264_mc_copy_w8_mmx;
+    pf->copy[PIXEL_4x4]   = x264_mc_copy_w4_mmx;
 }
 void x264_mc_sse2_init( x264_mc_functions_t *pf )
 {

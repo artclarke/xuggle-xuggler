@@ -143,13 +143,13 @@ x264_mmx_p2n2p1p1: dw  2, -2,  1,  1
 
 SECTION .text
 
-cglobal x264_dct4x4dc_mmxext
+cglobal x264_dct4x4dc_mmx
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl dct4x4dc( int16_t d[4][4] )
+;   void __cdecl x264_dct4x4dc_mmx( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
-x264_dct4x4dc_mmxext:
+x264_dct4x4dc_mmx:
     mov     eax,        [esp+ 4]
     movq    mm0,        [eax+ 0]
     movq    mm1,        [eax+ 8]
@@ -183,13 +183,13 @@ x264_dct4x4dc_mmxext:
     picpop  ebx
     ret
 
-cglobal x264_idct4x4dc_mmxext
+cglobal x264_idct4x4dc_mmx
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_idct4x4dc_mmxext( int16_t d[4][4] )
+;   void __cdecl x264_idct4x4dc_mmx( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
-x264_idct4x4dc_mmxext:
+x264_idct4x4dc_mmx:
     mov     eax, [esp+ 4]
     movq    mm0, [eax+ 0]
     movq    mm1, [eax+ 8]
@@ -210,13 +210,13 @@ x264_idct4x4dc_mmxext:
     movq    [eax+24],   mm4
     ret
 
-cglobal x264_sub4x4_dct_mmxext
+cglobal x264_sub4x4_dct_mmx
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_sub4x4_dct_mmxext( int16_t dct[4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+;   void __cdecl x264_sub4x4_dct_mmx( int16_t dct[4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 ;-----------------------------------------------------------------------------
-x264_sub4x4_dct_mmxext:
+x264_sub4x4_dct_mmx:
     push    ebx
     mov     eax, [esp+12]   ; pix1
     mov     ebx, [esp+16]   ; i_pix1
@@ -255,13 +255,13 @@ x264_sub4x4_dct_mmxext:
     pop     ebx
     ret
 
-cglobal x264_add4x4_idct_mmxext
+cglobal x264_add4x4_idct_mmx
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_add4x4_idct_mmxext( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
+;   void __cdecl x264_add4x4_idct_mmx( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
-x264_add4x4_idct_mmxext:
+x264_add4x4_idct_mmx:
     ; Load dct coeffs
     mov     eax, [esp+12]   ; dct
     movq    mm0, [eax+ 0]
