@@ -223,28 +223,22 @@ static inline void mc_hc( uint8_t *src, int i_src_stride, uint8_t *dst, int i_ds
     }
 }
 
+static const int hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
+static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
+
 static void mc_luma( uint8_t *src[4], int i_src_stride,
                      uint8_t *dst,    int i_dst_stride,
                      int mvx,int mvy,
                      int i_width, int i_height )
 {
-    uint8_t *src1, *src2;
+    int qpel_idx = ((mvy&3)<<2) + (mvx&3);
+    int offset = (mvy>>2)*i_src_stride + (mvx>>2);
+    uint8_t *src1 = src[hpel_ref0[qpel_idx]] + offset + ((mvy&3) == 3) * i_src_stride;
 
-    int correction = (mvx&1) && (mvy&1) && ((mvx&2) ^ (mvy&2));
-    int hpel1x = mvx>>1;
-    int hpel1y = (mvy+1-correction)>>1;
-    int filter1 = (hpel1x & 1) + ( (hpel1y & 1) << 1 );
-
-    src1 = src[filter1] + (hpel1y >> 1) * i_src_stride + (hpel1x >> 1);
-
-    if ( (mvx|mvy) & 1 ) /* qpel interpolation needed */
+    if( qpel_idx & 5 ) /* qpel interpolation needed */
     {
-        int hpel2x = (mvx+1)>>1;
-        int hpel2y = (mvy+correction)>>1;
-        int filter2 = (hpel2x & 1) + ( (hpel2y & 1) <<1 );
+        uint8_t *src2 = src[hpel_ref1[qpel_idx]] + offset + ((mvx&3) == 3);
 
-        src2 = src[filter2] + (hpel2y >> 1) * i_src_stride + (hpel2x >> 1);
-    
         pixel_avg( dst, i_dst_stride, src1, i_src_stride,
                    src2, i_src_stride, i_width, i_height );
     }
@@ -259,23 +253,14 @@ static uint8_t *get_ref( uint8_t *src[4], int i_src_stride,
                          int mvx,int mvy,
                          int i_width, int i_height )
 {
-    uint8_t *src1, *src2;
+    int qpel_idx = ((mvy&3)<<2) + (mvx&3);
+    int offset = (mvy>>2)*i_src_stride + (mvx>>2);
+    uint8_t *src1 = src[hpel_ref0[qpel_idx]] + offset + ((mvy&3) == 3) * i_src_stride;
 
-    int correction = (mvx&1) && (mvy&1) && ((mvx&2) ^ (mvy&2));
-    int hpel1x = mvx>>1;
-    int hpel1y = (mvy+1-correction)>>1;
-    int filter1 = (hpel1x & 1) + ( (hpel1y & 1) << 1 );
-
-    src1 = src[filter1] + (hpel1y >> 1) * i_src_stride + (hpel1x >> 1);
-
-    if ( (mvx|mvy) & 1 ) /* qpel interpolation needed */
+    if( qpel_idx & 5 ) /* qpel interpolation needed */
     {
-        int hpel2x = (mvx+1)>>1;
-        int hpel2y = (mvy+correction)>>1;
-        int filter2 = (hpel2x & 1) + ( (hpel2y & 1) <<1 );
+        uint8_t *src2 = src[hpel_ref1[qpel_idx]] + offset + ((mvx&3) == 3);
 
-        src2 = src[filter2] + (hpel2y >> 1) * i_src_stride + (hpel2x >> 1);
-    
         pixel_avg( dst, *i_dst_stride, src1, i_src_stride,
                    src2, i_src_stride, i_width, i_height );
 

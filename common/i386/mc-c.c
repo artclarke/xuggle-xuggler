@@ -65,56 +65,45 @@ AVG_WEIGHT(8,16)
 AVG_WEIGHT(8,8)
 AVG_WEIGHT(8,4)
 
-void mc_luma_mmx( uint8_t *src[4], int i_src_stride,
-              uint8_t *dst,    int i_dst_stride,
-              int mvx,int mvy,
-              int i_width, int i_height )
+static void (* const x264_pixel_avg_wtab_mmxext[5])( uint8_t *, int, uint8_t *, int, uint8_t *, int, int ) =
 {
-    uint8_t *src1, *src2;
+    NULL,
+    x264_pixel_avg_w4_mmxext,
+    x264_pixel_avg_w8_mmxext,
+    NULL,
+    x264_pixel_avg_w16_mmxext
+};
+static void (* const x264_mc_copy_wtab_mmxext[5])( uint8_t *, int, uint8_t *, int, int ) =
+{
+    NULL,
+    x264_mc_copy_w4_mmxext,
+    x264_mc_copy_w8_mmxext,
+    NULL,
+    x264_mc_copy_w16_mmxext
+};
+static const int hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
+static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
 
-    int correction = (mvx&1) && (mvy&1) && ((mvx&2) ^ (mvy&2));
-    int hpel1x = mvx>>1;
-    int hpel1y = (mvy+1-correction)>>1;
-    int filter1 = (hpel1x & 1) + ( (hpel1y & 1) << 1 );
+void mc_luma_mmx( uint8_t *src[4], int i_src_stride,
+                  uint8_t *dst,    int i_dst_stride,
+                  int mvx,int mvy,
+                  int i_width, int i_height )
+{
+    int qpel_idx = ((mvy&3)<<2) + (mvx&3);
+    int offset = (mvy>>2)*i_src_stride + (mvx>>2);
+    uint8_t *src1 = src[hpel_ref0[qpel_idx]] + offset + ((mvy&3) == 3) * i_src_stride;
 
-    src1 = src[filter1] + (hpel1y >> 1) * i_src_stride + (hpel1x >> 1);
-
-    if ( (mvx|mvy) & 1 ) /* qpel interpolation needed */
+    if( qpel_idx & 5 ) /* qpel interpolation needed */
     {
-        int hpel2x = (mvx+1)>>1;
-        int hpel2y = (mvy+correction)>>1;
-        int filter2 = (hpel2x & 1) + ( (hpel2y & 1) <<1 );
-
-        src2 = src[filter2] + (hpel2y >> 1) * i_src_stride + (hpel2x >> 1);
-
-        switch(i_width) {
-        case 4:
-            x264_pixel_avg_w4_mmxext( dst, i_dst_stride, src1, i_src_stride,
-                          src2, i_src_stride, i_height );
-            break;
-        case 8:
-            x264_pixel_avg_w8_mmxext( dst, i_dst_stride, src1, i_src_stride,
-                          src2, i_src_stride, i_height );
-            break;
-        case 16:
-        default:
-            x264_pixel_avg_w16_mmxext(dst, i_dst_stride, src1, i_src_stride,
-                          src2, i_src_stride, i_height );
-        }
+        uint8_t *src2 = src[hpel_ref1[qpel_idx]] + offset + ((mvx&3) == 3);
+        x264_pixel_avg_wtab_mmxext[i_width>>2](
+                dst, i_dst_stride, src1, i_src_stride,
+                src2, i_src_stride, i_height );
     }
     else
     {
-        switch(i_width) {
-        case 4:
-            x264_mc_copy_w4_mmxext( dst, i_dst_stride, src1, i_src_stride, i_height );
-            break;
-        case 8:
-            x264_mc_copy_w8_mmxext( dst, i_dst_stride, src1, i_src_stride, i_height );
-            break;
-        case 16:
-            x264_mc_copy_w16_mmxext( dst, i_dst_stride, src1, i_src_stride, i_height );
-            break;
-        }
+        x264_mc_copy_wtab_mmxext[i_width>>2](
+                dst, i_dst_stride, src1, i_src_stride, i_height );
     }
 }
 
@@ -123,37 +112,16 @@ uint8_t *get_ref_mmx( uint8_t *src[4], int i_src_stride,
                       int mvx,int mvy,
                       int i_width, int i_height )
 {
-    uint8_t *src1, *src2;
+    int qpel_idx = ((mvy&3)<<2) + (mvx&3);
+    int offset = (mvy>>2)*i_src_stride + (mvx>>2);
+    uint8_t *src1 = src[hpel_ref0[qpel_idx]] + offset + ((mvy&3) == 3) * i_src_stride;
 
-    int correction = (mvx&1) && (mvy&1) && ((mvx&2) ^ (mvy&2));
-    int hpel1x = mvx>>1;
-    int hpel1y = (mvy+1-correction)>>1;
-    int filter1 = (hpel1x & 1) + ( (hpel1y & 1) << 1 );
-
-    src1 = src[filter1] + (hpel1y >> 1) * i_src_stride + (hpel1x >> 1);
-
-    if ( (mvx|mvy) & 1 ) /* qpel interpolation needed */
+    if( qpel_idx & 5 ) /* qpel interpolation needed */
     {
-        int hpel2x = (mvx+1)>>1;
-        int hpel2y = (mvy+correction)>>1;
-        int filter2 = (hpel2x & 1) + ( (hpel2y & 1) <<1 );
-
-        src2 = src[filter2] + (hpel2y >> 1) * i_src_stride + (hpel2x >> 1);
-    
-        switch(i_width) {
-        case 4:
-            x264_pixel_avg_w4_mmxext( dst, *i_dst_stride, src1, i_src_stride,
-                          src2, i_src_stride, i_height );
-            break;
-        case 8:
-            x264_pixel_avg_w8_mmxext( dst, *i_dst_stride, src1, i_src_stride,
-                          src2, i_src_stride, i_height );
-            break;
-        case 16:
-        default:
-            x264_pixel_avg_w16_mmxext(dst, *i_dst_stride, src1, i_src_stride,
-                          src2, i_src_stride, i_height );
-        }
+        uint8_t *src2 = src[hpel_ref1[qpel_idx]] + offset + ((mvx&3) == 3);
+        x264_pixel_avg_wtab_mmxext[i_width>>2](
+                dst, *i_dst_stride, src1, i_src_stride,
+                src2, i_src_stride, i_height );
         return dst;
 
     }
