@@ -416,8 +416,8 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
 
         dctf->add8x8_idct8  = x264_add8x8_idct8_mmx;
         dctf->add16x16_idct8= x264_add16x16_idct8_mmx;
-    }
 #endif
+    }
 #endif
 
 #if defined(HAVE_SSE2) && defined(ARCH_X86_64)
