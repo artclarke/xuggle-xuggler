@@ -123,7 +123,7 @@ case "$UNAMEM" in
       ASFLAGS="$ASFLAGS -f macho -DPREFIX"
     elif [ "$SYS" = CYGWIN -o "$SYS" = MINGW ]; then
       ASFLAGS="$ASFLAGS -f win32 -DPREFIX"
-    elif [ "$SYS" = FREEBSD -o "$SYS" = NETBSD ]; then
+    elif [ "$SYS" = NETBSD ]; then
       ASFLAGS="$ASFLAGS -f aoutb"
     else
       ASFLAGS="$ASFLAGS -f elf"
