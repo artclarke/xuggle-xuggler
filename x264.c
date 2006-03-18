@@ -68,10 +68,10 @@ typedef struct {
 } cli_opt_t;
 
 /* input file operation function pointers */
-static int (*p_open_infile)( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param );
-static int (*p_get_frame_total)( hnd_t handle, int i_width, int i_height );
-static int (*p_read_frame)( x264_picture_t *p_pic, hnd_t handle, int i_frame, int i_width, int i_height );
-static int (*p_close_infile)( hnd_t handle );
+int (*p_open_infile)( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param );
+int (*p_get_frame_total)( hnd_t handle );
+int (*p_read_frame)( x264_picture_t *p_pic, hnd_t handle, int i_frame );
+int (*p_close_infile)( hnd_t handle );
 
 /* output file operation function pointers */
 static int (*p_open_outfile)( char *psz_filename, hnd_t *p_handle );
@@ -975,6 +975,23 @@ static int  Parse( int argc, char **argv,
         }
     }
 
+#ifdef HAVE_PTHREAD
+    if( param->i_threads > 1 )
+    {
+        if( open_file_thread( NULL, &opt->hin, param ) )
+        {
+            fprintf( stderr, "threaded input failed\n" );
+        }
+        else
+        {
+            p_open_infile = open_file_thread;
+            p_get_frame_total = get_frame_total_thread;
+            p_read_frame = read_frame_thread;
+            p_close_infile = close_file_thread;
+        }
+    }
+#endif
+
     return 0;
 }
 
@@ -1035,7 +1052,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     int     i_frame_size;
     int     i_progress;
 
-    i_frame_total = p_get_frame_total( opt->hin, param->i_width, param->i_height );
+    i_frame_total = p_get_frame_total( opt->hin );
     i_frame_total -= opt->i_seek;
     if( ( i_frame_total == 0 || param->i_frame_total < i_frame_total )
         && param->i_frame_total > 0 )
@@ -1067,7 +1084,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     for( i_frame = 0, i_file = 0, i_progress = 0;
          b_ctrl_c == 0 && (i_frame < i_frame_total || i_frame_total == 0); )
     {
-        if( p_read_frame( &pic, opt->hin, i_frame + opt->i_seek, param->i_width, param->i_height ) )
+        if( p_read_frame( &pic, opt->hin, i_frame + opt->i_seek ) )
             break;
 
         pic.i_pts = (int64_t)i_frame * param->i_fps_den;

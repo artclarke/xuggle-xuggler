@@ -42,59 +42,75 @@
 #include <gpac/isomedia.h>
 #endif
 
+typedef struct {
+    FILE *fh;
+    int width, height;
+    int next_frame;
+} yuv_input_t;
+
 /* raw 420 yuv file operation */
 int open_file_yuv( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
 {
-    if ((*p_handle = fopen(psz_filename, "rb")) == NULL)
+    yuv_input_t *h = malloc(sizeof(yuv_input_t));
+    h->width = p_param->i_width;
+    h->height = p_param->i_height;
+    h->fh = fopen(psz_filename, "rb");
+    h->next_frame = 0;
+    *p_handle = (hnd_t)h;
+    if( h->fh == NULL )
         return -1;
     return 0;
 }
 
-int get_frame_total_yuv( hnd_t handle, int i_width, int i_height )
+int get_frame_total_yuv( hnd_t handle )
 {
-    FILE *f = (FILE *)handle;
+    yuv_input_t *h = handle;
     int i_frame_total = 0;
 
-    if( !fseek( f, 0, SEEK_END ) )
+    if( !fseek( h->fh, 0, SEEK_END ) )
     {
-        uint64_t i_size = ftell( f );
-        fseek( f, 0, SEEK_SET );
-        i_frame_total = (int)(i_size / ( i_width * i_height * 3 / 2 ));
+        uint64_t i_size = ftell( h->fh );
+        fseek( h->fh, 0, SEEK_SET );
+        i_frame_total = (int)(i_size / ( h->width * h->height * 3 / 2 ));
     }
 
     return i_frame_total;
 }
 
-int read_frame_yuv( x264_picture_t *p_pic, hnd_t handle, int i_frame, int i_width, int i_height )
+int read_frame_yuv( x264_picture_t *p_pic, hnd_t handle, int i_frame )
 {
-    static int prev_frame = -1;
-    FILE *f = (FILE *)handle;
+    yuv_input_t *h = handle;
 
-    if( i_frame != prev_frame+1 )
-        if( fseek( f, (uint64_t)i_frame * i_width * i_height * 3 / 2, SEEK_SET ) )
+    if( i_frame != h->next_frame )
+        if( fseek( h->fh, (uint64_t)i_frame * h->width * h->height * 3 / 2, SEEK_SET ) )
             return -1;
 
-    if( fread( p_pic->img.plane[0], 1, i_width * i_height, f ) <= 0
-            || fread( p_pic->img.plane[1], 1, i_width * i_height / 4, f ) <= 0
-            || fread( p_pic->img.plane[2], 1, i_width * i_height / 4, f ) <= 0 )
+    if( fread( p_pic->img.plane[0], 1, h->width * h->height, h->fh ) <= 0
+            || fread( p_pic->img.plane[1], 1, h->width * h->height / 4, h->fh ) <= 0
+            || fread( p_pic->img.plane[2], 1, h->width * h->height / 4, h->fh ) <= 0 )
         return -1;
 
-    prev_frame = i_frame;
+    h->next_frame = i_frame+1;
 
     return 0;
 }
 
 int close_file_yuv(hnd_t handle)
 {
-    if (handle == NULL)
+    yuv_input_t *h = handle;
+    if( !h || !h->fh )
         return 0;
-    return fclose((FILE *)handle);
+    return fclose(h->fh);
 }
 
 
 /* avs/avi input file support under cygwin */
 
 #ifdef AVIS_INPUT
+typedef struct {
+    PAVISTREAM p_avi;
+    int width, height;
+} avis_input_t;
 
 int gcd(int a, int b)
 {
@@ -112,22 +128,22 @@ int gcd(int a, int b)
 
 int open_file_avis( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
 {
+    avis_input_t *h = malloc(sizeof(avis_input_t));
     AVISTREAMINFO info;
-    PAVISTREAM p_avi = NULL;
     int i;
 
-    *p_handle = NULL;
+    *p_handle = (hnd_t)h;
 
     AVIFileInit();
-    if( AVIStreamOpenFromFile( &p_avi, psz_filename, streamtypeVIDEO, 0, OF_READ, NULL ) )
+    if( AVIStreamOpenFromFile( &h->p_avi, psz_filename, streamtypeVIDEO, 0, OF_READ, NULL ) )
     {
         AVIFileExit();
         return -1;
     }
 
-    if( AVIStreamInfo(p_avi, &info, sizeof(AVISTREAMINFO)) )
+    if( AVIStreamInfo(h->p_avi, &info, sizeof(AVISTREAMINFO)) )
     {
-        AVIStreamRelease(p_avi);
+        AVIStreamRelease(h->p_avi);
         AVIFileExit();
         return -1;
     }
@@ -139,13 +155,15 @@ int open_file_avis( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
             (char)(info.fccHandler & 0xff), (char)((info.fccHandler >> 8) & 0xff),
             (char)((info.fccHandler >> 16) & 0xff), (char)((info.fccHandler >> 24)) );
 
-        AVIStreamRelease(p_avi);
+        AVIStreamRelease(h->p_avi);
         AVIFileExit();
 
         return -1;
     }
 
+    h->width =
     p_param->i_width = info.rcFrame.right - info.rcFrame.left;
+    h->height =
     p_param->i_height = info.rcFrame.bottom - info.rcFrame.top;
     i = gcd(info.dwRate, info.dwScale);
     p_param->i_fps_den = info.dwScale / i;
@@ -156,29 +174,27 @@ int open_file_avis( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
         (double)p_param->i_fps_num / (double)p_param->i_fps_den,
         (int)info.dwLength );
 
-    *p_handle = (hnd_t)p_avi;
-
     return 0;
 }
 
-int get_frame_total_avis( hnd_t handle, int i_width, int i_height )
+int get_frame_total_avis( hnd_t handle )
 {
-    PAVISTREAM p_avi = (PAVISTREAM)handle;
+    avis_input_t *h = handle;
     AVISTREAMINFO info;
 
-    if( AVIStreamInfo(p_avi, &info, sizeof(AVISTREAMINFO)) )
+    if( AVIStreamInfo(h->p_avi, &info, sizeof(AVISTREAMINFO)) )
         return -1;
 
     return info.dwLength;
 }
 
-int read_frame_avis( x264_picture_t *p_pic, hnd_t handle, int i_frame, int i_width, int i_height )
+int read_frame_avis( x264_picture_t *p_pic, hnd_t handle, int i_frame )
 {
-    PAVISTREAM p_avi = (PAVISTREAM)handle;
+    avis_input_t *h = handle;
 
     p_pic->img.i_csp = X264_CSP_YV12;
 
-    if( AVIStreamRead(p_avi, i_frame, 1, p_pic->img.plane[0], i_width * i_height * 3 / 2, NULL, NULL ) )
+    if( AVIStreamRead(h->p_avi, i_frame, 1, p_pic->img.plane[0], h->width * h->height * 3 / 2, NULL, NULL ) )
         return -1;
 
     return 0;
@@ -186,14 +202,104 @@ int read_frame_avis( x264_picture_t *p_pic, hnd_t handle, int i_frame, int i_wid
 
 int close_file_avis( hnd_t handle )
 {
-    PAVISTREAM p_avi = (PAVISTREAM)handle;
-
-    AVIStreamRelease(p_avi);
+    avis_input_t *h = handle;
+    AVIStreamRelease(h->p_avi);
     AVIFileExit();
+    free(h);
+    return 0;
+}
+#endif
 
+
+#ifdef HAVE_PTHREAD
+typedef struct {
+    int (*p_read_frame)( x264_picture_t *p_pic, hnd_t handle, int i_frame );
+    int (*p_close_infile)( hnd_t handle );
+    hnd_t p_handle;
+    x264_picture_t pic;
+    pthread_t tid;
+    int next_frame;
+    int frame_total;
+    struct thread_input_arg_t *next_args;
+} thread_input_t;
+
+typedef struct thread_input_arg_t {
+    thread_input_t *h;
+    x264_picture_t *pic;
+    int i_frame;
+    int status;
+} thread_input_arg_t;
+
+int open_file_thread( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
+{
+    thread_input_t *h = malloc(sizeof(thread_input_t));
+    x264_picture_alloc( &h->pic, X264_CSP_I420, p_param->i_width, p_param->i_height );
+    h->p_read_frame = p_read_frame;
+    h->p_close_infile = p_close_infile;
+    h->p_handle = *p_handle;
+    h->next_frame = -1;
+    h->next_args = malloc(sizeof(thread_input_arg_t));
+    h->next_args->h = h;
+    h->next_args->status = 0;
+    h->frame_total = p_get_frame_total( h->p_handle );
+
+    *p_handle = (hnd_t)h;
     return 0;
 }
 
+int get_frame_total_thread( hnd_t handle )
+{
+    thread_input_t *h = handle;
+    return h->frame_total;
+}
+
+void read_frame_thread_int( thread_input_arg_t *i )
+{
+    i->status = i->h->p_read_frame( i->pic, i->h->p_handle, i->i_frame );
+}
+
+int read_frame_thread( x264_picture_t *p_pic, hnd_t handle, int i_frame )
+{
+    thread_input_t *h = handle;
+    UNUSED void *stuff;
+    int ret = 0;
+
+    if( h->next_frame >= 0 )
+    {
+        pthread_join( h->tid, &stuff );
+        ret |= h->next_args->status;
+    }
+
+    if( h->next_frame == i_frame )
+    {
+        XCHG( x264_picture_t, *p_pic, h->pic );
+    }
+    else
+    {
+        ret |= h->p_read_frame( p_pic, h->p_handle, i_frame );
+    }
+
+    if( i_frame+1 < h->frame_total )
+    {
+        h->next_frame =
+        h->next_args->i_frame = i_frame+1;
+        h->next_args->pic = &h->pic;
+        pthread_create( &h->tid, NULL, (void*)read_frame_thread_int, h->next_args );
+    }
+    else
+        h->next_frame = -1;
+
+    return ret;
+}
+
+int close_file_thread( hnd_t handle )
+{
+    thread_input_t *h = handle;
+    h->p_close_infile( h->p_handle );
+    x264_picture_clean( &h->pic );
+    free( h );
+    return 0;
+}
 #endif
 
 

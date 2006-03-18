@@ -37,6 +37,27 @@
 #define X264_VERSION "" // no configure script for msvc
 #endif
 
+/* threads */
+#ifdef __WIN32__
+#include <windows.h>
+#define pthread_t               HANDLE
+#define pthread_create(t,u,f,d) *(t)=CreateThread(NULL,0,f,d,0,NULL)
+#define pthread_join(t,s)       { WaitForSingleObject(t,INFINITE); \
+                                  CloseHandle(t); } 
+#define HAVE_PTHREAD 1
+
+#elif defined(SYS_BEOS)
+#include <kernel/OS.h>
+#define pthread_t               thread_id
+#define pthread_create(t,u,f,d) { *(t)=spawn_thread(f,"",10,d); \
+                                  resume_thread(*(t)); }
+#define pthread_join(t,s)       wait_for_thread(t,(long*)s)
+#define HAVE_PTHREAD 1
+
+#elif defined(HAVE_PTHREAD)
+#include <pthread.h>
+#endif
+
 /****************************************************************************
  * Macros
  ****************************************************************************/

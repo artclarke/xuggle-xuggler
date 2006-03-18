@@ -25,26 +25,6 @@
 #include <string.h>
 #include <math.h>
 
-#ifdef __WIN32__
-#include <windows.h>
-#define pthread_t               HANDLE
-#define pthread_create(t,u,f,d) *(t)=CreateThread(NULL,0,f,d,0,NULL)
-#define pthread_join(t,s)       { WaitForSingleObject(t,INFINITE); \
-                                  CloseHandle(t); } 
-#define HAVE_PTHREAD 1
-
-#elif defined(SYS_BEOS)
-#include <kernel/OS.h>
-#define pthread_t               thread_id
-#define pthread_create(t,u,f,d) { *(t)=spawn_thread(f,"",10,d); \
-                                  resume_thread(*(t)); }
-#define pthread_join(t,s)       wait_for_thread(t,(long*)s)
-#define HAVE_PTHREAD 1
-
-#elif HAVE_PTHREAD
-#include <pthread.h>
-#endif
-
 #include "common/common.h"
 #include "common/cpu.h"
 
@@ -350,7 +330,7 @@ static int x264_validate_parameters( x264_t *h )
 
     h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_SLICE_MAX );
     h->param.i_threads = X264_MIN( h->param.i_threads, (h->param.i_height + 15) / 16 );
-#if !(HAVE_PTHREAD)
+#ifndef HAVE_PTHREAD
     if( h->param.i_threads > 1 )
     {
         x264_log( h, X264_LOG_WARNING, "not compiled with pthread support!\n");
@@ -1115,7 +1095,7 @@ static inline int x264_slices_write( x264_t *h )
         x264_ratecontrol_threads_start( h );
 
         /* dispatch */
-#if HAVE_PTHREAD
+#ifdef HAVE_PTHREAD
         {
             pthread_t handles[X264_SLICE_MAX];
             void *status;

@@ -281,7 +281,7 @@ if test "$pthread" = "auto" ; then
     esac
 fi
 if test "$pthread" = "yes" ; then
-    CFLAGS="$CFLAGS -DHAVE_PTHREAD=1"
+    CFLAGS="$CFLAGS -DHAVE_PTHREAD"
     case $SYS in
         MINGW|CYGWIN|BEOS)
             ;;
