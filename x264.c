@@ -266,6 +266,7 @@ static void Help( x264_param_t *defaults )
              "  -o, --output                Specify output file\n"
              "\n"
              "      --threads <integer>     Parallel encoding (uses slices)\n"
+             "      --thread-input          Run Avisynth in its own thread\n"
              "      --no-asm                Disable all CPU optimizations\n"
              "      --no-psnr               Disable PSNR computation\n"
              "      --quiet                 Quiet Mode\n"
@@ -358,7 +359,8 @@ static int  Parse( int argc, char **argv,
     char *psz_filename = NULL;
     x264_param_t defaults = *param;
     char *psz;
-    char b_avis = 0;
+    int b_avis = 0;
+    int b_thread_input = 0;
 
     memset( opt, 0, sizeof(cli_opt_t) );
 
@@ -442,6 +444,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_NO_FAST_PSKIP 317
 #define OPT_BIME 318
 #define OPT_NR 319
+#define OPT_THREAD_INPUT 320
 
         static struct option long_options[] =
         {
@@ -498,6 +501,7 @@ static int  Parse( int argc, char **argv,
             { "cplxblur",required_argument, NULL, OPT_CPLXBLUR },
             { "zones",   required_argument, NULL, OPT_ZONES },
             { "threads", required_argument, NULL, OPT_THREADS },
+            { "thread-input", no_argument,  NULL, OPT_THREAD_INPUT },
             { "no-psnr", no_argument,       NULL, OPT_NOPSNR },
             { "quiet",   no_argument,       NULL, OPT_QUIET },
             { "verbose", no_argument,       NULL, 'v' },
@@ -784,6 +788,9 @@ static int  Parse( int argc, char **argv,
             case OPT_THREADS:
                 param->i_threads = atoi(optarg);
                 break;
+            case OPT_THREAD_INPUT:
+                b_thread_input = 1;
+                break;
             case OPT_NOPSNR:
                 param->analyse.b_psnr = 0;
                 break;
@@ -976,7 +983,7 @@ static int  Parse( int argc, char **argv,
     }
 
 #ifdef HAVE_PTHREAD
-    if( param->i_threads > 1 )
+    if( b_thread_input || param->i_threads > 1 )
     {
         if( open_file_thread( NULL, &opt->hin, param ) )
         {

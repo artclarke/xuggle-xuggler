@@ -47,10 +47,4 @@ extern int (*p_get_frame_total)( hnd_t handle );
 extern int (*p_read_frame)( x264_picture_t *p_pic, hnd_t handle, int i_frame );
 extern int (*p_close_infile)( hnd_t handle );
 
-extern int (*p_open_outfile)( char *psz_filename, hnd_t *p_handle );
-extern int (*p_set_outfile_param)( hnd_t handle, x264_param_t *p_param );
-extern int (*p_write_nalu)( hnd_t handle, uint8_t *p_nal, int i_size );
-extern int (*p_set_eop)( hnd_t handle, x264_picture_t *p_picture );
-extern int (*p_close_outfile)( hnd_t handle );
-
 #endif
