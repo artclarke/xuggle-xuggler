@@ -956,12 +956,6 @@ static int  Parse( int argc, char **argv,
     }
 
     /* open the input */
-    if( !strcmp( psz_filename, "-" ) )
-    {
-        opt->hin = stdin;
-        optind++;
-    }
-    else
     {
         if( b_avis )
         {

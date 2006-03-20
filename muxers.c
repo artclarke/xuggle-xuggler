@@ -54,11 +54,16 @@ int open_file_yuv( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
     yuv_input_t *h = malloc(sizeof(yuv_input_t));
     h->width = p_param->i_width;
     h->height = p_param->i_height;
-    h->fh = fopen(psz_filename, "rb");
     h->next_frame = 0;
-    *p_handle = (hnd_t)h;
+
+    if( !strcmp(psz_filename, "-") )
+        h->fh = stdin;
+    else
+        h->fh = fopen(psz_filename, "rb");
     if( h->fh == NULL )
         return -1;
+
+    *p_handle = (hnd_t)h;
     return 0;
 }
 
@@ -279,7 +284,7 @@ int read_frame_thread( x264_picture_t *p_pic, hnd_t handle, int i_frame )
         ret |= h->p_read_frame( p_pic, h->p_handle, i_frame );
     }
 
-    if( i_frame+1 < h->frame_total )
+    if( !h->frame_total || i_frame+1 < h->frame_total )
     {
         h->next_frame =
         h->next_args->i_frame = i_frame+1;
