@@ -599,83 +599,57 @@ static inline void x264_cabac_mb8x8_mvd( x264_t *h, x264_cabac_t *cb, int i_list
 
 static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
 {
-    /* TODO: clean up/optimize */
     int i_mba_xy = -1;
     int i_mbb_xy = -1;
-    int i_nza = -1;
-    int i_nzb = -1;
-    int ctx = 4 * i_cat;
+    int i_nza = 0;
+    int i_nzb = 0;
+    int ctx;
 
     if( i_cat == DCT_LUMA_DC )
     {
         if( h->mb.i_neighbour & MB_LEFT )
         {
-            i_mba_xy = h->mb.i_mb_xy -1;
+            i_mba_xy = h->mb.i_mb_xy - 1;
             if( h->mb.type[i_mba_xy] == I_16x16 )
-            {
-                i_nza = h->mb.cbp[i_mba_xy]&0x100;
-            }
+                i_nza = h->mb.cbp[i_mba_xy] & 0x100;
         }
         if( h->mb.i_neighbour & MB_TOP )
         {
             i_mbb_xy = h->mb.i_mb_xy - h->mb.i_mb_stride;
             if( h->mb.type[i_mbb_xy] == I_16x16 )
-            {
-                i_nzb = h->mb.cbp[i_mbb_xy]&0x100;
-            }
+                i_nzb = h->mb.cbp[i_mbb_xy] & 0x100;
         }
     }
     else if( i_cat == DCT_LUMA_AC || i_cat == DCT_LUMA_4x4 )
     {
-        int x = block_idx_x[i_idx];
-        int y = block_idx_y[i_idx];
-
-        if( x > 0 )
+        if( i_idx & ~10 ) // block_idx_x > 0
             i_mba_xy = h->mb.i_mb_xy;
         else if( h->mb.i_neighbour & MB_LEFT )
-            i_mba_xy = h->mb.i_mb_xy -1;
+            i_mba_xy = h->mb.i_mb_xy - 1;
 
-        if( y > 0 )
+        if( i_idx & ~5 ) // block_idx_y > 0
             i_mbb_xy = h->mb.i_mb_xy;
         else if( h->mb.i_neighbour & MB_TOP )
             i_mbb_xy = h->mb.i_mb_xy - h->mb.i_mb_stride;
 
         /* no need to test for skip/pcm */
         if( i_mba_xy >= 0 )
-        {
-            const int i8x8a = block_idx_xy[(x-1)&0x03][y]/4;
-            if( (h->mb.cbp[i_mba_xy]&0x0f)>> i8x8a )
-            {
-                i_nza = h->mb.cache.non_zero_count[x264_scan8[i_idx] - 1];
-            }
-        }
+            i_nza = h->mb.cache.non_zero_count[x264_scan8[i_idx] - 1];
         if( i_mbb_xy >= 0 )
-        {
-            const int i8x8b = block_idx_xy[x][(y-1)&0x03]/4;
-            if( (h->mb.cbp[i_mbb_xy]&0x0f)>> i8x8b )
-            {
-                i_nzb = h->mb.cache.non_zero_count[x264_scan8[i_idx] - 8];
-            }
-        }
+            i_nzb = h->mb.cache.non_zero_count[x264_scan8[i_idx] - 8];
     }
     else if( i_cat == DCT_CHROMA_DC )
     {
         /* no need to test skip/pcm */
         if( h->mb.i_neighbour & MB_LEFT )
         {
-            i_mba_xy = h->mb.i_mb_xy -1;
-            if( h->mb.cbp[i_mba_xy]&0x30 )
-            {
-                i_nza = h->mb.cbp[i_mba_xy]&( 0x02 << ( 8 + i_idx) );
-            }
+            i_mba_xy = h->mb.i_mb_xy - 1;
+            i_nza = h->mb.cbp[i_mba_xy] & (0x200 << i_idx);
         }
         if( h->mb.i_neighbour & MB_TOP )
         {
             i_mbb_xy = h->mb.i_mb_xy - h->mb.i_mb_stride;
-            if( h->mb.cbp[i_mbb_xy]&0x30 )
-            {
-                i_nzb = h->mb.cbp[i_mbb_xy]&( 0x02 << ( 8 + i_idx) );
-            }
+            i_nzb = h->mb.cbp[i_mbb_xy] & (0x200 << i_idx);
         }
     }
     else if( i_cat == DCT_CHROMA_AC )
@@ -691,25 +665,25 @@ static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
             i_mbb_xy = h->mb.i_mb_xy - h->mb.i_mb_stride;
 
         /* no need to test skip/pcm */
-        if( i_mba_xy >= 0 && (h->mb.cbp[i_mba_xy]&0x30) == 0x20 )
-        {
+        if( i_mba_xy >= 0 )
             i_nza = h->mb.cache.non_zero_count[x264_scan8[16+i_idx] - 1];
-        }
-        if( i_mbb_xy >= 0 && (h->mb.cbp[i_mbb_xy]&0x30) == 0x20 )
-        {
+        if( i_mbb_xy >= 0 )
             i_nzb = h->mb.cache.non_zero_count[x264_scan8[16+i_idx] - 8];
-        }
     }
 
-    if( ( i_mba_xy < 0  && IS_INTRA( h->mb.i_type ) ) || i_nza > 0 )
+    if( IS_INTRA( h->mb.i_type ) )
     {
-        ctx++;
+        if( i_mba_xy < 0 )
+            i_nza = 1;
+        if( i_mbb_xy < 0 )
+            i_nzb = 1;
     }
-    if( ( i_mbb_xy < 0  && IS_INTRA( h->mb.i_type ) ) || i_nzb > 0 )
-    {
+
+    ctx = 4 * i_cat;
+    if( i_nza )
+        ctx += 1;
+    if( i_nzb )
         ctx += 2;
-    }
-
     return ctx;
 }
 
