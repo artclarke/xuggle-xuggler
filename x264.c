@@ -209,7 +209,7 @@ static void Help( x264_param_t *defaults )
              "                                  - esa: exhaustive search (slow)\n"
              "      --merange <integer>     Maximum motion vector search range [%d]\n"
              "  -m, --subme <integer>       Subpixel motion estimation and partition\n"
-             "                                  decision quality: 1=fast, 6=best. [%d]\n"
+             "                                  decision quality: 1=fast, 7=best. [%d]\n"
              "      --b-rdo                 RD based mode decision for B-frames. Requires subme 6.\n"
              "      --mixed-refs            Decide references on a per partition basis\n"
              "      --no-chroma-me          Ignore chroma in motion estimation\n"

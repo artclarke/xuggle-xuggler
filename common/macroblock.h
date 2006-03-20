@@ -263,6 +263,7 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale );
 void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qscale );
 
 void x264_mb_mc( x264_t *h );
+void x264_mb_mc_8x8( x264_t *h, int i8 );
 
 
 static inline void x264_macroblock_cache_ref( x264_t *h, int x, int y, int width, int height, int i_list, int ref )

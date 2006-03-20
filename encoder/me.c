@@ -39,6 +39,7 @@ static const int subpel_iterations[][4] =
     {0,2,1,0},
     {0,2,1,1},
     {0,2,1,2},
+    {0,0,2,2},
     {0,0,2,2}};
 
 static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters, int *p_halfpel_thresh, int b_refine_qpel );
@@ -712,3 +713,98 @@ int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight 
     m1->mv[1] = bm1y;
     return bcost;
 }
+
+#define COST_MV_RD( mx, my, dir ) \
+{ \
+    if( (dir^1) != odir && (dir<0 || !p_visited[(mx)+(my)*16]) ) \
+    { \
+        int cost; \
+        cache_mv[0] = cache_mv2[0] = mx; \
+        cache_mv[1] = cache_mv2[1] = my; \
+        cost = x264_rd_cost_part( h, i_lambda2, i8, m->i_pixel ); \
+        if( cost < bcost ) \
+        {                  \
+            bcost = cost;  \
+            bmx = mx;      \
+            bmy = my;      \
+        } \
+        if(dir>=0) p_visited[(mx)+(my)*16] = 1; \
+    } \
+}
+
+void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 )
+{
+    // don't have to fill the whole mv cache rectangle
+    static const int pixel_mv_offs[] = { 0, 4, 4*8, 0 };
+    int16_t *cache_mv = h->mb.cache.mv[0][x264_scan8[i8*4]];
+    int16_t *cache_mv2 = cache_mv + pixel_mv_offs[m->i_pixel];
+    const int bw = x264_pixel_size[m->i_pixel].w>>2;
+    const int bh = x264_pixel_size[m->i_pixel].h>>2;
+
+    int bcost = m->i_pixel == PIXEL_16x16 ? m->cost : COST_MAX;
+    int bmx = m->mv[0]; 
+    int bmy = m->mv[1];
+    int omx, omy, i;
+    int odir = -1, bdir;
+
+    int visited[16*13] = {0}; // only need 13x13, but 16 is more convenient
+    int *p_visited = &visited[6+6*16];
+
+    if( m->i_pixel != PIXEL_16x16 )
+    {
+        COST_MV_RD( bmx, bmy, -1 );
+        x264_mb_predict_mv( h, 0, i8*4, bw, m->mvp );
+    }
+
+    /* check the predicted mv */
+    if( bmx != m->mvp[0] || bmy != m->mvp[1] )
+        COST_MV_RD( m->mvp[0], m->mvp[1], -1 );
+
+    /* mark mv and mvp as visited */
+    p_visited[0] = 1;
+    p_visited -= bmx + bmy*16;
+    {
+        int mx = bmx ^ m->mv[0] ^ m->mvp[0];
+        int my = bmy ^ m->mv[1] ^ m->mvp[1];
+        if( abs(mx-bmx) < 7 && abs(my-bmy) < 7 )
+            p_visited[mx + my*16] = 1;
+    }
+
+    /* hpel */  
+    bdir = -1;
+    for( i = 0; i < 2; i++ )
+    {
+         omx = bmx;
+         omy = bmy;
+         odir = bdir;
+         COST_MV_RD( omx, omy - 2, 0 );
+         COST_MV_RD( omx, omy + 2, 1 );
+         COST_MV_RD( omx - 2, omy, 2 );
+         COST_MV_RD( omx + 2, omy, 3 );
+         if( bmx == omx && bmy == omy )
+            break;
+    }
+    
+    /* qpel */
+    bdir = -1;
+    for( i = 0; i < 2; i++ )
+    {
+         omx = bmx;
+         omy = bmy;
+         odir = bdir;
+         COST_MV_RD( omx, omy - 1, 0 );
+         COST_MV_RD( omx, omy + 1, 1 );
+         COST_MV_RD( omx - 1, omy, 2 );
+         COST_MV_RD( omx + 1, omy, 3 );
+         if( bmx == omx && bmy == omy )
+            break;
+    }
+
+    m->cost = bcost;
+    m->mv[0] = bmx;
+    m->mv[1] = bmy;
+
+    x264_macroblock_cache_mv ( h, 2*(i8&1), i8&2, bw, bh, 0, bmx, bmy );
+    x264_macroblock_cache_mvd( h, 2*(i8&1), i8&2, bw, bh, 0, bmx - m->mvp[0], bmy - m->mvp[1] );
+}
+

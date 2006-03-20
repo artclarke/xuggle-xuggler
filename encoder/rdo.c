@@ -57,6 +57,12 @@ static int ssd_mb( x264_t *h )
                                      h->mb.pic.p_fdec[2], FDEC_STRIDE );
 }
 
+static int ssd_plane( x264_t *h, int size, int p, int x, int y )
+{
+    return h->pixf.ssd[size]( h->mb.pic.p_fenc[p] + x+y*FENC_STRIDE, FENC_STRIDE,
+                              h->mb.pic.p_fdec[p] + x+y*FDEC_STRIDE, FDEC_STRIDE );
+}
+
 static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
 {
     int b_transform_bak = h->mb.b_transform_8x8;
@@ -91,6 +97,86 @@ static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
     return i_ssd + i_bits;
 }
 
+int x264_rd_cost_part( x264_t *h, int i_lambda2, int i8, int i_pixel )
+{
+    int i_ssd, i_bits;
+
+    if( i_pixel == PIXEL_16x16 )
+    {
+        int type_bak = h->mb.i_type;
+        int i_cost = x264_rd_cost_mb( h, i_lambda2 );
+        h->mb.i_type = type_bak;
+        return i_cost;
+    }
+
+    x264_macroblock_encode_p8x8( h, i8 );
+    if( i_pixel == PIXEL_16x8 )
+        x264_macroblock_encode_p8x8( h, i8+1 );
+    if( i_pixel == PIXEL_8x16 )
+        x264_macroblock_encode_p8x8( h, i8+2 );
+
+    i_ssd = ssd_plane( h, i_pixel,   0, (i8&1)*8, (i8>>1)*8 )
+          + ssd_plane( h, i_pixel+3, 1, (i8&1)*4, (i8>>1)*4 )
+          + ssd_plane( h, i_pixel+3, 2, (i8&1)*4, (i8>>1)*4 );
+
+    if( h->param.b_cabac )
+    {
+        x264_cabac_t cabac_tmp = h->cabac;
+        cabac_tmp.f8_bits_encoded = 0;
+        x264_partition_size_cabac( h, &cabac_tmp, i8, i_pixel );
+        i_bits = ( cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
+    }
+    else
+    {
+        i_bits = x264_partition_size_cavlc( h, i8, i_pixel ) * i_lambda2;
+    }
+
+    return i_ssd + i_bits;
+}
+
+int x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode )
+{
+    int i_ssd, i_bits;
+
+    x264_mb_encode_i8x8( h, i8, h->mb.i_qp );
+    i_ssd = ssd_plane( h, PIXEL_8x8, 0, (i8&1)*8, (i8>>1)*8 );
+
+    if( h->param.b_cabac )
+    {
+        x264_cabac_t cabac_tmp = h->cabac;
+        cabac_tmp.f8_bits_encoded = 0;
+        x264_partition_i8x8_size_cabac( h, &cabac_tmp, i8, i_mode );
+        i_bits = ( cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
+    }
+    else
+    {
+        i_bits = x264_partition_i8x8_size_cavlc( h, i8, i_mode ) * i_lambda2;
+    }
+
+    return i_ssd + i_bits;
+}
+
+int x264_rd_cost_i4x4( x264_t *h, int i_lambda2, int i4, int i_mode )
+{
+    int i_ssd, i_bits;
+
+    x264_mb_encode_i4x4( h, i4, h->mb.i_qp );
+    i_ssd = ssd_plane( h, PIXEL_4x4, 0, block_idx_x[i4]*4, block_idx_y[i4]*4 );
+
+    if( h->param.b_cabac )
+    {
+        x264_cabac_t cabac_tmp = h->cabac;
+        cabac_tmp.f8_bits_encoded = 0;
+        x264_partition_i4x4_size_cabac( h, &cabac_tmp, i4, i_mode );
+        i_bits = ( cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
+    }
+    else
+    {
+        i_bits = x264_partition_i4x4_size_cavlc( h, i4, i_mode ) * i_lambda2;
+    }
+
+    return i_ssd + i_bits;
+}
 
 /****************************************************************************
  * Trellis RD quantization

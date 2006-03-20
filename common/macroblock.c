@@ -687,6 +687,69 @@ static void x264_mb_mc_direct8x8( x264_t *h, int x, int y )
     }
 }
 
+void x264_mb_mc_8x8( x264_t *h, int i8 )
+{
+    const int x = 2*(i8&1);
+    const int y = 2*(i8>>1);
+    switch( h->mb.i_sub_partition[i8] )
+    {
+        case D_L0_8x8:
+            x264_mb_mc_0xywh( h, x, y, 2, 2 );
+            break;
+        case D_L0_8x4:
+            x264_mb_mc_0xywh( h, x, y+0, 2, 1 );
+            x264_mb_mc_0xywh( h, x, y+1, 2, 1 );
+            break;
+        case D_L0_4x8:
+            x264_mb_mc_0xywh( h, x+0, y, 1, 2 );
+            x264_mb_mc_0xywh( h, x+1, y, 1, 2 );
+            break;
+        case D_L0_4x4:
+            x264_mb_mc_0xywh( h, x+0, y+0, 1, 1 );
+            x264_mb_mc_0xywh( h, x+1, y+0, 1, 1 );
+            x264_mb_mc_0xywh( h, x+0, y+1, 1, 1 );
+            x264_mb_mc_0xywh( h, x+1, y+1, 1, 1 );
+            break;
+        case D_L1_8x8:
+            x264_mb_mc_1xywh( h, x, y, 2, 2 );
+            break;
+        case D_L1_8x4:
+            x264_mb_mc_1xywh( h, x, y+0, 2, 1 );
+            x264_mb_mc_1xywh( h, x, y+1, 2, 1 );
+            break;
+        case D_L1_4x8:
+            x264_mb_mc_1xywh( h, x+0, y, 1, 2 );
+            x264_mb_mc_1xywh( h, x+1, y, 1, 2 );
+            break;
+        case D_L1_4x4:
+            x264_mb_mc_1xywh( h, x+0, y+0, 1, 1 );
+            x264_mb_mc_1xywh( h, x+1, y+0, 1, 1 );
+            x264_mb_mc_1xywh( h, x+0, y+1, 1, 1 );
+            x264_mb_mc_1xywh( h, x+1, y+1, 1, 1 );
+            break;
+        case D_BI_8x8:
+            x264_mb_mc_01xywh( h, x, y, 2, 2 );
+            break;
+        case D_BI_8x4:
+            x264_mb_mc_01xywh( h, x, y+0, 2, 1 );
+            x264_mb_mc_01xywh( h, x, y+1, 2, 1 );
+            break;
+        case D_BI_4x8:
+            x264_mb_mc_01xywh( h, x+0, y, 1, 2 );
+            x264_mb_mc_01xywh( h, x+1, y, 1, 2 );
+            break;
+        case D_BI_4x4:
+            x264_mb_mc_01xywh( h, x+0, y+0, 1, 1 );
+            x264_mb_mc_01xywh( h, x+1, y+0, 1, 1 );
+            x264_mb_mc_01xywh( h, x+0, y+1, 1, 1 );
+            x264_mb_mc_01xywh( h, x+1, y+1, 1, 1 );
+            break;
+        case D_DIRECT_8x8:
+            x264_mb_mc_direct8x8( h, x, y );
+            break;
+    }
+}
+
 void x264_mb_mc( x264_t *h )
 {
     if( h->mb.i_type == P_L0 )
@@ -710,67 +773,7 @@ void x264_mb_mc( x264_t *h )
     {
         int i;
         for( i = 0; i < 4; i++ )
-        {
-            const int x = 2*(i%2);
-            const int y = 2*(i/2);
-            switch( h->mb.i_sub_partition[i] )
-            {
-                case D_L0_8x8:
-                    x264_mb_mc_0xywh( h, x, y, 2, 2 );
-                    break;
-                case D_L0_8x4:
-                    x264_mb_mc_0xywh( h, x, y+0, 2, 1 );
-                    x264_mb_mc_0xywh( h, x, y+1, 2, 1 );
-                    break;
-                case D_L0_4x8:
-                    x264_mb_mc_0xywh( h, x+0, y, 1, 2 );
-                    x264_mb_mc_0xywh( h, x+1, y, 1, 2 );
-                    break;
-                case D_L0_4x4:
-                    x264_mb_mc_0xywh( h, x+0, y+0, 1, 1 );
-                    x264_mb_mc_0xywh( h, x+1, y+0, 1, 1 );
-                    x264_mb_mc_0xywh( h, x+0, y+1, 1, 1 );
-                    x264_mb_mc_0xywh( h, x+1, y+1, 1, 1 );
-                    break;
-                case D_L1_8x8:
-                    x264_mb_mc_1xywh( h, x, y, 2, 2 );
-                    break;
-                case D_L1_8x4:
-                    x264_mb_mc_1xywh( h, x, y+0, 2, 1 );
-                    x264_mb_mc_1xywh( h, x, y+1, 2, 1 );
-                    break;
-                case D_L1_4x8:
-                    x264_mb_mc_1xywh( h, x+0, y, 1, 2 );
-                    x264_mb_mc_1xywh( h, x+1, y, 1, 2 );
-                    break;
-                case D_L1_4x4:
-                    x264_mb_mc_1xywh( h, x+0, y+0, 1, 1 );
-                    x264_mb_mc_1xywh( h, x+1, y+0, 1, 1 );
-                    x264_mb_mc_1xywh( h, x+0, y+1, 1, 1 );
-                    x264_mb_mc_1xywh( h, x+1, y+1, 1, 1 );
-                    break;
-                case D_BI_8x8:
-                    x264_mb_mc_01xywh( h, x, y, 2, 2 );
-                    break;
-                case D_BI_8x4:
-                    x264_mb_mc_01xywh( h, x, y+0, 2, 1 );
-                    x264_mb_mc_01xywh( h, x, y+1, 2, 1 );
-                    break;
-                case D_BI_4x8:
-                    x264_mb_mc_01xywh( h, x+0, y, 1, 2 );
-                    x264_mb_mc_01xywh( h, x+1, y, 1, 2 );
-                    break;
-                case D_BI_4x4:
-                    x264_mb_mc_01xywh( h, x+0, y+0, 1, 1 );
-                    x264_mb_mc_01xywh( h, x+1, y+0, 1, 1 );
-                    x264_mb_mc_01xywh( h, x+0, y+1, 1, 1 );
-                    x264_mb_mc_01xywh( h, x+1, y+1, 1, 1 );
-                    break;
-                case D_DIRECT_8x8:
-                    x264_mb_mc_direct8x8( h, x, y );
-                    break;
-            }
-        }
+            x264_mb_mc_8x8( h, i );
     }
     else if( h->mb.i_type == B_SKIP || h->mb.i_type == B_DIRECT )
     {
