@@ -160,7 +160,7 @@ case "$UNAMEM" in
   alpha)
     ARCH="ALPHA"
     ;;
-  mips|mipsel)
+  mips|mipsel|mips64)
     ARCH="MIPS"
     ;;
   m68k)
