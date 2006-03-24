@@ -140,13 +140,13 @@ static inline void pixel_sub_wxh( int16_t *diff, int i_size,
     }
 }
 
-static void sub4x4_dct( int16_t dct[4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+static void sub4x4_dct( int16_t dct[4][4], uint8_t *pix1, uint8_t *pix2 )
 {
     int16_t d[4][4];
     int16_t tmp[4][4];
     int i;
 
-    pixel_sub_wxh( (int16_t*)d, 4, pix1, i_pix1, pix2, i_pix2 );
+    pixel_sub_wxh( (int16_t*)d, 4, pix1, FENC_STRIDE, pix2, FDEC_STRIDE );
 
     for( i = 0; i < 4; i++ )
     {
@@ -175,24 +175,24 @@ static void sub4x4_dct( int16_t dct[4][4], uint8_t *pix1, int i_pix1, uint8_t *p
     }
 }
 
-static void sub8x8_dct( int16_t dct[4][4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+static void sub8x8_dct( int16_t dct[4][4][4], uint8_t *pix1, uint8_t *pix2 )
 {
-    sub4x4_dct( dct[0], &pix1[0], i_pix1, &pix2[0], i_pix2 );
-    sub4x4_dct( dct[1], &pix1[4], i_pix1, &pix2[4], i_pix2 );
-    sub4x4_dct( dct[2], &pix1[4*i_pix1+0], i_pix1, &pix2[4*i_pix2+0], i_pix2 );
-    sub4x4_dct( dct[3], &pix1[4*i_pix1+4], i_pix1, &pix2[4*i_pix2+4], i_pix2 );
+    sub4x4_dct( dct[0], &pix1[0], &pix2[0] );
+    sub4x4_dct( dct[1], &pix1[4], &pix2[4] );
+    sub4x4_dct( dct[2], &pix1[4*FENC_STRIDE+0], &pix2[4*FDEC_STRIDE+0] );
+    sub4x4_dct( dct[3], &pix1[4*FENC_STRIDE+4], &pix2[4*FDEC_STRIDE+4] );
 }
 
-static void sub16x16_dct( int16_t dct[16][4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+static void sub16x16_dct( int16_t dct[16][4][4], uint8_t *pix1, uint8_t *pix2 )
 {
-    sub8x8_dct( &dct[ 0], pix1, i_pix1, pix2, i_pix2 );
-    sub8x8_dct( &dct[ 4], &pix1[8], i_pix1, &pix2[8], i_pix2 );
-    sub8x8_dct( &dct[ 8], &pix1[8*i_pix1], i_pix1, &pix2[8*i_pix2], i_pix2 );
-    sub8x8_dct( &dct[12], &pix1[8*i_pix1+8], i_pix1, &pix2[8*i_pix2+8], i_pix2 );
+    sub8x8_dct( &dct[ 0], &pix1[0], &pix2[0] );
+    sub8x8_dct( &dct[ 4], &pix1[8], &pix2[8] );
+    sub8x8_dct( &dct[ 8], &pix1[8*FENC_STRIDE+0], &pix2[8*FDEC_STRIDE+0] );
+    sub8x8_dct( &dct[12], &pix1[8*FENC_STRIDE+8], &pix2[8*FDEC_STRIDE+8] );
 }
 
 
-static void add4x4_idct( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
+static void add4x4_idct( uint8_t *p_dst, int16_t dct[4][4] )
 {
     int16_t d[4][4];
     int16_t tmp[4][4];
@@ -232,24 +232,24 @@ static void add4x4_idct( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
         {
             p_dst[x] = clip_uint8( p_dst[x] + d[y][x] );
         }
-        p_dst += i_dst;
+        p_dst += FDEC_STRIDE;
     }
 }
 
-static void add8x8_idct( uint8_t *p_dst, int i_dst, int16_t dct[4][4][4] )
+static void add8x8_idct( uint8_t *p_dst, int16_t dct[4][4][4] )
 {
-    add4x4_idct( p_dst, i_dst,             dct[0] );
-    add4x4_idct( &p_dst[4], i_dst,         dct[1] );
-    add4x4_idct( &p_dst[4*i_dst+0], i_dst, dct[2] );
-    add4x4_idct( &p_dst[4*i_dst+4], i_dst, dct[3] );
+    add4x4_idct( &p_dst[0],               dct[0] );
+    add4x4_idct( &p_dst[4],               dct[1] );
+    add4x4_idct( &p_dst[4*FDEC_STRIDE+0], dct[2] );
+    add4x4_idct( &p_dst[4*FDEC_STRIDE+4], dct[3] );
 }
 
-static void add16x16_idct( uint8_t *p_dst, int i_dst, int16_t dct[16][4][4] )
+static void add16x16_idct( uint8_t *p_dst, int16_t dct[16][4][4] )
 {
-    add8x8_idct( &p_dst[0], i_dst, &dct[0] );
-    add8x8_idct( &p_dst[8], i_dst, &dct[4] );
-    add8x8_idct( &p_dst[8*i_dst], i_dst, &dct[8] );
-    add8x8_idct( &p_dst[8*i_dst+8], i_dst, &dct[12] );
+    add8x8_idct( &p_dst[0],               &dct[0] );
+    add8x8_idct( &p_dst[8],               &dct[4] );
+    add8x8_idct( &p_dst[8*FDEC_STRIDE+0], &dct[8] );
+    add8x8_idct( &p_dst[8*FDEC_STRIDE+8], &dct[12] );
 }
 
 /****************************************************************************
@@ -283,12 +283,12 @@ static void add16x16_idct( uint8_t *p_dst, int i_dst, int16_t dct[16][4][4] )
     DST(7) = (a4>>2) - a7 ;\
 }
 
-static void sub8x8_dct8( int16_t dct[8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+static void sub8x8_dct8( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
 {
     int i;
     int16_t tmp[8][8];
 
-    pixel_sub_wxh( (int16_t*)tmp, 8, pix1, i_pix1, pix2, i_pix2 );
+    pixel_sub_wxh( (int16_t*)tmp, 8, pix1, FENC_STRIDE, pix2, FDEC_STRIDE );
 
 #define SRC(x) tmp[x][i]
 #define DST(x) tmp[x][i]
@@ -305,12 +305,12 @@ static void sub8x8_dct8( int16_t dct[8][8], uint8_t *pix1, int i_pix1, uint8_t *
 #undef DST
 }
 
-static void sub16x16_dct8( int16_t dct[4][8][8], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+static void sub16x16_dct8( int16_t dct[4][8][8], uint8_t *pix1, uint8_t *pix2 )
 {
-    sub8x8_dct8( dct[0],  pix1,             i_pix1,  pix2,             i_pix2 );
-    sub8x8_dct8( dct[1], &pix1[8],          i_pix1, &pix2[8],          i_pix2 );
-    sub8x8_dct8( dct[2], &pix1[8*i_pix1],   i_pix1, &pix2[8*i_pix2],   i_pix2 );
-    sub8x8_dct8( dct[3], &pix1[8*i_pix1+8], i_pix1, &pix2[8*i_pix2+8], i_pix2 );
+    sub8x8_dct8( dct[0], &pix1[0],               &pix2[0] );
+    sub8x8_dct8( dct[1], &pix1[8],               &pix2[8] );
+    sub8x8_dct8( dct[2], &pix1[8*FENC_STRIDE+0], &pix2[8*FDEC_STRIDE+0] );
+    sub8x8_dct8( dct[3], &pix1[8*FENC_STRIDE+8], &pix2[8*FDEC_STRIDE+8] );
 }
 
 #define IDCT8_1D {\
@@ -340,7 +340,7 @@ static void sub16x16_dct8( int16_t dct[4][8][8], uint8_t *pix1, int i_pix1, uint
     DST(7, b0 - b7);\
 }
 
-static void add8x8_idct8( uint8_t *dst, int i_dst, int16_t dct[8][8] )
+static void add8x8_idct8( uint8_t *dst, int16_t dct[8][8] )
 {
     int i;
 
@@ -354,19 +354,19 @@ static void add8x8_idct8( uint8_t *dst, int i_dst, int16_t dct[8][8] )
 #undef DST
 
 #define SRC(x)     dct[i][x]
-#define DST(x,rhs) dst[i + x*i_dst] = clip_uint8( dst[i + x*i_dst] + ((rhs) >> 6) );
+#define DST(x,rhs) dst[i + x*FDEC_STRIDE] = clip_uint8( dst[i + x*FDEC_STRIDE] + ((rhs) >> 6) );
     for( i = 0; i < 8; i++ )
         IDCT8_1D
 #undef SRC
 #undef DST
 }
 
-static void add16x16_idct8( uint8_t *dst, int i_dst, int16_t dct[4][8][8] )
+static void add16x16_idct8( uint8_t *dst, int16_t dct[4][8][8] )
 {
-    add8x8_idct8( &dst[0],         i_dst, dct[0] );
-    add8x8_idct8( &dst[8],         i_dst, dct[1] );
-    add8x8_idct8( &dst[8*i_dst],   i_dst, dct[2] );
-    add8x8_idct8( &dst[8*i_dst+8], i_dst, dct[3] );
+    add8x8_idct8( &dst[0],               dct[0] );
+    add8x8_idct8( &dst[8],               dct[1] );
+    add8x8_idct8( &dst[8*FDEC_STRIDE+0], dct[2] );
+    add8x8_idct8( &dst[8*FDEC_STRIDE+8], dct[3] );
 }
 
 

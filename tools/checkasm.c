@@ -80,8 +80,8 @@ static int check_dct( int cpu_ref, int cpu_new )
     if( dct_asm.name != dct_ref.name ) \
     { \
         used_asm = 1; \
-        dct_c.name( t1, buf1, 32, buf2, 24 ); \
-        dct_asm.name( t2, buf1, 32, buf2, 24 ); \
+        dct_c.name( t1, buf1, buf2 ); \
+        dct_asm.name( t2, buf1, buf2 ); \
         if( memcmp( t1, t2, size ) ) \
         { \
             ok = 0; \
@@ -111,8 +111,8 @@ static int check_dct( int cpu_ref, int cpu_new )
         memcpy( buf4, buf1, 32*32 ); \
         memcpy( dct1, buf5, 512 ); \
         memcpy( dct2, buf5, 512 ); \
-        dct_c.name( buf3, 32, (void*)dct1 ); \
-        dct_asm.name( buf4, 32, (void*)dct2 ); \
+        dct_c.name( buf3, (void*)dct1 ); \
+        dct_asm.name( buf4, (void*)dct2 ); \
         if( memcmp( buf3, buf4, 32*32 ) ) \
         { \
             ok = 0; \

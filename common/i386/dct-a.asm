@@ -214,24 +214,19 @@ cglobal x264_sub4x4_dct_mmx
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_sub4x4_dct_mmx( int16_t dct[4][4], uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+;   void __cdecl x264_sub4x4_dct_mmx( int16_t dct[4][4], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
 x264_sub4x4_dct_mmx:
-    push    ebx
-    mov     eax, [esp+12]   ; pix1
-    mov     ebx, [esp+16]   ; i_pix1
-    mov     ecx, [esp+20]   ; pix2
-    mov     edx, [esp+24]   ; i_pix2
+    mov     eax, [esp+ 8]   ; pix1
+    mov     ecx, [esp+12]   ; pix2
 
     MMX_ZERO    mm7
 
     ; Load 4 lines
-    MMX_LOAD_DIFF_4P    mm0, mm6, mm7, [eax      ], [ecx]
-    MMX_LOAD_DIFF_4P    mm1, mm6, mm7, [eax+ebx  ], [ecx+edx]
-    MMX_LOAD_DIFF_4P    mm2, mm6, mm7, [eax+ebx*2], [ecx+edx*2]
-    add     eax, ebx
-    add     ecx, edx
-    MMX_LOAD_DIFF_4P    mm3, mm6, mm7, [eax+ebx*2], [ecx+edx*2]
+    MMX_LOAD_DIFF_4P    mm0, mm6, mm7, [eax+0*FENC_STRIDE], [ecx+0*FDEC_STRIDE]
+    MMX_LOAD_DIFF_4P    mm1, mm6, mm7, [eax+1*FENC_STRIDE], [ecx+1*FDEC_STRIDE]
+    MMX_LOAD_DIFF_4P    mm2, mm6, mm7, [eax+2*FENC_STRIDE], [ecx+2*FDEC_STRIDE]
+    MMX_LOAD_DIFF_4P    mm3, mm6, mm7, [eax+3*FENC_STRIDE], [ecx+3*FDEC_STRIDE]
 
     MMX_SUMSUB_BADC     mm3, mm0, mm2, mm1          ; mm3=s03  mm0=d03  mm2=s12  mm1=d12
 
@@ -246,32 +241,29 @@ x264_sub4x4_dct_mmx:
     MMX_SUMSUB_BA       mm1, mm3                    ; mm1=s03+s12      mm3=s03-s12
     MMX_SUMSUB2_AB      mm2, mm4, mm0               ; mm2=2.d03+d12    mm0=d03-2.d12
 
-    mov     eax, [esp+ 8]   ; dct
+    mov     eax, [esp+ 4]   ; dct
     movq    [eax+ 0],   mm1
     movq    [eax+ 8],   mm2
     movq    [eax+16],   mm3
     movq    [eax+24],   mm0
 
-    pop     ebx
     ret
 
 cglobal x264_add4x4_idct_mmx
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_add4x4_idct_mmx( uint8_t *p_dst, int i_dst, int16_t dct[4][4] )
+;   void __cdecl x264_add4x4_idct_mmx( uint8_t *p_dst, int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
 x264_add4x4_idct_mmx:
     ; Load dct coeffs
-    mov     eax, [esp+12]   ; dct
+    mov     eax, [esp+ 8]   ; dct
     movq    mm0, [eax+ 0]
     movq    mm1, [eax+ 8]
     movq    mm2, [eax+16]
     movq    mm3, [eax+24]
     
     mov     eax, [esp+ 4]   ; p_dst
-    mov     ecx, [esp+ 8]   ; i_dst
-    lea     edx, [ecx+ecx*2]
 
     picpush ebx
     picgetgot ebx
@@ -292,10 +284,10 @@ x264_add4x4_idct_mmx:
     MMX_ZERO            mm7
     movq                mm6, [x264_mmx_32 GOT_ebx]
     
-    MMX_STORE_DIFF_4P   mm2, mm0, mm6, mm7, [eax]
-    MMX_STORE_DIFF_4P   mm4, mm0, mm6, mm7, [eax+ecx]
-    MMX_STORE_DIFF_4P   mm1, mm0, mm6, mm7, [eax+ecx*2]
-    MMX_STORE_DIFF_4P   mm3, mm0, mm6, mm7, [eax+edx]
+    MMX_STORE_DIFF_4P   mm2, mm0, mm6, mm7, [eax+0*FDEC_STRIDE]
+    MMX_STORE_DIFF_4P   mm4, mm0, mm6, mm7, [eax+1*FDEC_STRIDE]
+    MMX_STORE_DIFF_4P   mm1, mm0, mm6, mm7, [eax+2*FDEC_STRIDE]
+    MMX_STORE_DIFF_4P   mm3, mm0, mm6, mm7, [eax+3*FDEC_STRIDE]
 
     picpop  ebx
     ret
@@ -336,32 +328,26 @@ cglobal x264_yidct8_mmx
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_pixel_sub_8x8_mmx( int16_t *diff, uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
+;   void __cdecl x264_pixel_sub_8x8_mmx( int16_t *diff, uint8_t *pix1, uint8_t *pix2 );
 ;-----------------------------------------------------------------------------
 x264_pixel_sub_8x8_mmx:
 
-    push        ebx
-    push        ebp
-    mov         ebp, [esp+12]           ; diff
-    mov         eax, [esp+16]           ; pix1
-    mov         ebx, [esp+20]           ; i_pix1
-    mov         ecx, [esp+24]           ; pix2
-    mov         edx, [esp+28]           ; i_pix2
+    mov         edx, [esp+ 4]           ; diff
+    mov         eax, [esp+ 8]           ; pix1
+    mov         ecx, [esp+12]           ; pix2
 
     MMX_ZERO    mm7
 
     %assign disp 0
     %rep  8
     MMX_LOAD_DIFF_8P mm0, mm1, mm2, mm3, [eax], [ecx], mm7
-    movq        [ebp+disp], mm0
-    movq        [ebp+disp+8], mm1
-    add         eax, ebx
-    add         ecx, edx
+    movq        [edx+disp], mm0
+    movq        [edx+disp+8], mm1
+    add         eax, FENC_STRIDE
+    add         ecx, FDEC_STRIDE
     %assign disp disp+16
     %endrep
 
-    pop         ebp
-    pop         ebx
     ret
 
 ALIGN 16
@@ -545,12 +531,11 @@ x264_yidct8_mmx:
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_pixel_add_8x8_mmx( uint8_t *dst, int i_dst, int16_t src[8][8] );
+;   void __cdecl x264_pixel_add_8x8_mmx( uint8_t *dst, int16_t src[8][8] );
 ;-----------------------------------------------------------------------------
 x264_pixel_add_8x8_mmx:
-    mov         eax, [esp+04]       ; dst
-    mov         ecx, [esp+08]       ; i_dst
-    mov         edx, [esp+12]       ; src
+    mov         eax, [esp+4]       ; dst
+    mov         edx, [esp+8]       ; src
 
     MMX_ZERO    mm7
 
@@ -568,7 +553,7 @@ x264_pixel_add_8x8_mmx:
     paddw       mm1, mm3
     packuswb    mm0, mm1
     movq      [eax], mm0
-    add         eax, ecx
+    add         eax, FDEC_STRIDE
     %assign disp disp+16
     %endrep
     ret

@@ -272,4 +272,5 @@ SECTION .text
     %define GLOBAL
 %endif
 
+%assign FENC_STRIDE 16
 %assign FDEC_STRIDE 32

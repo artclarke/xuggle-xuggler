@@ -132,6 +132,7 @@ BITS 32
     %define picesp esp
 %endif
 
+%assign FENC_STRIDE 16
 %assign FDEC_STRIDE 32
 
 ; This is needed for ELF, otherwise the GNU linker assumes the stack is

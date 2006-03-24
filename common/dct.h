@@ -91,20 +91,23 @@ static const int x264_dct8_weight2_zigzag[64] = {
 
 typedef struct
 {
-    void (*sub4x4_dct)   ( int16_t dct[4][4],  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
-    void (*add4x4_idct)  ( uint8_t *p_dst, int i_dst, int16_t dct[4][4] );
+    // pix1  stride = FENC_STRIDE
+    // pix2  stride = FDEC_STRIDE
+    // p_dst stride = FDEC_STRIDE
+    void (*sub4x4_dct)   ( int16_t dct[4][4], uint8_t *pix1, uint8_t *pix2 );
+    void (*add4x4_idct)  ( uint8_t *p_dst, int16_t dct[4][4] );
 
-    void (*sub8x8_dct)   ( int16_t dct[4][4][4],  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
-    void (*add8x8_idct)  ( uint8_t *p_dst, int i_dst, int16_t dct[4][4][4] );
+    void (*sub8x8_dct)   ( int16_t dct[4][4][4], uint8_t *pix1, uint8_t *pix2 );
+    void (*add8x8_idct)  ( uint8_t *p_dst, int16_t dct[4][4][4] );
 
-    void (*sub16x16_dct)   ( int16_t dct[16][4][4],  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
-    void (*add16x16_idct)  ( uint8_t *p_dst, int i_dst, int16_t dct[16][4][4] );
+    void (*sub16x16_dct) ( int16_t dct[16][4][4], uint8_t *pix1, uint8_t *pix2 );
+    void (*add16x16_idct)( uint8_t *p_dst, int16_t dct[16][4][4] );
 
-    void (*sub8x8_dct8)   ( int16_t dct[8][8],  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
-    void (*add8x8_idct8)  ( uint8_t *p_dst, int i_dst, int16_t dct[8][8] );
+    void (*sub8x8_dct8)  ( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 );
+    void (*add8x8_idct8) ( uint8_t *p_dst, int16_t dct[8][8] );
 
-    void (*sub16x16_dct8)   ( int16_t dct[4][8][8],  uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
-    void (*add16x16_idct8)  ( uint8_t *p_dst, int i_dst, int16_t dct[4][8][8] );
+    void (*sub16x16_dct8) ( int16_t dct[4][8][8], uint8_t *pix1, uint8_t *pix2 );
+    void (*add16x16_idct8)( uint8_t *p_dst, int16_t dct[4][8][8] );
 
     void (*dct4x4dc) ( int16_t d[4][4] );
     void (*idct4x4dc)( int16_t d[4][4] );
