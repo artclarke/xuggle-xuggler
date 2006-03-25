@@ -28,9 +28,13 @@ x264_gtk_encode_status_window (X264_Thread_Data *thread_data)
   if (!thread_data) return NULL;
 
   win_status = thread_data->dialog = gtk_dialog_new ();
+  gtk_window_set_title  (GTK_WINDOW (win_status), "Encoding status");
   thread_data->button = gtk_dialog_add_button (GTK_DIALOG (win_status),
                                                GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
-  
+  thread_data->end_button = gtk_dialog_add_button (GTK_DIALOG (thread_data->dialog),
+                                                   GTK_STOCK_CLOSE, GTK_RESPONSE_CANCEL);
+  gtk_widget_set_sensitive (thread_data->end_button, FALSE);
+
   g_signal_connect (G_OBJECT (win_status),
                     "delete-event",
                     G_CALLBACK (_delete_window_cb),

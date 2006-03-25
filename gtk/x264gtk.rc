@@ -1,0 +1,46 @@
+// Wormux resource for win32 target
+
+#include <winver.h>
+#include "../config.h"
+#if ENABLE_NLS
+#  define IS_NLS_ENABLED "yes"
+#else
+#  define IS_NLS_ENABLED "no"
+#endif
+
+1 VERSIONINFO
+FILEVERSION 0,45,0,0
+PRODUCTVERSION 0,45,0,0
+FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+FILEFLAGS 0x1L
+#else
+FILEFLAGS 0x0L
+#endif
+FILEOS VOS__WINDOWS32
+FILETYPE VFT_APP
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "000004b0"
+        {
+            VALUE "Comments","Localization support: " IS_NLS_ENABLED "."
+            VALUE "CompanyName", "\000"
+            VALUE "FileDescription", "x264gtk: a minimalistic encoding GUI for x264"
+            VALUE "FileVersion", X264_VERSION
+            VALUE "InternalName", "x264"
+            VALUE "LegalCopyright", "Copyright (C) 2003-2006 Laurent Aimar, the x264 Project et al."
+            VALUE "LegalTrademarks", "Distributed under the GPL license"
+            VALUE "OriginalFilename", "x264.exe"
+            VALUE "ProductName", "x264"
+            VALUE "ProductVersion", X264_POINTVER
+            VALUE "SpecialBuild", "Build date: " __DATE__ ", " __TIME__ " with compiler version " __VERSION__
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x0, 1200
+    }
+}
+
+IDI_ICON1 ICON DISCARDABLE "x264.ico"

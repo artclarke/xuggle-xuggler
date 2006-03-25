@@ -374,6 +374,16 @@ fi
 
 ./version.sh
 
+pclibs="-L$libdir -lx264"
+if test "$pthread" = "yes" ; then
+  case $SYS in
+    MINGW|CYGWIN|BEOS)
+      ;;
+    *) pclibs="$pclibs -lpthread"
+      ;;
+  esac
+fi
+
 cat > x264.pc << EOF
 prefix=$prefix
 exec_prefix=$exec_prefix
@@ -383,7 +393,7 @@ includedir=$includedir
 Name: x264
 Description: H.264 (MPEG4 AVC) encoder library
 Version: $(grep POINTVER < config.h | sed -e 's/.* "//; s/".*//')
-Libs: -L$libdir -lx264
+Libs: $pclibs
 Cflags: -I$includedir
 EOF
 

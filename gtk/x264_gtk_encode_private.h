@@ -19,11 +19,14 @@ struct X264_Thread_Data_
 
   GtkWidget *dialog;
   GtkWidget *button;
+  GtkWidget *end_button;
 
   x264_param_t *param;
   gchar        *file_input;
+  gint          in_container;
+
   gchar        *file_output;
-  gint          container;
+  gint          out_container;
 
   /* file descriptors */
   GIOChannel *io_read;  /* use it with read */

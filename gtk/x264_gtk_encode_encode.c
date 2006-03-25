@@ -7,6 +7,7 @@
 
 #include <gtk/gtk.h>
 
+#include "../config.h"
 #include "../x264.h"
 #include "../muxers.h"
 #include "x264_gtk_encode_private.h"
@@ -18,10 +19,10 @@ uint8_t data[DATA_MAX];
 int64_t x264_mdate (void);
 
 /* input interface */
-int (*p_open_infile)( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param );
-int (*p_get_frame_total)( hnd_t handle );
-int (*p_read_frame)( x264_picture_t *p_pic, hnd_t handle, int i_frame );
-int (*p_close_infile)( hnd_t handle );
+int           (*p_open_infile)( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param );
+int           (*p_get_frame_total)( hnd_t handle );
+int           (*p_read_frame)( x264_picture_t *p_pic, hnd_t handle, int i_frame );
+int           (*p_close_infile)( hnd_t handle );
 
 /* output interface */
 static int (*p_open_outfile)      (char *filename, void **handle);
@@ -30,10 +31,8 @@ static int (*p_write_nalu)        (void *handle, uint8_t *p_nal, int i_size);
 static int (*p_set_eop)           (void *handle, x264_picture_t *p_picture);
 static int (*p_close_outfile)     (void *handle);
 
-
-
-static void _set_drivers  (int container);
-static int  _encode_frame (x264_t *h, void *handle, x264_picture_t *pic);
+static int _set_drivers  (gint int_container, gint out_container);
+static int _encode_frame (x264_t *h, void *handle, x264_picture_t *pic);
 
 
 gpointer
@@ -54,11 +53,24 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
   int64_t         i_file;
   int             i_frame_size;
   int             i_progress;
+  int             err;
 
   g_print ("encoding...\n");
   param = thread_data->param;
-  _set_drivers (thread_data->container);
-
+  err = _set_drivers (thread_data->in_container, thread_data->out_container);
+  if (err < 0) {
+    GtkWidget *no_driver;
+    no_driver = gtk_message_dialog_new (GTK_WINDOW(thread_data->dialog),
+                                        GTK_DIALOG_DESTROY_WITH_PARENT,
+                                        GTK_MESSAGE_ERROR,
+                                        GTK_BUTTONS_CLOSE,
+                                        (err == -2) ? "Error: unknown output file type"
+                                                    : "Error: unknown input file type");
+    gtk_dialog_run (GTK_DIALOG (no_driver));
+    gtk_widget_destroy (no_driver);
+    return NULL;
+  }
+    
   if (p_open_infile (thread_data->file_input, &hin, param)) {
     fprintf( stderr, "could not open input file '%s'\n", thread_data->file_input );
     return NULL;
@@ -167,19 +179,39 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
              (double) i_file * 8 * param->i_fps_num /
              ((double) param->i_fps_den * i_frame * 1000));
   }
+
+  gtk_widget_set_sensitive (thread_data->end_button, TRUE);
+  gtk_widget_hide (thread_data->button);
   return NULL;
 }
 
-static void
-_set_drivers (gint container)
+static int
+_set_drivers (gint in_container, gint out_container)
 {
-/*   Default input file driver */
-  p_open_infile = open_file_yuv;
-  p_get_frame_total = get_frame_total_yuv;
-  p_read_frame = read_frame_yuv;
-  p_close_infile = close_file_yuv;
+  switch (in_container) {
+  case 0: /* YUV */
+  case 1: /* CIF */
+  case 2: /* QCIF */
+      /*   Default input file driver */
+      p_open_infile = open_file_yuv;
+      p_get_frame_total = get_frame_total_yuv;
+      p_read_frame = read_frame_yuv;
+      p_close_infile = close_file_yuv;
+      break;
+#ifdef AVIS_INPUT
+    case 3: /* AVI */
+    case 4: /* AVS */
+      p_open_infile = open_file_avis;
+      p_get_frame_total = get_frame_total_avis;
+      p_read_frame = read_frame_avis;
+      p_close_infile = close_file_avis;
+    break;
+#endif
+    default: /* Unknown */
+      return -1;
+  }
 
-  switch (container) {
+  switch (out_container) {
   case 0:
 /*     Raw ES output file driver */
     p_open_outfile = open_file_bsf;
@@ -205,7 +237,11 @@ _set_drivers (gint container)
     p_close_outfile = close_file_mp4;
     break;
 #endif
+  default:
+    return -2;
   }
+
+  return 1;
 }
 
 static int

@@ -9,7 +9,6 @@
 #include "../x264.h"
 #include "x264_gtk_private.h"
 #include "x264_gtk_enum.h"
-#include "x264_gtk_bitrate.h"
 
 
 /* Callbacks */
