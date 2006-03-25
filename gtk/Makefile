@@ -1,0 +1,79 @@
+
+include ../config.mak
+
+datadir=${prefix}/share/x264
+
+OBJECTS = x264_gtk_bitrate.o x264_gtk_rc.o x264_gtk_mb.o x264_gtk_more.o x264_gtk.o
+
+TEST_OBJECT = test.o
+ENCODE_OBJECT = x264_gtk_encode_encode.o x264_gtk_encode_status_window.o x264_gtk_encode_main_window.o x264_gtk_encode.o
+
+CC = gcc
+
+all: x264_gtk_encode test
+
+CPPFLAGS = `pkg-config --cflags gtk+-2.0 gthread-2.0 x264` -DX264_DATA_DIR=\"${datadir}\"
+CFLAGS = -O2 -Wall -W
+LDFLAGS += `pkg-config --libs gtk+-2.0 gthread-2.0 x264` -lpthread
+
+# Compilation rule
+%.o : %.c
+	@echo "  C: $(@D)/$(<F)"
+	@$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
+
+# Linking rule
+libx264gtk.a: $(OBJECTS)
+	@echo "  L: $(@F)"
+	@ar rc libx264gtk.a $(OBJECTS)
+	@ranlib libx264gtk.a
+
+test: $(OBJECTS) $(TEST_OBJECT)
+	@echo "  B: $(@F)"
+	@$(CC) -o test $(OBJECTS) $(TEST_OBJECT) $(LDFLAGS)
+
+x264_gtk_encode: $(OBJECTS) libx264gtk.a $(ENCODE_OBJECT)
+	@echo "  B: $(@F)"
+	@$(CC) -o x264_gtk_encode $(OBJECTS) $(ENCODE_OBJECT) ../muxers.o ../matroska.o $(LDFLAGS)
+
+# Clean rule
+clean:
+	@rm -f *o test x264_gtk_encode libx264gtk.a
+
+# Install rule
+install: x264_gtk_encode
+	@echo "  I: $(DESTDIR)$(includedir)/x264_gtk.h"
+	@install -m 644 x264_gtk.h $(DESTDIR)$(includedir)
+	@echo "  I: $(DESTDIR)$(includedir)/x264_gtk_enum.h"
+	@install -m 644 x264_gtk_enum.h $(DESTDIR)$(includedir)
+	@echo "  I: $(DESTDIR)$(libdir)/libx264gtk.a"
+	@install -m 644 libx264gtk.a $(DESTDIR)$(libdir)
+	@echo "  I: $(DESTDIR)$(bindir)/x264_gtk_encode"
+	@install x264_gtk_encode $(DESTDIR)$(bindir)
+	@echo "  D: $(DESTDIR)$(datadir)"
+	@install -d $(DESTDIR)$(datadir)
+	@echo "  I: $(DESTDIR)$(datadir)/x264.png"
+	@install -m 644 x264.png $(DESTDIR)$(datadir)
+
+# Uninstall rule
+uninstall:
+	@echo "  U: $(DESTDIR)$(includedir)/x264_gtk.h"
+	@rm -f $(DESTDIR)$(includedir)/x264_gtk.h
+	@echo "  U: $(DESTDIR)$(includedir)/x264_gtk_enum.h"
+	@rm -f $(DESTDIR)$(includedir)/x264_gtk_enum.h
+	@echo "  U: $(DESTDIR)$(libdir)/libx264gtk.a"
+	@rm -f $(DESTDIR)$(libdir)/libx264gtk.a
+	@echo "  U: $(DESTDIR)$(bindir)/x264_gtk_encode"
+	@rm -f $(DESTDIR)$(bindir)/x264_gtk_encode
+	@echo "  U: $(DESTDIR)$(datadir)"
+	@rm -rf $(DESTDIR)$(datadir)
+
+x264_gtk_bitrate.o: x264_gtk_bitrate.h x264_gtk_bitrate.c
+x264_gtk_rc.o: x264_gtk_rc.h x264_gtk_rc.c
+x264_gtk_mb.o: x264_gtk_mb.h x264_gtk_mb.c
+x264_gtk_more.o: x264_gtk_more.h x264_gtk_more.c
+gtk_x264.o: x264_gtk.h x264_gtk.c
+gtk_x264_encode_encode.o: x264_gtk.o x264_gtk_encode_encode.c
+gtk_x264_encode_status_window.o: x264_gtk.o x264_gtk_encode_status_window.c
+gtk_x264_encode_main_window.o: x264_gtk.o x264_gtk_encode_main_window.c
+gtk_x264_encode.o: x264_gtk.o x264_gtk_encode_encode.c x264_gtk_encode_status_window.c x264_gtk_encode_main_window.c x264_gtk_encode.c
+test.o: x264_gtk.o test.c
