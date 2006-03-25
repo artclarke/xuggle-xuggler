@@ -51,7 +51,8 @@
 #define pthread_t               thread_id
 #define pthread_create(t,u,f,d) { *(t)=spawn_thread(f,"",10,d); \
                                   resume_thread(*(t)); }
-#define pthread_join(t,s)       wait_for_thread(t,(long*)s)
+#define pthread_join(t,s)       { long tmp; \
+                                  wait_for_thread(t,(s)?(long*)(s):&tmp); }
 #define HAVE_PTHREAD 1
 
 #elif defined(HAVE_PTHREAD)

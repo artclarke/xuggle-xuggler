@@ -1099,11 +1099,10 @@ static inline int x264_slices_write( x264_t *h )
 #ifdef HAVE_PTHREAD
         {
             pthread_t handles[X264_SLICE_MAX];
-            void *status;
             for( i = 0; i < h->param.i_threads; i++ )
                 pthread_create( &handles[i], NULL, (void*)x264_slice_write, (void*)h->thread[i] );
             for( i = 0; i < h->param.i_threads; i++ )
-                pthread_join( handles[i], &status );
+                pthread_join( handles[i], NULL );
         }
 #else
         for( i = 0; i < h->param.i_threads; i++ )

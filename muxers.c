@@ -350,7 +350,7 @@ typedef struct
     GF_AVCConfig *p_config;
     GF_ISOSample *p_sample;
     int i_track;
-    int i_descidx;
+    uint32_t i_descidx;
     int i_time_inc;
     int i_time_res;
     int i_numframe;

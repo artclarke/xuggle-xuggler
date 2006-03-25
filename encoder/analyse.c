@@ -690,10 +690,10 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     }
     else if( h->mb.i_type == I_4x4 )
     {
+        uint32_t pels[4] = {0}; // doesn't need initting, just shuts up a gcc warning
+        int i_nnz = 0;
         for( idx = 0; idx < 16; idx++ )
         {
-            uint32_t pels[4];
-            int i_nnz = 0;
             uint8_t *p_src_by;
             uint8_t *p_dst_by;
             i_best = COST_MAX;

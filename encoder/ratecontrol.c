@@ -50,6 +50,7 @@
 #define sqrtf sqrt
 #endif
 #ifdef WIN32 // POSIX says that rename() removes the destination, but win32 doesn't.
+#include <unistd.h>
 #define rename(src,dst) (unlink(dst), rename(src,dst))
 #endif
 
