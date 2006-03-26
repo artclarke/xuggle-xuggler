@@ -8,6 +8,11 @@ int get_frame_total_yuv( hnd_t handle );
 int read_frame_yuv( x264_picture_t *p_pic, hnd_t handle, int i_frame );
 int close_file_yuv( hnd_t handle );
 
+int open_file_y4m( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param );
+int get_frame_total_y4m( hnd_t handle );
+int read_frame_y4m( x264_picture_t *p_pic, hnd_t handle, int i_frame );
+int close_file_y4m( hnd_t handle );
+
 #ifdef AVIS_INPUT
 int open_file_avis( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param );
 int get_frame_total_avis( hnd_t handle );

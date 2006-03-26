@@ -133,6 +133,7 @@ static void Help( x264_param_t *defaults )
              "Syntax: x264 [options] -o outfile infile [widthxheight]\n"
              "\n"
              "Infile can be raw YUV 4:2:0 (in which case resolution is required),\n"
+             "  or YUV4MPEG 4:2:0 (*.y4m),\n"
              "  or AVI or Avisynth if compiled with AVIS support (%s).\n"
              "Outfile type is selected by filename:\n"
              " .264 -> Raw bytestream\n"
@@ -360,6 +361,7 @@ static int  Parse( int argc, char **argv,
     x264_param_t defaults = *param;
     char *psz;
     int b_avis = 0;
+    int b_y4m = 0;
     int b_thread_input = 0;
 
     memset( opt, 0, sizeof(cli_opt_t) );
@@ -947,8 +949,9 @@ static int  Parse( int argc, char **argv,
 
         if( !strncasecmp( psz, ".avi", 4 ) || !strncasecmp( psz, ".avs", 4 ) )
             b_avis = 1;
-
-        if( !b_avis && ( !param->i_width || !param->i_height ) )
+        if( !strncasecmp( psz, ".y4m", 4 ) )
+            b_y4m = 1;
+        if( !(b_avis || b_y4m) && ( !param->i_width || !param->i_height ) )
         {
             Help( &defaults );
             return -1;
@@ -969,6 +972,14 @@ static int  Parse( int argc, char **argv,
             return -1;
 #endif
         }
+        if ( b_y4m )
+        {
+            p_open_infile = open_file_y4m;
+            p_get_frame_total = get_frame_total_y4m;
+            p_read_frame = read_frame_y4m;
+            p_close_infile = close_file_y4m;
+        }
+
         if( p_open_infile( psz_filename, &opt->hin, param ) )
         {
             fprintf( stderr, "could not open input file '%s'\n", psz_filename );

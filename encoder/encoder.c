@@ -489,18 +489,9 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     {
         int i_w = param->vui.i_sar_width;
         int i_h = param->vui.i_sar_height;
-        int a = i_w, b = i_h;
 
-        while( b != 0 )
-        {
-            int t = a;
+        x264_reduce_fraction( &i_w, &i_h );
 
-            a = b;
-            b = t % b;
-        }
-
-        i_w /= a;
-        i_h /= a;
         while( i_w > 65535 || i_h > 65535 )
         {
             i_w /= 2;
@@ -525,6 +516,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         }
     }
 
+    x264_reduce_fraction( &h->param.i_fps_num, &h->param.i_fps_den );
 
     /* Init x264_t */
     h->out.i_nal = 0;
