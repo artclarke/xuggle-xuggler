@@ -1,5 +1,5 @@
 
-include ../config.mak
+include config.mak
 
 OBJECTS = x264_gtk_bitrate.o x264_gtk_rc.o x264_gtk_mb.o x264_gtk_more.o x264_gtk.o
 

@@ -357,6 +357,8 @@ DEVNULL=$DEVNULL
 CONFIGURE_ARGS=$@
 EOF
 
+cp config.mak gtk/config.mak
+
 if [ "$vfw" = "yes" ]; then
     rm -f vfw/build/cygwin/config.mak
     cat > vfw/build/cygwin/config.mak << EOF

@@ -129,9 +129,10 @@ clean:
 	rm -rf vfw/build/cygwin/bin
 	rm -f $(SRC2:%.c=%.gcda) $(SRC2:%.c=%.gcno)
 	- sed -e 's/ *-fprofile-\(generate\|use\)//g' config.mak > config.mak2 && mv config.mak2 config.mak
+	make -C gtk clean
 
 distclean: clean
-	rm -f config.mak config.h vfw/build/cygwin/config.mak x264.pc
+	rm -f config.mak config.h vfw/build/cygwin/config.mak gtk/config.mak x264.pc
 
 install: x264 $(SONAME)
 	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(includedir)
