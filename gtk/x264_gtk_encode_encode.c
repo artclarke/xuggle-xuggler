@@ -7,9 +7,8 @@
 
 #include <gtk/gtk.h>
 
-#include "../config.h"
 #include "../x264.h"
-#include "../muxers.h"
+#include "x264_gtk_demuxers.h"
 #include "x264_gtk_encode_private.h"
 
 
@@ -31,7 +30,7 @@ static int (*p_write_nalu)        (void *handle, uint8_t *p_nal, int i_size);
 static int (*p_set_eop)           (void *handle, x264_picture_t *p_picture);
 static int (*p_close_outfile)     (void *handle);
 
-static int _set_drivers  (gint int_container, gint out_container);
+static int _set_drivers  (X264_Demuxer_Type in_container, gint out_container);
 static int _encode_frame (x264_t *h, void *handle, x264_picture_t *pic);
 
 
@@ -186,12 +185,12 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
 }
 
 static int
-_set_drivers (gint in_container, gint out_container)
+_set_drivers (X264_Demuxer_Type in_container, gint out_container)
 {
   switch (in_container) {
-  case 0: /* YUV */
-  case 1: /* CIF */
-  case 2: /* QCIF */
+  case X264_DEMUXER_YUV:
+  case X264_DEMUXER_CIF:
+  case X264_DEMUXER_QCIF:
       /*   Default input file driver */
       p_open_infile = open_file_yuv;
       p_get_frame_total = get_frame_total_yuv;
@@ -199,8 +198,8 @@ _set_drivers (gint in_container, gint out_container)
       p_close_infile = close_file_yuv;
       break;
 #ifdef AVIS_INPUT
-    case 3: /* AVI */
-    case 4: /* AVS */
+    case X264_DEMUXER_AVI:
+    case X264_DEMUXER_AVS:
       p_open_infile = open_file_avis;
       p_get_frame_total = get_frame_total_avis;
       p_read_frame = read_frame_avis;

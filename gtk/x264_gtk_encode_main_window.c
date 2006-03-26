@@ -7,14 +7,17 @@
 #ifdef _WIN32 /* Needed to define _O_BINARY */
 #  include <fcntl.h>
 #endif
+#include <errno.h>
+#include <string.h>
+#include <sys/stat.h>  /* For stat */
 
 #include <gtk/gtk.h>
 
 #include "../x264.h"
 #include "../config.h"
-#include "../muxers.h"
 #include "x264_icon.h"
 #include "x264_gtk.h"
+#include "x264_gtk_demuxers.h"
 #include "x264_gtk_encode_private.h"
 #include "x264_gtk_encode_encode.h"
 #include "x264_gtk_encode_status_window.h"
@@ -24,21 +27,22 @@ typedef struct X264_Gtk_Encode_ X264_Gtk_Encode;
 
 struct X264_Gtk_Encode_
 {
-  GtkWidget *main_dialog;
+  GtkWidget         *main_dialog;
 
   /* input */
-  gint       container;
-  GtkWidget *file_input;
-  GtkWidget *width;
-  GtkWidget *height;
-  GtkWidget *fps_num;
-  GtkWidget *fps_den;
-  GtkWidget *frame_count;
+  X264_Demuxer_Type  container;
+  guint64            size; /* For YUV formats */
+  GtkWidget         *file_input;
+  GtkWidget         *width;
+  GtkWidget         *height;
+  GtkWidget         *fps_num;
+  GtkWidget         *fps_den;
+  GtkWidget         *frame_count;
   
   /* output */
-  GtkWidget *path_output;
-  GtkWidget *file_output;
-  GtkWidget *combo;
+  GtkWidget         *path_output;
+  GtkWidget         *file_output;
+  GtkWidget         *combo;
 };
 
 
@@ -48,18 +52,33 @@ static gboolean _delete_window_cb    (GtkWidget *widget,
                                       gpointer   user_data);
 static void     _configure_window_cb (GtkButton *button,
                                       gpointer   user_data);
-static void     _chooser_window_cb  (GtkDialog *dialog,
+static void     _chooser_window_cb   (GtkDialog *dialog,
                                       gint       res,
                                       gpointer   user_data);
 static void     _response_window_cb  (GtkDialog *dialog,
                                       gint       res,
                                       gpointer   user_data);
-
+static void     _dimension_entry_cb  (GtkEditable *editable,
+                                      gpointer     user_data);
 
 static gboolean _fill_status_window (GIOChannel  *io,
                                      GIOCondition condition,
                                      gpointer     user_data);
 /* Code */
+guint64
+_file_size(const char* name)
+{
+  struct stat buf;
+  memset(&buf, 0, sizeof(struct stat));
+
+  if (stat(name, &buf) < 0)
+  {
+    fprintf(stderr, "Can't stat file\n");
+    return 0;
+  }
+  return buf.st_size;
+}
+
 void
 x264_gtk_encode_main_window ()
 {
@@ -182,8 +201,11 @@ x264_gtk_encode_main_window ()
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 1, 2);
   gtk_widget_show (label);
 
-  encode->width = gtk_entry_new_with_max_length (4095);
+  encode->width = gtk_entry_new_with_max_length (255);
   gtk_entry_set_text (GTK_ENTRY (encode->width), "352");
+  g_signal_connect_after(G_OBJECT (encode->width), "changed",
+                   G_CALLBACK (_dimension_entry_cb),
+                   encode);
   gtk_table_attach_defaults (GTK_TABLE (table), encode->width, 1, 2, 1, 2);
   gtk_widget_show (encode->width);
 
@@ -192,9 +214,12 @@ x264_gtk_encode_main_window ()
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 2, 3);
   gtk_widget_show (label);
 
-  encode->height = gtk_entry_new_with_max_length (4095);
+  encode->height = gtk_entry_new_with_max_length (255);
   gtk_entry_set_text (GTK_ENTRY (encode->height), "288");
   gtk_table_attach_defaults (GTK_TABLE (table), encode->height, 1, 2, 2, 3);
+  g_signal_connect_after(G_OBJECT (encode->height), "changed",
+                   G_CALLBACK (_dimension_entry_cb),
+                   encode);
   gtk_widget_show (encode->height);
 
   label = gtk_label_new ("Frame rate num:");
@@ -202,7 +227,7 @@ x264_gtk_encode_main_window ()
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 3, 4);
   gtk_widget_show (label);
 
-  encode->fps_num = gtk_entry_new_with_max_length (4095);
+  encode->fps_num = gtk_entry_new_with_max_length (255);
   gtk_entry_set_text (GTK_ENTRY (encode->fps_num), "25");
   gtk_table_attach_defaults (GTK_TABLE (table), encode->fps_num, 1, 2, 3, 4);
   gtk_widget_show (encode->fps_num);
@@ -212,7 +237,7 @@ x264_gtk_encode_main_window ()
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 4, 5);
   gtk_widget_show (label);
 
-  encode->fps_den = gtk_entry_new_with_max_length (4095);
+  encode->fps_den = gtk_entry_new_with_max_length (255);
   gtk_entry_set_text (GTK_ENTRY (encode->fps_den), "1");
   gtk_table_attach_defaults (GTK_TABLE (table), encode->fps_den, 1, 2, 4, 5);
   gtk_widget_show (encode->fps_den);
@@ -222,7 +247,7 @@ x264_gtk_encode_main_window ()
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 5, 6);
   gtk_widget_show (label);
 
-  encode->frame_count = gtk_entry_new_with_max_length (4095);
+  encode->frame_count = gtk_entry_new_with_max_length (255);
   gtk_entry_set_text (GTK_ENTRY (encode->frame_count), "0");
   gtk_table_attach_defaults (GTK_TABLE (table), encode->frame_count, 1, 2, 5, 6);
   gtk_widget_show (encode->frame_count);
@@ -310,12 +335,12 @@ _chooser_window_cb (GtkDialog *dialog,
                     gpointer   user_data)
 {
   X264_Gtk_Encode *encode;
-  gboolean         sensitivity = FALSE;
+  gboolean         sensitivity = TRUE;
   x264_param_t     param;
+  hnd_t            hin;
   char            *in;
 #define       BUFFER_LENGTH  64
-  gchar         buffer[BUFFER_LENGTH];
-
+  gchar            buffer[BUFFER_LENGTH];
 
   /* input interface */
   int              (*p_open_infile)( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param );
@@ -323,13 +348,15 @@ _chooser_window_cb (GtkDialog *dialog,
   int              (*p_close_infile)( hnd_t handle );
 
   encode = (X264_Gtk_Encode *)user_data;
-  if (!encode || !encode->file_input) return;
   in = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (encode->file_input));
   if (!in) return;
 
   /* Set defaults */
-  param.i_width = 352;
-  param.i_height = 288;
+  p_open_infile = open_file_yuv;
+  p_get_frame_total = get_frame_total_yuv;
+  p_close_infile = close_file_yuv;
+  param.i_width = (gint)(g_ascii_strtod (gtk_entry_get_text (GTK_ENTRY (encode->width)), NULL));
+  param.i_height = (gint)(g_ascii_strtod (gtk_entry_get_text (GTK_ENTRY (encode->height)), NULL));
   param.i_fps_num = 25;
   param.i_fps_den = 1;
   param.i_frame_total = 0;
@@ -341,37 +368,62 @@ _chooser_window_cb (GtkDialog *dialog,
     X264_Gtk_Encode  *encode = (X264_Gtk_Encode *)user_data;
     GSList           *filters;
     GtkFileFilter    *selected;
+    int               container;
     
     filters = gtk_file_chooser_list_filters(GTK_FILE_CHOOSER (encode->file_input));
     selected = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER (encode->file_input));
-    encode->container = g_slist_index(filters, selected);
+    container = g_slist_index(filters, selected);
     g_slist_free (filters);
 
+    if (container == 0)
+    {
+      /* All format needed, search for extension */
+      const char *ext = strrchr(in, '.');
+      if (!strncmp(ext, ".avs", 4) || !strncmp(ext, ".AVS", 4))
+        encode->container = X264_DEMUXER_AVS;
+      else if (!strncmp(ext, ".avi", 4) || !strncmp(ext, ".AVI", 4))
+        encode->container = X264_DEMUXER_AVS;
+      else if (!strncmp(ext, ".cif", 4) || !strncmp(ext, ".CIF", 4))
+        encode->container = X264_DEMUXER_CIF;
+      else if (!strncmp(ext, ".qcif", 4) || !strncmp(ext, ".QCIF", 4))
+        encode->container = X264_DEMUXER_QCIF;
+      else
+        encode->container = X264_DEMUXER_YUV;
+    }
+    else
+    {
+      /* The all supproted type is 0 => shift of 1 */
+      encode->container = (X264_Demuxer_Type)container-1;
+    }
+        
     switch (encode->container) {
-    case 0: /* YUV */
-    case 1: /* CIF */
-    case 2: /* QCIF */
+    case X264_DEMUXER_YUV: /* YUV */
+      break;
+    case X264_DEMUXER_CIF: /* CIF */
+      param.i_width = 352;
+      param.i_height = 288;
+      break;
+    case X264_DEMUXER_QCIF: /* QCIF */
       /*   Default input file driver */
-      sensitivity = TRUE;
-      p_open_infile = open_file_yuv;
-      p_get_frame_total = get_frame_total_yuv;
-      p_close_infile = close_file_yuv;
+      param.i_width = 176;
+      param.i_height = 144;
       break;
 #ifdef AVIS_INPUT
-    case 3: /* AVI */
-    case 4: /* AVS */
+    case X264_DEMUXER_AVI: /* AVI */
+    case X264_DEMUXER_AVS: /* AVS */
+      sensitivity = FALSE;
       p_open_infile = open_file_avis;
       p_get_frame_total = get_frame_total_avis;
       p_close_infile = close_file_avis;
     break;
 #endif
     default: /* Unknown */
-      sensitivity = TRUE;
+      break;
     }
     break;
   }
   default:
-    sensitivity = TRUE;
+    break;
   }
 
   /* Modify dialog */
@@ -381,14 +433,25 @@ _chooser_window_cb (GtkDialog *dialog,
   gtk_widget_set_sensitive(encode->fps_den, sensitivity);
   gtk_widget_set_sensitive(encode->frame_count, sensitivity);
 
-  if (sensitivity == FALSE && encode->container > 2 /* QCIF */) {
-    /* Inquire input format */
-    hnd_t         hin;
-
-    p_open_infile (in, &hin, &param);
+  /* Inquire input format */
+  if (param.i_width < 2) param.i_width = 352;
+  if (param.i_height < 2) param.i_height = 288;
+  if (p_open_infile (in, &hin, &param) >= 0) {
     param.i_frame_total = p_get_frame_total(hin);
     p_close_infile (hin);
+  } else {
+    GtkWidget *dialog_message;
+
+    dialog_message = gtk_message_dialog_new (GTK_WINDOW (dialog),
+                                             GTK_DIALOG_DESTROY_WITH_PARENT,
+                                             GTK_MESSAGE_ERROR,
+                                             GTK_BUTTONS_CLOSE,
+                                             strerror(errno));
+    gtk_dialog_run (GTK_DIALOG (dialog_message));
+    gtk_widget_destroy (dialog_message);      
   }
+  encode->size = _file_size(in);
+
   if (g_snprintf(buffer, BUFFER_LENGTH, "%i", param.i_width) > 0)
     gtk_entry_set_text (GTK_ENTRY (encode->width), buffer);
   if (g_snprintf(buffer, BUFFER_LENGTH, "%i", param.i_height) > 0)
@@ -400,6 +463,26 @@ _chooser_window_cb (GtkDialog *dialog,
 
   if (g_snprintf(buffer, BUFFER_LENGTH, "%i", param.i_frame_total) > 0)
     gtk_entry_set_text (GTK_ENTRY (encode->frame_count), buffer);
+}
+static void
+_dimension_entry_cb (GtkEditable *editable,
+                     gpointer     user_data)
+{
+  X264_Gtk_Encode *encode = (X264_Gtk_Encode *)user_data;
+  char             buffer[32];
+  gint             width;
+  gint             height;
+  gint             frame_size;
+
+  width = (gint)(g_ascii_strtod (gtk_entry_get_text (GTK_ENTRY (encode->width)), NULL));
+  height = (gint)(g_ascii_strtod (gtk_entry_get_text (GTK_ENTRY (encode->height)), NULL));
+  frame_size = (3*width*height)/2;
+
+  if (frame_size > 0 && encode->container <= X264_DEMUXER_QCIF)
+  {
+    snprintf(buffer, 32, "%lu", (long unsigned int)((encode->size+frame_size/2)/frame_size));
+    gtk_entry_set_text (GTK_ENTRY (encode->frame_count), buffer);
+  }
 }
 
 static void
@@ -568,9 +651,9 @@ _fill_status_window (GIOChannel  *io __UNUSED__,
 
   thread_data = (X264_Thread_Data *)user_data;
   status = g_io_channel_read_chars (thread_data->io_read,
-                           (gchar *)&pipe_data,
-                           sizeof (X264_Pipe_Data),
-                           &size, NULL);
+                                    (gchar *)&pipe_data,
+                                    sizeof (X264_Pipe_Data),
+                                    &size, NULL);
   if (status != G_IO_STATUS_NORMAL) {
     g_print ("Error ! %d %d %d\n", status, sizeof (X264_Pipe_Data), size);
     return FALSE;
