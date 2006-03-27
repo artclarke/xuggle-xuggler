@@ -6,6 +6,7 @@
 #include <unistd.h>
 #ifdef _WIN32 /* Needed to define _O_BINARY */
 #  include <fcntl.h>
+#  define strncasecmp _strnicmp
 #endif
 #include <errno.h>
 #include <string.h>
@@ -154,6 +155,7 @@ x264_gtk_encode_main_window ()
   gtk_file_filter_add_pattern (filter, "*.yuv");
   gtk_file_filter_add_pattern (filter, "*.cif");
   gtk_file_filter_add_pattern (filter, "*.qcif");
+  gtk_file_filter_add_pattern (filter, "*.y4m");
 #ifdef AVIS_INPUT
   gtk_file_filter_add_pattern (filter, "*.avs");
   gtk_file_filter_add_pattern (filter, "*.avi");
@@ -171,10 +173,16 @@ x264_gtk_encode_main_window ()
   gtk_file_filter_add_pattern (filter, "*.cif");
   gtk_file_chooser_add_filter (chooser, filter);
 
-  /* CIF filter */
+  /* QCIF filter */
   filter = gtk_file_filter_new ();
   gtk_file_filter_set_name (filter, "YUV QCIF sequence");
   gtk_file_filter_add_pattern (filter, "*.qcif");
+  gtk_file_chooser_add_filter (chooser, filter);
+
+  /* YUV4MPEG2 filter */
+  filter = gtk_file_filter_new ();
+  gtk_file_filter_set_name (filter, "YUV4MPEG2 sequence");
+  gtk_file_filter_add_pattern (filter, "*.y4m");
   gtk_file_chooser_add_filter (chooser, filter);
 
 #ifdef AVIS_INPUT
@@ -379,13 +387,15 @@ _chooser_window_cb (GtkDialog *dialog,
     {
       /* All format needed, search for extension */
       const char *ext = strrchr(in, '.');
-      if (!strncmp(ext, ".avs", 4) || !strncmp(ext, ".AVS", 4))
+      if (!strncasecmp(ext, ".y4m", 4))
+        encode->container = X264_DEMUXER_Y4M;
+      else if (!strncasecmp(ext, ".avs", 4))
         encode->container = X264_DEMUXER_AVS;
-      else if (!strncmp(ext, ".avi", 4) || !strncmp(ext, ".AVI", 4))
-        encode->container = X264_DEMUXER_AVS;
-      else if (!strncmp(ext, ".cif", 4) || !strncmp(ext, ".CIF", 4))
+      else if (!strncasecmp(ext, ".avi", 4))
+        encode->container = X264_DEMUXER_AVI;
+      else if (!strncasecmp(ext, ".cif", 4))
         encode->container = X264_DEMUXER_CIF;
-      else if (!strncmp(ext, ".qcif", 4) || !strncmp(ext, ".QCIF", 4))
+      else if (!strncasecmp(ext, ".qcif", 4))
         encode->container = X264_DEMUXER_QCIF;
       else
         encode->container = X264_DEMUXER_YUV;
@@ -399,14 +409,21 @@ _chooser_window_cb (GtkDialog *dialog,
     switch (encode->container) {
     case X264_DEMUXER_YUV: /* YUV */
       break;
-    case X264_DEMUXER_CIF: /* CIF */
+    case X264_DEMUXER_CIF: /* YUV CIF */
       param.i_width = 352;
       param.i_height = 288;
       break;
-    case X264_DEMUXER_QCIF: /* QCIF */
+    case X264_DEMUXER_QCIF: /* YUV QCIF */
       /*   Default input file driver */
       param.i_width = 176;
       param.i_height = 144;
+      break;
+    case X264_DEMUXER_Y4M: /* YUV4MPEG */
+      /*   Default input file driver */
+      sensitivity = FALSE;
+      p_open_infile = open_file_y4m;
+      p_get_frame_total = get_frame_total_y4m;
+      p_close_infile = close_file_y4m;
       break;
 #ifdef AVIS_INPUT
     case X264_DEMUXER_AVI: /* AVI */

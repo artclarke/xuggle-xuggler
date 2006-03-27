@@ -2,6 +2,7 @@
 include config.mak
 
 OBJECTS = x264_gtk_bitrate.o x264_gtk_rc.o x264_gtk_mb.o x264_gtk_more.o x264_gtk.o
+EXTERNAL_DEPS= ../muxers.o ../matroska.o ../libx264.a
 
 TEST_OBJECT = test.o
 ENCODE_OBJECT = x264_gtk_encode_encode.o x264_gtk_encode_status_window.o x264_gtk_encode_main_window.o x264_gtk_encode.o
@@ -40,9 +41,9 @@ test: $(OBJECTS) $(TEST_OBJECT)
 	@echo "  B: $(@F)"
 	@$(CC) -o test $(OBJECTS) $(TEST_OBJECT) $(LDFLAGS)
 
-x264_gtk_encode: $(OBJECTS) x264_icon.h libx264gtk.a $(ENCODE_OBJECT)
+x264_gtk_encode: $(OBJECTS) x264_icon.h libx264gtk.a $(ENCODE_OBJECT) $(EXTERNAL_DEPS)
 	@echo "  B: $(@F)"
-	@$(CC) -o x264_gtk_encode $(OBJECTS) $(ENCODE_OBJECT) ../muxers.o ../matroska.o $(LDFLAGS)
+	@$(CC) -o x264_gtk_encode $(OBJECTS) $(ENCODE_OBJECT) $(EXTERNAL_DEPS) $(LDFLAGS)
 
 # Clean rule
 clean:

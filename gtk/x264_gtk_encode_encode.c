@@ -191,23 +191,29 @@ _set_drivers (X264_Demuxer_Type in_container, gint out_container)
   case X264_DEMUXER_YUV:
   case X264_DEMUXER_CIF:
   case X264_DEMUXER_QCIF:
-      /*   Default input file driver */
-      p_open_infile = open_file_yuv;
-      p_get_frame_total = get_frame_total_yuv;
-      p_read_frame = read_frame_yuv;
-      p_close_infile = close_file_yuv;
-      break;
+    /*   Default input file driver */
+    p_open_infile = open_file_yuv;
+    p_get_frame_total = get_frame_total_yuv;
+    p_read_frame = read_frame_yuv;
+    p_close_infile = close_file_yuv;
+    break;
+  case X264_DEMUXER_Y4M:
+    p_open_infile = open_file_y4m;
+    p_get_frame_total = get_frame_total_y4m;
+    p_read_frame = read_frame_y4m;
+    p_close_infile = close_file_y4m;
+    break;
 #ifdef AVIS_INPUT
-    case X264_DEMUXER_AVI:
-    case X264_DEMUXER_AVS:
-      p_open_infile = open_file_avis;
-      p_get_frame_total = get_frame_total_avis;
-      p_read_frame = read_frame_avis;
-      p_close_infile = close_file_avis;
+  case X264_DEMUXER_AVI:
+  case X264_DEMUXER_AVS:
+    p_open_infile = open_file_avis;
+    p_get_frame_total = get_frame_total_avis;
+    p_read_frame = read_frame_avis;
+    p_close_infile = close_file_avis;
     break;
 #endif
-    default: /* Unknown */
-      return -1;
+  default: /* Unknown */
+    return -1;
   }
 
   switch (out_container) {
