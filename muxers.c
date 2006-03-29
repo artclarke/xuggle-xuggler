@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
 
 #include "common/common.h"
 #include "x264.h"
