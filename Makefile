@@ -68,7 +68,7 @@ libx264.a: .depend $(OBJS) $(OBJASM)
 	ranlib libx264.a
 
 $(SONAME): .depend $(OBJS) $(OBJASM)
-	$(CC) -shared -o $@ $(OBJS) $(OBJASM) -Wl,-soname,$(SONAME)
+	$(CC) -shared -o $@ $(OBJS) $(OBJASM) -Wl,-soname,$(SONAME) $(LDFLAGS)
 
 x264$(EXE): $(OBJCLI) libx264.a 
 	$(CC) -o $@ $+ $(LDFLAGS)
