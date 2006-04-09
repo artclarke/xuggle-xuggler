@@ -135,7 +135,7 @@ case "$UNAMEM" in
     AS="yasm"
     ASFLAGS="-f elf -m amd64"
     ;;
-  "Power Macintosh"|ppc)
+  "Power Macintosh"|ppc|ppc64)
     ARCH="PPC"
     if [ $SYS = MACOSX ]
     then
