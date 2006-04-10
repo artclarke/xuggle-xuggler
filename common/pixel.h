@@ -26,6 +26,8 @@
 
 typedef int  (*x264_pixel_cmp_t) ( uint8_t *, int, uint8_t *, int );
 typedef int  (*x264_pixel_cmp_pde_t) ( uint8_t *, int, uint8_t *, int, int );
+typedef void (*x264_pixel_cmp_x3_t) ( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int[3] );
+typedef void (*x264_pixel_cmp_x4_t) ( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int[4] );
 
 enum
 {
@@ -72,6 +74,10 @@ typedef struct
      * terminate early if partial score is worse than a threshold.
      * may be NULL, in which case just use sad instead. */
     x264_pixel_cmp_pde_t sad_pde[7];
+
+    /* multiple parallel calls to sad. */
+    x264_pixel_cmp_x3_t sad_x3[7];
+    x264_pixel_cmp_x4_t sad_x4[7];
 } x264_pixel_function_t;
 
 void x264_pixel_init( int cpu, x264_pixel_function_t *pixf );

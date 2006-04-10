@@ -594,6 +594,26 @@ static int pixel_satd_16x16_altivec( uint8_t *pix1, int i_pix1,
     return i_satd / 2;
 }
 
+#define SAD_X( size ) \
+static void pixel_sad_x3_##size( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1, uint8_t *pix2, int i_stride, int scores[3] )\
+{\
+    scores[0] = pixel_sad_##size( fenc, FENC_STRIDE, pix0, i_stride );\
+    scores[1] = pixel_sad_##size( fenc, FENC_STRIDE, pix1, i_stride );\
+    scores[2] = pixel_sad_##size( fenc, FENC_STRIDE, pix2, i_stride );\
+}\
+static void pixel_sad_x4_##size( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1, uint8_t *pix2, uint8_t *pix3, int i_stride, int scores[4] )\
+{\
+    scores[0] = pixel_sad_##size( fenc, FENC_STRIDE, pix0, i_stride );\
+    scores[1] = pixel_sad_##size( fenc, FENC_STRIDE, pix1, i_stride );\
+    scores[2] = pixel_sad_##size( fenc, FENC_STRIDE, pix2, i_stride );\
+    scores[3] = pixel_sad_##size( fenc, FENC_STRIDE, pix3, i_stride );\
+}
+
+SAD_X( 16x16_altivec )
+SAD_X( 16x8_altivec )
+SAD_X( 8x16_altivec )
+SAD_X( 8x8_altivec )
+
 /****************************************************************************
  * x264_pixel_init:
  ****************************************************************************/
@@ -603,6 +623,16 @@ void x264_pixel_altivec_init( x264_pixel_function_t *pixf )
     pixf->sad[PIXEL_8x16]   = pixel_sad_8x16_altivec;
     pixf->sad[PIXEL_16x8]   = pixel_sad_16x8_altivec;
     pixf->sad[PIXEL_8x8]    = pixel_sad_8x8_altivec;
+
+    pixf->sad_x3[PIXEL_16x16] = pixel_sad_x3_16x16_altivec;
+    pixf->sad_x3[PIXEL_8x16]  = pixel_sad_x3_8x16_altivec;
+    pixf->sad_x3[PIXEL_16x8]  = pixel_sad_x3_16x8_altivec;
+    pixf->sad_x3[PIXEL_8x8]   = pixel_sad_x3_8x8_altivec;
+
+    pixf->sad_x4[PIXEL_16x16] = pixel_sad_x4_16x16_altivec;
+    pixf->sad_x4[PIXEL_8x16]  = pixel_sad_x4_8x16_altivec;
+    pixf->sad_x4[PIXEL_16x8]  = pixel_sad_x4_16x8_altivec;
+    pixf->sad_x4[PIXEL_8x8]   = pixel_sad_x4_8x8_altivec;
 
     pixf->satd[PIXEL_16x16] = pixel_satd_16x16_altivec;
     pixf->satd[PIXEL_8x16]  = pixel_satd_8x16_altivec;

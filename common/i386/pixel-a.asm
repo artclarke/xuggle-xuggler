@@ -29,6 +29,8 @@ BITS 32
 
 %include "i386inc.asm"
 
+; sad
+
 %macro SAD_INC_2x16P 0
     movq    mm1,    [eax]
     movq    mm2,    [eax+8]
@@ -71,6 +73,199 @@ BITS 32
     lea     eax,    [eax+2*ebx]
     lea     ecx,    [ecx+2*edx]
 %endmacro
+
+; sad x3 / x4
+
+%macro SAD_X3_START_1x8P 1
+    push    edi
+    push    esi
+    mov     edi,    [esp+12]
+    mov     eax,    [esp+16]
+    mov     ecx,    [esp+20]
+    mov     edx,    [esp+24]
+    mov     esi,    [esp+28]
+    mov%1   mm3,    [edi]
+    mov%1   mm0,    [eax]
+    mov%1   mm1,    [ecx]
+    mov%1   mm2,    [edx]
+    psadbw  mm0,    mm3
+    psadbw  mm1,    mm3
+    psadbw  mm2,    mm3
+%endmacro
+
+%macro SAD_X3_1x8P 3
+    mov%1   mm3,    [edi+%2]
+    mov%1   mm4,    [eax+%3]
+    mov%1   mm5,    [ecx+%3]
+    mov%1   mm6,    [edx+%3]
+    psadbw  mm4,    mm3
+    psadbw  mm5,    mm3
+    psadbw  mm6,    mm3
+    paddw   mm0,    mm4
+    paddw   mm1,    mm5
+    paddw   mm2,    mm6
+%endmacro
+
+%macro SAD_X3_2x16P 1
+%if %1
+    SAD_X3_START_1x8P q
+%else
+    SAD_X3_1x8P q, 0, 0
+%endif
+    SAD_X3_1x8P q, 8, 8
+    SAD_X3_1x8P q, FENC_STRIDE, esi
+    SAD_X3_1x8P q, FENC_STRIDE+8, esi+8
+    add     edi, 2*FENC_STRIDE
+    lea     eax, [eax+2*esi]
+    lea     ecx, [ecx+2*esi]
+    lea     edx, [edx+2*esi]
+%endmacro
+
+%macro SAD_X3_2x8P 1
+%if %1
+    SAD_X3_START_1x8P q
+%else
+    SAD_X3_1x8P q, 0, 0
+%endif
+    SAD_X3_1x8P q, FENC_STRIDE, esi
+    add     edi, 2*FENC_STRIDE
+    lea     eax, [eax+2*esi]
+    lea     ecx, [ecx+2*esi]
+    lea     edx, [edx+2*esi]
+%endmacro
+
+%macro SAD_X3_2x4P 1
+%if %1
+    SAD_X3_START_1x8P d
+%else
+    SAD_X3_1x8P d, 0, 0
+%endif
+    SAD_X3_1x8P d, FENC_STRIDE, esi
+    add     edi, 2*FENC_STRIDE
+    lea     eax, [eax+2*esi]
+    lea     ecx, [ecx+2*esi]
+    lea     edx, [edx+2*esi]
+%endmacro
+
+%macro SAD_X4_START_1x8P 1
+    push    edi
+    push    esi
+    push    ebx
+    mov     edi,    [esp+16]
+    mov     eax,    [esp+20]
+    mov     ebx,    [esp+24]
+    mov     ecx,    [esp+28]
+    mov     edx,    [esp+32]
+    mov     esi,    [esp+36]
+    mov%1   mm7,    [edi]
+    mov%1   mm0,    [eax]
+    mov%1   mm1,    [ebx]
+    mov%1   mm2,    [ecx]
+    mov%1   mm3,    [edx]
+    psadbw  mm0,    mm7
+    psadbw  mm1,    mm7
+    psadbw  mm2,    mm7
+    psadbw  mm3,    mm7
+%endmacro
+
+%macro SAD_X4_1x8P 2
+    movq    mm7,    [edi+%1]
+    movq    mm4,    [eax+%2]
+    movq    mm5,    [ebx+%2]
+    movq    mm6,    [ecx+%2]
+    psadbw  mm4,    mm7
+    psadbw  mm5,    mm7
+    psadbw  mm6,    mm7
+    psadbw  mm7,    [edx+%2]
+    paddw   mm0,    mm4
+    paddw   mm1,    mm5
+    paddw   mm2,    mm6
+    paddw   mm3,    mm7
+%endmacro
+
+%macro SAD_X4_1x4P 2
+    movd    mm7,    [edi+%1]
+    movd    mm4,    [eax+%2]
+    movd    mm5,    [ebx+%2]
+    movd    mm6,    [ecx+%2]
+    psadbw  mm4,    mm7
+    psadbw  mm5,    mm7
+    paddw   mm0,    mm4
+    psadbw  mm6,    mm7
+    movd    mm4,    [edx+%2]
+    paddw   mm1,    mm5
+    psadbw  mm4,    mm7
+    paddw   mm2,    mm6
+    paddw   mm3,    mm4
+%endmacro
+
+%macro SAD_X4_2x16P 1
+%if %1
+    SAD_X4_START_1x8P q
+%else
+    SAD_X4_1x8P 0, 0
+%endif
+    SAD_X4_1x8P 8, 8
+    SAD_X4_1x8P FENC_STRIDE, esi
+    SAD_X4_1x8P FENC_STRIDE+8, esi+8
+    add     edi, 2*FENC_STRIDE
+    lea     eax, [eax+2*esi]
+    lea     ebx, [ebx+2*esi]
+    lea     ecx, [ecx+2*esi]
+    lea     edx, [edx+2*esi]
+%endmacro
+
+%macro SAD_X4_2x8P 1
+%if %1
+    SAD_X4_START_1x8P q
+%else
+    SAD_X4_1x8P 0, 0
+%endif
+    SAD_X4_1x8P FENC_STRIDE, esi
+    add     edi, 2*FENC_STRIDE
+    lea     eax, [eax+2*esi]
+    lea     ebx, [ebx+2*esi]
+    lea     ecx, [ecx+2*esi]
+    lea     edx, [edx+2*esi]
+%endmacro
+
+%macro SAD_X4_2x4P 1
+%if %1
+    SAD_X4_START_1x8P d
+%else
+    SAD_X4_1x4P 0, 0
+%endif
+    SAD_X4_1x4P FENC_STRIDE, esi
+    add     edi, 2*FENC_STRIDE
+    lea     eax, [eax+2*esi]
+    lea     ebx, [ebx+2*esi]
+    lea     ecx, [ecx+2*esi]
+    lea     edx, [edx+2*esi]
+%endmacro
+
+%macro SAD_X3_END 0
+    mov     eax,  [esp+32]
+    movd    [eax+0], mm0
+    movd    [eax+4], mm1  
+    movd    [eax+8], mm2
+    pop     esi
+    pop     edi
+    ret
+%endmacro
+
+%macro SAD_X4_END 0
+    mov     eax,  [esp+40]
+    movd    [eax+0], mm0
+    movd    [eax+4], mm1  
+    movd    [eax+8], mm2
+    movd    [eax+12], mm3
+    pop     ebx
+    pop     esi
+    pop     edi
+    ret
+%endmacro
+
+; ssd
 
 %macro SSD_INC_1x16P 0
     movq    mm1,    [eax]
@@ -168,6 +363,8 @@ BITS 32
     SSD_INC_1x4P
 %endmacro
 
+; satd
+
 %macro LOAD_DIFF_4P 4  ; MMP, MMT, [pix1], [pix2]
     movd        %1, %3
     movd        %2, %4
@@ -261,6 +458,22 @@ cglobal x264_pixel_sad_8x8_mmxext
 cglobal x264_pixel_sad_8x4_mmxext
 cglobal x264_pixel_sad_4x8_mmxext
 cglobal x264_pixel_sad_4x4_mmxext
+
+cglobal x264_pixel_sad_x3_16x16_mmxext
+cglobal x264_pixel_sad_x3_16x8_mmxext
+cglobal x264_pixel_sad_x3_8x16_mmxext
+cglobal x264_pixel_sad_x3_8x8_mmxext
+cglobal x264_pixel_sad_x3_8x4_mmxext
+cglobal x264_pixel_sad_x3_4x8_mmxext
+cglobal x264_pixel_sad_x3_4x4_mmxext
+
+cglobal x264_pixel_sad_x4_16x16_mmxext
+cglobal x264_pixel_sad_x4_16x8_mmxext
+cglobal x264_pixel_sad_x4_8x16_mmxext
+cglobal x264_pixel_sad_x4_8x8_mmxext
+cglobal x264_pixel_sad_x4_8x4_mmxext
+cglobal x264_pixel_sad_x4_4x8_mmxext
+cglobal x264_pixel_sad_x4_4x4_mmxext
 
 cglobal x264_pixel_sad_pde_16x16_mmxext
 cglobal x264_pixel_sad_pde_16x8_mmxext
@@ -386,6 +599,36 @@ x264_pixel_sad_4x4_mmxext:
     SAD_INC_2x4P
     SAD_INC_2x4P
     SAD_END
+
+
+;-----------------------------------------------------------------------------
+;  void x264_pixel_sad_x3_16x16_mmxext( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1,
+;                                       uint8_t *pix2, int i_stride, int scores[3] )
+;-----------------------------------------------------------------------------
+%macro SAD_X 3
+ALIGN 16
+x264_pixel_sad_x%1_%2x%3_mmxext:
+    SAD_X%1_2x%2P 1
+%rep %3/2-1
+    SAD_X%1_2x%2P 0
+%endrep
+    SAD_X%1_END
+%endmacro
+
+SAD_X 3, 16, 16
+SAD_X 3, 16,  8
+SAD_X 3,  8, 16
+SAD_X 3,  8,  8
+SAD_X 3,  8,  4
+SAD_X 3,  4,  8
+SAD_X 3,  4,  4
+SAD_X 4, 16, 16
+SAD_X 4, 16,  8
+SAD_X 4,  8, 16
+SAD_X 4,  8,  8
+SAD_X 4,  8,  4
+SAD_X 4,  4,  8
+SAD_X 4,  4,  4
 
 
 %macro PDE_CHECK 0

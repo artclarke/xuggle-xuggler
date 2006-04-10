@@ -38,6 +38,10 @@ SECTION .text
 
 cglobal x264_pixel_sad_16x16_sse2
 cglobal x264_pixel_sad_16x8_sse2
+cglobal x264_pixel_sad_x3_16x16_sse2
+cglobal x264_pixel_sad_x3_16x8_sse2
+cglobal x264_pixel_sad_x4_16x16_sse2
+cglobal x264_pixel_sad_x4_16x8_sse2
 cglobal x264_pixel_ssd_16x16_sse2
 cglobal x264_pixel_ssd_16x8_sse2
 cglobal x264_pixel_satd_8x4_sse2
@@ -163,6 +167,158 @@ x264_pixel_sad_16x8_sse2:
     SAD_INC_4x16P_SSE2
     SAD_INC_4x16P_SSE2
     SAD_END_SSE2
+
+
+%macro SAD_X3_START_1x16P 0
+    push    edi
+    push    esi
+    mov     edi,    [esp+12]
+    mov     eax,    [esp+16]
+    mov     ecx,    [esp+20]
+    mov     edx,    [esp+24]
+    mov     esi,    [esp+28]
+    movdqa  xmm3,   [edi]
+    movdqu  xmm0,   [eax]
+    movdqu  xmm1,   [ecx]
+    movdqu  xmm2,   [edx]
+    psadbw  xmm0,   xmm3
+    psadbw  xmm1,   xmm3
+    psadbw  xmm2,   xmm3
+%endmacro
+
+%macro SAD_X3_1x16P 2
+    movdqa  xmm3,   [edi+%1]
+    movdqu  xmm4,   [eax+%2]
+    movdqu  xmm5,   [ecx+%2]
+    movdqu  xmm6,   [edx+%2]
+    psadbw  xmm4,   xmm3
+    psadbw  xmm5,   xmm3
+    psadbw  xmm6,   xmm3
+    paddw   xmm0,   xmm4
+    paddw   xmm1,   xmm5
+    paddw   xmm2,   xmm6
+%endmacro
+
+%macro SAD_X3_2x16P 1
+%if %1
+    SAD_X3_START_1x16P
+%else
+    SAD_X3_1x16P 0, 0
+%endif
+    SAD_X3_1x16P FENC_STRIDE, esi
+    add     edi, 2*FENC_STRIDE
+    lea     eax, [eax+2*esi]
+    lea     ecx, [ecx+2*esi]
+    lea     edx, [edx+2*esi]
+%endmacro
+
+%macro SAD_X4_START_1x16P 0
+    push    edi
+    push    esi
+    push    ebx
+    mov     edi,    [esp+16]
+    mov     eax,    [esp+20]
+    mov     ebx,    [esp+24]
+    mov     ecx,    [esp+28]
+    mov     edx,    [esp+32]
+    mov     esi,    [esp+36]
+    movdqa  xmm7,   [edi]
+    movdqu  xmm0,   [eax]
+    movdqu  xmm1,   [ebx]
+    movdqu  xmm2,   [ecx]
+    movdqu  xmm3,   [edx]
+    psadbw  xmm0,   xmm7
+    psadbw  xmm1,   xmm7
+    psadbw  xmm2,   xmm7
+    psadbw  xmm3,   xmm7
+%endmacro
+
+%macro SAD_X4_1x16P 2
+    movdqa  xmm7,   [edi+%1]
+    movdqu  xmm4,   [eax+%2]
+    movdqu  xmm5,   [ebx+%2]
+    movdqu  xmm6,   [ecx+%2]
+    psadbw  xmm4,   xmm7
+    psadbw  xmm5,   xmm7
+    paddw   xmm0,   xmm4
+    psadbw  xmm6,   xmm7
+    movdqu  xmm4,   [edx+%2]
+    paddw   xmm1,   xmm5
+    psadbw  xmm4,   xmm7
+    paddw   xmm2,   xmm6
+    paddw   xmm3,   xmm4
+%endmacro
+
+%macro SAD_X4_2x16P 1
+%if %1
+    SAD_X4_START_1x16P
+%else
+    SAD_X4_1x16P 0, 0
+%endif
+    SAD_X4_1x16P FENC_STRIDE, esi
+    add     edi, 2*FENC_STRIDE
+    lea     eax, [eax+2*esi]
+    lea     ebx, [ebx+2*esi]
+    lea     ecx, [ecx+2*esi]
+    lea     edx, [edx+2*esi]
+%endmacro
+
+%macro SAD_X3_END 0
+    mov     eax,  [esp+32]
+    pshufd  xmm4, xmm0, 2
+    pshufd  xmm5, xmm1, 2
+    pshufd  xmm6, xmm2, 2
+    paddw   xmm0, xmm4
+    paddw   xmm1, xmm5
+    paddw   xmm2, xmm6
+    movd    [eax+0], xmm0
+    movd    [eax+4], xmm1
+    movd    [eax+8], xmm2
+    pop     esi
+    pop     edi
+    ret
+%endmacro
+
+%macro SAD_X4_END 0
+    mov     eax,  [esp+40]
+    pshufd  xmm4, xmm0, 2
+    pshufd  xmm5, xmm1, 2
+    pshufd  xmm6, xmm2, 2
+    pshufd  xmm7, xmm3, 2
+    paddw   xmm0, xmm4
+    paddw   xmm1, xmm5
+    paddw   xmm2, xmm6
+    paddw   xmm3, xmm7
+    movd    [eax+0], xmm0
+    movd    [eax+4], xmm1
+    movd    [eax+8], xmm2
+    movd    [eax+12], xmm3
+    pop     ebx
+    pop     esi
+    pop     edi
+    ret
+%endmacro
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;  void x264_pixel_sad_x3_16x16_sse2( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1,
+;                                     uint8_t *pix2, int i_stride, int scores[3] )
+;-----------------------------------------------------------------------------
+%macro SAD_X 3
+ALIGN 16
+x264_pixel_sad_x%1_%2x%3_sse2:
+    SAD_X%1_2x%2P 1
+%rep %3/2-1
+    SAD_X%1_2x%2P 0
+%endrep
+    SAD_X%1_END
+%endmacro
+
+SAD_X 3, 16, 16
+SAD_X 3, 16,  8
+SAD_X 4, 16, 16
+SAD_X 4, 16,  8
+
 
 %macro SSD_INC_2x16P_SSE2 0
     movdqu  xmm1,   [eax]

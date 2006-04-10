@@ -61,6 +61,36 @@ static int check_pixel( int cpu_ref, int cpu_new )
     TEST_PIXEL( ssd );
     TEST_PIXEL( satd );
 
+#define TEST_PIXEL_X( N ) \
+    for( i = 0, ok = 1, used_asm = 0; i < 7; i++ ) \
+    { \
+        int res_c[4]={0}, res_asm[4]={0}; \
+        if( pixel_asm.sad_x##N[i] && pixel_asm.sad_x##N[i] != pixel_ref.sad_x##N[i] ) \
+        { \
+            used_asm = 1; \
+            res_c[0] = pixel_c.sad[i]( buf1, 16, buf2, 24 ); \
+            res_c[1] = pixel_c.sad[i]( buf1, 16, buf2+30, 24 ); \
+            res_c[2] = pixel_c.sad[i]( buf1, 16, buf2+1, 24 ); \
+            if(N==4) \
+            { \
+                res_c[3] = pixel_c.sad[i]( buf1, 16, buf2+99, 24 ); \
+                pixel_asm.sad_x4[i]( buf1, buf2, buf2+30, buf2+1, buf2+99, 24, res_asm ); \
+            } \
+            else \
+                pixel_asm.sad_x3[i]( buf1, buf2, buf2+30, buf2+1, 24, res_asm ); \
+            if( memcmp(res_c, res_asm, sizeof(res_c)) ) \
+            { \
+                ok = 0; \
+                fprintf( stderr, "sad_x"#N"[%d]: %d,%d,%d,%d != %d,%d,%d,%d [FAILED]\n", \
+                         i, res_c[0], res_c[1], res_c[2], res_c[3], \
+                         res_asm[0], res_asm[1], res_asm[2], res_asm[3] ); \
+            } \
+        } \
+    } \
+    report( "pixel sad_x"#N" :" );
+
+    TEST_PIXEL_X(3);
+    TEST_PIXEL_X(4);
     return ret;
 }
 
