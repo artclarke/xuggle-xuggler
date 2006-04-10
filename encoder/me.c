@@ -508,37 +508,30 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
     refine_subpel( h, m, hpel, qpel, NULL, 1 );
 }
 
-#define COST_MV_SAD( mx, my, dir ) \
-if( b_refine_qpel || (dir^1) != odir ) \
+#define COST_MV_SAD( mx, my ) \
 { \
     int stride = 16; \
-    uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix, &stride, mx, my, bw, bh ); \
+    uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix[0], &stride, mx, my, bw, bh ); \
     int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE, src, stride ) \
              + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
-    if( cost < bcost ) \
-    {                  \
-        bcost = cost;  \
-        bmx = mx;      \
-        bmy = my;      \
-        bdir = dir;    \
-    } \
+    COPY3_IF_LT( bcost, cost, bmx, mx, bmy, my ); \
 }
 
 #define COST_MV_SATD( mx, my, dir ) \
 if( b_refine_qpel || (dir^1) != odir ) \
 { \
     int stride = 16; \
-    uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix, &stride, mx, my, bw, bh ); \
+    uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix[0], &stride, mx, my, bw, bh ); \
     int cost = h->pixf.mbcmp[i_pixel]( m->p_fenc[0], FENC_STRIDE, src, stride ) \
              + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
     if( b_chroma_me && cost < bcost ) \
     { \
-        h->mc.mc_chroma( m->p_fref[4], m->i_stride[1], pix, 8, mx, my, bw/2, bh/2 ); \
-        cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[1], FENC_STRIDE, pix, 8 ); \
+        h->mc.mc_chroma( m->p_fref[4], m->i_stride[1], pix[0], 8, mx, my, bw/2, bh/2 ); \
+        cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[1], FENC_STRIDE, pix[0], 8 ); \
         if( cost < bcost ) \
         { \
-            h->mc.mc_chroma( m->p_fref[5], m->i_stride[1], pix, 8, mx, my, bw/2, bh/2 ); \
-            cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[2], FENC_STRIDE, pix, 8 ); \
+            h->mc.mc_chroma( m->p_fref[5], m->i_stride[1], pix[0], 8, mx, my, bw/2, bh/2 ); \
+            cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[2], FENC_STRIDE, pix[0], 8 ); \
         } \
     } \
     if( cost < bcost ) \
@@ -559,7 +552,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     const int i_pixel = m->i_pixel;
     const int b_chroma_me = h->mb.b_chroma_me && i_pixel <= PIXEL_8x8;
 
-    DECLARE_ALIGNED( uint8_t, pix[16*16], 16 );
+    DECLARE_ALIGNED( uint8_t, pix[4][16*16], 16 );
     int omx, omy;
     int i;
 
@@ -575,30 +568,43 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
         int mx = x264_clip3( m->mvp[0], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
         int my = x264_clip3( m->mvp[1], h->mb.mv_min_spel[1], h->mb.mv_max_spel[1] );
         if( mx != bmx || my != bmy )
-            COST_MV_SAD( mx, my, -1 );
+            COST_MV_SAD( mx, my );
     }
-    
-    /* hpel search */
-    bdir = -1;
+
+    /* halfpel diamond search */
     for( i = hpel_iters; i > 0; i-- )
     {
-        odir = bdir;
-        omx = bmx;
-        omy = bmy;
-        COST_MV_SAD( omx, omy - 2, 0 );
-        COST_MV_SAD( omx, omy + 2, 1 );
-        COST_MV_SAD( omx - 2, omy, 2 );
-        COST_MV_SAD( omx + 2, omy, 3 );
+        int omx = bmx, omy = bmy;
+        int costs[4];
+        int stride = 16; // candidates are either all hpel or all qpel, so one stride is enough
+        uint8_t *src0, *src1, *src2, *src3;
+        src0 = h->mc.get_ref( m->p_fref, m->i_stride[0], pix[0], &stride, omx, omy-2, bw, bh );
+        src2 = h->mc.get_ref( m->p_fref, m->i_stride[0], pix[2], &stride, omx-2, omy, bw, bh );
+        if( (omx|omy)&1 )
+        {
+            src1 = h->mc.get_ref( m->p_fref, m->i_stride[0], pix[1], &stride, omx, omy+2, bw, bh );
+            src3 = h->mc.get_ref( m->p_fref, m->i_stride[0], pix[3], &stride, omx+2, omy, bw, bh );
+        }
+        else
+        {
+            src1 = src0 + stride;
+            src3 = src2 + 1;
+        }
+        h->pixf.sad_x4[i_pixel]( m->p_fenc[0], src0, src1, src2, src3, stride, costs );
+        COPY2_IF_LT( bcost, costs[0] + p_cost_mvx[omx  ] + p_cost_mvy[omy-2], bmy, omy-2 );
+        COPY2_IF_LT( bcost, costs[1] + p_cost_mvx[omx  ] + p_cost_mvy[omy+2], bmy, omy+2 );
+        COPY3_IF_LT( bcost, costs[2] + p_cost_mvx[omx-2] + p_cost_mvy[omy  ], bmx, omx-2, bmy, omy );
+        COPY3_IF_LT( bcost, costs[3] + p_cost_mvx[omx+2] + p_cost_mvy[omy  ], bmx, omx+2, bmy, omy );
         if( bmx == omx && bmy == omy )
             break;
     }
-    
+
     if( !b_refine_qpel )
     {
         bcost = COST_MAX;
         COST_MV_SATD( bmx, bmy, -1 );
     }
-    
+
     /* early termination when examining multiple reference frames */
     if( p_halfpel_thresh )
     {
@@ -614,7 +620,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
             *p_halfpel_thresh = bcost;
     }
 
-    /* qpel search */
+    /* quarterpel diamond search */
     bdir = -1;
     for( i = qpel_iters; i > 0; i-- )
     {
