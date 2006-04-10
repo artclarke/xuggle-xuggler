@@ -44,35 +44,6 @@ static const int subpel_iterations[][4] =
 
 static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters, int *p_halfpel_thresh, int b_refine_qpel );
 
-#define BITS_MVD( mx, my )\
-     (p_cost_mvx[(mx)<<2] + p_cost_mvy[(my)<<2])
-
-#define COST_MV( mx, my ) \
-{ \
-    int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE, \
-                   &p_fref[(my)*m->i_stride[0]+(mx)], m->i_stride[0] ) \
-             + BITS_MVD(mx,my); \
-    if( cost < bcost ) \
-    {                  \
-        bcost = cost;  \
-        bmx = mx;      \
-        bmy = my;      \
-    } \
-}
-
-#define COST_MV_PDE( mx, my ) \
-{ \
-    int cost = h->pixf.sad_pde[i_pixel]( m->p_fenc[0], FENC_STRIDE, \
-                   &p_fref[(my)*m->i_stride[0]+(mx)], m->i_stride[0], \
-                   bcost - p_cost_mvx[ (mx)<<2 ] - p_cost_mvy[ (my)<<2 ] ); \
-    if( cost < bcost - BITS_MVD(mx,my) ) \
-    { \
-        bcost = cost + BITS_MVD(mx,my); \
-        bmx = mx; \
-        bmy = my; \
-    } \
-}
-
 #define COPY2_IF_LT(x,y,a,b)\
 if((y)<(x))\
 {\
@@ -86,6 +57,17 @@ if((y)<(x))\
     (x)=(y);\
     (a)=(b);\
     (c)=(d);\
+}
+
+#define BITS_MVD( mx, my )\
+    (p_cost_mvx[(mx)<<2] + p_cost_mvy[(my)<<2])
+
+#define COST_MV( mx, my )\
+{\
+    int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE,\
+                   &p_fref[(my)*m->i_stride[0]+(mx)], m->i_stride[0] )\
+             + BITS_MVD(mx,my);\
+    COPY3_IF_LT( bcost, cost, bmx, mx, bmy, my );\
 }
 
 #define COST_MV_X3_DIR( m0x, m0y, m1x, m1y, m2x, m2y, costs )\
@@ -120,6 +102,24 @@ if((y)<(x))\
     COPY3_IF_LT( bcost, costs[3], bmx, omx+(m3x), bmy, omy+(m3y) );\
 }
 
+#define COST_MV_X4_ABS( m0x, m0y, m1x, m1y, m2x, m2y, m3x, m3y )\
+{\
+    h->pixf.sad_x4[i_pixel]( m->p_fenc[0],\
+        p_fref + (m0x) + (m0y)*m->i_stride[0],\
+        p_fref + (m1x) + (m1y)*m->i_stride[0],\
+        p_fref + (m2x) + (m2y)*m->i_stride[0],\
+        p_fref + (m3x) + (m3y)*m->i_stride[0],\
+        m->i_stride[0], costs );\
+    costs[0] += BITS_MVD( m0x, m0y );\
+    costs[1] += BITS_MVD( m1x, m1y );\
+    costs[2] += BITS_MVD( m2x, m2y );\
+    costs[3] += BITS_MVD( m3x, m3y );\
+    COPY3_IF_LT( bcost, costs[0], bmx, m0x, bmy, m0y );\
+    COPY3_IF_LT( bcost, costs[1], bmx, m1x, bmy, m1y );\
+    COPY3_IF_LT( bcost, costs[2], bmx, m2x, bmy, m2y );\
+    COPY3_IF_LT( bcost, costs[3], bmx, m3x, bmy, m3y );\
+}
+
 /*  1  */
 /* 101 */
 /*  1  */
@@ -129,23 +129,31 @@ if((y)<(x))\
     COST_MV_X4( 0,-1, 0,1, -1,0, 1,0 );\
 }
 
-#define CROSS( start, x_max, y_max ) \
-    { \
-        for( i = start; i < x_max; i+=2 ) \
-        { \
-            if( omx + i <= mv_x_max ) \
-                COST_MV( omx + i, omy ); \
-            if( omx - i >= mv_x_min ) \
-                COST_MV( omx - i, omy ); \
-        } \
-        for( i = start; i < y_max; i+=2 ) \
-        { \
-            if( omy + i <= mv_y_max ) \
-                COST_MV( omx, omy + i ); \
-            if( omy - i >= mv_y_min ) \
-                COST_MV( omx, omy - i ); \
-        } \
-    }
+#define CROSS( start, x_max, y_max )\
+{\
+    i = start;\
+    if( x_max <= X264_MIN(mv_x_max-omx, omx-mv_x_min) )\
+        for( ; i < x_max-2; i+=4 )\
+            COST_MV_X4( i,0, -i,0, i+2,0, -i-2,0 );\
+    for( ; i < x_max; i+=2 )\
+    {\
+        if( omx+i <= mv_x_max )\
+            COST_MV( omx+i, omy );\
+        if( omx-i >= mv_x_min )\
+            COST_MV( omx-i, omy );\
+    }\
+    i = start;\
+    if( y_max <= X264_MIN(mv_y_max-omy, omy-mv_y_min) )\
+        for( ; i < y_max-2; i+=4 )\
+            COST_MV_X4( 0,i, 0,-i, 0,i+2, 0,-i-2 );\
+    for( ; i < y_max; i+=2 )\
+    {\
+        if( omy+i <= mv_y_max )\
+            COST_MV( omx, omy+i );\
+        if( omy-i >= mv_y_min )\
+            COST_MV( omx, omy-i );\
+    }\
+}
 
 
 void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int *p_halfpel_thresh )
@@ -441,31 +449,28 @@ me_hex2:
             const int enc_dc = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE, zero, 16 );
             const uint16_t *integral_base = &m->integral[ -1 - 1*stride ];
 
-            if( h->pixf.sad_pde[i_pixel] )
+            for( my = min_y; my <= max_y; my++ )
             {
-                for( my = min_y; my <= max_y; my++ )
-                    for( mx = min_x; mx <= max_x; mx++ )
+                int mvs[3], i_mvs=0;
+                for( mx = min_x; mx <= max_x; mx++ )
+                {
+                    const uint16_t *integral = &integral_base[ mx + my * stride ];
+                    const uint16_t ref_dc = integral[  0 ] + integral[ dh + dw ]
+                                          - integral[ dw ] - integral[ dh ];
+                    const int bsad = bcost - BITS_MVD(mx,my);
+                    if( abs( ref_dc - enc_dc ) < bsad )
                     {
-                        const uint16_t *integral = &integral_base[ mx + my * stride ];
-                        const uint16_t ref_dc = integral[  0 ] + integral[ dh + dw ]
-                                              - integral[ dw ] - integral[ dh ];
-                        const int bsad = bcost - BITS_MVD(mx,my);
-                        if( abs( ref_dc - enc_dc ) < bsad )
-                            COST_MV_PDE( mx, my );
+                        if( i_mvs == 3 )
+                        {
+                            COST_MV_X4_ABS( mvs[0],my, mvs[1],my, mvs[2],my, mx,my );
+                            i_mvs = 0;
+                        }
+                        else
+                            mvs[i_mvs++] = mx;
                     }
-            }
-            else
-            {
-                for( my = min_y; my <= max_y; my++ )
-                    for( mx = min_x; mx <= max_x; mx++ )
-                    {
-                        const uint16_t *integral = &integral_base[ mx + my * stride ];
-                        const uint16_t ref_dc = integral[  0 ] + integral[ dh + dw ]
-                                              - integral[ dw ] - integral[ dh ];
-                        const int bsad = bcost - BITS_MVD(mx,my);
-                        if( abs( ref_dc - enc_dc ) < bsad )
-                            COST_MV( mx, my );
-                    }
+                }
+                for( i=0; i<i_mvs; i++ )
+                    COST_MV( mvs[i], my );
             }
 #endif
         }
