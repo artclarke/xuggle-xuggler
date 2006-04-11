@@ -354,8 +354,13 @@ EXE=$EXE
 VIS=$vis
 HAVE_GETOPT_LONG=$HAVE_GETOPT_LONG
 DEVNULL=$DEVNULL
-CONFIGURE_ARGS=$@
 EOF
+
+echo -n 'CONFIGURE_ARGS=' >> config.mak
+for A in "$@" ; do
+    echo -n " '$A'" >> config.mak
+done
+echo '' >> config.mak
 
 cp config.mak gtk/config.mak
 
