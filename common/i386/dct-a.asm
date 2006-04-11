@@ -78,8 +78,8 @@ BITS 32
 %macro MMX_SUMSUBD2_AB 4
     movq    %4, %1
     movq    %3, %2
-    psraw   %2, $1
-    psraw   %4, $1
+    psraw   %2, 1
+    psraw   %4, 1
     paddw   %1, %2
     psubw   %4, %3
 %endmacro
@@ -108,7 +108,7 @@ BITS 32
 
 %macro MMX_STORE_DIFF_4P 5
     paddw       %1, %3
-    psraw       %1, $6
+    psraw       %1, 6
     movd        %2, %5
     punpcklbw   %2, %4
     paddsw      %1, %2
