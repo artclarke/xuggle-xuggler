@@ -355,13 +355,6 @@ SAD_X 4, 16,  8
     paddd   xmm0,   xmm3
 %endmacro
 
-%macro SSD_INC_8x16P_SSE2 0
-    SSD_INC_2x16P_SSE2
-    SSD_INC_2x16P_SSE2
-    SSD_INC_2x16P_SSE2
-    SSD_INC_2x16P_SSE2
-%endmacro
-
 %macro SSD_START_SSE2 0
     push    ebx
 
@@ -395,8 +388,9 @@ ALIGN 16
 ;-----------------------------------------------------------------------------
 x264_pixel_ssd_16x16_sse2:
     SSD_START_SSE2
-    SSD_INC_8x16P_SSE2
-    SSD_INC_8x16P_SSE2
+%rep 8
+    SSD_INC_2x16P_SSE2
+%endrep
     SSD_END_SSE2
 
 ALIGN 16
@@ -405,7 +399,9 @@ ALIGN 16
 ;-----------------------------------------------------------------------------
 x264_pixel_ssd_16x8_sse2:
     SSD_START_SSE2
-    SSD_INC_8x16P_SSE2
+%rep 4
+    SSD_INC_2x16P_SSE2
+%endrep
     SSD_END_SSE2
 
 ; %1=(row2, row0) %2=(row3, row1) %3=junk
