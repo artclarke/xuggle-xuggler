@@ -326,16 +326,6 @@ BITS 64
     psubw       %1, %2
 %endmacro
 
-; in: %1 = horizontal offset
-; out: mm4..mm7 = 16bit diffs
-; clobber: mm3
-%macro LOAD_DIFF_4x4 1
-    LOAD_DIFF_4P mm4, mm3, [parm1q+%1],          [parm3q+%1]
-    LOAD_DIFF_4P mm5, mm3, [parm1q+parm2q+%1],   [parm3q+parm4q+%1]
-    LOAD_DIFF_4P mm6, mm3, [parm1q+2*parm2q+%1], [parm3q+2*parm4q+%1]
-    LOAD_DIFF_4P mm7, mm3, [parm1q+r10+%1],      [parm3q+r11+%1]
-%endmacro
-
 %macro HADAMARD4_SUB_BADC 4
     paddw %1,   %2
     paddw %3,   %4
@@ -369,20 +359,21 @@ BITS 64
     SBUTTERFLYdq %5, %2, %3
 %endmacro
 
-%macro MMX_ABS 2        ; mma, mmt
-    pxor    %2, %2
-    psubw   %2, %1
-    pmaxsw  %1, %2
+%macro MMX_ABS_TWO 4    ; mma, mmb, tmp0, tmp1
+    pxor    %3, %3
+    pxor    %4, %4
+    psubw   %3, %1
+    psubw   %4, %2
+    pmaxsw  %1, %3
+    pmaxsw  %2, %4
 %endmacro
 
 %macro HADAMARD4x4_SUM 1    ; %1 = dest (row sum of one block)
     HADAMARD4x4 mm4, mm5, mm6, mm7
     TRANSPOSE4x4 mm4, mm5, mm6, mm7, %1
     HADAMARD4x4 mm4, mm7, %1, mm6
-    MMX_ABS     mm4, mm5
-    MMX_ABS     mm7, mm5
-    MMX_ABS     %1,  mm5
-    MMX_ABS     mm6, mm5
+    MMX_ABS_TWO mm4, mm7, mm3, mm5
+    MMX_ABS_TWO %1,  mm6, mm3, mm5
     paddw       %1,  mm4
     paddw       mm6, mm7
     pavgw       %1,  mm6
@@ -394,7 +385,10 @@ BITS 64
 ; clobber: mm3..mm7
 ; out: %1 = satd
 %macro LOAD_DIFF_HADAMARD_SUM 3
-    LOAD_DIFF_4x4 %2
+    LOAD_DIFF_4P mm4, mm3, [parm1q+%2],          [parm3q+%2]
+    LOAD_DIFF_4P mm5, mm3, [parm1q+parm2q+%2],   [parm3q+parm4q+%2]
+    LOAD_DIFF_4P mm6, mm3, [parm1q+2*parm2q+%2], [parm3q+2*parm4q+%2]
+    LOAD_DIFF_4P mm7, mm3, [parm1q+r10+%2],      [parm3q+r11+%2]
 %if %3
     lea  parm1q, [parm1q+4*parm2q]
     lea  parm3q, [parm3q+4*parm4q]
@@ -642,10 +636,10 @@ x264_pixel_satd_8x8_mmxext:
     LOAD_DIFF_HADAMARD_SUM mm0, 0, 0
     LOAD_DIFF_HADAMARD_SUM mm1, 4, 1
     LOAD_DIFF_HADAMARD_SUM mm2, 0, 0
-    LOAD_DIFF_HADAMARD_SUM mm3, 4, 0
     paddw       mm0, mm1
-    paddw       mm2, mm3
+    LOAD_DIFF_HADAMARD_SUM mm1, 4, 0
     paddw       mm0, mm2
+    paddw       mm0, mm1
     SATD_END
 
 ALIGN 16
@@ -657,19 +651,19 @@ x264_pixel_satd_16x8_mmxext:
     LOAD_DIFF_HADAMARD_SUM mm0,  0, 0
     LOAD_DIFF_HADAMARD_SUM mm1,  4, 0
     LOAD_DIFF_HADAMARD_SUM mm2,  8, 0
-    LOAD_DIFF_HADAMARD_SUM mm3, 12, 1
     paddw       mm0, mm1
-    paddw       mm2, mm3
+    LOAD_DIFF_HADAMARD_SUM mm1, 12, 1
     paddw       mm0, mm2
 
-    LOAD_DIFF_HADAMARD_SUM mm1,  0, 0
-    LOAD_DIFF_HADAMARD_SUM mm2,  4, 0
-    paddw       mm1, mm2
-    LOAD_DIFF_HADAMARD_SUM mm2,  8, 0
-    LOAD_DIFF_HADAMARD_SUM mm3, 12, 1
+    LOAD_DIFF_HADAMARD_SUM mm2,  0, 0
     paddw       mm0, mm1
-    paddw       mm2, mm3
+    LOAD_DIFF_HADAMARD_SUM mm1,  4, 0
     paddw       mm0, mm2
+    LOAD_DIFF_HADAMARD_SUM mm2,  8, 0
+    paddw       mm0, mm1
+    LOAD_DIFF_HADAMARD_SUM mm1, 12, 1
+    paddw       mm0, mm2
+    paddw       mm0, mm1
     SATD_END
 
 ALIGN 16
@@ -681,19 +675,19 @@ x264_pixel_satd_8x16_mmxext:
     LOAD_DIFF_HADAMARD_SUM mm0,  0, 0
     LOAD_DIFF_HADAMARD_SUM mm1,  4, 1
     LOAD_DIFF_HADAMARD_SUM mm2,  0, 0
-    LOAD_DIFF_HADAMARD_SUM mm3,  4, 1
     paddw       mm0, mm1
-    paddw       mm2, mm3
+    LOAD_DIFF_HADAMARD_SUM mm1,  4, 1
     paddw       mm0, mm2
 
-    LOAD_DIFF_HADAMARD_SUM mm1,  0, 0
-    LOAD_DIFF_HADAMARD_SUM mm2,  4, 1
+    LOAD_DIFF_HADAMARD_SUM mm2,  0, 0
+    paddw       mm0, mm1
+    LOAD_DIFF_HADAMARD_SUM mm1,  4, 1
     paddw       mm1, mm2
     LOAD_DIFF_HADAMARD_SUM mm2,  0, 0
-    LOAD_DIFF_HADAMARD_SUM mm3,  4, 1
     paddw       mm0, mm1
-    paddw       mm2, mm3
+    LOAD_DIFF_HADAMARD_SUM mm1,  4, 1
     paddw       mm0, mm2
+    paddw       mm0, mm1
     SATD_END
 
 ALIGN 16
@@ -705,37 +699,37 @@ x264_pixel_satd_16x16_mmxext:
     LOAD_DIFF_HADAMARD_SUM mm0,  0, 0
     LOAD_DIFF_HADAMARD_SUM mm1,  4, 0
     LOAD_DIFF_HADAMARD_SUM mm2,  8, 0
-    LOAD_DIFF_HADAMARD_SUM mm3, 12, 1
     paddw       mm0, mm1
-    paddw       mm2, mm3
+    LOAD_DIFF_HADAMARD_SUM mm1, 12, 1
     paddw       mm0, mm2
 
-    LOAD_DIFF_HADAMARD_SUM mm1,  0, 0
-    LOAD_DIFF_HADAMARD_SUM mm2,  4, 0
-    paddw       mm1, mm2
-    LOAD_DIFF_HADAMARD_SUM mm2,  8, 0
-    LOAD_DIFF_HADAMARD_SUM mm3, 12, 1
+    LOAD_DIFF_HADAMARD_SUM mm2,  0, 0
     paddw       mm0, mm1
-    paddw       mm2, mm3
+    LOAD_DIFF_HADAMARD_SUM mm1,  4, 0
+    paddw       mm0, mm2
+    LOAD_DIFF_HADAMARD_SUM mm2,  8, 0
+    paddw       mm0, mm1
+    LOAD_DIFF_HADAMARD_SUM mm1, 12, 1
     paddw       mm0, mm2
 
-    LOAD_DIFF_HADAMARD_SUM mm1,  0, 0
-    LOAD_DIFF_HADAMARD_SUM mm2,  4, 0
-    paddw       mm1, mm2
-    LOAD_DIFF_HADAMARD_SUM mm2,  8, 0
-    LOAD_DIFF_HADAMARD_SUM mm3, 12, 1
+    LOAD_DIFF_HADAMARD_SUM mm2,  0, 0
     paddw       mm0, mm1
-    paddw       mm2, mm3
+    LOAD_DIFF_HADAMARD_SUM mm1,  4, 0
+    paddw       mm0, mm2
+    LOAD_DIFF_HADAMARD_SUM mm2,  8, 0
+    paddw       mm0, mm1
+    LOAD_DIFF_HADAMARD_SUM mm1, 12, 1
     paddw       mm0, mm2
 
-    LOAD_DIFF_HADAMARD_SUM mm1,  0, 0
-    LOAD_DIFF_HADAMARD_SUM mm2,  4, 0
-    paddw       mm1, mm2
-    LOAD_DIFF_HADAMARD_SUM mm2,  8, 0
-    LOAD_DIFF_HADAMARD_SUM mm3, 12, 0
+    LOAD_DIFF_HADAMARD_SUM mm2,  0, 0
     paddw       mm0, mm1
-    paddw       mm2, mm3
+    LOAD_DIFF_HADAMARD_SUM mm1,  4, 0
     paddw       mm0, mm2
+    LOAD_DIFF_HADAMARD_SUM mm2,  8, 0
+    paddw       mm0, mm1
+    LOAD_DIFF_HADAMARD_SUM mm1, 12, 0
+    paddw       mm0, mm2
+    paddw       mm0, mm1
 
     pxor        mm3, mm3
     pshufw      mm1, mm0, 01001110b
