@@ -75,11 +75,22 @@ static inline void pixel_avg_w8( uint8_t *dst,  int i_dst,
                                  uint8_t *src2, int i_src2,
                                  int i_height )
 {
-    /* TODO - optimize */
-    pixel_avg_w4( &dst[0], i_dst, &src1[0], i_src1, &src2[0], i_src2,
-                  i_height );
-    pixel_avg_w4( &dst[4], i_dst, &src1[4], i_src1, &src2[4], i_src2,
-                  i_height );
+    int y;
+    vec_u8_t src1v, src2v;
+    LOAD_ZERO;
+    PREP_LOAD;
+    PREP_STORE8;
+    for( y = 0; y < i_height; y++ )
+    {
+        VEC_LOAD( src1, src1v, 8, vec_u8_t );
+        VEC_LOAD( src2, src2v, 8, vec_u8_t );
+        src1v = vec_avg( src1v, src2v );
+        VEC_STORE8( src1v, dst );
+
+        dst  += i_dst;
+        src1 += i_src1;
+        src2 += i_src2;
+    }
 }
 static inline void pixel_avg_w16( uint8_t *dst,  int i_dst,
                                   uint8_t *src1, int i_src1,
