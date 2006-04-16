@@ -25,10 +25,10 @@
 #define _PPC_DCT_H 1
 
 void x264_sub4x4_dct_altivec( int16_t dct[4][4],
-        uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
+        uint8_t *pix1, uint8_t *pix2 );
 void x264_sub8x8_dct_altivec( int16_t dct[4][4][4],
-        uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
+        uint8_t *pix1, uint8_t *pix2 );
 void x264_sub16x16_dct_altivec( int16_t dct[16][4][4],
-        uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 );
+        uint8_t *pix1, uint8_t *pix2 );
 
 #endif

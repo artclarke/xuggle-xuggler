@@ -431,7 +431,6 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
     }
 #endif
 
-/* FIXME altivec dct is not transposed yet
 #ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC )
     {
@@ -440,6 +439,5 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
         dctf->sub16x16_dct  = x264_sub16x16_dct_altivec;
     }
 #endif
-*/
 }
 
