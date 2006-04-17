@@ -974,16 +974,12 @@ void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx, int b )
 void x264_cabac_encode_bypass( x264_cabac_t *cb, int b )
 {
     cb->i_low <<= 1;
-    cb->i_low += b * cb->i_range;
+    cb->i_low += (((int32_t)b<<31)>>31) & cb->i_range;
 
-    if( cb->i_low >= 0x400 )
+    if( cb->i_low >= 0x400 || cb->i_low < 0x200 )
     {
-        x264_cabac_putbit( cb, 1 );
-        cb->i_low -= 0x400;
-    }
-    else if( cb->i_low < 0x200 )
-    {
-        x264_cabac_putbit( cb, 0 );
+        x264_cabac_putbit( cb, cb->i_low >> 10 );
+        cb->i_low &= 0x3ff;
     }
     else
     {

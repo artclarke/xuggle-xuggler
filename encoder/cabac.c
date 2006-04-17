@@ -255,17 +255,13 @@ static void x264_cabac_mb_intra_chroma_pred_mode( x264_t *h, x264_cabac_t *cb )
         ctx++;
     }
 
-    if( i_mode == 0 )
+    x264_cabac_encode_decision( cb, 64 + ctx, i_mode > 0 );
+    if( i_mode > 0 )
     {
-        x264_cabac_encode_decision( cb, 64 + ctx, 0 );
-    }
-    else
-    {
-        x264_cabac_encode_decision( cb, 64 + ctx, 1 );
-        x264_cabac_encode_decision( cb, 64 + 3, ( i_mode == 1 ? 0 : 1 ) );
+        x264_cabac_encode_decision( cb, 64 + 3, i_mode > 1 );
         if( i_mode > 1 )
         {
-            x264_cabac_encode_decision( cb, 64 + 3, ( i_mode == 2 ? 0 : 1 ) );
+            x264_cabac_encode_decision( cb, 64 + 3, i_mode > 2 );
         }
     }
 }
@@ -347,7 +343,7 @@ static void x264_cabac_mb_cbp_chroma( x264_t *h, x264_cabac_t *cb )
         ctx = 4;
         if( cbp_a == 2 ) ctx++;
         if( cbp_b == 2 ) ctx += 2;
-        x264_cabac_encode_decision( cb, 77 + ctx, h->mb.i_cbp_chroma > 1 ? 1 : 0 );
+        x264_cabac_encode_decision( cb, 77 + ctx, h->mb.i_cbp_chroma > 1 );
     }
 }
 
@@ -396,10 +392,8 @@ void x264_cabac_mb_skip( x264_t *h, int b_skip )
         ctx++;
     }
 
-    if( h->sh.i_type == SLICE_TYPE_P )
-        x264_cabac_encode_decision( &h->cabac, 11 + ctx, b_skip ? 1 : 0 );
-    else /* SLICE_TYPE_B */
-        x264_cabac_encode_decision( &h->cabac, 24 + ctx, b_skip ? 1 : 0 );
+    ctx += (h->sh.i_type == SLICE_TYPE_P) ? 11 : 24;
+    x264_cabac_encode_decision( &h->cabac, ctx, b_skip );
 }
 
 static inline void x264_cabac_mb_sub_p_partition( x264_cabac_t *cb, int i_sub )
@@ -532,10 +526,8 @@ static inline void x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int i_lis
         x264_cabac_encode_ue_bypass( cb, 3, i_abs - 9 );
 
     /* sign */
-    if( mvd > 0 )
-        x264_cabac_encode_bypass( cb, 0 );
-    else if( mvd < 0 )
-        x264_cabac_encode_bypass( cb, 1 );
+    if( mvd )
+        x264_cabac_encode_bypass( cb, mvd < 0 );
 }
 
 static inline void x264_cabac_mb_mvd( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int width, int height )
