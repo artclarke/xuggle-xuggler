@@ -139,7 +139,7 @@ case "$UNAMEM" in
     ARCH="PPC"
     if [ $SYS = MACOSX ]
     then
-      CFLAGS="$CFLAGS -faltivec"
+      CFLAGS="$CFLAGS -faltivec -fastf -mcpu=G4"
     else
       CFLAGS="$CFLAGS -maltivec -mabi=altivec"
     fi
