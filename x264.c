@@ -221,6 +221,7 @@ static void Help( x264_param_t *defaults )
              "                                  - 1: enabled only on the final encode of a MB\n"
              "                                  - 2: enabled on all mode decisions\n"
              "      --no-fast-pskip         Disables early SKIP detection on P-frames\n"
+             "      --no-dct-decimate       Disables coefficient thresholding on P-frames\n"
              "      --nr <integer>          Noise reduction [%d]\n"
              "\n"
              "      --cqm <string>          Preset quant matrices [\"flat\"]\n"
@@ -447,6 +448,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_BIME 318
 #define OPT_NR 319
 #define OPT_THREAD_INPUT 320
+#define OPT_NO_DCT_DECIMATE 321
 
         static struct option long_options[] =
         {
@@ -487,6 +489,7 @@ static int  Parse( int argc, char **argv,
             { "8x8dct",  no_argument,       NULL, '8' },
             { "trellis", required_argument, NULL, 't' },
             { "no-fast-pskip", no_argument, NULL, OPT_NO_FAST_PSKIP },
+            { "no-dct-decimate", no_argument, NULL, OPT_NO_DCT_DECIMATE },
             { "level",   required_argument, NULL, OPT_LEVEL },
             { "ratetol", required_argument, NULL, OPT_RATETOL },
             { "vbv-maxrate", required_argument, NULL, OPT_VBVMAXRATE },
@@ -728,6 +731,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case OPT_NO_FAST_PSKIP:
                 param->analyse.b_fast_pskip = 0;
+                break;
+            case OPT_NO_DCT_DECIMATE:
+                param->analyse.b_dct_decimate = 0;
                 break;
             case OPT_LEVEL:
                 if( atof(optarg) < 6 )

@@ -121,6 +121,7 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.i_mv_range = -1; // set from level_idc
     param->analyse.i_chroma_qp_offset = 0;
     param->analyse.b_fast_pskip = 1;
+    param->analyse.b_dct_decimate = 1;
     param->analyse.b_psnr = 1;
 
     param->i_cqm_preset = X264_CQM_FLAT;
@@ -479,6 +480,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " chroma_qp_offset=%d", p->analyse.i_chroma_qp_offset );
     s += sprintf( s, " slices=%d", p->i_threads );
     s += sprintf( s, " nr=%d", p->analyse.i_noise_reduction );
+    s += sprintf( s, " decimate=%d", p->analyse.b_dct_decimate );
 
     s += sprintf( s, " bframes=%d", p->i_bframe );
     if( p->i_bframe )

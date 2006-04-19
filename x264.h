@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 45
+#define X264_BUILD 46
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -203,6 +203,7 @@ typedef struct
         int          b_mixed_references; /* allow each mb partition in P-frames to have it's own reference number */
         int          i_trellis;  /* trellis RD quantization */
         int          b_fast_pskip; /* early SKIP detection on P-frames */
+        int          b_dct_decimate; /* transform coefficient thresholding on P-frames */
         int          i_noise_reduction; /* adaptive pseudo-deadzone */
 
         int          b_psnr;    /* Do we compute PSNR stats (save a few % of cpu) */
