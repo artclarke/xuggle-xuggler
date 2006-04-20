@@ -253,7 +253,7 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
             int oe = block_idx_x[i]*4 + block_idx_y[i]*4*FENC_STRIDE;
             int od = block_idx_x[i]*4 + block_idx_y[i]*4*FDEC_STRIDE;
             sub_zigzag_4x4( h->dct.block[i].residual_ac, p_src+oe, p_dst+od );
-            dct4x4[0][block_idx_y[i]][block_idx_x[i]] = p_src[oe] - p_dst[od];
+            dct4x4[0][block_idx_x[i]][block_idx_y[i]] = p_src[oe] - p_dst[od];
             p_dst[od] = p_src[oe];
         }
         scan_zigzag_4x4full( h->dct.luma16x16_dc, dct4x4[0] );
