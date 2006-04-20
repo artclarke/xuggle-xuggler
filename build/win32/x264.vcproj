@@ -3,6 +3,7 @@
 	ProjectType="Visual C++"
 	Version="7.10"
 	Name="x264"
+	ProjectGUID="{22E1814D-7955-4456-AEA5-0C9BA7500792}"
 	SccProjectName=""
 	SccLocalPath="">
 	<Platforms>
@@ -22,7 +23,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../common;../../encode;../../decode;../../extras;../..;L:\gpac\include"
-				PreprocessorDefinitions="_DEBUG;_CONSOLE;WIN32;__X264__;HAVE_MMXEXT;HAVE_STDINT_H;AVIS_INPUT;MP4_OUTPUT"
+				PreprocessorDefinitions="_DEBUG;_CONSOLE;WIN32;__X264__;HAVE_MMXEXT;HAVE_STDINT_H;AVIS_INPUT"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="5"
 				UsePrecompiledHeader="2"
@@ -38,7 +39,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="vfw32.lib ..\..\..\gpac\bin\w32_deb\libgpac_static.lib winmm.lib"
+				AdditionalDependencies="vfw32.lib winmm.lib"
 				OutputFile="bin/x264.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
@@ -84,7 +85,7 @@
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="./common;./encode;./decode;../../extras;../..;L:\gpac\include"
-				PreprocessorDefinitions="NDEBUG;_CONSOLE;WIN32;__X264__;HAVE_MMXEXT;HAVE_STDINT_H;AVIS_INPUT;MP4_OUTPUT"
+				PreprocessorDefinitions="NDEBUG;_CONSOLE;WIN32;__X264__;HAVE_MMXEXT;HAVE_STDINT_H;AVIS_INPUT"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="TRUE"
@@ -100,7 +101,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="vfw32.lib ..\..\..\gpac\bin\w32_rel\libgpac_static.lib winmm.lib"
+				AdditionalDependencies="vfw32.lib winmm.lib"
 				OutputFile="bin/x264.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
@@ -204,6 +205,12 @@
 		</File>
 		<File
 			RelativePath="..\..\matroska.h">
+		</File>
+		<File
+			RelativePath="..\..\muxers.c">
+		</File>
+		<File
+			RelativePath="..\..\muxers.h">
 		</File>
 		<File
 			RelativePath="..\..\x264.c">

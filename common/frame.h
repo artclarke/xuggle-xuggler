@@ -24,8 +24,6 @@
 #ifndef _FRAME_H
 #define _FRAME_H 1
 
-#include <inttypes.h>
-
 typedef struct
 {
     /* */

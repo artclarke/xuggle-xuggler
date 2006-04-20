@@ -182,7 +182,7 @@ int x264_rd_cost_i4x4( x264_t *h, int i_lambda2, int i4, int i_mode )
  * Trellis RD quantization
  ****************************************************************************/
 
-#define TRELLIS_SCORE_MAX (1ULL<<50)
+#define TRELLIS_SCORE_MAX ((uint64_t)1<<50)
 #define CABAC_SIZE_BITS 8
 #define SSD_WEIGHT_BITS 5
 #define LAMBDA_BITS 4
