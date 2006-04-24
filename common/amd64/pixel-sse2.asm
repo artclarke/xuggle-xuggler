@@ -45,6 +45,8 @@ cglobal x264_pixel_satd_8x8_sse2
 cglobal x264_pixel_satd_16x8_sse2
 cglobal x264_pixel_satd_8x16_sse2
 cglobal x264_pixel_satd_16x16_sse2
+cglobal x264_pixel_sa8d_8x8_sse2
+cglobal x264_pixel_sa8d_16x16_sse2
 
 %macro SAD_INC_4x16P_SSE2 0
     movdqu  xmm1,   [rdx]
@@ -506,3 +508,110 @@ x264_pixel_satd_8x4_sse2:
 
     SATD_END
 
+
+%macro LOAD_DIFF_8P 4  ; MMP, MMT, [pix1], [pix2]
+    movq        %1, %3
+    movq        %2, %4
+    punpcklbw   %1, %2
+    punpcklbw   %2, %2
+    psubw       %1, %2
+%endmacro
+
+%macro SBUTTERFLY 5
+    mov%1       %5, %3
+    punpckl%2   %3, %4
+    punpckh%2   %5, %4
+%endmacro
+
+;-----------------------------------------------------------------------------
+; input ABCDEFGH output AFHDTECB 
+;-----------------------------------------------------------------------------
+%macro TRANSPOSE8x8 9
+    SBUTTERFLY dqa, wd, %1, %2, %9
+    SBUTTERFLY dqa, wd, %3, %4, %2
+    SBUTTERFLY dqa, wd, %5, %6, %4
+    SBUTTERFLY dqa, wd, %7, %8, %6
+    SBUTTERFLY dqa, dq, %1, %3, %8
+    SBUTTERFLY dqa, dq, %9, %2, %3
+    SBUTTERFLY dqa, dq, %5, %7, %2
+    SBUTTERFLY dqa, dq, %4, %6, %7
+    SBUTTERFLY dqa, qdq, %1, %5, %6
+    SBUTTERFLY dqa, qdq, %9, %4, %5
+    SBUTTERFLY dqa, qdq, %8, %2, %4
+    SBUTTERFLY dqa, qdq, %3, %7, %2
+%endmacro
+
+%macro SUMSUB_BADC 4
+    paddw   %1, %2
+    paddw   %3, %4
+    paddw   %2, %2
+    paddw   %4, %4
+    psubw   %2, %1
+    psubw   %4, %3
+%endmacro
+
+%macro HADAMARD1x8 8
+    SUMSUB_BADC %1, %5, %2, %6
+    SUMSUB_BADC %3, %7, %4, %8
+    SUMSUB_BADC %1, %3, %2, %4
+    SUMSUB_BADC %5, %7, %6, %8
+    SUMSUB_BADC %1, %2, %3, %4
+    SUMSUB_BADC %5, %6, %7, %8
+%endmacro
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   int x264_pixel_sa8d_8x8_sse2( uint8_t *, int, uint8_t *, int )
+;-----------------------------------------------------------------------------
+x264_pixel_sa8d_8x8_sse2:
+    lea  r10, [3*parm2q]
+    lea  r11, [3*parm4q]
+    LOAD_DIFF_8P xmm0, xmm8, [parm1q],          [parm3q]
+    LOAD_DIFF_8P xmm1, xmm9, [parm1q+parm2q],   [parm3q+parm4q]
+    LOAD_DIFF_8P xmm2, xmm8, [parm1q+2*parm2q], [parm3q+2*parm4q]
+    LOAD_DIFF_8P xmm3, xmm9, [parm1q+r10],      [parm3q+r11]
+    lea  parm1q, [parm1q+4*parm2q]
+    lea  parm3q, [parm3q+4*parm4q]
+    LOAD_DIFF_8P xmm4, xmm8, [parm1q],          [parm3q]
+    LOAD_DIFF_8P xmm5, xmm9, [parm1q+parm2q],   [parm3q+parm4q]
+    LOAD_DIFF_8P xmm6, xmm8, [parm1q+2*parm2q], [parm3q+2*parm4q]
+    LOAD_DIFF_8P xmm7, xmm9, [parm1q+r10],      [parm3q+r11]
+    
+    HADAMARD1x8  xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7
+    TRANSPOSE8x8 xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8
+    HADAMARD1x8  xmm0, xmm5, xmm7, xmm3, xmm8, xmm4, xmm2, xmm1
+
+    pxor            xmm10, xmm10
+    SUM4x4_TWO_SSE2 xmm0, xmm1, xmm6, xmm2, xmm3, xmm9, xmm10
+    SUM4x4_TWO_SSE2 xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10
+    SUM_MM_SSE2     xmm10, xmm0
+    add r8d, eax ; preserve rounding for 16x16
+    add eax, 1
+    shr eax, 1
+    ret
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   int x264_pixel_sa8d_16x16_sse2( uint8_t *, int, uint8_t *, int )
+;-----------------------------------------------------------------------------
+;; violates calling convention
+x264_pixel_sa8d_16x16_sse2:
+    xor  r8d, r8d
+    call x264_pixel_sa8d_8x8_sse2 ; pix[0]
+    lea  parm1q, [parm1q+4*parm2q]
+    lea  parm3q, [parm3q+4*parm4q]
+    call x264_pixel_sa8d_8x8_sse2 ; pix[8*stride]
+    lea  r10, [3*parm2q-2]
+    lea  r11, [3*parm4q-2]
+    shl  r10, 2
+    shl  r11, 2
+    sub  parm1q, r10
+    sub  parm3q, r11
+    call x264_pixel_sa8d_8x8_sse2 ; pix[8]
+    lea  parm1q, [parm1q+4*parm2q]
+    lea  parm3q, [parm3q+4*parm4q]
+    call x264_pixel_sa8d_8x8_sse2 ; pix[8*stride+8]
+    mov  eax, r8d
+    add  eax, 1
+    shr  eax, 1
+    ret

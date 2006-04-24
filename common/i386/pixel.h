@@ -67,6 +67,9 @@ int x264_pixel_satd_8x4_mmxext( uint8_t *, int, uint8_t *, int );
 int x264_pixel_satd_4x8_mmxext( uint8_t *, int, uint8_t *, int );
 int x264_pixel_satd_4x4_mmxext( uint8_t *, int, uint8_t *, int );
 
+int x264_pixel_sa8d_16x16_mmxext( uint8_t *, int, uint8_t *, int );
+int x264_pixel_sa8d_8x8_mmxext( uint8_t *, int, uint8_t *, int );
+
 int x264_pixel_sad_16x16_sse2( uint8_t *, int, uint8_t *, int );
 int x264_pixel_sad_16x8_sse2( uint8_t *, int, uint8_t *, int );
 
@@ -83,5 +86,8 @@ int x264_pixel_satd_16x8_sse2( uint8_t *, int, uint8_t *, int );
 int x264_pixel_satd_8x16_sse2( uint8_t *, int, uint8_t *, int );
 int x264_pixel_satd_8x8_sse2( uint8_t *, int, uint8_t *, int );
 int x264_pixel_satd_8x4_sse2( uint8_t *, int, uint8_t *, int );
+
+int x264_pixel_sa8d_16x16_sse2( uint8_t *, int, uint8_t *, int );
+int x264_pixel_sa8d_8x8_sse2( uint8_t *, int, uint8_t *, int );
 
 #endif

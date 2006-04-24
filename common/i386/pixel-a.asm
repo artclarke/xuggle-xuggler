@@ -340,7 +340,7 @@ BITS 32
 
 ; satd
 
-%macro HADAMARD4_SUB_BADC 4
+%macro SUMSUB_BADC 4
     paddw %1,   %2
     paddw %3,   %4
     paddw %2,   %2
@@ -350,8 +350,8 @@ BITS 32
 %endmacro
 
 %macro HADAMARD4x4 4
-    HADAMARD4_SUB_BADC %1, %2, %3, %4
-    HADAMARD4_SUB_BADC %1, %3, %2, %4
+    SUMSUB_BADC %1, %2, %3, %4
+    SUMSUB_BADC %1, %3, %2, %4
 %endmacro
 
 %macro SBUTTERFLYwd 3
@@ -371,6 +371,12 @@ BITS 32
     SBUTTERFLYwd %3, %4, %2
     SBUTTERFLYdq %1, %3, %4
     SBUTTERFLYdq %5, %2, %3
+%endmacro
+
+%macro MMX_ABS 2        ; mma, tmp
+    pxor    %2, %2
+    psubw   %2, %1
+    pmaxsw  %1, %2
 %endmacro
 
 %macro MMX_ABS_TWO 4    ; mma, mmb, tmp0, tmp1
@@ -393,12 +399,12 @@ BITS 32
     pavgw       %1,  mm6
 %endmacro
 
-%macro LOAD_DIFF_4P 3  ; mmp, dx, dy
-    movd        %1, [eax+ebx*%3+%2]
-    movd       mm3, [ecx+edx*%3+%2]
-    punpcklbw   %1, mm3
-    punpcklbw  mm3, mm3
-    psubw       %1, mm3
+%macro LOAD_DIFF_4P 4  ; mmp, mmt, dx, dy
+    movd        %1, [eax+ebx*%4+%3]
+    movd        %2, [ecx+edx*%4+%3]
+    punpcklbw   %1, %2
+    punpcklbw   %2, %2
+    psubw       %1, %2
 %endmacro
 
 ; in: %2 = horizontal offset
@@ -407,21 +413,21 @@ BITS 32
 ; out: %1 = satd
 %macro LOAD_DIFF_HADAMARD_SUM 3
 %if %3
-    LOAD_DIFF_4P mm4, %2, 0
-    LOAD_DIFF_4P mm5, %2, 1
+    LOAD_DIFF_4P mm4, mm3, %2, 0
+    LOAD_DIFF_4P mm5, mm3, %2, 1
     lea  eax, [eax+2*ebx]
     lea  ecx, [ecx+2*edx]
-    LOAD_DIFF_4P mm6, %2, 0
-    LOAD_DIFF_4P mm7, %2, 1
+    LOAD_DIFF_4P mm6, mm3, %2, 0
+    LOAD_DIFF_4P mm7, mm3, %2, 1
     lea  eax, [eax+2*ebx]
     lea  ecx, [ecx+2*edx]
 %else
-    LOAD_DIFF_4P mm4, %2, 0
-    LOAD_DIFF_4P mm6, %2, 2
+    LOAD_DIFF_4P mm4, mm3, %2, 0
+    LOAD_DIFF_4P mm6, mm3, %2, 2
     add  eax, ebx
     add  ecx, edx
-    LOAD_DIFF_4P mm5, %2, 0
-    LOAD_DIFF_4P mm7, %2, 2
+    LOAD_DIFF_4P mm5, mm3, %2, 0
+    LOAD_DIFF_4P mm7, mm3, %2, 2
 %endif
     HADAMARD4x4_SUM %1
 %endmacro
@@ -475,6 +481,9 @@ cglobal x264_pixel_satd_8x8_mmxext
 cglobal x264_pixel_satd_16x8_mmxext
 cglobal x264_pixel_satd_8x16_mmxext
 cglobal x264_pixel_satd_16x16_mmxext
+
+cglobal x264_pixel_sa8d_16x16_mmxext
+cglobal x264_pixel_sa8d_8x8_mmxext
 
 %macro SAD_START 0
     push    ebx
@@ -808,3 +817,162 @@ x264_pixel_satd_16x16_mmxext:
     pop         ebx
     ret
 
+
+%macro LOAD_DIFF_4x8P 1 ; dx
+    LOAD_DIFF_4P  mm0, mm7, %1, 0
+    LOAD_DIFF_4P  mm1, mm7, %1, 1
+    lea  eax, [eax+2*ebx]
+    lea  ecx, [ecx+2*edx]
+    LOAD_DIFF_4P  mm2, mm7, %1, 0
+    LOAD_DIFF_4P  mm3, mm7, %1, 1
+    lea  eax, [eax+2*ebx]
+    lea  ecx, [ecx+2*edx]
+    LOAD_DIFF_4P  mm4, mm7, %1, 0
+    LOAD_DIFF_4P  mm5, mm7, %1, 1
+    lea  eax, [eax+2*ebx]
+    lea  ecx, [ecx+2*edx]
+    LOAD_DIFF_4P  mm6, mm7, %1, 0
+    movq [spill], mm6
+    LOAD_DIFF_4P  mm7, mm6, %1, 1
+    movq mm6, [spill]
+%endmacro
+
+%macro HADAMARD1x8 8
+    SUMSUB_BADC %1, %5, %2, %6
+    SUMSUB_BADC %3, %7, %4, %8
+    SUMSUB_BADC %1, %3, %2, %4
+    SUMSUB_BADC %5, %7, %6, %8
+    SUMSUB_BADC %1, %2, %3, %4
+    SUMSUB_BADC %5, %6, %7, %8
+%endmacro
+
+%macro SUM4x8_MM 0
+    movq [spill], mm7
+    MMX_ABS  mm0, mm7
+    MMX_ABS  mm1, mm7
+    MMX_ABS  mm2, mm7
+    MMX_ABS  mm3, mm7
+    paddw    mm0, mm2
+    paddw    mm1, mm3
+    movq     mm7, [spill]
+    MMX_ABS_TWO  mm4, mm5, mm2, mm3
+    MMX_ABS_TWO  mm6, mm7, mm2, mm3
+    paddw    mm4, mm6
+    paddw    mm5, mm7
+    paddw    mm0, mm4
+    paddw    mm1, mm5
+    paddw    mm0, mm1
+%endmacro
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   int __cdecl x264_pixel_sa8d_8x8_mmxext( uint8_t *, int, uint8_t *, int )
+;-----------------------------------------------------------------------------
+x264_pixel_sa8d_8x8_mmxext:
+    SATD_START
+    sub    esp, 0x68
+%define args  esp+0x6c
+%define spill esp+0x60
+    LOAD_DIFF_4x8P 0
+    HADAMARD1x8 mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
+
+    movq   [spill], mm0
+    TRANSPOSE4x4 mm4, mm5, mm6, mm7, mm0 ; abcd-t -> adtc
+    movq   [esp+0x00], mm4
+    movq   [esp+0x08], mm7
+    movq   [esp+0x10], mm0
+    movq   [esp+0x18], mm6
+    movq   mm0, [spill]
+    TRANSPOSE4x4 mm0, mm1, mm2, mm3, mm4
+    movq   [esp+0x20], mm0
+    movq   [esp+0x28], mm3
+    movq   [esp+0x30], mm4
+    movq   [esp+0x38], mm2
+
+    mov    eax, [args+4]
+    mov    ecx, [args+12]
+    LOAD_DIFF_4x8P 4
+    HADAMARD1x8 mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
+
+    movq   [spill], mm4
+    TRANSPOSE4x4 mm0, mm1, mm2, mm3, mm4
+    movq   [esp+0x40], mm0
+    movq   [esp+0x48], mm3
+    movq   [esp+0x50], mm4
+    movq   [esp+0x58], mm2
+    movq   mm4, [spill]
+    TRANSPOSE4x4 mm4, mm5, mm6, mm7, mm0
+    movq   mm5, [esp+0x00]
+    movq   mm1, [esp+0x08]
+    movq   mm2, [esp+0x10]
+    movq   mm3, [esp+0x18]
+
+    HADAMARD1x8 mm5, mm1, mm2, mm3, mm4, mm7, mm0, mm6
+    SUM4x8_MM
+    movq   [esp], mm0
+
+    movq   mm0, [esp+0x20]
+    movq   mm1, [esp+0x28]
+    movq   mm2, [esp+0x30]
+    movq   mm3, [esp+0x38]
+    movq   mm4, [esp+0x40]
+    movq   mm5, [esp+0x48]
+    movq   mm6, [esp+0x50]
+    movq   mm7, [esp+0x58]
+    
+    HADAMARD1x8 mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
+    SUM4x8_MM
+
+    pavgw  mm0, [esp]
+    pshufw mm1, mm0, 01001110b
+    paddw  mm0, mm1
+    pshufw mm1, mm0, 10110001b
+    paddw  mm0, mm1
+    movd   eax, mm0
+    and    eax, 0xffff
+    mov    ecx, eax ; preserve rounding for 16x16
+    add    eax, 1
+    shr    eax, 1
+    add    esp, 0x68
+    pop    ebx
+    ret
+%undef args
+%undef spill
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   int __cdecl x264_pixel_sa8d_16x16_mmxext( uint8_t *, int, uint8_t *, int )
+;-----------------------------------------------------------------------------
+;; violates calling convention
+x264_pixel_sa8d_16x16_mmxext:
+    push   esi
+    push   edi
+    push   ebp
+    mov    esi, [esp+28]    ; stride2
+    mov    edi, [esp+20]    ; stride1
+    push   esi
+    push   dword [esp+28]   ; pix2
+    push   edi
+    push   dword [esp+28]   ; pix1
+    call x264_pixel_sa8d_8x8_mmxext
+    mov    ebp, ecx
+    shl    edi, 3
+    shl    esi, 3
+    add    [esp+0], edi     ; pix1+8*stride1
+    add    [esp+8], esi     ; pix2+8*stride2
+    call x264_pixel_sa8d_8x8_mmxext
+    add    ebp, ecx
+    add    dword [esp+0], 8 ; pix1+8*stride1+8
+    add    dword [esp+8], 8 ; pix2+8*stride2+8
+    call x264_pixel_sa8d_8x8_mmxext
+    add    ebp, ecx
+    sub    [esp+0], edi     ; pix1+8
+    sub    [esp+8], esi     ; pix2+8
+    call x264_pixel_sa8d_8x8_mmxext
+    lea    eax, [ebp+ecx+1]
+    shr    eax, 1
+    add    esp, 16
+    pop    ebp
+    pop    edi
+    pop    esi
+    ret

@@ -60,6 +60,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     TEST_PIXEL( sad );
     TEST_PIXEL( ssd );
     TEST_PIXEL( satd );
+    TEST_PIXEL( sa8d );
 
 #define TEST_PIXEL_X( N ) \
     for( i = 0, ok = 1, used_asm = 0; i < 7; i++ ) \
