@@ -70,6 +70,15 @@ if((y)<(x))\
     COPY3_IF_LT( bcost, cost, bmx, mx, bmy, my );\
 }
 
+#define COST_MV_PRED( mx, my ) \
+{ \
+    int stride = 16; \
+    uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix, &stride, mx, my, bw, bh ); \
+    int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE, src, stride ) \
+             + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
+    COPY3_IF_LT( bpred_cost, cost, bpred_mx, mx, bpred_my, my ); \
+}
+
 #define COST_MV_X3_DIR( m0x, m0y, m1x, m1y, m2x, m2y, costs )\
 {\
     uint8_t *pix_base = p_fref + bmx + bmy*m->i_stride[0];\
@@ -155,14 +164,18 @@ if((y)<(x))\
     }\
 }
 
-
 void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int *p_halfpel_thresh )
 {
+    const int bw = x264_pixel_size[m->i_pixel].w;
+    const int bh = x264_pixel_size[m->i_pixel].h;
     const int i_pixel = m->i_pixel;
     int i_me_range = h->param.analyse.i_me_range;
     int bmx, bmy, bcost;
+    int bpred_mx = 0, bpred_my = 0, bpred_cost = COST_MAX;
     int omx, omy, pmx, pmy;
     uint8_t *p_fref = m->p_fref[0];
+    DECLARE_ALIGNED( uint8_t, pix[16*16], 16 );
+    
     int i, j;
     int dir;
     int costs[6];
@@ -182,22 +195,43 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
         p_cost_mvy = m->p_cost_mv - x264_clip3( m->mvp[1], h->mb.mv_min_spel[1], h->mb.mv_max_spel[1] );
     }
 
-    bmx = pmx = x264_clip3( ( m->mvp[0] + 2 ) >> 2, mv_x_min, mv_x_max );
-    bmy = pmy = x264_clip3( ( m->mvp[1] + 2 ) >> 2, mv_y_min, mv_y_max );
+    bmx = x264_clip3( m->mvp[0], mv_x_min*4, mv_x_max*4 );
+    bmy = x264_clip3( m->mvp[1], mv_y_min*4, mv_y_max*4 );
+    pmx = ( bmx + 2 ) >> 2;
+    pmy = ( bmy + 2 ) >> 2;
     bcost = COST_MAX;
-    COST_MV( pmx, pmy );
-    /* I don't know why this helps */
-    bcost -= BITS_MVD(bmx,bmy);
 
     /* try extra predictors if provided */
-    for( i = 0; i < i_mvc; i++ )
+    if( h->mb.i_subpel_refine >= 3 )
     {
-        const int mx = x264_clip3( ( mvc[i][0] + 2 ) >> 2, mv_x_min, mv_x_max );
-        const int my = x264_clip3( ( mvc[i][1] + 2 ) >> 2, mv_y_min, mv_y_max );
-        if( mx != bmx || my != bmy )
-            COST_MV( mx, my );
+        COST_MV_PRED( bmx, bmy );
+        for( i = 0; i < i_mvc; i++ )
+        {
+             const int mx = x264_clip3( mvc[i][0], mv_x_min*4, mv_x_max*4 );
+             const int my = x264_clip3( mvc[i][1], mv_y_min*4, mv_y_max*4 );
+             if( mx != bpred_mx || my != bpred_my )
+                 COST_MV_PRED( mx, my );
+        }
+        bmx = ( bpred_mx + 2 ) >> 2;
+        bmy = ( bpred_my + 2 ) >> 2;
+        COST_MV( bmx, bmy );
     }
-
+    else
+    {
+        /* check the MVP */
+        COST_MV( pmx, pmy );
+        /* I don't know why this helps */
+        bcost -= BITS_MVD(bmx,bmy);
+        
+        for( i = 0; i < i_mvc; i++ )
+        {
+             const int mx = x264_clip3( ( mvc[i][0] + 2 ) >> 2, mv_x_min, mv_x_max );
+             const int my = x264_clip3( ( mvc[i][1] + 2 ) >> 2, mv_y_min, mv_y_max );
+             if( mx != bmx || my != bmy )
+                 COST_MV( mx, my );
+        }
+    }
+    
     COST_MV( 0, 0 );
 
     mv_x_max += 8;
@@ -478,13 +512,22 @@ me_hex2:
     }
 
     /* -> qpel mv */
-    m->mv[0] = bmx << 2;
-    m->mv[1] = bmy << 2;
+    if( bpred_cost < bcost )
+    {
+        m->mv[0] = bpred_mx;
+        m->mv[1] = bpred_my;
+        m->cost = bpred_cost;
+    }
+    else
+    {
+        m->mv[0] = bmx << 2;
+        m->mv[1] = bmy << 2;
+        m->cost = bcost;
+    }
 
     /* compute the real cost */
     m->cost_mv = p_cost_mvx[ m->mv[0] ] + p_cost_mvy[ m->mv[1] ];
-    m->cost = bcost;
-    if( bmx == pmx && bmy == pmy )
+    if( bmx == pmx && bmy == pmy && h->mb.i_subpel_refine < 3 )
         m->cost += m->cost_mv;
     
     /* subpel refine */
@@ -563,7 +606,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 
 
     /* try the subpel component of the predicted mv */
-    if( hpel_iters )
+    if( hpel_iters && h->mb.i_subpel_refine < 3 )
     {
         int mx = x264_clip3( m->mvp[0], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
         int my = x264_clip3( m->mvp[1], h->mb.mv_min_spel[1], h->mb.mv_max_spel[1] );
