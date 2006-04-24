@@ -166,7 +166,7 @@ case "$UNAMEM" in
   m68k)
     ARCH="M68K"
     ;;
-  arm|armv5tel)
+  arm|armv5tel|armv4l)
     ARCH="ARM"
     ;;
   s390|s390x)
