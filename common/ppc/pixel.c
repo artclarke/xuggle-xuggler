@@ -704,10 +704,10 @@ static void pixel_sad_x4_16x16_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *p
         
     }
     
-    sum0v = vec_sums( sum0v, zero );
-    sum1v = vec_sums( sum1v, zero );
-    sum2v = vec_sums( sum2v, zero );
-    sum3v = vec_sums( sum3v, zero );
+    sum0v = (vec_u32_t) vec_sums( sum0v, zero );
+    sum1v = (vec_u32_t) vec_sums( sum1v, zero );
+    sum2v = (vec_u32_t) vec_sums( sum2v, zero );
+    sum3v = (vec_u32_t) vec_sums( sum3v, zero );
     
     sum0v = vec_splat( sum0v, 3 );
     sum1v = vec_splat( sum1v, 3 );
@@ -814,9 +814,9 @@ static void pixel_sad_x3_16x16_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *p
         
     }
     
-    sum0v = vec_sums( sum0v, zero );
-    sum1v = vec_sums( sum1v, zero );
-    sum2v = vec_sums( sum2v, zero );
+    sum0v = (vec_u32_t) vec_sums( sum0v, zero );
+    sum1v = (vec_u32_t) vec_sums( sum1v, zero );
+    sum2v = (vec_u32_t) vec_sums( sum2v, zero );
     
     sum0v = vec_splat( sum0v, 3 );
     sum1v = vec_splat( sum1v, 3 );
@@ -934,10 +934,10 @@ static void pixel_sad_x4_16x8_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pi
         
     }
     
-    sum0v = vec_sums( sum0v, zero );
-    sum1v = vec_sums( sum1v, zero );
-    sum2v = vec_sums( sum2v, zero );
-    sum3v = vec_sums( sum3v, zero );
+    sum0v = (vec_u32_t) vec_sums( sum0v, zero );
+    sum1v = (vec_u32_t) vec_sums( sum1v, zero );
+    sum2v = (vec_u32_t) vec_sums( sum2v, zero );
+    sum3v = (vec_u32_t) vec_sums( sum3v, zero );
     
     sum0v = vec_splat( sum0v, 3 );
     sum1v = vec_splat( sum1v, 3 );
@@ -1044,9 +1044,9 @@ static void pixel_sad_x3_16x8_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pi
         
     }
     
-    sum0v = vec_sums( sum0v, zero );
-    sum1v = vec_sums( sum1v, zero );
-    sum2v = vec_sums( sum2v, zero );
+    sum0v = (vec_u32_t) vec_sums( sum0v, zero );
+    sum1v = (vec_u32_t) vec_sums( sum1v, zero );
+    sum2v = (vec_u32_t) vec_sums( sum2v, zero );
     
     sum0v = vec_splat( sum0v, 3 );
     sum1v = vec_splat( sum1v, 3 );
@@ -1165,10 +1165,10 @@ static void pixel_sad_x4_8x16_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pi
         sum3v = (vec_s32_t) vec_sum4s( vec_sub( vec_max( fencv, pix3v ), vec_min( fencv, pix3v ) ), (vec_u32_t) sum3v ); 
     }
     
-    sum0v = vec_sum2s( sum0v, zero );
-    sum1v = vec_sum2s( sum1v, zero );
-    sum2v = vec_sum2s( sum2v, zero );
-    sum3v = vec_sum2s( sum3v, zero );
+    sum0v = (vec_u32_t) vec_sum2s( sum0v, zero );
+    sum1v = (vec_u32_t) vec_sum2s( sum1v, zero );
+    sum2v = (vec_u32_t) vec_sum2s( sum2v, zero );
+    sum3v = (vec_u32_t) vec_sum2s( sum3v, zero );
     
     sum0v = vec_splat( sum0v, 1 );
     sum1v = vec_splat( sum1v, 1 );
@@ -1275,9 +1275,9 @@ static void pixel_sad_x3_8x16_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pi
     }
     
     
-    sum0v = vec_sum2s( sum0v, zero );
-    sum1v = vec_sum2s( sum1v, zero );
-    sum2v = vec_sum2s( sum2v, zero );
+    sum0v = (vec_u32_t) vec_sum2s( sum0v, zero );
+    sum1v = (vec_u32_t) vec_sum2s( sum1v, zero );
+    sum2v = (vec_u32_t) vec_sum2s( sum2v, zero );
     
     sum0v = vec_splat( sum0v, 1 );
     sum1v = vec_splat( sum1v, 1 );
@@ -1396,10 +1396,10 @@ static void pixel_sad_x4_8x8_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pix
     }
     
     
-    sum0v = vec_sum2s( sum0v, zero );
-    sum1v = vec_sum2s( sum1v, zero );
-    sum2v = vec_sum2s( sum2v, zero );
-    sum3v = vec_sum2s( sum3v, zero );
+    sum0v = (vec_u32_t) vec_sum2s( sum0v, zero );
+    sum1v = (vec_u32_t) vec_sum2s( sum1v, zero );
+    sum2v = (vec_u32_t) vec_sum2s( sum2v, zero );
+    sum3v = (vec_u32_t) vec_sum2s( sum3v, zero );
     
     sum0v = vec_splat( sum0v, 1 );
     sum1v = vec_splat( sum1v, 1 );
@@ -1507,9 +1507,9 @@ static void pixel_sad_x3_8x8_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pix
     }
     
     
-    sum0v = vec_sum2s( sum0v, zero );
-    sum1v = vec_sum2s( sum1v, zero );
-    sum2v = vec_sum2s( sum2v, zero );
+    sum0v = (vec_u32_t) vec_sum2s( sum0v, zero );
+    sum1v = (vec_u32_t) vec_sum2s( sum1v, zero );
+    sum2v = (vec_u32_t) vec_sum2s( sum2v, zero );
     
     sum0v = vec_splat( sum0v, 1 );
     sum1v = vec_splat( sum1v, 1 );
