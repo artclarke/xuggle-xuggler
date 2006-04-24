@@ -44,21 +44,6 @@ static const int subpel_iterations[][4] =
 
 static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters, int *p_halfpel_thresh, int b_refine_qpel );
 
-#define COPY2_IF_LT(x,y,a,b)\
-if((y)<(x))\
-{\
-    (x)=(y);\
-    (a)=(b);\
-}
-
-#define COPY3_IF_LT(x,y,a,b,c,d)\
-if((y)<(x))\
-{\
-    (x)=(y);\
-    (a)=(b);\
-    (c)=(d);\
-}
-
 #define BITS_MVD( mx, my )\
     (p_cost_mvx[(mx)<<2] + p_cost_mvy[(my)<<2])
 
@@ -794,23 +779,32 @@ int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight 
     return bcost;
 }
 
-#define COST_MV_RD( mx, my, dir ) \
+#undef COST_MV_SATD
+#define COST_MV_SATD( mx, my, dst ) \
 { \
-    if( (dir^1) != odir && (dir<0 || !p_visited[(mx)+(my)*16]) ) \
+    int stride = 16; \
+    uint8_t *src = h->mc.get_ref( m->p_fref, m->i_stride[0], pix, &stride, mx, my, bw*4, bh*4 ); \
+    dst = h->pixf.mbcmp[i_pixel]( m->p_fenc[0], FENC_STRIDE, src, stride ) \
+        + p_cost_mvx[mx] + p_cost_mvy[my]; \
+    COPY1_IF_LT( bsatd, dst ); \
+}
+
+#define COST_MV_RD( mx, my, satd, dir ) \
+{ \
+    if( satd <= bsatd * SATD_THRESH \
+        && (dir^1) != odir \
+        && (dir<0 || !p_visited[(mx)+(my)*16]) ) \
     { \
         int cost; \
         cache_mv[0] = cache_mv2[0] = mx; \
         cache_mv[1] = cache_mv2[1] = my; \
         cost = x264_rd_cost_part( h, i_lambda2, i8, m->i_pixel ); \
-        if( cost < bcost ) \
-        {                  \
-            bcost = cost;  \
-            bmx = mx;      \
-            bmy = my;      \
-        } \
+        COPY3_IF_LT( bcost, cost, bmx, mx, bmy, my ); \
         if(dir>=0) p_visited[(mx)+(my)*16] = 1; \
     } \
 }
+
+#define SATD_THRESH 17/16
 
 void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 )
 {
@@ -818,64 +812,86 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 )
     static const int pixel_mv_offs[] = { 0, 4, 4*8, 0 };
     int16_t *cache_mv = h->mb.cache.mv[0][x264_scan8[i8*4]];
     int16_t *cache_mv2 = cache_mv + pixel_mv_offs[m->i_pixel];
+    const int16_t *p_cost_mvx, *p_cost_mvy;
     const int bw = x264_pixel_size[m->i_pixel].w>>2;
     const int bh = x264_pixel_size[m->i_pixel].h>>2;
+    const int i_pixel = m->i_pixel;
 
+    DECLARE_ALIGNED( uint8_t, pix[16*16], 16 );
     int bcost = m->i_pixel == PIXEL_16x16 ? m->cost : COST_MAX;
-    int bmx = m->mv[0]; 
+    int bmx = m->mv[0];
     int bmy = m->mv[1];
-    int omx, omy, i;
+    int pmx, pmy, omx, omy, i;
     int odir = -1, bdir;
+    unsigned bsatd, satds[4];
 
     int visited[16*13] = {0}; // only need 13x13, but 16 is more convenient
     int *p_visited = &visited[6+6*16];
 
-    if( m->i_pixel != PIXEL_16x16 )
-    {
-        COST_MV_RD( bmx, bmy, -1 );
+    if( m->i_pixel != PIXEL_16x16 && i8 != 0 )
         x264_mb_predict_mv( h, 0, i8*4, bw, m->mvp );
-    }
+    pmx = m->mvp[0];
+    pmy = m->mvp[1];
+    p_cost_mvx = m->p_cost_mv - pmx;
+    p_cost_mvy = m->p_cost_mv - pmy;
+    COST_MV_SATD( bmx, bmy, bsatd );
+    if( m->i_pixel != PIXEL_16x16 )
+        COST_MV_RD( bmx, bmy, 0, -1 );
 
     /* check the predicted mv */
-    if( bmx != m->mvp[0] || bmy != m->mvp[1] )
-        COST_MV_RD( m->mvp[0], m->mvp[1], -1 );
+    if( (bmx != pmx || bmy != pmy)
+        && pmx >= h->mb.mv_min_spel[0] && pmx <= h->mb.mv_max_spel[0]
+        && pmy >= h->mb.mv_min_spel[1] && pmy <= h->mb.mv_max_spel[1] )
+    {
+        int satd;
+        COST_MV_SATD( pmx, pmy, satd );
+        COST_MV_RD( pmx, pmy, satd, -1 );
+    }
 
     /* mark mv and mvp as visited */
     p_visited[0] = 1;
     p_visited -= bmx + bmy*16;
     {
-        int mx = bmx ^ m->mv[0] ^ m->mvp[0];
-        int my = bmy ^ m->mv[1] ^ m->mvp[1];
+        int mx = bmx ^ m->mv[0] ^ pmx;
+        int my = bmy ^ m->mv[1] ^ pmy;
         if( abs(mx-bmx) < 7 && abs(my-bmy) < 7 )
             p_visited[mx + my*16] = 1;
     }
 
-    /* hpel */  
+    /* hpel diamond */
     bdir = -1;
     for( i = 0; i < 2; i++ )
     {
          omx = bmx;
          omy = bmy;
          odir = bdir;
-         COST_MV_RD( omx, omy - 2, 0 );
-         COST_MV_RD( omx, omy + 2, 1 );
-         COST_MV_RD( omx - 2, omy, 2 );
-         COST_MV_RD( omx + 2, omy, 3 );
+         COST_MV_SATD( omx, omy - 2, satds[0] );
+         COST_MV_SATD( omx, omy + 2, satds[1] );
+         COST_MV_SATD( omx - 2, omy, satds[2] );
+         COST_MV_SATD( omx + 2, omy, satds[3] );
+         COST_MV_RD( omx, omy - 2, satds[0], 0 );
+         COST_MV_RD( omx, omy + 2, satds[1], 1 );
+         COST_MV_RD( omx - 2, omy, satds[2], 2 );
+         COST_MV_RD( omx + 2, omy, satds[3], 3 );
          if( bmx == omx && bmy == omy )
             break;
     }
-    
-    /* qpel */
+
+    /* qpel diamond */
     bdir = -1;
     for( i = 0; i < 2; i++ )
     {
          omx = bmx;
          omy = bmy;
          odir = bdir;
-         COST_MV_RD( omx, omy - 1, 0 );
-         COST_MV_RD( omx, omy + 1, 1 );
-         COST_MV_RD( omx - 1, omy, 2 );
-         COST_MV_RD( omx + 1, omy, 3 );
+         COST_MV_SATD( omx, omy - 1, satds[0] );
+         COST_MV_SATD( omx, omy + 1, satds[1] );
+         COST_MV_SATD( omx - 1, omy, satds[2] );
+         COST_MV_SATD( omx + 1, omy, satds[3] );
+         COST_MV_RD( omx, omy - 1, satds[0], 0 );
+         COST_MV_RD( omx, omy + 1, satds[1], 1 );
+         COST_MV_RD( omx - 1, omy, satds[2], 2 );
+         COST_MV_RD( omx + 1, omy, satds[3], 3 );
          if( bmx == omx && bmy == omy )
             break;
     }
@@ -885,6 +901,6 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 )
     m->mv[1] = bmy;
 
     x264_macroblock_cache_mv ( h, 2*(i8&1), i8&2, bw, bh, 0, bmx, bmy );
-    x264_macroblock_cache_mvd( h, 2*(i8&1), i8&2, bw, bh, 0, bmx - m->mvp[0], bmy - m->mvp[1] );
+    x264_macroblock_cache_mvd( h, 2*(i8&1), i8&2, bw, bh, 0, bmx - pmx, bmy - pmy );
 }
 

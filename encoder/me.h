@@ -56,4 +56,23 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 );
 int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight );
 int x264_rd_cost_part( x264_t *h, int i_lambda2, int i8, int i_pixel );
 
+#define COPY1_IF_LT(x,y)\
+if((y)<(x))\
+    (x)=(y);
+
+#define COPY2_IF_LT(x,y,a,b)\
+if((y)<(x))\
+{\
+    (x)=(y);\
+    (a)=(b);\
+}
+
+#define COPY3_IF_LT(x,y,a,b,c,d)\
+if((y)<(x))\
+{\
+    (x)=(y);\
+    (a)=(b);\
+    (c)=(d);\
+}
+
 #endif
