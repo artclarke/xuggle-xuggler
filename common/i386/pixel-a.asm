@@ -847,14 +847,14 @@ x264_pixel_satd_16x16_mmxext:
 %endmacro
 
 %macro SUM4x8_MM 0
-    movq [spill], mm7
-    MMX_ABS  mm0, mm7
-    MMX_ABS  mm1, mm7
-    MMX_ABS  mm2, mm7
-    MMX_ABS  mm3, mm7
+    movq [spill],   mm6
+    movq [spill+8], mm7
+    MMX_ABS_TWO  mm0, mm1, mm6, mm7
+    MMX_ABS_TWO  mm2, mm3, mm6, mm7
     paddw    mm0, mm2
     paddw    mm1, mm3
-    movq     mm7, [spill]
+    movq     mm6, [spill]
+    movq     mm7, [spill+8]
     MMX_ABS_TWO  mm4, mm5, mm2, mm3
     MMX_ABS_TWO  mm6, mm7, mm2, mm3
     paddw    mm4, mm6
@@ -870,14 +870,14 @@ ALIGN 16
 ;-----------------------------------------------------------------------------
 x264_pixel_sa8d_8x8_mmxext:
     SATD_START
-    sub    esp, 0x68
-%define args  esp+0x6c
+    sub    esp, 0x70
+%define args  esp+0x74
 %define spill esp+0x60
     LOAD_DIFF_4x8P 0
     HADAMARD1x8 mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
 
     movq   [spill], mm0
-    TRANSPOSE4x4 mm4, mm5, mm6, mm7, mm0 ; abcd-t -> adtc
+    TRANSPOSE4x4 mm4, mm5, mm6, mm7, mm0
     movq   [esp+0x00], mm4
     movq   [esp+0x08], mm7
     movq   [esp+0x10], mm0
@@ -894,13 +894,13 @@ x264_pixel_sa8d_8x8_mmxext:
     LOAD_DIFF_4x8P 4
     HADAMARD1x8 mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
 
-    movq   [spill], mm4
-    TRANSPOSE4x4 mm0, mm1, mm2, mm3, mm4
+    movq   [spill], mm7
+    TRANSPOSE4x4 mm0, mm1, mm2, mm3, mm7
     movq   [esp+0x40], mm0
     movq   [esp+0x48], mm3
-    movq   [esp+0x50], mm4
+    movq   [esp+0x50], mm7
     movq   [esp+0x58], mm2
-    movq   mm4, [spill]
+    movq   mm7, [spill]
     TRANSPOSE4x4 mm4, mm5, mm6, mm7, mm0
     movq   mm5, [esp+0x00]
     movq   mm1, [esp+0x08]
@@ -933,7 +933,7 @@ x264_pixel_sa8d_8x8_mmxext:
     mov    ecx, eax ; preserve rounding for 16x16
     add    eax, 1
     shr    eax, 1
-    add    esp, 0x68
+    add    esp, 0x70
     pop    ebx
     ret
 %undef args

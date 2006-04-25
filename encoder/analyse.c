@@ -496,6 +496,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     /* 8x8 prediction selection */
     if( flags & X264_ANALYSE_I8x8 )
     {
+        x264_pixel_cmp_t sa8d = (*h->pixf.mbcmp == *h->pixf.sad) ? h->pixf.sad[PIXEL_8x8] : h->pixf.sa8d[PIXEL_8x8];
         int i_satd_thresh = a->b_mbrd ? COST_MAX : X264_MIN( i_satd_inter, a->i_satd_i16x16 );
         int i_cost = 0;
 
@@ -520,10 +521,8 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
 
                 h->predict_8x8[i_mode]( p_dst_by, h->mb.i_neighbour8[idx] );
 
-                /* could use sa8d, but it doesn't seem worth the speed cost (without mmx at least) */
-                i_satd = h->pixf.mbcmp[PIXEL_8x8]( p_dst_by, FDEC_STRIDE,
-                                                  p_src_by, FENC_STRIDE )
-                      + a->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) ? 1 : 4);
+                i_satd = sa8d( p_dst_by, FDEC_STRIDE, p_src_by, FENC_STRIDE )
+                       + a->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) ? 1 : 4);
 
                 COPY2_IF_LT( i_best, i_satd, a->i_predict8x8[idx], i_mode );
                 a->i_satd_i8x8_dir[i_mode][idx] = i_satd;
@@ -588,7 +587,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
 
                 i_satd = h->pixf.mbcmp[PIXEL_4x4]( p_dst_by, FDEC_STRIDE,
                                                   p_src_by, FENC_STRIDE )
-                      + a->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) ? 1 : 4);
+                       + a->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) ? 1 : 4);
 
                 COPY2_IF_LT( i_best, i_satd, a->i_predict4x4[idx], i_mode );
             }
