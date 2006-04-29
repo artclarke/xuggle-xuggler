@@ -54,7 +54,7 @@ vfw="no"
 vis="no"
 shared="no"
 
-CC="gcc"
+CC="${CC-gcc}"
 CFLAGS="-Wall -I. -O4 -ffast-math -D__X264__"
 LDFLAGS=""
 HAVE_GETOPT_LONG=1
