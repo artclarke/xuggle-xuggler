@@ -182,7 +182,7 @@ static inline double qscale2bits(ratecontrol_entry_t *rce, double qscale)
     if(qscale<0.1)
         qscale = 0.1;
     return (rce->i_tex_bits + rce->p_tex_bits + .1) * pow( rce->qscale / qscale, 1.1 )
-           + rce->mv_bits * pow( X264_MAX(rce->qscale, 12) / X264_MAX(qscale, 12), 0.5 )
+           + rce->mv_bits * pow( X264_MAX(rce->qscale, 1) / X264_MAX(qscale, 1), 0.5 )
            + rce->misc_bits;
 }
 
