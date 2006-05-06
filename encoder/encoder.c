@@ -434,6 +434,8 @@ static int x264_validate_parameters( x264_t *h )
     if( h->param.rc.f_complexity_blur < 0 )
         h->param.rc.f_complexity_blur = 0;
 
+    h->param.i_sps_id &= 31;
+
     /* ensure the booleans are 0 or 1 so they can be used in math */
 #define BOOLIFY(x) h->param.x = !!h->param.x
     BOOLIFY( b_cabac );
@@ -530,10 +532,10 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->i_idr_pic_id = 0;
 
     h->sps = &h->sps_array[0];
-    x264_sps_init( h->sps, 0, &h->param );
+    x264_sps_init( h->sps, h->param.i_sps_id, &h->param );
 
     h->pps = &h->pps_array[0];
-    x264_pps_init( h->pps, 0, &h->param, h->sps);
+    x264_pps_init( h->pps, h->param.i_sps_id, &h->param, h->sps);
 
     x264_validate_levels( h );
 

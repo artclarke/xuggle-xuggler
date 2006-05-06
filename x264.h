@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 46
+#define X264_BUILD 47
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -243,8 +243,10 @@ typedef struct
         char        *psz_zones;     /* alternate method of specifying zones */
     } rc;
 
+    /* Muxing parameters */
     int b_aud;                  /* generate access unit delimiters */
     int b_repeat_headers;       /* put SPS/PPS before each keyframe */
+    int i_sps_id;               /* SPS and PPS id number */
 } x264_param_t;
 
 typedef struct {

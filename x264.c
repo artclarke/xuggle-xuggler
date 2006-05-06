@@ -275,6 +275,7 @@ static void Help( x264_param_t *defaults )
              "  -v, --verbose               Print stats for each frame\n"
              "      --progress              Show a progress indicator while encoding\n"
              "      --visualize             Show MB types overlayed on the encoded video\n"
+             "      --sps-id <integer>      Set SPS and PPS id numbers [%d]\n"
              "      --aud                   Use access unit delimiters\n"
              "\n",
             X264_BUILD, X264_VERSION,
@@ -324,7 +325,8 @@ static void Help( x264_param_t *defaults )
             strtable_lookup( colorprim_str, defaults->vui.i_colorprim ),
             strtable_lookup( transfer_str, defaults->vui.i_transfer ),
             strtable_lookup( colmatrix_str, defaults->vui.i_colmatrix ),
-            defaults->vui.i_chroma_loc
+            defaults->vui.i_chroma_loc,
+            defaults->i_sps_id
            );
 }
 
@@ -449,6 +451,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_NR 319
 #define OPT_THREAD_INPUT 320
 #define OPT_NO_DCT_DECIMATE 321
+#define OPT_SPS_ID 322
 
         static struct option long_options[] =
         {
@@ -512,6 +515,7 @@ static int  Parse( int argc, char **argv,
             { "verbose", no_argument,       NULL, 'v' },
             { "progress",no_argument,       NULL, OPT_PROGRESS },
             { "visualize",no_argument,      NULL, OPT_VISUALIZE },
+            { "sps-id",  required_argument, NULL, OPT_SPS_ID },
             { "aud",     no_argument,       NULL, OPT_AUD },
             { "nr",      required_argument, NULL, OPT_NR },
             { "cqm",     required_argument, NULL, OPT_CQM },
@@ -807,6 +811,9 @@ static int  Parse( int argc, char **argv,
                 break;
             case 'v':
                 param->i_log_level = X264_LOG_DEBUG;
+                break;
+            case OPT_SPS_ID:
+                param->i_sps_id = atoi(optarg);
                 break;
             case OPT_AUD:
                 param->b_aud = 1;
