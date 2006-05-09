@@ -32,12 +32,20 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_pixel_function_t pixel_c;
     x264_pixel_function_t pixel_ref;
     x264_pixel_function_t pixel_asm;
+    x264_predict_t predict_16x16[4+3];
+    x264_predict_t predict_8x8c[4+3];
+    x264_predict_t predict_4x4[9+3];
+    x264_predict8x8_t predict_8x8[9+3];
     int ret = 0, ok, used_asm;
     int i;
 
     x264_pixel_init( 0, &pixel_c );
     x264_pixel_init( cpu_ref, &pixel_ref );
     x264_pixel_init( cpu_new, &pixel_asm );
+    x264_predict_16x16_init( 0, predict_16x16 );
+    x264_predict_8x8c_init( 0, predict_8x8c );
+    x264_predict_8x8_init( 0, predict_8x8 );
+    x264_predict_4x4_init( 0, predict_4x4 );
 
 #define TEST_PIXEL( name ) \
     for( i = 0, ok = 1, used_asm = 0; i < 7; i++ ) \
@@ -92,6 +100,38 @@ static int check_pixel( int cpu_ref, int cpu_new )
 
     TEST_PIXEL_X(3);
     TEST_PIXEL_X(4);
+
+#define TEST_INTRA_SATD( name, pred, satd, ... ) \
+    if( pixel_asm.name && pixel_asm.name != pixel_ref.name ) \
+    { \
+        int res_c[3], res_asm[3]; \
+        used_asm = 1; \
+        memcpy( buf3, buf2, 1024 ); \
+        for( i=0; i<3; i++ ) \
+        { \
+            pred[i]( buf3+40, ##__VA_ARGS__ ); \
+            res_c[i] = pixel_c.satd( buf1+40, 16, buf3+40, 32 ); \
+        } \
+        pixel_asm.name( buf1+40, buf3+40, res_asm, ##__VA_ARGS__ ); \
+        if( memcmp(res_c, res_asm, sizeof(res_c)) ) \
+        { \
+            ok = 0; \
+            fprintf( stderr, #name": %d,%d,%d != %d,%d,%d [FAILED]\n", \
+                     res_c[0], res_c[1], res_c[2], \
+                     res_asm[0], res_asm[1], res_asm[2] ); \
+        } \
+    }
+
+    ok = 1; used_asm = 0;
+    TEST_INTRA_SATD( intra_satd_x3_16x16, predict_16x16, satd[PIXEL_16x16] );
+    TEST_INTRA_SATD( intra_satd_x3_8x8c, predict_8x8c, satd[PIXEL_8x8] );
+    TEST_INTRA_SATD( intra_satd_x3_4x4, predict_4x4, satd[PIXEL_4x4] );
+    TEST_INTRA_SATD( intra_sa8d_x3_8x8, predict_8x8, sa8d[PIXEL_8x8],
+                     MB_LEFT|MB_TOP|MB_TOPLEFT|MB_TOPRIGHT );
+    TEST_INTRA_SATD( intra_sa8d_x3_8x8, predict_8x8, sa8d[PIXEL_8x8],
+                     MB_LEFT|MB_TOP|MB_TOPLEFT );
+    report( "intra satd_x3 :" );
+
     return ret;
 }
 

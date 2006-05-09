@@ -200,22 +200,32 @@ lowres_intra_mb:
         uint8_t *pix = &pix_buf[8+FDEC_STRIDE - 1];
         uint8_t *src = &fenc->lowres[0][i_pel_offset - 1];
         int intra_penalty = 5 + 10 * b_bidir;
-        i_cost_bak = i_bcost;
+        int satds[4], i_icost;
 
         memcpy( pix-FDEC_STRIDE, src-i_stride, 9 );
         for( i=0; i<8; i++ )
             pix[i*FDEC_STRIDE] = src[i*i_stride];
         pix++;
 
-        for( i = I_PRED_CHROMA_DC; i <= I_PRED_CHROMA_P; i++ )
+        if( h->pixf.intra_satd_x3_8x8c && h->pixf.mbcmp[0] == h->pixf.satd[0] )
         {
-            int i_cost;
-            h->predict_8x8c[i]( pix );
-            i_cost = h->pixf.mbcmp[PIXEL_8x8]( pix, FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE ) + intra_penalty;
-            i_bcost = X264_MIN( i_bcost, i_cost );
+            h->pixf.intra_satd_x3_8x8c( h->mb.pic.p_fenc[0], pix, satds );
+            h->predict_8x8c[I_PRED_CHROMA_P]( pix );
+            satds[I_PRED_CHROMA_P] =
+                h->pixf.satd[PIXEL_8x8]( pix, FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE );
         }
-        if( i_bcost != i_cost_bak )
+        else
         {
+            for( i=0; i<4; i++ )
+            {
+                h->predict_8x8c[i]( pix );
+                satds[i] = h->pixf.mbcmp[PIXEL_8x8]( pix, FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE );
+            }
+        }
+        i_icost = X264_MIN4( satds[0], satds[1], satds[2], satds[3] ) + intra_penalty;
+        if( i_icost < i_bcost )
+        {
+            i_bcost = i_icost;
             if( !b_bidir
                 && i_mb_x > 0 && i_mb_x < h->sps->i_mb_width - 1
                 && i_mb_y > 0 && i_mb_y < h->sps->i_mb_height - 1 )

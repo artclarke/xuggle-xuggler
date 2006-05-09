@@ -24,6 +24,7 @@
 #include "common/common.h"
 #include "common/clip1.h"
 #include "predict.h"
+#include "pixel.h"
 
 extern void predict_16x16_v_mmx( uint8_t *src );
 extern void predict_16x16_dc_core_mmxext( uint8_t *src, int i_dc_left );
@@ -416,20 +417,20 @@ static void predict_4x4_hu( uint8_t *src )
  ****************************************************************************/
 
 #define PL(y) \
-    const int l##y = (SRC(-1,y-1) + 2*SRC(-1,y) + SRC(-1,y+1) + 2) >> 2;
+    int l##y = (SRC(-1,y-1) + 2*SRC(-1,y) + SRC(-1,y+1) + 2) >> 2;
 #define PREDICT_8x8_LOAD_LEFT(have_tl) \
-    const int l0 = ((have_tl || (i_neighbor&MB_TOPLEFT) ? SRC(-1,-1) : SRC(-1,0)) \
+    int l0 = ((have_tl || (i_neighbor&MB_TOPLEFT) ? SRC(-1,-1) : SRC(-1,0)) \
                      + 2*SRC(-1,0) + SRC(-1,1) + 2) >> 2; \
     PL(1) PL(2) PL(3) PL(4) PL(5) PL(6) \
-    UNUSED const int l7 = (SRC(-1,6) + 3*SRC(-1,7) + 2) >> 2;
+    UNUSED int l7 = (SRC(-1,6) + 3*SRC(-1,7) + 2) >> 2;
 
 #define PT(x) \
-    const int t##x = (SRC(x-1,-1) + 2*SRC(x,-1) + SRC(x+1,-1) + 2) >> 2;
+    int t##x = (SRC(x-1,-1) + 2*SRC(x,-1) + SRC(x+1,-1) + 2) >> 2;
 #define PREDICT_8x8_LOAD_TOP(have_tl) \
-    const int t0 = ((have_tl || (i_neighbor&MB_TOPLEFT) ? SRC(-1,-1) : SRC(0,-1)) \
+    int t0 = ((have_tl || (i_neighbor&MB_TOPLEFT) ? SRC(-1,-1) : SRC(0,-1)) \
                      + 2*SRC(0,-1) + SRC(1,-1) + 2) >> 2; \
     PT(1) PT(2) PT(3) PT(4) PT(5) PT(6) \
-    UNUSED const int t7 = ((i_neighbor&MB_TOPRIGHT ? SRC(8,-1) : SRC(7,-1)) \
+    UNUSED int t7 = ((i_neighbor&MB_TOPRIGHT ? SRC(8,-1) : SRC(7,-1)) \
                      + 2*SRC(7,-1) + SRC(6,-1) + 2) >> 2; \
 
 #define PTR(x) \
@@ -442,7 +443,7 @@ static void predict_4x4_hu( uint8_t *src )
     } else t8=t9=t10=t11=t12=t13=t14=t15= SRC(7,-1);
 
 #define PREDICT_8x8_LOAD_TOPLEFT \
-    const int lt = (SRC(-1,0) + 2*SRC(-1,-1) + SRC(0,-1) + 2) >> 2;
+    int lt = (SRC(-1,0) + 2*SRC(-1,-1) + SRC(0,-1) + 2) >> 2;
 
 #define PREDICT_8x8_DC(v) \
     int y; \
@@ -546,6 +547,45 @@ static void predict_8x8_vr_mmxext( uint8_t *src, int i_neighbor )
         SRC(0,6)= (l5 + 2*l4 + l3 + 2) >> 2;
         SRC(0,7)= (l6 + 2*l5 + l4 + 2) >> 2;
     }
+}
+#endif
+
+#ifdef ARCH_X86
+#define SUMSUB(a,b,c,d,e,f,g,h)\
+    t=a; a+=b; b-=t;\
+    t=c; c+=d; d-=t;\
+    t=e; e+=f; f-=t;\
+    t=g; g+=h; h-=t;
+
+void x264_intra_sa8d_x3_8x8_mmxext( uint8_t *fenc, uint8_t *src, int res[3], int i_neighbor )
+{
+    PREDICT_8x8_LOAD_TOP(1)
+    PREDICT_8x8_LOAD_LEFT(1)
+    int t;
+    int16_t edges[2][8];
+    SUMSUB(l0,l4,l1,l5,l2,l6,l3,l7);
+    SUMSUB(l0,l2,l1,l3,l4,l6,l5,l7);
+    SUMSUB(l0,l1,l2,l3,l4,l5,l6,l7);
+    edges[0][0] = l0;
+    edges[0][1] = l1;
+    edges[0][2] = l2;
+    edges[0][3] = l3;
+    edges[0][4] = l4;
+    edges[0][5] = l5;
+    edges[0][6] = l6;
+    edges[0][7] = l7;
+    SUMSUB(t0,t4,t1,t5,t2,t6,t3,t7);
+    SUMSUB(t0,t2,t1,t3,t4,t6,t5,t7);
+    SUMSUB(t0,t1,t2,t3,t4,t5,t6,t7);
+    edges[1][0] = t0;
+    edges[1][1] = t1;
+    edges[1][2] = t2;
+    edges[1][3] = t3;
+    edges[1][4] = t4;
+    edges[1][5] = t5;
+    edges[1][6] = t6;
+    edges[1][7] = t7;
+    x264_intra_sa8d_x3_8x8_core_mmxext( fenc, edges, res );
 }
 #endif
 

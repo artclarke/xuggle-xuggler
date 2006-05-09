@@ -485,6 +485,12 @@ cglobal x264_pixel_satd_16x16_mmxext
 cglobal x264_pixel_sa8d_16x16_mmxext
 cglobal x264_pixel_sa8d_8x8_mmxext
 
+cglobal x264_intra_satd_x3_4x4_mmxext
+cglobal x264_intra_satd_x3_8x8c_mmxext
+cglobal x264_intra_satd_x3_16x16_mmxext
+cglobal x264_intra_sa8d_x3_8x8_core_mmxext
+
+
 %macro SAD_START 0
     push    ebx
 
@@ -872,22 +878,23 @@ x264_pixel_sa8d_8x8_mmxext:
     SATD_START
     sub    esp, 0x70
 %define args  esp+0x74
-%define spill esp+0x60
+%define spill esp+0x60 ; +16
+%define trans esp+0    ; +96
     LOAD_DIFF_4x8P 0
     HADAMARD1x8 mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
 
     movq   [spill], mm0
     TRANSPOSE4x4 mm4, mm5, mm6, mm7, mm0
-    movq   [esp+0x00], mm4
-    movq   [esp+0x08], mm7
-    movq   [esp+0x10], mm0
-    movq   [esp+0x18], mm6
+    movq   [trans+0x00], mm4
+    movq   [trans+0x08], mm7
+    movq   [trans+0x10], mm0
+    movq   [trans+0x18], mm6
     movq   mm0, [spill]
     TRANSPOSE4x4 mm0, mm1, mm2, mm3, mm4
-    movq   [esp+0x20], mm0
-    movq   [esp+0x28], mm3
-    movq   [esp+0x30], mm4
-    movq   [esp+0x38], mm2
+    movq   [trans+0x20], mm0
+    movq   [trans+0x28], mm3
+    movq   [trans+0x30], mm4
+    movq   [trans+0x38], mm2
 
     mov    eax, [args+4]
     mov    ecx, [args+12]
@@ -896,29 +903,29 @@ x264_pixel_sa8d_8x8_mmxext:
 
     movq   [spill], mm7
     TRANSPOSE4x4 mm0, mm1, mm2, mm3, mm7
-    movq   [esp+0x40], mm0
-    movq   [esp+0x48], mm3
-    movq   [esp+0x50], mm7
-    movq   [esp+0x58], mm2
+    movq   [trans+0x40], mm0
+    movq   [trans+0x48], mm3
+    movq   [trans+0x50], mm7
+    movq   [trans+0x58], mm2
     movq   mm7, [spill]
     TRANSPOSE4x4 mm4, mm5, mm6, mm7, mm0
-    movq   mm5, [esp+0x00]
-    movq   mm1, [esp+0x08]
-    movq   mm2, [esp+0x10]
-    movq   mm3, [esp+0x18]
+    movq   mm5, [trans+0x00]
+    movq   mm1, [trans+0x08]
+    movq   mm2, [trans+0x10]
+    movq   mm3, [trans+0x18]
 
     HADAMARD1x8 mm5, mm1, mm2, mm3, mm4, mm7, mm0, mm6
     SUM4x8_MM
-    movq   [esp], mm0
+    movq   [trans], mm0
 
-    movq   mm0, [esp+0x20]
-    movq   mm1, [esp+0x28]
-    movq   mm2, [esp+0x30]
-    movq   mm3, [esp+0x38]
-    movq   mm4, [esp+0x40]
-    movq   mm5, [esp+0x48]
-    movq   mm6, [esp+0x50]
-    movq   mm7, [esp+0x58]
+    movq   mm0, [trans+0x20]
+    movq   mm1, [trans+0x28]
+    movq   mm2, [trans+0x30]
+    movq   mm3, [trans+0x38]
+    movq   mm4, [trans+0x40]
+    movq   mm5, [trans+0x48]
+    movq   mm6, [trans+0x50]
+    movq   mm7, [trans+0x58]
     
     HADAMARD1x8 mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
     SUM4x8_MM
@@ -938,6 +945,7 @@ x264_pixel_sa8d_8x8_mmxext:
     ret
 %undef args
 %undef spill
+%undef trans
 
 ALIGN 16
 ;-----------------------------------------------------------------------------
@@ -976,3 +984,590 @@ x264_pixel_sa8d_16x16_mmxext:
     pop    edi
     pop    esi
     ret
+
+
+; in: fenc
+; out: mm0..mm3 = hadamard coefs
+%macro LOAD_HADAMARD 1
+    pxor        mm7, mm7
+    movd        mm0, [%1+0*FENC_STRIDE]
+    movd        mm4, [%1+1*FENC_STRIDE]
+    movd        mm3, [%1+2*FENC_STRIDE]
+    movd        mm1, [%1+3*FENC_STRIDE]
+    punpcklbw   mm0, mm7
+    punpcklbw   mm4, mm7
+    punpcklbw   mm3, mm7
+    punpcklbw   mm1, mm7
+    HADAMARD4x4 mm0, mm4, mm3, mm1
+    TRANSPOSE4x4 mm0, mm4, mm3, mm1, mm2
+    HADAMARD4x4 mm0, mm1, mm2, mm3
+%endmacro
+
+%macro SCALAR_SUMSUB 4
+    add %1, %2
+    add %3, %4
+    add %2, %2
+    add %4, %4
+    sub %2, %1
+    sub %4, %3
+%endmacro
+
+%macro SUM_MM_X3 8 ; 3x sum, 4x tmp, op
+    pxor        %7, %7
+    pshufw      %4, %1, 01001110b
+    pshufw      %5, %2, 01001110b
+    pshufw      %6, %3, 01001110b
+    paddusw     %1, %4
+    paddusw     %2, %5
+    paddusw     %3, %6
+    punpcklwd   %1, %7
+    punpcklwd   %2, %7
+    punpcklwd   %3, %7
+    pshufw      %4, %1, 01001110b
+    pshufw      %5, %2, 01001110b
+    pshufw      %6, %3, 01001110b
+    %8          %1, %4
+    %8          %2, %5
+    %8          %3, %6
+%endmacro
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;  void x264_intra_satd_x3_4x4_mmxext( uint8_t *fenc, uint8_t *fdec, int *res )
+;-----------------------------------------------------------------------------
+x264_intra_satd_x3_4x4_mmxext:
+    push ebx
+    push edi
+    push esi
+    sub  esp, 16
+%define  args esp+32
+%define  top_1d  esp+8 ; +8
+%define  left_1d esp+0 ; +8
+
+    mov  eax, [args+0] ; fenc
+    LOAD_HADAMARD eax
+
+    mov  edi, [args+4] ; fdec
+    movzx       eax, byte [edi-1+0*FDEC_STRIDE]
+    movzx       ebx, byte [edi-1+1*FDEC_STRIDE]
+    movzx       ecx, byte [edi-1+2*FDEC_STRIDE]
+    movzx       edx, byte [edi-1+3*FDEC_STRIDE]
+    SCALAR_SUMSUB eax, ebx, ecx, edx
+    SCALAR_SUMSUB eax, ecx, ebx, edx ; 1x4 hadamard
+    mov         [left_1d+0], ax
+    mov         [left_1d+2], bx
+    mov         [left_1d+4], cx
+    mov         [left_1d+6], dx
+    mov         esi, eax ; dc
+
+    movzx       eax, byte [edi-FDEC_STRIDE+0]
+    movzx       ebx, byte [edi-FDEC_STRIDE+1]
+    movzx       ecx, byte [edi-FDEC_STRIDE+2]
+    movzx       edx, byte [edi-FDEC_STRIDE+3]
+    SCALAR_SUMSUB eax, ebx, ecx, edx
+    SCALAR_SUMSUB eax, ecx, ebx, edx ; 4x1 hadamard
+    mov         [top_1d+0], ax
+    mov         [top_1d+2], bx
+    mov         [top_1d+4], cx
+    mov         [top_1d+6], dx
+    lea         esi, [esi + eax + 4] ; dc
+    and         esi, -8
+    shl         esi, 1
+
+    movq        mm4, mm1
+    movq        mm5, mm2
+    MMX_ABS_TWO mm4, mm5, mm6, mm7
+    movq        mm7, mm3
+    paddw       mm4, mm5
+    MMX_ABS     mm7, mm6
+    paddw       mm7, mm4 ; 3x4 sum
+
+    movq        mm4, [left_1d]
+    movd        mm5, esi
+    psllw       mm4, 2
+    psubw       mm4, mm0
+    psubw       mm5, mm0
+    punpcklwd   mm0, mm1
+    punpcklwd   mm2, mm3
+    punpckldq   mm0, mm2 ; transpose
+    movq        mm1, [top_1d]
+    psllw       mm1, 2
+    psubw       mm0, mm1
+    MMX_ABS     mm4, mm3 ; 1x4 sum
+    MMX_ABS     mm5, mm2 ; 1x4 sum
+    MMX_ABS     mm0, mm1 ; 4x1 sum
+    paddw       mm4, mm7
+    paddw       mm5, mm7
+    movq        mm1, mm5
+    psrlq       mm1, 16  ; 4x3 sum
+    paddw       mm0, mm1
+
+    SUM_MM_X3   mm0, mm4, mm5, mm1, mm2, mm3, mm6, pavgw
+    mov         eax, [args+8] ; res
+    movd        [eax+0], mm0 ; i4x4_v satd
+    movd        [eax+4], mm4 ; i4x4_h satd
+    movd        [eax+8], mm5 ; i4x4_dc satd
+
+    add  esp, 16
+    pop  esi
+    pop  edi
+    pop  ebx
+    ret
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;  void x264_intra_satd_x3_16x16_mmxext( uint8_t *fenc, uint8_t *fdec, int *res )
+;-----------------------------------------------------------------------------
+x264_intra_satd_x3_16x16_mmxext:
+    push ebx
+    push ebp
+    push edi
+    push esi
+    sub  esp, 88
+%define  args    esp+108
+%define  sums    esp+64 ; +24
+%define  top_1d  esp+32 ; +32
+%define  left_1d esp+0  ; +32
+
+    pxor        mm0, mm0
+    movq        [sums+0], mm0
+    movq        [sums+8], mm0
+    movq        [sums+16], mm0
+
+    ; 1D hadamards
+    mov         edi, [args+4] ; fdec
+    xor         ebp, ebp
+    mov         esi, 12
+.loop_edge:
+    ; left
+    shl         esi, 5 ; log(FDEC_STRIDE)
+    movzx       eax, byte [edi+esi-1+0*FDEC_STRIDE]
+    movzx       ebx, byte [edi+esi-1+1*FDEC_STRIDE]
+    movzx       ecx, byte [edi+esi-1+2*FDEC_STRIDE]
+    movzx       edx, byte [edi+esi-1+3*FDEC_STRIDE]
+    shr         esi, 5
+    SCALAR_SUMSUB eax, ebx, ecx, edx
+    SCALAR_SUMSUB eax, ecx, ebx, edx
+    add         ebp, eax
+    mov         [left_1d+2*esi+0], ax
+    mov         [left_1d+2*esi+2], bx
+    mov         [left_1d+2*esi+4], cx
+    mov         [left_1d+2*esi+6], dx
+
+    ; top
+    movzx       eax, byte [edi+esi-FDEC_STRIDE+0]
+    movzx       ebx, byte [edi+esi-FDEC_STRIDE+1]
+    movzx       ecx, byte [edi+esi-FDEC_STRIDE+2]
+    movzx       edx, byte [edi+esi-FDEC_STRIDE+3]
+    SCALAR_SUMSUB eax, ebx, ecx, edx
+    SCALAR_SUMSUB eax, ecx, ebx, edx
+    add         ebp, eax
+    mov         [top_1d+2*esi+0], ax
+    mov         [top_1d+2*esi+2], bx
+    mov         [top_1d+2*esi+4], cx
+    mov         [top_1d+2*esi+6], dx
+    sub         esi, 4
+    jge .loop_edge
+
+    ; dc
+    shr         ebp, 1
+    add         ebp, 8
+    and         ebp, -16
+
+    ; 2D hadamards
+    mov         eax, [args+0] ; fenc
+    xor         edi, edi
+.loop_y:
+    xor         esi, esi
+.loop_x:
+    LOAD_HADAMARD eax
+
+    movq        mm4, mm1
+    movq        mm5, mm2
+    MMX_ABS_TWO mm4, mm5, mm6, mm7
+    movq        mm7, mm3
+    paddw       mm4, mm5
+    MMX_ABS     mm7, mm6
+    paddw       mm7, mm4 ; 3x4 sum
+
+    movq        mm4, [left_1d+8*edi]
+    movd        mm5, ebp
+    psllw       mm4, 2
+    psubw       mm4, mm0
+    psubw       mm5, mm0
+    punpcklwd   mm0, mm1
+    punpcklwd   mm2, mm3
+    punpckldq   mm0, mm2 ; transpose
+    movq        mm1, [top_1d+8*esi]
+    psllw       mm1, 2
+    psubw       mm0, mm1
+    MMX_ABS     mm4, mm3 ; 1x4 sum
+    MMX_ABS     mm5, mm2 ; 1x4 sum
+    MMX_ABS     mm0, mm1 ; 4x1 sum
+    pavgw       mm4, mm7
+    pavgw       mm5, mm7
+    paddw       mm0, [sums+0]  ; i4x4_v satd
+    paddw       mm4, [sums+8]  ; i4x4_h satd
+    paddw       mm5, [sums+16] ; i4x4_dc satd
+    movq        [sums+0], mm0
+    movq        [sums+8], mm4
+    movq        [sums+16], mm5
+
+    add         eax, 4
+    inc         esi
+    cmp         esi, 4
+    jl  .loop_x
+    add         eax, 4*FENC_STRIDE-16
+    inc         edi
+    cmp         edi, 4
+    jl  .loop_y
+
+; horizontal sum
+    movq        mm2, [sums+16]
+    movq        mm0, [sums+0]
+    movq        mm1, [sums+8]
+    movq        mm7, mm2
+    SUM_MM_X3   mm0, mm1, mm2, mm3, mm4, mm5, mm6, paddd
+    psrld       mm0, 1
+    pslld       mm7, 16
+    psrld       mm7, 16
+    paddd       mm0, mm2
+    psubd       mm0, mm7
+    mov         eax, [args+8] ; res
+    movd        [eax+0], mm0 ; i16x16_v satd
+    movd        [eax+4], mm1 ; i16x16_h satd
+    movd        [eax+8], mm2 ; i16x16_dc satd
+
+    add  esp, 88
+    pop  esi
+    pop  edi
+    pop  ebp
+    pop  ebx
+    ret
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;  void x264_intra_satd_x3_8x8c_mmxext( uint8_t *fenc, uint8_t *fdec, int *res )
+;-----------------------------------------------------------------------------
+x264_intra_satd_x3_8x8c_mmxext:
+    push ebx
+    push ebp
+    push edi
+    push esi
+    sub  esp, 72
+%define  args    esp+92
+%define  sums    esp+48 ; +24
+%define  dc_1d   esp+32 ; +16
+%define  top_1d  esp+16 ; +16
+%define  left_1d esp+0  ; +16
+
+    pxor        mm0, mm0
+    movq        [sums+0], mm0
+    movq        [sums+8], mm0
+    movq        [sums+16], mm0
+
+    ; 1D hadamards
+    mov         edi, [args+4] ; fdec
+    xor         ebp, ebp
+    mov         esi, 12
+.loop_edge:
+    ; left
+    shl         esi, 5 ; log(FDEC_STRIDE)
+    movzx       eax, byte [edi+esi-1+0*FDEC_STRIDE]
+    movzx       ebx, byte [edi+esi-1+1*FDEC_STRIDE]
+    movzx       ecx, byte [edi+esi-1+2*FDEC_STRIDE]
+    movzx       edx, byte [edi+esi-1+3*FDEC_STRIDE]
+    shr         esi, 5
+    SCALAR_SUMSUB eax, ebx, ecx, edx
+    SCALAR_SUMSUB eax, ecx, ebx, edx
+    mov         [left_1d+2*esi+0], ax
+    mov         [left_1d+2*esi+2], bx
+    mov         [left_1d+2*esi+4], cx
+    mov         [left_1d+2*esi+6], dx
+
+    ; top
+    movzx       eax, byte [edi+esi-FDEC_STRIDE+0]
+    movzx       ebx, byte [edi+esi-FDEC_STRIDE+1]
+    movzx       ecx, byte [edi+esi-FDEC_STRIDE+2]
+    movzx       edx, byte [edi+esi-FDEC_STRIDE+3]
+    SCALAR_SUMSUB eax, ebx, ecx, edx
+    SCALAR_SUMSUB eax, ecx, ebx, edx
+    mov         [top_1d+2*esi+0], ax
+    mov         [top_1d+2*esi+2], bx
+    mov         [top_1d+2*esi+4], cx
+    mov         [top_1d+2*esi+6], dx
+    sub         esi, 4
+    jge .loop_edge
+
+    ; dc
+    movzx       eax, word [left_1d+0]
+    movzx       ebx, word [top_1d+0]
+    movzx       ecx, word [left_1d+8]
+    movzx       edx, word [top_1d+8]
+    add         eax, ebx
+    lea         ebx, [ecx + edx]
+    lea         eax, [2*eax + 8]
+    lea         ebx, [2*ebx + 8]
+    lea         ecx, [4*ecx + 8]
+    lea         edx, [4*edx + 8]
+    and         eax, -16
+    and         ebx, -16
+    and         ecx, -16
+    and         edx, -16
+    mov         [dc_1d+ 0], eax ; tl
+    mov         [dc_1d+ 4], edx ; tr
+    mov         [dc_1d+ 8], ecx ; bl
+    mov         [dc_1d+12], ebx ; br
+    lea         ebp, [dc_1d]
+
+    ; 2D hadamards
+    mov         eax, [args+0] ; fenc
+    xor         edi, edi
+.loop_y:
+    xor         esi, esi
+.loop_x:
+    LOAD_HADAMARD eax
+
+    movq        mm4, mm1
+    movq        mm5, mm2
+    MMX_ABS_TWO mm4, mm5, mm6, mm7
+    movq        mm7, mm3
+    paddw       mm4, mm5
+    MMX_ABS     mm7, mm6
+    paddw       mm7, mm4 ; 3x4 sum
+
+    movq        mm4, [left_1d+8*edi]
+    movd        mm5, [ebp]
+    psllw       mm4, 2
+    psubw       mm4, mm0
+    psubw       mm5, mm0
+    punpcklwd   mm0, mm1
+    punpcklwd   mm2, mm3
+    punpckldq   mm0, mm2 ; transpose
+    movq        mm1, [top_1d+8*esi]
+    psllw       mm1, 2
+    psubw       mm0, mm1
+    MMX_ABS     mm4, mm3 ; 1x4 sum
+    MMX_ABS     mm5, mm2 ; 1x4 sum
+    MMX_ABS     mm0, mm1 ; 4x1 sum
+    pavgw       mm4, mm7
+    pavgw       mm5, mm7
+    paddw       mm0, [sums+16] ; i4x4_v satd
+    paddw       mm4, [sums+8]  ; i4x4_h satd
+    paddw       mm5, [sums+0]  ; i4x4_dc satd
+    movq        [sums+16], mm0
+    movq        [sums+8], mm4
+    movq        [sums+0], mm5
+
+    add         eax, 4
+    add         ebp, 4
+    inc         esi
+    cmp         esi, 2
+    jl  .loop_x
+    add         eax, 4*FENC_STRIDE-8
+    inc         edi
+    cmp         edi, 2
+    jl  .loop_y
+
+; horizontal sum
+    movq        mm0, [sums+0]
+    movq        mm1, [sums+8]
+    movq        mm2, [sums+16]
+    movq        mm6, mm0
+    psrlq       mm6, 15
+    paddw       mm2, mm6
+    SUM_MM_X3   mm0, mm1, mm2, mm3, mm4, mm5, mm7, paddd
+    psrld       mm2, 1
+    mov         eax, [args+8] ; res
+    movd        [eax+0], mm0 ; i8x8c_dc satd
+    movd        [eax+4], mm1 ; i8x8c_h satd
+    movd        [eax+8], mm2 ; i8x8c_v satd
+
+    add  esp, 72
+    pop  esi
+    pop  edi
+    pop  ebp
+    pop  ebx
+    ret
+
+%macro LOAD_4x8P 1 ; dx
+    pxor        mm7, mm7
+    movd        mm6, [eax+%1+7*FENC_STRIDE]
+    movd        mm0, [eax+%1+0*FENC_STRIDE]
+    movd        mm1, [eax+%1+1*FENC_STRIDE]
+    movd        mm2, [eax+%1+2*FENC_STRIDE]
+    movd        mm3, [eax+%1+3*FENC_STRIDE]
+    movd        mm4, [eax+%1+4*FENC_STRIDE]
+    movd        mm5, [eax+%1+5*FENC_STRIDE]
+    punpcklbw   mm6, mm7
+    punpcklbw   mm0, mm7
+    punpcklbw   mm1, mm7
+    movq    [spill], mm6
+    punpcklbw   mm2, mm7
+    punpcklbw   mm3, mm7
+    movd        mm6, [eax+%1+6*FENC_STRIDE]
+    punpcklbw   mm4, mm7
+    punpcklbw   mm5, mm7
+    punpcklbw   mm6, mm7
+    movq        mm7, [spill]
+%endmacro
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;  void x264_intra_sa8d_x3_8x8_core_mmxext( uint8_t *fenc, int16_t edges[2][8], int *res )
+;-----------------------------------------------------------------------------
+x264_intra_sa8d_x3_8x8_core_mmxext:
+    mov    eax, [esp+4]
+    mov    ecx, [esp+8]
+    sub    esp, 0x70
+%define args  esp+0x74
+%define spill esp+0x60 ; +16
+%define trans esp+0    ; +96
+%define sum   esp+0    ; +32
+    LOAD_4x8P 0
+    HADAMARD1x8 mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
+
+    movq   [spill], mm0
+    TRANSPOSE4x4 mm4, mm5, mm6, mm7, mm0
+    movq   [trans+0x00], mm4
+    movq   [trans+0x08], mm7
+    movq   [trans+0x10], mm0
+    movq   [trans+0x18], mm6
+    movq   mm0, [spill]
+    TRANSPOSE4x4 mm0, mm1, mm2, mm3, mm4
+    movq   [trans+0x20], mm0
+    movq   [trans+0x28], mm3
+    movq   [trans+0x30], mm4
+    movq   [trans+0x38], mm2
+
+    LOAD_4x8P 4
+    HADAMARD1x8 mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
+
+    movq   [spill], mm7
+    TRANSPOSE4x4 mm0, mm1, mm2, mm3, mm7
+    movq   [trans+0x40], mm0
+    movq   [trans+0x48], mm3
+    movq   [trans+0x50], mm7
+    movq   [trans+0x58], mm2
+    movq   mm7, [spill]
+    TRANSPOSE4x4 mm4, mm5, mm6, mm7, mm0
+    movq   mm5, [trans+0x00]
+    movq   mm1, [trans+0x08]
+    movq   mm2, [trans+0x10]
+    movq   mm3, [trans+0x18]
+
+    HADAMARD1x8 mm5, mm1, mm2, mm3, mm4, mm7, mm0, mm6
+
+    movq [spill+0], mm5
+    movq [spill+8], mm7
+    MMX_ABS_TWO  mm0, mm1, mm5, mm7
+    MMX_ABS_TWO  mm2, mm3, mm5, mm7
+    paddw    mm0, mm2
+    paddw    mm1, mm3
+    paddw    mm0, mm1
+    MMX_ABS_TWO  mm4, mm6, mm2, mm3
+    movq     mm5, [spill+0]
+    movq     mm7, [spill+8]
+    paddw    mm0, mm4
+    paddw    mm0, mm6
+    MMX_ABS  mm7, mm1
+    paddw    mm0, mm7 ; 7x4 sum
+    movq     mm6, mm5
+    movq     mm7, [ecx+8] ; left bottom
+    psllw    mm7, 3
+    psubw    mm6, mm7
+    MMX_ABS_TWO  mm5, mm6, mm2, mm3
+    paddw    mm5, mm0
+    paddw    mm6, mm0
+    movq [sum+0], mm5 ; dc
+    movq [sum+8], mm6 ; left
+
+    movq   mm0, [trans+0x20]
+    movq   mm1, [trans+0x28]
+    movq   mm2, [trans+0x30]
+    movq   mm3, [trans+0x38]
+    movq   mm4, [trans+0x40]
+    movq   mm5, [trans+0x48]
+    movq   mm6, [trans+0x50]
+    movq   mm7, [trans+0x58]
+    
+    HADAMARD1x8 mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
+
+    movd   [sum+0x10], mm0
+    movd   [sum+0x12], mm1
+    movd   [sum+0x14], mm2
+    movd   [sum+0x16], mm3
+    movd   [sum+0x18], mm4
+    movd   [sum+0x1a], mm5
+    movd   [sum+0x1c], mm6
+    movd   [sum+0x1e], mm7
+
+    movq [spill],   mm0
+    movq [spill+8], mm1
+    MMX_ABS_TWO  mm2, mm3, mm0, mm1
+    MMX_ABS_TWO  mm4, mm5, mm0, mm1
+    paddw    mm2, mm3
+    paddw    mm4, mm5
+    paddw    mm2, mm4
+    movq     mm0, [spill]
+    movq     mm1, [spill+8]
+    MMX_ABS_TWO  mm6, mm7, mm4, mm5
+    MMX_ABS  mm1, mm4
+    paddw    mm2, mm7
+    paddw    mm1, mm6
+    paddw    mm2, mm1 ; 7x4 sum
+    movq     mm1, mm0
+
+    movq     mm7, [ecx+0]
+    psllw    mm7, 3   ; left top
+
+    movzx    edx, word [ecx+0]
+    add      dx,  [ecx+16]
+    lea      edx, [4*edx+32]
+    and      edx, -64
+    movd     mm6, edx ; dc
+
+    psubw    mm1, mm7
+    psubw    mm0, mm6
+    MMX_ABS_TWO  mm0, mm1, mm5, mm6
+    movq     mm3, [sum+0] ; dc
+    paddw    mm0, mm2
+    paddw    mm1, mm2
+    movq     mm2, mm0
+    paddw    mm0, mm3
+    paddw    mm1, [sum+8] ; h
+    psrlq    mm2, 16
+    paddw    mm2, mm3
+
+    movq     mm3, [ecx+16] ; top left
+    movq     mm4, [ecx+24] ; top right
+    psllw    mm3, 3
+    psllw    mm4, 3
+    psubw    mm3, [sum+16]
+    psubw    mm4, [sum+24]
+    MMX_ABS_TWO  mm3, mm4, mm5, mm6
+    paddw    mm2, mm3
+    paddw    mm2, mm4 ; v
+
+    SUM_MM_X3   mm0, mm1, mm2, mm3, mm4, mm5, mm6, paddd
+    mov      eax, [args+8]
+    movd     ecx, mm2
+    movd     edx, mm1
+    add      ecx, 2
+    add      edx, 2
+    shr      ecx, 2
+    shr      edx, 2
+    mov      [eax+0], ecx ; i8x8_v satd
+    mov      [eax+4], edx ; i8x8_h satd
+    movd     ecx, mm0
+    add      ecx, 2
+    shr      ecx, 2
+    mov      [eax+8], ecx ; i8x8_dc satd
+
+    add      esp, 0x70
+    ret
+%undef args
+%undef spill
+%undef trans
+%undef sum
+

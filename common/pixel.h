@@ -78,6 +78,13 @@ typedef struct
     /* multiple parallel calls to sad. */
     x264_pixel_cmp_x3_t sad_x3[7];
     x264_pixel_cmp_x4_t sad_x4[7];
+
+    /* calculate satd of V, H, and DC modes.
+     * may be NULL, in which case just use pred+satd instead. */
+    void (*intra_satd_x3_16x16)( uint8_t *fenc, uint8_t *fdec, int res[3] );
+    void (*intra_satd_x3_8x8c)( uint8_t *fenc, uint8_t *fdec, int res[3] );
+    void (*intra_satd_x3_4x4)( uint8_t *fenc, uint8_t *fdec, int res[3] );
+    void (*intra_sa8d_x3_8x8)( uint8_t *fenc, uint8_t *fdec, int res[3], int i_neighbors );
 } x264_pixel_function_t;
 
 void x264_pixel_init( int cpu, x264_pixel_function_t *pixf );
