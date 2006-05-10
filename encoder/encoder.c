@@ -506,10 +506,6 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         {
             x264_log( h, X264_LOG_ERROR, "cannot create valid sample aspect ratio\n" );
         }
-        else if( i_w == i_h )
-        {
-            x264_log( h, X264_LOG_INFO, "no need for a SAR\n" );
-        }
         else
         {
             x264_log( h, X264_LOG_INFO, "using SAR=%d/%d\n", i_w, i_h );
