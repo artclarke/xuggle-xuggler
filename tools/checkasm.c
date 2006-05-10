@@ -36,6 +36,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_predict_t predict_8x8c[4+3];
     x264_predict_t predict_4x4[9+3];
     x264_predict8x8_t predict_8x8[9+3];
+    DECLARE_ALIGNED( uint8_t, edge[33], 8 );
     int ret = 0, ok, used_asm;
     int i;
 
@@ -46,6 +47,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_predict_8x8c_init( 0, predict_8x8c );
     x264_predict_8x8_init( 0, predict_8x8 );
     x264_predict_4x4_init( 0, predict_4x4 );
+    x264_predict_8x8_filter( buf2+40, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
 
 #define TEST_PIXEL( name ) \
     for( i = 0, ok = 1, used_asm = 0; i < 7; i++ ) \
@@ -101,7 +103,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     TEST_PIXEL_X(3);
     TEST_PIXEL_X(4);
 
-#define TEST_INTRA_SATD( name, pred, satd, ... ) \
+#define TEST_INTRA_SATD( name, pred, satd, i8x8, ... ) \
     if( pixel_asm.name && pixel_asm.name != pixel_ref.name ) \
     { \
         int res_c[3], res_asm[3]; \
@@ -112,7 +114,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
             pred[i]( buf3+40, ##__VA_ARGS__ ); \
             res_c[i] = pixel_c.satd( buf1+40, 16, buf3+40, 32 ); \
         } \
-        pixel_asm.name( buf1+40, buf3+40, res_asm, ##__VA_ARGS__ ); \
+        pixel_asm.name( buf1+40, i8x8 ? edge : buf3+40, res_asm ); \
         if( memcmp(res_c, res_asm, sizeof(res_c)) ) \
         { \
             ok = 0; \
@@ -123,13 +125,10 @@ static int check_pixel( int cpu_ref, int cpu_new )
     }
 
     ok = 1; used_asm = 0;
-    TEST_INTRA_SATD( intra_satd_x3_16x16, predict_16x16, satd[PIXEL_16x16] );
-    TEST_INTRA_SATD( intra_satd_x3_8x8c, predict_8x8c, satd[PIXEL_8x8] );
-    TEST_INTRA_SATD( intra_satd_x3_4x4, predict_4x4, satd[PIXEL_4x4] );
-    TEST_INTRA_SATD( intra_sa8d_x3_8x8, predict_8x8, sa8d[PIXEL_8x8],
-                     MB_LEFT|MB_TOP|MB_TOPLEFT|MB_TOPRIGHT );
-    TEST_INTRA_SATD( intra_sa8d_x3_8x8, predict_8x8, sa8d[PIXEL_8x8],
-                     MB_LEFT|MB_TOP|MB_TOPLEFT );
+    TEST_INTRA_SATD( intra_satd_x3_16x16, predict_16x16, satd[PIXEL_16x16], 0 );
+    TEST_INTRA_SATD( intra_satd_x3_8x8c, predict_8x8c, satd[PIXEL_8x8], 0 );
+    TEST_INTRA_SATD( intra_satd_x3_4x4, predict_4x4, satd[PIXEL_4x4], 0 );
+    TEST_INTRA_SATD( intra_sa8d_x3_8x8, predict_8x8, sa8d[PIXEL_8x8], 1, edge );
     report( "intra satd_x3 :" );
 
     return ret;
@@ -614,6 +613,7 @@ static int check_intra( int cpu_ref, int cpu_new )
 {
     int ret = 0, ok = 1, used_asm = 0;
     int i;
+    DECLARE_ALIGNED( uint8_t, edge[33], 8 );
     struct
     {
         x264_predict_t      predict_16x16[4+3];
@@ -637,6 +637,8 @@ static int check_intra( int cpu_ref, int cpu_new )
     x264_predict_8x8_init( cpu_new, ip_a.predict_8x8 );
     x264_predict_4x4_init( cpu_new, ip_a.predict_4x4 );
 
+    x264_predict_8x8_filter( buf1+48, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
+
 #define INTRA_TEST( name, dir, ... ) \
     if( ip_a.name[dir] != ip_ref.name[dir] )\
     { \
@@ -649,6 +651,23 @@ static int check_intra( int cpu_ref, int cpu_new )
         {\
             fprintf( stderr, #name "[%d] :  [FAILED]\n", dir );\
             ok = 0;\
+            int j,k;\
+            for(k=-1; k<16; k++)\
+                printf("%2x ", edge[16+k]);\
+            printf("\n");\
+            for(j=0; j<8; j++){\
+                printf("%2x ", edge[j]);\
+                for(k=0; k<8; k++)\
+                    printf("%2x ", buf4[48+k+j*32]);\
+                printf("\n");\
+            }\
+            printf("\n");\
+            for(j=0; j<8; j++){\
+                printf("   ");\
+                for(k=0; k<8; k++)\
+                    printf("%2x ", buf3[48+k+j*32]);\
+                printf("\n");\
+            }\
         }\
     }
 
@@ -659,15 +678,7 @@ static int check_intra( int cpu_ref, int cpu_new )
     for( i = 0; i < 7; i++ )
         INTRA_TEST( predict_16x16, i );
     for( i = 0; i < 12; i++ )
-        INTRA_TEST( predict_8x8, i, 0xf );
-    for( i = 0; i < 12; i++ )
-        INTRA_TEST( predict_8x8, i, MB_LEFT|MB_TOP|MB_TOPLEFT );
-    INTRA_TEST( predict_8x8, I_PRED_8x8_V,  MB_LEFT|MB_TOP );
-    INTRA_TEST( predict_8x8, I_PRED_8x8_DC, MB_LEFT|MB_TOP );
-    INTRA_TEST( predict_8x8, I_PRED_8x8_DDL,MB_LEFT|MB_TOP );
-    INTRA_TEST( predict_8x8, I_PRED_8x8_V,  MB_LEFT|MB_TOP|MB_TOPRIGHT );
-    INTRA_TEST( predict_8x8, I_PRED_8x8_DC, MB_LEFT|MB_TOP|MB_TOPRIGHT );
-    INTRA_TEST( predict_8x8, I_PRED_8x8_DDL,MB_LEFT|MB_TOP|MB_TOPRIGHT );
+        INTRA_TEST( predict_8x8, i, edge );
 
     report( "intra pred :" );
     return ret;

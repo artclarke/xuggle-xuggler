@@ -445,13 +445,15 @@ void x264_macroblock_encode( x264_t *h )
     }
     else if( h->mb.i_type == I_8x8 )
     {
+        DECLARE_ALIGNED( uint8_t, edge[33], 8 );
         h->mb.b_transform_8x8 = 1;
         for( i = 0; i < 4; i++ )
         {
             uint8_t  *p_dst = &h->mb.pic.p_fdec[0][8 * (i&1) + 8 * (i>>1) * FDEC_STRIDE];
             int      i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[4*i]];
 
-            h->predict_8x8[i_mode]( p_dst, h->mb.i_neighbour8[i] );
+            x264_predict_8x8_filter( p_dst, edge, h->mb.i_neighbour8[i], x264_pred_i4x4_neighbors[i_mode] );
+            h->predict_8x8[i_mode]( p_dst, edge );
             x264_mb_encode_i8x8( h, i, i_qp );
         }
     }

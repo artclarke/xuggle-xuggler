@@ -93,8 +93,9 @@ int x264_pixel_sa8d_8x8_sse2( uint8_t *, int, uint8_t *, int );
 void x264_intra_satd_x3_4x4_mmxext( uint8_t *, uint8_t *, int * );
 void x264_intra_satd_x3_8x8c_mmxext( uint8_t *, uint8_t *, int * );
 void x264_intra_satd_x3_16x16_mmxext( uint8_t *, uint8_t *, int * );
-void x264_intra_sa8d_x3_8x8_sse2( uint8_t *, uint8_t *, int *, int );
-void x264_intra_sa8d_x3_8x8_mmxext( uint8_t *, uint8_t *, int *, int );
+void x264_intra_sa8d_x3_8x8_sse2( uint8_t *, uint8_t *, int * );
+void x264_intra_sa8d_x3_8x8_mmxext( uint8_t *, uint8_t *, int * );
+void x264_intra_sa8d_x3_8x8_core_sse2( uint8_t *, int16_t [2][8], int * );
 void x264_intra_sa8d_x3_8x8_core_mmxext( uint8_t *, int16_t [2][8], int * );
 
 #endif

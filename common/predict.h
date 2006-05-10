@@ -25,7 +25,7 @@
 #define _PREDICT_H 1
 
 typedef void (*x264_predict_t)( uint8_t *src );
-typedef void (*x264_predict8x8_t)( uint8_t *src, int i_neighbor );
+typedef void (*x264_predict8x8_t)( uint8_t *src, uint8_t edge[33] );
 
 enum intra_chroma_pred_e
 {
@@ -104,6 +104,9 @@ enum intra8x8_pred_e
     I_PRED_8x8_DC_TOP  = 10,
     I_PRED_8x8_DC_128  = 11,
 };
+
+// FIXME enforce edge alignment via uint64_t ?
+void x264_predict_8x8_filter( uint8_t *src, uint8_t edge[33], int i_neighbor, int i_filters );
 
 void x264_predict_16x16_init ( int cpu, x264_predict_t pf[7] );
 void x264_predict_8x8c_init  ( int cpu, x264_predict_t pf[7] );

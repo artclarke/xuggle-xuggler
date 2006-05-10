@@ -534,6 +534,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     /* 8x8 prediction selection */
     if( flags & X264_ANALYSE_I8x8 )
     {
+        DECLARE_ALIGNED( uint8_t, edge[33], 8 );
         x264_pixel_cmp_t sa8d = (*h->pixf.mbcmp == *h->pixf.sad) ? h->pixf.sad[PIXEL_8x8] : h->pixf.sa8d[PIXEL_8x8];
         int i_satd_thresh = a->b_mbrd ? COST_MAX : X264_MIN( i_satd_inter, a->i_satd_i16x16 );
         int i_cost = 0;
@@ -553,11 +554,12 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             int i_pred_mode = x264_mb_predict_intra4x4_mode( h, 4*idx );
 
             predict_4x4_mode_available( h->mb.i_neighbour8[idx], predict_mode, &i_max );
+            x264_predict_8x8_filter( p_dst_by, edge, h->mb.i_neighbour8[idx], ALL_NEIGHBORS );
 
             if( b_merged_satd && i_max == 9 )
             {
                 int satd[3];
-                h->pixf.intra_sa8d_x3_8x8( p_src_by, p_dst_by, satd, h->mb.i_neighbour8[idx] );
+                h->pixf.intra_sa8d_x3_8x8( p_src_by, edge, satd );
                 if( i_pred_mode < 3 )
                     satd[i_pred_mode] -= 3 * a->i_lambda;
                 for( i=2; i>=0; i-- )
@@ -575,7 +577,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                 int i_satd;
                 int i_mode = predict_mode[i];
 
-                h->predict_8x8[i_mode]( p_dst_by, h->mb.i_neighbour8[idx] );
+                h->predict_8x8[i_mode]( p_dst_by, edge );
 
                 i_satd = sa8d( p_dst_by, FDEC_STRIDE, p_src_by, FENC_STRIDE )
                        + a->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) ? 1 : 4);
@@ -589,7 +591,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                 break;
 
             /* we need to encode this block now (for next ones) */
-            h->predict_8x8[a->i_predict8x8[idx]]( p_dst_by, h->mb.i_neighbour8[idx] );
+            h->predict_8x8[a->i_predict8x8[idx]]( p_dst_by, edge );
             x264_mb_encode_i8x8( h, idx, a->i_qp );
 
             x264_macroblock_cache_intra8x8_pred( h, 2*x, 2*y, a->i_predict8x8[idx] );
@@ -786,6 +788,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     }
     else if( h->mb.i_type == I_8x8 )
     {
+        DECLARE_ALIGNED( uint8_t, edge[33], 8 );
         for( idx = 0; idx < 4; idx++ )
         {
             uint64_t pels_h = 0;
@@ -804,12 +807,14 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
             p_src_by = p_src + 8*x + 8*y*FENC_STRIDE;
             p_dst_by = p_dst + 8*x + 8*y*FDEC_STRIDE;
             predict_4x4_mode_available( h->mb.i_neighbour8[idx], predict_mode, &i_max );
+            x264_predict_8x8_filter( p_dst_by, edge, h->mb.i_neighbour8[idx], ALL_NEIGHBORS );
+
             for( i = 0; i < i_max; i++ )
             {
                 i_mode = predict_mode[i];
                 if( a->i_satd_i8x8_dir[i_mode][idx] > i_thresh )
                     continue;
-                h->predict_8x8[i_mode]( p_dst_by, h->mb.i_neighbour8[idx] );
+                h->predict_8x8[i_mode]( p_dst_by, edge );
                 i_satd = x264_rd_cost_i8x8( h, a->i_lambda2, idx, i_mode );
 
                 if( i_best > i_satd )

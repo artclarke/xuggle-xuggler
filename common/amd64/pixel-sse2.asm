@@ -48,7 +48,7 @@ cglobal x264_pixel_satd_8x16_sse2
 cglobal x264_pixel_satd_16x16_sse2
 cglobal x264_pixel_sa8d_8x8_sse2
 cglobal x264_pixel_sa8d_16x16_sse2
-cglobal x264_intra_sa8d_x3_8x8_sse2
+cglobal x264_intra_sa8d_x3_8x8_core_sse2
 
 %macro SAD_INC_4x16P_SSE2 0
     movdqu  xmm1,   [rdx]
@@ -627,16 +627,21 @@ x264_pixel_sa8d_16x16_sse2:
 
 
 
-%macro LOAD_HADAMARD8 1
+ALIGN 16
+;-----------------------------------------------------------------------------
+;  void x264_intra_sa8d_x3_8x8_core_sse2( uint8_t *fenc, int16_t edges[2][8], int *res )
+;-----------------------------------------------------------------------------
+x264_intra_sa8d_x3_8x8_core_sse2:
+    ; 8x8 hadamard
     pxor        xmm4, xmm4
-    movq        xmm0, [%1+0*FENC_STRIDE]
-    movq        xmm7, [%1+1*FENC_STRIDE]
-    movq        xmm6, [%1+2*FENC_STRIDE]
-    movq        xmm3, [%1+3*FENC_STRIDE]
-    movq        xmm5, [%1+4*FENC_STRIDE]
-    movq        xmm1, [%1+5*FENC_STRIDE]
-    movq        xmm8, [%1+6*FENC_STRIDE]
-    movq        xmm2, [%1+7*FENC_STRIDE]
+    movq        xmm0, [parm1q+0*FENC_STRIDE]
+    movq        xmm7, [parm1q+1*FENC_STRIDE]
+    movq        xmm6, [parm1q+2*FENC_STRIDE]
+    movq        xmm3, [parm1q+3*FENC_STRIDE]
+    movq        xmm5, [parm1q+4*FENC_STRIDE]
+    movq        xmm1, [parm1q+5*FENC_STRIDE]
+    movq        xmm8, [parm1q+6*FENC_STRIDE]
+    movq        xmm2, [parm1q+7*FENC_STRIDE]
     punpcklbw   xmm0, xmm4
     punpcklbw   xmm7, xmm4
     punpcklbw   xmm6, xmm4
@@ -648,128 +653,11 @@ x264_pixel_sa8d_16x16_sse2:
     HADAMARD1x8 xmm0, xmm7, xmm6, xmm3, xmm5, xmm1, xmm8, xmm2
     TRANSPOSE8x8 xmm0, xmm7, xmm6, xmm3, xmm5, xmm1, xmm8, xmm2, xmm4
     HADAMARD1x8 xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7
-%endmacro
 
-%macro SCALAR_SUMSUB 4
-    add %1, %2
-    add %3, %4
-    add %2, %2
-    add %4, %4
-    sub %2, %1
-    sub %4, %3
-%endmacro
-
-%macro SCALAR_HADAMARD1x8 9 ; 8x tmp, dst
-    SCALAR_SUMSUB %1, %5, %2, %6
-    SCALAR_SUMSUB %3, %7, %4, %8
-    SCALAR_SUMSUB %1, %3, %2, %4
-    SCALAR_SUMSUB %5, %7, %6, %8
-    SCALAR_SUMSUB %1, %2, %3, %4
-    SCALAR_SUMSUB %5, %6, %7, %8
-    mov         [%9+0], %1
-    mov         [%9+2], %2
-    mov         [%9+4], %3
-    mov         [%9+6], %4
-    mov         [%9+8], %5
-    mov         [%9+10], %6
-    mov         [%9+12], %7
-    mov         [%9+14], %8
-%endmacro
-
-; dest, left, right, src, tmp
-; output: %1 = (t[n-1] + t[n]*2 + t[n+1] + 2) >> 2
-%macro PRED8x8_LOWPASS 5
-    movq        %5, %2
-    pavgb       %2, %3
-    pxor        %3, %5
-    movq        %1, %4
-    pand        %3, [pb_1 GLOBAL]
-    psubusb     %2, %3
-    pavgb       %1, %2
-%endmacro
-
-; output: mm0 = filtered t0..t7
-; assumes topleft is available
-%macro PRED8x8_LOAD_TOP_FILT 1
-    movq        mm1, [%1-1]
-    movq        mm2, [%1+1]
-    and         parm4d, byte 4
-    jne         .have_topright
-    mov         al,  [%1+7]
-    mov         ah,  al
-    pinsrw      mm2, eax, 3
-.have_topright:
-    PRED8x8_LOWPASS mm0, mm1, mm2, [%1], mm7
-%endmacro
-
-%macro PRED8x8_LOAD_LEFT_FILT 10 ; 8x reg, tmp, src
-    movzx       %1, byte [%10-1*FDEC_STRIDE]
-    movzx       %2, byte [%10+0*FDEC_STRIDE]
-    movzx       %3, byte [%10+1*FDEC_STRIDE]
-    movzx       %4, byte [%10+2*FDEC_STRIDE]
-    movzx       %5, byte [%10+3*FDEC_STRIDE]
-    movzx       %6, byte [%10+4*FDEC_STRIDE]
-    movzx       %7, byte [%10+5*FDEC_STRIDE]
-    movzx       %8, byte [%10+6*FDEC_STRIDE]
-    movzx       %9, byte [%10+7*FDEC_STRIDE]
-    lea         %1, [%1+%2+1]
-    lea         %2, [%2+%3+1]
-    lea         %3, [%3+%4+1]
-    lea         %4, [%4+%5+1]
-    lea         %5, [%5+%6+1]
-    lea         %6, [%6+%7+1]
-    lea         %7, [%7+%8+1]
-    lea         %8, [%8+%9+1]
-    lea         %9, [%9+%9+1]
-    add         %1, %2
-    add         %2, %3
-    add         %3, %4
-    add         %4, %5
-    add         %5, %6
-    add         %6, %7
-    add         %7, %8
-    add         %8, %9
-    shr         %1, 2
-    shr         %2, 2
-    shr         %3, 2
-    shr         %4, 2
-    shr         %5, 2
-    shr         %6, 2
-    shr         %7, 2
-    shr         %8, 2
-%endmacro
-
-ALIGN 16
-;-----------------------------------------------------------------------------
-;  void x264_intra_sa8d_x3_8x8_sse2( uint8_t *fenc, uint8_t *fdec,
-;                                    int *res, int i_neighbors )
-;-----------------------------------------------------------------------------
-x264_intra_sa8d_x3_8x8_sse2:
-%define  left_1d rsp-16 ; +16
-%define  top_1d  rsp-32 ; +16
-    push        rbx
-    push        r12
-    push        r13
-    push        r14
-    push        r15
-    LOAD_HADAMARD8 parm1q
-
-    PRED8x8_LOAD_LEFT_FILT r8, r9, r10, r11, r12, r13, r14, r15, rax, parm2q-1
-    SCALAR_HADAMARD1x8 r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d, left_1d
-    mov         edi, r8d ; dc
-
-    PRED8x8_LOAD_TOP_FILT parm2q-FDEC_STRIDE
-    movq        [top_1d], mm0
-    movzx       r8d,  byte [top_1d+0]
-    movzx       r9d,  byte [top_1d+1]
-    movzx       r10d, byte [top_1d+2]
-    movzx       r11d, byte [top_1d+3]
-    movzx       r12d, byte [top_1d+4]
-    movzx       r13d, byte [top_1d+5]
-    movzx       r14d, byte [top_1d+6]
-    movzx       r15d, byte [top_1d+7]
-    SCALAR_HADAMARD1x8 r8w, r9w, r10w, r11w, r12w, r13w, r14w, r15w, top_1d
-    lea         rdi, [rdi + r8 + 8] ; dc
+    ; dc
+    movzx       edi, word [parm2q+0]
+    add          di, word [parm2q+16]
+    add         edi, 8
     and         edi, -16
     shl         edi, 2
 
@@ -786,7 +674,7 @@ x264_intra_sa8d_x3_8x8_sse2:
     SUM1x8_SSE2 xmm8, xmm10, xmm15
     movdqa      xmm14, xmm15 ; 7x8 sum
 
-    movdqa      xmm8, [left_1d] ; left edge
+    movdqa      xmm8, [parm2q+0] ; left edge
     movd        xmm9, edi
     psllw       xmm8, 3
     psubw       xmm8, xmm0
@@ -800,7 +688,7 @@ x264_intra_sa8d_x3_8x8_sse2:
     punpckldq   xmm0, xmm2
     punpckldq   xmm4, xmm6
     punpcklqdq  xmm0, xmm4 ; transpose
-    movdqa      xmm1, [top_1d]
+    movdqa      xmm1, [parm2q+16] ; top edge
     movdqa      xmm2, xmm15
     psllw       xmm1, 3
     psrldq      xmm2, 2     ; 8x7 sum
@@ -820,9 +708,4 @@ x264_intra_sa8d_x3_8x8_sse2:
     shr         eax, 2
     mov         [parm3q+0], eax ; i8x8_v sa8d
 
-    pop         r15
-    pop         r14
-    pop         r13
-    pop         r12
-    pop         rbx
     ret

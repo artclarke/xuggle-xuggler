@@ -33,13 +33,16 @@ extern void predict_16x16_p_core_mmxext( uint8_t *src, int i00, int b, int c );
 extern void predict_8x8c_p_core_mmxext( uint8_t *src, int i00, int b, int c );
 extern void predict_8x8c_dc_core_mmxext( uint8_t *src, int s2, int s3 );
 extern void predict_8x8c_v_mmx( uint8_t *src );
-extern void predict_8x8_v_mmxext( uint8_t *src, int i_neighbors );
-extern void predict_8x8_ddl_mmxext( uint8_t *src, int i_neighbors );
-extern void predict_8x8_ddl_sse2( uint8_t *src, int i_neighbors );
-extern void predict_8x8_ddr_sse2( uint8_t *src, int i_neighbors );
-extern void predict_8x8_vl_sse2( uint8_t *src, int i_neighbors );
-extern void predict_8x8_vr_core_mmxext( uint8_t *src, int i_neighbors, uint16_t ltt0 );
-extern void predict_8x8_dc_core_mmxext( uint8_t *src, int i_neighbors, uint8_t *pix_left );
+extern void predict_8x8_v_mmxext( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_dc_mmxext( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_dc_top_mmxext( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_dc_left_mmxext( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_ddl_mmxext( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_ddr_mmxext( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_ddl_sse2( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_ddr_sse2( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_vl_sse2( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_vr_core_mmxext( uint8_t *src, uint8_t edge[33] );
 extern void predict_4x4_ddl_mmxext( uint8_t *src );
 extern void predict_4x4_vl_mmxext( uint8_t *src );
 
@@ -114,24 +117,6 @@ static void predict_8x8c_dc( uint8_t *src )
        + src[-1 + 7*FDEC_STRIDE];
 
     predict_8x8c_dc_core_mmxext( src, s2, s3 );
-}
-
-#define SRC(x,y) src[(x)+(y)*FDEC_STRIDE]
-static void predict_8x8_dc( uint8_t *src, int i_neighbor )
-{
-    uint8_t l[10];
-    l[0] = i_neighbor&MB_TOPLEFT ? SRC(-1,-1) : SRC(-1,0);
-    l[1] = SRC(-1,0);
-    l[2] = SRC(-1,1);
-    l[3] = SRC(-1,2);
-    l[4] = SRC(-1,3);
-    l[5] = SRC(-1,4);
-    l[6] = SRC(-1,5);
-    l[7] = SRC(-1,6);
-    l[8] =
-    l[9] = SRC(-1,7);
-
-    predict_8x8_dc_core_mmxext( src, i_neighbor, l+1 );
 }
 
 #ifdef ARCH_X86_64
@@ -417,33 +402,15 @@ static void predict_4x4_hu( uint8_t *src )
  ****************************************************************************/
 
 #define PL(y) \
-    int l##y = (SRC(-1,y-1) + 2*SRC(-1,y) + SRC(-1,y+1) + 2) >> 2;
-#define PREDICT_8x8_LOAD_LEFT(have_tl) \
-    int l0 = ((have_tl || (i_neighbor&MB_TOPLEFT) ? SRC(-1,-1) : SRC(-1,0)) \
-                     + 2*SRC(-1,0) + SRC(-1,1) + 2) >> 2; \
-    PL(1) PL(2) PL(3) PL(4) PL(5) PL(6) \
-    UNUSED int l7 = (SRC(-1,6) + 3*SRC(-1,7) + 2) >> 2;
-
+    UNUSED int l##y = edge[14-y];
 #define PT(x) \
-    int t##x = (SRC(x-1,-1) + 2*SRC(x,-1) + SRC(x+1,-1) + 2) >> 2;
-#define PREDICT_8x8_LOAD_TOP(have_tl) \
-    int t0 = ((have_tl || (i_neighbor&MB_TOPLEFT) ? SRC(-1,-1) : SRC(0,-1)) \
-                     + 2*SRC(0,-1) + SRC(1,-1) + 2) >> 2; \
-    PT(1) PT(2) PT(3) PT(4) PT(5) PT(6) \
-    UNUSED int t7 = ((i_neighbor&MB_TOPRIGHT ? SRC(8,-1) : SRC(7,-1)) \
-                     + 2*SRC(7,-1) + SRC(6,-1) + 2) >> 2; \
-
-#define PTR(x) \
-    t##x = (SRC(x-1,-1) + 2*SRC(x,-1) + SRC(x+1,-1) + 2) >> 2;
-#define PREDICT_8x8_LOAD_TOPRIGHT \
-    int t8, t9, t10, t11, t12, t13, t14, t15; \
-    if(i_neighbor&MB_TOPRIGHT) { \
-        PTR(8) PTR(9) PTR(10) PTR(11) PTR(12) PTR(13) PTR(14) \
-        t15 = (SRC(14,-1) + 3*SRC(15,-1) + 2) >> 2; \
-    } else t8=t9=t10=t11=t12=t13=t14=t15= SRC(7,-1);
-
+    UNUSED int t##x = edge[16+x];
 #define PREDICT_8x8_LOAD_TOPLEFT \
-    int lt = (SRC(-1,0) + 2*SRC(-1,-1) + SRC(0,-1) + 2) >> 2;
+    int lt = edge[15];
+#define PREDICT_8x8_LOAD_LEFT \
+    PL(0) PL(1) PL(2) PL(3) PL(4) PL(5) PL(6) PL(7)
+#define PREDICT_8x8_LOAD_TOP \
+    PT(0) PT(1) PT(2) PT(3) PT(4) PT(5) PT(6) PT(7)
 
 #define PREDICT_8x8_DC(v) \
     int y; \
@@ -453,93 +420,14 @@ static void predict_4x4_hu( uint8_t *src )
         src += FDEC_STRIDE; \
     }
 
-#define SRC4(x,y) *(uint32_t*)&SRC(x,y)
+#define SRC(x,y) src[(x)+(y)*FDEC_STRIDE]
 
-#if 0
-static void predict_8x8_ddl( uint8_t *src, int i_neighbor )
+static void predict_8x8_vr_mmxext( uint8_t *src, uint8_t edge[33] )
 {
-    PREDICT_8x8_LOAD_TOP(0)
-    uint32_t vec0, vec1;
-    int t8b;
-    if(i_neighbor&MB_TOPRIGHT)
+    predict_8x8_vr_core_mmxext( src, edge );
     {
-        PREDICT_8x8_LOAD_TOPRIGHT
-        vec1 = (F2(t14,t15,t15)<<24)
-             + (F2(t13,t14,t15)<<16)
-             + (F2(t12,t13,t14)<< 8)
-             + (F2(t11,t12,t13)<< 0);
-        vec0 = (F2(t10,t11,t12)<<24)
-             + (F2( t9,t10,t11)<<16)
-             + (F2( t8, t9,t10)<< 8)
-             + (F2( t7, t8, t9)<< 0);
-        t8b = t8;
-    }
-    else
-    {
-        t8b = SRC(7,-1);
-        vec1 = t8b * 0x01010101;
-        vec0 = (vec1&0xffffff00) + F2(t7,t8b,t8b);
-    }
-    SRC4(4,7) = vec1;
-    SRC4(4,3) =
-    SRC4(0,7) = vec0;
-    SRC4(4,6) = vec1 = (vec1<<8) + (vec0>>24);
-    SRC4(4,2) =
-    SRC4(0,6) = vec0 = (vec0<<8) + F2(t6,t7,t8b);
-    SRC4(4,5) = vec1 = (vec1<<8) + (vec0>>24);
-    SRC4(4,1) =
-    SRC4(0,5) = vec0 = (vec0<<8) + F2(t5,t6,t7);
-    SRC4(4,4) = vec1 = (vec1<<8) + (vec0>>24);
-    SRC4(4,0) =
-    SRC4(0,4) = vec0 = (vec0<<8) + F2(t4,t5,t6);
-    SRC4(0,3) = vec0 = (vec0<<8) + F2(t3,t4,t5);
-    SRC4(0,2) = vec0 = (vec0<<8) + F2(t2,t3,t4);
-    SRC4(0,1) = vec0 = (vec0<<8) + F2(t1,t2,t3);
-    SRC4(0,0) = vec0 = (vec0<<8) + F2(t0,t1,t2);
-}
-#endif
-
-static void predict_8x8_ddr( uint8_t *src, int i_neighbor )
-{
-    PREDICT_8x8_LOAD_TOP(1)
-    PREDICT_8x8_LOAD_LEFT(1)
-    PREDICT_8x8_LOAD_TOPLEFT
-    uint32_t vec0, vec1;
-    vec1 = (F2(t7,t6,t5)<<24)
-         + (F2(t6,t5,t4)<<16)
-         + (F2(t5,t4,t3)<< 8)
-         + (F2(t4,t3,t2)<< 0);
-    vec0 = (F2(t3,t2,t1)<<24)
-         + (F2(t2,t1,t0)<<16)
-         + (F2(t1,t0,lt)<< 8)
-         + (F2(t0,lt,l0)<< 0);
-    SRC4(4,0) = vec1;
-    SRC4(0,0) =
-    SRC4(4,4) = vec0;
-    SRC4(4,1) = vec1 = (vec1<<8) + (vec0>>24);
-    SRC4(0,1) =
-    SRC4(4,5) = vec0 = (vec0<<8) + F2(lt,l0,l1);
-    SRC4(4,2) = vec1 = (vec1<<8) + (vec0>>24);
-    SRC4(0,2) =
-    SRC4(4,6) = vec0 = (vec0<<8) + F2(l0,l1,l2);
-    SRC4(4,3) = vec1 = (vec1<<8) + (vec0>>24);
-    SRC4(0,3) =
-    SRC4(4,7) = vec0 = (vec0<<8) + F2(l1,l2,l3);
-    SRC4(0,4) = vec0 = (vec0<<8) + F2(l2,l3,l4);
-    SRC4(0,5) = vec0 = (vec0<<8) + F2(l3,l4,l5);
-    SRC4(0,6) = vec0 = (vec0<<8) + F2(l4,l5,l6);
-    SRC4(0,7) = vec0 = (vec0<<8) + F2(l5,l6,l7);
-}
-
-#ifdef ARCH_X86_64
-static void predict_8x8_vr_mmxext( uint8_t *src, int i_neighbor )
-{
-    PREDICT_8x8_LOAD_TOPLEFT
-    const int t0 = F2(SRC(-1,-1), SRC(0,-1), SRC(1,-1));
-    predict_8x8_vr_core_mmxext( src, i_neighbor, lt+(t0<<8) );
-    {
-        PREDICT_8x8_LOAD_LEFT(1)
-        SRC(0,1)=SRC(1,3)=SRC(2,5)=SRC(3,7)= (l0 + 2*lt + t0 + 2) >> 2;
+        PREDICT_8x8_LOAD_TOPLEFT
+        PREDICT_8x8_LOAD_LEFT
         SRC(0,2)=SRC(1,4)=SRC(2,6)= (l1 + 2*l0 + lt + 2) >> 2;
         SRC(0,3)=SRC(1,5)=SRC(2,7)= (l2 + 2*l1 + l0 + 2) >> 2;
         SRC(0,4)=SRC(1,6)= (l3 + 2*l2 + l1 + 2) >> 2;
@@ -548,46 +436,51 @@ static void predict_8x8_vr_mmxext( uint8_t *src, int i_neighbor )
         SRC(0,7)= (l6 + 2*l5 + l4 + 2) >> 2;
     }
 }
-#endif
 
-#ifdef ARCH_X86
 #define SUMSUB(a,b,c,d,e,f,g,h)\
     t=a; a+=b; b-=t;\
     t=c; c+=d; d-=t;\
     t=e; e+=f; f-=t;\
     t=g; g+=h; h-=t;
 
-void x264_intra_sa8d_x3_8x8_mmxext( uint8_t *fenc, uint8_t *src, int res[3], int i_neighbor )
+#ifdef ARCH_X86_64
+void x264_intra_sa8d_x3_8x8_sse2( uint8_t *fenc, uint8_t edge[33], int res[3] )
+#else
+void x264_intra_sa8d_x3_8x8_mmxext( uint8_t *fenc, uint8_t edge[33], int res[3] )
+#endif
 {
-    PREDICT_8x8_LOAD_TOP(1)
-    PREDICT_8x8_LOAD_LEFT(1)
+    PREDICT_8x8_LOAD_TOP
+    PREDICT_8x8_LOAD_LEFT
     int t;
-    int16_t edges[2][8];
+    DECLARE_ALIGNED( int16_t, sa8d_1d[2][8], 16 );
     SUMSUB(l0,l4,l1,l5,l2,l6,l3,l7);
     SUMSUB(l0,l2,l1,l3,l4,l6,l5,l7);
     SUMSUB(l0,l1,l2,l3,l4,l5,l6,l7);
-    edges[0][0] = l0;
-    edges[0][1] = l1;
-    edges[0][2] = l2;
-    edges[0][3] = l3;
-    edges[0][4] = l4;
-    edges[0][5] = l5;
-    edges[0][6] = l6;
-    edges[0][7] = l7;
+    sa8d_1d[0][0] = l0;
+    sa8d_1d[0][1] = l1;
+    sa8d_1d[0][2] = l2;
+    sa8d_1d[0][3] = l3;
+    sa8d_1d[0][4] = l4;
+    sa8d_1d[0][5] = l5;
+    sa8d_1d[0][6] = l6;
+    sa8d_1d[0][7] = l7;
     SUMSUB(t0,t4,t1,t5,t2,t6,t3,t7);
     SUMSUB(t0,t2,t1,t3,t4,t6,t5,t7);
     SUMSUB(t0,t1,t2,t3,t4,t5,t6,t7);
-    edges[1][0] = t0;
-    edges[1][1] = t1;
-    edges[1][2] = t2;
-    edges[1][3] = t3;
-    edges[1][4] = t4;
-    edges[1][5] = t5;
-    edges[1][6] = t6;
-    edges[1][7] = t7;
-    x264_intra_sa8d_x3_8x8_core_mmxext( fenc, edges, res );
-}
+    sa8d_1d[1][0] = t0;
+    sa8d_1d[1][1] = t1;
+    sa8d_1d[1][2] = t2;
+    sa8d_1d[1][3] = t3;
+    sa8d_1d[1][4] = t4;
+    sa8d_1d[1][5] = t5;
+    sa8d_1d[1][6] = t6;
+    sa8d_1d[1][7] = t7;
+#ifdef ARCH_X86_64
+    x264_intra_sa8d_x3_8x8_core_sse2( fenc, sa8d_1d, res );
+#else
+    x264_intra_sa8d_x3_8x8_core_mmxext( fenc, sa8d_1d, res );
 #endif
+}
 
 /****************************************************************************
  * Exported functions:
@@ -621,11 +514,13 @@ void x264_predict_8x8c_init_mmxext( x264_predict_t pf[7] )
 void x264_predict_8x8_init_mmxext( x264_predict8x8_t pf[12] )
 {
     pf[I_PRED_8x8_V]   = predict_8x8_v_mmxext;
-    pf[I_PRED_8x8_DC]  = predict_8x8_dc;
-    pf[I_PRED_8x8_DDR] = predict_8x8_ddr;
-#ifdef ARCH_X86_64 // x86 not written yet
+    pf[I_PRED_8x8_DC]  = predict_8x8_dc_mmxext;
+    pf[I_PRED_8x8_DC_TOP] = predict_8x8_dc_top_mmxext;
+    pf[I_PRED_8x8_DC_LEFT]= predict_8x8_dc_left_mmxext;
     pf[I_PRED_8x8_DDL] = predict_8x8_ddl_mmxext;
     pf[I_PRED_8x8_VR]  = predict_8x8_vr_mmxext;
+#ifdef ARCH_X86
+    pf[I_PRED_8x8_DDR] = predict_8x8_ddr_mmxext;
 #endif
 }
 

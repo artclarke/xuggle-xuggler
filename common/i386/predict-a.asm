@@ -28,17 +28,15 @@ BITS 32
 
 %include "i386inc.asm"
 
-; this is faster than a constant [edx + Y*FDEC_STRIDE]
 %macro STORE8x8 2
-    movq        [edx +   ecx], %1       ; 0
-    movq        [edx + 2*ecx], %1       ; 1
-    movq        [edx + 4*ecx], %1       ; 3
-    movq        [edx + 8*ecx], %2       ; 7
-    add         edx, eax
-    movq        [edx        ], %1       ; 2
-    movq        [edx + 2*ecx], %2       ; 4
-    movq        [edx +   eax], %2       ; 5
-    movq        [edx + 4*ecx], %2       ; 6
+    movq        [edx + 0*FDEC_STRIDE], %1
+    movq        [edx + 1*FDEC_STRIDE], %1
+    movq        [edx + 2*FDEC_STRIDE], %1
+    movq        [edx + 3*FDEC_STRIDE], %1
+    movq        [edx + 4*FDEC_STRIDE], %2
+    movq        [edx + 5*FDEC_STRIDE], %2
+    movq        [edx + 6*FDEC_STRIDE], %2
+    movq        [edx + 7*FDEC_STRIDE], %2
 %endmacro
 
 %macro SAVE_0_1 1
@@ -56,6 +54,7 @@ SECTION_RODATA
 
 ALIGN 8
 pw_2: times 4 dw 2
+pw_4: times 4 dw 4
 pw_8: times 4 dw 8
 pb_1: times 8 db 1
 pw_3210:
@@ -71,7 +70,12 @@ pw_3210:
 SECTION .text
 
 cglobal predict_8x8_v_mmxext
-cglobal predict_8x8_dc_core_mmxext
+cglobal predict_8x8_dc_mmxext
+cglobal predict_8x8_dc_top_mmxext
+cglobal predict_8x8_dc_left_mmxext
+cglobal predict_8x8_ddl_mmxext
+cglobal predict_8x8_ddr_mmxext
+cglobal predict_8x8_vr_core_mmxext
 cglobal predict_8x8c_v_mmx
 cglobal predict_8x8c_dc_core_mmxext
 cglobal predict_8x8c_p_core_mmxext
@@ -80,115 +84,205 @@ cglobal predict_16x16_v_mmx
 cglobal predict_16x16_dc_core_mmxext
 cglobal predict_16x16_dc_top_mmxext
 
-%macro PRED8x8_LOWPASS 2
-    movq        mm3, mm1
-    pavgb       mm1, mm2
-    pxor        mm2, mm3
-    movq        %1 , %2
-    pand        mm2, [pb_1 GOT_ebx]
-    psubusb     mm1, mm2
-    pavgb       %1 , mm1     ; %1 = (t[n-1] + t[n]*2 + t[n+1] + 2) >> 2
+
+; dest, left, right, src, tmp
+; output: %1 = (t[n-1] + t[n]*2 + t[n+1] + 2) >> 2
+%macro PRED8x8_LOWPASS 5
+    movq        %5, %2
+    pavgb       %2, %3
+    pxor        %3, %5
+    movq        %1, %4
+    pand        %3, [pb_1 GOT_ebx]
+    psubusb     %2, %3
+    pavgb       %1, %2
 %endmacro
 
-%macro PRED8x8_LOAD_TOP 0
-    mov         edx, [picesp + 4]
-    mov         ecx, FDEC_STRIDE
-    mov         eax, [picesp + 8]
-    sub         edx, ecx
-
-    and         eax, 12
-    movq        mm1, [edx-1]
-    movq        mm2, [edx+1]
-
-    cmp         eax, byte 8
-    jge         .have_topleft
-    mov         al,  [edx]
-    mov         ah,  al
-    pinsrw      mm1, eax, 0
-    mov         eax, [picesp + 8]
-.have_topleft:
-
-    and         eax, byte 4
-    jne         .have_topright
-    mov         al,  [edx+7]
-    mov         ah,  al
-    pinsrw      mm2, eax, 3
-.have_topright:
-
-    PRED8x8_LOWPASS mm0, [edx]
-%endmacro
 
 ;-----------------------------------------------------------------------------
-;
-; void predict_8x8_v_mmxext( uint8_t *src, int i_neighbors )
-;
+; void predict_8x8_v_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
 predict_8x8_v_mmxext:
-    picpush     ebx
-    picgetgot   ebx
-
-    PRED8x8_LOAD_TOP
-    lea         eax, [ecx + 2*ecx]
+    mov         eax, [esp+8]
+    mov         edx, [esp+4]
+    movq        mm0, [eax+16]
     STORE8x8    mm0, mm0
-
-    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
-;
-; void predict_8x8_dc_core_mmxext( uint8_t *src, int i_neighbors, uint8_t *pix_left );
-;
+; void predict_8x8_dc_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
-predict_8x8_dc_core_mmxext:
+predict_8x8_dc_mmxext:
     picpush     ebx
     picgetgot   ebx
-
-    mov         eax, [picesp + 12]
-    movq        mm1, [eax-1]
-    movq        mm2, [eax+1]
-    PRED8x8_LOWPASS mm4, [eax]
-
-    PRED8x8_LOAD_TOP
-
+    mov         eax, [picesp + 8]
+    mov         edx, [picesp + 4]
+    pxor        mm0, mm0
     pxor        mm1, mm1
-    psadbw      mm0, mm1
-    psadbw      mm4, mm1
+    psadbw      mm0, [eax+7]
+    psadbw      mm1, [eax+16]
     paddw       mm0, [pw_8 GOT_ebx]
-    paddw       mm0, mm4
+    paddw       mm0, mm1
     psrlw       mm0, 4
     pshufw      mm0, mm0, 0
     packuswb    mm0, mm0
-
-    lea         eax, [ecx + 2*ecx]
     STORE8x8    mm0, mm0
-
     picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
-;
+; void predict_8x8_top_mmxext( uint8_t *src, uint8_t *edge )
+;-----------------------------------------------------------------------------
+%macro PRED8x8_DC 2
+ALIGN 16
+%1:
+    picpush     ebx
+    picgetgot   ebx
+    mov         eax, [picesp + 8]
+    mov         edx, [picesp + 4]
+    pxor        mm0, mm0
+    psadbw      mm0, [eax+%2]
+    paddw       mm0, [pw_4 GOT_ebx]
+    psrlw       mm0, 3
+    pshufw      mm0, mm0, 0
+    packuswb    mm0, mm0
+    STORE8x8    mm0, mm0
+    picpop      ebx
+    ret
+%endmacro
+
+PRED8x8_DC predict_8x8_dc_top_mmxext, 16
+PRED8x8_DC predict_8x8_dc_left_mmxext, 7
+
+;-----------------------------------------------------------------------------
+; void predict_8x8_ddl_mmxext( uint8_t *src, uint8_t *edge )
+;-----------------------------------------------------------------------------
+
+ALIGN 16
+predict_8x8_ddl_mmxext:
+    picpush     ebx
+    picgetgot   ebx
+    mov         eax, [picesp + 8]
+    mov         edx, [picesp + 4]
+    movq        mm1, [eax + 15]
+    movq        mm2, [eax + 17]
+    movq        mm3, [eax + 23]
+    movq        mm4, [eax + 25]
+    PRED8x8_LOWPASS mm0, mm1, mm2, [eax + 16], mm7
+    PRED8x8_LOWPASS mm1, mm3, mm4, [eax + 24], mm6
+
+%assign Y 7
+%rep 6
+    movq        [edx + Y*FDEC_STRIDE], mm1
+    movq        mm2, mm0
+    psllq       mm1, 8
+    psrlq       mm2, 56
+    psllq       mm0, 8
+    por         mm1, mm2
+%assign Y (Y-1)
+%endrep
+    movq        [edx + Y*FDEC_STRIDE], mm1
+    psllq       mm1, 8
+    psrlq       mm0, 56
+    por         mm1, mm0
+%assign Y (Y-1)
+    movq        [edx + Y*FDEC_STRIDE], mm1
+
+    ret
+
+;-----------------------------------------------------------------------------
+; void predict_8x8_ddr_mmxext( uint8_t *src, uint8_t *edge )
+;-----------------------------------------------------------------------------
+
+ALIGN 16
+predict_8x8_ddr_mmxext:
+    picpush     ebx
+    picgetgot   ebx
+    mov         eax, [picesp + 8]
+    mov         edx, [picesp + 4]
+    movq        mm1, [eax + 7]
+    movq        mm2, [eax + 9]
+    movq        mm3, [eax + 15]
+    movq        mm4, [eax + 17]
+    PRED8x8_LOWPASS mm0, mm1, mm2, [eax + 8], mm7
+    PRED8x8_LOWPASS mm1, mm3, mm4, [eax + 16], mm6
+
+%assign Y 7
+%rep 6
+    movq        [edx + Y*FDEC_STRIDE], mm0
+    movq        mm2, mm1
+    psrlq       mm0, 8
+    psllq       mm2, 56
+    psrlq       mm1, 8
+    por         mm0, mm2
+%assign Y (Y-1)
+%endrep
+    movq        [edx + Y*FDEC_STRIDE], mm0
+    psrlq       mm0, 8
+    psllq       mm1, 56
+    por         mm0, mm1
+%assign Y (Y-1)
+    movq        [edx + Y*FDEC_STRIDE], mm0
+
+    ret
+
+;-----------------------------------------------------------------------------
+; void predict_8x8_vr_core_mmxext( uint8_t *src, uint8_t *edge )
+;-----------------------------------------------------------------------------
+
+; fills only some pixels:
+; f01234567
+; 0........
+; 1,,,,,,,,
+; 2 .......
+; 3 ,,,,,,,
+; 4  ......
+; 5  ,,,,,,
+; 6   .....
+; 7   ,,,,,
+
+ALIGN 16
+predict_8x8_vr_core_mmxext:
+    picpush     ebx
+    picgetgot   ebx
+    mov         eax, [picesp + 8]
+    mov         edx, [picesp + 4]
+    movq        mm2, [eax + 16]
+    movq        mm3, [eax + 15]
+    movq        mm1, [eax + 14]
+    movq        mm4, mm3
+    pavgb       mm3, mm2
+    PRED8x8_LOWPASS mm0, mm1, mm2, mm4, mm7
+
+%assign Y 0
+%rep 3
+    movq        [edx +  Y   *FDEC_STRIDE], mm3
+    movq        [edx + (Y+1)*FDEC_STRIDE], mm0
+    psllq       mm3, 8
+    psllq       mm0, 8
+%assign Y (Y+2)
+%endrep
+    movq        [edx +  Y   *FDEC_STRIDE], mm3
+    movq        [edx + (Y+1)*FDEC_STRIDE], mm0
+    
+    ret
+
+;-----------------------------------------------------------------------------
 ; void predict_8x8c_v_mmx( uint8_t *src )
-;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
 predict_8x8c_v_mmx :
     mov         edx, [esp + 4]
-    mov         ecx, FDEC_STRIDE
-    sub         edx, ecx
-    movq        mm0, [edx]
-    lea         eax, [ecx + 2*ecx]
+    movq        mm0, [edx - FDEC_STRIDE]
     STORE8x8    mm0, mm0
     ret
 
 ;-----------------------------------------------------------------------------
-;
 ; void predict_8x8c_dc_core_mmxext( uint8_t *src, int s2, int s3 )
-;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
@@ -197,11 +291,8 @@ predict_8x8c_dc_core_mmxext:
     picgetgot   ebx
 
     mov         edx, [picesp + 4]
-    mov         ecx, FDEC_STRIDE
-    sub         edx, ecx
-    lea         eax, [ecx + 2*ecx]
 
-    movq        mm0, [edx]
+    movq        mm0, [edx - FDEC_STRIDE]
     pxor        mm1, mm1
     pxor        mm2, mm2
     punpckhbw   mm1, mm0
@@ -230,9 +321,7 @@ predict_8x8c_dc_core_mmxext:
     ret
 
 ;-----------------------------------------------------------------------------
-;
 ; void predict_8x8c_p_core_mmxext( uint8_t *src, int i00, int b, int c )
-;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
@@ -272,9 +361,7 @@ ALIGN 4
     ret
 
 ;-----------------------------------------------------------------------------
-;
 ; void predict_16x16_p_core_mmxext( uint8_t *src, int i00, int b, int c )
-;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
@@ -329,9 +416,7 @@ ALIGN 4
     ret
 
 ;-----------------------------------------------------------------------------
-;
 ; void predict_16x16_v_mmx( uint8_t *src )
-;
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
@@ -368,9 +453,7 @@ predict_16x16_v_mmx :
     ret
 
 ;-----------------------------------------------------------------------------
-;
 ; void predict_16x16_dc_core_mmxext( uint8_t *src, int i_dc_left )
-;
 ;-----------------------------------------------------------------------------
 
 %macro PRED16x16_DC 3
