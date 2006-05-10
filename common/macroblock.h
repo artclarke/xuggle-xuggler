@@ -36,20 +36,20 @@ enum macroblock_position_e
     ALL_NEIGHBORS = 0xf,
 };
 
-static const int x264_pred_i4x4_neighbors[13] =
+static const int x264_pred_i4x4_neighbors[12] =
 {
-    [I_PRED_4x4_HU]      = MB_LEFT,
-    [I_PRED_4x4_H]       = MB_LEFT,
-    [I_PRED_4x4_HD]      = MB_LEFT | MB_TOPLEFT | MB_TOP,
-    [I_PRED_4x4_DDR]     = MB_LEFT | MB_TOPLEFT | MB_TOP,
-    [I_PRED_4x4_VR]      = MB_LEFT | MB_TOPLEFT | MB_TOP,
-    [I_PRED_4x4_V]       = MB_TOP,
-    [I_PRED_4x4_VL]      = MB_TOP  | MB_TOPRIGHT,
-    [I_PRED_4x4_DDL]     = MB_TOP  | MB_TOPRIGHT,
-    [I_PRED_4x4_DC]      = MB_LEFT | MB_TOP,
-    [I_PRED_4x4_DC_LEFT] = MB_LEFT,
-    [I_PRED_4x4_DC_TOP]  = MB_TOP,
-    [I_PRED_4x4_DC_128]  = 0
+    MB_TOP,                         // I_PRED_4x4_V
+    MB_LEFT,                        // I_PRED_4x4_H
+    MB_LEFT | MB_TOP,               // I_PRED_4x4_DC
+    MB_TOP  | MB_TOPRIGHT,          // I_PRED_4x4_DDL
+    MB_LEFT | MB_TOPLEFT | MB_TOP,  // I_PRED_4x4_DDR
+    MB_LEFT | MB_TOPLEFT | MB_TOP,  // I_PRED_4x4_VR
+    MB_LEFT | MB_TOPLEFT | MB_TOP,  // I_PRED_4x4_HD
+    MB_TOP  | MB_TOPRIGHT,          // I_PRED_4x4_VL
+    MB_LEFT,                        // I_PRED_4x4_HU
+    MB_LEFT,                        // I_PRED_4x4_DC_LEFT
+    MB_TOP,                         // I_PRED_4x4_DC_TOP
+    0                               // I_PRED_4x4_DC_128
 };
 
 
