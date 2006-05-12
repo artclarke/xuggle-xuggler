@@ -376,6 +376,7 @@ static int x264_validate_parameters( x264_t *h )
     h->param.i_bframe_bias = x264_clip3( h->param.i_bframe_bias, -90, 100 );
     h->param.b_bframe_pyramid = h->param.b_bframe_pyramid && h->param.i_bframe > 1;
     h->param.b_bframe_adaptive = h->param.b_bframe_adaptive && h->param.i_bframe > 0;
+    h->param.analyse.b_weighted_bipred = h->param.analyse.b_weighted_bipred && h->param.i_bframe > 0;
     h->mb.b_direct_auto_write = h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_AUTO
                                 && h->param.i_bframe
                                 && ( h->param.rc.b_stat_write || !h->param.rc.b_stat_read );
@@ -441,7 +442,6 @@ static int x264_validate_parameters( x264_t *h )
     BOOLIFY( b_cabac );
     BOOLIFY( b_deblocking_filter );
     BOOLIFY( analyse.b_transform_8x8 );
-    BOOLIFY( analyse.b_weighted_bipred );
     BOOLIFY( analyse.b_bidir_me );
     BOOLIFY( analyse.b_chroma_me );
     BOOLIFY( analyse.b_fast_pskip );
