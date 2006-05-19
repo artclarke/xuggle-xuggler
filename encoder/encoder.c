@@ -864,14 +864,14 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_slice_type,
     /* ------------------------ Create slice header  ----------------------- */
     if( i_nal_type == NAL_SLICE_IDR )
     {
-        x264_slice_header_init( h, &h->sh, h->sps, h->pps, i_slice_type, h->i_idr_pic_id, h->i_frame_num - 1, i_global_qp );
+        x264_slice_header_init( h, &h->sh, h->sps, h->pps, i_slice_type, h->i_idr_pic_id, h->i_frame_num, i_global_qp );
 
         /* increment id */
         h->i_idr_pic_id = ( h->i_idr_pic_id + 1 ) % 65536;
     }
     else
     {
-        x264_slice_header_init( h, &h->sh, h->sps, h->pps, i_slice_type, -1, h->i_frame_num - 1, i_global_qp );
+        x264_slice_header_init( h, &h->sh, h->sps, h->pps, i_slice_type, -1, h->i_frame_num, i_global_qp );
 
         /* always set the real higher num of ref frame used */
         h->sh.b_num_ref_idx_override = 1;
@@ -1292,11 +1292,11 @@ do_encode:
     if( i_slice_type == SLICE_TYPE_B )
         x264_macroblock_bipred_init( h );
 
-    if( h->fenc->b_kept_as_ref )
-        h->i_frame_num++;
-
     /* ------------------------ Create slice header  ----------------------- */
     x264_slice_init( h, i_nal_type, i_slice_type, i_global_qp );
+
+    if( h->fenc->b_kept_as_ref )
+        h->i_frame_num++;
 
     /* ---------------------- Write the bitstream -------------------------- */
     /* Init bitstream context */
