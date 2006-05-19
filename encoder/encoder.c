@@ -78,10 +78,13 @@ static float x264_psnr( int64_t i_sqe, int64_t i_size )
 #ifdef DEBUG_DUMP_FRAME
 static void x264_frame_dump( x264_t *h, x264_frame_t *fr, char *name )
 {
-    FILE * f = fopen( name, "a" );
+    FILE *f = fopen( name, "r+b" );
     int i, y;
+    if( !f )
+        return;
 
-    fseek( f, 0, SEEK_END );
+    /* Write the frame in display order */
+    fseek( f, fr->i_frame * h->param.i_height * h->param.i_width * 3 / 2, SEEK_SET );
 
     for( i = 0; i < fr->i_plane; i++ )
     {
@@ -608,6 +611,21 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     for( i = 1; i < param->i_threads; i++ )
         h->thread[i] = x264_malloc( sizeof(x264_t) );
 
+#ifdef DEBUG_DUMP_FRAME
+    {
+        /* create or truncate the reconstructed video file */
+        FILE *f = fopen( "fdec.yuv", "w" );
+        if( f )
+            fclose( f );
+        else
+        {
+            x264_log( h, X264_LOG_ERROR, "can't write to fdec.yuv\n" );
+            x264_free( h );
+            return NULL;
+        }
+    }
+#endif
+
     return h;
 }
 
@@ -810,10 +828,8 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc, int i_slice_
     h->i_ref0 = X264_MIN( h->i_ref0, 16 - h->i_ref1 );
 }
 
-static inline void x264_reference_update( x264_t *h )
+static inline void x264_fdec_deblock( x264_t *h )
 {
-    int i;
-
     /* apply deblocking filter to the current decoded picture */
     if( !h->sh.i_disable_deblocking_filter_idc )
     {
@@ -821,6 +837,14 @@ static inline void x264_reference_update( x264_t *h )
         x264_frame_deblocking_filter( h, h->sh.i_type );
         TIMER_STOP( i_mtime_filter );
     }
+}
+
+static inline void x264_reference_update( x264_t *h )
+{
+    int i;
+
+    x264_fdec_deblock( h );
+
     /* expand border */
     x264_frame_expand_border( h->fdec );
 
@@ -1479,6 +1503,10 @@ do_encode:
     /* handle references */
     if( i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE )
         x264_reference_update( h );
+#ifdef DEBUG_DUMP_FRAME
+    else
+        x264_fdec_deblock( h );
+#endif
     x264_frame_put( h->frames.unused, h->fenc );
 
     /* increase frame count */
