@@ -196,7 +196,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
 
 lowres_intra_mb:
     {
-        uint8_t pix_buf[9*FDEC_STRIDE];
+        DECLARE_ALIGNED( uint8_t, pix_buf[9*FDEC_STRIDE], 8 );
         uint8_t *pix = &pix_buf[8+FDEC_STRIDE - 1];
         uint8_t *src = &fenc->lowres[0][i_pel_offset - 1];
         int intra_penalty = 5 + 10 * b_bidir;
