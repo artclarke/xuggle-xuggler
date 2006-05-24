@@ -209,7 +209,7 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int *l, i
 
             if( i_level_code >= ( 1 << 12 ) || i_level_code < 0 )
             {
-                x264_log(h, X264_LOG_ERROR, "OVERFLOW levelcode=%d\n", i_level_code );
+                x264_log(h, X264_LOG_WARNING, "OVERFLOW levelcode=%d\n", i_level_code );
             }
 
             bs_write( s, 12, i_level_code );    /* check overflow ?? */

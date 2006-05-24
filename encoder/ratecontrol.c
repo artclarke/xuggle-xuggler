@@ -218,7 +218,7 @@ int x264_ratecontrol_new( x264_t *h )
         return -1;
     }
     if( h->param.rc.i_vbv_buffer_size && !h->param.rc.b_cbr && !h->param.rc.i_rf_constant )
-        x264_log(h, X264_LOG_ERROR, "VBV is incompatible with constant QP.\n");
+        x264_log(h, X264_LOG_WARNING, "VBV is incompatible with constant QP.\n");
     if( h->param.rc.i_vbv_buffer_size && h->param.rc.b_cbr
         && h->param.rc.i_vbv_max_bitrate == 0 )
     {
@@ -227,13 +227,13 @@ int x264_ratecontrol_new( x264_t *h )
     }
     if( h->param.rc.i_vbv_max_bitrate < h->param.rc.i_bitrate &&
         h->param.rc.i_vbv_max_bitrate > 0)
-        x264_log(h, X264_LOG_ERROR, "max bitrate less than average bitrate, ignored.\n");
+        x264_log(h, X264_LOG_WARNING, "max bitrate less than average bitrate, ignored.\n");
     else if( h->param.rc.i_vbv_max_bitrate > 0 &&
              h->param.rc.i_vbv_buffer_size > 0 )
     {
         if( h->param.rc.i_vbv_buffer_size < 3 * h->param.rc.i_vbv_max_bitrate / rc->fps ) {
             h->param.rc.i_vbv_buffer_size = 3 * h->param.rc.i_vbv_max_bitrate / rc->fps;
-            x264_log( h, X264_LOG_ERROR, "VBV buffer size too small, using %d kbit\n",
+            x264_log( h, X264_LOG_WARNING, "VBV buffer size too small, using %d kbit\n",
                       h->param.rc.i_vbv_buffer_size );
         }
         rc->buffer_rate = h->param.rc.i_vbv_max_bitrate * 1000 / rc->fps;
@@ -244,9 +244,9 @@ int x264_ratecontrol_new( x264_t *h )
         rc->b_vbv = 1;
     }
     else if( h->param.rc.i_vbv_max_bitrate )
-        x264_log(h, X264_LOG_ERROR, "VBV maxrate specified, but no bufsize.\n");
+        x264_log(h, X264_LOG_WARNING, "VBV maxrate specified, but no bufsize.\n");
     if(rc->rate_tolerance < 0.01) {
-        x264_log(h, X264_LOG_ERROR, "bitrate tolerance too small, using .01\n");
+        x264_log(h, X264_LOG_WARNING, "bitrate tolerance too small, using .01\n");
         rc->rate_tolerance = 0.01;
     }
 
@@ -1473,27 +1473,27 @@ static int init_pass2( x264_t *h )
             avgq += rcc->entry[i].new_qscale;
         avgq = qscale2qp(avgq / rcc->num_entries);
 
-        x264_log(h, X264_LOG_ERROR, "Error: 2pass curve failed to converge\n");
-        x264_log(h, X264_LOG_ERROR, "target: %.2f kbit/s, expected: %.2f kbit/s, avg QP: %.4f\n",
+        x264_log(h, X264_LOG_WARNING, "Error: 2pass curve failed to converge\n");
+        x264_log(h, X264_LOG_WARNING, "target: %.2f kbit/s, expected: %.2f kbit/s, avg QP: %.4f\n",
                  (float)h->param.rc.i_bitrate,
                  expected_bits * rcc->fps / (rcc->num_entries * 1000.),
                  avgq);
         if(expected_bits < all_available_bits && avgq < h->param.rc.i_qp_min + 2)
         {
             if(h->param.rc.i_qp_min > 0)
-                x264_log(h, X264_LOG_ERROR, "try reducing target bitrate or reducing qp_min (currently %d)\n", h->param.rc.i_qp_min);
+                x264_log(h, X264_LOG_WARNING, "try reducing target bitrate or reducing qp_min (currently %d)\n", h->param.rc.i_qp_min);
             else
-                x264_log(h, X264_LOG_ERROR, "try reducing target bitrate\n");
+                x264_log(h, X264_LOG_WARNING, "try reducing target bitrate\n");
         }
         else if(expected_bits > all_available_bits && avgq > h->param.rc.i_qp_max - 2)
         {
             if(h->param.rc.i_qp_max < 51)
-                x264_log(h, X264_LOG_ERROR, "try increasing target bitrate or increasing qp_max (currently %d)\n", h->param.rc.i_qp_max);
+                x264_log(h, X264_LOG_WARNING, "try increasing target bitrate or increasing qp_max (currently %d)\n", h->param.rc.i_qp_max);
             else
-                x264_log(h, X264_LOG_ERROR, "try increasing target bitrate\n");
+                x264_log(h, X264_LOG_WARNING, "try increasing target bitrate\n");
         }
         else
-            x264_log(h, X264_LOG_ERROR, "internal error\n");
+            x264_log(h, X264_LOG_WARNING, "internal error\n");
     }
 
     return 0;

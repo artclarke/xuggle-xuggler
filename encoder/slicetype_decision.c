@@ -393,7 +393,7 @@ void x264_slicetype_decide( x264_t *h )
             if( frm->i_type == X264_TYPE_AUTO )
                 frm->i_type = X264_TYPE_IDR;
             if( frm->i_type != X264_TYPE_IDR )
-                x264_log( h, X264_LOG_ERROR, "specified frame type (%d) is not compatible with keyframe interval\n", frm->i_type );
+                x264_log( h, X264_LOG_WARNING, "specified frame type (%d) is not compatible with keyframe interval\n", frm->i_type );
         }
         if( frm->i_type == X264_TYPE_IDR )
         {
@@ -413,7 +413,7 @@ void x264_slicetype_decide( x264_t *h )
             || h->frames.next[bframes+1] == NULL )
         {
             if( IS_X264_TYPE_B( frm->i_type ) )
-                x264_log( h, X264_LOG_ERROR, "specified frame type is not compatible with max B-frames\n" );
+                x264_log( h, X264_LOG_WARNING, "specified frame type is not compatible with max B-frames\n" );
             if( frm->i_type == X264_TYPE_AUTO
                 || IS_X264_TYPE_B( frm->i_type ) )
                 frm->i_type = X264_TYPE_P;

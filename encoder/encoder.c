@@ -507,7 +507,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         h->param.vui.i_sar_height = 0;
         if( i_w == 0 || i_h == 0 )
         {
-            x264_log( h, X264_LOG_ERROR, "cannot create valid sample aspect ratio\n" );
+            x264_log( h, X264_LOG_WARNING, "cannot create valid sample aspect ratio\n" );
         }
         else
         {
