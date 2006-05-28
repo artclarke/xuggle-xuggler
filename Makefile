@@ -74,7 +74,7 @@ x264$(EXE): $(OBJCLI) libx264.a
 	$(CC) -o $@ $+ $(LDFLAGS)
 
 x264vfw.dll: libx264.a $(wildcard vfw/*.c vfw/*.h)
-	make -C vfw/build/cygwin
+	$(MAKE) -C vfw/build/cygwin
 
 checkasm: tools/checkasm.o libx264.a
 	$(CC) -o $@ $+ $(LDFLAGS)
@@ -110,14 +110,14 @@ fprofiled:
 	@echo 'i.e. YUV with resolution in the filename, or avisynth.'
 else
 fprofiled:
-	make clean
+	$(MAKE) clean
 	mv config.mak config.mak2
 	sed -e 's/CFLAGS.*/& -fprofile-generate/; s/LDFLAGS.*/& -fprofile-generate/' config.mak2 > config.mak
-	make x264$(EXE)
+	$(MAKE) x264$(EXE)
 	$(foreach V, $(VIDS), $(foreach I, 0 1 2, ./x264$(EXE) $(OPT$I) $(V) --progress -o $(DEVNULL) ;))
 	rm -f $(SRC2:%.c=%.o)
 	sed -e 's/CFLAGS.*/& -fprofile-use/; s/LDFLAGS.*/& -fprofile-use/' config.mak2 > config.mak
-	make
+	$(MAKE)
 	rm -f $(SRC2:%.c=%.gcda) $(SRC2:%.c=%.gcno)
 	mv config.mak2 config.mak
 endif
@@ -129,7 +129,7 @@ clean:
 	rm -rf vfw/build/cygwin/bin
 	rm -f $(SRC2:%.c=%.gcda) $(SRC2:%.c=%.gcno)
 	- sed -e 's/ *-fprofile-\(generate\|use\)//g' config.mak > config.mak2 && mv config.mak2 config.mak
-	make -C gtk clean
+	$(MAKE) -C gtk clean
 
 distclean: clean
 	rm -f config.mak config.h vfw/build/cygwin/config.mak gtk/config.mak x264.pc
