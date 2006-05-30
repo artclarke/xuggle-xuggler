@@ -28,12 +28,14 @@
 
 x264_frame_t *x264_frame_new( x264_t *h )
 {
-    x264_frame_t   *frame = x264_malloc( sizeof( x264_frame_t ) );
+    x264_frame_t *frame = x264_malloc( sizeof(x264_frame_t) );
     int i, j;
 
     int i_mb_count = h->mb.i_mb_count;
     int i_stride;
     int i_lines;
+
+    if( !frame ) return NULL;
 
     memset( frame, 0, sizeof(x264_frame_t) );
 
@@ -55,9 +57,8 @@ x264_frame_t *x264_frame_new( x264_t *h )
         }
         frame->i_stride[i] = i_stride / i_divw;
         frame->i_lines[i] = i_lines / i_divh;
-        frame->buffer[i] = x264_malloc( frame->i_stride[i] *
-                                        ( frame->i_lines[i] + 64 / i_divh ) );
-
+        CHECKED_MALLOC( frame->buffer[i],
+                        frame->i_stride[i] * ( frame->i_lines[i] + 64 / i_divh ) );
         frame->plane[i] = ((uint8_t*)frame->buffer[i]) +
                           frame->i_stride[i] * 32 / i_divh + 32 / i_divw;
     }
@@ -69,9 +70,8 @@ x264_frame_t *x264_frame_new( x264_t *h )
     frame->filtered[0] = frame->plane[0];
     for( i = 0; i < 3; i++ )
     {
-        frame->buffer[4+i] = x264_malloc( frame->i_stride[0] *
-                                        ( frame->i_lines[0] + 64 ) );
-
+        CHECKED_MALLOC( frame->buffer[4+i],
+                        frame->i_stride[0] * ( frame->i_lines[0] + 64 ) );
         frame->filtered[i+1] = ((uint8_t*)frame->buffer[4+i]) +
                                 frame->i_stride[0] * 32 + 32;
     }
@@ -82,8 +82,8 @@ x264_frame_t *x264_frame_new( x264_t *h )
         frame->i_lines_lowres = frame->i_lines[0]/2;
         for( i = 0; i < 4; i++ )
         {
-            frame->buffer[7+i] = x264_malloc( frame->i_stride_lowres *
-                                            ( frame->i_lines[0]/2 + 64 ) );
+            CHECKED_MALLOC( frame->buffer[7+i],
+                            frame->i_stride_lowres * ( frame->i_lines[0]/2 + 64 ) );
             frame->lowres[i] = ((uint8_t*)frame->buffer[7+i]) +
                                 frame->i_stride_lowres * 32 + 32;
         }
@@ -91,7 +91,8 @@ x264_frame_t *x264_frame_new( x264_t *h )
 
     if( h->param.analyse.i_me_method == X264_ME_ESA )
     {
-        frame->buffer[11] = x264_malloc( frame->i_stride[0] * (frame->i_lines[0] + 64) * sizeof(uint16_t) );
+        CHECKED_MALLOC( frame->buffer[11],
+                        frame->i_stride[0] * (frame->i_lines[0] + 64) * sizeof(uint16_t) );
         frame->integral = (uint16_t*)frame->buffer[11] + frame->i_stride[0] * 32 + 32;
     }
 
@@ -102,13 +103,13 @@ x264_frame_t *x264_frame_new( x264_t *h )
     frame->i_frame = -1;
     frame->i_frame_num = -1;
 
-    frame->mb_type= x264_malloc( i_mb_count * sizeof( int8_t) );
-    frame->mv[0]  = x264_malloc( 2*16 * i_mb_count * sizeof( int16_t ) );
-    frame->ref[0] = x264_malloc( 4 * i_mb_count * sizeof( int8_t ) );
+    CHECKED_MALLOC( frame->mb_type, i_mb_count * sizeof(int8_t));
+    CHECKED_MALLOC( frame->mv[0], 2*16 * i_mb_count * sizeof(int16_t) );
+    CHECKED_MALLOC( frame->ref[0], 4 * i_mb_count * sizeof(int8_t) );
     if( h->param.i_bframe )
     {
-        frame->mv[1]  = x264_malloc( 2*16 * i_mb_count * sizeof( int16_t ) );
-        frame->ref[1] = x264_malloc( 4 * i_mb_count * sizeof( int8_t ) );
+        CHECKED_MALLOC( frame->mv[1], 2*16 * i_mb_count * sizeof(int16_t) );
+        CHECKED_MALLOC( frame->ref[1], 4 * i_mb_count * sizeof(int8_t) );
     }
     else
     {
@@ -116,21 +117,23 @@ x264_frame_t *x264_frame_new( x264_t *h )
         frame->ref[1] = NULL;
     }
 
-    frame->i_row_bits = x264_malloc( i_lines/16 * sizeof( int ) );
-    frame->i_row_qp   = x264_malloc( i_lines/16 * sizeof( int ) );
+    CHECKED_MALLOC( frame->i_row_bits, i_lines/16 * sizeof(int) );
+    CHECKED_MALLOC( frame->i_row_qp, i_lines/16 * sizeof(int) );
     for( i = 0; i < h->param.i_bframe + 2; i++ )
         for( j = 0; j < h->param.i_bframe + 2; j++ )
-            frame->i_row_satds[i][j] = x264_malloc( i_lines/16 * sizeof( int ) );
+            CHECKED_MALLOC( frame->i_row_satds[i][j], i_lines/16 * sizeof(int) );
 
     return frame;
+
+fail:
+    x264_frame_delete( frame );
+    return NULL;
 }
 
 void x264_frame_delete( x264_frame_t *frame )
 {
     int i, j;
-    for( i = 0; i < frame->i_plane; i++ )
-        x264_free( frame->buffer[i] );
-    for( i = 4; i < 12; i++ ) /* filtered planes */
+    for( i = 0; i < 12; i++ )
         x264_free( frame->buffer[i] );
     for( i = 0; i < X264_BFRAME_MAX+2; i++ )
         for( j = 0; j < X264_BFRAME_MAX+2; j++ )

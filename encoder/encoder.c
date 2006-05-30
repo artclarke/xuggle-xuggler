@@ -559,10 +559,14 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     for( i = 0; i < 1 + h->frames.i_delay; i++ )
     {
         h->frames.unused[i] =  x264_frame_new( h );
+        if( !h->frames.unused[i] )
+            return NULL;
     }
     for( i = 0; i < h->frames.i_max_dpb; i++ )
     {
         h->frames.reference[i] = x264_frame_new( h );
+        if( !h->frames.reference[i] )
+            return NULL;
     }
     h->frames.reference[h->frames.i_max_dpb] = NULL;
     h->frames.i_last_idr = - h->param.i_keyint_max;
@@ -574,7 +578,8 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->fdec = h->frames.reference[0];
 
-    x264_macroblock_cache_init( h );
+    if( x264_macroblock_cache_init( h ) < 0 );
+        return NULL;
     x264_rdo_init( );
 
     /* init CPU functions */

@@ -77,6 +77,16 @@
 #define UNUSED
 #endif
 
+#define CHECKED_MALLOC( var, size )\
+{\
+    var = x264_malloc( size );\
+    if( !var )\
+    {\
+        x264_log( h, X264_LOG_ERROR, "malloc failed\n" );\
+        goto fail;\
+    }\
+}
+
 #define X264_BFRAME_MAX 16
 #define X264_SLICE_MAX 4
 #define X264_NAL_MAX (4 + X264_SLICE_MAX)
