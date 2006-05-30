@@ -578,7 +578,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->fdec = h->frames.reference[0];
 
-    if( x264_macroblock_cache_init( h ) < 0 );
+    if( x264_macroblock_cache_init( h ) < 0 )
         return NULL;
     x264_rdo_init( );
 
