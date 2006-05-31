@@ -21,7 +21,7 @@
 
 Name "${NAME}"
 OutFile "${OUTFILE}"
-SetCompressor lzma
+setcompressor /solid lzma
 
 SetOverwrite ifnewer
 SetDatablockOptimize on ; (can be off)
