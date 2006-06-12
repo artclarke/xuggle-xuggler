@@ -7,6 +7,7 @@
 #include <gtk/gtk.h>
 
 #include "../x264.h"
+#include "x264_gtk_i18n.h"
 #include "x264_gtk_encode_private.h"
 
 
@@ -28,7 +29,7 @@ x264_gtk_encode_status_window (X264_Thread_Data *thread_data)
   if (!thread_data) return NULL;
 
   win_status = thread_data->dialog = gtk_dialog_new ();
-  gtk_window_set_title  (GTK_WINDOW (win_status), "Encoding status");
+  gtk_window_set_title  (GTK_WINDOW (win_status), _("Encoding status"));
   thread_data->button = gtk_dialog_add_button (GTK_DIALOG (win_status),
                                                GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
   thread_data->end_button = gtk_dialog_add_button (GTK_DIALOG (thread_data->dialog),
@@ -51,55 +52,55 @@ x264_gtk_encode_status_window (X264_Thread_Data *thread_data)
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (win_status)->vbox), table,
                       FALSE, FALSE, 0);
   gtk_widget_show (table);
-  
-  label = gtk_label_new ("Current video frame:");
+
+  label = gtk_label_new (_("Current video frame:"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 0, 1);
   gtk_widget_show (label);
-  
+
   thread_data->current_video_frame = gtk_entry_new ();
   gtk_table_attach_defaults (GTK_TABLE (table),
                              thread_data->current_video_frame,
                              1, 2, 0, 1);
   gtk_widget_show (thread_data->current_video_frame);
-  
-  label = gtk_label_new ("Video data:");
+
+  label = gtk_label_new (_("Video data:"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 1, 2);
   gtk_widget_show (label);
-  
+
   thread_data->video_data = gtk_entry_new ();
-  gtk_entry_set_text (GTK_ENTRY (thread_data->video_data), "0KB");
+  gtk_entry_set_text (GTK_ENTRY (thread_data->video_data), _("0KB"));
   gtk_table_attach_defaults (GTK_TABLE (table), thread_data->video_data,
                              1, 2, 1, 2);
   gtk_widget_show (thread_data->video_data);
-  
-  label = gtk_label_new ("Video rendering rate:");
+
+  label = gtk_label_new (_("Video rendering rate:"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 2, 3);
   gtk_widget_show (label);
-  
+
   thread_data->video_rendering_rate = gtk_entry_new ();
   gtk_table_attach_defaults (GTK_TABLE (table),
                              thread_data->video_rendering_rate,
                              1, 2, 2, 3);
   gtk_widget_show (thread_data->video_rendering_rate);
-  
-  label = gtk_label_new ("Time elapsed:");
+
+  label = gtk_label_new (_("Time elapsed:"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 3, 4);
   gtk_widget_show (label);
-  
+
   thread_data->time_elapsed = gtk_entry_new ();
   gtk_table_attach_defaults (GTK_TABLE (table), thread_data->time_elapsed,
                              1, 2, 3, 4);
   gtk_widget_show (thread_data->time_elapsed);
-  
-  label = gtk_label_new ("Total time (estimated):");
+
+  label = gtk_label_new (_("Total time (estimated):"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 4, 5);
   gtk_widget_show (label);
-  
+
   thread_data->time_remaining = gtk_entry_new ();
   gtk_table_attach_defaults (GTK_TABLE (table), thread_data->time_remaining,
                              1, 2, 4, 5);
@@ -112,8 +113,8 @@ x264_gtk_encode_status_window (X264_Thread_Data *thread_data)
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (win_status)->vbox), table,
                       FALSE, FALSE, 0);
   gtk_widget_show (table);
-  
-  label = gtk_label_new ("Progress:");
+
+  label = gtk_label_new (_("Progress:"));
   gtk_misc_set_alignment (GTK_MISC (label),
                           0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table),
@@ -121,7 +122,7 @@ x264_gtk_encode_status_window (X264_Thread_Data *thread_data)
                              0, 1,
                              0, 1);
   gtk_widget_show (label);
-  
+
   thread_data->progress = gtk_progress_bar_new ();
   gtk_table_attach_defaults (GTK_TABLE (table), thread_data->progress,
                              1, 2, 0, 1);

@@ -18,6 +18,7 @@
 #include "../config.h"
 #include "x264_icon.h"
 #include "x264_gtk.h"
+#include "x264_gtk_i18n.h"
 #include "x264_gtk_demuxers.h"
 #include "x264_gtk_encode_private.h"
 #include "x264_gtk_encode_encode.h"
@@ -39,7 +40,7 @@ struct X264_Gtk_Encode_
   GtkWidget         *fps_num;
   GtkWidget         *fps_den;
   GtkWidget         *frame_count;
-  
+
   /* output */
   GtkWidget         *path_output;
   GtkWidget         *file_output;
@@ -48,17 +49,17 @@ struct X264_Gtk_Encode_
 
 
 /* Callbacks */
-static gboolean _delete_window_cb    (GtkWidget *widget,
-                                      GdkEvent  *event,
-                                      gpointer   user_data);
-static void     _configure_window_cb (GtkButton *button,
-                                      gpointer   user_data);
-static void     _chooser_window_cb   (GtkDialog *dialog,
-                                      gint       res,
-                                      gpointer   user_data);
-static void     _response_window_cb  (GtkDialog *dialog,
-                                      gint       res,
-                                      gpointer   user_data);
+static gboolean _delete_window_cb    (GtkWidget   *widget,
+                                      GdkEvent    *event,
+                                      gpointer     user_data);
+static void     _configure_window_cb (GtkButton   *button,
+                                      gpointer     user_data);
+static void     _chooser_window_cb   (GtkDialog   *dialog,
+                                      gint         res,
+                                      gpointer     user_data);
+static void     _response_window_cb  (GtkDialog   *dialog,
+                                      gint         res,
+                                      gpointer     user_data);
 static void     _dimension_entry_cb  (GtkEditable *editable,
                                       gpointer     user_data);
 
@@ -74,7 +75,7 @@ _file_size(const char* name)
 
   if (stat(name, &buf) < 0)
   {
-    fprintf(stderr, "Can't stat file\n");
+    fprintf(stderr, _("Can't stat file\n"));
     return 0;
   }
   return buf.st_size;
@@ -95,7 +96,7 @@ x264_gtk_encode_main_window ()
 
   encode = (X264_Gtk_Encode *)g_malloc0 (sizeof (X264_Gtk_Encode));
 
-  dialog = gtk_dialog_new_with_buttons ("X264 Gtk Encoder",
+  dialog = gtk_dialog_new_with_buttons (_("X264 Gtk Encoder"),
                                         NULL, 0,
                                         NULL);
   icon = gdk_pixbuf_new_from_inline (-1, x264_icon,
@@ -111,7 +112,7 @@ x264_gtk_encode_main_window ()
                     encode);
   encode->main_dialog = dialog;
 
-  button = gtk_button_new_with_label ("Configure");
+  button = gtk_button_new_with_label (_("Configure"));
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->action_area), button, FALSE, TRUE, 6);
   g_signal_connect (G_OBJECT (button),
                     "clicked",
@@ -125,7 +126,7 @@ x264_gtk_encode_main_window ()
                           NULL);
 
   /* input */
-  frame = gtk_frame_new ("Input file");
+  frame = gtk_frame_new (_("Input file"));
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), frame, FALSE, TRUE, 6);
   gtk_widget_show (frame);
 
@@ -136,13 +137,13 @@ x264_gtk_encode_main_window ()
   gtk_container_add (GTK_CONTAINER (frame), table);
   gtk_widget_show (table);
 
-  label = gtk_label_new ("Input file:");
+  label = gtk_label_new (_("Input file:"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 0, 1);
   gtk_widget_show (label);
 
   chooser = (GtkFileChooser*)
-      gtk_file_chooser_dialog_new("Select a file",
+      gtk_file_chooser_dialog_new(_("Select a file"),
                                   GTK_WINDOW(dialog),
                                   GTK_FILE_CHOOSER_ACTION_OPEN,
                                   GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
@@ -151,7 +152,7 @@ x264_gtk_encode_main_window ()
   gtk_file_chooser_set_current_folder (chooser, g_get_home_dir ());
    /* All supported */
   filter = gtk_file_filter_new ();
-  gtk_file_filter_set_name (filter, "All supported");
+  gtk_file_filter_set_name (filter, _("All supported"));
   gtk_file_filter_add_pattern (filter, "*.yuv");
   gtk_file_filter_add_pattern (filter, "*.cif");
   gtk_file_filter_add_pattern (filter, "*.qcif");
@@ -163,25 +164,25 @@ x264_gtk_encode_main_window ()
   gtk_file_chooser_add_filter (chooser, filter);
   /* YUV filter */
   filter = gtk_file_filter_new ();
-  gtk_file_filter_set_name (filter, "YUV sequence");
+  gtk_file_filter_set_name (filter, _("YUV sequence"));
   gtk_file_filter_add_pattern (filter, "*.yuv");
   gtk_file_chooser_add_filter (chooser, filter);
 
   /* CIF filter */
   filter = gtk_file_filter_new ();
-  gtk_file_filter_set_name (filter, "YUV CIF sequence");
+  gtk_file_filter_set_name (filter, _("YUV CIF sequence"));
   gtk_file_filter_add_pattern (filter, "*.cif");
   gtk_file_chooser_add_filter (chooser, filter);
 
   /* QCIF filter */
   filter = gtk_file_filter_new ();
-  gtk_file_filter_set_name (filter, "YUV QCIF sequence");
+  gtk_file_filter_set_name (filter, _("YUV QCIF sequence"));
   gtk_file_filter_add_pattern (filter, "*.qcif");
   gtk_file_chooser_add_filter (chooser, filter);
 
   /* YUV4MPEG2 filter */
   filter = gtk_file_filter_new ();
-  gtk_file_filter_set_name (filter, "YUV4MPEG2 sequence");
+  gtk_file_filter_set_name (filter, _("YUV4MPEG2 sequence"));
   gtk_file_filter_add_pattern (filter, "*.y4m");
   gtk_file_chooser_add_filter (chooser, filter);
 
@@ -193,18 +194,18 @@ x264_gtk_encode_main_window ()
   gtk_file_chooser_add_filter (chooser, filter);
   /* AVS filter */
   filter = gtk_file_filter_new ();
-  gtk_file_filter_set_name (filter, "Avisynth Script");
+  gtk_file_filter_set_name (filter, _("Avisynth Script"));
   gtk_file_filter_add_pattern (filter, "*.avs");
   gtk_file_chooser_add_filter (chooser, filter);
 #endif
   g_signal_connect_after(G_OBJECT (chooser), "response",
                          G_CALLBACK (_chooser_window_cb),
                          encode);
-  encode->file_input = gtk_file_chooser_button_new_with_dialog(GTK_WIDGET(chooser));
+  encode->file_input = gtk_file_chooser_button_new_with_dialog (GTK_WIDGET(chooser));
   gtk_table_attach_defaults (GTK_TABLE (table), encode->file_input, 1, 2, 0, 1);
   gtk_widget_show (encode->file_input);
 
-  label = gtk_label_new ("Width:");
+  label = gtk_label_new (_("Width:"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 1, 2);
   gtk_widget_show (label);
@@ -217,7 +218,7 @@ x264_gtk_encode_main_window ()
   gtk_table_attach_defaults (GTK_TABLE (table), encode->width, 1, 2, 1, 2);
   gtk_widget_show (encode->width);
 
-  label = gtk_label_new ("Height:");
+  label = gtk_label_new (_("Height:"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 2, 3);
   gtk_widget_show (label);
@@ -230,7 +231,7 @@ x264_gtk_encode_main_window ()
                    encode);
   gtk_widget_show (encode->height);
 
-  label = gtk_label_new ("Frame rate num:");
+  label = gtk_label_new (_("Frame rate num:"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 3, 4);
   gtk_widget_show (label);
@@ -240,7 +241,7 @@ x264_gtk_encode_main_window ()
   gtk_table_attach_defaults (GTK_TABLE (table), encode->fps_num, 1, 2, 3, 4);
   gtk_widget_show (encode->fps_num);
 
-  label = gtk_label_new ("Frame rate den:");
+  label = gtk_label_new (_("Frame rate den:"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 4, 5);
   gtk_widget_show (label);
@@ -250,7 +251,7 @@ x264_gtk_encode_main_window ()
   gtk_table_attach_defaults (GTK_TABLE (table), encode->fps_den, 1, 2, 4, 5);
   gtk_widget_show (encode->fps_den);
 
-  label = gtk_label_new ("Frame count:");
+  label = gtk_label_new (_("Frame count:"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 5, 6);
   gtk_widget_show (label);
@@ -261,7 +262,7 @@ x264_gtk_encode_main_window ()
   gtk_widget_show (encode->frame_count);
 
   /* output */
-  frame = gtk_frame_new ("Output file");
+  frame = gtk_frame_new (_("Output file"));
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), frame, FALSE, TRUE, 6);
   gtk_widget_show (frame);
 
@@ -272,19 +273,19 @@ x264_gtk_encode_main_window ()
   gtk_container_add (GTK_CONTAINER (frame), table);
   gtk_widget_show (table);
 
-  label = gtk_label_new ("Output path:");
+  label = gtk_label_new (_("Output path:"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 0, 1);
   gtk_widget_show (label);
 
-  encode->path_output = gtk_file_chooser_button_new ("Select a path",
+  encode->path_output = gtk_file_chooser_button_new (_("Select a path"),
                                                      GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
   gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (encode->path_output),
                                        g_get_home_dir ());
   gtk_table_attach_defaults (GTK_TABLE (table), encode->path_output, 1, 2, 0, 1);
   gtk_widget_show (encode->path_output);
 
-  label = gtk_label_new ("Output file (without ext.):");
+  label = gtk_label_new (_("Output file (without ext.):"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 1, 2);
   gtk_widget_show (label);
@@ -293,7 +294,7 @@ x264_gtk_encode_main_window ()
   gtk_table_attach_defaults (GTK_TABLE (table), encode->file_output, 1, 2, 1, 2);
   gtk_widget_show (encode->file_output);
 
-  label = gtk_label_new ("Container:");
+  label = gtk_label_new (_("Container:"));
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 2, 3);
   gtk_widget_show (label);
@@ -377,7 +378,7 @@ _chooser_window_cb (GtkDialog *dialog,
     GSList           *filters;
     GtkFileFilter    *selected;
     int               container;
-    
+
     filters = gtk_file_chooser_list_filters(GTK_FILE_CHOOSER (encode->file_input));
     selected = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER (encode->file_input));
     container = g_slist_index(filters, selected);
@@ -405,7 +406,7 @@ _chooser_window_cb (GtkDialog *dialog,
       /* The all supproted type is 0 => shift of 1 */
       encode->container = (X264_Demuxer_Type)container-1;
     }
-        
+
     switch (encode->container) {
     case X264_DEMUXER_YUV: /* YUV */
       break;
@@ -465,7 +466,7 @@ _chooser_window_cb (GtkDialog *dialog,
                                              GTK_BUTTONS_CLOSE,
                                              strerror(errno));
     gtk_dialog_run (GTK_DIALOG (dialog_message));
-    gtk_widget_destroy (dialog_message);      
+    gtk_widget_destroy (dialog_message);
   }
   encode->size = _file_size(in);
 
@@ -507,7 +508,7 @@ _configure_window_cb (GtkButton *button __UNUSED__,
                       gpointer   user_data)
 {
   GtkWidget *window;
-  
+
   window = x264_gtk_window_create (GTK_WIDGET (user_data));
   x264_gtk_shutdown (window);
 }
@@ -538,7 +539,7 @@ _response_window_cb (GtkDialog *dialog,
     path_output = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (encode->path_output));
     filename_output = gtk_entry_get_text (GTK_ENTRY (encode->file_output));
 
-    if (!file_input || 
+    if (!file_input ||
         (file_input[0] == '\0')) {
       GtkWidget *dialog_message;
 
@@ -546,21 +547,21 @@ _response_window_cb (GtkDialog *dialog,
                                                GTK_DIALOG_DESTROY_WITH_PARENT,
                                                GTK_MESSAGE_ERROR,
                                                GTK_BUTTONS_CLOSE,
-                                               "Error: input file name is not set");
+                                               _("Error: input file name is not set"));
       gtk_dialog_run (GTK_DIALOG (dialog_message));
       gtk_widget_destroy (dialog_message);
       break;
     }
 
-    if (!filename_output || 
+    if (!filename_output ||
         (filename_output[0] == '\0')) {
       GtkWidget *dialog_message;
 
       dialog_message = gtk_message_dialog_new (GTK_WINDOW (dialog),
-                                       GTK_DIALOG_DESTROY_WITH_PARENT,
-                                       GTK_MESSAGE_ERROR,
-                                       GTK_BUTTONS_CLOSE,
-                                               "Error: output file name is not set");
+                                               GTK_DIALOG_DESTROY_WITH_PARENT,
+                                               GTK_MESSAGE_ERROR,
+                                               GTK_BUTTONS_CLOSE,
+                                               _("Error: output file name is not set"));
       gtk_dialog_run (GTK_DIALOG (dialog_message));
       gtk_widget_destroy (dialog_message);
       break;
@@ -583,11 +584,50 @@ _response_window_cb (GtkDialog *dialog,
     }
 
     file_output = g_strconcat (path_output, "/", filename_output, ext, NULL);
-    g_print ("file output : %s\n", file_output);
+    g_print (_("file output : %s\n"), file_output);
+
+    {
+      GIOChannel *file;
+
+      file = g_io_channel_new_file (file_output, "r", NULL);
+      if (file) {
+        GtkWidget   *dialog_overwrite;
+        GtkWidget   *eb;
+        GtkWidget   *label;
+        const gchar *label_text = NULL;
+        gint         res;
+
+        dialog_overwrite = gtk_dialog_new_with_buttons (_("Existing file"),
+                                                        GTK_WINDOW (dialog),
+                                                        GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                        GTK_STOCK_YES,
+                                                        GTK_RESPONSE_ACCEPT,
+                                                        GTK_STOCK_NO,
+                                                        GTK_RESPONSE_REJECT,
+                                                        NULL);
+
+        eb = gtk_event_box_new ();
+        gtk_container_add (GTK_CONTAINER (GTK_DIALOG(dialog_overwrite)->vbox), eb);
+        gtk_container_set_border_width (GTK_CONTAINER (eb), 6);
+        gtk_widget_show (eb);
+
+        label_text = g_strconcat (_("Do you want to overwrite file\n"),
+                                  file_output, " ?", NULL);
+        label = gtk_label_new (label_text);
+        gtk_container_add (GTK_CONTAINER (eb), label);
+        gtk_widget_show (label);
+
+        res = gtk_dialog_run (GTK_DIALOG (dialog_overwrite));
+        gtk_widget_destroy (dialog_overwrite);
+        g_io_channel_unref (file);
+        if ((res == GTK_RESPONSE_REJECT) || (res == GTK_RESPONSE_DELETE_EVENT))
+          break;
+      }
+    }
 
     x264_gtk = x264_gtk_load ();
     param = x264_gtk_param_get (x264_gtk);
-    g_free (x264_gtk);
+    x264_gtk_free (x264_gtk);
 
     {
       gint width;
@@ -672,7 +712,7 @@ _fill_status_window (GIOChannel  *io __UNUSED__,
                                     sizeof (X264_Pipe_Data),
                                     &size, NULL);
   if (status != G_IO_STATUS_NORMAL) {
-    g_print ("Error ! %d %d %d\n", status, sizeof (X264_Pipe_Data), size);
+    g_print (_("Error ! %d %d %d\n"), status, sizeof (X264_Pipe_Data), size);
     return FALSE;
   }
 
@@ -680,13 +720,13 @@ _fill_status_window (GIOChannel  *io __UNUSED__,
   gtk_entry_set_text (GTK_ENTRY (thread_data->current_video_frame),
                       str);
 
-  snprintf (str, 128, "%dKB",
+  snprintf (str, 128, _("%dKB"),
             pipe_data.file >> 10);
   gtk_entry_set_text (GTK_ENTRY (thread_data->video_data),
                       str);
 
   fps = pipe_data.elapsed > 0 ? 1000000.0 * (gdouble)pipe_data.frame / (gdouble)pipe_data.elapsed : 0.0;
-  snprintf (str, 128, "%.2fKB/s (%.2f fps)",
+  snprintf (str, 128, _("%.2fKB/s (%.2f fps)"),
             (double) pipe_data.file * 8 * thread_data->param->i_fps_num /
             ((double) thread_data->param->i_fps_den * pipe_data.frame * 1000),
             fps);

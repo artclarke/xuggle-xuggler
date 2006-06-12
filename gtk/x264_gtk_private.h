@@ -9,6 +9,7 @@ typedef struct Bitrate_ Bitrate;
 typedef struct Rate_Control_ Rate_Control;
 typedef struct MB_ MB;
 typedef struct More_ More;
+typedef struct Cqm_ Cqm;
 typedef struct Zones_ Zones;
 typedef struct X264_Gui_Config_ X264_Gui_Config;
 typedef struct X264_Gui_Zone_ X264_Gui_Zone;
@@ -51,6 +52,14 @@ struct Rate_Control_
     GtkWidget *max_idr_frame_interval;
   }scene_cuts;
 
+  /* VBV */
+  struct
+  {
+    GtkWidget *vbv_max_bitrate;
+    GtkWidget *vbv_buffer_size;
+    GtkWidget *vbv_buffer_init;
+  }vbv;
+
 };
 
 struct MB_
@@ -69,12 +78,12 @@ struct MB_
   /* B-frames */
   struct
   {
-    GtkWidget *use_as_reference;
+    GtkWidget *bframe_pyramid;
     GtkWidget *bidir_me;
-    GtkWidget *adaptive;
-    GtkWidget *weighted_biprediction;
-    GtkWidget *max_consecutive;
-    GtkWidget *bias;
+    GtkWidget *bframe_adaptive;
+    GtkWidget *weighted_bipred;
+    GtkWidget *bframe;
+    GtkWidget *bframe_bias;
     GtkWidget *direct_mode;
   }bframes;
 
@@ -91,6 +100,7 @@ struct More_
     GtkWidget *chroma_me;
     GtkWidget *max_ref_frames;
     GtkWidget *mixed_refs;
+    GtkWidget *fast_pskip;
   }motion_estimation;
 
   /* Misc. Options */
@@ -120,6 +130,20 @@ struct More_
 
 };
 
+struct Cqm_
+{
+  GtkWidget *radio_flat;
+  GtkWidget *radio_jvt;
+  GtkWidget *radio_custom;
+  GtkWidget *cqm_file;
+  GtkWidget *cqm_4iy[16];
+  GtkWidget *cqm_4ic[16];
+  GtkWidget *cqm_4py[16];
+  GtkWidget *cqm_4pc[16];
+  GtkWidget *cqm_8iy[64];
+  GtkWidget *cqm_8py[64];
+};
+
 struct Zones_
 {
   GtkWidget *list_zones;
@@ -131,6 +155,7 @@ struct X264_Gui_Config_
   Rate_Control rate_control;
   MB           mb;
   More         more;
+  Cqm          cqm;
   Zones        zones;
 };
 
@@ -141,6 +166,8 @@ struct X264_Gui_Zone_
   GtkWidget *entry_qp;
   GtkWidget *entry_weight;
 };
+
+gchar *x264_gtk_path (const char* more_path);
 
 
 #endif /* __X264_GTK_PRIVATE_H__ */

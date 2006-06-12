@@ -9,20 +9,24 @@
 #  include <stdint.h>
 #endif
 #ifdef _WIN32
-#  include <unistd.h>  /* for mkdir */
+#  define _WIN32_IE   0x400
+#  include <unistd.h>        /* for mkdir */
+#  include <shlobj.h>        /* for SHGetSpecialFolderPath */
 #endif
 
-#include <x264.h>
+#include "../x264.h"
 
 #include <gtk/gtk.h>
 
 #include "x264_gtk.h"
+#include "x264_gtk_i18n.h"
 #include "x264_gtk_private.h"
 #include "x264_gtk_enum.h"
 #include "x264_gtk_bitrate.h"
 #include "x264_gtk_rc.h"
 #include "x264_gtk_mb.h"
 #include "x264_gtk_more.h"
+#include "x264_gtk_cqm.h"
 
 
 #define CHECK_FLAG(a,flag) ((a) & (flag)) == (flag)
@@ -78,6 +82,10 @@ x264_param_t *x264_gtk_param_get (X264_Gtk *x264_gtk)
   param->i_keyint_min = x264_gtk->min_idr_frame_interval;
   param->i_keyint_max = x264_gtk->max_idr_frame_interval;
 
+  param->rc.i_vbv_max_bitrate = x264_gtk->vbv_max_bitrate;
+  param->rc.i_vbv_buffer_size = x264_gtk->vbv_buffer_size;
+  param->rc.f_vbv_buffer_init = x264_gtk->vbv_buffer_init;
+
   /* mb */
   param->analyse.b_transform_8x8 = x264_gtk->transform_8x8;
   param->analyse.inter = 0;
@@ -92,17 +100,15 @@ x264_param_t *x264_gtk_param_get (X264_Gtk *x264_gtk)
   if (x264_gtk->inter_search_4)
     param->analyse.inter |= X264_ANALYSE_I4x4;
 
-  param->i_bframe = x264_gtk->use_as_reference;
+  param->b_bframe_pyramid = x264_gtk->bframe_pyramid && x264_gtk->bframe;
   param->analyse.b_bidir_me = x264_gtk->bidir_me;
-  param->b_bframe_adaptive = x264_gtk->adaptive;
-  if ((x264_gtk->use_as_reference > 1) && x264_gtk->weighted_biprediction)
-    param->analyse.b_weighted_bipred = 1;
-  else
-    param->analyse.b_weighted_bipred = 0;
-  /* not used: */
-  /* x264_gtk->max_consecutive; */
-  param->i_bframe_bias = x264_gtk->bias;
+  param->b_bframe_adaptive = x264_gtk->bframe_adaptive;
+  param->analyse.b_weighted_bipred = x264_gtk->weighted_bipred;
+  param->i_bframe = x264_gtk->bframe;
+  param->i_bframe_bias = x264_gtk->bframe_bias;
   param->analyse.i_direct_mv_pred = x264_gtk->direct_mode;
+
+/*   param->b_bframe_pyramid = param->b_bframe_pyramid && (param->i_bframe > 1); */
 
   /* more */
   param->analyse.i_subpel_refine = x264_gtk->partition_decision + 1;
@@ -114,6 +120,7 @@ x264_param_t *x264_gtk_param_get (X264_Gtk *x264_gtk)
   param->analyse.i_noise_reduction = x264_gtk->noise_reduction;
   param->i_frame_reference = x264_gtk->max_ref_frames;
   param->analyse.b_mixed_references = x264_gtk->mixed_refs;
+  param->analyse.b_fast_pskip = x264_gtk->fast_pskip;
 
   param->vui.i_sar_width = x264_gtk->sample_ar_x;
   param->vui.i_sar_height = x264_gtk->sample_ar_y;
@@ -124,6 +131,17 @@ x264_param_t *x264_gtk_param_get (X264_Gtk *x264_gtk)
   param->i_deblocking_filter_beta = x264_gtk->threshold;
 
   param->i_log_level = x264_gtk->debug_method - 1;
+
+  /* cqm */
+  param->i_cqm_preset = x264_gtk->cqm_preset;
+  if (x264_gtk->cqm_file && (x264_gtk->cqm_file[0] != '\0'))
+    param->psz_cqm_file = x264_gtk->cqm_file;
+  memcpy( param->cqm_4iy, x264_gtk->cqm_4iy, 16 );
+  memcpy( param->cqm_4ic, x264_gtk->cqm_4ic, 16 );
+  memcpy( param->cqm_4py, x264_gtk->cqm_4py, 16 );
+  memcpy( param->cqm_4pc, x264_gtk->cqm_4pc, 16 );
+  memcpy( param->cqm_8iy, x264_gtk->cqm_8iy, 64 );
+  memcpy( param->cqm_8py, x264_gtk->cqm_8py, 64 );
 
   return param;
 }
@@ -141,34 +159,28 @@ x264_gtk_load (void)
   if (!x264_gtk)
     return NULL;
 
-  filename = g_build_filename (g_get_home_dir (),
-                               ".x264",
-                               "/x264.cfg",
-                               NULL);
+  filename = x264_gtk_path ("x264.cfg");
   file = g_io_channel_new_file (filename, "r", &error);
-  if (error)
-    {
-      g_print ("x264.cfg: %s\n", error->message);
-      g_print ("Loading default configuration\n");
-      _default_set (x264_gtk);
-    }
-  else
-    {
-      GIOStatus status;
-      gchar    *data = NULL;
-      gsize     length;
+  if (error) {
+    g_print (_("x264.cfg: %s\n"), error->message);
+    g_print (_("Loading default configuration\n"));
+    _default_set (x264_gtk);
+  }
+  else {
+    GIOStatus status;
+    gchar    *data = NULL;
+    gsize     length;
 
-      g_print ("Loading configuration from %s\n", filename);
-      g_io_channel_set_encoding (file, NULL, NULL);
-      status = g_io_channel_read_to_end (file, &data, &length, &error);
-      if ((status == G_IO_STATUS_NORMAL) &&
-          (length == sizeof (X264_Gtk)))
-        {
-          memcpy (x264_gtk, data, length);
-        }
-      g_io_channel_shutdown (file, TRUE, NULL);
-      g_io_channel_unref (file);
+    g_print (_("Loading configuration from %s\n"), filename);
+    g_io_channel_set_encoding (file, NULL, NULL);
+    status = g_io_channel_read_to_end (file, &data, &length, &error);
+    if ((status == G_IO_STATUS_NORMAL) &&
+        (length == sizeof (X264_Gtk))) {
+      memcpy (x264_gtk, data, length);
     }
+    g_io_channel_shutdown (file, TRUE, NULL);
+    g_io_channel_unref (file);
+  }
   g_free (filename);
 
   return x264_gtk;
@@ -195,12 +207,12 @@ x264_gtk_window_create (GtkWidget *parent)
 
   if (parent)
     flags = GTK_DIALOG_MODAL |GTK_DIALOG_DESTROY_WITH_PARENT;
-  win_x264_gtk = gtk_dialog_new_with_buttons ("X264 Configuration",
+  win_x264_gtk = gtk_dialog_new_with_buttons (_("X264 Configuration"),
                                               GTK_WINDOW (parent),
                                               flags,
                                               NULL);
 
-  button = gtk_button_new_with_label ("Default");
+  button = gtk_button_new_with_label (_("Default"));
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (win_x264_gtk)->action_area), button, FALSE, TRUE, 6);
   g_signal_connect (G_OBJECT (button),
                     "clicked",
@@ -221,31 +233,38 @@ x264_gtk_window_create (GtkWidget *parent)
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG (win_x264_gtk)->vbox), notebook);
   gtk_widget_show (notebook);
 
-  label = gtk_label_new ("Bitrate");
+  label = gtk_label_new (_("Bitrate"));
   gtk_widget_show (label);
 
   page = _bitrate_page (gconfig);
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), page, label);
   gtk_widget_show (page);
 
-  label = gtk_label_new ("Rate Control");
+  label = gtk_label_new (_("Rate Control"));
   gtk_widget_show (label);
 
   page = _rate_control_page (gconfig);
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), page, label);
   gtk_widget_show (page);
 
-  label = gtk_label_new ("MB & Frames");
+  label = gtk_label_new (_("MB & Frames"));
   gtk_widget_show (label);
 
   page = _mb_page (gconfig);
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), page, label);
   gtk_widget_show (page);
 
-  label = gtk_label_new ("More...");
+  label = gtk_label_new (_("More..."));
   gtk_widget_show (label);
 
   page = _more_page (gconfig);
+  gtk_notebook_append_page (GTK_NOTEBOOK (notebook), page, label);
+  gtk_widget_show (page);
+
+  label = gtk_label_new (_("Quantization matrices"));
+  gtk_widget_show (label);
+
+  page = _cqm_page (gconfig);
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), page, label);
   gtk_widget_show (page);
 
@@ -266,6 +285,15 @@ x264_gtk_shutdown (GtkWidget *dialog)
   gtk_widget_destroy (dialog);
   if (gconfig)
     g_free (gconfig);
+}
+
+void
+x264_gtk_free (X264_Gtk *x264_gtk)
+{
+  if (!x264_gtk)
+    return;
+
+  g_free (x264_gtk);
 }
 
 
@@ -290,9 +318,8 @@ _dialog_run (GtkDialog       *dialog __UNUSED__,
       mode_t      mode;
 #endif
 
-      dir = g_build_filename (g_get_home_dir (),
-                              ".x264",
-                              NULL);
+      dir = x264_gtk_path (NULL);
+
 #ifdef _WIN32
       res = mkdir (dir);
 #else
@@ -308,13 +335,10 @@ _dialog_run (GtkDialog       *dialog __UNUSED__,
 
           return;
         }
-      filename = g_build_filename (g_get_home_dir (),
-                                   ".x264",
-                                   "x264.cfg",
-                                   NULL);
-      g_print ("Writing configuration to %s\n", filename);
-      file = g_io_channel_new_file (filename,
-                                    "w+", NULL);
+
+      filename = x264_gtk_path ("x264.cfg");
+      g_print (_("Writing configuration to %s\n"), filename);
+      file = g_io_channel_new_file (filename, "w+", NULL);
       if (file)
         {
           _current_get (gconfig, x264_gtk);
@@ -332,9 +356,10 @@ _dialog_run (GtkDialog       *dialog __UNUSED__,
 static void
 _default_load (GtkButton *button __UNUSED__, gpointer user_data)
 {
+  gchar            buf[64];
   X264_Gui_Config *config;
   x264_param_t     param;
-  gchar            buf[64];
+  gint             i;
 
   if (!user_data)
     return;
@@ -345,13 +370,12 @@ _default_load (GtkButton *button __UNUSED__, gpointer user_data)
 
   /* bitrate */
   gtk_combo_box_set_active (GTK_COMBO_BOX (config->bitrate.pass), 1);
-  g_print ("bitrate %d\n", param.rc.i_bitrate);
   g_snprintf (buf, 64, "%d", param.rc.i_bitrate);
   gtk_entry_set_text (GTK_ENTRY (config->bitrate.w_average_bitrate), buf);
   gtk_entry_set_text (GTK_ENTRY (config->bitrate.w_target_bitrate), buf);
   gtk_range_set_range (GTK_RANGE (config->bitrate.w_quantizer),
-                       (gdouble)param.rc.i_qp_min,
-                       (gdouble)param.rc.i_qp_max);
+                       0.0,
+                       51.0);
   gtk_range_set_value (GTK_RANGE (config->bitrate.w_quantizer),
                        (gdouble)param.rc.i_qp_constant);
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->bitrate.update_statfile), FALSE);
@@ -380,6 +404,13 @@ _default_load (GtkButton *button __UNUSED__, gpointer user_data)
   g_snprintf (buf, 64, "%d", param.i_keyint_max);
   gtk_entry_set_text (GTK_ENTRY (config->rate_control.scene_cuts.max_idr_frame_interval), buf);
 
+  g_snprintf (buf, 64, "%d", param.rc.i_vbv_max_bitrate);
+  gtk_entry_set_text (GTK_ENTRY (config->rate_control.vbv.vbv_max_bitrate), buf);
+  g_snprintf (buf, 64, "%d", param.rc.i_vbv_buffer_size);
+  gtk_entry_set_text (GTK_ENTRY (config->rate_control.vbv.vbv_buffer_size), buf);
+  g_snprintf (buf, 64, "%.1f", param.rc.f_vbv_buffer_init);
+  gtk_entry_set_text (GTK_ENTRY (config->rate_control.vbv.vbv_buffer_init), buf);
+
   /* mb */
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.partitions.transform_8x8), param.analyse.b_transform_8x8);
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.partitions.pframe_search_8), CHECK_FLAG(param.analyse.inter, X264_ANALYSE_PSUB16x16));
@@ -388,12 +419,13 @@ _default_load (GtkButton *button __UNUSED__, gpointer user_data)
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.partitions.inter_search_8), CHECK_FLAG(param.analyse.inter, X264_ANALYSE_I8x8));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.partitions.inter_search_4), CHECK_FLAG(param.analyse.inter, X264_ANALYSE_I4x4));
 
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.use_as_reference), param.i_bframe);
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.adaptive), param.b_bframe_adaptive);
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.weighted_biprediction), param.analyse.b_weighted_bipred);
-  g_snprintf (buf, 64, "%d", param.b_bframe_adaptive);
-  gtk_entry_set_text (GTK_ENTRY (config->mb.bframes.max_consecutive), buf);
-  gtk_range_set_value (GTK_RANGE (config->mb.bframes.bias), (gdouble)param.i_bframe_bias);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.bframe_pyramid), param.b_bframe_pyramid);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.bidir_me), param.analyse.b_bidir_me);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.bframe_adaptive), param.b_bframe_adaptive);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.weighted_bipred), param.analyse.b_weighted_bipred);
+  g_snprintf (buf, 64, "%d", param.i_bframe);
+  gtk_entry_set_text (GTK_ENTRY (config->mb.bframes.bframe), buf);
+  gtk_range_set_value (GTK_RANGE (config->mb.bframes.bframe_bias), (gdouble)param.i_bframe_bias);
   gtk_combo_box_set_active (GTK_COMBO_BOX (config->mb.bframes.direct_mode), param.analyse.i_direct_mv_pred);
 
   /* more */
@@ -408,13 +440,13 @@ _default_load (GtkButton *button __UNUSED__, gpointer user_data)
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.motion_estimation.mixed_refs), param.analyse.b_mixed_references);
   g_snprintf (buf, 64, "%d", param.i_frame_reference);
   gtk_entry_set_text (GTK_ENTRY (config->more.motion_estimation.max_ref_frames), buf);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.motion_estimation.fast_pskip), param.analyse.b_fast_pskip);
 
   g_snprintf (buf, 64, "%d", param.vui.i_sar_width);
   gtk_entry_set_text (GTK_ENTRY (config->more.misc.sample_ar_x), buf);
   g_snprintf (buf, 64, "%d", param.vui.i_sar_height);
   gtk_entry_set_text (GTK_ENTRY (config->more.misc.sample_ar_y), buf);
-  g_snprintf (buf, 64, "%d", param.i_threads);
-  gtk_entry_set_text (GTK_ENTRY (config->more.misc.threads), buf);
+  gtk_spin_button_set_value (GTK_SPIN_BUTTON (config->more.misc.threads), param.i_threads);
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.misc.cabac), param.b_cabac);
   gtk_combo_box_set_active (GTK_COMBO_BOX (config->more.misc.trellis), param.analyse.i_trellis);
   g_snprintf (buf, 64, "%d", param.analyse.i_noise_reduction);
@@ -423,8 +455,46 @@ _default_load (GtkButton *button __UNUSED__, gpointer user_data)
   gtk_range_set_value (GTK_RANGE (config->more.misc.df.strength), (gdouble)param.i_deblocking_filter_alphac0);
   gtk_range_set_value (GTK_RANGE (config->more.misc.df.threshold), (gdouble)param.i_deblocking_filter_beta);
 
-  gtk_combo_box_set_active (GTK_COMBO_BOX (config->more.debug.log_level), 1);
+  gtk_combo_box_set_active (GTK_COMBO_BOX (config->more.debug.log_level), param.i_log_level + 1);
   gtk_entry_set_text (GTK_ENTRY (config->more.debug.fourcc), "H264");
+
+  /* cqm */
+  switch (param.i_cqm_preset) {
+  case X264_CQM_FLAT:
+    // workaround: gtk fails to update the matrix entries if we activate the button
+    // that was already active.
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->cqm.radio_jvt), TRUE);
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->cqm.radio_flat), TRUE);
+    break;
+  case X264_CQM_JVT:
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->cqm.radio_jvt), TRUE);
+    break;
+  case X264_CQM_CUSTOM:
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->cqm.radio_custom), TRUE);
+    break;
+  }
+  if (param.psz_cqm_file && (param.psz_cqm_file[0] != '\0'))
+    gtk_file_chooser_set_filename (GTK_FILE_CHOOSER (config->cqm.cqm_file), param.psz_cqm_file);
+  for (i = 0; i < 16; i++) {
+    gchar buf[4];
+
+    g_snprintf (buf, 4, "%d", param.cqm_4iy[i]);
+    gtk_entry_set_text (GTK_ENTRY (config->cqm.cqm_4iy[i]), buf);
+    g_snprintf (buf, 4, "%d", param.cqm_4ic[i]);
+    gtk_entry_set_text (GTK_ENTRY (config->cqm.cqm_4ic[i]), buf);
+    g_snprintf (buf, 4, "%d", param.cqm_4py[i]);
+    gtk_entry_set_text (GTK_ENTRY (config->cqm.cqm_4py[i]), buf);
+    g_snprintf (buf, 4, "%d", param.cqm_4pc[i]);
+    gtk_entry_set_text (GTK_ENTRY (config->cqm.cqm_4pc[i]), buf);
+  }
+  for (i = 0; i < 64; i++) {
+    gchar buf[4];
+
+    g_snprintf (buf, 4, "%d", param.cqm_8iy[i]);
+    gtk_entry_set_text (GTK_ENTRY (config->cqm.cqm_8iy[i]), buf);
+    g_snprintf (buf, 4, "%d", param.cqm_8py[i]);
+    gtk_entry_set_text (GTK_ENTRY (config->cqm.cqm_8py[i]), buf);
+  }
 }
 
 static void
@@ -456,12 +526,13 @@ _default_set (X264_Gtk *x264_gtk)
   x264_gtk->scene_cut_threshold = param.i_scenecut_threshold;
   x264_gtk->min_idr_frame_interval = param.i_keyint_min;
   x264_gtk->max_idr_frame_interval = param.i_keyint_max;
-  x264_gtk->direct_mode = param.analyse.i_direct_mv_pred;
+
+  x264_gtk->vbv_max_bitrate = param.rc.i_vbv_max_bitrate;
+  x264_gtk->vbv_buffer_size = param.rc.i_vbv_buffer_size;
+  x264_gtk->vbv_buffer_init = param.rc.f_vbv_buffer_init;
 
   /* mb */
   x264_gtk->transform_8x8 = param.analyse.b_transform_8x8;
-  x264_gtk->max_ref_frames = param.i_frame_reference;
-  x264_gtk->mixed_refs = param.analyse.b_mixed_references;
 
   if (CHECK_FLAG(param.analyse.inter, X264_ANALYSE_PSUB16x16))
     x264_gtk->pframe_search_8 = 1;
@@ -478,11 +549,13 @@ _default_set (X264_Gtk *x264_gtk)
   x264_gtk->inter_search_8 = CHECK_FLAG(param.analyse.inter, X264_ANALYSE_I8x8);
   x264_gtk->inter_search_4 = CHECK_FLAG(param.analyse.inter, X264_ANALYSE_I4x4);
 
-  x264_gtk->use_as_reference = param.i_bframe;
-  x264_gtk->adaptive = param.b_bframe_adaptive;
-  x264_gtk->weighted_biprediction = param.analyse.b_weighted_bipred;
-  x264_gtk->max_consecutive = 0; /* not used */
-  x264_gtk->bias = param.i_bframe_bias;
+  x264_gtk->bframe_pyramid = param.b_bframe_pyramid;
+  x264_gtk->bidir_me = param.analyse.b_bidir_me;
+  x264_gtk->bframe_adaptive = param.b_bframe_adaptive;
+  x264_gtk->weighted_bipred = param.analyse.b_weighted_bipred;
+  x264_gtk->bframe = param.i_bframe;
+  x264_gtk->bframe_bias = param.i_bframe_bias;
+  x264_gtk->direct_mode = param.analyse.i_direct_mv_pred;
 
   /* more */
   x264_gtk->bframe_rdo = param.analyse.b_bframe_rdo;
@@ -490,6 +563,9 @@ _default_set (X264_Gtk *x264_gtk)
   x264_gtk->me_method = param.analyse.i_me_method;
   x264_gtk->range = param.analyse.i_me_range;
   x264_gtk->chroma_me = param.analyse.b_chroma_me;
+  x264_gtk->max_ref_frames = param.i_frame_reference;
+  x264_gtk->mixed_refs = param.analyse.b_mixed_references;
+  x264_gtk->fast_pskip = param.analyse.b_fast_pskip;
 
   x264_gtk->sample_ar_x = param.vui.i_sar_width;
   x264_gtk->sample_ar_y = param.vui.i_sar_height;
@@ -501,15 +577,27 @@ _default_set (X264_Gtk *x264_gtk)
   x264_gtk->strength = param.i_deblocking_filter_alphac0;
   x264_gtk->threshold = param.i_deblocking_filter_beta;
 
-  x264_gtk->debug_method = X264_DEBUG_METHOD_ERROR;
+  x264_gtk->debug_method = param.i_log_level + 1;
   text = "H264";
   memcpy (x264_gtk->fourcc, text, strlen (text) + 1);
+
+  /* cqm */
+  x264_gtk->cqm_preset = param.i_cqm_preset;
+  if (param.psz_cqm_file && (param.psz_cqm_file[0] != '\0'))
+    memcpy (x264_gtk->cqm_file, param.psz_cqm_file,  strlen (param.psz_cqm_file) + 1);
+  memcpy (x264_gtk->cqm_4iy, param.cqm_4iy, 16);
+  memcpy (x264_gtk->cqm_4ic, param.cqm_4ic, 16);
+  memcpy (x264_gtk->cqm_4py, param.cqm_4py, 16);
+  memcpy (x264_gtk->cqm_4pc, param.cqm_4pc, 16);
+  memcpy (x264_gtk->cqm_8iy, param.cqm_8iy, 64);
+  memcpy (x264_gtk->cqm_8py, param.cqm_8py, 64);
 }
 
 static void
 _current_set (X264_Gui_Config *config, X264_Gtk *x264_gtk)
 {
   gchar buf[4096];
+  gint  i;
 
   if (!config)
     return;
@@ -518,6 +606,9 @@ _current_set (X264_Gui_Config *config, X264_Gtk *x264_gtk)
   gtk_combo_box_set_active (GTK_COMBO_BOX (config->bitrate.pass), x264_gtk->pass);
   g_snprintf (buf, 5, "%d", x264_gtk->average_bitrate);
   gtk_entry_set_text (GTK_ENTRY (config->bitrate.w_average_bitrate), buf);
+  gtk_range_set_range (GTK_RANGE (config->bitrate.w_quantizer),
+                       0.0,
+                       51.0);
   gtk_range_set_value (GTK_RANGE (config->bitrate.w_quantizer), x264_gtk->quantizer);
   g_snprintf (buf, 5, "%d", x264_gtk->target_bitrate);
   gtk_entry_set_text (GTK_ENTRY (config->bitrate.w_target_bitrate), buf);
@@ -550,6 +641,13 @@ _current_set (X264_Gui_Config *config, X264_Gtk *x264_gtk)
   g_snprintf (buf, 5, "%d", x264_gtk->max_idr_frame_interval);
   gtk_entry_set_text (GTK_ENTRY (config->rate_control.scene_cuts.max_idr_frame_interval), buf);
 
+  g_snprintf (buf, 5, "%d", x264_gtk->vbv_max_bitrate);
+  gtk_entry_set_text (GTK_ENTRY (config->rate_control.vbv.vbv_max_bitrate), buf);
+  g_snprintf (buf, 5, "%d", x264_gtk->vbv_buffer_size);
+  gtk_entry_set_text (GTK_ENTRY (config->rate_control.vbv.vbv_buffer_size), buf);
+  g_snprintf (buf, 5, "%.1f", x264_gtk->vbv_buffer_init);
+  gtk_entry_set_text (GTK_ENTRY (config->rate_control.vbv.vbv_buffer_init), buf);
+
   /* mb */
   if (x264_gtk->transform_8x8)
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.partitions.transform_8x8), TRUE);
@@ -576,25 +674,26 @@ _current_set (X264_Gui_Config *config, X264_Gtk *x264_gtk)
   else
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.partitions.inter_search_4), FALSE);
 
-  if (x264_gtk->use_as_reference)
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.use_as_reference), TRUE);
+  /* mb - bframes */
+  if (x264_gtk->bframe_pyramid)
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.bframe_pyramid), TRUE);
   else
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.use_as_reference), FALSE);
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.bframe_pyramid), FALSE);
   if (x264_gtk->bidir_me)
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.bidir_me), TRUE);
   else
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.bidir_me), FALSE);
-  if (x264_gtk->adaptive)
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.adaptive), TRUE);
+  if (x264_gtk->bframe_adaptive)
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.bframe_adaptive), TRUE);
   else
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.adaptive), FALSE);
-  if (x264_gtk->weighted_biprediction)
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.weighted_biprediction), TRUE);
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.bframe_adaptive), FALSE);
+  if (x264_gtk->weighted_bipred)
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.weighted_bipred), TRUE);
   else
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.weighted_biprediction), FALSE);
-  g_snprintf (buf, 5, "%d", x264_gtk->max_consecutive);
-  gtk_entry_set_text (GTK_ENTRY (config->mb.bframes.max_consecutive), buf);
-  gtk_range_set_value (GTK_RANGE (config->mb.bframes.bias), (gdouble)x264_gtk->bias);
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.weighted_bipred), FALSE);
+  g_snprintf (buf, 5, "%d", x264_gtk->bframe);
+  gtk_entry_set_text (GTK_ENTRY (config->mb.bframes.bframe), buf);
+  gtk_range_set_value (GTK_RANGE (config->mb.bframes.bframe_bias), (gdouble)x264_gtk->bframe_bias);
   gtk_combo_box_set_active (GTK_COMBO_BOX (config->mb.bframes.direct_mode), x264_gtk->direct_mode);
 
   /* more */
@@ -611,17 +710,20 @@ _current_set (X264_Gui_Config *config, X264_Gtk *x264_gtk)
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.motion_estimation.chroma_me), FALSE);
   g_snprintf (buf, 5, "%d", x264_gtk->max_ref_frames);
   gtk_entry_set_text (GTK_ENTRY (config->more.motion_estimation.max_ref_frames), buf);
-  if (x264_gtk->mixed_refs)
+  if (x264_gtk->mixed_refs && (x264_gtk->max_ref_frames >= 2))
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.motion_estimation.mixed_refs), TRUE);
   else
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.motion_estimation.mixed_refs), FALSE);
+  if (x264_gtk->fast_pskip)
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.motion_estimation.fast_pskip), TRUE);
+  else
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.motion_estimation.fast_pskip), FALSE);
 
   g_snprintf (buf, 5, "%d", x264_gtk->sample_ar_x);
   gtk_entry_set_text (GTK_ENTRY (config->more.misc.sample_ar_x), buf);
   g_snprintf (buf, 5, "%d", x264_gtk->sample_ar_y);
   gtk_entry_set_text (GTK_ENTRY (config->more.misc.sample_ar_y), buf);
-  g_snprintf (buf, 5, "%d", x264_gtk->threads);
-  gtk_entry_set_text (GTK_ENTRY (config->more.misc.threads), buf);
+  gtk_spin_button_set_value (GTK_SPIN_BUTTON (config->more.misc.threads), x264_gtk->threads);
   if (x264_gtk->cabac)
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.misc.cabac), TRUE);
   else
@@ -637,20 +739,58 @@ _current_set (X264_Gui_Config *config, X264_Gtk *x264_gtk)
   gtk_range_set_value (GTK_RANGE (config->more.misc.df.threshold), (gdouble)x264_gtk->threshold);
 
   gtk_combo_box_set_active (GTK_COMBO_BOX (config->more.debug.log_level), x264_gtk->debug_method);
-  gtk_entry_set_text (GTK_ENTRY (config->more.debug.fourcc),
-  x264_gtk->fourcc);
+  gtk_entry_set_text (GTK_ENTRY (config->more.debug.fourcc), x264_gtk->fourcc);
+
+  /* cqm */
+  switch (x264_gtk->cqm_preset) {
+  case X264_CQM_PRESET_FLAT:
+    // workaround: gtk fails to update the matrix entries if we activate the button
+    // that was already active.
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->cqm.radio_jvt), TRUE);
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->cqm.radio_flat), TRUE);
+    break;
+  case X264_CQM_PRESET_JVT:
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->cqm.radio_jvt), TRUE);
+    break;
+  case X264_CQM_PRESET_CUSTOM:
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->cqm.radio_custom), TRUE);
+    break;
+  }
+  if (x264_gtk->cqm_file && (x264_gtk->cqm_file[0] != '\0'))
+    gtk_file_chooser_set_filename (GTK_FILE_CHOOSER (config->cqm.cqm_file), x264_gtk->cqm_file);
+  for (i = 0; i < 16; i++) {
+    gchar buf[4];
+
+    g_snprintf (buf, 4, "%d", x264_gtk->cqm_4iy[i]);
+    gtk_entry_set_text (GTK_ENTRY (config->cqm.cqm_4iy[i]), buf);
+    g_snprintf (buf, 4, "%d", x264_gtk->cqm_4ic[i]);
+    gtk_entry_set_text (GTK_ENTRY (config->cqm.cqm_4ic[i]), buf);
+    g_snprintf (buf, 4, "%d", x264_gtk->cqm_4py[i]);
+    gtk_entry_set_text (GTK_ENTRY (config->cqm.cqm_4py[i]), buf);
+    g_snprintf (buf, 4, "%d", x264_gtk->cqm_4pc[i]);
+    gtk_entry_set_text (GTK_ENTRY (config->cqm.cqm_4pc[i]), buf);
+  }
+  for (i = 0; i < 64; i++) {
+    gchar buf[4];
+
+    g_snprintf (buf, 4, "%d", x264_gtk->cqm_8iy[i]);
+    gtk_entry_set_text (GTK_ENTRY (config->cqm.cqm_8iy[i]), buf);
+    g_snprintf (buf, 4, "%d", x264_gtk->cqm_8py[i]);
+    gtk_entry_set_text (GTK_ENTRY (config->cqm.cqm_8py[i]), buf);
+  }
 }
 
 static void
 _current_get (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk)
 {
   const gchar *text;
+  gint         i;
 
   if (!gconfig)
     return;
 
   if (!x264_gtk)
-    g_print ("problem...\n");
+    g_print (_("problem...\n"));
 
   /* bitrate */
   switch (gtk_combo_box_get_active (GTK_COMBO_BOX (gconfig->bitrate.pass)))
@@ -714,6 +854,13 @@ _current_get (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk)
   text = gtk_entry_get_text (GTK_ENTRY (gconfig->rate_control.scene_cuts.max_idr_frame_interval));
   x264_gtk->max_idr_frame_interval = (gint)g_ascii_strtoull (text, NULL, 10);
 
+  text = gtk_entry_get_text (GTK_ENTRY (gconfig->rate_control.vbv.vbv_max_bitrate));
+  x264_gtk->vbv_max_bitrate = (gint)g_ascii_strtoull (text, NULL, 10);
+  text = gtk_entry_get_text (GTK_ENTRY (gconfig->rate_control.vbv.vbv_buffer_size));
+  x264_gtk->vbv_buffer_size = (gint)g_ascii_strtoull (text, NULL, 10);
+  text = gtk_entry_get_text (GTK_ENTRY (gconfig->rate_control.vbv.vbv_buffer_init));
+  x264_gtk->vbv_buffer_init = (gint)g_ascii_strtoull (text, NULL, 10);
+
   /* mb */
   if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->mb.partitions.transform_8x8)))
     x264_gtk->transform_8x8 = 1;
@@ -739,25 +886,27 @@ _current_get (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk)
     x264_gtk->inter_search_4 = 1;
   else
     x264_gtk->inter_search_4 = 0;
-  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->mb.bframes.use_as_reference)))
-    x264_gtk->use_as_reference = 1;
+
+  /* mb - bframes */
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->mb.bframes.bframe_pyramid)))
+    x264_gtk->bframe_pyramid = 1;
   else
-    x264_gtk->use_as_reference = 0;
+    x264_gtk->bframe_pyramid = 0;
   if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->mb.bframes.bidir_me)))
     x264_gtk->bidir_me = 1;
   else
     x264_gtk->bidir_me = 0;
-  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->mb.bframes.adaptive)))
-    x264_gtk->adaptive = 1;
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->mb.bframes.bframe_adaptive)))
+    x264_gtk->bframe_adaptive = 1;
   else
-    x264_gtk->adaptive = 0;
-  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->mb.bframes.weighted_biprediction)))
-    x264_gtk->weighted_biprediction = 1;
+    x264_gtk->bframe_adaptive = 0;
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->mb.bframes.weighted_bipred)))
+    x264_gtk->weighted_bipred = 1;
   else
-    x264_gtk->weighted_biprediction = 0;
-  text = gtk_entry_get_text (GTK_ENTRY (gconfig->mb.bframes.max_consecutive));
-  x264_gtk->max_consecutive = (gint)g_ascii_strtoull (text, NULL, 10);
-  x264_gtk->bias = (gint)gtk_range_get_value (GTK_RANGE (gconfig->mb.bframes.bias));
+    x264_gtk->weighted_bipred = 0;
+  text = gtk_entry_get_text (GTK_ENTRY (gconfig->mb.bframes.bframe));
+  x264_gtk->bframe = (gint)g_ascii_strtoull (text, NULL, 10);
+  x264_gtk->bframe_bias = (gint)gtk_range_get_value (GTK_RANGE (gconfig->mb.bframes.bframe_bias));
 
   switch (gtk_combo_box_get_active (GTK_COMBO_BOX (gconfig->mb.bframes.direct_mode)))
     {
@@ -766,8 +915,11 @@ _current_get (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk)
     case 1:
       x264_gtk->direct_mode = X264_SPATIAL;
       break;
-    default:
+    case 2:
       x264_gtk->direct_mode = X264_TEMPORAL;
+      break;
+    default:
+      x264_gtk->direct_mode = X264_AUTO;
       break;
     }
 
@@ -820,18 +972,24 @@ _current_get (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk)
     x264_gtk->chroma_me = 0;
   text = gtk_entry_get_text (GTK_ENTRY (gconfig->more.motion_estimation.max_ref_frames));
   x264_gtk->max_ref_frames = (gint)g_ascii_strtoull (text, NULL, 10);
-  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->more.motion_estimation.mixed_refs)))
+  if (x264_gtk->max_ref_frames <= 0)
+    x264_gtk->max_ref_frames = 1;
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->more.motion_estimation.mixed_refs)) &&
+      (x264_gtk->max_ref_frames >= 2))
     x264_gtk->mixed_refs = 1;
   else
     x264_gtk->mixed_refs = 0;
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->more.motion_estimation.fast_pskip)))
+    x264_gtk->fast_pskip = 1;
+  else
+    x264_gtk->fast_pskip = 0;
 
 
   text = gtk_entry_get_text (GTK_ENTRY (gconfig->more.misc.sample_ar_x));
   x264_gtk->sample_ar_x = (gint)g_ascii_strtoull (text, NULL, 10);
   text = gtk_entry_get_text (GTK_ENTRY (gconfig->more.misc.sample_ar_y));
   x264_gtk->sample_ar_y = (gint)g_ascii_strtoull (text, NULL, 10);
-  text = gtk_entry_get_text (GTK_ENTRY (gconfig->more.misc.threads));
-  x264_gtk->threads = (gint)g_ascii_strtoull (text, NULL, 10);
+  x264_gtk->threads = (gint)gtk_spin_button_get_value (GTK_SPIN_BUTTON (gconfig->more.misc.threads));
   if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->more.misc.cabac)))
     x264_gtk->cabac = 1;
   else
@@ -866,4 +1024,53 @@ _current_get (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk)
     }
   text = gtk_entry_get_text (GTK_ENTRY (gconfig->more.debug.fourcc));
   memcpy (x264_gtk->fourcc, text, strlen (text) + 1);
+
+  /* cqm */
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->cqm.radio_flat)))
+    x264_gtk->cqm_preset = X264_CQM_PRESET_FLAT;
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->cqm.radio_jvt)))
+    x264_gtk->cqm_preset = X264_CQM_PRESET_JVT;
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->cqm.radio_custom)))
+    x264_gtk->cqm_preset = X264_CQM_PRESET_CUSTOM;
+  text = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (gconfig->cqm.cqm_file));
+  if (text && (text[0] != '\0'))
+    memcpy (x264_gtk->cqm_file, text, strlen (text) + 1);
+  for (i = 0; i < 16; i++) {
+    text = gtk_entry_get_text (GTK_ENTRY (gconfig->cqm.cqm_4iy[i]));
+    x264_gtk->cqm_4iy[i] = (gint)g_ascii_strtoull (text, NULL, 10);
+    text = gtk_entry_get_text (GTK_ENTRY (gconfig->cqm.cqm_4ic[i]));
+    x264_gtk->cqm_4ic[i] = (gint)g_ascii_strtoull (text, NULL, 10);
+    text = gtk_entry_get_text (GTK_ENTRY (gconfig->cqm.cqm_4py[i]));
+    x264_gtk->cqm_4py[i] = (gint)g_ascii_strtoull (text, NULL, 10);
+    text = gtk_entry_get_text (GTK_ENTRY (gconfig->cqm.cqm_4pc[i]));
+    x264_gtk->cqm_4pc[i] = (gint)g_ascii_strtoull (text, NULL, 10);
+  }
+  for (i = 0; i < 64; i++) {
+    text = gtk_entry_get_text (GTK_ENTRY (gconfig->cqm.cqm_8iy[i]));
+    x264_gtk->cqm_8iy[i] = (gint)g_ascii_strtoull (text, NULL, 10);
+    text = gtk_entry_get_text (GTK_ENTRY (gconfig->cqm.cqm_8py[i]));
+    x264_gtk->cqm_8py[i] = (gint)g_ascii_strtoull (text, NULL, 10);
+  }
+}
+
+gchar*
+x264_gtk_path(const char* more)
+{
+#ifdef _WIN32
+  gchar szPath[MAX_PATH];
+
+  // "Documents and Settings\user" is CSIDL_PROFILE
+  szPath[0] = 0;
+
+  SHGetSpecialFolderPath(NULL, szPath, CSIDL_APPDATA, FALSE);
+  if (more)
+    return g_build_filename(szPath, "x264", more, NULL);
+  else
+    return g_build_filename(szPath, "x264", NULL);
+#else
+  if (more)
+    return g_build_filename (g_get_home_dir (), ".x264", more, NULL);
+  else
+    return g_build_filename (g_get_home_dir (), ".x264", NULL);
+#endif
 }

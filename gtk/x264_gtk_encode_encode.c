@@ -8,6 +8,7 @@
 #include <gtk/gtk.h>
 
 #include "../x264.h"
+#include "x264_gtk_i18n.h"
 #include "x264_gtk_demuxers.h"
 #include "x264_gtk_encode_private.h"
 
@@ -54,7 +55,7 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
   int             i_progress;
   int             err;
 
-  g_print ("encoding...\n");
+  g_print (_("encoding...\n"));
   param = thread_data->param;
   err = _set_drivers (thread_data->in_container, thread_data->out_container);
   if (err < 0) {
@@ -63,15 +64,15 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
                                         GTK_DIALOG_DESTROY_WITH_PARENT,
                                         GTK_MESSAGE_ERROR,
                                         GTK_BUTTONS_CLOSE,
-                                        (err == -2) ? "Error: unknown output file type"
-                                                    : "Error: unknown input file type");
+                                        (err == -2) ? _("Error: unknown output file type")
+                                                    : _("Error: unknown input file type"));
     gtk_dialog_run (GTK_DIALOG (no_driver));
     gtk_widget_destroy (no_driver);
     return NULL;
   }
-    
+
   if (p_open_infile (thread_data->file_input, &hin, param)) {
-    fprintf( stderr, "could not open input file '%s'\n", thread_data->file_input );
+    fprintf( stderr, _("could not open input file '%s'\n"), thread_data->file_input );
     return NULL;
   }
 
@@ -85,7 +86,7 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
 
   if ((h = x264_encoder_open (param)) == NULL)
     {
-      fprintf (stderr, "x264_encoder_open failed\n");
+      fprintf (stderr, _("x264_encoder_open failed\n"));
       p_close_infile (hin);
       p_close_outfile (hout);
       g_free (param);
@@ -95,7 +96,7 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
 
   if (p_set_outfile_param (hout, param))
     {
-      fprintf (stderr, "can't set outfile param\n");
+      fprintf (stderr, _("can't set outfile param\n"));
       p_close_infile (hin);
       p_close_outfile (hout);
       g_free (param);
@@ -122,12 +123,11 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
       i_frame++;
 
       /* update status line (up to 1000 times per input file) */
-      if (param->i_log_level < X264_LOG_DEBUG && 
+      if (param->i_log_level < X264_LOG_DEBUG &&
           (i_frame_total ? i_frame * 1000 / i_frame_total > i_progress
            : i_frame % 10 == 0))
         {
           int64_t i_elapsed = x264_mdate () - i_start;
-          double fps = i_elapsed > 0 ? i_frame * 1000000. / i_elapsed : 0;
 
           if (i_frame_total)
             {
@@ -140,20 +140,17 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
                                                  sizeof (X264_Pipe_Data),
                                                  &size, NULL);
               if (status != G_IO_STATUS_NORMAL) {
-                g_print ("Error ! %d %d %d\n", status, sizeof (X264_Pipe_Data), size);
+                g_print (_("Error ! %d %d %d\n"), status, sizeof (X264_Pipe_Data), size);
               }
               else {
                 /* we force the GIOChannel to write to the pipeline */
                 status = g_io_channel_flush (thread_data->io_write,
                                              NULL);
                 if (status != G_IO_STATUS_NORMAL) {
-                  g_print ("Error ! %d\n", status);
+                  g_print (_("Error ! %d\n"), status);
                 }
               }
             }
-          else
-            fprintf( stderr, "encoded frames: %d, %.2f fps   \r", i_frame, fps );
-          fflush( stderr ); /* needed in windows */
         }
     }
   /* Flush delayed B-frames */
@@ -173,7 +170,7 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
     double fps = (double)i_frame * (double)1000000 /
       (double)(i_end - i_start);
 
-    fprintf (stderr, "encoded %d frames, %.2f fps, %.2f kb/s\n",
+    fprintf (stderr, _("encoded %d frames, %.2f fps, %.2f kb/s\n"),
              i_frame, fps,
              (double) i_file * 8 * param->i_fps_num /
              ((double) param->i_fps_den * i_frame * 1000));
@@ -266,7 +263,7 @@ _encode_frame (x264_t *h, void *handle, x264_picture_t *pic)
     }
   if (x264_encoder_encode (h, &nal, &i_nal, pic, &pic_out) < 0)
     {
-      fprintf (stderr, "x264_encoder_encode failed\n");
+      fprintf (stderr, _("x264_encoder_encode failed\n"));
     }
 
   for (i = 0; i < i_nal; i++)
@@ -281,7 +278,7 @@ _encode_frame (x264_t *h, void *handle, x264_picture_t *pic)
         }
       else if (i_size < 0)
         {
-          fprintf (stderr, "need to increase buffer size (size=%d)\n", -i_size);
+          fprintf (stderr, _("need to increase buffer size (size=%d)\n"), -i_size);
         }
     }
   if (i_nal)

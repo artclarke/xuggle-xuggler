@@ -4,7 +4,6 @@
 
 #include "x264_gtk_enum.h"
 
-
 typedef struct X264_Gtk_ X264_Gtk;
 
 struct X264_Gtk_
@@ -36,10 +35,14 @@ struct X264_Gtk_
   gint min_idr_frame_interval;
   gint max_idr_frame_interval;
 
+  gint    vbv_max_bitrate;
+  gint    vbv_buffer_size;
+  gdouble vbv_buffer_init;
+
   /* mb */
 
-  gint max_consecutive;
-  gint bias;
+  gint bframe;  /* max consecutive B frames */
+  gint bframe_bias;
   X264_Direct_Mode direct_mode;
 
   /* more */
@@ -60,6 +63,16 @@ struct X264_Gtk_
   X264_Debug_Method debug_method;
   gchar fourcc[4+1];
 
+  /* cqm */
+  X264_Cqm_Preset cqm_preset;
+  gchar           cqm_file[4095+1];
+  guint8          cqm_4iy[16];
+  guint8          cqm_4ic[16];
+  guint8          cqm_4py[16];
+  guint8          cqm_4pc[16];
+  guint8          cqm_8iy[64];
+  guint8          cqm_8py[64];
+
   /* bitrate */
   guint update_statfile       : 1;
   /* mb - partitions */
@@ -70,14 +83,15 @@ struct X264_Gtk_
   guint inter_search_8        : 1;
   guint inter_search_4        : 1;
   /* mb - bframes */
-  guint use_as_reference      : 1;
-  guint bidir_me                  : 1;
-  guint adaptive              : 1;
-  guint weighted_biprediction : 1;
+  guint bframe_pyramid        : 1; /* use as reference */
+  guint bidir_me              : 1;
+  guint bframe_adaptive       : 1;
+  guint weighted_bipred       : 1;
   /* more - me */
   guint bframe_rdo            : 1;
   guint chroma_me             : 1;
   guint mixed_refs            : 1;
+  guint fast_pskip            : 1;
   /* more - misc */
   guint cabac                 : 1;
   /* more - misc - df */
@@ -88,6 +102,7 @@ x264_param_t *x264_gtk_param_get (X264_Gtk *x264_gtk);
 X264_Gtk     *x264_gtk_load (void);
 GtkWidget    *x264_gtk_window_create (GtkWidget *parent);
 void          x264_gtk_shutdown (GtkWidget *dialog);
+void          x264_gtk_free (X264_Gtk *x264_gtk);
 
 
 #endif /* __X264_GTK_H__ */
