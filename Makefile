@@ -142,7 +142,7 @@ install: x264 $(SONAME)
 	install -m 644 x264.pc $(DESTDIR)$(libdir)/pkgconfig
 	install x264 $(DESTDIR)$(bindir)
 	ranlib $(DESTDIR)$(libdir)/libx264.a
-	$(if $(SONAME), ln -sf $(DESTDIR)$(libdir)/$(SONAME) $(DESTDIR)$(libdir)/libx264.so)
+	$(if $(SONAME), ln -sf $(SONAME) $(DESTDIR)$(libdir)/libx264.so)
 	$(if $(SONAME), install -m 755 $(SONAME) $(DESTDIR)$(libdir))
 
 uninstall:
