@@ -307,27 +307,6 @@ static void motion_compensation_chroma( uint8_t *src, int i_src_stride,
     }
 }
 
-#ifdef HAVE_MMXEXT
-static void motion_compensation_chroma_mmxext( uint8_t *src, int i_src_stride,
-                                        uint8_t *dst, int i_dst_stride,
-                                        int mvx, int mvy,
-                                        int i_width, int i_height )
-{
-    if (i_width == 2) {
-        motion_compensation_chroma(src, i_src_stride, dst, i_dst_stride,
-                                   mvx, mvy, i_width, i_height);
-    } else {
-        const int d8x = mvx&0x07;
-        const int d8y = mvy&0x07;
-        
-        src  += (mvy >> 3) * i_src_stride + (mvx >> 3);
-        
-        x264_mc_chroma_mmxext( src, i_src_stride, dst, i_dst_stride,
-                               d8x, d8y, i_width, i_height );
-    }
-}
-#endif
-
 #define MC_COPY(W) \
 static void mc_copy_w##W( uint8_t *dst, int i_dst, uint8_t *src, int i_src, int i_height ) \
 { \
@@ -372,7 +351,7 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 #ifdef HAVE_MMXEXT
     if( cpu&X264_CPU_MMXEXT ) {
         x264_mc_mmxext_init( pf );
-        pf->mc_chroma = motion_compensation_chroma_mmxext;
+        pf->mc_chroma = x264_mc_chroma_mmxext;
     }
 #endif
 #ifdef HAVE_SSE2

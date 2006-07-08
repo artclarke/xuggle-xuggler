@@ -507,14 +507,28 @@ ALIGN 16
 ;-----------------------------------------------------------------------------
 
 x264_mc_chroma_mmxext:
-
     picpush ebx
     picgetgot ebx
+    push    edi
+
+    mov     ecx, [picesp+4+24]
+    mov     edx, [picesp+4+20]
+    mov     eax, ecx
+    mov     edi, edx
+    sar     ecx, 3
+    sar     edx, 3
+    imul    ecx, [picesp+4+8]
+    add     ecx, edx
+    add     [picesp+4+4], ecx     ; src += (dx>>3) + (dy>>3) * src_stride
 
     pxor    mm3, mm3
 
-    pshufw  mm5, [picesp+20], 0    ; mm5 = dx
-    pshufw  mm6, [picesp+24], 0    ; mm6 = dy
+    and     edi, 7
+    and     eax, 7
+    movd    mm5, edi
+    movd    mm6, eax
+    pshufw  mm5, mm5, 0         ; mm5 = dx&7
+    pshufw  mm6, mm6, 0         ; mm6 = dy&7
 
     movq    mm4, [pw_8 GOT_ebx]
     movq    mm0, mm4
@@ -527,8 +541,6 @@ x264_mc_chroma_mmxext:
     pmullw  mm7, mm6            ; mm7 = dx*dy =         cD
     pmullw  mm6, mm4            ; mm6 = (8-dx)*dy =     cC
     pmullw  mm4, mm0            ; mm4 = (8-dx)*(8-dy) = cA
-
-    push    edi
 
     mov     eax, [picesp+4+4]   ; src
     mov     edi, [picesp+4+12]  ; dst

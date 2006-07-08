@@ -238,40 +238,6 @@ uint8_t *get_ref_altivec( uint8_t *src[4], int i_src_stride,
     }
 }
 
-static void mc_chroma_c( uint8_t *src, int i_src_stride,
-                         uint8_t *dst, int i_dst_stride,
-                         int mvx, int mvy,
-                         int i_width, int i_height )
-{
-    uint8_t *srcp;
-    int x, y;
-    int d8x = mvx & 0x07;
-    int d8y = mvy & 0x07;
-
-    DECLARE_ALIGNED( uint16_t, coeff[4], 16 );
-    coeff[0] = (8-d8x)*(8-d8y);
-    coeff[1] = d8x    *(8-d8y);
-    coeff[2] = (8-d8x)*d8y;
-    coeff[3] = d8x    *d8y;
-
-    src  += (mvy >> 3) * i_src_stride + (mvx >> 3);
-    srcp  = &src[i_src_stride];
-
-    /* TODO: optimize */
-    for( y = 0; y < i_height; y++ )
-    {
-        for( x = 0; x < i_width; x++ )
-        {
-            dst[x] = ( coeff[0]*src[x]  + coeff[1]*src[x+1] +
-                       coeff[2]*srcp[x] + coeff[3]*srcp[x+1] + 32 ) >> 6;
-        }
-        dst  += i_dst_stride;
-
-        src   = srcp;
-        srcp += i_src_stride;
-    }
-}
-
 #define DO_PROCESS(a) \
         src##a##v_16 = vec_u8_to_u16( src##a##v_8 ); \
         src##a##v_16 = vec_mladd( coeff##a##v, src##a##v_16, zero_u16v ); \
@@ -418,17 +384,12 @@ static void mc_chroma_altivec( uint8_t *src, int i_src_stride,
     {
         mc_chroma_altivec_8xh( src, i_src_stride, dst, i_dst_stride,
                                mvx, mvy, i_height );
-        return;
     }
-    if( i_width == 4 )
+    else
     {
         mc_chroma_altivec_4xh( src, i_src_stride, dst, i_dst_stride,
                                mvx, mvy, i_height );
-        return;
     }
-
-    mc_chroma_c( src, i_src_stride, dst, i_dst_stride,
-                 mvx, mvy, i_width, i_height );
 }
 
 void x264_mc_altivec_init( x264_mc_functions_t *pf )

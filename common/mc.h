@@ -41,6 +41,8 @@ typedef struct
                         int mvx, int mvy,
                         int i_width, int i_height );
 
+    /* mc_chroma may write up to 2 bytes of garbage to the right of dst,
+     * so it must be run from left to right. */
     void (*mc_chroma)(uint8_t *, int, uint8_t *, int,
                       int mvx, int mvy,
                       int i_width, int i_height );
