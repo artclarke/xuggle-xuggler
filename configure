@@ -83,6 +83,11 @@ case "$UNAMES" in
     SYS="NETBSD"
     LDFLAGS="$LDFLAGS -lm"
     ;;
+  OpenBSD)
+    SYS="OPENBSD"
+    CFLAGS="$CFLAGS -I/usr/X11R6/include"
+    LDFLAGS="$LDFLAGS -lm"
+    ;;
   Linux)
     SYS="LINUX"
     CFLAGS="$CFLAGS -DHAVE_MALLOC_H"

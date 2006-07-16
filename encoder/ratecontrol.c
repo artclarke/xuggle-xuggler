@@ -35,12 +35,15 @@
 #include "common/cpu.h"
 #include "ratecontrol.h"
 
-#if defined(SYS_FREEBSD) || defined(SYS_BEOS) || defined(SYS_NETBSD)
+#if defined(SYS_FREEBSD) || defined(SYS_BEOS) || defined(SYS_NETBSD) || defined(SYS_OPENBSD)
 #define exp2f(x) powf( 2, (x) )
 #endif
 #if defined(SYS_MACOSX)
 #define exp2f(x) (float)pow( 2, (x) )
 #define sqrtf sqrt
+#endif
+#if defined(SYS_OPENBSD)
+#define isfinite finite
 #endif
 #if defined(_MSC_VER)
 #define isfinite _finite
