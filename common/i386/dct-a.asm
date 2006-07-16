@@ -4,9 +4,10 @@
 ;* Copyright (C) 2003 x264 project
 ;* $Id: dct.asm,v 1.1 2004/06/03 19:27:07 fenrir Exp $
 ;*
-;* Authors: Min Chen <chenm001.163.com> (converted to nasm)
-;*          Laurent Aimar <fenrir@via.ecp.fr> (initial version)
+;* Authors: Laurent Aimar <fenrir@via.ecp.fr> (initial version)
+;*          Min Chen <chenm001.163.com> (converted to nasm)
 ;*          Christian Heine <sennindemokrit@gmx.net> (dct8/idct8 functions)
+;*          Loren Merritt <lorenm@u.washington.edu> (misc)
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -320,12 +321,6 @@ x264_add4x4_idct_mmx:
     MMX_SUMSUB_BA   %1, %2
 %endmacro
 
-cglobal x264_pixel_sub_8x8_mmx
-cglobal x264_pixel_add_8x8_mmx
-cglobal x264_transpose_8x8_mmx
-cglobal x264_ydct8_mmx
-cglobal x264_yidct8_mmx
-
 ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_pixel_sub_8x8_mmx( int16_t *diff, uint8_t *pix1, uint8_t *pix2 );
@@ -505,15 +500,15 @@ x264_yidct8_mmx:
 
     movq        mm2, [eax+disp+0*16]    ; mm2 = d0
     movq        mm0, [eax+disp+4*16]    ; mm0 = d4
-    MMX_SUMSUB_BA   mm0, mm2                ; mm0 = a0, mm2 = a2
+    MMX_SUMSUB_BA   mm0, mm2            ; mm0 = a0, mm2 = a2
 
-    MMX_SUMSUB_BA   mm6, mm0                ; mm6 = f0, mm0 = f6
-    MMX_SUMSUB_BA   mm4, mm2                ; mm4 = f2, mm2 = f4
+    MMX_SUMSUB_BADC mm6, mm0, mm4, mm2  ; mm6 = f0, mm0 = f6
+                                        ; mm4 = f2, mm2 = f4
 
-    MMX_SUMSUB_BA   mm7, mm6                ; mm7 = g0, mm6 = g7
-    MMX_SUMSUB_BA   mm5, mm4                ; mm5 = g1, mm4 = g6
-    MMX_SUMSUB_BA   mm3, mm2                ; mm3 = g2, mm2 = g5
-    MMX_SUMSUB_BA   mm1, mm0                ; mm1 = g3, mm0 = g4
+    MMX_SUMSUB_BADC mm7, mm6, mm5, mm4  ; mm7 = g0, mm6 = g7
+                                        ; mm5 = g1, mm4 = g6
+    MMX_SUMSUB_BADC mm3, mm2, mm1, mm0  ; mm3 = g2, mm2 = g5
+                                        ; mm1 = g3, mm0 = g4
 
     movq        [eax+disp+0*16], mm7
     movq        [eax+disp+1*16], mm5
@@ -606,4 +601,97 @@ x264_transpose_8x8_mmx:
     movq  [eax+ 56], mm6
 
     ret
+
+;-----------------------------------------------------------------------------
+;   void __cdecl x264_sub8x8_dct8_mmx( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
+;-----------------------------------------------------------------------------
+ALIGN 16
+cglobal x264_sub8x8_dct8_mmx
+x264_sub8x8_dct8_mmx:
+    push dword [esp+12]
+    push dword [esp+12]
+    push dword [esp+12]
+    call x264_pixel_sub_8x8_mmx
+    call x264_ydct8_mmx
+    call x264_transpose_8x8_mmx
+    add  esp, 12
+    jmp  x264_ydct8_mmx
+
+;-----------------------------------------------------------------------------
+;   void __cdecl x264_add8x8_idct8_mmx( uint8_t *dst, int16_t dct[8][8] )
+;-----------------------------------------------------------------------------
+ALIGN 16
+cglobal x264_add8x8_idct8_mmx
+x264_add8x8_idct8_mmx:
+    mov  eax, [esp+8]
+    add  word [eax], 32
+    push eax
+    call x264_yidct8_mmx
+    call x264_transpose_8x8_mmx
+    call x264_yidct8_mmx
+    add  esp, 4
+    jmp  x264_pixel_add_8x8_mmx
+
+;-----------------------------------------------------------------------------
+;   void __cdecl x264_sub8x8_dct_mmx( int16_t dct[4][4][4],
+;                                     uint8_t *pix1, uint8_t *pix2 )
+;-----------------------------------------------------------------------------
+%macro SUB_NxN_DCT 4
+ALIGN 16
+cglobal %1
+%1:
+    mov  edx, [esp+12]
+    mov  ecx, [esp+ 8]
+    mov  eax, [esp+ 4]
+    add  edx, %4
+    add  ecx, %4
+    add  eax, %3
+    push edx
+    push ecx
+    push eax
+    call %2
+    add  dword [esp+0], %3
+    add  dword [esp+4], %4*FENC_STRIDE-%4
+    add  dword [esp+8], %4*FDEC_STRIDE-%4
+    call %2
+    add  dword [esp+0], %3
+    add  dword [esp+4], %4
+    add  dword [esp+8], %4
+    call %2
+    add  esp, 12
+    jmp  %2
+%endmacro
+
+;-----------------------------------------------------------------------------
+;   void __cdecl x264_add8x8_idct_mmx( uint8_t *pix, int16_t dct[4][4][4] )
+;-----------------------------------------------------------------------------
+%macro ADD_NxN_IDCT 4
+ALIGN 16
+cglobal %1
+%1:
+    mov  ecx, [esp+8]
+    mov  eax, [esp+4]
+    add  ecx, %3
+    add  eax, %4
+    push ecx
+    push eax
+    call %2
+    add  dword [esp+0], %4*FDEC_STRIDE-%4
+    add  dword [esp+4], %3
+    call %2
+    add  dword [esp+0], %4
+    add  dword [esp+4], %3
+    call %2
+    add  esp, 8
+    jmp  %2
+%endmacro
+
+SUB_NxN_DCT  x264_sub8x8_dct_mmx,     x264_sub4x4_dct_mmx,    32, 4
+ADD_NxN_IDCT x264_add8x8_idct_mmx,    x264_add4x4_idct_mmx,   32, 4
+
+SUB_NxN_DCT  x264_sub16x16_dct_mmx,   x264_sub8x8_dct_mmx,   128, 8
+ADD_NxN_IDCT x264_add16x16_idct_mmx,  x264_add8x8_idct_mmx,  128, 8
+
+SUB_NxN_DCT  x264_sub16x16_dct8_mmx,  x264_sub8x8_dct8_mmx,  128, 8
+ADD_NxN_IDCT x264_add16x16_idct8_mmx, x264_add8x8_idct8_mmx, 128, 8
 

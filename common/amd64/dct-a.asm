@@ -4,8 +4,9 @@
 ;* Copyright (C) 2003 x264 project
 ;* $Id: dct.asm,v 1.1 2004/06/03 19:27:07 fenrir Exp $
 ;*
-;* Authors: Min Chen <chenm001.163.com> (converted to nasm)
-;*          Laurent Aimar <fenrir@via.ecp.fr> (initial version)
+;* Authors: Laurent Aimar <fenrir@via.ecp.fr> (initial version)
+;*          Min Chen <chenm001.163.com> (converted to nasm)
+;*          Loren Merritt <lorenm@u.washington.edu> (dct8)
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -464,3 +465,56 @@ x264_add8x8_idct8_sse2:
     MMX_STORE_DIFF_8P   xmm7, xmm14, xmm15, [parm1q+7*FDEC_STRIDE]
 
     ret
+
+
+;-----------------------------------------------------------------------------
+;   void __cdecl x264_sub8x8_dct_mmx( int16_t dct[4][4][4],
+;                                     uint8_t *pix1, uint8_t *pix2 )
+;-----------------------------------------------------------------------------
+%macro SUB_NxN_DCT 6
+ALIGN 16
+cglobal %1
+%1:
+    call %2
+    add  parm1q, %3
+    add  parm2q, %4-%5*FENC_STRIDE
+    add  parm3q, %4-%5*FDEC_STRIDE
+    call %2
+    add  parm1q, %3
+    add  parm2q, %4*FENC_STRIDE-%6
+    add  parm3q, %4*FDEC_STRIDE-%6
+    call %2
+    add  parm1q, %3
+    add  parm2q, %4-%5*FENC_STRIDE
+    add  parm3q, %4-%5*FDEC_STRIDE
+    jmp  %2
+%endmacro
+
+;-----------------------------------------------------------------------------
+;   void __cdecl x264_add8x8_idct_mmx( uint8_t *pix, int16_t dct[4][4][4] )
+;-----------------------------------------------------------------------------
+%macro ADD_NxN_IDCT 6
+ALIGN 16
+cglobal %1
+%1:
+    call %2
+    add  parm1q, %4-%5*FDEC_STRIDE
+    add  parm2q, %3
+    call %2
+    add  parm1q, %4*FDEC_STRIDE-%6
+    add  parm2q, %3
+    call %2
+    add  parm1q, %4-%5*FDEC_STRIDE
+    add  parm2q, %3
+    jmp  %2
+%endmacro
+
+SUB_NxN_DCT  x264_sub8x8_dct_mmx,      x264_sub4x4_dct_mmx,     32, 4, 0,  4
+ADD_NxN_IDCT x264_add8x8_idct_mmx,     x264_add4x4_idct_mmx,    32, 4, 0,  4
+
+SUB_NxN_DCT  x264_sub16x16_dct_mmx,    x264_sub8x8_dct_mmx,     32, 4, 4, 12
+ADD_NxN_IDCT x264_add16x16_idct_mmx,   x264_add8x8_idct_mmx,    32, 4, 4, 12
+
+SUB_NxN_DCT  x264_sub16x16_dct8_sse2,  x264_sub8x8_dct8_sse2,  128, 8, 0,  8
+ADD_NxN_IDCT x264_add16x16_idct8_sse2, x264_add8x8_idct8_sse2, 128, 8, 0,  8
+
