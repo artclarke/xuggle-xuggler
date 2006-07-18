@@ -80,7 +80,7 @@ void    x264_param_default( x264_param_t *param )
     param->b_cabac = 1;
     param->i_cabac_init_idc = 0;
 
-    param->rc.b_cbr = 0;
+    param->rc.i_rc_method = X264_RC_CQP;
     param->rc.i_bitrate = 0;
     param->rc.f_rate_tolerance = 1.0;
     param->rc.i_vbv_max_bitrate = 0;
@@ -494,12 +494,12 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " keyint=%d keyint_min=%d scenecut=%d",
                   p->i_keyint_max, p->i_keyint_min, p->i_scenecut_threshold );
 
-    s += sprintf( s, " rc=%s", p->rc.b_stat_read && p->rc.b_cbr ? "2pass" :
-                               p->rc.b_cbr ? p->rc.i_vbv_buffer_size ? "cbr" : "abr" :
-                               p->rc.i_rf_constant ? "crf" : "cqp" );
-    if( p->rc.b_cbr || p->rc.i_rf_constant )
+    s += sprintf( s, " rc=%s", p->rc.i_rc_method == X264_RC_ABR ?
+                               ( p->rc.b_stat_read ? "2pass" : p->rc.i_vbv_buffer_size ? "cbr" : "abr" )
+                               : p->rc.i_rc_method == X264_RC_CRF ? "crf" : "cqp" );
+    if( p->rc.i_rc_method == X264_RC_ABR || p->rc.i_rc_method == X264_RC_CRF )
     {
-        if( p->rc.i_rf_constant )
+        if( p->rc.i_rc_method == X264_RC_CRF )
             s += sprintf( s, " crf=%d", p->rc.i_rf_constant );
         else
             s += sprintf( s, " bitrate=%d ratetol=%.1f",
@@ -514,9 +514,9 @@ char *x264_param2string( x264_param_t *p, int b_res )
             s += sprintf( s, " vbv_maxrate=%d vbv_bufsize=%d",
                           p->rc.i_vbv_max_bitrate, p->rc.i_vbv_buffer_size );
     }
-    else
+    else if( p->rc.i_rc_method == X264_RC_CQP )
         s += sprintf( s, " qp=%d", p->rc.i_qp_constant );
-    if( p->rc.b_cbr || p->rc.i_qp_constant != 0 )
+    if( !(p->rc.i_rc_method == X264_RC_CQP && p->rc.i_qp_constant == 0) )
     {
         s += sprintf( s, " ip_ratio=%.2f", p->rc.f_ip_factor );
         if( p->i_bframe )

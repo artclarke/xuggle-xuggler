@@ -560,10 +560,11 @@ static int  Parse( int argc, char **argv,
                 break;
             case 'B':
                 param->rc.i_bitrate = atol( optarg );
-                param->rc.b_cbr = 1;
+                param->rc.i_rc_method = X264_RC_ABR;
                 break;
             case OPT_CRF:
                 param->rc.i_rf_constant = atol( optarg );
+                param->rc.i_rc_method = X264_RC_CRF;
                 break;
             case 'b':
                 param->i_bframe = atol( optarg );
@@ -603,6 +604,7 @@ static int  Parse( int argc, char **argv,
             }
             case 'q':
                 param->rc.i_qp_constant = atoi( optarg );
+                param->rc.i_rc_method = X264_RC_CQP;
                 break;
             case OPT_QPMIN:
                 param->rc.i_qp_min = atoi( optarg );

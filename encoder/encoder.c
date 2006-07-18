@@ -341,20 +341,25 @@ static int x264_validate_parameters( x264_t *h )
     }
 #endif
 
-    if( h->param.rc.b_cbr )
-        h->param.rc.i_rf_constant = 0;
-    if( h->param.rc.i_rf_constant > 0 )
-        h->param.rc.i_qp_constant = h->param.rc.i_rf_constant;
+    if( h->param.rc.i_rc_method < 0 || h->param.rc.i_rc_method > 2 )
+    {
+        x264_log( h, X264_LOG_ERROR, "invalid RC method\n" );
+        return -1;
+    }
     h->param.rc.i_rf_constant = x264_clip3( h->param.rc.i_rf_constant, 0, 51 );
     h->param.rc.i_qp_constant = x264_clip3( h->param.rc.i_qp_constant, 0, 51 );
-    if( !h->param.rc.b_cbr && h->param.rc.i_qp_constant == 0 )
+    if( h->param.rc.i_rc_method == X264_RC_CRF )
+        h->param.rc.i_qp_constant = h->param.rc.i_rf_constant;
+    if( (h->param.rc.i_rc_method == X264_RC_CQP || h->param.rc.i_rc_method == X264_RC_CRF)
+        && h->param.rc.i_qp_constant == 0 )
     {
         h->mb.b_lossless = 1;
-        h->param.analyse.b_transform_8x8 = 0;
         h->param.i_cqm_preset = X264_CQM_FLAT;
         h->param.psz_cqm_file = NULL;
+        h->param.rc.i_rc_method = X264_RC_CQP;
         h->param.rc.f_ip_factor = 1;
         h->param.rc.f_pb_factor = 1;
+        h->param.analyse.b_transform_8x8 = 0;
         h->param.analyse.b_psnr = 0;
         h->param.analyse.i_chroma_qp_offset = 0;
         h->param.analyse.i_trellis = 0;
@@ -448,7 +453,6 @@ static int x264_validate_parameters( x264_t *h )
     BOOLIFY( analyse.b_bidir_me );
     BOOLIFY( analyse.b_chroma_me );
     BOOLIFY( analyse.b_fast_pskip );
-    BOOLIFY( rc.b_cbr );
     BOOLIFY( rc.b_stat_write );
     BOOLIFY( rc.b_stat_read );
 #undef BOOLIFY
@@ -522,7 +526,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     /* Init x264_t */
     h->out.i_nal = 0;
     h->out.i_bitstream = X264_MAX( 1000000, h->param.i_width * h->param.i_height * 1.7
-        * ( h->param.rc.b_cbr ? pow( 0.5, h->param.rc.i_qp_min )
+        * ( h->param.rc.i_rc_method == X264_RC_ABR ? pow( 0.5, h->param.rc.i_qp_min )
           : pow( 0.5, h->param.rc.i_qp_constant ) * X264_MAX( 1, h->param.rc.f_ip_factor )));
     h->out.p_bitstream = x264_malloc( h->out.i_bitstream );
 
@@ -548,7 +552,9 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->frames.i_max_ref1 = h->sps->vui.i_num_reorder_frames;
     h->frames.i_max_dpb  = h->sps->vui.i_max_dec_frame_buffering + 1;
     h->frames.b_have_lowres = !h->param.rc.b_stat_read
-        && ( h->param.rc.b_cbr || h->param.rc.i_rf_constant || h->param.b_bframe_adaptive );
+        && ( h->param.rc.i_rc_method == X264_RC_ABR
+          || h->param.rc.i_rc_method == X264_RC_CRF
+          || h->param.b_bframe_adaptive );
 
     for( i = 0; i < X264_BFRAME_MAX + 3; i++ )
     {

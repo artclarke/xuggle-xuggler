@@ -422,7 +422,7 @@ static void x264_mb_analyse_intra_chroma( x264_t *h, x264_mb_analysis_t *a )
     int i;
 
     int i_max;
-    int predict_mode[9];
+    int predict_mode[4];
 
     uint8_t *p_dstc[2], *p_srcc[2];
 

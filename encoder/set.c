@@ -77,7 +77,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 {
     sps->i_id = i_id;
 
-    sps->b_qpprime_y_zero_transform_bypass = !param->rc.b_cbr && param->rc.i_qp_constant == 0;
+    sps->b_qpprime_y_zero_transform_bypass = param->rc.i_rc_method == X264_RC_CQP && param->rc.i_qp_constant == 0;
     if( sps->b_qpprime_y_zero_transform_bypass )
         sps->i_profile_idc  = PROFILE_HIGH444;
     else if( param->analyse.b_transform_8x8 || param->i_cqm_preset != X264_CQM_FLAT )
@@ -376,7 +376,7 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
     pps->b_weighted_pred = 0;
     pps->b_weighted_bipred = param->analyse.b_weighted_bipred ? 2 : 0;
 
-    pps->i_pic_init_qp = param->rc.b_cbr ? 26 : param->rc.i_qp_constant;
+    pps->i_pic_init_qp = param->rc.i_rc_method == X264_RC_ABR ? 26 : param->rc.i_qp_constant;
     pps->i_pic_init_qs = 26;
 
     pps->i_chroma_qp_index_offset = param->analyse.i_chroma_qp_offset;

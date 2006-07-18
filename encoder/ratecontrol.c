@@ -200,8 +200,8 @@ int x264_ratecontrol_new( x264_t *h )
     h->rc = rc = x264_malloc( h->param.i_threads * sizeof(x264_ratecontrol_t) );
     memset( rc, 0, h->param.i_threads * sizeof(x264_ratecontrol_t) );
 
-    rc->b_abr = ( h->param.rc.b_cbr || h->param.rc.i_rf_constant ) && !h->param.rc.b_stat_read;
-    rc->b_2pass = h->param.rc.b_cbr && h->param.rc.b_stat_read;
+    rc->b_abr = h->param.rc.i_rc_method != X264_RC_CQP && !h->param.rc.b_stat_read;
+    rc->b_2pass = h->param.rc.i_rc_method == X264_RC_ABR && h->param.rc.b_stat_read;
     
     /* FIXME: use integers */
     if(h->param.i_fps_num > 0 && h->param.i_fps_den > 0)
@@ -215,18 +215,20 @@ int x264_ratecontrol_new( x264_t *h )
     rc->last_non_b_pict_type = -1;
     rc->cbr_decay = 1.0;
 
-    if( h->param.rc.i_rf_constant && h->param.rc.b_stat_read )
+    if( h->param.rc.i_rc_method == X264_RC_CRF && h->param.rc.b_stat_read )
     {
         x264_log(h, X264_LOG_ERROR, "constant rate-factor is incompatible with 2pass.\n");
         return -1;
     }
-    if( h->param.rc.i_vbv_buffer_size && !h->param.rc.b_cbr && !h->param.rc.i_rf_constant )
-        x264_log(h, X264_LOG_WARNING, "VBV is incompatible with constant QP.\n");
-    if( h->param.rc.i_vbv_buffer_size && h->param.rc.b_cbr
-        && h->param.rc.i_vbv_max_bitrate == 0 )
+    if( h->param.rc.i_vbv_buffer_size )
     {
-        x264_log( h, X264_LOG_DEBUG, "VBV maxrate unspecified, assuming CBR\n" );
-        h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate;
+        if( h->param.rc.i_rc_method == X264_RC_CQP )
+            x264_log(h, X264_LOG_WARNING, "VBV is incompatible with constant QP, ignored.\n");
+        else if( h->param.rc.i_vbv_max_bitrate == 0 )
+        {
+            x264_log( h, X264_LOG_DEBUG, "VBV maxrate unspecified, assuming CBR\n" );
+            h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate;
+        }
     }
     if( h->param.rc.i_vbv_max_bitrate < h->param.rc.i_bitrate &&
         h->param.rc.i_vbv_max_bitrate > 0)
@@ -259,14 +261,14 @@ int x264_ratecontrol_new( x264_t *h )
     {
         /* FIXME shouldn't need to arbitrarily specify a QP,
          * but this is more robust than BPP measures */
-#define ABR_INIT_QP ( h->param.rc.i_rf_constant > 0 ? h->param.rc.i_rf_constant : 24 )
+#define ABR_INIT_QP ( h->param.rc.i_rc_method == X264_RC_CRF ? h->param.rc.i_rf_constant : 24 )
         rc->accum_p_norm = .01;
         rc->accum_p_qp = ABR_INIT_QP * rc->accum_p_norm;
         rc->cplxr_sum = .01;
         rc->wanted_bits_window = .01;
     }
 
-    if( h->param.rc.i_rf_constant )
+    if( h->param.rc.i_rc_method == X264_RC_CRF )
     {
         /* arbitrary rescaling to make CRF somewhat similar to QP */
         double base_cplx = h->mb.i_mb_count * (h->param.i_bframe ? 120 : 80);
@@ -342,7 +344,7 @@ int x264_ratecontrol_new( x264_t *h )
                 x264_log( h, X264_LOG_WARNING, "different keyint than 1st pass (%d vs %d)\n",
                           h->param.i_keyint_max, i );
 
-            if( strstr( opts, "qp=0" ) && h->param.rc.b_cbr )
+            if( strstr( opts, "qp=0" ) && h->param.rc.i_rc_method == X264_RC_ABR )
                 x264_log( h, X264_LOG_WARNING, "1st pass was lossless, bitrate prediction will be inaccurate\n" );
         }
 
@@ -432,7 +434,7 @@ int x264_ratecontrol_new( x264_t *h )
 
         x264_free(stats_buf);
 
-        if(h->param.rc.b_cbr)
+        if(h->param.rc.i_rc_method == X264_RC_ABR)
         {
             if(init_pass2(h) < 0) return -1;
         } /* else we're using constant quant, so no need to run the bitrate allocation */
@@ -524,7 +526,7 @@ static int parse_zones( x264_t *h )
 void x264_ratecontrol_summary( x264_t *h )
 {
     x264_ratecontrol_t *rc = h->rc;
-    if( rc->b_abr && !h->param.rc.i_rf_constant && !h->param.rc.i_vbv_max_bitrate )
+    if( rc->b_abr && h->param.rc.i_rc_method == X264_RC_ABR && !h->param.rc.i_vbv_max_bitrate )
     {
         double base_cplx = h->mb.i_mb_count * (h->param.i_bframe ? 120 : 80);
         x264_log( h, X264_LOG_INFO, "final ratefactor: %.2f\n", 
@@ -739,7 +741,7 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
 
             rc->b_abr = 0;
             rc->b_2pass = 0;
-            h->param.rc.b_cbr = 0;
+            h->param.rc.i_rc_method = X264_RC_CQP;
             h->param.rc.b_stat_read = 0;
             h->param.b_bframe_adaptive = 0;
             if( h->param.i_bframe > 1 )
@@ -1235,7 +1237,7 @@ static float rate_estimate_qscale(x264_t *h, int pict_type)
             rce.qscale = 1;
             rce.pict_type = pict_type;
 
-            if( h->param.rc.i_rf_constant )
+            if( h->param.rc.i_rc_method == X264_RC_CRF )
             {
                 q = get_qscale( h, &rce, rcc->rate_factor_constant, h->fenc->i_frame );
                 overflow = 1;

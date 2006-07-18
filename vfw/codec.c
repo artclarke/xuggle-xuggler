@@ -282,10 +282,11 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
     switch( config->i_encoding_type )
     {
         case 0: /* 1 PASS ABR */
-            param.rc.b_cbr = 1;
+            param.rc.i_rc_method = X264_RC_ABR;
             param.rc.i_bitrate = config->bitrate;
             break;
         case 1: /* 1 PASS CQ */
+            param.rc.i_rc_method = X264_RC_CQP;
             param.rc.i_qp_constant = config->i_qp;
             break;
         default:
@@ -312,8 +313,8 @@ LRESULT compress_begin(CODEC * codec, BITMAPINFO * lpbiInput, BITMAPINFO * lpbiO
                 return ICERR_ERROR;
             }
 
+            param.rc.i_rc_method = X264_RC_ABR;
             param.rc.i_bitrate = config->i_2passbitrate;
-            param.rc.b_cbr = 1;
 
             if( config->i_pass == 1 )
             {

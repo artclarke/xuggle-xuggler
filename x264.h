@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 47
+#define X264_BUILD 48
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -72,6 +72,10 @@ typedef struct x264_t x264_t;
 #define X264_CQM_FLAT                0
 #define X264_CQM_JVT                 1
 #define X264_CQM_CUSTOM              2
+
+#define X264_RC_CQP                  0
+#define X264_RC_CRF                  1
+#define X264_RC_ABR                  2
 
 static const char * const x264_direct_pred_names[] = { "none", "spatial", "temporal", "auto", 0 };
 static const char * const x264_motion_est_names[] = { "dia", "hex", "umh", "esa", 0 };
@@ -212,12 +216,13 @@ typedef struct
     /* Rate control parameters */
     struct
     {
+        int         i_rc_method;    /* X264_RC_* */
+
         int         i_qp_constant;  /* 0-51 */
         int         i_qp_min;       /* min allowed QP value */
         int         i_qp_max;       /* max allowed QP value */
         int         i_qp_step;      /* max QP step between frames */
 
-        int         b_cbr;          /* use bitrate instead of CQP */
         int         i_bitrate;
         int         i_rf_constant;  /* 1pass VBR, nominal QP */
         float       f_rate_tolerance;
