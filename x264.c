@@ -65,6 +65,7 @@ typedef struct {
     int i_seek;
     hnd_t hin;
     hnd_t hout;
+    FILE *qpfile;
 } cli_opt_t;
 
 /* input file operation function pointers */
@@ -193,6 +194,7 @@ static void Help( x264_param_t *defaults )
              "                                  where <option> is either\n"
              "                                      q=<integer> (force QP)\n"
              "                                  or  b=<float> (bitrate multiplier)\n"
+             "      --qpfile <string>       Force frametypes and QPs\n"
              "\n"
              "Analysis:\n"
              "\n"
@@ -452,6 +454,7 @@ static int  Parse( int argc, char **argv,
 #define OPT_THREAD_INPUT 320
 #define OPT_NO_DCT_DECIMATE 321
 #define OPT_SPS_ID 322
+#define OPT_QPFILE 323
 
         static struct option long_options[] =
         {
@@ -508,6 +511,7 @@ static int  Parse( int argc, char **argv,
             { "qblur",   required_argument, NULL, OPT_QBLUR },
             { "cplxblur",required_argument, NULL, OPT_CPLXBLUR },
             { "zones",   required_argument, NULL, OPT_ZONES },
+            { "qpfile",  required_argument, NULL, OPT_QPFILE },
             { "threads", required_argument, NULL, OPT_THREADS },
             { "thread-input", no_argument,  NULL, OPT_THREAD_INPUT },
             { "no-psnr", no_argument,       NULL, OPT_NOPSNR },
@@ -799,6 +803,16 @@ static int  Parse( int argc, char **argv,
             case OPT_ZONES:
                 param->rc.psz_zones = optarg;
                 break;
+            case OPT_QPFILE:
+                opt->qpfile = fopen( optarg, "r" );
+                if( !opt->qpfile )
+                {
+                    fprintf( stderr, "can't open `%s'\n", optarg );
+                    return -1;
+                }
+                param->i_scenecut_threshold = -1;
+                param->b_bframe_adaptive = 0;
+                break;
             case OPT_THREADS:
                 param->i_threads = atoi(optarg);
                 break;
@@ -1022,6 +1036,34 @@ static int  Parse( int argc, char **argv,
     return 0;
 }
 
+static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
+{
+    int num = -1, qp;
+    char type;
+    while( num < i_frame )
+    {
+        int ret = fscanf( opt->qpfile, "%d %c %d\n", &num, &type, &qp );
+        if( num < i_frame )
+            continue;
+        pic->i_qpplus1 = qp+1;
+        if     ( type == 'I' ) pic->i_type = X264_TYPE_IDR;
+        else if( type == 'i' ) pic->i_type = X264_TYPE_I;
+        else if( type == 'P' ) pic->i_type = X264_TYPE_P;
+        else if( type == 'B' ) pic->i_type = X264_TYPE_BREF;
+        else if( type == 'b' ) pic->i_type = X264_TYPE_B;
+        else ret = 0;
+        if( ret != 3 || qp < 0 || qp > 51 || num > i_frame )
+        {
+            fprintf( stderr, "can't parse qpfile for frame %d\n", i_frame );
+            fclose( opt->qpfile );
+            opt->qpfile = NULL;
+            pic->i_type = X264_TYPE_AUTO;
+            pic->i_qpplus1 = 0;
+            break;
+        }
+    }
+}
+
 /*****************************************************************************
  * Decode:
  *****************************************************************************/
@@ -1033,12 +1075,6 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
     int i_nal, i;
     int i_file = 0;
 
-    /* Do not force any parameters */
-    if( pic )
-    {
-        pic->i_type = X264_TYPE_AUTO;
-        pic->i_qpplus1 = 0;
-    }
     if( x264_encoder_encode( h, &nal, &i_nal, pic, &pic_out ) < 0 )
     {
         fprintf( stderr, "x264_encoder_encode failed\n" );
@@ -1115,6 +1151,15 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
             break;
 
         pic.i_pts = (int64_t)i_frame * param->i_fps_den;
+
+        if( opt->qpfile )
+            parse_qpfile( opt, &pic, i_frame + opt->i_seek );
+        else
+        {
+            /* Do not force any parameters */
+            pic.i_type = X264_TYPE_AUTO;
+            pic.i_qpplus1 = 0;
+        }
 
         i_file += Encode_frame( h, opt->hout, &pic );
 
