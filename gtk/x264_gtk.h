@@ -92,6 +92,7 @@ struct X264_Gtk_
   guint chroma_me             : 1;
   guint mixed_refs            : 1;
   guint fast_pskip            : 1;
+  guint dct_decimate          : 1;
   /* more - misc */
   guint cabac                 : 1;
   /* more - misc - df */

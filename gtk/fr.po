@@ -8,15 +8,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-06-12 01:09-0700\n"
-"PO-Revision-Date: 2006-03-30 00:37+0200\n"
+"POT-Creation-Date: 2006-06-22 16:00+0200\n"
+"PO-Revision-Date: 2006-06-14 13:27+0200\n"
 "Last-Translator: Kurosu <kurosu@free.fr>\n"
 "Language-Team: N/A\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=iso-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: test.c:47
+#: test.c:48
 #, c-format
 msgid ""
 "\n"
@@ -25,7 +25,7 @@ msgstr ""
 "\n"
 "Diffère des valeurs par défaut\n"
 
-#: test.c:45
+#: test.c:46
 #, c-format
 msgid ""
 "\n"
@@ -44,7 +44,7 @@ msgstr "%.2fKo/s (%.2f fps)"
 msgid "%dKB"
 msgstr "%dKo"
 
-#: x264_gtk_encode_status_window.c:73
+#: x264_gtk_encode_status_window.c:74
 msgid "0KB"
 msgstr "0Ko"
 
@@ -207,7 +207,7 @@ msgstr "EM bidirectionnel"
 msgid "Bidirectional ME - description"
 msgstr "Estimation de mouvement bidirectionnel"
 
-#: x264_gtk_rc.c:30 x264_gtk.c:236
+#: x264_gtk_rc.c:30 x264_gtk.c:238
 msgid "Bitrate"
 msgstr "Débit"
 
@@ -220,11 +220,11 @@ msgstr "Variabilié du débit (%)"
 msgid "Bitrate variability - description"
 msgstr "Variabilié du débit (%)"
 
-#: x264_gtk_more.c:261
+#: x264_gtk_more.c:269
 msgid "CABAC"
 msgstr "CABAC"
 
-#: x264_gtk_more.c:264
+#: x264_gtk_more.c:272
 msgid "CABAC - description"
 msgstr ""
 
@@ -262,20 +262,29 @@ msgstr "Matrice personnalisée"
 msgid "Custom matrix - description"
 msgstr "Matrice personnalisée"
 
-#: x264_gtk_more.c:39 x264_gtk_more.c:318
+#: x264_gtk_more.c:197
+msgid "DCT decimate"
+msgstr "Décimation DCT"
+
+#: x264_gtk_more.c:199
+#, fuzzy
+msgid "DCT decimate - description"
+msgstr "Décimation DCT"
+
+#: x264_gtk_more.c:39 x264_gtk_more.c:326
 msgid "Deblocking Filter"
 msgstr "Filtre de lissage"
 
-#: x264_gtk_more.c:320
+#: x264_gtk_more.c:328
 #, fuzzy
 msgid "Deblocking Filter - description"
 msgstr "Filtre de lissage"
 
-#: x264_gtk_more.c:376 x264_gtk_more.c:410
+#: x264_gtk_more.c:384 x264_gtk_more.c:418
 msgid "Debug"
 msgstr "Déboguage"
 
-#: x264_gtk.c:215
+#: x264_gtk.c:217
 msgid "Default"
 msgstr "Par défaut"
 
@@ -292,7 +301,7 @@ msgstr "Mode direct"
 msgid "Direct mode - description"
 msgstr "Mode direct"
 
-#: x264_gtk_more.c:289
+#: x264_gtk_more.c:297
 msgid "Disabled"
 msgstr "Désactivé"
 
@@ -300,11 +309,11 @@ msgstr "Désactivé"
 msgid "Do you want to overwrite file\n"
 msgstr ""
 
-#: x264_gtk_more.c:293
+#: x264_gtk_more.c:301
 msgid "Enabled (mode decision)"
 msgstr "Activé (décision de mode)"
 
-#: x264_gtk_more.c:291
+#: x264_gtk_more.c:299
 msgid "Enabled (once)"
 msgstr "Activé"
 
@@ -321,7 +330,7 @@ msgstr "Type de codage"
 msgid "Encoding type - description"
 msgstr "Type de codage"
 
-#: x264_gtk_more.c:404
+#: x264_gtk_more.c:412
 msgid "Error"
 msgstr "Erreurs"
 
@@ -378,7 +387,7 @@ msgstr "Matrice plate"
 msgid "Flat matrix - description"
 msgstr "Matrice plate"
 
-#: x264_gtk_more.c:418
+#: x264_gtk_more.c:426
 msgid "FourCC - description"
 msgstr ""
 
@@ -402,7 +411,7 @@ msgstr "Hauteur:"
 msgid "Hexagonal Search"
 msgstr "Recherche en hexagone"
 
-#: x264_gtk_more.c:408
+#: x264_gtk_more.c:416
 msgid "Info"
 msgstr "Information"
 
@@ -440,24 +449,24 @@ msgstr "Bonus image clé (%)"
 msgid "Keyframe boost - description"
 msgstr "Bonus image clé (%)"
 
-#: x264_gtk.c:174
+#: x264_gtk.c:176
 #, c-format
 msgid "Loading configuration from %s\n"
 msgstr "Chargement de la configuration à partir de %s\n"
 
-#: x264_gtk.c:166
+#: x264_gtk.c:168
 msgid "Loading default configuration\n"
 msgstr "Chargement de la configuration par défaut\n"
 
-#: x264_gtk_more.c:395
+#: x264_gtk_more.c:403
 msgid "Log level"
 msgstr "Niveau de trace"
 
-#: x264_gtk_more.c:389
+#: x264_gtk_more.c:397
 msgid "Log level - description"
 msgstr ""
 
-#: x264_gtk.c:250
+#: x264_gtk.c:252
 msgid "MB & Frames"
 msgstr "MB et image"
 
@@ -543,7 +552,7 @@ msgstr "QP min"
 msgid "Min QP - description"
 msgstr ""
 
-#: x264_gtk_more.c:198
+#: x264_gtk_more.c:206
 msgid "Misc. Options"
 msgstr "Options diverses"
 
@@ -555,7 +564,7 @@ msgstr "Réf. mélangées"
 msgid "Mixed Refs - description"
 msgstr ""
 
-#: x264_gtk.c:257
+#: x264_gtk.c:259
 msgid "More..."
 msgstr "Plus..."
 
@@ -575,16 +584,16 @@ msgstr "Plusieurs - première (rapide)"
 msgid "Multipass - Nth Pass"
 msgstr "Plusieurs - passe N"
 
-#: x264_gtk_more.c:307
+#: x264_gtk_more.c:315
 msgid "Noise reduction"
 msgstr "Débruitage"
 
-#: x264_gtk_more.c:301
+#: x264_gtk_more.c:309
 #, fuzzy
 msgid "Noise reduction - description"
 msgstr "Débruitage"
 
-#: x264_gtk_mb.c:192 x264_gtk_more.c:402
+#: x264_gtk_mb.c:192 x264_gtk_more.c:410
 msgid "None"
 msgstr "Aucune"
 
@@ -613,7 +622,7 @@ msgstr "Decision de la partition"
 msgid "Partitions"
 msgstr "Partitions"
 
-#: x264_gtk_encode_status_window.c:117
+#: x264_gtk_encode_status_window.c:122
 msgid "Progress:"
 msgstr "Progression:"
 
@@ -621,7 +630,7 @@ msgstr "Progression:"
 msgid "Quantization limits"
 msgstr "Limite de quantification"
 
-#: x264_gtk.c:264
+#: x264_gtk.c:266
 msgid "Quantization matrices"
 msgstr "Matrices"
 
@@ -641,15 +650,15 @@ msgstr "Portée"
 msgid "Range - description"
 msgstr ""
 
-#: x264_gtk.c:243
+#: x264_gtk.c:245
 msgid "Rate Control"
 msgstr "Contrôle de débit"
 
-#: x264_gtk_more.c:218
+#: x264_gtk_more.c:226
 msgid "Sample Aspect Ratio"
 msgstr "Ratio d'aspect de pixel"
 
-#: x264_gtk_more.c:212
+#: x264_gtk_more.c:220
 #, fuzzy
 msgid "Sample Aspect Ratio - description"
 msgstr "Ratio d'aspect de pixel"
@@ -696,11 +705,11 @@ msgstr "Fichier de statistiques"
 msgid "Statistic file name"
 msgstr "Fichier de statistiques"
 
-#: x264_gtk_more.c:338
+#: x264_gtk_more.c:346
 msgid "Strength"
 msgstr "Force"
 
-#: x264_gtk_more.c:332
+#: x264_gtk_more.c:340
 msgid "Strength - description"
 msgstr ""
 
@@ -712,35 +721,36 @@ msgstr "Débit visé"
 msgid "Temporal"
 msgstr "Temporelle"
 
-#: x264_gtk_more.c:247
+#: x264_gtk_more.c:255
 msgid "Threads"
 msgstr "Tâches"
 
-#: x264_gtk_more.c:241
+#: x264_gtk_more.c:249
 msgid "Threads - description"
 msgstr ""
 
-#: x264_gtk_more.c:47 x264_gtk_more.c:362
+#: x264_gtk_more.c:47 x264_gtk_more.c:370
 msgid "Threshold"
 msgstr "Seuil"
 
-#: x264_gtk_more.c:356
+#: x264_gtk_more.c:364
 msgid "Threshold - description"
 msgstr ""
 
-#: x264_gtk_encode_status_window.c:89
+#: x264_gtk_encode_status_window.c:92
 msgid "Time elapsed:"
 msgstr "Temps écoulé:"
 
-#: x264_gtk_encode_status_window.c:99
-msgid "Total time (estimated):"
+#: x264_gtk_encode_status_window.c:103
+#, fuzzy
+msgid "Time remaining (estimated):"
 msgstr "Temps total (estimé):"
 
-#: x264_gtk_more.c:282
+#: x264_gtk_more.c:290
 msgid "Trellis"
 msgstr "Treillis"
 
-#: x264_gtk_more.c:276
+#: x264_gtk_more.c:284
 msgid "Trellis - description"
 msgstr ""
 
@@ -780,15 +790,15 @@ msgstr "Skip pour P rapide"
 msgid "Video buffer verifier"
 msgstr ""
 
-#: x264_gtk_encode_status_window.c:67
+#: x264_gtk_encode_status_window.c:68
 msgid "Video data:"
 msgstr "Données vidéo:"
 
-#: x264_gtk_encode_status_window.c:78
+#: x264_gtk_encode_status_window.c:80
 msgid "Video rendering rate:"
 msgstr "Vitesse de codage vidéo:"
 
-#: x264_gtk_more.c:406
+#: x264_gtk_more.c:414
 msgid "Warning"
 msgstr "Avertissements"
 
@@ -805,12 +815,12 @@ msgstr "Bi-Prédiction à poids normalisés"
 msgid "Width:"
 msgstr "Largeur:"
 
-#: x264_gtk.c:340
+#: x264_gtk.c:342
 #, c-format
 msgid "Writing configuration to %s\n"
 msgstr "Ecriture de la configuration dans %s\n"
 
-#: x264_gtk.c:210
+#: x264_gtk.c:212
 msgid "X264 Configuration"
 msgstr "Configuration de X264"
 
@@ -863,11 +873,11 @@ msgstr "fichier de sortie : %s\n"
 msgid "need to increase buffer size (size=%d)\n"
 msgstr "doit accroître la taille de mémoire tampon (taille=%d)\n"
 
-#: x264_gtk.c:793
+#: x264_gtk.c:801
 msgid "problem...\n"
 msgstr "Problème...\n"
 
-#: x264_gtk.c:165
+#: x264_gtk.c:167
 #, c-format
 msgid "x264.cfg: %s\n"
 msgstr ""

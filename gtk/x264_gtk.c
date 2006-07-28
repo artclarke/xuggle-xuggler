@@ -121,6 +121,8 @@ x264_param_t *x264_gtk_param_get (X264_Gtk *x264_gtk)
   param->i_frame_reference = x264_gtk->max_ref_frames;
   param->analyse.b_mixed_references = x264_gtk->mixed_refs;
   param->analyse.b_fast_pskip = x264_gtk->fast_pskip;
+  param->analyse.b_dct_decimate = x264_gtk->dct_decimate;
+  /* rdo : RD based mode decision for B-frames. Requires subme 6 */
 
   param->vui.i_sar_width = x264_gtk->sample_ar_x;
   param->vui.i_sar_height = x264_gtk->sample_ar_y;
@@ -383,9 +385,9 @@ _default_load (GtkButton *button __UNUSED__, gpointer user_data)
   gtk_widget_set_sensitive (config->bitrate.statsfile_name, FALSE);
 
   /* rate control */
-  g_snprintf (buf, 64, "%d", round((param.rc.f_ip_factor - 1) * 100));
+  g_snprintf (buf, 64, "%d", round((param.rc.f_ip_factor - 1.0) * 100));
   gtk_entry_set_text (GTK_ENTRY (config->rate_control.bitrate.keyframe_boost), buf);
-  g_snprintf (buf, 64, "%d", round((param.rc.f_pb_factor - 1) * 100));
+  g_snprintf (buf, 64, "%d", round((param.rc.f_pb_factor - 1.0) * 100));
   gtk_entry_set_text (GTK_ENTRY (config->rate_control.bitrate.bframes_reduction), buf);
   g_snprintf (buf, 64, "%d", (gint)(param.rc.f_qcompress * 100));
   gtk_entry_set_text (GTK_ENTRY (config->rate_control.bitrate.bitrate_variability), buf);
@@ -441,6 +443,7 @@ _default_load (GtkButton *button __UNUSED__, gpointer user_data)
   g_snprintf (buf, 64, "%d", param.i_frame_reference);
   gtk_entry_set_text (GTK_ENTRY (config->more.motion_estimation.max_ref_frames), buf);
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.motion_estimation.fast_pskip), param.analyse.b_fast_pskip);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.motion_estimation.dct_decimate), param.analyse.b_dct_decimate);
 
   g_snprintf (buf, 64, "%d", param.vui.i_sar_width);
   gtk_entry_set_text (GTK_ENTRY (config->more.misc.sample_ar_x), buf);
@@ -515,8 +518,8 @@ _default_set (X264_Gtk *x264_gtk)
   memcpy (x264_gtk->statsfile_name, text, strlen (text) + 1);
 
   /* rate control */
-  x264_gtk->keyframe_boost = round((param.rc.f_ip_factor - 1) * 100);
-  x264_gtk->bframes_reduction = round((param.rc.f_pb_factor - 1) * 100);
+  x264_gtk->keyframe_boost = round((param.rc.f_ip_factor - 1.0) * 100);
+  x264_gtk->bframes_reduction = round((param.rc.f_pb_factor - 1.0) * 100);
   x264_gtk->bitrate_variability = round(param.rc.f_qcompress * 100);
 
   x264_gtk->min_qp = param.rc.i_qp_min;
@@ -566,6 +569,7 @@ _default_set (X264_Gtk *x264_gtk)
   x264_gtk->max_ref_frames = param.i_frame_reference;
   x264_gtk->mixed_refs = param.analyse.b_mixed_references;
   x264_gtk->fast_pskip = param.analyse.b_fast_pskip;
+  x264_gtk->dct_decimate = param.analyse.b_dct_decimate;
 
   x264_gtk->sample_ar_x = param.vui.i_sar_width;
   x264_gtk->sample_ar_y = param.vui.i_sar_height;
@@ -718,6 +722,10 @@ _current_set (X264_Gui_Config *config, X264_Gtk *x264_gtk)
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.motion_estimation.fast_pskip), TRUE);
   else
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.motion_estimation.fast_pskip), FALSE);
+  if (x264_gtk->dct_decimate)
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.motion_estimation.dct_decimate), TRUE);
+  else
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->more.motion_estimation.dct_decimate), FALSE);
 
   g_snprintf (buf, 5, "%d", x264_gtk->sample_ar_x);
   gtk_entry_set_text (GTK_ENTRY (config->more.misc.sample_ar_x), buf);
@@ -983,6 +991,10 @@ _current_get (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk)
     x264_gtk->fast_pskip = 1;
   else
     x264_gtk->fast_pskip = 0;
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->more.motion_estimation.dct_decimate)))
+    x264_gtk->dct_decimate = 1;
+  else
+    x264_gtk->dct_decimate = 0;
 
 
   text = gtk_entry_get_text (GTK_ENTRY (gconfig->more.misc.sample_ar_x));

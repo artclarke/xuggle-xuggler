@@ -10,6 +10,7 @@ echo "  --help                   print this message"
 echo "  --enable-avis-input      enables avisynth input (win32 only)"
 echo "  --enable-mp4-output      enables mp4 output (using gpac)"
 echo "  --enable-vfw             compiles the VfW frontend"
+echo "  --enable-gtk             build GTK+ interface"
 echo "  --enable-pthread         enables multithreaded encoding"
 echo "  --enable-debug           adds -g, doesn't strip"
 echo "  --enable-gprof           adds -pg, doesn't strip"
@@ -51,6 +52,7 @@ debug="no"
 gprof="no"
 pic="no"
 vfw="no"
+gtk="no"
 vis="no"
 shared="no"
 
@@ -255,6 +257,12 @@ for opt do
         --disable-vfw)
             vfw="no"
             ;;
+        --enable-gtk)
+            gtk="yes"
+            ;;
+        --disable-gtk)
+            gtk="no"
+            ;;
         --enable-shared)
             shared="yes"
             if [ $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" ] ; then
@@ -355,6 +363,7 @@ LDFLAGS=$LDFLAGS
 AS=$AS
 ASFLAGS=$ASFLAGS
 VFW=$vfw
+GTK=$gtk
 EXE=$EXE
 VIS=$vis
 HAVE_GETOPT_LONG=$HAVE_GETOPT_LONG
@@ -382,6 +391,14 @@ if [ "$shared" = "yes" ]; then
     API=`grep '#define X264_BUILD' < x264.h | cut -f 3 -d ' '`
     echo "SONAME=libx264.so.$API" >> config.mak
     echo 'default: $(SONAME)' >> config.mak
+    if [ "$gtk" = "yes" ]; then
+        echo "SONAMEGTK=libx264gtk.so.$API" >> gtk/config.mak
+    fi
+fi
+
+if [ "$gtk" = "yes" ]; then
+    echo 'default: libx264gtk.a' >> config.mak
+    echo 'install: install-gtk' >> config.mak
 fi
 
 ./version.sh
@@ -416,6 +433,7 @@ echo "avis input: $avis_input"
 echo "mp4 output: $mp4_output"
 echo "pthread:    $pthread"
 echo "vfw:        $vfw"
+echo "gtk:        $gtk"
 echo "debug:      $debug"
 echo "gprof:      $gprof"
 echo "PIC:        $pic"

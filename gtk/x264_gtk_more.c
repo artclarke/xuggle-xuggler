@@ -194,6 +194,14 @@ _more_page (X264_Gui_Config *config)
                              0, 1, 4, 5);
   gtk_widget_show (config->more.motion_estimation.fast_pskip);
 
+  config->more.motion_estimation.dct_decimate = gtk_check_button_new_with_label (_("DCT decimate"));
+  gtk_tooltips_set_tip (tooltips, config->more.motion_estimation.dct_decimate,
+                        _("DCT decimate - description"),
+                        "");
+  gtk_table_attach_defaults (GTK_TABLE (table), config->more.motion_estimation.dct_decimate,
+                             1, 2, 4, 5);
+  gtk_widget_show (config->more.motion_estimation.dct_decimate);
+
   /* Misc. Options */
   frame = gtk_frame_new (_("Misc. Options"));
   gtk_box_pack_start (GTK_BOX (vbox), frame, FALSE, TRUE, 6);

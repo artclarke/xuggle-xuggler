@@ -5,22 +5,19 @@ include config.mak
 
 ifeq ($(SYS),MINGW)
 datadir=.
-TEST_OBJECTS+=x264gtk.o
-LDFLAGS+=-mwindows
-XGETTEXT=xgettext.exe
 X264GTK_O = x264gtk.o
+TEST_OBJECTS+=$(X264GTK_O)
+LDFLAGS+=-mwindows
 ICONV_LIB = -liconv
-TEST_BIN = test.exe
-ENCODE_BIN = x264_gtk_encode.exe
 else
 datadir=${prefix}/share
-XGETTEXT=xgettext
 X264GTK_O =
 ICONV_LIB =
-TEST_BIN = test
-ENCODE_BIN = x264_gtk_encode
 endif
 
+XGETTEXT=xgettext$(EXE)
+TEST_BIN = test$(EXE)
+ENCODE_BIN = x264_gtk_encode$(EXE)
 
 # PO / MO files
 PO_FILES = $(shell ls *.po)
@@ -47,14 +44,16 @@ x264_gtk_encode.o
 OBJECTS_ALL = $(OBJECTS_LIB) $(OBJECTS_TEST) $(OBJECTS_ENCODE)
 SOURCES_ALL = $(OBJECTS_ALL:%.o=%.c)
 
+X264GTK_PC = x264gtk.pc
+
 EXTERNAL_DEPS= ../muxers.o ../matroska.o ../libx264.a
 
 
-all: $(ENCODE_BIN) $(TEST_BIN) $(MO_FILES)
+all: $(ENCODE_BIN) $(TEST_BIN) $(MO_FILES) $(X264GTK_PC)
 
 # Already provides iconv/intl
 CPPFLAGS = -g `pkg-config --cflags gtk+-2.0 gthread-2.0` -I.. -DX264_DATA_DIR=\"${datadir}\"
-LDFLAGS += `pkg-config --libs gtk+-2.0 gthread-2.0 x264`
+LDFLAGS += `pkg-config --libs gtk+-2.0 gthread-2.0` ../libx264.a
 
 
 # gettext rules
@@ -92,6 +91,10 @@ libx264gtk.a: $(OBJECTS_LIB)
 	@ar rc libx264gtk.a $(OBJECTS_LIB)
 	@ranlib libx264gtk.a
 
+$(SONAMEGTK): $(OBJECTS_LIB)
+	@echo "  L: $(@F)"
+	@$(CC) -shared -o $@ $(OBJECTS_LIB) -Wl,-soname,$(SONAMEGTK) $(LDFLAGS)
+
 # Program : test
 $(TEST_BIN): $(OBJECTS_LIB) $(OBJECTS_TEST)
 	@echo "  B: $(@F)"
@@ -99,13 +102,33 @@ $(TEST_BIN): $(OBJECTS_LIB) $(OBJECTS_TEST)
 	@$(CC) -o $(TEST_BIN) $(OBJECTS_LIB) $(OBJECTS_TEST) $(LDFLAGS) $(ICONV_LIB) -lintl
 
 # Program : x264_gtk_encode
-$(ENCODE_BIN): $(OBJECTS_LIB) x264_icon.h libx264gtk.a $(OBJECTS_ENCODE) $(EXTERNAL_DEPS) $(X264GTK_O)
+$(ENCODE_BIN): x264_icon.h libx264gtk.a $(SONAMEGTK) $(OBJECTS_ENCODE) $(EXTERNAL_DEPS) $(X264GTK_O)
 	@echo "  B: $(@F)"
 	@$(CC) -o $(ENCODE_BIN) $(OBJECTS_LIB) $(OBJECTS_ENCODE) $(EXTERNAL_DEPS) $(LDFLAGS) $(X264GTK_O)
+
+# x264gtk.pc file
+$(X264GTK_PC):
+	@echo "  S: $(X264GTK_PC)"
+	@rm -f $(X264GTK_PC)
+	@echo "prefix=$(DESTDIR)${prefix}" > $(X264GTK_PC)
+	@echo "exec_prefix=$(DESTDIR)${exec_prefix}" >> $(X264GTK_PC)
+	@echo "libdir=$(DESTDIR)${libdir}" >> $(X264GTK_PC)
+	@echo "includedir=$(DESTDIR)${includedir}" >> $(X264GTK_PC)
+	@echo "" >> $(X264GTK_PC)
+	@echo "Name: Gtk+ interface for X264" >> $(X264GTK_PC)
+	@echo "Description: Gtk+ interface to configure X264" >> $(X264GTK_PC)
+	@echo "Requires: x264" >> $(X264GTK_PC)
+	@echo "Version: 0.1" >> $(X264GTK_PC)
+	@echo "Libs: -L$(DESTDIR)$(libdir) -lx264gtk" >> $(X264GTK_PC)
+	@echo "Cflags: -I$(DESTDIR)$(includedir)" >> $(X264GTK_PC)
 
 # Clean rule
 clean:
 	@rm -f *.o *.mo x264_gtk.pot $(TEST_BIN) $(ENCODE_BIN) libx264gtk.a x264_icon.h x264gtk.o
+
+# Distclean rule
+distclean:
+	@rm -f config.mak $(X264GTK_PC)
 
 # Install rule
 install: x264_gtk_encode
@@ -115,6 +138,9 @@ install: x264_gtk_encode
 	@install -m 644 x264_gtk_enum.h "$(DESTDIR)$(includedir)"
 	@echo "  I: $(DESTDIR)$(libdir)/libx264gtk.a"
 	@install -m 644 libx264gtk.a "$(DESTDIR)$(libdir)"
+	@echo "  I: $(DESTDIR)$(libdir)/libx264gtk.so"
+	@$(if $(SONAMEGTK), ln -sf $(SONAMEGTK) $(DESTDIR)$(libdir)/libx264gtk.so)
+	@$(if $(SONAMEGTK), install -m 755 $(SONAMEGTK) $(DESTDIR)$(libdir))
 	@echo "  I: $(DESTDIR)$(bindir)/x264_gtk_encode"
 	@install x264_gtk_encode "$(DESTDIR)$(bindir)"
 	@echo "  D: ${prefix}/share/x264"
@@ -127,6 +153,8 @@ install: x264_gtk_encode
 	  echo "  I: $(DESTDIR)${prefix}/share/locale/$$L/LC_MESSAGES/x264_gtk.mo"; \
 	  install -m 644 $$L.mo "$(DESTDIR)${prefix}/share/locale/$$L/LC_MESSAGES/x264_gtk.mo"; \
 	done
+	@echo "  I: ${libdir}/pkgconfig/$(X264GTK_PC)"
+	@install -m 644 $(X264GTK_PC) "$(DESTDIR)${libdir}/pkgconfig"
 
 # Uninstall rule
 uninstall:
@@ -136,6 +164,9 @@ uninstall:
 	@rm -f "$(DESTDIR)$(includedir)/x264_gtk_enum.h"
 	@echo "  U: $(DESTDIR)$(libdir)/libx264gtk.a"
 	@rm -f "$(DESTDIR)$(libdir)/libx264gtk.a"
+	@echo "  U: $(DESTDIR)$(libdir)/libx264gtk.so"
+	@$(if $(SONAMEGTK), rm -f "$(DESTDIR)$(libdir)/$(SONAMEGTK)")
+	@rm -f "$(DESTDIR)$(libdir)/libx264gtk.so"
 	@echo "  U: $(DESTDIR)$(bindir)/x264_gtk_encode"
 	@rm -f "$(DESTDIR)$(bindir)/x264_gtk_encode"
 	@echo "  U: $(DESTDIR)${prefix}/share/x264"
@@ -144,6 +175,8 @@ uninstall:
 	  echo "  U: $(DESTDIR)${prefix}/share/locale/$$L/LC_MESSAGES/x264_gtk.mo"; \
 	  rm -f "$(DESTDIR)${prefix}/share/locale/$$L/LC_MESSAGES/x264_gtk.mo"; \
 	done
+	@echo "  U: $(DESTDIR)${libdir}/pkgconfig/$(X264GTK_PC)"
+	@rm -f "$(DESTDIR)${libdir}/pkgconfig/$(X264GTK_PC)"
 
 
 x264_gtk.o: x264_gtk.h x264gtk.rc x264.ico x264_gtk_bitrate.h x264_gtk_bitrate.o x264_gtk_rc.h x264_gtk_rc.o x264_gtk_mb.h x264_gtk_mb.o x264_gtk_more.h x264_gtk_more.o  x264_gtk_cqm.h x264_gtk_cqm.o x264_gtk_i18n.h

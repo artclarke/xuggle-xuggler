@@ -101,6 +101,7 @@ struct More_
     GtkWidget *max_ref_frames;
     GtkWidget *mixed_refs;
     GtkWidget *fast_pskip;
+    GtkWidget *dct_decimate;
   }motion_estimation;
 
   /* Misc. Options */
