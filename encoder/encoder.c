@@ -1818,6 +1818,7 @@ void    x264_encoder_close  ( x264_t *h )
     if( h->param.rc.psz_rc_eq )
         free( h->param.rc.psz_rc_eq );
 
+    x264_cqm_delete( h );
     x264_macroblock_cache_end( h );
     x264_free( h->out.p_bitstream );
     for( i = 1; i < h->param.i_threads; i++ )

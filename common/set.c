@@ -72,7 +72,27 @@ void x264_cqm_init( x264_t *h )
     int def_quant8[6][64];
     int def_dequant4[6][16];
     int def_dequant8[6][64];
-    int q, i, i_list;
+    int q, i, j, i_list;
+
+    for( i = 0; i < 6; i++ )
+    {
+        int size = i<4 ? 16 : 64;
+        for( j = (i<4 ? 0 : 4); j < i; j++ )
+            if( !memcmp( h->pps->scaling_list[i], h->pps->scaling_list[j], size*sizeof(uint8_t) ) )
+                break;
+        if( j < i )
+        {
+            h->  quant4_mf[i] = h->  quant4_mf[j];
+            h->dequant4_mf[i] = h->dequant4_mf[j];
+            h->unquant4_mf[i] = h->unquant4_mf[j];
+        }
+        else
+        {
+            h->  quant4_mf[i] = x264_malloc( 6*size*sizeof(int) );
+            h->dequant4_mf[i] = x264_malloc( 6*size*sizeof(int) );
+            h->unquant4_mf[i] = x264_malloc(52*size*sizeof(int) );
+        }
+    }
 
     for( q = 0; q < 6; q++ )
     {
@@ -113,6 +133,23 @@ void x264_cqm_init( x264_t *h )
         for( i_list = 0; i_list < 2; i_list++ )
             for( i = 0; i < 64; i++ )
                 h->unquant8_mf[i_list][q][i] = (1 << (q/6 + 16 + 8)) / h->quant8_mf[i_list][q%6][0][i];
+    }
+}
+
+void x264_cqm_delete( x264_t *h )
+{
+    int i, j;
+    for( i = 0; i < 6; i++ )
+    {
+        for( j = 0; j < i; j++ )
+            if( h->quant4_mf[i] == h->quant4_mf[j] )
+                break;
+        if( j == i )
+        {
+            x264_free( h->  quant4_mf[i] );
+            x264_free( h->dequant4_mf[i] );
+            x264_free( h->unquant4_mf[i] );
+        }
     }
 }
 
