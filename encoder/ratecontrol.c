@@ -1038,6 +1038,8 @@ static double predict_size( predictor_t *p, double q, double var )
 
 static void update_predictor( predictor_t *p, double q, double var, double bits )
 {
+    if( var < 10 )
+        return;
     p->count *= p->decay;
     p->coeff *= p->decay;
     p->count ++;
