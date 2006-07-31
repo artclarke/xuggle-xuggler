@@ -136,6 +136,339 @@ void    x264_param_default( x264_param_t *param )
     param->b_aud = 0;
 }
 
+static int parse_enum( const char *arg, const char * const *names, int *dst )
+{
+    int i;
+    for( i = 0; names[i]; i++ )
+        if( !strcmp( arg, names[i] ) )
+        {
+            *dst = i;
+            return 0;
+        }
+    return -1;
+}
+
+static int parse_cqm( const char *str, uint8_t *cqm, int length )
+{
+    int i = 0;
+    do {
+        int coef;
+        if( !sscanf( str, "%d", &coef ) || coef < 1 || coef > 255 )
+            return -1;
+        cqm[i++] = coef;
+    } while( i < length && (str = strchr( str, ',' )) && str++ );
+    return (i == length) ? 0 : -1;
+}
+
+static int atobool( const char *str )
+{
+    if( !strcmp(str, "1") || 
+        !strcmp(str, "true") || 
+        !strcmp(str, "yes") )
+        return 1;
+    if( !strcmp(str, "0") || 
+        !strcmp(str, "false") || 
+        !strcmp(str, "no") )
+        return 0;
+    return -1;
+}
+
+#define atobool(str) ( (i = atobool(str)) < 0 ? (b_error = 1) : i )
+
+int x264_param_parse( x264_param_t *p, const char *name, const char *value )
+{
+    int b_error = 0;
+    int i;
+
+    if( !name )
+        return X264_PARAM_BAD_NAME;
+    if( !value )
+        return X264_PARAM_BAD_VALUE;
+
+    if( value[0] == '=' )
+        value++;
+
+    if( (!strncmp( name, "no-", 3 ) && (i = 3)) ||
+        (!strncmp( name, "no", 2 ) && (i = 2)) )
+    {
+        name += i;
+        value = atobool(value) ? "false" : "true";
+    }
+
+#define OPT(STR) else if( !strcmp( name, STR ) )
+    if(0);
+    OPT("asm")
+        p->cpu = atobool(value) ? x264_cpu_detect() : 0;
+    OPT("threads")
+        p->i_threads = atoi(value);
+    OPT("level")
+    {
+        if( atof(value) < 6 )
+            p->i_level_idc = (int)(10*atof(value)+.5);
+        else
+            p->i_level_idc = atoi(value);
+    }
+    OPT("sar")
+    {
+        b_error = ( 2 != sscanf( value, "%d:%d", &p->vui.i_sar_width, &p->vui.i_sar_height ) &&
+                    2 != sscanf( value, "%d/%d", &p->vui.i_sar_width, &p->vui.i_sar_height ) );
+    }
+    OPT("overscan")
+        b_error |= parse_enum( value, x264_overscan_names, &p->vui.i_overscan );
+    OPT("vidformat")
+        b_error |= parse_enum( value, x264_vidformat_names, &p->vui.i_vidformat );
+    OPT("fullrange")
+        b_error |= parse_enum( value, x264_fullrange_names, &p->vui.b_fullrange );
+    OPT("colourprim")
+        b_error |= parse_enum( value, x264_colorprim_names, &p->vui.i_colorprim );
+    OPT("transfer")
+        b_error |= parse_enum( value, x264_transfer_names, &p->vui.i_transfer );
+    OPT("colourmatrix")
+        b_error |= parse_enum( value, x264_colmatrix_names, &p->vui.i_colmatrix );
+    OPT("chromaloc")
+    {
+        p->vui.i_chroma_loc = atoi(value);
+        b_error = ( p->vui.i_chroma_loc < 0 || p->vui.i_chroma_loc > 5 );
+    }
+    OPT("fps")
+    {
+        float fps;
+        if( sscanf( value, "%d/%d", &p->i_fps_num, &p->i_fps_den ) == 2 )
+            ;
+        else if( sscanf( value, "%f", &fps ) )
+        {
+            p->i_fps_num = (int)(fps * 1000 + .5);
+            p->i_fps_den = 1000;
+        }
+        else
+            b_error = 1;
+    }
+    OPT("ref")
+        p->i_frame_reference = atoi(value);
+    OPT("keyint")
+    {
+        p->i_keyint_max = atoi(value);
+        if( p->i_keyint_min > p->i_keyint_max )
+            p->i_keyint_min = p->i_keyint_max;
+    }
+    OPT("min-keyint")
+    {
+        p->i_keyint_min = atoi(value);
+        if( p->i_keyint_max < p->i_keyint_min )
+            p->i_keyint_max = p->i_keyint_min;
+    }
+    OPT("scenecut")
+        p->i_scenecut_threshold = atoi(value);
+    OPT("bframes")
+        p->i_bframe = atoi(value);
+    OPT("b-adapt")
+        p->b_bframe_adaptive = atobool(value);
+    OPT("b-bias")
+        p->i_bframe_bias = atoi(value);
+    OPT("b-pyramid")
+        p->b_bframe_pyramid = atobool(value);
+    OPT("nf")
+        p->b_deblocking_filter = 0;
+    OPT("filter")
+    {
+        int count;
+        if( 0 < (count = sscanf( value, "%d:%d", &p->i_deblocking_filter_alphac0, &p->i_deblocking_filter_beta )) ||
+            0 < (count = sscanf( value, "%d,%d", &p->i_deblocking_filter_alphac0, &p->i_deblocking_filter_beta )) )
+        {
+            p->b_deblocking_filter = 1;
+            if( count == 1 )
+                p->i_deblocking_filter_beta = p->i_deblocking_filter_alphac0;
+        }
+        else
+            p->b_deblocking_filter = atobool(value);
+    }
+    OPT("cabac")
+        p->b_cabac = atobool(value);
+    OPT("cabac-idc")
+        p->i_cabac_init_idc = atoi(value);
+    OPT("cqm")
+    {
+        if( strstr( value, "flat" ) )
+            p->i_cqm_preset = X264_CQM_FLAT;
+        else if( strstr( value, "jvt" ) )
+            p->i_cqm_preset = X264_CQM_JVT;
+        else
+            b_error = 1;
+    }
+    OPT("cqmfile")
+        p->psz_cqm_file = strdup(value);
+    OPT("cqm4")
+    {
+        p->i_cqm_preset = X264_CQM_CUSTOM;
+        b_error |= parse_cqm( value, p->cqm_4iy, 16 );
+        b_error |= parse_cqm( value, p->cqm_4ic, 16 );
+        b_error |= parse_cqm( value, p->cqm_4py, 16 );
+        b_error |= parse_cqm( value, p->cqm_4pc, 16 );
+    }
+    OPT("cqm8")
+    {
+        p->i_cqm_preset = X264_CQM_CUSTOM;
+        b_error |= parse_cqm( value, p->cqm_8iy, 64 );
+        b_error |= parse_cqm( value, p->cqm_8py, 64 );
+    }
+    OPT("cqm4i")
+    {
+        p->i_cqm_preset = X264_CQM_CUSTOM;
+        b_error |= parse_cqm( value, p->cqm_4iy, 16 );
+        b_error |= parse_cqm( value, p->cqm_4ic, 16 );
+    }
+    OPT("cqm4p")
+    {
+        p->i_cqm_preset = X264_CQM_CUSTOM;
+        b_error |= parse_cqm( value, p->cqm_4py, 16 );
+        b_error |= parse_cqm( value, p->cqm_4pc, 16 );
+    }
+    OPT("cqm4iy")
+    {
+        p->i_cqm_preset = X264_CQM_CUSTOM;
+        b_error |= parse_cqm( value, p->cqm_4iy, 16 );
+    }
+    OPT("cqm4ic")
+    {
+        p->i_cqm_preset = X264_CQM_CUSTOM;
+        b_error |= parse_cqm( value, p->cqm_4ic, 16 );
+    }
+    OPT("cqm4py")
+    {
+        p->i_cqm_preset = X264_CQM_CUSTOM;
+        b_error |= parse_cqm( value, p->cqm_4py, 16 );
+    }
+    OPT("cqm4pc")
+    {
+        p->i_cqm_preset = X264_CQM_CUSTOM;
+        b_error |= parse_cqm( value, p->cqm_4pc, 16 );
+    }
+    OPT("cqm8i")
+    {
+        p->i_cqm_preset = X264_CQM_CUSTOM;
+        b_error |= parse_cqm( value, p->cqm_8iy, 64 );
+    }
+    OPT("cqm8p")
+    {
+        p->i_cqm_preset = X264_CQM_CUSTOM;
+        b_error |= parse_cqm( value, p->cqm_8py, 64 );
+    }
+    OPT("log")
+        p->i_log_level = atoi(value);
+    OPT("analyse")
+    {
+        p->analyse.inter = 0;
+        if( strstr( value, "none" ) )  p->analyse.inter =  0;
+        if( strstr( value, "all" ) )   p->analyse.inter = ~0;
+
+        if( strstr( value, "i4x4" ) )  p->analyse.inter |= X264_ANALYSE_I4x4;
+        if( strstr( value, "i8x8" ) )  p->analyse.inter |= X264_ANALYSE_I8x8;
+        if( strstr( value, "p8x8" ) )  p->analyse.inter |= X264_ANALYSE_PSUB16x16;
+        if( strstr( value, "p4x4" ) )  p->analyse.inter |= X264_ANALYSE_PSUB8x8;
+        if( strstr( value, "b8x8" ) )  p->analyse.inter |= X264_ANALYSE_BSUB16x16;
+    }
+    OPT("8x8dct")
+        p->analyse.b_transform_8x8 = atobool(value);
+    OPT("weightb")
+        p->analyse.b_weighted_bipred = atobool(value);
+    OPT("direct")
+        b_error |= parse_enum( value, x264_direct_pred_names, &p->analyse.i_direct_mv_pred );
+    OPT("chroma-qp-offset")
+        p->analyse.i_chroma_qp_offset = atoi(value);
+    OPT("me")
+        b_error |= parse_enum( value, x264_motion_est_names, &p->analyse.i_me_method );
+    OPT("merange")
+        p->analyse.i_me_range = atoi(value);
+    OPT("mvrange")
+        p->analyse.i_mv_range = atoi(value);
+    OPT("subme")
+        p->analyse.i_subpel_refine = atoi(value);
+    OPT("bime")
+        p->analyse.b_bidir_me = atobool(value);
+    OPT("chroma-me")
+        p->analyse.b_chroma_me = atobool(value);
+    OPT("b-rdo")
+        p->analyse.b_bframe_rdo = atobool(value);
+    OPT("mixed-refs")
+        p->analyse.b_mixed_references = atobool(value);
+    OPT("trellis")
+        p->analyse.i_trellis = atoi(value);
+    OPT("fast-pskip")
+        p->analyse.b_fast_pskip = atobool(value);
+    OPT("dct-decimate")
+        p->analyse.b_dct_decimate = atobool(value);
+    OPT("nr")
+        p->analyse.i_noise_reduction = atoi(value);
+    OPT("bitrate")
+    {
+        p->rc.i_bitrate = atoi(value);
+        p->rc.i_rc_method = X264_RC_ABR;
+    }
+    OPT("qp")
+    {
+        p->rc.i_qp_constant = atoi(value);
+        p->rc.i_rc_method = X264_RC_CQP;
+    }
+    OPT("crf")
+    {
+        p->rc.i_rf_constant = atoi(value);
+        p->rc.i_rc_method = X264_RC_CRF;
+    }
+    OPT("qpmin")
+        p->rc.i_qp_min = atoi(value);
+    OPT("qpmax")
+        p->rc.i_qp_max = atoi(value);
+    OPT("qpstep")
+        p->rc.i_qp_step = atoi(value);
+    OPT("ratetol")
+        p->rc.f_rate_tolerance = !strncmp("inf", value, 3) ? 1e9 : atof(value);
+    OPT("vbv-maxrate")
+        p->rc.i_vbv_max_bitrate = atoi(value);
+    OPT("vbv-bufsize")
+        p->rc.i_vbv_buffer_size = atoi(value);
+    OPT("vbv-init")
+        p->rc.f_vbv_buffer_init = atof(value);
+    OPT("ipratio")
+        p->rc.f_ip_factor = atof(value);
+    OPT("pbratio")
+        p->rc.f_pb_factor = atof(value);
+    OPT("pass")
+    {
+        int i = x264_clip3( atoi(value), 0, 3 );
+        p->rc.b_stat_write = i & 1;
+        p->rc.b_stat_read = i & 2;
+    }
+    OPT("stats")
+    {
+        p->rc.psz_stat_in = strdup(value);
+        p->rc.psz_stat_out = strdup(value);
+    }
+    OPT("rceq")
+        p->rc.psz_rc_eq = strdup(value);
+    OPT("qcomp")
+        p->rc.f_qcompress = atof(value);
+    OPT("qblur")
+        p->rc.f_qblur = atof(value);
+    OPT("cplxblur")
+        p->rc.f_complexity_blur = atof(value);
+    OPT("zones")
+        p->rc.psz_zones = strdup(value);
+    OPT("psnr")
+        p->analyse.b_psnr = atobool(value);
+    OPT("aud")
+        p->b_aud = atobool(value);
+    OPT("sps-id")
+        p->i_sps_id = atoi(value);
+    OPT("repeat-headers")
+        p->b_repeat_headers = atobool(value);
+    else
+        return X264_PARAM_BAD_NAME;
+#undef OPT
+#undef atobool
+
+    return b_error ? X264_PARAM_BAD_VALUE : 0;
+}
+
 /****************************************************************************
  * x264_log:
  ****************************************************************************/
