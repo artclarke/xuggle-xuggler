@@ -117,7 +117,7 @@ fprofiled:
 	mv config.mak config.mak2
 	sed -e 's/CFLAGS.*/& -fprofile-generate/; s/LDFLAGS.*/& -fprofile-generate/' config.mak2 > config.mak
 	$(MAKE) x264$(EXE)
-	$(foreach V, $(VIDS), $(foreach I, 0 1 2, ./x264$(EXE) $(OPT$I) $(V) --progress -o $(DEVNULL) ;))
+	$(foreach V, $(VIDS), $(foreach I, 0 1 2, ./x264$(EXE) $(OPT$I) $(V) --progress --threads auto -o $(DEVNULL) ;))
 	rm -f $(SRC2:%.c=%.o)
 	sed -e 's/CFLAGS.*/& -fprofile-use/; s/LDFLAGS.*/& -fprofile-use/' config.mak2 > config.mak
 	$(MAKE)

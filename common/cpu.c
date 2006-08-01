@@ -21,6 +21,11 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
+#if defined(HAVE_PTHREAD) && defined(SYS_LINUX)
+#define _GNU_SOURCE
+#include <sched.h>
+#endif
+
 #include <string.h>
 
 #include "common.h"
@@ -140,6 +145,32 @@ uint32_t x264_cpu_detect( void )
 
 void     x264_cpu_restore( uint32_t cpu )
 {
+}
+
+#endif
+
+#if defined(HAVE_PTHREAD) && ( defined(SYS_LINUX) || defined(WIN32) )
+
+int x264_cpu_num_processors( void )
+{
+    int np;
+#if defined(WIN32)
+    uint32_t p_aff, s_aff;
+    GetProcessAffinityMask( GetCurrentProcess(), &p_aff, &s_aff );
+#else
+    uint64_t p_aff;
+    sched_getaffinity( 0, sizeof(p_aff), (cpu_set_t*)&p_aff );
+#endif
+    for( np = 0; p_aff != 0; p_aff >>= 1 )
+        np += p_aff&1;
+    return np;
+}
+
+#else
+
+int x264_cpu_num_processors( void )
+{
+    return 1;
 }
 
 #endif

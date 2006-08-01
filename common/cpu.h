@@ -25,6 +25,7 @@
 #define _CPU_H 1
 
 uint32_t x264_cpu_detect( void );
+int      x264_cpu_num_processors( void );
 
 /* probably MMX(EXT) centric but .... */
 void     x264_cpu_restore( uint32_t cpu );

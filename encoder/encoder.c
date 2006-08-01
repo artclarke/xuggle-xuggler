@@ -331,6 +331,8 @@ static int x264_validate_parameters( x264_t *h )
         return -1;
     }
 
+    if( h->param.i_threads == 0 )
+        h->param.i_threads = x264_cpu_num_processors();
     h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_SLICE_MAX );
     h->param.i_threads = X264_MIN( h->param.i_threads, (h->param.i_height + 15) / 16 );
 #ifndef HAVE_PTHREAD

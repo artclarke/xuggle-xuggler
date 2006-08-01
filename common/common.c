@@ -200,7 +200,12 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     OPT("asm")
         p->cpu = atobool(value) ? x264_cpu_detect() : 0;
     OPT("threads")
-        p->i_threads = atoi(value);
+    {
+        if( !strcmp(value, "auto") )
+            p->i_threads = 0;
+        else
+            p->i_threads = atoi(value);
+    }
     OPT("level")
     {
         if( atof(value) < 6 )
