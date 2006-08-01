@@ -25,7 +25,11 @@
 #define _GNU_SOURCE
 #include <sched.h>
 #endif
+#ifdef SYS_BEOS
+#include <kernel/OS.h>
+#endif
 
+#include <stdio.h>
 #include <string.h>
 
 #include "common.h"
@@ -149,10 +153,13 @@ void     x264_cpu_restore( uint32_t cpu )
 
 #endif
 
-#if defined(HAVE_PTHREAD) && ( defined(SYS_LINUX) || defined(WIN32) )
 
 int x264_cpu_num_processors( void )
 {
+#if !defined(HAVE_PTHREAD)
+    return 1;
+
+#elif defined(SYS_LINUX) || defined(WIN32)
     int np;
 #if defined(WIN32)
     uint32_t p_aff, s_aff;
@@ -164,13 +171,31 @@ int x264_cpu_num_processors( void )
     for( np = 0; p_aff != 0; p_aff >>= 1 )
         np += p_aff&1;
     return np;
-}
+
+#elif defined(SYS_BEOS)
+    system_info info;
+    get_system_info( &info );
+    return info.cpu_count;
+
+#elif defined(SYS_MACOSX)
+    FILE * pipe;
+    char   buffer[16];
+    int    num = 1;
+    if( ( pipe = popen( "/usr/sbin/sysctl hw.ncpu", "r" ) ) )
+    {   
+        memset( buffer, 0, 16 );
+        if( fgets( buffer, 16, pipe ) )
+        {   
+            if( sscanf( buffer, "hw.ncpu: %d", &num ) != 1 )
+            {   
+                num = 1;
+            }
+        }
+        fclose( pipe );
+    }
+    return num;
 
 #else
-
-int x264_cpu_num_processors( void )
-{
     return 1;
-}
-
 #endif
+}
