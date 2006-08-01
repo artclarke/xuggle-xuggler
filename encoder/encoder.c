@@ -621,7 +621,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->thread[0] = h;
     h->i_thread_num = 0;
-    for( i = 1; i < param->i_threads; i++ )
+    for( i = 1; i < h->param.i_threads; i++ )
         h->thread[i] = x264_malloc( sizeof(x264_t) );
 
 #ifdef DEBUG_DUMP_FRAME
