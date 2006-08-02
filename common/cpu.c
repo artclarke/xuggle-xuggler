@@ -28,8 +28,11 @@
 #ifdef SYS_BEOS
 #include <kernel/OS.h>
 #endif
+#ifdef SYS_MACOSX
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
 
-#include <stdio.h>
 #include <string.h>
 
 #include "common.h"
@@ -178,22 +181,13 @@ int x264_cpu_num_processors( void )
     return info.cpu_count;
 
 #elif defined(SYS_MACOSX)
-    FILE * pipe;
-    char   buffer[16];
-    int    num = 1;
-    if( ( pipe = popen( "/usr/sbin/sysctl hw.ncpu", "r" ) ) )
-    {   
-        memset( buffer, 0, 16 );
-        if( fgets( buffer, 16, pipe ) )
-        {   
-            if( sscanf( buffer, "hw.ncpu: %d", &num ) != 1 )
-            {   
-                num = 1;
-            }
-        }
-        fclose( pipe );
+    int numberOfCPUs;
+    size_t length = sizeof( numberOfCPUs );
+    if( sysctlbyname("hw.ncpu", &numberOfCPUs, &length, NULL, 0) )
+    {
+        numberOfCPUs = 1;
     }
-    return num;
+    return numberOfCPUs;
 
 #else
     return 1;
