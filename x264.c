@@ -60,7 +60,6 @@ static void    SigIntHandler( int a )
 }
 
 typedef struct {
-    int b_decompress;
     int b_progress;
     int i_seek;
     hnd_t hin;
@@ -573,7 +572,16 @@ static int  Parse( int argc, char **argv,
     }
     psz_filename = argv[optind++];
 
-    if( !opt->b_decompress )
+    /* check demuxer type */
+    psz = psz_filename + strlen(psz_filename) - 1;
+    while( psz > psz_filename && *psz != '.' )
+        psz--;
+    if( !strncasecmp( psz, ".avi", 4 ) || !strncasecmp( psz, ".avs", 4 ) )
+        b_avis = 1;
+    if( !strncasecmp( psz, ".y4m", 4 ) )
+        b_y4m = 1;
+
+    if( !(b_avis || b_y4m) ) // raw yuv
     {
         if( optind > argc - 1 )
         {
@@ -593,21 +601,12 @@ static int  Parse( int argc, char **argv,
         {
             sscanf( argv[optind++], "%ux%u", &param->i_width, &param->i_height );
         }
+    }
         
-        /* check avis input */
-        psz = psz_filename + strlen(psz_filename) - 1;
-        while( psz > psz_filename && *psz != '.' )
-            psz--;
-
-        if( !strncasecmp( psz, ".avi", 4 ) || !strncasecmp( psz, ".avs", 4 ) )
-            b_avis = 1;
-        if( !strncasecmp( psz, ".y4m", 4 ) )
-            b_y4m = 1;
-        if( !(b_avis || b_y4m) && ( !param->i_width || !param->i_height ) )
-        {
-            Help( &defaults );
-            return -1;
-        }
+    if( !(b_avis || b_y4m) && ( !param->i_width || !param->i_height ) )
+    {
+        Help( &defaults );
+        return -1;
     }
 
     /* open the input */
