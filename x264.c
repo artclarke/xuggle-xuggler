@@ -534,6 +534,7 @@ static int  Parse( int argc, char **argv,
 #else
                 fprintf( stderr, "not compiled with visualization support\n" );
 #endif
+                break;
             default:
             {
                 int i;
