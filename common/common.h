@@ -447,7 +447,7 @@ struct x264_t
             /* pointer over mb of the frame to be compressed */
             uint8_t *p_fenc[3];
 
-            /* pointer over mb of the frame to be reconstrucated  */
+            /* pointer over mb of the frame to be reconstructed  */
             uint8_t *p_fdec[3];
 
             /* pointer over mb of the references */
@@ -464,13 +464,13 @@ struct x264_t
             /* real intra4x4_pred_mode if I_4X4 or I_8X8, I_PRED_4x4_DC if mb available, -1 if not */
             int     intra4x4_pred_mode[X264_SCAN8_SIZE];
 
-            /* i_non_zero_count if availble else 0x80 */
+            /* i_non_zero_count if available else 0x80 */
             int     non_zero_count[X264_SCAN8_SIZE];
 
-            /* -1 if unused, -2 if unavaible */
+            /* -1 if unused, -2 if unavailable */
             int8_t  ref[2][X264_SCAN8_SIZE];
 
-            /* 0 if non avaible */
+            /* 0 if not available */
             int16_t mv[2][X264_SCAN8_SIZE][2];
             int16_t mvd[2][X264_SCAN8_SIZE][2];
 
@@ -534,7 +534,7 @@ struct x264_t
             int i_direct_score[2];
         } frame;
 
-        /* Cummulated stats */
+        /* Cumulated stats */
 
         /* per slice info */
         int     i_slice_count[5];

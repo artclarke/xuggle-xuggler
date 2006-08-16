@@ -979,7 +979,7 @@ static int x264_slice_write( x264_t *h )
         x264_macroblock_analyse( h );
         TIMER_STOP( i_mtime_analyse );
 
-        /* encode this macrobock -> be carefull it can change the mb type to P_SKIP if needed */
+        /* encode this macrobock -> be careful it can change the mb type to P_SKIP if needed */
         TIMER_START( i_mtime_encode );
         x264_macroblock_encode( h );
         TIMER_STOP( i_mtime_encode );
@@ -1538,7 +1538,7 @@ do_encode:
     h->stat.i_slice_size[i_slice_type] += i_frame_size + NALU_OVERHEAD;
     h->stat.i_slice_qp[i_slice_type] += i_global_qp;
 
-    for( i = 0; i < 19; i++ )
+    for( i = 0; i < X264_MBTYPE_MAX; i++ )
         h->stat.i_mb_count[h->sh.i_type][i] += h->stat.frame.i_mb_count[i];
     for( i = 0; i < 2; i++ )
         h->stat.i_mb_count_8x8dct[i] += h->stat.frame.i_mb_count_8x8dct[i];
@@ -1613,7 +1613,7 @@ do_encode:
     int mb_xy;
     for( mb_xy = 0; mb_xy < h->sps->i_mb_width * h->sps->i_mb_height; mb_xy++ )
     {
-        if( h->mb.type[mb_xy] < 19 && h->mb.type[mb_xy] >= 0 )
+        if( h->mb.type[mb_xy] < X264_MBTYPE_MAX && h->mb.type[mb_xy] >= 0 )
             fprintf( stderr, "%c ", mb_chars[ h->mb.type[mb_xy] ] );
         else
             fprintf( stderr, "? " );
@@ -1827,4 +1827,3 @@ void    x264_encoder_close  ( x264_t *h )
         x264_free( h->thread[i] );
     x264_free( h );
 }
-

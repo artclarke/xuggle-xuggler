@@ -120,14 +120,14 @@ static void quant_8x8( x264_t *h, int16_t dct[8][8], int quant_mf[6][8][8], int 
 {
     const int i_qbits = 16 + i_qscale / 6;
     const int i_mf = i_qscale % 6;
-    const int f = ( 1 << i_qbits ) / ( b_intra ? 3 : 6 );
+    const int f = ( 1 << (i_qbits + b_intra) ) / 6;
     h->quantf.quant_8x8_core( dct, quant_mf[i_mf], i_qbits, f );
 }
 static void quant_4x4( x264_t *h, int16_t dct[4][4], int quant_mf[6][4][4], int i_qscale, int b_intra )
 {
     const int i_qbits = 15 + i_qscale / 6;
     const int i_mf = i_qscale % 6;
-    const int f = ( 1 << i_qbits ) / ( b_intra ? 3 : 6 );
+    const int f = ( 1 << (i_qbits + b_intra) ) / 6;
     h->quantf.quant_4x4_core( dct, quant_mf[i_mf], i_qbits, f );
 }
 static void quant_4x4_dc( x264_t *h, int16_t dct[4][4], int quant_mf[6][4][4], int i_qscale )
@@ -141,7 +141,7 @@ static void quant_2x2_dc( x264_t *h, int16_t dct[2][2], int quant_mf[6][4][4], i
 {
     const int i_qbits = 16 + i_qscale / 6;
     const int i_mf = i_qscale % 6;
-    const int f = ( 1 << i_qbits ) / ( b_intra ? 3 : 6 );
+    const int f = ( 1 << (i_qbits + b_intra) ) / 6;
     h->quantf.quant_2x2_dc_core( dct, quant_mf[i_mf][0][0], i_qbits, f );
 }
 
@@ -603,7 +603,7 @@ void x264_macroblock_encode( x264_t *h )
     /* encode the 8x8 blocks */
     x264_mb_encode_8x8_chroma( h, !IS_INTRA( h->mb.i_type ), i_qp );
 
-    /* Calculate the Luma/Chroma patern and non_zero_count */
+    /* Calculate the Luma/Chroma pattern and non_zero_count */
     h->mb.i_cbp_luma = 0x00;
     if( h->mb.i_type == I_16x16 )
     {
@@ -640,7 +640,7 @@ void x264_macroblock_encode( x264_t *h )
         }
     }
 
-    /* Calculate the chroma patern */
+    /* Calculate the chroma pattern */
     h->mb.i_cbp_chroma = 0x00;
     for( i = 0; i < 8; i++ )
     {

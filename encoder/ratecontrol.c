@@ -35,21 +35,13 @@
 #include "common/cpu.h"
 #include "ratecontrol.h"
 
-#if defined(SYS_FREEBSD) || defined(SYS_BEOS) || defined(SYS_NETBSD) || defined(SYS_OPENBSD)
-#define exp2f(x) powf( 2, (x) )
-#endif
-#if defined(SYS_MACOSX)
-#define exp2f(x) (float)pow( 2, (x) )
-#define sqrtf sqrt
-#endif
 #if defined(SYS_OPENBSD)
 #define isfinite finite
 #endif
 #if defined(_MSC_VER)
 #define isfinite _finite
 #endif
-#if defined(_MSC_VER) || defined(SYS_SunOS)
-#define exp2f(x) pow( 2, (x) )
+#if defined(_MSC_VER) || defined(SYS_SunOS) || defined(SYS_MACOSX)
 #define sqrtf sqrt
 #endif
 #ifdef WIN32 // POSIX says that rename() removes the destination, but win32 doesn't.
@@ -283,7 +275,7 @@ int x264_ratecontrol_new( x264_t *h )
     rc->qp_constant[SLICE_TYPE_I] = x264_clip3( h->param.rc.i_qp_constant - rc->ip_offset + 0.5, 0, 51 );
     rc->qp_constant[SLICE_TYPE_B] = x264_clip3( h->param.rc.i_qp_constant + rc->pb_offset + 0.5, 0, 51 );
 
-    rc->lstep = exp2f(h->param.rc.i_qp_step / 6.0);
+    rc->lstep = pow( 2, h->param.rc.i_qp_step / 6.0 );
     rc->last_qscale = qp2qscale(26);
     for( i = 0; i < 5; i++ )
     {

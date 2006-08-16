@@ -57,7 +57,7 @@ typedef struct
 
     /* Sub 4x8 */
     int       i_cost4x8[4]; /* cost per 8x8 partition */
-    x264_me_t me4x8[4][4];
+    x264_me_t me4x8[4][2];
 
     /* 16x8 */
     int       i_cost16x8;
@@ -150,7 +150,7 @@ static const int i_qp0_cost2_table[52] = {
 };
 
 /* TODO: calculate CABAC costs */
-static const int i_mb_b_cost_table[19] = {
+static const int i_mb_b_cost_table[X264_MBTYPE_MAX] = {
     9, 9, 9, 9, 0, 0, 0, 1, 3, 7, 7, 7, 3, 7, 7, 7, 5, 9, 0
 };
 static const int i_mb_b16x8_cost_table[17] = {
