@@ -57,7 +57,7 @@ vis="no"
 shared="no"
 
 CC="${CC-gcc}"
-CFLAGS="-Wall -I. -O4 -ffast-math -D__X264__"
+CFLAGS="-Wall -I. -D__X264__"
 LDFLAGS=""
 HAVE_GETOPT_LONG=1
 
@@ -240,7 +240,6 @@ for opt do
             pthread="no"
             ;;
         --enable-debug)
-            CFLAGS="$CFLAGS -g"
             debug="yes"
             ;;
         --enable-gprof)
@@ -337,6 +336,12 @@ if [ "$debug" != "yes" -a "$gprof" != "yes" ]; then
     CFLAGS="$CFLAGS -s -fomit-frame-pointer"
     LDFLAGS="$LDFLAGS -s"
     VFW_LDFLAGS="$VFW_LDFLAGS -s"
+fi
+
+if [ "$debug" == "yes" ]; then
+    CFLAGS="-O1 -g $CFLAGS"
+else
+    CFLAGS="-O4 -ffast-math $CFLAGS"
 fi
 
 if cc_check "stdio.h" "" "fseeko(stdin,0,0);" ; then
