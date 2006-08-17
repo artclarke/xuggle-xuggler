@@ -30,7 +30,11 @@ BITS 32
 
 SECTION_RODATA
 
-pd_0000ffff: times 4 dd 0x0000ffff
+pw_1:    times 8 dw 1
+ssim_c1: times 4 dd 416    ; .01*.01*255*255*64
+ssim_c2: times 4 dd 235963 ; .03*.03*255*255*64*63
+mask_ff: times 16 db 0xff
+         times 16 db 0
 
 
 SECTION .text
@@ -49,6 +53,23 @@ cglobal x264_pixel_satd_8x8_sse2
 cglobal x264_pixel_satd_16x8_sse2
 cglobal x264_pixel_satd_8x16_sse2
 cglobal x264_pixel_satd_16x16_sse2
+cglobal x264_pixel_ssim_4x4x2_core_sse2
+cglobal x264_pixel_ssim_end4_sse2
+
+
+%macro SBUTTERFLY 5
+    mov%1       %5, %3
+    punpckl%2   %3, %4
+    punpckh%2   %5, %4
+%endmacro
+
+%macro TRANSPOSE4x4D 5   ; abcd-t -> adtc
+    SBUTTERFLY dqa, dq,  %1, %2, %5
+    SBUTTERFLY dqa, dq,  %3, %4, %2
+    SBUTTERFLY dqa, qdq, %1, %3, %4
+    SBUTTERFLY dqa, qdq, %5, %2, %3
+%endmacro
+
 
 %macro SAD_INC_4x16P_SSE2 0
     movdqu  xmm1,   [ecx]
@@ -548,22 +569,14 @@ x264_pixel_ssd_16x8_sse2:
     paddusw %7, %4
 %endmacro
 
-%macro SUM_MM_SSE2 2    ; sum junk
+%macro HADDW 2    ; sum junk
     ; ebx is no longer used at this point, so no push needed
     picgetgot ebx
-    ; each column sum of SATD is necessarily even, so we don't lose any precision by shifting first.
-    psrlw   %1, 1
-    movdqa  %2, %1
-    psrldq  %1, 2
-    paddusw %1, %2
-    pand    %1, [pd_0000ffff GOT_ebx]
-    movdqa  %2, %1
-    psrldq  %1, 4
+    pmaddwd %1, [pw_1 GOT_ebx]
+    movhlps %2, %1
     paddd   %1, %2
-    movdqa  %2, %1
-    psrldq  %1, 8
+    pshuflw %2, %1, 0xE 
     paddd   %1, %2
-    movd    eax,%1
 %endmacro
 
 %macro SATD_TWO_SSE2 0
@@ -586,8 +599,10 @@ x264_pixel_ssd_16x8_sse2:
 %endmacro
 
 %macro SATD_END 0
-    SUM_MM_SSE2  xmm6, xmm7
-
+    ; each column sum of SATD is necessarily even, so we don't lose any precision by shifting first.
+    psrlw   xmm6, 1
+    HADDW   xmm6, xmm7
+    movd    eax,  xmm6
     pop     ebx
     ret
 %endmacro
@@ -672,4 +687,128 @@ x264_pixel_satd_8x4_sse2:
     SATD_TWO_SSE2
 
     SATD_END
+
+
+
+;-----------------------------------------------------------------------------
+; void x264_pixel_ssim_4x4x2_core_sse2( const uint8_t *pix1, int stride1,
+;                                       const uint8_t *pix2, int stride2, int sums[2][4] )
+;-----------------------------------------------------------------------------
+ALIGN 16
+x264_pixel_ssim_4x4x2_core_sse2:
+    push      ebx
+    mov       eax,  [esp+ 8]
+    mov       ebx,  [esp+12]
+    mov       ecx,  [esp+16]
+    mov       edx,  [esp+20]
+    pxor      xmm0, xmm0
+    pxor      xmm1, xmm1
+    pxor      xmm2, xmm2
+    pxor      xmm3, xmm3
+    pxor      xmm4, xmm4
+%rep 4
+    movq      xmm5, [eax]
+    movq      xmm6, [ecx]
+    punpcklbw xmm5, xmm0
+    punpcklbw xmm6, xmm0
+    paddw     xmm1, xmm5
+    paddw     xmm2, xmm6
+    movdqa    xmm7, xmm5
+    pmaddwd   xmm5, xmm5
+    pmaddwd   xmm7, xmm6
+    pmaddwd   xmm6, xmm6
+    paddd     xmm3, xmm5
+    paddd     xmm4, xmm7
+    paddd     xmm3, xmm6
+    add       eax,  ebx
+    add       ecx,  edx
+%endrep
+    ; PHADDW xmm1, xmm2
+    ; PHADDD xmm3, xmm4
+    mov       eax,  [esp+24]
+    picgetgot ebx
+    movdqa    xmm7, [pw_1 GOT_ebx]
+    pshufd    xmm5, xmm3, 0xB1
+    pmaddwd   xmm1, xmm7
+    pmaddwd   xmm2, xmm7
+    pshufd    xmm6, xmm4, 0xB1
+    packssdw  xmm1, xmm2
+    paddd     xmm3, xmm5
+    pmaddwd   xmm1, xmm7
+    paddd     xmm4, xmm6
+    pshufd    xmm1, xmm1, 0xD8
+    movdqa    xmm5, xmm3
+    punpckldq xmm3, xmm4
+    punpckhdq xmm5, xmm4
+    movq      [eax+ 0], xmm1
+    movq      [eax+ 8], xmm3
+    psrldq    xmm1, 8
+    movq      [eax+16], xmm1
+    movq      [eax+24], xmm5
+    pop       ebx
+    ret
+
+;-----------------------------------------------------------------------------
+; float x264_pixel_ssim_end_sse2( int sum0[5][4], int sum1[5][4], int width )
+;-----------------------------------------------------------------------------
+ALIGN 16
+x264_pixel_ssim_end4_sse2:
+    mov      eax,  [esp+ 4]
+    mov      ecx,  [esp+ 8]
+    mov      edx,  [esp+12]
+    picpush  ebx
+    picgetgot ebx
+    movdqa   xmm0, [eax+ 0]
+    movdqa   xmm1, [eax+16]
+    movdqa   xmm2, [eax+32]
+    movdqa   xmm3, [eax+48]
+    movdqa   xmm4, [eax+64]
+    paddd    xmm0, [ecx+ 0]
+    paddd    xmm1, [ecx+16]
+    paddd    xmm2, [ecx+32]
+    paddd    xmm3, [ecx+48]
+    paddd    xmm4, [ecx+64]
+    paddd    xmm0, xmm1
+    paddd    xmm1, xmm2
+    paddd    xmm2, xmm3
+    paddd    xmm3, xmm4
+    movdqa   xmm5, [ssim_c1 GOT_ebx]
+    movdqa   xmm6, [ssim_c2 GOT_ebx]
+    TRANSPOSE4x4D  xmm0, xmm1, xmm2, xmm3, xmm4
+
+;   s1=mm0, s2=mm3, ss=mm4, s12=mm2
+    movdqa   xmm1, xmm3
+    pslld    xmm3, 16
+    pmaddwd  xmm1, xmm0  ; s1*s2
+    por      xmm0, xmm3
+    pmaddwd  xmm0, xmm0  ; s1*s1 + s2*s2
+    pslld    xmm1, 1
+    pslld    xmm2, 7
+    pslld    xmm4, 6
+    psubd    xmm2, xmm1  ; covar*2
+    psubd    xmm4, xmm0  ; vars
+    paddd    xmm0, xmm5
+    paddd    xmm1, xmm5
+    paddd    xmm2, xmm6
+    paddd    xmm4, xmm6
+    cvtdq2ps xmm0, xmm0  ; (float)(s1*s1 + s2*s2 + ssim_c1)
+    cvtdq2ps xmm1, xmm1  ; (float)(s1*s2*2 + ssim_c1)
+    cvtdq2ps xmm2, xmm2  ; (float)(covar*2 + ssim_c2)
+    cvtdq2ps xmm4, xmm4  ; (float)(vars + ssim_c2)
+    mulps    xmm1, xmm2
+    mulps    xmm0, xmm4
+    divps    xmm1, xmm0  ; ssim
+
+    neg      edx
+    movdqu   xmm3, [mask_ff + edx*4 + 16 GOT_ebx]
+    pand     xmm1, xmm3
+    movhlps  xmm0, xmm1
+    addps    xmm0, xmm1
+    pshuflw  xmm1, xmm0, 0xE
+    addss    xmm0, xmm1
+
+    movd     [picesp+4], xmm0
+    fld      dword [picesp+4]
+    picpop   ebx
+    ret
 

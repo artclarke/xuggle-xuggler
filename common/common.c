@@ -123,6 +123,7 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.b_fast_pskip = 1;
     param->analyse.b_dct_decimate = 1;
     param->analyse.b_psnr = 1;
+    param->analyse.b_ssim = 1;
 
     param->i_cqm_preset = X264_CQM_FLAT;
     memset( param->cqm_4iy, 16, 16 );
@@ -460,6 +461,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->rc.psz_zones = strdup(value);
     OPT("psnr")
         p->analyse.b_psnr = atobool(value);
+    OPT("ssim")
+        p->analyse.b_ssim = atobool(value);
     OPT("aud")
         p->b_aud = atobool(value);
     OPT("sps-id")

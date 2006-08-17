@@ -363,6 +363,7 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.f_pb_factor = 1;
         h->param.analyse.b_transform_8x8 = 0;
         h->param.analyse.b_psnr = 0;
+        h->param.analyse.b_ssim = 0;
         h->param.analyse.i_chroma_qp_offset = 0;
         h->param.analyse.i_trellis = 0;
         h->param.analyse.b_fast_pskip = 0;
@@ -447,6 +448,12 @@ static int x264_validate_parameters( x264_t *h )
 
     h->param.i_sps_id &= 31;
 
+    if( h->param.i_log_level < X264_LOG_INFO )
+    {
+        h->param.analyse.b_psnr = 0;
+        h->param.analyse.b_ssim = 0;
+    }
+
     /* ensure the booleans are 0 or 1 so they can be used in math */
 #define BOOLIFY(x) h->param.x = !!h->param.x
     BOOLIFY( b_cabac );
@@ -460,6 +467,13 @@ static int x264_validate_parameters( x264_t *h )
 #undef BOOLIFY
 
     return 0;
+}
+
+static void mbcmp_init( x264_t *h )
+{
+    memcpy( h->pixf.mbcmp,
+            ( h->mb.b_lossless || h->param.analyse.i_subpel_refine <= 1 ) ? h->pixf.sad : h->pixf.satd,
+            sizeof(h->pixf.mbcmp) );
 }
 
 /****************************************************************************
@@ -603,9 +617,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     x264_quant_init( h, h->param.cpu, &h->quantf );
     x264_deblock_init( h->param.cpu, &h->loopf );
 
-    memcpy( h->pixf.mbcmp,
-            ( h->mb.b_lossless || h->param.analyse.i_subpel_refine <= 1 ) ? h->pixf.sad : h->pixf.satd,
-            sizeof(h->pixf.mbcmp) );
+    mbcmp_init( h );
 
     /* rate control */
     if( x264_ratecontrol_new( h ) < 0 )
@@ -657,9 +669,7 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     h->param.analyse.intra = param->analyse.intra;
     h->param.analyse.inter = param->analyse.inter;
 
-    memcpy( h->pixf.mbcmp,
-            ( h->mb.b_lossless || h->param.analyse.i_subpel_refine <= 1 ) ? h->pixf.sad : h->pixf.satd,
-            sizeof(h->pixf.mbcmp) );
+    mbcmp_init( h );
 
     return x264_validate_parameters( h );
 }
@@ -1565,32 +1575,44 @@ do_encode:
         }
     }
 
+    psz_message[0] = '\0';
     if( h->param.analyse.b_psnr )
     {
-        int64_t i_sqe_y, i_sqe_u, i_sqe_v;
+        int64_t sqe[3];
 
-        /* PSNR */
-        i_sqe_y = x264_pixel_ssd_wxh( &h->pixf, frame_psnr->plane[0], frame_psnr->i_stride[0], h->fenc->plane[0], h->fenc->i_stride[0], h->param.i_width, h->param.i_height );
-        i_sqe_u = x264_pixel_ssd_wxh( &h->pixf, frame_psnr->plane[1], frame_psnr->i_stride[1], h->fenc->plane[1], h->fenc->i_stride[1], h->param.i_width/2, h->param.i_height/2);
-        i_sqe_v = x264_pixel_ssd_wxh( &h->pixf, frame_psnr->plane[2], frame_psnr->i_stride[2], h->fenc->plane[2], h->fenc->i_stride[2], h->param.i_width/2, h->param.i_height/2);
+        for( i=0; i<3; i++ )
+        {
+            sqe[i] = x264_pixel_ssd_wxh( &h->pixf,
+                         frame_psnr->plane[i], frame_psnr->i_stride[i],
+                         h->fenc->plane[i], h->fenc->i_stride[i],
+                         h->param.i_width >> !!i, h->param.i_height >> !!i );
+        }
         x264_cpu_restore( h->param.cpu );
 
-        h->stat.i_sqe_global[i_slice_type] += i_sqe_y + i_sqe_u + i_sqe_v;
-        h->stat.f_psnr_average[i_slice_type] += x264_psnr( i_sqe_y + i_sqe_u + i_sqe_v, 3 * h->param.i_width * h->param.i_height / 2 );
-        h->stat.f_psnr_mean_y[i_slice_type] += x264_psnr( i_sqe_y, h->param.i_width * h->param.i_height );
-        h->stat.f_psnr_mean_u[i_slice_type] += x264_psnr( i_sqe_u, h->param.i_width * h->param.i_height / 4 );
-        h->stat.f_psnr_mean_v[i_slice_type] += x264_psnr( i_sqe_v, h->param.i_width * h->param.i_height / 4 );
+        h->stat.i_sqe_global[i_slice_type] += sqe[0] + sqe[1] + sqe[2];
+        h->stat.f_psnr_average[i_slice_type] += x264_psnr( sqe[0] + sqe[1] + sqe[2], 3 * h->param.i_width * h->param.i_height / 2 );
+        h->stat.f_psnr_mean_y[i_slice_type] += x264_psnr( sqe[0], h->param.i_width * h->param.i_height );
+        h->stat.f_psnr_mean_u[i_slice_type] += x264_psnr( sqe[1], h->param.i_width * h->param.i_height / 4 );
+        h->stat.f_psnr_mean_v[i_slice_type] += x264_psnr( sqe[2], h->param.i_width * h->param.i_height / 4 );
 
-        snprintf( psz_message, 80, " PSNR Y:%2.2f U:%2.2f V:%2.2f",
-                  x264_psnr( i_sqe_y, h->param.i_width * h->param.i_height ),
-                  x264_psnr( i_sqe_u, h->param.i_width * h->param.i_height / 4),
-                  x264_psnr( i_sqe_v, h->param.i_width * h->param.i_height / 4) );
-        psz_message[79] = '\0';
+        snprintf( psz_message, 80, " PSNR Y:%5.2f U:%5.2f V:%5.2f",
+                  x264_psnr( sqe[0], h->param.i_width * h->param.i_height ),
+                  x264_psnr( sqe[1], h->param.i_width * h->param.i_height / 4),
+                  x264_psnr( sqe[2], h->param.i_width * h->param.i_height / 4) );
     }
-    else
+
+    if( h->param.analyse.b_ssim )
     {
-        psz_message[0] = '\0';
+        // offset by 2 pixels to avoid alignment of ssim blocks with dct blocks
+        float ssim_y = x264_pixel_ssim_wxh( &h->pixf,
+                         frame_psnr->plane[0] + 2+2*frame_psnr->i_stride[0], frame_psnr->i_stride[0],
+                         h->fenc->plane[0] + 2+2*h->fenc->i_stride[0], h->fenc->i_stride[0],
+                         h->param.i_width-2, h->param.i_height-2 );
+        h->stat.f_ssim_mean_y[i_slice_type] += ssim_y;
+        snprintf( psz_message + strlen(psz_message), 80 - strlen(psz_message),
+                  " SSIM Y:%.5f", ssim_y );
     }
+    psz_message[79] = '\0';
     
     x264_log( h, X264_LOG_DEBUG,
                   "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I:%-4d P:%-4d SKIP:%-4d size=%d bytes%s\n",
@@ -1783,7 +1805,14 @@ void    x264_encoder_close  ( x264_t *h )
             }
         }
 
+        if( h->param.analyse.b_ssim )
+        {
+            x264_log( h, X264_LOG_INFO,
+                      "SSIM Mean Y:%.7f\n",
+                      SUM3( h->stat.f_ssim_mean_y ) / i_count );
+        }
         if( h->param.analyse.b_psnr )
+        {
             x264_log( h, X264_LOG_INFO,
                       "PSNR Mean Y:%6.3f U:%6.3f V:%6.3f Avg:%6.3f Global:%6.3f kb/s:%.2f\n",
                       SUM3( h->stat.f_psnr_mean_y ) / i_count,
@@ -1792,6 +1821,7 @@ void    x264_encoder_close  ( x264_t *h )
                       SUM3( h->stat.f_psnr_average ) / i_count,
                       x264_psnr( SUM3( h->stat.i_sqe_global ), i_count * i_yuv_size ),
                       f_bitrate );
+        }
         else
             x264_log( h, X264_LOG_INFO, "kb/s:%.1f\n", f_bitrate );
     }

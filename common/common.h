@@ -546,6 +546,7 @@ struct x264_t
         float   f_psnr_mean_y[5];
         float   f_psnr_mean_u[5];
         float   f_psnr_mean_v[5];
+        float   f_ssim_mean_y[5];
         /* */
         int64_t i_mb_count[5][19];
         int64_t i_mb_count_8x8dct[2];

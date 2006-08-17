@@ -286,6 +286,7 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "      --progress              Show a progress indicator while encoding\n" );
     H0( "      --quiet                 Quiet Mode\n" );
     H0( "      --no-psnr               Disable PSNR computation\n" );
+    H0( "      --no-ssim               Disable SSIM computation\n" );
     H0( "      --threads <integer>     Parallel encoding (uses slices)\n" );
     H0( "      --thread-input          Run Avisynth in its own thread\n" );
     H1( "      --no-asm                Disable all CPU optimizations\n" );
@@ -399,6 +400,7 @@ static int  Parse( int argc, char **argv,
             { "threads", required_argument, NULL, 0 },
             { "thread-input", no_argument,  NULL, OPT_THREAD_INPUT },
             { "no-psnr", no_argument,       NULL, 0 },
+            { "no-ssim", no_argument,       NULL, 0 },
             { "quiet",   no_argument,       NULL, OPT_QUIET },
             { "verbose", no_argument,       NULL, 'v' },
             { "progress",no_argument,       NULL, OPT_PROGRESS },
@@ -502,7 +504,6 @@ static int  Parse( int argc, char **argv,
                 break;
             case OPT_QUIET:
                 param->i_log_level = X264_LOG_NONE;
-                param->analyse.b_psnr = 0;
                 break;
             case 'v':
                 param->i_log_level = X264_LOG_DEBUG;

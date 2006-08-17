@@ -98,4 +98,10 @@ void x264_intra_sa8d_x3_8x8_mmxext( uint8_t *, uint8_t *, int * );
 void x264_intra_sa8d_x3_8x8_core_sse2( uint8_t *, int16_t [2][8], int * );
 void x264_intra_sa8d_x3_8x8_core_mmxext( uint8_t *, int16_t [2][8], int * );
 
+void x264_pixel_ssim_4x4x2_core_mmxext( const uint8_t *pix1, int stride1,
+                                        const uint8_t *pix2, int stride2, int sums[2][4] );
+void x264_pixel_ssim_4x4x2_core_sse2( const uint8_t *pix1, int stride1,
+                                      const uint8_t *pix2, int stride2, int sums[2][4] );
+float x264_pixel_ssim_end4_sse2( int sum0[5][4], int sum1[5][4], int width );
+
 #endif

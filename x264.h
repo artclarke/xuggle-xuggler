@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 49
+#define X264_BUILD 50
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -216,7 +216,8 @@ typedef struct
         int          b_dct_decimate; /* transform coefficient thresholding on P-frames */
         int          i_noise_reduction; /* adaptive pseudo-deadzone */
 
-        int          b_psnr;    /* Do we compute PSNR stats (save a few % of cpu) */
+        int          b_psnr;    /* compute and print PSNR stats */
+        int          b_ssim;    /* compute and print SSIM stats */
     } analyse;
 
     /* Rate control parameters */

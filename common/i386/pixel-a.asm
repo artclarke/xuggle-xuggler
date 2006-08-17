@@ -490,6 +490,7 @@ cglobal x264_intra_satd_x3_8x8c_mmxext
 cglobal x264_intra_satd_x3_16x16_mmxext
 cglobal x264_intra_sa8d_x3_8x8_core_mmxext
 
+cglobal x264_pixel_ssim_4x4x2_core_mmxext
 
 %macro SAD_START 0
     push    ebx
@@ -1571,3 +1572,66 @@ x264_intra_sa8d_x3_8x8_core_mmxext:
 %undef trans
 %undef sum
 
+
+
+;-----------------------------------------------------------------------------
+; void x264_pixel_ssim_4x4x2_core_mmxext( const uint8_t *pix1, int stride1,
+;                                         const uint8_t *pix2, int stride2, int sums[2][4] )
+;-----------------------------------------------------------------------------
+ALIGN 16
+x264_pixel_ssim_4x4x2_core_mmxext:
+    push      ebx
+    push      edi
+    mov       ebx, [esp+16]
+    mov       edx, [esp+24]
+    mov       edi, 4
+    pxor      mm0, mm0
+.loop
+    mov       eax, [esp+12]
+    mov       ecx, [esp+20]
+    add       eax, edi
+    add       ecx, edi
+    pxor      mm1, mm1
+    pxor      mm2, mm2
+    pxor      mm3, mm3
+    pxor      mm4, mm4
+%rep 4
+    movd      mm5, [eax]
+    movd      mm6, [ecx]
+    punpcklbw mm5, mm0
+    punpcklbw mm6, mm0
+    paddw     mm1, mm5
+    paddw     mm2, mm6
+    movq      mm7, mm5
+    pmaddwd   mm5, mm5
+    pmaddwd   mm7, mm6
+    pmaddwd   mm6, mm6
+    paddd     mm3, mm5
+    paddd     mm4, mm7
+    paddd     mm3, mm6
+    add       eax, ebx
+    add       ecx, edx
+%endrep
+    mov       eax, [esp+28]
+    lea       eax, [eax+edi*4]
+    pshufw    mm5, mm1, 0xE
+    pshufw    mm6, mm2, 0xE
+    paddusw   mm1, mm5
+    paddusw   mm2, mm6
+    punpcklwd mm1, mm2
+    pshufw    mm2, mm1, 0xE
+    pshufw    mm5, mm3, 0xE
+    pshufw    mm6, mm4, 0xE
+    paddusw   mm1, mm2
+    paddd     mm3, mm5
+    paddd     mm4, mm6
+    punpcklwd mm1, mm0
+    punpckldq mm3, mm4
+    movq  [eax+0], mm1
+    movq  [eax+8], mm3
+    sub       edi, 4
+    jge       .loop
+    pop       edi
+    pop       ebx
+    emms
+    ret

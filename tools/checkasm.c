@@ -131,6 +131,22 @@ static int check_pixel( int cpu_ref, int cpu_new )
     TEST_INTRA_SATD( intra_sa8d_x3_8x8, predict_8x8, sa8d[PIXEL_8x8], 1, edge );
     report( "intra satd_x3 :" );
 
+    if( pixel_asm.ssim_4x4x2_core != pixel_ref.ssim_4x4x2_core ||
+        pixel_asm.ssim_end4 != pixel_ref.ssim_end4 )
+    {
+        float res_c, res_a;
+        ok = 1;
+        x264_cpu_restore( cpu_new );
+        res_c = x264_pixel_ssim_wxh( &pixel_c,   buf1+2, 32, buf2+2, 32, 32, 28 );
+        res_a = x264_pixel_ssim_wxh( &pixel_asm, buf1+2, 32, buf2+2, 32, 32, 28 );
+        if( res_c != res_a )
+        {
+            ok = 0;
+            fprintf( stderr, "ssim: %.7f != %.7f [FAILED]\n", res_c, res_a );
+        }
+        report( "ssim :" );
+    }
+
     return ret;
 }
 
