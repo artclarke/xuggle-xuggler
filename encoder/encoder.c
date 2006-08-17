@@ -659,15 +659,31 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
  ****************************************************************************/
 int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
 {
-    h->param.i_bframe_bias = param->i_bframe_bias;
-    h->param.i_deblocking_filter_alphac0 = param->i_deblocking_filter_alphac0;
-    h->param.i_deblocking_filter_beta    = param->i_deblocking_filter_beta;
-    h->param.analyse.i_me_method = param->analyse.i_me_method;
-    h->param.analyse.i_me_range = param->analyse.i_me_range;
-    h->param.analyse.i_subpel_refine = param->analyse.i_subpel_refine;
-    h->param.analyse.i_trellis = param->analyse.i_trellis;
-    h->param.analyse.intra = param->analyse.intra;
-    h->param.analyse.inter = param->analyse.inter;
+#define COPY(var) h->param.var = param->var
+    COPY( i_frame_reference ); // but never uses more refs than initially specified
+    COPY( i_bframe_bias );
+    COPY( i_scenecut_threshold );
+    COPY( b_deblocking_filter );
+    COPY( i_deblocking_filter_alphac0 );
+    COPY( i_deblocking_filter_beta );
+    COPY( analyse.intra );
+    COPY( analyse.inter );
+    COPY( analyse.i_direct_mv_pred );
+    COPY( analyse.i_me_method );
+    COPY( analyse.i_me_range );
+    COPY( analyse.i_noise_reduction );
+    COPY( analyse.i_subpel_refine );
+    COPY( analyse.i_trellis );
+    COPY( analyse.b_bidir_me );
+    COPY( analyse.b_bframe_rdo );
+    COPY( analyse.b_chroma_me );
+    COPY( analyse.b_dct_decimate );
+    COPY( analyse.b_fast_pskip );
+    COPY( analyse.b_mixed_references );
+#undef COPY
+
+    if( h->pps->b_transform_8x8_mode )
+        h->param.analyse.b_transform_8x8 = param->analyse.b_transform_8x8;
 
     mbcmp_init( h );
 
@@ -848,6 +864,7 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc, int i_slice_
 
     h->i_ref1 = X264_MIN( h->i_ref1, h->frames.i_max_ref1 );
     h->i_ref0 = X264_MIN( h->i_ref0, h->frames.i_max_ref0 );
+    h->i_ref0 = X264_MIN( h->i_ref0, h->param.i_frame_reference ); // if reconfig() has lowered the limit
     h->i_ref0 = X264_MIN( h->i_ref0, 16 - h->i_ref1 );
 }
 
@@ -1764,7 +1781,7 @@ void    x264_encoder_close  ( x264_t *h )
 #define SUM3b(p,o) (p[SLICE_TYPE_I][o] + p[SLICE_TYPE_P][o] + p[SLICE_TYPE_B][o])
         float f_bitrate = fps * SUM3(h->stat.i_slice_size) / i_count / 125;
 
-        if( h->param.analyse.b_transform_8x8 )
+        if( h->pps->b_transform_8x8_mode )
         {
             int64_t i_i8x8 = SUM3b( h->stat.i_mb_count, I_8x8 );
             int64_t i_intra = i_i8x8 + SUM3b( h->stat.i_mb_count, I_4x4 )
@@ -1782,7 +1799,7 @@ void    x264_encoder_close  ( x264_t *h )
                       h->stat.i_direct_frames[0] * 100. / h->stat.i_slice_count[SLICE_TYPE_B] );
         }
 
-        if( h->param.i_frame_reference > 1 )
+        if( h->frames.i_max_ref0 > 1 )
         {
             int i_slice;
             for( i_slice = 0; i_slice < 2; i_slice++ )
@@ -1791,7 +1808,7 @@ void    x264_encoder_close  ( x264_t *h )
                 char *p = buf;
                 int64_t i_den = 0;
                 int i_max = 0;
-                for( i = 0; i < h->param.i_frame_reference; i++ )
+                for( i = 0; i < h->frames.i_max_ref0; i++ )
                     if( h->stat.i_mb_count_ref[i_slice][i] )
                     {
                         i_den += h->stat.i_mb_count_ref[i_slice][i];

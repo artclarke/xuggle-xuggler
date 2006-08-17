@@ -1914,10 +1914,10 @@ static void refine_bidir( x264_t *h, x264_mb_analysis_t *a )
 static inline void x264_mb_analyse_transform( x264_t *h )
 {
     h->mb.cache.b_transform_8x8_allowed =
-        h->param.analyse.b_transform_8x8
+        h->pps->b_transform_8x8_mode
         && !IS_INTRA( h->mb.i_type ) && x264_mb_transform_8x8_allowed( h );
 
-    if( h->mb.cache.b_transform_8x8_allowed )
+    if( h->mb.cache.b_transform_8x8_allowed && h->param.analyse.b_transform_8x8 )
     {
         int i_cost4, i_cost8;
         /* FIXME only luma mc is needed */
@@ -1935,9 +1935,9 @@ static inline void x264_mb_analyse_transform( x264_t *h )
 static inline void x264_mb_analyse_transform_rd( x264_t *h, x264_mb_analysis_t *a, int *i_satd, int *i_rd )
 {
     h->mb.cache.b_transform_8x8_allowed =
-        h->param.analyse.b_transform_8x8 && x264_mb_transform_8x8_allowed( h );
+        h->pps->b_transform_8x8_mode && x264_mb_transform_8x8_allowed( h );
 
-    if( h->mb.cache.b_transform_8x8_allowed )
+    if( h->mb.cache.b_transform_8x8_allowed && h->param.analyse.b_transform_8x8 )
     {
         int i_rd8;
         x264_analyse_update_cache( h, a );

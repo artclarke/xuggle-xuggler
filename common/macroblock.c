@@ -1098,7 +1098,7 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
     else
         h->mb.i_mb_type_topleft = -1;
 
-    if( h->param.analyse.b_transform_8x8 )
+    if( h->pps->b_transform_8x8_mode )
     {
         h->mb.cache.i_neighbour_transform_size =
             ( i_left_type >= 0 && h->mb.mb_transform_size[i_left_xy] )
