@@ -37,6 +37,11 @@
 #define X264_VERSION "" // no configure script for msvc
 #endif
 
+/* alloca */
+#ifdef _MSC_VER
+#define	alloca	_alloca
+#endif
+
 /* threads */
 #ifdef __WIN32__
 #include <windows.h>

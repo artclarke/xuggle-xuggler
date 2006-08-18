@@ -379,9 +379,8 @@ float x264_pixel_ssim_wxh( x264_pixel_function_t *pf,
 {
     int x, y, z;
     float ssim = 0.0;
-    int sums[2][width/4+3][4];
-    int (*sum0)[4] = sums[0];
-    int (*sum1)[4] = sums[1];
+    int (*sum0)[4] = alloca(4 * (width/4+3) * sizeof(int));
+    int (*sum1)[4] = alloca(4 * (width/4+3) * sizeof(int));
     width >>= 2;
     height >>= 2;
     z = 0;
