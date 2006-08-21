@@ -816,8 +816,13 @@ x264_pixel_ssim_end4_sse2:
     mulps    xmm0, xmm4
     divps    xmm1, xmm0  ; ssim
 
-    neg      parm3d
-    movdqu   xmm3, [mask_ff + parm3d*4 + 16 GLOBAL]
+    neg      parm3q
+%ifdef __PIC__
+    lea      rax,  [mask_ff + 16 GLOBAL]
+    movdqu   xmm3, [rax + parm3q*4]
+%else
+    movdqu   xmm3, [mask_ff + parm3q*4 + 16]
+%endif
     pand     xmm1, xmm3
     movhlps  xmm0, xmm1
     addps    xmm0, xmm1
