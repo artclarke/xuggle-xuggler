@@ -338,7 +338,7 @@ if [ "$debug" != "yes" -a "$gprof" != "yes" ]; then
     VFW_LDFLAGS="$VFW_LDFLAGS -s"
 fi
 
-if [ "$debug" == "yes" ]; then
+if [ "$debug" = "yes" ]; then
     CFLAGS="-O1 -g $CFLAGS"
 else
     CFLAGS="-O4 -ffast-math $CFLAGS"
