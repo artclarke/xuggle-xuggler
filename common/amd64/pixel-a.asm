@@ -456,6 +456,10 @@ cglobal x264_intra_satd_x3_4x4_mmxext
 cglobal x264_intra_satd_x3_8x8c_mmxext
 cglobal x264_intra_satd_x3_16x16_mmxext
 
+cglobal x264_pixel_ads4_mmxext
+cglobal x264_pixel_ads2_mmxext
+cglobal x264_pixel_ads1_mmxext
+
 
 %macro SAD_START 0
     pxor    mm0, mm0
@@ -1109,4 +1113,84 @@ x264_intra_satd_x3_8x8c_mmxext:
     movd        [parm3q+0], mm0 ; i8x8c_dc satd
     movd        [parm3q+4], mm1 ; i8x8c_h satd
     movd        [parm3q+8], mm2 ; i8x8c_v satd
+    ret
+
+
+
+;-----------------------------------------------------------------------------
+;  void x264_pixel_ads4_mmxext( int enc_dc[4], uint16_t *sums, int delta,
+;                               uint16_t *res, int width )
+;-----------------------------------------------------------------------------
+ALIGN 16
+x264_pixel_ads4_mmxext:
+    movq    mm6, [parm1q]
+    movq    mm4, [parm1q+8]
+    pshufw  mm7, mm6, 0
+    pshufw  mm6, mm6, 0xAA
+    pshufw  mm5, mm4, 0
+    pshufw  mm4, mm4, 0xAA
+    shl     parm3q, 1
+.loop:
+    movq    mm0, [parm2q]
+    movq    mm1, [parm2q+16]
+    psubw   mm0, mm7
+    psubw   mm1, mm6
+    MMX_ABS mm0, mm2
+    MMX_ABS mm1, mm3
+    movq    mm2, [parm2q+parm3q]
+    movq    mm3, [parm2q+parm3q+16]
+    psubw   mm2, mm5
+    psubw   mm3, mm4
+    paddw   mm0, mm1
+    MMX_ABS mm2, mm1
+    MMX_ABS mm3, mm1
+    paddw   mm0, mm2
+    paddw   mm0, mm3
+    movq    [parm4q], mm0
+    add     parm2q, 8
+    add     parm4q, 8
+    sub     parm5d, 4
+    jg      .loop
+    nop
+    ret
+
+ALIGN 16
+x264_pixel_ads2_mmxext:
+    movq    mm6, [parm1q]
+    pshufw  mm7, mm6, 0
+    pshufw  mm6, mm6, 0xAA
+    shl     parm3q, 1
+.loop:
+    movq    mm0, [parm2q]
+    movq    mm1, [parm2q+parm3q]
+    psubw   mm0, mm7
+    psubw   mm1, mm6
+    MMX_ABS mm0, mm2
+    MMX_ABS mm1, mm3
+    paddw   mm0, mm1
+    movq    [parm4q], mm0
+    add     parm2q, 8
+    add     parm4q, 8
+    sub     parm5d, 4
+    jg      .loop
+    nop
+    ret
+
+ALIGN 16
+x264_pixel_ads1_mmxext:
+    pshufw  mm7, [parm1q], 0
+.loop:
+    movq    mm0, [parm2q]
+    movq    mm1, [parm2q+8]
+    psubw   mm0, mm7
+    psubw   mm1, mm7
+    MMX_ABS mm0, mm2
+    MMX_ABS mm1, mm3
+    movq    [parm4q], mm0
+    movq    [parm4q+8], mm1
+    add     parm2q, 16
+    add     parm4q, 16
+    sub     parm5d, 8
+    jg      .loop
+    nop
     ret

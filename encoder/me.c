@@ -462,64 +462,46 @@ me_hex2:
             /* successive elimination by comparing DC before a full SAD,
              * because sum(abs(diff)) >= abs(diff(sum)). */
             const int stride = m->i_stride[0];
-            const uint16_t *integral_base = m->integral;
             static uint8_t zero[16*16] = {0,};
+            uint16_t *sums_base = m->integral;
             int enc_dc[4];
             int sad_size = i_pixel <= PIXEL_8x8 ? PIXEL_8x8 : PIXEL_4x4;
-            int sad_w = x264_pixel_size[sad_size].w;
-            h->pixf.sad_x4[sad_size]( zero, m->p_fenc[0], m->p_fenc[0]+sad_w,
-                m->p_fenc[0]+sad_w*FENC_STRIDE, m->p_fenc[0]+sad_w+sad_w*FENC_STRIDE,
+            int delta = x264_pixel_size[sad_size].w;
+            uint16_t *ads = alloca((max_x-min_x+8) * sizeof(uint16_t));
+
+            h->pixf.sad_x4[sad_size]( zero, m->p_fenc[0], m->p_fenc[0]+delta,
+                m->p_fenc[0]+delta*FENC_STRIDE, m->p_fenc[0]+delta+delta*FENC_STRIDE,
                 FENC_STRIDE, enc_dc );
-            if( sad_w == 4 )
-                integral_base += stride * (h->fenc->i_lines[0] + 64);
+            if( delta == 4 )
+                sums_base += stride * (h->fenc->i_lines[0] + 64);
+            if( i_pixel == PIXEL_16x16 || i_pixel == PIXEL_8x16 || i_pixel == PIXEL_4x8 )
+                delta *= stride;
+            if( i_pixel == PIXEL_8x16 || i_pixel == PIXEL_4x8 )
+                enc_dc[1] = enc_dc[2];
 
-#define ESA(ADS) \
-            for( my = min_y; my <= max_y; my++ )\
-            {\
-                int mvs[3], i_mvs=0;\
-                bcost -= p_cost_mvy[my<<2];\
-                for( mx = min_x; mx <= max_x; mx++ )\
-                {\
-                    const uint16_t *integral = &integral_base[ mx + my * stride ];\
-                    if( ADS < bcost - p_cost_mvx[mx<<2] )\
-                    {\
-                        if( i_mvs == 3 )\
-                        {\
-                            COST_MV_X4_ABS( mvs[0],my, mvs[1],my, mvs[2],my, mx,my );\
-                            i_mvs = 0;\
-                        }\
-                        else\
-                            mvs[i_mvs++] = mx;\
-                    }\
-                }\
-                bcost += p_cost_mvy[my<<2];\
-                for( i=0; i<i_mvs; i++ )\
-                    COST_MV( mvs[i], my );\
-            }
-
-            if( i_pixel == PIXEL_16x16 )
+            for( my = min_y; my <= max_y; my++ )
             {
-                ESA( abs( enc_dc[0] - integral[0] )
-                   + abs( enc_dc[1] - integral[8] )
-                   + abs( enc_dc[2] - integral[8*stride] )
-                   + abs( enc_dc[3] - integral[8*stride+8] ) );
-            }
-            else if( i_pixel == PIXEL_8x8 || i_pixel == PIXEL_4x4 )
-            {
-                ESA( abs( enc_dc[0] - integral[0] ) );
-            }
-            else
-            {
-                int dw = i_pixel < PIXEL_8x8 ? 8 : 4;
-                if( i_pixel == PIXEL_8x16 || i_pixel == PIXEL_4x8 )
+                int mvs[3], i_mvs=0;
+                bcost -= p_cost_mvy[my<<2];
+                h->pixf.ads[i_pixel]( enc_dc, sums_base + min_x + my * stride, delta,
+                                      ads, max_x-min_x+1 );
+                for( mx = min_x; mx <= max_x; mx++ )
                 {
-                    dw *= stride;
-                    enc_dc[1] = enc_dc[2];
+                    if( ads[mx-min_x] < bcost - p_cost_mvx[mx<<2] )
+                    {
+                        if( i_mvs == 3 )
+                        {
+                            COST_MV_X4_ABS( mvs[0],my, mvs[1],my, mvs[2],my, mx,my );
+                            i_mvs = 0;
+                        }
+                        else
+                            mvs[i_mvs++] = mx;
+                    }
                 }
-                ESA( abs( enc_dc[0] - integral[0] )
-                   + abs( enc_dc[1] - integral[dw] ) );
+                bcost += p_cost_mvy[my<<2];
+                for( i=0; i<i_mvs; i++ )
+                    COST_MV( mvs[i], my );
             }
-#undef ESA
 #endif
         }
         break;
