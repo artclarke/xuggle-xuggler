@@ -417,26 +417,30 @@ void x264_frame_filter( int cpu, x264_frame_t *frame )
     }
 
     /* generate integral image:
-     * each entry in frame->integral is the sum of all luma samples above and
-     * to the left of its location (inclusive).
-     * this allows us to calculate the DC of any rectangle by looking only
-     * at the corner entries.
-     * individual entries will overflow 16 bits, but that's ok:
-     * we only need the differences between entries, and those will be correct
-     * as long as we don't try to evaluate a rectangle bigger than 16x16.
-     * likewise, we don't really have to init the edges to 0, leaving garbage
-     * there wouldn't affect the results.*/
+     * frame->integral contains 2 planes. in the upper plane, each element is
+     * the sum of an 8x8 pixel region with top-left corner on that point.
+     * in the lower plane, 4x4 sums (needed only with --analyse p4x4). */
 
     if( frame->integral )
     {
         memset( frame->integral - 32 * stride - 32, 0, stride * sizeof(uint16_t) );
-        for( y = -31; y < frame->i_lines[0] + 32; y++ )
+        for( y = -32; y < frame->i_lines[0] + 31; y++ )
         {
             uint8_t  *ref  = frame->plane[0] + y * stride - 32;
-            uint16_t *line = frame->integral + y * stride - 32;
+            uint16_t *line = frame->integral + (y+1) * stride - 31;
             uint16_t v = line[0] = 0;
-            for( x = 1; x < stride; x++ )
+            for( x = 0; x < stride-1; x++ )
                 line[x] = v += ref[x] + line[x-stride] - line[x-stride-1];
+        }
+        for( y = -31; y < frame->i_lines[0] + 24; y++ )
+        {
+            uint16_t *line = frame->integral + y * stride - 31;
+            uint16_t *sum4 = line + frame->i_stride[0] * (frame->i_lines[0] + 64);
+            for( x = -31; x < stride - 40; x++, line++, sum4++ )
+            {
+                sum4[0] =  line[4+4*stride] - line[4] - line[4*stride] + line[0];
+                line[0] += line[8+8*stride] - line[8] - line[8*stride];
+            }
         }
     }
 }
