@@ -204,7 +204,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 
 #ifdef HAVE_MMXEXT
 
-    /* determine the biggest coeffient in all quant8_mf tables */
+    /* determine the biggest coefficient in all quant8_mf tables */
     for( i = 0; i < 2*6*8*8; i++ )
     {
         int q = h->quant8_mf[0][0][0][i];
@@ -212,7 +212,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
             maxQ8 = q;
     }
 
-    /* determine the biggest coeffient in all quant4_mf tables ( maxQ4 )
+    /* determine the biggest coefficient in all quant4_mf tables ( maxQ4 )
        and the biggest DC coefficient if all quant4_mf tables ( maxQdc ) */
     for( i = 0; i < 4*6*4*4; i++ )
     {

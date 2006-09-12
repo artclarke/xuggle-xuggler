@@ -563,7 +563,7 @@ struct x264_t
 
     } stat;
 
-    /* CPU functions dependants */
+    /* CPU functions dependents */
     x264_predict_t      predict_16x16[4+3];
     x264_predict_t      predict_8x8c[4+3];
     x264_predict8x8_t   predict_8x8[9+3];

@@ -233,7 +233,7 @@ lowres_intra_mb:
                 fenc->i_intra_mbs[b-p0]++;
             }
             if( p1 > p0+1 )
-                i_bcost = i_bcost * 9 / 8; // arbitray penalty for I-blocks in and after B-frames
+                i_bcost = i_bcost * 9 / 8; // arbitrary penalty for I-blocks in and after B-frames
         }
     }
 

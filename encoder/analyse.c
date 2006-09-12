@@ -308,7 +308,7 @@ static void predict_16x16_mode_available( unsigned int i_neighbour, int *mode, i
 {
     if( i_neighbour & MB_TOPLEFT )
     {
-        /* top and left avaible */
+        /* top and left available */
         *mode++ = I_PRED_16x16_V;
         *mode++ = I_PRED_16x16_H;
         *mode++ = I_PRED_16x16_DC;
@@ -331,7 +331,7 @@ static void predict_16x16_mode_available( unsigned int i_neighbour, int *mode, i
     }
     else
     {
-        /* none avaible */
+        /* none available */
         *mode = I_PRED_16x16_DC_128;
         *pi_count = 1;
     }
@@ -342,7 +342,7 @@ static void predict_8x8chroma_mode_available( unsigned int i_neighbour, int *mod
 {
     if( i_neighbour & MB_TOPLEFT )
     {
-        /* top and left avaible */
+        /* top and left available */
         *mode++ = I_PRED_CHROMA_V;
         *mode++ = I_PRED_CHROMA_H;
         *mode++ = I_PRED_CHROMA_DC;
@@ -365,7 +365,7 @@ static void predict_8x8chroma_mode_available( unsigned int i_neighbour, int *mod
     }
     else
     {
-        /* none avaible */
+        /* none available */
         *mode = I_PRED_CHROMA_DC_128;
         *pi_count = 1;
     }

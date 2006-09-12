@@ -301,7 +301,7 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
             }
             else
             {
-                bs_write( s, 8, 255);   /* aspect_ratio_idc (extented) */
+                bs_write( s, 8, 255);   /* aspect_ratio_idc (extended) */
                 bs_write( s, 16, sps->vui.i_sar_width );
                 bs_write( s, 16, sps->vui.i_sar_height );
             }

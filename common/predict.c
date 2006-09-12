@@ -139,7 +139,7 @@ static void predict_16x16_p( uint8_t *src )
     int V = 0;
     int i00;
 
-    /* calcule H and V */
+    /* calculate H and V */
     for( i = 0; i <= 7; i++ )
     {
         H += ( i + 1 ) * ( src[ 8 + i - FDEC_STRIDE ] - src[6 -i -FDEC_STRIDE] );

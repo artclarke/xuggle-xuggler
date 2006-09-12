@@ -1006,7 +1006,7 @@ static int x264_slice_write( x264_t *h )
         x264_macroblock_analyse( h );
         TIMER_STOP( i_mtime_analyse );
 
-        /* encode this macrobock -> be careful it can change the mb type to P_SKIP if needed */
+        /* encode this macroblock -> be careful it can change the mb type to P_SKIP if needed */
         TIMER_START( i_mtime_encode );
         x264_macroblock_encode( h );
         TIMER_STOP( i_mtime_encode );
@@ -1297,7 +1297,7 @@ do_encode:
     }
 
     /* ------------------- Setup frame context ----------------------------- */
-    /* 5: Init data dependant of frame type */
+    /* 5: Init data dependent of frame type */
     TIMER_START( i_mtime_encode_frame );
     if( h->fenc->i_type == X264_TYPE_IDR )
     {

@@ -251,7 +251,7 @@ typedef struct
         float       f_qblur;        /* temporally blur quants */
         float       f_complexity_blur; /* temporally blur complexity */
         x264_zone_t *zones;         /* ratecontrol overrides */
-        int         i_zones;        /* sumber of zone_t's */
+        int         i_zones;        /* number of zone_t's */
         char        *psz_zones;     /* alternate method of specifying zones */
     } rc;
 

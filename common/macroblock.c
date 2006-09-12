@@ -299,7 +299,7 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
         }
         else
         {
-            /* the colocated ref isn't in the current list0 */
+            /* the collocated ref isn't in the current list0 */
             /* FIXME: we might still be able to use direct_8x8 on some partitions */
             /* FIXME: with B-pyramid + extensive ref list reordering
              *   (not currently used), we would also have to check
@@ -848,7 +848,7 @@ int x264_macroblock_cache_init( x264_t *h )
             CHECKED_MALLOC( h->mb.mvr[i][j], 2 * i_mb_count * sizeof(int16_t) );
     }
 
-    /* init with not avaiable (for top right idx=7,15) */
+    /* init with not available (for top right idx=7,15) */
     memset( h->mb.cache.ref[0], -2, X264_SCAN8_SIZE * sizeof( int8_t ) );
     memset( h->mb.cache.ref[1], -2, X264_SCAN8_SIZE * sizeof( int8_t ) );
 
