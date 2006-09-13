@@ -192,7 +192,7 @@ void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int dequant_mf[6][4][4], int i_q
 
 void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 {
-    int i, maxQ8=0, maxQ4=0, maxQdc=0;
+    int i, j, maxQ8=0, maxQ4=0, maxQdc=0;
 
     pf->quant_8x8_core = quant_8x8_core;
     pf->quant_4x4_core = quant_4x4_core;
@@ -205,23 +205,25 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 #ifdef HAVE_MMXEXT
 
     /* determine the biggest coefficient in all quant8_mf tables */
-    for( i = 0; i < 2*6*8*8; i++ )
-    {
-        int q = h->quant8_mf[0][0][0][i];
-        if( maxQ8 < q )
-            maxQ8 = q;
-    }
+    for( j = 0; j < 2; j++ )
+        for( i = 0; i < 6*8*8; i++ )
+        {
+            int q = h->quant8_mf[j][0][0][i];
+            if( maxQ8 < q )
+                maxQ8 = q;
+        }
 
     /* determine the biggest coefficient in all quant4_mf tables ( maxQ4 )
        and the biggest DC coefficient if all quant4_mf tables ( maxQdc ) */
-    for( i = 0; i < 4*6*4*4; i++ )
-    {
-        int q = h->quant4_mf[0][0][0][i];
-        if( maxQ4 < q )
-            maxQ4 = q;
-        if( maxQdc < q && i%16 == 0 )
-            maxQdc = q;
-    }
+    for( j = 0; j < 4; j++ )
+        for( i = 0; i < 6*4*4; i++ )
+        {
+            int q = h->quant4_mf[j][0][0][i];
+            if( maxQ4 < q )
+                maxQ4 = q;
+            if( maxQdc < q && i%16 == 0 )
+                maxQdc = q;
+        }
 
     /* select quant_8x8 based on CPU and maxQ8 */
     if( maxQ8 < (1<<15) && cpu&X264_CPU_MMX )
