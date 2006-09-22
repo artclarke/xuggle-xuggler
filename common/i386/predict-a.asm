@@ -191,6 +191,7 @@ predict_8x8_ddl_mmxext:
 %assign Y (Y-1)
     movq        [edx + Y*FDEC_STRIDE], mm1
 
+    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
@@ -227,6 +228,7 @@ predict_8x8_ddr_mmxext:
 %assign Y (Y-1)
     movq        [edx + Y*FDEC_STRIDE], mm0
 
+    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
@@ -267,7 +269,8 @@ predict_8x8_vr_core_mmxext:
 %endrep
     movq        [edx +  Y   *FDEC_STRIDE], mm3
     movq        [edx + (Y+1)*FDEC_STRIDE], mm0
-    
+
+    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
