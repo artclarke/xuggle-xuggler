@@ -60,7 +60,9 @@ OBJS = $(SRCS:%.c=%.o)
 OBJCLI = $(SRCCLI:%.c=%.o)
 DEP  = depend
 
-.PHONY: default fprofiled clean distclean install install-gtk uninstall
+.PHONY: all default fprofiled clean distclean install install-gtk uninstall
+all: default
+
 default: $(DEP) x264$(EXE)
 
 libx264.a: .depend $(OBJS) $(OBJASM)
