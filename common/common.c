@@ -221,15 +221,15 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     }
     OPT("overscan")
         b_error |= parse_enum( value, x264_overscan_names, &p->vui.i_overscan );
-    OPT("vidformat")
+    OPT("videoformat")
         b_error |= parse_enum( value, x264_vidformat_names, &p->vui.i_vidformat );
     OPT("fullrange")
         b_error |= parse_enum( value, x264_fullrange_names, &p->vui.b_fullrange );
-    OPT("colourprim")
+    OPT("colorprim")
         b_error |= parse_enum( value, x264_colorprim_names, &p->vui.i_colorprim );
     OPT("transfer")
         b_error |= parse_enum( value, x264_transfer_names, &p->vui.i_transfer );
-    OPT("colourmatrix")
+    OPT("colormatrix")
         b_error |= parse_enum( value, x264_colmatrix_names, &p->vui.i_colmatrix );
     OPT("chromaloc")
     {
