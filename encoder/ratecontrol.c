@@ -516,6 +516,18 @@ static int parse_zones( x264_t *h )
     return 0;
 }
 
+x264_zone_t *get_zone( x264_t *h, int frame_num )
+{
+    int i;
+    for( i = h->rc->i_zones-1; i >= 0; i-- )
+    {
+        x264_zone_t *z = &h->rc->zones[i];
+        if( frame_num >= z->i_start && frame_num <= z->i_end )
+            return z;
+    }
+    return NULL;
+}
+
 void x264_ratecontrol_summary( x264_t *h )
 {
     x264_ratecontrol_t *rc = h->rc;
@@ -605,12 +617,22 @@ void x264_ratecontrol_start( x264_t *h, int i_slice_type, int i_force_qp )
     }
     else /* CQP */
     {
-        int q;
+        x264_zone_t *zone = get_zone( h, h->fenc->i_frame );
+        float q;
         if( i_slice_type == SLICE_TYPE_B && h->fdec->b_kept_as_ref )
             q = ( rc->qp_constant[ SLICE_TYPE_B ] + rc->qp_constant[ SLICE_TYPE_P ] ) / 2;
         else
             q = rc->qp_constant[ i_slice_type ];
-        rc->qpm = rc->qp = q;
+
+        if( zone )
+        {
+            if( zone->b_force_qp )
+                q += zone->i_qp - rc->qp_constant[SLICE_TYPE_P];
+            else
+                q -= 6*log(zone->f_bitrate_factor)/log(2);
+        }
+
+        rc->qpm = rc->qp = (int)(q + 0.5);
     }
 }
 
@@ -877,7 +899,7 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
     x264_ratecontrol_t *rcc= h->rc;
     const int pict_type = rce->pict_type;
     double q;
-    int i;
+    x264_zone_t *zone = get_zone( h, frame_num );
 
     double const_values[]={
         rce->i_tex_bits * rce->qscale,
@@ -941,17 +963,12 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
         rcc->last_qscale = q;
     }
 
-    for( i = rcc->i_zones-1; i >= 0; i-- )
+    if( zone )
     {
-        x264_zone_t *z = &rcc->zones[i];
-        if( frame_num >= z->i_start && frame_num <= z->i_end )
-        {
-            if( z->b_force_qp )
-                q = qp2qscale(z->i_qp);
-            else
-                q /= z->f_bitrate_factor;
-            break;
-        }
+        if( zone->b_force_qp )
+            q = qp2qscale(zone->i_qp);
+        else
+            q /= zone->f_bitrate_factor;
     }
 
     return q;
