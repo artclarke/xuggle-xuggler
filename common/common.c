@@ -122,6 +122,8 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.i_chroma_qp_offset = 0;
     param->analyse.b_fast_pskip = 1;
     param->analyse.b_dct_decimate = 1;
+    param->analyse.i_luma_deadzone[0] = 21;
+    param->analyse.i_luma_deadzone[1] = 11;
     param->analyse.b_psnr = 1;
     param->analyse.b_ssim = 1;
 
@@ -405,6 +407,10 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->analyse.b_fast_pskip = atobool(value);
     OPT("dct-decimate")
         p->analyse.b_dct_decimate = atobool(value);
+    OPT("deadzone-inter")
+        p->analyse.i_luma_deadzone[0] = atoi(value);
+    OPT("deadzone-intra")
+        p->analyse.i_luma_deadzone[1] = atoi(value);
     OPT("nr")
         p->analyse.i_noise_reduction = atoi(value);
     OPT("bitrate")
@@ -820,10 +826,12 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " trellis=%d", p->analyse.i_trellis );
     s += sprintf( s, " 8x8dct=%d", p->analyse.b_transform_8x8 );
     s += sprintf( s, " cqm=%d", p->i_cqm_preset );
+    s += sprintf( s, " deadzone=%d,%d", p->analyse.i_luma_deadzone[0], p->analyse.i_luma_deadzone[1] );
     s += sprintf( s, " chroma_qp_offset=%d", p->analyse.i_chroma_qp_offset );
     s += sprintf( s, " slices=%d", p->i_threads );
     s += sprintf( s, " nr=%d", p->analyse.i_noise_reduction );
     s += sprintf( s, " decimate=%d", p->analyse.b_dct_decimate );
+    s += sprintf( s, " mbaff=%d", p->b_interlaced );
 
     s += sprintf( s, " bframes=%d", p->i_bframe );
     if( p->i_bframe )

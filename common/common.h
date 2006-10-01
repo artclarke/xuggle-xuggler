@@ -401,6 +401,9 @@ struct x264_t
 
         int     b_interlaced;
 
+        /* Inverted luma quantization deadzone */
+        int     i_luma_deadzone[2]; // {inter, intra}
+
         /* Allowed qpel MV range to stay within the picture + emulated edge pixels */
         int     mv_min[2];
         int     mv_max[2];

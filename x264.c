@@ -233,6 +233,9 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "      --no-dct-decimate       Disables coefficient thresholding on P-frames\n" );
     H0( "      --nr <integer>          Noise reduction [%d]\n", defaults->analyse.i_noise_reduction );
     H1( "\n" );
+    H1( "      --deadzone-inter <int>  Set the size of the inter luma quantization deadzone [%d]\n", defaults->analyse.i_luma_deadzone[0] );
+    H1( "      --deadzone-intra <int>  Set the size of the intra luma quantization deadzone [%d]\n", defaults->analyse.i_luma_deadzone[1] );
+    H1( "                                  Deadzones should be in the range 0 - 32.\n" );
     H1( "      --cqm <string>          Preset quant matrices [\"flat\"]\n"
         "                                  - jvt, flat\n" );
     H0( "      --cqmfile <string>      Read custom quant matrices from a JM-compatible file\n" );
@@ -383,6 +386,8 @@ static int  Parse( int argc, char **argv,
             { "trellis", required_argument, NULL, 't' },
             { "no-fast-pskip", no_argument, NULL, 0 },
             { "no-dct-decimate", no_argument, NULL, 0 },
+            { "deadzone-inter", required_argument, NULL, '0' },
+            { "deadzone-intra", required_argument, NULL, '0' },
             { "level",   required_argument, NULL, 0 },
             { "ratetol", required_argument, NULL, 0 },
             { "vbv-maxrate", required_argument, NULL, 0 },

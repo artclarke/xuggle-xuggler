@@ -423,6 +423,10 @@ static int x264_validate_parameters( x264_t *h )
 
     h->param.i_deblocking_filter_alphac0 = x264_clip3( h->param.i_deblocking_filter_alphac0, -6, 6 );
     h->param.i_deblocking_filter_beta    = x264_clip3( h->param.i_deblocking_filter_beta, -6, 6 );
+    h->param.analyse.i_luma_deadzone[0] = x264_clip3( h->param.analyse.i_luma_deadzone[0], 0, 32 );
+    h->param.analyse.i_luma_deadzone[1] = x264_clip3( h->param.analyse.i_luma_deadzone[1], 0, 32 );
+    h->mb.i_luma_deadzone[0] = 32 - h->param.analyse.i_luma_deadzone[0];
+    h->mb.i_luma_deadzone[1] = 32 - h->param.analyse.i_luma_deadzone[1];
 
     h->param.i_cabac_init_idc = x264_clip3( h->param.i_cabac_init_idc, 0, 2 );
 

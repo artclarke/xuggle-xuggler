@@ -218,6 +218,9 @@ typedef struct
         int          b_dct_decimate; /* transform coefficient thresholding on P-frames */
         int          i_noise_reduction; /* adaptive pseudo-deadzone */
 
+        /* the deadzone size that will be used in luma quantization */
+        int          i_luma_deadzone[2]; // {inter, intra}
+
         int          b_psnr;    /* compute and print PSNR stats */
         int          b_ssim;    /* compute and print SSIM stats */
     } analyse;
