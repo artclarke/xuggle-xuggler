@@ -26,6 +26,9 @@
 
 #include "common.h"
 
+#define PADH 32
+#define PADV 32
+
 x264_frame_t *x264_frame_new( x264_t *h )
 {
     x264_frame_t *frame = x264_malloc( sizeof(x264_frame_t) );
@@ -34,14 +37,17 @@ x264_frame_t *x264_frame_new( x264_t *h )
     int i_mb_count = h->mb.i_mb_count;
     int i_stride;
     int i_lines;
+    int i_padv = PADV << h->param.b_interlaced;
 
     if( !frame ) return NULL;
 
     memset( frame, 0, sizeof(x264_frame_t) );
 
     /* allocate frame data (+64 for extra data for me) */
-    i_stride = ( ( h->param.i_width  + 15 )&0xfffff0 )+ 64;
-    i_lines  = ( ( h->param.i_height + 15 )&0xfffff0 );
+    i_stride = ( ( h->param.i_width  + 15 ) & -16 )+ 2*PADH;
+    i_lines  = ( ( h->param.i_height + 15 ) & -16 );
+    if( h->param.b_interlaced )
+        i_lines = ( i_lines + 31 ) & -32;
 
     frame->i_plane = 3;
     for( i = 0; i < 3; i++ )
@@ -58,9 +64,10 @@ x264_frame_t *x264_frame_new( x264_t *h )
         frame->i_stride[i] = i_stride / i_divw;
         frame->i_lines[i] = i_lines / i_divh;
         CHECKED_MALLOC( frame->buffer[i],
-                        frame->i_stride[i] * ( frame->i_lines[i] + 64 / i_divh ) );
+                        frame->i_stride[i] * ( frame->i_lines[i] + 2*i_padv / i_divh ) );
+
         frame->plane[i] = ((uint8_t*)frame->buffer[i]) +
-                          frame->i_stride[i] * 32 / i_divh + 32 / i_divw;
+                          frame->i_stride[i] * i_padv / i_divh + PADH / i_divw;
     }
     frame->i_stride[3] = 0;
     frame->i_lines[3] = 0;
@@ -71,29 +78,29 @@ x264_frame_t *x264_frame_new( x264_t *h )
     for( i = 0; i < 3; i++ )
     {
         CHECKED_MALLOC( frame->buffer[4+i],
-                        frame->i_stride[0] * ( frame->i_lines[0] + 64 ) );
+                        frame->i_stride[0] * ( frame->i_lines[0] + 2*i_padv ) );
         frame->filtered[i+1] = ((uint8_t*)frame->buffer[4+i]) +
-                                frame->i_stride[0] * 32 + 32;
+                                frame->i_stride[0] * i_padv + PADH;
     }
 
     if( h->frames.b_have_lowres )
     {
-        frame->i_stride_lowres = frame->i_stride[0]/2 + 32;
+        frame->i_stride_lowres = frame->i_stride[0]/2 + PADH;
         frame->i_lines_lowres = frame->i_lines[0]/2;
         for( i = 0; i < 4; i++ )
         {
-            CHECKED_MALLOC( frame->buffer[7+i],
-                            frame->i_stride_lowres * ( frame->i_lines[0]/2 + 64 ) );
-            frame->lowres[i] = ((uint8_t*)frame->buffer[7+i]) +
-                                frame->i_stride_lowres * 32 + 32;
+            CHECKED_MALLOC( frame->buffer_lowres[i],
+                            frame->i_stride_lowres * ( frame->i_lines[0]/2 + 2*i_padv ) );
+            frame->lowres[i] = ((uint8_t*)frame->buffer_lowres[i]) +
+                                frame->i_stride_lowres * i_padv + PADH;
         }
     }
 
     if( h->param.analyse.i_me_method == X264_ME_ESA )
     {
-        CHECKED_MALLOC( frame->buffer[11],
-                        2 * frame->i_stride[0] * (frame->i_lines[0] + 64) * sizeof(uint16_t) );
-        frame->integral = (uint16_t*)frame->buffer[11] + frame->i_stride[0] * 32 + 32;
+        CHECKED_MALLOC( frame->buffer[7],
+                        2 * frame->i_stride[0] * (frame->i_lines[0] + 2*i_padv) * sizeof(uint16_t) );
+        frame->integral = (uint16_t*)frame->buffer[7] + frame->i_stride[0] * i_padv + PADH;
     }
 
     frame->i_poc = -1;
@@ -133,8 +140,10 @@ fail:
 void x264_frame_delete( x264_frame_t *frame )
 {
     int i, j;
-    for( i = 0; i < 12; i++ )
+    for( i = 0; i < 8; i++ )
         x264_free( frame->buffer[i] );
+    for( i = 0; i < 4; i++ )
+        x264_free( frame->buffer_lowres[i] );
     for( i = 0; i < X264_BFRAME_MAX+2; i++ )
         for( j = 0; j < X264_BFRAME_MAX+2; j++ )
             x264_free( frame->i_row_satds[i][j] );
@@ -189,52 +198,77 @@ void x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src 
 
 
 
-static void plane_expand_border( uint8_t *pix, int i_stride, int i_height, int i_pad )
+static void plane_expand_border( uint8_t *pix, int i_stride, int i_width, int i_height, int i_padh, int i_padv )
 {
 #define PPIXEL(x, y) ( pix + (x) + (y)*i_stride )
-    const int i_width = i_stride - 2*i_pad;
     int y;
-
     for( y = 0; y < i_height; y++ )
     {
         /* left band */
-        memset( PPIXEL(-i_pad, y), PPIXEL(0, y)[0], i_pad );
+        memset( PPIXEL(-i_padh, y), PPIXEL(0, y)[0], i_padh );
         /* right band */
-        memset( PPIXEL(i_width, y), PPIXEL(i_width-1, y)[0], i_pad );
+        memset( PPIXEL(i_width, y), PPIXEL(i_width-1, y)[0], i_padh );
     }
     /* upper band */
-    for( y = 0; y < i_pad; y++ )
-        memcpy( PPIXEL(-i_pad, -y-1), PPIXEL(-i_pad, 0), i_stride );
+    for( y = 0; y < i_padv; y++ )
+        memcpy( PPIXEL(-i_padh, -y-1), PPIXEL(-i_padh, 0), i_width+2*i_padh );
     /* lower band */
-    for( y = 0; y < i_pad; y++ )
-        memcpy( PPIXEL(-i_pad, i_height+y), PPIXEL(-i_pad, i_height-1), i_stride );
+    for( y = 0; y < i_padv; y++ )
+        memcpy( PPIXEL(-i_padh, i_height+y), PPIXEL(-i_padh, i_height-1), i_width+2*i_padh );
 #undef PPIXEL
 }
 
-void x264_frame_expand_border( x264_frame_t *frame )
+void x264_frame_expand_border( x264_t *h, x264_frame_t *frame )
 {
     int i;
     for( i = 0; i < frame->i_plane; i++ )
     {
-        int i_pad = i ? 16 : 32;
-        plane_expand_border( frame->plane[i], frame->i_stride[i], frame->i_lines[i], i_pad );
+        int stride = frame->i_stride[i];
+        int width = 16*h->sps->i_mb_width >> !!i;
+        int height = 16*h->sps->i_mb_height >> !!i;
+        int padh = PADH >> !!i;
+        int padv = PADV >> !!i;
+        if( h->param.b_interlaced )
+        {
+            plane_expand_border( frame->plane[i], stride*2, width, height>>1, padh, padv );
+            plane_expand_border( frame->plane[i]+stride, stride*2, width, height>>1, padh, padv );
+        }
+        else
+        {
+            plane_expand_border( frame->plane[i], stride, width, height, padh, padv );
+        }
     }
 }
 
-void x264_frame_expand_border_filtered( x264_frame_t *frame )
+void x264_frame_expand_border_filtered( x264_t *h, x264_frame_t *frame )
 {
     /* during filtering, 8 extra pixels were filtered on each edge. 
        we want to expand border from the last filtered pixel */
+    int stride = frame->i_stride[0];
+    int width = 16*h->sps->i_mb_width;
+    int height = 16*h->sps->i_mb_height;
+    int padh = PADH - 8;
+    int padv = PADV - 8;
     int i;
     for( i = 1; i < 4; i++ )
-        plane_expand_border( frame->filtered[i] - 8*frame->i_stride[0] - 8, frame->i_stride[0], frame->i_lines[0]+2*8, 24 );
+    {
+        if( h->param.b_interlaced )
+        {
+            plane_expand_border( frame->filtered[i] - 16*stride - 8, stride*2, width+16, (height>>1)+16, padh, padv );
+            plane_expand_border( frame->filtered[i] - 15*stride - 8, stride*2, width+16, (height>>1)+16, padh, padv );
+        }
+        else
+        {
+            plane_expand_border( frame->filtered[i] - 8*stride - 8, stride, width+16, height+16, padh, padv );
+        }
+    }
 }
 
 void x264_frame_expand_border_lowres( x264_frame_t *frame )
 {
     int i;
     for( i = 0; i < 4; i++ )
-        plane_expand_border( frame->lowres[i], frame->i_stride_lowres, frame->i_lines_lowres, 32 );
+        plane_expand_border( frame->lowres[i], frame->i_stride_lowres, frame->i_stride_lowres - 2*PADH, frame->i_lines_lowres, PADH, PADV );
 }
 
 void x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame )
@@ -257,6 +291,7 @@ void x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame )
         }
         if( i_pady )
         {
+            //FIXME interlace? or just let it pad using the wrong field
             for( y = i_height; y < i_height + i_pady; y++ )
                 memcpy( &frame->plane[i][y*frame->i_stride[i]],
                         &frame->plane[i][(i_height-1)*frame->i_stride[i]],
@@ -500,8 +535,13 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
 {
     const int s8x8 = 2 * h->mb.i_mb_stride;
     const int s4x4 = 4 * h->mb.i_mb_stride;
-
+    const int b_interlaced = h->param.b_interlaced;
+    const int mvy_limit = 4 >> b_interlaced;
     int mb_y, mb_x;
+
+    int i_stride2[3] = { h->fdec->i_stride[0] << b_interlaced,
+                         h->fdec->i_stride[1] << b_interlaced,
+                         h->fdec->i_stride[2] << b_interlaced };
 
     for( mb_y = 0, mb_x = 0; mb_y < h->sps->i_mb_height; )
     {
@@ -511,6 +551,16 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
         const int b_8x8_transform = h->mb.mb_transform_size[mb_xy];
         const int i_edge_end = (h->mb.type[mb_xy] == P_SKIP) ? 1 : 4;
         int i_edge, i_dir;
+
+        int i_pix_y[3] = { 16*mb_y*h->fdec->i_stride[0] + 16*mb_x,
+                            8*mb_y*h->fdec->i_stride[1] +  8*mb_x,
+                            8*mb_y*h->fdec->i_stride[2] +  8*mb_x };
+        if( b_interlaced && (mb_y&1) )
+        {
+            i_pix_y[0] -= 15*h->fdec->i_stride[0];
+            i_pix_y[1] -=  7*h->fdec->i_stride[1];
+            i_pix_y[2] -=  7*h->fdec->i_stride[2];
+        }
 
         /* cavlc + 8x8 transform stores nnz per 16 coeffs for the purpose of
          * entropy coding, but per 64 coeffs for the purpose of deblocking */
@@ -527,7 +577,7 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
          * i_dir == 1 -> horizontal edge */
         for( i_dir = 0; i_dir < 2; i_dir++ )
         {
-            int i_start = (i_dir ? mb_y : mb_x) ? 0 : 1;
+            int i_start = (i_dir ? (mb_y <= b_interlaced) : (mb_x == 0));
             int i_qp, i_qpn;
 
             for( i_edge = i_start; i_edge < i_edge_end; i_edge++ )
@@ -542,10 +592,17 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
                 mbn_8x8 = i_edge > 0 ? mb_8x8 : ( i_dir == 0 ? mb_8x8 - 2 : mb_8x8 - 2 * s8x8 );
                 mbn_4x4 = i_edge > 0 ? mb_4x4 : ( i_dir == 0 ? mb_4x4 - 4 : mb_4x4 - 4 * s4x4 );
 
+                if( b_interlaced && i_edge == 0 && i_dir == 1 )
+                {
+                    mbn_xy -= h->mb.i_mb_stride;
+                    mbn_8x8 -= 2 * s8x8;
+                    mbn_4x4 -= 4 * s4x4;
+                }
+
                 /* *** Get bS for each 4px for the current edge *** */
                 if( IS_INTRA( h->mb.type[mb_xy] ) || IS_INTRA( h->mb.type[mbn_xy] ) )
                 {
-                    bS[0] = bS[1] = bS[2] = bS[3] = ( i_edge == 0 ? 4 : 3 );
+                    bS[0] = bS[1] = bS[2] = bS[3] = ( i_edge == 0 && !(b_interlaced && i_dir) ? 4 : 3 );
                 }
                 else
                 {
@@ -581,7 +638,7 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
                             {
                                 if( h->mb.ref[l][i8p] != h->mb.ref[l][i8q] ||
                                     abs( h->mb.mv[l][i4p][0] - h->mb.mv[l][i4q][0] ) >= 4 ||
-                                    abs( h->mb.mv[l][i4p][1] - h->mb.mv[l][i4q][1] ) >= 4 )
+                                    abs( h->mb.mv[l][i4p][1] - h->mb.mv[l][i4q][1] ) >= mvy_limit )
                                 {
                                     bS[i] = 1;
                                     break;
@@ -599,51 +656,54 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
                 if( i_dir == 0 )
                 {
                     /* vertical edge */
-                    deblock_edge( h, &h->fdec->plane[0][16*mb_y * h->fdec->i_stride[0] + 16*mb_x + 4*i_edge],
-                                  h->fdec->i_stride[0], bS, (i_qp+i_qpn+1) >> 1, 0,
+                    deblock_edge( h, &h->fdec->plane[0][i_pix_y[0] + 4*i_edge],
+                                  i_stride2[0], bS, (i_qp+i_qpn+1) >> 1, 0,
                                   h->loopf.deblock_h_luma, h->loopf.deblock_h_luma_intra );
                     if( !(i_edge & 1) )
                     {
                         /* U/V planes */
                         int i_qpc = ( i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )] +
                                       i_chroma_qp_table[x264_clip3( i_qpn + h->pps->i_chroma_qp_index_offset, 0, 51 )] + 1 ) >> 1;
-                        deblock_edge( h, &h->fdec->plane[1][8*(mb_y*h->fdec->i_stride[1]+mb_x)+2*i_edge],
-                                      h->fdec->i_stride[1], bS, i_qpc, 1,
+                        deblock_edge( h, &h->fdec->plane[1][i_pix_y[1] + 2*i_edge],
+                                      i_stride2[1], bS, i_qpc, 1,
                                       h->loopf.deblock_h_chroma, h->loopf.deblock_h_chroma_intra );
-                        deblock_edge( h, &h->fdec->plane[2][8*(mb_y*h->fdec->i_stride[2]+mb_x)+2*i_edge],
-                                      h->fdec->i_stride[2], bS, i_qpc, 1,
+                        deblock_edge( h, &h->fdec->plane[2][i_pix_y[2] + 2*i_edge],
+                                      i_stride2[2], bS, i_qpc, 1,
                                       h->loopf.deblock_h_chroma, h->loopf.deblock_h_chroma_intra );
                     }
                 }
                 else
                 {
                     /* horizontal edge */
-                    deblock_edge( h, &h->fdec->plane[0][(16*mb_y + 4*i_edge) * h->fdec->i_stride[0] + 16*mb_x],
-                                  h->fdec->i_stride[0], bS, (i_qp+i_qpn+1) >> 1, 0,
+                    deblock_edge( h, &h->fdec->plane[0][i_pix_y[0] + 4*i_edge*i_stride2[0]],
+                                  i_stride2[0], bS, (i_qp+i_qpn+1) >> 1, 0,
                                   h->loopf.deblock_v_luma, h->loopf.deblock_v_luma_intra );
                     /* U/V planes */
                     if( !(i_edge & 1) )
                     {
                         int i_qpc = ( i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )] +
                                       i_chroma_qp_table[x264_clip3( i_qpn + h->pps->i_chroma_qp_index_offset, 0, 51 )] + 1 ) >> 1;
-                        deblock_edge( h, &h->fdec->plane[1][8*(mb_y*h->fdec->i_stride[1]+mb_x)+2*i_edge*h->fdec->i_stride[1]],
-                                      h->fdec->i_stride[1], bS, i_qpc, 1,
+                        deblock_edge( h, &h->fdec->plane[1][i_pix_y[1] + 2*i_edge*i_stride2[1]],
+                                      i_stride2[1], bS, i_qpc, 1,
                                       h->loopf.deblock_v_chroma, h->loopf.deblock_v_chroma_intra );
-                        deblock_edge( h, &h->fdec->plane[2][8*(mb_y*h->fdec->i_stride[2]+mb_x)+2*i_edge*h->fdec->i_stride[2]],
-                                      h->fdec->i_stride[2], bS, i_qpc, 1,
+                        deblock_edge( h, &h->fdec->plane[2][i_pix_y[2] + 2*i_edge*i_stride2[2]],
+                                      i_stride2[2], bS, i_qpc, 1,
                                       h->loopf.deblock_v_chroma, h->loopf.deblock_v_chroma_intra );
                     }
                 }
             }
         }
 
-        /* newt mb */
-        mb_x++;
+        /* next mb */
+        if( !b_interlaced || (mb_y&1) )
+            mb_x++;
         if( mb_x >= h->sps->i_mb_width )
         {
             mb_x = 0;
             mb_y++;
         }
+        else
+            mb_y ^= b_interlaced;
     }
 }
 

@@ -292,6 +292,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->b_cabac = atobool(value);
     OPT("cabac-idc")
         p->i_cabac_init_idc = atoi(value);
+    OPT("interlaced")
+        p->b_interlaced = atobool(value);
     OPT("cqm")
     {
         if( strstr( value, "flat" ) )

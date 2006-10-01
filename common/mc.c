@@ -372,10 +372,11 @@ extern void x264_center_filter_mmxext( uint8_t *dst1, int i_dst1_stride,
                                        uint8_t *src, int i_src_stride,
                                        int i_width, int i_height );
 
-void x264_frame_filter( int cpu, x264_frame_t *frame )
+void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced )
 {
     const int x_inc = 16, y_inc = 16;
-    const int stride = frame->i_stride[0];
+    const int stride = frame->i_stride[0] << b_interlaced;
+    const int height = frame->i_lines[0] >> b_interlaced;
     int x, y;
 
     pf_mc_t int_h = mc_hh;
@@ -387,16 +388,16 @@ void x264_frame_filter( int cpu, x264_frame_t *frame )
     {
         x264_horizontal_filter_mmxext(frame->filtered[1] - 8 * stride - 8, stride,
             frame->plane[0] - 8 * stride - 8, stride,
-            stride - 48, frame->i_lines[0] + 16);
+            stride - 48, height + 16);
         x264_center_filter_mmxext(frame->filtered[2] - 8 * stride - 8, stride,
             frame->filtered[3] - 8 * stride - 8, stride,
             frame->plane[0] - 8 * stride - 8, stride,
-            stride - 48, frame->i_lines[0] + 16);
+            stride - 48, height + 16);
     }
     else
 #endif
     {
-        for( y = -8; y < frame->i_lines[0]+8; y += y_inc )
+        for( y = -8; y < height + 8; y += y_inc )
         {
             uint8_t *p_in = frame->plane[0] + y * stride - 8;
             uint8_t *p_h  = frame->filtered[1] + y * stride - 8;

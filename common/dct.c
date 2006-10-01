@@ -29,6 +29,8 @@
 #   include "ppc/dct.h"
 #endif
 
+int x264_dct4_weight2_zigzag[2][16];
+int x264_dct8_weight2_zigzag[2][64];
 
 static inline int clip_uint8( int a )
 {
@@ -439,5 +441,17 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
         dctf->sub16x16_dct  = x264_sub16x16_dct_altivec;
     }
 #endif
+}
+
+void x264_dct_init_weights( void )
+{
+    int i, j;
+    for( j=0; j<2; j++ )
+    {
+        for( i=0; i<16; i++ )
+            x264_dct4_weight2_zigzag[j][i] = x264_dct4_weight2_tab[ x264_zigzag_scan4[j][i] ];
+        for( i=0; i<64; i++ )
+            x264_dct8_weight2_zigzag[j][i] = x264_dct8_weight2_tab[ x264_zigzag_scan8[j][i] ];
+    }
 }
 

@@ -230,10 +230,12 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
         h->mb.mv_max_spel[0] = 4*( h->mb.mv_max_fpel[0] + 16 );
         if( h->mb.i_mb_x == 0)
         {
-            h->mb.mv_min[1] = 4*( -16*h->mb.i_mb_y - 24 );
-            h->mb.mv_max[1] = 4*( 16*( h->sps->i_mb_height - h->mb.i_mb_y - 1 ) + 24 );
-            h->mb.mv_min_fpel[1] = CLIP_FMV( -16*h->mb.i_mb_y - 8 );
-            h->mb.mv_max_fpel[1] = CLIP_FMV( 16*( h->sps->i_mb_height - h->mb.i_mb_y - 1 ) + 8 );
+            int mb_y = h->mb.i_mb_y >> h->sh.b_mbaff;
+            int mb_height = h->sps->i_mb_height >> h->sh.b_mbaff;
+            h->mb.mv_min[1] = 4*( -16*mb_y - 24 );
+            h->mb.mv_max[1] = 4*( 16*( mb_height - mb_y - 1 ) + 24 );
+            h->mb.mv_min_fpel[1] = CLIP_FMV( -16*mb_y - 8 );
+            h->mb.mv_max_fpel[1] = CLIP_FMV( 16*( mb_height - mb_y - 1 ) + 8 );
             h->mb.mv_min_spel[1] = 4*( h->mb.mv_min_fpel[1] - 16 );
             h->mb.mv_max_spel[1] = 4*( h->mb.mv_max_fpel[1] + 16 );
         }
@@ -868,7 +870,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     int i_ref;
     int mvc[7][2], i_mvc;
     int i_halfpel_thresh = INT_MAX;
-    int *p_halfpel_thresh = h->i_ref0>1 ? &i_halfpel_thresh : NULL;
+    int *p_halfpel_thresh = h->mb.pic.i_fref[0]>1 ? &i_halfpel_thresh : NULL;
 
     /* 16x16 Search on all ref frame */
     m.i_pixel = PIXEL_16x16;
@@ -876,7 +878,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     LOAD_FENC( &m, h->mb.pic.p_fenc, 0, 0 );
 
     a->l0.me16x16.cost = INT_MAX;
-    for( i_ref = 0; i_ref < h->i_ref0; i_ref++ )
+    for( i_ref = 0; i_ref < h->mb.pic.i_fref[0]; i_ref++ )
     {
         const int i_ref_cost = REF_COST( 0, i_ref );
         i_halfpel_thresh -= i_ref_cost;
@@ -939,9 +941,9 @@ static void x264_mb_analyse_inter_p8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
     int i_ref;
     uint8_t  **p_fenc = h->mb.pic.p_fenc;
     int i_halfpel_thresh = INT_MAX;
-    int *p_halfpel_thresh = /*h->i_ref0>1 ? &i_halfpel_thresh : */NULL;
+    int *p_halfpel_thresh = /*h->mb.pic.i_fref[0]>1 ? &i_halfpel_thresh : */NULL;
     int i;
-    int i_maxref = h->i_ref0-1;
+    int i_maxref = h->mb.pic.i_fref[0]-1;
 
     h->mb.i_partition = D_8x8;
 
@@ -1349,7 +1351,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     int i_ref;
     int mvc[8][2], i_mvc;
     int i_halfpel_thresh = INT_MAX;
-    int *p_halfpel_thresh = h->i_ref0>1 ? &i_halfpel_thresh : NULL;
+    int *p_halfpel_thresh = h->mb.pic.i_fref[0]>1 ? &i_halfpel_thresh : NULL;
 
     /* 16x16 Search on all ref frame */
     m.i_pixel = PIXEL_16x16;
@@ -1358,7 +1360,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 
     /* ME for List 0 */
     a->l0.me16x16.cost = INT_MAX;
-    for( i_ref = 0; i_ref < h->i_ref0; i_ref++ )
+    for( i_ref = 0; i_ref < h->mb.pic.i_fref[0]; i_ref++ )
     {
         /* search with ref */
         LOAD_HPELS( &m, h->mb.pic.p_fref[0][i_ref], 0, i_ref, 0, 0 );
@@ -1384,9 +1386,9 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 
     /* ME for list 1 */
     i_halfpel_thresh = INT_MAX;
-    p_halfpel_thresh = h->i_ref1>1 ? &i_halfpel_thresh : NULL;
+    p_halfpel_thresh = h->mb.pic.i_fref[1]>1 ? &i_halfpel_thresh : NULL;
     a->l1.me16x16.cost = INT_MAX;
-    for( i_ref = 0; i_ref < h->i_ref1; i_ref++ )
+    for( i_ref = 0; i_ref < h->mb.pic.i_fref[1]; i_ref++ )
     {
         /* search with ref */
         LOAD_HPELS( &m, h->mb.pic.p_fref[1][i_ref], 1, i_ref, 0, 0 );

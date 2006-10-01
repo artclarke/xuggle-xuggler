@@ -41,7 +41,7 @@ static void transpose( uint8_t *buf, int w )
 static void scaling_list_write( bs_t *s, x264_pps_t *pps, int idx )
 {
     const int len = idx<4 ? 16 : 64;
-    const int *zigzag = idx<4 ? x264_zigzag_scan4 : x264_zigzag_scan8;
+    const int *zigzag = idx<4 ? x264_zigzag_scan4[0] : x264_zigzag_scan8[0];
     const uint8_t *list = pps->scaling_list[idx];
     const uint8_t *def_list = (idx==CQM_4IC) ? pps->scaling_list[CQM_4IY]
                             : (idx==CQM_4PC) ? pps->scaling_list[CQM_4PY]
@@ -127,11 +127,13 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 
     sps->b_gaps_in_frame_num_value_allowed = 0;
     sps->i_mb_width = ( param->i_width + 15 ) / 16;
-    sps->i_mb_height= ( param->i_height + 15 )/ 16;
-    sps->b_frame_mbs_only = 1;
-    sps->b_mb_adaptive_frame_field = 0;
+    sps->i_mb_height= ( param->i_height + 15 ) / 16;
+    if( param->b_interlaced )
+        sps->i_mb_height = ( sps->i_mb_height + 1 ) & ~1;
+    sps->b_frame_mbs_only = ! param->b_interlaced;
+    sps->b_mb_adaptive_frame_field = param->b_interlaced;
     sps->b_direct8x8_inference = 0;
-    if( sps->b_frame_mbs_only == 0 ||
+    if( ! sps->b_frame_mbs_only ||
         !(param->analyse.inter & X264_ANALYSE_PSUB8x8) )
     {
         sps->b_direct8x8_inference = 1;
@@ -139,8 +141,8 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 
     sps->crop.i_left   = 0;
     sps->crop.i_top    = 0;
-    sps->crop.i_right  = (- param->i_width)  & 15;
-    sps->crop.i_bottom = (- param->i_height) & 15;
+    sps->crop.i_right  = sps->i_mb_width*16 - param->i_width;
+    sps->crop.i_bottom = (sps->i_mb_height*16 - param->i_height) >> param->b_interlaced;
     sps->b_crop = sps->crop.i_left  || sps->crop.i_top ||
                   sps->crop.i_right || sps->crop.i_bottom;
 
@@ -258,7 +260,14 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
     bs_write_ue( s, sps->i_num_ref_frames );
     bs_write( s, 1, sps->b_gaps_in_frame_num_value_allowed );
     bs_write_ue( s, sps->i_mb_width - 1 );
-    bs_write_ue( s, sps->i_mb_height - 1);
+    if (sps->b_frame_mbs_only)
+    {
+        bs_write_ue( s, sps->i_mb_height - 1);
+    }
+    else // interlaced
+    {
+        bs_write_ue( s, sps->i_mb_height/2 - 1);
+    }
     bs_write( s, 1, sps->b_frame_mbs_only );
     if( !sps->b_frame_mbs_only )
     {

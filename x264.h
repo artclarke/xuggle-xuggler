@@ -177,6 +177,8 @@ typedef struct
     int         b_cabac;
     int         i_cabac_init_idc;
 
+    int         b_interlaced;
+
     int         i_cqm_preset;
     char        *psz_cqm_file;      /* JM format */
     uint8_t     cqm_4iy[16];        /* used only if i_cqm_preset == X264_CQM_CUSTOM */

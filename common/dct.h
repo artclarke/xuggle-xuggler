@@ -54,10 +54,6 @@ static const int x264_dct4_weight2_tab[16] = {
     W(0), W(1), W(0), W(1),
     W(1), W(2), W(1), W(2)
 };
-static const int x264_dct4_weight2_zigzag[16] = {
-    W(0), W(1), W(1), W(0), W(2), W(0), W(1), W(1),
-    W(1), W(1), W(2), W(0), W(2), W(1), W(1), W(2)
-};
 #undef W
 
 #define W(i) (i==0 ? FIX8(1.00000) :\
@@ -77,17 +73,10 @@ static const int x264_dct8_weight2_tab[64] = {
     W(4), W(5), W(2), W(5),  W(4), W(5), W(2), W(5),
     W(3), W(1), W(5), W(1),  W(3), W(1), W(5), W(1)
 };
-static const int x264_dct8_weight2_zigzag[64] = {
-    W(0), W(3), W(3), W(4), W(1), W(4), W(3), W(5),
-    W(5), W(3), W(0), W(1), W(2), W(1), W(0), W(3),
-    W(3), W(5), W(5), W(3), W(3), W(4), W(1), W(4),
-    W(1), W(4), W(1), W(4), W(3), W(5), W(5), W(3),
-    W(3), W(5), W(5), W(3), W(1), W(2), W(1), W(0),
-    W(1), W(2), W(1), W(5), W(5), W(3), W(3), W(5),
-    W(5), W(1), W(4), W(1), W(4), W(1), W(3), W(5),
-    W(5), W(3), W(1), W(2), W(1), W(5), W(5), W(1)
-};
 #undef W
+
+extern int x264_dct4_weight2_zigzag[2][16]; // [2] = {frame, field}
+extern int x264_dct8_weight2_zigzag[2][64];
 
 typedef struct
 {
@@ -118,5 +107,6 @@ typedef struct
 } x264_dct_function_t;
 
 void x264_dct_init( int cpu, x264_dct_function_t *dctf );
+void x264_dct_init_weights( void );
 
 #endif

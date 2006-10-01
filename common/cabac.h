@@ -27,8 +27,7 @@
 typedef struct
 {
     /* context */
-    /* #436-459 are for interlacing, so are omitted for now */
-    uint8_t state[436];
+    uint8_t state[460];
 
     /* state */
     int i_low;

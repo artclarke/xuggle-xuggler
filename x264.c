@@ -165,6 +165,7 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H1( "      --nf                    Disable loop filter\n" );
     H0( "  -f, --filter <alpha:beta>   Loop filter AlphaC0 and Beta parameters [%d:%d]\n",
                                        defaults->i_deblocking_filter_alphac0, defaults->i_deblocking_filter_beta );
+    H0( "      --interlaced            Enable pure-interlaced mode\n" );
     H0( "\n" );
     H0( "Ratecontrol:\n" );
     H0( "\n" );
@@ -354,6 +355,7 @@ static int  Parse( int argc, char **argv,
             { "scenecut",required_argument, NULL, 0 },
             { "nf",      no_argument,       NULL, 0 },
             { "filter",  required_argument, NULL, 'f' },
+            { "interlaced", no_argument,    NULL, 0 },
             { "no-cabac",no_argument,       NULL, 0 },
             { "qp",      required_argument, NULL, 'q' },
             { "qpmin",   required_argument, NULL, 0 },
