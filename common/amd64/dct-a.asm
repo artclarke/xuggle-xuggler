@@ -518,3 +518,27 @@ ADD_NxN_IDCT x264_add16x16_idct_mmx,   x264_add8x8_idct_mmx,    32, 4, 4, 12
 SUB_NxN_DCT  x264_sub16x16_dct8_sse2,  x264_sub8x8_dct8_sse2,  128, 8, 0,  8
 ADD_NxN_IDCT x264_add16x16_idct8_sse2, x264_add8x8_idct8_sse2, 128, 8, 0,  8
 
+
+;-----------------------------------------------------------------------------
+; void __cdecl x264_zigzag_scan_4x4_field_sse2( int level[16], int16_t dct[4][4] )
+;-----------------------------------------------------------------------------
+ALIGN 16
+cglobal x264_zigzag_scan_4x4_field_sse2
+x264_zigzag_scan_4x4_field_sse2:
+    punpcklwd xmm0, [parm2q]
+    punpckhwd xmm1, [parm2q]
+    punpcklwd xmm2, [parm2q+16]
+    punpckhwd xmm3, [parm2q+16]
+    psrad     xmm0, 16
+    psrad     xmm1, 16
+    psrad     xmm2, 16
+    psrad     xmm3, 16
+    movq      [parm1q   ], xmm0
+    movdqa    [parm1q+16], xmm1
+    movdqa    [parm1q+32], xmm2
+    movhlps   xmm0, xmm0
+    movdqa    [parm1q+48], xmm3
+    movq      [parm1q+12], xmm0
+    movd      [parm1q+ 8], xmm1
+    ret
+

@@ -47,140 +47,13 @@ static const int def_quant4_mf[6][4][4] =
       {  7282, 4559,  7282, 4559 }, { 4559, 2893, 4559, 2893 } }
 };
 
-/****************************************************************************
- * Scan and Quant functions
- ****************************************************************************/
-
 #define ZIG(i,y,x) level[i] = dct[x][y];
-
-static inline void scan_zigzag_8x8full( int level[64], int16_t dct[8][8], int b_interlaced )
-{
-    if( b_interlaced )
-    {
-    ZIG( 0,0,0) ZIG( 1,1,0) ZIG( 2,2,0) ZIG( 3,0,1)
-    ZIG( 4,1,1) ZIG( 5,3,0) ZIG( 6,4,0) ZIG( 7,2,1)
-    ZIG( 8,0,2) ZIG( 9,3,1) ZIG(10,5,0) ZIG(11,6,0)
-    ZIG(12,7,0) ZIG(13,4,1) ZIG(14,1,2) ZIG(15,0,3)
-    ZIG(16,2,2) ZIG(17,5,1) ZIG(18,6,1) ZIG(19,7,1)
-    ZIG(20,3,2) ZIG(21,1,3) ZIG(22,0,4) ZIG(23,2,3)
-    ZIG(24,4,2) ZIG(25,5,2) ZIG(26,6,2) ZIG(27,7,2)
-    ZIG(28,3,3) ZIG(29,1,4) ZIG(30,0,5) ZIG(31,2,4)
-    ZIG(32,4,3) ZIG(33,5,3) ZIG(34,6,3) ZIG(35,7,3)
-    ZIG(36,3,4) ZIG(37,1,5) ZIG(38,0,6) ZIG(39,2,5)
-    ZIG(40,4,4) ZIG(41,5,4) ZIG(42,6,4) ZIG(43,7,4)
-    ZIG(44,3,5) ZIG(45,1,6) ZIG(46,2,6) ZIG(47,4,5)
-    ZIG(48,5,5) ZIG(49,6,5) ZIG(50,7,5) ZIG(51,3,6)
-    ZIG(52,0,7) ZIG(53,1,7) ZIG(54,4,6) ZIG(55,5,6)
-    ZIG(56,6,6) ZIG(57,7,6) ZIG(58,2,7) ZIG(59,3,7)
-    ZIG(60,4,7) ZIG(61,5,7) ZIG(62,6,7) ZIG(63,7,7)
-    }
-    else
-    {
-    ZIG( 0,0,0) ZIG( 1,0,1) ZIG( 2,1,0) ZIG( 3,2,0)
-    ZIG( 4,1,1) ZIG( 5,0,2) ZIG( 6,0,3) ZIG( 7,1,2)
-    ZIG( 8,2,1) ZIG( 9,3,0) ZIG(10,4,0) ZIG(11,3,1)
-    ZIG(12,2,2) ZIG(13,1,3) ZIG(14,0,4) ZIG(15,0,5)
-    ZIG(16,1,4) ZIG(17,2,3) ZIG(18,3,2) ZIG(19,4,1)
-    ZIG(20,5,0) ZIG(21,6,0) ZIG(22,5,1) ZIG(23,4,2)
-    ZIG(24,3,3) ZIG(25,2,4) ZIG(26,1,5) ZIG(27,0,6)
-    ZIG(28,0,7) ZIG(29,1,6) ZIG(30,2,5) ZIG(31,3,4)
-    ZIG(32,4,3) ZIG(33,5,2) ZIG(34,6,1) ZIG(35,7,0)
-    ZIG(36,7,1) ZIG(37,6,2) ZIG(38,5,3) ZIG(39,4,4)
-    ZIG(40,3,5) ZIG(41,2,6) ZIG(42,1,7) ZIG(43,2,7)
-    ZIG(44,3,6) ZIG(45,4,5) ZIG(46,5,4) ZIG(47,6,3)
-    ZIG(48,7,2) ZIG(49,7,3) ZIG(50,6,4) ZIG(51,5,5)
-    ZIG(52,4,6) ZIG(53,3,7) ZIG(54,4,7) ZIG(55,5,6)
-    ZIG(56,6,5) ZIG(57,7,4) ZIG(58,7,5) ZIG(59,6,6)
-    ZIG(60,5,7) ZIG(61,6,7) ZIG(62,7,6) ZIG(63,7,7)
-    }
-}
-
-static inline void scan_zigzag_4x4full( int level[16], int16_t dct[4][4], int b_interlaced )
-{
-    if( b_interlaced )
-    {
-    ZIG( 0,0,0) ZIG( 1,1,0) ZIG( 2,0,1) ZIG( 3,2,0)
-    ZIG( 4,3,0) ZIG( 5,1,1) ZIG( 6,2,1) ZIG( 7,3,1)
-    ZIG( 8,0,2) ZIG( 9,1,2) ZIG(10,2,2) ZIG(11,3,2)
-    ZIG(12,0,3) ZIG(13,1,3) ZIG(14,2,3) ZIG(15,3,3)
-    }
-    else
-    {
-    ZIG( 0,0,0) ZIG( 1,0,1) ZIG( 2,1,0) ZIG( 3,2,0)
-    ZIG( 4,1,1) ZIG( 5,0,2) ZIG( 6,0,3) ZIG( 7,1,2)
-    ZIG( 8,2,1) ZIG( 9,3,0) ZIG(10,3,1) ZIG(11,2,2)
-    ZIG(12,1,3) ZIG(13,2,3) ZIG(14,3,2) ZIG(15,3,3)
-    }
-}
-
-static inline void scan_zigzag_4x4( int level[15], int16_t dct[4][4], int b_interlaced )
-{
-    if( b_interlaced )
-    {
-                ZIG( 0,1,0) ZIG( 1,0,1) ZIG( 2,2,0)
-    ZIG( 3,3,0) ZIG( 4,1,1) ZIG( 5,2,1) ZIG( 6,3,1)
-    ZIG( 7,0,2) ZIG( 8,1,2) ZIG( 9,2,2) ZIG(10,3,2)
-    ZIG(11,0,3) ZIG(12,1,3) ZIG(13,2,3) ZIG(14,3,3)
-    }
-    else
-    {
-                ZIG( 0,0,1) ZIG( 1,1,0) ZIG( 2,2,0)
-    ZIG( 3,1,1) ZIG( 4,0,2) ZIG( 5,0,3) ZIG( 6,1,2)
-    ZIG( 7,2,1) ZIG( 8,3,0) ZIG( 9,3,1) ZIG(10,2,2)
-    ZIG(11,1,3) ZIG(12,2,3) ZIG(13,3,2) ZIG(14,3,3)
-    }
-}
-
-static inline void scan_zigzag_2x2_dc( int level[4], int16_t dct[2][2] )
+static inline void zigzag_scan_2x2_dc( int level[4], int16_t dct[2][2] )
 {
     ZIG(0,0,0)
     ZIG(1,0,1)
     ZIG(2,1,0)
     ZIG(3,1,1)
-}
-#undef ZIG
-
-#define ZIG(i,y,x) {\
-    int oe = x+y*FENC_STRIDE;\
-    int od = x+y*FDEC_STRIDE;\
-    level[i] = p_src[oe] - p_dst[od];\
-    p_dst[od] = p_src[oe];\
-}
-
-static inline void sub_zigzag_4x4full( int level[16], const uint8_t *p_src, uint8_t *p_dst, int b_interlaced )
-{
-    if( b_interlaced )
-    {
-    ZIG( 0,0,0) ZIG( 1,1,0) ZIG( 2,0,1) ZIG( 3,2,0)
-    ZIG( 4,3,0) ZIG( 5,1,1) ZIG( 6,2,1) ZIG( 7,3,1)
-    ZIG( 8,0,2) ZIG( 9,1,2) ZIG(10,2,2) ZIG(11,3,2)
-    ZIG(12,0,3) ZIG(13,1,3) ZIG(14,2,3) ZIG(15,3,3)
-    }
-    else
-    {
-    ZIG( 0,0,0) ZIG( 1,0,1) ZIG( 2,1,0) ZIG( 3,2,0)
-    ZIG( 4,1,1) ZIG( 5,0,2) ZIG( 6,0,3) ZIG( 7,1,2)
-    ZIG( 8,2,1) ZIG( 9,3,0) ZIG(10,3,1) ZIG(11,2,2)
-    ZIG(12,1,3) ZIG(13,2,3) ZIG(14,3,2) ZIG(15,3,3)
-    }
-}
-
-static inline void sub_zigzag_4x4( int level[15], const uint8_t *p_src, uint8_t *p_dst, int b_interlaced )
-{
-    if( b_interlaced )
-    {
-                ZIG( 0,1,0) ZIG( 1,0,1) ZIG( 2,2,0)
-    ZIG( 3,3,0) ZIG( 4,1,1) ZIG( 5,2,1) ZIG( 6,3,1)
-    ZIG( 7,0,2) ZIG( 8,1,2) ZIG( 9,2,2) ZIG(10,3,2)
-    ZIG(11,0,3) ZIG(12,1,3) ZIG(13,2,3) ZIG(14,3,3)
-    }
-    else
-    {
-                ZIG( 0,0,1) ZIG( 1,1,0) ZIG( 2,2,0)
-    ZIG( 3,1,1) ZIG( 4,0,2) ZIG( 5,0,3) ZIG( 6,1,2)
-    ZIG( 7,2,1) ZIG( 8,3,0) ZIG( 9,3,1) ZIG(10,2,2)
-    ZIG(11,1,3) ZIG(12,2,3) ZIG(13,3,2) ZIG(14,3,3)
-    }
 }
 #undef ZIG
 
@@ -267,7 +140,7 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale )
 
     if( h->mb.b_lossless )
     {
-        sub_zigzag_4x4full( h->dct.block[idx].luma4x4, p_src, p_dst, h->mb.b_interlaced );
+        h->zigzagf.sub_4x4( h->dct.block[idx].luma4x4, p_src, p_dst );
         return;
     }
 
@@ -278,7 +151,7 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale )
     else
         quant_4x4( h, dct4x4, h->quant4_mf[CQM_4IY], i_qscale, 1 );
 
-    scan_zigzag_4x4full( h->dct.block[idx].luma4x4, dct4x4, h->mb.b_interlaced );
+    h->zigzagf.scan_4x4( h->dct.block[idx].luma4x4, dct4x4 );
     h->quantf.dequant_4x4( dct4x4, h->dequant4_mf[CQM_4IY], i_qscale );
 
     /* output samples to fdec */
@@ -300,7 +173,7 @@ void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qscale )
     else 
         quant_8x8( h, dct8x8, h->quant8_mf[CQM_8IY], i_qscale, 1 );
 
-    scan_zigzag_8x8full( h->dct.luma8x8[idx], dct8x8, h->mb.b_interlaced );
+    h->zigzagf.scan_8x8( h->dct.luma8x8[idx], dct8x8 );
     h->quantf.dequant_8x8( dct8x8, h->dequant8_mf[CQM_8IY], i_qscale );
     h->dctf.add8x8_idct8( p_dst, dct8x8 );
 }
@@ -320,11 +193,11 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
         {
             int oe = block_idx_x[i]*4 + block_idx_y[i]*4*FENC_STRIDE;
             int od = block_idx_x[i]*4 + block_idx_y[i]*4*FDEC_STRIDE;
-            sub_zigzag_4x4( h->dct.block[i].residual_ac, p_src+oe, p_dst+od, h->mb.b_interlaced );
+            h->zigzagf.sub_4x4ac( h->dct.block[i].residual_ac, p_src+oe, p_dst+od );
             dct4x4[0][block_idx_x[i]][block_idx_y[i]] = p_src[oe] - p_dst[od];
             p_dst[od] = p_src[oe];
         }
-        scan_zigzag_4x4full( h->dct.luma16x16_dc, dct4x4[0], h->mb.b_interlaced );
+        h->zigzagf.scan_4x4( h->dct.luma16x16_dc, dct4x4[0] );
         return;
     }
 
@@ -340,13 +213,13 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
         else
             quant_4x4( h, dct4x4[1+i], h->quant4_mf[CQM_4IY], i_qscale, 1 );
 
-        scan_zigzag_4x4( h->dct.block[i].residual_ac, dct4x4[1+i], h->mb.b_interlaced );
+        h->zigzagf.scan_4x4ac( h->dct.block[i].residual_ac, dct4x4[1+i] );
         h->quantf.dequant_4x4( dct4x4[1+i], h->dequant4_mf[CQM_4IY], i_qscale );
     }
 
     h->dctf.dct4x4dc( dct4x4[0] );
     quant_4x4_dc( h, dct4x4[0], h->quant4_mf[CQM_4IY], i_qscale );
-    scan_zigzag_4x4full( h->dct.luma16x16_dc, dct4x4[0], h->mb.b_interlaced );
+    h->zigzagf.scan_4x4( h->dct.luma16x16_dc, dct4x4[0] );
 
     /* output samples to fdec */
     h->dctf.idct4x4dc( dct4x4[0] );
@@ -382,7 +255,7 @@ static void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
             {
                 int oe = block_idx_x[i]*4 + block_idx_y[i]*4*FENC_STRIDE;
                 int od = block_idx_x[i]*4 + block_idx_y[i]*4*FDEC_STRIDE;
-                sub_zigzag_4x4( h->dct.block[16+i+ch*4].residual_ac, p_src+oe, p_dst+od, h->mb.b_interlaced );
+                h->zigzagf.sub_4x4ac( h->dct.block[16+i+ch*4].residual_ac, p_src+oe, p_dst+od );
                 h->dct.chroma_dc[ch][i] = p_src[oe] - p_dst[od];
                 p_dst[od] = p_src[oe];
             }
@@ -398,7 +271,7 @@ static void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
 
             /* no trellis; it doesn't seem to help chroma noticeably */
             quant_4x4( h, dct4x4[i], h->quant4_mf[CQM_4IC + b_inter], i_qscale, !b_inter );
-            scan_zigzag_4x4( h->dct.block[16+i+ch*4].residual_ac, dct4x4[i], h->mb.b_interlaced );
+            h->zigzagf.scan_4x4ac( h->dct.block[16+i+ch*4].residual_ac, dct4x4[i] );
 
             if( b_decimate )
             {
@@ -408,7 +281,7 @@ static void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
 
         h->dctf.dct2x2dc( dct2x2 );
         quant_2x2_dc( h, dct2x2, h->quant4_mf[CQM_4IC + b_inter], i_qscale, !b_inter );
-        scan_zigzag_2x2_dc( h->dct.chroma_dc[ch], dct2x2 );
+        zigzag_scan_2x2_dc( h->dct.chroma_dc[ch], dct2x2 );
 
         /* output samples to fdec */
         h->dctf.idct2x2dc( dct2x2 );
@@ -573,10 +446,9 @@ void x264_macroblock_encode( x264_t *h )
             {
                 int x = 4*block_idx_x[i4x4];
                 int y = 4*block_idx_y[i4x4];
-                sub_zigzag_4x4full( h->dct.block[i4x4].luma4x4,
+                h->zigzagf.sub_4x4( h->dct.block[i4x4].luma4x4,
                                     h->mb.pic.p_fenc[0]+x+y*FENC_STRIDE,
-                                    h->mb.pic.p_fdec[0]+x+y*FDEC_STRIDE,
-                                    h->mb.b_interlaced );
+                                    h->mb.pic.p_fdec[0]+x+y*FDEC_STRIDE );
             }
         }
         else if( h->mb.b_transform_8x8 )
@@ -595,7 +467,7 @@ void x264_macroblock_encode( x264_t *h )
                 else
                     quant_8x8( h, dct8x8[idx], h->quant8_mf[CQM_8PY], i_qp, 0 );
 
-                scan_zigzag_8x8full( h->dct.luma8x8[idx], dct8x8[idx], h->mb.b_interlaced );
+                h->zigzagf.scan_8x8( h->dct.luma8x8[idx], dct8x8[idx] );
 
                 if( b_decimate )
                 {
@@ -647,7 +519,7 @@ void x264_macroblock_encode( x264_t *h )
                     else
                         quant_4x4( h, dct4x4[idx], h->quant4_mf[CQM_4PY], i_qp, 0 );
 
-                    scan_zigzag_4x4full( h->dct.block[idx].luma4x4, dct4x4[idx], h->mb.b_interlaced );
+                    h->zigzagf.scan_4x4( h->dct.block[idx].luma4x4, dct4x4[idx] );
                     
                     if( b_decimate )
                         i_decimate_8x8 += x264_mb_decimate_score( h->dct.block[idx].luma4x4, 16 );
@@ -824,7 +696,7 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
             const int idx = i8x8 * 4 + i4x4;
 
             quant_4x4( h, dct4x4[idx], (int(*)[4][4])def_quant4_mf, i_qp, 0 );
-            scan_zigzag_4x4full( dctscan, dct4x4[idx], h->mb.b_interlaced );
+            h->zigzagf.scan_4x4( dctscan, dct4x4[idx] );
 
             i_decimate_mb += x264_mb_decimate_score( dctscan, 16 );
 
@@ -870,7 +742,7 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
         for( i4x4 = 0, i_decimate_mb = 0; i4x4 < 4; i4x4++ )
         {
             quant_4x4( h, dct4x4[i4x4], (int(*)[4][4])def_quant4_mf, i_qp, 0 );
-            scan_zigzag_4x4( dctscan, dct4x4[i4x4], h->mb.b_interlaced );
+            h->zigzagf.scan_4x4ac( dctscan, dct4x4[i4x4] );
 
             i_decimate_mb += x264_mb_decimate_score( dctscan, 15 );
             if( i_decimate_mb >= 7 )
@@ -962,7 +834,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
         int16_t dct8x8[8][8];
         h->dctf.sub8x8_dct8( dct8x8, p_fenc, p_fdec );
         quant_8x8( h, dct8x8, h->quant8_mf[CQM_8PY], i_qp, 0 );
-        scan_zigzag_8x8full( h->dct.luma8x8[i8], dct8x8, h->mb.b_interlaced );
+        h->zigzagf.scan_8x8( h->dct.luma8x8[i8], dct8x8 );
 
         if( b_decimate )
             nnz8x8 = 4 <= x264_mb_decimate_score( h->dct.luma8x8[i8], 64 );
@@ -985,7 +857,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
         quant_4x4( h, dct4x4[2], h->quant4_mf[CQM_4PY], i_qp, 0 );
         quant_4x4( h, dct4x4[3], h->quant4_mf[CQM_4PY], i_qp, 0 );
         for( i4 = 0; i4 < 4; i4++ )
-            scan_zigzag_4x4full( h->dct.block[i8*4+i4].luma4x4, dct4x4[i4], h->mb.b_interlaced );
+            h->zigzagf.scan_4x4( h->dct.block[i8*4+i4].luma4x4, dct4x4[i4] );
 
         if( b_decimate )
         {
@@ -1015,7 +887,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
 
         h->dctf.sub4x4_dct( dct4x4, p_fenc, p_fdec );
         quant_4x4( h, dct4x4, h->quant4_mf[CQM_4PC], i_qp, 0 );
-        scan_zigzag_4x4( h->dct.block[16+i8+ch*4].residual_ac, dct4x4, h->mb.b_interlaced );
+        h->zigzagf.scan_4x4ac( h->dct.block[16+i8+ch*4].residual_ac, dct4x4 );
         if( array_non_zero( (int*)dct4x4, sizeof(dct4x4)/sizeof(int) ) )
         {
             h->quantf.dequant_4x4( dct4x4, h->dequant4_mf[CQM_4PC], i_qp );
