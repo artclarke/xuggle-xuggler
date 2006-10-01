@@ -119,6 +119,7 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.i_subpel_refine = 5;
     param->analyse.b_chroma_me = 1;
     param->analyse.i_mv_range = -1; // set from level_idc
+    param->analyse.i_direct_8x8_inference = -1; // set from level_idc
     param->analyse.i_chroma_qp_offset = 0;
     param->analyse.b_fast_pskip = 1;
     param->analyse.b_dct_decimate = 1;
@@ -383,6 +384,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->analyse.b_weighted_bipred = atobool(value);
     OPT("direct")
         b_error |= parse_enum( value, x264_direct_pred_names, &p->analyse.i_direct_mv_pred );
+    OPT("direct-8x8")
+        p->analyse.i_direct_8x8_inference = atoi(value);
     OPT("chroma-qp-offset")
         p->analyse.i_chroma_qp_offset = atoi(value);
     OPT("me")

@@ -472,6 +472,8 @@ static int x264_validate_parameters( x264_t *h )
             h->param.analyse.i_mv_range = l->mv_range;
         else
             h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 2048);
+        if( h->param.analyse.i_direct_8x8_inference < 0 )
+            h->param.analyse.i_direct_8x8_inference = l->direct8x8;
     }
 
     if( h->param.rc.f_qblur < 0 )
@@ -493,6 +495,7 @@ static int x264_validate_parameters( x264_t *h )
     BOOLIFY( b_deblocking_filter );
     BOOLIFY( b_interlaced );
     BOOLIFY( analyse.b_transform_8x8 );
+    BOOLIFY( analyse.i_direct_8x8_inference );
     BOOLIFY( analyse.b_bidir_me );
     BOOLIFY( analyse.b_chroma_me );
     BOOLIFY( analyse.b_fast_pskip );
