@@ -88,6 +88,8 @@ common/amd64/*.o: common/amd64/amd64inc.asm
 common/i386/*.o: common/i386/i386inc.asm
 %.o: %.asm
 	$(AS) $(ASFLAGS) -o $@ $<
+# delete local/anonymous symbols, so they don't show up in oprofile
+	-@ strip -x $@
 
 .depend: config.mak
 	rm -f .depend
