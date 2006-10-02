@@ -55,7 +55,8 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     const int i_stride = fenc->i_stride_lowres;
     const int i_pel_offset = 8 * ( i_mb_x + i_mb_y * i_stride );
 
-    uint8_t pix1[9*9], pix2[8*8];
+    DECLARE_ALIGNED( uint8_t, pix1[9*FDEC_STRIDE], 8 );
+    uint8_t *pix2 = pix1+8;
     x264_me_t m[2];
     int i_bcost = COST_MAX;
     int i_cost_bak;
@@ -104,16 +105,16 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     }
 #define TRY_BIDIR( mv0, mv1, penalty ) \
     { \
-        int stride2 = 8; \
+        int stride2 = 16; \
         uint8_t *src2; \
         int i_cost; \
-        h->mc.mc_luma( m[0].p_fref, m[0].i_stride[0], pix1, 8, \
+        h->mc.mc_luma( m[0].p_fref, m[0].i_stride[0], pix1, 16, \
                        (mv0)[0], (mv0)[1], 8, 8 ); \
         src2 = h->mc.get_ref( m[1].p_fref, m[1].i_stride[0], pix2, &stride2, \
                        (mv1)[0], (mv1)[1], 8, 8 ); \
-        h->mc.avg[PIXEL_8x8]( pix1, 8, src2, stride2 ); \
+        h->mc.avg[PIXEL_8x8]( pix1, 16, src2, stride2 ); \
         i_cost = penalty + h->pixf.mbcmp[PIXEL_8x8]( \
-                           m[0].p_fenc[0], FENC_STRIDE, pix1, 8 ); \
+                           m[0].p_fenc[0], FENC_STRIDE, pix1, 16 ); \
         if( i_bcost > i_cost ) \
         { \
             i_bcost = i_cost; \
@@ -196,8 +197,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
 
 lowres_intra_mb:
     {
-        DECLARE_ALIGNED( uint8_t, pix_buf[9*FDEC_STRIDE], 8 );
-        uint8_t *pix = &pix_buf[8+FDEC_STRIDE - 1];
+        uint8_t *pix = &pix1[8+FDEC_STRIDE - 1];
         uint8_t *src = &fenc->lowres[0][i_pel_offset - 1];
         int intra_penalty = 5 + 10 * b_bidir;
         int satds[4], i_icost;

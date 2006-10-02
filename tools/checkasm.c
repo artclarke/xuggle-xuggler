@@ -56,8 +56,8 @@ static int check_pixel( int cpu_ref, int cpu_new )
         if( pixel_asm.name[i] != pixel_ref.name[i] ) \
         { \
             used_asm = 1; \
-            res_c   = pixel_c.name[i]( buf1, 32, buf2, 24 ); \
-            res_asm = pixel_asm.name[i]( buf1, 32, buf2, 24 ); \
+            res_c   = pixel_c.name[i]( buf1, 32, buf2, 16 ); \
+            res_asm = pixel_asm.name[i]( buf1, 32, buf2, 16 ); \
             if( res_c != res_asm ) \
             { \
                 ok = 0; \
@@ -79,16 +79,16 @@ static int check_pixel( int cpu_ref, int cpu_new )
         if( pixel_asm.sad_x##N[i] && pixel_asm.sad_x##N[i] != pixel_ref.sad_x##N[i] ) \
         { \
             used_asm = 1; \
-            res_c[0] = pixel_c.sad[i]( buf1, 16, buf2, 24 ); \
-            res_c[1] = pixel_c.sad[i]( buf1, 16, buf2+30, 24 ); \
-            res_c[2] = pixel_c.sad[i]( buf1, 16, buf2+1, 24 ); \
+            res_c[0] = pixel_c.sad[i]( buf1, 16, buf2, 32 ); \
+            res_c[1] = pixel_c.sad[i]( buf1, 16, buf2+30, 32 ); \
+            res_c[2] = pixel_c.sad[i]( buf1, 16, buf2+1, 32 ); \
             if(N==4) \
             { \
-                res_c[3] = pixel_c.sad[i]( buf1, 16, buf2+99, 24 ); \
-                pixel_asm.sad_x4[i]( buf1, buf2, buf2+30, buf2+1, buf2+99, 24, res_asm ); \
+                res_c[3] = pixel_c.sad[i]( buf1, 16, buf2+99, 32 ); \
+                pixel_asm.sad_x4[i]( buf1, buf2, buf2+30, buf2+1, buf2+99, 32, res_asm ); \
             } \
             else \
-                pixel_asm.sad_x3[i]( buf1, buf2, buf2+30, buf2+1, 24, res_asm ); \
+                pixel_asm.sad_x3[i]( buf1, buf2, buf2+30, buf2+1, 32, res_asm ); \
             if( memcmp(res_c, res_asm, sizeof(res_c)) ) \
             { \
                 ok = 0; \
@@ -387,8 +387,8 @@ static int check_mc( int cpu_ref, int cpu_new )
         if( mc_a.name[i] != mc_ref.name[i] ) \
         { \
             used_asm = 1; \
-            mc_c.name[i]( buf3, 32, buf2, 24, ##__VA_ARGS__ ); \
-            mc_a.name[i]( buf4, 32, buf2, 24, ##__VA_ARGS__ ); \
+            mc_c.name[i]( buf3, 32, buf2, 16, ##__VA_ARGS__ ); \
+            mc_a.name[i]( buf4, 32, buf2, 16, ##__VA_ARGS__ ); \
             if( memcmp( buf3, buf4, 1024 ) )               \
             { \
                 ok = 0; \
