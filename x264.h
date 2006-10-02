@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 52
+#define X264_BUILD 53
 
 /* x264_t:
  *      opaque handler for decoder and encoder */
@@ -290,10 +290,12 @@ extern const x264_level_t x264_levels[];
 void    x264_param_default( x264_param_t * );
 
 /* x264_param_parse:
- *      set one parameter by name.
- *      returns 0 on success, or returns one of the following errors.
- *      note: bad value occurs only if it can't even parse the value,
- *      numerical range is not checked until x264_encoder_open() or x264_encoder_reconfig(). */
+ *  set one parameter by name.
+ *  returns 0 on success, or returns one of the following errors.
+ *  note: BAD_VALUE occurs only if it can't even parse the value,
+ *  numerical range is not checked until x264_encoder_open() or
+ *  x264_encoder_reconfig().
+ *  value=NULL means "true" for boolean options, but is a BAD_VALUE for non-booleans. */
 #define X264_PARAM_BAD_NAME  (-1)
 #define X264_PARAM_BAD_VALUE (-2)
 int x264_param_parse( x264_param_t *, const char *name, const char *value );

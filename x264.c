@@ -162,8 +162,8 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "      --b-pyramid             Keep some B-frames as references\n" );
     H0( "      --no-cabac              Disable CABAC\n" );
     H0( "  -r, --ref <integer>         Number of reference frames [%d]\n", defaults->i_frame_reference );
-    H1( "      --nf                    Disable loop filter\n" );
-    H0( "  -f, --filter <alpha:beta>   Loop filter AlphaC0 and Beta parameters [%d:%d]\n",
+    H1( "      --no-deblock            Disable loop filter\n" );
+    H0( "  -f, --deblock <alpha:beta>  Loop filter AlphaC0 and Beta parameters [%d:%d]\n",
                                        defaults->i_deblocking_filter_alphac0, defaults->i_deblocking_filter_beta );
     H0( "      --interlaced            Enable pure-interlaced mode\n" );
     H0( "\n" );
@@ -202,7 +202,7 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "\n" );
     H0( "Analysis:\n" );
     H0( "\n" );
-    H0( "  -A, --analyse <string>      Partitions to consider [\"p8x8,b8x8,i8x8,i4x4\"]\n"
+    H0( "  -A, --partitions <string>   Partitions to consider [\"p8x8,b8x8,i8x8,i4x4\"]\n"
         "                                  - p8x8, p4x4, b8x8, i8x8, i4x4\n"
         "                                  - none, all\n"
         "                                  (p4x4 requires p8x8. i8x8 requires --8x8dct.)\n" );
@@ -362,7 +362,9 @@ static int  Parse( int argc, char **argv,
             { "keyint",  required_argument, NULL, 'I' },
             { "scenecut",required_argument, NULL, 0 },
             { "nf",      no_argument,       NULL, 0 },
-            { "filter",  required_argument, NULL, 'f' },
+            { "nodeblock", no_argument,     NULL, 0 },
+            { "filter",  required_argument, NULL, 0 },
+            { "deblock", required_argument, NULL, 'f' },
             { "interlaced", no_argument,    NULL, 0 },
             { "no-cabac",no_argument,       NULL, 0 },
             { "qp",      required_argument, NULL, 'q' },
@@ -377,7 +379,8 @@ static int  Parse( int argc, char **argv,
             { "frames",  required_argument, NULL, OPT_FRAMES },
             { "seek",    required_argument, NULL, OPT_SEEK },
             { "output",  required_argument, NULL, 'o' },
-            { "analyse", required_argument, NULL, 'A' },
+            { "analyse", required_argument, NULL, 0 },
+            { "partitions", required_argument, NULL, 'A' },
             { "direct",  required_argument, NULL, 0 },
             { "direct-8x8", required_argument, NULL, 0 },
             { "weightb", no_argument,       NULL, 'w' },
@@ -550,7 +553,7 @@ static int  Parse( int argc, char **argv,
                     }
                 }
 
-                b_error |= x264_param_parse( param, long_options[long_options_index].name, optarg ? optarg : "true" );
+                b_error |= x264_param_parse( param, long_options[long_options_index].name, optarg );
             }
         }
 

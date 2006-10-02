@@ -164,7 +164,7 @@ static int parse_cqm( const char *str, uint8_t *cqm, int length )
     return (i == length) ? 0 : -1;
 }
 
-static int atobool( const char *str )
+static int x264_atobool( const char *str, int *b_error )
 {
     if( !strcmp(str, "1") || 
         !strcmp(str, "true") || 
@@ -174,23 +174,56 @@ static int atobool( const char *str )
         !strcmp(str, "false") || 
         !strcmp(str, "no") )
         return 0;
-    return -1;
+    *b_error = 1;
+    return 0;
 }
 
-#define atobool(str) ( (i = atobool(str)) < 0 ? (b_error = 1) : i )
+static int x264_atoi( const char *str, int *b_error )
+{
+    char *end;
+    int v = strtol( str, &end, 0 );
+    if( end == str || *end != '\0' )
+        *b_error = 1;
+    return v;
+}
+
+static double x264_atof( const char *str, int *b_error )
+{
+    char *end;
+    double v = strtod( str, &end );
+    if( end == str || *end != '\0' )
+        *b_error = 1;
+    return v;
+}
+
+#define atobool(str) ( name_was_bool = 1, x264_atobool( str, &b_error ) )
+#define atoi(str) x264_atoi( str, &b_error )
+#define atof(str) x264_atof( str, &b_error )
 
 int x264_param_parse( x264_param_t *p, const char *name, const char *value )
 {
+    char *name_buf = NULL;
     int b_error = 0;
+    int name_was_bool;
+    int value_was_null = !value;
     int i;
 
     if( !name )
         return X264_PARAM_BAD_NAME;
     if( !value )
-        return X264_PARAM_BAD_VALUE;
+        value = "true";
 
     if( value[0] == '=' )
         value++;
+
+    if( strchr( name, '_' ) ) // s/_/-/g
+    {
+        char *p;
+        name_buf = strdup(name);
+        while( (p = strchr( name_buf, '_' )) )
+            *p = '-';
+        name = name_buf;
+    }
 
     if( (!strncmp( name, "no-", 3 ) && (i = 3)) ||
         (!strncmp( name, "no", 2 ) && (i = 2)) )
@@ -198,8 +231,10 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         name += i;
         value = atobool(value) ? "false" : "true";
     }
+    name_was_bool = 0;
 
 #define OPT(STR) else if( !strcmp( name, STR ) )
+#define OPT2(STR0, STR1) else if( !strcmp( name, STR0 ) || !strcmp( name, STR1 ) )
     if(0);
     OPT("asm")
         p->cpu = atobool(value) ? x264_cpu_detect() : 0;
@@ -241,16 +276,14 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     }
     OPT("fps")
     {
-        float fps;
         if( sscanf( value, "%d/%d", &p->i_fps_num, &p->i_fps_den ) == 2 )
             ;
-        else if( sscanf( value, "%f", &fps ) )
+        else
         {
+            float fps = atof(value);
             p->i_fps_num = (int)(fps * 1000 + .5);
             p->i_fps_den = 1000;
         }
-        else
-            b_error = 1;
     }
     OPT("ref")
         p->i_frame_reference = atoi(value);
@@ -278,7 +311,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->b_bframe_pyramid = atobool(value);
     OPT("nf")
         p->b_deblocking_filter = 0;
-    OPT("filter")
+    OPT2("filter", "deblock")
     {
         int count;
         if( 0 < (count = sscanf( value, "%d:%d", &p->i_deblocking_filter_alphac0, &p->i_deblocking_filter_beta )) ||
@@ -366,7 +399,11 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     }
     OPT("log")
         p->i_log_level = atoi(value);
-    OPT("analyse")
+#ifdef VISUALIZE
+    OPT("visualize")
+        p->b_visualize = atobool(value);
+#endif
+    OPT2("analyse", "partitions")
     {
         p->analyse.inter = 0;
         if( strstr( value, "none" ) )  p->analyse.inter =  0;
@@ -483,8 +520,15 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     else
         return X264_PARAM_BAD_NAME;
 #undef OPT
+#undef OPT2
 #undef atobool
+#undef atoi
+#undef atof
 
+    if( name_buf )
+        free( name_buf );
+
+    b_error |= value_was_null && !name_was_bool;
     return b_error ? X264_PARAM_BAD_VALUE : 0;
 }
 
