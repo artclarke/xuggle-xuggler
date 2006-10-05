@@ -245,7 +245,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         else
             p->i_threads = atoi(value);
     }
-    OPT("level")
+    OPT2("level", "level-idc")
     {
         if( atof(value) < 6 )
             p->i_level_idc = (int)(10*atof(value)+.5);
@@ -285,7 +285,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
             p->i_fps_den = 1000;
         }
     }
-    OPT("ref")
+    OPT2("ref", "frameref")
         p->i_frame_reference = atoi(value);
     OPT("keyint")
     {
@@ -293,7 +293,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         if( p->i_keyint_min > p->i_keyint_max )
             p->i_keyint_min = p->i_keyint_max;
     }
-    OPT("min-keyint")
+    OPT2("min-keyint", "keyint-min")
     {
         p->i_keyint_min = atoi(value);
         if( p->i_keyint_max < p->i_keyint_min )
@@ -310,7 +310,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     OPT("b-pyramid")
         p->b_bframe_pyramid = atobool(value);
     OPT("nf")
-        p->b_deblocking_filter = 0;
+        p->b_deblocking_filter = !atobool(value);
     OPT2("filter", "deblock")
     {
         int count;
@@ -337,7 +337,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         else if( strstr( value, "jvt" ) )
             p->i_cqm_preset = X264_CQM_JVT;
         else
-            b_error = 1;
+            p->psz_cqm_file = strdup(value);
     }
     OPT("cqmfile")
         p->psz_cqm_file = strdup(value);
@@ -417,9 +417,9 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     }
     OPT("8x8dct")
         p->analyse.b_transform_8x8 = atobool(value);
-    OPT("weightb")
+    OPT2("weightb", "weight-b")
         p->analyse.b_weighted_bipred = atobool(value);
-    OPT("direct")
+    OPT2("direct", "direct-pred")
         b_error |= parse_enum( value, x264_direct_pred_names, &p->analyse.i_direct_mv_pred );
     OPT("direct-8x8")
         p->analyse.i_direct_8x8_inference = atoi(value);
@@ -427,17 +427,17 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->analyse.i_chroma_qp_offset = atoi(value);
     OPT("me")
         b_error |= parse_enum( value, x264_motion_est_names, &p->analyse.i_me_method );
-    OPT("merange")
+    OPT2("merange", "me-range")
         p->analyse.i_me_range = atoi(value);
     OPT("mvrange")
         p->analyse.i_mv_range = atoi(value);
-    OPT("subme")
+    OPT2("subme", "subq")
         p->analyse.i_subpel_refine = atoi(value);
     OPT("bime")
         p->analyse.b_bidir_me = atobool(value);
     OPT("chroma-me")
         p->analyse.b_chroma_me = atobool(value);
-    OPT("b-rdo")
+    OPT2("b-rdo", "brdo")
         p->analyse.b_bframe_rdo = atobool(value);
     OPT("mixed-refs")
         p->analyse.b_mixed_references = atobool(value);
@@ -458,7 +458,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->rc.i_bitrate = atoi(value);
         p->rc.i_rc_method = X264_RC_ABR;
     }
-    OPT("qp")
+    OPT2("qp", "qp_constant")
     {
         p->rc.i_qp_constant = atoi(value);
         p->rc.i_rc_method = X264_RC_CQP;
@@ -468,11 +468,11 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->rc.i_rf_constant = atoi(value);
         p->rc.i_rc_method = X264_RC_CRF;
     }
-    OPT("qpmin")
+    OPT2("qpmin", "qp-min")
         p->rc.i_qp_min = atoi(value);
-    OPT("qpmax")
+    OPT2("qpmax", "qp-max")
         p->rc.i_qp_max = atoi(value);
-    OPT("qpstep")
+    OPT2("qpstep", "qp-step")
         p->rc.i_qp_step = atoi(value);
     OPT("ratetol")
         p->rc.f_rate_tolerance = !strncmp("inf", value, 3) ? 1e9 : atof(value);
@@ -482,9 +482,9 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->rc.i_vbv_buffer_size = atoi(value);
     OPT("vbv-init")
         p->rc.f_vbv_buffer_init = atof(value);
-    OPT("ipratio")
+    OPT2("ipratio", "ip-factor")
         p->rc.f_ip_factor = atof(value);
-    OPT("pbratio")
+    OPT2("pbratio", "pb-factor")
         p->rc.f_pb_factor = atof(value);
     OPT("pass")
     {
@@ -503,7 +503,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->rc.f_qcompress = atof(value);
     OPT("qblur")
         p->rc.f_qblur = atof(value);
-    OPT("cplxblur")
+    OPT2("cplxblur", "cplx-blur")
         p->rc.f_complexity_blur = atof(value);
     OPT("zones")
         p->rc.psz_zones = strdup(value);
@@ -515,6 +515,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->b_aud = atobool(value);
     OPT("sps-id")
         p->i_sps_id = atoi(value);
+    OPT("global-header")
+        p->b_repeat_headers = !atobool(value);
     OPT("repeat-headers")
         p->b_repeat_headers = atobool(value);
     else
