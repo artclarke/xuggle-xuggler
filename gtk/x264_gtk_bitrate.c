@@ -34,14 +34,7 @@ _bitrate_page (X264_Gui_Config *gconfig)
   vbox = gtk_vbox_new (FALSE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (vbox), 6);
 
-#ifdef _WIN32
-  gchar *png;
-  png = x264_gtk_path("x264.png");
-  image = gtk_image_new_from_file (png);
-  g_free(png);
-#else
   image = gtk_image_new_from_file (X264_DATA_DIR "/x264/x264.png");
-#endif
   gtk_box_pack_start (GTK_BOX (vbox), image, FALSE, TRUE, 6);
   gtk_widget_show (image);
 
@@ -172,6 +165,7 @@ _bitrate_pass (GtkComboBox *combo,
         gtk_widget_show (gconfig->bitrate.w_average_bitrate);
       }
       gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (gconfig->bitrate.update_statfile), FALSE);
+      gtk_widget_set_sensitive (gconfig->bitrate.update_statfile, FALSE);
       break;
     case X264_PASS_SINGLE_QUANTIZER:
       gtk_label_set_text (GTK_LABEL (gconfig->bitrate.label), _("Quantizer"));
@@ -180,6 +174,8 @@ _bitrate_pass (GtkComboBox *combo,
         gtk_widget_hide (gconfig->bitrate.w_target_bitrate);
         gtk_widget_show (gconfig->bitrate.w_quantizer);
       }
+      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (gconfig->bitrate.update_statfile), FALSE);
+      gtk_widget_set_sensitive (gconfig->bitrate.update_statfile, FALSE);
       break;
     case X264_PASS_MULTIPASS_1ST:
     case X264_PASS_MULTIPASS_1ST_FAST:
@@ -189,6 +185,7 @@ _bitrate_pass (GtkComboBox *combo,
         gtk_widget_hide (gconfig->bitrate.w_average_bitrate);
         gtk_widget_show (gconfig->bitrate.w_target_bitrate);
       }
+      gtk_widget_set_sensitive (gconfig->bitrate.update_statfile, TRUE);
       gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (gconfig->bitrate.update_statfile), TRUE);
       break;
     case X264_PASS_MULTIPASS_NTH:
@@ -198,6 +195,8 @@ _bitrate_pass (GtkComboBox *combo,
         gtk_widget_hide (gconfig->bitrate.w_average_bitrate);
         gtk_widget_show (gconfig->bitrate.w_target_bitrate);
       }
+      gtk_widget_set_sensitive (gconfig->bitrate.update_statfile, TRUE);
+      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (gconfig->bitrate.update_statfile), TRUE);
       break;
     }
 }

@@ -140,7 +140,7 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
                                                  sizeof (X264_Pipe_Data),
                                                  &size, NULL);
               if (status != G_IO_STATUS_NORMAL) {
-                g_print (_("Error ! %d %d %d\n"), status, sizeof (X264_Pipe_Data), size);
+                g_print (_("Error ! %d %d %d\n"), status, (int)sizeof (X264_Pipe_Data), (int)size);
               }
               else {
                 /* we force the GIOChannel to write to the pipeline */

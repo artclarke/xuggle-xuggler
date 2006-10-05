@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-06-22 16:00+0200\n"
+"POT-Creation-Date: 2006-09-28 10:28+0200\n"
 "PO-Revision-Date: 2006-06-14 13:27+0200\n"
 "Last-Translator: Kurosu <kurosu@free.fr>\n"
 "Language-Team: N/A\n"
@@ -169,7 +169,7 @@ msgstr "Tous supportés"
 msgid "Auto"
 msgstr "Automatique"
 
-#: x264_gtk_bitrate.c:168
+#: x264_gtk_bitrate.c:161
 msgid "Average bitrate"
 msgstr "Débit moyen"
 
@@ -207,7 +207,7 @@ msgstr "EM bidirectionnel"
 msgid "Bidirectional ME - description"
 msgstr "Estimation de mouvement bidirectionnel"
 
-#: x264_gtk_rc.c:30 x264_gtk.c:238
+#: x264_gtk_rc.c:30 x264_gtk.c:264
 msgid "Bitrate"
 msgstr "Débit"
 
@@ -284,7 +284,7 @@ msgstr "Filtre de lissage"
 msgid "Debug"
 msgstr "Déboguage"
 
-#: x264_gtk.c:217
+#: x264_gtk.c:243
 msgid "Default"
 msgstr "Par défaut"
 
@@ -321,11 +321,11 @@ msgstr "Activé"
 msgid "Encoding status"
 msgstr "Situation dans le codage"
 
-#: x264_gtk_bitrate.c:68
+#: x264_gtk_bitrate.c:61
 msgid "Encoding type"
 msgstr "Type de codage"
 
-#: x264_gtk_bitrate.c:62
+#: x264_gtk_bitrate.c:55
 #, fuzzy
 msgid "Encoding type - description"
 msgstr "Type de codage"
@@ -449,12 +449,12 @@ msgstr "Bonus image clé (%)"
 msgid "Keyframe boost - description"
 msgstr "Bonus image clé (%)"
 
-#: x264_gtk.c:176
+#: x264_gtk.c:202
 #, c-format
 msgid "Loading configuration from %s\n"
 msgstr "Chargement de la configuration à partir de %s\n"
 
-#: x264_gtk.c:168
+#: x264_gtk.c:194
 msgid "Loading default configuration\n"
 msgstr "Chargement de la configuration par défaut\n"
 
@@ -466,11 +466,11 @@ msgstr "Niveau de trace"
 msgid "Log level - description"
 msgstr ""
 
-#: x264_gtk.c:252
+#: x264_gtk.c:278
 msgid "MB & Frames"
 msgstr "MB et image"
 
-#: x264_gtk_bitrate.c:48
+#: x264_gtk_bitrate.c:41
 msgid "Main settings"
 msgstr "Réglages principaux"
 
@@ -564,7 +564,7 @@ msgstr "Réf. mélangées"
 msgid "Mixed Refs - description"
 msgstr ""
 
-#: x264_gtk.c:259
+#: x264_gtk.c:285
 msgid "More..."
 msgstr "Plus..."
 
@@ -572,15 +572,15 @@ msgstr "Plus..."
 msgid "Motion Estimation"
 msgstr "Estimation de mouvement"
 
-#: x264_gtk_bitrate.c:79
+#: x264_gtk_bitrate.c:72
 msgid "Multipass - First Pass"
 msgstr "Plusieurs passes - première"
 
-#: x264_gtk_bitrate.c:81
+#: x264_gtk_bitrate.c:74
 msgid "Multipass - First Pass (fast)"
 msgstr "Plusieurs - première (rapide)"
 
-#: x264_gtk_bitrate.c:83
+#: x264_gtk_bitrate.c:76
 msgid "Multipass - Nth Pass"
 msgstr "Plusieurs - passe N"
 
@@ -630,15 +630,15 @@ msgstr "Progression:"
 msgid "Quantization limits"
 msgstr "Limite de quantification"
 
-#: x264_gtk.c:266
+#: x264_gtk.c:292
 msgid "Quantization matrices"
 msgstr "Matrices"
 
-#: x264_gtk_bitrate.c:101 x264_gtk_bitrate.c:177
+#: x264_gtk_bitrate.c:94 x264_gtk_bitrate.c:171
 msgid "Quantizer"
 msgstr "Pas de quantification"
 
-#: x264_gtk_bitrate.c:95
+#: x264_gtk_bitrate.c:88
 msgid "Quantizer - description"
 msgstr ""
 
@@ -650,7 +650,7 @@ msgstr "Portée"
 msgid "Range - description"
 msgstr ""
 
-#: x264_gtk.c:245
+#: x264_gtk.c:271
 msgid "Rate Control"
 msgstr "Contrôle de débit"
 
@@ -684,11 +684,11 @@ msgstr "Choisir un fichier"
 msgid "Select a path"
 msgstr "Choisir un répertoire"
 
-#: x264_gtk_bitrate.c:75
+#: x264_gtk_bitrate.c:68
 msgid "Single Pass - Bitrate"
 msgstr "Passe unique - débit"
 
-#: x264_gtk_bitrate.c:77
+#: x264_gtk_bitrate.c:70
 msgid "Single Pass - Quantizer"
 msgstr "Passe unique - Quantificateur"
 
@@ -696,11 +696,11 @@ msgstr "Passe unique - Quantificateur"
 msgid "Spatial"
 msgstr "Spatiale"
 
-#: x264_gtk_bitrate.c:120
+#: x264_gtk_bitrate.c:113
 msgid "Statistic file"
 msgstr "Fichier de statistiques"
 
-#: x264_gtk_bitrate.c:142
+#: x264_gtk_bitrate.c:135
 #, fuzzy
 msgid "Statistic file name"
 msgstr "Fichier de statistiques"
@@ -713,7 +713,7 @@ msgstr "Force"
 msgid "Strength - description"
 msgstr ""
 
-#: x264_gtk_bitrate.c:186 x264_gtk_bitrate.c:195
+#: x264_gtk_bitrate.c:182 x264_gtk_bitrate.c:192
 msgid "Target bitrate"
 msgstr "Débit visé"
 
@@ -758,12 +758,12 @@ msgstr ""
 msgid "Uneven Multi-Hexagon"
 msgstr "Recherche par hexagones inégaux"
 
-#: x264_gtk_bitrate.c:131
+#: x264_gtk_bitrate.c:124
 #, fuzzy
 msgid "Update statistic file"
 msgstr "Mettre à jour le fichier"
 
-#: x264_gtk_bitrate.c:133
+#: x264_gtk_bitrate.c:126
 #, fuzzy
 msgid "Update statistic file - description"
 msgstr "Mettre à jour le fichier"
@@ -815,12 +815,12 @@ msgstr "Bi-Prédiction à poids normalisés"
 msgid "Width:"
 msgstr "Largeur:"
 
-#: x264_gtk.c:342
+#: x264_gtk.c:368
 #, c-format
 msgid "Writing configuration to %s\n"
 msgstr "Ecriture de la configuration dans %s\n"
 
-#: x264_gtk.c:212
+#: x264_gtk.c:238
 msgid "X264 Configuration"
 msgstr "Configuration de X264"
 
@@ -873,11 +873,11 @@ msgstr "fichier de sortie : %s\n"
 msgid "need to increase buffer size (size=%d)\n"
 msgstr "doit accroître la taille de mémoire tampon (taille=%d)\n"
 
-#: x264_gtk.c:801
+#: x264_gtk.c:842
 msgid "problem...\n"
 msgstr "Problème...\n"
 
-#: x264_gtk.c:167
+#: x264_gtk.c:193
 #, c-format
 msgid "x264.cfg: %s\n"
 msgstr ""

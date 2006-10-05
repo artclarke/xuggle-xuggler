@@ -4,7 +4,7 @@ include config.mak
 # Architecture dependant stuff
 
 ifeq ($(SYS),MINGW)
-datadir=.
+datadir="$(HOMEDRIVE)/Documents\ and\ Settings/$(USERNAME)/Application\ Data"
 X264GTK_O = x264gtk.o
 TEST_OBJECTS+=$(X264GTK_O)
 LDFLAGS+=-mwindows
@@ -99,7 +99,7 @@ $(SONAMEGTK): $(OBJECTS_LIB)
 $(TEST_BIN): $(OBJECTS_LIB) $(OBJECTS_TEST)
 	@echo "  B: $(@F)"
 #Needs iconv/intl
-	@$(CC) -o $(TEST_BIN) $(OBJECTS_LIB) $(OBJECTS_TEST) $(LDFLAGS) $(ICONV_LIB) -lintl
+	@$(CC) -o $(TEST_BIN) $(OBJECTS_LIB) $(OBJECTS_TEST) $(LDFLAGS) $(ICONV_LIB)
 
 # Program : x264_gtk_encode
 $(ENCODE_BIN): x264_icon.h libx264gtk.a $(SONAMEGTK) $(OBJECTS_ENCODE) $(EXTERNAL_DEPS) $(X264GTK_O)
@@ -124,36 +124,44 @@ $(X264GTK_PC):
 
 # Clean rule
 clean:
-	@rm -f *.o *.mo x264_gtk.pot $(TEST_BIN) $(ENCODE_BIN) libx264gtk.a x264_icon.h x264gtk.o
+	@rm -f *.o *.mo x264_gtk.pot $(TEST_BIN) $(ENCODE_BIN) libx264gtk.a $(SONAMEGTK) x264_icon.h
 
 # Distclean rule
 distclean:
 	@rm -f config.mak $(X264GTK_PC)
 
 # Install rule
-install: x264_gtk_encode
+install: $(ENCODE_BIN)
+	@echo "  D: $(DESTDIR)$(includedir)"
+	@install -d "$(DESTDIR)$(includedir)"
 	@echo "  I: $(DESTDIR)$(includedir)/x264_gtk.h"
 	@install -m 644 x264_gtk.h "$(DESTDIR)$(includedir)"
 	@echo "  I: $(DESTDIR)$(includedir)/x264_gtk_enum.h"
 	@install -m 644 x264_gtk_enum.h "$(DESTDIR)$(includedir)"
+	@echo "  D: $(DESTDIR)$(libdir)"
+	@install -d "$(DESTDIR)$(libdir)"
 	@echo "  I: $(DESTDIR)$(libdir)/libx264gtk.a"
 	@install -m 644 libx264gtk.a "$(DESTDIR)$(libdir)"
 	@echo "  I: $(DESTDIR)$(libdir)/libx264gtk.so"
 	@$(if $(SONAMEGTK), ln -sf $(SONAMEGTK) $(DESTDIR)$(libdir)/libx264gtk.so)
 	@$(if $(SONAMEGTK), install -m 755 $(SONAMEGTK) $(DESTDIR)$(libdir))
-	@echo "  I: $(DESTDIR)$(bindir)/x264_gtk_encode"
-	@install x264_gtk_encode "$(DESTDIR)$(bindir)"
-	@echo "  D: ${prefix}/share/x264"
-	@install -d "$(DESTDIR)${prefix}/share/x264"
-	@echo "  I: ${prefix}/share/x264.png"
-	@install -m 644 x264.png "$(DESTDIR)${prefix}/share/x264"
+	@echo "  D: $(DESTDIR)$(bindir)"
+	@install -d "$(DESTDIR)$(bindir)"
+	@echo "  I: $(DESTDIR)$(bindir)/$(ENCODE_BIN)"
+	@install $(ENCODE_BIN) "$(DESTDIR)$(bindir)"
+	@echo "  D: $(DESTDIR)${datadir}/x264"
+	@install -d "$(DESTDIR)${datadir}/x264"
+	@echo "  I: $(DESTDIR)${datadir}/x264/x264.png"
+	@install -m 644 x264.png "$(DESTDIR)${datadir}/x264"
 	@for L in $(ALL_LINGUAS); do \
 	  echo "  D: $(DESTDIR)${prefix}/share/locale/$$L/LC_MESSAGES"; \
 	  install -d "$(DESTDIR)${prefix}/share/locale/$$L/LC_MESSAGES"; \
 	  echo "  I: $(DESTDIR)${prefix}/share/locale/$$L/LC_MESSAGES/x264_gtk.mo"; \
 	  install -m 644 $$L.mo "$(DESTDIR)${prefix}/share/locale/$$L/LC_MESSAGES/x264_gtk.mo"; \
 	done
-	@echo "  I: ${libdir}/pkgconfig/$(X264GTK_PC)"
+	@echo "  D: $(DESTDIR)${libdir}/pkgconfig"
+	@install -d "$(DESTDIR)${libdir}/pkgconfig"
+	@echo "  I: $(DESTDIR)${libdir}/pkgconfig/$(X264GTK_PC)"
 	@install -m 644 $(X264GTK_PC) "$(DESTDIR)${libdir}/pkgconfig"
 
 # Uninstall rule
@@ -167,10 +175,10 @@ uninstall:
 	@echo "  U: $(DESTDIR)$(libdir)/libx264gtk.so"
 	@$(if $(SONAMEGTK), rm -f "$(DESTDIR)$(libdir)/$(SONAMEGTK)")
 	@rm -f "$(DESTDIR)$(libdir)/libx264gtk.so"
-	@echo "  U: $(DESTDIR)$(bindir)/x264_gtk_encode"
-	@rm -f "$(DESTDIR)$(bindir)/x264_gtk_encode"
-	@echo "  U: $(DESTDIR)${prefix}/share/x264"
-	@rm -rf "$(DESTDIR)${prefix}/share/x264"
+	@echo "  U: $(DESTDIR)$(bindir)/$(ENCODE_BIN)"
+	@rm -f "$(DESTDIR)$(bindir)/$(ENCODE_BIN)"
+	@echo "  U: $(DESTDIR)${datadir}/x264"
+	@rm -rf "$(DESTDIR)${datadir}/x264"
 	@for L in $(ALL_LINGUAS); do \
 	  echo "  U: $(DESTDIR)${prefix}/share/locale/$$L/LC_MESSAGES/x264_gtk.mo"; \
 	  rm -f "$(DESTDIR)${prefix}/share/locale/$$L/LC_MESSAGES/x264_gtk.mo"; \

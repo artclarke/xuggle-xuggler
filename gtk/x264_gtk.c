@@ -31,6 +31,8 @@
 
 #define CHECK_FLAG(a,flag) ((a) & (flag)) == (flag)
 #define round(a) ( ((a)<0.0) ? (gint)(floor((a) - 0.5)) : (gint)(floor((a) + 0.5)) )
+#define X264_MAX(a,b) ( (a)>(b) ? (a) : (b) )
+#define X264_MIN(a,b) ( (a)<(b) ? (a) : (b) )
 
 /* Callbacks */
 static void _dialog_run (GtkDialog       *dialog,
@@ -59,15 +61,6 @@ x264_param_t *x264_gtk_param_get (X264_Gtk *x264_gtk)
     return NULL;
 
   x264_param_default (param);
-
-  /* bitrate */
-  if (x264_gtk->pass == X264_PASS_SINGLE_BITRATE)
-    param->rc.i_bitrate  = x264_gtk->average_bitrate;
-  else
-    param->rc.i_bitrate = x264_gtk->target_bitrate;
-  param->rc.i_qp_constant = x264_gtk->quantizer;
-
-  /* FIXME: what to do about psz_stat_out ? */
 
   /* rate control */
   param->rc.f_ip_factor = 1.0 + (double)x264_gtk->keyframe_boost / 100.0;
@@ -144,6 +137,39 @@ x264_param_t *x264_gtk_param_get (X264_Gtk *x264_gtk)
   memcpy( param->cqm_4pc, x264_gtk->cqm_4pc, 16 );
   memcpy( param->cqm_8iy, x264_gtk->cqm_8iy, 64 );
   memcpy( param->cqm_8py, x264_gtk->cqm_8py, 64 );
+
+  /* bitrate */
+  switch (x264_gtk->pass) {
+  case X264_PASS_SINGLE_BITRATE:
+    param->rc.i_rc_method = X264_RC_ABR;
+    param->rc.i_bitrate  = x264_gtk->average_bitrate;
+    break;
+  case X264_PASS_SINGLE_QUANTIZER:
+    param->rc.i_rc_method = X264_RC_CQP;
+    param->rc.i_qp_constant = x264_gtk->quantizer;
+    break;
+  case X264_PASS_MULTIPASS_1ST_FAST:
+    param->analyse.i_subpel_refine = X264_MAX( X264_MIN( 3, param->analyse.i_subpel_refine - 1 ), 1 );
+    param->i_frame_reference = ( param->i_frame_reference + 1 ) >> 1;
+    param->analyse.inter &= ( ~X264_ANALYSE_PSUB8x8 );
+    param->analyse.inter &= ( ~X264_ANALYSE_BSUB16x16 );
+  case X264_PASS_MULTIPASS_1ST:
+    param->rc.i_rc_method = X264_RC_ABR;
+    param->rc.i_bitrate  = x264_gtk->average_bitrate;
+    param->rc.f_rate_tolerance = 4.0;
+    break;
+  case X264_PASS_MULTIPASS_NTH:
+    param->rc.i_rc_method = X264_RC_ABR;
+    param->rc.i_bitrate  = x264_gtk->average_bitrate;
+    param->rc.f_rate_tolerance = 1.0;
+    break;
+  }
+
+  param->rc.b_stat_write = x264_gtk->stat_write;
+  param->rc.b_stat_read = x264_gtk->stat_read;
+
+  /* FIXME: potential mem leak... */
+  param->rc.psz_stat_out = x264_gtk_path (x264_gtk->statsfile_name);
 
   return param;
 }
@@ -383,6 +409,7 @@ _default_load (GtkButton *button __UNUSED__, gpointer user_data)
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->bitrate.update_statfile), FALSE);
   gtk_entry_set_text (GTK_ENTRY (config->bitrate.statsfile_name), "x264.stats");
   gtk_widget_set_sensitive (config->bitrate.statsfile_name, FALSE);
+  gtk_widget_set_sensitive (config->bitrate.update_statfile, FALSE);
 
   /* rate control */
   g_snprintf (buf, 64, "%d", round((param.rc.f_ip_factor - 1.0) * 100));
@@ -504,7 +531,6 @@ static void
 _default_set (X264_Gtk *x264_gtk)
 {
   x264_param_t param;
-  gchar       *text;
 
   x264_param_default (&param);
 
@@ -513,9 +539,11 @@ _default_set (X264_Gtk *x264_gtk)
   x264_gtk->average_bitrate = param.rc.i_bitrate;
   x264_gtk->target_bitrate = param.rc.i_bitrate;
   x264_gtk->quantizer = param.rc.i_qp_constant;
+  x264_gtk->stat_write = param.rc.b_stat_write;
+  x264_gtk->stat_read = param.rc.b_stat_read;
   x264_gtk->update_statfile = 0;
-  text = "x264.stats";
-  memcpy (x264_gtk->statsfile_name, text, strlen (text) + 1);
+  x264_gtk->statsfile_length = strlen (param.rc.psz_stat_out);
+  memcpy (x264_gtk->statsfile_name, param.rc.psz_stat_out, x264_gtk->statsfile_length + 1);
 
   /* rate control */
   x264_gtk->keyframe_boost = round((param.rc.f_ip_factor - 1.0) * 100);
@@ -582,8 +610,7 @@ _default_set (X264_Gtk *x264_gtk)
   x264_gtk->threshold = param.i_deblocking_filter_beta;
 
   x264_gtk->debug_method = param.i_log_level + 1;
-  text = "H264";
-  memcpy (x264_gtk->fourcc, text, strlen (text) + 1);
+  memcpy (x264_gtk->fourcc, "H264", 5);
 
   /* cqm */
   x264_gtk->cqm_preset = param.i_cqm_preset;
@@ -616,6 +643,20 @@ _current_set (X264_Gui_Config *config, X264_Gtk *x264_gtk)
   gtk_range_set_value (GTK_RANGE (config->bitrate.w_quantizer), x264_gtk->quantizer);
   g_snprintf (buf, 5, "%d", x264_gtk->target_bitrate);
   gtk_entry_set_text (GTK_ENTRY (config->bitrate.w_target_bitrate), buf);
+  switch (gtk_combo_box_get_active (GTK_COMBO_BOX (config->bitrate.pass)))
+  {
+  case 0:
+  case 1:
+    gtk_widget_set_sensitive (config->bitrate.update_statfile, FALSE);
+    gtk_widget_set_sensitive (config->bitrate.statsfile_name, FALSE);
+    break;
+  case 2:
+  case 3:
+  case 4:
+  default:
+    gtk_widget_set_sensitive (config->bitrate.update_statfile, TRUE);
+    break;
+  }
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->bitrate.update_statfile), x264_gtk->update_statfile);
   gtk_entry_set_text (GTK_ENTRY (config->bitrate.statsfile_name), x264_gtk->statsfile_name);
   if (x264_gtk->update_statfile)
@@ -807,26 +848,35 @@ _current_get (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk)
     x264_gtk->pass = X264_PASS_SINGLE_BITRATE;
     text = gtk_entry_get_text (GTK_ENTRY (gconfig->bitrate.w_average_bitrate));
     x264_gtk->average_bitrate = (gint)g_ascii_strtoull (text, NULL, 10);
+    x264_gtk->stat_write = 0;
+    x264_gtk->stat_read = 0;
     break;
   case 1:
     x264_gtk->pass = X264_PASS_SINGLE_QUANTIZER;
     x264_gtk->quantizer = (gint)gtk_range_get_value (GTK_RANGE (gconfig->bitrate.w_quantizer));
+    x264_gtk->stat_write = 0;
+    x264_gtk->stat_read = 0;
     break;
   case 2:
     x264_gtk->pass = X264_PASS_MULTIPASS_1ST;
     text = gtk_entry_get_text (GTK_ENTRY (gconfig->bitrate.w_target_bitrate));
     x264_gtk->target_bitrate = (gint)g_ascii_strtoull (text, NULL, 10);
+    x264_gtk->stat_write = 1;
     break;
   case 3:
     x264_gtk->pass = X264_PASS_MULTIPASS_1ST_FAST;
     text = gtk_entry_get_text (GTK_ENTRY (gconfig->bitrate.w_target_bitrate));
     x264_gtk->target_bitrate = (gint)g_ascii_strtoull (text, NULL, 10);
+    x264_gtk->stat_write = 1;
     break;
   case 4:
   default:
     x264_gtk->pass = X264_PASS_MULTIPASS_NTH;
     text = gtk_entry_get_text (GTK_ENTRY (gconfig->bitrate.w_target_bitrate));
     x264_gtk->target_bitrate = (gint)g_ascii_strtoull (text, NULL, 10);
+    x264_gtk->stat_read = 1;
+    if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->bitrate.update_statfile)))
+      x264_gtk->stat_write = 1;
     break;
   }
   if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gconfig->bitrate.update_statfile)))
@@ -835,9 +885,10 @@ _current_get (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk)
     x264_gtk->update_statfile = 0;
 
   text = gtk_entry_get_text (GTK_ENTRY (gconfig->bitrate.statsfile_name));
+  x264_gtk->statsfile_length = strlen (text);
   memcpy (x264_gtk->statsfile_name,
           text,
-          strlen(text) + 1);
+          x264_gtk->statsfile_length + 1);
 
   /* rate control */
   text = gtk_entry_get_text (GTK_ENTRY (gconfig->rate_control.bitrate.keyframe_boost));

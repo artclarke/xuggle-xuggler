@@ -712,7 +712,7 @@ _fill_status_window (GIOChannel  *io __UNUSED__,
                                     sizeof (X264_Pipe_Data),
                                     &size, NULL);
   if (status != G_IO_STATUS_NORMAL) {
-    g_print (_("Error ! %d %d %d\n"), status, sizeof (X264_Pipe_Data), size);
+    g_print (_("Error ! %d %d %d\n"), status, (int)sizeof (X264_Pipe_Data), (int)size);
     return FALSE;
   }
 

@@ -19,7 +19,7 @@ struct X264_Gtk_
   gint target_bitrate;
   gint quantizer;
   gint desired_size;
-  gint statfile_length; /* length of the filename (as returned by strlen) */
+  gint statsfile_length; /* length of the filename (as returned by strlen) */
   gchar statsfile_name[4095+1];
 
   /* rc */
@@ -74,6 +74,8 @@ struct X264_Gtk_
   guint8          cqm_8py[64];
 
   /* bitrate */
+  guint stat_write            : 1;
+  guint stat_read             : 1;
   guint update_statfile       : 1;
   /* mb - partitions */
   guint transform_8x8         : 1;
