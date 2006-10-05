@@ -75,9 +75,6 @@ $(SONAME): .depend $(OBJS) $(OBJASM)
 x264$(EXE): $(OBJCLI) libx264.a 
 	$(CC) -o $@ $+ $(LDFLAGS)
 
-x264vfw.dll: libx264.a $(wildcard vfw/*.c vfw/*.h)
-	$(MAKE) -C vfw/build/cygwin
-
 libx264gtk.a: muxers.o libx264.a
 	$(MAKE) -C gtk
 
@@ -133,13 +130,12 @@ clean:
 	rm -f $(OBJS) $(OBJASM) $(OBJCLI) $(SONAME) *.a x264 x264.exe .depend TAGS
 	rm -f checkasm checkasm.exe tools/checkasm.o
 	rm -f tools/avc2avi tools/avc2avi.exe tools/avc2avi.o
-	rm -rf vfw/build/cygwin/bin
 	rm -f $(SRC2:%.c=%.gcda) $(SRC2:%.c=%.gcno)
 	- sed -e 's/ *-fprofile-\(generate\|use\)//g' config.mak > config.mak2 && mv config.mak2 config.mak
 	$(MAKE) -C gtk clean
 
 distclean: clean
-	rm -f config.mak config.h vfw/build/cygwin/config.mak x264.pc
+	rm -f config.mak config.h x264.pc
 	$(MAKE) -C gtk distclean
 
 install: x264 $(SONAME)

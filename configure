@@ -9,7 +9,6 @@ echo ""
 echo "  --help                   print this message"
 echo "  --enable-avis-input      enables avisynth input (win32 only)"
 echo "  --enable-mp4-output      enables mp4 output (using gpac)"
-echo "  --enable-vfw             compiles the VfW frontend"
 echo "  --enable-gtk             build GTK+ interface"
 echo "  --enable-pthread         enables multithreaded encoding"
 echo "  --enable-debug           adds -g, doesn't strip"
@@ -51,7 +50,6 @@ pthread="auto"
 debug="no"
 gprof="no"
 pic="no"
-vfw="no"
 gtk="no"
 vis="no"
 shared="no"
@@ -218,11 +216,9 @@ for opt do
             ;;
         --extra-cflags=*)
             CFLAGS="$CFLAGS ${opt#--extra-cflags=}"
-            VFW_CFLAGS="${opt#--extra-cflags=}"
             ;;
         --extra-ldflags=*)
             LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
-            VFW_LDFLAGS="${opt#--extra-ldflags=}"
             ;;
         --enable-pthread)
             pthread="yes"
@@ -240,12 +236,6 @@ for opt do
             ;;
         --enable-pic)
             pic="yes"
-            ;;
-        --enable-vfw)
-            vfw="yes"
-            ;;
-        --disable-vfw)
-            vfw="no"
             ;;
         --enable-gtk)
             gtk="yes"
@@ -326,7 +316,6 @@ fi
 if [ "$debug" != "yes" -a "$gprof" != "yes" ]; then
     CFLAGS="$CFLAGS -s -fomit-frame-pointer"
     LDFLAGS="$LDFLAGS -s"
-    VFW_LDFLAGS="$VFW_LDFLAGS -s"
 fi
 
 if [ "$debug" = "yes" ]; then
@@ -358,7 +347,6 @@ CFLAGS=$CFLAGS
 LDFLAGS=$LDFLAGS
 AS=$AS
 ASFLAGS=$ASFLAGS
-VFW=$vfw
 GTK=$gtk
 EXE=$EXE
 VIS=$vis
@@ -373,15 +361,6 @@ done
 echo '' >> config.mak
 
 cp config.mak gtk/config.mak
-
-if [ "$vfw" = "yes" ]; then
-    rm -f vfw/build/cygwin/config.mak
-    cat > vfw/build/cygwin/config.mak << EOF
-CFLAGS=$VFW_CFLAGS
-LDFLAGS=$VFW_LDFLAGS
-EOF
-    echo "default: x264vfw.dll" >> config.mak
-fi
 
 if [ "$shared" = "yes" ]; then
     API=$(grep '#define X264_BUILD' < x264.h | cut -f 3 -d ' ')
@@ -428,7 +407,6 @@ echo "System:     $SYS"
 echo "avis input: $avis_input"
 echo "mp4 output: $mp4_output"
 echo "pthread:    $pthread"
-echo "vfw:        $vfw"
 echo "gtk:        $gtk"
 echo "debug:      $debug"
 echo "gprof:      $gprof"
