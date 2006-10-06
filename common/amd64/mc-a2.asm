@@ -30,201 +30,41 @@ BITS 64
 ; Read only data
 ;=============================================================================
 
-SECTION .rodata
+SECTION .rodata align=16
 
 ALIGN 16
-mmx_dw_16:
-    times 4 dw 16
-mmx_dw_32:
-    times 4 dw 32
-
-%assign tbuffer 0
+pw_1:  times 4 dw 1
+pw_16: times 4 dw 16
+pw_32: times 4 dw 32
 
 ;=============================================================================
 ; Macros
 ;=============================================================================
 
-%macro LOAD_4 9
-    movd %1, %5
-    movd %2, %6
-    movd %3, %7
-    movd %4, %8
-    punpcklbw %1, %9
-    punpcklbw %2, %9
-    punpcklbw %3, %9
-    punpcklbw %4, %9
+%macro LOAD_ADD 3
+    movd        %1,     %2
+    movd        mm7,    %3
+    punpcklbw   %1,     mm0
+    punpcklbw   mm7,    mm0
+    paddw       %1,     mm7
 %endmacro
 
-%macro FILT_2 2
-    psubw %1, %2
-    psllw %2, 2
-    psubw %1, %2
+%macro FILT_V 0
+    psubw       mm1,    mm2         ; a-b
+    psubw       mm4,    mm5
+    psubw       mm2,    mm3         ; b-c
+    psubw       mm5,    mm6
+    psllw       mm2,    2
+    psllw       mm5,    2
+    psubw       mm1,    mm2         ; a-5*b+4*c
+    psubw       mm4,    mm5
+    psllw       mm3,    4
+    psllw       mm6,    4
+    paddw       mm1,    mm3         ; a-5*b+20*c
+    paddw       mm4,    mm6
 %endmacro
 
-%macro FILT_4 3
-    paddw %2, %3
-    psllw %2, 2
-    paddw %1, %2
-    psllw %2, 2
-    paddw %1, %2
-%endmacro
-
-%macro FILT_6 4
-    psubw %1, %2
-    psllw %2, 2
-    psubw %1, %2
-    paddw %1, %3
-    paddw %1, %4
-    psraw %1, 5
-%endmacro
-
-%macro FILT_ALL 1
-    LOAD_4      mm1, mm2, mm3, mm4, [%1], [%1 + rcx], [%1 + 2 * rcx], [%1 + rbx], mm0
-    FILT_2      mm1, mm2
-    movd        mm5, [%1 + 4 * rcx]
-    movd        mm6, [%1 + rdx]
-    FILT_4      mm1, mm3, mm4
-    punpcklbw   mm5, mm0
-    punpcklbw   mm6, mm0
-    psubw       mm1, mm5
-    psllw       mm5, 2
-    psubw       mm1, mm5
-    paddw       mm1, mm6
-%endmacro
-
-
-
-
-;=============================================================================
-; Code
-;=============================================================================
-
-SECTION .text
-
-cglobal x264_horizontal_filter_mmxext
-cglobal x264_center_filter_mmxext
-cglobal x264_plane_copy_mmxext
-
-;-----------------------------------------------------------------------------
-;
-; void x264_center_filter_mmxext( uint8_t *dst1, int i_dst1_stride,
-;                                 uint8_t *dst2, int i_dst2_stride,
-;                                  uint8_t *src, int i_src_stride,
-;                                  int i_width, int i_height );
-;
-;-----------------------------------------------------------------------------
-
-ALIGN 16
-x264_center_filter_mmxext :
-
-    push        r15
-    pushreg     r15
-%ifdef WIN64
-    push        rdi
-    pushreg     rdi
-    push        rsi
-    pushreg     rsi
-%endif
-
-    push        rbp
-    pushreg     rbp
-    push        rbx
-    pushreg     rbx
-    push        r12
-    pushreg     r12
-    push        r13
-    pushreg     r13
-    push        r14
-    pushreg     r14
-    lea         rbp,    [rsp]
-    setframe    rbp, 0
-    endprolog
-
-%ifdef WIN64
-    movsxd      r13,    dword [rsp+64+48]   ; src_stride
-    mov         r12,    [rsp+64+40]         ; src
-%else
-    movsxd      r13,    r9d                 ; src_stride
-    mov         r12,    r8                  ; src
-%endif
-    sub         r12,    r13
-    sub         r12,    r13                 ; tsrc = src - 2 * src_stride
-
-    ; use 24 instead of 18 (used in i386/mc-a2.asm) to keep rsp aligned
-    lea         rax,    [r13 + r13 + 24 + tbuffer]
-    sub         rsp,    rax
-
-    mov         r10,    parm3q                 ; dst2
-    movsxd      r11,    parm4d                 ; dst2_stride
-    mov         r8,     parm1q                 ; dst1
-    movsxd      r9,     parm2d                 ; dst1_stride
-%ifdef WIN64
-    movsxd      r14,    dword [rbp + 64 + 56]  ; width
-    movsxd      r15,    dword [rbp + 64 + 64]  ; height
-%else
-    movsxd      r14,    dword [rbp + 56]    ; width
-    movsxd      r15,    dword [rbp + 64]    ; height
-%endif
-
-    mov         rcx,    r13                 ; src_stride
-    lea         rbx,    [r13 + r13 * 2]     ; 3 * src_stride
-    lea         rdx,    [r13 + r13 * 4]     ; 5 * src_stride
-
-    pxor        mm0,    mm0                 ; 0 ---> mm0
-
-.loopcy:
-
-    mov         rax,    4
-    mov         rsi,    r12             ; tsrc
-    lea         rdi,    [r8 - 4]        ; rdi = dst1 - 4
-    movq        mm7,    [mmx_dw_16 GLOBAL]  ; for rounding
-
-.vertical_filter:
-
-    prefetchnta [rsi + rdx + 32]
-    FILT_ALL    rsi
-    movq        mm7,    mm1
-    FILT_ALL    rsi + 4
-
-    movq        mm6,    [mmx_dw_16 GLOBAL]
-    movq        [rsp + tbuffer + 2 * rax],  mm7
-    movq        [rsp + tbuffer + 2 * rax + 8],  mm1
-    paddw       mm7,    mm6
-    paddw       mm1,    mm6
-    psraw       mm7,    5
-    psraw       mm1,    5
-    packuswb    mm7,    mm1
-    movntq      [rdi + rax],  mm7   ; dst1[rax - 4]
-
-    cmp         rax,    r14         ; cmp rax, width
-    lea         rsi,    [rsi + 8]
-    lea         rax,    [rax + 8]
-    jl          .vertical_filter
-
-    pshufw      mm2, [rsp + tbuffer + 8], 0
-    movq        [rsp + tbuffer], mm2 ; pad left
-    ; no need to pad right, since loopcx1 already did 4 extra pixels
-
-    add         r12,    r13         ; tsrc = tsrc + src_stride
-    add         r8,     r9          ; dst1 = dst1 + dst1_stride
-    xor         rax,    rax
-    movq        mm7,    [mmx_dw_32 GLOBAL]  ; for rounding
-
-.center_filter:
-
-    movq        mm1,    [rsp + 2 * rax      + 4 + tbuffer]
-    movq        mm2,    [rsp + 2 * rax + 2  + 4 + tbuffer]
-    movq        mm3,    [rsp + 2 * rax + 4  + 4 + tbuffer]
-    movq        mm4,    [rsp + 2 * rax + 8  + 4 + tbuffer]
-    movq        mm5,    [rsp + 2 * rax + 10 + 4 + tbuffer]
-    paddw       mm3,    [rsp + 2 * rax + 6  + 4 + tbuffer]
-    paddw       mm2,    mm4
-    paddw       mm1,    mm5
-    movq        mm6,    [rsp + 2 * rax + 12 + 4 + tbuffer]
-    paddw       mm4,    [rsp + 2 * rax + 18 + 4 + tbuffer]
-    paddw       mm5,    [rsp + 2 * rax + 16 + 4 + tbuffer]
-    paddw       mm6,    [rsp + 2 * rax + 14 + 4 + tbuffer]
-
+%macro FILT_H 0
     psubw       mm1,    mm2         ; a-b
     psubw       mm4,    mm5
     psraw       mm1,    2           ; (a-b)/4
@@ -237,109 +77,199 @@ x264_center_filter_mmxext :
     psraw       mm4,    2
     paddw       mm1,    mm3         ; ((a-b)/4-b+c)/4+c = (a-5*b+20*c)/16
     paddw       mm4,    mm6
-    paddw       mm1,    mm7         ; +32
+%endmacro
+
+%macro FILT_PACK 1
+    paddw       mm1,    mm7
     paddw       mm4,    mm7
-    psraw       mm1,    6
-    psraw       mm4,    6
-
+    psraw       mm1,    %1
+    psraw       mm4,    %1
     packuswb    mm1,    mm4
-    movntq      [r10 + rax], mm1    ; dst2[rax]
+%endmacro
 
-    add         rax,    8
-    cmp         rax,    r14         ; cmp rax, width
-    jnz         .center_filter
 
-    add         r10,    r11         ; dst2 += dst2_stride
-    dec         r15                 ; height
-    jnz         .loopcy
+;=============================================================================
+; Code
+;=============================================================================
 
-    lea         rsp,    [rbp]
+SECTION .text
 
-    pop         r14
-    pop         r13
-    pop         r12
+cglobal x264_hpel_filter_mmxext
+cglobal x264_plane_copy_mmxext
+
+;-----------------------------------------------------------------------------
+; void x264_hpel_filter_mmxext( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
+;                               int i_stride, int i_width, int i_height );
+;-----------------------------------------------------------------------------
+
+ALIGN 16
+x264_hpel_filter_mmxext :
+
+%ifdef WIN64
+    push        rdi
+    pushreg     rdi
+    push        rsi
+    pushreg     rsi
+%endif
+    push        rbp
+    pushreg     rbp
+    push        rbx
+    pushreg     rbx
+    mov         rbp,    rsp
+    setframe    rbp, 0
+    endprolog
+
+%ifdef WIN64
+    mov         rdi,    parm1q
+    mov         rsi,    parm2q
+    mov         rdx,    parm3q
+    mov         rcx,    parm4q
+    movsxd      r8,     dword [rbp+72]
+    movsxd      r9,     dword [rbp+80]
+    mov         ebx,    dword [rbp+88]
+%else
+    mov         ebx,    dword [rbp+24]
+%endif
+    %define     dsth    rdi
+    %define     dstv    rsi
+    %define     dstc    rdx
+    %define     src     rcx
+    %define     stride  r8
+    %define     width   r9
+    %define     height  ebx
+    %define     stride3 r10
+    %define     stride5 r11
+    %define     x       rax
+    %define     tbuffer rsp + 8
+
+    lea         stride3, [stride*3]
+    lea         stride5, [stride*5]
+    sub         src,    stride
+    sub         src,    stride
+
+    lea         rax,    [stride*2 + 24]
+    sub         rsp,    rax
+
+    pxor        mm0,    mm0
+
+.loopy:
+
+    xor         x,      x
+ALIGN 16
+.vertical_filter:
+
+    prefetchnta [src + stride5 + 32]
+
+    LOAD_ADD    mm1,    [src               ], [src + stride5     ] ; a0
+    LOAD_ADD    mm2,    [src + stride      ], [src + stride*4    ] ; b0
+    LOAD_ADD    mm3,    [src + stride*2    ], [src + stride3     ] ; c0
+    LOAD_ADD    mm4,    [src            + 4], [src + stride5  + 4] ; a1
+    LOAD_ADD    mm5,    [src + stride   + 4], [src + stride*4 + 4] ; b1
+    LOAD_ADD    mm6,    [src + stride*2 + 4], [src + stride3  + 4] ; c1
+
+    FILT_V
+
+    movq        mm7,    [pw_16 GLOBAL]
+    movq        [tbuffer + x*2],  mm1
+    movq        [tbuffer + x*2 + 8],  mm4
+    paddw       mm1,    mm7
+    paddw       mm4,    mm7
+    psraw       mm1,    5
+    psraw       mm4,    5
+    packuswb    mm1,    mm4
+    movntq      [dstv + x], mm1
+
+    add         x,      8
+    add         src,    8
+    cmp         x,      width
+    jle         .vertical_filter
+
+    pshufw      mm2, [tbuffer], 0
+    movq        [tbuffer - 8], mm2 ; pad left
+    ; no need to pad right, since vertical_filter already did 4 extra pixels
+
+    sub         src,    x
+    xor         x,      x
+    movq        mm7,    [pw_32 GLOBAL]
+.center_filter:
+
+    movq        mm1,    [tbuffer + x*2 - 4 ]
+    movq        mm2,    [tbuffer + x*2 - 2 ]
+    movq        mm3,    [tbuffer + x*2     ]
+    movq        mm4,    [tbuffer + x*2 + 4 ]
+    movq        mm5,    [tbuffer + x*2 + 6 ]
+    paddw       mm3,    [tbuffer + x*2 + 2 ] ; c0
+    paddw       mm2,    mm4                  ; b0
+    paddw       mm1,    mm5                  ; a0
+    movq        mm6,    [tbuffer + x*2 + 8 ]
+    paddw       mm4,    [tbuffer + x*2 + 14] ; a1
+    paddw       mm5,    [tbuffer + x*2 + 12] ; b1
+    paddw       mm6,    [tbuffer + x*2 + 10] ; c1
+
+    FILT_H
+    FILT_PACK 6
+    movntq      [dstc + x], mm1
+
+    add         x,      8
+    cmp         x,      width
+    jl          .center_filter
+
+    lea         src,    [src + stride*2]
+    xor         x,      x
+.horizontal_filter:
+
+    movd        mm1,    [src + x - 2]
+    movd        mm2,    [src + x - 1]
+    movd        mm3,    [src + x    ]
+    movd        mm6,    [src + x + 1]
+    movd        mm4,    [src + x + 2]
+    movd        mm5,    [src + x + 3]
+    punpcklbw   mm1,    mm0
+    punpcklbw   mm2,    mm0
+    punpcklbw   mm3,    mm0
+    punpcklbw   mm6,    mm0
+    punpcklbw   mm4,    mm0
+    punpcklbw   mm5,    mm0
+    paddw       mm3,    mm6 ; c0
+    paddw       mm2,    mm4 ; b0
+    paddw       mm1,    mm5 ; a0
+    movd        mm7,    [src + x + 7]
+    movd        mm6,    [src + x + 6]
+    punpcklbw   mm7,    mm0
+    punpcklbw   mm6,    mm0
+    paddw       mm4,    mm7 ; c1
+    paddw       mm5,    mm6 ; b1
+    movd        mm7,    [src + x + 5]
+    movd        mm6,    [src + x + 4]
+    punpcklbw   mm7,    mm0
+    punpcklbw   mm6,    mm0
+    paddw       mm6,    mm7 ; a1
+
+    movq        mm7,    [pw_1 GLOBAL]
+    FILT_H
+    FILT_PACK 1
+    movntq      [dsth + x], mm1
+
+    add         x,      8
+    cmp         x,      width
+    jl          .horizontal_filter
+
+    sub         src,    stride
+    add         dsth,   stride
+    add         dstv,   stride
+    add         dstc,   stride
+    dec         height
+    jg          .loopy
+
+    mov         rsp,    rbp
     pop         rbx
     pop         rbp
 %ifdef WIN64
     pop         rsi
     pop         rdi
 %endif
-    pop         r15
-
     ret
 
-;-----------------------------------------------------------------------------
-;
-; void x264_horizontal_filter_mmxext( uint8_t *dst, int i_dst_stride,
-;                                     uint8_t *src, int i_src_stride,
-;                                     int i_width, int i_height );
-;
-;-----------------------------------------------------------------------------
-
-ALIGN 16
-x264_horizontal_filter_mmxext :
-    movsxd      r10,    parm2d               ; dst_stride
-    movsxd      r11,    parm4d               ; src_stride
-%ifdef WIN64
-    mov         rdx,    r8                   ; src
-    mov         r9,     rcx                  ; dst
-    movsxd      rcx,    parm6d               ; height
-%else
-    movsxd      rcx,    parm6d               ; height
-    mov         r9,     rdi                  ; dst
-%endif
-    
-    movsxd      r8,     parm5d               ; width
-
-    pxor        mm0,    mm0
-    movq        mm7,    [mmx_dw_16 GLOBAL]
-
-    sub         rdx,    2
-
-loophy:
-
-    xor         rax,    rax
-
-loophx:
-
-    prefetchnta [rdx + rax + 48]       
-
-    LOAD_4      mm1,    mm2, mm3, mm4, [rdx + rax], [rdx + rax + 1], [rdx + rax + 2], [rdx + rax + 3], mm0
-    FILT_2      mm1,    mm2
-    movd        mm5,    [rdx + rax + 4]
-    movd        mm6,    [rdx + rax + 5]
-    FILT_4      mm1,    mm3, mm4
-    movd        mm2,    [rdx + rax + 4]
-    movd        mm3,    [rdx + rax + 6]
-    punpcklbw   mm5,    mm0
-    punpcklbw   mm6,    mm0
-    FILT_6      mm1,    mm5, mm6, mm7
-    movd        mm4,    [rdx + rax + 7]
-    movd        mm5,    [rdx + rax + 8]
-    punpcklbw   mm2,    mm0
-    punpcklbw   mm3,    mm0                  ; mm2(1), mm3(20), mm6(-5) ready
-    FILT_2      mm2,    mm6
-    movd        mm6,    [rdx + rax + 9]
-    punpcklbw   mm4,    mm0
-    punpcklbw   mm5,    mm0                  ; mm2(1-5), mm3(20), mm4(20), mm5(-5) ready
-    FILT_4      mm2,    mm3, mm4
-    punpcklbw   mm6,    mm0
-    FILT_6      mm2,    mm5, mm6, mm7
-
-    packuswb    mm1,    mm2
-    movq        [r9 + rax],  mm1
-
-    add         rax,    8
-    cmp         rax,    r8                   ; cmp rax, width
-    jnz         loophx
-
-    add         rdx,    r11                  ; src_pitch
-    add         r9,     r10                  ; dst_pitch
-
-    dec         rcx
-    jnz         loophy
-
-    ret
 
 
 ;-----------------------------------------------------------------------------

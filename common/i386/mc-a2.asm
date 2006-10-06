@@ -33,80 +33,59 @@ BITS 32
 SECTION_RODATA
 
 ALIGN 16
-mmx_dw_one:
-    times 4 dw 16
-mmx_dd_one:
-    times 2 dd 512
-mmx_dw_20:
-    times 4 dw 20
-mmx_dw_5:
-    times 4 dw -5
-
-%assign twidth  0
-%assign theight 4
-%assign tdstp1  8
-%assign tdstp2  12
-%assign tdst1   16
-%assign tdst2   20
-%assign tsrc    24
-%assign tsrcp   28
-%assign toffset 32
-%assign tbuffer 36
-
+pw_1:  times 4 dw 1
+pw_16: times 4 dw 16
+pw_32: times 4 dw 32
 
 ;=============================================================================
 ; Macros
 ;=============================================================================
 
-%macro LOAD_4 9
-    movd %1, %5
-    movd %2, %6
-    movd %3, %7
-    movd %4, %8
-    punpcklbw %1, %9
-    punpcklbw %2, %9
-    punpcklbw %3, %9
-    punpcklbw %4, %9
+%macro LOAD_ADD 3
+    movd        %1,     %2
+    movd        mm7,    %3
+    punpcklbw   %1,     mm0
+    punpcklbw   mm7,    mm0
+    paddw       %1,     mm7
 %endmacro
 
-%macro FILT_2 2
-    psubw %1, %2
-    psllw %2, 2
-    psubw %1, %2
+%macro FILT_V 0
+    psubw       mm1,    mm2         ; a-b
+    psubw       mm4,    mm5
+    psubw       mm2,    mm3         ; b-c
+    psubw       mm5,    mm6
+    psllw       mm2,    2
+    psllw       mm5,    2
+    psubw       mm1,    mm2         ; a-5*b+4*c
+    psubw       mm4,    mm5
+    psllw       mm3,    4
+    psllw       mm6,    4
+    paddw       mm1,    mm3         ; a-5*b+20*c
+    paddw       mm4,    mm6
 %endmacro
 
-%macro FILT_4 3
-    paddw %2, %3
-    psllw %2, 2
-    paddw %1, %2
-    psllw %2, 2
-    paddw %1, %2
+%macro FILT_H 0
+    psubw       mm1,    mm2         ; a-b
+    psubw       mm4,    mm5
+    psraw       mm1,    2           ; (a-b)/4
+    psraw       mm4,    2
+    psubw       mm1,    mm2         ; (a-b)/4-b
+    psubw       mm4,    mm5
+    paddw       mm1,    mm3         ; (a-b)/4-b+c
+    paddw       mm4,    mm6
+    psraw       mm1,    2           ; ((a-b)/4-b+c)/4
+    psraw       mm4,    2
+    paddw       mm1,    mm3         ; ((a-b)/4-b+c)/4+c = (a-5*b+20*c)/16
+    paddw       mm4,    mm6
 %endmacro
 
-%macro FILT_6 4
-    psubw %1, %2
-    psllw %2, 2
-    psubw %1, %2
-    paddw %1, %3
-    paddw %1, %4
-    psraw %1, 5
+%macro FILT_PACK 1
+    paddw       mm1,    mm7
+    paddw       mm4,    mm7
+    psraw       mm1,    %1
+    psraw       mm4,    %1
+    packuswb    mm1,    mm4
 %endmacro
-
-%macro FILT_ALL 1
-    LOAD_4      mm1, mm2, mm3, mm4, [%1], [%1 + ecx], [%1 + 2 * ecx], [%1 + ebx], mm0
-    FILT_2      mm1, mm2
-    movd        mm5, [%1 + 4 * ecx]
-    movd        mm6, [%1 + edx]
-    FILT_4      mm1, mm3, mm4
-    punpcklbw   mm5, mm0
-    punpcklbw   mm6, mm0
-    psubw       mm1, mm5
-    psllw       mm5, 2
-    psubw       mm1, mm5
-    paddw       mm1, mm6
-%endmacro
-
-
 
 
 ;=============================================================================
@@ -115,266 +94,182 @@ mmx_dw_5:
 
 SECTION .text
 
-cglobal x264_horizontal_filter_mmxext
-cglobal x264_center_filter_mmxext
+cglobal x264_hpel_filter_mmxext
 cglobal x264_plane_copy_mmxext
 
 ;-----------------------------------------------------------------------------
-;
-; void x264_center_filter_mmxext( uint8_t *dst1, int i_dst1_stride,
-;                                 uint8_t *dst2, int i_dst2_stride,
-;                                  uint8_t *src, int i_src_stride,
-;                                  int i_width, int i_height );
-;
+; void x264_hpel_filter_mmxext( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
+;                               int i_stride, int i_width, int i_height );
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
-x264_center_filter_mmxext :
-
-    push        edi
-    push        esi
-    push        ebx
+x264_hpel_filter_mmxext :
     push        ebp
-
-    mov         edx,      [esp + 40]         ; src_stride
-    lea         edx,      [edx + edx + 18 + tbuffer]
-    sub         esp,      edx
-    mov         [esp + toffset] ,edx
-    
-    mov         eax,      [esp + edx + 20]   ; dst1
-    mov         [esp + tdst1]   ,eax
-    
-    mov         eax,      [esp + edx + 28]   ; dst2
-    mov         [esp + tdst2]   ,eax
-    
-    mov         eax,      [esp + edx + 44]   ; width
-    mov         [esp + twidth]  ,eax
-    
-    mov         eax,      [esp + edx + 48]   ; height
-    mov         [esp + theight] ,eax
-    
-    mov         eax,      [esp + edx + 24]   ; dst1_stride
-    mov         [esp + tdstp1]  ,eax
-    
-    mov         eax,      [esp + edx + 32]   ; dst2_stride
-    mov         [esp + tdstp2]  ,eax
-
-    mov         ecx,      [esp + edx + 40]   ; src_stride
-    mov         [esp + tsrcp]   ,ecx
-    
-    mov         eax,      [esp + edx + 36]   ; src
-    sub         eax,      ecx
-    sub         eax,      ecx
-    mov         [esp + tsrc]    ,eax         ; src - 2 * src_stride
-
-    lea         ebx,      [ecx + ecx * 2]    ; 3 * src_stride
-    lea         edx,      [ecx + ecx * 4]    ; 5 * src_stride
-
-    picpush     ebx
+    mov         ebp,    esp
+    push        ebx
+    push        esi
+    push        edi
     picgetgot   ebx
 
-    pxor        mm0,      mm0                ; 0 ---> mm0
+    %define     tdsth   ebp +  8
+    %define     tdstv   ebp + 12
+    %define     tdstc   ebp + 16
+    %define     tsrc    ebp + 20
+    %define     tstride ebp + 24
+    %define     twidth  ebp + 28
+    %define     theight ebp + 32
+    %define     tpw_1   ebp - 36
+    %define     tpw_16  ebp - 28
+    %define     tpw_32  ebp - 20
+    %define     tbuffer esp +  8
 
+    %define     x       eax
+    %define     dsth    ebx
+    %define     dstv    ebx
+    %define     dstc    ebx
+    %define     src     ecx
+    %define     src3    edx
+    %define     stride  esi
+    %define     width   edi
 
-loopcy:
-
-    mov         edi,    [picesp + tdst1]
-    lea         ebp,    [picesp + tbuffer]
-    mov         esi,    [picesp + tsrc]
-    movq        mm7,    [mmx_dw_one GOT_ebx]
-
-    picpop      ebx
-
-    FILT_ALL    esi
-
-    pshufw      mm2,    mm1, 0
-    movq        [ebp + 8],  mm1
-    movq        [ebp],  mm2
-    paddw       mm1,    mm7
-    psraw       mm1,    5
-
-    packuswb    mm1,    mm1
-    movd        [edi],  mm1
-
-    mov         eax,    8
-    add         esi,    4
-
-loopcx1:
-
-    FILT_ALL    esi
-
-    movq        [ebp + 2 * eax],  mm1
-    paddw       mm1,    mm7
-    psraw       mm1,    5
-    packuswb    mm1,    mm1
-    movd        [edi + eax - 4],  mm1
-
-    add         esi,    4
-    add         eax,    4
-    cmp         eax,    [esp + twidth]
-    jnz         loopcx1
-
-    FILT_ALL    esi
-
-    pshufw      mm2,    mm1,  7
-    movq        [ebp + 2 * eax],  mm1
-    movq        [ebp + 2 * eax + 8],  mm2
-    paddw       mm1,    mm7
-    psraw       mm1,    5
-    packuswb    mm1,    mm1
-    movd        [edi + eax - 4],  mm1
-
-    mov         esi,    [esp + tsrc]
-    add         esi,    ecx
-    mov         [esp + tsrc],  esi
-
-    add         edi,    [esp + tdstp1]
-    mov         [esp + tdst1], edi
-
-    mov         edi,    [esp + tdst2]
-;   mov         eax,    [esp + twidth]
-    sub         eax,    4
-
-    picpush     ebx
-    picgetgot   ebx
-
-loopcx2:
-
-    movq        mm2,    [picesp + 2 * eax + 2  + 4 + tbuffer]
-    movq        mm3,    [picesp + 2 * eax + 4  + 4 + tbuffer]
-    movq        mm4,    [picesp + 2 * eax + 6  + 4 + tbuffer]
-    movq        mm5,    [picesp + 2 * eax + 8  + 4 + tbuffer]
-    movq        mm1,    [picesp + 2 * eax      + 4 + tbuffer]
-    movq        mm6,    [picesp + 2 * eax + 10 + 4 + tbuffer]
-    paddw       mm2,    mm5
-    paddw       mm3,    mm4
-    paddw       mm1,    mm6
-
-    movq        mm5,    [mmx_dw_20 GOT_ebx]
-    movq        mm4,    [mmx_dw_5 GOT_ebx]
-    movq        mm6,    mm1
-    pxor        mm7,    mm7
-
-    punpckhwd   mm5,    mm2
-    punpcklwd   mm4,    mm3
-    punpcklwd   mm2,    [mmx_dw_20 GOT_ebx]
-    punpckhwd   mm3,    [mmx_dw_5 GOT_ebx]
-
-    pcmpgtw     mm7,    mm1
-
-    pmaddwd     mm2,    mm4
-    pmaddwd     mm3,    mm5
-
-    punpcklwd   mm1,    mm7
-    punpckhwd   mm6,    mm7
-
-    paddd       mm2,    mm1
-    paddd       mm3,    mm6
-
-    paddd       mm2,    [mmx_dd_one GOT_ebx]
-    paddd       mm3,    [mmx_dd_one GOT_ebx]
-
-    psrad       mm2,    10
-    psrad       mm3,    10
-
-    packssdw    mm2,    mm3
-    packuswb    mm2,    mm0
-
-    movd        [edi + eax], mm2
-
-    sub         eax,    4
-    jge         loopcx2
-
-    add         edi,    [picesp + tdstp2]
-    mov         [picesp + tdst2], edi
-
-    dec         dword [picesp + theight]
-    jnz         loopcy
-
-    picpop      ebx
-
-    add         esp,    [esp + toffset]
-
-    pop         ebp
-    pop         ebx
-    pop         esi
-    pop         edi
-
-    ret
-
-;-----------------------------------------------------------------------------
-;
-; void x264_horizontal_filter_mmxext( uint8_t *dst, int i_dst_stride,
-;                                     uint8_t *src, int i_src_stride,
-;                                     int i_width, int i_height );
-;
-;-----------------------------------------------------------------------------
-
-ALIGN 16
-x264_horizontal_filter_mmxext :
-    push edi
-    push esi
-
-    mov         edi,    [esp + 12]           ; dst
-    mov         esi,    [esp + 20]           ; src
-
+    mov         stride, [tstride]
+    mov         width,  [twidth]
+    lea         eax,    [stride*2 + 24 + 24]
+    sub         esp,    eax
     pxor        mm0,    mm0
-    picpush     ebx
-    picgetgot   ebx
-    movq        mm7,    [mmx_dw_one GOT_ebx]
-    picpop      ebx
 
-    mov         ecx,    [esp + 32]           ; height
+    ; mov globals onto the stack, to free up ebx
+    movq        mm1,    [pw_1  GOT_ebx]
+    movq        mm2,    [pw_16 GOT_ebx]
+    movq        mm3,    [pw_32 GOT_ebx]
+    movq        [tpw_1],  mm1
+    movq        [tpw_16], mm2
+    movq        [tpw_32], mm3
 
-    sub         esi,    2
+.loopy:
 
-loophy:
+    mov         src,    [tsrc]
+    mov         dstv,   [tdstv]
+    lea         src3,   [src + stride]
+    sub         src,    stride
+    sub         src,    stride
+    xor         x,      x
+ALIGN 16
+.vertical_filter:
 
-    xor         eax,    eax
+    prefetchnta [src3 + stride*2 + 32]
 
-loophx:
+    LOAD_ADD    mm1,    [src               ], [src3 + stride*2    ] ; a0
+    LOAD_ADD    mm2,    [src + stride      ], [src3 + stride      ] ; b0
+    LOAD_ADD    mm3,    [src + stride*2    ], [src3               ] ; c0
+    LOAD_ADD    mm4,    [src            + 4], [src3 + stride*2 + 4] ; a1
+    LOAD_ADD    mm5,    [src + stride   + 4], [src3 + stride   + 4] ; b1
+    LOAD_ADD    mm6,    [src + stride*2 + 4], [src3            + 4] ; c1
 
-    prefetchnta [esi + eax + 48]       
+    FILT_V
 
-    LOAD_4      mm1,    mm2, mm3, mm4, [esi + eax], [esi + eax + 1], [esi + eax + 2], [esi + eax + 3], mm0
-    FILT_2      mm1,    mm2
-    movd        mm5,    [esi + eax + 4]
-    movd        mm6,    [esi + eax + 5]
-    FILT_4      mm1,    mm3, mm4
-    movd        mm2,    [esi + eax + 4]
-    movd        mm3,    [esi + eax + 6]
-    punpcklbw   mm5,    mm0
-    punpcklbw   mm6,    mm0
-    FILT_6      mm1,    mm5, mm6, mm7
-    movd        mm4,    [esi + eax + 7]
-    movd        mm5,    [esi + eax + 8]
+    movq        mm7,    [tpw_16]
+    movq        [tbuffer + x*2],  mm1
+    movq        [tbuffer + x*2 + 8],  mm4
+    paddw       mm1,    mm7
+    paddw       mm4,    mm7
+    psraw       mm1,    5
+    psraw       mm4,    5
+    packuswb    mm1,    mm4
+    movntq      [dstv + x], mm1
+
+    add         x,      8
+    add         src,    8
+    add         src3,   8
+    cmp         x,      width
+    jle         .vertical_filter
+
+    pshufw      mm2, [tbuffer], 0
+    movq        [tbuffer - 8], mm2 ; pad left
+    ; no need to pad right, since vertical_filter already did 4 extra pixels
+
+    mov         dstc,   [tdstc]
+    xor         x,      x
+    movq        mm7,    [tpw_32]
+.center_filter:
+
+    movq        mm1,    [tbuffer + x*2 - 4 ]
+    movq        mm2,    [tbuffer + x*2 - 2 ]
+    movq        mm3,    [tbuffer + x*2     ]
+    movq        mm4,    [tbuffer + x*2 + 4 ]
+    movq        mm5,    [tbuffer + x*2 + 6 ]
+    paddw       mm3,    [tbuffer + x*2 + 2 ] ; c0
+    paddw       mm2,    mm4                  ; b0
+    paddw       mm1,    mm5                  ; a0
+    movq        mm6,    [tbuffer + x*2 + 8 ]
+    paddw       mm4,    [tbuffer + x*2 + 14] ; a1
+    paddw       mm5,    [tbuffer + x*2 + 12] ; b1
+    paddw       mm6,    [tbuffer + x*2 + 10] ; c1
+
+    FILT_H
+    FILT_PACK 6
+    movntq      [dstc + x], mm1
+
+    add         x,      8
+    cmp         x,      width
+    jl          .center_filter
+
+    mov         dsth,   [tdsth]
+    mov         src,    [tsrc]
+    xor         x,      x
+.horizontal_filter:
+
+    movd        mm1,    [src + x - 2]
+    movd        mm2,    [src + x - 1]
+    movd        mm3,    [src + x    ]
+    movd        mm6,    [src + x + 1]
+    movd        mm4,    [src + x + 2]
+    movd        mm5,    [src + x + 3]
+    punpcklbw   mm1,    mm0
     punpcklbw   mm2,    mm0
-    punpcklbw   mm3,    mm0                  ; mm2(1), mm3(20), mm6(-5) ready
-    FILT_2      mm2,    mm6
-    movd        mm6,    [esi + eax + 9]
-    punpcklbw   mm4,    mm0
-    punpcklbw   mm5,    mm0                  ; mm2(1-5), mm3(20), mm4(20), mm5(-5) ready
-    FILT_4      mm2,    mm3, mm4
+    punpcklbw   mm3,    mm0
     punpcklbw   mm6,    mm0
-    FILT_6      mm2,    mm5, mm6, mm7
+    punpcklbw   mm4,    mm0
+    punpcklbw   mm5,    mm0
+    paddw       mm3,    mm6 ; c0
+    paddw       mm2,    mm4 ; b0
+    paddw       mm1,    mm5 ; a0
+    movd        mm7,    [src + x + 7]
+    movd        mm6,    [src + x + 6]
+    punpcklbw   mm7,    mm0
+    punpcklbw   mm6,    mm0
+    paddw       mm4,    mm7 ; c1
+    paddw       mm5,    mm6 ; b1
+    movd        mm7,    [src + x + 5]
+    movd        mm6,    [src + x + 4]
+    punpcklbw   mm7,    mm0
+    punpcklbw   mm6,    mm0
+    paddw       mm6,    mm7 ; a1
 
-    packuswb    mm1,    mm2
-    movq        [edi + eax],  mm1
+    movq        mm7,    [tpw_1]
+    FILT_H
+    FILT_PACK 1
+    movntq      [dsth + x], mm1
 
-    add         eax,    8
-    cmp         eax,    [esp + 28]           ; width
-    jnz         loophx
+    add         x,      8
+    cmp         x,      width
+    jl          .horizontal_filter
 
-    add         esi,    [esp + 24]           ; src_pitch
-    add         edi,    [esp + 16]           ; dst_pitch
+    add         [tsrc],  stride
+    add         [tdsth], stride
+    add         [tdstv], stride
+    add         [tdstc], stride
+    dec         dword [theight]
+    jg          .loopy
 
-    dec         ecx
-    jnz         loophy
-
-    pop         esi
+    lea         esp,    [ebp-12]
     pop         edi
-
+    pop         esi
+    pop         ebx
+    pop         ebp
     ret
+
+
 
 
 ;-----------------------------------------------------------------------------

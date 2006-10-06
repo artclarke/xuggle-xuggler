@@ -377,13 +377,8 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 #endif
 }
 
-extern void x264_horizontal_filter_mmxext( uint8_t *dst, int i_dst_stride,
-                                           uint8_t *src, int i_src_stride,
-                                           int i_width, int i_height );
-extern void x264_center_filter_mmxext( uint8_t *dst1, int i_dst1_stride,
-                                       uint8_t *dst2, int i_dst2_stride,
-                                       uint8_t *src, int i_src_stride,
-                                       int i_width, int i_height );
+extern void x264_hpel_filter_mmxext( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
+                                     int i_stride, int i_width, int i_height );
 
 void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced )
 {
@@ -399,13 +394,13 @@ void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced )
 #ifdef HAVE_MMXEXT
     if ( cpu & X264_CPU_MMXEXT )
     {
-        x264_horizontal_filter_mmxext(frame->filtered[1] - 8 * stride - 8, stride,
-            frame->plane[0] - 8 * stride - 8, stride,
-            stride - 48, height + 16);
-        x264_center_filter_mmxext(frame->filtered[2] - 8 * stride - 8, stride,
-            frame->filtered[3] - 8 * stride - 8, stride,
-            frame->plane[0] - 8 * stride - 8, stride,
-            stride - 48, height + 16);
+        int offs = -8*stride - 8;
+        x264_hpel_filter_mmxext(
+            frame->filtered[1] + offs,
+            frame->filtered[2] + offs,
+            frame->filtered[3] + offs,
+            frame->plane[0] + offs,
+            stride, stride - 48, height + 16);
     }
     else
 #endif
