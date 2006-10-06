@@ -26,20 +26,11 @@
 
 #include "common.h"
 
-static inline void plane_copy( uint8_t *dst, int i_dst,
-                               uint8_t *src, int i_src, int w, int h)
-{
-    for( ; h > 0; h-- )
-    {
-        memcpy( dst, src, w );
-        dst += i_dst;
-        src += i_src;
-    }
-}
-static inline void plane_copy_vflip( uint8_t *dst, int i_dst,
+static inline void plane_copy_vflip( x264_mc_functions_t *mc,
+                                     uint8_t *dst, int i_dst,
                                      uint8_t *src, int i_src, int w, int h)
 {
-    plane_copy( dst, i_dst, src + (h -1)*i_src, -i_src, w, h );
+    mc->plane_copy( dst, i_dst, src + (h -1)*i_src, -i_src, w, h );
 }
 
 static inline void plane_subsamplev2( uint8_t *dst, int i_dst,
@@ -90,70 +81,73 @@ static inline void plane_subsamplehv2_vlip( uint8_t *dst, int i_dst,
     plane_subsamplehv2( dst, i_dst, src + (2*h-1)*i_src, -i_src, w, h );
 }
 
-static void i420_to_i420( x264_frame_t *frm, x264_image_t *img,
+static void i420_to_i420( x264_mc_functions_t *mc,
+                          x264_frame_t *frm, x264_image_t *img,
                           int i_width, int i_height )
 {
     if( img->i_csp & X264_CSP_VFLIP )
     {
-        plane_copy_vflip( frm->plane[0], frm->i_stride[0],
+        plane_copy_vflip( mc, frm->plane[0], frm->i_stride[0],
                           img->plane[0], img->i_stride[0],
                           i_width, i_height );
-        plane_copy_vflip( frm->plane[1], frm->i_stride[1],
+        plane_copy_vflip( mc, frm->plane[1], frm->i_stride[1],
                           img->plane[1], img->i_stride[1],
                           i_width / 2, i_height / 2 );
-        plane_copy_vflip( frm->plane[2], frm->i_stride[2],
+        plane_copy_vflip( mc, frm->plane[2], frm->i_stride[2],
                           img->plane[2], img->i_stride[2],
                           i_width / 2, i_height / 2 );
     }
     else
     {
-        plane_copy( frm->plane[0], frm->i_stride[0],
-                    img->plane[0], img->i_stride[0],
-                    i_width, i_height );
-        plane_copy( frm->plane[1], frm->i_stride[1],
-                    img->plane[1], img->i_stride[1],
-                    i_width / 2, i_height / 2 );
-        plane_copy( frm->plane[2], frm->i_stride[2],
-                    img->plane[2], img->i_stride[2],
-                    i_width / 2, i_height / 2 );
+        mc->plane_copy( frm->plane[0], frm->i_stride[0],
+                        img->plane[0], img->i_stride[0],
+                        i_width, i_height );
+        mc->plane_copy( frm->plane[1], frm->i_stride[1],
+                        img->plane[1], img->i_stride[1],
+                        i_width / 2, i_height / 2 );
+        mc->plane_copy( frm->plane[2], frm->i_stride[2],
+                        img->plane[2], img->i_stride[2],
+                        i_width / 2, i_height / 2 );
     }
 }
 
-static void yv12_to_i420( x264_frame_t *frm, x264_image_t *img,
+static void yv12_to_i420( x264_mc_functions_t *mc,
+                          x264_frame_t *frm, x264_image_t *img,
                           int i_width, int i_height )
 {
     if( img->i_csp & X264_CSP_VFLIP )
     {
-        plane_copy_vflip( frm->plane[0], frm->i_stride[0],
+        plane_copy_vflip( mc, frm->plane[0], frm->i_stride[0],
                           img->plane[0], img->i_stride[0],
                           i_width, i_height );
-        plane_copy_vflip( frm->plane[2], frm->i_stride[2],
+        plane_copy_vflip( mc, frm->plane[2], frm->i_stride[2],
                           img->plane[1], img->i_stride[1],
                           i_width / 2, i_height / 2 );
-        plane_copy_vflip( frm->plane[1], frm->i_stride[1],
+        plane_copy_vflip( mc, frm->plane[1], frm->i_stride[1],
                           img->plane[2], img->i_stride[2],
                           i_width / 2, i_height / 2 );
     }
     else
     {
-        plane_copy( frm->plane[0], frm->i_stride[0],
-                    img->plane[0], img->i_stride[0],
-                    i_width, i_height );
-        plane_copy( frm->plane[2], frm->i_stride[2],
-                    img->plane[1], img->i_stride[1],
-                    i_width / 2, i_height / 2 );
-        plane_copy( frm->plane[1], frm->i_stride[1],
-                    img->plane[2], img->i_stride[2],
-                    i_width / 2, i_height / 2 );
+        mc->plane_copy( frm->plane[0], frm->i_stride[0],
+                        img->plane[0], img->i_stride[0],
+                        i_width, i_height );
+        mc->plane_copy( frm->plane[2], frm->i_stride[2],
+                        img->plane[1], img->i_stride[1],
+                        i_width / 2, i_height / 2 );
+        mc->plane_copy( frm->plane[1], frm->i_stride[1],
+                        img->plane[2], img->i_stride[2],
+                        i_width / 2, i_height / 2 );
     }
 }
 
-static void i422_to_i420( x264_frame_t *frm, x264_image_t *img,
+static void i422_to_i420( x264_mc_functions_t *mc,
+                          x264_frame_t *frm, x264_image_t *img,
                           int i_width, int i_height )
 {
     if( img->i_csp & X264_CSP_VFLIP )
     {
-        plane_copy_vflip( frm->plane[0], frm->i_stride[0],
+        plane_copy_vflip( mc, frm->plane[0], frm->i_stride[0],
                           img->plane[0], img->i_stride[0],
                           i_width, i_height );
 
@@ -166,9 +160,9 @@ static void i422_to_i420( x264_frame_t *frm, x264_image_t *img,
     }
     else
     {
-        plane_copy( frm->plane[0], frm->i_stride[0],
-                    img->plane[0], img->i_stride[0],
-                    i_width, i_height );
+        mc->plane_copy( frm->plane[0], frm->i_stride[0],
+                        img->plane[0], img->i_stride[0],
+                        i_width, i_height );
 
         plane_subsamplev2( frm->plane[1], frm->i_stride[1],
                            img->plane[1], img->i_stride[1],
@@ -179,12 +173,13 @@ static void i422_to_i420( x264_frame_t *frm, x264_image_t *img,
     }
 }
 
-static void i444_to_i420( x264_frame_t *frm, x264_image_t *img,
+static void i444_to_i420( x264_mc_functions_t *mc,
+                          x264_frame_t *frm, x264_image_t *img,
                           int i_width, int i_height )
 {
     if( img->i_csp & X264_CSP_VFLIP )
     {
-        plane_copy_vflip( frm->plane[0], frm->i_stride[0],
+        plane_copy_vflip( mc, frm->plane[0], frm->i_stride[0],
                           img->plane[0], img->i_stride[0],
                           i_width, i_height );
 
@@ -197,9 +192,9 @@ static void i444_to_i420( x264_frame_t *frm, x264_image_t *img,
     }
     else
     {
-        plane_copy( frm->plane[0], frm->i_stride[0],
-                    img->plane[0], img->i_stride[0],
-                    i_width, i_height );
+        mc->plane_copy( frm->plane[0], frm->i_stride[0],
+                        img->plane[0], img->i_stride[0],
+                        i_width, i_height );
 
         plane_subsamplehv2( frm->plane[1], frm->i_stride[1],
                             img->plane[1], img->i_stride[1],
@@ -209,7 +204,8 @@ static void i444_to_i420( x264_frame_t *frm, x264_image_t *img,
                             i_width / 2, i_height / 2 );
     }
 }
-static void yuyv_to_i420( x264_frame_t *frm, x264_image_t *img,
+static void yuyv_to_i420( x264_mc_functions_t *mc,
+                          x264_frame_t *frm, x264_image_t *img,
                           int i_width, int i_height )
 {
     uint8_t *src = img->plane[0];
@@ -280,7 +276,8 @@ static void yuyv_to_i420( x264_frame_t *frm, x264_image_t *img,
 #define V_B   FIX(0.071)
 #define V_ADD 128
 #define RGB_TO_I420( name, POS_R, POS_G, POS_B, S_RGB ) \
-static void name( x264_frame_t *frm, x264_image_t *img, \
+static void name( x264_mc_functions_t *mc,              \
+                  x264_frame_t *frm, x264_image_t *img, \
                   int i_width, int i_height )           \
 {                                                       \
     uint8_t *src = img->plane[0];                       \
@@ -357,14 +354,14 @@ void x264_csp_init( int cpu, int i_csp, x264_csp_function_t *pf )
     switch( i_csp )
     {
         case X264_CSP_I420:
-            pf->i420 = i420_to_i420;
-            pf->i422 = i422_to_i420;
-            pf->i444 = i444_to_i420;
-            pf->yv12 = yv12_to_i420;
-            pf->yuyv = yuyv_to_i420;
-            pf->rgb  = rgb_to_i420;
-            pf->bgr  = bgr_to_i420;
-            pf->bgra = bgra_to_i420;
+            pf->convert[X264_CSP_I420] = i420_to_i420;
+            pf->convert[X264_CSP_I422] = i422_to_i420;
+            pf->convert[X264_CSP_I444] = i444_to_i420;
+            pf->convert[X264_CSP_YV12] = yv12_to_i420;
+            pf->convert[X264_CSP_YUYV] = yuyv_to_i420;
+            pf->convert[X264_CSP_RGB ] =  rgb_to_i420;
+            pf->convert[X264_CSP_BGR ] =  bgr_to_i420;
+            pf->convert[X264_CSP_BGRA] = bgra_to_i420;
             break;
 
         default:

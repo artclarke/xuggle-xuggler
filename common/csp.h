@@ -24,18 +24,13 @@
 #ifndef _CSP_H
 #define _CSP_H 1
 
+typedef void (*x264_csp_t) ( x264_mc_functions_t *, x264_frame_t *, x264_image_t *,
+                             int i_width, int i_height );
+
 typedef struct
 {
-    void (*i420)( x264_frame_t *, x264_image_t *, int i_width, int i_height );
-    void (*i422)( x264_frame_t *, x264_image_t *, int i_width, int i_height );
-    void (*i444)( x264_frame_t *, x264_image_t *, int i_width, int i_height );
-    void (*yv12)( x264_frame_t *, x264_image_t *, int i_width, int i_height );
-    void (*yuyv)( x264_frame_t *, x264_image_t *, int i_width, int i_height );
-    void (*rgb )( x264_frame_t *, x264_image_t *, int i_width, int i_height );
-    void (*bgr )( x264_frame_t *, x264_image_t *, int i_width, int i_height );
-    void (*bgra)( x264_frame_t *, x264_image_t *, int i_width, int i_height );
+    x264_csp_t convert[X264_CSP_MAX];
 } x264_csp_function_t;
-
 
 void x264_csp_init( int cpu, int i_csp, x264_csp_function_t *pf );
 

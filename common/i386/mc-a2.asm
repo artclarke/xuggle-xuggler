@@ -117,6 +117,7 @@ SECTION .text
 
 cglobal x264_horizontal_filter_mmxext
 cglobal x264_center_filter_mmxext
+cglobal x264_plane_copy_mmxext
 
 ;-----------------------------------------------------------------------------
 ;
@@ -374,3 +375,63 @@ loophx:
     pop         edi
 
     ret
+
+
+;-----------------------------------------------------------------------------
+; void x264_plane_copy_mmxext( uint8_t *dst, int i_dst,
+;                              uint8_t *src, int i_src, int w, int h)
+;-----------------------------------------------------------------------------
+ALIGN 16
+x264_plane_copy_mmxext:
+    push   edi
+    push   esi
+    push   ebx
+    mov    edi, [esp+16] ; dst
+    mov    ebx, [esp+20] ; i_dst
+    mov    esi, [esp+24] ; src
+    mov    eax, [esp+28] ; i_src
+    mov    edx, [esp+32] ; w
+    add    edx, 3
+    and    edx, ~3
+    sub    ebx, edx
+    sub    eax, edx
+.loopy:
+    mov    ecx, edx
+    sub    ecx, 64
+    jl     .endx
+.loopx:
+    prefetchnta [esi+256]
+    movq   mm0, [esi   ]
+    movq   mm1, [esi+ 8]
+    movq   mm2, [esi+16]
+    movq   mm3, [esi+24]
+    movq   mm4, [esi+32]
+    movq   mm5, [esi+40]
+    movq   mm6, [esi+48]
+    movq   mm7, [esi+56]
+    movntq [edi   ], mm0
+    movntq [edi+ 8], mm1
+    movntq [edi+16], mm2
+    movntq [edi+24], mm3
+    movntq [edi+32], mm4
+    movntq [edi+40], mm5
+    movntq [edi+48], mm6
+    movntq [edi+56], mm7
+    add    esi, 64
+    add    edi, 64
+    sub    ecx, 64
+    jge    .loopx
+.endx:
+    prefetchnta [esi+256]
+    add    ecx, 64
+    shr    ecx, 2
+    rep movsd
+    add    edi, ebx
+    add    esi, eax
+    sub    dword [esp+36], 1
+    jge    .loopy
+    pop    ebx
+    pop    esi
+    pop    edi
+    ret
+

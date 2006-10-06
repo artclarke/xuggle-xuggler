@@ -39,6 +39,7 @@ extern void x264_mc_copy_w4_mmx( uint8_t *, int, uint8_t *, int, int );
 extern void x264_mc_copy_w8_mmx( uint8_t *, int, uint8_t *, int, int );
 extern void x264_mc_copy_w16_mmx( uint8_t *, int, uint8_t *, int, int );
 extern void x264_mc_copy_w16_sse2( uint8_t *, int, uint8_t *, int, int );
+extern void x264_plane_copy_mmxext( uint8_t *, int, uint8_t *, int, int w, int h);
 
 #define AVG(W,H) \
 static void x264_pixel_avg_ ## W ## x ## H ## _mmxext( uint8_t *dst, int i_dst, uint8_t *src, int i_src ) \
@@ -158,6 +159,8 @@ void x264_mc_mmxext_init( x264_mc_functions_t *pf )
     pf->copy[PIXEL_16x16] = x264_mc_copy_w16_mmx;
     pf->copy[PIXEL_8x8]   = x264_mc_copy_w8_mmx;
     pf->copy[PIXEL_4x4]   = x264_mc_copy_w4_mmx;
+
+    pf->plane_copy = x264_plane_copy_mmxext;
 }
 void x264_mc_sse2_init( x264_mc_functions_t *pf )
 {

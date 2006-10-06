@@ -107,6 +107,7 @@ SECTION .text
 
 cglobal x264_horizontal_filter_mmxext
 cglobal x264_center_filter_mmxext
+cglobal x264_plane_copy_mmxext
 
 ;-----------------------------------------------------------------------------
 ;
@@ -366,3 +367,57 @@ loophx:
     jnz         loophy
 
     ret
+
+
+;-----------------------------------------------------------------------------
+; void x264_plane_copy_mmxext( uint8_t *dst, int i_dst,
+;                              uint8_t *src, int i_src, int w, int h)
+;-----------------------------------------------------------------------------
+ALIGN 16
+x264_plane_copy_mmxext:
+    movsxd parm2q, parm2d
+    movsxd parm4q, parm4d
+    add    parm5d, 3
+    and    parm5d, ~3
+    sub    parm2q, parm5q
+    sub    parm4q, parm5q
+    ; shuffle regs because movsd needs dst=rdi, src=rsi, w=ecx
+    xchg   rsi, rdx
+    mov    rax, parm4q
+.loopy:
+    mov    ecx, parm5d
+    sub    ecx, 64
+    jl     .endx
+.loopx:
+    prefetchnta [rsi+256]
+    movq   mm0, [rsi   ]
+    movq   mm1, [rsi+ 8]
+    movq   mm2, [rsi+16]
+    movq   mm3, [rsi+24]
+    movq   mm4, [rsi+32]
+    movq   mm5, [rsi+40]
+    movq   mm6, [rsi+48]
+    movq   mm7, [rsi+56]
+    movntq [rdi   ], mm0
+    movntq [rdi+ 8], mm1
+    movntq [rdi+16], mm2
+    movntq [rdi+24], mm3
+    movntq [rdi+32], mm4
+    movntq [rdi+40], mm5
+    movntq [rdi+48], mm6
+    movntq [rdi+56], mm7
+    add    rsi, 64
+    add    rdi, 64
+    sub    ecx, 64
+    jge    .loopx
+.endx:
+    prefetchnta [rsi+256]
+    add    ecx, 64
+    shr    ecx, 2
+    rep movsd
+    add    rdi, rdx
+    add    rsi, rax
+    sub    parm6d, 1
+    jge    .loopy
+    rep ret
+

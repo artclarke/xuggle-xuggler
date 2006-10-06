@@ -159,41 +159,15 @@ void x264_frame_delete( x264_frame_t *frame )
 
 void x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
 {
+    int i_csp = src->img.i_csp & X264_CSP_MASK;
     dst->i_type     = src->i_type;
     dst->i_qpplus1  = src->i_qpplus1;
     dst->i_pts      = src->i_pts;
 
-    switch( src->img.i_csp & X264_CSP_MASK )
-    {
-        case X264_CSP_I420:
-            h->csp.i420( dst, &src->img, h->param.i_width, h->param.i_height );
-            break;
-        case X264_CSP_YV12:
-            h->csp.yv12( dst, &src->img, h->param.i_width, h->param.i_height );
-            break;
-        case X264_CSP_I422:
-            h->csp.i422( dst, &src->img, h->param.i_width, h->param.i_height );
-            break;
-        case X264_CSP_I444:
-            h->csp.i444( dst, &src->img, h->param.i_width, h->param.i_height );
-            break;
-        case X264_CSP_YUYV:
-            h->csp.yuyv( dst, &src->img, h->param.i_width, h->param.i_height );
-            break;
-        case X264_CSP_RGB:
-            h->csp.rgb( dst, &src->img, h->param.i_width, h->param.i_height );
-            break;
-        case X264_CSP_BGR:
-            h->csp.bgr( dst, &src->img, h->param.i_width, h->param.i_height );
-            break;
-        case X264_CSP_BGRA:
-            h->csp.bgra( dst, &src->img, h->param.i_width, h->param.i_height );
-            break;
-
-        default:
-            x264_log( h, X264_LOG_ERROR, "Arg invalid CSP\n" );
-            break;
-    }
+    if( i_csp <= X264_CSP_NONE  || i_csp >= X264_CSP_MAX )
+        x264_log( h, X264_LOG_ERROR, "Arg invalid CSP\n" );
+    else
+        h->csp.convert[i_csp]( &h->mc, dst, &src->img, h->param.i_width, h->param.i_height );
 }
 
 

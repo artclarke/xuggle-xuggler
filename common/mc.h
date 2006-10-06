@@ -52,6 +52,9 @@ typedef struct
 
     /* only 16x16, 8x8, and 4x4 defined */
     void (*copy[7])( uint8_t *dst, int, uint8_t *src, int, int i_height );
+
+    void (*plane_copy)( uint8_t *dst, int i_dst,
+                        uint8_t *src, int i_src, int w, int h);
 } x264_mc_functions_t;
 
 void x264_mc_init( int cpu, x264_mc_functions_t *pf );

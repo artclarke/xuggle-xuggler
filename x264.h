@@ -98,6 +98,7 @@ static const char * const x264_colmatrix_names[] = { "GBR", "bt709", "undef", ""
 #define X264_CSP_RGB            0x0006  /* rgb 24bits       */
 #define X264_CSP_BGR            0x0007  /* bgr 24bits       */
 #define X264_CSP_BGRA           0x0008  /* bgr 32bits       */
+#define X264_CSP_MAX            0x0009  /* end of list */
 #define X264_CSP_VFLIP          0x1000  /* */
 
 /* Slice type

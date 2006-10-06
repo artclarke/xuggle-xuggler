@@ -316,6 +316,17 @@ MC_COPY( 16 )
 MC_COPY( 8 )
 MC_COPY( 4 )
 
+static void plane_copy( uint8_t *dst, int i_dst,
+                        uint8_t *src, int i_src, int w, int h)
+{
+    while( h-- )
+    {
+        memcpy( dst, src, w );
+        dst += i_dst;
+        src += i_src;
+    }
+}
+
 void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 {
     pf->mc_luma   = mc_luma;
@@ -347,6 +358,8 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->copy[PIXEL_16x16] = mc_copy_w16;
     pf->copy[PIXEL_8x8]   = mc_copy_w8;
     pf->copy[PIXEL_4x4]   = mc_copy_w4;
+
+    pf->plane_copy = plane_copy;
 
 #ifdef HAVE_MMXEXT
     if( cpu&X264_CPU_MMXEXT ) {
