@@ -33,14 +33,10 @@ BITS 64
 SECTION .rodata
 
 ALIGN 16
-mmx_dw_one:
+mmx_dw_16:
     times 4 dw 16
-mmx_dd_one:
-    times 2 dd 512
-mmx_dw_20:
-    times 4 dw 20
-mmx_dw_5:
-    times 4 dw -5
+mmx_dw_32:
+    times 4 dw 32
 
 %assign tbuffer 0
 
@@ -175,106 +171,83 @@ x264_center_filter_mmxext :
     lea         rdx,    [r13 + r13 * 4]     ; 5 * src_stride
 
     pxor        mm0,    mm0                 ; 0 ---> mm0
-    movq        mm7,    [mmx_dd_one GLOBAL] ; for rounding
 
 .loopcy:
 
-    xor         rax,    rax
+    mov         rax,    4
     mov         rsi,    r12             ; tsrc
-
-    FILT_ALL    rsi
-
-    pshufw      mm2,    mm1, 0
-    movq        [rsp + tbuffer],  mm2
-    movq        [rsp + tbuffer + 8],  mm1
-    paddw       mm1,    [mmx_dw_one GLOBAL]
-    psraw       mm1,    5
-
-    packuswb    mm1,    mm1
-    movd        [r8],   mm1             ; dst1[0] = mm1
-
-    add         rax,    8
-    add         rsi,    4
     lea         rdi,    [r8 - 4]        ; rdi = dst1 - 4
+    movq        mm7,    [mmx_dw_16 GLOBAL]  ; for rounding
 
-.loopcx1:
+.vertical_filter:
 
+    prefetchnta [rsi + rdx + 32]
     FILT_ALL    rsi
+    movq        mm7,    mm1
+    FILT_ALL    rsi + 4
 
-    movq        [rsp + tbuffer + 2 * rax],  mm1
-    paddw       mm1,    [mmx_dw_one GLOBAL]
+    movq        mm6,    [mmx_dw_16 GLOBAL]
+    movq        [rsp + tbuffer + 2 * rax],  mm7
+    movq        [rsp + tbuffer + 2 * rax + 8],  mm1
+    paddw       mm7,    mm6
+    paddw       mm1,    mm6
+    psraw       mm7,    5
     psraw       mm1,    5
-    packuswb    mm1,    mm1
-    movd        [rdi + rax],  mm1   ; dst1[rax - 4] = mm1
+    packuswb    mm7,    mm1
+    movntq      [rdi + rax],  mm7   ; dst1[rax - 4]
 
-    add         rsi,    4
-    add         rax,    4
     cmp         rax,    r14         ; cmp rax, width
-    jnz         .loopcx1
+    lea         rsi,    [rsi + 8]
+    lea         rax,    [rax + 8]
+    jl          .vertical_filter
 
-    FILT_ALL    rsi
-
-    pshufw      mm2,    mm1,  7
-    movq        [rsp + tbuffer + 2 * rax],  mm1
-    movq        [rsp + tbuffer + 2 * rax + 8],  mm2
-    paddw       mm1,    [mmx_dw_one GLOBAL]
-    psraw       mm1,    5
-    packuswb    mm1,    mm1
-    movd        [rdi + rax],  mm1   ; dst1[rax - 4] = mm1
+    pshufw      mm2, [rsp + tbuffer + 8], 0
+    movq        [rsp + tbuffer], mm2 ; pad left
+    ; no need to pad right, since loopcx1 already did 4 extra pixels
 
     add         r12,    r13         ; tsrc = tsrc + src_stride
-
     add         r8,     r9          ; dst1 = dst1 + dst1_stride
-
     xor         rax,    rax
+    movq        mm7,    [mmx_dw_32 GLOBAL]  ; for rounding
 
-.loopcx2:
+.center_filter:
 
+    movq        mm1,    [rsp + 2 * rax      + 4 + tbuffer]
     movq        mm2,    [rsp + 2 * rax + 2  + 4 + tbuffer]
     movq        mm3,    [rsp + 2 * rax + 4  + 4 + tbuffer]
-    movq        mm4,    [rsp + 2 * rax + 6  + 4 + tbuffer]
-    movq        mm5,    [rsp + 2 * rax + 8  + 4 + tbuffer]
-    movq        mm1,    [rsp + 2 * rax      + 4 + tbuffer]
-    movq        mm6,    [rsp + 2 * rax + 10 + 4 + tbuffer]
-    paddw       mm2,    mm5
-    paddw       mm3,    mm4
-    paddw       mm1,    mm6
+    movq        mm4,    [rsp + 2 * rax + 8  + 4 + tbuffer]
+    movq        mm5,    [rsp + 2 * rax + 10 + 4 + tbuffer]
+    paddw       mm3,    [rsp + 2 * rax + 6  + 4 + tbuffer]
+    paddw       mm2,    mm4
+    paddw       mm1,    mm5
+    movq        mm6,    [rsp + 2 * rax + 12 + 4 + tbuffer]
+    paddw       mm4,    [rsp + 2 * rax + 18 + 4 + tbuffer]
+    paddw       mm5,    [rsp + 2 * rax + 16 + 4 + tbuffer]
+    paddw       mm6,    [rsp + 2 * rax + 14 + 4 + tbuffer]
 
-    movq        mm5,    [mmx_dw_20 GLOBAL]
-    movq        mm4,    [mmx_dw_5 GLOBAL]
-    movq        mm6,    mm1
-    pxor        mm7,    mm7
+    psubw       mm1,    mm2         ; a-b
+    psubw       mm4,    mm5
+    psraw       mm1,    2           ; (a-b)/4
+    psraw       mm4,    2
+    psubw       mm1,    mm2         ; (a-b)/4-b
+    psubw       mm4,    mm5
+    paddw       mm1,    mm3         ; (a-b)/4-b+c
+    paddw       mm4,    mm6
+    psraw       mm1,    2           ; ((a-b)/4-b+c)/4
+    psraw       mm4,    2
+    paddw       mm1,    mm3         ; ((a-b)/4-b+c)/4+c = (a-5*b+20*c)/16
+    paddw       mm4,    mm6
+    paddw       mm1,    mm7         ; +32
+    paddw       mm4,    mm7
+    psraw       mm1,    6
+    psraw       mm4,    6
 
-    punpckhwd   mm5,    mm2
-    punpcklwd   mm4,    mm3
-    punpcklwd   mm2,    [mmx_dw_20 GLOBAL]
-    punpckhwd   mm3,    [mmx_dw_5 GLOBAL]
+    packuswb    mm1,    mm4
+    movntq      [r10 + rax], mm1    ; dst2[rax]
 
-    pcmpgtw     mm7,    mm1
-
-    pmaddwd     mm2,    mm4
-    pmaddwd     mm3,    mm5
-
-    punpcklwd   mm1,    mm7
-    punpckhwd   mm6,    mm7
-
-    paddd       mm2,    mm1
-    paddd       mm3,    mm6
-
-    paddd       mm2,    [mmx_dd_one GLOBAL]
-    paddd       mm3,    [mmx_dd_one GLOBAL]
-
-    psrad       mm2,    10
-    psrad       mm3,    10
-
-    packssdw    mm2,    mm3
-    packuswb    mm2,    mm0
-
-    movd        [r10 + rax], mm2    ; dst2[rax] = mm2
-
-    add         rax,    4
+    add         rax,    8
     cmp         rax,    r14         ; cmp rax, width
-    jnz         .loopcx2
+    jnz         .center_filter
 
     add         r10,    r11         ; dst2 += dst2_stride
     dec         r15                 ; height
@@ -319,7 +292,7 @@ x264_horizontal_filter_mmxext :
     movsxd      r8,     parm5d               ; width
 
     pxor        mm0,    mm0
-    movq        mm7,    [mmx_dw_one GLOBAL]
+    movq        mm7,    [mmx_dw_16 GLOBAL]
 
     sub         rdx,    2
 
