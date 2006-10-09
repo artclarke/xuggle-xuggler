@@ -321,6 +321,7 @@ x264_plane_copy_mmxext:
     add    rdi, rdx
     add    rsi, rax
     sub    parm6d, 1
-    jge    .loopy
-    rep ret
+    jg     .loopy
+    emms
+    ret
 

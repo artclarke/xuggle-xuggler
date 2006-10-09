@@ -324,9 +324,10 @@ x264_plane_copy_mmxext:
     add    edi, ebx
     add    esi, eax
     sub    dword [esp+36], 1
-    jge    .loopy
+    jg     .loopy
     pop    ebx
     pop    esi
     pop    edi
+    emms
     ret
 
