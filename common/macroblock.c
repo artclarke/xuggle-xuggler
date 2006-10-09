@@ -1306,6 +1306,9 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
                 h->mb.cache.skip[x264_scan8[4] - 8] = h->mb.skipbp[i_top_xy] & 0x8;
             }
         }
+
+        if( h->sh.i_type == SLICE_TYPE_P )
+            x264_mb_predict_mv_pskip( h, h->mb.cache.pskip_mv );
     }
 
     h->mb.i_neighbour4[0] =

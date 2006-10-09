@@ -496,6 +496,7 @@ struct x264_t
 
             int16_t direct_mv[2][X264_SCAN8_SIZE][2];
             int8_t  direct_ref[2][X264_SCAN8_SIZE];
+            int     pskip_mv[2];
 
             /* number of neighbors (top and left) that used 8x8 dct */
             int     i_neighbour_transform_size;

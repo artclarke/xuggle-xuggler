@@ -638,17 +638,12 @@ void x264_macroblock_encode( x264_t *h )
     if( !b_force_no_skip )
     {
         if( h->mb.i_type == P_L0 && h->mb.i_partition == D_16x16 &&
-            h->mb.i_cbp_luma == 0x00 && h->mb.i_cbp_chroma== 0x00 &&
+            h->mb.i_cbp_luma == 0x00 && h->mb.i_cbp_chroma == 0x00 &&
+            h->mb.cache.mv[0][x264_scan8[0]][0] == h->mb.cache.pskip_mv[0] &&
+            h->mb.cache.mv[0][x264_scan8[0]][1] == h->mb.cache.pskip_mv[1] &&
             h->mb.cache.ref[0][x264_scan8[0]] == 0 )
         {
-            int mvp[2];
-
-            x264_mb_predict_mv_pskip( h, mvp );
-            if( h->mb.cache.mv[0][x264_scan8[0]][0] == mvp[0] &&
-                h->mb.cache.mv[0][x264_scan8[0]][1] == mvp[1] )
-            {
-                h->mb.i_type = P_SKIP;
-            }
+            h->mb.i_type = P_SKIP;
         }
 
         /* Check for B_SKIP */
@@ -681,9 +676,8 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
     if( !b_bidir )
     {
         /* Get the MV */
-        x264_mb_predict_mv_pskip( h, mvp );
-        mvp[0] = x264_clip3( mvp[0], h->mb.mv_min[0], h->mb.mv_max[0] );
-        mvp[1] = x264_clip3( mvp[1], h->mb.mv_min[1], h->mb.mv_max[1] );
+        mvp[0] = x264_clip3( h->mb.cache.pskip_mv[0], h->mb.mv_min[0], h->mb.mv_max[0] );
+        mvp[1] = x264_clip3( h->mb.cache.pskip_mv[1], h->mb.mv_min[1], h->mb.mv_max[1] );
 
         /* Motion compensation */
         h->mc.mc_luma( h->mb.pic.p_fref[0][0], h->mb.pic.i_stride[0],

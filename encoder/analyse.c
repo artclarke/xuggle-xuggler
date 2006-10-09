@@ -893,17 +893,16 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
 
         /* early termination
          * SSD threshold would probably be better than SATD */
-        if( i_ref == 0 && a->b_try_pskip && m.cost-m.cost_mv < 300*a->i_lambda )
+        if( i_ref == 0
+            && a->b_try_pskip
+            && m.cost-m.cost_mv < 300*a->i_lambda
+            &&  abs(m.mv[0]-h->mb.cache.pskip_mv[0])
+              + abs(m.mv[1]-h->mb.cache.pskip_mv[1]) <= 1
+            && x264_macroblock_probe_pskip( h ) )
         {
-            int mvskip[2];
-            x264_mb_predict_mv_pskip( h, mvskip );
-            if( abs(m.mv[0]-mvskip[0]) + abs(m.mv[1]-mvskip[1]) <= 1
-                && x264_macroblock_probe_pskip( h ) )
-            {
-                h->mb.i_type = P_SKIP;
-                x264_analyse_update_cache( h, a );
-                return;
-            }
+            h->mb.i_type = P_SKIP;
+            x264_analyse_update_cache( h, a );
+            return;
         }
 
         m.cost += i_ref_cost;
@@ -922,16 +921,13 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.me16x16.i_ref );
 
     h->mb.i_type = P_L0;
-    if( a->b_mbrd && a->l0.i_ref == 0 )
+    if( a->b_mbrd && a->l0.i_ref == 0
+        && a->l0.me16x16.mv[0] == h->mb.cache.pskip_mv[0]
+        && a->l0.me16x16.mv[1] == h->mb.cache.pskip_mv[1] )
     {
-        int mvskip[2];
-        x264_mb_predict_mv_pskip( h, mvskip );
-        if( a->l0.me16x16.mv[0] == mvskip[0] && a->l0.me16x16.mv[1] == mvskip[1] )
-        {
-            h->mb.i_partition = D_16x16;
-            x264_macroblock_cache_mv( h, 0, 0, 4, 4, 0, a->l0.me16x16.mv[0], a->l0.me16x16.mv[1] );
-            a->l0.i_rd16x16 = x264_rd_cost_mb( h, a->i_lambda2 );
-        }
+        h->mb.i_partition = D_16x16;
+        x264_macroblock_cache_mv( h, 0, 0, 4, 4, 0, a->l0.me16x16.mv[0], a->l0.me16x16.mv[1] );
+        a->l0.i_rd16x16 = x264_rd_cost_mb( h, a->i_lambda2 );
     }
 }
 
@@ -2552,12 +2548,10 @@ static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a  )
 
         case P_SKIP:
         {
-            int mvp[2];
-            x264_mb_predict_mv_pskip( h, mvp );
-            /* */
             h->mb.i_partition = D_16x16;
             x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, 0 );
-            x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 0, mvp[0], mvp[1] );
+            x264_macroblock_cache_mv ( h, 0, 0, 4, 4, 0, h->mb.cache.pskip_mv[0],
+                                                         h->mb.cache.pskip_mv[1] );
             break;
         }
 
