@@ -407,6 +407,7 @@ x264_mc_chroma_mmxext:
     pxor    mm3, mm3
     add     r10d, r11d
     movsxd   r10, r10d
+    mov     r11d, parm8d
     add   parm1q, r10           ; src += (dx>>3) + (dy>>3) * src_stride
     and   parm5d, 7             ; dx &= 7
     je      .mc1d
@@ -433,7 +434,6 @@ x264_mc_chroma_mmxext:
 
     mov     rax, parm1q
     mov     r10, parm3q
-    mov     r11d, parm8d
 
 ALIGN 4
 .height_loop
@@ -460,15 +460,13 @@ ALIGN 4
     paddw   mm0, mm1
     psrlw   mm0, 6
 
-%macro HEIGHT_LOOP_END 1
     packuswb mm0, mm3           ; 00 00 00 00 px1 px2 px3 px4
     movd    [r10], mm0
 
     add     rax, parm2q
     add     r10, parm4q         ; i_dst_stride
-
     dec     r11d
-    jnz     %1
+    jnz     .height_loop
 
     sub     parm7d, 8
     jnz     .finish             ; width != 8 so assume 4
@@ -478,12 +476,10 @@ ALIGN 4
     mov     r11d, parm8d        ; i_height
     add     r10, 4
     add     rax, 4
-    jmp     %1
-%endmacro
-HEIGHT_LOOP_END .height_loop
+    jmp     .height_loop
 
 .finish
-    ret
+    rep ret
 
 ALIGN 4
 .mc1d
@@ -504,13 +500,13 @@ ALIGN 4
     movq      mm7, [pw_4 GLOBAL]
     psubw     mm5, mm6
 
-    mov       rax, parm1q
-    mov       r10, parm3q
-    mov      r11d, parm8d
+    cmp    parm7d, 8
+    je .height_loop1_w8
+
 ALIGN 4
-.height_loop1
-    movd      mm0, [rax+pel_offset]
-    movd      mm1, [rax]
+.height_loop1_w4
+    movd      mm0, [parm1q+pel_offset]
+    movd      mm1, [parm1q]
     punpcklbw mm0, mm3
     punpcklbw mm1, mm3
     pmullw    mm0, mm6
@@ -518,5 +514,38 @@ ALIGN 4
     paddw     mm0, mm7
     paddw     mm0, mm1
     psrlw     mm0, 3
-HEIGHT_LOOP_END .height_loop1
-    nop
+    packuswb  mm0, mm3
+    movd [parm3q], mm0
+    add    parm1q, parm2q
+    add    parm3q, parm4q
+    dec      r11d
+    jnz .height_loop1_w4
+    rep ret
+
+ALIGN 4
+.height_loop1_w8
+    movq      mm0, [parm1q+pel_offset]
+    movq      mm1, [parm1q]
+    movq      mm2, mm0
+    movq      mm4, mm1
+    punpcklbw mm0, mm3
+    punpcklbw mm1, mm3
+    punpckhbw mm2, mm3
+    punpckhbw mm4, mm3
+    pmullw    mm0, mm6
+    pmullw    mm1, mm5
+    pmullw    mm2, mm6
+    pmullw    mm4, mm5
+    paddw     mm0, mm7
+    paddw     mm2, mm7
+    paddw     mm0, mm1
+    paddw     mm2, mm4
+    psrlw     mm0, 3
+    psrlw     mm2, 3
+    packuswb  mm0, mm2
+    movq [parm3q], mm0
+    add    parm1q, parm2q
+    add    parm3q, parm4q
+    dec      r11d
+    jnz .height_loop1_w8
+    rep ret
