@@ -72,6 +72,9 @@ cglobal x264_mc_copy_w16_sse2
 
 cglobal x264_mc_chroma_mmxext
 
+cglobal x264_prefetch_fenc_mmxext
+cglobal x264_prefetch_ref_mmxext
+
 ;=============================================================================
 ; pixel avg
 ;=============================================================================
@@ -594,4 +597,60 @@ ALIGN 4
 .finish
     pop     edi
     picpop  ebx
+    ret
+
+
+
+; prefetches tuned for 64 byte cachelines (K7/K8/Core2)
+; TODO add 32 and 128 byte versions for P3/P4
+
+;-----------------------------------------------------------------------------
+; void x264_prefetch_fenc_mmxext( uint8_t *pix_y, int stride_y, 
+;                                 uint8_t *pix_uv, int stride_uv, int mb_x )
+;-----------------------------------------------------------------------------
+ALIGN 16
+x264_prefetch_fenc_mmxext:
+    mov   eax, [esp+20]
+    mov   ecx, [esp+8]
+    mov   edx, [esp+4]
+    and   eax, 3
+    imul  eax, ecx
+    lea   edx, [edx+eax*4+64]
+    prefetcht0 [edx]
+    prefetcht0 [edx+ecx]
+    lea   edx, [edx+ecx*2]
+    prefetcht0 [edx]
+    prefetcht0 [edx+ecx]
+
+    mov   eax, [esp+20]
+    mov   ecx, [esp+16]
+    mov   edx, [esp+12]
+    and   eax, 6
+    imul  eax, ecx
+    lea   edx, [edx+eax+64]
+    prefetcht0 [edx]
+    prefetcht0 [edx+ecx]
+    ret
+
+;-----------------------------------------------------------------------------
+; void x264_prefetch_ref_mmxext( uint8_t *pix, int stride, int parity )
+;-----------------------------------------------------------------------------
+ALIGN 16
+x264_prefetch_ref_mmxext:
+    mov   eax, [esp+12]
+    mov   ecx, [esp+8]
+    mov   edx, [esp+4]
+    sub   eax, 1
+    and   eax, ecx
+    lea   edx, [edx+eax*8+64]
+    lea   eax, [ecx*3]
+    prefetcht0 [edx]
+    prefetcht0 [edx+ecx]
+    prefetcht0 [edx+ecx*2]
+    prefetcht0 [edx+eax]
+    lea   edx, [edx+ecx*4]
+    prefetcht0 [edx]
+    prefetcht0 [edx+ecx]
+    prefetcht0 [edx+ecx*2]
+    prefetcht0 [edx+eax]
     ret

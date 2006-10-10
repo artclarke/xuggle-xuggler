@@ -1996,6 +1996,8 @@ void x264_macroblock_analyse( x264_t *h )
         int b_skip = 0;
         int i_intra_cost, i_intra_type;
 
+        h->mc.prefetch_ref( h->mb.pic.p_fref[0][0][h->mb.i_mb_x&3], h->mb.pic.i_stride[0], 0 );
+
         /* Fast P_SKIP detection */
         analysis.b_try_pskip = 0;
         if( h->param.analyse.b_fast_pskip )
@@ -2008,6 +2010,8 @@ void x264_macroblock_analyse( x264_t *h )
                      h->mb.i_mb_type_topright == P_SKIP )
                 b_skip = x264_macroblock_probe_pskip( h );
         }
+
+        h->mc.prefetch_ref( h->mb.pic.p_fref[0][0][h->mb.i_mb_x&3], h->mb.pic.i_stride[0], 1 );
 
         if( b_skip )
         {

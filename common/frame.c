@@ -536,6 +536,8 @@ void x264_frame_deblocking_filter( x264_t *h, int i_slice_type )
             i_pix_y[2] -=  7*h->fdec->i_stride[2];
         }
 
+        x264_prefetch_fenc( h, h->fdec, mb_x, mb_y );
+
         /* cavlc + 8x8 transform stores nnz per 16 coeffs for the purpose of
          * entropy coding, but per 64 coeffs for the purpose of deblocking */
         if( !h->param.b_cabac && b_8x8_transform )

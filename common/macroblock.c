@@ -927,6 +927,15 @@ void x264_macroblock_slice_init( x264_t *h )
         memset( h->mb.cache.skip, 0, X264_SCAN8_SIZE * sizeof( int8_t ) );
 }
 
+void x264_prefetch_fenc( x264_t *h, x264_frame_t *fenc, int i_mb_x, int i_mb_y )
+{
+    int stride_y  = fenc->i_stride[0];
+    int stride_uv = fenc->i_stride[1];
+    int off_y = 16 * (i_mb_x + i_mb_y * stride_y);
+    int off_uv = 8 * (i_mb_x + i_mb_y * stride_uv);
+    h->mc.prefetch_fenc( fenc->plane[0]+off_y, stride_y,
+                         fenc->plane[1+(i_mb_x&1)]+off_uv, stride_uv, i_mb_x );
+}
 
 void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
 {
@@ -1143,6 +1152,8 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
             h->mb.pic.p_integral[1][i] = &h->fref1[i]->integral[ 16 * ( i_mb_x + i_mb_y * h->fdec->i_stride[0] )];
     }
 
+    x264_prefetch_fenc( h, h->fenc, i_mb_x, i_mb_y );
+
     /* load ref/mv/mvd */
     if( h->sh.i_type != SLICE_TYPE_I )
     {
@@ -1358,6 +1369,8 @@ void x264_macroblock_cache_save( x264_t *h )
             &h->fdec->plane[i][i_pix_offset], i_stride2,
             h->mb.pic.p_fdec[i], FDEC_STRIDE, w );
     }
+
+    x264_prefetch_fenc( h, h->fdec, h->mb.i_mb_x, h->mb.i_mb_y );
 
     h->mb.type[i_mb_xy] = i_mb_type;
 

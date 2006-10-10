@@ -327,6 +327,13 @@ static void plane_copy( uint8_t *dst, int i_dst,
     }
 }
 
+void prefetch_fenc_null( uint8_t *pix_y, int stride_y,
+                         uint8_t *pix_uv, int stride_uv, int mb_x )
+{}
+
+void prefetch_ref_null( uint8_t *pix, int stride, int parity )
+{}
+
 void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 {
     pf->mc_luma   = mc_luma;
@@ -360,6 +367,9 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->copy[PIXEL_4x4]   = mc_copy_w4;
 
     pf->plane_copy = plane_copy;
+
+    pf->prefetch_fenc = prefetch_fenc_null;
+    pf->prefetch_ref  = prefetch_ref_null;
 
 #ifdef HAVE_MMXEXT
     if( cpu&X264_CPU_MMXEXT ) {

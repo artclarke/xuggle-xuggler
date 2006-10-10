@@ -72,6 +72,9 @@ cglobal x264_mc_copy_w16_sse2
 
 cglobal x264_mc_chroma_mmxext
 
+cglobal x264_prefetch_fenc_mmxext
+cglobal x264_prefetch_ref_mmxext
+
 ;=============================================================================
 ; pixel avg
 ;=============================================================================
@@ -549,3 +552,49 @@ ALIGN 4
     dec      r11d
     jnz .height_loop1_w8
     rep ret
+
+
+
+;-----------------------------------------------------------------------------
+; void x264_prefetch_fenc_mmxext( uint8_t *pix_y, int stride_y, 
+;                                 uint8_t *pix_uv, int stride_uv, int mb_x )
+;-----------------------------------------------------------------------------
+ALIGN 16
+x264_prefetch_fenc_mmxext:
+    mov     eax, parm5d
+    and     eax, 3
+    imul    eax, parm2d
+    lea  parm1q, [parm1q+rax*4+64]
+    prefetcht0   [parm1q]
+    prefetcht0   [parm1q+parm2q]
+    lea  parm1q, [parm1q+parm2q*2]
+    prefetcht0   [parm1q]
+    prefetcht0   [parm1q+parm2q]
+
+    mov     eax, parm5d
+    and     eax, 6
+    imul    eax, parm4d
+    lea  parm3q, [parm3q+rax+64]
+    prefetcht0   [parm3q]
+    prefetcht0   [parm3q+parm4q]
+    ret
+
+;-----------------------------------------------------------------------------
+; void x264_prefetch_ref_mmxext( uint8_t *pix, int stride, int parity )
+;-----------------------------------------------------------------------------
+ALIGN 16
+x264_prefetch_ref_mmxext:
+    dec  parm3d
+    and  parm3d, parm2d
+    lea  parm1q, [parm1q+parm3q*8+64]
+    lea     rax, [parm2q*3]
+    prefetcht0   [parm1q]
+    prefetcht0   [parm1q+parm2q]
+    prefetcht0   [parm1q+parm2q*2]
+    prefetcht0   [parm1q+rax]
+    lea  parm1q, [parm1q+parm2q*4]
+    prefetcht0   [parm1q]
+    prefetcht0   [parm1q+parm2q]
+    prefetcht0   [parm1q+parm2q*2]
+    prefetcht0   [parm1q+rax]
+    ret
