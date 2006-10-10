@@ -43,7 +43,7 @@ typedef struct
 
     /* 8x8 */
     int       i_cost8x8;
-    int       mvc[16][5][2]; /* [ref][0] is 16x16 mv,
+    int       mvc[32][5][2]; /* [ref][0] is 16x16 mv,
                                 [ref][1..4] are 8x8 mv from partition [0..3] */
     x264_me_t me8x8[4];
 
