@@ -40,10 +40,10 @@ typedef struct
 
 } x264_cabac_t;
 
-/* encoder/decoder: init the contexts given i_slice_type, the quantif and the model */
+/* init the contexts given i_slice_type, the quantif and the model */
 void x264_cabac_context_init( x264_cabac_t *cb, int i_slice_type, int i_qp, int i_model );
 
-/* decoder only: */
+/* decoder only (unused): */
 void x264_cabac_decode_init    ( x264_cabac_t *cb, bs_t *s );
 int  x264_cabac_decode_decision( x264_cabac_t *cb, int i_ctx_idx );
 int  x264_cabac_decode_bypass  ( x264_cabac_t *cb );
@@ -55,7 +55,8 @@ void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx_idx, int b );
 void x264_cabac_encode_bypass( x264_cabac_t *cb, int b );
 void x264_cabac_encode_terminal( x264_cabac_t *cb, int b );
 void x264_cabac_encode_flush( x264_cabac_t *cb );
-/* don't write the bitstream, just calculate cost: */
+
+/* internal only. these don't write the bitstream, just calculate bit cost: */
 void x264_cabac_size_decision( x264_cabac_t *cb, int i_ctx, int b );
 int  x264_cabac_size_decision2( uint8_t *state, int b );
 int  x264_cabac_size_decision_noup( uint8_t *state, int b );

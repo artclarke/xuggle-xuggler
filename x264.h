@@ -38,7 +38,7 @@
 #define X264_BUILD 53
 
 /* x264_t:
- *      opaque handler for decoder and encoder */
+ *      opaque handler for encoder */
 typedef struct x264_t x264_t;
 
 /****************************************************************************
@@ -402,8 +402,6 @@ int     x264_encoder_encode ( x264_t *, x264_nal_t **, int *, x264_picture_t *, 
 /* x264_encoder_close:
  *      close an encoder handler */
 void    x264_encoder_close  ( x264_t * );
-
-/* XXX: decoder isn't working so no need to export it */
 
 /****************************************************************************
  * Private stuff for internal usage:
