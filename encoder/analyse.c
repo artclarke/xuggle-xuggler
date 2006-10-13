@@ -2619,5 +2619,5 @@ static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a  )
     }
 }
 
-#include "slicetype_decision.c"
+#include "slicetype.c"
 

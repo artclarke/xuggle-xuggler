@@ -292,6 +292,9 @@ PIXEL_SA8D_C( 16, 8 )
 PIXEL_SA8D_C( 8, 16 )
 PIXEL_SA8D_C( 8, 8 )
 
+/****************************************************************************
+ * pixel_sad_x4
+ ****************************************************************************/
 #define SAD_X( size ) \
 static void x264_pixel_sad_x3_##size( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1, uint8_t *pix2, int i_stride, int scores[3] )\
 {\
@@ -322,6 +325,9 @@ SAD_X( 8x16_vis )
 SAD_X( 8x8_vis )
 #endif
 
+/****************************************************************************
+ * structural similarity metric
+ ****************************************************************************/
 static void ssim_4x4x2_core( const uint8_t *pix1, int stride1,
                              const uint8_t *pix2, int stride2,
                              int sums[2][4])
