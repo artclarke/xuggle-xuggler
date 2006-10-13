@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 53
+#define X264_BUILD 54
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -238,7 +238,7 @@ typedef struct
         int         i_qp_step;      /* max QP step between frames */
 
         int         i_bitrate;
-        int         i_rf_constant;  /* 1pass VBR, nominal QP */
+        float       f_rf_constant;  /* 1pass VBR, nominal QP */
         float       f_rate_tolerance;
         int         i_vbv_max_bitrate;
         int         i_vbv_buffer_size;

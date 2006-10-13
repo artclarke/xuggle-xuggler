@@ -87,7 +87,7 @@ void    x264_param_default( x264_param_t *param )
     param->rc.i_vbv_buffer_size = 0;
     param->rc.f_vbv_buffer_init = 0.9;
     param->rc.i_qp_constant = 26;
-    param->rc.i_rf_constant = 0;
+    param->rc.f_rf_constant = 0;
     param->rc.i_qp_min = 10;
     param->rc.i_qp_max = 51;
     param->rc.i_qp_step = 4;
@@ -465,7 +465,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     }
     OPT("crf")
     {
-        p->rc.i_rf_constant = atoi(value);
+        p->rc.f_rf_constant = atof(value);
         p->rc.i_rc_method = X264_RC_CRF;
     }
     OPT2("qpmin", "qp-min")
@@ -900,7 +900,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
     if( p->rc.i_rc_method == X264_RC_ABR || p->rc.i_rc_method == X264_RC_CRF )
     {
         if( p->rc.i_rc_method == X264_RC_CRF )
-            s += sprintf( s, " crf=%d", p->rc.i_rf_constant );
+            s += sprintf( s, " crf=%.1f", p->rc.f_rf_constant );
         else
             s += sprintf( s, " bitrate=%d ratetol=%.1f",
                           p->rc.i_bitrate, p->rc.f_rate_tolerance );

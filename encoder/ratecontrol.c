@@ -252,7 +252,7 @@ int x264_ratecontrol_new( x264_t *h )
     if( rc->b_abr )
     {
         /* FIXME ABR_INIT_QP is actually used only in CRF */
-#define ABR_INIT_QP ( h->param.rc.i_rc_method == X264_RC_CRF ? h->param.rc.i_rf_constant : 24 )
+#define ABR_INIT_QP ( h->param.rc.i_rc_method == X264_RC_CRF ? h->param.rc.f_rf_constant : 24 )
         rc->accum_p_norm = .01;
         rc->accum_p_qp = ABR_INIT_QP * rc->accum_p_norm;
         /* estimated ratio that produces a reasonable QP for the first I-frame */
@@ -266,7 +266,7 @@ int x264_ratecontrol_new( x264_t *h )
         /* arbitrary rescaling to make CRF somewhat similar to QP */
         double base_cplx = h->mb.i_mb_count * (h->param.i_bframe ? 120 : 80);
         rc->rate_factor_constant = pow( base_cplx, 1 - h->param.rc.f_qcompress )
-                                 / qp2qscale( h->param.rc.i_rf_constant );
+                                 / qp2qscale( h->param.rc.f_rf_constant );
     }
 
     rc->ip_offset = 6.0 * log(h->param.rc.f_ip_factor) / log(2.0);
