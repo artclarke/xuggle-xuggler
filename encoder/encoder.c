@@ -1600,7 +1600,7 @@ do_encode:
     x264_ratecontrol_end( h, i_frame_size * 8 );
 
     /* handle references */
-    if( i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE )
+    if( i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE && h->param.i_keyint_max > 1 )
         x264_reference_update( h );
 #ifdef DEBUG_DUMP_FRAME
     else
