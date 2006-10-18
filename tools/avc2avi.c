@@ -851,7 +851,7 @@ int nal_decode( nal_t *nal, void *p_data, int i_data )
         *dst++ = *src++;
     }
 
-    nal->i_payload = dst - (uint8_t*)p_data;
+    nal->i_payload = dst - (uint8_t*)nal->p_payload;
     return 0;
 }
 
