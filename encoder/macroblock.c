@@ -571,7 +571,6 @@ void x264_macroblock_encode( x264_t *h )
     }
 
     /* encode chroma */
-    i_qp = i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )];
     if( IS_INTRA( h->mb.i_type ) )
     {
         const int i_mode = h->mb.i_chroma_pred_mode;
@@ -580,7 +579,7 @@ void x264_macroblock_encode( x264_t *h )
     }
 
     /* encode the 8x8 blocks */
-    x264_mb_encode_8x8_chroma( h, !IS_INTRA( h->mb.i_type ), i_qp );
+    x264_mb_encode_8x8_chroma( h, !IS_INTRA( h->mb.i_type ), h->mb.i_chroma_qp );
 
     /* coded block pattern and non_zero_count */
     h->mb.i_cbp_luma = 0x00;
@@ -707,7 +706,7 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
     }
 
     /* encode chroma */
-    i_qp = i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )];
+    i_qp = h->mb.i_chroma_qp;
 
     for( ch = 0; ch < 2; ch++ )
     {
@@ -875,7 +874,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
         }
     }
 
-    i_qp = i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )];
+    i_qp = h->mb.i_chroma_qp;
 
     for( ch = 0; ch < 2; ch++ )
     {

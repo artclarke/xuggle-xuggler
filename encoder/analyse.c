@@ -194,6 +194,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
 
     /* conduct the analysis using this lamda and QP */
     a->i_qp = h->mb.i_qp = i_qp;
+    h->mb.i_chroma_qp = i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )];
     a->i_lambda = i_qp0_cost_table[i_qp];
     a->i_lambda2 = i_qp0_cost2_table[i_qp];
     a->b_mbrd = h->param.analyse.i_subpel_refine >= 6 &&
@@ -864,8 +865,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
 
         if( i_max > 0 )
         {
-            int i_qp_chroma = i_chroma_qp_table[x264_clip3( h->mb.i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )];
-            int i_chroma_lambda = i_qp0_cost2_table[i_qp_chroma];
+            int i_chroma_lambda = i_qp0_cost2_table[h->mb.i_chroma_qp];
             /* the previous thing encoded was x264_intra_rd(), so the pixels and
              * coefs for the current chroma mode are still around, so we only
              * have to recount the bits. */
