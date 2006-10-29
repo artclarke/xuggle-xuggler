@@ -290,9 +290,6 @@ int  x264_mb_predict_non_zero_code( x264_t *h, int idx );
  *      doesn't check for intra or cbp */
 int  x264_mb_transform_8x8_allowed( x264_t *h );
 
-void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale );
-void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qscale );
-
 void x264_mb_mc( x264_t *h );
 void x264_mb_mc_8x8( x264_t *h, int i8 );
 

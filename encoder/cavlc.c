@@ -801,4 +801,22 @@ static int x264_partition_i4x4_size_cavlc( x264_t *h, int i4, int i_mode )
     block_residual_write_cavlc( h, &h->out.bs, i4, h->dct.block[i4].luma4x4, 16 );
     return h->out.bs.i_bits_encoded;
 }
+
+static int x264_i8x8_chroma_size_cavlc( x264_t *h )
+{
+    h->out.bs.i_bits_encoded = bs_size_ue( x264_mb_pred_mode8x8c_fix[ h->mb.i_chroma_pred_mode ] );
+    if( h->mb.i_cbp_chroma != 0 )
+    {
+        block_residual_write_cavlc( h, &h->out.bs, BLOCK_INDEX_CHROMA_DC, h->dct.chroma_dc[0], 4 );
+        block_residual_write_cavlc( h, &h->out.bs, BLOCK_INDEX_CHROMA_DC, h->dct.chroma_dc[1], 4 );
+
+        if( h->mb.i_cbp_chroma == 2 )
+        {
+            int i;
+            for( i = 0; i < 8; i++ )
+                block_residual_write_cavlc( h, &h->out.bs, 16 + i, h->dct.block[16+i].residual_ac, 15 );
+        }
+    }
+    return h->out.bs.i_bits_encoded;
+}
 #endif

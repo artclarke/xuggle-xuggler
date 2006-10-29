@@ -242,7 +242,7 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
     h->dctf.add16x16_idct( p_dst, &dct4x4[1] );
 }
 
-static void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
+void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
 {
     int i, ch;
     int b_decimate = b_inter && (h->sh.i_type == SLICE_TYPE_B || h->param.analyse.b_dct_decimate);
@@ -312,6 +312,19 @@ static void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
             dct4x4[i][0][0] = dct2x2[0][i];
         h->dctf.add8x8_idct( p_dst, dct4x4 );
     }
+
+    /* coded block pattern */
+    h->mb.i_cbp_chroma = 0;
+    for( i = 0; i < 8; i++ )
+    {
+        int nz = array_non_zero_count( h->dct.block[16+i].residual_ac, 15 );
+        h->mb.cache.non_zero_count[x264_scan8[16+i]] = nz;
+        h->mb.i_cbp_chroma |= nz;
+    }
+    if( h->mb.i_cbp_chroma )
+        h->mb.i_cbp_chroma = 2;    /* dc+ac (we can't do only ac) */
+    else if( array_non_zero( h->dct.chroma_dc[0], 8 ) )
+        h->mb.i_cbp_chroma = 1;    /* dc only */
 }
 
 static void x264_macroblock_encode_skip( x264_t *h )
@@ -569,7 +582,7 @@ void x264_macroblock_encode( x264_t *h )
     /* encode the 8x8 blocks */
     x264_mb_encode_8x8_chroma( h, !IS_INTRA( h->mb.i_type ), i_qp );
 
-    /* Calculate the Luma/Chroma pattern and non_zero_count */
+    /* coded block pattern and non_zero_count */
     h->mb.i_cbp_luma = 0x00;
     if( h->mb.i_type == I_16x16 )
     {
@@ -604,22 +617,6 @@ void x264_macroblock_encode( x264_t *h )
             if( nz > 0 )
                 h->mb.i_cbp_luma |= 1 << (i/4);
         }
-    }
-
-    /* Calculate the chroma pattern */
-    h->mb.i_cbp_chroma = 0x00;
-    for( i = 0; i < 8; i++ )
-    {
-        const int nz = array_non_zero_count( h->dct.block[16+i].residual_ac, 15 );
-        h->mb.cache.non_zero_count[x264_scan8[16+i]] = nz;
-        if( nz > 0 )
-        {
-            h->mb.i_cbp_chroma = 0x02;    /* dc+ac (we can't do only ac) */
-        }
-    }
-    if( h->mb.i_cbp_chroma == 0x00 && array_non_zero( h->dct.chroma_dc[0], 8 ) )
-    {
-        h->mb.i_cbp_chroma = 0x01;    /* dc only */
     }
 
     if( h->param.b_cabac )

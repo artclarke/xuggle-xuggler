@@ -98,6 +98,7 @@ typedef struct
 
     /* Chroma part */
     int i_satd_i8x8chroma;
+    int i_satd_i8x8chroma_dir[4];
     int i_predict8x8chroma;
 
     /* II: Inter part P/B frame */
@@ -456,6 +457,8 @@ static void x264_mb_analyse_intra_chroma( x264_t *h, x264_mb_analysis_t *a )
             int i_mode = predict_mode[i];
             int i_satd = satdu[i_mode] + satdv[i_mode]
                        + a->i_lambda * bs_size_ue(i_mode);
+
+            a->i_satd_i8x8chroma_dir[i] = i_satd;
             COPY2_IF_LT( a->i_satd_i8x8chroma, i_satd, a->i_predict8x8chroma, i_mode );
         }
     }
@@ -477,6 +480,7 @@ static void x264_mb_analyse_intra_chroma( x264_t *h, x264_mb_analysis_t *a )
                                                p_srcc[1], FENC_STRIDE ) +
                      a->i_lambda * bs_size_ue( x264_mb_pred_mode8x8c_fix[i_mode] );
 
+            a->i_satd_i8x8chroma_dir[i] = i_satd;
             COPY2_IF_LT( a->i_satd_i8x8chroma, i_satd, a->i_predict8x8chroma, i_mode );
         }
     }
@@ -718,15 +722,15 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     uint8_t  *p_src = h->mb.pic.p_fenc[0];
     uint8_t  *p_dst = h->mb.pic.p_fdec[0];
 
-    int i, idx, x, y;
-    int i_max, i_satd, i_best, i_mode;
+    int i, j, idx, x, y;
+    int i_max, i_satd, i_best, i_mode, i_thresh;
     int i_pred_mode;
     int predict_mode[9];
 
     if( h->mb.i_type == I_16x16 )
     {
         int old_pred_mode = a->i_predict16x16;
-        int i_thresh = a->i_satd_i16x16_dir[old_pred_mode] * 9/8;
+        i_thresh = a->i_satd_i16x16_dir[old_pred_mode] * 9/8;
         i_best = a->i_satd_i16x16;
         predict_16x16_mode_available( h->mb.i_neighbour, predict_mode, &i_max );
         for( i = 0; i < i_max; i++ )
@@ -799,7 +803,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
             uint8_t *p_src_by;
             uint8_t *p_dst_by;
             int j;
-            int i_thresh = a->i_satd_i8x8_dir[a->i_predict8x8[idx]][idx] * 11/8;
+            i_thresh = a->i_satd_i8x8_dir[a->i_predict8x8[idx]][idx] * 11/8;
 
             i_best = COST_MAX;
             i_pred_mode = x264_mb_predict_intra4x4_mode( h, 4*idx );
@@ -841,6 +845,43 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
                 h->mb.cache.non_zero_count[x264_scan8[4*idx+j+1]] = i_nnz[j];
 
             x264_macroblock_cache_intra8x8_pred( h, 2*x, 2*y, a->i_predict8x8[idx] );
+        }
+    }
+
+    /* RD selection for chroma prediction */
+    predict_8x8chroma_mode_available( h->mb.i_neighbour, predict_mode, &i_max );
+    if( i_max > 1 )
+    {
+        i_thresh = a->i_satd_i8x8chroma * 5/4;
+
+        for( i = j = 0; i < i_max; i++ )
+            if( a->i_satd_i8x8chroma_dir[i] < i_thresh &&
+                predict_mode[i] != a->i_predict8x8chroma )
+            {
+                predict_mode[j++] = predict_mode[i];
+            }
+        i_max = j;
+
+        if( i_max > 0 )
+        {
+            int i_qp_chroma = i_chroma_qp_table[x264_clip3( h->mb.i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )];
+            int i_chroma_lambda = i_qp0_cost2_table[i_qp_chroma];
+            /* the previous thing encoded was x264_intra_rd(), so the pixels and
+             * coefs for the current chroma mode are still around, so we only
+             * have to recount the bits. */
+            i_best = x264_rd_cost_i8x8_chroma( h, i_chroma_lambda, a->i_predict8x8chroma, 0 );
+            for( i = 0; i < i_max; i++ )
+            {
+                i_mode = predict_mode[i];
+                h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[1] );
+                h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[2] );
+                /* if we've already found a mode that needs no residual, then
+                 * probably any mode with a residual will be worse.
+                 * so avoid dct on the remaining modes to improve speed. */
+                i_satd = x264_rd_cost_i8x8_chroma( h, i_chroma_lambda, i_mode, h->mb.i_cbp_chroma != 0x00 );
+                COPY2_IF_LT( i_best, i_satd, a->i_predict8x8chroma, i_mode );
+            }
+            h->mb.i_chroma_pred_mode = a->i_predict8x8chroma;
         }
     }
 }

@@ -178,6 +178,31 @@ int x264_rd_cost_i4x4( x264_t *h, int i_lambda2, int i4, int i_mode )
     return i_ssd + i_bits;
 }
 
+int x264_rd_cost_i8x8_chroma( x264_t *h, int i_lambda2, int i_mode, int b_dct )
+{
+    int i_ssd, i_bits;
+
+    if( b_dct )
+        x264_mb_encode_8x8_chroma( h, 0, h->mb.i_qp );
+    i_ssd = ssd_plane( h, PIXEL_8x8, 1, 0, 0 ) +
+            ssd_plane( h, PIXEL_8x8, 2, 0, 0 );
+
+    h->mb.i_chroma_pred_mode = i_mode;
+
+    if( h->param.b_cabac )
+    {
+        x264_cabac_t cabac_tmp = h->cabac;
+        cabac_tmp.f8_bits_encoded = 0;
+        x264_i8x8_chroma_size_cabac( h, &cabac_tmp );
+        i_bits = ( cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
+    }
+    else
+    {
+        i_bits = x264_i8x8_chroma_size_cavlc( h ) * i_lambda2;
+    }
+
+    return i_ssd + i_bits;
+}
 /****************************************************************************
  * Trellis RD quantization
  ****************************************************************************/

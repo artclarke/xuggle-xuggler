@@ -1144,4 +1144,21 @@ static void x264_partition_i4x4_size_cabac( x264_t *h, x264_cabac_t *cb, int i4,
     x264_cabac_mb_intra4x4_pred_mode( cb, i_pred, i_mode );
     block_residual_write_cabac( h, cb, DCT_LUMA_4x4, i4, h->dct.block[i4].luma4x4, 16 );
 }
+
+static void x264_i8x8_chroma_size_cabac( x264_t *h, x264_cabac_t *cb )
+{
+    x264_cabac_mb_intra_chroma_pred_mode( h, cb );
+    if( h->mb.i_cbp_chroma > 0 )
+    {
+        block_residual_write_cabac( h, cb, DCT_CHROMA_DC, 0, h->dct.chroma_dc[0], 4 );
+        block_residual_write_cabac( h, cb, DCT_CHROMA_DC, 1, h->dct.chroma_dc[1], 4 );
+
+        if( h->mb.i_cbp_chroma == 2 )
+        {
+            int i;
+            for( i = 0; i < 8; i++ )
+                block_residual_write_cabac( h, cb, DCT_CHROMA_AC, i, h->dct.block[16+i].residual_ac, 15 );
+        }
+    }
+}
 #endif
