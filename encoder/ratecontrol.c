@@ -241,7 +241,10 @@ int x264_ratecontrol_new( x264_t *h )
         rc->b_vbv = 1;
     }
     else if( h->param.rc.i_vbv_max_bitrate )
+    {
         x264_log(h, X264_LOG_WARNING, "VBV maxrate specified, but no bufsize.\n");
+        h->param.rc.i_vbv_max_bitrate = 0;
+    }
     if(rc->rate_tolerance < 0.01) {
         x264_log(h, X264_LOG_WARNING, "bitrate tolerance too small, using .01\n");
         rc->rate_tolerance = 0.01;
@@ -531,7 +534,7 @@ x264_zone_t *get_zone( x264_t *h, int frame_num )
 void x264_ratecontrol_summary( x264_t *h )
 {
     x264_ratecontrol_t *rc = h->rc;
-    if( rc->b_abr && h->param.rc.i_rc_method == X264_RC_ABR && !h->param.rc.i_vbv_max_bitrate )
+    if( rc->b_abr && h->param.rc.i_rc_method == X264_RC_ABR && rc->cbr_decay > .9999 )
     {
         double base_cplx = h->mb.i_mb_count * (h->param.i_bframe ? 120 : 80);
         x264_log( h, X264_LOG_INFO, "final ratefactor: %.2f\n", 
