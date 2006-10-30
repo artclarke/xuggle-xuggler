@@ -313,13 +313,15 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->b_deblocking_filter = !atobool(value);
     OPT2("filter", "deblock")
     {
-        int count;
-        if( 0 < (count = sscanf( value, "%d:%d", &p->i_deblocking_filter_alphac0, &p->i_deblocking_filter_beta )) ||
-            0 < (count = sscanf( value, "%d,%d", &p->i_deblocking_filter_alphac0, &p->i_deblocking_filter_beta )) )
+        if( 2 == sscanf( value, "%d:%d", &p->i_deblocking_filter_alphac0, &p->i_deblocking_filter_beta ) ||
+            2 == sscanf( value, "%d,%d", &p->i_deblocking_filter_alphac0, &p->i_deblocking_filter_beta ) )
         {
             p->b_deblocking_filter = 1;
-            if( count == 1 )
-                p->i_deblocking_filter_beta = p->i_deblocking_filter_alphac0;
+        }
+        else if( sscanf( value, "%d", &p->i_deblocking_filter_alphac0 ) )
+        {
+            p->b_deblocking_filter = 1;
+            p->i_deblocking_filter_beta = p->i_deblocking_filter_alphac0;
         }
         else
             p->b_deblocking_filter = atobool(value);
