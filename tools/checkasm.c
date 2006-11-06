@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "common/common.h"
 #include "common/cpu.h"
@@ -139,7 +140,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
         x264_cpu_restore( cpu_new );
         res_c = x264_pixel_ssim_wxh( &pixel_c,   buf1+2, 32, buf2+2, 32, 32, 28 );
         res_a = x264_pixel_ssim_wxh( &pixel_asm, buf1+2, 32, buf2+2, 32, 32, 28 );
-        if( res_c != res_a )
+        if( fabs(res_c - res_a) > 1e-8 )
         {
             ok = 0;
             fprintf( stderr, "ssim: %.7f != %.7f [FAILED]\n", res_c, res_a );
