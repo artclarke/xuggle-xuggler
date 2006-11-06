@@ -25,9 +25,9 @@ BITS 32
 %include "i386inc.asm"
 
 SECTION_RODATA
-pb_01: times 16 db 0x01
-pb_3f: times 16 db 0x3f
-pb_ff: times 16 db 0xff
+pb_01: times 8 db 0x01
+pb_03: times 8 db 0x03
+pb_a1: times 8 db 0xa1
 
 SECTION .text
 cglobal x264_deblock_v8_luma_mmxext
@@ -154,6 +154,16 @@ cglobal x264_deblock_h_chroma_intra_mmxext
     psubusb %4, %3
 %endmacro
 
+%macro DIFF_GT2_MMX 5
+    movq    %5, %2
+    movq    %4, %1
+    psubusb %5, %1
+    psubusb %4, %2
+    psubusb %5, %3
+    psubusb %4, %3
+    pcmpeqb %4, %5
+%endmacro
+
 ; in: mm0=p1 mm1=p0 mm2=q0 mm3=q1 %1=alpha-1 %2=beta-1
 ; out: mm5=beta-1, mm7=mask
 ; clobbers: mm4,mm6
@@ -177,47 +187,26 @@ cglobal x264_deblock_h_chroma_intra_mmxext
 ; out: mm1=p0' mm2=q0'
 ; clobbers: mm0,3-6
 %macro DEBLOCK_P0_Q0_MMX 0
-    ; a = q0^p0^((p1-q1)>>2)
-    movq    mm4, mm0
-    psubb   mm4, mm3
-    psrlw   mm4, 2
-    pxor    mm4, mm1
-    pxor    mm4, mm2
-    ; b = p0^(q1>>2)
-    psrlw   mm3, 2
-    pand    mm3, [pb_3f GOT_ebx]
     movq    mm5, mm1
-    pxor    mm5, mm3
-    ; c = q0^(p1>>2)
-    psrlw   mm0, 2
-    pand    mm0, [pb_3f GOT_ebx]
-    movq    mm6, mm2
-    pxor    mm6, mm0
-    ; d = (c^b) & ~(b^a) & 1
-    pxor    mm6, mm5
-    pxor    mm5, mm4
-    pandn   mm5, mm6
-    pand    mm5, [pb_01 GOT_ebx]
-    ; delta = (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3
-    ;       = (avg(q0, p1>>2) + (d&a))
-    ;       - (avg(p0, q1>>2) + (d^(d&a)))
-    pavgb   mm0, mm2
-    pand    mm4, mm5
-    paddusb mm0, mm4
-    pavgb   mm3, mm1
-    pxor    mm4, mm5
-    paddusb mm3, mm4
-    ; p0 += clip(delta, -tc0, tc0)
-    ; q0 -= clip(delta, -tc0, tc0)
-    movq    mm4, mm0
-    psubusb mm0, mm3
-    psubusb mm3, mm4
-    pminub  mm0, mm7
+    pxor    mm5, mm2             ; p0^q0
+    pand    mm5, [pb_01 GOT_ebx] ; (p0^q0)&1
+    pcmpeqb mm4, mm4
+    pxor    mm3, mm4
+    pavgb   mm3, mm0             ; (p1 - q1 + 256)>>1
+    pavgb   mm3, [pb_03 GOT_ebx] ; (((p1 - q1 + 256)>>1)+4)>>1 = 64+2+(p1-q1)>>2
+    pxor    mm4, mm1
+    pavgb   mm4, mm2             ; (q0 - p0 + 256)>>1
+    pavgb   mm3, mm5
+    paddusb mm3, mm4             ; d+128+33
+    movq    mm6, [pb_a1 GOT_ebx]
+    psubusb mm6, mm3
+    psubusb mm3, [pb_a1 GOT_ebx]
+    pminub  mm6, mm7
     pminub  mm3, mm7
-    paddusb mm1, mm0
-    paddusb mm2, mm3
-    psubusb mm1, mm3
-    psubusb mm2, mm0
+    psubusb mm1, mm6
+    psubusb mm2, mm3
+    paddusb mm1, mm3
+    paddusb mm2, mm6
 %endmacro
 
 ; in: mm1=p0 mm2=q0
@@ -274,32 +263,27 @@ x264_deblock_v8_luma_mmxext:
     punpcklbw mm4, mm4
     punpcklbw mm4, mm4 ; tc = 4x tc0[1], 4x tc0[0]
     movq   [esp+8], mm4 ; tc
-    pcmpgtb mm4, [pb_ff GOT_ebx]
+    pcmpeqb mm3, mm3
+    pcmpgtb mm4, mm3
     pand    mm4, mm7
     movq   [esp+0], mm4 ; mask
 
     movq    mm3, [eax] ; p2
-    DIFF_GT_MMX  mm1, mm3, mm5, mm6, mm7 ; |p2-p0| > beta-1
-    pandn   mm6, mm4
-    pcmpeqb mm6, mm4
+    DIFF_GT2_MMX  mm1, mm3, mm5, mm6, mm7 ; |p2-p0| > beta-1
     pand    mm6, mm4
     pand    mm4, [esp+8] ; tc
-    movq    mm7, [pb_01 GOT_ebx]
-    pand    mm7, mm6
+    movq    mm7, mm4
+    psubb   mm7, mm6
     pand    mm6, mm4
-    paddb   mm7, mm4
     LUMA_Q1_MMX  mm0, mm3, [eax], [eax+esi], mm6, mm4
 
     movq    mm4, [edi+2*esi] ; q2
-    DIFF_GT_MMX  mm2, mm4, mm5, mm6, mm3 ; |q2-q0| > beta-1
+    DIFF_GT2_MMX  mm2, mm4, mm5, mm6, mm3 ; |q2-q0| > beta-1
     movq    mm5, [esp+0] ; mask
-    pandn   mm6, mm5
-    pcmpeqb mm6, mm5
     pand    mm6, mm5
     movq    mm5, [esp+8] ; tc
     pand    mm5, mm6
-    pand    mm6, [pb_01 GOT_ebx]
-    paddb   mm7, mm6
+    psubb   mm7, mm6
     movq    mm3, [edi+esi]
     LUMA_Q1_MMX  mm3, mm4, [edi+2*esi], [edi+esi], mm5, mm6
 

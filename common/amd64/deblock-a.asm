@@ -26,8 +26,8 @@ BITS 64
 
 SECTION .rodata align=16
 pb_01: times 16 db 0x01
-pb_3f: times 16 db 0x3f
-pb_ff: times 16 db 0xff
+pb_03: times 16 db 0x03
+pb_a1: times 16 db 0xa1
 
 SECTION .text
 cglobal x264_deblock_v_luma_sse2
@@ -160,6 +160,24 @@ cglobal x264_deblock_h_chroma_intra_mmxext
     DIFF_GT dqa, %1, %2, %3, %4, %5
 %endmacro
 
+; out: %4 = |%1-%2|>%3
+; clobbers: %5
+%macro DIFF_GT2 6
+    mov%1   %6, %3
+    mov%1   %5, %2
+    psubusb %6, %2
+    psubusb %5, %3
+    psubusb %6, %4
+    psubusb %5, %4
+    pcmpeqb %5, %6
+%endmacro
+%macro DIFF_GT2_MMX 5
+    DIFF_GT2 q, %1, %2, %3, %4, %5
+%endmacro
+%macro DIFF_GT2_SSE2 5
+    DIFF_GT2 dqa, %1, %2, %3, %4, %5
+%endmacro
+
 ; in: mm0=p1 mm1=p0 mm2=q0 mm3=q1 %1=alpha-1 %2=beta-1
 ; out: mm5=beta-1, mm7=mask
 ; clobbers: mm4,mm6
@@ -200,47 +218,26 @@ cglobal x264_deblock_h_chroma_intra_mmxext
 ; out: mm1=p0' mm2=q0'
 ; clobbers: mm0,3-6
 %macro DEBLOCK_P0_Q0 2
-    ; a = q0^p0^((p1-q1)>>2)
-    mov%1   %2m4, %2m0
-    psubb   %2m4, %2m3
-    psrlw   %2m4, 2
-    pxor    %2m4, %2m1
-    pxor    %2m4, %2m2
-    ; b = p0^(q1>>2)
-    psrlw   %2m3, 2
-    pand    %2m3, [pb_3f GLOBAL]
     mov%1   %2m5, %2m1
-    pxor    %2m5, %2m3
-    ; c = q0^(p1>>2)
-    psrlw   %2m0, 2
-    pand    %2m0, [pb_3f GLOBAL]
-    mov%1   %2m6, %2m2
-    pxor    %2m6, %2m0
-    ; d = (c^b) & ~(b^a) & 1
-    pxor    %2m6, %2m5
-    pxor    %2m5, %2m4
-    pandn   %2m5, %2m6
-    pand    %2m5, [pb_01 GLOBAL]
-    ; delta = (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3
-    ;       = (avg(q0, p1>>2) + (d&a))
-    ;       - (avg(p0, q1>>2) + (d^(d&a)))
-    pavgb   %2m0, %2m2
-    pand    %2m4, %2m5
-    paddusb %2m0, %2m4
-    pavgb   %2m3, %2m1
-    pxor    %2m4, %2m5
-    paddusb %2m3, %2m4
-    ; p0 += clip(delta, -tc0, tc0)
-    ; q0 -= clip(delta, -tc0, tc0)
-    mov%1   %2m4, %2m0
-    psubusb %2m0, %2m3
-    psubusb %2m3, %2m4
-    pminub  %2m0, %2m7
+    pxor    %2m5, %2m2           ; p0^q0
+    pand    %2m5, [pb_01 GLOBAL] ; (p0^q0)&1
+    pcmpeqb %2m4, %2m4
+    pxor    %2m3, %2m4
+    pavgb   %2m3, %2m0           ; (p1 - q1 + 256)>>1
+    pavgb   %2m3, [pb_03 GLOBAL] ; (((p1 - q1 + 256)>>1)+4)>>1 = 64+2+(p1-q1)>>2
+    pxor    %2m4, %2m1
+    pavgb   %2m4, %2m2           ; (q0 - p0 + 256)>>1
+    pavgb   %2m3, %2m5
+    paddusb %2m3, %2m4           ; d+128+33
+    mov%1   %2m6, [pb_a1 GLOBAL]
+    psubusb %2m6, %2m3
+    psubusb %2m3, [pb_a1 GLOBAL]
+    pminub  %2m6, %2m7
     pminub  %2m3, %2m7
-    paddusb %2m1, %2m0
-    paddusb %2m2, %2m3
-    psubusb %2m1, %2m3
-    psubusb %2m2, %2m0
+    psubusb %2m1, %2m6
+    psubusb %2m2, %2m3
+    paddusb %2m1, %2m3
+    paddusb %2m2, %2m6
 %endmacro
 %macro DEBLOCK_P0_Q0_MMX 0
     DEBLOCK_P0_Q0 q, m
@@ -293,30 +290,24 @@ x264_deblock_v_luma_sse2:
 
     punpcklbw xmm8, xmm8
     punpcklbw xmm8, xmm8 ; xmm8 = 4x tc0[3], 4x tc0[2], 4x tc0[1], 4x tc0[0]
-    movdqa  xmm9, [pb_ff GLOBAL]
+    pcmpeqb xmm9, xmm9
     pcmpeqb xmm9, xmm8
     pandn   xmm9, xmm7
     pand    xmm8, xmm9
 
     movdqa  xmm3, [r8] ; p2
-    DIFF_GT_SSE2  xmm1, xmm3, xmm5, xmm6, xmm7 ; |p2-p0| > beta-1
-    pandn   xmm6, xmm9
-    pcmpeqb xmm6, xmm9
+    DIFF_GT2_SSE2  xmm1, xmm3, xmm5, xmm6, xmm7 ; |p2-p0| > beta-1
     pand    xmm6, xmm9
-    movdqa  xmm7, [pb_01 GLOBAL]
-    pand    xmm7, xmm6
+    movdqa  xmm7, xmm8
+    psubb   xmm7, xmm6
     pand    xmm6, xmm8
-    paddb   xmm7, xmm8
     LUMA_Q1_SSE2  xmm0, xmm3, [r8], [r8+rsi], xmm6, xmm4
 
     movdqa  xmm4, [rdi+2*rsi] ; q2
-    DIFF_GT_SSE2  xmm2, xmm4, xmm5, xmm6, xmm3 ; |q2-q0| > beta-1
-    pandn   xmm6, xmm9
-    pcmpeqb xmm6, xmm9
+    DIFF_GT2_SSE2  xmm2, xmm4, xmm5, xmm6, xmm3 ; |q2-q0| > beta-1
     pand    xmm6, xmm9
     pand    xmm8, xmm6
-    pand    xmm6, [pb_01 GLOBAL]
-    paddb   xmm7, xmm6
+    psubb   xmm7, xmm6
     movdqa  xmm3, [rdi+rsi]
     LUMA_Q1_SSE2  xmm3, xmm4, [rdi+2*rsi], [rdi+rsi], xmm8, xmm6
 
