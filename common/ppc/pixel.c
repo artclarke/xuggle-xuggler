@@ -100,8 +100,7 @@ PIXEL_SAD_ALTIVEC( pixel_sad_8x8_altivec,   8,  8,  2s, 1 )
  * actually also calls vec_splat(0), but we already have a null vector.
  **********************************************************************/
 #define VEC_ABS(a) \
-    pix1v = vec_sub( zero_s16v, a ); \
-    a     = vec_max( a, pix1v ); \
+    a     = vec_max( a, vec_sub( zero_s16v, a ) );
 
 /***********************************************************************
  * VEC_ADD_ABS

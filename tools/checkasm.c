@@ -176,8 +176,8 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_dct_function_t dct_ref;
     x264_dct_function_t dct_asm;
     int ret = 0, ok, used_asm;
-    int16_t dct1[16][4][4] __attribute((aligned(16)));
-    int16_t dct2[16][4][4] __attribute((aligned(16)));
+    int16_t dct1[16][4][4] __attribute__((aligned(16)));
+    int16_t dct2[16][4][4] __attribute__((aligned(16)));
 
     x264_dct_init( 0, &dct_c );
     x264_dct_init( cpu_ref, &dct_ref);
@@ -473,8 +473,9 @@ static int check_quant( int cpu_ref, int cpu_new )
     x264_quant_function_t qf_c;
     x264_quant_function_t qf_ref;
     x264_quant_function_t qf_a;
-    int16_t dct1[64], dct2[64];
-    uint8_t cqm_buf[64];
+    int16_t dct1[64]    __attribute__((__aligned__(16)));
+    int16_t dct2[64]    __attribute__((__aligned__(16)));
+    uint8_t cqm_buf[64] __attribute__((__aligned__(16)));
     int ret = 0, ok, used_asm;
     int oks[2] = {1,1}, used_asms[2] = {0,0};
     int i, i_cqm;

@@ -26,6 +26,9 @@ N: Christian Heine
 E: sennindemokrit AT gmx DOT net
 D: x86 asm
 
+N: Placeholder
+D: Altivec optimizations
+
 N: Eric Petit
 E: titer AT videolan DOT org
 C: titer
@@ -35,6 +38,11 @@ S: France
 
 N: Francesco Corriga
 D: VfW
+
+N: Guillaume Poirier
+E: gpoirier CHEZ mplayerhq POINT hu
+D: Altivec optimizations
+S: Brittany, France
 
 N: Justin Clay
 E: justin_clay AT hotmail DOT com

@@ -25,6 +25,9 @@
 #ifdef HAVE_MMXEXT
 #include "i386/quant.h"
 #endif
+#ifdef ARCH_PPC
+#   include "ppc/quant.h"
+#endif
 
 #define QUANT_ONE( coef, mf ) \
 { \
@@ -202,8 +205,6 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     pf->dequant_4x4 = dequant_4x4;
     pf->dequant_8x8 = dequant_8x8;
 
-#ifdef HAVE_MMXEXT
-
     /* determine the biggest coefficient in all quant8_mf tables */
     for( j = 0; j < 2; j++ )
         for( i = 0; i < 6*8*8; i++ )
@@ -224,6 +225,8 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
             if( maxQdc < q && i%16 == 0 )
                 maxQdc = q;
         }
+
+#ifdef HAVE_MMXEXT
 
     /* select quant_8x8 based on CPU and maxQ8 */
     if( maxQ8 < (1<<15) && cpu&X264_CPU_MMX )
@@ -273,4 +276,21 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->dequant_8x8 = x264_dequant_8x8_mmx;
     }
 #endif  /* HAVE_MMXEXT */
+    
+#ifdef ARCH_PPC
+    if( cpu&X264_CPU_ALTIVEC ) {
+        if( maxQ8 < (1<<16) )
+        {
+            pf->quant_8x8_core = x264_quant_8x8_altivec;
+        }
+        if( maxQ4 < (1<<16) )
+        {
+            pf->quant_4x4_core = x264_quant_4x4_altivec;
+        }
+        if( maxQdc < (1<<16) )
+        {
+           pf->quant_4x4_dc_core = x264_quant_4x4_dc_altivec;
+        }
+    }
+#endif /* ARCH_PPC */
 }

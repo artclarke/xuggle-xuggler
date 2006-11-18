@@ -31,7 +31,7 @@
 /* def_quant4_mf only for probe_skip; actual encoding uses matrices from set.c */
 /* FIXME this seems to make better decisions with cqm=jvt, but could screw up
  * with general custom matrices. */
-static const int def_quant4_mf[6][4][4] =
+static const DECLARE_ALIGNED ( int, def_quant4_mf[6][4][4], 16) =
 {
     { { 13107, 8066, 13107, 8066 }, { 8066, 5243, 8066, 5243 },
       { 13107, 8066, 13107, 8066 }, { 8066, 5243, 8066, 5243 } },
@@ -143,7 +143,7 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale )
     int y = 4 * block_idx_y[idx];
     uint8_t *p_src = &h->mb.pic.p_fenc[0][x+y*FENC_STRIDE];
     uint8_t *p_dst = &h->mb.pic.p_fdec[0][x+y*FDEC_STRIDE];
-    int16_t dct4x4[4][4];
+    DECLARE_ALIGNED( int16_t, dct4x4[4][4], 16 );
 
     if( h->mb.b_lossless )
     {
@@ -171,7 +171,7 @@ void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qscale )
     int y = 8 * (idx>>1);
     uint8_t *p_src = &h->mb.pic.p_fenc[0][x+y*FENC_STRIDE];
     uint8_t *p_dst = &h->mb.pic.p_fdec[0][x+y*FDEC_STRIDE];
-    int16_t dct8x8[8][8];
+    DECLARE_ALIGNED( int16_t, dct8x8[8][8], 16 );
 
     h->dctf.sub8x8_dct8( dct8x8, p_src, p_dst );
 
@@ -190,7 +190,7 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
     uint8_t  *p_src = h->mb.pic.p_fenc[0];
     uint8_t  *p_dst = h->mb.pic.p_fdec[0];
 
-    int16_t dct4x4[16+1][4][4];
+    DECLARE_ALIGNED( int16_t, dct4x4[16+1][4][4], 16 );
 
     int i;
 
@@ -253,8 +253,8 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
         uint8_t  *p_dst = h->mb.pic.p_fdec[1+ch];
         int i_decimate_score = 0;
 
-        int16_t dct2x2[2][2];
-        int16_t dct4x4[4][4][4];
+        DECLARE_ALIGNED( int16_t, dct2x2[2][2] , 16 );
+        DECLARE_ALIGNED( int16_t, dct4x4[4][4][4], 16 );
 
         if( h->mb.b_lossless )
         {
@@ -473,7 +473,7 @@ void x264_macroblock_encode( x264_t *h )
         }
         else if( h->mb.b_transform_8x8 )
         {
-            int16_t dct8x8[4][8][8];
+            DECLARE_ALIGNED( int16_t, dct8x8[4][8][8], 16 );
             int nnz8x8[4] = {1,1,1,1};
             b_decimate &= !h->mb.b_trellis; // 8x8 trellis is inherently optimal decimation
             h->dctf.sub16x16_dct8( dct8x8, h->mb.pic.p_fenc[0], h->mb.pic.p_fdec[0] );
@@ -518,7 +518,7 @@ void x264_macroblock_encode( x264_t *h )
         }
         else
         {
-            int16_t dct4x4[16][4][4];
+            DECLARE_ALIGNED( int16_t, dct4x4[16][4][4], 16 );
             int nnz8x8[4] = {1,1,1,1};
             h->dctf.sub16x16_dct( dct4x4, h->mb.pic.p_fenc[0], h->mb.pic.p_fdec[0] );
 
@@ -828,7 +828,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
 
     if( h->mb.b_transform_8x8 )
     {
-        int16_t dct8x8[8][8];
+        DECLARE_ALIGNED( int16_t, dct8x8[8][8], 16 );
         h->dctf.sub8x8_dct8( dct8x8, p_fenc, p_fdec );
         quant_8x8( h, dct8x8, h->quant8_mf[CQM_8PY], i_qp, 0 );
         h->zigzagf.scan_8x8( h->dct.luma8x8[i8], dct8x8 );
@@ -847,7 +847,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
     else
     {
         int i4;
-        int16_t dct4x4[4][4][4];
+        DECLARE_ALIGNED( int16_t, dct4x4[4][4][4], 16 );
         h->dctf.sub8x8_dct( dct4x4, p_fenc, p_fdec );
         quant_4x4( h, dct4x4[0], h->quant4_mf[CQM_4PY], i_qp, 0 );
         quant_4x4( h, dct4x4[1], h->quant4_mf[CQM_4PY], i_qp, 0 );
@@ -878,7 +878,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
 
     for( ch = 0; ch < 2; ch++ )
     {
-        int16_t dct4x4[4][4];
+        DECLARE_ALIGNED( int16_t, dct4x4[4][4], 16 );
         p_fenc = h->mb.pic.p_fenc[1+ch] + (i8&1)*4 + (i8>>1)*4*FENC_STRIDE;
         p_fdec = h->mb.pic.p_fdec[1+ch] + (i8&1)*4 + (i8>>1)*4*FDEC_STRIDE;
 
