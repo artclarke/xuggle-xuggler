@@ -80,6 +80,7 @@ struct x264_ratecontrol_t
     int b_abr;
     int b_2pass;
     int b_vbv;
+    int b_vbv_min_rate;
     double fps;
     double bitrate;
     double rate_tolerance;
@@ -228,7 +229,8 @@ int x264_ratecontrol_new( x264_t *h )
     else if( h->param.rc.i_vbv_max_bitrate > 0 &&
              h->param.rc.i_vbv_buffer_size > 0 )
     {
-        if( h->param.rc.i_vbv_buffer_size < 3 * h->param.rc.i_vbv_max_bitrate / rc->fps ) {
+        if( h->param.rc.i_vbv_buffer_size < 3 * h->param.rc.i_vbv_max_bitrate / rc->fps )
+        {
             h->param.rc.i_vbv_buffer_size = 3 * h->param.rc.i_vbv_max_bitrate / rc->fps;
             x264_log( h, X264_LOG_WARNING, "VBV buffer size too small, using %d kbit\n",
                       h->param.rc.i_vbv_buffer_size );
@@ -239,6 +241,9 @@ int x264_ratecontrol_new( x264_t *h )
         rc->cbr_decay = 1.0 - rc->buffer_rate / rc->buffer_size
                       * 0.5 * X264_MAX(0, 1.5 - rc->buffer_rate * rc->fps / rc->bitrate);
         rc->b_vbv = 1;
+        rc->b_vbv_min_rate = !rc->b_2pass
+                          && h->param.rc.i_rc_method == X264_RC_ABR
+                          && h->param.rc.i_vbv_max_bitrate <= h->param.rc.i_bitrate;
     }
     else if( h->param.rc.i_vbv_max_bitrate )
     {
@@ -709,6 +714,9 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
             int i_qp_min = X264_MAX( prev_row_qp - h->param.rc.i_qp_step, h->param.rc.i_qp_min );
             float buffer_left_planned = rc->buffer_fill - rc->frame_size_planned;
 
+            if( !rc->b_vbv_min_rate )
+                i_qp_min = X264_MAX( i_qp_min, h->sh.i_qp );
+
             while( rc->qpm < i_qp_max
                    && (b1 > rc->frame_size_planned * 1.15
                     || (rc->buffer_fill - b1 < buffer_left_planned * 0.5)))
@@ -1130,6 +1138,9 @@ static double clip_qscale( x264_t *h, int pict_type, double q )
             }
             q = X264_MAX( q0-5, q );
         }
+
+        if( !rcc->b_vbv_min_rate )
+            q = X264_MAX( q0, q );
     }
 
     if(lmin==lmax)
