@@ -5,6 +5,7 @@
  * $Id: pixel.c,v 1.1 2004/06/03 19:27:07 fenrir Exp $
  *
  * Authors: Eric Petit <titer@m0k.org>
+ *          Guillaume Poirier <gpoirier@mplayerhq.hu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1603,6 +1604,146 @@ static int pixel_ssd_16x16_altivec ( uint8_t *pix1, int i_stride_pix1,
     return sum;
 } 
 
+/**********************************************************************
+ * SA8D routines: sum of 8x8 Hadamard transformed differences
+ **********************************************************************/
+/* SA8D_1D unrolled by 8 in Altivec */
+#define SA8D_1D_ALTIVEC( sa8d0v, sa8d1v, sa8d2v, sa8d3v, sa8d4v, sa8d5v, sa8d6v, sa8d7v )\
+{\
+    /* int    a0  =        SRC(0) + SRC(4) */\
+    vec_s16_t a0v = vec_add(sa8d0v, sa8d4v); \
+    /* int    a4  =        SRC(0) - SRC(4) */\
+    vec_s16_t a4v = vec_sub(sa8d0v, sa8d4v); \
+    /* int    a1  =        SRC(1) + SRC(5) */\
+    vec_s16_t a1v = vec_add(sa8d1v, sa8d5v); \
+    /* int    a5  =        SRC(1) - SRC(5) */\
+    vec_s16_t a5v = vec_sub(sa8d1v, sa8d5v); \
+    /* int    a2  =        SRC(2) + SRC(6) */\
+    vec_s16_t a2v = vec_add(sa8d2v, sa8d6v); \
+    /* int    a6  =        SRC(2) - SRC(6) */\
+    vec_s16_t a6v = vec_sub(sa8d2v, sa8d6v); \
+    /* int    a3  =        SRC(3) + SRC(7) */\
+    vec_s16_t a3v = vec_add(sa8d3v, sa8d7v); \
+    /* int    a7  =        SRC(3) - SRC(7) */\
+    vec_s16_t a7v = vec_sub(sa8d3v, sa8d7v); \
+\
+    /* int    b0  =         a0 + a2  */\
+    vec_s16_t b0v = vec_add(a0v, a2v); \
+    /* int    b2  =         a0 - a2; */\
+    vec_s16_t  b2v = vec_sub(a0v, a2v);\
+    /* int    b1  =         a1 + a3; */\
+    vec_s16_t b1v = vec_add(a1v, a3v); \
+    /* int    b3  =         a1 - a3; */\
+    vec_s16_t b3v = vec_sub(a1v, a3v); \
+    /* int    b4  =         a4 + a6; */\
+    vec_s16_t b4v = vec_add(a4v, a6v); \
+    /* int    b6  =         a4 - a6; */\
+    vec_s16_t b6v = vec_sub(a4v, a6v); \
+    /* int    b5  =         a5 + a7; */\
+    vec_s16_t b5v = vec_add(a5v, a7v); \
+    /* int    b7  =         a5 - a7; */\
+    vec_s16_t b7v = vec_sub(a5v, a7v); \
+\
+    /* DST(0,        b0 + b1) */\
+    sa8d0v = vec_add(b0v, b1v); \
+    /* DST(1,        b0 - b1) */\
+    sa8d1v = vec_sub(b0v, b1v); \
+    /* DST(2,        b2 + b3) */\
+    sa8d2v = vec_add(b2v, b3v); \
+    /* DST(3,        b2 - b3) */\
+    sa8d3v = vec_sub(b2v, b3v); \
+    /* DST(4,        b4 + b5) */\
+    sa8d4v = vec_add(b4v, b5v); \
+    /* DST(5,        b4 - b5) */\
+    sa8d5v = vec_sub(b4v, b5v); \
+    /* DST(6,        b6 + b7) */\
+    sa8d6v = vec_add(b6v, b7v); \
+    /* DST(7,        b6 - b7) */\
+    sa8d7v = vec_sub(b6v, b7v); \
+}
+
+static int pixel_sa8d_8x8_core_altivec( uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+{
+    int32_t i_satd=0;
+
+    PREP_DIFF;
+
+    vec_s16_t diff0v, diff1v, diff2v, diff3v, diff4v, diff5v, diff6v, diff7v;
+
+    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff0v );
+    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff1v );
+    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff2v );
+    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff3v );
+
+    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff4v );
+    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff5v );
+    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff6v );
+    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff7v );
+
+    vec_s16_t sa8d0v, sa8d1v, sa8d2v, sa8d3v, sa8d4v, sa8d5v, sa8d6v, sa8d7v;
+
+    SA8D_1D_ALTIVEC(diff0v, diff1v, diff2v, diff3v,
+                    diff4v, diff5v, diff6v, diff7v);
+
+    VEC_TRANSPOSE_8(diff0v, diff1v, diff2v, diff3v,
+                    diff4v, diff5v, diff6v, diff7v,
+                    sa8d0v, sa8d1v, sa8d2v, sa8d3v,
+                    sa8d4v, sa8d5v, sa8d6v, sa8d7v );
+
+    SA8D_1D_ALTIVEC(sa8d0v, sa8d1v, sa8d2v, sa8d3v,
+                    sa8d4v, sa8d5v, sa8d6v, sa8d7v );
+
+    /* accumulation of the absolute value of all elements of the resulting bloc */
+    vec_s16_t abs0v = VEC_ABS(sa8d0v);
+    vec_s16_t abs1v = VEC_ABS(sa8d1v);
+    vec_s16_t sum01v = vec_add(abs0v, abs1v);
+
+    vec_s16_t abs2v = VEC_ABS(sa8d2v);
+    vec_s16_t abs3v = VEC_ABS(sa8d3v);
+    vec_s16_t sum23v = vec_add(abs2v, abs3v);
+
+    vec_s16_t abs4v = VEC_ABS(sa8d4v);
+    vec_s16_t abs5v = VEC_ABS(sa8d5v);
+    vec_s16_t sum45v = vec_add(abs4v, abs5v);
+
+    vec_s16_t abs6v = VEC_ABS(sa8d6v);
+    vec_s16_t abs7v = VEC_ABS(sa8d7v);
+    vec_s16_t sum67v = vec_add(abs6v, abs7v);
+
+    vec_s16_t sum0123v = vec_add(sum01v, sum23v);
+    vec_s16_t sum4567v = vec_add(sum45v, sum67v);
+
+    vec_s32_t sumblocv;
+
+    sumblocv = vec_sum4s(sum0123v, (vec_s32_t)zerov );
+    sumblocv = vec_sum4s(sum4567v, sumblocv );
+
+    sumblocv = vec_sums(sumblocv, (vec_s32_t)zerov );
+
+    sumblocv = vec_splat(sumblocv, 3);
+
+    vec_ste(sumblocv, 0, &i_satd);
+
+    return i_satd;
+}
+
+static int pixel_sa8d_8x8_altivec( uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+{
+    int32_t i_satd;
+    i_satd = (pixel_sa8d_8x8_core_altivec( pix1, i_pix1, pix2, i_pix2 )+2)>>2;
+    return i_satd;
+}
+
+static int pixel_sa8d_16x16_altivec( uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
+{
+    int32_t i_satd;
+    
+    i_satd = (pixel_sa8d_8x8_core_altivec( &pix1[0],     i_pix1, &pix2[0],     i_pix2 )
+            + pixel_sa8d_8x8_core_altivec( &pix1[8],     i_pix1, &pix2[8],     i_pix2 )
+            + pixel_sa8d_8x8_core_altivec( &pix1[8*i_pix1],   i_pix1, &pix2[8*i_pix2],   i_pix2 )
+            + pixel_sa8d_8x8_core_altivec( &pix1[8*i_pix1+8], i_pix1, &pix2[8*i_pix2+8], i_pix2 ) +2)>>2;
+    return i_satd;
+}
 
 /****************************************************************************
  * x264_pixel_init:
@@ -1633,4 +1774,7 @@ void x264_pixel_altivec_init( x264_pixel_function_t *pixf )
     pixf->satd[PIXEL_4x4]   = pixel_satd_4x4_altivec;
     
     pixf->ssd[PIXEL_16x16] = pixel_ssd_16x16_altivec;
+
+    pixf->sa8d[PIXEL_16x16] = pixel_sa8d_16x16_altivec;
+    pixf->sa8d[PIXEL_8x8]   = pixel_sa8d_8x8_altivec;
 }

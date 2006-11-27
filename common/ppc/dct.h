@@ -5,6 +5,7 @@
  * $Id$
  *
  * Authors: Eric Petit <titer@m0k.org>
+ *          Guillaume Poirier <gpoirier@mplayerhq.hu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,5 +36,8 @@ void x264_sub8x8_dct8_altivec( int16_t dct[8][8],
         uint8_t *pix1, uint8_t *pix2 );
 void x264_sub16x16_dct8_altivec( int16_t dct[4][8][8],
         uint8_t *pix1, uint8_t *pix2 );
+
+void x264_add8x8_idct8_altivec( uint8_t *dst, int16_t dct[8][8] );
+void x264_add16x16_idct8_altivec( uint8_t *dst, int16_t dct[4][8][8] );
 
 #endif
