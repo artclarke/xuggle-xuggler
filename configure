@@ -80,6 +80,11 @@ case "${MACHINE#*-*-}" in
     SYS="FREEBSD"
     LDFLAGS="$LDFLAGS -lm"
     ;;
+  kfreebsd*-gnu)
+    SYS="FREEBSD"
+    CFLAGS="$CFLAGS -DHAVE_MALLOC_H"
+    LDFLAGS="$LDFLAGS -lm"
+    ;;
   netbsd*)
     SYS="NETBSD"
     LDFLAGS="$LDFLAGS -lm"
