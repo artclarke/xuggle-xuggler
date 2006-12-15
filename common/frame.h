@@ -113,4 +113,14 @@ void          x264_deblock_init( int cpu, x264_deblock_function_t *pf );
 void          x264_frame_cond_broadcast( x264_frame_t *frame );
 void          x264_frame_cond_wait( x264_frame_t *frame, int i_lines_completed );
 
+void          x264_frame_push( x264_frame_t **list, x264_frame_t *frame );
+x264_frame_t *x264_frame_pop( x264_frame_t **list );
+void          x264_frame_unshift( x264_frame_t **list, x264_frame_t *frame );
+x264_frame_t *x264_frame_shift( x264_frame_t **list );
+void          x264_frame_push_unused( x264_t *h, x264_frame_t *frame );
+x264_frame_t *x264_frame_pop_unused( x264_t *h );
+void          x264_frame_sort( x264_frame_t **list, int b_dts );
+#define x264_frame_sort_dts(list) x264_frame_sort(list, 1)
+#define x264_frame_sort_pts(list) x264_frame_sort(list, 0)
+
 #endif

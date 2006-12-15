@@ -61,12 +61,6 @@ static int64_t i_mtime_filter = 0;
 
 #define NALU_OVERHEAD 5 // startcode + NAL type costs 5 bytes per frame
 
-static x264_frame_t *x264_frame_get( x264_frame_t **list ); //FIXME move
-static void x264_frame_put( x264_frame_t **list, x264_frame_t *frame );
-static void x264_frame_push( x264_frame_t **list, x264_frame_t *frame );
-static void x264_frame_put_unused( x264_t *h, x264_frame_t *frame );
-static x264_frame_t *x264_frame_get_unused( x264_t *h );
-
 static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
                                     x264_nal_t **pp_nal, int *pi_nal,
                                     x264_picture_t *pic_out );
@@ -691,7 +685,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     {
         if( i > 0 )
             *h->thread[i] = *h;
-        h->thread[i]->fdec = x264_frame_get_unused( h );
+        h->thread[i]->fdec = x264_frame_pop_unused( h );
         h->thread[i]->out.p_bitstream = x264_malloc( h->out.i_bitstream );
         if( x264_macroblock_cache_init( h->thread[i] ) < 0 )
             return NULL;
@@ -811,76 +805,6 @@ int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
 
     return 0;
 }
-
-
-static void x264_frame_put( x264_frame_t **list, x264_frame_t *frame )
-{
-    int i = 0;
-    while( list[i] ) i++;
-    list[i] = frame;
-}
-
-static void x264_frame_push( x264_frame_t **list, x264_frame_t *frame )
-{
-    int i = 0;
-    while( list[i] ) i++;
-    while( i-- )
-        list[i+1] = list[i];
-    list[0] = frame;
-}
-
-static x264_frame_t *x264_frame_get( x264_frame_t **list )
-{
-    x264_frame_t *frame = list[0];
-    int i;
-    for( i = 0; list[i]; i++ )
-        list[i] = list[i+1];
-    assert(frame);
-    return frame;
-}
-
-static void x264_frame_put_unused( x264_t *h, x264_frame_t *frame )
-{
-    assert( frame->i_reference_count > 0 );
-    frame->i_reference_count--;
-    if( frame->i_reference_count == 0 )
-        x264_frame_put( h->frames.unused, frame );
-    assert( h->frames.unused[ sizeof(h->frames.unused) / sizeof(*h->frames.unused) - 1 ] == NULL );
-}
-
-static x264_frame_t *x264_frame_get_unused( x264_t *h )
-{
-    x264_frame_t *frame;
-    if( h->frames.unused[0] )
-        frame = x264_frame_get( h->frames.unused );
-    else
-        frame = x264_frame_new( h );
-    assert( frame->i_reference_count == 0 );
-    frame->i_reference_count = 1;
-    return frame;
-}
-
-static void x264_frame_sort( x264_frame_t **list, int b_dts )
-{
-    int i, b_ok;
-    do {
-        b_ok = 1;
-        for( i = 0; list[i+1]; i++ )
-        {
-            int dtype = list[i]->i_type - list[i+1]->i_type;
-            int dtime = list[i]->i_frame - list[i+1]->i_frame;
-            int swap = b_dts ? dtype > 0 || ( dtype == 0 && dtime > 0 )
-                             : dtime > 0;
-            if( swap )
-            {
-                XCHG( x264_frame_t*, list[i], list[i+1] );
-                b_ok = 0;
-            }
-        }
-    } while( !b_ok );
-}
-#define x264_frame_sort_dts(list) x264_frame_sort(list, 1)
-#define x264_frame_sort_pts(list) x264_frame_sort(list, 0)
 
 static inline void x264_reference_build_list( x264_t *h, int i_poc )
 {
@@ -1013,8 +937,8 @@ static inline void x264_reference_update( x264_t *h )
     {
         if( h->param.i_threads > 1 )
         {
-            x264_frame_put_unused( h, h->fdec );
-            h->fdec = x264_frame_get_unused( h );
+            x264_frame_push_unused( h, h->fdec );
+            h->fdec = x264_frame_pop_unused( h );
         }
         return;
     }
@@ -1031,16 +955,16 @@ static inline void x264_reference_update( x264_t *h )
         h->frames.last_nonb = h->fdec;
 
     /* move frame in the buffer */
-    x264_frame_put( h->frames.reference, h->fdec );
+    x264_frame_push( h->frames.reference, h->fdec );
     if( h->frames.reference[h->frames.i_max_dpb] )
-        x264_frame_put_unused( h, x264_frame_get( h->frames.reference ) );
-    h->fdec = x264_frame_get_unused( h );
+        x264_frame_push_unused( h, x264_frame_shift( h->frames.reference ) );
+    h->fdec = x264_frame_pop_unused( h );
 }
 
 static inline void x264_reference_reset( x264_t *h )
 {
     while( h->frames.reference[0] )
-        x264_frame_put_unused( h, x264_frame_get( h->frames.reference ) );
+        x264_frame_push_unused( h, x264_frame_shift( h->frames.reference ) );
     h->fdec->i_poc =
     h->fenc->i_poc = 0;
 }
@@ -1258,9 +1182,9 @@ static void x264_thread_sync_context( x264_t *dst, x264_t *src )
     for( f = src->frames.reference; *f; f++ )
         (*f)->i_reference_count++;
     for( f = dst->frames.reference; *f; f++ )
-        x264_frame_put_unused( src, *f );
+        x264_frame_push_unused( src, *f );
     src->fdec->i_reference_count++;
-    x264_frame_put_unused( src, dst->fdec );
+    x264_frame_push_unused( src, dst->fdec );
 
     // copy everything except the per-thread pointers and the constants.
     memcpy( &dst->i_frame, &src->i_frame, offsetof(x264_t, mb.type) - offsetof(x264_t, i_frame) );
@@ -1356,7 +1280,7 @@ int     x264_encoder_encode( x264_t *h,
     if( pic_in != NULL )
     {
         /* 1: Copy the picture to a frame and move it to a buffer */
-        x264_frame_t *fenc = x264_frame_get_unused( h );
+        x264_frame_t *fenc = x264_frame_pop_unused( h );
 
         x264_frame_copy_picture( h, fenc, pic_in );
 
@@ -1366,7 +1290,7 @@ int     x264_encoder_encode( x264_t *h,
 
         fenc->i_frame = h->frames.i_input++;
 
-        x264_frame_put( h->frames.next, fenc );
+        x264_frame_push( h->frames.next, fenc );
 
         if( h->frames.b_have_lowres )
             x264_frame_init_lowres( h->param.cpu, fenc );
@@ -1395,23 +1319,23 @@ int     x264_encoder_encode( x264_t *h,
         /* 3: move some B-frames and 1 non-B to encode queue */
         while( IS_X264_TYPE_B( h->frames.next[bframes]->i_type ) )
             bframes++;
-        x264_frame_put( h->frames.current, x264_frame_get( &h->frames.next[bframes] ) );
+        x264_frame_push( h->frames.current, x264_frame_shift( &h->frames.next[bframes] ) );
         /* FIXME: when max B-frames > 3, BREF may no longer be centered after GOP closing */
         if( h->param.b_bframe_pyramid && bframes > 1 )
         {
-            x264_frame_t *mid = x264_frame_get( &h->frames.next[bframes/2] );
+            x264_frame_t *mid = x264_frame_shift( &h->frames.next[bframes/2] );
             mid->i_type = X264_TYPE_BREF;
-            x264_frame_put( h->frames.current, mid );
+            x264_frame_push( h->frames.current, mid );
             bframes--;
         }
         while( bframes-- )
-            x264_frame_put( h->frames.current, x264_frame_get( h->frames.next ) );
+            x264_frame_push( h->frames.current, x264_frame_shift( h->frames.next ) );
     }
     TIMER_STOP( i_mtime_encode_frame );
 
     /* ------------------- Get frame to be encoded ------------------------- */
     /* 4: get picture to encode */
-    h->fenc = x264_frame_get( h->frames.current );
+    h->fenc = x264_frame_shift( h->frames.current );
     if( h->fenc == NULL )
     {
         /* Nothing yet to encode (ex: waiting for I/P with B frames) */
@@ -1622,7 +1546,7 @@ do_encode:
                 if( h->param.b_bframe_adaptive || b > 1 )
                     h->fenc->i_type = X264_TYPE_AUTO;
                 x264_frame_sort_pts( h->frames.current );
-                x264_frame_push( h->frames.next, h->fenc );
+                x264_frame_unshift( h->frames.next, h->fenc );
                 h->fenc = h->frames.current[b-1];
                 h->frames.current[b-1] = NULL;
                 h->fenc->i_type = X264_TYPE_P;
@@ -1640,7 +1564,7 @@ do_encode:
 
                 /* Put enqueued frames back in the pool */
                 while( h->frames.current[0] )
-                    x264_frame_put( h->frames.next, x264_frame_get( h->frames.current ) );
+                    x264_frame_push( h->frames.next, x264_frame_shift( h->frames.current ) );
                 x264_frame_sort_pts( h->frames.next );
             }
             else
@@ -1673,7 +1597,7 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
         return;
     }
 
-    x264_frame_put_unused( thread_current, h->fenc );
+    x264_frame_push_unused( thread_current, h->fenc );
 
     /* End bitstream, set output  */
     *pi_nal = h->out.i_nal;

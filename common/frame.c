@@ -786,3 +786,83 @@ void x264_frame_cond_wait( x264_frame_t *frame, int i_lines_completed )
 {}
 #endif
 
+
+/* list operators */
+
+void x264_frame_push( x264_frame_t **list, x264_frame_t *frame )
+{
+    int i = 0;
+    while( list[i] ) i++;
+    list[i] = frame;
+}
+
+x264_frame_t *x264_frame_pop( x264_frame_t **list )
+{
+    x264_frame_t *frame;
+    int i = 0;
+    assert( list[0] );
+    while( list[i+1] ) i++;
+    frame = list[i];
+    list[i] = NULL;
+    return frame;
+}
+
+void x264_frame_unshift( x264_frame_t **list, x264_frame_t *frame )
+{
+    int i = 0;
+    while( list[i] ) i++;
+    while( i-- )
+        list[i+1] = list[i];
+    list[0] = frame;
+}
+
+x264_frame_t *x264_frame_shift( x264_frame_t **list )
+{
+    x264_frame_t *frame = list[0];
+    int i;
+    for( i = 0; list[i]; i++ )
+        list[i] = list[i+1];
+    assert(frame);
+    return frame;
+}
+
+void x264_frame_push_unused( x264_t *h, x264_frame_t *frame )
+{
+    assert( frame->i_reference_count > 0 );
+    frame->i_reference_count--;
+    if( frame->i_reference_count == 0 )
+        x264_frame_push( h->frames.unused, frame );
+    assert( h->frames.unused[ sizeof(h->frames.unused) / sizeof(*h->frames.unused) - 1 ] == NULL );
+}
+
+x264_frame_t *x264_frame_pop_unused( x264_t *h )
+{
+    x264_frame_t *frame;
+    if( h->frames.unused[0] )
+        frame = x264_frame_pop( h->frames.unused );
+    else
+        frame = x264_frame_new( h );
+    assert( frame->i_reference_count == 0 );
+    frame->i_reference_count = 1;
+    return frame;
+}
+
+void x264_frame_sort( x264_frame_t **list, int b_dts )
+{
+    int i, b_ok;
+    do {
+        b_ok = 1;
+        for( i = 0; list[i+1]; i++ )
+        {
+            int dtype = list[i]->i_type - list[i+1]->i_type;
+            int dtime = list[i]->i_frame - list[i+1]->i_frame;
+            int swap = b_dts ? dtype > 0 || ( dtype == 0 && dtime > 0 )
+                             : dtime > 0;
+            if( swap )
+            {
+                XCHG( x264_frame_t*, list[i], list[i+1] );
+                b_ok = 0;
+            }
+        }
+    } while( !b_ok );
+}
