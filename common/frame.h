@@ -70,6 +70,10 @@ typedef struct
     int     *i_row_bits;
     int     *i_row_qp;
 
+    /* threading */
+    int     i_lines_completed; /* in pixels */
+    int     i_reference_count; /* number of threads using this frame (not necessarily the number of pointers) */
+
 } x264_frame_t;
 
 typedef void (*x264_deblock_inter_t)( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
@@ -91,14 +95,15 @@ void          x264_frame_delete( x264_frame_t *frame );
 
 void          x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src );
 
-void          x264_frame_expand_border( x264_t *h, x264_frame_t *frame );
-void          x264_frame_expand_border_filtered( x264_t *h, x264_frame_t *frame );
+void          x264_frame_expand_border( x264_t *h, x264_frame_t *frame, int mb_y, int b_end );
+void          x264_frame_expand_border_filtered( x264_t *h, x264_frame_t *frame, int mb_y, int b_end );
 void          x264_frame_expand_border_lowres( x264_frame_t *frame );
 void          x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame );
 
-void          x264_frame_deblocking_filter( x264_t *h, int i_slice_type );
+void          x264_frame_deblock( x264_t *h );
+void          x264_frame_deblock_row( x264_t *h, int mb_y );
 
-void          x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced );
+void          x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced, int mb_y, int b_end );
 void          x264_frame_init_lowres( int cpu, x264_frame_t *frame );
 
 void          x264_deblock_init( int cpu, x264_deblock_function_t *pf );

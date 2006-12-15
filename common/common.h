@@ -52,6 +52,7 @@
 #define pthread_create(t,u,f,d) *(t)=CreateThread(NULL,0,f,d,0,NULL)
 #define pthread_join(t,s)       { WaitForSingleObject(t,INFINITE); \
                                   CloseHandle(t); } 
+#define usleep(t)               Sleep((t+999)/1000);
 #define HAVE_PTHREAD 1
 
 #elif defined(SYS_BEOS)
@@ -61,10 +62,17 @@
                                   resume_thread(*(t)); }
 #define pthread_join(t,s)       { long tmp; \
                                   wait_for_thread(t,(s)?(long*)(s):&tmp); }
+#ifndef usleep
+#define usleep(t)               snooze(t)
+#endif
 #define HAVE_PTHREAD 1
 
 #elif defined(HAVE_PTHREAD)
 #include <pthread.h>
+#else
+#define pthread_t               int
+#define pthread_create(t,u,f,d)
+#define pthread_join(t,s)
 #endif
 
 /****************************************************************************
@@ -78,6 +86,10 @@
 #define X264_MAX4(a,b,c,d) X264_MAX((a),X264_MAX3((b),(c),(d)))
 #define XCHG(type,a,b) { type t = a; a = b; b = t; }
 #define FIX8(f) ((int)(f*(1<<8)+.5))
+
+#ifndef offsetof
+#define offsetof(T,F) ((unsigned int)((char *)&((T *)0)->F))
+#endif
 
 #if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
 #define UNUSED __attribute__((unused))
@@ -96,8 +108,10 @@
 }
 
 #define X264_BFRAME_MAX 16
+#define X264_THREAD_MAX 16
 #define X264_SLICE_MAX 4
 #define X264_NAL_MAX (4 + X264_SLICE_MAX)
+#define X264_THREAD_HEIGHT 24 // number of pixels (per thread) in progress at any given time. could theoretically be as low as 22
 
 /****************************************************************************
  * Includes
@@ -272,7 +286,10 @@ struct x264_t
     /* encoder parameters */
     x264_param_t    param;
 
-    x264_t *thread[X264_SLICE_MAX];
+    x264_t          *thread[X264_THREAD_MAX];
+    pthread_t       thread_handle;
+    int             b_thread_active;
+    int             i_thread_phase; /* which thread to use for the next frame */
 
     /* bitstream output */
     struct
@@ -282,6 +299,7 @@ struct x264_t
         int         i_bitstream;    /* size of p_bitstream */
         uint8_t     *p_bitstream;   /* will hold data for all nal */
         bs_t        bs;
+        int         i_frame_size;
     } out;
 
     /* frame number/poc */
@@ -328,7 +346,7 @@ struct x264_t
         /* Temporary buffer (frames types not yet decided) */
         x264_frame_t *next[X264_BFRAME_MAX+3];
         /* Unused frames */
-        x264_frame_t *unused[X264_BFRAME_MAX+3];
+        x264_frame_t *unused[X264_BFRAME_MAX + X264_THREAD_MAX*2 + 16+4];
         /* For adaptive B decision */
         x264_frame_t *last_nonb;
 
@@ -439,6 +457,7 @@ struct x264_t
         int16_t (*mvr[2][32])[2];           /* 16x16 mv for each possible ref */
         int8_t  *skipbp;                    /* block pattern for SKIP or DIRECT (sub)mbs. B-frames + cabac only */
         int8_t  *mb_transform_size;         /* transform_size_8x8_flag of each mb */
+        uint8_t *intra_border_backup[2][3]; /* bottom pixels of the previous mb row, used for intra prediction after the framebuffer has been deblocked */
 
         /* current value */
         int     i_type;
@@ -550,6 +569,7 @@ struct x264_t
             /* XXX: both omit the cost of MBs coded as P_SKIP */
             int i_intra_cost;
             int i_inter_cost;
+            int i_mbs_analysed;
             /* Adaptive direct mv pred */
             int i_direct_score[2];
         } frame;

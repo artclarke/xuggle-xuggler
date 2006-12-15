@@ -390,46 +390,48 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 extern void x264_hpel_filter_mmxext( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
                                      int i_stride, int i_width, int i_height );
 
-void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced )
+void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced, int mb_y, int b_end )
 {
     const int x_inc = 16, y_inc = 16;
     const int stride = frame->i_stride[0] << b_interlaced;
-    const int height = frame->i_lines[0] >> b_interlaced;
+    const int start = (mb_y*16 >> b_interlaced) - 8;
+    const int height = ((b_end ? frame->i_lines[0] : mb_y*16) >> b_interlaced) + 8;
     int x, y;
 
-    pf_mc_t int_h = mc_hh;
-    pf_mc_t int_v = mc_hv;
-    pf_mc_t int_hv = mc_hc;
+    if( mb_y & b_interlaced )
+        return;
+    mb_y >>= b_interlaced;
 
 #ifdef HAVE_MMXEXT
     if ( cpu & X264_CPU_MMXEXT )
     {
-        int offs = -8*stride - 8;
+        // buffer = 4 for deblock + 3 for 6tap, rounded to 8
+        int offs = start*stride - 8;
         x264_hpel_filter_mmxext(
             frame->filtered[1] + offs,
             frame->filtered[2] + offs,
             frame->filtered[3] + offs,
             frame->plane[0] + offs,
-            stride, stride - 48, height + 16);
+            stride, stride - 48, height - start );
     }
     else
 #endif
     {
-        for( y = -8; y < height + 8; y += y_inc )
+        for( y = start; y < height; y += y_inc )
         {
             uint8_t *p_in = frame->plane[0] + y * stride - 8;
             uint8_t *p_h  = frame->filtered[1] + y * stride - 8;
             uint8_t *p_v  = frame->filtered[2] + y * stride - 8;
-            uint8_t *p_hv = frame->filtered[3] + y * stride - 8;
+            uint8_t *p_c  = frame->filtered[3] + y * stride - 8;
             for( x = -8; x < stride - 64 + 8; x += x_inc )
             {
-                int_h(  p_in, stride, p_h,  stride, x_inc, y_inc );
-                int_v(  p_in, stride, p_v,  stride, x_inc, y_inc );
-                int_hv( p_in, stride, p_hv, stride, x_inc, y_inc );
+                mc_hh( p_in, stride, p_h, stride, x_inc, y_inc );
+                mc_hv( p_in, stride, p_v, stride, x_inc, y_inc );
+                mc_hc( p_in, stride, p_c, stride, x_inc, y_inc );
 
                 p_h += x_inc;
                 p_v += x_inc;
-                p_hv += x_inc;
+                p_c += x_inc;
                 p_in += x_inc;
             }
         }
@@ -440,8 +442,9 @@ void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced )
      * the sum of an 8x8 pixel region with top-left corner on that point.
      * in the lower plane, 4x4 sums (needed only with --analyse p4x4). */
 
-    if( frame->integral )
+    if( frame->integral && b_end )
     {
+        //FIXME slice
         memset( frame->integral - 32 * stride - 32, 0, stride * sizeof(uint16_t) );
         for( y = -32; y < frame->i_lines[0] + 31; y++ )
         {

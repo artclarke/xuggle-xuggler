@@ -308,6 +308,27 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
         }
     }
 
+    if( h->param.i_threads > 1 )
+    {
+        int di = b8x8 ? 4 : 1;
+        for( i4=0; i4<16; i4+=di )
+        {
+            if( h->mb.cache.mv[0][x264_scan8[i4]][1] > h->mb.mv_max_spel[1]
+             || h->mb.cache.mv[1][x264_scan8[i4]][1] > h->mb.mv_max_spel[1] )
+            {
+#if 0
+                fprintf(stderr, "direct_temporal: (%d,%d) (%d,%d) > %d \n",
+                        h->mb.cache.mv[0][x264_scan8[i4]][0],
+                        h->mb.cache.mv[0][x264_scan8[i4]][1],
+                        h->mb.cache.mv[1][x264_scan8[i4]][0],
+                        h->mb.cache.mv[1][x264_scan8[i4]][1],
+                        h->mb.mv_max_spel[1]);
+#endif
+                return 0;
+            }
+        }
+    }
+
     return 1;
 }
 
@@ -368,6 +389,19 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
 
     if( IS_INTRA( type_col ) )
         return 1;
+
+    if( h->param.i_threads > 1
+        && ( mv[0][1] > h->mb.mv_max_spel[1]
+          || mv[1][1] > h->mb.mv_max_spel[1] ) )
+    {
+#if 0
+        fprintf(stderr, "direct_spatial: (%d,%d) (%d,%d) > %d \n",
+                mv[0][0], mv[0][1], mv[1][0], mv[1][1],
+                h->mb.mv_max_spel[1]);
+#endif
+        return 0;
+    }
+
     b8x8 = h->sps->b_direct8x8_inference ||
            (type_col != P_8x8 && type_col != B_SKIP && type_col != B_DIRECT && type_col != B_8x8);
 
@@ -861,6 +895,13 @@ int x264_macroblock_cache_init( x264_t *h )
             CHECKED_MALLOC( h->mb.mvr[i][j], 2 * i_mb_count * sizeof(int16_t) );
     }
 
+    for( i=0; i<=h->param.b_interlaced; i++ )
+        for( j=0; j<3; j++ )
+        {
+            CHECKED_MALLOC( h->mb.intra_border_backup[i][j], h->fdec->i_stride[j] );
+            h->mb.intra_border_backup[i][j] += 8;
+        }
+
     /* init with not available (for top right idx=7,15) */
     memset( h->mb.cache.ref[0], -2, X264_SCAN8_SIZE * sizeof( int8_t ) );
     memset( h->mb.cache.ref[1], -2, X264_SCAN8_SIZE * sizeof( int8_t ) );
@@ -871,6 +912,9 @@ fail: return -1;
 void x264_macroblock_cache_end( x264_t *h )
 {
     int i, j;
+    for( i=0; i<=h->param.b_interlaced; i++ )
+        for( j=0; j<3; j++ )
+            x264_free( h->mb.intra_border_backup[i][j] - 8 );
     for( i=0; i<2; i++ )
     {
         int i_refs = i ? 1 + h->param.b_bframe_pyramid : h->param.i_frame_reference;
@@ -1117,6 +1161,7 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
                                : w * (i_mb_x + i_mb_y * i_stride);
         int ref_pix_offset[2] = { i_pix_offset, i_pix_offset };
         const uint8_t *plane_fdec = &h->fdec->plane[i][i_pix_offset];
+        const uint8_t *intra_fdec = &h->mb.intra_border_backup[i_mb_y & h->sh.b_mbaff][i][i_mb_x*16>>!!i];
         x264_frame_t **fref[2] = { h->fref0, h->fref1 };
         int j, k, l;
 
@@ -1127,7 +1172,7 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
 
         h->mc.copy[i?PIXEL_8x8:PIXEL_16x16]( h->mb.pic.p_fenc[i], FENC_STRIDE,
             &h->fenc->plane[i][i_pix_offset], i_stride2, w );
-        memcpy( &h->mb.pic.p_fdec[i][-1-FDEC_STRIDE], &plane_fdec[-1-i_stride2], w*3/2+1 );
+        memcpy( &h->mb.pic.p_fdec[i][-1-FDEC_STRIDE], intra_fdec-1, w*3/2+1 );
         for( j = 0; j < w; j++ )
             h->mb.pic.p_fdec[i][-1+j*FDEC_STRIDE] = plane_fdec[-1+j*i_stride2];
 

@@ -61,6 +61,16 @@ static int64_t i_mtime_filter = 0;
 
 #define NALU_OVERHEAD 5 // startcode + NAL type costs 5 bytes per frame
 
+static x264_frame_t *x264_frame_get( x264_frame_t **list ); //FIXME move
+static void x264_frame_put( x264_frame_t **list, x264_frame_t *frame );
+static void x264_frame_push( x264_frame_t **list, x264_frame_t *frame );
+static void x264_frame_put_unused( x264_t *h, x264_frame_t *frame );
+static x264_frame_t *x264_frame_get_unused( x264_t *h );
+
+static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
+                                    x264_nal_t **pp_nal, int *pi_nal,
+                                    x264_picture_t *pic_out );
+
 /****************************************************************************
  *
  ******************************* x264 libs **********************************
@@ -101,7 +111,7 @@ static void x264_frame_dump( x264_t *h, x264_frame_t *fr, char *name )
 /* Fill "default" values */
 static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
                                     x264_sps_t *sps, x264_pps_t *pps,
-                                    int i_type, int i_idr_pic_id, int i_frame, int i_qp )
+                                    int i_idr_pic_id, int i_frame, int i_qp )
 {
     x264_param_t *param = &h->param;
     int i;
@@ -110,7 +120,6 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
     sh->sps = sps;
     sh->pps = pps;
 
-    sh->i_type      = i_type;
     sh->i_first_mb  = 0;
     sh->i_last_mb   = h->sps->i_mb_width * h->sps->i_mb_height;
     sh->i_pps_id    = pps->i_id;
@@ -347,16 +356,24 @@ static int x264_validate_parameters( x264_t *h )
     }
 
     if( h->param.i_threads == 0 )
-        h->param.i_threads = x264_cpu_num_processors();
-    h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_SLICE_MAX );
-    h->param.i_threads = X264_MIN( h->param.i_threads, (h->param.i_height + 15) >> (4 + h->param.b_interlaced) );
-#ifndef HAVE_PTHREAD
+        h->param.i_threads = x264_cpu_num_processors() * 3/2;
+    h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_THREAD_MAX );
+    h->param.i_threads = X264_MIN( h->param.i_threads, 1 + (h->param.i_height >> h->param.b_interlaced) / (X264_THREAD_HEIGHT + 16) ); // FIXME exact limit?
     if( h->param.i_threads > 1 )
     {
+#ifndef HAVE_PTHREAD
         x264_log( h, X264_LOG_WARNING, "not compiled with pthread support!\n");
-        x264_log( h, X264_LOG_WARNING, "multislicing anyway, but you won't see any speed gain.\n" );
-    }
+        h->param.i_threads = 1;
+#else
+        if( h->param.analyse.i_me_method == X264_ME_ESA )
+        {
+            x264_log( h, X264_LOG_WARNING, "threads are not yet compatible with ESA\n");
+            h->param.analyse.i_me_method = X264_ME_UMH;
+        }
+        if( h->param.i_scenecut_threshold >= 0 )
+            h->param.b_pre_scenecut = 1;
 #endif
+    }
 
     if( h->param.b_interlaced )
     {
@@ -476,6 +493,29 @@ static int x264_validate_parameters( x264_t *h )
             h->param.analyse.i_direct_8x8_inference = l->direct8x8;
     }
 
+    if( h->param.i_threads > 1 )
+    {
+        int r = h->param.analyse.i_mv_range_thread;
+        int r2;
+        if( r <= 0 )
+        {
+            // half of the available space is reserved and divided evenly among the threads,
+            // the rest is allocated to whichever thread is far enough ahead to use it.
+            // reserving more space increases quality for some videos, but costs more time
+            // in thread synchronization.
+            int max_range = (h->param.i_height + X264_THREAD_HEIGHT) / h->param.i_threads - X264_THREAD_HEIGHT;
+            r = max_range / 2;
+        }
+        r = X264_MAX( r, h->param.analyse.i_me_range );
+        r = X264_MIN( r, h->param.analyse.i_mv_range );
+        // round up to use the whole mb row
+        r2 = (r & ~15) + ((-X264_THREAD_HEIGHT) & 15);
+        if( r2 < r )
+            r2 += 16;
+        x264_log( h, X264_LOG_DEBUG, "using mv_range_thread = %d\n", r2 );
+        h->param.analyse.i_mv_range_thread = r2;
+    }
+
     if( h->param.rc.f_qblur < 0 )
         h->param.rc.f_qblur = 0;
     if( h->param.rc.f_complexity_blur < 0 )
@@ -577,12 +617,6 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     x264_reduce_fraction( &h->param.i_fps_num, &h->param.i_fps_den );
 
     /* Init x264_t */
-    h->out.i_nal = 0;
-    h->out.i_bitstream = X264_MAX( 1000000, h->param.i_width * h->param.i_height * 1.7
-        * ( h->param.rc.i_rc_method == X264_RC_ABR ? pow( 0.5, h->param.rc.i_qp_min )
-          : pow( 0.5, h->param.rc.i_qp_constant ) * X264_MAX( 1, h->param.rc.f_ip_factor )));
-    h->out.p_bitstream = x264_malloc( h->out.i_bitstream );
-
     h->i_frame = 0;
     h->i_frame_num = 0;
     h->i_idr_pic_id = 0;
@@ -600,7 +634,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->mb.i_mb_count = h->sps->i_mb_width * h->sps->i_mb_height;
 
     /* Init frames. */
-    h->frames.i_delay = h->param.i_bframe;
+    h->frames.i_delay = h->param.i_bframe + h->param.i_threads - 1;
     h->frames.i_max_ref0 = h->param.i_frame_reference;
     h->frames.i_max_ref1 = h->sps->vui.i_num_reorder_frames;
     h->frames.i_max_dpb  = h->sps->vui.i_max_dec_frame_buffering + 1;
@@ -609,25 +643,6 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
           || h->param.rc.i_rc_method == X264_RC_CRF
           || h->param.b_bframe_adaptive );
 
-    for( i = 0; i < X264_BFRAME_MAX + 3; i++ )
-    {
-        h->frames.current[i] = NULL;
-        h->frames.next[i]    = NULL;
-        h->frames.unused[i]  = NULL;
-    }
-    for( i = 0; i < 1 + h->frames.i_delay; i++ )
-    {
-        h->frames.unused[i] =  x264_frame_new( h );
-        if( !h->frames.unused[i] )
-            return NULL;
-    }
-    for( i = 0; i < h->frames.i_max_dpb; i++ )
-    {
-        h->frames.reference[i] = x264_frame_new( h );
-        if( !h->frames.reference[i] )
-            return NULL;
-    }
-    h->frames.reference[h->frames.i_max_dpb] = NULL;
     h->frames.i_last_idr = - h->param.i_keyint_max;
     h->frames.i_input    = 0;
     h->frames.last_nonb  = NULL;
@@ -635,10 +650,6 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->i_ref0 = 0;
     h->i_ref1 = 0;
 
-    h->fdec = h->frames.reference[0];
-
-    if( x264_macroblock_cache_init( h ) < 0 )
-        return NULL;
     x264_rdo_init( );
 
     /* init CPU functions */
@@ -658,10 +669,6 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     mbcmp_init( h );
 
-    /* rate control */
-    if( x264_ratecontrol_new( h ) < 0 )
-        return NULL;
-
     x264_log( h, X264_LOG_INFO, "using cpu capabilities %s%s%s%s%s%s\n",
              param->cpu&X264_CPU_MMX ? "MMX " : "",
              param->cpu&X264_CPU_MMXEXT ? "MMXEXT " : "",
@@ -670,10 +677,28 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
              param->cpu&X264_CPU_3DNOW ? "3DNow! " : "",
              param->cpu&X264_CPU_ALTIVEC ? "Altivec " : "" );
 
+    h->out.i_nal = 0;
+    h->out.i_bitstream = X264_MAX( 1000000, h->param.i_width * h->param.i_height * 1.7
+        * ( h->param.rc.i_rc_method == X264_RC_ABR ? pow( 0.5, h->param.rc.i_qp_min )
+          : pow( 0.5, h->param.rc.i_qp_constant ) * X264_MAX( 1, h->param.rc.f_ip_factor )));
+
     h->thread[0] = h;
     h->i_thread_num = 0;
     for( i = 1; i < h->param.i_threads; i++ )
         h->thread[i] = x264_malloc( sizeof(x264_t) );
+
+    for( i = 0; i < h->param.i_threads; i++ )
+    {
+        if( i > 0 )
+            *h->thread[i] = *h;
+        h->thread[i]->fdec = x264_frame_get_unused( h );
+        h->thread[i]->out.p_bitstream = x264_malloc( h->out.i_bitstream );
+        if( x264_macroblock_cache_init( h->thread[i] ) < 0 )
+            return NULL;
+    }
+
+    if( x264_ratecontrol_new( h ) < 0 )
+        return NULL;
 
 #ifdef DEBUG_DUMP_FRAME
     {
@@ -788,14 +813,14 @@ int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
 }
 
 
-static void x264_frame_put( x264_frame_t *list[X264_BFRAME_MAX], x264_frame_t *frame )
+static void x264_frame_put( x264_frame_t **list, x264_frame_t *frame )
 {
     int i = 0;
     while( list[i] ) i++;
     list[i] = frame;
 }
 
-static void x264_frame_push( x264_frame_t *list[X264_BFRAME_MAX], x264_frame_t *frame )
+static void x264_frame_push( x264_frame_t **list, x264_frame_t *frame )
 {
     int i = 0;
     while( list[i] ) i++;
@@ -804,16 +829,38 @@ static void x264_frame_push( x264_frame_t *list[X264_BFRAME_MAX], x264_frame_t *
     list[0] = frame;
 }
 
-static x264_frame_t *x264_frame_get( x264_frame_t *list[X264_BFRAME_MAX+1] )
+static x264_frame_t *x264_frame_get( x264_frame_t **list )
 {
     x264_frame_t *frame = list[0];
     int i;
     for( i = 0; list[i]; i++ )
         list[i] = list[i+1];
+    assert(frame);
     return frame;
 }
 
-static void x264_frame_sort( x264_frame_t *list[X264_BFRAME_MAX+1], int b_dts )
+static void x264_frame_put_unused( x264_t *h, x264_frame_t *frame )
+{
+    assert( frame->i_reference_count > 0 );
+    frame->i_reference_count--;
+    if( frame->i_reference_count == 0 )
+        x264_frame_put( h->frames.unused, frame );
+    assert( h->frames.unused[ sizeof(h->frames.unused) / sizeof(*h->frames.unused) - 1 ] == NULL );
+}
+
+static x264_frame_t *x264_frame_get_unused( x264_t *h )
+{
+    x264_frame_t *frame;
+    if( h->frames.unused[0] )
+        frame = x264_frame_get( h->frames.unused );
+    else
+        frame = x264_frame_new( h );
+    assert( frame->i_reference_count == 0 );
+    frame->i_reference_count = 1;
+    return frame;
+}
+
+static void x264_frame_sort( x264_frame_t **list, int b_dts )
 {
     int i, b_ok;
     do {
@@ -835,7 +882,7 @@ static void x264_frame_sort( x264_frame_t *list[X264_BFRAME_MAX+1], int b_dts )
 #define x264_frame_sort_dts(list) x264_frame_sort(list, 1)
 #define x264_frame_sort_pts(list) x264_frame_sort(list, 0)
 
-static inline void x264_reference_build_list( x264_t *h, int i_poc, int i_slice_type )
+static inline void x264_reference_build_list( x264_t *h, int i_poc )
 {
     int i;
     int b_ok;
@@ -843,18 +890,15 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc, int i_slice_
     /* build ref list 0/1 */
     h->i_ref0 = 0;
     h->i_ref1 = 0;
-    for( i = 1; i < h->frames.i_max_dpb; i++ )
+    for( i = 0; h->frames.reference[i]; i++ )
     {
-        if( h->frames.reference[i]->i_poc >= 0 )
+        if( h->frames.reference[i]->i_poc < i_poc )
         {
-            if( h->frames.reference[i]->i_poc < i_poc )
-            {
-                h->fref0[h->i_ref0++] = h->frames.reference[i];
-            }
-            else if( h->frames.reference[i]->i_poc > i_poc )
-            {
-                h->fref1[h->i_ref1++] = h->frames.reference[i];
-            }
+            h->fref0[h->i_ref0++] = h->frames.reference[i];
+        }
+        else if( h->frames.reference[i]->i_poc > i_poc )
+        {
+            h->fref1[h->i_ref1++] = h->frames.reference[i];
         }
     }
 
@@ -891,7 +935,7 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc, int i_slice_
      * We use POC, but check whether explicit reordering is needed */
     h->b_ref_reorder[0] =
     h->b_ref_reorder[1] = 0;
-    if( i_slice_type == SLICE_TYPE_P )
+    if( h->sh.i_type == SLICE_TYPE_P )
     {
         for( i = 0; i < h->i_ref0 - 1; i++ )
             if( h->fref0[i]->i_frame_num < h->fref0[i+1]->i_frame_num )
@@ -909,14 +953,52 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc, int i_slice_
     h->mb.pic.i_fref[1] = h->i_ref1;
 }
 
-static inline void x264_fdec_deblock( x264_t *h )
+static void x264_fdec_filter_row( x264_t *h, int mb_y )
 {
-    /* apply deblocking filter to the current decoded picture */
-    if( !h->sh.i_disable_deblocking_filter_idc )
+    /* mb_y is the mb to be encoded next, not the mb to be filtered here */
+    int b_hpel = h->fdec->b_kept_as_ref;
+    int b_deblock = !h->sh.i_disable_deblocking_filter_idc;
+    int b_end = mb_y == h->sps->i_mb_height;
+    int min_y = mb_y - (1 << h->sh.b_mbaff);
+#ifndef DEBUG_DUMP_FRAME
+    b_deblock &= b_hpel;
+#endif
+    if( mb_y & h->sh.b_mbaff )
+        return;
+    if( min_y < 0 )
+        return;
+
+    if( !b_end )
     {
-        TIMER_START( i_mtime_filter );
-        x264_frame_deblocking_filter( h, h->sh.i_type );
-        TIMER_STOP( i_mtime_filter );
+        int i, j;
+        for( j=0; j<=h->sh.b_mbaff; j++ )
+            for( i=0; i<3; i++ )
+            {
+                memcpy( h->mb.intra_border_backup[j][i],
+                        h->fdec->plane[i] + ((mb_y*16 >> !!i) + j - 1 - h->sh.b_mbaff) * h->fdec->i_stride[i],
+                        h->sps->i_mb_width*16 >> !!i );
+            }
+    }
+
+    if( b_deblock )
+    {
+        int max_y = b_end ? h->sps->i_mb_height : mb_y;
+        int y;
+        for( y = min_y; y < max_y; y += (1 << h->sh.b_mbaff) )
+            x264_frame_deblock_row( h, y );
+    }
+
+    if( b_hpel )
+    {
+        x264_frame_expand_border( h, h->fdec, min_y, b_end );
+        x264_frame_filter( h->param.cpu, h->fdec, h->sh.b_mbaff, min_y, b_end );
+        x264_frame_expand_border_filtered( h, h->fdec, min_y, b_end );
+    }
+
+    if( h->param.i_threads > 1 )
+    {
+        /* this must be an atomic store. a 32bit int should be so on sane architectures. */
+        h->fdec->i_lines_completed = mb_y*16 + (b_end ? 10000 : -(X264_THREAD_HEIGHT << h->sh.b_mbaff));
     }
 }
 
@@ -924,16 +1006,18 @@ static inline void x264_reference_update( x264_t *h )
 {
     int i;
 
-    x264_fdec_deblock( h );
+    if( h->fdec->i_frame >= 0 )
+        h->i_frame++;
 
-    /* expand border */
-    x264_frame_expand_border( h, h->fdec );
-
-    /* create filtered images */
-    x264_frame_filter( h->param.cpu, h->fdec, h->sh.b_mbaff );
-
-    /* expand border of filtered images */
-    x264_frame_expand_border_filtered( h, h->fdec );
+    if( !h->fdec->b_kept_as_ref )
+    {
+        if( h->param.i_threads > 1 )
+        {
+            x264_frame_put_unused( h, h->fdec );
+            h->fdec = x264_frame_get_unused( h );
+        }
+        return;
+    }
 
     /* move lowres copy of the image to the ref frame */
     for( i = 0; i < 4; i++)
@@ -947,39 +1031,33 @@ static inline void x264_reference_update( x264_t *h )
         h->frames.last_nonb = h->fdec;
 
     /* move frame in the buffer */
-    h->fdec = h->frames.reference[h->frames.i_max_dpb-1];
-    for( i = h->frames.i_max_dpb-1; i > 0; i-- )
-    {
-        h->frames.reference[i] = h->frames.reference[i-1];
-    }
-    h->frames.reference[0] = h->fdec;
+    x264_frame_put( h->frames.reference, h->fdec );
+    if( h->frames.reference[h->frames.i_max_dpb] )
+        x264_frame_put_unused( h, x264_frame_get( h->frames.reference ) );
+    h->fdec = x264_frame_get_unused( h );
 }
 
 static inline void x264_reference_reset( x264_t *h )
 {
-    int i;
-
-    /* reset ref pictures */
-    for( i = 1; i < h->frames.i_max_dpb; i++ )
-    {
-        h->frames.reference[i]->i_poc = -1;
-    }
-    h->frames.reference[0]->i_poc = 0;
+    while( h->frames.reference[0] )
+        x264_frame_put_unused( h, x264_frame_get( h->frames.reference ) );
+    h->fdec->i_poc =
+    h->fenc->i_poc = 0;
 }
 
-static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_slice_type, int i_global_qp )
+static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
 {
     /* ------------------------ Create slice header  ----------------------- */
     if( i_nal_type == NAL_SLICE_IDR )
     {
-        x264_slice_header_init( h, &h->sh, h->sps, h->pps, i_slice_type, h->i_idr_pic_id, h->i_frame_num, i_global_qp );
+        x264_slice_header_init( h, &h->sh, h->sps, h->pps, h->i_idr_pic_id, h->i_frame_num, i_global_qp );
 
         /* increment id */
         h->i_idr_pic_id = ( h->i_idr_pic_id + 1 ) % 65536;
     }
     else
     {
-        x264_slice_header_init( h, &h->sh, h->sps, h->pps, i_slice_type, -1, h->i_frame_num, i_global_qp );
+        x264_slice_header_init( h, &h->sh, h->sps, h->pps, -1, h->i_frame_num, i_global_qp );
 
         /* always set the real higher num of ref frame used */
         h->sh.b_num_ref_idx_override = 1;
@@ -1036,8 +1114,10 @@ static int x264_slice_write( x264_t *h )
     {
         const int i_mb_y = mb_xy / h->sps->i_mb_width;
         const int i_mb_x = mb_xy % h->sps->i_mb_width;
-
         int mb_spos = bs_pos(&h->out.bs);
+
+        if( i_mb_x == 0 )
+            x264_fdec_filter_row( h, i_mb_y );
 
         /* load cache */
         x264_macroblock_cache_load( h, i_mb_x, i_mb_y );
@@ -1168,7 +1248,34 @@ static int x264_slice_write( x264_t *h )
     return 0;
 }
 
-static inline int x264_slices_write( x264_t *h )
+static void x264_thread_sync_context( x264_t *dst, x264_t *src )
+{
+    x264_frame_t **f;
+    if( dst == src )
+        return;
+
+    // reference counting
+    for( f = src->frames.reference; *f; f++ )
+        (*f)->i_reference_count++;
+    for( f = dst->frames.reference; *f; f++ )
+        x264_frame_put_unused( src, *f );
+    src->fdec->i_reference_count++;
+    x264_frame_put_unused( src, dst->fdec );
+
+    // copy everything except the per-thread pointers and the constants.
+    memcpy( &dst->i_frame, &src->i_frame, offsetof(x264_t, mb.type) - offsetof(x264_t, i_frame) );
+    memcpy( &dst->mb.i_type, &src->mb.i_type, offsetof(x264_t, rc) - offsetof(x264_t, mb.i_type) );
+    dst->stat = src->stat;
+}
+
+static void x264_thread_sync_stat( x264_t *dst, x264_t *src )
+{
+    if( dst == src )
+        return;
+    memcpy( &dst->stat.i_slice_count, &src->stat.i_slice_count, sizeof(dst->stat) - sizeof(dst->stat.frame) );
+}
+
+static int x264_slices_write( x264_t *h )
 {
     int i_frame_size;
 
@@ -1177,64 +1284,9 @@ static inline int x264_slices_write( x264_t *h )
         x264_visualize_init( h );
 #endif
 
-    if( h->param.i_threads == 1 )
-    {
-        x264_ratecontrol_threads_start( h );
-        x264_slice_write( h );
-        i_frame_size = h->out.nal[h->out.i_nal-1].i_payload;
-    }
-    else
-    {
-        int i_nal = h->out.i_nal;
-        int i_bs_size = h->out.i_bitstream / h->param.i_threads;
-        int i;
-        /* duplicate contexts */
-        for( i = 0; i < h->param.i_threads; i++ )
-        {
-            x264_t *t = h->thread[i];
-            int mb_height = h->sps->i_mb_height >> h->sh.b_mbaff;
-            int mb_width = h->sps->i_mb_width << h->sh.b_mbaff;
-            if( i > 0 )
-            {
-                memcpy( t, h, sizeof(x264_t) );
-                t->out.p_bitstream += i*i_bs_size;
-                bs_init( &t->out.bs, t->out.p_bitstream, i_bs_size );
-                t->i_thread_num = i;
-            }
-            t->sh.i_first_mb = (i    * mb_height / h->param.i_threads) * mb_width;
-            t->sh.i_last_mb = ((i+1) * mb_height / h->param.i_threads) * mb_width;
-            t->out.i_nal = i_nal + i;
-        }
-        x264_ratecontrol_threads_start( h );
-
-        /* dispatch */
-#ifdef HAVE_PTHREAD
-        {
-            pthread_t handles[X264_SLICE_MAX];
-            for( i = 0; i < h->param.i_threads; i++ )
-                pthread_create( &handles[i], NULL, (void*)x264_slice_write, (void*)h->thread[i] );
-            for( i = 0; i < h->param.i_threads; i++ )
-                pthread_join( handles[i], NULL );
-        }
-#else
-        for( i = 0; i < h->param.i_threads; i++ )
-            x264_slice_write( h->thread[i] );
-#endif
-
-        /* merge contexts */
-        i_frame_size = h->out.nal[i_nal].i_payload;
-        for( i = 1; i < h->param.i_threads; i++ )
-        {
-            int j;
-            x264_t *t = h->thread[i];
-            h->out.nal[i_nal+i] = t->out.nal[i_nal+i];
-            i_frame_size += t->out.nal[i_nal+i].i_payload;
-            // all entries in stat.frame are ints
-            for( j = 0; j < sizeof(h->stat.frame) / sizeof(int); j++ )
-                ((int*)&h->stat.frame)[j] += ((int*)&t->stat.frame)[j];
-        }
-        h->out.i_nal = i_nal + h->param.i_threads;
-    }
+    x264_slice_write( h );
+    i_frame_size = h->out.nal[h->out.i_nal-1].i_payload;
+    x264_fdec_filter_row( h, h->sps->i_mb_height );
 
 #if VISUALIZE
     if( h->param.b_visualize )
@@ -1244,7 +1296,8 @@ static inline int x264_slices_write( x264_t *h )
     }
 #endif
 
-    return i_frame_size;
+    h->out.i_frame_size = i_frame_size;
+    return 0;
 }
 
 /****************************************************************************
@@ -1265,29 +1318,45 @@ int     x264_encoder_encode( x264_t *h,
                              x264_picture_t *pic_in,
                              x264_picture_t *pic_out )
 {
-    x264_frame_t   *frame_psnr = h->fdec; /* just to keep the current decoded frame for psnr calculation */
+    x264_t *thread_current, *thread_prev, *thread_oldest;
     int     i_nal_type;
     int     i_nal_ref_idc;
-    int     i_slice_type;
-    int     i_frame_size;
-
-    int i;
 
     int   i_global_qp;
 
-    char psz_message[80];
+    if( h->param.i_threads > 1)
+    {
+        int i = ++h->i_thread_phase;
+        int t = h->param.i_threads;
+        thread_current = h->thread[ i%t ];
+        thread_prev    = h->thread[ (i-1)%t ];
+        thread_oldest  = h->thread[ (i+1)%t ];
+        x264_thread_sync_context( thread_current, thread_prev );
+        x264_thread_sync_ratecontrol( thread_current, thread_prev, thread_oldest );
+        h = thread_current;
+//      fprintf(stderr, "current: %p  prev: %p  oldest: %p \n", thread_current, thread_prev, thread_oldest);
+    }
+    else
+    {
+        thread_current =
+        thread_prev    =
+        thread_oldest  = h;
+    }
+
+    // ok to call this before encoding any frames, since the initial values of fdec have b_kept_as_ref=0
+    x264_reference_update( h );
+    h->fdec->i_lines_completed = -1;
 
     /* no data out */
     *pi_nal = 0;
     *pp_nal = NULL;
-
 
     /* ------------------- Setup new frame from picture -------------------- */
     TIMER_START( i_mtime_encode_frame );
     if( pic_in != NULL )
     {
         /* 1: Copy the picture to a frame and move it to a buffer */
-        x264_frame_t *fenc = x264_frame_get( h->frames.unused );
+        x264_frame_t *fenc = x264_frame_get_unused( h );
 
         x264_frame_copy_picture( h, fenc, pic_in );
 
@@ -1302,7 +1371,7 @@ int     x264_encoder_encode( x264_t *h,
         if( h->frames.b_have_lowres )
             x264_frame_init_lowres( h->param.cpu, fenc );
 
-        if( h->frames.i_input <= h->frames.i_delay )
+        if( h->frames.i_input <= h->frames.i_delay + 1 - h->param.i_threads )
         {
             /* Nothing yet to encode */
             /* waiting for filling bframe buffer */
@@ -1316,7 +1385,10 @@ int     x264_encoder_encode( x264_t *h,
         int bframes = 0;
         /* 2: Select frame types */
         if( h->frames.next[0] == NULL )
+        {
+            x264_encoder_frame_end( thread_oldest, thread_current, pp_nal, pi_nal, pic_out );
             return 0;
+        }
 
         x264_slicetype_decide( h );
 
@@ -1365,31 +1437,31 @@ do_encode:
 
         i_nal_type    = NAL_SLICE_IDR;
         i_nal_ref_idc = NAL_PRIORITY_HIGHEST;
-        i_slice_type = SLICE_TYPE_I;
+        h->sh.i_type = SLICE_TYPE_I;
     }
     else if( h->fenc->i_type == X264_TYPE_I )
     {
         i_nal_type    = NAL_SLICE;
         i_nal_ref_idc = NAL_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
-        i_slice_type = SLICE_TYPE_I;
+        h->sh.i_type = SLICE_TYPE_I;
     }
     else if( h->fenc->i_type == X264_TYPE_P )
     {
         i_nal_type    = NAL_SLICE;
         i_nal_ref_idc = NAL_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
-        i_slice_type = SLICE_TYPE_P;
+        h->sh.i_type = SLICE_TYPE_P;
     }
     else if( h->fenc->i_type == X264_TYPE_BREF )
     {
         i_nal_type    = NAL_SLICE;
         i_nal_ref_idc = NAL_PRIORITY_HIGH; /* maybe add MMCO to forget it? -> low */
-        i_slice_type = SLICE_TYPE_B;
+        h->sh.i_type = SLICE_TYPE_B;
     }
     else    /* B frame */
     {
         i_nal_type    = NAL_SLICE;
         i_nal_ref_idc = NAL_PRIORITY_DISPOSABLE;
-        i_slice_type = SLICE_TYPE_B;
+        h->sh.i_type = SLICE_TYPE_B;
     }
 
     h->fdec->i_poc =
@@ -1397,28 +1469,28 @@ do_encode:
     h->fdec->i_type = h->fenc->i_type;
     h->fdec->i_frame = h->fenc->i_frame;
     h->fenc->b_kept_as_ref =
-    h->fdec->b_kept_as_ref = i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE;
+    h->fdec->b_kept_as_ref = i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE && h->param.i_keyint_max > 1;
 
 
 
     /* ------------------- Init                ----------------------------- */
     /* build ref list 0/1 */
-    x264_reference_build_list( h, h->fdec->i_poc, i_slice_type );
+    x264_reference_build_list( h, h->fdec->i_poc );
 
     /* Init the rate control */
-    x264_ratecontrol_start( h, i_slice_type, h->fenc->i_qpplus1 );
+    x264_ratecontrol_start( h, h->fenc->i_qpplus1 );
     i_global_qp = x264_ratecontrol_qp( h );
 
     pic_out->i_qpplus1 =
     h->fdec->i_qpplus1 = i_global_qp + 1;
 
-    if( i_slice_type == SLICE_TYPE_B )
+    if( h->sh.i_type == SLICE_TYPE_B )
         x264_macroblock_bipred_init( h );
 
     /* ------------------------ Create slice header  ----------------------- */
-    x264_slice_init( h, i_nal_type, i_slice_type, i_global_qp );
+    x264_slice_init( h, i_nal_type, i_global_qp );
 
-    if( h->fenc->b_kept_as_ref )
+    if( i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE )
         h->i_frame_num++;
 
     /* ---------------------- Write the bitstream -------------------------- */
@@ -1429,11 +1501,11 @@ do_encode:
     if(h->param.b_aud){
         int pic_type;
 
-        if(i_slice_type == SLICE_TYPE_I)
+        if(h->sh.i_type == SLICE_TYPE_I)
             pic_type = 0;
-        else if(i_slice_type == SLICE_TYPE_P)
+        else if(h->sh.i_type == SLICE_TYPE_P)
             pic_type = 1;
-        else if(i_slice_type == SLICE_TYPE_B)
+        else if(h->sh.i_type == SLICE_TYPE_B)
             pic_type = 2;
         else
             pic_type = 7;
@@ -1470,13 +1542,20 @@ do_encode:
     }
 
     /* Write frame */
-    i_frame_size = x264_slices_write( h );
+    if( h->param.i_threads > 1 )
+    {
+        pthread_create( &h->thread_handle, NULL, (void*)x264_slices_write, h );
+        h->b_thread_active = 1;
+    }
+    else
+        x264_slices_write( h );
 
     /* restore CPU state (before using float again) */
     x264_cpu_restore( h->param.cpu );
 
-    if( i_slice_type == SLICE_TYPE_P && !h->param.rc.b_stat_read 
-        && h->param.i_scenecut_threshold >= 0 )
+    if( h->sh.i_type == SLICE_TYPE_P && !h->param.rc.b_stat_read 
+        && h->param.i_scenecut_threshold >= 0
+        && !h->param.b_pre_scenecut )
     {
         const int *mbs = h->stat.frame.i_mb_count;
         int i_mb_i = mbs[I_16x16] + mbs[I_8x8] + mbs[I_4x4];
@@ -1497,8 +1576,8 @@ do_encode:
 
         /* macroblock_analyse() doesn't further analyse skipped mbs,
          * so we have to guess their cost */
-        if( i_mb_s < i_mb )
-            i_intra_cost = i_intra_cost * i_mb / (i_mb - i_mb_s);
+        if( h->stat.frame.i_mbs_analysed > 0 )
+            i_intra_cost = i_intra_cost * i_mb / h->stat.frame.i_mbs_analysed;
 
         if( i_gop_size < h->param.i_keyint_min / 4 )
             f_bias = f_thresh_min / 4;
@@ -1514,15 +1593,15 @@ do_encode:
         f_bias = X264_MIN( f_bias, 1.0 );
 
         /* Bad P will be reencoded as I */
-        if( i_mb_s < i_mb &&
+        if( h->stat.frame.i_mbs_analysed > 0 &&
             i_inter_cost >= (1.0 - f_bias) * i_intra_cost )
         {
             int b;
 
-            x264_log( h, X264_LOG_DEBUG, "scene cut at %d Icost:%.0f Pcost:%.0f ratio:%.3f bias=%.3f lastIDR:%d (I:%d P:%d S:%d)\n",
+            x264_log( h, X264_LOG_DEBUG, "scene cut at %d Icost:%.0f Pcost:%.0f ratio:%.4f bias:%.4f gop:%d (imb:%d pmb:%d smb:%d)\n",
                       h->fenc->i_frame,
                       (double)i_intra_cost, (double)i_inter_cost,
-                      (double)i_inter_cost / i_intra_cost,
+                      1. - (double)i_inter_cost / i_intra_cost,
                       f_bias, i_gop_size,
                       i_mb_i, i_mb_p, i_mb_s );
 
@@ -1552,8 +1631,6 @@ do_encode:
             /* Do IDR if needed */
             else if( i_gop_size >= h->param.i_keyint_min )
             {
-                x264_frame_t *tmp;
-
                 /* Reset */
                 h->i_frame_num = 0;
 
@@ -1562,8 +1639,8 @@ do_encode:
                 h->fenc->i_poc = 0;
 
                 /* Put enqueued frames back in the pool */
-                while( (tmp = x264_frame_get( h->frames.current ) ) != NULL )
-                    x264_frame_put( h->frames.next, tmp );
+                while( h->frames.current[0] )
+                    x264_frame_put( h->frames.next, x264_frame_get( h->frames.current ) );
                 x264_frame_sort_pts( h->frames.next );
             }
             else
@@ -1574,14 +1651,39 @@ do_encode:
         }
     }
 
+    x264_encoder_frame_end( thread_oldest, thread_current, pp_nal, pi_nal, pic_out );
+    return 0;
+}
+
+static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
+                                    x264_nal_t **pp_nal, int *pi_nal,
+                                    x264_picture_t *pic_out )
+{
+    int i;
+    char psz_message[80];
+
+    if( h->b_thread_active )
+    {
+        pthread_join( h->thread_handle, NULL );
+        h->b_thread_active = 0;
+    }
+    if( !h->out.i_nal )
+    {
+        pic_out->i_type = X264_TYPE_AUTO;
+        return;
+    }
+
+    x264_frame_put_unused( thread_current, h->fenc );
+
     /* End bitstream, set output  */
     *pi_nal = h->out.i_nal;
     *pp_nal = h->out.nal;
+    h->out.i_nal = 0;
 
     /* Set output picture properties */
-    if( i_slice_type == SLICE_TYPE_I )
-        pic_out->i_type = i_nal_type == NAL_SLICE_IDR ? X264_TYPE_IDR : X264_TYPE_I;
-    else if( i_slice_type == SLICE_TYPE_P )
+    if( h->sh.i_type == SLICE_TYPE_I )
+        pic_out->i_type = h->i_nal_type == NAL_SLICE_IDR ? X264_TYPE_IDR : X264_TYPE_I;
+    else if( h->sh.i_type == SLICE_TYPE_P )
         pic_out->i_type = X264_TYPE_P;
     else
         pic_out->i_type = X264_TYPE_B;
@@ -1597,19 +1699,7 @@ do_encode:
 
     /* update rc */
     x264_cpu_restore( h->param.cpu );
-    x264_ratecontrol_end( h, i_frame_size * 8 );
-
-    /* handle references */
-    if( i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE && h->param.i_keyint_max > 1 )
-        x264_reference_update( h );
-#ifdef DEBUG_DUMP_FRAME
-    else
-        x264_fdec_deblock( h );
-#endif
-    x264_frame_put( h->frames.unused, h->fenc );
-
-    /* increase frame count */
-    h->i_frame++;
+    x264_ratecontrol_end( h, h->out.i_frame_size * 8 );
 
     /* restore CPU state (before using float again) */
     x264_cpu_restore( h->param.cpu );
@@ -1619,10 +1709,12 @@ do_encode:
     TIMER_STOP( i_mtime_encode_frame );
 
     /* ---------------------- Compute/Print statistics --------------------- */
+    x264_thread_sync_stat( h, h->thread[0] );
+
     /* Slice stat */
-    h->stat.i_slice_count[i_slice_type]++;
-    h->stat.i_slice_size[i_slice_type] += i_frame_size + NALU_OVERHEAD;
-    h->stat.i_slice_qp[i_slice_type] += i_global_qp;
+    h->stat.i_slice_count[h->sh.i_type]++;
+    h->stat.i_slice_size[h->sh.i_type] += h->out.i_frame_size + NALU_OVERHEAD;
+    h->stat.i_slice_qp[h->sh.i_type] += h->fdec->i_qpplus1 - 1;
 
     for( i = 0; i < X264_MBTYPE_MAX; i++ )
         h->stat.i_mb_count[h->sh.i_type][i] += h->stat.frame.i_mb_count[i];
@@ -1635,7 +1727,7 @@ do_encode:
         for( i = 0; i < 32; i++ )
             h->stat.i_mb_count_ref[h->sh.i_type][i] += h->stat.frame.i_mb_count_ref[i];
     }
-    if( i_slice_type == SLICE_TYPE_B )
+    if( h->sh.i_type == SLICE_TYPE_B )
     {
         h->stat.i_direct_frames[ h->sh.b_direct_spatial_mv_pred ] ++;
         if( h->mb.b_direct_auto_write )
@@ -1659,17 +1751,17 @@ do_encode:
         for( i=0; i<3; i++ )
         {
             sqe[i] = x264_pixel_ssd_wxh( &h->pixf,
-                         frame_psnr->plane[i], frame_psnr->i_stride[i],
+                         h->fdec->plane[i], h->fdec->i_stride[i],
                          h->fenc->plane[i], h->fenc->i_stride[i],
                          h->param.i_width >> !!i, h->param.i_height >> !!i );
         }
         x264_cpu_restore( h->param.cpu );
 
-        h->stat.i_sqe_global[i_slice_type] += sqe[0] + sqe[1] + sqe[2];
-        h->stat.f_psnr_average[i_slice_type] += x264_psnr( sqe[0] + sqe[1] + sqe[2], 3 * h->param.i_width * h->param.i_height / 2 );
-        h->stat.f_psnr_mean_y[i_slice_type] += x264_psnr( sqe[0], h->param.i_width * h->param.i_height );
-        h->stat.f_psnr_mean_u[i_slice_type] += x264_psnr( sqe[1], h->param.i_width * h->param.i_height / 4 );
-        h->stat.f_psnr_mean_v[i_slice_type] += x264_psnr( sqe[2], h->param.i_width * h->param.i_height / 4 );
+        h->stat.i_sqe_global[h->sh.i_type] += sqe[0] + sqe[1] + sqe[2];
+        h->stat.f_psnr_average[h->sh.i_type] += x264_psnr( sqe[0] + sqe[1] + sqe[2], 3 * h->param.i_width * h->param.i_height / 2 );
+        h->stat.f_psnr_mean_y[h->sh.i_type] += x264_psnr( sqe[0], h->param.i_width * h->param.i_height );
+        h->stat.f_psnr_mean_u[h->sh.i_type] += x264_psnr( sqe[1], h->param.i_width * h->param.i_height / 4 );
+        h->stat.f_psnr_mean_v[h->sh.i_type] += x264_psnr( sqe[2], h->param.i_width * h->param.i_height / 4 );
 
         snprintf( psz_message, 80, " PSNR Y:%5.2f U:%5.2f V:%5.2f",
                   x264_psnr( sqe[0], h->param.i_width * h->param.i_height ),
@@ -1681,10 +1773,10 @@ do_encode:
     {
         // offset by 2 pixels to avoid alignment of ssim blocks with dct blocks
         float ssim_y = x264_pixel_ssim_wxh( &h->pixf,
-                         frame_psnr->plane[0] + 2+2*frame_psnr->i_stride[0], frame_psnr->i_stride[0],
+                         h->fdec->plane[0] + 2+2*h->fdec->i_stride[0], h->fdec->i_stride[0],
                          h->fenc->plane[0] + 2+2*h->fenc->i_stride[0], h->fenc->i_stride[0],
                          h->param.i_width-2, h->param.i_height-2 );
-        h->stat.f_ssim_mean_y[i_slice_type] += ssim_y;
+        h->stat.f_ssim_mean_y[h->sh.i_type] += ssim_y;
         snprintf( psz_message + strlen(psz_message), 80 - strlen(psz_message),
                   " SSIM Y:%.5f", ssim_y );
     }
@@ -1692,17 +1784,21 @@ do_encode:
     
     x264_log( h, X264_LOG_DEBUG,
                   "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I:%-4d P:%-4d SKIP:%-4d size=%d bytes%s\n",
-              h->i_frame - 1,
-              i_global_qp,
-              i_nal_ref_idc,
-              i_slice_type == SLICE_TYPE_I ? 'I' : (i_slice_type == SLICE_TYPE_P ? 'P' : 'B' ),
-              frame_psnr->i_poc,
+              h->i_frame,
+              h->fdec->i_qpplus1 - 1,
+              h->i_nal_ref_idc,
+              h->sh.i_type == SLICE_TYPE_I ? 'I' : (h->sh.i_type == SLICE_TYPE_P ? 'P' : 'B' ),
+              h->fdec->i_poc,
               h->stat.frame.i_mb_count_i,
               h->stat.frame.i_mb_count_p,
               h->stat.frame.i_mb_count_skip,
-              i_frame_size,
+              h->out.i_frame_size,
               psz_message );
 
+    // keep stats all in one place
+    x264_thread_sync_stat( h->thread[0], h );
+    // for the use of the next frame
+    x264_thread_sync_stat( thread_current, h );
 
 #ifdef DEBUG_MB_TYPE
 {
@@ -1724,9 +1820,8 @@ do_encode:
 
 #ifdef DEBUG_DUMP_FRAME
     /* Dump reconstructed frame */
-    x264_frame_dump( h, frame_psnr, "fdec.yuv" );
+    x264_frame_dump( h, h->fdec, "fdec.yuv" );
 #endif
-    return 0;
 }
 
 /****************************************************************************
@@ -1739,6 +1834,13 @@ void    x264_encoder_close  ( x264_t *h )
 #endif
     int64_t i_yuv_size = 3 * h->param.i_width * h->param.i_height / 2;
     int i;
+
+    for( i=0; i<h->param.i_threads; i++ )
+    {
+        // don't strictly have to wait for the other threads, but it's simpler than cancelling them
+        if( h->thread[i]->b_thread_active )
+            pthread_join( h->thread[i]->thread_handle, NULL );
+    }
 
 #ifdef DEBUG_BENCHMARK
     x264_log( h, X264_LOG_INFO,
@@ -1903,17 +2005,14 @@ void    x264_encoder_close  ( x264_t *h )
     }
 
     /* frames */
-    for( i = 0; i < X264_BFRAME_MAX + 3; i++ )
-    {
-        if( h->frames.current[i] ) x264_frame_delete( h->frames.current[i] );
-        if( h->frames.next[i] )    x264_frame_delete( h->frames.next[i] );
-        if( h->frames.unused[i] )  x264_frame_delete( h->frames.unused[i] );
-    }
-    /* ref frames */
-    for( i = 0; i < h->frames.i_max_dpb; i++ )
-    {
+    for( i = 0; h->frames.current[i]; i++ )
+        x264_frame_delete( h->frames.current[i] );
+    for( i = 0; h->frames.next[i]; i++ )
+        x264_frame_delete( h->frames.next[i] );
+    for( i = 0; h->frames.unused[i]; i++ )
+        x264_frame_delete( h->frames.unused[i] );
+    for( i = 0; h->frames.reference[i]; i++ )
         x264_frame_delete( h->frames.reference[i] );
-    }
 
     /* rc */
     x264_ratecontrol_delete( h );
@@ -1927,9 +2026,10 @@ void    x264_encoder_close  ( x264_t *h )
         free( h->param.rc.psz_rc_eq );
 
     x264_cqm_delete( h );
-    x264_macroblock_cache_end( h );
-    x264_free( h->out.p_bitstream );
-    for( i = 1; i < h->param.i_threads; i++ )
+    for( i = h->param.i_threads - 1; i >= 0; i-- )
+    {
+        x264_macroblock_cache_end( h->thread[i] );
+        x264_free( h->thread[i]->out.p_bitstream );
         x264_free( h->thread[i] );
-    x264_free( h );
+    }
 }

@@ -132,7 +132,8 @@ typedef struct
 {
     /* CPU flags */
     unsigned int cpu;
-    int         i_threads;  /* divide each frame into multiple slices, encode in parallel */
+    int         i_threads;       /* encode multiple frames in parallel */
+    int         b_deterministic; /* whether to allow non-deterministic optimizations when threaded */
 
     /* Video Properties */
     int         i_width;
@@ -166,6 +167,7 @@ typedef struct
     int         i_keyint_max;       /* Force an IDR keyframe at this interval */
     int         i_keyint_min;       /* Scenecuts closer together than this are coded as I, not IDR. */
     int         i_scenecut_threshold; /* how aggressively to insert extra I frames */
+    int         b_pre_scenecut;     /* compute scenecut on lowres frames */
     int         i_bframe;   /* how many b-frame between 2 references pictures */
     int         b_bframe_adaptive;
     int         i_bframe_bias;
@@ -210,6 +212,7 @@ typedef struct
         int          i_me_method; /* motion estimation algorithm to use (X264_ME_*) */
         int          i_me_range; /* integer pixel motion estimation search range (from predicted mv) */
         int          i_mv_range; /* maximum length of a mv (in pixels). -1 = auto, based on level */
+        int          i_mv_range_thread; /* minimum space between threads. -1 = auto, based on number of threads. */
         int          i_subpel_refine; /* subpixel motion estimation quality */
         int          b_bidir_me; /* jointly optimize both MVs in B-frames */
         int          b_chroma_me; /* chroma ME for subpel and mode decision in P-frames */

@@ -156,6 +156,8 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "  -I, --keyint <integer>      Maximum GOP size [%d]\n", defaults->i_keyint_max );
     H1( "  -i, --min-keyint <integer>  Minimum GOP size [%d]\n", defaults->i_keyint_min );
     H1( "      --scenecut <integer>    How aggressively to insert extra I-frames [%d]\n", defaults->i_scenecut_threshold );
+    H1( "      --pre-scenecut          Faster, less precise scenecut detection.\n"
+        "                                  Required and implied by multi-threading.\n" );
     H0( "  -b, --bframes <integer>     Number of B-frames between I and P [%d]\n", defaults->i_bframe );
     H1( "      --no-b-adapt            Disable adaptive B-frame decision\n" );
     H1( "      --b-bias <integer>      Influences how often B-frames are used [%d]\n", defaults->i_bframe_bias );
@@ -223,6 +225,8 @@ static void Help( x264_param_t *defaults, int b_longhelp )
         "                                  - esa: exhaustive search (slow)\n" );
     else H0( "                                  - dia, hex, umh\n" );
     H0( "      --merange <integer>     Maximum motion vector search range [%d]\n", defaults->analyse.i_me_range );
+    H1( "      --mvrange <integer>     Maximum motion vector length [-1 (auto)]\n" );
+    H1( "      --mvrange-thread <int>  Minimum buffer between threads [-1 (auto)]\n" );
     H0( "  -m, --subme <integer>       Subpixel motion estimation and partition\n"
         "                                  decision quality: 1=fast, 7=best. [%d]\n", defaults->analyse.i_subpel_refine );
     H0( "      --b-rdo                 RD based mode decision for B-frames. Requires subme 6.\n" );
@@ -296,8 +300,9 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "      --quiet                 Quiet Mode\n" );
     H0( "      --no-psnr               Disable PSNR computation\n" );
     H0( "      --no-ssim               Disable SSIM computation\n" );
-    H0( "      --threads <integer>     Parallel encoding (uses slices)\n" );
+    H0( "      --threads <integer>     Parallel encoding\n" );
     H0( "      --thread-input          Run Avisynth in its own thread\n" );
+    H1( "      --non-deterministic     Slightly improve quality of SMP, at the cost of repeatability\n" );
     H1( "      --no-asm                Disable all CPU optimizations\n" );
     H1( "      --visualize             Show MB types overlayed on the encoded video\n" );
     H1( "      --sps-id <integer>      Set SPS and PPS id numbers [%d]\n", defaults->i_sps_id );
@@ -361,6 +366,7 @@ static int  Parse( int argc, char **argv,
             { "min-keyint",required_argument,NULL,'i' },
             { "keyint",  required_argument, NULL, 'I' },
             { "scenecut",required_argument, NULL, 0 },
+            { "pre-scenecut", no_argument,  NULL, 0 },
             { "nf",      no_argument,       NULL, 0 },
             { "no-deblock", no_argument,    NULL, 0 },
             { "filter",  required_argument, NULL, 0 },
@@ -386,6 +392,8 @@ static int  Parse( int argc, char **argv,
             { "weightb", no_argument,       NULL, 'w' },
             { "me",      required_argument, NULL, 0 },
             { "merange", required_argument, NULL, 0 },
+            { "mvrange", required_argument, NULL, 0 },
+            { "mvrange-thread", required_argument, NULL, 0 },
             { "subme",   required_argument, NULL, 'm' },
             { "b-rdo",   no_argument,       NULL, 0 },
             { "mixed-refs", no_argument,    NULL, 0 },
@@ -415,6 +423,7 @@ static int  Parse( int argc, char **argv,
             { "qpfile",  required_argument, NULL, OPT_QPFILE },
             { "threads", required_argument, NULL, 0 },
             { "thread-input", no_argument,  NULL, OPT_THREAD_INPUT },
+            { "non-deterministic", no_argument, NULL, 0 },
             { "no-psnr", no_argument,       NULL, 0 },
             { "no-ssim", no_argument,       NULL, 0 },
             { "quiet",   no_argument,       NULL, OPT_QUIET },

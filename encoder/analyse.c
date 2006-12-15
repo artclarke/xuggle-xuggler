@@ -26,6 +26,7 @@
 #include <string.h>
 #include <math.h>
 #include <limits.h>
+#include <unistd.h>
 
 #include "common/common.h"
 #include "macroblock.h"
@@ -219,27 +220,54 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     /* II: Inter part P/B frame */
     if( h->sh.i_type != SLICE_TYPE_I )
     {
-        int i;
-        int i_fmv_range = h->param.analyse.i_mv_range - 16;
+        int i, j;
+        int i_fmv_range = 4 * h->param.analyse.i_mv_range;
+        int i_fpel_border = 5; // 3 for hex search, 2 for subpel, ignores subme7 & bime
 
         /* Calculate max allowed MV range */
 #define CLIP_FMV(mv) x264_clip3( mv, -i_fmv_range, i_fmv_range )
         h->mb.mv_min[0] = 4*( -16*h->mb.i_mb_x - 24 );
         h->mb.mv_max[0] = 4*( 16*( h->sps->i_mb_width - h->mb.i_mb_x - 1 ) + 24 );
-        h->mb.mv_min_fpel[0] = CLIP_FMV( -16*h->mb.i_mb_x - 8 );
-        h->mb.mv_max_fpel[0] = CLIP_FMV( 16*( h->sps->i_mb_width - h->mb.i_mb_x - 1 ) + 8 );
-        h->mb.mv_min_spel[0] = 4*( h->mb.mv_min_fpel[0] - 16 );
-        h->mb.mv_max_spel[0] = 4*( h->mb.mv_max_fpel[0] + 16 );
+        h->mb.mv_min_spel[0] = CLIP_FMV( h->mb.mv_min[0] );
+        h->mb.mv_max_spel[0] = CLIP_FMV( h->mb.mv_max[0] );
+        h->mb.mv_min_fpel[0] = (h->mb.mv_min_spel[0]>>2) + i_fpel_border;
+        h->mb.mv_max_fpel[0] = (h->mb.mv_max_spel[0]>>2) - i_fpel_border;
         if( h->mb.i_mb_x == 0)
         {
             int mb_y = h->mb.i_mb_y >> h->sh.b_mbaff;
             int mb_height = h->sps->i_mb_height >> h->sh.b_mbaff;
+            int thread_mvy_range = i_fmv_range;
+
+            if( h->param.i_threads > 1 )
+            {
+                int pix_y = (h->mb.i_mb_y | h->mb.b_interlaced) * 16;
+                int thresh = pix_y + h->param.analyse.i_mv_range_thread;
+                for( i = (h->sh.i_type == SLICE_TYPE_B); i >= 0; i-- )
+                {
+                    x264_frame_t **fref = i ? h->fref1 : h->fref0;
+                    int i_ref = i ? h->i_ref1 : h->i_ref0;
+                    for( j=0; j<i_ref; j++ )
+                    {
+                        // could use a condition variable or the like, but
+                        // this way is faster at least on LinuxThreads.
+                        while( fref[j]->i_lines_completed < thresh )
+                            usleep(100);
+                        thread_mvy_range = X264_MIN( thread_mvy_range, fref[j]->i_lines_completed - pix_y );
+                    }
+                }
+                if( h->param.b_deterministic )
+                    thread_mvy_range = h->param.analyse.i_mv_range_thread;
+                if( h->mb.b_interlaced )
+                    thread_mvy_range >>= 1;
+            }
+
             h->mb.mv_min[1] = 4*( -16*mb_y - 24 );
             h->mb.mv_max[1] = 4*( 16*( mb_height - mb_y - 1 ) + 24 );
-            h->mb.mv_min_fpel[1] = CLIP_FMV( -16*mb_y - 8 );
-            h->mb.mv_max_fpel[1] = CLIP_FMV( 16*( mb_height - mb_y - 1 ) + 8 );
-            h->mb.mv_min_spel[1] = 4*( h->mb.mv_min_fpel[1] - 16 );
-            h->mb.mv_max_spel[1] = 4*( h->mb.mv_max_fpel[1] + 16 );
+            h->mb.mv_min_spel[1] = CLIP_FMV( h->mb.mv_min[1] );
+            h->mb.mv_max_spel[1] = CLIP_FMV( h->mb.mv_max[1] );
+            h->mb.mv_max_spel[1] = X264_MIN( h->mb.mv_max_spel[1], thread_mvy_range*4 );
+            h->mb.mv_min_fpel[1] = (h->mb.mv_min_spel[1]>>2) + i_fpel_border;
+            h->mb.mv_max_fpel[1] = (h->mb.mv_max_spel[1]>>2) - i_fpel_border;
         }
 #undef CLIP_FMV
 
@@ -943,6 +971,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
         {
             h->mb.i_type = P_SKIP;
             x264_analyse_update_cache( h, a );
+            assert( h->mb.cache.pskip_mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 );
             return;
         }
 
@@ -960,6 +989,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     }
 
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.me16x16.i_ref );
+    assert( a->l0.me16x16.mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 );
 
     h->mb.i_type = P_L0;
     if( a->b_mbrd && a->l0.i_ref == 0
@@ -2043,7 +2073,10 @@ void x264_macroblock_analyse( x264_t *h )
         analysis.b_try_pskip = 0;
         if( h->param.analyse.b_fast_pskip )
         {
-            if( h->param.analyse.i_subpel_refine >= 3 )
+            if( h->param.i_threads > 1 && h->mb.cache.pskip_mv[1] > h->mb.mv_max_spel[1] )
+                // FIXME don't need to check this if the reference frame is done
+                {}
+            else if( h->param.analyse.i_subpel_refine >= 3 )
                 analysis.b_try_pskip = 1;
             else if( h->mb.i_mb_type_left == P_SKIP ||
                      h->mb.i_mb_type_top == P_SKIP ||
@@ -2058,6 +2091,7 @@ void x264_macroblock_analyse( x264_t *h )
         {
             h->mb.i_type = P_SKIP;
             h->mb.i_partition = D_16x16;
+            assert( h->mb.cache.pskip_mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 );
         }
         else
         {
@@ -2244,6 +2278,7 @@ void x264_macroblock_analyse( x264_t *h )
             h->mb.i_type = i_type;
             h->stat.frame.i_intra_cost += i_intra_cost;
             h->stat.frame.i_inter_cost += i_cost;
+            h->stat.frame.i_mbs_analysed++;
 
             if( h->mb.i_subpel_refine >= 7 )
             {
@@ -2658,6 +2693,32 @@ static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a  )
                 break;
             }
     }
+
+#ifndef NDEBUG
+    if( h->param.i_threads > 1 && !IS_INTRA(h->mb.i_type) )
+    {
+        int l;
+        for( l=0; l <= (h->sh.i_type == SLICE_TYPE_B); l++ )
+        {
+            int completed;
+            int ref = h->mb.cache.ref[l][x264_scan8[0]];
+            if( ref < 0 )
+                continue;
+            completed = (l ? h->fref1 : h->fref0)[ ref >> h->mb.b_interlaced ]->i_lines_completed;
+            if( (h->mb.cache.mv[l][x264_scan8[15]][1] >> (2 - h->mb.b_interlaced)) + h->mb.i_mb_y*16 > completed )
+            {
+                fprintf(stderr, "mb type: %d \n", h->mb.i_type);
+                fprintf(stderr, "mv: l%dr%d (%d,%d) \n", l, ref,
+                                h->mb.cache.mv[l][x264_scan8[15]][0],
+                                h->mb.cache.mv[l][x264_scan8[15]][1] );
+                fprintf(stderr, "limit: %d \n", h->mb.mv_max_spel[1]);
+                fprintf(stderr, "mb_xy: %d,%d \n", h->mb.i_mb_x, h->mb.i_mb_y);
+                fprintf(stderr, "completed: %d \n", completed );
+                assert(0);
+            }
+        }
+    }
+#endif
 }
 
 #include "slicetype.c"

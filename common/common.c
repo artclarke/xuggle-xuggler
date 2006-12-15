@@ -45,6 +45,7 @@ void    x264_param_default( x264_param_t *param )
     /* CPU autodetect */
     param->cpu = x264_cpu_detect();
     param->i_threads = 1;
+    param->b_deterministic = 1;
 
     /* Video properties */
     param->i_csp           = X264_CSP_I420;
@@ -118,6 +119,7 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.i_me_range = 16;
     param->analyse.i_subpel_refine = 5;
     param->analyse.b_chroma_me = 1;
+    param->analyse.i_mv_range_thread = -1;
     param->analyse.i_mv_range = -1; // set from level_idc
     param->analyse.i_direct_8x8_inference = -1; // set from level_idc
     param->analyse.i_chroma_qp_offset = 0;
@@ -245,6 +247,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         else
             p->i_threads = atoi(value);
     }
+    OPT2("deterministic", "n-deterministic")
+        p->b_deterministic = atobool(value);
     OPT2("level", "level-idc")
     {
         if( atof(value) < 6 )
@@ -301,6 +305,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     }
     OPT("scenecut")
         p->i_scenecut_threshold = atoi(value);
+    OPT("pre-scenecut")
+        p->b_pre_scenecut = atobool(value);
     OPT("bframes")
         p->i_bframe = atoi(value);
     OPT("b-adapt")
@@ -431,8 +437,10 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         b_error |= parse_enum( value, x264_motion_est_names, &p->analyse.i_me_method );
     OPT2("merange", "me-range")
         p->analyse.i_me_range = atoi(value);
-    OPT("mvrange")
+    OPT2("mvrange", "mv-range")
         p->analyse.i_mv_range = atoi(value);
+    OPT2("mvrange-thread", "mv-range-thread")
+        p->analyse.i_mv_range_thread = atoi(value);
     OPT2("subme", "subq")
         p->analyse.i_subpel_refine = atoi(value);
     OPT("bime")
@@ -879,7 +887,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " cqm=%d", p->i_cqm_preset );
     s += sprintf( s, " deadzone=%d,%d", p->analyse.i_luma_deadzone[0], p->analyse.i_luma_deadzone[1] );
     s += sprintf( s, " chroma_qp_offset=%d", p->analyse.i_chroma_qp_offset );
-    s += sprintf( s, " slices=%d", p->i_threads );
+    s += sprintf( s, " threads=%d", p->i_threads );
     s += sprintf( s, " nr=%d", p->analyse.i_noise_reduction );
     s += sprintf( s, " decimate=%d", p->analyse.b_dct_decimate );
     s += sprintf( s, " mbaff=%d", p->b_interlaced );
@@ -893,8 +901,9 @@ char *x264_param2string( x264_param_t *p, int b_res )
                       p->analyse.b_bidir_me );
     }
 
-    s += sprintf( s, " keyint=%d keyint_min=%d scenecut=%d",
-                  p->i_keyint_max, p->i_keyint_min, p->i_scenecut_threshold );
+    s += sprintf( s, " keyint=%d keyint_min=%d scenecut=%d%s",
+                  p->i_keyint_max, p->i_keyint_min, p->i_scenecut_threshold,
+                  p->b_pre_scenecut ? "(pre)" : "" );
 
     s += sprintf( s, " rc=%s", p->rc.i_rc_method == X264_RC_ABR ?
                                ( p->rc.b_stat_read ? "2pass" : p->rc.i_vbv_buffer_size ? "cbr" : "abr" )

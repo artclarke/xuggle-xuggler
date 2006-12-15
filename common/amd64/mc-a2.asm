@@ -158,7 +158,7 @@ x264_hpel_filter_mmxext :
 ALIGN 16
 .vertical_filter:
 
-    prefetchnta [src + stride5 + 32]
+    prefetcht0  [src + stride5 + 32]
 
     LOAD_ADD    mm1,    [src               ], [src + stride5     ] ; a0
     LOAD_ADD    mm2,    [src + stride      ], [src + stride*4    ] ; b0
