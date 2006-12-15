@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "common.h"
 
@@ -131,6 +132,9 @@ x264_frame_t *x264_frame_new( x264_t *h )
         for( j = 0; j < h->param.i_bframe + 2; j++ )
             CHECKED_MALLOC( frame->i_row_satds[i][j], i_lines/16 * sizeof(int) );
 
+    pthread_mutex_init( &frame->mutex, NULL );
+    pthread_cond_init( &frame->cv, NULL );
+
     return frame;
 
 fail:
@@ -155,6 +159,8 @@ void x264_frame_delete( x264_frame_t *frame )
     x264_free( frame->mv[1] );
     x264_free( frame->ref[0] );
     x264_free( frame->ref[1] );
+    pthread_mutex_destroy( &frame->mutex );
+    pthread_cond_destroy( &frame->cv );
     x264_free( frame );
 }
 
@@ -750,4 +756,33 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
     }
 #endif
 }
+
+
+/* threading */
+
+#ifdef HAVE_PTHREAD
+void x264_frame_cond_broadcast( x264_frame_t *frame )
+{
+    pthread_mutex_lock( &frame->mutex );
+    pthread_cond_broadcast( &frame->cv );
+    pthread_mutex_unlock( &frame->mutex );
+}
+
+void x264_frame_cond_wait( x264_frame_t *frame, int i_lines_completed )
+{
+    if( frame->i_lines_completed < i_lines_completed )
+    {
+        pthread_mutex_lock( &frame->mutex );
+        while( frame->i_lines_completed < i_lines_completed )
+            pthread_cond_wait( &frame->cv, &frame->mutex );
+        pthread_mutex_unlock( &frame->mutex );
+    }
+}
+
+#else
+void x264_frame_cond_broadcast( x264_frame_t *frame )
+{}
+void x264_frame_cond_wait( x264_frame_t *frame, int i_lines_completed )
+{}
+#endif
 

@@ -46,14 +46,9 @@
 #endif
 
 /* threads */
-#ifdef __WIN32__
-#include <windows.h>
-#define pthread_t               HANDLE
-#define pthread_create(t,u,f,d) *(t)=CreateThread(NULL,0,f,d,0,NULL)
-#define pthread_join(t,s)       { WaitForSingleObject(t,INFINITE); \
-                                  CloseHandle(t); } 
-#define usleep(t)               Sleep((t+999)/1000);
-#define HAVE_PTHREAD 1
+#if defined(__WIN32__) && defined(HAVE_PTHREAD)
+#include <pthread.h>
+#define USE_CONDITION_VAR
 
 #elif defined(SYS_BEOS)
 #include <kernel/OS.h>
@@ -73,6 +68,19 @@
 #define pthread_t               int
 #define pthread_create(t,u,f,d)
 #define pthread_join(t,s)
+#endif //SYS_*
+
+#ifndef USE_CONDITION_VAR
+#define pthread_mutex_t         int
+#define pthread_mutex_init(m,f)
+#define pthread_mutex_destroy(m)
+#define pthread_mutex_lock(m)
+#define pthread_mutex_unlock(m)
+#define pthread_cond_t          int
+#define pthread_cond_init(c,f)
+#define pthread_cond_destroy(c)
+#define pthread_cond_broadcast(c)
+#define pthread_cond_wait(c,m)  usleep(100)
 #endif
 
 /****************************************************************************

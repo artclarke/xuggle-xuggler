@@ -73,6 +73,8 @@ typedef struct
     /* threading */
     int     i_lines_completed; /* in pixels */
     int     i_reference_count; /* number of threads using this frame (not necessarily the number of pointers) */
+    pthread_mutex_t mutex;      
+    pthread_cond_t  cv;
 
 } x264_frame_t;
 
@@ -107,5 +109,8 @@ void          x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced,
 void          x264_frame_init_lowres( int cpu, x264_frame_t *frame );
 
 void          x264_deblock_init( int cpu, x264_deblock_function_t *pf );
+
+void          x264_frame_cond_broadcast( x264_frame_t *frame );
+void          x264_frame_cond_wait( x264_frame_t *frame, int i_lines_completed );
 
 #endif

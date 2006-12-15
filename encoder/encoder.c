@@ -997,8 +997,8 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y )
 
     if( h->param.i_threads > 1 )
     {
-        /* this must be an atomic store. a 32bit int should be so on sane architectures. */
         h->fdec->i_lines_completed = mb_y*16 + (b_end ? 10000 : -(X264_THREAD_HEIGHT << h->sh.b_mbaff));
+        x264_frame_cond_broadcast( h->fdec );
     }
 }
 

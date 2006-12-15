@@ -29,9 +29,9 @@ cc_check() {
 #include <$1>
 int main () { $3 return 0; }
 EOF
-    $CC $CFLAGS $LDFLAGS $2 conftest.c -o conftest 2>$DEVNULL
+    $CC conftest.c $CFLAGS $LDFLAGS $2 -o conftest 2>$DEVNULL
     TMP="$?"
-    rm -f conftest.c conftest*
+    rm -f conftest*
     return $TMP
 }
 
@@ -267,25 +267,34 @@ done
 
 # autodetect options that weren't forced nor disabled
 
+libpthread=""
 if test "$pthread" = "auto" ; then
+    pthread="no"
     case $SYS in
-        MINGW|CYGWIN|BEOS)
+        BEOS)
             pthread="yes"
             ;;
+        MINGW|CYGWIN)
+            if cc_check pthread.h -lpthread "pthread_create(0,0,0,0);" ; then
+                pthread="yes"
+                libpthread="-lpthread"
+            elif cc_check pthread.h -lpthreadGC2 "pthread_create(0,0,0,0);" ; then
+                pthread="yes"
+                libpthread="-lpthreadGC2"
+            elif cc_check pthread.h "-lpthreadGC2 -lwsock32 -DPTW32_STATIC_LIB" "pthread_create(0,0,0,0);" ; then
+                pthread="yes"
+                libpthread="-lpthreadGC2 -lwsock32"\
+                CFLAGS="$CFLAGS -DPTW32_STATIC_LIB"
+            fi
+            ;;
         *)
-            pthread="no"
-            cc_check pthread.h -lpthread && pthread="yes"
+            cc_check pthread.h -lpthread && pthread="yes" && libpthread="-lpthread"
             ;;
     esac
 fi
 if test "$pthread" = "yes" ; then
     CFLAGS="$CFLAGS -DHAVE_PTHREAD"
-    case $SYS in
-        MINGW|CYGWIN|BEOS)
-            ;;
-        *) LDFLAGS="$LDFLAGS -lpthread"
-            ;;
-    esac
+    LDFLAGS="$LDFLAGS $libpthread"
 fi
 
 MP4_LDFLAGS="-lgpac_static"
@@ -383,15 +392,7 @@ fi
 
 ./version.sh
 
-pclibs="-L$libdir -lx264"
-if test "$pthread" = "yes" ; then
-  case $SYS in
-    MINGW|CYGWIN|BEOS)
-      ;;
-    *) pclibs="$pclibs -lpthread"
-      ;;
-  esac
-fi
+pclibs="-L$libdir -lx264 $libpthread"
 
 cat > x264.pc << EOF
 prefix=$prefix

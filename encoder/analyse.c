@@ -248,10 +248,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
                     int i_ref = i ? h->i_ref1 : h->i_ref0;
                     for( j=0; j<i_ref; j++ )
                     {
-                        // could use a condition variable or the like, but
-                        // this way is faster at least on LinuxThreads.
-                        while( fref[j]->i_lines_completed < thresh )
-                            usleep(100);
+                        x264_frame_cond_wait( fref[j], thresh );
                         thread_mvy_range = X264_MIN( thread_mvy_range, fref[j]->i_lines_completed - pix_y );
                     }
                 }

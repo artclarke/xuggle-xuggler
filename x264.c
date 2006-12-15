@@ -92,6 +92,12 @@ int main( int argc, char **argv )
 {
     x264_param_t param;
     cli_opt_t opt;
+    int ret;
+
+#ifdef PTW32_STATIC_LIB
+    pthread_win32_process_attach_np();
+    pthread_win32_thread_attach_np();
+#endif
 
 #ifdef _MSC_VER
     _setmode(_fileno(stdin), _O_BINARY);
@@ -107,7 +113,14 @@ int main( int argc, char **argv )
     /* Control-C handler */
     signal( SIGINT, SigIntHandler );
 
-    return Encode( &param, &opt );
+    ret = Encode( &param, &opt );
+
+#ifdef PTW32_STATIC_LIB
+    pthread_win32_thread_detach_np();
+    pthread_win32_process_detach_np();
+#endif
+
+    return ret;
 }
 
 static char const *strtable_lookup( const char * const table[], int index )
