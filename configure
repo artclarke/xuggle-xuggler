@@ -226,7 +226,7 @@ for opt do
             LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
             ;;
         --enable-pthread)
-            pthread="yes"
+            pthread="auto" # can't skip detection, since it differs by OS
             ;;
         --disable-pthread)
             pthread="no"
