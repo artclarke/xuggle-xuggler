@@ -802,6 +802,7 @@ int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
     /* now set output*/
     *pi_nal = h->out.i_nal;
     *pp_nal = &h->out.nal[0];
+    h->out.i_nal = 0;
 
     return 0;
 }
