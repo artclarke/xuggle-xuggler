@@ -761,26 +761,24 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
 /* threading */
 
 #ifdef HAVE_PTHREAD
-void x264_frame_cond_broadcast( x264_frame_t *frame )
+void x264_frame_cond_broadcast( x264_frame_t *frame, int i_lines_completed )
 {
     pthread_mutex_lock( &frame->mutex );
+    frame->i_lines_completed = i_lines_completed;
     pthread_cond_broadcast( &frame->cv );
     pthread_mutex_unlock( &frame->mutex );
 }
 
 void x264_frame_cond_wait( x264_frame_t *frame, int i_lines_completed )
 {
-    if( frame->i_lines_completed < i_lines_completed )
-    {
-        pthread_mutex_lock( &frame->mutex );
-        while( frame->i_lines_completed < i_lines_completed )
-            pthread_cond_wait( &frame->cv, &frame->mutex );
-        pthread_mutex_unlock( &frame->mutex );
-    }
+    pthread_mutex_lock( &frame->mutex );
+    while( frame->i_lines_completed < i_lines_completed )
+        pthread_cond_wait( &frame->cv, &frame->mutex );
+    pthread_mutex_unlock( &frame->mutex );
 }
 
 #else
-void x264_frame_cond_broadcast( x264_frame_t *frame )
+void x264_frame_cond_broadcast( x264_frame_t *frame, int i_lines_completed )
 {}
 void x264_frame_cond_wait( x264_frame_t *frame, int i_lines_completed )
 {}

@@ -64,6 +64,7 @@
 
 #elif defined(HAVE_PTHREAD)
 #include <pthread.h>
+#define USE_CONDITION_VAR
 #else
 #define pthread_t               int
 #define pthread_create(t,u,f,d)

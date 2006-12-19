@@ -110,7 +110,7 @@ void          x264_frame_init_lowres( int cpu, x264_frame_t *frame );
 
 void          x264_deblock_init( int cpu, x264_deblock_function_t *pf );
 
-void          x264_frame_cond_broadcast( x264_frame_t *frame );
+void          x264_frame_cond_broadcast( x264_frame_t *frame, int i_lines_completed );
 void          x264_frame_cond_wait( x264_frame_t *frame, int i_lines_completed );
 
 void          x264_frame_push( x264_frame_t **list, x264_frame_t *frame );

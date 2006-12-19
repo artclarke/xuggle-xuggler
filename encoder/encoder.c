@@ -920,10 +920,9 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y )
         x264_frame_expand_border_filtered( h, h->fdec, min_y, b_end );
     }
 
-    if( h->param.i_threads > 1 )
+    if( h->param.i_threads > 1 && h->fdec->b_kept_as_ref )
     {
-        h->fdec->i_lines_completed = mb_y*16 + (b_end ? 10000 : -(X264_THREAD_HEIGHT << h->sh.b_mbaff));
-        x264_frame_cond_broadcast( h->fdec );
+        x264_frame_cond_broadcast( h->fdec, mb_y*16 + (b_end ? 10000 : -(X264_THREAD_HEIGHT << h->sh.b_mbaff)) );
     }
 }
 
