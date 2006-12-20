@@ -631,7 +631,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->frames.i_delay = h->param.i_bframe + h->param.i_threads - 1;
     h->frames.i_max_ref0 = h->param.i_frame_reference;
     h->frames.i_max_ref1 = h->sps->vui.i_num_reorder_frames;
-    h->frames.i_max_dpb  = h->sps->vui.i_max_dec_frame_buffering + 1;
+    h->frames.i_max_dpb  = h->sps->vui.i_max_dec_frame_buffering;
     h->frames.b_have_lowres = !h->param.rc.b_stat_read
         && ( h->param.rc.i_rc_method == X264_RC_ABR
           || h->param.rc.i_rc_method == X264_RC_CRF
@@ -964,7 +964,7 @@ static inline void x264_reference_update( x264_t *h )
 static inline void x264_reference_reset( x264_t *h )
 {
     while( h->frames.reference[0] )
-        x264_frame_push_unused( h, x264_frame_shift( h->frames.reference ) );
+        x264_frame_push_unused( h, x264_frame_pop( h->frames.reference ) );
     h->fdec->i_poc =
     h->fenc->i_poc = 0;
 }

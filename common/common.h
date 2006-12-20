@@ -359,8 +359,8 @@ struct x264_t
         /* For adaptive B decision */
         x264_frame_t *last_nonb;
 
-        /* frames used for reference +1 for decoding + sentinels */
-        x264_frame_t *reference[16+2+1+2];
+        /* frames used for reference + sentinels */
+        x264_frame_t *reference[16+2];
 
         int i_last_idr; /* Frame number of the last IDR */
 
