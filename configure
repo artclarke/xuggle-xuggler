@@ -182,6 +182,21 @@ case "${MACHINE%%-*}" in
     ;;
 esac
 
+# check requirements
+
+if [ $SYS = MACOSX -a $ARCH = X86 ]
+then
+  # we want Apple's nasm from Xcode 2.4.1 or later
+  NASM_BUILD_REQUIRED=11
+  NASM_BUILD=`nasm -v|grep "Apple Computer"|sed 's/.*build \([0-9]*\).*/\1/'`
+  if [ $NASM_BUILD -lt $NASM_BUILD_REQUIRED ]
+  then
+    echo "Your version of 'nasm' is too old."
+    echo "Please install Xcode 2.4.1 or later."
+    exit 1
+  fi
+fi
+
 CFLAGS="$CFLAGS -DARCH_$ARCH -DSYS_$SYS"
 
 # parse options
