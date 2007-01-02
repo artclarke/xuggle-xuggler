@@ -64,6 +64,18 @@ ASFLAGS=""
 
 EXE=""
 
+# check whether 'echo -n' works as expected, otherwise try printf
+if [ "x`echo -n houba`" = xhouba ]
+then
+  ECHON="echo -n"
+elif [ "x`printf houba`" = xhouba ]
+then
+  ECHON="printf"
+else
+  echo "Neither 'echo -n' nor 'printf' are working with your shell!"
+  exit 1
+fi
+
 MACHINE="$(./config.guess)"
 
 case "${MACHINE#*-*-}" in
@@ -381,11 +393,12 @@ EXE=$EXE
 VIS=$vis
 HAVE_GETOPT_LONG=$HAVE_GETOPT_LONG
 DEVNULL=$DEVNULL
+ECHON=$ECHON
 EOF
 
-echo -n 'CONFIGURE_ARGS=' >> config.mak
+$ECHON 'CONFIGURE_ARGS=' >> config.mak
 for A in "$@" ; do
-    echo -n " '$A'" >> config.mak
+    $ECHON " '$A'" >> config.mak
 done
 echo '' >> config.mak
 

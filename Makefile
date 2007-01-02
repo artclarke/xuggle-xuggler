@@ -92,7 +92,7 @@ common/i386/*.o: common/i386/i386inc.asm
 .depend: config.mak
 	rm -f .depend
 # Hacky - because gcc 2.9x doesn't have -MT
-	$(foreach SRC, $(SRCS) $(SRCCLI), ( echo -n "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM -g0 ) 1>> .depend;)
+	$(foreach SRC, $(SRCS) $(SRCCLI), ( $(ECHON) "`dirname $(SRC)`/" && $(CC) $(CFLAGS) $(SRC) -MM -g0 ) 1>> .depend;)
 
 config.mak: $(wildcard .svn/entries */.svn/entries */*/.svn/entries)
 	./configure $(CONFIGURE_ARGS)
