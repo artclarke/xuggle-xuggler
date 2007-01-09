@@ -55,8 +55,8 @@ vis="no"
 shared="no"
 
 CC="${CC-gcc}"
-CFLAGS="-Wall -I. -D__X264__"
-LDFLAGS=""
+CFLAGS="$CFLAGS -Wall -I. -D__X264__"
+LDFLAGS="$LDFLAGS"
 HAVE_GETOPT_LONG=1
 
 AS="nasm"
