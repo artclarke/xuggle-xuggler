@@ -298,7 +298,7 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
         {
             /* Near null chroma 8x8 block so make it null (bits saving) */
             memset( &h->dct.block[16+ch*4], 0, 4 * sizeof( *h->dct.block ) );
-            if( !array_non_zero( (int*)dct2x2, sizeof(dct2x2)/sizeof(int) ) )
+            if( !array_non_zero( dct2x2 ) )
                 continue;
             memset( dct4x4, 0, sizeof( dct4x4 ) );
         }
@@ -323,7 +323,7 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
     }
     if( h->mb.i_cbp_chroma )
         h->mb.i_cbp_chroma = 2;    /* dc+ac (we can't do only ac) */
-    else if( array_non_zero( h->dct.chroma_dc[0], 8 ) )
+    else if( array_non_zero( h->dct.chroma_dc ) )
         h->mb.i_cbp_chroma = 1;    /* dc only */
 }
 
@@ -501,7 +501,7 @@ void x264_macroblock_encode( x264_t *h )
                     }
                 }
                 else
-                    nnz8x8[idx] = array_non_zero( (int*)dct8x8[idx], sizeof(*dct8x8)/sizeof(int) );
+                    nnz8x8[idx] = array_non_zero( dct8x8[idx] );
             }
 
             if( i_decimate_mb < 6 && b_decimate )
@@ -599,7 +599,7 @@ void x264_macroblock_encode( x264_t *h )
          * the full non_zero_count is done only in CAVLC. */
         for( i = 0; i < 4; i++ )
         {
-            const int nz = array_non_zero( h->dct.luma8x8[i], 64 );
+            const int nz = array_non_zero( h->dct.luma8x8[i] );
             int j;
             for( j = 0; j < 4; j++ )
                 h->mb.cache.non_zero_count[x264_scan8[4*i+j]] = nz;
@@ -620,9 +620,9 @@ void x264_macroblock_encode( x264_t *h )
 
     if( h->param.b_cabac )
     {
-        i_cbp_dc = ( h->mb.i_type == I_16x16 && array_non_zero( h->dct.luma16x16_dc, 16 ) )
-                 | array_non_zero( h->dct.chroma_dc[0], 4 ) << 1
-                 | array_non_zero( h->dct.chroma_dc[1], 4 ) << 2;
+        i_cbp_dc = ( h->mb.i_type == I_16x16 && array_non_zero( h->dct.luma16x16_dc ) )
+                 | array_non_zero( h->dct.chroma_dc[0] ) << 1
+                 | array_non_zero( h->dct.chroma_dc[1] ) << 2;
     }
 
     /* store cbp */
@@ -656,7 +656,7 @@ void x264_macroblock_encode( x264_t *h )
  *  Check if the current MB could be encoded as a [PB]_SKIP (it supposes you use
  *  the previous QP
  *****************************************************************************/
-int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
+int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
 {
     DECLARE_ALIGNED( int16_t, dct4x4[16][4][4], 16 );
     DECLARE_ALIGNED( int16_t, dct2x2[2][2], 16 );
@@ -836,7 +836,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
         if( b_decimate )
             nnz8x8 = 4 <= x264_mb_decimate_score( h->dct.luma8x8[i8], 64 );
         else
-            nnz8x8 = array_non_zero( (int*)dct8x8, sizeof(dct8x8)/sizeof(int) );
+            nnz8x8 = array_non_zero( dct8x8 );
 
         if( nnz8x8 )
         {
@@ -864,7 +864,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
             nnz8x8 = 4 <= i_decimate_8x8;
         }
         else
-            nnz8x8 = array_non_zero( (int*)dct4x4, sizeof(dct4x4)/sizeof(int) );
+            nnz8x8 = array_non_zero( dct4x4 );
 
         if( nnz8x8 )
         {
@@ -885,7 +885,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
         h->dctf.sub4x4_dct( dct4x4, p_fenc, p_fdec );
         quant_4x4_chroma( h, dct4x4, h->quant4_mf[CQM_4PC], i_qp, 0 );
         h->zigzagf.scan_4x4ac( h->dct.block[16+i8+ch*4].residual_ac, dct4x4 );
-        if( array_non_zero( (int*)dct4x4, sizeof(dct4x4)/sizeof(int) ) )
+        if( array_non_zero( dct4x4 ) )
         {
             h->quantf.dequant_4x4( dct4x4, h->dequant4_mf[CQM_4PC], i_qp );
             h->dctf.add4x4_idct( p_fdec, dct4x4 );
