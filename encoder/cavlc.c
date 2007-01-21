@@ -88,11 +88,10 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int *l, i
     i_sign = 0;
     i_total = 0;
     i_trailing = 0;
-    i_total_zero = 0;
+    i_total_zero = i_last + 1;
 
     if( i_last >= 0 )
     {
-        int b_trailing = 1;
         int idx = 0;
 
         /* level and run and total */
@@ -107,25 +106,22 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int *l, i
                 i_last--;
             }
 
-            i_total++;
-            i_total_zero += run[idx];
-
-            if( b_trailing && abs( level[idx] ) == 1 && i_trailing < 3 )
-            {
-                i_sign <<= 1;
-                if( level[idx] < 0 )
-                {
-                    i_sign |= 0x01;
-                }
-
-                i_trailing++;
-            }
-            else
-            {
-                b_trailing = 0;
-            }
-
             idx++;
+        }
+
+        i_total = idx;
+        i_total_zero -= idx;
+
+        i_trailing = X264_MIN(3, idx);
+        for( idx = 0; idx < i_trailing; idx++ )
+        {
+            if( abs(level[idx]) > 1 )
+            {
+                i_trailing = idx;
+                break;
+            }
+            i_sign <<= 1;
+            i_sign |= level[idx] < 0;
         }
     }
 
@@ -138,17 +134,7 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int *l, i
     {
         /* x264_mb_predict_non_zero_code return 0 <-> (16+16+1)>>1 = 16 */
         static const int ct_index[17] = {0,0,1,1,2,2,2,2,3,3,3,3,3,3,3,3,3 };
-        int nC;
-
-        if( i_idx == BLOCK_INDEX_LUMA_DC )
-        {
-            nC = x264_mb_predict_non_zero_code( h, 0 );
-        }
-        else
-        {
-            nC = x264_mb_predict_non_zero_code( h, i_idx );
-        }
-
+        int nC = x264_mb_predict_non_zero_code( h, i_idx == BLOCK_INDEX_LUMA_DC ? 0 : i_idx );
         bs_write_vlc( s, x264_coeff_token[ct_index[nC]][i_total*4+i_trailing] );
     }
 
@@ -164,7 +150,7 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int *l, i
     }
     for( i = i_trailing; i < i_total; i++ )
     {
-        int i_level_code;
+        unsigned int i_level_code;
 
         /* calculate level code */
         if( level[i] < 0 )
@@ -177,7 +163,7 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int *l, i
         }
         if( i == i_trailing && i_trailing < 3 )
         {
-            i_level_code -=2; /* as level[i] can't be 1 for the first one if i_trailing < 3 */
+            i_level_code -= 2; /* as level[i] can't be 1 for the first one if i_trailing < 3 */
         }
 
         if( ( i_level_code >> i_suffix_length ) < 14 )
@@ -207,12 +193,12 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int *l, i
                 i_level_code -= 15;
             }
 
-            if( i_level_code >= ( 1 << 12 ) || i_level_code < 0 )
+            if( i_level_code >= 1<<12 )
             {
                 x264_log(h, X264_LOG_WARNING, "OVERFLOW levelcode=%d\n", i_level_code );
             }
 
-            bs_write( s, 12, i_level_code );    /* check overflow ?? */
+            bs_write( s, 12, i_level_code );
         }
 
         if( i_suffix_length == 0 )
