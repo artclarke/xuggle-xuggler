@@ -60,8 +60,8 @@ void x264_sub4x4_dct_altivec( int16_t dct[4][4],
     permHighv = (vec_u8_t) CV(0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17);
     VEC_DCT( dct0v, dct1v, dct2v, dct3v, tmp0v, tmp1v, tmp2v, tmp3v );
 
-    vec_st(vec_perm(tmp0v, tmp1v, permHighv), 0, dct);
-    vec_st(vec_perm(tmp2v, tmp3v, permHighv), 16, dct);
+    vec_st(vec_perm(tmp0v, tmp1v, permHighv), 0,  (int16_t*)dct);
+    vec_st(vec_perm(tmp2v, tmp3v, permHighv), 16, (int16_t*)dct);
 }
 
 void x264_sub8x8_dct_altivec( int16_t dct[4][4][4],
@@ -94,14 +94,14 @@ void x264_sub8x8_dct_altivec( int16_t dct[4][4][4],
     VEC_DCT( dct0v, dct1v, dct2v, dct3v, tmp0v, tmp1v, tmp2v, tmp3v );
     VEC_DCT( dct4v, dct5v, dct6v, dct7v, tmp4v, tmp5v, tmp6v, tmp7v );
 
-    vec_st(vec_perm(tmp0v, tmp1v, permHighv), 0, dct);
-    vec_st(vec_perm(tmp2v, tmp3v, permHighv), 16, dct);
-    vec_st(vec_perm(tmp4v, tmp5v, permHighv), 32, dct);
-    vec_st(vec_perm(tmp6v, tmp7v, permHighv), 48, dct);
-    vec_st(vec_perm(tmp0v, tmp1v, permLowv),  64, dct);
-    vec_st(vec_perm(tmp2v, tmp3v, permLowv), 80, dct);
-    vec_st(vec_perm(tmp4v, tmp5v, permLowv), 96, dct);
-    vec_st(vec_perm(tmp6v, tmp7v, permLowv), 112, dct);
+    vec_st(vec_perm(tmp0v, tmp1v, permHighv), 0,   (int16_t*)dct);
+    vec_st(vec_perm(tmp2v, tmp3v, permHighv), 16,  (int16_t*)dct);
+    vec_st(vec_perm(tmp4v, tmp5v, permHighv), 32,  (int16_t*)dct);
+    vec_st(vec_perm(tmp6v, tmp7v, permHighv), 48,  (int16_t*)dct);
+    vec_st(vec_perm(tmp0v, tmp1v, permLowv),  64,  (int16_t*)dct);
+    vec_st(vec_perm(tmp2v, tmp3v, permLowv),  80,  (int16_t*)dct);
+    vec_st(vec_perm(tmp4v, tmp5v, permLowv),  96,  (int16_t*)dct);
+    vec_st(vec_perm(tmp6v, tmp7v, permLowv),  112, (int16_t*)dct);
 }
 
 void x264_sub16x16_dct_altivec( int16_t dct[16][4][4],
@@ -311,8 +311,8 @@ void x264_sub16x16_dct8_altivec( int16_t dct[4][8][8], uint8_t *pix1, uint8_t *p
 
 void x264_add8x8_idct8_altivec( uint8_t *dst, int16_t dct[8][8] )
 {
-    vec_s16_t onev = vec_splat_s16(1);
-    vec_s16_t twov = vec_splat_s16(2);
+    vec_u16_t onev = vec_splat_s16(1);
+    vec_u16_t twov = vec_splat_s16(2);
 
     dct[0][0] += 32; // rounding for the >>6 at the end
 
@@ -341,7 +341,7 @@ void x264_add8x8_idct8_altivec( uint8_t *dst, int16_t dct[8][8] )
 
     vec_u8_t perm_ldv = vec_lvsl(0, dst);
     vec_u8_t perm_stv = vec_lvsr(8, dst);
-    vec_s16_t sixv = vec_splat_s16(6);
+    vec_u16_t sixv = vec_splat_s16(6);
     const vec_u8_t sel = (vec_u8_t) CV(0,0,0,0,0,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1);
     LOAD_ZERO;
 

@@ -18,10 +18,6 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 *****************************************************************************/
 
-#ifdef HAVE_ALTIVEC_H
-#include <altivec.h>
-#endif
-
 #include "common/common.h"
 #include "ppccommon.h"
 #include "quant.h"            
@@ -53,31 +49,31 @@ temp2v = (vec_s16_t) vec_packs(vec_mergeh(multEvenvB, multOddvB), vec_mergel(mul
 temp1v = vec_xor(temp1v, mskA);                                              \
 temp2v = vec_xor(temp2v, mskB);                                              \
 temp1v = vec_adds(temp1v, vec_and(mskA, one));                                \
-vec_st(temp1v, (dct0), dct);                                                 \
+vec_st(temp1v, (dct0), (int16_t*)dct);                                        \
 temp2v = vec_adds(temp2v, vec_and(mskB, one));                                \
-vec_st(temp2v, (dct1), dct);
+vec_st(temp2v, (dct1), (int16_t*)dct);
                 
 void x264_quant_4x4_altivec( int16_t dct[4][4], int quant_mf[4][4], int const i_qbits, int const f ) {
     vector bool short mskA;
-    vec_s32_t i_qbitsv;
+    vec_u32_t i_qbitsv;
     vec_u16_t coefvA;
     vec_u32_t multEvenvA, multOddvA;
-    vec_u32_t mfvA;
+    vec_u16_t mfvA;
     vec_s16_t zerov, one;
-    vec_s32_t fV;
+    vec_u32_t fV;
 
     vector bool short mskB;
     vec_u16_t coefvB;
     vec_u32_t multEvenvB, multOddvB;
-    vec_u32_t mfvB;
+    vec_u16_t mfvB;
 
     vec_s16_t temp1v, temp2v;
 
-    vect_sint_u qbits_u;
+    vect_int_u qbits_u;
     qbits_u.s[0]=i_qbits;
     i_qbitsv = vec_splat(qbits_u.v, 0);
 
-    vect_sint_u f_u;
+    vect_int_u f_u;
     f_u.s[0]=f;
 
     fV = vec_splat(f_u.v, 0);
@@ -113,18 +109,18 @@ temp2v = (vec_s16_t) vec_packs(vec_mergeh(multEvenvB, multOddvB), vec_mergel(mul
 temp1v = vec_xor(temp1v, mskA);                                 \
 temp2v = vec_xor(temp2v, mskB);                                 \
 temp1v = vec_add(temp1v, vec_and(mskA, one));                   \
-vec_st(temp1v, (dct0), dct);                                    \
+vec_st(temp1v, (dct0), (int16_t*)dct);                          \
 temp2v = vec_add(temp2v, vec_and(mskB, one));                   \
-vec_st(temp2v, (dct1), dct);
+vec_st(temp2v, (dct1), (int16_t*)dct);
 
 
 void x264_quant_4x4_dc_altivec( int16_t dct[4][4], int i_quant_mf, int const i_qbits, int const f ) {
     vector bool short mskA;
-    vec_s32_t i_qbitsv;
+    vec_u32_t i_qbitsv;
     vec_u16_t coefvA;
     vec_u32_t multEvenvA, multOddvA;
     vec_s16_t zerov, one;
-    vec_s32_t fV;
+    vec_u32_t fV;
 
     vector bool short mskB;
     vec_u16_t coefvB;
@@ -132,17 +128,16 @@ void x264_quant_4x4_dc_altivec( int16_t dct[4][4], int i_quant_mf, int const i_q
 
     vec_s16_t temp1v, temp2v;
 
-    vec_u32_t mfv;
-    vect_int_u mf_u;
+    vec_u16_t mfv;
+    vect_ushort_u mf_u;
     mf_u.s[0]=i_quant_mf;
     mfv = vec_splat( mf_u.v, 0 );
-    mfv = vec_packs( mfv, mfv);
 
-    vect_sint_u qbits_u;
+    vect_int_u qbits_u;
     qbits_u.s[0]=i_qbits;
     i_qbitsv = vec_splat(qbits_u.v, 0);
 
-    vect_sint_u f_u;
+    vect_int_u f_u;
     f_u.s[0]=f;
     fV = vec_splat(f_u.v, 0);
 
@@ -155,15 +150,17 @@ void x264_quant_4x4_dc_altivec( int16_t dct[4][4], int i_quant_mf, int const i_q
 
 void x264_quant_8x8_altivec( int16_t dct[8][8], int quant_mf[8][8], int const i_qbits, int const f ) {
     vector bool short mskA;
-    vec_s32_t i_qbitsv;
+    vec_u32_t i_qbitsv;
     vec_u16_t coefvA;
-    vec_s32_t multEvenvA, multOddvA, mfvA;
+    vec_u32_t multEvenvA, multOddvA;
+    vec_u16_t mfvA;
     vec_s16_t zerov, one;
-    vec_s32_t fV;
+    vec_u32_t fV;
     
     vector bool short mskB;
     vec_u16_t coefvB;
-    vec_u32_t multEvenvB, multOddvB, mfvB;
+    vec_u32_t multEvenvB, multOddvB;
+    vec_u16_t mfvB;
     
     vec_s16_t temp1v, temp2v;
     
@@ -171,7 +168,7 @@ void x264_quant_8x8_altivec( int16_t dct[8][8], int quant_mf[8][8], int const i_
     qbits_u.s[0]=i_qbits;
     i_qbitsv = vec_splat(qbits_u.v, 0);
 
-    vect_sint_u f_u;
+    vect_int_u f_u;
     f_u.s[0]=f;
     fV = vec_splat(f_u.v, 0);
 
