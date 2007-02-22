@@ -373,6 +373,8 @@ void x264_slicetype_analyse( x264_t *h )
     int cost1p0, cost2p0, cost1b1, cost2p1;
     int idr_frame_type;
 
+    assert( h->frames.b_have_lowres );
+
     if( !h->frames.last_nonb )
         return;
     frames[0] = h->frames.last_nonb;
@@ -390,7 +392,7 @@ void x264_slicetype_analyse( x264_t *h )
     {
 no_b_frames:
         frames[1]->i_type = X264_TYPE_P;
-        if( h->param.b_pre_scenecut && h->param.i_scenecut_threshold >= 0 )
+        if( h->param.b_pre_scenecut )
         {
             x264_slicetype_frame_cost( h, &a, frames, 0, 1, 1, 0 );
             if( scenecut( h, frames[1], 1 ) )
@@ -449,7 +451,8 @@ void x264_slicetype_decide( x264_t *h )
             h->frames.next[i]->i_type =
                 x264_ratecontrol_slice_type( h, h->frames.next[i]->i_frame );
     }
-    else if( h->param.i_bframe && h->param.b_bframe_adaptive )
+    else if( (h->param.i_bframe && h->param.b_bframe_adaptive)
+             || h->param.b_pre_scenecut )
         x264_slicetype_analyse( h );
 
     for( bframes = 0;; bframes++ )

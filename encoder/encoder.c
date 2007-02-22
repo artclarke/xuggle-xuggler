@@ -431,6 +431,8 @@ static int x264_validate_parameters( x264_t *h )
     h->mb.b_direct_auto_write = h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_AUTO
                                 && h->param.i_bframe
                                 && ( h->param.rc.b_stat_write || !h->param.rc.b_stat_read );
+    if( h->param.i_scenecut_threshold < 0 )
+        h->param.b_pre_scenecut = 0;
 
     h->param.i_deblocking_filter_alphac0 = x264_clip3( h->param.i_deblocking_filter_alphac0, -6, 6 );
     h->param.i_deblocking_filter_beta    = x264_clip3( h->param.i_deblocking_filter_beta, -6, 6 );
@@ -635,7 +637,8 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->frames.b_have_lowres = !h->param.rc.b_stat_read
         && ( h->param.rc.i_rc_method == X264_RC_ABR
           || h->param.rc.i_rc_method == X264_RC_CRF
-          || h->param.b_bframe_adaptive );
+          || h->param.b_bframe_adaptive
+          || h->param.b_pre_scenecut );
 
     h->frames.i_last_idr = - h->param.i_keyint_max;
     h->frames.i_input    = 0;
@@ -720,7 +723,8 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
 #define COPY(var) h->param.var = param->var
     COPY( i_frame_reference ); // but never uses more refs than initially specified
     COPY( i_bframe_bias );
-    COPY( i_scenecut_threshold );
+    if( h->param.i_scenecut_threshold >= 0 && param->i_scenecut_threshold >= 0 )
+        COPY( i_scenecut_threshold ); // can't turn it on or off, only vary the threshold
     COPY( b_deblocking_filter );
     COPY( i_deblocking_filter_alphac0 );
     COPY( i_deblocking_filter_beta );
