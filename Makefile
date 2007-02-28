@@ -61,7 +61,7 @@ OBJS = $(SRCS:%.c=%.o)
 OBJCLI = $(SRCCLI:%.c=%.o)
 DEP  = depend
 
-.PHONY: all default fprofiled clean distclean install install-gtk uninstall
+.PHONY: all default fprofiled clean distclean install install-gtk uninstall dox
 all: default
 
 default: $(DEP) x264$(EXE)
@@ -163,3 +163,6 @@ etags: TAGS
 
 TAGS:
 	etags $(SRCS)
+
+dox:
+	doxygen Doxyfile
