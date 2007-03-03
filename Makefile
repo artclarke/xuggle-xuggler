@@ -112,7 +112,7 @@ ifeq (,$(VIDS))
 fprofiled:
 	@echo 'usage: make fprofiled VIDS="infile1 infile2 ..."'
 	@echo 'where infiles are anything that x264 understands,'
-	@echo 'i.e. YUV with resolution in the filename, or avisynth.'
+	@echo 'i.e. YUV with resolution in the filename, y4m, or avisynth.'
 else
 fprofiled:
 	$(MAKE) clean
@@ -168,9 +168,15 @@ TAGS:
 dox:
 	doxygen Doxyfile
 
-# usage is same as for fprofiled
+ifeq (,$(VIDS))
+test:
+	@echo 'usage: make test VIDS="infile1 infile2 ..."'
+	@echo 'where infiles are anything that x264 understands,'
+	@echo 'i.e. YUV with resolution in the filename, y4m, or avisynth.'
+else
 test:
 	perl tools/regression-test.pl --version=head,current --options='$(OPT0)' --options='$(OPT1)' --options='$(OPT2)' $(VIDS:%=--input=%)
+endif
 
 testclean:
 	rm -f test/*.log test/*.264

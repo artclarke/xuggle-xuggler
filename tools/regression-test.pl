@@ -74,18 +74,16 @@ foreach my $version (@versions)
     print("building version: $version\n");
     if ($version eq "current")
     {
-        system("./configure > build.log");
-        system("make >> build.log 2>&1");
+        system("(./configure && make) &> test/build.log");
         mkpath("test/x264-$version");
         if (! -e "x264") { print("build failed \n"); exit 1; }
         copy("x264", "test/x264-$version/x264");
         chmod(0755, "test/x264-$version/x264");
         next;
     }
-    system("svn checkout -$version svn://svn.videolan.org/x264/trunk/ test/x264-$version");
+    system("svn checkout -$version svn://svn.videolan.org/x264/trunk/ test/x264-$version >/dev/null");
     chdir("test/x264-$version");
-    system("./configure > build.log");
-    system("make >> build.log 2>&1");
+    system("(./configure && make) &> build.log");
     chdir("../..");
     if (! -e "test/x264-$version/x264") { print("build failed \n"); exit 1; }
 }
@@ -183,7 +181,7 @@ sub compare_logs
     #    $is_diff = 1;
     #}
 
-    return  $is_diff;
+    return $is_diff;
 
     # TODO compare frame by frame PSNR/SSIM, record improved or unimproved ranges
     #parse_log_frame_stats($log1);
@@ -208,10 +206,10 @@ sub compare_raw264
     if ($rawdata1 ne $rawdata2)
     {
         print("compressed files differ \n");
-        return  1;
+        return 1;
     }
 
-    return  0;
+    return 0;
 }
 
 sub parse_log_frame_stats
