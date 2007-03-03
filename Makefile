@@ -61,7 +61,7 @@ OBJS = $(SRCS:%.c=%.o)
 OBJCLI = $(SRCCLI:%.c=%.o)
 DEP  = depend
 
-.PHONY: all default fprofiled clean distclean install install-gtk uninstall dox
+.PHONY: all default fprofiled clean distclean install install-gtk uninstall dox test testclean
 all: default
 
 default: $(DEP) x264$(EXE)
@@ -106,7 +106,7 @@ SRC2 = $(SRCS) $(SRCCLI)
 # These should cover most of the important codepaths
 OPT0 = --crf 30 -b1 -m1 -r1 --me dia --no-cabac
 OPT1 = --crf 18 -b2 -m3 -r3 --me hex -8 --cqm jvt --direct spatial
-OPT2 = --crf 24 -b3 -m6 -r6 --me umh -8 -w -t1 -A all --b-pyramid --b-rdo --mixed-refs
+OPT2 = --crf 24 -b3 -m7 -r5 --me umh -8 -w -t1 -A all --b-pyramid --b-rdo --mixed-refs --direct auto
 
 ifeq (,$(VIDS))
 fprofiled:
@@ -137,6 +137,7 @@ clean:
 
 distclean: clean
 	rm -f config.mak config.h x264.pc
+	rm -rf test/
 	$(MAKE) -C gtk distclean
 
 install: x264 $(SONAME)
@@ -166,3 +167,11 @@ TAGS:
 
 dox:
 	doxygen Doxyfile
+
+# usage is same as for fprofiled
+test:
+	perl tools/regression-test.pl --version=head,current --options='$(OPT0)' --options='$(OPT1)' --options='$(OPT2)' $(VIDS:%=--input=%)
+
+testclean:
+	rm -f test/*.log test/*.264
+	$(foreach DIR, $(wildcard test/x264-r*/), cd $(DIR) ; make clean ; cd ../.. ;)
