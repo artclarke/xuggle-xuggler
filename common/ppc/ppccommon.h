@@ -268,15 +268,16 @@
 #define PREP_DIFF_8BYTEALIGNED \
 LOAD_ZERO;                     \
 vec_s16_t pix1v, pix2v;        \
+vec_u8_t pix1v8, pix2v8;       \
 vec_u8_t permPix1, permPix2;   \
 permPix1 = vec_lvsl(0, pix1);  \
 permPix2 = vec_lvsl(0, pix2);  \
 
 #define VEC_DIFF_H_8BYTE_ALIGNED(p1,i1,p2,i2,n,d)     \
-pix1v = vec_perm(vec_ld(0,p1), zero_u8v, permPix1);  \
-pix2v = vec_perm(vec_ld(0, p2), zero_u8v, permPix2); \
-pix1v = vec_u8_to_s16( pix1v );                      \
-pix2v = vec_u8_to_s16( pix2v );                      \
-d = vec_sub( pix1v, pix2v);                          \
-p1 += i1;                                            \
+pix1v8 = vec_perm(vec_ld(0,p1), zero_u8v, permPix1);  \
+pix2v8 = vec_perm(vec_ld(0, p2), zero_u8v, permPix2); \
+pix1v = vec_u8_to_s16( pix1v8 );                      \
+pix2v = vec_u8_to_s16( pix2v8 );                      \
+d = vec_sub( pix1v, pix2v);                           \
+p1 += i1;                                             \
 p2 += i2;

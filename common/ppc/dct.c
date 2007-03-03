@@ -295,7 +295,7 @@ void x264_sub16x16_dct8_altivec( int16_t dct[4][8][8], uint8_t *pix1, uint8_t *p
     vec_u8_t lv = vec_ld( 7, dest );                           \
     vec_u8_t dstv   = vec_perm( hv, lv, (vec_u8_t)perm_ldv );  \
     vec_s16_t idct_sh6 = vec_sra(idctv, sixv);                 \
-    vec_u16_t dst16 = vec_mergeh(zero_u8v, dstv);              \
+    vec_u16_t dst16 = (vec_u16_t)vec_mergeh(zero_u8v, dstv);   \
     vec_s16_t idstsum = vec_adds(idct_sh6, (vec_s16_t)dst16);  \
     vec_u8_t idstsum8 = vec_packsu(zero_s16v, idstsum);        \
     /* unaligned store */                                      \
@@ -311,8 +311,8 @@ void x264_sub16x16_dct8_altivec( int16_t dct[4][8][8], uint8_t *pix1, uint8_t *p
 
 void x264_add8x8_idct8_altivec( uint8_t *dst, int16_t dct[8][8] )
 {
-    vec_u16_t onev = vec_splat_s16(1);
-    vec_u16_t twov = vec_splat_s16(2);
+    vec_u16_t onev = vec_splat_u16(1);
+    vec_u16_t twov = vec_splat_u16(2);
 
     dct[0][0] += 32; // rounding for the >>6 at the end
 
@@ -341,7 +341,7 @@ void x264_add8x8_idct8_altivec( uint8_t *dst, int16_t dct[8][8] )
 
     vec_u8_t perm_ldv = vec_lvsl(0, dst);
     vec_u8_t perm_stv = vec_lvsr(8, dst);
-    vec_u16_t sixv = vec_splat_s16(6);
+    vec_u16_t sixv = vec_splat_u16(6);
     const vec_u8_t sel = (vec_u8_t) CV(0,0,0,0,0,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1);
     LOAD_ZERO;
 
