@@ -106,7 +106,9 @@ int close_file_yuv(hnd_t handle)
     yuv_input_t *h = handle;
     if( !h || !h->fh )
         return 0;
-    return fclose(h->fh);
+    fclose( h->fh );
+    free( h );
+    return 0;
 }
 
 /* YUV4MPEG2 raw 420 yuv file operation */
@@ -307,7 +309,9 @@ int close_file_y4m(hnd_t handle)
     y4m_input_t *h = handle;
     if( !h || !h->fh )
         return 0;
-    return fclose(h->fh);
+    fclose( h->fh );
+    free( h );
+    return 0;
 }
 
 /* avs/avi input file support under cygwin */
