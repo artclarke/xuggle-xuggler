@@ -159,6 +159,7 @@ case "${MACHINE%%-*}" in
     ;;
   powerpc|powerpc64)
     ARCH="PPC"
+    ALTIVECFLAGS="$ALTIVECFLAGS -DNEED_ALTIVEC"
     if [ $SYS = MACOSX ]
     then
       ALTIVECFLAGS="$ALTIVECFLAGS -faltivec -fastf -mcpu=G4"
