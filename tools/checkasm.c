@@ -780,8 +780,11 @@ int main(int argc, char *argv[])
     }
 #endif
 #elif ARCH_PPC
-    fprintf( stderr, "x264: ALTIVEC against C\n" );
-    ret = check_all( 0, X264_CPU_ALTIVEC );
+    if( x264_cpu_detect() & X264_CPU_ALTIVEC )
+    {
+        fprintf( stderr, "x264: ALTIVEC against C\n" );
+        ret = check_all( 0, X264_CPU_ALTIVEC );
+    }
 #endif
 
     if( ret == 0 )
