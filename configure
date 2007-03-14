@@ -147,7 +147,7 @@ esac
 case "${MACHINE%%-*}" in
   i*86)
     ARCH="X86"
-    CFLAGS="$CFLAGS -DHAVE_MMXEXT -DHAVE_SSE2"
+    CFLAGS="$CFLAGS -DHAVE_MMX"
     AS="nasm"
     ASFLAGS="-O2"
     if [ "$SYS" = MACOSX ]; then
@@ -162,7 +162,7 @@ case "${MACHINE%%-*}" in
     ;;
   x86_64)
     ARCH="X86_64"
-    CFLAGS="$CFLAGS -DHAVE_MMXEXT -DHAVE_SSE2"
+    CFLAGS="$CFLAGS -DHAVE_MMX"
     AS="yasm"
     ASFLAGS="-f elf -m amd64"
     ;;

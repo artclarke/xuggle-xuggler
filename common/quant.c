@@ -22,7 +22,7 @@
 
 #include "common.h"
 
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
 #include "i386/quant.h"
 #endif
 #ifdef ARCH_PPC
@@ -226,7 +226,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
                 maxQdc = q;
         }
 
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
 
     /* select quant_8x8 based on CPU and maxQ8 */
 #if defined(ARCH_X86_64) && defined(HAVE_SSE3)
@@ -290,7 +290,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->dequant_4x4 = x264_dequant_4x4_mmx;
         pf->dequant_8x8 = x264_dequant_8x8_mmx;
     }
-#endif  /* HAVE_MMXEXT */
+#endif  /* HAVE_MMX */
     
 #ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC ) {

@@ -27,7 +27,7 @@
 #include "common.h"
 #include "clip1.h"
 
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
 #include "i386/mc.h"
 #endif
 #ifdef ARCH_PPC
@@ -371,13 +371,11 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->prefetch_fenc = prefetch_fenc_null;
     pf->prefetch_ref  = prefetch_ref_null;
 
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
     if( cpu&X264_CPU_MMXEXT ) {
         x264_mc_mmxext_init( pf );
         pf->mc_chroma = x264_mc_chroma_mmxext;
     }
-#endif
-#ifdef HAVE_SSE2
     if( cpu&X264_CPU_SSE2 )
         x264_mc_sse2_init( pf );
 #endif
@@ -402,7 +400,7 @@ void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced, int mb_y
         return;
     mb_y >>= b_interlaced;
 
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
     if ( cpu & X264_CPU_MMXEXT )
     {
         // buffer = 4 for deblock + 3 for 6tap, rounded to 8

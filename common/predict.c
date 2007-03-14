@@ -29,9 +29,9 @@
 #include "clip1.h"
 
 #ifdef _MSC_VER
-#undef HAVE_MMXEXT  /* not finished now */
+#undef HAVE_MMX  /* not finished now */
 #endif
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
 #   include "i386/predict.h"
 #endif
 
@@ -843,7 +843,7 @@ void x264_predict_16x16_init( int cpu, x264_predict_t pf[7] )
     pf[I_PRED_16x16_DC_TOP ]= predict_16x16_dc_top;
     pf[I_PRED_16x16_DC_128 ]= predict_16x16_dc_128;
 
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
     if( cpu&X264_CPU_MMXEXT )
     {
         x264_predict_16x16_init_mmxext( pf );
@@ -861,7 +861,7 @@ void x264_predict_8x8c_init( int cpu, x264_predict_t pf[7] )
     pf[I_PRED_CHROMA_DC_TOP ]= predict_8x8c_dc_top;
     pf[I_PRED_CHROMA_DC_128 ]= predict_8x8c_dc_128;
 
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
     if( cpu&X264_CPU_MMXEXT )
     {
         x264_predict_8x8c_init_mmxext( pf );
@@ -884,13 +884,11 @@ void x264_predict_8x8_init( int cpu, x264_predict8x8_t pf[12] )
     pf[I_PRED_8x8_DC_TOP] = predict_8x8_dc_top;
     pf[I_PRED_8x8_DC_128] = predict_8x8_dc_128;
 
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
     if( cpu&X264_CPU_MMXEXT )
     {
         x264_predict_8x8_init_mmxext( pf );
     }
-#endif
-#ifdef HAVE_SSE2
     if( cpu&X264_CPU_SSE2 )
     {
         x264_predict_8x8_init_sse2( pf );
@@ -913,7 +911,7 @@ void x264_predict_4x4_init( int cpu, x264_predict_t pf[12] )
     pf[I_PRED_4x4_DC_TOP] = predict_4x4_dc_top;
     pf[I_PRED_4x4_DC_128] = predict_4x4_dc_128;
 
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
     if( cpu&X264_CPU_MMXEXT )
     {
         x264_predict_4x4_init_mmxext( pf );

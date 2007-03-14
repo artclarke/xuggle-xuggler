@@ -49,6 +49,9 @@ uint32_t x264_cpu_detect( void )
     uint32_t eax, ebx, ecx, edx;
     int      b_amd;
 
+#ifndef HAVE_MMX
+    return 0;
+#endif
 
     if( !x264_cpu_cpuid_test() )
     {

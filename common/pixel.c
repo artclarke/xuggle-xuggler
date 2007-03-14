@@ -26,7 +26,7 @@
 #include "common.h"
 #include "clip1.h"
 
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
 #   include "i386/pixel.h"
 #endif
 #ifdef ARCH_PPC
@@ -470,7 +470,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     pixf->ads[PIXEL_16x8] = pixel_ads2;
     pixf->ads[PIXEL_8x8] = pixel_ads1;
 
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
     if( cpu&X264_CPU_MMX )
     {
         INIT( ssd, _mmx );
@@ -501,9 +501,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->intra_satd_x3_8x8c  = x264_intra_satd_x3_8x8c_mmxext;
         pixf->intra_satd_x3_4x4   = x264_intra_satd_x3_4x4_mmxext;
     }
-#endif
 
-#ifdef HAVE_SSE2
     // disable on AMD processors since it is slower
     if( (cpu&X264_CPU_SSE2) && !(cpu&X264_CPU_3DNOW) )
     {
@@ -551,7 +549,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->sa8d[PIXEL_8x8]  = x264_pixel_sa8d_8x8_ssse3;
 #endif
     }
-#endif
+#endif //HAVE_MMX
 
 #ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC )

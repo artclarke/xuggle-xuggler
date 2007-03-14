@@ -5,7 +5,7 @@
 
 #include "common/common.h"
 #include "common/cpu.h"
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
 #include "common/i386/pixel.h"
 #include "common/i386/dct.h"
 #include "common/i386/mc.h"
@@ -758,11 +758,11 @@ int main(int argc, char *argv[])
         buf3[i] = buf4[i] = 0;
     }
 
-#ifdef HAVE_MMXEXT
+#ifdef HAVE_MMX
     fprintf( stderr, "x264: MMXEXT against C\n" );
     cpu1 = X264_CPU_MMX | X264_CPU_MMXEXT;
     ret = check_all( 0, cpu1 );
-#ifdef HAVE_SSE2
+
     if( x264_cpu_detect() & X264_CPU_SSE2 )
     {
         fprintf( stderr, "\nx264: SSE2 against C\n" );
@@ -778,7 +778,6 @@ int main(int argc, char *argv[])
             ret |= check_all( cpu0, cpu1 );
         }
     }
-#endif
 #elif ARCH_PPC
     if( x264_cpu_detect() & X264_CPU_ALTIVEC )
     {
