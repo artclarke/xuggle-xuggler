@@ -53,6 +53,8 @@ typedef struct x264_t x264_t;
 #define X264_CPU_3DNOW      0x000010    /* 3dnow! */
 #define X264_CPU_3DNOWEXT   0x000020    /* 3dnow! ext */
 #define X264_CPU_ALTIVEC    0x000040    /* altivec */
+#define X264_CPU_SSE3       0x000080    /* sse 3 */
+#define X264_CPU_SSSE3      0x000100    /* ssse 3 */
 
 /* Analyse flags
  */

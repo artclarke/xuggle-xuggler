@@ -32,6 +32,13 @@ void x264_quant_4x4_dc_core15_mmx( int16_t dct[4][4],
 void x264_quant_2x2_dc_core15_mmx( int16_t dct[2][2],
     int const i_qmf, int const i_qbits, int const f );
 
+void x264_quant_8x8_core15_ssse3( int16_t dct[8][8],
+    int quant_mf[8][8], int const i_qbits, int const f );
+void x264_quant_4x4_core15_ssse3( int16_t dct[4][4],
+    int quant_mf[4][4], int const i_qbits, int const f );
+void x264_quant_4x4_dc_core15_ssse3( int16_t dct[4][4],
+    int const i_qmf, int const i_qbits, int const f );
+
 void x264_quant_8x8_core16_mmxext( int16_t dct[8][8],
     int quant_mf[8][8], int const i_qbits, int const f );
 void x264_quant_4x4_core16_mmxext( int16_t dct[4][4],

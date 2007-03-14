@@ -671,6 +671,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
              param->cpu&X264_CPU_MMXEXT ? "MMXEXT " : "",
              param->cpu&X264_CPU_SSE ? "SSE " : "",
              param->cpu&X264_CPU_SSE2 ? "SSE2 " : "",
+             param->cpu&X264_CPU_SSSE3 ? "SSSE3 " : "",
              param->cpu&X264_CPU_3DNOW ? "3DNow! " : "",
              param->cpu&X264_CPU_ALTIVEC ? "Altivec " : "" );
 

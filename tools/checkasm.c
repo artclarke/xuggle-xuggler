@@ -738,6 +738,7 @@ int check_all( int cpu_ref, int cpu_new )
 int main(int argc, char *argv[])
 {
     int ret = 0;
+    int cpu0 = 0, cpu1 = 0;
     int i;
 
     buf1 = x264_malloc( 1024 ); /* 32 x 32 */
@@ -759,13 +760,23 @@ int main(int argc, char *argv[])
 
 #ifdef HAVE_MMXEXT
     fprintf( stderr, "x264: MMXEXT against C\n" );
-    ret = check_all( 0, X264_CPU_MMX | X264_CPU_MMXEXT );
+    cpu1 = X264_CPU_MMX | X264_CPU_MMXEXT;
+    ret = check_all( 0, cpu1 );
 #ifdef HAVE_SSE2
     if( x264_cpu_detect() & X264_CPU_SSE2 )
     {
         fprintf( stderr, "\nx264: SSE2 against C\n" );
-        ret |= check_all( X264_CPU_MMX | X264_CPU_MMXEXT,
-                          X264_CPU_MMX | X264_CPU_MMXEXT | X264_CPU_SSE | X264_CPU_SSE2 );
+        cpu0 = cpu1;
+        cpu1 |= X264_CPU_SSE | X264_CPU_SSE2;
+        ret |= check_all( cpu0, cpu1 );
+
+        if( x264_cpu_detect() & X264_CPU_SSSE3 )
+        {
+            fprintf( stderr, "\nx264: SSSE3 against C\n" );
+            cpu0 = cpu1;
+            cpu1 |= X264_CPU_SSE3 | X264_CPU_SSSE3;
+            ret |= check_all( cpu0, cpu1 );
+        }
     }
 #endif
 #elif ARCH_PPC

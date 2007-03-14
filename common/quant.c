@@ -229,6 +229,11 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 #ifdef HAVE_MMXEXT
 
     /* select quant_8x8 based on CPU and maxQ8 */
+#if defined(ARCH_X86_64) && defined(HAVE_SSE3)
+    if( maxQ8 < (1<<15) && cpu&X264_CPU_SSSE3 )
+        pf->quant_8x8_core = x264_quant_8x8_core15_ssse3;
+    else
+#endif
     if( maxQ8 < (1<<15) && cpu&X264_CPU_MMX )
         pf->quant_8x8_core = x264_quant_8x8_core15_mmx;
     else
@@ -239,6 +244,11 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->quant_8x8_core = x264_quant_8x8_core32_mmxext;
 
     /* select quant_4x4 based on CPU and maxQ4 */
+#if defined(ARCH_X86_64) && defined(HAVE_SSE3)
+    if( maxQ4 < (1<<15) && cpu&X264_CPU_SSSE3 )
+        pf->quant_4x4_core = x264_quant_4x4_core15_ssse3;
+    else
+#endif
     if( maxQ4 < (1<<15) && cpu&X264_CPU_MMX )
         pf->quant_4x4_core = x264_quant_4x4_core15_mmx;
     else
@@ -266,6 +276,11 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->quant_4x4_dc_core = x264_quant_4x4_dc_core32_mmxext;
         pf->quant_2x2_dc_core = x264_quant_2x2_dc_core32_mmxext;
     }
+
+#if defined(ARCH_X86_64) && defined(HAVE_SSE3)
+    if( maxQdc < (1<<15) && cpu&X264_CPU_SSSE3 )
+        pf->quant_4x4_dc_core = x264_quant_4x4_dc_core15_ssse3;
+#endif
 
     if( cpu&X264_CPU_MMX )
     {

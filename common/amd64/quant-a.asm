@@ -45,6 +45,10 @@ cglobal x264_quant_4x4_dc_core15_mmx
 cglobal x264_quant_4x4_core15_mmx
 cglobal x264_quant_8x8_core15_mmx
 
+cglobal x264_quant_4x4_dc_core15_ssse3
+cglobal x264_quant_4x4_core15_ssse3
+cglobal x264_quant_8x8_core15_ssse3
+
 cglobal x264_quant_2x2_dc_core16_mmxext
 cglobal x264_quant_4x4_dc_core16_mmxext
 cglobal x264_quant_4x4_core16_mmxext
@@ -76,6 +80,21 @@ cglobal x264_dequant_8x8_mmx
     punpckldq   mm7, mm7        ; f in each dword
 %endmacro
 
+%macro SSE2_QUANT_AC_START 0
+    movd       xmm6, parm3d     ; i_qbits
+    movd       xmm7, parm4d     ; f
+    pshufd     xmm7, xmm7, 0    ; f in each dword
+%endmacro
+
+%macro SSE2_QUANT15_DC_START 0
+    movd       xmm5, parm2d     ; i_qmf
+    movd       xmm6, parm3d     ; i_qbits
+    movd       xmm7, parm4d     ; f
+    pshuflw    xmm5, xmm5, 0
+    punpcklqdq xmm5, xmm5       ; i_qmf in each word
+    pshufd     xmm7, xmm7, 0    ; f in each dword
+%endmacro
+
 %macro MMX_QUANT15_1x4 4
 ;;; %1      (m64)       dct[y][x]
 ;;; %2      (m64/mmx)   quant_mf[y][x] or quant_mf[0][0] (as int16_t)
@@ -104,7 +123,30 @@ cglobal x264_dequant_8x8_mmx
     packssdw    mm0, mm1    ; pack
     pxor        mm0, mm4    ; restore sign
     psubw       mm0, mm4
-    movq        %1, mm0     ; store
+    movq         %1, mm0    ; store
+%endmacro
+
+%macro SSSE3_QUANT15_1x8 4
+    movdqa     xmm0, %1     ; load dct coeffs
+    movdqa     xmm4, xmm0   ; save sign
+    pabsw      xmm0, xmm0
+
+    movdqa     xmm2, xmm0
+    pmullw     xmm0, %2
+    pmulhw     xmm2, %2
+
+    movdqa     xmm1, xmm0
+    punpcklwd  xmm0, xmm2
+    punpckhwd  xmm1, xmm2
+
+    paddd      xmm0, %4     ; round with f
+    paddd      xmm1, %4
+    psrad      xmm0, %3
+    psrad      xmm1, %3
+
+    packssdw   xmm0, xmm1   ; pack
+    psignw     xmm0, xmm4   ; restore sign
+    movdqa       %1, xmm0   ; store
 %endmacro
 
 ALIGN 16
@@ -167,6 +209,52 @@ x264_quant_8x8_core15_mmx:
 %endrep
 
     ret
+
+%ifdef HAVE_SSE3
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   void x264_quant_4x4_dc_core15_ssse3( int16_t dct[4][4],
+;       int const i_qmf, int const i_qbits, int const f );
+;-----------------------------------------------------------------------------
+x264_quant_4x4_dc_core15_ssse3:
+    SSE2_QUANT15_DC_START
+    SSSE3_QUANT15_1x8 [parm1q], xmm5, xmm6, xmm7
+    SSSE3_QUANT15_1x8 [parm1q+16], xmm5, xmm6, xmm7
+    ret
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   void x264_quant_4x4_core15_ssse3( int16_t dct[4][4],
+;       int const quant_mf[4][4], int const i_qbits, int const f );
+;-----------------------------------------------------------------------------
+x264_quant_4x4_core15_ssse3:
+    SSE2_QUANT_AC_START
+%assign x 0
+%rep 2
+    movdqa      xmm5, [parm2q+32*x]
+    packssdw    xmm5, [parm2q+32*x+16]
+    SSSE3_QUANT15_1x8 [parm1q+16*x], xmm5, xmm6, xmm7
+    %assign x x+1
+%endrep
+    ret
+
+ALIGN 16
+;-----------------------------------------------------------------------------
+;   void x264_quant_8x8_core15_ssse3( int16_t dct[8][8],
+;       int const quant_mf[8][8], int const i_qbits, int const f );
+;-----------------------------------------------------------------------------
+x264_quant_8x8_core15_ssse3:
+    SSE2_QUANT_AC_START
+%assign x 0
+%rep 8
+    movdqa      xmm5, [parm2q+32*x]
+    packssdw    xmm5, [parm2q+32*x+16]
+    SSSE3_QUANT15_1x8 [parm1q+16*x], xmm5, xmm6, xmm7
+    %assign x x+1
+%endrep
+    ret
+%endif ; HAVE_SSE3
+
 
 ; ============================================================================
 
