@@ -43,8 +43,10 @@ endif
 
 # AltiVec optims
 ifeq ($(ARCH),PPC)
-SRCS += common/ppc/mc.c common/ppc/pixel.c common/ppc/dct.c \
-	common/ppc/quant.c
+ALTIVECSRC += common/ppc/mc.c common/ppc/pixel.c common/ppc/dct.c \
+              common/ppc/quant.c
+SRCS += $(ALTIVECSRC)
+$(ALTIVECSRC:%.c=%.o): CFLAGS += $(ALTIVECFLAGS)
 endif
 
 # VIS optims

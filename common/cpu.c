@@ -132,9 +132,43 @@ uint32_t x264_cpu_detect( void )
 }
 
 #elif defined( SYS_LINUX )
+#include <signal.h>
+#include <setjmp.h>
+static sigjmp_buf jmpbuf;
+static volatile sig_atomic_t canjump = 0;
+
+static void sigill_handler( int sig )
+{
+    if( !canjump )
+    {
+        signal( sig, SIG_DFL );
+        raise( sig );
+    }
+
+    canjump = 0;
+    siglongjmp( jmpbuf, 1 );
+}
+
 uint32_t x264_cpu_detect( void )
 {
-    /* FIXME (Linux PPC) */
+    static void (* oldsig)( int );
+
+    oldsig = signal( SIGILL, sigill_handler );
+    if( sigsetjmp( jmpbuf, 1 ) )
+    {
+        signal( SIGILL, oldsig );
+        return 0;
+    }
+
+    canjump = 1;
+    asm volatile( "mtspr 256, %0\n\t"
+                  "vand 0, 0, 0\n\t"
+                  :
+                  : "r"(-1) );
+    canjump = 0;
+
+    signal( SIGILL, oldsig );
+
     return X264_CPU_ALTIVEC;
 }
 #endif

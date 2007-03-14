@@ -161,9 +161,9 @@ case "${MACHINE%%-*}" in
     ARCH="PPC"
     if [ $SYS = MACOSX ]
     then
-      CFLAGS="$CFLAGS -faltivec -fastf -mcpu=G4"
+      ALTIVECFLAGS="$ALTIVECFLAGS -faltivec -fastf -mcpu=G4"
     else
-      CFLAGS="$CFLAGS -maltivec -mabi=altivec"
+      ALTIVECFLAGS="$ALTIVECFLAGS -maltivec -mabi=altivec"
     fi
     ;;
   sparc)
@@ -385,6 +385,7 @@ ARCH=$ARCH
 SYS=$SYS
 CC=$CC
 CFLAGS=$CFLAGS
+ALTIVECFLAGS=$ALTIVECFLAGS
 LDFLAGS=$LDFLAGS
 AS=$AS
 ASFLAGS=$ASFLAGS
