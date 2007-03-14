@@ -18,6 +18,20 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 *****************************************************************************/
 
+#if defined SYS_LINUX
+#include <altivec.h>
+#endif
+
+typedef union {
+  unsigned int s[4];
+  vector unsigned int v;
+} vect_int_u;
+
+typedef union {
+  unsigned short s[8];
+  vector unsigned short v;
+} vect_ushort_u;
+
 #include "common/common.h"
 #include "ppccommon.h"
 #include "quant.h"            

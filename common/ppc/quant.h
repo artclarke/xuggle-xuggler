@@ -18,26 +18,8 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 *****************************************************************************/
 
-#if defined SYS_LINUX && defined NEED_ALTIVEC
-#include <altivec.h>
-#endif
-
 #ifndef _PPC_QUANT_H
 #define _PPC_QUANT_H 1
-
-typedef union {
-  unsigned int s[4];
-#if defined NEED_ALTIVEC
-  vector unsigned int v;
-#endif
-} vect_int_u;
-
-typedef union {
-  unsigned short s[8];
-#if defined NEED_ALTIVEC
-  vector unsigned short v;
-#endif
-} vect_ushort_u;
 
 void x264_quant_4x4_altivec( int16_t dct[4][4], int quant_mf[4][4], int const i_qbits, int const f );
 void x264_quant_8x8_altivec( int16_t dct[8][8], int quant_mf[8][8], int const i_qbits, int const f );
