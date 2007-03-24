@@ -46,8 +46,8 @@
 #include "x264.h"
 #include "muxers.h"
 
-#define DATA_MAX 3000000
-uint8_t data[DATA_MAX];
+uint8_t *mux_buffer = NULL;
+int mux_buffer_size = 0;
 
 /* Ctrl-C handler */
 static int     b_ctrl_c = 0;
@@ -729,17 +729,17 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
     for( i = 0; i < i_nal; i++ )
     {
         int i_size;
-        int i_data;
 
-        i_data = DATA_MAX;
-        if( ( i_size = x264_nal_encode( data, &i_data, 1, &nal[i] ) ) > 0 )
+        if( mux_buffer_size < nal[i].i_payload * 3/2 + 4 )
         {
-            i_file += p_write_nalu( hout, data, i_size );
+            mux_buffer_size = nal[i].i_payload * 2 + 4;
+            x264_free( mux_buffer );
+            mux_buffer = x264_malloc( mux_buffer_size );
         }
-        else if( i_size < 0 )
-        {
-            fprintf( stderr, "x264 [error]: need to increase buffer size (size=%d)\n", -i_size );
-        }
+
+        i_size = mux_buffer_size;
+        x264_nal_encode( mux_buffer, &i_size, 1, &nal[i] );
+        i_file += p_write_nalu( hout, mux_buffer, i_size );
     }
     if (i_nal)
         p_set_eop( hout, &pic_out );
