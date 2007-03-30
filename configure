@@ -64,7 +64,7 @@ vis="no"
 shared="no"
 
 CC="${CC-gcc}"
-CFLAGS="$CFLAGS -Wall -I. -D__X264__"
+CFLAGS="$CFLAGS -Wall -I."
 LDFLAGS="$LDFLAGS"
 HAVE_GETOPT_LONG=1
 
