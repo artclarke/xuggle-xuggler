@@ -37,6 +37,7 @@ typedef struct
                     int mvx, int mvy,
                     int i_width, int i_height );
 
+    /* may round up the dimensions if they're not a power of 2 */
     uint8_t* (*get_ref)(uint8_t **, int, uint8_t *, int *,
                         int mvx, int mvy,
                         int i_width, int i_height );

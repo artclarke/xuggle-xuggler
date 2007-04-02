@@ -78,6 +78,11 @@ BITS 64
 %define parm7d dword parm7q
 %define parm8d dword parm8q
 
+%define temp1q rdi
+%define temp2q rsi
+%define temp1d edi
+%define temp2d esi
+
 %macro firstpush 1
     db 0x48
     push %1
@@ -233,6 +238,11 @@ SECTION .text
 %define parm6d r9d
 %define parm7d dword parm7q
 %define parm8d dword parm8q
+
+%define temp1q r9
+%define temp2q r8
+%define temp1d r9d
+%define temp2d r8d
 
 %macro allocstack 1
 %endmacro

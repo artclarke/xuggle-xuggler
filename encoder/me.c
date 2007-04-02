@@ -586,7 +586,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     const int i_pixel = m->i_pixel;
     const int b_chroma_me = h->mb.b_chroma_me && i_pixel <= PIXEL_8x8;
 
-    DECLARE_ALIGNED( uint8_t, pix[4][16*16], 16 );
+    DECLARE_ALIGNED( uint8_t, pix[2][32*18], 16 ); // really 17x17, but round up for alignment
     int omx, omy;
     int i;
 
@@ -610,20 +610,12 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     {
         int omx = bmx, omy = bmy;
         int costs[4];
-        int stride = 16; // candidates are either all hpel or all qpel, so one stride is enough
+        int stride = 32; // candidates are either all hpel or all qpel, so one stride is enough
         uint8_t *src0, *src1, *src2, *src3;
-        src0 = h->mc.get_ref( m->p_fref, m->i_stride[0], pix[0], &stride, omx, omy-2, bw, bh );
-        src2 = h->mc.get_ref( m->p_fref, m->i_stride[0], pix[2], &stride, omx-2, omy, bw, bh );
-        if( (omx|omy)&1 )
-        {
-            src1 = h->mc.get_ref( m->p_fref, m->i_stride[0], pix[1], &stride, omx, omy+2, bw, bh );
-            src3 = h->mc.get_ref( m->p_fref, m->i_stride[0], pix[3], &stride, omx+2, omy, bw, bh );
-        }
-        else
-        {
-            src1 = src0 + stride;
-            src3 = src2 + 1;
-        }
+        src0 = h->mc.get_ref( m->p_fref, m->i_stride[0], pix[0], &stride, omx, omy-2, bw, bh+1 );
+        src2 = h->mc.get_ref( m->p_fref, m->i_stride[0], pix[1], &stride, omx-2, omy, bw+4, bh );
+        src1 = src0 + stride;
+        src3 = src2 + 1;
         h->pixf.sad_x4[i_pixel]( m->p_fenc[0], src0, src1, src2, src3, stride, costs );
         COPY2_IF_LT( bcost, costs[0] + p_cost_mvx[omx  ] + p_cost_mvy[omy-2], bmy, omy-2 );
         COPY2_IF_LT( bcost, costs[1] + p_cost_mvx[omx  ] + p_cost_mvy[omy+2], bmy, omy+2 );

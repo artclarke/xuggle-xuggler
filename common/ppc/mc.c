@@ -224,10 +224,19 @@ uint8_t *get_ref_altivec( uint8_t *src[4], int i_src_stride,
             pixel_avg_w8( dst, *i_dst_stride, src1, i_src_stride,
                           src2, i_src_stride, i_height );
             break;
+        case 12:
         case 16:
         default:
             pixel_avg_w16( dst, *i_dst_stride, src1, i_src_stride,
                           src2, i_src_stride, i_height );
+            break;
+        case 20:
+            //FIXME suboptimal
+            pixel_avg_w16( dst, *i_dst_stride, src1, i_src_stride,
+                          src2, i_src_stride, i_height );
+            pixel_avg_w4( dst+16, *i_dst_stride, src1+16, i_src_stride,
+                          src2+16, i_src_stride, i_height );
+            break;
         }
         return dst;
 
