@@ -226,7 +226,7 @@ typedef struct
         int          i_noise_reduction; /* adaptive pseudo-deadzone */
 
         /* the deadzone size that will be used in luma quantization */
-        int          i_luma_deadzone[2]; // {inter, intra}
+        int          i_luma_deadzone[2]; /* {inter, intra} */
 
         int          b_psnr;    /* compute and print PSNR stats */
         int          b_ssim;    /* compute and print SSIM stats */
@@ -275,17 +275,17 @@ typedef struct
 
 typedef struct {
     int level_idc;
-    int mbps;        // max macroblock processing rate (macroblocks/sec)
-    int frame_size;  // max frame size (macroblocks)
-    int dpb;         // max decoded picture buffer (bytes)
-    int bitrate;     // max bitrate (kbit/sec)
-    int cpb;         // max vbv buffer (kbit)
-    int mv_range;    // max vertical mv component range (pixels)
-    int mvs_per_2mb; // max mvs per 2 consecutive mbs.
-    int slice_rate;  // ??
-    int bipred8x8;   // limit bipred to >=8x8
-    int direct8x8;   // limit b_direct to >=8x8
-    int frame_only;  // forbid interlacing
+    int mbps;        /* max macroblock processing rate (macroblocks/sec) */
+    int frame_size;  /* max frame size (macroblocks) */
+    int dpb;         /* max decoded picture buffer (bytes) */
+    int bitrate;     /* max bitrate (kbit/sec) */
+    int cpb;         /* max vbv buffer (kbit) */
+    int mv_range;    /* max vertical mv component range (pixels) */
+    int mvs_per_2mb; /* max mvs per 2 consecutive mbs. */
+    int slice_rate;  /* ?? */
+    int bipred8x8;   /* limit bipred to >=8x8 */
+    int direct8x8;   /* limit b_direct to >=8x8 */
+    int frame_only;  /* forbid interlacing */
 } x264_level_t;
 
 /* all of the levels defined in the standard, terminated by .level_idc=0 */
