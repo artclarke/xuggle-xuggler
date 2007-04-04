@@ -28,25 +28,6 @@
 #include "macroblock.h"
 
 
-/* def_quant4_mf only for probe_skip; actual encoding uses matrices from set.c */
-/* FIXME this seems to make better decisions with cqm=jvt, but could screw up
- * with general custom matrices. */
-static const DECLARE_ALIGNED ( int, def_quant4_mf[6][4][4], 16) =
-{
-    { { 13107, 8066, 13107, 8066 }, { 8066, 5243, 8066, 5243 },
-      { 13107, 8066, 13107, 8066 }, { 8066, 5243, 8066, 5243 } },
-    { { 11916, 7490, 11916, 7490 }, { 7490, 4660, 7490, 4660 },
-      { 11916, 7490, 11916, 7490 }, { 7490, 4660, 7490, 4660 } },
-    { { 10082, 6554, 10082, 6554 }, { 6554, 4194, 6554, 4194 },
-      { 10082, 6554, 10082, 6554 }, { 6554, 4194, 6554, 4194 } },
-    { {  9362, 5825,  9362, 5825 }, { 5825, 3647, 5825, 3647 },
-      {  9362, 5825,  9362, 5825 }, { 5825, 3647, 5825, 3647 } },
-    { {  8192, 5243,  8192, 5243 }, { 5243, 3355, 5243, 3355 },
-      {  8192, 5243,  8192, 5243 }, { 5243, 3355, 5243, 3355 } },
-    { {  7282, 4559,  7282, 4559 }, { 4559, 2893, 4559, 2893 },
-      {  7282, 4559,  7282, 4559 }, { 4559, 2893, 4559, 2893 } }
-};
-
 #define ZIG(i,y,x) level[i] = dct[x][y];
 static inline void zigzag_scan_2x2_dc( int level[4], int16_t dct[2][2] )
 {
@@ -692,7 +673,7 @@ int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
         {
             const int idx = i8x8 * 4 + i4x4;
 
-            quant_4x4( h, dct4x4[idx], (int(*)[4][4])def_quant4_mf, i_qp, 0 );
+            quant_4x4( h, dct4x4[idx], h->quant4_mf[CQM_4PY], i_qp, 0 );
             h->zigzagf.scan_4x4( dctscan, dct4x4[idx] );
 
             i_decimate_mb += x264_mb_decimate_score( dctscan, 16 );
@@ -728,7 +709,7 @@ int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
         dct2x2[1][0] = dct4x4[2][0][0];
         dct2x2[1][1] = dct4x4[3][0][0];
         h->dctf.dct2x2dc( dct2x2 );
-        quant_2x2_dc( h, dct2x2, (int(*)[4][4])def_quant4_mf, i_qp, 0 );
+        quant_2x2_dc( h, dct2x2, h->quant4_mf[CQM_4PC], i_qp, 0 );
         if( dct2x2[0][0] || dct2x2[0][1] || dct2x2[1][0] || dct2x2[1][1]  )
         {
             /* can't be */
@@ -738,7 +719,7 @@ int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
         /* calculate dct coeffs */
         for( i4x4 = 0, i_decimate_mb = 0; i4x4 < 4; i4x4++ )
         {
-            quant_4x4_chroma( h, dct4x4[i4x4], (int(*)[4][4])def_quant4_mf, i_qp, 0 );
+            quant_4x4_chroma( h, dct4x4[i4x4], h->quant4_mf[CQM_4PC], i_qp, 0 );
             h->zigzagf.scan_4x4ac( dctscan, dct4x4[i4x4] );
 
             i_decimate_mb += x264_mb_decimate_score( dctscan, 15 );
