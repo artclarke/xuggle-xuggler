@@ -148,7 +148,7 @@ int x264_cqm_init( x264_t *h )
         for( i_list = 0; i_list < 4; i_list++ )
             for( i = 0; i < 16; i++ )
             {
-                h->unquant4_mf[i_list][q][i] = (1 << (q/6 + 15 + 8)) / quant4_mf[i_list][q%6][0][i];
+                h->unquant4_mf[i_list][q][i] = (1ULL << (q/6 + 15 + 8)) / quant4_mf[i_list][q%6][0][i];
                 h->  quant4_mf[i_list][q][i] = j = SHIFT(quant4_mf[i_list][q%6][0][i], q/6 - 1);
                 // round to nearest, unless that would cause the deadzone to be negative
                 h->quant4_bias[i_list][q][i] = X264_MIN( DIV(deadzone[i_list]<<10, j), (1<<15)/j );
@@ -159,7 +159,7 @@ int x264_cqm_init( x264_t *h )
         for( i_list = 0; i_list < 2; i_list++ )
             for( i = 0; i < 64; i++ )
             {
-                h->unquant8_mf[i_list][q][i] = (1 << (q/6 + 16 + 8)) / quant8_mf[i_list][q%6][0][i];
+                h->unquant8_mf[i_list][q][i] = (1ULL << (q/6 + 16 + 8)) / quant8_mf[i_list][q%6][0][i];
                 h->  quant8_mf[i_list][q][i] = j = SHIFT(quant8_mf[i_list][q%6][0][i], q/6);
                 h->quant8_bias[i_list][q][i] = X264_MIN( DIV(deadzone[i_list]<<10, j), (1<<15)/j );
                 if( j > 0xffff && q > max_qp_err )
