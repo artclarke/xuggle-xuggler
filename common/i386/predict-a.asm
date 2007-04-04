@@ -69,22 +69,6 @@ pw_3210:
 
 SECTION .text
 
-cglobal predict_8x8_v_mmxext
-cglobal predict_8x8_dc_mmxext
-cglobal predict_8x8_dc_top_mmxext
-cglobal predict_8x8_dc_left_mmxext
-cglobal predict_8x8_ddl_mmxext
-cglobal predict_8x8_ddr_mmxext
-cglobal predict_8x8_vr_core_mmxext
-cglobal predict_8x8c_v_mmx
-cglobal predict_8x8c_dc_core_mmxext
-cglobal predict_8x8c_p_core_mmxext
-cglobal predict_16x16_p_core_mmxext
-cglobal predict_16x16_v_mmx
-cglobal predict_16x16_dc_core_mmxext
-cglobal predict_16x16_dc_top_mmxext
-
-
 ; dest, left, right, src, tmp
 ; output: %1 = (t[n-1] + t[n]*2 + t[n+1] + 2) >> 2
 %macro PRED8x8_LOWPASS 5
@@ -101,9 +85,7 @@ cglobal predict_16x16_dc_top_mmxext
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_v_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-
-ALIGN 16
-predict_8x8_v_mmxext:
+cglobal predict_8x8_v_mmxext
     mov         eax, [esp+8]
     mov         edx, [esp+4]
     movq        mm0, [eax+16]
@@ -113,9 +95,7 @@ predict_8x8_v_mmxext:
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_dc_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-
-ALIGN 16
-predict_8x8_dc_mmxext:
+cglobal predict_8x8_dc_mmxext
     picpush     ebx
     picgetgot   ebx
     mov         eax, [picesp + 8]
@@ -137,8 +117,7 @@ predict_8x8_dc_mmxext:
 ; void predict_8x8_top_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
 %macro PRED8x8_DC 2
-ALIGN 16
-%1:
+cglobal %1
     picpush     ebx
     picgetgot   ebx
     mov         eax, [picesp + 8]
@@ -160,9 +139,7 @@ PRED8x8_DC predict_8x8_dc_left_mmxext, 7
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_ddl_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-
-ALIGN 16
-predict_8x8_ddl_mmxext:
+cglobal predict_8x8_ddl_mmxext
     picpush     ebx
     picgetgot   ebx
     mov         eax, [picesp + 8]
@@ -197,9 +174,7 @@ predict_8x8_ddl_mmxext:
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_ddr_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-
-ALIGN 16
-predict_8x8_ddr_mmxext:
+cglobal predict_8x8_ddr_mmxext
     picpush     ebx
     picgetgot   ebx
     mov         eax, [picesp + 8]
@@ -246,8 +221,7 @@ predict_8x8_ddr_mmxext:
 ; 6   .....
 ; 7   ,,,,,
 
-ALIGN 16
-predict_8x8_vr_core_mmxext:
+cglobal predict_8x8_vr_core_mmxext
     picpush     ebx
     picgetgot   ebx
     mov         eax, [picesp + 8]
@@ -276,9 +250,7 @@ predict_8x8_vr_core_mmxext:
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_v_mmx( uint8_t *src )
 ;-----------------------------------------------------------------------------
-
-ALIGN 16
-predict_8x8c_v_mmx :
+cglobal predict_8x8c_v_mmx 
     mov         edx, [esp + 4]
     movq        mm0, [edx - FDEC_STRIDE]
     STORE8x8    mm0, mm0
@@ -287,9 +259,7 @@ predict_8x8c_v_mmx :
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_dc_core_mmxext( uint8_t *src, int s2, int s3 )
 ;-----------------------------------------------------------------------------
-
-ALIGN 16
-predict_8x8c_dc_core_mmxext:
+cglobal predict_8x8c_dc_core_mmxext
     picpush     ebx
     picgetgot   ebx
 
@@ -326,9 +296,7 @@ predict_8x8c_dc_core_mmxext:
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_p_core_mmxext( uint8_t *src, int i00, int b, int c )
 ;-----------------------------------------------------------------------------
-
-ALIGN 16
-predict_8x8c_p_core_mmxext:
+cglobal predict_8x8c_p_core_mmxext
     picpush     ebx
     picgetgot   ebx
 
@@ -366,10 +334,7 @@ ALIGN 4
 ;-----------------------------------------------------------------------------
 ; void predict_16x16_p_core_mmxext( uint8_t *src, int i00, int b, int c )
 ;-----------------------------------------------------------------------------
-
-ALIGN 16
-predict_16x16_p_core_mmxext:
-
+cglobal predict_16x16_p_core_mmxext
     picpush     ebx
     picgetgot   ebx
 
@@ -421,10 +386,7 @@ ALIGN 4
 ;-----------------------------------------------------------------------------
 ; void predict_16x16_v_mmx( uint8_t *src )
 ;-----------------------------------------------------------------------------
-
-ALIGN 16
-predict_16x16_v_mmx :
-
+cglobal predict_16x16_v_mmx 
     mov         edx, [esp + 4]
     mov         ecx, FDEC_STRIDE
     sub         edx, ecx                ; edx <-- line -1
@@ -490,13 +452,11 @@ ALIGN 4
     pop         edi
 %endmacro
 
-ALIGN 16
-predict_16x16_dc_core_mmxext:
+cglobal predict_16x16_dc_core_mmxext
     PRED16x16_DC [esp+8], 5, esp
     ret
 
-ALIGN 16
-predict_16x16_dc_top_mmxext:
+cglobal predict_16x16_dc_top_mmxext
     picpush ebx
     picgetgot ebx
     PRED16x16_DC [pw_8 GOT_ebx], 4, picesp

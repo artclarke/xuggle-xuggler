@@ -94,16 +94,11 @@ pw_32: times 4 dw 32
 
 SECTION .text
 
-cglobal x264_hpel_filter_mmxext
-cglobal x264_plane_copy_mmxext
-
 ;-----------------------------------------------------------------------------
 ; void x264_hpel_filter_mmxext( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
 ;                               int i_stride, int i_width, int i_height );
 ;-----------------------------------------------------------------------------
-
-ALIGN 16
-x264_hpel_filter_mmxext :
+cglobal x264_hpel_filter_mmxext
 
 %ifdef WIN64
     push        rdi
@@ -276,8 +271,7 @@ ALIGN 16
 ; void x264_plane_copy_mmxext( uint8_t *dst, int i_dst,
 ;                              uint8_t *src, int i_src, int w, int h)
 ;-----------------------------------------------------------------------------
-ALIGN 16
-x264_plane_copy_mmxext:
+cglobal x264_plane_copy_mmxext
     movsxd parm2q, parm2d
     movsxd parm4q, parm4d
     add    parm5d, 3

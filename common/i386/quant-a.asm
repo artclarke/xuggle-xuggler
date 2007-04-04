@@ -40,24 +40,6 @@ pd_1:  times 2 dd 1
 
 SECTION .text
 
-cglobal x264_quant_2x2_dc_core15_mmx
-cglobal x264_quant_4x4_dc_core15_mmx
-cglobal x264_quant_4x4_core15_mmx
-cglobal x264_quant_8x8_core15_mmx
-
-cglobal x264_quant_2x2_dc_core16_mmxext
-cglobal x264_quant_4x4_dc_core16_mmxext
-cglobal x264_quant_4x4_core16_mmxext
-cglobal x264_quant_8x8_core16_mmxext
-
-cglobal x264_quant_2x2_dc_core32_mmxext
-cglobal x264_quant_4x4_dc_core32_mmxext
-cglobal x264_quant_4x4_core32_mmxext
-cglobal x264_quant_8x8_core32_mmxext
-
-cglobal x264_dequant_4x4_mmx
-cglobal x264_dequant_8x8_mmx
-
 %macro MMX_QUANT_AC_START 0
     mov         eax, [esp+ 4]   ; &dct[0][0]
     mov         ecx, [esp+ 8]   ; &quant_mf[0][0]
@@ -107,22 +89,20 @@ cglobal x264_dequant_8x8_mmx
     movq        %1, mm0     ; store
 %endmacro
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_quant_2x2_dc_core15_mmx( int16_t dct[2][2],
 ;       int const i_qmf, int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
-x264_quant_2x2_dc_core15_mmx:
+cglobal x264_quant_2x2_dc_core15_mmx
     MMX_QUANT15_DC_START
     MMX_QUANT15_1x4 [eax], mm5, mm6, mm7
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_quant_4x4_dc_core15_mmx( int16_t dct[4][4],
 ;       int const i_qmf, int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
-x264_quant_4x4_dc_core15_mmx:
+cglobal x264_quant_4x4_dc_core15_mmx
     MMX_QUANT15_DC_START
 
 %rep 4
@@ -132,12 +112,11 @@ x264_quant_4x4_dc_core15_mmx:
 
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_quant_4x4_core15_mmx( int16_t dct[4][4],
 ;       int const quant_mf[4][4], int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
-x264_quant_4x4_core15_mmx:
+cglobal x264_quant_4x4_core15_mmx
     MMX_QUANT_AC_START
 
 %rep 4
@@ -150,12 +129,11 @@ x264_quant_4x4_core15_mmx:
 
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_quant_8x8_core15_mmx( int16_t dct[8][8],
 ;       int const quant_mf[8][8], int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
-x264_quant_8x8_core15_mmx:
+cglobal x264_quant_8x8_core15_mmx
     MMX_QUANT_AC_START
 
 %rep 16
@@ -210,22 +188,20 @@ x264_quant_8x8_core15_mmx:
     movq        %1, mm0     ; store
 %endmacro
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_quant_2x2_dc_core16_mmxext( int16_t dct[2][2],
 ;       int const i_qmf, int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
-x264_quant_2x2_dc_core16_mmxext:
+cglobal x264_quant_2x2_dc_core16_mmxext
     MMXEXT_QUANT16_DC_START
     MMXEXT_QUANT16_1x4 [eax], mm5, mm6, mm7
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_quant_4x4_dc_core16_mmxext( int16_t dct[4][4],
 ;       int const i_qmf, int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
-x264_quant_4x4_dc_core16_mmxext:
+cglobal x264_quant_4x4_dc_core16_mmxext
     MMXEXT_QUANT16_DC_START
 
 %rep 4
@@ -235,12 +211,11 @@ x264_quant_4x4_dc_core16_mmxext:
 
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_quant_4x4_core16_mmxext( int16_t dct[4][4],
 ;       int const quant_mf[4][4], int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
-x264_quant_4x4_core16_mmxext:
+cglobal x264_quant_4x4_core16_mmxext
     MMX_QUANT_AC_START
 
 %rep 4
@@ -254,12 +229,11 @@ x264_quant_4x4_core16_mmxext:
 
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_quant_8x8_core16_mmxext( int16_t dct[8][8],
 ;       int const quant_mf[8][8], int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
-x264_quant_8x8_core16_mmxext:
+cglobal x264_quant_8x8_core16_mmxext
     MMX_QUANT_AC_START
 
 %rep 16
@@ -321,22 +295,20 @@ x264_quant_8x8_core16_mmxext:
     movq        %1, mm0     ; store
 %endmacro
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_quant_2x2_dc_core32_mmxext( int16_t dct[2][2],
 ;       int const i_qmf, int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
-x264_quant_2x2_dc_core32_mmxext:
+cglobal x264_quant_2x2_dc_core32_mmxext
     MMX_QUANT32_DC_START
     MMXEXT_QUANT32_1x4 [eax], mm5, mm5, mm6, mm7
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_quant_4x4_dc_core32_mmxext( int16_t dct[4][4],
 ;       int const i_qmf, int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
-x264_quant_4x4_dc_core32_mmxext:
+cglobal x264_quant_4x4_dc_core32_mmxext
     MMX_QUANT32_DC_START
 
 %rep 4
@@ -346,12 +318,11 @@ x264_quant_4x4_dc_core32_mmxext:
 
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_quant_4x4_core32_mmxext( int16_t dct[4][4],
 ;       int const quant_mf[4][4], int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
-x264_quant_4x4_core32_mmxext:
+cglobal x264_quant_4x4_core32_mmxext
     MMX_QUANT_AC_START
 
 %rep 4
@@ -362,12 +333,11 @@ x264_quant_4x4_core32_mmxext:
 
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_quant_8x8_core32_mmxext( int16_t dct[8][8],
 ;       int const quant_mf[8][8], int const i_qbits, int const f );
 ;-----------------------------------------------------------------------------
-x264_quant_8x8_core32_mmxext:
+cglobal x264_quant_8x8_core32_mmxext
     MMX_QUANT_AC_START
 
 %rep 16
@@ -445,10 +415,11 @@ x264_quant_8x8_core32_mmxext:
     movq      %1,  mm0
 %endmacro
 
+;-----------------------------------------------------------------------------
+; void x264_dequant_4x4_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
+;-----------------------------------------------------------------------------
 %macro DEQUANT_WxH 3
-ALIGN 16
-;;; void x264_dequant_4x4_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
-%1:
+cglobal %1
     mov  edx, [esp+12] ; i_qp
     imul eax, edx, 0x2b
     shr  eax, 8       ; i_qbits = i_qp / 6

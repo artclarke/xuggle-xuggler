@@ -30,12 +30,6 @@ pb_03: times 16 db 0x03
 pb_a1: times 16 db 0xa1
 
 SECTION .text
-cglobal x264_deblock_v_luma_sse2
-cglobal x264_deblock_h_luma_sse2
-cglobal x264_deblock_v_chroma_mmxext
-cglobal x264_deblock_h_chroma_mmxext
-cglobal x264_deblock_v_chroma_intra_mmxext
-cglobal x264_deblock_h_chroma_intra_mmxext
 
 ; expands to [base],...,[base+7*stride]
 %define PASS8ROWS(base, base3, stride, stride3) \
@@ -267,11 +261,10 @@ cglobal x264_deblock_h_chroma_intra_mmxext
 
 
 SECTION .text
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void x264_deblock_v_luma_sse2( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
-x264_deblock_v_luma_sse2:
+cglobal x264_deblock_v_luma_sse2
     ; rdi = pix
     movsxd rsi, esi ; stride
     dec    edx      ; alpha-1
@@ -317,11 +310,10 @@ x264_deblock_v_luma_sse2:
 
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void x264_deblock_h_luma_sse2( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
-x264_deblock_h_luma_sse2:
+cglobal x264_deblock_h_luma_sse2
     movsxd r10, esi
     lea    r11, [r10+r10*2]
     lea    rax, [rdi-4]
@@ -383,11 +375,10 @@ x264_deblock_h_luma_sse2:
     add    rdi, r9
 %endmacro
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void x264_deblock_v_chroma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
-x264_deblock_v_chroma_mmxext:
+cglobal x264_deblock_v_chroma_mmxext
     CHROMA_V_START
 
     movq  mm0, [rax]
@@ -406,11 +397,10 @@ x264_deblock_v_chroma_mmxext:
     ret
 
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void x264_deblock_h_chroma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
-x264_deblock_h_chroma_mmxext:
+cglobal x264_deblock_h_chroma_mmxext
     CHROMA_H_START
 
     TRANSPOSE4x8_LOAD  PASS8ROWS(rax, rdi, rsi, r9)
@@ -454,11 +444,10 @@ x264_deblock_h_chroma_mmxext:
     paddb  mm2, mm6
 %endmacro
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void x264_deblock_v_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
-x264_deblock_v_chroma_intra_mmxext:
+cglobal x264_deblock_v_chroma_intra_mmxext
     CHROMA_V_START
 
     movq  mm0, [rax]
@@ -472,11 +461,10 @@ x264_deblock_v_chroma_intra_mmxext:
     movq  [rdi], mm2
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void x264_deblock_h_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
-x264_deblock_h_chroma_intra_mmxext:
+cglobal x264_deblock_h_chroma_intra_mmxext
     CHROMA_H_START
     TRANSPOSE4x8_LOAD  PASS8ROWS(rax, rdi, rsi, r9)
     CHROMA_INTRA_BODY

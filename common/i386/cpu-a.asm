@@ -35,15 +35,10 @@ BITS 32
 
 SECTION .text
 
-cglobal x264_cpu_cpuid_test
-cglobal x264_cpu_cpuid
-cglobal x264_emms
-
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int __cdecl x264_cpu_cpuid_test( void ) return 0 if unsupported
 ;-----------------------------------------------------------------------------
-x264_cpu_cpuid_test:
+cglobal x264_cpu_cpuid_test
     pushfd
     push    ebx
     push    ebp
@@ -67,11 +62,10 @@ x264_cpu_cpuid_test:
     popfd
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int __cdecl x264_cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
 ;-----------------------------------------------------------------------------
-x264_cpu_cpuid:
+cglobal x264_cpu_cpuid
 
     push    ebp
     mov     ebp,    esp
@@ -100,11 +94,10 @@ x264_cpu_cpuid:
     pop     ebp
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_emms( void )
 ;-----------------------------------------------------------------------------
-x264_emms:
+cglobal x264_emms
     emms
     ret
 

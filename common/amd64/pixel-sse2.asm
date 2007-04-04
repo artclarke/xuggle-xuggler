@@ -40,30 +40,6 @@ mask_ff: times 16 db 0xff
 
 SECTION .text
 
-
-cglobal x264_pixel_sad_16x16_sse2
-cglobal x264_pixel_sad_16x8_sse2
-cglobal x264_pixel_ssd_16x16_sse2
-cglobal x264_pixel_ssd_16x8_sse2
-cglobal x264_pixel_satd_8x4_sse2
-cglobal x264_pixel_satd_8x8_sse2
-cglobal x264_pixel_satd_16x8_sse2
-cglobal x264_pixel_satd_8x16_sse2
-cglobal x264_pixel_satd_16x16_sse2
-cglobal x264_pixel_satd_8x4_ssse3
-cglobal x264_pixel_satd_8x8_ssse3
-cglobal x264_pixel_satd_16x8_ssse3
-cglobal x264_pixel_satd_8x16_ssse3
-cglobal x264_pixel_satd_16x16_ssse3
-cglobal x264_pixel_sa8d_8x8_sse2
-cglobal x264_pixel_sa8d_16x16_sse2
-cglobal x264_pixel_sa8d_8x8_ssse3
-cglobal x264_pixel_sa8d_16x16_ssse3
-cglobal x264_intra_sa8d_x3_8x8_core_sse2
-cglobal x264_pixel_ssim_4x4x2_core_sse2
-cglobal x264_pixel_ssim_end4_sse2
-
-
 %macro HADDD 2 ; sum junk
     movhlps %2, %1
     paddd   %1, %2
@@ -103,11 +79,10 @@ cglobal x264_pixel_ssim_end4_sse2
     ret
 %endmacro
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int x264_pixel_sad_16x16_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-x264_pixel_sad_16x16_sse2:
+cglobal x264_pixel_sad_16x16_sse2
     movdqu xmm0, [rdx]
     movdqu xmm1, [rdx+rcx]
     lea    rdx,  [rdx+2*rcx]
@@ -171,11 +146,10 @@ x264_pixel_sad_16x16_sse2:
     paddw  xmm0, xmm7
     SAD_END_SSE2
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int x264_pixel_sad_16x8_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-x264_pixel_sad_16x8_sse2:
+cglobal x264_pixel_sad_16x8_sse2
     pxor    xmm0,   xmm0
     SAD_INC_4x16P_SSE2
     SAD_INC_4x16P_SSE2
@@ -227,22 +201,20 @@ x264_pixel_sad_16x8_sse2:
     ret
 %endmacro
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int x264_pixel_ssd_16x16_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-x264_pixel_ssd_16x16_sse2:
+cglobal x264_pixel_ssd_16x16_sse2
     SSD_START_SSE2
 %rep 8
     SSD_INC_2x16P_SSE2
 %endrep
     SSD_END_SSE2
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int x264_pixel_ssd_16x8_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-x264_pixel_ssd_16x8_sse2:
+cglobal x264_pixel_ssd_16x8_sse2
     SSD_START_SSE2
 %rep 4
     SSD_INC_2x16P_SSE2
@@ -420,11 +392,10 @@ x264_pixel_ssd_16x8_sse2:
 %endmacro
 
 %macro SATDS 1
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int x264_pixel_satd_16x16_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-x264_pixel_satd_16x16_%1:
+cglobal x264_pixel_satd_16x16_%1
     SATD_START
     mov     r8,  rdi
     mov     r9,  rdx
@@ -440,11 +411,10 @@ x264_pixel_satd_16x16_%1:
     SATD_TWO_SSE2
     SATD_END
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int x264_pixel_satd_8x16_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-x264_pixel_satd_8x16_%1:
+cglobal x264_pixel_satd_8x16_%1
     SATD_START
     SATD_TWO_SSE2
     SATD_TWO_SSE2
@@ -452,11 +422,10 @@ x264_pixel_satd_8x16_%1:
     SATD_TWO_SSE2
     SATD_END
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int x264_pixel_satd_16x8_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-x264_pixel_satd_16x8_%1:
+cglobal x264_pixel_satd_16x8_%1
     SATD_START
     mov     r8,  rdi
     mov     r9,  rdx
@@ -468,31 +437,28 @@ x264_pixel_satd_16x8_%1:
     SATD_TWO_SSE2
     SATD_END
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int x264_pixel_satd_8x8_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-x264_pixel_satd_8x8_%1:
+cglobal x264_pixel_satd_8x8_%1
     SATD_START
     SATD_TWO_SSE2
     SATD_TWO_SSE2
     SATD_END
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int x264_pixel_satd_8x4_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-x264_pixel_satd_8x4_%1:
+cglobal x264_pixel_satd_8x4_%1
     SATD_START
     SATD_TWO_SSE2
     SATD_END
 
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int x264_pixel_sa8d_8x8_sse2( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-x264_pixel_sa8d_8x8_%1:
+cglobal x264_pixel_sa8d_8x8_%1
     lea  r10, [3*parm2q]
     lea  r11, [3*parm4q]
     LOAD_DIFF_4x8P xmm0, xmm1, xmm2, xmm3, xmm8, xmm8
@@ -515,12 +481,11 @@ x264_pixel_sa8d_8x8_%1:
     shr eax, 1
     ret
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int x264_pixel_sa8d_16x16_sse2( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
 ;; violates calling convention
-x264_pixel_sa8d_16x16_%1:
+cglobal x264_pixel_sa8d_16x16_%1
     xor  r8d, r8d
     call x264_pixel_sa8d_8x8_%1 ; pix[0]
     lea  parm1q, [parm1q+4*parm2q]
@@ -551,11 +516,10 @@ SATDS ssse3
 
 
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;  void x264_intra_sa8d_x3_8x8_core_sse2( uint8_t *fenc, int16_t edges[2][8], int *res )
 ;-----------------------------------------------------------------------------
-x264_intra_sa8d_x3_8x8_core_sse2:
+cglobal x264_intra_sa8d_x3_8x8_core_sse2
     ; 8x8 hadamard
     pxor        xmm4, xmm4
     movq        xmm0, [parm1q+0*FENC_STRIDE]
@@ -643,8 +607,7 @@ x264_intra_sa8d_x3_8x8_core_sse2:
 ; void x264_pixel_ssim_4x4x2_core_sse2( const uint8_t *pix1, int stride1,
 ;                                       const uint8_t *pix2, int stride2, int sums[2][4] )
 ;-----------------------------------------------------------------------------
-ALIGN 16
-x264_pixel_ssim_4x4x2_core_sse2:
+cglobal x264_pixel_ssim_4x4x2_core_sse2
     pxor      xmm0, xmm0
     pxor      xmm1, xmm1
     pxor      xmm2, xmm2
@@ -692,8 +655,7 @@ x264_pixel_ssim_4x4x2_core_sse2:
 ;-----------------------------------------------------------------------------
 ; float x264_pixel_ssim_end_sse2( int sum0[5][4], int sum1[5][4], int width )
 ;-----------------------------------------------------------------------------
-ALIGN 16
-x264_pixel_ssim_end4_sse2:
+cglobal x264_pixel_ssim_end4_sse2
     movdqa   xmm0, [parm1q+ 0]
     movdqa   xmm1, [parm1q+16]
     movdqa   xmm2, [parm1q+32]

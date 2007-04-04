@@ -158,13 +158,10 @@ pw_32: times 8 dw 32
 
 SECTION .text
 
-cglobal x264_dct4x4dc_mmx
-
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void x264_dct4x4dc_mmx( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
-x264_dct4x4dc_mmx:
+cglobal x264_dct4x4dc_mmx
     movq    mm0,        [parm1q+ 0]
     movq    mm1,        [parm1q+ 8]
     movq    mm2,        [parm1q+16]
@@ -193,13 +190,10 @@ x264_dct4x4dc_mmx:
     movq    [parm1q+24],mm4
     ret
 
-cglobal x264_idct4x4dc_mmx
-
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void x264_idct4x4dc_mmx( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
-x264_idct4x4dc_mmx:
+cglobal x264_idct4x4dc_mmx
     movq    mm0, [parm1q+ 0]
     movq    mm1, [parm1q+ 8]
     movq    mm2, [parm1q+16]
@@ -219,13 +213,10 @@ x264_idct4x4dc_mmx:
     movq    [parm1q+24], mm4
     ret
 
-cglobal x264_sub4x4_dct_mmx
-
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void x264_sub4x4_dct_mmx( int16_t dct[4][4], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
-x264_sub4x4_dct_mmx:
+cglobal x264_sub4x4_dct_mmx
     MMX_ZERO    mm7
 
     ; Load 4 lines
@@ -253,13 +244,10 @@ x264_sub4x4_dct_mmx:
     movq    [parm1q+24], mm0
     ret
 
-cglobal x264_add4x4_idct_mmx
-
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void x264_add4x4_idct_mmx( uint8_t *p_dst, int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
-x264_add4x4_idct_mmx:
+cglobal x264_add4x4_idct_mmx
     ; Load dct coeffs
     movq    mm0, [parm2q+ 0] ; dct
     movq    mm1, [parm2q+ 8]
@@ -347,13 +335,10 @@ x264_add4x4_idct_mmx:
     psubw   %4, %1 ; %4=b5
 %endmacro
 
-cglobal x264_sub8x8_dct8_sse2
-
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_sub8x8_dct8_sse2( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
-x264_sub8x8_dct8_sse2:
+cglobal x264_sub8x8_dct8_sse2
     MMX_ZERO  xmm9
 
     MMX_LOAD_DIFF_8P  xmm0, xmm8, xmm9, [parm2q+0*FENC_STRIDE], [parm3q+0*FDEC_STRIDE]
@@ -433,13 +418,10 @@ x264_sub8x8_dct8_sse2:
     MMX_SUMSUB_BA %4, %5 ; %4=c3, %5=c4
 %endmacro
 
-cglobal x264_add8x8_idct8_sse2
-
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_add8x8_idct8_sse2( uint8_t *p_dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
-x264_add8x8_idct8_sse2:
+cglobal x264_add8x8_idct8_sse2
     movdqa  xmm0, [parm2q+0x00]
     movdqa  xmm1, [parm2q+0x10]
     movdqa  xmm2, [parm2q+0x20]
@@ -472,9 +454,7 @@ x264_add8x8_idct8_sse2:
 ;                                     uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
 %macro SUB_NxN_DCT 6
-ALIGN 16
 cglobal %1
-%1:
     call %2
     add  parm1q, %3
     add  parm2q, %4-%5*FENC_STRIDE
@@ -494,9 +474,7 @@ cglobal %1
 ;   void __cdecl x264_add8x8_idct_mmx( uint8_t *pix, int16_t dct[4][4][4] )
 ;-----------------------------------------------------------------------------
 %macro ADD_NxN_IDCT 6
-ALIGN 16
 cglobal %1
-%1:
     call %2
     add  parm1q, %4-%5*FDEC_STRIDE
     add  parm2q, %3
@@ -522,9 +500,7 @@ ADD_NxN_IDCT x264_add16x16_idct8_sse2, x264_add8x8_idct8_sse2, 128, 8, 0,  8
 ;-----------------------------------------------------------------------------
 ; void __cdecl x264_zigzag_scan_4x4_field_sse2( int level[16], int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
-ALIGN 16
 cglobal x264_zigzag_scan_4x4_field_sse2
-x264_zigzag_scan_4x4_field_sse2:
     punpcklwd xmm0, [parm2q]
     punpckhwd xmm1, [parm2q]
     punpcklwd xmm2, [parm2q+16]

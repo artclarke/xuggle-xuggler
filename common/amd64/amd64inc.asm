@@ -37,6 +37,8 @@ BITS 64
 %ifdef WIN64
     %define %1 pad %1
 %endif
+    align 16
+    %1:
 %endmacro
 
 %macro pad 1

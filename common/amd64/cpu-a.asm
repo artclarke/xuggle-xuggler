@@ -35,15 +35,10 @@ BITS 64
 
 SECTION .text
 
-cglobal x264_cpu_cpuid_test
-cglobal x264_cpu_cpuid
-cglobal x264_emms
-
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int x264_cpu_cpuid_test( void ) return 0 if unsupported
 ;-----------------------------------------------------------------------------
-x264_cpu_cpuid_test:
+cglobal x264_cpu_cpuid_test
     firstpush rbx
     pushreg  rbx
     push     rbp
@@ -69,11 +64,10 @@ x264_cpu_cpuid_test:
     ret
     endfunc
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   int x264_cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
 ;-----------------------------------------------------------------------------
-x264_cpu_cpuid:
+cglobal x264_cpu_cpuid
     firstpush rbx
     pushreg   rbx
     endprolog
@@ -97,11 +91,10 @@ x264_cpu_cpuid:
     ret
     endfunc
 
-ALIGN 16
 ;-----------------------------------------------------------------------------
 ;   void x264_emms( void )
 ;-----------------------------------------------------------------------------
-x264_emms:
+cglobal x264_emms
     emms
     ret
 

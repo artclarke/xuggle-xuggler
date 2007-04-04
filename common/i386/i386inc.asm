@@ -34,6 +34,8 @@ BITS 32
     %else
         global %1
     %endif
+    align 16
+    %1:
 %endmacro
 
 ; Name of the .rodata section. On OS X we cannot use .rodata because NASM
