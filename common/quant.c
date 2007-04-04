@@ -29,41 +29,41 @@
 #   include "ppc/quant.h"
 #endif
 
-#define QUANT_ONE( coef, mf ) \
+#define QUANT_ONE( coef, mf, f ) \
 { \
     if( (coef) > 0 ) \
-        (coef) = ( f + (coef) * (mf) ) >> i_qbits; \
+        (coef) = (f + (coef)) * (mf) >> 16; \
     else \
-        (coef) = - ( ( f - (coef) * (mf) ) >> i_qbits ); \
+        (coef) = - ((f - (coef)) * (mf) >> 16); \
 }
 
-static void quant_8x8_core( int16_t dct[8][8], int quant_mf[8][8], int i_qbits, int f )
+static void quant_8x8( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64] )
 {
     int i;
     for( i = 0; i < 64; i++ )
-        QUANT_ONE( dct[0][i], quant_mf[0][i] );
+        QUANT_ONE( dct[0][i], mf[i], bias[i] );
 }
 
-static void quant_4x4_core( int16_t dct[4][4], int quant_mf[4][4], int i_qbits, int f )
+static void quant_4x4( int16_t dct[4][4], uint16_t mf[16], uint16_t bias[16] )
 {
     int i;
     for( i = 0; i < 16; i++ )
-        QUANT_ONE( dct[0][i], quant_mf[0][i] );
+        QUANT_ONE( dct[0][i], mf[i], bias[i] );
 }
 
-static void quant_4x4_dc_core( int16_t dct[4][4], int i_quant_mf, int i_qbits, int f )
+static void quant_4x4_dc( int16_t dct[4][4], int mf, int bias )
 {
     int i;
     for( i = 0; i < 16; i++ )
-        QUANT_ONE( dct[0][i], i_quant_mf );
+        QUANT_ONE( dct[0][i], mf, bias );
 }
 
-static void quant_2x2_dc_core( int16_t dct[2][2], int i_quant_mf, int i_qbits, int f )
+static void quant_2x2_dc( int16_t dct[2][2], int mf, int bias )
 {
-    QUANT_ONE( dct[0][0], i_quant_mf );
-    QUANT_ONE( dct[0][1], i_quant_mf );
-    QUANT_ONE( dct[0][2], i_quant_mf );
-    QUANT_ONE( dct[0][3], i_quant_mf );
+    QUANT_ONE( dct[0][0], mf, bias );
+    QUANT_ONE( dct[0][1], mf, bias );
+    QUANT_ONE( dct[0][2], mf, bias );
+    QUANT_ONE( dct[0][3], mf, bias );
 }
 
 #define DEQUANT_SHL( x ) \
@@ -195,117 +195,47 @@ void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int dequant_mf[6][4][4], int i_q
 
 void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 {
-    int i, j, maxQ8=0, maxQ4=0, maxQdc=0;
-
-    pf->quant_8x8_core = quant_8x8_core;
-    pf->quant_4x4_core = quant_4x4_core;
-    pf->quant_4x4_dc_core = quant_4x4_dc_core;
-    pf->quant_2x2_dc_core = quant_2x2_dc_core;
+    pf->quant_8x8 = quant_8x8;
+    pf->quant_4x4 = quant_4x4;
+    pf->quant_4x4_dc = quant_4x4_dc;
+    pf->quant_2x2_dc = quant_2x2_dc;
 
     pf->dequant_4x4 = dequant_4x4;
     pf->dequant_8x8 = dequant_8x8;
 
-    /* determine the biggest coefficient in all quant8_mf tables */
-    for( j = 0; j < 2; j++ )
-        for( i = 0; i < 6*8*8; i++ )
-        {
-            int q = h->quant8_mf[j][0][0][i];
-            if( maxQ8 < q )
-                maxQ8 = q;
-        }
-
-    /* determine the biggest coefficient in all quant4_mf tables ( maxQ4 )
-       and the biggest DC coefficient if all quant4_mf tables ( maxQdc ) */
-    for( j = 0; j < 4; j++ )
-        for( i = 0; i < 6*4*4; i++ )
-        {
-            int q = h->quant4_mf[j][0][0][i];
-            if( maxQ4 < q )
-                maxQ4 = q;
-            if( maxQdc < q && i%16 == 0 )
-                maxQdc = q;
-        }
-
 #ifdef HAVE_MMX
-
-    /* select quant_8x8 based on CPU and maxQ8 */
-#if defined(ARCH_X86_64) && defined(HAVE_SSE3)
-    if( maxQ8 < (1<<15) && cpu&X264_CPU_SSSE3 )
-        pf->quant_8x8_core = x264_quant_8x8_core15_ssse3;
-    else
-#endif
-    if( maxQ8 < (1<<15) && cpu&X264_CPU_MMX )
-        pf->quant_8x8_core = x264_quant_8x8_core15_mmx;
-    else
-    if( maxQ8 < (1<<16) && cpu&X264_CPU_MMXEXT )
-        pf->quant_8x8_core = x264_quant_8x8_core16_mmxext;
-    else
-    if( cpu&X264_CPU_MMXEXT )
-        pf->quant_8x8_core = x264_quant_8x8_core32_mmxext;
-
-    /* select quant_4x4 based on CPU and maxQ4 */
-#if defined(ARCH_X86_64) && defined(HAVE_SSE3)
-    if( maxQ4 < (1<<15) && cpu&X264_CPU_SSSE3 )
-        pf->quant_4x4_core = x264_quant_4x4_core15_ssse3;
-    else
-#endif
-    if( maxQ4 < (1<<15) && cpu&X264_CPU_MMX )
-        pf->quant_4x4_core = x264_quant_4x4_core15_mmx;
-    else
-    if( maxQ4 < (1<<16) && cpu&X264_CPU_MMXEXT )
-        pf->quant_4x4_core = x264_quant_4x4_core16_mmxext;
-    else
-    if( cpu&X264_CPU_MMXEXT )
-        pf->quant_4x4_core = x264_quant_4x4_core32_mmxext;
-
-    /* select quant_XxX_dc based on CPU and maxQdc */
-    if( maxQdc < (1<<16) && cpu&X264_CPU_MMXEXT )
-    {
-        pf->quant_4x4_dc_core = x264_quant_4x4_dc_core16_mmxext;
-        pf->quant_2x2_dc_core = x264_quant_2x2_dc_core16_mmxext;
-    }
-    else
-    if( maxQdc < (1<<15) && cpu&X264_CPU_MMX )
-    {
-        pf->quant_4x4_dc_core = x264_quant_4x4_dc_core15_mmx;
-        pf->quant_2x2_dc_core = x264_quant_2x2_dc_core15_mmx;
-    }
-    else
-    if( cpu&X264_CPU_MMXEXT )
-    {
-        pf->quant_4x4_dc_core = x264_quant_4x4_dc_core32_mmxext;
-        pf->quant_2x2_dc_core = x264_quant_2x2_dc_core32_mmxext;
-    }
-
-#if defined(ARCH_X86_64) && defined(HAVE_SSE3)
-    if( maxQdc < (1<<15) && cpu&X264_CPU_SSSE3 )
-        pf->quant_4x4_dc_core = x264_quant_4x4_dc_core15_ssse3;
-#endif
-
     if( cpu&X264_CPU_MMX )
     {
-        /* dequant is not subject to the above CQM-dependent overflow issues,
-         * as long as the inputs are in the range generable by dct+quant.
-         * that is not guaranteed by the standard, but is true within x264 */
+#ifdef ARCH_X86
+        pf->quant_4x4 = x264_quant_4x4_mmx;
+        pf->quant_8x8 = x264_quant_8x8_mmx;
+#endif
         pf->dequant_4x4 = x264_dequant_4x4_mmx;
         pf->dequant_8x8 = x264_dequant_8x8_mmx;
     }
-#endif  /* HAVE_MMX */
-    
-#ifdef ARCH_PPC
-    if( cpu&X264_CPU_ALTIVEC ) {
-        if( maxQ8 < (1<<16) )
-        {
-            pf->quant_8x8_core = x264_quant_8x8_altivec;
-        }
-        if( maxQ4 < (1<<16) )
-        {
-            pf->quant_4x4_core = x264_quant_4x4_altivec;
-        }
-        if( maxQdc < (1<<16) )
-        {
-           pf->quant_4x4_dc_core = x264_quant_4x4_dc_altivec;
-        }
+
+    if( cpu&X264_CPU_MMXEXT )
+    {
+        pf->quant_2x2_dc = x264_quant_2x2_dc_mmxext;
+#ifdef ARCH_X86
+        pf->quant_4x4_dc = x264_quant_4x4_dc_mmxext;
+#endif
     }
-#endif /* ARCH_PPC */
+
+    if( cpu&X264_CPU_SSE2 )
+    {
+        pf->quant_4x4_dc = x264_quant_4x4_dc_sse2;
+        pf->quant_4x4 = x264_quant_4x4_sse2;
+        pf->quant_8x8 = x264_quant_8x8_sse2;
+    }
+#endif
+
+#ifdef HAVE_SSE3
+    if( cpu&X264_CPU_SSSE3 )
+    {
+        pf->quant_4x4_dc = x264_quant_4x4_dc_ssse3;
+        pf->quant_4x4 = x264_quant_4x4_ssse3;
+        pf->quant_8x8 = x264_quant_8x8_ssse3;
+    }
+#endif
 }

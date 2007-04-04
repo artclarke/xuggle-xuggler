@@ -218,7 +218,7 @@ static const uint8_t * const x264_cqm_jvt[6] =
     x264_cqm_jvt8i, x264_cqm_jvt8p
 };
 
-void x264_cqm_init( x264_t *h );
+int  x264_cqm_init( x264_t *h );
 void x264_cqm_delete( x264_t *h );
 int  x264_cqm_parse_file( x264_t *h, const char *filename );
 

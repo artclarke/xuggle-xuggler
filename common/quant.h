@@ -25,10 +25,10 @@
 
 typedef struct
 {
-    void (*quant_8x8_core)( int16_t dct[8][8], int quant_mf[8][8], int i_qbits, int f );
-    void (*quant_4x4_core)( int16_t dct[4][4], int quant_mf[4][4], int i_qbits, int f );
-    void (*quant_4x4_dc_core)( int16_t dct[4][4], int i_quant_mf, int i_qbits, int f );
-    void (*quant_2x2_dc_core)( int16_t dct[2][2], int i_quant_mf, int i_qbits, int f );
+    void (*quant_8x8)( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64] );
+    void (*quant_4x4)( int16_t dct[4][4], uint16_t mf[16], uint16_t bias[16] );
+    void (*quant_4x4_dc)( int16_t dct[4][4], int mf, int bias );
+    void (*quant_2x2_dc)( int16_t dct[2][2], int mf, int bias );
 
     void (*dequant_4x4)( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp );
     void (*dequant_8x8)( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp );

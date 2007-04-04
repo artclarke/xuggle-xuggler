@@ -24,6 +24,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#define SHIFT(x,s) ((s)<0 ? (x)<<-(s) : (s)==0 ? (x) : ((x)+(1<<((s)-1)))>>(s))
+#define DIV(n,d) (((n) + ((d)>>1)) / (d))
+
 static const int dequant4_scale[6][3] =
 {
     { 10, 13, 16 },
@@ -66,13 +69,19 @@ static const int quant8_scale[6][6] =
     {  7282,  6428, 11570,  6830,  9118,  8640 }
 };
 
-void x264_cqm_init( x264_t *h )
+int x264_cqm_init( x264_t *h )
 {
     int def_quant4[6][16];
     int def_quant8[6][64];
     int def_dequant4[6][16];
     int def_dequant8[6][64];
+    int quant4_mf[4][6][4][4];
+    int quant8_mf[2][6][8][8];
     int q, i, j, i_list;
+    int deadzone[4] = { 32 - h->param.analyse.i_luma_deadzone[1],
+                        32 - h->param.analyse.i_luma_deadzone[0], 
+                        32 - 11, 32 - 21 };
+    int max_qp_err = -1;
 
     for( i = 0; i < 6; i++ )
     {
@@ -88,10 +97,19 @@ void x264_cqm_init( x264_t *h )
         }
         else
         {
-            h->  quant4_mf[i] = x264_malloc( 6*size*sizeof(int) );
+            h->  quant4_mf[i] = x264_malloc(52*size*sizeof(uint16_t) );
             h->dequant4_mf[i] = x264_malloc( 6*size*sizeof(int) );
             h->unquant4_mf[i] = x264_malloc(52*size*sizeof(int) );
         }
+
+        for( j = (i<4 ? 0 : 4); j < i; j++ )
+            if( deadzone[j&3] == deadzone[i&3] &&
+                !memcmp( h->pps->scaling_list[i], h->pps->scaling_list[j], size*sizeof(uint8_t) ) )
+                break;
+        if( j < i )
+            h->quant4_bias[i] = h->quant4_bias[j];
+        else
+            h->quant4_bias[i] = x264_malloc(52*size*sizeof(uint16_t) );
     }
 
     for( q = 0; q < 6; q++ )
@@ -116,24 +134,47 @@ void x264_cqm_init( x264_t *h )
             for( i = 0; i < 16; i++ )
             {
                 h->dequant4_mf[i_list][q][0][i] = def_dequant4[q][i] * h->pps->scaling_list[i_list][i];
-                h->  quant4_mf[i_list][q][0][i] = def_quant4[q][i] * 16 / h->pps->scaling_list[i_list][i];
+                     quant4_mf[i_list][q][0][i] = DIV(def_quant4[q][i] * 16, h->pps->scaling_list[i_list][i]);
             }
         for( i_list = 0; i_list < 2; i_list++ )
             for( i = 0; i < 64; i++ )
             {
                 h->dequant8_mf[i_list][q][0][i] = def_dequant8[q][i] * h->pps->scaling_list[4+i_list][i];
-                h->  quant8_mf[i_list][q][0][i] = def_quant8[q][i] * 16 / h->pps->scaling_list[4+i_list][i];
+                     quant8_mf[i_list][q][0][i] = DIV(def_quant8[q][i] * 16, h->pps->scaling_list[4+i_list][i]);
             }
     }
     for( q = 0; q < 52; q++ )
     {
         for( i_list = 0; i_list < 4; i_list++ )
             for( i = 0; i < 16; i++ )
-                h->unquant4_mf[i_list][q][i] = (1 << (q/6 + 15 + 8)) / h->quant4_mf[i_list][q%6][0][i];
+            {
+                h->unquant4_mf[i_list][q][i] = (1 << (q/6 + 15 + 8)) / quant4_mf[i_list][q%6][0][i];
+                h->  quant4_mf[i_list][q][i] = j = SHIFT(quant4_mf[i_list][q%6][0][i], q/6 - 1);
+                // round to nearest, unless that would cause the deadzone to be negative
+                h->quant4_bias[i_list][q][i] = X264_MIN( DIV(deadzone[i_list]<<10, j), (1<<15)/j );
+                if( j > 0xffff && q > max_qp_err )
+                    max_qp_err = q;
+            }
+        if( h->param.analyse.b_transform_8x8 )
         for( i_list = 0; i_list < 2; i_list++ )
             for( i = 0; i < 64; i++ )
-                h->unquant8_mf[i_list][q][i] = (1 << (q/6 + 16 + 8)) / h->quant8_mf[i_list][q%6][0][i];
+            {
+                h->unquant8_mf[i_list][q][i] = (1 << (q/6 + 16 + 8)) / quant8_mf[i_list][q%6][0][i];
+                h->  quant8_mf[i_list][q][i] = j = SHIFT(quant8_mf[i_list][q%6][0][i], q/6);
+                h->quant8_bias[i_list][q][i] = X264_MIN( DIV(deadzone[i_list]<<10, j), (1<<15)/j );
+                if( j > 0xffff && q > max_qp_err )
+                    max_qp_err = q;
+            }
     }
+
+    if( !h->mb.b_lossless && max_qp_err >= h->param.rc.i_qp_min )
+    {
+        x264_log( h, X264_LOG_ERROR, "Quantization overflow.\n" );
+        x264_log( h, X264_LOG_ERROR, "Your CQM is incompatible with QP < %d, but min QP is set to %d\n",
+                  max_qp_err+1, h->param.rc.i_qp_min );
+        return -1;
+    }
+    return 0;
 }
 
 void x264_cqm_delete( x264_t *h )

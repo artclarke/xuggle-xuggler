@@ -341,10 +341,12 @@ struct x264_t
 
     int             (*dequant4_mf[4])[4][4]; /* [4][6][4][4] */
     int             (*dequant8_mf[2])[8][8]; /* [2][6][8][8] */
-    int             (*quant4_mf[4])[4][4];   /* [4][6][4][4] */
-    int             (*quant8_mf[2])[8][8];   /* [2][6][8][8] */
     int             (*unquant4_mf[4])[16];   /* [4][52][16] */
     int             (*unquant8_mf[2])[64];   /* [2][52][64] */
+    uint16_t        (*quant4_mf[4])[16];     /* [4][52][16] */
+    uint16_t        (*quant8_mf[2])[64];     /* [2][52][64] */
+    uint16_t        (*quant4_bias[4])[16];   /* [4][52][16] */
+    uint16_t        (*quant8_bias[2])[64];   /* [2][52][64] */
 
     uint32_t        nr_residual_sum[2][64];
     uint32_t        nr_offset[2][64];
@@ -435,9 +437,6 @@ struct x264_t
         int     b_noise_reduction;
 
         int     b_interlaced;
-
-        /* Inverted luma quantization deadzone */
-        int     i_luma_deadzone[2]; // {inter, intra}
 
         /* Allowed qpel MV range to stay within the picture + emulated edge pixels */
         int     mv_min[2];

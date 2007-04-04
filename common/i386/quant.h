@@ -23,40 +23,16 @@
 #ifndef _I386_QUANT_H
 #define _I386_QUANT_H 1
 
-void x264_quant_8x8_core15_mmx( int16_t dct[8][8],
-    int quant_mf[8][8], int const i_qbits, int const f );
-void x264_quant_4x4_core15_mmx( int16_t dct[4][4],
-    int quant_mf[4][4], int const i_qbits, int const f );
-void x264_quant_4x4_dc_core15_mmx( int16_t dct[4][4],
-    int const i_qmf, int const i_qbits, int const f );
-void x264_quant_2x2_dc_core15_mmx( int16_t dct[2][2],
-    int const i_qmf, int const i_qbits, int const f );
-
-void x264_quant_8x8_core15_ssse3( int16_t dct[8][8],
-    int quant_mf[8][8], int const i_qbits, int const f );
-void x264_quant_4x4_core15_ssse3( int16_t dct[4][4],
-    int quant_mf[4][4], int const i_qbits, int const f );
-void x264_quant_4x4_dc_core15_ssse3( int16_t dct[4][4],
-    int const i_qmf, int const i_qbits, int const f );
-
-void x264_quant_8x8_core16_mmxext( int16_t dct[8][8],
-    int quant_mf[8][8], int const i_qbits, int const f );
-void x264_quant_4x4_core16_mmxext( int16_t dct[4][4],
-    int quant_mf[4][4], int const i_qbits, int const f );
-void x264_quant_4x4_dc_core16_mmxext( int16_t dct[4][4],
-    int const i_qmf, int const i_qbits, int const f );
-void x264_quant_2x2_dc_core16_mmxext( int16_t dct[2][2],
-    int const i_qmf, int const i_qbits, int const f );
-
-void x264_quant_8x8_core32_mmxext( int16_t dct[8][8],
-    int quant_mf[8][8], int const i_qbits, int const f );
-void x264_quant_4x4_core32_mmxext( int16_t dct[4][4],
-    int quant_mf[4][4], int const i_qbits, int const f );
-void x264_quant_4x4_dc_core32_mmxext( int16_t dct[4][4],
-    int const i_qmf, int const i_qbits, int const f );
-void x264_quant_2x2_dc_core32_mmxext( int16_t dct[2][2],
-    int const i_qmf, int const i_qbits, int const f );
-
+void x264_quant_2x2_dc_mmxext( int16_t dct[2][2], int mf, int bias );
+void x264_quant_4x4_dc_mmxext( int16_t dct[4][4], int mf, int bias );
+void x264_quant_4x4_mmx( int16_t dct[4][4], uint16_t mf[16], uint16_t bias[16] );
+void x264_quant_8x8_mmx( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64] );
+void x264_quant_4x4_dc_sse2( int16_t dct[4][4], int mf, int bias );
+void x264_quant_4x4_sse2( int16_t dct[4][4], uint16_t mf[16], uint16_t bias[16] );
+void x264_quant_8x8_sse2( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64] );
+void x264_quant_4x4_dc_ssse3( int16_t dct[4][4], int mf, int bias );
+void x264_quant_4x4_ssse3( int16_t dct[4][4], uint16_t mf[16], uint16_t bias[16] );
+void x264_quant_8x8_ssse3( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64] );
 void x264_dequant_4x4_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp );
 void x264_dequant_8x8_mmx( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp );
 

@@ -282,7 +282,7 @@ typedef struct {
 // and uses the dct scaling factors, not the idct ones.
 
 static void quant_trellis_cabac( x264_t *h, int16_t *dct,
-                                 const int *quant_mf, const int *unquant_mf,
+                                 const uint16_t *quant_mf, const int *unquant_mf,
                                  const int *coef_weight, const int *zigzag,
                                  int i_ctxBlockCat, int i_qbits, int i_lambda2, int b_ac, int i_coefs )
 {
@@ -294,7 +294,7 @@ static void quant_trellis_cabac( x264_t *h, int16_t *dct,
     uint8_t cabac_state_sig[64];
     uint8_t cabac_state_last[64];
     const int b_interlaced = h->mb.b_interlaced;
-    const int f = 1 << (i_qbits-1); // no deadzone
+    const int f = 1 << 15; // no deadzone
     int i_last_nnz = -1;
     int i, j;
 
@@ -359,7 +359,7 @@ static void quant_trellis_cabac( x264_t *h, int16_t *dct,
     for( i = i_last_nnz; i >= b_ac; i-- )
     {
         int i_coef = abs_coefs[i];
-        int q = ( f + i_coef * quant_mf[zigzag[i]] ) >> i_qbits;
+        int q = ( f + i_coef * quant_mf[zigzag[i]] ) >> 16;
         int abs_level;
         int cost_sig[2], cost_last[2];
         trellis_node_t n;
@@ -488,7 +488,7 @@ void x264_quant_4x4_trellis( x264_t *h, int16_t dct[4][4], int i_quant_cat,
                           << (2*i_qbits)) >> LAMBDA_BITS;
 
     quant_trellis_cabac( h, (int16_t*)dct,
-        (int*)h->quant4_mf[i_quant_cat][i_mf], h->unquant4_mf[i_quant_cat][i_qp],
+        h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
         x264_dct4_weight2_zigzag[h->mb.b_interlaced],
         x264_zigzag_scan4[h->mb.b_interlaced],
         i_ctxBlockCat, 15+i_qbits, i_lambda2, b_ac, 16 );
@@ -505,7 +505,7 @@ void x264_quant_8x8_trellis( x264_t *h, int16_t dct[8][8], int i_quant_cat,
                           << (2*i_qbits)) >> LAMBDA_BITS;
 
     quant_trellis_cabac( h, (int16_t*)dct,
-        (int*)h->quant8_mf[i_quant_cat][i_mf], h->unquant8_mf[i_quant_cat][i_qp],
+        h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],
         x264_dct8_weight2_zigzag[h->mb.b_interlaced],
         x264_zigzag_scan8[h->mb.b_interlaced],
         DCT_LUMA_8x8, 16+i_qbits, i_lambda2, 0, 64 );

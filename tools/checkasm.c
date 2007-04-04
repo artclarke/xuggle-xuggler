@@ -478,11 +478,12 @@ static int check_quant( int cpu_ref, int cpu_new )
     uint8_t cqm_buf[64] __attribute__((__aligned__(16)));
     int ret = 0, ok, used_asm;
     int oks[2] = {1,1}, used_asms[2] = {0,0};
-    int i, i_cqm;
+    int i, i_cqm, qp;
     x264_t h_buf;
     x264_t *h = &h_buf;
     h->pps = h->pps_array;
     x264_param_default( &h->param );
+    h->param.rc.i_qp_min = 26;
 
     for( i_cqm = 0; i_cqm < 4; i_cqm++ )
     {
@@ -533,112 +534,74 @@ static int check_quant( int cpu_ref, int cpu_new )
                 } \
         }
 
-#define TEST_QUANT( name, cqm ) \
+#define TEST_QUANT_DC( name, cqm ) \
         if( qf_a.name != qf_ref.name ) \
         { \
             used_asms[0] = 1; \
-            for( i = 0; i < 64; i++ ) \
-                dct1[i] = dct2[i] = (rand() & 0x1fff) - 0xfff; \
-            qf_c.name( (void*)dct1, cqm, 20, (1<<20)/6 ); \
-            qf_a.name( (void*)dct2, cqm, 20, (1<<20)/6 ); \
-            if( memcmp( dct1, dct2, 64*2 ) )       \
+            for( qp = 51; qp > 0; qp-- ) \
             { \
-                oks[0] = 0; \
-                fprintf( stderr, #name "(cqm=%d): [FAILED]\n", i_cqm ); \
+                for( i = 0; i < 16; i++ ) \
+                    dct1[i] = dct2[i] = (rand() & 0x1fff) - 0xfff; \
+                qf_c.name( (void*)dct1, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
+                qf_a.name( (void*)dct2, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
+                if( memcmp( dct1, dct2, 16*2 ) )       \
+                { \
+                    oks[0] = 0; \
+                    fprintf( stderr, #name "(cqm=%d): [FAILED]\n", i_cqm ); \
+                    break; \
+                } \
             } \
         }
 
-#define TEST_QUANT8( qname, cqm, shift, divider ) \
+#define TEST_QUANT( qname, block, w ) \
         if( qf_a.qname != qf_ref.qname ) \
         { \
-            int qp; \
             used_asms[0] = 1; \
             for( qp = 51; qp > 0; qp-- ) \
             { \
-                INIT_QUANT8() \
-                qf_c.qname( (void*)dct1, cqm[qp%6], shift+qp/6, (1<<(shift+qp/6))/divider ); \
-                qf_a.qname( (void*)dct2, cqm[qp%6], shift+qp/6, (1<<(shift+qp/6))/divider ); \
-                if( memcmp( dct1, dct2, 64*2 ) ) \
+                INIT_QUANT##w() \
+                qf_c.qname( (void*)dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                qf_a.qname( (void*)dct2, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                if( memcmp( dct1, dct2, w*w*2 ) ) \
                 { \
                     oks[0] = 0; \
-                    fprintf( stderr, #qname "(qp=%d, cqm=%d, intra=%d): [FAILED]\n", qp, i_cqm, divider==3 ); \
+                    fprintf( stderr, #qname "(qp=%d, cqm=%d, block="#block"): [FAILED]\n", qp, i_cqm ); \
                     break; \
                 } \
             } \
         }
 
-#define TEST_QUANT4( qname, cqm, shift, divider ) \
-        if( qf_a.qname != qf_ref.qname ) \
-        { \
-            int qp; \
-            used_asms[0] = 1; \
-            for( qp = 51; qp > 0; qp-- ) \
-            { \
-                INIT_QUANT4() \
-                qf_c.qname( (void*)dct1, cqm[qp%6], shift+qp/6, (1<<(shift+qp/6))/divider ); \
-                qf_a.qname( (void*)dct2, cqm[qp%6], shift+qp/6, (1<<(shift+qp/6))/divider ); \
-                if( memcmp( dct1, dct2, 16*2 ) ) \
-                { \
-                    oks[0] = 0; \
-                    fprintf( stderr, #qname "(qp=%d, cqm=%d, intra=%d): [FAILED]\n", qp, i_cqm, divider==3 ); \
-                    break; \
-                } \
-            } \
-        }
+        TEST_QUANT( quant_8x8, CQM_8IY, 8 );
+        TEST_QUANT( quant_8x8, CQM_8PY, 8 );
+        TEST_QUANT( quant_4x4, CQM_4IY, 4 );
+        TEST_QUANT( quant_4x4, CQM_4PY, 4 );
+        TEST_QUANT_DC( quant_4x4_dc, **h->quant4_mf[CQM_4IY] );
+        TEST_QUANT_DC( quant_2x2_dc, **h->quant4_mf[CQM_4IC] );
 
-        TEST_QUANT8( quant_8x8_core, h->quant8_mf[CQM_8IY], 16, 3 );
-        TEST_QUANT8( quant_8x8_core, h->quant8_mf[CQM_8PY], 16, 6 );
-        TEST_QUANT4( quant_4x4_core, h->quant4_mf[CQM_4IY], 15, 3 );
-        TEST_QUANT4( quant_4x4_core, h->quant4_mf[CQM_4PY], 15, 6 );
-        TEST_QUANT( quant_4x4_dc_core, ***h->quant4_mf[CQM_4IY] );
-        TEST_QUANT( quant_2x2_dc_core, ***h->quant4_mf[CQM_4IC] );
-
-#define TEST_DEQUANT8( qname, dqname, cqm, dqm, shift, divider ) \
+#define TEST_DEQUANT( qname, dqname, block, w ) \
         if( qf_a.dqname != qf_ref.dqname ) \
         { \
-            int qp; \
             used_asms[1] = 1; \
             for( qp = 51; qp > 0; qp-- ) \
             { \
-                INIT_QUANT8() \
-                qf_c.qname( (void*)dct1, cqm[qp%6], shift+qp/6, (1<<(shift+qp/6))/divider ); \
-                memcpy( dct2, dct1, 64*2 ); \
-                qf_c.dqname( (void*)dct1, dqm, qp ); \
-                qf_a.dqname( (void*)dct2, dqm, qp ); \
-                if( memcmp( dct1, dct2, 64*2 ) ) \
+                INIT_QUANT##w() \
+                qf_c.qname( (void*)dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                memcpy( dct2, dct1, w*w*2 ); \
+                qf_c.dqname( (void*)dct1, h->dequant##w##_mf[block], qp ); \
+                qf_a.dqname( (void*)dct2, h->dequant##w##_mf[block], qp ); \
+                if( memcmp( dct1, dct2, w*w*2 ) ) \
                 { \
                     oks[1] = 0; \
-                    fprintf( stderr, #dqname "(qp=%d, cqm=%d, intra=%d): [FAILED]\n", qp, i_cqm, divider==3 ); \
+                    fprintf( stderr, #dqname "(qp=%d, cqm=%d, block="#block"): [FAILED]\n", qp, i_cqm ); \
                     break; \
                 } \
             } \
         }
 
-#define TEST_DEQUANT4( qname, dqname, cqm, dqm, shift, divider ) \
-        if( qf_a.dqname != qf_ref.dqname ) \
-        { \
-            int qp; \
-            used_asms[1] = 1; \
-            for( qp = 51; qp > 0; qp-- ) \
-            { \
-                INIT_QUANT4() \
-                qf_c.qname( (void*)dct1, cqm[qp%6], shift+qp/6, (1<<(shift+qp/6))/divider ); \
-                memcpy( dct2, dct1, 16*2 ); \
-                qf_c.dqname( (void*)dct1, dqm, qp ); \
-                qf_a.dqname( (void*)dct2, dqm, qp ); \
-                if( memcmp( dct1, dct2, 16*2 ) ) \
-                { \
-                    oks[1] = 0; \
-                    fprintf( stderr, #dqname "(qp=%d, cqm=%d, intra=%d): [FAILED]\n", qp, i_cqm, divider==3 ); \
-                    break; \
-                } \
-            } \
-        }
-
-        TEST_DEQUANT8( quant_8x8_core, dequant_8x8, h->quant8_mf[CQM_8IY], h->dequant8_mf[CQM_8IY], 16, 3 );
-        TEST_DEQUANT8( quant_8x8_core, dequant_8x8, h->quant8_mf[CQM_8PY], h->dequant8_mf[CQM_8PY], 16, 6 );
-        TEST_DEQUANT4( quant_4x4_core, dequant_4x4, h->quant4_mf[CQM_4IY], h->dequant4_mf[CQM_4IY], 15, 3 );
-        TEST_DEQUANT4( quant_4x4_core, dequant_4x4, h->quant4_mf[CQM_4PY], h->dequant4_mf[CQM_4PY], 15, 6 );
+        TEST_DEQUANT( quant_8x8, dequant_8x8, CQM_8IY, 8 );
+        TEST_DEQUANT( quant_8x8, dequant_8x8, CQM_8PY, 8 );
+        TEST_DEQUANT( quant_4x4, dequant_4x4, CQM_4IY, 4 );
+        TEST_DEQUANT( quant_4x4, dequant_4x4, CQM_4PY, 4 );
     }
 
     ok = oks[0]; used_asm = used_asms[0];
