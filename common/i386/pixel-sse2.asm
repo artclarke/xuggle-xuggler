@@ -463,8 +463,7 @@ cglobal x264_pixel_ssd_16x8_sse2
     paddusw %4, %2
 %endmacro
 
-;;; two SUM4x4_SSE2 running side-by-side
-%macro SUM4x4_TWO_SSE2 7    ; a02 a13 junk1 b02 b13 junk2 (1=4 2=5 3=6) sum
+%macro SUM8x4_SSE2 7    ; a02 a13 junk1 b02 b13 junk2 (1=4 2=5 3=6) sum
     pxor    %3, %3
     pxor    %6, %6
     psubw   %3, %1
@@ -477,6 +476,17 @@ cglobal x264_pixel_ssd_16x8_sse2
     psubw   %6, %5
     pmaxsw  %2, %3
     pmaxsw  %5, %6
+    paddusw %1, %2
+    paddusw %4, %5
+    paddusw %7, %1
+    paddusw %7, %4
+%endmacro
+
+%macro SUM8x4_SSSE3 7    ; a02 a13 . b02 b13 . sum
+    pabsw   %1, %1
+    pabsw   %2, %2
+    pabsw   %4, %4
+    pabsw   %5, %5
     paddusw %1, %2
     paddusw %4, %5
     paddusw %7, %1
@@ -496,7 +506,7 @@ cglobal x264_pixel_ssd_16x8_sse2
     HADAMARD1x4       xmm0, xmm1, xmm2, xmm3
     TRANSPOSE2x4x4W   xmm0, xmm1, xmm2, xmm3, xmm4
     HADAMARD1x4       xmm0, xmm1, xmm2, xmm3
-    SUM4x4_TWO_SSE2   xmm0, xmm1, xmm4, xmm2, xmm3, xmm5, xmm6
+    SUM8x4            xmm0, xmm1, xmm4, xmm2, xmm3, xmm5, xmm6
 %endmacro
 
 %macro SATD_START 0
@@ -519,81 +529,76 @@ cglobal x264_pixel_ssd_16x8_sse2
     ret
 %endmacro
 
+%macro SATDS 1
 ;-----------------------------------------------------------------------------
 ;   int __cdecl x264_pixel_satd_16x16_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_satd_16x16_sse2
+cglobal x264_pixel_satd_16x16_%1
     SATD_START
-
     SATD_TWO_SSE2
     SATD_TWO_SSE2
     SATD_TWO_SSE2
     SATD_TWO_SSE2
-
     mov     eax,    [esp+ 8]
     mov     ecx,    [esp+16]
     add     eax,    8
     add     ecx,    8
-
     SATD_TWO_SSE2
     SATD_TWO_SSE2
     SATD_TWO_SSE2
     SATD_TWO_SSE2
-
     SATD_END
 
 ;-----------------------------------------------------------------------------
 ;   int __cdecl x264_pixel_satd_8x16_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_satd_8x16_sse2
+cglobal x264_pixel_satd_8x16_%1
     SATD_START
-
     SATD_TWO_SSE2
     SATD_TWO_SSE2
     SATD_TWO_SSE2
     SATD_TWO_SSE2
-
     SATD_END
 
 ;-----------------------------------------------------------------------------
 ;   int __cdecl x264_pixel_satd_16x8_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_satd_16x8_sse2
+cglobal x264_pixel_satd_16x8_%1
     SATD_START
-
     SATD_TWO_SSE2
     SATD_TWO_SSE2
-
     mov     eax,    [esp+ 8]
     mov     ecx,    [esp+16]
     add     eax,    8
     add     ecx,    8
-
     SATD_TWO_SSE2
     SATD_TWO_SSE2
-
     SATD_END
 
 ;-----------------------------------------------------------------------------
 ;   int __cdecl x264_pixel_satd_8x8_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_satd_8x8_sse2
+cglobal x264_pixel_satd_8x8_%1
     SATD_START
-
     SATD_TWO_SSE2
     SATD_TWO_SSE2
-
     SATD_END
 
 ;-----------------------------------------------------------------------------
 ;   int __cdecl x264_pixel_satd_8x4_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_satd_8x4_sse2
+cglobal x264_pixel_satd_8x4_%1
     SATD_START
-
     SATD_TWO_SSE2
-
     SATD_END
+%endmacro ; SATDS
+
+%define SUM8x4 SUM8x4_SSE2
+SATDS sse2
+%ifdef HAVE_SSE3
+%define SUM8x4 SUM8x4_SSSE3
+SATDS ssse3
+%endif
 
 
 

@@ -539,14 +539,16 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
 
     if( cpu&X264_CPU_SSSE3 )
     {
-#if defined(ARCH_X86_64) && defined(HAVE_SSE3)
+#ifdef HAVE_SSE3
         pixf->satd[PIXEL_16x16]= x264_pixel_satd_16x16_ssse3;
         pixf->satd[PIXEL_16x8] = x264_pixel_satd_16x8_ssse3;
         pixf->satd[PIXEL_8x16] = x264_pixel_satd_8x16_ssse3;
         pixf->satd[PIXEL_8x8]  = x264_pixel_satd_8x8_ssse3;
         pixf->satd[PIXEL_8x4]  = x264_pixel_satd_8x4_ssse3;
+#ifdef ARCH_X86_64
         pixf->sa8d[PIXEL_16x16]= x264_pixel_sa8d_16x16_ssse3;
         pixf->sa8d[PIXEL_8x8]  = x264_pixel_sa8d_8x8_ssse3;
+#endif
 #endif
     }
 #endif //HAVE_MMX

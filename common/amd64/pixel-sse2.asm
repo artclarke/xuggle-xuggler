@@ -31,7 +31,6 @@ BITS 64
 
 SECTION .rodata align=16
 
-pb_1:    times 16 db 1
 pw_1:    times 8 dw 1
 ssim_c1: times 4 dd 416    ; .01*.01*255*255*64
 ssim_c2: times 4 dd 235963 ; .03*.03*255*255*64*63
