@@ -783,12 +783,17 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
         if( i_prefix != 0 )
         {
             const int i_ctxIdxInc = 5 + X264_MIN( 4, i_abslevelgt1 ) + i_ctx_level;
+#ifdef RDO_SKIP_BS
+            cb->f8_bits_encoded += cabac_prefix_size[i_prefix][cb->state[i_ctxIdxInc]];
+            cb->state[i_ctxIdxInc] = cabac_prefix_transition[i_prefix][cb->state[i_ctxIdxInc]];
+#else
             int j;
             for( j = 0; j < i_prefix - 1; j++ )
                 x264_cabac_encode_decision( cb, i_ctxIdxInc, 1 );
             if( i_prefix < 14 )
                 x264_cabac_encode_decision( cb, i_ctxIdxInc, 0 );
-            else /* suffix */
+#endif
+            if( i_prefix >= 14 )
                 x264_cabac_encode_ue_bypass( cb, 0, i_coeff_abs_m1[i] - 14 );
 
             i_abslevelgt1++;
@@ -797,6 +802,9 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
             i_abslevel1++;
 
         /* write sign */
+#ifdef RDO_SKIP_BS
+        if( i_prefix == 0 )
+#endif
         x264_cabac_encode_bypass( cb, i_coeff_sign[i] );
     }
 }

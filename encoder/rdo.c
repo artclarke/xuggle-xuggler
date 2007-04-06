@@ -26,6 +26,9 @@
 
 #define RDO_SKIP_BS
 
+static int cabac_prefix_transition[15][128];
+static int cabac_prefix_size[15][128];
+
 /* CAVLC: produces exactly the same bit count as a normal encode */
 /* this probably still leaves some unnecessary computations */
 #define bs_write1(s,v)     ((s)->i_bits_encoded += 1)
@@ -213,8 +216,6 @@ int x264_rd_cost_i8x8_chroma( x264_t *h, int i_lambda2, int i_mode, int b_dct )
 #define LAMBDA_BITS 4
 
 /* precalculate the cost of coding abs_level_m1 */
-static int cabac_prefix_transition[15][128];
-static int cabac_prefix_size[15][128];
 void x264_rdo_init( )
 {
     int i_prefix;
@@ -318,7 +319,7 @@ static void quant_trellis_cabac( x264_t *h, int16_t *dct,
     uint8_t cabac_state_last[64];
     const int b_interlaced = h->mb.b_interlaced;
     const int f = 1 << 15; // no deadzone
-    int i_last_nnz = -1;
+    int i_last_nnz;
     int i, j;
 
     // (# of coefs) * (# of ctx) * (# of levels tried) = 1024
@@ -331,19 +332,23 @@ static void quant_trellis_cabac( x264_t *h, int16_t *dct,
     int i_levels_used = 1;
 
     /* init coefs */
-    for( i = b_ac; i < i_coefs; i++ )
+    for( i = i_coefs-1; i >= b_ac; i-- )
+        if( (unsigned)(dct[zigzag[i]] * quant_mf[zigzag[i]] + f-1) >= 2*f )
+            break;
+
+    if( i < b_ac )
+    {
+        memset( dct, 0, i_coefs * sizeof(*dct) );
+        return;
+    }
+
+    i_last_nnz = i;
+
+    for( ; i >= b_ac; i-- )
     {
         int coef = dct[zigzag[i]];
         abs_coefs[i] = abs(coef);
         signs[i] = coef < 0 ? -1 : 1;
-        if( f <= abs_coefs[i] * quant_mf[zigzag[i]] )
-            i_last_nnz = i;
-    }
-
-    if( i_last_nnz == -1 )
-    {
-        memset( dct, 0, i_coefs * sizeof(*dct) );
-        return;
     }
 
     /* init trellis */
