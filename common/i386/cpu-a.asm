@@ -101,3 +101,19 @@ cglobal x264_emms
     emms
     ret
 
+;-----------------------------------------------------------------------------
+; void x264_stack_align( void (*func)(void*), void *arg );
+;-----------------------------------------------------------------------------
+cglobal x264_stack_align
+    push ebp
+    mov  ebp, esp
+    sub  esp, 4
+    and  esp, ~15
+    mov  ecx, [ebp+8]
+    mov  edx, [ebp+12]
+    mov  [esp], edx
+    call ecx
+    mov  esp, ebp
+    pop  ebp
+    ret
+

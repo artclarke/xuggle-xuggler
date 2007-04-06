@@ -1023,7 +1023,7 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
     x264_macroblock_slice_init( h );
 }
 
-static int x264_slice_write( x264_t *h )
+static void x264_slice_write( x264_t *h )
 {
     int i_skip;
     int mb_xy;
@@ -1183,8 +1183,6 @@ static int x264_slice_write( x264_t *h )
                               - h->stat.frame.i_itex_bits
                               - h->stat.frame.i_ptex_bits
                               - h->stat.frame.i_hdr_bits;
-
-    return 0;
 }
 
 static void x264_thread_sync_context( x264_t *dst, x264_t *src )
@@ -1223,7 +1221,7 @@ static int x264_slices_write( x264_t *h )
         x264_visualize_init( h );
 #endif
 
-    x264_slice_write( h );
+    x264_stack_align( x264_slice_write, h );
     i_frame_size = h->out.nal[h->out.i_nal-1].i_payload;
     x264_fdec_filter_row( h, h->sps->i_mb_height );
 
