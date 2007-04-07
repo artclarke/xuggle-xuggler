@@ -27,7 +27,7 @@
 #include "common.h"
 
 
-static const int x264_cabac_context_init_I[460][2] =
+static const int8_t x264_cabac_context_init_I[460][2] =
 {
     /* 0 - 10 */
     { 20, -15 }, {  2, 54 },  {  3,  74 }, { 20, -15 },
@@ -196,7 +196,7 @@ static const int x264_cabac_context_init_I[460][2] =
     {  29,   9 }, {  35,  20 }, {  29,  36 }, {  14,  67 }
 };
 
-static const int x264_cabac_context_init_PB[3][460][2] =
+static const int8_t x264_cabac_context_init_PB[3][460][2] =
 {
     /* i_cabac_init_idc == 0 */
     {
@@ -669,7 +669,7 @@ static const int x264_cabac_context_init_PB[3][460][2] =
 
 /* FIXME could avoid this duplication by reversing the order of states
  * with MPS=0, but that would uglify the other tables */
-static const int x264_cabac_range_lps[128][4] =
+static const uint8_t x264_cabac_range_lps[128][4] =
 {
     {   2,   2,   2,   2 },
     {   6,   7,   8,   9 }, {   6,   7,   9,  10 }, {   6,   8,   9,  11 },
@@ -718,7 +718,7 @@ static const int x264_cabac_range_lps[128][4] =
     {   2,   2,   2,   2 },
 };
 
-static const int x264_cabac_transition[2][128] =
+static const uint8_t x264_cabac_transition[2][128] =
 {{
       0,  1,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
      15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
@@ -739,7 +739,7 @@ static const int x264_cabac_transition[2][128] =
     113,114,115,116,117,118,119,120,121,122,123,124,125,126,126,127,
 }};
 
-static const int x264_cabac_probability[128] =
+static const uint8_t x264_cabac_probability[128] =
 {
     FIX8(0.9812), FIX8(0.9802), FIX8(0.9792), FIX8(0.9781),
     FIX8(0.9769), FIX8(0.9757), FIX8(0.9744), FIX8(0.9730),
@@ -775,7 +775,7 @@ static const int x264_cabac_probability[128] =
     FIX8(0.0219), FIX8(0.0208), FIX8(0.0198), FIX8(0.0187)
 };
 /* -ln2(probability) */
-static const int x264_cabac_entropy[128] =
+static const uint16_t x264_cabac_entropy[128] =
 {
     FIX8(0.0273), FIX8(0.0288), FIX8(0.0303), FIX8(0.0320),
     FIX8(0.0337), FIX8(0.0355), FIX8(0.0375), FIX8(0.0395),
@@ -817,7 +817,7 @@ static const int x264_cabac_entropy[128] =
  *****************************************************************************/
 void x264_cabac_context_init( x264_cabac_t *cb, int i_slice_type, int i_qp, int i_model )
 {
-    const int (*cabac_context_init)[460][2];
+    const int8_t (*cabac_context_init)[460][2];
     int i;
 
     if( i_slice_type == SLICE_TYPE_I )
