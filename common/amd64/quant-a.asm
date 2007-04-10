@@ -69,9 +69,8 @@ SECTION .text
 %endmacro
 
 %macro SSSE3_QUANT_1x8 3
-    movdqa     xmm0, %1     ; load dct coeffs
-    movdqa     xmm1, xmm0   ; save sign
-    pabsw      xmm0, xmm0
+    movdqa     xmm1, %1     ; load dct coeffs
+    pabsw      xmm0, xmm1
     paddusw    xmm0, %3     ; round
     pmulhuw    xmm0, %2     ; divide
     psignw     xmm0, xmm1   ; restore sign
