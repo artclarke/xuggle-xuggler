@@ -352,7 +352,6 @@ static int x264_validate_parameters( x264_t *h )
     if( h->param.i_threads == 0 )
         h->param.i_threads = x264_cpu_num_processors() * 3/2;
     h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_THREAD_MAX );
-    h->param.i_threads = X264_MIN( h->param.i_threads, 1 + (h->param.i_height >> h->param.b_interlaced) / (X264_THREAD_HEIGHT + 16) ); // FIXME exact limit?
     if( h->param.i_threads > 1 )
     {
 #ifndef HAVE_PTHREAD

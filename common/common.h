@@ -125,7 +125,7 @@
 }
 
 #define X264_BFRAME_MAX 16
-#define X264_THREAD_MAX 16
+#define X264_THREAD_MAX 128
 #define X264_SLICE_MAX 4
 #define X264_NAL_MAX (4 + X264_SLICE_MAX)
 #define X264_THREAD_HEIGHT 24 // number of pixels (per thread) in progress at any given time. could theoretically be as low as 22
