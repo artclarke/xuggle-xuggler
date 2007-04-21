@@ -1043,7 +1043,7 @@ static void x264_slice_write( x264_t *h )
 
         /* init cabac */
         x264_cabac_context_init( &h->cabac, h->sh.i_type, h->sh.i_qp, h->sh.i_cabac_init_idc );
-        x264_cabac_encode_init ( &h->cabac, &h->out.bs );
+        x264_cabac_encode_init ( &h->cabac, h->out.bs.p, h->out.bs.p_end );
     }
     h->mb.i_last_qp = h->sh.i_qp;
     h->mb.i_last_dqp = 0;
@@ -1166,7 +1166,7 @@ static void x264_slice_write( x264_t *h )
     if( h->param.b_cabac )
     {
         x264_cabac_encode_flush( &h->cabac );
-
+        h->out.bs.p = h->cabac.p;
     }
     else
     {

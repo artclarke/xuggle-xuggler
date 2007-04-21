@@ -34,23 +34,21 @@ typedef struct
     int i_range;
 
     /* bit stream */
-    int i_bits_outstanding;
+    int i_queue;
+    int i_bytes_outstanding;
     int f8_bits_encoded; // only if using x264_cabac_size_decision()
-    bs_t *s;
+
+    uint8_t *p_start;
+    uint8_t *p;
+    uint8_t *p_end;
 
 } x264_cabac_t;
 
 /* init the contexts given i_slice_type, the quantif and the model */
 void x264_cabac_context_init( x264_cabac_t *cb, int i_slice_type, int i_qp, int i_model );
 
-/* decoder only (unused): */
-void x264_cabac_decode_init    ( x264_cabac_t *cb, bs_t *s );
-int  x264_cabac_decode_decision( x264_cabac_t *cb, int i_ctx_idx );
-int  x264_cabac_decode_bypass  ( x264_cabac_t *cb );
-int  x264_cabac_decode_terminal( x264_cabac_t *cb );
-
 /* encoder only: */
-void x264_cabac_encode_init ( x264_cabac_t *cb, bs_t *s );
+void x264_cabac_encode_init ( x264_cabac_t *cb, uint8_t *p_data, uint8_t *p_end );
 void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx_idx, int b );
 void x264_cabac_encode_bypass( x264_cabac_t *cb, int b );
 void x264_cabac_encode_terminal( x264_cabac_t *cb, int b );
@@ -63,7 +61,7 @@ int  x264_cabac_size_decision_noup( uint8_t *state, int b );
 
 static inline int x264_cabac_pos( x264_cabac_t *cb )
 {
-    return bs_pos( cb->s ) + cb->i_bits_outstanding;
+    return (cb->p - cb->p_start + cb->i_bytes_outstanding) * 8 + cb->i_queue;
 }
 
 #endif

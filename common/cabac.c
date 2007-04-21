@@ -739,6 +739,13 @@ static const uint8_t x264_cabac_transition[2][128] =
     113,114,115,116,117,118,119,120,121,122,123,124,125,126,126,127,
 }};
 
+static const uint8_t renorm_shift[64]= {
+ 6,5,4,4,3,3,3,3,2,2,2,2,2,2,2,2,
+ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+};
+
 static const uint8_t x264_cabac_probability[128] =
 {
     FIX8(0.9812), FIX8(0.9802), FIX8(0.9792), FIX8(0.9781),
@@ -835,122 +842,59 @@ void x264_cabac_context_init( x264_cabac_t *cb, int i_slice_type, int i_qp, int 
     }
 }
 
-/*****************************************************************************
- *
- *****************************************************************************/
-void x264_cabac_decode_init( x264_cabac_t *cb, bs_t *s )
-{
-    cb->i_range = 0x01fe;
-    cb->i_low   = bs_read( s, 9 );
-    cb->s       = s;
-}
-
-static inline void x264_cabac_decode_renorm( x264_cabac_t *cb )
-{
-    while( cb->i_range < 0x0100 )
-    {
-        cb->i_range <<= 1;
-        cb->i_low   = ( cb->i_low << 1 )|bs_read( cb->s, 1 );
-    }
-}
-
-int  x264_cabac_decode_decision( x264_cabac_t *cb, int i_ctx )
-{
-    int i_state = cb->state[i_ctx];
-    int i_range_lps = x264_cabac_range_lps[i_state][(cb->i_range>>6)&0x03];
-
-    int val = (i_state >> 6);
-
-    cb->i_range -= i_range_lps;
-
-    if( cb->i_low >= cb->i_range )
-    {
-        val ^= 1;
-
-        cb->i_low -= cb->i_range;
-        cb->i_range= i_range_lps;
-    }
-
-    cb->state[i_ctx] = x264_cabac_transition[val][i_state];
-
-    x264_cabac_decode_renorm( cb );
-
-    return val;
-}
-int  x264_cabac_decode_bypass( x264_cabac_t *cb )
-{
-    cb->i_low = (cb->i_low << 1)|bs_read( cb->s, 1 );
-
-    if( cb->i_low >= cb->i_range )
-    {
-        cb->i_low -= cb->i_range;
-        return 1;
-    }
-    return 0;
-}
-int  x264_cabac_decode_terminal( x264_cabac_t *cb )
-{
-    if( cb->i_low >= cb->i_range - 2 )
-    {
-        return 1;
-    }
-
-    cb->i_range -= 2;
-    x264_cabac_decode_renorm( cb );
-    return 0;
-}
-
-/*****************************************************************************
- *
- *****************************************************************************/
-void x264_cabac_encode_init( x264_cabac_t *cb, bs_t *s )
+void x264_cabac_encode_init( x264_cabac_t *cb, uint8_t *p_data, uint8_t *p_end )
 {
     cb->i_low   = 0;
     cb->i_range = 0x01FE;
-    cb->i_bits_outstanding = 0;
-    cb->s = s;
-    s->i_left++; // the first bit will be shifted away and not written
+    cb->i_queue = -1; // the first bit will be shifted away and not written
+    cb->i_bytes_outstanding = 0;
+    cb->p_start = p_data;
+    cb->p       = p_data;
+    cb->p_end   = p_end;
 }
 
-static inline void x264_cabac_putbit( x264_cabac_t *cb, int b )
+static inline void x264_cabac_putbyte( x264_cabac_t *cb )
 {
-    bs_write1( cb->s, b );
-
-    if( cb->i_bits_outstanding > 0 )
+    if( cb->i_queue >= 8 )
     {
-        while( cb->i_bits_outstanding > 32 )
+        int out = cb->i_low >> (cb->i_queue+2);
+        cb->i_low &= (4<<cb->i_queue)-1;
+        cb->i_queue -= 8;
+
+        if( (out & 0xff) == 0xff )
         {
-            bs_write1( cb->s, 1-b );
-            cb->i_bits_outstanding--;
+            cb->i_bytes_outstanding++;
         }
-        bs_write( cb->s, cb->i_bits_outstanding, (1-b)*(~0) );
-        cb->i_bits_outstanding = 0;
+        else
+        {
+            if( cb->p + cb->i_bytes_outstanding + 1 >= cb->p_end )
+                return;
+            int carry = out & 0x100;
+            if( carry )
+            {
+                // this can't happen on the first byte (buffer underrun),
+                // because that would correspond to a probability > 1.
+                // this can't carry beyond the one byte, because any 0xff bytes
+                // are in bytes_outstanding and thus not written yet.
+                cb->p[-1]++;
+            }
+            while( cb->i_bytes_outstanding > 0 )
+            {
+                *(cb->p++) = carry ? 0 : 0xff;
+                cb->i_bytes_outstanding--;
+            }
+            *(cb->p++) = out;
+        }
     }
 }
 
 static inline void x264_cabac_encode_renorm( x264_cabac_t *cb )
 {
-    /* RenormE */
-    while( cb->i_range < 0x100 )
-    {
-        if( cb->i_low < 0x100 )
-        {
-            x264_cabac_putbit( cb, 0 );
-        }
-        else if( cb->i_low >= 0x200 )
-        {
-            cb->i_low -= 0x200;
-            x264_cabac_putbit( cb, 1 );
-        }
-        else
-        {
-            cb->i_low -= 0x100;
-            cb->i_bits_outstanding++;
-        }
-
-        cb->i_range <<= 1;
-        cb->i_low   <<= 1;
-    }
+    int shift = renorm_shift[cb->i_range>>3];
+    cb->i_range <<= shift;
+    cb->i_low   <<= shift;
+    cb->i_queue  += shift;
+    x264_cabac_putbyte( cb );
 }
 
 void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx, int b )
@@ -975,17 +919,8 @@ void x264_cabac_encode_bypass( x264_cabac_t *cb, int b )
 {
     cb->i_low <<= 1;
     cb->i_low += (((int32_t)b<<31)>>31) & cb->i_range;
-
-    if( cb->i_low >= 0x400 || cb->i_low < 0x200 )
-    {
-        x264_cabac_putbit( cb, cb->i_low >> 10 );
-        cb->i_low &= 0x3ff;
-    }
-    else
-    {
-        cb->i_low -= 0x200;
-        cb->i_bits_outstanding++;
-    }
+    cb->i_queue += 1;
+    x264_cabac_putbyte( cb );
 }
 
 void x264_cabac_encode_terminal( x264_cabac_t *cb, int b )
@@ -994,19 +929,34 @@ void x264_cabac_encode_terminal( x264_cabac_t *cb, int b )
     if( b )
     {
         cb->i_low += cb->i_range;
-        cb->i_range = 2;
+        cb->i_range  = 2<<7;
+        cb->i_low  <<= 7;
+        cb->i_queue += 7;
+        x264_cabac_putbyte( cb );
     }
-    x264_cabac_encode_renorm( cb );
+    else
+    {
+        x264_cabac_encode_renorm( cb );
+    }
 }
 
 void x264_cabac_encode_flush( x264_cabac_t *cb )
 {
-    x264_cabac_putbit( cb, (cb->i_low >> 9)&0x01 );
-    bs_write1( cb->s, (cb->i_low >> 8)&0x01 );
+    cb->i_low |= 0x80;
+    cb->i_low <<= 10;
+    cb->i_queue += 10;
+    x264_cabac_putbyte( cb );
+    x264_cabac_putbyte( cb );
+    cb->i_queue = 0;
 
-    /* check that */
-    bs_write1( cb->s, 0x01 );
-    bs_align_0( cb->s );
+    if( cb->p + cb->i_bytes_outstanding + 1 >= cb->p_end )
+        return; //FIXME throw an error instead of silently truncating the frame
+
+    while( cb->i_bytes_outstanding > 0 )
+    {
+        *(cb->p++) = 0xff;
+        cb->i_bytes_outstanding--;
+    }
 }
 
 /*****************************************************************************

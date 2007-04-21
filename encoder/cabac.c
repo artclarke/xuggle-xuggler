@@ -831,30 +831,27 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
 #ifdef RDO_SKIP_BS
         cb->f8_bits_encoded += (384*8) << 8;
 #else
-        bs_t *s = cb->s;
-        bs_align_0( s );    /* not sure */
+        if( cb->p + 385 >= cb->p_end )
+            return; //FIXME throw an error
         /* Luma */
-        for( i = 0; i < 16*16; i++ )
+        for( i = 0; i < 16; i++ )
         {
-            const int x = 16 * h->mb.i_mb_x + (i % 16);
-            const int y = 16 * h->mb.i_mb_y + (i / 16);
-            bs_write( s, 8, h->fenc->plane[0][y*h->mb.pic.i_stride[0]+x] );
+            memcpy( cb->p, h->fenc->plane[0] + i*h->mb.pic.i_stride[0], 16 );
+            cb->p += 16;
         }
         /* Cb */
-        for( i = 0; i < 8*8; i++ )
+        for( i = 0; i < 8; i++ )
         {
-            const int x = 8 * h->mb.i_mb_x + (i % 8);
-            const int y = 8 * h->mb.i_mb_y + (i / 8);
-            bs_write( s, 8, h->fenc->plane[1][y*h->mb.pic.i_stride[1]+x] );
+            memcpy( cb->p, h->fenc->plane[1] + i*h->mb.pic.i_stride[1], 8 );
+            cb->p += 8;
         }
         /* Cr */
-        for( i = 0; i < 8*8; i++ )
+        for( i = 0; i < 8; i++ )
         {
-            const int x = 8 * h->mb.i_mb_x + (i % 8);
-            const int y = 8 * h->mb.i_mb_y + (i / 8);
-            bs_write( s, 8, h->fenc->plane[2][y*h->mb.pic.i_stride[2]+x] );
+            memcpy( cb->p, h->fenc->plane[2] + i*h->mb.pic.i_stride[2], 8 );
+            cb->p += 8;
         }
-        x264_cabac_encode_init( cb, s );
+        x264_cabac_encode_init( cb, cb->p, cb->p_end );
 #endif
         return;
     }
