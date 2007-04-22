@@ -867,9 +867,9 @@ static inline void x264_cabac_putbyte( x264_cabac_t *cb )
         }
         else
         {
+            int carry = out & 0x100;
             if( cb->p + cb->i_bytes_outstanding + 1 >= cb->p_end )
                 return;
-            int carry = out & 0x100;
             if( carry )
             {
                 // this can't happen on the first byte (buffer underrun),
