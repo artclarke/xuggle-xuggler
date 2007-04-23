@@ -474,6 +474,7 @@ struct x264_t
         int8_t  *skipbp;                    /* block pattern for SKIP or DIRECT (sub)mbs. B-frames + cabac only */
         int8_t  *mb_transform_size;         /* transform_size_8x8_flag of each mb */
         uint8_t *intra_border_backup[2][3]; /* bottom pixels of the previous mb row, used for intra prediction after the framebuffer has been deblocked */
+        uint8_t (*nnz_backup)[16];          /* when using cavlc + 8x8dct, the deblocker uses a modified nnz */
 
         /* current value */
         int     i_type;

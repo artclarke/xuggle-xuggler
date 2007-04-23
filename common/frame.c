@@ -294,6 +294,48 @@ void x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame )
 }
 
 
+/* cavlc + 8x8 transform stores nnz per 16 coeffs for the purpose of
+ * entropy coding, but per 64 coeffs for the purpose of deblocking */
+void munge_cavlc_nnz_row( x264_t *h, int mb_y, uint8_t (*buf)[16] )
+{
+    uint32_t (*src)[6] = (uint32_t(*)[6])h->mb.non_zero_count + mb_y * h->sps->i_mb_width;
+    int8_t *transform = h->mb.mb_transform_size + mb_y * h->sps->i_mb_width;
+    int x;
+    for( x=0; x<h->sps->i_mb_width; x++ )
+    {
+        memcpy( buf+x, src+x, 16 );
+        if( transform[x] )
+        {
+            if( src[x][0] ) src[x][0] = 0x01010101;
+            if( src[x][1] ) src[x][1] = 0x01010101;
+            if( src[x][2] ) src[x][2] = 0x01010101;
+            if( src[x][3] ) src[x][3] = 0x01010101;
+        }
+    }
+}
+
+static void restore_cavlc_nnz_row( x264_t *h, int mb_y, uint8_t (*buf)[16] )
+{
+    uint8_t (*dst)[24] = h->mb.non_zero_count + mb_y * h->sps->i_mb_width;
+    int x;
+    for( x=0; x<h->sps->i_mb_width; x++ )
+        memcpy( dst+x, buf+x, 16 );
+}
+
+static void munge_cavlc_nnz( x264_t *h, int mb_y, uint8_t (*buf)[16], void (*func)(x264_t*, int, uint8_t (*)[16]) )
+{
+    func( h, mb_y, buf );
+    if( mb_y > 0 )
+        func( h, mb_y-1, buf + h->sps->i_mb_width );
+    if( h->sh.b_mbaff )
+    {
+        func( h, mb_y+1, buf + h->sps->i_mb_width * 2 );
+        if( mb_y > 0 )
+            func( h, mb_y-2, buf + h->sps->i_mb_width * 3 );
+    }
+}
+
+
 /* Deblocking filter */
 
 static const int i_alpha_table[52] =
@@ -536,6 +578,9 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                          h->fdec->i_stride[1] << b_interlaced,
                          h->fdec->i_stride[2] << b_interlaced };
 
+    if( !h->pps->b_cabac && h->pps->b_transform_8x8_mode )
+        munge_cavlc_nnz( h, mb_y, h->mb.nnz_backup, munge_cavlc_nnz_row );
+
     for( mb_x = 0; mb_x < h->sps->i_mb_width; )
     {
         const int mb_xy  = mb_y * h->mb.i_mb_stride + mb_x;
@@ -556,17 +601,6 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
         }
 
         x264_prefetch_fenc( h, h->fdec, mb_x, mb_y );
-
-        /* cavlc + 8x8 transform stores nnz per 16 coeffs for the purpose of
-         * entropy coding, but per 64 coeffs for the purpose of deblocking */
-        if( !h->param.b_cabac && b_8x8_transform )
-        {
-            uint32_t *nnz = (uint32_t*)h->mb.non_zero_count[mb_xy];
-            if( nnz[0] ) nnz[0] = 0x01010101;
-            if( nnz[1] ) nnz[1] = 0x01010101;
-            if( nnz[2] ) nnz[2] = 0x01010101;
-            if( nnz[3] ) nnz[3] = 0x01010101;
-        }
 
         /* i_dir == 0 -> vertical edge
          * i_dir == 1 -> horizontal edge */
@@ -694,6 +728,9 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
             mb_x++;
         mb_y ^= b_interlaced;
     }
+
+    if( !h->pps->b_cabac && h->pps->b_transform_8x8_mode )
+        munge_cavlc_nnz( h, mb_y, h->mb.nnz_backup, restore_cavlc_nnz_row );
 }
 
 void x264_frame_deblock( x264_t *h )
