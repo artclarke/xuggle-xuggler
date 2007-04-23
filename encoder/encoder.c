@@ -770,19 +770,13 @@ static void x264_nal_start( x264_t *h, int i_type, int i_ref_idc )
     nal->i_ref_idc = i_ref_idc;
     nal->i_type    = i_type;
 
-    bs_align_0( &h->out.bs );   /* not needed */
-
     nal->i_payload= 0;
-    nal->p_payload= &h->out.p_bitstream[bs_pos( &h->out.bs) / 8];
+    nal->p_payload= &h->out.p_bitstream[bs_pos( &h->out.bs ) / 8];
 }
 static void x264_nal_end( x264_t *h )
 {
     x264_nal_t *nal = &h->out.nal[h->out.i_nal];
-
-    bs_align_0( &h->out.bs );   /* not needed */
-
-    nal->i_payload = &h->out.p_bitstream[bs_pos( &h->out.bs)/8] - nal->p_payload;
-
+    nal->i_payload = &h->out.p_bitstream[bs_pos( &h->out.bs ) / 8] - nal->p_payload;
     h->out.i_nal++;
 }
 
@@ -1052,7 +1046,7 @@ static void x264_slice_write( x264_t *h )
     {
         const int i_mb_y = mb_xy / h->sps->i_mb_width;
         const int i_mb_x = mb_xy % h->sps->i_mb_width;
-        int mb_spos = bs_pos(&h->out.bs);
+        int mb_spos = bs_pos(&h->out.bs) + x264_cabac_pos(&h->cabac);
 
         if( i_mb_x == 0 )
             x264_fdec_filter_row( h, i_mb_y );
@@ -1138,7 +1132,7 @@ static void x264_slice_write( x264_t *h )
         }
 
         if( h->mb.b_variable_qp )
-            x264_ratecontrol_mb(h, bs_pos(&h->out.bs) - mb_spos);
+            x264_ratecontrol_mb(h, bs_pos(&h->out.bs) + x264_cabac_pos(&h->cabac) - mb_spos);
 
         if( h->sh.b_mbaff )
         {
