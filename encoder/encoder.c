@@ -384,7 +384,7 @@ static int x264_validate_parameters( x264_t *h )
 
     if( h->param.rc.i_rc_method < 0 || h->param.rc.i_rc_method > 2 )
     {
-        x264_log( h, X264_LOG_ERROR, "invalid RC method\n" );
+        x264_log( h, X264_LOG_ERROR, "no ratecontrol method specified\n" );
         return -1;
     }
     h->param.rc.f_rf_constant = x264_clip3f( h->param.rc.f_rf_constant, 0, 51 );

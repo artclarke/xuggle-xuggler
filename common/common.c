@@ -81,7 +81,7 @@ void    x264_param_default( x264_param_t *param )
     param->b_cabac = 1;
     param->i_cabac_init_idc = 0;
 
-    param->rc.i_rc_method = X264_RC_CQP;
+    param->rc.i_rc_method = X264_RC_NONE;
     param->rc.i_bitrate = 0;
     param->rc.f_rate_tolerance = 1.0;
     param->rc.i_vbv_max_bitrate = 0;
