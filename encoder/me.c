@@ -460,7 +460,7 @@ me_hex2:
             int enc_dc[4];
             int sad_size = i_pixel <= PIXEL_8x8 ? PIXEL_8x8 : PIXEL_4x4;
             int delta = x264_pixel_size[sad_size].w;
-            uint16_t *ads = x264_alloca((max_x-min_x+8) * sizeof(uint16_t));
+            uint16_t *ads = x264_malloc((max_x-min_x+8) * sizeof(uint16_t));
 
             h->pixf.sad_x4[sad_size]( zero, m->p_fenc[0], m->p_fenc[0]+delta,
                 m->p_fenc[0]+delta*FENC_STRIDE, m->p_fenc[0]+delta+delta*FENC_STRIDE,
@@ -495,6 +495,8 @@ me_hex2:
                 for( i=0; i<i_mvs; i++ )
                     COST_MV( mvs[i], my );
             }
+
+            x264_free(ads);
 #endif
         }
         break;
