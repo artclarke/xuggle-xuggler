@@ -202,7 +202,11 @@ static char *posixly_correct;
 # if HAVE_STRING_H
 #  include <string.h>
 # else
-#  include <strings.h>
+#  ifdef _MSC_VER
+#   include <string.h>
+#  else
+#   include <strings.h>
+#  endif
 # endif
 
 /* Avoid depending on library functions or files
@@ -979,6 +983,16 @@ getopt (argc, argv, optstring)
 			   (int *) 0,
 			   0);
 }
+
+#ifdef _MSC_VER
+
+int
+getopt_long (argc, argv, optstring, long_options, opt_index)
+{
+  return _getopt_internal (argc, argv, optstring, long_options, opt_index, 0);
+}
+
+#endif
 
 #endif	/* Not ELIDE_CODE.  */
 

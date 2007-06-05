@@ -26,7 +26,9 @@
 #include <string.h>
 #include <math.h>
 #include <limits.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 
 #include "common/common.h"
 #include "macroblock.h"
