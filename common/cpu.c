@@ -37,7 +37,7 @@
 
 #include "common.h"
 
-#if defined(ARCH_X86) || defined(ARCH_X86_64)
+#if ( defined(ARCH_X86) || defined(ARCH_X86_64) ) && defined(HAVE_MMX)
 extern int  x264_cpu_cpuid_test( void );
 extern uint32_t  x264_cpu_cpuid( uint32_t op, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx );
 extern void x264_emms( void );
@@ -48,10 +48,6 @@ uint32_t x264_cpu_detect( void )
 
     uint32_t eax, ebx, ecx, edx;
     int      b_amd;
-
-#ifndef HAVE_MMX
-    return 0;
-#endif
 
     if( !x264_cpu_cpuid_test() )
     {

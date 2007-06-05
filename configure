@@ -147,7 +147,6 @@ esac
 case "${MACHINE%%-*}" in
   i*86)
     ARCH="X86"
-    CFLAGS="$CFLAGS -DHAVE_MMX"
     AS="yasm"
     ASFLAGS="-O2"
     if [ "$SYS" = MACOSX ]; then
@@ -163,7 +162,6 @@ case "${MACHINE%%-*}" in
     ;;
   x86_64)
     ARCH="X86_64"
-    CFLAGS="$CFLAGS -DHAVE_MMX"
     AS="yasm"
     ASFLAGS="-f elf -m amd64"
     ;;
@@ -215,18 +213,22 @@ then
   then
     echo "Your version of 'nasm' is too old."
     echo "Please install Xcode 2.4.1 or later."
-    exit 1
+    AS=""
   fi
 fi
 
 if [ $ARCH = X86 -o $ARCH = X86_64 ] ; then
-    if ! as_check ; then
-        echo "No assembler. Please install yasm."
-        exit 1
+    if as_check ; then
+        CFLAGS="$CFLAGS -DHAVE_MMX"
     fi
     if as_check "pabsw xmm0, xmm0" ; then
         ASFLAGS="$ASFLAGS -DHAVE_SSE3"
         CFLAGS="$CFLAGS -DHAVE_SSE3"
+    fi
+    if ! as_check ; then
+        echo "No suitable assembler found.  x264 will be several times slower."
+        echo "Please install 'yasm' to get MMX/SSE optimized code."
+        AS=""
     fi
 fi
 

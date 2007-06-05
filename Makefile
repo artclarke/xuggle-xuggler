@@ -19,6 +19,7 @@ endif
 
 # MMX/SSE optims
 ifeq ($(ARCH),X86)
+ifneq ($(AS),)
 SRCS   += common/i386/mc-c.c common/i386/predict-c.c
 ASMSRC  = common/i386/dct-a.asm common/i386/cpu-a.asm \
           common/i386/pixel-a.asm common/i386/mc-a.asm \
@@ -28,9 +29,11 @@ ASMSRC  = common/i386/dct-a.asm common/i386/cpu-a.asm \
 OBJASM  = $(ASMSRC:%.asm=%.o)
 ASFLAGS += -Icommon/i386/
 endif
+endif
 
 # MMX/SSE optims
 ifeq ($(ARCH),X86_64)
+ifneq ($(AS),)
 SRCS   += common/i386/mc-c.c common/i386/predict-c.c
 ASMSRC  = common/amd64/dct-a.asm common/amd64/cpu-a.asm \
           common/amd64/pixel-a.asm common/amd64/mc-a.asm \
@@ -39,6 +42,7 @@ ASMSRC  = common/amd64/dct-a.asm common/amd64/cpu-a.asm \
           common/amd64/deblock-a.asm
 OBJASM  = $(ASMSRC:%.asm=%.o)
 ASFLAGS += -Icommon/amd64
+endif
 endif
 
 # AltiVec optims
