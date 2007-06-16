@@ -679,14 +679,15 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     mbcmp_init( h );
 
-    x264_log( h, X264_LOG_INFO, "using cpu capabilities %s%s%s%s%s%s\n",
+    x264_log( h, X264_LOG_INFO, "using cpu capabilities: %s%s%s%s%s%s%s%s\n",
              param->cpu&X264_CPU_MMX ? "MMX " : "",
              param->cpu&X264_CPU_MMXEXT ? "MMXEXT " : "",
              param->cpu&X264_CPU_SSE ? "SSE " : "",
              param->cpu&X264_CPU_SSE2 ? "SSE2 " : "",
              param->cpu&X264_CPU_SSSE3 ? "SSSE3 " : "",
              param->cpu&X264_CPU_3DNOW ? "3DNow! " : "",
-             param->cpu&X264_CPU_ALTIVEC ? "Altivec " : "" );
+             param->cpu&X264_CPU_ALTIVEC ? "Altivec " : "",
+             param->cpu ? "" : "none!" );
 
     h->out.i_nal = 0;
     h->out.i_bitstream = X264_MAX( 1000000, h->param.i_width * h->param.i_height * 4
