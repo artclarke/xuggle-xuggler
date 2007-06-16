@@ -38,7 +38,7 @@ void     x264_cpu_restore( uint32_t cpu );
  * problem, but I don't want to require such a new version.
  * This applies only to x86_32, since other architectures that need alignment
  * also have ABIs that ensure aligned stack. */
-#ifdef ARCH_X86
+#if defined(ARCH_X86) && defined(HAVE_MMX)
 void x264_stack_align( void (*func)(x264_t*), x264_t *arg );
 #else
 #define x264_stack_align(func,arg) func(arg)
