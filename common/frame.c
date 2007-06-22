@@ -763,6 +763,11 @@ void x264_deblock_v_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, 
 #endif
 #endif
 
+#ifdef ARCH_PPC
+void x264_deblock_v_luma_altivec( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_h_luma_altivec( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+#endif // ARCH_PPC
+
 void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
 {
     pf->deblock_v_luma = deblock_v_luma_c;
@@ -794,6 +799,14 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
 #endif
     }
 #endif
+
+#ifdef ARCH_PPC
+    if( cpu&X264_CPU_ALTIVEC )
+    {
+        pf->deblock_v_luma = x264_deblock_v_luma_altivec;
+        pf->deblock_h_luma = x264_deblock_h_luma_altivec;
+   }
+#endif // ARCH_PPC
 }
 
 
