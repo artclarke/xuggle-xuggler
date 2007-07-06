@@ -711,7 +711,7 @@ static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
 }
 
 /*****************************************************************************
- * Decode:
+ * Encode:
  *****************************************************************************/
 
 static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
@@ -747,9 +747,6 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
     return i_file;
 }
 
-/*****************************************************************************
- * Encode:
- *****************************************************************************/
 static int  Encode( x264_param_t *param, cli_opt_t *opt )
 {
     x264_t *h;

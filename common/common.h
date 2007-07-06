@@ -121,7 +121,10 @@
 #define X264_THREAD_MAX 128
 #define X264_SLICE_MAX 4
 #define X264_NAL_MAX (4 + X264_SLICE_MAX)
-#define X264_THREAD_HEIGHT 24 // number of pixels (per thread) in progress at any given time. could theoretically be as low as 22
+
+// number of pixels (per thread) in progress at any given time.
+// 16 for the macroblock in progress + 3 for deblocking + 3 for motion compensation filter + 2 for extra safety
+#define X264_THREAD_HEIGHT 24
 
 /****************************************************************************
  * Includes
@@ -142,9 +145,7 @@
  * Generals functions
  ****************************************************************************/
 /* x264_malloc : will do or emulate a memalign
- * XXX you HAVE TO use x264_free for buffer allocated
- * with x264_malloc
- */
+ * you have to use x264_free for buffers allocated with x264_malloc */
 void *x264_malloc( int );
 void *x264_realloc( void *p, int i_size );
 void  x264_free( void * );
@@ -332,10 +333,13 @@ struct x264_t
     x264_pps_t      *pps;
     int             i_idr_pic_id;
 
+    /* quantization matrix for decoding, [cqm][qp%6][coef_y][coef_x] */
     int             (*dequant4_mf[4])[4][4]; /* [4][6][4][4] */
     int             (*dequant8_mf[2])[8][8]; /* [2][6][8][8] */
+    /* quantization matrix for trellis, [cqm][qp][coef] */
     int             (*unquant4_mf[4])[16];   /* [4][52][16] */
     int             (*unquant8_mf[2])[64];   /* [2][52][64] */
+    /* quantization matrix for deadzone */
     uint16_t        (*quant4_mf[4])[16];     /* [4][52][16] */
     uint16_t        (*quant8_mf[2])[64];     /* [2][52][64] */
     uint16_t        (*quant4_bias[4])[16];   /* [4][52][16] */

@@ -43,6 +43,18 @@
 #include <gpac/isomedia.h>
 #endif
 
+static int64_t gcd( int64_t a, int64_t b )
+{
+    while (1)
+    {
+        int64_t c = a % b;
+        if( !c )
+            return b;
+        a = b;
+        b = c;
+    }
+}
+
 typedef struct {
     FILE *fh;
     int width, height;
@@ -321,20 +333,6 @@ typedef struct {
     PAVISTREAM p_avi;
     int width, height;
 } avis_input_t;
-
-int gcd(int a, int b)
-{
-    int c;
-
-    while (1)
-    {
-        c = a % b;
-        if (!c)
-            return b;
-        a = b;
-        b = c;
-    }
-}
 
 int open_file_avis( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
 {
@@ -899,19 +897,9 @@ int set_param_mkv( hnd_t handle, x264_param_t *p_param )
 
     if( dw > 0 && dh > 0 )
     {
-        int64_t a = dw, b = dh;
-
-        for (;;)
-        {
-            int64_t c = a % b;
-            if( c == 0 )
-              break;
-            a = b;
-            b = c;
-        }
-
-        dw /= b;
-        dh /= b;
+        int64_t x = gcd( dw, dh );
+        dw /= x;
+        dh /= x;
     }
 
     p_mkv->d_width = (int)dw;

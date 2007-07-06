@@ -332,7 +332,7 @@ if test "$pthread" = "auto" ; then
                 libpthread="-lpthreadGC2"
             elif cc_check pthread.h "-lpthreadGC2 -lwsock32 -DPTW32_STATIC_LIB" "pthread_create(0,0,0,0);" ; then
                 pthread="yes"
-                libpthread="-lpthreadGC2 -lwsock32"\
+                libpthread="-lpthreadGC2 -lwsock32"
                 CFLAGS="$CFLAGS -DPTW32_STATIC_LIB"
             fi
             ;;

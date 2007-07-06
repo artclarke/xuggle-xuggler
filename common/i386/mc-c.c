@@ -91,7 +91,7 @@ static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
 
 void mc_luma_mmx( uint8_t *src[4], int i_src_stride,
                   uint8_t *dst,    int i_dst_stride,
-                  int mvx,int mvy,
+                  int mvx, int mvy,
                   int i_width, int i_height )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
@@ -114,7 +114,7 @@ void mc_luma_mmx( uint8_t *src[4], int i_src_stride,
 
 uint8_t *get_ref_mmx( uint8_t *src[4], int i_src_stride,
                       uint8_t *dst,   int *i_dst_stride,
-                      int mvx,int mvy,
+                      int mvx, int mvy,
                       int i_width, int i_height )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
@@ -128,7 +128,6 @@ uint8_t *get_ref_mmx( uint8_t *src[4], int i_src_stride,
                 dst, *i_dst_stride, src1, i_src_stride,
                 src2, i_src_stride, i_height );
         return dst;
-
     }
     else
     {

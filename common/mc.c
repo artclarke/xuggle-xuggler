@@ -228,7 +228,7 @@ static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
 
 static void mc_luma( uint8_t *src[4], int i_src_stride,
                      uint8_t *dst,    int i_dst_stride,
-                     int mvx,int mvy,
+                     int mvx, int mvy,
                      int i_width, int i_height )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
@@ -238,7 +238,6 @@ static void mc_luma( uint8_t *src[4], int i_src_stride,
     if( qpel_idx & 5 ) /* qpel interpolation needed */
     {
         uint8_t *src2 = src[hpel_ref1[qpel_idx]] + offset + ((mvx&3) == 3);
-
         pixel_avg( dst, i_dst_stride, src1, i_src_stride,
                    src2, i_src_stride, i_width, i_height );
     }
@@ -249,8 +248,8 @@ static void mc_luma( uint8_t *src[4], int i_src_stride,
 }
 
 static uint8_t *get_ref( uint8_t *src[4], int i_src_stride,
-                         uint8_t *dst,    int * i_dst_stride,
-                         int mvx,int mvy,
+                         uint8_t *dst,   int *i_dst_stride,
+                         int mvx, int mvy,
                          int i_width, int i_height )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
@@ -260,10 +259,8 @@ static uint8_t *get_ref( uint8_t *src[4], int i_src_stride,
     if( qpel_idx & 5 ) /* qpel interpolation needed */
     {
         uint8_t *src2 = src[hpel_ref1[qpel_idx]] + offset + ((mvx&3) == 3);
-
         pixel_avg( dst, *i_dst_stride, src1, i_src_stride,
                    src2, i_src_stride, i_width, i_height );
-
         return dst;
     }
     else
