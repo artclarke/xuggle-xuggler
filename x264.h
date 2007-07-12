@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 55
+#define X264_BUILD 56
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -122,15 +122,19 @@ static const char * const x264_colmatrix_names[] = { "GBR", "bt709", "undef", ""
 #define X264_LOG_INFO           2
 #define X264_LOG_DEBUG          3
 
+/* Zones: override ratecontrol or other options for specific sections of the video.
+ * See x264_encoder_reconfig() for which options can be changed.
+ * If zones overlap, whichever comes later in the list takes precedence. */
 typedef struct
 {
-    int i_start, i_end;
-    int b_force_qp;
+    int i_start, i_end; /* range of frame numbers */
+    int b_force_qp; /* whether to use qp vs bitrate factor */
     int i_qp;
     float f_bitrate_factor;
+    struct x264_param_t *param;
 } x264_zone_t;
 
-typedef struct
+typedef struct x264_param_t
 {
     /* CPU flags */
     unsigned int cpu;

@@ -479,14 +479,13 @@ void x264_sei_version_write( x264_t *h, bs_t *s )
         0xdc, 0x45, 0xe9, 0xbd, 0xe6, 0xd9, 0x48, 0xb7,
         0x96, 0x2c, 0xd8, 0x20, 0xd9, 0x23, 0xee, 0xef
     };
-    char version[1200];
-    int length;
     char *opts = x264_param2string( &h->param, 0 );
+    char *version = x264_malloc( 200 + strlen(opts) );
+    int length;
 
     sprintf( version, "x264 - core %d%s - H.264/MPEG-4 AVC codec - "
              "Copyleft 2005 - http://www.videolan.org/x264.html - options: %s",
              X264_BUILD, X264_VERSION, opts );
-    x264_free( opts );
     length = strlen(version)+1+16;
 
     bs_write( s, 8, 0x5 ); // payload_type = user_data_unregistered
@@ -501,6 +500,9 @@ void x264_sei_version_write( x264_t *h, bs_t *s )
         bs_write( s, 8, version[i] );
 
     bs_rbsp_trailing( s );
+
+    x264_free( opts );
+    x264_free( version );
 }
 
 const x264_level_t x264_levels[] =

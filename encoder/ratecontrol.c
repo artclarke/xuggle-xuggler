@@ -144,6 +144,7 @@ struct x264_ratecontrol_t
 
     int i_zones;
     x264_zone_t *zones;
+    x264_zone_t *prev_zone;
 };
 
 
@@ -302,7 +303,10 @@ int x264_ratecontrol_new( x264_t *h )
     *rc->pred_b_from_p = rc->pred[0];
 
     if( parse_zones( h ) < 0 )
+    {
+        x264_log( h, X264_LOG_ERROR, "failed to parse zones\n" );
         return -1;
+    }
 
     /* Load stat file and init 2pass algo */
     if( h->param.rc.b_stat_read )
@@ -475,34 +479,68 @@ int x264_ratecontrol_new( x264_t *h )
     return 0;
 }
 
+static int parse_zone( x264_t *h, x264_zone_t *z, char *p )
+{
+    int len = 0;
+    char *tok, *saveptr;
+    z->param = NULL;
+    z->f_bitrate_factor = 1;
+    if( 3 <= sscanf(p, "%u,%u,q=%u%n", &z->i_start, &z->i_end, &z->i_qp, &len) )
+        z->b_force_qp = 1;
+    else if( 3 <= sscanf(p, "%u,%u,b=%f%n", &z->i_start, &z->i_end, &z->f_bitrate_factor, &len) )
+        z->b_force_qp = 0;
+    else if( 2 <= sscanf(p, "%u,%u%n", &z->i_start, &z->i_end, &len) )
+        z->b_force_qp = 0;
+    else
+    {
+        x264_log( h, X264_LOG_ERROR, "invalid zone: \"%s\"\n", p );
+        return -1;
+    }
+    p += len;
+    if( !*p )
+        return 0;
+    z->param = malloc( sizeof(x264_param_t) );
+    memcpy( z->param, &h->param, sizeof(x264_param_t) );
+    while( (tok = strtok_r( p, ",", &saveptr )) )
+    {
+        char *val = strchr( tok, '=' );
+        if( val )
+        {
+            *val = '\0';
+            val++;
+        }
+        if( x264_param_parse( z->param, tok, val ) )
+        {
+            x264_log( h, X264_LOG_ERROR, "invalid zone param: %s = %s\n", tok, val );
+            return -1;
+        }
+        p = NULL;
+    }
+    return 0;
+}
+
 static int parse_zones( x264_t *h )
 {
     x264_ratecontrol_t *rc = h->rc;
     int i;
     if( h->param.rc.psz_zones && !h->param.rc.i_zones )
     {
-        char *p;
+        char *p, *tok, *saveptr;
+        char *psz_zones = x264_malloc( strlen(h->param.rc.psz_zones)+1 );
+        strcpy( psz_zones, h->param.rc.psz_zones );
         h->param.rc.i_zones = 1;
-        for( p = h->param.rc.psz_zones; *p; p++ )
+        for( p = psz_zones; *p; p++ )
             h->param.rc.i_zones += (*p == '/');
         h->param.rc.zones = x264_malloc( h->param.rc.i_zones * sizeof(x264_zone_t) );
-        p = h->param.rc.psz_zones;
-        for( i = 0; i < h->param.rc.i_zones; i++)
+        p = psz_zones;
+        for( i = 0; i < h->param.rc.i_zones; i++ )
         {
-            x264_zone_t *z = &h->param.rc.zones[i];
-            if( 3 == sscanf(p, "%u,%u,q=%u", &z->i_start, &z->i_end, &z->i_qp) )
-                z->b_force_qp = 1;
-            else if( 3 == sscanf(p, "%u,%u,b=%f", &z->i_start, &z->i_end, &z->f_bitrate_factor) )
-                z->b_force_qp = 0;
-            else
-            {
-                char *slash = strchr(p, '/');
-                if(slash) *slash = '\0';
-                x264_log( h, X264_LOG_ERROR, "invalid zone: \"%s\"\n", p );
+            tok = strtok_r( p, "/", &saveptr );
+            if( !tok || parse_zone( h, &h->param.rc.zones[i], tok ) )
                 return -1;
-            }
-            p = strchr(p, '/') + 1;
+            p = NULL;
         }
+        x264_free( psz_zones );
     }
 
     if( h->param.rc.i_zones > 0 )
@@ -524,9 +562,22 @@ static int parse_zones( x264_t *h )
             }
         }
 
-        rc->i_zones = h->param.rc.i_zones;
+        rc->i_zones = h->param.rc.i_zones + 1;
         rc->zones = x264_malloc( rc->i_zones * sizeof(x264_zone_t) );
-        memcpy( rc->zones, h->param.rc.zones, rc->i_zones * sizeof(x264_zone_t) );
+        memcpy( rc->zones+1, h->param.rc.zones, (rc->i_zones-1) * sizeof(x264_zone_t) );
+
+        // default zone to fall back to if none of the others match
+        rc->zones[0].i_start = 0;
+        rc->zones[0].i_end = INT_MAX;
+        rc->zones[0].b_force_qp = 0;
+        rc->zones[0].f_bitrate_factor = 1;
+        rc->zones[0].param = x264_malloc( sizeof(x264_param_t) );
+        memcpy( rc->zones[0].param, &h->param, sizeof(x264_param_t) );
+        for( i = 1; i < rc->i_zones; i++ )
+        {
+            if( !rc->zones[i].param )
+                rc->zones[i].param = rc->zones[0].param;
+        }
     }
 
     return 0;
@@ -559,6 +610,7 @@ void x264_ratecontrol_summary( x264_t *h )
 void x264_ratecontrol_delete( x264_t *h )
 {
     x264_ratecontrol_t *rc = h->rc;
+    int i;
 
     if( rc->p_stat_file_out )
     {
@@ -574,7 +626,15 @@ void x264_ratecontrol_delete( x264_t *h )
     x264_free( rc->pred );
     x264_free( rc->pred_b_from_p );
     x264_free( rc->entry );
-    x264_free( rc->zones );
+    if( rc->zones )
+    {
+        x264_free( rc->zones[0].param );
+        if( h->param.rc.psz_zones )
+            for( i=1; i<rc->i_zones; i++ )
+                if( rc->zones[i].param != rc->zones[0].param )
+                    x264_free( rc->zones[i].param );
+        x264_free( rc->zones );
+    }
     x264_free( rc );
 }
 
@@ -595,9 +655,14 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp )
 {
     x264_ratecontrol_t *rc = h->rc;
     ratecontrol_entry_t *rce = NULL;
+    x264_zone_t *zone = get_zone( h, h->fenc->i_frame );
     float q;
 
     x264_cpu_restore( h->param.cpu );
+
+    if( zone && (!rc->prev_zone || zone->param != rc->prev_zone->param) )
+        x264_encoder_reconfig( h, zone->param );
+    rc->prev_zone = zone;
 
     rc->qp_force = i_force_qp;
 
@@ -646,7 +711,6 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp )
     }
     else /* CQP */
     {
-        x264_zone_t *zone = get_zone( h, h->fenc->i_frame );
         if( h->sh.i_type == SLICE_TYPE_B && h->fdec->b_kept_as_ref )
             q = ( rc->qp_constant[ SLICE_TYPE_B ] + rc->qp_constant[ SLICE_TYPE_P ] ) / 2;
         else
@@ -1384,6 +1448,7 @@ void x264_thread_sync_ratecontrol( x264_t *cur, x264_t *prev, x264_t *next )
         COPY(short_term_cplxsum);
         COPY(short_term_cplxcount);
         COPY(bframes);
+        COPY(prev_zone);
 #undef COPY
     }
     if( cur != next )
