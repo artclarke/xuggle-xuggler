@@ -21,12 +21,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#else
-#include <inttypes.h>
-#endif
-
 #if !(defined(_MSC_VER) || defined(__MINGW32__))
 #include <sys/time.h>
 #else
@@ -34,6 +28,8 @@
 #include <sys/timeb.h>
 #endif
 #include <time.h>
+
+#include "osdep.h"
 
 int64_t x264_mdate( void )
 {

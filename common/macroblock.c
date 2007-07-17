@@ -21,9 +21,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include <stdio.h>
-#include <string.h>
-
 #include "common.h"
 
 int x264_mb_predict_intra4x4_mode( x264_t *h, int idx )

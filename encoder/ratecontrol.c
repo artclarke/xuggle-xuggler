@@ -25,8 +25,6 @@
 
 #define _ISOC99_SOURCE
 #undef NDEBUG // always check asserts, the speed effect is far too small to disable them
-#include <stdio.h>
-#include <string.h>
 #include <math.h>
 #include <limits.h>
 #include <assert.h>
@@ -34,19 +32,6 @@
 #include "common/common.h"
 #include "common/cpu.h"
 #include "ratecontrol.h"
-
-#if defined(SYS_OPENBSD)
-#define isfinite finite
-#endif
-#if defined(_MSC_VER)
-#define isfinite _finite
-#endif
-#if defined(_MSC_VER) || defined(SYS_SunOS) || defined(SYS_MACOSX)
-#define sqrtf sqrt
-#endif
-#ifdef WIN32 // POSIX says that rename() removes the destination, but win32 doesn't.
-#define rename(src,dst) (unlink(dst), rename(src,dst))
-#endif
 
 typedef struct
 {

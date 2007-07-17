@@ -18,11 +18,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#define _LARGEFILE_SOURCE
-#define _FILE_OFFSET_BITS 64
-
-#include <stdio.h>
-#include <string.h>
 #include <sys/types.h>
 
 #include "common/common.h"
@@ -257,7 +252,7 @@ int get_frame_total_y4m( hnd_t handle )
 {
     y4m_input_t *h             = handle;
     int          i_frame_total = 0;
-    off_t        init_pos      = ftell(h->fh);
+    uint64_t     init_pos      = ftell(h->fh);
 
     if( !fseek( h->fh, 0, SEEK_END ) )
     {

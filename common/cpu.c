@@ -33,8 +33,6 @@
 #include <sys/sysctl.h>
 #endif
 
-#include <string.h>
-
 #include "common.h"
 
 #ifdef HAVE_MMX

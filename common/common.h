@@ -24,67 +24,6 @@
 #ifndef _COMMON_H
 #define _COMMON_H 1
 
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#else
-#include <inttypes.h>
-#endif
-#include <stdarg.h>
-#include <stdlib.h>
-#include <assert.h>
-
-#ifdef _MSC_VER
-#define inline __inline
-#define strncasecmp(s1, s2, n) strnicmp(s1, s2, n)
-#define snprintf _snprintf
-#define X264_VERSION "" // no configure script for msvc
-#endif
-
-#ifdef _MSC_VER
-#define DECLARE_ALIGNED( type, var, n ) __declspec(align(n)) type var
-#else
-#define DECLARE_ALIGNED( type, var, n ) type var __attribute__((aligned(n)))
-#endif
-
-/* threads */
-#if defined(__WIN32__) && defined(HAVE_PTHREAD)
-#include <pthread.h>
-#define USE_CONDITION_VAR
-
-#elif defined(SYS_BEOS)
-#include <kernel/OS.h>
-#define pthread_t               thread_id
-#define pthread_create(t,u,f,d) { *(t)=spawn_thread(f,"",10,d); \
-                                  resume_thread(*(t)); }
-#define pthread_join(t,s)       { long tmp; \
-                                  wait_for_thread(t,(s)?(long*)(s):&tmp); }
-#ifndef usleep
-#define usleep(t)               snooze(t)
-#endif
-#define HAVE_PTHREAD 1
-
-#elif defined(HAVE_PTHREAD)
-#include <pthread.h>
-#define USE_CONDITION_VAR
-#else
-#define pthread_t               int
-#define pthread_create(t,u,f,d)
-#define pthread_join(t,s)
-#endif //SYS_*
-
-#ifndef USE_CONDITION_VAR
-#define pthread_mutex_t         int
-#define pthread_mutex_init(m,f)
-#define pthread_mutex_destroy(m)
-#define pthread_mutex_lock(m)
-#define pthread_mutex_unlock(m)
-#define pthread_cond_t          int
-#define pthread_cond_init(c,f)
-#define pthread_cond_destroy(c)
-#define pthread_cond_broadcast(c)
-#define pthread_cond_wait(c,m)  usleep(100)
-#endif
-
 /****************************************************************************
  * Macros
  ****************************************************************************/
@@ -99,12 +38,6 @@
 
 #ifndef offsetof
 #define offsetof(T,F) ((unsigned int)((char *)&((T *)0)->F))
-#endif
-
-#if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
-#define UNUSED __attribute__((unused))
-#else
-#define UNUSED
 #endif
 
 #define CHECKED_MALLOC( var, size )\
@@ -129,6 +62,11 @@
 /****************************************************************************
  * Includes
  ****************************************************************************/
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include "osdep.h"
 #include "x264.h"
 #include "bs.h"
 #include "set.h"

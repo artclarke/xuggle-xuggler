@@ -21,9 +21,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include <stdio.h>
-#include <string.h>
-
 #include "common.h"
 
 static inline void plane_copy_vflip( x264_mc_functions_t *mc,

@@ -21,8 +21,6 @@
  *****************************************************************************/
 
 #include "common.h"
-#include <stdio.h>
-#include <string.h>
 
 #define SHIFT(x,s) ((s)<0 ? (x)<<-(s) : (s)==0 ? (x) : ((x)+(1<<((s)-1)))>>(s))
 #define DIV(n,d) (((n) + ((d)>>1)) / (d))

@@ -39,14 +39,6 @@
  * pink blocks with a diagonal line are predicted using the planar function.
  */
 
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#else
-#include <inttypes.h>
-#endif
-#include <stddef.h>                 /* NULL */
-#include <stdio.h>                  /* getchar */
-
 #include "common.h"
 #include "visualize.h"
 #include "display.h"

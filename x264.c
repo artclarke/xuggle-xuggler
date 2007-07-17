@@ -21,30 +21,20 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#define _LARGEFILE_SOURCE
-#define _FILE_OFFSET_BITS 64
-
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <math.h>
 
 #include <signal.h>
 #define _GNU_SOURCE
 #include <getopt.h>
 
-#ifdef _MSC_VER
-#include <io.h>     /* _setmode() */
-#include <fcntl.h>  /* _O_BINARY */
-#endif
+#include "common/common.h"
+#include "x264.h"
+#include "muxers.h"
 
 #ifndef _MSC_VER
 #include "config.h"
 #endif
-
-#include "common/common.h"
-#include "x264.h"
-#include "muxers.h"
 
 uint8_t *mux_buffer = NULL;
 int mux_buffer_size = 0;
