@@ -152,9 +152,6 @@ for opt do
             ;;
         --enable-shared)
             shared="yes"
-            if [ $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" ] ; then
-                pic="yes"
-            fi
             ;;
         --enable-visualize)
             LDFLAGS="$LDFLAGS -L/usr/X11R6/lib -lX11"
@@ -304,6 +301,10 @@ case $host_cpu in
 esac
 
 # check requirements
+
+if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" \) ] ; then
+    pic="yes"
+fi
 
 if [ $SYS = MACOSX -a $ARCH = X86 ]
 then
