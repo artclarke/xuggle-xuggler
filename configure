@@ -174,16 +174,10 @@ fi
 host=`./config.sub $host`
 
 # split $host
-save_ifs=$IFS
-IFS='-'
-# set positional parameters
-set x $host
-shift
-host_cpu=$1
-host_vendor=$2
-shift; shift
-host_os=$*
-IFS=$save_ifs
+host_cpu="${host/-*}"
+host="${host#*-}"
+host_vendor="${host/-*}"
+host_os="${host#*-}"
 
 case $host_os in
   beos*)
