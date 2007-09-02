@@ -18,8 +18,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include <sys/types.h>
-
 #include "common/common.h"
 #include "x264.h"
 #include "matroska.h"
@@ -28,6 +26,8 @@
 #ifndef _MSC_VER
 #include "config.h"
 #endif
+
+#include <sys/types.h>
 
 #ifdef AVIS_INPUT
 #include <windows.h>

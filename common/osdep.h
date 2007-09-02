@@ -21,15 +21,15 @@
 #ifndef _OSDEP_H
 #define _OSDEP_H
 
+#define _LARGEFILE_SOURCE 1
+#define _FILE_OFFSET_BITS 64
+#include <stdio.h>
+
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
 #else
 #include <inttypes.h>
 #endif
-
-#define _LARGEFILE_SOURCE 1
-#define _FILE_OFFSET_BITS 64
-#include <stdio.h>
 
 #ifdef _MSC_VER
 #include <io.h>    // _setmode()

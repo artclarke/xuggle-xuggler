@@ -62,11 +62,11 @@
 /****************************************************************************
  * Includes
  ****************************************************************************/
+#include "osdep.h"
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "osdep.h"
 #include "x264.h"
 #include "bs.h"
 #include "set.h"
