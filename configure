@@ -174,9 +174,9 @@ fi
 host=`./config.sub $host`
 
 # split $host
-host_cpu="${host/-*}"
+host_cpu="${host%%-*}"
 host="${host#*-}"
-host_vendor="${host/-*}"
+host_vendor="${host%%-*}"
 host_os="${host#*-}"
 
 case $host_os in
