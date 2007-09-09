@@ -221,6 +221,8 @@ int x264_ratecontrol_new( x264_t *h )
             x264_log( h, X264_LOG_WARNING, "VBV buffer size too small, using %d kbit\n",
                       h->param.rc.i_vbv_buffer_size );
         }
+        if( h->param.rc.f_vbv_buffer_init > 1. )
+            h->param.rc.f_vbv_buffer_init = x264_clip3f( h->param.rc.f_vbv_buffer_init / h->param.rc.i_vbv_buffer_size, 0, 1 );
         rc->buffer_rate = h->param.rc.i_vbv_max_bitrate * 1000 / rc->fps;
         rc->buffer_size = h->param.rc.i_vbv_buffer_size * 1000;
         rc->buffer_fill_final = rc->buffer_size * h->param.rc.f_vbv_buffer_init;

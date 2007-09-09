@@ -251,7 +251,7 @@ typedef struct x264_param_t
         float       f_rate_tolerance;
         int         i_vbv_max_bitrate;
         int         i_vbv_buffer_size;
-        float       f_vbv_buffer_init;
+        float       f_vbv_buffer_init; /* <=1: fraction of buffer_size. >1: kbit */
         float       f_ip_factor;
         float       f_pb_factor;
 
