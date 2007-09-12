@@ -108,7 +108,7 @@ static inline int x264_clip3( int v, int i_min, int i_max )
     return ( (v < i_min) ? i_min : (v > i_max) ? i_max : v );
 }
 
-static inline float x264_clip3f( float v, float f_min, float f_max )
+static inline double x264_clip3f( double v, double f_min, double f_max )
 {
     return ( (v < f_min) ? f_min : (v > f_max) ? f_max : v );
 }

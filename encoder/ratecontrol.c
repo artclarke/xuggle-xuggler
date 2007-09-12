@@ -188,7 +188,7 @@ int x264_ratecontrol_new( x264_t *h )
     else
         rc->fps = 25.0;
 
-    rc->bitrate = h->param.rc.i_bitrate * 1000;
+    rc->bitrate = h->param.rc.i_bitrate * 1000.;
     rc->rate_tolerance = h->param.rc.f_rate_tolerance;
     rc->nmb = h->mb.i_mb_count;
     rc->last_non_b_pict_type = -1;
@@ -223,8 +223,8 @@ int x264_ratecontrol_new( x264_t *h )
         }
         if( h->param.rc.f_vbv_buffer_init > 1. )
             h->param.rc.f_vbv_buffer_init = x264_clip3f( h->param.rc.f_vbv_buffer_init / h->param.rc.i_vbv_buffer_size, 0, 1 );
-        rc->buffer_rate = h->param.rc.i_vbv_max_bitrate * 1000 / rc->fps;
-        rc->buffer_size = h->param.rc.i_vbv_buffer_size * 1000;
+        rc->buffer_rate = h->param.rc.i_vbv_max_bitrate * 1000. / rc->fps;
+        rc->buffer_size = h->param.rc.i_vbv_buffer_size * 1000.;
         rc->buffer_fill_final = rc->buffer_size * h->param.rc.f_vbv_buffer_init;
         rc->cbr_decay = 1.0 - rc->buffer_rate / rc->buffer_size
                       * 0.5 * X264_MAX(0, 1.5 - rc->buffer_rate * rc->fps / rc->bitrate);
@@ -1151,7 +1151,7 @@ static void update_vbv( x264_t *h, int bits )
     rct->buffer_fill_final += rct->buffer_rate - bits;
     if( rct->buffer_fill_final < 0 && !rct->b_2pass )
         x264_log( h, X264_LOG_WARNING, "VBV underflow (%.0f bits)\n", rct->buffer_fill_final );
-    rct->buffer_fill_final = x264_clip3( rct->buffer_fill_final, 0, rct->buffer_size );
+    rct->buffer_fill_final = x264_clip3f( rct->buffer_fill_final, 0, rct->buffer_size );
 }
 
 // provisionally update VBV according to the planned size of all frames currently in progress
@@ -1459,7 +1459,7 @@ static int init_pass2( x264_t *h )
 {
     x264_ratecontrol_t *rcc = h->rc;
     uint64_t all_const_bits = 0;
-    uint64_t all_available_bits = (uint64_t)(h->param.rc.i_bitrate * 1000 * (double)rcc->num_entries / rcc->fps);
+    uint64_t all_available_bits = (uint64_t)(h->param.rc.i_bitrate * 1000. * rcc->num_entries / rcc->fps);
     double rate_factor, step, step_mult;
     double qblur = h->param.rc.f_qblur;
     double cplxblur = h->param.rc.f_complexity_blur;
@@ -1481,7 +1481,7 @@ static int init_pass2( x264_t *h )
     if( all_available_bits < all_const_bits)
     {
         x264_log(h, X264_LOG_ERROR, "requested bitrate is too low. estimated minimum is %d kbps\n",
-                 (int)(all_const_bits * rcc->fps / (rcc->num_entries * 1000)));
+                 (int)(all_const_bits * rcc->fps / (rcc->num_entries * 1000.)));
         return -1;
     }
 
