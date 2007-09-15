@@ -386,8 +386,8 @@ void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced, int mb_y
 {
     const int x_inc = 16, y_inc = 16;
     const int stride = frame->i_stride[0] << b_interlaced;
-    const int start = (mb_y*16 >> b_interlaced) - 8;
-    const int height = ((b_end ? frame->i_lines[0] : mb_y*16) >> b_interlaced) + 8;
+    int start = (mb_y*16 >> b_interlaced) - 8;
+    int height = ((b_end ? frame->i_lines[0] : mb_y*16) >> b_interlaced) + 8;
     int x, y;
 
     if( mb_y & b_interlaced )
@@ -432,28 +432,33 @@ void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced, int mb_y
     /* generate integral image:
      * frame->integral contains 2 planes. in the upper plane, each element is
      * the sum of an 8x8 pixel region with top-left corner on that point.
-     * in the lower plane, 4x4 sums (needed only with --analyse p4x4). */
+     * in the lower plane, 4x4 sums (needed only with --partitions p4x4). */
 
-    if( frame->integral && b_end )
+    if( frame->integral )
     {
-        //FIXME slice
-        memset( frame->integral - 32 * stride - 32, 0, stride * sizeof(uint16_t) );
-        for( y = -32; y < frame->i_lines[0] + 31; y++ )
+        if( start < 0 )
+        {
+            memset( frame->integral - 32 * stride - 32, 0, stride * sizeof(uint16_t) );
+            start = -32;
+        }
+        if( b_end )
+            height += 24;
+        for( y = start; y < height; y++ )
         {
             uint8_t  *ref  = frame->plane[0] + y * stride - 32;
             uint16_t *line = frame->integral + (y+1) * stride - 31;
             uint16_t v = line[0] = 0;
             for( x = 0; x < stride-1; x++ )
                 line[x] = v += ref[x] + line[x-stride] - line[x-stride-1];
-        }
-        for( y = -31; y < frame->i_lines[0] + 24; y++ )
-        {
-            uint16_t *line = frame->integral + y * stride - 31;
-            uint16_t *sum4 = line + frame->i_stride[0] * (frame->i_lines[0] + 64);
-            for( x = -31; x < stride - 40; x++, line++, sum4++ )
+            line -= 8*stride;
+            if( y >= 8-31 )
             {
-                sum4[0] =  line[4+4*stride] - line[4] - line[4*stride] + line[0];
-                line[0] += line[8+8*stride] - line[8] - line[8*stride];
+                uint16_t *sum4 = line + frame->i_stride[0] * (frame->i_lines[0] + 64);
+                for( x = 1; x < stride-8; x++, line++, sum4++ )
+                {
+                    sum4[0] =  line[4+4*stride] - line[4] - line[4*stride] + line[0];
+                    line[0] += line[8+8*stride] - line[8] - line[8*stride];
+                }
             }
         }
     }

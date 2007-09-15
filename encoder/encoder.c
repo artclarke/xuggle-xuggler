@@ -356,11 +356,6 @@ static int x264_validate_parameters( x264_t *h )
         x264_log( h, X264_LOG_WARNING, "not compiled with pthread support!\n");
         h->param.i_threads = 1;
 #else
-        if( h->param.analyse.i_me_method == X264_ME_ESA )
-        {
-            x264_log( h, X264_LOG_WARNING, "threads are not yet compatible with ESA\n");
-            h->param.analyse.i_me_method = X264_ME_UMH;
-        }
         if( h->param.i_scenecut_threshold >= 0 )
             h->param.b_pre_scenecut = 1;
 #endif
