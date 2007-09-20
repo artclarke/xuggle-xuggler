@@ -397,8 +397,8 @@ static void quant_trellis_cabac( x264_t *h, int16_t *dct,
         {
             // no need to calculate ssd of 0s: it's the same in all nodes.
             // no need to modify level_tree for ctx=0: it starts with an infinite loop of 0s.
-            const int cost_sig0 = x264_cabac_size_decision_noup( &cabac_state_sig[i], 0 )
-                                * i_lambda2 >> ( CABAC_SIZE_BITS - LAMBDA_BITS );
+            const uint32_t cost_sig0 = x264_cabac_size_decision_noup( &cabac_state_sig[i], 0 )
+                                     * (uint64_t)i_lambda2 >> ( CABAC_SIZE_BITS - LAMBDA_BITS );
             for( j = 1; j < 8; j++ )
             {
                 if( nodes_cur[j].score != TRELLIS_SCORE_MAX )
