@@ -53,7 +53,7 @@ BITS 64
     movq    mm2,    [parm1q+parm2q]
     psadbw  mm1,    [parm3q]
     psadbw  mm2,    [parm3q+parm4q]
-    lea     parm1q,    [parm1q+2*parm2q]
+    lea     parm1q, [parm1q+2*parm2q]
     paddw   mm0,    mm1
     paddw   mm0,    mm2
     lea     parm3q, [parm3q+2*parm4q]
@@ -62,35 +62,31 @@ BITS 64
 %macro SAD_INC_2x4P 0
     movd    mm1,    [parm1q]
     movd    mm2,    [parm3q]
-    movd    mm3,    [parm1q+parm2q]
-    movd    mm4,    [parm3q+parm4q]
-
+    punpckldq mm1,  [parm1q+parm2q]
+    punpckldq mm2,  [parm3q+parm4q]
     psadbw  mm1,    mm2
-    psadbw  mm3,    mm4
     paddw   mm0,    mm1
-    paddw   mm0,    mm3
-
     lea     parm1q, [parm1q+2*parm2q]
     lea     parm3q, [parm3q+2*parm4q]
 %endmacro
 
 ; sad x3 / x4
 
-%macro SAD_X3_START_1x8P 1
-    mov%1   mm3,    [parm1q]
-    mov%1   mm0,    [parm2q]
-    mov%1   mm1,    [parm3q]
-    mov%1   mm2,    [parm4q]
+%macro SAD_X3_START_1x8P 0
+    movq    mm3,    [parm1q]
+    movq    mm0,    [parm2q]
+    movq    mm1,    [parm3q]
+    movq    mm2,    [parm4q]
     psadbw  mm0,    mm3
     psadbw  mm1,    mm3
     psadbw  mm2,    mm3
 %endmacro
 
-%macro SAD_X3_1x8P 3
-    mov%1   mm3,    [parm1q+%2]
-    mov%1   mm4,    [parm2q+%3]
-    mov%1   mm5,    [parm3q+%3]
-    mov%1   mm6,    [parm4q+%3]
+%macro SAD_X3_1x8P 2
+    movq    mm3,    [parm1q+%1]
+    movq    mm4,    [parm2q+%2]
+    movq    mm5,    [parm3q+%2]
+    movq    mm6,    [parm4q+%2]
     psadbw  mm4,    mm3
     psadbw  mm5,    mm3
     psadbw  mm6,    mm3
@@ -99,15 +95,29 @@ BITS 64
     paddw   mm2,    mm6
 %endmacro
 
+%macro SAD_X3_START_2x4P 3
+    movd      mm3,  [parm1q]
+    movd      %1,   [parm2q]
+    movd      %2,   [parm3q]
+    movd      %3,   [parm4q]
+    punpckldq mm3,  [parm1q+FENC_STRIDE]
+    punpckldq %1,   [parm2q+parm5q]
+    punpckldq %2,   [parm3q+parm5q]
+    punpckldq %3,   [parm4q+parm5q]
+    psadbw    %1,   mm3
+    psadbw    %2,   mm3
+    psadbw    %3,   mm3
+%endmacro
+
 %macro SAD_X3_2x16P 1
 %if %1
-    SAD_X3_START_1x8P q
+    SAD_X3_START_1x8P
 %else
-    SAD_X3_1x8P q, 0, 0
+    SAD_X3_1x8P 0, 0
 %endif
-    SAD_X3_1x8P q, 8, 8
-    SAD_X3_1x8P q, FENC_STRIDE, parm5q
-    SAD_X3_1x8P q, FENC_STRIDE+8, parm5q+8
+    SAD_X3_1x8P 8, 8
+    SAD_X3_1x8P FENC_STRIDE, parm5q
+    SAD_X3_1x8P FENC_STRIDE+8, parm5q+8
     add     parm1q, 2*FENC_STRIDE
     lea     parm2q, [parm2q+2*parm5q]
     lea     parm3q, [parm3q+2*parm5q]
@@ -116,11 +126,11 @@ BITS 64
 
 %macro SAD_X3_2x8P 1
 %if %1
-    SAD_X3_START_1x8P q
+    SAD_X3_START_1x8P
 %else
-    SAD_X3_1x8P q, 0, 0
+    SAD_X3_1x8P 0, 0
 %endif
-    SAD_X3_1x8P q, FENC_STRIDE, parm5q
+    SAD_X3_1x8P FENC_STRIDE, parm5q
     add     parm1q, 2*FENC_STRIDE
     lea     parm2q, [parm2q+2*parm5q]
     lea     parm3q, [parm3q+2*parm5q]
@@ -129,23 +139,25 @@ BITS 64
 
 %macro SAD_X3_2x4P 1
 %if %1
-    SAD_X3_START_1x8P d
+    SAD_X3_START_2x4P mm0, mm1, mm2
 %else
-    SAD_X3_1x8P d, 0, 0
+    SAD_X3_START_2x4P mm4, mm5, mm6
+    paddw     mm0,  mm4
+    paddw     mm1,  mm5
+    paddw     mm2,  mm6
 %endif
-    SAD_X3_1x8P d, FENC_STRIDE, parm5q
     add     parm1q, 2*FENC_STRIDE
     lea     parm2q, [parm2q+2*parm5q]
     lea     parm3q, [parm3q+2*parm5q]
     lea     parm4q, [parm4q+2*parm5q]
 %endmacro
 
-%macro SAD_X4_START_1x8P 1
-    mov%1   mm7,    [parm1q]
-    mov%1   mm0,    [parm2q]
-    mov%1   mm1,    [parm3q]
-    mov%1   mm2,    [parm4q]
-    mov%1   mm3,    [parm5q]
+%macro SAD_X4_START_1x8P 0
+    movq    mm7,    [parm1q]
+    movq    mm0,    [parm2q]
+    movq    mm1,    [parm3q]
+    movq    mm2,    [parm4q]
+    movq    mm3,    [parm5q]
     psadbw  mm0,    mm7
     psadbw  mm1,    mm7
     psadbw  mm2,    mm7
@@ -167,25 +179,47 @@ BITS 64
     paddw   mm3,    mm7
 %endmacro
 
-%macro SAD_X4_1x4P 2
-    movd    mm7,    [parm1q+%1]
-    movd    mm4,    [parm2q+%2]
-    movd    mm5,    [parm3q+%2]
-    movd    mm6,    [parm4q+%2]
-    psadbw  mm4,    mm7
-    psadbw  mm5,    mm7
-    paddw   mm0,    mm4
-    psadbw  mm6,    mm7
-    movd    mm4,    [parm5q+%2]
-    paddw   mm1,    mm5
-    psadbw  mm4,    mm7
-    paddw   mm2,    mm6
-    paddw   mm3,    mm4
+%macro SAD_X4_START_2x4P 0
+    movd      mm7,  [parm1q]
+    movd      mm0,  [parm2q]
+    movd      mm1,  [parm3q]
+    movd      mm2,  [parm4q]
+    movd      mm3,  [parm5q]
+    punpckldq mm7,  [parm1q+FENC_STRIDE]
+    punpckldq mm0,  [parm2q+parm6q]
+    punpckldq mm1,  [parm3q+parm6q]
+    punpckldq mm2,  [parm4q+parm6q]
+    punpckldq mm3,  [parm5q+parm6q]
+    psadbw    mm0,  mm7
+    psadbw    mm1,  mm7
+    psadbw    mm2,  mm7
+    psadbw    mm3,  mm7
+%endmacro
+
+%macro SAD_X4_INC_2x4P 0
+    movd      mm7,  [parm1q]
+    movd      mm4,  [parm2q]
+    movd      mm5,  [parm3q]
+    punpckldq mm7,  [parm1q+FENC_STRIDE]
+    punpckldq mm4,  [parm2q+parm6q]
+    punpckldq mm5,  [parm3q+parm6q]
+    psadbw    mm4,  mm7
+    psadbw    mm5,  mm7
+    paddw     mm0,  mm4
+    paddw     mm1,  mm5
+    movd      mm4,  [parm4q]
+    movd      mm5,  [parm5q]
+    punpckldq mm4,  [parm4q+parm6q]
+    punpckldq mm5,  [parm5q+parm6q]
+    psadbw    mm4,  mm7
+    psadbw    mm5,  mm7
+    paddw     mm2,  mm4
+    paddw     mm3,  mm5
 %endmacro
 
 %macro SAD_X4_2x16P 1
 %if %1
-    SAD_X4_START_1x8P q
+    SAD_X4_START_1x8P
 %else
     SAD_X4_1x8P 0, 0
 %endif
@@ -201,7 +235,7 @@ BITS 64
 
 %macro SAD_X4_2x8P 1
 %if %1
-    SAD_X4_START_1x8P q
+    SAD_X4_START_1x8P
 %else
     SAD_X4_1x8P 0, 0
 %endif
@@ -215,11 +249,10 @@ BITS 64
 
 %macro SAD_X4_2x4P 1
 %if %1
-    SAD_X4_START_1x8P d
+    SAD_X4_START_2x4P
 %else
-    SAD_X4_1x4P 0, 0
+    SAD_X4_INC_2x4P
 %endif
-    SAD_X4_1x4P FENC_STRIDE, parm6q
     add     parm1q, 2*FENC_STRIDE
     lea     parm2q, [parm2q+2*parm6q]
     lea     parm3q, [parm3q+2*parm6q]

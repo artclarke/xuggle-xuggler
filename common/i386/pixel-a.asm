@@ -62,21 +62,17 @@ BITS 32
 %macro SAD_INC_2x4P 0
     movd    mm1,    [eax]
     movd    mm2,    [ecx]
-    movd    mm3,    [eax+ebx]
-    movd    mm4,    [ecx+edx]
-
+    punpckldq mm1,  [eax+ebx]
+    punpckldq mm2,  [ecx+edx]
     psadbw  mm1,    mm2
-    psadbw  mm3,    mm4
     paddw   mm0,    mm1
-    paddw   mm0,    mm3
-
     lea     eax,    [eax+2*ebx]
     lea     ecx,    [ecx+2*edx]
 %endmacro
 
 ; sad x3 / x4
 
-%macro SAD_X3_START_1x8P 1
+%macro SAD_X3_START 0
     push    edi
     push    esi
     mov     edi,    [esp+12]
@@ -84,20 +80,23 @@ BITS 32
     mov     ecx,    [esp+20]
     mov     edx,    [esp+24]
     mov     esi,    [esp+28]
-    mov%1   mm3,    [edi]
-    mov%1   mm0,    [eax]
-    mov%1   mm1,    [ecx]
-    mov%1   mm2,    [edx]
+%endmacro
+
+%macro SAD_X3_START_1x8P 0
+    movq    mm3,    [edi]
+    movq    mm0,    [eax]
+    movq    mm1,    [ecx]
+    movq    mm2,    [edx]
     psadbw  mm0,    mm3
     psadbw  mm1,    mm3
     psadbw  mm2,    mm3
 %endmacro
 
-%macro SAD_X3_1x8P 3
-    mov%1   mm3,    [edi+%2]
-    mov%1   mm4,    [eax+%3]
-    mov%1   mm5,    [ecx+%3]
-    mov%1   mm6,    [edx+%3]
+%macro SAD_X3_1x8P 2
+    movq    mm3,    [edi+%1]
+    movq    mm4,    [eax+%2]
+    movq    mm5,    [ecx+%2]
+    movq    mm6,    [edx+%2]
     psadbw  mm4,    mm3
     psadbw  mm5,    mm3
     psadbw  mm6,    mm3
@@ -106,15 +105,30 @@ BITS 32
     paddw   mm2,    mm6
 %endmacro
 
+%macro SAD_X3_START_2x4P 3
+    movd      mm3,  [edi]
+    movd      %1,   [eax]
+    movd      %2,   [ecx]
+    movd      %3,   [edx]
+    punpckldq mm3,  [edi+FENC_STRIDE]
+    punpckldq %1,   [eax+esi]
+    punpckldq %2,   [ecx+esi]
+    punpckldq %3,   [edx+esi]
+    psadbw    %1,   mm3
+    psadbw    %2,   mm3
+    psadbw    %3,   mm3
+%endmacro
+
 %macro SAD_X3_2x16P 1
 %if %1
-    SAD_X3_START_1x8P q
+    SAD_X3_START
+    SAD_X3_START_1x8P
 %else
-    SAD_X3_1x8P q, 0, 0
+    SAD_X3_1x8P 0, 0
 %endif
-    SAD_X3_1x8P q, 8, 8
-    SAD_X3_1x8P q, FENC_STRIDE, esi
-    SAD_X3_1x8P q, FENC_STRIDE+8, esi+8
+    SAD_X3_1x8P 8, 8
+    SAD_X3_1x8P FENC_STRIDE, esi
+    SAD_X3_1x8P FENC_STRIDE+8, esi+8
     add     edi, 2*FENC_STRIDE
     lea     eax, [eax+2*esi]
     lea     ecx, [ecx+2*esi]
@@ -123,11 +137,12 @@ BITS 32
 
 %macro SAD_X3_2x8P 1
 %if %1
-    SAD_X3_START_1x8P q
+    SAD_X3_START
+    SAD_X3_START_1x8P
 %else
-    SAD_X3_1x8P q, 0, 0
+    SAD_X3_1x8P 0, 0
 %endif
-    SAD_X3_1x8P q, FENC_STRIDE, esi
+    SAD_X3_1x8P FENC_STRIDE, esi
     add     edi, 2*FENC_STRIDE
     lea     eax, [eax+2*esi]
     lea     ecx, [ecx+2*esi]
@@ -136,18 +151,21 @@ BITS 32
 
 %macro SAD_X3_2x4P 1
 %if %1
-    SAD_X3_START_1x8P d
+    SAD_X3_START
+    SAD_X3_START_2x4P mm0, mm1, mm2
 %else
-    SAD_X3_1x8P d, 0, 0
+    SAD_X3_START_2x4P mm4, mm5, mm6
+    paddw   mm0, mm4
+    paddw   mm1, mm5
+    paddw   mm2, mm6
 %endif
-    SAD_X3_1x8P d, FENC_STRIDE, esi
     add     edi, 2*FENC_STRIDE
     lea     eax, [eax+2*esi]
     lea     ecx, [ecx+2*esi]
     lea     edx, [edx+2*esi]
 %endmacro
 
-%macro SAD_X4_START_1x8P 1
+%macro SAD_X4_START 0
     push    edi
     push    esi
     push    ebx
@@ -157,11 +175,14 @@ BITS 32
     mov     ecx,    [esp+28]
     mov     edx,    [esp+32]
     mov     esi,    [esp+36]
-    mov%1   mm7,    [edi]
-    mov%1   mm0,    [eax]
-    mov%1   mm1,    [ebx]
-    mov%1   mm2,    [ecx]
-    mov%1   mm3,    [edx]
+%endmacro
+
+%macro SAD_X4_START_1x8P 0
+    movq    mm7,    [edi]
+    movq    mm0,    [eax]
+    movq    mm1,    [ebx]
+    movq    mm2,    [ecx]
+    movq    mm3,    [edx]
     psadbw  mm0,    mm7
     psadbw  mm1,    mm7
     psadbw  mm2,    mm7
@@ -183,25 +204,48 @@ BITS 32
     paddw   mm3,    mm7
 %endmacro
 
-%macro SAD_X4_1x4P 2
-    movd    mm7,    [edi+%1]
-    movd    mm4,    [eax+%2]
-    movd    mm5,    [ebx+%2]
-    movd    mm6,    [ecx+%2]
-    psadbw  mm4,    mm7
-    psadbw  mm5,    mm7
-    paddw   mm0,    mm4
-    psadbw  mm6,    mm7
-    movd    mm4,    [edx+%2]
-    paddw   mm1,    mm5
-    psadbw  mm4,    mm7
-    paddw   mm2,    mm6
-    paddw   mm3,    mm4
+%macro SAD_X4_START_2x4P 0
+    movd      mm7,  [edi]
+    movd      mm0,  [eax]
+    movd      mm1,  [ebx]
+    movd      mm2,  [ecx]
+    movd      mm3,  [edx]
+    punpckldq mm7,  [edi+FENC_STRIDE]
+    punpckldq mm0,  [eax+esi]
+    punpckldq mm1,  [ebx+esi]
+    punpckldq mm2,  [ecx+esi]
+    punpckldq mm3,  [edx+esi]
+    psadbw    mm0,  mm7
+    psadbw    mm1,  mm7
+    psadbw    mm2,  mm7
+    psadbw    mm3,  mm7
+%endmacro   
+    
+%macro SAD_X4_INC_2x4P 0
+    movd      mm7,  [edi]
+    movd      mm4,  [eax]
+    movd      mm5,  [ebx]
+    punpckldq mm7,  [edi+FENC_STRIDE]
+    punpckldq mm4,  [eax+esi]
+    punpckldq mm5,  [ebx+esi]
+    psadbw    mm4,  mm7
+    psadbw    mm5,  mm7
+    paddw     mm0,  mm4
+    paddw     mm1,  mm5
+    movd      mm4,  [ecx]
+    movd      mm5,  [edx]
+    punpckldq mm4,  [ecx+esi]
+    punpckldq mm5,  [edx+esi]
+    psadbw    mm4,  mm7
+    psadbw    mm5,  mm7
+    paddw     mm2,  mm4
+    paddw     mm3,  mm5
 %endmacro
 
 %macro SAD_X4_2x16P 1
 %if %1
-    SAD_X4_START_1x8P q
+    SAD_X4_START
+    SAD_X4_START_1x8P
 %else
     SAD_X4_1x8P 0, 0
 %endif
@@ -217,7 +261,8 @@ BITS 32
 
 %macro SAD_X4_2x8P 1
 %if %1
-    SAD_X4_START_1x8P q
+    SAD_X4_START
+    SAD_X4_START_1x8P
 %else
     SAD_X4_1x8P 0, 0
 %endif
@@ -231,11 +276,11 @@ BITS 32
 
 %macro SAD_X4_2x4P 1
 %if %1
-    SAD_X4_START_1x8P d
+    SAD_X4_START
+    SAD_X4_START_2x4P
 %else
-    SAD_X4_1x4P 0, 0
+    SAD_X4_INC_2x4P
 %endif
-    SAD_X4_1x4P FENC_STRIDE, esi
     add     edi, 2*FENC_STRIDE
     lea     eax, [eax+2*esi]
     lea     ebx, [ebx+2*esi]
