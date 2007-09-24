@@ -70,42 +70,53 @@
 #endif
 
 /* threads */
-#if defined(__WIN32__) && defined(HAVE_PTHREAD)
-#include <pthread.h>
-#define USE_CONDITION_VAR
-
-#elif defined(SYS_BEOS)
+#if defined(SYS_BEOS)
 #include <kernel/OS.h>
-#define pthread_t               thread_id
-#define pthread_create(t,u,f,d) { *(t)=spawn_thread(f,"",10,d); \
-                                  resume_thread(*(t)); }
-#define pthread_join(t,s)       { long tmp; \
-                                  wait_for_thread(t,(s)?(long*)(s):&tmp); }
+#define x264_pthread_t               thread_id
+#define x264_pthread_create(t,u,f,d) { *(t)=spawn_thread(f,"",10,d); \
+                                       resume_thread(*(t)); }
+#define x264_pthread_join(t,s)       { long tmp; \
+                                       wait_for_thread(t,(s)?(long*)(s):&tmp); }
 #ifndef usleep
-#define usleep(t)               snooze(t)
+#define usleep(t)                    snooze(t)
 #endif
 #define HAVE_PTHREAD 1
 
 #elif defined(HAVE_PTHREAD)
 #include <pthread.h>
-#define USE_CONDITION_VAR
+#define USE_REAL_PTHREAD
+
 #else
-#define pthread_t               int
-#define pthread_create(t,u,f,d)
-#define pthread_join(t,s)
+#define x264_pthread_t               int
+#define x264_pthread_create(t,u,f,d)
+#define x264_pthread_join(t,s)
 #endif //SYS_*
 
-#ifndef USE_CONDITION_VAR
-#define pthread_mutex_t         int
-#define pthread_mutex_init(m,f)
-#define pthread_mutex_destroy(m)
-#define pthread_mutex_lock(m)
-#define pthread_mutex_unlock(m)
-#define pthread_cond_t          int
-#define pthread_cond_init(c,f)
-#define pthread_cond_destroy(c)
-#define pthread_cond_broadcast(c)
-#define pthread_cond_wait(c,m)  usleep(100)
+#ifdef USE_REAL_PTHREAD
+#define x264_pthread_t               pthread_t
+#define x264_pthread_create          pthread_create
+#define x264_pthread_join            pthread_join
+#define x264_pthread_mutex_t         pthread_mutex_t
+#define x264_pthread_mutex_init      pthread_mutex_init
+#define x264_pthread_mutex_destroy   pthread_mutex_destroy
+#define x264_pthread_mutex_lock      pthread_mutex_lock
+#define x264_pthread_mutex_unlock    pthread_mutex_unlock
+#define x264_pthread_cond_t          pthread_cond_t
+#define x264_pthread_cond_init       pthread_cond_init
+#define x264_pthread_cond_destroy    pthread_cond_destroy
+#define x264_pthread_cond_broadcast  pthread_cond_broadcast
+#define x264_pthread_cond_wait       pthread_cond_wait
+#else
+#define x264_pthread_mutex_t         int
+#define x264_pthread_mutex_init(m,f)
+#define x264_pthread_mutex_destroy(m)
+#define x264_pthread_mutex_lock(m)
+#define x264_pthread_mutex_unlock(m)
+#define x264_pthread_cond_t          int
+#define x264_pthread_cond_init(c,f)
+#define x264_pthread_cond_destroy(c)
+#define x264_pthread_cond_broadcast(c)
+#define x264_pthread_cond_wait(c,m)  usleep(100)
 #endif
 
 #endif //_OSDEP_H

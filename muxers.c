@@ -420,7 +420,7 @@ typedef struct {
     int (*p_close_infile)( hnd_t handle );
     hnd_t p_handle;
     x264_picture_t pic;
-    pthread_t tid;
+    x264_pthread_t tid;
     int next_frame;
     int frame_total;
     struct thread_input_arg_t *next_args;
@@ -469,7 +469,7 @@ int read_frame_thread( x264_picture_t *p_pic, hnd_t handle, int i_frame )
 
     if( h->next_frame >= 0 )
     {
-        pthread_join( h->tid, &stuff );
+        x264_pthread_join( h->tid, &stuff );
         ret |= h->next_args->status;
     }
 
@@ -487,7 +487,7 @@ int read_frame_thread( x264_picture_t *p_pic, hnd_t handle, int i_frame )
         h->next_frame =
         h->next_args->i_frame = i_frame+1;
         h->next_args->pic = &h->pic;
-        pthread_create( &h->tid, NULL, (void*)read_frame_thread_int, h->next_args );
+        x264_pthread_create( &h->tid, NULL, (void*)read_frame_thread_int, h->next_args );
     }
     else
         h->next_frame = -1;

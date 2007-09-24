@@ -1474,7 +1474,7 @@ do_encode:
     /* Write frame */
     if( h->param.i_threads > 1 )
     {
-        pthread_create( &h->thread_handle, NULL, (void*)x264_slices_write, h );
+        x264_pthread_create( &h->thread_handle, NULL, (void*)x264_slices_write, h );
         h->b_thread_active = 1;
     }
     else
@@ -1594,7 +1594,7 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     if( h->b_thread_active )
     {
-        pthread_join( h->thread_handle, NULL );
+        x264_pthread_join( h->thread_handle, NULL );
         h->b_thread_active = 0;
     }
     if( !h->out.i_nal )
@@ -1769,7 +1769,7 @@ void    x264_encoder_close  ( x264_t *h )
     {
         // don't strictly have to wait for the other threads, but it's simpler than cancelling them
         if( h->thread[i]->b_thread_active )
-            pthread_join( h->thread[i]->thread_handle, NULL );
+            x264_pthread_join( h->thread[i]->thread_handle, NULL );
     }
 
 #ifdef DEBUG_BENCHMARK
