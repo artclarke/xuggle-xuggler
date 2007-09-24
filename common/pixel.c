@@ -514,13 +514,10 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->satd[PIXEL_8x8]  = x264_pixel_satd_8x8_sse2;
         pixf->satd[PIXEL_8x4]  = x264_pixel_satd_8x4_sse2;
 
-#ifdef ARCH_X86
         pixf->sad_x3[PIXEL_16x16] = x264_pixel_sad_x3_16x16_sse2;
         pixf->sad_x3[PIXEL_16x8 ] = x264_pixel_sad_x3_16x8_sse2;
-
         pixf->sad_x4[PIXEL_16x16] = x264_pixel_sad_x4_16x16_sse2;
         pixf->sad_x4[PIXEL_16x8 ] = x264_pixel_sad_x4_16x8_sse2;
-#endif
     }
     // these are faster on both Intel and AMD
     if( cpu&X264_CPU_SSE2 )

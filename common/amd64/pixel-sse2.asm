@@ -71,8 +71,7 @@ SECTION .text
 %endmacro
 
 %macro SAD_END_SSE2 0
-    movdqa  xmm1, xmm0
-    psrldq  xmm0,  8
+    movhlps xmm1, xmm0
     paddw   xmm0, xmm1
     movd    eax,  xmm0
     ret
@@ -153,6 +152,138 @@ cglobal x264_pixel_sad_16x8_sse2
     SAD_INC_4x16P_SSE2
     SAD_INC_4x16P_SSE2
     SAD_END_SSE2
+
+
+; sad x3 / x4
+
+%macro SAD_X3_START_1x16P 0
+    movdqa xmm3, [parm1q]
+    movdqu xmm0, [parm2q]
+    movdqu xmm1, [parm3q]
+    movdqu xmm2, [parm4q]
+    psadbw xmm0, xmm3
+    psadbw xmm1, xmm3
+    psadbw xmm2, xmm3
+%endmacro
+
+%macro SAD_X3_1x16P 2
+    movdqa xmm3, [parm1q+%1]
+    movdqu xmm4, [parm2q+%2]
+    movdqu xmm5, [parm3q+%2]
+    movdqu xmm6, [parm4q+%2]
+    psadbw xmm4, xmm3
+    psadbw xmm5, xmm3
+    psadbw xmm6, xmm3
+    paddw  xmm0, xmm4
+    paddw  xmm1, xmm5
+    paddw  xmm2, xmm6
+%endmacro
+
+%macro SAD_X3_2x16P 1
+%if %1
+    SAD_X3_START_1x16P
+%else
+    SAD_X3_1x16P 0, 0
+%endif
+    SAD_X3_1x16P FENC_STRIDE, parm5q
+    add  parm1q, 2*FENC_STRIDE
+    lea  parm2q, [parm2q+2*parm5q]
+    lea  parm3q, [parm3q+2*parm5q]
+    lea  parm4q, [parm4q+2*parm5q]
+%endmacro
+
+%macro SAD_X4_START_1x16P 0
+    movdqa xmm7, [parm1q]
+    movdqu xmm0, [parm2q]
+    movdqu xmm1, [parm3q]
+    movdqu xmm2, [parm4q]
+    movdqu xmm3, [parm5q]
+    psadbw xmm0, xmm7
+    psadbw xmm1, xmm7
+    psadbw xmm2, xmm7
+    psadbw xmm3, xmm7
+%endmacro
+
+%macro SAD_X4_1x16P 2
+    movdqa xmm7, [parm1q+%1]
+    movdqu xmm4, [parm2q+%2]
+    movdqu xmm5, [parm3q+%2]
+    movdqu xmm6, [parm4q+%2]
+    movdqu xmm8, [parm5q+%2]
+    psadbw xmm4, xmm7
+    psadbw xmm5, xmm7
+    psadbw xmm6, xmm7
+    psadbw xmm8, xmm7
+    paddw  xmm0, xmm4
+    paddw  xmm1, xmm5
+    paddw  xmm2, xmm6
+    paddw  xmm3, xmm8
+%endmacro
+
+%macro SAD_X4_2x16P 1
+%if %1
+    SAD_X4_START_1x16P
+%else
+    SAD_X4_1x16P 0, 0
+%endif
+    SAD_X4_1x16P FENC_STRIDE, parm6q
+    add  parm1q, 2*FENC_STRIDE
+    lea  parm2q, [parm2q+2*parm6q]
+    lea  parm3q, [parm3q+2*parm6q]
+    lea  parm4q, [parm4q+2*parm6q]
+    lea  parm5q, [parm5q+2*parm6q]
+%endmacro
+
+%macro SAD_X3_END 0
+    movhlps xmm4, xmm0
+    movhlps xmm5, xmm1
+    movhlps xmm6, xmm2
+    paddw   xmm0, xmm4
+    paddw   xmm1, xmm5
+    paddw   xmm2, xmm6
+    movd [parm6q+0], xmm0
+    movd [parm6q+4], xmm1
+    movd [parm6q+8], xmm2
+    ret
+%endmacro
+
+%macro SAD_X4_END 0
+    mov      rax, parm7q
+    movhlps xmm4, xmm0
+    movhlps xmm5, xmm1
+    movhlps xmm6, xmm2
+    movhlps xmm7, xmm3
+    paddw   xmm0, xmm4
+    paddw   xmm1, xmm5
+    paddw   xmm2, xmm6
+    paddw   xmm3, xmm7
+    movd [rax+0], xmm0
+    movd [rax+4], xmm1
+    movd [rax+8], xmm2
+    movd [rax+12], xmm3
+    ret
+%endmacro
+
+;-----------------------------------------------------------------------------
+;  void x264_pixel_sad_x3_16x16_sse2( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1,
+;                                     uint8_t *pix2, int i_stride, int scores[3] )
+;-----------------------------------------------------------------------------
+%macro SAD_X 3
+cglobal x264_pixel_sad_x%1_%2x%3_sse2
+    SAD_X%1_2x%2P 1
+%rep %3/2-1
+    SAD_X%1_2x%2P 0
+%endrep
+    SAD_X%1_END
+%endmacro
+
+SAD_X 3, 16, 16
+SAD_X 3, 16,  8
+SAD_X 4, 16, 16
+SAD_X 4, 16,  8
+
+
+; ssd
 
 %macro SSD_INC_2x16P_SSE2 0
     movdqu  xmm1,   [rdi]
