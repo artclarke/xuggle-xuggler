@@ -75,4 +75,13 @@ if((y)<(x))\
     (c)=(d);\
 }
 
+#define COPY4_IF_LT(x,y,a,b,c,d,f,e)\
+if((y)<(x))\
+{\
+    (x)=(y);\
+    (a)=(b);\
+    (c)=(d);\
+    (f)=(e);\
+}
+
 #endif

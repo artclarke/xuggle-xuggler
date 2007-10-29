@@ -28,7 +28,9 @@
 /* presets selected from good points on the speed-vs-quality curve of several test videos
  * subpel_iters[i_subpel_refine] = { refine_hpel, refine_qpel, me_hpel, me_qpel }
  * where me_* are the number of EPZS iterations run on all candidate block types,
- * and refine_* are run only on the winner. */
+ * and refine_* are run only on the winner.
+ * the subme=7 values are much higher because any amount of satd search makes
+ * up its time by reducing the number of rd iterations. */
 static const int subpel_iterations[][4] = 
    {{1,0,0,0},
     {1,1,0,0},
@@ -37,7 +39,13 @@ static const int subpel_iterations[][4] =
     {0,2,1,1},
     {0,2,1,2},
     {0,0,2,2},
-    {0,0,2,2}};
+    {0,0,4,10}};
+
+/* (x-1)%6 */
+static const int mod6m1[8] = {5,0,1,2,3,4,5,0};
+/* radius 2 hexagon. repeated entries are to avoid having to compute mod6 every time. */
+static const int hex2[8][2] = {{-1,-2}, {-2,0}, {-1,2}, {1,2}, {2,0}, {1,-2}, {-1,-2}, {-2,0}};
+static const int square1[8][2] = {{0,-1}, {0,1}, {-1,0}, {1,0}, {-1,-1}, {1,1}, {-1,1}, {1,-1}};
 
 static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters, int *p_halfpel_thresh, int b_refine_qpel );
 
@@ -259,14 +267,12 @@ me_hex2:
 
         if( dir != -2 )
         {
-            static const int hex2[8][2] = {{-1,-2}, {-2,0}, {-1,2}, {1,2}, {2,0}, {1,-2}, {-1,-2}, {-2,0}};
             bmx += hex2[dir+1][0];
             bmy += hex2[dir+1][1];
             /* half hexagon, not overlapping the previous iteration */
             for( i = 1; i < i_me_range/2 && CHECK_MVRANGE(bmx, bmy); i++ )
             {
-                static const int mod6[8] = {5,0,1,2,3,4,5,0};
-                const int odir = mod6[dir+1];
+                const int odir = mod6m1[dir+1];
                 COST_MV_X3_DIR( hex2[odir+0][0], hex2[odir+0][1],
                                 hex2[odir+1][0], hex2[odir+1][1],
                                 hex2[odir+2][0], hex2[odir+2][1],
@@ -801,18 +807,15 @@ int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight 
     COPY1_IF_LT( bsatd, dst ); \
 }
 
-#define COST_MV_RD( mx, my, satd, dir ) \
+#define COST_MV_RD( mx, my, satd, do_dir, mdir ) \
 { \
-    if( satd <= bsatd * SATD_THRESH \
-        && (dir^1) != odir \
-        && (dir<0 || !p_visited[(mx)+(my)*16]) ) \
+    if( satd <= bsatd * SATD_THRESH )\
     { \
         int cost; \
         cache_mv[0] = cache_mv2[0] = mx; \
         cache_mv[1] = cache_mv2[1] = my; \
         cost = x264_rd_cost_part( h, i_lambda2, i8, m->i_pixel ); \
-        COPY3_IF_LT( bcost, cost, bmx, mx, bmy, my ); \
-        if(dir>=0) p_visited[(mx)+(my)*16] = 1; \
+        COPY4_IF_LT( bcost, cost, bmx, mx, bmy, my, dir, do_dir?mdir:dir ); \
     } \
 }
 
@@ -833,12 +836,13 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 )
     int bcost = m->i_pixel == PIXEL_16x16 ? m->cost : COST_MAX;
     int bmx = m->mv[0];
     int bmy = m->mv[1];
-    int pmx, pmy, omx, omy, i;
-    int odir = -1, bdir;
-    unsigned bsatd, satds[4];
-
-    int visited[16*13] = {0}; // only need 13x13, but 16 is more convenient
-    int *p_visited = &visited[6+6*16];
+    int omx = bmx;
+    int omy = bmy;
+    int pmx, pmy, i, j;
+    unsigned bsatd;
+    int satd = 0;
+    int dir = -2;
+    int satds[8];
 
     if( m->i_pixel != PIXEL_16x16 && i8 != 0 )
         x264_mb_predict_mv( h, 0, i8*4, bw, m->mvp );
@@ -847,78 +851,52 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 )
     p_cost_mvx = m->p_cost_mv - pmx;
     p_cost_mvy = m->p_cost_mv - pmy;
     COST_MV_SATD( bmx, bmy, bsatd );
-    if( m->i_pixel != PIXEL_16x16 )
-        COST_MV_RD( bmx, bmy, 0, -1 );
+    COST_MV_RD( bmx, bmy, 0, 0, 0);
 
     /* check the predicted mv */
     if( (bmx != pmx || bmy != pmy)
         && pmx >= h->mb.mv_min_spel[0] && pmx <= h->mb.mv_max_spel[0]
         && pmy >= h->mb.mv_min_spel[1] && pmy <= h->mb.mv_max_spel[1] )
     {
-        int satd;
         COST_MV_SATD( pmx, pmy, satd );
-        COST_MV_RD( pmx, pmy, satd, -1 );
+        COST_MV_RD( pmx, pmy, satd, 0,0 );
     }
 
-    /* mark mv and mvp as visited */
-    p_visited[0] = 1;
-    p_visited -= bmx + bmy*16;
+    /* subpel hex search, same pattern as ME HEX. */
+    dir = -2;
+    omx = bmx;
+    omy = bmy;
+    for( j=0; j<6; j++ ) COST_MV_SATD( omx + hex2[j+1][0], omy + hex2[j+1][1], satds[j] );
+    for( j=0; j<6; j++ ) COST_MV_RD  ( omx + hex2[j+1][0], omy + hex2[j+1][1], satds[j], 1,j );
+    if( dir != -2 )
     {
-        int mx = bmx ^ m->mv[0] ^ pmx;
-        int my = bmy ^ m->mv[1] ^ pmy;
-        if( abs(mx-bmx) < 7 && abs(my-bmy) < 7 )
-            p_visited[mx + my*16] = 1;
+        /* half hexagon, not overlapping the previous iteration */
+        for( i = 1; i < 10; i++ )
+        {
+            const int odir = mod6m1[dir+1];
+            if( bmy > h->mb.mv_max_spel[1] - 2 ||
+                bmy < h->mb.mv_min_spel[1] - 2 )
+                break;
+            dir = -2;
+            omx = bmx;
+            omy = bmy;
+            for( j=0; j<3; j++ ) COST_MV_SATD( omx + hex2[odir+j][0], omy + hex2[odir+j][1], satds[j] );
+            for( j=0; j<3; j++ ) COST_MV_RD  ( omx + hex2[odir+j][0], omy + hex2[odir+j][1], satds[j], 1, odir-1+j );
+            if( dir == -2 )
+                break;
+        }
     }
 
-    /* hpel diamond */
-    bdir = -1;
-    for( i = 0; i < 2; i++ )
-    {
-         if( bmy > h->mb.mv_max_spel[1] - 2 )
-             break;
-         omx = bmx;
-         omy = bmy;
-         odir = bdir;
-         COST_MV_SATD( omx, omy - 2, satds[0] );
-         COST_MV_SATD( omx, omy + 2, satds[1] );
-         COST_MV_SATD( omx - 2, omy, satds[2] );
-         COST_MV_SATD( omx + 2, omy, satds[3] );
-         COST_MV_RD( omx, omy - 2, satds[0], 0 );
-         COST_MV_RD( omx, omy + 2, satds[1], 1 );
-         COST_MV_RD( omx - 2, omy, satds[2], 2 );
-         COST_MV_RD( omx + 2, omy, satds[3], 3 );
-         if( bmx == omx && bmy == omy )
-            break;
-    }
+    /* square refine, same as pattern as ME HEX. */
+    omx = bmx;
+    omy = bmy;
+    for( i=0; i<8; i++ ) COST_MV_SATD( omx + square1[i][0], omy  + square1[i][1], satds[i] );
+    for( i=0; i<8; i++ ) COST_MV_RD  ( omx + square1[i][0], omy  + square1[i][1], satds[i], 0,0 );
 
-    /* qpel diamond */
-    bdir = -1;
-    for( i = 0; i < 2; i++ )
-    {
-         if( bmy > h->mb.mv_max_spel[1] - 1 )
-             break;
-         omx = bmx;
-         omy = bmy;
-         odir = bdir;
-         COST_MV_SATD( omx, omy - 1, satds[0] );
-         COST_MV_SATD( omx, omy + 1, satds[1] );
-         COST_MV_SATD( omx - 1, omy, satds[2] );
-         COST_MV_SATD( omx + 1, omy, satds[3] );
-         COST_MV_RD( omx, omy - 1, satds[0], 0 );
-         COST_MV_RD( omx, omy + 1, satds[1], 1 );
-         COST_MV_RD( omx - 1, omy, satds[2], 2 );
-         COST_MV_RD( omx + 1, omy, satds[3], 3 );
-         if( bmx == omx && bmy == omy )
-            break;
-    }
-
-    if( bmy > h->mb.mv_max_spel[1] )
-        bmy = h->mb.mv_max_spel[1];
-
+    bmy = x264_clip3( bmy, h->mb.mv_min_spel[1],  h->mb.mv_max_spel[1] );
     m->cost = bcost;
     m->mv[0] = bmx;
     m->mv[1] = bmy;
-
     x264_macroblock_cache_mv ( h, 2*(i8&1), i8&2, bw, bh, 0, bmx, bmy );
     x264_macroblock_cache_mvd( h, 2*(i8&1), i8&2, bw, bh, 0, bmx - pmx, bmy - pmy );
 }
