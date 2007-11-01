@@ -439,7 +439,9 @@ me_hex2:
                     COST_MV_X4( -2*i, 3*i, -2*i,-3*i,  0*i,-4*i,  2*i,-3*i );
                 }
             }
-            goto me_hex2;
+            if( bmy <= mv_y_max )
+                goto me_hex2;
+            break;
         }
 
     case X264_ME_ESA:
