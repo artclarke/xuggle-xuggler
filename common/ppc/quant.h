@@ -21,8 +21,9 @@
 #ifndef _PPC_QUANT_H
 #define _PPC_QUANT_H 1
 
-void x264_quant_4x4_altivec( int16_t dct[4][4], int quant_mf[4][4], int const i_qbits, int const f );
-void x264_quant_8x8_altivec( int16_t dct[8][8], int quant_mf[8][8], int const i_qbits, int const f );
+void x264_quant_4x4_altivec( int16_t dct[4][4], uint16_t mf[16], uint16_t bias[16] );
+void x264_quant_8x8_altivec( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64] );
 
-void x264_quant_4x4_dc_altivec( int16_t dct[4][4], int i_quant_mf, int const i_qbits, int const f );
+void x264_quant_4x4_dc_altivec( int16_t dct[4][4], int mf, int bias );
+void x264_quant_2x2_dc_altivec( int16_t dct[2][2], int mf, int bias );
 #endif

@@ -238,4 +238,13 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->quant_8x8 = x264_quant_8x8_ssse3;
     }
 #endif
+
+#ifdef ARCH_PPC
+    if( cpu&X264_CPU_ALTIVEC ) {
+        pf->quant_2x2_dc = x264_quant_2x2_dc_altivec;
+        pf->quant_4x4_dc = x264_quant_4x4_dc_altivec;
+        pf->quant_4x4 = x264_quant_4x4_altivec;
+        pf->quant_8x8 = x264_quant_8x8_altivec;
+    }
+#endif
 }
