@@ -237,3 +237,136 @@ void x264_quant_8x8_altivec( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[6
     }
 }
 
+#define DEQUANT_SHL()                                                \
+{                                                                    \
+    dctv = vec_ld(0, dct[y]);                                        \
+    mf1v = vec_ld(0, dequant_mf[i_mf][y]);                           \
+    mf2v = vec_ld(16, dequant_mf[i_mf][y]);                          \
+    mfv  = vec_packs(mf1v, mf2v);                                    \
+                                                                     \
+    multEvenvA = vec_mule(dctv, mfv);                                \
+    multOddvA = vec_mulo(dctv, mfv);                                 \
+    dctv = (vec_s16_t) vec_packs(vec_mergeh(multEvenvA, multOddvA),  \
+                                 vec_mergel(multEvenvA, multOddvA)); \
+    dctv = vec_sl(dctv, i_qbitsv);                                   \
+    vec_st(dctv, 0, dct[y]);                                         \
+}
+
+#define DEQUANT_SHR()                                          \
+{                                                              \
+    dctv = vec_ld(0, dct[y]);                                  \
+    dct1v = vec_mergeh(dctv, dctv);                            \
+    dct2v = vec_mergel(dctv, dctv);                            \
+    mf1v = vec_ld(0, dequant_mf[i_mf][y]);                     \
+    mf2v = vec_ld(16, dequant_mf[i_mf][y]);                    \
+                                                               \
+    multEvenvA = vec_mule(dct1v, (vec_s16_t)mf1v);             \
+    multOddvA = vec_mulo(dct1v, (vec_s16_t)mf1v);              \
+    temp1v = vec_add(vec_sl(multEvenvA, sixteenv), multOddvA); \
+    temp1v = vec_add(temp1v, fv);                              \
+    temp1v = vec_sra(temp1v, i_qbitsv);                        \
+                                                               \
+    multEvenvA = vec_mule(dct2v, (vec_s16_t)mf2v);             \
+    multOddvA = vec_mulo(dct2v, (vec_s16_t)mf2v);              \
+    temp2v = vec_add(vec_sl(multEvenvA, sixteenv), multOddvA); \
+    temp2v = vec_add(temp2v, fv);                              \
+    temp2v = vec_sra(temp2v, i_qbitsv);                        \
+                                                               \
+    dctv = (vec_s16_t)vec_packs(temp1v, temp2v);               \
+    vec_st(dctv, 0, dct[y]);                                   \
+}
+
+void x264_dequant_4x4_altivec( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
+{
+    const int i_mf = i_qp%6;
+    const int i_qbits = i_qp/6 - 4;
+    int y;
+
+    vec_s16_t dctv;
+    vec_s16_t dct1v, dct2v;
+    vec_s32_t mf1v, mf2v;
+    vec_s16_t mfv;
+    vec_s32_t multEvenvA, multOddvA;
+    vec_s32_t temp1v, temp2v;
+
+    if( i_qbits >= 0 )
+    {
+        vec_u16_t i_qbitsv;
+        vect_ushort_u qbits_u;
+        qbits_u.s[0]=i_qbits;
+        i_qbitsv = vec_splat(qbits_u.v, 0);
+
+        for( y = 0; y < 4; y+=2 )
+            DEQUANT_SHL();
+    }
+    else
+    {
+        const int f = 1 << (-i_qbits-1);
+
+        vec_s32_t fv;
+        vect_int_u f_u;
+        f_u.s[0]=f;
+        fv = (vec_s32_t)vec_splat(f_u.v, 0);
+
+        vec_u32_t i_qbitsv;
+        vect_int_u qbits_u;
+        qbits_u.s[0]=-i_qbits;
+        i_qbitsv = vec_splat(qbits_u.v, 0);
+
+        vec_u32_t sixteenv;
+        vect_int_u sixteen_u;
+        sixteen_u.s[0]=16;
+        sixteenv = vec_splat(sixteen_u.v, 0);
+
+        for( y = 0; y < 4; y+=2 )
+            DEQUANT_SHR();
+    }
+}
+
+void x264_dequant_8x8_altivec( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp )
+{
+    const int i_mf = i_qp%6;
+    const int i_qbits = i_qp/6 - 6;
+    int y;
+
+    vec_s16_t dctv;
+    vec_s16_t dct1v, dct2v;
+    vec_s32_t mf1v, mf2v;
+    vec_s16_t mfv;
+    vec_s32_t multEvenvA, multOddvA;
+    vec_s32_t temp1v, temp2v;
+
+    if( i_qbits >= 0 )
+    {
+        vec_u16_t i_qbitsv;
+        vect_ushort_u qbits_u;
+        qbits_u.s[0]=i_qbits;
+        i_qbitsv = vec_splat(qbits_u.v, 0);
+
+        for( y = 0; y < 8; y++ )
+            DEQUANT_SHL();
+    }
+    else
+    {
+        const int f = 1 << (-i_qbits-1);
+
+        vec_s32_t fv;
+        vect_int_u f_u;
+        f_u.s[0]=f;
+        fv = (vec_s32_t)vec_splat(f_u.v, 0);
+
+        vec_u32_t i_qbitsv;
+        vect_int_u qbits_u;
+        qbits_u.s[0]=-i_qbits;
+        i_qbitsv = vec_splat(qbits_u.v, 0);
+
+        vec_u32_t sixteenv;
+        vect_int_u sixteen_u;
+        sixteen_u.s[0]=16;
+        sixteenv = vec_splat(sixteen_u.v, 0);
+
+        for( y = 0; y < 8; y++ )
+            DEQUANT_SHR();
+    }
+}
+
