@@ -64,7 +64,7 @@
 #define vec_u8_to_s16(v) vec_u8_to_s16_h(v)
 
 #define vec_u16_to_u8(v) vec_pack( v, zero_u16v )
-#define vec_s16_to_u8(v) vec_pack( v, zero_u16v )
+#define vec_s16_to_u8(v) vec_packsu( v, zero_s16v )
 
 /***********************************************************************
  * PREP_LOAD: declares two vectors required to perform unaligned loads
