@@ -38,11 +38,13 @@ typedef struct
 
     /* YUV buffer */
     int     i_plane;
-    int     i_stride[4];
-    int     i_lines[4];
+    int     i_stride[3];
+    int     i_width[3];
+    int     i_lines[3];
     int     i_stride_lowres;
+    int     i_width_lowres;
     int     i_lines_lowres;
-    uint8_t *plane[4];
+    uint8_t *plane[3];
     uint8_t *filtered[4]; /* plane[0], H, V, HV */
     uint8_t *lowres[4]; /* half-size copy of input frame: Orig, H, V, HV */
     uint16_t *integral;
@@ -105,8 +107,8 @@ void          x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame );
 void          x264_frame_deblock( x264_t *h );
 void          x264_frame_deblock_row( x264_t *h, int mb_y );
 
-void          x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced, int mb_y, int b_end );
-void          x264_frame_init_lowres( int cpu, x264_frame_t *frame );
+void          x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end );
+void          x264_frame_init_lowres( x264_t *h, x264_frame_t *frame );
 
 void          x264_deblock_init( int cpu, x264_deblock_function_t *pf );
 

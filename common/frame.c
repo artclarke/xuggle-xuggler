@@ -32,8 +32,7 @@ x264_frame_t *x264_frame_new( x264_t *h )
     int i, j;
 
     int i_mb_count = h->mb.i_mb_count;
-    int i_stride;
-    int i_lines;
+    int i_stride, i_width, i_lines;
     int i_padv = PADV << h->param.b_interlaced;
 
     if( !frame ) return NULL;
@@ -41,7 +40,8 @@ x264_frame_t *x264_frame_new( x264_t *h )
     memset( frame, 0, sizeof(x264_frame_t) );
 
     /* allocate frame data (+64 for extra data for me) */
-    i_stride = ( ( h->param.i_width  + 15 ) & -16 )+ 2*PADH;
+    i_width  = ( ( h->param.i_width  + 15 ) & -16 );
+    i_stride = i_width + 2*PADH;
     i_lines  = ( ( h->param.i_height + 15 ) & -16 );
     if( h->param.b_interlaced )
         i_lines = ( i_lines + 31 ) & -32;
@@ -59,6 +59,7 @@ x264_frame_t *x264_frame_new( x264_t *h )
                 i_divw = 2;
         }
         frame->i_stride[i] = i_stride / i_divw;
+        frame->i_width[i] = i_width / i_divw;
         frame->i_lines[i] = i_lines / i_divh;
         CHECKED_MALLOC( frame->buffer[i],
                         frame->i_stride[i] * ( frame->i_lines[i] + 2*i_padv / i_divh ) );
@@ -66,10 +67,6 @@ x264_frame_t *x264_frame_new( x264_t *h )
         frame->plane[i] = ((uint8_t*)frame->buffer[i]) +
                           frame->i_stride[i] * i_padv / i_divh + PADH / i_divw;
     }
-    frame->i_stride[3] = 0;
-    frame->i_lines[3] = 0;
-    frame->buffer[3] = NULL;
-    frame->plane[3] = NULL;
 
     frame->filtered[0] = frame->plane[0];
     for( i = 0; i < 3; i++ )
@@ -82,7 +79,8 @@ x264_frame_t *x264_frame_new( x264_t *h )
 
     if( h->frames.b_have_lowres )
     {
-        frame->i_stride_lowres = frame->i_stride[0]/2 + PADH;
+        frame->i_width_lowres = frame->i_width[0]/2;
+        frame->i_stride_lowres = frame->i_width_lowres + 2*PADH;
         frame->i_lines_lowres = frame->i_lines[0]/2;
         for( i = 0; i < 4; i++ )
         {

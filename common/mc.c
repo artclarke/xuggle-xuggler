@@ -382,10 +382,12 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 extern void x264_hpel_filter_mmxext( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
                                      int i_stride, int i_width, int i_height );
 
-void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced, int mb_y, int b_end )
+void x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end )
 {
+    const int b_interlaced = h->sh.b_mbaff;
     const int x_inc = 16, y_inc = 16;
     const int stride = frame->i_stride[0] << b_interlaced;
+    const int width = stride + frame->i_width[0] - frame->i_stride[0];
     int start = (mb_y*16 >> b_interlaced) - 8;
     int height = ((b_end ? frame->i_lines[0] : mb_y*16) >> b_interlaced) + 8;
     int x, y;
@@ -395,7 +397,7 @@ void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced, int mb_y
     mb_y >>= b_interlaced;
 
 #ifdef HAVE_MMX
-    if ( cpu & X264_CPU_MMXEXT )
+    if( h->param.cpu & X264_CPU_MMXEXT )
     {
         // buffer = 4 for deblock + 3 for 6tap, rounded to 8
         int offs = start*stride - 8;
@@ -404,7 +406,7 @@ void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced, int mb_y
             frame->filtered[2] + offs,
             frame->filtered[3] + offs,
             frame->plane[0] + offs,
-            stride, stride - 48, height - start );
+            stride, width + 16, height - start );
     }
     else
 #endif
@@ -415,7 +417,7 @@ void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced, int mb_y
             uint8_t *p_h  = frame->filtered[1] + y * stride - 8;
             uint8_t *p_v  = frame->filtered[2] + y * stride - 8;
             uint8_t *p_c  = frame->filtered[3] + y * stride - 8;
-            for( x = -8; x < stride - 64 + 8; x += x_inc )
+            for( x = -8; x < width + 8; x += x_inc )
             {
                 mc_hh( p_in, stride, p_h, stride, x_inc, y_inc );
                 mc_hv( p_in, stride, p_v, stride, x_inc, y_inc );
@@ -464,12 +466,12 @@ void x264_frame_filter( int cpu, x264_frame_t *frame, int b_interlaced, int mb_y
     }
 }
 
-void x264_frame_init_lowres( int cpu, x264_frame_t *frame )
+void x264_frame_init_lowres( x264_t *h, x264_frame_t *frame )
 {
     // FIXME: tapfilter?
     const int i_stride = frame->i_stride[0];
     const int i_stride2 = frame->i_stride_lowres;
-    const int i_width2 = i_stride2 - 64;
+    const int i_width2 = frame->i_width_lowres;
     int x, y, i;
     for( y = 0; y < frame->i_lines_lowres - 1; y++ )
     {

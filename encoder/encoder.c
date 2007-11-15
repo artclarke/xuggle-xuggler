@@ -924,7 +924,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y )
     if( b_hpel )
     {
         x264_frame_expand_border( h, h->fdec, min_y, b_end );
-        x264_frame_filter( h->param.cpu, h->fdec, h->sh.b_mbaff, min_y, b_end );
+        x264_frame_filter( h, h->fdec, min_y, b_end );
         x264_frame_expand_border_filtered( h, h->fdec, min_y, b_end );
     }
 
@@ -1299,7 +1299,7 @@ int     x264_encoder_encode( x264_t *h,
         x264_frame_push( h->frames.next, fenc );
 
         if( h->frames.b_have_lowres )
-            x264_frame_init_lowres( h->param.cpu, fenc );
+            x264_frame_init_lowres( h, fenc );
 
         if( h->frames.i_input <= h->frames.i_delay + 1 - h->param.i_threads )
         {
