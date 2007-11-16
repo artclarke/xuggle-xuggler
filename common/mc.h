@@ -57,6 +57,9 @@ typedef struct
     void (*plane_copy)( uint8_t *dst, int i_dst,
                         uint8_t *src, int i_src, int w, int h);
 
+    void (*hpel_filter)( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
+                         int i_stride, int i_width, int i_height );
+
     /* prefetch the next few macroblocks of fenc or fdec */
     void (*prefetch_fenc)( uint8_t *pix_y, int stride_y,
                            uint8_t *pix_uv, int stride_uv, int mb_x );
