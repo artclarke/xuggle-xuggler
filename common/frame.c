@@ -23,9 +23,6 @@
 
 #include "common.h"
 
-#define PADH 32
-#define PADV 32
-
 x264_frame_t *x264_frame_new( x264_t *h )
 {
     x264_frame_t *frame = x264_malloc( sizeof(x264_frame_t) );

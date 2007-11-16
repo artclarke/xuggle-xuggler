@@ -471,7 +471,7 @@ me_hex2:
                 m->p_fenc[0]+delta*FENC_STRIDE, m->p_fenc[0]+delta+delta*FENC_STRIDE,
                 FENC_STRIDE, enc_dc );
             if( delta == 4 )
-                sums_base += stride * (h->fenc->i_lines[0] + 64);
+                sums_base += stride * (h->fenc->i_lines[0] + PADV*2);
             if( i_pixel == PIXEL_16x16 || i_pixel == PIXEL_8x16 || i_pixel == PIXEL_4x8 )
                 delta *= stride;
             if( i_pixel == PIXEL_8x16 || i_pixel == PIXEL_4x8 )

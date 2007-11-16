@@ -420,22 +420,22 @@ void x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end )
     {
         if( start < 0 )
         {
-            memset( frame->integral - 32 * stride - 32, 0, stride * sizeof(uint16_t) );
-            start = -32;
+            memset( frame->integral - PADV * stride - PADH, 0, stride * sizeof(uint16_t) );
+            start = -PADV;
         }
         if( b_end )
-            height += 24;
+            height += PADV-8;
         for( y = start; y < height; y++ )
         {
-            uint8_t  *ref  = frame->plane[0] + y * stride - 32;
-            uint16_t *line = frame->integral + (y+1) * stride - 31;
+            uint8_t  *ref  = frame->plane[0] + y * stride - PADH;
+            uint16_t *line = frame->integral + (y+1) * stride - PADH + 1;
             uint16_t v = line[0] = 0;
             for( x = 0; x < stride-1; x++ )
                 line[x] = v += ref[x] + line[x-stride] - line[x-stride-1];
             line -= 8*stride;
-            if( y >= 8-31 )
+            if( y >= 9-PADV )
             {
-                uint16_t *sum4 = line + frame->i_stride[0] * (frame->i_lines[0] + 64);
+                uint16_t *sum4 = line + stride * (frame->i_lines[0] + PADV*2);
                 for( x = 1; x < stride-8; x++, line++, sum4++ )
                 {
                     sum4[0] =  line[4+4*stride] - line[4] - line[4*stride] + line[0];

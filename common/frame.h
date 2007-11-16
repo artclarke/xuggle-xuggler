@@ -24,6 +24,10 @@
 #ifndef _FRAME_H
 #define _FRAME_H 1
 
+/* number of pixels past the edge of the frame, for motion estimation/compensation */
+#define PADH 32
+#define PADV 32
+
 typedef struct
 {
     /* */
