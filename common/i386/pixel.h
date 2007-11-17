@@ -47,10 +47,6 @@ void x264_pixel_sad_x4_8x4_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, u
 void x264_pixel_sad_x4_4x8_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
 void x264_pixel_sad_x4_4x4_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
 
-int x264_pixel_sad_pde_16x16_mmxext( uint8_t *, int, uint8_t *, int, int );
-int x264_pixel_sad_pde_16x8_mmxext( uint8_t *, int, uint8_t *, int, int );
-int x264_pixel_sad_pde_8x16_mmxext( uint8_t *, int, uint8_t *, int, int );
-
 int x264_pixel_ssd_16x16_mmx( uint8_t *, int, uint8_t *, int );
 int x264_pixel_ssd_16x8_mmx( uint8_t *, int, uint8_t *, int );
 int x264_pixel_ssd_8x16_mmx( uint8_t *, int, uint8_t *, int );

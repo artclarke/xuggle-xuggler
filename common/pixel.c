@@ -483,10 +483,6 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT( sad_x4, _mmxext );
         INIT( satd, _mmxext );
 
-        pixf->sad_pde[PIXEL_16x16] = x264_pixel_sad_pde_16x16_mmxext;
-        pixf->sad_pde[PIXEL_16x8 ] = x264_pixel_sad_pde_16x8_mmxext;
-        pixf->sad_pde[PIXEL_8x16 ] = x264_pixel_sad_pde_8x16_mmxext;
-
         pixf->ads[PIXEL_16x16] = x264_pixel_ads4_mmxext;
         pixf->ads[PIXEL_16x8 ] = x264_pixel_ads2_mmxext;
         pixf->ads[PIXEL_8x8  ] = x264_pixel_ads1_mmxext;

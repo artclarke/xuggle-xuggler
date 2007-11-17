@@ -25,7 +25,6 @@
 #define _PIXEL_H 1
 
 typedef int  (*x264_pixel_cmp_t) ( uint8_t *, int, uint8_t *, int );
-typedef int  (*x264_pixel_cmp_pde_t) ( uint8_t *, int, uint8_t *, int, int );
 typedef void (*x264_pixel_cmp_x3_t) ( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int[3] );
 typedef void (*x264_pixel_cmp_x4_t) ( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int[4] );
 
@@ -75,11 +74,6 @@ typedef struct
     void (*ssim_4x4x2_core)( const uint8_t *pix1, int stride1,
                              const uint8_t *pix2, int stride2, int sums[2][4] );
     float (*ssim_end4)( int sum0[5][4], int sum1[5][4], int width );
-
-    /* partial distortion elimination:
-     * terminate early if partial score is worse than a threshold.
-     * may be NULL, in which case just use sad instead. */
-    x264_pixel_cmp_pde_t sad_pde[7];
 
     /* multiple parallel calls to sad. */
     x264_pixel_cmp_x3_t sad_x3[7];

@@ -499,44 +499,6 @@ SAD_X 4,  4,  8
 SAD_X 4,  4,  4
 
 
-%macro PDE_CHECK 0
-    movd eax, mm0
-    cmp  eax, parm5d ; prev_score
-    jl   .continue
-    ret
-ALIGN 4
-.continue:
-%endmacro
-
-;-----------------------------------------------------------------------------
-;   int x264_pixel_sad_pde_16x16_mmxext (uint8_t *, int, uint8_t *, int, int )
-;-----------------------------------------------------------------------------
-%macro SAD_PDE 2    
-cglobal x264_pixel_sad_pde_%1x%2_mmxext
-    SAD_START
-%rep %2/4
-    SAD_INC_2x%1P
-%endrep
-
-    movd eax, mm0
-    cmp  eax, parm5d ; prev_score
-    jl   .continue
-    ret
-ALIGN 4
-.continue:
-
-%rep %2/4
-    SAD_INC_2x%1P
-%endrep  
-    SAD_END
-%endmacro
-
-SAD_PDE 16, 16
-SAD_PDE 16 , 8
-SAD_PDE  8, 16
-
-
-
 %macro SSD_START 0
     pxor    mm7,    mm7         ; zero
     pxor    mm0,    mm0         ; mm0 holds the sum
