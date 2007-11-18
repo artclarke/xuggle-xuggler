@@ -1746,6 +1746,49 @@ static int pixel_sa8d_16x16_altivec( uint8_t *pix1, int i_pix1, uint8_t *pix2, i
 }
 
 /****************************************************************************
+ * structural similarity metric
+ ****************************************************************************/
+static void ssim_4x4x2_core_altivec( const uint8_t *pix1, int stride1,
+                                     const uint8_t *pix2, int stride2,
+                                     int sums[2][4] )
+{
+    DECLARE_ALIGNED( int, temp[4], 16 );
+
+    int y;
+    vec_u8_t pix1v, pix2v;
+    vec_u32_t s1v, s2v, ssv, s12v;
+    PREP_LOAD;
+    LOAD_ZERO;
+
+    s1v = s2v = ssv = s12v = zero_u32v;
+
+    for(y=0; y<4; y++)
+    {
+        VEC_LOAD( &pix1[y*stride1], pix1v, 16, vec_u8_t );
+        VEC_LOAD( &pix2[y*stride2], pix2v, 16, vec_u8_t );
+
+        s1v = vec_sum4s( pix1v, s1v );
+        s2v = vec_sum4s( pix2v, s2v );
+        ssv = vec_msum( pix1v, pix1v, ssv );
+        ssv = vec_msum( pix2v, pix2v, ssv );
+        s12v = vec_msum( pix1v, pix2v, s12v );
+    }
+
+    vec_st( (vec_s32_t)s1v, 0, temp );
+    sums[0][0] = temp[0];
+    sums[1][0] = temp[1];
+    vec_st( (vec_s32_t)s2v, 0, temp );
+    sums[0][1] = temp[0];
+    sums[1][1] = temp[1];
+    vec_st( (vec_s32_t)ssv, 0, temp );
+    sums[0][2] = temp[0];
+    sums[1][2] = temp[1];
+    vec_st( (vec_s32_t)s12v, 0, temp );
+    sums[0][3] = temp[0];
+    sums[1][3] = temp[1];
+}
+
+/****************************************************************************
  * x264_pixel_init:
  ****************************************************************************/
 void x264_pixel_altivec_init( x264_pixel_function_t *pixf )
@@ -1777,4 +1820,6 @@ void x264_pixel_altivec_init( x264_pixel_function_t *pixf )
 
     pixf->sa8d[PIXEL_16x16] = pixel_sa8d_16x16_altivec;
     pixf->sa8d[PIXEL_8x8]   = pixel_sa8d_8x8_altivec;
+
+    pixf->ssim_4x4x2_core = ssim_4x4x2_core_altivec;
 }
