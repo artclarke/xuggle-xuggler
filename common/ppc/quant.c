@@ -22,16 +22,6 @@
 #include <altivec.h>
 #endif
 
-typedef union {
-  unsigned int s[4];
-  vector unsigned int v;
-} vect_int_u;
-
-typedef union {
-  unsigned short s[8];
-  vector unsigned short v;
-} vect_ushort_u;
-
 #include "common/common.h"
 #include "ppccommon.h"
 #include "quant.h"            

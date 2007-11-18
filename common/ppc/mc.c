@@ -402,9 +402,231 @@ static void mc_chroma_altivec( uint8_t *src, int i_src_stride,
     }
 }
 
+#define HPEL_FILTER_1( t1v, t2v, t3v, t4v, t5v, t6v ) \
+{                                                     \
+    t1v = vec_add( t1v, t6v );                        \
+    t2v = vec_add( t2v, t5v );                        \
+    t3v = vec_add( t3v, t4v );                        \
+                                                      \
+    t1v = vec_sub( t1v, t2v );   /* (a-b) */          \
+    t2v = vec_sub( t2v, t3v );   /* (b-c) */          \
+    t2v = vec_sl(  t2v, twov );  /* (b-c)*4 */        \
+    t1v = vec_sub( t1v, t2v );   /* a-5*b+4*c */      \
+    t3v = vec_sl(  t3v, fourv ); /* 16*c */           \
+    t1v = vec_add( t1v, t3v );   /* a-5*b+20*c */     \
+}
+
+#define HPEL_FILTER_2( t1v, t2v, t3v, t4v, t5v, t6v ) \
+{                                                     \
+    t1v = vec_add( t1v, t6v );                        \
+    t2v = vec_add( t2v, t5v );                        \
+    t3v = vec_add( t3v, t4v );                        \
+                                                      \
+    t1v = vec_sub( t1v, t2v );  /* (a-b) */           \
+    t1v = vec_sra( t1v, twov ); /* (a-b)/4 */         \
+    t1v = vec_sub( t1v, t2v );  /* (a-b)/4-b */       \
+    t1v = vec_add( t1v, t3v );  /* (a-b)/4-b+c */     \
+    t1v = vec_sra( t1v, twov ); /* ((a-b)/4-b+c)/4 */ \
+    t1v = vec_add( t1v, t3v );  /* ((a-b)/4-b+c)/4+c = (a-5*b+20*c)/16 */ \
+}
+
+#define HPEL_FILTER_HORIZONTAL()                            \
+{                                                           \
+    VEC_LOAD( &src[x- 2+i_stride*y], src1v, 16, vec_u8_t ); \
+    VEC_LOAD( &src[x+14+i_stride*y], src6v, 16, vec_u8_t ); \
+                                                            \
+    src2v = vec_sld( src1v, src6v,  1 );                    \
+    src3v = vec_sld( src1v, src6v,  2 );                    \
+    src4v = vec_sld( src1v, src6v,  3 );                    \
+    src5v = vec_sld( src1v, src6v,  4 );                    \
+    src6v = vec_sld( src1v, src6v,  5 );                    \
+                                                            \
+    temp1v = vec_u8_to_s16_h( src1v );                      \
+    temp2v = vec_u8_to_s16_h( src2v );                      \
+    temp3v = vec_u8_to_s16_h( src3v );                      \
+    temp4v = vec_u8_to_s16_h( src4v );                      \
+    temp5v = vec_u8_to_s16_h( src5v );                      \
+    temp6v = vec_u8_to_s16_h( src6v );                      \
+                                                            \
+    HPEL_FILTER_1( temp1v, temp2v, temp3v,                  \
+                   temp4v, temp5v, temp6v );                \
+                                                            \
+    dest1v = vec_add( temp1v, sixteenv );                   \
+    dest1v = vec_sra( dest1v, fivev );                      \
+                                                            \
+    temp1v = vec_u8_to_s16_l( src1v );                      \
+    temp2v = vec_u8_to_s16_l( src2v );                      \
+    temp3v = vec_u8_to_s16_l( src3v );                      \
+    temp4v = vec_u8_to_s16_l( src4v );                      \
+    temp5v = vec_u8_to_s16_l( src5v );                      \
+    temp6v = vec_u8_to_s16_l( src6v );                      \
+                                                            \
+    HPEL_FILTER_1( temp1v, temp2v, temp3v,                  \
+                   temp4v, temp5v, temp6v );                \
+                                                            \
+    dest2v = vec_add( temp1v, sixteenv );                   \
+    dest2v = vec_sra( dest2v, fivev );                      \
+                                                            \
+    destv = vec_packsu( dest1v, dest2v );                   \
+                                                            \
+    VEC_STORE16( destv, &dsth[x+i_stride*y] );              \
+}
+
+#define HPEL_FILTER_VERTICAL()                               \
+{                                                            \
+    VEC_LOAD( &src[x+i_stride*(y-2)], src1v, 16, vec_u8_t ); \
+    VEC_LOAD( &src[x+i_stride*(y-1)], src2v, 16, vec_u8_t ); \
+    VEC_LOAD( &src[x+i_stride*(y-0)], src3v, 16, vec_u8_t ); \
+    VEC_LOAD( &src[x+i_stride*(y+1)], src4v, 16, vec_u8_t ); \
+    VEC_LOAD( &src[x+i_stride*(y+2)], src5v, 16, vec_u8_t ); \
+    VEC_LOAD( &src[x+i_stride*(y+3)], src6v, 16, vec_u8_t ); \
+                                                             \
+    temp1v = vec_u8_to_s16_h( src1v );                       \
+    temp2v = vec_u8_to_s16_h( src2v );                       \
+    temp3v = vec_u8_to_s16_h( src3v );                       \
+    temp4v = vec_u8_to_s16_h( src4v );                       \
+    temp5v = vec_u8_to_s16_h( src5v );                       \
+    temp6v = vec_u8_to_s16_h( src6v );                       \
+                                                             \
+    HPEL_FILTER_1( temp1v, temp2v, temp3v,                   \
+                   temp4v, temp5v, temp6v );                 \
+                                                             \
+    dest1v = vec_add( temp1v, sixteenv );                    \
+    dest1v = vec_sra( dest1v, fivev );                       \
+                                                             \
+    temp4v = vec_u8_to_s16_l( src1v );                       \
+    temp5v = vec_u8_to_s16_l( src2v );                       \
+    temp6v = vec_u8_to_s16_l( src3v );                       \
+    temp7v = vec_u8_to_s16_l( src4v );                       \
+    temp8v = vec_u8_to_s16_l( src5v );                       \
+    temp9v = vec_u8_to_s16_l( src6v );                       \
+                                                             \
+    HPEL_FILTER_1( temp4v, temp5v, temp6v,                   \
+                   temp7v, temp8v, temp9v );                 \
+                                                             \
+    dest2v = vec_add( temp4v, sixteenv );                    \
+    dest2v = vec_sra( dest2v, fivev );                       \
+                                                             \
+    destv = vec_packsu( dest1v, dest2v );                    \
+                                                             \
+    VEC_STORE16( destv, &dstv[x+i_stride*y] );               \
+}
+
+#define HPEL_FILTER_CENTRAL()                     \
+{                                                 \
+    temp1v = vec_sld( tempav, tempbv, 12 );       \
+    temp2v = vec_sld( tempav, tempbv, 14 );       \
+    temp3v = tempbv;                              \
+    temp4v = vec_sld( tempbv, tempcv,  2 );       \
+    temp5v = vec_sld( tempbv, tempcv,  4 );       \
+    temp6v = vec_sld( tempbv, tempcv,  6 );       \
+                                                  \
+    HPEL_FILTER_2( temp1v, temp2v, temp3v,        \
+                   temp4v, temp5v, temp6v );      \
+                                                  \
+    dest1v = vec_add( temp1v, thirtytwov );       \
+    dest1v = vec_sra( dest1v, sixv );             \
+                                                  \
+    temp1v = vec_sld( tempbv, tempcv, 12 );       \
+    temp2v = vec_sld( tempbv, tempcv, 14 );       \
+    temp3v = tempcv;                              \
+    temp4v = vec_sld( tempcv, tempdv,  2 );       \
+    temp5v = vec_sld( tempcv, tempdv,  4 );       \
+    temp6v = vec_sld( tempcv, tempdv,  6 );       \
+                                                  \
+    HPEL_FILTER_2( temp1v, temp2v, temp3v,        \
+                   temp4v, temp5v, temp6v );      \
+                                                  \
+    dest2v = vec_add( temp1v, thirtytwov );       \
+    dest2v = vec_sra( dest2v, sixv );             \
+                                                  \
+    destv = vec_packsu( dest1v, dest2v );         \
+                                                  \
+    VEC_STORE16( destv, &dstc[x-16+i_stride*y] ); \
+}
+
+void x264_hpel_filter_altivec( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
+                               int i_stride, int i_width, int i_height )
+{
+    int x, y;
+
+    vec_u8_t destv;
+    vec_u8_t src1v, src2v, src3v, src4v, src5v, src6v;
+    vec_s16_t dest1v, dest2v;
+    vec_s16_t temp1v, temp2v, temp3v, temp4v, temp5v, temp6v, temp7v, temp8v, temp9v;
+    vec_s16_t tempav, tempbv, tempcv, tempdv, tempev;
+
+    PREP_LOAD;
+    PREP_STORE16;
+    LOAD_ZERO;
+
+    vec_u16_t twov, fourv, fivev, sixv;
+    vec_s16_t sixteenv, thirtytwov;
+    vect_ushort_u temp_u;
+
+    temp_u.s[0]=2;
+    twov = vec_splat( temp_u.v, 0 );
+    temp_u.s[0]=4;
+    fourv = vec_splat( temp_u.v, 0 );
+    temp_u.s[0]=5;
+    fivev = vec_splat( temp_u.v, 0 );
+    temp_u.s[0]=6;
+    sixv = vec_splat( temp_u.v, 0 );
+    temp_u.s[0]=16;
+    sixteenv = (vec_s16_t)vec_splat( temp_u.v, 0 );
+    temp_u.s[0]=32;
+    thirtytwov = (vec_s16_t)vec_splat( temp_u.v, 0 );
+
+    for( y = 0; y < i_height; y++ )
+    {
+        x = 0;
+
+        /* horizontal_filter */
+        HPEL_FILTER_HORIZONTAL();
+
+        /* vertical_filter */
+        HPEL_FILTER_VERTICAL();
+
+        /* central_filter */
+        tempav = tempcv;
+        tempbv = tempdv;
+        tempcv = vec_splat( temp1v, 0 ); /* first only */
+        tempdv = temp1v;
+        tempev = temp4v;
+
+        for( x = 16; x < i_width; x+=16 )
+        {
+            /* horizontal_filter */
+            HPEL_FILTER_HORIZONTAL();
+
+            /* vertical_filter */
+            HPEL_FILTER_VERTICAL();
+
+            /* central_filter */
+            tempav = tempcv;
+            tempbv = tempdv;
+            tempcv = tempev;
+            tempdv = temp1v;
+            tempev = temp4v;
+
+            HPEL_FILTER_CENTRAL();
+        }
+
+        /* central_filter */
+        tempav = tempcv;
+        tempbv = tempdv;
+        tempcv = tempev;
+        tempdv = vec_splat( tempcv, 7 ); /* last only */
+
+        HPEL_FILTER_CENTRAL();
+    }
+}
+
 void x264_mc_altivec_init( x264_mc_functions_t *pf )
 {
     pf->mc_luma   = mc_luma_altivec;
     pf->get_ref   = get_ref_altivec;
     pf->mc_chroma = mc_chroma_altivec;
+
+    pf->hpel_filter = x264_hpel_filter_altivec;
 }

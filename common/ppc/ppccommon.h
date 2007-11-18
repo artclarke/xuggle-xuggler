@@ -40,6 +40,16 @@
 #define vec_u32_t vector unsigned int
 #define vec_s32_t vector signed int
 
+typedef union {
+  unsigned int s[4];
+  vector unsigned int v;
+} vect_int_u;
+
+typedef union {
+  unsigned short s[8];
+  vector unsigned short v;
+} vect_ushort_u;
+
 /***********************************************************************
  * Null vector
  **********************************************************************/
