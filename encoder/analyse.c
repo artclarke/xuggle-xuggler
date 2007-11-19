@@ -1236,8 +1236,8 @@ static int x264_mb_analyse_inter_p4x4_chroma( x264_t *h, x264_mb_analysis_t *a, 
     const int oe = 4*(i8x8&1) + 2*(i8x8&2)*FENC_STRIDE;
 
 #define CHROMA4x4MC( width, height, me, x, y ) \
-    h->mc.mc_chroma( &p_fref[4][or+x+y*i_stride], i_stride, &pix1[x+y*16], 16, (me).mv[0], (me).mv[1], width, height ); \
-    h->mc.mc_chroma( &p_fref[5][or+x+y*i_stride], i_stride, &pix2[x+y*16], 16, (me).mv[0], (me).mv[1], width, height );
+    h->mc.mc_chroma( &pix1[x+y*16], 16, &p_fref[4][or+x+y*i_stride], i_stride, (me).mv[0], (me).mv[1], width, height ); \
+    h->mc.mc_chroma( &pix2[x+y*16], 16, &p_fref[5][or+x+y*i_stride], i_stride, (me).mv[0], (me).mv[1], width, height );
 
     if( pixel == PIXEL_4x4 )
     {
@@ -1488,27 +1488,29 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     if ( ((a->l0.me16x16.mv[0] | a->l0.me16x16.mv[1]) & 1) == 0 )
     {
         /* l0 reference is halfpel, so get_ref on it will make it faster */
-        src2 = h->mc.get_ref( h->mb.pic.p_fref[0][a->l0.i_ref], h->mb.pic.i_stride[0],
-                        pix2, &stride2,
-                        a->l0.me16x16.mv[0], a->l0.me16x16.mv[1],
-                        16, 16 );
-        h->mc.mc_luma( h->mb.pic.p_fref[1][a->l1.i_ref], h->mb.pic.i_stride[0],
-                        pix1, 16,
-                        a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
-                        16, 16 );
+        src2 = 
+        h->mc.get_ref( pix2, &stride2,
+                       h->mb.pic.p_fref[0][a->l0.i_ref], h->mb.pic.i_stride[0],
+                       a->l0.me16x16.mv[0], a->l0.me16x16.mv[1],
+                       16, 16 );
+        h->mc.mc_luma( pix1, 16,
+                       h->mb.pic.p_fref[1][a->l1.i_ref], h->mb.pic.i_stride[0],
+                       a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
+                       16, 16 );
         weight = 64 - weight;
     } 
     else
     {
         /* if l0 was qpel, we'll use get_ref on l1 instead */
-        h->mc.mc_luma( h->mb.pic.p_fref[0][a->l0.i_ref], h->mb.pic.i_stride[0],
-                        pix1, 16,
-                        a->l0.me16x16.mv[0], a->l0.me16x16.mv[1],
-                        16, 16 );
-        src2 = h->mc.get_ref( h->mb.pic.p_fref[1][a->l1.i_ref], h->mb.pic.i_stride[0],
-                        pix2, &stride2,
-                        a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
-                        16, 16 );
+        h->mc.mc_luma( pix1, 16,
+                       h->mb.pic.p_fref[0][a->l0.i_ref], h->mb.pic.i_stride[0],
+                       a->l0.me16x16.mv[0], a->l0.me16x16.mv[1],
+                       16, 16 );
+        src2 =
+        h->mc.get_ref( pix2, &stride2,
+                       h->mb.pic.p_fref[1][a->l1.i_ref], h->mb.pic.i_stride[0],
+                       a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
+                       16, 16 );
     }
 
     if( h->param.analyse.b_weighted_bipred )
@@ -1650,8 +1652,8 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
             x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, l, m->mv[0], m->mv[1] );
 
             /* BI mode */
-            h->mc.mc_luma( m->p_fref, m->i_stride[0], pix[l], 8,
-                            m->mv[0], m->mv[1], 8, 8 );
+            h->mc.mc_luma( pix[l], 8, m->p_fref, m->i_stride[0],
+                           m->mv[0], m->mv[1], 8, 8 );
             i_part_cost_bi += m->cost_mv;
             /* FIXME: ref cost */
         }
@@ -1715,8 +1717,8 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
             x264_me_search( h, m, mvc, 2 );
 
             /* BI mode */
-            h->mc.mc_luma( m->p_fref, m->i_stride[0], pix[l], 16,
-                            m->mv[0], m->mv[1], 16, 8 );
+            h->mc.mc_luma( pix[l], 16, m->p_fref, m->i_stride[0],
+                           m->mv[0], m->mv[1], 16, 8 );
             /* FIXME: ref cost */
             i_part_cost_bi += m->cost_mv;
         }
@@ -1785,8 +1787,8 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
             x264_me_search( h, m, mvc, 2 );
 
             /* BI mode */
-            h->mc.mc_luma( m->p_fref, m->i_stride[0], pix[l], 8,
-                            m->mv[0], m->mv[1], 8, 16 );
+            h->mc.mc_luma( pix[l], 8, m->p_fref, m->i_stride[0],
+                           m->mv[0], m->mv[1], 8, 16 );
             /* FIXME: ref cost */
             i_part_cost_bi += m->cost_mv;
         }

@@ -132,8 +132,8 @@ MC_COPY( mc_copy_w4,  4  )
 MC_COPY( mc_copy_w8,  8  )
 MC_COPY( mc_copy_w16, 16 )
 
-void mc_luma_altivec( uint8_t *src[4], int i_src_stride,
-                      uint8_t *dst,    int i_dst_stride,
+void mc_luma_altivec( uint8_t *dst,    int i_dst_stride,
+                      uint8_t *src[4], int i_src_stride,
                       int mvx, int mvy,
                       int i_width, int i_height )
 {
@@ -190,8 +190,8 @@ void mc_luma_altivec( uint8_t *src[4], int i_src_stride,
     }
 }
 
-uint8_t *get_ref_altivec( uint8_t *src[4], int i_src_stride,
-                          uint8_t *dst,    int * i_dst_stride,
+uint8_t *get_ref_altivec( uint8_t *dst,    int * i_dst_stride,
+                          uint8_t *src[4], int i_src_stride,
                           int mvx, int mvy,
                           int i_width, int i_height )
 {
@@ -253,8 +253,8 @@ uint8_t *get_ref_altivec( uint8_t *src[4], int i_src_stride,
         src##a##v_16 = vec_mladd( coeff##a##v, src##a##v_16, zero_u16v ); \
         dstv_16      = vec_add( dstv_16, src##a##v_16 )
 
-static void mc_chroma_altivec_4xh( uint8_t *src, int i_src_stride,
-                                   uint8_t *dst, int i_dst_stride,
+static void mc_chroma_altivec_4xh( uint8_t *dst, int i_dst_stride,
+                                   uint8_t *src, int i_src_stride,
                                    int mvx, int mvy,
                                    int i_height )
 {
@@ -319,8 +319,8 @@ static void mc_chroma_altivec_4xh( uint8_t *src, int i_src_stride,
     }
 }
 
-static void mc_chroma_altivec_8xh( uint8_t *src, int i_src_stride,
-                                   uint8_t *dst, int i_dst_stride,
+static void mc_chroma_altivec_8xh( uint8_t *dst, int i_dst_stride,
+                                   uint8_t *src, int i_src_stride,
                                    int mvx, int mvy,
                                    int i_height )
 {
@@ -385,19 +385,19 @@ static void mc_chroma_altivec_8xh( uint8_t *src, int i_src_stride,
     }
 }
 
-static void mc_chroma_altivec( uint8_t *src, int i_src_stride,
-                               uint8_t *dst, int i_dst_stride,
+static void mc_chroma_altivec( uint8_t *dst, int i_dst_stride,
+                               uint8_t *src, int i_src_stride,
                                int mvx, int mvy,
                                int i_width, int i_height )
 {
     if( i_width == 8 )
     {
-        mc_chroma_altivec_8xh( src, i_src_stride, dst, i_dst_stride,
+        mc_chroma_altivec_8xh( dst, i_dst_stride, src, i_src_stride,
                                mvx, mvy, i_height );
     }
     else
     {
-        mc_chroma_altivec_4xh( src, i_src_stride, dst, i_dst_stride,
+        mc_chroma_altivec_4xh( dst, i_dst_stride, src, i_src_stride,
                                mvx, mvy, i_height );
     }
 }

@@ -301,6 +301,7 @@ static int check_mc( int cpu_ref, int cpu_new )
     x264_mc_functions_t mc_c;
     x264_mc_functions_t mc_ref;
     x264_mc_functions_t mc_a;
+    x264_pixel_function_t pixel;
 
     uint8_t *src     = &buf1[2*32+2];
     uint8_t *src2[4] = { &buf1[2*32+2],  &buf1[7*32+2],
@@ -314,6 +315,7 @@ static int check_mc( int cpu_ref, int cpu_new )
     x264_mc_init( 0, &mc_c );
     x264_mc_init( cpu_ref, &mc_ref );
     x264_mc_init( cpu_new, &mc_a );
+    x264_pixel_init( 0, &pixel );
 
 #define MC_TEST_LUMA( w, h ) \
         if( mc_a.mc_luma != mc_ref.mc_luma ) \
@@ -321,11 +323,26 @@ static int check_mc( int cpu_ref, int cpu_new )
             used_asm = 1; \
             memset(buf3, 0xCD, 1024); \
             memset(buf4, 0xCD, 1024); \
-            mc_c.mc_luma( src2, 32, dst1, 16, dx, dy, w, h );     \
-            mc_a.mc_luma( src2, 32, dst2, 16, dx, dy, w, h );   \
-            if( memcmp( buf3, buf4, 1024 ) )               \
+            mc_c.mc_luma( dst1, 16, src2, 32, dx, dy, w, h ); \
+            mc_a.mc_luma( dst2, 16, src2, 32, dx, dy, w, h ); \
+            if( memcmp( buf3, buf4, 1024 ) ) \
             { \
-                fprintf( stderr, "mc_luma[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h );   \
+                fprintf( stderr, "mc_luma[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h ); \
+                ok = 0; \
+            } \
+        } \
+        if( mc_a.get_ref != mc_ref.get_ref ) \
+        { \
+            uint8_t *ref = dst2; \
+            int ref_stride = 16; \
+            used_asm = 1; \
+            memset(buf3, 0xCD, 1024); \
+            memset(buf4, 0xCD, 1024); \
+            mc_c.mc_luma( dst1, 16, src2, 32, dx, dy, w, h ); \
+            ref = mc_a.get_ref( ref, &ref_stride, src2, 32, dx, dy, w, h ); \
+            if( pixel.sad[PIXEL_##w##x##h]( dst1, 16, ref, ref_stride ) ) \
+            { \
+                fprintf( stderr, "get_ref[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h ); \
                 ok = 0; \
             } \
         }
@@ -336,21 +353,21 @@ static int check_mc( int cpu_ref, int cpu_new )
             used_asm = 1; \
             memset(buf3, 0xCD, 1024); \
             memset(buf4, 0xCD, 1024); \
-            mc_c.mc_chroma( src, 32, dst1, 16, dx, dy, w, h );     \
-            mc_a.mc_chroma( src, 32, dst2, 16, dx, dy, w, h );   \
+            mc_c.mc_chroma( dst1, 16, src, 32, dx, dy, w, h ); \
+            mc_a.mc_chroma( dst2, 16, src, 32, dx, dy, w, h ); \
             /* mc_chroma width=2 may write garbage to the right of dst. ignore that. */\
             for( j=0; j<h; j++ ) \
                 for( i=w; i<4; i++ ) \
                     dst2[i+j*16] = dst1[i+j*16]; \
-            if( memcmp( buf3, buf4, 1024 ) )               \
+            if( memcmp( buf3, buf4, 1024 ) ) \
             { \
-                fprintf( stderr, "mc_chroma[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h );   \
+                fprintf( stderr, "mc_chroma[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h ); \
                 ok = 0; \
             } \
         }
     ok = 1; used_asm = 0;
-    for( dy = 0; dy < 4; dy++ )
-        for( dx = 0; dx < 4; dx++ )
+    for( dy = -8; dy < 8; dy++ )
+        for( dx = -8; dx < 8; dx++ )
         {
             MC_TEST_LUMA( 16, 16 );
             MC_TEST_LUMA( 16, 8 );
@@ -397,6 +414,7 @@ static int check_mc( int cpu_ref, int cpu_new )
     }
     MC_TEST_AVG( avg );
     report( "mc avg :" );
+    ok = 1; used_asm = 0;
     for( w = -64; w <= 128 && ok; w++ )
         MC_TEST_AVG( avg_weight, w );
     report( "mc wpredb :" );

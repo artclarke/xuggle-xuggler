@@ -107,9 +107,9 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         int stride2 = 16; \
         uint8_t *src2; \
         int i_cost; \
-        h->mc.mc_luma( m[0].p_fref, m[0].i_stride[0], pix1, 16, \
+        h->mc.mc_luma( pix1, 16, m[0].p_fref, m[0].i_stride[0], \
                        (mv0)[0], (mv0)[1], 8, 8 ); \
-        src2 = h->mc.get_ref( m[1].p_fref, m[1].i_stride[0], pix2, &stride2, \
+        src2 = h->mc.get_ref( pix2, &stride2, m[1].p_fref, m[1].i_stride[0], \
                        (mv1)[0], (mv1)[1], 8, 8 ); \
         h->mc.avg[PIXEL_8x8]( pix1, 16, src2, stride2 ); \
         i_cost = penalty + h->pixf.mbcmp[PIXEL_8x8]( \

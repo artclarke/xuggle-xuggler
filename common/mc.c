@@ -231,8 +231,8 @@ static void hpel_filter( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *s
 static const int hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
 static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
 
-static void mc_luma( uint8_t *src[4], int i_src_stride,
-                     uint8_t *dst,    int i_dst_stride,
+static void mc_luma( uint8_t *dst,    int i_dst_stride,
+                     uint8_t *src[4], int i_src_stride,
                      int mvx, int mvy,
                      int i_width, int i_height )
 {
@@ -252,8 +252,8 @@ static void mc_luma( uint8_t *src[4], int i_src_stride,
     }
 }
 
-static uint8_t *get_ref( uint8_t *src[4], int i_src_stride,
-                         uint8_t *dst,   int *i_dst_stride,
+static uint8_t *get_ref( uint8_t *dst,   int *i_dst_stride,
+                         uint8_t *src[4], int i_src_stride,
                          int mvx, int mvy,
                          int i_width, int i_height )
 {
@@ -276,10 +276,10 @@ static uint8_t *get_ref( uint8_t *src[4], int i_src_stride,
 }
 
 /* full chroma mc (ie until 1/8 pixel)*/
-static void motion_compensation_chroma( uint8_t *src, int i_src_stride,
-                                        uint8_t *dst, int i_dst_stride,
-                                        int mvx, int mvy,
-                                        int i_width, int i_height )
+static void mc_chroma( uint8_t *dst, int i_dst_stride,
+                       uint8_t *src, int i_src_stride,
+                       int mvx, int mvy,
+                       int i_width, int i_height )
 {
     uint8_t *srcp;
     int x, y;
@@ -340,7 +340,7 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 {
     pf->mc_luma   = mc_luma;
     pf->get_ref   = get_ref;
-    pf->mc_chroma = motion_compensation_chroma;
+    pf->mc_chroma = mc_chroma;
 
     pf->avg[PIXEL_16x16]= pixel_avg_16x16;
     pf->avg[PIXEL_16x8] = pixel_avg_16x8;

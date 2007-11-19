@@ -33,18 +33,18 @@
 
 typedef struct
 {
-    void (*mc_luma)(uint8_t **, int, uint8_t *, int,
+    void (*mc_luma)(uint8_t *dst, int i_dst, uint8_t **src, int i_src,
                     int mvx, int mvy,
                     int i_width, int i_height );
 
     /* may round up the dimensions if they're not a power of 2 */
-    uint8_t* (*get_ref)(uint8_t **, int, uint8_t *, int *,
+    uint8_t* (*get_ref)(uint8_t *dst, int *i_dst, uint8_t **src, int i_src,
                         int mvx, int mvy,
                         int i_width, int i_height );
 
     /* mc_chroma may write up to 2 bytes of garbage to the right of dst,
      * so it must be run from left to right. */
-    void (*mc_chroma)(uint8_t *, int, uint8_t *, int,
+    void (*mc_chroma)(uint8_t *dst, int i_dst, uint8_t *src, int i_src,
                       int mvx, int mvy,
                       int i_width, int i_height );
 

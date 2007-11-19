@@ -484,8 +484,8 @@ ALIGN 4
 ;=============================================================================
 
 ;-----------------------------------------------------------------------------
-;   void x264_mc_chroma_mmxext( uint8_t *src, int i_src_stride,
-;                               uint8_t *dst, int i_dst_stride,
+;   void x264_mc_chroma_mmxext( uint8_t *dst, int i_dst_stride,
+;                               uint8_t *src, int i_src_stride,
 ;                               int dx, int dy,
 ;                               int i_width, int i_height )
 ;-----------------------------------------------------------------------------
@@ -501,9 +501,9 @@ cglobal x264_mc_chroma_mmxext
     mov     edi, edx
     sar     ecx, 3
     sar     edx, 3
-    imul    ecx, [picesp+4+8]
+    imul    ecx, [picesp+4+16]
     add     ecx, edx
-    add     [picesp+4+4], ecx     ; src += (dx>>3) + (dy>>3) * src_stride
+    add     [picesp+4+12], ecx   ; src += (dx>>3) + (dy>>3) * src_stride
 
     pxor    mm3, mm3
 
@@ -526,9 +526,9 @@ cglobal x264_mc_chroma_mmxext
     pmullw  mm6, mm4            ; mm6 = (8-dx)*dy =     cC
     pmullw  mm4, mm0            ; mm4 = (8-dx)*(8-dy) = cA
 
-    mov     eax, [picesp+4+4]   ; src
-    mov     edi, [picesp+4+12]  ; dst
-    mov     ecx, [picesp+4+8]   ; i_src_stride
+    mov     eax, [picesp+4+12]  ; src
+    mov     edi, [picesp+4+4]   ; dst
+    mov     ecx, [picesp+4+16]  ; i_src_stride
     mov     edx, [picesp+4+32]  ; i_height
 
 ALIGN 4
@@ -560,7 +560,7 @@ ALIGN 4
     movd    [edi], mm0
 
     add     eax, ecx
-    add     edi, [picesp+4+16]
+    add     edi, [picesp+4+8]
 
     dec     edx
     jnz     .height_loop
@@ -568,8 +568,8 @@ ALIGN 4
     sub     [picesp+4+28], dword 8
     jnz     .finish            ; width != 8 so assume 4
 
-    mov     edi, [picesp+4+12] ; dst
-    mov     eax, [picesp+4+4]  ; src
+    mov     edi, [picesp+4+4]  ; dst
+    mov     eax, [picesp+4+12] ; src
     mov     edx, [picesp+4+32] ; i_height
     add     edi, 4
     add     eax, 4

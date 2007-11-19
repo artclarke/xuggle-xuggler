@@ -421,8 +421,8 @@ ALIGN 4
 ;=============================================================================
 
 ;-----------------------------------------------------------------------------
-;   void x264_mc_chroma_mmxext( uint8_t *src, int i_src_stride,
-;                               uint8_t *dst, int i_dst_stride,
+;   void x264_mc_chroma_mmxext( uint8_t *dst, int i_dst_stride,
+;                               uint8_t *src, int i_src_stride,
 ;                               int dx, int dy,
 ;                               int i_width, int i_height )
 ;-----------------------------------------------------------------------------
@@ -431,12 +431,12 @@ cglobal x264_mc_chroma_mmxext
     mov     r11d, parm5d
     sar     r10d, 3
     sar     r11d, 3
-    imul    r10d, parm2d
+    imul    r10d, parm4d
     pxor    mm3, mm3
     add     r10d, r11d
     movsxd   r10, r10d
     mov     r11d, parm8d
-    add   parm1q, r10           ; src += (dx>>3) + (dy>>3) * src_stride
+    add   parm3q, r10           ; src += (dx>>3) + (dy>>3) * src_stride
     and   parm5d, 7             ; dx &= 7
     je      .mc1d
     and   parm6d, 7             ; dy &= 7
@@ -460,13 +460,13 @@ cglobal x264_mc_chroma_mmxext
     pmullw  mm6, mm4            ; mm6 = (8-dx)*dy =     cC
     pmullw  mm4, mm0            ; mm4 = (8-dx)*(8-dy) = cA
 
-    mov     rax, parm1q
-    mov     r10, parm3q
+    mov     rax, parm3q
+    mov     r10, parm1q
 
 ALIGN 4
 .height_loop
 
-    movd    mm1, [rax+parm2q]
+    movd    mm1, [rax+parm4q]
     movd    mm0, [rax]
     punpcklbw mm1, mm3          ; 00 px1 | 00 px2 | 00 px3 | 00 px4
     punpcklbw mm0, mm3
@@ -476,7 +476,7 @@ ALIGN 4
     paddw   mm0, mm1            ; mm0 <- result
 
     movd    mm2, [rax+1]
-    movd    mm1, [rax+parm2q+1]
+    movd    mm1, [rax+parm4q+1]
     punpcklbw mm2, mm3
     punpcklbw mm1, mm3
 
@@ -491,16 +491,16 @@ ALIGN 4
     packuswb mm0, mm3           ; 00 00 00 00 px1 px2 px3 px4
     movd    [r10], mm0
 
-    add     rax, parm2q
-    add     r10, parm4q         ; i_dst_stride
+    add     rax, parm4q
+    add     r10, parm2q         ; i_dst_stride
     dec     r11d
     jnz     .height_loop
 
     sub     parm7d, 8
     jnz     .finish             ; width != 8 so assume 4
 
-    mov     r10, parm3q         ; dst
-    mov     rax, parm1q         ; src
+    mov     r10, parm1q         ; dst
+    mov     rax, parm3q         ; src
     mov     r11d, parm8d        ; i_height
     add     r10, 4
     add     rax, 4
@@ -511,17 +511,13 @@ ALIGN 4
 
 ALIGN 4
 .mc1d
-%ifdef WIN64
-%define pel_offset rsi
-%else
-%define pel_offset r9
-%endif
+%define pel_offset temp1q
     mov       eax, parm5d
     or        eax, parm6d
     and       eax, 7
     cmp    parm5d, 0
     mov    pel_offset, 1
-    cmove  pel_offset, parm2q   ; pel_offset = dx ? 1 : src_stride
+    cmove  pel_offset, parm4q   ; pel_offset = dx ? 1 : src_stride
     movd      mm6, eax
     movq      mm5, [pw_8 GLOBAL]
     pshufw    mm6, mm6, 0
@@ -533,8 +529,8 @@ ALIGN 4
 
 ALIGN 4
 .height_loop1_w4
-    movd      mm0, [parm1q+pel_offset]
-    movd      mm1, [parm1q]
+    movd      mm0, [parm3q+pel_offset]
+    movd      mm1, [parm3q]
     punpcklbw mm0, mm3
     punpcklbw mm1, mm3
     pmullw    mm0, mm6
@@ -543,17 +539,17 @@ ALIGN 4
     paddw     mm0, mm1
     psrlw     mm0, 3
     packuswb  mm0, mm3
-    movd [parm3q], mm0
-    add    parm1q, parm2q
+    movd [parm1q], mm0
     add    parm3q, parm4q
+    add    parm1q, parm2q
     dec      r11d
     jnz .height_loop1_w4
     rep ret
 
 ALIGN 4
 .height_loop1_w8
-    movq      mm0, [parm1q+pel_offset]
-    movq      mm1, [parm1q]
+    movq      mm0, [parm3q+pel_offset]
+    movq      mm1, [parm3q]
     movq      mm2, mm0
     movq      mm4, mm1
     punpcklbw mm0, mm3
@@ -571,9 +567,9 @@ ALIGN 4
     psrlw     mm0, 3
     psrlw     mm2, 3
     packuswb  mm0, mm2
-    movq [parm3q], mm0
-    add    parm1q, parm2q
+    movq [parm1q], mm0
     add    parm3q, parm4q
+    add    parm1q, parm2q
     dec      r11d
     jnz .height_loop1_w8
     rep ret
