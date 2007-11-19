@@ -28,11 +28,18 @@
 #include "common/common.h"
 
 /* NASM functions */
-extern void x264_pixel_avg_w4_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int );
-extern void x264_pixel_avg_w8_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int );
-extern void x264_pixel_avg_w16_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int );
-extern void x264_pixel_avg_w20_mmxext( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int );
-extern void x264_pixel_avg_w16_sse2( uint8_t *,  int, uint8_t *, int, uint8_t *, int, int );
+extern void x264_pixel_avg_16x16_mmxext( uint8_t *, int, uint8_t *, int );
+extern void x264_pixel_avg_16x8_mmxext( uint8_t *, int, uint8_t *, int );
+extern void x264_pixel_avg_8x16_mmxext( uint8_t *, int, uint8_t *, int );
+extern void x264_pixel_avg_8x8_mmxext( uint8_t *, int, uint8_t *, int );
+extern void x264_pixel_avg_8x4_mmxext( uint8_t *, int, uint8_t *, int );
+extern void x264_pixel_avg_4x8_mmxext( uint8_t *, int, uint8_t *, int );
+extern void x264_pixel_avg_4x4_mmxext( uint8_t *, int, uint8_t *, int );
+extern void x264_pixel_avg_4x2_mmxext( uint8_t *, int, uint8_t *, int );
+extern void x264_pixel_avg2_w4_mmxext( uint8_t *, int, uint8_t *, int, uint8_t *, int );
+extern void x264_pixel_avg2_w8_mmxext( uint8_t *, int, uint8_t *, int, uint8_t *, int );
+extern void x264_pixel_avg2_w16_mmxext( uint8_t *, int, uint8_t *, int, uint8_t *, int );
+extern void x264_pixel_avg2_w20_mmxext( uint8_t *, int, uint8_t *, int, uint8_t *, int );
 extern void x264_pixel_avg_weight_4x4_mmxext( uint8_t *, int, uint8_t *, int, int );
 extern void x264_pixel_avg_weight_w8_mmxext( uint8_t *, int, uint8_t *, int, int, int );
 extern void x264_pixel_avg_weight_w16_mmxext( uint8_t *, int, uint8_t *, int, int, int );
@@ -46,20 +53,6 @@ extern void x264_prefetch_ref_mmxext( uint8_t *, int, int );
 extern void x264_hpel_filter_mmxext( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
                                      int i_stride, int i_width, int i_height );
 
-#define AVG(W,H) \
-static void x264_pixel_avg_ ## W ## x ## H ## _mmxext( uint8_t *dst, int i_dst, uint8_t *src, int i_src ) \
-{ \
-    x264_pixel_avg_w ## W ## _mmxext( dst, i_dst, dst, i_dst, src, i_src, H ); \
-}
-AVG(16,16)
-AVG(16,8)
-AVG(8,16)
-AVG(8,8)
-AVG(8,4)
-AVG(4,8)
-AVG(4,4)
-AVG(4,2)
-
 #define AVG_WEIGHT(W,H) \
 void x264_pixel_avg_weight_ ## W ## x ## H ## _mmxext( uint8_t *dst, int i_dst, uint8_t *src, int i_src, int i_weight_dst ) \
 { \
@@ -71,14 +64,14 @@ AVG_WEIGHT(8,16)
 AVG_WEIGHT(8,8)
 AVG_WEIGHT(8,4)
 
-static void (* const x264_pixel_avg_wtab_mmxext[6])( uint8_t *, int, uint8_t *, int, uint8_t *, int, int ) =
+static void (* const x264_pixel_avg_wtab_mmxext[6])( uint8_t *, int, uint8_t *, int, uint8_t *, int ) =
 {
     NULL,
-    x264_pixel_avg_w4_mmxext,
-    x264_pixel_avg_w8_mmxext,
-    x264_pixel_avg_w16_mmxext,
-    x264_pixel_avg_w16_mmxext,
-    x264_pixel_avg_w20_mmxext,
+    x264_pixel_avg2_w4_mmxext,
+    x264_pixel_avg2_w8_mmxext,
+    x264_pixel_avg2_w16_mmxext,
+    x264_pixel_avg2_w16_mmxext,
+    x264_pixel_avg2_w20_mmxext,
 };
 static void (* const x264_mc_copy_wtab_mmx[5])( uint8_t *, int, uint8_t *, int, int ) =
 {
@@ -105,7 +98,7 @@ void mc_luma_mmx( uint8_t *src[4], int i_src_stride,
         uint8_t *src2 = src[hpel_ref1[qpel_idx]] + offset + ((mvx&3) == 3);
         x264_pixel_avg_wtab_mmxext[i_width>>2](
                 dst, i_dst_stride, src1, i_src_stride,
-                src2, i_src_stride, i_height );
+                src2, i_height );
     }
     else
     {
@@ -128,7 +121,7 @@ uint8_t *get_ref_mmx( uint8_t *src[4], int i_src_stride,
         uint8_t *src2 = src[hpel_ref1[qpel_idx]] + offset + ((mvx&3) == 3);
         x264_pixel_avg_wtab_mmxext[i_width>>2](
                 dst, *i_dst_stride, src1, i_src_stride,
-                src2, i_src_stride, i_height );
+                src2, i_height );
         return dst;
     }
     else
@@ -141,8 +134,8 @@ uint8_t *get_ref_mmx( uint8_t *src[4], int i_src_stride,
 
 void x264_mc_mmxext_init( x264_mc_functions_t *pf )
 {
-    pf->mc_luma   = mc_luma_mmx;
-    pf->get_ref   = get_ref_mmx;
+    pf->mc_luma = mc_luma_mmx;
+    pf->get_ref = get_ref_mmx;
 
     pf->avg[PIXEL_16x16] = x264_pixel_avg_16x16_mmxext;
     pf->avg[PIXEL_16x8]  = x264_pixel_avg_16x8_mmxext;
@@ -174,6 +167,4 @@ void x264_mc_mmxext_init( x264_mc_functions_t *pf )
 void x264_mc_sse2_init( x264_mc_functions_t *pf )
 {
     /* todo: use sse2 */
-    pf->mc_luma   = mc_luma_mmx;
-    pf->get_ref   = get_ref_mmx;
 }
