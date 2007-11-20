@@ -228,7 +228,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
         int i_spel_border = 8; // 1.5 for subpel_satd, 1.5 for subpel_rd, 2 for bime, round up
 
         /* Calculate max allowed MV range */
-#define CLIP_FMV(mv) x264_clip3( mv, -i_fmv_range, i_fmv_range )
+#define CLIP_FMV(mv) x264_clip3( mv, -i_fmv_range, i_fmv_range-1 )
         h->mb.mv_min[0] = 4*( -16*h->mb.i_mb_x - 24 );
         h->mb.mv_max[0] = 4*( 16*( h->sps->i_mb_width - h->mb.i_mb_x - 1 ) + 24 );
         h->mb.mv_min_spel[0] = CLIP_FMV( h->mb.mv_min[0] );
