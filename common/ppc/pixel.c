@@ -1604,6 +1604,55 @@ static int pixel_ssd_16x16_altivec ( uint8_t *pix1, int i_stride_pix1,
     return sum;
 } 
 
+static int pixel_ssd_8x8_altivec ( uint8_t *pix1, int i_stride_pix1,
+                                   uint8_t *pix2, int i_stride_pix2)
+{
+    DECLARE_ALIGNED( int, sum, 16 );
+    
+    int y;
+    LOAD_ZERO;
+    vec_u8_t  pix1v, pix2v;
+    vec_u32_t sumv;
+    vec_u8_t maxv, minv, diffv;
+    vec_u8_t temp_lv, temp_hv;
+    vec_u8_t perm1v, perm2v;
+
+    const vec_u32_t sel = (vec_u32_t)CV(-1,-1,0,0);
+
+    sumv = vec_splat_u32(0);
+    
+    perm1v = vec_lvsl(0, pix1);
+    perm2v = vec_lvsl(0, pix2);
+    
+    for (y=0; y < 8; y++)
+    {
+        temp_hv = vec_ld(0, pix1);
+        temp_lv = vec_ld(7, pix1);
+        pix1v = vec_perm(temp_hv, temp_lv, perm1v);
+
+        temp_hv = vec_ld(0, pix2);
+        temp_lv = vec_ld(7, pix2);
+        pix2v = vec_perm(temp_hv, temp_lv, perm2v);
+
+        maxv = vec_max(pix1v, pix2v);
+        minv = vec_min(pix1v, pix2v);
+    
+        diffv = vec_sub(maxv, minv);
+        sumv = vec_msum(diffv, diffv, sumv);
+
+        pix1 += i_stride_pix1;
+        pix2 += i_stride_pix2;
+    }
+
+    sumv = vec_sel( zero_u32v, sumv, sel );
+
+    sumv = (vec_u32_t) vec_sums((vec_s32_t) sumv, zero_s32v);
+    sumv = vec_splat(sumv, 3);
+    vec_ste((vec_s32_t) sumv, 0, &sum);
+
+    return sum;
+} 
+
 /**********************************************************************
  * SA8D routines: sum of 8x8 Hadamard transformed differences
  **********************************************************************/
@@ -1817,6 +1866,7 @@ void x264_pixel_altivec_init( x264_pixel_function_t *pixf )
     pixf->satd[PIXEL_4x4]   = pixel_satd_4x4_altivec;
     
     pixf->ssd[PIXEL_16x16] = pixel_ssd_16x16_altivec;
+    pixf->ssd[PIXEL_8x8]   = pixel_ssd_8x8_altivec;
 
     pixf->sa8d[PIXEL_16x16] = pixel_sa8d_16x16_altivec;
     pixf->sa8d[PIXEL_8x8]   = pixel_sa8d_8x8_altivec;
