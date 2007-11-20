@@ -43,68 +43,84 @@ extern void x264_emms( void );
 uint32_t x264_cpu_detect( void )
 {
     uint32_t cpu = 0;
-
     uint32_t eax, ebx, ecx, edx;
-    int      b_amd;
+    uint32_t vendor[4] = {0};
+    int max_extended_cap;
+    int cache;
 
     if( !x264_cpu_cpuid_test() )
-    {
-        /* No cpuid */
         return 0;
-    }
 
-    x264_cpu_cpuid( 0, &eax, &ebx, &ecx, &edx);
+    x264_cpu_cpuid( 0, &eax, vendor+0, vendor+2, vendor+1 );
     if( eax == 0 )
-    {
         return 0;
-    }
-    b_amd   = (ebx == 0x68747541) && (ecx == 0x444d4163) && (edx == 0x69746e65);
 
     x264_cpu_cpuid( 1, &eax, &ebx, &ecx, &edx );
-    if( (edx&0x00800000) == 0 )
-    {
-        /* No MMX */
+    if( edx&0x00800000 )
+        cpu |= X264_CPU_MMX;
+    else
         return 0;
-    }
-    cpu = X264_CPU_MMX;
-    if( (edx&0x02000000) )
-    {
-        /* SSE - identical to AMD MMX extensions */
+    if( edx&0x02000000 )
         cpu |= X264_CPU_MMXEXT|X264_CPU_SSE;
-    }
-    if( (edx&0x04000000) )
-    {
-        /* Is it OK ? */
+    if( edx&0x04000000 )
         cpu |= X264_CPU_SSE2;
-    }
 #ifdef HAVE_SSE3
-    if( (ecx&0x00000001) )
-    {
+    if( ecx&0x00000001 )
         cpu |= X264_CPU_SSE3;
-    }
-    if( (ecx&0x00000200) )
-    {
+    if( ecx&0x00000200 )
         cpu |= X264_CPU_SSSE3;
-    }
 #endif
 
     x264_cpu_cpuid( 0x80000000, &eax, &ebx, &ecx, &edx );
-    if( eax < 0x80000001 )
+    max_extended_cap = eax;
+
+    if( !strcmp((char*)vendor, "AuthenticAMD") && max_extended_cap >= 0x80000001 )
     {
-        /* no extended capabilities */
-        return cpu;
+        x264_cpu_cpuid( 0x80000001, &eax, &ebx, &ecx, &edx );
+        if( edx&0x80000000 )
+            cpu |= X264_CPU_3DNOW;
+        if( edx&0x00400000 )
+            cpu |= X264_CPU_MMXEXT;
     }
 
-    x264_cpu_cpuid( 0x80000001, &eax, &ebx, &ecx, &edx );
-    if( edx&0x80000000 )
+    if( !strcmp((char*)vendor, "GenuineIntel") || !strcmp((char*)vendor, "CyrixInstead") )
+        cpu |= X264_CPU_CACHELINE_SPLIT;
+    /* cacheline size is specified in 3 places, any of which may be missing */
+    x264_cpu_cpuid( 1, &eax, &ebx, &ecx, &edx );
+    cache = (ebx&0xff00)>>5; // cflush size
+    if( !cache && max_extended_cap >= 0x80000006 )
     {
-        cpu |= X264_CPU_3DNOW;
+        x264_cpu_cpuid( 0x80000006, &eax, &ebx, &ecx, &edx );
+        cache = ecx&0xff; // cacheline size
     }
-    if( b_amd && (edx&0x00400000) )
+    if( !cache )
     {
-        /* AMD MMX extensions */
-        cpu |= X264_CPU_MMXEXT;
+        // Cache and TLB Information
+        static const char cache32_ids[] = { 0x0a, 0x0c, 0x41, 0x42, 0x43, 0x44, 0x45, 0x82, 0x83, 0x84, 0x85, 0 };
+        static const char cache64_ids[] = { 0x22, 0x23, 0x25, 0x29, 0x2c, 0x46, 0x47, 0x49, 0x60, 0x66, 0x67, 0x68, 0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7c, 0x7f, 0x86, 0x87, 0 };
+        uint32_t buf[4];
+        int max, i=0, j;
+        do {
+            x264_cpu_cpuid( 2, buf+0, buf+1, buf+2, buf+3 );
+            max = buf[0]&0xff;
+            buf[0] &= ~0xff;
+            for(j=0; j<4; j++)
+                if( !(buf[j]>>31) )
+                    while( buf[j] )
+                    {
+                        if( strchr( cache32_ids, buf[j]&0xff ) )
+                            cache = 32;
+                        if( strchr( cache64_ids, buf[j]&0xff ) )
+                            cache = 64;
+                        buf[j] >>= 8;
+                    }
+        } while( ++i < max );
     }
+
+    if( cache == 32 )
+        cpu |= X264_CPU_CACHELINE_32;
+    if( cache == 64 )
+        cpu |= X264_CPU_CACHELINE_64;
 
     return cpu;
 }

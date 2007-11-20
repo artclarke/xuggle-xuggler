@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 56
+#define X264_BUILD 57
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -55,6 +55,9 @@ typedef struct x264_t x264_t;
 #define X264_CPU_ALTIVEC    0x000040    /* altivec */
 #define X264_CPU_SSE3       0x000080    /* sse 3 */
 #define X264_CPU_SSSE3      0x000100    /* ssse 3 */
+#define X264_CPU_CACHELINE_SPLIT 0x200  /* avoid memory loads that span the boder between two cachelines */
+#define X264_CPU_CACHELINE_32 0x0400    /* size of a cacheline in bytes */
+#define X264_CPU_CACHELINE_64 0x0800
 
 /* Analyse flags
  */
