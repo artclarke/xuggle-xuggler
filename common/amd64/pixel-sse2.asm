@@ -36,6 +36,7 @@ ssim_c1: times 4 dd 416    ; .01*.01*255*255*64
 ssim_c2: times 4 dd 235963 ; .03*.03*255*255*64*63
 mask_ff: times 16 db 0xff
          times 16 db 0
+sw_64:   dq 64
 
 SECTION .text
 
@@ -51,25 +52,6 @@ SECTION .text
     HADDD   %1, %2
 %endmacro
 
-%macro SAD_INC_4x16P_SSE2 0
-    movdqu  xmm1,   [rdx]
-    movdqu  xmm2,   [rdx+rcx]
-    lea     rdx,    [rdx+2*rcx]
-    movdqu  xmm3,   [rdx]
-    movdqu  xmm4,   [rdx+rcx]
-    psadbw  xmm1,   [rdi]
-    psadbw  xmm2,   [rdi+rsi]
-    lea     rdi,    [rdi+2*rsi]
-    psadbw  xmm3,   [rdi]
-    psadbw  xmm4,   [rdi+rsi]
-    lea     rdi,    [rdi+2*rsi]
-    lea     rdx,    [rdx+2*rcx]
-    paddw   xmm1,   xmm2
-    paddw   xmm3,   xmm4
-    paddw   xmm0,   xmm1
-    paddw   xmm0,   xmm3
-%endmacro
-
 %macro SAD_END_SSE2 0
     movhlps xmm1, xmm0
     paddw   xmm0, xmm1
@@ -77,10 +59,11 @@ SECTION .text
     ret
 %endmacro
 
+%macro SAD_W16 1
 ;-----------------------------------------------------------------------------
 ;   int x264_pixel_sad_16x16_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_sad_16x16_sse2
+cglobal x264_pixel_sad_16x16_%1
     movdqu xmm0, [rdx]
     movdqu xmm1, [rdx+rcx]
     lea    rdx,  [rdx+2*rcx]
@@ -147,11 +130,47 @@ cglobal x264_pixel_sad_16x16_sse2
 ;-----------------------------------------------------------------------------
 ;   int x264_pixel_sad_16x8_sse2 (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_sad_16x8_sse2
-    pxor    xmm0,   xmm0
-    SAD_INC_4x16P_SSE2
-    SAD_INC_4x16P_SSE2
+cglobal x264_pixel_sad_16x8_%1
+    movdqu  xmm0,   [rdx]
+    movdqu  xmm2,   [rdx+rcx]
+    lea     rdx,    [rdx+2*rcx]
+    movdqu  xmm3,   [rdx]
+    movdqu  xmm4,   [rdx+rcx]
+    psadbw  xmm0,   [rdi]
+    psadbw  xmm2,   [rdi+rsi]
+    lea     rdi,    [rdi+2*rsi]
+    psadbw  xmm3,   [rdi]
+    psadbw  xmm4,   [rdi+rsi]
+    lea     rdi,    [rdi+2*rsi]
+    lea     rdx,    [rdx+2*rcx]
+    paddw   xmm0,   xmm2
+    paddw   xmm3,   xmm4
+    paddw   xmm0,   xmm3
+    movdqu  xmm1,   [rdx]
+    movdqu  xmm2,   [rdx+rcx]
+    lea     rdx,    [rdx+2*rcx]
+    movdqu  xmm3,   [rdx]
+    movdqu  xmm4,   [rdx+rcx]
+    psadbw  xmm1,   [rdi]
+    psadbw  xmm2,   [rdi+rsi]
+    lea     rdi,    [rdi+2*rsi]
+    psadbw  xmm3,   [rdi]
+    psadbw  xmm4,   [rdi+rsi]
+    lea     rdi,    [rdi+2*rsi]
+    lea     rdx,    [rdx+2*rcx]
+    paddw   xmm1,   xmm2
+    paddw   xmm3,   xmm4
+    paddw   xmm0,   xmm1
+    paddw   xmm0,   xmm3
     SAD_END_SSE2
+%endmacro
+
+SAD_W16 sse2
+%ifdef HAVE_SSE3
+%define movdqu lddqu
+SAD_W16 sse3
+%undef movdqu
+%endif
 
 
 ; sad x3 / x4
@@ -268,8 +287,8 @@ cglobal x264_pixel_sad_16x8_sse2
 ;  void x264_pixel_sad_x3_16x16_sse2( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1,
 ;                                     uint8_t *pix2, int i_stride, int scores[3] )
 ;-----------------------------------------------------------------------------
-%macro SAD_X 3
-cglobal x264_pixel_sad_x%1_%2x%3_sse2
+%macro SAD_X 4
+cglobal x264_pixel_sad_x%1_%2x%3_%4
     SAD_X%1_2x%2P 1
 %rep %3/2-1
     SAD_X%1_2x%2P 0
@@ -277,10 +296,224 @@ cglobal x264_pixel_sad_x%1_%2x%3_sse2
     SAD_X%1_END
 %endmacro
 
-SAD_X 3, 16, 16
-SAD_X 3, 16,  8
-SAD_X 4, 16, 16
-SAD_X 4, 16,  8
+SAD_X 3, 16, 16, sse2
+SAD_X 3, 16,  8, sse2
+SAD_X 4, 16, 16, sse2
+SAD_X 4, 16,  8, sse2
+
+%ifdef HAVE_SSE3
+%define movdqu lddqu
+SAD_X 3, 16, 16, sse3
+SAD_X 3, 16,  8, sse3
+SAD_X 4, 16, 16, sse3
+SAD_X 4, 16,  8, sse3
+%undef movdqu
+%endif
+
+
+; Core2 (Conroe) can load unaligned data just as quickly as aligned data...
+; unless the unaligned data spans the border between 2 cachelines, in which
+; case it's really slow. The exact numbers may differ, but all Intel cpus
+; have a large penalty for cacheline splits.
+; (8-byte alignment exactly half way between two cachelines is ok though.)
+; LDDQU was supposed to fix this, but it only works on Pentium 4.
+; So in the split case we load aligned data and explicitly perform the
+; alignment between registers. Like on archs that have only aligned loads,
+; except complicated by the fact that PALIGNR takes only an immediate, not
+; a variable alignment.
+; It is also possible to hoist the realignment to the macroblock level (keep
+; 2 copies of the reference frame, offset by 32 bytes), but the extra memory
+; needed for that method makes it often slower.
+
+; sad 16x16 costs on Core2:
+; good offsets: 49 cycles (50/64 of all mvs)
+; cacheline split: 234 cycles (14/64 of all mvs. ammortized: +40 cycles)
+; page split: 3600 cycles (14/4096 of all mvs. ammortized: +11.5 cycles)
+; cache or page split with palignr: 57 cycles (ammortized: +2 cycles)
+
+; computed jump assumes this loop is exactly 64 bytes
+%macro SAD16_CACHELINE_LOOP 1 ; alignment
+ALIGN 16
+sad_w16_align%1:
+    movdqa  xmm1, [rdx+16]
+    movdqa  xmm2, [rdx+rcx+16]
+    palignr xmm1, [rdx], %1
+    palignr xmm2, [rdx+rcx], %1
+    psadbw  xmm1, [rdi]
+    psadbw  xmm2, [rdi+rsi]
+    paddw   xmm0, xmm1
+    paddw   xmm0, xmm2
+    lea     rdx,  [rdx+2*rcx]
+    lea     rdi,  [rdi+2*rsi]
+    dec     eax
+    jg sad_w16_align%1
+    ret
+%endmacro
+
+%macro SAD16_CACHELINE_FUNC 1 ; height
+cglobal x264_pixel_sad_16x%1_cache64_ssse3
+    mov    eax, parm3d
+    and    eax, 0x37
+    cmp    eax, 0x30
+    jle x264_pixel_sad_16x%1_sse2
+    mov    eax, parm3d
+    and    eax, 15
+    shl    eax, 6
+%ifdef __PIC__
+    lea    r10, [sad_w16_align1 - 64 GLOBAL]
+    add    r10, rax
+%else
+    lea    r10, [sad_w16_align1 - 64 + rax]
+%endif
+    and parm3q, ~15
+    mov    eax, %1/2
+    pxor  xmm0, xmm0
+    call   r10
+    SAD_END_SSE2
+%endmacro
+
+%macro SAD8_CACHELINE_FUNC 1 ; height
+cglobal x264_pixel_sad_8x%1_cache64_mmxext
+    mov    eax, parm3d
+    and    eax, 0x3f
+    cmp    eax, 0x38
+    jle x264_pixel_sad_8x%1_mmxext
+    and    eax, 7
+    shl    eax, 3
+    movd   mm6, [sw_64 GLOBAL]
+    movd   mm7, eax
+    psubw  mm6, mm7
+    and parm3q, ~7
+    mov    eax, %1/2
+    pxor   mm0, mm0
+.loop:
+    movq   mm1, [parm3q+8]
+    movq   mm2, [parm3q+parm4q+8]
+    movq   mm3, [parm3q]
+    movq   mm4, [parm3q+parm4q]
+    psllq  mm1, mm6
+    psllq  mm2, mm6
+    psrlq  mm3, mm7
+    psrlq  mm4, mm7
+    por    mm1, mm3
+    por    mm2, mm4
+    psadbw mm1, [parm1q]
+    psadbw mm2, [parm1q+parm2q]
+    paddw  mm0, mm1
+    paddw  mm0, mm2
+    lea    parm3q, [parm3q+2*parm4q]
+    lea    parm1q, [parm1q+2*parm2q]
+    dec    eax
+    jg .loop
+    movd   eax, mm0
+    ret
+%endmacro
+
+
+; sad_x3/x4_cache64: check each mv.
+; if they're all within a cacheline, use normal sad_x3/x4.
+; otherwise, send them individually to sad_cache64.
+%macro CHECK_SPLIT 2 ; pix, width
+    mov  eax, %1
+    and  eax, 0x37|%2
+    cmp  eax, 0x30|%2
+    jg .split
+%endmacro
+
+%macro SADX3_CACHELINE_FUNC 4 ; width, height, normal_ver, split_ver
+cglobal x264_pixel_sad_x3_%1x%2_cache64_%4
+    CHECK_SPLIT parm2d, %1
+    CHECK_SPLIT parm3d, %1
+    CHECK_SPLIT parm4d, %1
+    jmp x264_pixel_sad_x3_%1x%2_%3
+.split:
+    push parm4q
+    push parm3q
+    mov  parm3q, parm2q
+    mov  parm2q, FENC_STRIDE
+    mov  parm4q, parm5q
+    mov  parm5q, parm1q
+    call x264_pixel_sad_%1x%2_cache64_%4
+    mov  [parm6q], eax
+    pop  parm3q
+    mov  parm1q, parm5q
+    call x264_pixel_sad_%1x%2_cache64_%4
+    mov  [parm6q+4], eax
+    pop  parm3q
+    mov  parm1q, parm5q
+    call x264_pixel_sad_%1x%2_cache64_%4
+    mov  [parm6q+8], eax
+    ret
+%endmacro
+
+%macro SADX4_CACHELINE_FUNC 4 ; width, height, normal_ver, split_ver
+cglobal x264_pixel_sad_x4_%1x%2_cache64_%4
+    CHECK_SPLIT parm2d, %1
+    CHECK_SPLIT parm3d, %1
+    CHECK_SPLIT parm4d, %1
+    CHECK_SPLIT parm5d, %1
+    jmp x264_pixel_sad_x4_%1x%2_%3
+.split:
+    mov  r11, parm7q
+    push parm5q
+    push parm4q
+    push parm3q
+    mov  parm3q, parm2q
+    mov  parm2q, FENC_STRIDE
+    mov  parm4q, parm6q
+    mov  parm5q, parm1q
+    call x264_pixel_sad_%1x%2_cache64_%4
+    mov  [r11], eax
+    pop  parm3q
+    mov  parm1q, parm5q
+    call x264_pixel_sad_%1x%2_cache64_%4
+    mov  [r11+4], eax
+    pop  parm3q
+    mov  parm1q, parm5q
+    call x264_pixel_sad_%1x%2_cache64_%4
+    mov  [r11+8], eax
+    pop  parm3q
+    mov  parm1q, parm5q
+    call x264_pixel_sad_%1x%2_cache64_%4
+    mov  [r11+12], eax
+    ret
+%endmacro
+
+%macro SADX34_CACHELINE_FUNC 4
+    SADX3_CACHELINE_FUNC %1, %2, %3, %4
+    SADX4_CACHELINE_FUNC %1, %2, %3, %4
+%endmacro
+
+cextern x264_pixel_sad_8x16_mmxext
+cextern x264_pixel_sad_8x8_mmxext
+cextern x264_pixel_sad_8x4_mmxext
+cextern x264_pixel_sad_x3_8x16_mmxext
+cextern x264_pixel_sad_x3_8x8_mmxext
+cextern x264_pixel_sad_x4_8x16_mmxext
+cextern x264_pixel_sad_x4_8x8_mmxext
+
+; instantiate the aligned sads
+
+SAD8_CACHELINE_FUNC 4
+SAD8_CACHELINE_FUNC 8
+SAD8_CACHELINE_FUNC 16
+SADX34_CACHELINE_FUNC 8,  16, mmxext, mmxext
+SADX34_CACHELINE_FUNC 8,  8,  mmxext, mmxext
+
+%ifdef HAVE_SSE3
+
+SAD16_CACHELINE_FUNC 8
+SAD16_CACHELINE_FUNC 16
+%assign i 1
+%rep 15
+SAD16_CACHELINE_LOOP i
+%assign i i+1
+%endrep
+
+SADX34_CACHELINE_FUNC 16, 16, sse2, ssse3
+SADX34_CACHELINE_FUNC 16, 8,  sse2, ssse3
+
+%endif ; HAVE_SSE3
 
 
 ; ssd

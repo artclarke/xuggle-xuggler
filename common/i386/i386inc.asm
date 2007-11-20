@@ -38,6 +38,15 @@ BITS 32
     %1:
 %endmacro
 
+%macro cextern 1
+    %ifdef PREFIX
+        extern _%1
+        %define %1 _%1
+    %else
+        extern %1
+    %endif
+%endmacro
+
 ; Name of the .rodata section. On OS X we cannot use .rodata because NASM
 ; is unable to compute address offsets outside of .text so we use the .text
 ; section instead until NASM is fixed.

@@ -24,76 +24,48 @@
 #ifndef _I386_PIXEL_H
 #define _I386_PIXEL_H 1
 
-int x264_pixel_sad_16x16_mmxext( uint8_t *, int, uint8_t *, int );
-int x264_pixel_sad_16x8_mmxext( uint8_t *, int, uint8_t *, int );
-int x264_pixel_sad_8x16_mmxext( uint8_t *, int, uint8_t *, int );
-int x264_pixel_sad_8x8_mmxext( uint8_t *, int, uint8_t *, int );
-int x264_pixel_sad_8x4_mmxext( uint8_t *, int, uint8_t *, int );
-int x264_pixel_sad_4x8_mmxext( uint8_t *, int, uint8_t *, int );
-int x264_pixel_sad_4x4_mmxext( uint8_t *, int, uint8_t *, int );
+#define DECL_PIXELS( ret, name, suffix, args ) \
+    ret x264_pixel_##name##_16x16_##suffix args;\
+    ret x264_pixel_##name##_16x8_##suffix args;\
+    ret x264_pixel_##name##_8x16_##suffix args;\
+    ret x264_pixel_##name##_8x8_##suffix args;\
+    ret x264_pixel_##name##_8x4_##suffix args;\
+    ret x264_pixel_##name##_4x8_##suffix args;\
+    ret x264_pixel_##name##_4x4_##suffix args;\
 
-void x264_pixel_sad_x3_16x16_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x3_16x8_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x3_8x16_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x3_8x8_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x3_8x4_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x3_4x8_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x3_4x4_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x4_16x16_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x4_16x8_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x4_8x16_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x4_8x8_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x4_8x4_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x4_4x8_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x4_4x4_mmxext( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
+#define DECL_X1( name, suffix ) \
+    DECL_PIXELS( int, name, suffix, ( uint8_t *, int, uint8_t *, int ) )
 
-int x264_pixel_ssd_16x16_mmx( uint8_t *, int, uint8_t *, int );
-int x264_pixel_ssd_16x8_mmx( uint8_t *, int, uint8_t *, int );
-int x264_pixel_ssd_8x16_mmx( uint8_t *, int, uint8_t *, int );
-int x264_pixel_ssd_8x8_mmx( uint8_t *, int, uint8_t *, int );
-int x264_pixel_ssd_8x4_mmx( uint8_t *, int, uint8_t *, int );
-int x264_pixel_ssd_4x8_mmx( uint8_t *, int, uint8_t *, int );
-int x264_pixel_ssd_4x4_mmx( uint8_t *, int, uint8_t *, int );
+#define DECL_X4( name, suffix ) \
+    DECL_PIXELS( void, name##_x3, suffix, ( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * ) )\
+    DECL_PIXELS( void, name##_x4, suffix, ( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * ) )
 
-int x264_pixel_satd_16x16_mmxext( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_16x8_mmxext( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_8x16_mmxext( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_8x8_mmxext( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_8x4_mmxext( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_4x8_mmxext( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_4x4_mmxext( uint8_t *, int, uint8_t *, int );
+DECL_X1( sad, mmxext )
+DECL_X1( sad, sse2 )
+DECL_X1( sad, sse3 )
+DECL_X4( sad, mmxext )
+DECL_X4( sad, sse2 )
+DECL_X4( sad, sse3 )
+DECL_X1( ssd, mmx )
+DECL_X1( ssd, sse2 )
+DECL_X1( satd, mmxext )
+DECL_X1( satd, sse2 )
+DECL_X1( satd, ssse3 )
+DECL_X1( sa8d, mmxext )
+DECL_X1( sa8d, sse2 )
+DECL_X1( sa8d, ssse3 )
+DECL_X1( sad, cache32_mmxext );
+DECL_X1( sad, cache64_mmxext );
+DECL_X1( sad, cache64_sse2 );
+DECL_X1( sad, cache64_ssse3 );
+DECL_X4( sad, cache32_mmxext );
+DECL_X4( sad, cache64_mmxext );
+DECL_X4( sad, cache64_sse2 );
+DECL_X4( sad, cache64_ssse3 );
 
-int x264_pixel_sa8d_16x16_mmxext( uint8_t *, int, uint8_t *, int );
-int x264_pixel_sa8d_8x8_mmxext( uint8_t *, int, uint8_t *, int );
-
-int x264_pixel_sad_16x16_sse2( uint8_t *, int, uint8_t *, int );
-int x264_pixel_sad_16x8_sse2( uint8_t *, int, uint8_t *, int );
-
-void x264_pixel_sad_x3_16x16_sse2( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x3_16x8_sse2( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x4_16x16_sse2( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-void x264_pixel_sad_x4_16x8_sse2( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int * );
-
-int x264_pixel_ssd_16x16_sse2( uint8_t *, int, uint8_t *, int );
-int x264_pixel_ssd_16x8_sse2( uint8_t *, int, uint8_t *, int );
-
-int x264_pixel_satd_16x16_sse2( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_16x8_sse2( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_8x16_sse2( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_8x8_sse2( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_8x4_sse2( uint8_t *, int, uint8_t *, int );
-
-int x264_pixel_satd_16x16_ssse3( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_16x8_ssse3( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_8x16_ssse3( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_8x8_ssse3( uint8_t *, int, uint8_t *, int );
-int x264_pixel_satd_8x4_ssse3( uint8_t *, int, uint8_t *, int );
-
-int x264_pixel_sa8d_16x16_sse2( uint8_t *, int, uint8_t *, int );
-int x264_pixel_sa8d_8x8_sse2( uint8_t *, int, uint8_t *, int );
-
-int x264_pixel_sa8d_16x16_ssse3( uint8_t *, int, uint8_t *, int );
-int x264_pixel_sa8d_8x8_ssse3( uint8_t *, int, uint8_t *, int );
+#undef DECL_PIXELS
+#undef DECL_X1
+#undef DECL_X4
 
 void x264_intra_satd_x3_4x4_mmxext( uint8_t *, uint8_t *, int * );
 void x264_intra_satd_x3_8x8c_mmxext( uint8_t *, uint8_t *, int * );

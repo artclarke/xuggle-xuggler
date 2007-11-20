@@ -41,6 +41,15 @@ BITS 64
     %1:
 %endmacro
 
+%macro cextern 1
+    %ifdef PREFIX
+        extern _%1
+        %define %1 _%1
+    %else
+        extern %1
+    %endif
+%endmacro
+
 %macro pad 1
     %undef %1
     %ifdef PREFIX

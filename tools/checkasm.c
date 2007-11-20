@@ -54,13 +54,17 @@ static int check_pixel( int cpu_ref, int cpu_new )
         int res_c, res_asm; \
         if( pixel_asm.name[i] != pixel_ref.name[i] ) \
         { \
-            used_asm = 1; \
-            res_c   = pixel_c.name[i]( buf1, 32, buf2, 16 ); \
-            res_asm = pixel_asm.name[i]( buf1, 32, buf2, 16 ); \
-            if( res_c != res_asm ) \
+            for( j=0; j<64; j++ ) \
             { \
-                ok = 0; \
-                fprintf( stderr, #name "[%d]: %d != %d [FAILED]\n", i, res_c, res_asm ); \
+                used_asm = 1; \
+                res_c   = pixel_c.name[i]( buf1, 32, buf2+j, 16 ); \
+                res_asm = pixel_asm.name[i]( buf1, 32, buf2+j, 16 ); \
+                if( res_c != res_asm ) \
+                { \
+                    ok = 0; \
+                    fprintf( stderr, #name "[%d]: %d != %d [FAILED]\n", i, res_c, res_asm ); \
+                    break; \
+                } \
             } \
         } \
     } \
@@ -77,23 +81,27 @@ static int check_pixel( int cpu_ref, int cpu_new )
         int res_c[4]={0}, res_asm[4]={0}; \
         if( pixel_asm.sad_x##N[i] && pixel_asm.sad_x##N[i] != pixel_ref.sad_x##N[i] ) \
         { \
-            used_asm = 1; \
-            res_c[0] = pixel_c.sad[i]( buf1, 16, buf2, 32 ); \
-            res_c[1] = pixel_c.sad[i]( buf1, 16, buf2+30, 32 ); \
-            res_c[2] = pixel_c.sad[i]( buf1, 16, buf2+1, 32 ); \
-            if(N==4) \
+            for( j=0; j<64; j++) \
             { \
-                res_c[3] = pixel_c.sad[i]( buf1, 16, buf2+99, 32 ); \
-                pixel_asm.sad_x4[i]( buf1, buf2, buf2+30, buf2+1, buf2+99, 32, res_asm ); \
-            } \
-            else \
-                pixel_asm.sad_x3[i]( buf1, buf2, buf2+30, buf2+1, 32, res_asm ); \
-            if( memcmp(res_c, res_asm, sizeof(res_c)) ) \
-            { \
-                ok = 0; \
-                fprintf( stderr, "sad_x"#N"[%d]: %d,%d,%d,%d != %d,%d,%d,%d [FAILED]\n", \
-                         i, res_c[0], res_c[1], res_c[2], res_c[3], \
-                         res_asm[0], res_asm[1], res_asm[2], res_asm[3] ); \
+                uint8_t *pix2 = buf2+j; \
+                used_asm = 1; \
+                res_c[0] = pixel_c.sad[i]( buf1, 16, pix2, 32 ); \
+                res_c[1] = pixel_c.sad[i]( buf1, 16, pix2+30, 32 ); \
+                res_c[2] = pixel_c.sad[i]( buf1, 16, pix2+1, 32 ); \
+                if(N==4) \
+                { \
+                    res_c[3] = pixel_c.sad[i]( buf1, 16, pix2+99, 32 ); \
+                    pixel_asm.sad_x4[i]( buf1, pix2, pix2+30, pix2+1, pix2+99, 32, res_asm ); \
+                } \
+                else \
+                    pixel_asm.sad_x3[i]( buf1, pix2, pix2+30, pix2+1, 32, res_asm ); \
+                if( memcmp(res_c, res_asm, sizeof(res_c)) ) \
+                { \
+                    ok = 0; \
+                    fprintf( stderr, "sad_x"#N"[%d]: %d,%d,%d,%d != %d,%d,%d,%d [FAILED]\n", \
+                             i, res_c[0], res_c[1], res_c[2], res_c[3], \
+                             res_asm[0], res_asm[1], res_asm[2], res_asm[3] ); \
+                } \
             } \
         } \
     } \
@@ -714,6 +722,14 @@ int check_all( int cpu_ref, int cpu_new )
          + check_quant( cpu_ref, cpu_new );
 }
 
+int add_flags( int *cpu_ref, int *cpu_new, int flags, const char *name )
+{
+    *cpu_ref = *cpu_new;
+    *cpu_new |= flags;
+    fprintf( stderr, "x264: %s\n", name );
+    return check_all( *cpu_ref, *cpu_new );
+}
+
 int main(int argc, char *argv[])
 {
     int ret = 0;
@@ -738,24 +754,26 @@ int main(int argc, char *argv[])
     }
 
 #ifdef HAVE_MMX
-    fprintf( stderr, "x264: MMXEXT against C\n" );
-    cpu1 = X264_CPU_MMX | X264_CPU_MMXEXT;
-    ret = check_all( 0, cpu1 );
-
+    if( x264_cpu_detect() & X264_CPU_MMXEXT )
+    {
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_MMX | X264_CPU_MMXEXT, "MMXEXT" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_64, "MMXEXT Cache64" );
+        cpu1 &= ~X264_CPU_CACHELINE_64;
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_32, "MMXEXT Cache32" );
+    }
     if( x264_cpu_detect() & X264_CPU_SSE2 )
     {
-        fprintf( stderr, "\nx264: SSE2 against C\n" );
-        cpu0 = cpu1;
-        cpu1 |= X264_CPU_SSE | X264_CPU_SSE2;
-        ret |= check_all( cpu0, cpu1 );
-
-        if( x264_cpu_detect() & X264_CPU_SSSE3 )
-        {
-            fprintf( stderr, "\nx264: SSSE3 against C\n" );
-            cpu0 = cpu1;
-            cpu1 |= X264_CPU_SSE3 | X264_CPU_SSSE3;
-            ret |= check_all( cpu0, cpu1 );
-        }
+        cpu1 &= ~(X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_32);
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE | X264_CPU_SSE2, "SSE2" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_64, "SSE2 Cache64" );
+    }
+    if( x264_cpu_detect() & X264_CPU_SSE3 )
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE3, "SSE3" );
+    if( x264_cpu_detect() & X264_CPU_SSSE3 )
+    {
+        cpu1 &= ~X264_CPU_CACHELINE_SPLIT;
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSSE3, "SSSE3" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_64, "SSSE3 Cache64" );
     }
 #elif ARCH_PPC
     if( x264_cpu_detect() & X264_CPU_ALTIVEC )
