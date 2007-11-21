@@ -29,7 +29,7 @@ BITS 64
 
 %include "amd64inc.asm"
 
-SECTION .rodata align=16
+SECTION_RODATA
 
 pw_1:    times 8 dw 1
 ssim_c1: times 4 dd 416    ; .01*.01*255*255*64

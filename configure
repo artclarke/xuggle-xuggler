@@ -255,7 +255,13 @@ case $host_cpu in
   x86_64)
     ARCH="X86_64"
     AS="yasm"
-    ASFLAGS="-f elf -m amd64"
+    if [ "$SYS" = MACOSX ];then
+      ASFLAGS="-f macho64 -m amd64 -D__PIC__ -DPREFIX"
+      CFLAGS="$CFLAGS -arch x86_64"
+      LDFLAGS="$LDFLAGS -arch x86_64"
+    else
+      ASFLAGS="-f elf -m amd64"
+    fi
     ;;
   powerpc|powerpc64)
     ARCH="PPC"

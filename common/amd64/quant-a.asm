@@ -24,7 +24,7 @@ BITS 64
 
 %include "amd64inc.asm"
 
-SECTION .rodata
+SECTION_RODATA
 pd_1:  times 2 dd 1
 
 SECTION .text

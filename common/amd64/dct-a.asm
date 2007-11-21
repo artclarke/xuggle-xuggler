@@ -148,7 +148,7 @@ BITS 64
 ; Constants
 ;=============================================================================
 
-SECTION .rodata align=16
+SECTION_RODATA
 pw_1:  times 8 dw 1
 pw_32: times 8 dw 32
 

@@ -58,9 +58,8 @@ ALIGN 4
 %endmacro
 
 
-SECTION .rodata align=16
+SECTION_RODATA
 
-ALIGN 16
 pw_2: times 4 dw 2
 pw_4: times 4 dw 4
 pw_8: times 4 dw 8

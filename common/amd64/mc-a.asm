@@ -42,9 +42,8 @@ BITS 64
 ; Constants
 ;=============================================================================
 
-SECTION .rodata
+SECTION_RODATA
 
-ALIGN 16
 pw_4:  times 4 dw  4
 pw_8:  times 4 dw  8
 pw_32: times 4 dw 32

@@ -30,9 +30,8 @@ BITS 64
 ; Read only data
 ;=============================================================================
 
-SECTION .rodata align=16
+SECTION_RODATA
 
-ALIGN 16
 pw_1:  times 4 dw 1
 pw_16: times 4 dw 16
 pw_32: times 4 dw 32

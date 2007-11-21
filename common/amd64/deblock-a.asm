@@ -24,7 +24,7 @@ BITS 64
 
 %include "amd64inc.asm"
 
-SECTION .rodata align=16
+SECTION_RODATA
 pb_01: times 16 db 0x01
 pb_03: times 16 db 0x03
 pb_a1: times 16 db 0xa1

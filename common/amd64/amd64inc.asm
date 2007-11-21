@@ -50,6 +50,17 @@ BITS 64
     %endif
 %endmacro
 
+; Name of the .rodata section. On OS X we cannot use .rodata because YASM
+; is unable to compute address offsets outside of .text so we use the .text
+; section instead until YASM is fixed.
+%macro SECTION_RODATA 0
+    %ifidn __OUTPUT_FORMAT__,macho64
+      SECTION .text align=16
+    %else
+      SECTION .rodata align=16
+    %endif
+%endmacro
+
 %macro pad 1
     %undef %1
     %ifdef PREFIX
