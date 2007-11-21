@@ -110,9 +110,11 @@ endif
 
 SRC2 = $(SRCS) $(SRCCLI)
 # These should cover most of the important codepaths
-OPT0 = --crf 30 -b1 -m1 -r1 --me dia --no-cabac
-OPT1 = --crf 18 -b2 -m3 -r3 --me hex -8 --cqm jvt --direct spatial
-OPT2 = --crf 24 -b3 -m7 -r5 --me umh -8 -w -t1 -A all --b-pyramid --b-rdo --mixed-refs --direct auto
+OPT0 = --crf 30 -b1 -m1 -r1 --me dia --no-cabac --pre-scenecut --direct temporal --no-ssim --no-psnr
+OPT1 = --crf 16 -b2 -m3 -r3 --me hex -8 --direct spatial --no-dct-decimate
+OPT2 = --crf 26 -b2 -m5 -r2 --me hex -8 -w --cqm jvt --nr 100
+OPT3 = --crf 18 -b3 -m7 -r5 --me umh -8 -t1 -A all --mixed-refs --b-rdo -w --b-pyramid --direct auto --bime --no-fast-pskip
+OPT4 = --crf 22 -b3 -m6 -r3 --me esa -8 -t2 -A all --mixed-refs --b-rdo --bime
 
 ifeq (,$(VIDS))
 fprofiled:
@@ -125,7 +127,7 @@ fprofiled:
 	mv config.mak config.mak2
 	sed -e 's/CFLAGS.*/& -fprofile-generate/; s/LDFLAGS.*/& -fprofile-generate/' config.mak2 > config.mak
 	$(MAKE) x264$(EXE)
-	$(foreach V, $(VIDS), $(foreach I, 0 1 2, ./x264$(EXE) $(OPT$I) $(V) --progress -o $(DEVNULL) ;))
+	$(foreach V, $(VIDS), $(foreach I, 0 1 2 3 4, ./x264$(EXE) $(OPT$I) $(V) --progress -o $(DEVNULL) ;))
 	rm -f $(SRC2:%.c=%.o)
 	sed -e 's/CFLAGS.*/& -fprofile-use/; s/LDFLAGS.*/& -fprofile-use/' config.mak2 > config.mak
 	$(MAKE)
