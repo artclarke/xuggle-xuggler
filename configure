@@ -395,6 +395,8 @@ fi
 if [ "$pic" = "yes" ] ; then
     CFLAGS="$CFLAGS -fPIC"
     ASFLAGS="$ASFLAGS -D__PIC__"
+    # resolve textrels in the x86 asm
+    LDFLAGS="$LDFLAGS -Wl,-Bsymbolic"
 fi
 
 if [ "$debug" != "yes" -a "$gprof" != "yes" ]; then
