@@ -914,11 +914,8 @@ void x264_macroblock_cache_end( x264_t *h )
         for( j=0; j<3; j++ )
             x264_free( h->mb.intra_border_backup[i][j] - 8 );
     for( i=0; i<2; i++ )
-    {
-        int i_refs = i ? 1 + h->param.b_bframe_pyramid : h->param.i_frame_reference;
-        for( j=0; j < i_refs; j++ )
+        for( j=0; j<32; j++ )
             x264_free( h->mb.mvr[i][j] );
-    }
     if( h->param.b_cabac )
     {
         x264_free( h->mb.chroma_pred_mode );
