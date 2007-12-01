@@ -64,6 +64,7 @@ typedef struct
     int8_t  *ref[2];
     int     i_ref[2];
     int     ref_poc[2][16];
+    int     inv_ref_poc[16]; // inverse values (list0 only) to avoid divisions in MB encoding
 
     /* for adaptive B-frame decision.
      * contains the SATD cost of the lowres frame encoded in various modes
