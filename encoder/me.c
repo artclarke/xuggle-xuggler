@@ -355,6 +355,7 @@ me_hex2:
                 };
                 int mvd;
                 int sad_ctx, mvd_ctx;
+                int denom = 1;
 
                 if( i_mvc == 1 )
                 {
@@ -371,26 +372,25 @@ me_hex2:
                     /* calculate the degree of agreement between predictors. */
                     /* in 16x16, mvc includes all the neighbors used to make mvp,
                      * so don't count mvp separately. */
-                    int i_denom = i_mvc - 1;
+                    denom = i_mvc - 1;
                     mvd = 0;
                     if( i_pixel != PIXEL_16x16 )
                     {
                         mvd = abs( m->mvp[0] - mvc[0][0] )
                             + abs( m->mvp[1] - mvc[0][1] );
-                        i_denom++;
+                        denom++;
                     }
                     for( i = 0; i < i_mvc-1; i++ )
                         mvd += abs( mvc[i][0] - mvc[i+1][0] )
                              + abs( mvc[i][1] - mvc[i+1][1] );
-                    mvd /= i_denom; //FIXME idiv
                 }
 
                 sad_ctx = SAD_THRESH(1000) ? 0
                         : SAD_THRESH(2000) ? 1
                         : SAD_THRESH(4000) ? 2 : 3;
-                mvd_ctx = mvd < 10 ? 0
-                        : mvd < 20 ? 1
-                        : mvd < 40 ? 2 : 3;
+                mvd_ctx = mvd < 10*denom ? 0
+                        : mvd < 20*denom ? 1
+                        : mvd < 40*denom ? 2 : 3;
 
                 i_me_range = i_me_range * range_mul[mvd_ctx][sad_ctx] / 4;
             }
