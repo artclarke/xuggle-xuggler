@@ -192,10 +192,14 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
         COST_MV_HPEL( bmx, bmy );
         for( i = 0; i < i_mvc; i++ )
         {
-             const int mx = x264_clip3( mvc[i][0], mv_x_min*4, mv_x_max*4 );
-             const int my = x264_clip3( mvc[i][1], mv_y_min*4, mv_y_max*4 );
-             if( mx != bpred_mx || my != bpred_my )
-                 COST_MV_HPEL( mx, my );
+            int mx = mvc[i][0];
+            int my = mvc[i][1];
+            if( (mx | my) && ((mx-bmx) | (my-bmy)) )
+            {
+                mx = x264_clip3( mx, mv_x_min*4, mv_x_max*4 );
+                my = x264_clip3( my, mv_y_min*4, mv_y_max*4 );
+                COST_MV_HPEL( mx, my );
+            }
         }
         bmx = ( bpred_mx + 2 ) >> 2;
         bmy = ( bpred_my + 2 ) >> 2;
@@ -210,10 +214,14 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
         
         for( i = 0; i < i_mvc; i++ )
         {
-             const int mx = x264_clip3( ( mvc[i][0] + 2 ) >> 2, mv_x_min, mv_x_max );
-             const int my = x264_clip3( ( mvc[i][1] + 2 ) >> 2, mv_y_min, mv_y_max );
-             if( mx != bmx || my != bmy )
-                 COST_MV( mx, my );
+            int mx = (mvc[i][0] + 2) >> 2;
+            int my = (mvc[i][1] + 2) >> 2;
+            if( (mx | my) && ((mx-bmx) | (my-bmy)) )
+            {
+                mx = x264_clip3( mx, mv_x_min, mv_x_max );
+                my = x264_clip3( my, mv_y_min, mv_y_max );
+                COST_MV( mx, my );
+            }
         }
     }
     
@@ -307,14 +315,14 @@ me_hex2:
             /* refine predictors */
             ucost1 = bcost;
             DIA1_ITER( pmx, pmy );
-            if( pmx || pmy )
+            if( pmx | pmy )
                 DIA1_ITER( 0, 0 );
 
             if(i_pixel == PIXEL_4x4)
                 goto me_hex2;
 
             ucost2 = bcost;
-            if( (bmx || bmy) && (bmx!=pmx || bmy!=pmy) )
+            if( (bmx | bmy) && ((bmx-pmx) | (bmy-pmy)) )
                 DIA1_ITER( bmx, bmy );
             if( bcost == ucost2 )
                 cross_start = 3;
