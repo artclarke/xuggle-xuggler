@@ -38,7 +38,7 @@ enum intra_chroma_pred_e
     I_PRED_CHROMA_DC_TOP  = 5,
     I_PRED_CHROMA_DC_128  = 6
 };
-static const int x264_mb_pred_mode8x8c_fix[7] =
+static const uint8_t x264_mb_pred_mode8x8c_fix[7] =
 {
     I_PRED_CHROMA_DC, I_PRED_CHROMA_H, I_PRED_CHROMA_V, I_PRED_CHROMA_P,
     I_PRED_CHROMA_DC, I_PRED_CHROMA_DC,I_PRED_CHROMA_DC
@@ -55,7 +55,7 @@ enum intra16x16_pred_e
     I_PRED_16x16_DC_TOP  = 5,
     I_PRED_16x16_DC_128  = 6,
 };
-static const int x264_mb_pred_mode16x16_fix[7] =
+static const uint8_t x264_mb_pred_mode16x16_fix[7] =
 {
     I_PRED_16x16_V, I_PRED_16x16_H, I_PRED_16x16_DC, I_PRED_16x16_P,
     I_PRED_16x16_DC,I_PRED_16x16_DC,I_PRED_16x16_DC
@@ -77,7 +77,7 @@ enum intra4x4_pred_e
     I_PRED_4x4_DC_TOP  = 10,
     I_PRED_4x4_DC_128  = 11,
 };
-static const int x264_mb_pred_mode4x4_fix[13] =
+static const int8_t x264_mb_pred_mode4x4_fix[13] =
 {
     -1,
     I_PRED_4x4_V,   I_PRED_4x4_H,   I_PRED_4x4_DC,

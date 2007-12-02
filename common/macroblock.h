@@ -36,7 +36,7 @@ enum macroblock_position_e
     ALL_NEIGHBORS = 0xf,
 };
 
-static const int x264_pred_i4x4_neighbors[12] =
+static const uint8_t x264_pred_i4x4_neighbors[12] =
 {
     MB_TOP,                         // I_PRED_4x4_V
     MB_LEFT,                        // I_PRED_4x4_H
@@ -83,14 +83,14 @@ enum mb_class_e
 
     X264_MBTYPE_MAX = 19
 };
-static const int x264_mb_type_fix[X264_MBTYPE_MAX] =
+static const uint8_t x264_mb_type_fix[X264_MBTYPE_MAX] =
 {
     I_4x4, I_4x4, I_16x16, I_PCM,
     P_L0, P_8x8, P_SKIP,
     B_DIRECT, B_L0_L0, B_L0_L1, B_L0_BI, B_L1_L0, B_L1_L1,
     B_L1_BI, B_BI_L0, B_BI_L1, B_BI_BI, B_8x8, B_SKIP
 };
-static const int x264_mb_type_list0_table[X264_MBTYPE_MAX][2] =
+static const uint8_t x264_mb_type_list0_table[X264_MBTYPE_MAX][2] =
 {
     {0,0}, {0,0}, {0,0}, {0,0}, /* INTRA */
     {1,1},                  /* P_L0 */
@@ -103,7 +103,7 @@ static const int x264_mb_type_list0_table[X264_MBTYPE_MAX][2] =
     {0,0},                  /* B_8x8 */
     {0,0}                   /* B_SKIP */
 };
-static const int x264_mb_type_list1_table[X264_MBTYPE_MAX][2] =
+static const uint8_t x264_mb_type_list1_table[X264_MBTYPE_MAX][2] =
 {
     {0,0}, {0,0}, {0,0}, {0,0}, /* INTRA */
     {0,0},                  /* P_L0 */
@@ -148,7 +148,7 @@ enum mb_partition_e
     D_16x16         = 16,
 };
 
-static const int x264_mb_partition_listX_table[2][17] =
+static const uint8_t x264_mb_partition_listX_table[2][17] =
 {{
     1, 1, 1, 1, /* D_L0_* */
     0, 0, 0, 0, /* D_L1_* */
@@ -163,7 +163,7 @@ static const int x264_mb_partition_listX_table[2][17] =
     0,          /* D_DIRECT_8x8 */
     0, 0, 0, 0  /* 8x8 .. 16x16 */
 }};
-static const int x264_mb_partition_count_table[17] =
+static const uint8_t x264_mb_partition_count_table[17] =
 {
     /* sub L0 */
     4, 2, 2, 1,
@@ -176,20 +176,20 @@ static const int x264_mb_partition_count_table[17] =
     /* Partition */
     4, 2, 2, 1
 };
-static const int x264_mb_partition_pixel_table[17] =
+static const uint8_t x264_mb_partition_pixel_table[17] =
 {
     6, 4, 5, 3, 6, 4, 5, 3, 6, 4, 5, 3, 3, 3, 1, 2, 0
 };
 
 /* zigzags are transposed with respect to the tables in the standard */
-static const int x264_zigzag_scan4[2][16] =
+static const uint8_t x264_zigzag_scan4[2][16] =
 {{ // frame
     0,  4,  1,  2,  5,  8, 12,  9,  6,  3,  7, 10, 13, 14, 11, 15
 },
 {  // field
     0,  1,  4,  2,  3,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15
 }};
-static const int x264_zigzag_scan8[2][64] =
+static const uint8_t x264_zigzag_scan8[2][64] =
 {{
     0,  8,  1,  2,  9, 16, 24, 17, 10,  3,  4, 11, 18, 25, 32, 40,
    33, 26, 19, 12,  5,  6, 13, 20, 27, 34, 41, 48, 56, 49, 42, 35,
@@ -219,7 +219,7 @@ static const uint8_t block_idx_xy[4][4] =
     { 5, 7, 13, 15 }
 };
 
-static const int i_chroma_qp_table[52] =
+static const uint8_t i_chroma_qp_table[52] =
 {
      0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
     10, 11, 12, 13, 14, 15, 16, 17, 18, 19,

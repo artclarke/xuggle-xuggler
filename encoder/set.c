@@ -39,7 +39,7 @@ static void transpose( uint8_t *buf, int w )
 static void scaling_list_write( bs_t *s, x264_pps_t *pps, int idx )
 {
     const int len = idx<4 ? 16 : 64;
-    const int *zigzag = idx<4 ? x264_zigzag_scan4[0] : x264_zigzag_scan8[0];
+    const uint8_t *zigzag = idx<4 ? x264_zigzag_scan4[0] : x264_zigzag_scan8[0];
     const uint8_t *list = pps->scaling_list[idx];
     const uint8_t *def_list = (idx==CQM_4IC) ? pps->scaling_list[CQM_4IY]
                             : (idx==CQM_4PC) ? pps->scaling_list[CQM_4PY]

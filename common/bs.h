@@ -239,7 +239,7 @@ static inline void bs_align( bs_t *s )
 static inline void bs_write_ue( bs_t *s, unsigned int val )
 {
     int i_size = 0;
-    static const int i_size0_255[256] =
+    static const uint8_t i_size0_255[256] =
     {
         1,1,2,2,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,
         6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
@@ -303,7 +303,7 @@ static inline void bs_rbsp_trailing( bs_t *s )
 
 static inline int bs_size_ue( unsigned int val )
 {
-    static const int i_size0_254[255] =
+    static const uint8_t i_size0_254[255] =
     {
         1, 3, 3, 5, 5, 5, 5, 7, 7, 7, 7, 7, 7, 7, 7,
         9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,

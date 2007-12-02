@@ -23,8 +23,8 @@
 
 typedef struct
 {
-    int i_bits;
-    int i_size;
+    uint16_t i_bits;
+    uint16_t i_size;
 } vlc_t;
 
 /* XXX: don't forget to change it if you change vlc_t */

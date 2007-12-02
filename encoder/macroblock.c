@@ -705,7 +705,7 @@ void x264_noise_reduction_update( x264_t *h )
     for( cat = 0; cat < 2; cat++ )
     {
         int size = cat ? 64 : 16;
-        const int *weight = cat ? x264_dct8_weight2_tab : x264_dct4_weight2_tab;
+        const uint16_t *weight = cat ? x264_dct8_weight2_tab : x264_dct4_weight2_tab;
 
         if( h->nr_count[cat] > (cat ? (1<<16) : (1<<18)) )
         {

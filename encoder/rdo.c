@@ -307,7 +307,7 @@ typedef struct {
 
 static void quant_trellis_cabac( x264_t *h, int16_t *dct,
                                  const uint16_t *quant_mf, const int *unquant_mf,
-                                 const int *coef_weight, const int *zigzag,
+                                 const int *coef_weight, const uint8_t *zigzag,
                                  int i_ctxBlockCat, int i_lambda2, int b_ac, int i_coefs )
 {
     int abs_coefs[64], signs[64];
