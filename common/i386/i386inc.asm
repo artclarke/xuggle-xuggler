@@ -29,10 +29,10 @@ BITS 32
 ; Symbol prefix for C linkage
 %macro cglobal 1
     %ifdef PREFIX
-        global _%1
+        global _%1:function hidden
         %define %1 _%1
     %else
-        global %1
+        global %1:function hidden
     %endif
     align 16
     %1:
