@@ -50,6 +50,11 @@ typedef union {
   vector unsigned short v;
 } vect_ushort_u;
 
+typedef union {
+  signed short s[8];
+  vector signed short v;
+} vect_sshort_u;
+
 /***********************************************************************
  * Null vector
  **********************************************************************/

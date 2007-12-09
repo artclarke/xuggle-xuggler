@@ -34,6 +34,9 @@
 #ifdef HAVE_MMX
 #   include "i386/predict.h"
 #endif
+#ifdef ARCH_PPC
+#   include "ppc/predict.h"
+#endif
 
 /****************************************************************************
  * 16x16 prediction for intra luma block
@@ -847,6 +850,13 @@ void x264_predict_16x16_init( int cpu, x264_predict_t pf[7] )
     if( cpu&X264_CPU_MMXEXT )
     {
         x264_predict_16x16_init_mmxext( pf );
+    }
+#endif
+
+#ifdef ARCH_PPC
+    if( cpu&X264_CPU_ALTIVEC )
+    {
+        x264_predict_16x16_init_altivec( pf );
     }
 #endif
 }
