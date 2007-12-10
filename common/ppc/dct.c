@@ -455,3 +455,106 @@ void x264_add16x16_idct8_altivec( uint8_t *dst, int16_t dct[4][8][8] )
     x264_add8x8_idct8_altivec( &dst[8*FDEC_STRIDE+0], dct[2] );
     x264_add8x8_idct8_altivec( &dst[8*FDEC_STRIDE+8], dct[3] );
 }
+
+void x264_zigzag_scan_4x4_frame_altivec( int level[16], int16_t dct[4][4] )
+{
+    vec_s16_t dct0v, dct1v;
+    vec_s16_t tmp0v, tmp1v;
+    vec_s32_t level0v, level1v, level2v, level3v;
+
+    dct0v = vec_ld(0x00, (int16_t*)dct);
+    dct1v = vec_ld(0x10, (int16_t*)dct);
+
+    const vec_u8_t sel0 = (vec_u8_t) CV(0,1,8,9,2,3,4,5,10,11,16,17,24,25,18,19);
+    const vec_u8_t sel1 = (vec_u8_t) CV(12,13,6,7,14,15,20,21,26,27,28,29,22,23,30,31);
+
+    tmp0v = vec_perm( dct0v, dct1v, sel0 );
+    tmp1v = vec_perm( dct0v, dct1v, sel1 );
+
+    level0v = vec_unpackh( tmp0v );
+    level1v = vec_unpackl( tmp0v );
+    level2v = vec_unpackh( tmp1v );
+    level3v = vec_unpackl( tmp1v );
+
+    vec_st( level0v, 0x00, level );
+    vec_st( level1v, 0x10, level );
+    vec_st( level2v, 0x20, level );
+    vec_st( level3v, 0x30, level );
+}
+
+void x264_zigzag_scan_4x4_field_altivec( int level[16], int16_t dct[4][4] )
+{
+    vec_s16_t dct0v, dct1v;
+    vec_s16_t tmp0v, tmp1v;
+    vec_s32_t level0v, level1v, level2v, level3v;
+
+    dct0v = vec_ld(0x00, (int16_t*)dct);
+    dct1v = vec_ld(0x10, (int16_t*)dct);
+
+    const vec_u8_t sel0 = (vec_u8_t) CV(0,1,2,3,8,9,4,5,6,7,10,11,12,13,14,15);
+
+    tmp0v = vec_perm( dct0v, dct1v, sel0 );
+    tmp1v = dct1v;
+
+    level0v = vec_unpackh( tmp0v );
+    level1v = vec_unpackl( tmp0v );
+    level2v = vec_unpackh( tmp1v );
+    level3v = vec_unpackl( tmp1v );
+
+    vec_st( level0v, 0x00, level );
+    vec_st( level1v, 0x10, level );
+    vec_st( level2v, 0x20, level );
+    vec_st( level3v, 0x30, level );
+}
+
+void x264_zigzag_scan_4x4ac_frame_altivec( int level[15], int16_t dct[4][4] )
+{
+    vec_s16_t dct0v, dct1v;
+    vec_s16_t tmp0v, tmp1v;
+    vec_s32_t level0v, level1v, level2v, level3v;
+
+    dct0v = vec_ld(0x00, (int16_t*)dct);
+    dct1v = vec_ld(0x10, (int16_t*)dct);
+
+    const vec_u8_t sel0 = (vec_u8_t) CV(8,9,2,3,4,5,10,11,16,17,24,25,18,19,12,13);
+    const vec_u8_t sel1 = (vec_u8_t) CV(6,7,14,15,20,21,26,27,28,29,22,23,30,31,0,1);
+
+    tmp0v = vec_perm( dct0v, dct1v, sel0 );
+    tmp1v = vec_perm( dct0v, dct1v, sel1 );
+
+    level0v = vec_unpackh( tmp0v );
+    level1v = vec_unpackl( tmp0v );
+    level2v = vec_unpackh( tmp1v );
+    level3v = vec_unpackl( tmp1v );
+
+    vec_st( level0v, 0x00, level );
+    vec_st( level1v, 0x10, level );
+    vec_st( level2v, 0x20, level );
+    vec_st( level3v, 0x30, level ); // FIXME?: write level[15]
+}
+
+void x264_zigzag_scan_4x4ac_field_altivec( int level[15], int16_t dct[4][4] )
+{
+    vec_s16_t dct0v, dct1v;
+    vec_s16_t tmp0v, tmp1v;
+    vec_s32_t level0v, level1v, level2v, level3v;
+
+    dct0v = vec_ld(0x00, (int16_t*)dct);
+    dct1v = vec_ld(0x10, (int16_t*)dct);
+
+    const vec_u8_t sel0 = (vec_u8_t) CV(2,3,8,9,4,5,6,7,10,11,12,13,14,15,16,17);
+    const vec_u8_t sel1 = (vec_u8_t) CV(18,19,20,21,22,23,24,25,26,27,28,29,30,31,0,1);
+
+    tmp0v = vec_perm( dct0v, dct1v, sel0 );
+    tmp1v = vec_perm( dct0v, dct1v, sel1 );
+
+    level0v = vec_unpackh( tmp0v );
+    level1v = vec_unpackl( tmp0v );
+    level2v = vec_unpackh( tmp1v );
+    level3v = vec_unpackl( tmp1v );
+
+    vec_st( level0v, 0x00, level );
+    vec_st( level1v, 0x10, level );
+    vec_st( level2v, 0x20, level );
+    vec_st( level3v, 0x30, level ); // FIXME?: write level[15]
+}

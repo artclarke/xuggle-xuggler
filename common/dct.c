@@ -602,6 +602,14 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
             pf->scan_4x4 = x264_zigzag_scan_4x4_field_sse2;
 #endif
 #endif
+
+#ifdef ARCH_PPC
+        if( cpu&X264_CPU_ALTIVEC )
+        {
+            pf->scan_4x4   = x264_zigzag_scan_4x4_field_altivec;
+            pf->scan_4x4ac = x264_zigzag_scan_4x4ac_field_altivec;
+        }
+#endif
     }
     else
     {
@@ -610,5 +618,13 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
         pf->scan_4x4ac = zigzag_scan_4x4ac_frame;
         pf->sub_4x4    = zigzag_sub_4x4_frame;
         pf->sub_4x4ac  = zigzag_sub_4x4ac_frame;
+
+#ifdef ARCH_PPC
+        if( cpu&X264_CPU_ALTIVEC )
+        {
+            pf->scan_4x4   = x264_zigzag_scan_4x4_frame_altivec;
+            pf->scan_4x4ac = x264_zigzag_scan_4x4ac_frame_altivec;
+        }
+#endif
     }
 }

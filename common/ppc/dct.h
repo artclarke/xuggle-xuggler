@@ -44,4 +44,10 @@ void x264_sub16x16_dct8_altivec( int16_t dct[4][8][8],
 void x264_add8x8_idct8_altivec( uint8_t *dst, int16_t dct[8][8] );
 void x264_add16x16_idct8_altivec( uint8_t *dst, int16_t dct[4][8][8] );
 
+void x264_zigzag_scan_4x4_frame_altivec( int level[16], int16_t dct[4][4] );
+void x264_zigzag_scan_4x4ac_frame_altivec( int level[15], int16_t dct[4][4] );
+
+void x264_zigzag_scan_4x4_field_altivec( int level[16], int16_t dct[4][4] );
+void x264_zigzag_scan_4x4ac_field_altivec( int level[15], int16_t dct[4][4] );
+
 #endif
