@@ -301,6 +301,67 @@ static int check_dct( int cpu_ref, int cpu_new )
     }
     report( "(i)dct2x2dc :" );
 
+    x264_zigzag_function_t zigzag_c;
+    x264_zigzag_function_t zigzag_ref;
+    x264_zigzag_function_t zigzag_asm;
+
+    int32_t level1[64] __attribute__((aligned(16)));
+    int32_t level2[64] __attribute__((aligned(16)));
+
+#define TEST_ZIGZAG_SCAN( name, t1, t2, dct, size )   \
+    if( zigzag_asm.name != zigzag_ref.name ) \
+    { \
+        used_asm = 1; \
+        zigzag_c.name( t1, dct ); \
+        zigzag_asm.name( t2, dct ); \
+        if( memcmp( t1, t2, size ) ) \
+        { \
+            ok = 0; \
+            fprintf( stderr, #name " [FAILED]\n" ); \
+        } \
+    }
+
+#define TEST_ZIGZAG_SUB( name, t1, t2, size ) \
+    if( zigzag_asm.name != zigzag_ref.name ) \
+    { \
+        used_asm = 1; \
+        memcpy( buf3, buf1, 16*FDEC_STRIDE ); \
+        memcpy( buf4, buf1, 16*FDEC_STRIDE ); \
+        zigzag_c.name( t1, buf2, buf3 );  \
+        zigzag_asm.name( t2, buf2, buf4 );    \
+        if( memcmp( t1, t2, size )|| memcmp( buf3, buf4, 16*FDEC_STRIDE ) )  \
+        { \
+            ok = 0; \
+            fprintf( stderr, #name " [FAILED]\n" ); \
+        } \
+    }
+
+    x264_zigzag_init( 0, &zigzag_c, 0 );
+    x264_zigzag_init( cpu_ref, &zigzag_ref, 0 );
+    x264_zigzag_init( cpu_new, &zigzag_asm, 0 );
+
+    ok = 1; used_asm = 0;
+    TEST_ZIGZAG_SCAN( scan_8x8, level1, level2, (void*)dct1, 64*4 );
+    TEST_ZIGZAG_SCAN( scan_4x4, level1, level2, dct1[0], 16*4  );
+    TEST_ZIGZAG_SCAN( scan_4x4ac, level1, level2, dct1[0], 15*4 );
+    TEST_ZIGZAG_SUB( sub_4x4, level1, level2, 16*4 );
+    TEST_ZIGZAG_SUB( sub_4x4ac, level1, level2, 15*4 );
+    report( "zigzag_frame :" );
+
+    x264_zigzag_init( 0, &zigzag_c, 1 );
+    x264_zigzag_init( cpu_ref, &zigzag_ref, 1 );
+    x264_zigzag_init( cpu_new, &zigzag_asm, 1 );
+
+    ok = 1; used_asm = 0;
+    TEST_ZIGZAG_SCAN( scan_8x8, level1, level2, (void*)dct1, 64*4 );
+    TEST_ZIGZAG_SCAN( scan_4x4, level1, level2, dct1[0], 16*4  );
+    TEST_ZIGZAG_SCAN( scan_4x4ac, level1, level2, dct1[0], 15*4 );
+    TEST_ZIGZAG_SUB( sub_4x4, level1, level2, 16*4 );
+    TEST_ZIGZAG_SUB( sub_4x4ac, level1, level2, 15*4 );
+    report( "zigzag_field :" );
+#undef TEST_ZIGZAG_SCAN
+#undef TEST_ZIGZAG_SUB
+
     return ret;
 }
 
