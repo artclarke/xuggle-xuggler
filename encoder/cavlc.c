@@ -650,7 +650,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
     }
 
     /* transform size 8x8 flag */
-    if( h->mb.cache.b_transform_8x8_allowed && h->mb.i_cbp_luma && !IS_INTRA(i_mb_type) )
+    if( x264_mb_transform_8x8_allowed( h ) && h->mb.i_cbp_luma )
     {
         bs_write1( s, h->mb.b_transform_8x8 );
     }

@@ -1009,7 +1009,7 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
         x264_cabac_mb_cbp_chroma( h, cb );
     }
 
-    if( h->mb.cache.b_transform_8x8_allowed && h->mb.i_cbp_luma && !IS_INTRA(i_mb_type) )
+    if( x264_mb_transform_8x8_allowed( h ) && h->mb.i_cbp_luma )
     {
         x264_cabac_mb_transform_size( h, cb );
     }

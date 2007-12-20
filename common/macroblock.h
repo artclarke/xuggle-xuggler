@@ -287,7 +287,7 @@ int  x264_mb_predict_non_zero_code( x264_t *h, int idx );
 /* x264_mb_transform_8x8_allowed:
  *      check whether any partition is smaller than 8x8 (or at least
  *      might be, according to just partition type.)
- *      doesn't check for intra or cbp */
+ *      doesn't check for cbp */
 int  x264_mb_transform_8x8_allowed( x264_t *h );
 
 void x264_mb_mc( x264_t *h );
