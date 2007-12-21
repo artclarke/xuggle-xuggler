@@ -296,18 +296,16 @@ SAD_W16 sse3
 
 %macro SAD_X4_END 0
     mov     eax,  [esp+40]
-    pshufd  xmm4, xmm0, 2
-    pshufd  xmm5, xmm1, 2
-    pshufd  xmm6, xmm2, 2
-    pshufd  xmm7, xmm3, 2
-    paddw   xmm0, xmm4
-    paddw   xmm1, xmm5
-    paddw   xmm2, xmm6
-    paddw   xmm3, xmm7
-    movd    [eax+0], xmm0
-    movd    [eax+4], xmm1
-    movd    [eax+8], xmm2
-    movd    [eax+12], xmm3
+    psllq   xmm1, 32
+    psllq   xmm3, 32
+    paddw   xmm0, xmm1
+    paddw   xmm2, xmm3
+    pshufd  xmm1, xmm0, 14
+    pshufd  xmm3, xmm2, 14
+    paddw   xmm0, xmm1
+    paddw   xmm2, xmm3
+    movq    [eax+0], xmm0
+    movq    [eax+8], xmm2
     pop     ebx
     pop     esi
     pop     edi

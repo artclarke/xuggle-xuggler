@@ -268,18 +268,16 @@ SAD_W16 sse3
 
 %macro SAD_X4_END 0
     mov      rax, parm7q
-    movhlps xmm4, xmm0
-    movhlps xmm5, xmm1
-    movhlps xmm6, xmm2
-    movhlps xmm7, xmm3
-    paddw   xmm0, xmm4
-    paddw   xmm1, xmm5
-    paddw   xmm2, xmm6
-    paddw   xmm3, xmm7
-    movd [rax+0], xmm0
-    movd [rax+4], xmm1
-    movd [rax+8], xmm2
-    movd [rax+12], xmm3
+    psllq   xmm1, 32
+    psllq   xmm3, 32
+    paddw   xmm0, xmm1
+    paddw   xmm2, xmm3
+    movhlps xmm1, xmm0
+    movhlps xmm3, xmm2
+    paddw   xmm0, xmm1
+    paddw   xmm2, xmm3
+    movq [rax+0], xmm0
+    movq [rax+8], xmm2
     ret
 %endmacro
 
