@@ -219,7 +219,7 @@ int x264_cpu_num_processors( void )
 #if !defined(HAVE_PTHREAD)
     return 1;
 
-#elif defined(WIN32)
+#elif defined(_WIN32)
     return pthread_num_processors_np();
 
 #elif defined(SYS_LINUX)
