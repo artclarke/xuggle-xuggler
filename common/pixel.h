@@ -80,9 +80,9 @@ typedef struct
     x264_pixel_cmp_x4_t sad_x4[7];
 
     /* abs-diff-sum for successive elimination.
-     * may round width up to a multiple of 8. */
-    void (*ads[7])( int enc_dc[4], uint16_t *sums, int delta,
-                    uint16_t *res, int width );
+     * may round width up to a multiple of 16. */
+    int (*ads[7])( int enc_dc[4], uint16_t *sums, int delta,
+                   uint16_t *cost_mvx, int16_t *mvs, int width, int thresh );
 
     /* calculate satd of V, H, and DC modes.
      * may be NULL, in which case just use pred+satd instead. */

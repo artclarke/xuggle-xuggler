@@ -1579,24 +1579,91 @@ cglobal x264_pixel_ssim_4x4x2_core_mmxext
 
 
 
+; int x264_pixel_ads_mvs( int16_t *mvs, uint8_t *masks, int width )
+cglobal x264_pixel_ads_mvs
+    mov     ebx, [ebp+24] ; mvs
+    mov     ecx, esp ; masks
+    mov     edi, [ebp+28] ; width
+    mov     dword [ecx+edi], 0
+    push    esi
+    push    ebp
+    xor     eax, eax
+    xor     esi, esi
+.loopi:
+    mov     ebp, [ecx+esi]
+    mov     edx, [ecx+esi+4]
+    or      edx, ebp
+    jz .nexti
+    xor     edx, edx
+%macro TEST 1
+    mov     [ebx+eax*2], si
+    test    ebp, 0xff<<(%1*8)
+    setne   dl
+    add     eax, edx
+    inc     esi
+%endmacro
+    TEST 0
+    TEST 1
+    TEST 2
+    TEST 3
+    mov     ebp, [ecx+esi]
+    TEST 0
+    TEST 1
+    TEST 2
+    TEST 3
+    cmp     esi, edi
+    jl .loopi
+    jmp .end
+.nexti:
+    add     esi, 8
+    cmp     esi, edi
+    jl .loopi
+.end:
+    pop     ebp
+    pop     esi
+    mov     edi, [ebp-8]
+    mov     ebx, [ebp-4]
+    leave
+    ret
+
+%macro ADS_START 0 
+    push    ebp
+    mov     ebp, esp
+    push    ebx
+    push    edi
+    mov     eax, [ebp+12] ; sums
+    mov     ebx, [ebp+16] ; delta
+    mov     ecx, [ebp+20] ; cost_mvx
+    mov     edx, [ebp+28] ; width
+    sub     esp, edx
+    sub     esp, 4
+    and     esp, ~15
+    mov     edi, esp
+    shl     ebx, 1
+%endmacro   
+
+%macro ADS_END 1
+    add     eax, 8*%1
+    add     ecx, 8*%1
+    add     edi, 4*%1
+    sub     edx, 4*%1
+    jg .loop
+    jmp x264_pixel_ads_mvs
+%endmacro
+
 ;-----------------------------------------------------------------------------
-;  void x264_pixel_ads4_mmxext( int enc_dc[4], uint16_t *sums, int delta,
-;                               uint16_t *res, int width )
+; int x264_pixel_ads4_mmxext( int enc_dc[4], uint16_t *sums, int delta,
+;                             uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
 ;-----------------------------------------------------------------------------
 cglobal x264_pixel_ads4_mmxext
-    push    ebx
-    mov     eax, [esp+8]
+    mov     eax, [esp+4]
     movq    mm6, [eax]
     movq    mm4, [eax+8]
     pshufw  mm7, mm6, 0
     pshufw  mm6, mm6, 0xAA
     pshufw  mm5, mm4, 0
     pshufw  mm4, mm4, 0xAA
-    mov     eax, [esp+12]
-    mov     ebx, [esp+16]
-    mov     ecx, [esp+20]
-    mov     edx, [esp+24]
-    shl     ebx, 1
+    ADS_START
 .loop:
     movq    mm0, [eax]
     movq    mm1, [eax+16]
@@ -1613,25 +1680,20 @@ cglobal x264_pixel_ads4_mmxext
     MMX_ABS mm3, mm1
     paddw   mm0, mm2
     paddw   mm0, mm3
-    movq    [ecx], mm0
-    add     eax, 8
-    add     ecx, 8
-    sub     edx, 4
-    jg      .loop
-    pop     ebx
-    ret
+    pshufw  mm1, [ebp+32], 0
+    paddusw mm0, [ecx]
+    psubusw mm1, mm0
+    packsswb mm1, mm1
+    movd    [edi], mm1
+    ADS_END 1
 
 cglobal x264_pixel_ads2_mmxext
-    push    ebx
-    mov     eax, [esp+8]
+    mov     eax, [esp+4]
     movq    mm6, [eax]
+    pshufw  mm5, [esp+28], 0
     pshufw  mm7, mm6, 0
     pshufw  mm6, mm6, 0xAA
-    mov     eax, [esp+12]
-    mov     ebx, [esp+16]
-    mov     ecx, [esp+20]
-    mov     edx, [esp+24]
-    shl     ebx, 1
+    ADS_START
 .loop:
     movq    mm0, [eax]
     movq    mm1, [eax+ebx]
@@ -1640,20 +1702,18 @@ cglobal x264_pixel_ads2_mmxext
     MMX_ABS mm0, mm2
     MMX_ABS mm1, mm3
     paddw   mm0, mm1
-    movq    [ecx], mm0
-    add     eax, 8
-    add     ecx, 8
-    sub     edx, 4
-    jg      .loop
-    pop     ebx
-    ret
+    paddusw mm0, [ecx]
+    movq    mm4, mm5
+    psubusw mm4, mm0
+    packsswb mm4, mm4
+    movd    [edi], mm4
+    ADS_END 1
 
 cglobal x264_pixel_ads1_mmxext
     mov     eax, [esp+4]
     pshufw  mm7, [eax], 0
-    mov     eax, [esp+8]
-    mov     ecx, [esp+16]
-    mov     edx, [esp+20]
+    pshufw  mm6, [esp+28], 0
+    ADS_START
 .loop:
     movq    mm0, [eax]
     movq    mm1, [eax+8]
@@ -1661,11 +1721,115 @@ cglobal x264_pixel_ads1_mmxext
     psubw   mm1, mm7
     MMX_ABS mm0, mm2
     MMX_ABS mm1, mm3
-    movq    [ecx], mm0
-    movq    [ecx+8], mm1
-    add     eax, 16
-    add     ecx, 16
-    sub     edx, 8
-    jg      .loop
-    nop
-    ret
+    paddusw mm0, [ecx]
+    paddusw mm1, [ecx+8]
+    movq    mm4, mm6
+    movq    mm5, mm6
+    psubusw mm4, mm0
+    psubusw mm5, mm1
+    packsswb mm4, mm5
+    movq    [edi], mm4
+    ADS_END 2
+
+%macro ADS_SSE2 1
+cglobal x264_pixel_ads4_%1
+    mov     eax, [esp+4] ; enc_dc
+    movdqa  xmm4, [eax]
+    pshuflw xmm7, xmm4, 0
+    pshuflw xmm6, xmm4, 0xAA
+    pshufhw xmm5, xmm4, 0
+    pshufhw xmm4, xmm4, 0xAA
+    punpcklqdq xmm7, xmm7
+    punpcklqdq xmm6, xmm6
+    punpckhqdq xmm5, xmm5
+    punpckhqdq xmm4, xmm4
+    ADS_START
+.loop:
+    movdqu  xmm0, [eax]
+    movdqu  xmm1, [eax+16]
+    psubw   xmm0, xmm7
+    psubw   xmm1, xmm6
+    MMX_ABS xmm0, xmm2
+    MMX_ABS xmm1, xmm3
+    movdqu  xmm2, [eax+ebx]
+    movdqu  xmm3, [eax+ebx+16]
+    psubw   xmm2, xmm5
+    psubw   xmm3, xmm4
+    paddw   xmm0, xmm1
+    MMX_ABS xmm2, xmm1
+    MMX_ABS xmm3, xmm1
+    paddw   xmm0, xmm2
+    paddw   xmm0, xmm3
+    movd    xmm1, [ebp+32] ; thresh
+    movdqu  xmm2, [ecx]
+    pshuflw xmm1, xmm1, 0
+    punpcklqdq xmm1, xmm1
+    paddusw xmm0, xmm2
+    psubusw xmm1, xmm0
+    packsswb xmm1, xmm1
+    movq    [edi], xmm1
+    ADS_END 2
+
+cglobal x264_pixel_ads2_%1
+    mov     eax, [esp+4] ; enc_dc
+    movq    xmm6, [eax]
+    movd    xmm5, [esp+28] ; thresh
+    pshuflw xmm7, xmm6, 0
+    pshuflw xmm6, xmm6, 0xAA
+    pshuflw xmm5, xmm5, 0
+    punpcklqdq xmm7, xmm7
+    punpcklqdq xmm6, xmm6
+    punpcklqdq xmm5, xmm5
+    ADS_START
+.loop:
+    movdqu  xmm0, [eax]
+    movdqu  xmm1, [eax+ebx]
+    psubw   xmm0, xmm7
+    psubw   xmm1, xmm6
+    movdqu  xmm4, [ecx]
+    MMX_ABS xmm0, xmm2
+    MMX_ABS xmm1, xmm3
+    paddw   xmm0, xmm1
+    paddusw xmm0, xmm4
+    movdqa  xmm1, xmm5
+    psubusw xmm1, xmm0
+    packsswb xmm1, xmm1
+    movq    [edi], xmm1
+    ADS_END 2
+
+cglobal x264_pixel_ads1_%1
+    mov     eax, [esp+4] ; enc_dc
+    movd    xmm7, [eax]
+    movd    xmm6, [esp+28] ; thresh
+    pshuflw xmm7, xmm7, 0
+    pshuflw xmm6, xmm6, 0
+    punpcklqdq xmm7, xmm7
+    punpcklqdq xmm6, xmm6
+    ADS_START
+.loop:
+    movdqu  xmm0, [eax]
+    movdqu  xmm1, [eax+16]
+    psubw   xmm0, xmm7
+    psubw   xmm1, xmm7
+    movdqu  xmm2, [ecx]
+    movdqu  xmm3, [ecx+16]
+    MMX_ABS xmm0, xmm4
+    MMX_ABS xmm1, xmm5
+    paddusw xmm0, xmm2
+    paddusw xmm1, xmm3
+    movdqa  xmm4, xmm6
+    movdqa  xmm5, xmm6
+    psubusw xmm4, xmm0
+    psubusw xmm5, xmm1
+    packsswb xmm4, xmm5
+    movdqa  [edi], xmm4
+    ADS_END 4
+%endmacro
+
+ADS_SSE2 sse2
+%ifdef HAVE_SSE3
+%macro MMX_ABS 2
+    pabsw %1, %1
+%endmacro
+ADS_SSE2 ssse3
+%endif

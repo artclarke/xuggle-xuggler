@@ -81,11 +81,18 @@ void x264_pixel_ssim_4x4x2_core_sse2( const uint8_t *pix1, int stride1,
                                       const uint8_t *pix2, int stride2, int sums[2][4] );
 float x264_pixel_ssim_end4_sse2( int sum0[5][4], int sum1[5][4], int width );
 
-void x264_pixel_ads4_mmxext( int enc_dc[4], uint16_t *sums, int delta,
-                             uint16_t *res, int width );
-void x264_pixel_ads2_mmxext( int enc_dc[2], uint16_t *sums, int delta,
-                             uint16_t *res, int width );
-void x264_pixel_ads1_mmxext( int enc_dc[1], uint16_t *sums, int delta,
-                             uint16_t *res, int width );
+#define DECL_ADS( size, suffix ) \
+int x264_pixel_ads##size##_##suffix( int enc_dc[size], uint16_t *sums, int delta,\
+                                     uint16_t *cost_mvx, int16_t *mvs, int width, int thresh );
+DECL_ADS( 4, mmxext )
+DECL_ADS( 2, mmxext )
+DECL_ADS( 1, mmxext )
+DECL_ADS( 4, sse2 )
+DECL_ADS( 2, sse2 )
+DECL_ADS( 1, sse2 )
+DECL_ADS( 4, ssse3 )
+DECL_ADS( 2, ssse3 )
+DECL_ADS( 1, ssse3 )
+#undef DECL_ADS
 
 #endif

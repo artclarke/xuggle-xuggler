@@ -167,16 +167,18 @@ static const int i_sub_mb_p_cost_table[4] = {
 
 static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a );
 
+uint16_t *x264_cost_mv_fpel[52][4];
+
 /* initialize an array of lambda*nbits for all possible mvs */
 static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
 {
     static int16_t *p_cost_mv[52];
+    int i, j;
 
     if( !p_cost_mv[a->i_qp] )
     {
         /* could be faster, but isn't called many times */
         /* factor of 4 from qpel, 2 from sign, and 2 because mv can be opposite from mvp */
-        int i;
         p_cost_mv[a->i_qp] = x264_malloc( (4*4*2048 + 1) * sizeof(int16_t) );
         p_cost_mv[a->i_qp] += 2*4*2048;
         for( i = 0; i <= 2*4*2048; i++ )
@@ -185,8 +187,19 @@ static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
             p_cost_mv[a->i_qp][i]  = a->i_lambda * bs_size_se( i );
         }
     }
-
     a->p_cost_mv = p_cost_mv[a->i_qp];
+
+    /* FIXME is this useful for all me methods? */
+    if( h->param.analyse.i_me_method == X264_ME_ESA && !x264_cost_mv_fpel[a->i_qp][0] )
+    {
+        for( j=0; j<4; j++ )
+        {
+            x264_cost_mv_fpel[a->i_qp][j] = x264_malloc( (4*2048 + 1) * sizeof(int16_t) );
+            x264_cost_mv_fpel[a->i_qp][j] += 2*2048;
+            for( i = -2*2048; i <= 2*2048; i++ )
+                x264_cost_mv_fpel[a->i_qp][j][i] = p_cost_mv[a->i_qp][i*4+j];
+        }
+    }
 }
 
 static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )

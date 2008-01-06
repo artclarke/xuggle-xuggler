@@ -408,32 +408,50 @@ float x264_pixel_ssim_wxh( x264_pixel_function_t *pf,
 /****************************************************************************
  * successive elimination
  ****************************************************************************/
-static void pixel_ads4( int enc_dc[4], uint16_t *sums, int delta,
-                        uint16_t *res, int width )
+static int x264_pixel_ads4( int enc_dc[4], uint16_t *sums, int delta,
+                            uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
 {
-    int i;
+    int nmv=0, i;
     for( i=0; i<width; i++, sums++ )
-        res[i] = abs( enc_dc[0] - sums[0] )
-               + abs( enc_dc[1] - sums[8] )
-               + abs( enc_dc[2] - sums[delta] )
-               + abs( enc_dc[3] - sums[delta+8] );
+    {
+        int ads = abs( enc_dc[0] - sums[0] )
+                + abs( enc_dc[1] - sums[8] )
+                + abs( enc_dc[2] - sums[delta] )
+                + abs( enc_dc[3] - sums[delta+8] )
+                + cost_mvx[i];
+        if( ads < thresh )
+            mvs[nmv++] = i;
+    }
+    return nmv;
 }
 
-static void pixel_ads2( int enc_dc[2], uint16_t *sums, int delta,
-                        uint16_t *res, int width )
+static int x264_pixel_ads2( int enc_dc[2], uint16_t *sums, int delta,
+                            uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
 {
-    int i;
+    int nmv=0, i;
     for( i=0; i<width; i++, sums++ )
-        res[i] = abs( enc_dc[0] - sums[0] )
-               + abs( enc_dc[1] - sums[delta] );
+    {
+        int ads = abs( enc_dc[0] - sums[0] )
+                + abs( enc_dc[1] - sums[delta] )
+                + cost_mvx[i];
+        if( ads < thresh )
+            mvs[nmv++] = i;
+    }
+    return nmv;
 }
 
-static void pixel_ads1( int enc_dc[1], uint16_t *sums, int delta,
-                        uint16_t *res, int width )
+static int x264_pixel_ads1( int enc_dc[1], uint16_t *sums, int delta,
+                            uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
 {
-    int i;
+    int nmv=0, i;
     for( i=0; i<width; i++, sums++ )
-        res[i] = abs( enc_dc[0] - sums[0] );
+    {
+        int ads = abs( enc_dc[0] - sums[0] )
+                + cost_mvx[i];
+        if( ads < thresh )
+            mvs[nmv++] = i;
+    }
+    return nmv;
 }
 
 
@@ -459,19 +477,21 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     pixf->name[PIXEL_4x8]   = x264_pixel_##name##_4x8##cpu;\
     pixf->name[PIXEL_4x4]   = x264_pixel_##name##_4x4##cpu;
 
+#define INIT_ADS( cpu ) \
+    pixf->ads[PIXEL_16x16] = x264_pixel_ads4##cpu;\
+    pixf->ads[PIXEL_16x8] = x264_pixel_ads2##cpu;\
+    pixf->ads[PIXEL_8x8] = x264_pixel_ads1##cpu;
+
     INIT7( sad, );
     INIT7( sad_x3, );
     INIT7( sad_x4, );
     INIT7( ssd, );
     INIT7( satd, );
     INIT4( sa8d, );
+    INIT_ADS( );
 
     pixf->ssim_4x4x2_core = ssim_4x4x2_core;
     pixf->ssim_end4 = ssim_end4;
-
-    pixf->ads[PIXEL_16x16] = pixel_ads4;
-    pixf->ads[PIXEL_16x8] = pixel_ads2;
-    pixf->ads[PIXEL_8x8] = pixel_ads1;
 
 #ifdef HAVE_MMX
     if( cpu&X264_CPU_MMX )
@@ -485,10 +505,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT7( sad_x3, _mmxext );
         INIT7( sad_x4, _mmxext );
         INIT7( satd, _mmxext );
-
-        pixf->ads[PIXEL_16x16] = x264_pixel_ads4_mmxext;
-        pixf->ads[PIXEL_16x8 ] = x264_pixel_ads2_mmxext;
-        pixf->ads[PIXEL_8x8  ] = x264_pixel_ads1_mmxext;
+        INIT_ADS( _mmxext );
 
 #ifdef ARCH_X86
         pixf->sa8d[PIXEL_16x16] = x264_pixel_sa8d_16x16_mmxext;
@@ -535,6 +552,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT2( sad_x3, _sse2 );
         INIT2( sad_x4, _sse2 );
         INIT5( satd, _sse2 );
+        INIT_ADS( _sse2 );
 
 #ifdef ARCH_X86
         if( cpu&X264_CPU_CACHELINE_SPLIT )
@@ -570,6 +588,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     if( cpu&X264_CPU_SSSE3 )
     {
         INIT5( satd, _ssse3 );
+        INIT_ADS( _ssse3 );
 #ifdef ARCH_X86_64
         pixf->sa8d[PIXEL_16x16]= x264_pixel_sa8d_16x16_ssse3;
         pixf->sa8d[PIXEL_8x8]  = x264_pixel_sa8d_8x8_ssse3;

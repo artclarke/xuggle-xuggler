@@ -101,22 +101,19 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     COPY3_IF_LT( bcost, costs[3], bmx, omx+(m3x), bmy, omy+(m3y) );\
 }
 
-#define COST_MV_X4_ABS( m0x, m0y, m1x, m1y, m2x, m2y, m3x, m3y )\
+#define COST_MV_X3_ABS( m0x, m0y, m1x, m1y, m2x, m2y )\
 {\
-    h->pixf.sad_x4[i_pixel]( m->p_fenc[0],\
+    h->pixf.sad_x3[i_pixel]( m->p_fenc[0],\
         p_fref + (m0x) + (m0y)*m->i_stride[0],\
         p_fref + (m1x) + (m1y)*m->i_stride[0],\
         p_fref + (m2x) + (m2y)*m->i_stride[0],\
-        p_fref + (m3x) + (m3y)*m->i_stride[0],\
         m->i_stride[0], costs );\
-    costs[0] += p_cost_mvx[m0x<<2]; /* no cost_mvy */\
-    costs[1] += p_cost_mvx[m1x<<2];\
-    costs[2] += p_cost_mvx[m2x<<2];\
-    costs[3] += p_cost_mvx[m3x<<2];\
+    costs[0] += p_cost_mvx[(m0x)<<2]; /* no cost_mvy */\
+    costs[1] += p_cost_mvx[(m1x)<<2];\
+    costs[2] += p_cost_mvx[(m2x)<<2];\
     COPY3_IF_LT( bcost, costs[0], bmx, m0x, bmy, m0y );\
     COPY3_IF_LT( bcost, costs[1], bmx, m1x, bmy, m1y );\
     COPY3_IF_LT( bcost, costs[2], bmx, m2x, bmy, m2y );\
-    COPY3_IF_LT( bcost, costs[3], bmx, m3x, bmy, m3y );\
 }
 
 /*  1  */
@@ -456,11 +453,14 @@ me_hex2:
         {
             const int min_x = X264_MAX( bmx - i_me_range, mv_x_min );
             const int min_y = X264_MAX( bmy - i_me_range, mv_y_min );
-            const int max_x = ((X264_MIN( bmx + i_me_range, mv_x_max ) - min_x + 3) & ~3) + min_x - 1;
+            const int max_x = X264_MIN( bmx + i_me_range, mv_x_max );
             const int max_y = X264_MIN( bmy + i_me_range, mv_y_max );
-            int mx, my;
+            /* SEA is fastest in multiples of 4 */
+            const int width = (max_x - min_x + 3) & ~3;
+            int my;
 #if 0
             /* plain old exhaustive search */
+            int mx;
             for( my = min_y; my <= max_y; my++ )
                 for( mx = min_x; mx <= max_x; mx++ )
                     COST_MV( mx, my );
@@ -470,10 +470,13 @@ me_hex2:
             const int stride = m->i_stride[0];
             static uint8_t zero[16*16] = {0,};
             uint16_t *sums_base = m->integral;
-            int enc_dc[4];
+            DECLARE_ALIGNED( int, enc_dc[4], 16 );
             int sad_size = i_pixel <= PIXEL_8x8 ? PIXEL_8x8 : PIXEL_4x4;
             int delta = x264_pixel_size[sad_size].w;
-            uint16_t *ads = x264_malloc((max_x-min_x+8) * sizeof(uint16_t));
+            int16_t xs_buf[64];
+            int16_t *xs = width<=64 ? xs_buf : x264_malloc( width*sizeof(int16_t) );
+            int xn;
+            uint16_t *cost_fpel_mvx = x264_cost_mv_fpel[h->mb.i_qp][-m->mvp[0]&3] + (-m->mvp[0]>>2);
 
             h->pixf.sad_x4[sad_size]( zero, m->p_fenc[0], m->p_fenc[0]+delta,
                 m->p_fenc[0]+delta*FENC_STRIDE, m->p_fenc[0]+delta+delta*FENC_STRIDE,
@@ -487,29 +490,18 @@ me_hex2:
 
             for( my = min_y; my <= max_y; my++ )
             {
-                int mvs[3], i_mvs=0;
                 bcost -= p_cost_mvy[my<<2];
-                h->pixf.ads[i_pixel]( enc_dc, sums_base + min_x + my * stride, delta,
-                                      ads, max_x-min_x+1 );
-                for( mx = min_x; mx <= max_x; mx++ )
-                {
-                    if( ads[mx-min_x] < bcost - p_cost_mvx[mx<<2] )
-                    {
-                        if( i_mvs == 3 )
-                        {
-                            COST_MV_X4_ABS( mvs[0],my, mvs[1],my, mvs[2],my, mx,my );
-                            i_mvs = 0;
-                        }
-                        else
-                            mvs[i_mvs++] = mx;
-                    }
-                }
+                xn = h->pixf.ads[i_pixel]( enc_dc, sums_base + min_x + my * stride, delta,
+                                           cost_fpel_mvx+min_x, xs, width, bcost );
+                for( i=0; i<xn-2; i+=3 )
+                    COST_MV_X3_ABS( min_x+xs[i],my, min_x+xs[i+1],my, min_x+xs[i+2],my );
                 bcost += p_cost_mvy[my<<2];
-                for( i=0; i<i_mvs; i++ )
-                    COST_MV( mvs[i], my );
+                for( ; i<xn; i++ )
+                    COST_MV( min_x+xs[i], my );
             }
 
-            x264_free(ads);
+            if( xs != xs_buf )
+                x264_free( xs );
 #endif
         }
         break;

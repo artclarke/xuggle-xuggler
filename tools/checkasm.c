@@ -36,6 +36,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_predict_t predict_4x4[9+3];
     x264_predict8x8_t predict_8x8[9+3];
     DECLARE_ALIGNED( uint8_t, edge[33], 8 );
+    uint16_t cost_mv[32];
     int ret = 0, ok, used_asm;
     int i, j;
 
@@ -155,20 +156,24 @@ static int check_pixel( int cpu_ref, int cpu_new )
     }
 
     ok = 1; used_asm = 0;
-    for( i=0; i<4; i++ )
-        if( pixel_asm.ads[i] != pixel_ref.ads[i] )
+    for( i=0; i<32; i++ )
+        cost_mv[i] = i*10;
+    for( i=0; i<100; i++ )
+        if( pixel_asm.ads[i&3] != pixel_ref.ads[i&3] )
         {
-            uint16_t res_a[32], res_c[32];
-            uint16_t sums[72];
-            int dc[4];
+            DECLARE_ALIGNED( uint16_t, sums[72], 16 );
+            DECLARE_ALIGNED( int, dc[4], 16 );
+            int16_t mvs_a[32], mvs_c[32];
+            int mvn_a, mvn_c;
+            int thresh = rand() & 0x3fff;
             for( j=0; j<72; j++ )
                 sums[j] = rand() & 0x3fff;
             for( j=0; j<4; j++ )
                 dc[j] = rand() & 0x3fff;
             used_asm = 1;
-            pixel_c.ads[i]( dc, sums, 32, res_c, 32 );
-            pixel_asm.ads[i]( dc, sums, 32, res_a, 32 );
-            if( memcmp(res_a, res_c, sizeof(res_c)) )
+            mvn_c = pixel_c.ads[i&3]( dc, sums, 32, cost_mv, mvs_c, 32, thresh );
+            mvn_a = pixel_asm.ads[i&3]( dc, sums, 32, cost_mv, mvs_a, 32, thresh );
+            if( mvn_c != mvn_a || memcmp( mvs_c, mvs_a, mvn_c*sizeof(*mvs_c) ) )
                 ok = 0;
         }
     report( "esa ads:" );
