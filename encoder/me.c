@@ -454,10 +454,10 @@ me_hex2:
 
     case X264_ME_ESA:
         {
-            const int min_x = X264_MAX( bmx - i_me_range, mv_x_min);
-            const int min_y = X264_MAX( bmy - i_me_range, mv_y_min);
-            const int max_x = X264_MIN( bmx + i_me_range, mv_x_max);
-            const int max_y = X264_MIN( bmy + i_me_range, mv_y_max);
+            const int min_x = X264_MAX( bmx - i_me_range, mv_x_min );
+            const int min_y = X264_MAX( bmy - i_me_range, mv_y_min );
+            const int max_x = ((X264_MIN( bmx + i_me_range, mv_x_max ) - min_x + 3) & ~3) + min_x - 1;
+            const int max_y = X264_MIN( bmy + i_me_range, mv_y_max );
             int mx, my;
 #if 0
             /* plain old exhaustive search */
