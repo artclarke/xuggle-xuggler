@@ -196,7 +196,7 @@ static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
         {
             x264_cost_mv_fpel[a->i_qp][j] = x264_malloc( (4*2048 + 1) * sizeof(int16_t) );
             x264_cost_mv_fpel[a->i_qp][j] += 2*2048;
-            for( i = -2*2048; i <= 2*2048; i++ )
+            for( i = -2*2048; i < 2*2048; i++ )
                 x264_cost_mv_fpel[a->i_qp][j][i] = p_cost_mv[a->i_qp][i*4+j];
         }
     }
