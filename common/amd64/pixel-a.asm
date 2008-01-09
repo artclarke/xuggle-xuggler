@@ -805,9 +805,10 @@ cglobal x264_intra_satd_x3_4x4_mmxext
 ;  void x264_intra_satd_x3_16x16_mmxext( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
 cglobal x264_intra_satd_x3_16x16_mmxext
-%define  sums    rsp-32 ; +24
-%define  top_1d  rsp-64 ; +32
-%define  left_1d rsp-96 ; +32
+    sub          rsp, 96
+%define  sums    rsp+64 ; size 24
+%define  top_1d  rsp+32 ; size 32
+%define  left_1d rsp    ; size 32
 
     mov   qword [sums+0], 0
     mov   qword [sums+8], 0
@@ -913,15 +914,17 @@ cglobal x264_intra_satd_x3_16x16_mmxext
     movd        [parm3q+8], mm2 ; i16x16_dc satd
     movd        [parm3q+4], mm1 ; i16x16_h satd
     movd        [parm3q+0], mm0 ; i16x16_v satd
+    add         rsp, 96
     ret
 
 ;-----------------------------------------------------------------------------
 ;  void x264_intra_satd_x3_8x8c_mmxext( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
 cglobal x264_intra_satd_x3_8x8c_mmxext
-%define  sums    rsp-32 ; +24
-%define  top_1d  rsp-48 ; +16
-%define  left_1d rsp-64 ; +16
+    sub          rsp, 64
+%define  sums    rsp+32 ; size 24
+%define  top_1d  rsp+16 ; size 16
+%define  left_1d rsp    ; size 16
 
     mov   qword [sums+0], 0
     mov   qword [sums+8], 0
@@ -1041,6 +1044,7 @@ cglobal x264_intra_satd_x3_8x8c_mmxext
     movd        [parm3q+0], mm0 ; i8x8c_dc satd
     movd        [parm3q+4], mm1 ; i8x8c_h satd
     movd        [parm3q+8], mm2 ; i8x8c_v satd
+    add         rsp, 64
     ret
 
 

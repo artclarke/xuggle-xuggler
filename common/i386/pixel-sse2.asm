@@ -973,9 +973,9 @@ cglobal x264_pixel_ssim_4x4x2_core_sse2
     pshufd    xmm6, xmm4, 0xB1
     packssdw  xmm1, xmm2
     paddd     xmm3, xmm5
-    pmaddwd   xmm1, xmm7
-    paddd     xmm4, xmm6
     pshufd    xmm1, xmm1, 0xD8
+    paddd     xmm4, xmm6
+    pmaddwd   xmm1, xmm7
     movdqa    xmm5, xmm3
     punpckldq xmm3, xmm4
     punpckhdq xmm5, xmm4

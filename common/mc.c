@@ -430,7 +430,7 @@ void x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end )
             uint8_t  *ref  = frame->plane[0] + y * stride - PADH;
             uint16_t *line = frame->integral + (y+1) * stride - PADH + 1;
             uint16_t v = line[0] = 0;
-            for( x = 0; x < stride-1; x++ )
+            for( x = 1; x < stride-1; x++ )
                 line[x] = v += ref[x] + line[x-stride] - line[x-stride-1];
             line -= 8*stride;
             if( y >= 9-PADV )

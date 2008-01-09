@@ -318,7 +318,8 @@ cglobal x264_deblock_h_luma_sse2
     lea    r11, [r10+r10*2]
     lea    rax, [rdi-4]
     lea    r9,  [rdi-4+r11]
-    %define pix_tmp rsp-104 ; 16x6 for the buffer + 8 for x264_deblock_v_luma_sse2's return address
+    sub    rsp, 0x68
+    %define pix_tmp rsp
 
     ; transpose 6x16 -> tmp space
     TRANSPOSE6x8_MEM  PASS8ROWS(rax, r9, r10, r11), pix_tmp
@@ -352,6 +353,7 @@ cglobal x264_deblock_h_luma_sse2
     movq   mm3, [pix_tmp+0x40]
     TRANSPOSE8x4_STORE  PASS8ROWS(rax, r9, r10, r11)
 
+    add    rsp, 0x68
     ret
 
 
