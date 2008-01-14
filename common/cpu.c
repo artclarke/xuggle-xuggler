@@ -28,7 +28,7 @@
 #ifdef SYS_BEOS
 #include <kernel/OS.h>
 #endif
-#ifdef SYS_MACOSX
+#if defined(SYS_MACOSX) || defined(SYS_FREEBSD)
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif
@@ -237,7 +237,7 @@ int x264_cpu_num_processors( void )
     get_system_info( &info );
     return info.cpu_count;
 
-#elif defined(SYS_MACOSX)
+#elif defined(SYS_MACOSX) || defined(SYS_FREEBSD)
     int numberOfCPUs;
     size_t length = sizeof( numberOfCPUs );
     if( sysctlbyname("hw.ncpu", &numberOfCPUs, &length, NULL, 0) )
