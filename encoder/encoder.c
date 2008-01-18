@@ -885,7 +885,7 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
     h->i_ref1 = X264_MIN( h->i_ref1, h->frames.i_max_ref1 );
     h->i_ref0 = X264_MIN( h->i_ref0, h->frames.i_max_ref0 );
     h->i_ref0 = X264_MIN( h->i_ref0, h->param.i_frame_reference ); // if reconfig() has lowered the limit
-    h->i_ref0 = X264_MIN( h->i_ref0, 16 - h->i_ref1 );
+    assert( h->i_ref0 + h->i_ref1 <= 16 );
     h->mb.pic.i_fref[0] = h->i_ref0;
     h->mb.pic.i_fref[1] = h->i_ref1;
 }
