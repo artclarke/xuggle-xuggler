@@ -54,7 +54,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 
 #define COST_MV( mx, my )\
 {\
-    int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE,\
+    int cost = h->pixf.fpelcmp[i_pixel]( m->p_fenc[0], FENC_STRIDE,\
                    &p_fref[(my)*m->i_stride[0]+(mx)], m->i_stride[0] )\
              + BITS_MVD(mx,my);\
     COPY3_IF_LT( bcost, cost, bmx, mx, bmy, my );\
@@ -64,7 +64,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 { \
     int stride = 16; \
     uint8_t *src = h->mc.get_ref( pix, &stride, m->p_fref, m->i_stride[0], mx, my, bw, bh ); \
-    int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE, src, stride ) \
+    int cost = h->pixf.fpelcmp[i_pixel]( m->p_fenc[0], FENC_STRIDE, src, stride ) \
              + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
     COPY3_IF_LT( bpred_cost, cost, bpred_mx, mx, bpred_my, my ); \
 }
@@ -72,7 +72,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 #define COST_MV_X3_DIR( m0x, m0y, m1x, m1y, m2x, m2y, costs )\
 {\
     uint8_t *pix_base = p_fref + bmx + bmy*m->i_stride[0];\
-    h->pixf.sad_x3[i_pixel]( m->p_fenc[0],\
+    h->pixf.fpelcmp_x3[i_pixel]( m->p_fenc[0],\
         pix_base + (m0x) + (m0y)*m->i_stride[0],\
         pix_base + (m1x) + (m1y)*m->i_stride[0],\
         pix_base + (m2x) + (m2y)*m->i_stride[0],\
@@ -85,7 +85,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 #define COST_MV_X4( m0x, m0y, m1x, m1y, m2x, m2y, m3x, m3y )\
 {\
     uint8_t *pix_base = p_fref + omx + omy*m->i_stride[0];\
-    h->pixf.sad_x4[i_pixel]( m->p_fenc[0],\
+    h->pixf.fpelcmp_x4[i_pixel]( m->p_fenc[0],\
         pix_base + (m0x) + (m0y)*m->i_stride[0],\
         pix_base + (m1x) + (m1y)*m->i_stride[0],\
         pix_base + (m2x) + (m2y)*m->i_stride[0],\
@@ -103,7 +103,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 
 #define COST_MV_X3_ABS( m0x, m0y, m1x, m1y, m2x, m2y )\
 {\
-    h->pixf.sad_x3[i_pixel]( m->p_fenc[0],\
+    h->pixf.fpelcmp_x3[i_pixel]( m->p_fenc[0],\
         p_fref + (m0x) + (m0y)*m->i_stride[0],\
         p_fref + (m1x) + (m1y)*m->i_stride[0],\
         p_fref + (m2x) + (m2y)*m->i_stride[0],\
@@ -450,6 +450,7 @@ me_hex2:
         }
 
     case X264_ME_ESA:
+    case X264_ME_TESA:
         {
             const int min_x = X264_MAX( bmx - i_me_range, mv_x_min );
             const int min_y = X264_MAX( bmy - i_me_range, mv_y_min );
@@ -488,16 +489,101 @@ me_hex2:
             if( i_pixel == PIXEL_8x16 || i_pixel == PIXEL_4x8 )
                 enc_dc[1] = enc_dc[2];
 
-            for( my = min_y; my <= max_y; my++ )
+            if( h->mb.i_me_method == X264_ME_TESA )
             {
-                bcost -= p_cost_mvy[my<<2];
-                xn = h->pixf.ads[i_pixel]( enc_dc, sums_base + min_x + my * stride, delta,
-                                           cost_fpel_mvx+min_x, xs, width, bcost );
-                for( i=0; i<xn-2; i+=3 )
-                    COST_MV_X3_ABS( min_x+xs[i],my, min_x+xs[i+1],my, min_x+xs[i+2],my );
-                bcost += p_cost_mvy[my<<2];
-                for( ; i<xn; i++ )
-                    COST_MV( min_x+xs[i], my );
+                // ADS threshold, then SAD threshold, then keep the best few SADs, then SATD
+                typedef struct {
+                    int sad;
+                    int16_t mx, my;
+                } mvsad_t;
+                mvsad_t *mvsads = x264_malloc( width*(max_y-min_y+1)*sizeof(mvsad_t) );
+                int nmvsad = 0, limit;
+                int sad_thresh = i_me_range <= 16 ? 10 : i_me_range <= 24 ? 11 : 12;
+                int bsad = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE, p_fref+bmy*stride+bmx, stride )
+                         + BITS_MVD( bmx, bmy );
+                for( my = min_y; my <= max_y; my++ )
+                {
+                    int ycost = p_cost_mvy[my<<2];
+                    bsad -= ycost;
+                    xn = h->pixf.ads[i_pixel]( enc_dc, sums_base + min_x + my * stride, delta,
+                                               cost_fpel_mvx+min_x, xs, width, bsad*17/16 );
+                    for( i=0; i<xn-2; i+=3 )
+                    {
+                        uint8_t *ref = p_fref+min_x+my*stride;
+                        int sads[3];
+                        h->pixf.sad_x3[i_pixel]( m->p_fenc[0], ref+xs[i], ref+xs[i+1], ref+xs[i+2], stride, sads );
+                        for( j=0; j<3; j++ )
+                        {
+                            int sad = sads[j] + cost_fpel_mvx[xs[i+j]];
+                            if( sad < bsad*sad_thresh>>3 )
+                            {
+                                COPY1_IF_LT( bsad, sad );
+                                mvsads[nmvsad].sad = sad + ycost;
+                                mvsads[nmvsad].mx = min_x+xs[i+j];
+                                mvsads[nmvsad].my = my;
+                                nmvsad++;
+                            }
+                        }
+                    }
+                    for( ; i<xn; i++ )
+                    {
+                        int mx = min_x+xs[i];
+                        int sad = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE, p_fref+mx+my*stride, stride )
+                                + cost_fpel_mvx[xs[i]];
+                        if( sad < bsad*sad_thresh>>3 )
+                        {
+                            COPY1_IF_LT( bsad, sad );
+                            mvsads[nmvsad].sad = sad + ycost;
+                            mvsads[nmvsad].mx = mx;
+                            mvsads[nmvsad].my = my;
+                            nmvsad++;
+                        }
+                    }
+                    bsad += ycost;
+                }
+
+                limit = i_me_range / 2;
+                if( nmvsad > limit*2 )
+                {
+                    // halve the range if the domain is too large... eh, close enough
+                    bsad = bsad*(sad_thresh+8)>>4;
+                    for( i=0; i<nmvsad && mvsads[i].sad <= bsad; i++ );
+                    for( j=i; j<nmvsad; j++ )
+                        if( mvsads[j].sad <= bsad )
+                            mvsads[i++] = mvsads[j];
+                    nmvsad = i;
+                }
+                if( nmvsad > limit )
+                {
+                    for( i=0; i<limit; i++ )
+                    {
+                        int bj = i;
+                        int bsad = mvsads[bj].sad;
+                        for( j=i+1; j<nmvsad; j++ )
+                            COPY2_IF_LT( bsad, mvsads[j].sad, bj, j );
+                        if( bj > i )
+                            XCHG( mvsad_t, mvsads[i], mvsads[bj] );
+                    }
+                    nmvsad = limit;
+                }
+                for( i=0; i<nmvsad; i++ )
+                    COST_MV( mvsads[i].mx, mvsads[i].my );
+                x264_free( mvsads );
+            }
+            else
+            {
+                // just ADS and SAD
+                for( my = min_y; my <= max_y; my++ )
+                {
+                    bcost -= p_cost_mvy[my<<2];
+                    xn = h->pixf.ads[i_pixel]( enc_dc, sums_base + min_x + my * stride, delta,
+                                               cost_fpel_mvx+min_x, xs, width, bcost );
+                    for( i=0; i<xn-2; i+=3 )
+                        COST_MV_X3_ABS( min_x+xs[i],my, min_x+xs[i+1],my, min_x+xs[i+2],my );
+                    bcost += p_cost_mvy[my<<2];
+                    for( ; i<xn; i++ )
+                        COST_MV( min_x+xs[i], my );
+                }
             }
 
             if( xs != xs_buf )
@@ -553,7 +639,7 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
 { \
     int stride = 16; \
     uint8_t *src = h->mc.get_ref( pix[0], &stride, m->p_fref, m->i_stride[0], mx, my, bw, bh ); \
-    int cost = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE, src, stride ) \
+    int cost = h->pixf.fpelcmp[i_pixel]( m->p_fenc[0], FENC_STRIDE, src, stride ) \
              + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
     COPY3_IF_LT( bcost, cost, bmx, mx, bmy, my ); \
 }
@@ -623,7 +709,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
         src2 = h->mc.get_ref( pix[1], &stride, m->p_fref, m->i_stride[0], omx-2, omy, bw+4, bh );
         src1 = src0 + stride;
         src3 = src2 + 1;
-        h->pixf.sad_x4[i_pixel]( m->p_fenc[0], src0, src1, src2, src3, stride, costs );
+        h->pixf.fpelcmp_x4[i_pixel]( m->p_fenc[0], src0, src1, src2, src3, stride, costs );
         COPY2_IF_LT( bcost, costs[0] + p_cost_mvx[omx  ] + p_cost_mvy[omy-2], bmy, omy-2 );
         COPY2_IF_LT( bcost, costs[1] + p_cost_mvx[omx  ] + p_cost_mvy[omy+2], bmy, omy+2 );
         COPY3_IF_LT( bcost, costs[2] + p_cost_mvx[omx-2] + p_cost_mvy[omy  ], bmx, omx-2, bmy, omy );

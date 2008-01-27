@@ -363,7 +363,7 @@ static int x264_validate_parameters( x264_t *h )
 
     if( h->param.b_interlaced )
     {
-        if( h->param.analyse.i_me_method == X264_ME_ESA )
+        if( h->param.analyse.i_me_method >= X264_ME_ESA )
         {
             x264_log( h, X264_LOG_WARNING, "interlace + me=esa is not implemented\n" );
             h->param.analyse.i_me_method = X264_ME_UMH;
@@ -449,12 +449,15 @@ static int x264_validate_parameters( x264_t *h )
         h->param.i_cqm_preset = X264_CQM_FLAT;
 
     if( h->param.analyse.i_me_method < X264_ME_DIA ||
-        h->param.analyse.i_me_method > X264_ME_ESA )
+        h->param.analyse.i_me_method > X264_ME_TESA )
         h->param.analyse.i_me_method = X264_ME_HEX;
     if( h->param.analyse.i_me_range < 4 )
         h->param.analyse.i_me_range = 4;
     if( h->param.analyse.i_me_range > 16 && h->param.analyse.i_me_method <= X264_ME_HEX )
         h->param.analyse.i_me_range = 16;
+    if( h->param.analyse.i_me_method == X264_ME_TESA &&
+        (h->mb.b_lossless || h->param.analyse.i_subpel_refine <= 1) )
+        h->param.analyse.i_me_method = X264_ME_ESA;
     h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 7 );
     h->param.analyse.b_bframe_rdo = h->param.analyse.b_bframe_rdo && h->param.analyse.i_subpel_refine >= 6;
     h->param.analyse.b_mixed_references = h->param.analyse.b_mixed_references && h->param.i_frame_reference > 1;
@@ -546,9 +549,12 @@ static int x264_validate_parameters( x264_t *h )
 
 static void mbcmp_init( x264_t *h )
 {
-    memcpy( h->pixf.mbcmp,
-            ( h->mb.b_lossless || h->param.analyse.i_subpel_refine <= 1 ) ? h->pixf.sad : h->pixf.satd,
-            sizeof(h->pixf.mbcmp) );
+    int satd = !h->mb.b_lossless && h->param.analyse.i_subpel_refine > 1;
+    memcpy( h->pixf.mbcmp, satd ? h->pixf.satd : h->pixf.sad, sizeof(h->pixf.mbcmp) );
+    satd &= h->param.analyse.i_me_method == X264_ME_TESA;
+    memcpy( h->pixf.fpelcmp, satd ? h->pixf.satd : h->pixf.sad, sizeof(h->pixf.fpelcmp) );
+    memcpy( h->pixf.fpelcmp_x3, satd ? h->pixf.satd_x3 : h->pixf.sad_x3, sizeof(h->pixf.fpelcmp_x3) );
+    memcpy( h->pixf.fpelcmp_x4, satd ? h->pixf.satd_x4 : h->pixf.sad_x4, sizeof(h->pixf.fpelcmp_x4) );
 }
 
 /****************************************************************************

@@ -69,15 +69,19 @@ typedef struct
     x264_pixel_cmp_t ssim[7];
     x264_pixel_cmp_t sa8d[4];
     x264_pixel_cmp_t mbcmp[7]; /* either satd or sad for subpel refine and mode decision */
-    x264_pixel_cmp_t rdcmp[7]; /* either ssd or ssim for rate-distortion */
+    x264_pixel_cmp_t fpelcmp[7]; /* either satd or sad for fullpel motion search */
+    x264_pixel_cmp_x3_t fpelcmp_x3[7];
+    x264_pixel_cmp_x4_t fpelcmp_x4[7];
 
     void (*ssim_4x4x2_core)( const uint8_t *pix1, int stride1,
                              const uint8_t *pix2, int stride2, int sums[2][4] );
     float (*ssim_end4)( int sum0[5][4], int sum1[5][4], int width );
 
-    /* multiple parallel calls to sad. */
+    /* multiple parallel calls to cmp. */
     x264_pixel_cmp_x3_t sad_x3[7];
     x264_pixel_cmp_x4_t sad_x4[7];
+    x264_pixel_cmp_x3_t satd_x3[7];
+    x264_pixel_cmp_x4_t satd_x4[7];
 
     /* abs-diff-sum for successive elimination.
      * may round width up to a multiple of 16. */

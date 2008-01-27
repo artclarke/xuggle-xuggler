@@ -225,7 +225,8 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H1( "                                  - dia: diamond search, radius 1 (fast)\n"
         "                                  - hex: hexagonal search, radius 2\n"
         "                                  - umh: uneven multi-hexagon search\n"
-        "                                  - esa: exhaustive search (slow)\n" );
+        "                                  - esa: exhaustive search\n"
+        "                                  - tesa: hadamard exhaustive search (slow)\n" );
     else H0( "                                  - dia, hex, umh\n" );
     H0( "      --merange <integer>     Maximum motion vector search range [%d]\n", defaults->analyse.i_me_range );
     H1( "      --mvrange <integer>     Maximum motion vector length [-1 (auto)]\n" );

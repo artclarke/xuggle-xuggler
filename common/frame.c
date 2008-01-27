@@ -94,7 +94,7 @@ x264_frame_t *x264_frame_new( x264_t *h )
         }
     }
 
-    if( h->param.analyse.i_me_method == X264_ME_ESA )
+    if( h->param.analyse.i_me_method >= X264_ME_ESA )
     {
         CHECKED_MALLOC( frame->buffer[7],
                         2 * frame->i_stride[0] * (frame->i_lines[0] + 2*i_padv) * sizeof(uint16_t) );
