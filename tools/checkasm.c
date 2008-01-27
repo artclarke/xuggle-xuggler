@@ -262,7 +262,7 @@ static int check_dct( int cpu_ref, int cpu_new )
             fprintf( stderr, " - dct4x4dc :        [FAILED]\n" );
         }
     }
-    if( dct_asm.dct4x4dc != dct_ref.dct4x4dc )
+    if( dct_asm.idct4x4dc != dct_ref.idct4x4dc )
     {
         int16_t dct1[4][4] __attribute((aligned(16))) = { {-12, 42, 23, 67},{2, 90, 89,56}, {67,43,-76,91},{56,-78,-54,1}};
         int16_t dct2[4][4] __attribute((aligned(16))) = { {-12, 42, 23, 67},{2, 90, 89,56}, {67,43,-76,91},{56,-78,-54,1}};
@@ -378,8 +378,8 @@ static int check_mc( int cpu_ref, int cpu_new )
     x264_pixel_function_t pixel;
 
     uint8_t *src     = &buf1[2*32+2];
-    uint8_t *src2[4] = { &buf1[2*32+2],  &buf1[7*32+2],
-                         &buf1[12*32+2], &buf1[17*32+2] };
+    uint8_t *src2[4] = { &buf1[2*32+2],  &buf1[6*32+2],
+                         &buf1[10*32+2], &buf1[14*32+2] };
     uint8_t *dst1    = &buf3[2*32+2];
     uint8_t *dst2    = &buf4[2*32+2];
 
@@ -571,9 +571,11 @@ static int check_quant( int cpu_ref, int cpu_new )
     int i, i_cqm, qp;
     x264_t h_buf;
     x264_t *h = &h_buf;
+    memset( h, 0, sizeof(*h) );
     h->pps = h->pps_array;
     x264_param_default( &h->param );
     h->param.rc.i_qp_min = 26;
+    h->param.analyse.b_transform_8x8 = 1;
 
     for( i_cqm = 0; i_cqm < 4; i_cqm++ )
     {
@@ -692,6 +694,8 @@ static int check_quant( int cpu_ref, int cpu_new )
         TEST_DEQUANT( quant_8x8, dequant_8x8, CQM_8PY, 8 );
         TEST_DEQUANT( quant_4x4, dequant_4x4, CQM_4IY, 4 );
         TEST_DEQUANT( quant_4x4, dequant_4x4, CQM_4PY, 4 );
+
+        x264_cqm_delete( h );
     }
 
     ok = oks[0]; used_asm = used_asms[0];
@@ -750,7 +754,7 @@ static int check_intra( int cpu_ref, int cpu_new )
                 printf("%2x ", edge[16+k]);\
             printf("\n");\
             for(j=0; j<8; j++){\
-                printf("%2x ", edge[j]);\
+                printf("%2x ", edge[14-j]);\
                 for(k=0; k<8; k++)\
                     printf("%2x ", buf4[48+k+j*32]);\
                 printf("\n");\
