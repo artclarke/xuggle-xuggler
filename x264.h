@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 57
+#define X264_BUILD 58
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -93,6 +93,7 @@ static const char * const x264_transfer_names[] = { "", "bt709", "undef", "", "b
 static const char * const x264_colmatrix_names[] = { "GBR", "bt709", "undef", "", "fcc", "bt470bg", "smpte170m", "smpte240m", "YCgCo", 0 };
 
 /* Colorspace type
+ * legacy only; nothing other than I420 is really supported.
  */
 #define X264_CSP_MASK           0x00ff  /* */
 #define X264_CSP_NONE           0x0000  /* Invalid mode     */

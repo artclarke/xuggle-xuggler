@@ -671,7 +671,6 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     x264_dct_init( h->param.cpu, &h->dctf );
     x264_zigzag_init( h->param.cpu, &h->zigzagf, h->param.b_interlaced );
     x264_mc_init( h->param.cpu, &h->mc );
-    x264_csp_init( h->param.cpu, h->param.i_csp, &h->csp );
     x264_quant_init( h, h->param.cpu, &h->quantf );
     x264_deblock_init( h->param.cpu, &h->loopf );
     x264_dct_init_weights();
@@ -1290,7 +1289,8 @@ int     x264_encoder_encode( x264_t *h,
         /* 1: Copy the picture to a frame and move it to a buffer */
         x264_frame_t *fenc = x264_frame_pop_unused( h );
 
-        x264_frame_copy_picture( h, fenc, pic_in );
+        if( x264_frame_copy_picture( h, fenc, pic_in ) < 0 )
+            return -1;
 
         if( h->param.i_width != 16 * h->sps->i_mb_width ||
             h->param.i_height != 16 * h->sps->i_mb_height )

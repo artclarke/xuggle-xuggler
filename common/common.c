@@ -589,63 +589,13 @@ void x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_heig
     pic->i_type = X264_TYPE_AUTO;
     pic->i_qpplus1 = 0;
     pic->img.i_csp = i_csp;
-    switch( i_csp & X264_CSP_MASK )
-    {
-        case X264_CSP_I420:
-        case X264_CSP_YV12:
-            pic->img.i_plane = 3;
-            pic->img.plane[0] = x264_malloc( 3 * i_width * i_height / 2 );
-            pic->img.plane[1] = pic->img.plane[0] + i_width * i_height;
-            pic->img.plane[2] = pic->img.plane[1] + i_width * i_height / 4;
-            pic->img.i_stride[0] = i_width;
-            pic->img.i_stride[1] = i_width / 2;
-            pic->img.i_stride[2] = i_width / 2;
-            break;
-
-        case X264_CSP_I422:
-            pic->img.i_plane = 3;
-            pic->img.plane[0] = x264_malloc( 2 * i_width * i_height );
-            pic->img.plane[1] = pic->img.plane[0] + i_width * i_height;
-            pic->img.plane[2] = pic->img.plane[1] + i_width * i_height / 2;
-            pic->img.i_stride[0] = i_width;
-            pic->img.i_stride[1] = i_width / 2;
-            pic->img.i_stride[2] = i_width / 2;
-            break;
-
-        case X264_CSP_I444:
-            pic->img.i_plane = 3;
-            pic->img.plane[0] = x264_malloc( 3 * i_width * i_height );
-            pic->img.plane[1] = pic->img.plane[0] + i_width * i_height;
-            pic->img.plane[2] = pic->img.plane[1] + i_width * i_height;
-            pic->img.i_stride[0] = i_width;
-            pic->img.i_stride[1] = i_width;
-            pic->img.i_stride[2] = i_width;
-            break;
-
-        case X264_CSP_YUYV:
-            pic->img.i_plane = 1;
-            pic->img.plane[0] = x264_malloc( 2 * i_width * i_height );
-            pic->img.i_stride[0] = 2 * i_width;
-            break;
-
-        case X264_CSP_RGB:
-        case X264_CSP_BGR:
-            pic->img.i_plane = 1;
-            pic->img.plane[0] = x264_malloc( 3 * i_width * i_height );
-            pic->img.i_stride[0] = 3 * i_width;
-            break;
-
-        case X264_CSP_BGRA:
-            pic->img.i_plane = 1;
-            pic->img.plane[0] = x264_malloc( 4 * i_width * i_height );
-            pic->img.i_stride[0] = 4 * i_width;
-            break;
-
-        default:
-            fprintf( stderr, "invalid CSP\n" );
-            pic->img.i_plane = 0;
-            break;
-    }
+    pic->img.i_plane = 3;
+    pic->img.plane[0] = x264_malloc( 3 * i_width * i_height / 2 );
+    pic->img.plane[1] = pic->img.plane[0] + i_width * i_height;
+    pic->img.plane[2] = pic->img.plane[1] + i_width * i_height / 4;
+    pic->img.i_stride[0] = i_width;
+    pic->img.i_stride[1] = i_width / 2;
+    pic->img.i_stride[2] = i_width / 2;
 }
 
 /****************************************************************************

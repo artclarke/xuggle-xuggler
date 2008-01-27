@@ -52,23 +52,13 @@ x264_frame_t *x264_frame_new( x264_t *h )
     frame->i_plane = 3;
     for( i = 0; i < 3; i++ )
     {
-        int i_divh = 1;
-        int i_divw = 1;
-        if( i > 0 )
-        {
-            if( h->param.i_csp == X264_CSP_I420 )
-                i_divh = i_divw = 2;
-            else if( h->param.i_csp == X264_CSP_I422 )
-                i_divw = 2;
-        }
-        frame->i_stride[i] = i_stride / i_divw;
-        frame->i_width[i] = i_width / i_divw;
-        frame->i_lines[i] = i_lines / i_divh;
+        frame->i_stride[i] = i_stride >> !!i;
+        frame->i_width[i] = i_width >> !!i;
+        frame->i_lines[i] = i_lines >> !!i;
         CHECKED_MALLOC( frame->buffer[i],
-                        frame->i_stride[i] * ( frame->i_lines[i] + 2*i_padv / i_divh ) );
-
+                        frame->i_stride[i] * (i_lines + 2*i_padv) >> !!i );
         frame->plane[i] = ((uint8_t*)frame->buffer[i]) +
-                          frame->i_stride[i] * i_padv / i_divh + PADH / i_divw;
+                          ((frame->i_stride[i] * i_padv + PADH) >> !!i);
     }
 
     frame->filtered[0] = frame->plane[0];
@@ -161,17 +151,35 @@ void x264_frame_delete( x264_frame_t *frame )
     x264_free( frame );
 }
 
-void x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
+int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
 {
     int i_csp = src->img.i_csp & X264_CSP_MASK;
+    int i;
+    if( i_csp != X264_CSP_I420 && i_csp != X264_CSP_YV12 )
+    {
+        x264_log( h, X264_LOG_ERROR, "Arg invalid CSP\n" );
+        return -1;
+    }
+
     dst->i_type     = src->i_type;
     dst->i_qpplus1  = src->i_qpplus1;
     dst->i_pts      = src->i_pts;
 
-    if( i_csp <= X264_CSP_NONE  || i_csp >= X264_CSP_MAX )
-        x264_log( h, X264_LOG_ERROR, "Arg invalid CSP\n" );
-    else
-        h->csp.convert[i_csp]( &h->mc, dst, &src->img, h->param.i_width, h->param.i_height );
+    for( i=0; i<3; i++ )
+    {
+        int s = (i_csp == X264_CSP_YV12 && i) ? i^3 : i;
+        uint8_t *plane = src->img.plane[s];
+        int stride = src->img.i_stride[s];
+        int width = h->param.i_width >> !!i;
+        int height = h->param.i_height >> !!i;
+        if( src->img.i_csp & X264_CSP_VFLIP )
+        {
+            plane += (height-1)*stride;
+            stride = -stride;
+        }
+        h->mc.plane_copy( dst->plane[i], dst->i_stride[i], plane, stride, width, height );
+    }
+    return 0;
 }
 
 
