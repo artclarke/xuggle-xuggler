@@ -25,27 +25,23 @@ exit 1
 fi
 
 cc_check() {
-    rm -f conftest*
     cat > conftest.c << EOF
 #include <$1>
 int main () { $3 return 0; }
 EOF
     $CC conftest.c $CFLAGS $LDFLAGS $2 -o conftest 2>$DEVNULL
     TMP="$?"
-    rm -f conftest*
     return $TMP
 }
 
 as_check() {
-    rm -f conftest*
     echo "$1" > conftest.asm
     $AS conftest.asm $ASFLAGS $2 -o conftest.o 2>$DEVNULL
     TMP="$?"
-    rm -f conftest*
     return $TMP
 }
 
-rm -f config.h config.mak x264.pc
+rm -f config.h config.mak x264.pc conftest*
 
 prefix='/usr/local'
 exec_prefix='${prefix}'
@@ -335,6 +331,10 @@ fi
 
 CFLAGS="$CFLAGS -DARCH_$ARCH -DSYS_$SYS"
 
+echo "unsigned int endian = 'B' << 24 | 'I' << 16 | 'G' << 8 | 'E';" > conftest.c
+$CC $CFLAGS conftest.c -c -o conftest.o 2>$DEVNULL || die "endian test failed"
+grep -q BIGE conftest.o && CFLAGS="$CFLAGS -DWORDS_BIGENDIAN"
+
 # autodetect options that weren't forced nor disabled
 
 libpthread=""
@@ -417,6 +417,8 @@ elif cc_check "stdio.h" "" "fseeko64(stdin,0,0);" ; then
     echo "#define fseek fseeko64" >> config.h
     echo "#define ftell ftello64" >> config.h
 fi
+
+rm -f conftest*
 
 # generate config files
 
