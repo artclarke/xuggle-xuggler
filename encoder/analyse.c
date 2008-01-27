@@ -1726,7 +1726,7 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
             mvc[1][0] = lX->me8x8[2*i+1].mv[0];
             mvc[1][1] = lX->me8x8[2*i+1].mv[1];
 
-            x264_mb_predict_mv( h, 0, 8*i, 2, m->mvp );
+            x264_mb_predict_mv( h, l, 8*i, 2, m->mvp );
             x264_me_search( h, m, mvc, 2 );
 
             /* BI mode */
@@ -1796,7 +1796,7 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
             mvc[1][0] = lX->me8x8[i+2].mv[0];
             mvc[1][1] = lX->me8x8[i+2].mv[1];
 
-            x264_mb_predict_mv( h, 0, 4*i, 2, m->mvp );
+            x264_mb_predict_mv( h, l, 4*i, 2, m->mvp );
             x264_me_search( h, m, mvc, 2 );
 
             /* BI mode */
