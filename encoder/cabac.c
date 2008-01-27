@@ -357,7 +357,7 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
     int ctx;
 
     /* No need to test for PCM / SKIP */
-    if( h->mb.i_neighbour && h->mb.i_last_dqp != 0 &&
+    if( h->mb.i_last_dqp &&
         ( h->mb.type[i_mbn_xy] == I_16x16 || (h->mb.cbp[i_mbn_xy]&0x3f) ) )
         ctx = 1;
     else
