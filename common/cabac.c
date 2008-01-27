@@ -865,7 +865,8 @@ static inline void x264_cabac_putbyte( x264_cabac_t *cb )
         else
         {
             int carry = out & 0x100;
-            if( cb->p + cb->i_bytes_outstanding + 1 >= cb->p_end )
+            int bytes_outstanding = cb->i_bytes_outstanding;
+            if( cb->p + bytes_outstanding + 1 >= cb->p_end )
                 return;
             if( carry )
             {
@@ -875,12 +876,13 @@ static inline void x264_cabac_putbyte( x264_cabac_t *cb )
                 // are in bytes_outstanding and thus not written yet.
                 cb->p[-1]++;
             }
-            while( cb->i_bytes_outstanding > 0 )
+            while( bytes_outstanding > 0 )
             {
-                *(cb->p++) = carry ? 0 : 0xff;
-                cb->i_bytes_outstanding--;
+                *(cb->p++) = (carry >> 8) - 1;
+                bytes_outstanding--;
             }
             *(cb->p++) = out;
+            cb->i_bytes_outstanding = 0;
         }
     }
 }
@@ -915,36 +917,29 @@ void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx, int b )
 void x264_cabac_encode_bypass( x264_cabac_t *cb, int b )
 {
     cb->i_low <<= 1;
-    cb->i_low += (((int32_t)b<<31)>>31) & cb->i_range;
+    cb->i_low += -b & cb->i_range;
     cb->i_queue += 1;
     x264_cabac_putbyte( cb );
 }
 
-void x264_cabac_encode_terminal( x264_cabac_t *cb, int b )
+void x264_cabac_encode_terminal( x264_cabac_t *cb )
 {
     cb->i_range -= 2;
-    if( b )
-    {
-        cb->i_low += cb->i_range;
-        cb->i_range  = 2<<7;
-        cb->i_low  <<= 7;
-        cb->i_queue += 7;
-        x264_cabac_putbyte( cb );
-    }
-    else
-    {
-        x264_cabac_encode_renorm( cb );
-    }
+    x264_cabac_encode_renorm( cb );
 }
 
-void x264_cabac_encode_flush( x264_cabac_t *cb )
+void x264_cabac_encode_flush( x264_t *h, x264_cabac_t *cb )
 {
-    cb->i_low |= 0x80;
-    cb->i_low <<= 10;
-    cb->i_queue += 10;
+    cb->i_low += cb->i_range - 2;
+    cb->i_low |= 1;
+    cb->i_low <<= 9;
+    cb->i_queue += 9;
     x264_cabac_putbyte( cb );
     x264_cabac_putbyte( cb );
-    cb->i_queue = 0;
+    cb->i_low <<= 8 - cb->i_queue;
+    cb->i_low |= (0x35a4e4f5 >> (h->i_frame & 31) & 1) << 10;
+    cb->i_queue = 8;
+    x264_cabac_putbyte( cb );
 
     if( cb->p + cb->i_bytes_outstanding + 1 >= cb->p_end )
         return; //FIXME throw an error instead of silently truncating the frame

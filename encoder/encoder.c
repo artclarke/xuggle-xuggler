@@ -1075,7 +1075,7 @@ static void x264_slice_write( x264_t *h )
         if( h->param.b_cabac )
         {
             if( mb_xy > h->sh.i_first_mb && !(h->sh.b_mbaff && (i_mb_y&1)) )
-                x264_cabac_encode_terminal( &h->cabac, 0 );
+                x264_cabac_encode_terminal( &h->cabac );
 
             if( IS_SKIP( h->mb.i_type ) )
                 x264_cabac_mb_skip( h, 1 );
@@ -1153,21 +1153,13 @@ static void x264_slice_write( x264_t *h )
 
     if( h->param.b_cabac )
     {
-        /* end of slice */
-        x264_cabac_encode_terminal( &h->cabac, 1 );
-    }
-    else if( i_skip > 0 )
-    {
-        bs_write_ue( &h->out.bs, i_skip );  /* last skip run */
-    }
-
-    if( h->param.b_cabac )
-    {
-        x264_cabac_encode_flush( &h->cabac );
+        x264_cabac_encode_flush( h, &h->cabac );
         h->out.bs.p = h->cabac.p;
     }
     else
     {
+        if( i_skip > 0 )
+            bs_write_ue( &h->out.bs, i_skip );  /* last skip run */
         /* rbsp_slice_trailing_bits */
         bs_rbsp_trailing( &h->out.bs );
     }

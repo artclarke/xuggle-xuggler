@@ -51,15 +51,14 @@ static inline void x264_cabac_mb_type_intra( x264_t *h, x264_cabac_t *cb, int i_
     else if( i_mb_type == I_PCM )
     {
         x264_cabac_encode_decision( cb, ctx0, 1 );
-        x264_cabac_encode_terminal( cb,       1 );
-        x264_cabac_encode_flush( cb );
+        x264_cabac_encode_flush( h, cb );
     }
     else
     {
         int i_pred = x264_mb_pred_mode16x16_fix[h->mb.i_intra16x16_pred_mode];
 
         x264_cabac_encode_decision( cb, ctx0, 1 );
-        x264_cabac_encode_terminal( cb,       0 );
+        x264_cabac_encode_terminal( cb );
 
         x264_cabac_encode_decision( cb, ctx1, ( h->mb.i_cbp_luma == 0 ? 0 : 1 ));
         if( h->mb.i_cbp_chroma == 0 )

@@ -42,9 +42,9 @@ static int cabac_prefix_size[15][128];
 /* CABAC: not exactly the same. x264_cabac_size_decision() keeps track of
  * fractional bits, but only finite precision. */
 #define x264_cabac_encode_decision(c,x,v) x264_cabac_size_decision(c,x,v)
-#define x264_cabac_encode_terminal(c,v)   x264_cabac_size_decision(c,276,v)
+#define x264_cabac_encode_terminal(c)     x264_cabac_size_decision(c,276,0)
 #define x264_cabac_encode_bypass(c,v)     ((c)->f8_bits_encoded += 256)
-#define x264_cabac_encode_flush(c)
+#define x264_cabac_encode_flush(h,c)
 #define x264_macroblock_write_cabac  x264_macroblock_size_cabac
 #define x264_cabac_mb_skip  x264_cabac_mb_size_skip_unused
 #include "cabac.c"
