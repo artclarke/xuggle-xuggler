@@ -529,14 +529,14 @@ struct x264_t
         /* per slice info */
         int     i_slice_count[5];
         int64_t i_slice_size[5];
-        int     i_slice_qp[5];
+        double  f_slice_qp[5];
         /* */
         int64_t i_sqe_global[5];
-        float   f_psnr_average[5];
-        float   f_psnr_mean_y[5];
-        float   f_psnr_mean_u[5];
-        float   f_psnr_mean_v[5];
-        float   f_ssim_mean_y[5];
+        double  f_psnr_average[5];
+        double  f_psnr_mean_y[5];
+        double  f_psnr_mean_u[5];
+        double  f_psnr_mean_v[5];
+        double  f_ssim_mean_y[5];
         /* */
         int64_t i_mb_count[5][19];
         int64_t i_mb_count_8x8dct[2];

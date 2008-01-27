@@ -76,7 +76,8 @@ struct x264_ratecontrol_t
     ratecontrol_entry_t *rce;
     int qp;                     /* qp for current frame */
     int qpm;                    /* qp for current macroblock */
-    float qpa;                  /* average of macroblocks' qp */
+    float qpa_rc;               /* average of macroblocks' qp before aq */
+    float qpa_aq;               /* average of macroblocks' qp after aq */
     int qp_force;
 
     /* VBV stuff */
@@ -681,8 +682,6 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp )
             rc->bframes++;
     }
 
-    rc->qpa = 0;
-
     if( i_force_qp )
     {
         q = i_force_qp - 1;
@@ -712,7 +711,10 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp )
         }
     }
 
-    h->fdec->f_qp_avg =
+    rc->qpa_rc =
+    rc->qpa_aq = 0;
+    h->fdec->f_qp_avg_rc =
+    h->fdec->f_qp_avg_aq =
     rc->qpm =
     rc->qp = x264_clip3( (int)(q + 0.5), 0, 51 );
     if( rce )
@@ -768,9 +770,10 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     x264_cpu_restore( h->param.cpu );
 
     h->fdec->i_row_bits[y] += bits;
-    rc->qpa += rc->qpm;
+    rc->qpa_rc += rc->qpm;
+    rc->qpa_aq += h->mb.i_qp;
 
-    if( h->mb.i_mb_x != h->sps->i_mb_width - 1 || !h->mb.b_variable_qp )
+    if( h->mb.i_mb_x != h->sps->i_mb_width - 1 || !rc->b_vbv || rc->b_2pass )
         return;
 
     h->fdec->i_row_qp[y] = rc->qpm;
@@ -840,7 +843,7 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
              * So just calculate the average QP used so far. */
 
             h->param.rc.i_qp_constant = (h->stat.i_slice_count[SLICE_TYPE_P] == 0) ? 24
-                                      : 1 + h->stat.i_slice_qp[SLICE_TYPE_P] / h->stat.i_slice_count[SLICE_TYPE_P];
+                                      : 1 + h->stat.f_slice_qp[SLICE_TYPE_P] / h->stat.i_slice_count[SLICE_TYPE_P];
             rc->qp_constant[SLICE_TYPE_P] = x264_clip3( h->param.rc.i_qp_constant, 0, 51 );
             rc->qp_constant[SLICE_TYPE_I] = x264_clip3( (int)( qscale2qp( qp2qscale( h->param.rc.i_qp_constant ) / fabs( h->param.rc.f_ip_factor )) + 0.5 ), 0, 51 );
             rc->qp_constant[SLICE_TYPE_B] = x264_clip3( (int)( qscale2qp( qp2qscale( h->param.rc.i_qp_constant ) * fabs( h->param.rc.f_pb_factor )) + 0.5 ), 0, 51 );
@@ -893,11 +896,8 @@ void x264_ratecontrol_end( x264_t *h, int bits )
     for( i = B_DIRECT; i < B_8x8; i++ )
         h->stat.frame.i_mb_count_p += mbs[i];
 
-    if( h->mb.b_variable_qp )
-        rc->qpa /= h->mb.i_mb_count;
-    else
-        rc->qpa = rc->qp;
-    h->fdec->f_qp_avg = rc->qpa;
+    h->fdec->f_qp_avg_rc = rc->qpa_rc /= h->mb.i_mb_count;
+    h->fdec->f_qp_avg_aq = rc->qpa_aq /= h->mb.i_mb_count;
 
     if( h->param.rc.b_stat_write )
     {
@@ -913,7 +913,7 @@ void x264_ratecontrol_end( x264_t *h, int bits )
         fprintf( rc->p_stat_file_out,
                  "in:%d out:%d type:%c q:%.2f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d d:%c;\n",
                  h->fenc->i_frame, h->i_frame,
-                 c_type, rc->qpa,
+                 c_type, rc->qpa_rc,
                  h->stat.frame.i_itex_bits, h->stat.frame.i_ptex_bits,
                  h->stat.frame.i_hdr_bits, h->stat.frame.i_misc_bits,
                  h->stat.frame.i_mb_count_i,
@@ -925,19 +925,19 @@ void x264_ratecontrol_end( x264_t *h, int bits )
     if( rc->b_abr )
     {
         if( h->sh.i_type != SLICE_TYPE_B )
-            rc->cplxr_sum += bits * qp2qscale(rc->qpa) / rc->last_rceq;
+            rc->cplxr_sum += bits * qp2qscale(rc->qpa_rc) / rc->last_rceq;
         else
         {
             /* Depends on the fact that B-frame's QP is an offset from the following P-frame's.
              * Not perfectly accurate with B-refs, but good enough. */
-            rc->cplxr_sum += bits * qp2qscale(rc->qpa) / (rc->last_rceq * fabs(h->param.rc.f_pb_factor));
+            rc->cplxr_sum += bits * qp2qscale(rc->qpa_rc) / (rc->last_rceq * fabs(h->param.rc.f_pb_factor));
         }
         rc->cplxr_sum *= rc->cbr_decay;
         rc->wanted_bits_window += rc->bitrate / rc->fps;
         rc->wanted_bits_window *= rc->cbr_decay;
 
         if( h->param.i_threads == 1 )
-            accum_p_qp_update( h, rc->qpa );
+            accum_p_qp_update( h, rc->qpa_rc );
     }
 
     if( rc->b_2pass )
@@ -952,7 +952,7 @@ void x264_ratecontrol_end( x264_t *h, int bits )
             rc->bframe_bits += bits;
             if( !h->frames.current[0] || !IS_X264_TYPE_B(h->frames.current[0]->i_type) )
             {
-                update_predictor( rc->pred_b_from_p, qp2qscale(rc->qpa),
+                update_predictor( rc->pred_b_from_p, qp2qscale(rc->qpa_rc),
                                   h->fref1[h->i_ref1-1]->i_satd, rc->bframe_bits / rc->bframes );
                 rc->bframe_bits = 0;
             }
@@ -1143,7 +1143,7 @@ static void update_vbv( x264_t *h, int bits )
     x264_ratecontrol_t *rct = h->thread[0]->rc;
 
     if( rcc->last_satd >= h->mb.i_mb_count )
-        update_predictor( &rct->pred[h->sh.i_type], qp2qscale(rcc->qpa), rcc->last_satd, bits );
+        update_predictor( &rct->pred[h->sh.i_type], qp2qscale(rcc->qpa_rc), rcc->last_satd, bits );
 
     if( !rcc->b_vbv )
         return;
@@ -1282,8 +1282,8 @@ static float rate_estimate_qscale( x264_t *h )
         int i1 = IS_X264_TYPE_I(h->fref1[0]->i_type);
         int dt0 = abs(h->fenc->i_poc - h->fref0[0]->i_poc);
         int dt1 = abs(h->fenc->i_poc - h->fref1[0]->i_poc);
-        float q0 = h->fref0[0]->f_qp_avg;
-        float q1 = h->fref1[0]->f_qp_avg;
+        float q0 = h->fref0[0]->f_qp_avg_rc;
+        float q1 = h->fref1[0]->f_qp_avg_rc;
 
         if( h->fref0[0]->i_type == X264_TYPE_BREF )
             q0 -= rcc->pb_offset/2;

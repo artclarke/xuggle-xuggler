@@ -38,7 +38,8 @@ typedef struct
     int     i_frame;    /* Presentation frame number */
     int     i_frame_num; /* Coded frame number */
     int     b_kept_as_ref;
-    float   f_qp_avg;
+    float   f_qp_avg_rc; /* QPs as decided by ratecontrol */
+    float   f_qp_avg_aq; /* QPs as decided by AQ in addition to ratecontrol */
 
     /* YUV buffer */
     int     i_plane;

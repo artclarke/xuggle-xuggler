@@ -1140,8 +1140,7 @@ static void x264_slice_write( x264_t *h )
             h->stat.frame.i_mb_count_8x8dct[1] += h->mb.b_transform_8x8;
         }
 
-        if( h->mb.b_variable_qp )
-            x264_ratecontrol_mb(h, bs_pos(&h->out.bs) + x264_cabac_pos(&h->cabac) - mb_spos);
+        x264_ratecontrol_mb( h, bs_pos(&h->out.bs) + x264_cabac_pos(&h->cabac) - mb_spos );
 
         if( h->sh.b_mbaff )
         {
@@ -1646,7 +1645,7 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     /* Slice stat */
     h->stat.i_slice_count[h->sh.i_type]++;
     h->stat.i_slice_size[h->sh.i_type] += h->out.i_frame_size + NALU_OVERHEAD;
-    h->stat.i_slice_qp[h->sh.i_type] += h->fdec->i_qpplus1 - 1;
+    h->stat.f_slice_qp[h->sh.i_type] += h->fdec->f_qp_avg_aq;
 
     for( i = 0; i < X264_MBTYPE_MAX; i++ )
         h->stat.i_mb_count[h->sh.i_type][i] += h->stat.frame.i_mb_count[i];
@@ -1715,9 +1714,9 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     psz_message[79] = '\0';
     
     x264_log( h, X264_LOG_DEBUG,
-                  "frame=%4d QP=%i NAL=%d Slice:%c Poc:%-3d I:%-4d P:%-4d SKIP:%-4d size=%d bytes%s\n",
+                  "frame=%4d QP=%.2f NAL=%d Slice:%c Poc:%-3d I:%-4d P:%-4d SKIP:%-4d size=%d bytes%s\n",
               h->i_frame,
-              h->fdec->i_qpplus1 - 1,
+              h->fdec->f_qp_avg_aq,
               h->i_nal_ref_idc,
               h->sh.i_type == SLICE_TYPE_I ? 'I' : (h->sh.i_type == SLICE_TYPE_P ? 'P' : 'B' ),
               h->fdec->i_poc,
@@ -1799,7 +1798,7 @@ void    x264_encoder_close  ( x264_t *h )
                           "slice %s:%-5d Avg QP:%5.2f  size:%6.0f  PSNR Mean Y:%5.2f U:%5.2f V:%5.2f Avg:%5.2f Global:%5.2f\n",
                           slice_name[i_slice],
                           i_count,
-                          (double)h->stat.i_slice_qp[i_slice] / i_count,
+                          h->stat.f_slice_qp[i_slice] / i_count,
                           (double)h->stat.i_slice_size[i_slice] / i_count,
                           h->stat.f_psnr_mean_y[i_slice] / i_count, h->stat.f_psnr_mean_u[i_slice] / i_count, h->stat.f_psnr_mean_v[i_slice] / i_count,
                           h->stat.f_psnr_average[i_slice] / i_count,
@@ -1811,7 +1810,7 @@ void    x264_encoder_close  ( x264_t *h )
                           "slice %s:%-5d Avg QP:%5.2f  size:%6.0f\n",
                           slice_name[i_slice],
                           i_count,
-                          (double)h->stat.i_slice_qp[i_slice] / i_count,
+                          h->stat.f_slice_qp[i_slice] / i_count,
                           (double)h->stat.i_slice_size[i_slice] / i_count );
             }
         }
