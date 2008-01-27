@@ -65,8 +65,10 @@
 
 #if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
 #define UNUSED __attribute__((unused))
+#define ALWAYS_INLINE __attribute__((always_inline)) inline
 #else
 #define UNUSED
+#define ALWAYS_INLINE inline
 #endif
 
 /* threads */
