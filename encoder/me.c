@@ -404,15 +404,7 @@ me_hex2:
              * we are still centered on the same place as the DIA2. is this desirable? */
             CROSS( cross_start, i_me_range, i_me_range/2 );
 
-            /* 5x5 ESA */
-            omx = bmx; omy = bmy;
-            if( bcost != ucost2 )
-                COST_MV_X4(  1, 0,  0, 1, -1, 0,  0,-1 );
-            COST_MV_X4(  1, 1, -1, 1, -1,-1,  1,-1 );
-            COST_MV_X4(  2,-1,  2, 0,  2, 1,  2, 2 );
-            COST_MV_X4(  1, 2,  0, 2, -1, 2, -2, 2 );
-            COST_MV_X4( -2, 1, -2, 0, -2,-1, -2,-2 );
-            COST_MV_X4( -1,-2,  0,-2,  1,-2,  2,-2 );
+            COST_MV_X4( -2,-2, -2,2, 2,-2, 2,2 );
 
             /* hexagon grid */
             omx = bmx; omy = bmy;
