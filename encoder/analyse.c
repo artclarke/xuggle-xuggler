@@ -2559,7 +2559,9 @@ void x264_macroblock_analyse( x264_t *h )
             h->mb.i_type = i_type;
             h->mb.i_partition = i_partition;
 
-            if( h->param.analyse.b_bidir_me )
+            if( h->mb.i_subpel_refine >= 7 && IS_INTRA( i_type ) )
+                x264_intra_rd_refine( h, &analysis );
+            else if( h->param.analyse.b_bidir_me )
                 refine_bidir( h, &analysis );
         }
     }
