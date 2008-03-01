@@ -17,8 +17,6 @@
 uint8_t * buf1, * buf2;
 /* buf3, buf4: used to store output */
 uint8_t * buf3, * buf4;
-/* buf5: temp */
-uint8_t * buf5;
 
 #define report( name ) { \
     if( used_asm ) \
@@ -186,13 +184,30 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_dct_function_t dct_c;
     x264_dct_function_t dct_ref;
     x264_dct_function_t dct_asm;
-    int ret = 0, ok, used_asm;
+    x264_quant_function_t qf;
+    int ret = 0, ok, used_asm, i;
     int16_t dct1[16][4][4] __attribute__((aligned(16)));
     int16_t dct2[16][4][4] __attribute__((aligned(16)));
+    int16_t dct4[16][4][4] __attribute__((aligned(16)));
+    int16_t dct8[4][8][8] __attribute__((aligned(16)));
+    x264_t h_buf;
+    x264_t *h = &h_buf;
 
     x264_dct_init( 0, &dct_c );
     x264_dct_init( cpu_ref, &dct_ref);
     x264_dct_init( cpu_new, &dct_asm );
+
+    memset( h, 0, sizeof(*h) );
+    h->pps = h->pps_array;
+    x264_param_default( &h->param );
+    h->param.analyse.i_luma_deadzone[0] = 0;
+    h->param.analyse.i_luma_deadzone[1] = 0;
+    h->param.analyse.b_transform_8x8 = 1;
+    for( i=0; i<6; i++ )
+        h->pps->scaling_list[i] = x264_cqm_flat16;
+    x264_cqm_init( h );
+    x264_quant_init( h, 0, &qf );
+
 #define TEST_DCT( name, t1, t2, size ) \
     if( dct_asm.name != dct_ref.name ) \
     { \
@@ -217,17 +232,29 @@ static int check_dct( int cpu_ref, int cpu_new )
     report( "sub_dct8 :" );
 #undef TEST_DCT
 
-    /* copy coefs because idct8 modifies them in place */
-    memcpy( buf5, dct1, 512 );
+    // fdct and idct are denormalized by different factors, so quant/dequant
+    // is needed to force the coefs into the right range.
+    dct_c.sub16x16_dct( dct4, buf1, buf2 );
+    dct_c.sub16x16_dct8( dct8, buf1, buf2 );
+    for( i=0; i<16; i++ )
+    {
+        qf.quant_4x4( dct4[i], h->quant4_mf[CQM_4IY][20], h->quant4_bias[CQM_4IY][20] );
+        qf.dequant_4x4( dct4[i], h->dequant4_mf[CQM_4IY], 20 );
+    }
+    for( i=0; i<4; i++ )
+    {
+        qf.quant_8x8( dct8[i], h->quant8_mf[CQM_8IY][20], h->quant8_bias[CQM_8IY][20] );
+        qf.dequant_8x8( dct8[i], h->dequant8_mf[CQM_8IY], 20 );
+    }
 
-#define TEST_IDCT( name ) \
+#define TEST_IDCT( name, src ) \
     if( dct_asm.name != dct_ref.name ) \
     { \
         used_asm = 1; \
         memcpy( buf3, buf1, 32*32 ); \
         memcpy( buf4, buf1, 32*32 ); \
-        memcpy( dct1, buf5, 512 ); \
-        memcpy( dct2, buf5, 512 ); \
+        memcpy( dct1, src, 512 ); \
+        memcpy( dct2, src, 512 ); \
         dct_c.name( buf3, (void*)dct1 ); \
         dct_asm.name( buf4, (void*)dct2 ); \
         if( memcmp( buf3, buf4, 32*32 ) ) \
@@ -237,14 +264,14 @@ static int check_dct( int cpu_ref, int cpu_new )
         } \
     }
     ok = 1; used_asm = 0;
-    TEST_IDCT( add4x4_idct );
-    TEST_IDCT( add8x8_idct );
-    TEST_IDCT( add16x16_idct );
+    TEST_IDCT( add4x4_idct, dct4 );
+    TEST_IDCT( add8x8_idct, dct4 );
+    TEST_IDCT( add16x16_idct, dct4 );
     report( "add_idct4 :" );
 
     ok = 1; used_asm = 0;
-    TEST_IDCT( add8x8_idct8 );
-    TEST_IDCT( add16x16_idct8 );
+    TEST_IDCT( add8x8_idct8, dct8 );
+    TEST_IDCT( add16x16_idct8, dct8 );
     report( "add_idct8 :" );
 #undef TEST_IDCT
 
@@ -527,9 +554,8 @@ static int check_deblock( int cpu_ref, int cpu_new )
     { \
         for( j = 0; j < 1024; j++ ) \
             /* two distributions of random to excersize different failure modes */\
-            buf1[j] = rand() & (i&1 ? 0xf : 0xff ); \
-        memcpy( buf3, buf1, 1024 ); \
-        memcpy( buf4, buf1, 1024 ); \
+            buf3[j] = rand() & (i&1 ? 0xf : 0xff ); \
+        memcpy( buf4, buf3, 1024 ); \
         if( db_a.name != db_ref.name ) \
         { \
             used_asm = 1; \
@@ -810,7 +836,6 @@ int main(int argc, char *argv[])
     buf2 = x264_malloc( 1024 );
     buf3 = x264_malloc( 1024 );
     buf4 = x264_malloc( 1024 );
-    buf5 = x264_malloc( 1024 );
 
     i = ( argc > 1 ) ? atoi(argv[1]) : x264_mdate();
     fprintf( stderr, "x264: using random seed %u\n", i );
