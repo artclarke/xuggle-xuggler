@@ -58,8 +58,8 @@ void x264_denoise_dct( x264_t *h, int16_t *dct );
 static inline int array_non_zero_int( void *v, int i_count )
 {
     int i;
-    uint32_t *x = v;
-    i_count /= sizeof(uint32_t);
+    uint64_t *x = v;
+    i_count /= sizeof(uint64_t);
     for( i = 0; i < i_count; i++ )
         if( x[i] ) return 1;
     return 0;
