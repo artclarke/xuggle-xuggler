@@ -85,26 +85,20 @@ BITS 32
     psubw   %4, %3
 %endmacro
 
-%macro SBUTTERFLYwd 3
-    movq        %3, %1
-    punpcklwd   %1, %2
-    punpckhwd   %3, %2
-%endmacro
-
-%macro SBUTTERFLYdq 3
-    movq        %3, %1
-    punpckldq   %1, %2
-    punpckhdq   %3, %2
+%macro SBUTTERFLY 5
+    mov%1       %5, %3
+    punpckl%2   %3, %4
+    punpckh%2   %5, %4
 %endmacro
 
 ;-----------------------------------------------------------------------------
 ; input ABCD output ADTC
 ;-----------------------------------------------------------------------------
 %macro MMX_TRANSPOSE 5
-    SBUTTERFLYwd %1, %2, %5
-    SBUTTERFLYwd %3, %4, %2
-    SBUTTERFLYdq %1, %3, %4
-    SBUTTERFLYdq %5, %2, %3
+    SBUTTERFLY q, wd, %1, %2, %5
+    SBUTTERFLY q, wd, %3, %4, %2
+    SBUTTERFLY q, dq, %1, %3, %4
+    SBUTTERFLY q, dq, %5, %2, %3
 %endmacro
 
 %macro MMX_STORE_DIFF_4P 5
@@ -128,15 +122,8 @@ SECTION_RODATA
 ;-----------------------------------------------------------------------------
 
 ALIGN 16
-x264_mmx_1:        dw  1,  1,  1,  1
-x264_mmx_32:       dw 32, 32, 32, 32
-x264_mmx_PPNN:     dw  1,  1, -1, -1
-x264_mmx_PNPN:     dw  1, -1,  1, -1 
-x264_mmx_PNNP:     dw  1, -1, -1,  1 
-x264_mmx_PPPN:     dw  1,  1,  1, -1 
-x264_mmx_PPNP:     dw  1,  1, -1,  1 
-x264_mmx_2121:     dw  2,  1,  2,  1 
-x264_mmx_p2n2p1p1: dw  2, -2,  1,  1
+pw_32: times 8 dw 32
+pw_1:  times 4 dw 1
 
 ;=============================================================================
 ; Code
@@ -165,7 +152,7 @@ cglobal x264_dct4x4dc_mmx
     MMX_SUMSUB_BADC     mm2, mm3, mm0, mm4          ; mm2=s01  mm3=d01  mm0=s23  mm4=d23
     MMX_SUMSUB_BADC     mm0, mm2, mm4, mm3          ; mm0=s01+s23  mm2=s01-s23  mm4=d01+d23  mm3=d01-d23
 
-    movq    mm6,        [x264_mmx_1 GOT_ebx]
+    movq    mm6,        [pw_1 GOT_ebx]
     paddw   mm0,        mm6
     paddw   mm2,        mm6
     psraw   mm0,        1
@@ -271,7 +258,7 @@ cglobal x264_add4x4_idct_mmx
     MMX_SUMSUB_BADC     mm2, mm3, mm4, mm1              ; mm2=s02+s13  mm3=s02-s13  mm4=d02+d13  mm1=d02-d13
 
     MMX_ZERO            mm7
-    movq                mm6, [x264_mmx_32 GOT_ebx]
+    movq                mm6, [pw_32 GOT_ebx]
     
     MMX_STORE_DIFF_4P   mm2, mm0, mm6, mm7, [eax+0*FDEC_STRIDE]
     MMX_STORE_DIFF_4P   mm4, mm0, mm6, mm7, [eax+1*FDEC_STRIDE]
@@ -308,6 +295,16 @@ cglobal x264_add4x4_idct_mmx
     movq            %1, %4
     MMX_SUMSUB_BA   %1, %2
 %endmacro
+
+%macro MMX_STORE_DIFF_8P 4
+    psraw           %1, 6
+    movq            %3, %2
+    punpcklbw       %3, %4
+    paddsw          %1, %3
+    packuswb        %1, %1
+    movq            %2, %1
+%endmacro
+
 
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_pixel_sub_8x8_mmx( int16_t *diff, uint8_t *pix1, uint8_t *pix2 );
@@ -616,6 +613,109 @@ cglobal x264_add8x8_idct8_mmx
     add  esp, 4
     jmp  x264_pixel_add_8x8_mmx
 
+%macro IDCT8_1D 8
+    movdqa     %1, %3
+    movdqa     %5, %7
+    psraw      %3, 1
+    psraw      %7, 1
+    psubw      %3, %5
+    paddw      %7, %1
+    movdqa     %5, %2
+    psraw      %5, 1
+    paddw      %5, %2
+    paddw      %5, %4
+    paddw      %5, %6
+    movdqa     %1, %6
+    psraw      %1, 1
+    paddw      %1, %6
+    paddw      %1, %8
+    psubw      %1, %2
+    psubw      %2, %4
+    psubw      %6, %4
+    paddw      %2, %8
+    psubw      %6, %8
+    psraw      %4, 1
+    psraw      %8, 1
+    psubw      %2, %4
+    psubw      %6, %8
+    movdqa     %4, %5
+    movdqa     %8, %1
+    psraw      %4, 2
+    psraw      %8, 2
+    paddw      %4, %6
+    paddw      %8, %2
+    psraw      %6, 2
+    psraw      %2, 2
+    psubw      %5, %6
+    psubw      %2, %1
+    movdqa     %1, [eax+0x00]
+    movdqa     %6, [eax+0x40]
+    MMX_SUMSUB_BA %6, %1
+    MMX_SUMSUB_BA %7, %6
+    MMX_SUMSUB_BA %3, %1
+    MMX_SUMSUB_BA %5, %7
+    MMX_SUMSUB_BA %2, %3
+    MMX_SUMSUB_BA %8, %1
+    MMX_SUMSUB_BA %4, %6
+%endmacro
+
+%macro TRANSPOSE8 9
+    movdqa [%9], %8
+    SBUTTERFLY dqa, wd, %1, %2, %8
+    movdqa [%9+16], %8
+    movdqa %8, [%9]
+    SBUTTERFLY dqa, wd, %3, %4, %2
+    SBUTTERFLY dqa, wd, %5, %6, %4
+    SBUTTERFLY dqa, wd, %7, %8, %6
+    SBUTTERFLY dqa, dq, %1, %3, %8
+    movdqa [%9], %8
+    movdqa %8, [16+%9]
+    SBUTTERFLY dqa, dq, %8, %2, %3
+    SBUTTERFLY dqa, dq, %5, %7, %2
+    SBUTTERFLY dqa, dq, %4, %6, %7
+    SBUTTERFLY dqa, qdq, %1, %5, %6
+    SBUTTERFLY dqa, qdq, %8, %4, %5
+    movdqa [%9+16], %8
+    movdqa %8, [%9]
+    SBUTTERFLY dqa, qdq, %8, %2, %4
+    SBUTTERFLY dqa, qdq, %3, %7, %2
+    movdqa %7, [%9+16]
+%endmacro
+
+;-----------------------------------------------------------------------------
+;   void __cdecl x264_add8x8_idct8_sse2( uint8_t *p_dst, int16_t dct[8][8] )
+;-----------------------------------------------------------------------------
+cglobal x264_add8x8_idct8_sse2
+    mov ecx, [esp+4]
+    mov eax, [esp+8]
+    movdqa   xmm1, [eax+0x10]
+    movdqa   xmm2, [eax+0x20]
+    movdqa   xmm3, [eax+0x30]
+    movdqa   xmm5, [eax+0x50]
+    movdqa   xmm6, [eax+0x60]
+    movdqa   xmm7, [eax+0x70]
+    IDCT8_1D xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7
+    TRANSPOSE8 xmm4, xmm1, xmm7, xmm3, xmm5, xmm0, xmm2, xmm6, eax
+    picgetgot edx
+    paddw    xmm4, [pw_32 GOT_edx]
+    movdqa   [eax+0x00], xmm4
+    movdqa   [eax+0x40], xmm2
+    IDCT8_1D xmm4, xmm0, xmm6, xmm3, xmm2, xmm5, xmm7, xmm1
+    movdqa   [eax+0x60], xmm6
+    movdqa   [eax+0x70], xmm7
+    pxor     xmm7, xmm7
+    MMX_STORE_DIFF_8P xmm2, [ecx+FDEC_STRIDE*0], xmm6, xmm7
+    MMX_STORE_DIFF_8P xmm0, [ecx+FDEC_STRIDE*1], xmm6, xmm7
+    MMX_STORE_DIFF_8P xmm1, [ecx+FDEC_STRIDE*2], xmm6, xmm7
+    MMX_STORE_DIFF_8P xmm3, [ecx+FDEC_STRIDE*3], xmm6, xmm7
+    MMX_STORE_DIFF_8P xmm5, [ecx+FDEC_STRIDE*4], xmm6, xmm7
+    MMX_STORE_DIFF_8P xmm4, [ecx+FDEC_STRIDE*5], xmm6, xmm7
+    movdqa   xmm0, [eax+0x60]
+    movdqa   xmm1, [eax+0x70]
+    MMX_STORE_DIFF_8P xmm0, [ecx+FDEC_STRIDE*6], xmm6, xmm7
+    MMX_STORE_DIFF_8P xmm1, [ecx+FDEC_STRIDE*7], xmm6, xmm7
+    ret
+
 ;-----------------------------------------------------------------------------
 ;   void __cdecl x264_sub8x8_dct_mmx( int16_t dct[4][4][4],
 ;                                     uint8_t *pix1, uint8_t *pix2 )
@@ -675,6 +775,7 @@ ADD_NxN_IDCT x264_add16x16_idct_mmx,  x264_add8x8_idct_mmx,  128, 8
 SUB_NxN_DCT  x264_sub16x16_dct8_mmx,  x264_sub8x8_dct8_mmx,  128, 8
 ADD_NxN_IDCT x264_add16x16_idct8_mmx, x264_add8x8_idct8_mmx, 128, 8
 
+ADD_NxN_IDCT x264_add16x16_idct8_sse2, x264_add8x8_idct8_sse2, 128, 8
 
 ;-----------------------------------------------------------------------------
 ; void __cdecl x264_zigzag_scan_4x4_field_mmx( int level[16], int16_t dct[4][4] )
