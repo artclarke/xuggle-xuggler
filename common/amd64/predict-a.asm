@@ -41,19 +41,18 @@ BITS 64
 
 %macro STORE16x16 2
     mov         eax, 4
-ALIGN 4
 .loop:
+    movq        [parm1q + 0*FDEC_STRIDE], %1
     movq        [parm1q + 1*FDEC_STRIDE], %1
     movq        [parm1q + 2*FDEC_STRIDE], %1
     movq        [parm1q + 3*FDEC_STRIDE], %1
-    movq        [parm1q + 4*FDEC_STRIDE], %1
+    movq        [parm1q + 0*FDEC_STRIDE + 8], %2
     movq        [parm1q + 1*FDEC_STRIDE + 8], %2
     movq        [parm1q + 2*FDEC_STRIDE + 8], %2
     movq        [parm1q + 3*FDEC_STRIDE + 8], %2
-    movq        [parm1q + 4*FDEC_STRIDE + 8], %2
+    add         parm1q, 4*FDEC_STRIDE
     dec         eax
-    lea         parm1q, [parm1q + 4*FDEC_STRIDE]
-    jnz         .loop
+    jg          .loop
     nop
 %endmacro
 
@@ -466,9 +465,8 @@ ALIGN 4
 ; void predict_16x16_v_mmx( uint8_t *src )
 ;-----------------------------------------------------------------------------
 cglobal predict_16x16_v_mmx
-    sub         parm1q, FDEC_STRIDE
-    movq        mm0, [parm1q]
-    movq        mm1, [parm1q + 8]
+    movq        mm0, [parm1q - FDEC_STRIDE]
+    movq        mm1, [parm1q - FDEC_STRIDE + 8]
     STORE16x16  mm0, mm1
     ret
 
@@ -477,18 +475,15 @@ cglobal predict_16x16_v_mmx
 ;-----------------------------------------------------------------------------
 
 %macro PRED16x16_DC 2
-    sub         parm1q, FDEC_STRIDE
-
     pxor        mm0, mm0
     pxor        mm1, mm1
-    psadbw      mm0, [parm1q]
-    psadbw      mm1, [parm1q + 8]
+    psadbw      mm0, [parm1q - FDEC_STRIDE]
+    psadbw      mm1, [parm1q - FDEC_STRIDE + 8]
     paddusw     mm0, mm1
     paddusw     mm0, %1
     psrlw       mm0, %2                       ; dc
     pshufw      mm0, mm0, 0
     packuswb    mm0, mm0                      ; dc in bytes
-
     STORE16x16  mm0, mm0
 %endmacro
 

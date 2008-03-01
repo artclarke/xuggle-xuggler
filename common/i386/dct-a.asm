@@ -141,8 +141,7 @@ cglobal x264_dct4x4dc_mmx
     movq    mm2,        [eax+16]
     movq    mm3,        [eax+24]
 
-    picpush ebx
-    picgetgot ebx
+    picgetgot edx
 
     MMX_SUMSUB_BADC     mm1, mm0, mm3, mm2          ; mm1=s01  mm0=d01  mm3=s23  mm2=d23
     MMX_SUMSUB_BADC     mm3, mm1, mm2, mm0          ; mm3=s01+s23  mm1=s01-s23  mm2=d01+d23  mm0=d01-d23
@@ -152,7 +151,7 @@ cglobal x264_dct4x4dc_mmx
     MMX_SUMSUB_BADC     mm2, mm3, mm0, mm4          ; mm2=s01  mm3=d01  mm0=s23  mm4=d23
     MMX_SUMSUB_BADC     mm0, mm2, mm4, mm3          ; mm0=s01+s23  mm2=s01-s23  mm4=d01+d23  mm3=d01-d23
 
-    movq    mm6,        [pw_1 GOT_ebx]
+    movq    mm6,        [pw_1 GOT_edx]
     paddw   mm0,        mm6
     paddw   mm2,        mm6
     psraw   mm0,        1
@@ -165,7 +164,6 @@ cglobal x264_dct4x4dc_mmx
     movq    [eax+16],   mm3
     psraw   mm4,        1
     movq    [eax+24],   mm4
-    picpop  ebx
     ret
 
 ;-----------------------------------------------------------------------------
@@ -241,8 +239,7 @@ cglobal x264_add4x4_idct_mmx
     
     mov     eax, [esp+ 4]   ; p_dst
 
-    picpush ebx
-    picgetgot ebx
+    picgetgot edx
 
     MMX_SUMSUB_BA       mm2, mm0                        ; mm2=s02  mm0=d02
     MMX_SUMSUBD2_AB     mm1, mm3, mm5, mm4              ; mm1=s13  mm4=d13 ( well 1 + 3>>1 and 1>>1 + 3)
@@ -258,14 +255,13 @@ cglobal x264_add4x4_idct_mmx
     MMX_SUMSUB_BADC     mm2, mm3, mm4, mm1              ; mm2=s02+s13  mm3=s02-s13  mm4=d02+d13  mm1=d02-d13
 
     MMX_ZERO            mm7
-    movq                mm6, [pw_32 GOT_ebx]
+    movq                mm6, [pw_32 GOT_edx]
     
     MMX_STORE_DIFF_4P   mm2, mm0, mm6, mm7, [eax+0*FDEC_STRIDE]
     MMX_STORE_DIFF_4P   mm4, mm0, mm6, mm7, [eax+1*FDEC_STRIDE]
     MMX_STORE_DIFF_4P   mm1, mm0, mm6, mm7, [eax+2*FDEC_STRIDE]
     MMX_STORE_DIFF_4P   mm3, mm0, mm6, mm7, [eax+3*FDEC_STRIDE]
 
-    picpop  ebx
     ret
 
 

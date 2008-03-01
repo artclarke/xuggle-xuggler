@@ -39,16 +39,22 @@ BITS 32
     movq        [edx + 7*FDEC_STRIDE], %2
 %endmacro
 
-%macro SAVE_0_1 1
-    movq        [%1]         , mm0
-    movq        [%1 + 8]     , mm1
+%macro STORE16x16 2
+    mov         eax, 4
+.loop:
+    movq        [edx + 0*FDEC_STRIDE], %1
+    movq        [edx + 1*FDEC_STRIDE], %1
+    movq        [edx + 2*FDEC_STRIDE], %1
+    movq        [edx + 3*FDEC_STRIDE], %1
+    movq        [edx + 0*FDEC_STRIDE + 8], %2
+    movq        [edx + 1*FDEC_STRIDE + 8], %2
+    movq        [edx + 2*FDEC_STRIDE + 8], %2
+    movq        [edx + 3*FDEC_STRIDE + 8], %2
+    add         edx, 4*FDEC_STRIDE
+    dec         eax
+    jg          .loop
+    nop
 %endmacro
-
-%macro SAVE_0_0 1
-    movq        [%1]         , mm0
-    movq        [%1 + 8]     , mm0
-%endmacro
-
 
 SECTION_RODATA
 
@@ -76,7 +82,7 @@ SECTION .text
     pavgb       %2, %3
     pxor        %3, %5
     movq        %1, %4
-    pand        %3, [pb_1 GOT_ebx]
+    pand        %3, [pb_1 GOT_ecx]
     psubusb     %2, %3
     pavgb       %1, %2
 %endmacro
@@ -96,21 +102,19 @@ cglobal predict_8x8_v_mmxext
 ; void predict_8x8_dc_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
 cglobal predict_8x8_dc_mmxext
-    picpush     ebx
-    picgetgot   ebx
-    mov         eax, [picesp + 8]
-    mov         edx, [picesp + 4]
+    picgetgot   ecx
+    mov         eax, [esp + 8]
+    mov         edx, [esp + 4]
     pxor        mm0, mm0
     pxor        mm1, mm1
     psadbw      mm0, [eax+7]
     psadbw      mm1, [eax+16]
-    paddw       mm0, [pw_8 GOT_ebx]
+    paddw       mm0, [pw_8 GOT_ecx]
     paddw       mm0, mm1
     psrlw       mm0, 4
     pshufw      mm0, mm0, 0
     packuswb    mm0, mm0
     STORE8x8    mm0, mm0
-    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
@@ -118,18 +122,16 @@ cglobal predict_8x8_dc_mmxext
 ;-----------------------------------------------------------------------------
 %macro PRED8x8_DC 2
 cglobal %1
-    picpush     ebx
-    picgetgot   ebx
-    mov         eax, [picesp + 8]
-    mov         edx, [picesp + 4]
+    picgetgot   ecx
+    mov         eax, [esp + 8]
+    mov         edx, [esp + 4]
     pxor        mm0, mm0
     psadbw      mm0, [eax+%2]
-    paddw       mm0, [pw_4 GOT_ebx]
+    paddw       mm0, [pw_4 GOT_ecx]
     psrlw       mm0, 3
     pshufw      mm0, mm0, 0
     packuswb    mm0, mm0
     STORE8x8    mm0, mm0
-    picpop      ebx
     ret
 %endmacro
 
@@ -140,10 +142,9 @@ PRED8x8_DC predict_8x8_dc_left_mmxext, 7
 ; void predict_8x8_ddl_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
 cglobal predict_8x8_ddl_mmxext
-    picpush     ebx
-    picgetgot   ebx
-    mov         eax, [picesp + 8]
-    mov         edx, [picesp + 4]
+    picgetgot   ecx
+    mov         eax, [esp + 8]
+    mov         edx, [esp + 4]
     movq        mm1, [eax + 15]
     movq        mm2, [eax + 17]
     movq        mm3, [eax + 23]
@@ -168,17 +169,15 @@ cglobal predict_8x8_ddl_mmxext
 %assign Y (Y-1)
     movq        [edx + Y*FDEC_STRIDE], mm1
 
-    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_ddr_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
 cglobal predict_8x8_ddr_mmxext
-    picpush     ebx
-    picgetgot   ebx
-    mov         eax, [picesp + 8]
-    mov         edx, [picesp + 4]
+    picgetgot   ecx
+    mov         eax, [esp + 8]
+    mov         edx, [esp + 4]
     movq        mm1, [eax + 7]
     movq        mm2, [eax + 9]
     movq        mm3, [eax + 15]
@@ -203,7 +202,6 @@ cglobal predict_8x8_ddr_mmxext
 %assign Y (Y-1)
     movq        [edx + Y*FDEC_STRIDE], mm0
 
-    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
@@ -222,10 +220,9 @@ cglobal predict_8x8_ddr_mmxext
 ; 7   ,,,,,
 
 cglobal predict_8x8_vr_core_mmxext
-    picpush     ebx
-    picgetgot   ebx
-    mov         eax, [picesp + 8]
-    mov         edx, [picesp + 4]
+    picgetgot   ecx
+    mov         eax, [esp + 8]
+    mov         edx, [esp + 4]
     movq        mm2, [eax + 16]
     movq        mm3, [eax + 15]
     movq        mm1, [eax + 14]
@@ -244,13 +241,12 @@ cglobal predict_8x8_vr_core_mmxext
     movq        [edx +  Y   *FDEC_STRIDE], mm3
     movq        [edx + (Y+1)*FDEC_STRIDE], mm0
 
-    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_v_mmx( uint8_t *src )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8c_v_mmx 
+cglobal predict_8x8c_v_mmx
     mov         edx, [esp + 4]
     movq        mm0, [edx - FDEC_STRIDE]
     STORE8x8    mm0, mm0
@@ -260,10 +256,9 @@ cglobal predict_8x8c_v_mmx
 ; void predict_8x8c_dc_core_mmxext( uint8_t *src, int s2, int s3 )
 ;-----------------------------------------------------------------------------
 cglobal predict_8x8c_dc_core_mmxext
-    picpush     ebx
-    picgetgot   ebx
+    picgetgot   ecx
 
-    mov         edx, [picesp + 4]
+    mov         edx, [esp + 4]
 
     movq        mm0, [edx - FDEC_STRIDE]
     pxor        mm1, mm1
@@ -273,10 +268,10 @@ cglobal predict_8x8c_dc_core_mmxext
     psadbw      mm1, mm2        ; s1
     psadbw      mm0, mm2        ; s0
 
-    paddw       mm0, [picesp +  8]
-    pshufw      mm2, [picesp + 12], 0
+    paddw       mm0, [esp +  8]
+    pshufw      mm2, [esp + 12], 0
     psrlw       mm0, 3
-    paddw       mm1, [pw_2 GOT_ebx]
+    paddw       mm1, [pw_2 GOT_ecx]
     movq        mm3, mm2
     pshufw      mm1, mm1, 0
     pshufw      mm0, mm0, 0     ; dc0 (w)
@@ -289,24 +284,20 @@ cglobal predict_8x8c_dc_core_mmxext
     packuswb    mm2, mm3        ; dc2,dc3 (b)
 
     STORE8x8    mm0, mm2
-
-    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_p_core_mmxext( uint8_t *src, int i00, int b, int c )
 ;-----------------------------------------------------------------------------
 cglobal predict_8x8c_p_core_mmxext
-    picpush     ebx
-    picgetgot   ebx
+    picgetgot   ecx
 
-    mov         edx, [picesp + 4]
-    mov         ecx, FDEC_STRIDE
-    pshufw      mm0, [picesp + 8], 0
-    pshufw      mm2, [picesp +12], 0
-    pshufw      mm4, [picesp +16], 0
+    mov         edx, [esp + 4]
+    pshufw      mm0, [esp + 8], 0
+    pshufw      mm2, [esp +12], 0
+    pshufw      mm4, [esp +16], 0
     movq        mm1, mm2
-    pmullw      mm2, [pw_3210 GOT_ebx]
+    pmullw      mm2, [pw_3210 GOT_ecx]
     psllw       mm1, 2
     paddsw      mm0, mm2        ; mm0 = {i+0*b, i+1*b, i+2*b, i+3*b}
     paddsw      mm1, mm0        ; mm1 = {i+4*b, i+5*b, i+6*b, i+7*b}
@@ -323,29 +314,26 @@ ALIGN 4
 
     paddsw      mm0, mm4
     paddsw      mm1, mm4
-    add         edx, ecx
+    add         edx, FDEC_STRIDE
     dec         eax
     jg          .loop
 
     nop
-    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
 ; void predict_16x16_p_core_mmxext( uint8_t *src, int i00, int b, int c )
 ;-----------------------------------------------------------------------------
 cglobal predict_16x16_p_core_mmxext
-    picpush     ebx
-    picgetgot   ebx
+    picgetgot   ecx
 
-    mov         edx, [picesp + 4]
-    mov         ecx, FDEC_STRIDE
-    pshufw      mm0, [picesp + 8], 0
-    pshufw      mm2, [picesp +12], 0
-    pshufw      mm4, [picesp +16], 0
+    mov         edx, [esp + 4]
+    pshufw      mm0, [esp + 8], 0
+    pshufw      mm2, [esp +12], 0
+    pshufw      mm4, [esp +16], 0
     movq        mm5, mm2
     movq        mm1, mm2
-    pmullw      mm5, [pw_3210 GOT_ebx]
+    pmullw      mm5, [pw_3210 GOT_ecx]
     psllw       mm2, 3
     psllw       mm1, 2
     movq        mm3, mm2
@@ -375,91 +363,47 @@ ALIGN 4
     paddsw      mm1, mm4
     paddsw      mm2, mm4
     paddsw      mm3, mm4
-    add         edx, ecx
+    add         edx, FDEC_STRIDE
     dec         eax
     jg          .loop
 
     nop
-    picpop      ebx
     ret
 
 ;-----------------------------------------------------------------------------
 ; void predict_16x16_v_mmx( uint8_t *src )
 ;-----------------------------------------------------------------------------
-cglobal predict_16x16_v_mmx 
+cglobal predict_16x16_v_mmx
     mov         edx, [esp + 4]
-    mov         ecx, FDEC_STRIDE
-    sub         edx, ecx                ; edx <-- line -1
-
-    movq        mm0, [edx]
-    movq        mm1, [edx + 8]
-    lea         eax, [ecx + 2*ecx]      ; eax <-- 3* stride
-
-    SAVE_0_1    (edx + ecx)             ; 0
-    SAVE_0_1    (edx + 2 * ecx)         ; 1
-    SAVE_0_1    (edx + eax)             ; 2
-    SAVE_0_1    (edx + 4 * ecx)         ; 3
-    SAVE_0_1    (edx + 2 * eax)         ; 5
-    SAVE_0_1    (edx + 8 * ecx)         ; 7
-    SAVE_0_1    (edx + 4 * eax)         ; 11
-    add         edx, ecx                ; edx <-- line 0
-    SAVE_0_1    (edx + 4 * ecx)         ; 4
-    SAVE_0_1    (edx + 2 * eax)         ; 6
-    SAVE_0_1    (edx + 8 * ecx)         ; 8
-    SAVE_0_1    (edx + 4 * eax)         ; 12
-    lea         edx, [edx + 8 * ecx]    ; edx <-- line 8
-    SAVE_0_1    (edx + ecx)             ; 9
-    SAVE_0_1    (edx + 2 * ecx)         ; 10
-    lea         edx, [edx + 4 * ecx]    ; edx <-- line 12
-    SAVE_0_1    (edx + ecx)             ; 13
-    SAVE_0_1    (edx + 2 * ecx)         ; 14
-    SAVE_0_1    (edx + eax)             ; 15
-
+    movq        mm0, [edx - FDEC_STRIDE]
+    movq        mm1, [edx + 8 - FDEC_STRIDE]
+    STORE16x16  mm0, mm1
     ret
 
 ;-----------------------------------------------------------------------------
 ; void predict_16x16_dc_core_mmxext( uint8_t *src, int i_dc_left )
 ;-----------------------------------------------------------------------------
 
-%macro PRED16x16_DC 3
-    mov         edx, [%3 + 4]
-    mov         ecx, FDEC_STRIDE
-    sub         edx, ecx                ; edx <-- line -1
-
+%macro PRED16x16_DC 2
+    mov         edx, [esp+4]
     pxor        mm0, mm0
     pxor        mm1, mm1
-    psadbw      mm0, [edx]
-    psadbw      mm1, [edx + 8]
+    psadbw      mm0, [edx - FDEC_STRIDE]
+    psadbw      mm1, [edx - FDEC_STRIDE + 8]
     paddusw     mm0, mm1
-    paddusw     mm0, %1                 ; FIXME is stack alignment guaranteed?
+    paddusw     mm0, %1
     psrlw       mm0, %2                 ; dc
-    push        edi
     pshufw      mm0, mm0, 0
-    lea         eax, [ecx + 2*ecx]      ; eax <-- 3* stride
     packuswb    mm0, mm0                ; dc in bytes
-
-    mov         edi, 4
-ALIGN 4
-.loop:
-    SAVE_0_0    (edx + ecx)             ; 0
-    SAVE_0_0    (edx + 2 * ecx)         ; 1
-    SAVE_0_0    (edx + eax)             ; 2
-    SAVE_0_0    (edx + 4 * ecx)         ; 3
-    dec         edi
-    lea         edx, [edx + 4 * ecx]
-    jg          .loop
-
-    pop         edi
+    STORE16x16  mm0, mm0
 %endmacro
 
 cglobal predict_16x16_dc_core_mmxext
-    PRED16x16_DC [esp+8], 5, esp
+    PRED16x16_DC [esp+8], 5
     ret
 
 cglobal predict_16x16_dc_top_mmxext
-    picpush ebx
-    picgetgot ebx
-    PRED16x16_DC [pw_8 GOT_ebx], 4, picesp
-    picpop ebx
+    picgetgot ecx
+    PRED16x16_DC [pw_8 GOT_ecx], 4
     ret
 

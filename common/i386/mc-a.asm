@@ -253,21 +253,19 @@ AVG2_END
 %macro BIWEIGHT_START_MMX 0
     push    edi
     push    esi
-    picpush ebx
-    picgetgot ebx
-    mov     edi, [picesp+12]    ; dst
-    mov     esi, [picesp+16]    ; i_dst
-    mov     edx, [picesp+20]    ; src
-    mov     ecx, [picesp+24]    ; i_src
-
-    pshufw  mm4, [picesp+28], 0  ; weight_dst
-    movq    mm5, [pw_64 GOT_ebx]
-    psubw   mm5, mm4             ; weight_src
-    movq    mm6, [pw_32 GOT_ebx] ; rounding
+    picgetgot ecx
+    movq    mm5, [pw_64 GOT_ecx]
+    movq    mm6, [pw_32 GOT_ecx] ; rounding
+    mov     edi, [esp+12]        ; dst
+    mov     esi, [esp+16]        ; i_dst
+    mov     edx, [esp+20]        ; src
+    mov     ecx, [esp+24]        ; i_src
+    pshufw  mm4, [esp+28], 0     ; weight_dst
     pxor    mm7, mm7
+    psubw   mm5, mm4             ; weight_src
 %endmacro
+
 %macro BIWEIGHT_END_MMX 0
-    picpop  ebx
     pop     esi
     pop     edi
     ret
@@ -278,7 +276,7 @@ AVG2_END
 ;-----------------------------------------------------------------------------
 cglobal x264_pixel_avg_weight_w16_mmxext
     BIWEIGHT_START_MMX
-    mov     eax, [picesp+32] ; i_height
+    mov     eax, [esp+32] ; i_height
     ALIGN 4
     .height_loop
 
@@ -298,7 +296,7 @@ cglobal x264_pixel_avg_weight_w16_mmxext
 ;-----------------------------------------------------------------------------
 cglobal x264_pixel_avg_weight_w8_mmxext
     BIWEIGHT_START_MMX
-    mov     eax, [picesp+32]
+    mov     eax, [esp+32]
     ALIGN 4
     .height_loop
 

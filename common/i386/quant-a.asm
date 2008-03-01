@@ -275,11 +275,9 @@ cglobal %1
 
 .rshift32:
     neg   eax
-    picpush ebx
-    picgetgot ebx
-    movq  mm6, [pd_1 GOT_ebx]
-    picpop ebx
     movd  mm5, eax
+    picgetgot eax
+    movq  mm6, [pd_1 GOT_eax]
     pxor  mm7, mm7
     pslld mm6, mm5
     psrld mm6, 1
