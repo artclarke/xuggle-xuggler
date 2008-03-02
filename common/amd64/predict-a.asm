@@ -205,38 +205,6 @@ cglobal predict_8x8_dc_left_mmxext
     ret
 
 ;-----------------------------------------------------------------------------
-; void predict_8x8_ddl_mmxext( uint8_t *src, uint8_t *edge )
-;-----------------------------------------------------------------------------
-cglobal predict_8x8_ddl_mmxext
-    movq        mm5, [parm2q+16]
-    movq        mm2, [parm2q+17]
-    movq        mm3, [parm2q+23]
-    movq        mm4, [parm2q+25]
-    movq        mm1, mm5
-    psllq       mm1, 8
-    PRED8x8_LOWPASS mm0, mm1, mm2, mm5, mm7
-    PRED8x8_LOWPASS mm1, mm3, mm4, [parm2q+24], mm6
-
-%assign Y 7
-%rep 6
-    movq        [parm1q+Y*FDEC_STRIDE], mm1
-    movq        mm2, mm0
-    psllq       mm1, 8
-    psrlq       mm2, 56
-    psllq       mm0, 8
-    por         mm1, mm2
-%assign Y (Y-1)
-%endrep
-    movq        [parm1q+Y*FDEC_STRIDE], mm1
-    psllq       mm1, 8
-    psrlq       mm0, 56
-    por         mm1, mm0
-%assign Y (Y-1)
-    movq        [parm1q+Y*FDEC_STRIDE], mm1
-
-    ret
-
-;-----------------------------------------------------------------------------
 ; void predict_8x8_ddl_sse2( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
 cglobal predict_8x8_ddl_sse2

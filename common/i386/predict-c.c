@@ -538,9 +538,9 @@ void x264_predict_8x8_init_mmx( int cpu, x264_predict8x8_t pf[12] )
     pf[I_PRED_8x8_DC]  = predict_8x8_dc_mmxext;
     pf[I_PRED_8x8_DC_TOP] = predict_8x8_dc_top_mmxext;
     pf[I_PRED_8x8_DC_LEFT]= predict_8x8_dc_left_mmxext;
-    pf[I_PRED_8x8_DDL] = predict_8x8_ddl_mmxext;
     pf[I_PRED_8x8_VR]  = predict_8x8_vr_mmxext;
 #ifdef ARCH_X86
+    pf[I_PRED_8x8_DDL] = predict_8x8_ddl_mmxext;
     pf[I_PRED_8x8_DDR] = predict_8x8_ddr_mmxext;
 #endif
     if( !(cpu&X264_CPU_SSE2) )
