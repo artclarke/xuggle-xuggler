@@ -851,6 +851,11 @@ void x264_predict_16x16_init( int cpu, x264_predict_t pf[7] )
     {
         x264_predict_16x16_init_mmxext( pf );
     }
+    // disable on AMD processors since it is slower
+    if( (cpu&X264_CPU_SSE2) && !(cpu&X264_CPU_3DNOW) )
+    {
+        x264_predict_16x16_init_sse2( pf );
+    }
 #endif
 
 #ifdef ARCH_PPC
@@ -899,7 +904,8 @@ void x264_predict_8x8_init( int cpu, x264_predict8x8_t pf[12] )
     {
         x264_predict_8x8_init_mmxext( pf );
     }
-    if( cpu&X264_CPU_SSE2 )
+    // disable on AMD processors since it is slower
+    if( (cpu&X264_CPU_SSE2) && !(cpu&X264_CPU_3DNOW) )
     {
         x264_predict_8x8_init_sse2( pf );
     }

@@ -56,24 +56,31 @@ BITS 64
     nop
 %endmacro
 
+%macro STORE16x16_SSE2 1
+    mov         eax, 4
+.loop:
+    movdqa      [parm1q + 0*FDEC_STRIDE], %1
+    movdqa      [parm1q + 1*FDEC_STRIDE], %1
+    movdqa      [parm1q + 2*FDEC_STRIDE], %1
+    movdqa      [parm1q + 3*FDEC_STRIDE], %1
+    add         parm1q, 4*FDEC_STRIDE
+    dec         eax
+    jg          .loop
+    nop
+%endmacro
 
 SECTION_RODATA
 
-pw_2: times 4 dw 2
-pw_4: times 4 dw 4
-pw_8: times 4 dw 8
-pw_3210:
-    dw 0
-    dw 1
-    dw 2
-    dw 3
 ALIGN 16
-pb_1: times 16 db 1
-pb_00s_ff:
-    times 8 db 0
-pb_0s_ff:
-    times 7 db 0
-    db 0xff
+pb_1:       times 16 db 1
+pw_2:       times 4 dw 2
+pw_4:       times 4 dw 4
+pw_8:       times 8 dw 8
+pw_76543210:
+pw_3210:    dw 0, 1, 2, 3, 4, 5, 6, 7
+pb_00s_ff:  times 8 db 0
+pb_0s_ff:   times 7 db 0 
+            db 0xff
 
 ;=============================================================================
 ; Code
@@ -460,7 +467,45 @@ ALIGN 4
 
     nop
     ret
-    
+
+;-----------------------------------------------------------------------------
+; void predict_16x16_p_core_sse2( uint8_t *src, int i00, int b, int c )
+;-----------------------------------------------------------------------------
+cglobal predict_16x16_p_core_sse2
+    movd        xmm0, parm2d
+    movd        xmm1, parm3d
+    movd        xmm2, parm4d
+    pshuflw     xmm0, xmm0, 0
+    pshuflw     xmm1, xmm1, 0
+    pshuflw     xmm2, xmm2, 0
+    punpcklqdq  xmm0, xmm0
+    punpcklqdq  xmm1, xmm1
+    punpcklqdq  xmm2, xmm2
+    movdqa      xmm3, xmm1
+    pmullw      xmm3, [pw_76543210 GLOBAL]
+    psllw       xmm1, 3
+    paddsw      xmm0, xmm3  ; xmm0 = {i+ 0*b, i+ 1*b, i+ 2*b, i+ 3*b, i+ 4*b, i+ 5*b, i+ 6*b, i+ 7*b}
+    paddsw      xmm1, xmm0  ; xmm1 = {i+ 8*b, i+ 9*b, i+10*b, i+11*b, i+12*b, i+13*b, i+14*b, i+15*b}
+
+    mov         eax, 16
+ALIGN 4
+.loop:
+    movdqa      xmm3, xmm0
+    movdqa      xmm4, xmm1
+    psraw       xmm3, 5
+    psraw       xmm4, 5
+    packuswb    xmm3, xmm4
+    movdqa      [parm1q], xmm3
+
+    paddsw      xmm0, xmm2
+    paddsw      xmm1, xmm2
+    add         parm1q, FDEC_STRIDE
+    dec         eax
+    jg          .loop
+
+    nop
+    ret
+
 ;-----------------------------------------------------------------------------
 ; void predict_16x16_v_mmx( uint8_t *src )
 ;-----------------------------------------------------------------------------
@@ -468,6 +513,14 @@ cglobal predict_16x16_v_mmx
     movq        mm0, [parm1q - FDEC_STRIDE]
     movq        mm1, [parm1q - FDEC_STRIDE + 8]
     STORE16x16  mm0, mm1
+    ret
+
+;-----------------------------------------------------------------------------
+; void predict_16x16_v_sse2( uint8_t *src )
+;-----------------------------------------------------------------------------
+cglobal predict_16x16_v_sse2
+    movdqa      xmm0, [parm1q - FDEC_STRIDE]
+    STORE16x16_SSE2 xmm0
     ret
 
 ;-----------------------------------------------------------------------------
@@ -494,5 +547,31 @@ cglobal predict_16x16_dc_core_mmxext
 
 cglobal predict_16x16_dc_top_mmxext
     PRED16x16_DC [pw_8 GLOBAL], 4
+    ret
+
+;-----------------------------------------------------------------------------
+; void predict_16x16_dc_core_sse2( uint8_t *src, int i_dc_left )
+;-----------------------------------------------------------------------------
+
+%macro PRED16x16_DC_SSE2 2
+    pxor        xmm0, xmm0
+    psadbw      xmm0, [parm1q - FDEC_STRIDE]
+    movhlps     xmm1, xmm0
+    paddw       xmm0, xmm1
+    paddusw     xmm0, %1
+    psrlw       xmm0, %2                ; dc
+    pshuflw     xmm0, xmm0, 0
+    punpcklqdq  xmm0, xmm0
+    packuswb    xmm0, xmm0              ; dc in bytes
+    STORE16x16_SSE2 xmm0
+%endmacro
+
+cglobal predict_16x16_dc_core_sse2
+    movd xmm2, parm2d
+    PRED16x16_DC_SSE2 xmm2, 5
+    ret
+
+cglobal predict_16x16_dc_top_sse2
+    PRED16x16_DC_SSE2 [pw_8 GLOBAL], 4
     ret
 

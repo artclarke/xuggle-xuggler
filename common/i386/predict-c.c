@@ -45,27 +45,32 @@ extern void predict_8x8_vl_sse2( uint8_t *src, uint8_t edge[33] );
 extern void predict_8x8_vr_core_mmxext( uint8_t *src, uint8_t edge[33] );
 extern void predict_4x4_ddl_mmxext( uint8_t *src );
 extern void predict_4x4_vl_mmxext( uint8_t *src );
+extern void predict_16x16_dc_top_sse2( uint8_t *src );
+extern void predict_16x16_dc_core_sse2( uint8_t *src, int i_dc_left );
+extern void predict_16x16_v_sse2( uint8_t *src );
+extern void predict_16x16_p_core_sse2( uint8_t *src, int i00, int b, int c );
 
-static void predict_16x16_p( uint8_t *src )
-{
-    int a, b, c, i;
-    int H = 0;
-    int V = 0;
-    int i00;
-
-    for( i = 1; i <= 8; i++ )
-    {
-        H += i * ( src[7+i - FDEC_STRIDE ]  - src[7-i - FDEC_STRIDE ] );
-        V += i * ( src[(7+i)*FDEC_STRIDE -1] - src[(7-i)*FDEC_STRIDE -1] );
-    }
-
-    a = 16 * ( src[15*FDEC_STRIDE -1] + src[15 - FDEC_STRIDE] );
-    b = ( 5 * H + 32 ) >> 6;
-    c = ( 5 * V + 32 ) >> 6;
-    i00 = a - b * 7 - c * 7 + 16;
-
-    predict_16x16_p_core_mmxext( src, i00, b, c );
+#define PREDICT_16x16_P(name)\
+static void predict_16x16_p_##name( uint8_t *src )\
+{\
+    int a, b, c, i;\
+    int H = 0;\
+    int V = 0;\
+    int i00;\
+    for( i = 1; i <= 8; i++ )\
+    {\
+        H += i * ( src[7+i - FDEC_STRIDE ]  - src[7-i - FDEC_STRIDE ] );\
+        V += i * ( src[(7+i)*FDEC_STRIDE -1] - src[(7-i)*FDEC_STRIDE -1] );\
+    }\
+    a = 16 * ( src[15*FDEC_STRIDE -1] + src[15 - FDEC_STRIDE] );\
+    b = ( 5 * H + 32 ) >> 6;\
+    c = ( 5 * V + 32 ) >> 6;\
+    i00 = a - b * 7 - c * 7 + 16;\
+    predict_16x16_p_core_##name( src, i00, b, c );\
 }
+
+PREDICT_16x16_P( mmxext )
+PREDICT_16x16_P( sse2   )
 
 static void predict_8x8c_p( uint8_t *src )
 {
@@ -88,19 +93,21 @@ static void predict_8x8c_p( uint8_t *src )
     predict_8x8c_p_core_mmxext( src, i00, b, c );
 }
 
-static void predict_16x16_dc( uint8_t *src )
-{
-    uint32_t dc=16;
-    int i;
-
-    for( i = 0; i < 16; i+=2 )
-    {
-        dc += src[-1 + i * FDEC_STRIDE];
-        dc += src[-1 + (i+1) * FDEC_STRIDE];
-    }
-
-    predict_16x16_dc_core_mmxext( src, dc );
+#define PREDICT_16x16_DC(name)\
+static void predict_16x16_dc_##name( uint8_t *src )\
+{\
+    uint32_t dc=16;\
+    int i;\
+    for( i = 0; i < 16; i+=2 )\
+    {\
+        dc += src[-1 + i * FDEC_STRIDE];\
+        dc += src[-1 + (i+1) * FDEC_STRIDE];\
+    }\
+    predict_16x16_dc_core_##name( src, dc );\
 }
+
+PREDICT_16x16_DC( mmxext )
+PREDICT_16x16_DC( sse2   )
 
 static void predict_8x8c_dc( uint8_t *src )
 {
@@ -488,9 +495,9 @@ void x264_intra_sa8d_x3_8x8_mmxext( uint8_t *fenc, uint8_t edge[33], int res[3] 
 void x264_predict_16x16_init_mmxext( x264_predict_t pf[7] )
 {
     pf[I_PRED_16x16_V]       = predict_16x16_v_mmx;
-    pf[I_PRED_16x16_DC]      = predict_16x16_dc;
+    pf[I_PRED_16x16_DC]      = predict_16x16_dc_mmxext;
     pf[I_PRED_16x16_DC_TOP]  = predict_16x16_dc_top_mmxext;
-    pf[I_PRED_16x16_P]       = predict_16x16_p;
+    pf[I_PRED_16x16_P]       = predict_16x16_p_mmxext;
 
 #ifdef ARCH_X86_64
     pf[I_PRED_16x16_H]       = predict_16x16_h;
@@ -526,19 +533,15 @@ void x264_predict_8x8_init_mmxext( x264_predict8x8_t pf[12] )
 
 void x264_predict_8x8_init_sse2( x264_predict8x8_t pf[12] )
 {
-#ifdef ARCH_X86_64 // x86 not written yet
     pf[I_PRED_8x8_DDL] = predict_8x8_ddl_sse2;
-    pf[I_PRED_8x8_DDR] = predict_8x8_ddr_sse2;
     pf[I_PRED_8x8_VL]  = predict_8x8_vl_sse2;
-#endif
+    pf[I_PRED_8x8_DDR] = predict_8x8_ddr_sse2;
 }
 
 void x264_predict_4x4_init_mmxext( x264_predict_t pf[12] )
 {
-#ifdef ARCH_X86_64 // x86 not written yet
     pf[I_PRED_4x4_DDL] = predict_4x4_ddl_mmxext;
     pf[I_PRED_4x4_VL]  = predict_4x4_vl_mmxext;
-#endif
 #ifdef ARCH_X86_64 // slower on x86
     pf[I_PRED_4x4_DDR] = predict_4x4_ddr;
     pf[I_PRED_4x4_VR]  = predict_4x4_vr;
@@ -547,3 +550,10 @@ void x264_predict_4x4_init_mmxext( x264_predict_t pf[12] )
 #endif
 }
 
+void x264_predict_16x16_init_sse2 ( x264_predict_t pf[7] )
+{
+    pf[I_PRED_16x16_DC]     = predict_16x16_dc_sse2;
+    pf[I_PRED_16x16_DC_TOP] = predict_16x16_dc_top_sse2;
+    pf[I_PRED_16x16_V]      = predict_16x16_v_sse2;
+    pf[I_PRED_16x16_P]      = predict_16x16_p_sse2;
+}
