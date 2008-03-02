@@ -84,10 +84,10 @@ static void (* const x264_mc_copy_wtab_mmx[5])( uint8_t *, int, uint8_t *, int, 
 static const int hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
 static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
 
-void mc_luma_mmx( uint8_t *dst,    int i_dst_stride,
-                  uint8_t *src[4], int i_src_stride,
-                  int mvx, int mvy,
-                  int i_width, int i_height )
+void mc_luma_mmxext( uint8_t *dst,    int i_dst_stride,
+                     uint8_t *src[4], int i_src_stride,
+                     int mvx, int mvy,
+                     int i_width, int i_height )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
     int offset = (mvy>>2)*i_src_stride + (mvx>>2);
@@ -107,10 +107,10 @@ void mc_luma_mmx( uint8_t *dst,    int i_dst_stride,
     }
 }
 
-uint8_t *get_ref_mmx( uint8_t *dst,   int *i_dst_stride,
-                      uint8_t *src[4], int i_src_stride,
-                      int mvx, int mvy,
-                      int i_width, int i_height )
+uint8_t *get_ref_mmxext( uint8_t *dst,   int *i_dst_stride,
+                         uint8_t *src[4], int i_src_stride,
+                         int mvx, int mvy,
+                         int i_width, int i_height )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
     int offset = (mvy>>2)*i_src_stride + (mvx>>2);
@@ -132,10 +132,20 @@ uint8_t *get_ref_mmx( uint8_t *dst,   int *i_dst_stride,
 }
 
 
-void x264_mc_mmxext_init( x264_mc_functions_t *pf )
+void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 {
-    pf->mc_luma = mc_luma_mmx;
-    pf->get_ref = get_ref_mmx;
+    if( !(cpu&X264_CPU_MMX) )
+        return;
+
+    pf->copy[PIXEL_16x16] = x264_mc_copy_w16_mmx;
+    pf->copy[PIXEL_8x8]   = x264_mc_copy_w8_mmx;
+    pf->copy[PIXEL_4x4]   = x264_mc_copy_w4_mmx;
+
+    if( !(cpu&X264_CPU_MMXEXT) )
+        return;
+
+    pf->mc_luma = mc_luma_mmxext;
+    pf->get_ref = get_ref_mmxext;
 
     pf->avg[PIXEL_16x16] = x264_pixel_avg_16x16_mmxext;
     pf->avg[PIXEL_16x8]  = x264_pixel_avg_16x8_mmxext;
@@ -154,17 +164,11 @@ void x264_mc_mmxext_init( x264_mc_functions_t *pf )
     pf->avg_weight[PIXEL_4x4]   = x264_pixel_avg_weight_4x4_mmxext;
     // avg_weight_4x8 is rare and 4x2 is not used
 
-    pf->copy[PIXEL_16x16] = x264_mc_copy_w16_mmx;
-    pf->copy[PIXEL_8x8]   = x264_mc_copy_w8_mmx;
-    pf->copy[PIXEL_4x4]   = x264_mc_copy_w4_mmx;
-
     pf->plane_copy = x264_plane_copy_mmxext;
     pf->hpel_filter = x264_hpel_filter_mmxext;
 
     pf->prefetch_fenc = x264_prefetch_fenc_mmxext;
     pf->prefetch_ref  = x264_prefetch_ref_mmxext;
-}
-void x264_mc_sse2_init( x264_mc_functions_t *pf )
-{
+
     /* todo: use sse2 */
 }

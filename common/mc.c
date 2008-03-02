@@ -375,12 +375,9 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->prefetch_ref  = prefetch_ref_null;
 
 #ifdef HAVE_MMX
-    if( cpu&X264_CPU_MMXEXT ) {
-        x264_mc_mmxext_init( pf );
+    x264_mc_init_mmx( cpu, pf );
+    if( cpu&X264_CPU_MMXEXT )
         pf->mc_chroma = x264_mc_chroma_mmxext;
-    }
-    if( cpu&X264_CPU_SSE2 )
-        x264_mc_sse2_init( pf );
 #endif
 #ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC )
