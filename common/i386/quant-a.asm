@@ -277,7 +277,7 @@ cglobal %1
     neg   eax
     movd  mm5, eax
     picgetgot eax
-    movq  mm6, [pd_1 GOT_eax]
+    movq  mm6, [pd_1 GLOBAL]
     pxor  mm7, mm7
     pslld mm6, mm5
     psrld mm6, 1

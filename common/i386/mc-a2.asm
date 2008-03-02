@@ -134,9 +134,9 @@ cglobal x264_hpel_filter_mmxext
     pxor        mm0,    mm0
 
     ; mov globals onto the stack, to free up ebx
-    movq        mm1,    [pw_1  GOT_ebx]
-    movq        mm2,    [pw_16 GOT_ebx]
-    movq        mm3,    [pw_32 GOT_ebx]
+    movq        mm1,    [pw_1  GLOBAL]
+    movq        mm2,    [pw_16 GLOBAL]
+    movq        mm3,    [pw_32 GLOBAL]
     movq        [tpw_1],  mm1
     movq        [tpw_16], mm2
     movq        [tpw_32], mm3

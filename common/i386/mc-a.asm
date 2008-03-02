@@ -254,8 +254,8 @@ AVG2_END
     push    edi
     push    esi
     picgetgot ecx
-    movq    mm5, [pw_64 GOT_ecx]
-    movq    mm6, [pw_32 GOT_ecx] ; rounding
+    movq    mm5, [pw_64 GLOBAL]
+    movq    mm6, [pw_32 GLOBAL] ; rounding
     mov     edi, [esp+12]        ; dst
     mov     esi, [esp+16]        ; i_dst
     mov     edx, [esp+20]        ; src
@@ -512,7 +512,7 @@ cglobal x264_mc_chroma_mmxext
     pshufw  mm5, mm5, 0         ; mm5 = dx&7
     pshufw  mm6, mm6, 0         ; mm6 = dy&7
 
-    movq    mm4, [pw_8 GOT_ebx]
+    movq    mm4, [pw_8 GLOBAL]
     movq    mm0, mm4
 
     psubw   mm4, mm5            ; mm4 = 8-dx
@@ -546,7 +546,7 @@ ALIGN 4
     punpcklbw mm2, mm3
     punpcklbw mm1, mm3
 
-    paddw   mm0, [pw_32 GOT_ebx]
+    paddw   mm0, [pw_32 GLOBAL]
 
     pmullw  mm2, mm5            ; line * cB
     pmullw  mm1, mm7            ; line * cD

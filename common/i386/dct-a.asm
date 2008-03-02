@@ -151,7 +151,7 @@ cglobal x264_dct4x4dc_mmx
     MMX_SUMSUB_BADC     mm2, mm3, mm0, mm4          ; mm2=s01  mm3=d01  mm0=s23  mm4=d23
     MMX_SUMSUB_BADC     mm0, mm2, mm4, mm3          ; mm0=s01+s23  mm2=s01-s23  mm4=d01+d23  mm3=d01-d23
 
-    movq    mm6,        [pw_1 GOT_edx]
+    movq    mm6,        [pw_1 GLOBAL]
     paddw   mm0,        mm6
     paddw   mm2,        mm6
     psraw   mm0,        1
@@ -255,7 +255,7 @@ cglobal x264_add4x4_idct_mmx
     MMX_SUMSUB_BADC     mm2, mm3, mm4, mm1              ; mm2=s02+s13  mm3=s02-s13  mm4=d02+d13  mm1=d02-d13
 
     MMX_ZERO            mm7
-    movq                mm6, [pw_32 GOT_edx]
+    movq                mm6, [pw_32 GLOBAL]
     
     MMX_STORE_DIFF_4P   mm2, mm0, mm6, mm7, [eax+0*FDEC_STRIDE]
     MMX_STORE_DIFF_4P   mm4, mm0, mm6, mm7, [eax+1*FDEC_STRIDE]
@@ -693,7 +693,7 @@ cglobal x264_add8x8_idct8_sse2
     IDCT8_1D xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7
     TRANSPOSE8 xmm4, xmm1, xmm7, xmm3, xmm5, xmm0, xmm2, xmm6, eax
     picgetgot edx
-    paddw    xmm4, [pw_32 GOT_edx]
+    paddw    xmm4, [pw_32 GLOBAL]
     movdqa   [eax+0x00], xmm4
     movdqa   [eax+0x40], xmm2
     IDCT8_1D xmm4, xmm0, xmm6, xmm3, xmm2, xmm5, xmm7, xmm1

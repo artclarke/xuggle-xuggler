@@ -43,7 +43,7 @@ SECTION .text
 %macro HADDW 2    ; sum junk
     ; ebx is no longer used at this point, so no push needed
     picgetgot ebx
-    pmaddwd %1, [pw_1 GOT_ebx]
+    pmaddwd %1, [pw_1 GLOBAL]
     movhlps %2, %1
     paddd   %1, %2
     pshuflw %2, %1, 0xE 
@@ -413,7 +413,7 @@ cglobal x264_pixel_sad_16x%2_cache64_%1
     shl    eax, 4
 %endif
     picgetgot ebx
-    lea    edi, [sad_w16_align1_%1 + (sad_w16_align1_%1 - sad_w16_align2_%1) + eax GOT_ebx]
+    lea    edi, [sad_w16_align1_%1 + (sad_w16_align1_%1 - sad_w16_align2_%1) + eax GLOBAL]
     mov    eax, [esp+16]
     mov    ebx, [esp+20]
     mov    ecx, [esp+24]
@@ -966,7 +966,7 @@ cglobal x264_pixel_ssim_4x4x2_core_sse2
     ; PHADDD xmm3, xmm4
     mov       eax,  [esp+24]
     picgetgot ebx
-    movdqa    xmm7, [pw_1 GOT_ebx]
+    movdqa    xmm7, [pw_1 GLOBAL]
     pshufd    xmm5, xmm3, 0xB1
     pmaddwd   xmm1, xmm7
     pmaddwd   xmm2, xmm7
@@ -1010,8 +1010,8 @@ cglobal x264_pixel_ssim_end4_sse2
     paddd    xmm1, xmm2
     paddd    xmm2, xmm3
     paddd    xmm3, xmm4
-    movdqa   xmm5, [ssim_c1 GOT_ebx]
-    movdqa   xmm6, [ssim_c2 GOT_ebx]
+    movdqa   xmm5, [ssim_c1 GLOBAL]
+    movdqa   xmm6, [ssim_c2 GLOBAL]
     TRANSPOSE4x4D  xmm0, xmm1, xmm2, xmm3, xmm4
 
 ;   s1=mm0, s2=mm3, ss=mm4, s12=mm2
@@ -1038,7 +1038,7 @@ cglobal x264_pixel_ssim_end4_sse2
     divps    xmm1, xmm0  ; ssim
 
     neg      edx
-    movdqu   xmm3, [mask_ff + edx*4 + 16 GOT_ebx]
+    movdqu   xmm3, [mask_ff + edx*4 + 16 GLOBAL]
     pand     xmm1, xmm3
     movhlps  xmm0, xmm1
     addps    xmm0, xmm1

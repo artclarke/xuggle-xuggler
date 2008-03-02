@@ -97,7 +97,7 @@ SECTION .text
     pavgb       %2, %3
     pxor        %3, %5
     mov%6       %1, %4
-    pand        %3, [pb_1 GOT_ecx]
+    pand        %3, [pb_1 GLOBAL]
     psubusb     %2, %3
     pavgb       %1, %2
 %endmacro
@@ -118,7 +118,7 @@ cglobal predict_4x4_ddl_mmxext
     movq        mm3, [eax - FDEC_STRIDE    ]
     movq        mm1, [eax - FDEC_STRIDE - 1]
     movq        mm2, mm3
-    movq        mm4, [pb_0s_ff GOT_ecx]
+    movq        mm4, [pb_0s_ff GLOBAL]
     psrlq       mm2, 8
     pand        mm4, mm3
     por         mm2, mm4
@@ -176,7 +176,7 @@ cglobal predict_8x8_dc_mmxext
     pxor        mm1, mm1
     psadbw      mm0, [eax+7]
     psadbw      mm1, [eax+16]
-    paddw       mm0, [pw_8 GOT_ecx]
+    paddw       mm0, [pw_8 GLOBAL]
     paddw       mm0, mm1
     psrlw       mm0, 4
     pshufw      mm0, mm0, 0
@@ -194,7 +194,7 @@ cglobal %1
     mov         edx, [esp + 4]
     pxor        mm0, mm0
     psadbw      mm0, [eax+%2]
-    paddw       mm0, [pw_4 GOT_ecx]
+    paddw       mm0, [pw_4 GLOBAL]
     psrlw       mm0, 3
     pshufw      mm0, mm0, 0
     packuswb    mm0, mm0
@@ -338,7 +338,7 @@ cglobal predict_8x8c_dc_core_mmxext
     paddw       mm0, [esp +  8]
     pshufw      mm2, [esp + 12], 0
     psrlw       mm0, 3
-    paddw       mm1, [pw_2 GOT_ecx]
+    paddw       mm1, [pw_2 GLOBAL]
     movq        mm3, mm2
     pshufw      mm1, mm1, 0
     pshufw      mm0, mm0, 0     ; dc0 (w)
@@ -364,7 +364,7 @@ cglobal predict_8x8c_p_core_mmxext
     pshufw      mm2, [esp +12], 0
     pshufw      mm4, [esp +16], 0
     movq        mm1, mm2
-    pmullw      mm2, [pw_3210 GOT_ecx]
+    pmullw      mm2, [pw_3210 GLOBAL]
     psllw       mm1, 2
     paddsw      mm0, mm2        ; mm0 = {i+0*b, i+1*b, i+2*b, i+3*b}
     paddsw      mm1, mm0        ; mm1 = {i+4*b, i+5*b, i+6*b, i+7*b}
@@ -400,7 +400,7 @@ cglobal predict_16x16_p_core_mmxext
     pshufw      mm4, [esp +16], 0
     movq        mm5, mm2
     movq        mm1, mm2
-    pmullw      mm5, [pw_3210 GOT_ecx]
+    pmullw      mm5, [pw_3210 GLOBAL]
     psllw       mm2, 3
     psllw       mm1, 2
     movq        mm3, mm2
@@ -454,7 +454,7 @@ cglobal predict_16x16_p_core_sse2
     punpcklqdq  xmm1, xmm1
     punpcklqdq  xmm2, xmm2
     movdqa      xmm3, xmm1
-    pmullw      xmm3, [pw_76543210 GOT_ecx]
+    pmullw      xmm3, [pw_76543210 GLOBAL]
     psllw       xmm1, 3
     paddsw      xmm0, xmm3  ; xmm0 = {i+ 0*b, i+ 1*b, i+ 2*b, i+ 3*b, i+ 4*b, i+ 5*b, i+ 6*b, i+ 7*b}
     paddsw      xmm1, xmm0  ; xmm1 = {i+ 8*b, i+ 9*b, i+10*b, i+11*b, i+12*b, i+13*b, i+14*b, i+15*b}
@@ -521,7 +521,7 @@ cglobal predict_16x16_dc_core_mmxext
 
 cglobal predict_16x16_dc_top_mmxext
     picgetgot ecx
-    PRED16x16_DC [pw_8 GOT_ecx], 4
+    PRED16x16_DC [pw_8 GLOBAL], 4
     ret
 
 ;-----------------------------------------------------------------------------
@@ -549,7 +549,7 @@ cglobal predict_16x16_dc_core_sse2
 
 cglobal predict_16x16_dc_top_sse2
     picgetgot ecx
-    PRED16x16_DC_SSE2 [pw_8 GOT_ecx], 4
+    PRED16x16_DC_SSE2 [pw_8 GLOBAL], 4
     ret
     
 ;-----------------------------------------------------------------------------
