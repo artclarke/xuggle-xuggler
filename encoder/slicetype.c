@@ -218,7 +218,7 @@ lowres_intra_mb:
 
         if( i_icost < i_bcost * 2 )
         {
-            DECLARE_ALIGNED( uint8_t, edge[33], 8 );
+            DECLARE_ALIGNED( uint8_t, edge[33], 16 );
             x264_predict_8x8_filter( pix, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
             for( i=3; i<9; i++ )
             {

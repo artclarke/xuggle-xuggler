@@ -582,7 +582,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     /* 8x8 prediction selection */
     if( flags & X264_ANALYSE_I8x8 )
     {
-        DECLARE_ALIGNED( uint8_t, edge[33], 8 );
+        DECLARE_ALIGNED( uint8_t, edge[33], 16 );
         x264_pixel_cmp_t sa8d = (*h->pixf.mbcmp == *h->pixf.sad) ? h->pixf.sad[PIXEL_8x8] : h->pixf.sa8d[PIXEL_8x8];
         int i_satd_thresh = a->b_mbrd ? COST_MAX : X264_MIN( i_satd_inter, a->i_satd_i16x16 );
         int i_cost = 0;
@@ -836,7 +836,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     }
     else if( h->mb.i_type == I_8x8 )
     {
-        DECLARE_ALIGNED( uint8_t, edge[33], 8 );
+        DECLARE_ALIGNED( uint8_t, edge[33], 16 );
         for( idx = 0; idx < 4; idx++ )
         {
             uint64_t pels_h = 0;

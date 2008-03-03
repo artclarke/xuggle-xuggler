@@ -366,7 +366,7 @@ void x264_macroblock_encode( x264_t *h )
     }
     else if( h->mb.i_type == I_8x8 )
     {
-        DECLARE_ALIGNED( uint8_t, edge[33], 8 );
+        DECLARE_ALIGNED( uint8_t, edge[33], 16 );
         h->mb.b_transform_8x8 = 1;
         for( i = 0; i < 4; i++ )
         {

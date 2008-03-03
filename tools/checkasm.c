@@ -33,7 +33,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_predict_t predict_8x8c[4+3];
     x264_predict_t predict_4x4[9+3];
     x264_predict8x8_t predict_8x8[9+3];
-    DECLARE_ALIGNED( uint8_t, edge[33], 8 );
+    DECLARE_ALIGNED( uint8_t, edge[33], 16 );
     uint16_t cost_mv[32];
     int ret = 0, ok, used_asm;
     int i, j;
@@ -737,7 +737,7 @@ static int check_intra( int cpu_ref, int cpu_new )
 {
     int ret = 0, ok = 1, used_asm = 0;
     int i;
-    DECLARE_ALIGNED( uint8_t, edge[33], 8 );
+    DECLARE_ALIGNED( uint8_t, edge[33], 16 );
     struct
     {
         x264_predict_t      predict_16x16[4+3];
