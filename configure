@@ -316,6 +316,11 @@ then
 fi
 
 if [ $ARCH = X86 -o $ARCH = X86_64 ] ; then
+    if [ $ARCH = X86 -a $pic = yes -a x$AS = xyasm -a\
+         "`yasm --version | head -n 1`" "<" "yasm 0.6.2" ] ; then
+         echo "yasm prior to 0.6.2 miscompiles PIC. trying nasm instead..."
+         AS=nasm
+    fi
     if as_check ; then
         CFLAGS="$CFLAGS -DHAVE_MMX"
         if as_check "pabsw xmm0, xmm0" ; then
