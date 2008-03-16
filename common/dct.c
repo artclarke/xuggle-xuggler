@@ -23,7 +23,7 @@
 
 #include "common.h"
 #ifdef HAVE_MMX
-#   include "i386/dct.h"
+#   include "x86/dct.h"
 #endif
 #ifdef ARCH_PPC
 #   include "ppc/dct.h"
@@ -597,10 +597,8 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
         if( cpu&X264_CPU_MMX )
             pf->scan_4x4 = x264_zigzag_scan_4x4_field_mmx;
 #endif
-#ifdef ARCH_X86_64
         if( cpu&X264_CPU_SSE2 )
             pf->scan_4x4 = x264_zigzag_scan_4x4_field_sse2;
-#endif
 #endif
 
 #ifdef ARCH_PPC

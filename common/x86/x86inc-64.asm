@@ -1,7 +1,7 @@
 ;*****************************************************************************
-;* amd64inc.asm: h264 encoder library
+;* x86inc-64.asm: h264 encoder library
 ;*****************************************************************************
-;* Copyright (C) 2005 x264 project
+;* Copyright (C) 2005-2008 x264 project
 ;*
 ;* Authors: Andrew Dunstan
 ;*
@@ -24,31 +24,8 @@ BITS 64
 
 ; FIXME: All of the 64bit asm functions that take a stride as an argument
 ; via register, assume that the high dword of that register is filled with 0.
-; This is true in practice (since we never do any 64bit arithmetic on strides),
-; but is not guaranteed by the ABI.
-
-%macro cglobal 1
-    %ifdef PREFIX
-        global _%1:function hidden
-        %define %1 _%1
-    %else
-        global %1:function hidden
-    %endif
-%ifdef WIN64
-    %define %1 pad %1
-%endif
-    align 16
-    %1:
-%endmacro
-
-%macro cextern 1
-    %ifdef PREFIX
-        extern _%1
-        %define %1 _%1
-    %else
-        extern %1
-    %endif
-%endmacro
+; This is true in practice (since we never do any 64bit arithmetic on strides,
+; and x264's strides are all positive), but is not guaranteed by the ABI.
 
 ; Name of the .rodata section. On OS X we cannot use .rodata because YASM
 ; is unable to compute address offsets outside of .text so we use the .text
@@ -300,15 +277,10 @@ SECTION .text
 ;
 %ifdef __PIC__
     %define GLOBAL wrt rip
+    %define PIC64
 %else
     %define GLOBAL
 %endif
 
-%assign FENC_STRIDE 16
-%assign FDEC_STRIDE 32
-
-; This is needed for ELF, otherwise the GNU linker assumes the stack is
-; executable by default.
-%ifidn __YASM_OBJFMT__,elf
-section ".note.GNU-stack" noalloc noexec nowrite progbits
-%endif
+%macro picgetgot 1
+%endmacro

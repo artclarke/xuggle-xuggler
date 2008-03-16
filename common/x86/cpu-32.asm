@@ -1,8 +1,7 @@
 ;*****************************************************************************
-;* cpu.asm: h264 encoder library
+;* cpu-32.asm: h264 encoder library
 ;*****************************************************************************
-;* Copyright (C) 2003 x264 project
-;* $Id: cpu.asm,v 1.1 2004/06/03 19:27:07 fenrir Exp $
+;* Copyright (C) 2003-2008 x264 project
 ;*
 ;* Authors: Laurent Aimar <fenrir@via.ecp.fr>
 ;*
@@ -21,22 +20,13 @@
 ;* Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 ;*****************************************************************************
 
-BITS 32
-
-;=============================================================================
-; Macros and other preprocessor constants
-;=============================================================================
-
-%include "i386inc.asm"
-
-;=============================================================================
-; Code
-;=============================================================================
+%include "x86inc.asm"
 
 SECTION .text
 
 ;-----------------------------------------------------------------------------
-;   int __cdecl x264_cpu_cpuid_test( void ) return 0 if unsupported
+; int x264_cpu_cpuid_test( void )
+; return 0 if unsupported
 ;-----------------------------------------------------------------------------
 cglobal x264_cpu_cpuid_test
     pushfd
@@ -44,7 +34,6 @@ cglobal x264_cpu_cpuid_test
     push    ebp
     push    esi
     push    edi
-
     pushfd
     pop     eax
     mov     ebx, eax
@@ -54,7 +43,6 @@ cglobal x264_cpu_cpuid_test
     pushfd
     pop     eax
     xor     eax, ebx
-    
     pop     edi
     pop     esi
     pop     ebp
@@ -63,39 +51,23 @@ cglobal x264_cpu_cpuid_test
     ret
 
 ;-----------------------------------------------------------------------------
-;   int __cdecl x264_cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
+; int x264_cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
 ;-----------------------------------------------------------------------------
-cglobal x264_cpu_cpuid
-
-    push    ebp
-    mov     ebp,    esp
-    push    ebx
-    push    esi
-    push    edi
-    
-    mov     eax,    [ebp +  8]
+cglobal x264_cpu_cpuid, 0,6
+    mov     eax,    r0m
     cpuid
-
-    mov     esi,    [ebp + 12]
+    mov     esi,    r1m
     mov     [esi],  eax
-
-    mov     esi,    [ebp + 16]
+    mov     esi,    r2m
     mov     [esi],  ebx
-
-    mov     esi,    [ebp + 20]
+    mov     esi,    r3m
     mov     [esi],  ecx
-
-    mov     esi,    [ebp + 24]
+    mov     esi,    r4m
     mov     [esi],  edx
-
-    pop     edi
-    pop     esi
-    pop     ebx
-    pop     ebp
-    ret
+    RET
 
 ;-----------------------------------------------------------------------------
-;   void __cdecl x264_emms( void )
+; void x264_emms( void )
 ;-----------------------------------------------------------------------------
 cglobal x264_emms
     emms
@@ -113,7 +85,6 @@ cglobal x264_stack_align
     mov  edx, [ebp+12]
     mov  [esp], edx
     call ecx
-    mov  esp, ebp
-    pop  ebp
+    leave
     ret
 

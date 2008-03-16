@@ -450,44 +450,44 @@ static void predict_8x8_vr_mmxext( uint8_t *src, uint8_t edge[33] )
     t=e; e+=f; f-=t;\
     t=g; g+=h; h-=t;
 
-#ifdef ARCH_X86_64
-void x264_intra_sa8d_x3_8x8_sse2( uint8_t *fenc, uint8_t edge[33], int res[3] )
-#else
-void x264_intra_sa8d_x3_8x8_mmxext( uint8_t *fenc, uint8_t edge[33], int res[3] )
-#endif
-{
-    PREDICT_8x8_LOAD_TOP
-    PREDICT_8x8_LOAD_LEFT
-    int t;
-    DECLARE_ALIGNED( int16_t, sa8d_1d[2][8], 16 );
-    SUMSUB(l0,l4,l1,l5,l2,l6,l3,l7);
-    SUMSUB(l0,l2,l1,l3,l4,l6,l5,l7);
-    SUMSUB(l0,l1,l2,l3,l4,l5,l6,l7);
-    sa8d_1d[0][0] = l0;
-    sa8d_1d[0][1] = l1;
-    sa8d_1d[0][2] = l2;
-    sa8d_1d[0][3] = l3;
-    sa8d_1d[0][4] = l4;
-    sa8d_1d[0][5] = l5;
-    sa8d_1d[0][6] = l6;
-    sa8d_1d[0][7] = l7;
-    SUMSUB(t0,t4,t1,t5,t2,t6,t3,t7);
-    SUMSUB(t0,t2,t1,t3,t4,t6,t5,t7);
-    SUMSUB(t0,t1,t2,t3,t4,t5,t6,t7);
-    sa8d_1d[1][0] = t0;
-    sa8d_1d[1][1] = t1;
-    sa8d_1d[1][2] = t2;
-    sa8d_1d[1][3] = t3;
-    sa8d_1d[1][4] = t4;
-    sa8d_1d[1][5] = t5;
-    sa8d_1d[1][6] = t6;
-    sa8d_1d[1][7] = t7;
-#ifdef ARCH_X86_64
-    x264_intra_sa8d_x3_8x8_core_sse2( fenc, sa8d_1d, res );
-#else
-    x264_intra_sa8d_x3_8x8_core_mmxext( fenc, sa8d_1d, res );
-#endif
+#define INTRA_SA8D_X3(cpu) \
+void x264_intra_sa8d_x3_8x8_##cpu( uint8_t *fenc, uint8_t edge[33], int res[3] )\
+{\
+    PREDICT_8x8_LOAD_TOP\
+    PREDICT_8x8_LOAD_LEFT\
+    int t;\
+    DECLARE_ALIGNED( int16_t, sa8d_1d[2][8], 16 );\
+    SUMSUB(l0,l4,l1,l5,l2,l6,l3,l7);\
+    SUMSUB(l0,l2,l1,l3,l4,l6,l5,l7);\
+    SUMSUB(l0,l1,l2,l3,l4,l5,l6,l7);\
+    sa8d_1d[0][0] = l0;\
+    sa8d_1d[0][1] = l1;\
+    sa8d_1d[0][2] = l2;\
+    sa8d_1d[0][3] = l3;\
+    sa8d_1d[0][4] = l4;\
+    sa8d_1d[0][5] = l5;\
+    sa8d_1d[0][6] = l6;\
+    sa8d_1d[0][7] = l7;\
+    SUMSUB(t0,t4,t1,t5,t2,t6,t3,t7);\
+    SUMSUB(t0,t2,t1,t3,t4,t6,t5,t7);\
+    SUMSUB(t0,t1,t2,t3,t4,t5,t6,t7);\
+    sa8d_1d[1][0] = t0;\
+    sa8d_1d[1][1] = t1;\
+    sa8d_1d[1][2] = t2;\
+    sa8d_1d[1][3] = t3;\
+    sa8d_1d[1][4] = t4;\
+    sa8d_1d[1][5] = t5;\
+    sa8d_1d[1][6] = t6;\
+    sa8d_1d[1][7] = t7;\
+    x264_intra_sa8d_x3_8x8_core_##cpu( fenc, sa8d_1d, res );\
 }
+
+#ifdef ARCH_X86_64
+INTRA_SA8D_X3(sse2)
+INTRA_SA8D_X3(ssse3)
+#else
+INTRA_SA8D_X3(mmxext)
+#endif
 
 /****************************************************************************
  * Exported functions:

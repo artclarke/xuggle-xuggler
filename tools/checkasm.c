@@ -3,15 +3,6 @@
 
 #include "common/common.h"
 #include "common/cpu.h"
-#ifdef HAVE_MMX
-#include "common/i386/pixel.h"
-#include "common/i386/dct.h"
-#include "common/i386/mc.h"
-#endif
-#ifdef ARCH_PPC
-#include "common/ppc/pixel.h"
-#include "common/ppc/mc.h"
-#endif
 
 /* buf1, buf2: initialised to random data and shouldn't write into them */
 uint8_t * buf1, * buf2;
@@ -169,10 +160,19 @@ static int check_pixel( int cpu_ref, int cpu_new )
             for( j=0; j<4; j++ )
                 dc[j] = rand() & 0x3fff;
             used_asm = 1;
-            mvn_c = pixel_c.ads[i&3]( dc, sums, 32, cost_mv, mvs_c, 32, thresh );
-            mvn_a = pixel_asm.ads[i&3]( dc, sums, 32, cost_mv, mvs_a, 32, thresh );
+            mvn_c = pixel_c.ads[i&3]( dc, sums, 32, cost_mv, mvs_c, 28, thresh );
+            mvn_a = pixel_asm.ads[i&3]( dc, sums, 32, cost_mv, mvs_a, 28, thresh );
             if( mvn_c != mvn_a || memcmp( mvs_c, mvs_a, mvn_c*sizeof(*mvs_c) ) )
+            {
                 ok = 0;
+                printf("c%d: ", i&3);
+                for(j=0; j<mvn_c; j++)
+                    printf("%d ", mvs_c[j]);
+                printf("\na%d: ", i&3);
+                for(j=0; j<mvn_a; j++)
+                    printf("%d ", mvs_a[j]);
+                printf("\n\n");
+            }
         }
     report( "esa ads:" );
 
@@ -407,10 +407,10 @@ static int check_mc( int cpu_ref, int cpu_new )
     uint8_t *src     = &buf1[2*32+2];
     uint8_t *src2[4] = { &buf1[2*32+2],  &buf1[6*32+2],
                          &buf1[10*32+2], &buf1[14*32+2] };
-    uint8_t *dst1    = &buf3[2*32+2];
-    uint8_t *dst2    = &buf4[2*32+2];
+    uint8_t *dst1    = &buf3[2*32];
+    uint8_t *dst2    = &buf4[2*32];
 
-    int dx, dy, i, j, w;
+    int dx, dy, i, j, k, w;
     int ret = 0, ok, used_asm;
 
     x264_mc_init( 0, &mc_c );
@@ -419,13 +419,13 @@ static int check_mc( int cpu_ref, int cpu_new )
     x264_pixel_init( 0, &pixel );
 
 #define MC_TEST_LUMA( w, h ) \
-        if( mc_a.mc_luma != mc_ref.mc_luma ) \
+        if( mc_a.mc_luma != mc_ref.mc_luma && !(w&(w-1)) && h<=16 ) \
         { \
             used_asm = 1; \
             memset(buf3, 0xCD, 1024); \
             memset(buf4, 0xCD, 1024); \
-            mc_c.mc_luma( dst1, 16, src2, 32, dx, dy, w, h ); \
-            mc_a.mc_luma( dst2, 16, src2, 32, dx, dy, w, h ); \
+            mc_c.mc_luma( dst1, 32, src2, 16, dx, dy, w, h ); \
+            mc_a.mc_luma( dst2, 32, src2, 16, dx, dy, w, h ); \
             if( memcmp( buf3, buf4, 1024 ) ) \
             { \
                 fprintf( stderr, "mc_luma[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h ); \
@@ -435,17 +435,19 @@ static int check_mc( int cpu_ref, int cpu_new )
         if( mc_a.get_ref != mc_ref.get_ref ) \
         { \
             uint8_t *ref = dst2; \
-            int ref_stride = 16; \
+            int ref_stride = 32; \
             used_asm = 1; \
             memset(buf3, 0xCD, 1024); \
             memset(buf4, 0xCD, 1024); \
-            mc_c.mc_luma( dst1, 16, src2, 32, dx, dy, w, h ); \
-            ref = mc_a.get_ref( ref, &ref_stride, src2, 32, dx, dy, w, h ); \
-            if( pixel.sad[PIXEL_##w##x##h]( dst1, 16, ref, ref_stride ) ) \
-            { \
-                fprintf( stderr, "get_ref[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h ); \
-                ok = 0; \
-            } \
+            mc_c.mc_luma( dst1, 32, src2, 16, dx, dy, w, h ); \
+            ref = mc_a.get_ref( ref, &ref_stride, src2, 16, dx, dy, w, h ); \
+            for( i=0; i<h; i++ ) \
+                if( memcmp( dst1+i*32, ref+i*ref_stride, w ) ) \
+                { \
+                    fprintf( stderr, "get_ref[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h ); \
+                    ok = 0; \
+                    break; \
+                } \
         }
 
 #define MC_TEST_CHROMA( w, h ) \
@@ -470,8 +472,10 @@ static int check_mc( int cpu_ref, int cpu_new )
     for( dy = -8; dy < 8; dy++ )
         for( dx = -8; dx < 8; dx++ )
         {
+            MC_TEST_LUMA( 20, 18 );
             MC_TEST_LUMA( 16, 16 );
             MC_TEST_LUMA( 16, 8 );
+            MC_TEST_LUMA( 12, 10 );
             MC_TEST_LUMA( 8, 16 );
             MC_TEST_LUMA( 8, 8 );
             MC_TEST_LUMA( 8, 4 );
@@ -519,6 +523,34 @@ static int check_mc( int cpu_ref, int cpu_new )
     for( w = -64; w <= 128 && ok; w++ )
         MC_TEST_AVG( avg_weight, w );
     report( "mc wpredb :" );
+
+    if( mc_a.hpel_filter != mc_ref.hpel_filter )
+    {
+        uint8_t *src = buf1+16+2*64;
+        uint8_t *dstc[3] = { buf3+16, buf3+16+16*64, buf3+16+32*64 };
+        uint8_t *dsta[3] = { buf4+16, buf4+16+16*64, buf4+16+32*64 };
+        ok = 1; used_asm = 1;
+        memset( buf3, 0, 4096 );
+        memset( buf4, 0, 4096 );
+        mc_c.hpel_filter( dstc[0], dstc[1], dstc[2], src, 64, 48, 10 );
+        mc_a.hpel_filter( dsta[0], dsta[1], dsta[2], src, 64, 48, 10 );
+        for( i=0; i<3; i++ )
+            for( j=0; j<10; j++ )
+                //FIXME ideally the first pixels would match too, but they aren't actually used
+                if( memcmp( dstc[i]+j*64+2, dsta[i]+j*64+2, 46 ) )
+                {
+                    ok = 0;
+                    fprintf( stderr, "hpel filter differs at plane %c line %d\n", "hvc"[i], j );
+                    for( k=0; k<48; k++ )
+                        printf("%02x%s", dstc[i][j*64+k], (k+1)&3 ? "" : " ");
+                    printf("\n");
+                    for( k=0; k<48; k++ )
+                        printf("%02x%s", dsta[i][j*64+k], (k+1)&3 ? "" : " ");
+                    printf("\n");
+                    break;
+                }
+        report( "hpel filter :" );
+    }
 
     return ret;
 }
@@ -763,7 +795,7 @@ static int check_intra( int cpu_ref, int cpu_new )
 
     x264_predict_8x8_filter( buf1+48, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
 
-#define INTRA_TEST( name, dir, ... ) \
+#define INTRA_TEST( name, dir, w, ... ) \
     if( ip_a.name[dir] != ip_ref.name[dir] )\
     { \
         used_asm = 1; \
@@ -779,16 +811,16 @@ static int check_intra( int cpu_ref, int cpu_new )
             for(k=-1; k<16; k++)\
                 printf("%2x ", edge[16+k]);\
             printf("\n");\
-            for(j=0; j<8; j++){\
+            for(j=0; j<w; j++){\
                 printf("%2x ", edge[14-j]);\
-                for(k=0; k<8; k++)\
+                for(k=0; k<w; k++)\
                     printf("%2x ", buf4[48+k+j*32]);\
                 printf("\n");\
             }\
             printf("\n");\
-            for(j=0; j<8; j++){\
+            for(j=0; j<w; j++){\
                 printf("   ");\
-                for(k=0; k<8; k++)\
+                for(k=0; k<w; k++)\
                     printf("%2x ", buf3[48+k+j*32]);\
                 printf("\n");\
             }\
@@ -796,13 +828,13 @@ static int check_intra( int cpu_ref, int cpu_new )
     }
 
     for( i = 0; i < 12; i++ )
-        INTRA_TEST( predict_4x4, i );
+        INTRA_TEST( predict_4x4, i, 4 );
     for( i = 0; i < 7; i++ )
-        INTRA_TEST( predict_8x8c, i );
+        INTRA_TEST( predict_8x8c, i, 8 );
     for( i = 0; i < 7; i++ )
-        INTRA_TEST( predict_16x16, i );
+        INTRA_TEST( predict_16x16, i, 16 );
     for( i = 0; i < 12; i++ )
-        INTRA_TEST( predict_8x8, i, edge );
+        INTRA_TEST( predict_8x8, i, 8, edge );
 
     report( "intra pred :" );
     return ret;
@@ -834,8 +866,8 @@ int main(int argc, char *argv[])
 
     buf1 = x264_malloc( 1024 ); /* 32 x 32 */
     buf2 = x264_malloc( 1024 );
-    buf3 = x264_malloc( 1024 );
-    buf4 = x264_malloc( 1024 );
+    buf3 = x264_malloc( 4096 );
+    buf4 = x264_malloc( 4096 );
 
     i = ( argc > 1 ) ? atoi(argv[1]) : x264_mdate();
     fprintf( stderr, "x264: using random seed %u\n", i );

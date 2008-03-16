@@ -1,9 +1,10 @@
 ;*****************************************************************************
 ;* quant-a.asm: h264 encoder library
 ;*****************************************************************************
-;* Copyright (C) 2005 x264 project
+;* Copyright (C) 2005-2008 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
+;*          Christian Heine <sennindemokrit@gmx.net>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -20,33 +21,23 @@
 ;* Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 ;*****************************************************************************
 
-BITS 32
-
-%include "i386inc.asm"
+%include "x86inc.asm"
 
 SECTION_RODATA
 pd_1:  times 2 dd 1
 
 SECTION .text
 
-%macro QUANT_AC_START 0
-    mov         eax, [esp+ 4]   ; dct
-    mov         ecx, [esp+ 8]   ; mf
-    mov         edx, [esp+12]   ; bias
-%endmacro
-
 %macro MMX_QUANT_DC_START 0
-    mov         eax, [esp+ 4]   ; dct
-    movd        mm6, [esp+ 8]   ; mf
-    movd        mm7, [esp+12]   ; bias
-    pshufw      mm6, mm6, 0
-    pshufw      mm7, mm7, 0
+    movd       mm6, r1m     ; mf
+    movd       mm7, r2m     ; bias
+    pshufw     mm6, mm6, 0
+    pshufw     mm7, mm7, 0
 %endmacro
 
 %macro SSE2_QUANT_DC_START 0
-    mov         eax, [esp+ 4]   ; dct
-    movd       xmm6, [esp+ 8]   ; mf
-    movd       xmm7, [esp+12]   ; bias
+    movd       xmm6, r1m     ; mf
+    movd       xmm7, r2m     ; bias
     pshuflw    xmm6, xmm6, 0
     pshuflw    xmm7, xmm7, 0
     punpcklqdq xmm6, xmm6
@@ -88,91 +79,54 @@ SECTION .text
 ;-----------------------------------------------------------------------------
 ; void x264_quant_2x2_dc_mmxext( int16_t dct[4], int mf, int bias )
 ;-----------------------------------------------------------------------------
-cglobal x264_quant_2x2_dc_mmxext
+cglobal x264_quant_2x2_dc_mmxext, 1,1
     MMX_QUANT_DC_START
-    MMX_QUANT_1x4 [eax], mm6, mm7
-    ret
+    MMX_QUANT_1x4 [r0], mm6, mm7
+    RET
 
 ;-----------------------------------------------------------------------------
 ; void x264_quant_4x4_dc_mmxext( int16_t dct[16], int mf, int bias )
 ;-----------------------------------------------------------------------------
-cglobal x264_quant_4x4_dc_mmxext
-    MMX_QUANT_DC_START
+%macro QUANT_DC 6
+cglobal %1, 1,1
+    %2
 %assign x 0
-%rep 4
-    MMX_QUANT_1x4 [eax+x], mm6, mm7
-%assign x (x+8)
+%rep %5
+    %3 [r0+x], %4m6, %4m7
+%assign x x+%6
 %endrep
-    ret
+    RET
+%endmacro
 
 ;-----------------------------------------------------------------------------
 ; void x264_quant_4x4_mmx( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
 ;-----------------------------------------------------------------------------
-cglobal x264_quant_4x4_mmx
-    QUANT_AC_START
+%macro QUANT_AC 4
+cglobal %1, 3,3
 %assign x 0
-%rep 4
-    MMX_QUANT_1x4 [eax+x], [ecx+x], [edx+x]
-%assign x (x+8)
+%rep %3
+    %2 [r0+x], [r1+x], [r2+x]
+%assign x x+%4
 %endrep
-    ret
-
-;-----------------------------------------------------------------------------
-; void x264_quant_8x8_mmx( int16_t dct[64], uint16_t mf[64], uint16_t bias[64] )
-;-----------------------------------------------------------------------------
-cglobal x264_quant_8x8_mmx
-    QUANT_AC_START
-%assign x 0
-%rep 16
-    MMX_QUANT_1x4 [eax+x], [ecx+x], [edx+x]
-%assign x (x+8)
-%endrep
-    ret
-
-%macro QUANT_SSE 1
-;-----------------------------------------------------------------------------
-; void x264_quant_4x4_dc_sse2( int16_t dct[16], int mf, int bias )
-;-----------------------------------------------------------------------------
-cglobal x264_quant_4x4_dc_%1
-    SSE2_QUANT_DC_START
-%assign x 0
-%rep 2
-    QUANT_1x8 [eax+x], xmm6, xmm7
-%assign x (x+16)
-%endrep
-    ret
-
-;-----------------------------------------------------------------------------
-; void x264_quant_4x4_sse2( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
-;-----------------------------------------------------------------------------
-cglobal x264_quant_4x4_%1
-    QUANT_AC_START
-%assign x 0
-%rep 2
-    QUANT_1x8 [eax+x], [ecx+x], [edx+x]
-%assign x (x+16)
-%endrep
-    ret
-
-;-----------------------------------------------------------------------------
-; void x264_quant_8x8_sse2( int16_t dct[64], uint16_t mf[64], uint16_t bias[64] )
-;-----------------------------------------------------------------------------
-cglobal x264_quant_8x8_%1
-    QUANT_AC_START
-%assign x 0
-%rep 8
-    QUANT_1x8 [eax+x], [ecx+x], [edx+x]
-%assign x (x+16)
-%endrep
-    ret
+    RET
 %endmacro
 
-%define QUANT_1x8 SSE2_QUANT_1x8
-QUANT_SSE sse2
-%ifdef HAVE_SSE3
-%define QUANT_1x8 SSSE3_QUANT_1x8
-QUANT_SSE ssse3
+%ifndef ARCH_X86_64 ; not needed because sse2 is faster
+QUANT_DC x264_quant_4x4_dc_mmxext, MMX_QUANT_DC_START, MMX_QUANT_1x4, m, 4, 8
+QUANT_AC x264_quant_4x4_mmx, MMX_QUANT_1x4, 4, 8
+QUANT_AC x264_quant_8x8_mmx, MMX_QUANT_1x4, 16, 8
 %endif
+
+QUANT_DC x264_quant_4x4_dc_sse2, SSE2_QUANT_DC_START, SSE2_QUANT_1x8, xm, 2, 16
+QUANT_AC x264_quant_4x4_sse2, SSE2_QUANT_1x8, 2, 16
+QUANT_AC x264_quant_8x8_sse2, SSE2_QUANT_1x8, 8, 16
+
+%ifdef HAVE_SSE3
+QUANT_DC x264_quant_4x4_dc_ssse3, SSE2_QUANT_DC_START, SSSE3_QUANT_1x8, xm, 2, 16
+QUANT_AC x264_quant_4x4_ssse3, SSSE3_QUANT_1x8, 2, 16
+QUANT_AC x264_quant_8x8_ssse3, SSSE3_QUANT_1x8, 8, 16
+%endif
+
 
 
 ;=============================================================================
@@ -190,22 +144,6 @@ QUANT_SSE ssse3
     packssdw mm1, mm2
     pmullw   mm0, mm1
     psllw    mm0, mm5
-    movq     %1,  mm0
-%endmacro
-
-%macro DEQUANT16_R_1x4 3
-;;; %1      dct[y][x]
-;;; %2,%3   dequant_mf[i_mf][y][x]
-;;; mm5     -i_qbits
-;;; mm6     f as words
-
-    movq     mm1, %2
-    movq     mm2, %3
-    movq     mm0, %1
-    packssdw mm1, mm2
-    pmullw   mm0, mm1
-    paddw    mm0, mm6
-    psraw    mm0, mm5
     movq     %1,  mm0
 %endmacro
 
@@ -241,57 +179,61 @@ QUANT_SSE ssse3
     movq      %1,  mm0
 %endmacro
 
+%macro DEQUANT_LOOP 2
+    mov  t0d, 8*(%2-2)
+%%loop:
+    %1 [r0+t0+8], [r1+t0*2+16], [r1+t0*2+24]
+    %1 [r0+t0  ], [r1+t0*2   ], [r1+t0*2+ 8]
+    sub  t0d, 16
+    jge  %%loop
+    rep ret
+%endmacro
+
 ;-----------------------------------------------------------------------------
 ; void x264_dequant_4x4_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
 ;-----------------------------------------------------------------------------
 %macro DEQUANT_WxH 3
-cglobal %1
-    mov  edx, [esp+12] ; i_qp
-    imul eax, edx, 0x2b
-    shr  eax, 8       ; i_qbits = i_qp / 6
-    lea  ecx, [eax+eax*2]
-    sub  edx, ecx
-    sub  edx, ecx     ; i_mf = i_qp % 6
-    shl  edx, %3+2
-    add  edx, [esp+8] ; dequant_mf[i_mf]
-    mov  ecx, [esp+4] ; dct
+cglobal %1, 0,3
+%ifdef ARCH_X86_64
+    %define t0  r4
+    %define t0d r4d
+    imul r4d, r2d, 0x2b
+    shr  r4d, 8     ; i_qbits = i_qp / 6
+    lea  r3d, [r4d*3]
+    sub  r2, r3
+    sub  r2, r3     ; i_mf = i_qp % 6
+    shl  r2, %3+2
+    add  r1, r2     ; dequant_mf[i_mf]
+%else
+    %define t0  r2
+    %define t0d r2d
+    mov  r1, r2m    ; i_qp
+    imul r2, r1, 0x2b
+    shr  r2, 8      ; i_qbits = i_qp / 6
+    lea  r0, [r2*3]
+    sub  r1, r0
+    sub  r1, r0     ; i_mf = i_qp % 6
+    shl  r1, %3+2
+    add  r1, r1m    ; dequant_mf[i_mf]
+    mov  r0, r0m    ; dct
+%endif
 
-    sub  eax, %3
-    jl   .rshift32    ; negative qbits => rightshift
+    sub  t0d, %3
+    jl   .rshift32  ; negative qbits => rightshift
 
 .lshift:
-    movd mm5, eax
-
-    mov  eax, 8*(%2-1)
-.loopl16
-%rep 2
-    DEQUANT16_L_1x4 [ecx+eax], [edx+eax*2], [edx+eax*2+8]
-    sub  eax, byte 8
-%endrep
-    jge  .loopl16
-
-    nop
-    ret
+    movd mm5, t0d
+    DEQUANT_LOOP DEQUANT16_L_1x4, %2
 
 .rshift32:
-    neg   eax
-    movd  mm5, eax
-    picgetgot eax
+    neg   t0d
+    movd  mm5, t0d
+    picgetgot t0d
     movq  mm6, [pd_1 GLOBAL]
     pxor  mm7, mm7
     pslld mm6, mm5
     psrld mm6, 1
-
-    mov  eax, 8*(%2-1)
-.loopr32
-%rep 2
-    DEQUANT32_R_1x4 [ecx+eax], [edx+eax*2], [edx+eax*2+8]
-    sub  eax, byte 8
-%endrep
-    jge  .loopr32
-
-    nop
-    ret
+    DEQUANT_LOOP DEQUANT32_R_1x4, %2
 %endmacro
 
 DEQUANT_WxH x264_dequant_4x4_mmx, 4, 4

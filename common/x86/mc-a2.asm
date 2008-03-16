@@ -1,7 +1,10 @@
 ;*****************************************************************************
 ;* mc-a2.asm: h264 encoder library
 ;*****************************************************************************
-;* Copyright (C) 2005 x264 project
+;* Copyright (C) 2005-2008 x264 project
+;*
+;* Authors: Loren Merritt <lorenm@u.washington.edu>
+;*          Mathieu Monnier <manao@melix.net>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -18,17 +21,7 @@
 ;* Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 ;*****************************************************************************
 
-BITS 64
-
-;=============================================================================
-; Macros and other preprocessor constants
-;=============================================================================
-
-%include "amd64inc.asm"
-
-;=============================================================================
-; Read only data
-;=============================================================================
+%include "x86inc.asm"
 
 SECTION_RODATA
 
@@ -36,9 +29,7 @@ pw_1:  times 4 dw 1
 pw_16: times 4 dw 16
 pw_32: times 4 dw 32
 
-;=============================================================================
-; Macros
-;=============================================================================
+SECTION .text
 
 %macro LOAD_ADD 3
     movd        %1,     %2
@@ -86,84 +77,93 @@ pw_32: times 4 dw 32
     packuswb    mm1,    mm4
 %endmacro
 
-
-;=============================================================================
-; Code
-;=============================================================================
-
-SECTION .text
-
 ;-----------------------------------------------------------------------------
 ; void x264_hpel_filter_mmxext( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
 ;                               int i_stride, int i_width, int i_height );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_mmxext
+cglobal x264_hpel_filter_mmxext, 0,7
+    %define     x       r0
+    %define     xd      r0d
+    %define     dsth    r1
+    %define     dstv    r1
+    %define     dstc    r1
+    %define     src     r2
+    %define     src3    r3
+    %define     stride  r4
+    %define     width   r5d
+    %define     tbuffer rsp+8
 
-%ifdef WIN64
-    push        rdi
-    pushreg     rdi
-    push        rsi
-    pushreg     rsi
-%endif
-    push        rbp
-    pushreg     rbp
-    push        rbx
-    pushreg     rbx
-    mov         rbp,    rsp
-    setframe    rbp, 0
-    endprolog
-
-%ifdef WIN64
-    mov         rdi,    parm1q
-    mov         rsi,    parm2q
-    mov         rdx,    parm3q
-    mov         rcx,    parm4q
-    movsxd      r8,     dword [rbp+72]
-    movsxd      r9,     dword [rbp+80]
-    mov         ebx,    dword [rbp+88]
+%ifdef ARCH_X86_64
+    PUSH        rbp
+    PUSH        r12
+    PUSH        r13
+    PUSH        r14
+    %define     tdsth   r10 ; FIXME r8,9
+    %define     tdstv   r11
+    %define     tdstc   r12
+    %define     tsrc    r13
+    %define     theight r14d
+    mov         tdsth,  r0
+    mov         tdstv,  r1
+    mov         tdstc,  r2
+    mov         tsrc,   r3
+    mov         theight, r6m
 %else
-    mov         ebx,    dword [rbp+24]
+    %define     tdsth   [rbp + 20]
+    %define     tdstv   [rbp + 24]
+    %define     tdstc   [rbp + 28]
+    %define     tsrc    [rbp + 32]
+    %define     theight [rbp + 44]
 %endif
-    %define     dsth    rdi
-    %define     dstv    rsi
-    %define     dstc    rdx
-    %define     src     rcx
-    %define     stride  r8
-    %define     width   r9
-    %define     height  ebx
-    %define     stride3 r10
-    %define     stride5 r11
-    %define     x       rax
-    %define     tbuffer rsp + 8
 
-    lea         stride3, [stride*3]
-    lea         stride5, [stride*5]
-    sub         src,    stride
-    sub         src,    stride
-
+    movifnidn   r4d,    r4m
+    movifnidn   r5d,    r5m
+    mov         rbp,    rsp
     lea         rax,    [stride*2 + 24]
     sub         rsp,    rax
-
     pxor        mm0,    mm0
+
+    %define     tpw_1   [pw_1 GLOBAL]
+    %define     tpw_16  [pw_16 GLOBAL]
+    %define     tpw_32  [pw_32 GLOBAL]
+%ifdef PIC32
+    ; mov globals onto the stack, to free up PIC pointer
+    %define     tpw_1   [ebp - 24]
+    %define     tpw_16  [ebp - 16]
+    %define     tpw_32  [ebp -  8]
+    picgetgot   ebx
+    sub         esp,    24
+    movq        mm1,    [pw_1  GLOBAL]
+    movq        mm2,    [pw_16 GLOBAL]
+    movq        mm3,    [pw_32 GLOBAL]
+    movq        tpw_1,  mm1
+    movq        tpw_16, mm2
+    movq        tpw_32, mm3
+%endif
 
 .loopy:
 
-    xor         x,      x
+    mov         src,    tsrc
+    mov         dstv,   tdstv
+    lea         src3,   [src + stride]
+    sub         src,    stride
+    sub         src,    stride
+    xor         xd,     xd
 ALIGN 16
 .vertical_filter:
 
-    prefetcht0  [src + stride5 + 32]
+    prefetcht0  [src3 + stride*2 + 32]
 
-    LOAD_ADD    mm1,    [src               ], [src + stride5     ] ; a0
-    LOAD_ADD    mm2,    [src + stride      ], [src + stride*4    ] ; b0
-    LOAD_ADD    mm3,    [src + stride*2    ], [src + stride3     ] ; c0
-    LOAD_ADD    mm4,    [src            + 4], [src + stride5  + 4] ; a1
-    LOAD_ADD    mm5,    [src + stride   + 4], [src + stride*4 + 4] ; b1
-    LOAD_ADD    mm6,    [src + stride*2 + 4], [src + stride3  + 4] ; c1
+    LOAD_ADD    mm1,    [src               ], [src3 + stride*2    ] ; a0
+    LOAD_ADD    mm2,    [src + stride      ], [src3 + stride      ] ; b0
+    LOAD_ADD    mm3,    [src + stride*2    ], [src3               ] ; c0
+    LOAD_ADD    mm4,    [src            + 4], [src3 + stride*2 + 4] ; a1
+    LOAD_ADD    mm5,    [src + stride   + 4], [src3 + stride   + 4] ; b1
+    LOAD_ADD    mm6,    [src + stride*2 + 4], [src3            + 4] ; c1
 
     FILT_V
 
-    movq        mm7,    [pw_16 GLOBAL]
+    movq        mm7,    tpw_16
     movq        [tbuffer + x*2],  mm1
     movq        [tbuffer + x*2 + 8],  mm4
     paddw       mm1,    mm7
@@ -173,18 +173,19 @@ ALIGN 16
     packuswb    mm1,    mm4
     movntq      [dstv + x], mm1
 
-    add         x,      8
+    add         xd,     8
     add         src,    8
-    cmp         x,      width
+    add         src3,   8
+    cmp         xd,     width
     jle         .vertical_filter
 
     pshufw      mm2, [tbuffer], 0
     movq        [tbuffer - 8], mm2 ; pad left
     ; no need to pad right, since vertical_filter already did 4 extra pixels
 
-    sub         src,    x
-    xor         x,      x
-    movq        mm7,    [pw_32 GLOBAL]
+    mov         dstc,   tdstc
+    xor         xd,     xd
+    movq        mm7,    tpw_32
 .center_filter:
 
     movq        mm1,    [tbuffer + x*2 - 4 ]
@@ -204,12 +205,13 @@ ALIGN 16
     FILT_PACK 6
     movntq      [dstc + x], mm1
 
-    add         x,      8
-    cmp         x,      width
+    add         xd,     8
+    cmp         xd,     width
     jl          .center_filter
 
-    lea         src,    [src + stride*2]
-    xor         x,      x
+    mov         dsth,   tdsth
+    mov         src,    tsrc
+    xor         xd,     xd
 .horizontal_filter:
 
     movd        mm1,    [src + x - 2]
@@ -239,30 +241,30 @@ ALIGN 16
     punpcklbw   mm6,    mm0
     paddw       mm6,    mm7 ; a1
 
-    movq        mm7,    [pw_1 GLOBAL]
+    movq        mm7,    tpw_1
     FILT_H
     FILT_PACK 1
     movntq      [dsth + x], mm1
 
-    add         x,      8
-    cmp         x,      width
+    add         xd,     8
+    cmp         xd,     width
     jl          .horizontal_filter
 
-    sub         src,    stride
-    add         dsth,   stride
-    add         dstv,   stride
-    add         dstc,   stride
-    dec         height
+    add         tsrc,  stride
+    add         tdsth, stride
+    add         tdstv, stride
+    add         tdstc, stride
+    dec         dword theight
     jg          .loopy
 
     mov         rsp,    rbp
-    pop         rbx
+%ifdef ARCH_X86_64
+    pop         r14
+    pop         r13
+    pop         r12
     pop         rbp
-%ifdef WIN64
-    pop         rsi
-    pop         rdi
 %endif
-    ret
+    RET
 
 
 
@@ -270,51 +272,67 @@ ALIGN 16
 ; void x264_plane_copy_mmxext( uint8_t *dst, int i_dst,
 ;                              uint8_t *src, int i_src, int w, int h)
 ;-----------------------------------------------------------------------------
-cglobal x264_plane_copy_mmxext
-    movsxd parm2q, parm2d
-    movsxd parm4q, parm4d
-    add    parm5d, 3
-    and    parm5d, ~3
-    sub    parm2q, parm5q
-    sub    parm4q, parm5q
-    ; shuffle regs because movsd needs dst=rdi, src=rsi, w=ecx
-    xchg   rsi, rdx
-    mov    rax, parm4q
+cglobal x264_plane_copy_mmxext, 6,7
+    movsxdifnidn r1, r1d
+    movsxdifnidn r3, r3d
+    add    r4d, 3
+    and    r4d, ~3
+    mov    r6d, r4d
+    and    r6d, ~15
+    sub    r1,  r6
+    sub    r3,  r6
 .loopy:
-    mov    ecx, parm5d
-    sub    ecx, 64
+    mov    r6d, r4d
+    sub    r6d, 64
     jl     .endx
 .loopx:
-    prefetchnta [rsi+256]
-    movq   mm0, [rsi   ]
-    movq   mm1, [rsi+ 8]
-    movq   mm2, [rsi+16]
-    movq   mm3, [rsi+24]
-    movq   mm4, [rsi+32]
-    movq   mm5, [rsi+40]
-    movq   mm6, [rsi+48]
-    movq   mm7, [rsi+56]
-    movntq [rdi   ], mm0
-    movntq [rdi+ 8], mm1
-    movntq [rdi+16], mm2
-    movntq [rdi+24], mm3
-    movntq [rdi+32], mm4
-    movntq [rdi+40], mm5
-    movntq [rdi+48], mm6
-    movntq [rdi+56], mm7
-    add    rsi, 64
-    add    rdi, 64
-    sub    ecx, 64
+    prefetchnta [r2+256]
+    movq   mm0, [r2   ]
+    movq   mm1, [r2+ 8]
+    movq   mm2, [r2+16]
+    movq   mm3, [r2+24]
+    movq   mm4, [r2+32]
+    movq   mm5, [r2+40]
+    movq   mm6, [r2+48]
+    movq   mm7, [r2+56]
+    movntq [r0   ], mm0
+    movntq [r0+ 8], mm1
+    movntq [r0+16], mm2
+    movntq [r0+24], mm3
+    movntq [r0+32], mm4
+    movntq [r0+40], mm5
+    movntq [r0+48], mm6
+    movntq [r0+56], mm7
+    add    r2,  64
+    add    r0,  64
+    sub    r6d, 64
     jge    .loopx
 .endx:
-    prefetchnta [rsi+256]
-    add    ecx, 64
-    shr    ecx, 2
-    rep movsd
-    add    rdi, rdx
-    add    rsi, rax
-    sub    parm6d, 1
+    prefetchnta [r2+256]
+    add    r6d, 48
+    jl .end16
+.loop16:
+    movq   mm0, [r2  ]
+    movq   mm1, [r2+8]
+    movntq [r0  ], mm0
+    movntq [r0+8], mm1
+    add    r2,  16
+    add    r0,  16
+    sub    r6d, 16
+    jge    .loop16
+.end16:
+    add    r6d, 12
+    jl .end4
+.loop4:
+    movd   mm2, [r2+r6]
+    movd   [r0+r6], mm2
+    sub    r6d, 4
+    jge .loop4
+.end4:
+    add    r2, r3
+    add    r0, r1
+    dec    r5d
     jg     .loopy
     emms
-    ret
+    RET
 

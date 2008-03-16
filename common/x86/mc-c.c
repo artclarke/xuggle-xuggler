@@ -1,10 +1,10 @@
 /*****************************************************************************
- * mc.c: h264 encoder library (Motion Compensation)
+ * mc-c.c: h264 encoder library (Motion Compensation)
  *****************************************************************************
- * Copyright (C) 2003 Laurent Aimar
- * $Id: mc-c.c,v 1.5 2004/06/18 01:59:58 chenm001 Exp $
+ * Copyright (C) 2003-2008 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
+ *          Loren Merritt <lorenm@u.washington.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,18 +38,22 @@ extern void x264_pixel_avg_4x4_mmxext( uint8_t *, int, uint8_t *, int );
 extern void x264_pixel_avg_4x2_mmxext( uint8_t *, int, uint8_t *, int );
 extern void x264_pixel_avg2_w4_mmxext( uint8_t *, int, uint8_t *, int, uint8_t *, int );
 extern void x264_pixel_avg2_w8_mmxext( uint8_t *, int, uint8_t *, int, uint8_t *, int );
+extern void x264_pixel_avg2_w12_mmxext( uint8_t *, int, uint8_t *, int, uint8_t *, int );
 extern void x264_pixel_avg2_w16_mmxext( uint8_t *, int, uint8_t *, int, uint8_t *, int );
 extern void x264_pixel_avg2_w20_mmxext( uint8_t *, int, uint8_t *, int, uint8_t *, int );
-extern void x264_pixel_avg_weight_4x4_mmxext( uint8_t *, int, uint8_t *, int, int );
-extern void x264_pixel_avg_weight_w8_mmxext( uint8_t *, int, uint8_t *, int, int, int );
-extern void x264_pixel_avg_weight_w16_mmxext( uint8_t *, int, uint8_t *, int, int, int );
 extern void x264_mc_copy_w4_mmx( uint8_t *, int, uint8_t *, int, int );
 extern void x264_mc_copy_w8_mmx( uint8_t *, int, uint8_t *, int, int );
 extern void x264_mc_copy_w16_mmx( uint8_t *, int, uint8_t *, int, int );
 extern void x264_mc_copy_w16_sse2( uint8_t *, int, uint8_t *, int, int );
-extern void x264_plane_copy_mmxext( uint8_t *, int, uint8_t *, int, int w, int h);
+extern void x264_pixel_avg_weight_4x4_mmxext( uint8_t *, int, uint8_t *, int, int );
+extern void x264_pixel_avg_weight_w8_mmxext( uint8_t *, int, uint8_t *, int, int, int );
+extern void x264_pixel_avg_weight_w16_mmxext( uint8_t *, int, uint8_t *, int, int, int );
 extern void x264_prefetch_fenc_mmxext( uint8_t *, int, uint8_t *, int, int );
 extern void x264_prefetch_ref_mmxext( uint8_t *, int, int );
+extern void x264_mc_chroma_mmxext( uint8_t *src, int i_src_stride,
+                                   uint8_t *dst, int i_dst_stride,
+                                   int dx, int dy, int i_width, int i_height );
+extern void x264_plane_copy_mmxext( uint8_t *, int, uint8_t *, int, int w, int h);
 extern void x264_hpel_filter_mmxext( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
                                      int i_stride, int i_width, int i_height );
 
@@ -69,7 +73,7 @@ static void (* const x264_pixel_avg_wtab_mmxext[6])( uint8_t *, int, uint8_t *, 
     NULL,
     x264_pixel_avg2_w4_mmxext,
     x264_pixel_avg2_w8_mmxext,
-    x264_pixel_avg2_w16_mmxext,
+    x264_pixel_avg2_w12_mmxext,
     x264_pixel_avg2_w16_mmxext,
     x264_pixel_avg2_w20_mmxext,
 };
@@ -146,6 +150,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 
     pf->mc_luma = mc_luma_mmxext;
     pf->get_ref = get_ref_mmxext;
+    pf->mc_chroma = x264_mc_chroma_mmxext;
 
     pf->avg[PIXEL_16x16] = x264_pixel_avg_16x16_mmxext;
     pf->avg[PIXEL_16x8]  = x264_pixel_avg_16x8_mmxext;

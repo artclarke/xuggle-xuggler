@@ -25,7 +25,7 @@
 #include "clip1.h"
 
 #ifdef HAVE_MMX
-#   include "i386/pixel.h"
+#   include "x86/pixel.h"
 #endif
 #ifdef ARCH_PPC
 #   include "ppc/pixel.h"
@@ -614,10 +614,9 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT2( ssd, _sse2 );
         pixf->ssim_4x4x2_core  = x264_pixel_ssim_4x4x2_core_sse2;
         pixf->ssim_end4        = x264_pixel_ssim_end4_sse2;
-
-#ifdef ARCH_X86_64
         pixf->sa8d[PIXEL_16x16] = x264_pixel_sa8d_16x16_sse2;
         pixf->sa8d[PIXEL_8x8]   = x264_pixel_sa8d_8x8_sse2;
+#ifdef ARCH_X86_64
         pixf->intra_sa8d_x3_8x8 = x264_intra_sa8d_x3_8x8_sse2;
 #endif
     }
@@ -636,9 +635,13 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT5( satd_x3, _ssse3 );
         INIT5( satd_x4, _ssse3 );
         INIT_ADS( _ssse3 );
-#ifdef ARCH_X86_64
         pixf->sa8d[PIXEL_16x16]= x264_pixel_sa8d_16x16_ssse3;
         pixf->sa8d[PIXEL_8x8]  = x264_pixel_sa8d_8x8_ssse3;
+        pixf->intra_satd_x3_16x16 = x264_intra_satd_x3_16x16_ssse3;
+        pixf->intra_satd_x3_8x8c  = x264_intra_satd_x3_8x8c_ssse3;
+        pixf->intra_satd_x3_4x4   = x264_intra_satd_x3_4x4_ssse3;
+#ifdef ARCH_X86_64
+        pixf->intra_sa8d_x3_8x8 = x264_intra_sa8d_x3_8x8_ssse3;
 #endif
         if( cpu&X264_CPU_CACHELINE_SPLIT )
         {

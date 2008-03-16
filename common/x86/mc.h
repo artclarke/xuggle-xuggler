@@ -2,7 +2,6 @@
  * mc.h: h264 encoder library
  *****************************************************************************
  * Copyright (C) 2003 Laurent Aimar
- * $Id: mc.h,v 1.1 2004/06/03 19:27:07 fenrir Exp $
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *

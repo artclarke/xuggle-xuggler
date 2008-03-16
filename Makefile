@@ -2,6 +2,8 @@
 
 include config.mak
 
+all: default
+
 SRCS = common/mc.c common/predict.c common/pixel.c common/macroblock.c \
        common/frame.c common/dct.c common/cpu.c common/cabac.c \
        common/common.c common/mdate.c common/set.c \
@@ -18,30 +20,26 @@ SRCS   += common/visualize.c common/display-x11.c
 endif
 
 # MMX/SSE optims
-ifeq ($(ARCH),X86)
 ifneq ($(AS),)
-SRCS   += common/i386/mc-c.c common/i386/predict-c.c
-ASMSRC  = common/i386/dct-a.asm common/i386/cpu-a.asm \
-          common/i386/pixel-a.asm common/i386/mc-a.asm \
-          common/i386/mc-a2.asm common/i386/predict-a.asm \
-          common/i386/pixel-sse2.asm common/i386/quant-a.asm \
-          common/i386/deblock-a.asm
+X86SRC0 = dct-a.asm deblock-a.asm mc-a.asm mc-a2.asm \
+          pixel-a.asm predict-a.asm quant-a.asm sad-a.asm \
+          cpu-32.asm dct-32.asm
+X86SRC = $(X86SRC0:%=common/x86/%)
+
+ifeq ($(ARCH),X86)
+SRCS   += common/x86/mc-c.c common/x86/predict-c.c
+ASMSRC  = $(X86SRC) common/x86/pixel-32.asm
 OBJASM  = $(ASMSRC:%.asm=%.o)
-ASFLAGS += -Icommon/i386/
-endif
+ASFLAGS += -Icommon/x86/
+$(OBJASM): common/x86/x86inc.asm common/x86/x86inc-32.asm
 endif
 
-# MMX/SSE optims
 ifeq ($(ARCH),X86_64)
-ifneq ($(AS),)
-SRCS   += common/i386/mc-c.c common/i386/predict-c.c
-ASMSRC  = common/amd64/dct-a.asm common/amd64/cpu-a.asm \
-          common/amd64/pixel-a.asm common/amd64/mc-a.asm \
-          common/amd64/mc-a2.asm common/amd64/predict-a.asm \
-          common/amd64/pixel-sse2.asm common/amd64/quant-a.asm \
-          common/amd64/deblock-a.asm
+SRCS   += common/x86/mc-c.c common/x86/predict-c.c
+ASMSRC  = $(X86SRC:-32.asm=-64.asm)
 OBJASM  = $(ASMSRC:%.asm=%.o)
-ASFLAGS += -Icommon/amd64
+ASFLAGS += -Icommon/x86/ -DARCH_X86_64
+$(OBJASM): common/x86/x86inc.asm common/x86/x86inc-64.asm
 endif
 endif
 
@@ -69,7 +67,6 @@ OBJCLI = $(SRCCLI:%.c=%.o)
 DEP  = depend
 
 .PHONY: all default fprofiled clean distclean install install-gtk uninstall dox test testclean
-all: default
 
 default: $(DEP) x264$(EXE)
 
@@ -89,8 +86,6 @@ libx264gtk.a: muxers.o libx264.a
 checkasm: tools/checkasm.o libx264.a
 	$(CC) -o $@ $+ $(LDFLAGS)
 
-common/amd64/*.o: common/amd64/amd64inc.asm
-common/i386/*.o: common/i386/i386inc.asm
 %.o: %.asm
 	$(AS) $(ASFLAGS) -o $@ $<
 # delete local/anonymous symbols, so they don't show up in oprofile

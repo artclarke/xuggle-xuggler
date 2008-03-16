@@ -25,7 +25,7 @@
 #include "clip1.h"
 
 #ifdef HAVE_MMX
-#include "i386/mc.h"
+#include "x86/mc.h"
 #endif
 #ifdef ARCH_PPC
 #include "ppc/mc.h"
@@ -376,8 +376,6 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 
 #ifdef HAVE_MMX
     x264_mc_init_mmx( cpu, pf );
-    if( cpu&X264_CPU_MMXEXT )
-        pf->mc_chroma = x264_mc_chroma_mmxext;
 #endif
 #ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC )
@@ -390,9 +388,9 @@ void x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end )
     const int b_interlaced = h->sh.b_mbaff;
     const int stride = frame->i_stride[0] << b_interlaced;
     const int width = frame->i_width[0];
-    int start = (mb_y*16 >> b_interlaced) - 8;
+    int start = (mb_y*16 >> b_interlaced) - 8; // buffer = 4 for deblock + 3 for 6tap, rounded to 8
     int height = ((b_end ? frame->i_lines[0] : mb_y*16) >> b_interlaced) + 8;
-    int offs = start*stride - 8; // buffer = 4 for deblock + 3 for 6tap, rounded to 8
+    int offs = start*stride - 8; // buffer = 3 for 6tap, aligned to 8 for simd
     int x, y;
 
     if( mb_y & b_interlaced )

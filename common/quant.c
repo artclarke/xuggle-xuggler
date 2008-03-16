@@ -23,7 +23,7 @@
 #include "common.h"
 
 #ifdef HAVE_MMX
-#include "i386/quant.h"
+#include "x86/quant.h"
 #endif
 #ifdef ARCH_PPC
 #   include "ppc/quant.h"

@@ -1,7 +1,7 @@
 ;*****************************************************************************
-;* i386inc.asm: h264 encoder library
+;* x86inc-32.asm: h264 encoder library
 ;*****************************************************************************
-;* Copyright (C) 2006 x264 project
+;* Copyright (C) 2006-2008 x264 project
 ;*
 ;* Author: Sam Hocevar <sam@zoy.org>
 ;*
@@ -21,31 +21,6 @@
 ;*****************************************************************************
 
 BITS 32
-
-;=============================================================================
-; Macros and other preprocessor constants
-;=============================================================================
-
-; Symbol prefix for C linkage
-%macro cglobal 1
-    %ifdef PREFIX
-        global _%1
-        %define %1 _%1
-    %else
-        global %1
-    %endif
-    align 16
-    %1:
-%endmacro
-
-%macro cextern 1
-    %ifdef PREFIX
-        extern _%1
-        %define %1 _%1
-    %else
-        extern %1
-    %endif
-%endmacro
 
 ; Name of the .rodata section. On OS X we cannot use .rodata because NASM
 ; is unable to compute address offsets outside of .text so we use the .text
@@ -93,6 +68,7 @@ BITS 32
 ;     mov eax, [esp + 12]
 ;
 %ifdef __PIC__
+    %define PIC32
     %ifidn __OUTPUT_FORMAT__,macho
         ; There is no real global offset table on OS X, but we still
         ; need to reference our variables by offset.
@@ -138,14 +114,5 @@ BITS 32
     %macro picpop 1
     %endmacro
     %define picesp esp
-%endif
-
-%assign FENC_STRIDE 16
-%assign FDEC_STRIDE 32
-
-; This is needed for ELF, otherwise the GNU linker assumes the stack is
-; executable by default.
-%ifidn __OUTPUT_FORMAT__,elf
-SECTION ".note.GNU-stack" noalloc noexec nowrite progbits
 %endif
 

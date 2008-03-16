@@ -48,8 +48,10 @@ uint32_t x264_cpu_detect( void )
     int max_extended_cap;
     int cache;
 
+#ifndef ARCH_X86_64
     if( !x264_cpu_cpuid_test() )
         return 0;
+#endif
 
     x264_cpu_cpuid( 0, &eax, vendor+0, vendor+2, vendor+1 );
     if( eax == 0 )
