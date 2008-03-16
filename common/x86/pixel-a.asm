@@ -1625,7 +1625,8 @@ ADS_SSE2 ssse3
 ;     return nmv;
 ; }
 %ifdef ARCH_X86_64
-cglobal x264_pixel_ads_mvs
+ALIGN 16
+x264_pixel_ads_mvs:
     ; mvs = r4
     ; masks = rsp
     ; width = r5
@@ -1666,7 +1667,8 @@ cglobal x264_pixel_ads_mvs
     ret
 
 %else
-cglobal x264_pixel_ads_mvs
+ALIGN 16
+x264_pixel_ads_mvs:
     ; no PROLOGUE, inherit from x264_pixel_ads1
     mov     ebx, [ebp+stack_offset+20] ; mvs
     mov     edi, [ebp+stack_offset+24] ; width

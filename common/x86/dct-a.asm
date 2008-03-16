@@ -258,11 +258,11 @@ cglobal %1, 2,2,1
     jmp  %2
 %endmacro
 
-SUB_NxN_DCT  x264_sub8x8_dct_mmx,    x264_sub4x4_dct_mmx.skip_prologue,  32, 4, 0,  4
-ADD_NxN_IDCT x264_add8x8_idct_mmx,   x264_add4x4_idct_mmx.skip_prologue, 32, 4, 0,  4
+SUB_NxN_DCT  x264_sub8x8_dct_mmx,    x264_sub4x4_dct_mmx  %+ .skip_prologue, 32, 4, 0,  4
+ADD_NxN_IDCT x264_add8x8_idct_mmx,   x264_add4x4_idct_mmx %+ .skip_prologue, 32, 4, 0,  4
 
-SUB_NxN_DCT  x264_sub16x16_dct_mmx,  x264_sub8x8_dct_mmx.skip_prologue,  32, 4, 4, 12
-ADD_NxN_IDCT x264_add16x16_idct_mmx, x264_add8x8_idct_mmx.skip_prologue, 32, 4, 4, 12
+SUB_NxN_DCT  x264_sub16x16_dct_mmx,  x264_sub8x8_dct_mmx  %+ .skip_prologue, 32, 4, 4, 12
+ADD_NxN_IDCT x264_add16x16_idct_mmx, x264_add8x8_idct_mmx %+ .skip_prologue, 32, 4, 4, 12
 
 %ifdef ARCH_X86_64
 cextern x264_sub8x8_dct8_sse2
