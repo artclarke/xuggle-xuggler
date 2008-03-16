@@ -22,7 +22,6 @@
  *****************************************************************************/
 
 #include "common/common.h"
-#include "common/clip1.h"
 #include "predict.h"
 #include "pixel.h"
 

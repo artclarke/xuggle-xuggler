@@ -22,7 +22,6 @@
  *****************************************************************************/
 
 #include "common.h"
-#include "clip1.h"
 
 #ifdef HAVE_MMX
 #include "x86/mc.h"
@@ -163,7 +162,7 @@ static inline void mc_hh( uint8_t *src, int i_src_stride, uint8_t *dst, int i_ds
     {
         for( x = 0; x < i_width; x++ )
         {
-            dst[x] = x264_mc_clip1( ( x264_tapfilter1( &src[x] ) + 16 ) >> 5 );
+            dst[x] = x264_clip_uint8( ( x264_tapfilter1( &src[x] ) + 16 ) >> 5 );
         }
         src += i_src_stride;
         dst += i_dst_stride;
@@ -177,7 +176,7 @@ static inline void mc_hv( uint8_t *src, int i_src_stride, uint8_t *dst, int i_ds
     {
         for( x = 0; x < i_width; x++ )
         {
-            dst[x] = x264_mc_clip1( ( x264_tapfilter( &src[x], i_src_stride ) + 16 ) >> 5 );
+            dst[x] = x264_clip_uint8( ( x264_tapfilter( &src[x], i_src_stride ) + 16 ) >> 5 );
         }
         src += i_src_stride;
         dst += i_dst_stride;
@@ -206,7 +205,7 @@ static inline void mc_hc( uint8_t *src, int i_src_stride, uint8_t *dst, int i_ds
         {
             tap[5] = x264_tapfilter1( &pix[ 3*i_src_stride] );
 
-            *out = x264_mc_clip1( ( tap[0] - 5*tap[1] + 20 * tap[2] + 20 * tap[3] -5*tap[4] + tap[5] + 512 ) >> 10 );
+            *out = x264_clip_uint8( ( tap[0] - 5*tap[1] + 20 * tap[2] + 20 * tap[3] -5*tap[4] + tap[5] + 512 ) >> 10 );
 
             /* Next line */
             pix += i_src_stride;

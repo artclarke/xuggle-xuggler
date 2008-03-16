@@ -102,6 +102,11 @@ void x264_log( x264_t *h, int i_level, const char *psz_fmt, ... );
 
 void x264_reduce_fraction( int *n, int *d );
 
+static inline uint8_t x264_clip_uint8( int x )
+{
+    return x&(~255) ? (-x)>>31 : x;
+}
+
 static inline int x264_clip3( int v, int i_min, int i_max )
 {
     return ( (v < i_min) ? i_min : (v > i_max) ? i_max : v );

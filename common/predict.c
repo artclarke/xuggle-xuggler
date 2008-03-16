@@ -26,7 +26,6 @@
 
 
 #include "common.h"
-#include "clip1.h"
 
 #ifdef _MSC_VER
 #undef HAVE_MMX  /* not finished now */

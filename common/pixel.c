@@ -22,7 +22,6 @@
  *****************************************************************************/
 
 #include "common.h"
-#include "clip1.h"
 
 #ifdef HAVE_MMX
 #   include "x86/pixel.h"
