@@ -15,6 +15,16 @@ uint8_t * buf3, * buf4;
     if( !ok ) ret = -1; \
 }
 
+/* detect when callee-saved regs aren't saved.
+ * needs an explicit asm check because it only sometimes crashes in normal use. */
+#define call_c(func,...) func(__VA_ARGS__)
+#ifdef ARCH_X86
+long x264_checkasm_call( long (*func)(), int *ok, ... );
+#define call_a(func,...) x264_checkasm_call((long(*)())func, &ok, __VA_ARGS__)
+#else
+#define call_a call_c
+#endif
+
 static int check_pixel( int cpu_ref, int cpu_new )
 {
     x264_pixel_function_t pixel_c;
@@ -47,8 +57,8 @@ static int check_pixel( int cpu_ref, int cpu_new )
             for( j=0; j<64; j++ ) \
             { \
                 used_asm = 1; \
-                res_c   = pixel_c.name[i]( buf1, 32, buf2+j, 16 ); \
-                res_asm = pixel_asm.name[i]( buf1, 32, buf2+j, 16 ); \
+                res_c   = call_c( pixel_c.name[i], buf1, 32, buf2+j, 16 ); \
+                res_asm = call_a( pixel_asm.name[i], buf1, 32, buf2+j, 16 ); \
                 if( res_c != res_asm ) \
                 { \
                     ok = 0; \
@@ -81,10 +91,10 @@ static int check_pixel( int cpu_ref, int cpu_new )
                 if(N==4) \
                 { \
                     res_c[3] = pixel_c.sad[i]( buf1, 16, pix2+99, 32 ); \
-                    pixel_asm.sad_x4[i]( buf1, pix2, pix2+30, pix2+1, pix2+99, 32, res_asm ); \
+                    call_a( pixel_asm.sad_x4[i], buf1, pix2, pix2+30, pix2+1, pix2+99, 32, res_asm ); \
                 } \
                 else \
-                    pixel_asm.sad_x3[i]( buf1, pix2, pix2+30, pix2+1, 32, res_asm ); \
+                    call_a( pixel_asm.sad_x3[i], buf1, pix2, pix2+30, pix2+1, 32, res_asm ); \
                 if( memcmp(res_c, res_asm, sizeof(res_c)) ) \
                 { \
                     ok = 0; \
@@ -111,7 +121,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
             pred[i]( buf3+40, ##__VA_ARGS__ ); \
             res_c[i] = pixel_c.satd( buf1+40, 16, buf3+40, 32 ); \
         } \
-        pixel_asm.name( buf1+40, i8x8 ? edge : buf3+40, res_asm ); \
+        call_a( pixel_asm.name, buf1+40, i8x8 ? edge : buf3+40, res_asm ); \
         if( memcmp(res_c, res_asm, sizeof(res_c)) ) \
         { \
             ok = 0; \
@@ -147,7 +157,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     ok = 1; used_asm = 0;
     for( i=0; i<32; i++ )
         cost_mv[i] = i*10;
-    for( i=0; i<100; i++ )
+    for( i=0; i<100 && ok; i++ )
         if( pixel_asm.ads[i&3] != pixel_ref.ads[i&3] )
         {
             DECLARE_ALIGNED( uint16_t, sums[72], 16 );
@@ -160,8 +170,8 @@ static int check_pixel( int cpu_ref, int cpu_new )
             for( j=0; j<4; j++ )
                 dc[j] = rand() & 0x3fff;
             used_asm = 1;
-            mvn_c = pixel_c.ads[i&3]( dc, sums, 32, cost_mv, mvs_c, 28, thresh );
-            mvn_a = pixel_asm.ads[i&3]( dc, sums, 32, cost_mv, mvs_a, 28, thresh );
+            mvn_c = call_c( pixel_c.ads[i&3], dc, sums, 32, cost_mv, mvs_c, 28, thresh );
+            mvn_a = call_a( pixel_asm.ads[i&3], dc, sums, 32, cost_mv, mvs_a, 28, thresh );
             if( mvn_c != mvn_a || memcmp( mvs_c, mvs_a, mvn_c*sizeof(*mvs_c) ) )
             {
                 ok = 0;
@@ -212,8 +222,8 @@ static int check_dct( int cpu_ref, int cpu_new )
     if( dct_asm.name != dct_ref.name ) \
     { \
         used_asm = 1; \
-        dct_c.name( t1, buf1, buf2 ); \
-        dct_asm.name( t2, buf1, buf2 ); \
+        call_c( dct_c.name, t1, buf1, buf2 ); \
+        call_a( dct_asm.name, t2, buf1, buf2 ); \
         if( memcmp( t1, t2, size ) ) \
         { \
             ok = 0; \
@@ -255,8 +265,8 @@ static int check_dct( int cpu_ref, int cpu_new )
         memcpy( buf4, buf1, 32*32 ); \
         memcpy( dct1, src, 512 ); \
         memcpy( dct2, src, 512 ); \
-        dct_c.name( buf3, (void*)dct1 ); \
-        dct_asm.name( buf4, (void*)dct2 ); \
+        call_c( dct_c.name, buf3, (void*)dct1 ); \
+        call_a( dct_asm.name, buf4, (void*)dct2 ); \
         if( memcmp( buf3, buf4, 32*32 ) ) \
         { \
             ok = 0; \
@@ -281,8 +291,8 @@ static int check_dct( int cpu_ref, int cpu_new )
         int16_t dct1[4][4] __attribute((aligned(16))) = { {-12, 42, 23, 67},{2, 90, 89,56}, {67,43,-76,91},{56,-78,-54,1}};
         int16_t dct2[4][4] __attribute((aligned(16))) = { {-12, 42, 23, 67},{2, 90, 89,56}, {67,43,-76,91},{56,-78,-54,1}};
         used_asm = 1;
-        dct_c.dct4x4dc( dct1 );
-        dct_asm.dct4x4dc( dct2 );
+        call_c( dct_c.dct4x4dc, dct1 );
+        call_a( dct_asm.dct4x4dc, dct2 );
         if( memcmp( dct1, dct2, 32 ) )
         {
             ok = 0;
@@ -294,8 +304,8 @@ static int check_dct( int cpu_ref, int cpu_new )
         int16_t dct1[4][4] __attribute((aligned(16))) = { {-12, 42, 23, 67},{2, 90, 89,56}, {67,43,-76,91},{56,-78,-54,1}};
         int16_t dct2[4][4] __attribute((aligned(16))) = { {-12, 42, 23, 67},{2, 90, 89,56}, {67,43,-76,91},{56,-78,-54,1}};
         used_asm = 1;
-        dct_c.idct4x4dc( dct1 );
-        dct_asm.idct4x4dc( dct2 );
+        call_c( dct_c.idct4x4dc, dct1 );
+        call_a( dct_asm.idct4x4dc, dct2 );
         if( memcmp( dct1, dct2, 32 ) )
         {
             ok = 0;
@@ -310,8 +320,8 @@ static int check_dct( int cpu_ref, int cpu_new )
         int16_t dct1[2][2] __attribute((aligned(16))) = { {-12, 42},{2, 90}};
         int16_t dct2[2][2] __attribute((aligned(16))) = { {-12, 42},{2, 90}};
         used_asm = 1;
-        dct_c.dct2x2dc( dct1 );
-        dct_asm.dct2x2dc( dct2 );
+        call_c( dct_c.dct2x2dc, dct1 );
+        call_a( dct_asm.dct2x2dc, dct2 );
         if( memcmp( dct1, dct2, 4*2 ) )
         {
             ok = 0;
@@ -323,8 +333,8 @@ static int check_dct( int cpu_ref, int cpu_new )
         int16_t dct1[2][2] __attribute((aligned(16))) = { {-12, 42},{2, 90}};
         int16_t dct2[2][2] __attribute((aligned(16))) = { {-12, 42},{2, 90}};
         used_asm = 1;
-        dct_c.idct2x2dc( dct1 );
-        dct_asm.idct2x2dc( dct2 );
+        call_c( dct_c.idct2x2dc, dct1 );
+        call_a( dct_asm.idct2x2dc, dct2 );
         if( memcmp( dct1, dct2, 4*2 ) )
         {
             ok = 0;
@@ -344,8 +354,8 @@ static int check_dct( int cpu_ref, int cpu_new )
     if( zigzag_asm.name != zigzag_ref.name ) \
     { \
         used_asm = 1; \
-        zigzag_c.name( t1, dct ); \
-        zigzag_asm.name( t2, dct ); \
+        call_c( zigzag_c.name, t1, dct ); \
+        call_a( zigzag_asm.name, t2, dct ); \
         if( memcmp( t1, t2, size ) ) \
         { \
             ok = 0; \
@@ -359,8 +369,8 @@ static int check_dct( int cpu_ref, int cpu_new )
         used_asm = 1; \
         memcpy( buf3, buf1, 16*FDEC_STRIDE ); \
         memcpy( buf4, buf1, 16*FDEC_STRIDE ); \
-        zigzag_c.name( t1, buf2, buf3 );  \
-        zigzag_asm.name( t2, buf2, buf4 );    \
+        call_c( zigzag_c.name, t1, buf2, buf3 );  \
+        call_a( zigzag_asm.name, t2, buf2, buf4 );    \
         if( memcmp( t1, t2, size )|| memcmp( buf3, buf4, 16*FDEC_STRIDE ) )  \
         { \
             ok = 0; \
@@ -424,8 +434,8 @@ static int check_mc( int cpu_ref, int cpu_new )
             used_asm = 1; \
             memset(buf3, 0xCD, 1024); \
             memset(buf4, 0xCD, 1024); \
-            mc_c.mc_luma( dst1, 32, src2, 16, dx, dy, w, h ); \
-            mc_a.mc_luma( dst2, 32, src2, 16, dx, dy, w, h ); \
+            call_c( mc_c.mc_luma, dst1, 32, src2, 16, dx, dy, w, h ); \
+            call_a( mc_a.mc_luma, dst2, 32, src2, 16, dx, dy, w, h ); \
             if( memcmp( buf3, buf4, 1024 ) ) \
             { \
                 fprintf( stderr, "mc_luma[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h ); \
@@ -439,8 +449,8 @@ static int check_mc( int cpu_ref, int cpu_new )
             used_asm = 1; \
             memset(buf3, 0xCD, 1024); \
             memset(buf4, 0xCD, 1024); \
-            mc_c.mc_luma( dst1, 32, src2, 16, dx, dy, w, h ); \
-            ref = mc_a.get_ref( ref, &ref_stride, src2, 16, dx, dy, w, h ); \
+            call_c( mc_c.mc_luma, dst1, 32, src2, 16, dx, dy, w, h ); \
+            ref = (uint8_t*) call_a( mc_a.get_ref, ref, &ref_stride, src2, 16, dx, dy, w, h ); \
             for( i=0; i<h; i++ ) \
                 if( memcmp( dst1+i*32, ref+i*ref_stride, w ) ) \
                 { \
@@ -456,8 +466,8 @@ static int check_mc( int cpu_ref, int cpu_new )
             used_asm = 1; \
             memset(buf3, 0xCD, 1024); \
             memset(buf4, 0xCD, 1024); \
-            mc_c.mc_chroma( dst1, 16, src, 32, dx, dy, w, h ); \
-            mc_a.mc_chroma( dst2, 16, src, 32, dx, dy, w, h ); \
+            call_c( mc_c.mc_chroma, dst1, 16, src, 32, dx, dy, w, h ); \
+            call_a( mc_a.mc_chroma, dst2, 16, src, 32, dx, dy, w, h ); \
             /* mc_chroma width=2 may write garbage to the right of dst. ignore that. */\
             for( j=0; j<h; j++ ) \
                 for( i=w; i<4; i++ ) \
@@ -508,8 +518,8 @@ static int check_mc( int cpu_ref, int cpu_new )
         if( mc_a.name[i] != mc_ref.name[i] ) \
         { \
             used_asm = 1; \
-            mc_c.name[i]( buf3, 32, buf2, 16, ##__VA_ARGS__ ); \
-            mc_a.name[i]( buf4, 32, buf2, 16, ##__VA_ARGS__ ); \
+            call_c( mc_c.name[i], buf3, 32, buf2, 16, ##__VA_ARGS__ ); \
+            call_a( mc_a.name[i], buf4, 32, buf2, 16, ##__VA_ARGS__ ); \
             if( memcmp( buf3, buf4, 1024 ) )               \
             { \
                 ok = 0; \
@@ -532,8 +542,8 @@ static int check_mc( int cpu_ref, int cpu_new )
         ok = 1; used_asm = 1;
         memset( buf3, 0, 4096 );
         memset( buf4, 0, 4096 );
-        mc_c.hpel_filter( dstc[0], dstc[1], dstc[2], src, 64, 48, 10 );
-        mc_a.hpel_filter( dsta[0], dsta[1], dsta[2], src, 64, 48, 10 );
+        call_c( mc_c.hpel_filter, dstc[0], dstc[1], dstc[2], src, 64, 48, 10 );
+        call_a( mc_a.hpel_filter, dsta[0], dsta[1], dsta[2], src, 64, 48, 10 );
         for( i=0; i<3; i++ )
             for( j=0; j<10; j++ )
                 //FIXME ideally the first pixels would match too, but they aren't actually used
@@ -591,8 +601,8 @@ static int check_deblock( int cpu_ref, int cpu_new )
         if( db_a.name != db_ref.name ) \
         { \
             used_asm = 1; \
-            db_c.name( &buf3[8*32], 32, alphas[i], betas[i], ##__VA_ARGS__ ); \
-            db_a.name( &buf4[8*32], 32, alphas[i], betas[i], ##__VA_ARGS__ ); \
+            call_c( db_c.name, &buf3[8*32], 32, alphas[i], betas[i], ##__VA_ARGS__ ); \
+            call_a( db_a.name, &buf4[8*32], 32, alphas[i], betas[i], ##__VA_ARGS__ ); \
             if( memcmp( buf3, buf4, 1024 ) )               \
             { \
                 ok = 0; \
@@ -692,8 +702,8 @@ static int check_quant( int cpu_ref, int cpu_new )
             { \
                 for( i = 0; i < 16; i++ ) \
                     dct1[i] = dct2[i] = (rand() & 0x1fff) - 0xfff; \
-                qf_c.name( (void*)dct1, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
-                qf_a.name( (void*)dct2, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
+                call_c( qf_c.name, (void*)dct1, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
+                call_a( qf_a.name, (void*)dct2, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
                 if( memcmp( dct1, dct2, 16*2 ) )       \
                 { \
                     oks[0] = 0; \
@@ -710,8 +720,8 @@ static int check_quant( int cpu_ref, int cpu_new )
             for( qp = 51; qp > 0; qp-- ) \
             { \
                 INIT_QUANT##w() \
-                qf_c.qname( (void*)dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
-                qf_a.qname( (void*)dct2, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                call_c( qf_c.qname, (void*)dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                call_a( qf_a.qname, (void*)dct2, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
                 if( memcmp( dct1, dct2, w*w*2 ) ) \
                 { \
                     oks[0] = 0; \
@@ -735,10 +745,10 @@ static int check_quant( int cpu_ref, int cpu_new )
             for( qp = 51; qp > 0; qp-- ) \
             { \
                 INIT_QUANT##w() \
-                qf_c.qname( (void*)dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                call_c( qf_c.qname, (void*)dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
                 memcpy( dct2, dct1, w*w*2 ); \
-                qf_c.dqname( (void*)dct1, h->dequant##w##_mf[block], qp ); \
-                qf_a.dqname( (void*)dct2, h->dequant##w##_mf[block], qp ); \
+                call_c( qf_c.dqname, (void*)dct1, h->dequant##w##_mf[block], qp ); \
+                call_a( qf_a.dqname, (void*)dct2, h->dequant##w##_mf[block], qp ); \
                 if( memcmp( dct1, dct2, w*w*2 ) ) \
                 { \
                     oks[1] = 0; \
@@ -801,8 +811,8 @@ static int check_intra( int cpu_ref, int cpu_new )
         used_asm = 1; \
         memcpy( buf3, buf1, 32*20 );\
         memcpy( buf4, buf1, 32*20 );\
-        ip_c.name[dir]( buf3+48, ##__VA_ARGS__ );\
-        ip_a.name[dir]( buf4+48, ##__VA_ARGS__ );\
+        call_c( ip_c.name[dir], buf3+48, ##__VA_ARGS__ );\
+        call_a( ip_a.name[dir], buf4+48, ##__VA_ARGS__ );\
         if( memcmp( buf3, buf4, 32*20 ) )\
         {\
             fprintf( stderr, #name "[%d] :  [FAILED]\n", dir );\

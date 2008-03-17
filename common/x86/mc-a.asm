@@ -373,7 +373,7 @@ cglobal x264_pixel_avg_weight_w8_mmxext, 4,5
 ;-----------------------------------------------------------------------------
 ; int x264_pixel_avg_weight_4x4_mmxext( uint8_t *, int, uint8_t *, int, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_avg_weight_4x4_mmxext, 4,4
+cglobal x264_pixel_avg_weight_4x4_mmxext, 4,4,1
     BIWEIGHT_START_MMX 0
     BIWEIGHT_4P_MMX  [r0     ], [r2     ]
     BIWEIGHT_4P_MMX  [r0+r1  ], [r2+r3  ]
