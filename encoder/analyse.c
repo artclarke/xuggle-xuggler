@@ -44,8 +44,8 @@ typedef struct
 
     /* 8x8 */
     int       i_cost8x8;
-    int       mvc[32][5][2]; /* [ref][0] is 16x16 mv,
-                                [ref][1..4] are 8x8 mv from partition [0..3] */
+    /* [ref][0] is 16x16 mv, [ref][1..4] are 8x8 mv from partition [0..3] */
+    DECLARE_ALIGNED( int, mvc[32][5][2], 8 );
     x264_me_t me8x8[4];
 
     /* Sub 4x4 */
@@ -1145,7 +1145,7 @@ static void x264_mb_analyse_inter_p16x8( x264_t *h, x264_mb_analysis_t *a )
 {
     x264_me_t m;
     uint8_t  **p_fenc = h->mb.pic.p_fenc;
-    int mvc[3][2];
+    DECLARE_ALIGNED( int, mvc[3][2], 8 );
     int i, j;
 
     /* XXX Needed for x264_mb_predict_mv */
@@ -1195,7 +1195,7 @@ static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a )
 {
     x264_me_t m;
     uint8_t  **p_fenc = h->mb.pic.p_fenc;
-    int mvc[3][2];
+    DECLARE_ALIGNED( int, mvc[3][2], 8 );
     int i, j;
 
     /* XXX Needed for x264_mb_predict_mv */
@@ -1698,7 +1698,7 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
         { h->mb.pic.p_fref[0][a->l0.i_ref],
           h->mb.pic.p_fref[1][a->l1.i_ref] };
     DECLARE_ALIGNED( uint8_t,  pix[2][16*8], 16 );
-    int mvc[2][2];
+    DECLARE_ALIGNED( int, mvc[2][2], 8 );
     int i, l;
 
     h->mb.i_partition = D_16x8;
@@ -1721,10 +1721,8 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
             LOAD_FENC( m, h->mb.pic.p_fenc, 0, 8*i );
             LOAD_HPELS( m, p_fref[l], l, lX->i_ref, 0, 8*i );
 
-            mvc[0][0] = lX->me8x8[2*i].mv[0];
-            mvc[0][1] = lX->me8x8[2*i].mv[1];
-            mvc[1][0] = lX->me8x8[2*i+1].mv[0];
-            mvc[1][1] = lX->me8x8[2*i+1].mv[1];
+            *(uint64_t*)mvc[0] = *(uint64_t*)lX->me8x8[2*i].mv;
+            *(uint64_t*)mvc[1] = *(uint64_t*)lX->me8x8[2*i+1].mv;
 
             x264_mb_predict_mv( h, l, 8*i, 2, m->mvp );
             x264_me_search( h, m, mvc, 2 );
@@ -1769,7 +1767,7 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
         { h->mb.pic.p_fref[0][a->l0.i_ref],
           h->mb.pic.p_fref[1][a->l1.i_ref] };
     uint8_t pix[2][8*16];
-    int mvc[2][2];
+    DECLARE_ALIGNED( int, mvc[2][2], 8 );
     int i, l;
 
     h->mb.i_partition = D_8x16;
@@ -1791,10 +1789,8 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
             LOAD_FENC( m, h->mb.pic.p_fenc, 8*i, 0 );
             LOAD_HPELS( m, p_fref[l], l, lX->i_ref, 8*i, 0 );
 
-            mvc[0][0] = lX->me8x8[i].mv[0];
-            mvc[0][1] = lX->me8x8[i].mv[1];
-            mvc[1][0] = lX->me8x8[i+2].mv[0];
-            mvc[1][1] = lX->me8x8[i+2].mv[1];
+            *(uint64_t*)mvc[0] = *(uint64_t*)lX->me8x8[i].mv;
+            *(uint64_t*)mvc[1] = *(uint64_t*)lX->me8x8[i+2].mv;
 
             x264_mb_predict_mv( h, l, 4*i, 2, m->mvp );
             x264_me_search( h, m, mvc, 2 );

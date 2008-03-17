@@ -460,16 +460,16 @@ struct x264_t
             int     non_zero_count[X264_SCAN8_SIZE];
 
             /* -1 if unused, -2 if unavailable */
-            int8_t  ref[2][X264_SCAN8_SIZE];
+            DECLARE_ALIGNED( int8_t, ref[2][X264_SCAN8_SIZE], 4 );
 
             /* 0 if not available */
-            int16_t mv[2][X264_SCAN8_SIZE][2];
-            int16_t mvd[2][X264_SCAN8_SIZE][2];
+            DECLARE_ALIGNED( int16_t, mv[2][X264_SCAN8_SIZE][2], 16 );
+            DECLARE_ALIGNED( int16_t, mvd[2][X264_SCAN8_SIZE][2], 4 );
 
             /* 1 if SKIP or DIRECT. set only for B-frames + CABAC */
-            int8_t  skip[X264_SCAN8_SIZE];
+            DECLARE_ALIGNED( int8_t, skip[X264_SCAN8_SIZE], 4 );
 
-            int16_t direct_mv[2][X264_SCAN8_SIZE][2];
+            DECLARE_ALIGNED( int16_t, direct_mv[2][X264_SCAN8_SIZE][2], 16 ) ;
             int8_t  direct_ref[2][X264_SCAN8_SIZE];
             int     pskip_mv[2];
 
