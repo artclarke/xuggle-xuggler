@@ -228,8 +228,10 @@ DECLARE_REG 6, ebp, ebp, bp, [esp + stack_offset + 28]
     ASSERT %2 >= %1
     %assign stack_offset 0
     %assign regs_used %2
+    %ifdef __PIC__
     %if %3
         %assign regs_used regs_used+1
+    %endif
     %endif
     ASSERT regs_used <= 7
     PUSH_IF_USED 3

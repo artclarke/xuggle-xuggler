@@ -1377,7 +1377,6 @@ cglobal x264_pixel_ssim_end4_sse2, 3,3
     mov     r10, rsp
 %else
     %define t0  r4
-    PUSH    rbp
     mov     rbp, rsp
 %endif
     mov     r0d, r5m
@@ -1403,7 +1402,7 @@ cglobal x264_pixel_ssim_end4_sse2, 3,3
 ; int x264_pixel_ads4_mmxext( int enc_dc[4], uint16_t *sums, int delta,
 ;                             uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_ads4_mmxext, 4,5
+cglobal x264_pixel_ads4_mmxext, 4,7
     movq    mm6, [r0]
     movq    mm4, [r0+8]
     pshufw  mm7, mm6, 0
@@ -1438,7 +1437,7 @@ cglobal x264_pixel_ads4_mmxext, 4,5
     movd    [t0], mm1
     ADS_END 1
 
-cglobal x264_pixel_ads2_mmxext, 4,5
+cglobal x264_pixel_ads2_mmxext, 4,7
     movq    mm6, [r0]
     pshufw  mm5, r6m, 0
     pshufw  mm7, mm6, 0
@@ -1459,7 +1458,7 @@ cglobal x264_pixel_ads2_mmxext, 4,5
     movd    [t0], mm4
     ADS_END 1
 
-cglobal x264_pixel_ads1_mmxext, 4,5
+cglobal x264_pixel_ads1_mmxext, 4,7
     pshufw  mm7, [r0], 0
     pshufw  mm6, r6m, 0
     ADS_START 2
@@ -1481,7 +1480,7 @@ cglobal x264_pixel_ads1_mmxext, 4,5
     ADS_END 2
 
 %macro ADS_SSE2 1
-cglobal x264_pixel_ads4_%1, 4,5
+cglobal x264_pixel_ads4_%1, 4,7
     movdqa  xmm4, [r0]
     pshuflw xmm7, xmm4, 0
     pshuflw xmm6, xmm4, 0xAA
@@ -1550,7 +1549,7 @@ cglobal x264_pixel_ads4_%1, 4,5
 %endif ; ARCH
     ADS_END 2
 
-cglobal x264_pixel_ads2_%1, 4,5
+cglobal x264_pixel_ads2_%1, 4,7
     movq    xmm6, [r0]
     movd    xmm5, r6m
     pshuflw xmm7, xmm6, 0
@@ -1576,7 +1575,7 @@ cglobal x264_pixel_ads2_%1, 4,5
     movq    [t0], xmm1
     ADS_END 2
 
-cglobal x264_pixel_ads1_%1, 4,5
+cglobal x264_pixel_ads1_%1, 4,7
     movd    xmm7, [r0]
     movd    xmm6, r6m
     pshuflw xmm7, xmm7, 0
@@ -1624,8 +1623,9 @@ ADS_SSE2 ssse3
 ;     }
 ;     return nmv;
 ; }
-%ifdef ARCH_X86_64
+global x264_pixel_ads_mvs
 ALIGN 16
+%ifdef ARCH_X86_64
 x264_pixel_ads_mvs:
     ; mvs = r4
     ; masks = rsp
@@ -1667,7 +1667,6 @@ x264_pixel_ads_mvs:
     ret
 
 %else
-ALIGN 16
 x264_pixel_ads_mvs:
     ; no PROLOGUE, inherit from x264_pixel_ads1
     mov     ebx, [ebp+stack_offset+20] ; mvs
@@ -1707,7 +1706,6 @@ x264_pixel_ads_mvs:
     jl .loopi
 .end:
     pop     esp
-    pop     ebp
     RET
 %endif ; ARCH
 
