@@ -36,10 +36,6 @@
 #define XCHG(type,a,b) { type t = a; a = b; b = t; }
 #define FIX8(f) ((int)(f*(1<<8)+.5))
 
-#ifndef offsetof
-#define offsetof(T,F) ((unsigned long)((char *)&((T *)0)->F))
-#endif
-
 #define CHECKED_MALLOC( var, size )\
 {\
     var = x264_malloc( size );\
@@ -64,6 +60,7 @@
  ****************************************************************************/
 #include "osdep.h"
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
