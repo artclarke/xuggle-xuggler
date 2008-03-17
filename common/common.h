@@ -37,7 +37,7 @@
 #define FIX8(f) ((int)(f*(1<<8)+.5))
 
 #ifndef offsetof
-#define offsetof(T,F) ((unsigned int)((char *)&((T *)0)->F))
+#define offsetof(T,F) ((unsigned long)((char *)&((T *)0)->F))
 #endif
 
 #define CHECKED_MALLOC( var, size )\
