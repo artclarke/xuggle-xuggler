@@ -27,7 +27,9 @@
 typedef struct
 {
     /* context */
-    uint8_t state[460];
+    DECLARE_ALIGNED( uint8_t, state[460], 16 );
+
+    int f8_bits_encoded; // only if using x264_cabac_size_decision()
 
     /* state */
     int i_low;
@@ -36,7 +38,6 @@ typedef struct
     /* bit stream */
     int i_queue;
     int i_bytes_outstanding;
-    int f8_bits_encoded; // only if using x264_cabac_size_decision()
 
     uint8_t *p_start;
     uint8_t *p;

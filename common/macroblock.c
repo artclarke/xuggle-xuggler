@@ -502,7 +502,7 @@ int x264_mb_predict_mv_direct16x16( x264_t *h, int *b_changed )
         for( l = 0; l < 2; l++ )
             for( i = 0; i < 4; i++ )
                 h->mb.cache.direct_ref[l][i] = h->mb.cache.ref[l][x264_scan8[i*4]];
-        memcpy(h->mb.cache.direct_mv, h->mb.cache.mv, sizeof(h->mb.cache.mv));
+        h->mc.memcpy_aligned(h->mb.cache.direct_mv, h->mb.cache.mv, sizeof(h->mb.cache.mv));
     }
 
     return b_available;

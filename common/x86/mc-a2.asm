@@ -336,3 +336,56 @@ cglobal x264_plane_copy_mmxext, 6,7
     emms
     RET
 
+;-----------------------------------------------------------------------------
+; void *x264_memcpy_aligned_mmx( void *dst, const void *src, size_t n );
+;-----------------------------------------------------------------------------
+cglobal x264_memcpy_aligned_mmx, 3,3
+    test r2d, 16
+    jz .copy32
+    sub r2d, 16
+    movq mm0, [r1 + r2 + 0]
+    movq mm1, [r1 + r2 + 8]
+    movq [r0 + r2 + 0], mm0
+    movq [r0 + r2 + 8], mm1
+.copy32:
+        sub r2d, 32
+        movq mm0, [r1 + r2 +  0]
+        movq mm1, [r1 + r2 +  8]
+        movq mm2, [r1 + r2 + 16]
+        movq mm3, [r1 + r2 + 24]
+        movq [r0 + r2 +  0], mm0
+        movq [r0 + r2 +  8], mm1
+        movq [r0 + r2 + 16], mm2
+        movq [r0 + r2 + 24], mm3
+    jg .copy32
+    REP_RET
+
+;-----------------------------------------------------------------------------
+; void *x264_memcpy_aligned_sse2( void *dst, const void *src, size_t n );
+;-----------------------------------------------------------------------------
+cglobal x264_memcpy_aligned_sse2, 3,3
+    test r2d, 16
+    jz .copy32
+    sub r2d, 16
+    movdqa xmm0, [r1 + r2]
+    movdqa [r0 + r2], xmm0
+.copy32:
+    test r2d, 32
+    jz .copy64
+    sub r2d, 32
+    movdqa xmm0, [r1 + r2 +  0]
+    movdqa xmm1, [r1 + r2 + 16]
+    movdqa [r0 + r2 +  0], xmm0
+    movdqa [r0 + r2 + 16], xmm1
+.copy64:
+        sub r2d, 64
+        movdqa xmm0, [r1 + r2 +  0]
+        movdqa xmm1, [r1 + r2 + 16]
+        movdqa xmm2, [r1 + r2 + 32]
+        movdqa xmm3, [r1 + r2 + 48]
+        movdqa [r0 + r2 +  0], xmm0
+        movdqa [r0 + r2 + 16], xmm1
+        movdqa [r0 + r2 + 32], xmm2
+        movdqa [r0 + r2 + 48], xmm3
+    jg .copy64
+    REP_RET

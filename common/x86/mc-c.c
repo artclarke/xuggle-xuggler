@@ -56,6 +56,8 @@ extern void x264_mc_chroma_mmxext( uint8_t *src, int i_src_stride,
 extern void x264_plane_copy_mmxext( uint8_t *, int, uint8_t *, int, int w, int h);
 extern void x264_hpel_filter_mmxext( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
                                      int i_stride, int i_width, int i_height );
+extern void *x264_memcpy_aligned_mmx( void * dst, const void * src, size_t n );
+extern void *x264_memcpy_aligned_sse2( void * dst, const void * src, size_t n );
 
 #define AVG_WEIGHT(W,H) \
 void x264_pixel_avg_weight_ ## W ## x ## H ## _mmxext( uint8_t *dst, int i_dst, uint8_t *src, int i_src, int i_weight_dst ) \
@@ -144,6 +146,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->copy[PIXEL_16x16] = x264_mc_copy_w16_mmx;
     pf->copy[PIXEL_8x8]   = x264_mc_copy_w8_mmx;
     pf->copy[PIXEL_4x4]   = x264_mc_copy_w4_mmx;
+    pf->memcpy_aligned = x264_memcpy_aligned_mmx;
 
     if( !(cpu&X264_CPU_MMXEXT) )
         return;
@@ -175,5 +178,8 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->prefetch_fenc = x264_prefetch_fenc_mmxext;
     pf->prefetch_ref  = x264_prefetch_ref_mmxext;
 
-    /* todo: use sse2 */
+    if( !(cpu&X264_CPU_SSE2) )
+        return;
+    
+    pf->memcpy_aligned = x264_memcpy_aligned_sse2;
 }

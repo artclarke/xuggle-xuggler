@@ -372,6 +372,7 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 
     pf->prefetch_fenc = prefetch_fenc_null;
     pf->prefetch_ref  = prefetch_ref_null;
+    pf->memcpy_aligned = memcpy;
 
 #ifdef HAVE_MMX
     x264_mc_init_mmx( cpu, pf );
