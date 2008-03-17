@@ -483,7 +483,9 @@ void x264_intra_sa8d_x3_8x8_##cpu( uint8_t *fenc, uint8_t edge[33], int res[3] )
 
 #ifdef ARCH_X86_64
 INTRA_SA8D_X3(sse2)
+#ifdef HAVE_SSE3
 INTRA_SA8D_X3(ssse3)
+#endif
 #else
 INTRA_SA8D_X3(mmxext)
 #endif
