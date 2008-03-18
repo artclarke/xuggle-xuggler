@@ -1393,7 +1393,7 @@ cglobal x264_pixel_ssim_end4_sse2, 3,3
     add     t0, 4*%1
     sub     r0d, 4*%1
     jg .loop
-    jmp x264_pixel_ads_mvs
+    jmp ads_mvs
 %endmacro
 
 %define ABS1 ABS1_MMX
@@ -1623,17 +1623,16 @@ ADS_SSE2 ssse3
 ;     }
 ;     return nmv;
 ; }
-global x264_pixel_ads_mvs
-ALIGN 16
+cglobal x264_pixel_ads_mvs
+ads_mvs:
+    xor     eax, eax
+    xor     esi, esi
 %ifdef ARCH_X86_64
-x264_pixel_ads_mvs:
     ; mvs = r4
     ; masks = rsp
     ; width = r5
     ; clear last block in case width isn't divisible by 8. (assume divisible by 4, so clearing 4 bytes is enough.)
     mov     dword [rsp+r5], 0
-    xor     eax, eax
-    xor     esi, esi
     jmp .loopi
 .loopi0:
     add     esi, 8
@@ -1667,14 +1666,11 @@ x264_pixel_ads_mvs:
     ret
 
 %else
-x264_pixel_ads_mvs:
     ; no PROLOGUE, inherit from x264_pixel_ads1
     mov     ebx, [ebp+stack_offset+20] ; mvs
     mov     edi, [ebp+stack_offset+24] ; width
     mov     dword [esp+edi], 0
     push    ebp
-    xor     eax, eax
-    xor     esi, esi
     jmp .loopi
 .loopi0:
     add     esi, 8
