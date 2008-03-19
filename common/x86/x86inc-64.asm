@@ -196,9 +196,9 @@ BITS 64
 %endmacro
 
 %macro endprolog 0
-.endprolog
+.endprolog:
 SECTION .xdata
-.unwindinfo
+.unwindinfo:
     db 0x01
     db .endprolog-.startfunc
     db unwindcount
@@ -212,7 +212,7 @@ SECTION .text
 %endmacro
 
 %macro endfunc 0
-.endfunc
+.endfunc:
 SECTION .pdata
     dd .startfunc
     dd .endfunc

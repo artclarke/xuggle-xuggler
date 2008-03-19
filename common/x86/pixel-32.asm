@@ -408,7 +408,7 @@ cglobal x264_pixel_ssim_4x4x2_core_mmxext
     mov       edx, [esp+24]
     mov       edi, 4
     pxor      mm0, mm0
-.loop
+.loop:
     mov       eax, [esp+12]
     mov       ecx, [esp+20]
     add       eax, edi

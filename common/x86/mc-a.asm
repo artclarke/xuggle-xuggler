@@ -341,10 +341,10 @@ cglobal x264_mc_copy_w16_mmx, 5,7
     jg      .height_loop
     REP_RET
 
-cglobal x264_mc_copy_w16_sse2,5,7
+cglobal x264_mc_copy_w16_sse2, 5,7
     lea     r6, [r3*3]
     lea     r5, [r1*3]
-.height_loop
+.height_loop:
     movdqu  xmm0, [r2]
     movdqu  xmm1, [r2+r3]
     movdqu  xmm2, [r2+r3*2]
@@ -583,7 +583,7 @@ cglobal x264_mc_chroma_mmxext, 0,6,1
 %endif
 
 ALIGN 4
-.height_loop
+.height_loop:
 
     movd    mm1, [r2+r3]
     movd    mm0, [r2]
@@ -628,11 +628,8 @@ ALIGN 4
     mov     r4d, r7m            ; i_height
     jmp     .height_loop
 
-.finish
-    REP_RET
-
 ALIGN 4
-.mc1d
+.mc1d:
     mov       eax, r4d
     or        eax, r5d
     and       eax, 7
@@ -652,7 +649,7 @@ ALIGN 4
     je .height_loop1_w8
 
 ALIGN 4
-.height_loop1_w4
+.height_loop1_w4:
     movd      mm0, [r2+r5]
     movd      mm1, [r2]
     punpcklbw mm0, mm3
@@ -668,10 +665,11 @@ ALIGN 4
     add       r0,  r1
     dec       r4d
     jnz .height_loop1_w4
+.finish:
     REP_RET
 
 ALIGN 4
-.height_loop1_w8
+.height_loop1_w8:
     movq      mm0, [r2+r5]
     movq      mm1, [r2]
     movq      mm2, mm0
