@@ -513,19 +513,21 @@ cglobal x264_pixel_satd_8x4_mmxext, 4,6
     paddw       mm0, mm1
     SATD_END_MMX
 
-cglobal x264_pixel_satd_4x8_mmxext, 4,6
+%macro SATD_W4 1
+cglobal x264_pixel_satd_4x8_%1, 4,6
     SATD_START_MMX
     SATD_4x4_MMX mm0, 0, 1
     SATD_4x4_MMX mm1, 0, 0
     paddw       mm0, mm1
     SATD_END_MMX
 
-cglobal x264_pixel_satd_4x4_mmxext, 4,6
+cglobal x264_pixel_satd_4x4_%1, 4,6
     SATD_START_MMX
     SATD_4x4_MMX mm0, 0, 0
     SATD_END_MMX
+%endmacro
 
-
+SATD_W4 mmxext
 
 %macro SATD_START_SSE2 0
     pxor    xmm6, xmm6
@@ -1211,10 +1213,11 @@ cglobal x264_intra_satd_x3_8x8c_%1, 0,6
 %endmacro
 
 ; instantiate satds
-; FIXME width4 can benefit from pabsw even if not sse2
 
+%ifndef ARCH_X86_64
 cextern x264_pixel_sa8d_8x8_mmxext
 SA8D_16x16_32 mmxext
+%endif
 
 %define ABS1 ABS1_MMX
 %define ABS2 ABS2_MMX
@@ -1229,6 +1232,7 @@ SATDS_SSE2 ssse3
 SA8D_16x16_32 ssse3
 INTRA_SA8D_SSE2 ssse3
 INTRA_SATDS_MMX ssse3
+SATD_W4 ssse3 ; mmx, but uses pabsw from ssse3.
 %endif
 
 

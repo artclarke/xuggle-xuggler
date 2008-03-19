@@ -357,7 +357,7 @@ SATD_X_DECL7()
 SATD_X_DECL7( _mmxext )
 SATD_X_DECL5( _sse2 )
 #ifdef HAVE_SSE3
-SATD_X_DECL5( _ssse3 )
+SATD_X_DECL7( _ssse3 )
 #endif
 #endif
 
@@ -630,9 +630,9 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
 
     if( cpu&X264_CPU_SSSE3 )
     {
-        INIT5( satd, _ssse3 );
-        INIT5( satd_x3, _ssse3 );
-        INIT5( satd_x4, _ssse3 );
+        INIT7( satd, _ssse3 );
+        INIT7( satd_x3, _ssse3 );
+        INIT7( satd_x4, _ssse3 );
         INIT_ADS( _ssse3 );
         pixf->sa8d[PIXEL_16x16]= x264_pixel_sa8d_16x16_ssse3;
         pixf->sa8d[PIXEL_8x8]  = x264_pixel_sa8d_8x8_ssse3;
