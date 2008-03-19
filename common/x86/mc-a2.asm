@@ -374,18 +374,18 @@ cglobal x264_memcpy_aligned_sse2, 3,3
     jz .copy64
     sub r2d, 32
     movdqa xmm0, [r1 + r2 +  0]
-    movdqa xmm1, [r1 + r2 + 16]
     movdqa [r0 + r2 +  0], xmm0
+    movdqa xmm1, [r1 + r2 + 16]
     movdqa [r0 + r2 + 16], xmm1
 .copy64:
         sub r2d, 64
         movdqa xmm0, [r1 + r2 +  0]
-        movdqa xmm1, [r1 + r2 + 16]
-        movdqa xmm2, [r1 + r2 + 32]
-        movdqa xmm3, [r1 + r2 + 48]
         movdqa [r0 + r2 +  0], xmm0
+        movdqa xmm1, [r1 + r2 + 16]
         movdqa [r0 + r2 + 16], xmm1
+        movdqa xmm2, [r1 + r2 + 32]
         movdqa [r0 + r2 + 32], xmm2
+        movdqa xmm3, [r1 + r2 + 48]
         movdqa [r0 + r2 + 48], xmm3
     jg .copy64
     REP_RET

@@ -41,11 +41,11 @@ SECTION .text
 ; void x264_pixel_avg_4x4_mmxext( uint8_t *dst, int dst_stride,
 ;                                 uint8_t *src, int src_stride );
 ;-----------------------------------------------------------------------------
-%macro AVGH 2
+%macro AVGH 3
 %assign function_align 8 ; the whole function fits in 8 bytes, so a larger align just wastes space
-cglobal x264_pixel_avg_%1x%2_mmxext
+cglobal x264_pixel_avg_%1x%2_%3
     mov eax, %2
-    jmp x264_pixel_avg_w%1_mmxext
+    jmp x264_pixel_avg_w%1_%3
 %assign function_align 16
 %endmacro
 
@@ -95,9 +95,9 @@ AVG_START x264_pixel_avg_w4_mmxext
     movd   [t0+t1], mm1
 AVG_END
 
-AVGH 4, 8
-AVGH 4, 4
-AVGH 4, 2
+AVGH 4, 8, mmxext
+AVGH 4, 4, mmxext
+AVGH 4, 2, mmxext
 
 AVG_START x264_pixel_avg_w8_mmxext
     movq   mm0, [t2]
@@ -108,9 +108,9 @@ AVG_START x264_pixel_avg_w8_mmxext
     movq   [t0+t1], mm1
 AVG_END
 
-AVGH 8, 16
-AVGH 8, 8
-AVGH 8, 4
+AVGH 8, 16, mmxext
+AVGH 8, 8,  mmxext
+AVGH 8, 4,  mmxext
 
 AVG_START x264_pixel_avg_w16_mmxext
     movq   mm0, [t2  ]
@@ -127,8 +127,8 @@ AVG_START x264_pixel_avg_w16_mmxext
     movq   [t0+t1+8], mm3
 AVG_END
 
-AVGH 16, 16
-AVGH 16, 8
+AVGH 16, 16, mmxext
+AVGH 16, 8,  mmxext
 
 AVG_START x264_pixel_avg_w16_sse2
     movdqu xmm0, [t2]
@@ -138,6 +138,9 @@ AVG_START x264_pixel_avg_w16_sse2
     movdqa [t0], xmm0
     movdqa [t0+t1], xmm1
 AVG_END
+
+AVGH 16, 16, sse2
+AVGH 16, 8,  sse2
 
 
 
@@ -226,6 +229,48 @@ cglobal x264_pixel_avg2_w20_mmxext, 6,7
     jg     .height_loop
     REP_RET
 
+cglobal x264_pixel_avg2_w16_sse2, 6,7
+    sub    r4, r2
+    lea    r6, [r4+r3]
+.height_loop:
+    movdqu xmm0, [r2]
+    movdqu xmm2, [r2+r3]
+    movdqu xmm1, [r2+r4]
+    movdqu xmm3, [r2+r6]
+    pavgb  xmm0, xmm1
+    pavgb  xmm2, xmm3
+    movdqa [r0], xmm0
+    movdqa [r0+r1], xmm2
+    lea    r2, [r2+r3*2]
+    lea    r0, [r0+r1*2]
+    sub    r5d, 2
+    jg     .height_loop
+    REP_RET
+
+cglobal x264_pixel_avg2_w20_sse2, 6,7
+    sub    r4, r2
+    lea    r6, [r4+r3]
+.height_loop:
+    movdqu xmm0, [r2]
+    movdqu xmm2, [r2+r3]
+    movdqu xmm1, [r2+r4]
+    movdqu xmm3, [r2+r6]
+    movd   mm4,  [r2+16]
+    movd   mm5,  [r2+r3+16]
+    pavgb  xmm0, xmm1
+    pavgb  xmm2, xmm3
+    pavgb  mm4,  [r2+r4+16]
+    pavgb  mm5,  [r2+r6+16]
+    movdqa [r0], xmm0
+    movd   [r0+16], mm4
+    movdqa [r0+r1], xmm2
+    movd   [r0+r1+16], mm5
+    lea    r2, [r2+r3*2]
+    lea    r0, [r0+r1*2]
+    sub    r5d, 2
+    jg     .height_loop
+    REP_RET
+
 
 
 ;=============================================================================
@@ -290,6 +335,24 @@ cglobal x264_mc_copy_w16_mmx, 5,7
     movq    [r0+r1*2+8], mm5
     movq    [r0+r5], mm6
     movq    [r0+r5+8], mm7
+    lea     r2, [r2+r3*4]
+    lea     r0, [r0+r1*4]
+    sub     r4d, 4
+    jg      .height_loop
+    REP_RET
+
+cglobal x264_mc_copy_w16_sse2,5,7
+    lea     r6, [r3*3]
+    lea     r5, [r1*3]
+.height_loop
+    movdqu  xmm0, [r2]
+    movdqu  xmm1, [r2+r3]
+    movdqu  xmm2, [r2+r3*2]
+    movdqu  xmm3, [r2+r6]
+    movdqa  [r0], xmm0
+    movdqa  [r0+r1], xmm1
+    movdqa  [r0+r1*2], xmm2
+    movdqa  [r0+r5], xmm3
     lea     r2, [r2+r3*4]
     lea     r0, [r0+r1*4]
     sub     r4d, 4
