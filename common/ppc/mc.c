@@ -34,7 +34,6 @@
 #include "x264.h"
 #include "common/common.h"
 #include "common/mc.h"
-#include "common/clip1.h"
 #include "mc.h"
 #include "ppccommon.h"
 
