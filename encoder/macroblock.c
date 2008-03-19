@@ -368,7 +368,15 @@ void x264_macroblock_encode( x264_t *h )
     {
         DECLARE_ALIGNED( uint8_t, edge[33], 16 );
         h->mb.b_transform_8x8 = 1;
-        for( i = 0; i < 4; i++ )
+        /* If we already encoded 3 of the 4 i8x8 blocks, we don't have to do them again. */
+        if( h->mb.i_skip_intra )
+        {
+            h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[0], FDEC_STRIDE, h->mb.pic.i8x8_fdec_buf, 16, 16 );
+            /* In RD mode, restore the now-overwritten DCT data. */
+            if( h->mb.i_skip_intra == 2 )
+                h->mc.memcpy_aligned( h->dct.luma8x8, h->mb.pic.i8x8_dct_buf, sizeof(h->mb.pic.i8x8_dct_buf) );
+        }
+        for( i = h->mb.i_skip_intra ? 3 : 0 ; i < 4; i++ )
         {
             uint8_t  *p_dst = &h->mb.pic.p_fdec[0][8 * (i&1) + 8 * (i>>1) * FDEC_STRIDE];
             int      i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[4*i]];
@@ -381,7 +389,15 @@ void x264_macroblock_encode( x264_t *h )
     else if( h->mb.i_type == I_4x4 )
     {
         h->mb.b_transform_8x8 = 0;
-        for( i = 0; i < 16; i++ )
+        /* If we already encoded 15 of the 16 i4x4 blocks, we don't have to do them again. */
+        if( h->mb.i_skip_intra )
+        {
+            h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[0], FDEC_STRIDE, h->mb.pic.i4x4_fdec_buf, 16, 16 );
+            /* In RD mode, restore the now-overwritten DCT data. */
+            if( h->mb.i_skip_intra == 2 )
+                h->mc.memcpy_aligned( h->dct.block, h->mb.pic.i4x4_dct_buf, sizeof(h->mb.pic.i4x4_dct_buf) );
+        }
+        for( i = h->mb.i_skip_intra ? 15 : 0 ; i < 16; i++ )
         {
             uint8_t  *p_dst = &h->mb.pic.p_fdec[0][4 * block_idx_x[i] + 4 * block_idx_y[i] * FDEC_STRIDE];
             int      i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[i]];

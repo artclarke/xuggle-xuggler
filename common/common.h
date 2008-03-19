@@ -424,6 +424,12 @@ struct x264_t
         int     i_intra16x16_pred_mode;
         int     i_chroma_pred_mode;
 
+        /* skip flags for i4x4 and i8x8
+         * 0 = encode as normal.
+         * 1 (non-RD only) = the DCT is still in h->dct, restore fdec and skip reconstruction.
+         * 2 (RD only) = the DCT has since been overwritten by RD; restore that too. */
+        int i_skip_intra;
+
         struct
         {
             /* space for p_fenc and p_fdec */
@@ -431,6 +437,12 @@ struct x264_t
 #define FDEC_STRIDE 32
             DECLARE_ALIGNED( uint8_t, fenc_buf[24*FENC_STRIDE], 16 );
             DECLARE_ALIGNED( uint8_t, fdec_buf[27*FDEC_STRIDE], 16 );
+
+            /* i4x4 and i8x8 backup data, for skipping the encode stage when possible */            
+            DECLARE_ALIGNED( uint8_t, i4x4_fdec_buf[16*16], 16 );
+            DECLARE_ALIGNED( uint8_t, i8x8_fdec_buf[16*16], 16 );
+            DECLARE_ALIGNED( int, i8x8_dct_buf[3][64], 16 );
+            DECLARE_ALIGNED( int, i4x4_dct_buf[15][16], 16 );
 
             /* pointer over mb of the frame to be compressed */
             uint8_t *p_fenc[3];

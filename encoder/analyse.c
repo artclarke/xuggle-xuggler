@@ -229,6 +229,10 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     a->i_satd_i8x8chroma = COST_MAX;
 
     a->b_fast_intra = 0;
+    h->mb.i_skip_intra =
+        h->mb.b_lossless ? 0 :
+        a->b_mbrd ? 2 :
+        !h->param.analyse.i_trellis && !h->param.analyse.i_noise_reduction;
 
     /* II: Inter part P/B frame */
     if( h->sh.i_type != SLICE_TYPE_I )
@@ -646,7 +650,15 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
         }
 
         if( idx == 3 )
+        {
             a->i_satd_i8x8 = i_cost;
+            if( h->mb.i_skip_intra )
+            {
+                h->mc.copy[PIXEL_16x16]( h->mb.pic.i8x8_fdec_buf, 16, p_dst, FDEC_STRIDE, 16 );
+                if( h->mb.i_skip_intra == 2 )
+                    h->mc.memcpy_aligned( h->mb.pic.i8x8_dct_buf, h->dct.luma8x8, sizeof(h->mb.pic.i8x8_dct_buf) );
+            }
+        }
         else
         {
             a->i_satd_i8x8 = COST_MAX;
@@ -723,7 +735,15 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             h->mb.cache.intra4x4_pred_mode[x264_scan8[idx]] = a->i_predict4x4[idx];
         }
         if( idx == 15 )
+        {
             a->i_satd_i4x4 = i_cost;
+            if( h->mb.i_skip_intra )
+            {
+                h->mc.copy[PIXEL_16x16]( h->mb.pic.i4x4_fdec_buf, 16, p_dst, FDEC_STRIDE, 16 );
+                if( h->mb.i_skip_intra == 2 )
+                    h->mc.memcpy_aligned( h->mb.pic.i4x4_dct_buf, h->dct.block, sizeof(h->mb.pic.i4x4_dct_buf) );
+            }
+        }
         else
             a->i_satd_i4x4 = COST_MAX;
     }
@@ -768,6 +788,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     int i_max, i_satd, i_best, i_mode, i_thresh;
     int i_pred_mode;
     int predict_mode[9];
+    h->mb.i_skip_intra = 0;
 
     if( h->mb.i_type == I_16x16 )
     {
@@ -2569,6 +2590,8 @@ void x264_macroblock_analyse( x264_t *h )
 
     h->mb.b_trellis = h->param.analyse.i_trellis;
     h->mb.b_noise_reduction = h->param.analyse.i_noise_reduction;
+    if( h->mb.b_trellis == 1 || h->mb.b_noise_reduction )
+        h->mb.i_skip_intra = 0;
 }
 
 /*-------------------- Update MB from the analysis ----------------------*/
