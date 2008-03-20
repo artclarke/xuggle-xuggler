@@ -463,10 +463,10 @@ struct x264_t
         struct
         {
             /* real intra4x4_pred_mode if I_4X4 or I_8X8, I_PRED_4x4_DC if mb available, -1 if not */
-            int     intra4x4_pred_mode[X264_SCAN8_SIZE];
+            int8_t  intra4x4_pred_mode[X264_SCAN8_SIZE];
 
             /* i_non_zero_count if available else 0x80 */
-            int     non_zero_count[X264_SCAN8_SIZE];
+            int8_t  non_zero_count[X264_SCAN8_SIZE];
 
             /* -1 if unused, -2 if unavailable */
             DECLARE_ALIGNED( int8_t, ref[2][X264_SCAN8_SIZE], 4 );
@@ -498,11 +498,11 @@ struct x264_t
         int     b_direct_auto_write; /* analyse direct modes, to use and/or save */
 
         /* B_direct and weighted prediction */
-        int     dist_scale_factor[16][2];
-        int     bipred_weight[32][4];
+        int16_t dist_scale_factor[16][2];
+        int16_t bipred_weight[32][4];
         /* maps fref1[0]'s ref indices into the current list0 */
-        int     map_col_to_list0_buf[2]; // for negative indices
-        int     map_col_to_list0[16];
+        int8_t  map_col_to_list0_buf[2]; // for negative indices
+        int8_t  map_col_to_list0[16];
     } mb;
 
     /* rate control encoding only */

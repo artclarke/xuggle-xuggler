@@ -344,7 +344,7 @@ static ALWAYS_INLINE void x264_macroblock_cache_skip( x264_t *h, int x, int y, i
 }
 static ALWAYS_INLINE void x264_macroblock_cache_intra8x8_pred( x264_t *h, int x, int y, int i_mode )
 {
-    int *cache = &h->mb.cache.intra4x4_pred_mode[X264_SCAN8_0+x+8*y];
+    int8_t *cache = &h->mb.cache.intra4x4_pred_mode[X264_SCAN8_0+x+8*y];
     cache[0] = cache[1] = cache[8] = cache[9] = i_mode;
 }
 
