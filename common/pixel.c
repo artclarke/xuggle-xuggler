@@ -99,14 +99,17 @@ int64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, uint8_t *pix1, int i_pix1
 {
     int64_t i_ssd = 0;
     int x, y;
+    int align = !(((long)pix1 | (long)pix2 | i_pix1 | i_pix2) & 15);
 
 #define SSD(size) i_ssd += pf->ssd[size]( pix1 + y*i_pix1 + x, i_pix1, \
                                           pix2 + y*i_pix2 + x, i_pix2 );
     for( y = 0; y < i_height-15; y += 16 )
     {
-        for( x = 0; x < i_width-15; x += 16 )
-            SSD(PIXEL_16x16);
-        if( x < i_width-7 )
+        x = 0;
+        if( align )
+            for( ; x < i_width-15; x += 16 )
+                SSD(PIXEL_16x16);
+        for( ; x < i_width-7; x += 8 )
             SSD(PIXEL_8x16);
     }
     if( y < i_height-7 )
@@ -610,7 +613,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     // these are faster on both Intel and AMD
     if( cpu&X264_CPU_SSE2 )
     {
-        INIT2( ssd, _sse2 );
+        INIT5( ssd, _sse2 );
         pixf->ssim_4x4x2_core  = x264_pixel_ssim_4x4x2_core_sse2;
         pixf->ssim_end4        = x264_pixel_ssim_end4_sse2;
         pixf->sa8d[PIXEL_16x16] = x264_pixel_sa8d_16x16_sse2;

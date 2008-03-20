@@ -48,7 +48,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_predict_4x4_init( 0, predict_4x4 );
     x264_predict_8x8_filter( buf2+40, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
 
-#define TEST_PIXEL( name ) \
+#define TEST_PIXEL( name, align ) \
     for( i = 0, ok = 1, used_asm = 0; i < 7; i++ ) \
     { \
         int res_c, res_asm; \
@@ -57,8 +57,8 @@ static int check_pixel( int cpu_ref, int cpu_new )
             for( j=0; j<64; j++ ) \
             { \
                 used_asm = 1; \
-                res_c   = call_c( pixel_c.name[i], buf1, 32, buf2+j, 16 ); \
-                res_asm = call_a( pixel_asm.name[i], buf1, 32, buf2+j, 16 ); \
+                res_c   = call_c( pixel_c.name[i], buf1, 32, buf2+j*!align, 16 ); \
+                res_asm = call_a( pixel_asm.name[i], buf1, 32, buf2+j*!align, 16 ); \
                 if( res_c != res_asm ) \
                 { \
                     ok = 0; \
@@ -70,10 +70,10 @@ static int check_pixel( int cpu_ref, int cpu_new )
     } \
     report( "pixel " #name " :" );
 
-    TEST_PIXEL( sad );
-    TEST_PIXEL( ssd );
-    TEST_PIXEL( satd );
-    TEST_PIXEL( sa8d );
+    TEST_PIXEL( sad, 0 );
+    TEST_PIXEL( ssd, 1 );
+    TEST_PIXEL( satd, 0 );
+    TEST_PIXEL( sa8d, 0 );
 
 #define TEST_PIXEL_X( N ) \
     for( i = 0, ok = 1, used_asm = 0; i < 7; i++ ) \

@@ -24,6 +24,8 @@
 #ifndef _PIXEL_H
 #define _PIXEL_H 1
 
+// SSD assumes all args aligned
+// other cmp functions assume first arg aligned
 typedef int  (*x264_pixel_cmp_t) ( uint8_t *, int, uint8_t *, int );
 typedef void (*x264_pixel_cmp_x3_t) ( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int[3] );
 typedef void (*x264_pixel_cmp_x4_t) ( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int[4] );
