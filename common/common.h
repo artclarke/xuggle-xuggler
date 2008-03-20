@@ -466,7 +466,7 @@ struct x264_t
             int8_t  intra4x4_pred_mode[X264_SCAN8_SIZE];
 
             /* i_non_zero_count if available else 0x80 */
-            int8_t  non_zero_count[X264_SCAN8_SIZE];
+            uint8_t non_zero_count[X264_SCAN8_SIZE];
 
             /* -1 if unused, -2 if unavailable */
             DECLARE_ALIGNED( int8_t, ref[2][X264_SCAN8_SIZE], 4 );
