@@ -37,6 +37,24 @@
 #   include "ppc/predict.h"
 #endif
 
+static ALWAYS_INLINE uint32_t pack16to32( int a, int b )
+{
+#ifdef WORDS_BIGENDIAN
+   return b + (a<<16);
+#else
+   return a + (b<<16);
+#endif
+}
+
+static ALWAYS_INLINE uint32_t pack8to16( int a, int b )
+{
+#ifdef WORDS_BIGENDIAN
+   return b + (a<<8);
+#else
+   return a + (b<<8);
+#endif
+}
+
 /****************************************************************************
  * 16x16 prediction for intra luma block
  ****************************************************************************/
@@ -573,6 +591,7 @@ static void predict_4x4_hu( uint8_t *src )
  ****************************************************************************/
 
 #define SRC(x,y) src[(x)+(y)*FDEC_STRIDE]
+#define SRC32(x,y) *(uint32_t*)&SRC(x,y)
 #define PL(y) \
     edge[14-y] = (SRC(-1,y-1) + 2*SRC(-1,y) + SRC(-1,y+1) + 2) >> 2;
 #define PT(x) \
@@ -645,6 +664,7 @@ void x264_predict_8x8_filter( uint8_t *src, uint8_t edge[33], int i_neighbor, in
         src += FDEC_STRIDE; \
     }
 
+/* SIMD is much faster than C for all of these except HU and HD. */
 static void predict_8x8_dc_128( uint8_t *src, uint8_t edge[33] )
 {
     PREDICT_8x8_DC(0x80808080);
@@ -759,28 +779,27 @@ static void predict_8x8_hd( uint8_t *src, uint8_t edge[33] )
     PREDICT_8x8_LOAD_TOP
     PREDICT_8x8_LOAD_LEFT
     PREDICT_8x8_LOAD_TOPLEFT
-    SRC(0,7)= (l6 + l7 + 1) >> 1;
-    SRC(1,7)= (l5 + 2*l6 + l7 + 2) >> 2;
-    SRC(0,6)=SRC(2,7)= (l5 + l6 + 1) >> 1;
-    SRC(1,6)=SRC(3,7)= (l4 + 2*l5 + l6 + 2) >> 2;
-    SRC(0,5)=SRC(2,6)=SRC(4,7)= (l4 + l5 + 1) >> 1;
-    SRC(1,5)=SRC(3,6)=SRC(5,7)= (l3 + 2*l4 + l5 + 2) >> 2;
-    SRC(0,4)=SRC(2,5)=SRC(4,6)=SRC(6,7)= (l3 + l4 + 1) >> 1;
-    SRC(1,4)=SRC(3,5)=SRC(5,6)=SRC(7,7)= (l2 + 2*l3 + l4 + 2) >> 2;
-    SRC(0,3)=SRC(2,4)=SRC(4,5)=SRC(6,6)= (l2 + l3 + 1) >> 1;
-    SRC(1,3)=SRC(3,4)=SRC(5,5)=SRC(7,6)= (l1 + 2*l2 + l3 + 2) >> 2;
-    SRC(0,2)=SRC(2,3)=SRC(4,4)=SRC(6,5)= (l1 + l2 + 1) >> 1;
-    SRC(1,2)=SRC(3,3)=SRC(5,4)=SRC(7,5)= (l0 + 2*l1 + l2 + 2) >> 2;
-    SRC(0,1)=SRC(2,2)=SRC(4,3)=SRC(6,4)= (l0 + l1 + 1) >> 1;
-    SRC(1,1)=SRC(3,2)=SRC(5,3)=SRC(7,4)= (lt + 2*l0 + l1 + 2) >> 2;
-    SRC(0,0)=SRC(2,1)=SRC(4,2)=SRC(6,3)= (lt + l0 + 1) >> 1;
-    SRC(1,0)=SRC(3,1)=SRC(5,2)=SRC(7,3)= (l0 + 2*lt + t0 + 2) >> 2;
-    SRC(2,0)=SRC(4,1)=SRC(6,2)= (t1 + 2*t0 + lt + 2) >> 2;
-    SRC(3,0)=SRC(5,1)=SRC(7,2)= (t2 + 2*t1 + t0 + 2) >> 2;
-    SRC(4,0)=SRC(6,1)= (t3 + 2*t2 + t1 + 2) >> 2;
-    SRC(5,0)=SRC(7,1)= (t4 + 2*t3 + t2 + 2) >> 2;
-    SRC(6,0)= (t5 + 2*t4 + t3 + 2) >> 2;
-    SRC(7,0)= (t6 + 2*t5 + t4 + 2) >> 2;
+    int p1 = pack8to16((l6 + l7 + 1) >> 1, (l5 + 2*l6 + l7 + 2) >> 2);
+    int p2 = pack8to16((l5 + l6 + 1) >> 1, (l4 + 2*l5 + l6 + 2) >> 2);
+    int p3 = pack8to16((l4 + l5 + 1) >> 1, (l3 + 2*l4 + l5 + 2) >> 2);
+    int p4 = pack8to16((l3 + l4 + 1) >> 1, (l2 + 2*l3 + l4 + 2) >> 2);
+    int p5 = pack8to16((l2 + l3 + 1) >> 1, (l1 + 2*l2 + l3 + 2) >> 2);
+    int p6 = pack8to16((l1 + l2 + 1) >> 1, (l0 + 2*l1 + l2 + 2) >> 2);
+    int p7 = pack8to16((l0 + l1 + 1) >> 1, (lt + 2*l0 + l1 + 2) >> 2);
+    int p8 = pack8to16((lt + l0 + 1) >> 1, (l0 + 2*lt + t0 + 2) >> 2);
+    int p9 = pack8to16((t1 + 2*t0 + lt + 2) >> 2, (t2 + 2*t1 + t0 + 2) >> 2);
+    int p10 = pack8to16((t3 + 2*t2 + t1 + 2) >> 2, (t4 + 2*t3 + t2 + 2) >> 2);
+    int p11 = pack8to16((t5 + 2*t4 + t3 + 2) >> 2, (t6 + 2*t5 + t4 + 2) >> 2);
+    SRC32(0,7)= pack16to32(p1,p2);
+    SRC32(0,6)= pack16to32(p2,p3);
+    SRC32(4,7)=SRC32(0,5)= pack16to32(p3,p4);
+    SRC32(4,6)=SRC32(0,4)= pack16to32(p4,p5);
+    SRC32(4,5)=SRC32(0,3)= pack16to32(p5,p6);
+    SRC32(4,4)=SRC32(0,2)= pack16to32(p6,p7);
+    SRC32(4,3)=SRC32(0,1)= pack16to32(p7,p8);
+    SRC32(4,2)=SRC32(0,0)= pack16to32(p8,p9);
+    SRC32(4,1)= pack16to32(p9,p10);
+    SRC32(4,0)= pack16to32(p10,p11);
 }
 static void predict_8x8_vl( uint8_t *src, uint8_t edge[33] )
 {
@@ -812,24 +831,22 @@ static void predict_8x8_vl( uint8_t *src, uint8_t edge[33] )
 static void predict_8x8_hu( uint8_t *src, uint8_t edge[33] )
 {
     PREDICT_8x8_LOAD_LEFT
-    SRC(0,0)= (l0 + l1 + 1) >> 1;
-    SRC(1,0)= (l0 + 2*l1 + l2 + 2) >> 2;
-    SRC(0,1)=SRC(2,0)= (l1 + l2 + 1) >> 1;
-    SRC(1,1)=SRC(3,0)= (l1 + 2*l2 + l3 + 2) >> 2;
-    SRC(0,2)=SRC(2,1)=SRC(4,0)= (l2 + l3 + 1) >> 1;
-    SRC(1,2)=SRC(3,1)=SRC(5,0)= (l2 + 2*l3 + l4 + 2) >> 2;
-    SRC(0,3)=SRC(2,2)=SRC(4,1)=SRC(6,0)= (l3 + l4 + 1) >> 1;
-    SRC(1,3)=SRC(3,2)=SRC(5,1)=SRC(7,0)= (l3 + 2*l4 + l5 + 2) >> 2;
-    SRC(0,4)=SRC(2,3)=SRC(4,2)=SRC(6,1)= (l4 + l5 + 1) >> 1;
-    SRC(1,4)=SRC(3,3)=SRC(5,2)=SRC(7,1)= (l4 + 2*l5 + l6 + 2) >> 2;
-    SRC(0,5)=SRC(2,4)=SRC(4,3)=SRC(6,2)= (l5 + l6 + 1) >> 1;
-    SRC(1,5)=SRC(3,4)=SRC(5,3)=SRC(7,2)= (l5 + 2*l6 + l7 + 2) >> 2;
-    SRC(0,6)=SRC(2,5)=SRC(4,4)=SRC(6,3)= (l6 + l7 + 1) >> 1;
-    SRC(1,6)=SRC(3,5)=SRC(5,4)=SRC(7,3)= (l6 + 3*l7 + 2) >> 2;
-    SRC(0,7)=SRC(1,7)=SRC(2,6)=SRC(2,7)=SRC(3,6)=
-    SRC(3,7)=SRC(4,5)=SRC(4,6)=SRC(4,7)=SRC(5,5)=
-    SRC(5,6)=SRC(5,7)=SRC(6,4)=SRC(6,5)=SRC(6,6)=
-    SRC(6,7)=SRC(7,4)=SRC(7,5)=SRC(7,6)=SRC(7,7)= l7;
+    int p1 = pack8to16((l0 + l1 + 1) >> 1, (l0 + 2*l1 + l2 + 2) >> 2);
+    int p2 = pack8to16((l1 + l2 + 1) >> 1, (l1 + 2*l2 + l3 + 2) >> 2);
+    int p3 = pack8to16((l2 + l3 + 1) >> 1, (l2 + 2*l3 + l4 + 2) >> 2);
+    int p4 = pack8to16((l3 + l4 + 1) >> 1, (l3 + 2*l4 + l5 + 2) >> 2);
+    int p5 = pack8to16((l4 + l5 + 1) >> 1, (l4 + 2*l5 + l6 + 2) >> 2);
+    int p6 = pack8to16((l5 + l6 + 1) >> 1, (l5 + 2*l6 + l7 + 2) >> 2);
+    int p7 = pack8to16((l6 + l7 + 1) >> 1, (l6 + 3*l7 + 2) >> 2);
+    int p8 = pack8to16(l7,l7);
+    SRC32(0,0)= pack16to32(p1,p2);
+    SRC32(0,1)= pack16to32(p2,p3);
+    SRC32(4,0)=SRC32(0,2)= pack16to32(p3,p4);
+    SRC32(4,1)=SRC32(0,3)= pack16to32(p4,p5);
+    SRC32(4,2)=SRC32(0,4)= pack16to32(p5,p6);
+    SRC32(4,3)=SRC32(0,5)= pack16to32(p6,p7);
+    SRC32(4,4)=SRC32(0,6)= pack16to32(p7,p8);
+    SRC32(4,5)=SRC32(4,6)= SRC32(0,7) = SRC32(4,7) = pack16to32(p8,p8);
 }
 
 /****************************************************************************

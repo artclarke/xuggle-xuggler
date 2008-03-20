@@ -317,7 +317,7 @@ static ALWAYS_INLINE void x264_macroblock_cache_rect4( void *dst, int width, int
         for( dx = 0; dx < width; dx++ )
             ((uint32_t*)dst)[dx+8*dy] = val;
 }
-static ALWAYS_INLINE uint32_t pack16to32( int a, int b )
+static ALWAYS_INLINE uint32_t pack16to32_clip( int a, int b )
 {
 #ifdef WORDS_BIGENDIAN
    return (b&0xFFFF) + (a<<16);
@@ -332,11 +332,11 @@ static ALWAYS_INLINE void x264_macroblock_cache_ref( x264_t *h, int x, int y, in
 }
 static ALWAYS_INLINE void x264_macroblock_cache_mv( x264_t *h, int x, int y, int width, int height, int i_list, int mvx, int mvy )
 {
-    x264_macroblock_cache_rect4( &h->mb.cache.mv[i_list][X264_SCAN8_0+x+8*y], width, height, pack16to32(mvx,mvy) );
+    x264_macroblock_cache_rect4( &h->mb.cache.mv[i_list][X264_SCAN8_0+x+8*y], width, height, pack16to32_clip(mvx,mvy) );
 }
 static ALWAYS_INLINE void x264_macroblock_cache_mvd( x264_t *h, int x, int y, int width, int height, int i_list, int mdx, int mdy )
 {
-    x264_macroblock_cache_rect4( &h->mb.cache.mvd[i_list][X264_SCAN8_0+x+8*y], width, height, pack16to32(mdx,mdy) );
+    x264_macroblock_cache_rect4( &h->mb.cache.mvd[i_list][X264_SCAN8_0+x+8*y], width, height, pack16to32_clip(mdx,mdy) );
 }
 static ALWAYS_INLINE void x264_macroblock_cache_skip( x264_t *h, int x, int y, int width, int height, int b_skip )
 {
