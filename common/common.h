@@ -337,14 +337,14 @@ struct x264_t
     /* Current MB DCT coeffs */
     struct
     {
-        DECLARE_ALIGNED( int, luma16x16_dc[16], 16 );
-        DECLARE_ALIGNED( int, chroma_dc[2][4], 16 );
+        DECLARE_ALIGNED( int16_t, luma16x16_dc[16], 16 );
+        DECLARE_ALIGNED( int16_t, chroma_dc[2][4], 16 );
         // FIXME merge with union
-        DECLARE_ALIGNED( int, luma8x8[4][64], 16 );
+        DECLARE_ALIGNED( int16_t, luma8x8[4][64], 16 );
         union
         {
-            DECLARE_ALIGNED( int, residual_ac[15], 16 );
-            DECLARE_ALIGNED( int, luma4x4[16], 16 );
+            DECLARE_ALIGNED( int16_t, residual_ac[15], 16 );
+            DECLARE_ALIGNED( int16_t, luma4x4[16], 16 );
         } block[16+8];
     } dct;
 
@@ -441,8 +441,8 @@ struct x264_t
             /* i4x4 and i8x8 backup data, for skipping the encode stage when possible */            
             DECLARE_ALIGNED( uint8_t, i4x4_fdec_buf[16*16], 16 );
             DECLARE_ALIGNED( uint8_t, i8x8_fdec_buf[16*16], 16 );
-            DECLARE_ALIGNED( int, i8x8_dct_buf[3][64], 16 );
-            DECLARE_ALIGNED( int, i4x4_dct_buf[15][16], 16 );
+            DECLARE_ALIGNED( int16_t, i8x8_dct_buf[3][64], 16 );
+            DECLARE_ALIGNED( int16_t, i4x4_dct_buf[15][16], 16 );
 
             /* pointer over mb of the frame to be compressed */
             uint8_t *p_fenc[3];

@@ -108,11 +108,11 @@ typedef struct
 
 typedef struct
 {
-    void (*scan_8x8)( int level[64], int16_t dct[8][8] );
-    void (*scan_4x4)( int level[16], int16_t dct[4][4] );
-    void (*scan_4x4ac)( int level[15], int16_t dct[4][4] );
-    void (*sub_4x4)( int level[16], const uint8_t *p_src, uint8_t *p_dst );
-    void (*sub_4x4ac)( int level[15], const uint8_t *p_src, uint8_t *p_dst );
+    void (*scan_8x8)( int16_t level[64], int16_t dct[8][8] );
+    void (*scan_4x4)( int16_t level[16], int16_t dct[4][4] );
+    void (*scan_4x4ac)( int16_t level[15], int16_t dct[4][4] );
+    void (*sub_4x4)( int16_t level[16], const uint8_t *p_src, uint8_t *p_dst );
+    void (*sub_4x4ac)( int16_t level[15], const uint8_t *p_src, uint8_t *p_dst );
 
 } x264_zigzag_function_t;
 

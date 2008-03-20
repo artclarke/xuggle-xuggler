@@ -65,7 +65,7 @@ static inline int array_non_zero_int( void *v, int i_count )
     return 0;
 }
 
-static inline int array_non_zero_count( int *v, int i_count )
+static inline int array_non_zero_count( int16_t *v, int i_count )
 {
     int i;
     int i_nz;

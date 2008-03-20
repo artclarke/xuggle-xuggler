@@ -26,7 +26,7 @@
 
 
 #define ZIG(i,y,x) level[i] = dct[x][y];
-static inline void zigzag_scan_2x2_dc( int level[4], int16_t dct[2][2] )
+static inline void zigzag_scan_2x2_dc( int16_t level[4], int16_t dct[2][2] )
 {
     ZIG(0,0,0)
     ZIG(1,0,1)
@@ -43,7 +43,7 @@ static inline void zigzag_scan_2x2_dc( int level[4], int16_t dct[2][2] )
  *        for the complete mb: if score < 6 -> null
  *  chroma: for the complete mb: if score < 7 -> null
  */
-static int x264_mb_decimate_score( int *dct, int i_max )
+static int x264_mb_decimate_score( int16_t *dct, int i_max )
 {
     static const int i_ds_table4[16] = {
         3,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0 };
@@ -618,7 +618,7 @@ int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
 {
     DECLARE_ALIGNED( int16_t, dct4x4[16][4][4], 16 );
     DECLARE_ALIGNED( int16_t, dct2x2[2][2], 16 );
-    DECLARE_ALIGNED( int,     dctscan[16], 16 );
+    DECLARE_ALIGNED( int16_t, dctscan[16], 16 );
 
     int i_qp = h->mb.i_qp;
     int mvp[2];

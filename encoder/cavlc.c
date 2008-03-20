@@ -63,7 +63,7 @@ static inline void bs_write_vlc( bs_t *s, vlc_t v )
 /****************************************************************************
  * block_residual_write_cavlc:
  ****************************************************************************/
-static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int *l, int i_count )
+static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int16_t *l, int i_count )
 {
     int level[16], run[16];
     int i_total, i_trailing;

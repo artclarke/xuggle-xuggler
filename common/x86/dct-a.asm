@@ -272,24 +272,21 @@ ADD_NxN_IDCT x264_add16x16_idct8_sse2, x264_add8x8_idct8_sse2, 128, 8, 0,  8
 %endif
 
 
+
 ;-----------------------------------------------------------------------------
-; void x264_zigzag_scan_4x4_field_sse2( int level[16], int16_t dct[4][4] )
+; void x264_zigzag_scan_4x4_field_mmxext( int16_t level[16], int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
-cglobal x264_zigzag_scan_4x4_field_sse2, 2,2
-    punpcklwd xmm0, [r1]
-    punpckhwd xmm1, [r1]
-    punpcklwd xmm2, [r1+16]
-    punpckhwd xmm3, [r1+16]
-    psrad     xmm0, 16
-    psrad     xmm1, 16
-    psrad     xmm2, 16
-    psrad     xmm3, 16
-    movq   [r0   ], xmm0
-    movdqa [r0+16], xmm1
-    movdqa [r0+32], xmm2
-    movhlps   xmm0, xmm0
-    movdqa [r0+48], xmm3
-    movq   [r0+12], xmm0
-    movd   [r0+ 8], xmm1
+; sse2 is only 1 cycle faster, and ssse3/pshufb is slower on core2
+cglobal x264_zigzag_scan_4x4_field_mmxext, 2,3
+    pshufw     mm0, [r1+4], 0xd2
+    movq       mm1, [r1+16]
+    movq       mm2, [r1+24]
+    movq    [r0+4], mm0
+    movq   [r0+16], mm1
+    movq   [r0+24], mm2
+    mov        r2d, [r1]
+    mov       [r0], r2d
+    mov        r2d, [r1+12]
+    mov    [r0+12], r2d
     RET
 

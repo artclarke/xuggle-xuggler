@@ -526,35 +526,3 @@ ADD_NxN_IDCT x264_add16x16_idct8_mmx, x264_add8x8_idct8_mmx, 128, 8
 
 ADD_NxN_IDCT x264_add16x16_idct8_sse2, x264_add8x8_idct8_sse2, 128, 8
 
-;-----------------------------------------------------------------------------
-; void x264_zigzag_scan_4x4_field_mmx( int level[16], int16_t dct[4][4] )
-;-----------------------------------------------------------------------------
-cglobal x264_zigzag_scan_4x4_field_mmx
-    mov       edx, [esp+8]
-    mov       ecx, [esp+4]
-    punpcklwd mm0, [edx]
-    punpckhwd mm1, [edx]
-    punpcklwd mm2, [edx+8]
-    punpckhwd mm3, [edx+8]
-    punpcklwd mm4, [edx+16]
-    punpckhwd mm5, [edx+16]
-    punpcklwd mm6, [edx+24]
-    punpckhwd mm7, [edx+24]
-    psrad     mm0, 16
-    psrad     mm1, 16
-    psrad     mm2, 16
-    psrad     mm3, 16
-    psrad     mm4, 16
-    psrad     mm5, 16
-    psrad     mm6, 16
-    psrad     mm7, 16
-    movq      [ecx   ], mm0
-    movq      [ecx+16], mm2
-    movq      [ecx+24], mm3
-    movq      [ecx+32], mm4
-    movq      [ecx+40], mm5
-    movq      [ecx+48], mm6
-    movq      [ecx+56], mm7
-    movq      [ecx+12], mm1
-    movd      [ecx+ 8], mm2
-    ret
