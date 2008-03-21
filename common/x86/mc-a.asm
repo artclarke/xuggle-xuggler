@@ -341,14 +341,15 @@ cglobal x264_mc_copy_w16_mmx, 5,7
     jg      .height_loop
     REP_RET
 
-cglobal x264_mc_copy_w16_sse2, 5,7
+%macro COPY_W16_SSE2 2
+cglobal %1, 5,7
     lea     r6, [r3*3]
     lea     r5, [r1*3]
 .height_loop:
-    movdqu  xmm0, [r2]
-    movdqu  xmm1, [r2+r3]
-    movdqu  xmm2, [r2+r3*2]
-    movdqu  xmm3, [r2+r6]
+    %2      xmm0, [r2]
+    %2      xmm1, [r2+r3]
+    %2      xmm2, [r2+r3*2]
+    %2      xmm3, [r2+r6]
     movdqa  [r0], xmm0
     movdqa  [r0+r1], xmm1
     movdqa  [r0+r1*2], xmm2
@@ -358,6 +359,10 @@ cglobal x264_mc_copy_w16_sse2, 5,7
     sub     r4d, 4
     jg      .height_loop
     REP_RET
+%endmacro
+
+COPY_W16_SSE2 x264_mc_copy_w16_sse2, movdqu
+COPY_W16_SSE2 x264_mc_copy_w16_aligned_sse2, movdqa
 
 
 

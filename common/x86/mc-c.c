@@ -49,6 +49,7 @@ extern void x264_mc_copy_w4_mmx( uint8_t *, int, uint8_t *, int, int );
 extern void x264_mc_copy_w8_mmx( uint8_t *, int, uint8_t *, int, int );
 extern void x264_mc_copy_w16_mmx( uint8_t *, int, uint8_t *, int, int );
 extern void x264_mc_copy_w16_sse2( uint8_t *, int, uint8_t *, int, int );
+extern void x264_mc_copy_w16_aligned_sse2( uint8_t *, int, uint8_t *, int, int );
 extern void x264_pixel_avg_weight_4x4_mmxext( uint8_t *, int, uint8_t *, int, int );
 extern void x264_pixel_avg_weight_w8_mmxext( uint8_t *, int, uint8_t *, int, int, int );
 extern void x264_pixel_avg_weight_w16_mmxext( uint8_t *, int, uint8_t *, int, int, int );
@@ -215,6 +216,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 
     pf->mc_luma = mc_luma_sse2;
     pf->get_ref = get_ref_sse2;
+    pf->copy[PIXEL_16x16] = x264_mc_copy_w16_aligned_sse2;
     pf->avg[PIXEL_16x16] = x264_pixel_avg_16x16_sse2;
     pf->avg[PIXEL_16x8]  = x264_pixel_avg_16x8_sse2;
 }
