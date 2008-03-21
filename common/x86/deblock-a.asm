@@ -29,34 +29,6 @@ pb_a1: times 16 db 0xa1
 
 SECTION .text
 
-%macro INIT_MMX 0
-    %undef movq
-    %define m0 mm0
-    %define m1 mm1
-    %define m2 mm2
-    %define m3 mm3
-    %define m4 mm4
-    %define m5 mm5
-    %define m6 mm6
-    %define m7 mm7
-    %undef  m8
-    %undef  m9
-%endmacro
-
-%macro INIT_XMM 0
-    %define movq movdqa
-    %define m0 xmm0
-    %define m1 xmm1
-    %define m2 xmm2
-    %define m3 xmm3
-    %define m4 xmm4
-    %define m5 xmm5
-    %define m6 xmm6
-    %define m7 xmm7
-    %define m8 xmm8
-    %define m9 xmm9
-%endmacro
-
 ; expands to [base],...,[base+7*stride]
 %define PASS8ROWS(base, base3, stride, stride3) \
     [base], [base+stride], [base+stride*2], [base3], \
