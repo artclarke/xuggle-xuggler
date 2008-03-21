@@ -31,15 +31,6 @@
 #endif
 
 
-static inline int x264_tapfilter( uint8_t *pix, int i_pix_next )
-{
-    return pix[-2*i_pix_next] - 5*pix[-1*i_pix_next] + 20*(pix[0] + pix[1*i_pix_next]) - 5*pix[ 2*i_pix_next] + pix[ 3*i_pix_next];
-}
-static inline int x264_tapfilter1( uint8_t *pix )
-{
-    return pix[-2] - 5*pix[-1] + 20*(pix[0] + pix[1]) - 5*pix[ 2] + pix[ 3];
-}
-
 static inline void pixel_avg( uint8_t *dst,  int i_dst_stride,
                               uint8_t *src1, int i_src1_stride,
                               uint8_t *src2, int i_src2_stride,
@@ -140,8 +131,6 @@ PIXEL_AVG_WEIGHT_C(2,2)
 #undef op_scale2
 #undef PIXEL_AVG_WEIGHT_C
 
-typedef void (*pf_mc_t)(uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height );
-
 static void mc_copy( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
 {
     int y;
@@ -154,77 +143,31 @@ static void mc_copy( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_str
         dst += i_dst_stride;
     }
 }
-static inline void mc_hh( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    int x, y;
 
-    for( y = 0; y < i_height; y++ )
-    {
-        for( x = 0; x < i_width; x++ )
-        {
-            dst[x] = x264_clip_uint8( ( x264_tapfilter1( &src[x] ) + 16 ) >> 5 );
-        }
-        src += i_src_stride;
-        dst += i_dst_stride;
-    }
-}
-static inline void mc_hv( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    int x, y;
-
-    for( y = 0; y < i_height; y++ )
-    {
-        for( x = 0; x < i_width; x++ )
-        {
-            dst[x] = x264_clip_uint8( ( x264_tapfilter( &src[x], i_src_stride ) + 16 ) >> 5 );
-        }
-        src += i_src_stride;
-        dst += i_dst_stride;
-    }
-}
-static inline void mc_hc( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
-{
-    uint8_t *out;
-    uint8_t *pix;
-    int x, y;
-
-    for( x = 0; x < i_width; x++ )
-    {
-        int tap[6];
-
-        pix = &src[x];
-        out = &dst[x];
-
-        tap[0] = x264_tapfilter1( &pix[-2*i_src_stride] );
-        tap[1] = x264_tapfilter1( &pix[-1*i_src_stride] );
-        tap[2] = x264_tapfilter1( &pix[ 0*i_src_stride] );
-        tap[3] = x264_tapfilter1( &pix[ 1*i_src_stride] );
-        tap[4] = x264_tapfilter1( &pix[ 2*i_src_stride] );
-
-        for( y = 0; y < i_height; y++ )
-        {
-            tap[5] = x264_tapfilter1( &pix[ 3*i_src_stride] );
-
-            *out = x264_clip_uint8( ( tap[0] - 5*tap[1] + 20 * tap[2] + 20 * tap[3] -5*tap[4] + tap[5] + 512 ) >> 10 );
-
-            /* Next line */
-            pix += i_src_stride;
-            out += i_dst_stride;
-            tap[0] = tap[1];
-            tap[1] = tap[2];
-            tap[2] = tap[3];
-            tap[3] = tap[4];
-            tap[4] = tap[5];
-        }
-    }
-}
-
+#define TAPFILTER(pix, d) ((pix)[x-2*d] + (pix)[x+3*d] - 5*((pix)[x-d] + (pix)[x+2*d]) + 20*((pix)[x] + (pix)[x+d]))
 static void hpel_filter( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
                          int stride, int width, int height )
 {
-    mc_hh( src, stride, dsth, stride, width, height );
-    mc_hv( src, stride, dstv, stride, width, height );
-    mc_hc( src, stride, dstc, stride, width, height );
+    int16_t *buf = x264_malloc((width+5)*sizeof(int16_t));
+    int x, y;
+    for( y=0; y<height; y++ )
+    {
+        for( x=-2; x<width+3; x++ )
+        {
+            int v = TAPFILTER(src,stride);
+            dstv[x] = x264_clip_uint8((v + 16) >> 5);
+            buf[x+2] = v;
+        }
+        for( x=0; x<width; x++ )
+            dstc[x] = x264_clip_uint8((TAPFILTER(buf+2,1) + 512) >> 10);
+        for( x=0; x<width; x++ )
+            dsth[x] = x264_clip_uint8((TAPFILTER(src,1) + 16) >> 5);
+        dsth += stride;
+        dstv += stride;
+        dstc += stride;
+        src += stride;
+    }
+    x264_free(buf);
 }
 
 static const int hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
