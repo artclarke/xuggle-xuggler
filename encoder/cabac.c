@@ -654,9 +654,9 @@ static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
 
         /* no need to test skip/pcm */
         if( i_mba_xy >= 0 )
-            i_nza = h->mb.cache.non_zero_count[x264_scan8[16+i_idx] - 1];
+            i_nza = h->mb.cache.non_zero_count[x264_scan8[i_idx] - 1];
         if( i_mbb_xy >= 0 )
-            i_nzb = h->mb.cache.non_zero_count[x264_scan8[16+i_idx] - 8];
+            i_nzb = h->mb.cache.non_zero_count[x264_scan8[i_idx] - 8];
     }
 
     if( IS_INTRA( h->mb.i_type ) )
@@ -1048,8 +1048,8 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
         }
         if( h->mb.i_cbp_chroma&0x02 ) /* Chroma AC residual present */
         {
-            for( i = 0; i < 8; i++ )
-                block_residual_write_cabac( h, cb, DCT_CHROMA_AC, i, h->dct.block[16+i].residual_ac, 15 );
+            for( i = 16; i < 24; i++ )
+                block_residual_write_cabac( h, cb, DCT_CHROMA_AC, i, h->dct.block[i].residual_ac, 15 );
         }
     }
 
@@ -1123,8 +1123,8 @@ void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int i_pixel
             }
         }
 
-        block_residual_write_cabac( h, cb, DCT_CHROMA_AC, i8,   h->dct.block[16+i8  ].residual_ac, 15 );
-        block_residual_write_cabac( h, cb, DCT_CHROMA_AC, i8+4, h->dct.block[16+i8+4].residual_ac, 15 );
+        block_residual_write_cabac( h, cb, DCT_CHROMA_AC, 16+i8, h->dct.block[16+i8].residual_ac, 15 );
+        block_residual_write_cabac( h, cb, DCT_CHROMA_AC, 20+i8, h->dct.block[20+i8].residual_ac, 15 );
 
         i8 += x264_pixel_size[i_pixel].h >> 3;
     }
@@ -1157,8 +1157,8 @@ static void x264_i8x8_chroma_size_cabac( x264_t *h, x264_cabac_t *cb )
         if( h->mb.i_cbp_chroma == 2 )
         {
             int i;
-            for( i = 0; i < 8; i++ )
-                block_residual_write_cabac( h, cb, DCT_CHROMA_AC, i, h->dct.block[16+i].residual_ac, 15 );
+            for( i = 16; i < 24; i++ )
+                block_residual_write_cabac( h, cb, DCT_CHROMA_AC, i, h->dct.block[i].residual_ac, 15 );
         }
     }
 }

@@ -679,8 +679,8 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         block_residual_write_cavlc( h, s, BLOCK_INDEX_CHROMA_DC, h->dct.chroma_dc[0], 4 );
         block_residual_write_cavlc( h, s, BLOCK_INDEX_CHROMA_DC, h->dct.chroma_dc[1], 4 );
         if( h->mb.i_cbp_chroma&0x02 ) /* Chroma AC residual present */
-            for( i = 0; i < 8; i++ )
-                block_residual_write_cavlc( h, s, 16 + i, h->dct.block[16+i].residual_ac, 15 );
+            for( i = 16; i < 24; i++ )
+                block_residual_write_cavlc( h, s, i, h->dct.block[i].residual_ac, 15 );
     }
 
 #ifndef RDO_SKIP_BS
@@ -746,8 +746,8 @@ int x264_partition_size_cavlc( x264_t *h, int i8, int i_pixel )
     {
         x264_macroblock_luma_write_cavlc( h, &s, i8, i8 );
 
-        block_residual_write_cavlc( h, &s, i8,   h->dct.block[16+i8  ].residual_ac, 15 );
-        block_residual_write_cavlc( h, &s, i8+4, h->dct.block[16+i8+4].residual_ac, 15 );
+        block_residual_write_cavlc( h, &s, 16+i8, h->dct.block[16+i8].residual_ac, 15 );
+        block_residual_write_cavlc( h, &s, 20+i8, h->dct.block[20+i8].residual_ac, 15 );
 
         i8 += x264_pixel_size[i_pixel].h >> 3;
     }
@@ -796,8 +796,8 @@ static int x264_i8x8_chroma_size_cavlc( x264_t *h )
         if( h->mb.i_cbp_chroma == 2 )
         {
             int i;
-            for( i = 0; i < 8; i++ )
-                block_residual_write_cavlc( h, &h->out.bs, 16 + i, h->dct.block[16+i].residual_ac, 15 );
+            for( i = 16; i < 24; i++ )
+                block_residual_write_cavlc( h, &h->out.bs, i, h->dct.block[i].residual_ac, 15 );
         }
     }
     return h->out.bs.i_bits_encoded;
