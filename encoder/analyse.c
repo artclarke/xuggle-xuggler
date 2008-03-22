@@ -741,7 +741,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             {
                 h->mc.copy[PIXEL_16x16]( h->mb.pic.i4x4_fdec_buf, 16, p_dst, FDEC_STRIDE, 16 );
                 if( h->mb.i_skip_intra == 2 )
-                    h->mc.memcpy_aligned( h->mb.pic.i4x4_dct_buf, h->dct.block, sizeof(h->mb.pic.i4x4_dct_buf) );
+                    h->mc.memcpy_aligned( h->mb.pic.i4x4_dct_buf, h->dct.luma4x4, sizeof(h->mb.pic.i4x4_dct_buf) );
             }
         }
         else

@@ -338,13 +338,9 @@ struct x264_t
     {
         DECLARE_ALIGNED( int16_t, luma16x16_dc[16], 16 );
         DECLARE_ALIGNED( int16_t, chroma_dc[2][4], 16 );
-        // FIXME merge with union
+        // FIXME share memory?
         DECLARE_ALIGNED( int16_t, luma8x8[4][64], 16 );
-        union
-        {
-            DECLARE_ALIGNED( int16_t, residual_ac[15], 16 );
-            DECLARE_ALIGNED( int16_t, luma4x4[16], 16 );
-        } block[16+8];
+        DECLARE_ALIGNED( int16_t, luma4x4[16+8][16], 16 );
     } dct;
 
     /* MB table and cache for current frame/mb */

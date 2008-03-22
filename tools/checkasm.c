@@ -385,9 +385,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     ok = 1; used_asm = 0;
     TEST_ZIGZAG_SCAN( scan_8x8, level1, level2, (void*)dct1, 64 );
     TEST_ZIGZAG_SCAN( scan_4x4, level1, level2, dct1[0], 16  );
-    TEST_ZIGZAG_SCAN( scan_4x4ac, level1, level2, dct1[0], 15 );
     TEST_ZIGZAG_SUB( sub_4x4, level1, level2, 16 );
-    TEST_ZIGZAG_SUB( sub_4x4ac, level1, level2, 15 );
     report( "zigzag_frame :" );
 
     x264_zigzag_init( 0, &zigzag_c, 1 );
@@ -397,9 +395,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     ok = 1; used_asm = 0;
     TEST_ZIGZAG_SCAN( scan_8x8, level1, level2, (void*)dct1, 64 );
     TEST_ZIGZAG_SCAN( scan_4x4, level1, level2, dct1[0], 16  );
-    TEST_ZIGZAG_SCAN( scan_4x4ac, level1, level2, dct1[0], 15 );
     TEST_ZIGZAG_SUB( sub_4x4, level1, level2, 16 );
-    TEST_ZIGZAG_SUB( sub_4x4ac, level1, level2, 15 );
     report( "zigzag_field :" );
 #undef TEST_ZIGZAG_SCAN
 #undef TEST_ZIGZAG_SUB

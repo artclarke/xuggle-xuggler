@@ -521,22 +521,6 @@ static void zigzag_scan_4x4_field( int16_t level[16], int16_t dct[4][4] )
     *(uint64_t*)(level+12) = *(uint64_t*)(*dct+12);
 }
 
-static void zigzag_scan_4x4ac_frame( int16_t level[15], int16_t dct[4][4] )
-{
-                ZIG( 0,0,1) ZIG( 1,1,0) ZIG( 2,2,0)
-    ZIG( 3,1,1) ZIG( 4,0,2) ZIG( 5,0,3) ZIG( 6,1,2)
-    ZIG( 7,2,1) ZIG( 8,3,0) ZIG( 9,3,1) ZIG(10,2,2)
-    ZIG(11,1,3) ZIG(12,2,3) ZIG(13,3,2) ZIG(14,3,3)
-}
-
-static void zigzag_scan_4x4ac_field( int16_t level[15], int16_t dct[4][4] )
-{
-                ZIG( 0,1,0) ZIG( 1,0,1) ZIG( 2,2,0)
-    ZIG( 3,3,0) ZIG( 4,1,1) ZIG( 5,2,1) ZIG( 6,3,1)
-    ZIG( 7,0,2) ZIG( 8,1,2) ZIG( 9,2,2) ZIG(10,3,2)
-    ZIG(11,0,3) ZIG(12,1,3) ZIG(13,2,3) ZIG(14,3,3)
-}
-
 #undef ZIG
 #define ZIG(i,y,x) {\
     int oe = x+y*FENC_STRIDE;\
@@ -567,24 +551,6 @@ static void zigzag_sub_4x4_field( int16_t level[16], const uint8_t *p_src, uint8
     COPY4x4
 }
 
-static void zigzag_sub_4x4ac_frame( int16_t level[15], const uint8_t *p_src, uint8_t *p_dst )
-{
-                ZIG( 0,0,1) ZIG( 1,1,0) ZIG( 2,2,0)
-    ZIG( 3,1,1) ZIG( 4,0,2) ZIG( 5,0,3) ZIG( 6,1,2)
-    ZIG( 7,2,1) ZIG( 8,3,0) ZIG( 9,3,1) ZIG(10,2,2)
-    ZIG(11,1,3) ZIG(12,2,3) ZIG(13,3,2) ZIG(14,3,3)
-    COPY4x4
-}
-
-static void zigzag_sub_4x4ac_field( int16_t level[15], const uint8_t *p_src, uint8_t *p_dst )
-{
-                ZIG( 0,1,0) ZIG( 1,0,1) ZIG( 2,2,0)
-    ZIG( 3,3,0) ZIG( 4,1,1) ZIG( 5,2,1) ZIG( 6,3,1)
-    ZIG( 7,0,2) ZIG( 8,1,2) ZIG( 9,2,2) ZIG(10,3,2)
-    ZIG(11,0,3) ZIG(12,1,3) ZIG(13,2,3) ZIG(14,3,3)
-    COPY4x4
-}
-
 #undef ZIG
 #undef COPY4x4
 
@@ -594,9 +560,7 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
     {
         pf->scan_8x8   = zigzag_scan_8x8_field;
         pf->scan_4x4   = zigzag_scan_4x4_field;
-        pf->scan_4x4ac = zigzag_scan_4x4ac_field;
         pf->sub_4x4    = zigzag_sub_4x4_field;
-        pf->sub_4x4ac  = zigzag_sub_4x4ac_field;
 #ifdef HAVE_MMX
         if( cpu&X264_CPU_MMXEXT )
             pf->scan_4x4 = x264_zigzag_scan_4x4_field_mmxext;
@@ -604,20 +568,14 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
 
 #ifdef ARCH_PPC
         if( cpu&X264_CPU_ALTIVEC )
-        {
             pf->scan_4x4   = x264_zigzag_scan_4x4_field_altivec;
-            pf->scan_4x4ac = x264_zigzag_scan_4x4ac_field_altivec;
-        }
 #endif
     }
     else
     {
         pf->scan_8x8   = zigzag_scan_8x8_frame;
         pf->scan_4x4   = zigzag_scan_4x4_frame;
-        pf->scan_4x4ac = zigzag_scan_4x4ac_frame;
         pf->sub_4x4    = zigzag_sub_4x4_frame;
-        pf->sub_4x4ac  = zigzag_sub_4x4ac_frame;
-
 #ifdef HAVE_SSE3
         if( cpu&X264_CPU_SSSE3 )
             pf->sub_4x4 = x264_zigzag_sub_4x4_frame_ssse3;
@@ -625,10 +583,7 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
 
 #ifdef ARCH_PPC
         if( cpu&X264_CPU_ALTIVEC )
-        {
             pf->scan_4x4   = x264_zigzag_scan_4x4_frame_altivec;
-            pf->scan_4x4ac = x264_zigzag_scan_4x4ac_frame_altivec;
-        }
 #endif
     }
 }
