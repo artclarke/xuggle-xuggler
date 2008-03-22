@@ -25,7 +25,34 @@
 
 SECTION_RODATA
 pw_1:     times 8 dw 1
-pd_10000: times 4 dd 1<<16
+pd_1:     times 4 dd 1
+
+%macro DQM4 3
+    dw %1, %2, %1, %2, %2, %3, %2, %3
+%endmacro
+%macro DQM8 6
+    dw %1, %4, %5, %4, %1, %4, %5, %4
+    dw %4, %2, %6, %2, %4, %2, %6, %2
+    dw %5, %6, %3, %6, %5, %6, %3, %6
+    ; last line not used, just padding for power-of-2 stride
+    times 8 dw 0
+%endmacro
+
+dequant4_scale:
+    DQM4 10, 13, 16
+    DQM4 11, 14, 18
+    DQM4 13, 16, 20
+    DQM4 14, 18, 23
+    DQM4 16, 20, 25
+    DQM4 18, 23, 29
+
+dequant8_scale:
+    DQM8 20, 18, 32, 19, 25, 24
+    DQM8 22, 19, 35, 21, 28, 26
+    DQM8 26, 23, 42, 24, 33, 31
+    DQM8 28, 25, 45, 26, 35, 33
+    DQM8 32, 28, 51, 30, 40, 38
+    DQM8 36, 32, 58, 34, 46, 43
 
 SECTION .text
 
@@ -139,11 +166,9 @@ QUANT_AC x264_quant_8x8_ssse3, SSSE3_QUANT_1x8, 8, 16
 ;;; %2,%3   dequant_mf[i_mf][y][x]
 ;;; m5      i_qbits
 
-    movq     m1, %2
-    movq     m2, %3
-    movq     m0, %1
-    packssdw m1, m2
-    pmullw   m0, m1
+    movq     m0, %2
+    packssdw m0, %3
+    pmullw   m0, %1
     psllw    m0, m5
     movq     %1, m0
 %endmacro
@@ -151,21 +176,18 @@ QUANT_AC x264_quant_8x8_ssse3, SSSE3_QUANT_1x8, 8, 16
 %macro DEQUANT32_R 3
 ;;; %1      dct[y][x]
 ;;; %2,%3   dequant_mf[i_mf][y][x]
-;;; m4      f
 ;;; m5      -i_qbits
-;;; m6      1
+;;; m6      f
 ;;; m7      0
 
     movq      m0, %1
     movq      m1, m0
-    movq      m2, %2
-    movq      m3, %3
-    punpcklwd m0, m4
-    punpckhwd m1, m4
-    por       m2, m6 ; FIXME munge precomputed arrays?
-    por       m3, m6
-    pmaddwd   m0, m2
-    pmaddwd   m1, m3
+    punpcklwd m0, m7
+    punpckhwd m1, m7
+    pmaddwd   m0, %2
+    pmaddwd   m1, %3
+    paddd     m0, m6
+    paddd     m1, m6
     psrad     m0, m5
     psrad     m1, m5
     packssdw  m0, m1
@@ -188,60 +210,122 @@ QUANT_AC x264_quant_8x8_ssse3, SSSE3_QUANT_1x8, 8, 16
 %endif
 %endmacro
 
-;-----------------------------------------------------------------------------
-; void x264_dequant_4x4_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
-;-----------------------------------------------------------------------------
-%macro DEQUANT_WxH 4
-cglobal %1, 0,3
+%macro DEQUANT16_FLAT 2-8
+    movq   m0, %1
+%assign i %0-2
+%rep %0-1
+%if i
+    movq   m %+ i, [r0+%2]
+    pmullw m %+ i, m0
+%else
+    pmullw m0, [r0+%2]
+%endif
+    psllw  m %+ i, m7
+    movq   [r0+%2], m %+ i
+    %assign i i-1
+    %rotate 1
+%endrep
+%endmacro
+
 %ifdef ARCH_X86_64
     %define t0  r4
     %define t0d r4d
-    imul r4d, r2d, 0x2b
-    shr  r4d, 8     ; i_qbits = i_qp / 6
-    lea  r3, [r4*3]
-    sub  r2d, r3d
-    sub  r2d, r3d   ; i_mf = i_qp % 6
-    shl  r2d, %3+2
-    add  r1, r2     ; dequant_mf[i_mf]
+    %define t1  r3
+    %define t1d r3d
+    %define t2  r2
+    %define t2d r2d
 %else
     %define t0  r2
     %define t0d r2d
-    mov  r1, r2m    ; i_qp
-    imul r2, r1, 0x2b
-    shr  r2, 8      ; i_qbits = i_qp / 6
-    lea  r0, [r2*3]
-    sub  r1, r0
-    sub  r1, r0     ; i_mf = i_qp % 6
-    shl  r1, %3+2
+    %define t1  r0
+    %define t1d r0d
+    %define t2  r1
+    %define t2d r1d
+%endif
+
+;-----------------------------------------------------------------------------
+; void x264_dequant_4x4_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
+;-----------------------------------------------------------------------------
+%macro DEQUANT 4
+cglobal x264_dequant_%2x%2_%1, 0,3
+    movifnidn t2d, r2m
+    imul t0d, t2d, 0x2b
+    shr  t0d, 8     ; i_qbits = i_qp / 6
+    lea  t1, [t0*3]
+    sub  t2d, t1d
+    sub  t2d, t1d   ; i_mf = i_qp % 6
+    shl  t2d, %3+2
+%ifdef ARCH_X86_64
+    add  r1, t2     ; dequant_mf[i_mf]
+%else
     add  r1, r1m    ; dequant_mf[i_mf]
     mov  r0, r0m    ; dct
 %endif
-
     sub  t0d, %3
     jl   .rshift32  ; negative qbits => rightshift
 
 .lshift:
     movd m5, t0d
-    DEQUANT_LOOP DEQUANT16_L, %2, %4
+    DEQUANT_LOOP DEQUANT16_L, %2*%2/4, %4
 
 .rshift32:
     neg   t0d
     movd  m5, t0d
     picgetgot t0d
-    movq  m4, [pw_1 GLOBAL]
-    movq  m6, [pd_10000 GLOBAL]
-    psllw m4, m5
+    movq  m6, [pd_1 GLOBAL]
     pxor  m7, m7
-    psrlw m4, 1
-    DEQUANT_LOOP DEQUANT32_R, %2, %4
-%endmacro
+    pslld m6, m5
+    psrld m6, 1
+    DEQUANT_LOOP DEQUANT32_R, %2*%2/4, %4
+
+cglobal x264_dequant_%2x%2_flat16_%1, 0,3
+    movifnidn t2d, r2m
+%if %2 == 8
+    cmp  t2d, 12
+    jl x264_dequant_%2x%2_%1
+    sub  t2d, 12
+%endif
+    imul t0d, t2d, 0x2b
+    shr  t0d, 8     ; i_qbits = i_qp / 6
+    lea  t1, [t0*3]
+    sub  t2d, t1d
+    sub  t2d, t1d   ; i_mf = i_qp % 6
+    shl  t2d, %3
+%ifdef PIC64
+    lea  r1, [dequant%2_scale GLOBAL]
+    add  r1, t2
+%else
+    picgetgot r0
+    lea  r1, [t2 + dequant%2_scale GLOBAL]
+%endif
+    movifnidn r0d, r0m
+    movd m7, t0d
+%if %2 == 4
+%ifidn %1, mmx
+    DEQUANT16_FLAT [r1], 0, 16
+    DEQUANT16_FLAT [r1+8], 8, 24
+%else
+    DEQUANT16_FLAT [r1], 0, 16
+%endif
+%elifidn %1, mmx
+    DEQUANT16_FLAT [r1], 0, 8, 64, 72
+    DEQUANT16_FLAT [r1+16], 16, 24, 48, 56
+    DEQUANT16_FLAT [r1+16], 80, 88, 112, 120
+    DEQUANT16_FLAT [r1+32], 32, 40, 96, 104
+%else
+    DEQUANT16_FLAT [r1], 0, 64
+    DEQUANT16_FLAT [r1+16], 16, 48, 80, 112
+    DEQUANT16_FLAT [r1+32], 32, 96
+%endif
+    ret
+%endmacro ; DEQUANT
 
 %ifndef ARCH_X86_64
 INIT_MMX
-DEQUANT_WxH x264_dequant_4x4_mmx, 4,  4, 1
-DEQUANT_WxH x264_dequant_8x8_mmx, 16, 6, 1
+DEQUANT mmx, 4, 4, 1
+DEQUANT mmx, 8, 6, 1
 %endif
 INIT_XMM
-DEQUANT_WxH x264_dequant_4x4_sse2, 4,  4, 2
-DEQUANT_WxH x264_dequant_8x8_sse2, 16, 6, 2
+DEQUANT sse2, 4, 4, 2
+DEQUANT sse2, 8, 6, 2
 

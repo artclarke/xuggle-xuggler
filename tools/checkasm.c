@@ -648,11 +648,17 @@ static int check_quant( int cpu_ref, int cpu_new )
     for( i_cqm = 0; i_cqm < 4; i_cqm++ )
     {
         if( i_cqm == 0 )
+        {
             for( i = 0; i < 6; i++ )
                 h->pps->scaling_list[i] = x264_cqm_flat16;
+            h->param.i_cqm_preset = h->pps->i_cqm_preset = X264_CQM_FLAT;
+        }
         else if( i_cqm == 1 )
+        {
             for( i = 0; i < 6; i++ )
                 h->pps->scaling_list[i] = x264_cqm_jvt[i];
+            h->param.i_cqm_preset = h->pps->i_cqm_preset = X264_CQM_JVT;
+        }
         else
         {
             if( i_cqm == 2 )
@@ -663,6 +669,7 @@ static int check_quant( int cpu_ref, int cpu_new )
                     cqm_buf[i] = 1;
             for( i = 0; i < 6; i++ )
                 h->pps->scaling_list[i] = cqm_buf;
+            h->param.i_cqm_preset = h->pps->i_cqm_preset = X264_CQM_CUSTOM;
         }
 
         x264_cqm_init( h );

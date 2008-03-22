@@ -37,5 +37,9 @@ void x264_dequant_4x4_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp 
 void x264_dequant_8x8_mmx( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp );
 void x264_dequant_4x4_sse2( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp );
 void x264_dequant_8x8_sse2( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp );
+void x264_dequant_4x4_flat16_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp );
+void x264_dequant_8x8_flat16_mmx( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp );
+void x264_dequant_4x4_flat16_sse2( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp );
+void x264_dequant_8x8_flat16_sse2( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp );
 
 #endif

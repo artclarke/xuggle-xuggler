@@ -211,6 +211,11 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->quant_8x8 = x264_quant_8x8_mmx;
         pf->dequant_4x4 = x264_dequant_4x4_mmx;
         pf->dequant_8x8 = x264_dequant_8x8_mmx;
+        if( h->param.i_cqm_preset == X264_CQM_FLAT )
+        {
+            pf->dequant_4x4 = x264_dequant_4x4_flat16_mmx;
+            pf->dequant_8x8 = x264_dequant_8x8_flat16_mmx;
+        }
 #endif
     }
 
@@ -229,6 +234,11 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->quant_8x8 = x264_quant_8x8_sse2;
         pf->dequant_4x4 = x264_dequant_4x4_sse2;
         pf->dequant_8x8 = x264_dequant_8x8_sse2;
+        if( h->param.i_cqm_preset == X264_CQM_FLAT )
+        {
+            pf->dequant_4x4 = x264_dequant_4x4_flat16_sse2;
+            pf->dequant_8x8 = x264_dequant_8x8_flat16_sse2;
+        }
     }
 #endif
 
