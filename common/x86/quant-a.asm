@@ -56,72 +56,66 @@ dequant8_scale:
 
 SECTION .text
 
-%macro MMX_QUANT_DC_START 0
-    movd       mm6, r1m     ; mf
-    movd       mm7, r2m     ; bias
-    pshufw     mm6, mm6, 0
-    pshufw     mm7, mm7, 0
+%macro QUANT_DC_START 0
+    movd       m6, r1m     ; mf
+    movd       m7, r2m     ; bias
+%ifidn m0, mm0
+    pshufw     m6, m6, 0
+    pshufw     m7, m7, 0
+%else
+    pshuflw    m6, m6, 0
+    pshuflw    m7, m7, 0
+    punpcklqdq m6, m6
+    punpcklqdq m7, m7
+%endif
 %endmacro
 
-%macro SSE2_QUANT_DC_START 0
-    movd       xmm6, r1m     ; mf
-    movd       xmm7, r2m     ; bias
-    pshuflw    xmm6, xmm6, 0
-    pshuflw    xmm7, xmm7, 0
-    punpcklqdq xmm6, xmm6
-    punpcklqdq xmm7, xmm7
-%endmacro
-
-%macro QUANT_ONE 5
+%macro QUANT_MMX 3
 ;;; %1      (m64)       dct[y][x]
 ;;; %2      (m64/mmx)   mf[y][x] or mf[0][0] (as uint16_t)
 ;;; %3      (m64/mmx)   bias[y][x] or bias[0][0] (as uint16_t)
 
-    mov%1      %2m0, %3     ; load dct coeffs
-    pxor       %2m1, %2m1
-    pcmpgtw    %2m1, %2m0   ; sign(coeff)
-    pxor       %2m0, %2m1
-    psubw      %2m0, %2m1   ; abs(coeff)
-    paddusw    %2m0, %5     ; round
-    pmulhuw    %2m0, %4     ; divide
-    pxor       %2m0, %2m1   ; restore sign
-    psubw      %2m0, %2m1
-    mov%1        %3, %2m0   ; store
-%endmacro
-%macro MMX_QUANT_1x4 3
-    QUANT_ONE q, m, %1, %2, %3
-%endmacro
-%macro SSE2_QUANT_1x8 3
-    QUANT_ONE dqa, xm, %1, %2, %3
+    movq       m0, %1   ; load dct coeffs
+    pxor       m1, m1
+    pcmpgtw    m1, m0   ; sign(coeff)
+    pxor       m0, m1
+    psubw      m0, m1   ; abs(coeff)
+    paddusw    m0, %3   ; round
+    pmulhuw    m0, %2   ; divide
+    pxor       m0, m1   ; restore sign
+    psubw      m0, m1
+    movq       %1, m0   ; store
 %endmacro
 
-%macro SSSE3_QUANT_1x8 3
-    movdqa     xmm1, %1     ; load dct coeffs
-    pabsw      xmm0, xmm1
-    paddusw    xmm0, %3     ; round
-    pmulhuw    xmm0, %2     ; divide
-    psignw     xmm0, xmm1   ; restore sign
-    movdqa       %1, xmm0   ; store
+%macro QUANT_SSSE3 3
+    movq       m1, %1   ; load dct coeffs
+    pabsw      m0, m1
+    paddusw    m0, %3   ; round
+    pmulhuw    m0, %2   ; divide
+    psignw     m0, m1   ; restore sign
+    movq       %1, m0   ; store
 %endmacro
+
+INIT_MMX
 
 ;-----------------------------------------------------------------------------
 ; void x264_quant_2x2_dc_mmxext( int16_t dct[4], int mf, int bias )
 ;-----------------------------------------------------------------------------
 cglobal x264_quant_2x2_dc_mmxext, 1,1
-    MMX_QUANT_DC_START
-    MMX_QUANT_1x4 [r0], mm6, mm7
+    QUANT_DC_START
+    QUANT_MMX [r0], mm6, mm7
     RET
 
 ;-----------------------------------------------------------------------------
 ; void x264_quant_4x4_dc_mmxext( int16_t dct[16], int mf, int bias )
 ;-----------------------------------------------------------------------------
-%macro QUANT_DC 6
+%macro QUANT_DC 4
 cglobal %1, 1,1
-    %2
+    QUANT_DC_START
 %assign x 0
-%rep %5
-    %3 [r0+x], %4m6, %4m7
-%assign x x+%6
+%rep %3
+    %2 [r0+x], m6, m7
+%assign x x+%4
 %endrep
     RET
 %endmacro
@@ -140,19 +134,21 @@ cglobal %1, 3,3
 %endmacro
 
 %ifndef ARCH_X86_64 ; not needed because sse2 is faster
-QUANT_DC x264_quant_4x4_dc_mmxext, MMX_QUANT_DC_START, MMX_QUANT_1x4, m, 4, 8
-QUANT_AC x264_quant_4x4_mmx, MMX_QUANT_1x4, 4, 8
-QUANT_AC x264_quant_8x8_mmx, MMX_QUANT_1x4, 16, 8
+QUANT_DC x264_quant_4x4_dc_mmxext, QUANT_MMX, 4, 8
+QUANT_AC x264_quant_4x4_mmx, QUANT_MMX, 4, 8
+QUANT_AC x264_quant_8x8_mmx, QUANT_MMX, 16, 8
 %endif
 
-QUANT_DC x264_quant_4x4_dc_sse2, SSE2_QUANT_DC_START, SSE2_QUANT_1x8, xm, 2, 16
-QUANT_AC x264_quant_4x4_sse2, SSE2_QUANT_1x8, 2, 16
-QUANT_AC x264_quant_8x8_sse2, SSE2_QUANT_1x8, 8, 16
+INIT_XMM
+
+QUANT_DC x264_quant_4x4_dc_sse2, QUANT_MMX, 2, 16
+QUANT_AC x264_quant_4x4_sse2, QUANT_MMX, 2, 16
+QUANT_AC x264_quant_8x8_sse2, QUANT_MMX, 8, 16
 
 %ifdef HAVE_SSE3
-QUANT_DC x264_quant_4x4_dc_ssse3, SSE2_QUANT_DC_START, SSSE3_QUANT_1x8, xm, 2, 16
-QUANT_AC x264_quant_4x4_ssse3, SSSE3_QUANT_1x8, 2, 16
-QUANT_AC x264_quant_8x8_ssse3, SSSE3_QUANT_1x8, 8, 16
+QUANT_DC x264_quant_4x4_dc_ssse3, QUANT_SSSE3, 2, 16
+QUANT_AC x264_quant_4x4_ssse3, QUANT_SSSE3, 2, 16
+QUANT_AC x264_quant_8x8_ssse3, QUANT_SSSE3, 8, 16
 %endif
 
 
