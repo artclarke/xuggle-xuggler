@@ -45,7 +45,7 @@ typedef struct
     /* 8x8 */
     int       i_cost8x8;
     /* [ref][0] is 16x16 mv, [ref][1..4] are 8x8 mv from partition [0..3] */
-    DECLARE_ALIGNED( int, mvc[32][5][2], 8 );
+    DECLARE_ALIGNED_8( int mvc[32][5][2] );
     x264_me_t me8x8[4];
 
     /* Sub 4x4 */
@@ -586,7 +586,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     /* 8x8 prediction selection */
     if( flags & X264_ANALYSE_I8x8 )
     {
-        DECLARE_ALIGNED( uint8_t, edge[33], 16 );
+        DECLARE_ALIGNED_16( uint8_t edge[33] );
         x264_pixel_cmp_t sa8d = (*h->pixf.mbcmp == *h->pixf.sad) ? h->pixf.sad[PIXEL_8x8] : h->pixf.sa8d[PIXEL_8x8];
         int i_satd_thresh = a->b_mbrd ? COST_MAX : X264_MIN( i_satd_inter, a->i_satd_i16x16 );
         int i_cost = 0;
@@ -857,7 +857,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     }
     else if( h->mb.i_type == I_8x8 )
     {
-        DECLARE_ALIGNED( uint8_t, edge[33], 16 );
+        DECLARE_ALIGNED_16( uint8_t edge[33] );
         for( idx = 0; idx < 4; idx++ )
         {
             uint64_t pels_h = 0;
@@ -1166,7 +1166,7 @@ static void x264_mb_analyse_inter_p16x8( x264_t *h, x264_mb_analysis_t *a )
 {
     x264_me_t m;
     uint8_t  **p_fenc = h->mb.pic.p_fenc;
-    DECLARE_ALIGNED( int, mvc[3][2], 8 );
+    DECLARE_ALIGNED_8( int mvc[3][2] );
     int i, j;
 
     /* XXX Needed for x264_mb_predict_mv */
@@ -1216,7 +1216,7 @@ static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a )
 {
     x264_me_t m;
     uint8_t  **p_fenc = h->mb.pic.p_fenc;
-    DECLARE_ALIGNED( int, mvc[3][2], 8 );
+    DECLARE_ALIGNED_8( int mvc[3][2] );
     int i, j;
 
     /* XXX Needed for x264_mb_predict_mv */
@@ -1263,7 +1263,7 @@ static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a )
 
 static int x264_mb_analyse_inter_p4x4_chroma( x264_t *h, x264_mb_analysis_t *a, uint8_t **p_fref, int i8x8, int pixel )
 {
-    DECLARE_ALIGNED( uint8_t, pix1[16*8], 8 );
+    DECLARE_ALIGNED_8( uint8_t pix1[16*8] );
     uint8_t *pix2 = pix1+8;
     const int i_stride = h->mb.pic.i_stride[1];
     const int or = 4*(i8x8&1) + 2*(i8x8&2)*i_stride;
@@ -1443,8 +1443,8 @@ static void x264_mb_analyse_inter_direct( x264_t *h, x264_mb_analysis_t *a )
 
 static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 {
-    DECLARE_ALIGNED( uint8_t, pix1[16*16], 16 );
-    DECLARE_ALIGNED( uint8_t, pix2[16*16], 16 );
+    DECLARE_ALIGNED_16( uint8_t pix1[16*16] );
+    DECLARE_ALIGNED_16( uint8_t pix2[16*16] );
     uint8_t *src2;
     int stride2 = 16;
     int weight;
@@ -1655,7 +1655,7 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
     uint8_t **p_fref[2] =
         { h->mb.pic.p_fref[0][a->l0.i_ref],
           h->mb.pic.p_fref[1][a->l1.i_ref] };
-    DECLARE_ALIGNED( uint8_t, pix[2][8*8], 8 );
+    DECLARE_ALIGNED_8( uint8_t pix[2][8*8] );
     int i, l;
 
     /* XXX Needed for x264_mb_predict_mv */
@@ -1719,8 +1719,8 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
     uint8_t **p_fref[2] =
         { h->mb.pic.p_fref[0][a->l0.i_ref],
           h->mb.pic.p_fref[1][a->l1.i_ref] };
-    DECLARE_ALIGNED( uint8_t,  pix[2][16*8], 16 );
-    DECLARE_ALIGNED( int, mvc[2][2], 8 );
+    DECLARE_ALIGNED_16( uint8_t  pix[2][16*8] );
+    DECLARE_ALIGNED_8( int mvc[2][2] );
     int i, l;
 
     h->mb.i_partition = D_16x8;
@@ -1788,8 +1788,8 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
     uint8_t **p_fref[2] =
         { h->mb.pic.p_fref[0][a->l0.i_ref],
           h->mb.pic.p_fref[1][a->l1.i_ref] };
-    DECLARE_ALIGNED( uint8_t, pix[2][8*16], 8 );
-    DECLARE_ALIGNED( int, mvc[2][2], 8 );
+    DECLARE_ALIGNED_8( uint8_t pix[2][8*16] );
+    DECLARE_ALIGNED_8( int mvc[2][2] );
     int i, l;
 
     h->mb.i_partition = D_8x16;

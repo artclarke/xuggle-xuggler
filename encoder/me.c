@@ -161,7 +161,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int 
     int bpred_mx = 0, bpred_my = 0, bpred_cost = COST_MAX;
     int omx, omy, pmx, pmy;
     uint8_t *p_fref = m->p_fref[0];
-    DECLARE_ALIGNED( uint8_t, pix[16*16], 16 );
+    DECLARE_ALIGNED_16( uint8_t pix[16*16] );
     
     int i, j;
     int dir;
@@ -462,8 +462,8 @@ me_hex2:
              * because sum(abs(diff)) >= abs(diff(sum)). */
             const int stride = m->i_stride[0];
             uint16_t *sums_base = m->integral;
-            DECLARE_ALIGNED( static uint8_t, zero[16*16], 16 ) = {0,};
-            DECLARE_ALIGNED( int, enc_dc[4], 16 );
+            DECLARE_ALIGNED_16( static uint8_t zero[16*16] );
+            DECLARE_ALIGNED_16( int enc_dc[4] );
             int sad_size = i_pixel <= PIXEL_8x8 ? PIXEL_8x8 : PIXEL_4x4;
             int delta = x264_pixel_size[sad_size].w;
             int16_t xs_buf[64];
@@ -671,7 +671,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     const int i_pixel = m->i_pixel;
     const int b_chroma_me = h->mb.b_chroma_me && i_pixel <= PIXEL_8x8;
 
-    DECLARE_ALIGNED( uint8_t, pix[2][32*18], 16 ); // really 17x17, but round up for alignment
+    DECLARE_ALIGNED_16( uint8_t pix[2][32*18] ); // really 17x17, but round up for alignment
     int omx, omy;
     int i;
 
@@ -822,9 +822,9 @@ int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight 
     const int16_t *p_cost_m0y = m0->p_cost_mv - x264_clip3( m0->mvp[1], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
     const int16_t *p_cost_m1x = m1->p_cost_mv - x264_clip3( m1->mvp[0], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
     const int16_t *p_cost_m1y = m1->p_cost_mv - x264_clip3( m1->mvp[1], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
-    DECLARE_ALIGNED( uint8_t, pix0[9][16*16], 16 );
-    DECLARE_ALIGNED( uint8_t, pix1[9][16*16], 16 );
-    DECLARE_ALIGNED( uint8_t, pix[16*16], 16 );
+    DECLARE_ALIGNED_16( uint8_t pix0[9][16*16] );
+    DECLARE_ALIGNED_16( uint8_t pix1[9][16*16] );
+    DECLARE_ALIGNED_16( uint8_t pix[16*16] );
     int bm0x = m0->mv[0], om0x = bm0x;
     int bm0y = m0->mv[1], om0y = bm0y;
     int bm1x = m1->mv[0], om1x = bm1x;
@@ -912,7 +912,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 )
     const int bh = x264_pixel_size[m->i_pixel].h>>2;
     const int i_pixel = m->i_pixel;
 
-    DECLARE_ALIGNED( uint8_t, pix[16*16], 16 );
+    DECLARE_ALIGNED_16( uint8_t pix[16*16] );
     int bcost = m->i_pixel == PIXEL_16x16 ? m->cost : COST_MAX;
     int bmx = m->mv[0];
     int bmy = m->mv[1];

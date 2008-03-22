@@ -54,7 +54,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     const int i_stride = fenc->i_stride_lowres;
     const int i_pel_offset = 8 * ( i_mb_x + i_mb_y * i_stride );
 
-    DECLARE_ALIGNED( uint8_t, pix1[9*FDEC_STRIDE], 8 );
+    DECLARE_ALIGNED_8( uint8_t pix1[9*FDEC_STRIDE] );
     uint8_t *pix2 = pix1+8;
     x264_me_t m[2];
     int i_bcost = COST_MAX;
@@ -218,7 +218,7 @@ lowres_intra_mb:
 
         if( i_icost < i_bcost * 2 )
         {
-            DECLARE_ALIGNED( uint8_t, edge[33], 16 );
+            DECLARE_ALIGNED_16( uint8_t edge[33] );
             x264_predict_8x8_filter( pix, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
             for( i=3; i<9; i++ )
             {

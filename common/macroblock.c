@@ -660,7 +660,7 @@ static inline void x264_mb_mc_01xywh( x264_t *h, int x, int y, int width, int he
     const int i_ref1 = h->mb.cache.ref[1][i8];
     const int mvx1   = x264_clip3( h->mb.cache.mv[1][i8][0], h->mb.mv_min[0], h->mb.mv_max[0] );
     int       mvy1   = x264_clip3( h->mb.cache.mv[1][i8][1], h->mb.mv_min[1], h->mb.mv_max[1] );
-    DECLARE_ALIGNED( uint8_t, tmp[16*16], 16 );
+    DECLARE_ALIGNED_16( uint8_t tmp[16*16] );
     int i_mode = x264_size2pixel[height][width];
 
     x264_mb_mc_0xywh( h, x, y, width, height );

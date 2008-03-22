@@ -455,7 +455,7 @@ void x264_intra_sa8d_x3_8x8_##cpu( uint8_t *fenc, uint8_t edge[33], int res[3] )
     PREDICT_8x8_LOAD_TOP\
     PREDICT_8x8_LOAD_LEFT\
     int t;\
-    DECLARE_ALIGNED( int16_t, sa8d_1d[2][8], 16 );\
+    DECLARE_ALIGNED_16( int16_t sa8d_1d[2][8] );\
     SUMSUB(l0,l4,l1,l5,l2,l6,l3,l7);\
     SUMSUB(l0,l2,l1,l3,l4,l6,l5,l7);\
     SUMSUB(l0,l1,l2,l3,l4,l5,l6,l7);\

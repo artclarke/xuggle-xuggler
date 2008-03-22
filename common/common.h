@@ -336,11 +336,11 @@ struct x264_t
     /* Current MB DCT coeffs */
     struct
     {
-        DECLARE_ALIGNED( int16_t, luma16x16_dc[16], 16 );
-        DECLARE_ALIGNED( int16_t, chroma_dc[2][4], 16 );
+        DECLARE_ALIGNED_16( int16_t luma16x16_dc[16] );
+        DECLARE_ALIGNED_16( int16_t chroma_dc[2][4] );
         // FIXME share memory?
-        DECLARE_ALIGNED( int16_t, luma8x8[4][64], 16 );
-        DECLARE_ALIGNED( int16_t, luma4x4[16+8][16], 16 );
+        DECLARE_ALIGNED_16( int16_t luma8x8[4][64] );
+        DECLARE_ALIGNED_16( int16_t luma4x4[16+8][16] );
     } dct;
 
     /* MB table and cache for current frame/mb */
@@ -430,14 +430,14 @@ struct x264_t
             /* space for p_fenc and p_fdec */
 #define FENC_STRIDE 16
 #define FDEC_STRIDE 32
-            DECLARE_ALIGNED( uint8_t, fenc_buf[24*FENC_STRIDE], 16 );
-            DECLARE_ALIGNED( uint8_t, fdec_buf[27*FDEC_STRIDE], 16 );
+            DECLARE_ALIGNED_16( uint8_t fenc_buf[24*FENC_STRIDE] );
+            DECLARE_ALIGNED_16( uint8_t fdec_buf[27*FDEC_STRIDE] );
 
             /* i4x4 and i8x8 backup data, for skipping the encode stage when possible */            
-            DECLARE_ALIGNED( uint8_t, i4x4_fdec_buf[16*16], 16 );
-            DECLARE_ALIGNED( uint8_t, i8x8_fdec_buf[16*16], 16 );
-            DECLARE_ALIGNED( int16_t, i8x8_dct_buf[3][64], 16 );
-            DECLARE_ALIGNED( int16_t, i4x4_dct_buf[15][16], 16 );
+            DECLARE_ALIGNED_16( uint8_t i4x4_fdec_buf[16*16] );
+            DECLARE_ALIGNED_16( uint8_t i8x8_fdec_buf[16*16] );
+            DECLARE_ALIGNED_16( int16_t i8x8_dct_buf[3][64] );
+            DECLARE_ALIGNED_16( int16_t i4x4_dct_buf[15][16] );
 
             /* pointer over mb of the frame to be compressed */
             uint8_t *p_fenc[3];
@@ -464,16 +464,16 @@ struct x264_t
             uint8_t non_zero_count[X264_SCAN8_SIZE];
 
             /* -1 if unused, -2 if unavailable */
-            DECLARE_ALIGNED( int8_t, ref[2][X264_SCAN8_SIZE], 4 );
+            DECLARE_ALIGNED_4( int8_t ref[2][X264_SCAN8_SIZE] );
 
             /* 0 if not available */
-            DECLARE_ALIGNED( int16_t, mv[2][X264_SCAN8_SIZE][2], 16 );
-            DECLARE_ALIGNED( int16_t, mvd[2][X264_SCAN8_SIZE][2], 4 );
+            DECLARE_ALIGNED_16( int16_t mv[2][X264_SCAN8_SIZE][2] );
+            DECLARE_ALIGNED_4( int16_t mvd[2][X264_SCAN8_SIZE][2] );
 
             /* 1 if SKIP or DIRECT. set only for B-frames + CABAC */
-            DECLARE_ALIGNED( int8_t, skip[X264_SCAN8_SIZE], 4 );
+            DECLARE_ALIGNED_4( int8_t skip[X264_SCAN8_SIZE] );
 
-            DECLARE_ALIGNED( int16_t, direct_mv[2][X264_SCAN8_SIZE][2], 16 ) ;
+            DECLARE_ALIGNED_16( int16_t direct_mv[2][X264_SCAN8_SIZE][2] );
             int8_t  direct_ref[2][X264_SCAN8_SIZE];
             int     pskip_mv[2];
 

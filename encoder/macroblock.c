@@ -85,7 +85,7 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale )
     int y = 4 * block_idx_y[idx];
     uint8_t *p_src = &h->mb.pic.p_fenc[0][x+y*FENC_STRIDE];
     uint8_t *p_dst = &h->mb.pic.p_fdec[0][x+y*FDEC_STRIDE];
-    DECLARE_ALIGNED( int16_t, dct4x4[4][4], 16 );
+    DECLARE_ALIGNED_16( int16_t dct4x4[4][4] );
 
     if( h->mb.b_lossless )
     {
@@ -113,7 +113,7 @@ void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qscale )
     int y = 8 * (idx>>1);
     uint8_t *p_src = &h->mb.pic.p_fenc[0][x+y*FENC_STRIDE];
     uint8_t *p_dst = &h->mb.pic.p_fdec[0][x+y*FDEC_STRIDE];
-    DECLARE_ALIGNED( int16_t, dct8x8[8][8], 16 );
+    DECLARE_ALIGNED_16( int16_t dct8x8[8][8] );
 
     h->dctf.sub8x8_dct8( dct8x8, p_src, p_dst );
 
@@ -132,7 +132,7 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
     uint8_t  *p_src = h->mb.pic.p_fenc[0];
     uint8_t  *p_dst = h->mb.pic.p_fdec[0];
 
-    DECLARE_ALIGNED( int16_t, dct4x4[16+1][4][4], 16 );
+    DECLARE_ALIGNED_16( int16_t dct4x4[16+1][4][4] );
 
     int i;
 
@@ -195,8 +195,8 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
         uint8_t  *p_dst = h->mb.pic.p_fdec[1+ch];
         int i_decimate_score = 0;
 
-        DECLARE_ALIGNED( int16_t, dct2x2[2][2] , 16 );
-        DECLARE_ALIGNED( int16_t, dct4x4[4][4][4], 16 );
+        DECLARE_ALIGNED_16( int16_t dct2x2[2][2]  );
+        DECLARE_ALIGNED_16( int16_t dct4x4[4][4][4] );
 
         if( h->mb.b_lossless )
         {
@@ -366,7 +366,7 @@ void x264_macroblock_encode( x264_t *h )
     }
     else if( h->mb.i_type == I_8x8 )
     {
-        DECLARE_ALIGNED( uint8_t, edge[33], 16 );
+        DECLARE_ALIGNED_16( uint8_t edge[33] );
         h->mb.b_transform_8x8 = 1;
         /* If we already encoded 3 of the 4 i8x8 blocks, we don't have to do them again. */
         if( h->mb.i_skip_intra )
@@ -431,7 +431,7 @@ void x264_macroblock_encode( x264_t *h )
         }
         else if( h->mb.b_transform_8x8 )
         {
-            DECLARE_ALIGNED( int16_t, dct8x8[4][8][8], 16 );
+            DECLARE_ALIGNED_16( int16_t dct8x8[4][8][8] );
             int nnz8x8[4] = {1,1,1,1};
             b_decimate &= !h->mb.b_trellis; // 8x8 trellis is inherently optimal decimation
             h->dctf.sub16x16_dct8( dct8x8, h->mb.pic.p_fenc[0], h->mb.pic.p_fdec[0] );
@@ -476,7 +476,7 @@ void x264_macroblock_encode( x264_t *h )
         }
         else
         {
-            DECLARE_ALIGNED( int16_t, dct4x4[16][4][4], 16 );
+            DECLARE_ALIGNED_16( int16_t dct4x4[16][4][4] );
             int nnz8x8[4] = {1,1,1,1};
             h->dctf.sub16x16_dct( dct4x4, h->mb.pic.p_fenc[0], h->mb.pic.p_fdec[0] );
 
@@ -616,9 +616,9 @@ void x264_macroblock_encode( x264_t *h )
  *****************************************************************************/
 int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
 {
-    DECLARE_ALIGNED( int16_t, dct4x4[16][4][4], 16 );
-    DECLARE_ALIGNED( int16_t, dct2x2[2][2], 16 );
-    DECLARE_ALIGNED( int16_t, dctscan[16], 16 );
+    DECLARE_ALIGNED_16( int16_t dct4x4[16][4][4] );
+    DECLARE_ALIGNED_16( int16_t dct2x2[2][2] );
+    DECLARE_ALIGNED_16( int16_t dctscan[16] );
 
     int i_qp = h->mb.i_qp;
     int mvp[2];
@@ -786,7 +786,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
 
     if( h->mb.b_transform_8x8 )
     {
-        DECLARE_ALIGNED( int16_t, dct8x8[8][8], 16 );
+        DECLARE_ALIGNED_16( int16_t dct8x8[8][8] );
         h->dctf.sub8x8_dct8( dct8x8, p_fenc, p_fdec );
         h->quantf.quant_8x8( dct8x8, h->quant8_mf[CQM_8PY][i_qp], h->quant8_bias[CQM_8PY][i_qp] );
         h->zigzagf.scan_8x8( h->dct.luma8x8[i8], dct8x8 );
@@ -805,7 +805,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
     else
     {
         int i4;
-        DECLARE_ALIGNED( int16_t, dct4x4[4][4][4], 16 );
+        DECLARE_ALIGNED_16( int16_t dct4x4[4][4][4] );
         h->dctf.sub8x8_dct( dct4x4, p_fenc, p_fdec );
         h->quantf.quant_4x4( dct4x4[0], h->quant4_mf[CQM_4PY][i_qp], h->quant4_bias[CQM_4PY][i_qp] );
         h->quantf.quant_4x4( dct4x4[1], h->quant4_mf[CQM_4PY][i_qp], h->quant4_bias[CQM_4PY][i_qp] );
@@ -836,7 +836,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
 
     for( ch = 0; ch < 2; ch++ )
     {
-        DECLARE_ALIGNED( int16_t, dct4x4[4][4], 16 );
+        DECLARE_ALIGNED_16( int16_t dct4x4[4][4] );
         p_fenc = h->mb.pic.p_fenc[1+ch] + (i8&1)*4 + (i8>>1)*4*FENC_STRIDE;
         p_fdec = h->mb.pic.p_fdec[1+ch] + (i8&1)*4 + (i8>>1)*4*FDEC_STRIDE;
 

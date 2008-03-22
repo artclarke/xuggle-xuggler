@@ -3,8 +3,6 @@
 
 #include <gtk/gtk.h>
 
-#define DECLARE_ALIGNED( type, var, n ) type var __attribute__((aligned(n)))
-
 #include "../x264.h"
 #include "../common/common.h"
 

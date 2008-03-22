@@ -34,7 +34,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_predict_t predict_8x8c[4+3];
     x264_predict_t predict_4x4[9+3];
     x264_predict8x8_t predict_8x8[9+3];
-    DECLARE_ALIGNED( uint8_t, edge[33], 16 );
+    DECLARE_ALIGNED_16( uint8_t edge[33] );
     uint16_t cost_mv[32];
     int ret = 0, ok, used_asm;
     int i, j;
@@ -160,8 +160,8 @@ static int check_pixel( int cpu_ref, int cpu_new )
     for( i=0; i<100 && ok; i++ )
         if( pixel_asm.ads[i&3] != pixel_ref.ads[i&3] )
         {
-            DECLARE_ALIGNED( uint16_t, sums[72], 16 );
-            DECLARE_ALIGNED( int, dc[4], 16 );
+            DECLARE_ALIGNED_16( uint16_t sums[72] );
+            DECLARE_ALIGNED_16( int dc[4] );
             int16_t mvs_a[32], mvs_c[32];
             int mvn_a, mvn_c;
             int thresh = rand() & 0x3fff;
@@ -196,10 +196,10 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_dct_function_t dct_asm;
     x264_quant_function_t qf;
     int ret = 0, ok, used_asm, i;
-    int16_t dct1[16][4][4] __attribute__((aligned(16)));
-    int16_t dct2[16][4][4] __attribute__((aligned(16)));
-    int16_t dct4[16][4][4] __attribute__((aligned(16)));
-    int16_t dct8[4][8][8] __attribute__((aligned(16)));
+    DECLARE_ALIGNED_16( int16_t dct1[16][4][4] );
+    DECLARE_ALIGNED_16( int16_t dct2[16][4][4] );
+    DECLARE_ALIGNED_16( int16_t dct4[16][4][4] );
+    DECLARE_ALIGNED_16( int16_t dct8[4][8][8] );
     x264_t h_buf;
     x264_t *h = &h_buf;
 
@@ -288,8 +288,8 @@ static int check_dct( int cpu_ref, int cpu_new )
     ok = 1; used_asm = 0;
     if( dct_asm.dct4x4dc != dct_ref.dct4x4dc )
     {
-        int16_t dct1[4][4] __attribute((aligned(16))) = { {-12, 42, 23, 67},{2, 90, 89,56}, {67,43,-76,91},{56,-78,-54,1}};
-        int16_t dct2[4][4] __attribute((aligned(16))) = { {-12, 42, 23, 67},{2, 90, 89,56}, {67,43,-76,91},{56,-78,-54,1}};
+        DECLARE_ALIGNED_16( int16_t dct1[4][4] ) = {{-12, 42, 23, 67},{2, 90, 89,56},{67,43,-76,91},{56,-78,-54,1}};
+        DECLARE_ALIGNED_16( int16_t dct2[4][4] ) = {{-12, 42, 23, 67},{2, 90, 89,56},{67,43,-76,91},{56,-78,-54,1}};
         used_asm = 1;
         call_c( dct_c.dct4x4dc, dct1 );
         call_a( dct_asm.dct4x4dc, dct2 );
@@ -301,8 +301,8 @@ static int check_dct( int cpu_ref, int cpu_new )
     }
     if( dct_asm.idct4x4dc != dct_ref.idct4x4dc )
     {
-        int16_t dct1[4][4] __attribute((aligned(16))) = { {-12, 42, 23, 67},{2, 90, 89,56}, {67,43,-76,91},{56,-78,-54,1}};
-        int16_t dct2[4][4] __attribute((aligned(16))) = { {-12, 42, 23, 67},{2, 90, 89,56}, {67,43,-76,91},{56,-78,-54,1}};
+        DECLARE_ALIGNED_16( int16_t dct1[4][4] ) = {{-12, 42, 23, 67},{2, 90, 89,56},{67,43,-76,91},{56,-78,-54,1}};
+        DECLARE_ALIGNED_16( int16_t dct2[4][4] ) = {{-12, 42, 23, 67},{2, 90, 89,56},{67,43,-76,91},{56,-78,-54,1}};
         used_asm = 1;
         call_c( dct_c.idct4x4dc, dct1 );
         call_a( dct_asm.idct4x4dc, dct2 );
@@ -317,8 +317,8 @@ static int check_dct( int cpu_ref, int cpu_new )
     ok = 1; used_asm = 0;
     if( dct_asm.dct2x2dc != dct_ref.dct2x2dc )
     {
-        int16_t dct1[2][2] __attribute((aligned(16))) = { {-12, 42},{2, 90}};
-        int16_t dct2[2][2] __attribute((aligned(16))) = { {-12, 42},{2, 90}};
+        DECLARE_ALIGNED_16( int16_t dct1[2][2] ) = {{-12, 42},{2, 90}};
+        DECLARE_ALIGNED_16( int16_t dct2[2][2] ) = {{-12, 42},{2, 90}};
         used_asm = 1;
         call_c( dct_c.dct2x2dc, dct1 );
         call_a( dct_asm.dct2x2dc, dct2 );
@@ -330,8 +330,8 @@ static int check_dct( int cpu_ref, int cpu_new )
     }
     if( dct_asm.idct2x2dc != dct_ref.idct2x2dc )
     {
-        int16_t dct1[2][2] __attribute((aligned(16))) = { {-12, 42},{2, 90}};
-        int16_t dct2[2][2] __attribute((aligned(16))) = { {-12, 42},{2, 90}};
+        DECLARE_ALIGNED_16( int16_t dct1[2][2] ) = {{-12, 42},{2, 90}};
+        DECLARE_ALIGNED_16( int16_t dct2[2][2] ) = {{-12, 42},{2, 90}};
         used_asm = 1;
         call_c( dct_c.idct2x2dc, dct1 );
         call_a( dct_asm.idct2x2dc, dct2 );
@@ -347,8 +347,8 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_zigzag_function_t zigzag_ref;
     x264_zigzag_function_t zigzag_asm;
 
-    int16_t level1[64] __attribute__((aligned(16)));
-    int16_t level2[64] __attribute__((aligned(16)));
+    DECLARE_ALIGNED_16( int16_t level1[64] );
+    DECLARE_ALIGNED_16( int16_t level2[64] );
 
 #define TEST_ZIGZAG_SCAN( name, t1, t2, dct, size )   \
     if( zigzag_asm.name != zigzag_ref.name ) \
@@ -627,9 +627,9 @@ static int check_quant( int cpu_ref, int cpu_new )
     x264_quant_function_t qf_c;
     x264_quant_function_t qf_ref;
     x264_quant_function_t qf_a;
-    int16_t dct1[64]    __attribute__((__aligned__(16)));
-    int16_t dct2[64]    __attribute__((__aligned__(16)));
-    uint8_t cqm_buf[64] __attribute__((__aligned__(16)));
+    DECLARE_ALIGNED_16( int16_t dct1[64] );
+    DECLARE_ALIGNED_16( int16_t dct2[64] );
+    DECLARE_ALIGNED_16( uint8_t cqm_buf[64] );
     int ret = 0, ok, used_asm;
     int oks[2] = {1,1}, used_asms[2] = {0,0};
     int i, i_cqm, qp;
@@ -782,7 +782,7 @@ static int check_intra( int cpu_ref, int cpu_new )
 {
     int ret = 0, ok = 1, used_asm = 0;
     int i;
-    DECLARE_ALIGNED( uint8_t, edge[33], 16 );
+    DECLARE_ALIGNED_16( uint8_t edge[33] );
     struct
     {
         x264_predict_t      predict_16x16[4+3];
