@@ -27,6 +27,7 @@
 SECTION_RODATA
 pw_1:  times 8 dw 1
 pw_32: times 8 dw 32
+pb_zigzag4: db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
 
 SECTION .text
 
@@ -290,3 +291,43 @@ cglobal x264_zigzag_scan_4x4_field_mmxext, 2,3
     mov    [r0+12], r2d
     RET
 
+%ifdef HAVE_SSE3
+;-----------------------------------------------------------------------------
+; void x264_zigzag_sub_4x4_frame_ssse3( int16_t level[16], const uint8_t *src, uint8_t *dst )
+;-----------------------------------------------------------------------------
+cglobal x264_zigzag_sub_4x4_frame_ssse3, 3,3
+    movd      xmm0, [r1+0*FENC_STRIDE]
+    movd      xmm1, [r1+1*FENC_STRIDE]
+    movd      xmm2, [r1+2*FENC_STRIDE]
+    movd      xmm3, [r1+3*FENC_STRIDE]
+    movd      xmm4, [r2+0*FDEC_STRIDE]
+    movd      xmm5, [r2+1*FDEC_STRIDE]
+    movd      xmm6, [r2+2*FDEC_STRIDE]
+    movd      xmm7, [r2+3*FDEC_STRIDE]
+    movd      [r2+0*FDEC_STRIDE], xmm0
+    movd      [r2+1*FDEC_STRIDE], xmm1
+    movd      [r2+2*FDEC_STRIDE], xmm2
+    movd      [r2+3*FDEC_STRIDE], xmm3
+    picgetgot r1
+    punpckldq xmm0, xmm1
+    punpckldq xmm2, xmm3
+    punpckldq xmm4, xmm5
+    punpckldq xmm6, xmm7
+    movlhps   xmm0, xmm2
+    movlhps   xmm4, xmm6
+    movdqa    xmm7, [pb_zigzag4 GLOBAL]
+    pshufb    xmm0, xmm7
+    pshufb    xmm4, xmm7
+    pxor      xmm6, xmm6
+    movdqa    xmm1, xmm0
+    movdqa    xmm5, xmm4
+    punpcklbw xmm0, xmm6
+    punpckhbw xmm1, xmm6
+    punpcklbw xmm4, xmm6
+    punpckhbw xmm5, xmm6
+    psubw     xmm0, xmm4
+    psubw     xmm1, xmm5
+    movdqa    [r0], xmm0
+    movdqa [r0+16], xmm1
+    RET
+%endif
