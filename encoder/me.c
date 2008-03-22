@@ -461,8 +461,8 @@ me_hex2:
             /* successive elimination by comparing DC before a full SAD,
              * because sum(abs(diff)) >= abs(diff(sum)). */
             const int stride = m->i_stride[0];
-            static uint8_t zero[16*16] = {0,};
             uint16_t *sums_base = m->integral;
+            DECLARE_ALIGNED( static uint8_t, zero[16*16], 16 ) = {0,};
             DECLARE_ALIGNED( int, enc_dc[4], 16 );
             int sad_size = i_pixel <= PIXEL_8x8 ? PIXEL_8x8 : PIXEL_4x4;
             int delta = x264_pixel_size[sad_size].w;

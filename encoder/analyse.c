@@ -1443,7 +1443,8 @@ static void x264_mb_analyse_inter_direct( x264_t *h, x264_mb_analysis_t *a )
 
 static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 {
-    uint8_t pix1[16*16], pix2[16*16];
+    DECLARE_ALIGNED( uint8_t, pix1[16*16], 16 );
+    DECLARE_ALIGNED( uint8_t, pix2[16*16], 16 );
     uint8_t *src2;
     int stride2 = 16;
     int weight;
@@ -1654,7 +1655,7 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
     uint8_t **p_fref[2] =
         { h->mb.pic.p_fref[0][a->l0.i_ref],
           h->mb.pic.p_fref[1][a->l1.i_ref] };
-    uint8_t pix[2][8*8];
+    DECLARE_ALIGNED( uint8_t, pix[2][8*8], 8 );
     int i, l;
 
     /* XXX Needed for x264_mb_predict_mv */
@@ -1787,7 +1788,7 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
     uint8_t **p_fref[2] =
         { h->mb.pic.p_fref[0][a->l0.i_ref],
           h->mb.pic.p_fref[1][a->l1.i_ref] };
-    uint8_t pix[2][8*16];
+    DECLARE_ALIGNED( uint8_t, pix[2][8*16], 8 );
     DECLARE_ALIGNED( int, mvc[2][2], 8 );
     int i, l;
 
