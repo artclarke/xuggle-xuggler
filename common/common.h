@@ -229,7 +229,6 @@ static const int x264_scan8[16+2*4] =
 */
 
 typedef struct x264_ratecontrol_t   x264_ratecontrol_t;
-typedef struct x264_vlc_table_t     x264_vlc_table_t;
 
 struct x264_t
 {
@@ -574,13 +573,6 @@ struct x264_t
     x264_zigzag_function_t zigzagf;
     x264_quant_function_t quantf;
     x264_deblock_function_t loopf;
-
-    /* vlc table for decoding purpose only */
-    x264_vlc_table_t *x264_coeff_token_lookup[5];
-    x264_vlc_table_t *x264_level_prefix_lookup;
-    x264_vlc_table_t *x264_total_zeros_lookup[15];
-    x264_vlc_table_t *x264_total_zeros_dc_lookup[3];
-    x264_vlc_table_t *x264_run_before_lookup[7];
 
 #if VISUALIZE
     struct visualize_t *visualize;
