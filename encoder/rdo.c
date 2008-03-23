@@ -46,7 +46,6 @@ static int cabac_prefix_size[15][128];
 #define x264_cabac_encode_bypass(c,v)     ((c)->f8_bits_encoded += 256)
 #define x264_cabac_encode_flush(h,c)
 #define x264_macroblock_write_cabac  x264_macroblock_size_cabac
-#define x264_cabac_mb_skip  x264_cabac_mb_size_skip_unused
 #include "cabac.c"
 
 

@@ -60,7 +60,7 @@ static inline void x264_cabac_mb_type_intra( x264_t *h, x264_cabac_t *cb, int i_
         x264_cabac_encode_decision( cb, ctx0, 1 );
         x264_cabac_encode_terminal( cb );
 
-        x264_cabac_encode_decision( cb, ctx1, ( h->mb.i_cbp_luma == 0 ? 0 : 1 ));
+        x264_cabac_encode_decision( cb, ctx1, !!h->mb.i_cbp_luma );
         if( h->mb.i_cbp_chroma == 0 )
         {
             x264_cabac_encode_decision( cb, ctx2, 0 );
@@ -68,10 +68,10 @@ static inline void x264_cabac_mb_type_intra( x264_t *h, x264_cabac_t *cb, int i_
         else
         {
             x264_cabac_encode_decision( cb, ctx2, 1 );
-            x264_cabac_encode_decision( cb, ctx3, ( h->mb.i_cbp_chroma == 1 ? 0 : 1 ) );
+            x264_cabac_encode_decision( cb, ctx3, h->mb.i_cbp_chroma != 1 );
         }
-        x264_cabac_encode_decision( cb, ctx4, ( (i_pred / 2) ? 1 : 0 ));
-        x264_cabac_encode_decision( cb, ctx5, ( (i_pred % 2) ? 1 : 0 ));
+        x264_cabac_encode_decision( cb, ctx4, i_pred>>1 );
+        x264_cabac_encode_decision( cb, ctx5, i_pred&1 );
     }
 }
 
@@ -381,6 +381,7 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
     x264_cabac_encode_decision( cb, 60 + ctx, 0 );
 }
 
+#ifndef RDO_SKIP_BS
 void x264_cabac_mb_skip( x264_t *h, int b_skip )
 {
     int ctx = 0;
@@ -397,6 +398,7 @@ void x264_cabac_mb_skip( x264_t *h, int b_skip )
     ctx += (h->sh.i_type == SLICE_TYPE_P) ? 11 : 24;
     x264_cabac_encode_decision( &h->cabac, ctx, b_skip );
 }
+#endif
 
 static inline void x264_cabac_mb_sub_p_partition( x264_cabac_t *cb, int i_sub )
 {

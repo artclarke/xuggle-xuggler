@@ -715,7 +715,7 @@ static const uint8_t x264_cabac_range_lps[128][4] =
     {   2,   2,   2,   2 },
 };
 
-static const uint8_t x264_cabac_transition[2][128] =
+const uint8_t x264_cabac_transition[2][128] =
 {{
       0,  1,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
      15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
@@ -779,8 +779,8 @@ static const uint8_t x264_cabac_probability[128] =
     FIX8(0.0219), FIX8(0.0208), FIX8(0.0198), FIX8(0.0187)
 };
 /* -ln2(probability) */
-static const uint16_t x264_cabac_entropy[128] =
-{
+const uint16_t x264_cabac_entropy[2][128] =
+{{
     FIX8(0.0273), FIX8(0.0288), FIX8(0.0303), FIX8(0.0320),
     FIX8(0.0337), FIX8(0.0355), FIX8(0.0375), FIX8(0.0395),
     FIX8(0.0416), FIX8(0.0439), FIX8(0.0463), FIX8(0.0488),
@@ -813,7 +813,40 @@ static const uint16_t x264_cabac_entropy[128] =
     FIX8(4.9099), FIX8(4.9851), FIX8(5.0602), FIX8(5.1354),
     FIX8(5.2106), FIX8(5.2859), FIX8(5.3610), FIX8(5.4362),
     FIX8(5.5114), FIX8(5.5866), FIX8(5.6618), FIX8(5.7370)
-};
+},{
+    FIX8(5.7370), FIX8(5.6618), FIX8(5.5866), FIX8(5.5114),
+    FIX8(5.4362), FIX8(5.3610), FIX8(5.2859), FIX8(5.2106),
+    FIX8(5.1354), FIX8(5.0602), FIX8(4.9851), FIX8(4.9099),
+    FIX8(4.8347), FIX8(4.7595), FIX8(4.6843), FIX8(4.6091),
+    FIX8(4.5339), FIX8(4.4588), FIX8(4.3836), FIX8(4.3083),
+    FIX8(4.2332), FIX8(4.1580), FIX8(4.0828), FIX8(4.0076),
+    FIX8(3.9324), FIX8(3.8572), FIX8(3.7820), FIX8(3.7068),
+    FIX8(3.6316), FIX8(3.5565), FIX8(3.4813), FIX8(3.4061),
+    FIX8(3.3309), FIX8(3.2557), FIX8(3.1805), FIX8(3.1053),
+    FIX8(3.0301), FIX8(2.9549), FIX8(2.8797), FIX8(2.8046),
+    FIX8(2.7294), FIX8(2.6542), FIX8(2.5790), FIX8(2.5038),
+    FIX8(2.4286), FIX8(2.3534), FIX8(2.2782), FIX8(2.2030),
+    FIX8(2.1278), FIX8(2.0527), FIX8(1.9775), FIX8(1.9023),
+    FIX8(1.8271), FIX8(1.7519), FIX8(1.6767), FIX8(1.6015),
+    FIX8(1.5263), FIX8(1.4511), FIX8(1.3759), FIX8(1.3008),
+    FIX8(1.2256), FIX8(1.1504), FIX8(1.0752), FIX8(1.0000),
+    FIX8(1.0000), FIX8(0.9285), FIX8(0.8638), FIX8(0.8050),
+    FIX8(0.7513), FIX8(0.7020), FIX8(0.6568), FIX8(0.6152),
+    FIX8(0.5768), FIX8(0.5412), FIX8(0.5082), FIX8(0.4776),
+    FIX8(0.4491), FIX8(0.4226), FIX8(0.3979), FIX8(0.3748),
+    FIX8(0.3532), FIX8(0.3331), FIX8(0.3142), FIX8(0.2964),
+    FIX8(0.2798), FIX8(0.2642), FIX8(0.2496), FIX8(0.2358),
+    FIX8(0.2229), FIX8(0.2107), FIX8(0.1992), FIX8(0.1884),
+    FIX8(0.1782), FIX8(0.1686), FIX8(0.1596), FIX8(0.1510),
+    FIX8(0.1429), FIX8(0.1353), FIX8(0.1282), FIX8(0.1214),
+    FIX8(0.1149), FIX8(0.1089), FIX8(0.1032), FIX8(0.0977),
+    FIX8(0.0926), FIX8(0.0878), FIX8(0.0832), FIX8(0.0788),
+    FIX8(0.0747), FIX8(0.0708), FIX8(0.0671), FIX8(0.0637),
+    FIX8(0.0604), FIX8(0.0572), FIX8(0.0543), FIX8(0.0515),
+    FIX8(0.0488), FIX8(0.0463), FIX8(0.0439), FIX8(0.0416),
+    FIX8(0.0395), FIX8(0.0375), FIX8(0.0355), FIX8(0.0337),
+    FIX8(0.0320), FIX8(0.0303), FIX8(0.0288), FIX8(0.0273)
+}};
 
 
 /*****************************************************************************
@@ -951,24 +984,3 @@ void x264_cabac_encode_flush( x264_t *h, x264_cabac_t *cb )
     }
 }
 
-/*****************************************************************************
- *
- *****************************************************************************/
-void x264_cabac_size_decision( x264_cabac_t *cb, int i_ctx, int b )
-{
-    int i_state = cb->state[i_ctx];
-    cb->state[i_ctx] = x264_cabac_transition[b][i_state];
-    cb->f8_bits_encoded += x264_cabac_entropy[ b ? 127 - i_state : i_state ];
-}
-
-int x264_cabac_size_decision2( uint8_t *state, int b )
-{
-    int i_state = *state;
-    *state = x264_cabac_transition[b][i_state];
-    return x264_cabac_entropy[ b ? 127 - i_state : i_state ];
-}
-
-int x264_cabac_size_decision_noup( uint8_t *state, int b )
-{
-    return x264_cabac_entropy[ b ? 127 - *state : *state ];
-}
