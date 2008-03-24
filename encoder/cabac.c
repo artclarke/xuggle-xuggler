@@ -24,23 +24,6 @@
 #include "common/common.h"
 #include "macroblock.h"
 
-static inline void x264_cabac_encode_ue_bypass( x264_cabac_t *cb, int exp_bits, int val )
-{
-#ifdef RDO_SKIP_BS
-    cb->f8_bits_encoded += ( bs_size_ue( val + (1<<exp_bits)-1 ) - exp_bits ) << 8;
-#else
-    int k;
-    for( k = exp_bits; val >= (1<<k); k++ )
-    {
-        x264_cabac_encode_bypass( cb, 1 );
-        val -= 1 << k;
-    }
-    x264_cabac_encode_bypass( cb, 0 );
-    while( k-- )
-        x264_cabac_encode_bypass( cb, (val >> k)&0x01 );
-#endif
-}
-
 static inline void x264_cabac_mb_type_intra( x264_t *h, x264_cabac_t *cb, int i_mb_type,
                     int ctx0, int ctx1, int ctx2, int ctx3, int ctx4, int ctx5 )
 {

@@ -919,6 +919,25 @@ void x264_cabac_encode_bypass( x264_cabac_t *cb, int b )
     x264_cabac_putbyte( cb );
 }
 
+void x264_cabac_encode_ue_bypass( x264_cabac_t *cb, int exp_bits, int val )
+{
+    int k, i;
+    uint32_t x;
+    for( k = exp_bits; val >= (1<<k); k++ )
+        val -= 1<<k;
+    x = (((1<<(k-exp_bits))-1)<<(k+1))+val;
+    k = 2*k+1-exp_bits;
+    i = ((k-1)&7)+1;
+    do {
+        k -= i;
+        cb->i_low <<= i;
+        cb->i_low += ((x>>k)&0xff) * cb->i_range;
+        cb->i_queue += i;
+        x264_cabac_putbyte( cb );
+        i = 8;
+    } while( k > 0 );
+}
+
 void x264_cabac_encode_terminal( x264_cabac_t *cb )
 {
     cb->i_range -= 2;

@@ -55,6 +55,7 @@ void x264_cabac_context_init( x264_cabac_t *cb, int i_slice_type, int i_qp, int 
 void x264_cabac_encode_init ( x264_cabac_t *cb, uint8_t *p_data, uint8_t *p_end );
 void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx, int b );
 void x264_cabac_encode_bypass( x264_cabac_t *cb, int b );
+void x264_cabac_encode_ue_bypass( x264_cabac_t *cb, int exp_bits, int val );
 void x264_cabac_encode_terminal( x264_cabac_t *cb );
 void x264_cabac_encode_flush( x264_t *h, x264_cabac_t *cb );
 
