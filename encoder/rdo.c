@@ -78,21 +78,21 @@ static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
 
     if( IS_SKIP( h->mb.i_type ) )
     {
-        i_bits = 1 * i_lambda2;
+        i_bits = (1 * i_lambda2 + 128) >> 8;
     }
     else if( h->param.b_cabac )
     {
         x264_cabac_t cabac_tmp;
         h->mc.memcpy_aligned( &cabac_tmp, &h->cabac, offsetof(x264_cabac_t,i_low) );
         x264_macroblock_size_cabac( h, &cabac_tmp );
-        i_bits = ( cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
+        i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 32768 ) >> 16;
     }
     else
     {
         bs_t bs_tmp = h->out.bs;
         bs_tmp.i_bits_encoded = 0;
         x264_macroblock_size_cavlc( h, &bs_tmp );
-        i_bits = bs_tmp.i_bits_encoded * i_lambda2;
+        i_bits = ( bs_tmp.i_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
 
     h->mb.b_transform_8x8 = b_transform_bak;
@@ -127,11 +127,11 @@ int x264_rd_cost_part( x264_t *h, int i_lambda2, int i8, int i_pixel )
         x264_cabac_t cabac_tmp;
         h->mc.memcpy_aligned( &cabac_tmp, &h->cabac, offsetof(x264_cabac_t,i_low) );
         x264_partition_size_cabac( h, &cabac_tmp, i8, i_pixel );
-        i_bits = ( cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
+        i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 32768 ) >> 16;
     }
     else
     {
-        i_bits = x264_partition_size_cavlc( h, i8, i_pixel ) * i_lambda2;
+        i_bits = ( x264_partition_size_cavlc( h, i8, i_pixel ) * i_lambda2 + 128 ) >> 8;
     }
 
     return i_ssd + i_bits;
@@ -149,11 +149,11 @@ int x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode )
         x264_cabac_t cabac_tmp;
         h->mc.memcpy_aligned( &cabac_tmp, &h->cabac, offsetof(x264_cabac_t,i_low) );
         x264_partition_i8x8_size_cabac( h, &cabac_tmp, i8, i_mode );
-        i_bits = ( cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
+        i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 32768 ) >> 16;
     }
     else
     {
-        i_bits = x264_partition_i8x8_size_cavlc( h, i8, i_mode ) * i_lambda2;
+        i_bits = ( x264_partition_i8x8_size_cavlc( h, i8, i_mode ) * i_lambda2 + 128 ) >> 8;
     }
 
     return i_ssd + i_bits;
@@ -170,13 +170,12 @@ int x264_rd_cost_i4x4( x264_t *h, int i_lambda2, int i4, int i_mode )
     {
         x264_cabac_t cabac_tmp;
         h->mc.memcpy_aligned( &cabac_tmp, &h->cabac, offsetof(x264_cabac_t,i_low) );
-        
         x264_partition_i4x4_size_cabac( h, &cabac_tmp, i4, i_mode );
-        i_bits = ( cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
+        i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 32768 ) >> 16;
     }
     else
     {
-        i_bits = x264_partition_i4x4_size_cavlc( h, i4, i_mode ) * i_lambda2;
+        i_bits = ( x264_partition_i4x4_size_cavlc( h, i4, i_mode ) * i_lambda2 + 128 ) >> 8;
     }
 
     return i_ssd + i_bits;
@@ -198,11 +197,11 @@ int x264_rd_cost_i8x8_chroma( x264_t *h, int i_lambda2, int i_mode, int b_dct )
         x264_cabac_t cabac_tmp;
         h->mc.memcpy_aligned( &cabac_tmp, &h->cabac, offsetof(x264_cabac_t,i_low) );
         x264_i8x8_chroma_size_cabac( h, &cabac_tmp );
-        i_bits = ( cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
+        i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 32768 ) >> 16;
     }
     else
     {
-        i_bits = x264_i8x8_chroma_size_cavlc( h ) * i_lambda2;
+        i_bits = ( x264_i8x8_chroma_size_cavlc( h ) * i_lambda2 + 128 ) >> 8;
     }
 
     return i_ssd + i_bits;
