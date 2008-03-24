@@ -45,8 +45,8 @@ typedef struct
 
 } x264_cabac_t;
 
-extern const uint8_t x264_cabac_transition[2][128];
-extern const uint16_t x264_cabac_entropy[2][128];
+extern const uint8_t x264_cabac_transition[128][2];
+extern const uint16_t x264_cabac_entropy[128][2];
 
 /* init the contexts given i_slice_type, the quantif and the model */
 void x264_cabac_context_init( x264_cabac_t *cb, int i_slice_type, int i_qp, int i_model );
@@ -68,20 +68,20 @@ static inline int x264_cabac_pos( x264_cabac_t *cb )
 static inline void x264_cabac_size_decision( x264_cabac_t *cb, long i_ctx, long b )
 {
     int i_state = cb->state[i_ctx];
-    cb->state[i_ctx] = x264_cabac_transition[b][i_state];
-    cb->f8_bits_encoded += x264_cabac_entropy[b][i_state];
+    cb->state[i_ctx] = x264_cabac_transition[i_state][b];
+    cb->f8_bits_encoded += x264_cabac_entropy[i_state][b];
 }
 
 static inline int x264_cabac_size_decision2( uint8_t *state, long b )
 {
     int i_state = *state;
-    *state = x264_cabac_transition[b][i_state];
-    return x264_cabac_entropy[b][i_state];
+    *state = x264_cabac_transition[i_state][b];
+    return x264_cabac_entropy[i_state][b];
 }
 
 static inline int x264_cabac_size_decision_noup( uint8_t *state, long b )
 {
-    return x264_cabac_entropy[b][*state];
+    return x264_cabac_entropy[*state][b];
 }
 
 #endif
