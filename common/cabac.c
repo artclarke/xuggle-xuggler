@@ -666,7 +666,7 @@ static const int8_t x264_cabac_context_init_PB[3][460][2] =
 
 /* FIXME could avoid this duplication by reversing the order of states
  * with MPS=0, but that would uglify the other tables */
-static const uint8_t x264_cabac_range_lps[128][4] =
+const uint8_t x264_cabac_range_lps[128][4] =
 {
     {   2,   2,   2,   2 },
     {   6,   7,   8,   9 }, {   6,   7,   9,  10 }, {   6,   8,   9,  11 },
@@ -735,7 +735,7 @@ const uint8_t x264_cabac_transition[128][2] =
     {100,121}, {100,122}, {101,123}, {101,124}, {101,125}, {102,126}, {102,126}, {127,127},
 };
 
-static const uint8_t x264_cabac_renorm_shift[64]= {
+const uint8_t x264_cabac_renorm_shift[64]= {
  6,5,4,4,3,3,3,3,2,2,2,2,2,2,2,2,
  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -895,6 +895,7 @@ static inline void x264_cabac_encode_renorm( x264_cabac_t *cb )
     x264_cabac_putbyte( cb );
 }
 
+#ifndef HAVE_MMX
 void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx, int b )
 {
     int i_state = cb->state[i_ctx];
@@ -908,6 +909,7 @@ void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx, int b )
     cb->state[i_ctx] = x264_cabac_transition[i_state][b];
     x264_cabac_encode_renorm( cb );
 }
+#endif
 
 void x264_cabac_encode_bypass( x264_cabac_t *cb, int b )
 {

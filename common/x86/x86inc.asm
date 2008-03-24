@@ -50,34 +50,36 @@
 ; Same, but if it doesn't pop anything it becomes a 2-byte ret, for athlons
 ; which are slow when a normal ret follows a branch.
 
-%macro DECLARE_REG 5
+%macro DECLARE_REG 6
     %define r%1q %2
     %define r%1d %3
     %define r%1w %4
-    ; no r%1b, because some regs don't have a byte form, and anyway x264 doesn't need it
-    %define r%1m %5
-    %define r%1  r%1q
+    %define r%1b %5
+    %define r%1m %6
+    %define r%1  %2
 %endmacro
 
-%macro DECLARE_REG_SIZE 1
+%macro DECLARE_REG_SIZE 2
     %define r%1q r%1
     %define e%1q r%1
     %define r%1d e%1
     %define e%1d e%1
     %define r%1w %1
     %define e%1w %1
+    %define r%1b %2
+    %define e%1b %2
 %ifndef ARCH_X86_64
     %define r%1  e%1
 %endif
 %endmacro
 
-DECLARE_REG_SIZE ax
-DECLARE_REG_SIZE bx
-DECLARE_REG_SIZE cx
-DECLARE_REG_SIZE dx
-DECLARE_REG_SIZE si
-DECLARE_REG_SIZE di
-DECLARE_REG_SIZE bp
+DECLARE_REG_SIZE ax, al
+DECLARE_REG_SIZE bx, bl
+DECLARE_REG_SIZE cx, cl
+DECLARE_REG_SIZE dx, dl
+DECLARE_REG_SIZE si, sil
+DECLARE_REG_SIZE di, dil
+DECLARE_REG_SIZE bp, bpl
 
 %ifdef ARCH_X86_64
     %define push_size 8
@@ -129,13 +131,13 @@ DECLARE_REG_SIZE bp
 
 %ifdef WIN64 ;================================================================
 
-DECLARE_REG 0, rcx, ecx, cx,  ecx
-DECLARE_REG 1, rdx, edx, dx,  edx
-DECLARE_REG 2, r8,  r8d, r8w, r8d
-DECLARE_REG 3, r9,  r9d, r9w, r9d
-DECLARE_REG 4, rdi, edi, di,  [rsp + stack_offset + 40]
-DECLARE_REG 5, rsi, esi, si,  [rsp + stack_offset + 48]
-DECLARE_REG 6, rax, eax, ax,  [rsp + stack_offset + 56]
+DECLARE_REG 0, rcx, ecx, cx,  cl,  ecx
+DECLARE_REG 1, rdx, edx, dx,  dl,  edx
+DECLARE_REG 2, r8,  r8d, r8w, r8b, r8d
+DECLARE_REG 3, r9,  r9d, r9w, r9b, r9d
+DECLARE_REG 4, rdi, edi, di,  dil, [rsp + stack_offset + 40]
+DECLARE_REG 5, rsi, esi, si,  sil, [rsp + stack_offset + 48]
+DECLARE_REG 6, rax, eax, ax,  al,  [rsp + stack_offset + 56]
 %define r7m [rsp + stack_offset + 64]
 
 %macro LOAD_IF_USED 2 ; reg_id, number_of_args
@@ -163,13 +165,13 @@ DECLARE_REG 6, rax, eax, ax,  [rsp + stack_offset + 56]
 
 %elifdef ARCH_X86_64 ;========================================================
 
-DECLARE_REG 0, rdi, edi, di,  edi
-DECLARE_REG 1, rsi, esi, si,  esi
-DECLARE_REG 2, rdx, edx, dx,  edx
-DECLARE_REG 3, rcx, ecx, cx,  ecx
-DECLARE_REG 4, r8,  r8d, r8w, r8d
-DECLARE_REG 5, r9,  r9d, r9w, r9d
-DECLARE_REG 6, rax, eax, ax,  [rsp + stack_offset + 8]
+DECLARE_REG 0, rdi, edi, di,  dil, edi
+DECLARE_REG 1, rsi, esi, si,  sil, esi
+DECLARE_REG 2, rdx, edx, dx,  dl,  edx
+DECLARE_REG 3, rcx, ecx, cx,  cl,  ecx
+DECLARE_REG 4, r8,  r8d, r8w, r8b, r8d
+DECLARE_REG 5, r9,  r9d, r9w, r9b, r9d
+DECLARE_REG 6, rax, eax, ax,  al,  [rsp + stack_offset + 8]
 %define r7m [rsp + stack_offset + 16]
 
 %macro LOAD_IF_USED 2 ; reg_id, number_of_args
@@ -195,13 +197,13 @@ DECLARE_REG 6, rax, eax, ax,  [rsp + stack_offset + 8]
 
 %else ; X86_32 ;==============================================================
 
-DECLARE_REG 0, eax, eax, ax, [esp + stack_offset + 4]
-DECLARE_REG 1, ecx, ecx, cx, [esp + stack_offset + 8]
-DECLARE_REG 2, edx, edx, dx, [esp + stack_offset + 12]
-DECLARE_REG 3, ebx, ebx, bx, [esp + stack_offset + 16]
-DECLARE_REG 4, esi, esi, si, [esp + stack_offset + 20]
-DECLARE_REG 5, edi, edi, di, [esp + stack_offset + 24]
-DECLARE_REG 6, ebp, ebp, bp, [esp + stack_offset + 28]
+DECLARE_REG 0, eax, eax, ax, al,   [esp + stack_offset + 4]
+DECLARE_REG 1, ecx, ecx, cx, cl,   [esp + stack_offset + 8]
+DECLARE_REG 2, edx, edx, dx, dl,   [esp + stack_offset + 12]
+DECLARE_REG 3, ebx, ebx, bx, bl,   [esp + stack_offset + 16]
+DECLARE_REG 4, esi, esi, si, null, [esp + stack_offset + 20]
+DECLARE_REG 5, edi, edi, di, null, [esp + stack_offset + 24]
+DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 %define r7m [esp + stack_offset + 32]
 %define rsp esp
 
