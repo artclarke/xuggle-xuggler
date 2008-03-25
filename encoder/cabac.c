@@ -717,7 +717,7 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
     int i_last  = 0;
     int i_sigmap_size;
     int node_ctx = 0;
-    int i;
+    int i, j;
 
     const int *significant_coeff_flag_offset;
     const int *last_coeff_flag_offset;
@@ -730,17 +730,17 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
      *                5-> Luma8x8   i_idx = luma8x8idx
      */
 
-    for( i = 0; i < i_count; i++ )
-    {
+    for( j = i_count - 4; j >= 0; j -= 4 )
+        if( *(uint64_t*)(l+j) )
+            break;
+    for( i = 0; i < j+4; i++ )
         if( l[i] != 0 )
         {
-            i_coeff_abs_m1[i_coeff] = abs( l[i] ) - 1;
-            i_coeff_sign[i_coeff]   = ( l[i] < 0 );
+            i_coeff_abs_m1[i_coeff] = abs(l[i]) - 1;
+            i_coeff_sign[i_coeff]   = l[i] < 0;
             i_coeff++;
-
             i_last = i;
         }
-    }
 
     if( i_count != 64 )
     {
