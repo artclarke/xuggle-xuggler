@@ -40,20 +40,25 @@ cextern x264_cabac_renorm_shift
 ; t3 must be ecx, since it's used for shift.
 %ifdef ARCH_X86_64
     DEF_TMP 0,1,2,3,4,5,6,7, 0,1,2,3,4,5,6,10
-    %define pointer 8
+    %define pointer resq
 %else
     DEF_TMP 0,1,2,3,4,5,6,7, 0,3,2,1,4,5,6,3
-    %define pointer 4
+    %define pointer resd
 %endif
 
-%define cb.state r0+0
-%define cb.low   r0+464
-%define cb.range r0+468
-%define cb.queue r0+472
-%define cb.bytes_outstanding r0+476
-%define cb.p     r0+480+pointer
-%define cb.end   r0+480+pointer*2
-
+struc cb
+    .low: resd 1
+    .range: resd 1
+    .queue: resd 1
+    .bytes_outstanding: resd 1
+    .start: pointer 1
+    .p: pointer 1
+    .end: pointer 1
+    align 16
+    .bits_encoded: resd 1
+    .state: resb 460
+endstruc
+    
 %macro LOAD_GLOBAL 4
 %ifdef PIC64
     ; this would be faster if the arrays were declared in asm, so that I didn't have to duplicate the lea
@@ -78,8 +83,8 @@ cglobal x264_cabac_encode_decision, 0,7
     movifnidn t0d, r0m
     movifnidn t1d, r1m
     picgetgot t2
-    mov   t5d, [cb.range]
-    movzx t3d, byte [cb.state+t1]
+    mov   t5d, [r0+cb.range]
+    movzx t3d, byte [r0+cb.state+t1]
     mov   t4d, t5d
     shr   t5d, 6
     and   t5d, 3
@@ -93,7 +98,7 @@ cglobal x264_cabac_encode_decision, 0,7
     movifnidn t2d, r2m
     cmp   t6d, t2d
 %endif
-    mov   t6d, [cb.low]
+    mov   t6d, [r0+cb.low]
     lea   t7,  [t6+t4]
     cmovne t4d, t5d
     cmovne t6d, t7d
@@ -103,18 +108,18 @@ cglobal x264_cabac_encode_decision, 0,7
 %else
     LOAD_GLOBAL t3d, x264_cabac_transition, t2, t3*2
 %endif
-    if32 mov t1d, r1m
-    mov   [cb.state+t1], t3b
+    movifnidn t1d, r1m
+    mov   [r0+cb.state+t1], t3b
 .renorm:
     mov   t3d, t4d
     shr   t3d, 3
     LOAD_GLOBAL t3d, x264_cabac_renorm_shift, 0, t3
     shl   t4d, t3b
     shl   t6d, t3b
-    add   t3d, [cb.queue]
-    mov   [cb.range], t4d
-    mov   [cb.low], t6d
-    mov   [cb.queue], t3d
+    add   t3d, [r0+cb.queue]
+    mov   [r0+cb.range], t4d
+    mov   [r0+cb.low], t6d
+    mov   [r0+cb.queue], t3d
     cmp   t3d, 8
     jge .putbyte
 .ret:
@@ -130,15 +135,15 @@ cglobal x264_cabac_encode_decision, 0,7
     sub   t3d, 10
     and   t6d, t1d
     cmp   t2b, 0xff ; FIXME is a 32bit op faster?
-    mov   [cb.queue], t3d
-    mov   [cb.low], t6d
+    mov   [r0+cb.queue], t3d
+    mov   [r0+cb.low], t6d
     mov   t1d, t2d
-    mov   t4,  [cb.p]
+    mov   t4,  [r0+cb.p]
     je .postpone
-    mov   t5d, [cb.bytes_outstanding]
+    mov   t5d, [r0+cb.bytes_outstanding]
     shr   t1d, 8 ; carry
     lea   t6, [t4+t5+1]
-    cmp   t6, [cb.end]
+    cmp   t6, [r0+cb.end]
     jge .ret
     add   [t4-1], t1b
     test  t5d, t5d
@@ -152,10 +157,10 @@ cglobal x264_cabac_encode_decision, 0,7
 .no_outstanding:
     mov   [t4], t2b
     inc   t4
-    mov   [cb.bytes_outstanding], t5d ; is zero, but a reg has smaller opcode than an immediate
-    mov   [cb.p], t4
+    mov   [r0+cb.bytes_outstanding], t5d ; is zero, but a reg has smaller opcode than an immediate
+    mov   [r0+cb.p], t4
     RET
 .postpone:
-    inc   dword [cb.bytes_outstanding]
+    inc   dword [r0+cb.bytes_outstanding]
     RET
 

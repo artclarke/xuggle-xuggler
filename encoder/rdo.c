@@ -49,7 +49,9 @@ static int cabac_prefix_size[15][128];
 #define x264_macroblock_write_cabac  x264_macroblock_size_cabac
 #include "cabac.c"
 
-
+#define COPY_CABAC h->mc.memcpy_aligned( &cabac_tmp.f8_bits_encoded, &h->cabac.f8_bits_encoded, \
+        sizeof(x264_cabac_t) - offsetof(x264_cabac_t,f8_bits_encoded) )
+    
 static int ssd_mb( x264_t *h )
 {
     return h->pixf.ssd[PIXEL_16x16]( h->mb.pic.p_fenc[0], FENC_STRIDE,
@@ -83,7 +85,7 @@ static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
     else if( h->param.b_cabac )
     {
         x264_cabac_t cabac_tmp;
-        h->mc.memcpy_aligned( &cabac_tmp, &h->cabac, offsetof(x264_cabac_t,i_low) );
+        COPY_CABAC;
         x264_macroblock_size_cabac( h, &cabac_tmp );
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 32768 ) >> 16;
     }
@@ -125,7 +127,7 @@ int x264_rd_cost_part( x264_t *h, int i_lambda2, int i8, int i_pixel )
     if( h->param.b_cabac )
     {
         x264_cabac_t cabac_tmp;
-        h->mc.memcpy_aligned( &cabac_tmp, &h->cabac, offsetof(x264_cabac_t,i_low) );
+        COPY_CABAC;
         x264_partition_size_cabac( h, &cabac_tmp, i8, i_pixel );
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 32768 ) >> 16;
     }
@@ -147,7 +149,7 @@ int x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode )
     if( h->param.b_cabac )
     {
         x264_cabac_t cabac_tmp;
-        h->mc.memcpy_aligned( &cabac_tmp, &h->cabac, offsetof(x264_cabac_t,i_low) );
+        COPY_CABAC;
         x264_partition_i8x8_size_cabac( h, &cabac_tmp, i8, i_mode );
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 32768 ) >> 16;
     }
@@ -169,7 +171,7 @@ int x264_rd_cost_i4x4( x264_t *h, int i_lambda2, int i4, int i_mode )
     if( h->param.b_cabac )
     {
         x264_cabac_t cabac_tmp;
-        h->mc.memcpy_aligned( &cabac_tmp, &h->cabac, offsetof(x264_cabac_t,i_low) );
+        COPY_CABAC;
         x264_partition_i4x4_size_cabac( h, &cabac_tmp, i4, i_mode );
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 32768 ) >> 16;
     }
@@ -195,7 +197,7 @@ int x264_rd_cost_i8x8_chroma( x264_t *h, int i_lambda2, int i_mode, int b_dct )
     if( h->param.b_cabac )
     {
         x264_cabac_t cabac_tmp;
-        h->mc.memcpy_aligned( &cabac_tmp, &h->cabac, offsetof(x264_cabac_t,i_low) );
+        COPY_CABAC;
         x264_i8x8_chroma_size_cabac( h, &cabac_tmp );
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 32768 ) >> 16;
     }

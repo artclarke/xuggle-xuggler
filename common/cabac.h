@@ -26,11 +26,6 @@
 
 typedef struct
 {
-    /* context */
-    DECLARE_ALIGNED_16( uint8_t state[460] );
-
-    int f8_bits_encoded; // only if using x264_cabac_size_decision()
-
     /* state */
     int i_low;
     int i_range;
@@ -43,6 +38,11 @@ typedef struct
     uint8_t *p;
     uint8_t *p_end;
 
+    /* aligned for aligned_memcpy starting here */
+    DECLARE_ALIGNED_16( int f8_bits_encoded ); // only if using x264_cabac_size_decision()
+    
+    /* context */
+    uint8_t state[460];
 } x264_cabac_t;
 
 extern const uint8_t x264_cabac_transition[128][2];
