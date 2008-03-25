@@ -242,19 +242,6 @@ void x264_rdo_init( )
     }
 }
 
-// node ctx: 0..3: abslevel1 (with abslevelgt1 == 0).
-//           4..7: abslevelgt1 + 3 (and abslevel1 doesn't matter).
-/* map node ctx => cabac ctx for level=1 */
-static const int coeff_abs_level1_ctx[8] = { 1, 2, 3, 4, 0, 0, 0, 0 };
-/* map node ctx => cabac ctx for level>1 */
-static const int coeff_abs_levelgt1_ctx[8] = { 5, 5, 5, 5, 6, 7, 8, 9 };
-static const int coeff_abs_level_transition[2][8] = {
-/* update node.ctx after coding a level=1 */
-    { 1, 2, 3, 3, 4, 5, 6, 7 },
-/* update node.ctx after coding a level>1 */
-    { 4, 4, 4, 4, 5, 6, 7, 7 }
-};
-
 // should the intra and inter lambdas be different?
 // I'm just matching the behaviour of deadzone quant.
 static const int lambda2_tab[2][52] = {

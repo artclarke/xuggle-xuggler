@@ -691,6 +691,19 @@ static const int last_coeff_flag_offset_8x8[63] = {
 };
 static const int identity[16] =
     { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+    
+// node ctx: 0..3: abslevel1 (with abslevelgt1 == 0).
+//           4..7: abslevelgt1 + 3 (and abslevel1 doesn't matter).
+/* map node ctx => cabac ctx for level=1 */
+static const int coeff_abs_level1_ctx[8] = { 1, 2, 3, 4, 0, 0, 0, 0 };
+/* map node ctx => cabac ctx for level>1 */
+static const int coeff_abs_levelgt1_ctx[8] = { 5, 5, 5, 5, 6, 7, 8, 9 };
+static const int coeff_abs_level_transition[2][8] = {
+/* update node ctx after coding a level=1 */
+    { 1, 2, 3, 3, 4, 5, 6, 7 },
+/* update node ctx after coding a level>1 */
+    { 4, 4, 4, 4, 5, 6, 7, 7 }
+};
 
 static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBlockCat, int i_idx, int16_t *l, int i_count )
 {
@@ -703,10 +716,7 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
     int i_coeff = 0;
     int i_last  = 0;
     int i_sigmap_size;
-
-    int i_abslevel1 = 0;
-    int i_abslevelgt1 = 0;
-
+    int node_ctx = 0;
     int i;
 
     const int *significant_coeff_flag_offset;
@@ -758,12 +768,12 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
     {
         /* write coeff_abs - 1 */
         const int i_prefix = X264_MIN( i_coeff_abs_m1[i], 14 );
-        const int i_ctxIdxInc = (i_abslevelgt1 ? 0 : X264_MIN( 4, i_abslevel1 + 1 )) + i_ctx_level;
+        const int i_ctxIdxInc = coeff_abs_level1_ctx[node_ctx] + i_ctx_level;
         x264_cabac_encode_decision( cb, i_ctxIdxInc, i_prefix != 0 );
 
         if( i_prefix != 0 )
         {
-            const int i_ctxIdxInc = 5 + X264_MIN( 4, i_abslevelgt1 ) + i_ctx_level;
+            const int i_ctxIdxInc = coeff_abs_levelgt1_ctx[node_ctx] + i_ctx_level;
 #ifdef RDO_SKIP_BS
             cb->f8_bits_encoded += cabac_prefix_size[i_prefix][cb->state[i_ctxIdxInc]];
             cb->state[i_ctxIdxInc] = cabac_prefix_transition[i_prefix][cb->state[i_ctxIdxInc]];
@@ -777,10 +787,10 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
             if( i_prefix >= 14 )
                 x264_cabac_encode_ue_bypass( cb, 0, i_coeff_abs_m1[i] - 14 );
 
-            i_abslevelgt1++;
+            node_ctx = coeff_abs_level_transition[1][node_ctx];
         }
         else
-            i_abslevel1++;
+            node_ctx = coeff_abs_level_transition[0][node_ctx];
 
         /* write sign */
 #ifdef RDO_SKIP_BS
