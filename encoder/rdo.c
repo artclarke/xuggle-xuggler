@@ -26,8 +26,8 @@
 
 #define RDO_SKIP_BS
 
-static int cabac_prefix_transition[15][128];
-static int cabac_prefix_size[15][128];
+static uint8_t cabac_prefix_transition[15][128];
+static uint16_t cabac_prefix_size[15][128];
 
 /* CAVLC: produces exactly the same bit count as a normal encode */
 /* this probably still leaves some unnecessary computations */
