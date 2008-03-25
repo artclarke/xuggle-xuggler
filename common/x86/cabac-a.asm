@@ -54,11 +54,11 @@ struc cb
     .start: pointer 1
     .p: pointer 1
     .end: pointer 1
-    align 16
+    align 16, resb 1
     .bits_encoded: resd 1
     .state: resb 460
 endstruc
-    
+
 %macro LOAD_GLOBAL 4
 %ifdef PIC64
     ; this would be faster if the arrays were declared in asm, so that I didn't have to duplicate the lea
