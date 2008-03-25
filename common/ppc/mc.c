@@ -611,11 +611,30 @@ void x264_hpel_filter_altivec( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint
             HPEL_FILTER_CENTRAL();
         }
 
+        /* Partial vertical filter */
+        VEC_LOAD( &src[x+i_stride*(y-2)], src1v, 16, vec_u8_t );
+        VEC_LOAD( &src[x+i_stride*(y-1)], src2v, 16, vec_u8_t );
+        VEC_LOAD( &src[x+i_stride*(y-0)], src3v, 16, vec_u8_t );
+        VEC_LOAD( &src[x+i_stride*(y+1)], src4v, 16, vec_u8_t );
+        VEC_LOAD( &src[x+i_stride*(y+2)], src5v, 16, vec_u8_t );
+        VEC_LOAD( &src[x+i_stride*(y+3)], src6v, 16, vec_u8_t );
+
+        temp1v = vec_u8_to_s16_h( src1v );
+        temp2v = vec_u8_to_s16_h( src2v );
+        temp3v = vec_u8_to_s16_h( src3v );
+        temp4v = vec_u8_to_s16_h( src4v );
+        temp5v = vec_u8_to_s16_h( src5v );
+        temp6v = vec_u8_to_s16_h( src6v );
+
+        HPEL_FILTER_1( temp1v, temp2v, temp3v,
+                      temp4v, temp5v, temp6v );
+
         /* central_filter */
         tempav = tempcv;
         tempbv = tempdv;
         tempcv = tempev;
-        tempdv = vec_splat( tempcv, 7 ); /* last only */
+        tempdv = temp1v;
+        /* tempev is not used */
 
         HPEL_FILTER_CENTRAL();
     }
