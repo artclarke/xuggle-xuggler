@@ -1024,7 +1024,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     assert( a->l0.me16x16.mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 );
 
     h->mb.i_type = P_L0;
-    if( a->b_mbrd && a->l0.i_ref == 0
+    if( a->b_mbrd && a->l0.me16x16.i_ref == 0
         && a->l0.me16x16.mv[0] == h->mb.cache.pskip_mv[0]
         && a->l0.me16x16.mv[1] == h->mb.cache.pskip_mv[1] )
     {
