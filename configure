@@ -209,7 +209,7 @@ case $host_os in
     LDFLAGS="$LDFLAGS -lm"
     ;;
   cygwin*)
-    SYS="CYGWIN"
+    SYS="MINGW"
     CFLAGS="$CFLAGS -mno-cygwin"
     LDFLAGS="$LDFLAGS -mno-cygwin"
     EXE=".exe"
@@ -239,7 +239,7 @@ case $host_cpu in
     ASFLAGS="-O2"
     if [ "$SYS" = MACOSX ]; then
       ASFLAGS="$ASFLAGS -f macho -DPREFIX"
-    elif [ "$SYS" = CYGWIN -o "$SYS" = MINGW ]; then
+    elif [ "$SYS" = MINGW ]; then
       ASFLAGS="$ASFLAGS -f win32 -DPREFIX"
     elif [ "$SYS" = NETBSD ]; then
       ASFLAGS="$ASFLAGS -f aoutb"
@@ -349,7 +349,7 @@ if test "$pthread" = "auto" ; then
         BEOS)
             pthread="yes"
             ;;
-        MINGW|CYGWIN)
+        MINGW)
             if cc_check pthread.h -lpthread "pthread_create(0,0,0,0);" ; then
                 pthread="yes"
                 libpthread="-lpthread"
@@ -373,7 +373,7 @@ if test "$pthread" = "yes" ; then
 fi
 
 MP4_LDFLAGS="-lgpac_static"
-if [ $SYS = CYGWIN -o $SYS = MINGW ]; then
+if [ $SYS = MINGW ]; then
     MP4_LDFLAGS="$MP4_LDFLAGS -lwinmm"
 fi
 if [ "$mp4_output" = "auto" ] ; then
@@ -386,7 +386,7 @@ if [ "$mp4_output" = "yes" ] ; then
 fi
 
 if [ "$avis_input" = "auto" ] ; then
-    if [ $SYS = CYGWIN -o $SYS = MINGW ]; then
+    if [ $SYS = MINGW ]; then
         avis_input="yes"
     else
         avis_input="no";
