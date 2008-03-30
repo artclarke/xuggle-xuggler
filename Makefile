@@ -76,7 +76,7 @@ libx264.a: .depend $(OBJS) $(OBJASM)
 	ranlib libx264.a
 
 $(SONAME): .depend $(OBJS) $(OBJASM)
-	$(CC) -shared -o $@ $(OBJS) $(OBJASM) -Wl,-soname,$(SONAME) $(LDFLAGS)
+	$(CC) -shared -o $@ $(OBJS) $(OBJASM) $(SOFLAGS) $(LDFLAGS)
 
 x264$(EXE): $(OBJCLI) libx264.a 
 	$(CC) -o $@ $+ $(LDFLAGS)
@@ -148,16 +148,21 @@ distclean: clean
 	rm -rf test/
 	$(MAKE) -C gtk distclean
 
-install: x264 $(SONAME)
+install: x264$(EXE) $(SONAME)
 	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(includedir)
 	install -d $(DESTDIR)$(libdir) $(DESTDIR)$(libdir)/pkgconfig
 	install -m 644 x264.h $(DESTDIR)$(includedir)
 	install -m 644 libx264.a $(DESTDIR)$(libdir)
 	install -m 644 x264.pc $(DESTDIR)$(libdir)/pkgconfig
-	install x264 $(DESTDIR)$(bindir)
+	install x264$(EXE) $(DESTDIR)$(bindir)
 	ranlib $(DESTDIR)$(libdir)/libx264.a
+ifeq ($(SYS),MINGW)
+	$(if $(SONAME), install -m 755 $(SONAME) $(DESTDIR)$(bindir))
+else
 	$(if $(SONAME), ln -sf $(SONAME) $(DESTDIR)$(libdir)/libx264.so)
 	$(if $(SONAME), install -m 755 $(SONAME) $(DESTDIR)$(libdir))
+endif
+	$(if $(IMPLIBNAME), install -m 644 $(IMPLIBNAME) $(DESTDIR)$(libdir))
 
 install-gtk: libx264gtk.a
 	$(MAKE) -C gtk install
