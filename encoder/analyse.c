@@ -2061,8 +2061,11 @@ void x264_macroblock_analyse( x264_t *h )
     int i_cost = COST_MAX;
     int i;
 
-    /* init analysis */
-    x264_mb_analyse_init( h, &analysis, x264_ratecontrol_qp( h ) );
+    h->mb.i_qp = x264_ratecontrol_qp( h );
+    if( h->param.rc.i_aq_mode )
+        x264_adaptive_quant( h );
+
+    x264_mb_analyse_init( h, &analysis, h->mb.i_qp );
 
     /*--------------------------- Do the analysis ---------------------------*/
     if( h->sh.i_type == SLICE_TYPE_I )

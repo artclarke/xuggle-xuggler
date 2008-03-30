@@ -128,6 +128,10 @@ struct x264_ratecontrol_t
     int bframes;                /* # consecutive B-frames before this P-frame */
     int bframe_bits;            /* total cost of those frames */
 
+    /* AQ stuff */
+    float aq_threshold;
+    int *ac_energy;
+
     int i_zones;
     x264_zone_t *zones;
     x264_zone_t *prev_zone;
@@ -169,6 +173,93 @@ static inline double qscale2bits(ratecontrol_entry_t *rce, double qscale)
            + rce->misc_bits;
 }
 
+// Find the total AC energy of the block in all planes.
+static int ac_energy_mb( x264_t *h, int mb_x, int mb_y, int *satd )
+{
+    DECLARE_ALIGNED_16( static uint8_t flat[16] ) = {128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128};
+    unsigned int var=0, sad, ssd, i;
+    for( i=0; i<3; i++ )
+    {
+        int w = i ? 8 : 16;
+        int stride = h->fenc->i_stride[i];
+        int offset = h->mb.b_interlaced
+            ? w * (mb_x + (mb_y&~1) * stride) + (mb_y&1) * stride
+            : w * (mb_x + mb_y * stride);
+        int pix = i ? PIXEL_8x8 : PIXEL_16x16;
+        stride <<= h->mb.b_interlaced;
+        sad = h->pixf.sad[pix]( flat, 0, h->fenc->plane[i]+offset, stride );
+        ssd = h->pixf.ssd[pix]( flat, 0, h->fenc->plane[i]+offset, stride );
+        var += ssd - (sad * sad >> (i?6:8));
+        // SATD to represent the block's overall complexity (bit cost) for intra encoding.
+        // exclude the DC coef, because nothing short of an actual intra prediction will estimate DC cost.
+        if( var && satd )
+            *satd += h->pixf.satd[pix]( flat, 0, h->fenc->plane[i]+offset, stride ) - sad/2;
+    }
+    return var;
+}
+
+void x264_autosense_aq( x264_t *h )
+{
+    double total = 0;
+    double n = 0;
+    int mb_x, mb_y;
+    // FIXME: Some of the SATDs might be already calculated elsewhere (ratecontrol?). Can we reuse them?
+    // FIXME: Is chroma SATD necessary?
+    for( mb_y=0; mb_y<h->sps->i_mb_height; mb_y++ )
+        for( mb_x=0; mb_x<h->sps->i_mb_width; mb_x++ )
+        {
+            int energy, satd=0;
+            energy = ac_energy_mb( h, mb_x, mb_y, &satd );
+            h->rc->ac_energy[mb_x + mb_y * h->sps->i_mb_width] = energy;
+            /* Weight the energy value by the SATD value of the MB.
+             * This represents the fact that the more complex blocks in a frame should
+             * be weighted more when calculating the optimal threshold. This also helps
+             * diminish the negative effect of large numbers of simple blocks in a frame,
+             * such as in the case of a letterboxed film. */
+            if( energy )
+            {
+                x264_cpu_restore(h->param.cpu);
+                total += logf(energy) * satd;
+                n += satd;
+            }
+        }
+    x264_cpu_restore(h->param.cpu);
+    /* Calculate and store the threshold. */
+    h->rc->aq_threshold = n ? total/n : 15;
+}
+
+/*****************************************************************************
+* x264_adaptive_quant:
+ * adjust macroblock QP based on variance (AC energy) of the MB.
+ * high variance  = higher QP
+ * low variance = lower QP
+ * This generally increases SSIM and lowers PSNR.
+*****************************************************************************/
+void x264_adaptive_quant( x264_t *h )
+{
+    int qp = h->mb.i_qp;
+    int energy = h->param.rc.i_aq_mode == X264_AQ_GLOBAL
+               ? ac_energy_mb( h, h->mb.i_mb_x, h->mb.i_mb_y, NULL )
+               : h->rc->ac_energy[h->mb.i_mb_xy];
+    if( energy == 0 )
+        h->mb.i_qp = h->mb.i_last_qp;
+    else
+    {
+        float result, qp_adj;
+        x264_cpu_restore(h->param.cpu);
+        result = energy;
+        /* Adjust the QP based on the AC energy of the macroblock. */
+        qp_adj = 1.5 * (logf(result) - h->rc->aq_threshold);
+        if( h->param.rc.i_aq_mode == X264_AQ_LOCAL )
+            qp_adj = x264_clip3f( qp_adj, -5, 5 );
+        h->mb.i_qp = x264_clip3( qp + qp_adj * h->param.rc.f_aq_strength + .5, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
+        /* If the QP of this MB is within 1 of the previous MB, code the same QP as the previous MB,
+         * to lower the bit cost of the qp_delta. */
+        if( abs(h->mb.i_qp - h->mb.i_last_qp) == 1 )
+            h->mb.i_qp = h->mb.i_last_qp;
+    }
+    h->mb.i_chroma_qp = i_chroma_qp_table[x264_clip3( h->mb.i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )];
+}
 
 int x264_ratecontrol_new( x264_t *h )
 {
@@ -244,7 +335,7 @@ int x264_ratecontrol_new( x264_t *h )
         rc->rate_tolerance = 0.01;
     }
 
-    h->mb.b_variable_qp = rc->b_vbv && !rc->b_2pass;
+    h->mb.b_variable_qp = (rc->b_vbv && !rc->b_2pass) || h->param.rc.i_aq_mode;
 
     if( rc->b_abr )
     {
@@ -458,10 +549,13 @@ int x264_ratecontrol_new( x264_t *h )
         x264_free( p );
     }
 
-    for( i=1; i<h->param.i_threads; i++ )
+    for( i=0; i<h->param.i_threads; i++ )
     {
         h->thread[i]->rc = rc+i;
-        rc[i] = rc[0];
+        if( i )
+            rc[i] = rc[0];
+        if( h->param.rc.i_aq_mode == X264_AQ_LOCAL )
+            rc[i].ac_energy = x264_malloc( h->mb.i_mb_count * sizeof(int) );
     }
 
     return 0;
@@ -623,6 +717,8 @@ void x264_ratecontrol_delete( x264_t *h )
                     x264_free( rc->zones[i].param );
         x264_free( rc->zones );
     }
+    for( i=0; i<h->param.i_threads; i++ )
+        x264_free( rc[i].ac_energy );
     x264_free( rc );
 }
 
@@ -729,6 +825,14 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp )
 
     if( h->sh.i_type != SLICE_TYPE_B )
         rc->last_non_b_pict_type = h->sh.i_type;
+
+    /* Adaptive AQ thresholding algorithm. */
+    if( h->param.rc.i_aq_mode == X264_AQ_GLOBAL )
+        /* Arbitrary value for "center" of the AQ curve.
+         * Chosen so that any given value of CRF has on average similar bitrate with and without AQ. */
+        h->rc->aq_threshold = logf(5000);
+    else if( h->param.rc.i_aq_mode == X264_AQ_LOCAL )
+        x264_autosense_aq(h);
 }
 
 double predict_row_size( x264_t *h, int y, int qp )
