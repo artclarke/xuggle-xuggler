@@ -770,7 +770,6 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     {
         fprintf( stderr, "x264 [error]: x264_encoder_open failed\n" );
         p_close_infile( opt->hin );
-        p_close_outfile( opt->hout );
         return -1;
     }
 
