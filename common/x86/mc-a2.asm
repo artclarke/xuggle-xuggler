@@ -25,246 +25,294 @@
 
 SECTION_RODATA
 
-pw_1:  times 4 dw 1
-pw_16: times 4 dw 16
-pw_32: times 4 dw 32
+pw_1:  times 8 dw 1
+pw_16: times 8 dw 16
+pw_32: times 8 dw 32
 
 SECTION .text
 
 %macro LOAD_ADD 3
-    movd        %1,     %2
-    movd        mm7,    %3
-    punpcklbw   %1,     mm0
-    punpcklbw   mm7,    mm0
-    paddw       %1,     mm7
+    movh       %1, %2
+    movh       m7, %3
+    punpcklbw  %1, m0
+    punpcklbw  m7, m0
+    paddw      %1, m7
 %endmacro
 
-%macro FILT_V 0
-    psubw       mm1,    mm2         ; a-b
-    psubw       mm4,    mm5
-    psubw       mm2,    mm3         ; b-c
-    psubw       mm5,    mm6
-    psllw       mm2,    2
-    psllw       mm5,    2
-    psubw       mm1,    mm2         ; a-5*b+4*c
-    psubw       mm4,    mm5
-    psllw       mm3,    4
-    psllw       mm6,    4
-    paddw       mm1,    mm3         ; a-5*b+20*c
-    paddw       mm4,    mm6
+%macro FILT_V2 0
+    psubw  m1, m2  ; a-b
+    psubw  m4, m5
+    psubw  m2, m3  ; b-c
+    psubw  m5, m6
+    psllw  m2, 2
+    psllw  m5, 2
+    psubw  m1, m2  ; a-5*b+4*c
+    psubw  m4, m5
+    psllw  m3, 4
+    psllw  m6, 4
+    paddw  m1, m3  ; a-5*b+20*c
+    paddw  m4, m6
 %endmacro
 
-%macro FILT_H 0
-    psubw       mm1,    mm2         ; a-b
-    psubw       mm4,    mm5
-    psraw       mm1,    2           ; (a-b)/4
-    psraw       mm4,    2
-    psubw       mm1,    mm2         ; (a-b)/4-b
-    psubw       mm4,    mm5
-    paddw       mm1,    mm3         ; (a-b)/4-b+c
-    paddw       mm4,    mm6
-    psraw       mm1,    2           ; ((a-b)/4-b+c)/4
-    psraw       mm4,    2
-    paddw       mm1,    mm3         ; ((a-b)/4-b+c)/4+c = (a-5*b+20*c)/16
-    paddw       mm4,    mm6
+%macro FILT_H 3
+    psubw  %1, %2  ; a-b
+    psraw  %1, 2   ; (a-b)/4
+    psubw  %1, %2  ; (a-b)/4-b
+    paddw  %1, %3  ; (a-b)/4-b+c
+    psraw  %1, 2   ; ((a-b)/4-b+c)/4
+    paddw  %1, %3  ; ((a-b)/4-b+c)/4+c = (a-5*b+20*c)/16
+%endmacro
+
+%macro FILT_H2 0
+    psubw  m1, m2
+    psubw  m4, m5
+    psraw  m1, 2
+    psraw  m4, 2
+    psubw  m1, m2
+    psubw  m4, m5
+    paddw  m1, m3
+    paddw  m4, m6
+    psraw  m1, 2
+    psraw  m4, 2
+    paddw  m1, m3
+    paddw  m4, m6
 %endmacro
 
 %macro FILT_PACK 1
-    paddw       mm1,    mm7
-    paddw       mm4,    mm7
-    psraw       mm1,    %1
-    psraw       mm4,    %1
-    packuswb    mm1,    mm4
+    paddw     m1, m7
+    paddw     m4, m7
+    psraw     m1, %1
+    psraw     m4, %1
+    packuswb  m1, m4
+%endmacro
+
+%macro PALIGNR_SSE2 4
+    %ifnidn %2, %4
+    movdqa %4, %2
+    %endif
+    pslldq %1, 16-%3
+    psrldq %4, %3
+    por    %1, %4
+%endmacro
+
+%macro PALIGNR_SSSE3 4
+    palignr %1, %2, %3
+%endmacro
+
+INIT_MMX
+
+%macro HPEL_V 1
+;-----------------------------------------------------------------------------
+; void x264_hpel_filter_v_mmxext( uint8_t *dst, uint8_t *src, int16_t *buf, int stride, int width );
+;-----------------------------------------------------------------------------
+cglobal x264_hpel_filter_v_%1, 5,6,1
+    lea r5, [r1+r3]
+    sub r1, r3
+    sub r1, r3
+    add r0, r4
+    lea r2, [r2+r4*2]
+    neg r4
+    pxor m0, m0
+.loop:
+    prefetcht0 [r5+r3*2+64]
+    LOAD_ADD  m1, [r1     ], [r5+r3*2] ; a0
+    LOAD_ADD  m2, [r1+r3  ], [r5+r3  ] ; b0
+    LOAD_ADD  m3, [r1+r3*2], [r5     ] ; c0
+    LOAD_ADD  m4, [r1     +regsize/2], [r5+r3*2+regsize/2] ; a1
+    LOAD_ADD  m5, [r1+r3  +regsize/2], [r5+r3  +regsize/2] ; b1
+    LOAD_ADD  m6, [r1+r3*2+regsize/2], [r5     +regsize/2] ; c1
+    FILT_V2
+    mova      m7, [pw_16 GLOBAL]
+    mova      [r2+r4*2], m1
+    mova      [r2+r4*2+regsize], m4
+    paddw     m1, m7
+    paddw     m4, m7
+    psraw     m1, 5
+    psraw     m4, 5
+    packuswb  m1, m4
+    movnt     [r0+r4], m1
+    add r1, regsize
+    add r5, regsize
+    add r4, regsize
+    jl .loop
+    REP_RET
+%endmacro
+HPEL_V mmxext
+
+;-----------------------------------------------------------------------------
+; void x264_hpel_filter_c_mmxext( uint8_t *dst, int16_t *buf, int width );
+;-----------------------------------------------------------------------------
+cglobal x264_hpel_filter_c_mmxext, 3,3,1
+    add r0, r2
+    lea r1, [r1+r2*2]
+    neg r2
+    %define src r1+r2*2
+    movq m7, [pw_32 GLOBAL]
+.loop:
+    movq   m1, [src-4]
+    movq   m2, [src-2]
+    movq   m3, [src  ]
+    movq   m4, [src+4]
+    movq   m5, [src+6]
+    paddw  m3, [src+2]  ; c0
+    paddw  m2, m4       ; b0
+    paddw  m1, m5       ; a0
+    movq   m6, [src+8]
+    paddw  m4, [src+14] ; a1
+    paddw  m5, [src+12] ; b1
+    paddw  m6, [src+10] ; c1
+    FILT_H2
+    FILT_PACK 6
+    movntq [r0+r2], m1
+    add r2, 8
+    jl .loop
+    REP_RET
+
+;-----------------------------------------------------------------------------
+; void x264_hpel_filter_h_mmxext( uint8_t *dst, uint8_t *src, int width );
+;-----------------------------------------------------------------------------
+cglobal x264_hpel_filter_h_mmxext, 3,3,1
+    add r0, r2
+    add r1, r2
+    neg r2
+    %define src r1+r2
+    pxor m0, m0
+.loop:
+    movd       m1, [src-2]
+    movd       m2, [src-1]
+    movd       m3, [src  ]
+    movd       m6, [src+1]
+    movd       m4, [src+2]
+    movd       m5, [src+3]
+    punpcklbw  m1, m0
+    punpcklbw  m2, m0
+    punpcklbw  m3, m0
+    punpcklbw  m6, m0
+    punpcklbw  m4, m0
+    punpcklbw  m5, m0
+    paddw      m3, m6 ; c0
+    paddw      m2, m4 ; b0
+    paddw      m1, m5 ; a0
+    movd       m7, [src+7]
+    movd       m6, [src+6]
+    punpcklbw  m7, m0
+    punpcklbw  m6, m0
+    paddw      m4, m7 ; c1
+    paddw      m5, m6 ; b1
+    movd       m7, [src+5]
+    movd       m6, [src+4]
+    punpcklbw  m7, m0
+    punpcklbw  m6, m0
+    paddw      m6, m7 ; a1
+    movq       m7, [pw_1 GLOBAL]
+    FILT_H2
+    FILT_PACK 1
+    movntq     [r0+r2], m1
+    add r2, 8
+    jl .loop
+    REP_RET
+
+INIT_XMM
+
+%macro HPEL_C 1
+;-----------------------------------------------------------------------------
+; void x264_hpel_filter_c_sse2( uint8_t *dst, int16_t *buf, int width );
+;-----------------------------------------------------------------------------
+cglobal x264_hpel_filter_c_%1, 3,3,1
+    add r0, r2
+    lea r1, [r1+r2*2]
+    neg r2
+    %define src r1+r2*2
+%ifidn %1, ssse3
+    mova    m7, [pw_32 GLOBAL]
+    %define tpw_32 m7
+%elifdef ARCH_X86_64
+    mova    m8, [pw_32 GLOBAL]
+    %define tpw_32 m8
+%else
+    %define tpw_32 [pw_32 GLOBAL]
+%endif
+.loop:
+    mova    m6, [src-16]
+    mova    m2, [src]
+    mova    m3, [src+16]
+    mova    m0, m2
+    mova    m1, m2
+    mova    m4, m3
+    mova    m5, m3
+    PALIGNR m3, m2, 2, m7
+    PALIGNR m4, m2, 4, m7
+    PALIGNR m5, m2, 6, m7
+    PALIGNR m0, m6, 12, m7
+    PALIGNR m1, m6, 14, m7
+    paddw   m2, m3
+    paddw   m1, m4
+    paddw   m0, m5
+    FILT_H  m0, m1, m2
+    paddw   m0, tpw_32
+    psraw   m0, 6
+    packuswb m0, m0
+    movq [r0+r2], m0
+    add r2, 8
+    jl .loop
+    REP_RET
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void x264_hpel_filter_mmxext( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
-;                               int i_stride, int i_width, int i_height );
+; void x264_hpel_filter_h_sse2( uint8_t *dst, uint8_t *src, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_mmxext, 0,7
-    %define     x       r0
-    %define     xd      r0d
-    %define     dsth    r1
-    %define     dstv    r1
-    %define     dstc    r1
-    %define     src     r2
-    %define     src3    r3
-    %define     stride  r4
-    %define     width   r5d
-    %define     tbuffer rsp+8
-
-%ifdef ARCH_X86_64
-    PUSH        rbp
-    PUSH        r12
-    PUSH        r13
-    PUSH        r14
-    %define     tdsth   r10 ; FIXME r8,9
-    %define     tdstv   r11
-    %define     tdstc   r12
-    %define     tsrc    r13
-    %define     theight r14d
-    mov         tdsth,  r0
-    mov         tdstv,  r1
-    mov         tdstc,  r2
-    mov         tsrc,   r3
-    mov         theight, r6m
-%else
-    %define     tdsth   [rbp + 20]
-    %define     tdstv   [rbp + 24]
-    %define     tdstc   [rbp + 28]
-    %define     tsrc    [rbp + 32]
-    %define     theight [rbp + 44]
-%endif
-
-    movifnidn   r4d,    r4m
-    movifnidn   r5d,    r5m
-    mov         rbp,    rsp
-    lea         rax,    [stride*2 + 24]
-    sub         rsp,    rax
-    pxor        mm0,    mm0
-
-    %define     tpw_1   [pw_1 GLOBAL]
-    %define     tpw_16  [pw_16 GLOBAL]
-    %define     tpw_32  [pw_32 GLOBAL]
-%ifdef PIC32
-    ; mov globals onto the stack, to free up PIC pointer
-    %define     tpw_1   [ebp - 24]
-    %define     tpw_16  [ebp - 16]
-    %define     tpw_32  [ebp -  8]
-    picgetgot   ebx
-    sub         esp,    24
-    movq        mm1,    [pw_1  GLOBAL]
-    movq        mm2,    [pw_16 GLOBAL]
-    movq        mm3,    [pw_32 GLOBAL]
-    movq        tpw_1,  mm1
-    movq        tpw_16, mm2
-    movq        tpw_32, mm3
-%endif
-
-.loopy:
-
-    mov         src,    tsrc
-    mov         dstv,   tdstv
-    lea         src3,   [src + stride]
-    sub         src,    stride
-    sub         src,    stride
-    xor         xd,     xd
-ALIGN 16
-.vertical_filter:
-
-    prefetcht0  [src3 + stride*2 + 32]
-
-    LOAD_ADD    mm1,    [src               ], [src3 + stride*2    ] ; a0
-    LOAD_ADD    mm2,    [src + stride      ], [src3 + stride      ] ; b0
-    LOAD_ADD    mm3,    [src + stride*2    ], [src3               ] ; c0
-    LOAD_ADD    mm4,    [src            + 4], [src3 + stride*2 + 4] ; a1
-    LOAD_ADD    mm5,    [src + stride   + 4], [src3 + stride   + 4] ; b1
-    LOAD_ADD    mm6,    [src + stride*2 + 4], [src3            + 4] ; c1
-
-    FILT_V
-
-    movq        mm7,    tpw_16
-    movq        [tbuffer + x*2],  mm1
-    movq        [tbuffer + x*2 + 8],  mm4
-    paddw       mm1,    mm7
-    paddw       mm4,    mm7
-    psraw       mm1,    5
-    psraw       mm4,    5
-    packuswb    mm1,    mm4
-    movntq      [dstv + x], mm1
-
-    add         xd,     8
-    add         src,    8
-    add         src3,   8
-    cmp         xd,     width
-    jle         .vertical_filter
-
-    pshufw      mm2, [tbuffer], 0
-    movq        [tbuffer - 8], mm2 ; pad left
-    ; no need to pad right, since vertical_filter already did 4 extra pixels
-
-    mov         dstc,   tdstc
-    xor         xd,     xd
-    movq        mm7,    tpw_32
-.center_filter:
-
-    movq        mm1,    [tbuffer + x*2 - 4 ]
-    movq        mm2,    [tbuffer + x*2 - 2 ]
-    movq        mm3,    [tbuffer + x*2     ]
-    movq        mm4,    [tbuffer + x*2 + 4 ]
-    movq        mm5,    [tbuffer + x*2 + 6 ]
-    paddw       mm3,    [tbuffer + x*2 + 2 ] ; c0
-    paddw       mm2,    mm4                  ; b0
-    paddw       mm1,    mm5                  ; a0
-    movq        mm6,    [tbuffer + x*2 + 8 ]
-    paddw       mm4,    [tbuffer + x*2 + 14] ; a1
-    paddw       mm5,    [tbuffer + x*2 + 12] ; b1
-    paddw       mm6,    [tbuffer + x*2 + 10] ; c1
-
-    FILT_H
-    FILT_PACK 6
-    movntq      [dstc + x], mm1
-
-    add         xd,     8
-    cmp         xd,     width
-    jl          .center_filter
-
-    mov         dsth,   tdsth
-    mov         src,    tsrc
-    xor         xd,     xd
-.horizontal_filter:
-
-    movd        mm1,    [src + x - 2]
-    movd        mm2,    [src + x - 1]
-    movd        mm3,    [src + x    ]
-    movd        mm6,    [src + x + 1]
-    movd        mm4,    [src + x + 2]
-    movd        mm5,    [src + x + 3]
-    punpcklbw   mm1,    mm0
-    punpcklbw   mm2,    mm0
-    punpcklbw   mm3,    mm0
-    punpcklbw   mm6,    mm0
-    punpcklbw   mm4,    mm0
-    punpcklbw   mm5,    mm0
-    paddw       mm3,    mm6 ; c0
-    paddw       mm2,    mm4 ; b0
-    paddw       mm1,    mm5 ; a0
-    movd        mm7,    [src + x + 7]
-    movd        mm6,    [src + x + 6]
-    punpcklbw   mm7,    mm0
-    punpcklbw   mm6,    mm0
-    paddw       mm4,    mm7 ; c1
-    paddw       mm5,    mm6 ; b1
-    movd        mm7,    [src + x + 5]
-    movd        mm6,    [src + x + 4]
-    punpcklbw   mm7,    mm0
-    punpcklbw   mm6,    mm0
-    paddw       mm6,    mm7 ; a1
-
-    movq        mm7,    tpw_1
-    FILT_H
+cglobal x264_hpel_filter_h_sse2, 3,3,1
+    add r0, r2
+    add r1, r2
+    neg r2
+    %define src r1+r2
+    pxor m0, m0
+.loop:
+    movh       m1, [src-2]
+    movh       m2, [src-1]
+    movh       m3, [src  ]
+    movh       m4, [src+1]
+    movh       m5, [src+2]
+    movh       m6, [src+3]
+    punpcklbw  m1, m0
+    punpcklbw  m2, m0
+    punpcklbw  m3, m0
+    punpcklbw  m4, m0
+    punpcklbw  m5, m0
+    punpcklbw  m6, m0
+    paddw      m3, m4 ; c0
+    paddw      m2, m5 ; b0
+    paddw      m1, m6 ; a0
+    movh       m4, [src+6]
+    movh       m5, [src+7]
+    movh       m6, [src+10]
+    movh       m7, [src+11]
+    punpcklbw  m4, m0
+    punpcklbw  m5, m0
+    punpcklbw  m6, m0
+    punpcklbw  m7, m0
+    paddw      m5, m6 ; b1
+    paddw      m4, m7 ; a1
+    movh       m6, [src+8]
+    movh       m7, [src+9]
+    punpcklbw  m6, m0
+    punpcklbw  m7, m0
+    paddw      m6, m7 ; c1
+    mova       m7, [pw_1 GLOBAL] ; FIXME xmm8
+    FILT_H2
     FILT_PACK 1
-    movntq      [dsth + x], mm1
+    movntdq    [r0+r2], m1
+    add r2, 16
+    jl .loop
+    REP_RET
 
-    add         xd,     8
-    cmp         xd,     width
-    jl          .horizontal_filter
-
-    add         tsrc,  stride
-    add         tdsth, stride
-    add         tdstv, stride
-    add         tdstc, stride
-    dec         dword theight
-    jg          .loopy
-
-    mov         rsp,    rbp
-%ifdef ARCH_X86_64
-    pop         r14
-    pop         r13
-    pop         r12
-    pop         rbp
+%define PALIGNR PALIGNR_SSE2
+HPEL_V sse2
+HPEL_C sse2
+%ifdef HAVE_SSE3
+%define PALIGNR PALIGNR_SSSE3
+HPEL_C ssse3
 %endif
-    RET
 
 
 

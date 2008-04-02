@@ -543,7 +543,7 @@ static int check_mc( int cpu_ref, int cpu_new )
         for( i=0; i<3; i++ )
             for( j=0; j<10; j++ )
                 //FIXME ideally the first pixels would match too, but they aren't actually used
-                if( memcmp( dstc[i]+j*64+2, dsta[i]+j*64+2, 46 ) )
+                if( memcmp( dstc[i]+j*64+2, dsta[i]+j*64+2, 43 ) )
                 {
                     ok = 0;
                     fprintf( stderr, "hpel filter differs at plane %c line %d\n", "hvc"[i], j );

@@ -59,8 +59,6 @@ extern void x264_mc_chroma_mmxext( uint8_t *src, int i_src_stride,
                                    uint8_t *dst, int i_dst_stride,
                                    int dx, int dy, int i_width, int i_height );
 extern void x264_plane_copy_mmxext( uint8_t *, int, uint8_t *, int, int w, int h);
-extern void x264_hpel_filter_mmxext( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
-                                     int i_stride, int i_width, int i_height );
 extern void *x264_memcpy_aligned_mmx( void * dst, const void * src, size_t n );
 extern void *x264_memcpy_aligned_sse2( void * dst, const void * src, size_t n );
 
@@ -165,6 +163,40 @@ uint8_t *get_ref_##name( uint8_t *dst,   int *i_dst_stride,\
 GET_REF(mmxext)
 GET_REF(sse2)
 
+#define HPEL(align, cpu, cpuv, cpuc, cpuh)\
+void x264_hpel_filter_v_##cpuv( uint8_t *dst, uint8_t *src, int16_t *buf, int stride, int width);\
+void x264_hpel_filter_c_##cpuc( uint8_t *dst, int16_t *buf, int width );\
+void x264_hpel_filter_h_##cpuh( uint8_t *dst, uint8_t *src, int width );\
+void x264_hpel_filter_##cpu( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,\
+                             int stride, int width, int height )\
+{\
+    int16_t *buf;\
+    int realign = (long)src & (align-1);\
+    src -= realign;\
+    dstv -= realign;\
+    dstc -= realign;\
+    dsth -= realign;\
+    buf = x264_malloc(((width+2*align-1)&-align)*sizeof(int16_t));\
+    while( height-- )\
+    {\
+        x264_hpel_filter_v_##cpuv( dstv, src, buf+8, stride, width );\
+        x264_hpel_filter_c_##cpuc( dstc, buf+8, width );\
+        x264_hpel_filter_h_##cpuh( dsth, src, width );\
+        dsth += stride;\
+        dstv += stride;\
+        dstc += stride;\
+        src  += stride;\
+    }\
+    x264_free(buf);\
+}
+
+HPEL(8, mmxext, mmxext, mmxext, mmxext)
+HPEL(16, sse2_amd, mmxext, mmxext, sse2)
+HPEL(16, sse2, sse2, sse2, sse2)
+#ifdef HAVE_SSE3
+HPEL(16, ssse3, sse2, ssse3, sse2)
+#endif
+
 void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 {
     if( !(cpu&X264_CPU_MMX) )
@@ -209,6 +241,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
         return;
 
     pf->memcpy_aligned = x264_memcpy_aligned_sse2;
+    pf->hpel_filter = x264_hpel_filter_sse2_amd;
 
     // disable on AMD processors since it is slower
     if( cpu&X264_CPU_3DNOW )
@@ -219,4 +252,12 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->copy[PIXEL_16x16] = x264_mc_copy_w16_aligned_sse2;
     pf->avg[PIXEL_16x16] = x264_pixel_avg_16x16_sse2;
     pf->avg[PIXEL_16x8]  = x264_pixel_avg_16x8_sse2;
+    pf->hpel_filter = x264_hpel_filter_sse2;
+
+    if( !(cpu&X264_CPU_SSSE3) )
+        return;
+
+#ifdef HAVE_SSE3
+    pf->hpel_filter = x264_hpel_filter_ssse3;
+#endif
 }
