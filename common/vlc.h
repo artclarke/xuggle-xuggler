@@ -471,26 +471,6 @@ static const vlc_t x264_coeff_token[5][17*4] =
     }
 };
 
-static const vlc_t x264_level_prefix[16] =
-{
-    MKVLC( 0x01,  1 ),
-    MKVLC( 0x01,  2 ),
-    MKVLC( 0x01,  3 ),
-    MKVLC( 0x01,  4 ),
-    MKVLC( 0x01,  5 ),
-    MKVLC( 0x01,  6 ),
-    MKVLC( 0x01,  7 ),
-    MKVLC( 0x01,  8 ),
-    MKVLC( 0x01,  9 ),
-    MKVLC( 0x01, 10 ),
-    MKVLC( 0x01, 11 ),
-    MKVLC( 0x01, 12 ),
-    MKVLC( 0x01, 13 ),
-    MKVLC( 0x01, 14 ),
-    MKVLC( 0x01, 15 ),
-    MKVLC( 0x01, 16 )
-};
-
 /* [i_total_coeff-1][i_total_zeros] */
 static const vlc_t x264_total_zeros[15][16] =
 {

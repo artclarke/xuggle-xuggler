@@ -147,29 +147,52 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int16_t *
 
         if( ( i_level_code >> i_suffix_length ) < 14 )
         {
-            bs_write_vlc( s, x264_level_prefix[i_level_code >> i_suffix_length] );
+            bs_write( s, (i_level_code >> i_suffix_length) + 1, 1 );
             if( i_suffix_length > 0 )
                 bs_write( s, i_suffix_length, i_level_code );
         }
         else if( i_suffix_length == 0 && i_level_code < 30 )
         {
-            bs_write_vlc( s, x264_level_prefix[14] );
+            bs_write( s, 15, 1 );
             bs_write( s, 4, i_level_code - 14 );
         }
         else if( i_suffix_length > 0 && ( i_level_code >> i_suffix_length ) == 14 )
         {
-            bs_write_vlc( s, x264_level_prefix[14] );
+            bs_write( s, 15, 1 );
             bs_write( s, i_suffix_length, i_level_code );
         }
         else
         {
-            bs_write_vlc( s, x264_level_prefix[15] );
+            int i_level_prefix = 15;
             i_level_code -= 15 << i_suffix_length;
             if( i_suffix_length == 0 )
                 i_level_code -= 15;
+
+            /* If the prefix size exceeds 15, High Profile is required. */
             if( i_level_code >= 1<<12 )
-                x264_log(h, X264_LOG_WARNING, "OVERFLOW levelcode=%d\n", i_level_code );
-            bs_write( s, 12, i_level_code );
+            {
+                if( h->sps->i_profile_idc >= PROFILE_HIGH )
+                {
+                    while( i_level_code > 1<<(i_level_prefix-3) )
+                    {
+                        i_level_code -= 1<<(i_level_prefix-3);
+                        i_level_prefix++;
+                    }
+                }
+                else
+                {
+#ifdef RDO_SKIP_BS
+                    /* Weight highly against overflows. */
+                    s->i_bits_encoded += 1000000;
+#else
+                    x264_log(h, X264_LOG_WARNING, "OVERFLOW levelcode=%d is only allowed in High Profile", i_level_code );
+                    /* clip level, preserving sign */
+                    i_level_code = (1<<12) - 2 + (i_level_code & 1);
+#endif
+                }
+            }
+            bs_write( s, i_level_prefix + 1, 1 );
+            bs_write( s, i_level_prefix - 3, i_level_code );
         }
 
         if( i_suffix_length == 0 )
