@@ -75,7 +75,7 @@ SECTION .text
 ;;; %2      (m64/mmx)   mf[y][x] or mf[0][0] (as uint16_t)
 ;;; %3      (m64/mmx)   bias[y][x] or bias[0][0] (as uint16_t)
 
-    movq       m0, %1   ; load dct coeffs
+    mova       m0, %1   ; load dct coeffs
     pxor       m1, m1
     pcmpgtw    m1, m0   ; sign(coeff)
     pxor       m0, m1
@@ -84,16 +84,16 @@ SECTION .text
     pmulhuw    m0, %2   ; divide
     pxor       m0, m1   ; restore sign
     psubw      m0, m1
-    movq       %1, m0   ; store
+    mova       %1, m0   ; store
 %endmacro
 
 %macro QUANT_SSSE3 3
-    movq       m1, %1   ; load dct coeffs
+    mova       m1, %1   ; load dct coeffs
     pabsw      m0, m1
     paddusw    m0, %3   ; round
     pmulhuw    m0, %2   ; divide
     psignw     m0, m1   ; restore sign
-    movq       %1, m0   ; store
+    mova       %1, m0   ; store
 %endmacro
 
 INIT_MMX
@@ -162,11 +162,11 @@ QUANT_AC x264_quant_8x8_ssse3, QUANT_SSSE3, 8, 16
 ;;; %2,%3   dequant_mf[i_mf][y][x]
 ;;; m5      i_qbits
 
-    movq     m0, %2
+    mova     m0, %2
     packssdw m0, %3
     pmullw   m0, %1
     psllw    m0, m5
-    movq     %1, m0
+    mova     %1, m0
 %endmacro
 
 %macro DEQUANT32_R 3
@@ -176,8 +176,8 @@ QUANT_AC x264_quant_8x8_ssse3, QUANT_SSSE3, 8, 16
 ;;; m6      f
 ;;; m7      0
 
-    movq      m0, %1
-    movq      m1, m0
+    mova      m0, %1
+    mova      m1, m0
     punpcklwd m0, m7
     punpckhwd m1, m7
     pmaddwd   m0, %2
@@ -187,7 +187,7 @@ QUANT_AC x264_quant_8x8_ssse3, QUANT_SSSE3, 8, 16
     psrad     m0, m5
     psrad     m1, m5
     packssdw  m0, m1
-    movq      %1, m0
+    mova      %1, m0
 %endmacro
 
 %macro DEQUANT_LOOP 3
@@ -207,17 +207,17 @@ QUANT_AC x264_quant_8x8_ssse3, QUANT_SSSE3, 8, 16
 %endmacro
 
 %macro DEQUANT16_FLAT 2-8
-    movq   m0, %1
+    mova   m0, %1
 %assign i %0-2
 %rep %0-1
 %if i
-    movq   m %+ i, [r0+%2]
+    mova   m %+ i, [r0+%2]
     pmullw m %+ i, m0
 %else
     pmullw m0, [r0+%2]
 %endif
     psllw  m %+ i, m7
-    movq   [r0+%2], m %+ i
+    mova   [r0+%2], m %+ i
     %assign i i-1
     %rotate 1
 %endrep
@@ -268,7 +268,7 @@ cglobal x264_dequant_%2x%2_%1, 0,3
     neg   t0d
     movd  m5, t0d
     picgetgot t0d
-    movq  m6, [pd_1 GLOBAL]
+    mova  m6, [pd_1 GLOBAL]
     pxor  m7, m7
     pslld m6, m5
     psrld m6, 1

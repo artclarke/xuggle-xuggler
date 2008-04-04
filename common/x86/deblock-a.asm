@@ -138,8 +138,8 @@ SECTION .text
 ; out: %4 = |%1-%2|>%3
 ; clobbers: %5
 %macro DIFF_GT 5
-    movq    %5, %2
-    movq    %4, %1
+    mova    %5, %2
+    mova    %4, %1
     psubusb %5, %1
     psubusb %4, %2
     por     %4, %5
@@ -149,8 +149,8 @@ SECTION .text
 ; out: %4 = |%1-%2|>%3
 ; clobbers: %5
 %macro DIFF_GT2 5
-    movq    %5, %2
-    movq    %4, %1
+    mova    %5, %2
+    mova    %4, %1
     psubusb %5, %1
     psubusb %4, %2
     psubusb %5, %3
@@ -190,7 +190,7 @@ SECTION .text
 ; out: m1=p0' m2=q0'
 ; clobbers: m0,3-6
 %macro DEBLOCK_P0_Q0 0
-    movq    m5, m1
+    mova    m5, m1
     pxor    m5, m2           ; p0^q0
     pand    m5, [pb_01 GLOBAL] ; (p0^q0)&1
     pcmpeqb m4, m4
@@ -201,7 +201,7 @@ SECTION .text
     pavgb   m4, m2           ; (q0 - p0 + 256)>>1
     pavgb   m3, m5
     paddusb m3, m4           ; d+128+33
-    movq    m6, [pb_a1 GLOBAL]
+    mova    m6, [pb_a1 GLOBAL]
     psubusb m6, m3
     psubusb m3, [pb_a1 GLOBAL]
     pminub  m6, m7
@@ -217,18 +217,18 @@ SECTION .text
 ; out: [q1] = clip( (q2+((p0+q0+1)>>1))>>1, q1-tc0, q1+tc0 )
 ; clobbers: q2, tmp, tc0
 %macro LUMA_Q1 6
-    movq    %6, m1
+    mova    %6, m1
     pavgb   %6, m2
     pavgb   %2, %6             ; avg(p2,avg(p0,q0))
     pxor    %6, %3
     pand    %6, [pb_01 GLOBAL] ; (p2^avg(p0,q0))&1
     psubusb %2, %6             ; (p2+((p0+q0+1)>>1))>>1
-    movq    %6, %1
+    mova    %6, %1
     psubusb %6, %5
     paddusb %5, %1
     pmaxub  %2, %6
     pminub  %2, %5
-    movq    %4, %2
+    mova    %4, %2
 %endmacro
 
 ;-----------------------------------------------------------------------------
@@ -244,10 +244,10 @@ cglobal x264_deblock_v_luma_sse2
     dec     r3d        ; beta-1
     add     r4, r0     ; pix-3*stride
 
-    movdqa  m0, [r4+r1]   ; p1
-    movdqa  m1, [r4+2*r1] ; p0
-    movdqa  m2, [r0]      ; q0
-    movdqa  m3, [r0+r1]   ; q1
+    mova    m0, [r4+r1]   ; p1
+    mova    m1, [r4+2*r1] ; p0
+    mova    m2, [r0]      ; q0
+    mova    m3, [r0+r1]   ; q1
     LOAD_MASK r2d, r3d
 
     punpcklbw m8, m8
@@ -260,7 +260,7 @@ cglobal x264_deblock_v_luma_sse2
     movdqa  m3, [r4] ; p2
     DIFF_GT2 m1, m3, m5, m6, m7 ; |p2-p0| > beta-1
     pand    m6, m9
-    movdqa  m7, m8
+    mova    m7, m8
     psubb   m7, m6
     pand    m6, m8
     LUMA_Q1 m0, m3, [r4], [r4+r1], m6, m4
@@ -270,12 +270,12 @@ cglobal x264_deblock_v_luma_sse2
     pand    m6, m9
     pand    m8, m6
     psubb   m7, m6
-    movdqa  m3, [r0+r1]
+    mova    m3, [r0+r1]
     LUMA_Q1 m3, m4, [r0+2*r1], [r0+r1], m8, m6
 
     DEBLOCK_P0_Q0
-    movdqa  [r4+2*r1], m1
-    movdqa  [r0], m2
+    mova    [r4+2*r1], m1
+    mova    [r0], m2
     ret
 
 ;-----------------------------------------------------------------------------
@@ -338,10 +338,10 @@ cglobal x264_deblock_%2_luma_%1, 5,5,1
     dec     r3     ; beta-1
     add     r4, r0 ; pix-3*stride
 
-    movq    m0, [r4+r1]   ; p1
-    movq    m1, [r4+2*r1] ; p0
-    movq    m2, [r0]      ; q0
-    movq    m3, [r0+r1]   ; q1
+    mova    m0, [r4+r1]   ; p1
+    mova    m1, [r4+2*r1] ; p0
+    mova    m2, [r0]      ; q0
+    mova    m3, [r0+r1]   ; q1
     LOAD_MASK r2, r3
 
     mov     r3, r4m
@@ -356,34 +356,34 @@ cglobal x264_deblock_%2_luma_%1, 5,5,1
     movd    m4, [r3] ; tc0
     punpcklbw m4, m4
     punpcklbw m4, m4 ; tc = 4x tc0[3], 4x tc0[2], 4x tc0[1], 4x tc0[0]
-    movq   [esp+%3], m4 ; tc
+    mova   [esp+%3], m4 ; tc
     pcmpeqb m3, m3
     pcmpgtb m4, m3
     pand    m4, m7
-    movq   [esp], m4 ; mask
+    mova   [esp], m4 ; mask
 
-    movq    m3, [r4] ; p2
+    mova    m3, [r4] ; p2
     DIFF_GT2 m1, m3, m5, m6, m7 ; |p2-p0| > beta-1
     pand    m6, m4
     pand    m4, [esp+%3] ; tc
-    movq    m7, m4
+    mova    m7, m4
     psubb   m7, m6
     pand    m6, m4
     LUMA_Q1 m0, m3, [r4], [r4+r1], m6, m4
 
-    movq    m4, [r0+2*r1] ; q2
+    mova    m4, [r0+2*r1] ; q2
     DIFF_GT2 m2, m4, m5, m6, m3 ; |q2-q0| > beta-1
-    movq    m5, [esp] ; mask
+    mova    m5, [esp] ; mask
     pand    m6, m5
-    movq    m5, [esp+%3] ; tc
+    mova    m5, [esp+%3] ; tc
     pand    m5, m6
     psubb   m7, m6
-    movq    m3, [r0+r1]
+    mova    m3, [r0+r1]
     LUMA_Q1 m3, m4, [r0+2*r1], [r0+r1], m5, m6
 
     DEBLOCK_P0_Q0
-    movq    [r4+2*r1], m1
-    movq    [r0], m2
+    mova    [r4+2*r1], m1
+    mova    [r0], m2
 
 %if %3 == 16
     mov     esp, r2

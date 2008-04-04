@@ -331,7 +331,9 @@ SECTION ".note.GNU-stack" noalloc noexec nowrite progbits
 %assign FDEC_STRIDE 32
 
 %macro INIT_MMX 0
-    %undef  movq
+    %define mova movq
+    %define movu movq
+    %define movh movd
     %define m0 mm0
     %define m1 mm1
     %define m2 mm2
@@ -345,7 +347,9 @@ SECTION ".note.GNU-stack" noalloc noexec nowrite progbits
 %endmacro
 
 %macro INIT_XMM 0
-    %define movq movdqa
+    %define mova movdqa
+    %define movu movdqu
+    %define movh movq
     %define m0 xmm0
     %define m1 xmm1
     %define m2 xmm2
