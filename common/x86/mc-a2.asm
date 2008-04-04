@@ -314,6 +314,10 @@ HPEL_C sse2
 HPEL_C ssse3
 %endif
 
+cglobal x264_sfence
+    sfence
+    ret
+
 
 
 ;-----------------------------------------------------------------------------
@@ -381,6 +385,7 @@ cglobal x264_plane_copy_mmxext, 6,7
     add    r0, r1
     dec    r5d
     jg     .loopy
+    sfence
     emms
     RET
 

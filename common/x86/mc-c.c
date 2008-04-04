@@ -167,6 +167,7 @@ GET_REF(sse2)
 void x264_hpel_filter_v_##cpuv( uint8_t *dst, uint8_t *src, int16_t *buf, int stride, int width);\
 void x264_hpel_filter_c_##cpuc( uint8_t *dst, int16_t *buf, int width );\
 void x264_hpel_filter_h_##cpuh( uint8_t *dst, uint8_t *src, int width );\
+void x264_sfence( void );\
 void x264_hpel_filter_##cpu( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,\
                              int stride, int width, int height )\
 {\
@@ -187,6 +188,7 @@ void x264_hpel_filter_##cpu( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_
         dstc += stride;\
         src  += stride;\
     }\
+    x264_sfence();\
     x264_free(buf);\
 }
 
