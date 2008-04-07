@@ -300,6 +300,7 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 %endif
     align function_align
     %1:
+    RESET_MM_PERMUTATION ; not really needed, but makes disassembly somewhat nicer
 %endmacro
 
 %macro cglobal 3
@@ -330,7 +331,10 @@ SECTION ".note.GNU-stack" noalloc noexec nowrite progbits
 %assign FENC_STRIDE 16
 %assign FDEC_STRIDE 32
 
+; merge mmx and sse*
+
 %macro INIT_MMX 0
+    %define RESET_MM_PERMUTATION INIT_MMX
     %define regsize 8
     %define mova movq
     %define movu movq
@@ -346,9 +350,16 @@ SECTION ".note.GNU-stack" noalloc noexec nowrite progbits
     %define m7 mm7
     %undef  m8
     %undef  m9
+    %undef  m10
+    %undef  m11
+    %undef  m12
+    %undef  m13
+    %undef  m14
+    %undef  m15
 %endmacro
 
 %macro INIT_XMM 0
+    %define RESET_MM_PERMUTATION INIT_XMM
     %define regsize 16
     %define mova movdqa
     %define movu movdqu
@@ -364,5 +375,94 @@ SECTION ".note.GNU-stack" noalloc noexec nowrite progbits
     %define m7 xmm7
     %define m8 xmm8
     %define m9 xmm9
+    %define m10 xmm10
+    %define m11 xmm11
+    %define m12 xmm12
+    %define m13 xmm13
+    %define m14 xmm14
+    %define m15 xmm15
+%endmacro
+
+INIT_MMX
+
+; I often want to use macros that permute their arguments. e.g. there's no
+; efficient way to implement butterfly or transpose or dct without swapping some
+; arguments.
+;
+; I would like to not have to manually keep track of the permutations:
+; If I insert a permutation in the middle of a function, it should automatically
+; change everything that follows. For more complex macros I may also have multiple
+; implementations, e.g. the SSE2 and SSSE3 versions may have different permutations.
+;
+; Hence these macros. Insert a PERMUTE or some SWAPs at the end of a macro that
+; permutes its arguments. It's equivalent to exchanging the contents of the
+; registers, except that this way you exchange the register names instead, so it
+; doesn't cost any cycles.
+
+%macro PERMUTE 2-* ; takes a list of pairs to swap
+%rep %0/2
+    %xdefine tmp%2 m%2
+    %rotate 2
+%endrep
+%rep %0/2
+    %xdefine m%1 tmp%2
+    %undef tmp%2
+    %rotate 2
+%endrep
+%endmacro
+
+%macro SWAP 2-* ; swaps a single chain (sometimes more concise than pairs)
+%rep %0-1
+    %xdefine tmp m%1
+    %xdefine m%1 m%2
+    %xdefine m%2 tmp
+    %undef tmp
+    %rotate 1
+%endrep
+%endmacro
+
+%macro SAVE_MM_PERMUTATION 1
+    %xdefine %1_m0 m0
+    %xdefine %1_m1 m1
+    %xdefine %1_m2 m2
+    %xdefine %1_m3 m3
+    %xdefine %1_m4 m4
+    %xdefine %1_m5 m5
+    %xdefine %1_m6 m6
+    %xdefine %1_m7 m7
+    %xdefine %1_m8 m8
+    %xdefine %1_m9 m9
+    %xdefine %1_m10 m10
+    %xdefine %1_m11 m11
+    %xdefine %1_m12 m12
+    %xdefine %1_m13 m13
+    %xdefine %1_m14 m14
+    %xdefine %1_m15 m15
+%endmacro
+
+%macro LOAD_MM_PERMUTATION 1
+    %xdefine m0 %1_m0
+    %xdefine m1 %1_m1
+    %xdefine m2 %1_m2
+    %xdefine m3 %1_m3
+    %xdefine m4 %1_m4
+    %xdefine m5 %1_m5
+    %xdefine m6 %1_m6
+    %xdefine m7 %1_m7
+    %xdefine m8 %1_m8
+    %xdefine m9 %1_m9
+    %xdefine m10 %1_m10
+    %xdefine m11 %1_m11
+    %xdefine m12 %1_m12
+    %xdefine m13 %1_m13
+    %xdefine m14 %1_m14
+    %xdefine m15 %1_m15
+%endmacro
+
+%macro call 1
+    call %1
+    %ifdef %1_m0
+        LOAD_MM_PERMUTATION %1
+    %endif
 %endmacro
 

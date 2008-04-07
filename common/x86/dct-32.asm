@@ -46,18 +46,19 @@ SECTION .text
     psubw   %4, %3
 %endmacro
 
-%macro SBUTTERFLY 5
-    mov%1     %5, %3
-    punpckl%2 %3, %4
-    punpckh%2 %5, %4
+%macro SBUTTERFLY 4
+    mova       m%4, m%2
+    punpckl%1  m%2, m%3
+    punpckh%1  m%4, m%3
+    SWAP %3, %4
 %endmacro
 
-; input ABCD output ADTC
 %macro TRANSPOSE4x4W 5
-    SBUTTERFLY q, wd, %1, %2, %5
-    SBUTTERFLY q, wd, %3, %4, %2
-    SBUTTERFLY q, dq, %1, %3, %4
-    SBUTTERFLY q, dq, %5, %2, %3
+    SBUTTERFLY wd, %1, %2, %5
+    SBUTTERFLY wd, %3, %4, %5
+    SBUTTERFLY dq, %1, %3, %5
+    SBUTTERFLY dq, %2, %4, %5
+    SWAP %2, %3
 %endmacro
 
 ; input 2x8 unsigned bytes (%5,%6), zero (%7) output: difference (%1,%2)
@@ -306,45 +307,45 @@ x264_pixel_add_8x8_mmx:
 ;-----------------------------------------------------------------------------
 ALIGN 16
 x264_transpose_8x8_mmx:
-    movq  mm0, [r0    ]
-    movq  mm1, [r0+ 16]
-    movq  mm2, [r0+ 32]
-    movq  mm3, [r0+ 48]
-    TRANSPOSE4x4W  mm0, mm1, mm2, mm3, mm4
-    movq  [r0    ], mm0
-    movq  [r0+ 16], mm3
-    movq  [r0+ 32], mm4
-    movq  [r0+ 48], mm2
+    movq  m0, [r0    ]
+    movq  m1, [r0+ 16]
+    movq  m2, [r0+ 32]
+    movq  m3, [r0+ 48]
+    TRANSPOSE4x4W 0,1,2,3,4
+    movq  [r0    ], m0
+    movq  [r0+ 16], m1
+    movq  [r0+ 32], m2
+    movq  [r0+ 48], m3
 
-    movq  mm0, [r0+ 72]
-    movq  mm1, [r0+ 88]
-    movq  mm2, [r0+104]
-    movq  mm3, [r0+120]
-    TRANSPOSE4x4W  mm0, mm1, mm2, mm3, mm4
-    movq  [r0+ 72], mm0
-    movq  [r0+ 88], mm3
-    movq  [r0+104], mm4
-    movq  [r0+120], mm2
+    movq  m0, [r0+ 72]
+    movq  m1, [r0+ 88]
+    movq  m2, [r0+104]
+    movq  m3, [r0+120]
+    TRANSPOSE4x4W 0,1,2,3,4
+    movq  [r0+ 72], m0
+    movq  [r0+ 88], m1
+    movq  [r0+104], m2
+    movq  [r0+120], m3
 
-    movq  mm0, [r0+  8]
-    movq  mm1, [r0+ 24]
-    movq  mm2, [r0+ 40]
-    movq  mm3, [r0+ 56]
-    TRANSPOSE4x4W  mm0, mm1, mm2, mm3, mm4
-    movq  mm1, [r0+ 64]
-    movq  mm5, [r0+ 80]
-    movq  mm6, [r0+ 96]
-    movq  mm7, [r0+112]
+    movq  m0, [r0+  8]
+    movq  m1, [r0+ 24]
+    movq  m2, [r0+ 40]
+    movq  m3, [r0+ 56]
+    TRANSPOSE4x4W 0,1,2,3,4
+    movq  m4, [r0+ 64]
+    movq  m5, [r0+ 80]
+    movq  m6, [r0+ 96]
+    movq  m7, [r0+112]
 
-    movq  [r0+ 64], mm0
-    movq  [r0+ 80], mm3
-    movq  [r0+ 96], mm4
-    movq  [r0+112], mm2
-    TRANSPOSE4x4W  mm1, mm5, mm6, mm7, mm4
-    movq  [r0+  8], mm1
-    movq  [r0+ 24], mm7
-    movq  [r0+ 40], mm4
-    movq  [r0+ 56], mm6
+    movq  [r0+ 64], m0
+    movq  [r0+ 80], m1
+    movq  [r0+ 96], m2
+    movq  [r0+112], m3
+    TRANSPOSE4x4W 4,5,6,7,0
+    movq  [r0+  8], m4
+    movq  [r0+ 24], m5
+    movq  [r0+ 40], m6
+    movq  [r0+ 56], m7
     ret
 
 ;-----------------------------------------------------------------------------
@@ -369,123 +370,125 @@ cglobal x264_add8x8_idct8_mmx, 0,1
     mov  r0, r0m
     jmp  x264_pixel_add_8x8_mmx
 
+INIT_XMM
+
 %macro IDCT8_1D 8
-    movdqa     %1, %3
-    movdqa     %5, %7
-    psraw      %3, 1
-    psraw      %7, 1
-    psubw      %3, %5
-    paddw      %7, %1
-    movdqa     %5, %2
-    psraw      %5, 1
-    paddw      %5, %2
-    paddw      %5, %4
-    paddw      %5, %6
-    movdqa     %1, %6
-    psraw      %1, 1
-    paddw      %1, %6
-    paddw      %1, %8
-    psubw      %1, %2
-    psubw      %2, %4
-    psubw      %6, %4
-    paddw      %2, %8
-    psubw      %6, %8
-    psraw      %4, 1
-    psraw      %8, 1
-    psubw      %2, %4
-    psubw      %6, %8
-    movdqa     %4, %5
-    movdqa     %8, %1
-    psraw      %4, 2
-    psraw      %8, 2
-    paddw      %4, %6
-    paddw      %8, %2
-    psraw      %6, 2
-    psraw      %2, 2
-    psubw      %5, %6
-    psubw      %2, %1
-    movdqa     %1, [eax+0x00]
-    movdqa     %6, [eax+0x40]
-    SUMSUB_BA  %6, %1
-    SUMSUB_BA  %7, %6
-    SUMSUB_BA  %3, %1
-    SUMSUB_BA  %5, %7
-    SUMSUB_BA  %2, %3
-    SUMSUB_BA  %8, %1
-    SUMSUB_BA  %4, %6
+    movdqa    m%1, m%3
+    movdqa    m%5, m%7
+    psraw     m%3, 1
+    psraw     m%7, 1
+    psubw     m%3, m%5
+    paddw     m%7, m%1
+    movdqa    m%5, m%2
+    psraw     m%5, 1
+    paddw     m%5, m%2
+    paddw     m%5, m%4
+    paddw     m%5, m%6
+    movdqa    m%1, m%6
+    psraw     m%1, 1
+    paddw     m%1, m%6
+    paddw     m%1, m%8
+    psubw     m%1, m%2
+    psubw     m%2, m%4
+    psubw     m%6, m%4
+    paddw     m%2, m%8
+    psubw     m%6, m%8
+    psraw     m%4, 1
+    psraw     m%8, 1
+    psubw     m%2, m%4
+    psubw     m%6, m%8
+    movdqa    m%4, m%5
+    movdqa    m%8, m%1
+    psraw     m%4, 2
+    psraw     m%8, 2
+    paddw     m%4, m%6
+    paddw     m%8, m%2
+    psraw     m%6, 2
+    psraw     m%2, 2
+    psubw     m%5, m%6
+    psubw     m%2, m%1
+    movdqa    m%1, [r1+0x00]
+    movdqa    m%6, [r1+0x40]
+    SUMSUB_BA m%6, m%1
+    SUMSUB_BA m%7, m%6
+    SUMSUB_BA m%3, m%1
+    SUMSUB_BA m%5, m%7
+    SUMSUB_BA m%2, m%3
+    SUMSUB_BA m%8, m%1
+    SUMSUB_BA m%4, m%6
+    SWAP %1, %5, %6
+    SWAP %3, %8, %7
 %endmacro
 
-%macro TRANSPOSE8 9
-    movdqa [%9], %8
-    SBUTTERFLY dqa, wd, %1, %2, %8
-    movdqa [%9+16], %8
-    movdqa %8, [%9]
-    SBUTTERFLY dqa, wd, %3, %4, %2
-    SBUTTERFLY dqa, wd, %5, %6, %4
-    SBUTTERFLY dqa, wd, %7, %8, %6
-    SBUTTERFLY dqa, dq, %1, %3, %8
-    movdqa [%9], %8
-    movdqa %8, [16+%9]
-    SBUTTERFLY dqa, dq, %8, %2, %3
-    SBUTTERFLY dqa, dq, %5, %7, %2
-    SBUTTERFLY dqa, dq, %4, %6, %7
-    SBUTTERFLY dqa, qdq, %1, %5, %6
-    SBUTTERFLY dqa, qdq, %8, %4, %5
-    movdqa [%9+16], %8
-    movdqa %8, [%9]
-    SBUTTERFLY dqa, qdq, %8, %2, %4
-    SBUTTERFLY dqa, qdq, %3, %7, %2
-    movdqa %7, [%9+16]
+; in: m0..m7
+; out: all except m4, which is in [%9+0x40]
+%macro TRANSPOSE8x8W 9
+    movdqa [%9], m%8
+    SBUTTERFLY wd, %1, %2, %8
+    movdqa [%9+16], m%2
+    movdqa m%8, [%9]
+    SBUTTERFLY wd, %3, %4, %2
+    SBUTTERFLY wd, %5, %6, %2
+    SBUTTERFLY wd, %7, %8, %2
+    SBUTTERFLY dq, %1, %3, %2
+    movdqa [%9], m%3
+    movdqa m%2, [16+%9]
+    SBUTTERFLY dq, %2, %4, %3
+    SBUTTERFLY dq, %5, %7, %3
+    SBUTTERFLY dq, %6, %8, %3
+    SBUTTERFLY qdq, %1, %5, %3
+    SBUTTERFLY qdq, %2, %6, %3
+    movdqa [%9+0x40], m%2
+    movdqa m%3, [%9]
+    SBUTTERFLY qdq, %3, %7, %2
+    SBUTTERFLY qdq, %4, %8, %2
+    SWAP %2, %5
+    SWAP %4, %7
 %endmacro
 
 ;-----------------------------------------------------------------------------
 ; void x264_add8x8_idct8_sse2( uint8_t *p_dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
-cglobal x264_add8x8_idct8_sse2
-    mov ecx, [esp+4]
-    mov eax, [esp+8]
-    movdqa     xmm1, [eax+0x10]
-    movdqa     xmm2, [eax+0x20]
-    movdqa     xmm3, [eax+0x30]
-    movdqa     xmm5, [eax+0x50]
-    movdqa     xmm6, [eax+0x60]
-    movdqa     xmm7, [eax+0x70]
-    IDCT8_1D   xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7
-    TRANSPOSE8 xmm4, xmm1, xmm7, xmm3, xmm5, xmm0, xmm2, xmm6, eax
+cglobal x264_add8x8_idct8_sse2, 2,2
+    movdqa     m1, [r1+0x10]
+    movdqa     m2, [r1+0x20]
+    movdqa     m3, [r1+0x30]
+    movdqa     m5, [r1+0x50]
+    movdqa     m6, [r1+0x60]
+    movdqa     m7, [r1+0x70]
+    IDCT8_1D   0,1,2,3,4,5,6,7
+    TRANSPOSE8x8W 0,1,2,3,4,5,6,7,r1
     picgetgot  edx
-    paddw      xmm4, [pw_32 GLOBAL]
-    movdqa     [eax+0x00], xmm4
-    movdqa     [eax+0x40], xmm2
-    IDCT8_1D   xmm4, xmm0, xmm6, xmm3, xmm2, xmm5, xmm7, xmm1
-    movdqa     [eax+0x60], xmm6
-    movdqa     [eax+0x70], xmm7
-    pxor       xmm7, xmm7
-    STORE_DIFF_8P xmm2, [ecx+FDEC_STRIDE*0], xmm6, xmm7
-    STORE_DIFF_8P xmm0, [ecx+FDEC_STRIDE*1], xmm6, xmm7
-    STORE_DIFF_8P xmm1, [ecx+FDEC_STRIDE*2], xmm6, xmm7
-    STORE_DIFF_8P xmm3, [ecx+FDEC_STRIDE*3], xmm6, xmm7
-    STORE_DIFF_8P xmm5, [ecx+FDEC_STRIDE*4], xmm6, xmm7
-    STORE_DIFF_8P xmm4, [ecx+FDEC_STRIDE*5], xmm6, xmm7
-    movdqa     xmm0, [eax+0x60]
-    movdqa     xmm1, [eax+0x70]
-    STORE_DIFF_8P xmm0, [ecx+FDEC_STRIDE*6], xmm6, xmm7
-    STORE_DIFF_8P xmm1, [ecx+FDEC_STRIDE*7], xmm6, xmm7
+    paddw      m0, [pw_32 GLOBAL]
+    movdqa     [r1+0x00], m0
+;   movdqa     [r1+0x40], m4  ; still there from transpose
+    IDCT8_1D   0,1,2,3,4,5,6,7
+    movdqa     [r1+0x60], m6
+    movdqa     [r1+0x70], m7
+    pxor       m7, m7
+    STORE_DIFF_8P m0, [r0+FDEC_STRIDE*0], m6, m7
+    STORE_DIFF_8P m1, [r0+FDEC_STRIDE*1], m6, m7
+    STORE_DIFF_8P m2, [r0+FDEC_STRIDE*2], m6, m7
+    STORE_DIFF_8P m3, [r0+FDEC_STRIDE*3], m6, m7
+    STORE_DIFF_8P m4, [r0+FDEC_STRIDE*4], m6, m7
+    STORE_DIFF_8P m5, [r0+FDEC_STRIDE*5], m6, m7
+    movdqa     m0, [r1+0x60]
+    movdqa     m1, [r1+0x70]
+    STORE_DIFF_8P m0, [r0+FDEC_STRIDE*6], m6, m7
+    STORE_DIFF_8P m1, [r0+FDEC_STRIDE*7], m6, m7
     ret
 
 ;-----------------------------------------------------------------------------
 ; void x264_sub8x8_dct_mmx( int16_t dct[4][4][4], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
 %macro SUB_NxN_DCT 4
-cglobal %1
-    mov  edx, [esp+12]
-    mov  ecx, [esp+ 8]
-    mov  eax, [esp+ 4]
-    add  edx, %4
-    add  ecx, %4
-    add  eax, %3
-    push edx
-    push ecx
-    push eax
+cglobal %1, 3,3
+    add  r2, %4
+    add  r1, %4
+    add  r0, %3
+    push r2
+    push r1
+    push r0
     call %2
     add  dword [esp+0], %3
     add  dword [esp+4], %4*FENC_STRIDE-%4
@@ -503,13 +506,11 @@ cglobal %1
 ; void x264_add8x8_idct_mmx( uint8_t *pix, int16_t dct[4][4][4] )
 ;-----------------------------------------------------------------------------
 %macro ADD_NxN_IDCT 4
-cglobal %1
-    mov  ecx, [esp+8]
-    mov  eax, [esp+4]
-    add  ecx, %3
-    add  eax, %4
-    push ecx
-    push eax
+cglobal %1, 2,2
+    add  r1, %3
+    add  r0, %4
+    push r1
+    push r0
     call %2
     add  dword [esp+0], %4*FDEC_STRIDE-%4
     add  dword [esp+4], %3

@@ -71,20 +71,19 @@ SECTION .text
     psubw   %4, %3
 %endmacro
 
-%macro SBUTTERFLY 5
-    mov%1       %5, %3
-    punpckl%2   %3, %4
-    punpckh%2   %5, %4
+%macro SBUTTERFLY 4
+    mova       m%4, m%2
+    punpckl%1  m%2, m%3
+    punpckh%1  m%4, m%3
+    SWAP %3, %4
 %endmacro
 
-;-----------------------------------------------------------------------------
-; input ABCD output ADTC
-;-----------------------------------------------------------------------------
 %macro TRANSPOSE4x4W 5
-    SBUTTERFLY q, wd, %1, %2, %5
-    SBUTTERFLY q, wd, %3, %4, %2
-    SBUTTERFLY q, dq, %1, %3, %4
-    SBUTTERFLY q, dq, %5, %2, %3
+    SBUTTERFLY wd, %1, %2, %5
+    SBUTTERFLY wd, %3, %4, %5
+    SBUTTERFLY dq, %1, %3, %5
+    SBUTTERFLY dq, %2, %4, %5
+    SWAP %2, %3
 %endmacro
 
 %macro STORE_DIFF_4P 5
@@ -97,91 +96,85 @@ SECTION .text
     movd        %5, %1
 %endmacro
 
+%macro HADAMARD4_1D 4
+    SUMSUB_BADC m%2, m%1, m%4, m%3
+    SUMSUB_BADC m%4, m%2, m%3, m%1
+    SWAP %1, %4, %3
+%endmacro
+
 ;-----------------------------------------------------------------------------
 ; void x264_dct4x4dc_mmx( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
 cglobal x264_dct4x4dc_mmx, 1,1,1
-    movq      mm0, [r0+ 0]
-    movq      mm1, [r0+ 8]
-    movq      mm2, [r0+16]
-    movq      mm3, [r0+24]
-
-    SUMSUB_BADC    mm1, mm0, mm3, mm2          ; mm1=s01  mm0=d01  mm3=s23  mm2=d23
-    SUMSUB_BADC    mm3, mm1, mm2, mm0          ; mm3=s01+s23  mm1=s01-s23  mm2=d01+d23  mm0=d01-d23
-
-    TRANSPOSE4x4W  mm3, mm1, mm0, mm2, mm4     ; in: mm3, mm1, mm0, mm2  out: mm3, mm2, mm4, mm0 
-
-    SUMSUB_BADC    mm2, mm3, mm0, mm4          ; mm2=s01  mm3=d01  mm0=s23  mm4=d23
-    SUMSUB_BADC    mm0, mm2, mm4, mm3          ; mm0=s01+s23  mm2=s01-s23  mm4=d01+d23  mm3=d01-d23
-
-    movq      mm6, [pw_1 GLOBAL]
-    paddw     mm0, mm6
-    paddw     mm2, mm6
-    psraw     mm0, 1
-    movq  [r0+ 0], mm0
-    psraw     mm2, 1
-    movq  [r0+ 8], mm2
-    paddw     mm3, mm6
-    paddw     mm4, mm6
-    psraw     mm3, 1
-    movq  [r0+16], mm3
-    psraw     mm4, 1
-    movq  [r0+24], mm4
+    movq   m0, [r0+ 0]
+    movq   m1, [r0+ 8]
+    movq   m2, [r0+16]
+    movq   m3, [r0+24]
+    HADAMARD4_1D  0,1,2,3
+    TRANSPOSE4x4W 0,1,2,3,4
+    HADAMARD4_1D  0,1,2,3
+    movq   m6, [pw_1 GLOBAL]
+    paddw  m0, m6
+    paddw  m1, m6
+    paddw  m2, m6
+    paddw  m3, m6
+    psraw  m0, 1
+    psraw  m1, 1
+    psraw  m2, 1
+    psraw  m3, 1
+    movq  [r0+0], m0
+    movq  [r0+8], m1
+    movq [r0+16], m2
+    movq [r0+24], m3
     RET
 
 ;-----------------------------------------------------------------------------
 ; void x264_idct4x4dc_mmx( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
 cglobal x264_idct4x4dc_mmx, 1,1
-    movq    mm0, [r0+ 0]
-    movq    mm1, [r0+ 8]
-    movq    mm2, [r0+16]
-    movq    mm3, [r0+24]
-
-    SUMSUB_BADC    mm1, mm0, mm3, mm2          ; mm1=s01  mm0=d01  mm3=s23  mm2=d23
-    SUMSUB_BADC    mm3, mm1, mm2, mm0          ; mm3=s01+s23 mm1=s01-s23 mm2=d01+d23 mm0=d01-d23
-
-    TRANSPOSE4x4W  mm3, mm1, mm0, mm2, mm4     ; in: mm3, mm1, mm0, mm2  out: mm3, mm2, mm4, mm0 
-
-    SUMSUB_BADC    mm2, mm3, mm0, mm4          ; mm2=s01  mm3=d01  mm0=s23  mm4=d23
-    SUMSUB_BADC    mm0, mm2, mm4, mm3          ; mm0=s01+s23  mm2=s01-s23  mm4=d01+d23  mm3=d01-d23
-
-    movq    [r0+ 0], mm0
-    movq    [r0+ 8], mm2
-    movq    [r0+16], mm3
-    movq    [r0+24], mm4
+    movq  m0, [r0+ 0]
+    movq  m1, [r0+ 8]
+    movq  m2, [r0+16]
+    movq  m3, [r0+24]
+    HADAMARD4_1D  0,1,2,3
+    TRANSPOSE4x4W 0,1,2,3,4
+    HADAMARD4_1D  0,1,2,3
+    movq  [r0+ 0], m0
+    movq  [r0+ 8], m1
+    movq  [r0+16], m2
+    movq  [r0+24], m3
     RET
+
+%macro DCT4_1D 5
+    SUMSUB_BADC m%4, m%1, m%3, m%2
+    SUMSUB_BA   m%3, m%4
+    SUMSUB2_AB  m%1, m%2, m%5
+    SWAP %1, %3, %4, %5, %2
+%endmacro
+
+%macro IDCT4_1D 6
+    SUMSUB_BA   m%3, m%1
+    SUMSUBD2_AB m%2, m%4, m%6, m%5
+    SUMSUB_BADC m%2, m%3, m%5, m%1
+    SWAP %1, %2, %5, %4, %3
+%endmacro
 
 ;-----------------------------------------------------------------------------
 ; void x264_sub4x4_dct_mmx( int16_t dct[4][4], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
 cglobal x264_sub4x4_dct_mmx, 3,3
 .skip_prologue:
-    pxor mm7, mm7
-
-    ; Load 4 lines
-    LOAD_DIFF_4P   mm0, mm6, mm7, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
-    LOAD_DIFF_4P   mm1, mm6, mm7, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
-    LOAD_DIFF_4P   mm2, mm6, mm7, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
-    LOAD_DIFF_4P   mm3, mm6, mm7, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
-
-    SUMSUB_BADC    mm3, mm0, mm2, mm1          ; mm3=s03  mm0=d03  mm2=s12  mm1=d12
-
-    SUMSUB_BA      mm2, mm3                    ; mm2=s03+s12      mm3=s03-s12
-    SUMSUB2_AB     mm0, mm1, mm4               ; mm0=2.d03+d12    mm4=d03-2.d12
-
-    ; transpose in: mm2, mm0, mm3, mm4, out: mm2, mm4, mm1, mm3
-    TRANSPOSE4x4W  mm2, mm0, mm3, mm4, mm1
-
-    SUMSUB_BADC    mm3, mm2, mm1, mm4          ; mm3=s03  mm2=d03  mm1=s12  mm4=d12
-
-    SUMSUB_BA      mm1, mm3                    ; mm1=s03+s12      mm3=s03-s12
-    SUMSUB2_AB     mm2, mm4, mm0               ; mm2=2.d03+d12    mm0=d03-2.d12
-
-    movq    [r0+ 0], mm1
-    movq    [r0+ 8], mm2
-    movq    [r0+16], mm3
-    movq    [r0+24], mm0
+    LOAD_DIFF_4P  m0, m6, m7, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
+    LOAD_DIFF_4P  m1, m6, m7, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
+    LOAD_DIFF_4P  m2, m6, m7, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
+    LOAD_DIFF_4P  m3, m6, m7, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
+    DCT4_1D 0,1,2,3,4
+    TRANSPOSE4x4W 0,1,2,3,4
+    DCT4_1D 0,1,2,3,4
+    movq  [r0+ 0], m0
+    movq  [r0+ 8], m1
+    movq  [r0+16], m2
+    movq  [r0+24], m3
     RET
 
 ;-----------------------------------------------------------------------------
@@ -189,33 +182,19 @@ cglobal x264_sub4x4_dct_mmx, 3,3
 ;-----------------------------------------------------------------------------
 cglobal x264_add4x4_idct_mmx, 2,2,1
 .skip_prologue:
-    ; Load dct coeffs
-    movq    mm0, [r1+ 0] ; dct
-    movq    mm1, [r1+ 8]
-    movq    mm2, [r1+16]
-    movq    mm3, [r1+24]
-    
-    SUMSUB_BA      mm2, mm0                        ; mm2=s02  mm0=d02
-    SUMSUBD2_AB    mm1, mm3, mm5, mm4              ; mm1=s13  mm4=d13 ( well 1 + 3>>1 and 1>>1 + 3)
-
-    SUMSUB_BADC    mm1, mm2, mm4, mm0              ; mm1=s02+s13  mm2=s02-s13  mm4=d02+d13  mm0=d02-d13
-
-    ; in: mm1, mm4, mm0, mm2  out: mm1, mm2, mm3, mm0
-    TRANSPOSE4x4W  mm1, mm4, mm0, mm2, mm3
-
-    SUMSUB_BA      mm3, mm1                        ; mm3=s02  mm1=d02
-    SUMSUBD2_AB    mm2, mm0, mm5, mm4              ; mm2=s13  mm4=d13 ( well 1 + 3>>1 and 1>>1 + 3)
-
-    SUMSUB_BADC    mm2, mm3, mm4, mm1              ; mm2=s02+s13  mm3=s02-s13  mm4=d02+d13  mm1=d02-d13
-
-    pxor mm7, mm7
-    movq           mm6, [pw_32 GLOBAL]
-    
-    STORE_DIFF_4P  mm2, mm0, mm6, mm7, [r0+0*FDEC_STRIDE]
-    STORE_DIFF_4P  mm4, mm0, mm6, mm7, [r0+1*FDEC_STRIDE]
-    STORE_DIFF_4P  mm1, mm0, mm6, mm7, [r0+2*FDEC_STRIDE]
-    STORE_DIFF_4P  mm3, mm0, mm6, mm7, [r0+3*FDEC_STRIDE]
-
+    movq  m0, [r1+ 0]
+    movq  m1, [r1+ 8]
+    movq  m2, [r1+16]
+    movq  m3, [r1+24]
+    IDCT4_1D 0,1,2,3,4,5
+    TRANSPOSE4x4W 0,1,2,3,4
+    IDCT4_1D 0,1,2,3,4,5
+    pxor  m7, m7
+    movq  m6, [pw_32 GLOBAL]
+    STORE_DIFF_4P  m0, m4, m6, m7, [r0+0*FDEC_STRIDE]
+    STORE_DIFF_4P  m1, m4, m6, m7, [r0+1*FDEC_STRIDE]
+    STORE_DIFF_4P  m2, m4, m6, m7, [r0+2*FDEC_STRIDE]
+    STORE_DIFF_4P  m3, m4, m6, m7, [r0+3*FDEC_STRIDE]
     RET
 
 
