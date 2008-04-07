@@ -727,8 +727,8 @@ cglobal x264_pixel_sad_16x%2_cache64_%1, 0,0
 
 %macro SAD_CACHELINE_START_MMX2 4 ; width, height, iterations, cacheline
     mov    eax, r2m
-    and    eax, 0x17|%2|(%4>>1)
-    cmp    eax, 0x10|%2|(%4>>1)
+    and    eax, 0x17|%1|(%4>>1)
+    cmp    eax, 0x10|%1|(%4>>1)
     jle x264_pixel_sad_%1x%2_mmxext
     and    eax, 7
     shl    eax, 3
