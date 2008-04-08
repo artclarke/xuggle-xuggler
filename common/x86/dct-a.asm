@@ -244,12 +244,19 @@ ADD_NxN_IDCT x264_add8x8_idct_mmx,   x264_add4x4_idct_mmx %+ .skip_prologue, 32,
 SUB_NxN_DCT  x264_sub16x16_dct_mmx,  x264_sub8x8_dct_mmx  %+ .skip_prologue, 32, 4, 4, 12
 ADD_NxN_IDCT x264_add16x16_idct_mmx, x264_add8x8_idct_mmx %+ .skip_prologue, 32, 4, 4, 12
 
-%ifdef ARCH_X86_64
+%ifndef ARCH_X86_64
+cextern x264_sub8x8_dct8_mmx.skip_prologue
+cextern x264_add8x8_idct8_mmx.skip_prologue
+SUB_NxN_DCT  x264_sub16x16_dct8_mmx,  x264_sub8x8_dct8_mmx  %+ .skip_prologue, 128, 8, 0,  8
+ADD_NxN_IDCT x264_add16x16_idct8_mmx, x264_add8x8_idct8_mmx %+ .skip_prologue, 128, 8, 0,  8
+%define x264_sub8x8_dct8_sse2 x264_sub8x8_dct8_sse2.skip_prologue
+%define x264_add8x8_idct8_sse2 x264_add8x8_idct8_sse2.skip_prologue
+%endif
+
 cextern x264_sub8x8_dct8_sse2
 cextern x264_add8x8_idct8_sse2
 SUB_NxN_DCT  x264_sub16x16_dct8_sse2,  x264_sub8x8_dct8_sse2,  128, 8, 0,  8
 ADD_NxN_IDCT x264_add16x16_idct8_sse2, x264_add8x8_idct8_sse2, 128, 8, 0,  8
-%endif
 
 
 
