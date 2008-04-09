@@ -77,6 +77,7 @@ struct x264_ratecontrol_t
     ratecontrol_entry_t *rce;
     int qp;                     /* qp for current frame */
     int qpm;                    /* qp for current macroblock */
+    float f_qpm;                /* qp for current macroblock: precise float for AQ */
     float qpa_rc;               /* average of macroblocks' qp before aq */
     float qpa_aq;               /* average of macroblocks' qp after aq */
     int qp_force;
@@ -245,9 +246,9 @@ void x264_autosense_aq( x264_t *h )
 *****************************************************************************/
 void x264_adaptive_quant( x264_t *h )
 {
-    int qp = h->mb.i_qp;
     int energy = ac_energy_mb( h, h->mb.i_mb_x, h->mb.i_mb_y, NULL );
     /* Adjust the QP based on the AC energy of the macroblock. */
+    float qp = h->rc->f_qpm;
     float qp_adj = 1.5 * (logf(energy) - h->rc->aq_threshold);
     if( h->param.rc.i_aq_mode == X264_AQ_LOCAL )
         qp_adj = x264_clip3f( qp_adj, -5, 5 );
@@ -821,6 +822,7 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp )
     h->fdec->f_qp_avg_aq =
     rc->qpm =
     rc->qp = x264_clip3( (int)(q + 0.5), 0, 51 );
+    rc->f_qpm = q;
     if( rce )
         rce->new_qp = rc->qp;
 
@@ -890,7 +892,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     x264_emms();
 
     h->fdec->i_row_bits[y] += bits;
-    rc->qpa_rc += rc->qpm;
+    rc->qpa_rc += rc->f_qpm;
     rc->qpa_aq += h->mb.i_qp;
 
     if( h->mb.i_mb_x != h->sps->i_mb_width - 1 || !rc->b_vbv)
@@ -970,6 +972,8 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
             x264_frame_size_estimated_set(h, b1);
         }
     }
+    /* loses the fractional part of the frame-wise qp */
+    rc->f_qpm = rc->qpm;
 }
 
 int x264_ratecontrol_qp( x264_t *h )
