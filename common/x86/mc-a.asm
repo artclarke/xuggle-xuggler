@@ -30,6 +30,7 @@ pw_4:  times 4 dw  4
 pw_8:  times 4 dw  8
 pw_32: times 4 dw 32
 pw_64: times 4 dw 64
+sw_64: dd 64
 
 SECTION .text
 
@@ -229,7 +230,8 @@ cglobal x264_pixel_avg2_w20_mmxext, 6,7
     jg     .height_loop
     REP_RET
 
-cglobal x264_pixel_avg2_w16_sse2, 6,7
+%macro PIXEL_AVG_SSE 1
+cglobal x264_pixel_avg2_w16_%1, 6,7
     sub    r4, r2
     lea    r6, [r4+r3]
 .height_loop:
@@ -247,7 +249,7 @@ cglobal x264_pixel_avg2_w16_sse2, 6,7
     jg     .height_loop
     REP_RET
 
-cglobal x264_pixel_avg2_w20_sse2, 6,7
+cglobal x264_pixel_avg2_w20_%1, 6,7
     sub    r4, r2
     lea    r6, [r4+r3]
 .height_loop:
@@ -270,8 +272,123 @@ cglobal x264_pixel_avg2_w20_sse2, 6,7
     sub    r5d, 2
     jg     .height_loop
     REP_RET
+%endmacro
 
+PIXEL_AVG_SSE sse2
+%ifdef HAVE_SSE3
+%define movdqu lddqu
+PIXEL_AVG_SSE sse3
+%undef movdqu
+%endif
 
+; Cacheline split code for processors with high latencies for loads
+; split over cache lines.  See sad-a.asm for a more detailed explanation.
+; This particular instance is complicated by the fact that src1 and src2
+; can have different alignments.  For simplicity and code size, only the
+; MMX cacheline workaround is used.  As a result, in the case of SSE2
+; pixel_avg, the cacheline check functions calls the SSE2 version if there
+; is no cacheline split, and the MMX workaround if there is.
+
+%macro INIT_SHIFT 2
+    and    eax, 7
+    shl    eax, 3
+%ifdef PIC32
+    ; both versions work, but picgetgot is slower than gpr->mmx is slower than mem->mmx
+    mov    r2, 64
+    sub    r2, eax
+    movd   %2, eax
+    movd   %1, r2
+%else
+    movd   %1, [sw_64 GLOBAL]
+    movd   %2, eax
+    psubw  %1, %2
+%endif
+%endmacro
+
+%macro AVG_CACHELINE_CHECK 3 ; width, cacheline, instruction set
+cglobal x264_pixel_avg2_w%1_cache%2_%3, 0,0
+    mov    eax, r2m
+    and    eax, 0x1f|(%2>>1)
+    cmp    eax, (32-%1)|(%2>>1)
+    jle x264_pixel_avg2_w%1_%3
+;w12 isn't needed because w16 is just as fast if there's no cacheline split
+%if %1 == 12
+    jmp x264_pixel_avg2_w16_cache_mmxext
+%else
+    jmp x264_pixel_avg2_w%1_cache_mmxext
+%endif
+%endmacro
+
+%macro AVG_CACHELINE_START 0
+    %assign stack_offset 0
+    INIT_SHIFT mm6, mm7
+    mov    eax, r4m
+    INIT_SHIFT mm4, mm5
+    PROLOGUE 6,6,0
+    and    r2, ~7
+    and    r4, ~7
+    sub    r4, r2
+.height_loop:
+%endmacro
+
+%macro AVG_CACHELINE_LOOP 2
+    movq   mm0, [r2+8+%1]
+    movq   mm1, [r2+%1]
+    movq   mm2, [r2+r4+8+%1]
+    movq   mm3, [r2+r4+%1]
+    psllq  mm0, mm6
+    psrlq  mm1, mm7
+    psllq  mm2, mm4
+    psrlq  mm3, mm5
+    por    mm0, mm1
+    por    mm2, mm3
+    pavgb  mm0, mm2
+    %2 [r0+%1], mm0
+%endmacro
+
+x264_pixel_avg2_w8_cache_mmxext:
+    AVG_CACHELINE_START
+    AVG_CACHELINE_LOOP 0, movq
+    add    r2, r3
+    add    r0, r1
+    dec    r5d
+    jg     .height_loop
+    RET
+
+x264_pixel_avg2_w16_cache_mmxext:
+    AVG_CACHELINE_START
+    AVG_CACHELINE_LOOP 0, movq
+    AVG_CACHELINE_LOOP 8, movq
+    add    r2, r3
+    add    r0, r1
+    dec    r5d
+    jg .height_loop
+    RET
+
+x264_pixel_avg2_w20_cache_mmxext:
+    AVG_CACHELINE_START
+    AVG_CACHELINE_LOOP 0, movq
+    AVG_CACHELINE_LOOP 8, movq
+    AVG_CACHELINE_LOOP 16, movd
+    add    r2, r3
+    add    r0, r1
+    dec    r5d
+    jg .height_loop
+    RET
+
+%ifndef ARCH_X86_64
+AVG_CACHELINE_CHECK  8, 32, mmxext
+AVG_CACHELINE_CHECK 12, 32, mmxext
+AVG_CACHELINE_CHECK 16, 32, mmxext
+AVG_CACHELINE_CHECK 20, 32, mmxext
+AVG_CACHELINE_CHECK 16, 64, mmxext
+AVG_CACHELINE_CHECK 20, 64, mmxext
+%endif
+
+AVG_CACHELINE_CHECK  8, 64, mmxext
+AVG_CACHELINE_CHECK 12, 64, mmxext
+AVG_CACHELINE_CHECK 16, 64, sse2
+AVG_CACHELINE_CHECK 20, 64, sse2
 
 ;=============================================================================
 ; pixel copy
@@ -362,6 +479,11 @@ cglobal %1, 5,7
 %endmacro
 
 COPY_W16_SSE2 x264_mc_copy_w16_sse2, movdqu
+; cacheline split with mmx has too much overhead; the speed benefit is near-zero.
+; but with SSE3 the overhead is zero, so there's no reason not to include it.
+%ifdef HAVE_SSE3
+COPY_W16_SSE2 x264_mc_copy_w16_sse3, lddqu
+%endif
 COPY_W16_SSE2 x264_mc_copy_w16_aligned_sse2, movdqa
 
 

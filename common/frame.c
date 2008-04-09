@@ -31,6 +31,7 @@ x264_frame_t *x264_frame_new( x264_t *h )
     int i_mb_count = h->mb.i_mb_count;
     int i_stride, i_width, i_lines;
     int i_padv = PADV << h->param.b_interlaced;
+    int luma_plane_size;
 
     if( !frame ) return NULL;
 
@@ -55,20 +56,20 @@ x264_frame_t *x264_frame_new( x264_t *h )
         frame->i_stride[i] = i_stride >> !!i;
         frame->i_width[i] = i_width >> !!i;
         frame->i_lines[i] = i_lines >> !!i;
-        CHECKED_MALLOC( frame->buffer[i],
-                        frame->i_stride[i] * (i_lines + 2*i_padv) >> !!i );
-        frame->plane[i] = ((uint8_t*)frame->buffer[i]) +
-                          ((frame->i_stride[i] * i_padv + PADH) >> !!i);
     }
 
-    frame->filtered[0] = frame->plane[0];
-    for( i = 0; i < 3; i++ )
+    luma_plane_size = (frame->i_stride[0] * ( frame->i_lines[0] + 2*i_padv ));
+    for( i = 1; i < 3; i++ )
     {
-        CHECKED_MALLOC( frame->buffer[4+i],
-                        frame->i_stride[0] * ( frame->i_lines[0] + 2*i_padv ) );
-        frame->filtered[i+1] = ((uint8_t*)frame->buffer[4+i]) +
-                                frame->i_stride[0] * i_padv + PADH;
+        CHECKED_MALLOC( frame->buffer[i], luma_plane_size/4 );
+        frame->plane[i] = frame->buffer[i] + (frame->i_stride[i] * i_padv + PADH)/2;
     }
+    /* all 4 luma planes allocated together, since the cacheline split code
+     * requires them to be in-phase wrt cacheline alignment. */
+    CHECKED_MALLOC( frame->buffer[0], 4*luma_plane_size);
+    for( i = 0; i < 4; i++ )
+        frame->filtered[i] = frame->buffer[0] + i*luma_plane_size + frame->i_stride[0] * i_padv + PADH;
+    frame->plane[0] = frame->filtered[0];
 
     if( h->frames.b_have_lowres )
     {
@@ -86,9 +87,9 @@ x264_frame_t *x264_frame_new( x264_t *h )
 
     if( h->param.analyse.i_me_method >= X264_ME_ESA )
     {
-        CHECKED_MALLOC( frame->buffer[7],
+        CHECKED_MALLOC( frame->buffer[3],
                         2 * frame->i_stride[0] * (frame->i_lines[0] + 2*i_padv) * sizeof(uint16_t) );
-        frame->integral = (uint16_t*)frame->buffer[7] + frame->i_stride[0] * i_padv + PADH;
+        frame->integral = (uint16_t*)frame->buffer[3] + frame->i_stride[0] * i_padv + PADH;
     }
 
     frame->i_poc = -1;
@@ -132,7 +133,7 @@ fail:
 void x264_frame_delete( x264_frame_t *frame )
 {
     int i, j;
-    for( i = 0; i < 8; i++ )
+    for( i = 0; i < 4; i++ )
         x264_free( frame->buffer[i] );
     for( i = 0; i < 4; i++ )
         x264_free( frame->buffer_lowres[i] );

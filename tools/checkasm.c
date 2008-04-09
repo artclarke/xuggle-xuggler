@@ -476,8 +476,9 @@ static int check_mc( int cpu_ref, int cpu_new )
         }
     ok = 1; used_asm = 0;
     for( dy = -8; dy < 8; dy++ )
-        for( dx = -8; dx < 8; dx++ )
+        for( dx = -128; dx < 128; dx++ )
         {
+            if( rand()&15 ) continue; // running all of them is too slow
             MC_TEST_LUMA( 20, 18 );
             MC_TEST_LUMA( 16, 16 );
             MC_TEST_LUMA( 16, 8 );

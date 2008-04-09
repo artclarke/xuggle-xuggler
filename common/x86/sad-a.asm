@@ -670,7 +670,7 @@ sad_w16_align%1_sse2:
     lea     r2,   [r2+2*r3]
     dec     r4
     jg sad_w16_align%1_sse2
-    rep ret
+    ret
 %endmacro
 
 ; computed jump assumes this loop is exactly 64 bytes
@@ -689,7 +689,7 @@ sad_w16_align%1_ssse3:
     lea     r2,   [r2+2*r3]
     dec     r4
     jg sad_w16_align%1_ssse3
-    rep ret
+    ret
 %endmacro
 
 %macro SAD16_CACHELINE_FUNC 2 ; cpu, height
