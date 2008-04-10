@@ -1050,7 +1050,7 @@
 					RelativePath="..\..\common\x86\dct.h">
 				</File>
 				<File
-					RelativePath="..\..\common\x86\deblock-a.asm">
+					RelativePath="..\..\common\x86\cabac-a.asm">
 					<FileConfiguration
 						Name="Release|Win32">
 						<Tool
@@ -1073,6 +1073,33 @@
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
 							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							Outputs="$(IntDir)\$(InputName).obj"/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath="..\..\common\x86\deblock-a.asm">
+					<FileConfiguration
+						Name="Release|Win32">
+						<Tool
+							Name="VCCustomBuildTool"
+							Description="Assembly $(InputPath)"
+							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							Outputs="$(IntDir)\$(InputName).obj"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug|Win32">
+						<Tool
+							Name="VCCustomBuildTool"
+							Description="Assembly $(InputPath)"
+							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							Outputs="$(IntDir)\$(InputName).obj"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release64|Win32">
+						<Tool
+							Name="VCCustomBuildTool"
+							Description="Assembly $(InputPath)"
+							CommandLine="yasm -f win32 -O2 -m AMD64 -DWIN64 -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
