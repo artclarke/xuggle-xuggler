@@ -29,6 +29,7 @@
 #include <getopt.h>
 
 #include "common/common.h"
+#include "common/cpu.h"
 #include "x264.h"
 #include "muxers.h"
 
@@ -664,7 +665,8 @@ static int  Parse( int argc, char **argv,
     }
 
 #ifdef HAVE_PTHREAD
-    if( b_thread_input || param->i_threads > 1 )
+    if( b_thread_input || param->i_threads > 1
+        || (param->i_threads == 0 && x264_cpu_num_processors() > 1) )
     {
         if( open_file_thread( NULL, &opt->hin, param ) )
         {
