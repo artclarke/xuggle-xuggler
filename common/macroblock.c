@@ -1004,6 +1004,13 @@ void x264_prefetch_fenc( x264_t *h, x264_frame_t *fenc, int i_mb_x, int i_mb_y )
                          fenc->plane[1+(i_mb_x&1)]+off_uv, stride_uv, i_mb_x );
 }
 
+static NOINLINE void copy_column8( uint8_t *dst, uint8_t *src )
+{
+    int i;
+    for(i=0; i<8; i++)
+        dst[i*FDEC_STRIDE] = src[i*FDEC_STRIDE];
+}
+
 void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
 {
     int i_mb_xy = i_mb_y * h->mb.i_mb_stride + i_mb_x;
@@ -1173,6 +1180,14 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
     h->mb.pic.p_fdec[1] = h->mb.pic.fdec_buf + 19*FDEC_STRIDE;
     h->mb.pic.p_fdec[2] = h->mb.pic.fdec_buf + 19*FDEC_STRIDE + 16;
 
+    if( !h->mb.b_interlaced )
+    {
+        copy_column8( h->mb.pic.p_fdec[0]-1, h->mb.pic.p_fdec[0]+15 );
+        copy_column8( h->mb.pic.p_fdec[0]-1+8*FDEC_STRIDE, h->mb.pic.p_fdec[0]+15+8*FDEC_STRIDE );
+        copy_column8( h->mb.pic.p_fdec[1]-1, h->mb.pic.p_fdec[1]+7 );
+        copy_column8( h->mb.pic.p_fdec[2]-1, h->mb.pic.p_fdec[2]+7 );
+    }
+
     /* load picture pointers */
     for( i = 0; i < 3; i++ )
     {
@@ -1183,7 +1198,6 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
                                ? w * (i_mb_x + (i_mb_y&~1) * i_stride) + (i_mb_y&1) * i_stride
                                : w * (i_mb_x + i_mb_y * i_stride);
         int ref_pix_offset[2] = { i_pix_offset, i_pix_offset };
-        const uint8_t *plane_fdec = &h->fdec->plane[i][i_pix_offset];
         const uint8_t *intra_fdec = &h->mb.intra_border_backup[i_mb_y & h->sh.b_mbaff][i][i_mb_x*16>>!!i];
         x264_frame_t **fref[2] = { h->fref0, h->fref1 };
         int j, k, l;
@@ -1196,8 +1210,12 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
         h->mc.copy[i?PIXEL_8x8:PIXEL_16x16]( h->mb.pic.p_fenc[i], FENC_STRIDE,
             &h->fenc->plane[i][i_pix_offset], i_stride2, w );
         memcpy( &h->mb.pic.p_fdec[i][-1-FDEC_STRIDE], intra_fdec-1, w*3/2+1 );
-        for( j = 0; j < w; j++ )
-            h->mb.pic.p_fdec[i][-1+j*FDEC_STRIDE] = plane_fdec[-1+j*i_stride2];
+        if( h->mb.b_interlaced )
+        {
+            const uint8_t *plane_fdec = &h->fdec->plane[i][i_pix_offset];
+            for( j = 0; j < w; j++ )
+                h->mb.pic.p_fdec[i][-1+j*FDEC_STRIDE] = plane_fdec[-1+j*i_stride2];
+        }
 
         for( l=0; l<2; l++ )
         {
