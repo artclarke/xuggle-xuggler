@@ -532,9 +532,9 @@ static int check_mc( int cpu_ref, int cpu_new )
 
     if( mc_a.hpel_filter != mc_ref.hpel_filter )
     {
-        uint8_t *src = buf1+16+2*64;
-        uint8_t *dstc[3] = { buf3+16, buf3+16+16*64, buf3+16+32*64 };
-        uint8_t *dsta[3] = { buf4+16, buf4+16+16*64, buf4+16+32*64 };
+        uint8_t *src = buf1+8+2*64;
+        uint8_t *dstc[3] = { buf3+8, buf3+8+16*64, buf3+8+32*64 };
+        uint8_t *dsta[3] = { buf4+8, buf4+8+16*64, buf4+8+32*64 };
         ok = 1; used_asm = 1;
         memset( buf3, 0, 4096 );
         memset( buf4, 0, 4096 );
