@@ -237,19 +237,20 @@ void x264_frame_expand_border( x264_t *h, x264_frame_t *frame, int mb_y, int b_e
 
 void x264_frame_expand_border_filtered( x264_t *h, x264_frame_t *frame, int mb_y, int b_end )
 {
-    /* during filtering, 8 extra pixels were filtered on each edge. 
+    /* during filtering, 8 extra pixels were filtered on each edge,
+     * but up to 3 of the horizontal ones may be wrong. 
        we want to expand border from the last filtered pixel */
     int b_start = !mb_y;
     int stride = frame->i_stride[0];
-    int width = 16*h->sps->i_mb_width + 16;
+    int width = 16*h->sps->i_mb_width + 8;
     int height = b_end ? (16*(h->sps->i_mb_height - mb_y) >> h->sh.b_mbaff) + 16 : 16;
-    int padh = PADH - 8;
+    int padh = PADH - 4;
     int padv = PADV - 8;
     int i;
     for( i = 1; i < 4; i++ )
     {
         // buffer: 8 luma, to match the hpel filter
-        uint8_t *pix = frame->filtered[i] + (16*mb_y - (8 << h->sh.b_mbaff)) * stride - 8;
+        uint8_t *pix = frame->filtered[i] + (16*mb_y - (8 << h->sh.b_mbaff)) * stride - 4;
         if( h->sh.b_mbaff )
         {
             plane_expand_border( pix, stride*2, width, height, padh, padv, b_start, b_end );

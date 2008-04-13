@@ -178,7 +178,7 @@ void x264_hpel_filter_##cpu( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_
     dstc -= realign;\
     dsth -= realign;\
     width += realign;\
-    buf = x264_malloc(((width+2*align-1)&-align)*sizeof(int16_t));\
+    buf = x264_malloc((width+16)*sizeof(int16_t));\
     while( height-- )\
     {\
         x264_hpel_filter_v_##cpuv( dstv, src, buf+8, stride, width );\
