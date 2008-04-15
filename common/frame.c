@@ -755,14 +755,23 @@ void x264_deblock_h_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, in
 
 void x264_deblock_v_luma_sse2( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_h_luma_sse2( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_v_luma_intra_sse2( uint8_t *pix, int stride, int alpha, int beta );
+void x264_deblock_h_luma_intra_sse2( uint8_t *pix, int stride, int alpha, int beta );
 #ifdef ARCH_X86
 void x264_deblock_h_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_v8_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_h_luma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
+void x264_deblock_v8_luma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
 
 void x264_deblock_v_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 {
     x264_deblock_v8_luma_mmxext( pix,   stride, alpha, beta, tc0   );
     x264_deblock_v8_luma_mmxext( pix+8, stride, alpha, beta, tc0+2 );
+}
+void x264_deblock_v_luma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta )
+{
+    x264_deblock_v8_luma_intra_mmxext( pix,   stride, alpha, beta );
+    x264_deblock_v8_luma_intra_mmxext( pix+8, stride, alpha, beta );
 }
 #endif
 #endif
@@ -793,11 +802,15 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
 #ifdef ARCH_X86
         pf->deblock_v_luma = x264_deblock_v_luma_mmxext;
         pf->deblock_h_luma = x264_deblock_h_luma_mmxext;
+        pf->deblock_v_luma_intra = x264_deblock_v_luma_intra_mmxext;
+        pf->deblock_h_luma_intra = x264_deblock_h_luma_intra_mmxext;
 #endif
         if( cpu&X264_CPU_SSE2 )
         {
             pf->deblock_v_luma = x264_deblock_v_luma_sse2;
             pf->deblock_h_luma = x264_deblock_h_luma_sse2;
+            pf->deblock_v_luma_intra = x264_deblock_v_luma_intra_sse2;
+            pf->deblock_h_luma_intra = x264_deblock_h_luma_intra_sse2;
         }
     }
 #endif
