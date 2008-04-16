@@ -22,6 +22,8 @@
 
 %include "x86inc.asm"
 
+SECTION_RODATA
+
 SECTION .text
 
 cextern x264_cabac_range_lps
