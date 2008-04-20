@@ -41,6 +41,7 @@ static uint16_t cabac_prefix_size[15][128];
 
 /* CABAC: not exactly the same. x264_cabac_size_decision() keeps track of
  * fractional bits, but only finite precision. */
+#undef  x264_cabac_encode_decision
 #define x264_cabac_encode_decision(c,x,v) x264_cabac_size_decision(c,x,v)
 #define x264_cabac_encode_terminal(c)     x264_cabac_size_decision(c,276,0)
 #define x264_cabac_encode_bypass(c,v)     ((c)->f8_bits_encoded += 256)

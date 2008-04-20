@@ -854,6 +854,36 @@ static int check_intra( int cpu_ref, int cpu_new )
     return ret;
 }
 
+#define DECL_CABAC(cpu) \
+static void run_cabac_##cpu( uint8_t *dst )\
+{\
+    int i;\
+    x264_cabac_t cb;\
+    x264_cabac_context_init( &cb, SLICE_TYPE_P, 26, 0 );\
+    x264_cabac_encode_init( &cb, dst, dst+0xff0 );\
+    for( i=0; i<0x400; i++ )\
+        x264_cabac_encode_decision_##cpu( &cb, buf1[i]>>1, buf1[i]&1 );\
+}
+DECL_CABAC(c)
+#ifdef HAVE_MMX
+DECL_CABAC(asm)
+#else
+#define run_cabac_asm run_cabac_c
+#endif
+
+static int check_cabac( int cpu_ref, int cpu_new )
+{
+    int ret = 0, ok, used_asm = 1;
+    if( cpu_ref || run_cabac_c == run_cabac_asm)
+        return 0;
+    memcpy( buf4, buf3, 0x1000 );
+    call_c( run_cabac_c, buf3 );
+    call_a( run_cabac_asm, buf4 );
+    ok = !memcmp( buf3, buf4, 0x1000 );
+    report( "cabac :" );
+    return ret;
+}
+
 int check_all( int cpu_ref, int cpu_new )
 {
     return check_pixel( cpu_ref, cpu_new )
@@ -861,7 +891,8 @@ int check_all( int cpu_ref, int cpu_new )
          + check_mc( cpu_ref, cpu_new )
          + check_intra( cpu_ref, cpu_new )
          + check_deblock( cpu_ref, cpu_new )
-         + check_quant( cpu_ref, cpu_new );
+         + check_quant( cpu_ref, cpu_new )
+         + check_cabac( cpu_ref, cpu_new );
 }
 
 int add_flags( int *cpu_ref, int *cpu_new, int flags, const char *name )

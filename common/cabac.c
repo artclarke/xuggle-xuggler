@@ -895,8 +895,7 @@ static inline void x264_cabac_encode_renorm( x264_cabac_t *cb )
     x264_cabac_putbyte( cb );
 }
 
-#ifndef HAVE_MMX
-void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx, int b )
+void x264_cabac_encode_decision_c( x264_cabac_t *cb, int i_ctx, int b )
 {
     int i_state = cb->state[i_ctx];
     int i_range_lps = x264_cabac_range_lps[i_state][(cb->i_range>>6)&0x03];
@@ -909,7 +908,6 @@ void x264_cabac_encode_decision( x264_cabac_t *cb, int i_ctx, int b )
     cb->state[i_ctx] = x264_cabac_transition[i_state][b];
     x264_cabac_encode_renorm( cb );
 }
-#endif
 
 void x264_cabac_encode_bypass( x264_cabac_t *cb, int b )
 {
