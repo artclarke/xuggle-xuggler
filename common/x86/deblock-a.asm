@@ -777,19 +777,11 @@ INIT_MMX
 ;-----------------------------------------------------------------------------
 cglobal x264_deblock_v_chroma_mmxext, 5,6
     CHROMA_V_START
-
     movq  m0, [t5]
     movq  m1, [t5+r1]
     movq  m2, [r0]
     movq  m3, [r0+r1]
-
-    LOAD_MASK  r2d, r3d
-    movd       m6, [r4] ; tc0
-    punpcklbw  m6, m6
-    pand       m7, m6
-    picgetgot r4
-    DEBLOCK_P0_Q0
-
+    call chroma_inter_body_mmxext
     movq  [t5+r1], m1
     movq  [r0], m2
     RET
@@ -799,29 +791,31 @@ cglobal x264_deblock_v_chroma_mmxext, 5,6
 ;-----------------------------------------------------------------------------
 cglobal x264_deblock_h_chroma_mmxext, 5,7
 %ifdef ARCH_X86_64
-    %define buf0 [rsp-16]
-    %define buf1 [rsp-8]
+    %define buf0 [rsp-24]
+    %define buf1 [rsp-16]
 %else
     %define buf0 r0m
     %define buf1 r2m
 %endif
     CHROMA_H_START
-
     TRANSPOSE4x8_LOAD  PASS8ROWS(t5, r0, r1, t6)
     movq  buf0, m0
     movq  buf1, m3
+    call chroma_inter_body_mmxext
+    movq  m0, buf0
+    movq  m3, buf1
+    TRANSPOSE8x4_STORE PASS8ROWS(t5, r0, r1, t6)
+    RET
 
+ALIGN 16
+chroma_inter_body_mmxext:
     LOAD_MASK  r2d, r3d
     movd       m6, [r4] ; tc0
     punpcklbw  m6, m6
     pand       m7, m6
     picgetgot r4
     DEBLOCK_P0_Q0
-
-    movq  m0, buf0
-    movq  m3, buf1
-    TRANSPOSE8x4_STORE PASS8ROWS(t5, r0, r1, t6)
-    RET
+    ret
 
 
 
@@ -836,10 +830,39 @@ cglobal x264_deblock_h_chroma_mmxext, 5,7
     pavgb   %1, %2             ; dst = avg(p1, avg(p0,q1) - ((p0^q1)&1))
 %endmacro
 
-%macro CHROMA_INTRA_BODY 0
+%define t5 r4
+%define t6 r5
+
+;-----------------------------------------------------------------------------
+; void x264_deblock_v_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta )
+;-----------------------------------------------------------------------------
+cglobal x264_deblock_v_chroma_intra_mmxext, 4,5
+    CHROMA_V_START
+    movq  m0, [t5]
+    movq  m1, [t5+r1]
+    movq  m2, [r0]
+    movq  m3, [r0+r1]
+    call chroma_intra_body_mmxext
+    movq  [t5+r1], m1
+    movq  [r0], m2
+    RET
+
+;-----------------------------------------------------------------------------
+; void x264_deblock_h_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta )
+;-----------------------------------------------------------------------------
+cglobal x264_deblock_h_chroma_intra_mmxext, 4,6
+    CHROMA_H_START
+    TRANSPOSE4x8_LOAD  PASS8ROWS(t5, r0, r1, t6)
+    call chroma_intra_body_mmxext
+    TRANSPOSE8x4_STORE PASS8ROWS(t5, r0, r1, t6)
+    RET
+
+ALIGN 16
+chroma_intra_body_mmxext:
     LOAD_MASK r2d, r3d
     movq   m5, m1
     movq   m6, m2
+    picgetgot r2
     CHROMA_INTRA_P0  m1, m0, m3
     CHROMA_INTRA_P0  m2, m3, m0
     psubb  m1, m5
@@ -848,35 +871,4 @@ cglobal x264_deblock_h_chroma_mmxext, 5,7
     pand   m2, m7
     paddb  m1, m5
     paddb  m2, m6
-%endmacro
-
-%define t5 r4
-%define t6 r5
-
-;-----------------------------------------------------------------------------
-; void x264_deblock_v_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta )
-;-----------------------------------------------------------------------------
-cglobal x264_deblock_v_chroma_intra_mmxext, 4,5,1
-    CHROMA_V_START
-
-    movq  m0, [t5]
-    movq  m1, [t5+r1]
-    movq  m2, [r0]
-    movq  m3, [r0+r1]
-
-    CHROMA_INTRA_BODY
-
-    movq  [t5+r1], m1
-    movq  [r0], m2
-    RET
-
-;-----------------------------------------------------------------------------
-; void x264_deblock_h_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta )
-;-----------------------------------------------------------------------------
-cglobal x264_deblock_h_chroma_intra_mmxext, 4,6,1
-    CHROMA_H_START
-    TRANSPOSE4x8_LOAD  PASS8ROWS(t5, r0, r1, t6)
-    CHROMA_INTRA_BODY
-    TRANSPOSE8x4_STORE PASS8ROWS(t5, r0, r1, t6)
-    RET
-
+    ret
