@@ -466,3 +466,7 @@ INIT_MMX
     %endif
 %endmacro
 
+; substitutions which are functionally identical but reduce code size
+%define movdqa movaps
+%define movdqu movups
+
