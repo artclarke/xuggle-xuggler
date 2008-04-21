@@ -316,6 +316,7 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "      --threads <integer>     Parallel encoding\n" );
     H0( "      --thread-input          Run Avisynth in its own thread\n" );
     H1( "      --non-deterministic     Slightly improve quality of SMP, at the cost of repeatability\n" );
+    H1( "      --asm <integer>         Override CPU detection\n" );
     H1( "      --no-asm                Disable all CPU optimizations\n" );
     H1( "      --visualize             Show MB types overlayed on the encoded video\n" );
     H1( "      --sps-id <integer>      Set SPS and PPS id numbers [%d]\n", defaults->i_sps_id );
@@ -392,6 +393,7 @@ static int  Parse( int argc, char **argv,
             { "qpstep",  required_argument, NULL, 0 },
             { "crf",     required_argument, NULL, 0 },
             { "ref",     required_argument, NULL, 'r' },
+            { "asm",     required_argument, NULL, 0 },
             { "no-asm",  no_argument,       NULL, 0 },
             { "sar",     required_argument, NULL, 0 },
             { "fps",     required_argument, NULL, 0 },

@@ -570,6 +570,7 @@ static void mbcmp_init( x264_t *h )
 x264_t *x264_encoder_open   ( x264_param_t *param )
 {
     x264_t *h = x264_malloc( sizeof( x264_t ) );
+    char buf[1000], *p;
     int i;
 
     memset( h, 0, sizeof( x264_t ) );
@@ -684,19 +685,14 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     mbcmp_init( h );
 
-    x264_log( h, X264_LOG_INFO, "using cpu capabilities: %s%s%s%s%s%s%s%s%s%s\n",
-             param->cpu&X264_CPU_MMX ? "MMX " : "",
-             param->cpu&X264_CPU_MMXEXT ? "MMXEXT " : "",
-             param->cpu&X264_CPU_SSE ? "SSE " : "",
-             param->cpu&X264_CPU_SSE2 ? "SSE2 " : "",
-             param->cpu&X264_CPU_SSE3 ? "SSE3 " : "",
-             param->cpu&X264_CPU_SSSE3 ? "SSSE3 " : "",
-             param->cpu&X264_CPU_3DNOW ? "3DNow! " : "",
-             param->cpu&X264_CPU_ALTIVEC ? "Altivec " : "",
-             param->cpu&X264_CPU_CACHELINE_SPLIT ?
-                 param->cpu&X264_CPU_CACHELINE_32 ? "Cache32 " :
-                 param->cpu&X264_CPU_CACHELINE_64 ? "Cache64 " : "Cache? " : "",
-             param->cpu ? "" : "none!" );
+    p = buf + sprintf( buf, "using cpu capabilities:" );
+    for( i=0; x264_cpu_names[i].flags; i++ )
+        if( (param->cpu & x264_cpu_names[i].flags) == x264_cpu_names[i].flags
+            && (!i || x264_cpu_names[i].flags != x264_cpu_names[i-1].flags) )
+            p += sprintf( p, " %s", x264_cpu_names[i].name );
+    if( !param->cpu )
+        p += sprintf( p, " none!" );
+    x264_log( h, X264_LOG_INFO, "%s\n", buf );
 
     h->out.i_nal = 0;
     h->out.i_bitstream = X264_MAX( 1000000, h->param.i_width * h->param.i_height * 4

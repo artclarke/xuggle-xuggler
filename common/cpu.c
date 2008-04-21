@@ -35,6 +35,25 @@
 
 #include "common.h"
 
+const struct {
+    const char name[8];
+    int flags;
+} x264_cpu_names[] = {
+    {"MMX",     X264_CPU_MMX},
+    {"MMX2",    X264_CPU_MMX|X264_CPU_MMXEXT},
+    {"MMXEXT",  X264_CPU_MMX|X264_CPU_MMXEXT},
+    {"SSE",     X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE},
+    {"SSE1",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE},
+    {"SSE2",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2},
+    {"SSE3",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3},
+    {"SSSE3",   X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3},
+    {"3DNow",   X264_CPU_3DNOW},
+    {"Altivec", X264_CPU_ALTIVEC},
+    {"Cache32", X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_32},
+    {"Cache64", X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_64},
+    {"", 0},
+};
+
 #ifdef HAVE_MMX
 extern int  x264_cpu_cpuid_test( void );
 extern uint32_t  x264_cpu_cpuid( uint32_t op, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx );

@@ -22,6 +22,7 @@
  *****************************************************************************/
 
 #include <stdarg.h>
+#include <ctype.h>
 
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
@@ -239,7 +240,25 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
 #define OPT2(STR0, STR1) else if( !strcmp( name, STR0 ) || !strcmp( name, STR1 ) )
     if(0);
     OPT("asm")
-        p->cpu = atobool(value) ? x264_cpu_detect() : 0;
+    {
+        p->cpu = isdigit(value[0]) ? atoi(value) :
+                 !strcmp(value, "auto") || atobool(value) ? x264_cpu_detect() : 0;
+        if( b_error )
+        {
+            char *buf = strdup(value);
+            char *tok, *saveptr, *init;
+            b_error = 0;
+            p->cpu = 0;
+            for( init=buf; (tok=strtok_r(init, ",", &saveptr)); init=NULL )
+            {
+                for( i=0; x264_cpu_names[i].flags && strcasecmp(tok, x264_cpu_names[i].name); i++ );
+                p->cpu |= x264_cpu_names[i].flags;
+                if( !x264_cpu_names[i].flags )
+                    b_error = 1;
+            }
+            free( buf );
+        }
+    }
     OPT("threads")
     {
         if( !strcmp(value, "auto") )

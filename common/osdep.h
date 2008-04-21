@@ -35,6 +35,7 @@
 #include <io.h>    // _setmode()
 #include <fcntl.h> // _O_BINARY
 #define inline __inline
+#define strcasecmp stricmp
 #define strncasecmp strnicmp
 #define snprintf _snprintf
 #define fseek _fseeki64
