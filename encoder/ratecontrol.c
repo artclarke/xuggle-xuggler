@@ -174,27 +174,37 @@ static inline double qscale2bits(ratecontrol_entry_t *rce, double qscale)
 }
 
 // Find the total AC energy of the block in all planes.
-static int ac_energy_mb( x264_t *h, int mb_x, int mb_y, int *satd )
+static NOINLINE int ac_energy_mb( x264_t *h, int mb_x, int mb_y, int *satd )
 {
+    /* This function contains annoying hacks because GCC has a habit of reordering emms
+     * and putting it after floating point ops.  As a result, we put the emms at the end of the
+     * function and make sure that its always called before the float math.  Noinline makes
+     * sure no reordering goes on. */
     DECLARE_ALIGNED_16( static uint8_t flat[16] ) = {128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128};
     unsigned int var=0, sad, ssd, i;
-    for( i=0; i<3; i++ )
+    if( satd || h->param.rc.i_aq_mode == X264_AQ_GLOBAL )
     {
-        int w = i ? 8 : 16;
-        int stride = h->fenc->i_stride[i];
-        int offset = h->mb.b_interlaced
-            ? w * (mb_x + (mb_y&~1) * stride) + (mb_y&1) * stride
-            : w * (mb_x + mb_y * stride);
-        int pix = i ? PIXEL_8x8 : PIXEL_16x16;
-        stride <<= h->mb.b_interlaced;
-        sad = h->pixf.sad[pix]( flat, 0, h->fenc->plane[i]+offset, stride );
-        ssd = h->pixf.ssd[pix]( flat, 0, h->fenc->plane[i]+offset, stride );
-        var += ssd - (sad * sad >> (i?6:8));
-        // SATD to represent the block's overall complexity (bit cost) for intra encoding.
-        // exclude the DC coef, because nothing short of an actual intra prediction will estimate DC cost.
-        if( var && satd )
-            *satd += h->pixf.satd[pix]( flat, 0, h->fenc->plane[i]+offset, stride ) - sad/2;
+        for( i=0; i<3; i++ )
+        {
+            int w = i ? 8 : 16;
+            int stride = h->fenc->i_stride[i];
+            int offset = h->mb.b_interlaced
+                ? w * (mb_x + (mb_y&~1) * stride) + (mb_y&1) * stride
+                : w * (mb_x + mb_y * stride);
+            int pix = i ? PIXEL_8x8 : PIXEL_16x16;
+            stride <<= h->mb.b_interlaced;
+            sad = h->pixf.sad[pix]( flat, 0, h->fenc->plane[i]+offset, stride );
+            ssd = h->pixf.ssd[pix]( flat, 0, h->fenc->plane[i]+offset, stride );
+            var += ssd - (sad * sad >> (i?6:8));
+            // SATD to represent the block's overall complexity (bit cost) for intra encoding.
+            // exclude the DC coef, because nothing short of an actual intra prediction will estimate DC cost.
+            if( var && satd )
+                *satd += h->pixf.satd[pix]( flat, 0, h->fenc->plane[i]+offset, stride ) - sad/2;
+        }
+        var = X264_MAX(var,1);
     }
+    else var = h->rc->ac_energy[h->mb.i_mb_xy];
+    x264_cpu_restore(h->param.cpu);
     return var;
 }
 
@@ -208,20 +218,16 @@ void x264_autosense_aq( x264_t *h )
     for( mb_y=0; mb_y<h->sps->i_mb_height; mb_y++ )
         for( mb_x=0; mb_x<h->sps->i_mb_width; mb_x++ )
         {
-            int energy, satd=0;
-            energy = ac_energy_mb( h, mb_x, mb_y, &satd );
+            int satd=0;
+            int energy = ac_energy_mb( h, mb_x, mb_y, &satd );
             h->rc->ac_energy[mb_x + mb_y * h->sps->i_mb_width] = energy;
             /* Weight the energy value by the SATD value of the MB.
              * This represents the fact that the more complex blocks in a frame should
              * be weighted more when calculating the optimal threshold. This also helps
              * diminish the negative effect of large numbers of simple blocks in a frame,
              * such as in the case of a letterboxed film. */
-            if( energy )
-            {
-                x264_cpu_restore(h->param.cpu);
-                total += logf(energy) * satd;
-                n += satd;
-            }
+            total += logf(energy) * satd;
+            n += satd;
         }
     x264_cpu_restore(h->param.cpu);
     /* Calculate and store the threshold. */
@@ -238,26 +244,16 @@ void x264_autosense_aq( x264_t *h )
 void x264_adaptive_quant( x264_t *h )
 {
     int qp = h->mb.i_qp;
-    int energy = h->param.rc.i_aq_mode == X264_AQ_GLOBAL
-               ? ac_energy_mb( h, h->mb.i_mb_x, h->mb.i_mb_y, NULL )
-               : h->rc->ac_energy[h->mb.i_mb_xy];
-    if( energy == 0 )
+    int energy = ac_energy_mb( h, h->mb.i_mb_x, h->mb.i_mb_y, NULL );
+    /* Adjust the QP based on the AC energy of the macroblock. */
+    float qp_adj = 1.5 * (logf(energy) - h->rc->aq_threshold);
+    if( h->param.rc.i_aq_mode == X264_AQ_LOCAL )
+        qp_adj = x264_clip3f( qp_adj, -5, 5 );
+    h->mb.i_qp = x264_clip3( qp + qp_adj * h->param.rc.f_aq_strength + .5, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
+    /* If the QP of this MB is within 1 of the previous MB, code the same QP as the previous MB,
+     * to lower the bit cost of the qp_delta. */
+    if( abs(h->mb.i_qp - h->mb.i_last_qp) == 1 )
         h->mb.i_qp = h->mb.i_last_qp;
-    else
-    {
-        float result, qp_adj;
-        x264_cpu_restore(h->param.cpu);
-        result = energy;
-        /* Adjust the QP based on the AC energy of the macroblock. */
-        qp_adj = 1.5 * (logf(result) - h->rc->aq_threshold);
-        if( h->param.rc.i_aq_mode == X264_AQ_LOCAL )
-            qp_adj = x264_clip3f( qp_adj, -5, 5 );
-        h->mb.i_qp = x264_clip3( qp + qp_adj * h->param.rc.f_aq_strength + .5, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
-        /* If the QP of this MB is within 1 of the previous MB, code the same QP as the previous MB,
-         * to lower the bit cost of the qp_delta. */
-        if( abs(h->mb.i_qp - h->mb.i_last_qp) == 1 )
-            h->mb.i_qp = h->mb.i_last_qp;
-    }
     h->mb.i_chroma_qp = i_chroma_qp_table[x264_clip3( h->mb.i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )];
 }
 
