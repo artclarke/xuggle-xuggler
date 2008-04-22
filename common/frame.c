@@ -62,13 +62,13 @@ x264_frame_t *x264_frame_new( x264_t *h )
     for( i = 1; i < 3; i++ )
     {
         CHECKED_MALLOC( frame->buffer[i], luma_plane_size/4 );
-        frame->plane[i] = frame->buffer[i] + (frame->i_stride[i] * i_padv + PADH)/2;
+        frame->plane[i] = (uint8_t*)frame->buffer[i] + (frame->i_stride[i] * i_padv + PADH)/2;
     }
     /* all 4 luma planes allocated together, since the cacheline split code
      * requires them to be in-phase wrt cacheline alignment. */
     CHECKED_MALLOC( frame->buffer[0], 4*luma_plane_size);
     for( i = 0; i < 4; i++ )
-        frame->filtered[i] = frame->buffer[0] + i*luma_plane_size + frame->i_stride[0] * i_padv + PADH;
+        frame->filtered[i] = (uint8_t*)frame->buffer[0] + i*luma_plane_size + frame->i_stride[0] * i_padv + PADH;
     frame->plane[0] = frame->filtered[0];
 
     if( h->frames.b_have_lowres )
