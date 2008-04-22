@@ -102,9 +102,7 @@ PIXEL_AVG_WTAB(cache32_mmxext, mmxext, cache32_mmxext, cache32_mmxext, cache32_m
 PIXEL_AVG_WTAB(cache64_mmxext, mmxext, cache64_mmxext, cache64_mmxext, cache64_mmxext, cache64_mmxext)
 PIXEL_AVG_WTAB(sse2, mmxext, mmxext, mmxext, sse2, sse2)
 PIXEL_AVG_WTAB(cache64_sse2, mmxext, cache64_mmxext, cache64_sse2, cache64_sse2, cache64_sse2)
-#ifdef HAVE_SSE3
 PIXEL_AVG_WTAB(cache64_sse3, mmxext, cache64_mmxext, sse3, sse3, sse3)
-#endif
 
 #define MC_COPY_WTAB(instr, name1, name2, name3)\
 static void (* const x264_mc_copy_wtab_##instr[5])( uint8_t *, int, uint8_t *, int, int ) =\
@@ -118,9 +116,7 @@ static void (* const x264_mc_copy_wtab_##instr[5])( uint8_t *, int, uint8_t *, i
 
 MC_COPY_WTAB(mmx,mmx,mmx,mmx)
 MC_COPY_WTAB(sse2,mmx,mmx,sse2)
-#ifdef HAVE_SSE3
 MC_COPY_WTAB(sse3,mmx,mmx,sse3)
-#endif
 
 static const int hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
 static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
@@ -155,9 +151,7 @@ MC_LUMA(cache64_mmxext,cache64_mmxext,mmx)
 #endif
 MC_LUMA(sse2,sse2,sse2)
 MC_LUMA(cache64_sse2,cache64_sse2,sse2)
-#ifdef HAVE_SSE3
 MC_LUMA(cache64_sse3,cache64_sse3,sse3)
-#endif
 
 #define GET_REF(name)\
 uint8_t *get_ref_##name( uint8_t *dst,   int *i_dst_stride,\
@@ -190,9 +184,7 @@ GET_REF(cache64_mmxext)
 #endif
 GET_REF(sse2)
 GET_REF(cache64_sse2)
-#ifdef HAVE_SSE3
 GET_REF(cache64_sse3)
-#endif
 
 #define HPEL(align, cpu, cpuv, cpuc, cpuh)\
 void x264_hpel_filter_v_##cpuv( uint8_t *dst, uint8_t *src, int16_t *buf, int stride, int width);\
@@ -227,9 +219,7 @@ void x264_hpel_filter_##cpu( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_
 HPEL(8, mmxext, mmxext, mmxext, mmxext)
 HPEL(16, sse2_amd, mmxext, mmxext, sse2)
 HPEL(16, sse2, sse2, sse2, sse2)
-#ifdef HAVE_SSE3
 HPEL(16, ssse3, sse2, ssse3, sse2)
-#endif
 
 void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 {
@@ -305,20 +295,16 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     {
         pf->mc_luma = mc_luma_cache64_sse2;
         pf->get_ref = get_ref_cache64_sse2;
-#ifdef HAVE_SSE3
         /* lddqu doesn't work on Core2 */
         if( (cpu&X264_CPU_SSE3) && !(cpu&X264_CPU_SSSE3) )
         {
             pf->mc_luma = mc_luma_cache64_sse3;
             pf->get_ref = get_ref_cache64_sse3;
         }
-#endif
     }
 
     if( !(cpu&X264_CPU_SSSE3) )
         return;
 
-#ifdef HAVE_SSE3
     pf->hpel_filter = x264_hpel_filter_ssse3;
-#endif
 }

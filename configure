@@ -321,12 +321,8 @@ if [ $ARCH = X86 -o $ARCH = X86_64 ] ; then
          echo "yasm prior to 0.6.2 miscompiles PIC. trying nasm instead..."
          AS=nasm
     fi
-    if as_check ; then
+    if as_check "pabsw xmm0, xmm0" ; then
         CFLAGS="$CFLAGS -DHAVE_MMX"
-        if as_check "pabsw xmm0, xmm0" ; then
-            ASFLAGS="$ASFLAGS -DHAVE_SSE3"
-            CFLAGS="$CFLAGS -DHAVE_SSE3"
-        fi
     else
         echo "No suitable assembler found.  x264 will be several times slower."
         echo "Please install 'yasm' to get MMX/SSE optimized code."

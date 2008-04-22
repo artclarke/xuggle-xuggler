@@ -1272,7 +1272,6 @@ SATDS_SSE2 sse2
 SA8D_16x16_32 sse2
 INTRA_SA8D_SSE2 sse2
 INTRA_SATDS_MMX mmxext
-%ifdef HAVE_SSE3
 %define ABS1 ABS1_SSSE3
 %define ABS2 ABS2_SSSE3
 SATDS_SSE2 ssse3
@@ -1280,7 +1279,6 @@ SA8D_16x16_32 ssse3
 INTRA_SA8D_SSE2 ssse3
 INTRA_SATDS_MMX ssse3
 SATD_W4 ssse3 ; mmx, but uses pabsw from ssse3.
-%endif
 
 
 
@@ -1655,10 +1653,8 @@ cglobal x264_pixel_ads1_%1, 4,7
 %endmacro
 
 ADS_SSE2 sse2
-%ifdef HAVE_SSE3
 %define ABS1 ABS1_SSSE3
 ADS_SSE2 ssse3
-%endif
 
 ; int x264_pixel_ads_mvs( int16_t *mvs, uint8_t *masks, int width )
 ; {

@@ -309,10 +309,8 @@ cglobal x264_hpel_filter_h_sse2, 3,3,1
 %define PALIGNR PALIGNR_SSE2
 HPEL_V sse2
 HPEL_C sse2
-%ifdef HAVE_SSE3
 %define PALIGNR PALIGNR_SSSE3
 HPEL_C ssse3
-%endif
 
 cglobal x264_sfence
     sfence

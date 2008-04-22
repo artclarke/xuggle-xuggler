@@ -145,11 +145,9 @@ QUANT_DC x264_quant_4x4_dc_sse2, QUANT_MMX, 2, 16
 QUANT_AC x264_quant_4x4_sse2, QUANT_MMX, 2, 16
 QUANT_AC x264_quant_8x8_sse2, QUANT_MMX, 8, 16
 
-%ifdef HAVE_SSE3
 QUANT_DC x264_quant_4x4_dc_ssse3, QUANT_SSSE3, 2, 16
 QUANT_AC x264_quant_4x4_ssse3, QUANT_SSSE3, 2, 16
 QUANT_AC x264_quant_8x8_ssse3, QUANT_SSSE3, 8, 16
-%endif
 
 
 

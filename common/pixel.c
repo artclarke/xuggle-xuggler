@@ -359,9 +359,7 @@ SATD_X_DECL7()
 #ifdef HAVE_MMX
 SATD_X_DECL7( _mmxext )
 SATD_X_DECL5( _sse2 )
-#ifdef HAVE_SSE3
 SATD_X_DECL7( _ssse3 )
-#endif
 #endif
 
 /****************************************************************************
@@ -623,7 +621,6 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
 #endif
     }
 
-#ifdef HAVE_SSE3
     if( (cpu&X264_CPU_SSE3) && (cpu&X264_CPU_CACHELINE_SPLIT) )
     {
         INIT2( sad, _sse3 );
@@ -652,7 +649,6 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
             INIT2( sad_x4, _cache64_ssse3 );
         }
     }
-#endif //HAVE_SSE3
 #endif //HAVE_MMX
 
 #ifdef ARCH_PPC

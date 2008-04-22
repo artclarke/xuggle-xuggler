@@ -240,16 +240,14 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
             pf->dequant_8x8 = x264_dequant_8x8_flat16_sse2;
         }
     }
-#endif
 
-#ifdef HAVE_SSE3
     if( cpu&X264_CPU_SSSE3 )
     {
         pf->quant_4x4_dc = x264_quant_4x4_dc_ssse3;
         pf->quant_4x4 = x264_quant_4x4_ssse3;
         pf->quant_8x8 = x264_quant_8x8_ssse3;
     }
-#endif
+#endif // HAVE_MMX
 
 #ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC ) {

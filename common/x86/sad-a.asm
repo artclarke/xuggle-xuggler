@@ -25,7 +25,7 @@
 %include "x86inc.asm"
 
 SECTION_RODATA
-sw_64: dq 64
+sw_64: dd 64
 
 SECTION .text
 
@@ -213,11 +213,9 @@ cglobal x264_pixel_sad_16x8_%1, 4,4
 %endmacro
 
 SAD_W16 sse2
-%ifdef HAVE_SSE3
 %define movdqu lddqu
 SAD_W16 sse3
 %undef movdqu
-%endif
 
 
 
@@ -613,14 +611,12 @@ SAD_X_SSE2 3, 16,  8, sse2
 SAD_X_SSE2 4, 16, 16, sse2
 SAD_X_SSE2 4, 16,  8, sse2
 
-%ifdef HAVE_SSE3
 %define movdqu lddqu
 SAD_X_SSE2 3, 16, 16, sse3
 SAD_X_SSE2 3, 16,  8, sse3
 SAD_X_SSE2 4, 16, 16, sse3
 SAD_X_SSE2 4, 16,  8, sse3
 %undef movdqu
-%endif
 
 
 
@@ -961,7 +957,6 @@ SADX34_CACHELINE_FUNC 16, 16, 64, sse2, sse2
 SADX34_CACHELINE_FUNC 16,  8, 64, sse2, sse2
 %endif ; !ARCH_X86_64
 
-%ifdef HAVE_SSE3
 SAD16_CACHELINE_FUNC ssse3, 8
 SAD16_CACHELINE_FUNC ssse3, 16
 %assign i 1
@@ -971,4 +966,3 @@ SAD16_CACHELINE_LOOP_SSSE3 i
 %endrep
 SADX34_CACHELINE_FUNC 16, 16, 64, sse2, ssse3
 SADX34_CACHELINE_FUNC 16,  8, 64, sse2, ssse3
-%endif ; HAVE_SSE3

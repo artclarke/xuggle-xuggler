@@ -275,11 +275,9 @@ cglobal x264_pixel_avg2_w20_%1, 6,7
 %endmacro
 
 PIXEL_AVG_SSE sse2
-%ifdef HAVE_SSE3
 %define movdqu lddqu
 PIXEL_AVG_SSE sse3
 %undef movdqu
-%endif
 
 ; Cacheline split code for processors with high latencies for loads
 ; split over cache lines.  See sad-a.asm for a more detailed explanation.
@@ -481,9 +479,7 @@ cglobal %1, 5,7
 COPY_W16_SSE2 x264_mc_copy_w16_sse2, movdqu
 ; cacheline split with mmx has too much overhead; the speed benefit is near-zero.
 ; but with SSE3 the overhead is zero, so there's no reason not to include it.
-%ifdef HAVE_SSE3
 COPY_W16_SSE2 x264_mc_copy_w16_sse3, lddqu
-%endif
 COPY_W16_SSE2 x264_mc_copy_w16_aligned_sse2, movdqa
 
 

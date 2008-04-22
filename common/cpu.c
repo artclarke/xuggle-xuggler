@@ -84,12 +84,10 @@ uint32_t x264_cpu_detect( void )
         cpu |= X264_CPU_MMXEXT|X264_CPU_SSE;
     if( edx&0x04000000 )
         cpu |= X264_CPU_SSE2;
-#ifdef HAVE_SSE3
     if( ecx&0x00000001 )
         cpu |= X264_CPU_SSE3;
     if( ecx&0x00000200 )
         cpu |= X264_CPU_SSSE3;
-#endif
 
     x264_cpu_cpuid( 0x80000000, &eax, &ebx, &ecx, &edx );
     max_extended_cap = eax;

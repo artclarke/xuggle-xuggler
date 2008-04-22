@@ -325,7 +325,6 @@ cglobal x264_zigzag_scan_4x4_field_mmxext, 2,3
     mov    [r0+12], r2d
     RET
 
-%ifdef HAVE_SSE3
 ;-----------------------------------------------------------------------------
 ; void x264_zigzag_sub_4x4_frame_ssse3( int16_t level[16], const uint8_t *src, uint8_t *dst )
 ;-----------------------------------------------------------------------------
@@ -364,4 +363,3 @@ cglobal x264_zigzag_sub_4x4_frame_ssse3, 3,3
     movdqa    [r0], xmm0
     movdqa [r0+16], xmm1
     RET
-%endif
