@@ -496,9 +496,11 @@ me_hex2:
                 for( my = min_y; my <= max_y; my++ )
                 {
                     int ycost = p_cost_mvy[my<<2];
+                    if( bsad <= ycost )
+                        continue;
                     bsad -= ycost;
                     xn = h->pixf.ads[i_pixel]( enc_dc, sums_base + min_x + my * stride, delta,
-                                               cost_fpel_mvx+min_x, xs, width, X264_MAX(bsad,0)*17/16 );
+                                               cost_fpel_mvx+min_x, xs, width, bsad*17/16 );
                     for( i=0; i<xn-2; i+=3 )
                     {
                         uint8_t *ref = p_fref+min_x+my*stride;
@@ -567,12 +569,15 @@ me_hex2:
                 // just ADS and SAD
                 for( my = min_y; my <= max_y; my++ )
                 {
-                    bcost -= p_cost_mvy[my<<2];
+                    int ycost = p_cost_mvy[my<<2];
+                    if( bcost <= ycost )
+                        continue;
+                    bcost -= ycost;
                     xn = h->pixf.ads[i_pixel]( enc_dc, sums_base + min_x + my * stride, delta,
-                                               cost_fpel_mvx+min_x, xs, width, X264_MAX(bcost,0) );
+                                               cost_fpel_mvx+min_x, xs, width, bcost );
                     for( i=0; i<xn-2; i+=3 )
                         COST_MV_X3_ABS( min_x+xs[i],my, min_x+xs[i+1],my, min_x+xs[i+2],my );
-                    bcost += p_cost_mvy[my<<2];
+                    bcost += ycost;
                     for( ; i<xn; i++ )
                         COST_MV( min_x+xs[i], my );
                 }
