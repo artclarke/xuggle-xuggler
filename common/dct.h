@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _DCT_H
-#define _DCT_H 1
+#ifndef X264_DCT_H
+#define X264_DCT_H
 
 /* the inverse of the scaling factors introduced by 8x8 fdct */
 #define W(i) (i==0 ? FIX8(1.0000) :\

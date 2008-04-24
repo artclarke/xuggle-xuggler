@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _MC_H
-#define _MC_H 1
+#ifndef X264_MC_H
+#define X264_MC_H
 
 /* Do the MC
  * XXX: Only width = 4, 8 or 16 are valid

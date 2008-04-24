@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _COMMON_H
-#define _COMMON_H 1
+#ifndef X264_COMMON_H
+#define X264_COMMON_H
 
 /****************************************************************************
  * Macros

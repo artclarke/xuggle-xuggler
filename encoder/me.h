@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _ME_H
-#define _ME_H 1
+#ifndef X264_ME_H
+#define X264_ME_H
 
 #define COST_MAX (1<<28)
 

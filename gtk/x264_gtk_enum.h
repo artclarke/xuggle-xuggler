@@ -1,5 +1,5 @@
-#ifndef __X264_GTK_ENUM_H__
-#define __X264_GTK_ENUM_H__
+#ifndef X264_GTK_ENUM_H
+#define X264_GTK_ENUM_H
 
 typedef enum
 {
@@ -54,4 +54,4 @@ typedef enum
 }X264_Cqm_Preset;
 
 
-#endif /* __X264_GTK_ENUM_H__ */
+#endif /* X264_GTK_ENUM_H */

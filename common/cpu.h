@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _CPU_H
-#define _CPU_H 1
+#ifndef X264_CPU_H
+#define X264_CPU_H
 
 uint32_t x264_cpu_detect( void );
 int      x264_cpu_num_processors( void );

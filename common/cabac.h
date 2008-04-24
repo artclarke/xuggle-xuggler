@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _CABAC_H
-#define _CABAC_H 1
+#ifndef X264_CABAC_H
+#define X264_CABAC_H
 
 typedef struct
 {

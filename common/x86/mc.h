@@ -20,8 +20,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _I386_MC_H
-#define _I386_MC_H 1
+#ifndef X264_I386_MC_H
+#define X264_I386_MC_H
 
 void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf );
 

@@ -21,10 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifdef _BS_H
-#warning FIXME Multiple inclusion of bs.h
-#else
-#define _BS_H
+#ifndef X264_BS_H
+#define X264_BS_H
 
 typedef struct bs_s
 {

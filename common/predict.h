@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _PREDICT_H
-#define _PREDICT_H 1
+#ifndef X264_PREDICT_H
+#define X264_PREDICT_H
 
 typedef void (*x264_predict_t)( uint8_t *src );
 typedef void (*x264_predict8x8_t)( uint8_t *src, uint8_t edge[33] );

@@ -1,5 +1,5 @@
-#ifndef __X264_GTK_PRIVATE_H__
-#define __X264_GTK_PRIVATE_H__
+#ifndef X264_GTK_PRIVATE_H
+#define X264_GTK_PRIVATE_H
 
 
 #define __UNUSED__ __attribute__((unused))
@@ -171,4 +171,4 @@ struct X264_Gui_Zone_
 gchar *x264_gtk_path (const char* more_path);
 
 
-#endif /* __X264_GTK_PRIVATE_H__ */
+#endif /* X264_GTK_PRIVATE_H */

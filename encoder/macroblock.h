@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _ENCODER_MACROBLOCK_H
-#define _ENCODER_MACROBLOCK_H 1
+#ifndef X264_ENCODER_MACROBLOCK_H
+#define X264_ENCODER_MACROBLOCK_H
 
 #include "common/macroblock.h"
 

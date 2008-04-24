@@ -20,8 +20,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _I386_QUANT_H
-#define _I386_QUANT_H 1
+#ifndef X264_I386_QUANT_H
+#define X264_I386_QUANT_H
 
 void x264_quant_2x2_dc_mmxext( int16_t dct[2][2], int mf, int bias );
 void x264_quant_4x4_dc_mmxext( int16_t dct[4][4], int mf, int bias );

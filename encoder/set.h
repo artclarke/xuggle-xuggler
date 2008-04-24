@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _ENCODER_SET_H
-#define _ENCODER_SET_H 1
+#ifndef X264_ENCODER_SET_H
+#define X264_ENCODER_SET_H
 
 void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param );
 void x264_sps_write( bs_t *s, x264_sps_t *sps );

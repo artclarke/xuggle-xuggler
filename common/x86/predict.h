@@ -20,8 +20,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _I386_PREDICT_H
-#define _I386_PREDICT_H 1
+#ifndef X264_I386_PREDICT_H
+#define X264_I386_PREDICT_H
 
 void x264_predict_16x16_init_mmx ( int cpu, x264_predict_t pf[7] );
 void x264_predict_8x8c_init_mmx  ( int cpu, x264_predict_t pf[7] );

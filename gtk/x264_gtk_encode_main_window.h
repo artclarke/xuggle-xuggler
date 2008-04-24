@@ -1,8 +1,8 @@
-#ifndef __X264_GTK_ENCODE_MAIN_WINDOW_H__
-#define __X264_GTK_ENCODE_MAIN_WINDOW_H__
+#ifndef X264_GTK_ENCODE_MAIN_WINDOW_H
+#define X264_GTK_ENCODE_MAIN_WINDOW_H
 
 
 void x264_gtk_encode_main_window ();
 
 
-#endif /* __X264_GTK_ENCODE_MAIN_WINDOW_H__ */
+#endif /* X264_GTK_ENCODE_MAIN_WINDOW_H */

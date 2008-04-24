@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _FRAME_H
-#define _FRAME_H 1
+#ifndef X264_FRAME_H
+#define X264_FRAME_H
 
 /* number of pixels past the edge of the frame, for motion estimation/compensation */
 #define PADH 32

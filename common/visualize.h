@@ -20,8 +20,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _VISUALIZE_H
-#define _VISUALIZE_H 1
+#ifndef X264_VISUALIZE_H
+#define X264_VISUALIZE_H
 
 #include "common/common.h"
 

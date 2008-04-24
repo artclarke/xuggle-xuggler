@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _MACROBLOCK_H
-#define _MACROBLOCK_H 1
+#ifndef X264_MACROBLOCK_H
+#define X264_MACROBLOCK_H
 
 enum macroblock_position_e
 {

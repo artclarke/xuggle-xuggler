@@ -20,8 +20,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _DISPLAY_H
-#define _DISPLAY_H 1
+#ifndef X264_DISPLAY_H
+#define X264_DISPLAY_H
 
 void disp_sync(void);
 void disp_setcolor(unsigned char *name);

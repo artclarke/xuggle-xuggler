@@ -1,5 +1,5 @@
-#ifndef _X264_MUXERS_H_
-#define _X264_MUXERS_H_
+#ifndef X264_MUXERS_H
+#define X264_MUXERS_H
 
 typedef void *hnd_t;
 

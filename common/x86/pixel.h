@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _I386_PIXEL_H
-#define _I386_PIXEL_H 1
+#ifndef X264_I386_PIXEL_H
+#define X264_I386_PIXEL_H
 
 #define DECL_PIXELS( ret, name, suffix, args ) \
     ret x264_pixel_##name##_16x16_##suffix args;\

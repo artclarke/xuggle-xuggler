@@ -1,5 +1,5 @@
-#ifndef __X264_GTK_ENCODE_PRIVATE_H__
-#define __X264_GTK_ENCODE_PRIVATE_H__
+#ifndef X264_GTK_ENCODE_PRIVATE_H
+#define X264_GTK_ENCODE_PRIVATE_H
 
 
 #define __UNUSED__ __attribute__((unused))
@@ -43,4 +43,4 @@ struct X264_Pipe_Data_
 };
 
 
-#endif /* __X264_GTK_ENCODE_PRIVATE_H__ */
+#endif /* X264_GTK_ENCODE_PRIVATE_H */

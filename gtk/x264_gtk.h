@@ -1,5 +1,5 @@
-#ifndef __X264_GTK_H__
-#define __X264_GTK_H__
+#ifndef X264_GTK_H
+#define X264_GTK_H
 
 
 #include "x264_gtk_enum.h"
@@ -108,4 +108,4 @@ void          x264_gtk_shutdown (GtkWidget *dialog);
 void          x264_gtk_free (X264_Gtk *x264_gtk);
 
 
-#endif /* __X264_GTK_H__ */
+#endif /* X264_GTK_H */

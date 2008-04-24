@@ -1,5 +1,5 @@
-#ifndef __X264_GTK_MUXERS_H__
-#define __X264_GTK_MUXERS_H__
+#ifndef X264_GTK_MUXERS_H
+#define X264_GTK_MUXERS_H
 
 #include "../config.h"
 #include "../muxers.h"
@@ -15,4 +15,4 @@ typedef enum {
 } X264_Demuxer_Type;
 /* static int X264_Num_Demuxers = (int)X264_DEMUXER_UNKOWN; */
 
-#endif  /* __X264_GTK_MUXERS_H__ */
+#endif  /* X264_GTK_MUXERS_H */

@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _RATECONTROL_H
-#define _RATECONTROL_H 1
+#ifndef X264_RATECONTROL_H
+#define X264_RATECONTROL_H
 
 int  x264_ratecontrol_new   ( x264_t * );
 void x264_ratecontrol_delete( x264_t * );

@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _ANALYSE_H
-#define _ANALYSE_H 1
+#ifndef X264_ANALYSE_H
+#define X264_ANALYSE_H
 
 void x264_macroblock_analyse( x264_t *h );
 void x264_slicetype_decide( x264_t *h );

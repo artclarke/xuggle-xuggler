@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _PIXEL_H
-#define _PIXEL_H 1
+#ifndef X264_PIXEL_H
+#define X264_PIXEL_H
 
 // SSD assumes all args aligned
 // other cmp functions assume first arg aligned

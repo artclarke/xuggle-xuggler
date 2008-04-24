@@ -1,8 +1,8 @@
-#ifndef __X264_GTK_CQM_H__
-#define __X264_GTK_CQM_H__
+#ifndef X264_GTK_CQM_H
+#define X264_GTK_CQM_H
 
 
 GtkWidget *_cqm_page (X264_Gui_Config *config);
 
 
-#endif /* __X264_GTK_CQM_H__ */
+#endif /* X264_GTK_CQM_H */

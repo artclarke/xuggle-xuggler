@@ -20,8 +20,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _QUANT_H
-#define _QUANT_H 1
+#ifndef X264_QUANT_H
+#define X264_QUANT_H
 
 typedef struct
 {

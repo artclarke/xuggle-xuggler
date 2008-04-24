@@ -1,5 +1,5 @@
-#ifndef _X264_GTK_I18N_
-#define _X264_GTK_I18N_
+#ifndef X264_GTK_I18N_H
+#define X264_GTK_I18N_H
 
 
 #include <libintl.h>
@@ -8,7 +8,7 @@
 #define _(X) gettext(X)
 #define GETTEXT_DOMAIN "x264_gtk"
 
-#ifdef __X264_GTK_PRIVATE_H__
+#ifdef X264_GTK_PRIVATE_H
 /* x264_path must be known for this to work */
 #  define BIND_X264_TEXTDOMAIN()                        \
   gchar* _tmp = x264_gtk_path("locale");                    \
@@ -21,4 +21,4 @@
 #endif
 
 
-#endif /* _X264_GTK_I18N_ */
+#endif /* X264_GTK_I18N_H */

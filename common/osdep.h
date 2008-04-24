@@ -18,8 +18,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _OSDEP_H
-#define _OSDEP_H
+#ifndef X264_OSDEP_H
+#define X264_OSDEP_H
 
 #define _LARGEFILE_SOURCE 1
 #define _FILE_OFFSET_BITS 64
@@ -127,4 +127,4 @@
 #define x264_pthread_cond_wait(c,m)  usleep(100)
 #endif
 
-#endif //_OSDEP_H
+#endif /* X264_OSDEP_H */

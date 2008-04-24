@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _PPC_PIXEL_H
-#define _PPC_PIXEL_H 1
+#ifndef X264_PPC_PIXEL_H
+#define X264_PPC_PIXEL_H
 
 void x264_pixel_altivec_init( x264_pixel_function_t *pixf );
 

@@ -20,8 +20,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef _I386_DCT_H
-#define _I386_DCT_H 1
+#ifndef X264_I386_DCT_H
+#define X264_I386_DCT_H
 
 void x264_sub4x4_dct_mmx( int16_t dct[4][4],  uint8_t *pix1, uint8_t *pix2 );
 void x264_sub8x8_dct_mmx( int16_t dct[4][4][4],  uint8_t *pix1, uint8_t *pix2 );
