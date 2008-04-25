@@ -49,26 +49,26 @@ struct X264_Gtk_Encode_
 
 
 /* Callbacks */
-static gboolean _delete_window_cb    (GtkWidget   *widget,
+static gboolean x264_delete_window_cb    (GtkWidget   *widget,
                                       GdkEvent    *event,
                                       gpointer     user_data);
-static void     _configure_window_cb (GtkButton   *button,
+static void     x264_configure_window_cb (GtkButton   *button,
                                       gpointer     user_data);
-static void     _chooser_window_cb   (GtkDialog   *dialog,
+static void     x264_chooser_window_cb   (GtkDialog   *dialog,
                                       gint         res,
                                       gpointer     user_data);
-static void     _response_window_cb  (GtkDialog   *dialog,
+static void     x264_response_window_cb  (GtkDialog   *dialog,
                                       gint         res,
                                       gpointer     user_data);
-static void     _dimension_entry_cb  (GtkEditable *editable,
+static void     x264_dimension_entry_cb  (GtkEditable *editable,
                                       gpointer     user_data);
 
-static gboolean _fill_status_window (GIOChannel  *io,
+static gboolean x264_fill_status_window (GIOChannel  *io,
                                      GIOCondition condition,
                                      gpointer     user_data);
 /* Code */
 guint64
-_file_size(const char* name)
+x264_file_size(const char* name)
 {
   struct stat buf;
   memset(&buf, 0, sizeof(struct stat));
@@ -104,11 +104,11 @@ x264_gtk_encode_main_window ()
   gtk_window_set_icon (GTK_WINDOW (dialog), icon);
   g_signal_connect (G_OBJECT (dialog),
                     "delete-event",
-                    G_CALLBACK (_delete_window_cb),
+                    G_CALLBACK (x264_delete_window_cb),
                     encode);
   g_signal_connect (G_OBJECT (dialog),
                     "response",
-                    G_CALLBACK (_response_window_cb),
+                    G_CALLBACK (x264_response_window_cb),
                     encode);
   encode->main_dialog = dialog;
 
@@ -116,7 +116,7 @@ x264_gtk_encode_main_window ()
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->action_area), button, FALSE, TRUE, 6);
   g_signal_connect (G_OBJECT (button),
                     "clicked",
-                    G_CALLBACK (_configure_window_cb),
+                    G_CALLBACK (x264_configure_window_cb),
                     dialog);
   gtk_widget_show (button);
 
@@ -199,7 +199,7 @@ x264_gtk_encode_main_window ()
   gtk_file_chooser_add_filter (chooser, filter);
 #endif
   g_signal_connect_after(G_OBJECT (chooser), "response",
-                         G_CALLBACK (_chooser_window_cb),
+                         G_CALLBACK (x264_chooser_window_cb),
                          encode);
   encode->file_input = gtk_file_chooser_button_new_with_dialog (GTK_WIDGET(chooser));
   gtk_table_attach_defaults (GTK_TABLE (table), encode->file_input, 1, 2, 0, 1);
@@ -213,7 +213,7 @@ x264_gtk_encode_main_window ()
   encode->width = gtk_entry_new_with_max_length (255);
   gtk_entry_set_text (GTK_ENTRY (encode->width), "352");
   g_signal_connect_after(G_OBJECT (encode->width), "changed",
-                   G_CALLBACK (_dimension_entry_cb),
+                   G_CALLBACK (x264_dimension_entry_cb),
                    encode);
   gtk_table_attach_defaults (GTK_TABLE (table), encode->width, 1, 2, 1, 2);
   gtk_widget_show (encode->width);
@@ -227,7 +227,7 @@ x264_gtk_encode_main_window ()
   gtk_entry_set_text (GTK_ENTRY (encode->height), "288");
   gtk_table_attach_defaults (GTK_TABLE (table), encode->height, 1, 2, 2, 3);
   g_signal_connect_after(G_OBJECT (encode->height), "changed",
-                   G_CALLBACK (_dimension_entry_cb),
+                   G_CALLBACK (x264_dimension_entry_cb),
                    encode);
   gtk_widget_show (encode->height);
 
@@ -319,7 +319,7 @@ x264_gtk_encode_main_window ()
 /* Callbacks */
 
 static void
-_encode_shutdown (X264_Gtk_Encode *encode)
+x264_encode_shutdown (X264_Gtk_Encode *encode)
 {
   if (!encode) return;
 
@@ -328,18 +328,18 @@ _encode_shutdown (X264_Gtk_Encode *encode)
 }
 
 static gboolean
-_delete_window_cb (GtkWidget *widget UNUSED,
+x264_delete_window_cb (GtkWidget *widget UNUSED,
                    GdkEvent  *event UNUSED,
                    gpointer   user_data)
 {
   gtk_main_quit ();
-  _encode_shutdown ((X264_Gtk_Encode *)user_data);
+  x264_encode_shutdown ((X264_Gtk_Encode *)user_data);
 
   return TRUE;
 }
 
 static void
-_chooser_window_cb (GtkDialog *dialog,
+x264_chooser_window_cb (GtkDialog *dialog,
                     gint       res,
                     gpointer   user_data)
 {
@@ -468,7 +468,7 @@ _chooser_window_cb (GtkDialog *dialog,
     gtk_dialog_run (GTK_DIALOG (dialog_message));
     gtk_widget_destroy (dialog_message);
   }
-  encode->size = _file_size(in);
+  encode->size = x264_file_size(in);
 
   if (g_snprintf(buffer, BUFFER_LENGTH, "%i", param.i_width) > 0)
     gtk_entry_set_text (GTK_ENTRY (encode->width), buffer);
@@ -483,7 +483,7 @@ _chooser_window_cb (GtkDialog *dialog,
     gtk_entry_set_text (GTK_ENTRY (encode->frame_count), buffer);
 }
 static void
-_dimension_entry_cb (GtkEditable *editable,
+x264_dimension_entry_cb (GtkEditable *editable,
                      gpointer     user_data)
 {
   X264_Gtk_Encode *encode = (X264_Gtk_Encode *)user_data;
@@ -504,7 +504,7 @@ _dimension_entry_cb (GtkEditable *editable,
 }
 
 static void
-_configure_window_cb (GtkButton *button UNUSED,
+x264_configure_window_cb (GtkButton *button UNUSED,
                       gpointer   user_data)
 {
   GtkWidget *window;
@@ -514,7 +514,7 @@ _configure_window_cb (GtkButton *button UNUSED,
 }
 
 static void
-_response_window_cb (GtkDialog *dialog,
+x264_response_window_cb (GtkDialog *dialog,
                      gint       res,
                      gpointer   user_data)
 {
@@ -673,7 +673,7 @@ _response_window_cb (GtkDialog *dialog,
     g_io_channel_set_encoding (thread_data->io_write, NULL, NULL);
 
     g_io_add_watch (thread_data->io_read, G_IO_IN,
-                    (GIOFunc)_fill_status_window, thread_data);
+                    (GIOFunc)x264_fill_status_window, thread_data);
 
     win_status = x264_gtk_encode_status_window (thread_data);
     gtk_window_set_transient_for (GTK_WINDOW (win_status), GTK_WINDOW (dialog));
@@ -688,12 +688,12 @@ _response_window_cb (GtkDialog *dialog,
   case GTK_RESPONSE_CLOSE:
   default:
     gtk_main_quit ();
-    _encode_shutdown ((X264_Gtk_Encode *)user_data);
+    x264_encode_shutdown ((X264_Gtk_Encode *)user_data);
   }
 }
 
 static gboolean
-_fill_status_window (GIOChannel  *io UNUSED,
+x264_fill_status_window (GIOChannel  *io UNUSED,
                      GIOCondition condition UNUSED,
                      gpointer     user_data)
 {

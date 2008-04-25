@@ -11,9 +11,9 @@
 #ifdef X264_GTK_PRIVATE_H
 /* x264_path must be known for this to work */
 #  define BIND_X264_TEXTDOMAIN()                        \
-  gchar* _tmp = x264_gtk_path("locale");                    \
-  bindtextdomain(GETTEXT_DOMAIN, _tmp);                 \
-  g_free(_tmp);                                         \
+  gchar* x264_tmp = x264_gtk_path("locale");                    \
+  bindtextdomain(GETTEXT_DOMAIN, x264_tmp);                 \
+  g_free(x264_tmp);                                         \
   bind_textdomain_codeset (GETTEXT_DOMAIN, "UTF-8");    \
   textdomain(GETTEXT_DOMAIN)
 #else

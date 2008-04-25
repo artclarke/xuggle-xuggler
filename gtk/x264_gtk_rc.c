@@ -5,14 +5,14 @@
 
 
 /* Callbacks */
-static void _insert_numeric (GtkEditable *editable,
+static void x264_insert_numeric (GtkEditable *editable,
                              const gchar *text,
                              gint         length,
                              gint        *position,
                              gpointer     data);
 
 GtkWidget *
-_rate_control_page (X264_Gui_Config *config)
+x264_rate_control_page (X264_Gui_Config *config)
 {
   GtkWidget   *vbox;
   GtkWidget   *frame;
@@ -54,7 +54,7 @@ _rate_control_page (X264_Gui_Config *config)
   config->rate_control.bitrate.keyframe_boost = gtk_entry_new_with_max_length (3);
   g_signal_connect (G_OBJECT (config->rate_control.bitrate.keyframe_boost),
                     "insert-text",
-                    G_CALLBACK (_insert_numeric),
+                    G_CALLBACK (x264_insert_numeric),
                     NULL);
   gtk_table_attach_defaults (GTK_TABLE (table),
                              config->rate_control.bitrate.keyframe_boost,
@@ -318,7 +318,7 @@ _rate_control_page (X264_Gui_Config *config)
 }
 
 static void
-_insert_numeric (GtkEditable *editable,
+x264_insert_numeric (GtkEditable *editable,
                  const gchar *text,
                  gint         length,
                  gint        *position,
@@ -343,10 +343,10 @@ _insert_numeric (GtkEditable *editable,
   result[j] = '\0';
 
   g_signal_handlers_block_by_func (editable,
-				   (gpointer) _insert_numeric, data);
+				   (gpointer) x264_insert_numeric, data);
   gtk_editable_insert_text (editable, result, j, position);
   g_signal_handlers_unblock_by_func (editable,
-                                     (gpointer) _insert_numeric, data);
+                                     (gpointer) x264_insert_numeric, data);
 
   g_signal_stop_emission_by_name (editable, "insert-text");
 

@@ -35,17 +35,17 @@
 #define X264_MIN(a,b) ( (a)<(b) ? (a) : (b) )
 
 /* Callbacks */
-static void _dialog_run (GtkDialog       *dialog,
+static void x264_dialog_run (GtkDialog       *dialog,
                          gint             response,
                          X264_Gui_Config *gconfig,
                          X264_Gtk        *x264_gtk);
 
 
 /* x264 config management */
-static void _default_load (GtkButton *button, gpointer user_data);
-static void _current_get (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk);
-static void _current_set (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk);
-static void _default_set (X264_Gtk *x264_gtk);
+static void x264_default_load (GtkButton *button, gpointer user_data);
+static void x264_current_get (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk);
+static void x264_current_set (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk);
+static void x264_default_set (X264_Gtk *x264_gtk);
 
 
 /* Result must be freed */
@@ -192,7 +192,7 @@ x264_gtk_load (void)
   if (error) {
     g_print (_("x264.cfg: %s\n"), error->message);
     g_print (_("Loading default configuration\n"));
-    _default_set (x264_gtk);
+    x264_default_set (x264_gtk);
   }
   else {
     GIOStatus status;
@@ -244,7 +244,7 @@ x264_gtk_window_create (GtkWidget *parent)
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (win_x264_gtk)->action_area), button, FALSE, TRUE, 6);
   g_signal_connect (G_OBJECT (button),
                     "clicked",
-                    G_CALLBACK (_default_load),
+                    G_CALLBACK (x264_default_load),
                     gconfig);
   gtk_widget_show (button);
 
@@ -264,42 +264,42 @@ x264_gtk_window_create (GtkWidget *parent)
   label = gtk_label_new (_("Bitrate"));
   gtk_widget_show (label);
 
-  page = _bitrate_page (gconfig);
+  page = x264_bitrate_page (gconfig);
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), page, label);
   gtk_widget_show (page);
 
   label = gtk_label_new (_("Rate Control"));
   gtk_widget_show (label);
 
-  page = _rate_control_page (gconfig);
+  page = x264_rate_control_page (gconfig);
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), page, label);
   gtk_widget_show (page);
 
   label = gtk_label_new (_("MB & Frames"));
   gtk_widget_show (label);
 
-  page = _mb_page (gconfig);
+  page = x264_mb_page (gconfig);
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), page, label);
   gtk_widget_show (page);
 
   label = gtk_label_new (_("More..."));
   gtk_widget_show (label);
 
-  page = _more_page (gconfig);
+  page = x264_more_page (gconfig);
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), page, label);
   gtk_widget_show (page);
 
   label = gtk_label_new (_("Quantization matrices"));
   gtk_widget_show (label);
 
-  page = _cqm_page (gconfig);
+  page = x264_cqm_page (gconfig);
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), page, label);
   gtk_widget_show (page);
 
-  _current_set (gconfig, x264_gtk);
+  x264_current_set (gconfig, x264_gtk);
 
   result = gtk_dialog_run (GTK_DIALOG (win_x264_gtk));
-  _dialog_run (GTK_DIALOG (win_x264_gtk), result, gconfig, x264_gtk);
+  x264_dialog_run (GTK_DIALOG (win_x264_gtk), result, gconfig, x264_gtk);
 
   return win_x264_gtk;
 }
@@ -330,7 +330,7 @@ x264_gtk_free (X264_Gtk *x264_gtk)
 /* Callbacks */
 
 static void
-_dialog_run (GtkDialog       *dialog UNUSED,
+x264_dialog_run (GtkDialog       *dialog UNUSED,
              gint             response,
              X264_Gui_Config *gconfig,
              X264_Gtk        *x264_gtk)
@@ -369,7 +369,7 @@ _dialog_run (GtkDialog       *dialog UNUSED,
       file = g_io_channel_new_file (filename, "w+", NULL);
       if (file)
         {
-          _current_get (gconfig, x264_gtk);
+          x264_current_get (gconfig, x264_gtk);
           g_io_channel_set_encoding (file, NULL, NULL);
           g_io_channel_write_chars (file, (const gchar *)x264_gtk,
                                     sizeof (X264_Gtk), &length, NULL);
@@ -382,7 +382,7 @@ _dialog_run (GtkDialog       *dialog UNUSED,
 
 /* x264 config management */
 static void
-_default_load (GtkButton *button UNUSED, gpointer user_data)
+x264_default_load (GtkButton *button UNUSED, gpointer user_data)
 {
   gchar            buf[64];
   X264_Gui_Config *config;
@@ -528,7 +528,7 @@ _default_load (GtkButton *button UNUSED, gpointer user_data)
 }
 
 static void
-_default_set (X264_Gtk *x264_gtk)
+x264_default_set (X264_Gtk *x264_gtk)
 {
   x264_param_t param;
 
@@ -625,7 +625,7 @@ _default_set (X264_Gtk *x264_gtk)
 }
 
 static void
-_current_set (X264_Gui_Config *config, X264_Gtk *x264_gtk)
+x264_current_set (X264_Gui_Config *config, X264_Gtk *x264_gtk)
 {
   gchar buf[4096];
   gint  i;
@@ -830,7 +830,7 @@ _current_set (X264_Gui_Config *config, X264_Gtk *x264_gtk)
 }
 
 static void
-_current_get (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk)
+x264_current_get (X264_Gui_Config *gconfig, X264_Gtk *x264_gtk)
 {
   const gchar *text;
   gint         i;

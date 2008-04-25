@@ -12,10 +12,10 @@
 
 
 /* Callbacks */
-static gboolean _delete_window_cb    (GtkWidget *widget,
+static gboolean x264_delete_window_cb    (GtkWidget *widget,
                                       GdkEvent  *event,
                                       gpointer   user_data);
-static void     _response_window_cb  (GtkDialog *dialog,
+static void     x264_response_window_cb  (GtkDialog *dialog,
                                       gint       res,
                                       gpointer   user_data);
 
@@ -38,11 +38,11 @@ x264_gtk_encode_status_window (X264_Thread_Data *thread_data)
 
   g_signal_connect (G_OBJECT (win_status),
                     "delete-event",
-                    G_CALLBACK (_delete_window_cb),
+                    G_CALLBACK (x264_delete_window_cb),
                     thread_data);
   g_signal_connect (G_OBJECT (win_status),
                     "response",
-                    G_CALLBACK (_response_window_cb),
+                    G_CALLBACK (x264_response_window_cb),
                     thread_data);
 
   table = gtk_table_new (5, 2, FALSE);
@@ -137,7 +137,7 @@ x264_gtk_encode_status_window (X264_Thread_Data *thread_data)
 }
 
 static void
-_thread_data_free (X264_Thread_Data *thread_data)
+x264_thread_data_free (X264_Thread_Data *thread_data)
 {
   g_free (thread_data->param);
   g_free (thread_data->file_input);
@@ -148,17 +148,17 @@ _thread_data_free (X264_Thread_Data *thread_data)
 }
 
 static gboolean
-_delete_window_cb (GtkWidget *widget,
+x264_delete_window_cb (GtkWidget *widget,
                    GdkEvent  *event UNUSED,
                    gpointer   user_data)
 {
   gtk_widget_destroy (widget);
-  _thread_data_free ((X264_Thread_Data *)user_data);
+  x264_thread_data_free ((X264_Thread_Data *)user_data);
   return TRUE;
 }
 
 static void
-_response_window_cb (GtkDialog *dialog,
+x264_response_window_cb (GtkDialog *dialog,
                      gint       res,
                      gpointer   user_data)
 {
@@ -166,6 +166,6 @@ _response_window_cb (GtkDialog *dialog,
   case GTK_RESPONSE_CANCEL:
   default:
     gtk_widget_destroy (GTK_WIDGET (dialog));
-    _thread_data_free ((X264_Thread_Data *)user_data);
+    x264_thread_data_free ((X264_Thread_Data *)user_data);
   }
 }

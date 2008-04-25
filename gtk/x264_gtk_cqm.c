@@ -13,23 +13,23 @@
 
 
 /* Callbacks */
-static void _cqm_flat_matrix_cb   (GtkToggleButton *togglebutton,
+static void x264_cqm_flat_matrix_cb   (GtkToggleButton *togglebutton,
                                    gpointer         user_data);
-static void _cqm_jvt_matrix_cb    (GtkToggleButton *togglebutton,
+static void x264_cqm_jvt_matrix_cb    (GtkToggleButton *togglebutton,
                                    gpointer         user_data);
-static void _cqm_custom_matrix_cb (GtkToggleButton *togglebutton,
+static void x264_cqm_custom_matrix_cb (GtkToggleButton *togglebutton,
                                    gpointer         user_data);
-static void _cqm_matrix_file_cb   (GtkFileChooser  *filechooser,
+static void x264_cqm_matrix_file_cb   (GtkFileChooser  *filechooser,
                                    gint             response,
                                    gpointer         user_data);
 
 
-static GtkWidget *_cqm_4x4_page    (X264_Gui_Config *gconfig);
-static GtkWidget *_cqm_8x8_iy_page (X264_Gui_Config *gconfig);
-static GtkWidget *_cqm_8x8_py_page (X264_Gui_Config *gconfig);
+static GtkWidget *x264_cqm_4x4_page    (X264_Gui_Config *gconfig);
+static GtkWidget *x264_cqm_8x8_iy_page (X264_Gui_Config *gconfig);
+static GtkWidget *x264_cqm_8x8_py_page (X264_Gui_Config *gconfig);
 
 GtkWidget *
-_cqm_page (X264_Gui_Config *gconfig)
+x264_cqm_page (X264_Gui_Config *gconfig)
 {
   GtkWidget   *vbox;
   GtkWidget   *table;
@@ -58,7 +58,7 @@ _cqm_page (X264_Gui_Config *gconfig)
   gtk_table_attach_defaults (GTK_TABLE (table), gconfig->cqm.radio_flat,
                              0, 1, 0, 1);
   g_signal_connect (G_OBJECT (gconfig->cqm.radio_flat), "toggled",
-                    G_CALLBACK (_cqm_flat_matrix_cb), gconfig);
+                    G_CALLBACK (x264_cqm_flat_matrix_cb), gconfig);
   gtk_widget_show (gconfig->cqm.radio_flat);
 
   gconfig->cqm.radio_jvt = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON (gconfig->cqm.radio_flat), _("JVT matrix"));
@@ -68,7 +68,7 @@ _cqm_page (X264_Gui_Config *gconfig)
   gtk_table_attach_defaults (GTK_TABLE (table), gconfig->cqm.radio_jvt,
                              0, 1, 1, 2);
   g_signal_connect (G_OBJECT (gconfig->cqm.radio_jvt), "toggled",
-                    G_CALLBACK (_cqm_jvt_matrix_cb), gconfig);
+                    G_CALLBACK (x264_cqm_jvt_matrix_cb), gconfig);
   gtk_widget_show (gconfig->cqm.radio_jvt);
 
   gconfig->cqm.radio_custom = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON (gconfig->cqm.radio_flat), _("Custom matrix"));
@@ -78,7 +78,7 @@ _cqm_page (X264_Gui_Config *gconfig)
   gtk_table_attach_defaults (GTK_TABLE (table), gconfig->cqm.radio_custom,
                              0, 1, 2, 3);
   g_signal_connect (G_OBJECT (gconfig->cqm.radio_custom), "toggled",
-                    G_CALLBACK (_cqm_custom_matrix_cb), gconfig);
+                    G_CALLBACK (x264_cqm_custom_matrix_cb), gconfig);
   gtk_widget_show (gconfig->cqm.radio_custom);
 
   chooser = gtk_file_chooser_dialog_new(_("Select a file"),
@@ -88,7 +88,7 @@ _cqm_page (X264_Gui_Config *gconfig)
                                         GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
                                         NULL);
   g_signal_connect (G_OBJECT (chooser), "response",
-                    G_CALLBACK (_cqm_matrix_file_cb), gconfig);
+                    G_CALLBACK (x264_cqm_matrix_file_cb), gconfig);
   gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (chooser),
                                        g_get_home_dir ());
   gconfig->cqm.cqm_file = gtk_file_chooser_button_new_with_dialog (chooser);
@@ -104,21 +104,21 @@ _cqm_page (X264_Gui_Config *gconfig)
   label = gtk_label_new (_("4x4 quant. matrices"));
   gtk_widget_show (label);
 
-  page = _cqm_4x4_page (gconfig);
+  page = x264_cqm_4x4_page (gconfig);
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), page, label);
   gtk_widget_show (page);
 
   label = gtk_label_new (_("8x8 I luma quant. matrices"));
   gtk_widget_show (label);
 
-  page = _cqm_8x8_iy_page (gconfig);
+  page = x264_cqm_8x8_iy_page (gconfig);
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), page, label);
   gtk_widget_show (page);
 
   label = gtk_label_new (_("8x8 P luma quant. matrices"));
   gtk_widget_show (label);
 
-  page = _cqm_8x8_py_page (gconfig);
+  page = x264_cqm_8x8_py_page (gconfig);
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), page, label);
   gtk_widget_show (page);
 
@@ -126,7 +126,7 @@ _cqm_page (X264_Gui_Config *gconfig)
 }
 
 static GtkWidget *
-_cqm_4x4_page   (X264_Gui_Config *gconfig)
+x264_cqm_4x4_page   (X264_Gui_Config *gconfig)
 {
   GtkWidget     *table;
   GtkWidget     *misc;
@@ -227,7 +227,7 @@ _cqm_4x4_page   (X264_Gui_Config *gconfig)
 }
 
 static GtkWidget *
-_cqm_8x8_iy_page (X264_Gui_Config *gconfig)
+x264_cqm_8x8_iy_page (X264_Gui_Config *gconfig)
 {
   GtkWidget     *table;
   GtkWidget     *misc;
@@ -254,7 +254,7 @@ _cqm_8x8_iy_page (X264_Gui_Config *gconfig)
 }
 
 static GtkWidget *
-_cqm_8x8_py_page (X264_Gui_Config *gconfig)
+x264_cqm_8x8_py_page (X264_Gui_Config *gconfig)
 {
   GtkWidget     *table;
   GtkWidget     *misc;
@@ -282,7 +282,7 @@ _cqm_8x8_py_page (X264_Gui_Config *gconfig)
 
 /* Callbacks */
 static void
-_cqm_flat_matrix_cb (GtkToggleButton *togglebutton,
+x264_cqm_flat_matrix_cb (GtkToggleButton *togglebutton,
                      gpointer         user_data)
 {
   X264_Gui_Config *gconfig;
@@ -306,7 +306,7 @@ _cqm_flat_matrix_cb (GtkToggleButton *togglebutton,
 }
 
 static void
-_cqm_jvt_matrix_cb (GtkToggleButton *togglebutton,
+x264_cqm_jvt_matrix_cb (GtkToggleButton *togglebutton,
                     gpointer         user_data)
 {
   X264_Gui_Config *gconfig;
@@ -330,7 +330,7 @@ _cqm_jvt_matrix_cb (GtkToggleButton *togglebutton,
 }
 
 static void
-_cqm_custom_matrix_cb (GtkToggleButton *togglebutton,
+x264_cqm_custom_matrix_cb (GtkToggleButton *togglebutton,
                        gpointer         user_data)
 {
   X264_Gui_Config *gconfig;
@@ -354,7 +354,7 @@ _cqm_custom_matrix_cb (GtkToggleButton *togglebutton,
 }
 
 static gboolean
-_set_coefs (int size, GtkWidget **entries, GIOChannel *file)
+x264_set_coefs (int size, GtkWidget **entries, GIOChannel *file)
 {
   gchar *line;
   gsize  length;
@@ -386,7 +386,7 @@ _set_coefs (int size, GtkWidget **entries, GIOChannel *file)
 }
 
 static void
-_cqm_matrix_file_cb (GtkFileChooser  *filechooser,
+x264_cqm_matrix_file_cb (GtkFileChooser  *filechooser,
                      gint             response,
                      gpointer         user_data)
 {
@@ -419,7 +419,7 @@ _cqm_matrix_file_cb (GtkFileChooser  *filechooser,
     }
     if (g_str_has_prefix (line, "INTRA4X4_LUMA")) {
       g_free (line);
-      if (!_set_coefs (4, gconfig->cqm.cqm_4iy, file)) {
+      if (!x264_set_coefs (4, gconfig->cqm.cqm_4iy, file)) {
         g_free (filename);
         return;
       }
@@ -427,7 +427,7 @@ _cqm_matrix_file_cb (GtkFileChooser  *filechooser,
     }
     if (g_str_has_prefix (line, "INTRA4X4_CHROMAU")) {
       g_free (line);
-      if (!_set_coefs (4, gconfig->cqm.cqm_4ic, file)) {
+      if (!x264_set_coefs (4, gconfig->cqm.cqm_4ic, file)) {
         g_free (filename);
         return;
       }
@@ -435,7 +435,7 @@ _cqm_matrix_file_cb (GtkFileChooser  *filechooser,
     }
     if (g_str_has_prefix (line, "INTER4X4_LUMA")) {
       g_free (line);
-      if (!_set_coefs (4, gconfig->cqm.cqm_4py, file)) {
+      if (!x264_set_coefs (4, gconfig->cqm.cqm_4py, file)) {
         g_free (filename);
         return;
       }
@@ -444,7 +444,7 @@ _cqm_matrix_file_cb (GtkFileChooser  *filechooser,
 
     if (g_str_has_prefix (line, "INTER4X4_CHROMAU")) {
       g_free (line);
-      if (!_set_coefs (4, gconfig->cqm.cqm_4pc, file)) {
+      if (!x264_set_coefs (4, gconfig->cqm.cqm_4pc, file)) {
         g_free (filename);
         return;
       }
@@ -452,7 +452,7 @@ _cqm_matrix_file_cb (GtkFileChooser  *filechooser,
     }
     if (g_str_has_prefix (line, "INTRA8X8_LUMA")) {
       g_free (line);
-      if (!_set_coefs (8, gconfig->cqm.cqm_8iy, file)) {
+      if (!x264_set_coefs (8, gconfig->cqm.cqm_8iy, file)) {
         g_free (filename);
         return;
       }
@@ -460,7 +460,7 @@ _cqm_matrix_file_cb (GtkFileChooser  *filechooser,
     }
     if (g_str_has_prefix (line, "INTER8X8_LUMA")) {
       g_free (line);
-      if (!_set_coefs (8, gconfig->cqm.cqm_8py, file)) {
+      if (!x264_set_coefs (8, gconfig->cqm.cqm_8py, file)) {
         g_free (filename);
         return;
       }

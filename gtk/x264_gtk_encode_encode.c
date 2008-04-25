@@ -31,8 +31,8 @@ static int (*p_write_nalu)        (void *handle, uint8_t *p_nal, int i_size);
 static int (*p_set_eop)           (void *handle, x264_picture_t *p_picture);
 static int (*p_close_outfile)     (void *handle);
 
-static int _set_drivers  (X264_Demuxer_Type in_container, gint out_container);
-static int _encode_frame (x264_t *h, void *handle, x264_picture_t *pic);
+static int x264_set_drivers  (X264_Demuxer_Type in_container, gint out_container);
+static int x264_encode_frame (x264_t *h, void *handle, x264_picture_t *pic);
 
 
 gpointer
@@ -57,7 +57,7 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
 
   g_print (_("encoding...\n"));
   param = thread_data->param;
-  err = _set_drivers (thread_data->in_container, thread_data->out_container);
+  err = x264_set_drivers (thread_data->in_container, thread_data->out_container);
   if (err < 0) {
     GtkWidget *no_driver;
     no_driver = gtk_message_dialog_new (GTK_WINDOW(thread_data->dialog),
@@ -118,7 +118,7 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
 
       pic.i_pts = (int64_t)i_frame * param->i_fps_den;
 
-      i_file += _encode_frame (h, hout, &pic);
+      i_file += x264_encode_frame (h, hout, &pic);
 
       i_frame++;
 
@@ -155,7 +155,7 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
     }
   /* Flush delayed B-frames */
   do {
-    i_file += i_frame_size = _encode_frame (h, hout, NULL);
+    i_file += i_frame_size = x264_encode_frame (h, hout, NULL);
   } while (i_frame_size);
 
   i_end = x264_mdate ();
@@ -182,7 +182,7 @@ x264_gtk_encode_encode (X264_Thread_Data *thread_data)
 }
 
 static int
-_set_drivers (X264_Demuxer_Type in_container, gint out_container)
+x264_set_drivers (X264_Demuxer_Type in_container, gint out_container)
 {
   switch (in_container) {
   case X264_DEMUXER_YUV:
@@ -247,7 +247,7 @@ _set_drivers (X264_Demuxer_Type in_container, gint out_container)
 }
 
 static int
-_encode_frame (x264_t *h, void *handle, x264_picture_t *pic)
+x264_encode_frame (x264_t *h, void *handle, x264_picture_t *pic)
 {
   x264_picture_t pic_out;
   x264_nal_t    *nal;

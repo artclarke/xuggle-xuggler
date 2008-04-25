@@ -13,13 +13,13 @@
 
 
 /* Callbacks */
-static void     _bitrate_pass     (GtkComboBox     *combo,
+static void     x264_bitrate_pass     (GtkComboBox     *combo,
                                    gpointer         user_data);
-static void     _bitrate_statfile (GtkToggleButton *button,
+static void     x264_bitrate_statfile (GtkToggleButton *button,
                                    gpointer         user_data);
 
 GtkWidget *
-_bitrate_page (X264_Gui_Config *gconfig)
+x264_bitrate_page (X264_Gui_Config *gconfig)
 {
   GtkWidget   *vbox;
   GtkWidget   *frame;
@@ -78,7 +78,7 @@ _bitrate_page (X264_Gui_Config *gconfig)
                              1, 2, 0, 1);
   g_signal_connect (G_OBJECT (gconfig->bitrate.pass),
                     "changed",
-                    G_CALLBACK (_bitrate_pass),
+                    G_CALLBACK (x264_bitrate_pass),
                     gconfig);
   gtk_widget_show (gconfig->bitrate.pass);
 
@@ -127,7 +127,7 @@ _bitrate_page (X264_Gui_Config *gconfig)
                         "");
   g_signal_connect (G_OBJECT (gconfig->bitrate.update_statfile),
                     "toggled",
-                    G_CALLBACK (_bitrate_statfile), gconfig);
+                    G_CALLBACK (x264_bitrate_statfile), gconfig);
   gtk_table_attach_defaults (GTK_TABLE (table), gconfig->bitrate.update_statfile,
                              0, 1, 0, 1);
   gtk_widget_show (gconfig->bitrate.update_statfile);
@@ -148,7 +148,7 @@ _bitrate_page (X264_Gui_Config *gconfig)
 
 /* Callbacks */
 static void
-_bitrate_pass (GtkComboBox *combo,
+x264_bitrate_pass (GtkComboBox *combo,
                gpointer    user_data)
 {
   X264_Gui_Config *gconfig;
@@ -202,7 +202,7 @@ _bitrate_pass (GtkComboBox *combo,
 }
 
 static void
-_bitrate_statfile (GtkToggleButton *button,
+x264_bitrate_statfile (GtkToggleButton *button,
                    gpointer         user_data)
 {
   X264_Gui_Config *gconfig;

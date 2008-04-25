@@ -5,16 +5,16 @@
 
 
 /* Callbacks */
-static void _more_deblocking_filter (GtkToggleButton *button,
+static void x264_more_deblocking_filter (GtkToggleButton *button,
                                      gpointer         user_data);
-static void _more_cabac             (GtkToggleButton *button,
+static void x264_more_cabac             (GtkToggleButton *button,
                                      gpointer         user_data);
-static void _more_mixed_ref         (GtkToggleButton *button,
+static void x264_more_mixed_ref         (GtkToggleButton *button,
                                      gpointer         user_data);
 
 
 GtkWidget *
-_more_page (X264_Gui_Config *config)
+x264_more_page (X264_Gui_Config *config)
 {
   GtkWidget     *vbox;
   GtkWidget     *frame;
@@ -181,7 +181,7 @@ _more_page (X264_Gui_Config *config)
                         "");
   g_signal_connect (G_OBJECT (config->more.motion_estimation.mixed_refs),
                     "toggled",
-                    G_CALLBACK (_more_mixed_ref), config);
+                    G_CALLBACK (x264_more_mixed_ref), config);
   gtk_table_attach_defaults (GTK_TABLE (table), config->more.motion_estimation.mixed_refs,
                              2, 3, 3, 4);
   gtk_widget_show (config->more.motion_estimation.mixed_refs);
@@ -273,7 +273,7 @@ _more_page (X264_Gui_Config *config)
                         "");
   g_signal_connect (G_OBJECT (config->more.misc.cabac),
                     "toggled",
-                    G_CALLBACK (_more_cabac), config);
+                    G_CALLBACK (x264_more_cabac), config);
   gtk_table_attach_defaults (GTK_TABLE (table), config->more.misc.cabac,
                              0, 1, 1, 2);
   gtk_widget_show (config->more.misc.cabac);
@@ -329,7 +329,7 @@ _more_page (X264_Gui_Config *config)
                         "");
   g_signal_connect (G_OBJECT (config->more.misc.df.deblocking_filter),
                     "toggled",
-                    G_CALLBACK (_more_deblocking_filter), config);
+                    G_CALLBACK (x264_more_deblocking_filter), config);
   gtk_table_attach_defaults (GTK_TABLE (table), config->more.misc.df.deblocking_filter,
                              0, 1, 3, 4);
   gtk_widget_show (config->more.misc.df.deblocking_filter);
@@ -448,7 +448,7 @@ _more_page (X264_Gui_Config *config)
 
 /* Callbacks */
 static void
-_more_deblocking_filter (GtkToggleButton *button,
+x264_more_deblocking_filter (GtkToggleButton *button,
                          gpointer         user_data)
 {
   X264_Gui_Config *config;
@@ -466,7 +466,7 @@ _more_deblocking_filter (GtkToggleButton *button,
 }
 
 static void
-_more_cabac (GtkToggleButton *button,
+x264_more_cabac (GtkToggleButton *button,
              gpointer         user_data)
 {
   X264_Gui_Config *config;
@@ -480,7 +480,7 @@ _more_cabac (GtkToggleButton *button,
 }
 
 static void
-_more_mixed_ref (GtkToggleButton *button,
+x264_more_mixed_ref (GtkToggleButton *button,
                  gpointer         user_data)
 {
   X264_Gui_Config *config;

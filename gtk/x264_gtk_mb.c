@@ -5,16 +5,16 @@
 
 
 /* Callbacks */
-static void _mb_bframe_pyramid (GtkToggleButton *button,
+static void x264_mb_bframe_pyramid (GtkToggleButton *button,
                                 gpointer         user_data);
-static void _mb_inter_search_8 (GtkToggleButton *button,
+static void x264_mb_inter_search_8 (GtkToggleButton *button,
                                 gpointer         user_data);
-static void _mb_transform_8x8  (GtkToggleButton *button,
+static void x264_mb_transform_8x8  (GtkToggleButton *button,
                                 gpointer         user_data);
 
 
 GtkWidget *
-_mb_page (X264_Gui_Config *config)
+x264_mb_page (X264_Gui_Config *config)
 {
   GtkWidget   *vbox;
   GtkWidget   *frame;
@@ -45,7 +45,7 @@ _mb_page (X264_Gui_Config *config)
                         "");
   g_signal_connect (G_OBJECT (config->mb.partitions.transform_8x8),
                     "toggled",
-                    G_CALLBACK (_mb_transform_8x8), config);
+                    G_CALLBACK (x264_mb_transform_8x8), config);
   gtk_box_pack_start (GTK_BOX (vbox2), config->mb.partitions.transform_8x8, FALSE, TRUE, 0);
   gtk_widget_show (config->mb.partitions.transform_8x8);
 
@@ -76,7 +76,7 @@ _mb_page (X264_Gui_Config *config)
                         "");
   g_signal_connect (G_OBJECT (config->mb.partitions.inter_search_8),
                     "toggled",
-                    G_CALLBACK (_mb_inter_search_8), config);
+                    G_CALLBACK (x264_mb_inter_search_8), config);
   gtk_box_pack_start (GTK_BOX (vbox2), config->mb.partitions.inter_search_8, FALSE, TRUE, 0);
   gtk_widget_show (config->mb.partitions.inter_search_8);
 
@@ -144,7 +144,7 @@ _mb_page (X264_Gui_Config *config)
                         "");
   g_signal_connect (G_OBJECT (config->mb.bframes.bframe_pyramid),
                     "toggled",
-                    G_CALLBACK (_mb_bframe_pyramid), config);
+                    G_CALLBACK (x264_mb_bframe_pyramid), config);
   gtk_table_attach_defaults (GTK_TABLE (table), config->mb.bframes.bframe_pyramid,
                              0, 1, 2, 3);
   gtk_widget_show (config->mb.bframes.bframe_pyramid);
@@ -205,7 +205,7 @@ _mb_page (X264_Gui_Config *config)
 }
 
 static void
-_mb_bframe_pyramid (GtkToggleButton *button,
+x264_mb_bframe_pyramid (GtkToggleButton *button,
                     gpointer         user_data)
 {
   X264_Gui_Config *config;
@@ -224,7 +224,7 @@ _mb_bframe_pyramid (GtkToggleButton *button,
 }
 
 static void
-_mb_inter_search_8 (GtkToggleButton *button,
+x264_mb_inter_search_8 (GtkToggleButton *button,
                     gpointer         user_data)
 {
   X264_Gui_Config *config;
@@ -237,7 +237,7 @@ _mb_inter_search_8 (GtkToggleButton *button,
 }
 
 static void
-_mb_transform_8x8 (GtkToggleButton *button,
+x264_mb_transform_8x8 (GtkToggleButton *button,
                    gpointer         user_data)
 {
   X264_Gui_Config *config;
