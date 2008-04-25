@@ -143,7 +143,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     {
         float res_c, res_a;
         ok = 1;
-        x264_cpu_restore( cpu_new );
+        x264_emms();
         res_c = x264_pixel_ssim_wxh( &pixel_c,   buf1+2, 32, buf2+2, 32, 32, 28 );
         res_a = x264_pixel_ssim_wxh( &pixel_asm, buf1+2, 32, buf2+2, 32, 32, 28 );
         if( fabs(res_c - res_a) > 1e-7 )

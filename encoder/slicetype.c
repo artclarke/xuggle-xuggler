@@ -310,7 +310,7 @@ int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
         frames[b]->i_cost_est[b-p0][p1-b] = i_score;
 //      fprintf( stderr, "frm %d %c(%d,%d): %6d %6d imb:%d  \n", frames[b]->i_frame,
 //               (p1==0?'I':b<p1?'B':'P'), b-p0, p1-b, i_score, frames[b]->i_cost_est[0][0], frames[b]->i_intra_mbs[b-p0] );
-        x264_cpu_restore( h->param.cpu );
+        x264_emms();
     }
 
     if( b_intra_penalty )

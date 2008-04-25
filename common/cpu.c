@@ -57,7 +57,6 @@ const struct {
 #ifdef HAVE_MMX
 extern int  x264_cpu_cpuid_test( void );
 extern uint32_t  x264_cpu_cpuid( uint32_t op, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx );
-extern void x264_emms( void );
 
 uint32_t x264_cpu_detect( void )
 {
@@ -146,14 +145,6 @@ uint32_t x264_cpu_detect( void )
     return cpu;
 }
 
-void     x264_cpu_restore( uint32_t cpu )
-{
-    if( cpu&(X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_3DNOW|X264_CPU_3DNOWEXT) )
-    {
-        x264_emms();
-    }
-}
-
 #elif defined( ARCH_PPC )
 
 #ifdef SYS_MACOSX
@@ -217,10 +208,6 @@ uint32_t x264_cpu_detect( void )
 }
 #endif
 
-void     x264_cpu_restore( uint32_t cpu )
-{
-}
-
 #else
 
 uint32_t x264_cpu_detect( void )
@@ -228,10 +215,12 @@ uint32_t x264_cpu_detect( void )
     return 0;
 }
 
-void     x264_cpu_restore( uint32_t cpu )
+#endif
+
+#ifndef HAVE_MMX
+void x264_emms( void )
 {
 }
-
 #endif
 
 

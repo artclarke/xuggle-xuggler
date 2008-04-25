@@ -204,7 +204,7 @@ static NOINLINE int ac_energy_mb( x264_t *h, int mb_x, int mb_y, int *satd )
         var = X264_MAX(var,1);
     }
     else var = h->rc->ac_energy[h->mb.i_mb_xy];
-    x264_cpu_restore(h->param.cpu);
+    x264_emms();
     return var;
 }
 
@@ -229,7 +229,7 @@ void x264_autosense_aq( x264_t *h )
             total += logf(energy) * satd;
             n += satd;
         }
-    x264_cpu_restore(h->param.cpu);
+    x264_emms();
     /* Calculate and store the threshold. */
     h->rc->aq_threshold = n ? total/n : 15;
 }
@@ -262,7 +262,7 @@ int x264_ratecontrol_new( x264_t *h )
     x264_ratecontrol_t *rc;
     int i;
 
-    x264_cpu_restore( h->param.cpu );
+    x264_emms();
 
     rc = h->rc = x264_malloc( h->param.i_threads * sizeof(x264_ratecontrol_t) );
     memset( rc, 0, h->param.i_threads * sizeof(x264_ratecontrol_t) );
@@ -738,7 +738,7 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp )
     x264_zone_t *zone = get_zone( h, h->fenc->i_frame );
     float q;
 
-    x264_cpu_restore( h->param.cpu );
+    x264_emms();
 
     if( zone && (!rc->prev_zone || zone->param != rc->prev_zone->param) )
         x264_encoder_reconfig( h, zone->param );
@@ -867,7 +867,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     x264_ratecontrol_t *rc = h->rc;
     const int y = h->mb.i_mb_y;
 
-    x264_cpu_restore( h->param.cpu );
+    x264_emms();
 
     h->fdec->i_row_bits[y] += bits;
     rc->qpa_rc += rc->qpm;
@@ -988,7 +988,7 @@ void x264_ratecontrol_end( x264_t *h, int bits )
     const int *mbs = h->stat.frame.i_mb_count;
     int i;
 
-    x264_cpu_restore( h->param.cpu );
+    x264_emms();
 
     h->stat.frame.i_mb_count_skip = mbs[P_SKIP] + mbs[B_SKIP];
     h->stat.frame.i_mb_count_i = mbs[I_16x16] + mbs[I_8x8] + mbs[I_4x4];

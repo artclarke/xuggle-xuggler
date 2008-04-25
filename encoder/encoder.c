@@ -1488,7 +1488,7 @@ do_encode:
         x264_slices_write( h );
 
     /* restore CPU state (before using float again) */
-    x264_cpu_restore( h->param.cpu );
+    x264_emms();
 
     if( h->sh.i_type == SLICE_TYPE_P && !h->param.rc.b_stat_read 
         && h->param.i_scenecut_threshold >= 0
@@ -1635,11 +1635,11 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     /* ---------------------- Update encoder state ------------------------- */
 
     /* update rc */
-    x264_cpu_restore( h->param.cpu );
+    x264_emms();
     x264_ratecontrol_end( h, h->out.i_frame_size * 8 );
 
     /* restore CPU state (before using float again) */
-    x264_cpu_restore( h->param.cpu );
+    x264_emms();
 
     x264_noise_reduction_update( h );
 
@@ -1692,7 +1692,7 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
                          h->fenc->plane[i], h->fenc->i_stride[i],
                          h->param.i_width >> !!i, h->param.i_height >> !!i );
         }
-        x264_cpu_restore( h->param.cpu );
+        x264_emms();
 
         h->stat.i_sqe_global[h->sh.i_type] += sqe[0] + sqe[1] + sqe[2];
         h->stat.f_psnr_average[h->sh.i_type] += x264_psnr( sqe[0] + sqe[1] + sqe[2], 3 * h->param.i_width * h->param.i_height / 2 );
