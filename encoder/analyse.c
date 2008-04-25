@@ -340,6 +340,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
                 a->b_fast_intra = 1;
             }
         }
+        h->mb.b_skip_pbskip_mc = 0;
     }
 }
 
@@ -2388,6 +2389,7 @@ void x264_macroblock_analyse( x264_t *h )
                 {
                     h->mb.i_type = B_SKIP;
                     x264_analyse_update_cache( h, &analysis );
+                    h->mb.b_skip_pbskip_mc = 1;
                     return;
                 }
             }
@@ -2404,6 +2406,7 @@ void x264_macroblock_analyse( x264_t *h )
             const unsigned int flags = h->param.analyse.inter;
             int i_type;
             int i_partition;
+            h->mb.b_skip_pbskip_mc = 0;
 
             x264_mb_analyse_load_costs( h, &analysis );
 

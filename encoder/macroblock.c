@@ -293,19 +293,21 @@ void x264_macroblock_encode_pskip( x264_t *h )
     const int mvy = x264_clip3( h->mb.cache.mv[0][x264_scan8[0]][1],
                                 h->mb.mv_min[1], h->mb.mv_max[1] );
 
-    /* Motion compensation XXX probably unneeded */
-    h->mc.mc_luma( h->mb.pic.p_fdec[0],    FDEC_STRIDE,
-                   h->mb.pic.p_fref[0][0], h->mb.pic.i_stride[0],
-                   mvx, mvy, 16, 16 );
+    /* don't do pskip motion compensation if it was already done in macroblock_analyse */
+    if( !h->mb.b_skip_pbskip_mc )
+    {
+        h->mc.mc_luma( h->mb.pic.p_fdec[0],    FDEC_STRIDE,
+                       h->mb.pic.p_fref[0][0], h->mb.pic.i_stride[0],
+                       mvx, mvy, 16, 16 );
 
-    /* Chroma MC */
-    h->mc.mc_chroma( h->mb.pic.p_fdec[1],       FDEC_STRIDE,
-                     h->mb.pic.p_fref[0][0][4], h->mb.pic.i_stride[1],
-                     mvx, mvy, 8, 8 );
+        h->mc.mc_chroma( h->mb.pic.p_fdec[1],       FDEC_STRIDE,
+                         h->mb.pic.p_fref[0][0][4], h->mb.pic.i_stride[1],
+                         mvx, mvy, 8, 8 );
 
-    h->mc.mc_chroma( h->mb.pic.p_fdec[2],       FDEC_STRIDE,
-                     h->mb.pic.p_fref[0][0][5], h->mb.pic.i_stride[2],
-                     mvx, mvy, 8, 8 );
+        h->mc.mc_chroma( h->mb.pic.p_fdec[2],       FDEC_STRIDE,
+                         h->mb.pic.p_fref[0][0][5], h->mb.pic.i_stride[2],
+                         mvx, mvy, 8, 8 );
+    }
 
     x264_macroblock_encode_skip( h );
 }
@@ -346,8 +348,9 @@ void x264_macroblock_encode( x264_t *h )
     }
     if( h->mb.i_type == B_SKIP )
     {
-        /* XXX motion compensation is probably unneeded */
-        x264_mb_mc( h );
+        /* don't do bskip motion compensation if it was already done in macroblock_analyse */
+        if( !h->mb.b_skip_pbskip_mc )
+            x264_mb_mc( h );
         x264_macroblock_encode_skip( h );
         return;
     }
@@ -705,6 +708,7 @@ int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
         }
     }
 
+    h->mb.b_skip_pbskip_mc = 1;
     return 1;
 }
 
