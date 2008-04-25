@@ -2,7 +2,7 @@
 #define X264_GTK_ENCODE_PRIVATE_H
 
 
-#define __UNUSED__ __attribute__((unused))
+#include <common/osdep.h>
 
 #include "x264_gtk_demuxers.h"
 

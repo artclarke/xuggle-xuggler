@@ -328,8 +328,8 @@ _encode_shutdown (X264_Gtk_Encode *encode)
 }
 
 static gboolean
-_delete_window_cb (GtkWidget *widget __UNUSED__,
-                   GdkEvent  *event __UNUSED__,
+_delete_window_cb (GtkWidget *widget UNUSED,
+                   GdkEvent  *event UNUSED,
                    gpointer   user_data)
 {
   gtk_main_quit ();
@@ -504,7 +504,7 @@ _dimension_entry_cb (GtkEditable *editable,
 }
 
 static void
-_configure_window_cb (GtkButton *button __UNUSED__,
+_configure_window_cb (GtkButton *button UNUSED,
                       gpointer   user_data)
 {
   GtkWidget *window;
@@ -693,8 +693,8 @@ _response_window_cb (GtkDialog *dialog,
 }
 
 static gboolean
-_fill_status_window (GIOChannel  *io __UNUSED__,
-                     GIOCondition condition __UNUSED__,
+_fill_status_window (GIOChannel  *io UNUSED,
+                     GIOCondition condition UNUSED,
                      gpointer     user_data)
 {
   gchar             str[128];

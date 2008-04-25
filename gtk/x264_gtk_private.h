@@ -2,7 +2,7 @@
 #define X264_GTK_PRIVATE_H
 
 
-#define __UNUSED__ __attribute__((unused))
+#include <common/osdep.h>
 
 
 typedef struct Bitrate_ Bitrate;

@@ -330,7 +330,7 @@ x264_gtk_free (X264_Gtk *x264_gtk)
 /* Callbacks */
 
 static void
-_dialog_run (GtkDialog       *dialog __UNUSED__,
+_dialog_run (GtkDialog       *dialog UNUSED,
              gint             response,
              X264_Gui_Config *gconfig,
              X264_Gtk        *x264_gtk)
@@ -382,7 +382,7 @@ _dialog_run (GtkDialog       *dialog __UNUSED__,
 
 /* x264 config management */
 static void
-_default_load (GtkButton *button __UNUSED__, gpointer user_data)
+_default_load (GtkButton *button UNUSED, gpointer user_data)
 {
   gchar            buf[64];
   X264_Gui_Config *config;

@@ -149,7 +149,7 @@ _thread_data_free (X264_Thread_Data *thread_data)
 
 static gboolean
 _delete_window_cb (GtkWidget *widget,
-                   GdkEvent  *event __UNUSED__,
+                   GdkEvent  *event UNUSED,
                    gpointer   user_data)
 {
   gtk_widget_destroy (widget);
