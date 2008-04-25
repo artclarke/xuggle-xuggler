@@ -1031,7 +1031,7 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
 static void x264_slice_write( x264_t *h )
 {
     int i_skip;
-    int mb_xy;
+    int mb_xy, i_mb_x, i_mb_y;
     int i;
 
     /* init stats */
@@ -1054,10 +1054,12 @@ static void x264_slice_write( x264_t *h )
     h->mb.i_last_qp = h->sh.i_qp;
     h->mb.i_last_dqp = 0;
 
-    for( mb_xy = h->sh.i_first_mb, i_skip = 0; mb_xy < h->sh.i_last_mb; )
+    i_mb_y = h->sh.i_first_mb / h->sps->i_mb_width;
+    i_mb_x = h->sh.i_first_mb % h->sps->i_mb_width;
+    i_skip = 0;
+
+    while( (mb_xy = i_mb_x + i_mb_y * h->sps->i_mb_width) < h->sh.i_last_mb )
     {
-        const int i_mb_y = mb_xy / h->sps->i_mb_width;
-        const int i_mb_x = mb_xy % h->sps->i_mb_width;
         int mb_spos = bs_pos(&h->out.bs) + x264_cabac_pos(&h->cabac);
 
         if( i_mb_x == 0 )
@@ -1147,15 +1149,16 @@ static void x264_slice_write( x264_t *h )
 
         if( h->sh.b_mbaff )
         {
-            if( (i_mb_y&1) && i_mb_x == h->sps->i_mb_width - 1 )
-                mb_xy++;
-            else if( i_mb_y&1 )
-                mb_xy += 1 - h->sps->i_mb_width;
-            else
-                mb_xy += h->sps->i_mb_width;
+            i_mb_x += i_mb_y & 1;
+            i_mb_y ^= i_mb_x < h->sps->i_mb_width;
         }
         else
-            mb_xy++;
+            i_mb_x++;
+        if(i_mb_x == h->sps->i_mb_width)
+        {
+            i_mb_y++;
+            i_mb_x = 0;
+        }
     }
 
     if( h->param.b_cabac )
