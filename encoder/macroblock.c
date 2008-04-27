@@ -613,7 +613,7 @@ void x264_macroblock_encode( x264_t *h )
  *****************************************************************************/
 int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
 {
-    DECLARE_ALIGNED_16( int16_t dct4x4[16][4][4] );
+    DECLARE_ALIGNED_16( int16_t dct4x4[4][4][4] );
     DECLARE_ALIGNED_16( int16_t dct2x2[2][2] );
     DECLARE_ALIGNED_16( int16_t dctscan[16] );
 
@@ -636,22 +636,21 @@ int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
                        mvp[0], mvp[1], 16, 16 );
     }
 
-    /* get luma diff */
-    h->dctf.sub16x16_dct( dct4x4, h->mb.pic.p_fenc[0],
-                                  h->mb.pic.p_fdec[0] );
-
     for( i8x8 = 0, i_decimate_mb = 0; i8x8 < 4; i8x8++ )
     {
+        int fenc_offset = (i8x8&1) * 8 + (i8x8>>1) * FENC_STRIDE * 8;
+        int fdec_offset = (i8x8&1) * 8 + (i8x8>>1) * FDEC_STRIDE * 8;
+        /* get luma diff */
+        h->dctf.sub8x8_dct( dct4x4, h->mb.pic.p_fenc[0] + fenc_offset,
+                                    h->mb.pic.p_fdec[0] + fdec_offset );
         /* encode one 4x4 block */
         for( i4x4 = 0; i4x4 < 4; i4x4++ )
         {
-            const int idx = i8x8 * 4 + i4x4;
-
-            h->quantf.quant_4x4( dct4x4[idx], h->quant4_mf[CQM_4PY][i_qp], h->quant4_bias[CQM_4PY][i_qp] );
-            h->zigzagf.scan_4x4( dctscan, dct4x4[idx] );
-
+            h->quantf.quant_4x4( dct4x4[i4x4], h->quant4_mf[CQM_4PY][i_qp], h->quant4_bias[CQM_4PY][i_qp] );
+            if( !array_non_zero(dct4x4[i4x4]) )
+                continue;
+            h->zigzagf.scan_4x4( dctscan, dct4x4[i4x4] );
             i_decimate_mb += x264_mb_decimate_score( dctscan, 16 );
-
             if( i_decimate_mb >= 6 )
                 return 0;
         }
@@ -681,15 +680,16 @@ int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
         dct2x2[1][1] = dct4x4[3][0][0];
         h->dctf.dct2x2dc( dct2x2 );
         h->quantf.quant_2x2_dc( dct2x2, h->quant4_mf[CQM_4PC][i_qp][0]>>1, h->quant4_bias[CQM_4PC][i_qp][0]<<1 );
-        if( *(uint64_t*)dct2x2 )
+        if( array_non_zero(dct2x2) )
             return 0;
 
         /* calculate dct coeffs */
         for( i4x4 = 0, i_decimate_mb = 0; i4x4 < 4; i4x4++ )
         {
             h->quantf.quant_4x4( dct4x4[i4x4], h->quant4_mf[CQM_4PC][i_qp], h->quant4_bias[CQM_4PC][i_qp] );
+            if( !array_non_zero(dct4x4[i4x4]) )
+                continue;
             h->zigzagf.scan_4x4( dctscan, dct4x4[i4x4] );
-
             i_decimate_mb += x264_mb_decimate_score( dctscan+1, 15 );
             if( i_decimate_mb >= 7 )
                 return 0;
