@@ -253,48 +253,13 @@ static void x264_cabac_mb_intra_chroma_pred_mode( x264_t *h, x264_cabac_t *cb )
 
 static void x264_cabac_mb_cbp_luma( x264_t *h, x264_cabac_t *cb )
 {
-    /* TODO: clean up and optimize */
-    int i8x8;
-    for( i8x8 = 0; i8x8 < 4; i8x8++ )
-    {
-        int i_mba_xy = -1;
-        int i_mbb_xy = -1;
-        int x = block_idx_x[4*i8x8];
-        int y = block_idx_y[4*i8x8];
-        int ctx = 0;
-
-        if( x > 0 )
-            i_mba_xy = h->mb.i_mb_xy;
-        else if( h->mb.i_neighbour & MB_LEFT )
-            i_mba_xy = h->mb.i_mb_xy - 1;
-
-        if( y > 0 )
-            i_mbb_xy = h->mb.i_mb_xy;
-        else if( h->mb.i_neighbour & MB_TOP )
-            i_mbb_xy = h->mb.i_mb_top_xy;
-
-
-        /* No need to test for PCM and SKIP */
-        if( i_mba_xy >= 0 )
-        {
-            const int i8x8a = block_idx_xy[(x-1)&0x03][y]/4;
-            if( ((h->mb.cbp[i_mba_xy] >> i8x8a)&0x01) == 0 )
-            {
-                ctx++;
-            }
-        }
-
-        if( i_mbb_xy >= 0 )
-        {
-            const int i8x8b = block_idx_xy[x][(y-1)&0x03]/4;
-            if( ((h->mb.cbp[i_mbb_xy] >> i8x8b)&0x01) == 0 )
-            {
-                ctx += 2;
-            }
-        }
-
-        x264_cabac_encode_decision( cb, 73 + ctx, (h->mb.i_cbp_luma >> i8x8)&0x01 );
-    }
+    int cbp = h->mb.i_cbp_luma;
+    int cbp_l = h->mb.i_neighbour & MB_LEFT ? h->mb.cbp[h->mb.i_mb_xy - 1] : -1;
+    int cbp_t = h->mb.i_neighbour & MB_TOP ? h->mb.cbp[h->mb.i_mb_top_xy] : -1;
+    x264_cabac_encode_decision( cb, 76 - ((cbp_l >> 1) & 1) - ((cbp_t >> 1) & 2), (h->mb.i_cbp_luma >> 0) & 1 );
+    x264_cabac_encode_decision( cb, 76 - ((cbp   >> 0) & 1) - ((cbp_t >> 2) & 2), (h->mb.i_cbp_luma >> 1) & 1 );
+    x264_cabac_encode_decision( cb, 76 - ((cbp_l >> 3) & 1) - ((cbp   << 1) & 2), (h->mb.i_cbp_luma >> 2) & 1 );
+    x264_cabac_encode_decision( cb, 76 - ((cbp   >> 2) & 1) - ((cbp   >> 0) & 2), (h->mb.i_cbp_luma >> 3) & 1 );
 }
 
 static void x264_cabac_mb_cbp_chroma( x264_t *h, x264_cabac_t *cb )
