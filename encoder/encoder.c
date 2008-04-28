@@ -37,25 +37,6 @@
 
 //#define DEBUG_MB_TYPE
 //#define DEBUG_DUMP_FRAME
-//#define DEBUG_BENCHMARK
-
-#ifdef DEBUG_BENCHMARK
-static int64_t i_mtime_encode_frame = 0;
-static int64_t i_mtime_analyse = 0;
-static int64_t i_mtime_encode = 0;
-static int64_t i_mtime_write = 0;
-static int64_t i_mtime_filter = 0;
-#define TIMER_START( d ) \
-    { \
-        int64_t d##start = x264_mdate();
-
-#define TIMER_STOP( d ) \
-        d += x264_mdate() - d##start;\
-    }
-#else
-#define TIMER_START( d )
-#define TIMER_STOP( d )
-#endif
 
 #define NALU_OVERHEAD 5 // startcode + NAL type costs 5 bytes per frame
 
@@ -1072,16 +1053,11 @@ static void x264_slice_write( x264_t *h )
          * Slice I: choose I_4x4 or I_16x16 mode
          * Slice P: choose between using P mode or intra (4x4 or 16x16)
          * */
-        TIMER_START( i_mtime_analyse );
         x264_macroblock_analyse( h );
-        TIMER_STOP( i_mtime_analyse );
 
         /* encode this macroblock -> be careful it can change the mb type to P_SKIP if needed */
-        TIMER_START( i_mtime_encode );
         x264_macroblock_encode( h );
-        TIMER_STOP( i_mtime_encode );
 
-        TIMER_START( i_mtime_write );
         if( h->param.b_cabac )
         {
             if( mb_xy > h->sh.i_first_mb && !(h->sh.b_mbaff && (i_mb_y&1)) )
@@ -1110,7 +1086,6 @@ static void x264_slice_write( x264_t *h )
                 x264_macroblock_write_cavlc( h, &h->out.bs );
             }
         }
-        TIMER_STOP( i_mtime_write );
 
 #if VISUALIZE
         if( h->param.b_visualize )
@@ -1288,7 +1263,6 @@ int     x264_encoder_encode( x264_t *h,
     *pp_nal = NULL;
 
     /* ------------------- Setup new frame from picture -------------------- */
-    TIMER_START( i_mtime_encode_frame );
     if( pic_in != NULL )
     {
         /* 1: Copy the picture to a frame and move it to a buffer */
@@ -1344,7 +1318,6 @@ int     x264_encoder_encode( x264_t *h,
         while( bframes-- )
             x264_frame_push( h->frames.current, x264_frame_shift( h->frames.next ) );
     }
-    TIMER_STOP( i_mtime_encode_frame );
 
     /* ------------------- Get frame to be encoded ------------------------- */
     /* 4: get picture to encode */
@@ -1366,7 +1339,6 @@ do_encode:
 
     /* ------------------- Setup frame context ----------------------------- */
     /* 5: Init data dependent of frame type */
-    TIMER_START( i_mtime_encode_frame );
     if( h->fenc->i_type == X264_TYPE_IDR )
     {
         /* reset ref pictures */
@@ -1643,8 +1615,6 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     x264_noise_reduction_update( h );
 
-    TIMER_STOP( i_mtime_encode_frame );
-
     /* ---------------------- Compute/Print statistics --------------------- */
     x264_thread_sync_stat( h, h->thread[0] );
 
@@ -1766,9 +1736,6 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
  ****************************************************************************/
 void    x264_encoder_close  ( x264_t *h )
 {
-#ifdef DEBUG_BENCHMARK
-    int64_t i_mtime_total = i_mtime_analyse + i_mtime_encode + i_mtime_write + i_mtime_filter + 1;
-#endif
     int64_t i_yuv_size = 3 * h->param.i_width * h->param.i_height / 2;
     int i;
 
@@ -1778,15 +1745,6 @@ void    x264_encoder_close  ( x264_t *h )
         if( h->thread[i]->b_thread_active )
             x264_pthread_join( h->thread[i]->thread_handle, NULL );
     }
-
-#ifdef DEBUG_BENCHMARK
-    x264_log( h, X264_LOG_INFO,
-              "analyse=%d(%lldms) encode=%d(%lldms) write=%d(%lldms) filter=%d(%lldms)\n",
-              (int)(100*i_mtime_analyse/i_mtime_total), i_mtime_analyse/1000,
-              (int)(100*i_mtime_encode/i_mtime_total), i_mtime_encode/1000,
-              (int)(100*i_mtime_write/i_mtime_total), i_mtime_write/1000,
-              (int)(100*i_mtime_filter/i_mtime_total), i_mtime_filter/1000 );
-#endif
 
     /* Slices used and PSNR */
     for( i=0; i<5; i++ )
