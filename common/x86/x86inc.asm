@@ -18,10 +18,6 @@
 ;* Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 ;*****************************************************************************
 
-%ifdef WIN64
-%define ARCH_X86_64
-%endif
-
 %ifdef ARCH_X86_64
 %include "x86inc-64.asm"
 %else
@@ -129,41 +125,7 @@ DECLARE_REG_SIZE bp, bpl
     %endif
 %endmacro
 
-%ifdef WIN64 ;================================================================
-
-DECLARE_REG 0, rcx, ecx, cx,  cl,  ecx
-DECLARE_REG 1, rdx, edx, dx,  dl,  edx
-DECLARE_REG 2, r8,  r8d, r8w, r8b, r8d
-DECLARE_REG 3, r9,  r9d, r9w, r9b, r9d
-DECLARE_REG 4, rdi, edi, di,  dil, [rsp + stack_offset + 40]
-DECLARE_REG 5, rsi, esi, si,  sil, [rsp + stack_offset + 48]
-DECLARE_REG 6, rax, eax, ax,  al,  [rsp + stack_offset + 56]
-%define r7m [rsp + stack_offset + 64]
-
-%macro LOAD_IF_USED 2 ; reg_id, number_of_args
-    %if %1 < %2
-        mov r%1, [rsp + 8 + %1*8]
-    %endif
-%endmacro
-
-%macro PROLOGUE 3
-    ASSERT %2 >= %1
-    ASSERT %2 <= 7
-    %assign stack_offset 0
-    LOAD_IF_USED 4, %1
-    LOAD_IF_USED 5, %1
-    LOAD_IF_USED 6, %1
-%endmacro
-
-%macro RET 0
-    ret
-%endmacro
-
-%macro REP_RET 0
-    rep ret
-%endmacro
-
-%elifdef ARCH_X86_64 ;========================================================
+%ifdef ARCH_X86_64 ;========================================================
 
 DECLARE_REG 0, rdi, edi, di,  dil, edi
 DECLARE_REG 1, rsi, esi, si,  sil, esi
@@ -295,9 +257,6 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
             global %1
         %endif
     %endif
-%ifdef WIN64
-    %define %1 pad %1
-%endif
     align function_align
     %1:
     RESET_MM_PERMUTATION ; not really needed, but makes disassembly somewhat nicer

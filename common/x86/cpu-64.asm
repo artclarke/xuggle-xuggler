@@ -28,28 +28,18 @@ SECTION .text
 ; int x264_cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
 ;-----------------------------------------------------------------------------
 cglobal x264_cpu_cpuid
-    firstpush rbx
-    pushreg   rbx
-    endprolog
-
+    push    rbx
     mov     r10,   r3
     mov     r11,   r2
     mov     r9,    r1
-%ifdef WIN64
-    mov     r8,    [rsp+40+8]
-%endif
-
     mov     eax,   r0d
     cpuid
-
     mov     [r9],  eax
     mov     [r11], ebx
     mov     [r10], ecx
     mov     [r8],  edx
-
     pop     rbx
     ret
-    endfunc
 
 ;-----------------------------------------------------------------------------
 ; void x264_emms( void )
