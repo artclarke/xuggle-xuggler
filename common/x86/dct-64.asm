@@ -136,27 +136,27 @@ SECTION .text
 ; void x264_sub8x8_dct8_sse2( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
 cglobal x264_sub8x8_dct8_sse2
-    LOAD_DIFF_8P  m0, m8, m9, [parm2q+0*FENC_STRIDE], [parm3q+0*FDEC_STRIDE]
-    LOAD_DIFF_8P  m1, m8, m9, [parm2q+1*FENC_STRIDE], [parm3q+1*FDEC_STRIDE]
-    LOAD_DIFF_8P  m2, m8, m9, [parm2q+2*FENC_STRIDE], [parm3q+2*FDEC_STRIDE]
-    LOAD_DIFF_8P  m3, m8, m9, [parm2q+3*FENC_STRIDE], [parm3q+3*FDEC_STRIDE]
-    LOAD_DIFF_8P  m4, m8, m9, [parm2q+4*FENC_STRIDE], [parm3q+4*FDEC_STRIDE]
-    LOAD_DIFF_8P  m5, m8, m9, [parm2q+5*FENC_STRIDE], [parm3q+5*FDEC_STRIDE]
-    LOAD_DIFF_8P  m6, m8, m9, [parm2q+6*FENC_STRIDE], [parm3q+6*FDEC_STRIDE]
-    LOAD_DIFF_8P  m7, m8, m9, [parm2q+7*FENC_STRIDE], [parm3q+7*FDEC_STRIDE]
+    LOAD_DIFF_8P  m0, m8, m9, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
+    LOAD_DIFF_8P  m1, m8, m9, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
+    LOAD_DIFF_8P  m2, m8, m9, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
+    LOAD_DIFF_8P  m3, m8, m9, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
+    LOAD_DIFF_8P  m4, m8, m9, [r1+4*FENC_STRIDE], [r2+4*FDEC_STRIDE]
+    LOAD_DIFF_8P  m5, m8, m9, [r1+5*FENC_STRIDE], [r2+5*FDEC_STRIDE]
+    LOAD_DIFF_8P  m6, m8, m9, [r1+6*FENC_STRIDE], [r2+6*FDEC_STRIDE]
+    LOAD_DIFF_8P  m7, m8, m9, [r1+7*FENC_STRIDE], [r2+7*FDEC_STRIDE]
 
     DCT8_1D       0,1,2,3,4,5,6,7,8,9
     TRANSPOSE8x8W 0,1,2,3,4,5,6,7,8
     DCT8_1D       0,1,2,3,4,5,6,7,8,9
 
-    movdqa  [parm1q+0x00], m0
-    movdqa  [parm1q+0x10], m1
-    movdqa  [parm1q+0x20], m2
-    movdqa  [parm1q+0x30], m3
-    movdqa  [parm1q+0x40], m4
-    movdqa  [parm1q+0x50], m5
-    movdqa  [parm1q+0x60], m6
-    movdqa  [parm1q+0x70], m7
+    movdqa  [r0+0x00], m0
+    movdqa  [r0+0x10], m1
+    movdqa  [r0+0x20], m2
+    movdqa  [r0+0x30], m3
+    movdqa  [r0+0x40], m4
+    movdqa  [r0+0x50], m5
+    movdqa  [r0+0x60], m6
+    movdqa  [r0+0x70], m7
     ret
 
 
@@ -217,14 +217,14 @@ cglobal x264_sub8x8_dct8_sse2
 ; void x264_add8x8_idct8_sse2( uint8_t *p_dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
 cglobal x264_add8x8_idct8_sse2
-    movdqa  m0, [parm2q+0x00]
-    movdqa  m1, [parm2q+0x10]
-    movdqa  m2, [parm2q+0x20]
-    movdqa  m3, [parm2q+0x30]
-    movdqa  m4, [parm2q+0x40]
-    movdqa  m5, [parm2q+0x50]
-    movdqa  m6, [parm2q+0x60]
-    movdqa  m7, [parm2q+0x70]
+    movdqa  m0, [r1+0x00]
+    movdqa  m1, [r1+0x10]
+    movdqa  m2, [r1+0x20]
+    movdqa  m3, [r1+0x30]
+    movdqa  m4, [r1+0x40]
+    movdqa  m5, [r1+0x50]
+    movdqa  m6, [r1+0x60]
+    movdqa  m7, [r1+0x70]
 
     IDCT8_1D      0,1,2,3,4,5,6,7,8,9
     TRANSPOSE8x8W 0,1,2,3,4,5,6,7,8
@@ -232,14 +232,14 @@ cglobal x264_add8x8_idct8_sse2
     IDCT8_1D      0,1,2,3,4,5,6,7,8,9
  
     pxor  m9, m9
-    STORE_DIFF_8P m0, m8, m9, [parm1q+0*FDEC_STRIDE]
-    STORE_DIFF_8P m1, m8, m9, [parm1q+1*FDEC_STRIDE]
-    STORE_DIFF_8P m2, m8, m9, [parm1q+2*FDEC_STRIDE]
-    STORE_DIFF_8P m3, m8, m9, [parm1q+3*FDEC_STRIDE]
-    STORE_DIFF_8P m4, m8, m9, [parm1q+4*FDEC_STRIDE]
-    STORE_DIFF_8P m5, m8, m9, [parm1q+5*FDEC_STRIDE]
-    STORE_DIFF_8P m6, m8, m9, [parm1q+6*FDEC_STRIDE]
-    STORE_DIFF_8P m7, m8, m9, [parm1q+7*FDEC_STRIDE]
+    STORE_DIFF_8P m0, m8, m9, [r0+0*FDEC_STRIDE]
+    STORE_DIFF_8P m1, m8, m9, [r0+1*FDEC_STRIDE]
+    STORE_DIFF_8P m2, m8, m9, [r0+2*FDEC_STRIDE]
+    STORE_DIFF_8P m3, m8, m9, [r0+3*FDEC_STRIDE]
+    STORE_DIFF_8P m4, m8, m9, [r0+4*FDEC_STRIDE]
+    STORE_DIFF_8P m5, m8, m9, [r0+5*FDEC_STRIDE]
+    STORE_DIFF_8P m6, m8, m9, [r0+6*FDEC_STRIDE]
+    STORE_DIFF_8P m7, m8, m9, [r0+7*FDEC_STRIDE]
     ret
 
 

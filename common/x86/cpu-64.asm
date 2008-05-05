@@ -32,14 +32,14 @@ cglobal x264_cpu_cpuid
     pushreg   rbx
     endprolog
 
-    mov     r10,   parm4q
-    mov     r11,   parm3q
-    mov     r9,    parm2q
+    mov     r10,   r3
+    mov     r11,   r2
+    mov     r9,    r1
 %ifdef WIN64
     mov     r8,    [rsp+40+8]
 %endif
 
-    mov     eax,   parm1d
+    mov     eax,   r0d
     cpuid
 
     mov     [r9],  eax
