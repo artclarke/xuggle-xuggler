@@ -764,8 +764,8 @@ void *x264_realloc( void *p, int i_size )
     uint8_t * p_new;
     if( p )
     {
-        i_old_size = *( (int*) ( (uint8_t*) p ) - sizeof( void ** ) -
-                         sizeof( int ) );
+        i_old_size = *( (int*) ( (uint8_t*) p - sizeof( void ** ) -
+                         sizeof( int ) ) );
     }
     p_new = x264_malloc( i_size );
     if( i_old_size > 0 && i_size > 0 )
