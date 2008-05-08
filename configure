@@ -241,8 +241,6 @@ case $host_cpu in
       ASFLAGS="$ASFLAGS -f macho -DPREFIX"
     elif [ "$SYS" = MINGW ]; then
       ASFLAGS="$ASFLAGS -f win32 -DPREFIX"
-    elif [ "$SYS" = NETBSD ]; then
-      ASFLAGS="$ASFLAGS -f aoutb"
     else
       ASFLAGS="$ASFLAGS -f elf"
     fi
