@@ -106,6 +106,11 @@ cglobal x264_quant_2x2_dc_mmxext, 1,1
     QUANT_MMX [r0], mm6, mm7
     RET
 
+cglobal x264_quant_2x2_dc_ssse3, 1,1
+    QUANT_DC_START
+    QUANT_SSSE3 [r0], mm6, mm7
+    RET
+
 ;-----------------------------------------------------------------------------
 ; void x264_quant_4x4_dc_mmxext( int16_t dct[16], int mf, int bias )
 ;-----------------------------------------------------------------------------

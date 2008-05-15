@@ -30,6 +30,7 @@ void x264_quant_8x8_mmx( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64] )
 void x264_quant_4x4_dc_sse2( int16_t dct[4][4], int mf, int bias );
 void x264_quant_4x4_sse2( int16_t dct[4][4], uint16_t mf[16], uint16_t bias[16] );
 void x264_quant_8x8_sse2( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64] );
+void x264_quant_2x2_dc_ssse3( int16_t dct[2][2], int mf, int bias );
 void x264_quant_4x4_dc_ssse3( int16_t dct[4][4], int mf, int bias );
 void x264_quant_4x4_ssse3( int16_t dct[4][4], uint16_t mf[16], uint16_t bias[16] );
 void x264_quant_8x8_ssse3( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64] );
