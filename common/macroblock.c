@@ -1011,6 +1011,42 @@ static NOINLINE void copy_column8( uint8_t *dst, uint8_t *src )
         dst[i*FDEC_STRIDE] = src[i*FDEC_STRIDE];
 }
 
+static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int i_mb_x, int i_mb_y, int i)
+{
+    const int w = (i == 0 ? 16 : 8);
+    const int i_stride = h->fdec->i_stride[i];
+    const int i_stride2 = i_stride << h->mb.b_interlaced;
+    const int i_pix_offset = h->mb.b_interlaced
+                           ? w * (i_mb_x + (i_mb_y&~1) * i_stride) + (i_mb_y&1) * i_stride
+                           : w * (i_mb_x + i_mb_y * i_stride);
+    int ref_pix_offset[2] = { i_pix_offset, i_pix_offset };
+    const uint8_t *intra_fdec = &h->mb.intra_border_backup[i_mb_y & h->sh.b_mbaff][i][i_mb_x*16>>!!i];
+    x264_frame_t **fref[2] = { h->fref0, h->fref1 };
+    int j, k, l;
+    if( h->mb.b_interlaced )
+        ref_pix_offset[1] += (1-2*(i_mb_y&1)) * i_stride;
+    h->mb.pic.i_stride[i] = i_stride2;
+    h->mc.copy[i?PIXEL_8x8:PIXEL_16x16]( h->mb.pic.p_fenc[i], FENC_STRIDE,
+        &h->fenc->plane[i][i_pix_offset], i_stride2, w );
+    memcpy( &h->mb.pic.p_fdec[i][-1-FDEC_STRIDE], intra_fdec-1, w*3/2+1 );
+    if( h->mb.b_interlaced )
+    {
+        const uint8_t *plane_fdec = &h->fdec->plane[i][i_pix_offset];
+        for( j = 0; j < w; j++ )
+            h->mb.pic.p_fdec[i][-1+j*FDEC_STRIDE] = plane_fdec[-1+j*i_stride2];
+    }
+    for( l=0; l<2; l++ )
+    {
+        for( j=0; j<h->mb.pic.i_fref[l]; j++ )
+        {
+            h->mb.pic.p_fref[l][j][i==0 ? 0:i+3] = &fref[l][j >> h->mb.b_interlaced]->plane[i][ref_pix_offset[j&1]];
+            if( i == 0 )
+                for( k = 1; k < 4; k++ )
+                    h->mb.pic.p_fref[l][j][k] = &fref[l][j >> h->mb.b_interlaced]->filtered[k][ref_pix_offset[j&1]];
+        }
+    }
+}
+
 void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
 {
     int i_mb_xy = i_mb_y * h->mb.i_mb_stride + i_mb_x;
@@ -1189,45 +1225,9 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
     }
 
     /* load picture pointers */
-    for( i = 0; i < 3; i++ )
-    {
-        const int w = (i == 0 ? 16 : 8);
-        const int i_stride = h->fdec->i_stride[i];
-        const int i_stride2 = i_stride << h->mb.b_interlaced;
-        const int i_pix_offset = h->mb.b_interlaced
-                               ? w * (i_mb_x + (i_mb_y&~1) * i_stride) + (i_mb_y&1) * i_stride
-                               : w * (i_mb_x + i_mb_y * i_stride);
-        int ref_pix_offset[2] = { i_pix_offset, i_pix_offset };
-        const uint8_t *intra_fdec = &h->mb.intra_border_backup[i_mb_y & h->sh.b_mbaff][i][i_mb_x*16>>!!i];
-        x264_frame_t **fref[2] = { h->fref0, h->fref1 };
-        int j, k, l;
-
-        if( h->mb.b_interlaced )
-            ref_pix_offset[1] += (1-2*(i_mb_y&1)) * i_stride;
-
-        h->mb.pic.i_stride[i] = i_stride2;
-
-        h->mc.copy[i?PIXEL_8x8:PIXEL_16x16]( h->mb.pic.p_fenc[i], FENC_STRIDE,
-            &h->fenc->plane[i][i_pix_offset], i_stride2, w );
-        memcpy( &h->mb.pic.p_fdec[i][-1-FDEC_STRIDE], intra_fdec-1, w*3/2+1 );
-        if( h->mb.b_interlaced )
-        {
-            const uint8_t *plane_fdec = &h->fdec->plane[i][i_pix_offset];
-            for( j = 0; j < w; j++ )
-                h->mb.pic.p_fdec[i][-1+j*FDEC_STRIDE] = plane_fdec[-1+j*i_stride2];
-        }
-
-        for( l=0; l<2; l++ )
-        {
-            for( j=0; j<h->mb.pic.i_fref[l]; j++ )
-            {
-                h->mb.pic.p_fref[l][j][i==0 ? 0:i+3] = &fref[l][j >> h->mb.b_interlaced]->plane[i][ref_pix_offset[j&1]];
-                if( i == 0 )
-                    for( k = 1; k < 4; k++ )
-                        h->mb.pic.p_fref[l][j][k] = &fref[l][j >> h->mb.b_interlaced]->filtered[k][ref_pix_offset[j&1]];
-            }
-        }
-    }
+    x264_macroblock_load_pic_pointers( h, i_mb_x, i_mb_y, 0 );
+    x264_macroblock_load_pic_pointers( h, i_mb_x, i_mb_y, 1 );
+    x264_macroblock_load_pic_pointers( h, i_mb_x, i_mb_y, 2 );
 
     if( h->fdec->integral )
     {
