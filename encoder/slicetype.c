@@ -153,9 +153,9 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     i_cost_bak = i_bcost;
     for( l = 0; l < 1 + b_bidir; l++ )
     {
-        int mvc[4][2] = {{0}}, i_mvc;
+        int16_t mvc[4][2] = {{0}};
+        int i_mvc = 0;
         int16_t (*fenc_mv)[2] = &fenc->mv[l][i_mb_xy];
-        i_mvc = 0;
 #define MVC(mv) { mvc[i_mvc][0] = mv[0]; mvc[i_mvc][1] = mv[1]; i_mvc++; }
         if( i_mb_x > 0 )
             MVC(fenc_mv[-1]);

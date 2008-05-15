@@ -471,14 +471,14 @@ struct x264_t
 
             /* 0 if not available */
             DECLARE_ALIGNED_16( int16_t mv[2][X264_SCAN8_SIZE][2] );
-            DECLARE_ALIGNED_4( int16_t mvd[2][X264_SCAN8_SIZE][2] );
+            DECLARE_ALIGNED_8( int16_t mvd[2][X264_SCAN8_SIZE][2] );
 
             /* 1 if SKIP or DIRECT. set only for B-frames + CABAC */
             DECLARE_ALIGNED_4( int8_t skip[X264_SCAN8_SIZE] );
 
             DECLARE_ALIGNED_16( int16_t direct_mv[2][X264_SCAN8_SIZE][2] );
-            int8_t  direct_ref[2][X264_SCAN8_SIZE];
-            int     pskip_mv[2];
+            DECLARE_ALIGNED_4( int8_t  direct_ref[2][X264_SCAN8_SIZE] );
+            DECLARE_ALIGNED_4( int16_t pskip_mv[2] );
 
             /* number of neighbors (top and left) that used 8x8 dct */
             int     i_neighbour_transform_size;

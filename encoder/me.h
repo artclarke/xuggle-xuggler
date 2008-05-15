@@ -39,16 +39,16 @@ typedef struct
     uint16_t *integral;
     int      i_stride[2];
 
-    int mvp[2];
+    DECLARE_ALIGNED_4( int16_t mvp[2] );
 
     /* output */
     int cost_mv;        /* lambda * nbits for the chosen mv */
     int cost;           /* satd + lambda * nbits */
-    DECLARE_ALIGNED_8( int mv[2] );
+    DECLARE_ALIGNED_4( int16_t mv[2] );
 } x264_me_t;
 
-void x264_me_search_ref( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc, int *p_fullpel_thresh );
-static inline void x264_me_search( x264_t *h, x264_me_t *m, int (*mvc)[2], int i_mvc )
+void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, int *p_fullpel_thresh );
+static inline void x264_me_search( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc )
     { x264_me_search_ref( h, m, mvc, i_mvc, NULL ); }
 
 void x264_me_refine_qpel( x264_t *h, x264_me_t *m );

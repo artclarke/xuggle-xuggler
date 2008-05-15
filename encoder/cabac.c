@@ -484,7 +484,7 @@ static inline void x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int i_lis
 
 static inline void x264_cabac_mb_mvd( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int width, int height )
 {
-    int mvp[2];
+    DECLARE_ALIGNED_4( int16_t mvp[2] );
     int mdx, mdy;
 
     /* Calculate mvd */
@@ -497,7 +497,7 @@ static inline void x264_cabac_mb_mvd( x264_t *h, x264_cabac_t *cb, int i_list, i
     x264_cabac_mb_mvd_cpn( h, cb, i_list, idx, 1, mdy );
 
     /* save value */
-    x264_macroblock_cache_mvd( h, block_idx_x[idx], block_idx_y[idx], width, height, i_list, mdx, mdy );
+    x264_macroblock_cache_mvd( h, block_idx_x[idx], block_idx_y[idx], width, height, i_list, pack16to32_mask(mdx,mdy) );
 }
 
 static inline void x264_cabac_mb8x8_mvd( x264_t *h, x264_cabac_t *cb, int i_list, int i )

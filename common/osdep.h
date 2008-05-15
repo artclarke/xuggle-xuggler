@@ -127,4 +127,7 @@
 #define x264_pthread_cond_wait(c,m)  usleep(100)
 #endif
 
+/* FIXME: long isn't always the native register size (e.g. win64). */
+#define WORD_SIZE sizeof(long)
+
 #endif /* X264_OSDEP_H */
