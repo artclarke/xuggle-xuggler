@@ -304,6 +304,15 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
     int i_dqp = h->mb.i_qp - h->mb.i_last_qp;
     int ctx;
 
+    /* Avoid writing a delta quant if we have an empty i16x16 block, e.g. in a completely flat background area */
+    if( h->mb.i_type == I_16x16 && !h->mb.cbp[h->mb.i_mb_xy] )
+    {
+#ifndef RD_SKIP_BS
+        h->mb.i_qp = h->mb.i_last_qp;
+#endif
+        i_dqp = 0;
+    }
+
     /* No need to test for PCM / SKIP */
     if( h->mb.i_last_dqp &&
         ( h->mb.type[i_mbn_xy] == I_16x16 || (h->mb.cbp[i_mbn_xy]&0x3f) ) )
