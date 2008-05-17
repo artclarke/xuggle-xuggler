@@ -676,6 +676,18 @@ int set_param_mp4( hnd_t handle, x264_param_t *p_param )
     gf_isom_set_visual_info(p_mp4->p_file, p_mp4->i_track, p_mp4->i_descidx,
         p_param->i_width, p_param->i_height);
 
+    if( p_param->vui.i_sar_width && p_param->vui.i_sar_height )
+    {
+        uint64_t dw = p_param->i_width << 16;
+        uint64_t dh = p_param->i_height << 16;
+        double sar = (double)p_param->vui.i_sar_width / p_param->vui.i_sar_height;
+        if( sar > 1.0 )
+            dw *= sar ;
+        else
+            dh /= sar;
+        gf_isom_set_track_layout_info( p_mp4->p_file, p_mp4->i_track, dw, dh, 0, 0, 0 );
+    }
+
     p_mp4->p_sample->data = (char *)malloc(p_param->i_width * p_param->i_height * 3 / 2);
     if (p_mp4->p_sample->data == NULL)
         return -1;
