@@ -144,6 +144,7 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
             int od = block_idx_x[i]*4 + block_idx_y[i]*4*FDEC_STRIDE;
             h->zigzagf.sub_4x4( h->dct.luma4x4[i], p_src+oe, p_dst+od );
             dct4x4[0][block_idx_x[i]][block_idx_y[i]] = h->dct.luma4x4[i][0];
+            h->dct.luma4x4[i][0] = 0;
         }
         h->zigzagf.scan_4x4( h->dct.luma16x16_dc, dct4x4[0] );
         return;
@@ -206,6 +207,7 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
                 int od = block_idx_x[i]*4 + block_idx_y[i]*4*FDEC_STRIDE;
                 h->zigzagf.sub_4x4( h->dct.luma4x4[16+i+ch*4], p_src+oe, p_dst+od );
                 h->dct.chroma_dc[ch][i] = h->dct.luma4x4[16+i+ch*4][0];
+                h->dct.luma4x4[16+i+ch*4][0] = 0;
             }
             continue;
         }
