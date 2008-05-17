@@ -116,20 +116,23 @@ static inline double x264_clip3f( double v, double f_min, double f_max )
 
 static inline int x264_median( int a, int b, int c )
 {
-    int min = a, max =a;
-    if( b < min )
-        min = b;
-    else
-        max = b;    /* no need to do 'b > max' (more consuming than always doing affectation) */
-
-    if( c < min )
-        min = c;
-    else if( c > max )
-        max = c;
-
-    return a + b + c - min - max;
+    int t = (a-b)&((a-b)>>31);
+    a -= t;
+    b += t;
+    b -= (b-c)&((b-c)>>31);
+    b += (a-b)&((a-b)>>31);
+    return b;
 }
 
+static inline void x264_median_mv( int16_t *dst, int16_t *a, int16_t *b, int16_t *c )
+{
+    dst[0] = x264_median( a[0], b[0], c[0] );
+    dst[1] = x264_median( a[1], b[1], c[1] );
+}
+
+#ifdef HAVE_MMX
+#include "x86/util.h"
+#endif
 
 /****************************************************************************
  *

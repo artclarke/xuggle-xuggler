@@ -168,9 +168,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
                 MVC(fenc_mv[-i_mb_stride-1]);
         }
 #undef MVC
-        m[l].mvp[0] = x264_median( mvc[0][0], mvc[1][0], mvc[2][0] );
-        m[l].mvp[1] = x264_median( mvc[0][1], mvc[1][1], mvc[2][1] );
-
+        x264_median_mv( m[l].mvp, mvc[0], mvc[1], mvc[2] );
         x264_me_search( h, &m[l], mvc, i_mvc );
 
         m[l].cost -= 2; // remove mvcost from skip mbs

@@ -140,10 +140,7 @@ void x264_mb_predict_mv( x264_t *h, int i_list, int idx, int i_width, int16_t mv
     if( i_refc == i_ref ) i_count++;
 
     if( i_count > 1 )
-    {
-        mvp[0] = x264_median( mv_a[0], mv_b[0], mv_c[0] );
-        mvp[1] = x264_median( mv_a[1], mv_b[1], mv_c[1] );
-    }
+        x264_median_mv( mvp, mv_a, mv_b, mv_c );
     else if( i_count == 1 )
     {
         if( i_refa == i_ref )
@@ -156,10 +153,7 @@ void x264_mb_predict_mv( x264_t *h, int i_list, int idx, int i_width, int16_t mv
     else if( i_refb == -2 && i_refc == -2 && i_refa != -2 )
         *(uint32_t*)mvp = *(uint32_t*)mv_a;
     else
-    {
-        mvp[0] = x264_median( mv_a[0], mv_b[0], mv_c[0] );
-        mvp[1] = x264_median( mv_a[1], mv_b[1], mv_c[1] );
-    }
+        x264_median_mv( mvp, mv_a, mv_b, mv_c );
 }
 
 void x264_mb_predict_mv_16x16( x264_t *h, int i_list, int i_ref, int16_t mvp[2] )
@@ -185,10 +179,7 @@ void x264_mb_predict_mv_16x16( x264_t *h, int i_list, int i_ref, int16_t mvp[2] 
     if( i_refc == i_ref ) i_count++;
 
     if( i_count > 1 )
-    {
-        mvp[0] = x264_median( mv_a[0], mv_b[0], mv_c[0] );
-        mvp[1] = x264_median( mv_a[1], mv_b[1], mv_c[1] );
-    }
+        x264_median_mv( mvp, mv_a, mv_b, mv_c );
     else if( i_count == 1 )
     {
         if( i_refa == i_ref )
@@ -201,10 +192,7 @@ void x264_mb_predict_mv_16x16( x264_t *h, int i_list, int i_ref, int16_t mvp[2] 
     else if( i_refb == -2 && i_refc == -2 && i_refa != -2 )
         *(uint32_t*)mvp = *(uint32_t*)mv_a;
     else
-    {
-        mvp[0] = x264_median( mv_a[0], mv_b[0], mv_c[0] );
-        mvp[1] = x264_median( mv_a[1], mv_b[1], mv_c[1] );
-    }
+        x264_median_mv( mvp, mv_a, mv_b, mv_c );
 }
 
 
