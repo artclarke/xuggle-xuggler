@@ -430,6 +430,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     OPT("visualize")
         p->b_visualize = atobool(value);
 #endif
+    OPT("dump-yuv")
+        p->psz_dump_yuv = strdup(value);
     OPT2("analyse", "partitions")
     {
         p->analyse.inter = 0;

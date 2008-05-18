@@ -210,6 +210,7 @@ typedef struct x264_param_t
     void        *p_log_private;
     int         i_log_level;
     int         b_visualize;
+    char        *psz_dump_yuv;  /* filename for reconstructed frames */
 
     /* Encoder analyser parameters */
     struct

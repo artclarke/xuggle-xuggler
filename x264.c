@@ -319,6 +319,7 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H1( "      --asm <integer>         Override CPU detection\n" );
     H1( "      --no-asm                Disable all CPU optimizations\n" );
     H1( "      --visualize             Show MB types overlayed on the encoded video\n" );
+    H1( "      --dump-yuv <string>     Save reconstructed frames\n" );
     H1( "      --sps-id <integer>      Set SPS and PPS id numbers [%d]\n", defaults->i_sps_id );
     H1( "      --aud                   Use access unit delimiters\n" );
     H0( "\n" );
@@ -447,6 +448,7 @@ static int  Parse( int argc, char **argv,
             { "verbose", no_argument,       NULL, 'v' },
             { "progress",no_argument,       NULL, OPT_PROGRESS },
             { "visualize",no_argument,      NULL, OPT_VISUALIZE },
+            { "dump-yuv",required_argument, NULL, 0 },
             { "sps-id",  required_argument, NULL, 0 },
             { "aud",     no_argument,       NULL, 0 },
             { "nr",      required_argument, NULL, 0 },

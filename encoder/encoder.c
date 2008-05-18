@@ -36,7 +36,6 @@
 #endif
 
 //#define DEBUG_MB_TYPE
-//#define DEBUG_DUMP_FRAME
 
 #define NALU_OVERHEAD 5 // startcode + NAL type costs 5 bytes per frame
 
@@ -58,27 +57,19 @@ static float x264_psnr( int64_t i_sqe, int64_t i_size )
     return (float)(-10.0 * log( f_mse ) / log( 10.0 ));
 }
 
-#ifdef DEBUG_DUMP_FRAME
-static void x264_frame_dump( x264_t *h, x264_frame_t *fr, char *name )
+static void x264_frame_dump( x264_t *h )
 {
-    FILE *f = fopen( name, "r+b" );
+    FILE *f = fopen( h->param.psz_dump_yuv, "r+b" );
     int i, y;
     if( !f )
         return;
-
     /* Write the frame in display order */
-    fseek( f, fr->i_frame * h->param.i_height * h->param.i_width * 3 / 2, SEEK_SET );
-
-    for( i = 0; i < fr->i_plane; i++ )
-    {
-        for( y = 0; y < h->param.i_height / ( i == 0 ? 1 : 2 ); y++ )
-        {
-            fwrite( &fr->plane[i][y*fr->i_stride[i]], 1, h->param.i_width / ( i == 0 ? 1 : 2 ), f );
-        }
-    }
+    fseek( f, h->fdec->i_frame * h->param.i_height * h->param.i_width * 3/2, SEEK_SET );
+    for( i = 0; i < h->fdec->i_plane; i++ )
+        for( y = 0; y < h->param.i_height >> !!i; y++ )
+            fwrite( &h->fdec->plane[i][y*h->fdec->i_stride[i]], 1, h->param.i_width >> !!i, f );
     fclose( f );
 }
-#endif
 
 
 /* Fill "default" values */
@@ -698,10 +689,10 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     if( x264_ratecontrol_new( h ) < 0 )
         return NULL;
 
-#ifdef DEBUG_DUMP_FRAME
+    if( h->param.psz_dump_yuv )
     {
         /* create or truncate the reconstructed video file */
-        FILE *f = fopen( "fdec.yuv", "w" );
+        FILE *f = fopen( h->param.psz_dump_yuv, "w" );
         if( f )
             fclose( f );
         else
@@ -711,7 +702,6 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
             return NULL;
         }
     }
-#endif
 
     return h;
 }
@@ -886,9 +876,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y )
     int b_deblock = !h->sh.i_disable_deblocking_filter_idc;
     int b_end = mb_y == h->sps->i_mb_height;
     int min_y = mb_y - (1 << h->sh.b_mbaff);
-#ifndef DEBUG_DUMP_FRAME
-    b_deblock &= b_hpel;
-#endif
+    b_deblock &= b_hpel || h->param.psz_dump_yuv;
     if( mb_y & h->sh.b_mbaff )
         return;
     if( min_y < 0 )
@@ -1725,10 +1713,8 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 }
 #endif
 
-#ifdef DEBUG_DUMP_FRAME
-    /* Dump reconstructed frame */
-    x264_frame_dump( h, h->fdec, "fdec.yuv" );
-#endif
+    if( h->param.psz_dump_yuv )
+        x264_frame_dump( h );
 }
 
 /****************************************************************************
