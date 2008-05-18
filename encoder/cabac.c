@@ -341,18 +341,9 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
 #ifndef RDO_SKIP_BS
 void x264_cabac_mb_skip( x264_t *h, int b_skip )
 {
-    int ctx = 0;
-
-    if( h->mb.i_mb_type_left >= 0 && !IS_SKIP( h->mb.i_mb_type_left ) )
-    {
-        ctx++;
-    }
-    if( h->mb.i_mb_type_top >= 0 && !IS_SKIP( h->mb.i_mb_type_top ) )
-    {
-        ctx++;
-    }
-
-    ctx += (h->sh.i_type == SLICE_TYPE_P) ? 11 : 24;
+    int ctx = (h->mb.i_mb_type_left >= 0 && !IS_SKIP( h->mb.i_mb_type_left ))
+            + (h->mb.i_mb_type_top >= 0 && !IS_SKIP( h->mb.i_mb_type_top ))
+            + (h->sh.i_type == SLICE_TYPE_P ? 11 : 24);
     x264_cabac_encode_decision( &h->cabac, ctx, b_skip );
 }
 #endif
@@ -382,42 +373,40 @@ static inline void x264_cabac_mb_sub_p_partition( x264_cabac_t *cb, int i_sub )
     }
 }
 
-static inline void x264_cabac_mb_sub_b_partition( x264_cabac_t *cb, int i_sub )
+static NOINLINE void x264_cabac_mb_sub_b_partition( x264_cabac_t *cb, int i_sub )
 {
-#define WRITE_SUB_3(a,b,c) {\
-        x264_cabac_encode_decision( cb, 36, a );\
-        x264_cabac_encode_decision( cb, 37, b );\
-        x264_cabac_encode_decision( cb, 39, c );\
-    }
-#define WRITE_SUB_5(a,b,c,d,e) {\
-        x264_cabac_encode_decision( cb, 36, a );\
-        x264_cabac_encode_decision( cb, 37, b );\
-        x264_cabac_encode_decision( cb, 38, c );\
-        x264_cabac_encode_decision( cb, 39, d );\
-        x264_cabac_encode_decision( cb, 39, e );\
-    }
-#define WRITE_SUB_6(a,b,c,d,e,f) {\
-        WRITE_SUB_5(a,b,c,d,e)\
-        x264_cabac_encode_decision( cb, 39, f );\
-    }
-
-    switch( i_sub )
+    static const uint8_t part_bits[12][7] = {
+        {6,1,1,1,0,1,1}, // D_L0_4x4
+        {5,1,1,0,0,1},   // D_L0_8x4
+        {5,1,1,0,1,0},   // D_L0_4x8
+        {3,1,0,0},       // D_L0_8x8
+        {5,1,1,1,1,0},   // D_L1_4x4
+        {5,1,1,0,1,1},   // D_L1_8x4
+        {6,1,1,1,0,0,0}, // D_L1_4x8
+        {3,1,0,1},       // D_L1_8x8
+        {5,1,1,1,1,1},   // D_BI_4x4
+        {6,1,1,1,0,0,1}, // D_BI_8x4
+        {6,1,1,1,0,1,0}, // D_BI_4x8
+        {5,1,1,0,0,0},   // D_BI_8x8
+    };
+    int len;
+    if( i_sub == D_DIRECT_8x8 )
     {
-        case D_DIRECT_8x8:
-            x264_cabac_encode_decision( cb, 36, 0 );
-            break;
-        case D_L0_8x8: WRITE_SUB_3(1,0,0); break;
-        case D_L1_8x8: WRITE_SUB_3(1,0,1); break;
-        case D_BI_8x8: WRITE_SUB_5(1,1,0,0,0); break;
-        case D_L0_8x4: WRITE_SUB_5(1,1,0,0,1); break;
-        case D_L0_4x8: WRITE_SUB_5(1,1,0,1,0); break;
-        case D_L1_8x4: WRITE_SUB_5(1,1,0,1,1); break;
-        case D_L1_4x8: WRITE_SUB_6(1,1,1,0,0,0); break;
-        case D_BI_8x4: WRITE_SUB_6(1,1,1,0,0,1); break;
-        case D_BI_4x8: WRITE_SUB_6(1,1,1,0,1,0); break;
-        case D_L0_4x4: WRITE_SUB_6(1,1,1,0,1,1); break;
-        case D_L1_4x4: WRITE_SUB_5(1,1,1,1,0); break;
-        case D_BI_4x4: WRITE_SUB_5(1,1,1,1,1); break;
+        x264_cabac_encode_decision( cb, 36, 0 );
+        return;
+    }
+    len = part_bits[i_sub][0];
+    x264_cabac_encode_decision( cb, 36, part_bits[i_sub][1] );
+    x264_cabac_encode_decision( cb, 37, part_bits[i_sub][2] );
+    if( len == 3 )
+        x264_cabac_encode_decision( cb, 39, part_bits[i_sub][3] );
+    else
+    {
+        x264_cabac_encode_decision( cb, 38, part_bits[i_sub][3] );
+        x264_cabac_encode_decision( cb, 39, part_bits[i_sub][4] );
+        x264_cabac_encode_decision( cb, 39, part_bits[i_sub][5] );
+        if( len == 6 )
+            x264_cabac_encode_decision( cb, 39, part_bits[i_sub][6] );
     }
 }
 
@@ -457,29 +446,19 @@ static inline void x264_cabac_mb_ref( x264_t *h, x264_cabac_t *cb, int i_list, i
 
 static inline void x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int l, int mvd )
 {
+    static const uint8_t transition[7] = { 3,3,3,4,5,6,6 };
     const int amvd = abs( h->mb.cache.mvd[i_list][x264_scan8[idx] - 1][l] ) +
                      abs( h->mb.cache.mvd[i_list][x264_scan8[idx] - 8][l] );
     const int i_abs = abs( mvd );
     const int i_prefix = X264_MIN( i_abs, 9 );
-    const int ctxbase = (l == 0 ? 40 : 47);
-    int ctx;
+    const int ctxbase = l ? 47 : 40;
+    int ctx = (amvd>2) + (amvd>32);
     int i;
-
-
-    if( amvd < 3 )
-        ctx = 0;
-    else if( amvd > 32 )
-        ctx = 2;
-    else
-        ctx = 1;
 
     for( i = 0; i < i_prefix; i++ )
     {
         x264_cabac_encode_decision( cb, ctxbase + ctx, 1 );
-        if( ctx < 3 )
-            ctx = 3;
-        else if( ctx < 6 )
-            ctx++;
+        ctx = transition[ctx];
     }
     if( i_prefix < 9 )
         x264_cabac_encode_decision( cb, ctxbase + ctx, 0 );
@@ -546,11 +525,18 @@ static inline void x264_cabac_mb8x8_mvd( x264_t *h, x264_cabac_t *cb, int i_list
 
 static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
 {
+    /* i_ctxBlockCat: 0-> DC 16x16  i_idx = 0
+     *                1-> AC 16x16  i_idx = luma4x4idx
+     *                2-> Luma4x4   i_idx = luma4x4idx
+     *                3-> DC Chroma i_idx = iCbCr
+     *                4-> AC Chroma i_idx = 4 * iCbCr + chroma4x4idx
+     *                5-> Luma8x8   i_idx = luma8x8idx
+     */
+
     int i_mba_xy = -1;
     int i_mbb_xy = -1;
     int i_nza = 0;
     int i_nzb = 0;
-    int ctx;
 
     if( i_cat == DCT_LUMA_DC )
     {
@@ -620,18 +606,11 @@ static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
 
     if( IS_INTRA( h->mb.i_type ) )
     {
-        if( i_mba_xy < 0 )
-            i_nza = 1;
-        if( i_mbb_xy < 0 )
-            i_nzb = 1;
+        i_nza |= i_mba_xy < 0;
+        i_nzb |= i_mbb_xy < 0;
     }
 
-    ctx = 4 * i_cat;
-    if( i_nza )
-        ctx += 1;
-    if( i_nzb )
-        ctx += 2;
-    return ctx;
+    return 4*i_cat + 2*!!i_nzb + !!i_nza;
 }
 
 
@@ -665,7 +644,7 @@ static const uint8_t last_coeff_flag_offset_8x8[63] = {
 };
 static const uint8_t identity[16] =
     { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-    
+
 // node ctx: 0..3: abslevel1 (with abslevelgt1 == 0).
 //           4..7: abslevelgt1 + 3 (and abslevel1 doesn't matter).
 /* map node ctx => cabac ctx for level=1 */
@@ -695,14 +674,6 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
 
     const uint8_t *significant_coeff_flag_offset;
     const uint8_t *last_coeff_flag_offset;
-
-    /* i_ctxBlockCat: 0-> DC 16x16  i_idx = 0
-     *                1-> AC 16x16  i_idx = luma4x4idx
-     *                2-> Luma4x4   i_idx = luma4x4idx
-     *                3-> DC Chroma i_idx = iCbCr
-     *                4-> AC Chroma i_idx = 4 * iCbCr + chroma4x4idx
-     *                5-> Luma8x8   i_idx = luma8x8idx
-     */
 
     /* yes this is always aligned, and l[-1] exists in the cases where it's used (ac) */
     for( j = i_count - 4; j >= -1; j -= 4 )
