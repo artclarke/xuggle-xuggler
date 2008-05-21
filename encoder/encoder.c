@@ -1139,6 +1139,8 @@ static void x264_slice_write( x264_t *h )
 
     x264_nal_end( h );
 
+    x264_fdec_filter_row( h, h->sps->i_mb_height );
+
     /* Compute misc bits */
     h->stat.frame.i_misc_bits = bs_pos( &h->out.bs )
                               + NALU_OVERHEAD * 8
@@ -1185,7 +1187,6 @@ static int x264_slices_write( x264_t *h )
 
     x264_stack_align( x264_slice_write, h );
     i_frame_size = h->out.nal[h->out.i_nal-1].i_payload;
-    x264_fdec_filter_row( h, h->sps->i_mb_height );
 
 #if VISUALIZE
     if( h->param.b_visualize )
