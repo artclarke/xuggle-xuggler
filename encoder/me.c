@@ -786,7 +786,7 @@ if( pass == 0 || !visited[(m0x)&7][(m0y)&7][(m1x)&7][(m1y)&7] ) \
     int i0 = 4 + 3*(m0x-om0x) + (m0y-om0y); \
     int i1 = 4 + 3*(m1x-om1x) + (m1y-om1y); \
     visited[(m0x)&7][(m0y)&7][(m1x)&7][(m1y)&7] = 1; \
-    memcpy( pix, pix0[i0], bs ); \
+    h->mc.memcpy_aligned( pix, pix0[i0], bs ); \
     if( i_weight == 32 ) \
         h->mc.avg[i_pixel]( pix, bw, pix1[i1], bw ); \
     else \

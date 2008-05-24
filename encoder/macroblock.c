@@ -292,7 +292,7 @@ void x264_macroblock_encode_pskip( x264_t *h )
                                 h->mb.mv_min[1], h->mb.mv_max[1] );
 
     /* don't do pskip motion compensation if it was already done in macroblock_analyse */
-    if( !h->mb.b_skip_pbskip_mc )
+    if( !h->mb.b_skip_mc )
     {
         h->mc.mc_luma( h->mb.pic.p_fdec[0],    FDEC_STRIDE,
                        h->mb.pic.p_fref[0][0], h->mb.pic.i_stride[0],
@@ -348,7 +348,7 @@ void x264_macroblock_encode( x264_t *h )
     if( h->mb.i_type == B_SKIP )
     {
         /* don't do bskip motion compensation if it was already done in macroblock_analyse */
-        if( !h->mb.b_skip_pbskip_mc )
+        if( !h->mb.b_skip_mc )
             x264_mb_mc( h );
         x264_macroblock_encode_skip( h );
         return;
@@ -417,8 +417,9 @@ void x264_macroblock_encode( x264_t *h )
         int i8x8, i4x4;
         int i_decimate_mb = 0;
 
-        /* Motion compensation */
-        x264_mb_mc( h );
+        /* Don't repeat motion compensation if it was already done in non-RD transform analysis */
+        if( !h->mb.b_skip_mc )
+            x264_mb_mc( h );
 
         if( h->mb.b_lossless )
         {
@@ -690,7 +691,7 @@ int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
         }
     }
 
-    h->mb.b_skip_pbskip_mc = 1;
+    h->mb.b_skip_mc = 1;
     return 1;
 }
 

@@ -308,7 +308,7 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
 static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
 {
     int ref[2];
-    DECLARE_ALIGNED_4( int16_t mv[2][2] );
+    DECLARE_ALIGNED_8( int16_t mv[2][2] );
     int i_list;
     int i8, i4;
     int b8x8;

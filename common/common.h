@@ -429,7 +429,7 @@ struct x264_t
         int i_skip_intra;
         /* skip flag for P/B-skip motion compensation */
         /* if we've already done skip MC, we don't need to do it again */
-        int b_skip_pbskip_mc;
+        int b_skip_mc;
 
         struct
         {

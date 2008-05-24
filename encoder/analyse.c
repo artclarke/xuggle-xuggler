@@ -340,7 +340,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
                 a->b_fast_intra = 1;
             }
         }
-        h->mb.b_skip_pbskip_mc = 0;
+        h->mb.b_skip_mc = 0;
     }
 }
 
@@ -1916,8 +1916,12 @@ static void x264_mb_analyse_b_rd( x264_t *h, x264_mb_analysis_t *a, int i_satd_i
     if( a->b_direct_available && a->i_rd16x16direct == COST_MAX )
     {
         h->mb.i_type = B_DIRECT;
+        /* Assumes direct/skip MC is still in fdec */
+        /* Requires b-rdo to be done before intra analysis */
+        h->mb.b_skip_mc = 1;
         x264_analyse_update_cache( h, a );
         a->i_rd16x16direct = x264_rd_cost_mb( h, a->i_lambda2 );
+        h->mb.b_skip_mc = 0;
     }
 
     //FIXME not all the update_cache calls are needed
@@ -2009,7 +2013,7 @@ static inline void x264_mb_analyse_transform( x264_t *h )
     if( x264_mb_transform_8x8_allowed( h ) && h->param.analyse.b_transform_8x8 )
     {
         int i_cost4, i_cost8;
-        /* FIXME only luma mc is needed */
+        /* Only luma MC is really needed, but the full MC is re-used in macroblock_encode. */
         x264_mb_mc( h );
 
         i_cost8 = h->pixf.sa8d[PIXEL_16x16]( h->mb.pic.p_fenc[0], FENC_STRIDE,
@@ -2018,6 +2022,7 @@ static inline void x264_mb_analyse_transform( x264_t *h )
                                              h->mb.pic.p_fdec[0], FDEC_STRIDE );
 
         h->mb.b_transform_8x8 = i_cost8 < i_cost4;
+        h->mb.b_skip_mc = 1;
     }
 }
 
@@ -2387,7 +2392,7 @@ void x264_macroblock_analyse( x264_t *h )
                 {
                     h->mb.i_type = B_SKIP;
                     x264_analyse_update_cache( h, &analysis );
-                    h->mb.b_skip_pbskip_mc = 1;
+                    h->mb.b_skip_mc = 1;
                     return;
                 }
             }
@@ -2404,7 +2409,8 @@ void x264_macroblock_analyse( x264_t *h )
             const unsigned int flags = h->param.analyse.inter;
             int i_type;
             int i_partition;
-            h->mb.b_skip_pbskip_mc = 0;
+            int i_satd_inter = 0; // shut up uninitialized warning
+            h->mb.b_skip_mc = 0;
 
             x264_mb_analyse_load_costs( h, &analysis );
 
@@ -2547,11 +2553,9 @@ void x264_macroblock_analyse( x264_t *h )
                 }
             }
 
-            x264_mb_analyse_intra( h, &analysis, i_cost );
-
             if( analysis.b_mbrd )
             {
-                int i_satd_inter = i_cost;
+                i_satd_inter = i_cost;
                 x264_mb_analyse_b_rd( h, &analysis, i_satd_inter );
                 i_type = B_SKIP;
                 i_cost = i_bskip_cost;
@@ -2566,6 +2570,12 @@ void x264_macroblock_analyse( x264_t *h )
 
                 h->mb.i_type = i_type;
                 h->mb.i_partition = i_partition;
+            }
+            
+            x264_mb_analyse_intra( h, &analysis, i_satd_inter );
+
+            if( analysis.b_mbrd )
+            {
                 x264_mb_analyse_transform_rd( h, &analysis, &i_satd_inter, &i_cost );
                 x264_intra_rd( h, &analysis, i_satd_inter * 17/16 );
             }
