@@ -31,9 +31,12 @@
 #include <inttypes.h>
 #endif
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #include <io.h>    // _setmode()
 #include <fcntl.h> // _O_BINARY
+#endif
+
+#ifdef _MSC_VER
 #define inline __inline
 #define strcasecmp stricmp
 #define strncasecmp strnicmp

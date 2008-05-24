@@ -90,7 +90,7 @@ int main( int argc, char **argv )
     pthread_win32_thread_attach_np();
 #endif
 
-#ifdef _MSC_VER
+#ifdef _WIN32
     _setmode(_fileno(stdin), _O_BINARY);
     _setmode(_fileno(stdout), _O_BINARY);
 #endif
