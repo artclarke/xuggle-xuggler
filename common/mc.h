@@ -67,6 +67,7 @@ typedef struct
     void (*prefetch_ref)( uint8_t *pix, int stride, int parity );
     
     void *(*memcpy_aligned)( void *dst, const void *src, size_t n );
+    void (*memzero_aligned)( void *dst, int n );
 
 } x264_mc_functions_t;
 

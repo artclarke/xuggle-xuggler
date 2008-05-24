@@ -55,6 +55,8 @@ extern void x264_mc_chroma_mmxext( uint8_t *src, int i_src_stride,
 extern void x264_plane_copy_mmxext( uint8_t *, int, uint8_t *, int, int w, int h);
 extern void *x264_memcpy_aligned_mmx( void * dst, const void * src, size_t n );
 extern void *x264_memcpy_aligned_sse2( void * dst, const void * src, size_t n );
+extern void x264_memzero_aligned_mmx( void * dst, int n );
+extern void x264_memzero_aligned_sse2( void * dst, int n );
 
 #define PIXEL_AVG_W(width,cpu)\
 extern void x264_pixel_avg2_w##width##_##cpu( uint8_t *, int, uint8_t *, int, uint8_t *, int );
@@ -230,6 +232,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->copy[PIXEL_8x8]   = x264_mc_copy_w8_mmx;
     pf->copy[PIXEL_4x4]   = x264_mc_copy_w4_mmx;
     pf->memcpy_aligned = x264_memcpy_aligned_mmx;
+    pf->memzero_aligned = x264_memzero_aligned_mmx;
 
     if( !(cpu&X264_CPU_MMXEXT) )
         return;
@@ -278,6 +281,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
         return;
 
     pf->memcpy_aligned = x264_memcpy_aligned_sse2;
+    pf->memzero_aligned = x264_memzero_aligned_sse2;
     pf->hpel_filter = x264_hpel_filter_sse2_amd;
 
     // disable on AMD processors since it is slower

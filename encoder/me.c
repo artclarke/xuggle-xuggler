@@ -837,7 +837,7 @@ int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight 
     int bcost = COST_MAX;
     int pass = 0;
     uint8_t visited[8][8][8][8];
-    memset( visited, 0, sizeof(visited) );
+    h->mc.memzero_aligned( visited, sizeof(visited) );
 
     BIME_CACHE( 0, 0 );
     CHECK_BIDIR( 0, 0, 0, 0 );

@@ -271,12 +271,17 @@ static void plane_copy( uint8_t *dst, int i_dst,
     }
 }
 
-void prefetch_fenc_null( uint8_t *pix_y, int stride_y,
-                         uint8_t *pix_uv, int stride_uv, int mb_x )
+static void prefetch_fenc_null( uint8_t *pix_y, int stride_y,
+                                uint8_t *pix_uv, int stride_uv, int mb_x )
 {}
 
-void prefetch_ref_null( uint8_t *pix, int stride, int parity )
+static void prefetch_ref_null( uint8_t *pix, int stride, int parity )
 {}
+
+static void memzero_aligned( void * dst, int n )
+{
+    memset( dst, 0, n );
+}
 
 void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 {
@@ -316,6 +321,7 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->prefetch_fenc = prefetch_fenc_null;
     pf->prefetch_ref  = prefetch_ref_null;
     pf->memcpy_aligned = memcpy;
+    pf->memzero_aligned = memzero_aligned;
 
 #ifdef HAVE_MMX
     x264_mc_init_mmx( cpu, pf );
