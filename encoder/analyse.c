@@ -1874,6 +1874,7 @@ static void x264_mb_analyse_p_rd( x264_t *h, x264_mb_analysis_t *a, int i_satd )
     if( a->l0.i_cost8x8 <= thresh )
     {
         h->mb.i_type = P_8x8;
+        h->mb.i_partition = D_8x8;
         x264_analyse_update_cache( h, a );
         a->l0.i_cost8x8 = x264_rd_cost_mb( h, a->i_lambda2 );
 
@@ -1892,6 +1893,7 @@ static void x264_mb_analyse_p_rd( x264_t *h, x264_mb_analysis_t *a, int i_satd )
             {
                 h->mb.i_sub_partition[0] = h->mb.i_sub_partition[1] =
                 h->mb.i_sub_partition[2] = h->mb.i_sub_partition[3] = D_L0_8x8;
+                x264_analyse_update_cache( h, a );
                 i_cost = x264_rd_cost_mb( h, a->i_lambda2 );
                 if( a->l0.i_cost8x8 < i_cost )
                 {
@@ -2311,6 +2313,8 @@ void x264_macroblock_analyse( x264_t *h )
                 }
                 else if( i_partition == D_16x8 )
                 {
+                    h->mb.i_sub_partition[0] = h->mb.i_sub_partition[1] =
+                    h->mb.i_sub_partition[2] = h->mb.i_sub_partition[3] = D_L0_8x8;
                     x264_macroblock_cache_ref( h, 0, 0, 4, 2, 0, analysis.l0.me16x8[0].i_ref );
                     x264_macroblock_cache_ref( h, 0, 2, 4, 2, 0, analysis.l0.me16x8[1].i_ref );
                     x264_me_refine_qpel_rd( h, &analysis.l0.me16x8[0], analysis.i_lambda2, 0 );
@@ -2318,6 +2322,8 @@ void x264_macroblock_analyse( x264_t *h )
                 }
                 else if( i_partition == D_8x16 )
                 {
+                    h->mb.i_sub_partition[0] = h->mb.i_sub_partition[1] =
+                    h->mb.i_sub_partition[2] = h->mb.i_sub_partition[3] = D_L0_8x8;
                     x264_macroblock_cache_ref( h, 0, 0, 2, 4, 0, analysis.l0.me8x16[0].i_ref );
                     x264_macroblock_cache_ref( h, 2, 0, 2, 4, 0, analysis.l0.me8x16[1].i_ref );
                     x264_me_refine_qpel_rd( h, &analysis.l0.me8x16[0], analysis.i_lambda2, 0 );
