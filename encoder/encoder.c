@@ -1602,7 +1602,7 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     /* restore CPU state (before using float again) */
     x264_emms();
 
-    x264_noise_reduction_update( h );
+    x264_noise_reduction_update( thread_current );
 
     /* ---------------------- Compute/Print statistics --------------------- */
     x264_thread_sync_stat( h, h->thread[0] );
