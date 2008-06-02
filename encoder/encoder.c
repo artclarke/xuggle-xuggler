@@ -373,7 +373,6 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.b_fast_pskip = 0;
         h->param.analyse.i_noise_reduction = 0;
         h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 6 );
-        h->param.rc.i_aq_mode = 0;
     }
     if( h->param.rc.i_rc_method == X264_RC_CQP )
     {
@@ -382,6 +381,7 @@ static int x264_validate_parameters( x264_t *h )
         float qp_b = qp_p + 6*log(h->param.rc.f_pb_factor)/log(2);
         h->param.rc.i_qp_min = x264_clip3( (int)(X264_MIN3( qp_p, qp_i, qp_b )), 0, 51 );
         h->param.rc.i_qp_max = x264_clip3( (int)(X264_MAX3( qp_p, qp_i, qp_b ) + .999), 0, 51 );
+        h->param.rc.i_aq_mode = 0;
     }
 
     if( ( h->param.i_width % 16 || h->param.i_height % 16 )
