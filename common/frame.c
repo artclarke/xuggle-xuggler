@@ -844,11 +844,39 @@ void x264_frame_cond_wait( x264_frame_t *frame, int i_lines_completed )
     x264_pthread_mutex_unlock( &frame->mutex );
 }
 
+void x264_frame_size_estimated_set( x264_t *h, int bits )
+{
+    x264_pthread_mutex_lock( &h->fenc->mutex );
+    x264_ratecontrol_set_estimated_size(h, bits);
+    x264_pthread_mutex_unlock( &h->fenc->mutex );
+}
+
+int x264_frame_size_estimated_get( x264_t const *h)
+{
+    int size;
+    x264_pthread_mutex_lock( &h->fenc->mutex );
+    size = x264_ratecontrol_get_estimated_size(h);
+    x264_pthread_mutex_unlock( &h->fenc->mutex );
+    return size;
+}
+
 #else
 void x264_frame_cond_broadcast( x264_frame_t *frame, int i_lines_completed )
 {}
 void x264_frame_cond_wait( x264_frame_t *frame, int i_lines_completed )
 {}
+
+void x264_frame_size_estimated_set( x264_t *h, int bits )
+{
+    x264_ratecontrol_set_estimated_size(h, bits);
+}
+
+int x264_frame_size_estimated_get( x264_t const *h)
+{
+    int size;
+    size = x264_ratecontrol_set_estimated_size(h);
+    return size;
+}
 #endif
 
 

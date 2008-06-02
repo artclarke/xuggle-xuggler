@@ -631,6 +631,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
           || h->param.rc.i_rc_method == X264_RC_CRF
           || h->param.b_bframe_adaptive
           || h->param.b_pre_scenecut );
+    h->frames.b_have_lowres |= (h->param.rc.b_stat_read && h->param.rc.i_vbv_buffer_size > 0);
 
     h->frames.i_last_idr = - h->param.i_keyint_max;
     h->frames.i_input    = 0;
