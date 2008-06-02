@@ -408,7 +408,7 @@ AVG_CACHELINE_CHECK 20, 64, sse2
 ;                           uint8_t *src, int i_src_stride, int i_height )
 ;-----------------------------------------------------------------------------
 cglobal x264_mc_copy_w4_mmx, 4,6
-    cmp     r4m, dword 4
+    cmp     dword r4m, 4
     lea     r5, [r3*3]
     lea     r4, [r1*3]
     je .end

@@ -1729,7 +1729,7 @@ void    x264_encoder_close  ( x264_t *h )
 
     for( i=0; i<h->param.i_threads; i++ )
     {
-        // don't strictly have to wait for the other threads, but it's simpler than cancelling them
+        // don't strictly have to wait for the other threads, but it's simpler than canceling them
         if( h->thread[i]->b_thread_active )
             x264_pthread_join( h->thread[i]->thread_handle, NULL );
     }

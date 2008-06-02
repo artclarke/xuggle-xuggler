@@ -707,9 +707,9 @@ static void predict_8x8_hd( uint8_t *src, uint8_t edge[33] )
     int p6 = pack8to16(F1(l1,l2), F2(l0,l1,l2));
     int p7 = pack8to16(F1(l0,l1), F2(lt,l0,l1));
     int p8 = pack8to16(F1(lt,l0), F2(l0,lt,t0));
-    int p9 = pack8to16(F2(t1,t0,lt), F2(t2,t1,t0 ));
-    int p10 = pack8to16(F2(t3,t2,t1), F2(t4,t3,t2 ));
-    int p11 = pack8to16(F2(t5,t4,t3), F2(t6,t5,t4 ));
+    int p9 = pack8to16(F2(t1,t0,lt), F2(t2,t1,t0));
+    int p10 = pack8to16(F2(t3,t2,t1), F2(t4,t3,t2));
+    int p11 = pack8to16(F2(t5,t4,t3), F2(t6,t5,t4));
     SRC32(0,7)= pack16to32(p1,p2);
     SRC32(0,6)= pack16to32(p2,p3);
     SRC32(4,7)=SRC32(0,5)= pack16to32(p3,p4);
