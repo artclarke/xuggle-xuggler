@@ -1801,15 +1801,17 @@ static int init_pass2( x264_t *h )
             weight *= 1 - pow( (float)rcj->i_count / rcc->nmb, 2 );
             if(weight < .0001)
                 break;
-            weight_sum += weight;
-            cplx_sum += weight * (qscale2bits(rcj, 1) - rcj->misc_bits);
+            double gaussian_weight = weight * exp(-j*j/200.0);
+            weight_sum += gaussian_weight;
+            cplx_sum += gaussian_weight * (qscale2bits(rcj, 1) - rcj->misc_bits);
         }
         /* weighted average of cplx of past frames */
         weight = 1.0;
         for(j=0; j<=cplxblur*2 && j<=i; j++){
             ratecontrol_entry_t *rcj = &rcc->entry[i-j];
-            weight_sum += weight;
-            cplx_sum += weight * (qscale2bits(rcj, 1) - rcj->misc_bits);
+            double gaussian_weight = weight * exp(-j*j/200.0);
+            weight_sum += gaussian_weight;
+            cplx_sum += gaussian_weight * (qscale2bits(rcj, 1) - rcj->misc_bits);
             weight *= 1 - pow( (float)rcj->i_count / rcc->nmb, 2 );
             if(weight < .0001)
                 break;
