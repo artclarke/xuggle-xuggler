@@ -295,7 +295,7 @@ typedef struct {
 // comparable to the input. so unquant is the direct inverse of quant,
 // and uses the dct scaling factors, not the idct ones.
 
-static void quant_trellis_cabac( x264_t *h, int16_t *dct,
+static inline void quant_trellis_cabac( x264_t *h, int16_t *dct,
                                  const uint16_t *quant_mf, const int *unquant_mf,
                                  const int *coef_weight, const uint8_t *zigzag,
                                  int i_ctxBlockCat, int i_lambda2, int b_ac, int i_coefs )
