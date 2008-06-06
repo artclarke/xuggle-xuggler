@@ -329,7 +329,8 @@ int x264_ratecontrol_new( x264_t *h )
         x264_log(h, X264_LOG_WARNING, "VBV maxrate specified, but no bufsize.\n");
         h->param.rc.i_vbv_max_bitrate = 0;
     }
-    if(rc->rate_tolerance < 0.01) {
+    if(rc->rate_tolerance < 0.01)
+    {
         x264_log(h, X264_LOG_WARNING, "bitrate tolerance too small, using .01\n");
         rc->rate_tolerance = 0.01;
     }
@@ -463,7 +464,8 @@ int x264_ratecontrol_new( x264_t *h )
         memset(rc->entry, 0, rc->num_entries * sizeof(ratecontrol_entry_t));
 
         /* init all to skipped p frames */
-        for(i=0; i<rc->num_entries; i++){
+        for(i=0; i<rc->num_entries; i++)
+        {
             ratecontrol_entry_t *rce = &rc->entry[i];
             rce->pict_type = SLICE_TYPE_P;
             rce->qscale = rce->new_qscale = qp2qscale(20);
@@ -473,7 +475,8 @@ int x264_ratecontrol_new( x264_t *h )
 
         /* read stats */
         p = stats_in;
-        for(i=0; i < rc->num_entries - h->param.i_bframe; i++){
+        for(i=0; i < rc->num_entries - h->param.i_bframe; i++)
+        {
             ratecontrol_entry_t *rce;
             int frame_number;
             char pict_type;
@@ -482,8 +485,9 @@ int x264_ratecontrol_new( x264_t *h )
             float qp;
 
             next= strchr(p, ';');
-            if(next){
-                (*next)=0; //sscanf is unbelievably slow on looong strings
+            if(next)
+            {
+                (*next)=0; //sscanf is unbelievably slow on long strings
                 next++;
             }
             e = sscanf(p, " in:%d ", &frame_number);
@@ -501,7 +505,8 @@ int x264_ratecontrol_new( x264_t *h )
                    &rce->mv_bits, &rce->misc_bits, &rce->i_count, &rce->p_count,
                    &rce->s_count, &rce->direct_mode);
 
-            switch(pict_type){
+            switch(pict_type)
+            {
                 case 'I': rce->kept_as_ref = 1;
                 case 'i': rce->pict_type = SLICE_TYPE_I; break;
                 case 'P': rce->pict_type = SLICE_TYPE_P; break;
@@ -509,7 +514,8 @@ int x264_ratecontrol_new( x264_t *h )
                 case 'b': rce->pict_type = SLICE_TYPE_B; break;
                 default:  e = -1; break;
             }
-            if(e < 10){
+            if(e < 10)
+            {
                 x264_log(h, X264_LOG_ERROR, "statistics are damaged at line %d, parser out=%d\n", i, e);
                 return -1;
             }
@@ -1188,7 +1194,8 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
     // avoid NaN's in the rc_eq
     if(!isfinite(q) || rce->i_tex_bits + rce->p_tex_bits + rce->mv_bits == 0)
         q = rcc->last_qscale;
-    else {
+    else
+    {
         rcc->last_rceq = q;
         q /= rate_factor;
         rcc->last_qscale = q;
@@ -1769,7 +1776,8 @@ static int init_pass2( x264_t *h )
     int i;
 
     /* find total/average complexity & const_bits */
-    for(i=0; i<rcc->num_entries; i++){
+    for(i=0; i<rcc->num_entries; i++)
+    {
         ratecontrol_entry_t *rce = &rcc->entry[i];
         all_const_bits += rce->misc_bits;
         rcc->i_cplx_sum[rce->pict_type] += rce->i_tex_bits * rce->qscale;
@@ -1789,7 +1797,8 @@ static int init_pass2( x264_t *h )
      * We don't blur the QPs directly, because then one very simple frame
      * could drag down the QP of a nearby complex frame and give it more
      * bits than intended. */
-    for(i=0; i<rcc->num_entries; i++){
+    for(i=0; i<rcc->num_entries; i++)
+    {
         ratecontrol_entry_t *rce = &rcc->entry[i];
         double weight_sum = 0;
         double cplx_sum = 0;
@@ -1797,7 +1806,8 @@ static int init_pass2( x264_t *h )
         double gaussian_weight;
         int j;
         /* weighted average of cplx of future frames */
-        for(j=1; j<cplxblur*2 && j<rcc->num_entries-i; j++){
+        for(j=1; j<cplxblur*2 && j<rcc->num_entries-i; j++)
+        {
             ratecontrol_entry_t *rcj = &rcc->entry[i+j];
             weight *= 1 - pow( (float)rcj->i_count / rcc->nmb, 2 );
             if(weight < .0001)
@@ -1808,7 +1818,8 @@ static int init_pass2( x264_t *h )
         }
         /* weighted average of cplx of past frames */
         weight = 1.0;
-        for(j=0; j<=cplxblur*2 && j<=i; j++){
+        for(j=0; j<=cplxblur*2 && j<=i; j++)
+        {
             ratecontrol_entry_t *rcj = &rcc->entry[i-j];
             gaussian_weight = weight * exp(-j*j/200.0);
             weight_sum += gaussian_weight;
@@ -1839,7 +1850,8 @@ static int init_pass2( x264_t *h )
     step_mult = all_available_bits / expected_bits;
 
     rate_factor = 0;
-    for(step = 1E4 * step_mult; step > 1E-7 * step_mult; step *= 0.5){
+    for(step = 1E4 * step_mult; step > 1E-7 * step_mult; step *= 0.5)
+    {
         expected_bits = 0;
         rate_factor += step;
 
@@ -1848,30 +1860,37 @@ static int init_pass2( x264_t *h )
         rcc->accum_p_norm = 0;
 
         /* find qscale */
-        for(i=0; i<rcc->num_entries; i++){
+        for(i=0; i<rcc->num_entries; i++)
+        {
             qscale[i] = get_qscale(h, &rcc->entry[i], rate_factor, i);
         }
 
         /* fixed I/B qscale relative to P */
-        for(i=rcc->num_entries-1; i>=0; i--){
+        for(i=rcc->num_entries-1; i>=0; i--)
+        {
             qscale[i] = get_diff_limited_q(h, &rcc->entry[i], qscale[i]);
             assert(qscale[i] >= 0);
         }
 
         /* smooth curve */
-        if(filter_size > 1){
+        if(filter_size > 1)
+        {
             assert(filter_size%2==1);
-            for(i=0; i<rcc->num_entries; i++){
+            for(i=0; i<rcc->num_entries; i++)
+            {
                 ratecontrol_entry_t *rce = &rcc->entry[i];
                 int j;
                 double q=0.0, sum=0.0;
 
-                for(j=0; j<filter_size; j++){
+                for(j=0; j<filter_size; j++)
+                {
                     int index = i+j-filter_size/2;
                     double d = index-i;
                     double coeff = qblur==0 ? 1.0 : exp(-d*d/(qblur*qblur));
-                    if(index < 0 || index >= rcc->num_entries) continue;
-                    if(rce->pict_type != rcc->entry[index].pict_type) continue;
+                    if(index < 0 || index >= rcc->num_entries)
+                        continue;
+                    if(rce->pict_type != rcc->entry[index].pict_type)
+                        continue;
                     q += qscale[index] * coeff;
                     sum += coeff;
                 }
@@ -1880,7 +1899,8 @@ static int init_pass2( x264_t *h )
         }
 
         /* find expected bits */
-        for(i=0; i<rcc->num_entries; i++){
+        for(i=0; i<rcc->num_entries; i++)
+        {
             ratecontrol_entry_t *rce = &rcc->entry[i];
             rce->new_qscale = clip_qscale(h, rce->pict_type, blurred_qscale[i]);
             assert(rce->new_qscale >= 0);

@@ -427,8 +427,8 @@ struct x264_t
          * 1 (non-RD only) = the DCT is still in h->dct, restore fdec and skip reconstruction.
          * 2 (RD only) = the DCT has since been overwritten by RD; restore that too. */
         int i_skip_intra;
-        /* skip flag for P/B-skip motion compensation */
-        /* if we've already done skip MC, we don't need to do it again */
+        /* skip flag for motion compensation */
+        /* if we've already done MC, we don't need to do it again */
         int b_skip_mc;
 
         struct
