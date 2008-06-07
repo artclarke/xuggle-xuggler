@@ -283,16 +283,12 @@ cglobal %1, 2,2,1
     jmp  %2
 %endmacro
 
+%ifndef ARCH_X86_64
 SUB_NxN_DCT  x264_sub8x8_dct_mmx,    x264_sub4x4_dct_mmx  %+ .skip_prologue, 32, 4, 0, 0
 ADD_NxN_IDCT x264_add8x8_idct_mmx,   x264_add4x4_idct_mmx %+ .skip_prologue, 32, 4, 0, 0
-
 SUB_NxN_DCT  x264_sub16x16_dct_mmx,  x264_sub8x8_dct_mmx  %+ .skip_prologue, 32, 8, 4, 4
 ADD_NxN_IDCT x264_add16x16_idct_mmx, x264_add8x8_idct_mmx %+ .skip_prologue, 32, 8, 4, 4
 
-SUB_NxN_DCT  x264_sub16x16_dct_sse2,  x264_sub8x8_dct_sse2  %+ .skip_prologue, 64, 8, 0, 4
-ADD_NxN_IDCT x264_add16x16_idct_sse2, x264_add8x8_idct_sse2 %+ .skip_prologue, 64, 8, 0, 4
-
-%ifndef ARCH_X86_64
 cextern x264_sub8x8_dct8_mmx.skip_prologue
 cextern x264_add8x8_idct8_mmx.skip_prologue
 SUB_NxN_DCT  x264_sub16x16_dct8_mmx,  x264_sub8x8_dct8_mmx  %+ .skip_prologue, 128, 8, 0, 0
@@ -300,6 +296,9 @@ ADD_NxN_IDCT x264_add16x16_idct8_mmx, x264_add8x8_idct8_mmx %+ .skip_prologue, 1
 %define x264_sub8x8_dct8_sse2 x264_sub8x8_dct8_sse2.skip_prologue
 %define x264_add8x8_idct8_sse2 x264_add8x8_idct8_sse2.skip_prologue
 %endif
+
+SUB_NxN_DCT  x264_sub16x16_dct_sse2,  x264_sub8x8_dct_sse2  %+ .skip_prologue, 64, 8, 0, 4
+ADD_NxN_IDCT x264_add16x16_idct_sse2, x264_add8x8_idct_sse2 %+ .skip_prologue, 64, 8, 0, 4
 
 cextern x264_sub8x8_dct8_sse2
 cextern x264_add8x8_idct8_sse2

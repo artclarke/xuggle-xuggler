@@ -44,11 +44,10 @@ x264_frame_t *x264_frame_new( x264_t *h )
     if( h->param.b_interlaced )
         i_lines = ( i_lines + 31 ) & -32;
 
-    if( h->param.cpu&X264_CPU_CACHELINE_SPLIT )
-    {
-        int align = h->param.cpu&X264_CPU_CACHELINE_32 ? 32 : 64;
-        i_stride = (i_stride + align-1) & -align;
-    }
+    if( h->param.cpu&X264_CPU_CACHELINE_64 )
+        i_stride = (i_stride + 63) & ~63;
+    else if( h->param.cpu&X264_CPU_CACHELINE_32 )
+        i_stride = (i_stride + 31) & ~31;
 
     frame->i_plane = 3;
     for( i = 0; i < 3; i++ )

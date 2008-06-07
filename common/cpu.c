@@ -34,24 +34,23 @@
 #endif
 
 #include "common.h"
+#include "cpu.h"
 
-const struct {
-    const char name[8];
-    int flags;
-} x264_cpu_names[] = {
-    {"MMX",     X264_CPU_MMX},
+const x264_cpu_name_t x264_cpu_names[] = {
+    {"Altivec", X264_CPU_ALTIVEC},
+//  {"MMX",     X264_CPU_MMX}, // we don't support asm on mmx1 cpus anymore
     {"MMX2",    X264_CPU_MMX|X264_CPU_MMXEXT},
     {"MMXEXT",  X264_CPU_MMX|X264_CPU_MMXEXT},
-    {"SSE",     X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE},
-    {"SSE1",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE},
+//  {"SSE",     X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE}, // there are no sse1 functions in x264
+    {"SSE2Slow",X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE2_IS_SLOW},
     {"SSE2",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2},
+    {"SSE2Fast",X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE2_IS_FAST},
     {"SSE3",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3},
     {"SSSE3",   X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3},
+    {"PHADD",   X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_PHADD_IS_FAST},
     {"SSE4",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4},
-    {"3DNow",   X264_CPU_3DNOW},
-    {"Altivec", X264_CPU_ALTIVEC},
-    {"Cache32", X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_32},
-    {"Cache64", X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_64},
+    {"Cache32", X264_CPU_CACHELINE_32},
+    {"Cache64", X264_CPU_CACHELINE_64},
     {"", 0},
 };
 
@@ -92,56 +91,86 @@ uint32_t x264_cpu_detect( void )
     if( ecx&0x00080000 )
         cpu |= X264_CPU_SSE4;
 
+    if( cpu & X264_CPU_SSSE3 )
+        cpu |= X264_CPU_SSE2_IS_FAST;
+    if( cpu & X264_CPU_SSE4 )
+        cpu |= X264_CPU_PHADD_IS_FAST;
+
     x264_cpu_cpuid( 0x80000000, &eax, &ebx, &ecx, &edx );
     max_extended_cap = eax;
 
     if( !strcmp((char*)vendor, "AuthenticAMD") && max_extended_cap >= 0x80000001 )
     {
         x264_cpu_cpuid( 0x80000001, &eax, &ebx, &ecx, &edx );
-        if( edx&0x80000000 )
-            cpu |= X264_CPU_3DNOW;
         if( edx&0x00400000 )
             cpu |= X264_CPU_MMXEXT;
+        if( cpu & X264_CPU_SSE2 )
+        {
+            if( ecx&0x00000040 ) /* SSE4a */
+                cpu |= X264_CPU_SSE2_IS_FAST;
+            else
+                cpu |= X264_CPU_SSE2_IS_SLOW;
+        }
+    }
+
+    if( !strcmp((char*)vendor, "GenuineIntel") )
+    {
+        int family, model, stepping;
+        x264_cpu_cpuid( 1, &eax, &ebx, &ecx, &edx );
+        family = ((eax>>8)&0xf) + ((eax>>20)&0xff);
+        model  = ((eax>>4)&0xf) + ((eax>>12)&0xf0);
+        stepping = eax&0xf;
+        /* 6/9 (pentium-m "banias"), 6/13 (pentium-m "dothan"), and 6/14 (core1 "yonah")
+         * theoretically support sse2, but it's significantly slower than mmx for
+         * almost all of x264's functions, so let's just pretend they don't. */
+        if( family==6 && (model==9 || model==13 || model==14) )
+        {
+            cpu &= ~(X264_CPU_SSE2|X264_CPU_SSE3);
+            assert(!(cpu&(X264_CPU_SSSE3|X264_CPU_SSE4)));
+        }
     }
 
     if( !strcmp((char*)vendor, "GenuineIntel") || !strcmp((char*)vendor, "CyrixInstead") )
-        cpu |= X264_CPU_CACHELINE_SPLIT;
-    /* cacheline size is specified in 3 places, any of which may be missing */
-    x264_cpu_cpuid( 1, &eax, &ebx, &ecx, &edx );
-    cache = (ebx&0xff00)>>5; // cflush size
-    if( !cache && max_extended_cap >= 0x80000006 )
     {
-        x264_cpu_cpuid( 0x80000006, &eax, &ebx, &ecx, &edx );
-        cache = ecx&0xff; // cacheline size
-    }
-    if( !cache )
-    {
-        // Cache and TLB Information
-        static const char cache32_ids[] = { 0x0a, 0x0c, 0x41, 0x42, 0x43, 0x44, 0x45, 0x82, 0x83, 0x84, 0x85, 0 };
-        static const char cache64_ids[] = { 0x22, 0x23, 0x25, 0x29, 0x2c, 0x46, 0x47, 0x49, 0x60, 0x66, 0x67, 0x68, 0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7c, 0x7f, 0x86, 0x87, 0 };
-        uint32_t buf[4];
-        int max, i=0, j;
-        do {
-            x264_cpu_cpuid( 2, buf+0, buf+1, buf+2, buf+3 );
-            max = buf[0]&0xff;
-            buf[0] &= ~0xff;
-            for(j=0; j<4; j++)
-                if( !(buf[j]>>31) )
-                    while( buf[j] )
-                    {
-                        if( strchr( cache32_ids, buf[j]&0xff ) )
-                            cache = 32;
-                        if( strchr( cache64_ids, buf[j]&0xff ) )
-                            cache = 64;
-                        buf[j] >>= 8;
-                    }
-        } while( ++i < max );
-    }
+        /* cacheline size is specified in 3 places, any of which may be missing */
+        x264_cpu_cpuid( 1, &eax, &ebx, &ecx, &edx );
+        cache = (ebx&0xff00)>>5; // cflush size
+        if( !cache && max_extended_cap >= 0x80000006 )
+        {
+            x264_cpu_cpuid( 0x80000006, &eax, &ebx, &ecx, &edx );
+            cache = ecx&0xff; // cacheline size
+        }
+        if( !cache )
+        {
+            // Cache and TLB Information
+            static const char cache32_ids[] = { 0x0a, 0x0c, 0x41, 0x42, 0x43, 0x44, 0x45, 0x82, 0x83, 0x84, 0x85, 0 };
+            static const char cache64_ids[] = { 0x22, 0x23, 0x25, 0x29, 0x2c, 0x46, 0x47, 0x49, 0x60, 0x66, 0x67, 0x68, 0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7c, 0x7f, 0x86, 0x87, 0 };
+            uint32_t buf[4];
+            int max, i=0, j;
+            do {
+                x264_cpu_cpuid( 2, buf+0, buf+1, buf+2, buf+3 );
+                max = buf[0]&0xff;
+                buf[0] &= ~0xff;
+                for(j=0; j<4; j++)
+                    if( !(buf[j]>>31) )
+                        while( buf[j] )
+                        {
+                            if( strchr( cache32_ids, buf[j]&0xff ) )
+                                cache = 32;
+                            if( strchr( cache64_ids, buf[j]&0xff ) )
+                                cache = 64;
+                            buf[j] >>= 8;
+                        }
+            } while( ++i < max );
+        }
 
-    if( cache == 32 )
-        cpu |= X264_CPU_CACHELINE_32;
-    if( cache == 64 )
-        cpu |= X264_CPU_CACHELINE_64;
+        if( cache == 32 )
+            cpu |= X264_CPU_CACHELINE_32;
+        else if( cache == 64 )
+            cpu |= X264_CPU_CACHELINE_64;
+        else
+            fprintf( stderr, "x264 [warning]: unable to determine cacheline size\n" );
+    }
 
     return cpu;
 }

@@ -230,8 +230,7 @@ cglobal x264_pixel_avg2_w20_mmxext, 6,7
     jg     .height_loop
     REP_RET
 
-%macro PIXEL_AVG_SSE 1
-cglobal x264_pixel_avg2_w16_%1, 6,7
+cglobal x264_pixel_avg2_w16_sse2, 6,7
     sub    r4, r2
     lea    r6, [r4+r3]
 .height_loop:
@@ -249,7 +248,7 @@ cglobal x264_pixel_avg2_w16_%1, 6,7
     jg     .height_loop
     REP_RET
 
-cglobal x264_pixel_avg2_w20_%1, 6,7
+cglobal x264_pixel_avg2_w20_sse2, 6,7
     sub    r4, r2
     lea    r6, [r4+r3]
 .height_loop:
@@ -272,12 +271,6 @@ cglobal x264_pixel_avg2_w20_%1, 6,7
     sub    r5d, 2
     jg     .height_loop
     REP_RET
-%endmacro
-
-PIXEL_AVG_SSE sse2
-%define movdqu lddqu
-PIXEL_AVG_SSE sse3
-%undef movdqu
 
 ; Cacheline split code for processors with high latencies for loads
 ; split over cache lines.  See sad-a.asm for a more detailed explanation.

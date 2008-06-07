@@ -42,9 +42,10 @@ void x264_stack_align( void (*func)(x264_t*), x264_t *arg );
 #define x264_stack_align(func,arg) func(arg)
 #endif
 
-extern const struct {
-    const char name[8];
+typedef struct {
+    const char name[12];
     int flags;
-} x264_cpu_names[];
+} x264_cpu_name_t;
+extern const x264_cpu_name_t x264_cpu_names[];
 
 #endif

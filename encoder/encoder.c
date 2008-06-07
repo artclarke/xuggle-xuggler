@@ -660,9 +660,17 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     p = buf + sprintf( buf, "using cpu capabilities:" );
     for( i=0; x264_cpu_names[i].flags; i++ )
+    {
+        if( !strcmp(x264_cpu_names[i].name, "SSE2")
+            && param->cpu & (X264_CPU_SSE2_IS_FAST|X264_CPU_SSE2_IS_SLOW) )
+            continue;
+        if( !strcmp(x264_cpu_names[i].name, "SSE3")
+            && (param->cpu & X264_CPU_SSSE3 || !(param->cpu & X264_CPU_CACHELINE_64)) )
+            continue;
         if( (param->cpu & x264_cpu_names[i].flags) == x264_cpu_names[i].flags
             && (!i || x264_cpu_names[i].flags != x264_cpu_names[i-1].flags) )
             p += sprintf( p, " %s", x264_cpu_names[i].name );
+    }
     if( !param->cpu )
         p += sprintf( p, " none!" );
     x264_log( h, X264_LOG_INFO, "%s\n", buf );

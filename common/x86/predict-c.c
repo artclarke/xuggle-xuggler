@@ -505,11 +505,13 @@ void x264_predict_16x16_init_mmx( int cpu, x264_predict_t pf[7] )
     pf[I_PRED_16x16_DC]      = predict_16x16_dc_mmxext;
     pf[I_PRED_16x16_DC_TOP]  = predict_16x16_dc_top_mmxext;
     pf[I_PRED_16x16_P]       = predict_16x16_p_mmxext;
-    if( !(cpu&X264_CPU_SSE2) || (cpu&X264_CPU_3DNOW) )
+    if( !(cpu&X264_CPU_SSE2) )
         return;
     pf[I_PRED_16x16_DC]     = predict_16x16_dc_sse2;
-    pf[I_PRED_16x16_DC_TOP] = predict_16x16_dc_top_sse2;
     pf[I_PRED_16x16_V]      = predict_16x16_v_sse2;
+    if( cpu&X264_CPU_SSE2_IS_SLOW )
+        return;
+    pf[I_PRED_16x16_DC_TOP] = predict_16x16_dc_top_sse2;
     pf[I_PRED_16x16_P]      = predict_16x16_p_sse2;
 }
 

@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 59
+#define X264_BUILD 60
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -46,19 +46,19 @@ typedef struct x264_t x264_t;
  ****************************************************************************/
 /* CPU flags
  */
-#define X264_CPU_MMX        0x000001    /* mmx */
-#define X264_CPU_MMXEXT     0x000002    /* mmx-ext*/
-#define X264_CPU_SSE        0x000004    /* sse */
-#define X264_CPU_SSE2       0x000008    /* sse 2 */
-#define X264_CPU_3DNOW      0x000010    /* 3dnow! */
-#define X264_CPU_3DNOWEXT   0x000020    /* 3dnow! ext */
-#define X264_CPU_ALTIVEC    0x000040    /* altivec */
-#define X264_CPU_SSE3       0x000080    /* sse 3 */
-#define X264_CPU_SSSE3      0x000100    /* ssse 3 */
-#define X264_CPU_CACHELINE_SPLIT 0x200  /* avoid memory loads that span the border between two cachelines */
-#define X264_CPU_CACHELINE_32 0x0400    /* size of a cacheline in bytes */
-#define X264_CPU_CACHELINE_64 0x0800
-#define X264_CPU_SSE4       0x001000    /* sse 4.1 */
+#define X264_CPU_CACHELINE_32   0x000001  /* avoid memory loads that span the border between two cachelines */
+#define X264_CPU_CACHELINE_64   0x000002  /* 32/64 is the size of a cacheline in bytes */
+#define X264_CPU_ALTIVEC        0x000004
+#define X264_CPU_MMX            0x000008
+#define X264_CPU_MMXEXT         0x000010  /* MMX2 aka MMXEXT aka ISSE */
+#define X264_CPU_SSE            0x000020
+#define X264_CPU_SSE2           0x000040
+#define X264_CPU_SSE2_IS_SLOW   0x000080  /* avoid most SSE2 functions on Athlon64 */
+#define X264_CPU_SSE2_IS_FAST   0x000100  /* a few functions are only faster on Core2 and Phenom */
+#define X264_CPU_SSE3           0x000200
+#define X264_CPU_SSSE3          0x000400
+#define X264_CPU_PHADD_IS_FAST  0x000800  /* pre-Penryn Core2 have a uselessly slow PHADD instruction */
+#define X264_CPU_SSE4           0x001000  /* SSE4.1 */
 
 /* Analyse flags
  */

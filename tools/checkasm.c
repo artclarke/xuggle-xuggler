@@ -120,9 +120,11 @@ static void print_bench(void)
             for( k=0; k<j && benchs[i].vers[k].pointer != b->pointer; k++ );
             if( k<j ) continue;
             printf( "%s_%s%s: %"PRId64"\n", benchs[i].name,
-                    b->cpu&X264_CPU_SSE4 ? "sse4" :
+                    b->cpu&X264_CPU_PHADD_IS_FAST ? "phadd" :
                     b->cpu&X264_CPU_SSSE3 ? "ssse3" :
                     b->cpu&X264_CPU_SSE3 ? "sse3" :
+                    /* print sse2slow only if there's also a sse2fast version of the same func */
+                    b->cpu&X264_CPU_SSE2_IS_SLOW && j<MAX_CPUS && b[1].cpu&X264_CPU_SSE2_IS_FAST && !(b[1].cpu&X264_CPU_SSE3) ? "sse2slow" :
                     b->cpu&X264_CPU_SSE2 ? "sse2" :
                     b->cpu&X264_CPU_MMX ? "mmx" : "c",
                     b->cpu&X264_CPU_CACHELINE_32 ? "_c32" :
@@ -1112,6 +1114,8 @@ int add_flags( int *cpu_ref, int *cpu_new, int flags, const char *name )
 {
     *cpu_ref = *cpu_new;
     *cpu_new |= flags;
+    if( *cpu_new & X264_CPU_SSE2_IS_FAST )
+        *cpu_new &= ~X264_CPU_SSE2_IS_SLOW;
     if( !quiet )
         fprintf( stderr, "x264: %s\n", name );
     return check_all_funcs( *cpu_ref, *cpu_new );
@@ -1124,29 +1128,28 @@ int check_all_flags( void )
 #ifdef HAVE_MMX
     if( x264_cpu_detect() & X264_CPU_MMXEXT )
     {
-        ret |= add_flags( &cpu0, &cpu1, X264_CPU_MMX | X264_CPU_MMXEXT, "MMXEXT" );
-        ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_64, "MMXEXT Cache64" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_MMX | X264_CPU_MMXEXT, "MMX" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_64, "MMX Cache64" );
         cpu1 &= ~X264_CPU_CACHELINE_64;
-        ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_32, "MMXEXT Cache32" );
+#ifdef ARCH_X86
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_32, "MMX Cache32" );
+        cpu1 &= ~X264_CPU_CACHELINE_32;
+#endif
     }
     if( x264_cpu_detect() & X264_CPU_SSE2 )
     {
-        cpu1 &= ~(X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_32);
-        ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE | X264_CPU_SSE2, "SSE2" );
-        ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_64, "SSE2 Cache64" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE | X264_CPU_SSE2 | X264_CPU_SSE2_IS_SLOW, "SSE2Slow" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE2_IS_FAST, "SSE2Fast" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_64, "SSE2Fast Cache64" );
     }
     if( x264_cpu_detect() & X264_CPU_SSE3 )
-        ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE3, "SSE3" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE3 | X264_CPU_CACHELINE_64, "SSE3" );
     if( x264_cpu_detect() & X264_CPU_SSSE3 )
     {
-        cpu1 &= ~(X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_64);
+        cpu1 &= ~X264_CPU_CACHELINE_64;
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSSE3, "SSSE3" );
-        ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_64, "SSSE3 Cache64" );
-    }
-    if( x264_cpu_detect() & X264_CPU_SSSE3 )
-    {
-        cpu1 &= ~(X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_64);
-        ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE4, "SSE4" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_64, "SSSE3 Cache64" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_PHADD_IS_FAST, "PHADD" );
     }
 #elif ARCH_PPC
     if( x264_cpu_detect() & X264_CPU_ALTIVEC )
