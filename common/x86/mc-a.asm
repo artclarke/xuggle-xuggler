@@ -28,8 +28,8 @@ SECTION_RODATA
 
 pw_4:  times 4 dw  4
 pw_8:  times 4 dw  8
-pw_32: times 4 dw 32
-pw_64: times 4 dw 64
+pw_32: times 8 dw 32
+pw_64: times 8 dw 64
 sw_64: dd 64
 
 SECTION .text
@@ -483,33 +483,42 @@ COPY_W16_SSE2 x264_mc_copy_w16_aligned_sse2, movdqa
 ; implicit bipred only:
 ; assumes log2_denom = 5, offset = 0, weight1 + weight2 = 64
 
-%macro BIWEIGHT_4P_MMX 2
-    movd      mm0, %1
-    movd      mm1, %2
-    punpcklbw mm0, mm7
-    punpcklbw mm1, mm7
-    pmullw    mm0, mm4
-    pmullw    mm1, mm5
-    paddw     mm0, mm1
-    paddw     mm0, mm6
-    psraw     mm0, 6
-    pmaxsw    mm0, mm7
-    packuswb  mm0, mm0
-    movd      %1,  mm0
+%macro SPLATW 2
+%if regsize==16
+    pshuflw  %1, %2, 0
+    movlhps  %1, %1
+%else
+    pshufw   %1, %2, 0
+%endif
 %endmacro
 
-%macro BIWEIGHT_START_MMX 1
+%macro BIWEIGHT 2
+    movh      m0, %1
+    movh      m1, %2
+    punpcklbw m0, m7
+    punpcklbw m1, m7
+    pmullw    m0, m4
+    pmullw    m1, m5
+    paddw     m0, m1
+    paddw     m0, m6
+    psraw     m0, 6
+    pmaxsw    m0, m7
+    packuswb  m0, m0
+    movh      %1,  m0
+%endmacro
+
+%macro BIWEIGHT_START 1
 %ifidn r4m, r4d
-    movd    mm4, r4m
-    pshufw  mm4, mm4, 0   ; weight_dst
+    movd    m4, r4m
+    SPLATW  m4, m4   ; weight_dst
 %else
-    pshufw  mm4, r4m, 0
+    SPLATW  m4, r4m
 %endif
     picgetgot r4
-    movq    mm5, [pw_64 GLOBAL]
-    psubw   mm5, mm4      ; weight_src
-    movq    mm6, [pw_32 GLOBAL] ; rounding
-    pxor    mm7, mm7
+    mova    m5, [pw_64 GLOBAL]
+    psubw   m5, m4      ; weight_src
+    mova    m6, [pw_32 GLOBAL] ; rounding
+    pxor    m7, m7
 %if %1
 %ifidn r5m, r5d
     %define t0 r5d
@@ -524,43 +533,37 @@ COPY_W16_SSE2 x264_mc_copy_w16_aligned_sse2, movdqa
 ;-----------------------------------------------------------------------------
 ; int x264_pixel_avg_weight_w16_mmxext( uint8_t *dst, int, uint8_t *src, int, int i_weight, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_avg_weight_w16_mmxext, 4,5
-    BIWEIGHT_START_MMX 1
-    BIWEIGHT_4P_MMX  [r0   ], [r2   ]
-    BIWEIGHT_4P_MMX  [r0+ 4], [r2+ 4]
-    BIWEIGHT_4P_MMX  [r0+ 8], [r2+ 8]
-    BIWEIGHT_4P_MMX  [r0+12], [r2+12]
-    add  r0, r1
-    add  r2, r3
-    dec  t0
-    jg   .height_loop
-    REP_RET
-
-;-----------------------------------------------------------------------------
-; int x264_pixel_avg_weight_w8_mmxext( uint8_t *, int, uint8_t *, int, int, int )
-;-----------------------------------------------------------------------------
-cglobal x264_pixel_avg_weight_w8_mmxext, 4,5
-    BIWEIGHT_START_MMX 1
-    BIWEIGHT_4P_MMX  [r0  ], [r2  ]
-    BIWEIGHT_4P_MMX  [r0+4], [r2+4]
-    add  r0, r1
-    add  r2, r3
-    dec  t0
-    jg   .height_loop
-    REP_RET
-
-;-----------------------------------------------------------------------------
-; int x264_pixel_avg_weight_4x4_mmxext( uint8_t *, int, uint8_t *, int, int )
-;-----------------------------------------------------------------------------
 cglobal x264_pixel_avg_weight_4x4_mmxext, 4,4,1
-    BIWEIGHT_START_MMX 0
-    BIWEIGHT_4P_MMX  [r0     ], [r2     ]
-    BIWEIGHT_4P_MMX  [r0+r1  ], [r2+r3  ]
-    BIWEIGHT_4P_MMX  [r0+r1*2], [r2+r3*2]
+    BIWEIGHT_START 0
+    BIWEIGHT  [r0     ], [r2     ]
+    BIWEIGHT  [r0+r1  ], [r2+r3  ]
+    BIWEIGHT  [r0+r1*2], [r2+r3*2]
     add  r0, r1
     add  r2, r3
-    BIWEIGHT_4P_MMX  [r0+r1*2], [r2+r3*2]
+    BIWEIGHT  [r0+r1*2], [r2+r3*2]
     RET
+
+%macro AVG_WEIGHT 2
+cglobal x264_pixel_avg_weight_w%2_%1, 4,5
+    BIWEIGHT_START 1
+%assign x 0
+%rep %2*2/regsize
+    BIWEIGHT  [r0+x], [r2+x]
+%assign x x+regsize/2
+%endrep
+    add  r0, r1
+    add  r2, r3
+    dec  t0
+    jg   .height_loop
+    REP_RET
+%endmacro
+
+INIT_MMX
+AVG_WEIGHT mmxext, 8
+AVG_WEIGHT mmxext, 16
+INIT_XMM
+AVG_WEIGHT sse2, 8
+AVG_WEIGHT sse2, 16
 
 
 

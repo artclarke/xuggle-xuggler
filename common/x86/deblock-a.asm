@@ -200,7 +200,7 @@ SECTION .text
 %macro SPLATW 1
 %ifidn m0, xmm0
     pshuflw  %1, %1, 0
-    punpcklqdq %1, %1
+    movlhps  %1, %1
 %else
     pshufw   %1, %1, 0
 %endif
