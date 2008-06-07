@@ -58,6 +58,7 @@ typedef struct x264_t x264_t;
 #define X264_CPU_CACHELINE_SPLIT 0x200  /* avoid memory loads that span the border between two cachelines */
 #define X264_CPU_CACHELINE_32 0x0400    /* size of a cacheline in bytes */
 #define X264_CPU_CACHELINE_64 0x0800
+#define X264_CPU_SSE4       0x001000    /* sse 4.1 */
 
 /* Analyse flags
  */

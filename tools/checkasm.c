@@ -120,6 +120,7 @@ static void print_bench(void)
             for( k=0; k<j && benchs[i].vers[k].pointer != b->pointer; k++ );
             if( k<j ) continue;
             printf( "%s_%s%s: %"PRId64"\n", benchs[i].name,
+                    b->cpu&X264_CPU_SSE4 ? "sse4" :
                     b->cpu&X264_CPU_SSSE3 ? "ssse3" :
                     b->cpu&X264_CPU_SSE3 ? "sse3" :
                     b->cpu&X264_CPU_SSE2 ? "sse2" :
@@ -1141,6 +1142,11 @@ int check_all_flags( void )
         cpu1 &= ~(X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_64);
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSSE3, "SSSE3" );
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_64, "SSSE3 Cache64" );
+    }
+    if( x264_cpu_detect() & X264_CPU_SSSE3 )
+    {
+        cpu1 &= ~(X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_64);
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE4, "SSE4" );
     }
 #elif ARCH_PPC
     if( x264_cpu_detect() & X264_CPU_ALTIVEC )

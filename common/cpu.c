@@ -47,6 +47,7 @@ const struct {
     {"SSE2",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2},
     {"SSE3",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3},
     {"SSSE3",   X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3},
+    {"SSE4",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4},
     {"3DNow",   X264_CPU_3DNOW},
     {"Altivec", X264_CPU_ALTIVEC},
     {"Cache32", X264_CPU_CACHELINE_SPLIT|X264_CPU_CACHELINE_32},
@@ -88,6 +89,8 @@ uint32_t x264_cpu_detect( void )
         cpu |= X264_CPU_SSE3;
     if( ecx&0x00000200 )
         cpu |= X264_CPU_SSSE3;
+    if( ecx&0x00080000 )
+        cpu |= X264_CPU_SSE4;
 
     x264_cpu_cpuid( 0x80000000, &eax, &ebx, &ecx, &edx );
     max_extended_cap = eax;

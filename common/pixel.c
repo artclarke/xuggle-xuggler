@@ -360,6 +360,7 @@ SATD_X_DECL7()
 SATD_X_DECL7( _mmxext )
 SATD_X_DECL5( _sse2 )
 SATD_X_DECL7( _ssse3 )
+SATD_X_DECL5( _ssse3_phadd )
 #endif
 
 /****************************************************************************
@@ -648,6 +649,14 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
             INIT2( sad_x3, _cache64_ssse3 );
             INIT2( sad_x4, _cache64_ssse3 );
         }
+    }
+
+    if( cpu&X264_CPU_SSE4 )
+    {
+        // enabled on Penryn, but slower on Conroe
+        INIT5( satd, _ssse3_phadd );
+        INIT5( satd_x3, _ssse3_phadd );
+        INIT5( satd_x4, _ssse3_phadd );
     }
 #endif //HAVE_MMX
 

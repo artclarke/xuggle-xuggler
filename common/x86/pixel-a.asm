@@ -274,19 +274,23 @@ SSD_SSE2 8, 4
     LOAD_DIFF_8P %4, %6, [r0+r4],   [r2+r5]
 %endmacro
 
-;;; row transform not used, because phaddw is much slower than paddw on a Conroe
-;%macro PHSUMSUB 3
-;    movdqa  %3, %1
-;    phaddw  %1, %2
-;    phsubw  %3, %2
-;%endmacro
+; phaddw is used only in 4x4 hadamard, because in 8x8 it's slower:
+; even on Penryn, phaddw has latency 3 while paddw and punpck* have 1.
+; 4x4 is special in that 4x4 transpose in xmmregs takes extra munging,
+; whereas phaddw-based transform doesn't care what order the coefs end up in.
 
-;%macro HADAMARD4_ROW_SSSE3 5  ; abcd-t -> adtc
-;    PHSUMSUB    %1, %2, %5
-;    PHSUMSUB    %3, %4, %2
-;    PHSUMSUB    %1, %3, %4
-;    PHSUMSUB    %5, %2, %3
-;%endmacro
+%macro PHSUMSUB 3
+    movdqa  %3, %1
+    phaddw  %1, %2
+    phsubw  %3, %2
+%endmacro
+
+%macro HADAMARD4_ROW_PHADD 5  ; abcd-t -> adtc
+    PHSUMSUB  %1, %2, %5
+    PHSUMSUB  %3, %4, %2
+    PHSUMSUB  %1, %3, %4
+    PHSUMSUB  %5, %2, %3
+%endmacro
 
 %macro SUMSUB_BADC 4
     paddw  %1, %2
@@ -490,6 +494,21 @@ SSD_SSE2 8, 4
     ABS4            xmm0, xmm1, xmm2, xmm3, xmm4, xmm5
     paddusw  xmm0, xmm1
     paddusw  xmm2, xmm3
+    paddusw  xmm6, xmm0
+    paddusw  xmm6, xmm2
+%endmacro
+
+%macro SATD_8x4_PHADD 1
+    LOAD_DIFF_8x4P    xmm0, xmm1, xmm2, xmm3, xmm4, xmm5
+%if %1
+    lea  r0, [r0+4*r1]
+    lea  r2, [r2+4*r3]
+%endif
+    HADAMARD4_1D    xmm0, xmm1, xmm2, xmm3
+    HADAMARD4_ROW_PHADD xmm0, xmm1, xmm2, xmm3, xmm4
+    ABS4            xmm0, xmm3, xmm4, xmm2, xmm1, xmm5
+    paddusw  xmm0, xmm3
+    paddusw  xmm2, xmm4
     paddusw  xmm6, xmm0
     paddusw  xmm6, xmm2
 %endmacro
@@ -1279,6 +1298,8 @@ SA8D_16x16_32 ssse3
 INTRA_SA8D_SSE2 ssse3
 INTRA_SATDS_MMX ssse3
 SATD_W4 ssse3 ; mmx, but uses pabsw from ssse3.
+%define SATD_8x4_SSE2 SATD_8x4_PHADD
+SATDS_SSE2 ssse3_phadd
 
 
 
