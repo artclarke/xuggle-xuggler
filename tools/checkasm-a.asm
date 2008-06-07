@@ -37,6 +37,7 @@ cextern printf
 %define n5 dword 0xb78d0d1d
 %define n6 dword 0x33627ba7
 
+%ifndef ARCH_X86_64
 ;-----------------------------------------------------------------------------
 ; long x264_checkasm_call( long (*func)(), int *ok, ... )
 ;-----------------------------------------------------------------------------
@@ -71,3 +72,17 @@ cglobal x264_checkasm_call, 1,7
     mov  eax, r3
 .ok:
     RET
+%endif ; ARCH_X86_64
+
+;-----------------------------------------------------------------------------
+; int x264_stack_pagealign( int (*func)(), int align )
+;-----------------------------------------------------------------------------
+cglobal x264_stack_pagealign, 2,2
+    push rbp
+    mov  rbp, rsp
+    and  rsp, ~0xfff
+    sub  rsp, r1
+    call r0
+    leave
+    RET
+

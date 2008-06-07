@@ -32,7 +32,7 @@ ASMSRC  = $(X86SRC) common/x86/pixel-32.asm
 OBJASM  = $(ASMSRC:%.asm=%.o)
 ASFLAGS += -Icommon/x86/
 $(OBJASM): common/x86/x86inc.asm common/x86/x86inc-32.asm
-checkasm: tools/checkasm-32.o
+checkasm: tools/checkasm-a.o
 endif
 
 ifeq ($(ARCH),X86_64)
@@ -41,6 +41,7 @@ ASMSRC  = $(X86SRC:-32.asm=-64.asm)
 OBJASM  = $(ASMSRC:%.asm=%.o)
 ASFLAGS += -Icommon/x86/ -DARCH_X86_64
 $(OBJASM): common/x86/x86inc.asm common/x86/x86inc-64.asm
+checkasm: tools/checkasm-a.o
 endif
 endif
 
