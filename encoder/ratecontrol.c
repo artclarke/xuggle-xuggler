@@ -729,12 +729,18 @@ void x264_ratecontrol_delete( x264_t *h )
 
 void x264_ratecontrol_set_estimated_size( x264_t *h, int bits )
 {
+    x264_pthread_mutex_lock( &h->fenc->mutex );
     h->rc->frame_size_estimated = bits;
+    x264_pthread_mutex_unlock( &h->fenc->mutex );
 }
 
 int x264_ratecontrol_get_estimated_size( x264_t const *h)
 {
-    return h->rc->frame_size_estimated;
+    int size;
+    x264_pthread_mutex_lock( &h->fenc->mutex );
+    size = h->rc->frame_size_estimated;
+    x264_pthread_mutex_unlock( &h->fenc->mutex );
+    return size;
 }
 
 static void accum_p_qp_update( x264_t *h, float qp )
@@ -919,7 +925,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
             rc->qpm = X264_MIN(X264_MAX( rc->qp, avg_qp), 51); //avg_qp could go higher than 51 due to pb_offset
             i_estimated = row_bits_so_far(h, y); //FIXME: compute full estimated size
             if (i_estimated > h->rc->frame_size_planned)
-                x264_frame_size_estimated_set(h, i_estimated);
+                x264_ratecontrol_set_estimated_size(h, i_estimated);
         }
     }
     else
@@ -975,7 +981,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
                 rc->qpm --;
                 b1 = predict_row_size_sum( h, y, rc->qpm );
             }
-            x264_frame_size_estimated_set(h, b1);
+            x264_ratecontrol_set_estimated_size(h, b1);
         }
     }
     /* loses the fractional part of the frame-wise qp */
@@ -1327,7 +1333,7 @@ static void update_vbv_plan( x264_t *h )
             double bits = t->rc->frame_size_planned;
             if( !t->b_thread_active )
                 continue;
-            bits  = X264_MAX(bits, x264_frame_size_estimated_get(t));
+            bits  = X264_MAX(bits, x264_ratecontrol_get_estimated_size(t));
             rcc->buffer_fill += rcc->buffer_rate - bits;
             rcc->buffer_fill = x264_clip3( rcc->buffer_fill, 0, rcc->buffer_size );
         }
@@ -1464,7 +1470,7 @@ static float rate_estimate_qscale( x264_t *h )
             q += rcc->pb_offset;
 
         rcc->frame_size_planned = predict_size( rcc->pred_b_from_p, q, h->fref1[h->i_ref1-1]->i_satd );
-        x264_frame_size_estimated_set(h, rcc->frame_size_planned);
+        x264_ratecontrol_set_estimated_size(h, rcc->frame_size_planned);
         rcc->last_satd = 0;
         return qp2qscale(q);
     }
@@ -1594,7 +1600,7 @@ static float rate_estimate_qscale( x264_t *h )
             rcc->frame_size_planned = qscale2bits(&rce, q);
         else
             rcc->frame_size_planned = predict_size( &rcc->pred[h->sh.i_type], q, rcc->last_satd );
-        x264_frame_size_estimated_set(h, rcc->frame_size_planned);
+        x264_ratecontrol_set_estimated_size(h, rcc->frame_size_planned);
         return q;
     }
 }

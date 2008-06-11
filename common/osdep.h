@@ -127,7 +127,7 @@
 #define x264_pthread_cond_init(c,f)
 #define x264_pthread_cond_destroy(c)
 #define x264_pthread_cond_broadcast(c)
-#define x264_pthread_cond_wait(c,m)  usleep(100)
+#define x264_pthread_cond_wait(c,m)
 #endif
 
 /* FIXME: long isn't always the native register size (e.g. win64). */
