@@ -225,7 +225,7 @@ static void cavlc_qp_delta( x264_t *h, bs_t *s )
     if( h->mb.i_type == I_16x16 && !(h->mb.i_cbp_luma | h->mb.i_cbp_chroma)
         && !array_non_zero(h->dct.luma16x16_dc) )
     {
-#ifndef RD_SKIP_BS
+#ifndef RDO_SKIP_BS
         h->mb.i_qp = h->mb.i_last_qp;
 #endif
         i_dqp = 0;
