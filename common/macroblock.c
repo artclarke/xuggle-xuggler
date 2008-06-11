@@ -547,6 +547,9 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
 #undef SET_TMVP
     }
 
+    if(i == 0)
+        *(uint32_t*)mvc[i] = 0;
+
     *i_mvc = i;
 }
 

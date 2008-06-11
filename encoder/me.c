@@ -163,7 +163,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
     uint8_t *p_fref = m->p_fref[0];
     DECLARE_ALIGNED_16( uint8_t pix[16*16] );
     
-    int i, j;
+    int i = 0, j;
     int dir;
     int costs[6];
 
@@ -187,17 +187,17 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
     if( h->mb.i_subpel_refine >= 3 )
     {
         COST_MV_HPEL( bmx, bmy );
-        for( i = 0; i < i_mvc; i++ )
+        uint32_t bmv = pack16to32_mask(bmx,bmy);
+        do
         {
-            int mx = mvc[i][0];
-            int my = mvc[i][1];
-            if( (mx | my) && ((mx-bmx) | (my-bmy)) )
+            if( *(uint32_t*)mvc[i] && (bmv - *(uint32_t*)mvc[i]) )
             {
-                mx = x264_clip3( mx, mv_x_min*4, mv_x_max*4 );
-                my = x264_clip3( my, mv_y_min*4, mv_y_max*4 );
+                int mx = x264_clip3( mvc[i][0], mv_x_min*4, mv_x_max*4 );
+                int my = x264_clip3( mvc[i][1], mv_y_min*4, mv_y_max*4 );
                 COST_MV_HPEL( mx, my );
             }
-        }
+            i++;
+        } while( i < i_mvc );
         bmx = ( bpred_mx + 2 ) >> 2;
         bmy = ( bpred_my + 2 ) >> 2;
         COST_MV( bmx, bmy );
@@ -206,10 +206,14 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
     {
         /* check the MVP */
         COST_MV( pmx, pmy );
-        /* I don't know why this helps */
-        bcost -= BITS_MVD(bmx,bmy);
-        
-        for( i = 0; i < i_mvc; i++ )
+        /* Because we are rounding the predicted motion vector to fullpel, there will be
+         * an extra MV cost in 15 out of 16 cases.  However, when the predicted MV is
+         * chosen as the best predictor, it is often the case that the subpel search will
+         * result in a vector at or next to the predicted motion vector.  Therefore, it is
+         * sensible to remove the cost of the MV from the rounded MVP to avoid unfairly
+         * biasing against use of the predicted motion vector. */
+        bcost -= BITS_MVD( pmx, pmy );
+        do
         {
             int mx = (mvc[i][0] + 2) >> 2;
             int my = (mvc[i][1] + 2) >> 2;
@@ -219,9 +223,9 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
                 my = x264_clip3( my, mv_y_min, mv_y_max );
                 COST_MV( mx, my );
             }
-        }
+            i++;
+        } while( i < i_mvc );
     }
-    
     COST_MV( 0, 0 );
 
     switch( h->mb.i_me_method )
