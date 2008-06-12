@@ -39,6 +39,37 @@ static inline void x264_median_mv_mmxext( int16_t *dst, int16_t *a, int16_t *b, 
         :"m"(*(uint32_t*)a), "m"(*(uint32_t*)b), "m"(*(uint32_t*)c)
     );
 }
+#define x264_predictor_difference x264_predictor_difference_mmxext
+static inline int x264_predictor_difference_mmxext( int16_t (*mvc)[2], int i_mvc )
+{
+    int sum = 0;
+    uint16_t output[4];
+    asm(
+        "pxor    %%mm4, %%mm4 \n"
+        "test    $1, %1       \n"
+        "jnz 3f               \n"
+        "movd    -8(%2,%1,4), %%mm0 \n"
+        "movd    -4(%2,%1,4), %%mm3 \n"
+        "psubw   %%mm3, %%mm0 \n"
+        "jmp 2f               \n"
+        "3:                   \n"
+        "sub     $1,    %1    \n"
+        "1:                   \n"
+        "movq    -8(%2,%1,4), %%mm0 \n"
+        "psubw   -4(%2,%1,4), %%mm0 \n"
+        "2:                   \n"
+        "sub     $2,    %1    \n"
+        "pxor    %%mm2, %%mm2 \n"
+        "psubw   %%mm0, %%mm2 \n"
+        "pmaxsw  %%mm2, %%mm0 \n"
+        "paddusw %%mm0, %%mm4 \n"
+        "jg 1b                \n"
+        "movq    %%mm4, %0    \n"
+        :"=m"(output), "+r"(i_mvc), "+r"(mvc)
+    );
+    sum += output[0] + output[1] + output[2] + output[3];
+    return sum;
+}
 #endif
 
 #endif

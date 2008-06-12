@@ -130,6 +130,17 @@ static inline void x264_median_mv( int16_t *dst, int16_t *a, int16_t *b, int16_t
     dst[1] = x264_median( a[1], b[1], c[1] );
 }
 
+static inline int x264_predictor_difference( int16_t (*mvc)[2], int i_mvc )
+{
+    int sum = 0, i;
+    for( i = 0; i < i_mvc-1; i++ )
+    {
+        sum += abs( mvc[i][0] - mvc[i+1][0] )
+             + abs( mvc[i][1] - mvc[i+1][1] );
+    }
+    return sum;
+}
+
 #ifdef HAVE_MMX
 #include "x86/util.h"
 #endif

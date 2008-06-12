@@ -186,8 +186,8 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
     /* try extra predictors if provided */
     if( h->mb.i_subpel_refine >= 3 )
     {
-        COST_MV_HPEL( bmx, bmy );
         uint32_t bmv = pack16to32_mask(bmx,bmy);
+        COST_MV_HPEL( bmx, bmy );
         do
         {
             if( *(uint32_t*)mvc[i] && (bmv - *(uint32_t*)mvc[i]) )
@@ -235,7 +235,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
         for( i = 0; i < i_me_range; i++ )
         {
             DIA1_ITER( bmx, bmy );
-            if( bmx == omx && bmy == omy )
+            if( (bmx == omx) & (bmy == omy) )
                 break;
             if( !CHECK_MVRANGE(bmx, bmy) )
                 break;
@@ -389,9 +389,7 @@ me_hex2:
                             + abs( m->mvp[1] - mvc[0][1] );
                         denom++;
                     }
-                    for( i = 0; i < i_mvc-1; i++ )
-                        mvd += abs( mvc[i][0] - mvc[i+1][0] )
-                             + abs( mvc[i][1] - mvc[i+1][1] );
+                    mvd += x264_predictor_difference( mvc, i_mvc );
                 }
 
                 sad_ctx = SAD_THRESH(1000) ? 0
@@ -689,13 +687,12 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     int bcost = m->cost;
     int odir = -1, bdir;
 
-
     /* try the subpel component of the predicted mv */
     if( hpel_iters && h->mb.i_subpel_refine < 3 )
     {
         int mx = x264_clip3( m->mvp[0], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
         int my = x264_clip3( m->mvp[1], h->mb.mv_min_spel[1], h->mb.mv_max_spel[1] );
-        if( mx != bmx || my != bmy )
+        if( (mx-bmx)|(my-bmy) )
             COST_MV_SAD( mx, my );
     }
 
@@ -715,7 +712,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
         COPY2_IF_LT( bcost, costs[1] + p_cost_mvx[omx  ] + p_cost_mvy[omy+2], bmy, omy+2 );
         COPY3_IF_LT( bcost, costs[2] + p_cost_mvx[omx-2] + p_cost_mvy[omy  ], bmx, omx-2, bmy, omy );
         COPY3_IF_LT( bcost, costs[3] + p_cost_mvx[omx+2] + p_cost_mvy[omy  ], bmx, omx+2, bmy, omy );
-        if( bmx == omx && bmy == omy )
+        if( (bmx == omx) & (bmy == omy) )
             break;
     }
 
