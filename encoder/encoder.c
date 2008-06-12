@@ -893,6 +893,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y )
     int b_deblock = !h->sh.i_disable_deblocking_filter_idc;
     int b_end = mb_y == h->sps->i_mb_height;
     int min_y = mb_y - (1 << h->sh.b_mbaff);
+    int max_y = b_end ? h->sps->i_mb_height : mb_y;
     b_deblock &= b_hpel || h->param.psz_dump_yuv;
     if( mb_y & h->sh.b_mbaff )
         return;
@@ -913,7 +914,6 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y )
 
     if( b_deblock )
     {
-        int max_y = b_end ? h->sps->i_mb_height : mb_y;
         int y;
         for( y = min_y; y < max_y; y += (1 << h->sh.b_mbaff) )
             x264_frame_deblock_row( h, y );
@@ -929,6 +929,33 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y )
     if( h->param.i_threads > 1 && h->fdec->b_kept_as_ref )
     {
         x264_frame_cond_broadcast( h->fdec, mb_y*16 + (b_end ? 10000 : -(X264_THREAD_HEIGHT << h->sh.b_mbaff)) );
+    }
+
+    min_y = X264_MAX( min_y*16-8, 0 );
+    max_y = b_end ? h->param.i_height : mb_y*16-8;
+
+    if( h->param.analyse.b_psnr )
+    {
+        int i;
+        for( i=0; i<3; i++ )
+            h->stat.frame.i_ssd[i] +=
+                x264_pixel_ssd_wxh( &h->pixf,
+                    h->fdec->plane[i] + (min_y>>!!i) * h->fdec->i_stride[i], h->fdec->i_stride[i],
+                    h->fenc->plane[i] + (min_y>>!!i) * h->fenc->i_stride[i], h->fenc->i_stride[i],
+                    h->param.i_width >> !!i, (max_y-min_y) >> !!i );
+    }
+
+    if( h->param.analyse.b_ssim )
+    {
+        x264_emms();
+        /* offset by 2 pixels to avoid alignment of ssim blocks with dct blocks,
+         * and overlap by 4 */
+        min_y += min_y == 0 ? 2 : -6;
+        h->stat.frame.f_ssim +=
+            x264_pixel_ssim_wxh( &h->pixf,
+                h->fdec->plane[0] + 2+min_y*h->fdec->i_stride[0], h->fdec->i_stride[0],
+                h->fenc->plane[0] + 2+min_y*h->fenc->i_stride[0], h->fenc->i_stride[0],
+                h->param.i_width-2, max_y-min_y );
     }
 }
 
@@ -1659,16 +1686,11 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     psz_message[0] = '\0';
     if( h->param.analyse.b_psnr )
     {
-        int64_t sqe[3];
-
-        for( i=0; i<3; i++ )
-        {
-            sqe[i] = x264_pixel_ssd_wxh( &h->pixf,
-                         h->fdec->plane[i], h->fdec->i_stride[i],
-                         h->fenc->plane[i], h->fenc->i_stride[i],
-                         h->param.i_width >> !!i, h->param.i_height >> !!i );
-        }
-        x264_emms();
+        int64_t sqe[3] = {
+            h->stat.frame.i_ssd[0],
+            h->stat.frame.i_ssd[1],
+            h->stat.frame.i_ssd[2],
+        };
 
         h->stat.i_sqe_global[h->sh.i_type] += sqe[0] + sqe[1] + sqe[2];
         h->stat.f_psnr_average[h->sh.i_type] += x264_psnr( sqe[0] + sqe[1] + sqe[2], 3 * h->param.i_width * h->param.i_height / 2 );
@@ -1684,11 +1706,8 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     if( h->param.analyse.b_ssim )
     {
-        // offset by 2 pixels to avoid alignment of ssim blocks with dct blocks
-        float ssim_y = x264_pixel_ssim_wxh( &h->pixf,
-                         h->fdec->plane[0] + 2+2*h->fdec->i_stride[0], h->fdec->i_stride[0],
-                         h->fenc->plane[0] + 2+2*h->fenc->i_stride[0], h->fenc->i_stride[0],
-                         h->param.i_width-2, h->param.i_height-2 );
+        double ssim_y = h->stat.frame.f_ssim
+                      / (((h->param.i_width-6)>>2) * ((h->param.i_height-6)>>2));
         h->stat.f_ssim_mean_y[h->sh.i_type] += ssim_y;
         snprintf( psz_message + strlen(psz_message), 80 - strlen(psz_message),
                   " SSIM Y:%.5f", ssim_y );

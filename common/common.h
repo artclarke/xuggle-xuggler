@@ -544,6 +544,9 @@ struct x264_t
             int i_mbs_analysed;
             /* Adaptive direct mv pred */
             int i_direct_score[2];
+            /* Metrics */
+            int64_t i_ssd[3];
+            double f_ssim;
         } frame;
 
         /* Cumulated stats */

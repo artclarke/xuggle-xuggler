@@ -441,7 +441,7 @@ float x264_pixel_ssim_wxh( x264_pixel_function_t *pf,
     }
     x264_free(sum0);
     x264_free(sum1);
-    return ssim / ((width-1) * (height-1));
+    return ssim;
 }
 
 
