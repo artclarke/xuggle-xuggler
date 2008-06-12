@@ -26,8 +26,8 @@
 
 SECTION_RODATA
 
-pw_4:  times 4 dw  4
-pw_8:  times 4 dw  8
+pw_4:  times 8 dw  4
+pw_8:  times 8 dw  8
 pw_32: times 8 dw 32
 pw_64: times 8 dw 64
 sw_64: dd 64
@@ -645,173 +645,293 @@ cglobal x264_prefetch_ref_mmxext, 3,3
 ; chroma MC
 ;=============================================================================
 
-;-----------------------------------------------------------------------------
-; void x264_mc_chroma_mmxext( uint8_t *dst, int i_dst_stride,
-;                             uint8_t *src, int i_src_stride,
-;                             int dx, int dy,
-;                             int i_width, int i_height )
-;-----------------------------------------------------------------------------
-cglobal x264_mc_chroma_mmxext, 0,6,1
+    %define t0d  eax
+    %define t0   rax
 %ifdef ARCH_X86_64
-    %define t0   r10d
+    %define t1d  r10d
 %else
-    %define t0   r1d
+    %define t1d  r1d
 %endif
+
+%macro MC_CHROMA_START 0
     movifnidn r2d, r2m
     movifnidn r3d, r3m
     movifnidn r4d, r4m
     movifnidn r5d, r5m
-    mov     eax, r5d
-    mov     t0,  r4d
-    sar     eax, 3
-    sar     t0,  3
-    imul    eax, r3d
-    pxor    mm3, mm3
-    add     eax, t0
-    movsxdifnidn rax, eax
-    add     r2,  rax            ; src += (dx>>3) + (dy>>3) * src_stride
-    and     r4d, 7              ; dx &= 7
-    je      .mc1d
-    and     r5d, 7              ; dy &= 7
-    je      .mc1d
+    mov       t0d, r5d
+    mov       t1d, r4d
+    sar       t0d, 3
+    sar       t1d, 3
+    imul      t0d, r3d
+    add       t0d, t1d
+    movsxdifnidn t0, t0d
+    add       r2,  t0            ; src += (dx>>3) + (dy>>3) * src_stride
+%endmacro
 
-    movd    mm0, r4d
-    movd    mm1, r5d
-    pshufw  mm5, mm0, 0         ; mm5 = dx
-    pshufw  mm6, mm1, 0         ; mm6 = dy
+;-----------------------------------------------------------------------------
+; void x264_mc_chroma_mmxext( uint8_t *dst, int dst_stride,
+;                             uint8_t *src, int src_stride,
+;                             int dx, int dy,
+;                             int width, int height )
+;-----------------------------------------------------------------------------
+%macro MC_CHROMA 1
+cglobal x264_mc_chroma_%1, 0,6,1
+%if regsize == 16
+    cmp dword r6m, 4
+    jle x264_mc_chroma_mmxext %+ .skip_prologue
+%endif
+.skip_prologue:
+    MC_CHROMA_START
+    pxor       m3, m3
+    and       r4d, 7         ; dx &= 7
+    jz .mc1dy
+    and       r5d, 7         ; dy &= 7
+    jz .mc1dx
 
-    movq    mm4, [pw_8 GLOBAL]
-    movq    mm0, mm4
-    psubw   mm4, mm5            ; mm4 = 8-dx
-    psubw   mm0, mm6            ; mm0 = 8-dy
+    movd       m5, r4d
+    movd       m6, r5d
+    SPLATW     m5, m5        ; m5 = dx
+    SPLATW     m6, m6        ; m6 = dy
 
-    movq    mm7, mm5
-    pmullw  mm5, mm0            ; mm5 = dx*(8-dy) =     cB
-    pmullw  mm7, mm6            ; mm7 = dx*dy =         cD
-    pmullw  mm6, mm4            ; mm6 = (8-dx)*dy =     cC
-    pmullw  mm4, mm0            ; mm4 = (8-dx)*(8-dy) = cA
+    mova       m4, [pw_8 GLOBAL]
+    mova       m0, m4
+    psubw      m4, m5        ; m4 = 8-dx
+    psubw      m0, m6        ; m0 = 8-dy
 
-    mov     r4d, r7m
+    mova       m7, m5
+    pmullw     m5, m0        ; m5 = dx*(8-dy) =     cB
+    pmullw     m7, m6        ; m7 = dx*dy =         cD
+    pmullw     m6, m4        ; m6 = (8-dx)*dy =     cC
+    pmullw     m4, m0        ; m4 = (8-dx)*(8-dy) = cA
+
+    mov       r4d, r7m
 %ifdef ARCH_X86_64
-    mov     r10, r0
-    mov     r11, r2
+    mov       r10, r0
+    mov       r11, r2
 %else
-    mov     r0,  r0m
-    mov     r1,  r1m
-    mov     r5,  r2
+    mov        r0, r0m
+    mov        r1, r1m
+    mov        r5, r2
 %endif
 
-ALIGN 4
-.height_loop:
+.loop2d:
+    movh       m1, [r2+r3]
+    movh       m0, [r2]
+    punpcklbw  m1, m3        ; 00 px1 | 00 px2 | 00 px3 | 00 px4
+    punpcklbw  m0, m3
+    pmullw     m1, m6        ; 2nd line * cC
+    pmullw     m0, m4        ; 1st line * cA
+    paddw      m0, m1        ; m0 <- result
 
-    movd    mm1, [r2+r3]
-    movd    mm0, [r2]
-    punpcklbw mm1, mm3          ; 00 px1 | 00 px2 | 00 px3 | 00 px4
-    punpcklbw mm0, mm3
-    pmullw  mm1, mm6            ; 2nd line * cC
-    pmullw  mm0, mm4            ; 1st line * cA
-    paddw   mm0, mm1            ; mm0 <- result
+    movh       m2, [r2+1]
+    movh       m1, [r2+r3+1]
+    punpcklbw  m2, m3
+    punpcklbw  m1, m3
 
-    movd    mm2, [r2+1]
-    movd    mm1, [r2+r3+1]
-    punpcklbw mm2, mm3
-    punpcklbw mm1, mm3
+    paddw      m0, [pw_32 GLOBAL]
 
-    paddw   mm0, [pw_32 GLOBAL]
+    pmullw     m2, m5        ; line * cB
+    pmullw     m1, m7        ; line * cD
+    paddw      m0, m2
+    paddw      m0, m1
+    psrlw      m0, 6
 
-    pmullw  mm2, mm5            ; line * cB
-    pmullw  mm1, mm7            ; line * cD
-    paddw   mm0, mm2
-    paddw   mm0, mm1
-    psrlw   mm0, 6
+    packuswb m0, m3          ; 00 00 00 00 px1 px2 px3 px4
+    movh       [r0], m0
 
-    packuswb mm0, mm3           ; 00 00 00 00 px1 px2 px3 px4
-    movd    [r0], mm0
+    add        r2,  r3
+    add        r0,  r1       ; dst_stride
+    dec        r4d
+    jnz .loop2d
 
-    add     r2,  r3
-    add     r0,  r1             ; i_dst_stride
-    dec     r4d
-    jnz     .height_loop
-
+%if regsize == 8
     sub dword r6m, 8
-    jnz     .finish             ; width != 8 so assume 4
-
+    jnz .finish              ; width != 8 so assume 4
 %ifdef ARCH_X86_64
-    lea     r0, [r10+4]         ; dst
-    lea     r2, [r11+4]         ; src
+    lea        r0, [r10+4]   ; dst
+    lea        r2, [r11+4]   ; src
 %else
-    mov     r0,  r0m
-    lea     r2, [r5+4]
-    add     r0,  4
+    mov        r0,  r0m
+    lea        r2, [r5+4]
+    add        r0,  4
 %endif
-    mov     r4d, r7m            ; i_height
-    jmp     .height_loop
+    mov       r4d, r7m       ; height
+    jmp .loop2d
+%else
+    REP_RET
+%endif ; regsize
 
-ALIGN 4
-.mc1d:
-    mov       eax, r4d
-    or        eax, r5d
-    and       eax, 7
-    cmp       r4d, 0
+.mc1dy:
+    and       r5d, 7
+    movd       m6, r5d
+    mov        r5, r3        ; pel_offset = dx ? 1 : src_stride
+    jmp .mc1d
+.mc1dx:
+    movd       m6, r4d
     mov       r5d, 1
-    cmove     r5,  r3           ; pel_offset = dx ? 1 : src_stride
-    movd      mm6, eax
-    movq      mm5, [pw_8 GLOBAL]
-    pshufw    mm6, mm6, 0
-    movq      mm7, [pw_4 GLOBAL]
-    psubw     mm5, mm6
-
-    cmp dword r6m, 8
+.mc1d:
+    mova       m5, [pw_8 GLOBAL]
+    SPLATW     m6, m6
+    mova       m7, [pw_4 GLOBAL]
+    psubw      m5, m6
     movifnidn r0d, r0m
     movifnidn r1d, r1m
     mov       r4d, r7m
-    je .height_loop1_w8
+%if regsize == 8
+    cmp dword r6m, 8
+    je .loop1d_w8
+%endif
 
-ALIGN 4
-.height_loop1_w4:
-    movd      mm0, [r2+r5]
-    movd      mm1, [r2]
-    punpcklbw mm0, mm3
-    punpcklbw mm1, mm3
-    pmullw    mm0, mm6
-    pmullw    mm1, mm5
-    paddw     mm0, mm7
-    paddw     mm0, mm1
-    psrlw     mm0, 3
-    packuswb  mm0, mm3
-    movd     [r0], mm0
-    add       r2,  r3
-    add       r0,  r1
-    dec       r4d
-    jnz .height_loop1_w4
+.loop1d_w4:
+    movh       m0, [r2+r5]
+    movh       m1, [r2]
+    punpcklbw  m0, m3
+    punpcklbw  m1, m3
+    pmullw     m0, m6
+    pmullw     m1, m5
+    paddw      m0, m7
+    paddw      m0, m1
+    psrlw      m0, 3
+    packuswb   m0, m3
+    movh     [r0], m0
+    add        r2, r3
+    add        r0, r1
+    dec        r4d
+    jnz .loop1d_w4
 .finish:
     REP_RET
 
-ALIGN 4
-.height_loop1_w8:
-    movq      mm0, [r2+r5]
-    movq      mm1, [r2]
-    movq      mm2, mm0
-    movq      mm4, mm1
-    punpcklbw mm0, mm3
-    punpcklbw mm1, mm3
-    punpckhbw mm2, mm3
-    punpckhbw mm4, mm3
-    pmullw    mm0, mm6
-    pmullw    mm1, mm5
-    pmullw    mm2, mm6
-    pmullw    mm4, mm5
-    paddw     mm0, mm7
-    paddw     mm2, mm7
-    paddw     mm0, mm1
-    paddw     mm2, mm4
-    psrlw     mm0, 3
-    psrlw     mm2, 3
-    packuswb  mm0, mm2
-    movq     [r0], mm0
-    add       r2,  r3
-    add       r0,  r1
-    dec       r4d
-    jnz .height_loop1_w8
+%if regsize == 8
+.loop1d_w8:
+    movu       m0, [r2+r5]
+    mova       m1, [r2]
+    mova       m2, m0
+    mova       m4, m1
+    punpcklbw  m0, m3
+    punpcklbw  m1, m3
+    punpckhbw  m2, m3
+    punpckhbw  m4, m3
+    pmullw     m0, m6
+    pmullw     m1, m5
+    pmullw     m2, m6
+    pmullw     m4, m5
+    paddw      m0, m7
+    paddw      m2, m7
+    paddw      m0, m1
+    paddw      m2, m4
+    psrlw      m0, 3
+    psrlw      m2, 3
+    packuswb   m0, m2
+    mova     [r0], m0
+    add        r2, r3
+    add        r0, r1
+    dec        r4d
+    jnz .loop1d_w8
     REP_RET
+%endif ; regsize
+%endmacro ; MC_CHROMA
+
+INIT_MMX
+MC_CHROMA mmxext
+INIT_XMM
+MC_CHROMA sse2
+
+INIT_MMX
+cglobal x264_mc_chroma_ssse3, 0,6,1
+    MC_CHROMA_START
+    and       r4d, 7
+    and       r5d, 7
+    mov       t0d, r4d
+    shl       t0d, 8
+    sub       t0d, r4d
+    mov       r4d, 8
+    add       t0d, 8
+    sub       r4d, r5d
+    imul      r5d, t0d ; (x*255+8)*y
+    imul      r4d, t0d ; (x*255+8)*(8-y)
+    cmp dword r6m, 4
+    jg .width8
+    mova       m5, [pw_32 GLOBAL]
+    movd       m6, r5d
+    movd       m7, r4d
+    movifnidn r0d, r0m
+    movifnidn r1d, r1m
+    movifnidn r4d, r7m
+    SPLATW     m6, m6
+    SPLATW     m7, m7
+    movh       m0, [r2]
+    punpcklbw  m0, [r2+1]
+    add r2, r3
+.loop4:
+    movh       m1, [r2]
+    movh       m3, [r2+r3]
+    punpcklbw  m1, [r2+1]
+    punpcklbw  m3, [r2+r3+1]
+    lea        r2, [r2+2*r3]
+    mova       m2, m1
+    mova       m4, m3
+    pmaddubsw  m0, m7
+    pmaddubsw  m1, m6
+    pmaddubsw  m2, m7
+    pmaddubsw  m3, m6
+    paddw      m0, m5
+    paddw      m2, m5
+    paddw      m1, m0
+    paddw      m3, m2
+    mova       m0, m4
+    psrlw      m1, 6
+    psrlw      m3, 6
+    packuswb   m1, m1
+    packuswb   m3, m3
+    movh     [r0], m1
+    movh  [r0+r1], m3
+    sub       r4d, 2
+    lea        r0, [r0+2*r1]
+    jg .loop4
+    REP_RET
+
+INIT_XMM
+.width8:
+    mova       m5, [pw_32 GLOBAL]
+    movd       m6, r5d
+    movd       m7, r4d
+    movifnidn r0d, r0m
+    movifnidn r1d, r1m
+    movifnidn r4d, r7m
+    SPLATW     m6, m6
+    SPLATW     m7, m7
+    movh       m0, [r2]
+    movh       m1, [r2+1]
+    punpcklbw  m0, m1
+    add r2, r3
+.loop8:
+    movh       m1, [r2]
+    movh       m2, [r2+1]
+    movh       m3, [r2+r3]
+    movh       m4, [r2+r3+1]
+    punpcklbw  m1, m2
+    punpcklbw  m3, m4
+    lea        r2, [r2+2*r3]
+    mova       m2, m1
+    mova       m4, m3
+    pmaddubsw  m0, m7
+    pmaddubsw  m1, m6
+    pmaddubsw  m2, m7
+    pmaddubsw  m3, m6
+    paddw      m0, m5
+    paddw      m2, m5
+    paddw      m1, m0
+    paddw      m3, m2
+    mova       m0, m4
+    psrlw      m1, 6
+    psrlw      m3, 6
+    packuswb   m1, m3
+    movh     [r0], m1
+    movhps [r0+r1], m1
+    sub       r4d, 2
+    lea        r0, [r0+2*r1]
+    jg .loop8
+    REP_RET
+
+; mc_chroma 1d ssse3 is negligibly faster, and definitely not worth the extra code size
 

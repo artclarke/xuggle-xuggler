@@ -54,6 +54,12 @@ extern void x264_prefetch_ref_mmxext( uint8_t *, int, int );
 extern void x264_mc_chroma_mmxext( uint8_t *src, int i_src_stride,
                                    uint8_t *dst, int i_dst_stride,
                                    int dx, int dy, int i_width, int i_height );
+extern void x264_mc_chroma_sse2( uint8_t *src, int i_src_stride,
+                                 uint8_t *dst, int i_dst_stride,
+                                 int dx, int dy, int i_width, int i_height );
+extern void x264_mc_chroma_ssse3( uint8_t *src, int i_src_stride,
+                                  uint8_t *dst, int i_dst_stride,
+                                  int dx, int dy, int i_width, int i_height );
 extern void x264_plane_copy_mmxext( uint8_t *, int, uint8_t *, int, int w, int h);
 extern void *x264_memcpy_aligned_mmx( void * dst, const void * src, size_t n );
 extern void *x264_memcpy_aligned_sse2( void * dst, const void * src, size_t n );
@@ -299,6 +305,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->avg_weight[PIXEL_8x8]   = x264_pixel_avg_weight_8x8_sse2;
     pf->avg_weight[PIXEL_8x4]   = x264_pixel_avg_weight_8x4_sse2;
     pf->hpel_filter = x264_hpel_filter_sse2;
+    pf->mc_chroma = x264_mc_chroma_sse2;
 
     if( cpu&X264_CPU_SSE2_IS_FAST )
     {
@@ -315,4 +322,5 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
         return;
 
     pf->hpel_filter = x264_hpel_filter_ssse3;
+    pf->mc_chroma = x264_mc_chroma_ssse3;
 }
