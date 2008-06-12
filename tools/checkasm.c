@@ -37,6 +37,8 @@ typedef struct {
 } bench_func_t;
 
 int do_bench = 0;
+int bench_pattern_len = 0;
+const char *bench_pattern = "";
 char func_name[100];
 static bench_func_t benchs[MAX_FUNCS];
 
@@ -151,7 +153,7 @@ long x264_checkasm_call( long (*func)(), int *ok, ... );
 #endif
 
 #define call_bench(func,cpu,...)\
-    if(do_bench)\
+    if( do_bench && !strncmp(func_name, bench_pattern, bench_pattern_len) )\
     {\
         uint32_t tsum = 0;\
         int tcount = 0;\
@@ -1166,13 +1168,18 @@ int main(int argc, char *argv[])
     int ret = 0;
     int i;
 
-    if( argc > 1 && !strcmp( argv[1], "--bench" ) )
+    if( argc > 1 && !strncmp( argv[1], "--bench", 7 ) )
     {
 #if !defined(ARCH_X86) && !defined(ARCH_X86_64)
         fprintf( stderr, "no --bench for your cpu until you port rdtsc\n" );
         return 1;
 #endif
         do_bench = 1;
+        if( argv[1][7] == '=' )
+        {
+            bench_pattern = argv[1]+8;
+            bench_pattern_len = strlen(bench_pattern);
+        }
         argc--;
         argv++;
     }
