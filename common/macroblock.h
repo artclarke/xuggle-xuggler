@@ -356,6 +356,38 @@ static ALWAYS_INLINE void x264_macroblock_cache_intra8x8_pred( x264_t *h, int x,
     int8_t *cache = &h->mb.cache.intra4x4_pred_mode[X264_SCAN8_0+x+8*y];
     cache[0] = cache[1] = cache[8] = cache[9] = i_mode;
 }
+#define array_non_zero(a) array_non_zero_int(a, sizeof(a))
+#define array_non_zero_int array_non_zero_int_c
+static ALWAYS_INLINE int array_non_zero_int_c( void *v, int i_count )
+{
+    uint64_t *x = v;
+    if(i_count == 8)
+        return !!x[0];
+    else if(i_count == 16)
+        return !!(x[0]|x[1]);
+    else if(i_count == 32)
+        return !!(x[0]|x[1]|x[2]|x[3]);
+    else
+    {
+        int i;
+        i_count /= sizeof(uint64_t);
+        for( i = 0; i < i_count; i++ )
+            if( x[i] ) return 1;
+        return 0;
+    }
+}
+/* This function and its MMX version only work on arrays of size 16 */
+static ALWAYS_INLINE int array_non_zero_count( int16_t *v )
+{
+    int i;
+    int i_nz;
+
+    for( i = 0, i_nz = 0; i < 16; i++ )
+        if( v[i] )
+            i_nz++;
+
+    return i_nz;
+}
 
 #endif
 

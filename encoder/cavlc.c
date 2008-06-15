@@ -301,7 +301,7 @@ static inline void x264_macroblock_luma_write_cavlc( x264_t *h, bs_t *s, int i8s
         if( h->mb.i_cbp_luma & (1 << i8) )
             for( i4 = 0; i4 < 4; i4++ )
             {
-                h->mb.cache.non_zero_count[x264_scan8[i4+i8*4]] = array_non_zero_count( h->dct.luma4x4[i4+i8*4], 16 );
+                h->mb.cache.non_zero_count[x264_scan8[i4+i8*4]] = array_non_zero_count( h->dct.luma4x4[i4+i8*4] );
                 block_residual_write_cavlc( h, s, i4+i8*4, h->dct.luma4x4[i4+i8*4], 16 );
             }
 }
@@ -657,7 +657,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         if( h->mb.i_cbp_luma != 0 )
             for( i = 0; i < 16; i++ )
             {
-                h->mb.cache.non_zero_count[x264_scan8[i]] = array_non_zero_count( h->dct.luma4x4[i]+1, 15 );
+                h->mb.cache.non_zero_count[x264_scan8[i]] = array_non_zero_count( h->dct.luma4x4[i] );
                 block_residual_write_cavlc( h, s, i, h->dct.luma4x4[i]+1, 15 );
             }
     }
@@ -674,7 +674,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         if( h->mb.i_cbp_chroma&0x02 ) /* Chroma AC residual present */
             for( i = 16; i < 24; i++ )
             {
-                h->mb.cache.non_zero_count[x264_scan8[i]] = array_non_zero_count( h->dct.luma4x4[i]+1, 15 );
+                h->mb.cache.non_zero_count[x264_scan8[i]] = array_non_zero_count( h->dct.luma4x4[i] );
                 block_residual_write_cavlc( h, s, i, h->dct.luma4x4[i]+1, 15 );
             }
     }
@@ -741,9 +741,9 @@ int x264_partition_size_cavlc( x264_t *h, int i8, int i_pixel )
     for( j = (i_pixel < PIXEL_8x8); j >= 0; j-- )
     {
         x264_macroblock_luma_write_cavlc( h, &s, i8, i8 );
-        h->mb.cache.non_zero_count[x264_scan8[16+i8]] = array_non_zero_count( h->dct.luma4x4[16+i8]+1, 15 );
+        h->mb.cache.non_zero_count[x264_scan8[16+i8]] = array_non_zero_count( h->dct.luma4x4[16+i8] );
         block_residual_write_cavlc( h, &s, 16+i8, h->dct.luma4x4[16+i8]+1, 15 );
-        h->mb.cache.non_zero_count[x264_scan8[20+i8]] = array_non_zero_count( h->dct.luma4x4[20+i8]+1, 15 );
+        h->mb.cache.non_zero_count[x264_scan8[20+i8]] = array_non_zero_count( h->dct.luma4x4[20+i8] );
         block_residual_write_cavlc( h, &s, 20+i8, h->dct.luma4x4[20+i8]+1, 15 );
         i8 += x264_pixel_size[i_pixel].h >> 3;
     }
@@ -768,7 +768,7 @@ static int x264_partition_i8x8_size_cavlc( x264_t *h, int i8, int i_mode )
         for( i = 0; i < 16; i++ )
             h->dct.luma4x4[i4+i8*4][i] = h->dct.luma8x8[i8][i4+i*4];
         h->mb.cache.non_zero_count[x264_scan8[i4+i8*4]] =
-            array_non_zero_count( h->dct.luma4x4[i4+i8*4], 16 );
+            array_non_zero_count( h->dct.luma4x4[i4+i8*4] );
         block_residual_write_cavlc( h, &h->out.bs, i4+i8*4, h->dct.luma4x4[i4+i8*4], 16 );
     }
     return h->out.bs.i_bits_encoded;
@@ -794,7 +794,7 @@ static int x264_i8x8_chroma_size_cavlc( x264_t *h )
             int i;
             for( i = 16; i < 24; i++ )
             {
-                h->mb.cache.non_zero_count[x264_scan8[i]] = array_non_zero_count( h->dct.luma4x4[i]+1, 15 );
+                h->mb.cache.non_zero_count[x264_scan8[i]] = array_non_zero_count( h->dct.luma4x4[i] );
                 block_residual_write_cavlc( h, &h->out.bs, i, h->dct.luma4x4[i]+1, 15 );
             }
         }

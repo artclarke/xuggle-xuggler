@@ -7,10 +7,11 @@ echo ""
 echo "available options:"
 echo ""
 echo "  --help                   print this message"
-echo "  --enable-avis-input      enables avisynth input (win32 only)"
-echo "  --enable-mp4-output      enables mp4 output (using gpac)"
+echo "  --disable-avis-input     disables avisynth input (win32 only)"
+echo "  --disable-mp4-output     disables mp4 output (using gpac)"
+echo "  --disable-pthread        disables multithreaded encoding"
+echo "  --disable-asm            disables assembly optimizations on x86"
 echo "  --enable-gtk             build GTK+ interface"
-echo "  --enable-pthread         enables multithreaded encoding"
 echo "  --enable-debug           adds -g, doesn't strip"
 echo "  --enable-gprof           adds -pg, doesn't strip"
 echo "  --enable-visualize       enables visualization (X11 only)"
@@ -53,6 +54,7 @@ DEVNULL='/dev/null'
 avis_input="auto"
 mp4_output="auto"
 pthread="auto"
+asm="yes"
 debug="no"
 gprof="no"
 pic="no"
@@ -101,6 +103,12 @@ for opt do
             ;;
         --includedir=*)
             includedir="$optarg"
+            ;;
+        --enable-asm)
+            asm="yes"
+            ;;
+        --disable-asm)
+            asm="no"
             ;;
         --enable-avis-input)
             avis_input="yes"
@@ -300,7 +308,7 @@ if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" \)
     pic="yes"
 fi
 
-if [ $ARCH = X86 -o $ARCH = X86_64 ] ; then
+if [ $asm = yes -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
     if [ $ARCH = X86 -a $pic = yes -a x$AS = xyasm -a\
          "`yasm --version 2>$DEVNULL | head -n 1`" "<" "yasm 0.6.2" ] ; then
          echo "yasm prior to 0.6.2 miscompiles PIC. trying nasm instead..."
@@ -309,10 +317,12 @@ if [ $ARCH = X86 -o $ARCH = X86_64 ] ; then
     if as_check "pabsw xmm0, xmm0" ; then
         CFLAGS="$CFLAGS -DHAVE_MMX"
     else
-        echo "No suitable assembler found.  x264 will be several times slower."
-        echo "Please install 'yasm' to get MMX/SSE optimized code."
-        AS=""
+        echo "No suitable assembler found.  Install 'yasm' to get MMX/SSE optimized code."
+        echo "If you really want to compile without asm, configure with --disable-asm."
+        exit 1
     fi
+else
+    AS=""
 fi
 
 CFLAGS="$CFLAGS -DARCH_$ARCH -DSYS_$SYS"
@@ -482,6 +492,7 @@ EOF
 
 echo "Platform:   $ARCH"
 echo "System:     $SYS"
+echo "asm:        $asm"
 echo "avis input: $avis_input"
 echo "mp4 output: $mp4_output"
 echo "pthread:    $pthread"

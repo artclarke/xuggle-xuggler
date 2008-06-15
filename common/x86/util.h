@@ -65,10 +65,66 @@ static inline int x264_predictor_difference_mmxext( int16_t (*mvc)[2], intptr_t 
         "paddusw %%mm0, %%mm4 \n"
         "jg 1b                \n"
         "movq    %%mm4, %0    \n"
-        :"=m"(output), "+r"(i_mvc), "+r"(mvc)
+        :"=m"(output), "+r"(i_mvc)
+        :"r"(mvc)
     );
     sum += output[0] + output[1] + output[2] + output[3];
     return sum;
+}
+#define array_non_zero_count array_non_zero_count_mmx
+static inline int array_non_zero_count_mmx( int16_t *v )
+{
+    static const uint64_t pw_2 = 0x0202020202020202ULL;
+    int count;
+    asm(
+        "pxor     %%mm7,  %%mm7 \n"
+        "movq     (%1),   %%mm0 \n"
+        "movq     16(%1), %%mm1 \n"
+        "packsswb 8(%1),  %%mm0 \n"
+        "packsswb 24(%1), %%mm1 \n"
+        "pcmpeqb  %%mm7,  %%mm0 \n"
+        "pcmpeqb  %%mm7,  %%mm1 \n"
+        "paddb    %%mm0,  %%mm1 \n"
+        "paddb    %2,     %%mm1 \n"
+        "psadbw   %%mm7,  %%mm1 \n"
+        "movd     %%mm1,  %0    \n"
+        :"=r"(count)
+        :"r"(v), "m"(pw_2)
+    );
+    return count;
+}
+#undef array_non_zero_int
+#define array_non_zero_int array_non_zero_int_mmx
+static ALWAYS_INLINE int array_non_zero_int_mmx( void *v, int i_count )
+{
+    if(i_count == 128)
+    {
+        int nonzero;
+        asm(
+            "movq     (%1),    %%mm0 \n"
+            "por      8(%1),   %%mm0 \n"
+            "por      16(%1),  %%mm0 \n"
+            "por      24(%1),  %%mm0 \n"
+            "por      32(%1),  %%mm0 \n"
+            "por      40(%1),  %%mm0 \n"
+            "por      48(%1),  %%mm0 \n"
+            "por      56(%1),  %%mm0 \n"
+            "por      64(%1),  %%mm0 \n"
+            "por      72(%1),  %%mm0 \n"
+            "por      80(%1),  %%mm0 \n"
+            "por      88(%1),  %%mm0 \n"
+            "por      96(%1),  %%mm0 \n"
+            "por      104(%1), %%mm0 \n"
+            "por      112(%1), %%mm0 \n"
+            "por      120(%1), %%mm0 \n"
+            "packsswb %%mm0,   %%mm0 \n"
+            "movd     %%mm0,   %0    \n"
+            :"=r"(nonzero)
+            :"r"(v)
+        );
+        return !!nonzero;
+    }
+    else return array_non_zero_int_c( v, i_count );
 }
 #endif
 

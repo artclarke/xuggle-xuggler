@@ -300,6 +300,14 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
 
 static int x264_validate_parameters( x264_t *h )
 {
+#ifdef HAVE_MMX
+    if( !(x264_cpu_detect() & X264_CPU_MMXEXT) )
+    {
+        x264_log( h, X264_LOG_ERROR, "your cpu does not support MMXEXT, but x264 was compiled with asm support\n");
+        x264_log( h, X264_LOG_ERROR, "to run x264, recompile without asm support (configure --disable-asm)\n");
+        return -1;
+    }
+#endif
     if( h->param.i_width <= 0 || h->param.i_height <= 0 )
     {
         x264_log( h, X264_LOG_ERROR, "invalid width x height (%dx%d)\n",

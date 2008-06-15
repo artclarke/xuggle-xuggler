@@ -54,29 +54,5 @@ void x264_quant_8x8_trellis( x264_t *h, int16_t dct[8][8], int i_quant_cat,
 void x264_noise_reduction_update( x264_t *h );
 void x264_denoise_dct( x264_t *h, int16_t *dct );
 
-#define array_non_zero(a) array_non_zero_int(a, sizeof(a))
-static inline int array_non_zero_int( void *v, int i_count )
-{
-    int i;
-    uint64_t *x = v;
-    i_count /= sizeof(uint64_t);
-    for( i = 0; i < i_count; i++ )
-        if( x[i] ) return 1;
-    return 0;
-}
-
-static inline int array_non_zero_count( int16_t *v, int i_count )
-{
-    int i;
-    int i_nz;
-
-    for( i = 0, i_nz = 0; i < i_count; i++ )
-        if( v[i] )
-            i_nz++;
-
-    return i_nz;
-}
-
-
 #endif
 
