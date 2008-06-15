@@ -467,16 +467,16 @@ void x264_mb_load_mv_direct8x8( x264_t *h, int idx )
 {
     const int x = 2*(idx%2);
     const int y = 2*(idx/2);
-    int l;
     x264_macroblock_cache_ref( h, x, y, 2, 2, 0, h->mb.cache.direct_ref[0][idx] );
     x264_macroblock_cache_ref( h, x, y, 2, 2, 1, h->mb.cache.direct_ref[1][idx] );
-    for( l = 0; l < 2; l++ )
-    {
-        *(uint64_t*)h->mb.cache.mv[l][x264_scan8[idx*4]] =
-        *(uint64_t*)h->mb.cache.direct_mv[l][x264_scan8[idx*4]];
-        *(uint64_t*)h->mb.cache.mv[l][x264_scan8[idx*4]+8] =
-        *(uint64_t*)h->mb.cache.direct_mv[l][x264_scan8[idx*4]+8];
-    }
+    *(uint64_t*)h->mb.cache.mv[0][x264_scan8[idx*4]] =
+    *(uint64_t*)h->mb.cache.direct_mv[0][x264_scan8[idx*4]];
+    *(uint64_t*)h->mb.cache.mv[0][x264_scan8[idx*4]+8] =
+    *(uint64_t*)h->mb.cache.direct_mv[0][x264_scan8[idx*4]+8];
+    *(uint64_t*)h->mb.cache.mv[1][x264_scan8[idx*4]] =
+    *(uint64_t*)h->mb.cache.direct_mv[1][x264_scan8[idx*4]];
+    *(uint64_t*)h->mb.cache.mv[1][x264_scan8[idx*4]+8] =
+    *(uint64_t*)h->mb.cache.direct_mv[1][x264_scan8[idx*4]+8];
 }
 
 #define FIXED_SCALE 256
@@ -979,7 +979,7 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int i_mb
     int ref_pix_offset[2] = { i_pix_offset, i_pix_offset };
     const uint8_t *intra_fdec = &h->mb.intra_border_backup[i_mb_y & h->sh.b_mbaff][i][i_mb_x*16>>!!i];
     x264_frame_t **fref[2] = { h->fref0, h->fref1 };
-    int j, k, l;
+    int j, k;
     if( h->mb.b_interlaced )
         ref_pix_offset[1] += (1-2*(i_mb_y&1)) * i_stride;
     h->mb.pic.i_stride[i] = i_stride2;
@@ -992,16 +992,21 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int i_mb
         for( j = 0; j < w; j++ )
             h->mb.pic.p_fdec[i][-1+j*FDEC_STRIDE] = plane_fdec[-1+j*i_stride2];
     }
-    for( l=0; l<2; l++ )
+    for( j = 0; j < h->mb.pic.i_fref[0]; j++ )
     {
-        for( j=0; j<h->mb.pic.i_fref[l]; j++ )
+        h->mb.pic.p_fref[0][j][i==0 ? 0:i+3] = &fref[0][j >> h->mb.b_interlaced]->plane[i][ref_pix_offset[j&1]];
+        if( i == 0 )
+            for( k = 1; k < 4; k++ )
+                h->mb.pic.p_fref[0][j][k] = &fref[0][j >> h->mb.b_interlaced]->filtered[k][ref_pix_offset[j&1]];
+    }
+    if( h->sh.i_type == SLICE_TYPE_B )
+        for( j = 0; j < h->mb.pic.i_fref[1]; j++ )
         {
-            h->mb.pic.p_fref[l][j][i==0 ? 0:i+3] = &fref[l][j >> h->mb.b_interlaced]->plane[i][ref_pix_offset[j&1]];
+            h->mb.pic.p_fref[1][j][i==0 ? 0:i+3] = &fref[1][j >> h->mb.b_interlaced]->plane[i][ref_pix_offset[j&1]];
             if( i == 0 )
                 for( k = 1; k < 4; k++ )
-                    h->mb.pic.p_fref[l][j][k] = &fref[l][j >> h->mb.b_interlaced]->filtered[k][ref_pix_offset[j&1]];
+                    h->mb.pic.p_fref[1][j][k] = &fref[1][j >> h->mb.b_interlaced]->filtered[k][ref_pix_offset[j&1]];
         }
-    }
 }
 
 void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
