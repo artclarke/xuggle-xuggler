@@ -45,7 +45,7 @@ typedef struct
     int cost_mv;        /* lambda * nbits for the chosen mv */
     int cost;           /* satd + lambda * nbits */
     DECLARE_ALIGNED_4( int16_t mv[2] );
-} x264_me_t;
+} DECLARE_ALIGNED_16( x264_me_t );
 
 void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, int *p_fullpel_thresh );
 static inline void x264_me_search( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc )

@@ -89,13 +89,9 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     }
 #define SAVE_MVS( mv0, mv1 ) \
     { \
-        fenc->mv[0][i_mb_xy][0] = mv0[0]; \
-        fenc->mv[0][i_mb_xy][1] = mv0[1]; \
+        *(uint32_t*)fenc->mv[0][i_mb_xy] = *(uint32_t*)mv0; \
         if( b_bidir ) \
-        { \
-            fenc->mv[1][i_mb_xy][0] = mv1[0]; \
-            fenc->mv[1][i_mb_xy][1] = mv1[1]; \
-        } \
+            *(uint32_t*)fenc->mv[1][i_mb_xy] = *(uint32_t*)mv1; \
     }
 #define CLIP_MV( mv ) \
     { \
@@ -133,7 +129,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         int dmv[2][2];
         int mv0[2] = {0,0};
 
-        m[1] = m[0];
+        h->mc.memcpy_aligned( &m[1], &m[0], sizeof(x264_me_t) );
         LOAD_HPELS_LUMA( m[1].p_fref, fref1->lowres );
 
         dmv[0][0] = ( mvr[0] * dist_scale_factor + 128 ) >> 8;
@@ -144,7 +140,7 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         CLIP_MV( dmv[1] );
 
         TRY_BIDIR( dmv[0], dmv[1], 0 );
-        if( dmv[0][0] || dmv[0][1] || dmv[1][0] || dmv[1][1] )
+        if( dmv[0][0] | dmv[0][1] | dmv[1][0] | dmv[1][1] )
            TRY_BIDIR( mv0, mv0, 0 );
 //      if( i_bcost < 60 ) // arbitrary threshold
 //          return i_bcost;
@@ -153,10 +149,10 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     i_cost_bak = i_bcost;
     for( l = 0; l < 1 + b_bidir; l++ )
     {
-        int16_t mvc[4][2] = {{0}};
+        DECLARE_ALIGNED_4(int16_t mvc[4][2]) = {{0}};
         int i_mvc = 0;
         int16_t (*fenc_mv)[2] = &fenc->mv[l][i_mb_xy];
-#define MVC(mv) { mvc[i_mvc][0] = mv[0]; mvc[i_mvc][1] = mv[1]; i_mvc++; }
+#define MVC(mv) { *(uint32_t*)mvc[i_mvc] = *(uint32_t*)mv; i_mvc++; }
         if( i_mb_x > 0 )
             MVC(fenc_mv[-1]);
         if( i_mb_y > 0 )
@@ -172,12 +168,12 @@ int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         x264_me_search( h, &m[l], mvc, i_mvc );
 
         m[l].cost -= 2; // remove mvcost from skip mbs
-        if( m[l].mv[0] || m[l].mv[1] )
+        if( *(uint32_t*)m[l].mv )
             m[l].cost += 5;
         i_bcost = X264_MIN( i_bcost, m[l].cost );
     }
 
-    if( b_bidir && (m[0].mv[0] || m[0].mv[1] || m[1].mv[0] || m[1].mv[1]) )
+    if( b_bidir && ( *(uint32_t*)m[0].mv || *(uint32_t*)m[1].mv ) )
         TRY_BIDIR( m[0].mv, m[1].mv, 5 );
 
     if( i_bcost < i_cost_bak )
