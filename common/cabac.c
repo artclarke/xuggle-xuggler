@@ -866,8 +866,6 @@ static inline void x264_cabac_putbyte( x264_cabac_t *cb )
         {
             int carry = out >> 8;
             int bytes_outstanding = cb->i_bytes_outstanding;
-            if( cb->p + bytes_outstanding + 1 >= cb->p_end )
-                return;
             // this can't modify before the beginning of the stream because
             // that would correspond to a probability > 1.
             // it will write before the beginning of the stream, which is ok
@@ -954,9 +952,6 @@ void x264_cabac_encode_flush( x264_t *h, x264_cabac_t *cb )
     cb->i_low |= (0x35a4e4f5 >> (h->i_frame & 31) & 1) << 10;
     cb->i_queue = 8;
     x264_cabac_putbyte( cb );
-
-    if( cb->p + cb->i_bytes_outstanding + 1 >= cb->p_end )
-        return; //FIXME throw an error instead of silently truncating the frame
 
     while( cb->i_bytes_outstanding > 0 )
     {

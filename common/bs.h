@@ -48,8 +48,6 @@ static inline int bs_pos( bs_t *s )
 
 static inline void bs_write( bs_t *s, int i_count, uint32_t i_bits )
 {
-    if( s->p >= s->p_end - 4 )
-        return;
     while( i_count > 0 )
     {
         if( i_count < 32 )
@@ -72,16 +70,13 @@ static inline void bs_write( bs_t *s, int i_count, uint32_t i_bits )
 
 static inline void bs_write1( bs_t *s, uint32_t i_bit )
 {
-    if( s->p < s->p_end )
+    *s->p <<= 1;
+    *s->p |= i_bit;
+    s->i_left--;
+    if( s->i_left == 0 )
     {
-        *s->p <<= 1;
-        *s->p |= i_bit;
-        s->i_left--;
-        if( s->i_left == 0 )
-        {
-            s->p++;
-            s->i_left = 8;
-        }
+        s->p++;
+        s->i_left = 8;
     }
 }
 

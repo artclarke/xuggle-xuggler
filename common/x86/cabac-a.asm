@@ -124,7 +124,6 @@ cglobal x264_cabac_encode_decision_asm, 0,7
     mov   [r0+cb.queue], t3d
     cmp   t3d, 8
     jge .putbyte
-.ret:
     REP_RET
 .putbyte:
     ; alive: t0=cb t3=queue t6=low
@@ -144,9 +143,6 @@ cglobal x264_cabac_encode_decision_asm, 0,7
     je .postpone
     mov   t5d, [r0+cb.bytes_outstanding]
     shr   t1d, 8 ; carry
-    lea   t6, [t4+t5+1]
-    cmp   t6, [r0+cb.end]
-    jge .ret
     add   [t4-1], t1b
     test  t5d, t5d
     jz .no_outstanding

@@ -290,6 +290,34 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
     }
 }
 
+/* If we are within a reasonable distance of the end of the memory allocated for the bitstream, */
+/* reallocate, adding an arbitrary amount of space (100 kilobytes). */
+static void x264_bitstream_check_buffer( x264_t *h )
+{
+    if( ( h->param.b_cabac && (h->cabac.p_end - h->cabac.p < 2500) )
+     || ( h->out.bs.p_end - h->out.bs.p < 2500 ) )
+    {
+        uint8_t *bs_bak = h->out.p_bitstream;
+        intptr_t delta;
+        int i;
+
+        h->out.i_bitstream += 100000;
+        h->out.p_bitstream = x264_realloc( h->out.p_bitstream, h->out.i_bitstream );
+        delta = h->out.p_bitstream - bs_bak;
+
+        h->out.bs.p_start += delta;
+        h->out.bs.p += delta;
+        h->out.bs.p_end = h->out.p_bitstream + h->out.i_bitstream;
+
+        h->cabac.p_start += delta;
+        h->cabac.p += delta;
+        h->cabac.p_end = h->out.p_bitstream + h->out.i_bitstream;
+
+        for( i = 0; i <= h->out.i_nal; i++ )
+            h->out.nal[i].p_payload += delta;
+    }
+}
+
 /****************************************************************************
  *
  ****************************************************************************
@@ -1089,6 +1117,8 @@ static void x264_slice_write( x264_t *h )
 
         /* encode this macroblock -> be careful it can change the mb type to P_SKIP if needed */
         x264_macroblock_encode( h );
+
+        x264_bitstream_check_buffer( h );
 
         if( h->param.b_cabac )
         {
