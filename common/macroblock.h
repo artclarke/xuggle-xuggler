@@ -293,6 +293,30 @@ int  x264_mb_transform_8x8_allowed( x264_t *h );
 void x264_mb_mc( x264_t *h );
 void x264_mb_mc_8x8( x264_t *h, int i8 );
 
+static ALWAYS_INLINE uint32_t pack16to32( int a, int b )
+{
+#ifdef WORDS_BIGENDIAN
+   return b + (a<<16);
+#else
+   return a + (b<<16);
+#endif
+}
+static ALWAYS_INLINE uint32_t pack8to16( int a, int b )
+{
+#ifdef WORDS_BIGENDIAN
+   return b + (a<<8);
+#else
+   return a + (b<<8);
+#endif
+}
+static ALWAYS_INLINE uint32_t pack8to32( int a, int b, int c, int d )
+{
+#ifdef WORDS_BIGENDIAN
+   return d + (c<<8) + (b<<16) + (a<<24);
+#else
+   return a + (b<<8) + (c<<16) + (d<<24);
+#endif
+}
 static ALWAYS_INLINE uint32_t pack16to32_mask( int a, int b )
 {
 #ifdef WORDS_BIGENDIAN

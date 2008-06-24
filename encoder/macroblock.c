@@ -549,23 +549,26 @@ void x264_macroblock_encode( x264_t *h )
         for( i = 0; i < 4; i++)
         {
             if(!nnz8x8[i])
-                for( j = 0; j < 4; j++ )
-                    h->mb.cache.non_zero_count[x264_scan8[j+i*4]] = 0;
+            {
+                *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[0+i*4]] = 0;
+                *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[2+i*4]] = 0;
+            }
             else if( h->mb.b_transform_8x8 )
             {
-                int nz = nnz8x8[i];
-                for( j = 0; j < 4; j++ )
-                    h->mb.cache.non_zero_count[x264_scan8[j+4*i]] = nz;
-                h->mb.i_cbp_luma |= nz << i;
+                *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[0+4*i]] = nnz8x8[i] * 0x0101;
+                *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[2+4*i]] = nnz8x8[i] * 0x0101;
+                h->mb.i_cbp_luma |= nnz8x8[i] << i;
             }
             else
             {
+                int nz, cbp = 0;
                 for( j = 0; j < 4; j++ )
                 {
-                    int nz = array_non_zero( h->dct.luma4x4[j+i*4] );
-                    h->mb.cache.non_zero_count[x264_scan8[j+i*4]] = nz;
-                    h->mb.i_cbp_luma |= nz << i;
+                    nz = array_non_zero( h->dct.luma4x4[j+4*i] );
+                    h->mb.cache.non_zero_count[x264_scan8[j+4*i]] = nz;
+                    cbp |= nz;
                 }
+                h->mb.i_cbp_luma |= cbp << i;
             }
         }
     }

@@ -37,24 +37,6 @@
 #   include "ppc/predict.h"
 #endif
 
-static ALWAYS_INLINE uint32_t pack16to32( int a, int b )
-{
-#ifdef WORDS_BIGENDIAN
-   return b + (a<<16);
-#else
-   return a + (b<<16);
-#endif
-}
-
-static ALWAYS_INLINE uint32_t pack8to16( int a, int b )
-{
-#ifdef WORDS_BIGENDIAN
-   return b + (a<<8);
-#else
-   return a + (b<<8);
-#endif
-}
-
 /****************************************************************************
  * 16x16 prediction for intra luma block
  ****************************************************************************/

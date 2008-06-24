@@ -306,16 +306,16 @@ void munge_cavlc_nnz_row( x264_t *h, int mb_y, uint8_t (*buf)[16] )
 {
     uint32_t (*src)[6] = (uint32_t(*)[6])h->mb.non_zero_count + mb_y * h->sps->i_mb_width;
     int8_t *transform = h->mb.mb_transform_size + mb_y * h->sps->i_mb_width;
-    int x;
+    int x, nnz;
     for( x=0; x<h->sps->i_mb_width; x++ )
     {
         memcpy( buf+x, src+x, 16 );
         if( transform[x] )
         {
-            if( src[x][0] ) src[x][0] = 0x01010101;
-            if( src[x][1] ) src[x][1] = 0x01010101;
-            if( src[x][2] ) src[x][2] = 0x01010101;
-            if( src[x][3] ) src[x][3] = 0x01010101;
+            nnz = src[x][0] | src[x][1];
+            src[x][0] = src[x][1] = ((uint16_t)nnz ? 0x0101 : 0) + (nnz>>16 ? 0x01010000 : 0);
+            nnz = src[x][2] | src[x][3];
+            src[x][2] = src[x][3] = ((uint16_t)nnz ? 0x0101 : 0) + (nnz>>16 ? 0x01010000 : 0);
         }
     }
 }
@@ -642,8 +642,8 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                         int y  = i_dir == 0 ? i      : i_edge;\
                         int xn = (x - (i_dir == 0 ? 1 : 0 ))&0x03;\
                         int yn = (y - (i_dir == 0 ? 0 : 1 ))&0x03;\
-                        if( h->mb.non_zero_count[mb_xy][block_idx_xy[x][y]] != 0 ||\
-                            h->mb.non_zero_count[mbn_xy][block_idx_xy[xn][yn]] != 0 )\
+                        if( h->mb.non_zero_count[mb_xy][x+y*4] != 0 ||\
+                            h->mb.non_zero_count[mbn_xy][xn+yn*4] != 0 )\
                         {\
                             bS[i] = 2;\
                         }\
