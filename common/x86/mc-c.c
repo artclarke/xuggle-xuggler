@@ -299,11 +299,14 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->copy[PIXEL_16x16] = x264_mc_copy_w16_aligned_sse2;
     pf->avg[PIXEL_16x16] = x264_pixel_avg_16x16_sse2;
     pf->avg[PIXEL_16x8]  = x264_pixel_avg_16x8_sse2;
-    pf->avg_weight[PIXEL_16x16] = x264_pixel_avg_weight_16x16_sse2;
-    pf->avg_weight[PIXEL_16x8]  = x264_pixel_avg_weight_16x8_sse2;
-    pf->avg_weight[PIXEL_8x16]  = x264_pixel_avg_weight_8x16_sse2;
-    pf->avg_weight[PIXEL_8x8]   = x264_pixel_avg_weight_8x8_sse2;
-    pf->avg_weight[PIXEL_8x4]   = x264_pixel_avg_weight_8x4_sse2;
+    if( !(cpu&X264_CPU_STACK_MOD4) )
+    {
+        pf->avg_weight[PIXEL_16x16] = x264_pixel_avg_weight_16x16_sse2;
+        pf->avg_weight[PIXEL_16x8]  = x264_pixel_avg_weight_16x8_sse2;
+        pf->avg_weight[PIXEL_8x16]  = x264_pixel_avg_weight_8x16_sse2;
+        pf->avg_weight[PIXEL_8x8]   = x264_pixel_avg_weight_8x8_sse2;
+        pf->avg_weight[PIXEL_8x4]   = x264_pixel_avg_weight_8x4_sse2;
+    }
     pf->hpel_filter = x264_hpel_filter_sse2;
     pf->mc_chroma = x264_mc_chroma_sse2;
 

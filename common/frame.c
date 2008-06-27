@@ -795,7 +795,7 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
         pf->deblock_v_luma_intra = x264_deblock_v_luma_intra_mmxext;
         pf->deblock_h_luma_intra = x264_deblock_h_luma_intra_mmxext;
 #endif
-        if( cpu&X264_CPU_SSE2 )
+        if( (cpu&X264_CPU_SSE2) && !(cpu&X264_CPU_STACK_MOD4) )
         {
             pf->deblock_v_luma = x264_deblock_v_luma_sse2;
             pf->deblock_h_luma = x264_deblock_h_luma_sse2;

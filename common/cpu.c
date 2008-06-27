@@ -51,6 +51,7 @@ const x264_cpu_name_t x264_cpu_names[] = {
     {"SSE4",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4},
     {"Cache32", X264_CPU_CACHELINE_32},
     {"Cache64", X264_CPU_CACHELINE_64},
+    {"Slow_mod4_stack", X264_CPU_STACK_MOD4},
     {"", 0},
 };
 
@@ -171,6 +172,10 @@ uint32_t x264_cpu_detect( void )
         else
             fprintf( stderr, "x264 [warning]: unable to determine cacheline size\n" );
     }
+
+#ifdef BROKEN_STACK_ALIGNMENT
+    cpu |= X264_CPU_STACK_MOD4;
+#endif
 
     return cpu;
 }

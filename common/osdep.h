@@ -133,4 +133,10 @@
 /* FIXME: long isn't always the native register size (e.g. win64). */
 #define WORD_SIZE sizeof(long)
 
+#if !defined(_WIN64) && !defined(__LP64__)
+#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#define BROKEN_STACK_ALIGNMENT /* define it if stack is not mod16 */
+#endif
+#endif
+
 #endif /* X264_OSDEP_H */
