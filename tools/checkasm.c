@@ -761,6 +761,38 @@ static int check_mc( int cpu_ref, int cpu_new )
         report( "hpel filter :" );
     }
 
+    if( mc_a.frame_init_lowres_core != mc_ref.frame_init_lowres_core )
+    {
+        uint8_t *dstc[4] = { buf3, buf3+1024, buf3+2048, buf3+3072 };
+        uint8_t *dsta[4] = { buf4, buf4+1024, buf4+2048, buf3+3072 };
+        set_func_name( "lowres_init" );
+        for( w=40; w<=48; w+=8 )
+            if( mc_a.frame_init_lowres_core != mc_ref.frame_init_lowres_core )
+            {
+                int stride = (w+8)&~15;
+                used_asm = 1;
+                call_c( mc_c.frame_init_lowres_core, buf1, dstc[0], dstc[1], dstc[2], dstc[3], w*2, stride, w, 16 );
+                call_a( mc_a.frame_init_lowres_core, buf1, dsta[0], dsta[1], dsta[2], dsta[3], w*2, stride, w, 16 );
+                for( i=0; i<16; i++)
+                {
+                    for( j=0; j<4; j++)
+                        if( memcmp( dstc[j]+i*stride, dsta[j]+i*stride, w ) )
+                        {
+                            ok = 0;
+                            fprintf( stderr, "frame_init_lowres differs at plane %d line %d\n", j, i );
+                            for( k=0; k<w; k++ )
+                                printf( "%d ", dstc[j][k+i*stride] );
+                            printf("\n");
+                            for( k=0; k<w; k++ )
+                                printf( "%d ", dsta[j][k+i*stride] );
+                            printf("\n");
+                            break;
+                        }
+                }
+            }
+        report( "lowres init :" );
+    }
+
     return ret;
 }
 

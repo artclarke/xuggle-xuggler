@@ -86,13 +86,18 @@ SECTION .text
     packuswb  m1, m4
 %endmacro
 
-%macro PALIGNR_SSE2 4
-    %ifnidn %2, %4
-    movdqa %4, %2
+%macro PALIGNR_MMX 4
+    %ifnidn %4, %2
+    mova    %4, %2
     %endif
-    pslldq %1, 16-%3
-    psrldq %4, %3
-    por    %1, %4
+    %if regsize == 8
+    psllq   %1, (8-%3)*8
+    psrlq   %4, %3*8
+    %else
+    pslldq  %1, 16-%3
+    psrldq  %4, %3
+    %endif
+    por     %1, %4
 %endmacro
 
 %macro PALIGNR_SSSE3 4
@@ -306,7 +311,7 @@ cglobal x264_hpel_filter_h_sse2, 3,3,1
     jl .loop
     REP_RET
 
-%define PALIGNR PALIGNR_SSE2
+%define PALIGNR PALIGNR_MMX
 HPEL_V sse2
 HPEL_C sse2
 %define PALIGNR PALIGNR_SSSE3
@@ -468,3 +473,185 @@ INIT_MMX
 MEMZERO mmx
 INIT_XMM
 MEMZERO sse2
+
+
+
+%macro FILT8x4 7
+    mova      %3, [r0+%7]
+    mova      %4, [r0+r5+%7]
+    pavgb     %3, %4
+    pavgb     %4, [r0+r5*2+%7]
+    PALIGNR   %1, %3, 1, m6
+    PALIGNR   %2, %4, 1, m6
+    pavgb     %1, %3
+    pavgb     %2, %4
+    mova      %5, %1
+    mova      %6, %2
+    pand      %1, m7
+    pand      %2, m7
+    psrlw     %5, 8
+    psrlw     %6, 8
+%endmacro
+
+%macro FILT16x2 4
+    mova      m3, [r0+%4+regsize]
+    mova      m2, [r0+%4]
+    pavgb     m3, [r0+%4+r5+regsize]
+    pavgb     m2, [r0+%4+r5]
+    PALIGNR   %1, m3, 1, m6
+    pavgb     %1, m3
+    PALIGNR   m3, m2, 1, m6
+    pavgb     m3, m2
+    mova      m5, m3
+    mova      m4, %1
+    pand      m3, m7
+    pand      %1, m7
+    psrlw     m5, 8
+    psrlw     m4, 8
+    packuswb  m3, %1
+    packuswb  m5, m4
+    mova    [%2], m3
+    mova    [%3], m5
+    mova      %1, m2
+%endmacro
+
+%macro FILT8x2U 3
+    mova      m3, [r0+%3+8]
+    mova      m2, [r0+%3]
+    pavgb     m3, [r0+%3+r5+8]
+    pavgb     m2, [r0+%3+r5]
+    mova      m1, [r0+%3+9]
+    mova      m0, [r0+%3+1]
+    pavgb     m1, [r0+%3+r5+9]
+    pavgb     m0, [r0+%3+r5+1]
+    pavgb     m1, m3
+    pavgb     m0, m2
+    mova      m3, m1
+    mova      m2, m0
+    pand      m1, m7
+    pand      m0, m7
+    psrlw     m3, 8
+    psrlw     m2, 8
+    packuswb  m0, m1
+    packuswb  m2, m3
+    mova    [%1], m0
+    mova    [%2], m2
+%endmacro
+
+;-----------------------------------------------------------------------------
+; void frame_init_lowres_core( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
+;                              int src_stride, int dst_stride, int width, int height )
+;-----------------------------------------------------------------------------
+%macro FRAME_INIT_LOWRES 1 ; FIXME
+cglobal x264_frame_init_lowres_core_%1, 6,7
+    ; src += 2*(height-1)*stride + 2*width
+    mov      r6d, r8m
+    dec      r6d
+    imul     r6d, r5d
+    add      r6d, r7m
+    lea       r0, [r0+r6*2]
+    ; dst += (height-1)*stride + width
+    mov      r6d, r8m
+    dec      r6d
+    imul     r6d, r6m
+    add      r6d, r7m
+    add       r1, r6
+    add       r2, r6
+    add       r3, r6
+    add       r4, r6
+    ; gap = stride - width
+    mov      r6d, r6m
+    sub      r6d, r7m
+    PUSH      r6
+    %define dst_gap [rsp+push_size]
+    mov      r6d, r5d
+    sub      r6d, r7m
+    shl      r6d, 1
+    PUSH      r6
+    %define src_gap [rsp]
+%if regsize == 16
+    ; adjust for the odd end case
+    mov      r6d, r7m
+    and      r6d, 8
+    sub       r1, r6
+    sub       r2, r6
+    sub       r3, r6
+    sub       r4, r6
+    add  dst_gap, r6d
+%endif ; regsize
+    pcmpeqb   m7, m7
+    psrlw     m7, 8
+.vloop:
+    mov      r6d, r7m
+%ifnidn %1, mmxext
+    mova      m0, [r0]
+    mova      m1, [r0+r5]
+    pavgb     m0, m1
+    pavgb     m1, [r0+r5*2]
+%endif
+%if regsize == 16
+    test     r6d, 8
+    jz .hloop
+    sub       r0, 16
+    FILT8x4   m0, m1, m2, m3, m4, m5, 0
+    packuswb  m0, m4
+    packuswb  m1, m5
+    movq    [r1], m0
+    movhps  [r2], m0
+    movq    [r3], m1
+    movhps  [r4], m1
+    mova      m0, m2
+    mova      m1, m3
+    sub      r6d, 8
+%endif ; regsize
+.hloop:
+    sub       r0, regsize*2
+    sub       r1, regsize
+    sub       r2, regsize
+    sub       r3, regsize
+    sub       r4, regsize
+%ifdef m8
+    FILT8x4   m0, m1, m2, m3, m10, m11, regsize
+    mova      m8, m0
+    mova      m9, m1
+    FILT8x4   m2, m3, m0, m1, m4, m5, 0
+    packuswb  m2, m8
+    packuswb  m3, m9
+    packuswb  m4, m10
+    packuswb  m5, m11
+    mova    [r1], m2
+    mova    [r2], m4
+    mova    [r3], m3
+    mova    [r4], m5
+%elifidn %1, mmxext
+    FILT8x2U  r1, r2, 0
+    FILT8x2U  r3, r4, r5
+%else
+    FILT16x2  m0, r1, r2, 0
+    FILT16x2  m1, r3, r4, r5
+%endif
+    sub      r6d, regsize
+    jg .hloop
+.skip:
+    mov       r6, dst_gap
+    sub       r0, src_gap
+    sub       r1, r6
+    sub       r2, r6
+    sub       r3, r6
+    sub       r4, r6
+    dec    dword r8m
+    jg .vloop
+    ADD      rsp, 2*push_size
+    RET
+%endmacro ; FRAME_INIT_LOWRES
+
+INIT_MMX
+%define PALIGNR PALIGNR_MMX
+FRAME_INIT_LOWRES mmxext
+%ifndef ARCH_X86_64
+FRAME_INIT_LOWRES cache32_mmxext
+%endif
+INIT_XMM
+FRAME_INIT_LOWRES sse2
+%define PALIGNR PALIGNR_SSSE3
+FRAME_INIT_LOWRES ssse3

@@ -29,7 +29,8 @@ SECTION .text
 cextern printf
 
 ; max number of args used by any x264 asm function.
-%define max_args 8
+; (max_args % 4) must equal 3 for stack alignment
+%define max_args 11
 
 ; just random numbers to reduce the chance of incidental match
 %define n3 dword 0x6549315c
@@ -42,16 +43,15 @@ cextern printf
 ; long x264_checkasm_call( long (*func)(), int *ok, ... )
 ;-----------------------------------------------------------------------------
 cglobal x264_checkasm_call, 1,7
-    sub  esp, 12
     mov  r3, n3
     mov  r4, n4
     mov  r5, n5
     mov  r6, n6
 %rep max_args
-    push dword [esp+36+max_args*4]
+    push dword [esp+24+max_args*4]
 %endrep
     call r0
-    add  esp, 12+max_args*4
+    add  esp, max_args*4
     xor  r3, n3
     xor  r4, n4
     xor  r5, n5

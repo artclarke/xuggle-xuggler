@@ -65,6 +65,13 @@ extern void *x264_memcpy_aligned_mmx( void * dst, const void * src, size_t n );
 extern void *x264_memcpy_aligned_sse2( void * dst, const void * src, size_t n );
 extern void x264_memzero_aligned_mmx( void * dst, int n );
 extern void x264_memzero_aligned_sse2( void * dst, int n );
+#define LOWRES(cpu) \
+extern void x264_frame_init_lowres_core_##cpu( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,\
+                                               int src_stride, int dst_stride, int width, int height );
+LOWRES(mmxext)
+LOWRES(cache32_mmxext)
+LOWRES(sse2)
+LOWRES(ssse3)
 
 #define PIXEL_AVG_W(width,cpu)\
 extern void x264_pixel_avg2_w##width##_##cpu( uint8_t *, int, uint8_t *, int, uint8_t *, int );
@@ -269,6 +276,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 
     pf->plane_copy = x264_plane_copy_mmxext;
     pf->hpel_filter = x264_hpel_filter_mmxext;
+    pf->frame_init_lowres_core = x264_frame_init_lowres_core_mmxext;
 
     pf->prefetch_fenc = x264_prefetch_fenc_mmxext;
     pf->prefetch_ref  = x264_prefetch_ref_mmxext;
@@ -278,11 +286,13 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     {
         pf->mc_luma = mc_luma_cache32_mmxext;
         pf->get_ref = get_ref_cache32_mmxext;
+        pf->frame_init_lowres_core = x264_frame_init_lowres_core_cache32_mmxext;
     }
     else if( cpu&X264_CPU_CACHELINE_64 )
     {
         pf->mc_luma = mc_luma_cache64_mmxext;
         pf->get_ref = get_ref_cache64_mmxext;
+        pf->frame_init_lowres_core = x264_frame_init_lowres_core_cache32_mmxext;
     }
 #endif
 
@@ -308,6 +318,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
         pf->avg_weight[PIXEL_8x4]   = x264_pixel_avg_weight_8x4_sse2;
     }
     pf->hpel_filter = x264_hpel_filter_sse2;
+    pf->frame_init_lowres_core = x264_frame_init_lowres_core_sse2;
     pf->mc_chroma = x264_mc_chroma_sse2;
 
     if( cpu&X264_CPU_SSE2_IS_FAST )
@@ -325,5 +336,6 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
         return;
 
     pf->hpel_filter = x264_hpel_filter_ssse3;
+    pf->frame_init_lowres_core = x264_frame_init_lowres_core_ssse3;
     pf->mc_chroma = x264_mc_chroma_ssse3;
 }

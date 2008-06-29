@@ -283,6 +283,53 @@ static void memzero_aligned( void * dst, int n )
     memset( dst, 0, n );
 }
 
+void x264_frame_init_lowres( x264_t *h, x264_frame_t *frame )
+{
+    uint8_t *src = frame->plane[0];
+    int i_stride = frame->i_stride[0];
+    int i_height = frame->i_lines[0];
+    int i_width  = frame->i_width[0];
+    int x, y;
+
+    // duplicate last row and column so that their interpolation doesn't have to be special-cased
+    for( y=0; y<i_height; y++ )
+        src[i_width+y*i_stride] = src[i_width-1+y*i_stride];
+    h->mc.memcpy_aligned( src+i_stride*i_height, src+i_stride*(i_height-1), i_width );
+    h->mc.frame_init_lowres_core( src, frame->lowres[0], frame->lowres[1], frame->lowres[2], frame->lowres[3],
+                                  i_stride, frame->i_stride_lowres, frame->i_width_lowres, frame->i_lines_lowres );
+    x264_frame_expand_border_lowres( frame );
+
+    for( y=0; y<16; y++ )
+        for( x=0; x<16; x++ )
+            frame->i_cost_est[y][x] = -1;
+}
+
+static void frame_init_lowres_core( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
+                                    int src_stride, int dst_stride, int width, int height )
+{
+    int x,y;
+    for( y=0; y<height; y++ )
+    {
+        uint8_t *src1 = src0+src_stride;
+        uint8_t *src2 = src1+src_stride;
+        for( x=0; x<width; x++ )
+        {
+            // slower than naive bilinear, but matches asm
+#define FILTER(a,b,c,d) ((((a+b+1)>>1)+((c+d+1)>>1)+1)>>1)
+            dst0[x] = FILTER(src0[2*x  ], src1[2*x  ], src0[2*x+1], src1[2*x+1]);
+            dsth[x] = FILTER(src0[2*x+1], src1[2*x+1], src0[2*x+2], src1[2*x+2]);
+            dstv[x] = FILTER(src1[2*x  ], src2[2*x  ], src1[2*x+1], src2[2*x+1]);
+            dstc[x] = FILTER(src1[2*x+1], src2[2*x+1], src1[2*x+2], src2[2*x+2]);
+#undef FILTER
+        }
+        src0 += src_stride*2;
+        dst0 += dst_stride;
+        dsth += dst_stride;
+        dstv += dst_stride;
+        dstc += dst_stride;
+    }
+}
+
 void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 {
     pf->mc_luma   = mc_luma;
@@ -322,6 +369,7 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->prefetch_ref  = prefetch_ref_null;
     pf->memcpy_aligned = memcpy;
     pf->memzero_aligned = memzero_aligned;
+    pf->frame_init_lowres_core = frame_init_lowres_core;
 
 #ifdef HAVE_MMX
     x264_mc_init_mmx( cpu, pf );
@@ -389,42 +437,3 @@ void x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end )
         }
     }
 }
-
-void x264_frame_init_lowres( x264_t *h, x264_frame_t *frame )
-{
-    // FIXME: tapfilter?
-    const int i_stride = frame->i_stride[0];
-    const int i_stride2 = frame->i_stride_lowres;
-    const int i_width2 = frame->i_width_lowres;
-    int x, y, i;
-    for( y = 0; y < frame->i_lines_lowres - 1; y++ )
-    {
-        uint8_t *src0 = &frame->plane[0][2*y*i_stride];
-        uint8_t *src1 = src0+i_stride;
-        uint8_t *src2 = src1+i_stride;
-        uint8_t *dst0 = &frame->lowres[0][y*i_stride2];
-        uint8_t *dsth = &frame->lowres[1][y*i_stride2];
-        uint8_t *dstv = &frame->lowres[2][y*i_stride2];
-        uint8_t *dstc = &frame->lowres[3][y*i_stride2];
-        for( x = 0; x < i_width2 - 1; x++ )
-        {
-            dst0[x] = (src0[2*x  ] + src0[2*x+1] + src1[2*x  ] + src1[2*x+1] + 2) >> 2;
-            dsth[x] = (src0[2*x+1] + src0[2*x+2] + src1[2*x+1] + src1[2*x+2] + 2) >> 2;
-            dstv[x] = (src1[2*x  ] + src1[2*x+1] + src2[2*x  ] + src2[2*x+1] + 2) >> 2;
-            dstc[x] = (src1[2*x+1] + src1[2*x+2] + src2[2*x+1] + src2[2*x+2] + 2) >> 2;
-        }
-        dst0[x] = (src0[2*x  ] + src0[2*x+1] + src1[2*x  ] + src1[2*x+1] + 2) >> 2;
-        dstv[x] = (src1[2*x  ] + src1[2*x+1] + src2[2*x  ] + src2[2*x+1] + 2) >> 2;
-        dsth[x] = (src0[2*x+1] + src1[2*x+1] + 1) >> 1;
-        dstc[x] = (src1[2*x+1] + src2[2*x+1] + 1) >> 1;
-    }
-    for( i = 0; i < 4; i++ )
-        memcpy( &frame->lowres[i][y*i_stride2], &frame->lowres[i][(y-1)*i_stride2], i_width2 );
-
-    for( y = 0; y < 16; y++ )
-        for( x = 0; x < 16; x++ )
-            frame->i_cost_est[x][y] = -1;
-
-    x264_frame_expand_border_lowres( frame );
-}
-

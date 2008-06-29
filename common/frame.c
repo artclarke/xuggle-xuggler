@@ -73,7 +73,7 @@ x264_frame_t *x264_frame_new( x264_t *h )
     if( h->frames.b_have_lowres )
     {
         frame->i_width_lowres = frame->i_width[0]/2;
-        frame->i_stride_lowres = frame->i_width_lowres + 2*PADH;
+        frame->i_stride_lowres = (frame->i_width_lowres + 2*PADH + 15) & ~15;
         frame->i_lines_lowres = frame->i_lines[0]/2;
         for( i = 0; i < 4; i++ )
         {

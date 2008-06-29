@@ -135,6 +135,7 @@ DECLARE_REG 4, r8,  r8d, r8w, r8b, r8d
 DECLARE_REG 5, r9,  r9d, r9w, r9b, r9d
 DECLARE_REG 6, rax, eax, ax,  al,  [rsp + stack_offset + 8]
 %define r7m [rsp + stack_offset + 16]
+%define r8m [rsp + stack_offset + 24]
 
 %macro LOAD_IF_USED 2 ; reg_id, number_of_args
     %if %1 < %2
@@ -167,6 +168,7 @@ DECLARE_REG 4, esi, esi, si, null, [esp + stack_offset + 20]
 DECLARE_REG 5, edi, edi, di, null, [esp + stack_offset + 24]
 DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 %define r7m [esp + stack_offset + 32]
+%define r8m [esp + stack_offset + 36]
 %define rsp esp
 
 %macro PUSH_IF_USED 1 ; reg_id
@@ -332,6 +334,7 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
     %define m5 xmm5
     %define m6 xmm6
     %define m7 xmm7
+    %ifdef ARCH_X86_64
     %define m8 xmm8
     %define m9 xmm9
     %define m10 xmm10
@@ -340,6 +343,7 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
     %define m13 xmm13
     %define m14 xmm14
     %define m15 xmm15
+    %endif
 %endmacro
 
 INIT_MMX
@@ -389,6 +393,7 @@ INIT_MMX
     %xdefine %1_m5 m5
     %xdefine %1_m6 m6
     %xdefine %1_m7 m7
+    %ifdef ARCH_X86_64
     %xdefine %1_m8 m8
     %xdefine %1_m9 m9
     %xdefine %1_m10 m10
@@ -397,6 +402,7 @@ INIT_MMX
     %xdefine %1_m13 m13
     %xdefine %1_m14 m14
     %xdefine %1_m15 m15
+    %endif
 %endmacro
 
 %macro LOAD_MM_PERMUTATION 1
@@ -408,6 +414,7 @@ INIT_MMX
     %xdefine m5 %1_m5
     %xdefine m6 %1_m6
     %xdefine m7 %1_m7
+    %ifdef ARCH_X86_64
     %xdefine m8 %1_m8
     %xdefine m9 %1_m9
     %xdefine m10 %1_m10
@@ -416,6 +423,7 @@ INIT_MMX
     %xdefine m13 %1_m13
     %xdefine m14 %1_m14
     %xdefine m15 %1_m15
+    %endif
 %endmacro
 
 %macro call 1
