@@ -183,7 +183,9 @@ static NOINLINE int ac_energy_mb( x264_t *h, int mb_x, int mb_y, int *satd )
      * and putting it after floating point ops.  As a result, we put the emms at the end of the
      * function and make sure that its always called before the float math.  Noinline makes
      * sure no reordering goes on. */
-    DECLARE_ALIGNED_16( static uint8_t flat[16] ) = {128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128};
+    /* FIXME: This array is larger than necessary because a bug in GCC causes an all-zero
+    * array to be placed in .bss despite .bss not being correctly aligned on some platforms (win32?) */
+    DECLARE_ALIGNED_16( static uint8_t zero[17] ) = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
     unsigned int var=0, sad, ssd, i;
     if( satd || h->param.rc.i_aq_mode == X264_AQ_GLOBAL )
     {
@@ -196,13 +198,13 @@ static NOINLINE int ac_energy_mb( x264_t *h, int mb_x, int mb_y, int *satd )
                 : w * (mb_x + mb_y * stride);
             int pix = i ? PIXEL_8x8 : PIXEL_16x16;
             stride <<= h->mb.b_interlaced;
-            sad = h->pixf.sad[pix]( flat, 0, h->fenc->plane[i]+offset, stride );
-            ssd = h->pixf.ssd[pix]( flat, 0, h->fenc->plane[i]+offset, stride );
+            sad = h->pixf.sad[pix]( zero, 0, h->fenc->plane[i]+offset, stride );
+            ssd = h->pixf.ssd[pix]( zero, 0, h->fenc->plane[i]+offset, stride );
             var += ssd - (sad * sad >> (i?6:8));
             // SATD to represent the block's overall complexity (bit cost) for intra encoding.
             // exclude the DC coef, because nothing short of an actual intra prediction will estimate DC cost.
             if( var && satd )
-                *satd += h->pixf.satd[pix]( flat, 0, h->fenc->plane[i]+offset, stride ) - sad/2;
+                *satd += h->pixf.satd[pix]( zero, 0, h->fenc->plane[i]+offset, stride ) - sad/2;
         }
         var = X264_MAX(var,1);
     }
