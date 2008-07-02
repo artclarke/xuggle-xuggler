@@ -26,6 +26,9 @@
 
 #include "common/macroblock.h"
 
+extern const int x264_lambda2_tab[52];
+extern const int x264_lambda_tab[52];
+
 void x264_rdo_init( );
 
 int x264_macroblock_probe_skip( x264_t *h, int b_bidir );

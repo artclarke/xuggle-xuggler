@@ -128,7 +128,7 @@ typedef struct
 } x264_mb_analysis_t;
 
 /* lambda = pow(2,qp/6-2) */
-static const int i_qp0_cost_table[52] = {
+const int x264_lambda_tab[52] = {
    1, 1, 1, 1, 1, 1, 1, 1,  /*  0-7 */
    1, 1, 1, 1,              /*  8-11 */
    1, 1, 1, 1, 2, 2, 2, 2,  /* 12-19 */
@@ -139,7 +139,7 @@ static const int i_qp0_cost_table[52] = {
 };
 
 /* lambda2 = pow(lambda,2) * .9 * 256 */
-static const int i_qp0_cost2_table[52] = {
+const int x264_lambda2_tab[52] = {
     14,      18,      22,      28,     36,     45,     57,     72, /*  0 -  7 */
     91,     115,     145,     182,    230,    290,    365,    460, /*  8 - 15 */
    580,     731,     921,    1161,   1462,   1843,   2322,   2925, /* 16 - 23 */
@@ -205,8 +205,8 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     /* conduct the analysis using this lamda and QP */
     a->i_qp = h->mb.i_qp = i_qp;
     h->mb.i_chroma_qp = i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )];
-    a->i_lambda = i_qp0_cost_table[i_qp];
-    a->i_lambda2 = i_qp0_cost2_table[i_qp];
+    a->i_lambda = x264_lambda_tab[i_qp];
+    a->i_lambda2 = x264_lambda2_tab[i_qp];
     a->b_mbrd = h->param.analyse.i_subpel_refine >= 6 &&
                 ( h->sh.i_type != SLICE_TYPE_B || h->param.analyse.b_bframe_rdo );
 
@@ -924,7 +924,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
 
         if( i_max > 0 )
         {
-            int i_chroma_lambda = i_qp0_cost2_table[h->mb.i_chroma_qp];
+            int i_chroma_lambda = x264_lambda2_tab[h->mb.i_chroma_qp];
             /* the previous thing encoded was x264_intra_rd(), so the pixels and
              * coefs for the current chroma mode are still around, so we only
              * have to recount the bits. */

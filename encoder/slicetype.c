@@ -32,7 +32,7 @@
 static void x264_lowres_context_init( x264_t *h, x264_mb_analysis_t *a )
 {
     a->i_qp = 12; // arbitrary, but low because SATD scores are 1/4 normal
-    a->i_lambda = i_qp0_cost_table[ a->i_qp ];
+    a->i_lambda = x264_lambda_tab[ a->i_qp ];
     x264_mb_analyse_load_costs( h, a );
     h->mb.i_me_method = X264_MIN( X264_ME_HEX, h->param.analyse.i_me_method ); // maybe dia?
     h->mb.i_subpel_refine = 4; // 3 should be enough, but not tweaking for speed now
