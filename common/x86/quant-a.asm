@@ -70,57 +70,49 @@ SECTION .text
 %endif
 %endmacro
 
-%macro QUANT_MMX 3
+%macro PABSW_MMX 2
+    pxor       %1, %1
+    pcmpgtw    %1, %2
+    pxor       %2, %1
+    psubw      %2, %1
+    SWAP       %1, %2
+%endmacro
+
+%macro PSIGNW_MMX 2
+    pxor       %1, %2
+    psubw      %1, %2
+%endmacro
+
+%macro PABSW_SSSE3 2
+    pabsw      %1, %2
+%endmacro
+
+%macro PSIGNW_SSSE3 2
+    psignw     %1, %2
+%endmacro
+
+%macro QUANT_ONE 3
 ;;; %1      (m64)       dct[y][x]
 ;;; %2      (m64/mmx)   mf[y][x] or mf[0][0] (as uint16_t)
 ;;; %3      (m64/mmx)   bias[y][x] or bias[0][0] (as uint16_t)
-
-    mova       m0, %1   ; load dct coeffs
-    pxor       m1, m1
-    pcmpgtw    m1, m0   ; sign(coeff)
-    pxor       m0, m1
-    psubw      m0, m1   ; abs(coeff)
-    paddusw    m0, %3   ; round
-    pmulhuw    m0, %2   ; divide
-    pxor       m0, m1   ; restore sign
-    psubw      m0, m1
-    mova       %1, m0   ; store
-%endmacro
-
-%macro QUANT_SSSE3 3
     mova       m1, %1   ; load dct coeffs
-    pabsw      m0, m1
+    PABSW      m0, m1
     paddusw    m0, %3   ; round
     pmulhuw    m0, %2   ; divide
-    psignw     m0, m1   ; restore sign
+    PSIGNW     m0, m1   ; restore sign
     mova       %1, m0   ; store
 %endmacro
-
-INIT_MMX
-
-;-----------------------------------------------------------------------------
-; void x264_quant_2x2_dc_mmxext( int16_t dct[4], int mf, int bias )
-;-----------------------------------------------------------------------------
-cglobal x264_quant_2x2_dc_mmxext, 1,1
-    QUANT_DC_START
-    QUANT_MMX [r0], mm6, mm7
-    RET
-
-cglobal x264_quant_2x2_dc_ssse3, 1,1
-    QUANT_DC_START
-    QUANT_SSSE3 [r0], mm6, mm7
-    RET
 
 ;-----------------------------------------------------------------------------
 ; void x264_quant_4x4_dc_mmxext( int16_t dct[16], int mf, int bias )
 ;-----------------------------------------------------------------------------
-%macro QUANT_DC 4
+%macro QUANT_DC 2
 cglobal %1, 1,1
     QUANT_DC_START
 %assign x 0
-%rep %3
-    %2 [r0+x], m6, m7
-%assign x x+%4
+%rep %2
+    QUANT_ONE [r0+x], m6, m7
+%assign x x+regsize
 %endrep
     RET
 %endmacro
@@ -128,31 +120,39 @@ cglobal %1, 1,1
 ;-----------------------------------------------------------------------------
 ; void x264_quant_4x4_mmx( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
 ;-----------------------------------------------------------------------------
-%macro QUANT_AC 4
+%macro QUANT_AC 2
 cglobal %1, 3,3
 %assign x 0
-%rep %3
-    %2 [r0+x], [r1+x], [r2+x]
-%assign x x+%4
+%rep %2
+    QUANT_ONE [r0+x], [r1+x], [r2+x]
+%assign x x+regsize
 %endrep
     RET
 %endmacro
 
+INIT_MMX
+%define PABSW PABSW_MMX
+%define PSIGNW PSIGNW_MMX
+QUANT_DC x264_quant_2x2_dc_mmxext, 1
 %ifndef ARCH_X86_64 ; not needed because sse2 is faster
-QUANT_DC x264_quant_4x4_dc_mmxext, QUANT_MMX, 4, 8
-QUANT_AC x264_quant_4x4_mmx, QUANT_MMX, 4, 8
-QUANT_AC x264_quant_8x8_mmx, QUANT_MMX, 16, 8
+QUANT_DC x264_quant_4x4_dc_mmxext, 4
+QUANT_AC x264_quant_4x4_mmx, 4
+QUANT_AC x264_quant_8x8_mmx, 16
 %endif
 
 INIT_XMM
+QUANT_DC x264_quant_4x4_dc_sse2, 2
+QUANT_AC x264_quant_4x4_sse2, 2
+QUANT_AC x264_quant_8x8_sse2, 8
 
-QUANT_DC x264_quant_4x4_dc_sse2, QUANT_MMX, 2, 16
-QUANT_AC x264_quant_4x4_sse2, QUANT_MMX, 2, 16
-QUANT_AC x264_quant_8x8_sse2, QUANT_MMX, 8, 16
+%define PABSW PABSW_SSSE3
+%define PSIGNW PSIGNW_SSSE3
+QUANT_DC x264_quant_4x4_dc_ssse3, 2
+QUANT_AC x264_quant_4x4_ssse3, 2
+QUANT_AC x264_quant_8x8_ssse3, 8
 
-QUANT_DC x264_quant_4x4_dc_ssse3, QUANT_SSSE3, 2, 16
-QUANT_AC x264_quant_4x4_ssse3, QUANT_SSSE3, 2, 16
-QUANT_AC x264_quant_8x8_ssse3, QUANT_SSSE3, 8, 16
+INIT_MMX
+QUANT_DC x264_quant_2x2_dc_ssse3, 1
 
 
 

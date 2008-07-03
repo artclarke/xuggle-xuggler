@@ -294,56 +294,56 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
 
 ; merge mmx and sse*
 
+%macro CAT_DEFINE 3
+    %define %1%2 %3
+%endmacro
+
+%macro CAT_XDEFINE 3
+    %xdefine %1%2 %3
+%endmacro
+
+%macro CAT_UNDEF 2
+    %undef %1%2
+%endmacro
+
 %macro INIT_MMX 0
     %define RESET_MM_PERMUTATION INIT_MMX
     %define regsize 8
+    %define num_mmregs 8
     %define mova movq
     %define movu movq
     %define movh movd
     %define movnt movntq
-    %define m0 mm0
-    %define m1 mm1
-    %define m2 mm2
-    %define m3 mm3
-    %define m4 mm4
-    %define m5 mm5
-    %define m6 mm6
-    %define m7 mm7
-    %undef  m8
-    %undef  m9
-    %undef  m10
-    %undef  m11
-    %undef  m12
-    %undef  m13
-    %undef  m14
-    %undef  m15
+    %assign %%i 0
+    %rep 8
+    CAT_DEFINE m, %%i, mm %+ %%i
+    CAT_DEFINE nmm, %%i, %%i
+    %assign %%i %%i+1
+    %endrep
+    %rep 8
+    CAT_UNDEF m, %%i
+    CAT_UNDEF nmm, %%i
+    %assign %%i %%i+1
+    %endrep
 %endmacro
 
 %macro INIT_XMM 0
     %define RESET_MM_PERMUTATION INIT_XMM
     %define regsize 16
+    %define num_mmregs 8
+    %ifdef ARCH_X86_64
+    %define num_mmregs 16
+    %endif
     %define mova movdqa
     %define movu movdqu
     %define movh movq
     %define movnt movntdq
-    %define m0 xmm0
-    %define m1 xmm1
-    %define m2 xmm2
-    %define m3 xmm3
-    %define m4 xmm4
-    %define m5 xmm5
-    %define m6 xmm6
-    %define m7 xmm7
-    %ifdef ARCH_X86_64
-    %define m8 xmm8
-    %define m9 xmm9
-    %define m10 xmm10
-    %define m11 xmm11
-    %define m12 xmm12
-    %define m13 xmm13
-    %define m14 xmm14
-    %define m15 xmm15
-    %endif
+    %assign %%i 0
+    %rep num_mmregs
+    CAT_DEFINE m, %%i, xmm %+ %%i
+    CAT_DEFINE nxmm, %%i, %%i
+    %assign %%i %%i+1
+    %endrep
 %endmacro
 
 INIT_MMX
@@ -365,65 +365,57 @@ INIT_MMX
 %macro PERMUTE 2-* ; takes a list of pairs to swap
 %rep %0/2
     %xdefine tmp%2 m%2
+    %xdefine ntmp%2 nm%2
     %rotate 2
 %endrep
 %rep %0/2
     %xdefine m%1 tmp%2
+    %xdefine nm%1 ntmp%2
     %undef tmp%2
+    %undef ntmp%2
     %rotate 2
 %endrep
 %endmacro
 
 %macro SWAP 2-* ; swaps a single chain (sometimes more concise than pairs)
 %rep %0-1
+%ifdef m%1
     %xdefine tmp m%1
     %xdefine m%1 m%2
     %xdefine m%2 tmp
+    CAT_XDEFINE n, m%1, %1
+    CAT_XDEFINE n, m%2, %2
+%else
+    ; If we were called as "SWAP m0,m1" rather than "SWAP 0,1" infer the original numbers here.
+    ; Be careful using the mode in nested macros though, as in some cases there may be
+    ; other copies of m# that have already been dereferenced and don't get updated correctly.
+    %xdefine %%n1 n %+ %1
+    %xdefine %%n2 n %+ %2
+    %xdefine tmp m %+ %%n1
+    CAT_XDEFINE m, %%n1, m %+ %%n2
+    CAT_XDEFINE m, %%n2, tmp
+    CAT_XDEFINE n, m %+ %%n1, %%n1
+    CAT_XDEFINE n, m %+ %%n2, %%n2
+%endif
     %undef tmp
     %rotate 1
 %endrep
 %endmacro
 
 %macro SAVE_MM_PERMUTATION 1
-    %xdefine %1_m0 m0
-    %xdefine %1_m1 m1
-    %xdefine %1_m2 m2
-    %xdefine %1_m3 m3
-    %xdefine %1_m4 m4
-    %xdefine %1_m5 m5
-    %xdefine %1_m6 m6
-    %xdefine %1_m7 m7
-    %ifdef ARCH_X86_64
-    %xdefine %1_m8 m8
-    %xdefine %1_m9 m9
-    %xdefine %1_m10 m10
-    %xdefine %1_m11 m11
-    %xdefine %1_m12 m12
-    %xdefine %1_m13 m13
-    %xdefine %1_m14 m14
-    %xdefine %1_m15 m15
-    %endif
+    %assign %%i 0
+    %rep num_mmregs
+    CAT_XDEFINE %1_m, %%i, m %+ %%i
+    %assign %%i %%i+1
+    %endrep
 %endmacro
 
 %macro LOAD_MM_PERMUTATION 1
-    %xdefine m0 %1_m0
-    %xdefine m1 %1_m1
-    %xdefine m2 %1_m2
-    %xdefine m3 %1_m3
-    %xdefine m4 %1_m4
-    %xdefine m5 %1_m5
-    %xdefine m6 %1_m6
-    %xdefine m7 %1_m7
-    %ifdef ARCH_X86_64
-    %xdefine m8 %1_m8
-    %xdefine m9 %1_m9
-    %xdefine m10 %1_m10
-    %xdefine m11 %1_m11
-    %xdefine m12 %1_m12
-    %xdefine m13 %1_m13
-    %xdefine m14 %1_m14
-    %xdefine m15 %1_m15
-    %endif
+    %assign %%i 0
+    %rep num_mmregs
+    CAT_XDEFINE m, %%i, %1_m %+ %%i
+    %assign %%i %%i+1
+    %endrep
 %endmacro
 
 %macro call 1
