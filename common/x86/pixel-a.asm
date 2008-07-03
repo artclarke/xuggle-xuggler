@@ -34,10 +34,16 @@ mask_ff: times 16 db 0xff
 SECTION .text
 
 %macro HADDD 2 ; sum junk
+%if regsize == 16
     movhlps %2, %1
     paddd   %1, %2
     pshuflw %2, %1, 0xE
     paddd   %1, %2
+%else
+    mova    %2, %1
+    psrlq   %2, 32
+    paddd   %1, %2
+%endif
 %endmacro
 
 %macro HADDW 2
@@ -49,201 +55,110 @@ SECTION .text
 ; SSD
 ;=============================================================================
 
-%macro SSD_INC_1x16P 0
-    movq    mm1,    [r0]
-    movq    mm2,    [r2]
-    movq    mm3,    [r0+8]
-    movq    mm4,    [r2+8]
+%macro SSD_FULL 6
+    mova      m1, [r0+%1]
+    mova      m2, [r2+%2]
+    mova      m3, [r0+%3]
+    mova      m4, [r2+%4]
 
-    movq    mm5,    mm2
-    movq    mm6,    mm4
-    psubusb mm2,    mm1
-    psubusb mm4,    mm3
-    psubusb mm1,    mm5
-    psubusb mm3,    mm6
-    por     mm1,    mm2
-    por     mm3,    mm4
+    mova      m5, m2
+    mova      m6, m4
+    psubusb   m2, m1
+    psubusb   m4, m3
+    psubusb   m1, m5
+    psubusb   m3, m6
+    por       m1, m2
+    por       m3, m4
 
-    movq    mm2,    mm1
-    movq    mm4,    mm3
-    punpcklbw mm1,  mm7
-    punpcklbw mm3,  mm7
-    punpckhbw mm2,  mm7
-    punpckhbw mm4,  mm7
-    pmaddwd mm1,    mm1
-    pmaddwd mm2,    mm2
-    pmaddwd mm3,    mm3
-    pmaddwd mm4,    mm4
+    mova      m2, m1
+    mova      m4, m3
+    punpcklbw m1, m7
+    punpcklbw m3, m7
+    punpckhbw m2, m7
+    punpckhbw m4, m7
+    pmaddwd   m1, m1
+    pmaddwd   m2, m2
+    pmaddwd   m3, m3
+    pmaddwd   m4, m4
 
-    add     r0,     r1
-    add     r2,     r3
-    paddd   mm0,    mm1
-    paddd   mm0,    mm2
-    paddd   mm0,    mm3
-    paddd   mm0,    mm4
+%if %6
+    lea       r0, [r0+2*r1]
+    lea       r2, [r2+2*r3]
+%endif
+    paddd     m1, m2
+    paddd     m3, m4
+%if %5
+    paddd     m0, m1
+%else
+    SWAP      m0, m1
+%endif
+    paddd     m0, m3
 %endmacro
 
-%macro SSD_INC_2x16P 0
-    SSD_INC_1x16P
-    SSD_INC_1x16P
-%endmacro
+%macro SSD_HALF 6
+    movh      m1, [r0+%1]
+    movh      m2, [r2+%2]
+    movh      m3, [r0+%3]
+    movh      m4, [r2+%4]
 
-%macro SSD_INC_2x8P 0
-    movq    mm1,    [r0]
-    movq    mm2,    [r2]
-    movq    mm3,    [r0+r1]
-    movq    mm4,    [r2+r3]
+    punpcklbw m1, m7
+    punpcklbw m2, m7
+    punpcklbw m3, m7
+    punpcklbw m4, m7
+    psubw     m1, m2
+    psubw     m3, m4
+    pmaddwd   m1, m1
+    pmaddwd   m3, m3
 
-    movq    mm5,    mm2
-    movq    mm6,    mm4
-    psubusb mm2,    mm1
-    psubusb mm4,    mm3
-    psubusb mm1,    mm5
-    psubusb mm3,    mm6
-    por     mm1,    mm2
-    por     mm3,    mm4
-
-    movq    mm2,    mm1
-    movq    mm4,    mm3
-    punpcklbw mm1,  mm7
-    punpcklbw mm3,  mm7
-    punpckhbw mm2,  mm7
-    punpckhbw mm4,  mm7
-    pmaddwd mm1,    mm1
-    pmaddwd mm2,    mm2
-    pmaddwd mm3,    mm3
-    pmaddwd mm4,    mm4
-
-    lea     r0,     [r0+2*r1]
-    lea     r2,     [r2+2*r3]
-    paddd   mm0,    mm1
-    paddd   mm0,    mm2
-    paddd   mm0,    mm3
-    paddd   mm0,    mm4
-%endmacro
-
-%macro SSD_INC_2x4P 0
-    movd      mm1, [r0]
-    movd      mm2, [r2]
-    movd      mm3, [r0+r1]
-    movd      mm4, [r2+r3]
-
-    punpcklbw mm1, mm7
-    punpcklbw mm2, mm7
-    punpcklbw mm3, mm7
-    punpcklbw mm4, mm7
-    psubw     mm1, mm2
-    psubw     mm3, mm4
-    pmaddwd   mm1, mm1
-    pmaddwd   mm3, mm3
-
-    lea       r0,  [r0+2*r1]
-    lea       r2,  [r2+2*r3]
-    paddd     mm0, mm1
-    paddd     mm0, mm3
+%if %6
+    lea       r0, [r0+2*r1]
+    lea       r2, [r2+2*r3]
+%endif
+%if %5
+    paddd     m0, m1
+%else
+    SWAP      m0, m1
+%endif
+    paddd     m0, m3
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; int x264_pixel_ssd_16x16_mmx (uint8_t *, int, uint8_t *, int )
+; int x264_pixel_ssd_16x16_mmx( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-%macro SSD_MMX 2
-cglobal x264_pixel_ssd_%1x%2_mmx, 4,4
-    pxor    mm7,    mm7         ; zero
-    pxor    mm0,    mm0         ; mm0 holds the sum
+%macro SSD 3
+cglobal x264_pixel_ssd_%1x%2_%3, 4,4
+    pxor    m7, m7
+%assign i 0
 %rep %2/2
-    SSD_INC_2x%1P
+%if %1 > regsize
+    SSD_FULL 0,  0,     regsize,    regsize, i, 0
+    SSD_FULL r1, r3, r1+regsize, r3+regsize, 1, i<%2/2-1
+%elif %1 == regsize
+    SSD_FULL 0, 0, r1, r3, i, i<%2/2-1
+%else
+    SSD_HALF 0, 0, r1, r3, i, i<%2/2-1
+%endif
+%assign i i+1
 %endrep
-    movq    mm1,    mm0
-    psrlq   mm1,    32
-    paddd   mm0,    mm1
-    movd    eax,    mm0
+    HADDD   m0, m1
+    movd   eax, m0
     RET
 %endmacro
 
-SSD_MMX 16, 16
-SSD_MMX 16,  8
-SSD_MMX  8, 16
-SSD_MMX  8,  8
-SSD_MMX  8,  4
-SSD_MMX  4,  8
-SSD_MMX  4,  4
-
-%macro SSD_INC_2x16P_SSE2 0
-    movdqa  xmm1,   [r0]
-    movdqa  xmm2,   [r2]
-    movdqa  xmm3,   [r0+r1]
-    movdqa  xmm4,   [r2+r3]
-
-    movdqa  xmm5,   xmm1
-    movdqa  xmm6,   xmm3
-    psubusb xmm1,   xmm2
-    psubusb xmm3,   xmm4
-    psubusb xmm2,   xmm5
-    psubusb xmm4,   xmm6
-    por     xmm1,   xmm2
-    por     xmm3,   xmm4
-
-    movdqa  xmm2,   xmm1
-    movdqa  xmm4,   xmm3
-    punpcklbw xmm1, xmm7
-    punpckhbw xmm2, xmm7
-    punpcklbw xmm3, xmm7
-    punpckhbw xmm4, xmm7
-    pmaddwd xmm1,   xmm1
-    pmaddwd xmm2,   xmm2
-    pmaddwd xmm3,   xmm3
-    pmaddwd xmm4,   xmm4
-
-    lea     r0,     [r0+2*r1]
-    lea     r2,     [r2+2*r3]
-
-    paddd   xmm1,   xmm2
-    paddd   xmm3,   xmm4
-    paddd   xmm0,   xmm1
-    paddd   xmm0,   xmm3
-%endmacro
-
-%macro SSD_INC_2x8P_SSE2 0
-    movq      xmm1, [r0]
-    movq      xmm2, [r2]
-    movq      xmm3, [r0+r1]
-    movq      xmm4, [r2+r3]
-    
-    punpcklbw xmm1,xmm7
-    punpcklbw xmm2,xmm7
-    punpcklbw xmm3,xmm7
-    punpcklbw xmm4,xmm7
-    psubw     xmm1,xmm2
-    psubw     xmm3,xmm4
-    pmaddwd   xmm1,xmm1
-    pmaddwd   xmm3,xmm3
-    
-    lea       r0, [r0+r1*2]
-    lea       r2, [r2+r3*2]
-    paddd     xmm0, xmm1
-    paddd     xmm0, xmm3
-%endmacro
-
-;-----------------------------------------------------------------------------
-; int x264_pixel_ssd_16x16_sse2 (uint8_t *, int, uint8_t *, int )
-;-----------------------------------------------------------------------------
-%macro SSD_SSE2 2
-cglobal x264_pixel_ssd_%1x%2_sse2, 4,4
-    pxor    xmm7,   xmm7
-    pxor    xmm0,   xmm0
-%rep %2/2
-    SSD_INC_2x%1P_SSE2
-%endrep
-    HADDD   xmm0,   xmm1
-    movd    eax,    xmm0
-    RET
-%endmacro
-
-SSD_SSE2 16, 16
-SSD_SSE2 16, 8
-SSD_SSE2 8, 16
-SSD_SSE2 8, 8
-SSD_SSE2 8, 4
+INIT_MMX
+SSD 16, 16, mmx
+SSD 16,  8, mmx
+SSD  8, 16, mmx
+SSD  8,  8, mmx
+SSD  8,  4, mmx
+SSD  4,  8, mmx
+SSD  4,  4, mmx
+INIT_XMM
+SSD 16, 16, sse2
+SSD 16,  8, sse2
+SSD  8, 16, sse2
+SSD  8,  8, sse2
+SSD  8,  4, sse2
 
 
 
@@ -1357,10 +1272,7 @@ cglobal x264_pixel_ssim_4x4x2_core_sse2, 4,4
     %define t0 eax
     mov t0, r4m
 %endif
-%ifnidn r4d, r4m
-    mov t0, r4m
-%endif
-    
+
     movq      [t0+ 0], xmm1
     movq      [t0+ 8], xmm3
     psrldq    xmm1, 8
