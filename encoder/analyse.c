@@ -2593,7 +2593,7 @@ void x264_macroblock_analyse( x264_t *h )
         x264_mb_analyse_transform( h );
 
     h->mb.b_trellis = h->param.analyse.i_trellis;
-    h->mb.b_noise_reduction = h->param.analyse.i_noise_reduction;
+    h->mb.b_noise_reduction = !!h->param.analyse.i_noise_reduction;
     if( h->mb.b_trellis == 1 || h->mb.b_noise_reduction )
         h->mb.i_skip_intra = 0;
 }

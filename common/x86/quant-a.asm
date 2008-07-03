@@ -328,3 +328,56 @@ INIT_XMM
 DEQUANT sse2, 4, 4, 2
 DEQUANT sse2, 8, 6, 2
 
+
+
+;-----------------------------------------------------------------------------
+; void x264_denoise_dct_core_mmx( int16_t *dct, uint32_t *sum, uint16_t *offset, int size )
+;-----------------------------------------------------------------------------
+%macro DENOISE_DCT 1
+cglobal x264_denoise_dct_core_%1, 4,5
+    movzx     r4d, word [r0] ; backup DC coefficient
+    pxor      m7, m7
+.loop:
+    sub       r3, regsize
+    mova      m2, [r0+r3*2+0*regsize]
+    mova      m3, [r0+r3*2+1*regsize]
+    PABSW     m0, m2
+    PABSW     m1, m3
+    mova      m4, m0
+    mova      m5, m1
+    psubusw   m0, [r2+r3*2+0*regsize]
+    psubusw   m1, [r2+r3*2+1*regsize]
+    PSIGNW    m0, m2
+    PSIGNW    m1, m3
+    mova      [r0+r3*2+0*regsize], m0
+    mova      [r0+r3*2+1*regsize], m1
+    mova      m2, m4
+    mova      m3, m5
+    punpcklwd m4, m7
+    punpckhwd m2, m7
+    punpcklwd m5, m7
+    punpckhwd m3, m7
+    paddd     m4, [r1+r3*4+0*regsize]
+    paddd     m2, [r1+r3*4+1*regsize]
+    paddd     m5, [r1+r3*4+2*regsize]
+    paddd     m3, [r1+r3*4+3*regsize]
+    mova      [r1+r3*4+0*regsize], m4
+    mova      [r1+r3*4+1*regsize], m2
+    mova      [r1+r3*4+2*regsize], m5
+    mova      [r1+r3*4+3*regsize], m3
+    jg .loop
+    mov       [r0], r4w ; restore DC coefficient
+    RET
+%endmacro
+
+%define PABSW PABSW_MMX
+%define PSIGNW PSIGNW_MMX
+%ifndef ARCH_X86_64
+INIT_MMX
+DENOISE_DCT mmx
+%endif
+INIT_XMM
+DENOISE_DCT sse2
+%define PABSW PABSW_SSSE3
+%define PSIGNW PSIGNW_SSSE3
+DENOISE_DCT ssse3

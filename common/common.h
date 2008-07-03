@@ -293,8 +293,8 @@ struct x264_t
     uint16_t        (*quant4_bias[4])[16];   /* [4][52][16] */
     uint16_t        (*quant8_bias[2])[64];   /* [2][52][64] */
 
-    uint32_t        nr_residual_sum[2][64];
-    uint32_t        nr_offset[2][64];
+    DECLARE_ALIGNED_16( uint32_t nr_residual_sum[2][64] );
+    DECLARE_ALIGNED_16( uint16_t nr_offset[2][64] );
     uint32_t        nr_count[2];
 
     /* Slice header */

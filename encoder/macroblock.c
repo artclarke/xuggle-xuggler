@@ -443,11 +443,12 @@ void x264_macroblock_encode( x264_t *h )
             DECLARE_ALIGNED_16( int16_t dct8x8[4][8][8] );
             b_decimate &= !h->mb.b_trellis; // 8x8 trellis is inherently optimal decimation
             h->dctf.sub16x16_dct8( dct8x8, h->mb.pic.p_fenc[0], h->mb.pic.p_fdec[0] );
+            h->nr_count[1] += h->mb.b_noise_reduction * 4;
 
             for( idx = 0; idx < 4; idx++ )
             {
                 if( h->mb.b_noise_reduction )
-                    x264_denoise_dct( h, (int16_t*)dct8x8[idx] );
+                    h->quantf.denoise_dct_core( *dct8x8[idx], h->nr_residual_sum[1], h->nr_offset[1], 64 );
                 if( h->mb.b_trellis )
                     x264_quant_8x8_trellis( h, dct8x8[idx], CQM_8PY, i_qp, 0 );
                 else
@@ -482,6 +483,7 @@ void x264_macroblock_encode( x264_t *h )
         {
             DECLARE_ALIGNED_16( int16_t dct4x4[16][4][4] );
             h->dctf.sub16x16_dct( dct4x4, h->mb.pic.p_fenc[0], h->mb.pic.p_fdec[0] );
+            h->nr_count[0] += h->mb.b_noise_reduction * 16;
 
             for( i8x8 = 0; i8x8 < 4; i8x8++ )
             {
@@ -494,7 +496,7 @@ void x264_macroblock_encode( x264_t *h )
                     idx = i8x8 * 4 + i4x4;
 
                     if( h->mb.b_noise_reduction )
-                        x264_denoise_dct( h, (int16_t*)dct4x4[idx] );
+                        h->quantf.denoise_dct_core( *dct4x4[idx], h->nr_residual_sum[0], h->nr_offset[0], 16 );
                     if( h->mb.b_trellis )
                         x264_quant_4x4_trellis( h, dct4x4[idx], CQM_4PY, i_qp, DCT_LUMA_4x4, 0 );
                     else
@@ -735,37 +737,6 @@ void x264_noise_reduction_update( x264_t *h )
                 ((uint64_t)h->param.analyse.i_noise_reduction * h->nr_count[cat]
                  + h->nr_residual_sum[cat][i]/2)
               / ((uint64_t)h->nr_residual_sum[cat][i] * weight[i]/256 + 1);
-    }
-}
-
-void x264_denoise_dct( x264_t *h, int16_t *dct )
-{
-    const int cat = h->mb.b_transform_8x8;
-    int i;
-
-    h->nr_count[cat]++;
-
-    for( i = (cat ? 63 : 15); i >= 1; i-- )
-    {
-        int level = dct[i];
-        if( level )
-        {
-            if( level > 0 )
-            {
-                h->nr_residual_sum[cat][i] += level;
-                level -= h->nr_offset[cat][i];
-                if( level < 0 )
-                    level = 0;
-            }
-            else
-            {
-                h->nr_residual_sum[cat][i] -= level;
-                level += h->nr_offset[cat][i];
-                if( level > 0 )
-                    level = 0;
-            }
-            dct[i] = level;
-        }
     }
 }
 

@@ -42,5 +42,8 @@ void x264_dequant_4x4_flat16_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], in
 void x264_dequant_8x8_flat16_mmx( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp );
 void x264_dequant_4x4_flat16_sse2( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp );
 void x264_dequant_8x8_flat16_sse2( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp );
+void x264_denoise_dct_core_mmx( int16_t *dct, uint32_t *sum, uint16_t *offset, int size );
+void x264_denoise_dct_core_sse2( int16_t *dct, uint32_t *sum, uint16_t *offset, int size );
+void x264_denoise_dct_core_ssse3( int16_t *dct, uint32_t *sum, uint16_t *offset, int size );
 
 #endif

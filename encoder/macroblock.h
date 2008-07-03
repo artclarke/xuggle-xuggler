@@ -55,7 +55,6 @@ void x264_quant_8x8_trellis( x264_t *h, int16_t dct[8][8], int i_quant_cat,
                              int i_qp, int b_intra );
 
 void x264_noise_reduction_update( x264_t *h );
-void x264_denoise_dct( x264_t *h, int16_t *dct );
 
 #endif
 
