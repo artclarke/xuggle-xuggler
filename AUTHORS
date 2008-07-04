@@ -30,7 +30,7 @@ N: Placeholder
 D: Altivec optimizations
 
 N: Eric Petit
-E: titer AT videolan DOT org
+E: eric.petit AT lapsus DOT org
 C: titer
 D: Altivec asm
 D: BeOS and MacOS X ports.

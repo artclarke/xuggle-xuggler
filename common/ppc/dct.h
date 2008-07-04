@@ -3,7 +3,7 @@
  *****************************************************************************
  * Copyright (C) 2003-2008 x264 project
  *
- * Authors: Eric Petit <titer@m0k.org>
+ * Authors: Eric Petit <eric.petit@lapsus.org>
  *          Guillaume Poirier <gpoirier@mplayerhq.hu>
  *
  * This program is free software; you can redistribute it and/or modify

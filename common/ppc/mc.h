@@ -1,7 +1,7 @@
 /*****************************************************************************
  * mc.h: h264 encoder library
  *****************************************************************************
- * Copyright (C) 2003-2008 Eric Petit <titer@m0k.org>
+ * Copyright (C) 2003-2008 Eric Petit <eric.petit@lapsus.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
