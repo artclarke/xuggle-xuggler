@@ -1,10 +1,11 @@
 /*****************************************************************************
  * macroblock.c: h264 encoder library
  *****************************************************************************
- * Copyright (C) 2003 Laurent Aimar
- * $Id: macroblock.c,v 1.1 2004/06/03 19:27:08 fenrir Exp $
+ * Copyright (C) 2003-2008 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
+ *          Loren Merritt <lorenm@u.washington.edu>
+ *          Jason Garrett-Glaser <darkshikari@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

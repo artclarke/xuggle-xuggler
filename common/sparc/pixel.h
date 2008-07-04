@@ -1,10 +1,7 @@
 /*****************************************************************************
  * pixel.h: h264 encoder library
  *****************************************************************************
- * Copyright (C) 2005 x264 project
- * $Id: pixel.h,v 1.1 2004/06/03 19:27:07 fenrir Exp $
- *
- * Authors: Phil Jensen <philj@csufresno.edu>
+ * Copyright (C) 2005 Phil Jensen <philj@csufresno.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
 #ifndef X264_SPARC_PIXEL_H

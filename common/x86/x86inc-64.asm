@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* x86inc-64.asm: h264 encoder library
 ;*****************************************************************************
-;* Copyright (C) 2005-2008 x264 project
+;* Copyright (C) 2005-2008 Loren Merritt <lorenm@u.washington.edu>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 ;*
 ;* You should have received a copy of the GNU General Public License
 ;* along with this program; if not, write to the Free Software
-;* Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
+;* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
 ;*****************************************************************************
 
 BITS 64

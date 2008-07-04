@@ -1,9 +1,10 @@
 /*****************************************************************************
  * quant.c: h264 encoder library
  *****************************************************************************
- * Copyright (C) 2005 x264 project
+ * Copyright (C) 2005-2008 x264 project
  *
- * Authors: Christian Heine <sennindemokrit@gmx.net>
+ * Authors: Loren Merritt <lorenm@u.washington.edu>
+ *          Christian Heine <sennindemokrit@gmx.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +18,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
 #include "common.h"

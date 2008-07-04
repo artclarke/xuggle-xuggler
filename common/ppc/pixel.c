@@ -1,8 +1,7 @@
 /*****************************************************************************
  * pixel.c: h264 encoder
  *****************************************************************************
- * Copyright (C) 2003 Laurent Aimar
- * $Id: pixel.c,v 1.1 2004/06/03 19:27:07 fenrir Exp $
+ * Copyright (C) 2003-2008 x264 project
  *
  * Authors: Eric Petit <titer@m0k.org>
  *          Guillaume Poirier <gpoirier@mplayerhq.hu>
@@ -19,7 +18,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
 #ifdef SYS_LINUX

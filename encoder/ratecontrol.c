@@ -1,11 +1,12 @@
 /***************************************************-*- coding: iso-8859-1 -*-
  * ratecontrol.c: h264 encoder library (Rate Control)
  *****************************************************************************
- * Copyright (C) 2005 x264 project
- * $Id: ratecontrol.c,v 1.1 2004/06/03 19:27:08 fenrir Exp $
+ * Copyright (C) 2005-2008 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Michael Niedermayer <michaelni@gmx.at>
+ *          Gabriel Bouvigne <gabriel.bouvigne@joost.com>
+ *          Jason Garrett-Glaser <darkshikari@gmail.com>
  *          Måns Rullgård <mru@mru.ath.cx>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -20,7 +21,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
 #define _ISOC99_SOURCE
