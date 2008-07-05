@@ -28,6 +28,8 @@
 #include "config.h"
 #endif
 
+#define bs_write_ue bs_write_ue_big
+
 static void transpose( uint8_t *buf, int w )
 {
     int i, j;
@@ -339,8 +341,8 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
         bs_write1( s, sps->vui.b_timing_info_present );
         if( sps->vui.b_timing_info_present )
         {
-            bs_write( s, 32, sps->vui.i_num_units_in_tick );
-            bs_write( s, 32, sps->vui.i_time_scale );
+            bs_write32( s, sps->vui.i_num_units_in_tick );
+            bs_write32( s, sps->vui.i_time_scale );
             bs_write1( s, sps->vui.b_fixed_frame_rate );
         }
 

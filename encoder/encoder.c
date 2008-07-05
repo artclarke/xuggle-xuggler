@@ -39,6 +39,8 @@
 
 #define NALU_OVERHEAD 5 // startcode + NAL type costs 5 bytes per frame
 
+#define bs_write_ue bs_write_ue_big
+
 static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
                                     x264_nal_t **pp_nal, int *pi_nal,
                                     x264_picture_t *pic_out );

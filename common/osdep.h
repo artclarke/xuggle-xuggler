@@ -133,13 +133,39 @@
 #define x264_pthread_cond_wait(c,m)
 #endif
 
-/* FIXME: long isn't always the native register size (e.g. win64). */
-#define WORD_SIZE sizeof(long)
+#define WORD_SIZE sizeof(void*)
 
 #if !defined(_WIN64) && !defined(__LP64__)
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 #define BROKEN_STACK_ALIGNMENT /* define it if stack is not mod16 */
 #endif
+#endif
+
+#ifdef WORDS_BIGENDIAN
+#define endian_fix(x) (x)
+#elif defined(__GNUC__) && defined(HAVE_MMX)
+static ALWAYS_INLINE uint32_t endian_fix32( uint32_t x )
+{
+    asm("bswap %0":"+r"(x));
+    return x;
+}
+static ALWAYS_INLINE intptr_t endian_fix( intptr_t x )
+{
+    asm("bswap %0":"+r"(x));
+    return x;
+}
+#else
+static ALWAYS_INLINE uint32_t endian_fix32( uint32_t x )
+{
+    return (x<<24) + ((x<<8)&0xff0000) + ((x>>8)&0xff00) + (x>>24);
+}
+static ALWAYS_INLINE intptr_t endian_fix( intptr_t x )
+{
+    if( WORD_SIZE == 8 )
+        return endian_fix32(x>>32) + ((uint64_t)endian_fix32(x)<<32);
+    else
+        return endian_fix32(x);
+}
 #endif
 
 #endif /* X264_OSDEP_H */

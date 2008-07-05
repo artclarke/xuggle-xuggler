@@ -147,19 +147,17 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int16_t *
 
         if( ( i_level_code >> i_suffix_length ) < 14 )
         {
-            bs_write( s, (i_level_code >> i_suffix_length) + 1, 1 );
-            if( i_suffix_length > 0 )
-                bs_write( s, i_suffix_length, i_level_code );
+            bs_write( s, (i_level_code >> i_suffix_length) + 1 + i_suffix_length,
+                     (1<<i_suffix_length) + (i_level_code & ((1<<i_suffix_length)-1)) );
         }
         else if( i_suffix_length == 0 && i_level_code < 30 )
         {
-            bs_write( s, 15, 1 );
-            bs_write( s, 4, i_level_code - 14 );
+            bs_write( s, 19, (1<<4) + (i_level_code - 14) );
         }
         else if( i_suffix_length > 0 && ( i_level_code >> i_suffix_length ) == 14 )
         {
-            bs_write( s, 15, 1 );
-            bs_write( s, i_suffix_length, i_level_code );
+            bs_write( s, 15 + i_suffix_length,
+                      (1<<i_suffix_length) + (i_level_code & ((1<<i_suffix_length)-1)) );
         }
         else
         {
@@ -192,7 +190,7 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int16_t *
                 }
             }
             bs_write( s, i_level_prefix + 1, 1 );
-            bs_write( s, i_level_prefix - 3, i_level_code );
+            bs_write( s, i_level_prefix - 3, i_level_code & ((1<<(i_level_prefix-3))-1) );
         }
 
         if( i_suffix_length == 0 )
@@ -398,15 +396,9 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
             }
             else
             {
-                bs_write1( s, 0 );  /* b_prev_intra4x4_pred_mode */
-                if( i_mode < i_pred )
-                {
-                    bs_write( s, 3, i_mode );
-                }
-                else
-                {
-                    bs_write( s, 3, i_mode - 1 );
-                }
+                if( i_mode >= i_pred )
+                    i_mode--;
+                bs_write( s, 4, i_mode );
             }
         }
         bs_write_ue( s, x264_mb_pred_mode8x8c_fix[ h->mb.i_chroma_pred_mode ] );

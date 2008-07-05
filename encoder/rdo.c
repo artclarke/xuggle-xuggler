@@ -43,7 +43,7 @@ static uint16_t cabac_prefix_size[15][128];
 #define x264_cabac_encode_decision(c,x,v) x264_cabac_size_decision(c,x,v)
 #define x264_cabac_encode_terminal(c)     x264_cabac_size_decision(c,276,0)
 #define x264_cabac_encode_bypass(c,v)     ((c)->f8_bits_encoded += 256)
-#define x264_cabac_encode_ue_bypass(c,e,v) ((c)->f8_bits_encoded += (bs_size_ue(v+(1<<e)-1)-e)<<8)
+#define x264_cabac_encode_ue_bypass(c,e,v) ((c)->f8_bits_encoded += (bs_size_ue_big(v+(1<<e)-1)-e)<<8)
 #define x264_cabac_encode_flush(h,c)
 #define x264_macroblock_write_cabac  x264_macroblock_size_cabac
 #include "cabac.c"
