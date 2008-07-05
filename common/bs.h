@@ -25,6 +25,12 @@
 #ifndef X264_BS_H
 #define X264_BS_H
 
+typedef struct
+{
+    uint8_t i_bits;
+    uint8_t i_size;
+} vlc_t;
+
 typedef struct bs_s
 {
     uint8_t *p_start;
@@ -35,6 +41,11 @@ typedef struct bs_s
     int     i_left;    /* i_count number of available bits */
     int     i_bits_encoded; /* RD only */
 } bs_t;
+
+extern const vlc_t x264_coeff_token[5][17*4];
+extern const vlc_t x264_total_zeros[15][16];
+extern const vlc_t x264_total_zeros_dc[3][4];
+extern const vlc_t x264_run_before[7][15];
 
 static inline void bs_init( bs_t *s, void *p_data, int i_data )
 {

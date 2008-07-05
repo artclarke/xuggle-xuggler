@@ -1,5 +1,5 @@
 /*****************************************************************************
- * vlc.h : vlc table
+ * vlc.c : vlc table
  *****************************************************************************
  * Copyright (C) 2003 Laurent Aimar <fenrir@via.ecp.fr>
  *
@@ -18,15 +18,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-typedef struct
-{
-    uint16_t i_bits;
-    uint16_t i_size;
-} vlc_t;
+#include "common.h"
 
-/* XXX: don't forget to change it if you change vlc_t */
 #define MKVLC( a, b ) { a, b }
-static const vlc_t x264_coeff_token[5][17*4] =
+const vlc_t x264_coeff_token[5][17*4] =
 {
     /* table 0 */
     {
@@ -469,7 +464,7 @@ static const vlc_t x264_coeff_token[5][17*4] =
 };
 
 /* [i_total_coeff-1][i_total_zeros] */
-static const vlc_t x264_total_zeros[15][16] =
+const vlc_t x264_total_zeros[15][16] =
 {
     { /* i_total 1 */
         MKVLC( 0x1, 1 ), /* str=1 */
@@ -744,7 +739,7 @@ static const vlc_t x264_total_zeros[15][16] =
 };
 
 /* [i_total_coeff-1][i_total_zeros] */
-static const vlc_t x264_total_zeros_dc[3][4] =
+const vlc_t x264_total_zeros_dc[3][4] =
 {
     {
         MKVLC( 0x01, 1 ), /* 1  */
@@ -767,7 +762,7 @@ static const vlc_t x264_total_zeros_dc[3][4] =
 };
 
 /* x264_run_before[__MIN( i_zero_left -1, 6 )][run_before] */
-static const vlc_t x264_run_before[7][15] =
+const vlc_t x264_run_before[7][15] =
 {
     { /* i_zero_left 1 */
         MKVLC( 0x1, 1 ), /* str=1 */
