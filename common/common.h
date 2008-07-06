@@ -33,7 +33,7 @@
 #define X264_MAX3(a,b,c) X264_MAX((a),X264_MAX((b),(c)))
 #define X264_MIN4(a,b,c,d) X264_MIN((a),X264_MIN3((b),(c),(d)))
 #define X264_MAX4(a,b,c,d) X264_MAX((a),X264_MAX3((b),(c),(d)))
-#define XCHG(type,a,b) { type t = a; a = b; b = t; }
+#define XCHG(type,a,b) do{ type t = a; a = b; b = t; } while(0)
 #define FIX8(f) ((int)(f*(1<<8)+.5))
 
 #define CHECKED_MALLOC( var, size )\

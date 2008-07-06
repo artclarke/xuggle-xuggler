@@ -77,24 +77,22 @@ static inline int x264_predictor_difference_mmxext( int16_t (*mvc)[2], intptr_t 
 #define array_non_zero_count array_non_zero_count_mmx
 static inline int array_non_zero_count_mmx( int16_t *v )
 {
-    static const uint64_t pw_2 = 0x0202020202020202ULL;
     int count;
     asm(
         "pxor     %%mm7,  %%mm7 \n"
         "movq     (%1),   %%mm0 \n"
-        "movq     16(%1), %%mm1 \n"
-        "packsswb 8(%1),  %%mm0 \n"
+        "movq     8(%1),  %%mm1 \n"
+        "packsswb 16(%1), %%mm0 \n"
         "packsswb 24(%1), %%mm1 \n"
         "pcmpeqb  %%mm7,  %%mm0 \n"
         "pcmpeqb  %%mm7,  %%mm1 \n"
         "paddb    %%mm0,  %%mm1 \n"
-        "paddb    %2,     %%mm1 \n"
         "psadbw   %%mm7,  %%mm1 \n"
         "movd     %%mm1,  %0    \n"
         :"=r"(count)
-        :"r"(v), "m"(pw_2)
+        :"r"(v)
     );
-    return count;
+    return (count+0x10)&0xff;
 }
 #undef array_non_zero_int
 #define array_non_zero_int array_non_zero_int_mmx

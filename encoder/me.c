@@ -196,8 +196,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
                 int my = x264_clip3( mvc[i][1], mv_y_min*4, mv_y_max*4 );
                 COST_MV_HPEL( mx, my );
             }
-            i++;
-        } while( i < i_mvc );
+        } while( ++i < i_mvc );
         bmx = ( bpred_mx + 2 ) >> 2;
         bmy = ( bpred_my + 2 ) >> 2;
         COST_MV( bmx, bmy );
@@ -223,8 +222,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
                 my = x264_clip3( my, mv_y_min, mv_y_max );
                 COST_MV( mx, my );
             }
-            i++;
-        } while( i < i_mvc );
+        } while( ++i < i_mvc );
     }
     COST_MV( 0, 0 );
 
@@ -232,14 +230,15 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
     {
     case X264_ME_DIA:
         /* diamond search, radius 1 */
-        for( i = 0; i < i_me_range; i++ )
+        i = 0;
+        do
         {
             DIA1_ITER( bmx, bmy );
             if( (bmx == omx) & (bmy == omy) )
                 break;
             if( !CHECK_MVRANGE(bmx, bmy) )
                 break;
-        }
+        } while( ++i < i_me_range );
         break;
 
     case X264_ME_HEX:
@@ -410,7 +409,9 @@ me_hex2:
 
             /* hexagon grid */
             omx = bmx; omy = bmy;
-            for( i = 1; i <= i_me_range/4; i++ )
+
+            i = 1;
+            do
             {
                 static const int hex4[16][2] = {
                     {-4, 2}, {-4, 1}, {-4, 0}, {-4,-1}, {-4,-2},
@@ -437,7 +438,7 @@ me_hex2:
                     COST_MV_X4(  4*i, 1*i,  4*i, 2*i,  2*i, 3*i,  0*i, 4*i );
                     COST_MV_X4( -2*i, 3*i, -2*i,-3*i,  0*i,-4*i,  2*i,-3*i );
                 }
-            }
+            } while( ++i <= i_me_range/4 );
             if( bmy <= mv_y_max )
                 goto me_hex2;
             break;
@@ -464,7 +465,10 @@ me_hex2:
              * because sum(abs(diff)) >= abs(diff(sum)). */
             const int stride = m->i_stride[0];
             uint16_t *sums_base = m->integral;
-            DECLARE_ALIGNED_16( static uint8_t zero[16*16] );
+            /* due to a GCC bug on some platforms (win32?), zero[] may not actually be aligned.
+             * unlike the similar case in ratecontrol.c, this is not a problem because it is not used for any
+             * SSE instructions and the only loss is a tiny bit of performance. */
+            DECLARE_ALIGNED_16( static uint8_t zero[8*FENC_STRIDE] );
             DECLARE_ALIGNED_16( int enc_dc[4] );
             int sad_size = i_pixel <= PIXEL_8x8 ? PIXEL_8x8 : PIXEL_4x4;
             int delta = x264_pixel_size[sad_size].w;
@@ -546,7 +550,13 @@ me_hex2:
                     for( i=0; i<nmvsad && mvsads[i].sad <= bsad; i++ );
                     for( j=i; j<nmvsad; j++ )
                         if( mvsads[j].sad <= bsad )
-                            mvsads[i++] = mvsads[j];
+                        {
+                            /* mvsad_t is not guaranteed to be 8 bytes on all archs, so check before using explicit write-combining */
+                            if( sizeof( mvsad_t ) == sizeof( uint64_t ) )
+                                *(uint64_t*)&mvsads[i++] = *(uint64_t*)&mvsads[j];
+                            else
+                                mvsads[i++] = mvsads[j];
+                        }
                     nmvsad = i;
                 }
                 if( nmvsad > limit )
@@ -558,7 +568,12 @@ me_hex2:
                         for( j=i+1; j<nmvsad; j++ )
                             COPY2_IF_LT( bsad, mvsads[j].sad, bj, j );
                         if( bj > i )
-                            XCHG( mvsad_t, mvsads[i], mvsads[bj] );
+                        {
+                            if( sizeof( mvsad_t ) == sizeof( uint64_t ) )
+                                XCHG( uint64_t, *(uint64_t*)&mvsads[i], *(uint64_t*)&mvsads[bj] );
+                            else
+                                XCHG( mvsad_t, mvsads[i], mvsads[bj] );
+                        }
                     }
                     nmvsad = limit;
                 }
@@ -781,12 +796,12 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     BIME_CACHE(-(a),-(b))
 
 #define COST_BIMV_SATD( m0x, m0y, m1x, m1y ) \
-if( pass == 0 || !visited[(m0x)&7][(m0y)&7][(m1x)&7][(m1y)&7] ) \
+if( pass == 0 || !((visited[(m0x)&7][(m0y)&7][(m1x)&7] & (1<<((m1y)&7)))) ) \
 { \
     int cost; \
     int i0 = 4 + 3*(m0x-om0x) + (m0y-om0y); \
     int i1 = 4 + 3*(m1x-om1x) + (m1y-om1y); \
-    visited[(m0x)&7][(m0y)&7][(m1x)&7][(m1y)&7] = 1; \
+    visited[(m0x)&7][(m0y)&7][(m1x)&7] |= (1<<((m1y)&7));\
     h->mc.memcpy_aligned( pix, pix0[i0], bs ); \
     if( i_weight == 32 ) \
         h->mc.avg[i_pixel]( pix, bw, pix1[i1], bw ); \
@@ -837,7 +852,8 @@ int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight 
     int bm1y = m1->mv[1], om1y = bm1y;
     int bcost = COST_MAX;
     int pass = 0;
-    uint8_t visited[8][8][8][8];
+    /* each byte of visited represents 8 possible m1y positions, so a 4D array isn't needed */
+    uint8_t visited[8][8][8];
     h->mc.memzero_aligned( visited, sizeof(visited) );
 
     BIME_CACHE( 0, 0 );
@@ -898,8 +914,7 @@ int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight 
     if( satd <= bsatd * SATD_THRESH )\
     { \
         int cost; \
-        cache_mv[0] = cache_mv2[0] = mx; \
-        cache_mv[1] = cache_mv2[1] = my; \
+        *(uint32_t*)cache_mv = *(uint32_t*)cache_mv2 = pack16to32_mask(mx,my); \
         cost = x264_rd_cost_part( h, i_lambda2, i8, m->i_pixel ); \
         COPY4_IF_LT( bcost, cost, bmx, mx, bmy, my, dir, do_dir?mdir:dir ); \
     } \
@@ -937,7 +952,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 )
     p_cost_mvx = m->p_cost_mv - pmx;
     p_cost_mvy = m->p_cost_mv - pmy;
     COST_MV_SATD( bmx, bmy, bsatd );
-    COST_MV_RD( bmx, bmy, 0, 0, 0);
+    COST_MV_RD( bmx, bmy, 0, 0, 0 );
 
     /* check the predicted mv */
     if( (bmx != pmx || bmy != pmy)

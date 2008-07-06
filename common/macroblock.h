@@ -219,6 +219,32 @@ static const uint8_t block_idx_xy[4][4] =
     { 4, 6, 12, 14 },
     { 5, 7, 13, 15 }
 };
+static const uint8_t block_idx_xy_1d[16] =
+{
+    0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15
+};
+static const uint8_t block_idx_xy_fenc[16] =
+{
+    0*4 + 0*4*FENC_STRIDE, 1*4 + 0*4*FENC_STRIDE,
+    0*4 + 1*4*FENC_STRIDE, 1*4 + 1*4*FENC_STRIDE,
+    2*4 + 0*4*FENC_STRIDE, 3*4 + 0*4*FENC_STRIDE,
+    2*4 + 1*4*FENC_STRIDE, 3*4 + 1*4*FENC_STRIDE,
+    0*4 + 2*4*FENC_STRIDE, 1*4 + 2*4*FENC_STRIDE,
+    0*4 + 3*4*FENC_STRIDE, 1*4 + 3*4*FENC_STRIDE,
+    2*4 + 2*4*FENC_STRIDE, 3*4 + 2*4*FENC_STRIDE,
+    2*4 + 3*4*FENC_STRIDE, 3*4 + 3*4*FENC_STRIDE
+};
+static const uint16_t block_idx_xy_fdec[16] =
+{
+    0*4 + 0*4*FDEC_STRIDE, 1*4 + 0*4*FDEC_STRIDE,
+    0*4 + 1*4*FDEC_STRIDE, 1*4 + 1*4*FDEC_STRIDE,
+    2*4 + 0*4*FDEC_STRIDE, 3*4 + 0*4*FDEC_STRIDE,
+    2*4 + 1*4*FDEC_STRIDE, 3*4 + 1*4*FDEC_STRIDE,
+    0*4 + 2*4*FDEC_STRIDE, 1*4 + 2*4*FDEC_STRIDE,
+    0*4 + 3*4*FDEC_STRIDE, 1*4 + 3*4*FDEC_STRIDE,
+    2*4 + 2*4*FDEC_STRIDE, 3*4 + 2*4*FDEC_STRIDE,
+    2*4 + 3*4*FDEC_STRIDE, 3*4 + 3*4*FDEC_STRIDE
+};
 
 static const uint8_t i_chroma_qp_table[52] =
 {

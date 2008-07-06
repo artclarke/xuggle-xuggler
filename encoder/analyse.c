@@ -606,10 +606,9 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
 
             if( b_merged_satd && i_max == 9 )
             {
-                int satd[3];
+                int satd[9];
                 h->pixf.intra_sa8d_x3_8x8( p_src_by, edge, satd );
-                if( i_pred_mode < 3 )
-                    satd[i_pred_mode] -= 3 * a->i_lambda;
+                satd[i_pred_mode] -= 3 * a->i_lambda;
                 for( i=2; i>=0; i-- )
                 {
                     int cost = a->i_satd_i8x8_dir[i][idx] = satd[i] + 4 * a->i_lambda;
@@ -679,10 +678,8 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
 
         for( idx = 0;; idx++ )
         {
-            int x = block_idx_x[idx];
-            int y = block_idx_y[idx];
-            uint8_t *p_src_by = p_src + 4*x + 4*y*FENC_STRIDE;
-            uint8_t *p_dst_by = p_dst + 4*x + 4*y*FDEC_STRIDE;
+            uint8_t *p_src_by = p_src + block_idx_xy_fenc[idx];
+            uint8_t *p_dst_by = p_dst + block_idx_xy_fdec[idx];
             int i_best = COST_MAX;
             int i_pred_mode = x264_mb_predict_intra4x4_mode( h, idx );
 
@@ -694,10 +691,9 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
 
             if( b_merged_satd && i_max >= 6 )
             {
-                int satd[3];
+                int satd[9];
                 h->pixf.intra_satd_x3_4x4( p_src_by, p_dst_by, satd );
-                if( i_pred_mode < 3 )
-                    satd[i_pred_mode] -= 3 * a->i_lambda;
+                satd[i_pred_mode] -= 3 * a->i_lambda;
                 for( i=2; i>=0; i-- )
                     COPY2_IF_LT( i_best, satd[i] + 4 * a->i_lambda,
                                  a->i_predict4x4[idx], i );
@@ -808,16 +804,11 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
         int i_nnz = 0;
         for( idx = 0; idx < 16; idx++ )
         {
-            uint8_t *p_src_by;
-            uint8_t *p_dst_by;
+            uint8_t *p_dst_by = p_dst + block_idx_xy_fdec[idx];
             i_best = COST_MAX;
 
             i_pred_mode = x264_mb_predict_intra4x4_mode( h, idx );
-            x = block_idx_x[idx];
-            y = block_idx_y[idx];
 
-            p_src_by = p_src + 4*x + 4*y*FENC_STRIDE;
-            p_dst_by = p_dst + 4*x + 4*y*FDEC_STRIDE;
             predict_4x4_mode_available( h->mb.i_neighbour4[idx], predict_mode, &i_max );
 
             if( (h->mb.i_neighbour4[idx] & (MB_TOPRIGHT|MB_TOP)) == MB_TOP )

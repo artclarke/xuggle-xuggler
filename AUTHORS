@@ -39,10 +39,20 @@ S: France
 N: Francesco Corriga
 D: VfW
 
+N: Gabriel Bouvigne
+E: gabriel.bouvigne AT joost DOT com
+D: 2pass VBV
+
 N: Guillaume Poirier
 E: gpoirier CHEZ mplayerhq POINT hu
 D: Altivec optimizations
 S: Brittany, France
+
+N: Jason Garrett-Glaser
+E: darkshikari AT gmail DOT com
+D: x86 asm, 1pass VBV, adaptive quantization, inline asm
+D: various speed optimizations, bugfixes
+S: USA
 
 N: Justin Clay
 E: justin_clay AT hotmail DOT com

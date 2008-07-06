@@ -19,12 +19,11 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
 #include "common/common.h"
 #include "macroblock.h"
-
 
 #define ZIG(i,y,x) level[i] = dct[x][y];
 static inline void zigzag_scan_2x2_dc( int16_t level[4], int16_t dct[2][2] )
@@ -82,10 +81,8 @@ static int x264_mb_decimate_score( int16_t *dct, int i_max )
 
 void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale )
 {
-    int x = 4 * block_idx_x[idx];
-    int y = 4 * block_idx_y[idx];
-    uint8_t *p_src = &h->mb.pic.p_fenc[0][x+y*FENC_STRIDE];
-    uint8_t *p_dst = &h->mb.pic.p_fdec[0][x+y*FDEC_STRIDE];
+    uint8_t *p_src = &h->mb.pic.p_fenc[0][block_idx_xy_fenc[idx]];
+    uint8_t *p_dst = &h->mb.pic.p_fdec[0][block_idx_xy_fdec[idx]];
     DECLARE_ALIGNED_16( int16_t dct4x4[4][4] );
 
     if( h->mb.b_lossless )
@@ -147,10 +144,10 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
     {
         for( i = 0; i < 16; i++ )
         {
-            int oe = block_idx_x[i]*4 + block_idx_y[i]*4*FENC_STRIDE;
-            int od = block_idx_x[i]*4 + block_idx_y[i]*4*FDEC_STRIDE;
+            int oe = block_idx_xy_fenc[i];
+            int od = block_idx_xy_fdec[i];
             h->zigzagf.sub_4x4( h->dct.luma4x4[i], p_src+oe, p_dst+od );
-            dct_dc4x4[block_idx_x[i]][block_idx_y[i]] = h->dct.luma4x4[i][0];
+            dct_dc4x4[0][block_idx_xy_1d[i]] = h->dct.luma4x4[i][0];
             h->dct.luma4x4[i][0] = 0;
         }
         h->zigzagf.scan_4x4( h->dct.luma16x16_dc, dct_dc4x4 );
@@ -161,7 +158,7 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
     for( i = 0; i < 16; i++ )
     {
         /* copy dc coeff */
-        dct_dc4x4[block_idx_y[i]][block_idx_x[i]] = dct4x4[i][0][0];
+        dct_dc4x4[0][block_idx_xy_1d[i]] = dct4x4[i][0][0];
         dct4x4[i][0][0] = 0;
 
         /* quant/scan/dequant */
@@ -186,7 +183,7 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
     for( i = 0; i < 16; i++ )
     {
         /* copy dc coeff */
-        dct4x4[i][0][0] = dct_dc4x4[block_idx_y[i]][block_idx_x[i]];
+        dct4x4[i][0][0] = dct_dc4x4[0][block_idx_xy_1d[i]];
     }
     /* put pixels to fdec */
     h->dctf.add16x16_idct( p_dst, dct4x4 );
@@ -224,7 +221,7 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
         for( i = 0; i < 4; i++ )
         {
             /* copy dc coeff */
-            dct2x2[block_idx_y[i]][block_idx_x[i]] = dct4x4[i][0][0];
+            dct2x2[i>>1][i&1] = dct4x4[i][0][0];
             dct4x4[i][0][0] = 0;
 
             /* no trellis; it doesn't seem to help chroma noticeably */
@@ -258,9 +255,10 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
             for( i = 0; i < 4; i++ )
                 h->quantf.dequant_4x4( dct4x4[i], h->dequant4_mf[CQM_4IC + b_inter], i_qscale );
         }
-
-        for( i = 0; i < 4; i++ )
-            dct4x4[i][0][0] = dct2x2[0][i];
+        dct4x4[0][0][0] = dct2x2[0][0];
+        dct4x4[1][0][0] = dct2x2[0][1];
+        dct4x4[2][0][0] = dct2x2[1][0];
+        dct4x4[3][0][0] = dct2x2[1][1];
         h->dctf.add8x8_idct( p_dst, dct4x4 );
     }
 
@@ -408,7 +406,7 @@ void x264_macroblock_encode( x264_t *h )
         }
         for( i = h->mb.i_skip_intra ? 15 : 0 ; i < 16; i++ )
         {
-            uint8_t  *p_dst = &h->mb.pic.p_fdec[0][4 * block_idx_x[i] + 4 * block_idx_y[i] * FDEC_STRIDE];
+            uint8_t  *p_dst = &h->mb.pic.p_fdec[0][block_idx_xy_fdec[i]];
             int      i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[i]];
 
             if( (h->mb.i_neighbour4[i] & (MB_TOPRIGHT|MB_TOP)) == MB_TOP )
@@ -432,11 +430,9 @@ void x264_macroblock_encode( x264_t *h )
         {
             for( i4x4 = 0; i4x4 < 16; i4x4++ )
             {
-                int x = 4*block_idx_x[i4x4];
-                int y = 4*block_idx_y[i4x4];
                 h->zigzagf.sub_4x4( h->dct.luma4x4[i4x4],
-                                    h->mb.pic.p_fenc[0]+x+y*FENC_STRIDE,
-                                    h->mb.pic.p_fdec[0]+x+y*FDEC_STRIDE );
+                                    h->mb.pic.p_fenc[0]+block_idx_xy_fenc[i4x4],
+                                    h->mb.pic.p_fdec[0]+block_idx_xy_fdec[i4x4] );
             }
         }
         else if( h->mb.b_transform_8x8 )
