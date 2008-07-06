@@ -643,6 +643,7 @@ cglobal x264_frame_init_lowres_core_%1, 6,7
     dec    dword r8m
     jg .vloop
     ADD      rsp, 2*push_size
+    emms
     RET
 %endmacro ; FRAME_INIT_LOWRES
 
