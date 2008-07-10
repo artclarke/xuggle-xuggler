@@ -339,44 +339,39 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         bs_write1( s, h->mb.b_interlaced );
     }
 
+#ifndef RDO_SKIP_BS
+    if( i_mb_type == I_PCM)
+    {
+        bs_write_ue( s, i_mb_i_offset + 25 );
+        i_mb_pos_tex = bs_pos( s );
+        h->stat.frame.i_hdr_bits += i_mb_pos_tex - i_mb_pos_start;
+
+        bs_align_0( s );
+
+        memcpy( s->p, h->mb.pic.p_fenc[0], 256 );
+        s->p += 256;
+        for( i = 0; i < 8; i++ )
+            memcpy( s->p + i*8, h->mb.pic.p_fenc[1] + i*FENC_STRIDE, 8 );
+        s->p += 64;
+        for( i = 0; i < 8; i++ )
+            memcpy( s->p + i*8, h->mb.pic.p_fenc[2] + i*FENC_STRIDE, 8 );
+        s->p += 64;
+
+        /* if PCM is chosen, we need to store reconstructed frame data */
+        h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[0], FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE, 16 );
+        h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc[1], FENC_STRIDE, 8 );
+        h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fenc[2], FENC_STRIDE, 8 );
+
+        h->stat.frame.i_itex_bits += bs_pos(s) - i_mb_pos_tex;
+        return;
+    }
+#endif
+
     /* Write:
       - type
       - prediction
       - mv */
-    if( i_mb_type == I_PCM )
-    {
-        /* Untested */
-        bs_write_ue( s, i_mb_i_offset + 25 );
-
-#ifdef RDO_SKIP_BS
-        s->i_bits_encoded += 384*8;
-#else
-        bs_align_0( s );
-        /* Luma */
-        for( i = 0; i < 16*16; i++ )
-        {
-            const int x = 16 * h->mb.i_mb_x + (i % 16);
-            const int y = 16 * h->mb.i_mb_y + (i / 16);
-            bs_write( s, 8, h->fenc->plane[0][y*h->mb.pic.i_stride[0]+x] );
-        }
-        /* Cb */
-        for( i = 0; i < 8*8; i++ )
-        {
-            const int x = 8 * h->mb.i_mb_x + (i % 8);
-            const int y = 8 * h->mb.i_mb_y + (i / 8);
-            bs_write( s, 8, h->fenc->plane[1][y*h->mb.pic.i_stride[1]+x] );
-        }
-        /* Cr */
-        for( i = 0; i < 8*8; i++ )
-        {
-            const int x = 8 * h->mb.i_mb_x + (i % 8);
-            const int y = 8 * h->mb.i_mb_y + (i / 8);
-            bs_write( s, 8, h->fenc->plane[2][y*h->mb.pic.i_stride[2]+x] );
-        }
-#endif
-        return;
-    }
-    else if( i_mb_type == I_4x4 || i_mb_type == I_8x8 )
+    if( i_mb_type == I_4x4 || i_mb_type == I_8x8 )
     {
         int di = i_mb_type == I_8x8 ? 4 : 1;
         bs_write_ue( s, i_mb_i_offset + 0 );

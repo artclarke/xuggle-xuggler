@@ -543,14 +543,12 @@ static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
         if( h->mb.i_neighbour & MB_LEFT )
         {
             i_mba_xy = h->mb.i_mb_xy - 1;
-            if( h->mb.i_mb_type_left == I_16x16 )
-                i_nza = h->mb.cbp[i_mba_xy] & 0x100;
+            i_nza = h->mb.cbp[i_mba_xy] & 0x100;
         }
         if( h->mb.i_neighbour & MB_TOP )
         {
             i_mbb_xy = h->mb.i_mb_top_xy;
-            if( h->mb.i_mb_type_top == I_16x16 )
-                i_nzb = h->mb.cbp[i_mbb_xy] & 0x100;
+            i_nzb = h->mb.cbp[i_mbb_xy] & 0x100;
         }
     }
     else if( i_cat == DCT_LUMA_AC || i_cat == DCT_LUMA_4x4 )
@@ -785,36 +783,35 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
     /* Write the MB type */
     x264_cabac_mb_type( h, cb );
 
-    /* PCM special block type UNTESTED */
+#ifndef RDO_SKIP_BS
     if( i_mb_type == I_PCM )
     {
-#ifdef RDO_SKIP_BS
-        cb->f8_bits_encoded += (384*8) << 8;
-#else
-        if( cb->p + 385 >= cb->p_end )
-            return; //FIXME throw an error
-        /* Luma */
-        for( i = 0; i < 16; i++ )
-        {
-            memcpy( cb->p, h->fenc->plane[0] + i*h->mb.pic.i_stride[0], 16 );
-            cb->p += 16;
-        }
-        /* Cb */
+        i_mb_pos_tex = x264_cabac_pos( cb );
+        h->stat.frame.i_hdr_bits += i_mb_pos_tex - i_mb_pos_start;
+
+        memcpy( cb->p, h->mb.pic.p_fenc[0], 256 );
+        cb->p += 256;
         for( i = 0; i < 8; i++ )
-        {
-            memcpy( cb->p, h->fenc->plane[1] + i*h->mb.pic.i_stride[1], 8 );
-            cb->p += 8;
-        }
-        /* Cr */
+            memcpy( cb->p + i*8, h->mb.pic.p_fenc[1] + i*FENC_STRIDE, 8 );
+        cb->p += 64;
         for( i = 0; i < 8; i++ )
-        {
-            memcpy( cb->p, h->fenc->plane[2] + i*h->mb.pic.i_stride[2], 8 );
-            cb->p += 8;
-        }
-        x264_cabac_encode_init( cb, cb->p, cb->p_end );
-#endif
+            memcpy( cb->p + i*8, h->mb.pic.p_fenc[2] + i*FENC_STRIDE, 8 );
+        cb->p += 64;
+
+        cb->i_low   = 0;
+        cb->i_range = 0x01FE;
+        cb->i_queue = -1;
+        cb->i_bytes_outstanding = 0;
+
+        /* if PCM is chosen, we need to store reconstructed frame data */
+        h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[0], FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE, 16 );
+        h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc[1], FENC_STRIDE, 8 );
+        h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fenc[2], FENC_STRIDE, 8 );
+
+        h->stat.frame.i_itex_bits += x264_cabac_pos( cb ) - i_mb_pos_tex;
         return;
     }
+#endif
 
     if( IS_INTRA( i_mb_type ) )
     {

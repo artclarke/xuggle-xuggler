@@ -1399,7 +1399,7 @@ void x264_macroblock_cache_save( x264_t *h )
 
     if( h->mb.i_type != I_16x16 && h->mb.i_cbp_luma == 0 && h->mb.i_cbp_chroma == 0 )
         h->mb.i_qp = h->mb.i_last_qp;
-    h->mb.qp[i_mb_xy] = h->mb.i_qp;
+    h->mb.qp[i_mb_xy] = i_mb_type != I_PCM ? h->mb.i_qp : 0;
 
     h->mb.i_last_dqp = h->mb.i_qp - h->mb.i_last_qp;
     h->mb.i_last_qp = h->mb.i_qp;
@@ -1418,7 +1418,10 @@ void x264_macroblock_cache_save( x264_t *h )
 
     if( i_mb_type == I_PCM )
     {
+        h->mb.i_cbp_chroma = 2;
+        h->mb.i_cbp_luma = 0xf;
         h->mb.cbp[i_mb_xy] = 0x72f;   /* all set */
+        h->mb.b_transform_8x8 = 0;
         for( i = 0; i < 16 + 2*4; i++ )
             non_zero_count[i] = 16;
     }

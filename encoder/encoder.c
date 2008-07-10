@@ -1841,10 +1841,11 @@ void    x264_encoder_close  ( x264_t *h )
         const int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_I];
         const double i_count = h->stat.i_slice_count[SLICE_TYPE_I] * h->mb.i_mb_count / 100.0;
         x264_log( h, X264_LOG_INFO,
-                  "mb I  I16..4: %4.1f%% %4.1f%% %4.1f%%\n",
+                  "mb I  I16..4..PCM: %4.1f%% %4.1f%% %4.1f%% %4.1f%%\n",
                   i_mb_count[I_16x16]/ i_count,
                   i_mb_count[I_8x8]  / i_count,
-                  i_mb_count[I_4x4]  / i_count );
+                  i_mb_count[I_4x4]  / i_count,
+                  i_mb_count[I_PCM]  / i_count );
     }
     if( h->stat.i_slice_count[SLICE_TYPE_P] > 0 )
     {
@@ -1852,10 +1853,11 @@ void    x264_encoder_close  ( x264_t *h )
         const int64_t *i_mb_size = h->stat.i_mb_count_size[SLICE_TYPE_P];
         const double i_count = h->stat.i_slice_count[SLICE_TYPE_P] * h->mb.i_mb_count / 100.0;
         x264_log( h, X264_LOG_INFO,
-                  "mb P  I16..4: %4.1f%% %4.1f%% %4.1f%%  P16..4: %4.1f%% %4.1f%% %4.1f%% %4.1f%% %4.1f%%    skip:%4.1f%%\n",
+                  "mb P  I16..4..PCM: %4.1f%% %4.1f%% %4.1f%% %4.1f%%  P16..4: %4.1f%% %4.1f%% %4.1f%% %4.1f%% %4.1f%%    skip:%4.1f%%\n",
                   i_mb_count[I_16x16]/ i_count,
                   i_mb_count[I_8x8]  / i_count,
                   i_mb_count[I_4x4]  / i_count,
+                  i_mb_count[I_PCM]  / i_count,
                   i_mb_size[PIXEL_16x16] / (i_count*4),
                   (i_mb_size[PIXEL_16x8] + i_mb_size[PIXEL_8x16]) / (i_count*4),
                   i_mb_size[PIXEL_8x8] / (i_count*4),
@@ -1869,10 +1871,11 @@ void    x264_encoder_close  ( x264_t *h )
         const int64_t *i_mb_size = h->stat.i_mb_count_size[SLICE_TYPE_B];
         const double i_count = h->stat.i_slice_count[SLICE_TYPE_B] * h->mb.i_mb_count / 100.0;
         x264_log( h, X264_LOG_INFO,
-                  "mb B  I16..4: %4.1f%% %4.1f%% %4.1f%%  B16..8: %4.1f%% %4.1f%% %4.1f%%  direct:%4.1f%%  skip:%4.1f%%\n",
+                  "mb B  I16..4..PCM: %4.1f%% %4.1f%% %4.1f%% %4.1f%%  B16..8: %4.1f%% %4.1f%% %4.1f%%  direct:%4.1f%%  skip:%4.1f%%\n",
                   i_mb_count[I_16x16]  / i_count,
                   i_mb_count[I_8x8]    / i_count,
                   i_mb_count[I_4x4]    / i_count,
+                  i_mb_count[I_PCM]    / i_count,
                   i_mb_size[PIXEL_16x16] / (i_count*4),
                   (i_mb_size[PIXEL_16x8] + i_mb_size[PIXEL_8x16]) / (i_count*4),
                   i_mb_size[PIXEL_8x8] / (i_count*4),

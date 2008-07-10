@@ -96,6 +96,8 @@ typedef struct
     int i_satd_i4x4;
     int i_predict4x4[16];
 
+    int i_satd_pcm;
+
     /* Chroma part */
     int i_satd_i8x8chroma;
     int i_satd_i8x8chroma_dir[4];
@@ -222,6 +224,9 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     a->i_satd_i8x8   =
     a->i_satd_i4x4   =
     a->i_satd_i8x8chroma = COST_MAX;
+
+    /* non-RD PCM decision is inaccurate, so don't do it */
+    a->i_satd_pcm = a->b_mbrd ? ((uint64_t)X264_PCM_COST*a->i_lambda2 + 128) >> 8 : COST_MAX;
 
     a->b_fast_intra = 0;
     h->mb.i_skip_intra =
@@ -2066,15 +2071,12 @@ void x264_macroblock_analyse( x264_t *h )
 
         i_cost = analysis.i_satd_i16x16;
         h->mb.i_type = I_16x16;
-        if( analysis.i_satd_i4x4 < i_cost )
-        {
-            i_cost = analysis.i_satd_i4x4;
-            h->mb.i_type = I_4x4;
-        }
-        if( analysis.i_satd_i8x8 < i_cost )
-            h->mb.i_type = I_8x8;
+        COPY2_IF_LT( i_cost, analysis.i_satd_i4x4, h->mb.i_type, I_4x4 );
+        COPY2_IF_LT( i_cost, analysis.i_satd_i8x8, h->mb.i_type, I_8x8 );
+        if( analysis.i_satd_pcm < i_cost )
+            h->mb.i_type = I_PCM;
 
-        if( h->mb.i_subpel_refine >= 7 )
+        else if( h->mb.i_subpel_refine >= 7 )
             x264_intra_rd_refine( h, &analysis );
     }
     else if( h->sh.i_type == SLICE_TYPE_P )
@@ -2285,6 +2287,7 @@ void x264_macroblock_analyse( x264_t *h )
             i_intra_cost = analysis.i_satd_i16x16;
             COPY2_IF_LT( i_intra_cost, analysis.i_satd_i8x8, i_intra_type, I_8x8 );
             COPY2_IF_LT( i_intra_cost, analysis.i_satd_i4x4, i_intra_type, I_4x4 );
+            COPY2_IF_LT( i_intra_cost, analysis.i_satd_pcm, i_intra_type, I_PCM );
             COPY2_IF_LT( i_cost, i_intra_cost, i_type, i_intra_type );
 
             if( i_intra_cost == COST_MAX )
@@ -2295,7 +2298,7 @@ void x264_macroblock_analyse( x264_t *h )
             h->stat.frame.i_inter_cost += i_cost;
             h->stat.frame.i_mbs_analysed++;
 
-            if( h->mb.i_subpel_refine >= 7 )
+            if( h->mb.i_subpel_refine >= 7 && h->mb.i_type != I_PCM )
             {
                 if( IS_INTRA( h->mb.i_type ) )
                 {
@@ -2566,11 +2569,12 @@ void x264_macroblock_analyse( x264_t *h )
             COPY2_IF_LT( i_cost, analysis.i_satd_i16x16, i_type, I_16x16 );
             COPY2_IF_LT( i_cost, analysis.i_satd_i8x8, i_type, I_8x8 );
             COPY2_IF_LT( i_cost, analysis.i_satd_i4x4, i_type, I_4x4 );
+            COPY2_IF_LT( i_cost, analysis.i_satd_pcm, i_type, I_PCM );
 
             h->mb.i_type = i_type;
             h->mb.i_partition = i_partition;
 
-            if( analysis.b_mbrd && h->mb.i_subpel_refine >= 7 && IS_INTRA( i_type ) )
+            if( analysis.b_mbrd && h->mb.i_subpel_refine >= 7 && IS_INTRA( i_type ) && i_type != I_PCM )
                 x264_intra_rd_refine( h, &analysis );
             else if( h->param.analyse.b_bidir_me )
                 refine_bidir( h, &analysis );
@@ -2610,6 +2614,9 @@ static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a  )
         case I_16x16:
             h->mb.i_intra16x16_pred_mode = a->i_predict16x16;
             x264_mb_analyse_intra_chroma( h, a );
+            break;
+
+        case I_PCM:
             break;
 
         case P_L0:

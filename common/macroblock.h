@@ -55,7 +55,7 @@ static const uint8_t x264_pred_i4x4_neighbors[12] =
 
 
 /* XXX mb_type isn't the one written in the bitstream -> only internal usage */
-#define IS_INTRA(type) ( (type) == I_4x4 || (type) == I_8x8 || (type) == I_16x16 )
+#define IS_INTRA(type) ( (type) == I_4x4 || (type) == I_8x8 || (type) == I_16x16 || (type) == I_PCM )
 #define IS_SKIP(type)  ( (type) == P_SKIP || (type) == B_SKIP )
 #define IS_DIRECT(type)  ( (type) == B_DIRECT )
 enum mb_class_e
