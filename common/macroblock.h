@@ -125,28 +125,29 @@ static const uint8_t x264_mb_type_list1_table[X264_MBTYPE_MAX][2] =
 enum mb_partition_e
 {
     /* sub partition type for P_8x8 and B_8x8 */
-    D_L0_4x4        = 0,
-    D_L0_8x4        = 1,
-    D_L0_4x8        = 2,
-    D_L0_8x8        = 3,
+    D_L0_4x4          = 0,
+    D_L0_8x4          = 1,
+    D_L0_4x8          = 2,
+    D_L0_8x8          = 3,
 
     /* sub partition type for B_8x8 only */
-    D_L1_4x4        = 4,
-    D_L1_8x4        = 5,
-    D_L1_4x8        = 6,
-    D_L1_8x8        = 7,
+    D_L1_4x4          = 4,
+    D_L1_8x4          = 5,
+    D_L1_4x8          = 6,
+    D_L1_8x8          = 7,
 
-    D_BI_4x4        = 8,
-    D_BI_8x4        = 9,
-    D_BI_4x8        = 10,
-    D_BI_8x8        = 11,
-    D_DIRECT_8x8    = 12,
+    D_BI_4x4          = 8,
+    D_BI_8x4          = 9,
+    D_BI_4x8          = 10,
+    D_BI_8x8          = 11,
+    D_DIRECT_8x8      = 12,
 
     /* partition */
-    D_8x8           = 13,
-    D_16x8          = 14,
-    D_8x16          = 15,
-    D_16x16         = 16,
+    D_8x8             = 13,
+    D_16x8            = 14,
+    D_8x16            = 15,
+    D_16x16           = 16,
+    X264_PARTTYPE_MAX = 17,
 };
 
 static const uint8_t x264_mb_partition_listX_table[2][17] =
