@@ -143,6 +143,7 @@
 
 #ifdef WORDS_BIGENDIAN
 #define endian_fix(x) (x)
+#define endian_fix32(x) (x)
 #elif defined(__GNUC__) && defined(HAVE_MMX)
 static ALWAYS_INLINE uint32_t endian_fix32( uint32_t x )
 {
