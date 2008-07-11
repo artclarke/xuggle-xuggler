@@ -1812,7 +1812,11 @@ void    x264_encoder_close  ( x264_t *h )
     {
         // don't strictly have to wait for the other threads, but it's simpler than canceling them
         if( h->thread[i]->b_thread_active )
+        {
             x264_pthread_join( h->thread[i]->thread_handle, NULL );
+            assert( h->thread[i]->fenc->i_reference_count == 1 );
+            x264_frame_delete( h->thread[i]->fenc );
+        }
     }
 
     /* Slices used and PSNR */
@@ -1987,16 +1991,6 @@ void    x264_encoder_close  ( x264_t *h )
             x264_log( h, X264_LOG_INFO, "kb/s:%.1f\n", f_bitrate );
     }
 
-    /* frames */
-    for( i = 0; h->frames.current[i]; i++ )
-        x264_frame_delete( h->frames.current[i] );
-    for( i = 0; h->frames.next[i]; i++ )
-        x264_frame_delete( h->frames.next[i] );
-    for( i = 0; h->frames.unused[i]; i++ )
-        x264_frame_delete( h->frames.unused[i] );
-    for( i = 0; h->frames.reference[i]; i++ )
-        x264_frame_delete( h->frames.reference[i] );
-
     /* rc */
     x264_ratecontrol_delete( h );
 
@@ -2009,8 +2003,46 @@ void    x264_encoder_close  ( x264_t *h )
         free( h->param.rc.psz_rc_eq );
 
     x264_cqm_delete( h );
+
+    if( h->param.i_threads > 1)
+        h = h->thread[ h->i_thread_phase % h->param.i_threads ];
+
+    /* frames */
+    for( i = 0; h->frames.current[i]; i++ )
+    {
+        assert( h->frames.current[i]->i_reference_count == 1 );
+        x264_frame_delete( h->frames.current[i] );
+    }
+    for( i = 0; h->frames.next[i]; i++ )
+    {
+        assert( h->frames.next[i]->i_reference_count == 1 );
+        x264_frame_delete( h->frames.next[i] );
+    }
+    for( i = 0; h->frames.unused[i]; i++ )
+    {
+        assert( h->frames.unused[i]->i_reference_count == 0 );
+        x264_frame_delete( h->frames.unused[i] );
+    }
+
+    h = h->thread[0];
+
     for( i = h->param.i_threads - 1; i >= 0; i-- )
     {
+        x264_frame_t **frame;
+
+        for( frame = h->thread[i]->frames.reference; *frame; frame++ )
+        {
+            assert( (*frame)->i_reference_count > 0 );
+            (*frame)->i_reference_count--;
+            if( (*frame)->i_reference_count == 0 )
+                x264_frame_delete( *frame );
+        }
+        frame = &h->thread[i]->fdec;
+        assert( (*frame)->i_reference_count > 0 );
+        (*frame)->i_reference_count--;
+        if( (*frame)->i_reference_count == 0 )
+            x264_frame_delete( *frame );
+
         x264_macroblock_cache_end( h->thread[i] );
         x264_free( h->thread[i]->out.p_bitstream );
         x264_free( h->thread[i] );
