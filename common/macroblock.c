@@ -1397,7 +1397,7 @@ void x264_macroblock_cache_save( x264_t *h )
 
     h->mb.type[i_mb_xy] = i_mb_type;
 
-    if( h->mb.i_type != I_16x16 && h->mb.i_cbp_luma == 0 && h->mb.i_cbp_chroma == 0 )
+    if( h->mb.i_type == I_PCM || (h->mb.i_type != I_16x16 && h->mb.i_cbp_luma == 0 && h->mb.i_cbp_chroma == 0) )
         h->mb.i_qp = h->mb.i_last_qp;
     h->mb.qp[i_mb_xy] = i_mb_type != I_PCM ? h->mb.i_qp : 0;
 
