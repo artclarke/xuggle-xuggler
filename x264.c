@@ -691,11 +691,20 @@ static int  Parse( int argc, char **argv,
 
 static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
 {
-    int num = -1, qp;
+    int num = -1, qp, ret;
     char type;
+    uint64_t file_pos;
     while( num < i_frame )
     {
-        int ret = fscanf( opt->qpfile, "%d %c %d\n", &num, &type, &qp );
+        file_pos = ftell( opt->qpfile );
+        ret = fscanf( opt->qpfile, "%d %c %d\n", &num, &type, &qp );
+		if( num > i_frame || ret == EOF )
+		{
+			pic->i_type = X264_TYPE_AUTO;
+			pic->i_qpplus1 = 0;
+			fseek( opt->qpfile , file_pos , SEEK_SET );
+			break;
+		}
         if( num < i_frame )
             continue;
         pic->i_qpplus1 = qp+1;
@@ -705,7 +714,7 @@ static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
         else if( type == 'B' ) pic->i_type = X264_TYPE_BREF;
         else if( type == 'b' ) pic->i_type = X264_TYPE_B;
         else ret = 0;
-        if( ret != 3 || qp < 0 || qp > 51 || num > i_frame )
+        if( ret != 3 || qp < -1 || qp > 51 )
         {
             fprintf( stderr, "x264 [error]: can't parse qpfile for frame %d\n", i_frame );
             fclose( opt->qpfile );
