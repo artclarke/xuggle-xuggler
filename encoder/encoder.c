@@ -504,9 +504,9 @@ static int x264_validate_parameters( x264_t *h )
             return -1;
         }
         if( h->param.analyse.i_mv_range <= 0 )
-            h->param.analyse.i_mv_range = l->mv_range;
+            h->param.analyse.i_mv_range = l->mv_range >> h->param.b_interlaced;
         else
-            h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 512);
+            h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 512 >> h->param.b_interlaced);
         if( h->param.analyse.i_direct_8x8_inference < 0 )
             h->param.analyse.i_direct_8x8_inference = l->direct8x8;
     }
