@@ -496,12 +496,27 @@ static int x264_validate_parameters( x264_t *h )
 
     {
         const x264_level_t *l = x264_levels;
-        while( l->level_idc != 0 && l->level_idc != h->param.i_level_idc )
-            l++;
-        if( l->level_idc == 0 )
+        if( h->param.i_level_idc < 0 )
         {
-            x264_log( h, X264_LOG_ERROR, "invalid level_idc: %d\n", h->param.i_level_idc );
-            return -1;
+            if( h->param.rc.i_rc_method == X264_RC_ABR && h->param.rc.i_vbv_buffer_size <= 0 )
+                h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate * 2;
+            h->sps = h->sps_array;
+            x264_sps_init( h->sps, h->param.i_sps_id, &h->param );
+            do h->param.i_level_idc = l->level_idc;
+                while( l[1].level_idc && x264_validate_levels( h, 0 ) && l++ );
+            if( h->param.rc.i_vbv_buffer_size <= 0 )
+                h->param.rc.i_vbv_max_bitrate = 0;
+            x264_log( h, X264_LOG_DEBUG, "level_idc: %d\n", h->param.i_level_idc );
+        }
+        else
+        {
+            while( l->level_idc && l->level_idc != h->param.i_level_idc )
+                l++;
+            if( l->level_idc == 0 )
+            {
+                x264_log( h, X264_LOG_ERROR, "invalid level_idc: %d\n", h->param.i_level_idc );
+                return -1;
+            }
         }
         if( h->param.analyse.i_mv_range <= 0 )
             h->param.analyse.i_mv_range = l->mv_range >> h->param.b_interlaced;
@@ -649,7 +664,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->pps = &h->pps_array[0];
     x264_pps_init( h->pps, h->param.i_sps_id, &h->param, h->sps);
 
-    x264_validate_levels( h );
+    x264_validate_levels( h, 1 );
 
     if( x264_cqm_init( h ) < 0 )
     {

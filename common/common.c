@@ -61,7 +61,7 @@ void    x264_param_default( x264_param_t *param )
     param->vui.i_chroma_loc= 0;  /* left center */
     param->i_fps_num       = 25;
     param->i_fps_den       = 1;
-    param->i_level_idc     = 51; /* as close to "unrestricted" as we can get */
+    param->i_level_idc     = -1;
 
     /* Encoder parameters */
     param->i_frame_reference = 1;
@@ -122,7 +122,7 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.b_chroma_me = 1;
     param->analyse.i_mv_range_thread = -1;
     param->analyse.i_mv_range = -1; // set from level_idc
-    param->analyse.i_direct_8x8_inference = -1; // set from level_idc
+    param->analyse.i_direct_8x8_inference = 1;
     param->analyse.i_chroma_qp_offset = 0;
     param->analyse.b_fast_pskip = 1;
     param->analyse.b_dct_decimate = 1;
