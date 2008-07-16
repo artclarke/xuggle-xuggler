@@ -147,7 +147,7 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
             int oe = block_idx_xy_fenc[i];
             int od = block_idx_xy_fdec[i];
             h->zigzagf.sub_4x4( h->dct.luma4x4[i], p_src+oe, p_dst+od );
-            dct_dc4x4[0][block_idx_xy_1d[i]] = h->dct.luma4x4[i][0];
+            dct_dc4x4[0][block_idx_yx_1d[i]] = h->dct.luma4x4[i][0];
             h->dct.luma4x4[i][0] = 0;
         }
         h->zigzagf.scan_4x4( h->dct.luma16x16_dc, dct_dc4x4 );

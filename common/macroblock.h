@@ -224,6 +224,10 @@ static const uint8_t block_idx_xy_1d[16] =
 {
     0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15
 };
+static const uint8_t block_idx_yx_1d[16] =
+{
+    0, 4, 1, 5, 8, 12, 9, 13, 2, 6, 3, 7, 10, 14, 11, 15
+};
 static const uint8_t block_idx_xy_fenc[16] =
 {
     0*4 + 0*4*FENC_STRIDE, 1*4 + 0*4*FENC_STRIDE,
