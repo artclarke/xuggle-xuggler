@@ -169,16 +169,17 @@ static inline void bs_write_ue_big( bs_t *s, unsigned int val )
     int tmp = ++val;
     if( tmp >= 0x10000 )
     {
-        bs_write32( s, 0 );
+        size = 32;
         tmp >>= 16;
     }
     if( tmp >= 0x100 )
     {
-        size = 16;
+        size += 16;
         tmp >>= 8;
     }
     size += x264_ue_size_tab[tmp];
-    bs_write( s, size, val );
+    bs_write( s, size>>1, 0 );
+    bs_write( s, (size>>1)+1, val );
 }
 
 /* Only works on values under 255. */
