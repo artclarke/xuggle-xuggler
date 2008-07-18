@@ -480,8 +480,6 @@ void x264_mb_load_mv_direct8x8( x264_t *h, int idx )
     *(uint64_t*)h->mb.cache.direct_mv[1][x264_scan8[idx*4]+8];
 }
 
-#define FIXED_SCALE 256
-
 /* This just improves encoder performance, it's not part of the spec */
 void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[8][2], int *i_mvc )
 {
@@ -534,8 +532,8 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
             if( ref_col >= 0 ) \
             { \
                 int scale = (h->fdec->i_poc - h->fdec->ref_poc[0][i_ref]) * l0->inv_ref_poc[ref_col];\
-                mvc[i][0] = l0->mv[0][i_b4][0] * scale / FIXED_SCALE; \
-                mvc[i][1] = l0->mv[0][i_b4][1] * scale / FIXED_SCALE; \
+                mvc[i][0] = (l0->mv[0][i_b4][0]*scale + 128) >> 8;\
+                mvc[i][1] = (l0->mv[0][i_b4][1]*scale + 128) >> 8;\
                 i++; \
             } \
         }
@@ -561,7 +559,7 @@ static void setup_inverse_delta_pocs( x264_t *h )
     for( i = 0; i < h->i_ref0; i++ )
     {
         int delta = h->fdec->i_poc - h->fref0[i]->i_poc;
-        h->fdec->inv_ref_poc[i] = (FIXED_SCALE + delta/2) / delta;
+        h->fdec->inv_ref_poc[i] = (256 + delta/2) / delta;
     }
 }
 
