@@ -1903,6 +1903,7 @@ void    x264_encoder_close  ( x264_t *h )
     {
         int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_B];
         double i_count = h->stat.i_slice_count[SLICE_TYPE_B] * h->mb.i_mb_count / 100.0;
+        double i_mb_list_count;
         int64_t *i_mb_size = i_mb_count_size[SLICE_TYPE_B];
         int64_t list_count[3] = {0}; /* 0 == L0, 1 == L1, 2 == BI */
         x264_print_intra( i_mb_count, i_count, b_print_pcm, intra );
@@ -1918,7 +1919,7 @@ void    x264_encoder_close  ( x264_t *h )
         list_count[1] += h->stat.i_mb_partition[SLICE_TYPE_B][D_L1_8x8];
         list_count[2] += h->stat.i_mb_partition[SLICE_TYPE_B][D_BI_8x8];
         i_mb_count[B_DIRECT] += (h->stat.i_mb_partition[SLICE_TYPE_B][D_DIRECT_8x8]+2)/4;
-        const double i_mb_list_count = (list_count[0] + list_count[1] + list_count[2]) / 100.0;
+        i_mb_list_count = (list_count[0] + list_count[1] + list_count[2]) / 100.0;
         x264_log( h, X264_LOG_INFO,
                   "mb B  %s  B16..8: %4.1f%% %4.1f%% %4.1f%%  direct:%4.1f%%  skip:%4.1f%%  L0:%4.1f%% L1:%4.1f%% BI:%4.1f%%\n",
                   intra,
