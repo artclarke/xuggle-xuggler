@@ -559,6 +559,7 @@ int x264_validate_levels( x264_t *h, int verbose )
     CHECK( "VBV bitrate", l->bitrate, h->param.rc.i_vbv_max_bitrate );
     CHECK( "VBV buffer", l->cpb, h->param.rc.i_vbv_buffer_size );
     CHECK( "MV range", l->mv_range, h->param.analyse.i_mv_range );
+    CHECK( "interlaced", !l->frame_only, h->param.b_interlaced );
 
     if( h->param.i_fps_den > 0 )
         CHECK( "MB rate", l->mbps, (int64_t)mbs * h->param.i_fps_num / h->param.i_fps_den );
