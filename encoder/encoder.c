@@ -1712,6 +1712,8 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
         for( i_list = 0; i_list < 2; i_list++ )
             for( i = 0; i < 32; i++ )
                 h->stat.i_mb_count_ref[h->sh.i_type][i_list][i] += h->stat.frame.i_mb_count_ref[i_list][i];
+    if( h->sh.i_type == SLICE_TYPE_P )
+        h->stat.i_consecutive_bframes[h->fdec->i_frame - h->fref0[0]->i_frame - 1]++;
     if( h->sh.i_type == SLICE_TYPE_B )
     {
         h->stat.i_direct_frames[ h->sh.b_direct_spatial_mv_pred ] ++;
@@ -1817,7 +1819,7 @@ void    x264_encoder_close  ( x264_t *h )
 {
     int64_t i_yuv_size = 3 * h->param.i_width * h->param.i_height / 2;
     int64_t i_mb_count_size[2][7] = {{0}};
-    char intra[40];
+    char buf[200];
     int i, j, i_list, i_type;
     int b_print_pcm = h->stat.i_mb_count[SLICE_TYPE_I][I_PCM]
                    || h->stat.i_mb_count[SLICE_TYPE_P][I_PCM]
@@ -1867,6 +1869,17 @@ void    x264_encoder_close  ( x264_t *h )
             }
         }
     }
+    if( h->param.i_bframe && h->stat.i_slice_count[SLICE_TYPE_P] )
+    {
+        char *p = buf;
+        int den = 0;
+        // weight by number of frames (including the P-frame) that are in a sequence of N B-frames
+        for( i=0; i<=h->param.i_bframe; i++ )
+            den += (i+1) * h->stat.i_consecutive_bframes[i];
+        for( i=0; i<=h->param.i_bframe; i++ )
+            p += sprintf( p, " %4.1f%%", 100. * (i+1) * h->stat.i_consecutive_bframes[i] / den );
+        x264_log( h, X264_LOG_INFO, "consecutive B-frames:%s\n", buf );
+    }
 
     for( i_type = 0; i_type < 2; i_type++ )
         for( i = 0; i < X264_PARTTYPE_MAX; i++ )
@@ -1880,18 +1893,18 @@ void    x264_encoder_close  ( x264_t *h )
     {
         int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_I];
         double i_count = h->stat.i_slice_count[SLICE_TYPE_I] * h->mb.i_mb_count / 100.0;
-        x264_print_intra( i_mb_count, i_count, b_print_pcm, intra );
-        x264_log( h, X264_LOG_INFO, "mb I  %s\n", intra );
+        x264_print_intra( i_mb_count, i_count, b_print_pcm, buf );
+        x264_log( h, X264_LOG_INFO, "mb I  %s\n", buf );
     }
     if( h->stat.i_slice_count[SLICE_TYPE_P] > 0 )
     {
         int64_t *i_mb_count = h->stat.i_mb_count[SLICE_TYPE_P];
         double i_count = h->stat.i_slice_count[SLICE_TYPE_P] * h->mb.i_mb_count / 100.0;
         int64_t *i_mb_size = i_mb_count_size[SLICE_TYPE_P];
-        x264_print_intra( i_mb_count, i_count, b_print_pcm, intra );
+        x264_print_intra( i_mb_count, i_count, b_print_pcm, buf );
         x264_log( h, X264_LOG_INFO,
                   "mb P  %s  P16..4: %4.1f%% %4.1f%% %4.1f%% %4.1f%% %4.1f%%    skip:%4.1f%%\n",
-                  intra,
+                  buf,
                   i_mb_size[PIXEL_16x16] / (i_count*4),
                   (i_mb_size[PIXEL_16x8] + i_mb_size[PIXEL_8x16]) / (i_count*4),
                   i_mb_size[PIXEL_8x8] / (i_count*4),
@@ -1906,7 +1919,7 @@ void    x264_encoder_close  ( x264_t *h )
         double i_mb_list_count;
         int64_t *i_mb_size = i_mb_count_size[SLICE_TYPE_B];
         int64_t list_count[3] = {0}; /* 0 == L0, 1 == L1, 2 == BI */
-        x264_print_intra( i_mb_count, i_count, b_print_pcm, intra );
+        x264_print_intra( i_mb_count, i_count, b_print_pcm, buf );
         for( i = 0; i < X264_PARTTYPE_MAX; i++ )
             for( j = 0; j < 2; j++ )
             {
@@ -1922,7 +1935,7 @@ void    x264_encoder_close  ( x264_t *h )
         i_mb_list_count = (list_count[0] + list_count[1] + list_count[2]) / 100.0;
         x264_log( h, X264_LOG_INFO,
                   "mb B  %s  B16..8: %4.1f%% %4.1f%% %4.1f%%  direct:%4.1f%%  skip:%4.1f%%  L0:%4.1f%% L1:%4.1f%% BI:%4.1f%%\n",
-                  intra,
+                  buf,
                   i_mb_size[PIXEL_16x16] / (i_count*4),
                   (i_mb_size[PIXEL_16x8] + i_mb_size[PIXEL_8x16]) / (i_count*4),
                   i_mb_size[PIXEL_8x8] / (i_count*4),
@@ -1968,7 +1981,6 @@ void    x264_encoder_close  ( x264_t *h )
             int i_slice;
             for( i_slice = 0; i_slice < 2; i_slice++ )
             {
-                char buf[200];
                 char *p = buf;
                 int64_t i_den = 0;
                 int i_max = 0;

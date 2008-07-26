@@ -557,6 +557,7 @@ struct x264_t
         int     i_slice_count[5];
         int64_t i_slice_size[5];
         double  f_slice_qp[5];
+        int     i_consecutive_bframes[X264_BFRAME_MAX+1];
         /* */
         int64_t i_sqe_global[5];
         double  f_psnr_average[5];
