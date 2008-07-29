@@ -503,6 +503,8 @@ int close_file_thread( hnd_t handle )
     thread_input_t *h = handle;
     h->p_close_infile( h->p_handle );
     x264_picture_clean( &h->pic );
+    x264_pthread_join( h->tid, NULL );
+    free( h->next_args );
     free( h );
     return 0;
 }

@@ -852,6 +852,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     i_end = x264_mdate();
     x264_picture_clean( &pic );
     x264_encoder_close( h );
+    x264_free( mux_buffer );
     fprintf( stderr, "\n" );
 
     if( b_ctrl_c )
