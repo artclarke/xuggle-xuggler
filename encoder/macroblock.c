@@ -809,6 +809,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
         h->dctf.sub4x4_dct( dct4x4, p_fenc, p_fdec );
         h->quantf.quant_4x4( dct4x4, h->quant4_mf[CQM_4PC][i_qp], h->quant4_bias[CQM_4PC][i_qp] );
         h->zigzagf.scan_4x4( h->dct.luma4x4[16+i8+ch*4], dct4x4 );
+        h->dct.luma4x4[16+i8+ch*4][0] = 0;
         if( array_non_zero( dct4x4 ) )
         {
             h->quantf.dequant_4x4( dct4x4, h->dequant4_mf[CQM_4PC], i_qp );

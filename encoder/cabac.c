@@ -730,10 +730,12 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
 
     do
     {
+        int i_prefix, ctx;
         i_coeff--;
+
         /* write coeff_abs - 1 */
-        int i_prefix = X264_MIN( i_coeff_abs_m1[i_coeff], 14 );
-        int ctx = coeff_abs_level1_ctx[node_ctx] + i_ctx_level;
+        i_prefix = X264_MIN( i_coeff_abs_m1[i_coeff], 14 );
+        ctx = coeff_abs_level1_ctx[node_ctx] + i_ctx_level;
 
         if( i_prefix )
         {
