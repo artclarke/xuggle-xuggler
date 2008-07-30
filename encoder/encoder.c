@@ -421,6 +421,8 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.i_qp_max = x264_clip3( (int)(X264_MAX3( qp_p, qp_i, qp_b ) + .999), 0, 51 );
         h->param.rc.i_aq_mode = 0;
     }
+    h->param.rc.i_qp_max = x264_clip3( h->param.rc.i_qp_max, 0, 51 );
+    h->param.rc.i_qp_min = x264_clip3( h->param.rc.i_qp_min, 0, h->param.rc.i_qp_max );
 
     if( ( h->param.i_width % 16 || h->param.i_height % 16 )
         && h->param.i_height != 1080 && !h->mb.b_lossless )
