@@ -22,17 +22,9 @@
 ;*****************************************************************************
 
 %include "x86inc.asm"
+%include "x86util.asm"
 
 SECTION .text
-
-%macro SUMSUB_BADC 4
-    paddw %1, %2
-    paddw %3, %4
-    paddw %2, %2
-    paddw %4, %4
-    psubw %2, %1
-    psubw %4, %3
-%endmacro
 
 %macro SBUTTERFLY 5
     mov%1     %5, %3
@@ -45,21 +37,6 @@ SECTION .text
     SBUTTERFLY q, wd, %3, %4, %2
     SBUTTERFLY q, dq, %1, %3, %4
     SBUTTERFLY q, dq, %5, %2, %3
-%endmacro
-
-%macro ABS1 2     ; mma, tmp
-    pxor    %2, %2
-    psubw   %2, %1
-    pmaxsw  %1, %2
-%endmacro
-
-%macro ABS2 4     ; mma, mmb, tmp0, tmp1
-    pxor    %3, %3
-    pxor    %4, %4
-    psubw   %3, %1
-    psubw   %4, %2
-    pmaxsw  %1, %3
-    pmaxsw  %2, %4
 %endmacro
 
 %macro LOAD_DIFF_4P 4  ; mmp, mmt, dx, dy
@@ -87,15 +64,6 @@ SECTION .text
     movq [spill], mm6
     LOAD_DIFF_4P  mm7, mm6, %1, 1
     movq mm6, [spill]
-%endmacro
-
-%macro HADAMARD8_1D 8
-    SUMSUB_BADC %1, %5, %2, %6
-    SUMSUB_BADC %3, %7, %4, %8
-    SUMSUB_BADC %1, %3, %2, %4
-    SUMSUB_BADC %5, %7, %6, %8
-    SUMSUB_BADC %1, %2, %3, %4
-    SUMSUB_BADC %5, %6, %7, %8
 %endmacro
 
 %macro SUM4x8_MM 0

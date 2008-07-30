@@ -23,6 +23,7 @@
 ;*****************************************************************************
 
 %include "x86inc.asm"
+%include "x86util.asm"
 
 SECTION_RODATA
 pw_1:    times 8 dw 1
@@ -166,29 +167,6 @@ SSD  8,  4, sse2
 ; SATD
 ;=============================================================================
 
-%macro LOAD_DIFF_4P 4  ; dst, tmp, [pix1], [pix2]
-    movd       %1, %3
-    movd       %2, %4
-    punpcklbw  %1, %2
-    punpcklbw  %2, %2
-    psubw      %1, %2
-%endmacro
-
-%macro LOAD_DIFF_8P 4  ; dst, tmp, [pix1], [pix2]
-    movq       %1, %3
-    movq       %2, %4
-    punpcklbw  %1, %2
-    punpcklbw  %2, %2
-    psubw      %1, %2
-%endmacro
-
-%macro LOAD_DIFF_8x4P 6 ; 4x dest, 2x temp
-    LOAD_DIFF_8P %1, %5, [r0],      [r2]
-    LOAD_DIFF_8P %2, %6, [r0+r1],   [r2+r3]
-    LOAD_DIFF_8P %3, %5, [r0+2*r1], [r2+2*r3]
-    LOAD_DIFF_8P %4, %6, [r0+r4],   [r2+r5]
-%endmacro
-
 ; phaddw is used only in 4x4 hadamard, because in 8x8 it's slower:
 ; even on Penryn, phaddw has latency 3 while paddw and punpck* have 1.
 ; 4x4 is special in that 4x4 transpose in xmmregs takes extra munging,
@@ -207,27 +185,9 @@ SSD  8,  4, sse2
     PHSUMSUB  %5, %2, %3
 %endmacro
 
-%macro SUMSUB_BADC 4
-    paddw  %1, %2
-    paddw  %3, %4
-    paddw  %2, %2
-    paddw  %4, %4
-    psubw  %2, %1
-    psubw  %4, %3
-%endmacro
-
 %macro HADAMARD4_1D 4
     SUMSUB_BADC %1, %2, %3, %4
     SUMSUB_BADC %1, %3, %2, %4
-%endmacro
-
-%macro HADAMARD8_1D 8
-    SUMSUB_BADC %1, %5, %2, %6
-    SUMSUB_BADC %3, %7, %4, %8
-    SUMSUB_BADC %1, %3, %2, %4
-    SUMSUB_BADC %5, %7, %6, %8
-    SUMSUB_BADC %1, %2, %3, %4
-    SUMSUB_BADC %5, %6, %7, %8
 %endmacro
 
 %macro SBUTTERFLY 5
@@ -305,38 +265,6 @@ SSD  8,  4, sse2
 %endmacro
 %endif
 
-%macro ABS1_MMX 2    ; a, tmp
-    pxor    %2, %2
-    psubw   %2, %1
-    pmaxsw  %1, %2
-%endmacro
-
-%macro ABS2_MMX 4    ; a, b, tmp0, tmp1
-    pxor    %3, %3
-    pxor    %4, %4
-    psubw   %3, %1
-    psubw   %4, %2
-    pmaxsw  %1, %3
-    pmaxsw  %2, %4
-%endmacro
-
-%macro ABS1_SSSE3 2
-    pabsw   %1, %1
-%endmacro
-
-%macro ABS2_SSSE3 4
-    pabsw   %1, %1
-    pabsw   %2, %2
-%endmacro
-
-%define ABS1 ABS1_MMX
-%define ABS2 ABS2_MMX
-
-%macro ABS4 6
-    ABS2 %1, %2, %5, %6
-    ABS2 %3, %4, %5, %6
-%endmacro
-
 %macro HADAMARD4x4_SUM 1    ; %1 = dest (row sum of one block)
     HADAMARD4_1D  mm4, mm5, mm6, mm7
     TRANSPOSE4x4W mm4, mm5, mm6, mm7, %1
@@ -354,10 +282,10 @@ SSD  8,  4, sse2
 ; clobber: mm3..mm7
 ; out: %1 = satd
 %macro SATD_4x4_MMX 3
-    LOAD_DIFF_4P mm4, mm3, [r0+%2],      [r2+%2]
-    LOAD_DIFF_4P mm5, mm3, [r0+r1+%2],   [r2+r3+%2]
-    LOAD_DIFF_4P mm6, mm3, [r0+2*r1+%2], [r2+2*r3+%2]
-    LOAD_DIFF_4P mm7, mm3, [r0+r4+%2],   [r2+r5+%2]
+    LOAD_DIFF mm4, mm3, none, [r0+%2],      [r2+%2]
+    LOAD_DIFF mm5, mm3, none, [r0+r1+%2],   [r2+r3+%2]
+    LOAD_DIFF mm6, mm3, none, [r0+2*r1+%2], [r2+2*r3+%2]
+    LOAD_DIFF mm7, mm3, none, [r0+r4+%2],   [r2+r5+%2]
 %if %3
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
