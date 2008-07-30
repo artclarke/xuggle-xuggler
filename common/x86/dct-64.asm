@@ -23,6 +23,7 @@
 ;*****************************************************************************
 
 %include "x86inc.asm"
+%include "x86util.asm"
 
 SECTION_RODATA
 pw_32: times 8 dw 32
@@ -30,20 +31,6 @@ pw_32: times 8 dw 32
 SECTION .text
 
 INIT_XMM
-
-%macro LOAD_DIFF_8P 5
-    movq        %1, %4
-    punpcklbw   %1, %3
-    movq        %2, %5
-    punpcklbw   %2, %3
-    psubw       %1, %2
-%endmacro
-
-%macro SUMSUB_BA 2
-    paddw   %1, %2
-    paddw   %2, %2
-    psubw   %2, %1
-%endmacro
 
 %macro SBUTTERFLY 4
     mova      m%4, m%2
@@ -67,15 +54,6 @@ INIT_XMM
     SBUTTERFLY qdq, %4, %8, %9
     SWAP %2, %5
     SWAP %4, %7
-%endmacro
-
-%macro STORE_DIFF_8P 4
-    psraw       %1, 6
-    movq        %2, %4
-    punpcklbw   %2, %3
-    paddsw      %1, %2
-    packuswb    %1, %1  
-    movq        %4, %1
 %endmacro
 
 SECTION .text
@@ -136,14 +114,14 @@ SECTION .text
 ; void x264_sub8x8_dct8_sse2( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
 cglobal x264_sub8x8_dct8_sse2
-    LOAD_DIFF_8P  m0, m8, m9, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
-    LOAD_DIFF_8P  m1, m8, m9, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
-    LOAD_DIFF_8P  m2, m8, m9, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
-    LOAD_DIFF_8P  m3, m8, m9, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
-    LOAD_DIFF_8P  m4, m8, m9, [r1+4*FENC_STRIDE], [r2+4*FDEC_STRIDE]
-    LOAD_DIFF_8P  m5, m8, m9, [r1+5*FENC_STRIDE], [r2+5*FDEC_STRIDE]
-    LOAD_DIFF_8P  m6, m8, m9, [r1+6*FENC_STRIDE], [r2+6*FDEC_STRIDE]
-    LOAD_DIFF_8P  m7, m8, m9, [r1+7*FENC_STRIDE], [r2+7*FDEC_STRIDE]
+    LOAD_DIFF  m0, m8, m9, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
+    LOAD_DIFF  m1, m8, m9, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
+    LOAD_DIFF  m2, m8, m9, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
+    LOAD_DIFF  m3, m8, m9, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
+    LOAD_DIFF  m4, m8, m9, [r1+4*FENC_STRIDE], [r2+4*FDEC_STRIDE]
+    LOAD_DIFF  m5, m8, m9, [r1+5*FENC_STRIDE], [r2+5*FDEC_STRIDE]
+    LOAD_DIFF  m6, m8, m9, [r1+6*FENC_STRIDE], [r2+6*FDEC_STRIDE]
+    LOAD_DIFF  m7, m8, m9, [r1+7*FENC_STRIDE], [r2+7*FDEC_STRIDE]
 
     DCT8_1D       0,1,2,3,4,5,6,7,8,9
     TRANSPOSE8x8W 0,1,2,3,4,5,6,7,8
@@ -232,14 +210,14 @@ cglobal x264_add8x8_idct8_sse2
     IDCT8_1D      0,1,2,3,4,5,6,7,8,9
  
     pxor  m9, m9
-    STORE_DIFF_8P m0, m8, m9, [r0+0*FDEC_STRIDE]
-    STORE_DIFF_8P m1, m8, m9, [r0+1*FDEC_STRIDE]
-    STORE_DIFF_8P m2, m8, m9, [r0+2*FDEC_STRIDE]
-    STORE_DIFF_8P m3, m8, m9, [r0+3*FDEC_STRIDE]
-    STORE_DIFF_8P m4, m8, m9, [r0+4*FDEC_STRIDE]
-    STORE_DIFF_8P m5, m8, m9, [r0+5*FDEC_STRIDE]
-    STORE_DIFF_8P m6, m8, m9, [r0+6*FDEC_STRIDE]
-    STORE_DIFF_8P m7, m8, m9, [r0+7*FDEC_STRIDE]
+    STORE_DIFF m0, m8, m9, [r0+0*FDEC_STRIDE]
+    STORE_DIFF m1, m8, m9, [r0+1*FDEC_STRIDE]
+    STORE_DIFF m2, m8, m9, [r0+2*FDEC_STRIDE]
+    STORE_DIFF m3, m8, m9, [r0+3*FDEC_STRIDE]
+    STORE_DIFF m4, m8, m9, [r0+4*FDEC_STRIDE]
+    STORE_DIFF m5, m8, m9, [r0+5*FDEC_STRIDE]
+    STORE_DIFF m6, m8, m9, [r0+6*FDEC_STRIDE]
+    STORE_DIFF m7, m8, m9, [r0+7*FDEC_STRIDE]
     ret
 
 

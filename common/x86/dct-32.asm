@@ -24,18 +24,13 @@
 ;*****************************************************************************
 
 %include "x86inc.asm"
+%include "x86util.asm"
 
 SECTION_RODATA
 
 pw_32: times 8 dw 32
 
 SECTION .text
-
-%macro SUMSUB_BA 2
-    paddw   %1, %2
-    paddw   %2, %2
-    psubw   %2, %1
-%endmacro
 
 %macro SBUTTERFLY 4
     mova       m%4, m%2
@@ -50,23 +45,6 @@ SECTION .text
     SBUTTERFLY dq, %1, %3, %5
     SBUTTERFLY dq, %2, %4, %5
     SWAP %2, %3
-%endmacro
-
-%macro LOAD_DIFF_8P 4
-    movh       %1, %3
-    movh       %2, %4
-    punpcklbw  %1, %2
-    punpcklbw  %2, %2
-    psubw      %1, %2
-%endmacro
-
-%macro STORE_DIFF_8P 4
-    psraw      %1, 6
-    movh       %3, %2
-    punpcklbw  %3, %4
-    paddsw     %1, %3
-    packuswb   %1, %1
-    movh       %2, %1
 %endmacro
 
 ; in: m0..m7
@@ -175,15 +153,15 @@ SECTION .text
 INIT_MMX
 ALIGN 16
 load_diff_4x8_mmx:
-    LOAD_DIFF_8P m0, m7, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
-    LOAD_DIFF_8P m1, m7, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
-    LOAD_DIFF_8P m2, m7, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
-    LOAD_DIFF_8P m3, m7, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
-    LOAD_DIFF_8P m4, m7, [r1+4*FENC_STRIDE], [r2+4*FDEC_STRIDE]
-    LOAD_DIFF_8P m5, m7, [r1+5*FENC_STRIDE], [r2+5*FDEC_STRIDE]
+    LOAD_DIFF m0, m7, none, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
+    LOAD_DIFF m1, m7, none, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
+    LOAD_DIFF m2, m7, none, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
+    LOAD_DIFF m3, m7, none, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
+    LOAD_DIFF m4, m7, none, [r1+4*FENC_STRIDE], [r2+4*FDEC_STRIDE]
+    LOAD_DIFF m5, m7, none, [r1+5*FENC_STRIDE], [r2+5*FDEC_STRIDE]
     movq  [r0], m0
-    LOAD_DIFF_8P m6, m7, [r1+6*FENC_STRIDE], [r2+6*FDEC_STRIDE]
-    LOAD_DIFF_8P m7, m0, [r1+7*FENC_STRIDE], [r2+7*FDEC_STRIDE]
+    LOAD_DIFF m6, m7, none, [r1+6*FENC_STRIDE], [r2+6*FDEC_STRIDE]
+    LOAD_DIFF m7, m0, none, [r1+7*FENC_STRIDE], [r2+7*FDEC_STRIDE]
     movq  m0, [r0]
     ret
 
@@ -412,15 +390,15 @@ INIT_XMM
 cglobal x264_sub8x8_dct8_sse2, 3,3
 global x264_sub8x8_dct8_sse2 %+ .skip_prologue
 .skip_prologue:
-    LOAD_DIFF_8P m0, m7, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
-    LOAD_DIFF_8P m1, m7, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
-    LOAD_DIFF_8P m2, m7, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
-    LOAD_DIFF_8P m3, m7, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
-    LOAD_DIFF_8P m4, m7, [r1+4*FENC_STRIDE], [r2+4*FDEC_STRIDE]
-    LOAD_DIFF_8P m5, m7, [r1+5*FENC_STRIDE], [r2+5*FDEC_STRIDE]
+    LOAD_DIFF m0, m7, none, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
+    LOAD_DIFF m1, m7, none, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
+    LOAD_DIFF m2, m7, none, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
+    LOAD_DIFF m3, m7, none, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
+    LOAD_DIFF m4, m7, none, [r1+4*FENC_STRIDE], [r2+4*FDEC_STRIDE]
+    LOAD_DIFF m5, m7, none, [r1+5*FENC_STRIDE], [r2+5*FDEC_STRIDE]
     SPILL r0, 0
-    LOAD_DIFF_8P m6, m7, [r1+6*FENC_STRIDE], [r2+6*FDEC_STRIDE]
-    LOAD_DIFF_8P m7, m0, [r1+7*FENC_STRIDE], [r2+7*FDEC_STRIDE]
+    LOAD_DIFF m6, m7, none, [r1+6*FENC_STRIDE], [r2+6*FDEC_STRIDE]
+    LOAD_DIFF m7, m0, none, [r1+7*FENC_STRIDE], [r2+7*FDEC_STRIDE]
     UNSPILL r0, 0
     DCT8_1D 0,1,2,3,4,5,6,7,r0
     UNSPILL r0, 0,4
@@ -446,14 +424,14 @@ global x264_add8x8_idct8_sse2 %+ .skip_prologue
     IDCT8_1D   0,1,2,3,4,5,6,7,r1
     SPILL r1, 6,7
     pxor       m7, m7
-    STORE_DIFF_8P m0, [r0+FDEC_STRIDE*0], m6, m7
-    STORE_DIFF_8P m1, [r0+FDEC_STRIDE*1], m6, m7
-    STORE_DIFF_8P m2, [r0+FDEC_STRIDE*2], m6, m7
-    STORE_DIFF_8P m3, [r0+FDEC_STRIDE*3], m6, m7
-    STORE_DIFF_8P m4, [r0+FDEC_STRIDE*4], m6, m7
-    STORE_DIFF_8P m5, [r0+FDEC_STRIDE*5], m6, m7
+    STORE_DIFF m0, m6, m7, [r0+FDEC_STRIDE*0]
+    STORE_DIFF m1, m6, m7, [r0+FDEC_STRIDE*1]
+    STORE_DIFF m2, m6, m7, [r0+FDEC_STRIDE*2]
+    STORE_DIFF m3, m6, m7, [r0+FDEC_STRIDE*3]
+    STORE_DIFF m4, m6, m7, [r0+FDEC_STRIDE*4]
+    STORE_DIFF m5, m6, m7, [r0+FDEC_STRIDE*5]
     UNSPILL_SHUFFLE r1, 0,1, 6,7
-    STORE_DIFF_8P m0, [r0+FDEC_STRIDE*6], m6, m7
-    STORE_DIFF_8P m1, [r0+FDEC_STRIDE*7], m6, m7
+    STORE_DIFF m0, m6, m7, [r0+FDEC_STRIDE*6]
+    STORE_DIFF m1, m6, m7, [r0+FDEC_STRIDE*7]
     ret
 

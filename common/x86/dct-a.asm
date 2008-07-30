@@ -23,6 +23,7 @@
 ;*****************************************************************************
 
 %include "x86inc.asm"
+%include "x86util.asm"
 
 SECTION_RODATA
 pw_1:  times 8 dw 1
@@ -30,46 +31,6 @@ pw_32: times 8 dw 32
 pb_zigzag4: db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
 
 SECTION .text
-
-%macro LOAD_DIFF_4P 5
-    movh        %1, %4
-    punpcklbw   %1, %3
-    movh        %2, %5
-    punpcklbw   %2, %3
-    psubw       %1, %2
-%endmacro
-
-%macro SUMSUB_BA 2
-    paddw   %1, %2
-    paddw   %2, %2
-    psubw   %2, %1
-%endmacro
-
-%macro SUMSUB_BADC 4
-    paddw   %1, %2
-    paddw   %3, %4
-    paddw   %2, %2
-    paddw   %4, %4
-    psubw   %2, %1
-    psubw   %4, %3
-%endmacro
-
-%macro SUMSUB2_AB 3
-    mova    %3, %1
-    paddw   %1, %1
-    paddw   %1, %2
-    psubw   %3, %2
-    psubw   %3, %2
-%endmacro
-
-%macro SUMSUBD2_AB 4
-    mova    %4, %1
-    mova    %3, %2
-    psraw   %2, 1
-    psraw   %4, 1
-    paddw   %1, %2
-    psubw   %4, %3
-%endmacro
 
 %macro SBUTTERFLY 4
     mova       m%4, m%2
@@ -93,15 +54,6 @@ SECTION .text
     SBUTTERFLY dq, %2, %4, %5
     SBUTTERFLY qdq, %1, %2, %5
     SBUTTERFLY qdq, %3, %4, %5
-%endmacro
-
-%macro STORE_DIFF_4P 4
-    psraw       %1, 6
-    movh        %2, %4
-    punpcklbw   %2, %3
-    paddsw      %1, %2
-    packuswb    %1, %1
-    movh        %4, %1
 %endmacro
 
 %macro HADAMARD4_1D 4
@@ -173,10 +125,10 @@ cglobal x264_idct4x4dc_mmx, 1,1
 cglobal x264_sub4x4_dct_mmx, 3,3
 .skip_prologue:
 %macro SUB_DCT4 1
-    LOAD_DIFF_4P  m0, m6, m7, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
-    LOAD_DIFF_4P  m1, m6, m7, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
-    LOAD_DIFF_4P  m2, m6, m7, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
-    LOAD_DIFF_4P  m3, m6, m7, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
+    LOAD_DIFF  m0, m6, m7, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
+    LOAD_DIFF  m1, m6, m7, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
+    LOAD_DIFF  m2, m6, m7, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
+    LOAD_DIFF  m3, m6, m7, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
     DCT4_1D 0,1,2,3,4
     TRANSPOSE%1 0,1,2,3,4
     DCT4_1D 0,1,2,3,4
@@ -203,10 +155,10 @@ cglobal x264_add4x4_idct_mmx, 2,2,1
     paddw m0, [pw_32 GLOBAL]
     IDCT4_1D 0,1,2,3,4,5
     pxor  m7, m7
-    STORE_DIFF_4P  m0, m4, m7, [r0+0*FDEC_STRIDE]
-    STORE_DIFF_4P  m1, m4, m7, [r0+1*FDEC_STRIDE]
-    STORE_DIFF_4P  m2, m4, m7, [r0+2*FDEC_STRIDE]
-    STORE_DIFF_4P  m3, m4, m7, [r0+3*FDEC_STRIDE]
+    STORE_DIFF  m0, m4, m7, [r0+0*FDEC_STRIDE]
+    STORE_DIFF  m1, m4, m7, [r0+1*FDEC_STRIDE]
+    STORE_DIFF  m2, m4, m7, [r0+2*FDEC_STRIDE]
+    STORE_DIFF  m3, m4, m7, [r0+3*FDEC_STRIDE]
 %endmacro
     ADD_IDCT4 4x4W
     RET
