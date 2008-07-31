@@ -23,24 +23,25 @@ endif
 ifneq ($(AS),)
 X86SRC0 = cabac-a.asm dct-a.asm deblock-a.asm mc-a.asm mc-a2.asm \
           pixel-a.asm predict-a.asm quant-a.asm sad-a.asm \
-          cpu-32.asm dct-32.asm x86util.asm
+          cpu-32.asm dct-32.asm
 X86SRC = $(X86SRC0:%=common/x86/%)
 
 ifeq ($(ARCH),X86)
-SRCS   += common/x86/mc-c.c common/x86/predict-c.c
-ASMSRC  = $(X86SRC) common/x86/pixel-32.asm
-OBJASM  = $(ASMSRC:%.asm=%.o)
-ASFLAGS += -Icommon/x86/
-$(OBJASM): common/x86/x86inc.asm common/x86/x86inc-32.asm
-checkasm: tools/checkasm-a.o
+ARCH_X86 = yes
+ASMSRC   = $(X86SRC) common/x86/pixel-32.asm
 endif
 
 ifeq ($(ARCH),X86_64)
+ARCH_X86 = yes
+ASMSRC   = $(X86SRC:-32.asm=-64.asm)
+ASFLAGS += -DARCH_X86_64
+endif
+
+ifdef ARCH_X86
+ASFLAGS += -Icommon/x86/
 SRCS   += common/x86/mc-c.c common/x86/predict-c.c
-ASMSRC  = $(X86SRC:-32.asm=-64.asm)
 OBJASM  = $(ASMSRC:%.asm=%.o)
-ASFLAGS += -Icommon/x86/ -DARCH_X86_64
-$(OBJASM): common/x86/x86inc.asm common/x86/x86inc-64.asm
+$(OBJASM): common/x86/x86inc.asm common/x86/x86util.asm
 checkasm: tools/checkasm-a.o
 endif
 endif

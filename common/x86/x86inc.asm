@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* x86inc.asm
 ;*****************************************************************************
-;* Copyright (C) 2008 Loren Merritt <lorenm@u.washington.edu>
+;* Copyright (C) 2005-2008 Loren Merritt <lorenm@u.washington.edu>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -18,10 +18,76 @@
 ;* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
 ;*****************************************************************************
 
-%ifdef ARCH_X86_64
-%include "x86inc-64.asm"
+; FIXME: All of the 64bit asm functions that take a stride as an argument
+; via register, assume that the high dword of that register is filled with 0.
+; This is true in practice (since we never do any 64bit arithmetic on strides,
+; and x264's strides are all positive), but is not guaranteed by the ABI.
+
+; Name of the .rodata section.
+; Kludge: Something on OS X fails to align .rodata even given an align attribute,
+; so use a different read-only section.
+%macro SECTION_RODATA 0
+    %ifidn __OUTPUT_FORMAT__,macho64
+        SECTION .text align=16
+    %elifidn __OUTPUT_FORMAT__,macho
+        SECTION .text align=16
+        fakegot:
+    %else
+        SECTION .rodata align=16
+    %endif
+%endmacro
+
+; PIC support macros. All these macros are totally harmless when __PIC__ is
+; not defined but can ruin everything if misused in PIC mode. On x86_32, shared
+; objects cannot directly access global variables by address, they need to
+; go through the GOT (global offset table). Most OSes do not care about it
+; and let you load non-shared .so objects (Linux, Win32...). However, OS X
+; requires PIC code in its .dylib objects.
+;
+; - GLOBAL should be used as a suffix for global addressing, eg.
+;     picgetgot ebx
+;     mov eax, [foo GLOBAL]
+;   instead of
+;     mov eax, [foo]
+;
+; - picgetgot computes the GOT address into the given register in PIC
+;   mode, otherwise does nothing. You need to do this before using GLOBAL.
+;   Before in both execution order and compiled code order (so GLOBAL knows
+;   which register the GOT is in).
+
+%ifndef __PIC__
+    %define GLOBAL
+    %macro picgetgot 1
+    %endmacro
+%elifdef ARCH_X86_64
+    %define PIC64
+    %define GLOBAL wrt rip
+    %macro picgetgot 1
+    %endmacro
 %else
-%include "x86inc-32.asm"
+    %define PIC32
+    %ifidn __OUTPUT_FORMAT__,macho
+        ; There is no real global offset table on OS X, but we still
+        ; need to reference our variables by offset.
+        %macro picgetgot 1
+            call %%getgot
+          %%getgot:
+            pop %1
+            add %1, $$ - %%getgot
+            %undef GLOBAL
+            %define GLOBAL + %1 - fakegot
+        %endmacro
+    %else ; elf
+        extern _GLOBAL_OFFSET_TABLE_
+        %macro picgetgot 1
+            call %%getgot
+          %%getgot:
+            pop %1
+            add %1, _GLOBAL_OFFSET_TABLE_ + $$ - %%getgot wrt ..gotpc
+            %undef GLOBAL
+            %define GLOBAL + %1 wrt ..gotoff
+        %endmacro
+    %endif
 %endif
 
 ; Macros to eliminate most code duplication between x86_32 and x86_64:
@@ -387,7 +453,7 @@ INIT_MMX
     CAT_XDEFINE n, m%2, %2
 %else
     ; If we were called as "SWAP m0,m1" rather than "SWAP 0,1" infer the original numbers here.
-    ; Be careful using the mode in nested macros though, as in some cases there may be
+    ; Be careful using this mode in nested macros though, as in some cases there may be
     ; other copies of m# that have already been dereferenced and don't get updated correctly.
     %xdefine %%n1 n %+ %1
     %xdefine %%n2 n %+ %2
