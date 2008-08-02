@@ -35,7 +35,7 @@ mask_ff: times 16 db 0xff
 SECTION .text
 
 %macro HADDD 2 ; sum junk
-%if regsize == 16
+%if mmsize == 16
     movhlps %2, %1
     paddd   %1, %2
     pshuflw %2, %1, 0xE
@@ -131,10 +131,10 @@ cglobal x264_pixel_ssd_%1x%2_%3, 4,4
     pxor    m7, m7
 %assign i 0
 %rep %2/2
-%if %1 > regsize
-    SSD_FULL 0,  0,     regsize,    regsize, i, 0
-    SSD_FULL r1, r3, r1+regsize, r3+regsize, 1, i<%2/2-1
-%elif %1 == regsize
+%if %1 > mmsize
+    SSD_FULL 0,  0,     mmsize,    mmsize, i, 0
+    SSD_FULL r1, r3, r1+mmsize, r3+mmsize, 1, i<%2/2-1
+%elif %1 == mmsize
     SSD_FULL 0, 0, r1, r3, i, i<%2/2-1
 %else
     SSD_HALF 0, 0, r1, r3, i, i<%2/2-1

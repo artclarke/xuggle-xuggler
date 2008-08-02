@@ -386,17 +386,18 @@ AVG_CACHELINE_CHECK 20, 64, sse2
 ; pixel copy
 ;=============================================================================
 
-%macro COPY4 3
-    %1  mm0, [r2]
-    %1  mm1, [r2+r3]
-    %1  mm2, [r2+r3*2]
-    %1  mm3, [r2+%3]
-    %1  [r0],      mm0
-    %1  [r0+r1],   mm1
-    %1  [r0+r1*2], mm2
-    %1  [r0+%2],   mm3
+%macro COPY4 4
+    %2  m0, [r2]
+    %2  m1, [r2+r3]
+    %2  m2, [r2+r3*2]
+    %2  m3, [r2+%4]
+    %1  [r0],      m0
+    %1  [r0+r1],   m1
+    %1  [r0+r1*2], m2
+    %1  [r0+%3],   m3
 %endmacro
 
+INIT_MMX
 ;-----------------------------------------------------------------------------
 ; void x264_mc_copy_w4_mmx( uint8_t *dst, int i_dst_stride,
 ;                           uint8_t *src, int i_src_stride, int i_height )
@@ -406,18 +407,18 @@ cglobal x264_mc_copy_w4_mmx, 4,6
     lea     r5, [r3*3]
     lea     r4, [r1*3]
     je .end
-    COPY4 movd, r4, r5
+    COPY4 movd, movd, r4, r5
     lea     r2, [r2+r3*4]
     lea     r0, [r0+r1*4]
 .end:
-    COPY4 movd, r4, r5
+    COPY4 movd, movd, r4, r5
     RET
 
 cglobal x264_mc_copy_w8_mmx, 5,7
     lea     r6, [r3*3]
     lea     r5, [r1*3]
 .height_loop:
-    COPY4 movq, r5, r6
+    COPY4 movq, movq, r5, r6
     lea     r2, [r2+r3*4]
     lea     r0, [r0+r1*4]
     sub     r4d, 4
@@ -450,19 +451,13 @@ cglobal x264_mc_copy_w16_mmx, 5,7
     jg      .height_loop
     REP_RET
 
+INIT_XMM
 %macro COPY_W16_SSE2 2
 cglobal %1, 5,7
     lea     r6, [r3*3]
     lea     r5, [r1*3]
 .height_loop:
-    %2      xmm0, [r2]
-    %2      xmm1, [r2+r3]
-    %2      xmm2, [r2+r3*2]
-    %2      xmm3, [r2+r6]
-    movdqa  [r0], xmm0
-    movdqa  [r0+r1], xmm1
-    movdqa  [r0+r1*2], xmm2
-    movdqa  [r0+r5], xmm3
+    COPY4 movdqa, %2, r5, r6
     lea     r2, [r2+r3*4]
     lea     r0, [r0+r1*4]
     sub     r4d, 4
@@ -485,7 +480,7 @@ COPY_W16_SSE2 x264_mc_copy_w16_aligned_sse2, movdqa
 ; assumes log2_denom = 5, offset = 0, weight1 + weight2 = 64
 
 %macro SPLATW 2
-%if regsize==16
+%if mmsize==16
     pshuflw  %1, %2, 0
     movlhps  %1, %1
 %else
@@ -531,6 +526,7 @@ COPY_W16_SSE2 x264_mc_copy_w16_aligned_sse2, movdqa
 .height_loop:
 %endmacro
 
+INIT_MMX
 ;-----------------------------------------------------------------------------
 ; int x264_pixel_avg_weight_w16_mmxext( uint8_t *dst, int, uint8_t *src, int, int i_weight, int )
 ;-----------------------------------------------------------------------------
@@ -548,9 +544,9 @@ cglobal x264_pixel_avg_weight_4x4_mmxext, 4,4,1
 cglobal x264_pixel_avg_weight_w%2_%1, 4,5
     BIWEIGHT_START 1
 %assign x 0
-%rep %2*2/regsize
+%rep %2*2/mmsize
     BIWEIGHT  [r0+x], [r2+x]
-%assign x x+regsize/2
+%assign x x+mmsize/2
 %endrep
     add  r0, r1
     add  r2, r3
@@ -559,7 +555,6 @@ cglobal x264_pixel_avg_weight_w%2_%1, 4,5
     REP_RET
 %endmacro
 
-INIT_MMX
 AVG_WEIGHT mmxext, 8
 AVG_WEIGHT mmxext, 16
 INIT_XMM
@@ -677,7 +672,7 @@ cglobal x264_prefetch_ref_mmxext, 3,3
 ;-----------------------------------------------------------------------------
 %macro MC_CHROMA 1
 cglobal x264_mc_chroma_%1, 0,6,1
-%if regsize == 16
+%if mmsize == 16
     cmp dword r6m, 4
     jle x264_mc_chroma_mmxext %+ .skip_prologue
 %endif
@@ -745,7 +740,7 @@ cglobal x264_mc_chroma_%1, 0,6,1
     dec        r4d
     jnz .loop2d
 
-%if regsize == 8
+%if mmsize == 8
     sub dword r6m, 8
     jnz .finish              ; width != 8 so assume 4
 %ifdef ARCH_X86_64
@@ -760,7 +755,7 @@ cglobal x264_mc_chroma_%1, 0,6,1
     jmp .loop2d
 %else
     REP_RET
-%endif ; regsize
+%endif ; mmsize
 
 .mc1dy:
     and       r5d, 7
@@ -778,7 +773,7 @@ cglobal x264_mc_chroma_%1, 0,6,1
     movifnidn r0d, r0m
     movifnidn r1d, r1m
     mov       r4d, r7m
-%if regsize == 8
+%if mmsize == 8
     cmp dword r6m, 8
     je .loop1d_w8
 %endif
@@ -802,7 +797,7 @@ cglobal x264_mc_chroma_%1, 0,6,1
 .finish:
     REP_RET
 
-%if regsize == 8
+%if mmsize == 8
 .loop1d_w8:
     movu       m0, [r2+r5]
     mova       m1, [r2]
@@ -829,7 +824,7 @@ cglobal x264_mc_chroma_%1, 0,6,1
     dec        r4d
     jnz .loop1d_w8
     REP_RET
-%endif ; regsize
+%endif ; mmsize
 %endmacro ; MC_CHROMA
 
 INIT_MMX

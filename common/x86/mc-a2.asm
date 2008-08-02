@@ -91,7 +91,7 @@ SECTION .text
     %ifnidn %4, %2
     mova    %4, %2
     %endif
-    %if regsize == 8
+    %if mmsize == 8
     psllq   %1, (8-%3)*8
     psrlq   %4, %3*8
     %else
@@ -124,22 +124,22 @@ cglobal x264_hpel_filter_v_%1, 5,6,1
     LOAD_ADD  m1, [r1     ], [r5+r3*2] ; a0
     LOAD_ADD  m2, [r1+r3  ], [r5+r3  ] ; b0
     LOAD_ADD  m3, [r1+r3*2], [r5     ] ; c0
-    LOAD_ADD  m4, [r1     +regsize/2], [r5+r3*2+regsize/2] ; a1
-    LOAD_ADD  m5, [r1+r3  +regsize/2], [r5+r3  +regsize/2] ; b1
-    LOAD_ADD  m6, [r1+r3*2+regsize/2], [r5     +regsize/2] ; c1
+    LOAD_ADD  m4, [r1     +mmsize/2], [r5+r3*2+mmsize/2] ; a1
+    LOAD_ADD  m5, [r1+r3  +mmsize/2], [r5+r3  +mmsize/2] ; b1
+    LOAD_ADD  m6, [r1+r3*2+mmsize/2], [r5     +mmsize/2] ; c1
     FILT_V2
     mova      m7, [pw_16 GLOBAL]
     mova      [r2+r4*2], m1
-    mova      [r2+r4*2+regsize], m4
+    mova      [r2+r4*2+mmsize], m4
     paddw     m1, m7
     paddw     m4, m7
     psraw     m1, 5
     psraw     m4, 5
     packuswb  m1, m4
     movnt     [r0+r4], m1
-    add r1, regsize
-    add r5, regsize
-    add r4, regsize
+    add r1, mmsize
+    add r5, mmsize
+    add r4, mmsize
     jl .loop
     REP_RET
 %endmacro
@@ -460,11 +460,11 @@ cglobal x264_memcpy_aligned_sse2, 3,3
 cglobal x264_memzero_aligned_%1, 2,2
     pxor m0, m0
 .loop:
-    sub r1d, regsize*8
+    sub r1d, mmsize*8
 %assign i 0
 %rep 8
     mova [r0 + r1 + i], m0
-%assign i i+regsize
+%assign i i+mmsize
 %endrep
     jg .loop
     REP_RET
@@ -495,9 +495,9 @@ MEMZERO sse2
 %endmacro
 
 %macro FILT16x2 4
-    mova      m3, [r0+%4+regsize]
+    mova      m3, [r0+%4+mmsize]
     mova      m2, [r0+%4]
-    pavgb     m3, [r0+%4+r5+regsize]
+    pavgb     m3, [r0+%4+r5+mmsize]
     pavgb     m2, [r0+%4+r5]
     PALIGNR   %1, m3, 1, m6
     pavgb     %1, m3
@@ -564,13 +564,13 @@ cglobal x264_frame_init_lowres_core_%1, 6,7
     mov      r6d, r6m
     sub      r6d, r7m
     PUSH      r6
-    %define dst_gap [rsp+push_size]
+    %define dst_gap [rsp+gprsize]
     mov      r6d, r5d
     sub      r6d, r7m
     shl      r6d, 1
     PUSH      r6
     %define src_gap [rsp]
-%if regsize == 16
+%if mmsize == 16
     ; adjust for the odd end case
     mov      r6d, r7m
     and      r6d, 8
@@ -579,7 +579,7 @@ cglobal x264_frame_init_lowres_core_%1, 6,7
     sub       r3, r6
     sub       r4, r6
     add  dst_gap, r6d
-%endif ; regsize
+%endif ; mmsize
     pcmpeqb   m7, m7
     psrlw     m7, 8
 .vloop:
@@ -590,7 +590,7 @@ cglobal x264_frame_init_lowres_core_%1, 6,7
     pavgb     m0, m1
     pavgb     m1, [r0+r5*2]
 %endif
-%if regsize == 16
+%if mmsize == 16
     test     r6d, 8
     jz .hloop
     sub       r0, 16
@@ -604,15 +604,15 @@ cglobal x264_frame_init_lowres_core_%1, 6,7
     mova      m0, m2
     mova      m1, m3
     sub      r6d, 8
-%endif ; regsize
+%endif ; mmsize
 .hloop:
-    sub       r0, regsize*2
-    sub       r1, regsize
-    sub       r2, regsize
-    sub       r3, regsize
-    sub       r4, regsize
+    sub       r0, mmsize*2
+    sub       r1, mmsize
+    sub       r2, mmsize
+    sub       r3, mmsize
+    sub       r4, mmsize
 %ifdef m8
-    FILT8x4   m0, m1, m2, m3, m10, m11, regsize
+    FILT8x4   m0, m1, m2, m3, m10, m11, mmsize
     mova      m8, m0
     mova      m9, m1
     FILT8x4   m2, m3, m0, m1, m4, m5, 0
@@ -631,7 +631,7 @@ cglobal x264_frame_init_lowres_core_%1, 6,7
     FILT16x2  m0, r1, r2, 0
     FILT16x2  m1, r3, r4, r5
 %endif
-    sub      r6d, regsize
+    sub      r6d, mmsize
     jg .hloop
 .skip:
     mov       r6, dst_gap
@@ -642,7 +642,7 @@ cglobal x264_frame_init_lowres_core_%1, 6,7
     sub       r4, r6
     dec    dword r8m
     jg .vloop
-    ADD      rsp, 2*push_size
+    ADD      rsp, 2*gprsize
     emms
     RET
 %endmacro ; FRAME_INIT_LOWRES

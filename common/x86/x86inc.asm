@@ -37,7 +37,7 @@
     %endif
 %endmacro
 
-; PIC support macros. All these macros are totally harmless when __PIC__ is
+; PIC support macros. All these macros are totally harmless when PIC is
 ; not defined but can ruin everything if misused in PIC mode. On x86_32, shared
 ; objects cannot directly access global variables by address, they need to
 ; go through the GOT (global offset table). Most OSes do not care about it
@@ -55,7 +55,7 @@
 ;   Before in both execution order and compiled code order (so GLOBAL knows
 ;   which register the GOT is in).
 
-%ifndef __PIC__
+%ifndef PIC
     %define GLOBAL
     %macro picgetgot 1
     %endmacro
@@ -99,7 +99,12 @@
 ; %1 = number of arguments. loads them from stack if needed.
 ; %2 = number of registers used, not including PIC. pushes callee-saved regs if needed.
 ; %3 = whether global constants are used in this function. inits x86_32 PIC if needed.
+; %4 = list of names to define to registers
 ; PROLOGUE can also be invoked by adding the same options to cglobal
+
+; e.g.
+; cglobal foo, 2,3,0, dst, src, tmp
+; declares a function (foo), taking two args (dst and src), one local variable (tmp), and not using globals
 
 ; TODO Some functions can use some args directly from the stack. If they're the
 ; last args then you can just not declare them, but if they're in the middle
@@ -144,19 +149,19 @@ DECLARE_REG_SIZE di, dil
 DECLARE_REG_SIZE bp, bpl
 
 %ifdef ARCH_X86_64
-    %define push_size 8
+    %define gprsize 8
 %else
-    %define push_size 4
+    %define gprsize 4
 %endif
 
 %macro PUSH 1
     push %1
-    %assign stack_offset stack_offset+push_size
+    %assign stack_offset stack_offset+gprsize
 %endmacro
 
 %macro POP 1
     pop %1
-    %assign stack_offset stack_offset-push_size
+    %assign stack_offset stack_offset-gprsize
 %endmacro
 
 %macro SUB 2
@@ -191,6 +196,32 @@ DECLARE_REG_SIZE bp, bpl
     %endif
 %endmacro
 
+%macro DEFINE_ARGS 0-*
+    %ifdef n_arg_names
+        %assign %%i 0
+        %rep n_arg_names
+            CAT_UNDEF arg_name %+ %%i, q
+            CAT_UNDEF arg_name %+ %%i, d
+            CAT_UNDEF arg_name %+ %%i, w
+            CAT_UNDEF arg_name %+ %%i, b
+            CAT_UNDEF arg_name, %%i
+            %assign %%i %%i+1
+        %endrep
+    %endif
+
+    %assign %%i 0
+    %rep %0
+        %xdefine %1q r %+ %%i %+ q
+        %xdefine %1d r %+ %%i %+ d
+        %xdefine %1w r %+ %%i %+ w
+        %xdefine %1b r %+ %%i %+ b
+        CAT_XDEFINE arg_name, %%i, %1
+        %assign %%i %%i+1
+        %rotate 1
+    %endrep
+    %assign n_arg_names %%i
+%endmacro
+
 %ifdef ARCH_X86_64 ;========================================================
 
 DECLARE_REG 0, rdi, edi, di,  dil, edi
@@ -209,11 +240,12 @@ DECLARE_REG 6, rax, eax, ax,  al,  [rsp + stack_offset + 8]
     %endif
 %endmacro
 
-%macro PROLOGUE 3
+%macro PROLOGUE 2-4+ 0 ; #args, #regs, pic, arg_names...
     ASSERT %2 >= %1
     ASSERT %2 <= 7
     %assign stack_offset 0
     LOAD_IF_USED 6, %1
+    DEFINE_ARGS %4
 %endmacro
 
 %macro RET 0
@@ -256,11 +288,11 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
     %endif
 %endmacro
 
-%macro PROLOGUE 3
+%macro PROLOGUE 2-4+ 0 ; #args, #regs, pic, arg_names...
     ASSERT %2 >= %1
     %assign stack_offset 0
     %assign regs_used %2
-    %ifdef __PIC__
+    %ifdef PIC
     %if %3
         %assign regs_used regs_used+1
     %endif
@@ -280,6 +312,7 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
     %if %3
         picgetgot r%2
     %endif
+    DEFINE_ARGS %4
 %endmacro
 
 %macro RET 0
@@ -309,7 +342,7 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 %assign function_align 16
 
 ; Symbol prefix for C linkage
-%macro cglobal 1
+%macro cglobal 1-2+
     %ifidn __OUTPUT_FORMAT__,elf
         %ifdef PREFIX
             global _%1:function hidden
@@ -328,16 +361,9 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
     align function_align
     %1:
     RESET_MM_PERMUTATION ; not really needed, but makes disassembly somewhat nicer
-%endmacro
-
-%macro cglobal 3
-    cglobal %1
-    PROLOGUE %2, %3, 0
-%endmacro
-
-%macro cglobal 4
-    cglobal %1
-    PROLOGUE %2, %3, %4
+    %if %0 > 1
+        PROLOGUE %2
+    %endif
 %endmacro
 
 %macro cextern 1
@@ -360,10 +386,6 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
 
 ; merge mmx and sse*
 
-%macro CAT_DEFINE 3
-    %define %1%2 %3
-%endmacro
-
 %macro CAT_XDEFINE 3
     %xdefine %1%2 %3
 %endmacro
@@ -374,7 +396,7 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
 
 %macro INIT_MMX 0
     %define RESET_MM_PERMUTATION INIT_MMX
-    %define regsize 8
+    %define mmsize 8
     %define num_mmregs 8
     %define mova movq
     %define movu movq
@@ -382,8 +404,8 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
     %define movnt movntq
     %assign %%i 0
     %rep 8
-    CAT_DEFINE m, %%i, mm %+ %%i
-    CAT_DEFINE nmm, %%i, %%i
+    CAT_XDEFINE m, %%i, mm %+ %%i
+    CAT_XDEFINE nmm, %%i, %%i
     %assign %%i %%i+1
     %endrep
     %rep 8
@@ -395,7 +417,7 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
 
 %macro INIT_XMM 0
     %define RESET_MM_PERMUTATION INIT_XMM
-    %define regsize 16
+    %define mmsize 16
     %define num_mmregs 8
     %ifdef ARCH_X86_64
     %define num_mmregs 16
@@ -406,8 +428,8 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
     %define movnt movntdq
     %assign %%i 0
     %rep num_mmregs
-    CAT_DEFINE m, %%i, xmm %+ %%i
-    CAT_DEFINE nxmm, %%i, %%i
+    CAT_XDEFINE m, %%i, xmm %+ %%i
+    CAT_XDEFINE nxmm, %%i, %%i
     %assign %%i %%i+1
     %endrep
 %endmacro

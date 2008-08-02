@@ -258,7 +258,7 @@ case $host_cpu in
     ARCH="X86_64"
     AS="yasm"
     if [ "$SYS" = MACOSX ];then
-      ASFLAGS="-f macho64 -m amd64 -D__PIC__ -DPREFIX"
+      ASFLAGS="-f macho64 -m amd64 -DPIC -DPREFIX"
       CFLAGS="$CFLAGS -arch x86_64"
       LDFLAGS="$LDFLAGS -arch x86_64"
     else
@@ -390,7 +390,7 @@ fi
 
 if [ "$pic" = "yes" ] ; then
     CFLAGS="$CFLAGS -fPIC"
-    ASFLAGS="$ASFLAGS -D__PIC__"
+    ASFLAGS="$ASFLAGS -DPIC"
     # resolve textrels in the x86 asm
     cc_check stdio.h -Wl,-Bsymbolic && LDFLAGS="$LDFLAGS -Wl,-Bsymbolic"
 fi

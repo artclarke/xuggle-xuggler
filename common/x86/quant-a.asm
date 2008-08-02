@@ -112,7 +112,7 @@ cglobal %1, 1,1
 %assign x 0
 %rep %2
     QUANT_ONE [r0+x], m6, m7
-%assign x x+regsize
+%assign x x+mmsize
 %endrep
     RET
 %endmacro
@@ -125,7 +125,7 @@ cglobal %1, 3,3
 %assign x 0
 %rep %2
     QUANT_ONE [r0+x], [r1+x], [r2+x]
-%assign x x+regsize
+%assign x x+mmsize
 %endrep
     RET
 %endmacro
@@ -338,33 +338,33 @@ cglobal x264_denoise_dct_core_%1, 4,5
     movzx     r4d, word [r0] ; backup DC coefficient
     pxor      m7, m7
 .loop:
-    sub       r3, regsize
-    mova      m2, [r0+r3*2+0*regsize]
-    mova      m3, [r0+r3*2+1*regsize]
+    sub       r3, mmsize
+    mova      m2, [r0+r3*2+0*mmsize]
+    mova      m3, [r0+r3*2+1*mmsize]
     PABSW     m0, m2
     PABSW     m1, m3
     mova      m4, m0
     mova      m5, m1
-    psubusw   m0, [r2+r3*2+0*regsize]
-    psubusw   m1, [r2+r3*2+1*regsize]
+    psubusw   m0, [r2+r3*2+0*mmsize]
+    psubusw   m1, [r2+r3*2+1*mmsize]
     PSIGNW    m0, m2
     PSIGNW    m1, m3
-    mova      [r0+r3*2+0*regsize], m0
-    mova      [r0+r3*2+1*regsize], m1
+    mova      [r0+r3*2+0*mmsize], m0
+    mova      [r0+r3*2+1*mmsize], m1
     mova      m2, m4
     mova      m3, m5
     punpcklwd m4, m7
     punpckhwd m2, m7
     punpcklwd m5, m7
     punpckhwd m3, m7
-    paddd     m4, [r1+r3*4+0*regsize]
-    paddd     m2, [r1+r3*4+1*regsize]
-    paddd     m5, [r1+r3*4+2*regsize]
-    paddd     m3, [r1+r3*4+3*regsize]
-    mova      [r1+r3*4+0*regsize], m4
-    mova      [r1+r3*4+1*regsize], m2
-    mova      [r1+r3*4+2*regsize], m5
-    mova      [r1+r3*4+3*regsize], m3
+    paddd     m4, [r1+r3*4+0*mmsize]
+    paddd     m2, [r1+r3*4+1*mmsize]
+    paddd     m5, [r1+r3*4+2*mmsize]
+    paddd     m3, [r1+r3*4+3*mmsize]
+    mova      [r1+r3*4+0*mmsize], m4
+    mova      [r1+r3*4+1*mmsize], m2
+    mova      [r1+r3*4+2*mmsize], m5
+    mova      [r1+r3*4+3*mmsize], m3
     jg .loop
     mov       [r0], r4w ; restore DC coefficient
     RET
