@@ -639,6 +639,40 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\common\vlc.c">
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="2"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+						ObjectFile=".\obj/core_release/"
+						ProgramDataBaseFileName="obj/core_release/"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="0"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+						BasicRuntimeChecks="3"
+						ObjectFile=".\obj/core_debug/"
+						ProgramDataBaseFileName="obj/core_debug/"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release64|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="2"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+						ObjectFile=".\obj/core_release/"
+						ProgramDataBaseFileName="obj/core_release/"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\..\common\frame.c">
 				<FileConfiguration
 					Name="Release|Win32">
