@@ -977,7 +977,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
             }
 
             while( rc->qpm > i_qp_min
-                   && ((buffer_left_planned > rc->buffer_size * 0.4) || rc->qpm > h->fdec->i_row_qp[0])
+                   && rc->qpm > h->fdec->i_row_qp[0]
                    && ((b1 < rc->frame_size_planned * 0.8 && rc->qpm <= prev_row_qp)
                      || b1 < (rc->buffer_fill - rc->buffer_size + rc->buffer_rate) * 1.1) )
             {
