@@ -913,7 +913,7 @@ int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight 
 { \
     if( satd <= bsatd * SATD_THRESH )\
     { \
-        int cost; \
+        uint64_t cost; \
         *(uint32_t*)cache_mv = *(uint32_t*)cache_mv2 = pack16to32_mask(mx,my); \
         cost = x264_rd_cost_part( h, i_lambda2, i8, m->i_pixel ); \
         COPY4_IF_LT( bcost, cost, bmx, mx, bmy, my, dir, do_dir?mdir:dir ); \
@@ -934,7 +934,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 )
     const int i_pixel = m->i_pixel;
 
     DECLARE_ALIGNED_16( uint8_t pix[16*16] );
-    int bcost = m->i_pixel == PIXEL_16x16 ? m->cost : COST_MAX;
+    uint64_t bcost = m->i_pixel == PIXEL_16x16 ? m->cost : COST_MAX64;
     int bmx = m->mv[0];
     int bmy = m->mv[1];
     int omx = bmx;

@@ -25,6 +25,7 @@
 #define X264_ME_H
 
 #define COST_MAX (1<<28)
+#define COST_MAX64 (1ULL<<60)
 
 typedef struct
 {
@@ -54,7 +55,7 @@ static inline void x264_me_search( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], i
 void x264_me_refine_qpel( x264_t *h, x264_me_t *m );
 void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 );
 int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight );
-int x264_rd_cost_part( x264_t *h, int i_lambda2, int i8, int i_pixel );
+uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i8, int i_pixel );
 
 extern uint16_t *x264_cost_mv_fpel[52][4];
 

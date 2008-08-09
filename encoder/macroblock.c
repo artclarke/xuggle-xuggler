@@ -747,76 +747,96 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
     uint8_t *p_fenc = h->mb.pic.p_fenc[0] + (i8&1)*8 + (i8>>1)*8*FENC_STRIDE;
     uint8_t *p_fdec = h->mb.pic.p_fdec[0] + (i8&1)*8 + (i8>>1)*8*FDEC_STRIDE;
     int b_decimate = h->sh.i_type == SLICE_TYPE_B || h->param.analyse.b_dct_decimate;
-    int nnz8x8;
+    int nnz8x8 = 0;
     int ch;
 
     x264_mb_mc_8x8( h, i8 );
 
-    if( h->mb.b_transform_8x8 )
+    if( h->mb.b_lossless )
     {
-        DECLARE_ALIGNED_16( int16_t dct8x8[8][8] );
-        h->dctf.sub8x8_dct8( dct8x8, p_fenc, p_fdec );
-        h->quantf.quant_8x8( dct8x8, h->quant8_mf[CQM_8PY][i_qp], h->quant8_bias[CQM_8PY][i_qp] );
-        h->zigzagf.scan_8x8( h->dct.luma8x8[i8], dct8x8 );
-
-        if( b_decimate )
-            nnz8x8 = 4 <= x264_mb_decimate_score( h->dct.luma8x8[i8], 64 );
-        else
-            nnz8x8 = array_non_zero( dct8x8 );
-
-        if( nnz8x8 )
+        int i4;
+        for( i4 = i8*4; i4 < i8*4+4; i4++ )
         {
-            h->quantf.dequant_8x8( dct8x8, h->dequant8_mf[CQM_8PY], i_qp );
-            h->dctf.add8x8_idct8( p_fdec, dct8x8 );
+            h->zigzagf.sub_4x4( h->dct.luma4x4[i4],
+                                h->mb.pic.p_fenc[0]+block_idx_xy_fenc[i4],
+                                h->mb.pic.p_fdec[0]+block_idx_xy_fdec[i4] );
+            nnz8x8 |= array_non_zero( h->dct.luma4x4[i4] );
+        }
+        for( ch = 0; ch < 2; ch++ )
+        {
+            p_fenc = h->mb.pic.p_fenc[1+ch] + (i8&1)*4 + (i8>>1)*4*FENC_STRIDE;
+            p_fdec = h->mb.pic.p_fdec[1+ch] + (i8&1)*4 + (i8>>1)*4*FDEC_STRIDE;
+            h->zigzagf.sub_4x4( h->dct.luma4x4[16+i8+ch*4], p_fenc, p_fdec );
+            h->dct.luma4x4[16+i8+ch*4][0] = 0;
         }
     }
     else
     {
-        int i4;
-        DECLARE_ALIGNED_16( int16_t dct4x4[4][4][4] );
-        h->dctf.sub8x8_dct( dct4x4, p_fenc, p_fdec );
-        for( i4 = 0; i4 < 4; i4++ )
-            h->quantf.quant_4x4( dct4x4[i4], h->quant4_mf[CQM_4PY][i_qp], h->quant4_bias[CQM_4PY][i_qp] );
-        for( i4 = 0; i4 < 4; i4++ )
-            h->zigzagf.scan_4x4( h->dct.luma4x4[i8*4+i4], dct4x4[i4] );
-
-        if( b_decimate )
+        if( h->mb.b_transform_8x8 )
         {
-            int i_decimate_8x8 = 0;
-            for( i4 = 0; i4 < 4 && i_decimate_8x8 < 4; i4++ )
-                i_decimate_8x8 += x264_mb_decimate_score( h->dct.luma4x4[i8*4+i4], 16 );
-            nnz8x8 = 4 <= i_decimate_8x8;
+            DECLARE_ALIGNED_16( int16_t dct8x8[8][8] );
+            h->dctf.sub8x8_dct8( dct8x8, p_fenc, p_fdec );
+            h->quantf.quant_8x8( dct8x8, h->quant8_mf[CQM_8PY][i_qp], h->quant8_bias[CQM_8PY][i_qp] );
+            h->zigzagf.scan_8x8( h->dct.luma8x8[i8], dct8x8 );
+
+            if( b_decimate )
+                nnz8x8 = 4 <= x264_mb_decimate_score( h->dct.luma8x8[i8], 64 );
+            else
+                nnz8x8 = array_non_zero( dct8x8 );
+
+            if( nnz8x8 )
+            {
+                h->quantf.dequant_8x8( dct8x8, h->dequant8_mf[CQM_8PY], i_qp );
+                h->dctf.add8x8_idct8( p_fdec, dct8x8 );
+            }
         }
         else
-            nnz8x8 = array_non_zero( dct4x4 );
-
-        if( nnz8x8 )
         {
+            int i4;
+            DECLARE_ALIGNED_16( int16_t dct4x4[4][4][4] );
+            h->dctf.sub8x8_dct( dct4x4, p_fenc, p_fdec );
             for( i4 = 0; i4 < 4; i4++ )
-                h->quantf.dequant_4x4( dct4x4[i4], h->dequant4_mf[CQM_4PY], i_qp );
-            h->dctf.add8x8_idct( p_fdec, dct4x4 );
+                h->quantf.quant_4x4( dct4x4[i4], h->quant4_mf[CQM_4PY][i_qp], h->quant4_bias[CQM_4PY][i_qp] );
+            for( i4 = 0; i4 < 4; i4++ )
+                h->zigzagf.scan_4x4( h->dct.luma4x4[i8*4+i4], dct4x4[i4] );
+
+            if( b_decimate )
+            {
+                int i_decimate_8x8 = 0;
+                for( i4 = 0; i4 < 4 && i_decimate_8x8 < 4; i4++ )
+                    i_decimate_8x8 += x264_mb_decimate_score( h->dct.luma4x4[i8*4+i4], 16 );
+                nnz8x8 = 4 <= i_decimate_8x8;
+            }
+            else
+                nnz8x8 = array_non_zero( dct4x4 );
+
+            if( nnz8x8 )
+            {
+                for( i4 = 0; i4 < 4; i4++ )
+                    h->quantf.dequant_4x4( dct4x4[i4], h->dequant4_mf[CQM_4PY], i_qp );
+                h->dctf.add8x8_idct( p_fdec, dct4x4 );
+            }
         }
-    }
 
-    i_qp = h->mb.i_chroma_qp;
+        i_qp = h->mb.i_chroma_qp;
 
-    for( ch = 0; ch < 2; ch++ )
-    {
-        DECLARE_ALIGNED_16( int16_t dct4x4[4][4] );
-        p_fenc = h->mb.pic.p_fenc[1+ch] + (i8&1)*4 + (i8>>1)*4*FENC_STRIDE;
-        p_fdec = h->mb.pic.p_fdec[1+ch] + (i8&1)*4 + (i8>>1)*4*FDEC_STRIDE;
-
-        h->dctf.sub4x4_dct( dct4x4, p_fenc, p_fdec );
-        h->quantf.quant_4x4( dct4x4, h->quant4_mf[CQM_4PC][i_qp], h->quant4_bias[CQM_4PC][i_qp] );
-        h->zigzagf.scan_4x4( h->dct.luma4x4[16+i8+ch*4], dct4x4 );
-        h->dct.luma4x4[16+i8+ch*4][0] = 0;
-        if( array_non_zero( dct4x4 ) )
+        for( ch = 0; ch < 2; ch++ )
         {
-            h->quantf.dequant_4x4( dct4x4, h->dequant4_mf[CQM_4PC], i_qp );
-            h->dctf.add4x4_idct( p_fdec, dct4x4 );
+            DECLARE_ALIGNED_16( int16_t dct4x4[4][4] );
+            p_fenc = h->mb.pic.p_fenc[1+ch] + (i8&1)*4 + (i8>>1)*4*FENC_STRIDE;
+            p_fdec = h->mb.pic.p_fdec[1+ch] + (i8&1)*4 + (i8>>1)*4*FDEC_STRIDE;
+
+            h->dctf.sub4x4_dct( dct4x4, p_fenc, p_fdec );
+            h->quantf.quant_4x4( dct4x4, h->quant4_mf[CQM_4PC][i_qp], h->quant4_bias[CQM_4PC][i_qp] );
+            h->zigzagf.scan_4x4( h->dct.luma4x4[16+i8+ch*4], dct4x4 );
+            h->dct.luma4x4[16+i8+ch*4][0] = 0;
+            if( array_non_zero( dct4x4 ) )
+            {
+                h->quantf.dequant_4x4( dct4x4, h->dequant4_mf[CQM_4PC], i_qp );
+                h->dctf.add4x4_idct( p_fdec, dct4x4 );
+            }
         }
     }
-
     h->mb.i_cbp_luma &= ~(1 << i8);
     h->mb.i_cbp_luma |= nnz8x8 << i8;
     h->mb.i_cbp_chroma = 0x02;

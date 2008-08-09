@@ -410,7 +410,6 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.i_trellis = 0;
         h->param.analyse.b_fast_pskip = 0;
         h->param.analyse.i_noise_reduction = 0;
-        h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 6 );
     }
     if( h->param.rc.i_rc_method == X264_RC_CQP )
     {

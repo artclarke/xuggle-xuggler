@@ -782,7 +782,8 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     uint8_t  *p_dst = h->mb.pic.p_fdec[0];
 
     int i, j, idx, x, y;
-    int i_max, i_satd, i_best, i_mode, i_thresh;
+    int i_max, i_mode, i_thresh;
+    uint64_t i_satd, i_best;
     int i_pred_mode;
     int predict_mode[9];
     h->mb.i_skip_intra = 0;
@@ -810,7 +811,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
         for( idx = 0; idx < 16; idx++ )
         {
             uint8_t *p_dst_by = p_dst + block_idx_xy_fdec[idx];
-            i_best = COST_MAX;
+            i_best = COST_MAX64;
 
             i_pred_mode = x264_mb_predict_intra4x4_mode( h, idx );
 
@@ -860,7 +861,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
             int j;
             i_thresh = a->i_satd_i8x8_dir[a->i_predict8x8[idx]][idx] * 11/8;
 
-            i_best = COST_MAX;
+            i_best = COST_MAX64;
             i_pred_mode = x264_mb_predict_intra4x4_mode( h, 4*idx );
             x = idx&1;
             y = idx>>1;
