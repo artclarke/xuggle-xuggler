@@ -205,7 +205,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
 {
     /* conduct the analysis using this lamda and QP */
     a->i_qp = h->mb.i_qp = i_qp;
-    h->mb.i_chroma_qp = i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )];
+    h->mb.i_chroma_qp = h->chroma_qp_table[i_qp];
     a->i_lambda = x264_lambda_tab[i_qp];
     a->i_lambda2 = x264_lambda2_tab[i_qp];
     a->b_mbrd = h->param.analyse.i_subpel_refine >= 6 &&

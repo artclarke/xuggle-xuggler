@@ -148,7 +148,7 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
     /* If effective qp <= 15, deblocking would have no effect anyway */
     if( param->b_deblocking_filter
         && ( h->mb.b_variable_qp
-        || 15 < i_qp + 2 * X264_MAX(param->i_deblocking_filter_alphac0, param->i_deblocking_filter_beta) ) )
+        || 15 < i_qp + 2 * X264_MIN(param->i_deblocking_filter_alphac0, param->i_deblocking_filter_beta) ) )
     {
         sh->i_disable_deblocking_filter_idc = 0;
     }
@@ -693,6 +693,8 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->i_ref0 = 0;
     h->i_ref1 = 0;
+
+    h->chroma_qp_table = i_chroma_qp_table + 12 + h->pps->i_chroma_qp_index_offset;
 
     x264_rdo_init( );
 

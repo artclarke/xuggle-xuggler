@@ -338,28 +338,32 @@ static void munge_cavlc_nnz( x264_t *h, int mb_y, uint8_t (*buf)[16], void (*fun
 
 
 /* Deblocking filter */
-
-static const int i_alpha_table[52] =
+static const uint8_t i_alpha_table[52+12*2] =
 {
+     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
      0,  0,  0,  0,  0,  0,  4,  4,  5,  6,
      7,  8,  9, 10, 12, 13, 15, 17, 20, 22,
     25, 28, 32, 36, 40, 45, 50, 56, 63, 71,
     80, 90,101,113,127,144,162,182,203,226,
-    255, 255
+   255,255,
+   255,255,255,255,255,255,255,255,255,255,255,255,
 };
-static const int i_beta_table[52] =
+static const uint8_t i_beta_table[52+12*2] =
 {
+     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
      0,  0,  0,  0,  0,  0,  2,  2,  2,  3,
      3,  3,  3,  4,  4,  4,  6,  6,  7,  7,
      8,  8,  9,  9, 10, 10, 11, 11, 12, 12,
     13, 13, 14, 14, 15, 15, 16, 16, 17, 17,
-    18, 18
+    18, 18,
+    18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18,
 };
-
-static const int8_t i_tc0_table[52][4] =
+static const int8_t i_tc0_table[52+12*2][4] =
 {
+    {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 },
+    {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 },
     {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 },
     {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 },
     {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 0 }, {-1, 0, 0, 1 },
@@ -368,8 +372,13 @@ static const int8_t i_tc0_table[52][4] =
     {-1, 1, 1, 2 }, {-1, 1, 2, 3 }, {-1, 1, 2, 3 }, {-1, 2, 2, 3 }, {-1, 2, 2, 4 }, {-1, 2, 3, 4 },
     {-1, 2, 3, 4 }, {-1, 3, 3, 5 }, {-1, 3, 4, 6 }, {-1, 3, 4, 6 }, {-1, 4, 5, 7 }, {-1, 4, 5, 8 },
     {-1, 4, 6, 9 }, {-1, 5, 7,10 }, {-1, 6, 8,11 }, {-1, 6, 8,13 }, {-1, 7,10,14 }, {-1, 8,11,16 },
-    {-1, 9,12,18 }, {-1,10,13,20 }, {-1,11,15,23 }, {-1,13,17,25 }
+    {-1, 9,12,18 }, {-1,10,13,20 }, {-1,11,15,23 }, {-1,13,17,25 },
+    {-1,13,17,25 }, {-1,13,17,25 }, {-1,13,17,25 }, {-1,13,17,25 }, {-1,13,17,25 }, {-1,13,17,25 },
+    {-1,13,17,25 }, {-1,13,17,25 }, {-1,13,17,25 }, {-1,13,17,25 }, {-1,13,17,25 }, {-1,13,17,25 },
 };
+#define alpha_table(x) i_alpha_table[(x)+12]
+#define beta_table(x)  i_beta_table[(x)+12]
+#define tc0_table(x)   i_tc0_table[(x)+12]
 
 /* From ffmpeg */
 static inline int clip_uint8( int a )
@@ -552,44 +561,35 @@ static void deblock_h_chroma_intra_c( uint8_t *pix, int stride, int alpha, int b
 
 static inline void deblock_edge( x264_t *h, uint8_t *pix1, uint8_t *pix2, int i_stride, uint8_t bS[4], int i_qp, int b_chroma, x264_deblock_inter_t pf_inter )
 {
-    const int index_a = x264_clip3( i_qp + h->sh.i_alpha_c0_offset, 0, 51 );
-    const int alpha = i_alpha_table[index_a];
-    const int beta  = i_beta_table[x264_clip3( i_qp + h->sh.i_beta_offset, 0, 51 )];
+    const int index_a = i_qp + h->sh.i_alpha_c0_offset;
+    const int alpha = alpha_table(index_a);
+    const int beta  = beta_table(i_qp + h->sh.i_beta_offset);
     int8_t tc[4];
 
     if( !alpha || !beta )
         return;
 
-    tc[0] = i_tc0_table[index_a][bS[0]] + b_chroma;
-    tc[1] = i_tc0_table[index_a][bS[1]] + b_chroma;
-    tc[2] = i_tc0_table[index_a][bS[2]] + b_chroma;
-    tc[3] = i_tc0_table[index_a][bS[3]] + b_chroma;
+    tc[0] = tc0_table(index_a)[bS[0]] + b_chroma;
+    tc[1] = tc0_table(index_a)[bS[1]] + b_chroma;
+    tc[2] = tc0_table(index_a)[bS[2]] + b_chroma;
+    tc[3] = tc0_table(index_a)[bS[3]] + b_chroma;
 
+    pf_inter( pix1, i_stride, alpha, beta, tc );
     if(b_chroma)
-    {
-        pf_inter( pix1, i_stride, alpha, beta, tc );
         pf_inter( pix2, i_stride, alpha, beta, tc );
-    }
-    else
-        pf_inter( pix1, i_stride, alpha, beta, tc );
 }
 
 static inline void deblock_edge_intra( x264_t *h, uint8_t *pix1, uint8_t *pix2, int i_stride, uint8_t bS[4], int i_qp, int b_chroma, x264_deblock_intra_t pf_intra )
 {
-    const int index_a = x264_clip3( i_qp + h->sh.i_alpha_c0_offset, 0, 51 );
-    const int alpha = i_alpha_table[index_a];
-    const int beta  = i_beta_table[x264_clip3( i_qp + h->sh.i_beta_offset, 0, 51 )];
+    const int alpha = alpha_table(i_qp + h->sh.i_alpha_c0_offset);
+    const int beta  = beta_table(i_qp + h->sh.i_beta_offset);
 
     if( !alpha || !beta )
         return;
 
+    pf_intra( pix1, i_stride, alpha, beta );
     if(b_chroma)
-    {
-        pf_intra( pix1, i_stride, alpha, beta );
         pf_intra( pix2, i_stride, alpha, beta );
-    }
-    else
-        pf_intra( pix1, i_stride, alpha, beta );
 }
 
 void x264_frame_deblock_row( x264_t *h, int mb_y )
@@ -598,71 +598,70 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
     const int s4x4 = 4 * h->mb.i_mb_stride;
     const int b_interlaced = h->sh.b_mbaff;
     const int mvy_limit = 4 >> b_interlaced;
+    const int qp_thresh = 15 - X264_MIN(h->sh.i_alpha_c0_offset, h->sh.i_beta_offset) - X264_MAX(0, h->param.analyse.i_chroma_qp_offset);
     int mb_x;
-
-    int i_stride2[3] = { h->fdec->i_stride[0] << b_interlaced,
-                         h->fdec->i_stride[1] << b_interlaced,
-                         h->fdec->i_stride[2] << b_interlaced };
+    int stridey   = h->fdec->i_stride[0];
+    int stride2y  = stridey << b_interlaced;
+    int strideuv  = h->fdec->i_stride[1];
+    int stride2uv = strideuv << b_interlaced;
 
     if( !h->pps->b_cabac && h->pps->b_transform_8x8_mode )
         munge_cavlc_nnz( h, mb_y, h->mb.nnz_backup, munge_cavlc_nnz_row );
 
-    for( mb_x = 0; mb_x < h->sps->i_mb_width; )
+    for( mb_x = 0; mb_x < h->sps->i_mb_width; mb_x += (~b_interlaced | mb_y)&1, mb_y ^= b_interlaced )
     {
         const int mb_xy  = mb_y * h->mb.i_mb_stride + mb_x;
         const int mb_8x8 = 2 * s8x8 * mb_y + 2 * mb_x;
         const int mb_4x4 = 4 * s4x4 * mb_y + 4 * mb_x;
         const int b_8x8_transform = h->mb.mb_transform_size[mb_xy];
-        const int i_edge_end = (h->mb.type[mb_xy] == P_SKIP) ? 1 : 4;
-
-        int i_pix_y[3] = { 16*mb_y*h->fdec->i_stride[0] + 16*mb_x,
-                            8*mb_y*h->fdec->i_stride[1] +  8*mb_x,
-                            8*mb_y*h->fdec->i_stride[2] +  8*mb_x };
+        const int i_qp = h->mb.qp[mb_xy];
+        int i_edge_end = (h->mb.type[mb_xy] == P_SKIP) ? 1 : 4;
+        uint8_t *pixy = h->fdec->plane[0] + 16*mb_y*stridey  + 16*mb_x;
+        uint8_t *pixu = h->fdec->plane[1] +  8*mb_y*strideuv +  8*mb_x;
+        uint8_t *pixv = h->fdec->plane[2] +  8*mb_y*strideuv +  8*mb_x;
         if( b_interlaced && (mb_y&1) )
         {
-            i_pix_y[0] -= 15*h->fdec->i_stride[0];
-            i_pix_y[1] -=  7*h->fdec->i_stride[1];
-            i_pix_y[2] -=  7*h->fdec->i_stride[2];
+            pixy -= 15*stridey;
+            pixu -=  7*strideuv;
+            pixv -=  7*strideuv;
         }
 
         x264_prefetch_fenc( h, h->fdec, mb_x, mb_y );
 
+        if( i_qp <= qp_thresh )
+            i_edge_end = 1;
+
         #define FILTER_DIR(intra, i_dir)\
         {\
             /* Y plane */\
-            i_qp = h->mb.qp[mb_xy];\
             i_qpn= h->mb.qp[mbn_xy];\
             if( i_dir == 0 )\
             {\
                 /* vertical edge */\
-                deblock_edge##intra( h, &h->fdec->plane[0][i_pix_y[0] + 4*i_edge], NULL,\
-                              i_stride2[0], bS, (i_qp+i_qpn+1) >> 1, 0,\
+                deblock_edge##intra( h, pixy + 4*i_edge, NULL,\
+                              stride2y, bS, (i_qp+i_qpn+1) >> 1, 0,\
                               h->loopf.deblock_h_luma##intra );\
                 if( !(i_edge & 1) )\
                 {\
                     /* U/V planes */\
-                    int i_qpc = ( i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )] +\
-                                  i_chroma_qp_table[x264_clip3( i_qpn + h->pps->i_chroma_qp_index_offset, 0, 51 )] + 1 ) >> 1;\
-                    deblock_edge##intra( h, &h->fdec->plane[1][i_pix_y[1] + 2*i_edge],\
-                                  &h->fdec->plane[2][i_pix_y[2] + 2*i_edge],\
-                                  i_stride2[1], bS, i_qpc, 1,\
+                    int i_qpc = (h->chroma_qp_table[i_qp] + h->chroma_qp_table[i_qpn] + 1) >> 1;\
+                    deblock_edge##intra( h, pixu + 2*i_edge, pixv + 2*i_edge,\
+                                  stride2uv, bS, i_qpc, 1,\
                                   h->loopf.deblock_h_chroma##intra );\
                 }\
             }\
             else\
             {\
                 /* horizontal edge */\
-                deblock_edge##intra( h, &h->fdec->plane[0][i_pix_y[0] + 4*i_edge*i_stride2[0]], NULL,\
-                              i_stride2[0], bS, (i_qp+i_qpn+1) >> 1, 0,\
+                deblock_edge##intra( h, pixy + 4*i_edge*stride2y, NULL,\
+                              stride2y, bS, (i_qp+i_qpn+1) >> 1, 0,\
                               h->loopf.deblock_v_luma##intra );\
                 /* U/V planes */\
                 if( !(i_edge & 1) )\
                 {\
-                    int i_qpc = ( i_chroma_qp_table[x264_clip3( i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )] +\
-                                  i_chroma_qp_table[x264_clip3( i_qpn + h->pps->i_chroma_qp_index_offset, 0, 51 )] + 1 ) >> 1;\
-                    deblock_edge##intra( h, &h->fdec->plane[1][i_pix_y[1] + 2*i_edge*i_stride2[1]],\
-                                  &h->fdec->plane[2][i_pix_y[2] + 2*i_edge*i_stride2[2]],\
-                                  i_stride2[1], bS, i_qpc, 1,\
+                    int i_qpc = (h->chroma_qp_table[i_qp] + h->chroma_qp_table[i_qpn] + 1) >> 1;\
+                    deblock_edge##intra( h, pixu + 2*i_edge*stride2uv, pixv + 2*i_edge*stride2uv,\
+                                  stride2uv, bS, i_qpc, 1,\
                                   h->loopf.deblock_v_chroma##intra );\
                 }\
             }\
@@ -673,7 +672,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
         #define deblock_dir(i_dir)\
         {\
             int i_edge = (i_dir ? (mb_y <= b_interlaced) : (mb_x == 0));\
-            int i_qp, i_qpn, i, l, mbn_xy, mbn_8x8, mbn_4x4;\
+            int i_qpn, i, l, mbn_xy, mbn_8x8, mbn_4x4;\
             DECLARE_ALIGNED_4( uint8_t bS[4] );  /* filtering strength */\
             if( i_edge )\
             {\
@@ -750,11 +749,6 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
 
         deblock_dir(0);
         deblock_dir(1);
-
-        /* next mb */
-        if( !b_interlaced || (mb_y&1) )
-            mb_x++;
-        mb_y ^= b_interlaced;
     }
 
     if( !h->pps->b_cabac && h->pps->b_transform_8x8_mode )

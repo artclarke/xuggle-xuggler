@@ -260,7 +260,7 @@ void x264_adaptive_quant( x264_t *h )
      * to lower the bit cost of the qp_delta. */
     if( abs(h->mb.i_qp - h->mb.i_last_qp) == 1 )
         h->mb.i_qp = h->mb.i_last_qp;
-    h->mb.i_chroma_qp = i_chroma_qp_table[x264_clip3( h->mb.i_qp + h->pps->i_chroma_qp_index_offset, 0, 51 )];
+    h->mb.i_chroma_qp = h->chroma_qp_table[h->mb.i_qp];
 }
 
 int x264_ratecontrol_new( x264_t *h )
