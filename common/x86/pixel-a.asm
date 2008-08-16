@@ -162,6 +162,112 @@ SSD  8,  8, sse2
 SSD  8,  4, sse2
 
 
+;=============================================================================
+; variance
+;=============================================================================
+
+%macro VAR_START 0
+    pxor  m5, m5    ; sum
+    pxor  m6, m6    ; sum squared
+    pxor  m7, m7    ; zero
+%ifdef ARCH_X86_64
+    %define t3d r3d
+%else
+    %define t3d r2d
+%endif
+%endmacro
+
+%macro VAR_END 1
+%if mmsize == 16
+    movhlps m0, m5
+    paddw   m5, m0
+%endif
+    movifnidn r2d, r2m
+    movd   r1d, m5
+    movd  [r2], m5  ; return sum
+    imul   r1d, r1d
+    HADDD   m6, m1
+    shr    r1d, %1
+    movd   eax, m6
+    sub    eax, r1d  ; sqr - (sum * sum >> shift)
+    RET
+%endmacro
+
+%macro VAR_2ROW 2
+    mov      t3d, %2
+.loop:
+    mova      m0, [r0]
+    mova      m1, m0
+    mova      m3, [r0+%1]
+    mova      m2, m0
+    punpcklbw m0, m7
+    mova      m4, m3
+    punpckhbw m1, m7
+%ifidn %1, r1
+    lea       r0, [r0+%1*2]
+%else
+    add       r0, r1
+%endif
+    punpckhbw m4, m7
+    psadbw    m2, m7
+    paddw     m5, m2
+    mova      m2, m3
+    punpcklbw m3, m7
+    dec t3d
+    psadbw    m2, m7
+    pmaddwd   m0, m0
+    paddw     m5, m2
+    pmaddwd   m1, m1
+    paddd     m6, m0
+    pmaddwd   m3, m3
+    paddd     m6, m1
+    pmaddwd   m4, m4
+    paddd     m6, m3
+    paddd     m6, m4
+    jg .loop
+%endmacro
+
+;-----------------------------------------------------------------------------
+; int x264_pixel_var_wxh_mmxext( uint8_t *, int, int * )
+;-----------------------------------------------------------------------------
+INIT_MMX
+cglobal x264_pixel_var_16x16_mmxext, 2,3
+    VAR_START
+    VAR_2ROW 8, 16
+    VAR_END 8
+
+cglobal x264_pixel_var_8x8_mmxext, 2,3
+    VAR_START
+    VAR_2ROW r1, 4
+    VAR_END 6
+
+INIT_XMM
+cglobal x264_pixel_var_16x16_sse2, 2,3
+    VAR_START
+    VAR_2ROW r1, 8
+    VAR_END 8
+
+cglobal x264_pixel_var_8x8_sse2, 2,3
+    VAR_START
+    mov t3d, 4
+.loop:
+    movh      m0, [r0]
+    movhps    m0, [r0+r1]
+    lea       r0, [r0+r1*2]
+    mova      m1, m0
+    punpcklbw m0, m7
+    mova      m2, m1
+    punpckhbw m1, m7
+    dec t3d
+    pmaddwd   m0, m0
+    pmaddwd   m1, m1
+    psadbw    m2, m7
+    paddw     m5, m2
+    paddd     m6, m0
+    paddd     m6, m1
+    jnz .loop
+    VAR_END 6
+
 
 ;=============================================================================
 ; SATD

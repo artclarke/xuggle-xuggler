@@ -26,6 +26,7 @@
 typedef int  (*x264_pixel_cmp_t) ( uint8_t *, int, uint8_t *, int );
 typedef void (*x264_pixel_cmp_x3_t) ( uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int[3] );
 typedef void (*x264_pixel_cmp_x4_t) ( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int[4] );
+typedef int  (*x264_pixel_var_t) ( uint8_t *, int, uint32_t * );
 
 enum
 {
@@ -71,6 +72,7 @@ typedef struct
     x264_pixel_cmp_t fpelcmp[7]; /* either satd or sad for fullpel motion search */
     x264_pixel_cmp_x3_t fpelcmp_x3[7];
     x264_pixel_cmp_x4_t fpelcmp_x4[7];
+    x264_pixel_var_t var[4];
 
     void (*ssim_4x4x2_core)( const uint8_t *pix1, int stride1,
                              const uint8_t *pix2, int stride2, int sums[2][4] );

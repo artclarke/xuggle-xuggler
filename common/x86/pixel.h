@@ -68,6 +68,11 @@ DECL_X4( sad, cache64_ssse3 );
 #undef DECL_X1
 #undef DECL_X4
 
+int x264_pixel_var_16x16_mmxext( uint8_t *pix, int i_stride, uint32_t *sad );
+int x264_pixel_var_16x16_sse2  ( uint8_t *pix, int i_stride, uint32_t *sad );
+int x264_pixel_var_8x8_mmxext  ( uint8_t *pix, int i_stride, uint32_t *sad );
+int x264_pixel_var_8x8_sse2    ( uint8_t *pix, int i_stride, uint32_t *sad );
+
 void x264_intra_satd_x3_4x4_mmxext( uint8_t *, uint8_t *, int * );
 void x264_intra_satd_x3_4x4_ssse3( uint8_t *, uint8_t *, int * );
 void x264_intra_satd_x3_8x8c_mmxext( uint8_t *, uint8_t *, int * );

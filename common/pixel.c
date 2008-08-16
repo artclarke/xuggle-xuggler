@@ -153,6 +153,33 @@ static inline void pixel_sub_wxh( int16_t *diff, int i_size,
 
 
 /****************************************************************************
+ * pixel_var_wxh
+ ****************************************************************************/
+#define PIXEL_VAR_C( name, w, shift ) \
+static int name( uint8_t *pix, int i_stride, uint32_t *sad ) \
+{                                             \
+    uint32_t var = 0, sum = 0, sqr = 0;       \
+    int x, y;                                 \
+    for( y = 0; y < w; y++ )                  \
+    {                                         \
+        for( x = 0; x < w; x++ )              \
+        {                                     \
+            sum += pix[x];                    \
+            sqr += pix[x] * pix[x];           \
+        }                                     \
+        pix += i_stride;                      \
+    }                                         \
+    var = sqr - (sum * sum >> shift);         \
+    *sad = sum;                               \
+    return var;                               \
+}
+
+PIXEL_VAR_C( x264_pixel_var_16x16, 16, 8 )
+PIXEL_VAR_C( x264_pixel_var_8x8,    8, 6 )
+
+
+
+/****************************************************************************
  * pixel_satd_WxH: sum of 4x4 Hadamard transformed differences
  ****************************************************************************/
 static int pixel_satd_wxh( uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2, int i_width, int i_height )
@@ -532,6 +559,9 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     INIT4( sa8d, );
     INIT_ADS( );
 
+    pixf->var[PIXEL_16x16] = x264_pixel_var_16x16;
+    pixf->var[PIXEL_8x8]   = x264_pixel_var_8x8;
+
     pixf->ssim_4x4x2_core = ssim_4x4x2_core;
     pixf->ssim_end4 = ssim_end4;
 
@@ -550,7 +580,8 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT7( satd_x3, _mmxext );
         INIT7( satd_x4, _mmxext );
         INIT_ADS( _mmxext );
-
+        pixf->var[PIXEL_16x16] = x264_pixel_var_16x16_mmxext;
+        pixf->var[PIXEL_8x8]   = x264_pixel_var_8x8_mmxext;
 #ifdef ARCH_X86
         pixf->sa8d[PIXEL_16x16] = x264_pixel_sa8d_16x16_mmxext;
         pixf->sa8d[PIXEL_8x8]   = x264_pixel_sa8d_8x8_mmxext;
@@ -592,6 +623,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT2( sad_x3, _sse2 );
         INIT2( sad_x4, _sse2 );
         INIT_ADS( _sse2 );
+        pixf->var[PIXEL_8x8] = x264_pixel_var_8x8_sse2;
 
 #ifdef ARCH_X86
         if( cpu&X264_CPU_CACHELINE_64 )
@@ -608,6 +640,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT5( satd, _sse2 );
         INIT5( satd_x3, _sse2 );
         INIT5( satd_x4, _sse2 );
+        pixf->var[PIXEL_16x16] = x264_pixel_var_16x16_sse2;
         pixf->ssim_4x4x2_core  = x264_pixel_ssim_4x4x2_core_sse2;
         pixf->ssim_end4        = x264_pixel_ssim_end4_sse2;
         pixf->sa8d[PIXEL_16x16] = x264_pixel_sa8d_16x16_sse2;

@@ -302,6 +302,27 @@ static int check_pixel( int cpu_ref, int cpu_new )
     TEST_PIXEL_X(3);
     TEST_PIXEL_X(4);
 
+#define TEST_PIXEL_VAR( i ) \
+    if( pixel_asm.var[i] != pixel_ref.var[i] ) \
+    { \
+        uint32_t res_c, res_asm; \
+        uint32_t sad_c, sad_asm; \
+        set_func_name( "%s_%s", "var", pixel_names[i] ); \
+        used_asm = 1; \
+        res_c   = call_c( pixel_c.var[i], buf1, 16, &sad_c ); \
+        res_asm = call_a( pixel_asm.var[i], buf1, 16, &sad_asm ); \
+        if( (res_c != res_asm) || (sad_c != sad_asm) ) \
+        { \
+            ok = 0; \
+            fprintf( stderr, "var[%d]: %d,%d != %d,%d [FAILED]\n", i, res_c, sad_c, res_asm, sad_asm ); \
+        } \
+    }
+
+    ok = 1; used_asm = 0;
+    TEST_PIXEL_VAR( PIXEL_16x16 );
+    TEST_PIXEL_VAR( PIXEL_8x8 );
+    report( "pixel var :" );
+
 #define TEST_INTRA_SATD( name, pred, satd, i8x8, ... ) \
     if( pixel_asm.name && pixel_asm.name != pixel_ref.name ) \
     { \
