@@ -667,20 +667,55 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
             }\
         }
 
+        #define DEBLOCK_STRENGTH(i_dir)\
+        {\
+            /* *** Get bS for each 4px for the current edge *** */\
+            if( IS_INTRA( h->mb.type[mb_xy] ) || IS_INTRA( h->mb.type[mbn_xy]) )\
+                *(uint32_t*)bS = 0x03030303;\
+            else\
+            {\
+                *(uint32_t*)bS = 0x00000000;\
+                for( i = 0; i < 4; i++ )\
+                {\
+                    int x  = i_dir == 0 ? i_edge : i;\
+                    int y  = i_dir == 0 ? i      : i_edge;\
+                    int xn = i_dir == 0 ? (x - 1)&0x03 : x;\
+                    int yn = i_dir == 0 ? y : (y - 1)&0x03;\
+                    if( h->mb.non_zero_count[mb_xy][x+y*4] != 0 ||\
+                        h->mb.non_zero_count[mbn_xy][xn+yn*4] != 0 )\
+                        bS[i] = 2;\
+                    else\
+                    {\
+                        /* FIXME: A given frame may occupy more than one position in\
+                         * the reference list. So we should compare the frame numbers,\
+                         * not the indices in the ref list.\
+                         * No harm yet, as we don't generate that case.*/\
+                        int i8p= mb_8x8+(x>>1)+(y>>1)*s8x8;\
+                        int i8q= mbn_8x8+(xn>>1)+(yn>>1)*s8x8;\
+                        int i4p= mb_4x4+x+y*s4x4;\
+                        int i4q= mbn_4x4+xn+yn*s4x4;\
+                        for( l = 0; l < 1 + (h->sh.i_type == SLICE_TYPE_B); l++ )\
+                            if( h->mb.ref[l][i8p] != h->mb.ref[l][i8q] ||\
+                                abs( h->mb.mv[l][i4p][0] - h->mb.mv[l][i4q][0] ) >= 4 ||\
+                                abs( h->mb.mv[l][i4p][1] - h->mb.mv[l][i4q][1] ) >= mvy_limit )\
+                            {\
+                                bS[i] = 1;\
+                                break;\
+                            }\
+                    }\
+                }\
+            }\
+        }
+
         /* i_dir == 0 -> vertical edge
          * i_dir == 1 -> horizontal edge */
-        #define deblock_dir(i_dir)\
+        #define DEBLOCK_DIR(i_dir)\
         {\
             int i_edge = (i_dir ? (mb_y <= b_interlaced) : (mb_x == 0));\
             int i_qpn, i, l, mbn_xy, mbn_8x8, mbn_4x4;\
             DECLARE_ALIGNED_4( uint8_t bS[4] );  /* filtering strength */\
             if( i_edge )\
-            {\
                 i_edge+= b_8x8_transform;\
-                mbn_xy  = mb_xy;\
-                mbn_8x8 = mb_8x8;\
-                mbn_4x4 = mb_4x4;\
-            }\
             else\
             {\
                 mbn_xy  = i_dir == 0 ? mb_xy  - 1 : mb_xy - h->mb.i_mb_stride;\
@@ -695,60 +730,27 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                 else if( IS_INTRA( h->mb.type[mb_xy] ) || IS_INTRA( h->mb.type[mbn_xy]) )\
                 {\
                     FILTER_DIR( _intra, i_dir );\
-                    i_edge += b_8x8_transform+1;\
-                    mbn_xy  = mb_xy;\
-                    mbn_8x8 = mb_8x8;\
-                    mbn_4x4 = mb_4x4;\
+                    goto end##i_dir;\
                 }\
-            }\
-            for( ; i_edge < i_edge_end; i_edge+=b_8x8_transform+1 )\
-            {\
-                /* *** Get bS for each 4px for the current edge *** */\
-                if( IS_INTRA( h->mb.type[mb_xy] ) || IS_INTRA( h->mb.type[mbn_xy] ) )\
-                    *(uint32_t*)bS = 0x03030303;\
-                else\
-                {\
-                    *(uint32_t*)bS = 0x00000000;\
-                    for( i = 0; i < 4; i++ )\
-                    {\
-                        int x  = i_dir == 0 ? i_edge : i;\
-                        int y  = i_dir == 0 ? i      : i_edge;\
-                        int xn = (x - (i_dir == 0 ? 1 : 0 ))&0x03;\
-                        int yn = (y - (i_dir == 0 ? 0 : 1 ))&0x03;\
-                        if( h->mb.non_zero_count[mb_xy][x+y*4] != 0 ||\
-                            h->mb.non_zero_count[mbn_xy][xn+yn*4] != 0 )\
-                            bS[i] = 2;\
-                        else\
-                        {\
-                            /* FIXME: A given frame may occupy more than one position in\
-                             * the reference list. So we should compare the frame numbers,\
-                             * not the indices in the ref list.\
-                             * No harm yet, as we don't generate that case.*/\
-                            int i8p= mb_8x8+(x>>1)+(y>>1)*s8x8;\
-                            int i8q= mbn_8x8+(xn>>1)+(yn>>1)*s8x8;\
-                            int i4p= mb_4x4+x+y*s4x4;\
-                            int i4q= mbn_4x4+xn+yn*s4x4;\
-                            for( l = 0; l < 1 + (h->sh.i_type == SLICE_TYPE_B); l++ )\
-                                if( h->mb.ref[l][i8p] != h->mb.ref[l][i8q] ||\
-                                    abs( h->mb.mv[l][i4p][0] - h->mb.mv[l][i4q][0] ) >= 4 ||\
-                                    abs( h->mb.mv[l][i4p][1] - h->mb.mv[l][i4q][1] ) >= mvy_limit )\
-                                {\
-                                    bS[i] = 1;\
-                                    break;\
-                                }\
-                        }\
-                    }\
-                }\
+                DEBLOCK_STRENGTH(i_dir);\
                 if( *(uint32_t*)bS )\
                     FILTER_DIR( , i_dir);\
-                mbn_xy  = mb_xy;\
-                mbn_8x8 = mb_8x8;\
-                mbn_4x4 = mb_4x4;\
+                end##i_dir:\
+                i_edge += b_8x8_transform+1;\
+            }\
+            mbn_xy  = mb_xy;\
+            mbn_8x8 = mb_8x8;\
+            mbn_4x4 = mb_4x4;\
+            for( ; i_edge < i_edge_end; i_edge+=b_8x8_transform+1 )\
+            {\
+                DEBLOCK_STRENGTH(i_dir);\
+                if( *(uint32_t*)bS )\
+                    FILTER_DIR( , i_dir);\
             }\
         }
 
-        deblock_dir(0);
-        deblock_dir(1);
+        DEBLOCK_DIR(0);
+        DEBLOCK_DIR(1);
     }
 
     if( !h->pps->b_cabac && h->pps->b_transform_8x8_mode )
