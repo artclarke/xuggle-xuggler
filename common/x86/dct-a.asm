@@ -32,30 +32,6 @@ pb_zigzag4: db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
 
 SECTION .text
 
-%macro SBUTTERFLY 4
-    mova       m%4, m%2
-    punpckl%1  m%2, m%3
-    punpckh%1  m%4, m%3
-    SWAP %3, %4
-%endmacro
-
-%macro TRANSPOSE4x4W 5
-    SBUTTERFLY wd, %1, %2, %5
-    SBUTTERFLY wd, %3, %4, %5
-    SBUTTERFLY dq, %1, %3, %5
-    SBUTTERFLY dq, %2, %4, %5
-    SWAP %2, %3
-%endmacro
-
-%macro TRANSPOSE2x4x4W 5
-    SBUTTERFLY wd, %1, %2, %5
-    SBUTTERFLY wd, %3, %4, %5
-    SBUTTERFLY dq, %1, %3, %5
-    SBUTTERFLY dq, %2, %4, %5
-    SBUTTERFLY qdq, %1, %2, %5
-    SBUTTERFLY qdq, %3, %4, %5
-%endmacro
-
 %macro HADAMARD4_1D 4
     SUMSUB_BADC m%2, m%1, m%4, m%3
     SUMSUB_BADC m%4, m%2, m%3, m%1

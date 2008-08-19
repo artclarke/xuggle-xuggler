@@ -18,6 +18,87 @@
 ;* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
 ;*****************************************************************************
 
+%macro SBUTTERFLY 4
+    mova      m%4, m%2
+    punpckl%1 m%2, m%3
+    punpckh%1 m%4, m%3
+    SWAP %3, %4
+%endmacro
+
+%macro TRANSPOSE4x4W 5
+    SBUTTERFLY wd, %1, %2, %5
+    SBUTTERFLY wd, %3, %4, %5
+    SBUTTERFLY dq, %1, %3, %5
+    SBUTTERFLY dq, %2, %4, %5
+    SWAP %2, %3
+%endmacro
+
+%macro TRANSPOSE2x4x4W 5
+    SBUTTERFLY wd,  %1, %2, %5
+    SBUTTERFLY wd,  %3, %4, %5
+    SBUTTERFLY dq,  %1, %3, %5
+    SBUTTERFLY dq,  %2, %4, %5
+    SBUTTERFLY qdq, %1, %2, %5
+    SBUTTERFLY qdq, %3, %4, %5
+%endmacro
+
+%macro TRANSPOSE4x4D 5
+    SBUTTERFLY dq,  %1, %2, %5
+    SBUTTERFLY dq,  %3, %4, %5
+    SBUTTERFLY qdq, %1, %3, %5
+    SBUTTERFLY qdq, %2, %4, %5
+    SWAP %2, %3
+%endmacro
+
+%macro TRANSPOSE8x8W 9-11
+%ifdef ARCH_X86_64
+    SBUTTERFLY wd,  %1, %2, %9
+    SBUTTERFLY wd,  %3, %4, %9
+    SBUTTERFLY wd,  %5, %6, %9
+    SBUTTERFLY wd,  %7, %8, %9
+    SBUTTERFLY dq,  %1, %3, %9
+    SBUTTERFLY dq,  %2, %4, %9
+    SBUTTERFLY dq,  %5, %7, %9
+    SBUTTERFLY dq,  %6, %8, %9
+    SBUTTERFLY qdq, %1, %5, %9
+    SBUTTERFLY qdq, %2, %6, %9
+    SBUTTERFLY qdq, %3, %7, %9
+    SBUTTERFLY qdq, %4, %8, %9
+    SWAP %2, %5
+    SWAP %4, %7
+%else
+; in:  m0..m7, unless %11 in which case m6 is in %9
+; out: m0..m7, unless %11 in which case m4 is in %10
+; spills into %9 and %10
+%if %0<11
+    movdqa %9, m%7
+%endif
+    SBUTTERFLY wd,  %1, %2, %7
+    movdqa %10, m%2
+    movdqa m%7, %9
+    SBUTTERFLY wd,  %3, %4, %2
+    SBUTTERFLY wd,  %5, %6, %2
+    SBUTTERFLY wd,  %7, %8, %2
+    SBUTTERFLY dq,  %1, %3, %2
+    movdqa %9, m%3
+    movdqa m%2, %10
+    SBUTTERFLY dq,  %2, %4, %3
+    SBUTTERFLY dq,  %5, %7, %3
+    SBUTTERFLY dq,  %6, %8, %3
+    SBUTTERFLY qdq, %1, %5, %3
+    SBUTTERFLY qdq, %2, %6, %3
+    movdqa %10, m%2
+    movdqa m%3, %9
+    SBUTTERFLY qdq, %3, %7, %2
+    SBUTTERFLY qdq, %4, %8, %2
+    SWAP %2, %5
+    SWAP %4, %7
+%if 0<11
+    movdqa m%5, %10
+%endif
+%endif
+%endmacro
+
 %macro ABS1_MMX 2    ; a, tmp
     pxor    %2, %2
     psubw   %2, %1

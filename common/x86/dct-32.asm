@@ -32,21 +32,6 @@ pw_32: times 8 dw 32
 
 SECTION .text
 
-%macro SBUTTERFLY 4
-    mova       m%4, m%2
-    punpckl%1  m%2, m%3
-    punpckh%1  m%4, m%3
-    SWAP %3, %4
-%endmacro
-
-%macro TRANSPOSE4x4W 5
-    SBUTTERFLY wd, %1, %2, %5
-    SBUTTERFLY wd, %3, %4, %5
-    SBUTTERFLY dq, %1, %3, %5
-    SBUTTERFLY dq, %2, %4, %5
-    SWAP %2, %3
-%endmacro
-
 ; in: m0..m7
 ; out: 0,4,6 in mem, rest in regs
 %macro DCT8_1D 9
@@ -359,31 +344,6 @@ global x264_add8x8_idct8_mmx %+ .skip_prologue
 
 INIT_XMM
 
-; in: m0..m7, except m6 which is in [%9+0x60]
-; out: m0..m7, except m4 which is in [%9+0x40]
-%macro TRANSPOSE8x8W 9
-    SBUTTERFLY wd, %1, %2, %7
-    movdqa [%9+16], m%2
-    movdqa m%7, [%9+0x60]
-    SBUTTERFLY wd, %3, %4, %2
-    SBUTTERFLY wd, %5, %6, %2
-    SBUTTERFLY wd, %7, %8, %2
-    SBUTTERFLY dq, %1, %3, %2
-    movdqa [%9], m%3
-    movdqa m%2, [%9+16]
-    SBUTTERFLY dq, %2, %4, %3
-    SBUTTERFLY dq, %5, %7, %3
-    SBUTTERFLY dq, %6, %8, %3
-    SBUTTERFLY qdq, %1, %5, %3
-    SBUTTERFLY qdq, %2, %6, %3
-    movdqa [%9+0x40], m%2
-    movdqa m%3, [%9]
-    SBUTTERFLY qdq, %3, %7, %2
-    SBUTTERFLY qdq, %4, %8, %2
-    SWAP %2, %5
-    SWAP %4, %7
-%endmacro
-
 ;-----------------------------------------------------------------------------
 ; void x264_sub8x8_dct8_sse2( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
@@ -402,7 +362,7 @@ global x264_sub8x8_dct8_sse2 %+ .skip_prologue
     UNSPILL r0, 0
     DCT8_1D 0,1,2,3,4,5,6,7,r0
     UNSPILL r0, 0,4
-    TRANSPOSE8x8W 0,1,2,3,4,5,6,7,r0
+    TRANSPOSE8x8W 0,1,2,3,4,5,6,7,[r0+0x60],[r0+0x40],1
     UNSPILL r0, 4
     DCT8_1D 0,1,2,3,4,5,6,7,r0
     SPILL r0, 1,2,3,5,7
@@ -417,7 +377,7 @@ global x264_add8x8_idct8_sse2 %+ .skip_prologue
     UNSPILL r1, 1,2,3,5,6,7
     IDCT8_1D   0,1,2,3,4,5,6,7,r1
     SPILL r1, 6
-    TRANSPOSE8x8W 0,1,2,3,4,5,6,7,r1
+    TRANSPOSE8x8W 0,1,2,3,4,5,6,7,[r1+0x60],[r1+0x40],1
     picgetgot  edx
     paddw      m0, [pw_32 GLOBAL]
     SPILL r1, 0

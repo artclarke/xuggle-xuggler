@@ -502,6 +502,7 @@ INIT_MMX
     %assign %%i 0
     %rep num_mmregs
     CAT_XDEFINE m, %%i, %1_m %+ %%i
+    CAT_XDEFINE n, m %+ %%i, %%i
     %assign %%i %%i+1
     %endrep
 %endmacro

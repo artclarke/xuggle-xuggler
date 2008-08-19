@@ -25,21 +25,9 @@
 %include "x86util.asm"
 
 SECTION .text
+INIT_MMX
 
-%macro SBUTTERFLY 5
-    mov%1     %5, %3
-    punpckl%2 %3, %4
-    punpckh%2 %5, %4
-%endmacro
-
-%macro TRANSPOSE4x4W 5   ; abcd-t -> adtc
-    SBUTTERFLY q, wd, %1, %2, %5
-    SBUTTERFLY q, wd, %3, %4, %2
-    SBUTTERFLY q, dq, %1, %3, %4
-    SBUTTERFLY q, dq, %5, %2, %3
-%endmacro
-
-%macro LOAD_DIFF_4P 4  ; mmp, mmt, dx, dy
+%macro LOAD_DIFF_4P 4  ; mp, mt, dx, dy
     movd        %1, [eax+ebx*%4+%3]
     movd        %2, [ecx+edx*%4+%3]
     punpcklbw   %1, %2
@@ -48,40 +36,40 @@ SECTION .text
 %endmacro
 
 %macro LOAD_DIFF_4x8P 1 ; dx
-    LOAD_DIFF_4P  mm0, mm7, %1, 0
-    LOAD_DIFF_4P  mm1, mm7, %1, 1
+    LOAD_DIFF_4P  m0, m7, %1, 0
+    LOAD_DIFF_4P  m1, m7, %1, 1
     lea  eax, [eax+2*ebx]
     lea  ecx, [ecx+2*edx]
-    LOAD_DIFF_4P  mm2, mm7, %1, 0
-    LOAD_DIFF_4P  mm3, mm7, %1, 1
+    LOAD_DIFF_4P  m2, m7, %1, 0
+    LOAD_DIFF_4P  m3, m7, %1, 1
     lea  eax, [eax+2*ebx]
     lea  ecx, [ecx+2*edx]
-    LOAD_DIFF_4P  mm4, mm7, %1, 0
-    LOAD_DIFF_4P  mm5, mm7, %1, 1
+    LOAD_DIFF_4P  m4, m7, %1, 0
+    LOAD_DIFF_4P  m5, m7, %1, 1
     lea  eax, [eax+2*ebx]
     lea  ecx, [ecx+2*edx]
-    LOAD_DIFF_4P  mm6, mm7, %1, 0
-    movq [spill], mm6
-    LOAD_DIFF_4P  mm7, mm6, %1, 1
-    movq mm6, [spill]
+    LOAD_DIFF_4P  m6, m7, %1, 0
+    movq [spill], m6
+    LOAD_DIFF_4P  m7, m6, %1, 1
+    movq m6, [spill]
 %endmacro
 
 %macro SUM4x8_MM 0
-    movq [spill],   mm6
-    movq [spill+8], mm7
-    ABS2     mm0, mm1, mm6, mm7
-    ABS2     mm2, mm3, mm6, mm7
-    paddw    mm0, mm2
-    paddw    mm1, mm3
-    movq     mm6, [spill]
-    movq     mm7, [spill+8]
-    ABS2     mm4, mm5, mm2, mm3
-    ABS2     mm6, mm7, mm2, mm3
-    paddw    mm4, mm6
-    paddw    mm5, mm7
-    paddw    mm0, mm4
-    paddw    mm1, mm5
-    paddw    mm0, mm1
+    movq [spill],   m6
+    movq [spill+8], m7
+    ABS2     m0, m1, m6, m7
+    ABS2     m2, m3, m6, m7
+    paddw    m0, m2
+    paddw    m1, m3
+    movq     m6, [spill]
+    movq     m7, [spill+8]
+    ABS2     m4, m5, m2, m3
+    ABS2     m6, m7, m2, m3
+    paddw    m4, m6
+    paddw    m5, m7
+    paddw    m0, m4
+    paddw    m1, m5
+    paddw    m0, m1
 %endmacro
 
 ;-----------------------------------------------------------------------------
@@ -98,67 +86,67 @@ cglobal x264_pixel_sa8d_8x8_mmxext
 %define spill esp+0x60 ; +16
 %define trans esp+0    ; +96
     LOAD_DIFF_4x8P 0
-    HADAMARD8_1D mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
+    HADAMARD8_1D m0, m1, m2, m3, m4, m5, m6, m7
 
-    movq   [spill], mm0
-    TRANSPOSE4x4W mm4, mm5, mm6, mm7, mm0
-    movq   [trans+0x00], mm4
-    movq   [trans+0x08], mm7
-    movq   [trans+0x10], mm0
-    movq   [trans+0x18], mm6
-    movq   mm0, [spill]
-    TRANSPOSE4x4W mm0, mm1, mm2, mm3, mm4
-    movq   [trans+0x20], mm0
-    movq   [trans+0x28], mm3
-    movq   [trans+0x30], mm4
-    movq   [trans+0x38], mm2
+    movq   [spill], m0
+    TRANSPOSE4x4W 4, 5, 6, 7, 0
+    movq   [trans+0x00], m4
+    movq   [trans+0x08], m5
+    movq   [trans+0x10], m6
+    movq   [trans+0x18], m7
+    movq   m0, [spill]
+    TRANSPOSE4x4W 0, 1, 2, 3, 4
+    movq   [trans+0x20], m0
+    movq   [trans+0x28], m1
+    movq   [trans+0x30], m2
+    movq   [trans+0x38], m3
 
     mov    eax, [args+4]
     mov    ecx, [args+12]
     LOAD_DIFF_4x8P 4
-    HADAMARD8_1D mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
+    HADAMARD8_1D m0, m1, m2, m3, m4, m5, m6, m7
 
-    movq   [spill], mm7
-    TRANSPOSE4x4W mm0, mm1, mm2, mm3, mm7
-    movq   [trans+0x40], mm0
-    movq   [trans+0x48], mm3
-    movq   [trans+0x50], mm7
-    movq   [trans+0x58], mm2
-    movq   mm7, [spill]
-    TRANSPOSE4x4W mm4, mm5, mm6, mm7, mm0
-    movq   mm5, [trans+0x00]
-    movq   mm1, [trans+0x08]
-    movq   mm2, [trans+0x10]
-    movq   mm3, [trans+0x18]
+    movq   [spill], m7
+    TRANSPOSE4x4W 0, 1, 2, 3, 7
+    movq   [trans+0x40], m0
+    movq   [trans+0x48], m1
+    movq   [trans+0x50], m2
+    movq   [trans+0x58], m3
+    movq   m7, [spill]
+    TRANSPOSE4x4W 4, 5, 6, 7, 0
+    movq   m0, [trans+0x00]
+    movq   m1, [trans+0x08]
+    movq   m2, [trans+0x10]
+    movq   m3, [trans+0x18]
 
-    HADAMARD8_1D mm5, mm1, mm2, mm3, mm4, mm7, mm0, mm6
+    HADAMARD8_1D m0, m1, m2, m3, m4, m5, m6, m7
     SUM4x8_MM
-    movq   [trans], mm0
+    movq   [trans], m0
 
-    movq   mm0, [trans+0x20]
-    movq   mm1, [trans+0x28]
-    movq   mm2, [trans+0x30]
-    movq   mm3, [trans+0x38]
-    movq   mm4, [trans+0x40]
-    movq   mm5, [trans+0x48]
-    movq   mm6, [trans+0x50]
-    movq   mm7, [trans+0x58]
+    movq   m0, [trans+0x20]
+    movq   m1, [trans+0x28]
+    movq   m2, [trans+0x30]
+    movq   m3, [trans+0x38]
+    movq   m4, [trans+0x40]
+    movq   m5, [trans+0x48]
+    movq   m6, [trans+0x50]
+    movq   m7, [trans+0x58]
 
-    HADAMARD8_1D mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
+    HADAMARD8_1D m0, m1, m2, m3, m4, m5, m6, m7
     SUM4x8_MM
 
-    pavgw  mm0, [esp]
-    pshufw mm1, mm0, 01001110b
-    paddw  mm0, mm1
-    pshufw mm1, mm0, 10110001b
-    paddw  mm0, mm1
-    movd   eax, mm0
-    and    eax, 0xffff
-    mov    ecx, eax ; preserve rounding for 16x16
-    add    eax, 1
-    shr    eax, 1
-    add    esp, 0x70
-    pop    ebx
+    pavgw  m0, [trans]
+    pshufw m1, m0, 01001110b
+    paddw  m0, m1
+    pshufw m1, m0, 10110001b
+    paddw  m0, m1
+    movd  eax, m0
+    and   eax, 0xffff
+    mov   ecx, eax ; preserve rounding for 16x16
+    add   eax, 1
+    shr   eax, 1
+    add   esp, 0x70
+    pop   ebx
     ret
 %undef args
 %undef spill
@@ -184,25 +172,25 @@ cglobal x264_pixel_sa8d_8x8_mmxext
 %endmacro
 
 %macro LOAD_4x8P 1 ; dx
-    pxor        mm7, mm7
-    movd        mm6, [eax+%1+7*FENC_STRIDE]
-    movd        mm0, [eax+%1+0*FENC_STRIDE]
-    movd        mm1, [eax+%1+1*FENC_STRIDE]
-    movd        mm2, [eax+%1+2*FENC_STRIDE]
-    movd        mm3, [eax+%1+3*FENC_STRIDE]
-    movd        mm4, [eax+%1+4*FENC_STRIDE]
-    movd        mm5, [eax+%1+5*FENC_STRIDE]
-    punpcklbw   mm6, mm7
-    punpcklbw   mm0, mm7
-    punpcklbw   mm1, mm7
-    movq    [spill], mm6
-    punpcklbw   mm2, mm7
-    punpcklbw   mm3, mm7
-    movd        mm6, [eax+%1+6*FENC_STRIDE]
-    punpcklbw   mm4, mm7
-    punpcklbw   mm5, mm7
-    punpcklbw   mm6, mm7
-    movq        mm7, [spill]
+    pxor        m7, m7
+    movd        m6, [eax+%1+7*FENC_STRIDE]
+    movd        m0, [eax+%1+0*FENC_STRIDE]
+    movd        m1, [eax+%1+1*FENC_STRIDE]
+    movd        m2, [eax+%1+2*FENC_STRIDE]
+    movd        m3, [eax+%1+3*FENC_STRIDE]
+    movd        m4, [eax+%1+4*FENC_STRIDE]
+    movd        m5, [eax+%1+5*FENC_STRIDE]
+    punpcklbw   m6, m7
+    punpcklbw   m0, m7
+    punpcklbw   m1, m7
+    movq   [spill], m6
+    punpcklbw   m2, m7
+    punpcklbw   m3, m7
+    movd        m6, [eax+%1+6*FENC_STRIDE]
+    punpcklbw   m4, m7
+    punpcklbw   m5, m7
+    punpcklbw   m6, m7
+    movq        m7, [spill]
 %endmacro
 
 ;-----------------------------------------------------------------------------
@@ -217,146 +205,146 @@ cglobal x264_intra_sa8d_x3_8x8_core_mmxext
 %define trans esp+0    ; +96
 %define sum   esp+0    ; +32
     LOAD_4x8P 0
-    HADAMARD8_1D mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
+    HADAMARD8_1D m0, m1, m2, m3, m4, m5, m6, m7
 
-    movq   [spill], mm0
-    TRANSPOSE4x4W mm4, mm5, mm6, mm7, mm0
-    movq   [trans+0x00], mm4
-    movq   [trans+0x08], mm7
-    movq   [trans+0x10], mm0
-    movq   [trans+0x18], mm6
-    movq   mm0, [spill]
-    TRANSPOSE4x4W mm0, mm1, mm2, mm3, mm4
-    movq   [trans+0x20], mm0
-    movq   [trans+0x28], mm3
-    movq   [trans+0x30], mm4
-    movq   [trans+0x38], mm2
+    movq   [spill], m0
+    TRANSPOSE4x4W 4, 5, 6, 7, 0
+    movq   [trans+0x00], m4
+    movq   [trans+0x08], m5
+    movq   [trans+0x10], m6
+    movq   [trans+0x18], m7
+    movq   m0, [spill]
+    TRANSPOSE4x4W 0, 1, 2, 3, 4
+    movq   [trans+0x20], m0
+    movq   [trans+0x28], m1
+    movq   [trans+0x30], m2
+    movq   [trans+0x38], m3
 
     LOAD_4x8P 4
-    HADAMARD8_1D mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
+    HADAMARD8_1D m0, m1, m2, m3, m4, m5, m6, m7
 
-    movq   [spill], mm7
-    TRANSPOSE4x4W mm0, mm1, mm2, mm3, mm7
-    movq   [trans+0x40], mm0
-    movq   [trans+0x48], mm3
-    movq   [trans+0x50], mm7
-    movq   [trans+0x58], mm2
-    movq   mm7, [spill]
-    TRANSPOSE4x4W mm4, mm5, mm6, mm7, mm0
-    movq   mm5, [trans+0x00]
-    movq   mm1, [trans+0x08]
-    movq   mm2, [trans+0x10]
-    movq   mm3, [trans+0x18]
+    movq   [spill], m7
+    TRANSPOSE4x4W 0, 1, 2, 3, 7
+    movq   [trans+0x40], m0
+    movq   [trans+0x48], m1
+    movq   [trans+0x50], m2
+    movq   [trans+0x58], m3
+    movq   m7, [spill]
+    TRANSPOSE4x4W 4, 5, 6, 7, 0
+    movq   m0, [trans+0x00]
+    movq   m1, [trans+0x08]
+    movq   m2, [trans+0x10]
+    movq   m3, [trans+0x18]
 
-    HADAMARD8_1D mm5, mm1, mm2, mm3, mm4, mm7, mm0, mm6
+    HADAMARD8_1D m0, m1, m2, m3, m4, m5, m6, m7
 
-    movq [spill+0], mm5
-    movq [spill+8], mm7
-    ABS2     mm0, mm1, mm5, mm7
-    ABS2     mm2, mm3, mm5, mm7
-    paddw    mm0, mm2
-    paddw    mm1, mm3
-    paddw    mm0, mm1
-    ABS2     mm4, mm6, mm2, mm3
-    movq     mm5, [spill+0]
-    movq     mm7, [spill+8]
-    paddw    mm0, mm4
-    paddw    mm0, mm6
-    ABS1     mm7, mm1
-    paddw    mm0, mm7 ; 7x4 sum
-    movq     mm6, mm5
-    movq     mm7, [ecx+8] ; left bottom
-    psllw    mm7, 3
-    psubw    mm6, mm7
-    ABS2     mm5, mm6, mm2, mm3
-    paddw    mm5, mm0
-    paddw    mm6, mm0
-    movq [sum+0], mm5 ; dc
-    movq [sum+8], mm6 ; left
+    movq [spill+0], m0
+    movq [spill+8], m1
+    ABS2     m2, m3, m0, m1
+    ABS2     m4, m5, m0, m1
+    paddw    m2, m4
+    paddw    m3, m5
+    ABS2     m6, m7, m4, m5
+    movq     m0, [spill+0]
+    movq     m1, [spill+8]
+    paddw    m2, m6
+    paddw    m3, m7
+    paddw    m2, m3
+    ABS1     m1, m4
+    paddw    m2, m1 ; 7x4 sum
+    movq     m7, m0
+    movq     m1, [ecx+8] ; left bottom
+    psllw    m1, 3
+    psubw    m7, m1
+    ABS2     m0, m7, m5, m3
+    paddw    m0, m2
+    paddw    m7, m2
+    movq [sum+0], m0 ; dc
+    movq [sum+8], m7 ; left
 
-    movq   mm0, [trans+0x20]
-    movq   mm1, [trans+0x28]
-    movq   mm2, [trans+0x30]
-    movq   mm3, [trans+0x38]
-    movq   mm4, [trans+0x40]
-    movq   mm5, [trans+0x48]
-    movq   mm6, [trans+0x50]
-    movq   mm7, [trans+0x58]
+    movq   m0, [trans+0x20]
+    movq   m1, [trans+0x28]
+    movq   m2, [trans+0x30]
+    movq   m3, [trans+0x38]
+    movq   m4, [trans+0x40]
+    movq   m5, [trans+0x48]
+    movq   m6, [trans+0x50]
+    movq   m7, [trans+0x58]
 
-    HADAMARD8_1D mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
+    HADAMARD8_1D m0, m1, m2, m3, m4, m5, m6, m7
 
-    movd   [sum+0x10], mm0
-    movd   [sum+0x12], mm1
-    movd   [sum+0x14], mm2
-    movd   [sum+0x16], mm3
-    movd   [sum+0x18], mm4
-    movd   [sum+0x1a], mm5
-    movd   [sum+0x1c], mm6
-    movd   [sum+0x1e], mm7
+    movd   [sum+0x10], m0
+    movd   [sum+0x12], m1
+    movd   [sum+0x14], m2
+    movd   [sum+0x16], m3
+    movd   [sum+0x18], m4
+    movd   [sum+0x1a], m5
+    movd   [sum+0x1c], m6
+    movd   [sum+0x1e], m7
 
-    movq [spill],   mm0
-    movq [spill+8], mm1
-    ABS2     mm2, mm3, mm0, mm1
-    ABS2     mm4, mm5, mm0, mm1
-    paddw    mm2, mm3
-    paddw    mm4, mm5
-    paddw    mm2, mm4
-    movq     mm0, [spill]
-    movq     mm1, [spill+8]
-    ABS2     mm6, mm7, mm4, mm5
-    ABS1     mm1, mm4
-    paddw    mm2, mm7
-    paddw    mm1, mm6
-    paddw    mm2, mm1 ; 7x4 sum
-    movq     mm1, mm0
+    movq [spill],   m0
+    movq [spill+8], m1
+    ABS2     m2, m3, m0, m1
+    ABS2     m4, m5, m0, m1
+    paddw    m2, m4
+    paddw    m3, m5
+    paddw    m2, m3
+    movq     m0, [spill]
+    movq     m1, [spill+8]
+    ABS2     m6, m7, m4, m5
+    ABS1     m1, m3
+    paddw    m2, m7
+    paddw    m1, m6
+    paddw    m2, m1 ; 7x4 sum
+    movq     m1, m0
 
-    movq     mm7, [ecx+0]
-    psllw    mm7, 3   ; left top
+    movq     m7, [ecx+0]
+    psllw    m7, 3   ; left top
 
-    movzx    edx, word [ecx+0]
+    movzx   edx, word [ecx+0]
     add      dx,  [ecx+16]
-    lea      edx, [4*edx+32]
-    and      edx, -64
-    movd     mm6, edx ; dc
+    lea     edx, [4*edx+32]
+    and     edx, -64
+    movd     m6, edx ; dc
 
-    psubw    mm1, mm7
-    psubw    mm0, mm6
-    ABS2     mm0, mm1, mm5, mm6
-    movq     mm3, [sum+0] ; dc
-    paddw    mm0, mm2
-    paddw    mm1, mm2
-    movq     mm2, mm0
-    paddw    mm0, mm3
-    paddw    mm1, [sum+8] ; h
-    psrlq    mm2, 16
-    paddw    mm2, mm3
+    psubw    m1, m7
+    psubw    m0, m6
+    ABS2     m0, m1, m5, m6
+    movq     m3, [sum+0] ; dc
+    paddw    m0, m2
+    paddw    m1, m2
+    movq     m2, m0
+    paddw    m0, m3
+    paddw    m1, [sum+8] ; h
+    psrlq    m2, 16
+    paddw    m2, m3
 
-    movq     mm3, [ecx+16] ; top left
-    movq     mm4, [ecx+24] ; top right
-    psllw    mm3, 3
-    psllw    mm4, 3
-    psubw    mm3, [sum+16]
-    psubw    mm4, [sum+24]
-    ABS2     mm3, mm4, mm5, mm6
-    paddw    mm2, mm3
-    paddw    mm2, mm4 ; v
+    movq     m3, [ecx+16] ; top left
+    movq     m4, [ecx+24] ; top right
+    psllw    m3, 3
+    psllw    m4, 3
+    psubw    m3, [sum+16]
+    psubw    m4, [sum+24]
+    ABS2     m3, m4, m5, m6
+    paddw    m2, m3
+    paddw    m2, m4 ; v
 
-    SUM_MM_X3   mm0, mm1, mm2, mm3, mm4, mm5, mm6, paddd
-    mov      eax, [args+8]
-    movd     ecx, mm2
-    movd     edx, mm1
-    add      ecx, 2
-    add      edx, 2
-    shr      ecx, 2
-    shr      edx, 2
-    mov      [eax+0], ecx ; i8x8_v satd
-    mov      [eax+4], edx ; i8x8_h satd
-    movd     ecx, mm0
-    add      ecx, 2
-    shr      ecx, 2
-    mov      [eax+8], ecx ; i8x8_dc satd
+    SUM_MM_X3 m0, m1, m2, m3, m4, m5, m6, paddd
+    mov     eax, [args+8]
+    movd    ecx, m2
+    movd    edx, m1
+    add     ecx, 2
+    add     edx, 2
+    shr     ecx, 2
+    shr     edx, 2
+    mov [eax+0], ecx ; i8x8_v satd
+    mov [eax+4], edx ; i8x8_h satd
+    movd    ecx, m0
+    add     ecx, 2
+    shr     ecx, 2
+    mov [eax+8], ecx ; i8x8_dc satd
 
-    add      esp, 0x70
+    add     esp, 0x70
     ret
 %undef args
 %undef spill
@@ -370,57 +358,57 @@ cglobal x264_intra_sa8d_x3_8x8_core_mmxext
 ;                                         const uint8_t *pix2, int stride2, int sums[2][4] )
 ;-----------------------------------------------------------------------------
 cglobal x264_pixel_ssim_4x4x2_core_mmxext
-    push      ebx
-    push      edi
-    mov       ebx, [esp+16]
-    mov       edx, [esp+24]
-    mov       edi, 4
-    pxor      mm0, mm0
+    push     ebx
+    push     edi
+    mov      ebx, [esp+16]
+    mov      edx, [esp+24]
+    mov      edi, 4
+    pxor      m0, m0
 .loop:
-    mov       eax, [esp+12]
-    mov       ecx, [esp+20]
-    add       eax, edi
-    add       ecx, edi
-    pxor      mm1, mm1
-    pxor      mm2, mm2
-    pxor      mm3, mm3
-    pxor      mm4, mm4
+    mov      eax, [esp+12]
+    mov      ecx, [esp+20]
+    add      eax, edi
+    add      ecx, edi
+    pxor      m1, m1
+    pxor      m2, m2
+    pxor      m3, m3
+    pxor      m4, m4
 %rep 4
-    movd      mm5, [eax]
-    movd      mm6, [ecx]
-    punpcklbw mm5, mm0
-    punpcklbw mm6, mm0
-    paddw     mm1, mm5
-    paddw     mm2, mm6
-    movq      mm7, mm5
-    pmaddwd   mm5, mm5
-    pmaddwd   mm7, mm6
-    pmaddwd   mm6, mm6
-    paddd     mm3, mm5
-    paddd     mm4, mm7
-    paddd     mm3, mm6
-    add       eax, ebx
-    add       ecx, edx
+    movd      m5, [eax]
+    movd      m6, [ecx]
+    punpcklbw m5, m0
+    punpcklbw m6, m0
+    paddw     m1, m5
+    paddw     m2, m6
+    movq      m7, m5
+    pmaddwd   m5, m5
+    pmaddwd   m7, m6
+    pmaddwd   m6, m6
+    paddd     m3, m5
+    paddd     m4, m7
+    paddd     m3, m6
+    add      eax, ebx
+    add      ecx, edx
 %endrep
-    mov       eax, [esp+28]
-    lea       eax, [eax+edi*4]
-    pshufw    mm5, mm1, 0xE
-    pshufw    mm6, mm2, 0xE
-    paddusw   mm1, mm5
-    paddusw   mm2, mm6
-    punpcklwd mm1, mm2
-    pshufw    mm2, mm1, 0xE
-    pshufw    mm5, mm3, 0xE
-    pshufw    mm6, mm4, 0xE
-    paddusw   mm1, mm2
-    paddd     mm3, mm5
-    paddd     mm4, mm6
-    punpcklwd mm1, mm0
-    punpckldq mm3, mm4
-    movq  [eax+0], mm1
-    movq  [eax+8], mm3
-    sub       edi, 4
-    jge       .loop
+    mov      eax, [esp+28]
+    lea      eax, [eax+edi*4]
+    pshufw    m5, m1, 0xE
+    pshufw    m6, m2, 0xE
+    paddusw   m1, m5
+    paddusw   m2, m6
+    punpcklwd m1, m2
+    pshufw    m2, m1, 0xE
+    pshufw    m5, m3, 0xE
+    pshufw    m6, m4, 0xE
+    paddusw   m1, m2
+    paddd     m3, m5
+    paddd     m4, m6
+    punpcklwd m1, m0
+    punpckldq m3, m4
+    movq [eax+0], m1
+    movq [eax+8], m3
+    sub      edi, 4
+    jge .loop
     pop       edi
     pop       ebx
     emms
