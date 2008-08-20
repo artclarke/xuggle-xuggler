@@ -694,7 +694,7 @@ cglobal x264_pixel_sad_16x%2_cache64_%1, 0,0
     and     eax, 0x37
     cmp     eax, 0x30
     jle x264_pixel_sad_16x%2_sse2
-    PROLOGUE 4,6,0
+    PROLOGUE 4,6
     mov     r4d, r2d
     and     r4d, 15
 %ifidn %1, ssse3
@@ -704,11 +704,10 @@ cglobal x264_pixel_sad_16x%2_cache64_%1, 0,0
     shl     r4d, 4  ; code size = 80
 %endif
 %define sad_w16_addr (sad_w16_align1_%1 + (sad_w16_align1_%1 - sad_w16_align2_%1))
-%ifdef PIC64
+%ifdef PIC
     lea     r5, [sad_w16_addr GLOBAL]
     add     r5, r4
 %else
-    picgetgot r5
     lea     r5, [sad_w16_addr + r4 GLOBAL]
 %endif
     and     r2, ~15
@@ -728,18 +727,10 @@ cglobal x264_pixel_sad_16x%2_cache64_%1, 0,0
     jle x264_pixel_sad_%1x%2_mmxext
     and    eax, 7
     shl    eax, 3
-%ifdef PIC32
-    ; both versions work, but picgetgot is slower than gpr->mmx is slower than mem->mmx
-    mov    r2, 64
-    sub    r2, eax
-    movd   mm7, eax
-    movd   mm6, r2
-%else
     movd   mm6, [sw_64 GLOBAL]
     movd   mm7, eax
     psubw  mm6, mm7
-%endif
-    PROLOGUE 4,5,0
+    PROLOGUE 4,5
     and    r2, ~7
     mov    r4d, %3
     pxor   mm0, mm0

@@ -373,7 +373,7 @@ cglobal x264_deblock_h_luma_sse2
 ;-----------------------------------------------------------------------------
 ; void x264_deblock_v8_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
-cglobal x264_deblock_%2_luma_%1, 5,5,1
+cglobal x264_deblock_%2_luma_%1, 5,5
     lea     r4, [r1*3]
     dec     r2     ; alpha-1
     neg     r4
@@ -609,7 +609,7 @@ DEBLOCK_LUMA sse2, v, 16
 ;-----------------------------------------------------------------------------
 ; void x264_deblock_v_luma_intra_sse2( uint8_t *pix, int stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
-cglobal x264_deblock_%2_luma_intra_%1, 4,6,1
+cglobal x264_deblock_%2_luma_intra_%1, 4,6
 %ifndef ARCH_X86_64
     sub     esp, 0x60
 %endif
@@ -813,7 +813,6 @@ chroma_inter_body_mmxext:
     movd       m6, [r4] ; tc0
     punpcklbw  m6, m6
     pand       m7, m6
-    picgetgot r4
     DEBLOCK_P0_Q0
     ret
 
@@ -862,7 +861,6 @@ chroma_intra_body_mmxext:
     LOAD_MASK r2d, r3d
     movq   m5, m1
     movq   m6, m2
-    picgetgot r2
     CHROMA_INTRA_P0  m1, m0, m3
     CHROMA_INTRA_P0  m2, m3, m0
     psubb  m1, m5

@@ -111,7 +111,7 @@ INIT_MMX
 ;-----------------------------------------------------------------------------
 ; void x264_hpel_filter_v_mmxext( uint8_t *dst, uint8_t *src, int16_t *buf, int stride, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_v_%1, 5,6,1
+cglobal x264_hpel_filter_v_%1, 5,6
     lea r5, [r1+r3]
     sub r1, r3
     sub r1, r3
@@ -148,7 +148,7 @@ HPEL_V mmxext
 ;-----------------------------------------------------------------------------
 ; void x264_hpel_filter_c_mmxext( uint8_t *dst, int16_t *buf, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_c_mmxext, 3,3,1
+cglobal x264_hpel_filter_c_mmxext, 3,3
     add r0, r2
     lea r1, [r1+r2*2]
     neg r2
@@ -177,7 +177,7 @@ cglobal x264_hpel_filter_c_mmxext, 3,3,1
 ;-----------------------------------------------------------------------------
 ; void x264_hpel_filter_h_mmxext( uint8_t *dst, uint8_t *src, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_h_mmxext, 3,3,1
+cglobal x264_hpel_filter_h_mmxext, 3,3
     add r0, r2
     add r1, r2
     neg r2
@@ -224,7 +224,7 @@ INIT_XMM
 ;-----------------------------------------------------------------------------
 ; void x264_hpel_filter_c_sse2( uint8_t *dst, int16_t *buf, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_c_%1, 3,3,1
+cglobal x264_hpel_filter_c_%1, 3,3
     add r0, r2
     lea r1, [r1+r2*2]
     neg r2
@@ -267,7 +267,7 @@ cglobal x264_hpel_filter_c_%1, 3,3,1
 ;-----------------------------------------------------------------------------
 ; void x264_hpel_filter_h_sse2( uint8_t *dst, uint8_t *src, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_h_sse2, 3,3,1
+cglobal x264_hpel_filter_h_sse2, 3,3
     add r0, r2
     add r1, r2
     neg r2

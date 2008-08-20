@@ -378,7 +378,6 @@ global x264_add8x8_idct8_sse2 %+ .skip_prologue
     IDCT8_1D   0,1,2,3,4,5,6,7,r1
     SPILL r1, 6
     TRANSPOSE8x8W 0,1,2,3,4,5,6,7,[r1+0x60],[r1+0x40],1
-    picgetgot  edx
     paddw      m0, [pw_32 GLOBAL]
     SPILL r1, 0
     IDCT8_1D   0,1,2,3,4,5,6,7,r1

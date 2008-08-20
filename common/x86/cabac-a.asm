@@ -63,20 +63,13 @@ struc cb
 endstruc
 
 %macro LOAD_GLOBAL 4
-%ifdef PIC64
+%ifdef PIC
     ; this would be faster if the arrays were declared in asm, so that I didn't have to duplicate the lea
     lea   r11, [%2 GLOBAL]
     %ifnidn %3, 0
     add   r11, %3
     %endif
     movzx %1, byte [r11+%4]
-%elifdef PIC32
-    %ifnidn %3, 0
-    lea   %1, [%3+%4]
-    movzx %1, byte [%2+%1 GLOBAL]
-    %else
-    movzx %1, byte [%2+%3+%4 GLOBAL]
-    %endif
 %else
     movzx %1, byte [%2+%3+%4]
 %endif
@@ -85,7 +78,6 @@ endstruc
 cglobal x264_cabac_encode_decision_asm, 0,7
     movifnidn t0d, r0m
     movifnidn t1d, r1m
-    picgetgot t2
     mov   t5d, [r0+cb.range]
     movzx t3d, byte [r0+cb.state+t1]
     mov   t4d, t5d
@@ -95,22 +87,13 @@ cglobal x264_cabac_encode_decision_asm, 0,7
     sub   t4d, t5d
     mov   t6d, t3d
     shr   t6d, 6
-%ifdef PIC32
-    cmp   t6d, r2m
-%else
     movifnidn t2d, r2m
     cmp   t6d, t2d
-%endif
     mov   t6d, [r0+cb.low]
     lea   t7,  [t6+t4]
     cmovne t4d, t5d
     cmovne t6d, t7d
-%ifdef PIC32
-    mov   t1,  r2m
-    LOAD_GLOBAL t3d, x264_cabac_transition, t1, t3*2
-%else
     LOAD_GLOBAL t3d, x264_cabac_transition, t2, t3*2
-%endif
     movifnidn t1d, r1m
     mov   [r0+cb.state+t1], t3b
 .renorm:

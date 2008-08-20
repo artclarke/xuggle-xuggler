@@ -284,17 +284,9 @@ cglobal x264_pixel_avg2_w20_sse2, 6,7
 %macro INIT_SHIFT 2
     and    eax, 7
     shl    eax, 3
-%ifdef PIC32
-    ; both versions work, but picgetgot is slower than gpr->mmx is slower than mem->mmx
-    mov    r2, 64
-    sub    r2, eax
-    movd   %2, eax
-    movd   %1, r2
-%else
     movd   %1, [sw_64 GLOBAL]
     movd   %2, eax
     psubw  %1, %2
-%endif
 %endmacro
 
 %macro AVG_CACHELINE_CHECK 3 ; width, cacheline, instruction set
@@ -316,7 +308,7 @@ cglobal x264_pixel_avg2_w%1_cache%2_%3, 0,0
     INIT_SHIFT mm6, mm7
     mov    eax, r4m
     INIT_SHIFT mm4, mm5
-    PROLOGUE 6,6,0
+    PROLOGUE 6,6
     and    r2, ~7
     and    r4, ~7
     sub    r4, r2
@@ -510,7 +502,6 @@ COPY_W16_SSE2 x264_mc_copy_w16_aligned_sse2, movdqa
 %else
     SPLATW  m4, r4m
 %endif
-    picgetgot r4
     mova    m5, [pw_64 GLOBAL]
     psubw   m5, m4      ; weight_src
     mova    m6, [pw_32 GLOBAL] ; rounding
@@ -530,7 +521,7 @@ INIT_MMX
 ;-----------------------------------------------------------------------------
 ; int x264_pixel_avg_weight_w16_mmxext( uint8_t *dst, int, uint8_t *src, int, int i_weight, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_avg_weight_4x4_mmxext, 4,4,1
+cglobal x264_pixel_avg_weight_4x4_mmxext, 4,4
     BIWEIGHT_START 0
     BIWEIGHT  [r0     ], [r2     ]
     BIWEIGHT  [r0+r1  ], [r2+r3  ]
@@ -671,7 +662,7 @@ cglobal x264_prefetch_ref_mmxext, 3,3
 ;                             int width, int height )
 ;-----------------------------------------------------------------------------
 %macro MC_CHROMA 1
-cglobal x264_mc_chroma_%1, 0,6,1
+cglobal x264_mc_chroma_%1, 0,6
 %if mmsize == 16
     cmp dword r6m, 4
     jle x264_mc_chroma_mmxext %+ .skip_prologue
@@ -833,7 +824,7 @@ INIT_XMM
 MC_CHROMA sse2
 
 INIT_MMX
-cglobal x264_mc_chroma_ssse3, 0,6,1
+cglobal x264_mc_chroma_ssse3, 0,6
     MC_CHROMA_START
     and       r4d, 7
     and       r5d, 7

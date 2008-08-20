@@ -481,7 +481,6 @@ SATD_W4 mmxext
 %endmacro
 
 %macro SATD_END_SSE2 0
-    picgetgot ebx
     psrlw   m6, 1
     HADDW   m6, m7
     movd   eax, m6
@@ -643,7 +642,6 @@ cglobal x264_pixel_sa8d_8x8_%1, 4,7
     paddusw m0, m7
     paddusw m5, m4
     pavgw   m0, m5
-    picgetgot ebx
     HADDW   m0, m7
     movd eax, m0
     mov  ecx, eax ; preserve rounding for 16x16
@@ -1220,7 +1218,6 @@ cglobal x264_pixel_ssim_4x4x2_core_sse2, 4,4
 %endrep
     ; PHADDW m1, m2
     ; PHADDD m3, m4
-    picgetgot eax
     movdqa    m7, [pw_1 GLOBAL]
     pshufd    m5, m3, 0xb1
     pmaddwd   m1, m7
@@ -1267,7 +1264,6 @@ cglobal x264_pixel_ssim_end4_sse2, 3,3
     paddd     m1, m2
     paddd     m2, m3
     paddd     m3, m4
-    picgetgot r1
     movdqa    m5, [ssim_c1 GLOBAL]
     movdqa    m6, [ssim_c2 GLOBAL]
     TRANSPOSE4x4D  0, 1, 2, 3, 4
@@ -1298,8 +1294,8 @@ cglobal x264_pixel_ssim_end4_sse2, 3,3
     cmp       r2d, 4
     je .skip ; faster only if this is the common case; remove branch if we use ssim on a macroblock level
     neg       r2
-%ifdef PIC64
-    lea       r3,   [mask_ff + 16 GLOBAL]
+%ifdef PIC
+    lea       r3, [mask_ff + 16 GLOBAL]
     movdqu    m1, [r3 + r2*4]
 %else
     movdqu    m1, [mask_ff + r2*4 + 16 GLOBAL]

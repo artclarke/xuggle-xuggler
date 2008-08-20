@@ -99,7 +99,7 @@ SECTION .text
 ;-----------------------------------------------------------------------------
 ; void predict_4x4_ddl_mmxext( uint8_t *src )
 ;-----------------------------------------------------------------------------
-cglobal predict_4x4_ddl_mmxext, 1,1,1
+cglobal predict_4x4_ddl_mmxext, 1,1
     sub         r0, FDEC_STRIDE
     movq        mm3, [r0]
     movq        mm1, [r0-1]
@@ -123,7 +123,7 @@ cglobal predict_4x4_ddl_mmxext, 1,1,1
 ;-----------------------------------------------------------------------------
 ; void predict_4x4_vl_mmxext( uint8_t *src )
 ;-----------------------------------------------------------------------------
-cglobal predict_4x4_vl_mmxext, 1,1,1
+cglobal predict_4x4_vl_mmxext, 1,1
     movq        mm1, [r0-FDEC_STRIDE]
     movq        mm3, mm1
     movq        mm2, mm1
@@ -154,7 +154,7 @@ cglobal predict_8x8_v_mmxext, 2,2
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_dc_mmxext( uint8_t *src, uint8_t *edge );
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_dc_mmxext, 2,2,1
+cglobal predict_8x8_dc_mmxext, 2,2
     pxor        mm0, mm0
     pxor        mm1, mm1
     psadbw      mm0, [r1+7]
@@ -171,7 +171,7 @@ cglobal predict_8x8_dc_mmxext, 2,2,1
 ; void predict_8x8_dc_top_mmxext( uint8_t *src, uint8_t *edge );
 ;-----------------------------------------------------------------------------
 %macro PRED8x8_DC 2
-cglobal %1, 2,2,1
+cglobal %1, 2,2
     pxor        mm0, mm0
     psadbw      mm0, [r1+%2]
     paddw       mm0, [pw_4 GLOBAL]
@@ -192,7 +192,7 @@ PRED8x8_DC predict_8x8_dc_left_mmxext, 7
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_ddl_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_ddl_mmxext, 2,2,1
+cglobal predict_8x8_ddl_mmxext, 2,2
     movq        mm5, [r1+16]
     movq        mm2, [r1+17]
     movq        mm3, [r1+23]
@@ -223,7 +223,7 @@ cglobal predict_8x8_ddl_mmxext, 2,2,1
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_ddr_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_ddr_mmxext, 2,2,1
+cglobal predict_8x8_ddr_mmxext, 2,2
     movq        mm1, [r1+7]
     movq        mm2, [r1+9]
     movq        mm3, [r1+15]
@@ -254,7 +254,7 @@ cglobal predict_8x8_ddr_mmxext, 2,2,1
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_ddl_sse2( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_ddl_sse2, 2,2,1
+cglobal predict_8x8_ddl_sse2, 2,2
     movdqa      xmm3, [r1+16]
     movdqu      xmm2, [r1+17]
     movdqa      xmm1, xmm3
@@ -272,7 +272,7 @@ cglobal predict_8x8_ddl_sse2, 2,2,1
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_ddr_sse2( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_ddr_sse2, 2,2,1
+cglobal predict_8x8_ddr_sse2, 2,2
     movdqu      xmm3, [r1+8]
     movdqu      xmm1, [r1+7]
     movdqa      xmm2, xmm3
@@ -297,7 +297,7 @@ cglobal predict_8x8_ddr_sse2, 2,2,1
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_vl_sse2( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_vl_sse2, 2,2,1
+cglobal predict_8x8_vl_sse2, 2,2
     movdqa      xmm4, [r1+16]
     movdqa      xmm2, xmm4
     movdqa      xmm1, xmm4
@@ -338,7 +338,7 @@ cglobal predict_8x8_vl_sse2, 2,2,1
 ; 6   .....
 ; 7   ,,,,,
 
-cglobal predict_8x8_vr_core_mmxext, 2,2,1
+cglobal predict_8x8_vr_core_mmxext, 2,2
     movq        mm2, [r1+16]
     movq        mm3, [r1+15]
     movq        mm1, [r1+14]
@@ -370,7 +370,7 @@ cglobal predict_8x8c_v_mmx, 1,1
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_dc_core_mmxext( uint8_t *src, int s2, int s3 )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8c_dc_core_mmxext, 1,1,1
+cglobal predict_8x8c_dc_core_mmxext, 1,1
     movq        mm0, [r0 - FDEC_STRIDE]
     pxor        mm1, mm1
     pxor        mm2, mm2
@@ -422,7 +422,7 @@ cglobal predict_8x8c_dc_core_mmxext, 1,1,1
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_p_core_mmxext( uint8_t *src, int i00, int b, int c )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8c_p_core_mmxext, 1,2,1
+cglobal predict_8x8c_p_core_mmxext, 1,2
     LOAD_PLANE_ARGS
     movq        mm1, mm2
     pmullw      mm2, [pw_3210 GLOBAL]
@@ -450,7 +450,7 @@ ALIGN 4
 ;-----------------------------------------------------------------------------
 ; void predict_16x16_p_core_mmxext( uint8_t *src, int i00, int b, int c )
 ;-----------------------------------------------------------------------------
-cglobal predict_16x16_p_core_mmxext, 1,2,1
+cglobal predict_16x16_p_core_mmxext, 1,2
     LOAD_PLANE_ARGS
     movq        mm5, mm2
     movq        mm1, mm2
@@ -492,7 +492,7 @@ ALIGN 4
 ;-----------------------------------------------------------------------------
 ; void predict_16x16_p_core_sse2( uint8_t *src, int i00, int b, int c )
 ;-----------------------------------------------------------------------------
-cglobal predict_16x16_p_core_sse2, 1,2,1
+cglobal predict_16x16_p_core_sse2, 1,2
     movd        xmm0, r1m
     movd        xmm1, r2m
     movd        xmm2, r3m
@@ -568,7 +568,7 @@ cglobal predict_16x16_dc_core_mmxext, 1,2
 %endif
     REP_RET
 
-cglobal predict_16x16_dc_top_mmxext, 1,2,1
+cglobal predict_16x16_dc_top_mmxext, 1,2
     PRED16x16_DC [pw_8 GLOBAL], 4
     REP_RET
 
@@ -594,7 +594,7 @@ cglobal predict_16x16_dc_core_sse2, 1,2
     PRED16x16_DC_SSE2 xmm2, 5
     REP_RET
 
-cglobal predict_16x16_dc_top_sse2, 1,2,1
+cglobal predict_16x16_dc_top_sse2, 1,2
     PRED16x16_DC_SSE2 [pw_8 GLOBAL], 4
     REP_RET
 
