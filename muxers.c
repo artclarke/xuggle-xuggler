@@ -426,6 +426,7 @@ typedef struct {
     x264_pthread_t tid;
     int next_frame;
     int frame_total;
+    int in_progress;
     struct thread_input_arg_t *next_args;
 } thread_input_t;
 
@@ -443,6 +444,7 @@ int open_file_thread( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
     h->p_read_frame = p_read_frame;
     h->p_close_infile = p_close_infile;
     h->p_handle = *p_handle;
+    h->in_progress = 0;
     h->next_frame = -1;
     h->next_args = malloc(sizeof(thread_input_arg_t));
     h->next_args->h = h;
@@ -474,6 +476,7 @@ int read_frame_thread( x264_picture_t *p_pic, hnd_t handle, int i_frame )
     {
         x264_pthread_join( h->tid, &stuff );
         ret |= h->next_args->status;
+        h->in_progress = 0;
     }
 
     if( h->next_frame == i_frame )
@@ -491,6 +494,7 @@ int read_frame_thread( x264_picture_t *p_pic, hnd_t handle, int i_frame )
         h->next_args->i_frame = i_frame+1;
         h->next_args->pic = &h->pic;
         x264_pthread_create( &h->tid, NULL, (void*)read_frame_thread_int, h->next_args );
+        h->in_progress = 1;
     }
     else
         h->next_frame = -1;
@@ -503,7 +507,8 @@ int close_file_thread( hnd_t handle )
     thread_input_t *h = handle;
     h->p_close_infile( h->p_handle );
     x264_picture_clean( &h->pic );
-    x264_pthread_join( h->tid, NULL );
+    if( h->in_progress )
+        x264_pthread_join( h->tid, NULL );
     free( h->next_args );
     free( h );
     return 0;
