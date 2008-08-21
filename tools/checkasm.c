@@ -1069,7 +1069,7 @@ static int check_quant( int cpu_ref, int cpu_new )
     report( "dequant :" );
 
 
-    if( qf_a.denoise_dct_core != qf_ref.denoise_dct_core )
+    if( qf_a.denoise_dct != qf_ref.denoise_dct )
     {
         int size;
         for( size = 16; size <= 64; size += 48 )
@@ -1079,12 +1079,12 @@ static int check_quant( int cpu_ref, int cpu_new )
             memcpy(dct1, buf1, size*2);
             memcpy(dct2, buf1, size*2);
             memcpy(buf3+256, buf3, 256);
-            call_c1( qf_c.denoise_dct_core, dct1, (uint32_t*)buf3, (uint16_t*)buf2, size );
-            call_a1( qf_a.denoise_dct_core, dct2, (uint32_t*)(buf3+256), (uint16_t*)buf2, size );
+            call_c1( qf_c.denoise_dct, dct1, (uint32_t*)buf3, (uint16_t*)buf2, size );
+            call_a1( qf_a.denoise_dct, dct2, (uint32_t*)(buf3+256), (uint16_t*)buf2, size );
             if( memcmp( dct1, dct2, size*2 ) || memcmp( buf3+4, buf3+256+4, (size-1)*sizeof(uint32_t) ) )
                 ok = 0;
-            call_c2( qf_c.denoise_dct_core, dct1, (uint32_t*)buf3, (uint16_t*)buf2, size );
-            call_a2( qf_a.denoise_dct_core, dct2, (uint32_t*)(buf3+256), (uint16_t*)buf2, size );
+            call_c2( qf_c.denoise_dct, dct1, (uint32_t*)buf3, (uint16_t*)buf2, size );
+            call_a2( qf_a.denoise_dct, dct2, (uint32_t*)(buf3+256), (uint16_t*)buf2, size );
         }
     }
     report( "denoise dct :" );

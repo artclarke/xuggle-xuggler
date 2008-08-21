@@ -62,7 +62,7 @@ typedef struct
                            uint8_t *pix_uv, int stride_uv, int mb_x );
     /* prefetch the next few macroblocks of a hpel reference frame */
     void (*prefetch_ref)( uint8_t *pix, int stride, int parity );
-    
+
     void *(*memcpy_aligned)( void *dst, const void *src, size_t n );
     void (*memzero_aligned)( void *dst, int n );
 

@@ -122,7 +122,7 @@ void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qscale )
 
     if( h->mb.b_trellis )
         x264_quant_8x8_trellis( h, dct8x8, CQM_8IY, i_qscale, 1 );
-    else 
+    else
         h->quantf.quant_8x8( dct8x8, h->quant8_mf[CQM_8IY][i_qscale], h->quant8_bias[CQM_8IY][i_qscale] );
 
     h->zigzagf.scan_8x8( h->dct.luma8x8[idx], dct8x8 );
@@ -215,7 +215,7 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
             }
             continue;
         }
-            
+
         h->dctf.sub8x8_dct( dct4x4, p_src, p_dst );
         /* calculate dct coeffs */
         for( i = 0; i < 4; i++ )
@@ -445,7 +445,7 @@ void x264_macroblock_encode( x264_t *h )
             for( idx = 0; idx < 4; idx++ )
             {
                 if( h->mb.b_noise_reduction )
-                    h->quantf.denoise_dct_core( *dct8x8[idx], h->nr_residual_sum[1], h->nr_offset[1], 64 );
+                    h->quantf.denoise_dct( *dct8x8[idx], h->nr_residual_sum[1], h->nr_offset[1], 64 );
                 if( h->mb.b_trellis )
                     x264_quant_8x8_trellis( h, dct8x8[idx], CQM_8PY, i_qp, 0 );
                 else
@@ -493,7 +493,7 @@ void x264_macroblock_encode( x264_t *h )
                     idx = i8x8 * 4 + i4x4;
 
                     if( h->mb.b_noise_reduction )
-                        h->quantf.denoise_dct_core( *dct4x4[idx], h->nr_residual_sum[0], h->nr_offset[0], 16 );
+                        h->quantf.denoise_dct( *dct4x4[idx], h->nr_residual_sum[0], h->nr_offset[0], 16 );
                     if( h->mb.b_trellis )
                         x264_quant_4x4_trellis( h, dct4x4[idx], CQM_4PY, i_qp, DCT_LUMA_4x4, 0 );
                     else
@@ -594,7 +594,7 @@ void x264_macroblock_encode( x264_t *h )
     if( !b_force_no_skip )
     {
         if( h->mb.i_type == P_L0 && h->mb.i_partition == D_16x16 &&
-            !(h->mb.i_cbp_luma | h->mb.i_cbp_chroma) && 
+            !(h->mb.i_cbp_luma | h->mb.i_cbp_chroma) &&
             *(uint32_t*)h->mb.cache.mv[0][x264_scan8[0]] == *(uint32_t*)h->mb.cache.pskip_mv
             && h->mb.cache.ref[0][x264_scan8[0]] == 0 )
         {

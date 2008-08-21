@@ -143,7 +143,7 @@ cglobal x264_pixel_sa8d_8x8_mmxext
     movq   mm5, [trans+0x48]
     movq   mm6, [trans+0x50]
     movq   mm7, [trans+0x58]
-    
+
     HADAMARD8_1D mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
     SUM4x8_MM
 
@@ -282,7 +282,7 @@ cglobal x264_intra_sa8d_x3_8x8_core_mmxext
     movq   mm5, [trans+0x48]
     movq   mm6, [trans+0x50]
     movq   mm7, [trans+0x58]
-    
+
     HADAMARD8_1D mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
 
     movd   [sum+0x10], mm0

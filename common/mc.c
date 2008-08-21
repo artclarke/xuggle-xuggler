@@ -346,7 +346,7 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->avg[PIXEL_4x2]  = pixel_avg_4x2;
     pf->avg[PIXEL_2x4]  = pixel_avg_2x4;
     pf->avg[PIXEL_2x2]  = pixel_avg_2x2;
-    
+
     pf->avg_weight[PIXEL_16x16]= pixel_avg_weight_16x16;
     pf->avg_weight[PIXEL_16x8] = pixel_avg_weight_16x8;
     pf->avg_weight[PIXEL_8x16] = pixel_avg_weight_8x16;

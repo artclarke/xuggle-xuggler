@@ -31,7 +31,7 @@
  * and refine_* are run only on the winner.
  * the subme=7 values are much higher because any amount of satd search makes
  * up its time by reducing the number of rd iterations. */
-static const int subpel_iterations[][4] = 
+static const int subpel_iterations[][4] =
    {{1,0,0,0},
     {1,1,0,0},
     {0,1,1,0},
@@ -162,7 +162,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
     int omx, omy, pmx, pmy;
     uint8_t *p_fref = m->p_fref[0];
     DECLARE_ALIGNED_16( uint8_t pix[16*16] );
-    
+
     int i = 0, j;
     int dir;
     int costs[6];

@@ -331,10 +331,10 @@ DEQUANT sse2, 8, 6, 2
 
 
 ;-----------------------------------------------------------------------------
-; void x264_denoise_dct_core_mmx( int16_t *dct, uint32_t *sum, uint16_t *offset, int size )
+; void x264_denoise_dct_mmx( int16_t *dct, uint32_t *sum, uint16_t *offset, int size )
 ;-----------------------------------------------------------------------------
 %macro DENOISE_DCT 1
-cglobal x264_denoise_dct_core_%1, 4,5
+cglobal x264_denoise_dct_%1, 4,5
     movzx     r4d, word [r0] ; backup DC coefficient
     pxor      m7, m7
 .loop:

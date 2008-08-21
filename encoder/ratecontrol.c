@@ -273,7 +273,7 @@ int x264_ratecontrol_new( x264_t *h )
 
     rc->b_abr = h->param.rc.i_rc_method != X264_RC_CQP && !h->param.rc.b_stat_read;
     rc->b_2pass = h->param.rc.i_rc_method == X264_RC_ABR && h->param.rc.b_stat_read;
-    
+
     /* FIXME: use integers */
     if(h->param.i_fps_num > 0 && h->param.i_fps_den > 0)
         rc->fps = (float) h->param.i_fps_num / h->param.i_fps_den;
@@ -689,7 +689,7 @@ void x264_ratecontrol_summary( x264_t *h )
     if( rc->b_abr && h->param.rc.i_rc_method == X264_RC_ABR && rc->cbr_decay > .9999 )
     {
         double base_cplx = h->mb.i_mb_count * (h->param.i_bframe ? 120 : 80);
-        x264_log( h, X264_LOG_INFO, "final ratefactor: %.2f\n", 
+        x264_log( h, X264_LOG_INFO, "final ratefactor: %.2f\n",
                   qscale2qp( pow( base_cplx, 1 - h->param.rc.f_qcompress )
                              * rc->cplxr_sum / rc->wanted_bits_window ) );
     }
@@ -865,7 +865,7 @@ double predict_row_size( x264_t *h, int y, int qp )
     x264_ratecontrol_t *rc = h->rc;
     double pred_s = predict_size( rc->row_pred, qp2qscale(qp), h->fdec->i_row_satd[y] );
     double pred_t = 0;
-    if( h->sh.i_type != SLICE_TYPE_I 
+    if( h->sh.i_type != SLICE_TYPE_I
         && h->fref0[0]->i_type == h->fdec->i_type
         && h->fref0[0]->i_row_satd[y] > 0 )
     {
@@ -1071,7 +1071,7 @@ void x264_ratecontrol_end( x264_t *h, int bits )
         int dir_frame = h->stat.frame.i_direct_score[1] - h->stat.frame.i_direct_score[0];
         int dir_avg = h->stat.i_direct_score[1] - h->stat.i_direct_score[0];
         char c_direct = h->mb.b_direct_auto_write ?
-                        ( dir_frame>0 ? 's' : dir_frame<0 ? 't' : 
+                        ( dir_frame>0 ? 's' : dir_frame<0 ? 't' :
                           dir_avg>0 ? 's' : dir_avg<0 ? 't' : '-' )
                         : '-';
         fprintf( rc->p_stat_file_out,

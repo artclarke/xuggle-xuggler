@@ -233,7 +233,7 @@ void x264_frame_expand_border( x264_t *h, x264_frame_t *frame, int mb_y, int b_e
 void x264_frame_expand_border_filtered( x264_t *h, x264_frame_t *frame, int mb_y, int b_end )
 {
     /* during filtering, 8 extra pixels were filtered on each edge,
-     * but up to 3 of the horizontal ones may be wrong. 
+     * but up to 3 of the horizontal ones may be wrong.
        we want to expand border from the last filtered pixel */
     int b_start = !mb_y;
     int stride = frame->i_stride[0];
@@ -425,7 +425,7 @@ static inline void deblock_luma_c( uint8_t *pix, int xstride, int ystride, int a
 }
 static void deblock_v_luma_c( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 {
-    deblock_luma_c( pix, stride, 1, alpha, beta, tc0 ); 
+    deblock_luma_c( pix, stride, 1, alpha, beta, tc0 );
 }
 static void deblock_h_luma_c( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 {
@@ -524,7 +524,7 @@ static void deblock_h_luma_intra_c( uint8_t *pix, int stride, int alpha, int bet
 
 static inline void deblock_chroma_intra_c( uint8_t *pix, int xstride, int ystride, int alpha, int beta )
 {
-    int d; 
+    int d;
     for( d = 0; d < 8; d++ )
     {
         const int p1 = pix[-2*xstride];

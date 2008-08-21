@@ -80,7 +80,7 @@ cglobal x264_pixel_sad_%1x%2_mmxext, 4,4
     pxor    mm0, mm0
 %rep %2/2
     SAD_INC_2x%1P
-%endrep 
+%endrep
     movd    eax, mm0
     RET
 %endmacro
@@ -825,11 +825,11 @@ cglobal x264_pixel_sad_x3_%1x%2_cache%3_%5, 0,0
     call x264_pixel_sad_%1x%2_cache%3_%5
     mov  [r11], eax
     pop  r2
-    mov  r0, r10 
+    mov  r0, r10
     call x264_pixel_sad_%1x%2_cache%3_%5
     mov  [r11+4], eax
     pop  r2
-    mov  r0, r10 
+    mov  r0, r10
     call x264_pixel_sad_%1x%2_cache%3_%5
     mov  [r11+8], eax
 %else
@@ -875,15 +875,15 @@ cglobal x264_pixel_sad_x4_%1x%2_cache%3_%5, 0,0
     call x264_pixel_sad_%1x%2_cache%3_%5
     mov  [r11], eax
     pop  r2
-    mov  r0, r10 
+    mov  r0, r10
     call x264_pixel_sad_%1x%2_cache%3_%5
     mov  [r11+4], eax
     pop  r2
-    mov  r0, r10 
+    mov  r0, r10
     call x264_pixel_sad_%1x%2_cache%3_%5
     mov  [r11+8], eax
     pop  r2
-    mov  r0, r10 
+    mov  r0, r10
     call x264_pixel_sad_%1x%2_cache%3_%5
     mov  [r11+12], eax
 %else

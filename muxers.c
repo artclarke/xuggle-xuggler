@@ -285,7 +285,7 @@ int read_frame_y4m( x264_picture_t *p_pic, hnd_t handle, int i_frame )
     /* Read frame header - without terminating '\n' */
     if (fread(header, 1, slen, h->fh) != slen)
         return -1;
-    
+
     header[slen] = 0;
     if (strncmp(header, Y4M_FRAME_MAGIC, slen))
     {
@@ -293,7 +293,7 @@ int read_frame_y4m( x264_picture_t *p_pic, hnd_t handle, int i_frame )
                 *((uint32_t*)header), header);
         return -1;
     }
-  
+
     /* Skip most of it */
     while (i<MAX_FRAME_HEADER && fgetc(h->fh) != '\n')
         i++;

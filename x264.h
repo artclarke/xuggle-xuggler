@@ -155,7 +155,7 @@ typedef struct x264_param_t
     int         i_width;
     int         i_height;
     int         i_csp;  /* CSP of encoded bitstream, only i420 supported */
-    int         i_level_idc; 
+    int         i_level_idc;
     int         i_frame_total; /* number of frames to encode if known, else 0 */
 
     struct
@@ -165,7 +165,7 @@ typedef struct x264_param_t
         int         i_sar_width;
 
         int         i_overscan;    /* 0=undef, 1=no overscan, 2=overscan */
-        
+
         /* see h264 annex E for the values of the following */
         int         i_vidformat;
         int         b_fullrange;

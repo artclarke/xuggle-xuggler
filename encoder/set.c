@@ -150,11 +150,11 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->vui.i_sar_width = param->vui.i_sar_width;
         sps->vui.i_sar_height= param->vui.i_sar_height;
     }
-    
+
     sps->vui.b_overscan_info_present = ( param->vui.i_overscan ? 1 : 0 );
     if( sps->vui.b_overscan_info_present )
         sps->vui.b_overscan_info = ( param->vui.i_overscan == 2 ? 1 : 0 );
-    
+
     sps->vui.b_signal_type_present = 0;
     sps->vui.i_vidformat = ( param->vui.i_vidformat <= 5 ? param->vui.i_vidformat : 5 );
     sps->vui.b_fullrange = ( param->vui.b_fullrange ? 1 : 0 );
@@ -176,7 +176,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     {
         sps->vui.b_signal_type_present = 1;
     }
-    
+
     /* FIXME: not sufficient for interlaced video */
     sps->vui.b_chroma_loc_info_present = ( param->vui.i_chroma_loc ? 1 : 0 );
     if( sps->vui.b_chroma_loc_info_present )

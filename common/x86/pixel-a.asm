@@ -1387,7 +1387,7 @@ cglobal x264_pixel_ssim_end4_sse2, 3,3
 ; Successive Elimination ADS
 ;=============================================================================
 
-%macro ADS_START 1 ; unroll_size 
+%macro ADS_START 1 ; unroll_size
 %ifdef ARCH_X86_64
     %define t0  r6
     mov     r10, rsp
@@ -1401,7 +1401,7 @@ cglobal x264_pixel_ssim_end4_sse2, 3,3
     and     rsp, ~15
     mov     t0,  rsp
     shl     r2d,  1
-%endmacro   
+%endmacro
 
 %macro ADS_END 1
     add     r1, 8*%1

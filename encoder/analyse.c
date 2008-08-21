@@ -498,7 +498,7 @@ static void x264_mb_analyse_intra_chroma( x264_t *h, x264_mb_analysis_t *a )
             h->pixf.mbcmp[PIXEL_8x8]( p_dstc[0], FDEC_STRIDE, p_srcc[0], FENC_STRIDE );
         satdv[I_PRED_CHROMA_P] =
             h->pixf.mbcmp[PIXEL_8x8]( p_dstc[1], FDEC_STRIDE, p_srcc[1], FENC_STRIDE );
-        
+
         for( i=0; i<i_max; i++ )
         {
             int i_mode = predict_mode[i];
@@ -1009,7 +1009,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
             h->mc.memcpy_aligned( &a->l0.me16x16, &m, sizeof(x264_me_t) );
 
         /* save mv for predicting neighbors */
-        *(uint32_t*)a->l0.mvc[i_ref][0] = 
+        *(uint32_t*)a->l0.mvc[i_ref][0] =
         *(uint32_t*)h->mb.mvr[0][i_ref][h->mb.i_mb_xy] = *(uint32_t*)m.mv;
     }
 
@@ -1508,7 +1508,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     if ( (*(uint32_t*)a->l0.me16x16.mv & 0x10001) == 0 )
     {
         /* l0 reference is halfpel, so get_ref on it will make it faster */
-        src2 = 
+        src2 =
         h->mc.get_ref( pix2, &stride2,
                        h->mb.pic.p_fref[0][a->l0.i_ref], h->mb.pic.i_stride[0],
                        a->l0.me16x16.mv[0], a->l0.me16x16.mv[1],
@@ -1518,7 +1518,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
                        a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
                        16, 16 );
         weight = 64 - weight;
-    } 
+    }
     else
     {
         /* if l0 was qpel, we'll use get_ref on l1 instead */
@@ -2558,7 +2558,7 @@ void x264_macroblock_analyse( x264_t *h )
                 h->mb.i_type = i_type;
                 h->mb.i_partition = i_partition;
             }
-            
+
             x264_mb_analyse_intra( h, &analysis, i_satd_inter );
 
             if( analysis.b_mbrd )

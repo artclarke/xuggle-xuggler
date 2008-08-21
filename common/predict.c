@@ -646,7 +646,7 @@ static void predict_8x8_ddr( uint8_t *src, uint8_t edge[33] )
     SRC(5,0)=SRC(6,1)=SRC(7,2)= F2(t3,t4,t5);
     SRC(6,0)=SRC(7,1)= F2(t4,t5,t6);
     SRC(7,0)= F2(t5,t6,t7);
-  
+
 }
 static void predict_8x8_vr( uint8_t *src, uint8_t edge[33] )
 {

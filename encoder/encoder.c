@@ -237,7 +237,7 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
             {
                 bs_write_ue( s, sh->ref_pic_list_order[0][i].idc );
                 bs_write_ue( s, sh->ref_pic_list_order[0][i].arg );
-                        
+
             }
             bs_write_ue( s, 3 );
         }
@@ -429,7 +429,7 @@ static int x264_validate_parameters( x264_t *h )
         // There's nothing special about 1080 in that the warning still applies to it,
         // but chances are the user can't help it if his content is already 1080p,
         // so there's no point in warning in that case.
-        x264_log( h, X264_LOG_WARNING, 
+        x264_log( h, X264_LOG_WARNING,
                   "width or height not divisible by 16 (%dx%d), compression will suffer.\n",
                   h->param.i_width, h->param.i_height );
     }
@@ -672,7 +672,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         x264_free( h );
         return NULL;
     }
-    
+
     h->mb.i_mb_count = h->sps->i_mb_width * h->sps->i_mb_height;
 
     /* Init frames. */
@@ -1543,7 +1543,7 @@ do_encode:
     /* restore CPU state (before using float again) */
     x264_emms();
 
-    if( h->sh.i_type == SLICE_TYPE_P && !h->param.rc.b_stat_read 
+    if( h->sh.i_type == SLICE_TYPE_P && !h->param.rc.b_stat_read
         && h->param.i_scenecut_threshold >= 0
         && !h->param.b_pre_scenecut )
     {
@@ -1604,7 +1604,7 @@ do_encode:
                 /* If using B-frames, force GOP to be closed.
                  * Even if this frame is going to be I and not IDR, forcing a
                  * P-frame before the scenecut will probably help compression.
-                 * 
+                 *
                  * We don't yet know exactly which frame is the scene cut, so
                  * we can't assign an I-frame. Instead, change the previous
                  * B-frame to P, and rearrange coding order. */
@@ -1735,22 +1735,22 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     psz_message[0] = '\0';
     if( h->param.analyse.b_psnr )
     {
-        int64_t sqe[3] = {
+        int64_t ssd[3] = {
             h->stat.frame.i_ssd[0],
             h->stat.frame.i_ssd[1],
             h->stat.frame.i_ssd[2],
         };
 
-        h->stat.i_sqe_global[h->sh.i_type] += sqe[0] + sqe[1] + sqe[2];
-        h->stat.f_psnr_average[h->sh.i_type] += x264_psnr( sqe[0] + sqe[1] + sqe[2], 3 * h->param.i_width * h->param.i_height / 2 );
-        h->stat.f_psnr_mean_y[h->sh.i_type] += x264_psnr( sqe[0], h->param.i_width * h->param.i_height );
-        h->stat.f_psnr_mean_u[h->sh.i_type] += x264_psnr( sqe[1], h->param.i_width * h->param.i_height / 4 );
-        h->stat.f_psnr_mean_v[h->sh.i_type] += x264_psnr( sqe[2], h->param.i_width * h->param.i_height / 4 );
+        h->stat.i_ssd_global[h->sh.i_type] += ssd[0] + ssd[1] + ssd[2];
+        h->stat.f_psnr_average[h->sh.i_type] += x264_psnr( ssd[0] + ssd[1] + ssd[2], 3 * h->param.i_width * h->param.i_height / 2 );
+        h->stat.f_psnr_mean_y[h->sh.i_type] += x264_psnr( ssd[0], h->param.i_width * h->param.i_height );
+        h->stat.f_psnr_mean_u[h->sh.i_type] += x264_psnr( ssd[1], h->param.i_width * h->param.i_height / 4 );
+        h->stat.f_psnr_mean_v[h->sh.i_type] += x264_psnr( ssd[2], h->param.i_width * h->param.i_height / 4 );
 
         snprintf( psz_message, 80, " PSNR Y:%5.2f U:%5.2f V:%5.2f",
-                  x264_psnr( sqe[0], h->param.i_width * h->param.i_height ),
-                  x264_psnr( sqe[1], h->param.i_width * h->param.i_height / 4),
-                  x264_psnr( sqe[2], h->param.i_width * h->param.i_height / 4) );
+                  x264_psnr( ssd[0], h->param.i_width * h->param.i_height ),
+                  x264_psnr( ssd[1], h->param.i_width * h->param.i_height / 4),
+                  x264_psnr( ssd[2], h->param.i_width * h->param.i_height / 4) );
     }
 
     if( h->param.analyse.b_ssim )
@@ -1762,7 +1762,7 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
                   " SSIM Y:%.5f", ssim_y );
     }
     psz_message[79] = '\0';
-    
+
     x264_log( h, X264_LOG_DEBUG,
                   "frame=%4d QP=%.2f NAL=%d Slice:%c Poc:%-3d I:%-4d P:%-4d SKIP:%-4d size=%d bytes%s\n",
               h->i_frame,
@@ -1858,7 +1858,7 @@ void    x264_encoder_close  ( x264_t *h )
                           (double)h->stat.i_slice_size[i_slice] / i_count,
                           h->stat.f_psnr_mean_y[i_slice] / i_count, h->stat.f_psnr_mean_u[i_slice] / i_count, h->stat.f_psnr_mean_v[i_slice] / i_count,
                           h->stat.f_psnr_average[i_slice] / i_count,
-                          x264_psnr( h->stat.i_sqe_global[i_slice], i_count * i_yuv_size ) );
+                          x264_psnr( h->stat.i_ssd_global[i_slice], i_count * i_yuv_size ) );
             }
             else
             {
@@ -2014,7 +2014,7 @@ void    x264_encoder_close  ( x264_t *h )
                       SUM3( h->stat.f_psnr_mean_u ) / i_count,
                       SUM3( h->stat.f_psnr_mean_v ) / i_count,
                       SUM3( h->stat.f_psnr_average ) / i_count,
-                      x264_psnr( SUM3( h->stat.i_sqe_global ), i_count * i_yuv_size ),
+                      x264_psnr( SUM3( h->stat.i_ssd_global ), i_count * i_yuv_size ),
                       f_bitrate );
         }
         else

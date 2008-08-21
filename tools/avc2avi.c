@@ -499,7 +499,7 @@ void h264_parser_parse( h264_t *h, nal_t *nal, int *pb_nal_start )
             /* skip i_offset_for_top_to_bottom_field */
             bs_read_se( &s );
             /* read i_num_ref_frames_in_poc_cycle */
-            i_cycle = bs_read_ue( &s ); 
+            i_cycle = bs_read_ue( &s );
             if( i_cycle > 256 ) i_cycle = 256;
             while( i_cycle > 0 )
             {

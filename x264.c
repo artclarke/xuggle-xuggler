@@ -632,7 +632,7 @@ static int  Parse( int argc, char **argv,
             sscanf( argv[optind++], "%ux%u", &param->i_width, &param->i_height );
         }
     }
-        
+
     if( !(b_avis || b_y4m) && ( !param->i_width || !param->i_height ) )
     {
         fprintf( stderr, "x264 [error]: Rawyuv input requires a resolution.\n" );
@@ -824,7 +824,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         i_frame++;
 
         /* update status line (up to 1000 times per input file) */
-        if( opt->b_progress && param->i_log_level < X264_LOG_DEBUG && 
+        if( opt->b_progress && param->i_log_level < X264_LOG_DEBUG &&
             ( i_frame_total ? i_frame * 1000 / i_frame_total > i_progress
                             : i_frame % 10 == 0 ) )
         {

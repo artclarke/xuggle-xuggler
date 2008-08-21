@@ -33,7 +33,7 @@ typedef struct
     void (*dequant_4x4)( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp );
     void (*dequant_8x8)( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp );
 
-    void (*denoise_dct_core)( int16_t *dct, uint32_t *sum, uint16_t *offset, int size );
+    void (*denoise_dct)( int16_t *dct, uint32_t *sum, uint16_t *offset, int size );
 } x264_quant_function_t;
 
 void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf );

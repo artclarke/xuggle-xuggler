@@ -54,7 +54,7 @@ struct X264_Thread_Data_
   GIOChannel        *io_write; /* use it with write */
 };
 
-struct X264_Pipe_Data_ 
+struct X264_Pipe_Data_
 {
   int     frame;
   int     frame_total;

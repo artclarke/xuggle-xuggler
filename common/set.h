@@ -94,7 +94,7 @@ typedef struct
         int b_aspect_ratio_info_present;
         int i_sar_width;
         int i_sar_height;
-        
+
         int b_overscan_info_present;
         int b_overscan_info;
 

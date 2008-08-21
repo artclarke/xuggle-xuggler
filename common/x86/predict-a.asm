@@ -72,7 +72,7 @@ pw_8:       times 8 dw 8
 pw_76543210:
 pw_3210:    dw 0, 1, 2, 3, 4, 5, 6, 7
 pb_00s_ff:  times 8 db 0
-pb_0s_ff:   times 7 db 0 
+pb_0s_ff:   times 7 db 0
             db 0xff
 
 SECTION .text

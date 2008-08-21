@@ -151,7 +151,7 @@ cglobal x264_sub8x8_dct8_sse2
     paddw   m%9, m%2
     paddw   m%9, m%4
     paddw   m%9, m%6 ; %9=a7
-    
+
     movdqa  m%10, m%6
     psraw   m%10, 1
     paddw   m%10, m%6
@@ -208,7 +208,7 @@ cglobal x264_add8x8_idct8_sse2
     TRANSPOSE8x8W 0,1,2,3,4,5,6,7,8
     paddw         m0, [pw_32 GLOBAL] ; rounding for the >>6 at the end
     IDCT8_1D      0,1,2,3,4,5,6,7,8,9
- 
+
     pxor  m9, m9
     STORE_DIFF m0, m8, m9, [r0+0*FDEC_STRIDE]
     STORE_DIFF m1, m8, m9, [r0+1*FDEC_STRIDE]

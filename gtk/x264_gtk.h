@@ -76,7 +76,7 @@ struct X264_Gtk_
   gint threads;
   guint trellis;
   gint noise_reduction;
-  
+
   gint strength;
   gint threshold;
 

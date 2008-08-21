@@ -569,7 +569,7 @@ AVG_WEIGHT sse2, 16
 ; FIXME assumes 64 byte cachelines
 
 ;-----------------------------------------------------------------------------
-; void x264_prefetch_fenc_mmxext( uint8_t *pix_y, int stride_y, 
+; void x264_prefetch_fenc_mmxext( uint8_t *pix_y, int stride_y,
 ;                                 uint8_t *pix_uv, int stride_uv, int mb_x )
 ;-----------------------------------------------------------------------------
 %ifdef ARCH_X86_64

@@ -81,7 +81,7 @@ typedef struct
     /* threading */
     int     i_lines_completed; /* in pixels */
     int     i_reference_count; /* number of threads using this frame (not necessarily the number of pointers) */
-    x264_pthread_mutex_t mutex;      
+    x264_pthread_mutex_t mutex;
     x264_pthread_cond_t  cv;
 
 } x264_frame_t;

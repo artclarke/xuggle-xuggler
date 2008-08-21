@@ -151,15 +151,15 @@ static void predict_8x8c_h( uint8_t *src )
 static void predict_16x16_dc_left( uint8_t *src )
 {
     uint32_t s = 0;
-    uint64_t dc; 
+    uint64_t dc;
     int y;
-    
+
     for( y = 0; y < 16; y++ )
     {
         s += src[-1 + y * FDEC_STRIDE];
-    }   
+    }
     dc = (( s + 8 ) >> 4) * 0x0101010101010101ULL;
-    
+
     for( y = 0; y < 16; y++ )
     {
         uint64_t *p = (uint64_t*)src;
