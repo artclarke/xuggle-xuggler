@@ -1258,7 +1258,6 @@ static void x264_thread_sync_context( x264_t *dst, x264_t *src )
 
     // copy everything except the per-thread pointers and the constants.
     memcpy( &dst->i_frame, &src->i_frame, offsetof(x264_t, mb.type) - offsetof(x264_t, i_frame) );
-    memcpy( &dst->mb.i_type, &src->mb.i_type, offsetof(x264_t, rc) - offsetof(x264_t, mb.i_type) );
     dst->stat = src->stat;
 }
 

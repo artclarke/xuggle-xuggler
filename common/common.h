@@ -262,6 +262,8 @@ struct x264_t
         int         i_frame_size;
     } out;
 
+    /**** thread synchronization starts here ****/
+
     /* frame number/poc */
     int             i_frame;
 
@@ -403,6 +405,10 @@ struct x264_t
         int     i_mb_type_topright; 
         int     i_mb_prev_xy;
         int     i_mb_top_xy;
+
+        /**** thread synchronization ends here ****/
+        /* subsequence variables are either thread-local or constant,
+         * and won't be copied from one thread to another */
 
         /* mb table */
         int8_t  *type;                      /* mb type */
