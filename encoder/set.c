@@ -27,6 +27,7 @@
 #ifndef _MSC_VER
 #include "config.h"
 #endif
+#include "set.h"
 
 #define bs_write_ue bs_write_ue_big
 

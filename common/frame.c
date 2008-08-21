@@ -297,7 +297,7 @@ void x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame )
 
 /* cavlc + 8x8 transform stores nnz per 16 coeffs for the purpose of
  * entropy coding, but per 64 coeffs for the purpose of deblocking */
-void munge_cavlc_nnz_row( x264_t *h, int mb_y, uint8_t (*buf)[16] )
+static void munge_cavlc_nnz_row( x264_t *h, int mb_y, uint8_t (*buf)[16] )
 {
     uint32_t (*src)[6] = (uint32_t(*)[6])h->mb.non_zero_count + mb_y * h->sps->i_mb_width;
     int8_t *transform = h->mb.mb_transform_size + mb_y * h->sps->i_mb_width;
@@ -770,12 +770,12 @@ void x264_deblock_v8_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta,
 void x264_deblock_h_luma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
 void x264_deblock_v8_luma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
 
-void x264_deblock_v_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+static void x264_deblock_v_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 {
     x264_deblock_v8_luma_mmxext( pix,   stride, alpha, beta, tc0   );
     x264_deblock_v8_luma_mmxext( pix+8, stride, alpha, beta, tc0+2 );
 }
-void x264_deblock_v_luma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta )
+static void x264_deblock_v_luma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta )
 {
     x264_deblock_v8_luma_intra_mmxext( pix,   stride, alpha, beta );
     x264_deblock_v8_luma_intra_mmxext( pix+8, stride, alpha, beta );

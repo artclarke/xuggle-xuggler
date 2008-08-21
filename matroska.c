@@ -407,7 +407,7 @@ static int mk_closeCluster(mk_Writer *w) {
   return 0;
 }
 
-int	  mk_flushFrame(mk_Writer *w) {
+static int mk_flushFrame(mk_Writer *w) {
   int64_t	delta, ref = 0;
   unsigned	fsize, bgsize;
   unsigned char	c_delta_flags[3];

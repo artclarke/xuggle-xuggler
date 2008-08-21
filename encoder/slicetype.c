@@ -37,7 +37,7 @@ static void x264_lowres_context_init( x264_t *h, x264_mb_analysis_t *a )
     h->mb.b_chroma_me = 0;
 }
 
-int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
+static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
                             x264_frame_t **frames, int p0, int p1, int b,
                             int dist_scale_factor )
 {
@@ -238,7 +238,7 @@ lowres_intra_mb:
 #undef TRY_BIDIR
 #undef SAVE_MVS
 
-int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
+static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
                                x264_frame_t **frames, int p0, int p1, int b,
                                int b_intra_penalty )
 {
@@ -353,7 +353,7 @@ static int scenecut( x264_t *h, x264_frame_t *frame, int pdist )
     return res;
 }
 
-void x264_slicetype_analyse( x264_t *h )
+static void x264_slicetype_analyse( x264_t *h )
 {
     x264_mb_analysis_t a;
     x264_frame_t *frames[X264_BFRAME_MAX+3] = { NULL, };

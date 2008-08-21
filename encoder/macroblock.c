@@ -289,7 +289,7 @@ static void x264_macroblock_encode_skip( x264_t *h )
  * x264_macroblock_encode_pskip:
  *  Encode an already marked skip block
  *****************************************************************************/
-void x264_macroblock_encode_pskip( x264_t *h )
+static void x264_macroblock_encode_pskip( x264_t *h )
 {
     const int mvx = x264_clip3( h->mb.cache.mv[0][x264_scan8[0]][0],
                                 h->mb.mv_min[0], h->mb.mv_max[0] );

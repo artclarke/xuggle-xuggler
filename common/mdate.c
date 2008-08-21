@@ -26,6 +26,7 @@
 #endif
 #include <time.h>
 
+#include "common.h"
 #include "osdep.h"
 
 int64_t x264_mdate( void )

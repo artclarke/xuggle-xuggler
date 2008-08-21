@@ -194,7 +194,7 @@ void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int dequant_mf[6][4][4], int i_q
     }
 }
 
-void x264_denoise_dct( int16_t *dct, uint32_t *sum, uint16_t *offset, int size )
+static void x264_denoise_dct( int16_t *dct, uint32_t *sum, uint16_t *offset, int size )
 {
     int i;
     for( i=1; i<size; i++ )

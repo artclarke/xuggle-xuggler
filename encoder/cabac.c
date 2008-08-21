@@ -1032,7 +1032,7 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
  * works on all partition sizes except 16x16
  * for sub8x8, call once per 8x8 block
  *****************************************************************************/
-void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int i_pixel )
+static void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int i_pixel )
 {
     const int i_mb_type = h->mb.i_type;
     int j;

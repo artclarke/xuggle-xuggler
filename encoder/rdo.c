@@ -34,7 +34,7 @@ static uint16_t cabac_prefix_size[15][128];
 #define bs_write_ue(s,v)   ((s)->i_bits_encoded += bs_size_ue(v))
 #define bs_write_se(s,v)   ((s)->i_bits_encoded += bs_size_se(v))
 #define bs_write_te(s,v,l) ((s)->i_bits_encoded += bs_size_te(v,l))
-#define x264_macroblock_write_cavlc  x264_macroblock_size_cavlc
+#define x264_macroblock_write_cavlc  static x264_macroblock_size_cavlc
 #include "cavlc.c"
 
 /* CABAC: not exactly the same. x264_cabac_size_decision() keeps track of
@@ -45,7 +45,7 @@ static uint16_t cabac_prefix_size[15][128];
 #define x264_cabac_encode_bypass(c,v)     ((c)->f8_bits_encoded += 256)
 #define x264_cabac_encode_ue_bypass(c,e,v) ((c)->f8_bits_encoded += (bs_size_ue_big(v+(1<<e)-1)-e)<<8)
 #define x264_cabac_encode_flush(h,c)
-#define x264_macroblock_write_cabac  x264_macroblock_size_cabac
+#define x264_macroblock_write_cabac  static x264_macroblock_size_cabac
 #include "cabac.c"
 
 #define COPY_CABAC h->mc.memcpy_aligned( &cabac_tmp.f8_bits_encoded, &h->cabac.f8_bits_encoded, \
@@ -140,7 +140,7 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i8, int i_pixel )
     return (i_ssd<<8) + i_bits;
 }
 
-uint64_t x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode )
+static uint64_t x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode )
 {
     uint64_t i_ssd, i_bits;
 
@@ -162,7 +162,7 @@ uint64_t x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode )
     return (i_ssd<<8) + i_bits;
 }
 
-uint64_t x264_rd_cost_i4x4( x264_t *h, int i_lambda2, int i4, int i_mode )
+static uint64_t x264_rd_cost_i4x4( x264_t *h, int i_lambda2, int i4, int i_mode )
 {
     uint64_t i_ssd, i_bits;
 
@@ -184,7 +184,7 @@ uint64_t x264_rd_cost_i4x4( x264_t *h, int i_lambda2, int i4, int i_mode )
     return (i_ssd<<8) + i_bits;
 }
 
-uint64_t x264_rd_cost_i8x8_chroma( x264_t *h, int i_lambda2, int i_mode, int b_dct )
+static uint64_t x264_rd_cost_i8x8_chroma( x264_t *h, int i_lambda2, int i_mode, int b_dct )
 {
     uint64_t i_ssd, i_bits;
 
@@ -219,7 +219,7 @@ uint64_t x264_rd_cost_i8x8_chroma( x264_t *h, int i_lambda2, int i_mode, int b_d
 #define LAMBDA_BITS 4
 
 /* precalculate the cost of coding abs_level_m1 */
-void x264_rdo_init( )
+void x264_rdo_init( void )
 {
     int i_prefix;
     int i_ctx;

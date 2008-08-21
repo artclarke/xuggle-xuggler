@@ -461,7 +461,7 @@ int get_frame_total_thread( hnd_t handle )
     return h->frame_total;
 }
 
-void read_frame_thread_int( thread_input_arg_t *i )
+static void read_frame_thread_int( thread_input_arg_t *i )
 {
     i->status = i->h->p_read_frame( i->pic, i->h->p_handle, i->i_frame );
 }
@@ -568,7 +568,7 @@ typedef struct
 } mp4_t;
 
 
-void recompute_bitrate_mp4(GF_ISOFile *p_file, int i_track)
+static void recompute_bitrate_mp4(GF_ISOFile *p_file, int i_track)
 {
     u32 i, count, di, timescale, time_wnd, rate;
     u64 offset;
@@ -811,7 +811,7 @@ typedef struct
     char      b_writing_frame;
 } mkv_t;
 
-int write_header_mkv( mkv_t *p_mkv )
+static int write_header_mkv( mkv_t *p_mkv )
 {
     int       ret;
     uint8_t   *avcC;

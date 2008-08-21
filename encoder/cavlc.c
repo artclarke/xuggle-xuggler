@@ -680,7 +680,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
  * works on all partition sizes except 16x16
  * for sub8x8, call once per 8x8 block
  *****************************************************************************/
-int x264_partition_size_cavlc( x264_t *h, int i8, int i_pixel )
+static int x264_partition_size_cavlc( x264_t *h, int i8, int i_pixel )
 {
     bs_t s;
     const int i_mb_type = h->mb.i_type;

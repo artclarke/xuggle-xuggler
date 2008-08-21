@@ -149,7 +149,6 @@ static void update_vbv( x264_t *h, int bits );
 static void update_vbv_plan( x264_t *h );
 static double predict_size( predictor_t *p, double q, double var );
 static void update_predictor( predictor_t *p, double q, double var, double bits );
-int  x264_rc_analyse_slice( x264_t *h );
 
 /* Terminology:
  * qp = h.264's quantizer
@@ -212,7 +211,7 @@ static NOINLINE int ac_energy_mb( x264_t *h, int mb_x, int mb_y, int *satd )
     return var;
 }
 
-void x264_autosense_aq( x264_t *h )
+static void x264_autosense_aq( x264_t *h )
 {
     double total = 0;
     double n = 0;
@@ -671,7 +670,7 @@ static int parse_zones( x264_t *h )
     return 0;
 }
 
-x264_zone_t *get_zone( x264_t *h, int frame_num )
+static x264_zone_t *get_zone( x264_t *h, int frame_num )
 {
     int i;
     for( i = h->rc->i_zones-1; i >= 0; i-- )
@@ -858,7 +857,7 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp )
         x264_autosense_aq(h);
 }
 
-double predict_row_size( x264_t *h, int y, int qp )
+static double predict_row_size( x264_t *h, int y, int qp )
 {
     /* average between two predictors:
      * absolute SATD, and scaled bit cost of the colocated row in the previous frame */
@@ -878,7 +877,7 @@ double predict_row_size( x264_t *h, int y, int qp )
     return (pred_s + pred_t) / 2;
 }
 
-double row_bits_so_far( x264_t *h, int y )
+static double row_bits_so_far( x264_t *h, int y )
 {
     int i;
     double bits = 0;
@@ -887,7 +886,7 @@ double row_bits_so_far( x264_t *h, int y )
     return bits;
 }
 
-double predict_row_size_sum( x264_t *h, int y, int qp )
+static double predict_row_size_sum( x264_t *h, int y, int qp )
 {
     int i;
     double bits = row_bits_so_far(h, y);

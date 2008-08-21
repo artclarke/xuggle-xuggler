@@ -100,12 +100,12 @@ static bench_t* get_bench( const char *name, int cpu )
     return &benchs[i].vers[j];
 }
 
-int cmp_nop( const void *a, const void *b )
+static int cmp_nop( const void *a, const void *b )
 {
     return *(uint16_t*)a - *(uint16_t*)b;
 }
 
-int cmp_bench( const void *a, const void *b )
+static int cmp_bench( const void *a, const void *b )
 {
     // asciibetical sort except preserving numbers
     const char *sa = ((bench_func_t*)a)->name;
@@ -1199,7 +1199,7 @@ static int check_cabac( int cpu_ref, int cpu_new )
     return ret;
 }
 
-int check_all_funcs( int cpu_ref, int cpu_new )
+static int check_all_funcs( int cpu_ref, int cpu_new )
 {
     return check_pixel( cpu_ref, cpu_new )
          + check_dct( cpu_ref, cpu_new )
@@ -1210,7 +1210,7 @@ int check_all_funcs( int cpu_ref, int cpu_new )
          + check_cabac( cpu_ref, cpu_new );
 }
 
-int add_flags( int *cpu_ref, int *cpu_new, int flags, const char *name )
+static int add_flags( int *cpu_ref, int *cpu_new, int flags, const char *name )
 {
     *cpu_ref = *cpu_new;
     *cpu_new |= flags;
@@ -1221,7 +1221,7 @@ int add_flags( int *cpu_ref, int *cpu_new, int flags, const char *name )
     return check_all_funcs( *cpu_ref, *cpu_new );
 }
 
-int check_all_flags( void )
+static int check_all_flags( void )
 {
     int ret = 0;
     int cpu0 = 0, cpu1 = 0;

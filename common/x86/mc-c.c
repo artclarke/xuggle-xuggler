@@ -27,6 +27,7 @@
 #include <string.h>
 
 #include "common/common.h"
+#include "mc.h"
 
 /* NASM functions */
 extern void x264_pixel_avg_16x16_sse2( uint8_t *, int, uint8_t *, int );
@@ -87,7 +88,7 @@ PIXEL_AVG_WALL(cache64_sse2)
 PIXEL_AVG_WALL(sse2)
 
 #define AVG_WEIGHT(W,H,name) \
-void x264_pixel_avg_weight_ ## W ## x ## H ## _##name( uint8_t *dst, int i_dst, uint8_t *src, int i_src, int i_weight_dst ) \
+static void x264_pixel_avg_weight_ ## W ## x ## H ## _##name( uint8_t *dst, int i_dst, uint8_t *src, int i_src, int i_weight_dst ) \
 { \
     x264_pixel_avg_weight_w ## W ## _##name( dst, i_dst, src, i_src, i_weight_dst, H ); \
 }
@@ -143,7 +144,7 @@ static const int hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
 static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
 
 #define MC_LUMA(name,instr1,instr2)\
-void mc_luma_##name( uint8_t *dst,    int i_dst_stride,\
+static void mc_luma_##name( uint8_t *dst,    int i_dst_stride,\
                   uint8_t *src[4], int i_src_stride,\
                   int mvx, int mvy,\
                   int i_width, int i_height )\
@@ -174,7 +175,7 @@ MC_LUMA(sse2,sse2,sse2)
 MC_LUMA(cache64_sse2,cache64_sse2,sse2)
 
 #define GET_REF(name)\
-uint8_t *get_ref_##name( uint8_t *dst,   int *i_dst_stride,\
+static uint8_t *get_ref_##name( uint8_t *dst,   int *i_dst_stride,\
                          uint8_t *src[4], int i_src_stride,\
                          int mvx, int mvy,\
                          int i_width, int i_height )\
@@ -210,7 +211,7 @@ void x264_hpel_filter_v_##cpuv( uint8_t *dst, uint8_t *src, int16_t *buf, int st
 void x264_hpel_filter_c_##cpuc( uint8_t *dst, int16_t *buf, int width );\
 void x264_hpel_filter_h_##cpuh( uint8_t *dst, uint8_t *src, int width );\
 void x264_sfence( void );\
-void x264_hpel_filter_##cpu( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,\
+static void x264_hpel_filter_##cpu( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,\
                              int stride, int width, int height )\
 {\
     int16_t *buf;\

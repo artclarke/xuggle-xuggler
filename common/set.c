@@ -195,7 +195,7 @@ void x264_cqm_delete( x264_t *h )
     }
 }
 
-int x264_cqm_parse_jmlist( x264_t *h, const char *buf, const char *name,
+static int x264_cqm_parse_jmlist( x264_t *h, const char *buf, const char *name,
                            uint8_t *cqm, const uint8_t *jvt, int length )
 {
     char *p;
