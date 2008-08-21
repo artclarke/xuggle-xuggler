@@ -790,7 +790,7 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
     if( i_mb_type == I_PCM )
     {
         i_mb_pos_tex = x264_cabac_pos( cb );
-        h->stat.frame.i_hdr_bits += i_mb_pos_tex - i_mb_pos_start;
+        h->stat.frame.i_mv_bits += i_mb_pos_tex - i_mb_pos_start;
 
         memcpy( cb->p, h->mb.pic.p_fenc[0], 256 );
         cb->p += 256;
@@ -811,7 +811,7 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
         h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc[1], FENC_STRIDE, 8 );
         h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fenc[2], FENC_STRIDE, 8 );
 
-        h->stat.frame.i_itex_bits += x264_cabac_pos( cb ) - i_mb_pos_tex;
+        h->stat.frame.i_tex_bits += x264_cabac_pos( cb ) - i_mb_pos_tex;
         return;
     }
 #endif
@@ -963,7 +963,7 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
 
 #ifndef RDO_SKIP_BS
     i_mb_pos_tex = x264_cabac_pos( cb );
-    h->stat.frame.i_hdr_bits += i_mb_pos_tex - i_mb_pos_start;
+    h->stat.frame.i_mv_bits += i_mb_pos_tex - i_mb_pos_start;
 #endif
 
     if( i_mb_type != I_16x16 )
@@ -1018,10 +1018,7 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
     }
 
 #ifndef RDO_SKIP_BS
-    if( IS_INTRA( i_mb_type ) )
-        h->stat.frame.i_itex_bits += x264_cabac_pos( cb ) - i_mb_pos_tex;
-    else
-        h->stat.frame.i_ptex_bits += x264_cabac_pos( cb ) - i_mb_pos_tex;
+    h->stat.frame.i_tex_bits += x264_cabac_pos( cb ) - i_mb_pos_tex;
 #endif
 }
 

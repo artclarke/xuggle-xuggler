@@ -40,8 +40,7 @@ typedef struct
     int kept_as_ref;
     float qscale;
     int mv_bits;
-    int i_tex_bits;
-    int p_tex_bits;
+    int tex_bits;
     int misc_bits;
     uint64_t expected_bits;
     double expected_vbv;
@@ -167,7 +166,7 @@ static inline double qscale2bits(ratecontrol_entry_t *rce, double qscale)
 {
     if(qscale<0.1)
         qscale = 0.1;
-    return (rce->i_tex_bits + rce->p_tex_bits + .1) * pow( rce->qscale / qscale, 1.1 )
+    return (rce->tex_bits + .1) * pow( rce->qscale / qscale, 1.1 )
            + rce->mv_bits * pow( X264_MAX(rce->qscale, 1) / X264_MAX(qscale, 1), 0.5 )
            + rce->misc_bits;
 }
@@ -496,8 +495,8 @@ int x264_ratecontrol_new( x264_t *h )
             rce = &rc->entry[frame_number];
             rce->direct_mode = 0;
 
-            e += sscanf(p, " in:%*d out:%*d type:%c q:%f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d d:%c",
-                   &pict_type, &qp, &rce->i_tex_bits, &rce->p_tex_bits,
+            e += sscanf(p, " in:%*d out:%*d type:%c q:%f tex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d d:%c",
+                   &pict_type, &qp, &rce->tex_bits,
                    &rce->mv_bits, &rce->misc_bits, &rce->i_count, &rce->p_count,
                    &rce->s_count, &rce->direct_mode);
 
@@ -1071,11 +1070,12 @@ void x264_ratecontrol_end( x264_t *h, int bits )
                           dir_avg>0 ? 's' : dir_avg<0 ? 't' : '-' )
                         : '-';
         fprintf( rc->p_stat_file_out,
-                 "in:%d out:%d type:%c q:%.2f itex:%d ptex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d d:%c;\n",
+                 "in:%d out:%d type:%c q:%.2f tex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d d:%c;\n",
                  h->fenc->i_frame, h->i_frame,
                  c_type, rc->qpa_rc,
-                 h->stat.frame.i_itex_bits, h->stat.frame.i_ptex_bits,
-                 h->stat.frame.i_hdr_bits, h->stat.frame.i_misc_bits,
+                 h->stat.frame.i_tex_bits,
+                 h->stat.frame.i_mv_bits,
+                 h->stat.frame.i_misc_bits,
                  h->stat.frame.i_mb_count_i,
                  h->stat.frame.i_mb_count_p,
                  h->stat.frame.i_mb_count_skip,
@@ -1138,7 +1138,7 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
     q = pow( rce->blurred_complexity, 1 - h->param.rc.f_qcompress );
 
     // avoid NaN's in the rc_eq
-    if(!isfinite(q) || rce->i_tex_bits + rce->p_tex_bits + rce->mv_bits == 0)
+    if(!isfinite(q) || rce->tex_bits + rce->mv_bits == 0)
         q = rcc->last_qscale;
     else
     {
@@ -1190,7 +1190,7 @@ static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
     }
     else if( pict_type == SLICE_TYPE_P
              && rcc->last_non_b_pict_type == SLICE_TYPE_P
-             && rce->i_tex_bits + rce->p_tex_bits == 0 )
+             && rce->tex_bits == 0 )
     {
         q = last_p_q;
     }
@@ -1471,9 +1471,8 @@ static float rate_estimate_qscale( x264_t *h )
             rcc->short_term_cplxsum += rcc->last_satd;
             rcc->short_term_cplxcount ++;
 
-            rce.p_tex_bits = rcc->last_satd;
+            rce.tex_bits = rcc->last_satd;
             rce.blurred_complexity = rcc->short_term_cplxsum / rcc->short_term_cplxcount;
-            rce.i_tex_bits = 0;
             rce.mv_bits = 0;
             rce.p_count = rcc->nmb;
             rce.i_count = 0;

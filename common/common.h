@@ -532,11 +532,10 @@ struct x264_t
         /* Current frame stats */
         struct
         {
-            /* Headers bits (MV+Ref+MB Block Type */
-            int i_hdr_bits;
-            /* Texture bits (Intra/Predicted) */
-            int i_itex_bits;
-            int i_ptex_bits;
+            /* MV bits (MV+Ref+Block Type) */
+            int i_mv_bits;
+            /* Texture bits (DCT coefs) */
+            int i_tex_bits;
             /* ? */
             int i_misc_bits;
             /* MB type counts */

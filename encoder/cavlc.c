@@ -344,7 +344,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
     {
         bs_write_ue( s, i_mb_i_offset + 25 );
         i_mb_pos_tex = bs_pos( s );
-        h->stat.frame.i_hdr_bits += i_mb_pos_tex - i_mb_pos_start;
+        h->stat.frame.i_mv_bits += i_mb_pos_tex - i_mb_pos_start;
 
         bs_align_0( s );
 
@@ -362,7 +362,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc[1], FENC_STRIDE, 8 );
         h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fenc[2], FENC_STRIDE, 8 );
 
-        h->stat.frame.i_itex_bits += bs_pos(s) - i_mb_pos_tex;
+        h->stat.frame.i_tex_bits += bs_pos(s) - i_mb_pos_tex;
         return;
     }
 #endif
@@ -612,7 +612,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
 
 #ifndef RDO_SKIP_BS
     i_mb_pos_tex = bs_pos( s );
-    h->stat.frame.i_hdr_bits += i_mb_pos_tex - i_mb_pos_start;
+    h->stat.frame.i_mv_bits += i_mb_pos_tex - i_mb_pos_start;
 #endif
 
     /* Coded block patern */
@@ -666,10 +666,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
     }
 
 #ifndef RDO_SKIP_BS
-    if( IS_INTRA( i_mb_type ) )
-        h->stat.frame.i_itex_bits += bs_pos(s) - i_mb_pos_tex;
-    else
-        h->stat.frame.i_ptex_bits += bs_pos(s) - i_mb_pos_tex;
+    h->stat.frame.i_tex_bits += bs_pos(s) - i_mb_pos_tex;
 #endif
 }
 

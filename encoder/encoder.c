@@ -1235,9 +1235,8 @@ static void x264_slice_write( x264_t *h )
     /* Compute misc bits */
     h->stat.frame.i_misc_bits = bs_pos( &h->out.bs )
                               + NALU_OVERHEAD * 8
-                              - h->stat.frame.i_itex_bits
-                              - h->stat.frame.i_ptex_bits
-                              - h->stat.frame.i_hdr_bits;
+                              - h->stat.frame.i_tex_bits
+                              - h->stat.frame.i_mv_bits;
 }
 
 static void x264_thread_sync_context( x264_t *dst, x264_t *src )
