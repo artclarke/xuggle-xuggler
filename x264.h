@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 60
+#define X264_BUILD 61
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -276,7 +276,6 @@ typedef struct x264_param_t
         char        *psz_stat_in;
 
         /* 2pass params (same as ffmpeg ones) */
-        char        *psz_rc_eq;     /* 2 pass rate control equation */
         float       f_qcompress;    /* 0.0 => cbr, 1.0 => constant qp */
         float       f_qblur;        /* temporally blur quants */
         float       f_complexity_blur; /* temporally blur complexity */

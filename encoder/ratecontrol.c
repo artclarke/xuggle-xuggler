@@ -118,10 +118,6 @@ struct x264_ratecontrol_t
     double lmin[5];             /* min qscale by frame type */
     double lmax[5];
     double lstep;               /* max change (multiply) in qscale per frame */
-    double i_cplx_sum[5];       /* estimated total texture bits in intra MBs at qscale=1 */
-    double p_cplx_sum[5];
-    double mv_bits_sum[5];
-    int frame_count[5];         /* number of frames of each type */
 
     /* MBRC stuff */
     double frame_size_estimated;
@@ -1130,73 +1126,16 @@ void x264_ratecontrol_end( x264_t *h, int bits )
  * 2 pass functions
  ***************************************************************************/
 
-double x264_eval( char *s, double *const_value, const char **const_name,
-                  double (**func1)(void *, double), const char **func1_name,
-                  double (**func2)(void *, double, double), char **func2_name,
-                  void *opaque );
-
 /**
  * modify the bitrate curve from pass1 for one frame
  */
 static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor, int frame_num)
 {
     x264_ratecontrol_t *rcc= h->rc;
-    const int pict_type = rce->pict_type;
     double q;
     x264_zone_t *zone = get_zone( h, frame_num );
 
-    double const_values[]={
-        rce->i_tex_bits * rce->qscale,
-        rce->p_tex_bits * rce->qscale,
-        (rce->i_tex_bits + rce->p_tex_bits) * rce->qscale,
-        rce->mv_bits * rce->qscale,
-        (double)rce->i_count / rcc->nmb,
-        (double)rce->p_count / rcc->nmb,
-        (double)rce->s_count / rcc->nmb,
-        rce->pict_type == SLICE_TYPE_I,
-        rce->pict_type == SLICE_TYPE_P,
-        rce->pict_type == SLICE_TYPE_B,
-        h->param.rc.f_qcompress,
-        rcc->i_cplx_sum[SLICE_TYPE_I] / rcc->frame_count[SLICE_TYPE_I],
-        rcc->i_cplx_sum[SLICE_TYPE_P] / rcc->frame_count[SLICE_TYPE_P],
-        rcc->p_cplx_sum[SLICE_TYPE_P] / rcc->frame_count[SLICE_TYPE_P],
-        rcc->p_cplx_sum[SLICE_TYPE_B] / rcc->frame_count[SLICE_TYPE_B],
-        (rcc->i_cplx_sum[pict_type] + rcc->p_cplx_sum[pict_type]) / rcc->frame_count[pict_type],
-        rce->blurred_complexity,
-        0
-    };
-    static const char *const_names[]={
-        "iTex",
-        "pTex",
-        "tex",
-        "mv",
-        "iCount",
-        "pCount",
-        "sCount",
-        "isI",
-        "isP",
-        "isB",
-        "qComp",
-        "avgIITex",
-        "avgPITex",
-        "avgPPTex",
-        "avgBPTex",
-        "avgTex",
-        "blurCplx",
-        NULL
-    };
-    static double (*func1[])(void *, double)={
-//      (void *)bits2qscale,
-        (void *)qscale2bits,
-        NULL
-    };
-    static const char *func1_names[]={
-//      "bits2qp",
-        "qp2bits",
-        NULL
-    };
-
-    q = x264_eval((char*)h->param.rc.psz_rc_eq, const_values, const_names, func1, func1_names, NULL, NULL, rce);
+    q = pow( rce->blurred_complexity, 1 - h->param.rc.f_qcompress );
 
     // avoid NaN's in the rc_eq
     if(!isfinite(q) || rce->i_tex_bits + rce->p_tex_bits + rce->mv_bits == 0)
@@ -1787,10 +1726,6 @@ static int init_pass2( x264_t *h )
     {
         ratecontrol_entry_t *rce = &rcc->entry[i];
         all_const_bits += rce->misc_bits;
-        rcc->i_cplx_sum[rce->pict_type] += rce->i_tex_bits * rce->qscale;
-        rcc->p_cplx_sum[rce->pict_type] += rce->p_tex_bits * rce->qscale;
-        rcc->mv_bits_sum[rce->pict_type] += rce->mv_bits * rce->qscale;
-        rcc->frame_count[rce->pict_type] ++;
     }
 
     if( all_available_bits < all_const_bits)

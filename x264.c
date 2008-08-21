@@ -202,7 +202,6 @@ static void Help( x264_param_t *defaults, int b_longhelp )
         "                                  - 2: Last pass, does not overwrite stats file\n"
         "                                  - 3: Nth pass, overwrites stats file\n" );
     H0( "      --stats <string>        Filename for 2 pass stats [\"%s\"]\n", defaults->rc.psz_stat_out );
-    H1( "      --rceq <string>         Ratecontrol equation [\"%s\"]\n", defaults->rc.psz_rc_eq );
     H0( "      --qcomp <float>         QP curve compression: 0.0 => CBR, 1.0 => CQP [%.2f]\n", defaults->rc.f_qcompress );
     H1( "      --cplxblur <float>      Reduce fluctuations in QP (before curve compression) [%.1f]\n", defaults->rc.f_complexity_blur );
     H1( "      --qblur <float>         Reduce fluctuations in QP (after curve compression) [%.1f]\n", defaults->rc.f_qblur );
@@ -433,7 +432,6 @@ static int  Parse( int argc, char **argv,
             { "chroma-qp-offset", required_argument, NULL, 0 },
             { "pass",    required_argument, NULL, 'p' },
             { "stats",   required_argument, NULL, 0 },
-            { "rceq",    required_argument, NULL, 0 },
             { "qcomp",   required_argument, NULL, 0 },
             { "qblur",   required_argument, NULL, 0 },
             { "cplxblur",required_argument, NULL, 0 },

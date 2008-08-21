@@ -100,7 +100,6 @@ void    x264_param_default( x264_param_t *param )
     param->rc.psz_stat_out = "x264_2pass.log";
     param->rc.b_stat_read = 0;
     param->rc.psz_stat_in = "x264_2pass.log";
-    param->rc.psz_rc_eq = "blurCplx^(1-qComp)";
     param->rc.f_qcompress = 0.6;
     param->rc.f_qblur = 0.5;
     param->rc.f_complexity_blur = 20;
@@ -532,8 +531,6 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->rc.psz_stat_in = strdup(value);
         p->rc.psz_stat_out = strdup(value);
     }
-    OPT("rceq")
-        p->rc.psz_rc_eq = strdup(value);
     OPT("qcomp")
         p->rc.f_qcompress = atof(value);
     OPT("qblur")
@@ -893,9 +890,8 @@ char *x264_param2string( x264_param_t *p, int b_res )
         else
             s += sprintf( s, " bitrate=%d ratetol=%.1f",
                           p->rc.i_bitrate, p->rc.f_rate_tolerance );
-        s += sprintf( s, " rceq='%s' qcomp=%.2f qpmin=%d qpmax=%d qpstep=%d",
-                      p->rc.psz_rc_eq, p->rc.f_qcompress,
-                      p->rc.i_qp_min, p->rc.i_qp_max, p->rc.i_qp_step );
+        s += sprintf( s, " qcomp=%.2f qpmin=%d qpmax=%d qpstep=%d",
+                      p->rc.f_qcompress, p->rc.i_qp_min, p->rc.i_qp_max, p->rc.i_qp_step );
         if( p->rc.b_stat_read )
             s += sprintf( s, " cplxblur=%.1f qblur=%.1f",
                           p->rc.f_complexity_blur, p->rc.f_qblur );

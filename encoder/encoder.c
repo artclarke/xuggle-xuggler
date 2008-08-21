@@ -621,8 +621,6 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         h->param.rc.psz_stat_out = strdup( h->param.rc.psz_stat_out );
     if( h->param.rc.psz_stat_in )
         h->param.rc.psz_stat_in = strdup( h->param.rc.psz_stat_in );
-    if( h->param.rc.psz_rc_eq )
-        h->param.rc.psz_rc_eq = strdup( h->param.rc.psz_rc_eq );
 
     /* VUI */
     if( h->param.vui.i_sar_width > 0 && h->param.vui.i_sar_height > 0 )
@@ -2029,8 +2027,6 @@ void    x264_encoder_close  ( x264_t *h )
         free( h->param.rc.psz_stat_out );
     if( h->param.rc.psz_stat_in )
         free( h->param.rc.psz_stat_in );
-    if( h->param.rc.psz_rc_eq )
-        free( h->param.rc.psz_rc_eq );
 
     x264_cqm_delete( h );
 
