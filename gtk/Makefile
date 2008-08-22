@@ -93,7 +93,7 @@ libx264gtk.a: $(OBJECTS_LIB)
 
 $(SONAMEGTK): $(OBJECTS_LIB)
 	@echo "  L: $(@F)"
-	@$(CC) -shared -o $@ $(OBJECTS_LIB) -Wl,-soname,$(SONAMEGTK) $(LDFLAGS)
+	@$(CC) -shared -o $@ $(OBJECTS_LIB) $(SOFLAGS) $(LDFLAGS)
 
 # Program : test
 $(TEST_BIN): $(OBJECTS_LIB) $(OBJECTS_TEST)
@@ -142,8 +142,8 @@ install: $(ENCODE_BIN)
 	@install -d "$(DESTDIR)$(libdir)"
 	@echo "  I: $(DESTDIR)$(libdir)/libx264gtk.a"
 	@install -m 644 libx264gtk.a "$(DESTDIR)$(libdir)"
-	@echo "  I: $(DESTDIR)$(libdir)/libx264gtk.so"
-	@$(if $(SONAMEGTK), ln -sf $(SONAMEGTK) $(DESTDIR)$(libdir)/libx264gtk.so)
+	@echo "  I: $(DESTDIR)$(libdir)/libx264gtk.$(SOSUFFIX)"
+	@$(if $(SONAMEGTK), ln -sf $(SONAMEGTK) $(DESTDIR)$(libdir)/libx264gtk.$(SOSUFFIX))
 	@$(if $(SONAMEGTK), install -m 755 $(SONAMEGTK) $(DESTDIR)$(libdir))
 	@echo "  D: $(DESTDIR)$(bindir)"
 	@install -d "$(DESTDIR)$(bindir)"
@@ -172,9 +172,9 @@ uninstall:
 	@rm -f "$(DESTDIR)$(includedir)/x264_gtk_enum.h"
 	@echo "  U: $(DESTDIR)$(libdir)/libx264gtk.a"
 	@rm -f "$(DESTDIR)$(libdir)/libx264gtk.a"
-	@echo "  U: $(DESTDIR)$(libdir)/libx264gtk.so"
+	@echo "  U: $(DESTDIR)$(libdir)/$(SONAMEGTK)"
 	@$(if $(SONAMEGTK), rm -f "$(DESTDIR)$(libdir)/$(SONAMEGTK)")
-	@rm -f "$(DESTDIR)$(libdir)/libx264gtk.so"
+	@rm -f "$(DESTDIR)$(libdir)/libx264gtk.$(SOSUFFIX)"
 	@echo "  U: $(DESTDIR)$(bindir)/$(ENCODE_BIN)"
 	@rm -f "$(DESTDIR)$(bindir)/$(ENCODE_BIN)"
 	@echo "  U: $(DESTDIR)${datadir}/x264"

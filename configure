@@ -455,15 +455,25 @@ if [ "$shared" = "yes" ]; then
         echo 'IMPLIBNAME=libx264.dll.a' >> config.mak
         echo 'SOFLAGS=-Wl,--out-implib,$(IMPLIBNAME) -Wl,--enable-auto-image-base' >> config.mak
     elif [ "$SYS" = "MACOSX" ]; then
+        echo "SOSUFFIX=dylib" >> config.mak
         echo "SONAME=libx264.$API.dylib" >> config.mak
-        echo 'SOFLAGS=-dynamiclib -Wl,-single_module -Wl,-read_only_relocs,suppress' >> config.mak        
+        echo 'SOFLAGS=-dynamiclib -Wl,-single_module -Wl,-read_only_relocs,suppress -install_name $(DESTDIR)$(libdir)/$(SONAME)' >> config.mak
     else
+        echo "SOSUFFIX=so" >> config.mak
         echo "SONAME=libx264.so.$API" >> config.mak
         echo 'SOFLAGS=-Wl,-soname,$(SONAME)' >> config.mak
     fi
     echo 'default: $(SONAME)' >> config.mak
     if [ "$gtk" = "yes" ]; then
-        echo "SONAMEGTK=libx264gtk.so.$API" >> gtk/config.mak
+        if [ "$SYS" = "MACOSX" ]; then
+            echo "SOSUFFIX=dylib" >> gtk/config.mak
+            echo "SONAMEGTK=libx264gtk.$API.dylib" >> gtk/config.mak
+            echo 'SOFLAGS=-dynamiclib -Wl,-single_module -Wl,-read_only_relocs,suppress -install_name $(DESTDIR)$(libdir)/$(SONAMEGTK)' >> gtk/config.mak
+        else
+            echo "SOSUFFIX=so" >> gtk/config.mak
+            echo "SONAMEGTK=libx264gtk.so.$API" >> gtk/config.mak
+            echo 'SOFLAGS=-Wl,-soname,$(SONAME)' >> gtk/config.mak
+        fi
     fi
 fi
 
