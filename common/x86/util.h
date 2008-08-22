@@ -100,7 +100,7 @@ static ALWAYS_INLINE int array_non_zero_int_mmx( void *v, int i_count )
 {
     if(i_count == 128)
     {
-        int nonzero;
+        int nonzero = 0;
         asm(
             "movq     (%1),    %%mm0 \n"
             "por      8(%1),   %%mm0 \n"
