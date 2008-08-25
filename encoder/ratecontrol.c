@@ -866,7 +866,8 @@ static double predict_row_size( x264_t *h, int y, int qp )
     double pred_t = 0;
     if( h->sh.i_type != SLICE_TYPE_I
         && h->fref0[0]->i_type == h->fdec->i_type
-        && h->fref0[0]->i_row_satd[y] > 0 )
+        && h->fref0[0]->i_row_satd[y] > 0
+        && (abs(h->fref0[0]->i_row_satd[y] - h->fdec->i_row_satd[y]) < h->fdec->i_row_satd[y]/2))
     {
         pred_t = h->fref0[0]->i_row_bits[y] * h->fdec->i_row_satd[y] / h->fref0[0]->i_row_satd[y]
                  * qp2qscale(h->fref0[0]->i_row_qp[y]) / qp2qscale(qp);
