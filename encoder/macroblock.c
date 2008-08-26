@@ -79,7 +79,25 @@ static int x264_mb_decimate_score( int16_t *dct, int i_max )
     return i_score;
 }
 
-void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale )
+static ALWAYS_INLINE void x264_quant_4x4( x264_t *h, int16_t dct[4][4], int i_qp, int i_ctxBlockCat, int b_intra )
+{
+    int i_quant_cat = b_intra ? CQM_4IY : CQM_4PY;
+    if( h->mb.b_trellis )
+        x264_quant_4x4_trellis( h, dct, i_quant_cat, i_qp, i_ctxBlockCat, b_intra );
+    else
+        h->quantf.quant_4x4( dct, h->quant4_mf[i_quant_cat][i_qp], h->quant4_bias[i_quant_cat][i_qp] );
+}
+
+static ALWAYS_INLINE void x264_quant_8x8( x264_t *h, int16_t dct[8][8], int i_qp, int b_intra )
+{
+    int i_quant_cat = b_intra ? CQM_8IY : CQM_8PY;
+    if( h->mb.b_trellis )
+        x264_quant_8x8_trellis( h, dct, i_quant_cat, i_qp, b_intra );
+    else
+        h->quantf.quant_8x8( dct, h->quant8_mf[i_quant_cat][i_qp], h->quant8_bias[i_quant_cat][i_qp] );
+}
+
+void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qp )
 {
     uint8_t *p_src = &h->mb.pic.p_fenc[0][block_idx_xy_fenc[idx]];
     uint8_t *p_dst = &h->mb.pic.p_fdec[0][block_idx_xy_fdec[idx]];
@@ -93,15 +111,12 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale )
 
     h->dctf.sub4x4_dct( dct4x4, p_src, p_dst );
 
-    if( h->mb.b_trellis )
-        x264_quant_4x4_trellis( h, dct4x4, CQM_4IY, i_qscale, DCT_LUMA_4x4, 1 );
-    else
-        h->quantf.quant_4x4( dct4x4, h->quant4_mf[CQM_4IY][i_qscale], h->quant4_bias[CQM_4IY][i_qscale] );
+    x264_quant_4x4( h, dct4x4, i_qp, DCT_LUMA_4x4, 1 );
 
     if( array_non_zero( dct4x4 ) )
     {
         h->zigzagf.scan_4x4( h->dct.luma4x4[idx], dct4x4 );
-        h->quantf.dequant_4x4( dct4x4, h->dequant4_mf[CQM_4IY], i_qscale );
+        h->quantf.dequant_4x4( dct4x4, h->dequant4_mf[CQM_4IY], i_qp );
 
         /* output samples to fdec */
         h->dctf.add4x4_idct( p_dst, dct4x4 );
@@ -110,7 +125,7 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qscale )
         memset( h->dct.luma4x4[idx], 0, sizeof(h->dct.luma4x4[idx]));
 }
 
-void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qscale )
+void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qp )
 {
     int x = 8 * (idx&1);
     int y = 8 * (idx>>1);
@@ -120,17 +135,14 @@ void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qscale )
 
     h->dctf.sub8x8_dct8( dct8x8, p_src, p_dst );
 
-    if( h->mb.b_trellis )
-        x264_quant_8x8_trellis( h, dct8x8, CQM_8IY, i_qscale, 1 );
-    else
-        h->quantf.quant_8x8( dct8x8, h->quant8_mf[CQM_8IY][i_qscale], h->quant8_bias[CQM_8IY][i_qscale] );
+    x264_quant_8x8( h, dct8x8, i_qp, 1 );
 
     h->zigzagf.scan_8x8( h->dct.luma8x8[idx], dct8x8 );
-    h->quantf.dequant_8x8( dct8x8, h->dequant8_mf[CQM_8IY], i_qscale );
+    h->quantf.dequant_8x8( dct8x8, h->dequant8_mf[CQM_8IY], i_qp );
     h->dctf.add8x8_idct8( p_dst, dct8x8 );
 }
 
-static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
+static void x264_mb_encode_i16x16( x264_t *h, int i_qp )
 {
     uint8_t  *p_src = h->mb.pic.p_fenc[0];
     uint8_t  *p_dst = h->mb.pic.p_fdec[0];
@@ -162,22 +174,19 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
         dct4x4[i][0][0] = 0;
 
         /* quant/scan/dequant */
-        if( h->mb.b_trellis )
-            x264_quant_4x4_trellis( h, dct4x4[i], CQM_4IY, i_qscale, DCT_LUMA_AC, 1 );
-        else
-            h->quantf.quant_4x4( dct4x4[i], h->quant4_mf[CQM_4IY][i_qscale], h->quant4_bias[CQM_4IY][i_qscale] );
+        x264_quant_4x4( h, dct4x4[i], i_qp, DCT_LUMA_AC, 1 );
 
         h->zigzagf.scan_4x4( h->dct.luma4x4[i], dct4x4[i] );
-        h->quantf.dequant_4x4( dct4x4[i], h->dequant4_mf[CQM_4IY], i_qscale );
+        h->quantf.dequant_4x4( dct4x4[i], h->dequant4_mf[CQM_4IY], i_qp );
     }
 
     h->dctf.dct4x4dc( dct_dc4x4 );
-    h->quantf.quant_4x4_dc( dct_dc4x4, h->quant4_mf[CQM_4IY][i_qscale][0]>>1, h->quant4_bias[CQM_4IY][i_qscale][0]<<1 );
+    h->quantf.quant_4x4_dc( dct_dc4x4, h->quant4_mf[CQM_4IY][i_qp][0]>>1, h->quant4_bias[CQM_4IY][i_qp][0]<<1 );
     h->zigzagf.scan_4x4( h->dct.luma16x16_dc, dct_dc4x4 );
 
     /* output samples to fdec */
     h->dctf.idct4x4dc( dct_dc4x4 );
-    x264_mb_dequant_4x4_dc( dct_dc4x4, h->dequant4_mf[CQM_4IY], i_qscale );  /* XXX not inversed */
+    x264_mb_dequant_4x4_dc( dct_dc4x4, h->dequant4_mf[CQM_4IY], i_qp );  /* XXX not inversed */
 
     /* calculate dct coeffs */
     for( i = 0; i < 16; i++ )
@@ -189,7 +198,7 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qscale )
     h->dctf.add16x16_idct( p_dst, dct4x4 );
 }
 
-void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
+void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
 {
     int i, ch;
     int b_decimate = b_inter && (h->sh.i_type == SLICE_TYPE_B || h->param.analyse.b_dct_decimate);
@@ -225,22 +234,20 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
             dct4x4[i][0][0] = 0;
 
             /* no trellis; it doesn't seem to help chroma noticeably */
-            h->quantf.quant_4x4( dct4x4[i], h->quant4_mf[CQM_4IC+b_inter][i_qscale], h->quant4_bias[CQM_4IC+b_inter][i_qscale] );
+            h->quantf.quant_4x4( dct4x4[i], h->quant4_mf[CQM_4IC+b_inter][i_qp], h->quant4_bias[CQM_4IC+b_inter][i_qp] );
             h->zigzagf.scan_4x4( h->dct.luma4x4[16+i+ch*4], dct4x4[i] );
 
             if( b_decimate )
-            {
                 i_decimate_score += x264_mb_decimate_score( h->dct.luma4x4[16+i+ch*4]+1, 15 );
-            }
         }
 
         h->dctf.dct2x2dc( dct2x2 );
-        h->quantf.quant_2x2_dc( dct2x2, h->quant4_mf[CQM_4IC+b_inter][i_qscale][0]>>1, h->quant4_bias[CQM_4IC+b_inter][i_qscale][0]<<1 );
+        h->quantf.quant_2x2_dc( dct2x2, h->quant4_mf[CQM_4IC+b_inter][i_qp][0]>>1, h->quant4_bias[CQM_4IC+b_inter][i_qp][0]<<1 );
         zigzag_scan_2x2_dc( h->dct.chroma_dc[ch], dct2x2 );
 
         /* output samples to fdec */
         h->dctf.idct2x2dc( dct2x2 );
-        x264_mb_dequant_2x2_dc( dct2x2, h->dequant4_mf[CQM_4IC + b_inter], i_qscale );  /* XXX not inversed */
+        x264_mb_dequant_2x2_dc( dct2x2, h->dequant4_mf[CQM_4IC + b_inter], i_qp );  /* XXX not inversed */
 
         if( b_decimate && i_decimate_score < 7 )
         {
@@ -253,7 +260,7 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qscale )
         else
         {
             for( i = 0; i < 4; i++ )
-                h->quantf.dequant_4x4( dct4x4[i], h->dequant4_mf[CQM_4IC + b_inter], i_qscale );
+                h->quantf.dequant_4x4( dct4x4[i], h->dequant4_mf[CQM_4IC + b_inter], i_qp );
         }
         dct4x4[0][0][0] = dct2x2[0][0];
         dct4x4[1][0][0] = dct2x2[0][1];
@@ -446,10 +453,7 @@ void x264_macroblock_encode( x264_t *h )
             {
                 if( h->mb.b_noise_reduction )
                     h->quantf.denoise_dct( *dct8x8[idx], h->nr_residual_sum[1], h->nr_offset[1], 64 );
-                if( h->mb.b_trellis )
-                    x264_quant_8x8_trellis( h, dct8x8[idx], CQM_8PY, i_qp, 0 );
-                else
-                    h->quantf.quant_8x8( dct8x8[idx], h->quant8_mf[CQM_8PY][i_qp], h->quant8_bias[CQM_8PY][i_qp] );
+                x264_quant_8x8( h, dct8x8[idx], i_qp, 0 );
 
                 h->zigzagf.scan_8x8( h->dct.luma8x8[idx], dct8x8[idx] );
 
@@ -494,10 +498,7 @@ void x264_macroblock_encode( x264_t *h )
 
                     if( h->mb.b_noise_reduction )
                         h->quantf.denoise_dct( *dct4x4[idx], h->nr_residual_sum[0], h->nr_offset[0], 16 );
-                    if( h->mb.b_trellis )
-                        x264_quant_4x4_trellis( h, dct4x4[idx], CQM_4PY, i_qp, DCT_LUMA_4x4, 0 );
-                    else
-                        h->quantf.quant_4x4( dct4x4[idx], h->quant4_mf[CQM_4PY][i_qp], h->quant4_bias[CQM_4PY][i_qp] );
+                    x264_quant_4x4( h, dct4x4[idx], i_qp, DCT_LUMA_4x4, 0 );
 
                     h->zigzagf.scan_4x4( h->dct.luma4x4[idx], dct4x4[idx] );
 
@@ -776,10 +777,10 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
         {
             DECLARE_ALIGNED_16( int16_t dct8x8[8][8] );
             h->dctf.sub8x8_dct8( dct8x8, p_fenc, p_fdec );
-            h->quantf.quant_8x8( dct8x8, h->quant8_mf[CQM_8PY][i_qp], h->quant8_bias[CQM_8PY][i_qp] );
+            x264_quant_8x8( h, dct8x8, i_qp, 0 );
             h->zigzagf.scan_8x8( h->dct.luma8x8[i8], dct8x8 );
 
-            if( b_decimate )
+            if( b_decimate && !h->mb.b_trellis )
                 nnz8x8 = 4 <= x264_mb_decimate_score( h->dct.luma8x8[i8], 64 );
             else
                 nnz8x8 = array_non_zero( dct8x8 );
@@ -796,7 +797,8 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
             DECLARE_ALIGNED_16( int16_t dct4x4[4][4][4] );
             h->dctf.sub8x8_dct( dct4x4, p_fenc, p_fdec );
             for( i4 = 0; i4 < 4; i4++ )
-                h->quantf.quant_4x4( dct4x4[i4], h->quant4_mf[CQM_4PY][i_qp], h->quant4_bias[CQM_4PY][i_qp] );
+                x264_quant_4x4( h, dct4x4[i4], i_qp, DCT_LUMA_4x4, 0 );
+
             for( i4 = 0; i4 < 4; i4++ )
                 h->zigzagf.scan_4x4( h->dct.luma4x4[i8*4+i4], dct4x4[i4] );
 
