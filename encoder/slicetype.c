@@ -247,7 +247,8 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
     /* Check whether we already evaluated this frame
      * If we have tried this frame as P, then we have also tried
      * the preceding frames as B. (is this still true?) */
-    if( frames[b]->i_cost_est[b-p0][p1-b] >= 0 )
+    /* Also check that we already calculated the row SATDs for the current frame. */
+    if( frames[b]->i_cost_est[b-p0][p1-b] >= 0 && frames[b]->i_row_satds[b-p0][p1-b][0] != -1 )
     {
         i_score = frames[b]->i_cost_est[b-p0][p1-b];
     }
