@@ -472,7 +472,7 @@ if [ "$shared" = "yes" ]; then
         else
             echo "SOSUFFIX=so" >> gtk/config.mak
             echo "SONAMEGTK=libx264gtk.so.$API" >> gtk/config.mak
-            echo 'SOFLAGS=-Wl,-soname,$(SONAME)' >> gtk/config.mak
+            echo 'SOFLAGS=-Wl,-soname,$(SONAMEGTK)' >> gtk/config.mak
         fi
     fi
 fi
