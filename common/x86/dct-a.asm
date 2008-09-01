@@ -28,7 +28,9 @@
 SECTION_RODATA
 pw_1:  times 8 dw 1
 pw_32: times 8 dw 32
-pb_zigzag4: db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
+pb_sub4frame:   db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
+pb_scan4framea: db 12,13,6,7,14,15,0,1,8,9,2,3,4,5,10,11
+pb_scan4frameb: db 0,1,8,9,2,3,4,5,10,11,12,13,6,7,14,15
 
 SECTION .text
 
@@ -233,7 +235,264 @@ cextern x264_add8x8_idct8_sse2
 SUB_NxN_DCT  x264_sub16x16_dct8_sse2,  x264_sub8x8_dct8_sse2,  128, 8, 0, 0
 ADD_NxN_IDCT x264_add16x16_idct8_sse2, x264_add8x8_idct8_sse2, 128, 8, 0, 0
 
+;-----------------------------------------------------------------------------
+; void x264_zigzag_scan_8x8_frame_ssse3( int16_t level[64], int16_t dct[8][8] )
+;-----------------------------------------------------------------------------
+%macro SCAN_8x8 1
+cglobal x264_zigzag_scan_8x8_frame_%1, 2,2
+    movdqa    xmm0, [r1]
+    movdqa    xmm1, [r1+16]
+    movdq2q    mm0, xmm0
+    PALIGNR   xmm1, xmm1, 14, xmm2
+    movdq2q    mm1, xmm1
 
+    movdqa    xmm2, [r1+32]
+    movdqa    xmm3, [r1+48]
+    PALIGNR   xmm2, xmm2, 12, xmm4
+    movdq2q    mm2, xmm2
+    PALIGNR   xmm3, xmm3, 10, xmm4
+    movdq2q    mm3, xmm3
+
+    punpckhwd xmm0, xmm1
+    punpckhwd xmm2, xmm3
+
+    movq       mm4, mm1
+    movq       mm5, mm1
+    movq       mm6, mm2
+    movq       mm7, mm3
+    punpckhwd  mm1, mm0
+    psllq      mm0, 16
+    psrlq      mm3, 16
+    punpckhdq  mm1, mm1
+    punpckhdq  mm2, mm0
+    punpcklwd  mm0, mm4
+    punpckhwd  mm4, mm3
+    punpcklwd  mm4, mm2
+    punpckhdq  mm0, mm2
+    punpcklwd  mm6, mm3
+    punpcklwd  mm5, mm7
+    punpcklwd  mm5, mm6
+
+    movdqa    xmm4, [r1+64]
+    movdqa    xmm5, [r1+80]
+    movdqa    xmm6, [r1+96]
+    movdqa    xmm7, [r1+112]
+
+    movq [r0+2*00], mm0
+    movq [r0+2*04], mm4
+    movd [r0+2*08], mm1
+    movq [r0+2*36], mm5
+    movq [r0+2*46], mm6
+
+    PALIGNR   xmm4, xmm4, 14, xmm3
+    movdq2q    mm4, xmm4
+    PALIGNR   xmm5, xmm5, 12, xmm3
+    movdq2q    mm5, xmm5
+    PALIGNR   xmm6, xmm6, 10, xmm3
+    movdq2q    mm6, xmm6
+%ifidn %1, ssse3
+    PALIGNR   xmm7, xmm7, 8, xmm3
+    movdq2q    mm7, xmm7
+%else
+    movhlps   xmm3, xmm7
+    movlhps   xmm7, xmm7
+    movdq2q    mm7, xmm3
+%endif
+
+    punpckhwd xmm4, xmm5
+    punpckhwd xmm6, xmm7
+
+    movq       mm0, mm4
+    movq       mm1, mm5
+    movq       mm3, mm7
+    punpcklwd  mm7, mm6
+    psrlq      mm6, 16
+    punpcklwd  mm4, mm6
+    punpcklwd  mm5, mm4
+    punpckhdq  mm4, mm3
+    punpcklwd  mm3, mm6
+    punpckhwd  mm3, mm4
+    punpckhwd  mm0, mm1
+    punpckldq  mm4, mm0
+    punpckhdq  mm0, mm6
+    pshufw     mm4, mm4, 0x6c
+
+    movq [r0+2*14], mm4
+    movq [r0+2*25], mm0
+    movd [r0+2*54], mm7
+    movq [r0+2*56], mm5
+    movq [r0+2*60], mm3
+
+    movdqa    xmm3, xmm0
+    movdqa    xmm7, xmm4
+    punpckldq xmm0, xmm2
+    punpckldq xmm4, xmm6
+    punpckhdq xmm3, xmm2
+    punpckhdq xmm7, xmm6
+    pshufhw   xmm0, xmm0, 0x1b
+    pshuflw   xmm4, xmm4, 0x1b
+    pshufhw   xmm3, xmm3, 0x1b
+    pshuflw   xmm7, xmm7, 0x1b
+
+    movlps [r0+2*10], xmm0
+    movhps [r0+2*17], xmm0
+    movlps [r0+2*21], xmm3
+    movlps [r0+2*28], xmm4
+    movhps [r0+2*32], xmm3
+    movhps [r0+2*39], xmm4
+    movlps [r0+2*43], xmm7
+    movhps [r0+2*50], xmm7
+
+    RET
+%endmacro
+
+INIT_XMM
+%define PALIGNR PALIGNR_MMX
+SCAN_8x8 sse2
+%define PALIGNR PALIGNR_SSSE3
+SCAN_8x8 ssse3
+
+;-----------------------------------------------------------------------------
+; void x264_zigzag_scan_8x8_frame_mmxext( int16_t level[64], int16_t dct[8][8] )
+;-----------------------------------------------------------------------------
+cglobal x264_zigzag_scan_8x8_frame_mmxext, 2,2
+    movq       mm0, [r1]
+    movq       mm1, [r1+2*8]
+    movq       mm2, [r1+2*14]
+    movq       mm3, [r1+2*21]
+    movq       mm4, [r1+2*28]
+    movq       mm5, mm0
+    movq       mm6, mm1
+    psrlq      mm0, 16
+    punpckldq  mm1, mm1
+    punpcklwd  mm5, mm6
+    punpckhwd  mm1, mm3
+    punpckhwd  mm6, mm0
+    punpckldq  mm5, mm0
+    movq       mm7, [r1+2*52]
+    movq       mm0, [r1+2*60]
+    punpckhwd  mm1, mm2
+    punpcklwd  mm2, mm4
+    punpckhwd  mm4, mm3
+    punpckldq  mm3, mm3
+    punpckhwd  mm3, mm2
+    movq      [r0], mm5
+    movq  [r0+2*4], mm1
+    movq  [r0+2*8], mm6
+    punpcklwd  mm6, mm0
+    punpcklwd  mm6, mm7
+    movq       mm1, [r1+2*32]
+    movq       mm5, [r1+2*39]
+    movq       mm2, [r1+2*46]
+    movq [r0+2*35], mm3
+    movq [r0+2*47], mm4
+    punpckhwd  mm7, mm0
+    psllq      mm0, 16
+    movq       mm3, mm5
+    punpcklwd  mm5, mm1
+    punpckhwd  mm1, mm2
+    punpckhdq  mm3, mm3
+    movq [r0+2*52], mm6
+    movq [r0+2*13], mm5
+    movq       mm4, [r1+2*11]
+    movq       mm6, [r1+2*25]
+    punpcklwd  mm5, mm7
+    punpcklwd  mm1, mm3
+    punpckhdq  mm0, mm7
+    movq       mm3, [r1+2*4]
+    movq       mm7, [r1+2*18]
+    punpcklwd  mm2, mm5
+    movq [r0+2*25], mm1
+    movq       mm1, mm4
+    movq       mm5, mm6
+    punpcklwd  mm4, mm3
+    punpcklwd  mm6, mm7
+    punpckhwd  mm1, mm3
+    punpckhwd  mm5, mm7
+    movq       mm3, mm6
+    movq       mm7, mm5
+    punpckldq  mm6, mm4
+    punpckldq  mm5, mm1
+    punpckhdq  mm3, mm4
+    punpckhdq  mm7, mm1
+    movq       mm4, [r1+2*35]
+    movq       mm1, [r1+2*49]
+    pshufw     mm6, mm6, 0x1b
+    pshufw     mm5, mm5, 0x1b
+    movq [r0+2*60], mm0
+    movq [r0+2*56], mm2
+    movq       mm0, [r1+2*42]
+    movq       mm2, [r1+2*56]
+    movq [r0+2*17], mm3
+    movq [r0+2*32], mm7
+    movq [r0+2*10], mm6
+    movq [r0+2*21], mm5
+    movq       mm3, mm0
+    movq       mm7, mm2
+    punpcklwd  mm0, mm4
+    punpcklwd  mm2, mm1
+    punpckhwd  mm3, mm4
+    punpckhwd  mm7, mm1
+    movq       mm4, mm2
+    movq       mm1, mm7
+    punpckhdq  mm2, mm0
+    punpckhdq  mm7, mm3
+    punpckldq  mm4, mm0
+    punpckldq  mm1, mm3
+    pshufw     mm2, mm2, 0x1b
+    pshufw     mm7, mm7, 0x1b
+    movq [r0+2*28], mm4
+    movq [r0+2*43], mm1
+    movq [r0+2*39], mm2
+    movq [r0+2*50], mm7
+    RET
+
+;-----------------------------------------------------------------------------
+; void x264_zigzag_scan_4x4_frame_mmx( int16_t level[16], int16_t dct[4][4] )
+;-----------------------------------------------------------------------------
+cglobal x264_zigzag_scan_4x4_frame_mmx, 2,2
+    movq       mm0, [r1]
+    movq       mm1, [r1+8]
+    movq       mm2, [r1+16]
+    movq       mm3, [r1+24]
+    movq       mm4, mm0
+    movq       mm5, mm1
+    movq       mm6, mm2
+    movq       mm7, mm3
+    psllq      mm3, 16
+    psrlq      mm0, 16
+    punpckldq  mm2, mm2
+    punpckhdq  mm1, mm1
+    punpcklwd  mm4, mm5
+    punpcklwd  mm5, mm3
+    punpckldq  mm4, mm0
+    punpckhwd  mm5, mm2
+    punpckhwd  mm0, mm6
+    punpckhwd  mm6, mm7
+    punpcklwd  mm1, mm0
+    punpckhdq  mm3, mm6
+    movq      [r0], mm4
+    movq    [r0+8], mm5
+    movq   [r0+16], mm1
+    movq   [r0+24], mm3
+    RET
+
+;-----------------------------------------------------------------------------
+; void x264_zigzag_scan_4x4_frame_ssse3( int16_t level[16], int16_t dct[4][4] )
+;-----------------------------------------------------------------------------
+cglobal x264_zigzag_scan_4x4_frame_ssse3, 2,2
+    movdqa    xmm1, [r1+16]
+    movdqa    xmm0, [r1]
+    pshufb    xmm1, [pb_scan4frameb GLOBAL]
+    pshufb    xmm0, [pb_scan4framea GLOBAL]
+    movdqa    xmm2, xmm1
+    psrldq    xmm1, 6
+    palignr   xmm2, xmm0, 6
+    pslldq    xmm0, 10
+    palignr   xmm1, xmm0, 10
+    movdqa    [r0], xmm2
+    movdqa [r0+16], xmm1
+    RET
 
 ;-----------------------------------------------------------------------------
 ; void x264_zigzag_scan_4x4_field_mmxext( int16_t level[16], int16_t dct[4][4] )
@@ -274,7 +533,7 @@ cglobal x264_zigzag_sub_4x4_frame_ssse3, 3,3
     punpckldq xmm6, xmm7
     movlhps   xmm0, xmm2
     movlhps   xmm4, xmm6
-    movdqa    xmm7, [pb_zigzag4 GLOBAL]
+    movdqa    xmm7, [pb_sub4frame GLOBAL]
     pshufb    xmm0, xmm7
     pshufb    xmm4, xmm7
     pxor      xmm6, xmm6

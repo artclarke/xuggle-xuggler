@@ -589,6 +589,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     { \
         set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" );\
         used_asm = 1; \
+        memcpy(dct, buf1, size*sizeof(int16_t));\
         call_c( zigzag_c.name, t1, dct ); \
         call_a( zigzag_asm.name, t2, dct ); \
         if( memcmp( t1, t2, size*sizeof(int16_t) ) ) \

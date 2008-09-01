@@ -61,7 +61,6 @@ cglobal x264_checkasm_call, 1,7
     or   r3, r5
     jz .ok
     mov  r3, eax
-    picgetgot r1
     lea  r1, [error_message GLOBAL]
     push r1
     xor  eax, eax
