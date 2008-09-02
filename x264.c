@@ -770,14 +770,16 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     int64_t i_start, i_end;
     int64_t i_file;
     int     i_frame_size;
-    int     i_progress;
+    int     i_update_interval;
 
+    opt->b_progress &= param->i_log_level < X264_LOG_DEBUG;
     i_frame_total = p_get_frame_total( opt->hin );
     i_frame_total -= opt->i_seek;
     if( ( i_frame_total == 0 || param->i_frame_total < i_frame_total )
         && param->i_frame_total > 0 )
         i_frame_total = param->i_frame_total;
     param->i_frame_total = i_frame_total;
+    i_update_interval = i_frame_total ? x264_clip3( i_frame_total / 1000, 1, 10 ) : 10;
 
     if( ( h = x264_encoder_open( param ) ) == NULL )
     {
@@ -800,8 +802,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     i_start = x264_mdate();
 
     /* Encode frames */
-    for( i_frame = 0, i_file = 0, i_progress = 0;
-         b_ctrl_c == 0 && (i_frame < i_frame_total || i_frame_total == 0); )
+    for( i_frame = 0, i_file = 0; b_ctrl_c == 0 && (i_frame < i_frame_total || i_frame_total == 0); )
     {
         if( p_read_frame( &pic, opt->hin, i_frame + opt->i_seek ) )
             break;
@@ -822,18 +823,16 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         i_frame++;
 
         /* update status line (up to 1000 times per input file) */
-        if( opt->b_progress && param->i_log_level < X264_LOG_DEBUG &&
-            ( i_frame_total ? i_frame * 1000 / i_frame_total > i_progress
-                            : i_frame % 10 == 0 ) )
+        if( opt->b_progress && i_frame % i_update_interval == 0 )
         {
             int64_t i_elapsed = x264_mdate() - i_start;
             double fps = i_elapsed > 0 ? i_frame * 1000000. / i_elapsed : 0;
             if( i_frame_total )
             {
                 int eta = i_elapsed * (i_frame_total - i_frame) / ((int64_t)i_frame * 1000000);
-                i_progress = i_frame * 1000 / i_frame_total;
-                fprintf( stderr, "encoded frames: %d/%d (%.1f%%), %.2f fps, eta %d:%02d:%02d  \r",
-                         i_frame, i_frame_total, (float)i_progress / 10, fps,
+                fprintf( stderr, "encoded frames: %d/%d (%.1f%%), %.2f fps, %.2f kb/s, eta %d:%02d:%02d  \r",
+                         i_frame, i_frame_total, 100. * i_frame / i_frame_total, fps,
+                         (double) i_file * 8 * param->i_fps_num / ( (double) param->i_fps_den * i_frame * 1000 ),
                          eta/3600, (eta/60)%60, eta%60 );
             }
             else
@@ -849,6 +848,9 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
 
     i_end = x264_mdate();
     x264_picture_clean( &pic );
+    /* Erase progress indicator before printing encoding stats. */
+    if( opt->b_progress )
+        fprintf( stderr, "                                                                               \r" );
     x264_encoder_close( h );
     x264_free( mux_buffer );
     fprintf( stderr, "\n" );
