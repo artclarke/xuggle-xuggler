@@ -544,7 +544,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     int i, idx;
     int i_max;
     int predict_mode[9];
-    int b_merged_satd = h->pixf.intra_satd_x3_16x16 && h->pixf.mbcmp[0] == h->pixf.satd[0];
+    int b_merged_satd = !!h->pixf.intra_mbcmp_x3_16x16;
 
     /*---------------- Try all mode and calculate their score ---------------*/
 
@@ -553,7 +553,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
 
     if( b_merged_satd && i_max == 4 )
     {
-        h->pixf.intra_satd_x3_16x16( p_src, p_dst, a->i_satd_i16x16_dir );
+        h->pixf.intra_mbcmp_x3_16x16( p_src, p_dst, a->i_satd_i16x16_dir );
         h->predict_16x16[I_PRED_16x16_P]( p_dst );
         a->i_satd_i16x16_dir[I_PRED_16x16_P] =
             h->pixf.mbcmp[PIXEL_16x16]( p_dst, FDEC_STRIDE, p_src, FENC_STRIDE );

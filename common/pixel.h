@@ -91,12 +91,14 @@ typedef struct
     int (*ads[7])( int enc_dc[4], uint16_t *sums, int delta,
                    uint16_t *cost_mvx, int16_t *mvs, int width, int thresh );
 
-    /* calculate satd of V, H, and DC modes.
+    /* calculate satd or sad of V, H, and DC modes.
      * may be NULL, in which case just use pred+satd instead. */
-    void (*intra_satd_x3_16x16)( uint8_t *fenc, uint8_t *fdec, int res[3] );
-    void (*intra_satd_x3_8x8c)( uint8_t *fenc, uint8_t *fdec, int res[3] );
-    void (*intra_satd_x3_4x4)( uint8_t *fenc, uint8_t *fdec, int res[3] );
-    void (*intra_sa8d_x3_8x8)( uint8_t *fenc, uint8_t edge[33], int res[3] );
+    void (*intra_mbcmp_x3_16x16)( uint8_t *fenc, uint8_t *fdec  , int res[3] );
+    void (*intra_satd_x3_16x16) ( uint8_t *fenc, uint8_t *fdec  , int res[3] );
+    void (*intra_sad_x3_16x16)  ( uint8_t *fenc, uint8_t *fdec  , int res[3] );
+    void (*intra_satd_x3_8x8c)  ( uint8_t *fenc, uint8_t *fdec  , int res[3] );
+    void (*intra_satd_x3_4x4)   ( uint8_t *fenc, uint8_t *fdec  , int res[3] );
+    void (*intra_sa8d_x3_8x8)   ( uint8_t *fenc, uint8_t edge[33], int res[3] );
 } x264_pixel_function_t;
 
 void x264_pixel_init( int cpu, x264_pixel_function_t *pixf );

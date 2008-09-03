@@ -324,7 +324,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     TEST_PIXEL_VAR( PIXEL_8x8 );
     report( "pixel var :" );
 
-#define TEST_INTRA_SATD( name, pred, satd, i8x8, ... ) \
+#define TEST_INTRA_MBCMP( name, pred, satd, i8x8, ... ) \
     if( pixel_asm.name && pixel_asm.name != pixel_ref.name ) \
     { \
         int res_c[3], res_asm[3]; \
@@ -333,10 +333,10 @@ static int check_pixel( int cpu_ref, int cpu_new )
         memcpy( buf3, buf2, 1024 ); \
         for( i=0; i<3; i++ ) \
         { \
-            pred[i]( buf3+40, ##__VA_ARGS__ ); \
-            res_c[i] = pixel_c.satd( buf1+40, 16, buf3+40, 32 ); \
+            pred[i]( buf3+48, ##__VA_ARGS__ ); \
+            res_c[i] = pixel_c.satd( buf1+48, 16, buf3+48, 32 ); \
         } \
-        call_a( pixel_asm.name, buf1+40, i8x8 ? edge : buf3+40, res_asm ); \
+        call_a( pixel_asm.name, buf1+48, i8x8 ? edge : buf3+48, res_asm ); \
         if( memcmp(res_c, res_asm, sizeof(res_c)) ) \
         { \
             ok = 0; \
@@ -347,11 +347,13 @@ static int check_pixel( int cpu_ref, int cpu_new )
     }
 
     ok = 1; used_asm = 0;
-    TEST_INTRA_SATD( intra_satd_x3_16x16, predict_16x16, satd[PIXEL_16x16], 0 );
-    TEST_INTRA_SATD( intra_satd_x3_8x8c, predict_8x8c, satd[PIXEL_8x8], 0 );
-    TEST_INTRA_SATD( intra_satd_x3_4x4, predict_4x4, satd[PIXEL_4x4], 0 );
-    TEST_INTRA_SATD( intra_sa8d_x3_8x8, predict_8x8, sa8d[PIXEL_8x8], 1, edge );
+    TEST_INTRA_MBCMP( intra_satd_x3_16x16, predict_16x16, satd[PIXEL_16x16], 0 );
+    TEST_INTRA_MBCMP( intra_satd_x3_8x8c , predict_8x8c , satd[PIXEL_8x8]  , 0 );
+    TEST_INTRA_MBCMP( intra_satd_x3_4x4  , predict_4x4  , satd[PIXEL_4x4]  , 0 );
+    TEST_INTRA_MBCMP( intra_sa8d_x3_8x8  , predict_8x8  , sa8d[PIXEL_8x8]  , 1, edge );
     report( "intra satd_x3 :" );
+    TEST_INTRA_MBCMP( intra_sad_x3_16x16 , predict_16x16, sad [PIXEL_16x16], 0 );
+    report( "intra sad_x3 :" );
 
     if( pixel_asm.ssim_4x4x2_core != pixel_ref.ssim_4x4x2_core ||
         pixel_asm.ssim_end4 != pixel_ref.ssim_end4 )

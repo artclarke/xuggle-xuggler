@@ -23,8 +23,10 @@
 ;*****************************************************************************
 
 %include "x86inc.asm"
+%include "x86util.asm"
 
 SECTION_RODATA
+pb_3: times 16 db 3
 sw_64: dd 64
 
 SECTION .text
@@ -218,6 +220,96 @@ SAD_W16 sse3
 %define movdqu movdqa
 SAD_W16 sse2_aligned
 %define movdqu movups
+
+
+
+;-----------------------------------------------------------------------------
+; void intra_sad_x3_16x16 ( uint8_t *fenc, uint8_t *fdec, int res[3] );
+;-----------------------------------------------------------------------------
+
+;xmm7: DC prediction    xmm6: H prediction  xmm5: V prediction
+;xmm4: DC pred score    xmm3: H pred score  xmm2: V pred score
+%macro INTRA_SAD16 1
+cglobal x264_intra_sad_x3_16x16_%1,3,5
+    pxor    mm0, mm0
+    pxor    mm1, mm1
+    psadbw  mm0, [r1-FDEC_STRIDE+0]
+    psadbw  mm1, [r1-FDEC_STRIDE+8]
+    paddw   mm0, mm1
+    movd    r3d, mm0
+%ifidn %1, ssse3
+    mova  m1, [pb_3 GLOBAL]
+%endif
+%assign n 0
+%rep 16
+    movzx   r4d, byte [r1-1+FDEC_STRIDE*n]
+    add     r3d, r4d
+%assign n n+1
+%endrep
+    add     r3d, 16
+    shr     r3d, 5
+    imul    r3d, 0x01010101
+    movd    m7, r3d
+    mova    m5, [r1-FDEC_STRIDE]
+%if mmsize==16
+    pshufd  m7, m7, 0
+%else
+    mova    m1, [r1-FDEC_STRIDE+8]
+    punpckldq m7, m7
+%endif
+    pxor    m4, m4
+    pxor    m3, m3
+    pxor    m2, m2
+    mov     r3d, 15*FENC_STRIDE
+.vloop:
+    SPLATB  m6, r1+r3*2-1, m1
+    mova    m0, [r0+r3]
+    psadbw  m0, m7
+    paddw   m4, m0
+    mova    m0, [r0+r3]
+    psadbw  m0, m5
+    paddw   m2, m0
+%if mmsize==8
+    mova    m0, [r0+r3]
+    psadbw  m0, m6
+    paddw   m3, m0
+    mova    m0, [r0+r3+8]
+    psadbw  m0, m7
+    paddw   m4, m0
+    mova    m0, [r0+r3+8]
+    psadbw  m0, m1
+    paddw   m2, m0
+    psadbw  m6, [r0+r3+8]
+    paddw   m3, m6
+%else
+    psadbw  m6, [r0+r3]
+    paddw   m3, m6
+%endif
+    add     r3d, -FENC_STRIDE
+    jge .vloop
+%if mmsize==16
+    pslldq  m3, 4
+    por     m3, m2
+    movhlps m1, m3
+    paddw   m3, m1
+    movq  [r2+0], m3
+    movhlps m1, m4
+    paddw   m4, m1
+%else
+    movd  [r2+0], m2
+    movd  [r2+4], m3
+%endif
+    movd  [r2+8], m4
+    RET
+%endmacro
+
+INIT_MMX
+%define SPLATB SPLATB_MMX
+INTRA_SAD16 mmxext
+INIT_XMM
+INTRA_SAD16 sse2
+%define SPLATB SPLATB_SSSE3
+INTRA_SAD16 ssse3
 
 
 
