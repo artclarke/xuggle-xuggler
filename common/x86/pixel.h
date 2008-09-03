@@ -43,6 +43,7 @@
 DECL_X1( sad, mmxext )
 DECL_X1( sad, sse2 )
 DECL_X1( sad, sse3 )
+DECL_X1( sad, sse2_aligned )
 DECL_X4( sad, mmxext )
 DECL_X4( sad, sse2 )
 DECL_X4( sad, sse3 )

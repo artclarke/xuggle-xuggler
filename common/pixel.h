@@ -69,10 +69,12 @@ typedef struct
     x264_pixel_cmp_t ssim[7];
     x264_pixel_cmp_t sa8d[4];
     x264_pixel_cmp_t mbcmp[7]; /* either satd or sad for subpel refine and mode decision */
+    x264_pixel_cmp_t mbcmp_unaligned[7]; /* unaligned mbcmp for subpel */
     x264_pixel_cmp_t fpelcmp[7]; /* either satd or sad for fullpel motion search */
     x264_pixel_cmp_x3_t fpelcmp_x3[7];
     x264_pixel_cmp_x4_t fpelcmp_x4[7];
     x264_pixel_var_t var[4];
+    x264_pixel_cmp_t sad_aligned[7]; /* Aligned SAD for mbcmp */
 
     void (*ssim_4x4x2_core)( const uint8_t *pix1, int stride1,
                              const uint8_t *pix2, int stride2, int sums[2][4] );

@@ -215,7 +215,9 @@ cglobal x264_pixel_sad_16x8_%1, 4,4
 SAD_W16 sse2
 %define movdqu lddqu
 SAD_W16 sse3
-%undef movdqu
+%define movdqu movdqa
+SAD_W16 sse2_aligned
+%define movdqu movups
 
 
 

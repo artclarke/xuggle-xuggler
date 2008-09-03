@@ -258,6 +258,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     report( "pixel " #name " :" );
 
     TEST_PIXEL( sad, 0 );
+    TEST_PIXEL( sad_aligned, 1 );
     TEST_PIXEL( ssd, 1 );
     TEST_PIXEL( satd, 0 );
     TEST_PIXEL( sa8d, 0 );
