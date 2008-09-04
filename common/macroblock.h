@@ -314,16 +314,6 @@ void x264_mb_load_mv_direct8x8( x264_t *h, int idx );
  *      h->mb. need only valid values from other blocks */
 void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[8][2], int *i_mvc );
 
-
-int  x264_mb_predict_intra4x4_mode( x264_t *h, int idx );
-int  x264_mb_predict_non_zero_code( x264_t *h, int idx );
-
-/* x264_mb_transform_8x8_allowed:
- *      check whether any partition is smaller than 8x8 (or at least
- *      might be, according to just partition type.)
- *      doesn't check for cbp */
-int  x264_mb_transform_8x8_allowed( x264_t *h );
-
 void x264_mb_mc( x264_t *h );
 void x264_mb_mc_8x8( x264_t *h, int i8 );
 
@@ -445,6 +435,72 @@ static ALWAYS_INLINE int array_non_zero_count( int16_t *v )
             i_nz++;
 
     return i_nz;
+}
+static inline int x264_mb_predict_intra4x4_mode( x264_t *h, int idx )
+{
+    const int ma = h->mb.cache.intra4x4_pred_mode[x264_scan8[idx] - 1];
+    const int mb = h->mb.cache.intra4x4_pred_mode[x264_scan8[idx] - 8];
+    const int m  = X264_MIN( x264_mb_pred_mode4x4_fix(ma),
+                             x264_mb_pred_mode4x4_fix(mb) );
+
+    if( m < 0 )
+        return I_PRED_4x4_DC;
+
+    return m;
+}
+static inline int x264_mb_predict_non_zero_code( x264_t *h, int idx )
+{
+    const int za = h->mb.cache.non_zero_count[x264_scan8[idx] - 1];
+    const int zb = h->mb.cache.non_zero_count[x264_scan8[idx] - 8];
+
+    int i_ret = za + zb;
+
+    if( i_ret < 0x80 )
+    {
+        i_ret = ( i_ret + 1 ) >> 1;
+    }
+    return i_ret & 0x7f;
+}
+/* x264_mb_transform_8x8_allowed:
+ *      check whether any partition is smaller than 8x8 (or at least
+ *      might be, according to just partition type.)
+ *      doesn't check for cbp */
+static inline int x264_mb_transform_8x8_allowed( x264_t *h )
+{
+    // intra and skip are disallowed
+    // large partitions are allowed
+    // direct and 8x8 are conditional
+    static const uint8_t partition_tab[X264_MBTYPE_MAX] = {
+        0,0,0,0,1,2,0,2,1,1,1,1,1,1,1,1,1,2,0,
+    };
+    int p, i;
+
+    if( !h->pps->b_transform_8x8_mode )
+        return 0;
+    p = partition_tab[h->mb.i_type];
+    if( p < 2 )
+        return p;
+    else if( h->mb.i_type == B_DIRECT )
+        return h->sps->b_direct8x8_inference;
+    else if( h->mb.i_type == P_8x8 )
+    {
+        if( !(h->param.analyse.inter & X264_ANALYSE_PSUB8x8) )
+            return 1;
+        for( i=0; i<4; i++ )
+            if( h->mb.i_sub_partition[i] != D_L0_8x8 )
+                return 0;
+        return 1;
+    }
+    else // B_8x8
+    {
+        // x264 currently doesn't use sub-8x8 B partitions, so don't check for them
+        if( h->sps->b_direct8x8_inference )
+            return 1;
+        for( i=0; i<4; i++ )
+            if( h->mb.i_sub_partition[i] == D_DIRECT_8x8 )
+                return 0;
+        return 1;
+    }
 }
 
 #endif
