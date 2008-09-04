@@ -537,11 +537,12 @@ cglobal x264_pixel_avg_weight_w%2_%1, 4,5
 %assign x 0
 %rep %2*2/mmsize
     BIWEIGHT  [r0+x], [r2+x]
+    BIWEIGHT  [r0+x+r1], [r2+x+r3]
 %assign x x+mmsize/2
 %endrep
-    add  r0, r1
-    add  r2, r3
-    dec  t0
+    lea  r0, [r0+r1*2]
+    lea  r2, [r2+r3*2]
+    sub  t0, 2
     jg   .height_loop
     REP_RET
 %endmacro
