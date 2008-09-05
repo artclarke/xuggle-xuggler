@@ -146,6 +146,31 @@ cglobal predict_4x4_vl_mmxext, 1,1
     RET
 
 ;-----------------------------------------------------------------------------
+; void predict_4x4_dc( uint8_t *src )
+;-----------------------------------------------------------------------------
+
+cglobal predict_4x4_dc_mmxext, 1,4
+    pxor   mm7, mm7
+    movd   mm0, [r0-FDEC_STRIDE]
+    psadbw mm0, mm7
+    movd   r3d, mm0
+    movzx  r1d, byte [r0-1]
+%assign n 1
+%rep 3
+    movzx  r2d, byte [r0+FDEC_STRIDE*n-1]
+    add    r1d, r2d
+%assign n n+1
+%endrep
+    lea    r1d, [r1+r3+4]
+    shr    r1d, 3
+    imul   r1d, 0x01010101
+    mov   [r0+FDEC_STRIDE*0], r1d
+    mov   [r0+FDEC_STRIDE*1], r1d
+    mov   [r0+FDEC_STRIDE*2], r1d
+    mov   [r0+FDEC_STRIDE*3], r1d
+    RET
+
+;-----------------------------------------------------------------------------
 ; void predict_8x8_v_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
 cglobal predict_8x8_v_mmxext, 2,2

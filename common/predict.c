@@ -27,9 +27,6 @@
 
 #include "common.h"
 
-#ifdef _MSC_VER
-#undef HAVE_MMX  /* not finished now */
-#endif
 #ifdef HAVE_MMX
 #   include "x86/predict.h"
 #endif

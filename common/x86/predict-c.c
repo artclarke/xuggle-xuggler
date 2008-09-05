@@ -49,6 +49,7 @@ extern void predict_8x8_vl_sse2( uint8_t *src, uint8_t edge[33] );
 extern void predict_8x8_vr_core_mmxext( uint8_t *src, uint8_t edge[33] );
 extern void predict_4x4_ddl_mmxext( uint8_t *src );
 extern void predict_4x4_vl_mmxext( uint8_t *src );
+extern void predict_4x4_dc_mmxext( uint8_t *src );
 extern void predict_16x16_dc_top_sse2( uint8_t *src );
 extern void predict_16x16_dc_core_sse2( uint8_t *src, int i_dc_left );
 extern void predict_16x16_v_sse2( uint8_t *src );
@@ -555,4 +556,5 @@ void x264_predict_4x4_init_mmx( int cpu, x264_predict_t pf[12] )
         return;
     pf[I_PRED_4x4_DDL] = predict_4x4_ddl_mmxext;
     pf[I_PRED_4x4_VL]  = predict_4x4_vl_mmxext;
+    pf[I_PRED_4x4_DC]  = predict_4x4_dc_mmxext;
 }
