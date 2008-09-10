@@ -238,6 +238,11 @@ lowres_intra_mb:
 #undef TRY_BIDIR
 #undef SAVE_MVS
 
+#define NUM_MBS\
+   (h->sps->i_mb_width > 2 && h->sps->i_mb_height > 2 ?\
+   (h->sps->i_mb_width - 2) * (h->sps->i_mb_height - 2) :\
+    h->sps->i_mb_width * h->sps->i_mb_height)
+
 static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
                                x264_frame_t **frames, int p0, int p1, int b,
                                int b_intra_penalty )
@@ -290,12 +295,19 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
                 }
             }
         }
-        else
+        else if( h->sps->i_mb_width > 2 && h->sps->i_mb_height > 2 )
         {
             for( h->mb.i_mb_y = 1; h->mb.i_mb_y < h->sps->i_mb_height - 1; h->mb.i_mb_y++ )
                 for( h->mb.i_mb_x = 1; h->mb.i_mb_x < h->sps->i_mb_width - 1; h->mb.i_mb_x++ )
                     i_score += x264_slicetype_mb_cost( h, a, frames, p0, p1, b, dist_scale_factor );
         }
+        else
+        {
+            for( h->mb.i_mb_y = 0; h->mb.i_mb_y < h->sps->i_mb_height; h->mb.i_mb_y++ )
+                for( h->mb.i_mb_x = 0; h->mb.i_mb_x < h->sps->i_mb_width; h->mb.i_mb_x++ )
+                    i_score += x264_slicetype_mb_cost( h, a, frames, p0, p1, b, dist_scale_factor );
+        }
+
 
         if( b != p1 )
             i_score = i_score * 100 / (120 + h->param.i_bframe_bias);
@@ -309,7 +321,7 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
     if( b_intra_penalty )
     {
         // arbitrary penalty for I-blocks after B-frames
-        int nmb = (h->sps->i_mb_width - 2) * (h->sps->i_mb_height - 2);
+        int nmb = NUM_MBS;
         i_score += i_score * frames[b]->i_intra_mbs[b-p0] / (nmb * 8);
     }
     return i_score;
@@ -345,7 +357,7 @@ static int scenecut( x264_t *h, x264_frame_t *frame, int pdist )
     if( res )
     {
         int imb = frame->i_intra_mbs[pdist];
-        int pmb = (h->sps->i_mb_width - 2) * (h->sps->i_mb_height - 2) - imb;
+        int pmb = NUM_MBS - imb;
         x264_log( h, X264_LOG_DEBUG, "scene cut at %d Icost:%d Pcost:%d ratio:%.4f bias:%.4f gop:%d (imb:%d pmb:%d)\n",
                   frame->i_frame,
                   icost, pcost, 1. - (double)pcost / icost,
@@ -361,7 +373,7 @@ static void x264_slicetype_analyse( x264_t *h )
     int num_frames;
     int keyint_limit;
     int j;
-    int i_mb_count = (h->sps->i_mb_width - 2) * (h->sps->i_mb_height - 2);
+    int i_mb_count = NUM_MBS;
     int cost1p0, cost2p0, cost1b1, cost2p1;
     int idr_frame_type;
 
@@ -414,9 +426,14 @@ no_b_frames:
     {
         int pthresh = X264_MAX(INTER_THRESH - P_SENS_BIAS * (j-1), INTER_THRESH/10);
         int pcost = x264_slicetype_frame_cost( h, &a, frames, 0, j+1, j+1, 1 );
-//      fprintf( stderr, "frm%d+%d: %d <=> %d, I:%d/%d \n",
-//               frames[0]->i_frame, j-1, pthresh, pcost/i_mb_count,
-//               frames[j+1]->i_intra_mbs[j+1], i_mb_count );
+/*        if( i_mb_count )
+            fprintf( stderr, "frm%d+%d: %d <=> %d, I:%d/%d \n",
+                    frames[0]->i_frame, j-1, pthresh, pcost/i_mb_count,
+                    frames[j+1]->i_intra_mbs[j+1], i_mb_count );
+        else
+            fprintf( stderr, "frm%d+%d: %d <=> %d, I:%d/%d \n",
+                    frames[0]->i_frame, j-1, pthresh, pcost,
+                    frames[j+1]->i_intra_mbs[j+1], i_mb_count ); */
         if( pcost > pthresh*i_mb_count || frames[j+1]->i_intra_mbs[j+1] > i_mb_count/3 )
         {
             frames[j]->i_type = X264_TYPE_P;
