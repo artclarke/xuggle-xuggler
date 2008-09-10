@@ -37,6 +37,12 @@
 #include "config.h"
 #endif
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#define SetConsoleTitle(t)
+#endif
+
 uint8_t *mux_buffer = NULL;
 int mux_buffer_size = 0;
 
@@ -771,6 +777,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     int64_t i_file;
     int     i_frame_size;
     int     i_update_interval;
+    char    buf[200];
 
     opt->b_progress &= param->i_log_level < X264_LOG_DEBUG;
     i_frame_total = p_get_frame_total( opt->hin );
@@ -827,16 +834,20 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         {
             int64_t i_elapsed = x264_mdate() - i_start;
             double fps = i_elapsed > 0 ? i_frame * 1000000. / i_elapsed : 0;
+            double bitrate = (double) i_file * 8 * param->i_fps_num / ( (double) param->i_fps_den * i_frame * 1000 );
             if( i_frame_total )
             {
                 int eta = i_elapsed * (i_frame_total - i_frame) / ((int64_t)i_frame * 1000000);
-                fprintf( stderr, "encoded frames: %d/%d (%.1f%%), %.2f fps, %.2f kb/s, eta %d:%02d:%02d  \r",
-                         i_frame, i_frame_total, 100. * i_frame / i_frame_total, fps,
-                         (double) i_file * 8 * param->i_fps_num / ( (double) param->i_fps_den * i_frame * 1000 ),
+                sprintf( buf, "x264 - encoded frames: %d/%d (%.1f%%), %.2f fps, %.2f kb/s, eta %d:%02d:%02d",
+                         i_frame, i_frame_total, 100. * i_frame / i_frame_total, fps, bitrate,
                          eta/3600, (eta/60)%60, eta%60 );
             }
             else
-                fprintf( stderr, "encoded frames: %d, %.2f fps   \r", i_frame, fps );
+            {
+                sprintf( buf, "x264 - encoded frames: %d, %.2f fps, %.2f kb/s", i_frame, fps, bitrate );
+            }
+            fprintf( stderr, "%s  \r", buf+7 );
+            SetConsoleTitle( buf );
             fflush( stderr ); // needed in windows
         }
     }
