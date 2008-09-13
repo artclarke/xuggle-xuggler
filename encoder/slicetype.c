@@ -248,6 +248,8 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
                                int b_intra_penalty )
 {
     int i_score = 0;
+    /* Don't use the AQ'd scores for slicetype decision. */
+    int i_score_aq = 0;
 
     /* Check whether we already evaluated this frame
      * If we have tried this frame as P, then we have also tried
@@ -276,9 +278,15 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
         if( p1 != p0 )
             dist_scale_factor = ( ((b-p0) << 8) + ((p1-p0) >> 1) ) / (p1-p0);
 
+        if( h->sps->i_mb_width <= 2 || h->sps->i_mb_height <= 2 )
+        {
+            for( h->mb.i_mb_y = 0; h->mb.i_mb_y < h->sps->i_mb_height; h->mb.i_mb_y++ )
+                for( h->mb.i_mb_x = 0; h->mb.i_mb_x < h->sps->i_mb_width; h->mb.i_mb_x++ )
+                    i_score += x264_slicetype_mb_cost( h, a, frames, p0, p1, b, dist_scale_factor );
+        }
         /* the edge mbs seem to reduce the predictive quality of the
          * whole frame's score, but are needed for a spatial distribution. */
-        if( h->param.rc.i_vbv_buffer_size )
+        else if( h->param.rc.i_vbv_buffer_size )
         {
             for( h->mb.i_mb_y = 0; h->mb.i_mb_y < h->sps->i_mb_height; h->mb.i_mb_y++ )
             {
@@ -286,33 +294,45 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
                 for( h->mb.i_mb_x = 0; h->mb.i_mb_x < h->sps->i_mb_width; h->mb.i_mb_x++ )
                 {
                     int i_mb_cost = x264_slicetype_mb_cost( h, a, frames, p0, p1, b, dist_scale_factor );
-                    row_satd[ h->mb.i_mb_y ] += i_mb_cost;
+                    int i_mb_cost_aq = i_mb_cost;
+                    if( h->param.rc.i_aq_mode )
+                    {
+                        x264_emms();
+                        i_mb_cost_aq *= pow(2.0,-(frames[b]->f_qp_offset[h->mb.i_mb_x + h->mb.i_mb_y*h->mb.i_mb_stride])/6.0);
+                    }
+                    row_satd[ h->mb.i_mb_y ] += i_mb_cost_aq;
                     if( h->mb.i_mb_y > 0 && h->mb.i_mb_y < h->sps->i_mb_height - 1 &&
                         h->mb.i_mb_x > 0 && h->mb.i_mb_x < h->sps->i_mb_width - 1 )
                     {
+                        /* Don't use AQ-weighted costs for slicetype decision, only for ratecontrol. */
                         i_score += i_mb_cost;
+                        i_score_aq += i_mb_cost_aq;
                     }
                 }
             }
         }
-        else if( h->sps->i_mb_width > 2 && h->sps->i_mb_height > 2 )
+        else
         {
             for( h->mb.i_mb_y = 1; h->mb.i_mb_y < h->sps->i_mb_height - 1; h->mb.i_mb_y++ )
                 for( h->mb.i_mb_x = 1; h->mb.i_mb_x < h->sps->i_mb_width - 1; h->mb.i_mb_x++ )
-                    i_score += x264_slicetype_mb_cost( h, a, frames, p0, p1, b, dist_scale_factor );
+                {
+                    int i_mb_cost = x264_slicetype_mb_cost( h, a, frames, p0, p1, b, dist_scale_factor );
+                    int i_mb_cost_aq = i_mb_cost;
+                    if( h->param.rc.i_aq_mode )
+                    {
+                        x264_emms();
+                        i_mb_cost_aq *= pow(2.0,-(frames[b]->f_qp_offset[h->mb.i_mb_x + h->mb.i_mb_y*h->mb.i_mb_stride])/6.0);
+                    }
+                    i_score += i_mb_cost;
+                    i_score_aq += i_mb_cost_aq;
+                }
         }
-        else
-        {
-            for( h->mb.i_mb_y = 0; h->mb.i_mb_y < h->sps->i_mb_height; h->mb.i_mb_y++ )
-                for( h->mb.i_mb_x = 0; h->mb.i_mb_x < h->sps->i_mb_width; h->mb.i_mb_x++ )
-                    i_score += x264_slicetype_mb_cost( h, a, frames, p0, p1, b, dist_scale_factor );
-        }
-
 
         if( b != p1 )
             i_score = i_score * 100 / (120 + h->param.i_bframe_bias);
 
         frames[b]->i_cost_est[b-p0][p1-b] = i_score;
+        frames[b]->i_cost_est_aq[b-p0][p1-b] = i_score_aq;
 //      fprintf( stderr, "frm %d %c(%d,%d): %6d %6d imb:%d  \n", frames[b]->i_frame,
 //               (p1==0?'I':b<p1?'B':'P'), b-p0, p1-b, i_score, frames[b]->i_cost_est[0][0], frames[b]->i_intra_mbs[b-p0] );
         x264_emms();
@@ -538,6 +558,11 @@ int x264_rc_analyse_slice( x264_t *h )
     frames[b] = h->fenc;
 
     cost = x264_slicetype_frame_cost( h, &a, frames, p0, p1, b, 0 );
+
+    /* In AQ, use the weighted score instead. */
+    if( h->param.rc.i_aq_mode )
+        cost = frames[b]->i_cost_est[b-p0][p1-b];
+
     h->fenc->i_row_satd = h->fenc->i_row_satds[b-p0][p1-b];
     h->fdec->i_row_satd = h->fdec->i_row_satds[b-p0][p1-b];
     h->fdec->i_satd = cost;

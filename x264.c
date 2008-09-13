@@ -194,10 +194,9 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "      --ipratio <float>       QP factor between I and P [%.2f]\n", defaults->rc.f_ip_factor );
     H0( "      --pbratio <float>       QP factor between P and B [%.2f]\n", defaults->rc.f_pb_factor );
     H1( "      --chroma-qp-offset <integer>  QP difference between chroma and luma [%d]\n", defaults->analyse.i_chroma_qp_offset );
-    H0( "      --aq-mode <integer>     How AQ distributes bits [%d]\n"
+    H1( "      --aq-mode <integer>     AQ method [%d]\n"
         "                                  - 0: Disabled\n"
-        "                                  - 1: Avoid moving bits between frames\n"
-        "                                  - 2: Move bits between frames\n", defaults->rc.i_aq_mode );
+        "                                  - 1: Variance AQ (complexity mask)\n", defaults->rc.i_aq_mode );
     H0( "      --aq-strength <float>   Reduces blocking and blurring in flat and\n"
         "                              textured areas. [%.1f]\n"
         "                                  - 0.5: weak AQ\n"

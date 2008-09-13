@@ -487,12 +487,9 @@ static int x264_validate_parameters( x264_t *h )
     if( !h->param.b_cabac )
         h->param.analyse.i_trellis = 0;
     h->param.analyse.i_trellis = x264_clip3( h->param.analyse.i_trellis, 0, 2 );
-    h->param.rc.i_aq_mode = x264_clip3( h->param.rc.i_aq_mode, 0, 2 );
+    h->param.rc.i_aq_mode = x264_clip3( h->param.rc.i_aq_mode, 0, 1 );
     if( h->param.rc.f_aq_strength <= 0 )
         h->param.rc.i_aq_mode = 0;
-    /* VAQ effectively replaces qcomp, so qcomp is raised towards 1 to compensate. */
-    if( h->param.rc.i_aq_mode == X264_AQ_GLOBAL )
-        h->param.rc.f_qcompress = x264_clip3f(h->param.rc.f_qcompress + h->param.rc.f_aq_strength / 0.7, 0, 1);
     h->param.analyse.i_noise_reduction = x264_clip3( h->param.analyse.i_noise_reduction, 0, 1<<16 );
 
     {
@@ -1361,6 +1358,9 @@ int     x264_encoder_encode( x264_t *h,
 
         if( h->frames.b_have_lowres )
             x264_frame_init_lowres( h, fenc );
+
+        if( h->param.rc.i_aq_mode )
+            x264_adaptive_quant_frame( h, fenc );
 
         if( h->frames.i_input <= h->frames.i_delay + 1 - h->param.i_threads )
         {

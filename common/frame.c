@@ -114,6 +114,9 @@ x264_frame_t *x264_frame_new( x264_t *h )
         for( j = 0; j < h->param.i_bframe + 2; j++ )
             CHECKED_MALLOC( frame->i_row_satds[i][j], i_lines/16 * sizeof(int) );
 
+    if( h->param.rc.i_aq_mode )
+        CHECKED_MALLOC( frame->f_qp_offset, h->mb.i_mb_count * sizeof(float) );
+
     x264_pthread_mutex_init( &frame->mutex, NULL );
     x264_pthread_cond_init( &frame->cv, NULL );
 

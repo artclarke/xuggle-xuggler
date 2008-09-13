@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 61
+#define X264_BUILD 62
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -85,8 +85,7 @@ typedef struct x264_t x264_t;
 #define X264_RC_CRF                  1
 #define X264_RC_ABR                  2
 #define X264_AQ_NONE                 0
-#define X264_AQ_LOCAL                1
-#define X264_AQ_GLOBAL               2
+#define X264_AQ_VARIANCE             1
 
 static const char * const x264_direct_pred_names[] = { "none", "spatial", "temporal", "auto", 0 };
 static const char * const x264_motion_est_names[] = { "dia", "hex", "umh", "esa", "tesa", 0 };

@@ -71,12 +71,14 @@ typedef struct
      * contains the SATD cost of the lowres frame encoded in various modes
      * FIXME: how big an array do we need? */
     int     i_cost_est[X264_BFRAME_MAX+2][X264_BFRAME_MAX+2];
+    int     i_cost_est_aq[X264_BFRAME_MAX+2][X264_BFRAME_MAX+2];
     int     i_satd; // the i_cost_est of the selected frametype
     int     i_intra_mbs[X264_BFRAME_MAX+2];
     int     *i_row_satds[X264_BFRAME_MAX+2][X264_BFRAME_MAX+2];
     int     *i_row_satd;
     int     *i_row_bits;
     int     *i_row_qp;
+    float   *f_qp_offset;
 
     /* threading */
     int     i_lines_completed; /* in pixels */
