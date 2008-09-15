@@ -254,7 +254,7 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "      --psy-rd                Strength of psychovisual optimization [\"%.1f:%.1f\"]\n"
         "                                  #1: RDO (requires subme>=6)\n"
         "                                  #2: Trellis (requires trellis, experimental)\n",
-                                       defaults->analyse.f_psy_rd,defaults->analyse.f_psy_trellis );
+                                       defaults->analyse.f_psy_rd, defaults->analyse.f_psy_trellis );
     H0( "      --mixed-refs            Decide references on a per partition basis\n" );
     H1( "      --no-chroma-me          Ignore chroma in motion estimation\n" );
     H1( "      --bime                  Jointly optimize both MVs in B-frames\n" );
@@ -424,7 +424,7 @@ static int  Parse( int argc, char **argv,
             { "mvrange", required_argument, NULL, 0 },
             { "mvrange-thread", required_argument, NULL, 0 },
             { "subme",   required_argument, NULL, 'm' },
-            { "psy-rd",   required_argument, NULL, 0 },
+            { "psy-rd",  required_argument, NULL, 0 },
             { "b-rdo",   no_argument,       NULL, 0 },
             { "mixed-refs", no_argument,    NULL, 0 },
             { "no-chroma-me", no_argument,  NULL, 0 },

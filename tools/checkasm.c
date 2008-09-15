@@ -324,6 +324,23 @@ static int check_pixel( int cpu_ref, int cpu_new )
     TEST_PIXEL_VAR( PIXEL_8x8 );
     report( "pixel var :" );
 
+    for( i=0, ok=1, used_asm=0; i<4; i++ )
+        if( pixel_asm.hadamard_ac[i] != pixel_ref.hadamard_ac[i] )
+        {
+            set_func_name( "hadamard_ac_%s", pixel_names[i] );
+            used_asm = 1;
+            uint64_t rc = pixel_c.hadamard_ac[i]( buf1, 16 );
+            uint64_t ra = pixel_asm.hadamard_ac[i]( buf1, 16 );
+            if( rc != ra )
+            {
+                ok = 0;
+                fprintf( stderr, "hadamard_ac[%d]: %d,%d != %d,%d\n", i, (int)rc, (int)(rc>>32), (int)ra, (int)(ra>>32) );
+            }
+            call_c2( pixel_c.hadamard_ac[i], buf1, 16 );
+            call_a2( pixel_asm.hadamard_ac[i], buf1, 16 );
+        }
+    report( "pixel hadamard_ac :" );
+
 #define TEST_INTRA_MBCMP( name, pred, satd, i8x8, ... ) \
     if( pixel_asm.name && pixel_asm.name != pixel_ref.name ) \
     { \

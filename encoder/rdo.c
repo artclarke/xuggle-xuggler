@@ -52,10 +52,6 @@ static uint16_t cabac_prefix_size[15][128];
         sizeof(x264_cabac_t) - offsetof(x264_cabac_t,f8_bits_encoded) )
 
 
-#define ADD_ABS_SATD(satdtype, pixel)\
-    satd += abs((h->pixf.satdtype[pixel]( zero, 0, fdec, FDEC_STRIDE ) - dc_coef)\
-          - sum_##satdtype( h, pixel, x, y ));
-
 /* Sum the cached SATDs to avoid repeating them. */
 static inline int sum_satd( x264_t *h, int pixel, int x, int y )
 {
@@ -98,20 +94,24 @@ static inline int sum_sa8d( x264_t *h, int pixel, int x, int y )
 
 static inline int ssd_plane( x264_t *h, int size, int p, int x, int y )
 {
-    DECLARE_ALIGNED_16(uint8_t zero[16]) = {0};
+    DECLARE_ALIGNED_16(static uint8_t zero[16]);
     int satd = 0;
     uint8_t *fdec = h->mb.pic.p_fdec[p] + x + y*FDEC_STRIDE;
     uint8_t *fenc = h->mb.pic.p_fenc[p] + x + y*FENC_STRIDE;
     if( p == 0 && h->mb.i_psy_rd )
     {
-        int dc_coef = h->pixf.sad[size](zero, 0, fdec, FDEC_STRIDE) >> 1;
-        ADD_ABS_SATD(satd, size);
         /* If the plane is smaller than 8x8, we can't do an SA8D; this probably isn't a big problem. */
-        if(size <= PIXEL_8x8)
+        if( size <= PIXEL_8x8 )
         {
-            dc_coef >>= 1;
-            ADD_ABS_SATD(sa8d, size);
+            uint64_t acs = h->pixf.hadamard_ac[size]( fdec, FDEC_STRIDE );
+            satd = abs((int32_t)acs - sum_satd( h, size, x, y ))
+                 + abs((int32_t)(acs>>32) - sum_sa8d( h, size, x, y ));
             satd >>= 1;
+        }
+        else
+        {
+            int dc = h->pixf.sad[size]( fdec, FDEC_STRIDE, zero, 0 ) >> 1;
+            satd = abs(h->pixf.satd[size]( fdec, FDEC_STRIDE, zero, 0 ) - dc - sum_satd( h, size, x, y ));
         }
         satd = (satd * h->mb.i_psy_rd * x264_lambda_tab[h->mb.i_qp] + 128) >> 8;
     }

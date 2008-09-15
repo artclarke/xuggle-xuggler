@@ -481,7 +481,7 @@ static void inline x264_psy_trellis_init( x264_t *h, int do_both_dct )
         for( i = 0; i < 4; i++ )
             h->zigzagf.scan_8x8( h->mb.pic.fenc_dct8[i], dct8x8[i] );
     }
-    if( do_both_dct || !h->mb.b_transform_8x8)
+    if( do_both_dct || !h->mb.b_transform_8x8 )
     {
         h->dctf.sub16x16_dct( dct4x4, h->mb.pic.p_fenc[0], zero );
         for( i = 0; i < 16; i++ )

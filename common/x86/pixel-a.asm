@@ -31,6 +31,8 @@ ssim_c1: times 4 dd 416    ; .01*.01*255*255*64
 ssim_c2: times 4 dd 235963 ; .03*.03*255*255*64*63
 mask_ff: times 16 db 0xff
          times 16 db 0
+mask_ac4: dw 0,-1,-1,-1, 0,-1,-1,-1
+mask_ac8: dw 0,-1,-1,-1,-1,-1,-1,-1
 
 SECTION .text
 
@@ -459,6 +461,7 @@ cglobal x264_pixel_satd_8x4_mmxext, 4,6
     SATD_END_MMX
 
 %macro SATD_W4 1
+INIT_MMX
 cglobal x264_pixel_satd_4x8_%1, 4,6
     SATD_START_MMX
     SATD_4x4_MMX m0, 0, 1
@@ -1160,6 +1163,321 @@ cglobal x264_intra_satd_x3_8x8c_%1, 0,6
     RET
 %endmacro ; INTRA_SATDS_MMX
 
+
+%macro ABS_MOV_SSSE3 2
+    pabsw   %1, %2
+%endmacro
+
+%macro ABS_MOV_MMX 2
+    pxor    %1, %1
+    psubw   %1, %2
+    pmaxsw  %1, %2
+%endmacro
+
+%define ABS_MOV ABS_MOV_MMX
+
+; in:  r0=pix, r1=stride, r2=stride*3, r3=tmp, m6=mask_ac4, m7=0
+; out: [tmp]=hadamard4, m0=satd
+cglobal x264_hadamard_ac_4x4_mmxext
+    movh      m0, [r0]
+    movh      m1, [r0+r1]
+    movh      m2, [r0+r1*2]
+    movh      m3, [r0+r2]
+    punpcklbw m0, m7
+    punpcklbw m1, m7
+    punpcklbw m2, m7
+    punpcklbw m3, m7
+    HADAMARD4_1D m0, m1, m2, m3
+    TRANSPOSE4x4W 0, 1, 2, 3, 4
+    HADAMARD4_1D m0, m1, m2, m3
+    mova [r3],    m0
+    mova [r3+8],  m1
+    mova [r3+16], m2
+    mova [r3+24], m3
+    ABS1      m0, m4
+    ABS1      m1, m4
+    pand      m0, m6
+    ABS1      m2, m4
+    ABS1      m3, m4
+    paddw     m0, m1
+    paddw     m2, m3
+    paddw     m0, m2
+    SAVE_MM_PERMUTATION x264_hadamard_ac_4x4_mmxext
+    ret
+
+cglobal x264_hadamard_ac_2x2_mmxext
+    mova      m0, [r3+0x00]
+    mova      m1, [r3+0x20]
+    mova      m2, [r3+0x40]
+    mova      m3, [r3+0x60]
+    HADAMARD4_1D m0, m1, m2, m3
+    ABS2      m0, m1, m4, m5
+    ABS2      m2, m3, m4, m5
+    SAVE_MM_PERMUTATION x264_hadamard_ac_2x2_mmxext
+    ret
+
+cglobal x264_hadamard_ac_8x8_mmxext
+    mova      m6, [mask_ac4 GLOBAL]
+    pxor      m7, m7
+    call x264_hadamard_ac_4x4_mmxext
+    add       r0, 4
+    add       r3, 32
+    mova      m5, m0
+    call x264_hadamard_ac_4x4_mmxext
+    lea       r0, [r0+4*r1]
+    add       r3, 64
+    paddw     m5, m0
+    call x264_hadamard_ac_4x4_mmxext
+    sub       r0, 4
+    sub       r3, 32
+    paddw     m5, m0
+    call x264_hadamard_ac_4x4_mmxext
+    paddw     m5, m0
+    sub       r3, 64
+    mova [rsp+gprsize+8], m5 ; save satd
+    call x264_hadamard_ac_2x2_mmxext
+    add       r3, 8
+    pand      m6, m0
+    mova      m7, m1
+    paddw     m6, m2
+    paddw     m7, m3
+%rep 2
+    call x264_hadamard_ac_2x2_mmxext
+    add       r3, 8
+    paddw     m6, m0
+    paddw     m7, m1
+    paddw     m6, m2
+    paddw     m7, m3
+%endrep
+    call x264_hadamard_ac_2x2_mmxext
+    sub       r3, 24
+    paddw     m6, m0
+    paddw     m7, m1
+    paddw     m6, m2
+    paddw     m7, m3
+    paddw     m6, m7
+    mova [rsp+gprsize], m6 ; save sa8d
+    SWAP      m0, m6
+    SAVE_MM_PERMUTATION x264_hadamard_ac_8x8_mmxext
+    ret
+
+%macro HADAMARD_AC_WXH_MMX 2
+cglobal x264_pixel_hadamard_ac_%1x%2_mmxext, 2,4
+    %assign pad 16-gprsize-(stack_offset&15)
+    %define ysub r1
+    sub  rsp, 16+128+pad
+    lea  r2, [r1*3]
+    lea  r3, [rsp+16]
+    call x264_hadamard_ac_8x8_mmxext
+%if %2==16
+    %define ysub r2
+    lea  r0, [r0+r1*4]
+    sub  rsp, 16
+    call x264_hadamard_ac_8x8_mmxext
+%endif
+%if %1==16
+    neg  ysub
+    sub  rsp, 16
+    lea  r0, [r0+ysub*4+8]
+    neg  ysub
+    call x264_hadamard_ac_8x8_mmxext
+%if %2==16
+    lea  r0, [r0+r1*4]
+    sub  rsp, 16
+    call x264_hadamard_ac_8x8_mmxext
+%endif
+%endif
+    mova    m1, [rsp+0x08]
+%if %1*%2 >= 128
+    paddusw m0, [rsp+0x10]
+    paddusw m1, [rsp+0x18]
+%endif
+%if %1*%2 == 256
+    paddusw m0, [rsp+0x20]
+    paddusw m1, [rsp+0x28]
+    paddusw m0, [rsp+0x30]
+    paddusw m1, [rsp+0x38]
+%endif
+    psrlw m0, 1
+    psrlw m1, 1
+    HADDW m0, m2
+    HADDW m1, m3
+    movd edx, m0
+    movd eax, m1
+    shr  edx, 1
+%ifdef ARCH_X86_64
+    shl  rdx, 32
+    add  rax, rdx
+%endif
+    add  rsp, 128+%1*%2/4+pad
+    RET
+%endmacro ; HADAMARD_AC_WXH_MMX
+
+HADAMARD_AC_WXH_MMX 16, 16
+HADAMARD_AC_WXH_MMX  8, 16
+HADAMARD_AC_WXH_MMX 16,  8
+HADAMARD_AC_WXH_MMX  8,  8
+
+%macro HADAMARD_AC_SSE2 1
+INIT_XMM
+; in:  r0=pix, r1=stride, r2=stride*3
+; out: [esp+16]=sa8d, [esp+32]=satd, r0+=stride*4
+cglobal x264_hadamard_ac_8x8_%1
+%ifdef ARCH_X86_64
+    %define spill0 m8
+    %define spill1 m9
+    %define spill2 m10
+%else
+    %define spill0 [rsp+gprsize]
+    %define spill1 [rsp+gprsize+16]
+    %define spill2 [rsp+gprsize+32]
+%endif
+    pxor      m7, m7
+    movh      m0, [r0]
+    movh      m1, [r0+r1]
+    movh      m2, [r0+r1*2]
+    movh      m3, [r0+r2]
+    lea       r0, [r0+r1*4]
+    punpcklbw m0, m7
+    punpcklbw m1, m7
+    punpcklbw m2, m7
+    punpcklbw m3, m7
+    HADAMARD4_1D m0, m1, m2, m3
+    mova  spill0, m3
+    SWAP      m3, m7
+    movh      m4, [r0]
+    movh      m5, [r0+r1]
+    movh      m6, [r0+r1*2]
+    movh      m7, [r0+r2]
+    punpcklbw m4, m3
+    punpcklbw m5, m3
+    punpcklbw m6, m3
+    punpcklbw m7, m3
+    HADAMARD4_1D m4, m5, m6, m7
+    mova      m3, spill0
+%ifdef ARCH_X86_64
+    TRANSPOSE8x8W 0,1,2,3,4,5,6,7,8
+%else
+    TRANSPOSE8x8W 0,1,2,3,4,5,6,7,spill0,spill1
+%endif
+    HADAMARD4_1D m0, m1, m2, m3
+    HADAMARD4_1D m4, m5, m6, m7
+    mova  spill0, m1
+    mova  spill1, m2
+    mova  spill2, m3
+    ABS_MOV   m1, m0
+    ABS_MOV   m2, m4
+    ABS_MOV   m3, m5
+    paddw     m1, m2
+    SUMSUB_BA m0, m4
+    pand      m1, [mask_ac4 GLOBAL]
+    ABS_MOV   m2, spill0
+    paddw     m1, m3
+    ABS_MOV   m3, spill1
+    paddw     m1, m2
+    ABS_MOV   m2, spill2
+    paddw     m1, m3
+    ABS_MOV   m3, m6
+    paddw     m1, m2
+    ABS_MOV   m2, m7
+    paddw     m1, m3
+    mova      m3, m7
+    paddw     m1, m2
+    mova      m2, m6
+    psubw     m7, spill2
+    paddw     m3, spill2
+    mova  [rsp+gprsize+32], m1 ; save satd
+    mova      m1, m5
+    psubw     m6, spill1
+    paddw     m2, spill1
+    psubw     m5, spill0
+    paddw     m1, spill0
+    mova  spill1, m7
+    SBUTTERFLY qdq, 0, 4, 7
+    SBUTTERFLY qdq, 1, 5, 7
+    SBUTTERFLY qdq, 2, 6, 7
+    SUMSUB_BADC m0, m4, m1, m5
+    SUMSUB_BA m2, m6
+    ABS1      m0, m7
+    ABS1      m1, m7
+    pand      m0, [mask_ac8 GLOBAL]
+    ABS1      m2, m7
+    ABS1      m4, m7
+    ABS1      m5, m7
+    ABS1      m6, m7
+    mova      m7, spill1
+    paddw     m0, m4
+    SBUTTERFLY qdq, 3, 7, 4
+    SUMSUB_BA m3, m7
+    paddw     m1, m5
+    ABS1      m3, m4
+    ABS1      m7, m4
+    paddw     m2, m6
+    paddw     m3, m7
+    paddw     m0, m1
+    paddw     m2, m3
+    paddw     m0, m2
+    mova  [rsp+gprsize+16], m0 ; save sa8d
+    SAVE_MM_PERMUTATION x264_hadamard_ac_8x8_%1
+    ret
+
+HADAMARD_AC_WXH_SSE2 16, 16, %1
+HADAMARD_AC_WXH_SSE2  8, 16, %1
+HADAMARD_AC_WXH_SSE2 16,  8, %1
+HADAMARD_AC_WXH_SSE2  8,  8, %1
+%endmacro ; HADAMARD_AC_SSE2
+
+; struct { int satd, int sa8d; } x264_pixel_hadamard_ac_16x16( uint8_t *pix, int stride )
+%macro HADAMARD_AC_WXH_SSE2 3
+cglobal x264_pixel_hadamard_ac_%1x%2_%3, 2,3
+    %assign pad 16-gprsize-(stack_offset&15)
+    %define ysub r1
+    sub  rsp, 48+pad
+    lea  r2, [r1*3]
+    call x264_hadamard_ac_8x8_%3
+%if %2==16
+    %define ysub r2
+    lea  r0, [r0+r1*4]
+    sub  rsp, 32
+    call x264_hadamard_ac_8x8_%3
+%endif
+%if %1==16
+    neg  ysub
+    sub  rsp, 32
+    lea  r0, [r0+ysub*4+8]
+    neg  ysub
+    call x264_hadamard_ac_8x8_%3
+%if %2==16
+    lea  r0, [r0+r1*4]
+    sub  rsp, 32
+    call x264_hadamard_ac_8x8_%3
+%endif
+%endif
+    mova    m1, [rsp+0x20]
+%if %1*%2 >= 128
+    paddusw m0, [rsp+0x30]
+    paddusw m1, [rsp+0x40]
+%endif
+%if %1*%2 == 256
+    paddusw m0, [rsp+0x50]
+    paddusw m1, [rsp+0x60]
+    paddusw m0, [rsp+0x70]
+    paddusw m1, [rsp+0x80]
+%endif
+    HADDW m0, m2
+    HADDW m1, m3
+    movd edx, m0
+    movd eax, m1
+    shr  edx, 2
+    shr  eax, 1
+%ifdef ARCH_X86_64
+    shl  rdx, 32
+    add  rax, rdx
+%endif
+    add  rsp, 16+%1*%2/2+pad
+    RET
+%endmacro ; HADAMARD_AC_WXH_SSE2
+
 ; instantiate satds
 
 %ifndef ARCH_X86_64
@@ -1173,13 +1491,16 @@ SATDS_SSE2 sse2
 SA8D_16x16_32 sse2
 INTRA_SA8D_SSE2 sse2
 INTRA_SATDS_MMX mmxext
+HADAMARD_AC_SSE2 sse2
 %define ABS1 ABS1_SSSE3
 %define ABS2 ABS2_SSSE3
+%define ABS_MOV ABS_MOV_SSSE3
+SATD_W4 ssse3 ; mmx, but uses pabsw from ssse3.
 SATDS_SSE2 ssse3
 SA8D_16x16_32 ssse3
 INTRA_SA8D_SSE2 ssse3
 INTRA_SATDS_MMX ssse3
-SATD_W4 ssse3 ; mmx, but uses pabsw from ssse3.
+HADAMARD_AC_SSE2 ssse3
 %define SATD_8x4_SSE2 SATD_8x4_PHADD
 SATDS_SSE2 ssse3_phadd
 

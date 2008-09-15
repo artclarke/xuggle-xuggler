@@ -65,14 +65,11 @@ DECL_X4( sad, cache64_mmxext );
 DECL_X4( sad, cache64_sse2 );
 DECL_X4( sad, cache64_ssse3 );
 
-#undef DECL_PIXELS
-#undef DECL_X1
-#undef DECL_X4
-
-int x264_pixel_var_16x16_mmxext( uint8_t *pix, int i_stride, uint32_t *sad );
-int x264_pixel_var_16x16_sse2  ( uint8_t *pix, int i_stride, uint32_t *sad );
-int x264_pixel_var_8x8_mmxext  ( uint8_t *pix, int i_stride, uint32_t *sad );
-int x264_pixel_var_8x8_sse2    ( uint8_t *pix, int i_stride, uint32_t *sad );
+DECL_PIXELS( int, var, mmxext, ( uint8_t *pix, int i_stride, uint32_t *sad ))
+DECL_PIXELS( int, var, sse2,   ( uint8_t *pix, int i_stride, uint32_t *sad ))
+DECL_PIXELS( uint64_t, hadamard_ac, mmxext, ( uint8_t *pix, int i_stride ))
+DECL_PIXELS( uint64_t, hadamard_ac, sse2,   ( uint8_t *pix, int i_stride ))
+DECL_PIXELS( uint64_t, hadamard_ac, ssse3,  ( uint8_t *pix, int i_stride ))
 
 void x264_intra_satd_x3_4x4_mmxext  ( uint8_t *, uint8_t *, int * );
 void x264_intra_satd_x3_4x4_ssse3   ( uint8_t *, uint8_t *, int * );
@@ -108,6 +105,10 @@ DECL_ADS( 1, sse2 )
 DECL_ADS( 4, ssse3 )
 DECL_ADS( 2, ssse3 )
 DECL_ADS( 1, ssse3 )
+
+#undef DECL_PIXELS
+#undef DECL_X1
+#undef DECL_X4
 #undef DECL_ADS
 
 #endif
