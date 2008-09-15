@@ -400,7 +400,7 @@ int x264_ratecontrol_new( x264_t *h )
 
             if( ( p = strstr( opts, "b_adapt=" ) ) && sscanf( p, "b_adapt=%d", &i ) && i >= X264_B_ADAPT_NONE && i <= X264_B_ADAPT_TRELLIS )
                 h->param.i_bframe_adaptive = i;
-            else
+            else if( h->param.i_bframe )
             {
                 x264_log( h, X264_LOG_ERROR, "b_adapt method specified in stats file not valid\n" );
                 return -1;
