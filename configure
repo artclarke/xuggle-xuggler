@@ -243,7 +243,6 @@ esac
 case $host_cpu in
   i*86)
     ARCH="X86"
-    AS="yasm"
     ASFLAGS="-O2"
     if [ "$SYS" = MACOSX ]; then
       ASFLAGS="$ASFLAGS -f macho -DPREFIX"
@@ -256,7 +255,6 @@ case $host_cpu in
     ;;
   x86_64)
     ARCH="X86_64"
-    AS="yasm"
     if [ "$SYS" = MACOSX ];then
       ASFLAGS="-f macho64 -m amd64 -DPIC -DPREFIX"
       CFLAGS="$CFLAGS -arch x86_64"
@@ -309,15 +307,12 @@ if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" \)
 fi
 
 if [ $asm = yes -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
-    if [ $ARCH = X86 -a $pic = yes -a x$AS = xyasm -a\
-         "`yasm --version 2>$DEVNULL | head -n 1`" "<" "yasm 0.6.2" ] ; then
-         echo "yasm prior to 0.6.2 miscompiles PIC. trying nasm instead..."
-         AS=nasm
-    fi
     if as_check "pabsw xmm0, xmm0" ; then
         CFLAGS="$CFLAGS -DHAVE_MMX"
     else
-        echo "No suitable assembler found.  Install 'yasm' to get MMX/SSE optimized code."
+        VER=`([ $AS == nasm ] && nasm -v || $AS --version || echo no assembler) 2>$DEVNULL | head -n 1`
+        echo "Found $VER"
+        echo "Minimum version is yasm-0.6.1 or nasm-2.0"
         echo "If you really want to compile without asm, configure with --disable-asm."
         exit 1
     fi
