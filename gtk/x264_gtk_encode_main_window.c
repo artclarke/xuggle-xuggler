@@ -753,7 +753,7 @@ x264_fill_status_window (GIOChannel  *io UNUSED,
   gtk_entry_set_text (GTK_ENTRY (thread_data->video_rendering_rate),
                       str);
 
-  snprintf (str, 128, "%lld:%02lld:%02lld",
+  snprintf (str, 128, "%" PRId64 ":%02" PRId64 ":%02" PRId64,
             (pipe_data.elapsed / 1000000) / 3600,
             ((pipe_data.elapsed / 1000000) / 60) % 60,
             (pipe_data.elapsed / 1000000) % 60);
