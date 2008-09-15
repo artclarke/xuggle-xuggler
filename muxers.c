@@ -216,7 +216,8 @@ int open_file_y4m( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
             tokstart = strchr(tokstart, 0x20);
             break;
         case 'A': /* Pixel aspect - 0:0 if unknown */
-            if( sscanf(tokstart, "%d:%d", &n, &d) == 2 && n && d )
+            /* Don't override the aspect ratio if sar has been explicitly set on the commandline. */
+            if( sscanf(tokstart, "%d:%d", &n, &d) == 2 && n && d && !p_param->vui.i_sar_width && !p_param->vui.i_sar_height )
             {
                 x264_reduce_fraction( &n, &d );
                 p_param->vui.i_sar_width = n;
