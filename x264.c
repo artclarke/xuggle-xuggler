@@ -169,7 +169,11 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H1( "      --pre-scenecut          Faster, less precise scenecut detection.\n"
         "                                  Required and implied by multi-threading.\n" );
     H0( "  -b, --bframes <integer>     Number of B-frames between I and P [%d]\n", defaults->i_bframe );
-    H1( "      --no-b-adapt            Disable adaptive B-frame decision\n" );
+    H1( "      --b-adapt               Adaptive B-frame decision method [%d]\n"
+        "                                  Higher values may lower threading efficiency.\n"
+        "                                  - 0: Disabled\n"
+        "                                  - 1: Fast\n"
+        "                                  - 2: Optimal (slow with high --bframes)\n", defaults->i_bframe_adaptive );
     H1( "      --b-bias <integer>      Influences how often B-frames are used [%d]\n", defaults->i_bframe_bias );
     H0( "      --b-pyramid             Keep some B-frames as references\n" );
     H0( "      --no-cabac              Disable CABAC\n" );
@@ -379,6 +383,7 @@ static int  Parse( int argc, char **argv,
             { "version", no_argument,       NULL, 'V' },
             { "bitrate", required_argument, NULL, 'B' },
             { "bframes", required_argument, NULL, 'b' },
+            { "b-adapt", required_argument, NULL, 0 },
             { "no-b-adapt", no_argument,    NULL, 0 },
             { "b-bias",  required_argument, NULL, 0 },
             { "b-pyramid", no_argument,     NULL, 0 },
@@ -544,7 +549,7 @@ static int  Parse( int argc, char **argv,
                     return -1;
                 }
                 param->i_scenecut_threshold = -1;
-                param->b_bframe_adaptive = 0;
+                param->i_bframe_adaptive = X264_B_ADAPT_NONE;
                 break;
             case OPT_THREAD_INPUT:
                 b_thread_input = 1;

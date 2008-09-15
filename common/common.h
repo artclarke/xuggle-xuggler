@@ -311,11 +311,11 @@ struct x264_t
     struct
     {
         /* Frames to be encoded (whose types have been decided) */
-        x264_frame_t *current[X264_BFRAME_MAX+3];
+        x264_frame_t *current[X264_BFRAME_MAX*4+3];
         /* Temporary buffer (frames types not yet decided) */
-        x264_frame_t *next[X264_BFRAME_MAX+3];
+        x264_frame_t *next[X264_BFRAME_MAX*4+3];
         /* Unused frames */
-        x264_frame_t *unused[X264_BFRAME_MAX + X264_THREAD_MAX*2 + 16+4];
+        x264_frame_t *unused[X264_BFRAME_MAX*4 + X264_THREAD_MAX*2 + 16+4];
         /* For adaptive B decision */
         x264_frame_t *last_nonb;
 

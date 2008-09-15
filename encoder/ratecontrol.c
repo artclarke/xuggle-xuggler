@@ -397,6 +397,25 @@ int x264_ratecontrol_new( x264_t *h )
 
             if( strstr( opts, "qp=0" ) && h->param.rc.i_rc_method == X264_RC_ABR )
                 x264_log( h, X264_LOG_WARNING, "1st pass was lossless, bitrate prediction will be inaccurate\n" );
+
+            if( ( p = strstr( opts, "b_adapt=" ) ) && sscanf( p, "b_adapt=%d", &i ) && i >= X264_B_ADAPT_NONE && i <= X264_B_ADAPT_TRELLIS )
+                h->param.i_bframe_adaptive = i;
+            else
+            {
+                x264_log( h, X264_LOG_ERROR, "b_adapt method specified in stats file not valid\n" );
+                return -1;
+            }
+
+            if( ( p = strstr( opts, "scenecut=" ) ) && sscanf( p, "scenecut=%d", &i ) && i >= -1 && i <= 100 )
+            {
+                h->param.i_scenecut_threshold = i;
+                h->param.b_pre_scenecut = !!strstr( p, "(pre)" );
+            }
+            else
+            {
+                x264_log( h, X264_LOG_ERROR, "scenecut method specified in stats file not valid\n" );
+                return -1;
+            }
         }
 
         /* find number of pics */
@@ -523,7 +542,10 @@ int x264_ratecontrol_new( x264_t *h )
     {
         h->thread[i]->rc = rc+i;
         if( i )
+        {
             rc[i] = rc[0];
+            memcpy( &h->thread[i]->param, &h->param, sizeof( x264_param_t ) );
+        }
     }
 
     return 0;
@@ -967,14 +989,14 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
 
             x264_log(h, X264_LOG_ERROR, "2nd pass has more frames than 1st pass (%d)\n", rc->num_entries);
             x264_log(h, X264_LOG_ERROR, "continuing anyway, at constant QP=%d\n", h->param.rc.i_qp_constant);
-            if( h->param.b_bframe_adaptive )
+            if( h->param.i_bframe_adaptive )
                 x264_log(h, X264_LOG_ERROR, "disabling adaptive B-frames\n");
 
             rc->b_abr = 0;
             rc->b_2pass = 0;
             h->param.rc.i_rc_method = X264_RC_CQP;
             h->param.rc.b_stat_read = 0;
-            h->param.b_bframe_adaptive = 0;
+            h->param.i_bframe_adaptive = 0;
             if( h->param.i_bframe > 1 )
                 h->param.i_bframe = 1;
             return X264_TYPE_P;

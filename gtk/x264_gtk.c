@@ -115,7 +115,7 @@ x264_param_t *x264_gtk_param_get (X264_Gtk *x264_gtk)
 
   param->b_bframe_pyramid = x264_gtk->bframe_pyramid && x264_gtk->bframe;
   param->analyse.b_bidir_me = x264_gtk->bidir_me;
-  param->b_bframe_adaptive = x264_gtk->bframe_adaptive;
+  param->i_bframe_adaptive = x264_gtk->bframe_adaptive;
   param->analyse.b_weighted_bipred = x264_gtk->weighted_bipred;
   param->i_bframe = x264_gtk->bframe;
   param->i_bframe_bias = x264_gtk->bframe_bias;
@@ -470,7 +470,7 @@ x264_default_load (GtkButton *button UNUSED, gpointer user_data)
 
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.bframe_pyramid), param.b_bframe_pyramid);
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.bidir_me), param.analyse.b_bidir_me);
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.bframe_adaptive), param.b_bframe_adaptive);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.bframe_adaptive), param.i_bframe_adaptive);
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (config->mb.bframes.weighted_bipred), param.analyse.b_weighted_bipred);
   g_snprintf (buf, 64, "%d", param.i_bframe);
   gtk_entry_set_text (GTK_ENTRY (config->mb.bframes.bframe), buf);
@@ -602,7 +602,7 @@ x264_default_set (X264_Gtk *x264_gtk)
 
   x264_gtk->bframe_pyramid = param.b_bframe_pyramid;
   x264_gtk->bidir_me = param.analyse.b_bidir_me;
-  x264_gtk->bframe_adaptive = param.b_bframe_adaptive;
+  x264_gtk->bframe_adaptive = param.i_bframe_adaptive;
   x264_gtk->weighted_bipred = param.analyse.b_weighted_bipred;
   x264_gtk->bframe = param.i_bframe;
   x264_gtk->bframe_bias = param.i_bframe_bias;

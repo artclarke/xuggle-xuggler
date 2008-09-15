@@ -97,6 +97,7 @@ x264_frame_t *x264_frame_new( x264_t *h )
     CHECKED_MALLOC( frame->mb_type, i_mb_count * sizeof(int8_t));
     CHECKED_MALLOC( frame->mv[0], 2*16 * i_mb_count * sizeof(int16_t) );
     CHECKED_MALLOC( frame->ref[0], 4 * i_mb_count * sizeof(int8_t) );
+    CHECKED_MALLOC( frame->i_intra_cost, i_mb_count * sizeof(uint16_t) );
     if( h->param.i_bframe )
     {
         CHECKED_MALLOC( frame->mv[1], 2*16 * i_mb_count * sizeof(int16_t) );
@@ -909,6 +910,7 @@ x264_frame_t *x264_frame_pop_unused( x264_t *h )
         frame = x264_frame_new( h );
     assert( frame->i_reference_count == 0 );
     frame->i_reference_count = 1;
+    frame->b_intra_calculated = 0;
     return frame;
 }
 
