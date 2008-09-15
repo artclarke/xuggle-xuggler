@@ -116,8 +116,10 @@ void    x264_param_default( x264_param_t *param )
                          | X264_ANALYSE_PSUB16x16 | X264_ANALYSE_BSUB16x16;
     param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_SPATIAL;
     param->analyse.i_me_method = X264_ME_HEX;
+    param->analyse.f_psy_rd = 1.0;
+    param->analyse.f_psy_trellis = 0;
     param->analyse.i_me_range = 16;
-    param->analyse.i_subpel_refine = 5;
+    param->analyse.i_subpel_refine = 6;
     param->analyse.b_chroma_me = 1;
     param->analyse.i_mv_range_thread = -1;
     param->analyse.i_mv_range = -1; // set from level_idc
@@ -470,6 +472,21 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->analyse.i_mv_range_thread = atoi(value);
     OPT2("subme", "subq")
         p->analyse.i_subpel_refine = atoi(value);
+    OPT("psy-rd")
+    {
+        if( 2 == sscanf( value, "%f:%f", &p->analyse.f_psy_rd, &p->analyse.f_psy_trellis ) ||
+            2 == sscanf( value, "%f,%f", &p->analyse.f_psy_rd, &p->analyse.f_psy_trellis ) )
+        { }
+        else if( sscanf( value, "%f", &p->analyse.f_psy_rd ) )
+        {
+            p->analyse.f_psy_trellis = 0;
+        }
+        else
+        {
+            p->analyse.f_psy_rd = 0;
+            p->analyse.f_psy_trellis = 0;
+        }
+    }
     OPT("bime")
         p->analyse.b_bidir_me = atobool(value);
     OPT("chroma-me")
@@ -824,6 +841,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " analyse=%#x:%#x", p->analyse.intra, p->analyse.inter );
     s += sprintf( s, " me=%s", x264_motion_est_names[ p->analyse.i_me_method ] );
     s += sprintf( s, " subme=%d", p->analyse.i_subpel_refine );
+    s += sprintf( s, " psy_rd=%.1f:%.1f", p->analyse.f_psy_rd, p->analyse.f_psy_trellis );
     s += sprintf( s, " brdo=%d", p->analyse.b_bframe_rdo );
     s += sprintf( s, " mixed_ref=%d", p->analyse.b_mixed_references );
     s += sprintf( s, " me_range=%d", p->analyse.i_me_range );

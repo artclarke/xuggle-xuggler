@@ -467,6 +467,58 @@ static void predict_4x4_mode_available( unsigned int i_neighbour,
     }
 }
 
+/* For trellis=2, we need to do this for both sizes of DCT, for trellis=1 we only need to use it on the chosen mode. */
+static void inline x264_psy_trellis_init( x264_t *h, int do_both_dct )
+{
+    DECLARE_ALIGNED_16( int16_t dct8x8[4][8][8] );
+    DECLARE_ALIGNED_16( int16_t dct4x4[16][4][4] );
+    DECLARE_ALIGNED_16( uint8_t zero[16*FDEC_STRIDE] ) = {0};
+    int i;
+
+    if( do_both_dct || h->mb.b_transform_8x8 )
+    {
+        h->dctf.sub16x16_dct8( dct8x8, h->mb.pic.p_fenc[0], zero );
+        for( i = 0; i < 4; i++ )
+            h->zigzagf.scan_8x8( h->mb.pic.fenc_dct8[i], dct8x8[i] );
+    }
+    if( do_both_dct || !h->mb.b_transform_8x8)
+    {
+        h->dctf.sub16x16_dct( dct4x4, h->mb.pic.p_fenc[0], zero );
+        for( i = 0; i < 16; i++ )
+            h->zigzagf.scan_4x4( h->mb.pic.fenc_dct4[i], dct4x4[i] );
+    }
+}
+
+/* Pre-calculate fenc satd scores for psy RD, minus DC coefficients */
+static inline void x264_mb_cache_fenc_satd( x264_t *h )
+{
+    DECLARE_ALIGNED_16(uint8_t zero[16]) = {0};
+    uint8_t *fenc;
+    int x, y, satd_sum = 0, sa8d_sum = 0;
+    if( h->param.analyse.i_trellis == 2 && h->mb.i_psy_trellis )
+        x264_psy_trellis_init( h, h->param.analyse.b_transform_8x8 );
+    if( !h->mb.i_psy_rd )
+        return;
+    for( y = 0; y < 4; y++ )
+        for( x = 0; x < 4; x++ )
+        {
+            fenc = h->mb.pic.p_fenc[0]+x*4+y*4*FENC_STRIDE;
+            h->mb.pic.fenc_satd[y][x] = h->pixf.satd[PIXEL_4x4]( zero, 0, fenc, FENC_STRIDE )
+                                      - (h->pixf.sad[PIXEL_4x4]( zero, 0, fenc, FENC_STRIDE )>>1);
+            satd_sum += h->mb.pic.fenc_satd[y][x];
+        }
+    for( y = 0; y < 2; y++ )
+        for( x = 0; x < 2; x++ )
+        {
+            fenc = h->mb.pic.p_fenc[0]+x*8+y*8*FENC_STRIDE;
+            h->mb.pic.fenc_sa8d[y][x] = h->pixf.sa8d[PIXEL_8x8]( zero, 0, fenc, FENC_STRIDE )
+                                      - (h->pixf.sad[PIXEL_8x8]( zero, 0, fenc, FENC_STRIDE )>>2);
+            sa8d_sum += h->mb.pic.fenc_sa8d[y][x];
+        }
+    h->mb.pic.fenc_satd_sum = satd_sum;
+    h->mb.pic.fenc_sa8d_sum = sa8d_sum;
+}
+
 static void x264_mb_analyse_intra_chroma( x264_t *h, x264_mb_analysis_t *a )
 {
     int i;
@@ -1017,12 +1069,15 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     assert( a->l0.me16x16.mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 );
 
     h->mb.i_type = P_L0;
-    if( a->b_mbrd && a->l0.me16x16.i_ref == 0
-        && *(uint32_t*)a->l0.me16x16.mv == *(uint32_t*)h->mb.cache.pskip_mv )
+    if( a->b_mbrd )
     {
-        h->mb.i_partition = D_16x16;
-        x264_macroblock_cache_mv_ptr( h, 0, 0, 4, 4, 0, a->l0.me16x16.mv );
-        a->l0.i_rd16x16 = x264_rd_cost_mb( h, a->i_lambda2 );
+        x264_mb_cache_fenc_satd( h );
+        if( a->l0.me16x16.i_ref == 0 && *(uint32_t*)a->l0.me16x16.mv == *(uint32_t*)h->mb.cache.pskip_mv )
+        {
+            h->mb.i_partition = D_16x16;
+            x264_macroblock_cache_mv_ptr( h, 0, 0, 4, 4, 0, a->l0.me16x16.mv );
+            a->l0.i_rd16x16 = x264_rd_cost_mb( h, a->i_lambda2 );
+        }
     }
 }
 
@@ -1907,7 +1962,7 @@ static void x264_mb_analyse_p_rd( x264_t *h, x264_mb_analysis_t *a, int i_satd )
 
 static void x264_mb_analyse_b_rd( x264_t *h, x264_mb_analysis_t *a, int i_satd_inter )
 {
-    int thresh = i_satd_inter * 17/16;
+    int thresh = i_satd_inter * (17 + (!!h->mb.i_psy_rd))/16;
 
     if( a->b_direct_available && a->i_rd16x16direct == COST_MAX )
     {
@@ -2066,6 +2121,8 @@ void x264_macroblock_analyse( x264_t *h )
     /*--------------------------- Do the analysis ---------------------------*/
     if( h->sh.i_type == SLICE_TYPE_I )
     {
+        if( analysis.b_mbrd )
+            x264_mb_cache_fenc_satd( h );
         x264_mb_analyse_intra( h, &analysis, COST_MAX );
         if( analysis.b_mbrd )
             x264_intra_rd( h, &analysis, COST_MAX );
@@ -2344,6 +2401,9 @@ void x264_macroblock_analyse( x264_t *h )
         int i_bskip_cost = COST_MAX;
         int b_skip = 0;
 
+        if( analysis.b_mbrd )
+            x264_mb_cache_fenc_satd( h );
+
         h->mb.i_type = B_SKIP;
         if( h->mb.b_direct_auto_write )
         {
@@ -2589,6 +2649,8 @@ void x264_macroblock_analyse( x264_t *h )
 
     h->mb.b_trellis = h->param.analyse.i_trellis;
     h->mb.b_noise_reduction = !!h->param.analyse.i_noise_reduction;
+    if( !IS_SKIP(h->mb.i_type) && h->mb.i_psy_trellis && h->param.analyse.i_trellis == 1 )
+        x264_psy_trellis_init( h, 0 );
     if( h->mb.b_trellis == 1 || h->mb.b_noise_reduction )
         h->mb.i_skip_intra = 0;
 }

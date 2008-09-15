@@ -79,20 +79,20 @@ static int x264_mb_decimate_score( int16_t *dct, int i_max )
     return i_score;
 }
 
-static ALWAYS_INLINE void x264_quant_4x4( x264_t *h, int16_t dct[4][4], int i_qp, int i_ctxBlockCat, int b_intra )
+static ALWAYS_INLINE void x264_quant_4x4( x264_t *h, int16_t dct[4][4], int i_qp, int i_ctxBlockCat, int b_intra, int idx )
 {
     int i_quant_cat = b_intra ? CQM_4IY : CQM_4PY;
     if( h->mb.b_trellis )
-        x264_quant_4x4_trellis( h, dct, i_quant_cat, i_qp, i_ctxBlockCat, b_intra );
+        x264_quant_4x4_trellis( h, dct, i_quant_cat, i_qp, i_ctxBlockCat, b_intra, idx );
     else
         h->quantf.quant_4x4( dct, h->quant4_mf[i_quant_cat][i_qp], h->quant4_bias[i_quant_cat][i_qp] );
 }
 
-static ALWAYS_INLINE void x264_quant_8x8( x264_t *h, int16_t dct[8][8], int i_qp, int b_intra )
+static ALWAYS_INLINE void x264_quant_8x8( x264_t *h, int16_t dct[8][8], int i_qp, int b_intra, int idx )
 {
     int i_quant_cat = b_intra ? CQM_8IY : CQM_8PY;
     if( h->mb.b_trellis )
-        x264_quant_8x8_trellis( h, dct, i_quant_cat, i_qp, b_intra );
+        x264_quant_8x8_trellis( h, dct, i_quant_cat, i_qp, b_intra, idx );
     else
         h->quantf.quant_8x8( dct, h->quant8_mf[i_quant_cat][i_qp], h->quant8_bias[i_quant_cat][i_qp] );
 }
@@ -111,7 +111,7 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qp )
 
     h->dctf.sub4x4_dct( dct4x4, p_src, p_dst );
 
-    x264_quant_4x4( h, dct4x4, i_qp, DCT_LUMA_4x4, 1 );
+    x264_quant_4x4( h, dct4x4, i_qp, DCT_LUMA_4x4, 1, idx );
 
     if( array_non_zero( dct4x4 ) )
     {
@@ -135,7 +135,7 @@ void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qp )
 
     h->dctf.sub8x8_dct8( dct8x8, p_src, p_dst );
 
-    x264_quant_8x8( h, dct8x8, i_qp, 1 );
+    x264_quant_8x8( h, dct8x8, i_qp, 1, idx );
 
     h->zigzagf.scan_8x8( h->dct.luma8x8[idx], dct8x8 );
     h->quantf.dequant_8x8( dct8x8, h->dequant8_mf[CQM_8IY], i_qp );
@@ -174,7 +174,7 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qp )
         dct4x4[i][0][0] = 0;
 
         /* quant/scan/dequant */
-        x264_quant_4x4( h, dct4x4[i], i_qp, DCT_LUMA_AC, 1 );
+        x264_quant_4x4( h, dct4x4[i], i_qp, DCT_LUMA_AC, 1, i );
 
         h->zigzagf.scan_4x4( h->dct.luma4x4[i], dct4x4[i] );
         h->quantf.dequant_4x4( dct4x4[i], h->dequant4_mf[CQM_4IY], i_qp );
@@ -453,7 +453,7 @@ void x264_macroblock_encode( x264_t *h )
             {
                 if( h->mb.b_noise_reduction )
                     h->quantf.denoise_dct( *dct8x8[idx], h->nr_residual_sum[1], h->nr_offset[1], 64 );
-                x264_quant_8x8( h, dct8x8[idx], i_qp, 0 );
+                x264_quant_8x8( h, dct8x8[idx], i_qp, 0, idx );
 
                 h->zigzagf.scan_8x8( h->dct.luma8x8[idx], dct8x8[idx] );
 
@@ -498,7 +498,7 @@ void x264_macroblock_encode( x264_t *h )
 
                     if( h->mb.b_noise_reduction )
                         h->quantf.denoise_dct( *dct4x4[idx], h->nr_residual_sum[0], h->nr_offset[0], 16 );
-                    x264_quant_4x4( h, dct4x4[idx], i_qp, DCT_LUMA_4x4, 0 );
+                    x264_quant_4x4( h, dct4x4[idx], i_qp, DCT_LUMA_4x4, 0, idx );
 
                     h->zigzagf.scan_4x4( h->dct.luma4x4[idx], dct4x4[idx] );
 
@@ -777,7 +777,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
         {
             DECLARE_ALIGNED_16( int16_t dct8x8[8][8] );
             h->dctf.sub8x8_dct8( dct8x8, p_fenc, p_fdec );
-            x264_quant_8x8( h, dct8x8, i_qp, 0 );
+            x264_quant_8x8( h, dct8x8, i_qp, 0, i8 );
             h->zigzagf.scan_8x8( h->dct.luma8x8[i8], dct8x8 );
 
             if( b_decimate && !h->mb.b_trellis )
@@ -797,7 +797,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
             DECLARE_ALIGNED_16( int16_t dct4x4[4][4][4] );
             h->dctf.sub8x8_dct( dct4x4, p_fenc, p_fdec );
             for( i4 = 0; i4 < 4; i4++ )
-                x264_quant_4x4( h, dct4x4[i4], i_qp, DCT_LUMA_4x4, 0 );
+                x264_quant_4x4( h, dct4x4[i4], i_qp, DCT_LUMA_4x4, 0, i8*4+i4 );
 
             for( i4 = 0; i4 < 4; i4++ )
                 h->zigzagf.scan_4x4( h->dct.luma4x4[i8*4+i4], dct4x4[i4] );

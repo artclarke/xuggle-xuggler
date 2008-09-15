@@ -51,20 +51,78 @@ static uint16_t cabac_prefix_size[15][128];
 #define COPY_CABAC h->mc.memcpy_aligned( &cabac_tmp.f8_bits_encoded, &h->cabac.f8_bits_encoded, \
         sizeof(x264_cabac_t) - offsetof(x264_cabac_t,f8_bits_encoded) )
 
-static int ssd_mb( x264_t *h )
+
+#define ADD_ABS_SATD(satdtype, pixel)\
+    satd += abs((h->pixf.satdtype[pixel]( zero, 0, fdec, FDEC_STRIDE ) - dc_coef)\
+          - sum_##satdtype( h, pixel, x, y ));
+
+/* Sum the cached SATDs to avoid repeating them. */
+static inline int sum_satd( x264_t *h, int pixel, int x, int y )
 {
-    return h->pixf.ssd[PIXEL_16x16]( h->mb.pic.p_fenc[0], FENC_STRIDE,
-                                     h->mb.pic.p_fdec[0], FDEC_STRIDE )
-         + h->pixf.ssd[PIXEL_8x8](   h->mb.pic.p_fenc[1], FENC_STRIDE,
-                                     h->mb.pic.p_fdec[1], FDEC_STRIDE )
-         + h->pixf.ssd[PIXEL_8x8](   h->mb.pic.p_fenc[2], FENC_STRIDE,
-                                     h->mb.pic.p_fdec[2], FDEC_STRIDE );
+    int satd = 0;
+    int min_x = x>>2;
+    int min_y = y>>2;
+    int max_x = (x>>2) + (x264_pixel_size[pixel].w>>2);
+    int max_y = (y>>2) + (x264_pixel_size[pixel].h>>2);
+    if( pixel == PIXEL_16x16 )
+        return h->mb.pic.fenc_satd_sum;
+    for( y = min_y; y < max_y; y++ )
+        for( x = min_x; x < max_x; x++ )
+            satd += h->mb.pic.fenc_satd[y][x];
+    return satd;
 }
 
-static int ssd_plane( x264_t *h, int size, int p, int x, int y )
+static inline int sum_sa8d( x264_t *h, int pixel, int x, int y )
 {
-    return h->pixf.ssd[size]( h->mb.pic.p_fenc[p] + x+y*FENC_STRIDE, FENC_STRIDE,
-                              h->mb.pic.p_fdec[p] + x+y*FDEC_STRIDE, FDEC_STRIDE );
+    int sa8d = 0;
+    int min_x = x>>3;
+    int min_y = y>>3;
+    int max_x = (x>>3) + (x264_pixel_size[pixel].w>>3);
+    int max_y = (y>>3) + (x264_pixel_size[pixel].h>>3);
+    if( pixel == PIXEL_16x16 )
+        return h->mb.pic.fenc_sa8d_sum;
+    for( y = min_y; y < max_y; y++ )
+        for( x = min_x; x < max_x; x++ )
+            sa8d += h->mb.pic.fenc_sa8d[y][x];
+    return sa8d;
+}
+
+/* Psy RD distortion metric: SSD plus "Absolute Difference of Complexities" */
+/* SATD and SA8D are used to measure block complexity. */
+/* The difference between SATD and SA8D scores are both used to avoid bias from the DCT size.  Using SATD */
+/* only, for example, results in overusage of 8x8dct, while the opposite occurs when using SA8D. */
+
+/* FIXME:  Is there a better metric than averaged SATD/SA8D difference for complexity difference? */
+/* Hadamard transform is recursive, so a SATD+SA8D can be done faster by taking advantage of this fact. */
+/* This optimization can also be used in non-RD transform decision. */
+
+static inline int ssd_plane( x264_t *h, int size, int p, int x, int y )
+{
+    DECLARE_ALIGNED_16(uint8_t zero[16]) = {0};
+    int satd = 0;
+    uint8_t *fdec = h->mb.pic.p_fdec[p] + x + y*FDEC_STRIDE;
+    uint8_t *fenc = h->mb.pic.p_fenc[p] + x + y*FENC_STRIDE;
+    if( p == 0 && h->mb.i_psy_rd )
+    {
+        int dc_coef = h->pixf.sad[size](zero, 0, fdec, FDEC_STRIDE) >> 1;
+        ADD_ABS_SATD(satd, size);
+        /* If the plane is smaller than 8x8, we can't do an SA8D; this probably isn't a big problem. */
+        if(size <= PIXEL_8x8)
+        {
+            dc_coef >>= 1;
+            ADD_ABS_SATD(sa8d, size);
+            satd >>= 1;
+        }
+        satd = (satd * h->mb.i_psy_rd * x264_lambda_tab[h->mb.i_qp] + 128) >> 8;
+    }
+    return h->pixf.ssd[size](fenc, FENC_STRIDE, fdec, FDEC_STRIDE) + satd;
+}
+
+static inline int ssd_mb( x264_t *h )
+{
+    return ssd_plane(h, PIXEL_16x16, 0, 0, 0)
+         + ssd_plane(h, PIXEL_8x8,   1, 0, 0)
+         + ssd_plane(h, PIXEL_8x8,   2, 0, 0);
 }
 
 static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
@@ -269,7 +327,7 @@ static const int lambda2_tab[2][52] = {
 };
 
 typedef struct {
-    uint64_t score;
+    int64_t score;
     int level_idx; // index into level_tree[]
     uint8_t cabac_state[10]; //just the contexts relevant to coding abs_level_m1
 } trellis_node_t;
@@ -298,7 +356,7 @@ typedef struct {
 static inline void quant_trellis_cabac( x264_t *h, int16_t *dct,
                                  const uint16_t *quant_mf, const int *unquant_mf,
                                  const int *coef_weight, const uint8_t *zigzag,
-                                 int i_ctxBlockCat, int i_lambda2, int b_ac, int i_coefs )
+                                 int i_ctxBlockCat, int i_lambda2, int b_ac, int i_coefs, int idx )
 {
     int abs_coefs[64], signs[64];
     trellis_node_t nodes[2][8];
@@ -430,8 +488,20 @@ static inline void quant_trellis_cabac( x264_t *h, int16_t *dct,
         // that are better left coded, especially at QP > 40.
         for( abs_level = q; abs_level >= q-1; abs_level-- )
         {
-            int d = i_coef - ((unquant_mf[zigzag[i]] * abs_level + 128) >> 8);
-            uint64_t ssd = (int64_t)d*d * coef_weight[i];
+            int unquant_abs_level = ((unquant_mf[zigzag[i]] * abs_level + 128) >> 8);
+            int d = i_coef - unquant_abs_level;
+            int64_t ssd;
+            /* Psy trellis: bias in favor of higher AC coefficients in the reconstructed frame. */
+            if( h->mb.i_psy_trellis && i )
+            {
+                int orig_coef = (i_coefs == 64) ? h->mb.pic.fenc_dct8[idx][i] : h->mb.pic.fenc_dct4[idx][i];
+                int predicted_coef = orig_coef - i_coef * signs[i];
+                int psy_value = h->mb.i_psy_trellis * abs(predicted_coef + unquant_abs_level * signs[i]);
+                int psy_weight = (i_coefs == 64) ? x264_dct8_weight_tab[zigzag[i]] : x264_dct4_weight_tab[zigzag[i]];
+                ssd = (int64_t)d*d * coef_weight[i] - psy_weight * psy_value;
+            }
+            else
+                ssd = (int64_t)d*d * coef_weight[i];
 
             for( j = 0; j < 8; j++ )
             {
@@ -495,24 +565,24 @@ static inline void quant_trellis_cabac( x264_t *h, int16_t *dct,
 
 
 void x264_quant_4x4_trellis( x264_t *h, int16_t dct[4][4], int i_quant_cat,
-                             int i_qp, int i_ctxBlockCat, int b_intra )
+                             int i_qp, int i_ctxBlockCat, int b_intra, int idx )
 {
     int b_ac = (i_ctxBlockCat == DCT_LUMA_AC);
     quant_trellis_cabac( h, (int16_t*)dct,
         h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
         x264_dct4_weight2_zigzag[h->mb.b_interlaced],
         x264_zigzag_scan4[h->mb.b_interlaced],
-        i_ctxBlockCat, lambda2_tab[b_intra][i_qp], b_ac, 16 );
+        i_ctxBlockCat, lambda2_tab[b_intra][i_qp], b_ac, 16, idx );
 }
 
 
 void x264_quant_8x8_trellis( x264_t *h, int16_t dct[8][8], int i_quant_cat,
-                             int i_qp, int b_intra )
+                             int i_qp, int b_intra, int idx )
 {
     quant_trellis_cabac( h, (int16_t*)dct,
         h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],
         x264_dct8_weight2_zigzag[h->mb.b_interlaced],
         x264_zigzag_scan8[h->mb.b_interlaced],
-        DCT_LUMA_8x8, lambda2_tab[b_intra][i_qp], 0, 64 );
+        DCT_LUMA_8x8, lambda2_tab[b_intra][i_qp], 0, 64, idx );
 }
 

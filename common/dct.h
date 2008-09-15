@@ -41,6 +41,17 @@ static const uint16_t x264_dct8_weight_tab[64] = {
 };
 #undef W
 
+#define W(i) (i==0 ? FIX8(1.76777) :\
+              i==1 ? FIX8(1.11803) :\
+              i==2 ? FIX8(0.70711) :0)
+static const uint16_t x264_dct4_weight_tab[16] = {
+    W(0), W(1), W(0), W(1),
+    W(1), W(2), W(1), W(2),
+    W(0), W(1), W(0), W(1),
+    W(1), W(2), W(1), W(2)
+};
+#undef W
+
 /* inverse squared */
 #define W(i) (i==0 ? FIX8(3.125) :\
               i==1 ? FIX8(1.25) :\

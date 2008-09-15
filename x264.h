@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 63
+#define X264_BUILD 64
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -241,6 +241,8 @@ typedef struct x264_param_t
         int          b_fast_pskip; /* early SKIP detection on P-frames */
         int          b_dct_decimate; /* transform coefficient thresholding on P-frames */
         int          i_noise_reduction; /* adaptive pseudo-deadzone */
+        float        f_psy_rd; /* Psy RD strength */
+        float        f_psy_trellis; /* Psy trellis strength */
 
         /* the deadzone size that will be used in luma quantization */
         int          i_luma_deadzone[2]; /* {inter, intra} */

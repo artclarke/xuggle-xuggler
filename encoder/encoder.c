@@ -410,6 +410,7 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.i_trellis = 0;
         h->param.analyse.b_fast_pskip = 0;
         h->param.analyse.i_noise_reduction = 0;
+        h->param.analyse.f_psy_rd = 0;
     }
     if( h->param.rc.i_rc_method == X264_RC_CQP )
     {
@@ -488,6 +489,26 @@ static int x264_validate_parameters( x264_t *h )
     if( !h->param.b_cabac )
         h->param.analyse.i_trellis = 0;
     h->param.analyse.i_trellis = x264_clip3( h->param.analyse.i_trellis, 0, 2 );
+    if( !h->param.analyse.i_trellis )
+        h->param.analyse.f_psy_trellis = 0;
+    h->param.analyse.f_psy_rd = x264_clip3f( h->param.analyse.f_psy_rd, 0, 10 );
+    h->param.analyse.f_psy_trellis = x264_clip3f( h->param.analyse.f_psy_trellis, 0, 10 );
+    if( h->param.analyse.i_subpel_refine < 6 )
+        h->param.analyse.f_psy_rd = 0;
+    h->mb.i_psy_rd = FIX8( h->param.analyse.f_psy_rd );
+    /* Psy RDO increases overall quantizers to improve the quality of luma--this indirectly hurts chroma quality */
+    /* so we lower the chroma QP offset to compensate */
+    /* This can be triggered repeatedly on multiple calls to parameter_validate, but since encoding
+     * uses the pps chroma qp offset not the param chroma qp offset, this is not a problem. */
+    if( h->mb.i_psy_rd )
+        h->param.analyse.i_chroma_qp_offset -= h->param.analyse.f_psy_rd < 0.25 ? 1 : 2;
+    h->mb.i_psy_trellis = FIX8( h->param.analyse.f_psy_trellis / 4 );
+    /* Psy trellis has a similar effect. */
+    if( h->mb.i_psy_trellis )
+        h->param.analyse.i_chroma_qp_offset -= h->param.analyse.f_psy_trellis < 0.25 ? 1 : 2;
+    else
+        h->mb.i_psy_trellis = 0;
+    h->param.analyse.i_chroma_qp_offset = x264_clip3(h->param.analyse.i_chroma_qp_offset, -12, 12);
     h->param.rc.i_aq_mode = x264_clip3( h->param.rc.i_aq_mode, 0, 1 );
     if( h->param.rc.f_aq_strength <= 0 )
         h->param.rc.i_aq_mode = 0;

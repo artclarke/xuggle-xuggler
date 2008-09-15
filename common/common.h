@@ -381,6 +381,8 @@ struct x264_t
         int     b_chroma_me;
         int     b_trellis;
         int     b_noise_reduction;
+        int     i_psy_rd; /* Psy RD strength--fixed point value*/
+        int     i_psy_trellis; /* Psy trellis strength--fixed point value*/
 
         int     b_interlaced;
 
@@ -461,6 +463,16 @@ struct x264_t
             DECLARE_ALIGNED_16( uint8_t i8x8_fdec_buf[16*16] );
             DECLARE_ALIGNED_16( int16_t i8x8_dct_buf[3][64] );
             DECLARE_ALIGNED_16( int16_t i4x4_dct_buf[15][16] );
+
+            /* Psy trellis DCT data */
+            DECLARE_ALIGNED_16( int16_t fenc_dct8[4][64] );
+            DECLARE_ALIGNED_16( int16_t fenc_dct4[16][16] );
+
+            /* Psy RD SATD scores */
+            int fenc_satd[4][4];
+            int fenc_satd_sum;
+            int fenc_sa8d[2][2];
+            int fenc_sa8d_sum;
 
             /* pointer over mb of the frame to be compressed */
             uint8_t *p_fenc[3];
