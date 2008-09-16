@@ -304,6 +304,10 @@ void x264_frame_init_lowres( x264_t *h, x264_frame_t *frame )
     for( x = 0; x < h->param.i_bframe + 2; x++ )
         for( y = 0; y < h->param.i_bframe + 2; y++ )
             frame->i_row_satds[y][x][0] = -1;
+
+    for( y = 0; y <= !!h->param.i_bframe; y++ )
+        for( x = 0; x <= h->param.i_bframe; x++ )
+            frame->lowres_mvs[y][x][0][0] = 0x7FFF;
 }
 
 static void frame_init_lowres_core( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,

@@ -62,6 +62,8 @@ typedef struct
     /* motion data */
     int8_t  *mb_type;
     int16_t (*mv[2])[2];
+    int16_t (*lowres_mvs[2][X264_BFRAME_MAX+1])[2];
+    int     *lowres_mv_costs[2][X264_BFRAME_MAX+1];
     int8_t  *ref[2];
     int     i_ref[2];
     int     ref_poc[2][16];

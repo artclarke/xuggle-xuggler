@@ -77,6 +77,14 @@ x264_frame_t *x264_frame_new( x264_t *h )
         CHECKED_MALLOC( frame->buffer_lowres[0], 4 * luma_plane_size );
         for( i = 0; i < 4; i++ )
             frame->lowres[i] = frame->buffer_lowres[0] + (frame->i_stride_lowres * i_padv + PADH) + i * luma_plane_size;
+
+        for( j = 0; j <= !!h->param.i_bframe; j++ )
+            for( i = 0; i <= h->param.i_bframe; i++ )
+            {
+                CHECKED_MALLOC( frame->lowres_mvs[j][i], 2*h->mb.i_mb_count*sizeof(int16_t) );
+                memset( frame->lowres_mvs[j][i], 0, 2*h->mb.i_mb_count*sizeof(int16_t) );
+                CHECKED_MALLOC( frame->lowres_mv_costs[j][i], h->mb.i_mb_count*sizeof(int) );
+            }
     }
 
     if( h->param.analyse.i_me_method >= X264_ME_ESA )
@@ -138,6 +146,12 @@ void x264_frame_delete( x264_frame_t *frame )
     for( i = 0; i < X264_BFRAME_MAX+2; i++ )
         for( j = 0; j < X264_BFRAME_MAX+2; j++ )
             x264_free( frame->i_row_satds[i][j] );
+    for( j = 0; j < 2; j++ )
+        for( i = 0; i <= X264_BFRAME_MAX; i++ )
+        {
+            x264_free( frame->lowres_mvs[j][i] );
+            x264_free( frame->lowres_mv_costs[j][i] );
+        }
     x264_free( frame->i_row_bits );
     x264_free( frame->i_row_qp );
     x264_free( frame->mb_type );
