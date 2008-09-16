@@ -1348,6 +1348,21 @@ static float rate_estimate_qscale( x264_t *h )
                           + h->stat.i_slice_size[SLICE_TYPE_P]
                           + h->stat.i_slice_size[SLICE_TYPE_B]);
 
+    if( h->param.i_threads > 1 )
+    {
+        int j = h->rc - h->thread[0]->rc;
+        int i;
+        for( i=1; i<h->param.i_threads; i++ )
+        {
+            x264_t *t = h->thread[ (j+i)%h->param.i_threads ];
+            double bits = t->rc->frame_size_planned;
+            if( !t->b_thread_active )
+                continue;
+            bits  = X264_MAX(bits, x264_ratecontrol_get_estimated_size(t));
+            total_bits += (int64_t)bits;
+        }
+    }
+
     if( rcc->b_2pass )
     {
         rce = *rcc->rce;
