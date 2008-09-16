@@ -1418,10 +1418,12 @@ static float rate_estimate_qscale( x264_t *h )
                 double expected_fullness =  rce.expected_vbv / rcc->buffer_size;
                 double qmax = q*(2 - expected_fullness);
                 double size_constraint = 1 + expected_fullness;
+                qmax = X264_MAX(qmax, rce.new_qscale);
                 if (expected_fullness < .05)
                     qmax = lmax;
                 qmax = X264_MIN(qmax, lmax);
-                while( (expected_vbv < rce.expected_vbv/size_constraint) && (q < qmax) )
+                while( ((expected_vbv < rce.expected_vbv/size_constraint) && (q < qmax)) ||
+                        ((expected_vbv < 0) && (q < lmax)))
                 {
                     q *= 1.05;
                     expected_size = qscale2bits(&rce, q);
