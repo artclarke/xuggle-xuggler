@@ -150,16 +150,17 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
 
         if( do_search[l] )
         {
+            /* Reverse-order MV prediction. */
 #define MVC(mv) { *(uint32_t*)mvc[i_mvc] = *(uint32_t*)mv; i_mvc++; }
-            if( i_mb_x > 0 )
-                MVC(fenc_mv[-1]);
-            if( i_mb_y > 0 )
+            if( i_mb_x < h->sps->i_mb_width - 1 )
+                MVC(fenc_mv[1]);
+            if( i_mb_y < h->sps->i_mb_height - 1 )
             {
-                MVC(fenc_mv[-i_mb_stride]);
-                if( i_mb_x < h->sps->i_mb_width - 1 )
-                    MVC(fenc_mv[-i_mb_stride+1]);
+                MVC(fenc_mv[i_mb_stride]);
                 if( i_mb_x > 0 )
-                    MVC(fenc_mv[-i_mb_stride-1]);
+                    MVC(fenc_mv[i_mb_stride-1]);
+                if( i_mb_x < h->sps->i_mb_width - 1 )
+                    MVC(fenc_mv[i_mb_stride+1]);
             }
 #undef MVC
             x264_median_mv( m[l].mvp, mvc[0], mvc[1], mvc[2] );
@@ -288,20 +289,22 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
         if( p1 != p0 )
             dist_scale_factor = ( ((b-p0) << 8) + ((p1-p0) >> 1) ) / (p1-p0);
 
+        /* Lowres lookahead goes backwards because the MVs are used as predictors in the main encode. */
+        /* This considerably improves MV prediction overall. */
         if( h->sps->i_mb_width <= 2 || h->sps->i_mb_height <= 2 )
         {
-            for( h->mb.i_mb_y = 0; h->mb.i_mb_y < h->sps->i_mb_height; h->mb.i_mb_y++ )
-                for( h->mb.i_mb_x = 0; h->mb.i_mb_x < h->sps->i_mb_width; h->mb.i_mb_x++ )
+            for( h->mb.i_mb_y = h->sps->i_mb_height - 1; h->mb.i_mb_y >= 0 ; h->mb.i_mb_y-- )
+                for( h->mb.i_mb_x = h->sps->i_mb_width - 1; h->mb.i_mb_x >= 0 ; h->mb.i_mb_x-- )
                     i_score += x264_slicetype_mb_cost( h, a, frames, p0, p1, b, dist_scale_factor, do_search );
         }
         /* the edge mbs seem to reduce the predictive quality of the
          * whole frame's score, but are needed for a spatial distribution. */
         else if( h->param.rc.i_vbv_buffer_size )
         {
-            for( h->mb.i_mb_y = 0; h->mb.i_mb_y < h->sps->i_mb_height; h->mb.i_mb_y++ )
+            for( h->mb.i_mb_y = h->sps->i_mb_height - 1; h->mb.i_mb_y >= 0; h->mb.i_mb_y-- )
             {
                 row_satd[ h->mb.i_mb_y ] = 0;
-                for( h->mb.i_mb_x = 0; h->mb.i_mb_x < h->sps->i_mb_width; h->mb.i_mb_x++ )
+                for( h->mb.i_mb_x = h->sps->i_mb_width - 1; h->mb.i_mb_x >= 0; h->mb.i_mb_x-- )
                 {
                     int i_mb_cost = x264_slicetype_mb_cost( h, a, frames, p0, p1, b, dist_scale_factor, do_search );
                     int i_mb_cost_aq = i_mb_cost;
@@ -323,8 +326,8 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
         }
         else
         {
-            for( h->mb.i_mb_y = 1; h->mb.i_mb_y < h->sps->i_mb_height - 1; h->mb.i_mb_y++ )
-                for( h->mb.i_mb_x = 1; h->mb.i_mb_x < h->sps->i_mb_width - 1; h->mb.i_mb_x++ )
+            for( h->mb.i_mb_y = h->sps->i_mb_height - 2; h->mb.i_mb_y > 0; h->mb.i_mb_y-- )
+                for( h->mb.i_mb_x = h->sps->i_mb_width - 2; h->mb.i_mb_x > 0; h->mb.i_mb_x-- )
                 {
                     int i_mb_cost = x264_slicetype_mb_cost( h, a, frames, p0, p1, b, dist_scale_factor, do_search );
                     int i_mb_cost_aq = i_mb_cost;

@@ -1016,7 +1016,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
 {
     x264_me_t m;
     int i_ref, i_mvc;
-    DECLARE_ALIGNED_4( int16_t mvc[7][2] );
+    DECLARE_ALIGNED_4( int16_t mvc[8][2] );
     int i_halfpel_thresh = INT_MAX;
     int *p_halfpel_thresh = h->mb.pic.i_fref[0]>1 ? &i_halfpel_thresh : NULL;
 
@@ -1493,7 +1493,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 
     x264_me_t m;
     int i_ref, i_mvc;
-    DECLARE_ALIGNED_4( int16_t mvc[8][2] );
+    DECLARE_ALIGNED_4( int16_t mvc[9][2] );
     int i_halfpel_thresh = INT_MAX;
     int *p_halfpel_thresh = h->mb.pic.i_fref[0]>1 ? &i_halfpel_thresh : NULL;
 

@@ -416,7 +416,7 @@ void x264_mb_load_mv_direct8x8( x264_t *h, int idx )
 }
 
 /* This just improves encoder performance, it's not part of the spec */
-void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[8][2], int *i_mvc )
+void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[9][2], int *i_mvc )
 {
     int16_t (*mvr)[2] = h->mb.mvr[i_list][i_ref];
     int i = 0;
@@ -431,6 +431,13 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
         && h->mb.cache.ref[i_list][x264_scan8[12]] == i_ref )
     {
         SET_MVP( h->mb.cache.mv[i_list][x264_scan8[12]] );
+    }
+
+    if( i_ref == 0 && h->frames.b_have_lowres )
+    {
+        int16_t (*lowres_mv)[2] = i_list ? h->fenc->lowres_mvs[1][h->fref1[0]->i_frame-h->fenc->i_frame-1]
+                                         : h->fenc->lowres_mvs[0][h->fenc->i_frame-h->fref0[0]->i_frame-1];
+        if( lowres_mv[0][0] != 0x7fff ) *(uint32_t*)mvc[i++] = (*(uint32_t*)lowres_mv[h->mb.i_mb_xy]*2)&0xfffeffff;
     }
 
     /* spatial predictors */
