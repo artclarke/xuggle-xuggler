@@ -49,25 +49,27 @@ static inline void pixel_avg( uint8_t *dst,  int i_dst_stride,
     }
 }
 
-static inline void pixel_avg_wxh( uint8_t *dst, int i_dst, uint8_t *src, int i_src, int width, int height )
+static inline void pixel_avg_wxh( uint8_t *dst, int i_dst, uint8_t *src1, int i_src1, uint8_t *src2, int i_src2, int width, int height )
 {
     int x, y;
     for( y = 0; y < height; y++ )
     {
         for( x = 0; x < width; x++ )
         {
-            dst[x] = ( dst[x] + src[x] + 1 ) >> 1;
+            dst[x] = ( src1[x] + src2[x] + 1 ) >> 1;
         }
+        src1 += i_src1;
+        src2 += i_src2;
         dst += i_dst;
-        src += i_src;
     }
 }
 
 #define PIXEL_AVG_C( name, width, height ) \
 static void name( uint8_t *pix1, int i_stride_pix1, \
-                  uint8_t *pix2, int i_stride_pix2 ) \
+                  uint8_t *pix2, int i_stride_pix2, \
+                  uint8_t *pix3, int i_stride_pix3 ) \
 { \
-    pixel_avg_wxh( pix1, i_stride_pix1, pix2, i_stride_pix2, width, height ); \
+    pixel_avg_wxh( pix1, i_stride_pix1, pix2, i_stride_pix2, pix3, i_stride_pix3, width, height ); \
 }
 PIXEL_AVG_C( pixel_avg_16x16, 16, 16 )
 PIXEL_AVG_C( pixel_avg_16x8,  16, 8 )
@@ -83,11 +85,13 @@ PIXEL_AVG_C( pixel_avg_2x2,   2, 2 )
 
 /* Implicit weighted bipred only:
  * assumes log2_denom = 5, offset = 0, weight1 + weight2 = 64 */
-#define op_scale2(x) dst[x] = x264_clip_uint8( (dst[x]*i_weight1 + src[x]*i_weight2 + (1<<5)) >> 6 )
-static inline void pixel_avg_weight_wxh( uint8_t *dst, int i_dst, uint8_t *src, int i_src, int width, int height, int i_weight1 ){
+#define op_scale2(x) dst[x] = x264_clip_uint8( (src1[x]*i_weight1 + src2[x]*i_weight2 + (1<<5)) >> 6 )
+static inline void pixel_avg_weight_wxh( uint8_t *dst, int i_dst, uint8_t *src1, int i_src1, uint8_t *src2, int i_src2, int width, int height, int i_weight1 )
+{
     int y;
     const int i_weight2 = 64 - i_weight1;
-    for(y=0; y<height; y++, dst += i_dst, src += i_src){
+    for( y = 0; y<height; y++, dst += i_dst, src1 += i_src1, src2 += i_src2 )
+    {
         op_scale2(0);
         op_scale2(1);
         if(width==2) continue;
@@ -113,9 +117,10 @@ static inline void pixel_avg_weight_wxh( uint8_t *dst, int i_dst, uint8_t *src, 
 #define PIXEL_AVG_WEIGHT_C( width, height ) \
 static void pixel_avg_weight_##width##x##height( \
                 uint8_t *pix1, int i_stride_pix1, \
-                uint8_t *pix2, int i_stride_pix2, int i_weight1 ) \
+                uint8_t *pix2, int i_stride_pix2, \
+                uint8_t *pix3, int i_stride_pix3, int i_weight1 ) \
 { \
-    pixel_avg_weight_wxh( pix1, i_stride_pix1, pix2, i_stride_pix2, width, height, i_weight1 ); \
+    pixel_avg_weight_wxh( pix1, i_stride_pix1, pix2, i_stride_pix2, pix3, i_stride_pix3, width, height, i_weight1 ); \
 }
 
 PIXEL_AVG_WEIGHT_C(16,16)

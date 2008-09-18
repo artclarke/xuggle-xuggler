@@ -41,19 +41,23 @@ SECTION .text
 
 ;-----------------------------------------------------------------------------
 ; void x264_pixel_avg_4x4_mmxext( uint8_t *dst, int dst_stride,
-;                                 uint8_t *src, int src_stride );
+;                                 uint8_t *src1, int src1_stride, uint8_t *src2, int src2_stride );
 ;-----------------------------------------------------------------------------
 %macro AVGH 3
 %assign function_align 8 ; the whole function fits in 8 bytes, so a larger align just wastes space
-cglobal x264_pixel_avg_%1x%2_%3
+cglobal x264_pixel_avg_%1x%2_%3,0,0
     mov eax, %2
+%ifidn %3, sse2
+    test dword r4m, 15
+    jnz x264_pixel_avg_w%1_mmxext
+%endif
     jmp x264_pixel_avg_w%1_%3
 %assign function_align 16
 %endmacro
 
 ;-----------------------------------------------------------------------------
 ; void x264_pixel_avg_w4_mmxext( uint8_t *dst, int dst_stride,
-;                                uint8_t *src, int src_stride,
+;                                uint8_t *src1, int src1_stride, uint8_t *src2, int src2_stride,
 ;                                int height );
 ;-----------------------------------------------------------------------------
 %ifdef ARCH_X86_64
@@ -61,8 +65,10 @@ cglobal x264_pixel_avg_%1x%2_%3
     %define t1 r1
     %define t2 r2
     %define t3 r3
+    %define t4 r4
+    %define t5 r5
     %macro AVG_START 1
-        cglobal %1, 4,5
+        cglobal %1, 6,7
         .height_loop:
     %endmacro
 %else
@@ -70,18 +76,23 @@ cglobal x264_pixel_avg_%1x%2_%3
     %define t1 r2
     %define t2 r3
     %define t3 r4
+    %define t4 r5
+    %define t5 r6
     %macro AVG_START 1
-        cglobal %1, 0,5
+        cglobal %1, 0,7
         mov t0, r0m
         mov t1, r1m
         mov t2, r2m
         mov t3, r3m
+        mov t4, r4m
+        mov t5, r5m
         .height_loop:
     %endmacro
 %endif
 
 %macro AVG_END 0
     sub    eax, 2
+    lea    t4, [t4+t5*2]
     lea    t2, [t2+t3*2]
     lea    t0, [t0+t1*2]
     jg     .height_loop
@@ -91,8 +102,8 @@ cglobal x264_pixel_avg_%1x%2_%3
 AVG_START x264_pixel_avg_w4_mmxext
     movd   mm0, [t2]
     movd   mm1, [t2+t3]
-    pavgb  mm0, [t0]
-    pavgb  mm1, [t0+t1]
+    pavgb  mm0, [t4]
+    pavgb  mm1, [t4+t5]
     movd   [t0], mm0
     movd   [t0+t1], mm1
 AVG_END
@@ -104,8 +115,8 @@ AVGH 4, 2, mmxext
 AVG_START x264_pixel_avg_w8_mmxext
     movq   mm0, [t2]
     movq   mm1, [t2+t3]
-    pavgb  mm0, [t0]
-    pavgb  mm1, [t0+t1]
+    pavgb  mm0, [t4]
+    pavgb  mm1, [t4+t5]
     movq   [t0], mm0
     movq   [t0+t1], mm1
 AVG_END
@@ -119,10 +130,10 @@ AVG_START x264_pixel_avg_w16_mmxext
     movq   mm1, [t2+8]
     movq   mm2, [t2+t3  ]
     movq   mm3, [t2+t3+8]
-    pavgb  mm0, [t0  ]
-    pavgb  mm1, [t0+8]
-    pavgb  mm2, [t0+t1  ]
-    pavgb  mm3, [t0+t1+8]
+    pavgb  mm0, [t4  ]
+    pavgb  mm1, [t4+8]
+    pavgb  mm2, [t4+t5  ]
+    pavgb  mm3, [t4+t5+8]
     movq   [t0  ], mm0
     movq   [t0+8], mm1
     movq   [t0+t1  ], mm2
@@ -135,8 +146,8 @@ AVGH 16, 8,  mmxext
 AVG_START x264_pixel_avg_w16_sse2
     movdqu xmm0, [t2]
     movdqu xmm1, [t2+t3]
-    pavgb  xmm0, [t0]
-    pavgb  xmm1, [t0+t1]
+    pavgb  xmm0, [t4]
+    pavgb  xmm1, [t4+t5]
     movdqa [t0], xmm0
     movdqa [t0+t1], xmm1
 AVG_END
@@ -480,9 +491,9 @@ COPY_W16_SSE2 x264_mc_copy_w16_aligned_sse2, movdqa
 %endif
 %endmacro
 
-%macro BIWEIGHT 2
-    movh      m0, %1
-    movh      m1, %2
+%macro BIWEIGHT 3
+    movh      m0, %2
+    movh      m1, %3
     punpcklbw m0, m7
     punpcklbw m1, m7
     pmullw    m0, m4
@@ -496,52 +507,46 @@ COPY_W16_SSE2 x264_mc_copy_w16_aligned_sse2, movdqa
 %endmacro
 
 %macro BIWEIGHT_START 1
-%ifidn r4m, r4d
-    movd    m4, r4m
+    movd    m4, r6m
     SPLATW  m4, m4   ; weight_dst
-%else
-    SPLATW  m4, r4m
-%endif
     mova    m5, [pw_64 GLOBAL]
     psubw   m5, m4      ; weight_src
     mova    m6, [pw_32 GLOBAL] ; rounding
     pxor    m7, m7
 %if %1
-%ifidn r5m, r5d
-    %define t0 r5d
-%else
-    %define t0 r4d
-    mov  r4d, r5m
-%endif
+    %define t0 r6d
+    mov  r6d, r7m
 %endif
 .height_loop:
 %endmacro
 
 INIT_MMX
 ;-----------------------------------------------------------------------------
-; int x264_pixel_avg_weight_w16_mmxext( uint8_t *dst, int, uint8_t *src, int, int i_weight, int )
+; int x264_pixel_avg_weight_w16_mmxext( uint8_t *dst, int, uint8_t *src1, int, uint8_t *src2, int, int i_weight, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_avg_weight_4x4_mmxext, 4,4
+cglobal x264_pixel_avg_weight_4x4_mmxext, 6,6
     BIWEIGHT_START 0
-    BIWEIGHT  [r0     ], [r2     ]
-    BIWEIGHT  [r0+r1  ], [r2+r3  ]
-    BIWEIGHT  [r0+r1*2], [r2+r3*2]
+    BIWEIGHT  [r0     ], [r2     ], [r4     ]
+    BIWEIGHT  [r0+r1  ], [r2+r3  ], [r4+r5  ]
+    BIWEIGHT  [r0+r1*2], [r2+r3*2], [r4+r5*2]
     add  r0, r1
     add  r2, r3
-    BIWEIGHT  [r0+r1*2], [r2+r3*2]
+    add  r4, r5
+    BIWEIGHT  [r0+r1*2], [r2+r3*2], [r4+r5*2]
     RET
 
 %macro AVG_WEIGHT 2
-cglobal x264_pixel_avg_weight_w%2_%1, 4,5
+cglobal x264_pixel_avg_weight_w%2_%1, 6,7
     BIWEIGHT_START 1
 %assign x 0
 %rep %2*2/mmsize
-    BIWEIGHT  [r0+x], [r2+x]
-    BIWEIGHT  [r0+x+r1], [r2+x+r3]
+    BIWEIGHT  [r0+x], [r2+x], [r4+x]
+    BIWEIGHT  [r0+x+r1], [r2+x+r3], [r4+x+r5]
 %assign x x+mmsize/2
 %endrep
     lea  r0, [r0+r1*2]
     lea  r2, [r2+r3*2]
+    lea  r4, [r4+r5*2]
     sub  t0, 2
     jg   .height_loop
     REP_RET

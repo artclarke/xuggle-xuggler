@@ -95,17 +95,17 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     }
 #define TRY_BIDIR( mv0, mv1, penalty ) \
     { \
-        int stride2 = 16; \
-        uint8_t *src2; \
+        int stride1 = 16, stride2 = 16; \
+        uint8_t *src1, *src2; \
         int i_cost; \
-        h->mc.mc_luma( pix1, 16, m[0].p_fref, m[0].i_stride[0], \
-                       (mv0)[0], (mv0)[1], 8, 8 ); \
+        src1 = h->mc.get_ref( pix1, &stride1, m[0].p_fref, m[0].i_stride[0], \
+                              (mv0)[0], (mv0)[1], 8, 8 ); \
         src2 = h->mc.get_ref( pix2, &stride2, m[1].p_fref, m[1].i_stride[0], \
-                       (mv1)[0], (mv1)[1], 8, 8 ); \
+                              (mv1)[0], (mv1)[1], 8, 8 ); \
         if( i_bipred_weight != 32 ) \
-            h->mc.avg_weight[PIXEL_8x8]( pix1, 16, src2, stride2, i_bipred_weight ); \
+            h->mc.avg_weight[PIXEL_8x8]( pix1, 16, src1, stride1, src2, stride2, i_bipred_weight ); \
         else \
-            h->mc.avg[PIXEL_8x8]( pix1, 16, src2, stride2 ); \
+            h->mc.avg[PIXEL_8x8]( pix1, 16, src1, stride1, src2, stride2 ); \
         i_cost = penalty + h->pixf.mbcmp[PIXEL_8x8]( \
                            m[0].p_fenc[0], FENC_STRIDE, pix1, 16 ); \
         if( i_bcost > i_cost ) \

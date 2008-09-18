@@ -1474,21 +1474,21 @@ static void x264_mb_analyse_inter_direct( x264_t *h, x264_mb_analysis_t *a )
     }
 }
 
-#define WEIGHTED_AVG( size, pix1, stride1, src2, stride2 ) \
-    { \
-        if( h->param.analyse.b_weighted_bipred ) \
-            h->mc.avg_weight[size]( pix1, stride1, src2, stride2, \
-                    h->mb.bipred_weight[a->l0.i_ref][a->l1.i_ref] ); \
-        else \
-            h->mc.avg[size]( pix1, stride1, src2, stride2 ); \
-    }
+#define WEIGHTED_AVG( size, pix, stride, src1, stride1, src2, stride2 ) \
+{ \
+    if( h->param.analyse.b_weighted_bipred ) \
+        h->mc.avg_weight[size]( pix, stride, src1, stride1, src2, stride2, \
+                h->mb.bipred_weight[a->l0.i_ref][a->l1.i_ref] ); \
+    else \
+        h->mc.avg[size]( pix, stride, src1, stride1, src2, stride2 ); \
+}
 
 static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 {
+    DECLARE_ALIGNED_16( uint8_t pix0[16*16] );
     DECLARE_ALIGNED_16( uint8_t pix1[16*16] );
-    DECLARE_ALIGNED_16( uint8_t pix2[16*16] );
-    uint8_t *src2;
-    int stride2 = 16;
+    uint8_t *src0, *src1;
+    int stride0 = 16, stride1 = 16;
     int weight;
 
     x264_me_t m;
@@ -1560,40 +1560,19 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 
     /* get cost of BI mode */
     weight = h->mb.bipred_weight[a->l0.i_ref][a->l1.i_ref];
-    if ( (*(uint32_t*)a->l0.me16x16.mv & 0x10001) == 0 )
-    {
-        /* l0 reference is halfpel, so get_ref on it will make it faster */
-        src2 =
-        h->mc.get_ref( pix2, &stride2,
-                       h->mb.pic.p_fref[0][a->l0.i_ref], h->mb.pic.i_stride[0],
-                       a->l0.me16x16.mv[0], a->l0.me16x16.mv[1],
-                       16, 16 );
-        h->mc.mc_luma( pix1, 16,
-                       h->mb.pic.p_fref[1][a->l1.i_ref], h->mb.pic.i_stride[0],
-                       a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
-                       16, 16 );
-        weight = 64 - weight;
-    }
-    else
-    {
-        /* if l0 was qpel, we'll use get_ref on l1 instead */
-        h->mc.mc_luma( pix1, 16,
-                       h->mb.pic.p_fref[0][a->l0.i_ref], h->mb.pic.i_stride[0],
-                       a->l0.me16x16.mv[0], a->l0.me16x16.mv[1],
-                       16, 16 );
-        src2 =
-        h->mc.get_ref( pix2, &stride2,
-                       h->mb.pic.p_fref[1][a->l1.i_ref], h->mb.pic.i_stride[0],
-                       a->l1.me16x16.mv[0], a->l1.me16x16.mv[1],
-                       16, 16 );
-    }
+    src0 = h->mc.get_ref( pix0, &stride0,
+                           h->mb.pic.p_fref[0][a->l0.i_ref], h->mb.pic.i_stride[0],
+                           a->l0.me16x16.mv[0], a->l0.me16x16.mv[1], 16, 16 );
+    src1 = h->mc.get_ref( pix1, &stride1,
+                           h->mb.pic.p_fref[1][a->l1.i_ref], h->mb.pic.i_stride[0],
+                           a->l1.me16x16.mv[0], a->l1.me16x16.mv[1], 16, 16 );
 
     if( h->param.analyse.b_weighted_bipred )
-        h->mc.avg_weight[PIXEL_16x16]( pix1, 16, src2, stride2, weight );
+        h->mc.avg_weight[PIXEL_16x16]( pix0, 16, src0, stride0, src1, stride1, weight );
     else
-        h->mc.avg[PIXEL_16x16]( pix1, 16, src2, stride2 );
+        h->mc.avg[PIXEL_16x16]( pix0, 16, src0, stride0, src1, stride1 );
 
-    a->i_cost16x16bi = h->pixf.mbcmp[PIXEL_16x16]( h->mb.pic.p_fenc[0], FENC_STRIDE, pix1, 16 )
+    a->i_cost16x16bi = h->pixf.mbcmp[PIXEL_16x16]( h->mb.pic.p_fenc[0], FENC_STRIDE, pix0, 16 )
                      + REF_COST( 0, a->l0.i_ref )
                      + REF_COST( 1, a->l1.i_ref )
                      + a->l0.me16x16.cost_mv
@@ -1709,6 +1688,8 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
         const int y8 = i/2;
         int i_part_cost;
         int i_part_cost_bi = 0;
+        int stride[2] = {8,8};
+        uint8_t *src[2];
 
         for( l = 0; l < 2; l++ )
         {
@@ -1727,13 +1708,12 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
             x264_macroblock_cache_mv_ptr( h, 2*x8, 2*y8, 2, 2, l, m->mv );
 
             /* BI mode */
-            h->mc.mc_luma( pix[l], 8, m->p_fref, m->i_stride[0],
-                           m->mv[0], m->mv[1], 8, 8 );
+            src[l] = h->mc.get_ref( pix[l], &stride[l], m->p_fref, m->i_stride[0],
+                                    m->mv[0], m->mv[1], 8, 8 );
             i_part_cost_bi += m->cost_mv;
             /* FIXME: ref cost */
         }
-
-        WEIGHTED_AVG( PIXEL_8x8, pix[0], 8, pix[1], 8 );
+        WEIGHTED_AVG( PIXEL_8x8, pix[0], 8, src[0], stride[0], src[1], stride[1] );
         i_part_cost_bi += h->pixf.mbcmp[PIXEL_8x8]( a->l0.me8x8[i].p_fenc[0], FENC_STRIDE, pix[0], 8 )
                         + a->i_lambda * i_sub_mb_b_cost_table[D_BI_8x8];
         a->l0.me8x8[i].cost += a->i_lambda * i_sub_mb_b_cost_table[D_L0_8x8];
@@ -1759,7 +1739,7 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
     uint8_t **p_fref[2] =
         { h->mb.pic.p_fref[0][a->l0.i_ref],
           h->mb.pic.p_fref[1][a->l1.i_ref] };
-    DECLARE_ALIGNED_16( uint8_t  pix[2][16*8] );
+    DECLARE_ALIGNED_16( uint8_t pix[2][16*8] );
     DECLARE_ALIGNED_4( int16_t mvc[2][2] );
     int i, l;
 
@@ -1770,6 +1750,8 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
     {
         int i_part_cost;
         int i_part_cost_bi = 0;
+        int stride[2] = {16,16};
+        uint8_t *src[2];
 
         /* TODO: check only the list(s) that were used in b8x8? */
         for( l = 0; l < 2; l++ )
@@ -1790,13 +1772,13 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
             x264_me_search( h, m, mvc, 2 );
 
             /* BI mode */
-            h->mc.mc_luma( pix[l], 16, m->p_fref, m->i_stride[0],
-                           m->mv[0], m->mv[1], 16, 8 );
+            src[l] = h->mc.get_ref( pix[l], &stride[l], m->p_fref, m->i_stride[0],
+                                    m->mv[0], m->mv[1], 16, 8 );
             /* FIXME: ref cost */
             i_part_cost_bi += m->cost_mv;
         }
 
-        WEIGHTED_AVG( PIXEL_16x8, pix[0], 16, pix[1], 16 );
+        WEIGHTED_AVG( PIXEL_16x8, pix[0], 16, src[0], stride[0], src[1], stride[1] );
         i_part_cost_bi += h->pixf.mbcmp[PIXEL_16x8]( a->l0.me16x8[i].p_fenc[0], FENC_STRIDE, pix[0], 16 );
 
         i_part_cost = a->l0.me16x8[i].cost;
@@ -1839,6 +1821,8 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
     {
         int i_part_cost;
         int i_part_cost_bi = 0;
+        int stride[2] = {8,8};
+        uint8_t *src[2];
 
         for( l = 0; l < 2; l++ )
         {
@@ -1858,13 +1842,13 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
             x264_me_search( h, m, mvc, 2 );
 
             /* BI mode */
-            h->mc.mc_luma( pix[l], 8, m->p_fref, m->i_stride[0],
-                           m->mv[0], m->mv[1], 8, 16 );
+            src[l] = h->mc.get_ref( pix[l], &stride[l], m->p_fref,  m->i_stride[0],
+                                    m->mv[0], m->mv[1], 8, 16 );
             /* FIXME: ref cost */
             i_part_cost_bi += m->cost_mv;
         }
 
-        WEIGHTED_AVG( PIXEL_8x16, pix[0], 8, pix[1], 8 );
+        WEIGHTED_AVG( PIXEL_8x16, pix[0], 8, src[0], stride[0], src[1], stride[1] );
         i_part_cost_bi += h->pixf.mbcmp[PIXEL_8x16]( a->l0.me8x16[i].p_fenc[0], FENC_STRIDE, pix[0], 8 );
 
         i_part_cost = a->l0.me8x16[i].cost;
