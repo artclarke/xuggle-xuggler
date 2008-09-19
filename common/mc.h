@@ -45,8 +45,7 @@ typedef struct
                       int mvx, int mvy,
                       int i_width, int i_height );
 
-    void (*avg[10])( uint8_t *dst, int, uint8_t *src1, int, uint8_t *src2, int );
-    void (*avg_weight[10])( uint8_t *dst, int, uint8_t *src1, int, uint8_t *src2, int, int i_weight );
+    void (*avg[10])( uint8_t *dst, int, uint8_t *src1, int, uint8_t *src2, int, int i_weight );
 
     /* only 16x16, 8x8, and 4x4 defined */
     void (*copy[7])( uint8_t *dst, int, uint8_t *src, int, int i_height );

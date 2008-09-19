@@ -771,7 +771,7 @@ static int check_mc( int cpu_ref, int cpu_new )
 #undef MC_TEST_LUMA
 #undef MC_TEST_CHROMA
 
-#define MC_TEST_AVG( name, ... ) \
+#define MC_TEST_AVG( name, weight ) \
     for( i = 0, ok = 1, used_asm = 0; i < 10; i++ ) \
     { \
         memcpy( buf2, buf1, 1024 ); \
@@ -780,22 +780,20 @@ static int check_mc( int cpu_ref, int cpu_new )
         { \
             set_func_name( "%s_%s", #name, pixel_names[i] );\
             used_asm = 1; \
-            call_c1( mc_c.name[i], buf3, 32, buf2+1, 16, buf1+18, 16, ##__VA_ARGS__ ); \
-            call_a1( mc_a.name[i], buf4, 32, buf2+1, 16, buf1+18, 16, ##__VA_ARGS__ ); \
+            call_c1( mc_c.name[i], buf3, 16, buf2+1, 16, buf1+18, 16, weight ); \
+            call_a1( mc_a.name[i], buf4, 16, buf2+1, 16, buf1+18, 16, weight ); \
             if( memcmp( buf3, buf4, 1024 ) )               \
             { \
                 ok = 0; \
                 fprintf( stderr, #name "[%d]: [FAILED]\n", i ); \
             } \
-            call_c2( mc_c.name[i], buf3, 32, buf2+1, 16, buf1+18, 16, ##__VA_ARGS__ ); \
-            call_a2( mc_a.name[i], buf4, 32, buf2+1, 16, buf1+18, 16, ##__VA_ARGS__ ); \
+            call_c2( mc_c.name[i], buf3, 16, buf2+1, 16, buf1+18, 16, weight ); \
+            call_a2( mc_a.name[i], buf4, 16, buf2+1, 16, buf1+18, 16, weight ); \
         } \
     }
-    MC_TEST_AVG( avg );
-    report( "mc avg :" );
     ok = 1; used_asm = 0;
-    for( w = 32; w <= 32 && ok; w++ )
-        MC_TEST_AVG( avg_weight, w );
+    for( w = -64; w <= 128 && ok; w++ )
+        MC_TEST_AVG( avg, w );
     report( "mc wpredb :" );
 
     if( mc_a.hpel_filter != mc_ref.hpel_filter )

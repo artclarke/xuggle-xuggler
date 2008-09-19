@@ -102,10 +102,7 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
                               (mv0)[0], (mv0)[1], 8, 8 ); \
         src2 = h->mc.get_ref( pix2, &stride2, m[1].p_fref, m[1].i_stride[0], \
                               (mv1)[0], (mv1)[1], 8, 8 ); \
-        if( i_bipred_weight != 32 ) \
-            h->mc.avg_weight[PIXEL_8x8]( pix1, 16, src1, stride1, src2, stride2, i_bipred_weight ); \
-        else \
-            h->mc.avg[PIXEL_8x8]( pix1, 16, src1, stride1, src2, stride2 ); \
+        h->mc.avg[PIXEL_8x8]( pix1, 16, src1, stride1, src2, stride2, i_bipred_weight ); \
         i_cost = penalty + h->pixf.mbcmp[PIXEL_8x8]( \
                            m[0].p_fenc[0], FENC_STRIDE, pix1, 16 ); \
         if( i_bcost > i_cost ) \
