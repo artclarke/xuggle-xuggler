@@ -804,7 +804,7 @@ if( pass == 0 || !((visited[(m0x)&7][(m0y)&7][(m1x)&7] & (1<<((m1y)&7)))) ) \
     int i0 = 4 + 3*(m0x-om0x) + (m0y-om0y); \
     int i1 = 4 + 3*(m1x-om1x) + (m1y-om1y); \
     visited[(m0x)&7][(m0y)&7][(m1x)&7] |= (1<<((m1y)&7));\
-    h->mc.avg[i_pixel]( pix, bw, src1[i1], stride1[i1], src0[i0], stride0[i0], i_weight ); \
+    h->mc.avg[i_pixel]( pix, bw, src0[i0], stride0[i0], src1[i1], stride1[i1], i_weight ); \
     cost = h->pixf.mbcmp[i_pixel]( m0->p_fenc[0], FENC_STRIDE, pix, bw ) \
          + p_cost_m0x[ m0x ] + p_cost_m0y[ m0y ] \
          + p_cost_m1x[ m1x ] + p_cost_m1y[ m1y ]; \
