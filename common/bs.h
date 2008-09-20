@@ -76,7 +76,11 @@ static inline void bs_write( bs_t *s, int i_count, uint32_t i_bits )
         s->i_left -= i_count;
         if( s->i_left <= 32 )
         {
+#ifdef WORDS_BIGENDIAN
+            *(uint32_t*)s->p = s->cur_bits >> (32 - s->i_left);
+#else
             *(uint32_t*)s->p = endian_fix( s->cur_bits << s->i_left );
+#endif
             s->i_left += 32;
             s->p += 4;
         }
