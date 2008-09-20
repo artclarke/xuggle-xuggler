@@ -219,8 +219,13 @@ static void x264_hpel_filter_##cpu( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
 
 HPEL(8, mmxext, mmxext, mmxext, mmxext)
 HPEL(16, sse2_amd, mmxext, mmxext, sse2)
+#ifdef ARCH_X86_64
+void x264_hpel_filter_sse2( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height );
+void x264_hpel_filter_ssse3( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height );
+#else
 HPEL(16, sse2, sse2, sse2, sse2)
-HPEL(16, ssse3, sse2, ssse3, sse2)
+HPEL(16, ssse3, sse2, ssse3, ssse3)
+#endif
 
 void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 {
