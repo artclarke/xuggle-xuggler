@@ -225,8 +225,8 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     a->i_satd_i4x4   =
     a->i_satd_i8x8chroma = COST_MAX;
 
-    /* non-RD PCM decision is inaccurate, so don't do it */
-    a->i_satd_pcm = a->b_mbrd ? ((uint64_t)X264_PCM_COST*a->i_lambda2 + 128) >> 8 : COST_MAX;
+    /* non-RD PCM decision is inaccurate (as is psy-rd), so don't do it */
+    a->i_satd_pcm = !h->mb.i_psy_rd && a->b_mbrd ? ((uint64_t)X264_PCM_COST*a->i_lambda2 + 128) >> 8 : COST_MAX;
 
     a->b_fast_intra = 0;
     h->mb.i_skip_intra =
