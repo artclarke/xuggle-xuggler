@@ -73,10 +73,13 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     h->mb.mv_max_fpel[0] = 8*( h->sps->i_mb_width - h->mb.i_mb_x - 1 ) + 4;
     h->mb.mv_min_spel[0] = 4*( h->mb.mv_min_fpel[0] - 8 );
     h->mb.mv_max_spel[0] = 4*( h->mb.mv_max_fpel[0] + 8 );
-    h->mb.mv_min_fpel[1] = -8*h->mb.i_mb_y - 4;
-    h->mb.mv_max_fpel[1] = 8*( h->sps->i_mb_height - h->mb.i_mb_y - 1 ) + 4;
-    h->mb.mv_min_spel[1] = 4*( h->mb.mv_min_fpel[1] - 8 );
-    h->mb.mv_max_spel[1] = 4*( h->mb.mv_max_fpel[1] + 8 );
+    if( h->mb.i_mb_x >= h->sps->i_mb_width - 2 )
+    {
+        h->mb.mv_min_fpel[1] = -8*h->mb.i_mb_y - 4;
+        h->mb.mv_max_fpel[1] = 8*( h->sps->i_mb_height - h->mb.i_mb_y - 1 ) + 4;
+        h->mb.mv_min_spel[1] = 4*( h->mb.mv_min_fpel[1] - 8 );
+        h->mb.mv_max_spel[1] = 4*( h->mb.mv_max_fpel[1] + 8 );
+    }
 
 #define LOAD_HPELS_LUMA(dst, src) \
     { \

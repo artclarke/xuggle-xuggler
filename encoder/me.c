@@ -854,7 +854,7 @@ int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight 
     int bcost = COST_MAX;
     int pass = 0;
     /* each byte of visited represents 8 possible m1y positions, so a 4D array isn't needed */
-    uint8_t visited[8][8][8];
+    DECLARE_ALIGNED_16( uint8_t visited[8][8][8] );
     h->mc.memzero_aligned( visited, sizeof(visited) );
 
     BIME_CACHE( 0, 0 );
