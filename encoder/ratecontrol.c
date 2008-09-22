@@ -545,6 +545,7 @@ int x264_ratecontrol_new( x264_t *h )
         {
             rc[i] = rc[0];
             memcpy( &h->thread[i]->param, &h->param, sizeof( x264_param_t ) );
+            h->thread[i]->mb.b_variable_qp = h->mb.b_variable_qp;
         }
     }
 
