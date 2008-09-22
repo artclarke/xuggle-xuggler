@@ -1501,7 +1501,12 @@ void x264_macroblock_bipred_init( x264_t *h )
             if( h->param.analyse.b_weighted_bipred
                   && dist_scale_factor >= -64
                   && dist_scale_factor <= 128 )
+            {
                 h->mb.bipred_weight[i_ref0][i_ref1] = 64 - dist_scale_factor;
+                // ssse3 implementation of biweight doesn't support the extrema.
+                // if we ever generate them, we'll have to drop that optimization.
+                assert( dist_scale_factor >= -63 && dist_scale_factor <= 127 );
+            }
             else
                 h->mb.bipred_weight[i_ref0][i_ref1] = 32;
         }

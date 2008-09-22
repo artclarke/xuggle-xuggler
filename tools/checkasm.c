@@ -774,15 +774,15 @@ static int check_mc( int cpu_ref, int cpu_new )
 #define MC_TEST_AVG( name, weight ) \
     for( i = 0, ok = 1, used_asm = 0; i < 10; i++ ) \
     { \
-        memcpy( buf2, buf1, 1024 ); \
-        memcpy( buf4, buf3, 1024 ); \
+        memcpy( buf3, buf1+320, 320 ); \
+        memcpy( buf4, buf1+320, 320 ); \
         if( mc_a.name[i] != mc_ref.name[i] ) \
         { \
             set_func_name( "%s_%s", #name, pixel_names[i] );\
             used_asm = 1; \
             call_c1( mc_c.name[i], buf3, 16, buf2+1, 16, buf1+18, 16, weight ); \
             call_a1( mc_a.name[i], buf4, 16, buf2+1, 16, buf1+18, 16, weight ); \
-            if( memcmp( buf3, buf4, 1024 ) )               \
+            if( memcmp( buf3, buf4, 320 ) ) \
             { \
                 ok = 0; \
                 fprintf( stderr, #name "[%d]: [FAILED]\n", i ); \
@@ -792,7 +792,7 @@ static int check_mc( int cpu_ref, int cpu_new )
         } \
     }
     ok = 1; used_asm = 0;
-    for( w = -64; w <= 128 && ok; w++ )
+    for( w = -63; w <= 127 && ok; w++ )
         MC_TEST_AVG( avg, w );
     report( "mc wpredb :" );
 
