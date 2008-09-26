@@ -847,15 +847,15 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
             if( i_frame_total )
             {
                 int eta = i_elapsed * (i_frame_total - i_frame) / ((int64_t)i_frame * 1000000);
-                sprintf( buf, "x264 - encoded frames: %d/%d (%.1f%%), %.2f fps, %.2f kb/s, eta %d:%02d:%02d",
-                         i_frame, i_frame_total, 100. * i_frame / i_frame_total, fps, bitrate,
+                sprintf( buf, "x264 [%.1f%%] %d/%d frames, %.2f fps, %.2f kb/s, eta %d:%02d:%02d",
+                         100. * i_frame / i_frame_total, i_frame, i_frame_total, fps, bitrate,
                          eta/3600, (eta/60)%60, eta%60 );
             }
             else
             {
-                sprintf( buf, "x264 - encoded frames: %d, %.2f fps, %.2f kb/s", i_frame, fps, bitrate );
+                sprintf( buf, "x264 %d frames: , %.2f fps, %.2f kb/s", i_frame, fps, bitrate );
             }
-            fprintf( stderr, "%s  \r", buf+7 );
+            fprintf( stderr, "%s  \r", buf+5 );
             SetConsoleTitle( buf );
             fflush( stderr ); // needed in windows
         }
