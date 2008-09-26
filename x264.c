@@ -853,7 +853,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
             }
             else
             {
-                sprintf( buf, "x264 %d frames: , %.2f fps, %.2f kb/s", i_frame, fps, bitrate );
+                sprintf( buf, "x264 %d frames: %.2f fps, %.2f kb/s", i_frame, fps, bitrate );
             }
             fprintf( stderr, "%s  \r", buf+5 );
             SetConsoleTitle( buf );
