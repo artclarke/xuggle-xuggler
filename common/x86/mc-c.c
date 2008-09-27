@@ -231,6 +231,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     if( !(cpu&X264_CPU_MMX) )
         return;
 
+    pf->copy_16x16_unaligned = x264_mc_copy_w16_mmx;
     pf->copy[PIXEL_16x16] = x264_mc_copy_w16_mmx;
     pf->copy[PIXEL_8x8]   = x264_mc_copy_w8_mmx;
     pf->copy[PIXEL_4x4]   = x264_mc_copy_w4_mmx;

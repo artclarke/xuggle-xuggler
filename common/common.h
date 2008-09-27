@@ -476,6 +476,8 @@ struct x264_t
 
             /* pointer over mb of the frame to be compressed */
             uint8_t *p_fenc[3];
+            /* pointer to the actual source frame, not a block copy */
+            uint8_t *p_fenc_plane[3];
 
             /* pointer over mb of the frame to be reconstructed  */
             uint8_t *p_fdec[3];

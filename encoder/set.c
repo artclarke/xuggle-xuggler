@@ -80,7 +80,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 
     sps->b_qpprime_y_zero_transform_bypass = param->rc.i_rc_method == X264_RC_CQP && param->rc.i_qp_constant == 0;
     if( sps->b_qpprime_y_zero_transform_bypass )
-        sps->i_profile_idc  = PROFILE_HIGH444;
+        sps->i_profile_idc  = PROFILE_HIGH444_PREDICTIVE;
     else if( param->analyse.b_transform_8x8 || param->i_cqm_preset != X264_CQM_FLAT )
         sps->i_profile_idc  = PROFILE_HIGH;
     else if( param->b_cabac || param->i_bframe > 0 )

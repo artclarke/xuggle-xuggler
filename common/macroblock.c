@@ -945,8 +945,9 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int i_mb
     if( h->mb.b_interlaced )
         ref_pix_offset[1] += (1-2*(i_mb_y&1)) * i_stride;
     h->mb.pic.i_stride[i] = i_stride2;
+    h->mb.pic.p_fenc_plane[i] = &h->fenc->plane[i][i_pix_offset];
     h->mc.copy[i?PIXEL_8x8:PIXEL_16x16]( h->mb.pic.p_fenc[i], FENC_STRIDE,
-        &h->fenc->plane[i][i_pix_offset], i_stride2, w );
+        h->mb.pic.p_fenc_plane[i], i_stride2, w );
     memcpy( &h->mb.pic.p_fdec[i][-1-FDEC_STRIDE], intra_fdec-1, w*3/2+1 );
     if( h->mb.b_interlaced )
     {

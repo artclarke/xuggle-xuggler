@@ -403,7 +403,6 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.i_rc_method = X264_RC_CQP;
         h->param.rc.f_ip_factor = 1;
         h->param.rc.f_pb_factor = 1;
-        h->param.analyse.b_transform_8x8 = 0;
         h->param.analyse.b_psnr = 0;
         h->param.analyse.b_ssim = 0;
         h->param.analyse.i_chroma_qp_offset = 0;
@@ -411,6 +410,9 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.b_fast_pskip = 0;
         h->param.analyse.i_noise_reduction = 0;
         h->param.analyse.f_psy_rd = 0;
+        /* 8x8dct is not useful at all in CAVLC lossless */
+        if( !h->param.b_cabac )
+            h->param.analyse.b_transform_8x8 = 0;
     }
     if( h->param.rc.i_rc_method == X264_RC_CQP )
     {

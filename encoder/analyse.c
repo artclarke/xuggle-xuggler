@@ -569,8 +569,13 @@ static void x264_mb_analyse_intra_chroma( x264_t *h, x264_mb_analysis_t *a )
             int i_mode = predict_mode[i];
 
             /* we do the prediction */
-            h->predict_8x8c[i_mode]( p_dstc[0] );
-            h->predict_8x8c[i_mode]( p_dstc[1] );
+            if( h->mb.b_lossless )
+                x264_predict_lossless_8x8_chroma( h, i_mode );
+            else
+            {
+                h->predict_8x8c[i_mode]( p_dstc[0] );
+                h->predict_8x8c[i_mode]( p_dstc[1] );
+            }
 
             /* we calculate the cost */
             i_satd = h->pixf.mbcmp[PIXEL_8x8]( p_dstc[0], FDEC_STRIDE,
@@ -596,7 +601,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     int i, idx;
     int i_max;
     int predict_mode[9];
-    int b_merged_satd = !!h->pixf.intra_mbcmp_x3_16x16;
+    int b_merged_satd = !!h->pixf.intra_mbcmp_x3_16x16 && !h->mb.b_lossless;
 
     /*---------------- Try all mode and calculate their score ---------------*/
 
@@ -621,7 +626,11 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
         {
             int i_satd;
             int i_mode = predict_mode[i];
-            h->predict_16x16[i_mode]( p_dst );
+
+            if( h->mb.b_lossless )
+                x264_predict_lossless_16x16( h, i_mode );
+            else
+                h->predict_16x16[i_mode]( p_dst );
 
             i_satd = h->pixf.mbcmp[PIXEL_16x16]( p_dst, FDEC_STRIDE, p_src, FENC_STRIDE ) +
                     a->i_lambda * bs_size_ue( x264_mb_pred_mode16x16_fix[i_mode] );
@@ -681,7 +690,10 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                 int i_satd;
                 int i_mode = predict_mode[i];
 
-                h->predict_8x8[i_mode]( p_dst_by, edge );
+                if( h->mb.b_lossless )
+                    x264_predict_lossless_8x8( h, p_dst_by, idx, i_mode, edge );
+                else
+                    h->predict_8x8[i_mode]( p_dst_by, edge );
 
                 i_satd = sa8d( p_dst_by, FDEC_STRIDE, p_src_by, FENC_STRIDE )
                        + a->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) ? 1 : 4);
@@ -763,8 +775,10 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             {
                 int i_satd;
                 int i_mode = predict_mode[i];
-
-                h->predict_4x4[i_mode]( p_dst_by );
+                if( h->mb.b_lossless )
+                    x264_predict_lossless_4x4( h, p_dst_by, idx, i_mode );
+                else
+                    h->predict_4x4[i_mode]( p_dst_by );
 
                 i_satd = h->pixf.mbcmp[PIXEL_4x4]( p_dst_by, FDEC_STRIDE,
                                                    p_src_by, FENC_STRIDE )
@@ -876,7 +890,10 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
             for( i = 0; i < i_max; i++ )
             {
                 i_mode = predict_mode[i];
-                h->predict_4x4[i_mode]( p_dst_by );
+                if( h->mb.b_lossless )
+                    x264_predict_lossless_4x4( h, p_dst_by, idx, i_mode );
+                else
+                    h->predict_4x4[i_mode]( p_dst_by );
                 i_satd = x264_rd_cost_i4x4( h, a->i_lambda2, idx, i_mode );
 
                 if( i_best > i_satd )
@@ -928,7 +945,10 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
                 i_mode = predict_mode[i];
                 if( a->i_satd_i8x8_dir[i_mode][idx] > i_thresh )
                     continue;
-                h->predict_8x8[i_mode]( p_dst_by, edge );
+                if( h->mb.b_lossless )
+                    x264_predict_lossless_8x8( h, p_dst_by, idx, i_mode, edge );
+                else
+                    h->predict_8x8[i_mode]( p_dst_by, edge );
                 i_satd = x264_rd_cost_i8x8( h, a->i_lambda2, idx, i_mode );
 
                 if( i_best > i_satd )
@@ -980,8 +1000,13 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
             for( i = 0; i < i_max; i++ )
             {
                 i_mode = predict_mode[i];
-                h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[1] );
-                h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[2] );
+                if( h->mb.b_lossless )
+                    x264_predict_lossless_8x8_chroma( h, i_mode );
+                else
+                {
+                    h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[1] );
+                    h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[2] );
+                }
                 /* if we've already found a mode that needs no residual, then
                  * probably any mode with a residual will be worse.
                  * so avoid dct on the remaining modes to improve speed. */
@@ -2035,7 +2060,7 @@ static void refine_bidir( x264_t *h, x264_mb_analysis_t *a )
 
 static inline void x264_mb_analyse_transform( x264_t *h )
 {
-    if( x264_mb_transform_8x8_allowed( h ) && h->param.analyse.b_transform_8x8 )
+    if( x264_mb_transform_8x8_allowed( h ) && h->param.analyse.b_transform_8x8 && !h->mb.b_lossless )
     {
         int i_cost4, i_cost8;
         /* Only luma MC is really needed, but the full MC is re-used in macroblock_encode. */

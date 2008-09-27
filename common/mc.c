@@ -339,6 +339,7 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->avg[PIXEL_2x4]  = pixel_avg_2x4;
     pf->avg[PIXEL_2x2]  = pixel_avg_2x2;
 
+    pf->copy_16x16_unaligned = mc_copy_w16;
     pf->copy[PIXEL_16x16] = mc_copy_w16;
     pf->copy[PIXEL_8x8]   = mc_copy_w8;
     pf->copy[PIXEL_4x4]   = mc_copy_w4;

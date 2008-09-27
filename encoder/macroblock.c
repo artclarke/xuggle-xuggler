@@ -133,6 +133,12 @@ void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qp )
     uint8_t *p_dst = &h->mb.pic.p_fdec[0][x+y*FDEC_STRIDE];
     DECLARE_ALIGNED_16( int16_t dct8x8[8][8] );
 
+    if( h->mb.b_lossless )
+    {
+        h->zigzagf.sub_8x8( h->dct.luma8x8[idx], p_src, p_dst );
+        return;
+    }
+
     h->dctf.sub8x8_dct8( dct8x8, p_src, p_dst );
 
     x264_quant_8x8( h, dct8x8, i_qp, 1, idx );
@@ -323,6 +329,74 @@ static void x264_macroblock_encode_pskip( x264_t *h )
 }
 
 /*****************************************************************************
+ * Intra prediction for predictive lossless mode.
+ *****************************************************************************/
+
+/* Note that these functions take a shortcut (mc.copy instead of actual pixel prediction) which assumes
+ * that the edge pixels of the reconstructed frame are the same as that of the source frame.  This means
+ * they will only work correctly if the neighboring blocks are losslessly coded.  In practice, this means
+ * lossless mode cannot be mixed with lossy mode within a frame. */
+/* This can be resolved by explicitly copying the edge pixels after doing the mc.copy, but this doesn't
+ * need to be done unless we decide to allow mixing lossless and lossy compression. */
+
+void x264_predict_lossless_8x8_chroma( x264_t *h, int i_mode )
+{
+    int stride = h->fenc->i_stride[1] << h->mb.b_interlaced;
+    if( i_mode == I_PRED_CHROMA_V )
+    {
+        h->mc.copy[PIXEL_8x8]( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc_plane[1]-stride, stride, 8 );
+        h->mc.copy[PIXEL_8x8]( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fenc_plane[2]-stride, stride, 8 );
+    }
+    else if( i_mode == I_PRED_CHROMA_H )
+    {
+        h->mc.copy[PIXEL_8x8]( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc_plane[1]-1, stride, 8 );
+        h->mc.copy[PIXEL_8x8]( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fenc_plane[2]-1, stride, 8 );
+    }
+    else
+    {
+        h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[1] );
+        h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[2] );
+    }
+}
+
+void x264_predict_lossless_4x4( x264_t *h, uint8_t *p_dst, int idx, int i_mode )
+{
+    int stride = h->fenc->i_stride[0] << h->mb.b_interlaced;
+    uint8_t *p_src = h->mb.pic.p_fenc_plane[0] + block_idx_x[idx]*4 + block_idx_y[idx]*4 * stride;
+
+    if( i_mode == I_PRED_4x4_V )
+        h->mc.copy[PIXEL_4x4]( p_dst, FDEC_STRIDE, p_src-stride, stride, 4 );
+    else if( i_mode == I_PRED_4x4_H )
+        h->mc.copy[PIXEL_4x4]( p_dst, FDEC_STRIDE, p_src-1, stride, 4 );
+    else
+        h->predict_4x4[i_mode]( p_dst );
+}
+
+void x264_predict_lossless_8x8( x264_t *h, uint8_t *p_dst, int idx, int i_mode, uint8_t edge[33] )
+{
+    int stride = h->fenc->i_stride[0] << h->mb.b_interlaced;
+    uint8_t *p_src = h->mb.pic.p_fenc_plane[0] + (idx&1)*8 + (idx>>1)*8*stride;
+
+    if( i_mode == I_PRED_8x8_V )
+        h->mc.copy[PIXEL_8x8]( p_dst, FDEC_STRIDE, p_src-stride, stride, 8 );
+    else if( i_mode == I_PRED_8x8_H )
+        h->mc.copy[PIXEL_8x8]( p_dst, FDEC_STRIDE, p_src-1, stride, 8 );
+    else
+        h->predict_8x8[i_mode]( p_dst, edge );
+}
+
+void x264_predict_lossless_16x16( x264_t *h, int i_mode )
+{
+    int stride = h->fenc->i_stride[0] << h->mb.b_interlaced;
+    if( i_mode == I_PRED_16x16_V )
+        h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[0], FDEC_STRIDE, h->mb.pic.p_fenc_plane[0]-stride, stride, 16 );
+    else if( i_mode == I_PRED_16x16_H )
+        h->mc.copy_16x16_unaligned( h->mb.pic.p_fdec[0], FDEC_STRIDE, h->mb.pic.p_fenc_plane[0]-1, stride, 16 );
+    else
+        h->predict_16x16[i_mode]( h->mb.pic.p_fdec[0] );
+}
+
+/*****************************************************************************
  * x264_macroblock_encode:
  *****************************************************************************/
 void x264_macroblock_encode( x264_t *h )
@@ -370,8 +444,11 @@ void x264_macroblock_encode( x264_t *h )
     {
         const int i_mode = h->mb.i_intra16x16_pred_mode;
         h->mb.b_transform_8x8 = 0;
-        /* do the right prediction */
-        h->predict_16x16[i_mode]( h->mb.pic.p_fdec[0] );
+
+        if( h->mb.b_lossless )
+            x264_predict_lossless_16x16( h, i_mode );
+        else
+            h->predict_16x16[i_mode]( h->mb.pic.p_fdec[0] );
 
         /* encode the 16x16 macroblock */
         x264_mb_encode_i16x16( h, i_qp );
@@ -392,9 +469,13 @@ void x264_macroblock_encode( x264_t *h )
         {
             uint8_t  *p_dst = &h->mb.pic.p_fdec[0][8 * (i&1) + 8 * (i>>1) * FDEC_STRIDE];
             int      i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[4*i]];
-
             x264_predict_8x8_filter( p_dst, edge, h->mb.i_neighbour8[i], x264_pred_i4x4_neighbors[i_mode] );
-            h->predict_8x8[i_mode]( p_dst, edge );
+
+            if( h->mb.b_lossless )
+                x264_predict_lossless_8x8( h, p_dst, i, i_mode, edge );
+            else
+                h->predict_8x8[i_mode]( p_dst, edge );
+
             x264_mb_encode_i8x8( h, i, i_qp );
         }
         for( i = 0; i < 4; i++ )
@@ -420,7 +501,10 @@ void x264_macroblock_encode( x264_t *h )
                 /* emulate missing topright samples */
                 *(uint32_t*) &p_dst[4-FDEC_STRIDE] = p_dst[3-FDEC_STRIDE] * 0x01010101U;
 
-            h->predict_4x4[i_mode]( p_dst );
+            if( h->mb.b_lossless )
+                x264_predict_lossless_4x4( h, p_dst, i, i_mode );
+            else
+                h->predict_4x4[i_mode]( p_dst );
             x264_mb_encode_i4x4( h, i, i_qp );
         }
     }
@@ -435,12 +519,23 @@ void x264_macroblock_encode( x264_t *h )
 
         if( h->mb.b_lossless )
         {
-            for( i4x4 = 0; i4x4 < 16; i4x4++ )
-            {
-                h->zigzagf.sub_4x4( h->dct.luma4x4[i4x4],
-                                    h->mb.pic.p_fenc[0]+block_idx_xy_fenc[i4x4],
-                                    h->mb.pic.p_fdec[0]+block_idx_xy_fdec[i4x4] );
-            }
+            if( h->mb.b_transform_8x8 )
+                for( i8x8 = 0; i8x8 < 4; i8x8++ )
+                {
+                    int x = 8*(i8x8&1);
+                    int y = 8*(i8x8>>1);
+                    h->zigzagf.sub_8x8( h->dct.luma8x8[i8x8],
+                                        h->mb.pic.p_fenc[0]+x+y*FENC_STRIDE,
+                                        h->mb.pic.p_fdec[0]+x+y*FDEC_STRIDE );
+                    nnz8x8[i8x8] = array_non_zero( h->dct.luma8x8[i8x8] );
+                }
+            else
+                for( i4x4 = 0; i4x4 < 16; i4x4++ )
+                {
+                    h->zigzagf.sub_4x4( h->dct.luma4x4[i4x4],
+                                        h->mb.pic.p_fenc[0]+block_idx_xy_fenc[i4x4],
+                                        h->mb.pic.p_fdec[0]+block_idx_xy_fdec[i4x4] );
+                }
         }
         else if( h->mb.b_transform_8x8 )
         {
@@ -531,8 +626,13 @@ void x264_macroblock_encode( x264_t *h )
     if( IS_INTRA( h->mb.i_type ) )
     {
         const int i_mode = h->mb.i_chroma_pred_mode;
-        h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[1] );
-        h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[2] );
+        if( h->mb.b_lossless )
+            x264_predict_lossless_8x8_chroma( h, i_mode );
+        else
+        {
+            h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[1] );
+            h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[2] );
+        }
     }
 
     /* encode the 8x8 blocks */
@@ -756,12 +856,20 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
     if( h->mb.b_lossless )
     {
         int i4;
-        for( i4 = i8*4; i4 < i8*4+4; i4++ )
+        if( h->mb.b_transform_8x8 )
         {
-            h->zigzagf.sub_4x4( h->dct.luma4x4[i4],
-                                h->mb.pic.p_fenc[0]+block_idx_xy_fenc[i4],
-                                h->mb.pic.p_fdec[0]+block_idx_xy_fdec[i4] );
-            nnz8x8 |= array_non_zero( h->dct.luma4x4[i4] );
+            h->zigzagf.sub_4x4( h->dct.luma4x4[i8], p_fenc, p_fdec );
+            nnz8x8 = array_non_zero( h->dct.luma8x8[i8] );
+        }
+        else
+        {
+            for( i4 = i8*4; i4 < i8*4+4; i4++ )
+            {
+                h->zigzagf.sub_4x4( h->dct.luma4x4[i4],
+                                    h->mb.pic.p_fenc[0]+block_idx_xy_fenc[i4],
+                                    h->mb.pic.p_fdec[0]+block_idx_xy_fdec[i4] );
+                nnz8x8 |= array_non_zero( h->dct.luma4x4[i4] );
+            }
         }
         for( ch = 0; ch < 2; ch++ )
         {

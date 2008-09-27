@@ -38,6 +38,11 @@ static inline int x264_macroblock_probe_pskip( x264_t *h )
 static inline int x264_macroblock_probe_bskip( x264_t *h )
     { return x264_macroblock_probe_skip( h, 1 ); }
 
+void x264_predict_lossless_8x8_chroma( x264_t *h, int i_mode );
+void x264_predict_lossless_4x4( x264_t *h, uint8_t *p_dst, int idx, int i_mode );
+void x264_predict_lossless_8x8( x264_t *h, uint8_t *p_dst, int idx, int i_mode, uint8_t edge[33] );
+void x264_predict_lossless_16x16( x264_t *h, int i_mode );
+
 void x264_macroblock_encode      ( x264_t *h );
 void x264_macroblock_write_cabac ( x264_t *h, x264_cabac_t *cb );
 void x264_macroblock_write_cavlc ( x264_t *h, bs_t *s );
