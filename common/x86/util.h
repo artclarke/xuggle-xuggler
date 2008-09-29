@@ -69,7 +69,7 @@ static inline int x264_predictor_difference_mmxext( int16_t (*mvc)[2], intptr_t 
         "jg 1b                \n"
         "movq    %%mm4, %0    \n"
         :"=m"(output), "+r"(i_mvc)
-        :"r"(mvc)
+        :"r"(mvc), "m"(*(struct {int16_t x[4];} *)mvc)
     );
     sum += output[0] + output[1] + output[2] + output[3];
     return sum;
@@ -90,7 +90,7 @@ static inline int array_non_zero_count_mmx( int16_t *v )
         "psadbw   %%mm7,  %%mm1 \n"
         "movd     %%mm1,  %0    \n"
         :"=r"(count)
-        :"r"(v)
+        :"r"(v), "m"(*(struct {int16_t x[16];} *)v)
     );
     return (count+0x10)&0xff;
 }
@@ -121,7 +121,7 @@ static ALWAYS_INLINE int array_non_zero_int_mmx( void *v, int i_count )
             "packsswb %%mm0,   %%mm0 \n"
             "movd     %%mm0,   %0    \n"
             :"=r"(nonzero)
-            :"r"(v)
+            :"r"(v), "m"(*(struct {int16_t x[64];} *)v)
         );
         return !!nonzero;
     }
