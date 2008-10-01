@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 64
+#define X264_BUILD 65
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -233,9 +233,7 @@ typedef struct x264_param_t
         int          i_mv_range; /* maximum length of a mv (in pixels). -1 = auto, based on level */
         int          i_mv_range_thread; /* minimum space between threads. -1 = auto, based on number of threads. */
         int          i_subpel_refine; /* subpixel motion estimation quality */
-        int          b_bidir_me; /* jointly optimize both MVs in B-frames */
         int          b_chroma_me; /* chroma ME for subpel and mode decision in P-frames */
-        int          b_bframe_rdo; /* RD based mode decision for B-frames */
         int          b_mixed_references; /* allow each mb partition in P-frames to have it's own reference number */
         int          i_trellis;  /* trellis RD quantization */
         int          b_fast_pskip; /* early SKIP detection on P-frames */

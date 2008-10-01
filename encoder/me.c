@@ -29,8 +29,8 @@
  * subpel_iters[i_subpel_refine] = { refine_hpel, refine_qpel, me_hpel, me_qpel }
  * where me_* are the number of EPZS iterations run on all candidate block types,
  * and refine_* are run only on the winner.
- * the subme=7 values are much higher because any amount of satd search makes
- * up its time by reducing the number of rd iterations. */
+ * the subme=8,9 values are much higher because any amount of satd search makes
+ * up its time by reducing the number of qpel-rd iterations. */
 static const int subpel_iterations[][4] =
    {{1,0,0,0},
     {1,1,0,0},
@@ -39,6 +39,8 @@ static const int subpel_iterations[][4] =
     {0,2,1,1},
     {0,2,1,2},
     {0,0,2,2},
+    {0,0,2,2},
+    {0,0,4,10},
     {0,0,4,10}};
 
 /* (x-1)%6 */
@@ -797,6 +799,8 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     BIME_CACHE(a,b) \
     BIME_CACHE(-(a),-(b))
 
+#define SATD_THRESH 17/16
+
 #define COST_BIMV_SATD( m0x, m0y, m1x, m1y ) \
 if( pass == 0 || !((visited[(m0x)&7][(m0y)&7][(m1x)&7] & (1<<((m1y)&7)))) ) \
 { \
@@ -808,7 +812,27 @@ if( pass == 0 || !((visited[(m0x)&7][(m0y)&7][(m1x)&7] & (1<<((m1y)&7)))) ) \
     cost = h->pixf.mbcmp[i_pixel]( m0->p_fenc[0], FENC_STRIDE, pix, bw ) \
          + p_cost_m0x[ m0x ] + p_cost_m0y[ m0y ] \
          + p_cost_m1x[ m1x ] + p_cost_m1y[ m1y ]; \
-    if( cost < bcost ) \
+    if( rd ) \
+    { \
+        if( cost < bcost * SATD_THRESH ) \
+        { \
+            uint64_t costrd; \
+            if( cost < bcost ) \
+                bcost = cost; \
+            *(uint32_t*)cache0_mv = *(uint32_t*)cache0_mv2 = pack16to32_mask(m0x,m0y); \
+            *(uint32_t*)cache1_mv = *(uint32_t*)cache1_mv2 = pack16to32_mask(m1x,m1y); \
+            costrd = x264_rd_cost_part( h, i_lambda2, i8, m0->i_pixel ); \
+            if( costrd < bcostrd ) \
+            {\
+                bcostrd = costrd;\
+                bm0x = m0x;      \
+                bm0y = m0y;      \
+                bm1x = m1x;      \
+                bm1y = m1y;      \
+            }\
+        } \
+    } \
+    else if( cost < bcost ) \
     {                  \
         bcost = cost;  \
         bm0x = m0x;    \
@@ -831,8 +855,13 @@ if( pass == 0 || !((visited[(m0x)&7][(m0y)&7][(m1x)&7] & (1<<((m1y)&7)))) ) \
     CHECK_BIDIR2(c,d,a,b) \
     CHECK_BIDIR2(d,a,b,c)
 
-int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight )
+static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight, int i8, int i_lambda2, int rd )
 {
+    static const int pixel_mv_offs[] = { 0, 4, 4*8, 0 };
+    int16_t *cache0_mv = h->mb.cache.mv[0][x264_scan8[i8*4]];
+    int16_t *cache0_mv2 = cache0_mv + pixel_mv_offs[m0->i_pixel];
+    int16_t *cache1_mv = h->mb.cache.mv[1][x264_scan8[i8*4]];
+    int16_t *cache1_mv2 = cache1_mv + pixel_mv_offs[m0->i_pixel];
     const int i_pixel = m0->i_pixel;
     const int bw = x264_pixel_size[i_pixel].w;
     const int bh = x264_pixel_size[i_pixel].h;
@@ -853,16 +882,19 @@ int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight 
     int bm1y = m1->mv[1], om1y = bm1y;
     int bcost = COST_MAX;
     int pass = 0;
+    uint64_t bcostrd = COST_MAX64;
+
     /* each byte of visited represents 8 possible m1y positions, so a 4D array isn't needed */
     DECLARE_ALIGNED_16( uint8_t visited[8][8][8] );
+
+    if( bm0y > h->mb.mv_max_spel[1] - 8 ||
+        bm1y > h->mb.mv_max_spel[1] - 8 )
+        return;
+
     h->mc.memzero_aligned( visited, sizeof(visited) );
 
     BIME_CACHE( 0, 0 );
     CHECK_BIDIR( 0, 0, 0, 0 );
-
-    if( bm0y > h->mb.mv_max_spel[1] - 8 ||
-        bm1y > h->mb.mv_max_spel[1] - 8 )
-        return bcost;
 
     for( pass = 0; pass < 8; pass++ )
     {
@@ -897,7 +929,16 @@ int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight 
     m0->mv[1] = bm0y;
     m1->mv[0] = bm1x;
     m1->mv[1] = bm1y;
-    return bcost;
+}
+
+void x264_me_refine_bidir_satd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight )
+{
+    x264_me_refine_bidir( h, m0, m1, i_weight, 0, 0, 0 );
+}
+
+void x264_me_refine_bidir_rd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight, int i8, int i_lambda2 )
+{
+    x264_me_refine_bidir( h, m0, m1, i_weight, i8, i_lambda2, 1 );
 }
 
 #undef COST_MV_SATD
@@ -921,13 +962,11 @@ int x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight 
     } \
 }
 
-#define SATD_THRESH 17/16
-
-void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 )
+void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8, int i_list )
 {
     // don't have to fill the whole mv cache rectangle
     static const int pixel_mv_offs[] = { 0, 4, 4*8, 0 };
-    int16_t *cache_mv = h->mb.cache.mv[0][x264_scan8[i8*4]];
+    int16_t *cache_mv = h->mb.cache.mv[i_list][x264_scan8[i8*4]];
     int16_t *cache_mv2 = cache_mv + pixel_mv_offs[m->i_pixel];
     const int16_t *p_cost_mvx, *p_cost_mvy;
     const int bw = x264_pixel_size[m->i_pixel].w>>2;
@@ -947,7 +986,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 )
     int satds[8];
 
     if( m->i_pixel != PIXEL_16x16 && i8 != 0 )
-        x264_mb_predict_mv( h, 0, i8*4, bw, m->mvp );
+        x264_mb_predict_mv( h, i_list, i8*4, bw, m->mvp );
     pmx = m->mvp[0];
     pmy = m->mvp[1];
     p_cost_mvx = m->p_cost_mv - pmx;
@@ -999,7 +1038,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8 )
     m->cost = bcost;
     m->mv[0] = bmx;
     m->mv[1] = bmy;
-    x264_macroblock_cache_mv ( h, 2*(i8&1), i8&2, bw, bh, 0, pack16to32_mask(bmx, bmy) );
-    x264_macroblock_cache_mvd( h, 2*(i8&1), i8&2, bw, bh, 0, pack16to32_mask(bmx - pmx, bmy - pmy) );
+    x264_macroblock_cache_mv ( h, 2*(i8&1), i8&2, bw, bh, i_list, pack16to32_mask(bmx, bmy) );
+    x264_macroblock_cache_mvd( h, 2*(i8&1), i8&2, bw, bh, i_list, pack16to32_mask(bmx - pmx, bmy - pmy) );
 }
 

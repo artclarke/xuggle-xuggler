@@ -112,10 +112,10 @@ SRC2 = $(SRCS) $(SRCCLI)
 OPT0 = --crf 30 -b1 -m1 -r1 --me dia --no-cabac --pre-scenecut --direct temporal --no-ssim --no-psnr
 OPT1 = --crf 16 -b2 -m3 -r3 --me hex -8 --direct spatial --no-dct-decimate
 OPT2 = --crf 26 -b2 -m5 -r2 --me hex -8 -w --cqm jvt --nr 100
-OPT3 = --crf 18 -b3 -m7 -r5 --me umh -8 -t1 -A all --mixed-refs --b-rdo -w --b-pyramid --direct auto --bime --no-fast-pskip
-OPT4 = --crf 22 -b3 -m6 -r4 --me esa -8 -t2 -A all --mixed-refs --b-rdo --bime
-OPT5 = --frames 50 --crf 24 -b3 -m7 -r3 --me tesa -8 -t1 --mixed-refs --b-rdo --bime
-OPT6 = --frames 50 -q0 -m6 -r2 --me hex -Aall
+OPT3 = --crf 18 -b3 -m9 -r5 --me umh -8 -t1 -A all --mixed-refs -w --b-pyramid --direct auto --no-fast-pskip
+OPT4 = --crf 22 -b3 -m7 -r4 --me esa -8 -t2 -A all --mixed-refs
+OPT5 = --frames 50 --crf 24 -b3 -m9 -r3 --me tesa -8 -t1 --mixed-refs
+OPT6 = --frames 50 -q0 -m9 -r2 --me hex -Aall
 OPT7 = --frames 50 -q0 -m2 -r1 --me hex --no-cabac
 
 ifeq (,$(VIDS))

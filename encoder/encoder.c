@@ -474,8 +474,7 @@ static int x264_validate_parameters( x264_t *h )
     if( h->param.analyse.i_me_method == X264_ME_TESA &&
         (h->mb.b_lossless || h->param.analyse.i_subpel_refine <= 1) )
         h->param.analyse.i_me_method = X264_ME_ESA;
-    h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 7 );
-    h->param.analyse.b_bframe_rdo = h->param.analyse.b_bframe_rdo && h->param.analyse.i_subpel_refine >= 6;
+    h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 9 );
     h->param.analyse.b_mixed_references = h->param.analyse.b_mixed_references && h->param.i_frame_reference > 1;
     h->param.analyse.inter &= X264_ANALYSE_PSUB16x16|X264_ANALYSE_PSUB8x8|X264_ANALYSE_BSUB16x16|
                               X264_ANALYSE_I4x4|X264_ANALYSE_I8x8;
@@ -591,7 +590,6 @@ static int x264_validate_parameters( x264_t *h )
     BOOLIFY( b_interlaced );
     BOOLIFY( analyse.b_transform_8x8 );
     BOOLIFY( analyse.i_direct_8x8_inference );
-    BOOLIFY( analyse.b_bidir_me );
     BOOLIFY( analyse.b_chroma_me );
     BOOLIFY( analyse.b_fast_pskip );
     BOOLIFY( rc.b_stat_write );
@@ -816,8 +814,6 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     COPY( analyse.i_noise_reduction );
     COPY( analyse.i_subpel_refine );
     COPY( analyse.i_trellis );
-    COPY( analyse.b_bidir_me );
-    COPY( analyse.b_bframe_rdo );
     COPY( analyse.b_chroma_me );
     COPY( analyse.b_dct_decimate );
     COPY( analyse.b_fast_pskip );

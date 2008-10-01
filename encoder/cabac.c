@@ -1026,47 +1026,34 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
 /*****************************************************************************
  * RD only; doesn't generate a valid bitstream
  * doesn't write cbp or chroma dc (I don't know how much this matters)
+ * doesn't write ref or subpartition (never varies between calls, so no point in doing so)
  * works on all partition sizes except 16x16
  * for sub8x8, call once per 8x8 block
  *****************************************************************************/
 static void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int i_pixel )
 {
     const int i_mb_type = h->mb.i_type;
+    int b_8x16 = h->mb.i_partition == D_8x16;
     int j;
 
     if( i_mb_type == P_8x8 )
-    {
-        x264_cabac_mb_sub_p_partition( cb, h->mb.i_sub_partition[i8] );
-        if( h->mb.pic.i_fref[0] > 1 )
-            x264_cabac_mb_ref( h, cb, 0, 4*i8 );
         x264_cabac_mb8x8_mvd( h, cb, 0, i8 );
-    }
     else if( i_mb_type == P_L0 )
+        x264_cabac_mb_mvd( h, cb, 0, 4*i8, 4>>b_8x16, 2<<b_8x16 );
+    else if( i_mb_type > B_DIRECT && i_mb_type < B_8x8 )
     {
-        if( h->mb.pic.i_fref[0] > 1 )
-            x264_cabac_mb_ref( h, cb, 0, 4*i8 );
-        if( h->mb.i_partition == D_16x8 )
-            x264_cabac_mb_mvd( h, cb, 0, 4*i8, 4, 2 );
-        else //8x16
-            x264_cabac_mb_mvd( h, cb, 0, 4*i8, 2, 4 );
+        if( x264_mb_type_list0_table[ i_mb_type ][!!i8] ) x264_cabac_mb_mvd( h, cb, 0, 4*i8, 4>>b_8x16, 2<<b_8x16 );
+        if( x264_mb_type_list1_table[ i_mb_type ][!!i8] ) x264_cabac_mb_mvd( h, cb, 1, 4*i8, 4>>b_8x16, 2<<b_8x16 );
     }
     else if( i_mb_type == B_8x8 )
     {
         x264_cabac_mb_sub_b_partition( cb, h->mb.i_sub_partition[i8] );
-
-        if( h->mb.pic.i_fref[0] > 1
-            && x264_mb_partition_listX_table[0][ h->mb.i_sub_partition[i8] ] )
-            x264_cabac_mb_ref( h, cb, 0, 4*i8 );
-        if( h->mb.pic.i_fref[1] > 1
-            && x264_mb_partition_listX_table[1][ h->mb.i_sub_partition[i8] ] )
-            x264_cabac_mb_ref( h, cb, 1, 4*i8 );
-
         x264_cabac_mb8x8_mvd( h, cb, 0, i8 );
         x264_cabac_mb8x8_mvd( h, cb, 1, i8 );
     }
     else
     {
-        x264_log(h, X264_LOG_ERROR, "invalid/unhandled mb_type\n" );
+        x264_log(h, X264_LOG_ERROR, "invalid/unhandled mb_type %d\n",i_mb_type );
         return;
     }
 

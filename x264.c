@@ -248,16 +248,21 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "      --merange <integer>     Maximum motion vector search range [%d]\n", defaults->analyse.i_me_range );
     H1( "      --mvrange <integer>     Maximum motion vector length [-1 (auto)]\n" );
     H1( "      --mvrange-thread <int>  Minimum buffer between threads [-1 (auto)]\n" );
-    H0( "  -m, --subme <integer>       Subpixel motion estimation and partition\n"
-        "                                  decision quality: 1=fast, 7=best. [%d]\n", defaults->analyse.i_subpel_refine );
-    H0( "      --b-rdo                 RD based mode decision for B-frames. Requires subme 6.\n" );
+    H0( "  -m, --subme <integer>       Subpixel motion estimation and mode decision [%d]\n", defaults->analyse.i_subpel_refine );
+    H1( "                                  - 1: SAD mode decision, one qpel iteration\n"
+        "                                  - 2: SATD mode decision\n"
+        "                                  - 3-5: Progressively more qpel\n"
+        "                                  - 6: RD mode decision for I/P-frames\n"
+        "                                  - 7: RD mode decision for all frames\n"
+        "                                  - 8: RD refinement for I/P-frames\n"
+        "                                  - 9: RD refinement for all frames\n" );
+    else H0( "                                  decision quality: 1=fast, 9=best.\n"  );
     H0( "      --psy-rd                Strength of psychovisual optimization [\"%.1f:%.1f\"]\n"
-        "                                  #1: RDO (requires subme>=6)\n"
+        "                                  #1: RD (requires subme>=6)\n"
         "                                  #2: Trellis (requires trellis, experimental)\n",
                                        defaults->analyse.f_psy_rd, defaults->analyse.f_psy_trellis );
     H0( "      --mixed-refs            Decide references on a per partition basis\n" );
     H1( "      --no-chroma-me          Ignore chroma in motion estimation\n" );
-    H1( "      --bime                  Jointly optimize both MVs in B-frames\n" );
     H0( "  -8, --8x8dct                Adaptive spatial transform size\n" );
     H0( "  -t, --trellis <integer>     Trellis RD quantization. Requires CABAC. [%d]\n"
         "                                  - 0: disabled\n"
@@ -425,10 +430,8 @@ static int  Parse( int argc, char **argv,
             { "mvrange-thread", required_argument, NULL, 0 },
             { "subme",   required_argument, NULL, 'm' },
             { "psy-rd",  required_argument, NULL, 0 },
-            { "b-rdo",   no_argument,       NULL, 0 },
             { "mixed-refs", no_argument,    NULL, 0 },
             { "no-chroma-me", no_argument,  NULL, 0 },
-            { "bime",    no_argument,       NULL, 0 },
             { "8x8dct",  no_argument,       NULL, '8' },
             { "trellis", required_argument, NULL, 't' },
             { "no-fast-pskip", no_argument, NULL, 0 },
