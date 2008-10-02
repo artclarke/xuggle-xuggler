@@ -153,6 +153,7 @@ void x264_frame_delete( x264_frame_t *frame )
             x264_free( frame->lowres_mv_costs[j][i] );
         }
     x264_free( frame->f_qp_offset );
+    x264_free( frame->i_intra_cost );
     x264_free( frame->i_row_bits );
     x264_free( frame->i_row_qp );
     x264_free( frame->mb_type );
