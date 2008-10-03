@@ -69,7 +69,7 @@ OBJS = $(SRCS:%.c=%.o)
 OBJCLI = $(SRCCLI:%.c=%.o)
 DEP  = depend
 
-.PHONY: all default fprofiled clean distclean install install-gtk uninstall dox test testclean
+.PHONY: all default fprofiled clean distclean install uninstall dox test testclean
 
 default: $(DEP) x264$(EXE)
 
@@ -82,9 +82,6 @@ $(SONAME): .depend $(OBJS) $(OBJASM)
 
 x264$(EXE): $(OBJCLI) libx264.a 
 	$(CC) -o $@ $+ $(LDFLAGS)
-
-libx264gtk.a: muxers.o libx264.a
-	$(MAKE) -C gtk
 
 checkasm: tools/checkasm.o libx264.a
 	$(CC) -o $@ $+ $(LDFLAGS)
@@ -140,15 +137,12 @@ endif
 clean:
 	rm -f $(OBJS) $(OBJASM) $(OBJCLI) $(SONAME) *.a x264 x264.exe .depend TAGS
 	rm -f checkasm checkasm.exe tools/checkasm.o
-	rm -f tools/avc2avi tools/avc2avi.exe tools/avc2avi.o
 	rm -f $(SRC2:%.c=%.gcda) $(SRC2:%.c=%.gcno)
 	- sed -e 's/ *-fprofile-\(generate\|use\)//g' config.mak > config.mak2 && mv config.mak2 config.mak
-	$(MAKE) -C gtk clean
 
 distclean: clean
 	rm -f config.mak config.h x264.pc
 	rm -rf test/
-	$(MAKE) -C gtk distclean
 
 install: x264$(EXE) $(SONAME)
 	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(includedir)
@@ -166,14 +160,10 @@ else
 endif
 	$(if $(IMPLIBNAME), install -m 644 $(IMPLIBNAME) $(DESTDIR)$(libdir))
 
-install-gtk: libx264gtk.a
-	$(MAKE) -C gtk install
-
 uninstall:
 	rm -f $(DESTDIR)$(includedir)/x264.h $(DESTDIR)$(libdir)/libx264.a
 	rm -f $(DESTDIR)$(bindir)/x264 $(DESTDIR)$(libdir)/pkgconfig/x264.pc
 	$(if $(SONAME), rm -f $(DESTDIR)$(libdir)/$(SONAME) $(DESTDIR)$(libdir)/libx264.$(SOSUFFIX))
-	$(MAKE) -C gtk uninstall
 
 etags: TAGS
 

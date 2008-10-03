@@ -14,9 +14,6 @@ config.h
 config.mak
 x264
 checkasm
-gtk/test
-gtk/x264_gtk_encode
-gtk/x264_icon.h
 
 *.264
 *.2pass

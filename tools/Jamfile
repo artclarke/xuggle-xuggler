@@ -1,9 +1,0 @@
-# Jamfile
-
-# Little tool to embed h264 into avi
-Main avc2avi : avc2avi.c ;
-
-# Little YUV I420 player
-LINKLIBS = `sdl-config --libs` ;
-Main xyuv : xyuv.c ;
-

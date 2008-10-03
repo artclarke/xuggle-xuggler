@@ -11,7 +11,6 @@ echo "  --disable-avis-input     disables avisynth input (win32 only)"
 echo "  --disable-mp4-output     disables mp4 output (using gpac)"
 echo "  --disable-pthread        disables multithreaded encoding"
 echo "  --disable-asm            disables assembly optimizations on x86"
-echo "  --enable-gtk             build GTK+ interface"
 echo "  --enable-debug           adds -g, doesn't strip"
 echo "  --enable-gprof           adds -pg, doesn't strip"
 echo "  --enable-visualize       enables visualization (X11 only)"
@@ -58,7 +57,6 @@ asm="yes"
 debug="no"
 gprof="no"
 pic="no"
-gtk="no"
 vis="no"
 shared="no"
 
@@ -147,12 +145,6 @@ for opt do
             ;;
         --enable-pic)
             pic="yes"
-            ;;
-        --enable-gtk)
-            gtk="yes"
-            ;;
-        --disable-gtk)
-            gtk="no"
             ;;
         --enable-shared)
             shared="yes"
@@ -427,7 +419,6 @@ ALTIVECFLAGS=$ALTIVECFLAGS
 LDFLAGS=$LDFLAGS
 AS=$AS
 ASFLAGS=$ASFLAGS
-GTK=$gtk
 EXE=$EXE
 VIS=$vis
 HAVE_GETOPT_LONG=$HAVE_GETOPT_LONG
@@ -440,8 +431,6 @@ for A in "$@" ; do
     $ECHON " '$A'" >> config.mak
 done
 echo '' >> config.mak
-
-cp config.mak gtk/config.mak
 
 if [ "$shared" = "yes" ]; then
     API=$(grep '#define X264_BUILD' < x264.h | cut -f 3 -d ' ')
@@ -459,22 +448,6 @@ if [ "$shared" = "yes" ]; then
         echo 'SOFLAGS=-Wl,-soname,$(SONAME)' >> config.mak
     fi
     echo 'default: $(SONAME)' >> config.mak
-    if [ "$gtk" = "yes" ]; then
-        if [ "$SYS" = "MACOSX" ]; then
-            echo "SOSUFFIX=dylib" >> gtk/config.mak
-            echo "SONAMEGTK=libx264gtk.$API.dylib" >> gtk/config.mak
-            echo 'SOFLAGS=-dynamiclib -Wl,-single_module -Wl,-read_only_relocs,suppress -install_name $(DESTDIR)$(libdir)/$(SONAMEGTK)' >> gtk/config.mak
-        else
-            echo "SOSUFFIX=so" >> gtk/config.mak
-            echo "SONAMEGTK=libx264gtk.so.$API" >> gtk/config.mak
-            echo 'SOFLAGS=-Wl,-soname,$(SONAMEGTK)' >> gtk/config.mak
-        fi
-    fi
-fi
-
-if [ "$gtk" = "yes" ]; then
-    echo 'default: libx264gtk.a' >> config.mak
-    echo 'install: install-gtk' >> config.mak
 fi
 
 ./version.sh
@@ -501,7 +474,6 @@ echo "asm:        $asm"
 echo "avis input: $avis_input"
 echo "mp4 output: $mp4_output"
 echo "pthread:    $pthread"
-echo "gtk:        $gtk"
 echo "debug:      $debug"
 echo "gprof:      $gprof"
 echo "PIC:        $pic"

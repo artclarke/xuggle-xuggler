@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/bin/env perl
 # countquant_x264.pl: displays statistics from x264 multipass logfiles
 # by Loren Merritt, 2005-4-5
 
@@ -8,13 +8,13 @@
 sub proc_file {
     my $fh = shift;
     while(<$fh>) {
-        /type:(.) q:(\d+\.\d+) itex:(\d+) ptex:(\d+) mv:(\d+) misc:(\d+)/ or next;
+        /type:(.) q:(\d+\.\d+) tex:(\d+) mv:(\d+) misc:(\d+)/ or next;
 	$type = uc $1;
 	$n{$type} ++;
 	$q[int($2+.5)] ++;
 	$avgq += $2;
 	$avgq{$type} += $2;
-        my $bytes = ($3+$4+$5+$6)/8;
+        my $bytes = ($3+$4+$5)/8;
 	$size{$type} += $bytes;
     }
     $size = $size{I} + $size{P} + $size{B};
