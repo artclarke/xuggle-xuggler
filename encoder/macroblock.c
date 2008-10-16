@@ -187,7 +187,10 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qp )
     }
 
     h->dctf.dct4x4dc( dct_dc4x4 );
-    h->quantf.quant_4x4_dc( dct_dc4x4, h->quant4_mf[CQM_4IY][i_qp][0]>>1, h->quant4_bias[CQM_4IY][i_qp][0]<<1 );
+    if( h->mb.b_trellis )
+        x264_quant_dc_trellis( h, (int16_t*)dct_dc4x4, CQM_4IY, i_qp, DCT_LUMA_DC, 1);
+    else
+        h->quantf.quant_4x4_dc( dct_dc4x4, h->quant4_mf[CQM_4IY][i_qp][0]>>1, h->quant4_bias[CQM_4IY][i_qp][0]<<1 );
     h->zigzagf.scan_4x4( h->dct.luma16x16_dc, dct_dc4x4 );
 
     /* output samples to fdec */
@@ -239,8 +242,10 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
             dct2x2[i>>1][i&1] = dct4x4[i][0][0];
             dct4x4[i][0][0] = 0;
 
-            /* no trellis; it doesn't seem to help chroma noticeably */
-            h->quantf.quant_4x4( dct4x4[i], h->quant4_mf[CQM_4IC+b_inter][i_qp], h->quant4_bias[CQM_4IC+b_inter][i_qp] );
+            if( h->mb.b_trellis )
+                x264_quant_4x4_trellis( h, dct4x4[i], CQM_4IC+b_inter, i_qp, DCT_CHROMA_AC, !b_inter, 0 );
+            else
+                h->quantf.quant_4x4( dct4x4[i], h->quant4_mf[CQM_4IC+b_inter][i_qp], h->quant4_bias[CQM_4IC+b_inter][i_qp] );
             h->zigzagf.scan_4x4( h->dct.luma4x4[16+i+ch*4], dct4x4[i] );
 
             if( b_decimate )
@@ -248,7 +253,10 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
         }
 
         h->dctf.dct2x2dc( dct2x2 );
-        h->quantf.quant_2x2_dc( dct2x2, h->quant4_mf[CQM_4IC+b_inter][i_qp][0]>>1, h->quant4_bias[CQM_4IC+b_inter][i_qp][0]<<1 );
+        if( h->mb.b_trellis )
+            x264_quant_dc_trellis( h, (int16_t*)dct2x2, CQM_4IC+b_inter, i_qp, DCT_CHROMA_DC, !b_inter );
+        else
+            h->quantf.quant_2x2_dc( dct2x2, h->quant4_mf[CQM_4IC+b_inter][i_qp][0]>>1, h->quant4_bias[CQM_4IC+b_inter][i_qp][0]<<1 );
         zigzag_scan_2x2_dc( h->dct.chroma_dc[ch], dct2x2 );
 
         /* output samples to fdec */
@@ -937,9 +945,14 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
             p_fdec = h->mb.pic.p_fdec[1+ch] + (i8&1)*4 + (i8>>1)*4*FDEC_STRIDE;
 
             h->dctf.sub4x4_dct( dct4x4, p_fenc, p_fdec );
-            h->quantf.quant_4x4( dct4x4, h->quant4_mf[CQM_4PC][i_qp], h->quant4_bias[CQM_4PC][i_qp] );
+            dct4x4[0][0] = 0;
+
+            if( h->mb.b_trellis )
+                x264_quant_4x4_trellis( h, dct4x4, CQM_4PC, i_qp, DCT_CHROMA_AC, 0, 0 );
+            else
+                h->quantf.quant_4x4( dct4x4, h->quant4_mf[CQM_4PC][i_qp], h->quant4_bias[CQM_4PC][i_qp] );
+
             h->zigzagf.scan_4x4( h->dct.luma4x4[16+i8+ch*4], dct4x4 );
-            h->dct.luma4x4[16+i8+ch*4][0] = 0;
             if( array_non_zero( dct4x4 ) )
             {
                 h->quantf.dequant_4x4( dct4x4, h->dequant4_mf[CQM_4PC], i_qp );
