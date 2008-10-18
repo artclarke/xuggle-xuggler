@@ -866,7 +866,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
         int i4;
         if( h->mb.b_transform_8x8 )
         {
-            h->zigzagf.sub_4x4( h->dct.luma4x4[i8], p_fenc, p_fdec );
+            h->zigzagf.sub_8x8( h->dct.luma8x8[i8], p_fenc, p_fdec );
             nnz8x8 = array_non_zero( h->dct.luma8x8[i8] );
         }
         else
