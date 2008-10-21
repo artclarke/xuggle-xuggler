@@ -22,8 +22,10 @@
 ;*****************************************************************************
 
 %include "x86inc.asm"
+%include "x86util.asm"
 
 SECTION_RODATA
+pb_1:     times 16 db 1
 pw_1:     times 8 dw 1
 pd_1:     times 4 dd 1
 
@@ -53,6 +55,17 @@ dequant8_scale:
     DQM8 28, 25, 45, 26, 35, 33
     DQM8 32, 28, 51, 30, 40, 38
     DQM8 36, 32, 58, 34, 46, 43
+
+decimate_mask_table4:
+    db  0,3,2,6,2,5,5,9,1,5,4,8,5,8,8,12,1,4,4,8,4,7,7,11,4,8,7,11,8,11,11,15,1,4
+    db  3,7,4,7,7,11,3,7,6,10,7,10,10,14,4,7,7,11,7,10,10,14,7,11,10,14,11,14,14
+    db 18,0,4,3,7,3,6,6,10,3,7,6,10,7,10,10,14,3,6,6,10,6,9,9,13,6,10,9,13,10,13
+    db 13,17,4,7,6,10,7,10,10,14,6,10,9,13,10,13,13,17,7,10,10,14,10,13,13,17,10
+    db 14,13,17,14,17,17,21,0,3,3,7,3,6,6,10,2,6,5,9,6,9,9,13,3,6,6,10,6,9,9,13
+    db  6,10,9,13,10,13,13,17,3,6,5,9,6,9,9,13,5,9,8,12,9,12,12,16,6,9,9,13,9,12
+    db 12,16,9,13,12,16,13,16,16,20,3,7,6,10,6,9,9,13,6,10,9,13,10,13,13,17,6,9
+    db  9,13,9,12,12,16,9,13,12,16,13,16,16,20,7,10,9,13,10,13,13,17,9,13,12,16
+    db 13,16,16,20,10,13,13,17,13,16,16,20,13,17,16,20,17,20,20,24
 
 SECTION .text
 
@@ -379,3 +392,215 @@ DENOISE_DCT sse2
 %define PABSW PABSW_SSSE3
 %define PSIGNW PSIGNW_SSSE3
 DENOISE_DCT ssse3
+
+
+
+;-----------------------------------------------------------------------------
+; int x264_decimate_score( int16_t *dct )
+;-----------------------------------------------------------------------------
+
+%macro DECIMATE_MASK_SSE2 6
+%ifidn %5, ssse3
+    pabsw    xmm0, [%3+ 0]
+    pabsw    xmm1, [%3+16]
+%else
+    movdqa   xmm0, [%3+ 0]
+    movdqa   xmm1, [%3+16]
+    ABS2_MMX xmm0, xmm1, xmm3, xmm4
+%endif
+    packsswb xmm0, xmm1
+    pxor     xmm2, xmm2
+    pcmpeqb  xmm2, xmm0
+    pcmpgtb  xmm0, %4
+    pmovmskb %1, xmm2
+    pmovmskb %2, xmm0
+%endmacro
+
+%macro DECIMATE_MASK_MMX 6
+    movq      mm0, [%3+ 0]
+    movq      mm1, [%3+ 8]
+    movq      mm2, [%3+16]
+    movq      mm3, [%3+24]
+    ABS2_MMX  mm0, mm1, mm4, mm5
+    ABS2_MMX  mm2, mm3, mm4, mm5
+    packsswb  mm0, mm1
+    packsswb  mm2, mm3
+    pxor      mm4, mm4
+    pxor      mm5, mm5
+    pcmpeqb   mm4, mm0
+    pcmpeqb   mm5, mm2
+    pcmpgtb   mm0, %4
+    pcmpgtb   mm2, %4
+    pmovmskb   %6, mm4
+    pmovmskb   %1, mm5
+    shl        %1, 8
+    or         %1, %6
+    pmovmskb   %6, mm0
+    pmovmskb   %2, mm2
+    shl        %2, 8
+    or         %2, %6
+%endmacro
+
+cextern x264_decimate_table4
+cextern x264_decimate_table8
+
+%macro DECIMATE4x4 2
+
+;A LUT is faster than bsf on AMD processors, and no slower on Intel
+;This is not true for score64.
+cglobal x264_decimate_score%1_%2, 1,3
+%ifdef PIC
+    lea r10, [x264_decimate_table4 GLOBAL]
+    lea r11, [decimate_mask_table4 GLOBAL]
+    %define table r10
+    %define mask_table r11
+%else
+    %define table x264_decimate_table4
+    %define mask_table decimate_mask_table4
+%endif
+    DECIMATE_MASK edx, eax, r0, [pb_1 GLOBAL], %2, ecx
+    xor   edx, 0xffff
+    je   .ret
+    test  eax, eax
+    jne  .ret9
+%if %1==15
+    shr   edx, 1
+%endif
+    movzx ecx, dl
+    movzx eax, byte [mask_table + rcx]
+    cmp   edx, ecx
+    je   .ret
+    bsr   ecx, ecx
+    shr   edx, 1
+    shr   edx, cl
+    bsf   ecx, edx
+    shr   edx, 1
+    shr   edx, cl
+    add    al, byte [table + rcx]
+    add    al, byte [mask_table + rdx]
+.ret:
+    REP_RET
+.ret9:
+    mov   eax, 9
+    RET
+
+%endmacro
+
+%ifndef ARCH_X86_64
+%define DECIMATE_MASK DECIMATE_MASK_MMX
+DECIMATE4x4 15, mmxext
+DECIMATE4x4 16, mmxext
+%endif
+%define DECIMATE_MASK DECIMATE_MASK_SSE2
+DECIMATE4x4 15, sse2
+DECIMATE4x4 15, ssse3
+DECIMATE4x4 16, sse2
+DECIMATE4x4 16, ssse3
+
+%macro DECIMATE8x8 1
+
+%ifdef ARCH_X86_64
+cglobal x264_decimate_score64_%1, 1,4
+%ifdef PIC
+    lea r10, [x264_decimate_table8 GLOBAL]
+    %define table r10
+%else
+    %define table x264_decimate_table8
+%endif
+    mova  m7, [pb_1 GLOBAL]
+    DECIMATE_MASK r1d, eax, r0, m7, %1, null
+    test  eax, eax
+    jne  .ret9
+    DECIMATE_MASK r2d, eax, r0+32, m7, %1, null
+    shl   r2d, 16
+    or    r1d, r2d
+    DECIMATE_MASK r2d, r3d, r0+64, m7, %1, null
+    shl   r2, 32
+    or    eax, r3d
+    or    r1, r2
+    DECIMATE_MASK r2d, r3d, r0+96, m7, %1, null
+    shl   r2, 48
+    or    r1, r2
+    not   r1
+    test  r1, r1
+    je   .ret
+    or    eax, r3d
+    jne  .ret9
+.loop:
+    bsf   rcx, r1
+    shr   r1, cl
+    movzx ecx, byte [table + rcx]
+    add   eax, ecx
+    shr   r1, 1
+    jne  .loop
+.ret:
+    REP_RET
+.ret9:
+    mov   eax, 9
+    RET
+
+%else ; ARCH
+%ifidn %1, mmxext
+cglobal x264_decimate_score64_%1, 1,6
+%else
+cglobal x264_decimate_score64_%1, 1,5
+%endif
+    mova  m7, [pb_1 GLOBAL]
+    DECIMATE_MASK r3, r2, r0, m7, %1, r5
+    test  r2, r2
+    jne  .ret9
+    DECIMATE_MASK r4, r2, r0+32, m7, %1, r5
+    shl   r4, 16
+    or    r3, r4
+    DECIMATE_MASK r4, r1, r0+64, m7, %1, r5
+    or    r2, r1
+    DECIMATE_MASK r1, r0, r0+96, m7, %1, r5
+    shl   r1, 16
+    or    r4, r1
+    not   r3
+    not   r4
+    mov   r1, r3
+    or    r1, r4
+    je   .ret
+    or    r0, r2
+    jne  .ret9    ;r2 is zero at this point, so we don't need to zero it
+.loop:
+    bsf   ecx, r3
+    test  r3, r3
+    je   .largerun
+    shrd  r3, r4, cl
+    shr   r4, cl
+    movzx ecx, byte [x264_decimate_table8 + ecx]
+    add   r0, ecx
+    shrd  r3, r4, 1
+    shr   r4, 1
+    mov   r2, r3
+    or    r2, r4
+    jne  .loop
+.ret:
+    REP_RET
+.ret9:
+    mov   eax, 9
+    RET
+.largerun:
+    mov   r3, r4
+    xor   r4, r4
+    bsf   ecx, r3
+    shr   r3, cl
+    shr   r3, 1
+    jne  .loop
+    REP_RET
+%endif ; ARCH
+
+%endmacro
+
+%ifndef ARCH_X86_64
+INIT_MMX
+%define DECIMATE_MASK DECIMATE_MASK_MMX
+DECIMATE8x8 mmxext
+%endif
+INIT_XMM
+%define DECIMATE_MASK DECIMATE_MASK_SSE2
+DECIMATE8x8 sse2
+DECIMATE8x8 ssse3
+

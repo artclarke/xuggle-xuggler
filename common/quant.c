@@ -208,6 +208,66 @@ static void x264_denoise_dct( int16_t *dct, uint32_t *sum, uint16_t *offset, int
     }
 }
 
+/* (ref: JVT-B118)
+ * x264_mb_decimate_score: given dct coeffs it returns a score to see if we could empty this dct coeffs
+ * to 0 (low score means set it to null)
+ * Used in inter macroblock (luma and chroma)
+ *  luma: for a 8x8 block: if score < 4 -> null
+ *        for the complete mb: if score < 6 -> null
+ *  chroma: for the complete mb: if score < 7 -> null
+ */
+
+const uint8_t x264_decimate_table4[16] = {
+    3,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0 };
+const uint8_t x264_decimate_table8[64] = {
+    3,3,3,3,2,2,2,2,2,2,2,2,1,1,1,1,
+    1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+
+static int ALWAYS_INLINE x264_decimate_score_internal( int16_t *dct, int i_max )
+{
+    const uint8_t *ds_table = (i_max == 64) ? x264_decimate_table8 : x264_decimate_table4;
+    int i_score = 0;
+    int idx = i_max - 1;
+
+    /* Yes, dct[idx-1] is guaranteed to be 32-bit aligned.  idx>=0 instead of 1 works correctly for the same reason */
+    while( idx >= 0 && *(uint32_t*)&dct[idx-1] == 0 )
+        idx -= 2;
+    if( idx >= 0 && dct[idx] == 0 )
+        idx--;
+    while( idx >= 0 )
+    {
+        int i_run;
+
+        if( (unsigned)(dct[idx--] + 1) > 2 )
+            return 9;
+
+        i_run = 0;
+        while( idx >= 0 && dct[idx] == 0 )
+        {
+            idx--;
+            i_run++;
+        }
+        i_score += ds_table[i_run];
+    }
+
+    return i_score;
+}
+
+static int x264_decimate_score15( int16_t *dct )
+{
+    return x264_decimate_score_internal( dct+1, 15 );
+}
+static int x264_decimate_score16( int16_t *dct )
+{
+    return x264_decimate_score_internal( dct, 16 );
+}
+static int x264_decimate_score64( int16_t *dct )
+{
+    return x264_decimate_score_internal( dct, 64 );
+}
+
 void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 {
     pf->quant_8x8 = quant_8x8;
@@ -219,6 +279,9 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     pf->dequant_8x8 = dequant_8x8;
 
     pf->denoise_dct = x264_denoise_dct;
+    pf->decimate_score15 = x264_decimate_score15;
+    pf->decimate_score16 = x264_decimate_score16;
+    pf->decimate_score64 = x264_decimate_score64;
 
 #ifdef HAVE_MMX
     if( cpu&X264_CPU_MMX )
@@ -242,6 +305,9 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->quant_2x2_dc = x264_quant_2x2_dc_mmxext;
 #ifdef ARCH_X86
         pf->quant_4x4_dc = x264_quant_4x4_dc_mmxext;
+        pf->decimate_score15 = x264_decimate_score15_mmxext;
+        pf->decimate_score16 = x264_decimate_score16_mmxext;
+        pf->decimate_score64 = x264_decimate_score64_mmxext;
 #endif
     }
 
@@ -258,6 +324,9 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
             pf->dequant_8x8 = x264_dequant_8x8_flat16_sse2;
         }
         pf->denoise_dct = x264_denoise_dct_sse2;
+        pf->decimate_score15 = x264_decimate_score15_sse2;
+        pf->decimate_score16 = x264_decimate_score16_sse2;
+        pf->decimate_score64 = x264_decimate_score64_sse2;
     }
 
     if( cpu&X264_CPU_SSSE3 )
@@ -267,6 +336,9 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->quant_4x4 = x264_quant_4x4_ssse3;
         pf->quant_8x8 = x264_quant_8x8_ssse3;
         pf->denoise_dct = x264_denoise_dct_ssse3;
+        pf->decimate_score15 = x264_decimate_score15_ssse3;
+        pf->decimate_score16 = x264_decimate_score16_ssse3;
+        pf->decimate_score64 = x264_decimate_score64_ssse3;
     }
 #endif // HAVE_MMX
 

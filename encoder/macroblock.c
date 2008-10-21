@@ -35,50 +35,6 @@ static inline void zigzag_scan_2x2_dc( int16_t level[4], int16_t dct[2][2] )
 }
 #undef ZIG
 
-/* (ref: JVT-B118)
- * x264_mb_decimate_score: given dct coeffs it returns a score to see if we could empty this dct coeffs
- * to 0 (low score means set it to null)
- * Used in inter macroblock (luma and chroma)
- *  luma: for a 8x8 block: if score < 4 -> null
- *        for the complete mb: if score < 6 -> null
- *  chroma: for the complete mb: if score < 7 -> null
- */
-static int x264_mb_decimate_score( int16_t *dct, int i_max )
-{
-    static const int i_ds_table4[16] = {
-        3,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0 };
-    static const int i_ds_table8[64] = {
-        3,3,3,3,2,2,2,2,2,2,2,2,1,1,1,1,
-        1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-
-    const int *ds_table = (i_max == 64) ? i_ds_table8 : i_ds_table4;
-    int i_score = 0;
-    int idx = i_max - 1;
-
-    while( idx >= 0 && dct[idx] == 0 )
-        idx--;
-
-    while( idx >= 0 )
-    {
-        int i_run;
-
-        if( (unsigned)(dct[idx--] + 1) > 2 )
-            return 9;
-
-        i_run = 0;
-        while( idx >= 0 && dct[idx] == 0 )
-        {
-            idx--;
-            i_run++;
-        }
-        i_score += ds_table[i_run];
-    }
-
-    return i_score;
-}
-
 static ALWAYS_INLINE void x264_quant_4x4( x264_t *h, int16_t dct[4][4], int i_qp, int i_ctxBlockCat, int b_intra, int idx )
 {
     int i_quant_cat = b_intra ? CQM_4IY : CQM_4PY;
@@ -249,7 +205,7 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
             h->zigzagf.scan_4x4( h->dct.luma4x4[16+i+ch*4], dct4x4[i] );
 
             if( b_decimate )
-                i_decimate_score += x264_mb_decimate_score( h->dct.luma4x4[16+i+ch*4]+1, 15 );
+                i_decimate_score += h->quantf.decimate_score15( h->dct.luma4x4[16+i+ch*4] );
         }
 
         h->dctf.dct2x2dc( dct2x2 );
@@ -562,7 +518,7 @@ void x264_macroblock_encode( x264_t *h )
 
                 if( b_decimate )
                 {
-                    int i_decimate_8x8 = x264_mb_decimate_score( h->dct.luma8x8[idx], 64 );
+                    int i_decimate_8x8 = h->quantf.decimate_score64( h->dct.luma8x8[idx] );
                     i_decimate_mb += i_decimate_8x8;
                     if( i_decimate_8x8 < 4 )
                         nnz8x8[idx] = 0;
@@ -606,7 +562,7 @@ void x264_macroblock_encode( x264_t *h )
                     h->zigzagf.scan_4x4( h->dct.luma4x4[idx], dct4x4[idx] );
 
                     if( b_decimate && i_decimate_8x8 <= 6 )
-                        i_decimate_8x8 += x264_mb_decimate_score( h->dct.luma4x4[idx], 16 );
+                        i_decimate_8x8 += h->quantf.decimate_score16( h->dct.luma4x4[idx] );
                 }
 
                 /* decimate this 8x8 block */
@@ -762,7 +718,7 @@ int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
             if( !array_non_zero(dct4x4[i4x4]) )
                 continue;
             h->zigzagf.scan_4x4( dctscan, dct4x4[i4x4] );
-            i_decimate_mb += x264_mb_decimate_score( dctscan, 16 );
+            i_decimate_mb += h->quantf.decimate_score16( dctscan );
             if( i_decimate_mb >= 6 )
                 return 0;
         }
@@ -804,11 +760,12 @@ int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
         /* calculate dct coeffs */
         for( i4x4 = 0, i_decimate_mb = 0; i4x4 < 4; i4x4++ )
         {
+            dct4x4[i4x4][0][0] = 0;
             h->quantf.quant_4x4( dct4x4[i4x4], h->quant4_mf[CQM_4PC][i_qp], h->quant4_bias[CQM_4PC][i_qp] );
             if( !array_non_zero(dct4x4[i4x4]) )
                 continue;
             h->zigzagf.scan_4x4( dctscan, dct4x4[i4x4] );
-            i_decimate_mb += x264_mb_decimate_score( dctscan+1, 15 );
+            i_decimate_mb += h->quantf.decimate_score15( dctscan );
             if( i_decimate_mb >= 7 )
                 return 0;
         }
@@ -897,7 +854,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
             h->zigzagf.scan_8x8( h->dct.luma8x8[i8], dct8x8 );
 
             if( b_decimate && !h->mb.b_trellis )
-                nnz8x8 = 4 <= x264_mb_decimate_score( h->dct.luma8x8[i8], 64 );
+                nnz8x8 = 4 <= h->quantf.decimate_score64( h->dct.luma8x8[i8] );
             else
                 nnz8x8 = array_non_zero( dct8x8 );
 
@@ -922,7 +879,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
             {
                 int i_decimate_8x8 = 0;
                 for( i4 = 0; i4 < 4 && i_decimate_8x8 < 4; i4++ )
-                    i_decimate_8x8 += x264_mb_decimate_score( h->dct.luma4x4[i8*4+i4], 16 );
+                    i_decimate_8x8 += h->quantf.decimate_score16( h->dct.luma4x4[i8*4+i4] );
                 nnz8x8 = 4 <= i_decimate_8x8;
             }
             else
