@@ -527,7 +527,6 @@ static int x264_validate_parameters( x264_t *h )
                 while( l[1].level_idc && x264_validate_levels( h, 0 ) && l++ );
             if( h->param.rc.i_vbv_buffer_size <= 0 )
                 h->param.rc.i_vbv_max_bitrate = 0;
-            x264_log( h, X264_LOG_DEBUG, "level_idc: %d\n", h->param.i_level_idc );
         }
         else
         {
@@ -789,6 +788,12 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
             return NULL;
         }
     }
+
+    x264_log( h, X264_LOG_INFO, "profile %s, level %d.%d\n",
+        h->sps->i_profile_idc == PROFILE_BASELINE ? "Baseline" :
+        h->sps->i_profile_idc == PROFILE_MAIN ? "Main" :
+        h->sps->i_profile_idc == PROFILE_HIGH ? "High" :
+        "High 4:4:4 Predictive", h->sps->i_level_idc/10, h->sps->i_level_idc%10 );
 
     return h;
 }
