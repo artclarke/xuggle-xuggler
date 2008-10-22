@@ -184,6 +184,9 @@ case $host_os in
     SYS="MACOSX"
     CFLAGS="$CFLAGS -falign-loops=16"
     LDFLAGS="$LDFLAGS -lm -lmx"
+    if [ "$pic" = "no" ]; then
+        CFLAGS="$CFLAGS -mdynamic-no-pic"
+    fi
     ;;
   freebsd*)
     SYS="FREEBSD"
