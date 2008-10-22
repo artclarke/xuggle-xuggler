@@ -42,7 +42,7 @@ typedef struct
     int mv_bits;
     int tex_bits;
     int misc_bits;
-    uint64_t expected_bits;
+    uint64_t expected_bits; /*total expected bits up to the current frame (current one excluded)*/
     double expected_vbv;
     float new_qscale;
     int new_qp;
@@ -93,7 +93,7 @@ struct x264_ratecontrol_t
     int    last_satd;
     double last_rceq;
     double cplxr_sum;           /* sum of bits*qscale/rceq */
-    double expected_bits_sum;   /* sum of qscale2bits after rceq, ratefactor, and overflow */
+    double expected_bits_sum;   /* sum of qscale2bits after rceq, ratefactor, and overflow, only includes finished frames */
     double wanted_bits_window;  /* target bitrate * window */
     double cbr_decay;
     double short_term_cplxsum;
@@ -1349,21 +1349,6 @@ static float rate_estimate_qscale( x264_t *h )
                           + h->stat.i_slice_size[SLICE_TYPE_P]
                           + h->stat.i_slice_size[SLICE_TYPE_B]);
 
-    if( h->param.i_threads > 1 )
-    {
-        int j = h->rc - h->thread[0]->rc;
-        int i;
-        for( i=1; i<h->param.i_threads; i++ )
-        {
-            x264_t *t = h->thread[ (j+i)%h->param.i_threads ];
-            double bits = t->rc->frame_size_planned;
-            if( !t->b_thread_active )
-                continue;
-            bits  = X264_MAX(bits, x264_ratecontrol_get_estimated_size(t));
-            total_bits += (int64_t)bits;
-        }
-    }
-
     if( rcc->b_2pass )
     {
         rce = *rcc->rce;
@@ -1413,13 +1398,43 @@ static float rate_estimate_qscale( x264_t *h )
     else
     {
         double abr_buffer = 2 * rcc->rate_tolerance * rcc->bitrate;
+
         if( rcc->b_2pass )
         {
             //FIXME adjust abr_buffer based on distance to the end of the video
-            int64_t diff = total_bits - (int64_t)rce.expected_bits;
+            int64_t diff;
+            int64_t predicted_bits = total_bits;
+
+            if( rcc->b_vbv )
+            {
+                if( h->param.i_threads > 1 )
+                {
+                    int j = h->rc - h->thread[0]->rc;
+                    int i;
+                    for( i=1; i<h->param.i_threads; i++ )
+                    {
+                        x264_t *t = h->thread[ (j+i)%h->param.i_threads ];
+                        double bits = t->rc->frame_size_planned;
+                        if( !t->b_thread_active )
+                            continue;
+                        bits  = X264_MAX(bits, x264_ratecontrol_get_estimated_size(t));
+                        predicted_bits += (int64_t)bits;
+                    }
+                }
+            }
+            else
+            {
+                if( h->fenc->i_frame < h->param.i_threads )
+                    predicted_bits += (int64_t)h->fenc->i_frame * rcc->bitrate / rcc->fps;
+                else
+                    predicted_bits += (int64_t)(h->param.i_threads - 1) * rcc->bitrate / rcc->fps;
+            }
+
+            diff = predicted_bits - (int64_t)rce.expected_bits;
             q = rce.new_qscale;
             q /= x264_clip3f((double)(abr_buffer - diff) / abr_buffer, .5, 2);
-            if( h->fenc->i_frame > 30 )
+            if( ((h->fenc->i_frame + 1 - h->param.i_threads) >= rcc->fps) &&
+                (rcc->expected_bits_sum > 0))
             {
                 /* Adjust quant based on the difference between
                  * achieved and expected bitrate so far */
@@ -1429,6 +1444,7 @@ static float rate_estimate_qscale( x264_t *h )
             }
             if( rcc->b_vbv )
             {
+                /* Do not overflow vbv */
                 double expected_size = qscale2bits(&rce, q);
                 double expected_vbv = rcc->buffer_fill + rcc->buffer_rate - expected_size;
                 double expected_fullness =  rce.expected_vbv / rcc->buffer_size;
