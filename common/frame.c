@@ -609,6 +609,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
     const int b_interlaced = h->sh.b_mbaff;
     const int mvy_limit = 4 >> b_interlaced;
     const int qp_thresh = 15 - X264_MIN(h->sh.i_alpha_c0_offset, h->sh.i_beta_offset) - X264_MAX(0, h->param.analyse.i_chroma_qp_offset);
+    const int no_sub8x8 = !(h->param.analyse.inter & X264_ANALYSE_PSUB8x8);
     int mb_x;
     int stridey   = h->fdec->i_stride[0];
     int stride2y  = stridey << b_interlaced;
@@ -694,24 +695,31 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                     if( h->mb.non_zero_count[mb_xy][x+y*4] != 0 ||\
                         h->mb.non_zero_count[mbn_xy][xn+yn*4] != 0 )\
                         bS[i] = 2;\
-                    else\
+                    else if(!(i_edge&no_sub8x8))\
                     {\
-                        /* FIXME: A given frame may occupy more than one position in\
-                         * the reference list. So we should compare the frame numbers,\
-                         * not the indices in the ref list.\
-                         * No harm yet, as we don't generate that case.*/\
-                        int i8p= mb_8x8+(x>>1)+(y>>1)*s8x8;\
-                        int i8q= mbn_8x8+(xn>>1)+(yn>>1)*s8x8;\
-                        int i4p= mb_4x4+x+y*s4x4;\
-                        int i4q= mbn_4x4+xn+yn*s4x4;\
-                        for( l = 0; l < 1 + (h->sh.i_type == SLICE_TYPE_B); l++ )\
-                            if( h->mb.ref[l][i8p] != h->mb.ref[l][i8q] ||\
-                                abs( h->mb.mv[l][i4p][0] - h->mb.mv[l][i4q][0] ) >= 4 ||\
-                                abs( h->mb.mv[l][i4p][1] - h->mb.mv[l][i4q][1] ) >= mvy_limit )\
+                        if((i&no_sub8x8) && bS[i-1] != 2)\
+                            bS[i] = bS[i-1];\
+                        else\
+                        {\
+                            /* FIXME: A given frame may occupy more than one position in\
+                             * the reference list. So we should compare the frame numbers,\
+                             * not the indices in the ref list.\
+                             * No harm yet, as we don't generate that case.*/\
+                            int i8p= mb_8x8+(x>>1)+(y>>1)*s8x8;\
+                            int i8q= mbn_8x8+(xn>>1)+(yn>>1)*s8x8;\
+                            int i4p= mb_4x4+x+y*s4x4;\
+                            int i4q= mbn_4x4+xn+yn*s4x4;\
+                            if((h->mb.ref[0][i8p] != h->mb.ref[0][i8q] ||\
+                                abs( h->mb.mv[0][i4p][0] - h->mb.mv[0][i4q][0] ) >= 4 ||\
+                                abs( h->mb.mv[0][i4p][1] - h->mb.mv[0][i4q][1] ) >= mvy_limit ) ||\
+                               (h->sh.i_type == SLICE_TYPE_B &&\
+                               (h->mb.ref[1][i8p] != h->mb.ref[1][i8q] ||\
+                                abs( h->mb.mv[1][i4p][0] - h->mb.mv[1][i4q][0] ) >= 4 ||\
+                                abs( h->mb.mv[1][i4p][1] - h->mb.mv[1][i4q][1] ) >= mvy_limit )))\
                             {\
                                 bS[i] = 1;\
-                                break;\
                             }\
+                        }\
                     }\
                 }\
             }\
@@ -722,7 +730,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
         #define DEBLOCK_DIR(i_dir)\
         {\
             int i_edge = (i_dir ? (mb_y <= b_interlaced) : (mb_x == 0));\
-            int i_qpn, i, l, mbn_xy, mbn_8x8, mbn_4x4;\
+            int i_qpn, i, mbn_xy, mbn_8x8, mbn_4x4;\
             DECLARE_ALIGNED_4( uint8_t bS[4] );  /* filtering strength */\
             if( i_edge )\
                 i_edge+= b_8x8_transform;\
