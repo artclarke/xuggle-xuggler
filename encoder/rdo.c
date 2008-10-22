@@ -530,7 +530,7 @@ static ALWAYS_INLINE void quant_trellis_cabac( x264_t *h, int16_t *dct,
                             f8_bits += cabac_prefix_size[i_prefix][*ctx];
                             *ctx = cabac_prefix_transition[i_prefix][*ctx];
                             if( abs_level >= 15 )
-                                f8_bits += bs_size_ue( abs_level - 15 ) << CABAC_SIZE_BITS;
+                                f8_bits += bs_size_ue_big( abs_level - 15 ) << CABAC_SIZE_BITS;
                             node_ctx = coeff_abs_level_transition[1][node_ctx];
                         }
                         else
