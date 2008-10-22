@@ -823,6 +823,8 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     COPY( analyse.b_dct_decimate );
     COPY( analyse.b_fast_pskip );
     COPY( analyse.b_mixed_references );
+    COPY( analyse.f_psy_rd );
+    COPY( analyse.f_psy_trellis );
     // can only twiddle these if they were enabled to begin with:
     if( h->pps->b_transform_8x8_mode )
         COPY( analyse.b_transform_8x8 );
