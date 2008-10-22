@@ -1047,7 +1047,6 @@ static void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int 
     }
     else if( i_mb_type == B_8x8 )
     {
-        x264_cabac_mb_sub_b_partition( cb, h->mb.i_sub_partition[i8] );
         x264_cabac_mb8x8_mvd( h, cb, 0, i8 );
         x264_cabac_mb8x8_mvd( h, cb, 1, i8 );
     }
