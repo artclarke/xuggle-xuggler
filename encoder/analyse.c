@@ -2377,7 +2377,7 @@ void x264_macroblock_analyse( x264_t *h )
                     x264_macroblock_cache_ref( h, 0, 0, 4, 2, 0, analysis.l0.me16x8[0].i_ref );
                     x264_macroblock_cache_ref( h, 0, 2, 4, 2, 0, analysis.l0.me16x8[1].i_ref );
                     x264_me_refine_qpel_rd( h, &analysis.l0.me16x8[0], analysis.i_lambda2, 0, 0 );
-                    x264_me_refine_qpel_rd( h, &analysis.l0.me16x8[1], analysis.i_lambda2, 2, 0 );
+                    x264_me_refine_qpel_rd( h, &analysis.l0.me16x8[1], analysis.i_lambda2, 8, 0 );
                 }
                 else if( i_partition == D_8x16 )
                 {
@@ -2386,15 +2386,36 @@ void x264_macroblock_analyse( x264_t *h )
                     x264_macroblock_cache_ref( h, 0, 0, 2, 4, 0, analysis.l0.me8x16[0].i_ref );
                     x264_macroblock_cache_ref( h, 2, 0, 2, 4, 0, analysis.l0.me8x16[1].i_ref );
                     x264_me_refine_qpel_rd( h, &analysis.l0.me8x16[0], analysis.i_lambda2, 0, 0 );
-                    x264_me_refine_qpel_rd( h, &analysis.l0.me8x16[1], analysis.i_lambda2, 1, 0 );
+                    x264_me_refine_qpel_rd( h, &analysis.l0.me8x16[1], analysis.i_lambda2, 4, 0 );
                 }
                 else if( i_partition == D_8x8 )
                 {
                     int i8x8;
                     x264_analyse_update_cache( h, &analysis );
                     for( i8x8 = 0; i8x8 < 4; i8x8++ )
-                         if( h->mb.i_sub_partition[i8x8] == D_L0_8x8 )
-                             x264_me_refine_qpel_rd( h, &analysis.l0.me8x8[i8x8], analysis.i_lambda2, i8x8, 0 );
+                    {
+                        if( h->mb.i_sub_partition[i8x8] == D_L0_8x8 )
+                        {
+                            x264_me_refine_qpel_rd( h, &analysis.l0.me8x8[i8x8], analysis.i_lambda2, i8x8*4, 0 );
+                        }
+                        else if( h->mb.i_sub_partition[i8x8] == D_L0_8x4 )
+                        {
+                           x264_me_refine_qpel_rd( h, &analysis.l0.me8x4[i8x8][0], analysis.i_lambda2, i8x8*4+0, 0 );
+                           x264_me_refine_qpel_rd( h, &analysis.l0.me8x4[i8x8][1], analysis.i_lambda2, i8x8*4+2, 0 );
+                        }
+                        else if( h->mb.i_sub_partition[i8x8] == D_L0_4x8 )
+                        {
+                           x264_me_refine_qpel_rd( h, &analysis.l0.me4x8[i8x8][0], analysis.i_lambda2, i8x8*4+0, 0 );
+                           x264_me_refine_qpel_rd( h, &analysis.l0.me4x8[i8x8][1], analysis.i_lambda2, i8x8*4+1, 0 );
+                        }
+                        else if( h->mb.i_sub_partition[i8x8] == D_L0_4x4 )
+                        {
+                           x264_me_refine_qpel_rd( h, &analysis.l0.me4x4[i8x8][0], analysis.i_lambda2, i8x8*4+0, 0 );
+                           x264_me_refine_qpel_rd( h, &analysis.l0.me4x4[i8x8][1], analysis.i_lambda2, i8x8*4+1, 0 );
+                           x264_me_refine_qpel_rd( h, &analysis.l0.me4x4[i8x8][2], analysis.i_lambda2, i8x8*4+2, 0 );
+                           x264_me_refine_qpel_rd( h, &analysis.l0.me4x4[i8x8][3], analysis.i_lambda2, i8x8*4+3, 0 );
+                        }
+                    }
                 }
             }
         }
@@ -2663,9 +2684,9 @@ void x264_macroblock_analyse( x264_t *h )
                     {
                         h->mb.i_sub_partition[i*2] = h->mb.i_sub_partition[i*2+1] = analysis.i_mb_partition16x8[i];
                         if( analysis.i_mb_partition16x8[i] == D_L0_8x8 )
-                            x264_me_refine_qpel_rd( h, &analysis.l0.me16x8[i], analysis.i_lambda2, i*2, 0 );
+                            x264_me_refine_qpel_rd( h, &analysis.l0.me16x8[i], analysis.i_lambda2, i*8, 0 );
                         else if( analysis.i_mb_partition16x8[i] == D_L1_8x8 )
-                            x264_me_refine_qpel_rd( h, &analysis.l1.me16x8[i], analysis.i_lambda2, i*2, 1 );
+                            x264_me_refine_qpel_rd( h, &analysis.l1.me16x8[i], analysis.i_lambda2, i*8, 1 );
                         else if( analysis.i_mb_partition16x8[i] == D_BI_8x8 )
                             x264_me_refine_bidir_rd( h, &analysis.l0.me16x8[i], &analysis.l1.me16x8[i], i_biweight, i*2, analysis.i_lambda2 );
                     }
@@ -2676,9 +2697,9 @@ void x264_macroblock_analyse( x264_t *h )
                     {
                         h->mb.i_sub_partition[i] = h->mb.i_sub_partition[i+2] = analysis.i_mb_partition8x16[i];
                         if( analysis.i_mb_partition8x16[i] == D_L0_8x8 )
-                            x264_me_refine_qpel_rd( h, &analysis.l0.me8x16[i], analysis.i_lambda2, i, 0 );
+                            x264_me_refine_qpel_rd( h, &analysis.l0.me8x16[i], analysis.i_lambda2, i*4, 0 );
                         else if( analysis.i_mb_partition8x16[i] == D_L1_8x8 )
-                            x264_me_refine_qpel_rd( h, &analysis.l1.me8x16[i], analysis.i_lambda2, i, 1 );
+                            x264_me_refine_qpel_rd( h, &analysis.l1.me8x16[i], analysis.i_lambda2, i*4, 1 );
                         else if( analysis.i_mb_partition8x16[i] == D_BI_8x8 )
                             x264_me_refine_bidir_rd( h, &analysis.l0.me8x16[i], &analysis.l1.me8x16[i], i_biweight, i, analysis.i_lambda2 );
                     }
@@ -2688,9 +2709,9 @@ void x264_macroblock_analyse( x264_t *h )
                     for( i = 0; i < 4; i++ )
                     {
                         if( h->mb.i_sub_partition[i] == D_L0_8x8 )
-                            x264_me_refine_qpel_rd( h, &analysis.l0.me8x8[i], analysis.i_lambda2, i, 0 );
+                            x264_me_refine_qpel_rd( h, &analysis.l0.me8x8[i], analysis.i_lambda2, i*4, 0 );
                         else if( h->mb.i_sub_partition[i] == D_L1_8x8 )
-                            x264_me_refine_qpel_rd( h, &analysis.l1.me8x8[i], analysis.i_lambda2, i, 1 );
+                            x264_me_refine_qpel_rd( h, &analysis.l1.me8x8[i], analysis.i_lambda2, i*4, 1 );
                         else if( h->mb.i_sub_partition[i] == D_BI_8x8 )
                             x264_me_refine_bidir_rd( h, &analysis.l0.me8x8[i], &analysis.l1.me8x8[i], i_biweight, i, analysis.i_lambda2 );
                     }

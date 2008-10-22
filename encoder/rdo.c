@@ -159,11 +159,39 @@ static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
     return i_ssd + i_bits;
 }
 
-/* subpartition RD functions use 8 bits more precision to avoid large rounding errors at low QPs */
+/* partition RD functions use 8 bits more precision to avoid large rounding errors at low QPs */
 
-uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i8, int i_pixel )
+static uint64_t x264_rd_cost_subpart( x264_t *h, int i_lambda2, int i4, int i_pixel )
 {
     uint64_t i_ssd, i_bits;
+
+    x264_macroblock_encode_p4x4( h, i4 );
+    if( i_pixel == PIXEL_8x4 )
+        x264_macroblock_encode_p4x4( h, i4+1 );
+    if( i_pixel == PIXEL_4x8 )
+        x264_macroblock_encode_p4x4( h, i4+2 );
+
+    i_ssd = ssd_plane( h, i_pixel, 0, block_idx_x[i4]*4, block_idx_y[i4]*4 );
+
+    if( h->param.b_cabac )
+    {
+        x264_cabac_t cabac_tmp;
+        COPY_CABAC;
+        x264_subpartition_size_cabac( h, &cabac_tmp, i4, i_pixel );
+        i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
+    }
+    else
+    {
+        i_bits = x264_subpartition_size_cavlc( h, i4, i_pixel );
+    }
+
+    return (i_ssd<<8) + i_bits;
+}
+
+uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i4, int i_pixel )
+{
+    uint64_t i_ssd, i_bits;
+    int i8 = i4 >> 2;
 
     if( i_pixel == PIXEL_16x16 )
     {
@@ -172,6 +200,9 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i8, int i_pixel )
         h->mb.i_type = type_bak;
         return i_cost;
     }
+
+    if( i_pixel > PIXEL_8x8 )
+        return x264_rd_cost_subpart( h, i_lambda2, i4, i_pixel );
 
     x264_macroblock_encode_p8x8( h, i8 );
     if( i_pixel == PIXEL_16x8 )

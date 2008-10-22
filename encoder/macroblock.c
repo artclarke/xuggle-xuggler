@@ -921,3 +921,33 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
     h->mb.i_cbp_luma |= nnz8x8 << i8;
     h->mb.i_cbp_chroma = 0x02;
 }
+
+/*****************************************************************************
+ * RD only, luma only
+ *****************************************************************************/
+void x264_macroblock_encode_p4x4( x264_t *h, int i4 )
+{
+    int i_qp = h->mb.i_qp;
+    uint8_t *p_fenc = &h->mb.pic.p_fenc[0][block_idx_xy_fenc[i4]];
+    uint8_t *p_fdec = &h->mb.pic.p_fdec[0][block_idx_xy_fdec[i4]];
+    const int i_ref = h->mb.cache.ref[0][x264_scan8[i4]];
+    const int mvx   = x264_clip3( h->mb.cache.mv[0][x264_scan8[i4]][0], h->mb.mv_min[0], h->mb.mv_max[0] );
+    const int mvy   = x264_clip3( h->mb.cache.mv[0][x264_scan8[i4]][1], h->mb.mv_min[1], h->mb.mv_max[1] );
+
+    h->mc.mc_luma( p_fdec, FDEC_STRIDE, h->mb.pic.p_fref[0][i_ref], h->mb.pic.i_stride[0], mvx + 4*4*block_idx_x[i4], mvy + 4*4*block_idx_y[i4], 4, 4 );
+
+    if( h->mb.b_lossless )
+        h->zigzagf.sub_4x4( h->dct.luma4x4[i4], p_fenc, p_fdec );
+    else
+    {
+        DECLARE_ALIGNED_16( int16_t dct4x4[4][4] );
+        h->dctf.sub4x4_dct( dct4x4, p_fenc, p_fdec );
+        x264_quant_4x4( h, dct4x4, i_qp, DCT_LUMA_4x4, 0, i4 );
+        h->zigzagf.scan_4x4( h->dct.luma4x4[i4], dct4x4 );
+        if( array_non_zero( dct4x4 ) )
+        {
+            h->quantf.dequant_4x4( dct4x4, h->dequant4_mf[CQM_4PY], i_qp );
+            h->dctf.add4x4_idct( p_fdec, dct4x4 );
+        }
+    }
+}

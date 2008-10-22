@@ -944,7 +944,7 @@ void x264_me_refine_bidir_rd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_wei
 #undef COST_MV_SATD
 #define COST_MV_SATD( mx, my, dst, avoid_mvp ) \
 { \
-    if( !avoid_pmv || !(mx == pmx && my == pmy) ) \
+    if( !avoid_mvp || !(mx == pmx && my == pmy) ) \
     { \
         int stride = 16; \
         uint8_t *src = h->mc.get_ref( pix, &stride, m->p_fref, m->i_stride[0], mx, my, bw*4, bh*4 ); \
@@ -962,16 +962,16 @@ void x264_me_refine_bidir_rd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_wei
     { \
         uint64_t cost; \
         *(uint32_t*)cache_mv = *(uint32_t*)cache_mv2 = pack16to32_mask(mx,my); \
-        cost = x264_rd_cost_part( h, i_lambda2, i8, m->i_pixel ); \
+        cost = x264_rd_cost_part( h, i_lambda2, i4, m->i_pixel ); \
         COPY4_IF_LT( bcost, cost, bmx, mx, bmy, my, dir, do_dir?mdir:dir ); \
     } \
 }
 
-void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8, int i_list )
+void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int i_list )
 {
     // don't have to fill the whole mv cache rectangle
-    static const int pixel_mv_offs[] = { 0, 4, 4*8, 0 };
-    int16_t *cache_mv = h->mb.cache.mv[i_list][x264_scan8[i8*4]];
+    static const int pixel_mv_offs[] = { 0, 4, 4*8, 0, 2, 2*8, 0 };
+    int16_t *cache_mv = h->mb.cache.mv[i_list][x264_scan8[i4]];
     int16_t *cache_mv2 = cache_mv + pixel_mv_offs[m->i_pixel];
     const int16_t *p_cost_mvx, *p_cost_mvy;
     const int bw = x264_pixel_size[m->i_pixel].w>>2;
@@ -990,8 +990,8 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8, int
     int dir = -2;
     int satds[8];
 
-    if( m->i_pixel != PIXEL_16x16 && i8 != 0 )
-        x264_mb_predict_mv( h, i_list, i8*4, bw, m->mvp );
+    if( m->i_pixel != PIXEL_16x16 && i4 != 0 )
+        x264_mb_predict_mv( h, i_list, i4, bw, m->mvp );
     pmx = m->mvp[0];
     pmy = m->mvp[1];
     p_cost_mvx = m->p_cost_mv - pmx;
@@ -1051,7 +1051,6 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8, int
     m->cost = bcost;
     m->mv[0] = bmx;
     m->mv[1] = bmy;
-    x264_macroblock_cache_mv ( h, 2*(i8&1), i8&2, bw, bh, i_list, pack16to32_mask(bmx, bmy) );
-    x264_macroblock_cache_mvd( h, 2*(i8&1), i8&2, bw, bh, i_list, pack16to32_mask(bmx - m->mvp[0], bmy - m->mvp[1]) );
+    x264_macroblock_cache_mv ( h, block_idx_x[i4], block_idx_y[i4], bw, bh, i_list, pack16to32_mask(bmx, bmy) );
+    x264_macroblock_cache_mvd( h, block_idx_x[i4], block_idx_y[i4], bw, bh, i_list, pack16to32_mask(bmx - m->mvp[0], bmy - m->mvp[1]) );
 }
-

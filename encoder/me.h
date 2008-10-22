@@ -53,7 +53,7 @@ static inline void x264_me_search( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], i
     { x264_me_search_ref( h, m, mvc, i_mvc, NULL ); }
 
 void x264_me_refine_qpel( x264_t *h, x264_me_t *m );
-void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i8, int i_list );
+void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int i_list );
 void x264_me_refine_bidir_rd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight, int i8, int i_lambda2 );
 void x264_me_refine_bidir_satd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight );
 uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i8, int i_pixel );

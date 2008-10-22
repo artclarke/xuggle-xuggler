@@ -685,6 +685,24 @@ static int x264_partition_size_cavlc( x264_t *h, int i8, int i_pixel )
     return s.i_bits_encoded;
 }
 
+static int x264_subpartition_size_cavlc( x264_t *h, int i4, int i_pixel )
+{
+    bs_t s;
+    int b_8x4 = i_pixel == PIXEL_8x4;
+    s.i_bits_encoded = 0;
+    cavlc_mb_mvd( h, &s, 0, i4, 1+b_8x4 );
+    h->mb.cache.non_zero_count[x264_scan8[i4]] = array_non_zero_count( h->dct.luma4x4[i4] );
+    block_residual_write_cavlc( h, &s, i4, h->dct.luma4x4[i4], 16 );
+    if( i_pixel != PIXEL_4x4 )
+    {
+        i4 += 2-b_8x4;
+        h->mb.cache.non_zero_count[x264_scan8[i4]] = array_non_zero_count( h->dct.luma4x4[i4] );
+        block_residual_write_cavlc( h, &s, i4, h->dct.luma4x4[i4], 16 );
+    }
+
+    return s.i_bits_encoded;
+}
+
 static int cavlc_intra4x4_pred_size( x264_t *h, int i4, int i_mode )
 {
     if( x264_mb_predict_intra4x4_mode( h, i4 ) == x264_mb_pred_mode4x4_fix( i_mode ) )
