@@ -548,3 +548,20 @@ cglobal x264_zigzag_sub_4x4_frame_ssse3, 3,3
     movdqa    [r0], xmm0
     movdqa [r0+16], xmm1
     RET
+
+INIT_MMX
+cglobal x264_zigzag_interleave_8x8_cavlc_mmx, 2,3
+    mov    r2d, 24
+.loop:
+    movq   m0, [r1+r2*4+ 0]
+    movq   m1, [r1+r2*4+ 8]
+    movq   m2, [r1+r2*4+16]
+    movq   m3, [r1+r2*4+24]
+    TRANSPOSE4x4W 0,1,2,3,4
+    movq   [r0+r2+ 0], m0
+    movq   [r0+r2+32], m1
+    movq   [r0+r2+64], m2
+    movq   [r0+r2+96], m3
+    sub    r2d, 8
+    jge .loop
+    REP_RET

@@ -273,15 +273,13 @@ static void cavlc_mb8x8_mvd( x264_t *h, bs_t *s, int i_list, int i )
 
 static inline void x264_macroblock_luma_write_cavlc( x264_t *h, bs_t *s, int i8start, int i8end )
 {
-    int i8, i4, i;
+    int i8, i4;
     if( h->mb.b_transform_8x8 )
     {
         /* shuffle 8x8 dct coeffs into 4x4 lists */
         for( i8 = i8start; i8 <= i8end; i8++ )
             if( h->mb.i_cbp_luma & (1 << i8) )
-                for( i4 = 0; i4 < 4; i4++ )
-                    for( i = 0; i < 16; i++ )
-                        h->dct.luma4x4[i4+i8*4][i] = h->dct.luma8x8[i8][i4+i*4];
+                h->zigzagf.interleave_8x8_cavlc( h->dct.luma4x4[i8*4], h->dct.luma8x8[i8] );
     }
 
     for( i8 = i8start; i8 <= i8end; i8++ )

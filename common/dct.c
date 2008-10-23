@@ -582,6 +582,14 @@ static void zigzag_sub_8x8_field( int16_t level[64], const uint8_t *p_src, uint8
 #undef ZIG
 #undef COPY4x4
 
+static void zigzag_interleave_8x8_cavlc( int16_t *dst, int16_t *src )
+{
+    int i,j;
+    for( i=0; i<4; i++ )
+        for( j=0; j<16; j++ )
+            dst[i*16+j] = src[i+j*4];
+}
+
 void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
 {
     if( b_interlaced )
@@ -627,4 +635,10 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
             pf->scan_4x4   = x264_zigzag_scan_4x4_frame_altivec;
 #endif
     }
+
+    pf->interleave_8x8_cavlc = zigzag_interleave_8x8_cavlc;
+#ifdef HAVE_MMX
+    if( cpu&X264_CPU_MMX )
+        pf->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_mmx;
+#endif
 }

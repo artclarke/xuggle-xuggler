@@ -56,5 +56,6 @@ void x264_zigzag_scan_4x4_frame_ssse3 ( int16_t level[16], int16_t dct[4][4] );
 void x264_zigzag_scan_4x4_frame_mmx   ( int16_t level[16], int16_t dct[4][4] );
 void x264_zigzag_scan_4x4_field_mmxext( int16_t level[16], int16_t dct[4][4] );
 void x264_zigzag_sub_4x4_frame_ssse3  ( int16_t level[16], const uint8_t *src, uint8_t *dst );
+void x264_zigzag_interleave_8x8_cavlc_mmx( int16_t *dst, int16_t *src );
 
 #endif
