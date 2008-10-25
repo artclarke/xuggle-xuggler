@@ -24,8 +24,14 @@
 
 #define RDO_SKIP_BS
 
-static uint8_t cabac_prefix_transition[15][128];
-static uint16_t cabac_prefix_size[15][128];
+/* Transition and size tables for abs<9 MVD and residual coding */
+/* Consist of i_prefix-2 1s, one zero, and a bypass sign bit */
+static uint8_t cabac_transition_unary[15][128];
+static uint16_t cabac_size_unary[15][128];
+/* Transition and size tables for abs>9 MVD */
+/* Consist of 5 1s and a bypass sign bit */
+static uint8_t cabac_transition_5ones[128];
+static uint16_t cabac_size_5ones[128];
 
 /* CAVLC: produces exactly the same bit count as a normal encode */
 /* this probably still leaves some unnecessary computations */
@@ -40,8 +46,10 @@ static uint16_t cabac_prefix_size[15][128];
 /* CABAC: not exactly the same. x264_cabac_size_decision() keeps track of
  * fractional bits, but only finite precision. */
 #undef  x264_cabac_encode_decision
+#undef  x264_cabac_encode_decision_noup
 #define x264_cabac_encode_decision(c,x,v) x264_cabac_size_decision(c,x,v)
-#define x264_cabac_encode_terminal(c)     x264_cabac_size_decision(c,276,0)
+#define x264_cabac_encode_decision_noup(c,x,v) x264_cabac_size_decision_noup(c,x,v)
+#define x264_cabac_encode_terminal(c)     x264_cabac_size_decision_noup(c,276,0)
 #define x264_cabac_encode_bypass(c,v)     ((c)->f8_bits_encoded += 256)
 #define x264_cabac_encode_ue_bypass(c,e,v) ((c)->f8_bits_encoded += (bs_size_ue_big(v+(1<<e)-1)-e)<<8)
 #define x264_cabac_encode_flush(h,c)
@@ -307,18 +315,16 @@ static uint64_t x264_rd_cost_i8x8_chroma( x264_t *h, int i_lambda2, int i_mode, 
 #define SSD_WEIGHT_BITS 5
 #define LAMBDA_BITS 4
 
-/* precalculate the cost of coding abs_level_m1 */
+/* precalculate the cost of coding various combinations of bits in a single context */
 void x264_rdo_init( void )
 {
-    int i_prefix;
-    int i_ctx;
+    int i_prefix, i_ctx, i;
     for( i_prefix = 0; i_prefix < 15; i_prefix++ )
     {
         for( i_ctx = 0; i_ctx < 128; i_ctx++ )
         {
             int f8_bits = 0;
             uint8_t ctx = i_ctx;
-            int i;
 
             for( i = 1; i < i_prefix; i++ )
                 f8_bits += x264_cabac_size_decision2( &ctx, 1 );
@@ -326,9 +332,21 @@ void x264_rdo_init( void )
                 f8_bits += x264_cabac_size_decision2( &ctx, 0 );
             f8_bits += 1 << CABAC_SIZE_BITS; //sign
 
-            cabac_prefix_size[i_prefix][i_ctx] = f8_bits;
-            cabac_prefix_transition[i_prefix][i_ctx] = ctx;
+            cabac_size_unary[i_prefix][i_ctx] = f8_bits;
+            cabac_transition_unary[i_prefix][i_ctx] = ctx;
         }
+    }
+    for( i_ctx = 0; i_ctx < 128; i_ctx++ )
+    {
+        int f8_bits = 0;
+        uint8_t ctx = i_ctx;
+
+        for( i = 0; i < 5; i++ )
+            f8_bits += x264_cabac_size_decision2( &ctx, 1 );
+        f8_bits += 1 << CABAC_SIZE_BITS; //sign
+
+        cabac_size_5ones[i_ctx] = f8_bits;
+        cabac_transition_5ones[i_ctx] = ctx;
     }
 }
 
@@ -480,7 +498,7 @@ static ALWAYS_INLINE void quant_trellis_cabac( x264_t *h, int16_t *dct,
         {
             // no need to calculate ssd of 0s: it's the same in all nodes.
             // no need to modify level_tree for ctx=0: it starts with an infinite loop of 0s.
-            const uint32_t cost_sig0 = x264_cabac_size_decision_noup( &cabac_state_sig[i], 0 )
+            const uint32_t cost_sig0 = x264_cabac_size_decision_noup2( &cabac_state_sig[i], 0 )
                                      * (uint64_t)i_lambda2 >> ( CABAC_SIZE_BITS - LAMBDA_BITS );
             for( j = 1; j < 8; j++ )
             {
@@ -506,10 +524,10 @@ static ALWAYS_INLINE void quant_trellis_cabac( x264_t *h, int16_t *dct,
 
         if( i < i_coefs-1 )
         {
-            cost_sig[0] = x264_cabac_size_decision_noup( &cabac_state_sig[i], 0 );
-            cost_sig[1] = x264_cabac_size_decision_noup( &cabac_state_sig[i], 1 );
-            cost_last[0] = x264_cabac_size_decision_noup( &cabac_state_last[i], 0 );
-            cost_last[1] = x264_cabac_size_decision_noup( &cabac_state_last[i], 1 );
+            cost_sig[0] = x264_cabac_size_decision_noup2( &cabac_state_sig[i], 0 );
+            cost_sig[1] = x264_cabac_size_decision_noup2( &cabac_state_sig[i], 1 );
+            cost_last[0] = x264_cabac_size_decision_noup2( &cabac_state_last[i], 0 );
+            cost_last[1] = x264_cabac_size_decision_noup2( &cabac_state_last[i], 1 );
         }
         else
         {
@@ -558,8 +576,8 @@ static ALWAYS_INLINE void quant_trellis_cabac( x264_t *h, int16_t *dct,
                         if( i_prefix > 0 )
                         {
                             uint8_t *ctx = &n.cabac_state[coeff_abs_levelgt1_ctx[node_ctx]];
-                            f8_bits += cabac_prefix_size[i_prefix][*ctx];
-                            *ctx = cabac_prefix_transition[i_prefix][*ctx];
+                            f8_bits += cabac_size_unary[i_prefix][*ctx];
+                            *ctx = cabac_transition_unary[i_prefix][*ctx];
                             if( abs_level >= 15 )
                                 f8_bits += bs_size_ue_big( abs_level - 15 ) << CABAC_SIZE_BITS;
                             node_ctx = coeff_abs_level_transition[1][node_ctx];

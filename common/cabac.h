@@ -65,6 +65,7 @@ void x264_cabac_encode_flush( x264_t *h, x264_cabac_t *cb );
 #else
 #define x264_cabac_encode_decision x264_cabac_encode_decision_c
 #endif
+#define x264_cabac_encode_decision_noup x264_cabac_encode_decision
 
 static inline int x264_cabac_pos( x264_cabac_t *cb )
 {
@@ -87,7 +88,13 @@ static inline int x264_cabac_size_decision2( uint8_t *state, long b )
     return x264_cabac_entropy[i_state][b];
 }
 
-static inline int x264_cabac_size_decision_noup( uint8_t *state, long b )
+static inline void x264_cabac_size_decision_noup( x264_cabac_t *cb, long i_ctx, long b )
+{
+    int i_state = cb->state[i_ctx];
+    cb->f8_bits_encoded += x264_cabac_entropy[i_state][b];
+}
+
+static inline int x264_cabac_size_decision_noup2( uint8_t *state, long b )
 {
     return x264_cabac_entropy[*state][b];
 }
