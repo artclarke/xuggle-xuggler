@@ -1926,35 +1926,36 @@ static void x264_mb_analyse_p_rd( x264_t *h, x264_mb_analysis_t *a, int i_satd )
     {
         h->mb.i_type = P_8x8;
         h->mb.i_partition = D_8x8;
-        x264_analyse_update_cache( h, a );
-        a->l0.i_cost8x8 = x264_rd_cost_mb( h, a->i_lambda2 );
-
         if( h->param.analyse.inter & X264_ANALYSE_PSUB8x8 )
         {
-            /* FIXME: RD per subpartition */
-            int part_bak[4];
-            int i, i_cost;
-            int b_sub8x8 = 0;
-            for( i=0; i<4; i++ )
+            int i;
+            x264_macroblock_cache_ref( h, 0, 0, 2, 2, 0, a->l0.me8x8[0].i_ref );
+            x264_macroblock_cache_ref( h, 2, 0, 2, 2, 0, a->l0.me8x8[1].i_ref );
+            x264_macroblock_cache_ref( h, 0, 2, 2, 2, 0, a->l0.me8x8[2].i_ref );
+            x264_macroblock_cache_ref( h, 2, 2, 2, 2, 0, a->l0.me8x8[3].i_ref );
+            for( i = 0; i < 4; i++ )
             {
-                part_bak[i] = h->mb.i_sub_partition[i];
-                b_sub8x8 |= (part_bak[i] != D_L0_8x8);
-            }
-            if( b_sub8x8 )
-            {
-                h->mb.i_sub_partition[0] = h->mb.i_sub_partition[1] =
-                h->mb.i_sub_partition[2] = h->mb.i_sub_partition[3] = D_L0_8x8;
-                x264_analyse_update_cache( h, a );
-                i_cost = x264_rd_cost_mb( h, a->i_lambda2 );
-                if( a->l0.i_cost8x8 < i_cost )
+                int costs[4] = {a->l0.i_cost4x4[i], a->l0.i_cost8x4[i], a->l0.i_cost4x8[i], a->l0.me8x8[i].cost};
+                int thresh = X264_MIN4( costs[0], costs[1], costs[2], costs[3] ) * 5 / 4;
+                int subtype, btype = D_L0_8x8;
+                uint64_t bcost = COST_MAX64;
+                for( subtype = D_L0_4x4; subtype <= D_L0_8x8; subtype++ )
                 {
-                    for( i=0; i<4; i++ )
-                        h->mb.i_sub_partition[i] = part_bak[i];
+                    uint64_t cost;
+                    if( costs[subtype] > thresh || (subtype == D_L0_8x8 && bcost == COST_MAX64) )
+                        continue;
+                    h->mb.i_sub_partition[i] = subtype;
+                    x264_mb_cache_mv_p8x8( h, a, i );
+                    cost = x264_rd_cost_part( h, a->i_lambda2, i<<2, PIXEL_8x8 );
+                    COPY2_IF_LT( bcost, cost, btype, subtype );
                 }
-                else
-                   a->l0.i_cost8x8 = i_cost;
+                h->mb.i_sub_partition[i] = btype;
+                x264_mb_cache_mv_p8x8( h, a, i );
             }
         }
+        else
+            x264_analyse_update_cache( h, a );
+        a->l0.i_cost8x8 = x264_rd_cost_mb( h, a->i_lambda2 );
     }
     else
         a->l0.i_cost8x8 = COST_MAX;
