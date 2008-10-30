@@ -1463,12 +1463,13 @@ cglobal x264_pixel_hadamard_ac_%1x%2_%3, 2,3
     paddusw m1, [rsp+0x60]
     paddusw m0, [rsp+0x70]
     paddusw m1, [rsp+0x80]
+    psrlw m0, 1
 %endif
     HADDW m0, m2
     HADDW m1, m3
     movd edx, m0
     movd eax, m1
-    shr  edx, 2
+    shr  edx, 2 - (%1*%2 >> 8)
     shr  eax, 1
 %ifdef ARCH_X86_64
     shl  rdx, 32
