@@ -1709,7 +1709,7 @@ static void vbv_pass2( x264_t *h )
             adj_max = fix_underflow(h, t0, t1, 1.001, qscale_min, qscale_max);
 
         expected_bits = count_expected_bits(h);
-    } while(expected_bits < .995 * all_available_bits && expected_bits > prev_bits);
+    } while((expected_bits < .995*all_available_bits) && ((int)(expected_bits+.5) > (int)(prev_bits+.5)) );
 
     if (!adj_max)
         x264_log( h, X264_LOG_WARNING, "vbv-maxrate issue, qpmax or vbv-maxrate too low\n");
