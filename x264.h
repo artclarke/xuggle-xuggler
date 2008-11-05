@@ -58,8 +58,9 @@ typedef struct x264_t x264_t;
 #define X264_CPU_SSE3           0x000200
 #define X264_CPU_SSSE3          0x000400
 #define X264_CPU_PHADD_IS_FAST  0x000800  /* pre-Penryn Core2 have a uselessly slow PHADD instruction */
-#define X264_CPU_SSE4           0x001000  /* SSE4.1 */
-#define X264_CPU_STACK_MOD4     0x002000  /* if stack is only mod4 and not mod16 */
+#define X264_CPU_STACK_MOD4     0x001000  /* if stack is only mod4 and not mod16 */
+#define X264_CPU_SSE4           0x002000  /* SSE4.1 */
+#define X264_CPU_SSE42          0x004000  /* SSE4.2 */
 
 /* Analyse flags
  */

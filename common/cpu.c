@@ -48,7 +48,8 @@ const x264_cpu_name_t x264_cpu_names[] = {
     {"SSE3",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3},
     {"SSSE3",   X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3},
     {"PHADD",   X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_PHADD_IS_FAST},
-    {"SSE4",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4},
+    {"SSE4.1",  X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4},
+    {"SSE4.2",  X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4|X264_CPU_SSE42},
     {"Cache32", X264_CPU_CACHELINE_32},
     {"Cache64", X264_CPU_CACHELINE_64},
     {"Slow_mod4_stack", X264_CPU_STACK_MOD4},
@@ -91,6 +92,8 @@ uint32_t x264_cpu_detect( void )
         cpu |= X264_CPU_SSSE3;
     if( ecx&0x00080000 )
         cpu |= X264_CPU_SSE4;
+    if( ecx&0x00100000 )
+        cpu |= X264_CPU_SSE42;
 
     if( cpu & X264_CPU_SSSE3 )
         cpu |= X264_CPU_SSE2_IS_FAST;
@@ -131,7 +134,7 @@ uint32_t x264_cpu_detect( void )
         }
     }
 
-    if( !strcmp((char*)vendor, "GenuineIntel") || !strcmp((char*)vendor, "CyrixInstead") )
+    if( (!strcmp((char*)vendor, "GenuineIntel") || !strcmp((char*)vendor, "CyrixInstead")) && !(cpu&X264_CPU_SSE42))
     {
         /* cacheline size is specified in 3 places, any of which may be missing */
         x264_cpu_cpuid( 1, &eax, &ebx, &ecx, &edx );

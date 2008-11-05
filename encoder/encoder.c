@@ -744,6 +744,9 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         if( !strcmp(x264_cpu_names[i].name, "SSE3")
             && (param->cpu & X264_CPU_SSSE3 || !(param->cpu & X264_CPU_CACHELINE_64)) )
             continue;
+        if( !strcmp(x264_cpu_names[i].name, "SSE4.1")
+            && (param->cpu & X264_CPU_SSE42) )
+            continue;
         if( (param->cpu & x264_cpu_names[i].flags) == x264_cpu_names[i].flags
             && (!i || x264_cpu_names[i].flags != x264_cpu_names[i-1].flags) )
             p += sprintf( p, " %s", x264_cpu_names[i].name );
