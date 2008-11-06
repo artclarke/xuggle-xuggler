@@ -441,9 +441,6 @@ int x264_ratecontrol_new( x264_t *h )
             return -1;
         }
 
-        /* FIXME: ugly padding because VfW drops delayed B-frames */
-        rc->num_entries += h->param.i_bframe;
-
         rc->entry = (ratecontrol_entry_t*) x264_malloc(rc->num_entries * sizeof(ratecontrol_entry_t));
         memset(rc->entry, 0, rc->num_entries * sizeof(ratecontrol_entry_t));
 
@@ -981,6 +978,7 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
             /* We could try to initialize everything required for ABR and
              * adaptive B-frames, but that would be complicated.
              * So just calculate the average QP used so far. */
+            int i;
 
             h->param.rc.i_qp_constant = (h->stat.i_slice_count[SLICE_TYPE_P] == 0) ? 24
                                       : 1 + h->stat.f_slice_qp[SLICE_TYPE_P] / h->stat.i_slice_count[SLICE_TYPE_P];
@@ -993,14 +991,19 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
             if( h->param.i_bframe_adaptive )
                 x264_log(h, X264_LOG_ERROR, "disabling adaptive B-frames\n");
 
-            rc->b_abr = 0;
-            rc->b_2pass = 0;
-            h->param.rc.i_rc_method = X264_RC_CQP;
-            h->param.rc.b_stat_read = 0;
-            h->param.i_bframe_adaptive = 0;
-            if( h->param.i_bframe > 1 )
-                h->param.i_bframe = 1;
-            return X264_TYPE_P;
+            for( i = 0; i < h->param.i_threads; i++ )
+            {
+                h->thread[i]->rc->b_abr = 0;
+                h->thread[i]->rc->b_2pass = 0;
+                h->thread[i]->param.rc.i_rc_method = X264_RC_CQP;
+                h->thread[i]->param.rc.b_stat_read = 0;
+                h->thread[i]->param.i_bframe_adaptive = 0;
+                h->thread[i]->param.b_pre_scenecut = 0;
+                h->thread[i]->param.i_scenecut_threshold = -1;
+                if( h->thread[i]->param.i_bframe > 1 )
+                    h->thread[i]->param.i_bframe = 1;
+            }
+            return X264_TYPE_AUTO;
         }
         switch( rc->entry[frame_num].pict_type )
         {
