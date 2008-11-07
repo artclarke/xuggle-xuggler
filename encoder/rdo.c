@@ -22,7 +22,7 @@
  * instead of writing the bitstream.
  * TODO: use these for fast 1st pass too. */
 
-#define RDO_SKIP_BS
+#define RDO_SKIP_BS 1
 
 /* Transition and size tables for abs<9 MVD and residual coding */
 /* Consist of i_prefix-2 1s, one zero, and a bypass sign bit */

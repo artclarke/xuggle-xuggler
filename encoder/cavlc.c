@@ -24,6 +24,10 @@
 #include "common/common.h"
 #include "macroblock.h"
 
+#ifndef RDO_SKIP_BS
+#define RDO_SKIP_BS 0
+#endif
+
 static const uint8_t intra4x4_cbp_to_golomb[48]=
 {
   3, 29, 30, 17, 31, 18, 37,  8, 32, 38, 19,  9, 20, 10, 11,  2,
@@ -168,7 +172,7 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_idx, int16_t *
                 }
                 else
                 {
-#ifdef RDO_SKIP_BS
+#if RDO_SKIP_BS
                     /* Weight highly against overflows. */
                     s->i_bits_encoded += 1000000;
 #else
@@ -212,7 +216,7 @@ static void cavlc_qp_delta( x264_t *h, bs_t *s )
     if( h->mb.i_type == I_16x16 && !(h->mb.i_cbp_luma | h->mb.i_cbp_chroma)
         && !array_non_zero(h->dct.luma16x16_dc) )
     {
-#ifndef RDO_SKIP_BS
+#if !RDO_SKIP_BS
         h->mb.i_qp = h->mb.i_last_qp;
 #endif
         i_dqp = 0;
@@ -300,7 +304,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
     int i_mb_i_offset;
     int i;
 
-#ifndef RDO_SKIP_BS
+#if !RDO_SKIP_BS
     const int i_mb_pos_start = bs_pos( s );
     int       i_mb_pos_tex;
 #endif
@@ -327,7 +331,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         bs_write1( s, h->mb.b_interlaced );
     }
 
-#ifndef RDO_SKIP_BS
+#if !RDO_SKIP_BS
     if( i_mb_type == I_PCM)
     {
         bs_write_ue( s, i_mb_i_offset + 25 );
@@ -579,7 +583,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         return;
     }
 
-#ifndef RDO_SKIP_BS
+#if !RDO_SKIP_BS
     i_mb_pos_tex = bs_pos( s );
     h->stat.frame.i_mv_bits += i_mb_pos_tex - i_mb_pos_start;
 #endif
@@ -628,12 +632,12 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
             }
     }
 
-#ifndef RDO_SKIP_BS
+#if !RDO_SKIP_BS
     h->stat.frame.i_tex_bits += bs_pos(s) - i_mb_pos_tex;
 #endif
 }
 
-#ifdef RDO_SKIP_BS
+#if RDO_SKIP_BS
 /*****************************************************************************
  * RD only; doesn't generate a valid bitstream
  * doesn't write cbp or chroma dc (I don't know how much this matters)
