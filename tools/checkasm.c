@@ -235,6 +235,18 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_predict_4x4_init( 0, predict_4x4 );
     x264_predict_8x8_filter( buf2+40, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
 
+    // maximize sum
+    for( i=0; i<256; i++ )
+    {
+        int z = i|(i>>4);
+        z ^= z>>2;
+        z ^= z>>1;
+        buf3[i] = ~(buf4[i] = -(z&1));
+    }
+    // random pattern made of maxed pixel differences, in case an intermediate value overflows
+    for( ; i<0x1000; i++ )
+        buf3[i] = ~(buf4[i] = -(buf1[i&~0x88]&1));
+
 #define TEST_PIXEL( name, align ) \
     for( i = 0, ok = 1, used_asm = 0; i < 7; i++ ) \
     { \
@@ -242,9 +254,9 @@ static int check_pixel( int cpu_ref, int cpu_new )
         if( pixel_asm.name[i] != pixel_ref.name[i] ) \
         { \
             set_func_name( "%s_%s", #name, pixel_names[i] ); \
+            used_asm = 1; \
             for( j=0; j<64; j++ ) \
             { \
-                used_asm = 1; \
                 res_c   = call_c( pixel_c.name[i], buf1, 16, buf2+j*!align, 64 ); \
                 res_asm = call_a( pixel_asm.name[i], buf1, 16, buf2+j*!align, 64 ); \
                 if( res_c != res_asm ) \
@@ -252,6 +264,16 @@ static int check_pixel( int cpu_ref, int cpu_new )
                     ok = 0; \
                     fprintf( stderr, #name "[%d]: %d != %d [FAILED]\n", i, res_c, res_asm ); \
                     break; \
+                } \
+            } \
+            for( j=0; j<0x1000 && ok; j+=256 ) \
+            { \
+                res_c   = pixel_c  .name[i]( buf3+j, 16, buf4+j, 16 ); \
+                res_asm = pixel_asm.name[i]( buf3+j, 16, buf4+j, 16 ); \
+                if( res_c != res_asm ) \
+                { \
+                    ok = 0; \
+                    fprintf( stderr, #name "[%d]: overflow %d != %d\n", i, res_c, res_asm ); \
                 } \
             } \
         } \
@@ -271,10 +293,10 @@ static int check_pixel( int cpu_ref, int cpu_new )
         if( pixel_asm.sad_x##N[i] && pixel_asm.sad_x##N[i] != pixel_ref.sad_x##N[i] ) \
         { \
             set_func_name( "sad_x%d_%s", N, pixel_names[i] ); \
+            used_asm = 1; \
             for( j=0; j<64; j++) \
             { \
                 uint8_t *pix2 = buf2+j; \
-                used_asm = 1; \
                 res_c[0] = pixel_c.sad[i]( buf1, 16, pix2, 64 ); \
                 res_c[1] = pixel_c.sad[i]( buf1, 16, pix2+6, 64 ); \
                 res_c[2] = pixel_c.sad[i]( buf1, 16, pix2+1, 64 ); \
@@ -330,12 +352,17 @@ static int check_pixel( int cpu_ref, int cpu_new )
         {
             set_func_name( "hadamard_ac_%s", pixel_names[i] );
             used_asm = 1;
-            uint64_t rc = pixel_c.hadamard_ac[i]( buf1, 16 );
-            uint64_t ra = pixel_asm.hadamard_ac[i]( buf1, 16 );
-            if( rc != ra )
+            for( j=0; j<32; j++ )
             {
-                ok = 0;
-                fprintf( stderr, "hadamard_ac[%d]: %d,%d != %d,%d\n", i, (int)rc, (int)(rc>>32), (int)ra, (int)(ra>>32) );
+                uint8_t *pix = (j&16 ? buf1 : buf3) + (j&15)*256;
+                uint64_t rc = pixel_c.hadamard_ac[i]( pix, 16 );
+                uint64_t ra = pixel_asm.hadamard_ac[i]( pix, 16 );
+                if( rc != ra )
+                {
+                    ok = 0;
+                    fprintf( stderr, "hadamard_ac[%d]: %d,%d != %d,%d\n", i, (int)rc, (int)(rc>>32), (int)ra, (int)(ra>>32) );
+                    break;
+                }
             }
             call_c2( pixel_c.hadamard_ac[i], buf1, 16 );
             call_a2( pixel_asm.hadamard_ac[i], buf1, 16 );

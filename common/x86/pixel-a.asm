@@ -54,6 +54,15 @@ SECTION .text
     HADDD   %1, %2
 %endmacro
 
+%macro HADDUW 2
+    mova  %2, %1
+    pslld %1, 16
+    psrld %2, 16
+    psrld %1, 16
+    paddd %1, %2
+    HADDD %1, %2
+%endmacro
+
 ;=============================================================================
 ; SSD
 ;=============================================================================
@@ -330,62 +339,19 @@ cglobal x264_pixel_var_8x8_sse2, 2,3
     HADAMARD4x4_SUM %1
 %endmacro
 
-%macro SATD_8x4_START 1
-    SATD_4x4_MMX m0, 0, 0
-    SATD_4x4_MMX m1, 4, %1
-%endmacro
-
-%macro SATD_8x4_INC 1
-    SATD_4x4_MMX m2, 0, 0
-    paddw        m0, m1
-    SATD_4x4_MMX m1, 4, %1
-    paddw        m0, m2
-%endmacro
-
-%macro SATD_16x4_START 1
-    SATD_4x4_MMX m0,  0, 0
-    SATD_4x4_MMX m1,  4, 0
-    SATD_4x4_MMX m2,  8, 0
-    paddw        m0, m1
-    SATD_4x4_MMX m1, 12, %1
-    paddw        m0, m2
-%endmacro
-
-%macro SATD_16x4_INC 1
-    SATD_4x4_MMX m2,  0, 0
-    paddw        m0, m1
-    SATD_4x4_MMX m1,  4, 0
-    paddw        m0, m2
-    SATD_4x4_MMX m2,  8, 0
-    paddw        m0, m1
-    SATD_4x4_MMX m1, 12, %1
-    paddw        m0, m2
-%endmacro
-
-%macro SATD_8x4_SSE2 1
+%macro SATD_8x4_SSE2 2
     LOAD_DIFF_8x4P  m0, m1, m2, m3, m4, m5
 %if %1
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
 %endif
     HADAMARD4_1D    m0, m1, m2, m3
+%ifidn %2, ssse3_phadd
+    HADAMARD4_ROW_PHADD 0, 1, 2, 3, 4
+%else
     TRANSPOSE2x4x4W  0,  1,  2,  3,  4
     HADAMARD4_1D    m0, m1, m2, m3
-    ABS4            m0, m1, m2, m3, m4, m5
-    paddusw  m0, m1
-    paddusw  m2, m3
-    paddusw  m6, m0
-    paddusw  m6, m2
-%endmacro
-
-%macro SATD_8x4_PHADD 1
-    LOAD_DIFF_8x4P  m0, m1, m2, m3, m4, m5
-%if %1
-    lea  r0, [r0+4*r1]
-    lea  r2, [r2+4*r3]
 %endif
-    HADAMARD4_1D    m0, m1, m2, m3
-    HADAMARD4_ROW_PHADD 0, 1, 2, 3, 4
     ABS4            m0, m1, m2, m3, m4, m5
     paddusw  m0, m1
     paddusw  m2, m3
@@ -415,49 +381,70 @@ cglobal x264_pixel_var_8x8_sse2, 2,3
 ; int x264_pixel_satd_16x16_mmxext (uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
 INIT_MMX
+cglobal x264_pixel_satd_16x4_internal_mmxext
+    SATD_4x4_MMX m2,  0, 0
+    SATD_4x4_MMX m1,  4, 0
+    paddw        m0, m2
+    SATD_4x4_MMX m2,  8, 0
+    paddw        m0, m1
+    SATD_4x4_MMX m1, 12, 0
+    paddw        m0, m2
+    paddw        m0, m1
+    ret
+
+cglobal x264_pixel_satd_8x8_internal_mmxext
+    SATD_4x4_MMX m2,  0, 0
+    SATD_4x4_MMX m1,  4, 1
+    paddw        m0, m2
+    paddw        m0, m1
+x264_pixel_satd_8x4_internal_mmxext:
+    SATD_4x4_MMX m2,  0, 0
+    SATD_4x4_MMX m1,  4, 0
+    paddw        m0, m2
+    paddw        m0, m1
+    ret
+
 cglobal x264_pixel_satd_16x16_mmxext, 4,6
     SATD_START_MMX
-    SATD_16x4_START 1
-    SATD_16x4_INC 1
-    SATD_16x4_INC 1
-    SATD_16x4_INC 0
-    paddw       m0, m1
-    pxor        m3, m3
-    pshufw      m1, m0, 01001110b
-    paddw       m0, m1
-    punpcklwd   m0, m3
-    pshufw      m1, m0, 01001110b
-    paddd       m0, m1
-    movd       eax, m0
+    pxor   m0, m0
+%rep 3
+    call x264_pixel_satd_16x4_internal_mmxext
+    lea  r0, [r0+4*r1]
+    lea  r2, [r2+4*r3]
+%endrep
+    call x264_pixel_satd_16x4_internal_mmxext
+    HADDUW m0, m1
+    movd  eax, m0
     RET
 
 cglobal x264_pixel_satd_16x8_mmxext, 4,6
     SATD_START_MMX
-    SATD_16x4_START 1
-    SATD_16x4_INC 0
-    paddw  m0, m1
+    pxor   m0, m0
+    call x264_pixel_satd_16x4_internal_mmxext
+    lea  r0, [r0+4*r1]
+    lea  r2, [r2+4*r3]
+    call x264_pixel_satd_16x4_internal_mmxext
     SATD_END_MMX
 
 cglobal x264_pixel_satd_8x16_mmxext, 4,6
     SATD_START_MMX
-    SATD_8x4_START 1
-    SATD_8x4_INC 1
-    SATD_8x4_INC 1
-    SATD_8x4_INC 0
-    paddw  m0, m1
+    pxor   m0, m0
+    call x264_pixel_satd_8x8_internal_mmxext
+    lea  r0, [r0+4*r1]
+    lea  r2, [r2+4*r3]
+    call x264_pixel_satd_8x8_internal_mmxext
     SATD_END_MMX
 
 cglobal x264_pixel_satd_8x8_mmxext, 4,6
     SATD_START_MMX
-    SATD_8x4_START 1
-    SATD_8x4_INC 0
-    paddw  m0, m1
+    pxor   m0, m0
+    call x264_pixel_satd_8x8_internal_mmxext
     SATD_END_MMX
 
 cglobal x264_pixel_satd_8x4_mmxext, 4,6
     SATD_START_MMX
-    SATD_8x4_START 0
-    paddw  m0, m1
+    pxor   m0, m0
+    call x264_pixel_satd_8x4_internal_mmxext
     SATD_END_MMX
 
 %macro SATD_W4 1
@@ -514,61 +501,61 @@ SATD_W4 mmxext
 ;-----------------------------------------------------------------------------
 %macro SATDS_SSE2 1
 INIT_XMM
+cglobal x264_pixel_satd_8x8_internal_%1
+    SATD_8x4_SSE2 1, %1
+x264_pixel_satd_8x4_internal_%1:
+    SATD_8x4_SSE2 0, %1
+    ret
+
 cglobal x264_pixel_satd_16x16_%1, 4,6
     SATD_START_SSE2
     BACKUP_POINTERS
-    SATD_8x4_SSE2 1
-    SATD_8x4_SSE2 1
-    SATD_8x4_SSE2 1
-    SATD_8x4_SSE2 0
+    call x264_pixel_satd_8x8_internal_%1
+    lea  r0, [r0+4*r1]
+    lea  r2, [r2+4*r3]
+    call x264_pixel_satd_8x8_internal_%1
     RESTORE_AND_INC_POINTERS
-    SATD_8x4_SSE2 1
-    SATD_8x4_SSE2 1
-    SATD_8x4_SSE2 1
-    SATD_8x4_SSE2 0
+    call x264_pixel_satd_8x8_internal_%1
+    lea  r0, [r0+4*r1]
+    lea  r2, [r2+4*r3]
+    call x264_pixel_satd_8x8_internal_%1
     SATD_END_SSE2
 
 cglobal x264_pixel_satd_16x8_%1, 4,6
     SATD_START_SSE2
     BACKUP_POINTERS
-    SATD_8x4_SSE2 1
-    SATD_8x4_SSE2 0
+    call x264_pixel_satd_8x8_internal_%1
     RESTORE_AND_INC_POINTERS
-    SATD_8x4_SSE2 1
-    SATD_8x4_SSE2 0
+    call x264_pixel_satd_8x8_internal_%1
     SATD_END_SSE2
 
 cglobal x264_pixel_satd_8x16_%1, 4,6
     SATD_START_SSE2
-    SATD_8x4_SSE2 1
-    SATD_8x4_SSE2 1
-    SATD_8x4_SSE2 1
-    SATD_8x4_SSE2 0
+    call x264_pixel_satd_8x8_internal_%1
+    lea  r0, [r0+4*r1]
+    lea  r2, [r2+4*r3]
+    call x264_pixel_satd_8x8_internal_%1
     SATD_END_SSE2
 
 cglobal x264_pixel_satd_8x8_%1, 4,6
     SATD_START_SSE2
-    SATD_8x4_SSE2 1
-    SATD_8x4_SSE2 0
+    call x264_pixel_satd_8x8_internal_%1
     SATD_END_SSE2
 
 cglobal x264_pixel_satd_8x4_%1, 4,6
     SATD_START_SSE2
-    SATD_8x4_SSE2 0
+    call x264_pixel_satd_8x4_internal_%1
     SATD_END_SSE2
 
 %ifdef ARCH_X86_64
 ;-----------------------------------------------------------------------------
 ; int x264_pixel_sa8d_8x8_sse2( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_sa8d_8x8_%1
-    lea  r4, [3*r1]
-    lea  r5, [3*r3]
-.skip_lea:
-    LOAD_DIFF_8x4P m0, m1, m2, m3, m8, m9
-    lea  r0, [r0+4*r1]
-    lea  r2, [r2+4*r3]
-    LOAD_DIFF_8x4P m4, m5, m6, m7, m8, m9
+cglobal x264_pixel_sa8d_8x8_internal_%1
+    lea  r10, [r0+4*r1]
+    lea  r11, [r2+4*r3]
+    LOAD_DIFF_8x4P m0, m1, m2, m3, m8, m9, r0, r2
+    LOAD_DIFF_8x4P m4, m5, m6, m7, m8, m9, r10, r11
 
     HADAMARD8_1D  m0, m1, m2, m3, m4, m5, m6, m7
     TRANSPOSE8x8W  0,  1,  2,  3,  4,  5,  6,  7,  8
@@ -583,60 +570,65 @@ cglobal x264_pixel_sa8d_8x8_%1
     paddusw  m0, m2
     paddusw  m4, m6
     pavgw    m0, m4
-    HADDW    m0, m1
+    ret
+
+cglobal x264_pixel_sa8d_8x8_%1, 4,6
+    lea  r4, [3*r1]
+    lea  r5, [3*r3]
+    call x264_pixel_sa8d_8x8_internal_%1
+    HADDW m0, m1
     movd eax, m0
-    add r10d, eax ; preserve rounding for 16x16
     add eax, 1
     shr eax, 1
     ret
 
-cglobal x264_pixel_sa8d_16x16_%1
-    xor  r10d, r10d
-    call x264_pixel_sa8d_8x8_%1 ; pix[0]
-    lea  r0, [r0+4*r1]
-    lea  r2, [r2+4*r3]
-    call x264_pixel_sa8d_8x8_%1.skip_lea ; pix[8*stride]
-    neg  r4 ; it's already r1*3
-    neg  r5
-    lea  r0, [r0+4*r4+8]
-    lea  r2, [r2+4*r5+8]
-    call x264_pixel_sa8d_8x8_%1 ; pix[8]
-    lea  r0, [r0+4*r1]
-    lea  r2, [r2+4*r3]
-    call x264_pixel_sa8d_8x8_%1.skip_lea ; pix[8*stride+8]
-    mov  eax, r10d
+cglobal x264_pixel_sa8d_16x16_%1, 4,6
+    lea  r4, [3*r1]
+    lea  r5, [3*r3]
+    call x264_pixel_sa8d_8x8_internal_%1 ; pix[0]
+    add  r0, 8
+    add  r2, 8
+    mova m10, m0
+    call x264_pixel_sa8d_8x8_internal_%1 ; pix[8]
+    lea  r0, [r0+8*r1]
+    lea  r2, [r2+8*r3]
+    paddusw m10, m0
+    call x264_pixel_sa8d_8x8_internal_%1 ; pix[8*stride+8]
+    sub  r0, 8
+    sub  r2, 8
+    paddusw m10, m0
+    call x264_pixel_sa8d_8x8_internal_%1 ; pix[8*stride]
+    paddusw m0, m10
+    HADDUW m0, m1
+    movd eax, m0
     add  eax, 1
     shr  eax, 1
     ret
+
 %else ; ARCH_X86_32
-cglobal x264_pixel_sa8d_8x8_%1, 4,7
-    mov  r6, esp
-    and  esp, ~15
-    sub  esp, 32
-    lea  r4, [3*r1]
-    lea  r5, [3*r3]
+cglobal x264_pixel_sa8d_8x8_internal_%1
     LOAD_DIFF_8x4P m0, m1, m2, m3, m6, m7
-    movdqa [esp], m2
+    movdqa [esp+4], m2
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
     LOAD_DIFF_8x4P m4, m5, m6, m7, m2, m2
-    movdqa m2, [esp]
+    movdqa m2, [esp+4]
 
     HADAMARD8_1D  m0, m1, m2, m3, m4, m5, m6, m7
-    TRANSPOSE8x8W  0,  1,  2,  3,  4,  5,  6,  7, [esp], [esp+16]
+    TRANSPOSE8x8W  0,  1,  2,  3,  4,  5,  6,  7, [esp+4], [esp+20]
     HADAMARD8_1D  m0, m1, m2, m3, m4, m5, m6, m7
 
 %ifidn %1, sse2
-    movdqa [esp], m4
-    movdqa [esp+16], m2
+    movdqa [esp+4], m4
+    movdqa [esp+20], m2
 %endif
     ABS2 m6, m3, m4, m2
     ABS2 m0, m7, m4, m2
     paddusw m0, m6
     paddusw m7, m3
 %ifidn %1, sse2
-    movdqa m4, [esp]
-    movdqa m2, [esp+16]
+    movdqa m4, [esp+4]
+    movdqa m2, [esp+20]
 %endif
     ABS2 m5, m1, m6, m3
     ABS2 m4, m2, m6, m3
@@ -645,46 +637,73 @@ cglobal x264_pixel_sa8d_8x8_%1, 4,7
     paddusw m0, m7
     paddusw m5, m4
     pavgw   m0, m5
-    HADDW   m0, m7
-    movd eax, m0
-    mov  ecx, eax ; preserve rounding for 16x16
-    add  eax, 1
-    shr  eax, 1
-    mov  esp, r6
-    RET
+    ret
 %endif ; ARCH
 %endmacro ; SATDS_SSE2
 
 %macro SA8D_16x16_32 1
 %ifndef ARCH_X86_64
-cglobal x264_pixel_sa8d_16x16_%1
-    push   ebp
-    push   dword [esp+20]   ; stride2
-    push   dword [esp+20]   ; pix2
-    push   dword [esp+20]   ; stride1
-    push   dword [esp+20]   ; pix1
-    call x264_pixel_sa8d_8x8_%1
-    mov    ebp, ecx
-    add    dword [esp+0], 8 ; pix1+8
-    add    dword [esp+8], 8 ; pix2+8
-    call x264_pixel_sa8d_8x8_%1
-    add    ebp, ecx
-    mov    eax, [esp+4]
-    mov    edx, [esp+12]
-    shl    eax, 3
-    shl    edx, 3
-    add    [esp+0], eax     ; pix1+8*stride1+8
-    add    [esp+8], edx     ; pix2+8*stride2+8
-    call x264_pixel_sa8d_8x8_%1
-    add    ebp, ecx
-    sub    dword [esp+0], 8 ; pix1+8*stride1
-    sub    dword [esp+8], 8 ; pix2+8*stride2
-    call x264_pixel_sa8d_8x8_%1
-    lea    eax, [ebp+ecx+1]
-    shr    eax, 1
-    add    esp, 16
-    pop    ebp
-    ret
+cglobal x264_pixel_sa8d_8x8_%1, 4,7
+    mov  r6, esp
+    and  esp, ~15
+    sub  esp, 32
+    lea  r4, [3*r1]
+    lea  r5, [3*r3]
+    call x264_pixel_sa8d_8x8_internal_%1
+    HADDW m0, m1
+    movd eax, m0
+    add  eax, 1
+    shr  eax, 1
+    mov  esp, r6
+    RET
+
+cglobal x264_pixel_sa8d_16x16_%1, 4,7
+    mov  r6, esp
+    and  esp, ~15
+    sub  esp, 48
+    lea  r4, [3*r1]
+    lea  r5, [3*r3]
+    call x264_pixel_sa8d_8x8_internal_%1
+    lea  r0, [r0+4*r1]
+    lea  r2, [r2+4*r3]
+    mova [esp+32], m0
+    call x264_pixel_sa8d_8x8_internal_%1
+    mov  r0, [r6+20]
+    mov  r2, [r6+28]
+    add  r0, 8
+    add  r2, 8
+    paddusw m0, [esp+32]
+    mova [esp+32], m0
+    call x264_pixel_sa8d_8x8_internal_%1
+    lea  r0, [r0+4*r1]
+    lea  r2, [r2+4*r3]
+%if mmsize == 16
+    paddusw m0, [esp+32]
+%endif
+    mova [esp+48-mmsize], m0
+    call x264_pixel_sa8d_8x8_internal_%1
+    paddusw m0, [esp+48-mmsize]
+%if mmsize == 16
+    HADDUW m0, m1
+%else
+    mova m2, [esp+32]
+    pxor m7, m7
+    mova m1, m0
+    mova m3, m2
+    punpcklwd m0, m7
+    punpckhwd m1, m7
+    punpcklwd m2, m7
+    punpckhwd m3, m7
+    paddd m0, m1
+    paddd m2, m3
+    paddd m0, m2
+    HADDD m0, m1
+%endif
+    movd eax, m0
+    add  eax, 1
+    shr  eax, 1
+    mov  esp, r6
+    RET
 %endif ; !ARCH_X86_64
 %endmacro ; SA8D_16x16_32
 
@@ -1293,14 +1312,21 @@ cglobal x264_pixel_hadamard_ac_%1x%2_mmxext, 2,4
     paddusw m1, [rsp+0x18]
 %endif
 %if %1*%2 == 256
-    paddusw m0, [rsp+0x20]
+    mova    m2, [rsp+0x20]
     paddusw m1, [rsp+0x28]
-    paddusw m0, [rsp+0x30]
+    paddusw m2, [rsp+0x30]
+    mova    m3, m0
     paddusw m1, [rsp+0x38]
-%endif
+    pxor    m3, m2
+    pand    m3, [pw_1 GLOBAL]
+    pavgw   m0, m2
+    psubusw m0, m3
+    HADDUW  m0, m2
+%else
     psrlw m0, 1
-    psrlw m1, 1
     HADDW m0, m2
+%endif
+    psrlw m1, 1
     HADDW m1, m3
     movd edx, m0
     movd eax, m1
@@ -1482,7 +1508,7 @@ cglobal x264_pixel_hadamard_ac_%1x%2_%3, 2,3
 ; instantiate satds
 
 %ifndef ARCH_X86_64
-cextern x264_pixel_sa8d_8x8_mmxext
+cextern x264_pixel_sa8d_8x8_internal_mmxext
 SA8D_16x16_32 mmxext
 %endif
 
@@ -1502,7 +1528,6 @@ SA8D_16x16_32 ssse3
 INTRA_SA8D_SSE2 ssse3
 INTRA_SATDS_MMX ssse3
 HADAMARD_AC_SSE2 ssse3
-%define SATD_8x4_SSE2 SATD_8x4_PHADD
 SATDS_SSE2 ssse3_phadd
 
 

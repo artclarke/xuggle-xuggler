@@ -222,11 +222,11 @@
 %endif
 %endmacro
 
-%macro LOAD_DIFF_8x4P 6 ; 4x dest, 2x temp
-    LOAD_DIFF %1, %5, none, [r0],      [r2]
-    LOAD_DIFF %2, %6, none, [r0+r1],   [r2+r3]
-    LOAD_DIFF %3, %5, none, [r0+2*r1], [r2+2*r3]
-    LOAD_DIFF %4, %6, none, [r0+r4],   [r2+r5]
+%macro LOAD_DIFF_8x4P 6-8 r0,r2 ; 4x dest, 2x temp, 2x pointer
+    LOAD_DIFF %1, %5, none, [%7],      [%8]
+    LOAD_DIFF %2, %6, none, [%7+r1],   [%8+r3]
+    LOAD_DIFF %3, %5, none, [%7+2*r1], [%8+2*r3]
+    LOAD_DIFF %4, %6, none, [%7+r4],   [%8+r5]
 %endmacro
 
 %macro STORE_DIFF 4
