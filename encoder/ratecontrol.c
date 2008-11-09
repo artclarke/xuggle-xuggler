@@ -201,6 +201,8 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame )
             /* 10 constant chosen to result in approximately the same overall bitrate as without AQ. */
             float qp_adj = h->param.rc.f_aq_strength * 1.5 * (logf(energy) - 10.0);
             frame->f_qp_offset[mb_x + mb_y*h->mb.i_mb_stride] = qp_adj;
+            if( h->frames.b_have_lowres )
+                frame->i_inv_qscale_factor[mb_x+mb_y*h->mb.i_mb_stride] = FIX8(pow(2.0,-qp_adj/6.0));
         }
 }
 
