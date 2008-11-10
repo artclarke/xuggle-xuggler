@@ -84,7 +84,7 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
     x264_param_t *param = &h->param;
     int i;
 
-    /* First we fill all field */
+    /* First we fill all fields */
     sh->sps = sps;
     sh->pps = pps;
 
@@ -685,8 +685,6 @@ static int x264_validate_parameters( x264_t *h )
     /* Psy trellis has a similar effect. */
     if( h->mb.i_psy_trellis )
         h->param.analyse.i_chroma_qp_offset -= h->param.analyse.f_psy_trellis < 0.25 ? 1 : 2;
-    else
-        h->mb.i_psy_trellis = 0;
     h->param.analyse.i_chroma_qp_offset = x264_clip3(h->param.analyse.i_chroma_qp_offset, -12, 12);
     h->param.rc.i_aq_mode = x264_clip3( h->param.rc.i_aq_mode, 0, 2 );
     h->param.rc.f_aq_strength = x264_clip3f( h->param.rc.f_aq_strength, 0, 3 );

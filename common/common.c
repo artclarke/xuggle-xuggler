@@ -515,7 +515,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     OPT("psy-rd")
     {
         if( 2 == sscanf( value, "%f:%f", &p->analyse.f_psy_rd, &p->analyse.f_psy_trellis ) ||
-            2 == sscanf( value, "%f,%f", &p->analyse.f_psy_rd, &p->analyse.f_psy_trellis ) )
+            2 == sscanf( value, "%f,%f", &p->analyse.f_psy_rd, &p->analyse.f_psy_trellis ) ||
+            2 == sscanf( value, "%f|%f", &p->analyse.f_psy_rd, &p->analyse.f_psy_trellis ))
         { }
         else if( sscanf( value, "%f", &p->analyse.f_psy_rd ) )
         {
