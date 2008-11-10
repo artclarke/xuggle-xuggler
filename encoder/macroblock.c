@@ -679,7 +679,7 @@ void x264_macroblock_encode( x264_t *h )
  *  Check if the current MB could be encoded as a [PB]_SKIP (it supposes you use
  *  the previous QP
  *****************************************************************************/
-int x264_macroblock_probe_skip( x264_t *h, const int b_bidir )
+int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
 {
     DECLARE_ALIGNED_16( int16_t dct4x4[4][4][4] );
     DECLARE_ALIGNED_16( int16_t dct2x2[2][2] );

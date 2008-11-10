@@ -310,40 +310,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\..\encoder\eval.c">
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/enc_release/"
-						ProgramDataBaseFileName="obj/enc_release/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						ObjectFile=".\obj/enc_debug/"
-						ProgramDataBaseFileName="obj/enc_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/enc_release/"
-						ProgramDataBaseFileName="obj/enc_release/"/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="..\..\encoder\macroblock.c">
 				<FileConfiguration
 					Name="Release|Win32">

@@ -260,7 +260,11 @@ int x264_ratecontrol_new( x264_t *h )
     if( h->param.rc.i_vbv_buffer_size )
     {
         if( h->param.rc.i_rc_method == X264_RC_CQP )
+        {
             x264_log(h, X264_LOG_WARNING, "VBV is incompatible with constant QP, ignored.\n");
+            h->param.rc.i_vbv_max_bitrate = 0;
+            h->param.rc.i_vbv_buffer_size = 0;
+        }
         else if( h->param.rc.i_vbv_max_bitrate == 0 )
         {
             x264_log( h, X264_LOG_DEBUG, "VBV maxrate unspecified, assuming CBR\n" );

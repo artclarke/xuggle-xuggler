@@ -102,8 +102,8 @@ static void (* const x264_pixel_avg_wtab_##instr[6])( uint8_t *, int, uint8_t *,
 PIXEL_AVG_WTAB(mmxext, mmxext, mmxext, mmxext, mmxext, mmxext)
 #ifdef ARCH_X86
 PIXEL_AVG_WTAB(cache32_mmxext, mmxext, cache32_mmxext, cache32_mmxext, cache32_mmxext, cache32_mmxext)
-#endif
 PIXEL_AVG_WTAB(cache64_mmxext, mmxext, cache64_mmxext, cache64_mmxext, cache64_mmxext, cache64_mmxext)
+#endif
 PIXEL_AVG_WTAB(sse2, mmxext, mmxext, mmxext, sse2, sse2)
 PIXEL_AVG_WTAB(cache64_sse2, mmxext, cache64_mmxext, cache64_sse2, cache64_sse2, cache64_sse2)
 
