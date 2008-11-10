@@ -139,29 +139,6 @@ static void dequant_8x8( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp )
     }
 }
 
-void x264_mb_dequant_2x2_dc( int16_t dct[2][2], int dequant_mf[6][4][4], int i_qp )
-{
-    const int i_qbits = i_qp/6 - 5;
-
-    if( i_qbits >= 0 )
-    {
-        const int i_dmf = dequant_mf[i_qp%6][0][0] << i_qbits;
-        dct[0][0] *= i_dmf;
-        dct[0][1] *= i_dmf;
-        dct[1][0] *= i_dmf;
-        dct[1][1] *= i_dmf;
-    }
-    else
-    {
-        const int i_dmf = dequant_mf[i_qp%6][0][0];
-        // chroma DC is truncated, not rounded
-        dct[0][0] = ( dct[0][0] * i_dmf ) >> (-i_qbits);
-        dct[0][1] = ( dct[0][1] * i_dmf ) >> (-i_qbits);
-        dct[1][0] = ( dct[1][0] * i_dmf ) >> (-i_qbits);
-        dct[1][1] = ( dct[1][1] * i_dmf ) >> (-i_qbits);
-    }
-}
-
 void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
 {
     const int i_qbits = i_qp/6 - 6;

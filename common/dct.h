@@ -109,9 +109,6 @@ typedef struct
     void (*dct4x4dc) ( int16_t d[4][4] );
     void (*idct4x4dc)( int16_t d[4][4] );
 
-    void (*dct2x2dc) ( int16_t d[2][2] );
-    void (*idct2x2dc)( int16_t d[2][2] );
-
 } x264_dct_function_t;
 
 typedef struct

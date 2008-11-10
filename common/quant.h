@@ -43,6 +43,5 @@ typedef struct
 void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf );
 
 void x264_mb_dequant_4x4_dc( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qscale );
-void x264_mb_dequant_2x2_dc( int16_t dct[2][2], int dequant_mf[6][4][4], int i_qscale );
 
 #endif

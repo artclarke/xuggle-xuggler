@@ -36,21 +36,6 @@ int x264_dct8_weight2_zigzag[2][64];
  * XXX For all dct dc : input could be equal to output so ...
  */
 
-static void dct2x2dc( int16_t d[2][2] )
-{
-    int tmp[2][2];
-
-    tmp[0][0] = d[0][0] + d[0][1];
-    tmp[1][0] = d[0][0] - d[0][1];
-    tmp[0][1] = d[1][0] + d[1][1];
-    tmp[1][1] = d[1][0] - d[1][1];
-
-    d[0][0] = tmp[0][0] + tmp[0][1];
-    d[1][0] = tmp[1][0] + tmp[1][1];
-    d[0][1] = tmp[0][0] - tmp[0][1];
-    d[1][1] = tmp[1][0] - tmp[1][1];
-}
-
 static void dct4x4dc( int16_t d[4][4] )
 {
     int16_t tmp[4][4];
@@ -386,9 +371,6 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
 
     dctf->dct4x4dc  = dct4x4dc;
     dctf->idct4x4dc = idct4x4dc;
-
-    dctf->dct2x2dc  = dct2x2dc;
-    dctf->idct2x2dc = dct2x2dc;
 
 #ifdef HAVE_MMX
     if( cpu&X264_CPU_MMX )
