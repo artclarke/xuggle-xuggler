@@ -566,37 +566,6 @@ static int check_dct( int cpu_ref, int cpu_new )
     }
     report( "(i)dct4x4dc :" );
 
-    ok = 1; used_asm = 0;
-    if( dct_asm.dct2x2dc != dct_ref.dct2x2dc )
-    {
-        DECLARE_ALIGNED_16( int16_t dct1[2][2] ) = {{-12, 42},{2, 90}};
-        DECLARE_ALIGNED_16( int16_t dct2[2][2] ) = {{-12, 42},{2, 90}};
-        set_func_name( "dct2x2dc" );
-        used_asm = 1;
-        call_c( dct_c.dct2x2dc, dct1 );
-        call_a( dct_asm.dct2x2dc, dct2 );
-        if( memcmp( dct1, dct2, 4*2 ) )
-        {
-            ok = 0;
-            fprintf( stderr, " - dct2x2dc :        [FAILED]\n" );
-        }
-    }
-    if( dct_asm.idct2x2dc != dct_ref.idct2x2dc )
-    {
-        DECLARE_ALIGNED_16( int16_t dct1[2][2] ) = {{-12, 42},{2, 90}};
-        DECLARE_ALIGNED_16( int16_t dct2[2][2] ) = {{-12, 42},{2, 90}};
-        set_func_name( "idct2x2dc" );
-        used_asm = 1;
-        call_c( dct_c.idct2x2dc, dct1 );
-        call_a( dct_asm.idct2x2dc, dct2 );
-        if( memcmp( dct1, dct2, 4*2 ) )
-        {
-            ok = 0;
-            fprintf( stderr, " - idct2x2dc :       [FAILED]\n" );
-        }
-    }
-    report( "(i)dct2x2dc :" );
-
     x264_zigzag_function_t zigzag_c;
     x264_zigzag_function_t zigzag_ref;
     x264_zigzag_function_t zigzag_asm;
