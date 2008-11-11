@@ -32,7 +32,7 @@
  * the subme=8,9 values are much higher because any amount of satd search makes
  * up its time by reducing the number of qpel-rd iterations. */
 static const int subpel_iterations[][4] =
-   {{1,0,0,0},
+   {{0,0,0,0},
     {1,1,0,0},
     {0,1,1,0},
     {0,2,1,0},
@@ -165,7 +165,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
     uint8_t *p_fref = m->p_fref[0];
     DECLARE_ALIGNED_16( uint8_t pix[16*16] );
 
-    int i = 0, j;
+    int i, j;
     int dir;
     int costs[6];
 
@@ -190,7 +190,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
     {
         uint32_t bmv = pack16to32_mask(bmx,bmy);
         COST_MV_HPEL( bmx, bmy );
-        do
+        for( i = 0; i < i_mvc; i++ )
         {
             if( *(uint32_t*)mvc[i] && (bmv - *(uint32_t*)mvc[i]) )
             {
@@ -198,7 +198,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
                 int my = x264_clip3( mvc[i][1], mv_y_min*4, mv_y_max*4 );
                 COST_MV_HPEL( mx, my );
             }
-        } while( ++i < i_mvc );
+        }
         bmx = ( bpred_mx + 2 ) >> 2;
         bmy = ( bpred_my + 2 ) >> 2;
         COST_MV( bmx, bmy );
@@ -214,7 +214,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
          * sensible to remove the cost of the MV from the rounded MVP to avoid unfairly
          * biasing against use of the predicted motion vector. */
         bcost -= BITS_MVD( pmx, pmy );
-        do
+        for( i = 0; i < i_mvc; i++ )
         {
             int mx = (mvc[i][0] + 2) >> 2;
             int my = (mvc[i][1] + 2) >> 2;
@@ -224,7 +224,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
                 my = x264_clip3( my, mv_y_min, mv_y_max );
                 COST_MV( mx, my );
             }
-        } while( ++i < i_mvc );
+        }
     }
     COST_MV( 0, 0 );
 

@@ -249,7 +249,8 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H1( "      --mvrange <integer>     Maximum motion vector length [-1 (auto)]\n" );
     H1( "      --mvrange-thread <int>  Minimum buffer between threads [-1 (auto)]\n" );
     H0( "  -m, --subme <integer>       Subpixel motion estimation and mode decision [%d]\n", defaults->analyse.i_subpel_refine );
-    H1( "                                  - 1: SAD mode decision, one qpel iteration\n"
+    H1( "                                  - 0: fullpel only (not recommended)\n"
+        "                                  - 1: SAD mode decision, one qpel iteration\n"
         "                                  - 2: SATD mode decision\n"
         "                                  - 3-5: Progressively more qpel\n"
         "                                  - 6: RD mode decision for I/P-frames\n"

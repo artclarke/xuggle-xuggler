@@ -441,7 +441,11 @@ static int x264_validate_parameters( x264_t *h )
     if( h->param.i_keyint_max <= 0 )
         h->param.i_keyint_max = 1;
     h->param.i_keyint_min = x264_clip3( h->param.i_keyint_min, 1, h->param.i_keyint_max/2+1 );
-
+    if( !h->param.analyse.i_subpel_refine && h->param.analyse.i_direct_mv_pred > X264_DIRECT_PRED_SPATIAL )
+    {
+        x264_log( h, X264_LOG_WARNING, "subme=0 + direct=temporal is not supported\n" );
+        h->param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_SPATIAL;
+    }
     h->param.i_bframe = x264_clip3( h->param.i_bframe, 0, X264_BFRAME_MAX );
     h->param.i_bframe_bias = x264_clip3( h->param.i_bframe_bias, -90, 100 );
     h->param.b_bframe_pyramid = h->param.b_bframe_pyramid && h->param.i_bframe > 1;
@@ -474,7 +478,7 @@ static int x264_validate_parameters( x264_t *h )
     if( h->param.analyse.i_me_method == X264_ME_TESA &&
         (h->mb.b_lossless || h->param.analyse.i_subpel_refine <= 1) )
         h->param.analyse.i_me_method = X264_ME_ESA;
-    h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 1, 9 );
+    h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 0, 9 );
     h->param.analyse.b_mixed_references = h->param.analyse.b_mixed_references && h->param.i_frame_reference > 1;
     h->param.analyse.inter &= X264_ANALYSE_PSUB16x16|X264_ANALYSE_PSUB8x8|X264_ANALYSE_BSUB16x16|
                               X264_ANALYSE_I4x4|X264_ANALYSE_I8x8;
@@ -820,7 +824,9 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     COPY( analyse.i_direct_mv_pred );
     COPY( analyse.i_me_range );
     COPY( analyse.i_noise_reduction );
-    COPY( analyse.i_subpel_refine );
+    /* We can't switch out of subme=0 during encoding. */
+    if( h->param.analyse.i_subpel_refine )
+        COPY( analyse.i_subpel_refine );
     COPY( analyse.i_trellis );
     COPY( analyse.b_chroma_me );
     COPY( analyse.b_dct_decimate );
@@ -1002,8 +1008,11 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y )
     if( b_hpel )
     {
         x264_frame_expand_border( h, h->fdec, min_y, b_end );
-        x264_frame_filter( h, h->fdec, min_y, b_end );
-        x264_frame_expand_border_filtered( h, h->fdec, min_y, b_end );
+        if( h->param.analyse.i_subpel_refine )
+        {
+            x264_frame_filter( h, h->fdec, min_y, b_end );
+            x264_frame_expand_border_filtered( h, h->fdec, min_y, b_end );
+        }
     }
 
     if( h->param.i_threads > 1 && h->fdec->b_kept_as_ref )
