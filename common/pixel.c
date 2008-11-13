@@ -707,6 +707,18 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
 #endif
     }
 
+    if( cpu&X264_CPU_SSE2_IS_FAST && !(cpu&X264_CPU_CACHELINE_64) )
+    {
+        pixf->sad_aligned[PIXEL_8x16] = x264_pixel_sad_8x16_sse2;
+        pixf->sad[PIXEL_8x16] = x264_pixel_sad_8x16_sse2;
+        pixf->sad_x3[PIXEL_8x16] = x264_pixel_sad_x3_8x16_sse2;
+        pixf->sad_x3[PIXEL_8x8] = x264_pixel_sad_x3_8x8_sse2;
+        pixf->sad_x3[PIXEL_8x4] = x264_pixel_sad_x3_8x4_sse2;
+        pixf->sad_x4[PIXEL_8x16] = x264_pixel_sad_x4_8x16_sse2;
+        pixf->sad_x4[PIXEL_8x8] = x264_pixel_sad_x4_8x8_sse2;
+        pixf->sad_x4[PIXEL_8x4] = x264_pixel_sad_x4_8x4_sse2;
+    }
+
     if( (cpu&X264_CPU_SSE3) && (cpu&X264_CPU_CACHELINE_64) )
     {
         INIT2( sad, _sse3 );
