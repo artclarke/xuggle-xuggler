@@ -830,6 +830,80 @@ SAD_X 4,  4,  4
     RET
 %endmacro
 
+%macro SAD_X3_START_1x16P_SSE2_MISALIGN 0
+    movdqa xmm2, [r0]
+    movdqu xmm0, [r1]
+    movdqu xmm1, [r2]
+    psadbw xmm0, xmm2
+    psadbw xmm1, xmm2
+    psadbw xmm2, [r3]
+%endmacro
+
+%macro SAD_X3_1x16P_SSE2_MISALIGN 2
+    movdqa xmm3, [r0+%1]
+    movdqu xmm4, [r1+%2]
+    movdqu xmm5, [r2+%2]
+    psadbw xmm4, xmm3
+    psadbw xmm5, xmm3
+    psadbw xmm3, [r3+%2]
+    paddw  xmm0, xmm4
+    paddw  xmm1, xmm5
+    paddw  xmm2, xmm3
+%endmacro
+
+%macro SAD_X4_START_1x16P_SSE2_MISALIGN 0
+    movdqa xmm3, [r0]
+    movdqu xmm0, [r1]
+    movdqu xmm1, [r2]
+    movdqu xmm2, [r3]
+    psadbw xmm0, xmm3
+    psadbw xmm1, xmm3
+    psadbw xmm2, xmm3
+    psadbw xmm3, [r4]
+%endmacro
+
+%macro SAD_X4_1x16P_SSE2_MISALIGN 2
+    movdqa xmm7, [r0+%1]
+    movdqu xmm4, [r1+%2]
+    movdqu xmm5, [r2+%2]
+    movdqu xmm6, [r3+%2]
+    psadbw xmm4, xmm7
+    psadbw xmm5, xmm7
+    psadbw xmm6, xmm7
+    psadbw xmm7, [r4+%2]
+    paddw  xmm0, xmm4
+    paddw  xmm1, xmm5
+    paddw  xmm2, xmm6
+    paddw  xmm3, xmm7
+%endmacro
+
+%macro SAD_X3_2x16P_SSE2_MISALIGN 1
+%if %1
+    SAD_X3_START_1x16P_SSE2_MISALIGN
+%else
+    SAD_X3_1x16P_SSE2_MISALIGN 0, 0
+%endif
+    SAD_X3_1x16P_SSE2_MISALIGN FENC_STRIDE, r4
+    add  r0, 2*FENC_STRIDE
+    lea  r1, [r1+2*r4]
+    lea  r2, [r2+2*r4]
+    lea  r3, [r3+2*r4]
+%endmacro
+
+%macro SAD_X4_2x16P_SSE2_MISALIGN 1
+%if %1
+    SAD_X4_START_1x16P_SSE2_MISALIGN
+%else
+    SAD_X4_1x16P_SSE2_MISALIGN 0, 0
+%endif
+    SAD_X4_1x16P_SSE2_MISALIGN FENC_STRIDE, r5
+    add  r0, 2*FENC_STRIDE
+    lea  r1, [r1+2*r5]
+    lea  r2, [r2+2*r5]
+    lea  r3, [r3+2*r5]
+    lea  r4, [r4+2*r5]
+%endmacro
+
 ;-----------------------------------------------------------------------------
 ; void x264_pixel_sad_x3_16x16_sse2( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1,
 ;                                    uint8_t *pix2, int i_stride, int scores[3] )
@@ -839,6 +913,15 @@ cglobal x264_pixel_sad_x%1_%2x%3_%4, 2+%1,2+%1
     SAD_X%1_2x%2P_SSE2 1
 %rep %3/2-1
     SAD_X%1_2x%2P_SSE2 0
+%endrep
+    SAD_X%1_END_SSE2
+%endmacro
+
+%macro SAD_X_SSE2_MISALIGN 4
+cglobal x264_pixel_sad_x%1_%2x%3_%4_misalign, 2+%1,2+%1
+    SAD_X%1_2x%2P_SSE2_MISALIGN 1
+%rep %3/2-1
+    SAD_X%1_2x%2P_SSE2_MISALIGN 0
 %endrep
     SAD_X%1_END_SSE2
 %endmacro
@@ -853,6 +936,11 @@ SAD_X_SSE2 4, 16,  8, sse2
 SAD_X_SSE2 4,  8, 16, sse2
 SAD_X_SSE2 4,  8,  8, sse2
 SAD_X_SSE2 4,  8,  4, sse2
+
+SAD_X_SSE2_MISALIGN 3, 16, 16, sse2
+SAD_X_SSE2_MISALIGN 3, 16,  8, sse2
+SAD_X_SSE2_MISALIGN 4, 16, 16, sse2
+SAD_X_SSE2_MISALIGN 4, 16,  8, sse2
 
 %define movdqu lddqu
 SAD_X_SSE2 3, 16, 16, sse3
@@ -869,8 +957,8 @@ SAD_X_SSE2 4, 16,  8, sse3
 
 ; Core2 (Conroe) can load unaligned data just as quickly as aligned data...
 ; unless the unaligned data spans the border between 2 cachelines, in which
-; case it's really slow. The exact numbers may differ, but all Intel cpus
-; have a large penalty for cacheline splits.
+; case it's really slow. The exact numbers may differ, but all Intel cpus prior
+; to Nehalem have a large penalty for cacheline splits.
 ; (8-byte alignment exactly half way between two cachelines is ok though.)
 ; LDDQU was supposed to fix this, but it only works on Pentium 4.
 ; So in the split case we load aligned data and explicitly perform the

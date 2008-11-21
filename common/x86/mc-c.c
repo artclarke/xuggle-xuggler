@@ -83,6 +83,7 @@ PIXEL_AVG_WALL(cache32_mmxext)
 PIXEL_AVG_WALL(cache64_mmxext)
 PIXEL_AVG_WALL(cache64_sse2)
 PIXEL_AVG_WALL(sse2)
+PIXEL_AVG_WALL(sse2_misalign)
 
 #define PIXEL_AVG_WTAB(instr, name1, name2, name3, name4, name5)\
 static void (* const x264_pixel_avg_wtab_##instr[6])( uint8_t *, int, uint8_t *, int, uint8_t *, int ) =\
@@ -98,13 +99,15 @@ static void (* const x264_pixel_avg_wtab_##instr[6])( uint8_t *, int, uint8_t *,
 /* w16 sse2 is faster than w12 mmx as long as the cacheline issue is resolved */
 #define x264_pixel_avg2_w12_cache64_sse2 x264_pixel_avg2_w16_cache64_sse2
 #define x264_pixel_avg2_w12_sse3         x264_pixel_avg2_w16_sse3
+#define x264_pixel_avg2_w12_sse2         x264_pixel_avg2_w16_sse2
 
 PIXEL_AVG_WTAB(mmxext, mmxext, mmxext, mmxext, mmxext, mmxext)
 #ifdef ARCH_X86
 PIXEL_AVG_WTAB(cache32_mmxext, mmxext, cache32_mmxext, cache32_mmxext, cache32_mmxext, cache32_mmxext)
 PIXEL_AVG_WTAB(cache64_mmxext, mmxext, cache64_mmxext, cache64_mmxext, cache64_mmxext, cache64_mmxext)
 #endif
-PIXEL_AVG_WTAB(sse2, mmxext, mmxext, mmxext, sse2, sse2)
+PIXEL_AVG_WTAB(sse2, mmxext, mmxext, sse2, sse2, sse2)
+PIXEL_AVG_WTAB(sse2_misalign, mmxext, mmxext, sse2, sse2, sse2_misalign)
 PIXEL_AVG_WTAB(cache64_sse2, mmxext, cache64_mmxext, cache64_sse2, cache64_sse2, cache64_sse2)
 
 #define MC_COPY_WTAB(instr, name1, name2, name3)\
@@ -184,6 +187,7 @@ GET_REF(cache32_mmxext)
 GET_REF(cache64_mmxext)
 #endif
 GET_REF(sse2)
+GET_REF(sse2_misalign)
 GET_REF(cache64_sse2)
 
 #define HPEL(align, cpu, cpuv, cpuc, cpuh)\
@@ -225,6 +229,7 @@ void x264_hpel_filter_ssse3( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_
 HPEL(16, sse2, sse2, sse2, sse2)
 HPEL(16, ssse3, sse2, ssse3, ssse3)
 #endif
+HPEL(16, sse2_misalign, sse2, sse2_misalign, sse2)
 
 void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 {
@@ -293,6 +298,8 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->avg[PIXEL_8x8]  = x264_pixel_avg_8x8_sse2;
     pf->avg[PIXEL_8x4]  = x264_pixel_avg_8x4_sse2;
     pf->hpel_filter = x264_hpel_filter_sse2;
+    if( cpu&X264_CPU_SSE_MISALIGN )
+        pf->hpel_filter = x264_hpel_filter_sse2_misalign;
     pf->frame_init_lowres_core = x264_frame_init_lowres_core_sse2;
     pf->mc_chroma = x264_mc_chroma_sse2;
 
@@ -305,6 +312,8 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
             pf->mc_luma = mc_luma_cache64_sse2;
             pf->get_ref = get_ref_cache64_sse2;
         }
+        if( cpu&X264_CPU_SSE_MISALIGN )
+            pf->get_ref = get_ref_sse2_misalign;
     }
 
     if( !(cpu&X264_CPU_SSSE3) )

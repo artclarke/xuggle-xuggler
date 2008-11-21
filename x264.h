@@ -61,6 +61,7 @@ typedef struct x264_t x264_t;
 #define X264_CPU_STACK_MOD4     0x001000  /* if stack is only mod4 and not mod16 */
 #define X264_CPU_SSE4           0x002000  /* SSE4.1 */
 #define X264_CPU_SSE42          0x004000  /* SSE4.2 */
+#define X264_CPU_SSE_MISALIGN   0x008000  /* Phenom support for misaligned SSE instruction arguments */
 
 /* Analyse flags
  */

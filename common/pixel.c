@@ -689,6 +689,11 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
             INIT2( sad_x4, _cache64_sse2 );
         }
 #endif
+        if( cpu&X264_CPU_SSE_MISALIGN )
+        {
+            INIT2( sad_x3, _sse2_misalign );
+            INIT2( sad_x4, _sse2_misalign );
+        }
     }
     if( cpu&X264_CPU_SSE2 )
     {

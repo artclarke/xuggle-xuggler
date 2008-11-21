@@ -154,7 +154,8 @@ static void print_bench(void)
                     b->cpu&X264_CPU_SSE2 ? "sse2" :
                     b->cpu&X264_CPU_MMX ? "mmx" : "c",
                     b->cpu&X264_CPU_CACHELINE_32 ? "_c32" :
-                    b->cpu&X264_CPU_CACHELINE_64 ? "_c64" : "",
+                    b->cpu&X264_CPU_CACHELINE_64 ? "_c64" :
+                    b->cpu&X264_CPU_SSE_MISALIGN ? "_misalign" : "",
                     ((int64_t)10*b->cycles/b->den - nop_time)/4 );
         }
 }
@@ -1261,6 +1262,12 @@ static int check_all_flags( void )
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE | X264_CPU_SSE2 | X264_CPU_SSE2_IS_SLOW, "SSE2Slow" );
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE2_IS_FAST, "SSE2Fast" );
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_64, "SSE2Fast Cache64" );
+    }
+    if( x264_cpu_detect() & X264_CPU_SSE_MISALIGN )
+    {
+        cpu1 &= ~X264_CPU_CACHELINE_64;
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE_MISALIGN, "SSE_Misalign" );
+        cpu1 &= ~X264_CPU_SSE_MISALIGN;
     }
     if( x264_cpu_detect() & X264_CPU_SSE3 )
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE3 | X264_CPU_CACHELINE_64, "SSE3" );
