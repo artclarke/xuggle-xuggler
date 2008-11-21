@@ -1078,7 +1078,7 @@ static int check_quant( int cpu_ref, int cpu_new )
     }
     report( "denoise dct :" );
 
-#define TEST_DECIMATE( qname, decname, block, w, ac ) \
+#define TEST_DECIMATE( qname, decname, block, w, ac, thresh ) \
     if( qf_a.decname != qf_ref.decname ) \
     { \
         set_func_name( #decname ); \
@@ -1093,7 +1093,7 @@ static int check_quant( int cpu_ref, int cpu_new )
             memcpy( dct2, dct1, w*w*2 ); \
             result_c = call_c1( qf_c.decname, (void*)dct2 ); \
             result_a = call_a1( qf_a.decname, (void*)dct2 ); \
-            if( result_c != result_a ) \
+            if( X264_MIN(result_c,thresh) != X264_MIN(result_a,thresh) ) \
             { \
                 ok = 0; \
                 fprintf( stderr, #decname ": [FAILED]\n" ); \
@@ -1104,9 +1104,9 @@ static int check_quant( int cpu_ref, int cpu_new )
         } \
     }
 
-    TEST_DECIMATE( quant_8x8, decimate_score64, CQM_8IY, 8, 0 );
-    TEST_DECIMATE( quant_4x4, decimate_score16, CQM_4IY, 4, 0 );
-    TEST_DECIMATE( quant_4x4, decimate_score15, CQM_4IY, 4, 1 );
+    TEST_DECIMATE( quant_8x8, decimate_score64, CQM_8IY, 8, 0, 6 );
+    TEST_DECIMATE( quant_4x4, decimate_score16, CQM_4IY, 4, 0, 6 );
+    TEST_DECIMATE( quant_4x4, decimate_score15, CQM_4IY, 4, 1, 7 );
     report( "decimate_score :" );
 
     return ret;

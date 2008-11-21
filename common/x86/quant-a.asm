@@ -521,16 +521,14 @@ cglobal x264_decimate_score64_%1, 1,4
     DECIMATE_MASK r2d, r3d, r0+96, m7, %1, null
     shl   r2, 48
     or    r1, r2
-    not   r1
-    test  r1, r1
+    xor   r1, -1
     je   .ret
     or    eax, r3d
     jne  .ret9
 .loop:
     bsf   rcx, r1
     shr   r1, cl
-    movzx ecx, byte [table + rcx]
-    add   eax, ecx
+    add   al, byte [table + rcx]
     shr   r1, 1
     jne  .loop
 .ret:
@@ -557,27 +555,32 @@ cglobal x264_decimate_score64_%1, 1,5
     DECIMATE_MASK r1, r0, r0+96, m7, %1, r5
     shl   r1, 16
     or    r4, r1
-    not   r3
-    not   r4
-    mov   r1, r3
-    or    r1, r4
-    je   .ret
+    xor   r3, -1
+    je   .tryret
+    xor   r4, -1
+.cont
     or    r0, r2
-    jne  .ret9    ;r2 is zero at this point, so we don't need to zero it
+    jne  .ret9      ;r0 is zero at this point, so we don't need to zero it
 .loop:
     bsf   ecx, r3
     test  r3, r3
     je   .largerun
     shrd  r3, r4, cl
     shr   r4, cl
-    movzx ecx, byte [x264_decimate_table8 + ecx]
-    add   r0, ecx
+    add   r0b, byte [x264_decimate_table8 + ecx]
     shrd  r3, r4, 1
     shr   r4, 1
-    mov   r2, r3
-    or    r2, r4
+    cmp   r0, 6     ;score64's threshold is never higher than 6
+    jge  .ret9      ;this early termination is only useful on 32-bit because it can be done in the latency after shrd
+    test  r3, r3
+    jne  .loop
+    test  r4, r4
     jne  .loop
 .ret:
+    REP_RET
+.tryret:
+    xor   r4, -1
+    jne  .cont
     REP_RET
 .ret9:
     mov   eax, 9
