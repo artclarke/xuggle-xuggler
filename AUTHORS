@@ -23,6 +23,9 @@ N: Christian Heine
 E: sennindemokrit AT gmx DOT net
 D: x86 asm
 
+N: David Wolstencroft
+D: Altivec optimizations
+
 N: Eric Petit
 E: eric.petit AT lapsus DOT org
 C: titer

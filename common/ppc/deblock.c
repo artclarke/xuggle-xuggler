@@ -72,28 +72,26 @@ static inline void write16x4(uint8_t *dst, int dst_stride,
     *(dst_int+15*int_dst_stride) = *(src_int + 15);
 }
 
-/** \brief performs a 6x16 transpose of data in src, and stores it to dst
-    \todo FIXME: see if we can't spare some vec_lvsl() by them factorizing
-    out of unaligned_load() */
+/** \brief performs a 6x16 transpose of data in src, and stores it to dst */
 #define readAndTranspose16x6(src, src_stride, r8, r9, r10, r11, r12, r13) {\
     register vec_u8_t r0, r1, r2, r3, r4, r5, r6, r7, r14, r15;\
-    VEC_LOAD(src,                  r0, 16, vec_u8_t);          \
-    VEC_LOAD(src +    src_stride,  r1, 16, vec_u8_t);          \
-    VEC_LOAD(src +  2*src_stride,  r2, 16, vec_u8_t);          \
-    VEC_LOAD(src +  3*src_stride,  r3, 16, vec_u8_t);          \
-    VEC_LOAD(src +  4*src_stride,  r4, 16, vec_u8_t);          \
-    VEC_LOAD(src +  5*src_stride,  r5, 16, vec_u8_t);          \
-    VEC_LOAD(src +  6*src_stride,  r6, 16, vec_u8_t);          \
-    VEC_LOAD(src +  7*src_stride,  r7, 16, vec_u8_t);          \
-    VEC_LOAD(src + 14*src_stride, r14, 16, vec_u8_t);          \
-    VEC_LOAD(src + 15*src_stride, r15, 16, vec_u8_t);          \
+    VEC_LOAD(src,                  r0, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src +    src_stride,  r1, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src +  2*src_stride,  r2, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src +  3*src_stride,  r3, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src +  4*src_stride,  r4, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src +  5*src_stride,  r5, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src +  6*src_stride,  r6, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src +  7*src_stride,  r7, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src + 14*src_stride, r14, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src + 15*src_stride, r15, 16, vec_u8_t, pix );    \
                                                                \
-    VEC_LOAD(src + 8*src_stride,   r8, 16, vec_u8_t);          \
-    VEC_LOAD(src + 9*src_stride,   r9, 16, vec_u8_t);          \
-    VEC_LOAD(src + 10*src_stride, r10, 16, vec_u8_t);          \
-    VEC_LOAD(src + 11*src_stride, r11, 16, vec_u8_t);          \
-    VEC_LOAD(src + 12*src_stride, r12, 16, vec_u8_t);          \
-    VEC_LOAD(src + 13*src_stride, r13, 16, vec_u8_t);          \
+    VEC_LOAD(src + 8*src_stride,   r8, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src + 9*src_stride,   r9, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src + 10*src_stride, r10, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src + 11*src_stride, r11, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src + 12*src_stride, r12, 16, vec_u8_t, pix );    \
+    VEC_LOAD(src + 13*src_stride, r13, 16, vec_u8_t, pix );    \
                                                                \
     /*Merge first pairs*/                                      \
     r0 = vec_mergeh(r0, r8);    /*0, 8*/                       \
@@ -294,6 +292,7 @@ void x264_deblock_h_luma_altivec(uint8_t *pix, int stride, int alpha, int beta, 
     if((tc0[0] & tc0[1] & tc0[2] & tc0[3]) < 0)
         return;
     PREP_LOAD;
+    vec_u8_t _pix_ = vec_lvsl(0, pix-3);
     readAndTranspose16x6(pix-3, stride, line0, line1, line2, line3, line4, line5);
     h264_loop_filter_luma_altivec(line0, line1, line2, line3, line4, line5, alpha, beta, tc0);
     transpose4x16(line1, line2, line3, line4);
