@@ -77,7 +77,7 @@ SECTION .text
 %macro SPLATW 2
 %if mmsize==16
     pshuflw  %1, %2, 0
-    movlhps  %1, %1
+    punpcklqdq %1, %1
 %else
     pshufw   %1, %2, 0
 %endif

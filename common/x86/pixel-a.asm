@@ -134,12 +134,46 @@ SECTION .text
     paddd     m0, m3
 %endmacro
 
+%macro SSD_QUARTER 6
+    movd      m1, [r0+%1]
+    movd      m2, [r2+%2]
+    movd      m3, [r0+%3]
+    movd      m4, [r2+%4]
+    lea       r0, [r0+2*r1]
+    lea       r2, [r2+2*r3]
+    pinsrd    m1, [r0+%1], 1
+    pinsrd    m2, [r2+%2], 1
+    pinsrd    m3, [r0+%3], 1
+    pinsrd    m4, [r2+%4], 1
+    punpcklbw m1, m7
+    punpcklbw m2, m7
+    punpcklbw m3, m7
+    punpcklbw m4, m7
+    psubw     m1, m2
+    psubw     m3, m4
+    pmaddwd   m1, m1
+    pmaddwd   m3, m3
+
+%if %6
+    lea       r0, [r0+2*r1]
+    lea       r2, [r2+2*r3]
+%endif
+%if %5
+    paddd     m0, m1
+%else
+    SWAP      m0, m1
+%endif
+    paddd     m0, m3
+%endmacro
+
 ;-----------------------------------------------------------------------------
 ; int x264_pixel_ssd_16x16_mmx( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
 %macro SSD 3
 cglobal x264_pixel_ssd_%1x%2_%3, 4,4
+%if %1 >= mmsize
     pxor    m7, m7
+%endif
 %assign i 0
 %rep %2/2
 %if %1 > mmsize
@@ -171,6 +205,19 @@ SSD 16,  8, sse2
 SSD  8, 16, sse2
 SSD  8,  8, sse2
 SSD  8,  4, sse2
+
+cglobal x264_pixel_ssd_4x8_sse4, 4,4
+    SSD_QUARTER 0, 0, r1, r3, 0, 1
+    SSD_QUARTER 0, 0, r1, r3, 1, 0
+    HADDD   m0, m1
+    movd   eax, m0
+    RET
+
+cglobal x264_pixel_ssd_4x4_sse4, 4,4
+    SSD_QUARTER 0, 0, r1, r3, 0, 0
+    HADDD   m0, m1
+    movd   eax, m0
+    RET
 
 
 ;=============================================================================
@@ -339,14 +386,9 @@ cglobal x264_pixel_var_8x8_sse2, 2,3
     HADAMARD4x4_SUM %1
 %endmacro
 
-%macro SATD_8x4_SSE2 2
-    LOAD_DIFF_8x4P  m0, m1, m2, m3, m4, m5
-%if %1
-    lea  r0, [r0+4*r1]
-    lea  r2, [r2+4*r3]
-%endif
+%macro SATD_8x4_SSE2 1
     HADAMARD4_1D    m0, m1, m2, m3
-%ifidn %2, ssse3_phadd
+%ifidn %1, ssse3_phadd
     HADAMARD4_ROW_PHADD 0, 1, 2, 3, 4
 %else
     TRANSPOSE2x4x4W  0,  1,  2,  3,  4
@@ -447,15 +489,15 @@ cglobal x264_pixel_satd_8x4_mmxext, 4,6
     call x264_pixel_satd_8x4_internal_mmxext
     SATD_END_MMX
 
-%macro SATD_W4 1
-INIT_MMX
-cglobal x264_pixel_satd_4x8_%1, 4,6
+cglobal x264_pixel_satd_4x8_mmxext, 4,6
     SATD_START_MMX
     SATD_4x4_MMX m0, 0, 1
     SATD_4x4_MMX m1, 0, 0
     paddw  m0, m1
     SATD_END_MMX
 
+%macro SATD_W4 1
+INIT_MMX
 cglobal x264_pixel_satd_4x4_%1, 4,6
     SATD_START_MMX
     SATD_4x4_MMX m0, 0, 0
@@ -502,9 +544,15 @@ SATD_W4 mmxext
 %macro SATDS_SSE2 1
 INIT_XMM
 cglobal x264_pixel_satd_8x8_internal_%1
-    SATD_8x4_SSE2 1, %1
+    LOAD_DIFF_8x4P  m0, m1, m2, m3, m4, m5
+    SATD_8x4_SSE2 %1
+    lea  r0, [r0+4*r1]
+    lea  r2, [r2+4*r3]
 x264_pixel_satd_8x4_internal_%1:
-    SATD_8x4_SSE2 0, %1
+    LOAD_DIFF_8x4P  m0, m1, m2, m3, m4, m5
+x264_pixel_satd_4x8_internal_%1:
+    SAVE_MM_PERMUTATION satd_4x8_internal
+    SATD_8x4_SSE2 %1
     ret
 
 cglobal x264_pixel_satd_16x16_%1, 4,6
@@ -545,6 +593,29 @@ cglobal x264_pixel_satd_8x8_%1, 4,6
 cglobal x264_pixel_satd_8x4_%1, 4,6
     SATD_START_SSE2
     call x264_pixel_satd_8x4_internal_%1
+    SATD_END_SSE2
+
+cglobal x264_pixel_satd_4x8_%1, 4,6
+    INIT_XMM
+    LOAD_MM_PERMUTATION satd_4x8_internal
+    %define movh movd
+    SATD_START_SSE2
+    LOAD_DIFF  m0, m7, m6, [r0],      [r2]
+    LOAD_DIFF  m1, m7, m6, [r0+r1],   [r2+r3]
+    LOAD_DIFF  m2, m7, m6, [r0+2*r1], [r2+2*r3]
+    LOAD_DIFF  m3, m7, m6, [r0+r4],   [r2+r5]
+    lea        r0, [r0+4*r1]
+    lea        r2, [r2+4*r3]
+    LOAD_DIFF  m4, m7, m6, [r0],      [r2]
+    LOAD_DIFF  m5, m7, m6, [r0+r1],   [r2+r3]
+    punpcklqdq m0, m4
+    punpcklqdq m1, m5
+    LOAD_DIFF  m4, m7, m6, [r0+2*r1], [r2+2*r3]
+    LOAD_DIFF  m5, m7, m6, [r0+r4],   [r2+r5]
+    punpcklqdq m2, m4
+    punpcklqdq m3, m5
+    %define movh movq
+    call x264_pixel_satd_4x8_internal_%1
     SATD_END_SSE2
 
 %ifdef ARCH_X86_64

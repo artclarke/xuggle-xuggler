@@ -295,7 +295,7 @@ cglobal x264_zigzag_scan_8x8_frame_%1, 2,2
     movdq2q    mm7, xmm7
 %else
     movhlps   xmm3, xmm7
-    movlhps   xmm7, xmm7
+    punpcklqdq xmm7, xmm7
     movdq2q    mm7, xmm3
 %endif
 
@@ -531,8 +531,8 @@ cglobal x264_zigzag_sub_4x4_frame_ssse3, 3,3
     punpckldq xmm2, xmm3
     punpckldq xmm4, xmm5
     punpckldq xmm6, xmm7
-    movlhps   xmm0, xmm2
-    movlhps   xmm4, xmm6
+    punpcklqdq xmm0, xmm2
+    punpcklqdq xmm4, xmm6
     movdqa    xmm7, [pb_sub4frame GLOBAL]
     pshufb    xmm0, xmm7
     pshufb    xmm4, xmm7

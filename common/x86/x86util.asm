@@ -136,7 +136,7 @@
     punpcklbw %1, %1
 %if mmsize==16
     pshuflw   %1, %1, 0xff
-    movlhps   %1, %1
+    punpcklqdq %1, %1
 %else
     pshufw    %1, %1, 0xff
 %endif

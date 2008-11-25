@@ -24,6 +24,7 @@
 uint32_t x264_cpu_detect( void );
 int      x264_cpu_num_processors( void );
 void     x264_emms( void );
+void     x264_cpu_mask_misalign_sse( void );
 
 /* kluge:
  * gcc can't give variables any greater alignment than the stack frame has.

@@ -60,7 +60,6 @@ const x264_cpu_name_t x264_cpu_names[] = {
 
 #ifdef HAVE_MMX
 extern int  x264_cpu_cpuid_test( void );
-extern void x264_cpu_mask_misalign_sse( void );
 extern uint32_t  x264_cpu_cpuid( uint32_t op, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx );
 
 uint32_t x264_cpu_detect( void )

@@ -414,23 +414,23 @@ static void x264_pixel_satd_x4_##size##cpu( uint8_t *fenc, uint8_t *pix0, uint8_
     scores[2] = x264_pixel_satd_##size##cpu( fenc, FENC_STRIDE, pix2, i_stride );\
     scores[3] = x264_pixel_satd_##size##cpu( fenc, FENC_STRIDE, pix3, i_stride );\
 }
-#define SATD_X_DECL5( cpu )\
+#define SATD_X_DECL6( cpu )\
 SATD_X( 16x16, cpu )\
 SATD_X( 16x8, cpu )\
 SATD_X( 8x16, cpu )\
 SATD_X( 8x8, cpu )\
-SATD_X( 8x4, cpu )
+SATD_X( 8x4, cpu )\
+SATD_X( 4x8, cpu )
 #define SATD_X_DECL7( cpu )\
-SATD_X_DECL5( cpu )\
-SATD_X( 4x8, cpu )\
+SATD_X_DECL6( cpu )\
 SATD_X( 4x4, cpu )
 
 SATD_X_DECL7()
 #ifdef HAVE_MMX
 SATD_X_DECL7( _mmxext )
-SATD_X_DECL5( _sse2 )
+SATD_X_DECL6( _sse2 )
 SATD_X_DECL7( _ssse3 )
-SATD_X_DECL5( _ssse3_phadd )
+SATD_X_DECL6( _ssse3_phadd )
 #endif
 
 /****************************************************************************
@@ -582,13 +582,16 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
 #define INIT5_NAME( name1, name2, cpu ) \
     INIT4_NAME( name1, name2, cpu ) \
     pixf->name1[PIXEL_8x4]   = x264_pixel_##name2##_8x4##cpu;
-#define INIT7_NAME( name1, name2, cpu ) \
+#define INIT6_NAME( name1, name2, cpu ) \
     INIT5_NAME( name1, name2, cpu ) \
-    pixf->name1[PIXEL_4x8]   = x264_pixel_##name2##_4x8##cpu;\
+    pixf->name1[PIXEL_4x8]   = x264_pixel_##name2##_4x8##cpu;
+#define INIT7_NAME( name1, name2, cpu ) \
+    INIT6_NAME( name1, name2, cpu ) \
     pixf->name1[PIXEL_4x4]   = x264_pixel_##name2##_4x4##cpu;
 #define INIT2( name, cpu ) INIT2_NAME( name, name, cpu )
 #define INIT4( name, cpu ) INIT4_NAME( name, name, cpu )
 #define INIT5( name, cpu ) INIT5_NAME( name, name, cpu )
+#define INIT6( name, cpu ) INIT6_NAME( name, name, cpu )
 #define INIT7( name, cpu ) INIT7_NAME( name, name, cpu )
 
 #define INIT_ADS( cpu ) \
@@ -698,9 +701,18 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     if( cpu&X264_CPU_SSE2 )
     {
         INIT5( ssd, _sse2 );
-        INIT5( satd, _sse2 );
-        INIT5( satd_x3, _sse2 );
-        INIT5( satd_x4, _sse2 );
+        if( cpu&X264_CPU_SSE2_IS_FAST )
+        {
+            INIT6( satd, _sse2 );
+            INIT6( satd_x3, _sse2 );
+            INIT6( satd_x4, _sse2 );
+        }
+        else
+        {
+            INIT5( satd, _sse2 );
+            INIT5( satd_x3, _sse2 );
+            INIT5( satd_x4, _sse2 );
+        }
         INIT2_NAME( sad_aligned, sad, _sse2_aligned );
         pixf->var[PIXEL_16x16] = x264_pixel_var_16x16_sse2;
         pixf->ssim_4x4x2_core  = x264_pixel_ssim_4x4x2_core_sse2;
@@ -758,10 +770,16 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         }
         if( cpu&X264_CPU_PHADD_IS_FAST )
         {
-            INIT5( satd, _ssse3_phadd );
-            INIT5( satd_x3, _ssse3_phadd );
-            INIT5( satd_x4, _ssse3_phadd );
+            INIT6( satd, _ssse3_phadd );
+            INIT6( satd_x3, _ssse3_phadd );
+            INIT6( satd_x4, _ssse3_phadd );
         }
+    }
+
+    if( cpu&X264_CPU_SSE4 )
+    {
+        pixf->ssd[PIXEL_4x8] = x264_pixel_ssd_4x8_sse4;
+        pixf->ssd[PIXEL_4x4] = x264_pixel_ssd_4x4_sse4;
     }
 #endif //HAVE_MMX
 
