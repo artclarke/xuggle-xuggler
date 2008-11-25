@@ -1312,6 +1312,12 @@ static int x264_slices_write( x264_t *h )
 {
     int i_frame_size;
 
+#ifdef HAVE_MMX
+    /* Misalign mask has to be set separately for each thread. */
+    if( h->param.cpu&X264_CPU_SSE_MISALIGN )
+        x264_cpu_mask_misalign_sse();
+#endif
+
 #if VISUALIZE
     if( h->param.b_visualize )
         x264_visualize_init( h );
