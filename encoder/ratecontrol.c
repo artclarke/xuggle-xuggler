@@ -440,7 +440,7 @@ int x264_ratecontrol_new( x264_t *h )
             x264_log( h, X264_LOG_WARNING, "2nd pass has fewer frames than 1st pass (%d vs %d)\n",
                       h->param.i_frame_total, rc->num_entries );
         }
-        if( h->param.i_frame_total > rc->num_entries + h->param.i_bframe )
+        if( h->param.i_frame_total > rc->num_entries )
         {
             x264_log( h, X264_LOG_ERROR, "2nd pass has more frames than 1st pass (%d vs %d)\n",
                       h->param.i_frame_total, rc->num_entries );
@@ -462,7 +462,7 @@ int x264_ratecontrol_new( x264_t *h )
 
         /* read stats */
         p = stats_in;
-        for(i=0; i < rc->num_entries - h->param.i_bframe; i++)
+        for(i=0; i < rc->num_entries; i++)
         {
             ratecontrol_entry_t *rce;
             int frame_number;
@@ -691,7 +691,7 @@ void x264_ratecontrol_delete( x264_t *h )
     if( rc->p_stat_file_out )
     {
         fclose( rc->p_stat_file_out );
-        if( h->i_frame >= rc->num_entries - h->param.i_bframe )
+        if( h->i_frame >= rc->num_entries )
             if( rename( rc->psz_stat_file_tmpname, h->param.rc.psz_stat_out ) != 0 )
             {
                 x264_log( h, X264_LOG_ERROR, "failed to rename \"%s\" to \"%s\"\n",
