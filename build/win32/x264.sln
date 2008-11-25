@@ -12,21 +12,16 @@ Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
 		Release = Release
-		Release64 = Release64
 	EndGlobalSection
 	GlobalSection(ProjectConfiguration) = postSolution
 		{22E1814D-7955-4456-AEA5-0C9BA7500792}.Debug.ActiveCfg = Debug|Win32
 		{22E1814D-7955-4456-AEA5-0C9BA7500792}.Debug.Build.0 = Debug|Win32
 		{22E1814D-7955-4456-AEA5-0C9BA7500792}.Release.ActiveCfg = Release|Win32
 		{22E1814D-7955-4456-AEA5-0C9BA7500792}.Release.Build.0 = Release|Win32
-		{22E1814D-7955-4456-AEA5-0C9BA7500792}.Release64.ActiveCfg = Release64|Win32
-		{22E1814D-7955-4456-AEA5-0C9BA7500792}.Release64.Build.0 = Release64|Win32
 		{A8D6E4CD-1885-4B03-8E41-5F3DB825BAA6}.Debug.ActiveCfg = Debug|Win32
 		{A8D6E4CD-1885-4B03-8E41-5F3DB825BAA6}.Debug.Build.0 = Debug|Win32
 		{A8D6E4CD-1885-4B03-8E41-5F3DB825BAA6}.Release.ActiveCfg = Release|Win32
 		{A8D6E4CD-1885-4B03-8E41-5F3DB825BAA6}.Release.Build.0 = Release|Win32
-		{A8D6E4CD-1885-4B03-8E41-5F3DB825BAA6}.Release64.ActiveCfg = Release64|Win32
-		{A8D6E4CD-1885-4B03-8E41-5F3DB825BAA6}.Release64.Build.0 = Release64|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

@@ -22,7 +22,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../common;../../encode;../../decode;../../extras;../..;L:\gpac\include"
+				AdditionalIncludeDirectories="../../common;../../extras;../.."
 				PreprocessorDefinitions="_DEBUG;_CONSOLE;WIN32;__X264__;HAVE_MMX;HAVE_STDINT_H;AVIS_INPUT"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="5"
@@ -84,7 +84,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="./common;./encode;./decode;../../extras;../..;L:\gpac\include"
+				AdditionalIncludeDirectories="../../common;../../extras;../.."
 				PreprocessorDefinitions="NDEBUG;_CONSOLE;WIN32;__X264__;HAVE_MMX;HAVE_STDINT_H;AVIS_INPUT"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
@@ -108,69 +108,6 @@
 				ProgramDatabaseFile=".\obj/x264_Release/x264.pdb"
 				SubSystem="1"
 				TargetMachine="1"/>
-			<Tool
-				Name="VCMIDLTool"
-				TypeLibraryName=".\obj/x264_Release/x264.tlb"
-				HeaderFileName=""/>
-			<Tool
-				Name="VCPostBuildEventTool"/>
-			<Tool
-				Name="VCPreBuildEventTool"/>
-			<Tool
-				Name="VCPreLinkEventTool"/>
-			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
-				Culture="2052"/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"/>
-			<Tool
-				Name="VCWebDeploymentTool"/>
-			<Tool
-				Name="VCManagedWrapperGeneratorTool"/>
-			<Tool
-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
-		</Configuration>
-		<Configuration
-			Name="Release64|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="FALSE"
-			CharacterSet="2">
-			<Tool
-				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="./common;./encode;./decode;../../extras;../..;..\..\..\gpac\include"
-				PreprocessorDefinitions="NDEBUG;_CONSOLE;WIN32;__X264__;HAVE_MMX;HAVE_STDINT_H;AVIS_INPUT;MP4_OUTPUT"
-				StringPooling="TRUE"
-				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="TRUE"
-				UsePrecompiledHeader="2"
-				PrecompiledHeaderFile=".\obj/x264_Release/x264.pch"
-				AssemblerListingLocation=".\obj/x264_Release/"
-				ObjectFile=".\obj/x264_Release/"
-				ProgramDataBaseFileName=".\obj/x264_Release/"
-				WarningLevel="3"
-				SuppressStartupBanner="TRUE"
-				DebugInformationFormat="0"
-				CompileAs="0"/>
-			<Tool
-				Name="VCCustomBuildTool"/>
-			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="vfw32.lib ..\..\..\gpac\bin\w32_rel\libgpac_static.lib winmm.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib bufferoverflowu.lib $(NOINHERIT)"
-				OutputFile="bin/x264.exe"
-				LinkIncremental="1"
-				SuppressStartupBanner="TRUE"
-				GenerateDebugInformation="FALSE"
-				ProgramDatabaseFile=".\obj/x264_Release/x264.pdb"
-				SubSystem="1"
-				TargetMachine="0"/>
 			<Tool
 				Name="VCMIDLTool"
 				TypeLibraryName=".\obj/x264_Release/x264.tlb"
@@ -225,14 +162,6 @@
 			</FileConfiguration>
 			<FileConfiguration
 				Name="Release|Win32">
-				<Tool
-					Name="VCCLCompilerTool"
-					Optimization="2"
-					AdditionalIncludeDirectories=""
-					PreprocessorDefinitions=""/>
-			</FileConfiguration>
-			<FileConfiguration
-				Name="Release64|Win32">
 				<Tool
 					Name="VCCLCompilerTool"
 					Optimization="2"

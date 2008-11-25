@@ -24,7 +24,7 @@
 				Optimization="2"
 				InlineFunctionExpansion="2"
 				OptimizeForProcessor="2"
-				AdditionalIncludeDirectories="./common,./encode,./decode,../../extras,../.."
+				AdditionalIncludeDirectories="../../common;../../extras;../.."
 				PreprocessorDefinitions="NDEBUG;_LIB;WIN32;__X264__;HAVE_MMX;ARCH_X86;HAVE_STDINT_H"
 				StringPooling="TRUE"
 				RuntimeLibrary="4"
@@ -74,7 +74,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="./common,./encode,./decode,../../extras,../.."
+				AdditionalIncludeDirectories="../../common;../../extras;../.."
 				PreprocessorDefinitions="_DEBUG;_LIB;WIN32;__X264__;HAVE_MMX;ARCH_X86;HAVE_STDINT_H"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="5"
@@ -103,59 +103,6 @@
 			<Tool
 				Name="VCResourceCompilerTool"
 				PreprocessorDefinitions="_DEBUG"
-				Culture="2052"/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"/>
-			<Tool
-				Name="VCManagedWrapperGeneratorTool"/>
-			<Tool
-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
-		</Configuration>
-		<Configuration
-			Name="Release64|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="4"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="FALSE"
-			CharacterSet="2">
-			<Tool
-				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="2"
-				OptimizeForProcessor="2"
-				AdditionalIncludeDirectories="./common,./encode,./decode,../../extras,../.."
-				PreprocessorDefinitions="NDEBUG;_LIB;WIN32;__X264__;HAVE_MMX;ARCH_X86;HAVE_STDINT_H"
-				StringPooling="TRUE"
-				RuntimeLibrary="4"
-				EnableFunctionLevelLinking="TRUE"
-				PrecompiledHeaderFile=".\Release/libx264.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
-				WarningLevel="3"
-				SuppressStartupBanner="TRUE"
-				DebugInformationFormat="0"
-				CompileAs="0"/>
-			<Tool
-				Name="VCCustomBuildTool"/>
-			<Tool
-				Name="VCLibrarianTool"
-				OutputFile="bin/libx264.lib"
-				SuppressStartupBanner="TRUE"/>
-			<Tool
-				Name="VCMIDLTool"/>
-			<Tool
-				Name="VCPostBuildEventTool"/>
-			<Tool
-				Name="VCPreBuildEventTool"/>
-			<Tool
-				Name="VCPreLinkEventTool"/>
-			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
 				Culture="2052"/>
 			<Tool
 				Name="VCWebServiceProxyGeneratorTool"/>
@@ -196,16 +143,6 @@
 						ObjectFile=".\obj/enc_debug/"
 						ProgramDataBaseFileName="obj/enc_debug/"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/enc_release/"
-						ProgramDataBaseFileName="obj/enc_release/"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\encoder\cabac.c">
@@ -229,16 +166,6 @@
 						BasicRuntimeChecks="3"
 						ObjectFile=".\obj/enc_debug/"
 						ProgramDataBaseFileName="obj/enc_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/enc_release/"
-						ProgramDataBaseFileName="obj/enc_release/"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -264,16 +191,6 @@
 						ObjectFile=".\obj/enc_debug/"
 						ProgramDataBaseFileName="obj/enc_debug/"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/enc_release/"
-						ProgramDataBaseFileName="obj/enc_release/"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\encoder\encoder.c">
@@ -297,16 +214,6 @@
 						BasicRuntimeChecks="3"
 						ObjectFile=".\obj/enc_debug/"
 						ProgramDataBaseFileName="obj/enc_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/enc_release/"
-						ProgramDataBaseFileName="obj/enc_release/"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -332,16 +239,6 @@
 						ObjectFile=".\obj/enc_debug/"
 						ProgramDataBaseFileName="obj/enc_debug/"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/enc_release/"
-						ProgramDataBaseFileName="obj/enc_release/"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\encoder\me.c">
@@ -365,16 +262,6 @@
 						BasicRuntimeChecks="3"
 						ObjectFile=".\obj/enc_debug/"
 						ProgramDataBaseFileName="obj/enc_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/enc_release/"
-						ProgramDataBaseFileName="obj/enc_release/"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -400,16 +287,6 @@
 						ObjectFile=".\obj/enc_debug/"
 						ProgramDataBaseFileName="obj/enc_debug/"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/enc_release/"
-						ProgramDataBaseFileName="obj/enc_release/"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\encoder\set.c">
@@ -433,16 +310,6 @@
 						BasicRuntimeChecks="3"
 						ObjectFile=".\obj/enc_debug/"
 						ProgramDataBaseFileName="obj/enc_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/enc_release/"
-						ProgramDataBaseFileName="obj/enc_release/"/>
 				</FileConfiguration>
 			</File>
 			<Filter
@@ -491,16 +358,6 @@
 						ObjectFile=".\obj/core_debug/"
 						ProgramDataBaseFileName="obj/core_debug/"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/core_release/"
-						ProgramDataBaseFileName="obj/core_release/"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\common\common.c">
@@ -524,16 +381,6 @@
 						BasicRuntimeChecks="3"
 						ObjectFile=".\obj/core_debug/"
 						ProgramDataBaseFileName="obj/core_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/core_release/"
-						ProgramDataBaseFileName="obj/core_release/"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -559,16 +406,6 @@
 						ObjectFile=".\obj/core_debug/"
 						ProgramDataBaseFileName="obj/core_debug/"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/core_release/"
-						ProgramDataBaseFileName="obj/core_release/"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\common\dct.c">
@@ -592,16 +429,6 @@
 						BasicRuntimeChecks="3"
 						ObjectFile=".\obj/core_debug/"
 						ProgramDataBaseFileName="obj/core_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/core_release/"
-						ProgramDataBaseFileName="obj/core_release/"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -627,16 +454,6 @@
 						ObjectFile=".\obj/core_debug/"
 						ProgramDataBaseFileName="obj/core_debug/"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/core_release/"
-						ProgramDataBaseFileName="obj/core_release/"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\common\frame.c">
@@ -660,16 +477,6 @@
 						BasicRuntimeChecks="3"
 						ObjectFile=".\obj/core_debug/"
 						ProgramDataBaseFileName="obj/core_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/core_release/"
-						ProgramDataBaseFileName="obj/core_release/"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -695,16 +502,6 @@
 						ObjectFile=".\obj/core_debug/"
 						ProgramDataBaseFileName="obj/core_debug/"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/core_release/"
-						ProgramDataBaseFileName="obj/core_release/"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\common\x86\mc-c.c">
@@ -728,16 +525,6 @@
 						BasicRuntimeChecks="3"
 						ObjectFile=".\obj/core_debug/"
 						ProgramDataBaseFileName="obj/core_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/core_release/"
-						ProgramDataBaseFileName="obj/core_release/"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -763,16 +550,6 @@
 						ObjectFile=".\obj/core_debug/"
 						ProgramDataBaseFileName="obj/core_debug/"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/core_release/"
-						ProgramDataBaseFileName="obj/core_release/"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\common\mdate.c">
@@ -796,16 +573,6 @@
 						BasicRuntimeChecks="3"
 						ObjectFile=".\obj/core_debug/"
 						ProgramDataBaseFileName="obj/core_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/core_release/"
-						ProgramDataBaseFileName="obj/core_release/"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -831,16 +598,6 @@
 						ObjectFile=".\obj/core_debug/"
 						ProgramDataBaseFileName="obj/core_debug/"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/core_release/"
-						ProgramDataBaseFileName="obj/core_release/"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\common\predict.c">
@@ -864,16 +621,6 @@
 						BasicRuntimeChecks="3"
 						ObjectFile=".\obj/core_debug/"
 						ProgramDataBaseFileName="obj/core_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/core_release/"
-						ProgramDataBaseFileName="obj/core_release/"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -899,16 +646,6 @@
 						ObjectFile=".\obj/core_debug/"
 						ProgramDataBaseFileName="obj/core_debug/"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/core_release/"
-						ProgramDataBaseFileName="obj/core_release/"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\common\quant.c">
@@ -924,9 +661,6 @@
 				</File>
 				<File
 					RelativePath="..\..\common\cabac.h">
-				</File>
-				<File
-					RelativePath="..\..\common\clip1.h">
 				</File>
 				<File
 					RelativePath="..\..\common\common.h">
@@ -947,10 +681,16 @@
 					RelativePath="..\..\common\mc.h">
 				</File>
 				<File
+					RelativePath="..\..\common\osdep.h">
+				</File>
+				<File
 					RelativePath="..\..\common\pixel.h">
 				</File>
 				<File
 					RelativePath="..\..\common\predict.h">
+				</File>
+				<File
+					RelativePath="..\..\common\quant.h">
 				</File>
 				<File
 					RelativePath="..\..\common\set.h">
@@ -961,9 +701,9 @@
 			</Filter>
 			<Filter
 				Name="x86"
-				Filter="*.h,*.c,*-a.asm">
+				Filter=".asm">
 				<File
-					RelativePath="..\..\common\x86\cpu-32.asm">
+					RelativePath="..\..\common\x86\cpu-a.asm">
 					<FileConfiguration
 						Name="Release|Win32">
 						<Tool
@@ -974,15 +714,6 @@
 					</FileConfiguration>
 					<FileConfiguration
 						Name="Debug|Win32">
-						<Tool
-							Name="VCCustomBuildTool"
-							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="$(IntDir)\$(InputName).obj"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32"
-						ExcludedFromBuild="TRUE">
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
@@ -1008,15 +739,6 @@
 							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"
-							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="$(IntDir)\$(InputName).obj"/>
-					</FileConfiguration>
 				</File>
 				<File
 					RelativePath="..\..\common\x86\dct-a.asm">
@@ -1036,18 +758,6 @@
 							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"
-							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="$(IntDir)\$(InputName).obj"/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath="..\..\common\x86\dct.h">
 				</File>
 				<File
 					RelativePath="..\..\common\x86\cabac-a.asm">
@@ -1061,14 +771,6 @@
 					</FileConfiguration>
 					<FileConfiguration
 						Name="Debug|Win32">
-						<Tool
-							Name="VCCustomBuildTool"
-							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="$(IntDir)\$(InputName).obj"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32">
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
@@ -1094,14 +796,6 @@
 							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32">
-						<Tool
-							Name="VCCustomBuildTool"
-							Description="Assembly $(InputPath)"
-							CommandLine="yasm -f win32 -O2 -m AMD64 -DWIN64 -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="$(IntDir)\$(InputName).obj"/>
-					</FileConfiguration>
 				</File>
 				<File
 					RelativePath="..\..\common\x86\x86inc.asm">
@@ -1115,14 +809,6 @@
 					</FileConfiguration>
 					<FileConfiguration
 						Name="Debug|Win32">
-						<Tool
-							Name="VCCustomBuildTool"
-							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="$(IntDir)\$(InputName).obj"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32">
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
@@ -1148,15 +834,6 @@
 							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"
-							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="$(IntDir)\$(InputName).obj"/>
-					</FileConfiguration>
 				</File>
 				<File
 					RelativePath="..\..\common\x86\mc-a2.asm">
@@ -1176,15 +853,6 @@
 							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"
-							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="$(IntDir)\$(InputName).obj"/>
-					</FileConfiguration>
 				</File>
 				<File
 					RelativePath="..\..\common\x86\pixel-a.asm">
@@ -1198,15 +866,6 @@
 					</FileConfiguration>
 					<FileConfiguration
 						Name="Debug|Win32">
-						<Tool
-							Name="VCCustomBuildTool"
-							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="$(IntDir)\$(InputName).obj"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32"
-						ExcludedFromBuild="TRUE">
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
@@ -1232,18 +891,6 @@
 							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"
-							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="$(IntDir)\$(InputName).obj"/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath="..\..\common\x86\pixel.h">
 				</File>
 				<File
 					RelativePath="..\..\common\x86\predict-a.asm">
@@ -1263,15 +910,6 @@
 							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"
-							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="$(IntDir)\$(InputName).obj"/>
-					</FileConfiguration>
 				</File>
 				<File
 					RelativePath="..\..\common\x86\quant-a.asm">
@@ -1285,15 +923,6 @@
 					</FileConfiguration>
 					<FileConfiguration
 						Name="Debug|Win32">
-						<Tool
-							Name="VCCustomBuildTool"
-							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="$(IntDir)\$(InputName).obj"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32"
-						ExcludedFromBuild="TRUE">
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
@@ -1319,341 +948,6 @@
 							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"
-							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="$(IntDir)\$(InputName).obj"/>
-					</FileConfiguration>
-				</File>
-			</Filter>
-			<Filter
-				Name="AMD64"
-				Filter="">
-				<File
-					RelativePath="..\..\common\x86\amd64inc.asm">
-				</File>
-				<File
-					RelativePath="..\..\common\x86\cpu-64.asm">
-					<FileConfiguration
-						Name="Release|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32">
-						<Tool
-							Name="VCCustomBuildTool"
-							CommandLine="yasm -f win32 -O2 -m AMD64 -DWIN64 -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="&quot;$(IntDir)\$(InputName)&quot;.obj"/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath="..\..\common\x86\dct-64.asm">
-					<FileConfiguration
-						Name="Release|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32">
-						<Tool
-							Name="VCCustomBuildTool"
-							CommandLine="yasm -f win32 -O2 -m AMD64 -DWIN64 -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="&quot;$(IntDir)\$(InputName)&quot;.obj"/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath="..\..\common\x86\mc-a.asm">
-					<FileConfiguration
-						Name="Release|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32">
-						<Tool
-							Name="VCCustomBuildTool"
-							CommandLine="yasm -f win32 -O2 -m AMD64 -DWIN64 -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="&quot;$(IntDir)\$(InputName)&quot;.obj"/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath="..\..\common\x86\mc-a2.asm">
-					<FileConfiguration
-						Name="Release|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32">
-						<Tool
-							Name="VCCustomBuildTool"
-							CommandLine="yasm -f win32 -O2 -m AMD64 -DWIN64 -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="&quot;$(IntDir)\$(InputName)&quot;.obj"/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath="..\..\common\x86\pixel-a.asm">
-					<FileConfiguration
-						Name="Release|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32">
-						<Tool
-							Name="VCCustomBuildTool"
-							CommandLine="yasm -f win32 -O2 -m AMD64 -DWIN64 -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="&quot;$(IntDir)\$(InputName)&quot;.obj"/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath="..\..\common\x86\predict-a.asm">
-					<FileConfiguration
-						Name="Release|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32">
-						<Tool
-							Name="VCCustomBuildTool"
-							CommandLine="yasm -f win32 -O2 -m AMD64 -DWIN64 -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="&quot;$(IntDir)\$(InputName)&quot;.obj"/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath="..\..\common\x86\quant-a.asm">
-					<FileConfiguration
-						Name="Release|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug|Win32"
-						ExcludedFromBuild="TRUE">
-						<Tool
-							Name="VCCustomBuildTool"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release64|Win32">
-						<Tool
-							Name="VCCustomBuildTool"
-							CommandLine="yasm -f win32 -O2 -m AMD64 -DWIN64 -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
-							Outputs="&quot;$(IntDir)\$(InputName)&quot;.obj"/>
-					</FileConfiguration>
-				</File>
-			</Filter>
-		</Filter>
-		<Filter
-			Name="Dec"
-			Filter=".c">
-			<File
-				RelativePath="..\..\decoder\decoder.c">
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/dec_release/"
-						ProgramDataBaseFileName="obj/dec_release/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						ObjectFile=".\obj/dec_debug/"
-						ProgramDataBaseFileName="obj/dec_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/dec_release/"
-						ProgramDataBaseFileName="obj/dec_release/"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\decoder\macroblock.c">
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/dec_release/"
-						ProgramDataBaseFileName="obj/dec_release/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						ObjectFile=".\obj/dec_debug/"
-						ProgramDataBaseFileName="obj/dec_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/dec_release/"
-						ProgramDataBaseFileName="obj/dec_release/"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\decoder\set.c">
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/dec_release/"
-						ProgramDataBaseFileName="obj/dec_release/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						ObjectFile=".\obj/dec_debug/"
-						ProgramDataBaseFileName="obj/dec_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/dec_release/"
-						ProgramDataBaseFileName="obj/dec_release/"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\decoder\vlc.c">
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/dec_release/"
-						ProgramDataBaseFileName="obj/dec_release/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						ObjectFile=".\obj/dec_debug/"
-						ProgramDataBaseFileName="obj/dec_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/dec_release/"
-						ProgramDataBaseFileName="obj/dec_release/"/>
-				</FileConfiguration>
-			</File>
-			<Filter
-				Name="dec_h"
-				Filter=".h">
-				<File
-					RelativePath="..\..\decoder\macroblock.h">
-				</File>
-				<File
-					RelativePath="..\..\decoder\set.h">
-				</File>
-				<File
-					RelativePath="..\..\decoder\vlc.h">
 				</File>
 			</Filter>
 		</Filter>
@@ -1682,16 +976,6 @@
 						BasicRuntimeChecks="3"
 						ObjectFile=".\obj/util_debug/"
 						ProgramDataBaseFileName="obj/util_debug/"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release64|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						ObjectFile=".\obj/util_release/"
-						ProgramDataBaseFileName="obj/util_release/"/>
 				</FileConfiguration>
 			</File>
 			<Filter
