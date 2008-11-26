@@ -246,7 +246,6 @@ case $host_cpu in
     else
       ASFLAGS="$ASFLAGS -f elf"
     fi
-    as_check || AS="nasm"
     ;;
   x86_64)
     ARCH="X86_64"
@@ -302,12 +301,12 @@ if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" \)
 fi
 
 if [ $asm = yes -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
-    if as_check "pabsw xmm0, xmm0" ; then
+    if as_check "pinsrd xmm0, [esp], 0" ; then
         CFLAGS="$CFLAGS -DHAVE_MMX"
     else
-        VER=`([ $AS == nasm ] && nasm -v || $AS --version || echo no assembler) 2>$DEVNULL | head -n 1`
+        VER=`($AS --version || echo no assembler) 2>$DEVNULL | head -n 1`
         echo "Found $VER"
-        echo "Minimum version is yasm-0.6.1 or nasm-2.0"
+        echo "Minimum version is yasm-0.6.1"
         echo "If you really want to compile without asm, configure with --disable-asm."
         exit 1
     fi

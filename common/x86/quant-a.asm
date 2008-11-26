@@ -558,7 +558,7 @@ cglobal x264_decimate_score64_%1, 1,5
     xor   r3, -1
     je   .tryret
     xor   r4, -1
-.cont
+.cont:
     or    r0, r2
     jne  .ret9      ;r0 is zero at this point, so we don't need to zero it
 .loop:
