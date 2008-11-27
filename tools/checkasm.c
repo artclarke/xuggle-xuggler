@@ -1050,7 +1050,7 @@ static int check_quant( int cpu_ref, int cpu_new )
             for( qp = 51; qp > 0; qp-- ) \
             { \
                 INIT_QUANT##w() \
-                call_c( qf_c.qname, (void*)dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                call_c1( qf_c.qname, (void*)dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
                 memcpy( dct2, dct1, w*w*2 ); \
                 call_c1( qf_c.dqname, (void*)dct1, h->dequant##w##_mf[block], qp ); \
                 call_a1( qf_a.dqname, (void*)dct2, h->dequant##w##_mf[block], qp ); \
@@ -1069,6 +1069,31 @@ static int check_quant( int cpu_ref, int cpu_new )
         TEST_DEQUANT( quant_8x8, dequant_8x8, CQM_8PY, 8 );
         TEST_DEQUANT( quant_4x4, dequant_4x4, CQM_4IY, 4 );
         TEST_DEQUANT( quant_4x4, dequant_4x4, CQM_4PY, 4 );
+
+#define TEST_DEQUANT_DC( qname, dqname, block, w ) \
+        if( qf_a.dqname != qf_ref.dqname ) \
+        { \
+            set_func_name( "%s_%s", #dqname, i_cqm?"cqm":"flat" ); \
+            used_asms[1] = 1; \
+            for( qp = 51; qp > 0; qp-- ) \
+            { \
+                for( i = 0; i < 16; i++ ) \
+                    dct1[i] = rand(); \
+                call_c1( qf_c.qname, (void*)dct1, h->quant##w##_mf[block][qp][0]>>1, h->quant##w##_bias[block][qp][0]>>1 ); \
+                memcpy( dct2, dct1, w*w*2 ); \
+                call_c1( qf_c.dqname, (void*)dct1, h->dequant##w##_mf[block], qp ); \
+                call_a1( qf_a.dqname, (void*)dct2, h->dequant##w##_mf[block], qp ); \
+                if( memcmp( dct1, dct2, w*w*2 ) ) \
+                { \
+                    oks[1] = 0; \
+                    fprintf( stderr, #dqname "(qp=%d, cqm=%d, block="#block"): [FAILED]\n", qp, i_cqm ); \
+                } \
+                call_c2( qf_c.dqname, (void*)dct1, h->dequant##w##_mf[block], qp ); \
+                call_a2( qf_a.dqname, (void*)dct2, h->dequant##w##_mf[block], qp ); \
+            } \
+        }
+
+        TEST_DEQUANT_DC( quant_4x4_dc, dequant_4x4_dc, CQM_4IY, 4 );
 
         x264_cqm_delete( h );
     }

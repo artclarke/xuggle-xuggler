@@ -255,26 +255,30 @@ QUANT_DC x264_quant_2x2_dc_ssse3, 1
     %define t2d r1d
 %endif
 
-;-----------------------------------------------------------------------------
-; void x264_dequant_4x4_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
-;-----------------------------------------------------------------------------
-%macro DEQUANT 4
-cglobal x264_dequant_%2x%2_%1, 0,3
+%macro DEQUANT_START 2
     movifnidn t2d, r2m
     imul t0d, t2d, 0x2b
     shr  t0d, 8     ; i_qbits = i_qp / 6
     lea  t1, [t0*3]
     sub  t2d, t1d
     sub  t2d, t1d   ; i_mf = i_qp % 6
-    shl  t2d, %3+2
+    shl  t2d, %1
 %ifdef ARCH_X86_64
     add  r1, t2     ; dequant_mf[i_mf]
 %else
     add  r1, r1m    ; dequant_mf[i_mf]
     mov  r0, r0m    ; dct
 %endif
-    sub  t0d, %3
+    sub  t0d, %2
     jl   .rshift32  ; negative qbits => rightshift
+%endmacro
+
+;-----------------------------------------------------------------------------
+; void x264_dequant_4x4_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
+;-----------------------------------------------------------------------------
+%macro DEQUANT 4
+cglobal x264_dequant_%2x%2_%1, 0,3
+    DEQUANT_START %3+2, %3
 
 .lshift:
     movd m5, t0d
@@ -339,7 +343,67 @@ INIT_XMM
 DEQUANT sse2, 4, 4, 2
 DEQUANT sse2, 8, 6, 2
 
+%macro DEQUANT_DC 1
+cglobal x264_dequant_4x4dc_%1, 0,3
+    DEQUANT_START 6, 6
 
+.lshift:
+    movd   m6, [r1]
+    movd   m5, t0d
+    pslld  m6, m5
+%if mmsize==16
+    pshuflw  m6, m6, 0
+    punpcklqdq m6, m6
+%else
+    pshufw   m6, m6, 0
+%endif
+%assign x 0
+%rep 16/mmsize
+    mova     m0, [r0+mmsize*0+x]
+    mova     m1, [r0+mmsize*1+x]
+    pmullw   m0, m6
+    pmullw   m1, m6
+    mova     [r0+mmsize*0+x], m0
+    mova     [r0+mmsize*1+x], m1
+%assign x x+mmsize*2
+%endrep
+    RET
+
+.rshift32:
+    neg   t0d
+    movd  m5, t0d
+    mova  m6, [pw_1 GLOBAL]
+    mova  m7, m6
+    pslld m6, m5
+    psrld m6, 1
+    movd  m4, [r1]
+%if mmsize==8
+    punpcklwd m4, m4
+%else
+    pshuflw m4, m4, 0
+%endif
+    punpcklwd m4, m6
+%assign x 0
+%rep 32/mmsize
+    mova      m0, [r0+x]
+    mova      m1, m0
+    punpcklwd m0, m7
+    punpckhwd m1, m7
+    pmaddwd   m0, m4
+    pmaddwd   m1, m4
+    psrad     m0, m5
+    psrad     m1, m5
+    packssdw  m0, m1
+    mova      [r0+x], m0
+%assign x x+mmsize
+%endrep
+    RET
+%endmacro
+
+INIT_MMX
+DEQUANT_DC mmxext
+INIT_XMM
+DEQUANT_DC sse2
 
 ;-----------------------------------------------------------------------------
 ; void x264_denoise_dct_mmx( int16_t *dct, uint32_t *sum, uint16_t *offset, int size )

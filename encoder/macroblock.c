@@ -188,7 +188,7 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qp )
 
     /* output samples to fdec */
     h->dctf.idct4x4dc( dct_dc4x4 );
-    x264_mb_dequant_4x4_dc( dct_dc4x4, h->dequant4_mf[CQM_4IY], i_qp );  /* XXX not inversed */
+    h->quantf.dequant_4x4_dc( dct_dc4x4, h->dequant4_mf[CQM_4IY], i_qp );  /* XXX not inversed */
 
     /* calculate dct coeffs */
     for( i = 0; i < 16; i++ )
