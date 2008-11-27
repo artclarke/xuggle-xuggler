@@ -466,7 +466,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_dct_function_t dct_ref;
     x264_dct_function_t dct_asm;
     x264_quant_function_t qf;
-    int ret = 0, ok, used_asm, i, interlace;
+    int ret = 0, ok, used_asm, i, j, interlace;
     DECLARE_ALIGNED_16( int16_t dct1[16][4][4] );
     DECLARE_ALIGNED_16( int16_t dct2[16][4][4] );
     DECLARE_ALIGNED_16( int16_t dct4[16][4][4] );
@@ -560,40 +560,33 @@ static int check_dct( int cpu_ref, int cpu_new )
     report( "add_idct8 :" );
 #undef TEST_IDCT
 
-    ok = 1; used_asm = 0;
-    if( dct_asm.dct4x4dc != dct_ref.dct4x4dc )
-    {
-        DECLARE_ALIGNED_16( int16_t dct1[4][4] ) = {{-12, 42, 23, 67},{2, 90, 89,56},{67,43,-76,91},{56,-78,-54,1}};
-        DECLARE_ALIGNED_16( int16_t dct2[4][4] ) = {{-12, 42, 23, 67},{2, 90, 89,56},{67,43,-76,91},{56,-78,-54,1}};
-        set_func_name( "dct4x4dc" );
-        used_asm = 1;
-        call_c1( dct_c.dct4x4dc, dct1 );
-        call_a1( dct_asm.dct4x4dc, dct2 );
-        if( memcmp( dct1, dct2, 32 ) )
-        {
-            ok = 0;
-            fprintf( stderr, " - dct4x4dc :        [FAILED]\n" );
-        }
-        call_c2( dct_c.dct4x4dc, dct1 );
-        call_a2( dct_asm.dct4x4dc, dct2 );
-    }
-    if( dct_asm.idct4x4dc != dct_ref.idct4x4dc )
-    {
-        DECLARE_ALIGNED_16( int16_t dct1[4][4] ) = {{-12, 42, 23, 67},{2, 90, 89,56},{67,43,-76,91},{56,-78,-54,1}};
-        DECLARE_ALIGNED_16( int16_t dct2[4][4] ) = {{-12, 42, 23, 67},{2, 90, 89,56},{67,43,-76,91},{56,-78,-54,1}};
-        set_func_name( "idct4x4dc" );
-        used_asm = 1;
-        call_c1( dct_c.idct4x4dc, dct1 );
-        call_a1( dct_asm.idct4x4dc, dct2 );
-        if( memcmp( dct1, dct2, 32 ) )
-        {
-            ok = 0;
-            fprintf( stderr, " - idct4x4dc :        [FAILED]\n" );
-        }
-        call_c2( dct_c.idct4x4dc, dct1 );
-        call_a2( dct_asm.idct4x4dc, dct2 );
-    }
-    report( "(i)dct4x4dc :" );
+#define TEST_DCTDC( name )\
+    ok = 1; used_asm = 0;\
+    if( dct_asm.name != dct_ref.name )\
+    {\
+        set_func_name( #name );\
+        used_asm = 1;\
+        uint16_t *p = (uint16_t*)buf1;\
+        for( i=0; i<16 && ok; i++ )\
+        {\
+            for( j=0; j<16; j++ )\
+                dct1[0][0][j] = !i ? (j^j>>1^j>>2^j>>3)&1 ? 4080 : -4080 /* max dc */\
+                              : i<8 ? (*p++)&1 ? 4080 : -4080 /* max elements */\
+                              : ((*p++)&0x1fff)-0x1000; /* general case */\
+            memcpy( dct2, dct1, 32 );\
+            call_c1( dct_c.name, dct1[0] );\
+            call_a1( dct_asm.name, dct2[0] );\
+            if( memcmp( dct1, dct2, 32 ) )\
+                ok = 0;\
+        }\
+        call_c2( dct_c.name, dct1[0] );\
+        call_a2( dct_asm.name, dct2[0] );\
+    }\
+    report( #name " :" );
+
+    TEST_DCTDC(  dct4x4dc );
+    TEST_DCTDC( idct4x4dc );
+#undef TEST_DCTDC
 
     x264_zigzag_function_t zigzag_c;
     x264_zigzag_function_t zigzag_ref;
@@ -1086,14 +1079,14 @@ static int check_quant( int cpu_ref, int cpu_new )
     ok = oks[1]; used_asm = used_asms[1];
     report( "dequant :" );
 
-
+    ok = 1;
     if( qf_a.denoise_dct != qf_ref.denoise_dct )
     {
         int size;
+        used_asm = 1;
         for( size = 16; size <= 64; size += 48 )
         {
             set_func_name( "denoise_dct" );
-            used_asm = 1;
             memcpy(dct1, buf1, size*2);
             memcpy(dct2, buf1, size*2);
             memcpy(buf3+256, buf3, 256);
@@ -1133,6 +1126,7 @@ static int check_quant( int cpu_ref, int cpu_new )
         } \
     }
 
+    ok = 1;
     TEST_DECIMATE( quant_8x8, decimate_score64, CQM_8IY, 8, 0, 6 );
     TEST_DECIMATE( quant_4x4, decimate_score16, CQM_4IY, 4, 0, 6 );
     TEST_DECIMATE( quant_4x4, decimate_score15, CQM_4IY, 4, 1, 7 );

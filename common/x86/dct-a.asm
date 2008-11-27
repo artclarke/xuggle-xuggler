@@ -26,8 +26,8 @@
 %include "x86util.asm"
 
 SECTION_RODATA
-pw_1:  times 8 dw 1
 pw_32: times 8 dw 32
+pw_8000: times 8 dw 0x8000
 pb_sub4frame:   db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
 pb_scan4framea: db 12,13,6,7,14,15,0,1,8,9,2,3,4,5,10,11
 pb_scan4frameb: db 0,1,8,9,2,3,4,5,10,11,12,13,6,7,14,15
@@ -40,6 +40,18 @@ SECTION .text
     SWAP %1, %4, %3
 %endmacro
 
+%macro SUMSUB_17BIT 4 ; a, b, tmp, 0x8000
+    movq  m%3, m%4
+    paddw m%1, m%4
+    psubw m%3, m%2
+    paddw m%2, m%4
+    pavgw m%3, m%1
+    pavgw m%2, m%1
+    psubw m%3, m%4
+    psubw m%2, m%4
+    SWAP %1, %2, %3
+%endmacro
+
 ;-----------------------------------------------------------------------------
 ; void x264_dct4x4dc_mmx( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
@@ -48,22 +60,18 @@ cglobal x264_dct4x4dc_mmx, 1,1
     movq   m1, [r0+ 8]
     movq   m2, [r0+16]
     movq   m3, [r0+24]
+    movq   m7, [pw_8000 GLOBAL] ; convert to unsigned and back, so that pavgw works
     HADAMARD4_1D  0,1,2,3
     TRANSPOSE4x4W 0,1,2,3,4
-    HADAMARD4_1D  0,1,2,3
-    movq   m6, [pw_1 GLOBAL]
-    paddw  m0, m6
-    paddw  m1, m6
-    paddw  m2, m6
-    paddw  m3, m6
-    psraw  m0, 1
-    psraw  m1, 1
-    psraw  m2, 1
-    psraw  m3, 1
+    SUMSUB_BADC m1, m0, m3, m2
+    SWAP 0,1
+    SWAP 2,3
+    SUMSUB_17BIT 0,2,4,7
+    SUMSUB_17BIT 1,3,5,7
     movq  [r0+0], m0
-    movq  [r0+8], m1
-    movq [r0+16], m2
-    movq [r0+24], m3
+    movq  [r0+8], m2
+    movq [r0+16], m3
+    movq [r0+24], m1
     RET
 
 ;-----------------------------------------------------------------------------
