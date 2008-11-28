@@ -277,9 +277,12 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
         h->mb.cache.non_zero_count[x264_scan8[16+i]] = nz;
         h->mb.i_cbp_chroma |= nz;
     }
+    h->mb.cache.non_zero_count[x264_scan8[25]] = array_non_zero( h->dct.chroma_dc[0] );
+    h->mb.cache.non_zero_count[x264_scan8[26]] = array_non_zero( h->dct.chroma_dc[1] );
     if( h->mb.i_cbp_chroma )
         h->mb.i_cbp_chroma = 2;    /* dc+ac (we can't do only ac) */
-    else if( array_non_zero( h->dct.chroma_dc ) )
+    else if( h->mb.cache.non_zero_count[x264_scan8[25]] |
+             h->mb.cache.non_zero_count[x264_scan8[26]] )
         h->mb.i_cbp_chroma = 1;    /* dc only */
 }
 
@@ -643,6 +646,7 @@ void x264_macroblock_encode( x264_t *h )
             h->mb.i_cbp_luma |= nz;
         }
         h->mb.i_cbp_luma *= 0xf;
+        h->mb.cache.non_zero_count[x264_scan8[24]] = array_non_zero( h->dct.luma16x16_dc );
     }
     else
     {
@@ -671,13 +675,14 @@ void x264_macroblock_encode( x264_t *h )
                 h->mb.i_cbp_luma |= cbp << i;
             }
         }
+        h->mb.cache.non_zero_count[x264_scan8[24]] = 0;
     }
 
     if( h->param.b_cabac )
     {
-        i_cbp_dc = ( h->mb.i_type == I_16x16 && array_non_zero( h->dct.luma16x16_dc ) )
-                 | array_non_zero( h->dct.chroma_dc[0] ) << 1
-                 | array_non_zero( h->dct.chroma_dc[1] ) << 2;
+        i_cbp_dc = h->mb.cache.non_zero_count[x264_scan8[24]]
+                 | h->mb.cache.non_zero_count[x264_scan8[25]] << 1
+                 | h->mb.cache.non_zero_count[x264_scan8[26]] << 2;
     }
 
     /* store cbp */

@@ -57,5 +57,12 @@ int x264_decimate_score16_ssse3 ( int16_t *dct );
 int x264_decimate_score64_mmxext( int16_t *dct );
 int x264_decimate_score64_sse2  ( int16_t *dct );
 int x264_decimate_score64_ssse3 ( int16_t *dct );
+int x264_coeff_last4_mmxext( int16_t *dct );
+int x264_coeff_last15_mmxext( int16_t *dct );
+int x264_coeff_last16_mmxext( int16_t *dct );
+int x264_coeff_last64_mmxext( int16_t *dct );
+int x264_coeff_last15_sse2( int16_t *dct );
+int x264_coeff_last16_sse2( int16_t *dct );
+int x264_coeff_last64_sse2( int16_t *dct );
 
 #endif

@@ -1125,7 +1125,7 @@ static int check_quant( int cpu_ref, int cpu_new )
     }
     report( "denoise dct :" );
 
-#define TEST_DECIMATE( qname, decname, block, w, ac, thresh ) \
+#define TEST_DECIMATE( decname, w, ac, thresh ) \
     if( qf_a.decname != qf_ref.decname ) \
     { \
         set_func_name( #decname ); \
@@ -1152,10 +1152,45 @@ static int check_quant( int cpu_ref, int cpu_new )
     }
 
     ok = 1;
-    TEST_DECIMATE( quant_8x8, decimate_score64, CQM_8IY, 8, 0, 6 );
-    TEST_DECIMATE( quant_4x4, decimate_score16, CQM_4IY, 4, 0, 6 );
-    TEST_DECIMATE( quant_4x4, decimate_score15, CQM_4IY, 4, 1, 7 );
+    TEST_DECIMATE( decimate_score64, 8, 0, 6 );
+    TEST_DECIMATE( decimate_score16, 4, 0, 6 );
+    TEST_DECIMATE( decimate_score15, 4, 1, 7 );
     report( "decimate_score :" );
+
+#define TEST_LAST( last, lastname, w, ac ) \
+    if( qf_a.last != qf_ref.last ) \
+    { \
+        set_func_name( #lastname ); \
+        used_asm = 1; \
+        for( i = 0; i < 100; i++ ) \
+        { \
+            int result_c, result_a, idx, nnz=0; \
+            int max = rand() & (w*w-1); \
+            memset( dct1, 0, w*w*2 ); \
+            for( idx = ac; idx < max; idx++ ) \
+                nnz |= dct1[idx] = !(rand()&3) + (!(rand()&15))*rand(); \
+            if( !nnz ) \
+                dct1[ac] = 1; \
+            memcpy( dct2, dct1, w*w*2 ); \
+            result_c = call_c1( qf_c.last, (void*)(dct2+ac) ); \
+            result_a = call_a1( qf_a.last, (void*)(dct2+ac) ); \
+            if( result_c != result_a ) \
+            { \
+                ok = 0; \
+                fprintf( stderr, #lastname ": [FAILED]\n" ); \
+                break; \
+            } \
+            call_c2( qf_c.last, (void*)(dct2+ac) ); \
+            call_a2( qf_a.last, (void*)(dct2+ac) ); \
+        } \
+    }
+
+    ok = 1;
+    TEST_LAST( coeff_last[DCT_CHROMA_DC],  coeff_last4, 2, 0 );
+    TEST_LAST( coeff_last[  DCT_LUMA_AC], coeff_last15, 4, 1 );
+    TEST_LAST( coeff_last[ DCT_LUMA_4x4], coeff_last16, 4, 0 );
+    TEST_LAST( coeff_last[ DCT_LUMA_8x8], coeff_last64, 8, 0 );
+    report( "coeff_last :" );
 
     return ret;
 }

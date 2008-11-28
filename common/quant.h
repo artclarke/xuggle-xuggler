@@ -39,6 +39,7 @@ typedef struct
     int (*decimate_score15)( int16_t *dct );
     int (*decimate_score16)( int16_t *dct );
     int (*decimate_score64)( int16_t *dct );
+    int (*coeff_last[6])( int16_t *dct );
 } x264_quant_function_t;
 
 void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf );

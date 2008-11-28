@@ -213,7 +213,7 @@ typedef struct
 #define X264_SCAN8_SIZE (6*8)
 #define X264_SCAN8_0 (4+1*8)
 
-static const int x264_scan8[16+2*4] =
+static const int x264_scan8[16+2*4+3] =
 {
     /* Luma */
     4+1*8, 5+1*8, 4+2*8, 5+2*8,
@@ -228,6 +228,12 @@ static const int x264_scan8[16+2*4] =
     /* Cr */
     1+4*8, 2+4*8,
     1+5*8, 2+5*8,
+
+    /* Luma DC */
+    4+5*8,
+
+    /* Chroma DC */
+    5+5*8, 6+5*8
 };
 /*
    0 1 2 3 4 5 6 7
@@ -236,7 +242,7 @@ static const int x264_scan8[16+2*4] =
  2   B B   L L L L
  3         L L L L
  4   R R   L L L L
- 5   R R
+ 5   R R   DyDuDv
 */
 
 typedef struct x264_ratecontrol_t   x264_ratecontrol_t;

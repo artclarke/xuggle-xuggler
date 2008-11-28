@@ -595,6 +595,7 @@ static int x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int i_idx )
             break;
         case DCT_CHROMA_DC:
             /* no need to test skip/pcm */
+            i_idx -= 25;
             if( h->mb.i_neighbour & MB_LEFT )
             {
                 i_mba_xy = h->mb.i_mb_xy - 1;
@@ -684,23 +685,18 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
     const uint8_t *significant_coeff_flag_offset = significant_coeff_flag_offset_8x8[h->mb.b_interlaced];
 
     int i_coeff_abs_m1[64];
-    int UNUSED i_coeff_sign[64];
+    int i_coeff_sign[64];
     int i_coeff = 0;
-    int i_last  = 0;
+    int i_last;
     int i_sigmap_size;
     int node_ctx = 0;
-    int i, j;
-
-    /* yes this is always aligned, and l[-1] exists in the cases where it's used (ac) */
-    for( j = i_count - 4; j >= -1; j -= 4 )
-        if( *(uint64_t*)(l+j) )
-            break;
+    int i;
 
     if( i_count != 64 )
     {
         /* coded block flag */
         int ctx = 85 + x264_cabac_mb_cbf_ctxidxinc( h, i_ctxBlockCat, i_idx );
-        if( j >= -1 )
+        if( h->mb.cache.non_zero_count[x264_scan8[i_idx]] )
             x264_cabac_encode_decision( cb, ctx, 1 );
         else
         {
@@ -709,9 +705,7 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
         }
     }
 
-    for( i = j; i < j+4; i++)
-        if( l[i] )
-            i_last = i;
+    i_last = h->quantf.coeff_last[i_ctxBlockCat](l);
 
     i_sigmap_size = X264_MIN( i_last+1, i_count-1 );
 
@@ -722,7 +716,7 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
         {\
             i_coeff_abs_m1[i_coeff] = abs(l[i]) - 1;\
             if( !RDO_SKIP_BS )\
-                i_coeff_sign[i_coeff]   = l[i] < 0;\
+                i_coeff_sign[i_coeff] = l[i] < 0;\
             i_coeff++;\
             x264_cabac_encode_decision( cb, i_ctx_sig + (l8x8 ? significant_coeff_flag_offset[i] : i), 1 );\
             x264_cabac_encode_decision( cb, i_ctx_last + (l8x8 ? last_coeff_flag_offset_8x8[i] : i), i == i_last );\
@@ -762,7 +756,7 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
             cb->f8_bits_encoded += cabac_size_unary[i_prefix][cb->state[ctx]];
             cb->state[ctx] = cabac_transition_unary[i_prefix][cb->state[ctx]];
 #else
-            for( j = 0; j < i_prefix - 1; j++ )
+            for( i = 0; i < i_prefix - 1; i++ )
                 x264_cabac_encode_decision( cb, ctx, 1 );
             if( i_prefix < 14 )
                 x264_cabac_encode_decision( cb, ctx, 0 );
@@ -1002,7 +996,7 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
         if( i_mb_type == I_16x16 )
         {
             /* DC Luma */
-            block_residual_write_cabac( h, cb, DCT_LUMA_DC, 0, h->dct.luma16x16_dc, 16 );
+            block_residual_write_cabac( h, cb, DCT_LUMA_DC, 24, h->dct.luma16x16_dc, 16 );
 
             /* AC Luma */
             if( h->mb.i_cbp_luma != 0 )
@@ -1024,8 +1018,8 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
 
         if( h->mb.i_cbp_chroma &0x03 )    /* Chroma DC residual present */
         {
-            block_residual_write_cabac( h, cb, DCT_CHROMA_DC, 0, h->dct.chroma_dc[0], 4 );
-            block_residual_write_cabac( h, cb, DCT_CHROMA_DC, 1, h->dct.chroma_dc[1], 4 );
+            block_residual_write_cabac( h, cb, DCT_CHROMA_DC, 25, h->dct.chroma_dc[0], 4 );
+            block_residual_write_cabac( h, cb, DCT_CHROMA_DC, 26, h->dct.chroma_dc[1], 4 );
         }
         if( h->mb.i_cbp_chroma&0x02 ) /* Chroma AC residual present */
         {
@@ -1078,15 +1072,29 @@ static void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int 
         if( h->mb.i_cbp_luma & (1 << i8) )
         {
             if( h->mb.b_transform_8x8 )
+            {
+                *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4+0]] = 0x0101;
+                *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4+2]] = 0x0101;
                 block_residual_write_cabac( h, cb, DCT_LUMA_8x8, i8, h->dct.luma8x8[i8], 64 );
+            }
             else
             {
                 int i4;
                 for( i4 = 0; i4 < 4; i4++ )
+                {
+                    h->mb.cache.non_zero_count[x264_scan8[i4+i8*4]] = array_non_zero( h->dct.luma4x4[i4+i8*4] );
                     block_residual_write_cabac( h, cb, DCT_LUMA_4x4, i4+i8*4, h->dct.luma4x4[i4+i8*4], 16 );
+                }
             }
         }
+        else
+        {
+            *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4+0]] = 0;
+            *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4+2]] = 0;
+        }
 
+        h->mb.cache.non_zero_count[x264_scan8[16+i8]] = array_non_zero( h->dct.luma4x4[16+i8] );
+        h->mb.cache.non_zero_count[x264_scan8[20+i8]] = array_non_zero( h->dct.luma4x4[20+i8] );
         block_residual_write_cabac( h, cb, DCT_CHROMA_AC, 16+i8, h->dct.luma4x4[16+i8]+1, 15 );
         block_residual_write_cabac( h, cb, DCT_CHROMA_AC, 20+i8, h->dct.luma4x4[20+i8]+1, 15 );
 
@@ -1097,12 +1105,14 @@ static void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int 
 static void x264_subpartition_size_cabac( x264_t *h, x264_cabac_t *cb, int i4, int i_pixel )
 {
     int b_8x4 = i_pixel == PIXEL_8x4;
+    h->mb.cache.non_zero_count[x264_scan8[i4]] = array_non_zero( h->dct.luma4x4[i4+2-b_8x4] );
     block_residual_write_cabac( h, cb, DCT_LUMA_4x4, i4, h->dct.luma4x4[i4], 16 );
     if( i_pixel == PIXEL_4x4 )
         x264_cabac_mb_mvd( h, cb, 0, i4, 1, 1 );
     else
     {
         x264_cabac_mb_mvd( h, cb, 0, i4, 1+b_8x4, 2-b_8x4 );
+        h->mb.cache.non_zero_count[x264_scan8[i4+2-b_8x4]] = array_non_zero( h->dct.luma4x4[i4+2-b_8x4] );
         block_residual_write_cabac( h, cb, DCT_LUMA_4x4, i4+2-b_8x4, h->dct.luma4x4[i4+2-b_8x4], 16 );
     }
 }
@@ -1115,9 +1125,9 @@ static void x264_partition_i8x8_size_cabac( x264_t *h, x264_cabac_t *cb, int i8,
     x264_cabac_mb_intra4x4_pred_mode( cb, i_pred, i_mode );
     if( nnz )
     {
-        block_residual_write_cabac( h, cb, DCT_LUMA_8x8, 4*i8, h->dct.luma8x8[i8], 64 );
         *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4]] = 0x0101;
         *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4+2]] = 0x0101;
+        block_residual_write_cabac( h, cb, DCT_LUMA_8x8, 4*i8, h->dct.luma8x8[i8], 64 );
     }
     else
     {
@@ -1131,8 +1141,8 @@ static void x264_partition_i4x4_size_cabac( x264_t *h, x264_cabac_t *cb, int i4,
     const int i_pred = x264_mb_predict_intra4x4_mode( h, i4 );
     i_mode = x264_mb_pred_mode4x4_fix( i_mode );
     x264_cabac_mb_intra4x4_pred_mode( cb, i_pred, i_mode );
-    block_residual_write_cabac( h, cb, DCT_LUMA_4x4, i4, h->dct.luma4x4[i4], 16 );
     h->mb.cache.non_zero_count[x264_scan8[i4]] = array_non_zero( h->dct.luma4x4[i4] );
+    block_residual_write_cabac( h, cb, DCT_LUMA_4x4, i4, h->dct.luma4x4[i4], 16 );
 }
 
 static void x264_i8x8_chroma_size_cabac( x264_t *h, x264_cabac_t *cb )
@@ -1141,8 +1151,8 @@ static void x264_i8x8_chroma_size_cabac( x264_t *h, x264_cabac_t *cb )
     x264_cabac_mb_cbp_chroma( h, cb );
     if( h->mb.i_cbp_chroma > 0 )
     {
-        block_residual_write_cabac( h, cb, DCT_CHROMA_DC, 0, h->dct.chroma_dc[0], 4 );
-        block_residual_write_cabac( h, cb, DCT_CHROMA_DC, 1, h->dct.chroma_dc[1], 4 );
+        block_residual_write_cabac( h, cb, DCT_CHROMA_DC, 25, h->dct.chroma_dc[0], 4 );
+        block_residual_write_cabac( h, cb, DCT_CHROMA_DC, 26, h->dct.chroma_dc[1], 4 );
 
         if( h->mb.i_cbp_chroma == 2 )
         {
