@@ -513,6 +513,12 @@ static int  Parse( int argc, char **argv,
 #else
                 printf( "x264 0.%d.X\n", X264_BUILD );
 #endif
+                printf( "built on " __DATE__ ", " );
+#ifdef __GNUC__
+                printf( "gcc: " __VERSION__ "\n" );
+#else
+                printf( "using a non-gcc compiler\n" );
+#endif
                 exit(0);
             case OPT_FRAMES:
                 param->i_frame_total = atoi( optarg );
