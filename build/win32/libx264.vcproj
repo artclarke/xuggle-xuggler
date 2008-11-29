@@ -709,7 +709,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 					<FileConfiguration
@@ -717,7 +717,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
@@ -728,7 +728,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 					<FileConfiguration
@@ -736,7 +736,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
@@ -747,7 +747,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 					<FileConfiguration
@@ -755,7 +755,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
@@ -766,7 +766,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 					<FileConfiguration
@@ -774,7 +774,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
@@ -785,7 +785,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 					<FileConfiguration
@@ -793,7 +793,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
@@ -804,7 +804,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 					<FileConfiguration
@@ -812,7 +812,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
@@ -823,7 +823,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 					<FileConfiguration
@@ -831,7 +831,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
@@ -842,7 +842,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 					<FileConfiguration
@@ -850,7 +850,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
@@ -861,7 +861,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 					<FileConfiguration
@@ -869,7 +869,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
@@ -880,7 +880,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 					<FileConfiguration
@@ -888,7 +888,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
@@ -899,7 +899,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 					<FileConfiguration
@@ -907,7 +907,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
@@ -918,7 +918,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 					<FileConfiguration
@@ -926,7 +926,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
@@ -937,7 +937,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 					<FileConfiguration
@@ -945,7 +945,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Assembly $(InputPath)"
-							CommandLine="nasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
+							CommandLine="yasm -I..\..\common\x86\ -f win32 -O2 -DPREFIX -o &quot;$(IntDir)\$(InputName)&quot;.obj &quot;$(InputPath)&quot;"
 							Outputs="$(IntDir)\$(InputName).obj"/>
 					</FileConfiguration>
 				</File>
