@@ -5,6 +5,7 @@
 ;*
 ;* Authors: Laurent Aimar <fenrir@via.ecp.fr>
 ;*          Loren Merritt <lorenm@u.washington.edu>
+;*          Holger Lubitz <hal@duncan.ol.sub.de>
 ;*          Min Chen <chenm001.163.com>
 ;*
 ;* This program is free software; you can redistribute it and/or modify

@@ -5,6 +5,7 @@
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*          Jason Garrett-Glaser <darkshikari@gmail.com>
+;*          Holger Lubitz <hal@duncan.ol.sub.de>
 ;*          Mathieu Monnier <manao@melix.net>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
