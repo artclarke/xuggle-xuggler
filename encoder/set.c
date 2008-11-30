@@ -539,6 +539,7 @@ int x264_validate_levels( x264_t *h, int verbose )
     int ret = 0;
     int mbs = h->sps->i_mb_width * h->sps->i_mb_height;
     int dpb = mbs * 384 * h->sps->i_num_ref_frames;
+    int cbp_factor = h->sps->i_profile_idc==PROFILE_HIGH ? 5 : 4;
 
     const x264_level_t *l = x264_levels;
     while( l->level_idc != 0 && l->level_idc != h->param.i_level_idc )
@@ -557,8 +558,8 @@ int x264_validate_levels( x264_t *h, int verbose )
     if( (val) > (limit) ) \
         ERROR( name " (%d) > level limit (%d)\n", (int)(val), (limit) );
 
-    CHECK( "VBV bitrate", l->bitrate, h->param.rc.i_vbv_max_bitrate );
-    CHECK( "VBV buffer", l->cpb, h->param.rc.i_vbv_buffer_size );
+    CHECK( "VBV bitrate", (l->bitrate * cbp_factor) / 4, h->param.rc.i_vbv_max_bitrate );
+    CHECK( "VBV buffer", (l->cpb * cbp_factor) / 4, h->param.rc.i_vbv_buffer_size );
     CHECK( "MV range", l->mv_range, h->param.analyse.i_mv_range );
     CHECK( "interlaced", !l->frame_only, h->param.b_interlaced );
 
