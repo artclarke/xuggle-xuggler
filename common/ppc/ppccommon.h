@@ -251,7 +251,7 @@ typedef union {
  * and i2
  **********************************************************************/
 #define VEC_DIFF_HL(p1,i1,p2,i2,dh,dl)       \
-    pix1v = vec_ld(0, p1);                   \
+    pix1v = (vec_s16_t)vec_ld(0, p1);        \
     temp0v = vec_u8_to_s16_h( pix1v );       \
     temp1v = vec_u8_to_s16_l( pix1v );       \
     VEC_LOAD( p2, pix2v, 16, vec_s16_t, p2); \
