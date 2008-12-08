@@ -21,7 +21,7 @@
 /***********************************************************************
  * For constant vectors, use parentheses on OS X and braces on Linux
  **********************************************************************/
-#ifdef SYS_MACOSX
+#if defined(__APPLE__) && __GNUC__ < 4
 #define CV(a...) (a)
 #else
 #define CV(a...) {a}
