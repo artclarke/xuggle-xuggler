@@ -884,3 +884,49 @@ const vlc_t x264_run_before[7][15] =
         MKVLC( 0x1, 11 ), /* str=00000000001 */
     },
 };
+
+vlc_large_t x264_level_token[7][LEVEL_TABLE_SIZE];
+
+void x264_init_vlc_tables()
+{
+    int16_t level;
+    int i_suffix;
+    for( i_suffix = 0; i_suffix < 7; i_suffix++ )
+        for( level = -LEVEL_TABLE_SIZE/2; level < LEVEL_TABLE_SIZE/2; level++ )
+        {
+            int mask = level >> 15;
+            int abs_level = (level^mask)-mask;
+            int i_level_code = abs_level*2-mask-2;
+            int i_next = i_suffix;
+            vlc_large_t *vlc = &x264_level_token[i_suffix][level+LEVEL_TABLE_SIZE/2];
+
+            if( ( i_level_code >> i_suffix ) < 14 )
+            {
+                vlc->i_size = (i_level_code >> i_suffix) + 1 + i_suffix;
+                vlc->i_bits = (1<<i_suffix) + (i_level_code & ((1<<i_suffix)-1));
+            }
+            else if( i_suffix == 0 && i_level_code < 30 )
+            {
+                vlc->i_size = 19;
+                vlc->i_bits = (1<<4) + (i_level_code - 14);
+            }
+            else if( i_suffix > 0 && ( i_level_code >> i_suffix ) == 14 )
+            {
+                vlc->i_size = 15 + i_suffix;
+                vlc->i_bits = (1<<i_suffix) + (i_level_code & ((1<<i_suffix)-1));
+            }
+            else
+            {
+                i_level_code -= 15 << i_suffix;
+                if( i_suffix == 0 )
+                    i_level_code -= 15;
+                vlc->i_size = 28;
+                vlc->i_bits = (1<<12) + i_level_code;
+            }
+            if( i_next == 0 )
+                i_next++;
+            if( abs_level > (3 << (i_next-1)) && i_next < 6 )
+                i_next++;
+            vlc->i_next = i_next;
+        }
+}

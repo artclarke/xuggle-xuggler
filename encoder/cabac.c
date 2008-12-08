@@ -1073,29 +1073,15 @@ static void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int 
         if( h->mb.i_cbp_luma & (1 << i8) )
         {
             if( h->mb.b_transform_8x8 )
-            {
-                *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4+0]] = 0x0101;
-                *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4+2]] = 0x0101;
                 block_residual_write_cabac( h, cb, DCT_LUMA_8x8, i8, h->dct.luma8x8[i8], 64 );
-            }
             else
             {
                 int i4;
                 for( i4 = 0; i4 < 4; i4++ )
-                {
-                    h->mb.cache.non_zero_count[x264_scan8[i4+i8*4]] = array_non_zero( h->dct.luma4x4[i4+i8*4] );
                     block_residual_write_cabac( h, cb, DCT_LUMA_4x4, i4+i8*4, h->dct.luma4x4[i4+i8*4], 16 );
-                }
             }
         }
-        else
-        {
-            *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4+0]] = 0;
-            *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4+2]] = 0;
-        }
 
-        h->mb.cache.non_zero_count[x264_scan8[16+i8]] = array_non_zero( h->dct.luma4x4[16+i8] );
-        h->mb.cache.non_zero_count[x264_scan8[20+i8]] = array_non_zero( h->dct.luma4x4[20+i8] );
         block_residual_write_cabac( h, cb, DCT_CHROMA_AC, 16+i8, h->dct.luma4x4[16+i8]+1, 15 );
         block_residual_write_cabac( h, cb, DCT_CHROMA_AC, 20+i8, h->dct.luma4x4[20+i8]+1, 15 );
 
@@ -1106,14 +1092,12 @@ static void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int 
 static void x264_subpartition_size_cabac( x264_t *h, x264_cabac_t *cb, int i4, int i_pixel )
 {
     int b_8x4 = i_pixel == PIXEL_8x4;
-    h->mb.cache.non_zero_count[x264_scan8[i4]] = array_non_zero( h->dct.luma4x4[i4] );
     block_residual_write_cabac( h, cb, DCT_LUMA_4x4, i4, h->dct.luma4x4[i4], 16 );
     if( i_pixel == PIXEL_4x4 )
         x264_cabac_mb_mvd( h, cb, 0, i4, 1, 1 );
     else
     {
         x264_cabac_mb_mvd( h, cb, 0, i4, 1+b_8x4, 2-b_8x4 );
-        h->mb.cache.non_zero_count[x264_scan8[i4+2-b_8x4]] = array_non_zero( h->dct.luma4x4[i4+2-b_8x4] );
         block_residual_write_cabac( h, cb, DCT_LUMA_4x4, i4+2-b_8x4, h->dct.luma4x4[i4+2-b_8x4], 16 );
     }
 }

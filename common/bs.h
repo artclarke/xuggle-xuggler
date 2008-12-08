@@ -31,6 +31,14 @@ typedef struct
     uint8_t i_size;
 } vlc_t;
 
+typedef struct
+{
+    uint16_t i_bits;
+    uint8_t  i_size;
+    /* Next level table to use */
+    uint8_t  i_next;
+} vlc_large_t;
+
 typedef struct bs_s
 {
     uint8_t *p_start;
@@ -46,6 +54,14 @@ extern const vlc_t x264_coeff_token[5][17*4];
 extern const vlc_t x264_total_zeros[15][16];
 extern const vlc_t x264_total_zeros_dc[3][4];
 extern const vlc_t x264_run_before[7][15];
+
+/* A larger level table size theoretically could help a bit at extremely
+ * high bitrates, but the cost in cache is usually too high for it to be
+ * useful.
+ * This size appears to be optimal for QP18 encoding on a Nehalem CPU.
+ * FIXME: Do further testing? */
+#define LEVEL_TABLE_SIZE 128
+extern vlc_large_t x264_level_token[7][LEVEL_TABLE_SIZE];
 
 static inline void bs_init( bs_t *s, void *p_data, int i_data )
 {

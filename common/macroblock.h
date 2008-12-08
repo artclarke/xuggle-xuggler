@@ -424,18 +424,6 @@ static ALWAYS_INLINE int array_non_zero_int_c( void *v, int i_count )
         return 0;
     }
 }
-/* This function and its MMX version only work on arrays of size 16 */
-static ALWAYS_INLINE int array_non_zero_count( int16_t *v )
-{
-    int i;
-    int i_nz;
-
-    for( i = 0, i_nz = 0; i < 16; i++ )
-        if( v[i] )
-            i_nz++;
-
-    return i_nz;
-}
 static inline int x264_mb_predict_intra4x4_mode( x264_t *h, int idx )
 {
     const int ma = h->mb.cache.intra4x4_pred_mode[x264_scan8[idx] - 1];
