@@ -169,4 +169,20 @@ static ALWAYS_INLINE intptr_t endian_fix( intptr_t x )
 }
 #endif
 
+#ifdef __GNUC__
+#define x264_clz(x) __builtin_clz(x)
+#else
+static int ALWAYS_INLINE x264_clz( uint32_t x )
+{
+    static uint8_t lut[16] = {4,3,2,2,1,1,1,1,0,0,0,0,0,0,0,0};
+    int y, z = ((x - 0x10000) >> 27) & 16;
+    x >>= z^16;
+    z += y = ((x - 0x100) >> 28) & 8;
+    x >>= y^8;
+    z += y = ((x - 0x10) >> 29) & 4;
+    x >>= y^4;
+    return z + lut[x];
+}
+#endif
+
 #endif /* X264_OSDEP_H */
