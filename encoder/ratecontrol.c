@@ -558,7 +558,7 @@ int x264_ratecontrol_new( x264_t *h )
 static int parse_zone( x264_t *h, x264_zone_t *z, char *p )
 {
     int len = 0;
-    char *tok, *saveptr;
+    char *tok, UNUSED *saveptr;
     z->param = NULL;
     z->f_bitrate_factor = 1;
     if( 3 <= sscanf(p, "%u,%u,q=%u%n", &z->i_start, &z->i_end, &z->i_qp, &len) )
@@ -601,7 +601,7 @@ static int parse_zones( x264_t *h )
     int i;
     if( h->param.rc.psz_zones && !h->param.rc.i_zones )
     {
-        char *p, *tok, *saveptr;
+        char *p, *tok, UNUSED *saveptr;
         char *psz_zones = x264_malloc( strlen(h->param.rc.psz_zones)+1 );
         strcpy( psz_zones, h->param.rc.psz_zones );
         h->param.rc.i_zones = 1;
