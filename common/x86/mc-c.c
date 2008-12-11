@@ -64,6 +64,12 @@ extern void *x264_memcpy_aligned_mmx( void * dst, const void * src, size_t n );
 extern void *x264_memcpy_aligned_sse2( void * dst, const void * src, size_t n );
 extern void x264_memzero_aligned_mmx( void * dst, int n );
 extern void x264_memzero_aligned_sse2( void * dst, int n );
+extern void x264_integral_init4h_sse4( uint16_t *sum, uint8_t *pix, int stride );
+extern void x264_integral_init8h_sse4( uint16_t *sum, uint8_t *pix, int stride );
+extern void x264_integral_init4v_mmx( uint16_t *sum8, uint16_t *sum4, int stride );
+extern void x264_integral_init4v_sse2( uint16_t *sum8, uint16_t *sum4, int stride );
+extern void x264_integral_init8v_mmx( uint16_t *sum8, int stride );
+extern void x264_integral_init8v_sse2( uint16_t *sum8, int stride );
 #define LOWRES(cpu) \
 extern void x264_frame_init_lowres_core_##cpu( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,\
                                                int src_stride, int dst_stride, int width, int height );
@@ -242,6 +248,8 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->copy[PIXEL_4x4]   = x264_mc_copy_w4_mmx;
     pf->memcpy_aligned = x264_memcpy_aligned_mmx;
     pf->memzero_aligned = x264_memzero_aligned_mmx;
+    pf->integral_init4v = x264_integral_init4v_mmx;
+    pf->integral_init8v = x264_integral_init8v_mmx;
 
     if( !(cpu&X264_CPU_MMXEXT) )
         return;
@@ -286,6 +294,8 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 
     pf->memcpy_aligned = x264_memcpy_aligned_sse2;
     pf->memzero_aligned = x264_memzero_aligned_sse2;
+    pf->integral_init4v = x264_integral_init4v_sse2;
+    pf->integral_init8v = x264_integral_init8v_sse2;
     pf->hpel_filter = x264_hpel_filter_sse2_amd;
 
     if( cpu&X264_CPU_SSE2_IS_SLOW )
@@ -331,4 +341,10 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->hpel_filter = x264_hpel_filter_ssse3;
     pf->frame_init_lowres_core = x264_frame_init_lowres_core_ssse3;
     pf->mc_chroma = x264_mc_chroma_ssse3;
+
+    if( !(cpu&X264_CPU_SSE4) )
+        return;
+
+    pf->integral_init4h = x264_integral_init4h_sse4;
+    pf->integral_init8h = x264_integral_init8h_sse4;
 }

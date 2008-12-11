@@ -822,32 +822,56 @@ static int check_mc( int cpu_ref, int cpu_new )
         uint8_t *dstc[4] = { buf3, buf3+1024, buf3+2048, buf3+3072 };
         uint8_t *dsta[4] = { buf4, buf4+1024, buf4+2048, buf3+3072 };
         set_func_name( "lowres_init" );
+        ok = 1; used_asm = 1;
         for( w=40; w<=48; w+=8 )
-            if( mc_a.frame_init_lowres_core != mc_ref.frame_init_lowres_core )
+        {
+            int stride = (w+8)&~15;
+            call_c( mc_c.frame_init_lowres_core, buf1, dstc[0], dstc[1], dstc[2], dstc[3], w*2, stride, w, 16 );
+            call_a( mc_a.frame_init_lowres_core, buf1, dsta[0], dsta[1], dsta[2], dsta[3], w*2, stride, w, 16 );
+            for( i=0; i<16; i++)
             {
-                int stride = (w+8)&~15;
-                used_asm = 1;
-                call_c( mc_c.frame_init_lowres_core, buf1, dstc[0], dstc[1], dstc[2], dstc[3], w*2, stride, w, 16 );
-                call_a( mc_a.frame_init_lowres_core, buf1, dsta[0], dsta[1], dsta[2], dsta[3], w*2, stride, w, 16 );
-                for( i=0; i<16; i++)
-                {
-                    for( j=0; j<4; j++)
-                        if( memcmp( dstc[j]+i*stride, dsta[j]+i*stride, w ) )
-                        {
-                            ok = 0;
-                            fprintf( stderr, "frame_init_lowres differs at plane %d line %d\n", j, i );
-                            for( k=0; k<w; k++ )
-                                printf( "%d ", dstc[j][k+i*stride] );
-                            printf("\n");
-                            for( k=0; k<w; k++ )
-                                printf( "%d ", dsta[j][k+i*stride] );
-                            printf("\n");
-                            break;
-                        }
-                }
+                for( j=0; j<4; j++)
+                    if( memcmp( dstc[j]+i*stride, dsta[j]+i*stride, w ) )
+                    {
+                        ok = 0;
+                        fprintf( stderr, "frame_init_lowres differs at plane %d line %d\n", j, i );
+                        for( k=0; k<w; k++ )
+                            printf( "%d ", dstc[j][k+i*stride] );
+                        printf("\n");
+                        for( k=0; k<w; k++ )
+                            printf( "%d ", dsta[j][k+i*stride] );
+                        printf("\n");
+                        break;
+                    }
             }
+        }
         report( "lowres init :" );
     }
+
+#define INTEGRAL_INIT( name, size, ... )\
+    if( mc_a.name != mc_ref.name )\
+    {\
+        int stride = 80;\
+        set_func_name( #name );\
+        used_asm = 1;\
+        memcpy( buf3, buf1, size*2*stride );\
+        memcpy( buf4, buf1, size*2*stride );\
+        uint16_t *sum = (uint16_t*)buf3;\
+        call_c1( mc_c.name, __VA_ARGS__ );\
+        sum = (uint16_t*)buf4;\
+        call_a1( mc_a.name, __VA_ARGS__ );\
+        if( memcmp( buf3, buf4, (stride-8)*2 )\
+            || (size>9 && memcmp( buf3+18*stride, buf4+18*stride, (stride-8)*2 )))\
+            ok = 0;\
+        call_c2( mc_c.name, __VA_ARGS__ );\
+        call_a2( mc_a.name, __VA_ARGS__ );\
+    }
+    ok = 1; used_asm = 0;
+    INTEGRAL_INIT( integral_init4h, 2, sum+stride, buf2, stride );
+    INTEGRAL_INIT( integral_init8h, 2, sum+stride, buf2, stride );
+    INTEGRAL_INIT( integral_init4v, 14, sum, sum+9*stride, stride );
+    INTEGRAL_INIT( integral_init8v, 9, sum, stride );
+    report( "integral init :" );
 
     return ret;
 }

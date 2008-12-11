@@ -694,6 +694,104 @@ MEMZERO sse2
 
 
 
+;-----------------------------------------------------------------------------
+; void x264_integral_init4h_sse4( uint16_t *sum, uint8_t *pix, int stride )
+;-----------------------------------------------------------------------------
+cglobal x264_integral_init4h_sse4, 3,4
+    lea     r3, [r0+r2*2]
+    add     r1, r2
+    neg     r2
+    pxor    m4, m4
+.loop:
+    movdqa  m0, [r1+r2]
+    movdqu  m1, [r1+r2+8]
+    mpsadbw m0, m4, 0
+    mpsadbw m1, m4, 0
+    paddw   m0, [r0+r2*2]
+    paddw   m1, [r0+r2*2+16]
+    movdqa  [r3+r2*2   ], m0
+    movdqa  [r3+r2*2+16], m1
+    add     r2, 16
+    jl .loop
+    REP_RET
+
+cglobal x264_integral_init8h_sse4, 3,4
+    lea     r3, [r0+r2*2]
+    add     r1, r2
+    neg     r2
+    pxor    m4, m4
+.loop:
+    movdqa  m0, [r1+r2]
+    movdqu  m1, [r1+r2+8]
+    movdqa  m2, m0
+    movdqa  m3, m1
+    mpsadbw m0, m4, 0
+    mpsadbw m1, m4, 0
+    mpsadbw m2, m4, 4
+    mpsadbw m3, m4, 4
+    paddw   m0, [r0+r2*2]
+    paddw   m1, [r0+r2*2+16]
+    paddw   m0, m2
+    paddw   m1, m3
+    movdqa  [r3+r2*2   ], m0
+    movdqa  [r3+r2*2+16], m1
+    add     r2, 16
+    jl .loop
+    REP_RET
+
+%macro INTEGRAL_INIT 1
+;-----------------------------------------------------------------------------
+; void x264_integral_init4v_mmx( uint16_t *sum8, uint16_t *sum4, int stride )
+;-----------------------------------------------------------------------------
+cglobal x264_integral_init4v_%1, 3,5
+    shl   r2, 1
+    add   r0, r2
+    add   r1, r2
+    lea   r3, [r0+r2*4]
+    lea   r4, [r0+r2*8]
+    neg   r2
+.loop:
+    movu  m0, [r0+r2+8]
+    mova  m2, [r0+r2]
+    movu  m1, [r4+r2+8]
+    paddw m0, m2
+    paddw m1, [r4+r2]
+    mova  m3, [r3+r2]
+    psubw m1, m0
+    psubw m3, m2
+    mova  [r0+r2], m1
+    mova  [r1+r2], m3
+    add   r2, mmsize
+    jl .loop
+    REP_RET
+
+;-----------------------------------------------------------------------------
+; void x264_integral_init8v_mmx( uint16_t *sum8, int stride )
+;-----------------------------------------------------------------------------
+cglobal x264_integral_init8v_%1, 3,3
+    shl   r1, 1
+    add   r0, r1
+    lea   r2, [r0+r1*8]
+    neg   r1
+.loop:
+    mova  m0, [r2+r1]
+    mova  m1, [r2+r1+mmsize]
+    psubw m0, [r0+r1]
+    psubw m1, [r0+r1+mmsize]
+    mova  [r0+r1], m0
+    mova  [r0+r1+mmsize], m1
+    add   r1, 2*mmsize
+    jl .loop
+    REP_RET
+%endmacro
+
+INIT_MMX
+INTEGRAL_INIT mmx
+INIT_XMM
+INTEGRAL_INIT sse2
+
+
+
 %macro FILT8x4 7
     mova      %3, [r0+%7]
     mova      %4, [r0+r5+%7]

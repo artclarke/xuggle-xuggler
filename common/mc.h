@@ -66,6 +66,12 @@ typedef struct
     void *(*memcpy_aligned)( void *dst, const void *src, size_t n );
     void (*memzero_aligned)( void *dst, int n );
 
+    /* successive elimination prefilter */
+    void (*integral_init4h)( uint16_t *sum, uint8_t *pix, int stride );
+    void (*integral_init8h)( uint16_t *sum, uint8_t *pix, int stride );
+    void (*integral_init4v)( uint16_t *sum8, uint16_t *sum4, int stride );
+    void (*integral_init8v)( uint16_t *sum8, int stride );
+
     void (*frame_init_lowres_core)( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
                                     int src_stride, int dst_stride, int width, int height );
 } x264_mc_functions_t;

@@ -713,6 +713,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
           || h->param.i_bframe_adaptive
           || h->param.b_pre_scenecut );
     h->frames.b_have_lowres |= (h->param.rc.b_stat_read && h->param.rc.i_vbv_buffer_size > 0);
+    h->frames.b_have_sub8x8_esa = !!(h->param.analyse.inter & X264_ANALYSE_PSUB8x8);
 
     h->frames.i_last_idr = - h->param.i_keyint_max;
     h->frames.i_input    = 0;
@@ -839,6 +840,8 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     // can only twiddle these if they were enabled to begin with:
     if( h->param.analyse.i_me_method >= X264_ME_ESA || param->analyse.i_me_method < X264_ME_ESA )
         COPY( analyse.i_me_method );
+    if( h->param.analyse.i_me_method >= X264_ME_ESA && !h->frames.b_have_sub8x8_esa )
+        h->param.analyse.inter &= ~X264_ANALYSE_PSUB8x8;
     if( h->pps->b_transform_8x8_mode )
         COPY( analyse.b_transform_8x8 );
     if( h->frames.i_max_ref1 > 1 )

@@ -338,6 +338,7 @@ struct x264_t
         int i_max_ref1;
         int i_delay;    /* Number of frames buffered for B reordering */
         int b_have_lowres;  /* Whether 1/2 resolution luma planes are being used */
+        int b_have_sub8x8_esa;
     } frames;
 
     /* current frame being encoded */

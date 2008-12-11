@@ -99,7 +99,7 @@ x264_frame_t *x264_frame_new( x264_t *h )
     if( h->param.analyse.i_me_method >= X264_ME_ESA )
     {
         CHECKED_MALLOC( frame->buffer[3],
-                        2 * frame->i_stride[0] * (frame->i_lines[0] + 2*i_padv) * sizeof(uint16_t) );
+                        frame->i_stride[0] * (frame->i_lines[0] + 2*i_padv) * sizeof(uint16_t) << h->frames.b_have_sub8x8_esa );
         frame->integral = (uint16_t*)frame->buffer[3] + frame->i_stride[0] * i_padv + PADH;
     }
 
