@@ -272,7 +272,6 @@ static void mc_chroma_altivec_4xh( uint8_t *dst, int i_dst_stride,
     LOAD_ZERO;
     PREP_LOAD;
     PREP_LOAD_SRC( src );
-    PREP_LOAD_SRC( srcp );
     PREP_STORE4;
     vec_u16_t   coeff0v, coeff1v, coeff2v, coeff3v;
     vec_u8_t    src0v_8, src1v_8, src2v_8, src3v_8;
@@ -299,7 +298,7 @@ static void mc_chroma_altivec_4xh( uint8_t *dst, int i_dst_stride,
     {
         src0v_8 = src2v_8;
         src1v_8 = src3v_8;
-        VEC_LOAD( srcp, src2v_8, 5, vec_u8_t, srcp );
+        VEC_LOAD_G( srcp, src2v_8, 5, vec_u8_t );
         src3v_8 = vec_perm( src2v_8, src2v_8, permv );
 
         dstv_16 = k32v;
@@ -340,7 +339,6 @@ static void mc_chroma_altivec_8xh( uint8_t *dst, int i_dst_stride,
     LOAD_ZERO;
     PREP_LOAD;
     PREP_LOAD_SRC( src );
-    PREP_LOAD_SRC( srcp );
     PREP_STORE8;
     vec_u16_t   coeff0v, coeff1v, coeff2v, coeff3v;
     vec_u8_t    src0v_8, src1v_8, src2v_8, src3v_8;
@@ -367,7 +365,7 @@ static void mc_chroma_altivec_8xh( uint8_t *dst, int i_dst_stride,
     {
         src0v_8 = src2v_8;
         src1v_8 = src3v_8;
-        VEC_LOAD( srcp, src2v_8, 9, vec_u8_t, srcp );
+        VEC_LOAD_G( srcp, src2v_8, 9, vec_u8_t );
         src3v_8 = vec_perm( src2v_8, src2v_8, permv );
 
         dstv_16 = k32v;
