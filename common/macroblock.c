@@ -273,28 +273,26 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
 
     if( ref[0] < 0 && ref[1] < 0 )
     {
-        ref[0] =
-        ref[1] = 0;
-        *(uint64_t*)mv[0] = 0;
+        x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, 0 );
+        x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, 0 );
+        x264_macroblock_cache_mv( h, 0, 0, 4, 4, 0, 0 );
+        x264_macroblock_cache_mv( h, 0, 0, 4, 4, 1, 0 );
+        return 1;
     }
+
+    if( ref[0] >= 0 )
+        x264_mb_predict_mv_16x16( h, 0, ref[0], mv[0] );
     else
-    {
-        for( i_list=0; i_list<2; i_list++ )
-        {
-            if( ref[i_list] >= 0 )
-                x264_mb_predict_mv_16x16( h, i_list, ref[i_list], mv[i_list] );
-            else
-                *(uint32_t*)mv[i_list] = 0;
-        }
-    }
+        *(uint32_t*)mv[0] = 0;
+    if( ref[1] >= 0 )
+        x264_mb_predict_mv_16x16( h, 1, ref[1], mv[1] );
+    else
+        *(uint32_t*)mv[1] = 0;
 
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, ref[0] );
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, ref[1] );
     x264_macroblock_cache_mv_ptr( h, 0, 0, 4, 4, 0, mv[0] );
     x264_macroblock_cache_mv_ptr( h, 0, 0, 4, 4, 1, mv[1] );
-
-    if( IS_INTRA( type_col ) )
-        return 1;
 
     if( h->param.i_threads > 1
         && ( mv[0][1] > h->mb.mv_max_spel[1]
@@ -307,6 +305,9 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
 #endif
         return 0;
     }
+
+    if( IS_INTRA( type_col ) || (ref[0]&&ref[1]) )
+        return 1;
 
     b8x8 = h->sps->b_direct8x8_inference ||
            (type_col != P_8x8 && type_col != B_SKIP && type_col != B_DIRECT && type_col != B_8x8);
