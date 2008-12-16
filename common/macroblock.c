@@ -923,15 +923,16 @@ void x264_prefetch_fenc( x264_t *h, x264_frame_t *fenc, int i_mb_x, int i_mb_y )
 
 static NOINLINE void copy_column8( uint8_t *dst, uint8_t *src )
 {
+    // input pointers are offset by 4 rows because that's faster (smaller instruction size on x86)
     int i;
-    for(i=0; i<8; i++)
+    for( i = -4; i < 4; i++ )
         dst[i*FDEC_STRIDE] = src[i*FDEC_STRIDE];
 }
 
 static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int i_mb_x, int i_mb_y, int i)
 {
     const int w = (i == 0 ? 16 : 8);
-    const int i_stride = h->fdec->i_stride[i];
+    const int i_stride = h->fdec->i_stride[!!i];
     const int i_stride2 = i_stride << h->mb.b_interlaced;
     const int i_pix_offset = h->mb.b_interlaced
                            ? w * (i_mb_x + (i_mb_y&~1) * i_stride) + (i_mb_y&1) * i_stride
@@ -984,9 +985,6 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
     int i_left_type= -1;
 
     int i;
-
-    assert( h->mb.i_b8_stride == 2*h->mb.i_mb_stride );
-    assert( h->mb.i_b4_stride == 4*h->mb.i_mb_stride );
 
     /* init index */
     h->mb.i_mb_x = i_mb_x;
@@ -1114,10 +1112,10 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
 
     if( !h->mb.b_interlaced )
     {
-        copy_column8( h->mb.pic.p_fdec[0]-1, h->mb.pic.p_fdec[0]+15 );
-        copy_column8( h->mb.pic.p_fdec[0]-1+8*FDEC_STRIDE, h->mb.pic.p_fdec[0]+15+8*FDEC_STRIDE );
-        copy_column8( h->mb.pic.p_fdec[1]-1, h->mb.pic.p_fdec[1]+7 );
-        copy_column8( h->mb.pic.p_fdec[2]-1, h->mb.pic.p_fdec[2]+7 );
+        copy_column8( h->mb.pic.p_fdec[0]-1+ 4*FDEC_STRIDE, h->mb.pic.p_fdec[0]+15+ 4*FDEC_STRIDE );
+        copy_column8( h->mb.pic.p_fdec[0]-1+12*FDEC_STRIDE, h->mb.pic.p_fdec[0]+15+12*FDEC_STRIDE );
+        copy_column8( h->mb.pic.p_fdec[1]-1+ 4*FDEC_STRIDE, h->mb.pic.p_fdec[1]+ 7+ 4*FDEC_STRIDE );
+        copy_column8( h->mb.pic.p_fdec[2]-1+ 4*FDEC_STRIDE, h->mb.pic.p_fdec[2]+ 7+ 4*FDEC_STRIDE );
     }
 
     /* load picture pointers */
@@ -1264,19 +1262,14 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
         /* load skip */
         if( h->sh.i_type == SLICE_TYPE_B && h->param.b_cabac )
         {
-            memset( h->mb.cache.skip, 0, X264_SCAN8_SIZE * sizeof( int8_t ) );
-            if( i_left_type >= 0 )
-            {
-                uint8_t skipbp = h->mb.skipbp[i_left_xy];
-                h->mb.cache.skip[x264_scan8[0] - 1] = skipbp & 0x2;
-                h->mb.cache.skip[x264_scan8[8] - 1] = skipbp & 0x8;
-            }
-            if( i_top_type >= 0 )
-            {
-                uint8_t skipbp = h->mb.skipbp[i_top_xy];
-                h->mb.cache.skip[x264_scan8[0] - 8] = skipbp & 0x4;
-                h->mb.cache.skip[x264_scan8[4] - 8] = skipbp & 0x8;
-            }
+            uint8_t skipbp;
+            x264_macroblock_cache_skip( h, 0, 0, 4, 4, 0 );
+            skipbp = i_left_type >= 0 ? h->mb.skipbp[i_left_xy] : 0;
+            h->mb.cache.skip[x264_scan8[0] - 1] = skipbp & 0x2;
+            h->mb.cache.skip[x264_scan8[8] - 1] = skipbp & 0x8;
+            skipbp = i_top_type >= 0 ? h->mb.skipbp[i_top_xy] : 0;
+            h->mb.cache.skip[x264_scan8[0] - 8] = skipbp & 0x4;
+            h->mb.cache.skip[x264_scan8[4] - 8] = skipbp & 0x8;
         }
 
         if( h->sh.i_type == SLICE_TYPE_P )
@@ -1300,7 +1293,7 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
 static void ALWAYS_INLINE x264_macroblock_store_pic( x264_t *h, int i)
 {
     int w = i ? 8 : 16;
-    int i_stride = h->fdec->i_stride[i];
+    int i_stride = h->fdec->i_stride[!!i];
     int i_stride2 = i_stride << h->mb.b_interlaced;
     int i_pix_offset = h->mb.b_interlaced
                      ? w * (h->mb.i_mb_x + (h->mb.i_mb_y&~1) * i_stride) + (h->mb.i_mb_y&1) * i_stride
