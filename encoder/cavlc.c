@@ -501,15 +501,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         /* Motion Vector */
         int i_list;
         DECLARE_ALIGNED_4( int16_t mvp[2] );
-
-        int b_list[2][2];
-
-        /* init ref list utilisations */
-        for( i = 0; i < 2; i++ )
-        {
-            b_list[0][i] = x264_mb_type_list0_table[i_mb_type][i];
-            b_list[1][i] = x264_mb_type_list1_table[i_mb_type][i];
-        }
+        const uint8_t (*b_list)[2] = x264_mb_type_list_table[i_mb_type];
 
         bs_write_ue( s, mb_type_b_to_golomb[ h->mb.i_partition - D_16x8 ][ i_mb_type - B_L0_L0 ] );
 
@@ -655,8 +647,8 @@ static int x264_partition_size_cavlc( x264_t *h, int i8, int i_pixel )
         cavlc_mb_mvd( h, &s, 0, 4*i8, 4>>b_8x16 );
     else if( i_mb_type > B_DIRECT && i_mb_type < B_8x8 )
     {
-        if( x264_mb_type_list0_table[ i_mb_type ][!!i8] ) cavlc_mb_mvd( h, &s, 0, 4*i8, 4>>b_8x16 );
-        if( x264_mb_type_list1_table[ i_mb_type ][!!i8] ) cavlc_mb_mvd( h, &s, 1, 4*i8, 4>>b_8x16 );
+        if( x264_mb_type_list_table[ i_mb_type ][0][!!i8] ) cavlc_mb_mvd( h, &s, 0, 4*i8, 4>>b_8x16 );
+        if( x264_mb_type_list_table[ i_mb_type ][1][!!i8] ) cavlc_mb_mvd( h, &s, 1, 4*i8, 4>>b_8x16 );
     }
     else if( i_mb_type == B_8x8 )
     {

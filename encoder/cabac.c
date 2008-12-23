@@ -50,9 +50,7 @@ static inline void x264_cabac_mb_type_intra( x264_t *h, x264_cabac_t *cb, int i_
 
         x264_cabac_encode_decision_noup( cb, ctx1, !!h->mb.i_cbp_luma );
         if( h->mb.i_cbp_chroma == 0 )
-        {
             x264_cabac_encode_decision_noup( cb, ctx2, 0 );
-        }
         else
         {
             x264_cabac_encode_decision( cb, ctx2, 1 );
@@ -77,13 +75,9 @@ static void x264_cabac_mb_type( x264_t *h, x264_cabac_t *cb )
     {
         int ctx = 0;
         if( h->mb.i_mb_type_left >= 0 && h->mb.i_mb_type_left != I_4x4 )
-        {
             ctx++;
-        }
         if( h->mb.i_mb_type_top >= 0 && h->mb.i_mb_type_top != I_4x4 )
-        {
             ctx++;
-        }
 
         x264_cabac_mb_type_intra( h, cb, i_mb_type, 3+ctx, 3+3, 3+4, 3+5, 3+6, 3+7 );
     }
@@ -130,18 +124,12 @@ static void x264_cabac_mb_type( x264_t *h, x264_cabac_t *cb )
     {
         int ctx = 0;
         if( h->mb.i_mb_type_left >= 0 && h->mb.i_mb_type_left != B_SKIP && h->mb.i_mb_type_left != B_DIRECT )
-        {
             ctx++;
-        }
         if( h->mb.i_mb_type_top >= 0 && h->mb.i_mb_type_top != B_SKIP && h->mb.i_mb_type_top != B_DIRECT )
-        {
             ctx++;
-        }
 
         if( i_mb_type == B_DIRECT )
-        {
             x264_cabac_encode_decision_noup( cb, 27+ctx, 0 );
-        }
         else if( i_mb_type == B_8x8 )
         {
             x264_cabac_encode_decision_noup( cb, 27+ctx, 1 );
@@ -210,18 +198,12 @@ static void x264_cabac_mb_type( x264_t *h, x264_cabac_t *cb )
 static void x264_cabac_mb_intra4x4_pred_mode( x264_cabac_t *cb, int i_pred, int i_mode )
 {
     if( i_pred == i_mode )
-    {
-        /* b_prev_intra4x4_pred_mode */
         x264_cabac_encode_decision( cb, 68, 1 );
-    }
     else
     {
-        /* b_prev_intra4x4_pred_mode */
         x264_cabac_encode_decision( cb, 68, 0 );
         if( i_mode > i_pred  )
-        {
             i_mode--;
-        }
         x264_cabac_encode_decision( cb, 69, (i_mode     )&0x01 );
         x264_cabac_encode_decision( cb, 69, (i_mode >> 1)&0x01 );
         x264_cabac_encode_decision( cb, 69, (i_mode >> 2)&0x01 );
@@ -235,22 +217,16 @@ static void x264_cabac_mb_intra_chroma_pred_mode( x264_t *h, x264_cabac_t *cb )
 
     /* No need to test for I4x4 or I_16x16 as cache_save handle that */
     if( (h->mb.i_neighbour & MB_LEFT) && h->mb.chroma_pred_mode[h->mb.i_mb_xy - 1] != 0 )
-    {
         ctx++;
-    }
     if( (h->mb.i_neighbour & MB_TOP) && h->mb.chroma_pred_mode[h->mb.i_mb_top_xy] != 0 )
-    {
         ctx++;
-    }
 
     x264_cabac_encode_decision_noup( cb, 64 + ctx, i_mode > 0 );
     if( i_mode > 0 )
     {
         x264_cabac_encode_decision( cb, 64 + 3, i_mode > 1 );
         if( i_mode > 1 )
-        {
             x264_cabac_encode_decision_noup( cb, 64 + 3, i_mode > 2 );
-        }
     }
 }
 
@@ -273,22 +249,16 @@ static void x264_cabac_mb_cbp_chroma( x264_t *h, x264_cabac_t *cb )
 
     /* No need to test for SKIP/PCM */
     if( h->mb.i_neighbour & MB_LEFT )
-    {
         cbp_a = (h->mb.cbp[h->mb.i_mb_xy - 1] >> 4)&0x3;
-    }
 
     if( h->mb.i_neighbour & MB_TOP )
-    {
         cbp_b = (h->mb.cbp[h->mb.i_mb_top_xy] >> 4)&0x3;
-    }
 
     ctx = 0;
     if( cbp_a > 0 ) ctx++;
     if( cbp_b > 0 ) ctx += 2;
     if( h->mb.i_cbp_chroma == 0 )
-    {
         x264_cabac_encode_decision_noup( cb, 77 + ctx, 0 );
-    }
     else
     {
         x264_cabac_encode_decision_noup( cb, 77 + ctx, 1 );
@@ -316,11 +286,8 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
     }
 
     /* No need to test for PCM / SKIP */
-    if( h->mb.i_last_dqp &&
-        ( h->mb.type[i_mbn_xy] == I_16x16 || (h->mb.cbp[i_mbn_xy]&0x3f) ) )
-        ctx = 1;
-    else
-        ctx = 0;
+    ctx = h->mb.i_last_dqp &&
+        ( h->mb.type[i_mbn_xy] == I_16x16 || (h->mb.cbp[i_mbn_xy]&0x3f) );
 
     if( i_dqp != 0 )
     {
@@ -331,10 +298,7 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
         while( val-- )
         {
             x264_cabac_encode_decision( cb, 60 + ctx, 1 );
-            if( ctx < 2 )
-                ctx = 2;
-            else
-                ctx = 3;
+            ctx = 2+(ctx>>1);
         }
     }
     x264_cabac_encode_decision_noup( cb, 60 + ctx, 0 );
@@ -353,9 +317,7 @@ void x264_cabac_mb_skip( x264_t *h, int b_skip )
 static inline void x264_cabac_mb_sub_p_partition( x264_cabac_t *cb, int i_sub )
 {
     if( i_sub == D_L0_8x8 )
-    {
         x264_cabac_encode_decision( cb, 21, 1 );
-    }
     else if( i_sub == D_L0_8x4 )
     {
         x264_cabac_encode_decision( cb, 21, 0 );
@@ -434,11 +396,7 @@ static void x264_cabac_mb_ref( x264_t *h, x264_cabac_t *cb, int i_list, int idx 
     while( i_ref > 0 )
     {
         x264_cabac_encode_decision( cb, 54 + ctx, 1 );
-        if( ctx < 4 )
-            ctx = 4;
-        else
-            ctx = 5;
-
+        ctx = (ctx>>2)+4;
         i_ref--;
     }
     x264_cabac_encode_decision( cb, 54 + ctx, 0 );
@@ -923,18 +881,11 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
     else if( i_mb_type != B_DIRECT )
     {
         /* All B mode */
-        int b_list[2][2];
-
-        /* init ref list utilisations */
-        for( i = 0; i < 2; i++ )
-        {
-            b_list[0][i] = x264_mb_type_list0_table[i_mb_type][i];
-            b_list[1][i] = x264_mb_type_list1_table[i_mb_type][i];
-        }
+        const uint8_t (*b_list)[2] = x264_mb_type_list_table[i_mb_type];
 
         for( i_list = 0; i_list < 2; i_list++ )
         {
-            const int i_ref_max = i_list == 0 ? h->mb.pic.i_fref[0] : h->mb.pic.i_fref[1];
+            const int i_ref_max = h->mb.pic.i_fref[i_list];
 
             if( i_ref_max > 1 )
             {
@@ -1054,8 +1005,8 @@ static void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int 
         x264_cabac_mb_mvd( h, cb, 0, 4*i8, 4>>b_8x16, 2<<b_8x16 );
     else if( i_mb_type > B_DIRECT && i_mb_type < B_8x8 )
     {
-        if( x264_mb_type_list0_table[ i_mb_type ][!!i8] ) x264_cabac_mb_mvd( h, cb, 0, 4*i8, 4>>b_8x16, 2<<b_8x16 );
-        if( x264_mb_type_list1_table[ i_mb_type ][!!i8] ) x264_cabac_mb_mvd( h, cb, 1, 4*i8, 4>>b_8x16, 2<<b_8x16 );
+        if( x264_mb_type_list_table[ i_mb_type ][0][!!i8] ) x264_cabac_mb_mvd( h, cb, 0, 4*i8, 4>>b_8x16, 2<<b_8x16 );
+        if( x264_mb_type_list_table[ i_mb_type ][1][!!i8] ) x264_cabac_mb_mvd( h, cb, 1, 4*i8, 4>>b_8x16, 2<<b_8x16 );
     }
     else if( i_mb_type == B_8x8 )
     {

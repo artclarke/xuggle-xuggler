@@ -730,17 +730,9 @@ void x264_mb_mc( x264_t *h )
     }
     else    /* B_*x* */
     {
-        int b_list0[2];
-        int b_list1[2];
+        const uint8_t *b_list0 = x264_mb_type_list_table[h->mb.i_type][0];
+        const uint8_t *b_list1 = x264_mb_type_list_table[h->mb.i_type][1];
 
-        int i;
-
-        /* init ref list utilisations */
-        for( i = 0; i < 2; i++ )
-        {
-            b_list0[i] = x264_mb_type_list0_table[h->mb.i_type][i];
-            b_list1[i] = x264_mb_type_list1_table[h->mb.i_type][i];
-        }
         if( h->mb.i_partition == D_16x16 )
         {
             if( b_list0[0] && b_list1[0] ) x264_mb_mc_01xywh( h, 0, 0, 4, 4 );

@@ -1979,8 +1979,8 @@ void    x264_encoder_close  ( x264_t *h )
         for( i = 0; i < X264_PARTTYPE_MAX; i++ )
             for( j = 0; j < 2; j++ )
             {
-                int l0 = x264_mb_type_list0_table[i][j];
-                int l1 = x264_mb_type_list1_table[i][j];
+                int l0 = x264_mb_type_list_table[i][0][j];
+                int l1 = x264_mb_type_list_table[i][1][j];
                 if( l0 || l1 )
                     list_count[l1+l0*l1] += h->stat.i_mb_count[SLICE_TYPE_B][i] * 2;
             }
