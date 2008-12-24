@@ -140,8 +140,8 @@ void x264_mb_predict_mv_pskip( x264_t *h, int16_t mv[2] )
     int16_t *mv_b  = h->mb.cache.mv[0][X264_SCAN8_0 - 8];
 
     if( i_refa == -2 || i_refb == -2 ||
-        ( i_refa == 0 && *(uint32_t*)mv_a == 0 ) ||
-        ( i_refb == 0 && *(uint32_t*)mv_b == 0 ) )
+        !( i_refa | *(uint32_t*)mv_a ) ||
+        !( i_refb | *(uint32_t*)mv_b ) )
     {
         *(uint32_t*)mv = 0;
     }

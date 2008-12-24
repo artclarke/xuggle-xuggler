@@ -174,8 +174,8 @@ static NOINLINE int ac_energy_mb( x264_t *h, int mb_x, int mb_y, x264_frame_t *f
      * and putting it after floating point ops.  As a result, we put the emms at the end of the
      * function and make sure that its always called before the float math.  Noinline makes
      * sure no reordering goes on. */
-    unsigned int var=0, sad, i;
-    for( i=0; i<3; i++ )
+    unsigned int var = 0, i;
+    for( i = 0; i < 3; i++ )
     {
         int w = i ? 8 : 16;
         int stride = frame->i_stride[i];
@@ -184,7 +184,7 @@ static NOINLINE int ac_energy_mb( x264_t *h, int mb_x, int mb_y, x264_frame_t *f
             : w * (mb_x + mb_y * stride);
         int pix = i ? PIXEL_8x8 : PIXEL_16x16;
         stride <<= h->mb.b_interlaced;
-        var += h->pixf.var[pix]( frame->plane[i]+offset, stride, &sad );
+        var += h->pixf.var[pix]( frame->plane[i]+offset, stride );
     }
     var = X264_MAX(var,1);
     x264_emms();

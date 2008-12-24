@@ -140,7 +140,7 @@ int64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, uint8_t *pix1, int i_pix1
  * pixel_var_wxh
  ****************************************************************************/
 #define PIXEL_VAR_C( name, w, shift ) \
-static int name( uint8_t *pix, int i_stride, uint32_t *sad ) \
+static int name( uint8_t *pix, int i_stride ) \
 {                                             \
     uint32_t var = 0, sum = 0, sqr = 0;       \
     int x, y;                                 \
@@ -154,7 +154,6 @@ static int name( uint8_t *pix, int i_stride, uint32_t *sad ) \
         pix += i_stride;                      \
     }                                         \
     var = sqr - (sum * sum >> shift);         \
-    *sad = sum;                               \
     return var;                               \
 }
 

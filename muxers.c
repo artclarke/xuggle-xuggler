@@ -290,7 +290,7 @@ int read_frame_y4m( x264_picture_t *p_pic, hnd_t handle, int i_frame )
     header[slen] = 0;
     if (strncmp(header, Y4M_FRAME_MAGIC, slen))
     {
-        fprintf(stderr, "Bad header magic (%08X <=> %s)\n",
+        fprintf(stderr, "Bad header magic (%"PRIx32" <=> %s)\n",
                 *((uint32_t*)header), header);
         return -1;
     }

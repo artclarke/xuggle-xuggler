@@ -67,8 +67,8 @@ DECL_X4( sad, cache64_mmxext );
 DECL_X4( sad, cache64_sse2 );
 DECL_X4( sad, cache64_ssse3 );
 
-DECL_PIXELS( int, var, mmxext, ( uint8_t *pix, int i_stride, uint32_t *sad ))
-DECL_PIXELS( int, var, sse2,   ( uint8_t *pix, int i_stride, uint32_t *sad ))
+DECL_PIXELS( int, var, mmxext, ( uint8_t *pix, int i_stride ))
+DECL_PIXELS( int, var, sse2,   ( uint8_t *pix, int i_stride ))
 DECL_PIXELS( uint64_t, hadamard_ac, mmxext, ( uint8_t *pix, int i_stride ))
 DECL_PIXELS( uint64_t, hadamard_ac, sse2,   ( uint8_t *pix, int i_stride ))
 DECL_PIXELS( uint64_t, hadamard_ac, ssse3,  ( uint8_t *pix, int i_stride ))
