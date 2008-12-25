@@ -247,7 +247,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         if( b_error )
         {
             char *buf = strdup(value);
-            char *tok, *saveptr, *init;
+            char *tok, UNUSED *saveptr, *init;
             b_error = 0;
             p->cpu = 0;
             for( init=buf; (tok=strtok_r(init, ",", &saveptr)); init=NULL )

@@ -439,7 +439,7 @@ void x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end )
             start = -PADV;
         }
         if( b_end )
-            height += PADV-8;
+            height += PADV-9;
         for( y = start; y < height; y++ )
         {
             uint8_t  *pix  = frame->plane[0] + y * stride - PADH;
