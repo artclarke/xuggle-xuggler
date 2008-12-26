@@ -50,10 +50,11 @@ typedef struct bs_s
     int     i_bits_encoded; /* RD only */
 } bs_t;
 
-extern const vlc_t x264_coeff_token[5][17*4];
+extern const vlc_t x264_coeff0_token[5];
+extern const vlc_t x264_coeff_token[5][16*4];
 extern const vlc_t x264_total_zeros[15][16];
 extern const vlc_t x264_total_zeros_dc[3][4];
-extern const vlc_t x264_run_before[7][15];
+extern const vlc_t x264_run_before[7][16];
 
 /* A larger level table size theoretically could help a bit at extremely
  * high bitrates, but the cost in cache is usually too high for it to be

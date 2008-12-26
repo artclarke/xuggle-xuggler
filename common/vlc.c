@@ -21,15 +21,19 @@
 #include "common.h"
 
 #define MKVLC( a, b ) { a, b }
-const vlc_t x264_coeff_token[5][17*4] =
+const vlc_t x264_coeff0_token[5] =
+{
+    MKVLC( 0x1, 1 ), /* str=1 */
+    MKVLC( 0x3, 2 ), /* str=11 */
+    MKVLC( 0xf, 4 ), /* str=1111 */
+    MKVLC( 0x3, 6 ), /* str=000011 */
+    MKVLC( 0x1, 2 )  /* str=01 */
+};
+
+const vlc_t x264_coeff_token[5][16*4] =
 {
     /* table 0 */
     {
-        MKVLC( 0x1, 1 ), /* str=1 */
-        MKVLC( 0x0, 0 ), /* str= */
-        MKVLC( 0x0, 0 ), /* str= */
-        MKVLC( 0x0, 0 ), /* str= */
-
         MKVLC( 0x5, 6 ), /* str=000101 */
         MKVLC( 0x1, 2 ), /* str=01 */
         MKVLC( 0x0, 0 ), /* str= */
@@ -113,11 +117,6 @@ const vlc_t x264_coeff_token[5][17*4] =
 
     /* table 1 */
     {
-        MKVLC( 0x3, 2 ), /* str=11 */
-        MKVLC( 0x0, 0 ), /* str= */
-        MKVLC( 0x0, 0 ), /* str= */
-        MKVLC( 0x0, 0 ), /* str= */
-
         MKVLC( 0xb, 6 ), /* str=001011 */
         MKVLC( 0x2, 2 ), /* str=10 */
         MKVLC( 0x0, 0 ), /* str= */
@@ -200,11 +199,6 @@ const vlc_t x264_coeff_token[5][17*4] =
     },
     /* table 2 */
     {
-        MKVLC( 0xf, 4 ), /* str=1111 */
-        MKVLC( 0x0, 0 ), /* str= */
-        MKVLC( 0x0, 0 ), /* str= */
-        MKVLC( 0x0, 0 ), /* str= */
-
         MKVLC( 0xf, 6 ), /* str=001111 */
         MKVLC( 0xe, 4 ), /* str=1110 */
         MKVLC( 0x0, 0 ), /* str= */
@@ -288,11 +282,6 @@ const vlc_t x264_coeff_token[5][17*4] =
 
     /* table 3 */
     {
-        MKVLC( 0x3, 6 ), /* str=000011 */
-        MKVLC( 0x0, 0 ), /* str= */
-        MKVLC( 0x0, 0 ), /* str= */
-        MKVLC( 0x0, 0 ), /* str= */
-
         MKVLC( 0x0, 6 ), /* str=000000 */
         MKVLC( 0x1, 6 ), /* str=000001 */
         MKVLC( 0x0, 0 ), /* str= */
@@ -376,11 +365,6 @@ const vlc_t x264_coeff_token[5][17*4] =
 
     /* table 4 */
     {
-        MKVLC( 0x1, 2 ), /* str=01 */
-        MKVLC( 0x0, 0 ), /* str= */
-        MKVLC( 0x0, 0 ), /* str= */
-        MKVLC( 0x0, 0 ), /* str= */
-
         MKVLC( 0x7, 6 ), /* str=000111 */
         MKVLC( 0x1, 1 ), /* str=1 */
         MKVLC( 0x0, 0 ), /* str= */
@@ -762,7 +746,7 @@ const vlc_t x264_total_zeros_dc[3][4] =
 };
 
 /* x264_run_before[__MIN( i_zero_left -1, 6 )][run_before] */
-const vlc_t x264_run_before[7][15] =
+const vlc_t x264_run_before[7][16] =
 {
     { /* i_zero_left 1 */
         MKVLC( 0x1, 1 ), /* str=1 */

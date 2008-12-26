@@ -125,7 +125,7 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_ctxBlockCat, i
 
     if( !h->mb.cache.non_zero_count[x264_scan8[i_idx]] )
     {
-        bs_write_vlc( s, x264_coeff_token[nC][0] );
+        bs_write_vlc( s, x264_coeff0_token[nC] );
         return;
     }
 
@@ -158,7 +158,7 @@ static void block_residual_write_cavlc( x264_t *h, bs_t *s, int i_ctxBlockCat, i
     i_sign >>= 3-i_trailing;
 
     /* total/trailing */
-    bs_write_vlc( s, x264_coeff_token[nC][i_total*4+i_trailing] );
+    bs_write_vlc( s, x264_coeff_token[nC][i_total*4+i_trailing-4] );
 
     i_suffix_length = i_total > 10 && i_trailing < 3;
     if( i_trailing > 0 || RDO_SKIP_BS )
@@ -441,17 +441,17 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
     }
     else if( i_mb_type == P_8x8 )
     {
-        int b_sub_ref0;
+        int b_sub_ref;
         if( (h->mb.cache.ref[0][x264_scan8[0]] | h->mb.cache.ref[0][x264_scan8[ 4]] |
              h->mb.cache.ref[0][x264_scan8[8]] | h->mb.cache.ref[0][x264_scan8[12]]) == 0 )
         {
             bs_write_ue( s, 4 );
-            b_sub_ref0 = 0;
+            b_sub_ref = 0;
         }
         else
         {
             bs_write_ue( s, 3 );
-            b_sub_ref0 = 1;
+            b_sub_ref = h->mb.pic.i_fref[0] > 1;
         }
 
         /* sub mb type */
@@ -462,7 +462,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
             bs_write( s, 4, 0xf );
 
         /* ref0 */
-        if( h->mb.pic.i_fref[0] > 1 && b_sub_ref0 )
+        if( b_sub_ref )
         {
             bs_write_te( s, h->mb.pic.i_fref[0] - 1, h->mb.cache.ref[0][x264_scan8[0]] );
             bs_write_te( s, h->mb.pic.i_fref[0] - 1, h->mb.cache.ref[0][x264_scan8[4]] );
