@@ -1049,7 +1049,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y )
             x264_pixel_ssim_wxh( &h->pixf,
                 h->fdec->plane[0] + 2+min_y*h->fdec->i_stride[0], h->fdec->i_stride[0],
                 h->fenc->plane[0] + 2+min_y*h->fenc->i_stride[0], h->fenc->i_stride[0],
-                h->param.i_width-2, max_y-min_y );
+                h->param.i_width-2, max_y-min_y, h->scratch_buffer );
     }
 }
 

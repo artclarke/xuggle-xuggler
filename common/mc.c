@@ -132,9 +132,8 @@ static void mc_copy( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_str
 
 #define TAPFILTER(pix, d) ((pix)[x-2*d] + (pix)[x+3*d] - 5*((pix)[x-d] + (pix)[x+2*d]) + 20*((pix)[x] + (pix)[x+d]))
 static void hpel_filter( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
-                         int stride, int width, int height )
+                         int stride, int width, int height, int16_t *buf )
 {
-    int16_t *buf = x264_malloc((width+5)*sizeof(int16_t));
     int x, y;
     for( y=0; y<height; y++ )
     {
@@ -153,7 +152,6 @@ static void hpel_filter( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *s
         dstc += stride;
         src += stride;
     }
-    x264_free(buf);
 }
 
 static const int hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
@@ -423,7 +421,8 @@ void x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end )
             frame->filtered[2] + offs,
             frame->filtered[3] + offs,
             frame->plane[0] + offs,
-            stride, width + 16, height - start );
+            stride, width + 16, height - start,
+            h->scratch_buffer );
     }
 
     /* generate integral image:

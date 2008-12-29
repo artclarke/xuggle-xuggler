@@ -605,6 +605,8 @@ struct x264_t
 
     } stat;
 
+    void *scratch_buffer; /* for any temporary storage that doesn't want repeated malloc */
+
     /* CPU functions dependents */
     x264_predict_t      predict_16x16[4+3];
     x264_predict_t      predict_8x8c[4+3];

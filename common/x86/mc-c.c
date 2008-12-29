@@ -202,16 +202,14 @@ void x264_hpel_filter_c_##cpuc( uint8_t *dst, int16_t *buf, int width );\
 void x264_hpel_filter_h_##cpuh( uint8_t *dst, uint8_t *src, int width );\
 void x264_sfence( void );\
 static void x264_hpel_filter_##cpu( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,\
-                             int stride, int width, int height )\
+                             int stride, int width, int height, int16_t *buf )\
 {\
-    int16_t *buf;\
     int realign = (long)src & (align-1);\
     src -= realign;\
     dstv -= realign;\
     dstc -= realign;\
     dsth -= realign;\
     width += realign;\
-    buf = x264_malloc((width+16)*sizeof(int16_t));\
     while( height-- )\
     {\
         x264_hpel_filter_v_##cpuv( dstv, src, buf+8, stride, width );\
@@ -223,14 +221,13 @@ static void x264_hpel_filter_##cpu( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
         src  += stride;\
     }\
     x264_sfence();\
-    x264_free(buf);\
 }
 
 HPEL(8, mmxext, mmxext, mmxext, mmxext)
 HPEL(16, sse2_amd, mmxext, mmxext, sse2)
 #ifdef ARCH_X86_64
-void x264_hpel_filter_sse2( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height );
-void x264_hpel_filter_ssse3( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height );
+void x264_hpel_filter_sse2( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height, int16_t *buf );
+void x264_hpel_filter_ssse3( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height, int16_t *buf );
 #else
 HPEL(16, sse2, sse2, sse2, sse2)
 HPEL(16, ssse3, sse2, ssse3, ssse3)

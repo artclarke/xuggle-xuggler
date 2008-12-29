@@ -474,8 +474,7 @@ me_hex2:
             DECLARE_ALIGNED_16( int enc_dc[4] );
             int sad_size = i_pixel <= PIXEL_8x8 ? PIXEL_8x8 : PIXEL_4x4;
             int delta = x264_pixel_size[sad_size].w;
-            int16_t xs_buf[64];
-            int16_t *xs = width<=64 ? xs_buf : x264_malloc( (width+15)*sizeof(int16_t) );
+            int16_t *xs = h->scratch_buffer;
             int xn;
             uint16_t *cost_fpel_mvx = x264_cost_mv_fpel[h->mb.i_qp][-m->mvp[0]&3] + (-m->mvp[0]>>2);
 
@@ -492,11 +491,7 @@ me_hex2:
             if( h->mb.i_me_method == X264_ME_TESA )
             {
                 // ADS threshold, then SAD threshold, then keep the best few SADs, then SATD
-                typedef struct {
-                    int sad;
-                    int16_t mx, my;
-                } mvsad_t;
-                mvsad_t *mvsads = x264_malloc( width*(max_y-min_y+1)*sizeof(mvsad_t) );
+                mvsad_t *mvsads = (mvsad_t *)(xs + ((width+15)&~15));
                 int nmvsad = 0, limit;
                 int sad_thresh = i_me_range <= 16 ? 10 : i_me_range <= 24 ? 11 : 12;
                 int bsad = h->pixf.sad[i_pixel]( m->p_fenc[0], FENC_STRIDE, p_fref+bmy*stride+bmx, stride )
@@ -581,7 +576,6 @@ me_hex2:
                 }
                 for( i=0; i<nmvsad; i++ )
                     COST_MV( mvsads[i].mx, mvsads[i].my );
-                x264_free( mvsads );
             }
             else
             {
@@ -601,9 +595,6 @@ me_hex2:
                         COST_MV( min_x+xs[i], my );
                 }
             }
-
-            if( xs != xs_buf )
-                x264_free( xs );
 #endif
         }
         break;

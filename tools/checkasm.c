@@ -407,8 +407,8 @@ static int check_pixel( int cpu_ref, int cpu_new )
         int sums[5][4] = {{0}};
         used_asm = ok = 1;
         x264_emms();
-        res_c = x264_pixel_ssim_wxh( &pixel_c,   buf1+2, 32, buf2+2, 32, 32, 28 );
-        res_a = x264_pixel_ssim_wxh( &pixel_asm, buf1+2, 32, buf2+2, 32, 32, 28 );
+        res_c = x264_pixel_ssim_wxh( &pixel_c,   buf1+2, 32, buf2+2, 32, 32, 28, buf3 );
+        res_a = x264_pixel_ssim_wxh( &pixel_asm, buf1+2, 32, buf2+2, 32, 32, 28, buf3 );
         if( fabs(res_c - res_a) > 1e-6 )
         {
             ok = 0;
@@ -792,12 +792,13 @@ static int check_mc( int cpu_ref, int cpu_new )
         uint8_t *src = buf1+8+2*64;
         uint8_t *dstc[3] = { buf3+8, buf3+8+16*64, buf3+8+32*64 };
         uint8_t *dsta[3] = { buf4+8, buf4+8+16*64, buf4+8+32*64 };
+        void *tmp = buf3+49*64;
         set_func_name( "hpel_filter" );
         ok = 1; used_asm = 1;
         memset( buf3, 0, 4096 );
         memset( buf4, 0, 4096 );
-        call_c( mc_c.hpel_filter, dstc[0], dstc[1], dstc[2], src, 64, 48, 10 );
-        call_a( mc_a.hpel_filter, dsta[0], dsta[1], dsta[2], src, 64, 48, 10 );
+        call_c( mc_c.hpel_filter, dstc[0], dstc[1], dstc[2], src, 64, 48, 10, tmp );
+        call_a( mc_a.hpel_filter, dsta[0], dsta[1], dsta[2], src, 64, 48, 10, tmp );
         for( i=0; i<3; i++ )
             for( j=0; j<10; j++ )
                 //FIXME ideally the first pixels would match too, but they aren't actually used

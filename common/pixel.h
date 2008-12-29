@@ -104,6 +104,6 @@ typedef struct
 
 void x264_pixel_init( int cpu, x264_pixel_function_t *pixf );
 int64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2, int i_width, int i_height );
-float x264_pixel_ssim_wxh( x264_pixel_function_t *pf, uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2, int i_width, int i_height );
+float x264_pixel_ssim_wxh( x264_pixel_function_t *pf, uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2, int i_width, int i_height, void *buf );
 
 #endif
