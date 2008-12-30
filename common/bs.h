@@ -50,6 +50,13 @@ typedef struct bs_s
     int     i_bits_encoded; /* RD only */
 } bs_t;
 
+typedef struct
+{
+    int     last;
+    int16_t level[16];
+    uint8_t run[16];
+} x264_run_level_t;
+
 extern const vlc_t x264_coeff0_token[5];
 extern const vlc_t x264_coeff_token[5][16*4];
 extern const vlc_t x264_total_zeros[15][16];

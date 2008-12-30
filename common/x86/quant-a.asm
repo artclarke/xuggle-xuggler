@@ -662,6 +662,10 @@ INIT_XMM
 DECIMATE8x8 sse2
 DECIMATE8x8 ssse3
 
+;-----------------------------------------------------------------------------
+; int x264_coeff_last( int16_t *dct )
+;-----------------------------------------------------------------------------
+
 %macro LAST_MASK_SSE2 2-3
     movdqa   xmm0, [%2+ 0]
     pxor     xmm2, xmm2
@@ -766,3 +770,63 @@ COEFF_LAST mmxext
 %endif
 %define LAST_MASK LAST_MASK_SSE2
 COEFF_LAST sse2
+
+;-----------------------------------------------------------------------------
+; int x264_coeff_level_run( int16_t *dct, x264_run_level_t *runlevel )
+;-----------------------------------------------------------------------------
+
+%macro LAST_MASK4_MMX 2-3
+    movq     mm0, [%2]
+    pxor     mm2, mm2
+    packsswb mm0, mm0
+    pcmpeqb  mm0, mm2
+    pmovmskb  %1, mm0
+%endmacro
+
+; t6 = eax for return, t3 = ecx for shift, t[01] = r[01] for x86_64 args
+%ifdef ARCH_X86_64
+    DECLARE_REG_TMP 0,1,2,3,4,5,6
+%else
+    DECLARE_REG_TMP 6,3,2,1,4,5,0
+%endif
+
+%macro COEFF_LEVELRUN 2
+cglobal x264_coeff_level_run%2_%1,0,7
+    movifnidn t0d, r0m
+    movifnidn t1d, r1m
+    LAST_MASK t2d, t0-(%2&1)*2, t4d
+    not    t2d
+    shl    t2d, 32-((%2+1)&~1)
+    mov    t4d, %2-1
+    mov    t5d, t2d
+    bsr    t3d, t2d
+    xor    t6d, t6d
+    shl    t5d, 1
+    xor    t3d, 0x1f
+    sub    t4d, t3d
+    shl    t5d, t3b
+    mov   [t1], t4d
+.loop:
+    bsr    t3d, t5d
+    xor    t3d, 0x1f
+    mov    t2w, [t0+t4*2]
+    mov   [t1+t6  +36], t3b
+    mov   [t1+t6*2+ 4], t2w
+    inc    t3d
+    shl    t5d, t3b
+    inc    t6d
+    sub    t4d, t3d
+    jge .loop
+    RET
+%endmacro
+
+%ifndef ARCH_X86_64
+%define LAST_MASK LAST_MASK_MMX
+COEFF_LEVELRUN mmxext, 15
+COEFF_LEVELRUN mmxext, 16
+%endif
+%define LAST_MASK LAST_MASK4_MMX
+COEFF_LEVELRUN mmxext, 4
+%define LAST_MASK LAST_MASK_SSE2
+COEFF_LEVELRUN sse2, 15
+COEFF_LEVELRUN sse2, 16

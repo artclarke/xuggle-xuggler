@@ -273,6 +273,27 @@ static int x264_coeff_last64( int16_t *l )
     return x264_coeff_last_internal( l, 64 );
 }
 
+#define level_run(num)\
+static int x264_coeff_level_run##num( int16_t *dct, x264_run_level_t *runlevel )\
+{\
+    int i_last = runlevel->last = x264_coeff_last##num(dct);\
+    int i_total = 0;\
+    do\
+    {\
+        int r = 0;\
+        runlevel->level[i_total] = dct[i_last];\
+        while( --i_last >= 0 && dct[i_last] == 0 )\
+            r++;\
+        runlevel->run[i_total++] = r;\
+    } while( i_last >= 0 );\
+    return i_total;\
+}
+
+level_run(4)
+level_run(15)
+level_run(16)
+
+
 void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 {
     pf->quant_8x8 = quant_8x8;
@@ -293,6 +314,9 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     pf->coeff_last[  DCT_LUMA_AC] = x264_coeff_last15;
     pf->coeff_last[ DCT_LUMA_4x4] = x264_coeff_last16;
     pf->coeff_last[ DCT_LUMA_8x8] = x264_coeff_last64;
+    pf->coeff_level_run[DCT_CHROMA_DC] = x264_coeff_level_run4;
+    pf->coeff_level_run[  DCT_LUMA_AC] = x264_coeff_level_run15;
+    pf->coeff_level_run[ DCT_LUMA_4x4] = x264_coeff_level_run16;
 
 #ifdef HAVE_MMX
     if( cpu&X264_CPU_MMX )
@@ -323,8 +347,11 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->coeff_last[  DCT_LUMA_AC] = x264_coeff_last15_mmxext;
         pf->coeff_last[ DCT_LUMA_4x4] = x264_coeff_last16_mmxext;
         pf->coeff_last[ DCT_LUMA_8x8] = x264_coeff_last64_mmxext;
+        pf->coeff_level_run[  DCT_LUMA_AC] = x264_coeff_level_run15_mmxext;
+        pf->coeff_level_run[ DCT_LUMA_4x4] = x264_coeff_level_run16_mmxext;
 #endif
         pf->coeff_last[DCT_CHROMA_DC] = x264_coeff_last4_mmxext;
+        pf->coeff_level_run[DCT_CHROMA_DC] = x264_coeff_level_run4_mmxext;
     }
 
     if( cpu&X264_CPU_SSE2 )
@@ -347,6 +374,8 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->coeff_last[ DCT_LUMA_AC] = x264_coeff_last15_sse2;
         pf->coeff_last[DCT_LUMA_4x4] = x264_coeff_last16_sse2;
         pf->coeff_last[DCT_LUMA_8x8] = x264_coeff_last64_sse2;
+        pf->coeff_level_run[ DCT_LUMA_AC] = x264_coeff_level_run15_sse2;
+        pf->coeff_level_run[DCT_LUMA_4x4] = x264_coeff_level_run16_sse2;
     }
 
     if( cpu&X264_CPU_SSSE3 )
@@ -375,4 +404,6 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 #endif
     pf->coeff_last[  DCT_LUMA_DC] = pf->coeff_last[DCT_LUMA_4x4];
     pf->coeff_last[DCT_CHROMA_AC] = pf->coeff_last[ DCT_LUMA_AC];
+    pf->coeff_level_run[  DCT_LUMA_DC] = pf->coeff_level_run[DCT_LUMA_4x4];
+    pf->coeff_level_run[DCT_CHROMA_AC] = pf->coeff_level_run[ DCT_LUMA_AC];
 }
