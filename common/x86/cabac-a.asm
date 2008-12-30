@@ -31,21 +31,12 @@ cextern x264_cabac_range_lps
 cextern x264_cabac_transition
 cextern x264_cabac_renorm_shift
 
-%macro DEF_TMP 16
-    %rep 8
-        %define t%1d r%9d
-        %define t%1b r%9b
-        %define t%1  r%9
-        %rotate 1
-    %endrep
-%endmacro
-
 ; t3 must be ecx, since it's used for shift.
 %ifdef ARCH_X86_64
-    DEF_TMP 0,1,2,3,4,5,6,7, 0,1,2,3,4,5,6,10
+    DECLARE_REG_TMP 0,1,2,3,4,5,6,10
     %define pointer resq
 %else
-    DEF_TMP 0,1,2,3,4,5,6,7, 0,3,2,1,4,5,6,3
+    DECLARE_REG_TMP 0,3,2,1,4,5,6,3
     %define pointer resd
 %endif
 

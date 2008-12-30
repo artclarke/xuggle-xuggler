@@ -230,9 +230,9 @@ cglobal x264_pixel_ssd_4x4_sse4, 4,4
     pxor  m6, m6    ; sum squared
     pxor  m7, m7    ; zero
 %ifdef ARCH_X86_64
-    %define t3d r3d
+    %define t3 r3
 %else
-    %define t3d r2d
+    %define t3 r2
 %endif
 %endmacro
 
@@ -1028,15 +1028,13 @@ cglobal x264_intra_satd_x3_4x4_%1, 2,6
     ; stack is 16 byte aligned because abi says so
     %define  top_1d  rsp-8  ; size 8
     %define  left_1d rsp-16 ; size 8
-    %define  t0  r10
-    %define  t0d r10d
+    %define  t0 r10
 %else
     ; stack is 16 byte aligned at least in gcc, and we've pushed 3 regs + return address, so it's still aligned
     SUB         esp, 16
     %define  top_1d  esp+8
     %define  left_1d esp
-    %define  t0  r2
-    %define  t0d r2d
+    %define  t0 r2
 %endif
 
     call load_hadamard
@@ -1068,17 +1066,11 @@ cglobal x264_intra_satd_x3_4x4_%1, 2,6
     RET
 
 %ifdef ARCH_X86_64
-    %define  t0  r10
-    %define  t0d r10d
-    %define  t2  r11
-    %define  t2w r11w
-    %define  t2d r11d
+    %define  t0 r10
+    %define  t2 r11
 %else
-    %define  t0  r0
-    %define  t0d r0d
-    %define  t2  r2
-    %define  t2w r2w
-    %define  t2d r2d
+    %define  t0 r0
+    %define  t2 r2
 %endif
 
 ;-----------------------------------------------------------------------------
@@ -1731,10 +1723,10 @@ cglobal x264_pixel_ssim_end4_sse2, 3,3
 
 %macro ADS_START 1 ; unroll_size
 %ifdef ARCH_X86_64
-    %define t0  r6
+    %define t0 r6
     mov     r10, rsp
 %else
-    %define t0  r4
+    %define t0 r4
     mov     rbp, rsp
 %endif
     mov     r0d, r5m

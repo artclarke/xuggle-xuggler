@@ -116,6 +116,29 @@ DECLARE_REG_SIZE si, sil
 DECLARE_REG_SIZE di, dil
 DECLARE_REG_SIZE bp, bpl
 
+; t# defines for when per-arch register allocation is more complex than just function arguments
+
+%macro DECLARE_REG_TMP 1-*
+    %assign %%i 0
+    %rep %0
+        CAT_XDEFINE t, %%i, r%1
+        %assign %%i %%i+1
+        %rotate 1
+    %endrep
+%endmacro
+
+%macro DECLARE_REG_TMP_SIZE 0-*
+    %rep %0
+        %define t%1q t%1 %+ q
+        %define t%1d t%1 %+ d
+        %define t%1w t%1 %+ w
+        %define t%1b t%1 %+ b
+        %rotate 1
+    %endrep
+%endmacro
+
+DECLARE_REG_TMP_SIZE 0,1,2,3,4,5,6,7
+
 %ifdef ARCH_X86_64
     %define gprsize 8
 %else

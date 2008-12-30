@@ -241,19 +241,9 @@ QUANT_DC x264_quant_2x2_dc_ssse3, 1
 %endmacro
 
 %ifdef ARCH_X86_64
-    %define t0  r4
-    %define t0d r4d
-    %define t1  r3
-    %define t1d r3d
-    %define t2  r2
-    %define t2d r2d
+    DECLARE_REG_TMP 4,3,2
 %else
-    %define t0  r2
-    %define t0d r2d
-    %define t1  r0
-    %define t1d r0d
-    %define t2  r1
-    %define t2d r1d
+    DECLARE_REG_TMP 2,0,1
 %endif
 
 %macro DEQUANT_START 2

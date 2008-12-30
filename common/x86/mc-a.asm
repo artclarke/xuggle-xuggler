@@ -41,27 +41,13 @@ SECTION .text
 ; implicit bipred only:
 ; assumes log2_denom = 5, offset = 0, weight1 + weight2 = 64
 %ifdef ARCH_X86_64
-    %define t0 r0
-    %define t1 r1
-    %define t2 r2
-    %define t3 r3
-    %define t4 r4
-    %define t5 r5
-    %define t6d r10d
-    %define t7d r11d
+    DECLARE_REG_TMP 0,1,2,3,4,5,10,11
     %macro AVG_START 0
         PROLOGUE 6,7
         .height_loop:
     %endmacro
 %else
-    %define t0 r1
-    %define t1 r2
-    %define t2 r3
-    %define t3 r4
-    %define t4 r5
-    %define t5 r6
-    %define t6d r1d
-    %define t7d r2d
+    DECLARE_REG_TMP 1,2,3,4,5,6,1,2
     %macro AVG_START 0
         PROLOGUE 0,7
         mov t0, r0m
@@ -690,12 +676,11 @@ cglobal x264_prefetch_ref_mmxext, 3,3
 ; chroma MC
 ;=============================================================================
 
-    %define t0d  eax
-    %define t0   rax
+    %define t0 rax
 %ifdef ARCH_X86_64
-    %define t1d  r10d
+    %define t1 r10
 %else
-    %define t1d  r1d
+    %define t1 r1
 %endif
 
 %macro MC_CHROMA_START 0
