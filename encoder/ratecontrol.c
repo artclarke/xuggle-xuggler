@@ -612,7 +612,7 @@ static int parse_zone( x264_t *h, x264_zone_t *z, char *p )
     p += len;
     if( !*p )
         return 0;
-    z->param = malloc( sizeof(x264_param_t) );
+    z->param = x264_malloc( sizeof(x264_param_t) );
     memcpy( z->param, &h->param, sizeof(x264_param_t) );
     while( (tok = strtok_r( p, ",", &saveptr )) )
     {

@@ -47,6 +47,7 @@
 #define fseek _fseeki64
 #define ftell _ftelli64
 #define isfinite _finite
+#define strtok_r strtok_s
 #define _CRT_SECURE_NO_DEPRECATE
 #define X264_VERSION "" // no configure script for msvc
 #endif
