@@ -35,7 +35,8 @@ void     x264_cpu_mask_misalign_sse( void );
  * This applies only to x86_32, since other architectures that need alignment
  * also have ABIs that ensure aligned stack. */
 #if defined(ARCH_X86) && defined(HAVE_MMX)
-void x264_stack_align( void (*func)(x264_t*), x264_t *arg );
+int x264_stack_align( void (*func)(x264_t*), x264_t *arg );
+#define x264_stack_align(func,arg) x264_stack_align((void (*)(x264_t*))func,arg)
 #else
 #define x264_stack_align(func,arg) func(arg)
 #endif

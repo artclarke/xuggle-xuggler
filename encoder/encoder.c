@@ -1436,7 +1436,7 @@ int     x264_encoder_encode( x264_t *h,
             return 0;
         }
 
-        x264_slicetype_decide( h );
+        x264_stack_align( x264_slicetype_decide, h );
 
         /* 3: move some B-frames and 1 non-B to encode queue */
         while( IS_X264_TYPE_B( h->frames.next[bframes]->i_type ) )
