@@ -688,37 +688,53 @@ DECIMATE8x8 ssse3
     or        %1, %3
 %endmacro
 
+%macro LAST_X86 3
+    bsr %1, %2
+%endmacro
+
+%macro LAST_SSE4A 3
+    lzcnt %1, %2
+    xor %1, %3
+%endmacro
+
+%macro COEFF_LAST4 1
 %ifdef ARCH_X86_64
-cglobal x264_coeff_last4_mmxext, 1,1
-    bsr rax, [r0]
+cglobal x264_coeff_last4_%1, 1,1
+    LAST rax, [r0], 0x3f
     shr eax, 4
     RET
 %else
-cglobal x264_coeff_last4_mmxext, 0,3
+cglobal x264_coeff_last4_%1, 0,3
     mov   edx, r0m
     mov   eax, [edx+4]
     xor   ecx, ecx
     test  eax, eax
     cmovz eax, [edx]
     setnz cl
-    bsr   eax, eax
+    LAST  eax, eax, 0x1f
     shr   eax, 4
     lea   eax, [eax+ecx*2]
     RET
 %endif
+%endmacro
+
+%define LAST LAST_X86
+COEFF_LAST4 mmxext
+%define LAST LAST_SSE4A
+COEFF_LAST4 mmxext_lzcnt
 
 %macro COEFF_LAST 1
 cglobal x264_coeff_last15_%1, 1,3
     LAST_MASK r1d, r0-2, r2d
     xor r1d, 0xffff
-    bsr eax, r1d
+    LAST eax, r1d, 0x1f
     dec eax
     RET
 
 cglobal x264_coeff_last16_%1, 1,3
     LAST_MASK r1d, r0, r2d
     xor r1d, 0xffff
-    bsr eax, r1d
+    LAST eax, r1d, 0x1f
     RET
 
 %ifndef ARCH_X86_64
@@ -738,17 +754,18 @@ cglobal x264_coeff_last16_%1, 1,3
     not r1d
     xor r2d, -1
     jne .secondhalf
-    bsr eax, r1d
+    LAST eax, r1d, 0x1f
     RET
 .secondhalf:
-    bsr eax, r2d
+    LAST eax, r2d, 0x1f
     add eax, 32
     RET
 %endif
 %endmacro
 
 %ifdef ARCH_X86_64
-    cglobal x264_coeff_last64_sse2, 1,4
+%macro COEFF_LAST64 1
+    cglobal x264_coeff_last64_%1, 1,4
     LAST_MASK_SSE2 r1d, r0
     LAST_MASK_SSE2 r2d, r0+32
     LAST_MASK_SSE2 r3d, r0+64
@@ -760,16 +777,25 @@ cglobal x264_coeff_last16_%1, 1,3
     shl r3,  32
     or  r1,  r3
     not r1
-    bsr rax, r1
+    LAST rax, r1, 0x3f
     RET
+%endmacro
+
+%define LAST LAST_X86
+COEFF_LAST64 sse2
+%define LAST LAST_SSE4A
+COEFF_LAST64 sse2_lzcnt
 %endif
 
+%define LAST LAST_X86
 %ifndef ARCH_X86_64
 %define LAST_MASK LAST_MASK_MMX
 COEFF_LAST mmxext
 %endif
 %define LAST_MASK LAST_MASK_SSE2
 COEFF_LAST sse2
+%define LAST LAST_SSE4A
+COEFF_LAST sse2_lzcnt
 
 ;-----------------------------------------------------------------------------
 ; int x264_coeff_level_run( int16_t *dct, x264_run_level_t *runlevel )
@@ -783,6 +809,15 @@ COEFF_LAST sse2
     pmovmskb  %1, mm0
 %endmacro
 
+%macro LZCOUNT_X86 3
+    bsr %1, %2
+    xor %1, %3
+%endmacro
+
+%macro LZCOUNT_SSE4A 3
+    lzcnt %1, %2
+%endmacro
+
 ; t6 = eax for return, t3 = ecx for shift, t[01] = r[01] for x86_64 args
 %ifdef ARCH_X86_64
     DECLARE_REG_TMP 0,1,2,3,4,5,6
@@ -794,21 +829,18 @@ COEFF_LAST sse2
 cglobal x264_coeff_level_run%2_%1,0,7
     movifnidn t0d, r0m
     movifnidn t1d, r1m
-    LAST_MASK t2d, t0-(%2&1)*2, t4d
-    not    t2d
-    shl    t2d, 32-((%2+1)&~1)
+    LAST_MASK t5d, t0-(%2&1)*2, t4d
+    not    t5d
+    shl    t5d, 32-((%2+1)&~1)
     mov    t4d, %2-1
-    mov    t5d, t2d
-    bsr    t3d, t2d
+    LZCOUNT t3d, t5d, 0x1f
     xor    t6d, t6d
     shl    t5d, 1
-    xor    t3d, 0x1f
     sub    t4d, t3d
     shl    t5d, t3b
     mov   [t1], t4d
 .loop:
-    bsr    t3d, t5d
-    xor    t3d, 0x1f
+    LZCOUNT t3d, t5d, 0x1f
     mov    t2w, [t0+t4*2]
     mov   [t1+t6  +36], t3b
     mov   [t1+t6*2+ 4], t2w
@@ -820,6 +852,7 @@ cglobal x264_coeff_level_run%2_%1,0,7
     RET
 %endmacro
 
+%define LZCOUNT LZCOUNT_X86
 %ifndef ARCH_X86_64
 %define LAST_MASK LAST_MASK_MMX
 COEFF_LEVELRUN mmxext, 15
@@ -830,3 +863,8 @@ COEFF_LEVELRUN mmxext, 4
 %define LAST_MASK LAST_MASK_SSE2
 COEFF_LEVELRUN sse2, 15
 COEFF_LEVELRUN sse2, 16
+%define LZCOUNT LZCOUNT_SSE4A
+COEFF_LEVELRUN sse2_lzcnt, 15
+COEFF_LEVELRUN sse2_lzcnt, 16
+%define LAST_MASK LAST_MASK4_MMX
+COEFF_LEVELRUN mmxext_lzcnt, 4

@@ -64,10 +64,17 @@ int x264_coeff_last64_mmxext( int16_t *dct );
 int x264_coeff_last15_sse2( int16_t *dct );
 int x264_coeff_last16_sse2( int16_t *dct );
 int x264_coeff_last64_sse2( int16_t *dct );
+int x264_coeff_last4_mmxext_lzcnt( int16_t *dct );
+int x264_coeff_last15_sse2_lzcnt( int16_t *dct );
+int x264_coeff_last16_sse2_lzcnt( int16_t *dct );
+int x264_coeff_last64_sse2_lzcnt( int16_t *dct );
 int x264_coeff_level_run16_mmxext( int16_t *dct, x264_run_level_t *runlevel );
 int x264_coeff_level_run16_sse2( int16_t *dct, x264_run_level_t *runlevel );
+int x264_coeff_level_run16_sse2_lzcnt( int16_t *dct, x264_run_level_t *runlevel );
 int x264_coeff_level_run15_mmxext( int16_t *dct, x264_run_level_t *runlevel );
 int x264_coeff_level_run15_sse2( int16_t *dct, x264_run_level_t *runlevel );
+int x264_coeff_level_run15_sse2_lzcnt( int16_t *dct, x264_run_level_t *runlevel );
 int x264_coeff_level_run4_mmxext( int16_t *dct, x264_run_level_t *runlevel );
+int x264_coeff_level_run4_mmxext_lzcnt( int16_t *dct, x264_run_level_t *runlevel );
 
 #endif

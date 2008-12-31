@@ -156,7 +156,8 @@ static void print_bench(void)
                     b->cpu&X264_CPU_MMX ? "mmx" : "c",
                     b->cpu&X264_CPU_CACHELINE_32 ? "_c32" :
                     b->cpu&X264_CPU_CACHELINE_64 ? "_c64" :
-                    b->cpu&X264_CPU_SSE_MISALIGN ? "_misalign" : "",
+                    b->cpu&X264_CPU_SSE_MISALIGN ? "_misalign" :
+                    b->cpu&X264_CPU_LZCNT ? "_lzcnt" : "",
                     ((int64_t)10*b->cycles/b->den - nop_time)/4 );
         }
 }
@@ -1392,6 +1393,11 @@ static int check_all_flags( void )
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_32, "MMX Cache32" );
         cpu1 &= ~X264_CPU_CACHELINE_32;
 #endif
+        if( x264_cpu_detect() & X264_CPU_LZCNT )
+        {
+            ret |= add_flags( &cpu0, &cpu1, X264_CPU_LZCNT, "MMX_LZCNT" );
+            cpu1 &= ~X264_CPU_LZCNT;
+        }
     }
     if( x264_cpu_detect() & X264_CPU_SSE2 )
     {
@@ -1404,6 +1410,12 @@ static int check_all_flags( void )
         cpu1 &= ~X264_CPU_CACHELINE_64;
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE_MISALIGN, "SSE_Misalign" );
         cpu1 &= ~X264_CPU_SSE_MISALIGN;
+    }
+    if( x264_cpu_detect() & X264_CPU_LZCNT )
+    {
+        cpu1 &= ~X264_CPU_CACHELINE_64;
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_LZCNT, "SSE_LZCNT" );
+        cpu1 &= ~X264_CPU_LZCNT;
     }
     if( x264_cpu_detect() & X264_CPU_SSE3 )
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE3 | X264_CPU_CACHELINE_64, "SSE3" );

@@ -54,6 +54,7 @@ const x264_cpu_name_t x264_cpu_names[] = {
     {"Cache32", X264_CPU_CACHELINE_32},
     {"Cache64", X264_CPU_CACHELINE_64},
     {"SSEMisalign", X264_CPU_SSE_MISALIGN},
+    {"LZCNT", X264_CPU_LZCNT},
     {"Slow_mod4_stack", X264_CPU_STACK_MOD4},
     {"", 0},
 };
@@ -117,6 +118,7 @@ uint32_t x264_cpu_detect( void )
             {
                 cpu |= X264_CPU_SSE2_IS_FAST;
                 cpu |= X264_CPU_SSE_MISALIGN;
+                cpu |= X264_CPU_LZCNT;
                 x264_cpu_mask_misalign_sse();
             }
             else
