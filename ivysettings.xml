@@ -1,0 +1,44 @@
+<ivysettings>
+  <properties environment="env"/>
+  <!-- Hack for Eclipse; if xuggle.dir.native hasn't been overriden by ant, default it -->
+  <property name="xuggle.dir.native" value="/usr/local" override="false"/>
+  <settings defaultResolver="remote" />
+  <resolvers>
+    <chain name="publish" returnFirst="true">     
+      <filesystem name="shared_dir">
+        <artifact pattern="${xuggle.dir.native}/share/java/xuggle/${app.name}/[artifact](-[revision]).[type]" />
+        <artifact pattern="${xuggle.dir.native}/share/java/xuggle/java/${app.name}/[artifact](-[revision]).[ext]" />
+      </filesystem>        
+    </chain>    
+    <chain name="remote" returnFirst="true">     
+      <filesystem name="share_libs">
+        <artifact pattern="${xuggle.dir.native}/share/java/xuggle/[artifact]/[artifact](-[revision]).[type]" />
+        <artifact pattern="${xuggle.dir.native}/share/java/xuggle/[artifact]/[artifact](-[revision]).[ext]" />
+      </filesystem>
+      <url m2compatible="true" name="xugglecode">
+        <artifact pattern="http://xuggle.googlecode.com/svn/xuggle/repository/java/[organisation]/[artifact]/[artifact](-[revision]).[ext]" />
+        <artifact pattern="http://xuggle.googlecode.com/svn/xuggle/repository/java/[organisation]/[artifact](-[revision]).[ext]" />
+        <artifact pattern="http://xuggle.googlecode.com/svn/xuggle/repository/java/[artifact](-[revision]).[ext]" />
+      </url>   
+      <url m2compatible="true" name="theyard">
+        <artifact pattern="http://theyard.googlecode.com/svn/theyard/repository/java/[organisation]/[artifact]/[artifact](-[revision]).[ext]" />
+        <artifact pattern="http://theyard.googlecode.com/svn/theyard/repository/java/[organisation]/[artifact](-[revision]).[ext]" />
+        <artifact pattern="http://theyard.googlecode.com/svn/theyard/repository/java/[artifact](-[revision]).[ext]" />
+      </url>   
+      <url name="googlecode">
+        <artifact pattern="http://red5.googlecode.com/svn/repository/[artifact](-[revision]).[ext]" />
+        <artifact pattern="http://red5.googlecode.com/svn/repository/[organisation]/[artifact](-[revision]).[ext]" />
+      </url>   
+      <url name="mavenrepo">
+        <artifact pattern="http://repo1.maven.org/maven/[artifact]/jars/[artifact](-[revision]).[ext]" />
+        <artifact pattern="http://repo1.maven.org/maven/[organisation]/[artifact]/jars/[artifact](-[revision]).[ext]" />
+      </url>   
+      <url m2compatible="true" name="atlassian">
+        <artifact pattern="https://maven.atlassian.com/repository/public/[organization]/[artifact]/[revision]/[artifact]-[revision].jar" />
+      </url>
+    </chain>
+  </resolvers>
+  <modules>
+    <module organisation=".*" name="*" resolver="remote"/>
+  </modules>    
+</ivysettings>

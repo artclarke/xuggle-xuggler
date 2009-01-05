@@ -1,0 +1,83 @@
+{
+   ffmpeg_h264_decode_bug
+   Memcheck:Cond
+   fun:av_log2
+   fun:get_level_prefix
+   fun:decode_residual
+   fun:decode_mb_cavlc
+   fun:decode_slice
+   fun:execute_decode_slices
+   fun:decode_nal_units
+   fun:decode_frame
+   fun:avcodec_decode_video
+}
+{
+   ffmpeg_h264_decode_bug2
+   Memcheck:Cond
+   fun:get_se_golomb
+   fun:decode_mb_cavlc
+   fun:decode_slice
+   fun:execute_decode_slices
+   fun:decode_nal_units
+   fun:decode_frame
+   fun:avcodec_decode_video
+}
+{
+  ffmpeg_h264_decode_bug3
+  Memcheck:Cond
+  fun:get_ue_golomb
+  fun:decode_mb_cavlc
+  fun:decode_slice
+  fun:execute_decode_slices
+  fun:decode_nal_units
+  fun:decode_frame
+  fun:avcodec_decode_video
+}
+{
+   ffmpeg_h264_decode_bug_in_release_builds_decode_residual
+   Memcheck:Cond
+   fun:decode_residual
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+{
+   ffmpeg_h264_decode_bug_in_release_builds_decode_residual2
+   Memcheck:Value4
+   fun:decode_residual
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+{
+   ffmpeg_h264_decode_bug_in_release_builds_decode_mb_cavlc
+   Memcheck:Cond
+   fun:decode_mb_cavlc
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
