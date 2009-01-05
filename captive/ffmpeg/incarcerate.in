@@ -1,0 +1,84 @@
+#!/bin/sh
+
+# Modify this script to pass the necessary parameters to 
+# the configure of the captive package you're configuring
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+HOST_TYPE=@HOST_TYPE@
+HOST_OS=@HOST_OS@
+
+VS_ENABLE_64BIT=@VS_ENABLE_64BIT@
+VS_DEBUG=@VS_DEBUG@
+
+CAPTIVE_ENABLE_LIBSPEEX=@CAPTIVE_ENABLE_LIBSPEEX@
+CAPTIVE_ENABLE_LIBMP3LAME=@CAPTIVE_ENABLE_LIBMP3LAME@
+CAPTIVE_ENABLE_FFMPEG_GPL=@VS_ENABLE_GPL@
+
+FFMPEG_OPTIONS=
+# Tell FFMPEG about the captive libraries already built and fake
+# installed
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-I@abs_top_builddir@/captive@includedir@"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-L@abs_top_builddir@/captive@libdir@"
+
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-shared"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-stripping"
+
+if test "x$CAPTIVE_ENABLE_FFMPEG_GPL" = "xyes"; then
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-gpl"
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-swscale"
+fi
+if test ! "x$VS_DEBUG" = "x"; then
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-optimizations"
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-mmx"
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-mmx2"
+fi
+if test "x$CAPTIVE_ENABLE_LIBMP3LAME" = "xyes"; then
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libmp3lame"
+fi
+if test "x$CAPTIVE_ENABLE_LIBSPEEX" = "xyes"; then
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libspeex"
+fi
+
+if test "x$VS_ENABLE_64BIT" = "xyes"; then
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-m64"
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-m64"
+fi
+
+case $HOST_TYPE in
+  Windows)
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-mno-cygwin"
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-fno-common"
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-mno-cygwin"
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=--out-implib"
+
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-vhook"
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-w32threads"
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-memalign-hack"
+  ;;
+  Mac)
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-pthreads"
+  if test "x$VS_ENABLE_64BIT" = "xyes"; then
+    FFMPEG_OPTIONS="$FFMPEG_OPTIONS --arch=x86_64"
+  fi
+  ;;
+  Linux)
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-pthreads"
+  ;;
+  *)
+  ;;
+esac
+
+echo "Configuring FFMPEG with these options: $FFMPEG_OPTIONS"
+@abs_srcdir@/csrc/configure \
+  --prefix="${prefix}" $FFMPEG_OPTIONS || \
+  (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)
+if test $? -eq 0 ; then
+  # Annoyingly, ffmpeg makes a link back to the main Makefile, not
+  # a copy, which can cause havoc in our makefile as we expect after
+  # a configure that the top level makefile in our build directory
+  # has been updated, so we force that here.
+  rm -f "@abs_builddir@/csrc/Makefile"
+  cp "@abs_srcdir@/csrc/Makefile" "@abs_builddir@/csrc/Makefile"
+else
+  exit 255
+fi

@@ -1,0 +1,120 @@
+package com.xuggle.ferry;
+
+import static org.junit.Assert.*;
+
+import java.util.List;
+
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.xuggle.test_utils.NameAwareTestClassRunner;
+import com.xuggle.ferry.JNILibraryLoader;
+import com.xuggle.ferry.JNIWeakReference;
+
+@RunWith(NameAwareTestClassRunner.class)
+public class JNILibraryLoaderTest
+{
+  private static final Logger log = LoggerFactory.getLogger(JNILibraryLoaderTest.class);
+  private String mTestName = null;
+  @Before
+  public void setUp()
+  {
+    mTestName = NameAwareTestClassRunner.getTestMethodName();
+    log.debug("-----START----- {}", mTestName);
+    JNILibraryLoader loader = JNILibraryLoader.getInstance();
+    loader.setOS(null); // reset the OS
+  }
+
+  @After
+  public void tearDown()
+  {
+    // Always do a collection on tear down, as we want to find leaked objects
+    // and don't want things easily collectable screwing up hprof if running
+    System.gc();
+    log.debug("----- END ----- {}", mTestName);
+  }
+  
+  @AfterClass
+  public static void tearDownClass() throws InterruptedException
+  {
+    System.gc();
+    Thread.sleep(1000);
+    JNIWeakReference.getMgr().gc();
+  }
+  
+  @Test
+  public void testCreation()
+  {
+    JNILibraryLoader loader = JNILibraryLoader.getInstance();
+    assertNotNull(loader);
+  }
+  
+  @Test
+  public void testGetOS()
+  {
+    JNILibraryLoader loader = JNILibraryLoader.getInstance();
+    JNILibraryLoader.OSName os = loader.getOS();
+    switch(os)
+    {
+    case Linux:
+      assertTrue(System.getProperty("os.name", "").startsWith("Linux"));
+      break;
+    case MacOSX:
+      assertTrue(System.getProperty("os.name", "").startsWith("Mac"));
+      break;
+    case Windows:
+      assertTrue(System.getProperty("os.name", "").startsWith("Windows"));
+      break;
+    case Unknown:
+      fail("should default to linux");
+      break;
+    }
+  }
+  
+  @Test
+  public void testGetSystemRuntimeLibraryPathVar()
+  {
+    JNILibraryLoader.OSName[] osTypes = new JNILibraryLoader.OSName[]{
+        JNILibraryLoader.OSName.Linux,
+        JNILibraryLoader.OSName.Windows,
+        JNILibraryLoader.OSName.MacOSX
+    };
+    String varNames[] = new String[]{
+        "LD_LIBRARY_PATH",
+        "PATH",
+        "DYLD_LIBRARY_PATH"
+    };
+
+    for(int i = 0; i < varNames.length; i++)
+    {
+      String expected = varNames[i];
+      JNILibraryLoader.OSName os = osTypes[i];
+      JNILibraryLoader loader = JNILibraryLoader.getInstance();
+      loader.setOS(os);
+      String actual = loader.getSystemRuntimeLibraryPathVar();
+      log.trace("Comparing System Runtime Library Path: {} vs {}", expected, actual);
+      assertEquals("unexpected variable name", expected, actual);
+    }
+  }
+
+  /**
+   * This test just prints the generated values out to the log file; it should
+   * always succeed, but you should eye-ball the results to make sure they are right.
+   */
+  @Test
+  public void testGenerateFilenamesLinux()
+  {
+    JNILibraryLoader loader = JNILibraryLoader.getInstance();
+    List<String> files = loader.getLibraryCandidates("foo", new Long("1"));
+    for(String file: files)
+    {
+      log.debug("candidate: {}", file);
+    }
+  }
+}

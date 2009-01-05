@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# Modify this script to pass the necessary parameters to 
+# the configure of the captive package you're configuring
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+CPPFLAGS="@CPPFLAGS@"
+LDFLAGS="@LDFLAGS@"
+CFLAGS="@CFLAGS@"
+CXXFLAGS="@CXXFLAGS@"
+HOST_TYPE=@HOST_TYPE@
+HOST_OS=@HOST_OS@
+
+VS_ENABLE_64BIT=@VS_ENABLE_64BIT@
+case $HOST_TYPE in
+  Windows)
+  CC="${CC} -mno-cygwin"
+  LDFLAGS="$LDFLAGS -mno-cygwin"
+  ;;
+  *)
+  ;;
+esac
+if test "x$VS_ENABLE_64BIT" = "xyes"; then
+  CFLAGS="$CFLAGS -m64"
+  CXXFLAGS="$CXXFLAGS -m64"
+  LDFLAGS="$LDFLAGS -m64"
+  case $HOST_TYPE in
+    Mac)
+    CFLAGS="$CFLAGS -arch x86_64"
+    CXXFLAGS="$CXXFLAGS -arch x86_64"
+    LDFLAGS="$LDFLAGS -arch x86_64"
+    ;;
+    *)
+    ;;
+  esac
+fi
+  
+@abs_srcdir@/csrc/configure \
+  CPPFLAGS="$CPPFLAGS -I'@abs_top_builddir@/captive@includedir@'" \
+  CFLAGS="$CFLAGS" \
+  CXXFLAGS="$CXXFLAGS" \
+  LDFLAGS="$LDFLAGS -L'@abs_top_builddir@/captive@libdir@'" \
+  --prefix="${prefix}" || \
+  (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)

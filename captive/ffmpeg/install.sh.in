@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# Use this file to clean up an install after FFMPEG's actual
+# install runs
+
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+HOST_TYPE=@HOST_TYPE@
+HOST_OS=@HOST_OS@
+
+FFMPEG_LIB_DIR="${DESTDIR}@libdir@"
+
+echo "Running @srcdir@ post-install to ${DESTDIR}${prefix}"
+case $HOST_TYPE in
+  Windows)
+  # FFMPEG's build on windows doesn't create import libraries
+  # for the dll it creates, but does create .def files.  So, 
+  # we create an import library for each def file we find.
+
+  # Find all .def files
+  FFMPEG_DEF_FILES=`find . -name '*.def'`
+  for def in ${FFMPEG_DEF_FILES}; do
+    FFMPEG_DLL_NAME=`basename ${def} .def`
+    FFMPEG_LIB_NAME=lib`echo ${FFMPEG_DLL_NAME} | sed 's/-[^-]*$//'`.dll.a
+    FFMPEG_LIB="${FFMPEG_LIB_DIR}/${FFMPEG_LIB_NAME}"
+    if test ! -f "${FFMPEG_LIB}"; then
+      echo "Creating import lib ${FFMPEG_LIB_NAME} to DLL ${FFMPEG_DLL_NAME} from DEF file ${def}"
+      dlltool --input-def "${def}" \
+        --dllname "${FFMPEG_DLL_NAME}" \
+        --output-lib "${FFMPEG_LIB}"
+    fi
+  done
+  ;;
+  *)
+  ;;
+esac
+

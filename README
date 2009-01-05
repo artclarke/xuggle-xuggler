@@ -1,0 +1,75 @@
+Welcome to Xuggle
+
+= What is Xuggler ? =
+Xuggler is a Java library that allows you to decode and
+encode a variety of media file formats directly from Java.
+
+It is built on top of the FFMPEG (http://ffmpeg.org/), but
+is designed with the following goals:
+    *  Ease of Use: Provide the power of FFMPEG with an
+       easier learning curve for developers.
+    *  Safety: Run natively inside a Virtual Machines
+       (e.g. Java) and servers, but minimize the odds
+       of incorrect coding of native FFMPEG code causing crashes
+    *  Portability: Write portable code that should run most places
+       where FFMPEG can run
+
+= What languages are supported? =
+
+Today Xuggler works under Java, but may be extended in the future
+to work under other languages such as Python, Perl, Ruby etc.
+
+The architecture is designed to allow the library to plug in relatively
+easily to any scripting language that does reference-counting based
+memory management or garbage-collection based memory manage (i.e.
+most of them).  Patches for additional languages are welcome.
+If you're interested in doing this, we use a concept call
+"ferrying" to transport objects across language barriers.  Start
+in com.xuggle.ferry.  And we use SWIG to generate the actual
+wrappers to our C++ libraries.
+
+People can also use the C++ api directly, but bear in mind two caveats:
+- You must explicitly release all references you create to objects
+  with ->release() calls; every make() or get...() method returns
+  a reference.  A template class called com.xuggle.ferry.RefPointer
+  is provided that can do a lot of the release()ing for you, but
+  it's no substitute for care on your part.
+
+- If absolute performance is your goal, and you're using the
+  Xuggler CPP API, consider just calling
+  directly to the Ffmpeg API and take Xuggler out of the middle.  The
+  safety we Xuggler provides comes at a cost (e.g. we copy each video
+  picture we decode into another chunk of memory so that other
+  threads can safely access it).  If performance is the goal,
+  Xuggler will NEVER be faster that calling FFMPEG directly; just
+  a little safer.
+
+= How to use Xuggle? =
+
+You must first build and install Xuggle for the operating
+system you will use it on.  Unlike most Java libraries,
+Xuggle has a native (e.g. Windows DLL or Linux shared library)
+component that must be installed with it.
+
+See the INSTALL file for instructions.
+
+Once installed, just make sure your Java program references
+xuggle-xuggler.jar, and you should be able to use the API.
+
+= Where can I find documentation? =
+Visit http://www.xuggle.com/
+
+or build the documentaiton yourself:
+  ant doc
+and then open up
+  doc/java/api/index.html (the Java docs).
+  doc/cpp/api/html/index.html (the C++ docs if you have Doxygen installed).
+
+Currently the Java docs are auto-generated from the C++ docs and
+there are quite a few bugs with that.  If you're not getting
+what you need from the Java docs, then please, check out the C++ docs.
+
+= Where can I find out more? =
+Visit:
+http://www.xuggle.com/
+

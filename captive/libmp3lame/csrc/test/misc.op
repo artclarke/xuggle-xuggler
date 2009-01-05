@@ -1,0 +1,16 @@
+--athlower 10
+--abr 160 -b 128 -B 192 -F
+-V3 -b 128 -B 192 -F
+--freeformat -b 33
+--freeformat -b 330
+-k
+--lowpass 12
+--noath
+--noasm mmx --noasm 3dnow --noasm sse
+--noshort
+--notemp
+--nores
+-p
+--resample 48000
+--scale 0.8
+-t

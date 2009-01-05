@@ -1,0 +1,329 @@
+/* From Swig 1.3.33 */
+/* javabody typemaps */
+
+%include <enums.swg>
+%include <stdint.i>
+
+%typemap(javapackage) com::xuggle::ferry::RefCounted, com::xuggle::ferry::RefCounted *, com::xuggle::ferry::RefCounted & "com.xuggle.ferry"
+
+%typemap(javabody) com::xuggle::ferry::RefCounted %{
+  // JNIHelper.swg: Start generated code
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+  private volatile long swigCPtr;
+  protected boolean swigCMemOwn;
+  private com.xuggle.ferry.JNIWeakReference mRefCounter;
+  private Long mLifecycleReference;
+  
+  // the next object looks like it is unused by the compiler, but that's not true; it most
+  // definitely is used :)
+  @SuppressWarnings("unused")
+  private com.xuggle.ferry.JNINativeFinalizer mObjectToForceFinalize;
+
+  /**
+   * Not part of public API.
+   */
+  protected $javaclassname(long cPtr, boolean cMemoryOwn) {
+    swigCMemOwn = cMemoryOwn;
+    swigCPtr = cPtr;
+    if (swigCPtr != 0)
+    {
+      // This object must:
+      // (a) have no references to any other java object
+      // (b) Have a finalizer that just calls gc() on our JNIMemoryManager
+      // It exists only to force gc() to be called even if someone calls the Xuggle
+      // libraries once and never again
+      mObjectToForceFinalize = new com.xuggle.ferry.JNINativeFinalizer();
+      // This is what the weak reference will watch; this object should
+      // (a) have no references to any other Java object
+      // (b) MUST NOT have a finalizer
+      // (c) MUST NOT acquire any other references to it except for the strong reference
+      //     right here, and the weak reference in mRefCounter
+      mLifecycleReference = new Long(swigCPtr);      
+      // Force the creation of a new weak reference, will will actually pin itself
+      // inside the reference class.
+      mRefCounter = JNIWeakReference.createReference(mLifecycleReference, swigCPtr);
+    }
+  }
+
+  /**
+   * Not part of public API.
+   *
+   * Get the raw value of the native object that obj is proxying for.
+   *   
+   * @param obj The java proxy object for a native object.
+   * @return The raw pointer obj is proxying for.
+   */
+  public static long getCPtr($javaclassname obj) {
+    if (obj == null) return 0;
+    return obj.getMyCPtr();
+  }
+  
+  /**
+   * Not part of public API.
+   *
+   * Get the raw value of the native object that we're proxying for.
+   *   
+   * @return The raw pointer we're proxying for.
+   */
+  public long getMyCPtr() {
+    if (swigCPtr == 0) throw new NullPointerException("underlying native object already deleted");
+    return swigCPtr;
+  }
+  
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+  // JNIHelper.swg: End generated code
+ %}
+
+%typemap(javabody) SWIGTYPE %{
+  // JNIHelper.swg: Start generated code
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+  private volatile long swigCPtr;
+  protected boolean swigCMemOwn;
+  @SuppressWarnings("unused")
+  private JNINativeFinalizer mUnusedVariableToAllowImports;
+  
+  /**
+   * DO NOT USE: Do not allocate this method using new.  Not part of public API.
+   * <p>
+   * Unfortunately this constructor is public because the internal
+   * implementation needs it to be, but do not pass in values to this method
+   * as you may end up crashing the virtual machine.
+   * </p>
+   *
+   * @param cPtr A C pointer to direct memory; did we mention don't call this.
+   * @param cMemoryOwn I'm not even going to tell you.  Stop it.  Go away.
+   *
+   */ 
+  protected $javaclassname(long cPtr, boolean cMemoryOwn) {
+    swigCPtr = cPtr;
+    swigCMemOwn = cMemoryOwn;
+  }
+
+  /**
+   * Not part of public API.
+   *
+   * Get the raw value of the native object that obj is proxying for.
+   *   
+   * @param obj The java proxy object for a native object.
+   * @return The raw pointer obj is proxying for.
+   */
+  public static long getCPtr($javaclassname obj) {
+    if (obj == null) return 0;
+    return obj.getMyCPtr();
+  }
+  
+  /**
+   * Not part of public API.
+   *
+   * Get the raw value of the native object that we're proxying for.
+   *   
+   * @return The raw pointer we're proxying for.
+   */  
+  public long getMyCPtr() {
+    if (swigCPtr == 0) throw new IllegalStateException("underlying native object already deleted");
+    return swigCPtr;
+  }
+
+  /**
+   * Compares two values, returning true if the underlying objects in native code are the same object.
+   *
+   * That means you can have two different Java objects, but when you do a comparison, you'll find out
+   * they are the EXACT same object.
+   *
+   * @return True if the underlying native object is the same.  False otherwise.
+   */
+  public boolean equals(Object obj) {
+    boolean equal = false;
+    if (obj instanceof $javaclassname)
+      equal = ((($javaclassname)obj).swigCPtr == this.swigCPtr);
+    return equal;
+  }
+  
+  /**
+   * Get a hashable value for this object.
+   *
+   * @return the hashable value.
+   */
+  public int hashCode() {
+     return (int)swigCPtr;
+  }
+  
+  /**
+   * Finalize this object.  Note this should only exists on non RefCounted objects.
+   */
+  protected void finalize()
+  {
+    delete();
+  }
+
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+  // JNIHelper.swg: End generated code
+%}
+
+// Drop Java Finalization because we put it in the body.
+%typemap(javafinalize) SWIGTYPE ""
+
+// Derived proxy classes
+%typemap(javabody_derived) SWIGTYPE %{
+  // JNIHelper.swg: Start generated code
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+  /**
+   * This method is only here to use some references and remove
+   * a Eclipse compiler warning.
+   */
+  @SuppressWarnings("unused")
+  private void noop()
+  {
+    IBuffer.make(null, 1);
+  }
+   
+  private volatile long swigCPtr;
+
+  protected $javaclassname(long cPtr, boolean cMemoryOwn) {
+    super($imclassname.SWIG$javaclassnameUpcast(cPtr), cMemoryOwn);
+    swigCPtr = cPtr;
+  }
+  
+  /**
+   * Not part of public API.
+   *
+   * Get the raw value of the native object that obj is proxying for.
+   *   
+   * @param obj The java proxy object for a native object.
+   * @return The raw pointer obj is proxying for.
+   */
+  public static long getCPtr($javaclassname obj) {
+    if (obj == null) return 0;
+    return obj.getMyCPtr();
+  }
+
+  /**
+   * Not part of public API.
+   *
+   * Get the raw value of the native object that we're proxying for.
+   *   
+   * @return The raw pointer we're proxying for.
+   */  
+  public long getMyCPtr() {
+    if (swigCPtr == 0) throw new IllegalStateException("underlying native object already deleted");
+    return swigCPtr;
+  }
+  
+  /**
+   * Create a new $javaclassname object that is actually referring to the
+   * exact same underlying Native object.
+   *
+   * This method increases the ref count of the underlying Native object.
+   *
+   * @return the new Java object.
+   */
+  public $javaclassname copyReference() {
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      $javaclassname retval = new $javaclassname(swigCPtr, false);
+      retval.acquire();
+      return retval;
+    }
+  }
+
+  /**
+   * Compares two values, returning true if the underlying objects in native code are the same object.
+   *
+   * That means you can have two different Java objects, but when you do a comparison, you'll find out
+   * they are the EXACT same object.
+   *
+   * @return True if the underlying native object is the same.  False otherwise.
+   */
+  public boolean equals(Object obj) {
+    boolean equal = false;
+    if (obj instanceof $javaclassname)
+      equal = ((($javaclassname)obj).swigCPtr == this.swigCPtr);
+    return equal;
+  }
+  
+  /**
+   * Get a hashable value for this object.
+   *
+   * @return the hashable value.
+   */
+  public int hashCode() {
+     return (int)swigCPtr;
+  }
+  
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+  // JNIHelper.swg: End generated code
+%}
+
+// For RefCounted and children
+%typemap(javadestruct, methodname="delete", methodmodifiers="public synchronized") com::xuggle::ferry::RefCounted
+%{
+  // JNIHelper.swg: Start generated code
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+  {
+    if(swigCPtr != 0) {
+      if (((Object)this) instanceof RefCounted && mRefCounter != null) {
+        mRefCounter.delete();
+      } else if (swigCMemOwn) {
+        swigCMemOwn = false;
+        $jnicall;
+      }
+    }
+    mRefCounter = null;
+    mObjectToForceFinalize = null;
+    mLifecycleReference = null;
+    swigCPtr = 0;
+  }
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+  // JNIHelper.swg: End generated code
+%}
+
+%typemap(check) SWIGTYPE *self %{
+  if (!$1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return $null;
+  }
+%}
+
+%exception
+{
+  // JNIHelper.swg: Start generated code
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+  try
+  {
+    $action
+  }
+  catch(std::exception & e)
+  {
+    // we don't let a native exception override a java exception
+    if (!jenv->ExceptionCheck())
+    {
+      jclass cls=jenv->FindClass("java/lang/RuntimeException");
+      jenv->ThrowNew(cls, e.what());
+    }
+    return $null;
+  }
+  catch(...)
+  {
+    // we don't let a native exception override a java exception
+    if (!jenv->ExceptionCheck())
+    {
+      jclass cls=jenv->FindClass("java/lang/RuntimeException");
+      jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+    }
+    return $null;
+  }
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+  // JNIHelper.swg: End generated code
+}
+
+// This makes any type labeled jNioByteArray show up in swig wrappers
+// as a java.nio.ByteBuffer type
+%typemap(jtype)  jNioByteArray, const jNioByteArray &  "java.nio.ByteBuffer";
+%typemap(jstype) jNioByteArray, const jNioByteArray &  "java.nio.ByteBuffer";
+    
+
+

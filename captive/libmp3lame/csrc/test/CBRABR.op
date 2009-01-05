@@ -1,0 +1,118 @@
+-b 8 -q 0
+-b 8 -q 1
+-b 8 -q 2
+-b 8 -q 3
+-b 8 -q 4
+-b 8 -q 5
+-b 8 -q 6
+-b 8 -q 7
+-b 8 -q 8
+-b 8 -q 9
+-b 8 -m m -q 0
+-b 8 -m m -q 1
+-b 8 -m m -q 2
+-b 8 -m m -q 3
+-b 8 -m m -q 4
+-b 8 -m m -q 5
+-b 8 -m m -q 6
+-b 8 -m m -q 7
+-b 8 -m m -q 8
+-b 8 -m m -q 9
+-b 8 -m s -q 0
+-b 8 -m s -q 1
+-b 8 -m s -q 2
+-b 8 -m s -q 3
+-b 8 -m s -q 4
+-b 8 -m s -q 5
+-b 8 -m s -q 6
+-b 8 -m s -q 7
+-b 8 -m s -q 8
+-b 8 -m s -q 9
+--abr 9
+-b 16
+--abr 20
+-b 24
+--abr 28
+-b 32
+--abr 36
+-b 40
+--abr 48
+-b 56
+--abr 60
+-b 64
+--abr 72
+-b 80
+--abr 88
+-b 96
+--abr 108 -q 0
+--abr 108 -q 1
+--abr 108 -q 2
+--abr 108 -q 3
+--abr 108 -q 4
+--abr 108 -q 5
+--abr 108 -q 6
+--abr 108 -q 7
+--abr 108 -q 8
+--abr 108 -q 9
+--abr 108 -m m -q 0
+--abr 108 -m m -q 1
+--abr 108 -m m -q 2
+--abr 108 -m m -q 3
+--abr 108 -m m -q 4
+--abr 108 -m m -q 5
+--abr 108 -m m -q 6
+--abr 108 -m m -q 7
+--abr 108 -m m -q 8
+--abr 108 -m m -q 9
+--abr 108 -m s -q 0
+--abr 108 -m s -q 1
+--abr 108 -m s -q 2
+--abr 108 -m s -q 3
+--abr 108 -m s -q 4
+--abr 108 -m s -q 5
+--abr 108 -m s -q 6
+--abr 108 -m s -q 7
+--abr 108 -m s -q 8
+--abr 108 -m s -q 9
+-b 112
+--abr 120
+-b 128
+--abr 140
+-b 160
+--abr 180
+-b 192
+--abr 210
+-b 224
+--abr 235
+-b 256
+--abr 319
+-b 320 -q 0
+-b 320 -q 1
+-b 320 -q 2
+-b 320 -q 3
+-b 320 -q 4
+-b 320 -q 5
+-b 320 -q 6
+-b 320 -q 7
+-b 320 -q 8
+-b 320 -q 9
+-b 320 -m m -q 0
+-b 320 -m m -q 1
+-b 320 -m m -q 2
+-b 320 -m m -q 3
+-b 320 -m m -q 4
+-b 320 -m m -q 5
+-b 320 -m m -q 6
+-b 320 -m m -q 7
+-b 320 -m m -q 8
+-b 320 -m m -q 9
+-b 320 -m s -q 0
+-b 320 -m s -q 1
+-b 320 -m s -q 2
+-b 320 -m s -q 3
+-b 320 -m s -q 4
+-b 320 -m s -q 5
+-b 320 -m s -q 6
+-b 320 -m s -q 7
+-b 320 -m s -q 8
+-b 320 -m s -q 9

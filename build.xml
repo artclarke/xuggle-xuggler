@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<project
+  name="xuggle-xuggler"
+  default="dist"
+  basedir="."
+  xmlns:ivy="antlib:org.apache.ivy.ant"
+  >
+  <description>
+    Builder for the Xuggler Java Library
+  </description>
+
+  <!-- set global properties for this build -->
+  <!-- IMPRORTANT: If this Java build depends on a Native library
+       you must also make sure you update the major and minor
+       revisions in that library's "configure.ac" file, and
+       regenerate the build scripts -->
+  <property name="library.version.major" value="1"/>
+  <property name="library.version.minor" value="15"/>
+  <property name="app.mainclass" value="com.xuggle.xuggler.Xuggler"/>
+
+  <!-- And bring in the standard build rules -->
+  <import file="mk/buildtools/buildhelper.xml"/>
+
+  <target name="install-red5"
+    description="Installed Red5 applications to $RED5_HOME">
+    <echo message="Installing ${app.name}.jar with native dependencies to: ${env.RED5_HOME}"/>
+    <if>
+      <available file="${env.RED5_HOME}"/>
+      <then>
+        <copy todir="${env.RED5_HOME}/lib">
+          <fileset dir="${dist.dir}">
+            <include name="${app.name}.jar"/>
+          </fileset>
+        </copy>
+      </then>
+    </if>
+  </target>
+  <target name="uninstall-red5"
+    description="Installed Red5 applications to $RED5_HOME">
+    <if>
+      <available file="${env.RED5_HOME}/lib/${app.name}.jar"/>
+      <then>
+        <echo message="Uninstalling ${app.name}.jar with native dependencies from: ${env.RED5_HOME}"/>
+        <delete
+          file="${env.RED5_HOME}/lib/${app.name}.jar"/>
+      </then>
+    </if>
+  </target>
+
+</project>
+

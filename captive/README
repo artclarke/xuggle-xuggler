@@ -1,0 +1,20 @@
+This directory contains software packages that this
+library needs installed in order to build, and that will
+be included in the installation of this library.
+
+The configure script for the main library should enable or
+disable captives, and if enabled, then these libraries get
+configured and build when building the main library.
+
+The libraries will be installed using the GNU AUTOCONF
+standard DISTDIR hack into a directory that is local to
+the build tree of the main library.  When the main library
+is installed, then the captive installation directory will be
+copied over as well into the same root.  Captive libraries
+will be configured with the same $(prefix) that the main
+library was configured with.
+
+Lastly, believe it or not, this entire captive system
+(complicated as it seems) is here so that the vast majority
+of users don't need to worry about building ffmpeg -- we
+build it for them.

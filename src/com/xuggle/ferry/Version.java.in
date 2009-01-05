@@ -1,0 +1,7 @@
+package com.xuggle.ferry;
+
+class Version
+{
+  static final long MAJOR_VERSION=@LIB_MAJOR_VERSION@;
+  static final long MINOR_VERSION=@LIB_MINOR_VERSION@;
+}

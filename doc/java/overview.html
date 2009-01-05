@@ -1,0 +1,93 @@
+<html>
+  <body>
+    "To Xuggle": To encode, decode, and generally juggle audio and
+      video files in any way that you want.
+    <h1>Introduction</h1>
+This release contains a collection of Java libraries that
+Xuggle is letting loose on the world.  
+<p>
+Our intention in open sourcing these libraries is to break down the walls
+of communication between people.  To that end, a lot of these libraries deal
+with getting at raw data for different systems, and for helping people to share
+and create cool stuff using that data.
+</p>
+<p>
+That said, it is not our intent to encourage people to use these libraries for
+illegal purposes, and we explicitly encourage people to respect the rights of others
+when they use these libraries.
+</p>
+<h1>Libraries</h1>
+Here is a brief summary of the current libraries in this release:
+<h2>The Xuggler</h2>
+A Java Library for encoding and decoding pretty much any Internet available audio or video file.  See {@link com.xuggle.xuggler}
+<p>
+This Java library is a wrapper around the excellent <a href="http://ffmpeg.org">
+  FFMPEG</a> libav* libraries.  It allows Java developers (after installing
+the Xuggler native libraries) to encode and decode
+video files, but in a very Java-like way (i.e. automatic garbage
+collection, and fewer ways to cause bad crashes).
+</p>
+<p>
+Read more about {@link com.xuggle.xuggler the details here}
+or jump straight to the
+<a href="{@docRoot}/src-html/com/xuggle/xuggler/Converter.html">
+com.xuggle.xuggler.Converter</a>
+program source code for
+an example of Xuggler converting a media file.
+</p>
+<h2>Xuggler IO</h2>
+A Java Library for allowing people to plug in custom data sources for
+Xuggler to use.  See {@link com.xuggle.xuggler.io}
+<p>
+Xuggler uses FFMPEG's libav libraries to do the encoding and 
+decoding of fils.  By default FFMPEG can read files, and some
+other protocols (like http), but it implements all IO itself.
+</p>
+<p>
+Fortunately FFMPEG comes with a way to extend the data sources
+it can read; unfortunately it's a call back mechanism.  Still,
+the Xuggler IO library allows you to implement IO callbacks for
+FFMPEG in the language of your choice (Java) as opposed to native
+C code.
+</p>
+<p>
+See the {@link com.xuggle.xuggler.io.FileProtocolHandler FileProtocolHandler}
+for a Java example of this (really just re-implements FFMPEG's file://
+IO for illustration purposes).
+</p>
+<p>
+Or better yet, check out the <a href="http://www.xuggle.com/opensource/xuggle-xuggler-red5">Xuggler Red5 Adapter</a> for an example of a
+Xuggler IO plugin that allows the <a href="http://red5.googlecode.com/">Red5</a>
+Open Source Media Server to decode and re-encode video files on the
+the fly (really).
+</p>
+<h2>Ferry</h2>
+A set of Java classes for <i>ferrying</i> data to and from native code.
+See {@link com.xuggle.ferry}
+<p>
+<a href="http://www.swig.org/">SWIG</a>, an excellent utility for wrapping native code for other languages
+does a lot of great things.  But sometimes it can use some help, and that's where this library comes in.
+This library implements the reference-counting memory scheme (used by the {@link com.xuggle.xuggler Xuggler} package)
+to allow native code to pass objects in to other languages and
+relatively seamlessly integrate with their garbage collection
+systems.  It also provides mechanism for allocating memory from
+the other language (instead of the C++ heap)
+to help that language keep track of memory, mechanisms for
+logging in the other language, and mechanisms
+for allowing the other language to directly modify C++/C memory
+(if possible).  Most people won't use this
+outside of the Xuggler library, but if you're curious, go digging. 
+It relies HEAVILY on SWIG for a lot of the heavy lifting.
+<h1>Licensing</h1>
+All Xuggle Open Source Libraries are released either under the
+<a href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">Lesser GPL 2.1 or later</a>
+or under the <a href="http://www.gnu.org/licenses/old-licenses/gpl-2.0.html">GPL 2.0 or later</a>.
+See the COPYING file in each library for details.
+<p>
+We generally prefer the LGPL, but sometimes we
+are required to release under GPL (for example, use of FFMPEG's libswscale library requires
+the use of the GPL, so if you want to access the com::xuggle::xuggler::IVideoResampler object in the Xuggler library,
+you need to compile a GPL version).  In these cases, we still try to provide a reduced functionality
+LGPL license if possible.
+  </body>
+</html>

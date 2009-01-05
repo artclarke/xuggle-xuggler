@@ -1,0 +1,88 @@
+/*
+ * Copyright (c) 2008 by Vlideshow Inc. (a.k.a. The Yard).  All rights reserved.
+ *
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+ * us know by sending e-mail to info@xuggle.com telling us briefly how you're
+ * using the library and what you like or don't like about it.
+ *
+ * This library is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU Lesser General Public License as published by the Free Software
+ * Foundation; either version 2.1 of the License, or (at your option) any later
+ * version.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ * PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to the Free Software Foundation, Inc.,
+ * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ */
+#ifndef CONTAINER_H_
+#define CONTAINER_H_
+
+#include <com/xuggle/ferry/RefCounted.h>
+#include <com/xuggle/ferry/RefPointer.h>
+#include <com/xuggle/xuggler/IContainer.h>
+#include <com/xuggle/xuggler/FfmpegIncludes.h>
+#include <com/xuggle/xuggler/Stream.h>
+
+#include <vector>
+
+namespace com { namespace xuggle { namespace xuggler
+{
+  class Container : public IContainer
+  {
+    VS_JNIUTILS_REFCOUNTED_OBJECT(Container)
+  public:
+    virtual int32_t setInputBufferLength(uint32_t size);
+    virtual uint32_t getInputBufferLength();
+    virtual bool isOpened();
+    virtual bool isHeaderWritten();
+    
+    virtual int32_t open(const char *url, Type type,
+        IContainerFormat* pContainerFormat);
+    virtual int32_t open(const char *url, Type type,
+        IContainerFormat* pContainerFormat, bool, bool);
+    virtual IContainerFormat *getContainerFormat();
+
+    virtual Type getType();
+    virtual int32_t close();
+    virtual int32_t getNumStreams();
+    
+    virtual IStream* getStream(uint32_t position);
+
+    virtual IStream* addNewStream(int32_t id);
+
+    virtual int32_t readNextPacket(IPacket *packet);
+    virtual int32_t writePacket(IPacket *packet, bool forceInterleave);
+    virtual int32_t writePacket(IPacket *packet);
+
+    virtual int32_t writeHeader();
+    virtual int32_t writeTrailer();
+    AVFormatContext *getFormatContext();
+  protected:
+    virtual ~Container();
+    Container();
+
+  private:
+    // This is the object we wrap
+    int32_t openInputURL(const char*url, IContainerFormat*, bool, bool);
+    int32_t openOutputURL(const char*url, IContainerFormat*);
+    int32_t setupAllInputStreams();
+    AVFormatContext *mFormatContext;
+    void reset();
+    // We do pointer to RefPointers to avoid too many
+    // acquire() / release() cycles as the vector manages
+    // itself.
+    std::vector<
+      com::xuggle::ferry::RefPointer<Stream>*
+      > mStreams;
+    uint32_t mNumStreams;
+    bool mIsOpened;
+    bool mNeedTrailerWrite;
+    uint32_t mInputBufferLength;
+  };
+}}}
+
+#endif /*CONTAINER_H_*/

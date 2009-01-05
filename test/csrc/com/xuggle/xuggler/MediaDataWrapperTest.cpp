@@ -1,0 +1,145 @@
+/*
+ * Copyright (c) 2008 by Vlideshow Inc. (a.k.a. The Yard).  All rights reserved.
+ *
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+ * us know by sending e-mail to info@xuggle.com telling us briefly how you're
+ * using the library and what you like or don't like about it.
+ *
+ * This library is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU Lesser General Public License as published by the Free Software
+ * Foundation; either version 2.1 of the License, or (at your option) any later
+ * version.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ * PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to the Free Software Foundation, Inc.,
+ * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ */
+#include <stdexcept>
+
+#include <com/xuggle/ferry/RefPointer.h>
+#include <com/xuggle/ferry/Logger.h>
+#include <com/xuggle/xuggler/Global.h>
+#include <com/xuggle/xuggler/IMediaDataWrapper.h>
+#include "MediaDataWrapperTest.h"
+
+using namespace VS_CPP_NAMESPACE;
+using namespace com::xuggle::ferry;
+
+VS_LOG_SETUP(VS_CPP_PACKAGE);
+
+void
+MediaDataWrapperTest :: testCreationAndDestruction()
+{
+  RefPointer<IMediaDataWrapper> obj = IMediaDataWrapper::make(0);
+  VS_TUT_ENSURE("could not make", obj);
+}
+
+void
+MediaDataWrapperTest :: getDefaults()
+{
+  RefPointer<IMediaDataWrapper> obj = IMediaDataWrapper::make(0);
+  VS_TUT_ENSURE("could not make", obj);
+ 
+  RefPointer<IRational> timeBase;
+  
+  timeBase = obj->getTimeBase();
+  VS_TUT_ENSURE("no time base", !timeBase);
+  
+  long long expectedTimeStamp = Global::NO_PTS;
+  long long timeStamp = obj->getTimeStamp();
+  VS_TUT_ENSURE_EQUALS("unexpected time stamp", timeStamp, expectedTimeStamp);
+  
+  bool isKey = obj->isKey();
+  VS_TUT_ENSURE_EQUALS("unexpected type", isKey, true);
+  
+  RefPointer<IBuffer> data = obj->getData();
+  VS_TUT_ENSURE("unexpected buffer", !data);
+  
+  int size = obj->getSize();
+  VS_TUT_ENSURE_EQUALS("unexpected size", size, -1);
+}
+
+void
+MediaDataWrapperTest :: testSetters()
+{
+  RefPointer<IMediaDataWrapper> obj = IMediaDataWrapper::make(0);
+  VS_TUT_ENSURE("could not make", obj);
+ 
+  RefPointer<IRational> expectedTimeBase = IRational::make(1, 1000);
+  obj->setTimeBase(expectedTimeBase.value());
+  
+  RefPointer<IRational> timeBase;
+  timeBase = obj->getTimeBase();
+  VS_TUT_ENSURE("no time base", timeBase);
+  VS_TUT_ENSURE_EQUALS("unexpected time base numerator", timeBase->getNumerator(), expectedTimeBase->getNumerator());
+  VS_TUT_ENSURE_EQUALS("unexpected time base denominator", timeBase->getDenominator(), expectedTimeBase->getDenominator());
+  VS_TUT_ENSURE_EQUALS("unexpected ref count", timeBase->getCurrentRefCount(), 3);
+  
+  long long expectedTimeStamp = 16;
+  obj->setTimeStamp(16);
+  
+  long long timeStamp = obj->getTimeStamp();
+  VS_TUT_ENSURE_EQUALS("unexpected time stamp", timeStamp, expectedTimeStamp);
+  
+  bool expectedKey = false;
+  obj->setKey(expectedKey);
+  bool isKey = obj->isKey();
+  VS_TUT_ENSURE_EQUALS("unexpected type", isKey, expectedKey);
+}
+
+void
+MediaDataWrapperTest :: testNullTimeBase()
+{
+  RefPointer<IMediaDataWrapper> obj = IMediaDataWrapper::make(0);
+  VS_TUT_ENSURE("could not make", obj);
+  obj->setTimeBase(0);
+  // should be no exception
+}
+
+void
+MediaDataWrapperTest :: testWrapping()
+{
+  RefPointer<IMediaDataWrapper> obj = IMediaDataWrapper::make(0);
+  VS_TUT_ENSURE("could not make", obj);
+  RefPointer<IRational> objBase = IRational::make(1,10);
+  obj->setTimeBase(objBase.value());
+  long long objTimeStamp = 1;
+  obj->setTimeStamp(objTimeStamp);
+  bool objKeyStatus = false;
+  obj->setKey(objKeyStatus);
+  
+  RefPointer<IMediaDataWrapper> wrapper = IMediaDataWrapper::make(obj.value());
+
+  RefPointer<IRational> wrappedBase = wrapper->getTimeBase(); 
+  VS_TUT_ENSURE("no time base", wrappedBase);
+  VS_TUT_ENSURE_EQUALS("wrong numerator", wrappedBase->getNumerator(), objBase->getNumerator());
+  VS_TUT_ENSURE_EQUALS("wrong denominator", wrappedBase->getDenominator(), objBase->getDenominator());
+  VS_TUT_ENSURE_EQUALS("wrong time stamp", wrapper->getTimeStamp(), objTimeStamp);
+  VS_TUT_ENSURE_EQUALS("wrong key status", wrapper->isKey(), objKeyStatus);
+  
+  long long newTimeStamp = 2;
+  bool newKeyStatus = true;
+  RefPointer<IRational> newBase = IRational::make(2,33);
+
+  wrapper->setTimeBase(newBase.value());
+  wrapper->setTimeStamp(newTimeStamp);
+  wrapper->setKey(newKeyStatus);
+  
+  wrappedBase = wrapper->getTimeBase();
+  VS_TUT_ENSURE("no time base", wrappedBase);
+  VS_TUT_ENSURE_EQUALS("wrong numerator", wrappedBase->getNumerator(), newBase->getNumerator());
+  VS_TUT_ENSURE_EQUALS("wrong denominator", wrappedBase->getDenominator(), newBase->getDenominator());
+  VS_TUT_ENSURE_EQUALS("wrong time stamp", wrapper->getTimeStamp(), newTimeStamp);
+  VS_TUT_ENSURE_EQUALS("wrong key status", wrapper->isKey(), newKeyStatus);
+  
+  VS_TUT_ENSURE("wrong numerator", wrappedBase->getNumerator() != objBase->getNumerator());
+  VS_TUT_ENSURE("wrong denominator", wrappedBase->getDenominator() != objBase->getDenominator());
+  VS_TUT_ENSURE("wrong time stamp", wrapper->getTimeStamp() != objTimeStamp);
+  VS_TUT_ENSURE("wrong key status", wrapper->isKey() != objKeyStatus);
+  
+  
+}
