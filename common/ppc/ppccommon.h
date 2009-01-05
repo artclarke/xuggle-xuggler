@@ -18,6 +18,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
+#ifdef SYS_LINUX
+#include <altivec.h>
+#endif
+
 /***********************************************************************
  * For constant vectors, use parentheses on OS X and braces on Linux
  **********************************************************************/

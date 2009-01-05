@@ -27,10 +27,6 @@
 #include <stdint.h>
 #include <stdarg.h>
 
-#ifdef SYS_LINUX
-#include <altivec.h>
-#endif
-
 #include "x264.h"
 #include "common/common.h"
 #include "common/mc.h"

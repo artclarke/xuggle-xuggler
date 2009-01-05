@@ -18,10 +18,6 @@
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
 *****************************************************************************/
 
-#if defined SYS_LINUX
-#include <altivec.h>
-#endif
-
 #include "common/common.h"
 #include "ppccommon.h"
 
