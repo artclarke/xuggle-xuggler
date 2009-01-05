@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# Use this file to clean up an install before FFMPEG's actual
+# uninstall runs
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+HOST_TYPE=@HOST_TYPE@
+HOST_OS=@HOST_OS@
+
+FFMPEG_LIB_DIR="${DESTDIR}@libdir@"
+FFMPEG_LIBRARIES="avcodec avformat avutil avdevice swscale" 
+
+echo "Running @srcdir@ pre-uninstall from ${DESTDIR}${prefix}"
+case $HOST_TYPE in
+  Windows)
+  # Our install script creates some dll import libs for
+  # ffmpeg; we clean them up here.
+  for lib in ${FFMPEG_LIBRARIES}; do
+    target_lib="${FFMPEG_LIB_DIR}/lib$lib.dll.a"
+    if test -f "${target_lib}"; then
+      echo "rm -f ${target_lib}"
+      rm -f "${target_lib}"
+    fi
+  done
+  ;;
+  *)
+  ;;
+esac
+
