@@ -59,9 +59,6 @@ case $HOST_TYPE in
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-pthreads"
   if test "x$VS_ENABLE_64BIT" = "xyes"; then
     FFMPEG_OPTIONS="$FFMPEG_OPTIONS --arch=x86_64"
-  else
-    FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-mmx"
-    FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-mmx2"
   fi
   ;;
   Linux)
