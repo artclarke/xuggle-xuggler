@@ -2464,11 +2464,7 @@ void x264_macroblock_analyse( x264_t *h )
         {
             if( !h->mb.b_direct_auto_write )
                 x264_mb_mc( h );
-            if( h->mb.b_lossless )
-            {
-                /* chance of skip is too small to bother */
-            }
-            else if( analysis.i_mbrd )
+            if( analysis.i_mbrd )
             {
                 i_bskip_cost = ssd_mb( h );
                 /* 6 = minimum cavlc cost of a non-skipped MB */
