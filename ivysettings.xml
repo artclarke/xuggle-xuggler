@@ -16,14 +16,9 @@
         <artifact pattern="${xuggle.dir.native}/share/java/xuggle/[artifact]/[artifact](-[revision]).[ext]" />
       </filesystem>
       <url m2compatible="true" name="xugglecode">
-        <artifact pattern="http://xuggle.googlecode.com/svn/xuggle/repository/java/[organisation]/[artifact]/[artifact](-[revision]).[ext]" />
-        <artifact pattern="http://xuggle.googlecode.com/svn/xuggle/repository/java/[organisation]/[artifact](-[revision]).[ext]" />
-        <artifact pattern="http://xuggle.googlecode.com/svn/xuggle/repository/java/[artifact](-[revision]).[ext]" />
-      </url>   
-      <url m2compatible="true" name="theyard">
-        <artifact pattern="http://theyard.googlecode.com/svn/theyard/repository/java/[organisation]/[artifact]/[artifact](-[revision]).[ext]" />
-        <artifact pattern="http://theyard.googlecode.com/svn/theyard/repository/java/[organisation]/[artifact](-[revision]).[ext]" />
-        <artifact pattern="http://theyard.googlecode.com/svn/theyard/repository/java/[artifact](-[revision]).[ext]" />
+        <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact]/[artifact](-[revision]).[ext]" />
+        <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact](-[revision]).[ext]" />
+        <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[artifact](-[revision]).[ext]" />
       </url>   
       <url name="googlecode">
         <artifact pattern="http://red5.googlecode.com/svn/repository/[artifact](-[revision]).[ext]" />
