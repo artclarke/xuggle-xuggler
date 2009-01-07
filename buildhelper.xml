@@ -622,6 +622,10 @@
       <link href="http://logback.qos.ch/apidocs/"/>
       <link href="http://jetm.void.fm/api/"/>
       <link href="http://www.cs.umd.edu/projects/PL/multithreadedtc/docs/"/>
+      <link href="http://build.xuggle.com/job/xuggle_java_utils_jdk5_i386_ubuntu/javadoc/java/api/index.html"/>
+      <link href="http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_ubuntu/javadoc/java/api/index.html"/>
+      <link href="http://build.xuggle.com/job/xuggle_java_xuggler_red5_jdk5_i386_ubuntu/javadoc/java/api/index.html"/>
+
     </javadoc>
     <!-- copy over any images we keep for documentation to
      overlap the javadoc tree -->
