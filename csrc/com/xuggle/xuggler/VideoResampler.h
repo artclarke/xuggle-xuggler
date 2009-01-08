@@ -26,7 +26,6 @@
 
 /*
  * Do not include anything from the swscale library here.
- * See: http://vlideshow-trac.cvsdude.com/vlideshow/ticket/6
  * 
  * We're just keeping an opaque pointer here.
  */
