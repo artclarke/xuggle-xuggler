@@ -28,7 +28,7 @@
       <available file="${env.RED5_HOME}"/>
       <then>
         <copy todir="${env.RED5_HOME}/lib">
-          <fileset dir="${dist.dir}">
+          <fileset dir="${dist.dir}/lib">
             <include name="${app.name}.jar"/>
           </fileset>
         </copy>
