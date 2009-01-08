@@ -129,7 +129,11 @@
     {@link com.xuggle.xuggler.io.FileProtocolHandler} for an example of an example Java object
     that allows Xuggler (and FFMPEG) to read data to and from
     arbitrary data sources.
-    </p></p>
+    </p>
+    <p>
+    Or, check out the contents of the {@link com.xuggle.xuggler.demos} package
+    for some cool demos that show the Xuggler in action.
+    </p>
     Or, if you have other questions, check out <a href="http://www.xuggle.com/">Xuggle</a>.  We'd love to hear from you.
     <h2>What if Xuggler Crashes the Virtual Machine?</h2>
     We try really hard to make it hard for you to crash the

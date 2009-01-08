@@ -41,8 +41,7 @@ import com.xuggle.xuggler.IVideoResampler;
 
 /**
  * Takes a media container, finds the first video stream,
- * decodes that stream, and the first audio stream.  It then
- * starts playing both.
+ * decodes that stream, and then plays the audio and video.
  *
  * This code does a VERY coarse job of matching time-stamps, and thus
  * the audio and video will float in and out of slight sync.  Getting
