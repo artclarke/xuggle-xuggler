@@ -826,7 +826,9 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     COPY( analyse.intra );
     COPY( analyse.inter );
     COPY( analyse.i_direct_mv_pred );
-    COPY( analyse.i_me_range );
+    /* Scratch buffer prevents me_range from being increased for esa/tesa */
+    if( h->param.analyse.i_me_method < X264_ME_ESA || param->analyse.i_me_range < h->param.analyse.i_me_range )
+        COPY( analyse.i_me_range );
     COPY( analyse.i_noise_reduction );
     /* We can't switch out of subme=0 during encoding. */
     if( h->param.analyse.i_subpel_refine )

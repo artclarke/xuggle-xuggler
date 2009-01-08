@@ -839,11 +839,11 @@ int x264_macroblock_cache_init( x264_t *h )
     h->mb.i_neighbour4[15] =
     h->mb.i_neighbour8[3] = MB_LEFT|MB_TOP|MB_TOPLEFT;
 
-    int buf_hpel = (h->param.i_width+40) * sizeof(int16_t);
+    int buf_hpel = (h->param.i_width+48) * sizeof(int16_t);
     int buf_ssim = h->param.analyse.b_ssim * 8 * (h->param.i_width/4+3) * sizeof(int);
     int me_range = X264_MIN(h->param.analyse.i_me_range, h->param.analyse.i_mv_range);
     int buf_tesa = (h->param.analyse.i_me_method >= X264_ME_ESA) *
-        ((me_range*2+18) * sizeof(int16_t) + (me_range+1) * (me_range+1) * 4 * sizeof(mvsad_t));
+        ((me_range*2+18) * sizeof(int16_t) + (me_range+4) * (me_range+1) * 4 * sizeof(mvsad_t));
     CHECKED_MALLOC( h->scratch_buffer, X264_MAX3( buf_hpel, buf_ssim, buf_tesa ) );
 
     return 0;
