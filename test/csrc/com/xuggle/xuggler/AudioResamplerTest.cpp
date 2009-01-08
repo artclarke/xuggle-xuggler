@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2008 by Vlideshow Inc. (a.k.a. The Yard).  All rights reserved.
+ * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
  * us know by sending e-mail to info@xuggle.com telling us briefly how you're
  * using the library and what you like or don't like about it.
  *
