@@ -287,6 +287,7 @@ public class Converter
    *   specifies what files we want to process and how to process them.
    * @return Number of streams in the input file, or <= 0 on error.
    */
+
   int setupStreams(CommandLine cmdLine)
   {
     String inputURL = cmdLine.getArgs()[0];
@@ -770,6 +771,34 @@ public class Converter
 
   }
   
+  /** Allow child class to override this method to alter the audio frame
+   * before it is rencoded and written.  In this implementation the
+   * audio frame is passed through unmodified.
+   *
+   * @param audio the source audio frame to be modified
+   *
+   * @return the modified audio frame
+   */
+
+  protected IAudioSamples alterAudioFrame(IAudioSamples audioFrame)
+  {
+    return audioFrame;
+  }
+
+  /** Allow child class to override this method to alter the video frame
+   * before it is rencoded and written.  In this implementation the
+   * video frame is passed through unmodified.
+   *
+   * @param videoFrame the source video frame to be modified
+   *
+   * @return the modified video frame
+   */
+
+  protected IVideoPicture alterVideoFrame(IVideoPicture videoFrame)
+  {
+    return videoFrame;
+  }
+
   /**
    * Takes a given command line and decodes the input file, and encodes with
    * new parameters to the output file. 
@@ -869,12 +898,20 @@ public class Converter
           {
             retval = as.resample(reSamples, inSamples,
                 inSamples.getNumSamples());
+
             outSamples = reSamples;
           }
           else
           {
             outSamples = inSamples;
           }
+
+          /**
+           * Include call a hook to derivied classes to allow them to
+           * alter the audio frame.
+           */
+
+          outSamples = alterAudioFrame(outSamples);
           
           /**
            * Now that we've resampled, it's time to encode the audio.
@@ -935,9 +972,19 @@ public class Converter
               if (retval < 0)
                 throw new RuntimeException("could not resample video");
               outFrame = reFrame;
-            } else {
+            } 
+            else 
+            {
               outFrame = inFrame;
             }
+            
+            /**
+             * Include call a hook to derivied classes to allow them to
+             * alter the audio frame.
+             */
+
+            outFrame = alterVideoFrame(outFrame);
+
             outFrame.setQuality(0);
             retval = oc.encodeVideo(oPacket, outFrame, 0);
             if (retval < 0)
@@ -968,5 +1015,4 @@ public class Converter
     // and cleanup.
     closeStreams();
   }
-
 }
