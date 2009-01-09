@@ -177,7 +177,7 @@ public class ConverterTest extends TestCase
   {
     // We do this to determine if this version of Xuggler can
     // support resampling
-    boolean testResampling = IVideoResampler.isSupported();
+    boolean testResampling = IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_IMAGERESCALING);
     
     String[] args = new String[]{
         "--containerformat",

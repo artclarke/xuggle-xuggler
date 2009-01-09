@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let
  * us know by sending e-mail to info@xuggle.com telling us briefly how you're
  * using the library and what you like or don't like about it.
  *
@@ -34,13 +34,22 @@ namespace com { namespace xuggle { namespace xuggler
    * width, height or format.
    * <p>
    * This object is only active in GPL-licensed version of the Xuggler.  You can
-   * use the {@link #isSupported()} to determine if you can use this object (or
+   * use the {@link #isSupported(Feature)} to determine if you can use this object (or
    * the make(...) methods will also return null.
    * </p>
    */
   class VS_API_XUGGLER IVideoResampler : public com::xuggle::ferry::RefCounted
   {
   public:
+
+    /**
+     * Features that the VideoResampler may optionally support.
+     */
+    typedef enum {
+      FEATURE_IMAGERESCALING,
+      FEATURE_COLORSPACECONVERSION,
+    } Feature;
+
     /**
      * @return The width we expect on the input frame to the resampler.
      */
@@ -50,7 +59,7 @@ namespace com { namespace xuggle { namespace xuggler
      * @return The height we expect on the input frame to the resampler.
      */
     virtual int32_t getInputHeight()=0;
-    
+
     /**
      * @return The pixel format we expect on the input frame to the resampler.
      */
@@ -60,7 +69,7 @@ namespace com { namespace xuggle { namespace xuggler
      * @return The width we will resample the output frame to
      */
     virtual int32_t getOutputWidth()=0;
-    
+
     /**
      * @return The height we will resample the output frame to
      */
@@ -70,25 +79,25 @@ namespace com { namespace xuggle { namespace xuggler
      * @return The pixel format we will resample the output frame to
      */
     virtual IPixelFormat::Type getOutputPixelFormat()=0;
-    
+
     /**
-     * 
+     *
      * Resample pInFrame to pOutFrame based on the resampler parameters.
-     * 
+     *
      * Resamples the pInFrame based on the parameters set when
      * this resampler was constructed.
-     * 
+     *
      * @param pOutFrame The frame we'll resample to.  Check
      *     pOutFrame->isComplete() after the call.
      * @param pInFrame THe frame we'll resample from.
-     * 
+     *
      * @return >= 0 on success; <0 on error.
      */
     virtual int32_t resample(IVideoPicture *pOutFrame, IVideoPicture *pInFrame)=0;
-    
+
     /**
      * Get a new video resampler.  Returns null if {@link #isSupported()} returns false.
-     * 
+     *
      * @param outputWidth The width in pixels you want to output frame to have.
      * @param outputHeight The height in pixels you want to output frame to have.
      * @param outputFmt The pixel format of the output frame.
@@ -104,14 +113,13 @@ namespace com { namespace xuggle { namespace xuggler
         IPixelFormat::Type inputFmt);
 
     /**
-     * Returns true if this object is supported.
-     * 
-     * Currently this is only supported in GPL builds of XUGGLER.
-     * 
-     * @return true if the IVideoResampler object is supported; false otherwise.
+     * Returns true if the asked for feature is supported.
+     *
+     * @param aFeature The feature you want to find out is supported.
+     * @return true if the IVideoResampler supports this feature; false otherwise.
      */
-    static bool isSupported();
-    
+    static bool isSupported(Feature aFeature);
+
   protected:
     IVideoResampler();
     virtual ~IVideoResampler();

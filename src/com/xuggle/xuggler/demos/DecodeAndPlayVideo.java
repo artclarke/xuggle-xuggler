@@ -64,7 +64,7 @@ public class DecodeAndPlayVideo
     String filename = args[0];
     
     // Let's make sure that we can actually convert video pixel formats.
-    if (!IVideoResampler.isSupported())
+    if (!IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
       throw new RuntimeException("you must install the GPL version of Xuggler (with IVideoResampler support) for this demo to work");
     
     // Create a Xuggler container object

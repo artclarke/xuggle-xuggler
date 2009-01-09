@@ -6506,18 +6506,20 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1mak
 }
 
 
-SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1isSupported(JNIEnv *jenv, jclass jcls) {
+SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1isSupported(JNIEnv *jenv, jclass jcls, jint jarg1) {
   jboolean jresult = 0 ;
+  com::xuggle::xuggler::IVideoResampler::Feature arg1 ;
   bool result;
   
   (void)jenv;
   (void)jcls;
+  arg1 = (com::xuggle::xuggler::IVideoResampler::Feature)jarg1; 
   {
     // JNIHelper.swg: Start generated code
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>
     try
     {
-      result = (bool)com::xuggle::xuggler::IVideoResampler::isSupported();
+      result = (bool)com::xuggle::xuggler::IVideoResampler::isSupported(arg1);
     }
     catch(std::exception & e)
     {

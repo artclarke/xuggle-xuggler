@@ -15,8 +15,8 @@ import com.xuggle.ferry.*;
  * <p>  
  * This object is only active in GPL-licensed version of the Xuggler. 
  * You can  
- * use the {@link #isSupported()} to determine if you can use this object 
- * (or  
+ * use the {@link #isSupported(Feature)} to determine if you can use 
+ * this object (or  
  * the make(...) methods will also return null.  
  * </p>  
  */
@@ -200,13 +200,58 @@ public class IVideoResampler extends RefCounted {
   }
 
 /**
- * Returns true if this object is supported.  
- * Currently this is only supported in GPL builds of XUGGLER.  
- * @return	true if the IVideoResampler object is supported; false otherwise. 
- *		  
+ * Returns true if the asked for feature is supported.  
+ * @param	aFeature The feature you want to find out is supported.  
+ * @return	true if the IVideoResampler supports this feature; false 
+ *		 otherwise.  
  */
-  public static boolean isSupported() {
-    return XugglerJNI.IVideoResampler_isSupported();
+  public static boolean isSupported(IVideoResampler.Feature aFeature) {
+    return XugglerJNI.IVideoResampler_isSupported(aFeature.swigValue());
+  }
+
+  public enum Feature {
+  /**
+   * Features that the VideoResampler may optionally support.
+   */
+    FEATURE_IMAGERESCALING,
+    FEATURE_COLORSPACECONVERSION;
+
+    public final int swigValue() {
+      return swigValue;
+    }
+
+    public static Feature swigToEnum(int swigValue) {
+      Feature[] swigValues = Feature.class.getEnumConstants();
+      if (swigValue < swigValues.length && swigValue >= 0 && swigValues[swigValue].swigValue == swigValue)
+        return swigValues[swigValue];
+      for (Feature swigEnum : swigValues)
+        if (swigEnum.swigValue == swigValue)
+          return swigEnum;
+      throw new IllegalArgumentException("No enum " + Feature.class + " with value " + swigValue);
+    }
+
+    @SuppressWarnings("unused")
+    private Feature() {
+      this.swigValue = SwigNext.next++;
+    }
+
+    @SuppressWarnings("unused")
+    private Feature(int swigValue) {
+      this.swigValue = swigValue;
+      SwigNext.next = swigValue+1;
+    }
+
+    @SuppressWarnings("unused")
+    private Feature(Feature swigEnum) {
+      this.swigValue = swigEnum.swigValue;
+      SwigNext.next = this.swigValue+1;
+    }
+
+    private final int swigValue;
+
+    private static class SwigNext {
+      private static int next = 0;
+    }
   }
 
 }

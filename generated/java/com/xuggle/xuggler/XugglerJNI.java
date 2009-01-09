@@ -161,7 +161,7 @@ class XugglerJNI {
   public final static native int IVideoResampler_getOutputPixelFormat(long jarg1, IVideoResampler jarg1_);
   public final static native int IVideoResampler_resample(long jarg1, IVideoResampler jarg1_, long jarg2, IVideoPicture jarg2_, long jarg3, IVideoPicture jarg3_);
   public final static native long IVideoResampler_make(int jarg1, int jarg2, int jarg3, int jarg4, int jarg5, int jarg6);
-  public final static native boolean IVideoResampler_isSupported();
+  public final static native boolean IVideoResampler_isSupported(int jarg1);
   public final static native int IStreamCoder_FLAG_QSCALE_get();
   public final static native int IStreamCoder_FLAG_4MV_get();
   public final static native int IStreamCoder_FLAG_QPEL_get();

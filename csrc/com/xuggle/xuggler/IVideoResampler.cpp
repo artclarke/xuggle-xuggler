@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let
  * us know by sending e-mail to info@xuggle.com telling us briefly how you're
  * using the library and what you like or don't like about it.
  *
@@ -58,8 +58,9 @@ namespace com { namespace xuggle { namespace xuggler
   }
 
   bool
-  IVideoResampler :: isSupported()
+  IVideoResampler :: isSupported(Feature aFeature)
   {
+    (void)aFeature; // ignored for now, but might change
 #ifdef VS_ENABLE_GPL
     return true;
 #else
