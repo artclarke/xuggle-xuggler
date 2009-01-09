@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let
  * us know by sending e-mail to info@xuggle.com telling us briefly how you're
  * using the library and what you like or don't like about it.
  *
@@ -43,7 +43,7 @@ namespace com { namespace xuggle { namespace xuggler
   class VS_API_XUGGLER IStreamCoder : public com::xuggle::ferry::RefCounted
   {
   public:
-    
+
     /**
      * The Direction in which this StreamCoder will work.
      */
@@ -52,7 +52,7 @@ namespace com { namespace xuggle { namespace xuggler
       ENCODING,
       DECODING
     } Direction;
-    
+
     /**
      * XUGGLER Flags that can be passed to the setFlag(Flags, bool) method
      */
@@ -120,24 +120,24 @@ namespace com { namespace xuggle { namespace xuggler
      * @return The direction this StreamCoder works in.
      */
     virtual Direction getDirection()=0;
-    
+
     /**
      * The associated Stream we're working on.
-     * 
+     *
      * @return The stream associated with this object.
      */
     virtual IStream* getStream()=0;
-    
+
     /**
-     * The Codec this StreamCoder will use. 
-     * 
+     * The Codec this StreamCoder will use.
+     *
      * @return The Codec used by this StreamCoder, or 0 (null) if none.
      */
     virtual ICodec* getCodec()=0;
-    
+
     /**
      * A short hand for getCodec().getType().
-     * 
+     *
      * <p>
      * <b>
      * Note for Native (C++) users:
@@ -148,15 +148,15 @@ namespace com { namespace xuggle { namespace xuggler
      * a Codec() since you didn't call release() on it.
      * This method is a short hand way to avoid you having to
      * worry about releasing in between.
-     * 
+     *
      * @return The Type of the Codec we'll use.
      */
     virtual ICodec::Type getCodecType()=0;
 
     /**
-     * 
+     *
      * A short hand for getCodec().getID().
-     * 
+     *
      * <p>
      * <b>
      * Note for Native (C++) users:
@@ -167,7 +167,7 @@ namespace com { namespace xuggle { namespace xuggler
      * a Codec() since you didn't call release() on it.
      * This method is a short hand way to avoid you having to
      * worry about releasing in between.
-     * 
+     *
      * @return The ID of the Codec we'll use.
      */
     virtual ICodec::ID getCodecID()=0;
@@ -175,38 +175,52 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Set the Codec to the passed in Codec, discarding the old
      * Codec if set.
-     * 
+     *
      * @param codec Codec to set.
      */
     virtual void setCodec(ICodec *codec)=0;
-    
+
     /**
      * Look up a Codec based on the passed in ID, and then set it.
      * To see if you actually set the correct ID, call getCodec() and
      * check for 0 (null).
-     * 
+     *
      * @param id ID of codec to set.
      */
     virtual void setCodec(ICodec::ID id)=0;
 
     /**
      * The bit rate.
-     * 
+     *
      * @return The bit-rate the stream is, or will be, encoded in.
      */
     virtual int32_t getBitRate()=0;
-    
+
     /**
-     * When ENCODING, sets the bit rate to use.  No-op when ENCDECODING.
+     * When ENCODING, sets the bit rate to use.  No-op when DECODING.
      * @see #getBitRate()
-     * 
+     *
      * @param rate The bit rate to use.
      */
     virtual void setBitRate(int32_t rate)=0;
-    
+
+    /**
+     * The bit rate tolerance
+     *
+     * @return The bit-rate tolerance
+     */
+    virtual int32_t getBitRateTolerance()=0;
+
+    /**
+     * When ENCODING set the bit rate tolerance.  No-op when DECODING.
+     *
+     * @param tolerance The bit rate tolerance
+     */
+    virtual void setBitRateTolerance(int32_t tolerance)=0;
+
     /**
      * The height, in pixels.
-     * 
+     *
      * @return The height of the video frames in the attached stream
      *   or -1 if an audio stream, or we cannot determine the height.
      */
@@ -214,16 +228,16 @@ namespace com { namespace xuggle { namespace xuggler
 
     /**
      * Set the height, in pixels.
-     * 
+     *
      * @see #getHeight()
-     * 
+     *
      * @param height Sets the height of video frames we'll encode.  No-op when DECODING.
      */
     virtual void setHeight(int32_t height)=0;
 
     /**
      * The width, in pixels.
-     * 
+     *
      * @return The width of the video frames in the attached stream
      *   or -1 if an audio stream, or we cannot determine the width.
      */
@@ -231,79 +245,79 @@ namespace com { namespace xuggle { namespace xuggler
 
     /**
      * Set the width, in pixels
-     * 
+     *
      * @see #getWidth()
-     * 
+     *
      * @param width Sets the width of video frames we'll encode.  No-op when DECODING.
      */
     virtual void setWidth(int32_t width)=0;
-   
+
     /**
      * Get the time base this stream will ENCODE in, or the time base we
      * detect while DECODING.
-     * 
+     *
      * Caller must call release() on the returned value.
-     * 
+     *
      * @return The time base this StreamCoder is using.
      */
     virtual IRational* getTimeBase()=0;
 
     /**
      * Set the time base we'll use to ENCODE with.  A no-op when DECODING.
-     * 
+     *
      * As a convenience, we forward this call to the Stream#setTimeBase()
      * method.
-     * 
+     *
      * @see #getTimeBase()
-     * 
+     *
      * @param newTimeBase The new time base to use.
      */
     virtual void setTimeBase(IRational* newTimeBase)=0;
-    
+
     /**
      * Get the frame-rate the attached stream claims to be using when
      * DECODING, or the frame-rate we'll claim we're using when ENCODING.
-     * 
+     *
      * @return The frame rate.
      */
     virtual IRational* getFrameRate()=0;
-    
+
     /**
      * Set the frame rate we'll set in the headers of this stream while
      * ENCODING.  Note that you can set whatever frame-rate you'd like,
      * but the TimeBase and the PTS you set on the encoded audio
      * and video frames can override this.
-     * 
+     *
      * As a convenience, we forward this call to the Stream::setFrameRate()
      * method.
-     * 
+     *
      * @see #getFrameRate()
-     * 
+     *
      * @param newFrameRate The new frame rate to use.
      */
     virtual void setFrameRate(IRational* newFrameRate)=0;
-    
+
     /**
      * The the number of pictures in this Group of Pictures (GOP).  See the
      * MPEG specs for what a GOP is officially, but this is the minimum
      * number of frames between key-frames (or Intra-Frames in MPEG speak).
-     * 
+     *
      * @return the GOPS for this stream.
      */
     virtual int32_t getNumPicturesInGroupOfPictures()=0;
-    
+
     /**
      * Set the GOPS on this stream.  Ignored if DECODING.
-     * 
+     *
      * @see #getNumPicturesInGroupOfPictures()
-     * 
+     *
      * @param gops The new GOPS for the stream we're encoding.
-     */  
+     */
     virtual void setNumPicturesInGroupOfPictures(int32_t gops)=0;
-    
+
     /**
      * For Video streams, get the Pixel Format in use by the stream.
-     * 
+     *
      * @return the Pixel format, or IPixelFormat::NONE if audio.
      */
     virtual IPixelFormat::Type getPixelType()=0;
@@ -311,22 +325,22 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Set the pixel format to ENCODE with.  Ignored if audio or
      * DECODING.
-     * 
+     *
      * @param pixelFmt Pixel format to use.
      */
     virtual void setPixelType(IPixelFormat::Type pixelFmt)=0;
 
     /**
      * Get the sample rate we use for this stream.
-     * 
+     *
      * @return The sample rate (in Hz) we use for this stream, or -1 if unknown or video.
      */
     virtual int32_t getSampleRate()=0;
-    
+
     /**
      * Set the sample rate to use when ENCODING.  Ignored if DECODING
      * or a non-audio stream.
-     * 
+     *
      * @param sampleRate New sample rate (in Hz) to use.
      */
     virtual void setSampleRate(int32_t sampleRate)=0;
@@ -348,160 +362,160 @@ namespace com { namespace xuggle { namespace xuggler
 
     /**
      * Get the number of channels in this audio stream
-     * 
+     *
      * @return The sample rate (in Hz) we use for this stream, or 0 if unknown.
      */
     virtual int32_t getChannels()=0;
-    
+
     /**
      * Set the number of channels to use when ENCODING.  Ignored if a
      * non audio stream, or if DECODING.
-     * 
+     *
      * @param channels The number of channels we'll encode with.
      */
     virtual void setChannels(int32_t channels)=0;
-    
+
 
     /**
      * For this stream, get the number of audio samples that are
      * represented in a packet of information.
-     * 
+     *
      * @return Number of samples per 'frame' of encoded audio
      */
     virtual int32_t getAudioFrameSize()=0;
-    
+
     /**
      * Get the Global Quality setting this codec uses for video if
      * a VideoPicture doesn't have a quality set.
-     * 
+     *
      * @return The global quality.
      */
     virtual int32_t getGlobalQuality()=0;
-    
+
     /**
      * Set the Global Quality to a new value.
-     * 
+     *
      * @param newQuality The new global quality.
-     * 
+     *
      */
     virtual void setGlobalQuality(int32_t newQuality)=0;
-    
+
     /**
      * Get the flags associated with this codec.
-     * 
+     *
      * @return The (compacted) value of all flags set.
      */
     virtual int32_t getFlags()=0;
-    
+
     /**
      * Set the FFMPEG flags to use with this codec.  All values
      * must be ORed (|) together.
-     * 
+     *
      * @see Flags
-     *  
+     *
      * @param newFlags The new set flags for this codec.
      */
     virtual void setFlags(int32_t newFlags) = 0;
-    
+
     /**
      * Get the setting for the specified flag
-     * 
+     *
      * @param flag The flag you want to find the setting for
      *
-     * @return 0 for false; non-zero for true 
+     * @return 0 for false; non-zero for true
      */
     virtual bool getFlag(Flags flag) = 0;
-    
+
     /**
      * Set the flag.
-     * 
+     *
      * @param flag The flag to set
      * @param value The value to set it to (true or false)
-     * 
+     *
      */
     virtual void setFlag(Flags flag, bool value) = 0;
-    
-    
+
+
     /**
      * For this stream, get the next Pts that we expect to decode.
-     * 
+     *
      * Note that this may not actually be the next Pts (for example
      * due to transmission packet drops in the input source).  Still
      * it can be a useful tool.
-     * 
+     *
      * @return The next presentation time stamp we expect to decode
      *   on this stream.  This is always in units of 1/1,000,000 seconds
      */
     virtual int64_t getNextPredictedPts()=0;
-   
+
     /**
      * Open the Codec associated with this StreamCoder.
-     * 
+     *
      * You can get the codec through getCodec(...) and
      * set it with setCodec(...).  You cannot call any
      * set* methods after you've called open() on this StreamCoder
      * until you close() it.
-     * 
+     *
      * You must call close() when you're done, but if you don't,
      * the container will clean up after you (but yell at you)
      * when it is closed.
-     * 
+     *
      * @return >= 0 on success; < 0 on error.
      */
     virtual int32_t open()=0;
     /**
      * Close a Codec that was opened on this StreamCoder.
-     * 
+     *
      * @return >= 0 on success; < 0 on error.
      */
     virtual int32_t close()=0;
-    
+
     /**
      * Decode this packet into pOutSamples.  It will
      * try to fill up the audio samples object, starting
      * from the byteOffset inside this packet.
-     * 
+     *
      * The caller is responsible for allocating the
      * IAudioSamples object.  This function will overwrite
      * any data in the samples object.
-     * 
+     *
      * @param pOutSamples The AudioSamples we decode.
      * @param packet    The packet we're attempting to decode from.
      * @param byteOffset Where in the packet payload to start decoding
-     * 
+     *
      * @return number of bytes actually processed from the packet, or negative for error
      */
     virtual int32_t decodeAudio(IAudioSamples * pOutSamples,
         IPacket *packet, int32_t byteOffset)=0;
-    
+
     /**
      * Decode this packet into pOutFrame.
-     * 
+     *
      * The caller is responsible for allocating the
      * IVideoPicture object.  This function will potentially
      * overwrite any data in the frame object, but
      * you should pass the same IVideoPicture into this function
      * repeatedly until IVideoPicture::isComplete() is true.
-     * 
+     *
      * @param pOutFrame The AudioSamples we decode.
      * @param packet    The packet we're attempting to decode from.
      * @param byteOffset Where in the packet payload to start decoding
-     * 
+     *
      * @return number of bytes actually processed from the packet, or negative for error
      */
     virtual int32_t decodeVideo(IVideoPicture * pOutFrame,
         IPacket *packet, int32_t byteOffset)=0;
-    
+
     /**
      * Encode the given frame using this StreamCoder.
-     * 
+     *
      * The VideoPicture will allocate a buffer to use internally for this, and
      * will free it when the frame destroys itself.
-     * 
+     *
      * Also, when done in order to flush the encoder, caller should call
      * this method passing in 0 (null) for pFrame to tell the encoder
      * to flush any data it was keeping a hold of.
-     * 
+     *
      * @param pOutPacket [out] The packet to encode into.  It will point
      *     to a buffer allocated in the frame.  Caller should check IPacket::isComplete()
      *     after call to find out if we had enough information to encode a full packet.
@@ -510,25 +524,25 @@ namespace com { namespace xuggle { namespace xuggler
      *        If -1 we'll allocate a buffer exactly the same size (+1) as the decoded frame
      *        with the guess that you're encoding a frame because you want to use LESS space
      *        than that.
-     * 
+     *
      * @ return >= 0 on success; <0 on error.
      */
-    virtual int32_t encodeVideo(IPacket * pOutPacket, 
+    virtual int32_t encodeVideo(IPacket * pOutPacket,
         IVideoPicture * pFrame, int32_t suggestedBufferSize)=0;
-    
+
     /**
      * Encode the given samples using this StreamCoder.
-     * 
+     *
      * The VideoPicture will allocate a buffer to use internally for this, and
      * will free it when the frame destroys itself.
-     * 
+     *
      * Callers should call this repeatedly on a set of samples until
      * we consume all the samples.
-     * 
+     *
      * Also, when done in order to flush the encoder, caller should call
      * this method passing in 0 (null) for pSamples to tell the encoder
      * to flush any data it was keeping a hold of.
-     * 
+     *
      * @param pOutPacket [out] The packet to encode into.  It will point
      *          to a buffer allocated in the frame.  Caller should check IPacket::isComplete()
      *     after call to find out if we had enough information to encode a full packet.
@@ -538,12 +552,12 @@ namespace com { namespace xuggle { namespace xuggler
      *          packetizes output with small number of samples, you may
      *          need to call encodeAudio repeatedly with different starting
      *          samples to consume all of your samples.
-     * 
+     *
      * @return number of samples we consumed when encoding, or negative for errors.
      */
-    virtual int32_t encodeAudio(IPacket * pOutPacket, 
+    virtual int32_t encodeAudio(IPacket * pOutPacket,
         IAudioSamples* pSamples, uint32_t sampleToStartFrom)=0;
-    
+
     /**
      * Create a standalone StreamCoder that can decode data without regard to
      * which IStream or IContainer it came from.

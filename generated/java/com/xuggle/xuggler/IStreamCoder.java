@@ -206,13 +206,28 @@ public class IStreamCoder extends RefCounted {
   }
 
 /**
- * When ENCODING, sets the bit rate to use. No-op when ENCDECODING. 
- *  
+ * When ENCODING, sets the bit rate to use. No-op when DECODING.  
  * @see		#getBitRate()  
  * @param	rate The bit rate to use.  
  */
   public void setBitRate(int rate) {
     XugglerJNI.IStreamCoder_setBitRate(swigCPtr, this, rate);
+  }
+
+/**
+ * The bit rate tolerance  
+ * @return	The bit-rate tolerance  
+ */
+  public int getBitRateTolerance() {
+    return XugglerJNI.IStreamCoder_getBitRateTolerance(swigCPtr, this);
+  }
+
+/**
+ * When ENCODING set the bit rate tolerance. No-op when DECODING.  
+ * @param	tolerance The bit rate tolerance  
+ */
+  public void setBitRateTolerance(int tolerance) {
+    XugglerJNI.IStreamCoder_setBitRateTolerance(swigCPtr, this, tolerance);
   }
 
 /**

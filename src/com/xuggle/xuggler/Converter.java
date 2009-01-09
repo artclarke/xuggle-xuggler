@@ -171,6 +171,12 @@ public class Converter
     OptionBuilder.withDescription("bit rate to encode video with (in bps) (e.g. \"60000\")");
     Option vbitrate= OptionBuilder.create("vbitrate");
 
+    OptionBuilder.withArgName("vbitratetolerance");
+    OptionBuilder.hasArg(true);
+    OptionBuilder.withDescription("bit rate tolerance the bitstream is allowed to diverge from the reference (in bits) (e.g. \"1200000\")");
+    Option vbitratetolerance= OptionBuilder.create("vbitratetolerance");
+
+
     OptionBuilder.withArgName("quality");
     OptionBuilder.hasArg(true);
     OptionBuilder.withDescription("quality setting to use for video.  0 means same as source; higher numbers are (perversely) lower quality.  Defaults to 0.");
@@ -186,6 +192,7 @@ public class Converter
     options.addOption(vcodec);
     options.addOption(vscaleFactor);
     options.addOption(vbitrate);
+    options.addOption(vbitratetolerance);
     options.addOption(vquality);
 
     return options;
@@ -294,6 +301,7 @@ public class Converter
     int channels = getIntOptionValue(cmdLine, "achannels", 0);
     int abitrate = getIntOptionValue(cmdLine, "abitrate", 0);
     int vbitrate = getIntOptionValue(cmdLine, "vbitrate", 0);
+    int vbitratetolerance = getIntOptionValue(cmdLine, "vbitratetolerance", 0);
     int vquality = getIntOptionValue(cmdLine, "vquality", 0);
     double vscaleFactor = getDoubleOptionValue(cmdLine, "vscalefactor", 1.0);
     
@@ -560,6 +568,9 @@ public class Converter
         if (vbitrate == 0)
           vbitrate = ic.getBitRate();
          oc.setBitRate(vbitrate);
+         if (vbitratetolerance > 0)
+           oc.setBitRateTolerance(vbitratetolerance);
+         
          int oWidth = ic.getWidth();
          int oHeight = ic.getHeight();
          
@@ -612,6 +623,9 @@ public class Converter
           */
          IRational num = ic.getTimeBase();
          oc.setTimeBase(num);
+         num = null;
+         num = ic.getFrameRate();
+         oc.setFrameRate(num);
          num = null;
          
          /**

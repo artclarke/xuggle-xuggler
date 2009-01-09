@@ -221,6 +221,8 @@ class XugglerJNI {
   public final static native void IStreamCoder_setCodec__SWIG_1(long jarg1, IStreamCoder jarg1_, int jarg2);
   public final static native int IStreamCoder_getBitRate(long jarg1, IStreamCoder jarg1_);
   public final static native void IStreamCoder_setBitRate(long jarg1, IStreamCoder jarg1_, int jarg2);
+  public final static native int IStreamCoder_getBitRateTolerance(long jarg1, IStreamCoder jarg1_);
+  public final static native void IStreamCoder_setBitRateTolerance(long jarg1, IStreamCoder jarg1_, int jarg2);
   public final static native int IStreamCoder_getHeight(long jarg1, IStreamCoder jarg1_);
   public final static native void IStreamCoder_setHeight(long jarg1, IStreamCoder jarg1_, int jarg2);
   public final static native int IStreamCoder_getWidth(long jarg1, IStreamCoder jarg1_);

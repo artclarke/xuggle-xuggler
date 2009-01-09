@@ -198,6 +198,8 @@ public class ConverterTest extends TestCase
         testResampling ? "2.0" : "1.0",
         "--vbitrate",
         "300000",
+        "--vbitratetolerance",
+        "12000000",
         "--vquality",
         "0",
         "fixtures/testfile.flv",

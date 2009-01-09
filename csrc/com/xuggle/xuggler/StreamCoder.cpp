@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let
  * us know by sending e-mail to info@xuggle.com telling us briefly how you're
  * using the library and what you like or don't like about it.
  *
@@ -242,7 +242,17 @@ StreamCoder :: setBitRate(int32_t val)
   if (mCodecContext && !mOpened)
     mCodecContext->bit_rate = val;
 }
-
+int32_t
+StreamCoder :: getBitRateTolerance()
+{
+  return (mCodecContext ? mCodecContext->bit_rate_tolerance : -1);
+}
+void
+StreamCoder :: setBitRateTolerance(int32_t val)
+{
+  if (mCodecContext && !mOpened)
+    mCodecContext->bit_rate_tolerance = val;
+}
 int32_t
 StreamCoder :: getHeight()
 {
@@ -455,7 +465,7 @@ StreamCoder :: setFlag(IStreamCoder::Flags flag, bool value)
       mCodecContext->flags &= (~flag);
     }
   }
-    
+
 }
 
 int32_t
@@ -617,7 +627,7 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
               fakeTsInStreamTimeBase = timeBase->rescale(mFakeNextPts, mFakePtsTimeBase.value());
               tsDelta = fakeTsInStreamTimeBase - packetTs;
             }
-            
+
             // now, compare it to our internal value;  if our internally calculated value
             // is within 1 tick of the packets's time stamp (in the packet's time base),
             // then we're probably right;
@@ -1066,7 +1076,7 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
                   - frameBytes);
             }
             mBytesInFrameBuffer -= frameBytes;
-          }     
+          }
         }
         else
         {
@@ -1077,13 +1087,13 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
         if (retval >= 0)
         {
           int64_t packetStartPts = Global::NO_PTS;
-          
+
           if (samples)
             packetStartPts = samples->getTimeStamp() + IAudioSamples::samplesToDefaultPts(startingSample, getSampleRate());
-          
+
           setPacketParameters(packet, retval,
               packetStartPts);
-          
+
           retval = samplesConsumed;
         }
         else
@@ -1166,7 +1176,7 @@ StreamCoder :: streamClosed(Stream*stream)
 }
 
 // For ref-count debugging purposes.
-int32_t 
+int32_t
 StreamCoder :: acquire()
 {
   int32_t retval = 0;
