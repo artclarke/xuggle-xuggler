@@ -175,11 +175,10 @@ public class ConverterTest extends TestCase
   @Test
   public void testConversion() throws ParseException
   {
-    // We do this to determine if this version of Xugglercan
+    // We do this to determine if this version of Xuggler can
     // support resampling
-    IVideoResampler testResampling = IVideoResampler.make(
-        1, 1, IPixelFormat.Type.YUV420P,
-        2, 2, IPixelFormat.Type.YUV420P);
+    boolean testResampling = IVideoResampler.isSupported();
+    
     String[] args = new String[]{
         "--containerformat",
         "mov",
@@ -196,7 +195,7 @@ public class ConverterTest extends TestCase
         "--vcodec",
         "mpeg4",
         "--vscalefactor",
-        testResampling == null ? "1.0" : "2.0",
+        testResampling ? "2.0" : "1.0",
         "--vbitrate",
         "300000",
         "--vquality",
