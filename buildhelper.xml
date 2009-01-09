@@ -405,6 +405,13 @@
       <src path="${src.dir}"/>
       <compilerarg line="${build.extraflags}"/>
     </javac>
+    <!-- And copy over any source XML files as they should be
+      included in our resulting jar -->
+    <copy todir="${classes.dir}">
+      <fileset dir="${src.dir}">
+        <include name="**/*.xml"/>
+      </fileset>
+    </copy>
   </target>
 
   <target name="dist-java"
@@ -442,6 +449,7 @@
     <jar jarfile="${dist.dir}/lib/${app.name}.jar"
       index="no"
       basedir="${classes.dir}">
+      <include name="**/*"/>
       <manifest>
         <attribute name="Implementation-Vendor" value="www.xuggle.com"/>
         <attribute name="Implementation-Title" value="${app.name}"/>
