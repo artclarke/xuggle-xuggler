@@ -196,7 +196,7 @@ export DYLD_LIBRARY_PATH := ${vs_captive_prefix}@libdir@$(PATH_SEPARATOR)$(DYLD_
 # and is regenerated if the captive configure script
 # changes
 $(abs_builddir)/csrc/Makefile : $(srcdir)/csrc/configure
-	@echo "regenerating out of date captive Makefile from: $(srcdir)/csrc/configure"
+	@echo "Incarcerated package must be reconfigured; regenerating out of date captive Makefile from: $(srcdir)/csrc/configure"
 	$(MKDIR_P) csrc
 	cd csrc && sh ../incarcerate
 
@@ -205,4 +205,4 @@ $(abs_builddir)/csrc/Makefile : $(srcdir)/csrc/configure
 # should call this first.
 .PHONY: incarcerate-package
 incarcerate-package: $(abs_builddir)/csrc/Makefile
-	@echo "incarcerated package: $(srcdir)"
+	@echo "Incarcerated package configured: $(srcdir)"
