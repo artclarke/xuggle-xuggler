@@ -92,7 +92,7 @@ AC_SUBST([HOST_TYPE])
 AC_SUBST([HOST_OS])
 AC_SUBST([HOST_SO_LIBPATH])
 
-LT_INIT([disable-static win32-dll])
+LT_INIT([disable-static disable-fast-install win32-dll])
 AC_MSG_CHECKING([whether we smell bunny poop])
 AC_MSG_RESULT([no])
 

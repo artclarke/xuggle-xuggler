@@ -946,9 +946,9 @@ enable_option_checking
 enable_maintainer_mode
 enable_optimizations
 enable_static
+enable_fast_install
 enable_shared
 with_pic
-enable_fast_install
 with_gnu_ld
 enable_libtool_lock
 enable_m64
@@ -1614,9 +1614,9 @@ Optional Features:
   --enable-optimizations  build libraries and executables with compiler
                           optimizations (default is yes)
   --enable-static[=PKGS]  build static libraries [default=no]
-  --enable-shared[=PKGS]  build shared libraries [default=yes]
   --enable-fast-install[=PKGS]
-                          optimize for fast installation [default=yes]
+                          optimize for fast installation [default=no]
+  --enable-shared[=PKGS]  build shared libraries [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-m64            build 64 bit version of the library instead of 32
                           bit version (default is no)
@@ -7041,6 +7041,34 @@ fi
 
 
 
+# Check whether --enable-fast-install was given.
+if test "${enable_fast_install+set}" = set; then
+  enableval=$enable_fast_install; p=${PACKAGE-default}
+    case $enableval in
+    yes) enable_fast_install=yes ;;
+    no) enable_fast_install=no ;;
+    *)
+      enable_fast_install=no
+      # Look at the argument we got.  We use all the common list separators.
+      lt_save_ifs="$IFS"; IFS="${IFS}$PATH_SEPARATOR,"
+      for pkg in $enableval; do
+	IFS="$lt_save_ifs"
+	if test "X$pkg" = "X$p"; then
+	  enable_fast_install=yes
+	fi
+      done
+      IFS="$lt_save_ifs"
+      ;;
+    esac
+else
+  enable_fast_install=no
+fi
+
+
+
+
+
+
 enable_win32_dll=yes
 
 case $host in
@@ -7390,35 +7418,6 @@ fi
 
 
 test -z "$pic_mode" && pic_mode=default
-
-
-
-
-
-
-
-  # Check whether --enable-fast-install was given.
-if test "${enable_fast_install+set}" = set; then
-  enableval=$enable_fast_install; p=${PACKAGE-default}
-    case $enableval in
-    yes) enable_fast_install=yes ;;
-    no) enable_fast_install=no ;;
-    *)
-      enable_fast_install=no
-      # Look at the argument we got.  We use all the common list separators.
-      lt_save_ifs="$IFS"; IFS="${IFS}$PATH_SEPARATOR,"
-      for pkg in $enableval; do
-	IFS="$lt_save_ifs"
-	if test "X$pkg" = "X$p"; then
-	  enable_fast_install=yes
-	fi
-      done
-      IFS="$lt_save_ifs"
-      ;;
-    esac
-else
-  enable_fast_install=yes
-fi
 
 
 
@@ -7804,11 +7803,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7807: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7806: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7811: \$? = $ac_status" >&5
+   echo "$as_me:7810: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8143,11 +8142,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8146: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8145: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:8150: \$? = $ac_status" >&5
+   echo "$as_me:8149: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8248,11 +8247,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8251: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8250: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8255: \$? = $ac_status" >&5
+   echo "$as_me:8254: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8303,11 +8302,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8306: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8305: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8310: \$? = $ac_status" >&5
+   echo "$as_me:8309: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -11103,7 +11102,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11106 "configure"
+#line 11105 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11199,7 +11198,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11202 "configure"
+#line 11201 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -14948,11 +14947,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14951: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14950: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14955: \$? = $ac_status" >&5
+   echo "$as_me:14954: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -15047,11 +15046,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15050: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15049: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:15054: \$? = $ac_status" >&5
+   echo "$as_me:15053: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -15099,11 +15098,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15102: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15101: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:15106: \$? = $ac_status" >&5
+   echo "$as_me:15105: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -20118,12 +20117,12 @@ delay_variable_subst='$delay_variable_subst'
 macro_version='`$ECHO "X$macro_version" | $Xsed -e "$delay_single_quote_subst"`'
 macro_revision='`$ECHO "X$macro_revision" | $Xsed -e "$delay_single_quote_subst"`'
 enable_static='`$ECHO "X$enable_static" | $Xsed -e "$delay_single_quote_subst"`'
+enable_fast_install='`$ECHO "X$enable_fast_install" | $Xsed -e "$delay_single_quote_subst"`'
 AS='`$ECHO "X$AS" | $Xsed -e "$delay_single_quote_subst"`'
 DLLTOOL='`$ECHO "X$DLLTOOL" | $Xsed -e "$delay_single_quote_subst"`'
 OBJDUMP='`$ECHO "X$OBJDUMP" | $Xsed -e "$delay_single_quote_subst"`'
 enable_shared='`$ECHO "X$enable_shared" | $Xsed -e "$delay_single_quote_subst"`'
 pic_mode='`$ECHO "X$pic_mode" | $Xsed -e "$delay_single_quote_subst"`'
-enable_fast_install='`$ECHO "X$enable_fast_install" | $Xsed -e "$delay_single_quote_subst"`'
 host_alias='`$ECHO "X$host_alias" | $Xsed -e "$delay_single_quote_subst"`'
 host='`$ECHO "X$host" | $Xsed -e "$delay_single_quote_subst"`'
 host_os='`$ECHO "X$host_os" | $Xsed -e "$delay_single_quote_subst"`'
@@ -21208,6 +21207,9 @@ macro_revision=$macro_revision
 # Whether or not to build static libraries.
 build_old_libs=$enable_static
 
+# Whether or not to optimize for fast installation.
+fast_install=$enable_fast_install
+
 # Assembler program.
 AS=$AS
 
@@ -21222,9 +21224,6 @@ build_libtool_libs=$enable_shared
 
 # What type of objects to build.
 pic_mode=$pic_mode
-
-# Whether or not to optimize for fast installation.
-fast_install=$enable_fast_install
 
 # The host system.
 host_alias=$host_alias
