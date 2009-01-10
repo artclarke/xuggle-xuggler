@@ -15,21 +15,24 @@ include $(abs_top_builddir)/mk/Makefile.global
 # This has the downside that every make does a captive install, but
 # them's the breaks.
 all-local: incarcerate-package
-	echo "Making and installing to fake DESTDIR=$(vs_captive_prefix)"
-	cd csrc && \
+	@echo "Incarcerating package $(srcdir) to fake DESTDIR=$(vs_captive_prefix)"
+	@cd csrc && \
 	  ( $(MAKE) -q all || \
-	    ($(MAKE) all && \
+	    (echo "Out of date files; re-running make" && $(MAKE) all && \
 	     DESTDIR="$(vs_captive_prefix)" $(MAKE) install) \
 	)
+	@echo "Incarceration complete: $(srcdir)"
 
 dist-hook:
 	cp -r $(srcdir)/csrc $(distdir)/csrc
 	rm -rf `find $(distdir)/csrc -name '.svn'`
 
 install-exec-hook: incarcerate-package
+	@echo "make install-exec-hook; DESTDIR=$(DESTDIR)"
 	cd csrc && $(MAKE) install-exec
 
 install-data-hook: incarcerate-package
+	@echo "make install-data-hook; DESTDIR=$(DESTDIR)"
 	cd csrc && $(MAKE) install-data
 
 uninstall-local: incarcerate-package
@@ -40,5 +43,6 @@ check: incarcerate-package
 
 clean-local: incarcerate-package
 	cd csrc && $(MAKE) clean && DESTDIR="$(vs_captive_prefix)" $(MAKE) uninstall
+
 distclean-local: incarcerate-package
 	cd csrc && $(MAKE) distclean
