@@ -25,14 +25,14 @@
   <resolvers>
     <chain name="publish" returnFirst="true">     
       <filesystem name="shared_dir">
-        <artifact pattern="./dist/ivy/share/java/xuggle/${app.name}/[artifact](-[revision]).[type]" />
-        <artifact pattern="./dist/ivy/share/java/xuggle/java/${app.name}/[artifact](-[revision]).[ext]" />
+        <artifact pattern="${ivy.project.dir}/dist/ivy/share/java/xuggle/${app.name}/[artifact](-[revision]).[type]" />
+        <artifact pattern="${ivy.project.dir}/dist/ivy/share/java/xuggle/java/${app.name}/[artifact](-[revision]).[ext]" />
       </filesystem>        
     </chain>    
     <chain name="remote" returnFirst="true">     
       <filesystem name="share_libs">
-        <artifact pattern="./dist/ivy/share/java/xuggle/[artifact]/[artifact](-[revision]).[type]" />
-        <artifact pattern="./dist/ivy/share/java/xuggle/[artifact]/[artifact](-[revision]).[ext]" />
+        <artifact pattern="${ivy.project.dir}/dist/ivy/share/java/xuggle/[artifact]/[artifact](-[revision]).[type]" />
+        <artifact pattern="${ivy.project.dir}/dist/ivy/share/java/xuggle/[artifact]/[artifact](-[revision]).[ext]" />
       </filesystem>
       <url m2compatible="true" name="xugglecode">
         <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact]/[artifact](-[revision]).[ext]" />
