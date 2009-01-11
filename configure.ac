@@ -103,11 +103,19 @@ dnl AM_PROG_LIBTOOL
 AC_SUBST([LIBTOOL_DEPS])
 
 # Do this BEFORE we start testing the copiler
+case $HOST_TYPE in
+  Mac)
+  enable_m64=yes
+  ;;
+  *)
+  enable_m64=no
+  ;;
+esac
 AC_ARG_ENABLE([m64],
               [AS_HELP_STRING([--enable-m64],
                               [build 64 bit version of the library instead of 32 bit version (default is no)])],
                               [],
-                              [enable_m64=no])
+                              [])
 AC_MSG_CHECKING([whether to build 64 bit version of package])
 AC_MSG_RESULT([$enable_m64])
 VS_ENABLE_64BIT=$enable_m64

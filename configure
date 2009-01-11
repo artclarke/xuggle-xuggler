@@ -11434,11 +11434,17 @@ $as_echo "no" >&6; }
 
 
 # Do this BEFORE we start testing the copiler
+case $HOST_TYPE in
+  Mac)
+  enable_m64=yes
+  ;;
+  *)
+  enable_m64=no
+  ;;
+esac
 # Check whether --enable-m64 was given.
 if test "${enable_m64+set}" = set; then
   enableval=$enable_m64;
-else
-  enable_m64=no
 fi
 
 { $as_echo "$as_me:$LINENO: checking whether to build 64 bit version of package" >&5
@@ -14947,11 +14953,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14950: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14956: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14954: \$? = $ac_status" >&5
+   echo "$as_me:14960: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -15046,11 +15052,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15049: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15055: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:15053: \$? = $ac_status" >&5
+   echo "$as_me:15059: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -15098,11 +15104,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15101: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15107: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:15105: \$? = $ac_status" >&5
+   echo "$as_me:15111: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
