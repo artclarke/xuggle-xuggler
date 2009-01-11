@@ -179,7 +179,7 @@
       update="true"
       replacedynamicrev="false"
       forcedeliver="false"
-      publishivy="false"
+      publishivy="true"
       overwrite="true"
       pubrevision="${library.version.major}.${library.version.minor}.${library.revision}"
       resolver="publish">
@@ -497,6 +497,9 @@
         <include name="**/*.jar"/>
       </fileset>
     </copy>
+    <antcall target="ivy-publish" inheritAll="true" inheritRefs="true">
+      <param name="ivy.settings.name" value="default"/>
+    </antcall>
   </target>
   <!-- Don't make install depend on dist or stage; that's because some people
        need to run "install" as root, and depending on stage will create
@@ -512,9 +515,6 @@
         <fail message="Could not find staged installation in ${dist.dir}/stage; Run &quot;ant stage&quot; first."/>
       </then>
     </if>
-    <antcall target="ivy-publish" inheritAll="true" inheritRefs="true">
-      <param name="ivy.settings.name" value="default"/>
-    </antcall>
     <!-- This assumes we staged stuff first; if not, bad things can happen -->
     <exec
       executable="sh"

@@ -21,20 +21,18 @@
 -->
 <ivysettings>
   <properties environment="env"/>
-  <!-- Hack for Eclipse; if xuggle.dir.native hasn't been overriden by ant, default it -->
-  <property name="xuggle.dir.native" value="/usr/local" override="false"/>
   <settings defaultResolver="remote" />
   <resolvers>
     <chain name="publish" returnFirst="true">     
       <filesystem name="shared_dir">
-        <artifact pattern="${xuggle.dir.native}/share/java/xuggle/${app.name}/[artifact](-[revision]).[type]" />
-        <artifact pattern="${xuggle.dir.native}/share/java/xuggle/java/${app.name}/[artifact](-[revision]).[ext]" />
+        <artifact pattern="./dist/ivy/share/java/xuggle/${app.name}/[artifact](-[revision]).[type]" />
+        <artifact pattern="./dist/ivy/share/java/xuggle/java/${app.name}/[artifact](-[revision]).[ext]" />
       </filesystem>        
     </chain>    
     <chain name="remote" returnFirst="true">     
       <filesystem name="share_libs">
-        <artifact pattern="${xuggle.dir.native}/share/java/xuggle/[artifact]/[artifact](-[revision]).[type]" />
-        <artifact pattern="${xuggle.dir.native}/share/java/xuggle/[artifact]/[artifact](-[revision]).[ext]" />
+        <artifact pattern="./dist/ivy/share/java/xuggle/[artifact]/[artifact](-[revision]).[type]" />
+        <artifact pattern="./dist/ivy/share/java/xuggle/[artifact]/[artifact](-[revision]).[ext]" />
       </filesystem>
       <url m2compatible="true" name="xugglecode">
         <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact]/[artifact](-[revision]).[ext]" />
