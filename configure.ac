@@ -7,7 +7,7 @@
 m4_define([VSM4_LIB_MAJOR_VERSION], [1])
 m4_define([VSM4_LIB_MINOR_VERSION], [15])
 
-AC_INIT([xuggler],[VSM4_LIB_MAJOR_VERSION.VSM4_LIB_MINOR_VERSION],[xuggler-bugs@xuggle.com])
+AC_INIT([xuggler],[VSM4_LIB_MAJOR_VERSION.VSM4_LIB_MINOR_VERSION],[info@xuggle.com])
 AC_PREREQ([2.63])
 AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
 AM_MAINTAINER_MODE
@@ -276,7 +276,7 @@ if test "x$enable_javamemory" = xyes; then
   AC_DEFINE(VSJNI_USE_JVM_FOR_MEMMANAGEMENT, 1, AC_PACKAGE_NAME [ will use Java to allocate large memory blogs if running inside a Java Virtual Machine])
 fi
 AC_MSG_CHECKING([if you smiled])
-AC_MSG_RESULT([let us know: xuggler@xuggle.net])
+AC_MSG_RESULT([let us know: info@xuggle.com])
 
 AC_MSG_CHECKING([whether to compile Xuggle with GPL code])
 AC_ARG_ENABLE([gpl],
