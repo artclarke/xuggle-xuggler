@@ -306,6 +306,7 @@
 
     <!-- Create the build directory structure used by compile -->
     <mkdir dir="${build.dir}"/>
+    <mkdir dir="${dist.dir}"/>
     <mkdir dir="${test.classes.dir}"/>
     <mkdir dir="${test.reports.dir}"/>
     <mkdir dir="${test.fixtures.dir}"/>
@@ -988,7 +989,7 @@
           <isset property="@{property}"/>
         </not>
         <then>
-          <pathconvert os="unix" property="@{property}">
+          <pathconvert targetos="unix" property="@{property}">
             <path>
               <pathelement location="@{path}"/>
             </path>
