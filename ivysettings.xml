@@ -21,7 +21,7 @@
 -->
 <ivysettings>
   <properties environment="env"/>
-  <property name="xugglerepo.dir" value="${ivy.project.dir}/dist/ivys/share/java" override="false"/>
+  <property name="xugglerepo.dir" value="${ivy.project.dir}/dist/ivys" override="false"/>
   <settings defaultResolver="remote" />
   <resolvers>
     <chain name="publish" returnFirst="true">     
