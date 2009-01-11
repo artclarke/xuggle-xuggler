@@ -354,9 +354,11 @@
       <isset property="os.windows"/>
       <then>
         <unix-pathconvert property="build-native.unix.dir" path="${build-native.dir}"/>
+        <unix-pathconvert property="dist.unix.dir" path="${dist.dir}"/>
       </then>
       <else>
         <property name="build-native.unix.dir" value="${build-native.dir}"/>
+        <property name="dist.unix.dir" value="${dist.dir}"/>
       </else>
     </if>
     <property name="runtime.so.path.value"
@@ -789,7 +791,7 @@
     <exec executable="make"
       dir="${build-native.dir}"
       failonerror="true">
-      <env key="DESTDIR" value="${dist.dir}/stage"/>
+      <env key="DESTDIR" value="${dist.unix.dir}/stage"/>
       <arg line="install"/>
     </exec>
   </target>
