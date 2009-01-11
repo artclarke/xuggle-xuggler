@@ -502,12 +502,6 @@
     depends="init"
     description="Publishes the jar files to XUGGLE_HOME">
     <if>
-      <isset property="os.windows"/>
-      <then>
-        <fail message="You must use the installer to install on windows"/>
-      </then>
-    </if>
-    <if>
       <not>
         <available file="${dist.dir}/stage"/>
       </not>
@@ -519,11 +513,16 @@
       <param name="ivy.settings.name" value="default"/>
     </antcall>
     <!-- This assumes we staged stuff first; if not, bad things can happen -->
-    <copy todir="/">
-      <fileset dir="${dist.dir}/stage/">
-        <include name="**/*"/>
-      </fileset>
-    </copy>
+
+    <exec
+      executable="sh"
+      dir="."
+      failonerror="true"
+      >
+      <!-- Copies the stage directory contents to the root directory.
+           This is not as stupid as it sounds (I hope).  -->
+      <arg line="cp -rf ${dist.dir}/stage/* /" />
+    </exec>
   </target>
 
   <target name="uninstall-java"
