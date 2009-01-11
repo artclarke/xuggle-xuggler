@@ -329,6 +329,7 @@
       </not>
     </condition>
     <echo message="Building Library Version: ${library.version.major}.${library.version.minor}.${library.revision}"/>
+    <echo message="Installing to ${xuggle.dir} (a.k.a. ${xuggle.dir.native})"/>
 
     <!-- Get the native OS name, if available -->
     <exec executable="sh"
@@ -358,17 +359,12 @@
         <property name="build-native.unix.dir" value="${build-native.dir}"/>
       </else>
     </if>
-    <!-- Set the runtime library path to contain both
-      the captive installation directory (used during build)
-      and the actual installation directory -->
-      <!--
     <property name="runtime.so.path.value"
-      value="${build-native.dir}${file.separator}captive${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}${path.separator}${runtime.so.path.origvalue}"/>
-    -->
-    <property name="runtime.so.path.value"
-      value="${build-native.dir}${file.separator}captive${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"/>
+      value="${dist.dir}${file.separator}stage${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"
+      />
     <property name="runtime.java.library.path"
-      value="${build-native.dir}${file.separator}captive${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"/>
+      value="${dist.dir}${file.separator}stage${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"
+      />
   </target>
 
   <target name="ivy-retrieve" 
@@ -590,7 +586,9 @@
     description="run memory check test suite for Java if available">
   </target>
 
-  <target name="run-tests-java" depends="dist-java, compile-tests-java, fixtures-java"
+  <!-- The dependency on compile-tests-native will force a mini-staging
+    into the stage area so the tests have their own shared libraries  -->
+  <target name="run-tests-java" depends="compile-tests-native, compile-tests-java, fixtures-java"
     description="Run JUnit tests and generate HTML reports">
     <!-- we fail a test with a timeout if it takes longer than 5 minutes -->
     <echo message='Java: java.home is ${java.home} and the target version is ${java.target_version}'/>
@@ -783,14 +781,14 @@
   </target>
   <target name="compile-tests-native-do"
     if="native.makefile.exists">
-    <!-- We install a copy of the library into the captive area
+    <!-- We install a copy of the library executables into the stage area
          so that any java run-tests that need the library can
          find it there.  -->
     <exec executable="make"
       dir="${build-native.dir}/csrc"
       failonerror="true">
       <arg line="install-exec"/>
-      <env key="DESTDIR" value="${build-native.unix.dir}/captive"/>
+      <env key="DESTDIR" value="${dist.dir}/stage"/>
     </exec>
   </target>
   <target name="compile-tests-native"
