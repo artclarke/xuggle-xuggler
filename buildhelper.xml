@@ -779,15 +779,6 @@
   </target>
   <target name="compile-tests-native-do"
     if="native.makefile.exists">
-    <!-- We install a copy of the library executables into the stage area
-         so that any java run-tests that need the library can
-         find it there.  -->
-    <exec executable="make"
-      dir="${build-native.dir}"
-      failonerror="true">
-      <arg line="install-exec"/>
-      <env key="DESTDIR" value="${dist.dir}/stage"/>
-    </exec>
   </target>
   <target name="compile-tests-native"
     depends="init-native, compile-tests-native-do"
@@ -920,7 +911,7 @@
     depends="clean-native, clean-java"
     description="clean everything, including native code if available"/>
   <target name="run-tests"
-    depends="run-tests-native, run-tests-java"
+    depends="stage, run-tests-native, run-tests-java"
     description="Run all tests, including native tests if available"/>
   <target name="run-memcheck"
     depends="run-memcheck-native, run-memcheck-java"
