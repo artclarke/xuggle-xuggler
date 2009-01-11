@@ -585,9 +585,7 @@
     description="run memory check test suite for Java if available">
   </target>
 
-  <!-- The dependency on compile-tests-native will force a mini-staging
-    into the stage area so the tests have their own shared libraries  -->
-  <target name="run-tests-java" depends="compile-tests-native, compile-tests-java, fixtures-java"
+  <target name="run-tests-java" depends="compile-tests-java, fixtures-java"
     description="Run JUnit tests and generate HTML reports">
     <!-- we fail a test with a timeout if it takes longer than 5 minutes -->
     <echo message='Java: java.home is ${java.home} and the target version is ${java.target_version}'/>
@@ -816,7 +814,7 @@
     </exec>
   </target>
   <target name="run-tests-native"
-    depends="init-native, run-tests-native-do"
+    depends="init-native, compile-native, compile-tests-native, run-tests-native-do"
     description="Runs the native test suite">
   </target>
   <target name="run-memcheck-native-do"
