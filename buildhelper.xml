@@ -785,7 +785,7 @@
          so that any java run-tests that need the library can
          find it there.  -->
     <exec executable="make"
-      dir="${build-native.dir}/csrc"
+      dir="${build-native.dir}"
       failonerror="true">
       <arg line="install-exec"/>
       <env key="DESTDIR" value="${dist.dir}/stage"/>
