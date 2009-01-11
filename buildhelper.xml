@@ -75,6 +75,12 @@
   <property name="ivy.version" value="ivy-2.0.0-beta2" />
   <property name="ivy.retrieve.pattern" value="${ivy.lib.dir}/[conf]/[artifact].[ext]" />
   <property name="ivy.distrib.dir" value="${dist.dir}"/>
+  <!-- You can set the variable XUGGLE_REPO in which case ivy will publish
+       all jars to that location; otherwise it'll publishm them under
+       dist/ivys/share/java -->
+  <condition property="xugglerepo.dir" value="${env.XUGGLE_REPO}">
+    <isset property="env.XUGGLE_REPO"/>
+  </condition>
 
 
   <!-- JUnit Test stuff -->
