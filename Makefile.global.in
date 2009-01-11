@@ -1,7 +1,7 @@
-# Copyright (c) 2008 by Vlideshow Inc. (a.k.a. The Yard).  All rights reserved.
+# Copyright (c) 2008 by Xuggle Inc. All rights reserved.
 #
 # It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
-# us know by sending e-mail to info\@theyard.net telling us briefly how you're
+# us know by sending e-mail to info\@xuggle.com telling us briefly how you're
 # using the library and what you like or don't like about it.
 #
 # This library is free software; you can redistribute it and/or modify it under the
@@ -31,13 +31,13 @@ AM_LDFLAGS=-L@abs_top_builddir@/captive@libdir@
 
 # Note we may include includedir twice; most compilers will ignore that if
 # $(DESTDIR) is actually empty
-VS_INCLUDES=$(VS_JNI_INCLUDE) -I$(srcdir) -I$(abs_top_srcdir)/csrc -I$(abs_top_builddir)/csrc -I$(DESTDIR)$(includedir) -I$(includedir) -I"$(THEYARD_HOME)/include"
+VS_INCLUDES=$(VS_JNI_INCLUDE) -I$(srcdir) -I$(abs_top_srcdir)/csrc -I$(abs_top_builddir)/csrc -I$(DESTDIR)$(includedir) -I$(includedir) -I"$(XUGGLE_HOME)/include"
 AM_CPPFLAGS+=$(VS_CPPFLAGS) $(VS_INCLUDES)
 AM_CFLAGS+=$(VS_CFLAGS) -fno-strict-aliasing
 AM_CXXFLAGS+=$(VS_CXXFLAGS) -fno-strict-aliasing
 # Note we include libdir twice; most compilers will ignore that if
 # $(DESTDIR) is actually empty
-AM_LDFLAGS+=$(VS_LDFLAGS) -L$(DESTDIR)$(libdir) -L$(libdir) -L"$(THEYARD_HOME)/lib"
+AM_LDFLAGS+=$(VS_LDFLAGS) -L$(DESTDIR)$(libdir) -L$(libdir) -L"$(XUGGLE_HOME)/lib"
 
 AM_CXXFLAGS+=-Wextra -Wformat -Wshadow -Wunused -Wreturn-type -Wall -Wno-ctor-dtor-privacy
 ifdef VS_WARN_ISERROR
