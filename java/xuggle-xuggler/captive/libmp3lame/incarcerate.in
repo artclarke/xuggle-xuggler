@@ -35,7 +35,7 @@ if test "x$VS_ENABLE_64BIT" = "xyes"; then
   esac
 fi
   
-@abs_srcdir@/csrc/configure \
+sh @abs_srcdir@/csrc/configure \
   CPPFLAGS="$CPPFLAGS -I'@abs_top_builddir@/captive@includedir@'" \
   CFLAGS="$CFLAGS" \
   CXXFLAGS="$CXXFLAGS" \
