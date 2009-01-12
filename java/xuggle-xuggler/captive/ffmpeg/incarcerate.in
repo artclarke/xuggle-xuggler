@@ -73,7 +73,7 @@ case $HOST_TYPE in
 esac
 
 echo "Configuring FFMPEG with these options: $FFMPEG_OPTIONS"
-@abs_srcdir@/csrc/configure \
+sh @abs_srcdir@/csrc/configure \
   --prefix="${prefix}" $FFMPEG_OPTIONS || \
   (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)
 if test $? -eq 0 ; then
