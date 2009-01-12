@@ -5,7 +5,7 @@ Name Xuggle-Xuggler
 
 # General Symbol Definitions
 !define REGKEY "SOFTWARE\$(^Name)"
-!define VERSION @VERSION@
+!define VERSION 1.15.66
 !define COMPANY Xuggle
 !define URL www.xuggle.com
 
@@ -70,7 +70,7 @@ ShowUninstDetails show
 Section -Main SEC0000
     SetOutPath $INSTDIR
     SetOverwrite on
-    File /r c:\stage\*
+    File /r ..\dist\stage\${XUGGLE_HOME}\*
     WriteRegStr HKLM "${REGKEY}\Components" Main 1
     ${EnvVarUpdate} $0 "XUGGLE_HOME" "R" "HKLM" $INSTDIR
     ${EnvVarUpdate} $0 "XUGGLE_HOME" "A" "HKLM" $INSTDIR
