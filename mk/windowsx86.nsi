@@ -70,7 +70,7 @@ ShowUninstDetails show
 Section -Main SEC0000
     SetOutPath $INSTDIR
     SetOverwrite on
-    File /r ..\dist\stage\${XUGGLE_HOME}\*
+    File /r ${XUGGLE_HOME}\*
     WriteRegStr HKLM "${REGKEY}\Components" Main 1
     ${EnvVarUpdate} $0 "XUGGLE_HOME" "R" "HKLM" $INSTDIR
     ${EnvVarUpdate} $0 "XUGGLE_HOME" "A" "HKLM" $INSTDIR
