@@ -47,8 +47,8 @@ CodecTest :: testCreationAndDescruction()
   VS_TUT_ENSURE("could not find MP3 encoder", codec);
 
   // should not find these.
-  codec = ICodec::findEncodingCodec(ICodec::CODEC_ID_AAC);
-  VS_TUT_ENSURE("could find AAC encoder", !codec);
+  codec = ICodec::findEncodingCodec(ICodec::CODEC_ID_RV40);
+  VS_TUT_ENSURE("could find Real Audio encoder, but we thought FFMPEG couldn't support that", !codec);
 
 }
 
