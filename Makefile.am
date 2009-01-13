@@ -16,6 +16,7 @@ EXTRA_DIST= \
   mk/buildtools/ivysettings.xml \
   mk/buildtools/memcheck \
   mk/buildtools/revision.sh \
+  mk/buildtools/install-build.sh \
   mk/buildtools/run \
   mk/buildtools/runtests \
   mk/buildtools/lib \
