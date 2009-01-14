@@ -220,7 +220,9 @@ static void Help( x264_param_t *defaults, int b_longhelp )
         "                                  where <option> is either\n"
         "                                      q=<integer> (force QP)\n"
         "                                  or  b=<float> (bitrate multiplier)\n" );
-    H1( "      --qpfile <string>       Force frametypes and QPs\n" );
+    H1( "      --qpfile <string>       Force frametypes and QPs for some or all frames\n"
+        "                              Format of each line: framenumber frametype QP\n"
+        "                              QP of -1 lets x264 choose. Frametypes: I,i,P,B,b.\n" );
     H0( "\n" );
     H0( "Analysis:\n" );
     H0( "\n" );
@@ -563,8 +565,6 @@ static int  Parse( int argc, char **argv,
                     fprintf( stderr, "x264 [error]: can't open `%s'\n", optarg );
                     return -1;
                 }
-                param->i_scenecut_threshold = -1;
-                param->i_bframe_adaptive = X264_B_ADAPT_NONE;
                 break;
             case OPT_THREAD_INPUT:
                 b_thread_input = 1;

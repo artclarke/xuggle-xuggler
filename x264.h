@@ -342,7 +342,11 @@ typedef struct
 
 typedef struct
 {
-    /* In: force picture type (if not auto) XXX: ignored for now
+    /* In: force picture type (if not auto)
+     *     If x264 encoding parameters are violated in the forcing of picture types,
+     *     x264 will correct the input picture type and log a warning.
+     *     The quality of frametype decisions may suffer if a great deal of fine-grained
+     *     mixing of auto and forced frametypes is done.
      * Out: type of the picture encoded */
     int     i_type;
     /* In: force quantizer for > 0 */

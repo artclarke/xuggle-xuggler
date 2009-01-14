@@ -489,7 +489,7 @@ static void x264_slicetype_analyse( x264_t *h )
     if( !h->frames.last_nonb )
         return;
     frames[0] = h->frames.last_nonb;
-    for( j = 0; h->frames.next[j]; j++ )
+    for( j = 0; h->frames.next[j] && h->frames.next[j]->i_type == X264_TYPE_AUTO; j++ )
         frames[j+1] = h->frames.next[j];
     keyint_limit = h->param.i_keyint_max - frames[0]->i_frame + h->frames.i_last_idr - 1;
     num_frames = X264_MIN( j, keyint_limit );
@@ -630,10 +630,8 @@ void x264_slicetype_decide( x264_t *h )
                 frm->i_type = X264_TYPE_P;
         }
 
-        if( frm->i_type != X264_TYPE_AUTO && frm->i_type != X264_TYPE_B && frm->i_type != X264_TYPE_BREF )
-            break;
-
-        frm->i_type = X264_TYPE_B;
+        if( frm->i_type == X264_TYPE_AUTO ) frm->i_type = X264_TYPE_B;
+        else if( !IS_X264_TYPE_B( frm->i_type ) ) break;
     }
 }
 
