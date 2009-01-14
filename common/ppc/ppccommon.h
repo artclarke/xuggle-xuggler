@@ -42,23 +42,23 @@
 #define vec_s32_t vector signed int
 
 typedef union {
-  unsigned int s[4];
-  vector unsigned int v;
-} vect_int_u;
+  uint32_t s[4];
+  vec_u32_t v;
+} vec_u32_u;
 
 typedef union {
-  unsigned short s[8];
-  vector unsigned short v;
-} vect_ushort_u;
+  uint16_t s[8];
+  vec_u16_t v;
+} vec_u16_u;
 
 typedef union {
-  signed short s[8];
-  vector signed short v;
-} vect_sshort_u;
+  int16_t s[8];
+  vec_s16_t v;
+} vec_s16_u;
 
 typedef union {
-  unsigned char s[16];
-  vector unsigned char v;
+  uint8_t s[16];
+  vec_u8_t v;
 } vec_u8_u;
 
 /***********************************************************************

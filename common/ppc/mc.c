@@ -559,7 +559,7 @@ void x264_hpel_filter_altivec( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint
 
     vec_u16_t twov, fourv, fivev, sixv;
     vec_s16_t sixteenv, thirtytwov;
-    vect_ushort_u temp_u;
+    vec_u16_u temp_u;
 
     temp_u.s[0]=2;
     twov = vec_splat( temp_u.v, 0 );

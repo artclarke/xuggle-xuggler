@@ -45,7 +45,7 @@ static void predict_16x16_p_altivec( uint8_t *src )
     c = ( 5 * V + 32 ) >> 6;
     i00 = a - b * 7 - c * 7 + 16;
 
-    vect_sshort_u i00_u, b_u, c_u;
+    vec_s16_u i00_u, b_u, c_u;
     i00_u.s[0] = i00;
     b_u.s[0]   = b;
     c_u.s[0]   = c;
@@ -158,7 +158,7 @@ static void predict_16x16_h_altivec( uint8_t *src )
 
 static void predict_16x16_v_altivec( uint8_t *src )
 {
-    vect_int_u v;
+    vec_u32_u v;
     v.s[0] = *(uint32_t*)&src[ 0-FDEC_STRIDE];
     v.s[1] = *(uint32_t*)&src[ 4-FDEC_STRIDE];
     v.s[2] = *(uint32_t*)&src[ 8-FDEC_STRIDE];
