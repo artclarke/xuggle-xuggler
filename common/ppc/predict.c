@@ -1,7 +1,7 @@
 /*****************************************************************************
  * predict.c: h264 encoder
  *****************************************************************************
- * Copyright (C) 2007-2008 Guillaume Poirier <gpoirier@mplayerhq.hu>
+ * Copyright (C) 2007-2009 Guillaume Poirier <gpoirier@mplayerhq.hu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,10 @@
 #include "predict.h"
 #include "pixel.h"
 #include "ppccommon.h"
+
+/****************************************************************************
+ * 16x16 prediction for intra luma block
+ ****************************************************************************/
 
 static void predict_16x16_p_altivec( uint8_t *src )
 {
@@ -74,10 +78,112 @@ static void predict_16x16_p_altivec( uint8_t *src )
     }
 }
 
+#define PREDICT_16x16_DC_ALTIVEC(v) \
+for (i=0; i<16; i+=2)               \
+{                                   \
+    vec_st(v, 0, src);              \
+    vec_st(v, FDEC_STRIDE, src);    \
+    src += FDEC_STRIDE*2;           \
+}
+
+static void predict_16x16_dc_altivec( uint8_t *src )
+{
+    uint32_t dc = 0;
+    int i;
+
+    for( i = 0; i < 16; i++ )
+    {
+        dc += src[-1 + i * FDEC_STRIDE];
+        dc += src[i - FDEC_STRIDE];
+    }
+    vec_u8_u v ; v.s[0] = (( dc + 16 ) >> 5);
+    vec_u8_t bc_v = vec_splat(v.v, 0);
+
+    PREDICT_16x16_DC_ALTIVEC(bc_v);
+}
+
+static void predict_16x16_dc_left_altivec( uint8_t *src )
+{
+    uint32_t dc = 0;
+    int i;
+
+    for( i = 0; i < 16; i++ )
+    {
+        dc += src[-1 + i * FDEC_STRIDE];
+    }
+    vec_u8_u v ; v.s[0] = (( dc + 8 ) >> 4);
+    vec_u8_t bc_v = vec_splat(v.v, 0);
+
+    PREDICT_16x16_DC_ALTIVEC(bc_v);
+}
+
+static void predict_16x16_dc_top_altivec( uint8_t *src )
+{
+    uint32_t dc = 0;
+    int i;
+
+    for( i = 0; i < 16; i++ )
+    {
+        dc += src[i - FDEC_STRIDE];
+    }
+    vec_u8_u v ; v.s[0] = (( dc + 8 ) >> 4);
+    vec_u8_t bc_v = vec_splat(v.v, 0);
+
+    PREDICT_16x16_DC_ALTIVEC(bc_v);
+}
+
+static void predict_16x16_dc_128_altivec( uint8_t *src )
+{
+    int i;
+    /* test if generating the constant is faster than loading it.
+    vector unsigned int bc_v = (vector unsigned int)CV(0x80808080, 0x80808080, 0x80808080, 0x80808080);
+    */
+    vec_u8_t bc_v = vec_vslb((vec_u8_t)vec_splat_u8(1),(vec_u8_t)vec_splat_u8(7));
+    PREDICT_16x16_DC_ALTIVEC(bc_v);
+}
+
+static void predict_16x16_h_altivec( uint8_t *src )
+{
+    int i;
+
+    for( i = 0; i < 16; i++ )
+    {
+        vec_u8_t v = vec_ld(-1, src);
+        vec_u8_t v_v = vec_splat(v, 15);
+        vec_st(v_v, 0, src);
+
+        src += FDEC_STRIDE;
+    }
+}
+
+static void predict_16x16_v_altivec( uint8_t *src )
+{
+    vect_int_u v;
+    v.s[0] = *(uint32_t*)&src[ 0-FDEC_STRIDE];
+    v.s[1] = *(uint32_t*)&src[ 4-FDEC_STRIDE];
+    v.s[2] = *(uint32_t*)&src[ 8-FDEC_STRIDE];
+    v.s[3] = *(uint32_t*)&src[12-FDEC_STRIDE];
+
+    int i;
+
+    for( i = 0; i < 16; i++ )
+    {
+        vec_st(v.v, 0, (uint32_t*)src);
+        src += FDEC_STRIDE;
+    }
+}
+
+
 /****************************************************************************
  * Exported functions:
  ****************************************************************************/
 void x264_predict_16x16_init_altivec( x264_predict_t pf[7] )
 {
-    pf[I_PRED_16x16_P]       = predict_16x16_p_altivec;
+    pf[I_PRED_16x16_V ]      = predict_16x16_v_altivec;
+    pf[I_PRED_16x16_H ]      = predict_16x16_h_altivec;
+    pf[I_PRED_16x16_DC]      = predict_16x16_dc_altivec;
+    pf[I_PRED_16x16_P ]      = predict_16x16_p_altivec;
+    pf[I_PRED_16x16_DC_LEFT] = predict_16x16_dc_left_altivec;
+    pf[I_PRED_16x16_DC_TOP ] = predict_16x16_dc_top_altivec;
+    pf[I_PRED_16x16_DC_128 ] = predict_16x16_dc_128_altivec;
 }
