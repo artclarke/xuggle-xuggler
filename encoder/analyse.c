@@ -727,8 +727,9 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
         }
         else
         {
+            static const uint16_t cost_div_fix8[3] = {1024,512,341};
             a->i_satd_i8x8 = COST_MAX;
-            i_cost = i_cost * 4/(idx+1);
+            i_cost = (i_cost * cost_div_fix8[idx]) >> 8;
         }
         if( X264_MIN(i_cost, a->i_satd_i16x16) > i_satd_inter*(5+!!a->i_mbrd)/4 )
             return;
