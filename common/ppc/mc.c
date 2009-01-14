@@ -541,7 +541,7 @@ static void mc_chroma_altivec( uint8_t *dst, int i_dst_stride,
 }
 
 void x264_hpel_filter_altivec( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
-                               int i_stride, int i_width, int i_height )
+                               int i_stride, int i_width, int i_height, int16_t *buf )
 {
     int x, y;
 
