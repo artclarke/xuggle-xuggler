@@ -31,6 +31,7 @@ import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IVideoResampler;
+import com.xuggle.xuggler.Utils;
 
 /**
  * Takes a media container, finds the first video stream,
@@ -105,11 +106,11 @@ public class DecodeAndPlayVideo
       throw new RuntimeException("could not open video decoder for container: "+filename);
 
     IVideoResampler resampler = null;
-    if (videoCoder.getPixelType() != IPixelFormat.Type.RGB24)
+    if (videoCoder.getPixelType() != IPixelFormat.Type.RGB32)
     {
       // if this stream is not in RGB32, we're going to need to
       // convert it.  The VideoResampler does that for us.
-      resampler = IVideoResampler.make(videoCoder.getWidth(), videoCoder.getHeight(), IPixelFormat.Type.RGB24,
+      resampler = IVideoResampler.make(videoCoder.getWidth(), videoCoder.getHeight(), IPixelFormat.Type.RGB32,
           videoCoder.getWidth(), videoCoder.getHeight(), videoCoder.getPixelType());
       if (resampler == null)
         throw new RuntimeException("could not create color space resampler for: " + filename);
@@ -155,8 +156,8 @@ public class DecodeAndPlayVideo
         {
           IVideoPicture newPic = picture;
           /*
-           * If the resampler is not null, that means we didn't get the video in RGB24 format and
-           * need to convert it into RGB24 format.
+           * If the resampler is not null, that means we didn't get the video in RGB32 format and
+           * need to convert it into RGB32 format.
            */
           if (resampler != null)
           {
@@ -165,8 +166,8 @@ public class DecodeAndPlayVideo
             if (resampler.resample(newPic, picture) < 0)
               throw new RuntimeException("could not resample video from: " + filename);
           }
-          if (newPic.getPixelType() != IPixelFormat.Type.RGB24)
-            throw new RuntimeException("could not decode video as RGB 24 bit data in: " + filename);
+          if (newPic.getPixelType() != IPixelFormat.Type.RGB32)
+            throw new RuntimeException("could not decode video as RGB 32 bit data in: " + filename);
 
           /**
            * We could just display the images as quickly as we decode them, but it turns
@@ -212,8 +213,9 @@ public class DecodeAndPlayVideo
             }
           }
           
-          // And finally, it's time to display our RGB24 data on screen.
-          displayJavaVideo(newPic);
+          // And finally, convert the RGB32 to an image and display it
+
+          mScreen.setImage(Utils.videoPictureToImage(newPic));
         }
       }
       else
@@ -250,61 +252,6 @@ public class DecodeAndPlayVideo
   private static void openJavaVideo()
   {
     mScreen = new VideoImage();
-  }
-
-  /**
-   * Converts the input picture from RGB24 into a BufferedImage
-   * and updates it on screen.
-   * @param aPicture The {@link IVideoPicture}; must be in {@link IPixelFormat.Type#RGB24} format.
-   */
-  private static void displayJavaVideo(IVideoPicture aPicture)
-  {
-    final int w = aPicture.getWidth();
-    final int h = aPicture.getHeight();
-    final int pixelLength = 3;
-    final int lineLength = w * pixelLength; 
-
-    /**
-     * This is not the fastest way this could be done, but it's one
-     * of the cleanest.
-     * 
-     * Java Swing likes to have pixels in 32-bit RGB integers, whereas
-     * we encode as 8-bit RGB arrays and assume folks get the r, g or b
-     * byte as they like.
-     * 
-     * So, we convert from our representation into Java's preferred representation.
-     */
-    final byte[] bytes = aPicture.getData().getByteArray(0, aPicture.getSize());
-    final BufferedImage bufferedImage = new BufferedImage(w, h,
-        BufferedImage.TYPE_INT_RGB);
-    final int [] pixels = new int[w * h];
-    
-    int pixelIndex = 0;
-    int lineOffset = 0;
-    for (int y = 0; y < h; ++y)
-    {
-      int off = lineOffset;
-      for (int x = 0; x < w; ++x)
-      {
-        final byte r = bytes[off + 0];
-        final byte g = bytes[off + 1];
-        final byte b = bytes[off + 2];
-        int pixel = 0;
-        pixel += r & 0xff;
-        pixel *= 256;
-        pixel += g & 0xff;
-        pixel *= 256;
-        pixel += b & 0xff;
-        pixels[pixelIndex++] = pixel;
-        off += pixelLength;
-      }
-      lineOffset += lineLength;
-    }
-    
-    bufferedImage.setRGB(0,0,w,h,pixels,0,w);
-  
-    // And update the onscreen display.
-    mScreen.setImage(bufferedImage);
   }
 
   /**
