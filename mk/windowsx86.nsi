@@ -5,7 +5,7 @@ Name Xuggle-Xuggler
 
 # General Symbol Definitions
 !define REGKEY "SOFTWARE\$(^Name)"
-!define VERSION 1.16.66
+!define VERSION 1.17
 !define COMPANY Xuggle
 !define URL www.xuggle.com
 
