@@ -10,12 +10,12 @@
   </publications>
   <dependencies defaultconfmapping="*->*">
     <!-- Logging --> 
-    <dependency org="red5" name="slf4j-api" conf="default" rev="1.5.6" />
-    <dependency org="red5" name="logback-core" conf="default" rev="0.9.14" />
-    <dependency org="red5" name="logback-classic" conf="default" rev="0.9.14" />
+    <dependency org="red5" name="slf4j-api" conf="*" rev="1.5.6" />
+    <dependency org="red5" name="logback-core" conf="*" rev="0.9.14" />
+    <dependency org="red5" name="logback-classic" conf="*" rev="0.9.14" />
 
     <!-- Command line processing -->
-    <dependency org="apache" name="commons-cli" conf="default" rev="1.1" />
+    <dependency org="apache" name="commons-cli" conf="*" rev="1.1" />
 
     <!--  Include for JUnit Test framework -->
     <dependency org="junit" name="junit" rev="4.5" conf="test" />
