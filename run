@@ -50,12 +50,15 @@ classpath=`$PATH_CONV $mypath/build/test`$SEP`$PATH_CONV $mypath/build/classes`
 for jar in $mypath/build/lib/test/*.jar; do
   classpath=$classpath$SEP`$PATH_CONV "$jar"`
 done
-LIBPATH="$mypath/dist/lib"
-LIBPATH=`$PATH_CONV "$LIBPATH"`
 if [ ! -z "$RED5_HOME" ]; then
   classpath=$classpath$SEP`$PATH_CONV "$RED5_HOME"/red5.jar`
-  LIBPATH=$LIBPATH$SEP`$PATH_CONV $RED5_HOME/webapps/videojuggler/WEB-INF/lib`
 fi
+
+shared_object_path=$mypath/dist/stage$XUGGLE_HOME
+export PATH=$shared_object_path/bin:$PATH
+export LD_LIBRARY_PATH=$shared_object_path/lib:$LD_LIBRARY_PATH
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+export DYLD_LIBRARY_PATH=$shared_object_path/lib:$DYLD_LIBRARY_PATH
 
 export CLASSPATH=$classpath;
 
@@ -70,5 +73,5 @@ if [ $VS_JAVA_WAITFORNATIVEDEBUGGER ]; then
 fi
 
 #echo "CLASSPATH=$classpath";
-echo $COMMAND -client -Djava.library.path="$LIBPATH" $JAVA_OPTS $*
-$COMMAND -ea -client -Djava.library.path="$LIBPATH" $JAVA_OPTS $*
+echo $COMMAND $JAVA_OPTS $*
+$COMMAND -ea $JAVA_OPTS $*
