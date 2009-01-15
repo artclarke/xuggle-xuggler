@@ -262,8 +262,6 @@ public class Utils
     
     final int w = aPicture.getWidth();
     final int h = aPicture.getHeight();
-    final int pixelLength = 4;
-    final int lineLength = w * pixelLength; 
     
     // make a copy of the raw bytes in the picture and convert those
     // to integers

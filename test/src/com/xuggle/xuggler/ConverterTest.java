@@ -21,7 +21,6 @@
 package com.xuggle.xuggler;
 
 import com.xuggle.xuggler.Converter;
-import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.IVideoResampler;
 
 import org.apache.commons.cli.CommandLine;

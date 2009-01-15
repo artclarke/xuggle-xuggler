@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let
  * us know by sending e-mail to info@xuggle.com telling us briefly how you're
  * using the library and what you like or don't like about it.
  *
@@ -39,7 +39,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual uint32_t getInputBufferLength();
     virtual bool isOpened();
     virtual bool isHeaderWritten();
-    
+
     virtual int32_t open(const char *url, Type type,
         IContainerFormat* pContainerFormat);
     virtual int32_t open(const char *url, Type type,
@@ -49,7 +49,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual Type getType();
     virtual int32_t close();
     virtual int32_t getNumStreams();
-    
+
     virtual IStream* getStream(uint32_t position);
 
     virtual IStream* addNewStream(int32_t id);
@@ -61,6 +61,17 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t writeHeader();
     virtual int32_t writeTrailer();
     AVFormatContext *getFormatContext();
+
+    /*
+     * Added as of 1.17
+     */
+    virtual int32_t queryStreamMetaData();
+    virtual int32_t seekKeyFrame(int streamIndex, int64_t timestamp, int32_t flags);
+    virtual int64_t getDuration();
+    virtual int64_t getStartTime();
+    virtual int64_t getFileSize();
+    virtual int32_t getBitRate();
+
   protected:
     virtual ~Container();
     Container();
@@ -81,6 +92,7 @@ namespace com { namespace xuggle { namespace xuggler
     uint32_t mNumStreams;
     bool mIsOpened;
     bool mNeedTrailerWrite;
+    bool mIsMetaDataQueried;
     uint32_t mInputBufferLength;
   };
 }}}

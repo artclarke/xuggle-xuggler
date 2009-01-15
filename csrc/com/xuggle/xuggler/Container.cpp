@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let
  * us know by sending e-mail to info@xuggle.com telling us briefly how you're
  * using the library and what you like or don't like about it.
  *
@@ -43,6 +43,7 @@ namespace com { namespace xuggle { namespace xuggler
     VS_LOG_TRACE("Making container: %p", this);
     mFormatContext = 0;
     mIsOpened = false;
+    mIsMetaDataQueried=false;
     mNeedTrailerWrite = false;
     mNumStreams = 0;
     mInputBufferLength = 0;
@@ -53,7 +54,7 @@ namespace com { namespace xuggle { namespace xuggler
     reset();
     VS_LOG_TRACE("Destroyed container: %p", this);
   }
-  
+
   void
   Container :: reset()
   {
@@ -65,7 +66,7 @@ namespace com { namespace xuggle { namespace xuggler
     VS_ASSERT(!mFormatContext,
         "this should be freed by close or already zero");
   }
-  
+
   AVFormatContext *
   Container :: getFormatContext()
   {
@@ -87,19 +88,19 @@ namespace com { namespace xuggle { namespace xuggler
     }
     return retval;
   }
-  
+
   uint32_t
   Container :: getInputBufferLength()
   {
     return mInputBufferLength;
   }
-  
+
   bool
   Container :: isOpened()
   {
     return mIsOpened;
   }
-  
+
   bool
   Container :: isHeaderWritten()
   {
@@ -112,7 +113,7 @@ namespace com { namespace xuggle { namespace xuggler
   {
     return open(url, type, pContainerFormat, false, true);
   }
-  
+
   int32_t
   Container :: open(const char *url,Type type,
       IContainerFormat *pContainerFormat,
@@ -159,9 +160,13 @@ namespace com { namespace xuggle { namespace xuggler
     return retval;
   }
 
-  int32_t 
+  int32_t
   Container:: setupAllInputStreams()
   {
+    // do nothing if we're already all set up.
+    if (mNumStreams == mFormatContext->nb_streams)
+      return 0;
+
     int32_t retval = -1;
     // for shits and giggles, dump the ffmpeg output
     //dump_format(mFormatContext, (int32_t)this, url, 0);
@@ -245,16 +250,10 @@ namespace com { namespace xuggle { namespace xuggler
       } else {
         mFormatContext->ctx_flags &= ~AVFMTCTX_NOHEADER;
       }
-      
+
       if (aLookForAllStreams)
       {
-        retval = av_find_stream_info(mFormatContext);
-        if (retval >= 0 && mFormatContext->nb_streams > 0)
-        {
-          setupAllInputStreams();
-        } else {
-          VS_LOG_WARN("Could not find streams in input file: %s", url);
-        }
+        retval = queryStreamMetaData();
       }
     } else {
       VS_LOG_TRACE("Could not open output file: %s", url);
@@ -312,7 +311,7 @@ namespace com { namespace xuggle { namespace xuggler
     return (!mFormatContext ? READ :
         (mFormatContext->oformat ? WRITE: READ));
   }
-  
+
   int32_t
   Container :: getNumStreams()
   {
@@ -409,10 +408,11 @@ namespace com { namespace xuggle { namespace xuggler
       }
       mFormatContext = 0;
       mIsOpened = false;
+      mIsMetaDataQueried=false;
     }
     return retval;
   }
-  
+
   IStream *
   Container :: getStream(uint32_t position)
   {
@@ -579,4 +579,94 @@ namespace com { namespace xuggle { namespace xuggler
     }
     return retval;
   }
+
+  int32_t
+  Container :: queryStreamMetaData()
+  {
+    int retval = -1;
+    if (mIsOpened)
+    {
+      if (!mIsMetaDataQueried)
+      {
+        retval = av_find_stream_info(mFormatContext);
+        mIsMetaDataQueried = true;
+      } else {
+        retval = 0;
+      }
+
+      if (retval >= 0 && mFormatContext->nb_streams > 0)
+      {
+        setupAllInputStreams();
+      } else {
+        VS_LOG_WARN("Could not find streams in input container");
+      }
+    }
+    else
+    {
+      VS_LOG_WARN("Attempt to queryStreamMetaData but container is not open");
+    }
+    return retval;
+  }
+
+  int32_t
+  Container :: seekKeyFrame(int streamIndex, int64_t timestamp, int32_t flags)
+  {
+    int32_t retval = -1;
+
+    if (mIsOpened)
+    {
+      if (streamIndex < 0 || (uint32_t)streamIndex >= mNumStreams)
+        VS_LOG_WARN("Attempt to seek on streamIndex %d but only %d streams known about in container",
+            streamIndex, mNumStreams);
+      else
+        retval = av_seek_frame(mFormatContext, streamIndex, timestamp, flags);
+    }
+    else
+    {
+      VS_LOG_WARN("Attempt to seekKeyFrame but container is not open");
+    }
+    return retval;
+  }
+
+  int64_t
+  Container :: getDuration()
+  {
+    int64_t retval = Global::NO_PTS;
+    queryStreamMetaData();
+    if (mFormatContext)
+      retval = mFormatContext->duration;
+    return retval;
+  }
+
+  int64_t
+  Container :: getStartTime()
+  {
+    int64_t retval = Global::NO_PTS;
+    queryStreamMetaData();
+    if (mFormatContext)
+      retval = mFormatContext->start_time;
+    return retval;
+  }
+
+  int64_t
+  Container :: getFileSize()
+  {
+    int64_t retval = -1;
+    queryStreamMetaData();
+    if (mFormatContext)
+      retval = mFormatContext->file_size;
+    return retval;
+  }
+
+  int32_t
+  Container :: getBitRate()
+  {
+    int32_t retval = -1;
+    queryStreamMetaData();
+    if (mFormatContext)
+      retval = mFormatContext->bit_rate;
+    return retval;
+  }
+
+
 }}}

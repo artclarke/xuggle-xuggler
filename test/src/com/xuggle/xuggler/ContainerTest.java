@@ -24,12 +24,13 @@ import org.junit.*;
 
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
+import com.xuggle.xuggler.io.IURLProtocolHandler;
 
 import junit.framework.TestCase;
 
 public class ContainerTest extends TestCase
 {
-  private final String sampleFile = "fixtures/testfile.flv";
+  private final String mSampleFile = "fixtures/testfile.flv";
 
   @Test
   public void testContainerOpenAndClose()
@@ -72,14 +73,14 @@ public class ContainerTest extends TestCase
     retval = container.close();
     assertTrue("could not close file", retval >= 0);
     
-    retval = container.open("file:"+sampleFile,
+    retval = container.open("file:"+mSampleFile,
         IContainer.Type.READ, fmt);
     assertTrue("could not open file for writing", retval >= 0);
 
     retval = container.close();
     assertTrue("could not close file", retval >= 0);
     
-    retval = container.open("file:"+sampleFile,
+    retval = container.open("file:"+mSampleFile,
         IContainer.Type.READ, null);
     assertTrue("could not open file for writing", retval >= 0);
 
@@ -94,7 +95,7 @@ public class ContainerTest extends TestCase
     IContainer container = IContainer.make();
     int retval = -1;
     
-    retval = container.open(sampleFile, IContainer.Type.READ, null);
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
     assertTrue("could not open file", retval >= 0);
     
     int numStreams = container.getNumStreams();
@@ -165,7 +166,7 @@ public class ContainerTest extends TestCase
     retval = container.close();
     assertTrue("could not close file", retval >= 0);
     
-    retval = container.open("file:"+sampleFile,
+    retval = container.open("file:"+mSampleFile,
         IContainer.Type.READ, fmt);
     assertTrue("could not open file for writing", retval >= 0);
 
@@ -178,6 +179,170 @@ public class ContainerTest extends TestCase
     assertTrue("could not close file", retval >= 0);
     
   }
+  
+  @Test
+  public void testQueryStreamMetaData()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+    
+    retval = container.queryStreamMetaData();
+    assertTrue("could not query stream meta data", retval >= 0);
+    
+  }
 
+  @Test
+  public void testQueryStreamMetaDataFailsIfFileNotOpen()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    
+    retval = container.queryStreamMetaData();
+    assertTrue("could query stream meta data", retval < 0);
+    
+  }
+
+
+  @Test
+  public void testGetDuration()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+    
+    assertEquals("unexpected duration", 149264000, container.getDuration());
+    
+  }
+
+  @Test
+  public void testGetStartTime()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+    
+    assertEquals("unexpected start time", 0, container.getStartTime());
+    
+  }
+
+  @Test
+  public void testGetFileSize()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+    
+    assertEquals("unexpected filesize", 4546420, container.getFileSize());
+    
+  }
+
+  @Test
+  public void testGetBitRate()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+    
+    assertEquals("unexpected bit rate", 64000, container.getBitRate());
+    
+  }
+  
+  @Test
+  public void testReadPackets()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+
+    long packetsRead = 0;
+    IPacket packet = IPacket.make();
+    while(container.readNextPacket(packet) >= 0)
+    {
+      if (packet.isComplete())
+        ++packetsRead;
+    }
+    assertEquals("got unexpected number of packets in file", 7950, packetsRead);
+  }
+
+  /**
+   * Seeks 20 seconds into the test file for a key frame, and then counts packets
+   * from there.  Should be less than the results of {@link #testReadPackets()}.
+   */
+  @Test
+  public void testSeekKeyFrame()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+
+    // annoyingly we need to make sure that the timestamp is in the time
+    // base of the stream we're looking for which can be different for each stream.
+    //
+    // we happen to know that FLV is in milliseconds (or 1/1000 per second) so
+    // we multiply our desired number of seconds by 1,000
+    retval = container.seekKeyFrame(0, 20*1000, IURLProtocolHandler.SEEK_CUR);
+    assertTrue("could not seek to key frame", retval >=0);
+    
+    long packetsRead = 0;
+    IPacket packet = IPacket.make();
+    while(container.readNextPacket(packet) >= 0)
+    {
+      if (packet.isComplete())
+        ++packetsRead;
+    }
+    assertEquals("got unexpected number of packets in file", 6905, packetsRead);
+  }
+
+  @Test
+  public void testSeekKeyFrameWithNegativeStream()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+
+    // annoyingly we need to make sure that the timestamp is in the time
+    // base of the stream we're looking for which can be different for each stream.
+    //
+    // we happen to know that FLV is in milliseconds (or 1/1000 per second) so
+    // we multiply our desired number of seconds by 1,000
+    retval = container.seekKeyFrame(-1, 20*1000, IURLProtocolHandler.SEEK_CUR);
+    assertTrue("should fail", retval <0);
+  }
+
+  @Test
+  public void testSeekKeyFrameWithInvalidStream()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+
+    retval = container.seekKeyFrame(2, 20*1000, IURLProtocolHandler.SEEK_CUR);
+    assertTrue("should fail as only 2 strems in this file", retval <0);
+  }
 
 }

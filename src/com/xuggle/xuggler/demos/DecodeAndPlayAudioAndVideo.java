@@ -20,8 +20,6 @@
  */
 package com.xuggle.xuggler.demos;
 
-import java.awt.image.BufferedImage;
-
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;

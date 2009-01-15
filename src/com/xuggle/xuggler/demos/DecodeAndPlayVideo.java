@@ -20,8 +20,6 @@
  */
 package com.xuggle.xuggler.demos;
 
-import java.awt.image.BufferedImage;
-
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IPacket;

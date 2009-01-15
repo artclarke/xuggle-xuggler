@@ -293,6 +293,12 @@ class XugglerJNI {
   public final static native int IContainer_writePacket__SWIG_0(long jarg1, IContainer jarg1_, long jarg2, IPacket jarg2_, boolean jarg3);
   public final static native int IContainer_writePacket__SWIG_1(long jarg1, IContainer jarg1_, long jarg2, IPacket jarg2_);
   public final static native long IContainer_make();
+  public final static native int IContainer_queryStreamMetaData(long jarg1, IContainer jarg1_);
+  public final static native int IContainer_seekKeyFrame(long jarg1, IContainer jarg1_, int jarg2, long jarg3, int jarg4);
+  public final static native long IContainer_getDuration(long jarg1, IContainer jarg1_);
+  public final static native long IContainer_getStartTime(long jarg1, IContainer jarg1_);
+  public final static native long IContainer_getFileSize(long jarg1, IContainer jarg1_);
+  public final static native int IContainer_getBitRate(long jarg1, IContainer jarg1_);
   public final static native long Global_NO_PTS_get();
   public final static native long Global_DEFAULT_PTS_PER_SECOND_get();
   public final static native long Global_getVersion();

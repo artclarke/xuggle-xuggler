@@ -196,15 +196,17 @@ public class IContainer extends RefCounted {
  *		 that new  
  * streams can be added at any time, even after the format header has 
  * been read.  
- * @param	aLookForAllStreams If true, open() will block until it has 
- *		 ready  
+ * @param	aQueryStreamMetaData If true, open() will call {@link #queryStreamMetaData() 
+ *		  
+ * on this container, which will potentially block until it has ready 
+ *  
  * enough data to find all streams in a container. If false, it will 
  * only  
- * block to read a header for this container format.  
+ * block to read a minimal header for this container format.  
  * @return	>= 0 on success; < 0 on error.  
  */
-  public int open(String url, IContainer.Type type, IContainerFormat pContainerFormat, boolean aStreamsCanBeAddedDynamically, boolean aLookForAllStreams) {
-    return XugglerJNI.IContainer_open__SWIG_1(swigCPtr, this, url, type.swigValue(), IContainerFormat.getCPtr(pContainerFormat), pContainerFormat, aStreamsCanBeAddedDynamically, aLookForAllStreams);
+  public int open(String url, IContainer.Type type, IContainerFormat pContainerFormat, boolean aStreamsCanBeAddedDynamically, boolean aQueryStreamMetaData) {
+    return XugglerJNI.IContainer_open__SWIG_1(swigCPtr, this, url, type.swigValue(), IContainerFormat.getCPtr(pContainerFormat), pContainerFormat, aStreamsCanBeAddedDynamically, aQueryStreamMetaData);
   }
 
 /**
@@ -337,6 +339,91 @@ public class IContainer extends RefCounted {
   public static IContainer make() {
     long cPtr = XugglerJNI.IContainer_make();
     return (cPtr == 0) ? null : new IContainer(cPtr, false);
+  }
+
+/**
+ * Attempts to read all the meta data in this stream, potentially by 
+ * reading ahead  
+ * and decoding packets.  
+ * Any packets this method reads ahead will be cached and correctly 
+ * returned when you  
+ * read packets, but this method can be non-blocking potentially until 
+ * end of container  
+ * to get all meta data. Take care when you call it.  
+ * After this method is called, other meta data methods like {@link 
+ * #getDuration()} should  
+ * work.  
+ * @return	>= 0 on success; <0 on failure.  
+ */
+  public int queryStreamMetaData() {
+    return XugglerJNI.IContainer_queryStreamMetaData(swigCPtr, this);
+  }
+
+/**
+ * Seeks to the key frame at (or the first one after) the given timestamp. 
+ * This method will  
+ * always fail for any IContainer that is not seekable (e.g. is streamed). 
+ * When successful  
+ * the next call to {@link #readNextPacket(IPacket)} will get the next 
+ * keyframe from the  
+ * sought for stream.  
+ * @param	streamIndex The stream to search for the keyframe in; must 
+ *		 be a stream we've either queried  
+ * meta-data about or already ready a packet for.  
+ * @param	timestamp The timestamp, in the timebase of the stream you're 
+ *		 looking in (not necessarily Microseconds).  
+ * @param	flags Flags to pass to com.xuggle.xuggler.io.IURLProtocolHandler's 
+ *		 seek method.  
+ * @return	>= 0 on success; <0 on failure.  
+ */
+  public int seekKeyFrame(int streamIndex, long timestamp, int flags) {
+    return XugglerJNI.IContainer_seekKeyFrame(swigCPtr, this, streamIndex, timestamp, flags);
+  }
+
+/**
+ * Gets the duration, if known, of this container.  
+ * This will only work for non-streamable containers where we can calculate 
+ * the container size.  
+ * @return	The duration, or {@link Global#NO_PTS} if not known.  
+ */
+  public long getDuration() {
+    return XugglerJNI.IContainer_getDuration(swigCPtr, this);
+  }
+
+/**
+ * Get the starting timestamp in microseconds of the first packet of 
+ * the earliest stream in this container.  
+ * This will only return value values either either (a) for non-streamable 
+ *  
+ * containers where we can calculate the container size or (b) after 
+ * we've actually read the  
+ * first packet from a streamable source.  
+ * @return	The starting timestamp in microseconds, or {@link Global#NO_PTS} 
+ *		 if not known.  
+ */
+  public long getStartTime() {
+    return XugglerJNI.IContainer_getStartTime(swigCPtr, this);
+  }
+
+/**
+ * Get the file size in bytes of this container.  
+ * This will only return a valid value if the container is non-streamed 
+ * and supports seek.  
+ * @return	The file size in bytes, or <0 on error.  
+ */
+  public long getFileSize() {
+    return XugglerJNI.IContainer_getFileSize(swigCPtr, this);
+  }
+
+/**
+ * Get the calculated overall bit rate of this file.  
+ * This will only return a valid value if the container is non-streamed 
+ * and supports seek.  
+ * @return	The overall bit rate in bytes per second, or <0 on error. 
+ *		  
+ */
+  public int getBitRate() {
+    return XugglerJNI.IContainer_getBitRate(swigCPtr, this);
   }
 
   public enum Type {

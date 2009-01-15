@@ -54,11 +54,16 @@ public class GetContainerInfo
     
     // query how many streams the call to open found
     int numStreams = container.getNumStreams();
-    System.out.printf("file \"%s\": %d stream%s\n",
+    System.out.printf("file \"%s\": %d stream%s; ",
         filename,
         numStreams,
         numStreams == 1 ? "" : "s");
-    
+    System.out.printf("duration (ms): %d; ", container.getDuration()/1000);
+    System.out.printf("start time: %d; ", container.getStartTime());
+    System.out.printf("file size (bytes): %d; ", container.getFileSize());
+    System.out.printf("bit rate: %d; ", container.getBitRate());
+    System.out.printf("\n");
+
     // and iterate through the streams to print their meta data
     for(int i = 0; i < numStreams; i++)
     {
