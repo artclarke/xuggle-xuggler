@@ -534,8 +534,7 @@ public class ICodec extends RefCounted {
     CODEC_TYPE_AUDIO,
     CODEC_TYPE_DATA,
     CODEC_TYPE_SUBTITLE,
-    CODEC_TYPE_ATTACHMENT,
-    CODEC_TYPE_NB;
+    CODEC_TYPE_ATTACHMENT;
 
     public final int swigValue() {
       return swigValue;

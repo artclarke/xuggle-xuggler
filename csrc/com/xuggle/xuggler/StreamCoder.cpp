@@ -158,13 +158,9 @@ StreamCoder :: getCodec()
 ICodec::Type
 StreamCoder :: getCodecType()
 {
-  RefPointer<ICodec> codec = this->getCodec();
   ICodec::Type retval = ICodec::CODEC_TYPE_UNKNOWN;
-
-  if (codec)
-  {
-    retval = codec->getType();
-  }
+  if (mCodecContext)
+    retval = (ICodec::Type)mCodecContext->codec_type;
   return retval;
 }
 

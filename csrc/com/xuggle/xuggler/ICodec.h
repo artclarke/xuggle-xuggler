@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let
  * us know by sending e-mail to info@xuggle.com telling us briefly how you're
  * using the library and what you like or don't like about it.
  *
@@ -29,7 +29,7 @@ namespace com { namespace xuggle { namespace xuggler
   class IContainerFormat;
   /**
    * A "key" to an {@link IStreamCoder} that tells it how to encode or decode data.
-   * 
+   *
    * Use these objects to tell a IStreamCoder you want to use MP3 or NellyMoser
    * for example.
    */
@@ -313,8 +313,7 @@ namespace com { namespace xuggle { namespace xuggler
       CODEC_TYPE_AUDIO,
       CODEC_TYPE_DATA,
       CODEC_TYPE_SUBTITLE,
-      CODEC_TYPE_ATTACHMENT,
-      CODEC_TYPE_NB
+      CODEC_TYPE_ATTACHMENT
     } Type;
 
     /**

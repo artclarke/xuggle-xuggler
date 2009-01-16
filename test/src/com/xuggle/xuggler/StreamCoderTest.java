@@ -206,6 +206,20 @@ public class StreamCoderTest extends TestCase
     assertTrue("Could not close codec", retval >= 0);
   }
 
+  /**
+   * Regression test for https://sourceforge.net/tracker2/?func=detail&aid=2508480&group_id=248424&atid=1126411
+   */
+  @Test
+  public void testGetCodecTypeBugFix2508480()
+  {
+    IContainer container = IContainer.make();
+    assertTrue("should be able to open",
+        container.open("fixtures/subtitled_video.mkv", IContainer.Type.READ, null) >= 0);
+    assertEquals("unexpected codec type", ICodec.Type.CODEC_TYPE_VIDEO, container.getStream(0).getStreamCoder().getCodecType());
+    assertEquals("unexpected codec type", ICodec.Type.CODEC_TYPE_AUDIO, container.getStream(1).getStreamCoder().getCodecType());
+    assertEquals("unexpected codec type", ICodec.Type.CODEC_TYPE_SUBTITLE, container.getStream(2).getStreamCoder().getCodecType());
+  }
+  
   private IStreamCoder getStreamCoder(String url, int index)
   {
     IStreamCoder retval = null;
