@@ -263,7 +263,7 @@ case $host_cpu in
     then
       ALTIVECFLAGS="$ALTIVECFLAGS -faltivec -fastf -mcpu=G4"
     else
-      ALTIVECFLAGS="$ALTIVECFLAGS -maltivec -mabi=altivec"
+      ALTIVECFLAGS="$ALTIVECFLAGS -maltivec -mabi=altivec -DHAVE_ALTIVEC_H"
     fi
     ;;
   sparc)

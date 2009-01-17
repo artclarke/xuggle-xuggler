@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifdef SYS_LINUX
+#ifdef HAVE_ALTIVEC_H
 #include <altivec.h>
 #endif
 
