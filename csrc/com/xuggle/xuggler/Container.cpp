@@ -30,7 +30,6 @@
 #include <com/xuggle/xuggler/Stream.h>
 #include <com/xuggle/xuggler/Packet.h>
 #include <com/xuggle/xuggler/Global.h>
-
 VS_LOG_SETUP(VS_CPP_PACKAGE);
 
 using namespace com::xuggle::ferry;
@@ -168,8 +167,6 @@ namespace com { namespace xuggle { namespace xuggler
       return 0;
 
     int32_t retval = -1;
-    // for shits and giggles, dump the ffmpeg output
-    //dump_format(mFormatContext, (int32_t)this, url, 0);
     // loop through and find the first non-zero time base
     AVRational *goodTimebase = 0;
     for(uint32_t i = 0;i < mFormatContext->nb_streams;i++){
@@ -247,8 +244,6 @@ namespace com { namespace xuggle { namespace xuggler
       if (aStreamsCanBeAddedDynamically)
       {
         mFormatContext->ctx_flags |= AVFMTCTX_NOHEADER;
-      } else {
-        mFormatContext->ctx_flags &= ~AVFMTCTX_NOHEADER;
       }
 
       if (aLookForAllStreams)
@@ -533,7 +528,8 @@ namespace com { namespace xuggle { namespace xuggler
       throw std::runtime_error("no format context allocated");
 
 #ifdef VS_DEBUG
-        //dump_format(mFormatContext, (int32_t)this, mFormatContext->filename, 1);
+      // for shits and giggles, dump the ffmpeg output
+      // dump_format(mFormatContext, 0, (mFormatContext ? mFormatContext->filename :0), 1);
 #endif // VS_DEBUG
 
       // This checks to make sure that parameters are set correctly.
@@ -589,6 +585,8 @@ namespace com { namespace xuggle { namespace xuggler
       if (!mIsMetaDataQueried)
       {
         retval = av_find_stream_info(mFormatContext);
+        // for shits and giggles, dump the ffmpeg output
+        // dump_format(mFormatContext, 0, (mFormatContext ? mFormatContext->filename :0), 0);
         mIsMetaDataQueried = true;
       } else {
         retval = 0;
