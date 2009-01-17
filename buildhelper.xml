@@ -615,7 +615,6 @@
         path="${runtime.so.path.value}"/>
       <jvmarg value="-Djava.library.path=${runtime.java.library.path}"/>
       <jvmarg value="-Denv.${runtime.so.path.variable}=${runtime.so.path.value}"/>
-      <jvmarg value="-client"/>
       <jvmarg value="-XX:+HeapDumpOnOutOfMemoryError"/>
       <jvmarg value="-Xcheck:jni"/>
       <!-- This line makes sure that Java looks in the build dir for the
