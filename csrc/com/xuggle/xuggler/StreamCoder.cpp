@@ -764,6 +764,13 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
   Packet *packet = dynamic_cast<Packet*> (pOutPacket);
   RefPointer<IBuffer> encodingBuffer;
 
+  try
+  {
+    if (frame && frame->getPixelType() != this->getPixelType())
+    {
+      throw std::runtime_error("frame is not of the same PixelType as this Coder expected");
+    }
+
   if (mCodecContext && mOpened && mDirection == ENCODING && packet)
   {
     uint8_t* buf = 0;
@@ -864,6 +871,12 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
   {
     VS_LOG_WARN("Attempting to encode when not ready");
   }
+  } catch (std::exception & e)
+  {
+    VS_LOG_WARN("Got error: %s", e.what());
+    retval = -1;
+  }
+
   return retval;
 }
 

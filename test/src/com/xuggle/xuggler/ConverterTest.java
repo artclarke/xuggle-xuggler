@@ -171,8 +171,14 @@ public class ConverterTest extends TestCase
       
   }
 
-  @Test(expected=RuntimeException.class)
-  public void testWrongPictureFormatConversion() throws ParseException
+  /**
+   * This test should fail, but should not crash the JVM.  It's
+   * a regression test for:
+   * http://code.google.com/p/xuggle/issues/detail?id=18
+   * @throws ParseException
+   */
+  @Test
+  public void testWrongPictureFormatConversionRegression18() throws ParseException
   {
     String[] args = new String[]{
         "--acodec",
@@ -186,8 +192,13 @@ public class ConverterTest extends TestCase
 
     CommandLine cmdLine = converter.parseOptions(options, args);
     assertTrue("all commandline options successful", cmdLine != null);
-    
-    converter.run(cmdLine);
+    try {
+      converter.run(cmdLine);
+      fail("should fail with an error");
+    } catch (RuntimeException e)
+    {
+      // if we get here everything was fine.
+    }
   }
 
   class ConverterWrongPictureFormat extends Converter
