@@ -441,6 +441,12 @@ int x264_ratecontrol_new( x264_t *h )
             if( strstr( opts, "qp=0" ) && h->param.rc.i_rc_method == X264_RC_ABR )
                 x264_log( h, X264_LOG_WARNING, "1st pass was lossless, bitrate prediction will be inaccurate\n" );
 
+            if( !strstr( opts, "direct=3" ) && h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_AUTO )
+            {
+                x264_log( h, X264_LOG_WARNING, "direct=auto not used on the first pass\n" );
+                h->mb.b_direct_auto_write = 1;
+            }
+
             if( ( p = strstr( opts, "b_adapt=" ) ) && sscanf( p, "b_adapt=%d", &i ) && i >= X264_B_ADAPT_NONE && i <= X264_B_ADAPT_TRELLIS )
                 h->param.i_bframe_adaptive = i;
             else if( h->param.i_bframe )

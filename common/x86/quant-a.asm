@@ -826,7 +826,7 @@ cglobal x264_coeff_level_run%2_%1,0,7
     mov    t4d, %2-1
     LZCOUNT t3d, t5d, 0x1f
     xor    t6d, t6d
-    shl    t5d, 1
+    add    t5d, t5d
     sub    t4d, t3d
     shl    t5d, t3b
     mov   [t1], t4d
