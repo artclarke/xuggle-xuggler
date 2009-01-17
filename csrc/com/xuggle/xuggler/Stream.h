@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let
  * us know by sending e-mail to info@xuggle.com telling us briefly how you're
  * using the library and what you like or don't like about it.
  *
@@ -30,12 +30,12 @@ namespace com { namespace xuggle { namespace xuggler
 
   class StreamCoder;
   class Container;
-  
+
   class Stream : public IStream
   {
     VS_JNIUTILS_REFCOUNTED_OBJECT_PRIVATE_MAKE(Stream)
   public:
-    
+
     // IStream
     virtual Direction getDirection() { return mDirection; }
     virtual int getIndex();
@@ -51,26 +51,38 @@ namespace com { namespace xuggle { namespace xuggler
 
     // Not for calling from Java
     static Stream * make(AVStream *, Direction direction);
-    
+
     // The StreamCoder will call this if it needs to
     virtual void setTimeBase(IRational *);
     virtual void setFrameRate(IRational *);
-    
+
     // Called by the managing container when it is closed
     // at this point this stream is no longer valid.
     virtual int containerClosed(Container* container);
-    
+
     virtual int32_t acquire();
     virtual int32_t release();
+
+    virtual IRational* getSampleAspectRatio();
+    virtual void setSampleAspectRatio(IRational* newRatio);
+    virtual const char* getLanguage();
+    virtual void setLanguage(const char* language);
+
   protected:
     Stream();
     virtual ~Stream();
-    
+
   private:
     void reset();
     AVStream *mStream;
     Direction mDirection;
     StreamCoder* mCoder;
+    /**
+     * We mirror the language setting that FFMPEG
+     * has, but add one character so we can insert
+     * a null if needed.
+     */
+    char mLanguage[5];
   };
 
 }}}

@@ -267,6 +267,10 @@ class XugglerJNI {
   public final static native long IStream_getCurrentDts(long jarg1, IStream jarg1_);
   public final static native int IStream_getNumIndexEntries(long jarg1, IStream jarg1_);
   public final static native long IStream_getNumFrames(long jarg1, IStream jarg1_);
+  public final static native long IStream_getSampleAspectRatio(long jarg1, IStream jarg1_);
+  public final static native void IStream_setSampleAspectRatio(long jarg1, IStream jarg1_, long jarg2, IRational jarg2_);
+  public final static native String IStream_getLanguage(long jarg1, IStream jarg1_);
+  public final static native void IStream_setLanguage(long jarg1, IStream jarg1_, String jarg2);
   public final static native int IContainerFormat_setInputFormat(long jarg1, IContainerFormat jarg1_, String jarg2);
   public final static native int IContainerFormat_setOutputFormat(long jarg1, IContainerFormat jarg1_, String jarg2, String jarg3, String jarg4);
   public final static native String IContainerFormat_getInputFormatShortName(long jarg1, IContainerFormat jarg1_);

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let
  * us know by sending e-mail to info@xuggle.com telling us briefly how you're
  * using the library and what you like or don't like about it.
  *
@@ -18,6 +18,7 @@
  * with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
+#include <cstring>
 #include <com/xuggle/ferry/Logger.h>
 
 #include <com/xuggle/xuggler/Global.h>
@@ -35,6 +36,7 @@ namespace com { namespace xuggle { namespace xuggler
     mStream = 0;
     mDirection = INBOUND;
     mCoder = 0;
+    memset(mLanguage, 0, sizeof(mLanguage));
   }
 
   Stream :: ~Stream()
@@ -53,7 +55,7 @@ namespace com { namespace xuggle { namespace xuggler
       av_free(mStream);
     }
     mStream = 0;
-    VS_REF_RELEASE(mCoder);    
+    VS_REF_RELEASE(mCoder);
   }
   Stream*
   Stream :: make(AVStream * aStream, Direction direction)
@@ -94,7 +96,7 @@ namespace com { namespace xuggle { namespace xuggler
   Stream :: getStreamCoder()
   {
     StreamCoder *retval = 0;
-    
+
     // acquire a reference for the caller
     retval = mCoder;
     VS_REF_ACQUIRE(retval);
@@ -179,7 +181,7 @@ namespace com { namespace xuggle { namespace xuggler
     reset();
     return 0;
   }
-  
+
   int32_t
   Stream :: acquire()
   {
@@ -196,6 +198,75 @@ namespace com { namespace xuggle { namespace xuggler
     retval = RefCounted::release();
     VS_LOG_TRACE("Released %p: %d", this, retval);
     return retval;
+  }
+
+  IRational*
+  Stream :: getSampleAspectRatio()
+  {
+    IRational* retval = 0;
+    if (mStream)
+    {
+      retval = IRational::make(
+          mStream->sample_aspect_ratio.num,
+          mStream->sample_aspect_ratio.den);
+    }
+    return retval;
+  }
+
+  void
+  Stream :: setSampleAspectRatio(IRational* aNewValue)
+  {
+    if (aNewValue && mStream)
+    {
+      mStream->sample_aspect_ratio.num =
+        aNewValue->getNumerator();
+      mStream->sample_aspect_ratio.den =
+        aNewValue->getDenominator();
+    }
+    return;
+  }
+
+  const char*
+  Stream :: getLanguage()
+  {
+    const char*retval = 0;
+
+    if (mStream && mStream->language && *mStream->language)
+    {
+      int i = 0;
+      for(; i < 4; i++)
+      {
+        if (!mStream->language[i])
+          break;
+        mLanguage[i]=mStream->language[i];
+      }
+      mLanguage[i]=0;
+      retval = mLanguage;
+    }
+
+    return retval;
+  }
+
+  void
+  Stream :: setLanguage(const char* aNewValue)
+  {
+    if (mStream)
+    {
+      if (aNewValue)
+      {
+        for(int i = 0; i < 4; i++)
+        {
+          mStream->language[i]=aNewValue[i];
+          if(!aNewValue[i])
+            break;
+        }
+      }
+      else
+      {
+        mStream->language[0] = 0;
+      }
+    }
+    return;
   }
 
 }}}

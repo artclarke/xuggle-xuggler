@@ -98,6 +98,105 @@ public class StreamTest extends TestCase
     assertTrue(coder != null);
   }
 
+  public void testGetSampleAspectRatio()
+  {
+    helperGetStream(0);
+    IRational sample = mStream.getSampleAspectRatio();
+    assertNotNull(sample);
+    assertEquals(0, sample.getNumerator());
+    assertEquals(0, sample.getNumerator());
+  }
+  
+  public void testSetSampleAspectRatio()
+  {
+    helperGetStream(0);
+    
+    IRational newVal = IRational.make(3,2);
+    mStream.setSampleAspectRatio(newVal);
+    
+    IRational sample = mStream.getSampleAspectRatio();
+    assertNotNull(sample);
+    assertEquals(3, sample.getNumerator());
+    assertEquals(2, sample.getDenominator());
+  }
+
+  public void testSetSampleAspectRatioNullIgnored()
+  {
+    helperGetStream(0);
+    
+    IRational newVal = IRational.make(3,2);
+    mStream.setSampleAspectRatio(newVal);
+    
+    IRational sample = mStream.getSampleAspectRatio();
+    assertNotNull(sample);
+    assertEquals(3, sample.getNumerator());
+    assertEquals(2, sample.getDenominator());
+
+    // Now, set to null and make sure it doesn't actually work or crash the JVM
+    newVal = null;
+    mStream.setSampleAspectRatio(newVal);
+    
+    sample = mStream.getSampleAspectRatio();
+    assertNotNull(sample);
+    assertEquals(3, sample.getNumerator());
+    assertEquals(2, sample.getDenominator());
+  }
+  
+  public void testGetLanguage()
+  {
+    helperGetStream(0);
+    String lang = mStream.getLanguage();
+    // should be null if not set, which is the case for the sample file
+    assertNull(lang);
+  }
+  
+  public void testSetLanguage()
+  {
+    helperGetStream(0);
+    String lang = mStream.getLanguage();
+    // should be null if not set, which is the case for the sample file
+    assertNull(lang);
+    
+    mStream.setLanguage("jpn");
+    assertEquals("jpn", mStream.getLanguage());
+  }
+  
+  public void testSetLanguageNull()
+  {
+    helperGetStream(0);
+    mStream.setLanguage("jpn");
+    assertEquals("jpn", mStream.getLanguage());
+
+    mStream.setLanguage(null);
+    assertNull(mStream.getLanguage());
+  }
+
+  public void testSetLanguageEmptyString()
+  {
+    helperGetStream(0);
+    mStream.setLanguage("jpn");
+    assertEquals("jpn", mStream.getLanguage());
+
+    mStream.setLanguage("");
+    assertNull(mStream.getLanguage());
+  }
+  
+  public void testSetLanguageFourCharacterString()
+  {
+    helperGetStream(0);
+    mStream.setLanguage("1234");
+    assertEquals("1234", mStream.getLanguage());
+  }
+
+  public void testSetLanguageFiveCharacterString()
+  {
+    helperGetStream(0);
+    // should truncate to 4
+    mStream.setLanguage("12345");
+    assertEquals("1234", mStream.getLanguage());
+  }
+
+
   private void helperGetStream(int index)
   {
     int retval = -1;

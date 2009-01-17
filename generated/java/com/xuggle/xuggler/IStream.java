@@ -221,15 +221,15 @@ public class IStream extends RefCounted {
   }
 
 /**
- * @return	The number of index entires in this stream.  
+ * @return	The number of index entries in this stream.  
  */
   public int getNumIndexEntries() {
     return XugglerJNI.IStream_getNumIndexEntries(swigCPtr, this);
   }
 
 /**
- * Returns the number of encoded frames. Note that frames here means 
- *  
+ * Returns the number of encoded frames if known. Note that frames here 
+ * means  
  * encoded frames, which can consist of many encoded audio samples, 
  * or  
  * an encoded video frame.  
@@ -237,6 +237,47 @@ public class IStream extends RefCounted {
  */
   public long getNumFrames() {
     return XugglerJNI.IStream_getNumFrames(swigCPtr, this);
+  }
+
+/**
+ * Gets the sample aspect ratio.  
+ * @return	The sample aspect ratio.  
+ */
+  public IRational getSampleAspectRatio() {
+    long cPtr = XugglerJNI.IStream_getSampleAspectRatio(swigCPtr, this);
+    return (cPtr == 0) ? null : new IRational(cPtr, false);
+  }
+
+/**
+ * Sets the sample aspect ratio.  
+ * @param	newRatio The new ratio.  
+ */
+  public void setSampleAspectRatio(IRational newRatio) {
+    XugglerJNI.IStream_setSampleAspectRatio(swigCPtr, this, IRational.getCPtr(newRatio), newRatio);
+  }
+
+/**
+ * Get the 4-character language setting for this stream.  
+ * This will return null if no setting. When calling  
+ * from C++, callers must ensure that the IStream outlives the  
+ * value returned.  
+ */
+  public String getLanguage() {
+    return XugglerJNI.IStream_getLanguage(swigCPtr, this);
+  }
+
+/**
+ * Set the 4-character language setting for this stream.  
+ * If a string longer than 4 characters is passed in, only the  
+ * first 4 characters is copied.  
+ * @param	language The new language setting. null is equivalent to the 
+ *		  
+ * empty string. strings longer than 4 characters will be truncated 
+ *  
+ * to first 4 characters.  
+ */
+  public void setLanguage(String language) {
+    XugglerJNI.IStream_setLanguage(swigCPtr, this, language);
   }
 
   public enum Direction {
