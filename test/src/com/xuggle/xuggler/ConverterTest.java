@@ -170,6 +170,54 @@ public class ConverterTest extends TestCase
     }
       
   }
+
+  @Test(expected=RuntimeException.class)
+  public void testWrongPictureFormatConversion() throws ParseException
+  {
+    String[] args = new String[]{
+        "--acodec",
+        "libmp3lame",
+        "fixtures/testfile.flv",
+        this.getClass().getName()+"_"+this.getName()+".mov"
+    };
+    converter = new ConverterWrongPictureFormat();
+    
+    Options options = converter.defineOptions();
+
+    CommandLine cmdLine = converter.parseOptions(options, args);
+    assertTrue("all commandline options successful", cmdLine != null);
+    
+    converter.run(cmdLine);
+  }
+
+  class ConverterWrongPictureFormat extends Converter
+  {
+    @Override
+    protected IVideoPicture alterVideoFrame(IVideoPicture picture1)
+    {
+      // get picture dimentions
+
+      int w = picture1.getWidth();
+      int h = picture1.getHeight();
+
+      // make a resampler
+      
+      IVideoResampler resampleToRgb32 = IVideoResampler.make(
+        w, h, IPixelFormat.Type.RGB32, w, h, picture1.getPixelType());
+
+      // resample the picture
+
+      final IVideoPicture picture2 = IVideoPicture.make(
+        resampleToRgb32.getOutputPixelFormat(), w, h);
+      if (resampleToRgb32.resample(picture2, picture1) < 0)
+        throw new RuntimeException("could not resample picture.");
+      
+      // return picture in rgb32
+      
+      return picture2;
+    }
+  }
+
   
   @Test
   public void testConversion() throws ParseException
@@ -213,6 +261,12 @@ public class ConverterTest extends TestCase
     
     converter.run(cmdLine);
   }
+
+
+  /**
+   * This tests crashing the JVM when IVideoPicture of the wrong format
+   * are compressed.
+   */
 
   /**
    * This test attempts to convert a file using the FFMPEG
