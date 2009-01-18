@@ -786,6 +786,13 @@ void x264_predict_8x8c_init( int cpu, x264_predict_t pf[7] )
 #ifdef HAVE_MMX
     x264_predict_8x8c_init_mmx( cpu, pf );
 #endif
+
+#ifdef ARCH_PPC
+    if( cpu&X264_CPU_ALTIVEC )
+    {
+        x264_predict_8x8c_init_altivec( pf );
+    }
+#endif
 }
 
 void x264_predict_8x8_init( int cpu, x264_predict8x8_t pf[12] )
