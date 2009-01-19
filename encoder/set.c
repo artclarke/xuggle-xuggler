@@ -133,9 +133,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->i_mb_height = ( sps->i_mb_height + 1 ) & ~1;
     sps->b_frame_mbs_only = ! param->b_interlaced;
     sps->b_mb_adaptive_frame_field = param->b_interlaced;
-    sps->b_direct8x8_inference = param->analyse.i_direct_8x8_inference
-                              || ! sps->b_frame_mbs_only
-                              || !(param->analyse.inter & X264_ANALYSE_PSUB8x8);
+    sps->b_direct8x8_inference = 1;
 
     sps->crop.i_left   = 0;
     sps->crop.i_top    = 0;
@@ -565,8 +563,6 @@ int x264_validate_levels( x264_t *h, int verbose )
 
     if( h->param.i_fps_den > 0 )
         CHECK( "MB rate", l->mbps, (int64_t)mbs * h->param.i_fps_num / h->param.i_fps_den );
-    if( h->sps->b_direct8x8_inference < l->direct8x8 )
-        ERROR( "direct 8x8 inference (0) < level requirement (1)\n" );
 
     /* TODO check the rest of the limits */
     return ret;

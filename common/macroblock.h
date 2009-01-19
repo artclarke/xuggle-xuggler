@@ -455,36 +455,14 @@ static inline int x264_mb_transform_8x8_allowed( x264_t *h )
     // large partitions are allowed
     // direct and 8x8 are conditional
     static const uint8_t partition_tab[X264_MBTYPE_MAX] = {
-        0,0,0,0,1,2,0,2,1,1,1,1,1,1,1,1,1,2,0,
+        0,0,0,0,1,2,0,1,1,1,1,1,1,1,1,1,1,1,0,
     };
-    int p, i;
 
     if( !h->pps->b_transform_8x8_mode )
         return 0;
-    p = partition_tab[h->mb.i_type];
-    if( p < 2 )
-        return p;
-    else if( h->mb.i_type == B_DIRECT )
-        return h->sps->b_direct8x8_inference;
-    else if( h->mb.i_type == P_8x8 )
-    {
-        if( !(h->param.analyse.inter & X264_ANALYSE_PSUB8x8) )
-            return 1;
-        for( i=0; i<4; i++ )
-            if( h->mb.i_sub_partition[i] != D_L0_8x8 )
-                return 0;
-        return 1;
-    }
-    else // B_8x8
-    {
-        // x264 currently doesn't use sub-8x8 B partitions, so don't check for them
-        if( h->sps->b_direct8x8_inference )
-            return 1;
-        for( i=0; i<4; i++ )
-            if( h->mb.i_sub_partition[i] == D_DIRECT_8x8 )
-                return 0;
-        return 1;
-    }
+    if( h->mb.i_type != P_8x8 )
+        return partition_tab[h->mb.i_type];
+    return *(uint32_t*)h->mb.i_sub_partition == D_L0_8x8*0x01010101;
 }
 
 #endif

@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 65
+#define X264_BUILD 66
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -228,7 +228,6 @@ typedef struct x264_param_t
         int          b_transform_8x8;
         int          b_weighted_bipred; /* implicit weighting for B-frames */
         int          i_direct_mv_pred; /* spatial vs temporal mv prediction */
-        int          i_direct_8x8_inference; /* forbid 4x4 direct partitions. -1 = auto, based on level */
         int          i_chroma_qp_offset;
 
         int          i_me_method; /* motion estimation algorithm to use (X264_ME_*) */
@@ -408,10 +407,6 @@ typedef struct
  *      if b_annexeb then a long synch work is added
  *      XXX: it currently doesn't check for overflow */
 int x264_nal_encode( void *, int *, int b_annexeb, x264_nal_t *nal );
-
-/* x264_nal_decode:
- *      decode a buffer nal into a x264_nal_t */
-int x264_nal_decode( x264_nal_t *nal, void *, int );
 
 /****************************************************************************
  * Encoder functions:

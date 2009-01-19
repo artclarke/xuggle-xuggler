@@ -440,7 +440,7 @@ struct x264_t
         /* current value */
         int     i_type;
         int     i_partition;
-        int     i_sub_partition[4];
+        DECLARE_ALIGNED_4( uint8_t i_sub_partition[4] );
         int     b_transform_8x8;
 
         int     i_cbp_luma;

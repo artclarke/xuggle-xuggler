@@ -233,11 +233,6 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "      --direct <string>       Direct MV prediction mode [\"%s\"]\n"
         "                                  - none, spatial, temporal, auto\n",
                                        strtable_lookup( x264_direct_pred_names, defaults->analyse.i_direct_mv_pred ) );
-    H1( "      --direct-8x8 <-1|0|1>   Direct prediction size [%d]\n"
-        "                                  -  0: 4x4\n"
-        "                                  -  1: 8x8\n"
-        "                                  - -1: smallest possible according to level\n",
-                                       defaults->analyse.i_direct_8x8_inference );
     H0( "  -w, --weightb               Weighted prediction for B-frames\n" );
     H0( "      --me <string>           Integer pixel motion estimation method [\"%s\"]\n",
                                        strtable_lookup( x264_motion_est_names, defaults->analyse.i_me_method ) );
@@ -425,7 +420,6 @@ static int  Parse( int argc, char **argv,
             { "analyse", required_argument, NULL, 0 },
             { "partitions", required_argument, NULL, 'A' },
             { "direct",  required_argument, NULL, 0 },
-            { "direct-8x8", required_argument, NULL, 0 },
             { "weightb", no_argument,       NULL, 'w' },
             { "me",      required_argument, NULL, 0 },
             { "merange", required_argument, NULL, 0 },

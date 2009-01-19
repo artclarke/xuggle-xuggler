@@ -623,7 +623,6 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
     const int b_interlaced = h->sh.b_mbaff;
     const int mvy_limit = 4 >> b_interlaced;
     const int qp_thresh = 15 - X264_MIN(h->sh.i_alpha_c0_offset, h->sh.i_beta_offset) - X264_MAX(0, h->param.analyse.i_chroma_qp_offset);
-    const int no_sub8x8 = !(h->param.analyse.inter & X264_ANALYSE_PSUB8x8);
     int mb_x;
     int stridey   = h->fdec->i_stride[0];
     int stride2y  = stridey << b_interlaced;
@@ -641,6 +640,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
         const int b_8x8_transform = h->mb.mb_transform_size[mb_xy];
         const int i_qp = h->mb.qp[mb_xy];
         int i_edge_end = (h->mb.type[mb_xy] == P_SKIP) ? 1 : 4;
+        int no_sub8x8 = h->mb.type[mb_xy] != P_8x8 || !(h->param.analyse.inter & X264_ANALYSE_PSUB8x8);
         uint8_t *pixy = h->fdec->plane[0] + 16*mb_y*stridey  + 16*mb_x;
         uint8_t *pixu = h->fdec->plane[1] +  8*mb_y*strideuv +  8*mb_x;
         uint8_t *pixv = h->fdec->plane[2] +  8*mb_y*strideuv +  8*mb_x;
