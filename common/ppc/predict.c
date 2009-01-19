@@ -54,10 +54,7 @@ static void predict_8x8c_p_altivec( uint8_t *src )
     c_v = vec_splat(c_u.v, 0);
 
     vec_s16_t induc_v  = (vec_s16_t) CV(0, 1, 2, 3, 4, 5, 6, 7);
-    vec_s32_t mule_b_v = vec_mule(induc_v, b_v);
-    vec_s32_t mulo_b_v = vec_mulo(induc_v, b_v);
-    vec_s16_t mul_b_induc0_v = vec_pack(vec_mergeh(mule_b_v, mulo_b_v), vec_mergel(mule_b_v, mulo_b_v));
-    vec_s16_t add_i0_b_0v = vec_adds(i00_v, mul_b_induc0_v);
+    vec_s16_t add_i0_b_0v = vec_mladd(induc_v, b_v, i00_v);
 
     PREP_STORE8;
 
@@ -107,10 +104,7 @@ static void predict_16x16_p_altivec( uint8_t *src )
     c_v = vec_splat(c_u.v, 0);
     vec_s16_t induc_v  = (vec_s16_t) CV(0,  1,  2,  3,  4,  5,  6,  7);
     vec_s16_t b8_v = vec_sl(b_v, vec_splat_u16(3));
-    vec_s32_t mule_b_v = vec_mule(induc_v, b_v);
-    vec_s32_t mulo_b_v = vec_mulo(induc_v, b_v);
-    vec_s16_t mul_b_induc0_v = vec_pack(vec_mergeh(mule_b_v, mulo_b_v), vec_mergel(mule_b_v, mulo_b_v));
-    vec_s16_t add_i0_b_0v = vec_adds(i00_v, mul_b_induc0_v);
+    vec_s16_t add_i0_b_0v = vec_mladd(induc_v, b_v, i00_v);
     vec_s16_t add_i0_b_8v = vec_adds(b8_v, add_i0_b_0v);
 
     int y;
