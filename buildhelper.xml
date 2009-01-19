@@ -191,6 +191,12 @@
       resolver="publish">
       <artifacts pattern="${dist.dir}/lib/[artifact].[ext]" />
     </ivy:publish>
+    <ivy:makepom ivyfile="ivy.xml"
+      pomfile="${xugglerepo.dir}/xuggle/${app.name}/${app.name}.pom">
+      <mapping conf="compile" scope="compile"/>
+      <mapping conf="default" scope="runtime"/>
+      <mapping conf="test" scope="test"/>
+    </ivy:makepom>
   </target>
 
   <target name="clean-share"
