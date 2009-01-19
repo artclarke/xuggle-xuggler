@@ -38,7 +38,7 @@ namespace com { namespace xuggle { namespace xuggler
   public:
     /**
      * These are the codecs this library currently supports.
-     * These are based on FFMPEG LIBAVCODEC 52.0.0
+     * These are based on FFMPEG r16683 or later
      */
     typedef enum {
       CODEC_ID_NONE,
@@ -226,6 +226,7 @@ namespace com { namespace xuggle { namespace xuggler
       CODEC_ID_ADPCM_IMA_EA_EACS,
       CODEC_ID_ADPCM_EA_XAS,
       CODEC_ID_ADPCM_EA_MAXIS_XA,
+      CODEC_ID_ADPCM_IMA_ISS,
 
       /* AMR */
       CODEC_ID_AMR_NB= 0x12000,
@@ -287,6 +288,7 @@ namespace com { namespace xuggle { namespace xuggler
       CODEC_ID_ATRAC3P,
       CODEC_ID_EAC3,
       CODEC_ID_SIPR,
+      CODEC_ID_MP1,
 
       /* subtitle codecs */
       CODEC_ID_DVD_SUBTITLE= 0x17000,
@@ -410,6 +412,17 @@ namespace com { namespace xuggle { namespace xuggler
   protected:
     ICodec();
     virtual ~ICodec();
+
+    /**
+     * Added for 1.17
+     */
+  public:
+    /**
+     * Get the long name for this codec.
+     *
+     * @return the long name.
+     */
+    virtual const char * getLongName()=0;
   };
 
 }}}

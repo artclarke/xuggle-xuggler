@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let
  * us know by sending e-mail to info@xuggle.com telling us briefly how you're
  * using the library and what you like or don't like about it.
  *
@@ -66,20 +66,21 @@ namespace com { namespace xuggle { namespace xuggler
     static Codec *findDecodingCodec(const ICodec::ID);
     static Codec *findDecodingCodecByIntID(const int);
     static Codec *findDecodingCodecByName(const char*);
-    
+
     static Codec *guessEncodingCodec(IContainerFormat* fmt,
         const char *shortName, const char*url, const char*mime_type,
         ICodec::Type type);
-    
+
     virtual bool canDecode();
     virtual bool canEncode();
-    
+    virtual const char * getLongName();
+
     virtual int32_t acquire();
     virtual int32_t release();
   public:
     Codec();
     virtual ~Codec();
-    
+
     AVCodec *mCodec;
   };
 

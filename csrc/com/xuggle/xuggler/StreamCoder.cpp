@@ -1203,6 +1203,19 @@ StreamCoder :: release()
   return retval;
 }
 
+int32_t
+StreamCoder :: getCodecTag()
+{
+  return (mCodecContext ? mCodecContext->codec_tag : 0);
+}
+
+void
+StreamCoder :: setCodecTag(int32_t tag)
+{
+  if (mCodecContext)
+    mCodecContext->codec_tag = tag;
+}
+
 }
 }
 }

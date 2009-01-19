@@ -240,10 +240,18 @@ public class ICodec extends RefCounted {
     return (cPtr == 0) ? null : new ICodec(cPtr, false);
   }
 
+/**
+ * Get the long name for this codec.  
+ * @return	the long name.  
+ */
+  public String getLongName() {
+    return XugglerJNI.ICodec_getLongName(swigCPtr, this);
+  }
+
   public enum ID {
   /**
    * These are the codecs this library currently supports.
-   * These are based on FFMPEG LIBAVCODEC 52.0.0
+   * These are based on FFMPEG r16683 or later
    */
     CODEC_ID_NONE,
     CODEC_ID_MPEG1VIDEO,
@@ -424,6 +432,7 @@ public class ICodec extends RefCounted {
     CODEC_ID_ADPCM_IMA_EA_EACS,
     CODEC_ID_ADPCM_EA_XAS,
     CODEC_ID_ADPCM_EA_MAXIS_XA,
+    CODEC_ID_ADPCM_IMA_ISS,
     CODEC_ID_AMR_NB(XugglerJNI.ICodec_CODEC_ID_AMR_NB_get()),
     CODEC_ID_AMR_WB,
     CODEC_ID_RA_144(XugglerJNI.ICodec_CODEC_ID_RA_144_get()),
@@ -477,6 +486,7 @@ public class ICodec extends RefCounted {
     CODEC_ID_ATRAC3P,
     CODEC_ID_EAC3,
     CODEC_ID_SIPR,
+    CODEC_ID_MP1,
     CODEC_ID_DVD_SUBTITLE(XugglerJNI.ICodec_CODEC_ID_DVD_SUBTITLE_get()),
     CODEC_ID_DVB_SUBTITLE,
     CODEC_ID_TEXT,

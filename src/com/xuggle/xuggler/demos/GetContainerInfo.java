@@ -77,6 +77,7 @@ public class GetContainerInfo
       System.out.printf("type: %s; ",     coder.getCodecType());
       System.out.printf("codec: %s; ",    coder.getCodecID());
       System.out.printf("duration: %s; ", stream.getDuration() == Global.NO_PTS ? "unknown" : "" + stream.getDuration());
+      System.out.printf("language: %s; ", stream.getLanguage() == null ? "unknown" : stream.getLanguage());
       
       if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO)
       {

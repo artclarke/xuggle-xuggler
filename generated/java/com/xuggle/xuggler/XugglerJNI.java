@@ -94,6 +94,7 @@ class XugglerJNI {
   public final static native long ICodec_findDecodingCodecByIntID(int jarg1);
   public final static native long ICodec_findDecodingCodecByName(String jarg1);
   public final static native long ICodec_guessEncodingCodec(long jarg1, IContainerFormat jarg1_, String jarg2, String jarg3, String jarg4, int jarg5);
+  public final static native String ICodec_getLongName(long jarg1, ICodec jarg1_);
   public final static native void IPacket_reset(long jarg1, IPacket jarg1_);
   public final static native boolean IPacket_isComplete(long jarg1, IPacket jarg1_);
   public final static native long IPacket_getPts(long jarg1, IPacket jarg1_);
@@ -256,6 +257,8 @@ class XugglerJNI {
   public final static native int IStreamCoder_encodeVideo(long jarg1, IStreamCoder jarg1_, long jarg2, IPacket jarg2_, long jarg3, IVideoPicture jarg3_, int jarg4);
   public final static native int IStreamCoder_encodeAudio(long jarg1, IStreamCoder jarg1_, long jarg2, IPacket jarg2_, long jarg3, IAudioSamples jarg3_, long jarg4);
   public final static native long IStreamCoder_make(int jarg1);
+  public final static native int IStreamCoder_getCodecTag(long jarg1, IStreamCoder jarg1_);
+  public final static native void IStreamCoder_setCodecTag(long jarg1, IStreamCoder jarg1_, int jarg2);
   public final static native int IStream_getDirection(long jarg1, IStream jarg1_);
   public final static native int IStream_getIndex(long jarg1, IStream jarg1_);
   public final static native int IStream_getId(long jarg1, IStream jarg1_);

@@ -103,4 +103,37 @@ public class CodecTest extends TestCase
     
   }
 
+  @Test
+  public void testGetLongName()
+  {
+    mCodec = ICodec.findEncodingCodec(
+        ICodec.ID.CODEC_ID_MP3);
+    assertNotNull(mCodec);
+    String longname = mCodec.getLongName();
+    assertNotNull("no long name", longname);
+    assertTrue("no description", longname.length() > 0);
+  }
+  @Test
+  public void testCodecIdsAreEnums()
+  {
+    ICodec.ID ids[] = {
+        ICodec.ID.CODEC_ID_4XM,
+        ICodec.ID.CODEC_ID_ADPCM_4XM,
+        ICodec.ID.CODEC_ID_DXA
+    };
+    
+    for(ICodec.ID id : ids)
+    {
+      switch(id)
+      {
+      case CODEC_ID_4XM:
+      case CODEC_ID_ADPCM_4XM:
+      case CODEC_ID_DXA:
+        // yup; looks like we can do a switch statement;
+        break;
+      default:
+        fail("and should never get here");
+      }
+    }
+  }
 }

@@ -115,6 +115,41 @@ public class IStreamCoder extends RefCounted {
     super.delete();
   }
 
+
+  /**
+   * Returns the fourcc tag, in order of least significant byte
+   * to most significant byte.
+   *
+   * @return a 4 char array of the fourcc
+   */
+  public char[] getCodecTagArray()
+  {
+    char[] retval = new char[4];
+    int fourcc = this.getCodecTag();
+    
+    retval[0] = (char)(fourcc & 0xFF);
+    retval[1] = (char)((fourcc >> 8) & 0xFF);
+    retval[2] = (char)((fourcc >> 16) & 0xFF);
+    retval[3] = (char)((fourcc >> 24) & 0xFF);
+    return retval;
+  }
+  /**
+   * Set the fourcc tag.
+   *
+   * @param fourcc A four char array, in order of least significant byte
+   *  to most significant byte.
+   *
+   * @throws IllegalArgumentException if the array passed in is not exactly 4 bytes.
+   */
+   public void setCodecTag(char[] fourcc)
+   {
+     if (fourcc == null || fourcc.length != 4)
+      throw new IllegalArgumentException();
+     int tag = 0;
+     tag = (fourcc[3]<<24)+(fourcc[2]<<16)+(fourcc[1]<<8)+fourcc[0];
+     this.setCodecTag(tag);
+   }
+
 /**
  * Get the direction.  
  * @return	The direction this StreamCoder works in.  
@@ -626,6 +661,31 @@ public class IStreamCoder extends RefCounted {
   public static IStreamCoder make(IStreamCoder.Direction direction) {
     long cPtr = XugglerJNI.IStreamCoder_make(direction.swigValue());
     return (cPtr == 0) ? null : new IStreamCoder(cPtr, false);
+  }
+
+/**
+ * Added for 1.17  
+ * Returns the 4-byte FOURCC tag (Least Significant Byte first).  
+ * This is really a packed 4-byte array so it's only useful if you use 
+ *  
+ * bit-wise operations on it. Some language wrappings may provide more 
+ *  
+ * obvious ways of manipulating, but this is the safest way to do this 
+ * that  
+ * will work with all wrappers.  
+ * @return	the FOURCC tag.  
+ */
+  public int getCodecTag() {
+    return XugglerJNI.IStreamCoder_getCodecTag(swigCPtr, this);
+  }
+
+/**
+ * Set the 4-byte FOURCC tag for this coder.  
+ * @param	fourcc The FOURCC to set, with Least Significant Byte first. 
+ *		  
+ */
+  public void setCodecTag(int arg0) {
+    XugglerJNI.IStreamCoder_setCodecTag(swigCPtr, this, arg0);
   }
 
   public enum Direction {

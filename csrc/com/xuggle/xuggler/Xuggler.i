@@ -20,6 +20,7 @@
 */
 %module Xuggler
 %{
+
 // Native.i: Start generated code
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>
 #include <com/xuggle/ferry/JNIHelper.h>
@@ -137,6 +138,10 @@ import com.xuggle.xuggler.Converter;
 // Xuggler.i: End generated code
   
 %}
+// As per 1.17, we now make sure we generate proper Java enums on
+// classes
+%include "enums.swg"
+
 %import <com/xuggle/ferry/Ferry.i>
 
 %include <com/xuggle/xuggler/Xuggler.h>
@@ -151,7 +156,7 @@ import com.xuggle.xuggler.Converter;
 %include <com/xuggle/xuggler/IAudioResampler.h>
 %include <com/xuggle/xuggler/IVideoPicture.h>
 %include <com/xuggle/xuggler/IVideoResampler.h>
-%include <com/xuggle/xuggler/IStreamCoder.h>
+%include <com/xuggle/xuggler/IStreamCoder.swg>
 %include <com/xuggle/xuggler/IStream.h>
 %include <com/xuggle/xuggler/IContainerFormat.h>
 %include <com/xuggle/xuggler/IContainer.h>

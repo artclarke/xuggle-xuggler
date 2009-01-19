@@ -205,6 +205,7 @@ static void SWIGUNUSED SWIG_JavaThrowException(JNIEnv *jenv, SWIG_JavaExceptionC
 #define SWIG_contract_assert(nullreturn, expr, msg) if (!(expr)) {SWIG_JavaThrowException(jenv, SWIG_JavaIllegalArgumentException, msg); return nullreturn; } else
 
 
+
 // Native.i: Start generated code
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>
 #include <com/xuggle/ferry/JNIHelper.h>
@@ -3145,6 +3146,57 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1guessEncodin
   if (arg2) jenv->ReleaseStringUTFChars(jarg2, (const char *)arg2);
   if (arg3) jenv->ReleaseStringUTFChars(jarg3, (const char *)arg3);
   if (arg4) jenv->ReleaseStringUTFChars(jarg4, (const char *)arg4);
+  return jresult;
+}
+
+
+SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1getLongName(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jstring jresult = 0 ;
+  com::xuggle::xuggler::ICodec *arg1 = (com::xuggle::xuggler::ICodec *) 0 ;
+  char *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::xuggler::ICodec **)&jarg1; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return 0;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (char *)(arg1)->getLongName();
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  if(result) jresult = jenv->NewStringUTF((const char *)result);
   return jresult;
 }
 
@@ -9389,6 +9441,106 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1make(J
   }
   *(com::xuggle::xuggler::IStreamCoder **)&jresult = result; 
   return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getCodecTag(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IStreamCoder *arg1 = (com::xuggle::xuggler::IStreamCoder *) 0 ;
+  int32_t result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::xuggler::IStreamCoder **)&jarg1; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return 0;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (int32_t)(arg1)->getCodecTag();
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setCodecTag(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  com::xuggle::xuggler::IStreamCoder *arg1 = (com::xuggle::xuggler::IStreamCoder *) 0 ;
+  int32_t arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::xuggler::IStreamCoder **)&jarg1; 
+  arg2 = (int32_t)jarg2; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return ;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      (arg1)->setCodecTag(arg2);
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return ;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
 }
 
 

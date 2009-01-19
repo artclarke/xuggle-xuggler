@@ -219,7 +219,60 @@ public class StreamCoderTest extends TestCase
     assertEquals("unexpected codec type", ICodec.Type.CODEC_TYPE_AUDIO, container.getStream(1).getStreamCoder().getCodecType());
     assertEquals("unexpected codec type", ICodec.Type.CODEC_TYPE_SUBTITLE, container.getStream(2).getStreamCoder().getCodecType());
   }
+
+  @Test
+  public void testGetCodecTag()
+  {
+    IContainer container = IContainer.make();
+    assertTrue("should be able to open",
+        container.open("fixtures/subtitled_video.mkv", IContainer.Type.READ, null) >= 0);
+    IStreamCoder coder = container.getStream(0).getStreamCoder();
+    
+    assertEquals("should be 0 by default", 0, coder.getCodecTag());
+    coder.setCodecTag(0xDEADBEEF);
+    assertEquals("should be set now", 0xDEADBEEF, coder.getCodecTag());
+  }
+
+  @Test
+  public void testGetCodecTagArray()
+  {
+    IContainer container = IContainer.make();
+    assertTrue("should be able to open",
+        container.open("fixtures/subtitled_video.mkv", IContainer.Type.READ, null) >= 0);
+    IStreamCoder coder = container.getStream(0).getStreamCoder();
+   
+    char[] tag = coder.getCodecTagArray();
+    assertNotNull("should exist", tag);
+    assertEquals("should always be 4", 4, tag.length);
+    for(int i = 0; i < tag.length; i++)
+      assertEquals("should be 0 by default", (char)0, tag[i]);
+    coder.setCodecTag(0xDEADBEEF);
+    assertEquals("should be set now", 0xDEADBEEF, coder.getCodecTag());
+    tag = coder.getCodecTagArray();
+    assertNotNull("should exist", tag);
+    assertEquals("should always be 4", 4, tag.length);
+    assertEquals("test value", 0xDE, tag[3]);
+    assertEquals("test value", 0xAD, tag[2]);
+    assertEquals("test value", 0xBE, tag[1]);
+    assertEquals("test value", 0xEF, tag[0]);
+  }
   
+  public void testSetCodecTagArray()
+  {
+    IContainer container = IContainer.make();
+    assertTrue("should be able to open",
+        container.open("fixtures/subtitled_video.mkv", IContainer.Type.READ, null) >= 0);
+    IStreamCoder coder = container.getStream(0).getStreamCoder();
+   
+    char[] tag = new char[4];
+    tag[3] = 0xDE;
+    tag[2] = 0xAD;
+    tag[1] = 0xBE;
+    tag[0] = 0xEF;
+    coder.setCodecTag(tag);
+    assertEquals("should be set now", 0xDEADBEEF, coder.getCodecTag());
+  }
+
   private IStreamCoder getStreamCoder(String url, int index)
   {
     IStreamCoder retval = null;

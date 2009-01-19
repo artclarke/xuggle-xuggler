@@ -116,6 +116,9 @@ namespace com { namespace xuggle { namespace xuggler
 
     virtual int64_t getNextPredictedPts();
 
+    virtual int32_t getCodecTag();
+    virtual void setCodecTag(int32_t);
+
     // Not for calling from Java
     void setCodec(int32_t);
 

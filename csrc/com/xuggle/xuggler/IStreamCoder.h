@@ -575,6 +575,27 @@ namespace com { namespace xuggle { namespace xuggler
   protected:
     IStreamCoder();
     virtual ~IStreamCoder();
+  public:
+    /**
+     * Added for 1.17
+     */
+
+    /**
+     * Returns the 4-byte FOURCC tag (Least Significant Byte first).
+     *
+     * This is really a packed 4-byte array so it's only useful if you use
+     * bit-wise operations on it.  Some language wrappings may provide more
+     * obvious ways of manipulating, but this is the safest way to do this that
+     * will work with all wrappers.
+     *
+     * @return the FOURCC tag.
+     */
+    virtual int32_t getCodecTag()=0;
+    /**
+     * Set the 4-byte FOURCC tag for this coder.
+     * @param fourcc The FOURCC to set, with Least Significant Byte first.
+     */
+    virtual void setCodecTag(int32_t)=0;
   };
 
 }}}

@@ -70,6 +70,7 @@ libxuggle_xuggler_la_HEADERS= \
   IPixelFormat.h \
   IRational.h \
   IStreamCoder.h \
+  IStreamCoder.swg \
   IStream.h \
   ITimeValue.h \
   IVideoResampler.h \
