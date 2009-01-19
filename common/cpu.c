@@ -33,6 +33,11 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif
+#ifdef SYS_OPENBSD
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <machine/cpu.h>
+#endif
 
 #include "common.h"
 #include "cpu.h"
@@ -194,13 +199,17 @@ uint32_t x264_cpu_detect( void )
 
 #elif defined( ARCH_PPC )
 
-#ifdef SYS_MACOSX
+#if defined(SYS_MACOSX) || defined(SYS_OPENBSD)
 #include <sys/sysctl.h>
 uint32_t x264_cpu_detect( void )
 {
     /* Thank you VLC */
     uint32_t cpu = 0;
+#ifdef SYS_OPENBSD
+    int      selectors[2] = { CTL_MACHDEP, CPU_ALTIVEC };
+#else
     int      selectors[2] = { CTL_HW, HW_VECTORUNIT };
+#endif
     int      has_altivec = 0;
     size_t   length = sizeof( has_altivec );
     int      error = sysctl( selectors, 2, &has_altivec, &length, NULL, 0 );
@@ -294,10 +303,15 @@ int x264_cpu_num_processors( void )
     get_system_info( &info );
     return info.cpu_count;
 
-#elif defined(SYS_MACOSX) || defined(SYS_FREEBSD)
+#elif defined(SYS_MACOSX) || defined(SYS_FREEBSD) || defined(SYS_OPENBSD)
     int numberOfCPUs;
     size_t length = sizeof( numberOfCPUs );
+#ifdef SYS_OPENBSD
+    int mib[2] = { CTL_HW, HW_NCPU };
+    if( sysctl(mib, 2, &numberOfCPUs, &length, NULL, 0) )
+#else
     if( sysctlbyname("hw.ncpu", &numberOfCPUs, &length, NULL, 0) )
+#endif
     {
         numberOfCPUs = 1;
     }
