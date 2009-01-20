@@ -159,20 +159,23 @@ ICodec::Type
 StreamCoder :: getCodecType()
 {
   ICodec::Type retval = ICodec::CODEC_TYPE_UNKNOWN;
-  if (mCodecContext)
+  if (mCodecContext) {
     retval = (ICodec::Type)mCodecContext->codec_type;
+  } else {
+    VS_LOG_WARN("Attempt to get CodecType from uninitialized StreamCoder");
+  }
   return retval;
 }
 
 ICodec::ID
 StreamCoder :: getCodecID()
 {
-  RefPointer<ICodec> codec = this->getCodec();
   ICodec::ID retval = ICodec::CODEC_ID_NONE;
-
-  if (codec)
+  if (mCodecContext)
   {
-    retval = codec->getID();
+    retval = (ICodec::ID)mCodecContext->codec_id;
+  } else {
+    VS_LOG_WARN("Attempt to get CodecID from uninitialized StreamCoder");
   }
   return retval;
 }
