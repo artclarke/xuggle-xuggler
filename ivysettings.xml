@@ -31,7 +31,7 @@
       </filesystem>        
     </chain>    
     <chain name="remote" returnFirst="true">     
-      <filesystem name="share_libs">
+      <filesystem name="share_libs" changingPattern="*" checkmodified="true">
         <artifact pattern="${xugglerepo.dir}/[organization]/[artifact]/[artifact](-[revision]).[type]" />
         <artifact pattern="${xugglerepo.dir}/[organization]/[artifact]/[artifact](-[revision]).[ext]" />
       </filesystem>

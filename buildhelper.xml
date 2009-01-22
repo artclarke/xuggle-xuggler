@@ -954,16 +954,10 @@
           <include name="**/*"/>
         </fileset>
       </copy>
-      <mkdir dir="${env.RED5_HOME}/webapps/@{name}/WEB-INF/"/>
-      <!-- now copy over the contents of the dist directory -->
-      <copy todir="${env.RED5_HOME}/webapps/@{name}/WEB-INF">
-        <fileset dir="${dist.dir}">
-          <include name="**/*"/>
-        </fileset>
-      </copy>
+      <mkdir dir="${env.RED5_HOME}/webapps/@{name}/WEB-INF/lib"/>
       <!-- and make sure we copy over any major jar file -->
       <copy todir="${env.RED5_HOME}/webapps/@{name}/WEB-INF/lib">
-        <fileset dir="${dist.dir}">
+        <fileset dir="${dist.dir}/lib">
           <include name="*.jar"/>
         </fileset>
       </copy>
