@@ -101,14 +101,8 @@ public class DecodeAndPlayAudio
     /*
      * And once we have that, we ask the Java Sound System to get itself ready.
      */
-    try
-    {
-      openJavaSound(audioCoder);
-    }
-    catch (LineUnavailableException ex)
-    {
-      throw new RuntimeException("unable to open sound device on your system when playing back container: "+filename);
-    }
+    openJavaSound(audioCoder);
+    
     /*
      * Now, we start walking through the container looking at each packet.
      */
@@ -184,7 +178,7 @@ public class DecodeAndPlayAudio
     }
   }
 
-  private static void openJavaSound(IStreamCoder aAudioCoder) throws LineUnavailableException
+  private static void openJavaSound(IStreamCoder aAudioCoder)
   {
     AudioFormat audioFormat = new AudioFormat(aAudioCoder.getSampleRate(),
         (int)IAudioSamples.findSampleBitDepth(aAudioCoder.getSampleFormat()),
@@ -192,15 +186,22 @@ public class DecodeAndPlayAudio
         true, /* xuggler defaults to signed 16 bit samples */
         false);
     DataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
-    mLine = (SourceDataLine) AudioSystem.getLine(info);
-    /**
-     * if that succeeded, try opening the line.
-     */
-    mLine.open(audioFormat);
-    /**
-     * And if that succeed, start the line.
-     */
-    mLine.start();
+    try
+    {
+      mLine = (SourceDataLine) AudioSystem.getLine(info);
+      /**
+       * if that succeeded, try opening the line.
+       */
+      mLine.open(audioFormat);
+      /**
+       * And if that succeed, start the line.
+       */
+      mLine.start();
+    }
+    catch (LineUnavailableException e)
+    {
+      throw new RuntimeException("could not open audio line");
+    }
     
     
   }
