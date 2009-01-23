@@ -1630,6 +1630,78 @@ static int pixel_ssd_8x8_altivec ( uint8_t *pix1, int i_stride_pix1,
     return sum;
 }
 
+
+/****************************************************************************
+ * variance
+ ****************************************************************************/
+static int x264_pixel_var_16x16_altivec( uint8_t *pix, int i_stride )
+{
+    DECLARE_ALIGNED_16(uint32_t sum);
+    DECLARE_ALIGNED_16(uint32_t sqr);
+
+    LOAD_ZERO;
+    vec_u32_t sqr_v = zero_u32v;
+    vec_u32_t sum_v = zero_u32v;
+
+    int y;
+    for( y = 0; y < 16; ++y )
+    {
+        vec_u8_t pix0_v = vec_ld(0, pix);
+        sum_v = vec_sum4s(pix0_v, sum_v);
+        sqr_v = vec_msum(pix0_v, pix0_v, sqr_v);
+
+        pix += i_stride;
+    }
+    sum_v = vec_add( sum_v, vec_sld( sum_v, sum_v, 8 ) );
+    sqr_v = vec_add( sqr_v, vec_sld( sqr_v, sqr_v, 8 ) );
+    sum_v = vec_add( sum_v, vec_sld( sum_v, sum_v, 4 ) );
+    sqr_v = vec_add( sqr_v, vec_sld( sqr_v, sqr_v, 4 ) );
+    vec_ste(sum_v, 0, &sum);
+    vec_ste(sqr_v, 0, &sqr);
+
+    uint32_t var = sqr - (sum * sum >> 8);
+    return var;
+}
+
+static int x264_pixel_var_8x8_altivec( uint8_t *pix, int i_stride )
+{
+    DECLARE_ALIGNED_16(uint32_t sum);
+    DECLARE_ALIGNED_16(uint32_t sqr);
+
+    LOAD_ZERO;
+    vec_u32_t sqr_v = zero_u32v;
+    vec_u32_t sum_v = zero_u32v;
+
+    vec_u8_t perm0 = vec_lvsl( 0, pix );
+    vec_u8_t perm1 = vec_lvsl( 0, pix+i_stride );
+
+    int y;
+    for( y = 0; y < 8; y+=2 )
+    {
+        vec_u8_t pix0_v = vec_ld(0, pix);
+        vec_u8_t pix1_v = vec_ld(i_stride, pix);
+        pix0_v = vec_perm(pix0_v, pix0_v, perm0);
+        pix1_v = vec_perm(pix1_v, pix1_v, perm1);
+
+        vec_u8_t pix_v = vec_mergeh(pix0_v, pix1_v);
+
+        sum_v = vec_sum4s(pix_v, sum_v);
+        sqr_v = vec_msum(pix_v, pix_v, sqr_v);
+
+        pix += i_stride<<1;
+    }
+    sum_v = vec_add( sum_v, vec_sld( sum_v, sum_v, 8 ) );
+    sqr_v = vec_add( sqr_v, vec_sld( sqr_v, sqr_v, 8 ) );
+    sum_v = vec_add( sum_v, vec_sld( sum_v, sum_v, 4 ) );
+    sqr_v = vec_add( sqr_v, vec_sld( sqr_v, sqr_v, 4 ) );
+    vec_ste(sum_v, 0, &sum);
+    vec_ste(sqr_v, 0, &sqr);
+
+    uint32_t var = sqr - (sum * sum >> 6);
+    return var;
+}
+
+
 /**********************************************************************
  * SA8D routines: sum of 8x8 Hadamard transformed differences
  **********************************************************************/
@@ -1855,6 +1927,9 @@ void x264_pixel_altivec_init( x264_pixel_function_t *pixf )
 
     pixf->sa8d[PIXEL_16x16] = pixel_sa8d_16x16_altivec;
     pixf->sa8d[PIXEL_8x8]   = pixel_sa8d_8x8_altivec;
+
+    pixf->var[PIXEL_16x16] = x264_pixel_var_16x16_altivec;
+    pixf->var[PIXEL_8x8]   = x264_pixel_var_8x8_altivec;
 
     pixf->ssim_4x4x2_core = ssim_4x4x2_core_altivec;
 }
