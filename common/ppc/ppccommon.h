@@ -87,6 +87,22 @@ typedef union {
 #define vec_u16_to_u8(v) vec_pack( v, zero_u16v )
 #define vec_s16_to_u8(v) vec_packsu( v, zero_s16v )
 
+
+/***********************************************************************
+ * 16 <-> 32 bits conversions
+ **********************************************************************/
+#define vec_u16_to_u32_h(v) (vec_u32_t) vec_mergeh( zero_u16v, (vec_u16_t) v )
+#define vec_u16_to_u32_l(v) (vec_u32_t) vec_mergel( zero_u16v, (vec_u16_t) v )
+#define vec_u16_to_s32_h(v) (vec_s32_t) vec_mergeh( zero_u16v, (vec_u16_t) v )
+#define vec_u16_to_s32_l(v) (vec_s32_t) vec_mergel( zero_u16v, (vec_u16_t) v )
+
+#define vec_u16_to_u32(v) vec_u16_to_u32_h(v)
+#define vec_u16_to_s32(v) vec_u16_to_s32_h(v)
+
+#define vec_u32_to_u16(v) vec_pack( v, zero_u32v )
+#define vec_s32_to_u16(v) vec_packsu( v, zero_s32v )
+
+
 /***********************************************************************
  * PREP_LOAD: declares two vectors required to perform unaligned loads
  * VEC_LOAD:  loads n bytes from u8 * p into vector v of type t where o is from original src offset
