@@ -162,6 +162,22 @@ static void x264_mc_copy_w16_altivec( uint8_t *dst, int i_dst,
 }
 
 
+static void x264_mc_copy_w16_aligned_altivec( uint8_t *dst, int i_dst,
+                                              uint8_t *src, int i_src, int i_height )
+{
+    int y;
+
+    for( y = 0; y < i_height; ++y)
+    {
+        vec_u8_t cpyV = vec_ld( 0, src);
+        vec_st(cpyV, 0, dst);
+
+        src += i_src;
+        dst += i_dst;
+    }
+}
+
+
 static void mc_luma_altivec( uint8_t *dst,    int i_dst_stride,
                              uint8_t *src[4], int i_src_stride,
                              int mvx, int mvy,
@@ -643,6 +659,9 @@ void x264_mc_altivec_init( x264_mc_functions_t *pf )
     pf->mc_luma   = mc_luma_altivec;
     pf->get_ref   = get_ref_altivec;
     pf->mc_chroma = mc_chroma_altivec;
+
+    pf->copy_16x16_unaligned = x264_mc_copy_w16_altivec;
+    pf->copy[PIXEL_16x16] = x264_mc_copy_w16_aligned_altivec;
 
     pf->hpel_filter = x264_hpel_filter_altivec;
 }
