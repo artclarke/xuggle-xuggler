@@ -17,18 +17,14 @@ case $HOST_TYPE in
   # for the dll it creates, but does create .def files.  So, 
   # we create an import library for each def file we find.
 
-  # Find all .def files
-  FFMPEG_DEF_FILES=`find . -name '*.def'`
-  for def in ${FFMPEG_DEF_FILES}; do
-    FFMPEG_DLL_NAME=`basename ${def} .def`
+  # Find all .lib files
+  FFMPEG_LIB_FILES=`find . -name '*.lib'`
+  for lib in ${FFMPEG_LIB_FILES}; do
+    FFMPEG_DLL_NAME=`basename ${lib} .lib`
     FFMPEG_LIB_NAME=lib`echo ${FFMPEG_DLL_NAME} | sed 's/-[^-]*$//'`.dll.a
     FFMPEG_LIB="${FFMPEG_LIB_DIR}/${FFMPEG_LIB_NAME}"
-    if test ! -f "${FFMPEG_LIB}"; then
-      echo "Creating import lib ${FFMPEG_LIB_NAME} to DLL ${FFMPEG_DLL_NAME} from DEF file ${def}"
-      dlltool --input-def "${def}" \
-        --dllname "${FFMPEG_DLL_NAME}" \
-        --output-lib "${FFMPEG_LIB}"
-    fi
+    echo "Creating .dll.a file \"${FFMPEG_LIB_DIR}/${FFMPEG_LIB_NAME}\" for DLL ${FFMPEG_DLL_NAME} from MSVC Generated ${lib} file"
+    cp  -f "${lib}" "${FFMPEG_LIB_DIR}/${FFMPEG_LIB_NAME}"
   done
   ;;
   *)

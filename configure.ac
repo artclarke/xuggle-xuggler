@@ -165,6 +165,20 @@ AC_ARG_VAR(PERL,
           [Location of the 'perl' program; [PERL] is required if you add new tests or change exisitng tests.])
 AM_CONDITIONAL(HAVE_PERL, [ test "x$PERL" != "x" ])
 
+case $HOST_TYPE in
+  Windows)
+    AC_PATH_PROG([MSVC_LIB],[lib])
+    if test "x$MSVC_LIB" = "x"; then
+      AC_MSG_FAILURE([Could not find Microsoft Visual C++'s 'LIB' tool.  This is required to build xuggler.
+                      You can download a free version from http://www.microsoft.com/express/download.
+                      Also make sure you have defined the variables in vcvars32.bat before running configure.])
+    fi
+    ;;
+  *)
+    ;;
+esac
+
+
 #----------------------------------------------------------------
 # Look for java
 #----------------------------------------------------------------
