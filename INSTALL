@@ -1,57 +1,94 @@
-Welcome to Xuggle
+Welcome to Xuggler
 
-In general to install Xuggle do the following steps:
+The following is a general outline for installing Xuggler.  Please see:
+
+  http://www.xuggle.com/xuggler/downloads/build.jsp
+
+for details about these steps.
 
 0) Make sure you have the following software:
+
   - Java JDK 1.5 or 1.6 (preferred)
   - Ant 1.7
   - Perl 5.6 or higher (needed for C++ test suite)
   - G++ 3.4 or higher
   - Gmake 3.81 or higher
   - If Windows:
+    - A version of MSVC++ that contains the "lib" tool (MSFT now
+      provides a free compiler).
     - The very latest MSYS and Mingw releases (w32 runtime
       3.15.1 or higher), and preferrably gcc 4.3 or higher.
 
-1) Set a home for Xuggle
+1) Set a home for Xuggler
 
-   Define an environment variable called XUGGLE_HOME which points to
-   where you want Xuggle software installed.
+  Define an environment variable called XUGGLE_HOME which points to
+  where you want the Xuggler software installed.
 
-   For example, on Unix or Mac:
-   export XUGGLE_HOME=/usr/local
+  For example, on Unix:
 
-   For example on Windows:
-   In the Windows Environment variable space, set XUGGLE_HOME to point
-   to C:\msys\local
+    export XUGGLE_HOME=/usr/local
 
-2) Tell your OS about where to find Xuggle
+  For example, on Mac:
+  
+    export XUGGLE_HOME=/usr/local/xuggler
+    sudo mkdir /usr/local/xuggler
 
-   Add $XUGGLE_HOME/bin to your PATH variable, and $XUGGLE_HOME/lib to your
-   LD_LIBRARY_PATH (DYLD_LIBRARY_PATH on Mac) variable
+  For example on Windows, in the Windows Environment variable space, set
+  XUGGLE_HOME t point to:
+   
+    C:\msys\local
 
-   For example on Linux:
-   export PATH=$XUGGLE_HOME/bin:$PATH
-   export LD_LIBRARY_PATH=$XUGGLE_HOME/lib:$LD_LIBRARY_PATH
+2) Tell your OS about where to find Xuggler
 
-   For example on Mac:
-   export PATH=$XUGGLE_HOME/bin:$PATH
-   export DYLD_LIBRARY_PATH=$XUGGLE_HOME/lib:$DYLD_LIBRARY_PATH
+  Add $XUGGLE_HOME/bin to your PATH variable, and $XUGGLE_HOME/lib to
+  your LD_LIBRARY_PATH (DYLD_LIBRARY_PATH on Mac) variable
 
-   For example on Windows (there is no need to set the LD_LIBRARY_PATH):
-   PATH=%XUGGLE_HOME%\bin:%PATH%
+  For example on Linux:
 
-3) Build and Test Xuggle
-  From the area where you checked out or unpacked this distribution, run:
-   ant run-tests
-  This will configure the native code, compile it, compile all java
-  code and run the internal test suite.  If it finishes successfully
-  you can install Xuggle.
+    export PATH=$XUGGLE_HOME/bin:$PATH
+    export LD_LIBRARY_PATH=$XUGGLE_HOME/lib:$LD_LIBRARY_PATH
+
+  For example on Mac:
+
+    export PATH=$XUGGLE_HOME/bin:$PATH
+    export DYLD_LIBRARY_PATH=$XUGGLE_HOME/lib:$DYLD_LIBRARY_PATH
+    for i in {1..40}; do export xuggler$i=foo; done
+
+  NOTE: See http://www.xuggle.com/xuggler/downloads/build.jsp if you are
+  confused.
+
+  For example on Windows (there is no need to set the LD_LIBRARY_PATH):
+
+    PATH=%XUGGLE_HOME%\bin:%PATH%
+
+3) Build and Test Xuggler
+
+  From the area where you checked out or unpacked this distribution,
+  run:
+
+  For example:
+
+    ant run-tests
+
+  This will configure the native code, compile it, compile all java code
+  and run the internal test suite.  If it finishes successfully you can
+  install Xuggle.
 
 4) Install Xuggle
-  From the area where you checked out or unpacked the distruction, run:
-    ant install
-  If you've not set $XUGGLE_HOME, or set it to a priledged area, you 
-  may need to elevate privledges on your OS:
-    sudo ant install
 
-See http://www.xuggle.com/ for more detailed build steps.
+  From the area where you checked out or unpacked the distruction, run:
+
+  For example on Windows and Linux:
+
+    ant install
+
+  For example on Mac:
+
+    su root
+    ant install
+    exit
+
+  If you've not set $XUGGLE_HOME, or set it to a privileged area, you
+  may need to elevate privledges on your OS.
+
+5) See http://www.xuggle.com/ for more detailed build steps.
