@@ -1354,9 +1354,10 @@ void x264_macroblock_cache_save( x264_t *h )
                 h->mb.skipbp[i_mb_xy] = 0xf;
             else if( i_mb_type == B_8x8 )
             {
-                int skipbp = 0;
-                for( i = 0; i < 4; i++ )
-                    skipbp |= ( h->mb.i_sub_partition[i] == D_DIRECT_8x8 ) << i;
+                int skipbp = ( h->mb.i_sub_partition[0] == D_DIRECT_8x8 ) << 0;
+                skipbp    |= ( h->mb.i_sub_partition[1] == D_DIRECT_8x8 ) << 1;
+                skipbp    |= ( h->mb.i_sub_partition[2] == D_DIRECT_8x8 ) << 2;
+                skipbp    |= ( h->mb.i_sub_partition[3] == D_DIRECT_8x8 ) << 3;
                 h->mb.skipbp[i_mb_xy] = skipbp;
             }
             else

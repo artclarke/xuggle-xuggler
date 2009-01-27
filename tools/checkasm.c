@@ -551,6 +551,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     ok = 1; used_asm = 0;
     TEST_IDCT( add4x4_idct, dct4 );
     TEST_IDCT( add8x8_idct, dct4 );
+    TEST_IDCT( add8x8_idct_dc, dct4 );
     TEST_IDCT( add16x16_idct, dct4 );
     report( "add_idct4 :" );
 

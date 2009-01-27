@@ -348,6 +348,27 @@ static void add16x16_idct8( uint8_t *dst, int16_t dct[4][8][8] )
     add8x8_idct8( &dst[8*FDEC_STRIDE+8], dct[3] );
 }
 
+static void inline add4x4_idct_dc( uint8_t *p_dst, int16_t dc )
+{
+    int i;
+    dc = (dc + 32) >> 6;
+    for( i = 0; i < 4; i++, p_dst += FDEC_STRIDE )
+    {
+        p_dst[0] = x264_clip_uint8( p_dst[0] + dc );
+        p_dst[1] = x264_clip_uint8( p_dst[1] + dc );
+        p_dst[2] = x264_clip_uint8( p_dst[2] + dc );
+        p_dst[3] = x264_clip_uint8( p_dst[3] + dc );
+    }
+}
+
+static void add8x8_idct_dc( uint8_t *p_dst, int16_t dct[2][2] )
+{
+    add4x4_idct_dc( &p_dst[0],               dct[0][0] );
+    add4x4_idct_dc( &p_dst[4],               dct[0][1] );
+    add4x4_idct_dc( &p_dst[4*FDEC_STRIDE+0], dct[1][0] );
+    add4x4_idct_dc( &p_dst[4*FDEC_STRIDE+4], dct[1][1] );
+}
+
 
 /****************************************************************************
  * x264_dct_init:
@@ -359,6 +380,7 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
 
     dctf->sub8x8_dct    = sub8x8_dct;
     dctf->add8x8_idct   = add8x8_idct;
+    dctf->add8x8_idct_dc = add8x8_idct_dc;
 
     dctf->sub16x16_dct  = sub16x16_dct;
     dctf->add16x16_idct = add16x16_idct;
@@ -377,6 +399,7 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
     {
         dctf->sub4x4_dct    = x264_sub4x4_dct_mmx;
         dctf->add4x4_idct   = x264_add4x4_idct_mmx;
+        dctf->add8x8_idct_dc = x264_add8x8_idct_dc_mmx;
         dctf->dct4x4dc      = x264_dct4x4dc_mmx;
         dctf->idct4x4dc     = x264_idct4x4dc_mmx;
 
@@ -405,6 +428,9 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
         dctf->add8x8_idct   = x264_add8x8_idct_sse2;
         dctf->add16x16_idct = x264_add16x16_idct_sse2;
     }
+
+    if( cpu&X264_CPU_SSSE3 )
+        dctf->add8x8_idct_dc = x264_add8x8_idct_dc_ssse3;
 #endif //HAVE_MMX
 
 #ifdef ARCH_PPC

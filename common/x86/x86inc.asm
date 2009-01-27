@@ -497,3 +497,27 @@ INIT_MMX
     %endif
 %endmacro
 
+;Substitutions that reduce instruction size but are functionally equivalent
+%macro add 2
+    %ifnum %2
+        %if %2==128
+            sub %1, -128
+        %else
+            add %1, %2
+        %endif
+    %else
+        add %1, %2
+    %endif
+%endmacro
+
+%macro sub 2
+    %ifnum %2
+        %if %2==128
+            add %1, -128
+        %else
+            sub %1, %2
+        %endif
+    %else
+        sub %1, %2
+    %endif
+%endmacro

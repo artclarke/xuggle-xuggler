@@ -32,6 +32,7 @@ pw_8000: times 8 dw 0x8000
 pb_sub4frame:   db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
 pb_scan4framea: db 12,13,6,7,14,15,0,1,8,9,2,3,4,5,10,11
 pb_scan4frameb: db 0,1,8,9,2,3,4,5,10,11,12,13,6,7,14,15
+pb_idctdc_unpack: db 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
 
 SECTION .text
 
@@ -243,6 +244,85 @@ cextern x264_sub8x8_dct8_sse2
 cextern x264_add8x8_idct8_sse2
 SUB_NxN_DCT  x264_sub16x16_dct8_sse2,  x264_sub8x8_dct8_sse2,  128, 8, 0, 0
 ADD_NxN_IDCT x264_add16x16_idct8_sse2, x264_add8x8_idct8_sse2, 128, 8, 0, 0
+
+;-----------------------------------------------------------------------------
+; void add8x8_idct_dc( uint8_t *p_dst, int16_t *dct2x2 )
+;-----------------------------------------------------------------------------
+
+%macro ADD_DC 3
+    movq      mm4, [%3+FDEC_STRIDE*0]
+    movq      mm5, [%3+FDEC_STRIDE*1]
+    movq      mm6, [%3+FDEC_STRIDE*2]
+    paddusb   mm4, %1
+    paddusb   mm5, %1
+    paddusb   mm6, %1
+    paddusb    %1, [%3+FDEC_STRIDE*3]
+    psubusb   mm4, %2
+    psubusb   mm5, %2
+    psubusb   mm6, %2
+    psubusb    %1, %2
+    movq      [%3+FDEC_STRIDE*0], mm4
+    movq      [%3+FDEC_STRIDE*1], mm5
+    movq      [%3+FDEC_STRIDE*2], mm6
+    movq      [%3+FDEC_STRIDE*3], %1
+%endmacro
+
+cglobal x264_add8x8_idct_dc_mmx, 2,2
+    movq      mm0, [r1]
+    pxor      mm1, mm1
+    add        r0, FDEC_STRIDE*4
+    paddw     mm0, [pw_32 GLOBAL]
+    psraw     mm0, 6
+    psubw     mm1, mm0
+    packuswb  mm0, mm0
+    packuswb  mm1, mm1
+    punpcklbw mm0, mm0
+    punpcklbw mm1, mm1
+    pshufw    mm2, mm0, 0xFA
+    pshufw    mm3, mm1, 0xFA
+    punpcklbw mm0, mm0
+    punpcklbw mm1, mm1
+    ADD_DC    mm0, mm1, r0-FDEC_STRIDE*4
+    ADD_DC    mm2, mm3, r0
+    ret
+
+cglobal x264_add8x8_idct_dc_ssse3, 2,2
+    movq      xmm0, [r1]
+    pxor      xmm1, xmm1
+    add         r0, FDEC_STRIDE*4
+    paddw     xmm0, [pw_32 GLOBAL]
+    psraw     xmm0, 6
+    psubw     xmm1, xmm0
+    movdqa    xmm5, [pb_idctdc_unpack GLOBAL]
+    packuswb  xmm0, xmm0
+    packuswb  xmm1, xmm1
+    pshufb    xmm0, xmm5
+    pshufb    xmm1, xmm5
+    movq      xmm2, [r0+FDEC_STRIDE*-4]
+    movq      xmm3, [r0+FDEC_STRIDE*-3]
+    movq      xmm4, [r0+FDEC_STRIDE*-2]
+    movq      xmm5, [r0+FDEC_STRIDE*-1]
+    movhps    xmm2, [r0+FDEC_STRIDE* 0]
+    movhps    xmm3, [r0+FDEC_STRIDE* 1]
+    movhps    xmm4, [r0+FDEC_STRIDE* 2]
+    movhps    xmm5, [r0+FDEC_STRIDE* 3]
+    paddusb   xmm2, xmm0
+    paddusb   xmm3, xmm0
+    paddusb   xmm4, xmm0
+    paddusb   xmm5, xmm0
+    psubusb   xmm2, xmm1
+    psubusb   xmm3, xmm1
+    psubusb   xmm4, xmm1
+    psubusb   xmm5, xmm1
+    movq      [r0+FDEC_STRIDE*-4], xmm2
+    movq      [r0+FDEC_STRIDE*-3], xmm3
+    movq      [r0+FDEC_STRIDE*-2], xmm4
+    movq      [r0+FDEC_STRIDE*-1], xmm5
+    movhps    [r0+FDEC_STRIDE* 0], xmm2
+    movhps    [r0+FDEC_STRIDE* 1], xmm3
+    movhps    [r0+FDEC_STRIDE* 2], xmm4
+    movhps    [r0+FDEC_STRIDE* 3], xmm5
+    ret
 
 ;-----------------------------------------------------------------------------
 ; void x264_zigzag_scan_8x8_frame_ssse3( int16_t level[64], int16_t dct[8][8] )
