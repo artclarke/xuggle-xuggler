@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 git rev-list HEAD | sort > config.git-hash
 LOCALVER=`wc -l config.git-hash | awk '{print $1}'`
 if [ $LOCALVER \> 1 ] ; then
