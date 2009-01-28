@@ -1147,6 +1147,10 @@ void x264_ratecontrol_end( x264_t *h, int bits )
             {
                 update_predictor( rc->pred_b_from_p, qp2qscale(rc->qpa_rc),
                                   h->fref1[h->i_ref1-1]->i_satd, rc->bframe_bits / rc->bframes );
+                /* In some cases, such as completely blank scenes, pred_b_from_p can go nuts */
+                /* Hackily cap the predictor coeff in case this happens. */
+                /* FIXME FIXME FIXME */
+                rc->pred_b_from_p->coeff = X264_MIN( rc->pred_b_from_p->coeff, 10. );
                 rc->bframe_bits = 0;
             }
         }
