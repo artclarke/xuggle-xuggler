@@ -439,8 +439,13 @@ namespace com { namespace xuggle { namespace xuggler
       packet = &tmpPacket;
       av_init_packet(packet);
       pkt->reset();
-      retval = av_read_frame(mFormatContext,
-          packet);
+      do
+      {
+        retval = av_read_frame(mFormatContext,
+            packet);
+      }
+      while (retval == AVERROR(EAGAIN));
+
       if (retval >= 0)
         pkt->wrapAVPacket(packet);
       av_free_packet(packet);
