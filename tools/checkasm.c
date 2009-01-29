@@ -80,6 +80,10 @@ static inline uint32_t read_time(void)
     uint32_t a;
     asm volatile( "rdtsc" :"=a"(a) ::"edx" );
     return a;
+#elif defined(ARCH_PPC)
+    uint32_t a;
+    asm volatile( "mftb %0" : "=r" (a) );
+    return a;
 #else
     return 0;
 #endif
@@ -153,7 +157,8 @@ static void print_bench(void)
                     /* print sse2slow only if there's also a sse2fast version of the same func */
                     b->cpu&X264_CPU_SSE2_IS_SLOW && j<MAX_CPUS && b[1].cpu&X264_CPU_SSE2_IS_FAST && !(b[1].cpu&X264_CPU_SSE3) ? "sse2slow" :
                     b->cpu&X264_CPU_SSE2 ? "sse2" :
-                    b->cpu&X264_CPU_MMX ? "mmx" : "c",
+                    b->cpu&X264_CPU_MMX ? "mmx" :
+                    b->cpu&X264_CPU_ALTIVEC ? "altivec" : "c",
                     b->cpu&X264_CPU_CACHELINE_32 ? "_c32" :
                     b->cpu&X264_CPU_CACHELINE_64 ? "_c64" :
                     b->cpu&X264_CPU_SSE_MISALIGN ? "_misalign" :
@@ -1449,7 +1454,7 @@ int main(int argc, char *argv[])
 
     if( argc > 1 && !strncmp( argv[1], "--bench", 7 ) )
     {
-#if !defined(ARCH_X86) && !defined(ARCH_X86_64)
+#if !defined(ARCH_X86) && !defined(ARCH_X86_64) && !defined(ARCH_PPC)
         fprintf( stderr, "no --bench for your cpu until you port rdtsc\n" );
         return 1;
 #endif
