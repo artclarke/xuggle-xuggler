@@ -52,7 +52,7 @@
 #define X264_VERSION "" // no configure script for msvc
 #endif
 
-#if defined(SYS_OPENBSD) || defined(SYS_SunOS)
+#if (defined(SYS_OPENBSD) && !defined(isfinite)) || defined(SYS_SunOS)
 #define isfinite finite
 #endif
 #if defined(_MSC_VER) || defined(SYS_SunOS) || defined(SYS_MACOSX)

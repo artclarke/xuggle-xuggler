@@ -332,6 +332,9 @@ if test "$pthread" = "auto" ; then
                 CFLAGS="$CFLAGS -DPTW32_STATIC_LIB"
             fi
             ;;
+        OPENBSD)
+            cc_check pthread.h -pthread && pthread="yes" && libpthread="-pthread"
+            ;;
         *)
             cc_check pthread.h -lpthread && pthread="yes" && libpthread="-lpthread"
             ;;
