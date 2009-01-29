@@ -11,13 +11,16 @@ for details about these steps.
   - Java JDK 1.5 or 1.6 (preferred)
   - Ant 1.7
   - Perl 5.6 or higher (needed for C++ test suite)
-  - G++ 3.4 or higher
+  - G++ 3.2 or higher
   - Gmake 3.81 or higher
   - If Windows:
+    - We STRONGLY recommend you use the pre-compiled Windows installers
+      available on www.xuggle.com; building on windows is very error prone.
     - A version of MSVC++ that contains the "lib" tool (MSFT now
       provides a free compiler).
     - The very latest MSYS and Mingw releases (w32 runtime
-      3.15.1 or higher), and preferrably gcc 4.3 or higher.
+      3.15.1 or higher), and gcc 4.2.4; different versions of GCC won't work.
+    - Perl compiled for msys; ActiveState Perl will not work.
 
 1) Set a home for Xuggler
 
@@ -37,6 +40,8 @@ for details about these steps.
   XUGGLE_HOME t point to:
    
     C:\msys\local
+
+  Make sure the directory already exists before you start the build.
 
 2) Tell your OS about where to find Xuggler
 
