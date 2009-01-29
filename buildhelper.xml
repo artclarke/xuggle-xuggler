@@ -192,7 +192,7 @@
       <artifacts pattern="${dist.dir}/lib/[artifact].[ext]" />
     </ivy:publish>
     <ivy:makepom ivyfile="ivy.xml"
-      pomfile="${xugglerepo.dir}/xuggle/${app.name}/${app.name}.pom">
+      pomfile="${xugglerepo.dir}/xuggle/${app.name}/${app.name}-${library.version.major}.${library.version.minor}.${library.revision}.pom">
       <mapping conf="compile" scope="compile"/>
       <mapping conf="default" scope="runtime"/>
       <mapping conf="test" scope="test"/>
@@ -422,6 +422,7 @@
       <filterset>
         <filter token="LIB_MAJOR_VERSION" value="${library.version.major}"/>
         <filter token="LIB_MINOR_VERSION" value="${library.version.minor}"/>
+        <filter token="LIB_REVISION" value="${library.revision}"/>
       </filterset>
       <globmapper from="*.java.in" to="*.java"/>
     </copy>
