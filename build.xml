@@ -21,6 +21,31 @@
   <!-- And bring in the standard build rules -->
   <import file="mk/buildtools/buildhelper.xml"/>
 
+  <!-- If we're on windows, auto build the installer when staging -->
+  <target name="stage"
+    depends="xuggle-buildhelper.stage"
+    >
+    <if>
+      <isset property="os.windows"/>
+      <then>
+        <if>
+          <available file="mk/windowsx86.nsi"/>
+          <then>
+            <exec executable="makensis"
+              failonerror="true"
+              failifexecutionfails="false"
+              >
+              <arg value="/DXUGGLE_HOME=${dist.dir}${file.separator}stage${xuggle.dir}"/>
+              <arg value="mk/windowsx86.nsi"/>
+            </exec>
+          </then>
+          <else>
+            <echo message="could not find NSI file"/>
+          </else>
+        </if>
+      </then>
+    </if>
+  </target>
   <target name="install-red5"
     description="Installed Red5 applications to $RED5_HOME">
     <echo message="Installing ${app.name}.jar with native dependencies to: ${env.RED5_HOME}"/>
