@@ -5,7 +5,7 @@ Name Xuggle-Xuggler
 
 # General Symbol Definitions
 !define REGKEY "SOFTWARE\$(^Name)"
-!define VERSION 1.18
+!define VERSION @LIB_MAJOR_VERSION@.@LIB_MINOR_VERSION@.@LIB_REVISION@
 !define COMPANY Xuggle
 !define URL www.xuggle.com
 
@@ -30,7 +30,7 @@ Name Xuggle-Xuggler
 !include MultiUser.nsh
 !include Sections.nsh
 !include MUI2.nsh
-!include EnvVarUpdate.nsh
+!include ..\mk\EnvVarUpdate.nsh
 
 # Reserved Files
 ReserveFile "${NSISDIR}\Plugins\BGImage.dll"
@@ -50,12 +50,12 @@ ReserveFile "${NSISDIR}\Plugins\AdvSplash.dll"
 !insertmacro MUI_LANGUAGE English
 
 # Installer attributes
-OutFile ../dist/setup.exe
+OutFile ../dist/setup-@LIB_MAJOR_VERSION@.@LIB_MINOR_VERSION@.@LIB_REVISION@.exe
 InstallDir Xuggle
 CRCCheck on
 XPStyle on
 ShowInstDetails show
-VIProductVersion 0.0.0.0
+VIProductVersion @LIB_MAJOR_VERSION@.@LIB_MINOR_VERSION@.@LIB_REVISION@
 VIAddVersionKey ProductName Xuggle-Xuggler
 VIAddVersionKey ProductVersion "${VERSION}"
 VIAddVersionKey CompanyName "${COMPANY}"

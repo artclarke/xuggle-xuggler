@@ -25,18 +25,30 @@
   <target name="stage"
     depends="xuggle-buildhelper.stage"
     >
+    <echo message="Generating Installer source files from templates"/>
+    <copy failonerror="false" todir="${build.dir}">
+      <fileset dir="${top.dir}${file.separator}mk">
+        <include name="**/*.in"/>
+      </fileset>
+      <filterset>
+        <filter token="LIB_MAJOR_VERSION" value="${library.version.major}"/>
+        <filter token="LIB_MINOR_VERSION" value="${library.version.minor}"/>
+        <filter token="LIB_REVISION" value="${library.revision}"/>
+      </filterset>
+      <globmapper from="*.in" to="*"/>
+    </copy>
     <if>
       <isset property="os.windows"/>
       <then>
         <if>
-          <available file="mk/windowsx86.nsi"/>
+          <available file="build/windowsx86.nsi"/>
           <then>
             <exec executable="makensis"
               failonerror="true"
               failifexecutionfails="false"
               >
               <arg value="/DXUGGLE_HOME=${dist.dir}${file.separator}stage${xuggle.dir}"/>
-              <arg value="mk/windowsx86.nsi"/>
+              <arg value="build/windowsx86.nsi"/>
             </exec>
           </then>
           <else>
