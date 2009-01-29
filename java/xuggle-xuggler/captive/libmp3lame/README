@@ -1,3 +1,8 @@
-Lame version 3.98.2
+Lame version 3.98
 Software Homepage: http://lame.sourceforge.net/index.php
-Source Download URL: http://downloads.sourceforge.net/lame/lame-398-2.tar.gz
+Source Download URL: http://downloads.sourceforge.net/lame/lame-398.tar.gz
+Notes:
+Lame 3.98.2 doesn't work with FFMPEG as of FFMPEG revision 16686; neither
+ FFMPEG nor Lame seem to be in a hurry to fix, so we use lame 3.98 which
+ does work.
+
