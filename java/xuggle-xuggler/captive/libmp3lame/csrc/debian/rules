@@ -1,0 +1,103 @@
+#!/usr/bin/make -f
+# Sample debian/rules that uses debhelper, GNU copyright 1997 to 1999 by Joey Hess.
+# Adapted by Rogério Brito for the lame project.
+
+# Uncomment this to turn on verbose mode.
+#export DHVERBOSE=1
+
+# Variables for cross compiling
+DEB_HOST_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+
+CFLAGS = -g -Wall -Wextra
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -O0
+else
+	CFLAGS += -O2
+endif
+
+
+configure: configure-stamp
+configure-stamp:
+	dh_testdir
+	# Add here commands to configure the package.
+	CFLAGS="$(CFLAGS)" ./configure \
+		--prefix=/usr \
+		--mandir=/usr/share/man \
+		--with-fileio=sndfile \
+		--without-vorbis \
+		--enable-nasm \
+		--with-pic \
+		--disable-mp3x \
+		--disable-mp3rtp \
+		--disable-gtktest \
+		--host=$(DEB_HOST_GNU_TYPE) \
+		--build=$(DEB_BUILD_GNU_TYPE) \
+		--enable-expopt=full
+
+   # Patch the generated libtool to avoid passing -rpath when linking,
+   # and to explicitly link libraries against the libraries they depend
+   # on. (thanks Richard Braakman <dark@xs4all.nl>). Taken from:
+   # http://lists.debian.org/debian-devel/2002/debian-devel-200207/msg01792.html
+	sed < libtool > libtool-2 \
+		-e 's/^\(hardcode_libdir_flag_spec\).*$$/\1=" -D__LIBTOOL_IS_A_FOOL__ "/' \
+		-e '/^archive_cmds="/s/"$$/ \\$$deplibs"/'
+	mv libtool-2 libtool
+	chmod 755 libtool
+
+	touch configure-stamp
+
+build: configure-stamp build-stamp
+build-stamp:
+	dh_testdir
+
+        # Add here commands to compile the package.
+	$(MAKE)
+
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp configure-stamp
+
+	# Add here commands to clean up after the build process.
+	[ ! -f Makefile ] || $(MAKE) distclean
+	dh_clean confcache libmp3lame/i386/choose_table.nas.lst \
+	libmp3lame/i386/cpu_feat.nas.lst libmp3lame/i386/scalar.nas.lst
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+
+	# Add here commands to install the package into debian/tmp
+	$(MAKE) DESTDIR=`pwd`/debian/tmp install
+
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_movefiles --sourcedir=debian/tmp
+	dh_installdocs
+	dh_installman -Nlibmp3lame0 -Nlibmp3lame0-dev
+	dh_installchangelogs ChangeLog
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_makeshlibs
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

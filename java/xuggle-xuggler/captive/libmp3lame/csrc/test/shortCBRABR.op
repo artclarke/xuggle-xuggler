@@ -1,0 +1,18 @@
+-b 8
+-b 8 -f
+-b 8 -h
+-b 8 -h -m m
+--abr 9
+-b 56
+--abr 60
+--abr 128 
+--abr 128 -f
+--abr 128 -h
+--abr 128 -h -m m
+-b 128
+--abr 319
+-b 320 
+-b 320 -f
+-b 320 -h
+-b 320 -h -m m 
+-b 320 -h -m s
