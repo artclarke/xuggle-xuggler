@@ -20,10 +20,10 @@ Name Xuggle-Xuggler
 !define MULTIUSER_INSTALLMODE_INSTDIR_REGISTRY_VALUE "Path"
 
 # MUI Symbol Definitions
-!define MUI_ICON xuggle.ico
+!define MUI_ICON ..\mk\xuggle.ico
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 !define MUI_CUSTOMFUNCTION_GUIINIT CustomGUIInit
-!define MUI_UNICON xuggle.ico
+!define MUI_UNICON ..\mk\xuggle.ico
 !define MUI_UNFINISHPAGE_NOAUTOCLOSE
 
 # Included files
@@ -55,7 +55,7 @@ InstallDir Xuggle
 CRCCheck on
 XPStyle on
 ShowInstDetails show
-VIProductVersion @LIB_MAJOR_VERSION@.@LIB_MINOR_VERSION@.@LIB_REVISION@
+VIProductVersion @LIB_MAJOR_VERSION@.@LIB_MINOR_VERSION@.@LIB_REVISION@.0
 VIAddVersionKey ProductName Xuggle-Xuggler
 VIAddVersionKey ProductVersion "${VERSION}"
 VIAddVersionKey CompanyName "${COMPANY}"
@@ -129,7 +129,7 @@ Function CustomGUIInit
     BgImage::SetBg /NOUNLOAD /GRADIENT 0 0 128 0 0 0
     Pop $R1
     Strcmp $R1 success 0 error
-    File /oname=$PLUGINSDIR\bgimage.bmp xuggle-logo-background.bmp
+    File /oname=$PLUGINSDIR\bgimage.bmp ..\mk\xuggle-logo-background.bmp
     System::call "user32::GetSystemMetrics(i 0)i.R1"
     System::call "user32::GetSystemMetrics(i 1)i.R2"
     IntOp $R1 $R1 - 800
@@ -157,7 +157,7 @@ FunctionEnd
 Function .onInit
     InitPluginsDir
     Push $R1
-    File /oname=$PLUGINSDIR\spltmp.bmp xuggle-logo-splash.bmp
+    File /oname=$PLUGINSDIR\spltmp.bmp ..\mk\xuggle-logo-splash.bmp
     advsplash::show 1000 600 400 -1 $PLUGINSDIR\spltmp
     Pop $R1
     Pop $R1
