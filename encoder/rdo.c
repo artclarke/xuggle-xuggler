@@ -215,6 +215,8 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i4, int i_pixel )
     if( i_pixel > PIXEL_8x8 )
         return x264_rd_cost_subpart( h, i_lambda2, i4, i_pixel );
 
+    h->mb.i_cbp_luma = 0;
+
     x264_macroblock_encode_p8x8( h, i8 );
     if( i_pixel == PIXEL_16x8 )
         x264_macroblock_encode_p8x8( h, i8+1 );
@@ -243,6 +245,8 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i4, int i_pixel )
 static uint64_t x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode )
 {
     uint64_t i_ssd, i_bits;
+    h->mb.i_cbp_luma = 0;
+    h->mb.b_transform_8x8 = 1;
 
     x264_mb_encode_i8x8( h, i8, h->mb.i_qp );
     i_ssd = ssd_plane( h, PIXEL_8x8, 0, (i8&1)*8, (i8>>1)*8 );
@@ -404,7 +408,7 @@ typedef struct {
 // comparable to the input. so unquant is the direct inverse of quant,
 // and uses the dct scaling factors, not the idct ones.
 
-static ALWAYS_INLINE void quant_trellis_cabac( x264_t *h, int16_t *dct,
+static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
                                  const uint16_t *quant_mf, const int *unquant_mf,
                                  const int *coef_weight, const uint8_t *zigzag,
                                  int i_ctxBlockCat, int i_lambda2, int b_ac, int dc, int i_coefs, int idx )
@@ -419,7 +423,7 @@ static ALWAYS_INLINE void quant_trellis_cabac( x264_t *h, int16_t *dct,
     const int b_interlaced = h->mb.b_interlaced;
     const int f = 1 << 15; // no deadzone
     int i_last_nnz;
-    int i, j;
+    int i, j, nz;
 
     // (# of coefs) * (# of ctx) * (# of levels tried) = 1024
     // we don't need to keep all of those: (# of coefs) * (# of ctx) would be enough,
@@ -438,7 +442,7 @@ static ALWAYS_INLINE void quant_trellis_cabac( x264_t *h, int16_t *dct,
     if( i < b_ac )
     {
         memset( dct, 0, i_coefs * sizeof(*dct) );
-        return;
+        return 0;
     }
 
     i_last_nnz = i;
@@ -613,39 +617,42 @@ static ALWAYS_INLINE void quant_trellis_cabac( x264_t *h, int16_t *dct,
             bnode = &nodes_cur[j];
 
     j = bnode->level_idx;
+    nz = 0;
     for( i = b_ac; i < i_coefs; i++ )
     {
         dct[zigzag[i]] = level_tree[j].abs_level * signs[i];
+        nz |= level_tree[j].abs_level;
         j = level_tree[j].next;
     }
+    return !!nz;
 }
 
 const static uint8_t x264_zigzag_scan2[4] = {0,1,2,3};
 
-void x264_quant_dc_trellis( x264_t *h, int16_t *dct, int i_quant_cat,
+int x264_quant_dc_trellis( x264_t *h, int16_t *dct, int i_quant_cat,
                             int i_qp, int i_ctxBlockCat, int b_intra )
 {
-    quant_trellis_cabac( h, (int16_t*)dct,
+    return quant_trellis_cabac( h, (int16_t*)dct,
         h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
         NULL, i_ctxBlockCat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[h->mb.b_interlaced],
         i_ctxBlockCat, lambda2_tab[b_intra][i_qp], 0, 1, i_ctxBlockCat==DCT_CHROMA_DC ? 4 : 16, 0 );
 }
 
-void x264_quant_4x4_trellis( x264_t *h, int16_t dct[4][4], int i_quant_cat,
+int x264_quant_4x4_trellis( x264_t *h, int16_t dct[4][4], int i_quant_cat,
                              int i_qp, int i_ctxBlockCat, int b_intra, int idx )
 {
     int b_ac = (i_ctxBlockCat == DCT_LUMA_AC || i_ctxBlockCat == DCT_CHROMA_AC);
-    quant_trellis_cabac( h, (int16_t*)dct,
+    return quant_trellis_cabac( h, (int16_t*)dct,
         h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
         x264_dct4_weight2_zigzag[h->mb.b_interlaced],
         x264_zigzag_scan4[h->mb.b_interlaced],
         i_ctxBlockCat, lambda2_tab[b_intra][i_qp], b_ac, 0, 16, idx );
 }
 
-void x264_quant_8x8_trellis( x264_t *h, int16_t dct[8][8], int i_quant_cat,
+int x264_quant_8x8_trellis( x264_t *h, int16_t dct[8][8], int i_quant_cat,
                              int i_qp, int b_intra, int idx )
 {
-    quant_trellis_cabac( h, (int16_t*)dct,
+    return quant_trellis_cabac( h, (int16_t*)dct,
         h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],
         x264_dct8_weight2_zigzag[h->mb.b_interlaced],
         x264_zigzag_scan8[h->mb.b_interlaced],

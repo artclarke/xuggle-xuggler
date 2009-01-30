@@ -33,6 +33,7 @@ pb_sub4frame:   db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
 pb_scan4framea: db 12,13,6,7,14,15,0,1,8,9,2,3,4,5,10,11
 pb_scan4frameb: db 0,1,8,9,2,3,4,5,10,11,12,13,6,7,14,15
 pb_idctdc_unpack: db 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
+pb_idctdc_unpack2: db 4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7
 
 SECTION .text
 
@@ -322,6 +323,104 @@ cglobal x264_add8x8_idct_dc_ssse3, 2,2
     movhps    [r0+FDEC_STRIDE* 1], xmm3
     movhps    [r0+FDEC_STRIDE* 2], xmm4
     movhps    [r0+FDEC_STRIDE* 3], xmm5
+    ret
+
+cglobal x264_add16x16_idct_dc_mmx, 2,3
+    mov       r2, 4
+.loop:
+    movq      mm0, [r1]
+    pxor      mm1, mm1
+    paddw     mm0, [pw_32 GLOBAL]
+    psraw     mm0, 6
+    psubw     mm1, mm0
+    packuswb  mm0, mm0
+    packuswb  mm1, mm1
+    punpcklbw mm0, mm0
+    punpcklbw mm1, mm1
+    pshufw    mm2, mm0, 0xFA
+    pshufw    mm3, mm1, 0xFA
+    punpcklbw mm0, mm0
+    punpcklbw mm1, mm1
+    ADD_DC    mm0, mm1, r0
+    ADD_DC    mm2, mm3, r0+8
+    add       r1, 8
+    add       r0, FDEC_STRIDE*4
+    dec       r2
+    jg .loop
+    ret
+
+%macro IDCT_DC_STORE 3
+    movdqa    xmm4, [r0+%1+FDEC_STRIDE*0]
+    movdqa    xmm5, [r0+%1+FDEC_STRIDE*1]
+    movdqa    xmm6, [r0+%1+FDEC_STRIDE*2]
+    movdqa    xmm7, [r0+%1+FDEC_STRIDE*3]
+    paddusb   xmm4, %2
+    paddusb   xmm5, %2
+    paddusb   xmm6, %2
+    paddusb   xmm7, %2
+    psubusb   xmm4, %3
+    psubusb   xmm5, %3
+    psubusb   xmm6, %3
+    psubusb   xmm7, %3
+    movdqa    [r0+%1+FDEC_STRIDE*0], xmm4
+    movdqa    [r0+%1+FDEC_STRIDE*1], xmm5
+    movdqa    [r0+%1+FDEC_STRIDE*2], xmm6
+    movdqa    [r0+%1+FDEC_STRIDE*3], xmm7
+%endmacro
+
+cglobal x264_add16x16_idct_dc_sse2, 2,2
+    call .loop
+    add       r0, FDEC_STRIDE*4
+.loop:
+    add       r0, FDEC_STRIDE*4
+    movq      xmm0, [r1+0]
+    movq      xmm2, [r1+8]
+    add       r1, 16
+    punpcklwd xmm0, xmm0
+    punpcklwd xmm2, xmm2
+    pxor      xmm1, xmm1
+    pxor      xmm3, xmm3
+    paddw     xmm0, [pw_32 GLOBAL]
+    paddw     xmm2, [pw_32 GLOBAL]
+    psraw     xmm0, 6
+    psraw     xmm2, 6
+    psubw     xmm1, xmm0
+    psubw     xmm3, xmm2
+    packuswb  xmm0, xmm1
+    packuswb  xmm2, xmm3
+    movdqa    xmm1, xmm0
+    movdqa    xmm3, xmm2
+    punpcklbw xmm0, xmm0
+    punpcklbw xmm2, xmm2
+    punpckhbw xmm1, xmm1
+    punpckhbw xmm3, xmm3
+    IDCT_DC_STORE FDEC_STRIDE*-4, xmm0, xmm1
+    IDCT_DC_STORE 0, xmm2, xmm3
+    ret
+
+cglobal x264_add16x16_idct_dc_ssse3, 2,2
+    call .loop
+    add       r0, FDEC_STRIDE*4
+.loop:
+    add       r0, FDEC_STRIDE*4
+    movdqa    xmm0, [r1]
+    add       r1, 16
+    pxor      xmm1, xmm1
+    paddw     xmm0, [pw_32 GLOBAL]
+    psraw     xmm0, 6
+    psubw     xmm1, xmm0
+    movdqa    xmm5, [ pb_idctdc_unpack GLOBAL]
+    movdqa    xmm6, [pb_idctdc_unpack2 GLOBAL]
+    packuswb  xmm0, xmm0
+    packuswb  xmm1, xmm1
+    movdqa    xmm2, xmm0
+    movdqa    xmm3, xmm1
+    pshufb    xmm0, xmm5
+    pshufb    xmm2, xmm6
+    pshufb    xmm1, xmm5
+    pshufb    xmm3, xmm6
+    IDCT_DC_STORE FDEC_STRIDE*-4, xmm0, xmm1
+    IDCT_DC_STORE 0, xmm2, xmm3
     ret
 
 ;-----------------------------------------------------------------------------

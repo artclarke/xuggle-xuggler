@@ -34,9 +34,12 @@ void x264_add4x4_idct_mmx    ( uint8_t *p_dst, int16_t dct[ 4][4]    );
 void x264_add8x8_idct_mmx    ( uint8_t *p_dst, int16_t dct[ 4][4][4] );
 void x264_add8x8_idct_dc_mmx ( uint8_t *p_dst, int16_t dct[2][2] );
 void x264_add16x16_idct_mmx  ( uint8_t *p_dst, int16_t dct[16][4][4] );
+void x264_add16x16_idct_dc_mmx ( uint8_t *p_dst, int16_t dct[4][4] );
 void x264_add8x8_idct_sse2   ( uint8_t *p_dst, int16_t dct[ 4][4][4] );
 void x264_add16x16_idct_sse2 ( uint8_t *p_dst, int16_t dct[16][4][4] );
+void x264_add16x16_idct_dc_sse2( uint8_t *p_dst, int16_t dct[4][4] );
 void x264_add8x8_idct_dc_ssse3( uint8_t *p_dst, int16_t dct[2][2] );
+void x264_add16x16_idct_dc_ssse3( uint8_t *p_dst, int16_t dct[4][4] );
 
 void x264_dct4x4dc_mmx       ( int16_t d[4][4] );
 void x264_idct4x4dc_mmx      ( int16_t d[4][4] );

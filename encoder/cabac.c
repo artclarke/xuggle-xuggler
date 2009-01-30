@@ -1142,20 +1142,10 @@ static void x264_subpartition_size_cabac( x264_t *h, x264_cabac_t *cb, int i4, i
 static void x264_partition_i8x8_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int i_mode )
 {
     const int i_pred = x264_mb_predict_intra4x4_mode( h, 4*i8 );
-    const int nnz = array_non_zero(h->dct.luma8x8[i8]);
     i_mode = x264_mb_pred_mode4x4_fix( i_mode );
     x264_cabac_mb_intra4x4_pred_mode( cb, i_pred, i_mode );
-    if( nnz )
-    {
-        *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4]] = 0x0101;
-        *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4+2]] = 0x0101;
+    if( h->mb.i_cbp_luma & (1 << i8) )
         block_residual_write_cabac_8x8( h, cb, 4*i8, h->dct.luma8x8[i8] );
-    }
-    else
-    {
-        *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4]] = 0;
-        *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[i8*4+2]] = 0;
-    }
 }
 
 static void x264_partition_i4x4_size_cabac( x264_t *h, x264_cabac_t *cb, int i4, int i_mode )
@@ -1163,7 +1153,6 @@ static void x264_partition_i4x4_size_cabac( x264_t *h, x264_cabac_t *cb, int i4,
     const int i_pred = x264_mb_predict_intra4x4_mode( h, i4 );
     i_mode = x264_mb_pred_mode4x4_fix( i_mode );
     x264_cabac_mb_intra4x4_pred_mode( cb, i_pred, i_mode );
-    h->mb.cache.non_zero_count[x264_scan8[i4]] = array_non_zero( h->dct.luma4x4[i4] );
     block_residual_write_cabac( h, cb, DCT_LUMA_4x4, i4, h->dct.luma4x4[i4], 16 );
 }
 

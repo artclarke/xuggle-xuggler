@@ -29,6 +29,7 @@ SECTION_RODATA
 pb_1:     times 16 db 1
 pw_1:     times 8 dw 1
 pd_1:     times 4 dd 1
+pb_01:    times 8 db 0, 1
 
 %macro DQM4 3
     dw %1, %2, %1, %2, %2, %3, %2, %3
@@ -70,7 +71,7 @@ decimate_mask_table4:
 
 SECTION .text
 
-%macro QUANT_DC_START 0
+%macro QUANT_DC_START_MMX 0
     movd       m6, r1m     ; mf
     movd       m7, r2m     ; bias
 %ifidn m0, mm0
@@ -82,6 +83,14 @@ SECTION .text
     punpcklqdq m6, m6
     punpcklqdq m7, m7
 %endif
+%endmacro
+
+%macro QUANT_DC_START_SSSE3 0
+    movdqa     m5, [pb_01 GLOBAL]
+    movd       m6, r1m     ; mf
+    movd       m7, r2m     ; bias
+    pshufb     m6, m5
+    pshufb     m7, m5
 %endmacro
 
 %macro PABSW_MMX 2
@@ -105,7 +114,7 @@ SECTION .text
     psignw     %1, %2
 %endmacro
 
-%macro QUANT_ONE 3
+%macro QUANT_ONE 4
 ;;; %1      (m64)       dct[y][x]
 ;;; %2      (m64/mmx)   mf[y][x] or mf[0][0] (as uint16_t)
 ;;; %3      (m64/mmx)   bias[y][x] or bias[0][0] (as uint16_t)
@@ -115,6 +124,62 @@ SECTION .text
     pmulhuw    m0, %2   ; divide
     PSIGNW     m0, m1   ; restore sign
     mova       %1, m0   ; store
+%if %4
+    por        m5, m0
+%else
+    SWAP       m5, m0
+%endif
+%endmacro
+
+%macro QUANT_TWO 7
+    mova       m1, %1
+    mova       m3, %2
+    PABSW      m0, m1
+    PABSW      m2, m3
+    paddusw    m0, %5
+    paddusw    m2, %6
+    pmulhuw    m0, %3
+    pmulhuw    m2, %4
+    PSIGNW     m0, m1
+    PSIGNW     m2, m3
+    mova       %1, m0
+    mova       %2, m2
+%if %7
+    por        m5, m0
+    por        m5, m2
+%else
+    SWAP       m5, m0
+    por        m5, m2
+%endif
+%endmacro
+
+%macro QUANT_END_MMX 0
+    xor      eax, eax
+%ifndef ARCH_X86_64
+%if mmsize==8
+    packsswb  m5, m5
+    movd     ecx, m5
+    test     ecx, ecx
+%else
+    pxor      m4, m4
+    pcmpeqb   m5, m4
+    pmovmskb ecx, m5
+    cmp      ecx, (1<<mmsize)-1
+%endif
+%else
+%if mmsize==16
+    packsswb  m5, m5
+%endif
+    movq     rcx, m5
+    test     rcx, rcx
+%endif
+    setne     al
+%endmacro
+
+%macro QUANT_END_SSE4 0
+    xor      eax, eax
+    ptest     m5, m5
+    setne     al
 %endmacro
 
 ;-----------------------------------------------------------------------------
@@ -123,30 +188,38 @@ SECTION .text
 %macro QUANT_DC 2
 cglobal %1, 1,1
     QUANT_DC_START
+%if %2==1
+    QUANT_ONE [r0], m6, m7, 0
+%else
 %assign x 0
-%rep %2
-    QUANT_ONE [r0+x], m6, m7
-%assign x x+mmsize
+%rep %2/2
+    QUANT_TWO [r0+x], [r0+x+mmsize], m6, m6, m7, m7, x
+%assign x x+mmsize*2
 %endrep
+%endif
+    QUANT_END
     RET
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void x264_quant_4x4_mmx( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
+; int x264_quant_4x4_mmx( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
 ;-----------------------------------------------------------------------------
 %macro QUANT_AC 2
 cglobal %1, 3,3
 %assign x 0
-%rep %2
-    QUANT_ONE [r0+x], [r1+x], [r2+x]
-%assign x x+mmsize
+%rep %2/2
+    QUANT_TWO [r0+x], [r0+x+mmsize], [r1+x], [r1+x+mmsize], [r2+x], [r2+x+mmsize], x
+%assign x x+mmsize*2
 %endrep
+    QUANT_END
     RET
 %endmacro
 
 INIT_MMX
+%define QUANT_END QUANT_END_MMX
 %define PABSW PABSW_MMX
 %define PSIGNW PSIGNW_MMX
+%define QUANT_DC_START QUANT_DC_START_MMX
 QUANT_DC x264_quant_2x2_dc_mmxext, 1
 %ifndef ARCH_X86_64 ; not needed because sse2 is faster
 QUANT_DC x264_quant_4x4_dc_mmxext, 4
@@ -167,6 +240,13 @@ QUANT_AC x264_quant_8x8_ssse3, 8
 
 INIT_MMX
 QUANT_DC x264_quant_2x2_dc_ssse3, 1
+%define QUANT_END QUANT_END_SSE4
+;Not faster on Conroe, so only used in SSE4 versions
+%define QUANT_DC_START QUANT_DC_START_SSSE3
+INIT_XMM
+QUANT_DC x264_quant_4x4_dc_sse4, 2
+QUANT_AC x264_quant_4x4_sse4, 2
+QUANT_AC x264_quant_8x8_sse4, 8
 
 
 
