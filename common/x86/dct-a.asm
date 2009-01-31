@@ -34,6 +34,7 @@ pb_scan4framea: db 12,13,6,7,14,15,0,1,8,9,2,3,4,5,10,11
 pb_scan4frameb: db 0,1,8,9,2,3,4,5,10,11,12,13,6,7,14,15
 pb_idctdc_unpack: db 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
 pb_idctdc_unpack2: db 4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7
+pb_1: times 8 db 1
 
 SECTION .text
 
@@ -737,19 +738,47 @@ cglobal x264_zigzag_sub_4x4_frame_ssse3, 3,3
     movdqa [r0+16], xmm1
     RET
 
-INIT_MMX
-cglobal x264_zigzag_interleave_8x8_cavlc_mmx, 2,3
-    mov    r2d, 24
-.loop:
-    movq   m0, [r1+r2*4+ 0]
-    movq   m1, [r1+r2*4+ 8]
-    movq   m2, [r1+r2*4+16]
-    movq   m3, [r1+r2*4+24]
+;-----------------------------------------------------------------------------
+; void x264_zigzag_interleave_8x8_cavlc_mmx( int16_t *dst, int16_t *src, uint8_t *nnz )
+;-----------------------------------------------------------------------------
+
+%macro INTERLEAVE 1
+    movq   m0, [r1+%1*4+ 0]
+    movq   m1, [r1+%1*4+ 8]
+    movq   m2, [r1+%1*4+16]
+    movq   m3, [r1+%1*4+24]
     TRANSPOSE4x4W 0,1,2,3,4
-    movq   [r0+r2+ 0], m0
-    movq   [r0+r2+32], m1
-    movq   [r0+r2+64], m2
-    movq   [r0+r2+96], m3
-    sub    r2d, 8
-    jge .loop
-    REP_RET
+    movq   [r0+%1+ 0], m0
+    movq   [r0+%1+32], m1
+    movq   [r0+%1+64], m2
+    movq   [r0+%1+96], m3
+%if %1
+    packsswb m0, m1
+    por    m6, m2
+    por    m7, m3
+    por    m5, m0
+%else
+    packsswb m0, m1
+    SWAP   m5, m0
+    SWAP   m6, m2
+    SWAP   m7, m3
+%endif
+%endmacro
+
+INIT_MMX
+cglobal x264_zigzag_interleave_8x8_cavlc_mmx, 3,3
+    INTERLEAVE  0
+    INTERLEAVE  8
+    INTERLEAVE 16
+    INTERLEAVE 24
+    packsswb m6, m7
+    packsswb m5, m6
+    packsswb m5, m5
+    pxor     m0, m0
+    pcmpeqb  m5, m0
+    paddb    m5, [pb_1 GLOBAL]
+    movd    r0d, m5
+    mov  [r2+0], r0w
+    shr     r0d, 16
+    mov  [r2+8], r0w
+    RET

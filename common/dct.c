@@ -608,12 +608,19 @@ static void zigzag_sub_8x8_field( int16_t level[64], const uint8_t *p_src, uint8
 #undef ZIG
 #undef COPY4x4
 
-static void zigzag_interleave_8x8_cavlc( int16_t *dst, int16_t *src )
+static void zigzag_interleave_8x8_cavlc( int16_t *dst, int16_t *src, uint8_t *nnz )
 {
     int i,j;
     for( i=0; i<4; i++ )
+    {
+        int nz = 0;
         for( j=0; j<16; j++ )
+        {
+            nz |= src[i+j*4];
             dst[i*16+j] = src[i+j*4];
+        }
+        nnz[(i&1) + (i>>1)*8] = !!nz;
+    }
 }
 
 void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
