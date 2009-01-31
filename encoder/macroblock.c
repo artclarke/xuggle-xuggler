@@ -169,10 +169,10 @@ void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qp )
     h->dctf.sub8x8_dct8( dct8x8, p_src, p_dst );
 
     nz = x264_quant_8x8( h, dct8x8, i_qp, 1, idx );
-    h->zigzagf.scan_8x8( h->dct.luma8x8[idx], dct8x8 );
     if( nz )
     {
         h->mb.i_cbp_luma |= 1<<idx;
+        h->zigzagf.scan_8x8( h->dct.luma8x8[idx], dct8x8 );
         h->quantf.dequant_8x8( dct8x8, h->dequant8_mf[CQM_8IY], i_qp );
         h->dctf.add8x8_idct8( p_dst, dct8x8 );
         STORE_8x8_NNZ(idx,1);

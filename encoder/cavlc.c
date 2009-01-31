@@ -688,14 +688,9 @@ static int cavlc_intra4x4_pred_size( x264_t *h, int i4, int i_mode )
 
 static int x264_partition_i8x8_size_cavlc( x264_t *h, int i8, int i_mode )
 {
-    int i4;
     h->out.bs.i_bits_encoded = cavlc_intra4x4_pred_size( h, 4*i8, i_mode );
-    h->zigzagf.interleave_8x8_cavlc( h->dct.luma4x4[i8*4], h->dct.luma8x8[i8] );
-    for( i4 = 0; i4 < 4; i4++ )
-    {
-        h->mb.cache.non_zero_count[x264_scan8[i4+i8*4]] = array_non_zero( h->dct.luma4x4[i4+i8*4] );
-        block_residual_write_cavlc( h, &h->out.bs, DCT_LUMA_4x4, i4+i8*4, h->dct.luma4x4[i4+i8*4], 16 );
-    }
+    bs_write_ue( &h->out.bs, intra4x4_cbp_to_golomb[( h->mb.i_cbp_chroma << 4 )|h->mb.i_cbp_luma] );
+    x264_macroblock_luma_write_cavlc( h, &h->out.bs, i8, i8 );
     return h->out.bs.i_bits_encoded;
 }
 

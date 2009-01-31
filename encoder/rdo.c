@@ -245,7 +245,7 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i4, int i_pixel )
 static uint64_t x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode )
 {
     uint64_t i_ssd, i_bits;
-    h->mb.i_cbp_luma = 0;
+    h->mb.i_cbp_luma &= ~(1<<i8);
     h->mb.b_transform_8x8 = 1;
 
     x264_mb_encode_i8x8( h, i8, h->mb.i_qp );

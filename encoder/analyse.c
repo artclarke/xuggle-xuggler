@@ -95,6 +95,7 @@ typedef struct
     int i_predict16x16;
 
     int i_satd_i8x8;
+    int i_cbp_i8x8_luma;
     int i_satd_i8x8_dir[12][4];
     int i_predict8x8[4];
 
@@ -863,6 +864,7 @@ static void x264_intra_rd( x264_t *h, x264_mb_analysis_t *a, int i_satd_thresh )
         h->mb.i_type = I_8x8;
         x264_analyse_update_cache( h, a );
         a->i_satd_i8x8 = x264_rd_cost_mb( h, a->i_lambda2 );
+        a->i_cbp_i8x8_luma = h->mb.i_cbp_luma;
     }
     else
         a->i_satd_i8x8 = COST_MAX;
@@ -896,7 +898,51 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
             COPY2_IF_LT( i_best, i_satd, a->i_predict16x16, i_mode );
         }
     }
-    else if( h->mb.i_type == I_4x4 )
+
+    /* RD selection for chroma prediction */
+    predict_8x8chroma_mode_available( h->mb.i_neighbour, predict_mode, &i_max );
+    if( i_max > 1 )
+    {
+        i_thresh = a->i_satd_i8x8chroma * 5/4;
+
+        for( i = j = 0; i < i_max; i++ )
+            if( a->i_satd_i8x8chroma_dir[i] < i_thresh &&
+                predict_mode[i] != a->i_predict8x8chroma )
+            {
+                predict_mode[j++] = predict_mode[i];
+            }
+        i_max = j;
+
+        if( i_max > 0 )
+        {
+            int i_cbp_chroma_best = h->mb.i_cbp_chroma;
+            int i_chroma_lambda = x264_lambda2_tab[h->mb.i_chroma_qp];
+            /* the previous thing encoded was x264_intra_rd(), so the pixels and
+             * coefs for the current chroma mode are still around, so we only
+             * have to recount the bits. */
+            i_best = x264_rd_cost_i8x8_chroma( h, i_chroma_lambda, a->i_predict8x8chroma, 0 );
+            for( i = 0; i < i_max; i++ )
+            {
+                i_mode = predict_mode[i];
+                if( h->mb.b_lossless )
+                    x264_predict_lossless_8x8_chroma( h, i_mode );
+                else
+                {
+                    h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[1] );
+                    h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[2] );
+                }
+                /* if we've already found a mode that needs no residual, then
+                 * probably any mode with a residual will be worse.
+                 * so avoid dct on the remaining modes to improve speed. */
+                i_satd = x264_rd_cost_i8x8_chroma( h, i_chroma_lambda, i_mode, h->mb.i_cbp_chroma != 0x00 );
+                COPY3_IF_LT( i_best, i_satd, a->i_predict8x8chroma, i_mode, i_cbp_chroma_best, h->mb.i_cbp_chroma );
+            }
+            h->mb.i_chroma_pred_mode = a->i_predict8x8chroma;
+            h->mb.i_cbp_chroma = i_cbp_chroma_best;
+        }
+    }
+
+    if( h->mb.i_type == I_4x4 )
     {
         uint32_t pels[4] = {0}; // doesn't need initting, just shuts up a gcc warning
         int i_nnz = 0;
@@ -950,10 +996,11 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
         {
             uint64_t pels_h = 0;
             uint8_t pels_v[7];
-            int i_nnz[3];
+            uint16_t i_nnz[2];
             uint8_t *p_src_by;
             uint8_t *p_dst_by;
             int j;
+            int cbp_luma_new = 0;
             i_thresh = a->i_satd_i8x8_dir[a->i_predict8x8[idx]][idx] * 11/8;
 
             i_best = COST_MAX64;
@@ -975,71 +1022,32 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
                     x264_predict_lossless_8x8( h, p_dst_by, idx, i_mode, edge );
                 else
                     h->predict_8x8[i_mode]( p_dst_by, edge );
+                h->mb.i_cbp_luma = a->i_cbp_i8x8_luma;
                 i_satd = x264_rd_cost_i8x8( h, a->i_lambda2, idx, i_mode );
 
                 if( i_best > i_satd )
                 {
                     a->i_predict8x8[idx] = i_mode;
+                    cbp_luma_new = h->mb.i_cbp_luma;
                     i_best = i_satd;
 
                     pels_h = *(uint64_t*)(p_dst_by+7*FDEC_STRIDE);
                     if( !(idx&1) )
                         for( j=0; j<7; j++ )
                             pels_v[j] = p_dst_by[7+j*FDEC_STRIDE];
-                    for( j=0; j<3; j++ )
-                        i_nnz[j] = h->mb.cache.non_zero_count[x264_scan8[4*idx+j+1]];
+                    i_nnz[0] = *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[4*idx+0]];
+                    i_nnz[1] = *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[4*idx+2]];
                 }
             }
-
+            a->i_cbp_i8x8_luma = cbp_luma_new;
             *(uint64_t*)(p_dst_by+7*FDEC_STRIDE) = pels_h;
             if( !(idx&1) )
                 for( j=0; j<7; j++ )
                     p_dst_by[7+j*FDEC_STRIDE] = pels_v[j];
-            for( j=0; j<3; j++ )
-                h->mb.cache.non_zero_count[x264_scan8[4*idx+j+1]] = i_nnz[j];
+            *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[4*idx+0]] = i_nnz[0];
+            *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[4*idx+2]] = i_nnz[1];
 
             x264_macroblock_cache_intra8x8_pred( h, 2*x, 2*y, a->i_predict8x8[idx] );
-        }
-    }
-
-    /* RD selection for chroma prediction */
-    predict_8x8chroma_mode_available( h->mb.i_neighbour, predict_mode, &i_max );
-    if( i_max > 1 )
-    {
-        i_thresh = a->i_satd_i8x8chroma * 5/4;
-
-        for( i = j = 0; i < i_max; i++ )
-            if( a->i_satd_i8x8chroma_dir[i] < i_thresh &&
-                predict_mode[i] != a->i_predict8x8chroma )
-            {
-                predict_mode[j++] = predict_mode[i];
-            }
-        i_max = j;
-
-        if( i_max > 0 )
-        {
-            int i_chroma_lambda = x264_lambda2_tab[h->mb.i_chroma_qp];
-            /* the previous thing encoded was x264_intra_rd(), so the pixels and
-             * coefs for the current chroma mode are still around, so we only
-             * have to recount the bits. */
-            i_best = x264_rd_cost_i8x8_chroma( h, i_chroma_lambda, a->i_predict8x8chroma, 0 );
-            for( i = 0; i < i_max; i++ )
-            {
-                i_mode = predict_mode[i];
-                if( h->mb.b_lossless )
-                    x264_predict_lossless_8x8_chroma( h, i_mode );
-                else
-                {
-                    h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[1] );
-                    h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[2] );
-                }
-                /* if we've already found a mode that needs no residual, then
-                 * probably any mode with a residual will be worse.
-                 * so avoid dct on the remaining modes to improve speed. */
-                i_satd = x264_rd_cost_i8x8_chroma( h, i_chroma_lambda, i_mode, h->mb.i_cbp_chroma != 0x00 );
-                COPY2_IF_LT( i_best, i_satd, a->i_predict8x8chroma, i_mode );
-            }
-            h->mb.i_chroma_pred_mode = a->i_predict8x8chroma;
         }
     }
 }

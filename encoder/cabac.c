@@ -1144,6 +1144,7 @@ static void x264_partition_i8x8_size_cabac( x264_t *h, x264_cabac_t *cb, int i8,
     const int i_pred = x264_mb_predict_intra4x4_mode( h, 4*i8 );
     i_mode = x264_mb_pred_mode4x4_fix( i_mode );
     x264_cabac_mb_intra4x4_pred_mode( cb, i_pred, i_mode );
+    x264_cabac_mb_cbp_luma( h, cb );
     if( h->mb.i_cbp_luma & (1 << i8) )
         block_residual_write_cabac_8x8( h, cb, 4*i8, h->dct.luma8x8[i8] );
 }
