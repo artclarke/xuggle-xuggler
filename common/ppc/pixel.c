@@ -1636,8 +1636,8 @@ static int pixel_ssd_8x8_altivec ( uint8_t *pix1, int i_stride_pix1,
  ****************************************************************************/
 static int x264_pixel_var_16x16_altivec( uint8_t *pix, int i_stride )
 {
-    DECLARE_ALIGNED_16(uint32_t sum);
-    DECLARE_ALIGNED_16(uint32_t sqr);
+    DECLARE_ALIGNED_16(uint32_t sum_tab[4]);
+    DECLARE_ALIGNED_16(uint32_t sqr_tab[4]);
 
     LOAD_ZERO;
     vec_u32_t sqr_v = zero_u32v;
@@ -1652,21 +1652,21 @@ static int x264_pixel_var_16x16_altivec( uint8_t *pix, int i_stride )
 
         pix += i_stride;
     }
-    sum_v = vec_add( sum_v, vec_sld( sum_v, sum_v, 8 ) );
-    sqr_v = vec_add( sqr_v, vec_sld( sqr_v, sqr_v, 8 ) );
-    sum_v = vec_add( sum_v, vec_sld( sum_v, sum_v, 4 ) );
-    sqr_v = vec_add( sqr_v, vec_sld( sqr_v, sqr_v, 4 ) );
-    vec_ste(sum_v, 0, &sum);
-    vec_ste(sqr_v, 0, &sqr);
+    sum_v = (vec_s32_t)vec_sums( (vec_s32_t)sum_v, zero_s32v );
+    sqr_v = (vec_s32_t)vec_sums( (vec_s32_t)sqr_v, zero_s32v );
+    vec_ste(sum_v, 12, sum_tab);
+    vec_ste(sqr_v, 12, sqr_tab);
 
+    uint32_t sum = sum_tab[3];
+    uint32_t sqr = sqr_tab[3];
     uint32_t var = sqr - (sum * sum >> 8);
     return var;
 }
 
 static int x264_pixel_var_8x8_altivec( uint8_t *pix, int i_stride )
 {
-    DECLARE_ALIGNED_16(uint32_t sum);
-    DECLARE_ALIGNED_16(uint32_t sqr);
+    DECLARE_ALIGNED_16(uint32_t sum_tab[4]);
+    DECLARE_ALIGNED_16(uint32_t sqr_tab[4]);
 
     LOAD_ZERO;
     vec_u32_t sqr_v = zero_u32v;
@@ -1690,13 +1690,13 @@ static int x264_pixel_var_8x8_altivec( uint8_t *pix, int i_stride )
 
         pix += i_stride<<1;
     }
-    sum_v = vec_add( sum_v, vec_sld( sum_v, sum_v, 8 ) );
-    sqr_v = vec_add( sqr_v, vec_sld( sqr_v, sqr_v, 8 ) );
-    sum_v = vec_add( sum_v, vec_sld( sum_v, sum_v, 4 ) );
-    sqr_v = vec_add( sqr_v, vec_sld( sqr_v, sqr_v, 4 ) );
-    vec_ste(sum_v, 0, &sum);
-    vec_ste(sqr_v, 0, &sqr);
+    sum_v = (vec_s32_t)vec_sums( (vec_s32_t)sum_v, zero_s32v );
+    sqr_v = (vec_s32_t)vec_sums( (vec_s32_t)sqr_v, zero_s32v );
+    vec_ste(sum_v, 12, sum_tab);
+    vec_ste(sqr_v, 12, sqr_tab);
 
+    uint32_t sum = sum_tab[3];
+    uint32_t sqr = sqr_tab[3];
     uint32_t var = sqr - (sum * sum >> 6);
     return var;
 }
