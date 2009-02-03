@@ -11,6 +11,7 @@ VS_ENABLE_64BIT=@VS_ENABLE_64BIT@
 VS_DEBUG=@VS_DEBUG@
 
 CAPTIVE_ENABLE_LIBSPEEX=@CAPTIVE_ENABLE_LIBSPEEX@
+CAPTIVE_ENABLE_LIBX264=@CAPTIVE_ENABLE_LIBX264@
 CAPTIVE_ENABLE_LIBMP3LAME=@CAPTIVE_ENABLE_LIBMP3LAME@
 CAPTIVE_ENABLE_FFMPEG_GPL=@VS_ENABLE_GPL@
 
@@ -28,9 +29,15 @@ if test "x$CAPTIVE_ENABLE_FFMPEG_GPL" = "xyes"; then
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-swscale"
 fi
 if test ! "x$VS_DEBUG" = "x"; then
+  echo "Creating debug version of ffmpeg: $VS_DEBUG"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-optimizations"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-mmx"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-mmx2"
+else
+  echo "Creating release version of ffmpeg: $VS_DEBUG"
+fi
+if test "x$CAPTIVE_ENABLE_LIBX264" = "xyes"; then
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libx264"
 fi
 if test "x$CAPTIVE_ENABLE_LIBMP3LAME" = "xyes"; then
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libmp3lame"

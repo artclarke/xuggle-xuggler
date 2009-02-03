@@ -31,10 +31,9 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = captive/ffmpeg
+subdir = captive/libx264
 DIST_COMMON = README $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/incarcerate.in $(srcdir)/install.sh.in \
-	$(srcdir)/uninstall.sh.in
+	$(srcdir)/incarcerate.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -43,7 +42,7 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/csrc/com/xuggle/ferry/config.h \
 	$(top_builddir)/csrc/com/xuggle/xuggler/config.h \
 	$(top_builddir)/csrc/com/xuggle/xuggler/io/config.h
-CONFIG_CLEAN_FILES = incarcerate install.sh uninstall.sh
+CONFIG_CLEAN_FILES = incarcerate
 depcomp =
 am__depfiles_maybe =
 SOURCES =
@@ -202,9 +201,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  --ignore-deps captive/ffmpeg/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  --ignore-deps captive/libx264/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  --ignore-deps captive/ffmpeg/Makefile
+	  $(AUTOMAKE) --gnu  --ignore-deps captive/libx264/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -223,10 +222,6 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 incarcerate: $(top_builddir)/config.status $(srcdir)/incarcerate.in
-	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
-install.sh: $(top_builddir)/config.status $(srcdir)/install.sh.in
-	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
-uninstall.sh: $(top_builddir)/config.status $(srcdir)/uninstall.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 
 mostlyclean-libtool:
@@ -390,11 +385,7 @@ all-local: incarcerate-package
 	@cd csrc && \
 	  ( $(MAKE) -q all || \
 	    (echo "Out of date files; re-running make" && $(MAKE) all && \
-	     DESTDIR="$(vs_captive_prefix)" $(MAKE) install && \
-	     cd .. && if test -f install.sh; then \
-	       DESTDIR="$(vs_captive_prefix)" sh install.sh; \
-	     fi \
-	   ) \
+	     DESTDIR="$(vs_captive_prefix)" $(MAKE) install) \
 	)
 	@echo "Incarceration complete: $(srcdir)"
 
@@ -402,7 +393,7 @@ dist-hook:
 	cp -r $(srcdir)/csrc $(distdir)/csrc
 	rm -rf `find $(distdir)/csrc -name '.svn'`
 
-# FFMPEG doesn't have a separate exec and data target, so
+# libx264 doesn't have a separate exec and data target, so
 # we just make exec do both
 install-exec-hook: incarcerate-package
 	cd csrc && $(MAKE) install
@@ -410,16 +401,13 @@ install-exec-hook: incarcerate-package
 	  DESTDIR="$(DESTDIR)" sh install.sh; \
 	fi
 
-#install-data-hook: incarcerate-package
-#	cd csrc && $(MAKE) install-data
-
 uninstall-local: incarcerate-package
 	if test -f uninstall.sh; then \
 	  DESTDIR="$(DESTDIR)" sh uninstall.sh; \
 	fi
 	cd csrc && $(MAKE) uninstall
 
-# FFMPEG doesn't have a reliable check
+# Libx264 doesn't have a reliable check
 #check: incarcerate-package
 #	cd csrc && $(MAKE) check
 
@@ -431,14 +419,6 @@ clean-local: incarcerate-package
 
 distclean-local: incarcerate-package
 	cd csrc && $(MAKE) distclean
-	rm -f "@abs_builddir@/csrc/Makefile"
-	rm -f "@abs_builddir@/csrc/libswscale/libswscale.pc"
-	rm -f "@abs_builddir@/csrc/libswscale/libswscale-uninstalled.pc"
-
-# These are special hacks to deal with the fact that we copy
-# FFmpeg's top level Makefile in the incarcerate script
-
-csrc/Makefile : $(srcdir)/csrc/configure $(srcdir)/csrc/Makefile
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
