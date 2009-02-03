@@ -20,6 +20,7 @@ check_PROGRAMS=xugglerTestAudioResampler \
   xugglerTestPixelFormat \
   xugglerTestRational \
   xugglerTestStreamCoder \
+  xugglerTestStreamCoderX264 \
   xugglerTestStream \
   xugglerTestTimeValue 
 
@@ -167,6 +168,17 @@ nodist_xugglerTestStreamCoder_SOURCES=\
 xugglerTestStreamCoder_LDADD=\
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
+xugglerTestStreamCoderX264_SOURCES=\
+  StreamCoderX264Test.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestStreamCoderX264_SOURCES=\
+  StreamCoderX264Test_CXXRunner.cpp
+
+xugglerTestStreamCoderX264_LDADD=\
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
 xugglerTestStream_SOURCES=\
   StreamTest.cpp \
   Main.cpp \
@@ -215,7 +227,8 @@ BUILT_SOURCES= \
   StreamTest_CXXRunner.cpp \
   TimeValueTest_CXXRunner.cpp \
   VideoResamplerTest_CXXRunner.cpp \
-  StreamCoderTest_CXXRunner.cpp
+  StreamCoderTest_CXXRunner.cpp \
+  StreamCoderX264Test_CXXRunner.cpp
 
 noinst_HEADERS = \
   AudioResamplerTest.h \
@@ -231,6 +244,7 @@ noinst_HEADERS = \
   PixelFormatTest.h \
   RationalTest.h \
   StreamCoderTest.h \
+  StreamCoderX264Test.h \
   StreamTest.h \
   TimeValueTest.h \
   VideoResamplerTest.h

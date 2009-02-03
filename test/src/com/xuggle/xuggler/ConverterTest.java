@@ -184,7 +184,7 @@ public class ConverterTest extends TestCase
         "--acodec",
         "libmp3lame",
         "fixtures/testfile.flv",
-        this.getClass().getName()+"_"+this.getName()+".mov"
+        this.getClass().getName() + "_" + this.getName() + ".mov"
     };
     converter = new ConverterWrongPictureFormat();
     
@@ -261,7 +261,7 @@ public class ConverterTest extends TestCase
         "--vquality",
         "0",
         "fixtures/testfile.flv",
-        this.getClass().getName()+"_"+this.getName()+".mov"
+        this.getClass().getName() + "_" + this.getName() + ".mov"
     };
     converter = new Converter();
     
@@ -273,6 +273,49 @@ public class ConverterTest extends TestCase
     converter.run(cmdLine);
   }
 
+  
+  @Test
+  public void testConversionH264() throws ParseException
+  {
+    // We do this to determine if this version of Xuggler can
+    // support resampling
+    boolean testResampling = IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_IMAGERESCALING);
+    
+    String[] args = new String[]{
+        "--containerformat",
+        "mov",
+        "--acodec",
+        "libmp3lame",
+        "--asamplerate",
+        "22050",
+        "--achannels",
+        "2",
+        "--abitrate",
+        "64000",
+        "--aquality",
+        "0",
+        "--vcodec",
+        "libx264",
+        "--vscalefactor",
+        testResampling ? "2.0" : "1.0",
+        "--vbitrate",
+        "300000",
+        "--vbitratetolerance",
+        "12000000",
+        "--vquality",
+        "0",
+        "fixtures/testfile_videoonly_20sec.flv",
+        this.getClass().getName() + "_" + this.getName() + ".mp4"
+    };
+    converter = new Converter();
+    
+    Options options = converter.defineOptions();
+
+    CommandLine cmdLine = converter.parseOptions(options, args);
+    assertTrue("all commandline options successful", cmdLine != null);
+    
+    converter.run(cmdLine);
+  }
 
   /**
    * This tests crashing the JVM when IVideoPicture of the wrong format

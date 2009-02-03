@@ -381,6 +381,46 @@ fi
 fi
 
 #
+# Captive libx264 support
+#
+AC_ARG_ENABLE([captive-libx264],
+              [AS_HELP_STRING([--enable-captive-libx264],
+                              [use our own captive versions of the X264 library encoder (default is yes)])],
+                              [],
+                              [enable_captive_libx264=yes])
+AC_MSG_CHECKING([whether to use captive version of libx264])
+if test "x$enable_captives" != "xyes"; then
+  enable_captive_libx264=no
+fi
+if test "x$enable_captive_ffmpeg" != "xyes"; then
+  # no point in making a captive libx264 if we're not
+  # incarcerating ffmpeg
+  enable_captive_libx264=no
+fi
+if test "x$VS_ENABLE_GPL" != "xyes"; then
+  # can't use x264 unless you GPL this source
+  AC_MSG_WARN([cannot use captive libx264 unless gpl is enabled])
+  enable_captive_libx264=no
+fi
+
+AC_MSG_RESULT([$enable_captive_libx264])
+AM_CONDITIONAL(CAPTIVE_ENABLE_LIBX264,
+               [ test "x$enable_captive_libx264" = "xyes" ])
+CAPTIVE_ENABLE_LIBX264=$enable_captive_libx264
+AC_SUBST([CAPTIVE_ENABLE_LIBX264])
+
+# X264 headers
+if test "x$enable_captive_libx264" != "xyes"; then
+  # We only check for x264 if we're not building it
+AC_CHECK_HEADERS([x264.h], [HAVE_LIBX264=yes], [HAVE_LIBX264=no])
+if test "x$HAVE_LIBX264" = xno; then
+  AC_MSG_WARN([cannot find libx264; "ant run-tests" may not pass all tests.  To fix, recompile FFMPEG with X264 support.])
+fi
+fi
+
+
+
+#
 # Captive libmp3lame support
 #
 AC_ARG_ENABLE([captive-libmp3lame],
@@ -466,6 +506,8 @@ AC_CONFIG_FILES([Makefile
                  test/csrc/com/xuggle/ferry/Makefile
                  test/csrc/com/xuggle/xuggler/Makefile
                  captive/Makefile
+                 captive/libx264/Makefile
+                 captive/libx264/incarcerate
                  captive/libmp3lame/Makefile
                  captive/libmp3lame/incarcerate
                  captive/libspeex/Makefile

@@ -1,0 +1,486 @@
+#! /bin/sh
+
+if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
+
+echo "Usage: ./configure [options]"
+echo ""
+echo "available options:"
+echo ""
+echo "  --help                   print this message"
+echo "  --disable-avis-input     disables avisynth input (win32 only)"
+echo "  --disable-mp4-output     disables mp4 output (using gpac)"
+echo "  --disable-pthread        disables multithreaded encoding"
+echo "  --disable-asm            disables assembly optimizations on x86"
+echo "  --enable-debug           adds -g, doesn't strip"
+echo "  --enable-gprof           adds -pg, doesn't strip"
+echo "  --enable-visualize       enables visualization (X11 only)"
+echo "  --enable-pic             build position-independent code"
+echo "  --enable-shared          build libx264.so"
+echo "  --extra-asflags=EASFLAGS add EASFLAGS to ASFLAGS"
+echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS"
+echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS"
+echo "  --host=HOST              build programs to run on HOST"
+echo ""
+exit 1
+fi
+
+cc_check() {
+    cat > conftest.c << EOF
+#include <$1>
+int main () { $3 return 0; }
+EOF
+    $CC conftest.c $CFLAGS $LDFLAGS $2 -o conftest 2>$DEVNULL
+    TMP="$?"
+    return $TMP
+}
+
+as_check() {
+    echo "$1" > conftest.asm
+    $AS conftest.asm $ASFLAGS $2 -o conftest.o 2>$DEVNULL
+    TMP="$?"
+    return $TMP
+}
+
+rm -f config.h config.mak x264.pc conftest*
+
+prefix='/usr/local'
+exec_prefix='${prefix}'
+bindir='${exec_prefix}/bin'
+libdir='${exec_prefix}/lib'
+includedir='${prefix}/include'
+DEVNULL='/dev/null'
+
+avis_input="auto"
+mp4_output="auto"
+pthread="auto"
+asm="yes"
+debug="no"
+gprof="no"
+pic="no"
+vis="no"
+shared="no"
+
+CC="${CC-gcc}"
+CFLAGS="$CFLAGS -Wall -I."
+LDFLAGS="$LDFLAGS"
+HAVE_GETOPT_LONG=1
+
+AS="yasm"
+ASFLAGS=""
+
+EXE=""
+
+# check whether 'echo -n' works as expected, otherwise try printf
+if [ "x`echo -n houba`" = xhouba ]
+then
+  ECHON="echo -n"
+elif [ "x`printf houba`" = xhouba ]
+then
+  ECHON="printf"
+else
+  echo "Neither 'echo -n' nor 'printf' are working with your shell!"
+  exit 1
+fi
+
+# parse options
+
+for opt do
+    optarg="${opt#*=}"
+    case "$opt" in
+        --prefix=*)
+            prefix="$optarg"
+            ;;
+        --exec-prefix=*)
+            exec_prefix="$optarg"
+            ;;
+        --bindir=*)
+            bindir="$optarg"
+            ;;
+        --libdir=*)
+            libdir="$optarg"
+            ;;
+        --includedir=*)
+            includedir="$optarg"
+            ;;
+        --enable-asm)
+            asm="yes"
+            ;;
+        --disable-asm)
+            asm="no"
+            ;;
+        --enable-avis-input)
+            avis_input="yes"
+            ;;
+        --disable-avis-input)
+            avis_input="no"
+            ;;
+        --enable-mp4-output)
+            mp4_output="yes"
+            ;;
+        --disable-mp4-output)
+            mp4_output="no"
+            ;;
+        --extra-asflags=*)
+            ASFLAGS="$ASFLAGS ${opt#--extra-asflags=}"
+            ;;
+        --extra-cflags=*)
+            CFLAGS="$CFLAGS ${opt#--extra-cflags=}"
+            ;;
+        --extra-ldflags=*)
+            LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
+            ;;
+        --enable-pthread)
+            pthread="auto" # can't skip detection, since it differs by OS
+            ;;
+        --disable-pthread)
+            pthread="no"
+            ;;
+        --enable-debug)
+            debug="yes"
+            ;;
+        --enable-gprof)
+            CFLAGS="$CFLAGS -pg"
+            LDFLAGS="$LDFLAGS -pg"
+            gprof="yes"
+            ;;
+        --enable-pic)
+            pic="yes"
+            ;;
+        --enable-shared)
+            shared="yes"
+            ;;
+        --enable-visualize)
+            LDFLAGS="$LDFLAGS -L/usr/X11R6/lib -lX11"
+            CFLAGS="$CFLAGS -DVISUALIZE=1"
+            vis="yes"
+            ;;
+        --host=*)
+            host="${opt#--host=}"
+            ;;
+        *)
+            echo "Unknown option $opt, ignored"
+            ;;
+    esac
+done
+
+if [ "x$host" = x ]; then
+    host=`./config.guess`
+fi
+# normalize a triplet into a quadruplet
+host=`./config.sub $host`
+
+# split $host
+host_cpu="${host%%-*}"
+host="${host#*-}"
+host_vendor="${host%%-*}"
+host_os="${host#*-}"
+
+case $host_os in
+  beos*)
+    SYS="BEOS"
+    CFLAGS="$CFLAGS -DHAVE_MALLOC_H"
+    ;;
+  darwin*)
+    SYS="MACOSX"
+    CFLAGS="$CFLAGS -falign-loops=16"
+    LDFLAGS="$LDFLAGS -lm -lmx"
+    if [ "$pic" = "no" ]; then
+        CFLAGS="$CFLAGS -mdynamic-no-pic"
+    fi
+    ;;
+  freebsd*)
+    SYS="FREEBSD"
+    LDFLAGS="$LDFLAGS -lm"
+    ;;
+  kfreebsd*-gnu)
+    SYS="FREEBSD"
+    CFLAGS="$CFLAGS -DHAVE_MALLOC_H"
+    LDFLAGS="$LDFLAGS -lm"
+    ;;
+  netbsd*)
+    SYS="NETBSD"
+    LDFLAGS="$LDFLAGS -lm"
+    ;;
+  openbsd*)
+    SYS="OPENBSD"
+    CFLAGS="$CFLAGS -I/usr/X11R6/include"
+    LDFLAGS="$LDFLAGS -lm"
+    ;;
+  linux*)
+    SYS="LINUX"
+    CFLAGS="$CFLAGS -DHAVE_MALLOC_H"
+    LDFLAGS="$LDFLAGS -lm"
+    ;;
+  cygwin*)
+    SYS="MINGW"
+    CFLAGS="$CFLAGS -mno-cygwin"
+    LDFLAGS="$LDFLAGS -mno-cygwin"
+    EXE=".exe"
+    DEVNULL="NUL"
+    ;;
+  mingw*)
+    SYS="MINGW"
+    EXE=".exe"
+    DEVNULL="NUL"
+    ;;
+  sunos*|solaris*)
+    SYS="SunOS"
+    CFLAGS="$CFLAGS -DHAVE_MALLOC_H"
+    LDFLAGS="$LDFLAGS -lm"
+    HAVE_GETOPT_LONG=0
+    ;;
+  *)
+    echo "Unknown system $host, edit the configure"
+    exit 1
+    ;;
+esac
+
+case $host_cpu in
+  i*86)
+    ARCH="X86"
+    ASFLAGS="-O2"
+    if [ "$SYS" = MACOSX ]; then
+      ASFLAGS="$ASFLAGS -f macho -DPREFIX"
+    elif [ "$SYS" = MINGW ]; then
+      ASFLAGS="$ASFLAGS -f win32 -DPREFIX"
+    else
+      ASFLAGS="$ASFLAGS -f elf"
+    fi
+    ;;
+  x86_64)
+    ARCH="X86_64"
+    if [ "$SYS" = MACOSX ];then
+      ASFLAGS="-f macho64 -m amd64 -DPIC -DPREFIX"
+      CFLAGS="$CFLAGS -arch x86_64"
+      LDFLAGS="$LDFLAGS -arch x86_64"
+    else
+      ASFLAGS="-f elf -m amd64"
+    fi
+    ;;
+  powerpc|powerpc64)
+    ARCH="PPC"
+    if [ $SYS = MACOSX ]
+    then
+      ALTIVECFLAGS="$ALTIVECFLAGS -faltivec -fastf -mcpu=G4"
+    else
+      ALTIVECFLAGS="$ALTIVECFLAGS -maltivec -mabi=altivec -DHAVE_ALTIVEC_H"
+    fi
+    ;;
+  sparc)
+    if test "$(uname -m)" = "sun4u"; then
+      ARCH="UltraSparc"
+      CFLAGS="$CFLAGS -mcpu=ultrasparc"
+      LDFLAGS="$LDFLAGS -mcpu=ultrasparc"
+      AS="as"
+      ASFLAGS="-xarch=v8plusa"
+    else
+      ARCH="Sparc"
+    fi
+    ;;
+  mips|mipsel|mips64|mips64el)
+    ARCH="MIPS"
+    ;;
+  arm*)
+    ARCH="ARM"
+    ;;
+  s390|s390x)
+    ARCH="S390"
+    ;;
+  parisc|parisc64)
+    ARCH="PARISC"
+    ;;
+  *)
+    ARCH="$(echo $host_cpu | tr a-z A-Z)"
+    ;;
+esac
+
+# check requirements
+
+if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" \) ] ; then
+    pic="yes"
+fi
+
+if [ $asm = yes -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
+    if as_check "pinsrd xmm0, [esp], 0" ; then
+        CFLAGS="$CFLAGS -DHAVE_MMX"
+    else
+        VER=`($AS --version || echo no assembler) 2>$DEVNULL | head -n 1`
+        echo "Found $VER"
+        echo "Minimum version is yasm-0.6.1"
+        echo "If you really want to compile without asm, configure with --disable-asm."
+        exit 1
+    fi
+else
+    AS=""
+fi
+
+CFLAGS="$CFLAGS -DARCH_$ARCH -DSYS_$SYS"
+
+echo "unsigned int endian = 'B' << 24 | 'I' << 16 | 'G' << 8 | 'E';" > conftest.c
+$CC $CFLAGS conftest.c -c -o conftest.o 2>$DEVNULL || die "endian test failed"
+grep -q BIGE conftest.o && CFLAGS="$CFLAGS -DWORDS_BIGENDIAN"
+
+# autodetect options that weren't forced nor disabled
+
+libpthread=""
+if test "$pthread" = "auto" ; then
+    pthread="no"
+    case $SYS in
+        BEOS)
+            pthread="yes"
+            ;;
+        MINGW)
+            if cc_check pthread.h -lpthread "pthread_create(0,0,0,0);" ; then
+                pthread="yes"
+                libpthread="-lpthread"
+            elif cc_check pthread.h -lpthreadGC2 "pthread_create(0,0,0,0);" ; then
+                pthread="yes"
+                libpthread="-lpthreadGC2"
+            elif cc_check pthread.h "-lpthreadGC2 -lwsock32 -DPTW32_STATIC_LIB" "pthread_create(0,0,0,0);" ; then
+                pthread="yes"
+                libpthread="-lpthreadGC2 -lwsock32"
+                CFLAGS="$CFLAGS -DPTW32_STATIC_LIB"
+            fi
+            ;;
+        *)
+            cc_check pthread.h -lpthread && pthread="yes" && libpthread="-lpthread"
+            ;;
+    esac
+fi
+if test "$pthread" = "yes" ; then
+    CFLAGS="$CFLAGS -DHAVE_PTHREAD"
+    LDFLAGS="$LDFLAGS $libpthread"
+fi
+
+MP4_LDFLAGS="-lgpac_static"
+if [ $SYS = MINGW ]; then
+    MP4_LDFLAGS="$MP4_LDFLAGS -lwinmm"
+fi
+if [ "$mp4_output" = "auto" ] ; then
+    mp4_output="no"
+    cc_check gpac/isomedia.h "$MP4_LDFLAGS" && mp4_output="yes"
+fi
+if [ "$mp4_output" = "yes" ] ; then
+    echo "#define MP4_OUTPUT" >> config.h
+    LDFLAGS="$LDFLAGS $MP4_LDFLAGS"
+fi
+
+if [ "$avis_input" = "auto" ] ; then
+    if [ $SYS = MINGW ]; then
+        avis_input="yes"
+    else
+        avis_input="no";
+    fi
+fi
+if [ "$avis_input" = "yes" ] ; then
+    echo "#define AVIS_INPUT" >> config.h
+    LDFLAGS="$LDFLAGS -lvfw32"
+fi
+
+if [ "$pic" = "yes" ] ; then
+    CFLAGS="$CFLAGS -fPIC"
+    ASFLAGS="$ASFLAGS -DPIC"
+    # resolve textrels in the x86 asm
+    cc_check stdio.h -Wl,-Bsymbolic && LDFLAGS="$LDFLAGS -Wl,-Bsymbolic"
+fi
+
+if [ "$debug" != "yes" -a "$gprof" != "yes" ]; then
+    CFLAGS="$CFLAGS -s -fomit-frame-pointer"
+    LDFLAGS="$LDFLAGS -s"
+fi
+
+if [ "$debug" = "yes" ]; then
+    CFLAGS="-O1 -g $CFLAGS"
+else
+    CFLAGS="-O4 -ffast-math $CFLAGS"
+fi
+
+if cc_check "stdio.h" "" "fseeko(stdin,0,0);" ; then
+    echo "#define fseek fseeko" >> config.h
+    echo "#define ftell ftello" >> config.h
+elif cc_check "stdio.h" "" "fseeko64(stdin,0,0);" ; then
+    echo "#define fseek fseeko64" >> config.h
+    echo "#define ftell ftello64" >> config.h
+fi
+
+rm -f conftest*
+
+# generate config files
+
+cat > config.mak << EOF
+prefix=$prefix
+exec_prefix=$exec_prefix
+bindir=$bindir
+libdir=$libdir
+includedir=$includedir
+ARCH=$ARCH
+SYS=$SYS
+CC=$CC
+CFLAGS=$CFLAGS
+ALTIVECFLAGS=$ALTIVECFLAGS
+LDFLAGS=$LDFLAGS
+AS=$AS
+ASFLAGS=$ASFLAGS
+EXE=$EXE
+VIS=$vis
+HAVE_GETOPT_LONG=$HAVE_GETOPT_LONG
+DEVNULL=$DEVNULL
+ECHON=$ECHON
+EOF
+
+$ECHON 'CONFIGURE_ARGS=' >> config.mak
+for A in "$@" ; do
+    $ECHON " '$A'" >> config.mak
+done
+echo '' >> config.mak
+
+if [ "$shared" = "yes" ]; then
+    API=$(grep '#define X264_BUILD' < x264.h | cut -f 3 -d ' ')
+    if [ "$SYS" = "MINGW" ]; then
+        echo "SONAME=libx264-$API.dll" >> config.mak
+        echo 'IMPLIBNAME=libx264.dll.a' >> config.mak
+        echo 'SOFLAGS=-Wl,--out-implib,$(IMPLIBNAME) -Wl,--enable-auto-image-base' >> config.mak
+    elif [ "$SYS" = "MACOSX" ]; then
+        echo "SOSUFFIX=dylib" >> config.mak
+        echo "SONAME=libx264.$API.dylib" >> config.mak
+        echo 'SOFLAGS=-dynamiclib -Wl,-single_module -Wl,-read_only_relocs,suppress -install_name $(DESTDIR)$(libdir)/$(SONAME)' >> config.mak
+    else
+        echo "SOSUFFIX=so" >> config.mak
+        echo "SONAME=libx264.so.$API" >> config.mak
+        echo 'SOFLAGS=-Wl,-soname,$(SONAME)' >> config.mak
+    fi
+    echo 'default: $(SONAME)' >> config.mak
+fi
+
+./version.sh
+
+pclibs="-L$libdir -lx264 $libpthread"
+
+cat > x264.pc << EOF
+prefix=$prefix
+exec_prefix=$exec_prefix
+libdir=$libdir
+includedir=$includedir
+
+Name: x264
+Description: H.264 (MPEG4 AVC) encoder library
+Version: $(grep POINTVER < config.h | sed -e 's/.* "//; s/".*//')
+Libs: $pclibs
+Cflags: -I$includedir
+EOF
+
+
+echo "Platform:   $ARCH"
+echo "System:     $SYS"
+echo "asm:        $asm"
+echo "avis input: $avis_input"
+echo "mp4 output: $mp4_output"
+echo "pthread:    $pthread"
+echo "debug:      $debug"
+echo "gprof:      $gprof"
+echo "PIC:        $pic"
+echo "shared:     $shared"
+echo "visualize:  $vis"
+echo
+echo "You can run 'make' or 'make fprofiled' now."
+
