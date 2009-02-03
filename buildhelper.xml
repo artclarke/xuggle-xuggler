@@ -741,8 +741,17 @@
         <property name="build.gpl.flag" value=""/>
       </else>
     </if>
+    <if>
+      <isset property="build.configure"/>
+      <then>
+        <property name="build.configure.flag" value="${build.configure}"/>
+      </then>
+      <else>
+        <property name="build.configure.flag" value=""/>
+      </else>
+    </if>
     <property name="configure.line"
-      value="../../../configure ${build.m64.flag} ${build.gpl.flag} --prefix=${xuggle.dir}"/>
+      value="../../../configure ${build.m64.flag} ${build.gpl.flag} ${build.configure.flag} --prefix=${xuggle.dir}"/>
 
     <!-- Yes, Windows is annoying and doesn't do well with
     unescaped paths... so we convert to Unix format -->
