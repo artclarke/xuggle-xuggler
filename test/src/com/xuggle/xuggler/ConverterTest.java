@@ -307,6 +307,13 @@ public class ConverterTest extends TestCase
         "fixtures/testfile_videoonly_20sec.flv",
         this.getClass().getName() + "_" + this.getName() + ".mp4"
     };
+    
+    // check if we have the libx264 encoder
+    ICodec codec = ICodec.findEncodingCodecByName("libx264");
+    if (codec == null)
+      // we don't have libx264 so bail
+      return;
+    
     converter = new Converter();
     
     Options options = converter.defineOptions();

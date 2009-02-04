@@ -57,6 +57,12 @@ StreamCoderX264Test :: testDecodingAndEncodingH264Video()
   RefPointer<IStreamCoder> ic(0);
   RefPointer<IStreamCoder> oc(0);
 
+  RefPointer<ICodec> newcodec;
+  newcodec = ICodec::findEncodingCodecByName("libx264");
+  if (!newcodec)
+    // we're probably in a LGPL build, and so we shouldn't run this test
+    return;
+
   int numSamples = 0;
   int numPackets = 0;
   int numFrames = 0;
