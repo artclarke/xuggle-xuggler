@@ -1652,8 +1652,8 @@ static int x264_pixel_var_16x16_altivec( uint8_t *pix, int i_stride )
 
         pix += i_stride;
     }
-    sum_v = (vec_s32_t)vec_sums( (vec_s32_t)sum_v, zero_s32v );
-    sqr_v = (vec_s32_t)vec_sums( (vec_s32_t)sqr_v, zero_s32v );
+    sum_v = (vec_u32_t)vec_sums( (vec_s32_t)sum_v, zero_s32v );
+    sqr_v = (vec_u32_t)vec_sums( (vec_s32_t)sqr_v, zero_s32v );
     vec_ste(sum_v, 12, sum_tab);
     vec_ste(sqr_v, 12, sqr_tab);
 
@@ -1690,8 +1690,8 @@ static int x264_pixel_var_8x8_altivec( uint8_t *pix, int i_stride )
 
         pix += i_stride<<1;
     }
-    sum_v = (vec_s32_t)vec_sums( (vec_s32_t)sum_v, zero_s32v );
-    sqr_v = (vec_s32_t)vec_sums( (vec_s32_t)sqr_v, zero_s32v );
+    sum_v = (vec_u32_t)vec_sums( (vec_s32_t)sum_v, zero_s32v );
+    sqr_v = (vec_u32_t)vec_sums( (vec_s32_t)sqr_v, zero_s32v );
     vec_ste(sum_v, 12, sum_tab);
     vec_ste(sqr_v, 12, sqr_tab);
 
