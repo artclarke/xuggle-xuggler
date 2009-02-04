@@ -4,6 +4,7 @@
 # the configure of the captive package you're configuring
 prefix="@prefix@"
 exec_prefix="@exec_prefix@"
+X264_OPTIONS=
 LDFLAGS="@LDFLAGS@"
 CFLAGS="@CFLAGS@"
 HOST_TYPE=@HOST_TYPE@
@@ -15,28 +16,43 @@ case $HOST_TYPE in
   Windows)
   CC="${CC} -mno-cygwin"
   LDFLAGS="$LDFLAGS -mno-cygwin"
+  CFLAGS="$CFLAGS -fno-common"
+  X264_OPTIONS="$X264_OPTIONS --extra-cflags=-fno-common"
+  X264_OPTIONS="$X264_OPTIONS --disable-pthread"
+  ;;
+  Mac)
+  CFLAGS="$CFLAGS -fno-common"
+  X264_OPTIONS="$X264_OPTIONS --extra-cflags=-fno-common"
   ;;
   *)
   ;;
 esac
 if test "x$VS_ENABLE_64BIT" = "xyes"; then
+  ASFLAGS="$ASFLAGS -machine=amd64"
+  X264_OPTIONS="$X264_OPTIONS --extra-asflags=-machine=amd64"
   CFLAGS="$CFLAGS -m64"
+  X264_OPTIONS="$X264_OPTIONS --extra-cflags=-m64"
   LDFLAGS="$LDFLAGS -m64"
+  X264_OPTIONS="$X264_OPTIONS --extra-ldflags=-m64"
   case $HOST_TYPE in
     Mac)
     CFLAGS="$CFLAGS -arch x86_64"
+    X264_OPTIONS="$X264_OPTIONS --extra-cflags=-arch"
+    X264_OPTIONS="$X264_OPTIONS --extra-cflags=x86_64"
     LDFLAGS="$LDFLAGS -arch x86_64"
+    X264_OPTIONS="$X264_OPTIONS --extra-ldflags=-arch"
+    X264_OPTIONS="$X264_OPTIONS --extra-ldflags=x86_64"
+    X264_OPTIONS="$X264_OPTIONS --host=x86_64-apple-darwin"
     ;;
     *)
     ;;
   esac
 fi
 
-X264_OPTIONS=
-# Tell FFMPEG about the captive libraries already built and fake
+# Tell X264 about the captive libraries already built and fake
 # installed
 
-X264_OPTIONS="$X264_OPTIONS --enable-shared"
+X264_OPTIONS="$X264_OPTIONS --enable-pic --enable-shared"
 if test ! "x$VS_DEBUG" = "x"; then
   echo "Creating debug version of libx264: $VS_DEBUG"
   X264_OPTIONS="$X264_OPTIONS --disable-asm"
