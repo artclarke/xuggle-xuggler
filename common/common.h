@@ -616,6 +616,7 @@ struct x264_t
     x264_predict_t      predict_8x8c[4+3];
     x264_predict8x8_t   predict_8x8[9+3];
     x264_predict_t      predict_4x4[9+3];
+    x264_predict_8x8_filter_t predict_8x8_filter;
 
     x264_pixel_function_t pixf;
     x264_mc_functions_t   mc;

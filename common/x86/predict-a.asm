@@ -25,14 +25,15 @@
 %include "x86util.asm"
 
 %macro STORE8x8 2
-    movq        [r0 + 0*FDEC_STRIDE], %1
-    movq        [r0 + 1*FDEC_STRIDE], %1
-    movq        [r0 + 2*FDEC_STRIDE], %1
-    movq        [r0 + 3*FDEC_STRIDE], %1
-    movq        [r0 + 4*FDEC_STRIDE], %2
-    movq        [r0 + 5*FDEC_STRIDE], %2
-    movq        [r0 + 6*FDEC_STRIDE], %2
-    movq        [r0 + 7*FDEC_STRIDE], %2
+    add r0, 4*FDEC_STRIDE
+    movq        [r0 + -4*FDEC_STRIDE], %1
+    movq        [r0 + -3*FDEC_STRIDE], %1
+    movq        [r0 + -2*FDEC_STRIDE], %1
+    movq        [r0 + -1*FDEC_STRIDE], %1
+    movq        [r0 +  0*FDEC_STRIDE], %2
+    movq        [r0 +  1*FDEC_STRIDE], %2
+    movq        [r0 +  2*FDEC_STRIDE], %2
+    movq        [r0 +  3*FDEC_STRIDE], %2
 %endmacro
 
 %macro STORE16x16 2
@@ -52,15 +53,24 @@
 %endmacro
 
 %macro STORE16x16_SSE2 1
-    mov         r1d, 4
-.loop:
-    movdqa      [r0 + 0*FDEC_STRIDE], %1
-    movdqa      [r0 + 1*FDEC_STRIDE], %1
-    movdqa      [r0 + 2*FDEC_STRIDE], %1
-    movdqa      [r0 + 3*FDEC_STRIDE], %1
-    add         r0, 4*FDEC_STRIDE
-    dec         r1d
-    jg          .loop
+    add r0, 4*FDEC_STRIDE
+    movdqa      [r0 + -4*FDEC_STRIDE], %1
+    movdqa      [r0 + -3*FDEC_STRIDE], %1
+    movdqa      [r0 + -2*FDEC_STRIDE], %1
+    movdqa      [r0 + -1*FDEC_STRIDE], %1
+    movdqa      [r0 +  0*FDEC_STRIDE], %1
+    movdqa      [r0 +  1*FDEC_STRIDE], %1
+    movdqa      [r0 +  2*FDEC_STRIDE], %1
+    movdqa      [r0 +  3*FDEC_STRIDE], %1
+    add r0, 8*FDEC_STRIDE
+    movdqa      [r0 + -4*FDEC_STRIDE], %1
+    movdqa      [r0 + -3*FDEC_STRIDE], %1
+    movdqa      [r0 + -2*FDEC_STRIDE], %1
+    movdqa      [r0 + -1*FDEC_STRIDE], %1
+    movdqa      [r0 +  0*FDEC_STRIDE], %1
+    movdqa      [r0 +  1*FDEC_STRIDE], %1
+    movdqa      [r0 +  2*FDEC_STRIDE], %1
+    movdqa      [r0 +  3*FDEC_STRIDE], %1
 %endmacro
 
 SECTION_RODATA
@@ -102,24 +112,138 @@ SECTION .text
 ; void predict_4x4_ddl_mmxext( uint8_t *src )
 ;-----------------------------------------------------------------------------
 cglobal predict_4x4_ddl_mmxext, 1,1
-    sub         r0, FDEC_STRIDE
-    movq        mm3, [r0]
-    movq        mm1, [r0-1]
-    movq        mm2, mm3
-    movq        mm4, [pb_0s_ff GLOBAL]
-    psrlq       mm2, 8
-    pand        mm4, mm3
-    por         mm2, mm4
+    movq    mm1, [r0-FDEC_STRIDE]
+    movq    mm2, mm1
+    movq    mm3, mm1
+    movq    mm4, mm1
+    psllq   mm1, 8
+    pxor    mm2, mm1
+    psrlq   mm2, 8
+    pxor    mm3, mm2
+    PRED8x8_LOWPASS mm0, mm1, mm3, mm4, mm5
 
-    PRED8x8_LOWPASS mm0, mm1, mm2, mm3, mm5
-
-%assign Y 1
+%assign Y 0
 %rep 4
     psrlq       mm0, 8
     movd        [r0+Y*FDEC_STRIDE], mm0
 %assign Y (Y+1)
 %endrep
 
+    RET
+
+;-----------------------------------------------------------------------------
+; void predict_4x4_ddr_mmxext( uint8_t *src )
+;-----------------------------------------------------------------------------
+%macro PREDICT_4x4 1
+cglobal predict_4x4_ddr_%1, 1,1
+    movq      mm1, [r0+1*FDEC_STRIDE-8]
+    movq      mm2, [r0+0*FDEC_STRIDE-8]
+    punpckhbw mm2, [r0-1*FDEC_STRIDE-8]
+    movd      mm3, [r0-1*FDEC_STRIDE]
+    punpckhwd mm1, mm2
+    PALIGNR   mm3, mm1, 5, mm4
+    movq      mm1, mm3
+    PALIGNR   mm3, [r0+2*FDEC_STRIDE-8], 7, mm4
+    movq      mm2, mm3
+    PALIGNR   mm3, [r0+3*FDEC_STRIDE-8], 7, mm4
+    PRED8x8_LOWPASS mm0, mm3, mm1, mm2, mm4
+%assign Y 3
+    movd    [r0+Y*FDEC_STRIDE], mm0
+%rep 3
+%assign Y (Y-1)
+    psrlq    mm0, 8
+    movd    [r0+Y*FDEC_STRIDE], mm0
+%endrep
+    RET
+
+cglobal predict_4x4_vr_%1, 1,1
+    movd    mm0, [r0-1*FDEC_STRIDE]              ; ........t3t2t1t0
+    movq    mm7, mm0
+    PALIGNR mm0, [r0-1*FDEC_STRIDE-8], 7, mm1    ; ......t3t2t1t0lt
+    pavgb   mm7, mm0
+    PALIGNR mm0, [r0+0*FDEC_STRIDE-8], 7, mm1    ; ....t3t2t1t0ltl0
+    movq    mm1, mm0
+    PALIGNR mm0, [r0+1*FDEC_STRIDE-8], 7, mm2    ; ..t3t2t1t0ltl0l1
+    movq    mm2, mm0
+    PALIGNR mm0, [r0+2*FDEC_STRIDE-8], 7, mm3    ; t3t2t1t0ltl0l1l2
+    PRED8x8_LOWPASS mm3, mm1, mm0, mm2, mm4
+    movq    mm1, mm3
+    psrlq   mm3, 16
+    psllq   mm1, 48
+    movd   [r0+0*FDEC_STRIDE], mm7
+    movd   [r0+1*FDEC_STRIDE], mm3
+    PALIGNR mm7, mm1, 7, mm2
+    psllq   mm1, 8
+    movd   [r0+2*FDEC_STRIDE], mm7
+    PALIGNR mm3, mm1, 7, mm2
+    movd   [r0+3*FDEC_STRIDE], mm3
+    RET
+
+cglobal predict_4x4_hd_%1, 1,1
+    movd      mm0, [r0-1*FDEC_STRIDE-4] ; lt ..
+    punpckldq mm0, [r0-1*FDEC_STRIDE]   ; t3 t2 t1 t0 lt .. .. ..
+    psllq     mm0, 8                    ; t2 t1 t0 lt .. .. .. ..
+    movq      mm1, [r0+3*FDEC_STRIDE-8] ; l3
+    punpckhbw mm1, [r0+2*FDEC_STRIDE-8] ; l2 l3
+    movq      mm2, [r0+1*FDEC_STRIDE-8] ; l1
+    punpckhbw mm2, [r0+0*FDEC_STRIDE-8] ; l0 l1
+    punpckhwd mm1, mm2                  ; l0 l1 l2 l3
+    punpckhdq mm1, mm0                  ; t2 t1 t0 lt l0 l1 l2 l3
+    movq      mm0, mm1
+    movq      mm2, mm1
+    movq      mm7, mm1
+    psrlq     mm0, 16                   ; .. .. t2 t1 t0 lt l0 l1
+    psrlq     mm2, 8                    ; .. t2 t1 t0 lt l0 l1 l2
+    pavgb     mm7, mm2
+    PRED8x8_LOWPASS mm3, mm1, mm0, mm2, mm4
+    punpcklbw mm7, mm3
+    psrlq     mm3, 32
+    PALIGNR   mm3, mm7, 6, mm6
+%assign Y 3
+    movd     [r0+Y*FDEC_STRIDE], mm7
+%rep 2
+%assign Y (Y-1)
+    psrlq     mm7, 16
+    movd     [r0+Y*FDEC_STRIDE], mm7
+%endrep
+    movd     [r0+0*FDEC_STRIDE], mm3
+    RET
+%endmacro
+
+%define PALIGNR PALIGNR_MMX
+PREDICT_4x4 mmxext
+%define PALIGNR PALIGNR_SSSE3
+PREDICT_4x4 ssse3
+
+;-----------------------------------------------------------------------------
+; void predict_4x4_hu_mmxext( uint8_t *src )
+;-----------------------------------------------------------------------------
+cglobal predict_4x4_hu_mmxext, 1,1
+    movq      mm0, [r0+0*FDEC_STRIDE-8]
+    punpckhbw mm0, [r0+1*FDEC_STRIDE-8]
+    movq      mm1, [r0+2*FDEC_STRIDE-8]
+    punpckhbw mm1, [r0+3*FDEC_STRIDE-8]
+    punpckhwd mm0, mm1
+    movq      mm1, mm0
+    punpckhbw mm1, mm1
+    pshufw    mm1, mm1, 0xFF
+    punpckhdq mm0, mm1
+    movq      mm2, mm0
+    movq      mm3, mm0
+    movq      mm7, mm0
+    psrlq     mm2, 16
+    psrlq     mm3, 8
+    pavgb     mm7, mm3
+    PRED8x8_LOWPASS mm4, mm0, mm2, mm3, mm5
+    punpcklbw mm7, mm4
+%assign Y 0
+    movd    [r0+Y*FDEC_STRIDE], mm7
+%rep 2
+%assign Y (Y+1)
+    psrlq    mm7, 16
+    movd    [r0+Y*FDEC_STRIDE], mm7
+%endrep
+    movd    [r0+3*FDEC_STRIDE], mm1
     RET
 
 ;-----------------------------------------------------------------------------
@@ -169,6 +293,120 @@ cglobal predict_4x4_dc_mmxext, 1,4
     mov   [r0+FDEC_STRIDE*2], r1d
     mov   [r0+FDEC_STRIDE*3], r1d
     RET
+
+%macro PREDICT_FILTER 1
+;-----------------------------------------------------------------------------
+;void predict_8x8_filter( uint8_t *src, uint8_t edge[33], int i_neighbor, int i_filters )
+;-----------------------------------------------------------------------------
+
+cglobal predict_8x8_filter_%1, 4,5
+    add          r0, 0x58
+%define src r0-0x58
+%ifndef ARCH_X86_64
+    mov          r4, r1
+%define t1 r4
+%define t4 r1
+%else
+%define t1 r1
+%define t4 r4
+%endif
+    test        r3b, 0x01
+    je .check_top
+    movq        mm0, [src+0*FDEC_STRIDE-8]
+    punpckhbw   mm0, [src-1*FDEC_STRIDE-8]
+    movq        mm1, [src+2*FDEC_STRIDE-8]
+    punpckhbw   mm1, [src+1*FDEC_STRIDE-8]
+    punpckhwd   mm1, mm0
+    movq        mm2, [src+4*FDEC_STRIDE-8]
+    punpckhbw   mm2, [src+3*FDEC_STRIDE-8]
+    movq        mm3, [src+6*FDEC_STRIDE-8]
+    punpckhbw   mm3, [src+5*FDEC_STRIDE-8]
+    punpckhwd   mm3, mm2
+    punpckhdq   mm3, mm1
+    movq        mm0, [src+7*FDEC_STRIDE-8]
+    movq        mm1, [src-1*FDEC_STRIDE]
+    movq        mm4, mm3
+    movq        mm2, mm3
+    PALIGNR     mm4, mm0, 7, mm0
+    PALIGNR     mm1, mm2, 1, mm2
+    test        r2b, 0x08
+    je .fix_lt_1
+.do_left:
+    movq        mm0, mm4
+    PRED8x8_LOWPASS mm2, mm1, mm4, mm3, mm5
+    movq     [t1+8], mm2
+    movq        mm4, mm0
+    PRED8x8_LOWPASS mm1, mm3, mm0, mm4, mm5
+    movd         t4, mm1
+    mov      [t1+7], t4b
+.check_top:
+    test        r3b, 0x02
+    je .done
+    movq        mm0, [src-1*FDEC_STRIDE-8]
+    movq        mm3, [src-1*FDEC_STRIDE]
+    movq        mm1, [src-1*FDEC_STRIDE+8]
+    movq        mm2, mm3
+    movq        mm4, mm3
+    PALIGNR     mm2, mm0, 7, mm0
+    PALIGNR     mm1, mm4, 1, mm4
+    test        r2b, 0x08
+    je .fix_lt_2
+    test        r2b, 0x04
+    je .fix_tr_1
+.do_top:
+    PRED8x8_LOWPASS mm4, mm2, mm1, mm3, mm5
+    movq    [t1+16], mm4
+    test        r3b, 0x04
+    je .done
+    test        r2b, 0x04
+    je .fix_tr_2
+    movq        mm0, [src-1*FDEC_STRIDE+8]
+    movq        mm5, mm0
+    movq        mm2, mm0
+    movq        mm4, mm0
+    psrlq       mm5, 56
+    PALIGNR     mm2, mm3, 7, mm3
+    PALIGNR     mm5, mm4, 1, mm4
+    PRED8x8_LOWPASS mm1, mm2, mm5, mm0, mm4
+    jmp .do_topright
+.fix_tr_2:
+    punpckhbw   mm3, mm3
+    pshufw      mm1, mm3, 0xFF
+.do_topright:
+    movq    [t1+24], mm1
+    psrlq       mm1, 56
+    movd         t4, mm1
+    mov     [t1+32], t4b
+.done:
+    REP_RET
+.fix_lt_1:
+    movq        mm5, mm3
+    pxor        mm5, mm4
+    psrlq       mm5, 56
+    psllq       mm5, 48
+    pxor        mm1, mm5
+    jmp .do_left
+.fix_lt_2:
+    movq        mm5, mm3
+    pxor        mm5, mm2
+    psllq       mm5, 56
+    psrlq       mm5, 56
+    pxor        mm2, mm5
+    test        r2b, 0x04
+    jne .do_top
+.fix_tr_1:
+    movq        mm5, mm3
+    pxor        mm5, mm1
+    psrlq       mm5, 56
+    psllq       mm5, 56
+    pxor        mm1, mm5
+    jmp .do_top
+%endmacro
+
+%define PALIGNR PALIGNR_MMX
+PREDICT_FILTER mmxext
+%define PALIGNR PALIGNR_SSSE3
+PREDICT_FILTER ssse3
 
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_v_mmxext( uint8_t *src, uint8_t *edge )
@@ -410,6 +648,173 @@ cglobal predict_8x8_vr_core_mmxext, 2,2
     movq        [r0+(Y+1)*FDEC_STRIDE], mm0
 
     RET
+
+
+;-----------------------------------------------------------------------------
+; void predict_8x8_hd_mmxext( uint8_t *src, uint8_t *edge )
+;-----------------------------------------------------------------------------
+%define PALIGNR PALIGNR_MMX
+cglobal predict_8x8_hd_mmxext, 2,2
+    add     r0, 4*FDEC_STRIDE
+    movq    mm0, [r1]           ; l7 .. .. .. .. .. .. ..
+    movq    mm1, [r1+8]         ; lt l0 l1 l2 l3 l4 l5 l6
+    movq    mm2, [r1+16]        ; t7 t6 t5 t4 t3 t2 t1 t0
+    movq    mm3, mm1            ; lt l0 l1 l2 l3 l4 l5 l6
+    movq    mm4, mm2            ; t7 t6 t5 t4 t3 t2 t1 t0
+    PALIGNR mm2, mm1, 7, mm5    ; t6 t5 t4 t3 t2 t1 t0 lt
+    PALIGNR mm1, mm0, 7, mm6    ; l0 l1 l2 l3 l4 l5 l6 l7
+    PALIGNR mm4, mm3, 1, mm7    ; t0 lt l0 l1 l2 l3 l4 l5
+    movq    mm5, mm3
+    pavgb   mm3, mm1
+    PRED8x8_LOWPASS mm0, mm4, mm1, mm5, mm7
+    movq    mm4, mm2
+    movq    mm1, mm2            ; t6 t5 t4 t3 t2 t1 t0 lt
+    psrlq   mm4, 16             ; .. .. t6 t5 t4 t3 t2 t1
+    psrlq   mm1, 8              ; .. t6 t5 t4 t3 t2 t1 t0
+    PRED8x8_LOWPASS mm6, mm4, mm2, mm1, mm5
+                                ; .. p11 p10 p9
+    movq    mm7, mm3
+    punpcklbw mm3, mm0          ; p4 p3 p2 p1
+    punpckhbw mm7, mm0          ; p8 p7 p6 p5
+    movq    mm1, mm7
+    movq    mm0, mm7
+    movq    mm4, mm7
+    movq   [r0+3*FDEC_STRIDE], mm3
+    PALIGNR mm7, mm3, 2, mm5
+    movq   [r0+2*FDEC_STRIDE], mm7
+    PALIGNR mm1, mm3, 4, mm5
+    movq   [r0+1*FDEC_STRIDE], mm1
+    PALIGNR mm0, mm3, 6, mm5
+    movq    [r0+0*FDEC_STRIDE], mm0
+    movq    mm2, mm6
+    movq    mm3, mm6
+    movq   [r0-1*FDEC_STRIDE], mm4
+    PALIGNR mm6, mm4, 2, mm5
+    movq   [r0-2*FDEC_STRIDE], mm6
+    PALIGNR mm2, mm4, 4, mm5
+    movq   [r0-3*FDEC_STRIDE], mm2
+    PALIGNR mm3, mm4, 6, mm5
+    movq   [r0-4*FDEC_STRIDE], mm3
+    RET
+
+;-----------------------------------------------------------------------------
+; void predict_8x8_hd_ssse3( uint8_t *src, uint8_t *edge )
+;-----------------------------------------------------------------------------
+cglobal predict_8x8_hd_ssse3, 2,2
+    add       r0, 4*FDEC_STRIDE
+    movdqa  xmm0, [r1]
+    movdqa  xmm1, [r1+16]
+    movdqa  xmm2, xmm1
+    movdqa  xmm3, xmm1
+    palignr xmm1, xmm0, 7
+    palignr xmm2, xmm0, 9
+    palignr xmm3, xmm0, 8
+    movdqa    xmm4, xmm1
+    pavgb   xmm4, xmm3
+    PRED8x8_LOWPASS_XMM xmm0, xmm1, xmm2, xmm3, xmm5
+    punpcklbw xmm4, xmm0
+    movhlps xmm0, xmm4
+
+%assign Y 3
+%rep 3
+    movq   [r0+(Y)*FDEC_STRIDE], xmm4
+    movq   [r0+(Y-4)*FDEC_STRIDE], xmm0
+    psrldq xmm4, 2
+    psrldq xmm0, 2
+%assign Y (Y-1)
+%endrep
+    movq   [r0+(Y)*FDEC_STRIDE], xmm4
+    movq   [r0+(Y-4)*FDEC_STRIDE], xmm0
+    RET
+
+;-----------------------------------------------------------------------------
+; void predict_8x8_hu_mmxext( uint8_t *src, uint8_t *edge )
+;-----------------------------------------------------------------------------
+cglobal predict_8x8_hu_mmxext, 2,2
+    movq    mm1, [r1+7]         ; l0 l1 l2 l3 l4 l5 l6 l7
+    add      r0, 4*FDEC_STRIDE
+    pshufw  mm0, mm1, 00011011b ; l6 l7 l4 l5 l2 l3 l0 l1
+    psllq   mm1, 56             ; l7 .. .. .. .. .. .. ..
+    movq    mm2, mm0
+    psllw   mm0, 8
+    psrlw   mm2, 8
+    por     mm2, mm0            ; l7 l6 l5 l4 l3 l2 l1 l0
+    movq    mm3, mm2
+    movq    mm4, mm2
+    movq    mm5, mm2
+    psrlq   mm2, 8
+    psrlq   mm3, 16
+    por     mm2, mm1            ; l7 l7 l6 l5 l4 l3 l2 l1
+    punpckhbw mm1, mm1
+    por     mm3, mm1            ; l7 l7 l7 l6 l5 l4 l3 l2
+    pavgb   mm4, mm2
+    PRED8x8_LOWPASS mm1, mm3, mm5, mm2, mm6
+    movq    mm5, mm4
+    punpcklbw mm4, mm1          ; p4 p3 p2 p1
+    punpckhbw mm5, mm1          ; p8 p7 p6 p5
+    movq    mm6, mm5
+    movq    mm7, mm5
+    movq    mm0, mm5
+    PALIGNR mm5, mm4, 2, mm1
+    pshufw  mm1, mm6, 11111001b
+    PALIGNR mm6, mm4, 4, mm2
+    pshufw  mm2, mm7, 11111110b
+    PALIGNR mm7, mm4, 6, mm3
+    pshufw  mm3, mm0, 11111111b
+    movq   [r0-4*FDEC_STRIDE], mm4
+    movq   [r0-3*FDEC_STRIDE], mm5
+    movq   [r0-2*FDEC_STRIDE], mm6
+    movq   [r0-1*FDEC_STRIDE], mm7
+    movq   [r0+0*FDEC_STRIDE], mm0
+    movq   [r0+1*FDEC_STRIDE], mm1
+    movq   [r0+2*FDEC_STRIDE], mm2
+    movq   [r0+3*FDEC_STRIDE], mm3
+    RET
+
+;-----------------------------------------------------------------------------
+; void predict_8x8_hu_sse2( uint8_t *src, uint8_t *edge )
+;-----------------------------------------------------------------------------
+cglobal predict_8x8_hu_sse2, 2,2
+    movq      mm1, [r1+7]           ; l0 l1 l2 l3 l4 l5 l6 l7
+    add        r0, 4*FDEC_STRIDE
+    pshufw    mm0, mm1, 00011011b   ; l6 l7 l4 l5 l2 l3 l0 l1
+    psllq     mm1, 56               ; l7 .. .. .. .. .. .. ..
+    movq      mm2, mm0
+    psllw     mm0, 8
+    psrlw     mm2, 8
+    por       mm2, mm0              ; l7 l6 l5 l4 l3 l2 l1 l0
+    movq      mm3, mm2
+    movq      mm4, mm2
+    movq      mm5, mm2
+    psrlq     mm2, 8
+    psrlq     mm3, 16
+    por       mm2, mm1              ; l7 l7 l6 l5 l4 l3 l2 l1
+    punpckhbw mm1, mm1
+    por       mm3, mm1              ; l7 l7 l7 l6 l5 l4 l3 l2
+    pavgb     mm4, mm2
+    PRED8x8_LOWPASS mm1, mm3, mm5, mm2, mm6
+
+    movq2dq   xmm0, mm4
+    movq2dq   xmm1, mm1
+    punpcklbw xmm0, xmm1
+
+    movhlps   xmm4, xmm0
+    pshuflw   xmm5, xmm4, 11111001b
+    pshuflw   xmm6, xmm4, 11111110b
+    pshuflw   xmm7, xmm4, 11111111b
+%assign Y -4
+%rep 3
+    movq     [r0+Y*FDEC_STRIDE], xmm0
+    psrldq    xmm0, 2
+%assign Y (Y+1)
+%endrep
+    movq     [r0+Y*FDEC_STRIDE], xmm0
+    movq     [r0+0*FDEC_STRIDE], xmm4
+    movq     [r0+1*FDEC_STRIDE], xmm5
+    movq     [r0+2*FDEC_STRIDE], xmm6
+    movq     [r0+3*FDEC_STRIDE], xmm7
+    RET
+
 
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_v_mmx( uint8_t *src )

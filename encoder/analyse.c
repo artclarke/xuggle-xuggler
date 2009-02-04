@@ -683,7 +683,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             int i_pred_mode = x264_mb_predict_intra4x4_mode( h, 4*idx );
 
             predict_4x4_mode_available( h->mb.i_neighbour8[idx], predict_mode, &i_max );
-            x264_predict_8x8_filter( p_dst_by, edge, h->mb.i_neighbour8[idx], ALL_NEIGHBORS );
+            h->predict_8x8_filter( p_dst_by, edge, h->mb.i_neighbour8[idx], ALL_NEIGHBORS );
 
             if( b_merged_satd && i_max == 9 )
             {

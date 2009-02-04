@@ -228,6 +228,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_predict_t predict_8x8c[4+3];
     x264_predict_t predict_4x4[9+3];
     x264_predict8x8_t predict_8x8[9+3];
+    x264_predict_8x8_filter_t predict_8x8_filter;
     DECLARE_ALIGNED_16( uint8_t edge[33] );
     uint16_t cost_mv[32];
     int ret = 0, ok, used_asm;
@@ -238,9 +239,9 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_pixel_init( cpu_new, &pixel_asm );
     x264_predict_16x16_init( 0, predict_16x16 );
     x264_predict_8x8c_init( 0, predict_8x8c );
-    x264_predict_8x8_init( 0, predict_8x8 );
+    x264_predict_8x8_init( 0, predict_8x8, &predict_8x8_filter );
     x264_predict_4x4_init( 0, predict_4x4 );
-    x264_predict_8x8_filter( buf2+40, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
+    predict_8x8_filter( buf2+40, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
 
     // maximize sum
     for( i=0; i<256; i++ )
@@ -1294,30 +1295,32 @@ static int check_intra( int cpu_ref, int cpu_new )
     int ret = 0, ok = 1, used_asm = 0;
     int i;
     DECLARE_ALIGNED_16( uint8_t edge[33] );
+    DECLARE_ALIGNED_16( uint8_t edge2[33] );
     struct
     {
         x264_predict_t      predict_16x16[4+3];
         x264_predict_t      predict_8x8c[4+3];
         x264_predict8x8_t   predict_8x8[9+3];
         x264_predict_t      predict_4x4[9+3];
+        x264_predict_8x8_filter_t predict_8x8_filter;
     } ip_c, ip_ref, ip_a;
 
     x264_predict_16x16_init( 0, ip_c.predict_16x16 );
     x264_predict_8x8c_init( 0, ip_c.predict_8x8c );
-    x264_predict_8x8_init( 0, ip_c.predict_8x8 );
+    x264_predict_8x8_init( 0, ip_c.predict_8x8, &ip_c.predict_8x8_filter );
     x264_predict_4x4_init( 0, ip_c.predict_4x4 );
 
     x264_predict_16x16_init( cpu_ref, ip_ref.predict_16x16 );
     x264_predict_8x8c_init( cpu_ref, ip_ref.predict_8x8c );
-    x264_predict_8x8_init( cpu_ref, ip_ref.predict_8x8 );
+    x264_predict_8x8_init( cpu_ref, ip_ref.predict_8x8, &ip_ref.predict_8x8_filter );
     x264_predict_4x4_init( cpu_ref, ip_ref.predict_4x4 );
 
     x264_predict_16x16_init( cpu_new, ip_a.predict_16x16 );
     x264_predict_8x8c_init( cpu_new, ip_a.predict_8x8c );
-    x264_predict_8x8_init( cpu_new, ip_a.predict_8x8 );
+    x264_predict_8x8_init( cpu_new, ip_a.predict_8x8, &ip_a.predict_8x8_filter );
     x264_predict_4x4_init( cpu_new, ip_a.predict_4x4 );
 
-    x264_predict_8x8_filter( buf1+48, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
+    ip_c.predict_8x8_filter( buf1+48, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
 
 #define INTRA_TEST( name, dir, w, ... ) \
     if( ip_a.name[dir] != ip_ref.name[dir] )\
@@ -1360,6 +1363,23 @@ static int check_intra( int cpu_ref, int cpu_new )
         INTRA_TEST( predict_16x16, i, 16 );
     for( i = 0; i < 12; i++ )
         INTRA_TEST( predict_8x8, i, 8, edge );
+
+    used_asm = 1;
+    set_func_name("intra_predict_8x8_filter");
+    if( ip_a.predict_8x8_filter != ip_ref.predict_8x8_filter )
+    {
+        for( i = 0; i < 32; i++ )
+        {
+            memcpy( edge2, edge, 33 );
+            call_c(ip_c.predict_8x8_filter, buf1+48, edge, (i&24)>>1, i&7);
+            call_a(ip_a.predict_8x8_filter, buf1+48, edge2, (i&24)>>1, i&7);
+            if( memcmp( edge, edge2, 33 ) )
+            {
+                fprintf( stderr, "predict_8x8_filter :  [FAILED] %d %d\n", (i&24)>>1, i&7);
+                ok = 0;
+            }
+        }
+    }
 
     report( "intra pred :" );
     return ret;

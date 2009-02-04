@@ -27,6 +27,5 @@
 void x264_predict_16x16_init_mmx ( int cpu, x264_predict_t pf[7] );
 void x264_predict_8x8c_init_mmx  ( int cpu, x264_predict_t pf[7] );
 void x264_predict_4x4_init_mmx   ( int cpu, x264_predict_t pf[12] );
-void x264_predict_8x8_init_mmx   ( int cpu, x264_predict8x8_t pf[12] );
-
+void x264_predict_8x8_init_mmx   ( int cpu, x264_predict8x8_t pf[12], x264_predict_8x8_filter_t *predict_8x8_filter );
 #endif

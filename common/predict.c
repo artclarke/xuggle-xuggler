@@ -506,7 +506,7 @@ void x264_predict_8x8_filter( uint8_t *src, uint8_t edge[33], int i_neighbor, in
     int have_lt = i_neighbor & MB_TOPLEFT;
     if( i_filters & MB_LEFT )
     {
-        edge[15] = (SRC(-1,0) + 2*SRC(-1,-1) + SRC(0,-1) + 2) >> 2;
+        edge[15] = (SRC(0,-1) + 2*SRC(-1,-1) + SRC(-1,0) + 2) >> 2;
         edge[14] = ((have_lt ? SRC(-1,-1) : SRC(-1,0))
                     + 2*SRC(-1,0) + SRC(-1,1) + 2) >> 2;
         PL(1) PL(2) PL(3) PL(4) PL(5) PL(6)
@@ -519,8 +519,8 @@ void x264_predict_8x8_filter( uint8_t *src, uint8_t edge[33], int i_neighbor, in
         edge[16] = ((have_lt ? SRC(-1,-1) : SRC(0,-1))
                     + 2*SRC(0,-1) + SRC(1,-1) + 2) >> 2;
         PT(1) PT(2) PT(3) PT(4) PT(5) PT(6)
-        edge[23] = ((have_tr ? SRC(8,-1) : SRC(7,-1))
-                    + 2*SRC(7,-1) + SRC(6,-1) + 2) >> 2;
+        edge[23] = (SRC(6,-1) + 2*SRC(7,-1)
+                    + (have_tr ? SRC(8,-1) : SRC(7,-1)) + 2) >> 2;
 
         if( i_filters & MB_TOPRIGHT )
         {
@@ -563,7 +563,6 @@ void x264_predict_8x8_filter( uint8_t *src, uint8_t edge[33], int i_neighbor, in
         src += FDEC_STRIDE; \
     }
 
-/* SIMD is much faster than C for all of these except HU and HD. */
 static void predict_8x8_dc_128( uint8_t *src, uint8_t edge[33] )
 {
     PREDICT_8x8_DC(0x80808080);
@@ -795,7 +794,7 @@ void x264_predict_8x8c_init( int cpu, x264_predict_t pf[7] )
 #endif
 }
 
-void x264_predict_8x8_init( int cpu, x264_predict8x8_t pf[12] )
+void x264_predict_8x8_init( int cpu, x264_predict8x8_t pf[12], x264_predict_8x8_filter_t *predict_8x8_filter )
 {
     pf[I_PRED_8x8_V]      = predict_8x8_v;
     pf[I_PRED_8x8_H]      = predict_8x8_h;
@@ -809,9 +808,10 @@ void x264_predict_8x8_init( int cpu, x264_predict8x8_t pf[12] )
     pf[I_PRED_8x8_DC_LEFT]= predict_8x8_dc_left;
     pf[I_PRED_8x8_DC_TOP] = predict_8x8_dc_top;
     pf[I_PRED_8x8_DC_128] = predict_8x8_dc_128;
+    *predict_8x8_filter   = x264_predict_8x8_filter;
 
 #ifdef HAVE_MMX
-    x264_predict_8x8_init_mmx( cpu, pf );
+    x264_predict_8x8_init_mmx( cpu, pf, predict_8x8_filter );
 #endif
 }
 

@@ -38,6 +38,8 @@ extern void predict_8x8c_h_mmxext( uint8_t *src );
 extern void predict_8x8c_h_ssse3( uint8_t *src );
 extern void predict_8x8_v_mmxext( uint8_t *src, uint8_t edge[33] );
 extern void predict_8x8_h_mmxext( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_hd_mmxext( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_hu_mmxext( uint8_t *src, uint8_t edge[33] );
 extern void predict_8x8_dc_mmxext( uint8_t *src, uint8_t edge[33] );
 extern void predict_8x8_dc_top_mmxext( uint8_t *src, uint8_t edge[33] );
 extern void predict_8x8_dc_left_mmxext( uint8_t *src, uint8_t edge[33] );
@@ -46,27 +48,45 @@ extern void predict_8x8_ddr_mmxext( uint8_t *src, uint8_t edge[33] );
 extern void predict_8x8_ddl_sse2( uint8_t *src, uint8_t edge[33] );
 extern void predict_8x8_ddr_sse2( uint8_t *src, uint8_t edge[33] );
 extern void predict_8x8_vl_sse2( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_hu_sse2( uint8_t *src, uint8_t edge[33] );
 extern void predict_8x8_vr_core_mmxext( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_hd_ssse3( uint8_t *src, uint8_t edge[33] );
+extern void predict_8x8_filter_mmxext   ( uint8_t *src, uint8_t edge[33], int i_neighbor, int i_filters );
+extern void predict_8x8_filter_ssse3   ( uint8_t *src, uint8_t edge[33], int i_neighbor, int i_filters );
 extern void predict_4x4_ddl_mmxext( uint8_t *src );
+extern void predict_4x4_ddr_mmxext( uint8_t *src );
 extern void predict_4x4_vl_mmxext( uint8_t *src );
+extern void predict_4x4_vr_mmxext( uint8_t *src );
+extern void predict_4x4_vr_ssse3( uint8_t *src );
+extern void predict_4x4_hd_mmxext( uint8_t *src );
+extern void predict_4x4_hd_ssse3( uint8_t *src );
 extern void predict_4x4_dc_mmxext( uint8_t *src );
+extern void predict_4x4_ddr_ssse3( uint8_t *src );
+extern void predict_4x4_hu_mmxext( uint8_t *src );
 extern void predict_16x16_dc_top_sse2( uint8_t *src );
 extern void predict_16x16_dc_core_sse2( uint8_t *src, int i_dc_left );
 extern void predict_16x16_v_sse2( uint8_t *src );
 extern void predict_16x16_p_core_sse2( uint8_t *src, int i00, int b, int c );
 
+#define PREDICT_P_SUM(j,i)\
+    H += i * ( src[j+i - FDEC_STRIDE ]  - src[j-i - FDEC_STRIDE ] );\
+    V += i * ( src[(j+i)*FDEC_STRIDE -1] - src[(j-i)*FDEC_STRIDE -1] );\
+
 #define PREDICT_16x16_P(name)\
 static void predict_16x16_p_##name( uint8_t *src )\
 {\
-    int a, b, c, i;\
+    int a, b, c;\
     int H = 0;\
     int V = 0;\
     int i00;\
-    for( i = 1; i <= 8; i++ )\
-    {\
-        H += i * ( src[7+i - FDEC_STRIDE ]  - src[7-i - FDEC_STRIDE ] );\
-        V += i * ( src[(7+i)*FDEC_STRIDE -1] - src[(7-i)*FDEC_STRIDE -1] );\
-    }\
+    PREDICT_P_SUM(7,1) \
+    PREDICT_P_SUM(7,2) \
+    PREDICT_P_SUM(7,3) \
+    PREDICT_P_SUM(7,4) \
+    PREDICT_P_SUM(7,5) \
+    PREDICT_P_SUM(7,6) \
+    PREDICT_P_SUM(7,7) \
+    PREDICT_P_SUM(7,8) \
     a = 16 * ( src[15*FDEC_STRIDE -1] + src[15 - FDEC_STRIDE] );\
     b = ( 5 * H + 32 ) >> 6;\
     c = ( 5 * V + 32 ) >> 6;\
@@ -79,16 +99,15 @@ PREDICT_16x16_P( sse2   )
 
 static void predict_8x8c_p_mmxext( uint8_t *src )
 {
-    int a, b, c, i;
+    int a, b, c;
     int H = 0;
     int V = 0;
     int i00;
 
-    for( i = 1; i <= 4; i++ )
-    {
-        H += i * ( src[3+i - FDEC_STRIDE] - src[3-i - FDEC_STRIDE] );
-        V += i * ( src[(3+i)*FDEC_STRIDE -1] - src[(3-i)*FDEC_STRIDE -1] );
-    }
+    PREDICT_P_SUM(3,1)
+    PREDICT_P_SUM(3,2)
+    PREDICT_P_SUM(3,3)
+    PREDICT_P_SUM(3,4)
 
     a = 16 * ( src[7*FDEC_STRIDE -1] + src[7 - FDEC_STRIDE] );
     b = ( 17 * H + 16 ) >> 5;
@@ -521,7 +540,7 @@ void x264_predict_8x8c_init_mmx( int cpu, x264_predict_t pf[7] )
     pf[I_PRED_CHROMA_H]       = predict_8x8c_h_ssse3;
 }
 
-void x264_predict_8x8_init_mmx( int cpu, x264_predict8x8_t pf[12] )
+void x264_predict_8x8_init_mmx( int cpu, x264_predict8x8_t pf[12], x264_predict_8x8_filter_t *predict_8x8_filter )
 {
     if( !(cpu&X264_CPU_MMXEXT) )
         return;
@@ -531,6 +550,9 @@ void x264_predict_8x8_init_mmx( int cpu, x264_predict8x8_t pf[12] )
     pf[I_PRED_8x8_DC_TOP] = predict_8x8_dc_top_mmxext;
     pf[I_PRED_8x8_DC_LEFT]= predict_8x8_dc_left_mmxext;
     pf[I_PRED_8x8_VR]  = predict_8x8_vr_mmxext;
+    pf[I_PRED_8x8_HD]   = predict_8x8_hd_mmxext;
+    pf[I_PRED_8x8_HU]   = predict_8x8_hu_mmxext;
+    *predict_8x8_filter = predict_8x8_filter_mmxext;
 #ifdef ARCH_X86
     pf[I_PRED_8x8_DDL] = predict_8x8_ddl_mmxext;
     pf[I_PRED_8x8_DDR] = predict_8x8_ddr_mmxext;
@@ -540,6 +562,11 @@ void x264_predict_8x8_init_mmx( int cpu, x264_predict8x8_t pf[12] )
     pf[I_PRED_8x8_DDL] = predict_8x8_ddl_sse2;
     pf[I_PRED_8x8_VL]  = predict_8x8_vl_sse2;
     pf[I_PRED_8x8_DDR] = predict_8x8_ddr_sse2;
+    pf[I_PRED_8x8_HU]   = predict_8x8_hu_sse2;
+    if( !(cpu&X264_CPU_SSSE3) )
+        return;
+    pf[I_PRED_8x8_HD]   = predict_8x8_hd_ssse3;
+    *predict_8x8_filter = predict_8x8_filter_ssse3;
 }
 
 void x264_predict_4x4_init_mmx( int cpu, x264_predict_t pf[12] )
@@ -554,7 +581,16 @@ void x264_predict_4x4_init_mmx( int cpu, x264_predict_t pf[12] )
 #endif
     if( !(cpu&X264_CPU_MMXEXT) )
         return;
+    pf[I_PRED_4x4_VR]  = predict_4x4_vr_mmxext;
     pf[I_PRED_4x4_DDL] = predict_4x4_ddl_mmxext;
     pf[I_PRED_4x4_VL]  = predict_4x4_vl_mmxext;
     pf[I_PRED_4x4_DC]  = predict_4x4_dc_mmxext;
+    pf[I_PRED_4x4_DDR] = predict_4x4_ddr_mmxext;
+    pf[I_PRED_4x4_HD]  = predict_4x4_hd_mmxext;
+    pf[I_PRED_4x4_HU]  = predict_4x4_hu_mmxext;
+    if( !(cpu&X264_CPU_SSSE3) )
+        return;
+    pf[I_PRED_4x4_DDR] = predict_4x4_ddr_ssse3;
+    pf[I_PRED_4x4_VR]  = predict_4x4_vr_ssse3;
+    pf[I_PRED_4x4_HD]  = predict_4x4_hd_ssse3;
 }
