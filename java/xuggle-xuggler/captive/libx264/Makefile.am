@@ -52,5 +52,5 @@ clean-local: incarcerate-package
 	fi
 	cd csrc && $(MAKE) clean && DESTDIR="$(vs_captive_prefix)" $(MAKE) uninstall
 
-distclean-local: incarcerate-package
-	cd csrc && $(MAKE) distclean
+distclean-local:
+	rm -rf csrc

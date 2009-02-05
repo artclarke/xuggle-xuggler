@@ -138,6 +138,7 @@ VS_JNI_INCLUDE = @VS_JNI_INCLUDE@
 VS_LDFLAGS = @VS_LDFLAGS@
 VS_OS_WINDOWS = @VS_OS_WINDOWS@
 VS_WARN_ISERROR = @VS_WARN_ISERROR@
+YASM = @YASM@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -417,8 +418,8 @@ clean-local: incarcerate-package
 	fi
 	cd csrc && $(MAKE) clean && DESTDIR="$(vs_captive_prefix)" $(MAKE) uninstall
 
-distclean-local: incarcerate-package
-	cd csrc && $(MAKE) distclean
+distclean-local:
+	rm -rf csrc
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
