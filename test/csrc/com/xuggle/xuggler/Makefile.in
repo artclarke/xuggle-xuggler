@@ -357,6 +357,7 @@ VS_JNI_INCLUDE = @VS_JNI_INCLUDE@
 VS_LDFLAGS = @VS_LDFLAGS@
 VS_OS_WINDOWS = @VS_OS_WINDOWS@
 VS_WARN_ISERROR = @VS_WARN_ISERROR@
+YASM = @YASM@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -1015,6 +1016,7 @@ clean-local:
 	rm -rf $(BUILT_SOURCES)
 	rm -rf *.flv
 	rm -rf *.mov
+	rm -rf *.mp4
 	rm -rf *.mp3
 	rm -rf memcheck*.log
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

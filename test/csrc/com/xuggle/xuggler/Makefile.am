@@ -253,5 +253,6 @@ clean-local:
 	rm -rf $(BUILT_SOURCES)
 	rm -rf *.flv
 	rm -rf *.mov
+	rm -rf *.mp4
 	rm -rf *.mp3
 	rm -rf memcheck*.log
