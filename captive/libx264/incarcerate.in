@@ -61,9 +61,14 @@ else
   echo "Creating release version of libx264: $VS_DEBUG"
 fi
 
+# libx264 doesn't support VPATH builds, so we fake it
 echo "Copying @abs_srcdir@/csrc to @abs_builddir@/csrc"
+# create the directory
 mkdir -p @abs_builddir@/csrc
+# copy over all the source
 cp -r @abs_srcdir@/csrc/* @abs_builddir@/csrc/
+# and make everything user writeable so distcheck will pass
+chmod -R u+w @abs_builddir@/csrc/*
 
 echo "Configuring X264 with these options: $X264_OPTIONS"
 sh @abs_builddir@/csrc/configure \
