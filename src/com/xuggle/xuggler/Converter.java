@@ -623,15 +623,6 @@ public class Converter
           * other systems.
           */
          IRational num = ic.getTimeBase();
-         
-         // When encoding, set the time base to your frame rate; encoders will adjust
-         // correctly, and some media players will be more likely to play the output
-         if (ic.getFrameRate() != null && ic.getFrameRate().getDenominator() > 0 &&
-             ic.getFrameRate().getNumerator()>0)
-         {
-           num = IRational.make(ic.getFrameRate().getDenominator(),
-               ic.getFrameRate().getNumerator());
-         }
          oc.setTimeBase(num);
          num = null;
          num = ic.getFrameRate();
