@@ -286,7 +286,7 @@ StreamCoder :: getTimeBase()
   IRational *retval = 0;
 
   // annoyingly, some codec contexts will NOT have
-  // a timebase... so we take it from string then.
+  // a timebase... so we take it from stream then.
   if (mCodecContext && mCodecContext->time_base.den
       && mCodecContext->time_base.num)
   {
@@ -609,9 +609,12 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
         int32_t numSamples = outBufSize / bytesPerSample;
 
         // The audio decoder doesn't set a PTS, so we need to manufacture one.
-        RefPointer<IRational> timeBase = this->getTimeBase();
+        RefPointer<IRational> timeBase = this->mStream ? this->mStream->getTimeBase() : 0;
+        if (!timeBase) timeBase = this->getTimeBase();
 
-        int64_t packetTs = packet->getDts();
+        int64_t packetTs = packet->getPts();
+        if (packetTs == Global::NO_PTS)
+          packetTs = packet->getDts();
 
         if (packetTs != Global::NO_PTS)
         {
@@ -628,7 +631,7 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
             }
 
             // now, compare it to our internal value;  if our internally calculated value
-            // is within 1 tick of the packets's time stamp (in the packet's time base),
+            // is within 1 tick of the packet's time stamp (in the packet's time base),
             // then we're probably right;
             // otherwise, we should reset the stream's fake time stamp based on this
             // packet
@@ -709,6 +712,7 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
             frameFinished,
             inBuf,
             inBufSize);
+        mCodecContext->reordered_opaque = packet->getPts();
         retval = avcodec_decode_video(mCodecContext, avFrame, &frameFinished,
             inBuf, inBufSize);
         VS_LOG_TRACE("Finished %d decodeVideo(%p, %p, %d, %p, %d);",
@@ -724,9 +728,14 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
           // and reuse the buffer FFMPEG is using; in order to allow our
           // buffers to be thread safe, we must do a copy here.
           frame->copyAVFrame(avFrame, getWidth(), getHeight());
-          RefPointer<IRational> timeBase = this->getTimeBase();
+          RefPointer<IRational> timeBase = 0;
+          timeBase = this->mStream ? this->mStream->getTimeBase() : 0;
+          if (!timeBase) timeBase = this->getTimeBase();
 
-          int64_t packetTs = packet->getDts();
+          int64_t packetTs = avFrame->reordered_opaque;
+          if (packetTs == Global::NO_PTS)
+            packetTs = packet->getDts();
+
           if (packetTs != Global::NO_PTS)
           {
             if (timeBase->getNumerator() != 0)
@@ -739,9 +748,18 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
 
           // Use the last value of the next pts
           mFakeCurrPts = mFakeNextPts;
-          // adjust our next Pts pointer
-          mFakeNextPts += av_rescale(timeBase->getNumerator(), AV_TIME_BASE,
+          double frameDelay = av_rescale(timeBase->getNumerator(), AV_TIME_BASE,
               timeBase->getDenominator());
+          frameDelay += avFrame->repeat_pict * (frameDelay*0.5);
+
+          // adjust our next Pts pointer
+          mFakeNextPts += (int64_t)frameDelay;
+//          VS_LOG_TRACE("frame complete: %s; pts: %lld; packet ts: %lld; tb: %ld/%ld",
+//              frameFinished ? "yes" : "no",
+//              mFakeCurrPts,
+//              packet ? packet->getDts() : 0,
+//                  timeBase->getNumerator(), timeBase->getDenominator()
+//                  );
         }
         frame->setComplete(frameFinished, this->getPixelType(),
             this->getWidth(), this->getHeight(), mFakeCurrPts);

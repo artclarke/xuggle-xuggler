@@ -78,6 +78,8 @@ public class GetContainerInfo
       System.out.printf("codec: %s; ",    coder.getCodecID());
       System.out.printf("duration: %s; ", stream.getDuration() == Global.NO_PTS ? "unknown" : "" + stream.getDuration());
       System.out.printf("language: %s; ", stream.getLanguage() == null ? "unknown" : stream.getLanguage());
+      System.out.printf("timebase: %d/%d; ", stream.getTimeBase().getNumerator(), stream.getTimeBase().getDenominator());
+      System.out.printf("coder tb: %d/%d; ", coder.getTimeBase().getNumerator(), coder.getTimeBase().getDenominator());
       
       if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO)
       {
@@ -89,6 +91,7 @@ public class GetContainerInfo
         System.out.printf("width: %d; ",  coder.getWidth());
         System.out.printf("height: %d; ", coder.getHeight());
         System.out.printf("format: %s; ", coder.getPixelType());
+        System.out.printf("frame-rate: %5.2f; ", coder.getFrameRate().getDouble());
       }
       System.out.printf("\n");
     }
