@@ -21,7 +21,6 @@
 
 #include <com/xuggle/xuggler/Property.h>
 #include <com/xuggle/ferry/Logger.h>
-#include <com/xuggle/xuggler/OptionHelper.h>
 #include <com/xuggle/xuggler/Property.h>
 extern "C" {
 #include <libavcodec/opt.h>
