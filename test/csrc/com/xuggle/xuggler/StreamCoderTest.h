@@ -14,6 +14,8 @@ class StreamCoderTest : public CxxTest::TestSuite
     void tearDown();
     void testGetters();
     void testSetCodec();
+    void testSetProperty();
+    void testGetProperty();
     void testOpenAndClose();
     void testOpenButNoClose();
     void testCloseButNoOpen();

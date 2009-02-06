@@ -38,6 +38,7 @@ libxuggle_xuggler_la_SOURCES= \
   ITimeValue.cpp \
   IVideoResampler.cpp \
   MediaDataWrapper.cpp \
+  OptionHelper.cpp \
   Packet.cpp \
   Rational.cpp \
   StreamCoder.cpp \
@@ -82,6 +83,7 @@ libxuggle_xuggler_la_HEADERS= \
   Container.h \
   VideoPicture.h \
   MediaDataWrapper.h \
+  OptionHelper.h \
   Packet.h \
   PixelFormat.h \
   Rational.h \

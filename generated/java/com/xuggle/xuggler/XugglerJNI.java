@@ -259,6 +259,8 @@ class XugglerJNI {
   public final static native long IStreamCoder_make(int jarg1);
   public final static native int IStreamCoder_getCodecTag(long jarg1, IStreamCoder jarg1_);
   public final static native void IStreamCoder_setCodecTag(long jarg1, IStreamCoder jarg1_, int jarg2);
+  public final static native int IStreamCoder_setProperty(long jarg1, IStreamCoder jarg1_, String jarg2, String jarg3);
+  public final static native String IStreamCoder_getPropertyAsString(long jarg1, IStreamCoder jarg1_, String jarg2);
   public final static native int IStream_getDirection(long jarg1, IStream jarg1_);
   public final static native int IStream_getIndex(long jarg1, IStream jarg1_);
   public final static native int IStream_getId(long jarg1, IStream jarg1_);

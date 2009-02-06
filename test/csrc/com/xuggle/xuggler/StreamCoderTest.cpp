@@ -24,6 +24,8 @@
 #include "Helper.h"
 #include "StreamCoderTest.h"
 
+#include <cstring>
+
 using namespace VS_CPP_NAMESPACE;
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);
@@ -845,3 +847,57 @@ StreamCoderTest :: disabled_testDecodingAndEncodingNellymoserAudio()
         numKeyFrames, h->expected_video_key_frames);
 }
 
+void
+StreamCoderTest :: testSetProperty()
+{
+  int retval = 0;
+  h->setupReading(h->SAMPLE_FILE);
+  
+  VS_TUT_ENSURE("need at least one stream", h->num_streams > 0);
+  
+  int32_t bitrate = h->coders[0]->getBitRate();
+  bitrate += 20000; // add something
+  // set to a value we know
+  h->coders[0]->setBitRate(bitrate);
+  
+  // now try setting the b option
+  retval = h->coders[0]->setProperty("b", "500");
+  VS_TUT_ENSURE("could not set option", retval >= 0);
+  
+  int32_t newbitrate = h->coders[0]->getBitRate();
+  
+  VS_TUT_ENSURE_EQUALS("option didn't work", newbitrate, 500);
+  
+  VS_TUT_ENSURE("and should not be old bit rate", newbitrate != bitrate);
+  
+}
+
+void
+StreamCoderTest :: testGetProperty()
+{
+  int retval = 0;
+  h->setupReading(h->SAMPLE_FILE);
+  
+  VS_TUT_ENSURE("need at least one stream", h->num_streams > 0);
+  
+  int32_t bitrate = h->coders[0]->getBitRate();
+  bitrate += 20000; // add something
+  // set to a value we know
+  h->coders[0]->setBitRate(bitrate);
+  
+  // now try setting the b option
+  retval = h->coders[0]->setProperty("b", "500");
+  VS_TUT_ENSURE("could not set option", retval >= 0);
+ 
+  int32_t newbitrate = h->coders[0]->getBitRate();
+  
+  VS_TUT_ENSURE_EQUALS("option didn't work", newbitrate, 500);
+  
+  VS_TUT_ENSURE("and should not be old bit rate", newbitrate != bitrate);
+  
+  char* val=h->coders[0]->getPropertyAsString("b");
+  VS_TUT_ENSURE("should be 500", strcmp(val, "500")==0);
+
+  // now we must delete val;
+  delete [] val;
+}

@@ -31,6 +31,11 @@
 #include <com/xuggle/xuggler/AudioSamples.h>
 #include <com/xuggle/xuggler/VideoPicture.h>
 #include <com/xuggle/xuggler/Packet.h>
+#include <com/xuggle/xuggler/OptionHelper.h>
+
+extern "C" {
+#include <libavcodec/opt.h>
+}
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);
 
@@ -94,6 +99,16 @@ StreamCoder :: make(Direction direction)
 {
   StreamCoder *retval = 0;
   AVCodecContext* codecCtx = avcodec_alloc_context();
+
+  // set encoding defaults
+  int32_t flags = 0;
+  if (direction == IStreamCoder::ENCODING)
+    flags |= AV_OPT_FLAG_ENCODING_PARAM;
+  else
+    flags |= AV_OPT_FLAG_DECODING_PARAM;
+  
+  av_opt_set_defaults2(codecCtx, flags, flags);
+  
   if (codecCtx)
   {
     retval = StreamCoder::make();
@@ -1235,6 +1250,18 @@ StreamCoder :: setCodecTag(int32_t tag)
 {
   if (mCodecContext)
     mCodecContext->codec_tag = tag;
+}
+
+int32_t
+StreamCoder :: setProperty(const char* aName, const char *aValue)
+{
+  return OptionHelper::setProperty(mCodecContext, aName, aValue);
+}
+
+char*
+StreamCoder :: getPropertyAsString(const char *aName)
+{
+  return OptionHelper::getPropertyAsString(mCodecContext, aName);
 }
 
 }

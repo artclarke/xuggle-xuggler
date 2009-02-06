@@ -71,7 +71,7 @@ StreamCoderX264Test :: testDecodingAndEncodingH264Video()
   int retval = -1;
 
   LoggerStack stack;
-  stack.setGlobalLevel(Logger::LEVEL_DEBUG, false);
+  stack.setGlobalLevel(Logger::LEVEL_WARN, false);
 
   // use the 20 second file to make memcheck faster
   h->setupReading("testfile_videoonly_20sec.flv");

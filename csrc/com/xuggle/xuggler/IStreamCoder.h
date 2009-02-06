@@ -576,7 +576,7 @@ namespace com { namespace xuggle { namespace xuggler
     IStreamCoder();
     virtual ~IStreamCoder();
   public:
-    /**
+    /*
      * Added for 1.17
      */
 
@@ -596,6 +596,40 @@ namespace com { namespace xuggle { namespace xuggler
      * @param fourcc The FOURCC to set, with Least Significant Byte first.
      */
     virtual void setCodecTag(int32_t)=0;
+    
+    /*
+     * Added for 1.19
+     */
+
+    /**
+     * Sets a property on this Object.
+     * 
+     * All AVOptions supported by the underlying AVClass are supported.
+     * 
+     * @param name The property name.  For example "b" for bit-rate.
+     * @param value The value of the property. 
+     * 
+     * @return >= 0 if the property was successfully set; <0 on error
+     */
+    virtual int32_t setProperty(const char *name, const char* value)=0;
+
+#ifdef SWIG
+    %newobject getPropertyAsString(const char*);
+    %typemap(newfree) char * "delete [] $1;";
+#endif
+    /**
+     * Gets a property on this Object.
+     * 
+     * Note for C++ callers; you must free the returned array with
+     * delete[] in order to avoid a memory leak.  Other language
+     * folks need not worry.
+     * 
+     * @param name property name
+     * 
+     * @return an string copy of the option value, or null if the option doesn't exist.
+     */
+    virtual char * getPropertyAsString(const char* name)=0;
+
   };
 
 }}}

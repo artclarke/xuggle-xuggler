@@ -119,6 +119,9 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t getCodecTag();
     virtual void setCodecTag(int32_t);
 
+    virtual int32_t setProperty(const char* name, const char* value);
+    virtual char * getPropertyAsString(const char* name);
+
     // Not for calling from Java
     void setCodec(int32_t);
 

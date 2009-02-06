@@ -688,6 +688,32 @@ public class IStreamCoder extends RefCounted {
     XugglerJNI.IStreamCoder_setCodecTag(swigCPtr, this, arg0);
   }
 
+/**
+ * Added for 1.19  
+ * Sets a property on this Object.  
+ * All AVOptions supported by the underlying AVClass are supported. 
+ *  
+ * @param	name The property name. For example "b" for bit-rate.  
+ * @param	value The value of the property.  
+ * @return	>= 0 if the property was successfully set; <0 on error  
+ */
+  public int setProperty(String name, String value) {
+    return XugglerJNI.IStreamCoder_setProperty(swigCPtr, this, name, value);
+  }
+
+/**
+ * Gets a property on this Object.  
+ * Note for C++ callers; you must free the returned array with  
+ * delete[] in order to avoid a memory leak. Other language  
+ * folks need not worry.  
+ * @param	name property name  
+ * @return	an string copy of the option value, or null if the option 
+ *		 doesn't exist.  
+ */
+  public String getPropertyAsString(String name) {
+    return XugglerJNI.IStreamCoder_getPropertyAsString(swigCPtr, this, name);
+  }
+
   public enum Direction {
   /**
    * The Direction in which this StreamCoder will work.
