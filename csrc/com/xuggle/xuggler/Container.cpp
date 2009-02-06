@@ -30,6 +30,7 @@
 #include <com/xuggle/xuggler/Stream.h>
 #include <com/xuggle/xuggler/Packet.h>
 #include <com/xuggle/xuggler/Global.h>
+#include <com/xuggle/xuggler/Property.h>
 VS_LOG_SETUP(VS_CPP_PACKAGE);
 
 using namespace com::xuggle::ferry;
@@ -671,5 +672,84 @@ namespace com { namespace xuggle { namespace xuggler
     return retval;
   }
 
+  int32_t
+  Container :: getNumProperties()
+  {
+    return Property::getNumProperties(mFormatContext);
+  }
+
+  IProperty*
+  Container :: getPropertyMetaData(int32_t propertyNo)
+  {
+    return Property::getPropertyMetaData(mFormatContext, propertyNo);
+  }
+
+  IProperty*
+  Container :: getPropertyMetaData(const char *name)
+  {
+    return Property::getPropertyMetaData(mFormatContext, name);
+  }
+
+  int32_t
+  Container :: setProperty(const char* aName, const char *aValue)
+  {
+    return Property::setProperty(mFormatContext, aName, aValue);
+  }
+
+  int32_t
+  Container :: setProperty(const char* aName, double aValue)
+  {
+    return Property::setProperty(mFormatContext, aName, aValue);
+  }
+
+  int32_t
+  Container :: setProperty(const char* aName, int64_t aValue)
+  {
+    return Property::setProperty(mFormatContext, aName, aValue);
+  }
+
+  int32_t
+  Container :: setProperty(const char* aName, bool aValue)
+  {
+    return Property::setProperty(mFormatContext, aName, aValue);
+  }
+
+
+  int32_t
+  Container :: setProperty(const char* aName, IRational *aValue)
+  {
+    return Property::setProperty(mFormatContext, aName, aValue);
+  }
+
+
+  char*
+  Container :: getPropertyAsString(const char *aName)
+  {
+    return Property::getPropertyAsString(mFormatContext, aName);
+  }
+
+  double
+  Container :: getPropertyAsDouble(const char *aName)
+  {
+    return Property::getPropertyAsDouble(mFormatContext, aName);
+  }
+
+  int64_t
+  Container :: getPropertyAsLong(const char *aName)
+  {
+    return Property::getPropertyAsLong(mFormatContext, aName);
+  }
+
+  IRational*
+  Container :: getPropertyAsRational(const char *aName)
+  {
+    return Property::getPropertyAsRational(mFormatContext, aName);
+  }
+
+  bool
+  Container :: getPropertyAsBoolean(const char *aName)
+  {
+    return Property::getPropertyAsBoolean(mFormatContext, aName);
+  }
 
 }}}

@@ -18,44 +18,17 @@
  * with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-#ifndef OPTIONHELPER_H_
-#define OPTIONHELPER_H_
+
+#include "IProperty.h"
 
 namespace com { namespace xuggle { namespace xuggler {
 
-  class OptionHelper
+  IProperty :: IProperty()
   {
-  public:
-    OptionHelper();
-    virtual ~OptionHelper();
+  }
 
-    /**
-     * Looks up the property 'name' in 'context' and sets the
-     * value of the property to 'value'.
-     * 
-     * @param context AVClass to search for option in.
-     * @param name name of option
-     * @param value Value of option
-     * 
-     * @return >= 0 on success; <0 on error.
-     */
-    static int32_t setProperty(void * context, const char* name, const char* value);
-    
-    /**
-     * Gets the value of this property, and returns as a new[]ed string.
-     * 
-     * Caller must call delete[] on string.
-     * 
-     * @param context AVClass context to search for option in.
-     * @param name name of option
-     * 
-     * @return string version of option value (caller must call delete[]) or
-     *   null on error.
-     */
-    static char * getPropertyAsString(void * context, const char* name);
-
-
-  };
+  IProperty :: ~IProperty()
+  {
+  }
 
 }}}
-#endif /* OPTIONHELPER_H_ */

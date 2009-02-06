@@ -21,6 +21,8 @@
 package com.xuggle.xuggler;
 
 import org.junit.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
@@ -31,6 +33,7 @@ import junit.framework.TestCase;
 public class ContainerTest extends TestCase
 {
   private final String mSampleFile = "fixtures/testfile.flv";
+  private final Logger log = LoggerFactory.getLogger(this.getClass());
 
   @Test
   public void testContainerOpenAndClose()
@@ -345,4 +348,30 @@ public class ContainerTest extends TestCase
     assertTrue("should fail as only 2 strems in this file", retval <0);
   }
 
+  @Test
+  public void testGetAndSetProperty()
+  {
+    IContainer container = IContainer.make();
+
+    assertEquals("should only be able to set properties once file is open",
+        0, container.getNumProperties());
+
+    int retval = -1;
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+
+    assertTrue("should have some properties", container.getNumProperties()>0);
+    long probeSize = container.getPropertyAsLong("probesize");
+    log.debug("probesize: {}", probeSize);
+    assertTrue("should have a non-zero probesize",
+        probeSize > 0);
+    assertTrue("should succeed",
+        container.setProperty("probesize", 53535353)>=0);
+    assertEquals("should be equal",
+        53535353,
+        container.getPropertyAsLong("probesize"));
+    assertTrue("should fail",
+        container.setProperty("notapropertyatall", 15) <0);
+    
+  }
 }

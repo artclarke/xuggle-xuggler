@@ -192,8 +192,6 @@ public class DecodeAndCaptureFrames
     // Now, we start walking through the container looking at each packet.
 
     IPacket packet = IPacket.make();
-    long firstTimestampInStream = Global.NO_PTS;
-    long systemClockStartTime = 0;
     while(container.readNextPacket(packet) >= 0)
     {
       

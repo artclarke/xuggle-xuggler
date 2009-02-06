@@ -72,6 +72,25 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int64_t getFileSize();
     virtual int32_t getBitRate();
 
+    /*
+     * Added for 1.19
+     */
+    virtual int32_t getNumProperties();
+    virtual IProperty* getPropertyMetaData(int32_t propertyNo);
+    virtual IProperty* getPropertyMetaData(const char *name);
+
+    virtual int32_t setProperty(const char* name, const char* value);
+    virtual int32_t setProperty(const char* name, double value);
+    virtual int32_t setProperty(const char* name, int64_t value);
+    virtual int32_t setProperty(const char* name, bool value);
+    virtual int32_t setProperty(const char* name, IRational *value);
+    
+    virtual char * getPropertyAsString(const char* name);
+    virtual double getPropertyAsDouble(const char* name);
+    virtual int64_t getPropertyAsLong(const char* name);
+    virtual  IRational *getPropertyAsRational(const char* name);
+    virtual bool getPropertyAsBoolean(const char* name);
+
   protected:
     virtual ~Container();
     Container();

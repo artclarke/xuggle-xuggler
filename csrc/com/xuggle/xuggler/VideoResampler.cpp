@@ -26,6 +26,7 @@
 #include <com/xuggle/xuggler/VideoResampler.h>
 #include <com/xuggle/xuggler/VideoPicture.h>
 #include <com/xuggle/xuggler/Rational.h>
+#include <com/xuggle/xuggler/Property.h>
 
 // This is the only place we include this to limit
 // how much it pollutes our code, and make it
@@ -225,5 +226,85 @@ namespace com { namespace xuggle { namespace xuggler
 
     return retval;
   }
-  
+
+  int32_t
+  VideoResampler :: getNumProperties()
+  {
+    return Property::getNumProperties(mContext);
+  }
+
+  IProperty*
+  VideoResampler :: getPropertyMetaData(int32_t propertyNo)
+  {
+    return Property::getPropertyMetaData(mContext, propertyNo);
+  }
+
+  IProperty*
+  VideoResampler :: getPropertyMetaData(const char *name)
+  {
+    return Property::getPropertyMetaData(mContext, name);
+  }
+
+  int32_t
+  VideoResampler :: setProperty(const char* aName, const char *aValue)
+  {
+    return Property::setProperty(mContext, aName, aValue);
+  }
+
+  int32_t
+  VideoResampler :: setProperty(const char* aName, double aValue)
+  {
+    return Property::setProperty(mContext, aName, aValue);
+  }
+
+  int32_t
+  VideoResampler :: setProperty(const char* aName, int64_t aValue)
+  {
+    return Property::setProperty(mContext, aName, aValue);
+  }
+
+  int32_t
+  VideoResampler :: setProperty(const char* aName, bool aValue)
+  {
+    return Property::setProperty(mContext, aName, aValue);
+  }
+
+
+  int32_t
+  VideoResampler :: setProperty(const char* aName, IRational *aValue)
+  {
+    return Property::setProperty(mContext, aName, aValue);
+  }
+
+
+  char*
+  VideoResampler :: getPropertyAsString(const char *aName)
+  {
+    return Property::getPropertyAsString(mContext, aName);
+  }
+
+  double
+  VideoResampler :: getPropertyAsDouble(const char *aName)
+  {
+    return Property::getPropertyAsDouble(mContext, aName);
+  }
+
+  int64_t
+  VideoResampler :: getPropertyAsLong(const char *aName)
+  {
+    return Property::getPropertyAsLong(mContext, aName);
+  }
+
+  IRational*
+  VideoResampler :: getPropertyAsRational(const char *aName)
+  {
+    return Property::getPropertyAsRational(mContext, aName);
+  }
+
+  bool
+  VideoResampler :: getPropertyAsBoolean(const char *aName)
+  {
+    return Property::getPropertyAsBoolean(mContext, aName);
+  }
+
   }}}

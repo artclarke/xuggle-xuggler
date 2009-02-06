@@ -41,6 +41,7 @@ check_PROGRAMS = xugglerTestAudioResampler$(EXEEXT) \
 	xugglerTestMediaDataWrapper$(EXEEXT) \
 	xugglerTestPacket$(EXEEXT) xugglerTestPixelFormat$(EXEEXT) \
 	xugglerTestRational$(EXEEXT) xugglerTestStreamCoder$(EXEEXT) \
+	xugglerTestStreamCoderProperty$(EXEEXT) \
 	xugglerTestStreamCoderX264$(EXEEXT) xugglerTestStream$(EXEEXT) \
 	xugglerTestTimeValue$(EXEEXT) $(am__EXEEXT_1)
 @VS_ENABLE_GPL_TRUE@am__append_1 = xugglerTestAudioResampler \
@@ -168,6 +169,17 @@ xugglerTestStreamCoder_OBJECTS = $(am_xugglerTestStreamCoder_OBJECTS) \
 xugglerTestStreamCoder_DEPENDENCIES =  \
 	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
 	$(am__DEPENDENCIES_1)
+am_xugglerTestStreamCoderProperty_OBJECTS =  \
+	StreamCoderPropertyTest.$(OBJEXT) Main.$(OBJEXT) \
+	Helper.$(OBJEXT)
+nodist_xugglerTestStreamCoderProperty_OBJECTS =  \
+	StreamCoderPropertyTest_CXXRunner.$(OBJEXT)
+xugglerTestStreamCoderProperty_OBJECTS =  \
+	$(am_xugglerTestStreamCoderProperty_OBJECTS) \
+	$(nodist_xugglerTestStreamCoderProperty_OBJECTS)
+xugglerTestStreamCoderProperty_DEPENDENCIES =  \
+	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
+	$(am__DEPENDENCIES_1)
 am_xugglerTestStreamCoderX264_OBJECTS = StreamCoderX264Test.$(OBJEXT) \
 	Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestStreamCoderX264_OBJECTS =  \
@@ -242,6 +254,8 @@ SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(nodist_xugglerTestStream_SOURCES) \
 	$(xugglerTestStreamCoder_SOURCES) \
 	$(nodist_xugglerTestStreamCoder_SOURCES) \
+	$(xugglerTestStreamCoderProperty_SOURCES) \
+	$(nodist_xugglerTestStreamCoderProperty_SOURCES) \
 	$(xugglerTestStreamCoderX264_SOURCES) \
 	$(nodist_xugglerTestStreamCoderX264_SOURCES) \
 	$(xugglerTestTimeValue_SOURCES) \
@@ -259,6 +273,7 @@ DIST_SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(xugglerTestPacket_SOURCES) $(xugglerTestPixelFormat_SOURCES) \
 	$(xugglerTestRational_SOURCES) $(xugglerTestStream_SOURCES) \
 	$(xugglerTestStreamCoder_SOURCES) \
+	$(xugglerTestStreamCoderProperty_SOURCES) \
 	$(xugglerTestStreamCoderX264_SOURCES) \
 	$(xugglerTestTimeValue_SOURCES) \
 	$(xugglerTestVideoPicture_SOURCES) \
@@ -563,6 +578,17 @@ nodist_xugglerTestStreamCoderX264_SOURCES = \
 xugglerTestStreamCoderX264_LDADD = \
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
+xugglerTestStreamCoderProperty_SOURCES = \
+  StreamCoderPropertyTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestStreamCoderProperty_SOURCES = \
+  StreamCoderPropertyTest_CXXRunner.cpp
+
+xugglerTestStreamCoderProperty_LDADD = \
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
 xugglerTestStream_SOURCES = \
   StreamTest.cpp \
   Main.cpp \
@@ -612,6 +638,7 @@ BUILT_SOURCES = \
   TimeValueTest_CXXRunner.cpp \
   VideoResamplerTest_CXXRunner.cpp \
   StreamCoderTest_CXXRunner.cpp \
+  StreamCoderPropertyTest_CXXRunner.cpp \
   StreamCoderX264Test_CXXRunner.cpp
 
 noinst_HEADERS = \
@@ -628,6 +655,7 @@ noinst_HEADERS = \
   PixelFormatTest.h \
   RationalTest.h \
   StreamCoderTest.h \
+  StreamCoderPropertyTest.h \
   StreamCoderX264Test.h \
   StreamTest.h \
   TimeValueTest.h \
@@ -710,6 +738,9 @@ xugglerTestStream$(EXEEXT): $(xugglerTestStream_OBJECTS) $(xugglerTestStream_DEP
 xugglerTestStreamCoder$(EXEEXT): $(xugglerTestStreamCoder_OBJECTS) $(xugglerTestStreamCoder_DEPENDENCIES) 
 	@rm -f xugglerTestStreamCoder$(EXEEXT)
 	$(CXXLINK) $(xugglerTestStreamCoder_OBJECTS) $(xugglerTestStreamCoder_LDADD) $(LIBS)
+xugglerTestStreamCoderProperty$(EXEEXT): $(xugglerTestStreamCoderProperty_OBJECTS) $(xugglerTestStreamCoderProperty_DEPENDENCIES) 
+	@rm -f xugglerTestStreamCoderProperty$(EXEEXT)
+	$(CXXLINK) $(xugglerTestStreamCoderProperty_OBJECTS) $(xugglerTestStreamCoderProperty_LDADD) $(LIBS)
 xugglerTestStreamCoderX264$(EXEEXT): $(xugglerTestStreamCoderX264_OBJECTS) $(xugglerTestStreamCoderX264_DEPENDENCIES) 
 	@rm -f xugglerTestStreamCoderX264$(EXEEXT)
 	$(CXXLINK) $(xugglerTestStreamCoderX264_OBJECTS) $(xugglerTestStreamCoderX264_LDADD) $(LIBS)

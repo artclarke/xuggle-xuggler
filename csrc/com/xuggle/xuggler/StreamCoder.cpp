@@ -31,7 +31,7 @@
 #include <com/xuggle/xuggler/AudioSamples.h>
 #include <com/xuggle/xuggler/VideoPicture.h>
 #include <com/xuggle/xuggler/Packet.h>
-#include <com/xuggle/xuggler/OptionHelper.h>
+#include <com/xuggle/xuggler/Property.h>
 
 extern "C" {
 #include <libavcodec/opt.h>
@@ -1253,17 +1253,83 @@ StreamCoder :: setCodecTag(int32_t tag)
 }
 
 int32_t
+StreamCoder :: getNumProperties()
+{
+  return Property::getNumProperties(mCodecContext);
+}
+
+IProperty*
+StreamCoder :: getPropertyMetaData(int32_t propertyNo)
+{
+  return Property::getPropertyMetaData(mCodecContext, propertyNo);
+}
+
+IProperty*
+StreamCoder :: getPropertyMetaData(const char *name)
+{
+  return Property::getPropertyMetaData(mCodecContext, name);
+}
+
+int32_t
 StreamCoder :: setProperty(const char* aName, const char *aValue)
 {
-  return OptionHelper::setProperty(mCodecContext, aName, aValue);
+  return Property::setProperty(mCodecContext, aName, aValue);
 }
+
+int32_t
+StreamCoder :: setProperty(const char* aName, double aValue)
+{
+  return Property::setProperty(mCodecContext, aName, aValue);
+}
+
+int32_t
+StreamCoder :: setProperty(const char* aName, int64_t aValue)
+{
+  return Property::setProperty(mCodecContext, aName, aValue);
+}
+
+int32_t
+StreamCoder :: setProperty(const char* aName, bool aValue)
+{
+  return Property::setProperty(mCodecContext, aName, aValue);
+}
+
+
+int32_t
+StreamCoder :: setProperty(const char* aName, IRational *aValue)
+{
+  return Property::setProperty(mCodecContext, aName, aValue);
+}
+
 
 char*
 StreamCoder :: getPropertyAsString(const char *aName)
 {
-  return OptionHelper::getPropertyAsString(mCodecContext, aName);
+  return Property::getPropertyAsString(mCodecContext, aName);
 }
 
+double
+StreamCoder :: getPropertyAsDouble(const char *aName)
+{
+  return Property::getPropertyAsDouble(mCodecContext, aName);
 }
+
+int64_t
+StreamCoder :: getPropertyAsLong(const char *aName)
+{
+  return Property::getPropertyAsLong(mCodecContext, aName);
 }
+
+IRational*
+StreamCoder :: getPropertyAsRational(const char *aName)
+{
+  return Property::getPropertyAsRational(mCodecContext, aName);
 }
+
+bool
+StreamCoder :: getPropertyAsBoolean(const char *aName)
+{
+  return Property::getPropertyAsBoolean(mCodecContext, aName);
+}
+
+}}}

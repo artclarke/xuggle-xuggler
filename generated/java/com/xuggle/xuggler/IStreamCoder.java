@@ -664,7 +664,6 @@ public class IStreamCoder extends RefCounted {
   }
 
 /**
- * Added for 1.17  
  * Returns the 4-byte FOURCC tag (Least Significant Byte first).  
  * This is really a packed 4-byte array so it's only useful if you use 
  *  
@@ -689,7 +688,35 @@ public class IStreamCoder extends RefCounted {
   }
 
 /**
- * Added for 1.19  
+ * Returns the total number of settable properties on this object  
+ * @return	total number of options (not including constant definitions) 
+ *		  
+ */
+  public int getNumProperties() {
+    return XugglerJNI.IStreamCoder_getNumProperties(swigCPtr, this);
+  }
+
+/**
+ * Returns the name of the numbered property.  
+ * @param	propertyNo The property number in the options list.  
+ * @return	an IProperty value for this properties meta-data  
+ */
+  public IProperty getPropertyMetaData(int propertyNo) {
+    long cPtr = XugglerJNI.IStreamCoder_getPropertyMetaData__SWIG_0(swigCPtr, this, propertyNo);
+    return (cPtr == 0) ? null : new IProperty(cPtr, false);
+  }
+
+/**
+ * Returns the name of the numbered property.  
+ * @param	name The property name.  
+ * @return	an IProperty value for this properties meta-data  
+ */
+  public IProperty getPropertyMetaData(String name) {
+    long cPtr = XugglerJNI.IStreamCoder_getPropertyMetaData__SWIG_1(swigCPtr, this, name);
+    return (cPtr == 0) ? null : new IProperty(cPtr, false);
+  }
+
+/**
  * Sets a property on this Object.  
  * All AVOptions supported by the underlying AVClass are supported. 
  *  
@@ -698,7 +725,51 @@ public class IStreamCoder extends RefCounted {
  * @return	>= 0 if the property was successfully set; <0 on error  
  */
   public int setProperty(String name, String value) {
-    return XugglerJNI.IStreamCoder_setProperty(swigCPtr, this, name, value);
+    return XugglerJNI.IStreamCoder_setProperty__SWIG_0(swigCPtr, this, name, value);
+  }
+
+/**
+ * Looks up the property 'name' and sets the  
+ * value of the property to 'value'.  
+ * @param	name name of option  
+ * @param	value Value of option  
+ * @return	>= 0 on success; <0 on error.  
+ */
+  public int setProperty(String name, double value) {
+    return XugglerJNI.IStreamCoder_setProperty__SWIG_1(swigCPtr, this, name, value);
+  }
+
+/**
+ * Looks up the property 'name' and sets the  
+ * value of the property to 'value'.  
+ * @param	name name of option  
+ * @param	value Value of option  
+ * @return	>= 0 on success; <0 on error.  
+ */
+  public int setProperty(String name, long value) {
+    return XugglerJNI.IStreamCoder_setProperty__SWIG_2(swigCPtr, this, name, value);
+  }
+
+/**
+ * Looks up the property 'name' and sets the  
+ * value of the property to 'value'.  
+ * @param	name name of option  
+ * @param	value Value of option  
+ * @return	>= 0 on success; <0 on error.  
+ */
+  public int setProperty(String name, boolean value) {
+    return XugglerJNI.IStreamCoder_setProperty__SWIG_3(swigCPtr, this, name, value);
+  }
+
+/**
+ * Looks up the property 'name' and sets the  
+ * value of the property to 'value'.  
+ * @param	name name of option  
+ * @param	value Value of option  
+ * @return	>= 0 on success; <0 on error.  
+ */
+  public int setProperty(String name, IRational value) {
+    return XugglerJNI.IStreamCoder_setProperty__SWIG_4(swigCPtr, this, name, IRational.getCPtr(value), value);
   }
 
 /**
@@ -712,6 +783,43 @@ public class IStreamCoder extends RefCounted {
  */
   public String getPropertyAsString(String name) {
     return XugglerJNI.IStreamCoder_getPropertyAsString(swigCPtr, this, name);
+  }
+
+/**
+ * Gets the value of this property, and returns as a double;  
+ * @param	name name of option  
+ * @return	double value of property, or 0 on error.  
+ */
+  public double getPropertyAsDouble(String name) {
+    return XugglerJNI.IStreamCoder_getPropertyAsDouble(swigCPtr, this, name);
+  }
+
+/**
+ * Gets the value of this property, and returns as an long;  
+ * @param	name name of option  
+ * @return	long value of property, or 0 on error.  
+ */
+  public long getPropertyAsLong(String name) {
+    return XugglerJNI.IStreamCoder_getPropertyAsLong(swigCPtr, this, name);
+  }
+
+/**
+ * Gets the value of this property, and returns as an IRational;  
+ * @param	name name of option  
+ * @return	long value of property, or 0 on error.  
+ */
+  public IRational getPropertyAsRational(String name) {
+    long cPtr = XugglerJNI.IStreamCoder_getPropertyAsRational(swigCPtr, this, name);
+    return (cPtr == 0) ? null : new IRational(cPtr, false);
+  }
+
+/**
+ * Gets the value of this property, and returns as a boolean  
+ * @param	name name of option  
+ * @return	boolean value of property, or false on error.  
+ */
+  public boolean getPropertyAsBoolean(String name) {
+    return XugglerJNI.IStreamCoder_getPropertyAsBoolean(swigCPtr, this, name);
   }
 
   public enum Direction {

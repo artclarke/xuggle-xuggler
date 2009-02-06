@@ -32,14 +32,15 @@ libxuggle_xuggler_la_SOURCES= \
   IMediaDataWrapper.cpp \
   IPacket.cpp \
   IPixelFormat.cpp \
+  IProperty.cpp \
   IRational.cpp \
   IStreamCoder.cpp \
   IStream.cpp \
   ITimeValue.cpp \
   IVideoResampler.cpp \
   MediaDataWrapper.cpp \
-  OptionHelper.cpp \
   Packet.cpp \
+  Property.cpp \
   Rational.cpp \
   StreamCoder.cpp \
   Stream.cpp \
@@ -69,6 +70,7 @@ libxuggle_xuggler_la_HEADERS= \
   IMediaDataWrapper.h \
   IPacket.h \
   IPixelFormat.h \
+  IProperty.h \
   IRational.h \
   IStreamCoder.h \
   IStreamCoder.swg \
@@ -83,9 +85,9 @@ libxuggle_xuggler_la_HEADERS= \
   Container.h \
   VideoPicture.h \
   MediaDataWrapper.h \
-  OptionHelper.h \
   Packet.h \
   PixelFormat.h \
+  Property.h \
   Rational.h \
   StreamCoder.h \
   Stream.h \

@@ -25,6 +25,7 @@
 #include <com/xuggle/xuggler/Xuggler.h>
 #include <com/xuggle/xuggler/IPixelFormat.h>
 #include <com/xuggle/xuggler/IVideoPicture.h>
+#include <com/xuggle/xuggler/IProperty.h>
 
 namespace com { namespace xuggle { namespace xuggler
   {
@@ -94,6 +95,145 @@ namespace com { namespace xuggle { namespace xuggler
      * @return >= 0 on success; <0 on error.
      */
     virtual int32_t resample(IVideoPicture *pOutFrame, IVideoPicture *pInFrame)=0;
+
+    /*
+     * Added for 1.19
+     */
+
+    /**
+     * Returns the total number of settable properties on this object
+     * 
+     * @return total number of options (not including constant definitions)
+     */
+    virtual int32_t getNumProperties()=0;
+    
+    /**
+     * Returns the name of the numbered property.
+     * 
+     * @param propertyNo The property number in the options list.
+     *   
+     * @return an IProperty value for this properties meta-data
+     */
+    virtual IProperty *getPropertyMetaData(int32_t propertyNo)=0;
+
+    /**
+     * Returns the name of the numbered property.
+     * 
+     * @param name  The property name.
+     *   
+     * @return an IProperty value for this properties meta-data
+     */
+    virtual IProperty *getPropertyMetaData(const char *name)=0;
+    
+    /**
+     * Sets a property on this Object.
+     * 
+     * All AVOptions supported by the underlying AVClass are supported.
+     * 
+     * @param name The property name.  For example "b" for bit-rate.
+     * @param value The value of the property. 
+     * 
+     * @return >= 0 if the property was successfully set; <0 on error
+     */
+    virtual int32_t setProperty(const char *name, const char* value)=0;
+
+
+    /**
+     * Looks up the property 'name' and sets the
+     * value of the property to 'value'.
+     * 
+     * @param name name of option
+     * @param value Value of option
+     * 
+     * @return >= 0 on success; <0 on error.
+     */
+    virtual int32_t setProperty(const char* name, double value)=0;
+    
+    /**
+     * Looks up the property 'name' and sets the
+     * value of the property to 'value'.
+     * 
+     * @param name name of option
+     * @param value Value of option
+     * 
+     * @return >= 0 on success; <0 on error.
+     */
+    virtual int32_t setProperty(const char* name, int64_t value)=0;
+    
+    /**
+     * Looks up the property 'name' and sets the
+     * value of the property to 'value'.
+     * 
+     * @param name name of option
+     * @param value Value of option
+     * 
+     * @return >= 0 on success; <0 on error.
+     */
+    virtual int32_t setProperty(const char* name, bool value)=0;
+    
+    /**
+     * Looks up the property 'name' and sets the
+     * value of the property to 'value'.
+     * 
+     * @param name name of option
+     * @param value Value of option
+     * 
+     * @return >= 0 on success; <0 on error.
+     */
+    virtual int32_t setProperty(const char* name, IRational *value)=0;
+
+#ifdef SWIG
+    %newobject getPropertyAsString(const char*);
+    %typemap(newfree) char * "delete [] $1;";
+#endif
+    /**
+     * Gets a property on this Object.
+     * 
+     * Note for C++ callers; you must free the returned array with
+     * delete[] in order to avoid a memory leak.  Other language
+     * folks need not worry.
+     * 
+     * @param name property name
+     * 
+     * @return an string copy of the option value, or null if the option doesn't exist.
+     */
+    virtual char * getPropertyAsString(const char* name)=0;
+
+    /**
+     * Gets the value of this property, and returns as a double;
+     * 
+     * @param name name of option
+     * 
+     * @return double value of property, or 0 on error.
+     */
+    virtual double getPropertyAsDouble(const char* name)=0;
+
+    /**
+     * Gets the value of this property, and returns as an long;
+     * 
+     * @param name name of option
+     * 
+     * @return long value of property, or 0 on error.
+     */
+    virtual int64_t getPropertyAsLong(const char* name)=0;
+
+    /**
+     * Gets the value of this property, and returns as an IRational;
+     * 
+     * @param name name of option
+     * 
+     * @return long value of property, or 0 on error.
+     */
+    virtual  IRational *getPropertyAsRational(const char* name)=0;
+
+    /**
+     * Gets the value of this property, and returns as a boolean
+     * 
+     * @param name name of option
+     * 
+     * @return boolean value of property, or false on error.
+     */
+    virtual bool getPropertyAsBoolean(const char* name)=0;
 
     /**
      * Get a new video resampler.  Returns null if {@link #isSupported()} returns false.

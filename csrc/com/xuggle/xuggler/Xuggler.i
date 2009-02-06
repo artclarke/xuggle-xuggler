@@ -38,6 +38,7 @@ JNI_OnLoad(JavaVM *jvm, void *)
   return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
 }
 
+#include <com/xuggle/xuggler/IProperty.h>
 #include <com/xuggle/xuggler/IPixelFormat.h>
 #include <com/xuggle/xuggler/ITimeValue.h>
 #include <com/xuggle/xuggler/IRational.h>
@@ -145,6 +146,7 @@ import com.xuggle.xuggler.Converter;
 %import <com/xuggle/ferry/Ferry.i>
 
 %include <com/xuggle/xuggler/Xuggler.h>
+%include <com/xuggle/xuggler/IProperty.h>
 %include <com/xuggle/xuggler/IPixelFormat.h>
 %include <com/xuggle/xuggler/IRational.h>
 %include <com/xuggle/xuggler/IMediaData.h>

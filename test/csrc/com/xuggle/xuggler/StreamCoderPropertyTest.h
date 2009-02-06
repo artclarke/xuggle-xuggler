@@ -18,29 +18,26 @@
  * with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-#ifndef __STREAMCODER_TEST_H__
-#define __STREAMCODER_TEST_H__
+#ifndef __STREAMCODERPROPERTY_TEST_H__
+#define __STREAMCODERPROPERTY_TEST_H__
 
 #include <com/xuggle/testutils/TestUtils.h>
 #include "Helper.h"
 using namespace VS_CPP_NAMESPACE;
 
-class StreamCoderTest : public CxxTest::TestSuite
+class StreamCoderPropertyTest : public CxxTest::TestSuite
 {
   public:
-    StreamCoderTest();
-    virtual ~StreamCoderTest();
+    StreamCoderPropertyTest();
+    virtual ~StreamCoderPropertyTest();
     void setUp();
     void tearDown();
-    void testGetters();
-    void testSetCodec();
-    void testOpenAndClose();
-    void testOpenButNoClose();
-    void testCloseButNoOpen();
-    void testDecodingAndEncodingFullyInterleavedFile();
-    void testTimestamps();
-    void testGetFrameSize();
-    void disabled_testDecodingAndEncodingNellymoserAudio();
+    void testSetProperty();
+    void testGetProperty();
+    void testGetNumProperties();
+    void testGetPropertyMetaData();
+    void testGetNumFlagSettings();
+    void testGetPropertyAsDouble();
   private:
     Helper* h;
     Helper* hw;
@@ -49,5 +46,5 @@ class StreamCoderTest : public CxxTest::TestSuite
 };
 
 
-#endif // __STREAMCODER_TEST_H__
+#endif // __STREAMCODERPROPERTY_TEST_H__
 

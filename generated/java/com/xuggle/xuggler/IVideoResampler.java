@@ -180,6 +180,141 @@ public class IVideoResampler extends RefCounted {
   }
 
 /**
+ * Returns the total number of settable properties on this object  
+ * @return	total number of options (not including constant definitions) 
+ *		  
+ */
+  public int getNumProperties() {
+    return XugglerJNI.IVideoResampler_getNumProperties(swigCPtr, this);
+  }
+
+/**
+ * Returns the name of the numbered property.  
+ * @param	propertyNo The property number in the options list.  
+ * @return	an IProperty value for this properties meta-data  
+ */
+  public IProperty getPropertyMetaData(int propertyNo) {
+    long cPtr = XugglerJNI.IVideoResampler_getPropertyMetaData__SWIG_0(swigCPtr, this, propertyNo);
+    return (cPtr == 0) ? null : new IProperty(cPtr, false);
+  }
+
+/**
+ * Returns the name of the numbered property.  
+ * @param	name The property name.  
+ * @return	an IProperty value for this properties meta-data  
+ */
+  public IProperty getPropertyMetaData(String name) {
+    long cPtr = XugglerJNI.IVideoResampler_getPropertyMetaData__SWIG_1(swigCPtr, this, name);
+    return (cPtr == 0) ? null : new IProperty(cPtr, false);
+  }
+
+/**
+ * Sets a property on this Object.  
+ * All AVOptions supported by the underlying AVClass are supported. 
+ *  
+ * @param	name The property name. For example "b" for bit-rate.  
+ * @param	value The value of the property.  
+ * @return	>= 0 if the property was successfully set; <0 on error  
+ */
+  public int setProperty(String name, String value) {
+    return XugglerJNI.IVideoResampler_setProperty__SWIG_0(swigCPtr, this, name, value);
+  }
+
+/**
+ * Looks up the property 'name' and sets the  
+ * value of the property to 'value'.  
+ * @param	name name of option  
+ * @param	value Value of option  
+ * @return	>= 0 on success; <0 on error.  
+ */
+  public int setProperty(String name, double value) {
+    return XugglerJNI.IVideoResampler_setProperty__SWIG_1(swigCPtr, this, name, value);
+  }
+
+/**
+ * Looks up the property 'name' and sets the  
+ * value of the property to 'value'.  
+ * @param	name name of option  
+ * @param	value Value of option  
+ * @return	>= 0 on success; <0 on error.  
+ */
+  public int setProperty(String name, long value) {
+    return XugglerJNI.IVideoResampler_setProperty__SWIG_2(swigCPtr, this, name, value);
+  }
+
+/**
+ * Looks up the property 'name' and sets the  
+ * value of the property to 'value'.  
+ * @param	name name of option  
+ * @param	value Value of option  
+ * @return	>= 0 on success; <0 on error.  
+ */
+  public int setProperty(String name, boolean value) {
+    return XugglerJNI.IVideoResampler_setProperty__SWIG_3(swigCPtr, this, name, value);
+  }
+
+/**
+ * Looks up the property 'name' and sets the  
+ * value of the property to 'value'.  
+ * @param	name name of option  
+ * @param	value Value of option  
+ * @return	>= 0 on success; <0 on error.  
+ */
+  public int setProperty(String name, IRational value) {
+    return XugglerJNI.IVideoResampler_setProperty__SWIG_4(swigCPtr, this, name, IRational.getCPtr(value), value);
+  }
+
+/**
+ * Gets a property on this Object.  
+ * Note for C++ callers; you must free the returned array with  
+ * delete[] in order to avoid a memory leak. Other language  
+ * folks need not worry.  
+ * @param	name property name  
+ * @return	an string copy of the option value, or null if the option 
+ *		 doesn't exist.  
+ */
+  public String getPropertyAsString(String name) {
+    return XugglerJNI.IVideoResampler_getPropertyAsString(swigCPtr, this, name);
+  }
+
+/**
+ * Gets the value of this property, and returns as a double;  
+ * @param	name name of option  
+ * @return	double value of property, or 0 on error.  
+ */
+  public double getPropertyAsDouble(String name) {
+    return XugglerJNI.IVideoResampler_getPropertyAsDouble(swigCPtr, this, name);
+  }
+
+/**
+ * Gets the value of this property, and returns as an long;  
+ * @param	name name of option  
+ * @return	long value of property, or 0 on error.  
+ */
+  public long getPropertyAsLong(String name) {
+    return XugglerJNI.IVideoResampler_getPropertyAsLong(swigCPtr, this, name);
+  }
+
+/**
+ * Gets the value of this property, and returns as an IRational;  
+ * @param	name name of option  
+ * @return	long value of property, or 0 on error.  
+ */
+  public IRational getPropertyAsRational(String name) {
+    long cPtr = XugglerJNI.IVideoResampler_getPropertyAsRational(swigCPtr, this, name);
+    return (cPtr == 0) ? null : new IRational(cPtr, false);
+  }
+
+/**
+ * Gets the value of this property, and returns as a boolean  
+ * @param	name name of option  
+ * @return	boolean value of property, or false on error.  
+ */
+  public boolean getPropertyAsBoolean(String name) {
+    return XugglerJNI.IVideoResampler_getPropertyAsBoolean(swigCPtr, this, name);
+  }
+
+/**
  * Get a new video resampler. Returns null if {@link #isSupported()} 
  * returns false.  
  * @param	outputWidth The width in pixels you want to output frame to 
