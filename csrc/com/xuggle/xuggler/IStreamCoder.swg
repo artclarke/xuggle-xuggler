@@ -34,5 +34,7 @@
      this.setCodecTag(tag);
    }
 %}
+
+%typemap(javainterfaces) com::xuggle::xuggler::IStreamCoder, com::xuggle::xuggler::IStreamCoder*, com::xuggle::xuggler::IStreamCoder& "com.xuggle.xuggler.IConfigurable";
 %include <com/xuggle/xuggler/IStreamCoder.h>
 

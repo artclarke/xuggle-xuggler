@@ -20,7 +20,7 @@ import com.xuggle.ferry.*;
  * the make(...) methods will also return null.  
  * </p>  
  */
-public class IVideoResampler extends RefCounted {
+public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IConfigurable {
   // JNIHelper.swg: Start generated code
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>
   /**

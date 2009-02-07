@@ -13,7 +13,7 @@ import com.xuggle.ferry.*;
  * IStream}s of  
  * audio and video data.  
  */
-public class IContainer extends RefCounted {
+public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfigurable {
   // JNIHelper.swg: Start generated code
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>
   /**

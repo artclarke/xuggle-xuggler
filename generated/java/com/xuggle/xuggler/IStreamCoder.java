@@ -15,7 +15,7 @@ import com.xuggle.ferry.*;
  * you to decode or encode  
  * that data.  
  */
-public class IStreamCoder extends RefCounted {
+public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConfigurable {
   // JNIHelper.swg: Start generated code
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>
   /**

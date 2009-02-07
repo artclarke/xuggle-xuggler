@@ -22,6 +22,7 @@ package com.xuggle.xuggler.demos;
 
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
+import com.xuggle.xuggler.IConfigurable;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IProperty;
 import com.xuggle.xuggler.IStream;
@@ -143,7 +144,7 @@ public class GetContainerInfo
     }
   }
 
-  private static void printOption(IStreamCoder configObj, IProperty aProp)
+  private static void printOption(IConfigurable configObj, IProperty aProp)
   {
     if (aProp.getType() != IProperty.Type.PROPERTY_FLAGS)
     {
@@ -168,31 +169,4 @@ public class GetContainerInfo
       System.out.printf(")\n");
     }
   }
-
-  private static void printOption(IContainer configObj, IProperty aProp)
-  {
-    if (aProp.getType() != IProperty.Type.PROPERTY_FLAGS)
-    {
-      System.out.printf("  %s: %s\n",
-          aProp.getName(),
-          configObj.getPropertyAsString(aProp.getName()));
-    } else {
-      // it's a flag
-      System.out.printf("  %s: %d (", aProp.getName(),
-          configObj.getPropertyAsLong(aProp.getName()));
-      int numSettings = aProp.getNumFlagSettings();
-      long value = configObj.getPropertyAsLong(aProp.getName());
-      for(int i = 0; i < numSettings; i++)
-      {
-        IProperty prop = aProp.getFlagConstant(i);
-        long flagMask = prop.getDefault();
-        boolean isSet = (value & flagMask)>0;
-        System.out.printf("%s%s; ",
-            isSet ? "+" : "-",
-                prop.getName());
-      }
-      System.out.printf(")\n");
-    }
-  }
-
 }
