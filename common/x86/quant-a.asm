@@ -820,17 +820,17 @@ cglobal x264_coeff_last16_%1, 1,3
 %ifndef ARCH_X86_64
 cglobal x264_coeff_last64_%1, 1, 5-mmsize/16
     pxor m2, m2
-    LAST_MASK r1d, r0, r4d
-    LAST_MASK r2d, r0+32, r4d
-    shl r2d, 16
-    or  r1d, r2d
     LAST_MASK r2d, r0+64, r4d
     LAST_MASK r3d, r0+96, r4d
     shl r3d, 16
     or  r2d, r3d
-    not r1d
     xor r2d, -1
     jne .secondhalf
+    LAST_MASK r1d, r0, r4d
+    LAST_MASK r3d, r0+32, r4d
+    shl r3d, 16
+    or  r1d, r3d
+    not r1d
     LAST eax, r1d, 0x1f
     RET
 .secondhalf:
