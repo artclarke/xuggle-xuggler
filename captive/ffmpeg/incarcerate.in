@@ -70,6 +70,10 @@ case $HOST_TYPE in
     FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=x86_64"
     FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-arch"
     FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=x86_64"
+    # unfortunately YASM builds on x86_64 are broken
+    # see: http://lists.mplayerhq.hu/pipermail/ffmpeg-devel/2009-February/061286.html
+    # this works around it
+    FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-yasm"
   fi
   ;;
   Linux)

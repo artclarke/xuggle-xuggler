@@ -823,6 +823,9 @@ PERL
 HAVE_DOXYGEN_FALSE
 HAVE_DOXYGEN_TRUE
 DOXYGEN
+HAVE_YASM_FALSE
+HAVE_YASM_TRUE
+YASM
 HAVE_VALGRIND_FALSE
 HAVE_VALGRIND_TRUE
 VALGRIND
@@ -982,6 +985,7 @@ CCC
 CXXCPP
 SWIG
 VALGRIND
+YASM
 DOXYGEN
 PERL'
 
@@ -1672,6 +1676,8 @@ Some influential environment variables:
               the Java interface to Xuggle from the C++ interface
   VALGRIND    Location of the 'valgrind' program; if found, then "ant
               run-tests-memcheck" will do full memory and error checking
+  YASM        Location of the 'yasm' program; if found, we'll build with some
+              cool assembly on x86/x86_64 systems.
   DOXYGEN     Location of the 'doxygen' program; if found, then we will
               renerate documentation from the C++ interface
   PERL        Location of the 'perl' program; [PERL] is required if you add
@@ -4454,13 +4460,13 @@ if test "${lt_cv_nm_interface+set}" = set; then
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:4457: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:4463: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4460: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:4466: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4463: output\"" >&5)
+  (eval echo "\"\$as_me:4469: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -5663,7 +5669,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5666 "configure"' > conftest.$ac_ext
+  echo '#line 5672 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7812,11 +7818,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7815: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7821: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7819: \$? = $ac_status" >&5
+   echo "$as_me:7825: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8151,11 +8157,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8154: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8160: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:8158: \$? = $ac_status" >&5
+   echo "$as_me:8164: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8256,11 +8262,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8259: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8265: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8263: \$? = $ac_status" >&5
+   echo "$as_me:8269: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8311,11 +8317,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8314: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8320: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8318: \$? = $ac_status" >&5
+   echo "$as_me:8324: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -11111,7 +11117,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11114 "configure"
+#line 11120 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11207,7 +11213,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11210 "configure"
+#line 11216 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -14965,11 +14971,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14968: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14974: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14972: \$? = $ac_status" >&5
+   echo "$as_me:14978: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -15064,11 +15070,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15067: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15073: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:15071: \$? = $ac_status" >&5
+   echo "$as_me:15077: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -15116,11 +15122,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15119: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15125: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:15123: \$? = $ac_status" >&5
+   echo "$as_me:15129: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -16189,6 +16195,57 @@ else
   HAVE_VALGRIND_TRUE='#'
   HAVE_VALGRIND_FALSE=
 fi
+
+
+# Extract the first word of "yasm", so it can be a program name with args.
+set dummy yasm; ac_word=$2
+{ $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_path_YASM+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  case $YASM in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_YASM="$YASM" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_YASM="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+YASM=$ac_cv_path_YASM
+if test -n "$YASM"; then
+  { $as_echo "$as_me:$LINENO: result: $YASM" >&5
+$as_echo "$YASM" >&6; }
+else
+  { $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+
+ if  test "x$YASM" != "x" ; then
+  HAVE_YASM_TRUE=
+  HAVE_YASM_FALSE='#'
+else
+  HAVE_YASM_TRUE='#'
+  HAVE_YASM_FALSE=
+fi
+
 
 { $as_echo "$as_me:$LINENO: checking for bunny fur" >&5
 $as_echo_n "checking for bunny fur... " >&6; }
@@ -19838,6 +19895,13 @@ if test -z "${HAVE_VALGRIND_TRUE}" && test -z "${HAVE_VALGRIND_FALSE}"; then
   { { $as_echo "$as_me:$LINENO: error: conditional \"HAVE_VALGRIND\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 $as_echo "$as_me: error: conditional \"HAVE_VALGRIND\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${HAVE_YASM_TRUE}" && test -z "${HAVE_YASM_FALSE}"; then
+  { { $as_echo "$as_me:$LINENO: error: conditional \"HAVE_YASM\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+$as_echo "$as_me: error: conditional \"HAVE_YASM\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi

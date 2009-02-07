@@ -153,6 +153,12 @@ AC_PATH_PROG([VALGRIND],[valgrind])
 AC_ARG_VAR(VALGRIND,
           [Location of the 'valgrind' program; if found, then "ant run-tests-memcheck" will do full memory and error checking])
 AM_CONDITIONAL(HAVE_VALGRIND, [ test "x$VALGRIND" != "x" ])
+
+AC_PATH_PROG([YASM],[yasm])
+AC_ARG_VAR(YASM,
+          [Location of the 'yasm' program; if found, we'll build with some cool assembly on x86/x86_64 systems.])
+AM_CONDITIONAL(HAVE_YASM, [ test "x$YASM" != "x" ])
+
 AC_MSG_CHECKING([for bunny fur])
 AC_MSG_RESULT([no])
 
