@@ -144,19 +144,6 @@
     Send us mail: bugs (at) xuggler.com
     </p>
     <p>
-    There are some things we know currently will crash the JVM.  We're
-    working on them, but don't know when we'll have a fix:
-    </p>
-    <ul>
-      <li>Using FFMPEG's Nellymoser ENCODER can crash the JVM.<p>We're
-      able to reproduce the problem in non-java code 
-          but don't
-      have a fix yet.  When we get one, we'll try to get it integrated
-      directly into FFMPEG (the problem is the NellyMoser encoder
-          will overwrite memory in some circumstances). </p><p> For now,
-      work around this by using the libmp3lame encoder (and mp3
-          audio) in flash video.</p></li>
-      </ul>
       In general, when we have time to work on open source projects,
       fixing bugs that crash the JVM will take priority.
     </p>
