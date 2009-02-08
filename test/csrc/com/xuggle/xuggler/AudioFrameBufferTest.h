@@ -40,6 +40,41 @@ public:
    * Do nothing; this is an empty test to make sure we compile
    */
   void testSuccess();
+  
+  /**
+   * Test that we can't create objects with bad inputs
+   */
+  void testInvalidConstructors();
+  
+  /**
+   * Test addSamples
+   */
+  void testAddSamples();
+  
+  /**
+   * Test add samples with invalid arguments
+   */
+  void testAddSamplesInvalidArguments();
+  
+  /**
+   * Test get* methods
+   */
+  void testGetters();
+  
+  /**
+   * Get that getNextFrame works when passed in
+   * audio samples that are exactly the same size
+   * as frames.
+   */
+  void testGetNextFrameNoCopy();
+
+  /**
+   * Get that getNextFrame works when passed in
+   * audio samples that are not exactly the same size
+   * as frames.
+   */
+  void testGetNextFrameWithCopy();
+
 };
 
 #endif /* AUDIOFRAMEBUFFERTEST_H_ */

@@ -23,7 +23,7 @@
 
 #include <com/xuggle/xuggler/AudioSamples.h>
 #include <com/xuggle/ferry/RefPointer.h>
-#include <queue>
+#include <list>
 
 namespace com { namespace xuggle { namespace xuggler {
 
@@ -71,38 +71,34 @@ namespace com { namespace xuggle { namespace xuggler {
     
     /**
      * Add samples to this frame buffer.
-     * 
+     *
      * @param aInputSamples A set of samples you want to add to this
      *   audio frame buffer.  aInputSamples.getPts() must be > than
      *   the last sample of the last input samples or an error is
      *   returned.
-     *   
+     *
      * @return number of accepted samples, or <0 on error.
      */
     int32_t addSamples(IAudioSamples *aInputSamples);
     
     /**
      * Get the next frame of raw audio for encoding.
-     * 
+     *
      * @param aOutputBuf If non null, on output *aOutputBuf will point to the
      *   audio frame for encoding.  This frame is only good until the
      *   next call to #getNextFrame(void **, int32_t, int32_t, int64_t).
-     *   
-     * @param aSamplesRequested Number of samples requested.  You can
-     *   request up to #getFrameSize() number of samples; any more than 
-     *   that, and we'll just return #getFrameSize() number of samples.
-     *   
+     *
      * @param aSamplesWritten If non null, the total number of samples
      *   in *aOutputBuf.
-     *   
+     *
      * @param aStartingTimestamp If non null, the time stamp in micro-seconds
      *   for the first sample of audio in *aOutputBuf.
-     *   
-     * @return >= 0 on success; <0 on error
+     *
+     * @return Number of samples written to output; if not equal to the
+     *   frameSize then something went wrong.
      */
     int32_t getNextFrame(
         void ** aOutputBuf,
-        int32_t aSamplesRequested,
         int32_t *aSamplesWritten,
         int64_t *aStartingTimestamp);
 
@@ -121,6 +117,12 @@ namespace com { namespace xuggle { namespace xuggler {
     int32_t getSampleBitDepth() { return mBitDepth; }
     
     /**
+     * Get the sample rate of samples we expect
+     * @return the sample rate
+     */
+    int32_t getSampleRate() { return mSampleRate; }
+    
+    /**
      * Get the number of bytes in each sample (defined as
      *  #getChannels() * #getSampleBitDepth() / 8
      *  
@@ -136,18 +138,18 @@ namespace com { namespace xuggle { namespace xuggler {
     int32_t getFrameSize() { return mFrameSize; }
     
     /**
-     * Is this frame buffer empty?
+     * Is this there at least one frame of audio available
      * 
-     * @return true if empty; false if not
+     * @return true if at least one frame available; false if not
      */
-    bool isEmpty() { return !mCurrentSamples && mQueue.empty(); }
+    bool isFrameAvailable();
     
   private:
     /**
      * The queue of samples that are candidates for the next frame
      * worth of audio
      */
-    typedef std::queue< com::xuggle::ferry::RefPointer<AudioSamples> > AudioSamplesQueue;
+    typedef std::list< com::xuggle::ferry::RefPointer<AudioSamples> > AudioSamplesQueue;
     AudioSamplesQueue mQueue;
 
     /**

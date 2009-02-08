@@ -38,16 +38,16 @@ namespace com { namespace xuggle { namespace xuggler {
       int32_t aBitsPerSample)
   {
     if (aFrameSize <= 0)
-      throw new std::invalid_argument("must pass in frame size > 0");
+      throw std::invalid_argument("must pass in frame size > 0");
     
     if (aAudioChannels <= 0)
-      throw new std::invalid_argument("must have at least one channel");
+      throw std::invalid_argument("must have at least one channel");
     
     if (aSampleRate <= 0)
-      throw new std::invalid_argument("must pass in sample size > 0");
+      throw std::invalid_argument("must pass in sample size > 0");
     
     if (aBitsPerSample <= 0)
-      throw new std::invalid_argument("must pass in sample bit depth > 0");
+      throw std::invalid_argument("must pass in sample bit depth > 0");
        
     mOffsetInCurrentSamples = 0;
     mChannels = aAudioChannels;
@@ -86,7 +86,10 @@ namespace com { namespace xuggle { namespace xuggler {
       // Just add these samples to our queue for processing later
       RefPointer<AudioSamples> p;
       p.reset(inputSamples, true);
-      mQueue.push(p);
+      mQueue.push_back(p);
+      
+      // and register success
+      retval = (int32_t) inputSamples->getNumSamples();
     }
     catch (std::exception & e)
     {
@@ -99,7 +102,6 @@ namespace com { namespace xuggle { namespace xuggler {
   int32_t
   AudioFrameBuffer :: getNextFrame(
       void ** aOutputBuf,
-      int32_t aSamplesRequested,
       int32_t *aSamplesWritten,
       int64_t *aStartingTimestamp)
   {
@@ -110,14 +112,25 @@ namespace com { namespace xuggle { namespace xuggler {
       int64_t startingTimestamp = Global::NO_PTS;
       bool firstSampleWritten = false;
 
-      if (aSamplesRequested > mFrameSize)
-        // we only return, at most, one frame at a time
-        aSamplesRequested = mFrameSize;
+      bool frameAvailable = isFrameAvailable();
       
-      while(samplesWritten < aSamplesRequested)
+      // Make sure we free up references to any
+      // no longer used current samples because
+      // this method was called.  This deals with the
+      // case where getNextFrame() is called without
+      // any more data available
+      if (mCurrentSamples && 
+          mOffsetInCurrentSamples <= (int32_t)mCurrentSamples->getNumSamples())
+      {
+        // reset the current
+        mCurrentSamples = 0;
+      }
+      
+      while(frameAvailable && samplesWritten < mFrameSize)
       {
         // Check if we're already processing samples
-        if (mOffsetInCurrentSamples <= (int32_t)mCurrentSamples->getNumSamples())
+        if (mCurrentSamples && 
+            mOffsetInCurrentSamples <= (int32_t)mCurrentSamples->getNumSamples())
         {
           // reset the current
           mCurrentSamples = 0;
@@ -129,7 +142,7 @@ namespace com { namespace xuggle { namespace xuggler {
             break;
           }
           mCurrentSamples = mQueue.front();
-          mQueue.pop();
+          mQueue.pop_front();
           VS_ASSERT("should never be null", mCurrentSamples);
           mOffsetInCurrentSamples = 0;
         }
@@ -143,7 +156,7 @@ namespace com { namespace xuggle { namespace xuggler {
           firstSampleWritten=true;
         }
         
-        int32_t neededSamples = aSamplesRequested - samplesWritten;
+        int32_t neededSamples = mFrameSize - samplesWritten;
         int32_t samplesToWrite = neededSamples < availableSamples ? neededSamples : availableSamples;
  
         // write the samples
@@ -158,10 +171,10 @@ namespace com { namespace xuggle { namespace xuggler {
             *aOutputBuf = mCurrentSamples->getRawSamples(mOffsetInCurrentSamples);
           } else {
             void * inputBytes = mCurrentSamples->getRawSamples(mOffsetInCurrentSamples);
-            void * outputBytes = ((char*)mFrame->getBytes(0, mFrame->getBufferSize()))
-              + (samplesWritten * getBytesPerSample());
+            void * outputBytes = ((char*)mFrame->getBytes(0, mFrame->getBufferSize()));
+            void * copyDst = (char*)outputBytes + (samplesWritten * getBytesPerSample());
             int32_t bytesToWrite = samplesToWrite * getBytesPerSample();
-            memcpy(outputBytes, inputBytes, bytesToWrite);
+            memcpy(copyDst, inputBytes, bytesToWrite);
             *aOutputBuf = outputBytes;
           }
         }
@@ -186,4 +199,24 @@ namespace com { namespace xuggle { namespace xuggler {
     return retval;
   }
 
+  bool
+  AudioFrameBuffer :: isFrameAvailable()
+  {
+    int samplesAvailable = 0;
+    // first compute samples available in current samples
+    if (mCurrentSamples)
+    {
+      samplesAvailable += mCurrentSamples->getNumSamples()-mOffsetInCurrentSamples;
+    }
+    // and keep counting queued audio until we've counted everything
+    // or confirmed we have a frame available
+    AudioSamplesQueue::iterator iter=mQueue.begin();
+    AudioSamplesQueue::iterator end=mQueue.end();
+    for( ; samplesAvailable < mFrameSize && iter != end; ++iter)
+    {
+      samplesAvailable += (*iter)->getNumSamples();
+    }
+    
+    return (samplesAvailable >= mFrameSize);
+  }
 }}}
