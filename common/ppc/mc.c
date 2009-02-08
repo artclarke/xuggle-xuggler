@@ -257,10 +257,41 @@ static uint8_t *get_ref_altivec( uint8_t *dst,   int *i_dst_stride,
     }
 }
 
-#define DO_PROCESS(a) \
-        src##a##v_16 = vec_u8_to_u16( src##a##v_8 ); \
-        src##a##v_16 = vec_mladd( coeff##a##v, src##a##v_16, zero_u16v ); \
-        dstv_16      = vec_add( dstv_16, src##a##v_16 )
+static void mc_chroma_2xh( uint8_t *dst, int i_dst_stride,
+                           uint8_t *src, int i_src_stride,
+                           int mvx, int mvy,
+                           int i_height )
+{
+    uint8_t *srcp;
+    int y;
+    int d8x = mvx&0x07;
+    int d8y = mvy&0x07;
+
+    const int cA = (8-d8x)*(8-d8y);
+    const int cB = d8x    *(8-d8y);
+    const int cC = (8-d8x)*d8y;
+    const int cD = d8x    *d8y;
+
+    src  += (mvy >> 3) * i_src_stride + (mvx >> 3);
+    srcp  = &src[i_src_stride];
+
+    for( y = 0; y < i_height; y++ )
+    {
+        dst[0] = ( cA*src[0] +  cB*src[0+1] +
+                  cC*srcp[0] + cD*srcp[0+1] + 32 ) >> 6;
+        dst[1] = ( cA*src[1] +  cB*src[1+1] +
+                  cC*srcp[1] + cD*srcp[1+1] + 32 ) >> 6;
+
+        src  += i_src_stride;
+        srcp += i_src_stride;
+        dst  += i_dst_stride;
+    }
+ }
+
+
+#define DO_PROCESS_W4( a )  \
+    dstv_16A = vec_mladd( src##a##v_16A, coeff##a##v, dstv_16A );   \
+    dstv_16B = vec_mladd( src##a##v_16B, coeff##a##v, dstv_16B )
 
 static void mc_chroma_altivec_4xh( uint8_t *dst, int i_dst_stride,
                                    uint8_t *src, int i_src_stride,
@@ -284,15 +315,12 @@ static void mc_chroma_altivec_4xh( uint8_t *dst, int i_dst_stride,
     LOAD_ZERO;
     PREP_LOAD;
     PREP_LOAD_SRC( src );
-    PREP_STORE4;
     vec_u16_t   coeff0v, coeff1v, coeff2v, coeff3v;
-    vec_u8_t    src0v_8, src1v_8, src2v_8, src3v_8;
-    vec_u16_t   src0v_16, src1v_16, src2v_16, src3v_16;
-    vec_u8_t    dstv_8;
-    vec_u16_t   dstv_16;
-    vec_u8_t    permv;
-    vec_u16_t   shiftv;
-    vec_u16_t   k32v;
+    vec_u8_t    src2v_8A, dstv_8A;
+    vec_u8_t    src2v_8B, dstv_8B;
+    vec_u16_t   src0v_16A, src1v_16A, src2v_16A, src3v_16A, dstv_16A;
+    vec_u16_t   src0v_16B, src1v_16B, src2v_16B, src3v_16B, dstv_16B;
+    vec_u16_t   shiftv, k32v;
 
     coeff0v = vec_ld( 0, coeff );
     coeff3v = vec_splat( coeff0v, 3 );
@@ -300,34 +328,51 @@ static void mc_chroma_altivec_4xh( uint8_t *dst, int i_dst_stride,
     coeff1v = vec_splat( coeff0v, 1 );
     coeff0v = vec_splat( coeff0v, 0 );
     k32v    = vec_sl( vec_splat_u16( 1 ), vec_splat_u16( 5 ) );
-    permv   = vec_lvsl( 0, (uint8_t *) 1 );
     shiftv  = vec_splat_u16( 6 );
 
-    VEC_LOAD( src, src2v_8, 5, vec_u8_t, src );
-    src3v_8 = vec_perm( src2v_8, src2v_8, permv );
+    VEC_LOAD( src, src2v_8B, 5, vec_u8_t, src );
+    src2v_16B = vec_u8_to_u16( src2v_8B );
+    src3v_16B = vec_sld( src2v_16B, src2v_16B, 2 );
 
-    for( y = 0; y < i_height; y++ )
+    for( y = 0; y < i_height; y+=2 )
     {
-        src0v_8 = src2v_8;
-        src1v_8 = src3v_8;
-        VEC_LOAD_G( srcp, src2v_8, 5, vec_u8_t );
-        src3v_8 = vec_perm( src2v_8, src2v_8, permv );
+        src0v_16A = src2v_16B;
+        src1v_16A = src3v_16B;
 
-        dstv_16 = k32v;
-
-        DO_PROCESS( 0 );
-        DO_PROCESS( 1 );
-        DO_PROCESS( 2 );
-        DO_PROCESS( 3 );
-
-        dstv_16 = vec_sr( dstv_16, shiftv );
-        dstv_8  = vec_u16_to_u8( dstv_16 );
-        VEC_STORE4( dstv_8, dst );
-
-        dst  += i_dst_stride;
+        VEC_LOAD_G( srcp, src2v_8A, 5, vec_u8_t );
         srcp += i_src_stride;
+        VEC_LOAD_G( srcp, src2v_8B, 5, vec_u8_t );
+        srcp += i_src_stride;
+        src2v_16A = vec_u8_to_u16( src2v_8A );
+        src2v_16B = vec_u8_to_u16( src2v_8B );
+        src3v_16A = vec_sld( src2v_16A, src2v_16A, 2 );
+        src3v_16B = vec_sld( src2v_16B, src2v_16B, 2 );
+
+        src0v_16B = src2v_16A;
+        src1v_16B = src3v_16A;
+
+        dstv_16A = dstv_16B = k32v;
+        DO_PROCESS_W4( 0 );
+        DO_PROCESS_W4( 1 );
+        DO_PROCESS_W4( 2 );
+        DO_PROCESS_W4( 3 );
+
+        dstv_16A = vec_sr( dstv_16A, shiftv );
+        dstv_16B = vec_sr( dstv_16B, shiftv );
+        dstv_8A  = vec_u16_to_u8( dstv_16A );
+        dstv_8B  = vec_u16_to_u8( dstv_16B );
+        vec_ste( vec_splat( (vec_u32_t) dstv_8A, 0 ), 0, (uint32_t*) dst );
+        dst += i_dst_stride;
+        vec_ste( vec_splat( (vec_u32_t) dstv_8B, 0 ), 0, (uint32_t*) dst );
+        dst += i_dst_stride;
     }
 }
+
+#define DO_PROCESS_W8( a )  \
+    src##a##v_16A = vec_u8_to_u16( src##a##v_8A );  \
+    src##a##v_16B = vec_u8_to_u16( src##a##v_8B );  \
+    dstv_16A = vec_mladd( src##a##v_16A, coeff##a##v, dstv_16A );   \
+    dstv_16B = vec_mladd( src##a##v_16B, coeff##a##v, dstv_16B )
 
 static void mc_chroma_altivec_8xh( uint8_t *dst, int i_dst_stride,
                                    uint8_t *src, int i_src_stride,
@@ -353,13 +398,11 @@ static void mc_chroma_altivec_8xh( uint8_t *dst, int i_dst_stride,
     PREP_LOAD_SRC( src );
     PREP_STORE8;
     vec_u16_t   coeff0v, coeff1v, coeff2v, coeff3v;
-    vec_u8_t    src0v_8, src1v_8, src2v_8, src3v_8;
-    vec_u16_t   src0v_16, src1v_16, src2v_16, src3v_16;
-    vec_u8_t    dstv_8;
-    vec_u16_t   dstv_16;
-    vec_u8_t    permv;
-    vec_u16_t   shiftv;
-    vec_u16_t   k32v;
+    vec_u8_t    src0v_8A, src1v_8A, src2v_8A, src3v_8A, dstv_8A;
+    vec_u8_t    src0v_8B, src1v_8B, src2v_8B, src3v_8B, dstv_8B;
+    vec_u16_t   src0v_16A, src1v_16A, src2v_16A, src3v_16A, dstv_16A;
+    vec_u16_t   src0v_16B, src1v_16B, src2v_16B, src3v_16B, dstv_16B;
+    vec_u16_t   shiftv, k32v;
 
     coeff0v = vec_ld( 0, coeff );
     coeff3v = vec_splat( coeff0v, 3 );
@@ -367,32 +410,39 @@ static void mc_chroma_altivec_8xh( uint8_t *dst, int i_dst_stride,
     coeff1v = vec_splat( coeff0v, 1 );
     coeff0v = vec_splat( coeff0v, 0 );
     k32v    = vec_sl( vec_splat_u16( 1 ), vec_splat_u16( 5 ) );
-    permv   = vec_lvsl( 0, (uint8_t *) 1 );
     shiftv  = vec_splat_u16( 6 );
 
-    VEC_LOAD( src, src2v_8, 9, vec_u8_t, src);
-    src3v_8 = vec_perm( src2v_8, src2v_8, permv );
+    VEC_LOAD( src, src2v_8B, 9, vec_u8_t, src );
+    src3v_8B = vec_sld( src2v_8B, src2v_8B, 1 );
 
-    for( y = 0; y < i_height; y++ )
+    for( y = 0; y < i_height; y+=2 )
     {
-        src0v_8 = src2v_8;
-        src1v_8 = src3v_8;
-        VEC_LOAD_G( srcp, src2v_8, 9, vec_u8_t );
-        src3v_8 = vec_perm( src2v_8, src2v_8, permv );
+        src0v_8A = src2v_8B;
+        src1v_8A = src3v_8B;
 
-        dstv_16 = k32v;
-
-        DO_PROCESS( 0 );
-        DO_PROCESS( 1 );
-        DO_PROCESS( 2 );
-        DO_PROCESS( 3 );
-
-        dstv_16 = vec_sr( dstv_16, shiftv );
-        dstv_8  = vec_u16_to_u8( dstv_16 );
-        VEC_STORE8( dstv_8, dst );
-
-        dst  += i_dst_stride;
+        VEC_LOAD_G( srcp, src2v_8A, 9, vec_u8_t );
         srcp += i_src_stride;
+        VEC_LOAD_G( srcp, src2v_8B, 9, vec_u8_t );
+        srcp += i_src_stride;
+        src3v_8A = vec_sld( src2v_8A, src2v_8A, 1 );
+        src3v_8B = vec_sld( src2v_8B, src2v_8B, 1 );
+
+        src0v_8B = src2v_8A;
+        src1v_8B = src3v_8A;
+        dstv_16A = dstv_16B = k32v;
+        DO_PROCESS_W8( 0 );
+        DO_PROCESS_W8( 1 );
+        DO_PROCESS_W8( 2 );
+        DO_PROCESS_W8( 3 );
+
+        dstv_16A = vec_sr( dstv_16A, shiftv );
+        dstv_16B = vec_sr( dstv_16B, shiftv );
+        dstv_8A  = vec_u16_to_u8( dstv_16A );
+        dstv_8B  = vec_u16_to_u8( dstv_16B );
+        VEC_STORE8( dstv_8A, dst );
+        dst += i_dst_stride;
+        VEC_STORE8( dstv_8B, dst );
+        dst += i_dst_stride;
     }
 }
 
@@ -406,10 +456,15 @@ static void mc_chroma_altivec( uint8_t *dst, int i_dst_stride,
         mc_chroma_altivec_8xh( dst, i_dst_stride, src, i_src_stride,
                                mvx, mvy, i_height );
     }
-    else
+    else if( i_width == 4 )
     {
         mc_chroma_altivec_4xh( dst, i_dst_stride, src, i_src_stride,
                                mvx, mvy, i_height );
+    }
+    else
+    {
+        mc_chroma_2xh( dst, i_dst_stride, src, i_src_stride,
+                       mvx, mvy, i_height );
     }
 }
 
