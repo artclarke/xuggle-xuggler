@@ -15,6 +15,7 @@ endif
 libxuggle_xuggler_la_LIBADD+= $(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la 
 
 libxuggle_xuggler_la_SOURCES= \
+  AudioFrameBuffer.cpp \
   AudioResampler.cpp \
   AudioSamples.cpp \
   Codec.cpp \
@@ -78,6 +79,7 @@ libxuggle_xuggler_la_HEADERS= \
   ITimeValue.h \
   IVideoResampler.h \
   Xuggler.i \
+  AudioFrameBuffer.cpp \
   AudioResampler.h \
   AudioSamples.h \
   Codec.h \

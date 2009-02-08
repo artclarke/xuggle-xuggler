@@ -21,7 +21,6 @@
 #include <stdexcept>
 
 #include <com/xuggle/ferry/Logger.h>
-#include <com/xuggle/ferry/RefPointer.h>
 
 #include <com/xuggle/xuggler/VideoResampler.h>
 #include <com/xuggle/xuggler/VideoPicture.h>

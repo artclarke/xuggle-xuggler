@@ -33,6 +33,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 check_PROGRAMS = xugglerTestAudioResampler$(EXEEXT) \
+	xugglerTestAudioFrameBuffer$(EXEEXT) \
 	xugglerTestAudioSamples$(EXEEXT) \
 	xugglerTestAudioResampler$(EXEEXT) xugglerTestCodec$(EXEEXT) \
 	xugglerTestContainerFormat$(EXEEXT) \
@@ -61,6 +62,17 @@ CONFIG_HEADER = $(top_builddir)/csrc/com/xuggle/ferry/config.h \
 CONFIG_CLEAN_FILES =
 @VS_ENABLE_GPL_TRUE@am__EXEEXT_1 = xugglerTestAudioResampler$(EXEEXT) \
 @VS_ENABLE_GPL_TRUE@	xugglerTestVideoResampler$(EXEEXT)
+am_xugglerTestAudioFrameBuffer_OBJECTS =  \
+	AudioFrameBufferTest.$(OBJEXT) Main.$(OBJEXT) Helper.$(OBJEXT)
+nodist_xugglerTestAudioFrameBuffer_OBJECTS =  \
+	AudioFrameBufferTest_CXXRunner.$(OBJEXT)
+xugglerTestAudioFrameBuffer_OBJECTS =  \
+	$(am_xugglerTestAudioFrameBuffer_OBJECTS) \
+	$(nodist_xugglerTestAudioFrameBuffer_OBJECTS)
+am__DEPENDENCIES_1 =
+xugglerTestAudioFrameBuffer_DEPENDENCIES =  \
+	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
+	$(am__DEPENDENCIES_1)
 am_xugglerTestAudioResampler_OBJECTS = AudioResamplerTest.$(OBJEXT) \
 	Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestAudioResampler_OBJECTS =  \
@@ -68,7 +80,6 @@ nodist_xugglerTestAudioResampler_OBJECTS =  \
 xugglerTestAudioResampler_OBJECTS =  \
 	$(am_xugglerTestAudioResampler_OBJECTS) \
 	$(nodist_xugglerTestAudioResampler_OBJECTS)
-am__DEPENDENCIES_1 =
 xugglerTestAudioResampler_DEPENDENCIES =  \
 	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
 	$(am__DEPENDENCIES_1)
@@ -231,7 +242,9 @@ CXXLD = $(CXX)
 CXXLINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(xugglerTestAudioResampler_SOURCES) \
+SOURCES = $(xugglerTestAudioFrameBuffer_SOURCES) \
+	$(nodist_xugglerTestAudioFrameBuffer_SOURCES) \
+	$(xugglerTestAudioResampler_SOURCES) \
 	$(nodist_xugglerTestAudioResampler_SOURCES) \
 	$(xugglerTestAudioSamples_SOURCES) \
 	$(nodist_xugglerTestAudioSamples_SOURCES) \
@@ -264,7 +277,8 @@ SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(nodist_xugglerTestVideoPicture_SOURCES) \
 	$(xugglerTestVideoResampler_SOURCES) \
 	$(nodist_xugglerTestVideoResampler_SOURCES)
-DIST_SOURCES = $(xugglerTestAudioResampler_SOURCES) \
+DIST_SOURCES = $(xugglerTestAudioFrameBuffer_SOURCES) \
+	$(xugglerTestAudioResampler_SOURCES) \
 	$(xugglerTestAudioSamples_SOURCES) $(xugglerTestCodec_SOURCES) \
 	$(xugglerTestContainer_SOURCES) \
 	$(xugglerTestContainerFormat_SOURCES) \
@@ -436,6 +450,17 @@ inst_checkdir = $(bindir)
 # Make sure we set the abs_top_srcdir environment variable so the 
 # tests can auto-find their fixtures
 TESTS = $(check_PROGRAMS)
+xugglerTestAudioFrameBuffer_SOURCES = \
+  AudioFrameBufferTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestAudioFrameBuffer_SOURCES = \
+  AudioFrameBufferTest_CXXRunner.cpp
+
+xugglerTestAudioFrameBuffer_LDADD = \
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
 xugglerTestAudioSamples_SOURCES = \
   AudioSamplesTest.cpp \
   Main.cpp \
@@ -624,6 +649,7 @@ xugglerTestVideoResampler_LDADD = \
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
 BUILT_SOURCES = \
+  AudioFrameBufferTest_CXXRunner.cpp \
   AudioSamplesTest_CXXRunner.cpp \
   AudioResamplerTest_CXXRunner.cpp \
   CodecTest_CXXRunner.cpp \
@@ -643,6 +669,7 @@ BUILT_SOURCES = \
   StreamCoderX264Test_CXXRunner.cpp
 
 noinst_HEADERS = \
+  AudioFrameBufferTest.h \
   AudioResamplerTest.h \
   AudioSamplesTest.h \
   CodecTest.h \
@@ -703,6 +730,9 @@ clean-checkPROGRAMS:
 	  echo " rm -f $$p $$f"; \
 	  rm -f $$p $$f ; \
 	done
+xugglerTestAudioFrameBuffer$(EXEEXT): $(xugglerTestAudioFrameBuffer_OBJECTS) $(xugglerTestAudioFrameBuffer_DEPENDENCIES) 
+	@rm -f xugglerTestAudioFrameBuffer$(EXEEXT)
+	$(CXXLINK) $(xugglerTestAudioFrameBuffer_OBJECTS) $(xugglerTestAudioFrameBuffer_LDADD) $(LIBS)
 xugglerTestAudioResampler$(EXEEXT): $(xugglerTestAudioResampler_OBJECTS) $(xugglerTestAudioResampler_DEPENDENCIES) 
 	@rm -f xugglerTestAudioResampler$(EXEEXT)
 	$(CXXLINK) $(xugglerTestAudioResampler_OBJECTS) $(xugglerTestAudioResampler_LDADD) $(LIBS)
