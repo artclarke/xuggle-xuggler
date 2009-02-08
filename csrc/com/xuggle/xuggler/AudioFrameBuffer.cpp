@@ -120,7 +120,7 @@ namespace com { namespace xuggle { namespace xuggler {
       // case where getNextFrame() is called without
       // any more data available
       if (mCurrentSamples && 
-          mOffsetInCurrentSamples <= (int32_t)mCurrentSamples->getNumSamples())
+          mOffsetInCurrentSamples >= (int32_t)mCurrentSamples->getNumSamples())
       {
         // reset the current
         mCurrentSamples = 0;
@@ -130,7 +130,7 @@ namespace com { namespace xuggle { namespace xuggler {
       {
         // Check if we're already processing samples
         if (mCurrentSamples && 
-            mOffsetInCurrentSamples <= (int32_t)mCurrentSamples->getNumSamples())
+            mOffsetInCurrentSamples >= (int32_t)mCurrentSamples->getNumSamples())
         {
           // reset the current
           mCurrentSamples = 0;

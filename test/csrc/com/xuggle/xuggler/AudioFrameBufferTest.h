@@ -75,6 +75,18 @@ public:
    */
   void testGetNextFrameWithCopy();
 
+  /**
+   * Test that getNextFrame returns back the right time stamps
+   * for audio computed in a frame; that is, the time stamp
+   * of the earliest audio in that frame.
+   */
+  void testGetNextFrameReturnsCorrectTimestamps();
+  
+  /**
+   * Do a mini-load test of the frame buffer to make sure with lots
+   * of adds and delete it behaves as expected (especially under Valgrind).
+   */
+  void testGetNextFrameMultipleTimes();
 };
 
 #endif /* AUDIOFRAMEBUFFERTEST_H_ */

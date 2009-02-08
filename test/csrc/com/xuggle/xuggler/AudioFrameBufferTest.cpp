@@ -20,11 +20,12 @@
  */
 #include "AudioFrameBufferTest.h"
 #include <com/xuggle/ferry/RefPointer.h>
+#include <com/xuggle/xuggler/Global.h>
 #include <com/xuggle/xuggler/AudioSamples.h>
-//#include <com/xuggle/ferry/Logger.h>
+#include <com/xuggle/ferry/Logger.h>
 #include <stdexcept>
 
-//VS_LOG_SETUP(VS_CPP_PACKAGE);
+VS_LOG_SETUP(VS_CPP_PACKAGE);
 
 AudioFrameBufferTest :: AudioFrameBufferTest()
 {
@@ -86,7 +87,8 @@ void AudioFrameBufferTest::testAddSamples()
   
 }
 
-void AudioFrameBufferTest :: testAddSamplesInvalidArguments()
+void
+AudioFrameBufferTest :: testAddSamplesInvalidArguments()
 {
   const int32_t frameSize=15;
   const int32_t channels = 1;
@@ -328,6 +330,10 @@ AudioFrameBufferTest :: testGetNextFrameWithCopy()
   const int32_t channels = 1;
   const int32_t sampleRate = 22050;
   const int32_t bitDepth=16;
+  
+  // this is deliberately rounding down to a prime number
+  // to make sure we don't have input # of samples EXACTLY fit an output
+  // frame.
   const int32_t numSamples=frameSize/2;
   const int64_t timestamp=15538;
 
@@ -393,4 +399,188 @@ AudioFrameBufferTest :: testGetNextFrameWithCopy()
   VS_TUT_ENSURE_EQUALS("should get no bytes back",
       retval,
       0);
+}
+
+void
+AudioFrameBufferTest :: testGetNextFrameReturnsCorrectTimestamps()
+{
+  const int32_t channels = 1;
+  const int32_t sampleRate = 22050;
+  const int32_t bitDepth=16;
+  const int32_t numSamples=1024;
+  // make it so that we get nice even
+  // samples and frame division  
+  const int32_t frameSize=numSamples*4;
+  const int64_t timestamp=0;
+
+  AudioFrameBuffer afb(0,
+      frameSize, channels, sampleRate, bitDepth);
+  VS_TUT_ENSURE("should be empty", !afb.isFrameAvailable());
+
+  // We're going to create and add sample until we've filled
+  // 2 frames
+  int32_t samplesAdded = 0;
+  int64_t nextTimestamp = timestamp;
+  int64_t expectedTimestamps[2]= { 0, Global::NO_PTS };
+  
+  for(int i = 0; i < (frameSize/numSamples)*2; i++)
+  {
+    RefPointer<AudioSamples> samples = AudioSamples::make(numSamples, channels);
+    int16_t* rawSamples = samples->getRawSamples(0);
+    for(int j = 0; j < numSamples*channels; j++)
+    {
+//      VS_LOG_DEBUG("samples %d[%d]=%d", i, j, i);
+      rawSamples[j] = i;
+    }
+    samples->setComplete(true,
+        numSamples, sampleRate, channels, IAudioSamples::FMT_S16,
+        nextTimestamp);
+    if (i == (frameSize/numSamples))
+    {
+      // this will be the start of the second frame
+      expectedTimestamps[1] = nextTimestamp;
+    }
+    afb.addSamples(samples.value());
+    samplesAdded += numSamples;
+    nextTimestamp +=IAudioSamples::samplesToDefaultPts(numSamples, sampleRate);
+  }
+  VS_TUT_ENSURE("should have a frame available", afb.isFrameAvailable());
+
+  int32_t totalSamplesWritten = 0;
+  int32_t numFramesRetrieved = 0;
+  int32_t retval = -1;
+  while(totalSamplesWritten < frameSize * 2)
+  {
+    int16_t *dstSamples = 0;
+    int32_t samplesWritten=0;
+    int64_t timestampWritten=0;
+    retval = afb.getNextFrame(
+        (void**)&dstSamples,
+        &samplesWritten,
+        &timestampWritten);
+    VS_TUT_ENSURE_EQUALS("should succeed", retval, frameSize);
+    ++numFramesRetrieved;
+    
+    VS_TUT_ENSURE_EQUALS("should be same # of samples",
+        samplesWritten,
+        frameSize);
+
+    VS_TUT_ENSURE_EQUALS("should be same time stamp",
+        timestampWritten,
+        expectedTimestamps[totalSamplesWritten/frameSize]);
+
+    totalSamplesWritten += samplesWritten;
+    
+    // now let's walk through the samples we got and
+    // make sure they are correct
+    for(int i = 0; i < frameSize*channels; i++)
+    {
+      int16_t expectedValue = (numFramesRetrieved-1)*4+i/(channels*numSamples);
+      //    VS_LOG_DEBUG("checking sample %d: %hd versus %hd",
+      //        i,
+      //        expectedValue,
+      //        dstSamples[i]);
+      VS_TUT_ENSURE_EQUALS("should be equal",
+          dstSamples[i],
+          expectedValue);
+    }
+  }
+  VS_TUT_ENSURE("should be no more frames available",
+      !afb.isFrameAvailable());
+
+  retval = afb.getNextFrame(0,0,0);
+  VS_TUT_ENSURE_EQUALS("should get no bytes back",
+      retval,
+      0); 
+}
+
+void
+AudioFrameBufferTest :: testGetNextFrameMultipleTimes()
+{
+  const int32_t channels = 1;
+  const int32_t sampleRate = 22050;
+  const int32_t bitDepth=16;
+  // This combination of sample size and frame size should
+  // line up on every multiple of 12.
+  const int32_t numSamples=4;
+  const int32_t frameSize=3;
+  const int64_t timestamp=0;
+  const int32_t numIterations=12*100;
+  
+  AudioFrameBuffer afb(0,
+      frameSize, channels, sampleRate, bitDepth);
+  VS_TUT_ENSURE("should be empty", !afb.isFrameAvailable());
+
+  // First we'll add lots of samples and call getNextFrame once for
+  // each add.  This should leave frames available when done.
+  int64_t nextTimestamp = timestamp;
+  int32_t retval = -1;
+  int32_t totalSamplesWritten = 0;
+  for(int i = 0; i < numIterations; i++)
+  {
+    RefPointer<AudioSamples> samples = AudioSamples::make(numSamples, channels);
+    int16_t* rawSamples = samples->getRawSamples(0);
+    for(int j = 0; j < numSamples*channels; j++)
+    {
+//      VS_LOG_DEBUG("samples %d[%d]=%d", i, numSamples*i+j, i);
+      rawSamples[j] = i;
+    }
+    samples->setComplete(true,
+        numSamples, sampleRate, channels, IAudioSamples::FMT_S16,
+        nextTimestamp);
+    retval = afb.addSamples(samples.value());
+    VS_TUT_ENSURE_EQUALS("should be able to add", retval, (int32_t)samples->getNumSamples());
+    VS_TUT_ENSURE("should have a frame", afb.isFrameAvailable());
+    nextTimestamp +=samples->getNextPts();
+  
+    // now try getting a frame
+    int16_t* outSamples=0;
+    int64_t timestampWritten=Global::NO_PTS;
+    int32_t samplesWritten = 0;
+    retval = afb.getNextFrame((void**)&outSamples,
+        &samplesWritten,
+        &timestampWritten);
+    VS_TUT_ENSURE("should get a frame", retval == frameSize);
+    VS_TUT_ENSURE("should get a frame", samplesWritten == frameSize);
+    for(int j = 0; j < samplesWritten*channels; j++)
+    {
+      int16_t expectedSample = (totalSamplesWritten+j)/(numSamples*channels);
+//      VS_LOG_DEBUG("checking sample [%d]=%hd (expected %hd)",
+//          totalSamplesWritten+j,
+//          outSamples[j],
+//          expectedSample);
+      VS_TUT_ENSURE_EQUALS("should get expected sample",
+          outSamples[j],
+          expectedSample);
+    }
+    totalSamplesWritten += samplesWritten;
+  }
+  // now there should still be frames remaining
+  VS_TUT_ENSURE("should have frames", afb.isFrameAvailable());
+  while(afb.isFrameAvailable())
+  {
+    int16_t* outSamples=0;
+    int64_t timestampWritten=Global::NO_PTS;
+    int32_t samplesWritten = 0;
+    retval = afb.getNextFrame((void**)&outSamples,
+        &samplesWritten,
+        &timestampWritten);
+    VS_TUT_ENSURE("should get a frame", retval == frameSize);
+    VS_TUT_ENSURE("should get a frame", samplesWritten == frameSize);
+    for(int j = 0; j < samplesWritten*channels; j++)
+    {
+      int16_t expectedSample = (totalSamplesWritten+j)/(numSamples*channels);
+      //      VS_LOG_DEBUG("checking sample [%d]=%hd (expected %hd)",
+      //          totalSamplesWritten+j,
+      //          outSamples[j],
+      //          expectedSample);
+      VS_TUT_ENSURE_EQUALS("should get expected sample",
+          outSamples[j],
+          expectedSample);
+    }
+    totalSamplesWritten += samplesWritten;
+  }
+  VS_TUT_ENSURE_EQUALS("should get all",
+      numSamples*numIterations,
+      totalSamplesWritten);
 }
