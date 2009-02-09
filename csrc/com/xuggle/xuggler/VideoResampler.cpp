@@ -204,10 +204,10 @@ namespace com { namespace xuggle { namespace xuggler
         retval->mContext = sws_getContext(
             retval->mIWidth, // src width
             retval->mIHeight, // src height
-            retval->mIPixelFmt, // src pixel type
+            (PixelFormat)retval->mIPixelFmt, // src pixel type
             retval->mOWidth, // dst width
             retval->mOHeight, // dst height
-            retval->mOPixelFmt, // dst pixel type
+            (PixelFormat)retval->mOPixelFmt, // dst pixel type
             flags, // Flags
             0, // Source Filter
             0, // Destination Filter
