@@ -35,6 +35,7 @@ x264_frame_t *x264_frame_new( x264_t *h )
     int i_stride, i_width, i_lines;
     int i_padv = PADV << h->param.b_interlaced;
     int luma_plane_size;
+    int chroma_plane_size;
     int align = h->param.cpu&X264_CPU_CACHELINE_64 ? 64 : h->param.cpu&X264_CPU_CACHELINE_32 ? 32 : 16;
 
     if( !frame ) return NULL;
@@ -49,15 +50,16 @@ x264_frame_t *x264_frame_new( x264_t *h )
     frame->i_plane = 3;
     for( i = 0; i < 3; i++ )
     {
-        frame->i_stride[i] = i_stride >> !!i;
+        frame->i_stride[i] = ALIGN( i_stride >> !!i, 16 );
         frame->i_width[i] = i_width >> !!i;
         frame->i_lines[i] = i_lines >> !!i;
     }
 
     luma_plane_size = (frame->i_stride[0] * ( frame->i_lines[0] + 2*i_padv ));
+    chroma_plane_size = (frame->i_stride[1] * ( frame->i_lines[1] + 2*i_padv ));
     for( i = 1; i < 3; i++ )
     {
-        CHECKED_MALLOC( frame->buffer[i], luma_plane_size/4 );
+        CHECKED_MALLOC( frame->buffer[i], chroma_plane_size );
         frame->plane[i] = frame->buffer[i] + (frame->i_stride[i] * i_padv + PADH)/2;
     }
     /* all 4 luma planes allocated together, since the cacheline split code
