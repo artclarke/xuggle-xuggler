@@ -61,26 +61,25 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 libxuggle_xuggler_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la
-am__libxuggle_xuggler_la_SOURCES_DIST = AudioFrameBuffer.cpp \
-	AudioResampler.cpp AudioSamples.cpp Codec.cpp Container.cpp \
-	ContainerFormat.cpp VideoPicture.cpp Global.cpp \
-	IAudioResampler.cpp IAudioSamples.cpp ICodec.cpp \
-	IContainer.cpp IContainerFormat.cpp IVideoPicture.cpp \
-	IMediaData.cpp IMediaDataWrapper.cpp IPacket.cpp \
-	IPixelFormat.cpp IProperty.cpp IRational.cpp IStreamCoder.cpp \
-	IStream.cpp ITimeValue.cpp IVideoResampler.cpp \
-	MediaDataWrapper.cpp Packet.cpp Property.cpp Rational.cpp \
-	StreamCoder.cpp Stream.cpp TimeValue.cpp VideoResampler.cpp
+am__libxuggle_xuggler_la_SOURCES_DIST = AudioResampler.cpp \
+	AudioSamples.cpp Codec.cpp Container.cpp ContainerFormat.cpp \
+	VideoPicture.cpp Global.cpp IAudioResampler.cpp \
+	IAudioSamples.cpp ICodec.cpp IContainer.cpp \
+	IContainerFormat.cpp IVideoPicture.cpp IMediaData.cpp \
+	IMediaDataWrapper.cpp IPacket.cpp IPixelFormat.cpp \
+	IProperty.cpp IRational.cpp IStreamCoder.cpp IStream.cpp \
+	ITimeValue.cpp IVideoResampler.cpp MediaDataWrapper.cpp \
+	Packet.cpp Property.cpp Rational.cpp StreamCoder.cpp \
+	Stream.cpp TimeValue.cpp VideoResampler.cpp
 @VS_ENABLE_GPL_TRUE@am__objects_1 = VideoResampler.lo
-am_libxuggle_xuggler_la_OBJECTS = AudioFrameBuffer.lo \
-	AudioResampler.lo AudioSamples.lo Codec.lo Container.lo \
-	ContainerFormat.lo VideoPicture.lo Global.lo \
-	IAudioResampler.lo IAudioSamples.lo ICodec.lo IContainer.lo \
-	IContainerFormat.lo IVideoPicture.lo IMediaData.lo \
-	IMediaDataWrapper.lo IPacket.lo IPixelFormat.lo IProperty.lo \
-	IRational.lo IStreamCoder.lo IStream.lo ITimeValue.lo \
-	IVideoResampler.lo MediaDataWrapper.lo Packet.lo Property.lo \
-	Rational.lo StreamCoder.lo Stream.lo TimeValue.lo \
+am_libxuggle_xuggler_la_OBJECTS = AudioResampler.lo AudioSamples.lo \
+	Codec.lo Container.lo ContainerFormat.lo VideoPicture.lo \
+	Global.lo IAudioResampler.lo IAudioSamples.lo ICodec.lo \
+	IContainer.lo IContainerFormat.lo IVideoPicture.lo \
+	IMediaData.lo IMediaDataWrapper.lo IPacket.lo IPixelFormat.lo \
+	IProperty.lo IRational.lo IStreamCoder.lo IStream.lo \
+	ITimeValue.lo IVideoResampler.lo MediaDataWrapper.lo Packet.lo \
+	Property.lo Rational.lo StreamCoder.lo Stream.lo TimeValue.lo \
 	$(am__objects_1)
 nodist_libxuggle_xuggler_la_OBJECTS = Xuggler.lo
 libxuggle_xuggler_la_OBJECTS = $(am_libxuggle_xuggler_la_OBJECTS) \
@@ -267,16 +266,15 @@ lib_LTLIBRARIES = libxuggle-xuggler.la
 libxuggle_xuggler_la_LIBADD = -lavformat -lavcodec -lavutil \
 	$(am__append_1) \
 	$(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la
-libxuggle_xuggler_la_SOURCES = AudioFrameBuffer.cpp AudioResampler.cpp \
-	AudioSamples.cpp Codec.cpp Container.cpp ContainerFormat.cpp \
-	VideoPicture.cpp Global.cpp IAudioResampler.cpp \
-	IAudioSamples.cpp ICodec.cpp IContainer.cpp \
-	IContainerFormat.cpp IVideoPicture.cpp IMediaData.cpp \
-	IMediaDataWrapper.cpp IPacket.cpp IPixelFormat.cpp \
-	IProperty.cpp IRational.cpp IStreamCoder.cpp IStream.cpp \
-	ITimeValue.cpp IVideoResampler.cpp MediaDataWrapper.cpp \
-	Packet.cpp Property.cpp Rational.cpp StreamCoder.cpp \
-	Stream.cpp TimeValue.cpp $(am__append_2)
+libxuggle_xuggler_la_SOURCES = AudioResampler.cpp AudioSamples.cpp \
+	Codec.cpp Container.cpp ContainerFormat.cpp VideoPicture.cpp \
+	Global.cpp IAudioResampler.cpp IAudioSamples.cpp ICodec.cpp \
+	IContainer.cpp IContainerFormat.cpp IVideoPicture.cpp \
+	IMediaData.cpp IMediaDataWrapper.cpp IPacket.cpp \
+	IPixelFormat.cpp IProperty.cpp IRational.cpp IStreamCoder.cpp \
+	IStream.cpp ITimeValue.cpp IVideoResampler.cpp \
+	MediaDataWrapper.cpp Packet.cpp Property.cpp Rational.cpp \
+	StreamCoder.cpp Stream.cpp TimeValue.cpp $(am__append_2)
 nodist_libxuggle_xuggler_la_SOURCES = \
   Xuggler.cpp
 
@@ -304,7 +302,6 @@ libxuggle_xuggler_la_HEADERS = \
   ITimeValue.h \
   IVideoResampler.h \
   Xuggler.i \
-  AudioFrameBuffer.cpp \
   AudioResampler.h \
   AudioSamples.h \
   Codec.h \
