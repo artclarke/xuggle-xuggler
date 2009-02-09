@@ -622,11 +622,10 @@ public class Converter
           * the envelope.  The good news is, it's easier in Xuggler than some
           * other systems.
           */
-         IRational num = ic.getTimeBase();
-         oc.setTimeBase(num);
-         num = null;
+         IRational num = null;
          num = ic.getFrameRate();
          oc.setFrameRate(num);
+         oc.setTimeBase(IRational.make(num.getDenominator(), num.getNumerator()));
          num = null;
          
          /**

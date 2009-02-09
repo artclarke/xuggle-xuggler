@@ -35,8 +35,6 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import junit.framework.TestCase;
-
 @RunWith(NameAwareTestClassRunner.class)
 public class RegressionsTest
 {
@@ -170,7 +168,6 @@ public class RegressionsTest
    * sometime encoding audio can lead to non-monotone-timestamps
    */
   @Test
-  @Ignore
   public void testRegressionIssue51() throws ParseException
   {
     String[] args = new String[]{

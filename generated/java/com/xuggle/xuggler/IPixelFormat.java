@@ -239,6 +239,11 @@ public class IPixelFormat extends RefCounted {
     YUV440P,
     YUVJ440P,
     YUVA420P,
+    VDPAU_H264,
+    VDPAU_MPEG1,
+    VDPAU_MPEG2,
+    VDPAU_WMV3,
+    VDPAU_VC1,
     NB;
 
     public final int swigValue() {

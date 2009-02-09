@@ -175,6 +175,7 @@ namespace com { namespace xuggle { namespace xuggler
 
     com::xuggle::ferry::RefPointer<com::xuggle::ferry::IBuffer> mAudioFrameBuffer;
     int32_t mBytesInFrameBuffer;
+    int64_t mStartingTimestampOfBytesInFrameBuffer;
 
     int32_t calcAudioFrameSize();
 
