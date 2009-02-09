@@ -1672,19 +1672,20 @@ static int x264_pixel_var_8x8_altivec( uint8_t *pix, int i_stride )
     vec_u32_t sqr_v = zero_u32v;
     vec_u32_t sum_v = zero_u32v;
 
-    vec_u8_t perm0 = vec_lvsl( 0, pix );
-    vec_u8_t perm1 = vec_lvsl( 0, pix+i_stride );
+    static const vec_u8_t perm_tab[] = {
+        CV(0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,  /* pix=mod16, i_stride=mod16 */
+           0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17),
+        CV(0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,  /* pix=mod16, i_stride=mod8  */
+           0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F),
+    };
+    vec_u8_t perm = perm_tab[ ((i_stride & 8) >> 3) ];
 
     int y;
     for( y = 0; y < 8; y+=2 )
     {
         vec_u8_t pix0_v = vec_ld(0, pix);
         vec_u8_t pix1_v = vec_ld(i_stride, pix);
-        pix0_v = vec_perm(pix0_v, pix0_v, perm0);
-        pix1_v = vec_perm(pix1_v, pix1_v, perm1);
-
-        vec_u8_t pix_v = vec_mergeh(pix0_v, pix1_v);
-
+        vec_u8_t pix_v = vec_perm(pix0_v, pix1_v, perm);
         sum_v = vec_sum4s(pix_v, sum_v);
         sqr_v = vec_msum(pix_v, pix_v, sqr_v);
 
