@@ -495,9 +495,21 @@ AudioFrameBufferTest :: testGetNextFrameReturnsCorrectTimestamps()
 }
 
 void
-AudioFrameBufferTest :: testGetNextFrameMultipleTimes()
+AudioFrameBufferTest :: testGetNextFrameMultipleTimesMono()
 {
-  const int32_t channels = 1;
+  helperGetNextFrameMultipleTimes(1);
+}
+
+void
+AudioFrameBufferTest :: testGetNextFrameMultipleTimesStereo()
+{
+  helperGetNextFrameMultipleTimes(2);
+}
+
+void
+AudioFrameBufferTest :: helperGetNextFrameMultipleTimes(int32_t aChannels)
+{
+  const int32_t channels = aChannels;
   const int32_t sampleRate = 22050;
   const int32_t bitDepth=16;
   // This combination of sample size and frame size should
@@ -544,9 +556,10 @@ AudioFrameBufferTest :: testGetNextFrameMultipleTimes()
     VS_TUT_ENSURE("should get a frame", samplesWritten == frameSize);
     for(int j = 0; j < samplesWritten*channels; j++)
     {
-      int16_t expectedSample = (totalSamplesWritten+j)/(numSamples*channels);
-//      VS_LOG_DEBUG("checking sample [%d]=%hd (expected %hd)",
+      int16_t expectedSample = (totalSamplesWritten+(j/channels))/numSamples;
+//      VS_LOG_DEBUG("checking sample [%d:%d]=%hd (expected %hd)",
 //          totalSamplesWritten+j,
+//          channels,
 //          outSamples[j],
 //          expectedSample);
       VS_TUT_ENSURE_EQUALS("should get expected sample",
@@ -567,13 +580,15 @@ AudioFrameBufferTest :: testGetNextFrameMultipleTimes()
         &timestampWritten);
     VS_TUT_ENSURE("should get a frame", retval == frameSize);
     VS_TUT_ENSURE("should get a frame", samplesWritten == frameSize);
+//    VS_LOG_DEBUG("checking new frame");
     for(int j = 0; j < samplesWritten*channels; j++)
     {
-      int16_t expectedSample = (totalSamplesWritten+j)/(numSamples*channels);
-      //      VS_LOG_DEBUG("checking sample [%d]=%hd (expected %hd)",
-      //          totalSamplesWritten+j,
-      //          outSamples[j],
-      //          expectedSample);
+      int16_t expectedSample = (totalSamplesWritten+(j/channels))/(numSamples);
+//      VS_LOG_DEBUG("checking sample [%d:%d]=%hd (expected %hd)",
+//          totalSamplesWritten+j,
+//          channels,
+//          outSamples[j],
+//          expectedSample);
       VS_TUT_ENSURE_EQUALS("should get expected sample",
           outSamples[j],
           expectedSample);

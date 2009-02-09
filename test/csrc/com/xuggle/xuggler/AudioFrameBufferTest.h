@@ -86,7 +86,10 @@ public:
    * Do a mini-load test of the frame buffer to make sure with lots
    * of adds and delete it behaves as expected (especially under Valgrind).
    */
-  void testGetNextFrameMultipleTimes();
+  void testGetNextFrameMultipleTimesMono();
+  void testGetNextFrameMultipleTimesStereo();
+  void helperGetNextFrameMultipleTimes(int32_t channels);
+
 };
 
 #endif /* AUDIOFRAMEBUFFERTEST_H_ */
