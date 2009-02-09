@@ -91,13 +91,20 @@ namespace com { namespace xuggle { namespace xuggler
       RGB4_BYTE,
       NV12,
       NV21,
+
       RGB32_1,
       BGR32_1,
+
       GRAY16BE,
       GRAY16LE,
       YUV440P,
       YUVJ440P,
       YUVA420P,
+      VDPAU_H264,
+      VDPAU_MPEG1,
+      VDPAU_MPEG2,
+      VDPAU_WMV3,
+      VDPAU_VC1,
       NB,
     } Type;
     
