@@ -559,6 +559,7 @@ cglobal predict_8x8_ddr_mmxext, 2,2
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_hu_mmxext( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
+%define PALIGNR PALIGNR_MMX
 cglobal predict_8x8_hu_mmxext, 2,2
     movq    mm1, [r1+7]         ; l0 l1 l2 l3 l4 l5 l6 l7
     add      r0, 4*FDEC_STRIDE
@@ -588,7 +589,7 @@ cglobal predict_8x8_hu_mmxext, 2,2
     pshufw  mm1, mm6, 11111001b
     PALIGNR mm6, mm4, 4, mm2
     pshufw  mm2, mm7, 11111110b
-    PALIGNR mm7, mm4, 6, mm4
+    PALIGNR mm7, mm4, 6, mm3
     pshufw  mm3, mm0, 11111111b
     movq   [r0-4*FDEC_STRIDE], mm4
     movq   [r0-3*FDEC_STRIDE], mm5
