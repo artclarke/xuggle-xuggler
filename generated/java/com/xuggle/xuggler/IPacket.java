@@ -287,4 +287,39 @@ public class IPacket extends IMediaData {
     return (cPtr == 0) ? null : new IPacket(cPtr, false);
   }
 
+/**
+ * Set if this is a key packet.  
+ * @param	keyPacket true for yes, false for no.  
+ */
+  public void setKeyPacket(boolean keyPacket) {
+    XugglerJNI.IPacket_setKeyPacket(swigCPtr, this, keyPacket);
+  }
+
+/**
+ * Set any internal flags.  
+ * @param	flags Flags to set  
+ */
+  public void setFlags(int flags) {
+    XugglerJNI.IPacket_setFlags(swigCPtr, this, flags);
+  }
+
+/**
+ * Set if this packet is complete, and what the total size of the data 
+ * should be assumed to be.  
+ * @param	complete True for complete, false for not.  
+ * @param	size Size of data in packet.  
+ */
+  public void setComplete(boolean complete, int size) {
+    XugglerJNI.IPacket_setComplete(swigCPtr, this, complete, size);
+  }
+
+/**
+ * Set the stream index for this packet.  
+ * @param	streamIndex The stream index, as determined from the {@link 
+ *		 IContainer} this packet will be written to.  
+ */
+  public void setStreamIndex(int streamIndex) {
+    XugglerJNI.IPacket_setStreamIndex(swigCPtr, this, streamIndex);
+  }
+
 }
