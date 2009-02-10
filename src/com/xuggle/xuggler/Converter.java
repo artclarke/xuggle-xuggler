@@ -685,25 +685,18 @@ public class Converter
     int numStreams = 0;
     int i = 0;
     
-    /**
-     * We do a nice clean-up here to show you how you should do it.
-     * 
-     * That said, Xuggler goes to great pains to clean up after you if you
-     * forget to release things.  But still, you should be a good boy or giral and
-     * clean up yourself.
-     */
     numStreams = mIContainer.getNumStreams();
+    /**
+     * Some video coders (e.g. MP3) will often "read-ahead" in a stream and keep
+     * extra data around to get efficient compression.  But they need some way to know
+     * they're never going to get more data.  The convention for that case is to pass
+     * null for the IMediaData (e.g. IAudioSamples or IVideoPicture) in encodeAudio(...)
+     * or encodeVideo(...) once before closing the coder.
+     * 
+     * In that case, the IStreamCoder will flush all data.
+     */
     for (i = 0; i < numStreams; i++)
     {
-      /**
-       * Some video coders (e.g. MP3) will often "read-ahead" in a stream and keep
-       * extra data around to get efficient compression.  But they need some way to know
-       * they're never going to get more data.  The convention for that case is to pass
-       * null for the IMediaData (e.g. IAudioSamples or IVideoPicture) in encodeAudio(...)
-       * or encodeVideo(...) once before closing the coder.
-       * 
-       * In that case, the IStreamCoder will flush all data.
-       */
       if (mOCoders[i] != null) {
         IPacket oPacket = IPacket.make();
         if (mOCoders[i].getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO)
@@ -712,7 +705,35 @@ public class Converter
           mOCoders[i].encodeVideo(oPacket, null, 0);
         if (oPacket.isComplete())
           mOContainer.writePacket(oPacket);
+      }
+    }
+    /**
+     * Some container formats require a trailer to be written to avoid a corrupt files.
+     * 
+     * Others, such as the FLV container muxer, will take a writeTrailer() call to tell
+     * it to seek() back to the start of the output file and write the (now known) duration
+     * into the Meta Data.
+     * 
+     *  So trailers are required.  In general if a format is a streaming format, then the
+     *  writeTrailer() will never seek backwards.
+     *  
+     *  Make sure you don't close your codecs before you write your trailer, or
+     *  we'll complain loudly and not actually write a trailer.
+     */
+    int retval = mOContainer.writeTrailer();
+    if (retval < 0)
+      throw new RuntimeException("Could not write trailer to output file");
 
+    /**
+     * We do a nice clean-up here to show you how you should do it.
+     * 
+     * That said, Xuggler goes to great pains to clean up after you if you
+     * forget to release things.  But still, you should be a good boy or giral and
+     * clean up yourself.
+     */
+    for (i = 0; i < numStreams; i++)
+    {
+      if (mOCoders[i] != null) {
         /**
          * And close the input coder to tell Xuggler it can release all native memory.
          */
@@ -726,17 +747,6 @@ public class Converter
         mICoders[i].close();
       mICoders[i] = null;
     }
-    /**
-     * Some container formats require a trailer to be written to avoid a corrupt files.
-     * 
-     * Others, such as the FLV container muxer, will take a writeTrailer() call to tell
-     * it to seek() back to the start of the output file and write the (now known) duration
-     * into the Meta Data.
-     * 
-     *  So trailers are required.  In general if a format is a streaming format, then the
-     *  writeTrailer() will never seek backwards.
-     */
-    mOContainer.writeTrailer();
     
     /**
      * Tell Xuggler it can close the output file, write all data, and free all relevant memory.
@@ -766,8 +776,6 @@ public class Converter
     mICoders = null;
     mASamplers = null;
     mVSamplers = null;
-    
-
   }
   
   /** Allow child class to override this method to alter the audio frame

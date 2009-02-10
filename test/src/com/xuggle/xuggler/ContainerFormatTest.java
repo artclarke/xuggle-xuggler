@@ -59,4 +59,75 @@ public class ContainerFormatTest extends TestCase
     fmt.setInputFormat("NotAShortName");
     assertTrue("got to end of test without coredump.  woo hoo", true);
   }
+  
+  @Test
+  public void testGetInputFlag()
+  {
+    IContainerFormat fmt = IContainerFormat.make();
+    int retval = -1;
+    int flags = fmt.getInputFlags();
+    assertEquals("should be not set", flags, 0);
+    retval = fmt.setInputFormat("s16be");
+    assertTrue("should succeed", retval >= 0);
+    boolean hasGenericIndex = fmt.getInputFlag(IContainerFormat.Flags.FLAG_GENERIC_INDEX);
+    assertTrue("should have global header", hasGenericIndex);
+  }
+  
+  @Test
+  public void testGetOutputFlag()
+  {
+    IContainerFormat fmt = IContainerFormat.make();
+    
+    int retval = -1;
+    int flags = fmt.getOutputFlags();
+    assertEquals("should be not set", flags, 0);
+    retval = fmt.setOutputFormat("mov", null, null);
+    assertTrue("should succeed", retval >= 0);
+    boolean hasGlobalHeader = fmt.getOutputFlag(IContainerFormat.Flags.FLAG_GLOBALHEADER);
+    assertTrue("should have global header", hasGlobalHeader);
+  }
+  
+  @Test
+  public void testSetInputFlag()
+  {
+    IContainerFormat fmt = IContainerFormat.make();
+    int retval = -1;
+    int flags = fmt.getInputFlags();
+    assertEquals("should be not set", flags, 0);
+    retval = fmt.setInputFormat("s16be");
+    assertTrue("should succeed", retval >= 0);
+    boolean hasGlobalHeader = fmt.getInputFlag(IContainerFormat.Flags.FLAG_GLOBALHEADER);
+    assertTrue("should not have global header", !hasGlobalHeader);
+    fmt.setInputFlag(IContainerFormat.Flags.FLAG_GLOBALHEADER, true);
+    hasGlobalHeader = fmt.getInputFlag(IContainerFormat.Flags.FLAG_GLOBALHEADER);
+    assertTrue("should have global header", hasGlobalHeader);
+
+    fmt.setInputFlag(IContainerFormat.Flags.FLAG_GLOBALHEADER, false);
+    hasGlobalHeader = fmt.getInputFlag(IContainerFormat.Flags.FLAG_GLOBALHEADER);
+    assertTrue("should not have global header", !hasGlobalHeader);
+  }
+  
+  @Test
+  public void testSetOutputFlag()
+  {
+    IContainerFormat fmt = IContainerFormat.make();
+    
+    int retval = -1;
+    int flags = fmt.getOutputFlags();
+    assertEquals("should be not set", flags, 0);
+    retval = fmt.setOutputFormat("mov", null, null);
+    assertTrue("should succeed", retval >= 0);
+    boolean hasGlobalHeader = fmt.getOutputFlag(IContainerFormat.Flags.FLAG_GLOBALHEADER);
+    assertTrue("should have global header", hasGlobalHeader);
+    
+    fmt.setOutputFlag(IContainerFormat.Flags.FLAG_GLOBALHEADER, false);
+    hasGlobalHeader = fmt.getOutputFlag(IContainerFormat.Flags.FLAG_GLOBALHEADER);
+    assertTrue("should not have global header", !hasGlobalHeader);
+
+    fmt.setOutputFlag(IContainerFormat.Flags.FLAG_GLOBALHEADER, true);
+    hasGlobalHeader = fmt.getOutputFlag(IContainerFormat.Flags.FLAG_GLOBALHEADER);
+    assertTrue("should have global header", hasGlobalHeader);
+    
+
+  }
 }

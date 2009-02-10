@@ -318,7 +318,11 @@ ContainerTest :: testWriteHeader()
   
   retval = container->open("ContainerTest_13_output.flv", IContainer::WRITE, 0);
   VS_TUT_ENSURE("could not open container", retval >= 0);
-    
+
+  // turn off warning about unopened codecs
+  LoggerStack stack;
+  stack.setGlobalLevel(Logger::LEVEL_WARN, false);
+
   retval = container->writeHeader();
   VS_TUT_ENSURE("could not write header", retval >= 0);
   

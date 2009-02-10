@@ -280,6 +280,16 @@ public class IStream extends RefCounted {
     XugglerJNI.IStream_setLanguage(swigCPtr, this, language);
   }
 
+/**
+ * Get the underlying container for this stream, or null if we  
+ * don't know.  
+ * @return	the container, or null if we don't know.  
+ */
+  public IContainer getContainer() {
+    long cPtr = XugglerJNI.IStream_getContainer(swigCPtr, this);
+    return (cPtr == 0) ? null : new IContainer(cPtr, false);
+  }
+
   public enum Direction {
   /**
    * The direction this stream is going (based on the container).

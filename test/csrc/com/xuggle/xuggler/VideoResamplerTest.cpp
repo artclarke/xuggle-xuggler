@@ -382,13 +382,14 @@ VideoResamplerTest :: testResampleAndOutput()
     VS_TUT_ENSURE("could not write packet", retval >= 0);
   }
 
+  retval = hw->container->writeTrailer();
+  VS_TUT_ENSURE("! writeTrailer", retval >= 0);
+
   retval = ic->close();
   VS_TUT_ENSURE("! close", retval >= 0);
   retval = oc->close();
   VS_TUT_ENSURE("! close", retval >= 0);
-  retval = hw->container->writeTrailer();
-  VS_TUT_ENSURE("! writeTrailer", retval >= 0);
-
+  
   VS_TUT_ENSURE("could not decode any video", numFrames >0);
   VS_TUT_ENSURE("could not find any key frames", numKeyFrames >0);
 
@@ -561,12 +562,13 @@ VideoResamplerTest :: testSwitchPixelFormatsAndOutput()
     VS_TUT_ENSURE("could not write packet", retval >= 0);
   }
 
+  retval = hw->container->writeTrailer();
+  VS_TUT_ENSURE("! writeTrailer", retval >= 0);
+
   retval = ic->close();
   VS_TUT_ENSURE("! close", retval >= 0);
   retval = oc->close();
   VS_TUT_ENSURE("! close", retval >= 0);
-  retval = hw->container->writeTrailer();
-  VS_TUT_ENSURE("! writeTrailer", retval >= 0);
 
   VS_TUT_ENSURE("could not decode any video", numFrames >0);
   VS_TUT_ENSURE("could not find any key frames", numKeyFrames >0);

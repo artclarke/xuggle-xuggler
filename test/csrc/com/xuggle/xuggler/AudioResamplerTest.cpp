@@ -237,13 +237,14 @@ AudioResamplerTest :: testResamplingAudio()
     VS_TUT_ENSURE("could not write packet", retval >= 0);
   }
 
-  retval = ic->close();
-  VS_TUT_ENSURE("! close", retval >= 0);
-  retval = oc->close();
-  VS_TUT_ENSURE("! close", retval >= 0);
   retval = hw->container->writeTrailer();
   VS_TUT_ENSURE("! writeTrailer", retval >= 0);
 
+  retval = ic->close();
+  VS_TUT_ENSURE("! close", retval >= 0);
+  retval = oc->close();
+
+  VS_TUT_ENSURE("! close", retval >= 0);
   VS_TUT_ENSURE("could not get any audio packets", numPackets > 0);
   VS_TUT_ENSURE("could not decode any audio", numSamples > 0);
 }

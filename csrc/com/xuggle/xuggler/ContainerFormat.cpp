@@ -104,4 +104,92 @@ namespace com { namespace xuggle { namespace xuggler
   {
     mOutputFormat = fmt;
   }
+  
+  int32_t
+  ContainerFormat :: getInputFlags()
+  {
+    return (mInputFormat ? mInputFormat->flags : 0);
+  }
+
+  void
+  ContainerFormat :: setInputFlags(int32_t newFlags)
+  {
+    if (mInputFormat)
+      mInputFormat->flags = newFlags;
+  }
+
+  bool
+  ContainerFormat :: getInputFlag(IContainerFormat::Flags flag)
+  {
+    bool result = false;
+    if (mInputFormat)
+      result = mInputFormat->flags & flag;
+    return result;
+  }
+
+  void
+  ContainerFormat :: setInputFlag(IContainerFormat::Flags flag, bool value)
+  {
+    if (mInputFormat)
+    {
+      if (value)
+      {
+        mInputFormat->flags |= flag;
+      }
+      else
+      {
+        mInputFormat->flags &= (~flag);
+      }
+    }
+  }
+  
+  int32_t
+  ContainerFormat :: getOutputFlags()
+  {
+    return (mOutputFormat ? mOutputFormat->flags : 0);
+  }
+
+  void
+  ContainerFormat :: setOutputFlags(int32_t newFlags)
+  {
+    if (mOutputFormat)
+      mOutputFormat->flags = newFlags;
+  }
+
+  bool
+  ContainerFormat :: getOutputFlag(IContainerFormat::Flags flag)
+  {
+    bool result = false;
+    if (mOutputFormat)
+      result = mOutputFormat->flags & flag;
+    return result;
+  }
+
+  void
+  ContainerFormat :: setOutputFlag(IContainerFormat::Flags flag, bool value)
+  {
+    if (mOutputFormat)
+    {
+      if (value)
+      {
+        mOutputFormat->flags |= flag;
+      }
+      else
+      {
+        mOutputFormat->flags &= (~flag);
+      }
+    }
+  }
+  bool
+  ContainerFormat :: isOutput()
+  {
+    return mOutputFormat;
+  }
+  
+  bool
+  ContainerFormat :: isInput()
+  {
+    return mInputFormat;
+  }
+
 }}}

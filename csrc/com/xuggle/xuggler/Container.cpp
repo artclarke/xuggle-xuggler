@@ -190,7 +190,7 @@ namespace com { namespace xuggle { namespace xuggler
         }
 
         RefPointer<Stream>* stream = new RefPointer<Stream>(
-            Stream::make(avStream,
+            Stream::make(this, avStream,
                 (this->getType() == READ ?
                     IStream::INBOUND : IStream::OUTBOUND
                 ))
@@ -332,7 +332,7 @@ namespace com { namespace xuggle { namespace xuggler
       if (stream)
       {
         RefPointer<Stream>* p = new RefPointer<Stream>(
-            Stream::make(stream, IStream::OUTBOUND)
+            Stream::make(this, stream, IStream::OUTBOUND)
         );
         if (p)
         {
@@ -379,6 +379,7 @@ namespace com { namespace xuggle { namespace xuggler
         VS_LOG_WARN("Writing dangling trailer");
         (void) this->writeTrailer();
       }
+      mOpenCoders.clear();
 
       while(mStreams.size() > 0)
       {
@@ -479,6 +480,9 @@ namespace com { namespace xuggle { namespace xuggler
     Packet *pkt = dynamic_cast<Packet*>(ipkt);
     try
     {
+      if (this->getType() != WRITE)
+        throw std::runtime_error("cannot write packet to read only container");
+      
       if (!mFormatContext)
         throw std::logic_error("no format context");
 
@@ -530,8 +534,11 @@ namespace com { namespace xuggle { namespace xuggler
   {
     int32_t retval = -1;
     try {
-    if (!mFormatContext)
-      throw std::runtime_error("no format context allocated");
+      if (this->getType() != WRITE)
+        throw std::runtime_error("cannot write packet to read only container");
+
+      if (!mFormatContext)
+        throw std::runtime_error("no format context allocated");
 
 #ifdef VS_DEBUG
       // for shits and giggles, dump the ffmpeg output
@@ -543,6 +550,25 @@ namespace com { namespace xuggle { namespace xuggler
       if (retval < 0)
         throw std::runtime_error("incorrect parameters set on container");
 
+      // now we're going to walk through and record each open stream coder.
+      // this is needed to catch a potential error on writeTrailer().
+      mOpenCoders.clear();
+      for(int i = 0; i < getNumStreams(); i++)
+      {
+        RefPointer<IStream> stream = this->getStream(i);
+        if (stream)
+        {
+          RefPointer<IStreamCoder> coder = stream->getStreamCoder();
+          if (coder)
+          {
+            if (coder->isOpen())
+              // add to our open list
+              mOpenCoders.push_back(coder);
+            else
+              VS_LOG_WARN("writing Header for container, but at least one codec (%d) is not opened first", i);
+          }
+        }
+      }
       retval = av_write_header(mFormatContext);
       if (retval < 0)
         throw std::runtime_error("could not write header for container");
@@ -563,10 +589,26 @@ namespace com { namespace xuggle { namespace xuggler
   Container :: writeTrailer()
   {
     int32_t retval = -1;
-    if (mFormatContext)
+    try
     {
+      if (this->getType() != WRITE)
+        throw std::runtime_error("cannot write packet to read only container");
+
+      if (!mFormatContext)
+        throw std::runtime_error("no format context allocated");
+
       if (mNeedTrailerWrite)
       {
+        while(mOpenCoders.size()>0)
+        {
+          RefPointer<IStreamCoder> coder = mOpenCoders.front();
+          mOpenCoders.pop_front();
+          if (!coder->isOpen())
+          {
+            mOpenCoders.clear();
+            throw std::runtime_error("attempt to write trailer, but at least one used codec already closed");
+          }
+        }
         retval = av_write_trailer(mFormatContext);
         if (retval == 0)
         {
@@ -575,10 +617,16 @@ namespace com { namespace xuggle { namespace xuggler
       } else {
         VS_LOG_WARN("writeTrailer() with no matching call to writeHeader()");
       }
-      // regardless of whether or not the write trailer succeeded, since
-      // an attempt has occurred, we shouldn't call it twice.
-      mNeedTrailerWrite = false;
     }
+    catch (std::exception & e)
+    {
+      VS_LOG_ERROR("Error: %s", e.what());
+      retval = -1;
+    }
+    // regardless of whether or not the write trailer succeeded, since
+    // an attempt has occurred, we shouldn't call it twice.
+    mNeedTrailerWrite = false;
+
     return retval;
   }
 
@@ -750,6 +798,76 @@ namespace com { namespace xuggle { namespace xuggler
   Container :: getPropertyAsBoolean(const char *aName)
   {
     return Property::getPropertyAsBoolean(mFormatContext, aName);
+  }
+
+  int32_t
+  Container :: getFlags()
+  {
+    return (mFormatContext ? mFormatContext->flags: 0);
+  }
+
+  void
+  Container :: setFlags(int32_t newFlags)
+  {
+    if (mFormatContext)
+      mFormatContext->flags = newFlags;
+  }
+
+  bool
+  Container :: getFlag(IContainer::Flags flag)
+  {
+    bool result = false;
+    if (mFormatContext)
+      result = mFormatContext->flags& flag;
+    return result;
+  }
+
+  void
+  Container :: setFlag(IContainer::Flags flag, bool value)
+  {
+    if (mFormatContext)
+    {
+      if (value)
+      {
+        mFormatContext->flags |= flag;
+      }
+      else
+      {
+        mFormatContext->flags &= (~flag);
+      }
+    }
+
+  }
+  
+  const char*
+  Container :: getURL()
+  {
+    return mFormatContext && *mFormatContext->filename ? mFormatContext->filename : 0;
+  }
+  
+  int32_t
+  Container :: flushPackets()
+  {
+    int32_t retval = -1;
+    try
+    {
+      if (this->getType() != WRITE)
+        throw std::runtime_error("cannot write packet to read only container");
+
+      if (!mFormatContext)
+        throw std::runtime_error("no format context allocated");
+
+      // Do the flush
+      put_flush_packet(mFormatContext->pb);
+      retval = 0;
+    }
+    catch (std::exception & e)
+    {
+      VS_LOG_ERROR("Error: %s", e.what());
+      retval = -1;
+    }
+
+    return retval;
   }
 
 }}}

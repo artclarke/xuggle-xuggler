@@ -135,6 +135,8 @@ namespace com { namespace xuggle { namespace xuggler
     virtual  IRational *getPropertyAsRational(const char* name);
     virtual bool getPropertyAsBoolean(const char* name);
 
+    virtual bool isOpen();
+    
     // Not for calling from Java
     void setCodec(int32_t);
 

@@ -25,6 +25,7 @@
 namespace com { namespace xuggle { namespace xuggler
 {
   class IStreamCoder;
+  class IContainer;
   class IRational;
 
   /**
@@ -170,6 +171,14 @@ namespace com { namespace xuggle { namespace xuggler
      *   to first 4 characters.
      */
     virtual void setLanguage(const char* language)=0;
+    
+    /**
+     * Get the underlying container for this stream, or null if we
+     * don't know.
+     * 
+     * @return the container, or null if we don't know.
+     */
+    virtual IContainer* getContainer()=0;
   };
 }}}
 

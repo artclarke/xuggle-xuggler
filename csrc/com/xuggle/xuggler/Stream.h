@@ -50,7 +50,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int64_t getNumFrames();
 
     // Not for calling from Java
-    static Stream * make(AVStream *, Direction direction);
+    static Stream * make(Container* container, AVStream *, Direction direction);
 
     // The StreamCoder will call this if it needs to
     virtual void setTimeBase(IRational *);
@@ -68,6 +68,8 @@ namespace com { namespace xuggle { namespace xuggler
     virtual const char* getLanguage();
     virtual void setLanguage(const char* language);
 
+    virtual IContainer* getContainer();
+    
   protected:
     Stream();
     virtual ~Stream();
@@ -77,6 +79,7 @@ namespace com { namespace xuggle { namespace xuggler
     AVStream *mStream;
     Direction mDirection;
     StreamCoder* mCoder;
+    Container* mContainer;
     /**
      * We mirror the language setting that FFMPEG
      * has, but add one character so we can insert

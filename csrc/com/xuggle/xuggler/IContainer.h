@@ -183,8 +183,12 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Adds a header, if needed, for this container.
      *
-     * Call this AFTER you've added all streams you want to add
-     * and before you write the first frame.
+     * Call this AFTER you've added all streams you want to add,
+     * opened all IStreamCoders for those streams (with proper
+     * configuration) and
+     * before you write the first frame.  If you attempt to write
+     * a header but haven't opened all codecs, this method will log
+     * a warning.
      *
      * @return 0 if successful.  < 0 if not.  Always -1 if this is
      *           a READ container.
@@ -195,9 +199,15 @@ namespace com { namespace xuggle { namespace xuggler
      * Adds a trailer, if needed, for this container.
      *
      * Call this AFTER you've written all data you're going to write
-     * to this container.  You must call #writeHeader() before you call
+     * to this container but BEFORE you close your IStreamCoders.
+     * <p>
+     * You must call {@link #writeHeader()} before you call
      * this (and if you don't, we'll warn loudly and not actually write the trailer).
-     *
+     * </p>
+     * <p>
+     * If you have closed any of the IStreamCoder objects that were open when you called
+     * {@link #writeHeader()}, then this method will fail.
+     * </p>
      * @return 0 if successful.  < 0 if not.  Always -1 if this is
      *           a READ container.
      */
@@ -459,6 +469,64 @@ namespace com { namespace xuggle { namespace xuggler
      */
     virtual bool getPropertyAsBoolean(const char* name)=0;
 
+    typedef enum {
+      FLAG_GENPTS=0x0001,
+      FLAG_IGNIDX=0x0002,
+      FLAG_NONBLOCK=0x0004,
+    } Flags;
+    
+    /**
+     * Get the flags associated with this object.
+     *
+     * @return The (compacted) value of all flags set.
+     */
+    virtual int32_t getFlags()=0;
+
+    /**
+     * Set the flags to use with this object.  All values
+     * must be ORed (|) together.
+     *
+     * @see Flags
+     *
+     * @param newFlags The new set flags for this codec.
+     */
+    virtual void setFlags(int32_t newFlags) = 0;
+
+    /**
+     * Get the setting for the specified flag
+     *
+     * @param flag The flag you want to find the setting for
+     *
+     * @return 0 for false; non-zero for true
+     */
+    virtual bool getFlag(Flags flag) = 0;
+
+    /**
+     * Set the flag.
+     *
+     * @param flag The flag to set
+     * @param value The value to set it to (true or false)
+     *
+     */
+    virtual void setFlag(Flags flag, bool value) = 0;
+
+
+    /**
+     * Get the URL we've opened, or null if unknown.
+     * 
+     * @return the URL opened, or null.
+     */
+    virtual const char* getURL()=0;
+    
+    /**
+     * Flush all packets to output.
+     *
+     * Will only work on output containers.
+     *  
+     * @return >= 0 on success; <0 on error
+     */
+    virtual int32_t flushPackets()=0;
+    
   };
 }}}
 #endif /*ICONTAINER_H_*/

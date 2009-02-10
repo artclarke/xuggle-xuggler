@@ -271,8 +271,12 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 
 /**
  * Adds a header, if needed, for this container.  
- * Call this AFTER you've added all streams you want to add  
- * and before you write the first frame.  
+ * Call this AFTER you've added all streams you want to add,  
+ * opened all IStreamCoders for those streams (with proper  
+ * configuration) and  
+ * before you write the first frame. If you attempt to write  
+ * a header but haven't opened all codecs, this method will log  
+ * a warning.  
  * @return	0 if successful. < 0 if not. Always -1 if this is  
  * a READ container.  
  */
@@ -283,9 +287,17 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 /**
  * Adds a trailer, if needed, for this container.  
  * Call this AFTER you've written all data you're going to write  
- *  
+ * to this container but BEFORE you close your IStreamCoders.  
+ * <p>  
+ * You must call {@link #writeHeader()} before you call  
  * this (and if you don't, we'll warn loudly and not actually write 
  * the trailer).  
+ * </p>  
+ * <p>  
+ * If you have closed any of the IStreamCoder objects that were open 
+ * when you called  
+ * {@link #writeHeader()}, then this method will fail.  
+ * </p>  
  * @return	0 if successful. < 0 if not. Always -1 if this is  
  * a READ container.  
  */
@@ -561,6 +573,59 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     return XugglerJNI.IContainer_getPropertyAsBoolean(swigCPtr, this, name);
   }
 
+/**
+ * Get the flags associated with this object.  
+ * @return	The (compacted) value of all flags set.  
+ */
+  public int getFlags() {
+    return XugglerJNI.IContainer_getFlags(swigCPtr, this);
+  }
+
+/**
+ * Set the flags to use with this object. All values  
+ * must be ORed (|) together.  
+ * @see		Flags  
+ * @param	newFlags The new set flags for this codec.  
+ */
+  public void setFlags(int newFlags) {
+    XugglerJNI.IContainer_setFlags(swigCPtr, this, newFlags);
+  }
+
+/**
+ * Get the setting for the specified flag  
+ * @param	flag The flag you want to find the setting for  
+ * @return	0 for false; non-zero for true  
+ */
+  public boolean getFlag(IContainer.Flags flag) {
+    return XugglerJNI.IContainer_getFlag(swigCPtr, this, flag.swigValue());
+  }
+
+/**
+ * Set the flag.  
+ * @param	flag The flag to set  
+ * @param	value The value to set it to (true or false)  
+ */
+  public void setFlag(IContainer.Flags flag, boolean value) {
+    XugglerJNI.IContainer_setFlag(swigCPtr, this, flag.swigValue(), value);
+  }
+
+/**
+ * Get the URL we've opened, or null if unknown.  
+ * @return	the URL opened, or null.  
+ */
+  public String getURL() {
+    return XugglerJNI.IContainer_getURL(swigCPtr, this);
+  }
+
+/**
+ * Flush all packets to output.  
+ * Will only work on output containers.  
+ * @return	>= 0 on success; <0 on error  
+ */
+  public int flushPackets() {
+    return XugglerJNI.IContainer_flushPackets(swigCPtr, this);
+  }
+
   public enum Type {
   /**
    * The different types of Containers we support. A container
@@ -596,6 +661,49 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 
     @SuppressWarnings("unused")
     private Type(Type swigEnum) {
+      this.swigValue = swigEnum.swigValue;
+      SwigNext.next = this.swigValue+1;
+    }
+
+    private final int swigValue;
+
+    private static class SwigNext {
+      private static int next = 0;
+    }
+  }
+
+  public enum Flags {
+    FLAG_GENPTS(XugglerJNI.IContainer_FLAG_GENPTS_get()),
+    FLAG_IGNIDX(XugglerJNI.IContainer_FLAG_IGNIDX_get()),
+    FLAG_NONBLOCK(XugglerJNI.IContainer_FLAG_NONBLOCK_get());
+
+    public final int swigValue() {
+      return swigValue;
+    }
+
+    public static Flags swigToEnum(int swigValue) {
+      Flags[] swigValues = Flags.class.getEnumConstants();
+      if (swigValue < swigValues.length && swigValue >= 0 && swigValues[swigValue].swigValue == swigValue)
+        return swigValues[swigValue];
+      for (Flags swigEnum : swigValues)
+        if (swigEnum.swigValue == swigValue)
+          return swigEnum;
+      throw new IllegalArgumentException("No enum " + Flags.class + " with value " + swigValue);
+    }
+
+    @SuppressWarnings("unused")
+    private Flags() {
+      this.swigValue = SwigNext.next++;
+    }
+
+    @SuppressWarnings("unused")
+    private Flags(int swigValue) {
+      this.swigValue = swigValue;
+      SwigNext.next = swigValue+1;
+    }
+
+    @SuppressWarnings("unused")
+    private Flags(Flags swigEnum) {
       this.swigValue = swigEnum.swigValue;
       SwigNext.next = this.swigValue+1;
     }

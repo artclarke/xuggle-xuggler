@@ -822,6 +822,14 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
     return XugglerJNI.IStreamCoder_getPropertyAsBoolean(swigCPtr, this, name);
   }
 
+/**
+ * Returns true if this IStreamCoder is currently open.  
+ * @return	true if open; false if not  
+ */
+  public boolean isOpen() {
+    return XugglerJNI.IStreamCoder_isOpen(swigCPtr, this);
+  }
+
   public enum Direction {
   /**
    * The Direction in which this StreamCoder will work.

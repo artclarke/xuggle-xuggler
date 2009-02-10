@@ -374,4 +374,163 @@ public class ContainerTest extends TestCase
         container.setProperty("notapropertyatall", 15) <0);
     
   }
+  
+  @Test
+  public void testGetFlags()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+
+    int flags = container.getFlags();
+    assertEquals("container should have no flags: " + flags, flags, 0);
+    
+    container.close();
+  }
+
+  @Test
+  public void testSetFlags()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+
+    int flags = container.getFlags();
+    assertEquals("container should have no flags: " + flags, flags, 0);
+    
+    boolean genPts = container.getFlag(IContainer.Flags.FLAG_GENPTS);
+    assertTrue("should be false", !genPts);
+    
+    container.setFlag(IContainer.Flags.FLAG_GENPTS, true);
+    genPts = container.getFlag(IContainer.Flags.FLAG_GENPTS);
+    assertTrue("should be true", genPts);
+    
+    container.close();
+  }
+  
+  @Test
+  public void testWriteTrailerAfterCodecClosingFails()
+  {
+    IContainer container = IContainer.make();
+    
+    // now, try opening a container.
+    int retval = container.open("file:"+this.getClass().getName()+"_"+this.getName()+".flv",
+        IContainer.Type.WRITE, null);
+    assertTrue("could not open file for writing", retval >= 0);
+
+    // add a stream
+    IStream stream = container.addNewStream(0);
+    IStreamCoder coder = stream.getStreamCoder();
+    coder.setCodec(ICodec.ID.CODEC_ID_MP3);
+    coder.setChannels(1);
+    coder.setSampleRate(22050);
+    retval = coder.open();
+    assertTrue("could not open audio codec", retval >= 0);
+    retval = container.writeHeader();
+    assertTrue("could not write header", retval >= 0);
+    
+    // now close the codec
+    retval = coder.close();
+    assertTrue("could not close audio codec", retval >= 0);
+    
+    // Now, this should fail; in previous versions it would work but could crash the JVM
+    retval = container.writeTrailer();
+    assertTrue("this should fail", retval <0);
+    
+    retval = container.close();
+    assertTrue("could not close file", retval >= 0);
+    
+  }
+
+  @Test
+  public void testGetURL()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+
+    assertEquals("should be the same", mSampleFile, container.getURL());
+  }
+  
+  @Test
+  public void testGetURLEmptyContainer()
+  {
+    IContainer container = IContainer.make();
+    assertNull("should be null", container.getURL());
+
+    int retval = container.open("", IContainer.Type.READ, null);
+    assertTrue("should fail", retval < 0);
+
+    assertNull("should be null", container.getURL());
+
+  }
+  
+  @Test
+  public void testFlushPacket()
+  {
+    IContainer container = IContainer.make();
+    
+    // now, try opening a container.
+    int retval = container.open("file:"+this.getClass().getName()+"_"+this.getName()+".flv",
+        IContainer.Type.WRITE, null);
+    assertTrue("could not open file for writing", retval >= 0);
+
+    // add a stream
+    IStream stream = container.addNewStream(0);
+    IStreamCoder coder = stream.getStreamCoder();
+    coder.setCodec(ICodec.ID.CODEC_ID_MP3);
+    coder.setChannels(1);
+    coder.setSampleRate(22050);
+    retval = coder.open();
+    assertTrue("could not open audio codec", retval >= 0);
+    retval = container.writeHeader();
+    assertTrue("could not write header", retval >= 0);
+    
+    // Try a flush
+    retval = container.flushPackets();
+    assertTrue("could not flush packets", retval >= 0);
+    
+    // Now, this should fail; in previous versions it would work but could crash the JVM
+    retval = container.writeTrailer();
+    assertTrue("this should fail", retval >=0);
+
+    // now close the codec
+    retval = coder.close();
+    assertTrue("could not close audio codec", retval >= 0);
+    
+
+    retval = container.close();
+    assertTrue("could not close file", retval >= 0);
+    
+  }
+
+  @Test
+  public void testWriteFailsOnReadOnlyContainers()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+    
+    retval = container.writeHeader();
+    assertTrue("should fail on read only file", retval < 0);
+    
+    IPacket pkt = IPacket.make();
+    retval = container.writePacket(pkt);
+    assertTrue("should fail on read only file", retval < 0);
+
+    retval = container.writeTrailer();
+    assertTrue("should fail on read only file", retval < 0);
+    
+    
+  }
+  
+
 }

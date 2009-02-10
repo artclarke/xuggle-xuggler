@@ -122,13 +122,13 @@ public class CreateAudioFileTest
   private void closeFile()
   {
     int retval = -1;
-    // close the coder
-    retval = mCoder.close();
-    assertTrue("couldn't close coder", retval >= 0);
-
     // write the trailer
     retval = mContainer.writeTrailer();
     assertTrue("couldn't write the trailer", retval >= 0);
+
+    // close the coder
+    retval = mCoder.close();
+    assertTrue("couldn't close coder", retval >= 0);
 
     // close the container
     retval = mContainer.close();

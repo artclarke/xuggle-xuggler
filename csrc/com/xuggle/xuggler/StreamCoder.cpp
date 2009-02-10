@@ -506,6 +506,20 @@ StreamCoder :: open()
       throw std::runtime_error("Codec not valid for direction StreamCoder is working in");
     }
 
+    // Fix for issue #14: http://code.google.com/p/xuggle/issues/detail?id=14
+    if (mStream)
+    {
+      RefPointer<IContainer> container = mStream->getContainer();
+      if (container)
+      {
+        RefPointer<IContainerFormat> format = container->getContainerFormat();
+        if (format && mDirection == ENCODING && format->getOutputFlag(IContainerFormat::FLAG_GLOBALHEADER))
+        {
+          this->setFlag(FLAG_GLOBAL_HEADER, true);
+        }
+      }
+    }
+
     // Ffmpeg doesn't like it if multiple threads try to open a codec at the same time.
     Global::lock();
     retval = avcodec_open(mCodecContext, mCodec->getAVCodec());
@@ -803,6 +817,9 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
 
   try
   {
+    if (packet)
+      packet->reset();
+    
     if (frame && frame->getPixelType() != this->getPixelType())
     {
       throw std::runtime_error("frame is not of the same PixelType as this Coder expected");
@@ -812,9 +829,6 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
   {
     uint8_t* buf = 0;
     uint32_t bufLen = 0;
-
-    // Zero out our packet
-    packet->reset();
 
     // First, get the right buffer size.
     if (suggestedBufferSize <= 0)
@@ -929,19 +943,19 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
 
   try
   {
+    if (!packet)
+      throw std::invalid_argument("Invalid packet to encode to");
+    // Zero out our packet
+    packet->reset();
+
     if (!mCodecContext)
       throw std::runtime_error("StreamCoder not initialized properly");
     if (!mOpened)
       throw std::runtime_error("StreamCoder not open");
     if (!(mDirection == ENCODING))
       throw std::runtime_error("Attempting to encode while decoding");
-    if (!packet)
-      throw std::invalid_argument("Invalid packet to encode to");
     if (!mAudioFrameBuffer)
       throw std::runtime_error("Audio Frame Buffer not initailzed");
-
-    // Zero out our packet
-    packet->reset();
 
     // First, how many bytes do we need to encode a packet?
     int32_t frameSize = 0;
@@ -1335,6 +1349,12 @@ bool
 StreamCoder :: getPropertyAsBoolean(const char *aName)
 {
   return Property::getPropertyAsBoolean(mCodecContext, aName);
+}
+
+bool
+StreamCoder :: isOpen()
+{
+  return mOpened;
 }
 
 }}}

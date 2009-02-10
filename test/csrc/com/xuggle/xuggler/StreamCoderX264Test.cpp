@@ -267,18 +267,21 @@ StreamCoderX264Test :: testDecodingAndEncodingH264Video()
   // ask the encoder to encode a NULL set of samples.  So, let's do that.
   retval = hw->coders[hw->first_output_audio_stream]->encodeAudio(opacket.value(), 0, 0);
   VS_TUT_ENSURE("Could not encode any audio", retval >= 0);
-  if (retval > 0)
+  if (opacket->isComplete())
   {
     retval = hw->container->writePacket(opacket.value());
     VS_TUT_ENSURE("could not write packet", retval >= 0);
   }
   retval = hw->coders[hw->first_output_video_stream]->encodeVideo(opacket.value(), 0, 0);
   VS_TUT_ENSURE("Could not encode any video", retval >= 0);
-  if (retval > 0)
+  if (opacket->isComplete())
   {
     retval = hw->container->writePacket(opacket.value());
     VS_TUT_ENSURE("could not write packet", retval >= 0);
   }
+
+  retval = hw->container->writeTrailer();
+  VS_TUT_ENSURE("! writeTrailer", retval >= 0);
 
   retval = h->coders[h->first_input_audio_stream]->close();
   VS_TUT_ENSURE("! close", retval >= 0);
@@ -291,9 +294,6 @@ StreamCoderX264Test :: testDecodingAndEncodingH264Video()
 
   retval = hw->coders[hw->first_output_video_stream]->close();
   VS_TUT_ENSURE("! close", retval >= 0);
-
-  retval = hw->container->writeTrailer();
-  VS_TUT_ENSURE("! writeTrailer", retval >= 0);
 
   VS_TUT_ENSURE("could not get any audio packets", numPackets > 0);
   VS_TUT_ENSURE("could not decode any audio", numSamples > 0);

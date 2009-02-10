@@ -197,4 +197,140 @@ public class IContainerFormat extends RefCounted {
     return (cPtr == 0) ? null : new IContainerFormat(cPtr, false);
   }
 
+/**
+ * Get the input flags associated with this object.  
+ * @return	The (compacted) value of all flags set.  
+ */
+  public int getInputFlags() {
+    return XugglerJNI.IContainerFormat_getInputFlags(swigCPtr, this);
+  }
+
+/**
+ * Set the input flags to use with this object. All values  
+ * must be ORed (|) together.  
+ * @see		Flags  
+ * @param	newFlags The new set flags for this codec.  
+ */
+  public void setInputFlags(int newFlags) {
+    XugglerJNI.IContainerFormat_setInputFlags(swigCPtr, this, newFlags);
+  }
+
+/**
+ * Get the input setting for the specified flag  
+ * @param	flag The flag you want to find the setting for  
+ * @return	0 for false; non-zero for true  
+ */
+  public boolean getInputFlag(IContainerFormat.Flags flag) {
+    return XugglerJNI.IContainerFormat_getInputFlag(swigCPtr, this, flag.swigValue());
+  }
+
+/**
+ * Set the input flag.  
+ * @param	flag The flag to set  
+ * @param	value The value to set it to (true or false)  
+ */
+  public void setInputFlag(IContainerFormat.Flags flag, boolean value) {
+    XugglerJNI.IContainerFormat_setInputFlag(swigCPtr, this, flag.swigValue(), value);
+  }
+
+/**
+ * Get the output flags associated with this object.  
+ * @return	The (compacted) value of all flags set.  
+ */
+  public int getOutputFlags() {
+    return XugglerJNI.IContainerFormat_getOutputFlags(swigCPtr, this);
+  }
+
+/**
+ * Set the output flags to use with this object. All values  
+ * must be ORed (|) together.  
+ * @see		Flags  
+ * @param	newFlags The new set flags for this codec.  
+ */
+  public void setOutputFlags(int newFlags) {
+    XugglerJNI.IContainerFormat_setOutputFlags(swigCPtr, this, newFlags);
+  }
+
+/**
+ * Get the output setting for the specified flag  
+ * @param	flag The flag you want to find the setting for  
+ * @return	0 for false; non-zero for true  
+ */
+  public boolean getOutputFlag(IContainerFormat.Flags flag) {
+    return XugglerJNI.IContainerFormat_getOutputFlag(swigCPtr, this, flag.swigValue());
+  }
+
+/**
+ * Set the output flag.  
+ * @param	flag The flag to set  
+ * @param	value The value to set it to (true or false)  
+ */
+  public void setOutputFlag(IContainerFormat.Flags flag, boolean value) {
+    XugglerJNI.IContainerFormat_setOutputFlag(swigCPtr, this, flag.swigValue(), value);
+  }
+
+/**
+ * Is this an output container format?  
+ * @return	true if output; false it not  
+ */
+  public boolean isOutput() {
+    return XugglerJNI.IContainerFormat_isOutput(swigCPtr, this);
+  }
+
+/**
+ * Is this an input container format?  
+ * @return	true if input; false it not  
+ */
+  public boolean isInput() {
+    return XugglerJNI.IContainerFormat_isInput(swigCPtr, this);
+  }
+
+  public enum Flags {
+    FLAG_NOFILE(XugglerJNI.IContainerFormat_FLAG_NOFILE_get()),
+    FLAG_NEEDNUMBER(XugglerJNI.IContainerFormat_FLAG_NEEDNUMBER_get()),
+    FLAG_SHOW_IDS(XugglerJNI.IContainerFormat_FLAG_SHOW_IDS_get()),
+    FLAG_RAWPICTURE(XugglerJNI.IContainerFormat_FLAG_RAWPICTURE_get()),
+    FLAG_GLOBALHEADER(XugglerJNI.IContainerFormat_FLAG_GLOBALHEADER_get()),
+    FLAG_NOTIMESTAMPS(XugglerJNI.IContainerFormat_FLAG_NOTIMESTAMPS_get()),
+    FLAG_GENERIC_INDEX(XugglerJNI.IContainerFormat_FLAG_GENERIC_INDEX_get()),
+    FLAG_TS_DISCONT(XugglerJNI.IContainerFormat_FLAG_TS_DISCONT_get());
+
+    public final int swigValue() {
+      return swigValue;
+    }
+
+    public static Flags swigToEnum(int swigValue) {
+      Flags[] swigValues = Flags.class.getEnumConstants();
+      if (swigValue < swigValues.length && swigValue >= 0 && swigValues[swigValue].swigValue == swigValue)
+        return swigValues[swigValue];
+      for (Flags swigEnum : swigValues)
+        if (swigEnum.swigValue == swigValue)
+          return swigEnum;
+      throw new IllegalArgumentException("No enum " + Flags.class + " with value " + swigValue);
+    }
+
+    @SuppressWarnings("unused")
+    private Flags() {
+      this.swigValue = SwigNext.next++;
+    }
+
+    @SuppressWarnings("unused")
+    private Flags(int swigValue) {
+      this.swigValue = swigValue;
+      SwigNext.next = swigValue+1;
+    }
+
+    @SuppressWarnings("unused")
+    private Flags(Flags swigEnum) {
+      this.swigValue = swigEnum.swigValue;
+      SwigNext.next = this.swigValue+1;
+    }
+
+    private final int swigValue;
+
+    private static class SwigNext {
+      private static int next = 0;
+    }
+  }
+
 }

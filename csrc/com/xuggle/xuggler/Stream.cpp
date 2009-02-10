@@ -25,6 +25,7 @@
 #include <com/xuggle/xuggler/Stream.h>
 #include <com/xuggle/xuggler/Rational.h>
 #include <com/xuggle/xuggler/StreamCoder.h>
+#include <com/xuggle/xuggler/Container.h>
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);
 
@@ -36,6 +37,7 @@ namespace com { namespace xuggle { namespace xuggler
     mStream = 0;
     mDirection = INBOUND;
     mCoder = 0;
+    mContainer = 0;
     memset(mLanguage, 0, sizeof(mLanguage));
   }
 
@@ -56,9 +58,13 @@ namespace com { namespace xuggle { namespace xuggler
     }
     mStream = 0;
     VS_REF_RELEASE(mCoder);
+    
+    // We don't keep a reference to the container to avoid a ref-count loop
+    // and so we don't release.
+    mContainer = 0;
   }
   Stream*
-  Stream :: make(AVStream * aStream, Direction direction)
+  Stream :: make(Container *container, AVStream * aStream, Direction direction)
   {
     // note: make will acquire this for us.
     Stream *newStream = 0;
@@ -75,6 +81,7 @@ namespace com { namespace xuggle { namespace xuggler
               aStream->codec,
               newStream);
         VS_ASSERT(newStream->mCoder, "Could not allocate a coder!");
+        newStream->mContainer = container;
       }
     }
     return newStream;
@@ -269,4 +276,12 @@ namespace com { namespace xuggle { namespace xuggler
     return;
   }
 
+  IContainer*
+  Stream :: getContainer()
+  {
+    // add ref for caller
+    VS_REF_ACQUIRE(mContainer);
+    return mContainer;
+  }
+  
 }}}

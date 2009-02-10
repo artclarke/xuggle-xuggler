@@ -26,8 +26,10 @@
 #include <com/xuggle/xuggler/IContainer.h>
 #include <com/xuggle/xuggler/FfmpegIncludes.h>
 #include <com/xuggle/xuggler/Stream.h>
+#include <com/xuggle/xuggler/StreamCoder.h>
 
 #include <vector>
+#include <list>
 
 namespace com { namespace xuggle { namespace xuggler
 {
@@ -90,7 +92,15 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int64_t getPropertyAsLong(const char* name);
     virtual  IRational *getPropertyAsRational(const char* name);
     virtual bool getPropertyAsBoolean(const char* name);
-
+    
+    virtual int32_t getFlags();
+    virtual void setFlags(int32_t newFlags);
+    virtual bool getFlag(Flags flag);
+    virtual void setFlag(Flags flag, bool value);
+    
+    virtual const char * getURL();
+    virtual int32_t flushPackets();
+    
   protected:
     virtual ~Container();
     Container();
@@ -111,6 +121,10 @@ namespace com { namespace xuggle { namespace xuggler
     uint32_t mNumStreams;
     bool mIsOpened;
     bool mNeedTrailerWrite;
+    std::list<
+      com::xuggle::ferry::RefPointer<IStreamCoder>
+      > mOpenCoders;
+
     bool mIsMetaDataQueried;
     uint32_t mInputBufferLength;
   };

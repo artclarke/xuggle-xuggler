@@ -50,6 +50,21 @@ namespace com { namespace xuggle { namespace xuggler
     AVOutputFormat* getOutputFormat();
     void setInputFormat(AVInputFormat*);
     void setOutputFormat(AVOutputFormat*);
+    
+    virtual int32_t getInputFlags();
+    virtual void setInputFlags(int32_t newFlags);
+    virtual bool getInputFlag(Flags flag);
+    virtual void setInputFlag(Flags flag, bool value);
+
+    virtual int32_t getOutputFlags();
+    virtual void setOutputFlags(int32_t newFlags);
+    virtual bool getOutputFlag(Flags flag);
+    virtual void setOutputFlag(Flags flag, bool value);
+
+
+    virtual bool isOutput();
+    virtual bool isInput();
+    
   protected:
     ContainerFormat();
     virtual ~ContainerFormat();

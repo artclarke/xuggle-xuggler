@@ -737,6 +737,12 @@ namespace com { namespace xuggle { namespace xuggler
      */
     virtual bool getPropertyAsBoolean(const char* name)=0;
 
+    /**
+     * Returns true if this IStreamCoder is currently open.
+     * 
+     * @return true if open; false if not
+     */
+    virtual bool isOpen()=0;
   };
 
 }}}

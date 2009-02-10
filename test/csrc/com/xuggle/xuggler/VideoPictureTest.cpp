@@ -208,12 +208,13 @@ VideoPictureTest :: testDecodingAndEncodingIntoFrame()
         ic->getHeight());
     VS_TUT_ENSURE("got no frame", frame);
 
-    // write a header to our file.
-    retval = hw->container->writeHeader();
-    VS_TUT_ENSURE("! writeHeader", retval >= 0);
     // open the outbound coder
     retval = oc->open();
     VS_TUT_ENSURE("! open coder", retval >= 0);
+
+    // write a header to our file.
+    retval = hw->container->writeHeader();
+    VS_TUT_ENSURE("! writeHeader", retval >= 0);
   }
 
   RefPointer<IPacket> encodingPacket = IPacket::make();
@@ -293,6 +294,8 @@ VideoPictureTest :: testDecodingAndEncodingIntoFrame()
     VS_TUT_ENSURE("could not write packet", retval >= 0);
   }
 
+  retval = hw->container->writeTrailer();
+  VS_TUT_ENSURE("! writeTrailer", retval >= 0);
 
   retval = hr->coders[videoStream]->close();
   VS_TUT_ENSURE("could not close coder", retval >= 0);
@@ -303,8 +306,6 @@ VideoPictureTest :: testDecodingAndEncodingIntoFrame()
   VS_TUT_ENSURE("could not find video packets", numPackets >0);
   VS_TUT_ENSURE("could not decode any video", numFrames >0);
   VS_TUT_ENSURE("could not find any key frames", numKeyFrames >0);
-  retval = hw->container->writeTrailer();
-  VS_TUT_ENSURE("! writeTrailer", retval >= 0);
 }
 
 void
@@ -357,12 +358,14 @@ VideoPictureTest :: testDecodingAndEncodingIntoFrameByCopyingData()
         ic->getHeight());
     VS_TUT_ENSURE("got no frame", frame);
 
-    // write a header to our file.
-    retval = hw->container->writeHeader();
-    VS_TUT_ENSURE("! writeHeader", retval >= 0);
     // open the outbound coder
     retval = oc->open();
     VS_TUT_ENSURE("! open coder", retval >= 0);
+
+    // write a header to our file.
+    retval = hw->container->writeHeader();
+    VS_TUT_ENSURE("! writeHeader", retval >= 0);
+
   }
 
   RefPointer<IPacket> encodingPacket = IPacket::make();
@@ -453,6 +456,8 @@ VideoPictureTest :: testDecodingAndEncodingIntoFrameByCopyingData()
     VS_TUT_ENSURE("could not write packet", retval >= 0);
   }
 
+  retval = hw->container->writeTrailer();
+  VS_TUT_ENSURE("! writeTrailer", retval >= 0);
 
   retval = hr->coders[videoStream]->close();
   VS_TUT_ENSURE("could not close coder", retval >= 0);
@@ -463,8 +468,6 @@ VideoPictureTest :: testDecodingAndEncodingIntoFrameByCopyingData()
   VS_TUT_ENSURE("could not find video packets", numPackets >0);
   VS_TUT_ENSURE("could not decode any video", numFrames >0);
   VS_TUT_ENSURE("could not find any key frames", numKeyFrames >0);
-  retval = hw->container->writeTrailer();
-  VS_TUT_ENSURE("! writeTrailer", retval >= 0);
 }
 
 void
@@ -526,12 +529,14 @@ VideoPictureTest :: testDecodingAndEncodingIntoAFrameByCopyingDataInPlace()
     VS_TUT_ENSURE("got no frame", frameCopy);
 
 
-    // write a header to our file.
-    retval = hw->container->writeHeader();
-    VS_TUT_ENSURE("! writeHeader", retval >= 0);
     // open the outbound coder
     retval = oc->open();
     VS_TUT_ENSURE("! open coder", retval >= 0);
+
+    // write a header to our file.
+    retval = hw->container->writeHeader();
+    VS_TUT_ENSURE("! writeHeader", retval >= 0);
+
   }
 
   RefPointer<IPacket> encodingPacket = IPacket::make();
@@ -617,6 +622,8 @@ VideoPictureTest :: testDecodingAndEncodingIntoAFrameByCopyingDataInPlace()
     VS_TUT_ENSURE("could not write packet", retval >= 0);
   }
 
+  retval = hw->container->writeTrailer();
+  VS_TUT_ENSURE("! writeTrailer", retval >= 0);
 
   retval = hr->coders[videoStream]->close();
   VS_TUT_ENSURE("could not close coder", retval >= 0);
@@ -627,8 +634,6 @@ VideoPictureTest :: testDecodingAndEncodingIntoAFrameByCopyingDataInPlace()
   VS_TUT_ENSURE("could not find video packets", numPackets >0);
   VS_TUT_ENSURE("could not decode any video", numFrames >0);
   VS_TUT_ENSURE("could not find any key frames", numKeyFrames >0);
-  retval = hw->container->writeTrailer();
-  VS_TUT_ENSURE("! writeTrailer", retval >= 0);
 }
 
 void

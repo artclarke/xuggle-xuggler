@@ -116,17 +116,17 @@ namespace com { namespace xuggle { namespace xuggler {
   {
     int retval=-1;
 
+    if (container_isopen && need_trailer_write)
+    {
+      retval = container->writeTrailer();
+      VS_TUT_ENSURE("could not write trailer", retval >= 0);
+    }
     resetStreams();
     
     if (container_isopen)
     {
       VS_TUT_ENSURE("we think container is open but have no container",
           container);
-      if (need_trailer_write)
-      {
-        retval = container->writeTrailer();
-        VS_TUT_ENSURE("could not write trailer", retval >= 0);
-      }
       retval = container->close();
       VS_TUT_ENSURE("could not close container", retval == 0);
       container_isopen = false;
@@ -433,7 +433,6 @@ namespace com { namespace xuggle { namespace xuggler {
 
         newstream = container->addNewStream(i);
         VS_TUT_ENSURE("could not add stream", newstream);
-
         newcoder = newstream->getStreamCoder();
         VS_TUT_ENSURE("could not get a coder", newcoder);
 
@@ -864,10 +863,6 @@ namespace com { namespace xuggle { namespace xuggler {
         retval = hw.container->writePacket(opacket.value());
         VS_TUT_ENSURE("could not write packet", retval >= 0);
       }
-      retval = ic->close();
-      VS_TUT_ENSURE("! close", retval >= 0);
-      retval = oc->close();
-      VS_TUT_ENSURE("! close", retval >= 0);
     }
     if (hw.first_output_video_stream >= 0)
     {
@@ -881,13 +876,29 @@ namespace com { namespace xuggle { namespace xuggler {
         retval = hw.container->writePacket(opacket.value());
         VS_TUT_ENSURE("could not write packet", retval >= 0);
       }
+    }
+    
+    retval = hw.container->writeTrailer();
+    VS_TUT_ENSURE("! writeTrailer", retval >= 0);
+    
+    if (hw.first_output_audio_stream >= 0)
+    {
+      oc = hw.coders[hw.first_output_audio_stream];
+      ic = h.coders[h.first_input_audio_stream];
       retval = ic->close();
       VS_TUT_ENSURE("! close", retval >= 0);
       retval = oc->close();
       VS_TUT_ENSURE("! close", retval >= 0);
     }
-    retval = hw.container->writeTrailer();
-    VS_TUT_ENSURE("! writeTrailer", retval >= 0);
+    if (hw.first_output_video_stream >= 0)
+    {
+      oc = hw.coders[hw.first_output_video_stream];
+      ic = h.coders[h.first_input_video_stream];
+      retval = ic->close();
+      VS_TUT_ENSURE("! close", retval >= 0);
+      retval = oc->close();
+      VS_TUT_ENSURE("! close", retval >= 0);
+    }
   }
   
   int
@@ -1021,11 +1032,18 @@ namespace com { namespace xuggle { namespace xuggler {
       first_output_video_coder_open = true;
       if (!first_output_audio_coder_open)
       {
-        // We're first coder to open; write a header.
-        retval = container->writeHeader();
-        VS_TUT_ENSURE("could not write header", retval >= 0);
-        need_trailer_write = true;
+        if (first_output_audio_stream >= 0)
+        {
+          retval = coders[first_output_audio_stream]->open();
+          VS_TUT_ENSURE("could not open audio codec", retval >= 0);
+        }
+        first_output_audio_coder_open = true;
       }
+
+      // We're first coder to open; write a header.
+      retval = container->writeHeader();
+      VS_TUT_ENSURE("could not write header", retval >= 0);
+      need_trailer_write = true;
     }
     
     // Now, we should be good to go.
@@ -1070,11 +1088,17 @@ namespace com { namespace xuggle { namespace xuggler {
       first_output_audio_coder_open = true;
       if (!first_output_video_coder_open)
       {
-        // We're first coder to open; write a header.
-        retval = container->writeHeader();
-        VS_TUT_ENSURE("could not write header", retval >= 0);
-        need_trailer_write = true;
+        if (first_output_video_stream >= 0)
+        {
+          retval = coders[first_output_video_stream]->open();
+          VS_TUT_ENSURE("could not open video codec", retval >= 0);
+        }
+        first_output_video_coder_open = true;
       }
+      // We're first coder to open; write a header.
+      retval = container->writeHeader();
+      VS_TUT_ENSURE("could not write header", retval >= 0);
+      need_trailer_write = true;
     }
     
     // Now, we should be good to go.
