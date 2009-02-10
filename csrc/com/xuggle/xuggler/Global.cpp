@@ -68,9 +68,11 @@ namespace com { namespace xuggle { namespace xuggler
       logLevel = Logger::LEVEL_WARN;
     else if (level == AV_LOG_INFO)
       logLevel = Logger::LEVEL_INFO;
-    else if (level == AV_LOG_VERBOSE ||
-        level == AV_LOG_DEBUG)
+    else if (level == AV_LOG_VERBOSE)
       logLevel = Logger::LEVEL_DEBUG;
+    else if (level == AV_LOG_DEBUG)
+      // Default FFMPEG debug messages to trace; they're too verbose otherwise
+      logLevel = Logger::LEVEL_TRACE;
     else
       logLevel = Logger::LEVEL_ERROR;
 
