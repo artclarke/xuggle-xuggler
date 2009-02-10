@@ -163,6 +163,43 @@ namespace com { namespace xuggle { namespace xuggler
   protected:
     IPacket();
     virtual ~IPacket();
+
+  public:
+    /*
+     * Added for 1.19
+     * 
+     */
+
+    /**
+     * Set if this is a key packet.
+     * 
+     * @param keyPacket true for yes, false for no.
+     */
+    virtual void setKeyPacket(bool keyPacket)=0;
+    
+    /**
+     * Set any internal flags.
+     * 
+     * @param flags Flags to set
+     */
+    virtual void setFlags(int32_t flags)=0;
+    
+    /**
+     * Set if this packet is complete, and what the total size of the data should be assumed to be.
+     * 
+     * @param complete True for complete, false for not.
+     * @param size Size of data in packet.
+     */
+    virtual void setComplete(bool complete, int32_t size)=0;
+    
+    /**
+     * Set the stream index for this packet.
+     * 
+     * @param streamIndex The stream index, as determined from the {@link IContainer} this packet will be written to.
+     */
+    virtual void setStreamIndex(int32_t streamIndex)=0;
+
+    
   };
 
 }}}
