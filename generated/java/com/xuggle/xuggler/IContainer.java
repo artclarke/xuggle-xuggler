@@ -196,7 +196,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  *		 that new  
  * streams can be added at any time, even after the format header has 
  * been read.  
- * @param	aQueryStreamMetaData If true, open() will call {@link #queryStreamMetaData() 
+ * @param	aQueryStreamMetaData If true, open() will call {@link #queryStreamMetaData()} 
  *		  
  * on this container, which will potentially block until it has ready 
  *  

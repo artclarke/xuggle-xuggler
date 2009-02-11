@@ -315,7 +315,7 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
   }
 
 /**
- * Get a new video resampler. Returns null if {@link #isSupported()} 
+ * Get a new video resampler. Returns null if {@link #isSupported(Feature)} 
  * returns false.  
  * @param	outputWidth The width in pixels you want to output frame to 
  *		 have.  

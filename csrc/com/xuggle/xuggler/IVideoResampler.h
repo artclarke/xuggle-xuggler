@@ -240,7 +240,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual bool getPropertyAsBoolean(const char* name)=0;
 
     /**
-     * Get a new video resampler.  Returns null if {@link #isSupported()} returns false.
+     * Get a new video resampler.  Returns null if {@link #isSupported(Feature)} returns false.
      *
      * @param outputWidth The width in pixels you want to output frame to have.
      * @param outputHeight The height in pixels you want to output frame to have.

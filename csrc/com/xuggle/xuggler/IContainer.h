@@ -116,7 +116,7 @@ namespace com { namespace xuggle { namespace xuggler
      *   the format of this container, or 0 (NULL) if you want us to guess.
      * @param aStreamsCanBeAddedDynamically If true, open() will expect that new
      *   streams can be added at any time, even after the format header has been read.
-     * @param aQueryStreamMetaData If true, open() will call {@link #queryStreamMetaData()
+     * @param aQueryStreamMetaData If true, open() will call {@link #queryStreamMetaData()}
      *   on this container, which will potentially block until it has ready
      *   enough data to find all streams in a container.  If false, it will only
      *   block to read a minimal header for this container format.

@@ -319,7 +319,7 @@ public class Utils
    * @throws IllegalArgumentException if the passed {@link
    * BufferedImage} is NULL;
    * @throws IllegalArgumentException if the passed {@link
-   * BufferedImage} is not of type {@link BufferedImage.TYPE_INT_ARGB}.
+   * BufferedImage} is not of type {@link BufferedImage#TYPE_INT_ARGB}.
    * @throws IllegalArgumentException if the underlying data buffer of
    * the {@link BufferedImage} is composed of types other bytes or
    * integers.

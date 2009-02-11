@@ -596,7 +596,7 @@ namespace com { namespace xuggle { namespace xuggler
      * Set the 4-byte FOURCC tag for this coder.
      * @param fourcc The FOURCC to set, with Least Significant Byte first.
      */
-    virtual void setCodecTag(int32_t)=0;
+    virtual void setCodecTag(int32_t fourcc)=0;
     
     /*
      * Added for 1.19

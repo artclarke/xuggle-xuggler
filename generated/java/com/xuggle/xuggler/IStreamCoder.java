@@ -683,8 +683,8 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  * @param	fourcc The FOURCC to set, with Least Significant Byte first. 
  *		  
  */
-  public void setCodecTag(int arg0) {
-    XugglerJNI.IStreamCoder_setCodecTag(swigCPtr, this, arg0);
+  public void setCodecTag(int fourcc) {
+    XugglerJNI.IStreamCoder_setCodecTag(swigCPtr, this, fourcc);
   }
 
 /**
