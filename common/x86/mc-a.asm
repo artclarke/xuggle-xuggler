@@ -42,14 +42,17 @@ SECTION .text
 ; assumes log2_denom = 5, offset = 0, weight1 + weight2 = 64
 %ifdef ARCH_X86_64
     DECLARE_REG_TMP 0,1,2,3,4,5,10,11
-    %macro AVG_START 0
-        PROLOGUE 6,7
+    %macro AVG_START 0-1 0
+        PROLOGUE 6,7,%1
+%ifdef WIN64
+        movsxd r5, r5d
+%endif
         .height_loop:
     %endmacro
 %else
     DECLARE_REG_TMP 1,2,3,4,5,6,1,2
-    %macro AVG_START 0
-        PROLOGUE 0,7
+    %macro AVG_START 0-1 0
+        PROLOGUE 0,7,%1
         mov t0, r0m
         mov t1, r1m
         mov t2, r2m
@@ -72,30 +75,30 @@ SECTION .text
 %macro BIWEIGHT_MMX 2
     movh      m0, %1
     movh      m1, %2
-    punpcklbw m0, m7
-    punpcklbw m1, m7
-    pmullw    m0, m4
-    pmullw    m1, m5
+    punpcklbw m0, m5
+    punpcklbw m1, m5
+    pmullw    m0, m2
+    pmullw    m1, m3
     paddw     m0, m1
-    paddw     m0, m6
+    paddw     m0, m4
     psraw     m0, 6
 %endmacro
 
 %macro BIWEIGHT_START_MMX 0
-    movd    m4, r6m
-    SPLATW  m4, m4   ; weight_dst
-    mova    m5, [pw_64 GLOBAL]
-    psubw   m5, m4   ; weight_src
-    mova    m6, [pw_32 GLOBAL] ; rounding
-    pxor    m7, m7
+    movd    m2, r6m
+    SPLATW  m2, m2   ; weight_dst
+    mova    m3, [pw_64 GLOBAL]
+    psubw   m3, m2   ; weight_src
+    mova    m4, [pw_32 GLOBAL] ; rounding
+    pxor    m5, m5
 %endmacro
 
 %macro BIWEIGHT_SSSE3 2
     movh      m0, %1
     movh      m1, %2
     punpcklbw m0, m1
-    pmaddubsw m0, m5
-    paddw     m0, m6
+    pmaddubsw m0, m3
+    paddw     m0, m4
     psraw     m0, 6
 %endmacro
 
@@ -105,9 +108,9 @@ SECTION .text
     sub    t7d, t6d
     shl    t7d, 8
     add    t6d, t7d
-    movd    m5, t6d
-    mova    m6, [pw_32 GLOBAL]
-    SPLATW  m5, m5   ; weight_dst,src
+    movd    m3, t6d
+    mova    m4, [pw_32 GLOBAL]
+    SPLATW  m3, m3   ; weight_dst,src
 %endmacro
 
 %macro BIWEIGHT_ROW 4
@@ -116,27 +119,27 @@ SECTION .text
     packuswb   m0, m0
     movh     [%1], m0
 %else
-    SWAP 0, 2
+    SWAP 0, 6
     BIWEIGHT [%2+mmsize/2], [%3+mmsize/2]
-    packuswb   m2, m0
-    mova     [%1], m2
+    packuswb   m6, m0
+    mova     [%1], m6
 %endif
 %endmacro
 
 ;-----------------------------------------------------------------------------
 ; int x264_pixel_avg_weight_w16_mmxext( uint8_t *dst, int, uint8_t *src1, int, uint8_t *src2, int, int i_weight )
 ;-----------------------------------------------------------------------------
-%macro AVG_WEIGHT 2
-cglobal x264_pixel_avg_weight_w%2_%1, 0,0
+%macro AVG_WEIGHT 2-3 0
+cglobal x264_pixel_avg_weight_w%2_%1
     BIWEIGHT_START
-    AVG_START
+    AVG_START %3
 %if %2==8 && mmsize==16
     BIWEIGHT [t2], [t4]
-    SWAP 0, 2
+    SWAP 0, 6
     BIWEIGHT [t2+t3], [t4+t5]
-    packuswb m2, m0
-    movlps   [t0], m2
-    movhps   [t0+t1], m2
+    packuswb m6, m0
+    movlps   [t0], m6
+    movhps   [t0+t1], m6
 %else
 %assign x 0
 %rep 1+%2/(mmsize*2)
@@ -161,15 +164,15 @@ AVG_WEIGHT mmxext, 8
 AVG_WEIGHT mmxext, 16
 INIT_XMM
 %define x264_pixel_avg_weight_w4_sse2 x264_pixel_avg_weight_w4_mmxext
-AVG_WEIGHT sse2, 8
-AVG_WEIGHT sse2, 16
+AVG_WEIGHT sse2, 8,  7
+AVG_WEIGHT sse2, 16, 7
 %define BIWEIGHT BIWEIGHT_SSSE3
 %define BIWEIGHT_START BIWEIGHT_START_SSSE3
 INIT_MMX
 AVG_WEIGHT ssse3, 4
 INIT_XMM
-AVG_WEIGHT ssse3, 8
-AVG_WEIGHT ssse3, 16
+AVG_WEIGHT ssse3, 8,  7
+AVG_WEIGHT ssse3, 16, 7
 
 
 
@@ -182,7 +185,7 @@ AVG_WEIGHT ssse3, 16
 ;                                 uint8_t *src1, int src1_stride, uint8_t *src2, int src2_stride, int weight );
 ;-----------------------------------------------------------------------------
 %macro AVGH 3
-cglobal x264_pixel_avg_%1x%2_%3,0,0
+cglobal x264_pixel_avg_%1x%2_%3
     mov eax, %2
     cmp dword r6m, 32
     jne x264_pixel_avg_weight_w%1_%3
@@ -423,7 +426,7 @@ AVG2_W20 sse2_misalign
 %endmacro
 
 %macro AVG_CACHELINE_CHECK 3 ; width, cacheline, instruction set
-cglobal x264_pixel_avg2_w%1_cache%2_%3, 0,0
+cglobal x264_pixel_avg2_w%1_cache%2_%3
     mov    eax, r2m
     and    eax, 0x1f|(%2>>1)
     cmp    eax, (32-%1)|(%2>>1)
@@ -470,7 +473,7 @@ x264_pixel_avg2_w8_cache_mmxext:
     add    r0, r1
     dec    r5d
     jg     .height_loop
-    RET
+    REP_RET
 
 x264_pixel_avg2_w16_cache_mmxext:
     AVG_CACHELINE_START
@@ -480,7 +483,7 @@ x264_pixel_avg2_w16_cache_mmxext:
     add    r0, r1
     dec    r5d
     jg .height_loop
-    RET
+    REP_RET
 
 x264_pixel_avg2_w20_cache_mmxext:
     AVG_CACHELINE_START
@@ -491,7 +494,7 @@ x264_pixel_avg2_w20_cache_mmxext:
     add    r0, r1
     dec    r5d
     jg .height_loop
-    RET
+    REP_RET
 
 %ifndef ARCH_X86_64
 AVG_CACHELINE_CHECK  8, 32, mmxext
@@ -624,7 +627,7 @@ cglobal x264_prefetch_fenc_mmxext, 5,5
     lea    r2,  [r2+r4+64]
     prefetcht0  [r2]
     prefetcht0  [r2+r3]
-    ret
+    RET
 
 %else
 cglobal x264_prefetch_fenc_mmxext
@@ -668,7 +671,7 @@ cglobal x264_prefetch_ref_mmxext, 3,3
     prefetcht0  [r0+r1]
     prefetcht0  [r0+r1*2]
     prefetcht0  [r0+r2]
-    ret
+    RET
 
 
 
@@ -684,7 +687,7 @@ cglobal x264_prefetch_ref_mmxext, 3,3
 %endif
 
 %macro MC_CHROMA_START 0
-    movifnidn r2d, r2m
+    movifnidn r2,  r2mp
     movifnidn r3d, r3m
     movifnidn r4d, r4m
     movifnidn r5d, r5m
@@ -704,13 +707,13 @@ cglobal x264_prefetch_ref_mmxext, 3,3
 ;                             int dx, int dy,
 ;                             int width, int height )
 ;-----------------------------------------------------------------------------
-%macro MC_CHROMA 1
-cglobal x264_mc_chroma_%1, 0,6
+%macro MC_CHROMA 1-2 0
+cglobal x264_mc_chroma_%1
 %if mmsize == 16
     cmp dword r6m, 4
-    jle x264_mc_chroma_mmxext %+ .skip_prologue
+    jle x264_mc_chroma_mmxext
 %endif
-.skip_prologue:
+    PROLOGUE 0,6,%2
     MC_CHROMA_START
     pxor       m3, m3
     and       r4d, 7         ; dx &= 7
@@ -739,7 +742,7 @@ cglobal x264_mc_chroma_%1, 0,6
     mov       r10, r0
     mov       r11, r2
 %else
-    mov        r0, r0m
+    mov        r0, r0mp
     mov        r1, r1m
     mov        r5, r2
 %endif
@@ -781,9 +784,9 @@ cglobal x264_mc_chroma_%1, 0,6
     lea        r0, [r10+4]   ; dst
     lea        r2, [r11+4]   ; src
 %else
-    mov        r0,  r0m
+    mov        r0, r0mp
     lea        r2, [r5+4]
-    add        r0,  4
+    add        r0, 4
 %endif
     mov       r4d, r7m       ; height
     jmp .loop2d
@@ -804,7 +807,7 @@ cglobal x264_mc_chroma_%1, 0,6
     SPLATW     m6, m6
     mova       m7, [pw_4 GLOBAL]
     psubw      m5, m6
-    movifnidn r0d, r0m
+    movifnidn r0,  r0mp
     movifnidn r1d, r1m
     mov       r4d, r7m
 %if mmsize == 8
@@ -864,10 +867,10 @@ cglobal x264_mc_chroma_%1, 0,6
 INIT_MMX
 MC_CHROMA mmxext
 INIT_XMM
-MC_CHROMA sse2
+MC_CHROMA sse2, 8
 
 INIT_MMX
-cglobal x264_mc_chroma_ssse3, 0,6
+cglobal x264_mc_chroma_ssse3, 0,6,8
     MC_CHROMA_START
     and       r4d, 7
     and       r5d, 7
@@ -884,7 +887,7 @@ cglobal x264_mc_chroma_ssse3, 0,6
     mova       m5, [pw_32 GLOBAL]
     movd       m6, r5d
     movd       m7, r4d
-    movifnidn r0d, r0m
+    movifnidn r0,  r0mp
     movifnidn r1d, r1m
     movifnidn r4d, r7m
     SPLATW     m6, m6
@@ -925,7 +928,7 @@ INIT_XMM
     mova       m5, [pw_32 GLOBAL]
     movd       m6, r5d
     movd       m7, r4d
-    movifnidn r0d, r0m
+    movifnidn r0,  r0mp
     movifnidn r1d, r1m
     movifnidn r4d, r7m
     SPLATW     m6, m6

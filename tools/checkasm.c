@@ -175,11 +175,11 @@ int x264_stack_pagealign( int (*func)(), int align );
 
 #define call_c1(func,...) func(__VA_ARGS__)
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(_WIN64)
 /* detect when callee-saved regs aren't saved.
  * needs an explicit asm check because it only sometimes crashes in normal use. */
-long x264_checkasm_call( long (*func)(), int *ok, ... );
-#define call_a1(func,...) x264_checkasm_call((long(*)())func, &ok, __VA_ARGS__)
+intptr_t x264_checkasm_call( intptr_t (*func)(), int *ok, ... );
+#define call_a1(func,...) x264_checkasm_call((intptr_t(*)())func, &ok, __VA_ARGS__)
 #else
 #define call_a1 call_c1
 #endif

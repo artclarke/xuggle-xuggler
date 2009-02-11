@@ -155,12 +155,16 @@ cglobal x264_add4x4_idct_mmx, 2,2
 
 INIT_XMM
 
-cglobal x264_sub8x8_dct_sse2, 3,3
+cglobal x264_sub8x8_dct_sse2, 3,3,8
 .skip_prologue:
     call .8x4
     add  r0, 64
     add  r1, 4*FENC_STRIDE
     add  r2, 4*FDEC_STRIDE
+%ifdef WIN64
+    call .8x4
+    RET
+%endif
 .8x4:
     SUB_DCT4 2x4x4W
     movhps [r0+32], m0
@@ -169,11 +173,15 @@ cglobal x264_sub8x8_dct_sse2, 3,3
     movhps [r0+56], m3
     ret
 
-cglobal x264_add8x8_idct_sse2, 2,2
+cglobal x264_add8x8_idct_sse2, 2,2,8
 .skip_prologue:
     call .8x4
     add  r1, 64
     add  r0, 4*FDEC_STRIDE
+%ifdef WIN64
+    call .8x4
+    RET
+%endif
 .8x4:
     movq   m0, [r1+ 0]
     movq   m1, [r1+ 8]
@@ -192,6 +200,9 @@ cglobal x264_add8x8_idct_sse2, 2,2
 %macro SUB_NxN_DCT 6
 cglobal %1, 3,3
 .skip_prologue:
+%ifdef WIN64
+    sub  rsp, 8
+%endif
     call %2
     add  r0, %3
     add  r1, %4-%5-%6*FENC_STRIDE
@@ -204,6 +215,9 @@ cglobal %1, 3,3
     add  r0, %3
     add  r1, %4-%5-%6*FENC_STRIDE
     add  r2, %4-%5-%6*FDEC_STRIDE
+%ifdef WIN64
+    add  rsp, 8
+%endif
     jmp  %2
 %endmacro
 
@@ -213,6 +227,9 @@ cglobal %1, 3,3
 %macro ADD_NxN_IDCT 6
 cglobal %1, 2,2
 .skip_prologue:
+%ifdef WIN64
+    sub  rsp, 8
+%endif
     call %2
     add  r0, %4-%5-%6*FDEC_STRIDE
     add  r1, %3
@@ -222,25 +239,30 @@ cglobal %1, 2,2
     call %2
     add  r0, %4-%5-%6*FDEC_STRIDE
     add  r1, %3
+%ifdef WIN64
+    add  rsp, 8
+%endif
     jmp  %2
 %endmacro
 
 %ifndef ARCH_X86_64
-SUB_NxN_DCT  x264_sub8x8_dct_mmx,    x264_sub4x4_dct_mmx  %+ .skip_prologue, 32, 4, 0, 0
-ADD_NxN_IDCT x264_add8x8_idct_mmx,   x264_add4x4_idct_mmx %+ .skip_prologue, 32, 4, 0, 0
-SUB_NxN_DCT  x264_sub16x16_dct_mmx,  x264_sub8x8_dct_mmx  %+ .skip_prologue, 32, 8, 4, 4
-ADD_NxN_IDCT x264_add16x16_idct_mmx, x264_add8x8_idct_mmx %+ .skip_prologue, 32, 8, 4, 4
+SUB_NxN_DCT  x264_sub8x8_dct_mmx,    x264_sub4x4_dct_mmx.skip_prologue,  32, 4, 0, 0
+ADD_NxN_IDCT x264_add8x8_idct_mmx,   x264_add4x4_idct_mmx.skip_prologue, 32, 4, 0, 0
+SUB_NxN_DCT  x264_sub16x16_dct_mmx,  x264_sub8x8_dct_mmx.skip_prologue,  32, 8, 4, 4
+ADD_NxN_IDCT x264_add16x16_idct_mmx, x264_add8x8_idct_mmx.skip_prologue, 32, 8, 4, 4
 
 cextern x264_sub8x8_dct8_mmx.skip_prologue
 cextern x264_add8x8_idct8_mmx.skip_prologue
-SUB_NxN_DCT  x264_sub16x16_dct8_mmx,  x264_sub8x8_dct8_mmx  %+ .skip_prologue, 128, 8, 0, 0
-ADD_NxN_IDCT x264_add16x16_idct8_mmx, x264_add8x8_idct8_mmx %+ .skip_prologue, 128, 8, 0, 0
-%define x264_sub8x8_dct8_sse2 x264_sub8x8_dct8_sse2.skip_prologue
+SUB_NxN_DCT  x264_sub16x16_dct8_mmx,  x264_sub8x8_dct8_mmx.skip_prologue,  128, 8, 0, 0
+ADD_NxN_IDCT x264_add16x16_idct8_mmx, x264_add8x8_idct8_mmx.skip_prologue, 128, 8, 0, 0
+%define x264_sub8x8_dct_sse2   x264_sub8x8_dct_sse2.skip_prologue
+%define x264_add8x8_idct_sse2  x264_add8x8_idct_sse2.skip_prologue
+%define x264_sub8x8_dct8_sse2  x264_sub8x8_dct8_sse2.skip_prologue
 %define x264_add8x8_idct8_sse2 x264_add8x8_idct8_sse2.skip_prologue
 %endif
 
-SUB_NxN_DCT  x264_sub16x16_dct_sse2,  x264_sub8x8_dct_sse2  %+ .skip_prologue, 64, 8, 0, 4
-ADD_NxN_IDCT x264_add16x16_idct_sse2, x264_add8x8_idct_sse2 %+ .skip_prologue, 64, 8, 0, 4
+SUB_NxN_DCT  x264_sub16x16_dct_sse2,  x264_sub8x8_dct_sse2,  64, 8, 0, 4
+ADD_NxN_IDCT x264_add16x16_idct_sse2, x264_add8x8_idct_sse2, 64, 8, 0, 4
 
 cextern x264_sub8x8_dct8_sse2
 cextern x264_add8x8_idct8_sse2
@@ -286,7 +308,7 @@ cglobal x264_add8x8_idct_dc_mmx, 2,2
     punpcklbw mm1, mm1
     ADD_DC    mm0, mm1, r0-FDEC_STRIDE*4
     ADD_DC    mm2, mm3, r0
-    ret
+    RET
 
 cglobal x264_add8x8_idct_dc_ssse3, 2,2
     movq      xmm0, [r1]
@@ -324,7 +346,7 @@ cglobal x264_add8x8_idct_dc_ssse3, 2,2
     movhps    [r0+FDEC_STRIDE* 1], xmm3
     movhps    [r0+FDEC_STRIDE* 2], xmm4
     movhps    [r0+FDEC_STRIDE* 3], xmm5
-    ret
+    RET
 
 cglobal x264_add16x16_idct_dc_mmx, 2,3
     mov       r2, 4
@@ -348,7 +370,7 @@ cglobal x264_add16x16_idct_dc_mmx, 2,3
     add       r0, FDEC_STRIDE*4
     dec       r2
     jg .loop
-    ret
+    REP_RET
 
 %macro IDCT_DC_STORE 3
     movdqa    xmm4, [r0+%1+FDEC_STRIDE*0]
@@ -369,9 +391,13 @@ cglobal x264_add16x16_idct_dc_mmx, 2,3
     movdqa    [r0+%1+FDEC_STRIDE*3], xmm7
 %endmacro
 
-cglobal x264_add16x16_idct_dc_sse2, 2,2
+cglobal x264_add16x16_idct_dc_sse2, 2,2,8
     call .loop
     add       r0, FDEC_STRIDE*4
+%ifdef WIN64
+    call .loop
+    RET
+%endif
 .loop:
     add       r0, FDEC_STRIDE*4
     movq      xmm0, [r1+0]
@@ -399,9 +425,13 @@ cglobal x264_add16x16_idct_dc_sse2, 2,2
     IDCT_DC_STORE 0, xmm2, xmm3
     ret
 
-cglobal x264_add16x16_idct_dc_ssse3, 2,2
+cglobal x264_add16x16_idct_dc_ssse3, 2,2,8
     call .loop
     add       r0, FDEC_STRIDE*4
+%ifdef WIN64
+    call .loop
+    RET
+%endif
 .loop:
     add       r0, FDEC_STRIDE*4
     movdqa    xmm0, [r1]
@@ -428,7 +458,7 @@ cglobal x264_add16x16_idct_dc_ssse3, 2,2
 ; void x264_zigzag_scan_8x8_frame_ssse3( int16_t level[64], int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
 %macro SCAN_8x8 1
-cglobal x264_zigzag_scan_8x8_frame_%1, 2,2
+cglobal x264_zigzag_scan_8x8_frame_%1, 2,2,8
     movdqa    xmm0, [r1]
     movdqa    xmm1, [r1+16]
     movdq2q    mm0, xmm0
@@ -703,7 +733,7 @@ cglobal x264_zigzag_scan_4x4_field_mmxext, 2,3
 ;-----------------------------------------------------------------------------
 ; void x264_zigzag_sub_4x4_frame_ssse3( int16_t level[16], const uint8_t *src, uint8_t *dst )
 ;-----------------------------------------------------------------------------
-cglobal x264_zigzag_sub_4x4_frame_ssse3, 3,3
+cglobal x264_zigzag_sub_4x4_frame_ssse3, 3,3,8
     movd      xmm0, [r1+0*FENC_STRIDE]
     movd      xmm1, [r1+1*FENC_STRIDE]
     movd      xmm2, [r1+2*FENC_STRIDE]

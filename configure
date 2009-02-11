@@ -20,6 +20,7 @@ echo "  --extra-asflags=EASFLAGS add EASFLAGS to ASFLAGS"
 echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS"
 echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS"
 echo "  --host=HOST              build programs to run on HOST"
+echo "  --cross-prefix=PREFIX    use PREFIX for compilation tools"
 echo ""
 exit 1
 fi
@@ -60,13 +61,11 @@ pic="no"
 vis="no"
 shared="no"
 
-CC="${CC-gcc}"
 CFLAGS="$CFLAGS -Wall -I."
 LDFLAGS="$LDFLAGS"
+ASFLAGS="$ASFLAGS"
 HAVE_GETOPT_LONG=1
-
-AS=""
-ASFLAGS=""
+cross_prefix=""
 
 EXE=""
 
@@ -145,11 +144,20 @@ for opt do
         --host=*)
             host="${opt#--host=}"
             ;;
+        --cross-prefix=*)
+            cross_prefix="${opt#--cross-prefix=}"
+            ;;
         *)
             echo "Unknown option $opt, ignored"
             ;;
     esac
 done
+
+CC="${CC-${cross_prefix}gcc}"
+AR="${AR-${cross_prefix}ar}"
+RANLIB="${RANLIB-${cross_prefix}ranlib}"
+STRIP="${STRIP-${cross_prefix}strip}"
+AS=""
 
 if [ "x$host" = x ]; then
     host=`./config.guess`
@@ -243,8 +251,10 @@ case $host_cpu in
       ASFLAGS="$ASFLAGS -f macho64 -m amd64 -DPIC -DPREFIX"
       CFLAGS="$CFLAGS -arch x86_64"
       LDFLAGS="$LDFLAGS -arch x86_64"
+    elif [ "$SYS" = MINGW ]; then
+      ASFLAGS="$ASFLAGS -f win32 -m amd64 -DPREFIX"
     else
-      ASFLAGS="-f elf -m amd64"
+      ASFLAGS="$ASFLAGS -f elf -m amd64"
     fi
     ;;
   powerpc|powerpc64)
@@ -261,7 +271,7 @@ case $host_cpu in
       ARCH="UltraSparc"
       CFLAGS="$CFLAGS -mcpu=ultrasparc"
       LDFLAGS="$LDFLAGS -mcpu=ultrasparc"
-      AS="as"
+      AS="${cross_prefix}as"
       ASFLAGS="$ASFLAGS -xarch=v8plusa"
     else
       ARCH="Sparc"
@@ -330,6 +340,10 @@ if test "$pthread" = "auto" ; then
                 pthread="yes"
                 libpthread="-lpthreadGC2 -lwsock32"
                 CFLAGS="$CFLAGS -DPTW32_STATIC_LIB"
+            elif cc_check pthread.h "-lpthreadGC2 -lws2_32 -DPTW32_STATIC_LIB" "pthread_create(0,0,0,0);" ; then
+                pthread="yes"
+                libpthread="-lpthreadGC2 -lws2_32"
+                CFLAGS="$CFLAGS -DPTW32_STATIC_LIB"
             fi
             ;;
         OPENBSD)
@@ -366,8 +380,15 @@ if [ "$avis_input" = "auto" ] ; then
     fi
 fi
 if [ "$avis_input" = "yes" ] ; then
-    echo "#define AVIS_INPUT" >> config.h
-    LDFLAGS="$LDFLAGS -lvfw32"
+    if cc_check "stdlib.h" -lvfw32 ; then
+        echo "#define AVIS_INPUT" >> config.h
+        LDFLAGS="$LDFLAGS -lvfw32"
+    elif cc_check "stdlib.h" -lavifil32 ; then
+        echo "#define AVIS_INPUT" >> config.h
+        LDFLAGS="$LDFLAGS -lavifil32"
+    else
+        avis_input="no";
+    fi
 fi
 
 if [ "$pic" = "yes" ] ; then
@@ -412,6 +433,9 @@ CC=$CC
 CFLAGS=$CFLAGS
 ALTIVECFLAGS=$ALTIVECFLAGS
 LDFLAGS=$LDFLAGS
+AR=$AR
+RANLIB=$RANLIB
+STRIP=$STRIP
 AS=$AS
 ASFLAGS=$ASFLAGS
 EXE=$EXE

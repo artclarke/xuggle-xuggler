@@ -189,7 +189,7 @@ dct8_mmx:
 ; void x264_sub8x8_dct8_mmx( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
 cglobal x264_sub8x8_dct8_mmx, 3,3
-global x264_sub8x8_dct8_mmx %+ .skip_prologue
+global x264_sub8x8_dct8_mmx.skip_prologue
 .skip_prologue:
     INIT_MMX
     call load_diff_4x8_mmx
@@ -255,7 +255,7 @@ idct8_mmx:
 ; void x264_add8x8_idct8_mmx( uint8_t *dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
 cglobal x264_add8x8_idct8_mmx, 2,2
-global x264_add8x8_idct8_mmx %+ .skip_prologue
+global x264_add8x8_idct8_mmx.skip_prologue
 .skip_prologue:
     INIT_MMX
     add word [r1], 32
@@ -348,7 +348,7 @@ INIT_XMM
 ; void x264_sub8x8_dct8_sse2( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
 cglobal x264_sub8x8_dct8_sse2, 3,3
-global x264_sub8x8_dct8_sse2 %+ .skip_prologue
+global x264_sub8x8_dct8_sse2.skip_prologue
 .skip_prologue:
     LOAD_DIFF m0, m7, none, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
     LOAD_DIFF m1, m7, none, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
@@ -372,7 +372,7 @@ global x264_sub8x8_dct8_sse2 %+ .skip_prologue
 ; void x264_add8x8_idct8_sse2( uint8_t *p_dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
 cglobal x264_add8x8_idct8_sse2, 2,2
-global x264_add8x8_idct8_sse2 %+ .skip_prologue
+global x264_add8x8_idct8_sse2.skip_prologue
 .skip_prologue:
     UNSPILL r1, 1,2,3,5,6,7
     IDCT8_1D   0,1,2,3,4,5,6,7,r1

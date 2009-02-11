@@ -204,7 +204,7 @@ void x264_sfence( void );\
 static void x264_hpel_filter_##cpu( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,\
                              int stride, int width, int height, int16_t *buf )\
 {\
-    int realign = (long)src & (align-1);\
+    int realign = (intptr_t)src & (align-1);\
     src -= realign;\
     dstv -= realign;\
     dstc -= realign;\

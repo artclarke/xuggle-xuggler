@@ -784,7 +784,7 @@ cglobal predict_8x8_vl_sse2, 2,2
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_vr_sse2( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_vr_sse2, 2,2
+cglobal predict_8x8_vr_sse2, 2,2,7
     movdqu      xmm0, [r1+8]
     movdqa      xmm6, [pw_ff00 GLOBAL]
     add         r0, 4*FDEC_STRIDE
@@ -987,7 +987,7 @@ cglobal predict_8x8c_h_%1, 1,1
     mova [r0+FDEC_STRIDE*n], m0
 %assign n n+1
 %endrep
-    REP_RET
+    RET
 %endmacro
 
 INIT_MMX
@@ -1096,7 +1096,7 @@ call .loop
 ;-----------------------------------------------------------------------------
 ; void predict_16x16_p_core_sse2( uint8_t *src, int i00, int b, int c )
 ;-----------------------------------------------------------------------------
-cglobal predict_16x16_p_core_sse2, 1,2
+cglobal predict_16x16_p_core_sse2, 1,2,8
     movd        xmm0, r1m
     movd        xmm1, r2m
     movd        xmm2, r3m
@@ -1256,4 +1256,4 @@ cglobal predict_16x16_dc_left_core_sse2, 1,1
     punpcklqdq xmm0, xmm0
     packuswb   xmm0, xmm0
     STORE16x16_SSE2 xmm0
-    REP_RET
+    RET

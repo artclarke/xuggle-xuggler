@@ -18,6 +18,14 @@
 ;* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
 ;*****************************************************************************
 
+%ifdef ARCH_X86_64
+    %ifidn __OUTPUT_FORMAT__,win32
+        %define WIN64
+    %else
+        %define UNIX64
+    %endif
+%endif
+
 ; FIXME: All of the 64bit asm functions that take a stride as an argument
 ; via register, assume that the high dword of that register is filled with 0.
 ; This is true in practice (since we never do any 64bit arithmetic on strides,
@@ -50,7 +58,9 @@
 ; Some distros prefer shared objects to be PIC, but nothing breaks if
 ; the code contains a few textrels, so we'll skip that complexity.
 
-%ifndef ARCH_X86_64
+%ifdef WIN64
+    %define PIC
+%elifndef ARCH_X86_64
     %undef PIC
 %endif
 %ifdef PIC
@@ -67,7 +77,8 @@
 ; PROLOGUE:
 ; %1 = number of arguments. loads them from stack if needed.
 ; %2 = number of registers used. pushes callee-saved regs if needed.
-; %3 = list of names to define to registers
+; %3 = number of xmm registers used. pushes callee-saved xmm regs if needed.
+; %4 = list of names to define to registers
 ; PROLOGUE can also be invoked by adding the same options to cglobal
 
 ; e.g.
@@ -85,12 +96,25 @@
 ; Same, but if it doesn't pop anything it becomes a 2-byte ret, for athlons
 ; which are slow when a normal ret follows a branch.
 
+; registers:
+; rN and rNq are the native-size register holding function argument N
+; rNd, rNw, rNb are dword, word, and byte size
+; rNm is the original location of arg N (a register or on the stack), dword
+; rNmp is native size
+
 %macro DECLARE_REG 6
     %define r%1q %2
     %define r%1d %3
     %define r%1w %4
     %define r%1b %5
     %define r%1m %6
+    %ifid %6 ; i.e. it's a register
+        %define r%1mp %2
+    %elifdef ARCH_X86_64 ; memory
+        %define r%1mp qword %6
+    %else
+        %define r%1mp dword %6
+    %endif
     %define r%1  %2
 %endmacro
 
@@ -213,7 +237,89 @@ DECLARE_REG_TMP_SIZE 0,1,2,3,4,5,6,7
     %assign n_arg_names %%i
 %endmacro
 
-%ifdef ARCH_X86_64 ;========================================================
+%ifdef WIN64 ; Windows x64 ;=================================================
+
+DECLARE_REG 0, rcx, ecx, cx,  cl,  ecx
+DECLARE_REG 1, rdx, edx, dx,  dl,  edx
+DECLARE_REG 2, r8,  r8d, r8w, r8b, r8d
+DECLARE_REG 3, r9,  r9d, r9w, r9b, r9d
+DECLARE_REG 4, rdi, edi, di,  dil, [rsp + stack_offset + 40]
+DECLARE_REG 5, rsi, esi, si,  sil, [rsp + stack_offset + 48]
+DECLARE_REG 6, rax, eax, ax,  al,  [rsp + stack_offset + 56]
+%define r7m [rsp + stack_offset + 64]
+%define r8m [rsp + stack_offset + 72]
+
+%macro LOAD_IF_USED 2 ; reg_id, number_of_args
+    %if %1 < %2
+        mov r%1, [rsp + stack_offset + 8 + %1*8]
+    %endif
+%endmacro
+
+%macro PROLOGUE 2-4+ ; #args, #regs, #xmm_regs, arg_names...
+    ASSERT %2 >= %1
+    %assign regs_used %2
+    ASSERT regs_used <= 7
+    %if %0 > 2
+        %assign xmm_regs_used %3
+    %else
+        %assign xmm_regs_used 0
+    %endif
+    ASSERT xmm_regs_used <= 16
+    %if regs_used > 4
+        push r4
+        push r5
+        %assign stack_offset stack_offset+16
+    %endif
+    %if xmm_regs_used > 6
+        sub rsp, (xmm_regs_used-6)*16+16
+        %assign stack_offset stack_offset+(xmm_regs_used-6)*16+16
+        %assign %%i xmm_regs_used
+        %rep (xmm_regs_used-6)
+            %assign %%i %%i-1
+            movdqa [rsp + (%%i-6)*16+8], xmm %+ %%i
+        %endrep
+    %endif
+    LOAD_IF_USED 4, %1
+    LOAD_IF_USED 5, %1
+    LOAD_IF_USED 6, %1
+    DEFINE_ARGS %4
+%endmacro
+
+%macro RESTORE_XMM_INTERNAL 1
+    %if xmm_regs_used > 6
+        %assign %%i xmm_regs_used
+        %rep (xmm_regs_used-6)
+            %assign %%i %%i-1
+            movdqa xmm %+ %%i, [%1 + (%%i-6)*16+8]
+        %endrep
+        add %1, (xmm_regs_used-6)*16+16
+    %endif
+%endmacro
+
+%macro RESTORE_XMM 1
+    RESTORE_XMM_INTERNAL %1
+    %assign stack_offset stack_offset-(xmm_regs_used-6)*16+16
+    %assign xmm_regs_used 0
+%endmacro
+
+%macro RET 0
+    RESTORE_XMM_INTERNAL rsp
+    %if regs_used > 4
+        pop r5
+        pop r4
+    %endif
+    ret
+%endmacro
+
+%macro REP_RET 0
+    %if regs_used > 4 || xmm_regs_used > 6
+        RET
+    %else
+        rep ret
+    %endif
+%endmacro
+
+%elifdef ARCH_X86_64 ; *nix x64 ;=============================================
 
 DECLARE_REG 0, rdi, edi, di,  dil, edi
 DECLARE_REG 1, rsi, esi, si,  sil, esi
@@ -231,12 +337,11 @@ DECLARE_REG 6, rax, eax, ax,  al,  [rsp + stack_offset + 8]
     %endif
 %endmacro
 
-%macro PROLOGUE 2-3+ ; #args, #regs, arg_names...
+%macro PROLOGUE 2-4+ ; #args, #regs, #xmm_regs, arg_names...
     ASSERT %2 >= %1
     ASSERT %2 <= 7
-    %assign stack_offset 0
     LOAD_IF_USED 6, %1
-    DEFINE_ARGS %3
+    DEFINE_ARGS %4
 %endmacro
 
 %macro RET 0
@@ -279,9 +384,8 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
     %endif
 %endmacro
 
-%macro PROLOGUE 2-3+ ; #args, #regs, arg_names...
+%macro PROLOGUE 2-4+ ; #args, #regs, arg_names...
     ASSERT %2 >= %1
-    %assign stack_offset 0
     %assign regs_used %2
     ASSERT regs_used <= 7
     PUSH_IF_USED 3
@@ -295,7 +399,7 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
     LOAD_IF_USED 4, %1
     LOAD_IF_USED 5, %1
     LOAD_IF_USED 6, %1
-    DEFINE_ARGS %3
+    DEFINE_ARGS %4
 %endmacro
 
 %macro RET 0
@@ -326,24 +430,19 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 
 ; Symbol prefix for C linkage
 %macro cglobal 1-2+
+    %ifdef PREFIX
+        %xdefine %1.skip_prologue _%1.skip_prologue
+        %xdefine %1 _%1
+    %endif
     %ifidn __OUTPUT_FORMAT__,elf
-        %ifdef PREFIX
-            global _%1:function hidden
-            %define %1 _%1
-        %else
-            global %1:function hidden
-        %endif
+        global %1:function hidden
     %else
-        %ifdef PREFIX
-            global _%1
-            %define %1 _%1
-        %else
-            global %1
-        %endif
+        global %1
     %endif
     align function_align
     %1:
     RESET_MM_PERMUTATION ; not really needed, but makes disassembly somewhat nicer
+    %assign stack_offset 0
     %if %0 > 1
         PROLOGUE %2
     %endif
@@ -351,11 +450,9 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 
 %macro cextern 1
     %ifdef PREFIX
-        extern _%1
-        %define %1 _%1
-    %else
-        extern %1
+        %xdefine %1 _%1
     %endif
+    extern %1
 %endmacro
 
 ; This is needed for ELF, otherwise the GNU linker assumes the stack is

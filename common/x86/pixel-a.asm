@@ -170,8 +170,8 @@ SECTION .text
 ;-----------------------------------------------------------------------------
 ; int x264_pixel_ssd_16x16_mmx( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-%macro SSD 3
-cglobal x264_pixel_ssd_%1x%2_%3, 4,4
+%macro SSD 3-4 0
+cglobal x264_pixel_ssd_%1x%2_%3, 4,4,%4
 %if %1 >= mmsize
     pxor    m7, m7
 %endif
@@ -201,11 +201,11 @@ SSD  8,  4, mmx
 SSD  4,  8, mmx
 SSD  4,  4, mmx
 INIT_XMM
-SSD 16, 16, sse2
-SSD 16,  8, sse2
-SSD  8, 16, sse2
-SSD  8,  8, sse2
-SSD  8,  4, sse2
+SSD 16, 16, sse2, 8
+SSD 16,  8, sse2, 8
+SSD  8, 16, sse2, 5
+SSD  8,  8, sse2, 5
+SSD  8,  4, sse2, 5
 
 cglobal x264_pixel_ssd_4x8_sse4, 4,4
     SSD_QUARTER 0, 0, r1, r3, 0, 1
@@ -294,12 +294,12 @@ cglobal x264_pixel_var_8x8_mmxext, 2,3
     VAR_END 6
 
 INIT_XMM
-cglobal x264_pixel_var_16x16_sse2, 2,3
+cglobal x264_pixel_var_16x16_sse2, 2,3,8
     VAR_START
     VAR_2ROW r1, 8
     VAR_END 8
 
-cglobal x264_pixel_var_8x8_sse2, 2,3
+cglobal x264_pixel_var_8x8_sse2, 2,3,8
     VAR_START
     mov t3d, 4
 .loop:
@@ -524,8 +524,8 @@ SATD_W4 mmxext
     lea     r0, [r10+8]
     lea     r2, [r11+8]
 %else
-    mov     r0, r0m
-    mov     r2, r2m
+    mov     r0, r0mp
+    mov     r2, r2mp
     add     r0, 8
     add     r2, 8
 %endif
@@ -548,7 +548,7 @@ x264_pixel_satd_4x8_internal_%1:
     SATD_8x4_SSE2 %1
     ret
 
-cglobal x264_pixel_satd_16x16_%1, 4,6
+cglobal x264_pixel_satd_16x16_%1, 4,6,8
     SATD_START_SSE2
     BACKUP_POINTERS
     call x264_pixel_satd_8x8_internal_%1
@@ -562,7 +562,7 @@ cglobal x264_pixel_satd_16x16_%1, 4,6
     call x264_pixel_satd_8x8_internal_%1
     SATD_END_SSE2
 
-cglobal x264_pixel_satd_16x8_%1, 4,6
+cglobal x264_pixel_satd_16x8_%1, 4,6,8
     SATD_START_SSE2
     BACKUP_POINTERS
     call x264_pixel_satd_8x8_internal_%1
@@ -570,7 +570,7 @@ cglobal x264_pixel_satd_16x8_%1, 4,6
     call x264_pixel_satd_8x8_internal_%1
     SATD_END_SSE2
 
-cglobal x264_pixel_satd_8x16_%1, 4,6
+cglobal x264_pixel_satd_8x16_%1, 4,6,8
     SATD_START_SSE2
     call x264_pixel_satd_8x8_internal_%1
     lea  r0, [r0+4*r1]
@@ -578,17 +578,17 @@ cglobal x264_pixel_satd_8x16_%1, 4,6
     call x264_pixel_satd_8x8_internal_%1
     SATD_END_SSE2
 
-cglobal x264_pixel_satd_8x8_%1, 4,6
+cglobal x264_pixel_satd_8x8_%1, 4,6,8
     SATD_START_SSE2
     call x264_pixel_satd_8x8_internal_%1
     SATD_END_SSE2
 
-cglobal x264_pixel_satd_8x4_%1, 4,6
+cglobal x264_pixel_satd_8x4_%1, 4,6,8
     SATD_START_SSE2
     call x264_pixel_satd_8x4_internal_%1
     SATD_END_SSE2
 
-cglobal x264_pixel_satd_4x8_%1, 4,6
+cglobal x264_pixel_satd_4x8_%1, 4,6,8
     INIT_XMM
     LOAD_MM_PERMUTATION satd_4x8_internal
     %define movh movd
@@ -636,7 +636,7 @@ cglobal x264_pixel_sa8d_8x8_internal_%1
     pavgw    m0, m4
     ret
 
-cglobal x264_pixel_sa8d_8x8_%1, 4,6
+cglobal x264_pixel_sa8d_8x8_%1, 4,6,10
     lea  r4, [3*r1]
     lea  r5, [3*r3]
     call x264_pixel_sa8d_8x8_internal_%1
@@ -644,9 +644,9 @@ cglobal x264_pixel_sa8d_8x8_%1, 4,6
     movd eax, m0
     add eax, 1
     shr eax, 1
-    ret
+    RET
 
-cglobal x264_pixel_sa8d_16x16_%1, 4,6
+cglobal x264_pixel_sa8d_16x16_%1, 4,6,11
     lea  r4, [3*r1]
     lea  r5, [3*r3]
     call x264_pixel_sa8d_8x8_internal_%1 ; pix[0]
@@ -667,7 +667,7 @@ cglobal x264_pixel_sa8d_16x16_%1, 4,6
     movd eax, m0
     add  eax, 1
     shr  eax, 1
-    ret
+    RET
 
 %else ; ARCH_X86_32
 cglobal x264_pixel_sa8d_8x8_internal_%1
@@ -783,7 +783,7 @@ INIT_XMM
 ;-----------------------------------------------------------------------------
 ; void x264_intra_sa8d_x3_8x8_core_sse2( uint8_t *fenc, int16_t edges[2][8], int *res )
 ;-----------------------------------------------------------------------------
-cglobal x264_intra_sa8d_x3_8x8_core_%1
+cglobal x264_intra_sa8d_x3_8x8_core_%1, 3,3,16
     ; 8x8 hadamard
     pxor        m8, m8
     movq        m0, [r0+0*FENC_STRIDE]
@@ -807,11 +807,11 @@ cglobal x264_intra_sa8d_x3_8x8_core_%1
     HADAMARD8_1D  m0, m1, m2, m3, m4, m5, m6, m7
 
     ; dc
-    movzx       edi, word [r1+0]
-    add          di, word [r1+16]
-    add         edi, 8
-    and         edi, -16
-    shl         edi, 2
+    movzx       r0d, word [r1+0]
+    add         r0w, word [r1+16]
+    add         r0d, 8
+    and         r0d, -16
+    shl         r0d, 2
 
     pxor        m15, m15
     movdqa      m8,  m2
@@ -839,7 +839,7 @@ cglobal x264_intra_sa8d_x3_8x8_core_%1
     movdqa      m14, m15 ; 7x8 sum
 
     movdqa      m8,  [r1+0] ; left edge
-    movd        m9,  edi
+    movd        m9,  r0d
     psllw       m8,  3
     psubw       m8,  m0
     psubw       m9,  m0
@@ -882,7 +882,7 @@ cglobal x264_intra_sa8d_x3_8x8_core_%1
     movq      [r2],  m3 ; i8x8_v, i8x8_h
     psrldq      m3,  8
     movd    [r2+8],  m3 ; i8x8_dc
-    ret
+    RET
 %endif ; ARCH_X86_64
 %endmacro ; INTRA_SA8D_SSE2
 
@@ -1055,7 +1055,7 @@ cglobal x264_intra_satd_x3_4x4_%1, 2,6
 
     SUM_MM_X3   m0, m4, m5, m1, m2, m3, m6, pavgw
 %ifndef ARCH_X86_64
-    mov         r2, r2m
+    mov         r2,  r2mp
 %endif
     movd        [r2+0], m0 ; i4x4_v satd
     movd        [r2+4], m4 ; i4x4_h satd
@@ -1087,7 +1087,7 @@ cglobal x264_intra_satd_x3_16x16_%1, 0,7
 %define sums    rsp+64 ; size 24
 %define top_1d  rsp+32 ; size 32
 %define left_1d rsp    ; size 32
-    movifnidn   r1d, r1m
+    movifnidn   r1,  r1mp
     CLEAR_SUMS
 
     ; 1D hadamards
@@ -1105,7 +1105,7 @@ cglobal x264_intra_satd_x3_16x16_%1, 0,7
     and         t2d, -16 ; dc
 
     ; 2D hadamards
-    movifnidn   r0d, r0m
+    movifnidn   r0,  r0mp
     xor         r3d, r3d
 .loop_y:
     xor         r4d, r4d
@@ -1133,7 +1133,7 @@ cglobal x264_intra_satd_x3_16x16_%1, 0,7
     jl  .loop_y
 
 ; horizontal sum
-    movifnidn   r2d, r2m
+    movifnidn   r2, r2mp
     movq        m2, [sums+16]
     movq        m1, [sums+8]
     movq        m0, [sums+0]
@@ -1160,7 +1160,7 @@ cglobal x264_intra_satd_x3_8x8c_%1, 0,6
 %define  dc_1d   rsp+32 ; size 16
 %define  top_1d  rsp+16 ; size 16
 %define  left_1d rsp    ; size 16
-    movifnidn   r1d, r1m
+    movifnidn   r1,  r1mp
     CLEAR_SUMS
 
     ; 1D hadamards
@@ -1193,8 +1193,8 @@ cglobal x264_intra_satd_x3_8x8c_%1, 0,6
     lea         r5, [dc_1d]
 
     ; 2D hadamards
-    movifnidn   r0d, r0m
-    movifnidn   r2d, r2m
+    movifnidn   r0,  r0mp
+    movifnidn   r2,  r2mp
     xor         r3d, r3d
 .loop_y:
     xor         r4d, r4d
@@ -1511,7 +1511,7 @@ HADAMARD_AC_WXH_SSE2  8,  8, %1
 
 ; struct { int satd, int sa8d; } x264_pixel_hadamard_ac_16x16( uint8_t *pix, int stride )
 %macro HADAMARD_AC_WXH_SSE2 3
-cglobal x264_pixel_hadamard_ac_%1x%2_%3, 2,3
+cglobal x264_pixel_hadamard_ac_%1x%2_%3, 2,3,11
     %assign pad 16-gprsize-(stack_offset&15)
     %define ysub r1
     sub  rsp, 48+pad
@@ -1596,7 +1596,7 @@ SATDS_SSE2 ssse3_phadd
 ; void x264_pixel_ssim_4x4x2_core_sse2( const uint8_t *pix1, int stride1,
 ;                                       const uint8_t *pix2, int stride2, int sums[2][4] )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_ssim_4x4x2_core_sse2, 4,4
+cglobal x264_pixel_ssim_4x4x2_core_sse2, 4,4,8
     pxor      m0, m0
     pxor      m1, m1
     pxor      m2, m2
@@ -1635,11 +1635,11 @@ cglobal x264_pixel_ssim_4x4x2_core_sse2, 4,4
     punpckldq m3, m4
     punpckhdq m5, m4
 
-%ifdef ARCH_X86_64
+%ifdef UNIX64
     %define t0 r4
 %else
-    %define t0 eax
-    mov t0, r4m
+    %define t0 rax
+    mov t0, r4mp
 %endif
 
     movq      [t0+ 0], m1
@@ -1652,7 +1652,7 @@ cglobal x264_pixel_ssim_4x4x2_core_sse2, 4,4
 ;-----------------------------------------------------------------------------
 ; float x264_pixel_ssim_end_sse2( int sum0[5][4], int sum1[5][4], int width )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_ssim_end4_sse2, 3,3
+cglobal x264_pixel_ssim_end4_sse2, 3,3,7
     movdqa    m0, [r0+ 0]
     movdqa    m1, [r0+16]
     movdqa    m2, [r0+32]
@@ -1724,6 +1724,10 @@ cglobal x264_pixel_ssim_end4_sse2, 3,3
 %macro ADS_START 1 ; unroll_size
 %ifdef ARCH_X86_64
     %define t0 r6
+%ifdef WIN64
+    mov     r4,  r4mp
+    movsxd  r5,  dword r5m
+%endif
     mov     r10, rsp
 %else
     %define t0 r4
@@ -1743,6 +1747,9 @@ cglobal x264_pixel_ssim_end4_sse2, 3,3
     add     t0, 4*%1
     sub     r0d, 4*%1
     jg .loop
+%ifdef WIN64
+    RESTORE_XMM r10
+%endif
     jmp ads_mvs
 %endmacro
 
@@ -1776,7 +1783,9 @@ cglobal x264_pixel_ads4_mmxext, 4,7
     ABS1    mm3, mm1
     paddw   mm0, mm2
     paddw   mm0, mm3
-%ifdef ARCH_X86_64
+%ifdef WIN64
+    pshufw  mm1, [r10+stack_offset+56], 0
+%elifdef ARCH_X86_64
     pshufw  mm1, [r10+8], 0
 %else
     pshufw  mm1, [ebp+stack_offset+28], 0
@@ -1830,7 +1839,7 @@ cglobal x264_pixel_ads1_mmxext, 4,7
     ADS_END 2
 
 %macro ADS_SSE2 1
-cglobal x264_pixel_ads4_%1, 4,7
+cglobal x264_pixel_ads4_%1, 4,7,12
     movdqa  xmm4, [r0]
     pshuflw xmm7, xmm4, 0
     pshuflw xmm6, xmm4, 0xAA
@@ -1899,7 +1908,7 @@ cglobal x264_pixel_ads4_%1, 4,7
 %endif ; ARCH
     ADS_END 2
 
-cglobal x264_pixel_ads2_%1, 4,7
+cglobal x264_pixel_ads2_%1, 4,7,8
     movq    xmm6, [r0]
     movd    xmm5, r6m
     pshuflw xmm7, xmm6, 0
@@ -1925,7 +1934,7 @@ cglobal x264_pixel_ads2_%1, 4,7
     movq    [t0], xmm1
     ADS_END 2
 
-cglobal x264_pixel_ads1_%1, 4,7
+cglobal x264_pixel_ads1_%1, 4,7,8
     movd    xmm7, [r0]
     movd    xmm6, r6m
     pshuflw xmm7, xmm7, 0
@@ -1971,20 +1980,24 @@ ADS_SSE2 ssse3
 ;     }
 ;     return nmv;
 ; }
-cglobal x264_pixel_ads_mvs
+cglobal x264_pixel_ads_mvs, 0,7,0
 ads_mvs:
-    xor     eax, eax
-    xor     esi, esi
 %ifdef ARCH_X86_64
     ; mvs = r4
     ; masks = rsp
     ; width = r5
     ; clear last block in case width isn't divisible by 8. (assume divisible by 4, so clearing 4 bytes is enough.)
-    mov     dword [rsp+r5], 0
+%ifdef WIN64
+    mov     r8, r4
+    mov     r9, r5
+%endif
+    xor     eax, eax
+    xor     esi, esi
+    mov     dword [rsp+r9], 0
     jmp .loopi
 .loopi0:
     add     esi, 8
-    cmp     esi, r5d
+    cmp     esi, r9d
     jge .end
 .loopi:
     mov     rdi, [rsp+rsi]
@@ -1992,7 +2005,7 @@ ads_mvs:
     jz .loopi0
     xor     ecx, ecx
 %macro TEST 1
-    mov     [r4+rax*2], si
+    mov     [r8+rax*2], si
     test    edi, 0xff<<(%1*8)
     setne   cl
     add     eax, ecx
@@ -2007,14 +2020,15 @@ ads_mvs:
     TEST 1
     TEST 2
     TEST 3
-    cmp     esi, r5d
+    cmp     esi, r9d
     jl .loopi
 .end:
     mov     rsp, r10
-    ret
+    RET
 
 %else
-    ; no PROLOGUE, inherit from x264_pixel_ads1
+    xor     eax, eax
+    xor     esi, esi
     mov     ebx, [ebp+stack_offset+20] ; mvs
     mov     edi, [ebp+stack_offset+24] ; width
     mov     dword [esp+edi], 0

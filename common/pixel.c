@@ -99,7 +99,7 @@ int64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, uint8_t *pix1, int i_pix1
 {
     int64_t i_ssd = 0;
     int x, y;
-    int align = !(((long)pix1 | (long)pix2 | i_pix1 | i_pix2) & 15);
+    int align = !(((intptr_t)pix1 | (intptr_t)pix2 | i_pix1 | i_pix2) & 15);
 
 #define SSD(size) i_ssd += pf->ssd[size]( pix1 + y*i_pix1 + x, i_pix1, \
                                           pix2 + y*i_pix2 + x, i_pix2 );

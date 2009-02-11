@@ -121,11 +121,14 @@ SECTION .text
 
 INIT_MMX
 
-%macro HPEL_V 1
+%macro HPEL_V 1-2 0
 ;-----------------------------------------------------------------------------
 ; void x264_hpel_filter_v_mmxext( uint8_t *dst, uint8_t *src, int16_t *buf, int stride, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_v_%1, 5,6
+cglobal x264_hpel_filter_v_%1, 5,6,%2
+%ifdef WIN64
+    movsxd   r4, r4d
+%endif
     lea r5, [r1+r3]
     sub r1, r3
     sub r1, r3
@@ -235,7 +238,7 @@ INIT_XMM
 ;-----------------------------------------------------------------------------
 ; void x264_hpel_filter_c_sse2( uint8_t *dst, int16_t *buf, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_c_%1, 3,3
+cglobal x264_hpel_filter_c_%1, 3,3,9
     add r0, r2
     lea r1, [r1+r2*2]
     neg r2
@@ -287,7 +290,7 @@ cglobal x264_hpel_filter_c_%1, 3,3
 ;-----------------------------------------------------------------------------
 ; void x264_hpel_filter_h_sse2( uint8_t *dst, uint8_t *src, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_h_sse2, 3,3
+cglobal x264_hpel_filter_h_sse2, 3,3,8
     add r0, r2
     add r1, r2
     neg r2
@@ -404,7 +407,7 @@ cglobal x264_hpel_filter_h_ssse3, 3,3
 %ifndef ARCH_X86_64
 HPEL_C sse2
 %endif
-HPEL_V sse2
+HPEL_V sse2, 8
 HPEL_C sse2_misalign
 %define PALIGNR PALIGNR_SSSE3
 HPEL_C ssse3
@@ -473,7 +476,11 @@ HPEL_C ssse3
 ; void x264_hpel_filter_sse2( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
 ;                             uint8_t *src, int stride, int width, int height)
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_%1, 7,7
+cglobal x264_hpel_filter_%1, 7,7,16
+%ifdef WIN64
+    movsxd   r4, r4d
+    movsxd   r5, r5d
+%endif
     mov      r10, r3
     sub       r5, 16
     mov      r11, r1
@@ -858,8 +865,11 @@ INTEGRAL_INIT sse2
 ; void frame_init_lowres_core( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
 ;                              int src_stride, int dst_stride, int width, int height )
 ;-----------------------------------------------------------------------------
-%macro FRAME_INIT_LOWRES 1 ; FIXME
-cglobal x264_frame_init_lowres_core_%1, 6,7
+%macro FRAME_INIT_LOWRES 1-2 0 ; FIXME
+cglobal x264_frame_init_lowres_core_%1, 6,7,%2
+%ifdef WIN64
+    movsxd   r5, r5d
+%endif
     ; src += 2*(height-1)*stride + 2*width
     mov      r6d, r8m
     dec      r6d
@@ -969,6 +979,6 @@ FRAME_INIT_LOWRES mmxext
 FRAME_INIT_LOWRES cache32_mmxext
 %endif
 INIT_XMM
-FRAME_INIT_LOWRES sse2
+FRAME_INIT_LOWRES sse2, 12
 %define PALIGNR PALIGNR_SSSE3
-FRAME_INIT_LOWRES ssse3
+FRAME_INIT_LOWRES ssse3, 12

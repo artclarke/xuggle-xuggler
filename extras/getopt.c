@@ -988,6 +988,11 @@ getopt (argc, argv, optstring)
 
 int
 getopt_long (argc, argv, optstring, long_options, opt_index)
+     int argc;
+     char *const *argv;
+     const char *optstring;
+     const struct option *long_options;
+     int *opt_index;
 {
   return _getopt_internal (argc, argv, optstring, long_options, opt_index, 0);
 }

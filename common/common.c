@@ -710,7 +710,7 @@ void *x264_malloc( int i_size )
     buf = (uint8_t *) malloc( i_size + 15 + sizeof( void ** ) +
               sizeof( int ) );
     align_buf = buf + 15 + sizeof( void ** ) + sizeof( int );
-    align_buf -= (long) align_buf & 15;
+    align_buf -= (intptr_t) align_buf & 15;
     *( (void **) ( align_buf - sizeof( void ** ) ) ) = buf;
     *( (int *) ( align_buf - sizeof( void ** ) - sizeof( int ) ) ) = i_size;
     return align_buf;

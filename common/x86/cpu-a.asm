@@ -27,22 +27,24 @@
 SECTION .text
 
 %ifdef ARCH_X86_64
+
 ;-----------------------------------------------------------------------------
 ; int x264_cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
 ;-----------------------------------------------------------------------------
-cglobal x264_cpu_cpuid
+cglobal x264_cpu_cpuid, 5,7
     push    rbx
-    mov     r10,   r3
-    mov     r11,   r2
-    mov     r9,    r1
+    mov     r11,   r1
+    mov     r10,   r2
+    movifnidn r9,  r3
+    movifnidn r8,  r4
     mov     eax,   r0d
     cpuid
-    mov     [r9],  eax
-    mov     [r11], ebx
-    mov     [r10], ecx
+    mov     [r11], eax
+    mov     [r10], ebx
+    mov     [r9],  ecx
     mov     [r8],  edx
     pop     rbx
-    ret
+    RET
 
 %else
 
@@ -102,6 +104,7 @@ cglobal x264_stack_align
     call ecx
     leave
     ret
+
 %endif
 
 ;-----------------------------------------------------------------------------

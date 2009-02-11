@@ -86,7 +86,7 @@ INIT_XMM
 ;-----------------------------------------------------------------------------
 ; void x264_sub8x8_dct8_sse2( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
-cglobal x264_sub8x8_dct8_sse2
+cglobal x264_sub8x8_dct8_sse2, 3,3,10
     LOAD_DIFF  m0, m8, m9, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
     LOAD_DIFF  m1, m8, m9, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
     LOAD_DIFF  m2, m8, m9, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
@@ -108,7 +108,7 @@ cglobal x264_sub8x8_dct8_sse2
     movdqa  [r0+0x50], m5
     movdqa  [r0+0x60], m6
     movdqa  [r0+0x70], m7
-    ret
+    RET
 
 
 %macro IDCT8_1D 10
@@ -167,7 +167,7 @@ cglobal x264_sub8x8_dct8_sse2
 ;-----------------------------------------------------------------------------
 ; void x264_add8x8_idct8_sse2( uint8_t *p_dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
-cglobal x264_add8x8_idct8_sse2
+cglobal x264_add8x8_idct8_sse2, 2,2,10
     movdqa  m0, [r1+0x00]
     movdqa  m1, [r1+0x10]
     movdqa  m2, [r1+0x20]
@@ -191,6 +191,6 @@ cglobal x264_add8x8_idct8_sse2
     STORE_DIFF m5, m8, m9, [r0+5*FDEC_STRIDE]
     STORE_DIFF m6, m8, m9, [r0+6*FDEC_STRIDE]
     STORE_DIFF m7, m8, m9, [r0+7*FDEC_STRIDE]
-    ret
+    RET
 
 

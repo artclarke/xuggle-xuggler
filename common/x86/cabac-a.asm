@@ -32,7 +32,10 @@ cextern x264_cabac_transition
 cextern x264_cabac_renorm_shift
 
 ; t3 must be ecx, since it's used for shift.
-%ifdef ARCH_X86_64
+%ifdef WIN64
+    DECLARE_REG_TMP 3,1,2,0,4,5,6,10
+    %define pointer resq
+%elifdef ARCH_X86_64
     DECLARE_REG_TMP 0,1,2,3,4,5,6,10
     %define pointer resq
 %else
@@ -67,10 +70,10 @@ endstruc
 %endmacro
 
 cglobal x264_cabac_encode_decision_asm, 0,7
-    movifnidn t0d, r0m
+    movifnidn t0,  r0mp
     movifnidn t1d, r1m
-    mov   t5d, [r0+cb.range]
-    movzx t3d, byte [r0+cb.state+t1]
+    mov   t5d, [t0+cb.range]
+    movzx t3d, byte [t0+cb.state+t1]
     mov   t4d, t5d
     shr   t5d, 6
     and   t5d, 3
@@ -80,23 +83,23 @@ cglobal x264_cabac_encode_decision_asm, 0,7
     shr   t6d, 6
     movifnidn t2d, r2m
     cmp   t6d, t2d
-    mov   t6d, [r0+cb.low]
+    mov   t6d, [t0+cb.low]
     lea   t7,  [t6+t4]
     cmovne t4d, t5d
     cmovne t6d, t7d
     LOAD_GLOBAL t3d, x264_cabac_transition, t2, t3*2
     movifnidn t1d, r1m
-    mov   [r0+cb.state+t1], t3b
+    mov   [t0+cb.state+t1], t3b
 .renorm:
     mov   t3d, t4d
     shr   t3d, 3
     LOAD_GLOBAL t3d, x264_cabac_renorm_shift, 0, t3
     shl   t4d, t3b
     shl   t6d, t3b
-    add   t3d, [r0+cb.queue]
-    mov   [r0+cb.range], t4d
-    mov   [r0+cb.low], t6d
-    mov   [r0+cb.queue], t3d
+    add   t3d, [t0+cb.queue]
+    mov   [t0+cb.range], t4d
+    mov   [t0+cb.low], t6d
+    mov   [t0+cb.queue], t3d
     cmp   t3d, 8
     jge .putbyte
     REP_RET
@@ -111,12 +114,12 @@ cglobal x264_cabac_encode_decision_asm, 0,7
     sub   t3d, 10
     and   t6d, t1d
     cmp   t2b, 0xff ; FIXME is a 32bit op faster?
-    mov   [r0+cb.queue], t3d
-    mov   [r0+cb.low], t6d
+    mov   [t0+cb.queue], t3d
+    mov   [t0+cb.low], t6d
     mov   t1d, t2d
-    mov   t4,  [r0+cb.p]
+    mov   t4,  [t0+cb.p]
     je .postpone
-    mov   t5d, [r0+cb.bytes_outstanding]
+    mov   t5d, [t0+cb.bytes_outstanding]
     shr   t1d, 8 ; carry
     add   [t4-1], t1b
     test  t5d, t5d
@@ -130,10 +133,10 @@ cglobal x264_cabac_encode_decision_asm, 0,7
 .no_outstanding:
     mov   [t4], t2b
     inc   t4
-    mov   [r0+cb.bytes_outstanding], t5d ; is zero, but a reg has smaller opcode than an immediate
-    mov   [r0+cb.p], t4
+    mov   [t0+cb.bytes_outstanding], t5d ; is zero, but a reg has smaller opcode than an immediate
+    mov   [t0+cb.p], t4
     RET
 .postpone:
-    inc   dword [r0+cb.bytes_outstanding]
+    inc   dword [t0+cb.bytes_outstanding]
     RET
 
