@@ -920,7 +920,7 @@ cglobal x264_coeff_level_run%2_%1,0,7
     inc    t6d
     sub    t4d, t3d
     jge .loop
-    RET
+    REP_RET
 %endmacro
 
 INIT_MMX

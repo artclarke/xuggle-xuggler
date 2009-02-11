@@ -1734,7 +1734,8 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     pic_out->i_pts = h->fenc->i_pts;
 
     pic_out->img.i_plane = h->fdec->i_plane;
-    for(i = 0; i < 4; i++){
+    for(i = 0; i < 3; i++)
+    {
         pic_out->img.i_stride[i] = h->fdec->i_stride[i];
         pic_out->img.plane[i] = h->fdec->plane[i];
     }

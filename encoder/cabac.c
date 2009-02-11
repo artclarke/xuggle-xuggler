@@ -541,6 +541,8 @@ static int ALWAYS_INLINE x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int 
             i_nza = h->mb.i_neighbour & MB_LEFT ? (h->mb.cbp[h->mb.i_mb_xy - 1] >> (9 + i_idx)) & 1 : b_intra;
             i_nzb = h->mb.i_neighbour & MB_TOP  ? (h->mb.cbp[h->mb.i_mb_top_xy] >> (9 + i_idx)) & 1 : b_intra;
             return 4*i_cat + 2*i_nzb + i_nza;
+        default:
+            return 0;
     }
 }
 
