@@ -639,7 +639,7 @@ static int  Parse( int argc, char **argv,
                     && sscanf( psz, "%ux%u", &param->i_width, &param->i_height ) == 2 )
                 {
                     if( param->i_log_level >= X264_LOG_INFO )
-                        fprintf( stderr, "x264 [info]: file name gives %dx%d\n", param->i_width, param->i_height );
+                        fprintf( stderr, "x264 [info]: %dx%d (given by file name) @ %.2f fps\n", param->i_width, param->i_height, (double)param->i_fps_num / (double)param->i_fps_den);
                     break;
                 }
             }
@@ -647,6 +647,8 @@ static int  Parse( int argc, char **argv,
         else
         {
             sscanf( argv[optind++], "%ux%u", &param->i_width, &param->i_height );
+            if( param->i_log_level >= X264_LOG_INFO )
+                fprintf( stderr, "x264 [info]: %dx%d @ %.2f fps\n", param->i_width, param->i_height, (double)param->i_fps_num / (double)param->i_fps_den);
         }
     }
 
