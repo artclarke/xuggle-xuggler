@@ -974,13 +974,10 @@
     <attribute name="name"/>
     <sequential>
       <uninstall-red5webapp name="@{name}"/>
-      <mkdir dir="${env.RED5_HOME}/webapps"/>
-      <copy file="${dist.dir}/war/@{name}.war"
-        tofile="${env.RED5_HOME}/webapps/@{name}.war"
-        failonerror="true"
-        verbose="true"
-        preservelastmodified="true"
-        />
+      <mkdir dir="${env.RED5_HOME}/webapps/@{name}"/>
+      <!-- auto deploy into red5 -->
+      <unzip src="${dist.dir}/war/@{name}.war"
+        dest="${env.RED5_HOME}/webapps/@{name}"/>
     </sequential>
   </macrodef>
   <!--
