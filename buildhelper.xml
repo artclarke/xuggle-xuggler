@@ -189,6 +189,7 @@
       overwrite="true"
       pubrevision="${library.version.major}.${library.version.minor}.${library.revision}"
       resolver="publish">
+      <artifacts pattern="${dist.dir}/war/[artifact].war" />
       <artifacts pattern="${dist.dir}/lib/[artifact].[ext]" />
     </ivy:publish>
     <ivy:makepom ivyfile="ivy.xml"
@@ -319,6 +320,8 @@
     <!-- Create the build directory structure used by compile -->
     <mkdir dir="${build.dir}"/>
     <mkdir dir="${dist.dir}"/>
+    <mkdir dir="${dist.dir}/lib"/>
+    <mkdir dir="${dist.dir}/war"/>
     <mkdir dir="${test.classes.dir}"/>
     <mkdir dir="${test.reports.dir}"/>
     <mkdir dir="${test.fixtures.dir}"/>
@@ -459,7 +462,6 @@
     <antcall target="ivy-retrieve" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
     </antcall>
-    <mkdir dir="${dist.dir}/lib"/>
     <!-- Copy over all the Jar files we need -->
     <copy todir="${dist.dir}/lib">
       <fileset dir="${build.dir}/lib/default">
@@ -504,12 +506,6 @@
   <target name="stage-java"
     depends="init, dist-java"
     description="Stages the final install directory structure under ${dist.dir}/stage">
-    <mkdir dir="${dist.dir}/stage/${xuggle.dir}/share/java/jars"/>
-    <copy todir="${dist.dir}/stage/${xuggle.dir}/share/java/jars">
-      <fileset dir="${dist.dir}/lib">
-        <include name="**/*.jar"/>
-      </fileset>
-    </copy>
     <antcall target="ivy-publish" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
     </antcall>
@@ -520,6 +516,19 @@
   <target name="install-java"
     depends="init"
     description="Publishes the jar files to XUGGLE_HOME">
+    <mkdir dir="${xuggle.dir.native}/share/java/jars"/>
+    <copy todir="${xuggle.dir.native}/share/java/jars">
+      <fileset dir="${dist.dir}/lib">
+        <include name="**/*.jar"/>
+      </fileset>
+    </copy>
+  </target>
+  <target name="install-native"
+    depends="init-native, install-native-do"
+    description="Publishes the native files to XUGGLE_HOME">
+  </target>
+  <target name="install-native-do"
+    if="native.makefile.exists">
     <if>
       <not>
         <available file="${dist.dir}/stage"/>
@@ -896,15 +905,6 @@
     description="Do a complete uninstall of the native code">
   </target>
 
-  <target name="install-red5">
-    <!-- Override this target if you want to use it.  It will be
-     called when the "install" target is run.  -->
-  </target>
-  <target name="uninstall-red5">
-    <!-- Override this target if you want to use it.  It will
-    be called when the "clobber" target is run. -->
-  </target>
-
   <target name="all" depends="run-tests, doc, dist, install"
     description="build everything (including native), run all tests, and build all docs"/>
 
@@ -923,16 +923,14 @@
     <antcall target="stage-share" inheritAll="true" inheritRefs="true"/>
   </target>
   <target name="install"
-    depends="install-java"
+    depends="install-native, install-java"
     description="install everything, including native code if available">
     <antcall target="install-share" inheritAll="true" inheritRefs="true"/>
-    <antcall target="install-red5" inheritAll="true" inheritRefs="true"/>
   </target>
   <target name="uninstall"
     depends="uninstall-native, uninstall-java"
     description="uninstall everything, including native code if available">
     <antcall target="uninstall-share"/>
-    <antcall target="uninstall-red5"/>
   </target>
   <target name="clobber"
     depends="clobber-java, clobber-native"
@@ -953,30 +951,36 @@
   <!--
   Macros go here.
   -->
-  <!-- Two handy macros that can be used inside a "install-red5" target -->
+  <!-- Creates a tomcat or red5 war -->
+  <macrodef name="webapp">
+    <attribute name="name"/>
+    <sequential>
+      <war destfile="${dist.dir}/war/@{name}.war"
+        webxml="web/@{name}/WEB-INF/web.xml">
+        <fileset dir="web/@{name}"/>
+        <lib dir="${dist.dir}/lib"/>
+      </war>
+    </sequential>
+  </macrodef>
+  <!-- Two handy macros that can be used inside a in an "install" target -->
   <macrodef name="uninstall-red5webapp">
     <attribute name="name"/>
     <sequential>
       <delete dir="${env.RED5_HOME}/webapps/@{name}" failonerror="false"/>
+      <delete file="${env.RED5_HOME}/webapps/@{name}.war" failonerror="false"/>
     </sequential>
   </macrodef>
   <macrodef name="install-red5webapp">
     <attribute name="name"/>
     <sequential>
       <uninstall-red5webapp name="@{name}"/>
-      <mkdir dir="${env.RED5_HOME}/webapps/@{name}/"/>
-      <copy todir="${env.RED5_HOME}/webapps/@{name}">
-        <fileset dir="web/@{name}/">
-          <include name="**/*"/>
-        </fileset>
-      </copy>
-      <mkdir dir="${env.RED5_HOME}/webapps/@{name}/WEB-INF/lib"/>
-      <!-- and make sure we copy over any major jar file -->
-      <copy todir="${env.RED5_HOME}/webapps/@{name}/WEB-INF/lib">
-        <fileset dir="${dist.dir}/lib">
-          <include name="*.jar"/>
-        </fileset>
-      </copy>
+      <mkdir dir="${env.RED5_HOME}/webapps"/>
+      <copy file="${dist.dir}/war/@{name}.war"
+        tofile="${env.RED5_HOME}/webapps/@{name}.war"
+        failonerror="true"
+        verbose="true"
+        preservelastmodified="true"
+        />
     </sequential>
   </macrodef>
   <!--
