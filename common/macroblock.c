@@ -897,6 +897,7 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
     {
         h->mb.i_mb_type_top =
         i_top_type= h->mb.type[i_top_xy];
+        h->mb.cache.i_cbp_top = h->mb.cbp[i_top_xy];
 
         h->mb.i_neighbour |= MB_TOP;
 
@@ -912,6 +913,7 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
     else
     {
         h->mb.i_mb_type_top = -1;
+        h->mb.cache.i_cbp_top = -1;
 
         /* load intra4x4 */
         h->mb.cache.intra4x4_pred_mode[x264_scan8[0] - 8] =
@@ -935,6 +937,7 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
         i_left_xy = i_mb_xy - 1;
         h->mb.i_mb_type_left =
         i_left_type = h->mb.type[i_left_xy];
+        h->mb.cache.i_cbp_left = h->mb.cbp[h->mb.i_mb_xy - 1];
 
         h->mb.i_neighbour |= MB_LEFT;
 
@@ -959,6 +962,7 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
     else
     {
         h->mb.i_mb_type_left = -1;
+        h->mb.cache.i_cbp_left = -1;
 
         h->mb.cache.intra4x4_pred_mode[x264_scan8[0 ] - 1] =
         h->mb.cache.intra4x4_pred_mode[x264_scan8[2 ] - 1] =

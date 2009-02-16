@@ -233,8 +233,8 @@ static void x264_cabac_mb_intra_chroma_pred_mode( x264_t *h, x264_cabac_t *cb )
 static void x264_cabac_mb_cbp_luma( x264_t *h, x264_cabac_t *cb )
 {
     int cbp = h->mb.i_cbp_luma;
-    int cbp_l = h->mb.i_neighbour & MB_LEFT ? h->mb.cbp[h->mb.i_mb_xy - 1] : -1;
-    int cbp_t = h->mb.i_neighbour & MB_TOP ? h->mb.cbp[h->mb.i_mb_top_xy] : -1;
+    int cbp_l = h->mb.cache.i_cbp_left;
+    int cbp_t = h->mb.cache.i_cbp_top;
     x264_cabac_encode_decision( cb, 76 - ((cbp_l >> 1) & 1) - ((cbp_t >> 1) & 2), (h->mb.i_cbp_luma >> 0) & 1 );
     x264_cabac_encode_decision( cb, 76 - ((cbp   >> 0) & 1) - ((cbp_t >> 2) & 2), (h->mb.i_cbp_luma >> 1) & 1 );
     x264_cabac_encode_decision( cb, 76 - ((cbp_l >> 3) & 1) - ((cbp   << 1) & 2), (h->mb.i_cbp_luma >> 2) & 1 );
@@ -243,20 +243,12 @@ static void x264_cabac_mb_cbp_luma( x264_t *h, x264_cabac_t *cb )
 
 static void x264_cabac_mb_cbp_chroma( x264_t *h, x264_cabac_t *cb )
 {
-    int cbp_a = -1;
-    int cbp_b = -1;
-    int ctx;
+    int cbp_a = h->mb.cache.i_cbp_left & 0x30;
+    int cbp_b = h->mb.cache.i_cbp_top  & 0x30;
+    int ctx = 0;
 
-    /* No need to test for SKIP/PCM */
-    if( h->mb.i_neighbour & MB_LEFT )
-        cbp_a = (h->mb.cbp[h->mb.i_mb_xy - 1] >> 4)&0x3;
-
-    if( h->mb.i_neighbour & MB_TOP )
-        cbp_b = (h->mb.cbp[h->mb.i_mb_top_xy] >> 4)&0x3;
-
-    ctx = 0;
-    if( cbp_a > 0 ) ctx++;
-    if( cbp_b > 0 ) ctx += 2;
+    if( cbp_a && h->mb.cache.i_cbp_left != -1 ) ctx++;
+    if( cbp_b && h->mb.cache.i_cbp_top  != -1 ) ctx+=2;
     if( h->mb.i_cbp_chroma == 0 )
         x264_cabac_encode_decision_noup( cb, 77 + ctx, 0 );
     else
@@ -264,8 +256,8 @@ static void x264_cabac_mb_cbp_chroma( x264_t *h, x264_cabac_t *cb )
         x264_cabac_encode_decision_noup( cb, 77 + ctx, 1 );
 
         ctx = 4;
-        if( cbp_a == 2 ) ctx++;
-        if( cbp_b == 2 ) ctx += 2;
+        if( cbp_a == 0x20 ) ctx++;
+        if( cbp_b == 0x20 ) ctx += 2;
         x264_cabac_encode_decision_noup( cb, 77 + ctx, h->mb.i_cbp_chroma > 1 );
     }
 }
@@ -531,15 +523,14 @@ static int ALWAYS_INLINE x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int 
             i_nzb &= 0x7f + (b_intra << 7);
             return 4*i_cat + 2*!!i_nzb + !!i_nza;
         case DCT_LUMA_DC:
-            /* Note: this depends on the exact values of MB_LEFT and MB_TOP enums */
-            i_nza = ((h->mb.cbp[h->mb.i_mb_xy - 1] >> 8) | ~h->mb.i_neighbour) & 1;
-            i_nzb = ((h->mb.cbp[h->mb.i_mb_top_xy] >> 7) | ~h->mb.i_neighbour) & 2;
-            return 4*i_cat + i_nzb + i_nza;
+            i_nza = (h->mb.cache.i_cbp_left >> 8) & 1;
+            i_nzb = (h->mb.cache.i_cbp_top  >> 8) & 1;
+            return 4*i_cat + 2*i_nzb + i_nza;
         case DCT_CHROMA_DC:
             /* no need to test skip/pcm */
             i_idx -= 25;
-            i_nza = h->mb.i_neighbour & MB_LEFT ? (h->mb.cbp[h->mb.i_mb_xy - 1] >> (9 + i_idx)) & 1 : b_intra;
-            i_nzb = h->mb.i_neighbour & MB_TOP  ? (h->mb.cbp[h->mb.i_mb_top_xy] >> (9 + i_idx)) & 1 : b_intra;
+            i_nza = h->mb.cache.i_cbp_left != -1 ? (h->mb.cache.i_cbp_left >> (9 + i_idx)) & 1 : b_intra;
+            i_nzb = h->mb.cache.i_cbp_top  != -1 ? (h->mb.cache.i_cbp_top  >> (9 + i_idx)) & 1 : b_intra;
             return 4*i_cat + 2*i_nzb + i_nza;
         default:
             return 0;

@@ -529,6 +529,10 @@ struct x264_t
             /* number of neighbors (top and left) that used 8x8 dct */
             int     i_neighbour_transform_size;
             int     i_neighbour_interlaced;
+
+            /* neighbor CBPs */
+            int     i_cbp_top;
+            int     i_cbp_left;
         } cache;
 
         /* */
