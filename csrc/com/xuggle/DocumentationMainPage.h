@@ -95,8 +95,13 @@
  * \section notes_sec Developer Notes
  *
  * \subsection threading_lib Thread Safety
- * The Xuggler library is generally thread-safe, but does not by
- * default include any thread-locking library.  It relies on the 
+ * The Xuggler library is not synchronized and callers must ensure multiple threads
+ * are not using the same object at the same time.  For example, only one thread may
+ * encodeAudio on an IStreamCoder instance at a time.
+ * <p>
+ * For C++ we do not by
+ * default include any thread-locking library.  If internal library synchronization is
+ * needed, we rely on the 
  * facilities of the runtime environment it's running in.  That means
  * in Java it uses the Java thread management libraries to ensure safety.
  * <p/>
