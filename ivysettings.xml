@@ -26,16 +26,19 @@
   <resolvers>
     <chain name="publish" returnFirst="true">     
       <filesystem name="shared_dir">
+        <ivy pattern="${xugglerepo.dir}/xuggle/${app.name}/ivy-[revision].xml"/>
         <artifact pattern="${xugglerepo.dir}/xuggle/${app.name}/[artifact](-[revision]).[type]" />
         <artifact pattern="${xugglerepo.dir}/xuggle/${app.name}/[artifact](-[revision]).[ext]" />
       </filesystem>        
     </chain>    
     <chain name="remote" returnFirst="true">     
       <filesystem name="share_libs" changingPattern="*" checkmodified="true">
+        <ivy pattern="${xugglerepo.dir}/[organization]/[artifact]/ivy-[revision].xml"/>
         <artifact pattern="${xugglerepo.dir}/[organization]/[artifact]/[artifact](-[revision]).[type]" />
         <artifact pattern="${xugglerepo.dir}/[organization]/[artifact]/[artifact](-[revision]).[ext]" />
       </filesystem>
       <url m2compatible="true" name="xugglecode">
+        <ivy pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organization]/[artifact]/ivy-[revision].xml"/>
         <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact]/[artifact](-[revision]).[ext]" />
         <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact](-[revision]).[ext]" />
         <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[artifact](-[revision]).[ext]" />
