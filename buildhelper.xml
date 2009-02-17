@@ -972,13 +972,18 @@
   </macrodef>
   <macrodef name="install-red5webapp">
     <attribute name="name"/>
-    <sequential>
-      <uninstall-red5webapp name="@{name}"/>
-      <mkdir dir="${env.RED5_HOME}/webapps/@{name}"/>
-      <!-- auto deploy into red5 -->
-      <unzip src="${dist.dir}/war/@{name}.war"
-        dest="${env.RED5_HOME}/webapps/@{name}"/>
-    </sequential>
+        <sequential>
+    <if>
+      <available file="${env.RED5_HOME}/webapps"/>
+      <then>
+          <uninstall-red5webapp name="@{name}"/>
+          <mkdir dir="${env.RED5_HOME}/webapps/@{name}"/>
+          <!-- auto deploy into red5 -->
+          <unzip src="${dist.dir}/war/@{name}.war"
+            dest="${env.RED5_HOME}/webapps/@{name}"/>
+      </then>
+    </if>
+        </sequential>
   </macrodef>
   <!--
     This macro converts a path to a unix path, and makes
