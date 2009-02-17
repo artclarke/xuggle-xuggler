@@ -581,7 +581,7 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
   AudioSamples *samples = dynamic_cast<AudioSamples*> (pOutSamples);
   Packet* packet = dynamic_cast<Packet*> (pPacket);
 
-  if (samples && packet && mCodecContext && mOpened && mDirection == DECODING)
+  if (samples && packet && mCodecContext && mOpened && mDirection == DECODING && getCodecType() == ICodec::CODEC_TYPE_AUDIO)
   {
     int outBufSize = 0;
     int32_t inBufSize = 0;
@@ -711,7 +711,7 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
   int32_t retval = -1;
   VideoPicture* frame = dynamic_cast<VideoPicture*> (pOutFrame);
   Packet* packet = dynamic_cast<Packet*> (pPacket);
-  if (frame && packet && mCodecContext && mOpened && mDirection == DECODING)
+  if (frame && packet && mCodecContext && mOpened && mDirection == DECODING && getCodecType() == ICodec::CODEC_TYPE_VIDEO)
   {
     // reset the frame
     frame->setComplete(false, this->getPixelType(), -1,
@@ -820,6 +820,9 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
     if (packet)
       packet->reset();
     
+    if (getCodecType() != ICodec::CODEC_TYPE_VIDEO)
+      throw std::runtime_error("Attempting to encode video with non video coder");
+
     if (frame && frame->getPixelType() != this->getPixelType())
     {
       throw std::runtime_error("frame is not of the same PixelType as this Coder expected");
@@ -954,6 +957,8 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
       throw std::runtime_error("StreamCoder not open");
     if (!(mDirection == ENCODING))
       throw std::runtime_error("Attempting to encode while decoding");
+    if (getCodecType() != ICodec::CODEC_TYPE_AUDIO)
+      throw std::runtime_error("Attempting to encode audio with non audio coder");
     if (!mAudioFrameBuffer)
       throw std::runtime_error("Audio Frame Buffer not initailzed");
 
