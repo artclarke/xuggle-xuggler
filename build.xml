@@ -58,7 +58,13 @@
       </then>
     </if>
   </target>
-  <target name="install-red5"
+  <target name="install-java"
+    depends="xuggle-buildhelper.install-java, install-red5">
+  </target>
+
+  <target
+    name="install-red5"
+    depends="uninstall-red5"
     description="Installed Red5 applications to $RED5_HOME">
     <echo message="Installing ${app.name}.jar with native dependencies to: ${env.RED5_HOME}"/>
     <if>
@@ -72,14 +78,22 @@
       </then>
     </if>
   </target>
-  <target name="uninstall-red5"
+  <target name="uninstall-java"
+    depends="uninstall-red5, xuggle-buildhelper.uninstall-java"
+    >
+  </target>
+  <target
+    name="uninstall-red5"
     description="Installed Red5 applications to $RED5_HOME">
     <if>
-      <available file="${env.RED5_HOME}/lib/${app.name}.jar"/>
+      <available file="${env.RED5_HOME}/lib"/>
       <then>
         <echo message="Uninstalling ${app.name}.jar with native dependencies from: ${env.RED5_HOME}"/>
-        <delete
-          file="${env.RED5_HOME}/lib/${app.name}.jar"/>
+        <delete>
+          <fileset dir="${env.RED5_HOME}/lib"
+            includes="${app.name}*.jar"
+            />
+        </delete>
       </then>
     </if>
   </target>
