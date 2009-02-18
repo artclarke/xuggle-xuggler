@@ -123,6 +123,11 @@ public class Converter
   private boolean mHasVideo = true;
   
   /**
+   * Should we force an interleaving of the output
+   */
+  private final boolean mForceInterleave = true;
+  
+  /**
    * Define all the command line options this program can take.
    * @return The set of accepted options.
    */
@@ -732,7 +737,7 @@ public class Converter
         else
           mOCoders[i].encodeVideo(oPacket, null, 0);
         if (oPacket.isComplete())
-          mOContainer.writePacket(oPacket);
+          mOContainer.writePacket(oPacket, mForceInterleave);
       }
     }
     /**
@@ -976,7 +981,7 @@ public class Converter
                * If we got a complete packet out of the encoder, then go ahead and write it
                * to the container.
                */
-              retval = mOContainer.writePacket(oPacket);
+              retval = mOContainer.writePacket(oPacket, mForceInterleave);
               if (retval < 0)
                 throw new RuntimeException("could not write output packet");
             }
@@ -1026,7 +1031,7 @@ public class Converter
               throw new RuntimeException("could not encode video");
             if (oPacket.isComplete())
             {
-              retval = mOContainer.writePacket(oPacket);
+              retval = mOContainer.writePacket(oPacket, mForceInterleave);
               if (retval < 0)
                 throw new RuntimeException("could not write video packet");
             }

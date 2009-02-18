@@ -202,9 +202,7 @@ StreamCoderX264Test :: testDecodingAndEncodingH264Video()
                     encodedBuffer->getBufferSize() >=
                     opacket->getSize());
 
-            // now, write the packet to disk, ensuring ffmpeg doesn't
-            // try to interleave
-            retval = hw->container->writePacket(opacket.value(), false);
+            retval = hw->container->writePacket(opacket.value());
             VS_TUT_ENSURE("could not write packet", retval >= 0);
           }
         } while (numSamplesConsumed < samples->getNumSamples());

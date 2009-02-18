@@ -41,7 +41,6 @@ namespace com { namespace xuggle { namespace xuggler
       av_init_packet(mPacket);
       mPacket->data = 0;
       mPacket->size = 0;
-      mPacket->destruct = av_destruct_packet_nofree;
     }
     mIsComplete = false;
   }
@@ -162,8 +161,6 @@ namespace com { namespace xuggle { namespace xuggler
     // WE ALWAYS COPY the data; Let Ffmpeg do what it wants
     // to with it's own memory.
     VS_ASSERT(mPacket, "No packet?");
-    VS_ASSERT(mPacket->destruct == av_destruct_packet_nofree,
-        "Who's managing this?");
     
     // Make sure we have a buffer at least as large as this packet
     // This overwrites data, which we'll patch below.
@@ -172,13 +169,14 @@ namespace com { namespace xuggle { namespace xuggler
     // Keep a copy of this, because we're going to nuke
     // it temorarily.
     uint8_t* data_buf = mPacket->data;
+    void (*orig_destruct)(struct AVPacket *) = mPacket->destruct;
     
     // copy all data members, including data and size,
     // but we'll overwrite those next.
     *mPacket = *pkt;
     // Reset the data buf.
     mPacket->data = data_buf;
-    mPacket->destruct = av_destruct_packet_nofree;
+    mPacket->destruct = orig_destruct;
     mPacket->size = pkt->size;
 
     // Copy the contents of the new packet into data.
@@ -194,7 +192,6 @@ namespace com { namespace xuggle { namespace xuggler
     if (mPacket) {
       av_free_packet(mPacket);
       av_init_packet(mPacket);
-      mPacket->destruct = av_destruct_packet_nofree;
     }
     setComplete(false, 0);
     // Don't reset the buffer though; we can potentially reuse it.
@@ -261,7 +258,6 @@ namespace com { namespace xuggle { namespace xuggler
     VS_ASSERT(payload, "Should have allocated a payload");
     if (mBuffer && mPacket)
     {
-      mPacket->destruct = av_destruct_packet_nofree;
       mPacket->data = payload;
 
       // And start out at zero.
@@ -290,7 +286,6 @@ namespace com { namespace xuggle { namespace xuggler
       {
         mPacket->size = mBuffer->getBufferSize();
         mPacket->data = (uint8_t*)mBuffer->getBytes(0, mPacket->size);
-        mPacket->destruct = av_destruct_packet_nofree;
         // And assume we're now complete.
         setComplete(true, mPacket->size);
       }
