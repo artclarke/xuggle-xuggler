@@ -39,7 +39,7 @@ AM_CXXFLAGS+=$(VS_CXXFLAGS) -fno-strict-aliasing
 # $(DESTDIR) is actually empty
 AM_LDFLAGS+=$(VS_LDFLAGS) -L$(DESTDIR)$(libdir) -L$(libdir) -L"$(XUGGLE_HOME)/lib"
 
-AM_CXXFLAGS+=-Wextra -Wformat -Wshadow -Wunused -Wreturn-type -Wall -Wno-ctor-dtor-privacy
+AM_CXXFLAGS+=-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -Wextra -Wformat -Wshadow -Wunused -Wreturn-type -Wall -Wno-ctor-dtor-privacy
 ifdef VS_WARN_ISERROR
   AM_CXXFLAGS+=-Werror
 endif
@@ -60,6 +60,10 @@ ifndef VS_TEST
     # byte for revision, and since our revision is an SVN revision, we
     # would easily exceed that.
     VS_LIBRARY_VERSION=@LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@:0
+  else
+    ifeq ($(HOST_TYPE),Windows)
+      AM_LDFLAGS+=-Wl,-Bsymbolic -Wl,--warn-common -Wl,--as-needed
+    endif
   endif
   AM_LDFLAGS+=-version-number $(VS_LIBRARY_VERSION) -no-undefined
 endif
