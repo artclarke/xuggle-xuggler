@@ -36,6 +36,8 @@ import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoResampler;
 
+import com.xuggle.xuggler.io.URLProtocolManager;
+
 /**
  * An example class that shows how to use the Xuggler library to open, decode, re-sample, encode and write media files.
  * <p>
@@ -50,6 +52,8 @@ import com.xuggle.xuggler.IVideoResampler;
  */
 public class Converter
 {
+  // this forces the FFMPEG io library to be loaded which means we can bypass FFMPEG's file io if needed
+  private static final URLProtocolManager mMgr = URLProtocolManager.getManager();
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
   /**
@@ -106,7 +110,15 @@ public class Converter
    */
   private IVideoResampler[] mVSamplers = null;
   
-
+  /**
+   * Should we convert audio
+   */
+  private boolean mHasAudio = true;
+  /**
+   * Should we convert video
+   */
+  private boolean mHasVideo = true;
+  
   /**
    * Define all the command line options this program can take.
    * @return The set of accepted options.
@@ -128,6 +140,10 @@ public class Converter
     /*
      * Audio options
      */
+    OptionBuilder.hasArg(false);
+    OptionBuilder.withDescription("no audio");
+    Option ano = OptionBuilder.create("ano");
+    
     OptionBuilder.withArgName("codec");
     OptionBuilder.hasArg(true);
     OptionBuilder.withDescription("audio codec to encode with (e.g. \"libmp3lame\")");
@@ -156,6 +172,10 @@ public class Converter
     /*
      * Video options
      */
+    OptionBuilder.hasArg(false);
+    OptionBuilder.withDescription("no video");
+    Option vno = OptionBuilder.create("vno");
+    
     OptionBuilder.withArgName("codec");
     OptionBuilder.hasArg(true);
     OptionBuilder.withDescription("video codec to encode with (e.g. \"mpeg4\")");
@@ -184,11 +204,13 @@ public class Converter
     
     options.addOption(help);
     options.addOption(containerFormat);
+    options.addOption(ano);
     options.addOption(acodec);
     options.addOption(asamplerate);
     options.addOption(achannels);
     options.addOption(abitrate);
     options.addOption(aquality);
+    options.addOption(vno);
     options.addOption(vcodec);
     options.addOption(vscaleFactor);
     options.addOption(vbitrate);
@@ -292,6 +314,9 @@ public class Converter
   {
     String inputURL = cmdLine.getArgs()[0];
     String outputURL = cmdLine.getArgs()[1];
+    
+    mHasAudio = !cmdLine.hasOption("ano");
+    mHasVideo = !cmdLine.hasOption("vno");
     
     String acodec = cmdLine.getOptionValue("acodec");
     String vcodec = cmdLine.getOptionValue("vcodec");
@@ -407,7 +432,7 @@ public class Converter
       mISamples[i] = null;
       mOSamples[i] = null;
       
-      if (cType == ICodec.Type.CODEC_TYPE_AUDIO)
+      if (cType == ICodec.Type.CODEC_TYPE_AUDIO && mHasAudio)
       {
         /**
          * So it looks like this stream as an audio stream.  Now we add
@@ -527,7 +552,7 @@ public class Converter
         mISamples[i] = IAudioSamples.make(1024, ic.getChannels());
         mOSamples[i] = IAudioSamples.make(1024, oc.getChannels());
       }
-      else if (cType == ICodec.Type.CODEC_TYPE_VIDEO)
+      else if (cType == ICodec.Type.CODEC_TYPE_VIDEO && mHasVideo)
       {
         /**
          * If you're reading these commends, this does the same thing as the above
@@ -873,7 +898,7 @@ public class Converter
        */
       ICodec.Type cType = ic.getCodecType();
       
-      if (cType == ICodec.Type.CODEC_TYPE_AUDIO)
+      if (cType == ICodec.Type.CODEC_TYPE_AUDIO && mHasAudio)
       {
         /**
          * Decoding audio works by taking the data in the packet, and eating
@@ -956,7 +981,7 @@ public class Converter
         }
         
       }
-      else if (cType == ICodec.Type.CODEC_TYPE_VIDEO)
+      else if (cType == ICodec.Type.CODEC_TYPE_VIDEO && mHasVideo)
       {
         /**
          * This encoding workflow is pretty much the same as the for the audio above.
@@ -1014,7 +1039,7 @@ public class Converter
          * Right now we don't support decoding and encoding that data, but youc
          * could still decide to write out the packets if you wanted.
          */
-        log.debug("ignoring packet of type: {}", cType);
+        log.trace("ignoring packet of type: {}", cType);
       }
 
     }

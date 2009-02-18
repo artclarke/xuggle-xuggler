@@ -100,13 +100,13 @@ public class URLProtocolManager
   {
     IURLProtocolHandlerFactory oldFactory = protocols
         .put(protocol, factory);
-    log.debug("Registering factory for URLProtocol: {}", protocol);
+    log.trace("Registering factory for URLProtocol: {}", protocol);
 
     if (oldFactory == null)
     {
       // we previously didn't have something registered for this factory
       // so tell FFMPEG we're now the protocol manager for this protocol.
-      log.debug("Letting FFMPEG know about an additional protocol: {}",
+      log.trace("Letting FFMPEG know about an additional protocol: {}",
           protocol);
       FfmpegIO.registerProtocolHandler(protocol, this);
     }
@@ -131,7 +131,7 @@ public class URLProtocolManager
   {
     IURLProtocolHandler result = null;
 
-    log.debug("looking for protocol handler for: {}", url);
+    log.trace("looking for protocol handler for: {}", url);
     if (url == null || url.length() == 0)
       throw new IllegalArgumentException("expected valid URL");
     int colonIndex = url.indexOf(":");
