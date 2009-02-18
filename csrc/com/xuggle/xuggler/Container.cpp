@@ -275,7 +275,7 @@ namespace com { namespace xuggle { namespace xuggler
     }
     if (outputFormat)
     {
-      mFormatContext = av_alloc_format_context();
+      mFormatContext = avformat_alloc_context();
       if (mFormatContext)
       {
         mFormatContext->oformat = outputFormat;
