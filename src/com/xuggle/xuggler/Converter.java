@@ -52,8 +52,11 @@ import com.xuggle.xuggler.io.URLProtocolManager;
  */
 public class Converter
 {
-  // this forces the FFMPEG io library to be loaded which means we can bypass FFMPEG's file io if needed
-  private static final URLProtocolManager mMgr = URLProtocolManager.getManager();
+  static {
+    // this forces the FFMPEG io library to be loaded which means we can bypass FFMPEG's file io if needed
+      URLProtocolManager.getManager();  
+  }
+  
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
   /**
