@@ -25,6 +25,13 @@
   <target name="stage"
     depends="xuggle-buildhelper.stage"
     >
+    <echo message="Staging Java Jars to right location"/>
+    <mkdir dir="${dist.dir}/stage/${xuggle.dir}/share/java/jars"/>
+    <copy todir="${dist.dir}/stage/${xuggle.dir}/share/java/jars">
+      <fileset dir="${dist.dir}/lib">
+        <include name="**/*.jar"/>
+      </fileset>
+    </copy>
     <echo message="Generating Installer source files from templates"/>
     <copy failonerror="false" todir="${build.dir}">
       <fileset dir="${top.dir}${file.separator}mk">
