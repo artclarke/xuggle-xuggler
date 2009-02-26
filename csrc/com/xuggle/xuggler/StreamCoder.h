@@ -96,7 +96,6 @@ namespace com { namespace xuggle { namespace xuggler
     virtual void setFlags(int32_t newFlags);
     virtual bool getFlag(Flags flag);
     virtual void setFlag(Flags flag, bool value);
-
     virtual int32_t getAudioFrameSize();
 
     /*
@@ -136,7 +135,9 @@ namespace com { namespace xuggle { namespace xuggler
     virtual bool getPropertyAsBoolean(const char* name);
 
     virtual bool isOpen();
-    
+
+    virtual int32_t getDefaultAudioFrameSize();
+    virtual void setDefaultAudioFrameSize(int32_t);
     // Not for calling from Java
     void setCodec(int32_t);
 
@@ -178,7 +179,8 @@ namespace com { namespace xuggle { namespace xuggler
     com::xuggle::ferry::RefPointer<com::xuggle::ferry::IBuffer> mAudioFrameBuffer;
     int32_t mBytesInFrameBuffer;
     int64_t mStartingTimestampOfBytesInFrameBuffer;
-
+    int32_t mDefaultAudioFrameSize;
+    
     int32_t calcAudioFrameSize();
 
     void setCodecInternal(int32_t id);

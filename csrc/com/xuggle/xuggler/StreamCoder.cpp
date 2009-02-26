@@ -60,6 +60,7 @@ StreamCoder :: StreamCoder() :
   mSamplesDecoded = 0;
   mLastValidAudioTimeStamp = Global::NO_PTS;
   mStartingTimestampOfBytesInFrameBuffer = Global::NO_PTS;
+  mDefaultAudioFrameSize = 576;
 }
 
 StreamCoder :: ~StreamCoder()
@@ -1223,8 +1224,7 @@ StreamCoder :: getAudioFrameSize()
     {
       // Rats; some PCM encoders give a frame size of 1, which is too
       //small.  We pick a more sensible value.
-      //retval = AVCODEC_MAX_AUDIO_FRAME_SIZE / (sizeof(int16_t)*2);
-      retval = 576;
+      retval = getDefaultAudioFrameSize();
     }
     else
     {
@@ -1362,4 +1362,16 @@ StreamCoder :: isOpen()
   return mOpened;
 }
 
+int32_t
+StreamCoder :: getDefaultAudioFrameSize()
+{
+  return mDefaultAudioFrameSize;
+}
+
+void
+StreamCoder :: setDefaultAudioFrameSize(int32_t aNewSize)
+{
+  if (aNewSize >0)
+    mDefaultAudioFrameSize = aNewSize;
+}
 }}}

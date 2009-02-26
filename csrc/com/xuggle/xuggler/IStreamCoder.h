@@ -743,6 +743,33 @@ namespace com { namespace xuggle { namespace xuggler
      * @return true if open; false if not
      */
     virtual bool isOpen()=0;
+    
+    
+    // Added for 1.21
+    
+    /**
+     * Get the default audio frame size (in samples).
+     * 
+     * Some codecs, especially raw codecs, like PCM, don't have
+     * a standard frame size.  In those cases, we use the value
+     * of this setting to determine how many samples to encode into
+     * a single packet.
+     * 
+     * @return the number of samples in an audio frame size if the codec
+     *   doesn't specify the size.
+     */
+    virtual int32_t getDefaultAudioFrameSize()=0;
+    
+    /**
+     * Set the default audio frame size.
+     * 
+     * @param aNewSize The new number of samples to use to encode
+     *   samples into a packet.  This setting is ignored if <= 0
+     *   or if the codec requires it's own frame size (e.g. Nellymoser).
+     *   
+     * @see #getDefaultAudioFrameSize()
+     */
+    virtual void setDefaultAudioFrameSize(int32_t aNewSize)=0;
   };
 
 }}}
