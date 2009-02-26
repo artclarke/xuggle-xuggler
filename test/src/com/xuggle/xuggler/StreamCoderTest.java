@@ -273,6 +273,29 @@ public class StreamCoderTest extends TestCase
     assertEquals("should be set now", 0xDEADBEEF, coder.getCodecTag());
   }
 
+  @Test
+  public void testGetDefaultAudioFrameSize()
+  {
+    IStreamCoder coder = getStreamCoder(sampleFile, 0);
+    assertNotNull(coder);
+    
+    assertEquals(coder.getDefaultAudioFrameSize(), 576);
+    coder.setDefaultAudioFrameSize(3);
+    assertEquals(coder.getDefaultAudioFrameSize(), 3);
+    // sample file has nellymoser audio, which has a non default frame size
+    assertTrue(coder.getAudioFrameSize() != coder.getDefaultAudioFrameSize());
+    
+    coder = IStreamCoder.make(IStreamCoder.Direction.ENCODING);
+    coder.setCodec(ICodec.ID.CODEC_ID_PCM_S16LE);
+    coder.setSampleRate(22050);
+    coder.setChannels(1);
+    assertTrue(coder.open() >= 0);
+    assertEquals(coder.getAudioFrameSize(), coder.getDefaultAudioFrameSize());
+    coder.setDefaultAudioFrameSize(3);
+    assertEquals(coder.getAudioFrameSize(), coder.getDefaultAudioFrameSize());
+    
+  }
+  
   private IStreamCoder getStreamCoder(String url, int index)
   {
     IStreamCoder retval = null;
