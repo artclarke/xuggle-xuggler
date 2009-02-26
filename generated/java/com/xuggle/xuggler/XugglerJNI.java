@@ -308,6 +308,8 @@ class XugglerJNI {
   public final static native long IStreamCoder_getPropertyAsRational(long jarg1, IStreamCoder jarg1_, String jarg2);
   public final static native boolean IStreamCoder_getPropertyAsBoolean(long jarg1, IStreamCoder jarg1_, String jarg2);
   public final static native boolean IStreamCoder_isOpen(long jarg1, IStreamCoder jarg1_);
+  public final static native int IStreamCoder_getDefaultAudioFrameSize(long jarg1, IStreamCoder jarg1_);
+  public final static native void IStreamCoder_setDefaultAudioFrameSize(long jarg1, IStreamCoder jarg1_, int jarg2);
   public final static native int IStream_getDirection(long jarg1, IStream jarg1_);
   public final static native int IStream_getIndex(long jarg1, IStream jarg1_);
   public final static native int IStream_getId(long jarg1, IStream jarg1_);

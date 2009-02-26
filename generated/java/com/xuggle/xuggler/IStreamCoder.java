@@ -830,6 +830,31 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
     return XugglerJNI.IStreamCoder_isOpen(swigCPtr, this);
   }
 
+/**
+ * Get the default audio frame size (in samples).  
+ * Some codecs, especially raw codecs, like PCM, don't have  
+ * a standard frame size. In those cases, we use the value  
+ * of this setting to determine how many samples to encode into  
+ * a single packet.  
+ * @return	the number of samples in an audio frame size if the codec 
+ *		  
+ * doesn't specify the size.  
+ */
+  public int getDefaultAudioFrameSize() {
+    return XugglerJNI.IStreamCoder_getDefaultAudioFrameSize(swigCPtr, this);
+  }
+
+/**
+ * Set the default audio frame size.  
+ * @param	aNewSize The new number of samples to use to encode  
+ * samples into a packet. This setting is ignored if <= 0  
+ *  
+ * @see		#getDefaultAudioFrameSize()  
+ */
+  public void setDefaultAudioFrameSize(int aNewSize) {
+    XugglerJNI.IStreamCoder_setDefaultAudioFrameSize(swigCPtr, this, aNewSize);
+  }
+
   public enum Direction {
   /**
    * The Direction in which this StreamCoder will work.
