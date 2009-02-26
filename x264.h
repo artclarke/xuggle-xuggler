@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 66
+#define X264_BUILD 67
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -188,7 +188,6 @@ typedef struct x264_param_t
     int         i_keyint_max;       /* Force an IDR keyframe at this interval */
     int         i_keyint_min;       /* Scenecuts closer together than this are coded as I, not IDR. */
     int         i_scenecut_threshold; /* how aggressively to insert extra I frames */
-    int         b_pre_scenecut;     /* compute scenecut on lowres frames */
     int         i_bframe;   /* how many b-frame between 2 references pictures */
     int         i_bframe_adaptive;
     int         i_bframe_bias;

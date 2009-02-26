@@ -454,17 +454,6 @@ int x264_ratecontrol_new( x264_t *h )
                 x264_log( h, X264_LOG_ERROR, "b_adapt method specified in stats file not valid\n" );
                 return -1;
             }
-
-            if( ( p = strstr( opts, "scenecut=" ) ) && sscanf( p, "scenecut=%d", &i ) && i >= -1 && i <= 100 )
-            {
-                h->param.i_scenecut_threshold = i;
-                h->param.b_pre_scenecut = !!strstr( p, "(pre)" );
-            }
-            else
-            {
-                x264_log( h, X264_LOG_ERROR, "scenecut method specified in stats file not valid\n" );
-                return -1;
-            }
         }
 
         /* find number of pics */
@@ -1047,8 +1036,7 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
                 h->thread[i]->param.rc.i_rc_method = X264_RC_CQP;
                 h->thread[i]->param.rc.b_stat_read = 0;
                 h->thread[i]->param.i_bframe_adaptive = 0;
-                h->thread[i]->param.b_pre_scenecut = 0;
-                h->thread[i]->param.i_scenecut_threshold = -1;
+                h->thread[i]->param.i_scenecut_threshold = 0;
                 if( h->thread[i]->param.i_bframe > 1 )
                     h->thread[i]->param.i_bframe = 1;
             }

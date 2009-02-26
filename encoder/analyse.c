@@ -2135,10 +2135,6 @@ static inline void x264_mb_analyse_transform_rd( x264_t *h, x264_mb_analysis_t *
         {
             if( *i_rd > 0 )
                 *i_satd = (int64_t)(*i_satd) * i_rd8 / *i_rd;
-            /* prevent a rare division by zero in estimated intra cost */
-            if( *i_satd == 0 )
-                *i_satd = 1;
-
             *i_rd = i_rd8;
         }
         else
@@ -2184,7 +2180,6 @@ void x264_macroblock_analyse( x264_t *h )
     else if( h->sh.i_type == SLICE_TYPE_P )
     {
         int b_skip = 0;
-        int i_intra_cost, i_intra_type;
 
         h->mc.prefetch_ref( h->mb.pic.p_fref[0][0][h->mb.i_mb_x&3], h->mb.pic.i_stride[0], 0 );
 
@@ -2385,20 +2380,12 @@ void x264_macroblock_analyse( x264_t *h )
                 x264_intra_rd( h, &analysis, i_satd_inter * 5/4 );
             }
 
-            i_intra_type = I_16x16;
-            i_intra_cost = analysis.i_satd_i16x16;
-            COPY2_IF_LT( i_intra_cost, analysis.i_satd_i8x8, i_intra_type, I_8x8 );
-            COPY2_IF_LT( i_intra_cost, analysis.i_satd_i4x4, i_intra_type, I_4x4 );
-            COPY2_IF_LT( i_intra_cost, analysis.i_satd_pcm, i_intra_type, I_PCM );
-            COPY2_IF_LT( i_cost, i_intra_cost, i_type, i_intra_type );
-
-            if( i_intra_cost == COST_MAX )
-                i_intra_cost = i_cost * i_satd_intra / i_satd_inter + 1;
+            COPY2_IF_LT( i_cost, analysis.i_satd_i16x16, i_type, I_16x16 );
+            COPY2_IF_LT( i_cost, analysis.i_satd_i8x8, i_type, I_8x8 );
+            COPY2_IF_LT( i_cost, analysis.i_satd_i4x4, i_type, I_4x4 );
+            COPY2_IF_LT( i_cost, analysis.i_satd_pcm, i_type, I_PCM );
 
             h->mb.i_type = i_type;
-            h->stat.frame.i_intra_cost += i_intra_cost;
-            h->stat.frame.i_inter_cost += i_cost;
-            h->stat.frame.i_mbs_analysed++;
 
             if( analysis.i_mbrd >= 2 && h->mb.i_type != I_PCM )
             {

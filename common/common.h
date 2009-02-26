@@ -576,11 +576,6 @@ struct x264_t
             int i_mb_count_8x8dct[2];
             int i_mb_count_ref[2][32];
             int i_mb_partition[17];
-            /* Estimated (SATD) cost as Intra/Predicted frame */
-            /* XXX: both omit the cost of MBs coded as P_SKIP */
-            int i_intra_cost;
-            int i_inter_cost;
-            int i_mbs_analysed;
             /* Adaptive direct mv pred */
             int i_direct_score[2];
             /* Metrics */

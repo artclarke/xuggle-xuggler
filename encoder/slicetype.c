@@ -434,10 +434,13 @@ static int x264_slicetype_path_search( x264_t *h, x264_mb_analysis_t *a, x264_fr
     return strspn( best_paths[length-2], "B" );
 }
 
-static int scenecut( x264_t *h, x264_frame_t *frame, int pdist )
+static int scenecut( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int p0, int p1 )
 {
+    x264_frame_t *frame = frames[p1];
+    x264_slicetype_frame_cost( h, a, frames, p0, p1, p1, 0 );
+
     int icost = frame->i_cost_est[0][0];
-    int pcost = frame->i_cost_est[pdist][0];
+    int pcost = frame->i_cost_est[p1-p0][0];
     float f_bias;
     int i_gop_size = frame->i_frame - h->frames.i_last_idr;
     float f_thresh_max = h->param.i_scenecut_threshold / 100.0;
@@ -463,7 +466,7 @@ static int scenecut( x264_t *h, x264_frame_t *frame, int pdist )
     res = pcost >= (1.0 - f_bias) * icost;
     if( res )
     {
-        int imb = frame->i_intra_mbs[pdist];
+        int imb = frame->i_intra_mbs[p1-p0];
         int pmb = NUM_MBS - imb;
         x264_log( h, X264_LOG_DEBUG, "scene cut at %d Icost:%d Pcost:%d ratio:%.4f bias:%.4f gop:%d (imb:%d pmb:%d)\n",
                   frame->i_frame,
@@ -503,12 +506,8 @@ static void x264_slicetype_analyse( x264_t *h )
     {
 no_b_frames:
         frames[1]->i_type = X264_TYPE_P;
-        if( h->param.b_pre_scenecut )
-        {
-            x264_slicetype_frame_cost( h, &a, frames, 0, 1, 1, 0 );
-            if( scenecut( h, frames[1], 1 ) )
-                frames[1]->i_type = idr_frame_type;
-        }
+        if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, 0, 1 ) )
+            frames[1]->i_type = idr_frame_type;
         return;
     }
 
@@ -516,31 +515,26 @@ no_b_frames:
     {
         int num_bframes;
         int max_bframes = X264_MIN(num_frames-1, h->param.i_bframe);
-        if( h->param.b_pre_scenecut )
+        if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, 0, 1 ) )
         {
-            x264_slicetype_frame_cost( h, &a, frames, 0, 1, 1, 0 );
-            if( scenecut( h, frames[1], 1 ) )
-            {
-                frames[1]->i_type = idr_frame_type;
-                return;
-            }
+            frames[1]->i_type = idr_frame_type;
+            return;
         }
         num_bframes = x264_slicetype_path_search( h, &a, frames, num_frames, max_bframes, num_frames-max_bframes );
         assert(num_bframes < num_frames);
 
         for( j = 1; j < num_bframes+1; j++ )
         {
-            if( h->param.b_pre_scenecut && scenecut( h, frames[j+1], j+1 ) )
+            if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, j, j+1 ) )
             {
                 frames[j]->i_type = X264_TYPE_P;
-                frames[j+1]->i_type = idr_frame_type;
                 return;
             }
             frames[j]->i_type = X264_TYPE_B;
         }
         frames[num_bframes+1]->i_type = X264_TYPE_P;
     }
-    else
+    else if( h->param.i_bframe_adaptive == X264_B_ADAPT_FAST )
     {
         cost2p1 = x264_slicetype_frame_cost( h, &a, frames, 0, 2, 2, 1 );
         if( frames[2]->i_intra_mbs[2] > i_mb_count / 2 )
@@ -572,6 +566,26 @@ no_b_frames:
                 frames[j]->i_type = X264_TYPE_B;
         }
     }
+    else
+    {
+        int max_bframes = X264_MIN(num_frames-1, h->param.i_bframe);
+        if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, 0, 1 ) )
+        {
+            frames[1]->i_type = idr_frame_type;
+            return;
+        }
+
+        for( j = 1; j < max_bframes+1; j++ )
+        {
+            if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, j, j+1 ) )
+            {
+                frames[j]->i_type = X264_TYPE_P;
+                return;
+            }
+            frames[j]->i_type = X264_TYPE_B;
+        }
+        frames[max_bframes+1]->i_type = X264_TYPE_P;
+    }
 }
 
 void x264_slicetype_decide( x264_t *h )
@@ -591,7 +605,7 @@ void x264_slicetype_decide( x264_t *h )
                 x264_ratecontrol_slice_type( h, h->frames.next[i]->i_frame );
     }
     else if( (h->param.i_bframe && h->param.i_bframe_adaptive)
-             || h->param.b_pre_scenecut )
+             || h->param.i_scenecut_threshold )
         x264_slicetype_analyse( h );
 
     for( bframes = 0;; bframes++ )

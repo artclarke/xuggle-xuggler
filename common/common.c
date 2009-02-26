@@ -323,9 +323,14 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
             p->i_keyint_max = p->i_keyint_min;
     }
     OPT("scenecut")
-        p->i_scenecut_threshold = atoi(value);
-    OPT("pre-scenecut")
-        p->b_pre_scenecut = atobool(value);
+    {
+        p->i_scenecut_threshold = atobool(value);
+        if( b_error || p->i_scenecut_threshold )
+        {
+            b_error = 0;
+            p->i_scenecut_threshold = atoi(value);
+        }
+    }
     OPT("bframes")
         p->i_bframe = atoi(value);
     OPT("b-adapt")
@@ -856,9 +861,8 @@ char *x264_param2string( x264_param_t *p, int b_res )
                       p->analyse.i_direct_mv_pred, p->analyse.b_weighted_bipred );
     }
 
-    s += sprintf( s, " keyint=%d keyint_min=%d scenecut=%d%s",
-                  p->i_keyint_max, p->i_keyint_min, p->i_scenecut_threshold,
-                  p->b_pre_scenecut ? "(pre)" : "" );
+    s += sprintf( s, " keyint=%d keyint_min=%d scenecut=%d",
+                  p->i_keyint_max, p->i_keyint_min, p->i_scenecut_threshold );
 
     s += sprintf( s, " rc=%s", p->rc.i_rc_method == X264_RC_ABR ?
                                ( p->rc.b_stat_read ? "2pass" : p->rc.i_vbv_buffer_size ? "cbr" : "abr" )

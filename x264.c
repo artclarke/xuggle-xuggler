@@ -165,9 +165,8 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "\n" );
     H0( "  -I, --keyint <integer>      Maximum GOP size [%d]\n", defaults->i_keyint_max );
     H1( "  -i, --min-keyint <integer>  Minimum GOP size [%d]\n", defaults->i_keyint_min );
+    H1( "      --no-scenecut           Disable adaptive I-frame decision\n" );
     H1( "      --scenecut <integer>    How aggressively to insert extra I-frames [%d]\n", defaults->i_scenecut_threshold );
-    H1( "      --pre-scenecut          Faster, less precise scenecut detection.\n"
-        "                                  Required and implied by multi-threading.\n" );
     H0( "  -b, --bframes <integer>     Number of B-frames between I and P [%d]\n", defaults->i_bframe );
     H1( "      --b-adapt               Adaptive B-frame decision method [%d]\n"
         "                                  Higher values may lower threading efficiency.\n"
@@ -397,7 +396,7 @@ static int  Parse( int argc, char **argv,
             { "min-keyint",required_argument,NULL,'i' },
             { "keyint",  required_argument, NULL, 'I' },
             { "scenecut",required_argument, NULL, 0 },
-            { "pre-scenecut", no_argument,  NULL, 0 },
+            { "no-scenecut",no_argument,    NULL, 0 },
             { "nf",      no_argument,       NULL, 0 },
             { "no-deblock", no_argument,    NULL, 0 },
             { "filter",  required_argument, NULL, 0 },
