@@ -62,7 +62,6 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     uint8_t *pix2 = pix1+8;
     x264_me_t m[2];
     int i_bcost = COST_MAX;
-    int i_cost_bak;
     int l, i;
 
     h->mb.pic.p_fenc[0] = h->mb.pic.fenc_buf;
@@ -141,7 +140,6 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
 //          return i_bcost;
     }
 
-    i_cost_bak = i_bcost;
     for( l = 0; l < 1 + b_bidir; l++ )
     {
         DECLARE_ALIGNED_4(int16_t mvc[4][2]) = {{0}};
@@ -236,8 +234,9 @@ lowres_intra_mb:
         b_intra = i_icost < i_bcost;
         if( b_intra )
             i_bcost = i_icost;
-        if(    i_mb_x > 0 && i_mb_x < h->sps->i_mb_width - 1
-            && i_mb_y > 0 && i_mb_y < h->sps->i_mb_height - 1 )
+        if(   (i_mb_x > 0 && i_mb_x < h->sps->i_mb_width - 1
+            && i_mb_y > 0 && i_mb_y < h->sps->i_mb_height - 1)
+            || h->sps->i_mb_width <= 2 || h->sps->i_mb_height <= 2 )
         {
             fenc->i_intra_mbs[b-p0] += b_intra;
             fenc->i_cost_est[0][0] += i_icost;
@@ -289,17 +288,12 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
         if( p1 != p0 )
             dist_scale_factor = ( ((b-p0) << 8) + ((p1-p0) >> 1) ) / (p1-p0);
 
-        /* Lowres lookahead goes backwards because the MVs are used as predictors in the main encode. */
-        /* This considerably improves MV prediction overall. */
-        if( h->sps->i_mb_width <= 2 || h->sps->i_mb_height <= 2 )
-        {
-            for( h->mb.i_mb_y = h->sps->i_mb_height - 1; h->mb.i_mb_y >= 0 ; h->mb.i_mb_y-- )
-                for( h->mb.i_mb_x = h->sps->i_mb_width - 1; h->mb.i_mb_x >= 0 ; h->mb.i_mb_x-- )
-                    i_score += x264_slicetype_mb_cost( h, a, frames, p0, p1, b, dist_scale_factor, do_search );
-        }
+        /* Lowres lookahead goes backwards because the MVs are used as predictors in the main encode.
+         * This considerably improves MV prediction overall. */
+
         /* the edge mbs seem to reduce the predictive quality of the
          * whole frame's score, but are needed for a spatial distribution. */
-        else if( h->param.rc.i_vbv_buffer_size )
+        if( h->param.rc.i_vbv_buffer_size || h->sps->i_mb_width <= 2 || h->sps->i_mb_height <= 2 )
         {
             for( h->mb.i_mb_y = h->sps->i_mb_height - 1; h->mb.i_mb_y >= 0; h->mb.i_mb_y-- )
             {
@@ -311,8 +305,9 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
                     if( h->param.rc.i_aq_mode )
                         i_mb_cost_aq = (i_mb_cost_aq * frames[b]->i_inv_qscale_factor[h->mb.i_mb_x + h->mb.i_mb_y*h->mb.i_mb_stride] + 128) >> 8;
                     row_satd[ h->mb.i_mb_y ] += i_mb_cost_aq;
-                    if( h->mb.i_mb_y > 0 && h->mb.i_mb_y < h->sps->i_mb_height - 1 &&
-                        h->mb.i_mb_x > 0 && h->mb.i_mb_x < h->sps->i_mb_width - 1 )
+                    if( (h->mb.i_mb_y > 0 && h->mb.i_mb_y < h->sps->i_mb_height - 1 &&
+                         h->mb.i_mb_x > 0 && h->mb.i_mb_x < h->sps->i_mb_width - 1) ||
+                         h->sps->i_mb_width <= 2 || h->sps->i_mb_height <= 2 )
                     {
                         /* Don't use AQ-weighted costs for slicetype decision, only for ratecontrol. */
                         i_score += i_mb_cost;
