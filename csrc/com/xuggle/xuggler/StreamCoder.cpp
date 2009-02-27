@@ -961,7 +961,7 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
     if (getCodecType() != ICodec::CODEC_TYPE_AUDIO)
       throw std::runtime_error("Attempting to encode audio with non audio coder");
     if (!mAudioFrameBuffer)
-      throw std::runtime_error("Audio Frame Buffer not initailzed");
+      throw std::runtime_error("Audio Frame Buffer not initialized");
 
     // First, how many bytes do we need to encode a packet?
     int32_t frameSize = 0;
@@ -1078,6 +1078,14 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
     {
       // First, get the right buffer size.
       int32_t bufferSize = frameBytes;
+      if (mCodecContext->codec->id == CODEC_ID_FLAC)
+      {
+        // FLAC audio for some reason gives an error if your output buffer isn't 
+        // over double the frame size, so we fake it here.  This could be further optimized
+        // to only require an exact number, but this math is simpler and will always
+        // be large enough.
+        bufferSize = (64 + getAudioFrameSize()*(bytesPerSample+1))*2;
+      }
       VS_ASSERT(bufferSize> 0, "no buffer size in samples");
       retval = packet->allocateNewPayload(bufferSize);
       if (retval >= 0)
@@ -1155,7 +1163,7 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
         }
         else
         {
-          throw std::runtime_error("avcodec_decode_audio failed");
+          throw std::runtime_error("avcodec_encode_audio failed");
         }
         // Increment this for next time around in case null is passed in.
         mStartingTimestampOfBytesInFrameBuffer += IAudioSamples::samplesToDefaultPts(frameSize, getSampleRate());

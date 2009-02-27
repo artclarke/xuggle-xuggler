@@ -20,6 +20,8 @@
  */
 package com.xuggle.xuggler;
 
+import java.io.File;
+
 import com.xuggle.test_utils.NameAwareTestClassRunner;
 import com.xuggle.xuggler.Converter;
 import com.xuggle.xuggler.IVideoResampler;
@@ -53,7 +55,7 @@ public class RegressionsTest
   {
     log.debug("----- END ----- {}", mTestName);
   }
-  
+
   /**
    * This test should fail, but should not crash the JVM.  It's
    * a regression test for:
@@ -70,7 +72,7 @@ public class RegressionsTest
         this.getClass().getName() + "_" + mTestName + ".mov"
     };
     converter = new ConverterWrongPictureFormat();
-    
+
     Options options = converter.defineOptions();
 
     CommandLine cmdLine = converter.parseOptions(options, args);
@@ -95,24 +97,24 @@ public class RegressionsTest
       int h = picture1.getHeight();
 
       // make a resampler
-      
+
       IVideoResampler resampleToRgb32 = IVideoResampler.make(
-        w, h, IPixelFormat.Type.RGB32, w, h, picture1.getPixelType());
+          w, h, IPixelFormat.Type.RGB32, w, h, picture1.getPixelType());
 
       // resample the picture
 
       final IVideoPicture picture2 = IVideoPicture.make(
-        resampleToRgb32.getOutputPixelFormat(), w, h);
+          resampleToRgb32.getOutputPixelFormat(), w, h);
       if (resampleToRgb32.resample(picture2, picture1) < 0)
         throw new RuntimeException("could not resample picture.");
-      
+
       // return picture in rgb32
-      
+
       return picture2;
     }
   }
 
-  
+
   /**
    * This test attempts to convert a file using the FFMPEG
    * nellymoser encodec.
@@ -145,23 +147,23 @@ public class RegressionsTest
         "flv",
         "--vscalefactor",
         !testResampling  ? "1.0" : "2.0",
-        "--vbitrate",
-        "300000",
-        "--vquality",
-        "0",
-        "fixtures/testfile.flv",
-        this.getClass().getName()+"_"+mTestName+".flv"
+            "--vbitrate",
+            "300000",
+            "--vquality",
+            "0",
+            "fixtures/testfile.flv",
+            this.getClass().getName()+"_"+mTestName+".flv"
     };
     converter = new Converter();
-    
+
     Options options = converter.defineOptions();
 
     CommandLine cmdLine = converter.parseOptions(options, args);
     assertTrue("all commandline options successful", cmdLine != null);
-    
+
     converter.run(cmdLine);
   }
-  
+
   /**
    * Tests for http://code.google.com/p/xuggle/issues/detail?id=51
    * 
@@ -179,13 +181,48 @@ public class RegressionsTest
         this.getClass().getName() + "_" + mTestName + ".flv"
     };
     converter = new Converter();
-    
+
     Options options = converter.defineOptions();
 
     CommandLine cmdLine = converter.parseOptions(options, args);
     assertTrue("all commandline options successful", cmdLine != null);
-    
+
     converter.run(cmdLine);
+  }
+
+  /**
+   * Tests for http://code.google.com/p/xuggle/issues/detail?id=69
+   * 
+   * Failure encoding as FLAC audio
+   * 
+   * @throws ParseException if we can't parse.
+   */
+  @Test
+  public void testRegressionIssue69() throws ParseException
+  {
+    String outFilename = this.getClass().getName() + "_" + mTestName + ".ogg";
+    String[] args = new String[]{
+        "--vno",
+        "--acodec",
+        "flac",
+        "--asamplerate",
+        "22050",
+        "fixtures/testfile_videoonly_20sec.flv",
+        outFilename
+    };
+    converter = new Converter();
+
+    Options options = converter.defineOptions();
+
+    CommandLine cmdLine = converter.parseOptions(options, args);
+    assertTrue("all commandline options successful", cmdLine != null);
+
+    converter.run(cmdLine);
+    
+    File outFile = new File(outFilename);
+    
+    assertTrue("output file not large enough", outFile.length() > 160);
+
   }
 
 }
