@@ -63,8 +63,8 @@ public class GetContainerInfo
         filename,
         numStreams,
         numStreams == 1 ? "" : "s");
-    System.out.printf("duration (ms): %d; ", container.getDuration()/1000);
-    System.out.printf("start time: %d; ", container.getStartTime());
+    System.out.printf("duration (ms): %s; ", container.getDuration() == Global.NO_PTS ? "unknown" : "" + container.getDuration()/1000);
+    System.out.printf("start time (ms): %s; ", container.getStartTime() == Global.NO_PTS ? "unknown" : "" + container.getStartTime()/1000);
     System.out.printf("file size (bytes): %d; ", container.getFileSize());
     System.out.printf("bit rate: %d; ", container.getBitRate());
     System.out.printf("\n");
@@ -82,6 +82,7 @@ public class GetContainerInfo
       System.out.printf("type: %s; ",     coder.getCodecType());
       System.out.printf("codec: %s; ",    coder.getCodecID());
       System.out.printf("duration: %s; ", stream.getDuration() == Global.NO_PTS ? "unknown" : "" + stream.getDuration());
+      System.out.printf("start time: %s; ", container.getStartTime() == Global.NO_PTS ? "unknown" : "" + stream.getStartTime());
       System.out.printf("language: %s; ", stream.getLanguage() == null ? "unknown" : stream.getLanguage());
       System.out.printf("timebase: %d/%d; ", stream.getTimeBase().getNumerator(), stream.getTimeBase().getDenominator());
       System.out.printf("coder tb: %d/%d; ", coder.getTimeBase().getNumerator(), coder.getTimeBase().getDenominator());

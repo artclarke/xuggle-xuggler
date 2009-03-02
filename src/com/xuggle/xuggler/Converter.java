@@ -172,6 +172,11 @@ public class Converter
     OptionBuilder.withDescription("bit rate to encode audio with (in bps) (e.g. \"60000\")");
     Option abitrate= OptionBuilder.create("abitrate");
 
+    OptionBuilder.withArgName("stream");
+    OptionBuilder.hasArg(true);
+    OptionBuilder.withDescription("if multiple audio streams of a given type, this is the stream you want to output");
+    Option astream= OptionBuilder.create("astream");
+    
     OptionBuilder.withArgName("quality");
     OptionBuilder.hasArg(true);
     OptionBuilder.withDescription("quality setting to use for audio.  0 means same as source; higher numbers are (perversely) lower quality.  Defaults to 0.");
@@ -204,6 +209,10 @@ public class Converter
     OptionBuilder.withDescription("bit rate tolerance the bitstream is allowed to diverge from the reference (in bits) (e.g. \"1200000\")");
     Option vbitratetolerance= OptionBuilder.create("vbitratetolerance");
 
+    OptionBuilder.withArgName("stream");
+    OptionBuilder.hasArg(true);
+    OptionBuilder.withDescription("if multiple video streams of a given type, this is the stream you want to output");
+    Option vstream= OptionBuilder.create("vstream");
 
     OptionBuilder.withArgName("quality");
     OptionBuilder.hasArg(true);
@@ -217,12 +226,14 @@ public class Converter
     options.addOption(asamplerate);
     options.addOption(achannels);
     options.addOption(abitrate);
+    options.addOption(astream);
     options.addOption(aquality);
     options.addOption(vno);
     options.addOption(vcodec);
     options.addOption(vscaleFactor);
     options.addOption(vbitrate);
     options.addOption(vbitratetolerance);
+    options.addOption(vstream);
     options.addOption(vquality);
 
     return options;
@@ -329,6 +340,7 @@ public class Converter
     String acodec = cmdLine.getOptionValue("acodec");
     String vcodec = cmdLine.getOptionValue("vcodec");
     String containerFormat = cmdLine.getOptionValue("containerformat");
+    int astream = getIntOptionValue(cmdLine, "astream", -1);
     int aquality = getIntOptionValue(cmdLine, "aquality", 0);
     
     int sampleRate = getIntOptionValue(cmdLine, "asamplerate", 0);
@@ -337,6 +349,7 @@ public class Converter
     int vbitrate = getIntOptionValue(cmdLine, "vbitrate", 0);
     int vbitratetolerance = getIntOptionValue(cmdLine, "vbitratetolerance", 0);
     int vquality = getIntOptionValue(cmdLine, "vquality", 0);
+    int vstream = getIntOptionValue(cmdLine, "vstream", -1);
     double vscaleFactor = getDoubleOptionValue(cmdLine, "vscalefactor", 1.0);
     
     // Should have everything now!
@@ -440,7 +453,7 @@ public class Converter
       mISamples[i] = null;
       mOSamples[i] = null;
       
-      if (cType == ICodec.Type.CODEC_TYPE_AUDIO && mHasAudio)
+      if (cType == ICodec.Type.CODEC_TYPE_AUDIO && mHasAudio && (astream == -1 || astream == i))
       {
         /**
          * So it looks like this stream as an audio stream.  Now we add
@@ -560,7 +573,7 @@ public class Converter
         mISamples[i] = IAudioSamples.make(1024, ic.getChannels());
         mOSamples[i] = IAudioSamples.make(1024, oc.getChannels());
       }
-      else if (cType == ICodec.Type.CODEC_TYPE_VIDEO && mHasVideo)
+      else if (cType == ICodec.Type.CODEC_TYPE_VIDEO && mHasVideo &&  (vstream == -1 || vstream == i))
       {
         /**
          * If you're reading these commends, this does the same thing as the above
@@ -888,7 +901,17 @@ public class Converter
        */
       int i = iPacket.getStreamIndex();
       int offset = 0;
-      
+
+      /**
+       * Find out if this stream has a starting timestamp
+       */
+      IStream stream = mIContainer.getStream(i);
+      long tsOffset = 0;
+      if (stream.getStartTime() != Global.NO_PTS && stream.getStartTime() > 0 && stream.getTimeBase() != null)
+      {
+        IRational defTimeBase = IRational.make(1, (int)Global.DEFAULT_PTS_PER_SECOND);
+        tsOffset = defTimeBase.rescale(stream.getStartTime(), stream.getTimeBase()); 
+      }
       /**
        * And look up the appropriate objects that are working on that stream.
        */
@@ -900,6 +923,10 @@ public class Converter
       reFrame = mOVideoPictures[i];
       inSamples = mISamples[i];
       reSamples = mOSamples[i];
+      
+      if (oc == null)
+        // we didn't set up this coder; ignore the packet
+        continue;
       
       /**
        * Find out if the stream is audio or video.
@@ -922,7 +949,10 @@ public class Converter
         {
           retval = ic.decodeAudio(inSamples, iPacket, offset);
           if (retval <= 0)
-            throw new RuntimeException("could not decode audio");
+            throw new RuntimeException("could not decode audio.  stream: " + i);
+          
+          if (inSamples.getTimeStamp() != Global.NO_PTS)
+            inSamples.setTimeStamp(inSamples.getTimeStamp() - tsOffset);
           
           /**
            * If not an error, the decodeAudio returns the number of bytes
@@ -1002,7 +1032,14 @@ public class Converter
         while (offset < iPacket.getSize()) {
           retval = ic.decodeVideo(inFrame, iPacket, offset);
           if (retval <= 0)
-            throw new RuntimeException("could not decode any video");
+            throw new RuntimeException("could not decode any video.  stream: " + i);
+
+          log.info("decoded vid ts: {}; pkts ts: {}",
+              inFrame.getTimeStamp(),
+              iPacket.getTimeStamp());
+          if (inFrame.getTimeStamp() != Global.NO_PTS)
+            inFrame.setTimeStamp(inFrame.getTimeStamp() - tsOffset);
+          
           offset += retval;
           if (inFrame.isComplete())
           {
