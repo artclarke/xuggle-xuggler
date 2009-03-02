@@ -68,12 +68,29 @@ void
 AudioResamplerTest :: testGetters()
 {
   RefPointer<IAudioResampler> sampler = IAudioResampler::make(1, 2,
-      22050, 44100);
+      22050, 44100,
+      IAudioSamples::FMT_S16,
+      IAudioSamples::FMT_FLT,
+      16,
+      1,
+      true,
+      0.8);
   VS_TUT_ENSURE("!sampler", sampler);
   VS_TUT_ENSURE_EQUALS("", sampler->getOutputChannels(), 1);
   VS_TUT_ENSURE_EQUALS("", sampler->getInputChannels(), 2);
   VS_TUT_ENSURE_EQUALS("", sampler->getOutputRate(), 22050);
   VS_TUT_ENSURE_EQUALS("", sampler->getInputRate(), 44100);
+  VS_TUT_ENSURE_EQUALS("", sampler->getOutputFormat(), IAudioSamples::FMT_S16);
+  VS_TUT_ENSURE_EQUALS("", sampler->getInputFormat(), IAudioSamples::FMT_FLT);
+  VS_TUT_ENSURE_EQUALS("", sampler->getFilterLen(), 16);
+  VS_TUT_ENSURE_EQUALS("", sampler->getLog2PhaseCount(), 1);
+  VS_TUT_ENSURE("", sampler->isLinear());
+  VS_TUT_ENSURE_DISTANCE("", sampler->getCutoffFrequency(), 0.8, 0.001);
+  
+  
+  // Turn down logging for this test as it should be noisy
+  LoggerStack stack;
+  stack.setGlobalLevel(Logger::LEVEL_ERROR, false);
 
   sampler = IAudioResampler::make(3, 2,
       22050, 44100);
@@ -90,7 +107,7 @@ AudioResamplerTest :: testInvalidArguments()
 
   // Turn down logging for this test as it should be noisy
   LoggerStack stack;
-  stack.setGlobalLevel(Logger::LEVEL_DEBUG, false);
+  stack.setGlobalLevel(Logger::LEVEL_ERROR, false);
 
   RefPointer<IAudioResampler> sampler;
   sampler = IAudioResampler::make(3, 2,
@@ -98,6 +115,21 @@ AudioResamplerTest :: testInvalidArguments()
   VS_TUT_ENSURE("sampler", !sampler);
   sampler = IAudioResampler::make(-1, -1,
       -1, -1);
+  VS_TUT_ENSURE("sampler", !sampler);
+  
+  sampler = IAudioResampler::make(1, 2, 22050, 44100,
+      IAudioSamples::FMT_S16, IAudioSamples::FMT_S16,
+      -1, 0, true, 0.8);
+  VS_TUT_ENSURE("sampler", !sampler);
+  
+  sampler = IAudioResampler::make(1, 2, 22050, 44100,
+      IAudioSamples::FMT_S16, IAudioSamples::FMT_S16,
+      16, -1, true, 0.8);
+  VS_TUT_ENSURE("sampler", !sampler);
+
+  sampler = IAudioResampler::make(1, 2, 22050, 44100,
+      IAudioSamples::FMT_S16, IAudioSamples::FMT_S16,
+      16, 0, true, -1.0);
   VS_TUT_ENSURE("sampler", !sampler);
 
   sampler = IAudioResampler::make(1, 2, 22050, 44100);

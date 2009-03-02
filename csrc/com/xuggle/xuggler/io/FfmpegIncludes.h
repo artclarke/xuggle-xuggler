@@ -23,8 +23,6 @@
 
 extern "C"
 {
-// Hack here to get rid of deprecation compilation warnings
-#define attribute_deprecated
 #include <libavformat/avformat.h>
 }
 #endif /*FFMPEGINCLUDES_H_*/

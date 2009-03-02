@@ -537,7 +537,7 @@ StreamCoder :: open()
     if (this->getCodecType() == ICodec::CODEC_TYPE_AUDIO)
     {
       int32_t frame_bytes = getAudioFrameSize() * getChannels()
-          * IAudioSamples::findSampleBitDepth(IAudioSamples::FMT_S16) / 8;
+          * IAudioSamples::findSampleBitDepth((IAudioSamples::Format) mCodecContext->sample_fmt) / 8;
       if (frame_bytes <= 0)
         frame_bytes = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 
@@ -589,7 +589,7 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
 
     // reset the samples
     samples->setComplete(false, 0, getSampleRate(), getChannels(),
-        IAudioSamples::FMT_S16, Global::NO_PTS);
+        (IAudioSamples::Format) mCodecContext->sample_fmt, Global::NO_PTS);
 
     outBufSize = samples->getMaxBufferSize();
     inBufSize = packet->getSize() - startingByte;
@@ -985,7 +985,7 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
           "no bytes in buffer at specified starting sample");
 
     int32_t bytesPerSample = (samples ? samples->getSampleSize()
-        : IAudioSamples::findSampleBitDepth(IAudioSamples::FMT_S16) / 8
+        : IAudioSamples::findSampleBitDepth((IAudioSamples::Format)mCodecContext->sample_fmt) / 8
             * getChannels());
 
     /*

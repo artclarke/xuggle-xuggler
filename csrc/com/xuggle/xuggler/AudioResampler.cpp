@@ -40,6 +40,12 @@ namespace com { namespace xuggle { namespace xuggler
     mIChannels=0;
     mISampleRate=0;
     mPtsOffset=0;
+    mOFmt = IAudioSamples::FMT_S16;
+    mIFmt = IAudioSamples::FMT_S16;
+    mFilterLen = 0;
+    mLog2PhaseCount = 0;
+    mIsLinear = false;
+    mCutoff = 1.0;
     mNextPts = Global::NO_PTS;
   }
 
@@ -50,38 +56,95 @@ namespace com { namespace xuggle { namespace xuggler
   }
 
   AudioResampler*
-  AudioResampler :: make(int outputChannels, int inputChannels,
-      int outputRate, int inputRate)
+  AudioResampler :: make(
+      int32_t outputChannels, int32_t inputChannels,
+      int32_t outputRate, int32_t inputRate
+      )
+  {
+    return make(outputChannels, inputChannels, outputRate, inputRate,
+        IAudioSamples::FMT_S16, IAudioSamples::FMT_S16);
+  }
+
+  AudioResampler*
+  AudioResampler :: make(
+      int32_t outputChannels, int32_t inputChannels,
+      int32_t outputRate, int32_t inputRate,
+      IAudioSamples::Format outputFmt, IAudioSamples::Format inputFmt
+      )
+  {
+    return make(outputChannels, inputChannels, outputRate, inputRate,
+        outputFmt, inputFmt,
+        16, 10, 0, 0.8);
+  }
+  
+  AudioResampler*
+  AudioResampler :: make(
+      int32_t outputChannels, int32_t inputChannels,
+      int32_t outputRate, int32_t inputRate,
+      IAudioSamples::Format outputFmt, IAudioSamples::Format inputFmt,
+      int32_t filterLen, int32_t log2PhaseCount,
+      bool linear, double cutoff
+      )
   {
     AudioResampler* retval = 0;
+    try {
+      if (outputChannels <= 0)
+        throw std::invalid_argument("outputChannels <= 0");
 
-    VS_LOG_TRACE("Initalizing audiosampler");
-    if (outputChannels <= 0 ||
-        inputChannels <= 0 ||
-        outputChannels > 2 ||
-        inputChannels > 2 ||
-        outputRate <= 0 ||
-        inputRate <= 0)
-    {
-      VS_LOG_TRACE("cannot support more than 2 channels, or less than 0 anything");
-    } else {
+      if (inputChannels <= 0)
+        throw std::invalid_argument("inputChannels <= 0");
+
+      if (outputChannels > 2)
+        throw std::invalid_argument("outputChannels > 2; unsupported");
+
+      if (inputChannels > 2)
+        throw std::invalid_argument("inputChannels > 2; unsupported");
+
+      if (outputRate <= 0)
+        throw std::invalid_argument("outputRate <= 0");
+
+      if (inputRate <= 0)
+        throw std::invalid_argument("inputRate <= 0");
+
+      if (filterLen <= 0)
+        throw std::invalid_argument("filterLen <= 0");
+
+      if (log2PhaseCount < 0)
+        throw std::invalid_argument("log2PhaseCount < 0");
+
+      if (cutoff < 0)
+        throw std::invalid_argument("cutoffFrequency < 0");
+
       retval = AudioResampler::make();
       if (retval)
       {
-        retval->mContext = audio_resample_init(outputChannels, inputChannels,
-            outputRate, inputRate);
+        retval->mContext = av_audio_resample_init(outputChannels, inputChannels,
+            outputRate, inputRate,
+            (enum SampleFormat) outputFmt, (enum SampleFormat) inputFmt,
+            filterLen, log2PhaseCount, (int)linear, cutoff);
         if (retval->mContext)
         {
           retval->mOChannels = outputChannels;
           retval->mOSampleRate = outputRate;
           retval->mIChannels = inputChannels;
           retval->mISampleRate = inputRate;
+          retval->mOFmt = outputFmt;
+          retval->mIFmt = inputFmt;
+          retval->mFilterLen = filterLen;
+          retval->mLog2PhaseCount = log2PhaseCount;
+          retval->mIsLinear = linear;
+          retval->mCutoff = cutoff;
         }
         else
         {
           VS_REF_RELEASE(retval);
         }
       }
+    }
+    catch (std::exception & e)
+    {
+      VS_LOG_ERROR("Error: %s", e.what());
+      VS_REF_RELEASE(retval);
     }
     return retval;
   }
@@ -130,7 +193,7 @@ namespace com { namespace xuggle { namespace xuggler
 
       // null out the output samples.
       outSamples->setComplete(false, 0, mOSampleRate, mOChannels,
-          IAudioSamples::FMT_S16, Global::NO_PTS);
+          mOFmt, Global::NO_PTS);
 
       if (inSamples)
       {
@@ -139,6 +202,9 @@ namespace com { namespace xuggle { namespace xuggler
 
         if (inSamples->getChannels() != mIChannels)
           throw std::invalid_argument("unexpected # of input channels");
+        
+        if (inSamples->getFormat() != mIFmt)
+          throw std::invalid_argument("unexpected sample format");
 
         if (numSamples == 0)
           numSamples = inSamples->getNumSamples();
@@ -152,9 +218,9 @@ namespace com { namespace xuggle { namespace xuggler
 
       double conversionRatio = 1;
       {
-        double top = mOSampleRate*mOChannels;
+        double top = mOSampleRate*mOChannels*IAudioSamples::findSampleBitDepth(mOFmt);
         VS_ASSERT(top, "should never be zero");
-        double bot = mISampleRate*mIChannels;
+        double bot = mISampleRate*mIChannels*IAudioSamples::findSampleBitDepth(mIFmt);
         VS_ASSERT(bot, "should never be zero");
         conversionRatio = top/bot;
         VS_ASSERT(conversionRatio > 0, "the variables used should have been checked on construction");
@@ -234,8 +300,8 @@ namespace com { namespace xuggle { namespace xuggler
 
         outSamples->setComplete(true, retval,
             mOSampleRate, mOChannels,
-            inSamples ? inSamples->getFormat() : IAudioSamples::FMT_S16,
-                pts);
+            mOFmt,
+            pts);
         int expectedSamples = 0;
         if (inSamples)
         {
@@ -279,4 +345,41 @@ namespace com { namespace xuggle { namespace xuggler
 
     return retval;
   }
+  
+  IAudioSamples::Format
+  AudioResampler :: getOutputFormat()
+  {
+    return mOFmt;
+  }
+  
+  IAudioSamples::Format
+  AudioResampler :: getInputFormat()
+  {
+    return mIFmt;
+  }
+  
+  int32_t 
+  AudioResampler :: getFilterLen()
+  {
+    return mFilterLen;
+  }
+  
+  int32_t
+  AudioResampler :: getLog2PhaseCount()
+  {
+    return mLog2PhaseCount;
+  }
+  
+  bool 
+  AudioResampler :: isLinear()
+  {
+    return mIsLinear;
+  }
+  
+  double
+  AudioResampler :: getCutoffFrequency()
+  {
+    return mCutoff;
+  }  
+
   }}}

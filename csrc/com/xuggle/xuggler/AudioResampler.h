@@ -22,6 +22,7 @@
 #define AUDIORESAMPLER_H_
 
 #include <com/xuggle/xuggler/IAudioResampler.h>
+
 struct ReSampleContext;
 
 namespace com { namespace xuggle { namespace xuggler
@@ -41,18 +42,42 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int resample(IAudioSamples *pOutputSamples, IAudioSamples *pInputSamples,
         unsigned int numSamples);
 
+    virtual IAudioSamples::Format getOutputFormat();
+    virtual IAudioSamples::Format getInputFormat();
+    virtual int32_t getFilterLen();
+    virtual int32_t getLog2PhaseCount();
+    virtual bool isLinear();
+    virtual double getCutoffFrequency();
+    
     // Not for calling from Java
-    static AudioResampler* make(int outputChannels, int inputChannels,
-        int outputRate, int inputRate);
+    static AudioResampler* make(int32_t outputChannels, int32_t inputChannels,
+        int32_t outputRate, int32_t inputRate);
+
+    static AudioResampler* make(int32_t outputChannels, int32_t inputChannels,
+        int32_t outputRate, int32_t inputRate,
+        IAudioSamples::Format outputFmt, IAudioSamples::Format inputFmt);
+
+    static AudioResampler* make(int32_t outputChannels, int32_t inputChannels,
+        int32_t outputRate, int32_t inputRate,
+        IAudioSamples::Format outputFmt, IAudioSamples::Format inputFmt,
+        int32_t filterLen, int32_t log2PhaseCount,
+        bool isLinear, double cutoff);
+        
   protected:
     AudioResampler();
     virtual ~AudioResampler();
   private:
     ReSampleContext *mContext;
-    int mOChannels;
-    int mOSampleRate;
-    int mIChannels;
-    int mISampleRate;
+    int32_t mOChannels;
+    int32_t mOSampleRate;
+    int32_t mIChannels;
+    int32_t mISampleRate;
+    IAudioSamples::Format mOFmt;
+    IAudioSamples::Format mIFmt;
+    int32_t mFilterLen;
+    int32_t mLog2PhaseCount;
+    bool mIsLinear;
+    double mCutoff ;
     int64_t mNextPts;
     int64_t mPtsOffset;
   };

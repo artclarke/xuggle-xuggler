@@ -34,11 +34,39 @@ namespace com { namespace xuggle { namespace xuggler
   }
 
   IAudioResampler*
-  IAudioResampler:: make(int outputChannels, int inputChannels,
-          int outputRate, int inputRate)
+  IAudioResampler:: make(int32_t outputChannels, int32_t inputChannels,
+          int32_t outputRate, int32_t inputRate)
   {
     Global::init();
     return AudioResampler::make(outputChannels, inputChannels,
         outputRate, inputRate);
   }
+
+  IAudioResampler*
+  IAudioResampler :: make(int32_t outputChannels, int32_t inputChannels,
+      int32_t outputRate, int32_t inputRate,
+      IAudioSamples::Format outputFmt, IAudioSamples::Format inputFmt)
+  {
+    Global::init();
+    return AudioResampler::make(outputChannels, inputChannels,
+        outputRate, inputRate,
+        outputFmt, inputFmt);
+  }
+
+
+  IAudioResampler*
+  IAudioResampler :: make(int32_t outputChannels, int32_t inputChannels,
+      int32_t outputRate, int32_t inputRate,
+      IAudioSamples::Format outputFmt, IAudioSamples::Format inputFmt,
+      int32_t filterLen, int32_t log2PhaseCount,
+      bool isLinear, double cutoff)
+  {
+    Global::init();
+    return AudioResampler::make(outputChannels, inputChannels,
+        outputRate, inputRate,
+        outputFmt, inputFmt,
+        filterLen, log2PhaseCount,
+        isLinear, cutoff);
+  }
+
   }}}
