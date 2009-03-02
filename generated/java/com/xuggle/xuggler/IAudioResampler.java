@@ -172,6 +172,10 @@ public class IAudioResampler extends RefCounted {
  *  
  * so users are encouraged to create once and use often.  
  * </p>  
+ * <p>  
+ * This method assumes all samples are in IAudioSamples.Format.FMT_S16 
+ * format.  
+ * </p>  
  * @param	outputChannels The number of channels you will want  
  * in resampled audio we output.  
  * @param	inputChannels The number of channels you will pass  
@@ -183,7 +187,121 @@ public class IAudioResampler extends RefCounted {
  * @return	A new object, or null if we can't allocate one.  
  */
   public static IAudioResampler make(int outputChannels, int inputChannels, int outputRate, int inputRate) {
-    long cPtr = XugglerJNI.IAudioResampler_make(outputChannels, inputChannels, outputRate, inputRate);
+    long cPtr = XugglerJNI.IAudioResampler_make__SWIG_0(outputChannels, inputChannels, outputRate, inputRate);
+    return (cPtr == 0) ? null : new IAudioResampler(cPtr, false);
+  }
+
+/**
+ * Get the sample format we expect to resample to.  
+ * @return	the sample format for output.  
+ */
+  public IAudioSamples.Format getOutputFormat() {
+    return IAudioSamples.Format.swigToEnum(XugglerJNI.IAudioResampler_getOutputFormat(swigCPtr, this));
+  }
+
+/**
+ * Get the sample format we expect to resample from.  
+ * @return	the sample format for input.  
+ */
+  public IAudioSamples.Format getInputFormat() {
+    return IAudioSamples.Format.swigToEnum(XugglerJNI.IAudioResampler_getInputFormat(swigCPtr, this));
+  }
+
+/**
+ * Get the length of each filter in the resampler filter bank.  
+ * @return	the filter length  
+ */
+  public int getFilterLen() {
+    return XugglerJNI.IAudioResampler_getFilterLen(swigCPtr, this);
+  }
+
+/**
+ * Get log2(number of entries in filter bank).  
+ * @return	log2(number of entries in filter bank).  
+ */
+  public int getLog2PhaseCount() {
+    return XugglerJNI.IAudioResampler_getLog2PhaseCount(swigCPtr, this);
+  }
+
+/**
+ * Are we linearly interpolating between filters?  
+ * @return	true if interpolating, false if just choosing closest.  
+ */
+  public boolean isLinear() {
+    return XugglerJNI.IAudioResampler_isLinear(swigCPtr, this);
+  }
+
+/**
+ * What is the cuttoff frequency used?  
+ * @return	the cuttoff frequency  
+ */
+  public double getCutoffFrequency() {
+    return XugglerJNI.IAudioResampler_getCutoffFrequency(swigCPtr, this);
+  }
+
+/**
+ * Create a new {@link IAudioResampler} object.  
+ * <p>  
+ * Creation of {@link IAudioResampler} objects is relatively expensive 
+ * compared  
+ * to the {@link #resample(IAudioSamples, IAudioSamples, long)} method, 
+ *  
+ * so users are encouraged to create once and use often.  
+ * </p>  
+ * <p>  
+ * &quot;Sensible&quot; defaults are passed in for filter length and 
+ * other  
+ * parameters.  
+ * </p>  
+ * @param	outputChannels The number of channels you will want  
+ * in resampled audio we output.  
+ * @param	inputChannels The number of channels you will pass  
+ * in the source audio for resampling.  
+ * @param	outputRate The sample rate you will want  
+ * in resampled audio we output.  
+ * @param	inputRate The sample rate you will pass  
+ * in the source audio for resampling.  
+ * @param	outputFmt The format of the output samples.  
+ * @param	inputFmt The format of the input samples.  
+ * @return	A new object, or null if we can't allocate one.  
+ */
+  public static IAudioResampler make(int outputChannels, int inputChannels, int outputRate, int inputRate, IAudioSamples.Format outputFmt, IAudioSamples.Format inputFmt) {
+    long cPtr = XugglerJNI.IAudioResampler_make__SWIG_1(outputChannels, inputChannels, outputRate, inputRate, outputFmt.swigValue(), inputFmt.swigValue());
+    return (cPtr == 0) ? null : new IAudioResampler(cPtr, false);
+  }
+
+/**
+ * Create a new {@link IAudioResampler} object.  
+ * <p>  
+ * Creation of {@link IAudioResampler} objects is relatively expensive 
+ * compared  
+ * to the {@link #resample(IAudioSamples, IAudioSamples, long)} method, 
+ *  
+ * so users are encouraged to create once and use often.  
+ * </p>  
+ * @param	outputChannels The number of channels you will want  
+ * in resampled audio we output.  
+ * @param	inputChannels The number of channels you will pass  
+ * in the source audio for resampling.  
+ * @param	outputRate The sample rate you will want  
+ * in resampled audio we output.  
+ * @param	inputRate The sample rate you will pass  
+ * in the source audio for resampling.  
+ * @param	outputFmt The format of the output samples.  
+ * @param	inputFmt The format of the input samples.  
+ * @param	filterLen The length of each filter in the filterbank, relative 
+ *		 to the cutoff frequency.  
+ * @param	log2PhaseCount log2 of the number of entries in the polyphase 
+ *		 filterbank  
+ * @param	linear If true, the used filter will be linearly interpolated 
+ *		 between the 2 closest filters.  
+ * if false, the closest will be used.  
+ * @param	cutoffFrequency Cutoff frequency. 1.0 is 1/2 the output sampling 
+ *		 rate.  
+ * @return	A new object, or null if we can't allocate one.  
+ */
+  public static IAudioResampler make(int outputChannels, int inputChannels, int outputRate, int inputRate, IAudioSamples.Format outputFmt, IAudioSamples.Format inputFmt, int filterLen, int log2PhaseCount, boolean isLinear, double cutoffFrequency) {
+    long cPtr = XugglerJNI.IAudioResampler_make__SWIG_2(outputChannels, inputChannels, outputRate, inputRate, outputFmt.swigValue(), inputFmt.swigValue(), filterLen, log2PhaseCount, isLinear, cutoffFrequency);
     return (cPtr == 0) ? null : new IAudioResampler(cPtr, false);
   }
 

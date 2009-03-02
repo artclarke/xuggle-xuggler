@@ -159,7 +159,15 @@ class XugglerJNI {
   public final static native int IAudioResampler_getInputChannels(long jarg1, IAudioResampler jarg1_);
   public final static native int IAudioResampler_getInputRate(long jarg1, IAudioResampler jarg1_);
   public final static native int IAudioResampler_resample(long jarg1, IAudioResampler jarg1_, long jarg2, IAudioSamples jarg2_, long jarg3, IAudioSamples jarg3_, long jarg4);
-  public final static native long IAudioResampler_make(int jarg1, int jarg2, int jarg3, int jarg4);
+  public final static native long IAudioResampler_make__SWIG_0(int jarg1, int jarg2, int jarg3, int jarg4);
+  public final static native int IAudioResampler_getOutputFormat(long jarg1, IAudioResampler jarg1_);
+  public final static native int IAudioResampler_getInputFormat(long jarg1, IAudioResampler jarg1_);
+  public final static native int IAudioResampler_getFilterLen(long jarg1, IAudioResampler jarg1_);
+  public final static native int IAudioResampler_getLog2PhaseCount(long jarg1, IAudioResampler jarg1_);
+  public final static native boolean IAudioResampler_isLinear(long jarg1, IAudioResampler jarg1_);
+  public final static native double IAudioResampler_getCutoffFrequency(long jarg1, IAudioResampler jarg1_);
+  public final static native long IAudioResampler_make__SWIG_1(int jarg1, int jarg2, int jarg3, int jarg4, int jarg5, int jarg6);
+  public final static native long IAudioResampler_make__SWIG_2(int jarg1, int jarg2, int jarg3, int jarg4, int jarg5, int jarg6, int jarg7, int jarg8, boolean jarg9, double jarg10);
   public final static native boolean IVideoPicture_isKeyFrame(long jarg1, IVideoPicture jarg1_);
   public final static native void IVideoPicture_setKeyFrame(long jarg1, IVideoPicture jarg1_, boolean jarg2);
   public final static native boolean IVideoPicture_isComplete(long jarg1, IVideoPicture jarg1_);

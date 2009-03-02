@@ -6097,26 +6097,446 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1resa
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1make(JNIEnv *jenv, jclass jcls, jint jarg1, jint jarg2, jint jarg3, jint jarg4) {
+SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1make_1_1SWIG_10(JNIEnv *jenv, jclass jcls, jint jarg1, jint jarg2, jint jarg3, jint jarg4) {
   jlong jresult = 0 ;
-  int arg1 ;
-  int arg2 ;
-  int arg3 ;
-  int arg4 ;
+  int32_t arg1 ;
+  int32_t arg2 ;
+  int32_t arg3 ;
+  int32_t arg4 ;
   com::xuggle::xuggler::IAudioResampler *result = 0 ;
   
   (void)jenv;
   (void)jcls;
-  arg1 = (int)jarg1; 
-  arg2 = (int)jarg2; 
-  arg3 = (int)jarg3; 
-  arg4 = (int)jarg4; 
+  arg1 = (int32_t)jarg1; 
+  arg2 = (int32_t)jarg2; 
+  arg3 = (int32_t)jarg3; 
+  arg4 = (int32_t)jarg4; 
   {
     // JNIHelper.swg: Start generated code
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>
     try
     {
       result = (com::xuggle::xuggler::IAudioResampler *)com::xuggle::xuggler::IAudioResampler::make(arg1,arg2,arg3,arg4);
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  *(com::xuggle::xuggler::IAudioResampler **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1getOutputFormat(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IAudioResampler *arg1 = (com::xuggle::xuggler::IAudioResampler *) 0 ;
+  com::xuggle::xuggler::IAudioSamples::Format result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::xuggler::IAudioResampler **)&jarg1; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return 0;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (com::xuggle::xuggler::IAudioSamples::Format)(arg1)->getOutputFormat();
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1getInputFormat(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IAudioResampler *arg1 = (com::xuggle::xuggler::IAudioResampler *) 0 ;
+  com::xuggle::xuggler::IAudioSamples::Format result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::xuggler::IAudioResampler **)&jarg1; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return 0;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (com::xuggle::xuggler::IAudioSamples::Format)(arg1)->getInputFormat();
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1getFilterLen(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IAudioResampler *arg1 = (com::xuggle::xuggler::IAudioResampler *) 0 ;
+  int32_t result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::xuggler::IAudioResampler **)&jarg1; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return 0;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (int32_t)(arg1)->getFilterLen();
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1getLog2PhaseCount(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IAudioResampler *arg1 = (com::xuggle::xuggler::IAudioResampler *) 0 ;
+  int32_t result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::xuggler::IAudioResampler **)&jarg1; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return 0;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (int32_t)(arg1)->getLog2PhaseCount();
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1isLinear(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jboolean jresult = 0 ;
+  com::xuggle::xuggler::IAudioResampler *arg1 = (com::xuggle::xuggler::IAudioResampler *) 0 ;
+  bool result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::xuggler::IAudioResampler **)&jarg1; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return 0;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (bool)(arg1)->isLinear();
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  jresult = (jboolean)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jdouble JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1getCutoffFrequency(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jdouble jresult = 0 ;
+  com::xuggle::xuggler::IAudioResampler *arg1 = (com::xuggle::xuggler::IAudioResampler *) 0 ;
+  double result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::xuggler::IAudioResampler **)&jarg1; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return 0;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (double)(arg1)->getCutoffFrequency();
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  jresult = (jdouble)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1make_1_1SWIG_11(JNIEnv *jenv, jclass jcls, jint jarg1, jint jarg2, jint jarg3, jint jarg4, jint jarg5, jint jarg6) {
+  jlong jresult = 0 ;
+  int32_t arg1 ;
+  int32_t arg2 ;
+  int32_t arg3 ;
+  int32_t arg4 ;
+  com::xuggle::xuggler::IAudioSamples::Format arg5 ;
+  com::xuggle::xuggler::IAudioSamples::Format arg6 ;
+  com::xuggle::xuggler::IAudioResampler *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = (int32_t)jarg1; 
+  arg2 = (int32_t)jarg2; 
+  arg3 = (int32_t)jarg3; 
+  arg4 = (int32_t)jarg4; 
+  arg5 = (com::xuggle::xuggler::IAudioSamples::Format)jarg5; 
+  arg6 = (com::xuggle::xuggler::IAudioSamples::Format)jarg6; 
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (com::xuggle::xuggler::IAudioResampler *)com::xuggle::xuggler::IAudioResampler::make(arg1,arg2,arg3,arg4,arg5,arg6);
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  *(com::xuggle::xuggler::IAudioResampler **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1make_1_1SWIG_12(JNIEnv *jenv, jclass jcls, jint jarg1, jint jarg2, jint jarg3, jint jarg4, jint jarg5, jint jarg6, jint jarg7, jint jarg8, jboolean jarg9, jdouble jarg10) {
+  jlong jresult = 0 ;
+  int32_t arg1 ;
+  int32_t arg2 ;
+  int32_t arg3 ;
+  int32_t arg4 ;
+  com::xuggle::xuggler::IAudioSamples::Format arg5 ;
+  com::xuggle::xuggler::IAudioSamples::Format arg6 ;
+  int32_t arg7 ;
+  int32_t arg8 ;
+  bool arg9 ;
+  double arg10 ;
+  com::xuggle::xuggler::IAudioResampler *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = (int32_t)jarg1; 
+  arg2 = (int32_t)jarg2; 
+  arg3 = (int32_t)jarg3; 
+  arg4 = (int32_t)jarg4; 
+  arg5 = (com::xuggle::xuggler::IAudioSamples::Format)jarg5; 
+  arg6 = (com::xuggle::xuggler::IAudioSamples::Format)jarg6; 
+  arg7 = (int32_t)jarg7; 
+  arg8 = (int32_t)jarg8; 
+  arg9 = jarg9 ? true : false; 
+  arg10 = (double)jarg10; 
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (com::xuggle::xuggler::IAudioResampler *)com::xuggle::xuggler::IAudioResampler::make(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10);
     }
     catch(std::exception & e)
     {
