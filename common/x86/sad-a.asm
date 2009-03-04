@@ -1142,8 +1142,8 @@ cglobal x264_pixel_sad_8x%1_cache%2_mmxext
     jg .split
 %endmacro
 
-%macro SADX3_CACHELINE_FUNC 5 ; width, height, cacheline, normal_ver, split_ver
-cglobal x264_pixel_sad_x3_%1x%2_cache%3_%5
+%macro SADX3_CACHELINE_FUNC 6 ; width, height, cacheline, normal_ver, split_ver, name
+cglobal x264_pixel_sad_x3_%1x%2_cache%3_%6
     CHECK_SPLIT r1m, %1, %3
     CHECK_SPLIT r2m, %1, %3
     CHECK_SPLIT r3m, %1, %3
@@ -1207,8 +1207,8 @@ cglobal x264_pixel_sad_x3_%1x%2_cache%3_%5
 %endif
 %endmacro
 
-%macro SADX4_CACHELINE_FUNC 5 ; width, height, cacheline, normal_ver, split_ver
-cglobal x264_pixel_sad_x4_%1x%2_cache%3_%5
+%macro SADX4_CACHELINE_FUNC 6 ; width, height, cacheline, normal_ver, split_ver, name
+cglobal x264_pixel_sad_x4_%1x%2_cache%3_%6
     CHECK_SPLIT r1m, %1, %3
     CHECK_SPLIT r2m, %1, %3
     CHECK_SPLIT r3m, %1, %3
@@ -1285,9 +1285,9 @@ cglobal x264_pixel_sad_x4_%1x%2_cache%3_%5
 %endif
 %endmacro
 
-%macro SADX34_CACHELINE_FUNC 5
-    SADX3_CACHELINE_FUNC %1, %2, %3, %4, %5
-    SADX4_CACHELINE_FUNC %1, %2, %3, %4, %5
+%macro SADX34_CACHELINE_FUNC 1+
+    SADX3_CACHELINE_FUNC %1
+    SADX4_CACHELINE_FUNC %1
 %endmacro
 
 
@@ -1307,15 +1307,15 @@ SAD8_CACHELINE_FUNC_MMX2   8, 64
 SAD8_CACHELINE_FUNC_MMX2  16, 64
 
 %ifndef ARCH_X86_64
-SADX34_CACHELINE_FUNC 16, 16, 32, mmxext, mmxext
-SADX34_CACHELINE_FUNC 16,  8, 32, mmxext, mmxext
-SADX34_CACHELINE_FUNC  8, 16, 32, mmxext, mmxext
-SADX34_CACHELINE_FUNC  8,  8, 32, mmxext, mmxext
-SADX34_CACHELINE_FUNC 16, 16, 64, mmxext, mmxext
-SADX34_CACHELINE_FUNC 16,  8, 64, mmxext, mmxext
+SADX34_CACHELINE_FUNC 16, 16, 32, mmxext, mmxext, mmxext
+SADX34_CACHELINE_FUNC 16,  8, 32, mmxext, mmxext, mmxext
+SADX34_CACHELINE_FUNC  8, 16, 32, mmxext, mmxext, mmxext
+SADX34_CACHELINE_FUNC  8,  8, 32, mmxext, mmxext, mmxext
+SADX34_CACHELINE_FUNC 16, 16, 64, mmxext, mmxext, mmxext
+SADX34_CACHELINE_FUNC 16,  8, 64, mmxext, mmxext, mmxext
 %endif ; !ARCH_X86_64
-SADX34_CACHELINE_FUNC  8, 16, 64, mmxext, mmxext
-SADX34_CACHELINE_FUNC  8,  8, 64, mmxext, mmxext
+SADX34_CACHELINE_FUNC  8, 16, 64, mmxext, mmxext, mmxext
+SADX34_CACHELINE_FUNC  8,  8, 64, mmxext, mmxext, mmxext
 
 %ifndef ARCH_X86_64
 SAD16_CACHELINE_FUNC sse2, 8
@@ -1325,9 +1325,10 @@ SAD16_CACHELINE_FUNC sse2, 16
 SAD16_CACHELINE_LOOP_SSE2 i
 %assign i i+1
 %endrep
-SADX34_CACHELINE_FUNC 16, 16, 64, sse2, sse2
-SADX34_CACHELINE_FUNC 16,  8, 64, sse2, sse2
+SADX34_CACHELINE_FUNC 16, 16, 64, sse2, sse2, sse2
+SADX34_CACHELINE_FUNC 16,  8, 64, sse2, sse2, sse2
 %endif ; !ARCH_X86_64
+SADX34_CACHELINE_FUNC  8, 16, 64, sse2, mmxext, sse2
 
 SAD16_CACHELINE_FUNC ssse3, 8
 SAD16_CACHELINE_FUNC ssse3, 16
@@ -1336,5 +1337,6 @@ SAD16_CACHELINE_FUNC ssse3, 16
 SAD16_CACHELINE_LOOP_SSSE3 i
 %assign i i+1
 %endrep
-SADX34_CACHELINE_FUNC 16, 16, 64, sse2, ssse3
-SADX34_CACHELINE_FUNC 16,  8, 64, sse2, ssse3
+SADX34_CACHELINE_FUNC 16, 16, 64, sse2, ssse3, ssse3
+SADX34_CACHELINE_FUNC 16,  8, 64, sse2, ssse3, ssse3
+

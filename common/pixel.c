@@ -679,14 +679,21 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT_ADS( _sse2 );
         pixf->var[PIXEL_8x8] = x264_pixel_var_8x8_sse2;
         pixf->intra_sad_x3_16x16 = x264_intra_sad_x3_16x16_sse2;
-#ifdef ARCH_X86
-        if( cpu&X264_CPU_CACHELINE_64 )
+
+       if( cpu&X264_CPU_CACHELINE_64 )
         {
+#ifdef ARCH_X86
             INIT2( sad, _cache64_sse2 );
             INIT2( sad_x3, _cache64_sse2 );
             INIT2( sad_x4, _cache64_sse2 );
-        }
 #endif
+           if( cpu&X264_CPU_SSE2_IS_FAST )
+           {
+               pixf->sad_x3[PIXEL_8x16] = x264_pixel_sad_x3_8x16_cache64_sse2;
+               pixf->sad_x4[PIXEL_8x16] = x264_pixel_sad_x4_8x16_cache64_sse2;
+           }
+        }
+
         if( cpu&X264_CPU_SSE_MISALIGN )
         {
             INIT2( sad_x3, _sse2_misalign );
