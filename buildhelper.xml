@@ -620,7 +620,7 @@
     <junit
       fork="true"
       haltonfailure="no"
-      haltonerror="yes"
+      haltonerror="no"
       printsummary="yes"
       showoutput="${test.show_output}"
       timeout="1800000"
