@@ -4,8 +4,8 @@
 ;* Copyright (C) 2003-2008 x264 project
 ;*
 ;* Authors: Holger Lubitz <holger@lubitz.org>
-;*          Laurent Aimar <fenrir@via.ecp.fr>
 ;*          Loren Merritt <lorenm@u.washington.edu>
+;*          Laurent Aimar <fenrir@via.ecp.fr>
 ;*          Min Chen <chenm001.163.com>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
