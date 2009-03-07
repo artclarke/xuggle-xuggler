@@ -24,9 +24,11 @@
 ;*****************************************************************************
 
 %include "x86inc.asm"
+%include "x86util.asm"
 
 SECTION_RODATA
 
+pb_1:  times 16 db 1
 pw_1:  times 8 dw 1
 pw_16: times 8 dw 16
 pw_32: times 8 dw 32
@@ -101,24 +103,6 @@ SECTION .text
     packuswb  %1, %2
 %endmacro
 
-%macro PALIGNR_MMX 4
-    %ifnidn %4, %2
-    mova    %4, %2
-    %endif
-    %if mmsize == 8
-    psllq   %1, (8-%3)*8
-    psrlq   %4, %3*8
-    %else
-    pslldq  %1, 16-%3
-    psrldq  %4, %3
-    %endif
-    por     %1, %4
-%endmacro
-
-%macro PALIGNR_SSSE3 4
-    palignr %1, %2, %3
-%endmacro
-
 INIT_MMX
 
 %macro HPEL_V 1-2 0
@@ -135,12 +119,34 @@ cglobal x264_hpel_filter_v_%1, 5,6,%2
     add r0, r4
     lea r2, [r2+r4*2]
     neg r4
+%ifnidn %1, ssse3
     pxor m0, m0
+%else
+    mova m0, [pb_1 GLOBAL]
+%endif
 .loop:
+%ifidn %1, ssse3
+    mova m1, [r1]
+    mova m4, [r5+r3*2]
+    mova m2, [r1+r3]
+    mova m5, [r5+r3]
+    mova m3, [r1+r3*2]
+    mova m6, [r5]
+    SBUTTERFLY bw, 1, 4, 7
+    SBUTTERFLY bw, 2, 5, 7
+    SBUTTERFLY bw, 3, 6, 7
+    pmaddubsw m1, m0
+    pmaddubsw m4, m0
+    pmaddubsw m2, m0
+    pmaddubsw m5, m0
+    pmaddubsw m3, m0
+    pmaddubsw m6, m0
+%else
     LOAD_ADD_2 m1, m4, [r1     ], [r5+r3*2], m6, m7            ; a0 / a1
     LOAD_ADD_2 m2, m5, [r1+r3  ], [r5+r3  ], m6, m7            ; b0 / b1
     LOAD_ADD   m3,     [r1+r3*2], [r5     ], m7                ; c0
     LOAD_ADD   m6,     [r1+r3*2+mmsize/2], [r5+mmsize/2], m7 ; c1
+%endif
     FILT_V2
     mova      m7, [pw_16 GLOBAL]
     mova      [r2+r4*2], m1
@@ -411,12 +417,32 @@ HPEL_V sse2, 8
 HPEL_C sse2_misalign
 %define PALIGNR PALIGNR_SSSE3
 HPEL_C ssse3
+HPEL_V ssse3
 
 %ifdef ARCH_X86_64
 
-%macro DO_FILT_V 5
+%macro DO_FILT_V 6
+%ifidn %6, ssse3
+    mova m1, [r3]
+    mova m5, [r1+r2*2]
+    mova m2, [r3+r2]
+    mova m6, [r1+r2]
+    mova m3, [pb_1 GLOBAL]
+    mova m4, m1
+    punpcklbw m1, m5
+    punpckhbw m4, m5
+    mova m5, m2
+    punpcklbw m2, m6
+    punpckhbw m5, m6
+    pmaddubsw m1, m3
+    pmaddubsw m4, m3
+    pmaddubsw m2, m3
+    pmaddubsw m5, m3
+%else
     LOAD_ADD_2 m1, m4, [r3     ], [r1+r2*2], m2, m5            ; a0 / a1
     LOAD_ADD_2 m2, m5, [r3+r2  ], [r1+r2  ], m3, m6            ; b0 / b1
+%endif
+    ; H filter depends on LOAD_ADD writing unpacked words from [r3+r2*2] to %3 %4
     LOAD_ADD_2 m3, m6, [r3+r2*2], [r1     ], %3, %4            ; c0 / c1
     FILT_V2
     mova      %1, m1
@@ -504,10 +530,10 @@ cglobal x264_hpel_filter_%1, 7,7,16
 .loopy:
 ; first filter_v
 ; prefetching does not help here! lots of variants tested, all slower
-    DO_FILT_V m8, m7, m13, m12, 0
+    DO_FILT_V m8, m7, m13, m12, 0, %1
 ;ALIGN 16
 .loopx:
-    DO_FILT_V m6, m5, m11, m10, 16
+    DO_FILT_V m6, m5, m11, m10, 16, %1
 .lastx:
     paddw    m15, m15
     DO_FILT_CC m9, m8, m7, m6

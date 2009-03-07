@@ -230,7 +230,8 @@ void x264_hpel_filter_sse2( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t
 void x264_hpel_filter_ssse3( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height, int16_t *buf );
 #else
 HPEL(16, sse2, sse2, sse2, sse2)
-HPEL(16, ssse3, sse2, ssse3, ssse3)
+HPEL(16, ssse3, ssse3, ssse3, ssse3)
+
 #endif
 HPEL(16, sse2_misalign, sse2, sse2_misalign, sse2)
 
