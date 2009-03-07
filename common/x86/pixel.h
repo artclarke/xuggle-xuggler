@@ -49,15 +49,17 @@ DECL_X4( sad, mmxext )
 DECL_X4( sad, sse2 )
 DECL_X4( sad, sse3 )
 DECL_X1( ssd, mmx )
+DECL_X1( ssd, sse2slow )
 DECL_X1( ssd, sse2 )
-DECL_X1( ssd, sse4 )
+DECL_X1( ssd, ssse3 )
 DECL_X1( satd, mmxext )
 DECL_X1( satd, sse2 )
 DECL_X1( satd, ssse3 )
-DECL_X1( satd, ssse3_phadd )
+DECL_X1( satd, sse4 )
 DECL_X1( sa8d, mmxext )
 DECL_X1( sa8d, sse2 )
 DECL_X1( sa8d, ssse3 )
+DECL_X1( sa8d, sse4)
 DECL_X1( sad, cache32_mmxext );
 DECL_X1( sad, cache64_mmxext );
 DECL_X1( sad, cache64_sse2 );
@@ -72,6 +74,8 @@ DECL_PIXELS( int, var, sse2,   ( uint8_t *pix, int i_stride ))
 DECL_PIXELS( uint64_t, hadamard_ac, mmxext, ( uint8_t *pix, int i_stride ))
 DECL_PIXELS( uint64_t, hadamard_ac, sse2,   ( uint8_t *pix, int i_stride ))
 DECL_PIXELS( uint64_t, hadamard_ac, ssse3,  ( uint8_t *pix, int i_stride ))
+DECL_PIXELS( uint64_t, hadamard_ac, sse4,   ( uint8_t *pix, int i_stride ))
+
 
 void x264_intra_satd_x3_4x4_mmxext  ( uint8_t *, uint8_t *, int * );
 void x264_intra_satd_x3_4x4_ssse3   ( uint8_t *, uint8_t *, int * );

@@ -3,9 +3,9 @@
 ;*****************************************************************************
 ;* Copyright (C) 2003-2008 x264 project
 ;*
-;* Authors: Laurent Aimar <fenrir@via.ecp.fr>
+;* Authors: Holger Lubitz <holger@lubitz.org>
+;*          Laurent Aimar <fenrir@via.ecp.fr>
 ;*          Loren Merritt <lorenm@u.washington.edu>
-;*          Holger Lubitz <hal@duncan.ol.sub.de>
 ;*          Min Chen <chenm001.163.com>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
@@ -29,6 +29,7 @@
 SECTION_RODATA
 pw_32: times 8 dw 32
 pw_8000: times 8 dw 0x8000
+hsub_mul: times 8 db 1, -1
 pb_sub4frame:   db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
 pb_scan4framea: db 12,13,6,7,14,15,0,1,8,9,2,3,4,5,10,11
 pb_scan4frameb: db 0,1,8,9,2,3,4,5,10,11,12,13,6,7,14,15
@@ -38,38 +39,39 @@ pb_1: times 8 db 1
 
 SECTION .text
 
-%macro HADAMARD4_1D 4
-    SUMSUB_BADC m%2, m%1, m%4, m%3
-    SUMSUB_BADC m%4, m%2, m%3, m%1
+%macro WALSH4_1D 5
+    SUMSUB_BADC m%4, m%3, m%2, m%1, m%5
+    SUMSUB_BADC m%4, m%2, m%3, m%1, m%5
     SWAP %1, %4, %3
 %endmacro
 
 %macro SUMSUB_17BIT 4 ; a, b, tmp, 0x8000
     movq  m%3, m%4
-    paddw m%1, m%4
+    pxor  m%1, m%4
     psubw m%3, m%2
-    paddw m%2, m%4
+    pxor  m%2, m%4
     pavgw m%3, m%1
     pavgw m%2, m%1
-    psubw m%3, m%4
-    psubw m%2, m%4
+    pxor  m%3, m%4
+    pxor  m%2, m%4
     SWAP %1, %2, %3
 %endmacro
 
+INIT_MMX
 ;-----------------------------------------------------------------------------
 ; void x264_dct4x4dc_mmx( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
 cglobal x264_dct4x4dc_mmx, 1,1
-    movq   m0, [r0+ 0]
-    movq   m1, [r0+ 8]
-    movq   m2, [r0+16]
     movq   m3, [r0+24]
+    movq   m2, [r0+16]
+    movq   m1, [r0+ 8]
+    movq   m0, [r0+ 0]
     movq   m7, [pw_8000 GLOBAL] ; convert to unsigned and back, so that pavgw works
-    HADAMARD4_1D  0,1,2,3
+    WALSH4_1D  0,1,2,3,4
     TRANSPOSE4x4W 0,1,2,3,4
-    SUMSUB_BADC m1, m0, m3, m2
-    SWAP 0,1
-    SWAP 2,3
+    SUMSUB_BADC m1, m0, m3, m2, m4
+    SWAP 0, 1
+    SWAP 2, 3
     SUMSUB_17BIT 0,2,4,7
     SUMSUB_17BIT 1,3,5,7
     movq  [r0+0], m0
@@ -82,123 +84,78 @@ cglobal x264_dct4x4dc_mmx, 1,1
 ; void x264_idct4x4dc_mmx( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
 cglobal x264_idct4x4dc_mmx, 1,1
-    movq  m0, [r0+ 0]
-    movq  m1, [r0+ 8]
-    movq  m2, [r0+16]
-    movq  m3, [r0+24]
-    HADAMARD4_1D  0,1,2,3
+    movq   m3, [r0+24]
+    movq   m2, [r0+16]
+    movq   m1, [r0+ 8]
+    movq   m0, [r0+ 0]
+    WALSH4_1D  0,1,2,3,4
     TRANSPOSE4x4W 0,1,2,3,4
-    HADAMARD4_1D  0,1,2,3
+    WALSH4_1D  0,1,2,3,4
     movq  [r0+ 0], m0
     movq  [r0+ 8], m1
     movq  [r0+16], m2
     movq  [r0+24], m3
     RET
 
-%macro DCT4_1D 5
-    SUMSUB_BADC m%4, m%1, m%3, m%2
-    SUMSUB_BA   m%3, m%4
-    SUMSUB2_AB  m%1, m%2, m%5
-    SWAP %1, %3, %4, %5, %2
-%endmacro
-
-%macro IDCT4_1D 6
-    SUMSUB_BA   m%3, m%1
-    SUMSUBD2_AB m%2, m%4, m%6, m%5
-    SUMSUB_BADC m%2, m%3, m%5, m%1
-    SWAP %1, %2, %5, %4, %3
-%endmacro
-
+%macro SUB_DCT4 1
 ;-----------------------------------------------------------------------------
 ; void x264_sub4x4_dct_mmx( int16_t dct[4][4], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
-cglobal x264_sub4x4_dct_mmx, 3,3
+cglobal x264_sub4x4_dct_%1, 3,3
+%ifidn %1, mmx
 .skip_prologue:
-%macro SUB_DCT4 1
-    LOAD_DIFF  m0, m6, m7, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
-    LOAD_DIFF  m1, m6, m7, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
-    LOAD_DIFF  m2, m6, m7, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
-    LOAD_DIFF  m3, m6, m7, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
+    LOAD_DIFF  m0, m4, m5, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
+    LOAD_DIFF  m3, m4, m5, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
+    LOAD_DIFF  m1, m4, m5, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
+    LOAD_DIFF  m2, m4, m5, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
+%else
+    mova m5, [hsub_mul GLOBAL]
+    LOAD_DIFF8x4_SSSE3 0, 3, 1, 2, 4, 5, r1, r2
+%endif
     DCT4_1D 0,1,2,3,4
-    TRANSPOSE%1 0,1,2,3,4
+    TRANSPOSE4x4W 0,1,2,3,4
     DCT4_1D 0,1,2,3,4
     movq  [r0+ 0], m0
     movq  [r0+ 8], m1
     movq  [r0+16], m2
     movq  [r0+24], m3
-%endmacro
-    SUB_DCT4 4x4W
     RET
+%endmacro
+
+SUB_DCT4 mmx
+SUB_DCT4 ssse3
 
 ;-----------------------------------------------------------------------------
 ; void x264_add4x4_idct_mmx( uint8_t *p_dst, int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
 cglobal x264_add4x4_idct_mmx, 2,2
+    pxor m7, m7
 .skip_prologue:
-    movq  m0, [r1+ 0]
     movq  m1, [r1+ 8]
-    movq  m2, [r1+16]
     movq  m3, [r1+24]
-%macro ADD_IDCT4 1
+    movq  m2, [r1+16]
+    movq  m0, [r1+ 0]
     IDCT4_1D 0,1,2,3,4,5
-    TRANSPOSE%1 0,1,2,3,4
+    TRANSPOSE4x4W 0,1,2,3,4
     paddw m0, [pw_32 GLOBAL]
     IDCT4_1D 0,1,2,3,4,5
-    pxor  m7, m7
     STORE_DIFF  m0, m4, m7, [r0+0*FDEC_STRIDE]
     STORE_DIFF  m1, m4, m7, [r0+1*FDEC_STRIDE]
     STORE_DIFF  m2, m4, m7, [r0+2*FDEC_STRIDE]
     STORE_DIFF  m3, m4, m7, [r0+3*FDEC_STRIDE]
-%endmacro
-    ADD_IDCT4 4x4W
     RET
-
-INIT_XMM
-
-cglobal x264_sub8x8_dct_sse2, 3,3,8
-.skip_prologue:
-    call .8x4
-    add  r0, 64
-    add  r1, 4*FENC_STRIDE
-    add  r2, 4*FDEC_STRIDE
-%ifdef WIN64
-    call .8x4
-    RET
-%endif
-.8x4:
-    SUB_DCT4 2x4x4W
-    movhps [r0+32], m0
-    movhps [r0+40], m1
-    movhps [r0+48], m2
-    movhps [r0+56], m3
-    ret
-
-cglobal x264_add8x8_idct_sse2, 2,2,8
-.skip_prologue:
-    call .8x4
-    add  r1, 64
-    add  r0, 4*FDEC_STRIDE
-%ifdef WIN64
-    call .8x4
-    RET
-%endif
-.8x4:
-    movq   m0, [r1+ 0]
-    movq   m1, [r1+ 8]
-    movq   m2, [r1+16]
-    movq   m3, [r1+24]
-    movhps m0, [r1+32]
-    movhps m1, [r1+40]
-    movhps m2, [r1+48]
-    movhps m3, [r1+56]
-    ADD_IDCT4 2x4x4W
-    ret
 
 ;-----------------------------------------------------------------------------
 ; void x264_sub8x8_dct_mmx( int16_t dct[4][4][4], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
 %macro SUB_NxN_DCT 6
-cglobal %1, 3,3
+cglobal %1, 3,3,11
+%if mmsize == 8
+    pxor m7, m7
+%else
+    add r2, 4*FDEC_STRIDE
+    mova m7, [hsub_mul GLOBAL]
+%endif
 .skip_prologue:
 %ifdef WIN64
     sub  rsp, 8
@@ -217,15 +174,22 @@ cglobal %1, 3,3
     add  r2, %4-%5-%6*FDEC_STRIDE
 %ifdef WIN64
     add  rsp, 8
-%endif
+    call %2
+    RET
+%else
     jmp  %2
+%endif
 %endmacro
 
 ;-----------------------------------------------------------------------------
 ; void x264_add8x8_idct_mmx( uint8_t *pix, int16_t dct[4][4][4] )
 ;-----------------------------------------------------------------------------
-%macro ADD_NxN_IDCT 6
-cglobal %1, 2,2
+%macro ADD_NxN_IDCT 6-7
+cglobal %1, 2,2,11
+    pxor m7, m7
+%if mmsize==16
+    add  r0, 4*FDEC_STRIDE
+%endif
 .skip_prologue:
 %ifdef WIN64
     sub  rsp, 8
@@ -241,8 +205,11 @@ cglobal %1, 2,2
     add  r1, %3
 %ifdef WIN64
     add  rsp, 8
-%endif
+    call %2
+    RET
+%else
     jmp  %2
+%endif
 %endmacro
 
 %ifndef ARCH_X86_64
@@ -255,19 +222,25 @@ cextern x264_sub8x8_dct8_mmx.skip_prologue
 cextern x264_add8x8_idct8_mmx.skip_prologue
 SUB_NxN_DCT  x264_sub16x16_dct8_mmx,  x264_sub8x8_dct8_mmx.skip_prologue,  128, 8, 0, 0
 ADD_NxN_IDCT x264_add16x16_idct8_mmx, x264_add8x8_idct8_mmx.skip_prologue, 128, 8, 0, 0
-%define x264_sub8x8_dct_sse2   x264_sub8x8_dct_sse2.skip_prologue
-%define x264_add8x8_idct_sse2  x264_add8x8_idct_sse2.skip_prologue
-%define x264_sub8x8_dct8_sse2  x264_sub8x8_dct8_sse2.skip_prologue
-%define x264_add8x8_idct8_sse2 x264_add8x8_idct8_sse2.skip_prologue
 %endif
 
-SUB_NxN_DCT  x264_sub16x16_dct_sse2,  x264_sub8x8_dct_sse2,  64, 8, 0, 4
-ADD_NxN_IDCT x264_add16x16_idct_sse2, x264_add8x8_idct_sse2, 64, 8, 0, 4
+INIT_XMM
 
-cextern x264_sub8x8_dct8_sse2
-cextern x264_add8x8_idct8_sse2
-SUB_NxN_DCT  x264_sub16x16_dct8_sse2,  x264_sub8x8_dct8_sse2,  128, 8, 0, 0
-ADD_NxN_IDCT x264_add16x16_idct8_sse2, x264_add8x8_idct8_sse2, 128, 8, 0, 0
+cextern x264_sub8x8_dct_sse2.skip_prologue
+cextern x264_sub8x8_dct_ssse3.skip_prologue
+SUB_NxN_DCT  x264_sub16x16_dct_sse2, x264_sub8x8_dct_sse2.skip_prologue, 128, 8, 0, 0
+SUB_NxN_DCT  x264_sub16x16_dct_ssse3, x264_sub8x8_dct_ssse3.skip_prologue, 128, 8, 0, 0
+cextern x264_add8x8_idct_sse2.skip_prologue
+ADD_NxN_IDCT x264_add16x16_idct_sse2, x264_add8x8_idct_sse2.skip_prologue, 2*64, 8, 0, 0
+
+cextern x264_sub8x8_dct8_sse2.skip_prologue
+cextern x264_add8x8_idct8_sse2.skip_prologue
+SUB_NxN_DCT  x264_sub16x16_dct8_sse2,  x264_sub8x8_dct8_sse2.skip_prologue,  128, 8, 0, 0
+ADD_NxN_IDCT x264_add16x16_idct8_sse2, x264_add8x8_idct8_sse2.skip_prologue, 128, 8, 0, 0
+
+cextern x264_sub8x8_dct8_ssse3.skip_prologue
+SUB_NxN_DCT  x264_sub16x16_dct8_ssse3,  x264_sub8x8_dct8_ssse3.skip_prologue,  128, 8, 0, 0
+
 
 ;-----------------------------------------------------------------------------
 ; void add8x8_idct_dc( uint8_t *p_dst, int16_t *dct2x2 )

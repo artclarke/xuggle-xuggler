@@ -446,6 +446,11 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
 
     if( cpu&X264_CPU_SSSE3 )
     {
+        dctf->sub4x4_dct    = x264_sub4x4_dct_ssse3;
+        dctf->sub8x8_dct    = x264_sub8x8_dct_ssse3;
+        dctf->sub16x16_dct  = x264_sub16x16_dct_ssse3;
+        dctf->sub8x8_dct8   = x264_sub8x8_dct8_ssse3;
+        dctf->sub16x16_dct8 = x264_sub16x16_dct8_ssse3;
         dctf->add8x8_idct_dc = x264_add8x8_idct_dc_ssse3;
         dctf->add16x16_idct_dc = x264_add16x16_idct_dc_ssse3;
     }

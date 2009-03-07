@@ -3,10 +3,11 @@
 ;*****************************************************************************
 ;* Copyright (C) 2003-2008 x264 project
 ;*
-;* Authors: Laurent Aimar <fenrir@via.ecp.fr> (initial version)
-;*          Loren Merritt <lorenm@u.washington.edu> (misc)
-;*          Min Chen <chenm001.163.com> (converted to nasm)
-;*          Christian Heine <sennindemokrit@gmx.net> (dct8/idct8 functions)
+;* Authors: Laurent Aimar <fenrir@via.ecp.fr>
+;*          Loren Merritt <lorenm@u.washington.edu>
+;*          Holger Lubitz <holger@lubitz.org>
+;*          Min Chen <chenm001.163.com>
+;*          Christian Heine <sennindemokrit@gmx.net>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -29,6 +30,7 @@
 SECTION_RODATA
 
 pw_32: times 8 dw 32
+hsub_mul: times 8 db 1, -1
 
 SECTION .text
 
@@ -340,26 +342,64 @@ global x264_add8x8_idct8_mmx.skip_prologue
     ADD_STORE_ROW 7, m7, [r1+0x78]
     ret
 
-
-
 INIT_XMM
+%macro DCT_SUB8 1
+cglobal x264_sub8x8_dct_%1, 3,3
+    add r2, 4*FDEC_STRIDE
+global x264_sub8x8_dct_%1.skip_prologue
+.skip_prologue:
+%ifnidn %1, sse2
+    mova m7, [hsub_mul GLOBAL]
+%endif
+    LOAD_DIFF8x4 0, 1, 2, 3, 6, 7, r1, r2-4*FDEC_STRIDE
+    SPILL r0, 1,2
+    SWAP 2, 7
+    LOAD_DIFF8x4 4, 5, 6, 7, 1, 2, r1, r2-4*FDEC_STRIDE
+    UNSPILL r0, 1
+    SPILL r0, 7
+    SWAP 2, 7
+    UNSPILL r0, 2
+    DCT4_1D 0, 1, 2, 3, 7
+    TRANSPOSE2x4x4W 0, 1, 2, 3, 7
+    UNSPILL r0, 7
+    SPILL r0, 2
+    DCT4_1D 4, 5, 6, 7, 2
+    TRANSPOSE2x4x4W 4, 5, 6, 7, 2
+    UNSPILL r0, 2
+    SPILL r0, 6
+    DCT4_1D 0, 1, 2, 3, 6
+    UNSPILL r0, 6
+    STORE_DCT 0, 1, 2, 3, r0, 0
+    DCT4_1D 4, 5, 6, 7, 3
+    STORE_DCT 4, 5, 6, 7, r0, 64
+    ret
 
 ;-----------------------------------------------------------------------------
 ; void x264_sub8x8_dct8_sse2( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
-cglobal x264_sub8x8_dct8_sse2, 3,3
-global x264_sub8x8_dct8_sse2.skip_prologue
+cglobal x264_sub8x8_dct8_%1, 3,3
+    add r2, 4*FDEC_STRIDE
+global x264_sub8x8_dct8_%1.skip_prologue
 .skip_prologue:
-    LOAD_DIFF m0, m7, none, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
-    LOAD_DIFF m1, m7, none, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
-    LOAD_DIFF m2, m7, none, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
-    LOAD_DIFF m3, m7, none, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
-    LOAD_DIFF m4, m7, none, [r1+4*FENC_STRIDE], [r2+4*FDEC_STRIDE]
-    LOAD_DIFF m5, m7, none, [r1+5*FENC_STRIDE], [r2+5*FDEC_STRIDE]
+%ifidn %1, sse2
+    LOAD_DIFF m0, m7, none, [r1+0*FENC_STRIDE], [r2-4*FDEC_STRIDE]
+    LOAD_DIFF m1, m7, none, [r1+1*FENC_STRIDE], [r2-3*FDEC_STRIDE]
+    LOAD_DIFF m2, m7, none, [r1+2*FENC_STRIDE], [r2-2*FDEC_STRIDE]
+    LOAD_DIFF m3, m7, none, [r1+3*FENC_STRIDE], [r2-1*FDEC_STRIDE]
+    LOAD_DIFF m4, m7, none, [r1+4*FENC_STRIDE], [r2+0*FDEC_STRIDE]
+    LOAD_DIFF m5, m7, none, [r1+5*FENC_STRIDE], [r2+1*FDEC_STRIDE]
     SPILL r0, 0
-    LOAD_DIFF m6, m7, none, [r1+6*FENC_STRIDE], [r2+6*FDEC_STRIDE]
-    LOAD_DIFF m7, m0, none, [r1+7*FENC_STRIDE], [r2+7*FDEC_STRIDE]
+    LOAD_DIFF m6, m7, none, [r1+6*FENC_STRIDE], [r2+2*FDEC_STRIDE]
+    LOAD_DIFF m7, m0, none, [r1+7*FENC_STRIDE], [r2+3*FDEC_STRIDE]
     UNSPILL r0, 0
+%else
+    mova m7, [hsub_mul GLOBAL]
+    LOAD_DIFF8x4 0, 1, 2, 3, 4, 7, r1, r2-4*FDEC_STRIDE
+    SPILL r0, 0,1
+    SWAP 1, 7
+    LOAD_DIFF8x4 4, 5, 6, 7, 0, 1, r1, r2-4*FDEC_STRIDE
+    UNSPILL r0, 0,1
+%endif
     DCT8_1D 0,1,2,3,4,5,6,7,r0
     UNSPILL r0, 0,4
     TRANSPOSE8x8W 0,1,2,3,4,5,6,7,[r0+0x60],[r0+0x40],1
@@ -367,11 +407,59 @@ global x264_sub8x8_dct8_sse2.skip_prologue
     DCT8_1D 0,1,2,3,4,5,6,7,r0
     SPILL r0, 1,2,3,5,7
     ret
+%endmacro
+
+%define LOAD_DIFF8x4 LOAD_DIFF8x4_SSE2
+%define movdqa movaps
+%define punpcklqdq movlhps
+DCT_SUB8 sse2
+%undef movdqa
+%undef punpcklqdq
+%define LOAD_DIFF8x4 LOAD_DIFF8x4_SSSE3
+DCT_SUB8 ssse3
+
+;-----------------------------------------------------------------------------
+; void x264_add8x8_idct_sse2( uint8_t *pix, int16_t dct[4][4][4] )
+;-----------------------------------------------------------------------------
+cglobal x264_add8x8_idct_sse2, 2,2
+    add r0, 4*FDEC_STRIDE
+global x264_add8x8_idct_sse2.skip_prologue
+.skip_prologue:
+    UNSPILL_SHUFFLE r1, 0,2,1,3, 0,1,2,3
+    SBUTTERFLY qdq, 0, 1, 4
+    SBUTTERFLY qdq, 2, 3, 4
+    UNSPILL_SHUFFLE r1, 4,6,5,7, 4,5,6,7
+    SPILL r1, 0
+    SBUTTERFLY qdq, 4, 5, 0
+    SBUTTERFLY qdq, 6, 7, 0
+    UNSPILL r1,0
+    IDCT4_1D 0,1,2,3,r1
+    SPILL r1, 4
+    TRANSPOSE2x4x4W 0,1,2,3,4
+    UNSPILL r1, 4
+    IDCT4_1D 4,5,6,7,r1
+    SPILL r1, 0
+    TRANSPOSE2x4x4W 4,5,6,7,0
+    UNSPILL r1, 0
+    paddw m0, [pw_32 GLOBAL]
+    IDCT4_1D 0,1,2,3,r1
+    paddw m4, [pw_32 GLOBAL]
+    IDCT4_1D 4,5,6,7,r1
+    SPILL r1, 6,7
+    pxor m7, m7
+    DIFFx2 m0, m1, m6, m7, [r0-4*FDEC_STRIDE], [r0-3*FDEC_STRIDE]; m5
+    DIFFx2 m2, m3, m6, m7, [r0-2*FDEC_STRIDE], [r0-1*FDEC_STRIDE]; m5
+    UNSPILL_SHUFFLE r1, 0,2, 6,7
+    DIFFx2 m4, m5, m6, m7, [r0+0*FDEC_STRIDE], [r0+1*FDEC_STRIDE]; m5
+    DIFFx2 m0, m2, m6, m7, [r0+2*FDEC_STRIDE], [r0+3*FDEC_STRIDE]; m5
+    STORE_IDCT m1, m3, m5, m2
+    ret
 
 ;-----------------------------------------------------------------------------
 ; void x264_add8x8_idct8_sse2( uint8_t *p_dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
 cglobal x264_add8x8_idct8_sse2, 2,2
+    add r0, 4*FDEC_STRIDE
 global x264_add8x8_idct8_sse2.skip_prologue
 .skip_prologue:
     UNSPILL r1, 1,2,3,5,6,7
@@ -383,14 +471,10 @@ global x264_add8x8_idct8_sse2.skip_prologue
     IDCT8_1D   0,1,2,3,4,5,6,7,r1
     SPILL r1, 6,7
     pxor       m7, m7
-    STORE_DIFF m0, m6, m7, [r0+FDEC_STRIDE*0]
-    STORE_DIFF m1, m6, m7, [r0+FDEC_STRIDE*1]
-    STORE_DIFF m2, m6, m7, [r0+FDEC_STRIDE*2]
-    STORE_DIFF m3, m6, m7, [r0+FDEC_STRIDE*3]
-    STORE_DIFF m4, m6, m7, [r0+FDEC_STRIDE*4]
-    STORE_DIFF m5, m6, m7, [r0+FDEC_STRIDE*5]
-    UNSPILL_SHUFFLE r1, 0,1, 6,7
-    STORE_DIFF m0, m6, m7, [r0+FDEC_STRIDE*6]
-    STORE_DIFF m1, m6, m7, [r0+FDEC_STRIDE*7]
+    DIFFx2 m0, m1, m6, m7, [r0-4*FDEC_STRIDE], [r0-3*FDEC_STRIDE]; m5
+    DIFFx2 m2, m3, m6, m7, [r0-2*FDEC_STRIDE], [r0-1*FDEC_STRIDE]; m5
+    UNSPILL_SHUFFLE r1, 0,2, 6,7
+    DIFFx2 m4, m5, m6, m7, [r0+0*FDEC_STRIDE], [r0+1*FDEC_STRIDE]; m5
+    DIFFx2 m0, m2, m6, m7, [r0+2*FDEC_STRIDE], [r0+3*FDEC_STRIDE]; m5
+    STORE_IDCT m1, m3, m5, m2
     ret
-
