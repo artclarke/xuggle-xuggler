@@ -285,14 +285,13 @@ SSD  4,  4, ssse3
 ; variance
 ;=============================================================================
 
-%macro VAR_START 0
+%macro VAR_START 1
     pxor  m5, m5    ; sum
     pxor  m6, m6    ; sum squared
-    pxor  m7, m7    ; zero
-%ifdef ARCH_X86_64
-    %define t3 r3
+%if %1
+    mova  m7, [pw_00ff GLOBAL]
 %else
-    %define t3 r2
+    pxor  m7, m7    ; zero
 %endif
 %endmacro
 
@@ -307,8 +306,23 @@ SSD  4,  4, ssse3
     RET
 %endmacro
 
+%macro VAR_CORE 0
+    paddw     m5, m0
+    paddw     m5, m3
+    paddw     m5, m1
+    paddw     m5, m4
+    pmaddwd   m0, m0
+    pmaddwd   m3, m3
+    pmaddwd   m1, m1
+    pmaddwd   m4, m4
+    paddd     m6, m0
+    paddd     m6, m3
+    paddd     m6, m1
+    paddd     m6, m4
+%endmacro
+
 %macro VAR_2ROW 2
-    mov      t3d, %2
+    mov      r2d, %2
 .loop:
     mova      m0, [r0]
     mova      m1, m0
@@ -323,19 +337,8 @@ SSD  4,  4, ssse3
 %endif
     punpcklbw m3, m7
     punpckhbw m4, m7
-    paddw     m5, m0
-    dec t3d
-    pmaddwd   m0, m0
-    paddw     m5, m1
-    pmaddwd   m1, m1
-    paddw     m5, m3
-    paddd     m6, m0
-    pmaddwd   m3, m3
-    paddw     m5, m4
-    paddd     m6, m1
-    pmaddwd   m4, m4
-    paddd     m6, m3
-    paddd     m6, m4
+    dec r2d
+    VAR_CORE
     jg .loop
 %endmacro
 
@@ -344,39 +347,43 @@ SSD  4,  4, ssse3
 ;-----------------------------------------------------------------------------
 INIT_MMX
 cglobal x264_pixel_var_16x16_mmxext, 2,3
-    VAR_START
+    VAR_START 0
     VAR_2ROW 8, 16
     VAR_END 8
 
 cglobal x264_pixel_var_8x8_mmxext, 2,3
-    VAR_START
+    VAR_START 0
     VAR_2ROW r1, 4
     VAR_END 6
 
 INIT_XMM
 cglobal x264_pixel_var_16x16_sse2, 2,3,8
-    VAR_START
-    VAR_2ROW r1, 8
+    VAR_START 1
+    mov      r2d, 8
+.loop:
+    mova      m0, [r0]
+    mova      m3, [r0+r1]
+    DEINTB    1, 0, 4, 3, 7
+    lea       r0, [r0+r1*2]
+    VAR_CORE
+    dec r2d
+    jg .loop
     VAR_END 8
 
-cglobal x264_pixel_var_8x8_sse2, 2,3,8
-    VAR_START
-    mov t3d, 4
+cglobal x264_pixel_var_8x8_sse2, 2,4,8
+    VAR_START 1
+    mov      r2d, 2
+    lea       r3, [r1*3]
 .loop:
     movh      m0, [r0]
-    movhps    m0, [r0+r1]
-    lea       r0, [r0+r1*2]
-    mova      m1, m0
-    punpcklbw m0, m7
-    punpckhbw m1, m7
-    dec t3d
-    paddw     m5, m0
-    paddw     m5, m1
-    pmaddwd   m0, m0
-    pmaddwd   m1, m1
-    paddd     m6, m0
-    paddd     m6, m1
-    jnz .loop
+    movh      m3, [r0+r1]
+    movhps    m0, [r0+r1*2]
+    movhps    m3, [r0+r3]
+    DEINTB    1, 0, 4, 3, 7
+    lea       r0, [r0+r1*4]
+    VAR_CORE
+    dec r2d
+    jg .loop
     VAR_END 6
 
 
