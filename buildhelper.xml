@@ -72,7 +72,7 @@
   </condition>
 
   <property name="ivy.lib.dir" value="${build.dir}/lib"/>
-  <property name="ivy.version" value="ivy-2.0.0-beta2" />
+  <property name="ivy.version" value="ivy-2.0.0" />
   <property name="ivy.retrieve.pattern" value="${ivy.lib.dir}/[conf]/[artifact].[ext]" />
   <property name="ivy.distrib.dir" value="${dist.dir}"/>
   <!-- You can set the variable XUGGLE_REPO in which case ivy will publish
@@ -150,7 +150,7 @@
     <taskdef uri="antlib:org.apache.ivy.ant" resource="org/apache/ivy/ant/antlib.xml" classpath="mk/buildtools/lib/${ivy.version}.jar"/>
     <property name="xuggle.ivy.initted" value="true"/>
     <echo message="Ivy task loaded"/>
-    <ivy:settings override="true" file="mk/buildtools/ivysettings.xml"/>
+    <ivy:settings file="mk/buildtools/ivysettings.xml"/>
     <echo message="Ivy settings file set"/>
   </target>
 
