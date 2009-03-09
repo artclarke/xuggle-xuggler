@@ -64,7 +64,8 @@ namespace com { namespace xuggle { namespace xuggler
     mContainer = 0;
   }
   Stream*
-  Stream :: make(Container *container, AVStream * aStream, Direction direction)
+  Stream :: make(Container *container, AVStream * aStream, Direction direction,
+      IStreamCoder *copyStream)
   {
     // note: make will acquire this for us.
     Stream *newStream = 0;
@@ -79,7 +80,8 @@ namespace com { namespace xuggle { namespace xuggler
               direction == INBOUND?IStreamCoder::DECODING :
               IStreamCoder::ENCODING,
               aStream->codec,
-              newStream);
+              newStream,
+              copyStream);
         VS_ASSERT(newStream->mCoder, "Could not allocate a coder!");
         newStream->mContainer = container;
       }

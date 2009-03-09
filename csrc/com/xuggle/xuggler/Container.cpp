@@ -193,7 +193,7 @@ namespace com { namespace xuggle { namespace xuggler
             Stream::make(this, avStream,
                 (this->getType() == READ ?
                     IStream::INBOUND : IStream::OUTBOUND
-                ))
+                ), 0)
         );
 
         if (stream)
@@ -324,6 +324,12 @@ namespace com { namespace xuggle { namespace xuggler
   IStream*
   Container :: addNewStream(int32_t id)
   {
+    return addStream(id, 0);
+  }
+  
+  IStream*
+  Container :: addStream(int32_t id, IStreamCoder * sourceCoder)
+  {
     Stream *retval=0;
     if (mFormatContext && mIsOpened)
     {
@@ -332,7 +338,7 @@ namespace com { namespace xuggle { namespace xuggler
       if (stream)
       {
         RefPointer<Stream>* p = new RefPointer<Stream>(
-            Stream::make(this, stream, IStream::OUTBOUND)
+            Stream::make(this, stream, IStream::OUTBOUND, sourceCoder)
         );
         if (p)
         {
@@ -867,6 +873,25 @@ namespace com { namespace xuggle { namespace xuggler
       retval = -1;
     }
 
+    return retval;
+  }
+  
+  IStream *
+  Container :: addCopiedStream(int32_t id, IStreamCoder *sourceCoder)
+  {
+    IStream *retval = 0;
+    try
+    {
+      if (!sourceCoder)
+        throw std::invalid_argument("must pass in a non-null IStreamCoder");
+      
+      retval = addStream(id, sourceCoder);
+    }
+    catch(std::exception & e)
+    {
+      VS_LOG_ERROR("Error: %s", e.what());
+      VS_REF_RELEASE(retval);
+    }
     return retval;
   }
 

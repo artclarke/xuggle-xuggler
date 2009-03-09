@@ -406,6 +406,7 @@ class XugglerJNI {
   public final static native void IContainer_setFlag(long jarg1, IContainer jarg1_, int jarg2, boolean jarg3);
   public final static native String IContainer_getURL(long jarg1, IContainer jarg1_);
   public final static native int IContainer_flushPackets(long jarg1, IContainer jarg1_);
+  public final static native long IContainer_addCopiedStream(long jarg1, IContainer jarg1_, int jarg2, long jarg3, IStreamCoder jarg3_);
   public final static native long Global_NO_PTS_get();
   public final static native long Global_DEFAULT_PTS_PER_SECOND_get();
   public final static native long Global_getVersion();

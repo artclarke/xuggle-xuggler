@@ -527,6 +527,26 @@ namespace com { namespace xuggle { namespace xuggler
      */
     virtual int32_t flushPackets()=0;
     
+    /*
+     * Added for 1.22
+     */
+    
+    /**
+     * Adds a new stream to the Container, but with Packets that
+     * have been separately encoded by a StreamCoder not explicitly
+     * tied to this container.
+     * 
+     * This method is useful when you want to copy some streams from
+     * an IContainer as is, and decode/encode some other streams.
+     * 
+     * @param id A format-dependent id for this stream.
+     * @param sourceCoder A IStreamCoder from another IContainer
+     *   that knows how to either encode or decode the packets you
+     *   will write to this stream.
+     *   
+     * @return A new IStream object, or null on error. 
+     */
+    virtual IStream* addCopiedStream(int32_t id, IStreamCoder *sourceCoder)=0;
   };
 }}}
 #endif /*ICONTAINER_H_*/
