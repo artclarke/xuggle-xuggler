@@ -28,7 +28,9 @@
 
 SECTION_RODATA
 
-pb_1:  times 16 db 1
+filt_mul20: times 16 db 20
+filt_mul51: times 8 db 1, -5
+
 pw_1:  times 8 dw 1
 pw_16: times 8 dw 16
 pw_32: times 8 dw 32
@@ -122,13 +124,13 @@ cglobal x264_hpel_filter_v_%1, 5,6,%2
 %ifnidn %1, ssse3
     pxor m0, m0
 %else
-    mova m0, [pb_1 GLOBAL]
+    mova m0, [filt_mul51 GLOBAL]
 %endif
 .loop:
 %ifidn %1, ssse3
     mova m1, [r1]
-    mova m4, [r5+r3*2]
-    mova m2, [r1+r3]
+    mova m4, [r1+r3]
+    mova m2, [r5+r3*2]
     mova m5, [r5+r3]
     mova m3, [r1+r3*2]
     mova m6, [r5]
@@ -139,15 +141,19 @@ cglobal x264_hpel_filter_v_%1, 5,6,%2
     pmaddubsw m4, m0
     pmaddubsw m2, m0
     pmaddubsw m5, m0
-    pmaddubsw m3, m0
-    pmaddubsw m6, m0
+    pmaddubsw m3, [filt_mul20 GLOBAL]
+    pmaddubsw m6, [filt_mul20 GLOBAL]
+    paddw  m1, m2
+    paddw  m4, m5
+    paddw  m1, m3
+    paddw  m4, m6
 %else
     LOAD_ADD_2 m1, m4, [r1     ], [r5+r3*2], m6, m7            ; a0 / a1
     LOAD_ADD_2 m2, m5, [r1+r3  ], [r5+r3  ], m6, m7            ; b0 / b1
     LOAD_ADD   m3,     [r1+r3*2], [r5     ], m7                ; c0
     LOAD_ADD   m6,     [r1+r3*2+mmsize/2], [r5+mmsize/2], m7 ; c1
-%endif
     FILT_V2
+%endif
     mova      m7, [pw_16 GLOBAL]
     mova      [r2+r4*2], m1
     mova      [r2+r4*2+mmsize], m4
@@ -424,27 +430,41 @@ HPEL_V ssse3
 %macro DO_FILT_V 6
 %ifidn %6, ssse3
     mova m1, [r3]
-    mova m5, [r1+r2*2]
     mova m2, [r3+r2]
-    mova m6, [r1+r2]
-    mova m3, [pb_1 GLOBAL]
+    mova %3, [r3+r2*2]
+    mova m3, [r1]
+    mova %4, [r1+r2]
+    mova m0, [r1+r2*2]
+    mova %2, [filt_mul51 GLOBAL]
     mova m4, m1
-    punpcklbw m1, m5
-    punpckhbw m4, m5
-    mova m5, m2
-    punpcklbw m2, m6
-    punpckhbw m5, m6
-    pmaddubsw m1, m3
-    pmaddubsw m4, m3
-    pmaddubsw m2, m3
-    pmaddubsw m5, m3
+    punpcklbw m1, m2
+    punpckhbw m4, m2
+    mova m2, m0
+    punpcklbw m0, %4
+    punpckhbw m2, %4
+    mova %1, m3
+    punpcklbw m3, %3
+    punpckhbw %1, %3
+    mova %3, m3
+    mova %4, %1
+    pmaddubsw m1, %2
+    pmaddubsw m4, %2
+    pmaddubsw m0, %2
+    pmaddubsw m2, %2
+    pmaddubsw m3, [filt_mul20 GLOBAL]
+    pmaddubsw %1, [filt_mul20 GLOBAL]
+    psrlw     %3, 8
+    psrlw     %4, 8
+    paddw m1, m0
+    paddw m4, m2
+    paddw m1, m3
+    paddw m4, %1
 %else
     LOAD_ADD_2 m1, m4, [r3     ], [r1+r2*2], m2, m5            ; a0 / a1
     LOAD_ADD_2 m2, m5, [r3+r2  ], [r1+r2  ], m3, m6            ; b0 / b1
-%endif
-    ; H filter depends on LOAD_ADD writing unpacked words from [r3+r2*2] to %3 %4
     LOAD_ADD_2 m3, m6, [r3+r2*2], [r1     ], %3, %4            ; c0 / c1
     FILT_V2
+%endif
     mova      %1, m1
     mova      %2, m4
     paddw     m1, m15
@@ -522,7 +542,9 @@ cglobal x264_hpel_filter_%1, 7,7,16
     sub       r3, r2
     sub       r3, r2
     mov       r4, r10
+%ifidn %1, sse2
     pxor      m0, m0
+%endif
     pcmpeqw  m15, m15
     psrlw    m15, 15 ; pw_1
     psllw    m15, 4
