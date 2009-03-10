@@ -759,7 +759,8 @@ cglobal x264_integral_init4h_sse4, 3,4
     pxor    m4, m4
 .loop:
     movdqa  m0, [r1+r2]
-    movdqu  m1, [r1+r2+8]
+    movdqa  m1, [r1+r2+16]
+    palignr m1, m0, 8
     mpsadbw m0, m4, 0
     mpsadbw m1, m4, 0
     paddw   m0, [r0+r2*2]
@@ -777,7 +778,8 @@ cglobal x264_integral_init8h_sse4, 3,4
     pxor    m4, m4
 .loop:
     movdqa  m0, [r1+r2]
-    movdqu  m1, [r1+r2+8]
+    movdqa  m1, [r1+r2+16]
+    palignr m1, m0, 8
     movdqa  m2, m0
     movdqa  m3, m1
     mpsadbw m0, m4, 0
