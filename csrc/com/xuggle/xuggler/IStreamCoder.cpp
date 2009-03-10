@@ -24,11 +24,11 @@
 namespace com { namespace xuggle { namespace xuggler
 {
 
-  IStreamCoder::IStreamCoder()
+  IStreamCoder :: IStreamCoder()
   {
   }
 
-  IStreamCoder::~IStreamCoder()
+  IStreamCoder :: ~IStreamCoder()
   {
   }
   
@@ -36,7 +36,14 @@ namespace com { namespace xuggle { namespace xuggler
   IStreamCoder :: make(Direction direction)
   {
     Global::init();
-    return StreamCoder::make(direction);
+    return StreamCoder::make(direction, 0);
+  }
+  
+  IStreamCoder*
+  IStreamCoder :: make(Direction direction, IStreamCoder* coder)
+  {
+    Global::init();
+    return StreamCoder::make(direction, coder);
   }
 
 }}}

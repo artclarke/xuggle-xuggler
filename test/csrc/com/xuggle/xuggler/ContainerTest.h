@@ -24,7 +24,8 @@ class ContainerTest : public CxxTest::TestSuite
     void testCloseContainerWithoutOpening();
     void testAddStreams();
     void testReadASmallNumberOfSamplesFromFile();
-    void testWriteHeader();;
+    void testWriteHeader();
+    void testWriteToFileFromFile();
   private:
     Helper* h;
     RefPointer<IContainer> container;

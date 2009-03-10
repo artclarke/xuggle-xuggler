@@ -50,8 +50,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int64_t getNumFrames();
 
     // Not for calling from Java
-    static Stream * make(Container* container, AVStream *, Direction direction,
-        IStreamCoder *sourceCoder);
+    static Stream * make(Container* container, AVStream *, Direction direction);
 
     // The StreamCoder will call this if it needs to
     virtual void setTimeBase(IRational *);
@@ -70,6 +69,10 @@ namespace com { namespace xuggle { namespace xuggler
     virtual void setLanguage(const char* language);
 
     virtual IContainer* getContainer();
+
+    virtual int32_t setStreamCoder(IStreamCoder *coder);
+    
+    virtual AVStream* getAVStream() { return mStream; }
     
   protected:
     Stream();

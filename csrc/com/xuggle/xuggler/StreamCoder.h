@@ -152,8 +152,10 @@ namespace com { namespace xuggle { namespace xuggler
      * stream in a container.
      */
     static StreamCoder* make(Direction direction,
-        AVCodecContext *context, Stream* stream, IStreamCoder *sourceCoder);
-    AVCodecContext* getCodecContext() { return mCodecContext; }
+        AVCodecContext *context, Stream* stream);
+    static StreamCoder* make(Direction direction, IStreamCoder* copyCoder);
+    
+    int32_t setStream(Stream*);
     int32_t streamClosed(Stream*);
 
     // RefCounted interface
@@ -167,7 +169,6 @@ namespace com { namespace xuggle { namespace xuggler
     AVCodecContext* mCodecContext;
     Stream* mStream; // Must not refcount this.
     com::xuggle::ferry::RefPointer<Codec> mCodec;
-    com::xuggle::ferry::RefPointer<StreamCoder> mCopy; 
     bool mOpened;
 
     // Variables used for patching up PTS values
@@ -188,9 +189,6 @@ namespace com { namespace xuggle { namespace xuggler
 
     void reset();
     void setPacketParameters(Packet *packet, int32_t size, int64_t srcTimeStamp);
-    
-    int32_t openForCopying();
-    int32_t openForCoding();
   };
 
 }}}

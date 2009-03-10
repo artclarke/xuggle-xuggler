@@ -293,7 +293,7 @@ public class IAudioResampler extends RefCounted {
  *		 to the cutoff frequency.  
  * @param	log2PhaseCount log2 of the number of entries in the polyphase 
  *		 filterbank  
- * @param	linear If true, the used filter will be linearly interpolated 
+ * @param	isLinear If true, the used filter will be linearly interpolated 
  *		 between the 2 closest filters.  
  * if false, the closest will be used.  
  * @param	cutoffFrequency Cutoff frequency. 1.0 is 1/2 the output sampling 

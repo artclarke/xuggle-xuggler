@@ -299,7 +299,7 @@ class XugglerJNI {
   public final static native int IStreamCoder_decodeVideo(long jarg1, IStreamCoder jarg1_, long jarg2, IVideoPicture jarg2_, long jarg3, IPacket jarg3_, int jarg4);
   public final static native int IStreamCoder_encodeVideo(long jarg1, IStreamCoder jarg1_, long jarg2, IPacket jarg2_, long jarg3, IVideoPicture jarg3_, int jarg4);
   public final static native int IStreamCoder_encodeAudio(long jarg1, IStreamCoder jarg1_, long jarg2, IPacket jarg2_, long jarg3, IAudioSamples jarg3_, long jarg4);
-  public final static native long IStreamCoder_make(int jarg1);
+  public final static native long IStreamCoder_make__SWIG_0(int jarg1);
   public final static native int IStreamCoder_getCodecTag(long jarg1, IStreamCoder jarg1_);
   public final static native void IStreamCoder_setCodecTag(long jarg1, IStreamCoder jarg1_, int jarg2);
   public final static native int IStreamCoder_getNumProperties(long jarg1, IStreamCoder jarg1_);
@@ -318,6 +318,7 @@ class XugglerJNI {
   public final static native boolean IStreamCoder_isOpen(long jarg1, IStreamCoder jarg1_);
   public final static native int IStreamCoder_getDefaultAudioFrameSize(long jarg1, IStreamCoder jarg1_);
   public final static native void IStreamCoder_setDefaultAudioFrameSize(long jarg1, IStreamCoder jarg1_, int jarg2);
+  public final static native long IStreamCoder_make__SWIG_1(int jarg1, long jarg2, IStreamCoder jarg2_);
   public final static native int IStream_getDirection(long jarg1, IStream jarg1_);
   public final static native int IStream_getIndex(long jarg1, IStream jarg1_);
   public final static native int IStream_getId(long jarg1, IStream jarg1_);
@@ -334,6 +335,7 @@ class XugglerJNI {
   public final static native String IStream_getLanguage(long jarg1, IStream jarg1_);
   public final static native void IStream_setLanguage(long jarg1, IStream jarg1_, String jarg2);
   public final static native long IStream_getContainer(long jarg1, IStream jarg1_);
+  public final static native int IStream_setStreamCoder(long jarg1, IStream jarg1_, long jarg2, IStreamCoder jarg2_);
   public final static native int IContainerFormat_setInputFormat(long jarg1, IContainerFormat jarg1_, String jarg2);
   public final static native int IContainerFormat_setOutputFormat(long jarg1, IContainerFormat jarg1_, String jarg2, String jarg3, String jarg4);
   public final static native String IContainerFormat_getInputFormatShortName(long jarg1, IContainerFormat jarg1_);
@@ -406,7 +408,6 @@ class XugglerJNI {
   public final static native void IContainer_setFlag(long jarg1, IContainer jarg1_, int jarg2, boolean jarg3);
   public final static native String IContainer_getURL(long jarg1, IContainer jarg1_);
   public final static native int IContainer_flushPackets(long jarg1, IContainer jarg1_);
-  public final static native long IContainer_addCopiedStream(long jarg1, IContainer jarg1_, int jarg2, long jarg3, IStreamCoder jarg3_);
   public final static native long Global_NO_PTS_get();
   public final static native long Global_DEFAULT_PTS_PER_SECOND_get();
   public final static native long Global_getVersion();

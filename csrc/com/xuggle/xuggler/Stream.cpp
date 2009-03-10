@@ -19,6 +19,8 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 #include <cstring>
+#include <stdexcept>
+
 #include <com/xuggle/ferry/Logger.h>
 
 #include <com/xuggle/xuggler/Global.h>
@@ -64,8 +66,7 @@ namespace com { namespace xuggle { namespace xuggler
     mContainer = 0;
   }
   Stream*
-  Stream :: make(Container *container, AVStream * aStream, Direction direction,
-      IStreamCoder *copyStream)
+  Stream :: make(Container *container, AVStream * aStream, Direction direction)
   {
     // note: make will acquire this for us.
     Stream *newStream = 0;
@@ -80,8 +81,7 @@ namespace com { namespace xuggle { namespace xuggler
               direction == INBOUND?IStreamCoder::DECODING :
               IStreamCoder::ENCODING,
               aStream->codec,
-              newStream,
-              copyStream);
+              newStream);
         VS_ASSERT(newStream->mCoder, "Could not allocate a coder!");
         newStream->mContainer = container;
       }
@@ -285,5 +285,42 @@ namespace com { namespace xuggle { namespace xuggler
     VS_REF_ACQUIRE(mContainer);
     return mContainer;
   }
-  
+
+  int32_t
+  Stream :: setStreamCoder(IStreamCoder *aCoder)
+  {
+    int32_t retval = -1;
+    try
+    {
+      if (mCoder && mCoder->isOpen())
+        throw std::runtime_error("cannot call setStreamCoder when current coder is open");
+      
+      if (!aCoder)
+        throw std::runtime_error("cannot set to a null stream coder");
+
+      StreamCoder *coder = dynamic_cast<StreamCoder*>(aCoder);
+      if (!coder)
+        throw std::runtime_error("IStreamCoder is not of expected underlying C++ type");
+
+      // Close the old stream coder
+      if (mCoder)
+      {
+        mCoder->streamClosed(this);
+      }
+
+      if (coder->setStream(this) < 0)
+        throw std::runtime_error("IStreamCoder doesn't like this stream");
+
+      VS_REF_RELEASE(mCoder);
+      mCoder = coder;
+      VS_REF_ACQUIRE(mCoder);
+      retval = 0;
+    }
+    catch (std::exception & e)
+    {
+      VS_LOG_ERROR("Error: %s", e.what());
+      retval = -1;
+    }
+    return retval;
+  }
 }}}

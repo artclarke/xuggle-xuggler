@@ -290,6 +290,19 @@ public class IStream extends RefCounted {
     return (cPtr == 0) ? null : new IContainer(cPtr, false);
   }
 
+/**
+ * Sets the stream coder to use for this stream.  
+ * This method will only cause a change if the IStreamCoder currently 
+ * set on this  
+ * IStream is not open. Otherwise the call is ignore and an error is 
+ * returned.  
+ * @param	newCoder The new stream coder to use.  
+ * @return	>= 0 on success; < 0 on error.  
+ */
+  public int setStreamCoder(IStreamCoder newCoder) {
+    return XugglerJNI.IStream_setStreamCoder(swigCPtr, this, IStreamCoder.getCPtr(newCoder), newCoder);
+  }
+
   public enum Direction {
   /**
    * The direction this stream is going (based on the container).

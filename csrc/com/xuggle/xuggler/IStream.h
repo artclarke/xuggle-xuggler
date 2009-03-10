@@ -179,6 +179,21 @@ namespace com { namespace xuggle { namespace xuggler
      * @return the container, or null if we don't know.
      */
     virtual IContainer* getContainer()=0;
+    
+    /*
+     * Added for 1.22
+     */
+    
+    /**
+     * Sets the stream coder to use for this stream.
+     * 
+     * This method will only cause a change if the IStreamCoder currently set on this
+     * IStream is not open.  Otherwise the call is ignore and an error is returned.
+     * 
+     * @param newCoder The new stream coder to use.
+     * @return >= 0 on success; < 0 on error.
+     */
+    virtual int32_t setStreamCoder(IStreamCoder *newCoder)=0;
   };
 }}}
 

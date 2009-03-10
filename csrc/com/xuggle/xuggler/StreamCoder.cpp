@@ -33,15 +33,15 @@
 #include <com/xuggle/xuggler/Packet.h>
 #include <com/xuggle/xuggler/Property.h>
 
-extern "C"
-{
+extern "C" {
 #include <libavcodec/opt.h>
 }
 
-VS_LOG_SETUP( VS_CPP_PACKAGE);
+VS_LOG_SETUP(VS_CPP_PACKAGE);
 
-namespace com { namespace xuggle { namespace xuggler {
-
+namespace com {
+namespace xuggle {
+namespace xuggler {
 using namespace com::xuggle::ferry;
 
 StreamCoder :: StreamCoder() :
@@ -84,35 +84,122 @@ StreamCoder :: reset()
   {
     // Don't free if we're decoding; the Container
     // will do that.
-
-    // This is a fix for the leak introduced here in ffmpeg:
-    // http://lists.mplayerhq.hu/pipermail/ffmpeg-devel/2008-July/049805.html
-    // This happened somewhere around r14487 for ffmpeg
-    av_free((char*) mCodecContext->rc_eq);
     av_free(mCodecContext);
+    if (mStream)
+    {
+      AVStream* avStream = mStream->getAVStream();
+      avStream->codec = 0;
+    }
   }
   mCodecContext = 0;
   // We do not refcount the stream
   mStream = 0;
-  mCopy.reset();
 }
 
 StreamCoder *
-StreamCoder :: make(Direction direction)
+StreamCoder :: make(Direction direction, IStreamCoder* aCoder)
 {
   StreamCoder *retval = 0;
+  try
+  {
+    AVCodecContext* codecCtx = avcodec_alloc_context();
+    if (!codecCtx)
+      throw std::bad_alloc();
+    
+    // set encoding defaults
+    int32_t flags = 0;
+    if (direction == IStreamCoder::ENCODING)
+      flags |= AV_OPT_FLAG_ENCODING_PARAM;
+    else
+      flags |= AV_OPT_FLAG_DECODING_PARAM;
 
-  AVCodecContext* codecCtx = avcodec_alloc_context();
+    av_opt_set_defaults2(codecCtx, flags, flags);
 
-  // set encoding defaults
-  int32_t flags = 0;
-  if (direction == IStreamCoder::ENCODING)
-    flags |= AV_OPT_FLAG_ENCODING_PARAM;
-  else
-    flags |= AV_OPT_FLAG_DECODING_PARAM;
+    retval = StreamCoder::make();
+    if (retval)
+    {
+      retval->mCodecContext = codecCtx;
+      retval->mDirection = direction;
+      retval->mStream = 0;
+      // Set the private data to this object.
+      codecCtx->opaque = retval;
+      
+      StreamCoder *coder = dynamic_cast<StreamCoder*>(aCoder);
+      if (aCoder && !coder)
+        throw std::runtime_error("Passed in stream coder not of expected underlying C++ type");
+      
+      if (coder)
+      {
+        struct AVCodecContext* codec = retval->mCodecContext;
+        struct AVCodecContext* icodec = coder->mCodecContext;
+        
+        codec->codec_id = icodec->codec_id;
+        codec->codec_type = icodec->codec_type;
 
-  av_opt_set_defaults2(codecCtx, flags, flags);
+        codec->codec_tag = icodec->codec_tag;
+        codec->bit_rate = icodec->bit_rate;
+        codec->extradata= icodec->extradata;
+        codec->extradata_size= icodec->extradata_size;
+        RefPointer<IStream> stream = coder->getStream();
+        RefPointer<IRational> streamBase = stream ? stream->getTimeBase() : 0;
+        double base = streamBase ? streamBase->getDouble() : 0;
+        
+        if(base && av_q2d(icodec->time_base)*icodec->ticks_per_frame > base && base < 1.0/1000)
+        {
+          codec->time_base = icodec->time_base;
+          codec->time_base.num *= icodec->ticks_per_frame;
+        }
+        else
+        {
+          codec->time_base.num = streamBase ? streamBase->getNumerator() : 0;
+          codec->time_base.den = streamBase ? streamBase->getDenominator() : 0;
+        }
+        switch(codec->codec_type)
+        {
+          case CODEC_TYPE_AUDIO:
+            codec->channel_layout = icodec->channel_layout;
+            codec->sample_rate = icodec->sample_rate;
+            codec->channels = icodec->channels;
+            codec->frame_size = icodec->frame_size;
+            codec->block_align= icodec->block_align;
+            if(codec->block_align == 1 && codec->codec_id == CODEC_ID_MP3)
+              codec->block_align= 0;
+            if(codec->codec_id == CODEC_ID_AC3)
+              codec->block_align= 0;
+            break;
+          case CODEC_TYPE_VIDEO:
+            codec->pix_fmt = icodec->pix_fmt;
+            codec->width = icodec->width;
+            codec->height = icodec->height;
+            codec->has_b_frames = icodec->has_b_frames;
+            break;
+          case CODEC_TYPE_SUBTITLE:
+            codec->width = icodec->width;
+            codec->height = icodec->height;
+            break;
+          default:
+            throw std::runtime_error("Unsupported codec type for copy");
+            break;
+        }
+      } else
+      {
+        retval->mCodecContext->codec_id = CODEC_ID_PROBE; // Tell FFMPEG we don't know, but to probe to find out
+      }
+    }
+  }
+  catch (std::exception &e)
+  {
+    VS_LOG_DEBUG("Error: %s", e.what());
+    VS_REF_RELEASE(retval);
+  }
+  return retval;
+}
 
+StreamCoder *   
+StreamCoder :: make(Direction direction, AVCodecContext * codecCtx,
+    Stream* stream)
+{
+  StreamCoder *retval = 0;
   if (codecCtx)
   {
     retval = StreamCoder::make();
@@ -120,45 +207,11 @@ StreamCoder :: make(Direction direction)
     {
       retval->mCodecContext = codecCtx;
       retval->mDirection = direction;
-      retval->mStream = 0;
-      retval->mCodecContext->codec_id = CODEC_ID_PROBE; // Tell FFMPEG we don't know, but to probe to find out
+      retval->mStream = stream; //do not ref count.
 
       // Set the private data to this object.
       codecCtx->opaque = retval;
     }
-  }
-  return retval;
-}
-
-StreamCoder *
-StreamCoder :: make(Direction direction, AVCodecContext * codecCtx,
-    Stream* stream, IStreamCoder* aCopy)
-{
-  StreamCoder *retval = 0;
-  try{
-    if (!codecCtx)
-      throw std::runtime_error("no AVCodecContext passed in");
-    StreamCoder *copy = dynamic_cast<StreamCoder*>(aCopy);
-    if (aCopy && !copy)
-      throw std::runtime_error("invalid IStreamCoder passed in for copy");
-
-    retval = StreamCoder::make();
-    if (!retval)
-      throw std::runtime_error("could not allocate Stream coder");
-
-    retval->mCodecContext = codecCtx;
-    retval->mDirection = direction;
-    retval->mStream = stream; //do not ref count.
-    retval->mCopy.reset(copy, true);
-
-    // Set the private data to this object.
-    codecCtx->opaque = retval;
-
-  }
-  catch (std::exception & e)
-  {
-    VS_LOG_ERROR("Error: %s", e.what());
-    VS_REF_RELEASE(retval);
   }
   return retval;
 }
@@ -190,12 +243,9 @@ ICodec::Type
 StreamCoder :: getCodecType()
 {
   ICodec::Type retval = ICodec::CODEC_TYPE_UNKNOWN;
-  if (mCodecContext)
-  {
+  if (mCodecContext) {
     retval = (ICodec::Type)mCodecContext->codec_type;
-  }
-  else
-  {
+  } else {
     VS_LOG_WARN("Attempt to get CodecType from uninitialized StreamCoder");
   }
   return retval;
@@ -208,9 +258,7 @@ StreamCoder :: getCodecID()
   if (mCodecContext)
   {
     retval = (ICodec::ID)mCodecContext->codec_id;
-  }
-  else
-  {
+  } else {
     VS_LOG_WARN("Attempt to get CodecID from uninitialized StreamCoder");
   }
   return retval;
@@ -417,7 +465,7 @@ StreamCoder :: getSampleRate()
 void
 StreamCoder :: setSampleRate(int32_t val)
 {
-  if (mCodecContext && !mOpened && val> 0)
+  if (mCodecContext && !mOpened && val > 0)
     mCodecContext->sample_rate = val;
 }
 
@@ -430,7 +478,7 @@ StreamCoder :: getSampleFormat()
 void
 StreamCoder :: setSampleFormat(IAudioSamples::Format val)
 {
-  if (mCodecContext && !mOpened && val> 0)
+  if (mCodecContext && !mOpened && val > 0)
     mCodecContext->sample_fmt = (SampleFormat)val;
 }
 
@@ -443,7 +491,7 @@ StreamCoder :: getChannels()
 void
 StreamCoder :: setChannels(int32_t val)
 {
-  if (mCodecContext && !mOpened && val> 0)
+  if (mCodecContext && !mOpened && val > 0)
     mCodecContext->channels = val;
 }
 
@@ -456,7 +504,7 @@ StreamCoder :: getGlobalQuality()
 void
 StreamCoder :: setGlobalQuality(int32_t newQuality)
 {
-  if (newQuality < 0 || newQuality> FF_LAMBDA_MAX)
+  if (newQuality < 0 || newQuality > FF_LAMBDA_MAX)
     newQuality = FF_LAMBDA_MAX;
   if (mCodecContext)
     mCodecContext->global_quality = newQuality;
@@ -510,132 +558,13 @@ StreamCoder :: open()
     if (!mCodecContext)
       throw std::runtime_error("no codec context");
 
-    if (mOpened)
-      throw std::runtime_error("codec already open");
-
-    if (mCopy)
-    {
-      // We're actually just doing a dumb copy so we do some
-      // madness
-      retval = openForCopying();
-    } else {
-      retval = openForCoding();
-    }
-  }
-  catch(std::exception &e)
-  {
-    VS_LOG_ERROR("Error: %s", e.what());
-    retval = -1;
-  }
-  return retval;
-}
-
-int32_t
-StreamCoder :: openForCopying()
-{
-  int retval = -1;
-  try
-  {
-    if (!mCopy->isOpen())
-      throw std::runtime_error("attempt to copy from other StreamCoder, but other StreamCoder is not open");
-
-    AVCodecContext *icodec=mCopy.value()->mCodecContext;
-    AVCodecContext *codec=this->mCodecContext;
-
-    codec->codec_id = icodec->codec_id;
-    codec->codec_type = icodec->codec_type;
-    codec->codec_tag = icodec->codec_tag;
-    codec->bit_rate = icodec->bit_rate;
-    codec->extradata= icodec->extradata;
-    codec->extradata_size= icodec->extradata_size;
-    if (mStream)
-    {
-      RefPointer<IRational> streamBase = mStream->getTimeBase();
-      double base = streamBase ? streamBase->getDouble() : 0;
-      if (base)
-      {
-        if(av_q2d(icodec->time_base)*icodec->ticks_per_frame > 
-        base && base < 1.0/1000)
-        {
-          codec->time_base = icodec->time_base;
-          codec->time_base.num *= icodec->ticks_per_frame;
-        }
-        else
-        {
-          codec->time_base.num = streamBase->getNumerator();
-          codec->time_base.den = streamBase->getDenominator();
-        }
-      }
-    }
-    codec->flags = icodec->flags;
-    codec->flags2 = icodec->flags2;
-
-    switch(codec->codec_type) {
-      case CODEC_TYPE_AUDIO:
-        codec->channel_layout = icodec->channel_layout;
-        codec->sample_rate = icodec->sample_rate;
-        codec->channels = icodec->channels;
-        codec->frame_size = icodec->frame_size;
-        codec->block_align= icodec->block_align;
-        if(codec->block_align == 1 && codec->codec_id == CODEC_ID_MP3)
-          codec->block_align= 0;
-        if(codec->codec_id == CODEC_ID_AC3)
-          codec->block_align= 0;
-        break;
-      case CODEC_TYPE_VIDEO:
-        codec->pix_fmt = icodec->pix_fmt;
-        codec->width = icodec->width;
-        codec->height = icodec->height;
-        codec->has_b_frames = icodec->has_b_frames;
-        break;
-      case CODEC_TYPE_SUBTITLE:
-        codec->width = icodec->width;
-        codec->height = icodec->height;
-        break;
-      default:
-        throw std::runtime_error("cannot copy this codec type");
-        break;
-    }
-
-    // One last edit here; because the stream coder we're copying might be
-    // an input coder, we should do the same check here for an output coder that
-    // requires global headers
-    if (mStream)
-    {
-      RefPointer<IContainer> container = mStream->getContainer();
-      if (container)
-      {
-        RefPointer<IContainerFormat> format = container->getContainerFormat();
-        if (format && mDirection == ENCODING && format->getOutputFlag(IContainerFormat::FLAG_GLOBALHEADER))
-        {
-          this->setFlag(FLAG_GLOBAL_HEADER, true);
-        }
-      }
-    }
-
-    mOpened = true;
-    retval = 0;
-  }
-  catch(std::exception &e)
-  {
-    VS_LOG_ERROR("Error: %s", e.what());
-    retval = -1;
-  }      
-  return retval;
-}
-
-int32_t
-StreamCoder :: openForCoding()
-{
-  int retval = -1;
-  try
-  {
     if (!mCodec)
     {
       RefPointer<ICodec> codec = this->getCodec();
       // This should set mCodec and then release
       // the local reference.
     }
+
     if (!mCodec)
       throw std::runtime_error("no codec set for coder");
 
@@ -669,13 +598,13 @@ StreamCoder :: openForCoding()
     mOpened = true;
 
     mFakeCurrPts = mFakeNextPts = mSamplesDecoded = mLastValidAudioTimeStamp
-    = 0;
+        = 0;
 
     // Do any post open initialization here.
     if (this->getCodecType() == ICodec::CODEC_TYPE_AUDIO)
     {
       int32_t frame_bytes = getAudioFrameSize() * getChannels()
-      * IAudioSamples::findSampleBitDepth((IAudioSamples::Format) mCodecContext->sample_fmt) / 8;
+          * IAudioSamples::findSampleBitDepth((IAudioSamples::Format) mCodecContext->sample_fmt) / 8;
       if (frame_bytes <= 0)
         frame_bytes = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 
@@ -701,15 +630,10 @@ StreamCoder :: close()
   int32_t retval = -1;
   if (mCodecContext && mOpened)
   {
-    if (!mCopy)
-    {
-      // Ffmpeg doesn't like it if multiple threads try to close a codec at the same time.
-      Global::lock();
-      retval = avcodec_close(mCodecContext);
-      Global::unlock();
-    } else {
-      retval = 0;
-    }
+    // Ffmpeg doesn't like it if multiple threads try to close a codec at the same time.
+    Global::lock();
+    retval = avcodec_close(mCodecContext);
+    Global::unlock();
     mOpened = false;
   }
   mBytesInFrameBuffer = 0;
@@ -725,7 +649,7 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
   AudioSamples *samples = dynamic_cast<AudioSamples*> (pOutSamples);
   Packet* packet = dynamic_cast<Packet*> (pPacket);
 
-  if (samples && packet && mCodecContext && mOpened && mDirection == DECODING && getCodecType() == ICodec::CODEC_TYPE_AUDIO && !mCopy)
+  if (samples && packet && mCodecContext && mOpened && mDirection == DECODING && getCodecType() == ICodec::CODEC_TYPE_AUDIO)
   {
     int outBufSize = 0;
     int32_t inBufSize = 0;
@@ -737,7 +661,7 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
     outBufSize = samples->getMaxBufferSize();
     inBufSize = packet->getSize() - startingByte;
 
-    if (inBufSize> 0 && outBufSize> 0)
+    if (inBufSize > 0 && outBufSize > 0)
     {
       RefPointer<IBuffer> buffer = packet->getData();
       uint8_t * inBuf = 0;
@@ -777,7 +701,7 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
           outBufSize = 0;
 
         IAudioSamples::Format format =
-          (IAudioSamples::Format) mCodecContext->sample_fmt;
+            (IAudioSamples::Format) mCodecContext->sample_fmt;
         int32_t bytesPerSample = (IAudioSamples::findSampleBitDepth(format) / 8
             * getChannels());
         int32_t numSamples = outBufSize / bytesPerSample;
@@ -832,15 +756,15 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
         // Use the last value of the next pts
         mFakeCurrPts = mFakeNextPts;
         // adjust our next Pts pointer
-        if (numSamples> 0)
+        if (numSamples > 0)
         {
           mSamplesDecoded += numSamples;
           mFakeNextPts = mLastValidAudioTimeStamp
-          + IAudioSamples::samplesToDefaultPts(mSamplesDecoded, getSampleRate());
+              + IAudioSamples::samplesToDefaultPts(mSamplesDecoded, getSampleRate());
         }
 
         // copy the packet PTS
-        samples->setComplete(numSamples> 0, numSamples, getSampleRate(),
+        samples->setComplete(numSamples > 0, numSamples, getSampleRate(),
             getChannels(), format, mFakeCurrPts);
       }
     }
@@ -855,7 +779,7 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
   int32_t retval = -1;
   VideoPicture* frame = dynamic_cast<VideoPicture*> (pOutFrame);
   Packet* packet = dynamic_cast<Packet*> (pPacket);
-  if (frame && packet && mCodecContext && mOpened && mDirection == DECODING && getCodecType() == ICodec::CODEC_TYPE_VIDEO && !mCopy)
+  if (frame && packet && mCodecContext && mOpened && mDirection == DECODING && getCodecType() == ICodec::CODEC_TYPE_VIDEO)
   {
     // reset the frame
     frame->setComplete(false, this->getPixelType(), -1,
@@ -878,7 +802,7 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
 
       VS_ASSERT(inBuf, "incorrect size or no data in packet");
 
-      if (inBufSize> 0 && inBuf)
+      if (inBufSize > 0 && inBuf)
       {
         VS_LOG_TRACE("Attempting decodeVideo(%p, %p, %d, %p, %d);",
             mCodecContext,
@@ -928,12 +852,12 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
 
           // adjust our next Pts pointer
           mFakeNextPts += (int64_t)frameDelay;
-          //          VS_LOG_TRACE("frame complete: %s; pts: %lld; packet ts: %lld; tb: %ld/%ld",
-          //              frameFinished ? "yes" : "no",
-          //              mFakeCurrPts,
-          //              packet ? packet->getDts() : 0,
-          //                  timeBase->getNumerator(), timeBase->getDenominator()
-          //                  );
+//          VS_LOG_TRACE("frame complete: %s; pts: %lld; packet ts: %lld; tb: %ld/%ld",
+//              frameFinished ? "yes" : "no",
+//              mFakeCurrPts,
+//              packet ? packet->getDts() : 0,
+//                  timeBase->getNumerator(), timeBase->getDenominator()
+//                  );
         }
         frame->setComplete(frameFinished, this->getPixelType(),
             this->getWidth(), this->getHeight(), mFakeCurrPts);
@@ -963,10 +887,7 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
   {
     if (packet)
       packet->reset();
-
-    if (mCopy)
-      throw std::runtime_error("Attempted to encode video on IStreamCoder that can only copy packets");
-
+    
     if (getCodecType() != ICodec::CODEC_TYPE_VIDEO)
       throw std::runtime_error("Attempting to encode video with non video coder");
 
@@ -975,105 +896,104 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
       throw std::runtime_error("frame is not of the same PixelType as this Coder expected");
     }
 
-    if (mCodecContext && mOpened && mDirection == ENCODING && packet)
+  if (mCodecContext && mOpened && mDirection == ENCODING && packet)
+  {
+    uint8_t* buf = 0;
+    uint32_t bufLen = 0;
+
+    // First, get the right buffer size.
+    if (suggestedBufferSize <= 0)
     {
-      uint8_t* buf = 0;
-      uint32_t bufLen = 0;
-
-      // First, get the right buffer size.
-      if (suggestedBufferSize <= 0)
+      if (frame)
       {
-        if (frame)
-        {
-          suggestedBufferSize = frame->getSize();
-        }
-        else
-        {
-          suggestedBufferSize = avpicture_get_size(getPixelType(), getWidth(),
-              getHeight());
-        }
+        suggestedBufferSize = frame->getSize();
       }
-      VS_ASSERT(suggestedBufferSize> 0, "no buffer size in input frame");
-      suggestedBufferSize = FFMAX(suggestedBufferSize, FF_MIN_BUFFER_SIZE);
+      else
+      {
+        suggestedBufferSize = avpicture_get_size(getPixelType(), getWidth(),
+            getHeight());
+      }
+    }
+    VS_ASSERT(suggestedBufferSize> 0, "no buffer size in input frame");
+    suggestedBufferSize = FFMAX(suggestedBufferSize, FF_MIN_BUFFER_SIZE);
 
-      retval = packet->allocateNewPayload(suggestedBufferSize);
+    retval = packet->allocateNewPayload(suggestedBufferSize);
+    if (retval >= 0)
+    {
+      encodingBuffer = packet->getData();
+    }
+    if (encodingBuffer)
+    {
+      buf = (uint8_t*) encodingBuffer->getBytes(0, suggestedBufferSize);
+      bufLen = encodingBuffer->getBufferSize();
+    }
+
+    if (buf && bufLen)
+    {
+      // Change the PTS in our frame to the timebase of the encoded stream
+      RefPointer<IRational> thisTimeBase = getTimeBase();
+
+      /*
+       * We make a copy of the AVFrame object and explicitly copy
+       * over the values that we know encoding cares about.
+       *
+       * This is because often some programs decode into an VideoPicture
+       * and just want to pass that to encodeVideo.  If we just
+       * leave the values that Ffmpeg had in the AVFrame during
+       * decoding, strange errors can result.
+       *
+       * Plus, this forces us to KNOW what we're passing into the encoder.
+       */
+      AVFrame* avFrame = 0;
+
+      if (frame)
+      {
+        avFrame = avcodec_alloc_frame();
+        VS_ASSERT(avFrame, "Memory allocation problem");
+        frame->fillAVFrame(avFrame);
+
+        avFrame->pict_type = 0; // let the encoder choose what pict_type to use
+
+        // convert into the time base that this coder wants
+        // to output in
+        avFrame->pts = thisTimeBase->rescale(frame->getPts(),
+            mFakePtsTimeBase.value());
+        /*
+         VS_LOG_DEBUG("Rescaling ts: %lld to %lld (from base %d/%d to %d/%d)",
+         srcFrame->pts,
+         avFrame->pts,
+         mFakePtsTimeBase->getNumerator(),
+         mFakePtsTimeBase->getDenominator(),
+         thisTimeBase->getNumerator(),
+         thisTimeBase->getDenominator());
+         */
+      }
+
+      VS_LOG_TRACE("Attempting encodeVideo(%p, %p, %d, %p)",
+          mCodecContext,
+          buf,
+          bufLen,
+          avFrame);
+      retval = avcodec_encode_video(mCodecContext, buf, bufLen, avFrame);
+      VS_LOG_TRACE("Finished %d encodeVideo(%p, %p, %d, %p)",
+          retval,
+          mCodecContext,
+          buf,
+          bufLen,
+          avFrame);
       if (retval >= 0)
       {
-        encodingBuffer = packet->getData();
+        setPacketParameters(packet, retval, frame ? frame->getTimeStamp() : Global::NO_PTS);
       }
-      if (encodingBuffer)
-      {
-        buf = (uint8_t*) encodingBuffer->getBytes(0, suggestedBufferSize);
-        bufLen = encodingBuffer->getBufferSize();
-      }
-
-      if (buf && bufLen)
-      {
-        // Change the PTS in our frame to the timebase of the encoded stream
-        RefPointer<IRational> thisTimeBase = getTimeBase();
-
-        /*
-         * We make a copy of the AVFrame object and explicitly copy
-         * over the values that we know encoding cares about.
-         *
-         * This is because often some programs decode into an VideoPicture
-         * and just want to pass that to encodeVideo.  If we just
-         * leave the values that Ffmpeg had in the AVFrame during
-         * decoding, strange errors can result.
-         *
-         * Plus, this forces us to KNOW what we're passing into the encoder.
-         */
-        AVFrame* avFrame = 0;
-
-        if (frame)
-        {
-          avFrame = avcodec_alloc_frame();
-          VS_ASSERT(avFrame, "Memory allocation problem");
-          frame->fillAVFrame(avFrame);
-
-          avFrame->pict_type = 0; // let the encoder choose what pict_type to use
-
-          // convert into the time base that this coder wants
-          // to output in
-          avFrame->pts = thisTimeBase->rescale(frame->getPts(),
-              mFakePtsTimeBase.value());
-          /*
-               VS_LOG_DEBUG("Rescaling ts: %lld to %lld (from base %d/%d to %d/%d)",
-               srcFrame->pts,
-               avFrame->pts,
-               mFakePtsTimeBase->getNumerator(),
-               mFakePtsTimeBase->getDenominator(),
-               thisTimeBase->getNumerator(),
-               thisTimeBase->getDenominator());
-           */
-        }
-
-        VS_LOG_TRACE("Attempting encodeVideo(%p, %p, %d, %p)",
-            mCodecContext,
-            buf,
-            bufLen,
-            avFrame);
-        retval = avcodec_encode_video(mCodecContext, buf, bufLen, avFrame);
-        VS_LOG_TRACE("Finished %d encodeVideo(%p, %p, %d, %p)",
-            retval,
-            mCodecContext,
-            buf,
-            bufLen,
-            avFrame);
-        if (retval >= 0)
-        {
-          setPacketParameters(packet, retval, frame ? frame->getTimeStamp() : Global::NO_PTS);
-        }
-        if (avFrame)
-          av_free(avFrame);
-      }
-    }
-    else
-    {
-      VS_LOG_WARN("Attempting to encode when not ready");
+      if (avFrame)
+        av_free(avFrame);
     }
   }
-  catch (std::exception & e)
+  else
+  {
+    VS_LOG_WARN("Attempting to encode when not ready");
+  }
+  } catch (std::exception & e)
   {
     VS_LOG_WARN("Got error: %s", e.what());
     retval = -1;
@@ -1098,10 +1018,6 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
       throw std::invalid_argument("Invalid packet to encode to");
     // Zero out our packet
     packet->reset();
-
-    if (mCopy)
-      throw std::runtime_error("Attempted to encode video on IStreamCoder that can only copy packets");
-
 
     if (!mCodecContext)
       throw std::runtime_error("StreamCoder not initialized properly");
@@ -1137,7 +1053,7 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
 
     int32_t bytesPerSample = (samples ? samples->getSampleSize()
         : IAudioSamples::findSampleBitDepth((IAudioSamples::Format)mCodecContext->sample_fmt) / 8
-        * getChannels());
+            * getChannels());
 
     /*
      * This gets tricky; There may be more audio samples passed to
@@ -1164,7 +1080,7 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
     // More error checking
     VS_ASSERT(frameBytes <= mAudioFrameBuffer->getBufferSize(),
         "did frameSize change from open?");
-    if (frameBytes> mAudioFrameBuffer->getBufferSize())
+    if (frameBytes > mAudioFrameBuffer->getBufferSize())
       throw std::runtime_error("not enough memory in internal frame buffer");
 
     VS_ASSERT(mBytesInFrameBuffer <= frameBytes,
@@ -1189,12 +1105,12 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
       if (mBytesInFrameBuffer == 0)
         // We have nothing in the frame buffer, so the input samples
         // timestamp will be the output
-        mStartingTimestampOfBytesInFrameBuffer =
+        mStartingTimestampOfBytesInFrameBuffer = 
           samples->getTimeStamp()+IAudioSamples::samplesToDefaultPts(startingSample, getSampleRate());
 
       // Set the packet to whatever we think the start of the frame is
       packetStartPts = mStartingTimestampOfBytesInFrameBuffer;
-
+      
       if (availableSamples >= frameSize && mBytesInFrameBuffer == 0)
       {
         VS_LOG_TRACE("audioEncode: Using passed in buffer: %d, %d, %d",
@@ -1347,9 +1263,7 @@ StreamCoder :: setPacketParameters(Packet * packet, int32_t size, int64_t srcTim
       // rescale from the encoder time base to the stream timebase
       pts = streamBase->rescale(mCodecContext->coded_frame->pts,
           coderBase.value());
-    }
-    else
-    {
+    } else {
       // assume they're equal
       pts = mCodecContext->coded_frame->pts;
     }
@@ -1371,7 +1285,7 @@ StreamCoder :: setPacketParameters(Packet * packet, int32_t size, int64_t srcTim
   // We will sometimes encode some data, but have zero data to send.
   // in that case, mark the packet as incomplete so people don't
   // output it.
-  packet->setComplete(size> 0, size);
+  packet->setComplete(size > 0, size);
 
 }
 
@@ -1479,11 +1393,13 @@ StreamCoder :: setProperty(const char* aName, bool aValue)
   return Property::setProperty(mCodecContext, aName, aValue);
 }
 
+
 int32_t
 StreamCoder :: setProperty(const char* aName, IRational *aValue)
 {
   return Property::setProperty(mCodecContext, aName, aValue);
 }
+
 
 char*
 StreamCoder :: getPropertyAsString(const char *aName)
@@ -1530,8 +1446,27 @@ StreamCoder :: getDefaultAudioFrameSize()
 void
 StreamCoder :: setDefaultAudioFrameSize(int32_t aNewSize)
 {
-  if (aNewSize>0)
+  if (aNewSize >0)
     mDefaultAudioFrameSize = aNewSize;
+}
+int32_t
+StreamCoder :: setStream(Stream* stream)
+{
+  int32_t retval = -1;
+  mStream = stream;
+  AVStream *avStream= stream ? stream->getAVStream() : 0;
+  if (avStream)
+  {
+    // This handles the case where FFMPEG actually alloced a stream
+    // codeccontext and thinks it'll free it later when the input
+    // file closes.  in this case, we free the old value because
+    // we're about to overwrite it.
+    if (avStream->codec)
+      av_free(avStream->codec);
+    avStream->codec = mCodecContext;
+  }
+  retval = 0;
+  return retval;
 }
 
 }}}

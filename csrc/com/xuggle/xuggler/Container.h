@@ -100,19 +100,16 @@ namespace com { namespace xuggle { namespace xuggler
     
     virtual const char * getURL();
     virtual int32_t flushPackets();
-
-    virtual IStream* addCopiedStream(int32_t id, IStreamCoder *sourceCoder);
-
+    
   protected:
     virtual ~Container();
     Container();
 
   private:
+    // This is the object we wrap
     int32_t openInputURL(const char*url, IContainerFormat*, bool, bool);
     int32_t openOutputURL(const char*url, IContainerFormat*);
     int32_t setupAllInputStreams();
-    IStream *addStream(int id, IStreamCoder *sourceCoder);
-    // This is the object we wrap
     AVFormatContext *mFormatContext;
     void reset();
     // We do pointer to RefPointers to avoid too many

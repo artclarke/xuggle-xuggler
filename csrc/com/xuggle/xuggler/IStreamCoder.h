@@ -35,7 +35,7 @@ namespace com { namespace xuggle { namespace xuggler
 {
 
   class IStream;
-
+  
   /**
    * The work horse of the Xuggler: Takes {@link IPacket} data from an {@link IContainer}
    * (representing an {@link IStream}) and an {@link ICodec} and allows you to decode or encode
@@ -770,6 +770,32 @@ namespace com { namespace xuggle { namespace xuggler
      * @see #getDefaultAudioFrameSize()
      */
     virtual void setDefaultAudioFrameSize(int32_t aNewSize)=0;
+    
+    /*
+     * Added for 1.22
+     */
+    
+    /**
+     * Creates a new IStreamCoder object by copying all the settings in copyCoder.
+     * <p>
+     * The new IStreamCoder is created by copying all the current properties on the
+     * passed in StreamCoder.  If the passed in stream coder is in a different direction
+     * than the one you want, this method still set the same codec ID, and the
+     * IStreamCoder.open() method will check then to see if it can work in the
+     * specified direction.
+     * </p>
+     * <p>
+     * For example, imagine that direction is ENCODING and the copyCoder is a DECODING StreamCoder that is
+     * of the CODEC_ID_VP6 type.  The resulting new IStreamCoder has it's code set to CODEC_ID_VP6.  However
+     * (as of the writing of this comment) we don't support encoding to CODEC_ID_VP6, so when you
+     * try to open the codec we will fail.
+     * </p>  
+     * @param direction The direction you want the new IStreamCoder to work in.
+     * @param copyCoder The coder to copy settings from.
+     * 
+     * @return A new IStreamCoder, or null on error.
+     */
+    static IStreamCoder* make(Direction direction, IStreamCoder* copyCoder);
   };
 
 }}}

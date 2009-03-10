@@ -183,7 +183,7 @@ namespace com { namespace xuggle { namespace xuggler
      * @param inputFmt The format of the input samples.
      * @param filterLen The length of each filter in the filterbank, relative to the cutoff frequency.
      * @param log2PhaseCount log2 of the number of entries in the polyphase filterbank
-     * @param linear If true, the used filter will be linearly interpolated between the 2 closest filters. 
+     * @param isLinear If true, the used filter will be linearly interpolated between the 2 closest filters. 
      *   if false, the closest will be used.
      * @param cutoffFrequency Cutoff frequency.  1.0 is 1/2 the output sampling rate.
      * 

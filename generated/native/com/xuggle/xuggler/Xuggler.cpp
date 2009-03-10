@@ -11394,7 +11394,7 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1encodeA
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1make(JNIEnv *jenv, jclass jcls, jint jarg1) {
+SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1make_1_1SWIG_10(JNIEnv *jenv, jclass jcls, jint jarg1) {
   jlong jresult = 0 ;
   com::xuggle::xuggler::IStreamCoder::Direction arg1 ;
   com::xuggle::xuggler::IStreamCoder *result = 0 ;
@@ -12447,6 +12447,52 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setDefa
 }
 
 
+SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1make_1_1SWIG_11(JNIEnv *jenv, jclass jcls, jint jarg1, jlong jarg2, jobject jarg2_) {
+  jlong jresult = 0 ;
+  com::xuggle::xuggler::IStreamCoder::Direction arg1 ;
+  com::xuggle::xuggler::IStreamCoder *arg2 = (com::xuggle::xuggler::IStreamCoder *) 0 ;
+  com::xuggle::xuggler::IStreamCoder *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg2_;
+  arg1 = (com::xuggle::xuggler::IStreamCoder::Direction)jarg1; 
+  arg2 = *(com::xuggle::xuggler::IStreamCoder **)&jarg2; 
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (com::xuggle::xuggler::IStreamCoder *)com::xuggle::xuggler::IStreamCoder::make(arg1,arg2);
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  *(com::xuggle::xuggler::IStreamCoder **)&jresult = result; 
+  return jresult;
+}
+
+
 SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getDirection(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
   jint jresult = 0 ;
   com::xuggle::xuggler::IStream *arg1 = (com::xuggle::xuggler::IStream *) 0 ;
@@ -13261,6 +13307,60 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getContaine
     // JNIHelper.swg: End generated code
   }
   *(com::xuggle::xuggler::IContainer **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1setStreamCoder(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jobject jarg2_) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IStream *arg1 = (com::xuggle::xuggler::IStream *) 0 ;
+  com::xuggle::xuggler::IStreamCoder *arg2 = (com::xuggle::xuggler::IStreamCoder *) 0 ;
+  int32_t result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  (void)jarg2_;
+  arg1 = *(com::xuggle::xuggler::IStream **)&jarg1; 
+  arg2 = *(com::xuggle::xuggler::IStreamCoder **)&jarg2; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return 0;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (int32_t)(arg1)->setStreamCoder(arg2);
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  jresult = (jint)result; 
   return jresult;
 }
 
@@ -16659,62 +16759,6 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1flushPack
     // JNIHelper.swg: End generated code
   }
   jresult = (jint)result; 
-  return jresult;
-}
-
-
-SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1addCopiedStream(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jlong jarg3, jobject jarg3_) {
-  jlong jresult = 0 ;
-  com::xuggle::xuggler::IContainer *arg1 = (com::xuggle::xuggler::IContainer *) 0 ;
-  int32_t arg2 ;
-  com::xuggle::xuggler::IStreamCoder *arg3 = (com::xuggle::xuggler::IStreamCoder *) 0 ;
-  com::xuggle::xuggler::IStream *result = 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  (void)jarg1_;
-  (void)jarg3_;
-  arg1 = *(com::xuggle::xuggler::IContainer **)&jarg1; 
-  arg2 = (int32_t)jarg2; 
-  arg3 = *(com::xuggle::xuggler::IStreamCoder **)&jarg3; 
-  
-  if (!arg1) {
-    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
-      "invalid native object; delete() likely already called");
-    return 0;
-  }
-  
-  {
-    // JNIHelper.swg: Start generated code
-    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
-    try
-    {
-      result = (com::xuggle::xuggler::IStream *)(arg1)->addCopiedStream(arg2,arg3);
-    }
-    catch(std::exception & e)
-    {
-      // we don't let a native exception override a java exception
-      if (!jenv->ExceptionCheck())
-      {
-        jclass cls=jenv->FindClass("java/lang/RuntimeException");
-        jenv->ThrowNew(cls, e.what());
-      }
-      return 0;
-    }
-    catch(...)
-    {
-      // we don't let a native exception override a java exception
-      if (!jenv->ExceptionCheck())
-      {
-        jclass cls=jenv->FindClass("java/lang/RuntimeException");
-        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
-      }
-      return 0;
-    }
-    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
-    // JNIHelper.swg: End generated code
-  }
-  *(com::xuggle::xuggler::IStream **)&jresult = result; 
   return jresult;
 }
 

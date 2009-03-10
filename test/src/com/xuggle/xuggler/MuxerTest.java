@@ -76,18 +76,15 @@ public class MuxerTest
       assertTrue(coder.open() >= 0);
       for(int j = 0; j < outputs.length; j++)
       {
-        outputs[j].addCopiedStream(i, coder);
+        outputs[j].addNewStream(i);
+        IStreamCoder newCoder = IStreamCoder.make(IStreamCoder.Direction.ENCODING, coder);
+        assertTrue(outputs[j].getStream(i).setStreamCoder(newCoder) >= 0);
+        assertTrue("could not open copied coder", newCoder.open() >= 0);
       }
     }
     // write the output headers
     for(int i = 0; i < outputs.length; i++)
     {
-      int streams = outputs[i].getNumStreams();
-      for(int j = 0; j < streams; j++)
-      {
-        final IStreamCoder coder = outputs[i].getStream(j).getStreamCoder();
-        assertTrue("could not open copied coder", coder.open() >= 0);
-      }
       assertTrue(outputs[i].writeHeader() >= 0);
     }
     int numPktsRead=0;
