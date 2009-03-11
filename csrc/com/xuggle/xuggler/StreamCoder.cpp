@@ -1246,30 +1246,38 @@ StreamCoder :: setPacketParameters(Packet * packet, int32_t size, int64_t srcTim
 {
   int32_t keyframe = 0;
   int64_t pts = Global::NO_PTS;
-  RefPointer<IRational> streamBase = mStream->getTimeBase();
-
+  RefPointer<IRational> streamBase = mStream ? mStream->getTimeBase() : 0;
+  RefPointer<IRational> coderBase = this->getTimeBase();
+  RefPointer<IRational> packetBase = 0;
+  
   VS_ASSERT(mCodecContext->coded_frame, "No coded frame?");
   if (mCodecContext->coded_frame)
   {
     keyframe = mCodecContext->coded_frame->key_frame;
     if (streamBase && mCodecContext->coded_frame->pts != Global::NO_PTS)
     {
-      RefPointer<IRational> coderBase = this->getTimeBase();
       // rescale from the encoder time base to the stream timebase
       pts = streamBase->rescale(mCodecContext->coded_frame->pts,
           coderBase.value());
+      packetBase = streamBase;
     } else {
       // assume they're equal
       pts = mCodecContext->coded_frame->pts;
+      packetBase = coderBase;
     }
   }
   // If for some reason FFMPEG's encoder didn't put a PTS on this
   // packet, we'll fake one.
-  if (pts == Global::NO_PTS && srcTimestamp != Global::NO_PTS && mStream)
+  if (pts == Global::NO_PTS && srcTimestamp != Global::NO_PTS)
   {
     if (streamBase)
     {
       pts = streamBase->rescale(srcTimestamp, mFakePtsTimeBase.value());
+      packetBase = streamBase;
+    } else {
+      // we have no attached stream; don't rescale to that stream; instead use our fake timebase and let the packet know.
+      pts = srcTimestamp;
+      packetBase = mFakePtsTimeBase;
     }
   }
   packet->setKeyPacket(keyframe);
@@ -1277,11 +1285,13 @@ StreamCoder :: setPacketParameters(Packet * packet, int32_t size, int64_t srcTim
   // for now, set the dts and pts to be the same
   packet->setDts(pts);
   packet->setStreamIndex(mStream ? mStream->getIndex() : -1);
+  packet->setTimeBase(packetBase.value());
   // We will sometimes encode some data, but have zero data to send.
   // in that case, mark the packet as incomplete so people don't
   // output it.
   packet->setComplete(size > 0, size);
 
+//  VS_LOG_DEBUG("Encoded packet; size: %d; pts: %lld", size, pts);
 }
 
 int32_t
