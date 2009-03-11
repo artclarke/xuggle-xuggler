@@ -57,7 +57,6 @@ case $HOST_TYPE in
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-mno-cygwin"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=--out-implib"
 
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-vhook"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-w32threads"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-memalign-hack"
   ;;
