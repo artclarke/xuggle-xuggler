@@ -144,15 +144,10 @@ StreamCoder :: make(Direction direction, IStreamCoder* aCoder)
         RefPointer<IRational> streamBase = stream ? stream->getTimeBase() : 0;
         double base = streamBase ? streamBase->getDouble() : 0;
         
+        codec->time_base = icodec->time_base;
         if(base && av_q2d(icodec->time_base)*icodec->ticks_per_frame > base && base < 1.0/1000)
         {
-          codec->time_base = icodec->time_base;
           codec->time_base.num *= icodec->ticks_per_frame;
-        }
-        else
-        {
-          codec->time_base.num = streamBase ? streamBase->getNumerator() : 0;
-          codec->time_base.den = streamBase ? streamBase->getDenominator() : 0;
         }
         switch(codec->codec_type)
         {
