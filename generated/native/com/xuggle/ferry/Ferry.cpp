@@ -2125,61 +2125,6 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_Mutex_1unlock(JNIEnv *jen
 }
 
 
-SWIGEXPORT jobject JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1getByteBuffer(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jint jarg3) {
-  jobject jresult = 0 ;
-  com::xuggle::ferry::IBuffer *arg1 = (com::xuggle::ferry::IBuffer *) 0 ;
-  int32_t arg2 ;
-  int32_t arg3 ;
-  jNioByteArray result;
-  
-  (void)jenv;
-  (void)jcls;
-  (void)jarg1_;
-  arg1 = *(com::xuggle::ferry::IBuffer **)&jarg1; 
-  arg2 = (int32_t)jarg2; 
-  arg3 = (int32_t)jarg3; 
-  
-  if (!arg1) {
-    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
-      "invalid native object; delete() likely already called");
-    return 0;
-  }
-  
-  {
-    // JNIHelper.swg: Start generated code
-    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
-    try
-    {
-      result = (arg1)->getByteBuffer(arg2,arg3);
-    }
-    catch(std::exception & e)
-    {
-      // we don't let a native exception override a java exception
-      if (!jenv->ExceptionCheck())
-      {
-        jclass cls=jenv->FindClass("java/lang/RuntimeException");
-        jenv->ThrowNew(cls, e.what());
-      }
-      return 0;
-    }
-    catch(...)
-    {
-      // we don't let a native exception override a java exception
-      if (!jenv->ExceptionCheck())
-      {
-        jclass cls=jenv->FindClass("java/lang/RuntimeException");
-        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
-      }
-      return 0;
-    }
-    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
-    // JNIHelper.swg: End generated code
-  }
-  jresult = result; 
-  return jresult;
-}
-
-
 SWIGEXPORT jbyteArray JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1getByteArray(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jint jarg3) {
   jbyteArray jresult = 0 ;
   com::xuggle::ferry::IBuffer *arg1 = (com::xuggle::ferry::IBuffer *) 0 ;
@@ -2428,6 +2373,61 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_12
     // JNIHelper.swg: End generated code
   }
   *(com::xuggle::ferry::IBuffer **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jobject JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1java_1getByteBuffer(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jint jarg3) {
+  jobject jresult = 0 ;
+  com::xuggle::ferry::IBuffer *arg1 = (com::xuggle::ferry::IBuffer *) 0 ;
+  int32_t arg2 ;
+  int32_t arg3 ;
+  jNioByteArray result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::ferry::IBuffer **)&jarg1; 
+  arg2 = (int32_t)jarg2; 
+  arg3 = (int32_t)jarg3; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return 0;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (arg1)->java_getByteBuffer(arg2,arg3);
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  jresult = result; 
   return jresult;
 }
 

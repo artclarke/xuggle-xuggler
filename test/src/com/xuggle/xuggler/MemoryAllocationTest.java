@@ -80,7 +80,7 @@ public class MemoryAllocationTest
    * @throws InterruptedException if it feels like it
    * 
    */
-  @Test
+  @Test(timeout=5000)
   public void testExplicitDeletionWorks() throws InterruptedException
   {
     int numLoops = 100;
@@ -90,15 +90,15 @@ public class MemoryAllocationTest
           2000, 2000); // that's 2000x2000x3 bytes... if we're not freeing right it'll show up quick.
       assertNotNull("could not allocate object", obj);
       assertNotNull("could not allocate underlying buffer", obj.getData()); // Force an allocation
-      log.debug("allocated frame: {} @ time: {}", i, System.currentTimeMillis());
+      //log.debug("allocated frame: {} @ time: {}", i, System.currentTimeMillis());
       obj.delete();
     }
 
-    System.gc();
-    Thread.sleep(100);
-    JNIWeakReference.getMgr().gc();
-    assertEquals("Looks like at least one object is pinned",
-        0, JNIWeakReference.getMgr().getNumPinnedObjects());
+    while(JNIWeakReference.getMgr().getNumPinnedObjects()>0)
+    {
+      System.gc();
+      JNIWeakReference.getMgr().gc();
+    }
   }
 
   /**
@@ -109,7 +109,7 @@ public class MemoryAllocationTest
    * 
    * @throws InterruptedException If it wants to
    */
-  @Test
+  @Test(timeout=5000)
   public void testImplicitReleasingWithNoExplicitGCWorks() throws InterruptedException
   {
     int numLoops = 100;
@@ -120,18 +120,17 @@ public class MemoryAllocationTest
           2000, 2000); // that's 2000x2000x3 bytes... if we're not freeing right it'll show up quick.
       assertNotNull("could not allocate frame", obj);
       assertNotNull("could not allocate underlying data", obj.getData()); // Force an allocation
-      log.debug("allocated frame: {} @ time: {}", i, System.currentTimeMillis());
+      //log.debug("allocated frame: {} @ time: {}", i, System.currentTimeMillis());
       obj = null;
       //System.gc();
 
     }
 
-    System.gc();
-    Thread.sleep(100);
-    JNIWeakReference.getMgr().gc();
-    assertEquals("Looks like at least one object is pinned",
-        0, JNIWeakReference.getMgr().getNumPinnedObjects());
-
+    while(JNIWeakReference.getMgr().getNumPinnedObjects()>0)
+    {
+      System.gc();
+      JNIWeakReference.getMgr().gc();
+    }
   }
 
   /**

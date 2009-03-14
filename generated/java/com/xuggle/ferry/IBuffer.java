@@ -41,13 +41,13 @@ public class IBuffer extends RefCounted {
    * as you may end up crashing the virtual machine.
    * </p>
    *
-   * @param cPtr A C pointer to direct memory; did we mention don't call this.
-   * @param cMemoryOwn I'm not even going to tell you.  Stop it.  Go away.
+   * @param pissOff Did we mention don't call this.
+   * @param weMeanIt I'm not even going to tell you.  Stop it.  Go away.
    *
    */ 
-  public IBuffer(long cPtr, boolean cMemoryOwn) {
-    super(FerryJNI.SWIGIBufferUpcast(cPtr), cMemoryOwn);
-    swigCPtr = cPtr;
+  public IBuffer(long pissOff, boolean weMeanIt) {
+    super(FerryJNI.SWIGIBufferUpcast(pissOff), weMeanIt);
+    swigCPtr = pissOff;
   }
   
   /**
@@ -118,6 +118,60 @@ public class IBuffer extends RefCounted {
      return (int)swigCPtr;
   }
   
+    /**
+     * Returns up to length bytes, starting at offset in the
+     * underlying buffer we're managing.
+     * <p> 
+     * WARNING: If you use this method you are access the direct native
+     * memory associated with this buffer.  That means changes
+     * you make to this buffer are immediately reflected in the underlying
+     * memory.
+     * </p>
+     * <p>
+     * <b>NOTE FOR THE TRULY PARANOID</b>: Once you call this method,
+     * the underlying native memory allocated will not be released
+     * until all references to the returned value are no longer reachable
+     * and at least one call to {@link JNIMemoryManager#gc()} has been
+     * performed.  The {@link JNIMemoryManager#gc()} is called whenever
+     * xuggler tries to allocate new memory for any Xuggler interface,
+     * so normally you don't need
+     * to care about this.  For most Xuggler objects, you never need to care about
+     * this, because if for some reason no other Xuggler object is ever allocated
+     * (forcing an internal {@link JNIMemoryManager#gc()}), every Xuggler object has
+     * a finalizer as well that will do the right thing.
+     * </p>
+     * <p>But in the case of Java ByteBuffers, we can't set a finalizer, so you
+     * may find situations where {@link JNIMemoryManager#gc()} is not automatically
+     * called for you.  If you're truly paranoid or haven't called a Xuggler interface in a
+     * a while, a call to {@link JNIMemoryManager#gc}
+     * never hurts.
+     *  
+     * </p>
+     * </p>
+     * 
+     * @param offset The offset (in bytes) into the buffer managed by this IBuffer
+     * @param length The requested length (in bytes) you want to access.  The buffer returned may
+     *   actually be longer than length.
+     * 
+     * @return A java.nio.ByteBuffer that directly accesses
+     *   the native memory this IBuffer manages, or null if
+     *   error.
+     */
+  public java.nio.ByteBuffer getByteBuffer(int offset, int length)
+  {
+    java.nio.ByteBuffer retval = this.java_getByteBuffer(offset, length);
+    if (retval != null)
+    {
+      // increment the ref count of this class to reflect the
+      // byte buffer
+      FerryJNI.RefCounted_acquire(swigCPtr, null);
+      
+      // and use the byte buffer as the reference to track
+      JNIWeakReference.createReference(retval, swigCPtr);
+    }
+    return retval;
+  }
+  
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // IBuffer.swg
 
@@ -134,59 +188,14 @@ public class IBuffer extends RefCounted {
  * Returns up to length bytes, starting at offset in the  
  * underlying buffer we're managing.  
  * <p>  
- * WARNING: With this method you are accessing the direct native/C++ 
- *  
- * memory, so be careful. You must ensure that the IBuffer  
- * instance that returns the java.nio.ByteBuffer lives longer  
- * inside the Java Virtual Machine that any accesses to the  
- * returned java.nio.ByteBuffer object. Otherwise the native  
- * library may release the underlying native memory, and accesses  
- * of the java.nio.ByteBuffer object can and will cause a  
- * Virtual Machine Crash.  
- * </p><p>  
- * Because of this you almost DEFINITELY want  
- * to be using #getByteArray(int, int). Trust us.  
- * </p><p>  
- * Only use this method if:  
- * <ul>  
- * <li>You need to modify the data in an IBuffer before passing  
- * it on to another FERRY library. If this is the case,  
- * make sure you don't pass the returned java.nio.ByteBuffer to  
- * other methods; instead pass the IBuffer around and make  
- * repeated calls to this method.</li>  
- * <li>After you've done performance testing,  
- * you determine the best spot to optimize your program is  
- * to avoid a memory copy on #getByteArray(int, int), and  
- * you can ensure this IBuffer object will live longer than  
- * any uses you make of the java.nio.ByteBuffer object.  
- * </li>  
- * </ul>  
- * </p>  
- * @param	offset The offset (in bytes) into the buffer managed by this 
- *		 IBuffer  
- * @param	length The requested length (in bytes) you want to access. 
- *		 The buffer returned may  
- * actually be longer than length.  
- * @return	A java.nio.ByteBuffer that directly accesses  
- * the native memory this IBuffer manages, or null if  
- * error.  
- */
-  public java.nio.ByteBuffer getByteBuffer(int offset, int length) {
-    return FerryJNI.IBuffer_getByteBuffer(swigCPtr, this, offset, length);
-  }
-
-/**
- * Returns up to length bytes, starting at offset in the  
- * underlying buffer we're managing.  
- * <p>  
  * This method COPIES the data into the byte array being  
- * returned, and hence is safe to use even after this  
- * IBuffer is destroyed.  
+ * returned..  
  * </p><p>  
  * If you don't NEED the direct access that getByteBuffer  
  * offers (and most programs can in fact take the performance  
- * hit of the copy), we STRONGLY recommend you use this method.  
- * It's much harder to crash the JVM when you use this.  
+ * hit of the copy), we recommend you use this method.  
+ * It's much harder to accidentally leave native memory lying  
+ * around waiting for cleanup then.  
  * </p>  
  * @param	offset The offset (in bytes) into the buffer managed by this 
  *		 IBuffer  
@@ -261,6 +270,10 @@ public class IBuffer extends RefCounted {
   public static IBuffer make(RefCounted requestor, java.nio.ByteBuffer directByteBuffer, int offset, int length) {
     long cPtr = FerryJNI.IBuffer_make__SWIG_2(RefCounted.getCPtr(requestor), requestor, directByteBuffer, offset, length);
     return (cPtr == 0) ? null : new IBuffer(cPtr, false);
+  }
+
+  private java.nio.ByteBuffer java_getByteBuffer(int offset, int length) {
+    return FerryJNI.IBuffer_java_getByteBuffer(swigCPtr, this, offset, length);
   }
 
 }

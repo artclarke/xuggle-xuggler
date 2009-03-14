@@ -20,7 +20,7 @@
  */
 package com.xuggle.ferry;
 
-import java.lang.ref.WeakReference;
+import java.lang.ref.PhantomReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +45,7 @@ import com.xuggle.ferry.FerryJNI;
  * </p>
  * 
  */
-public class JNIWeakReference extends WeakReference<Object>
+public class JNIWeakReference extends PhantomReference<Object>
 {
   @SuppressWarnings("unused")
   private static final Logger log = LoggerFactory.getLogger(JNIWeakReference.class);
@@ -53,7 +53,7 @@ public class JNIWeakReference extends WeakReference<Object>
   private long mSwigCPtr;
   // This memory manager will outlive the Java object we're referencing; that
   // means this class will sometimes show up as a potential leak, but trust us
-  // here; ignore all the refs to hear and see who else is holding the ref to
+  // here; ignore all the refs to here and see who else is holding the ref to
   // the JNIMemoryAllocator and that's your likely leak culprit (if we didn't
   // do this, then you'd get no indication of who is leaking your native object
   // so stop complaining now).

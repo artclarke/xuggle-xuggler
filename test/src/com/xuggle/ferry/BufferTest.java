@@ -227,7 +227,7 @@ public class BufferTest
   @Test
   public void testNoLeaksWhenBufferMadeFromDirectJavaByteBuffer()
   {
-    for(int i = 0; i < 1000; i++)
+    for(int i = 0; i < 100; i++)
     {
       ByteBuffer nativeBytes = ByteBuffer.allocateDirect(10*1024*1024);
       IBuffer buf = IBuffer.make(null, nativeBytes, 0, nativeBytes.capacity());
@@ -244,4 +244,62 @@ public class BufferTest
       Thread.yield();
     }
   }
+
+  /**
+   * This is a crazy test to make sure that a direct byte buffer will
+   * decrement ref counts if freed by java Garbage Collector and
+   * our garbage collector
+   */
+  @Test(timeout=5000)
+  public void testDirectByteBufferIncrementsAndDecrementsRefCounts()
+  {
+    IBuffer buf = IBuffer.make(null, 1024*1024); // 1 MB
+    assertNotNull(buf);
+    
+    assertEquals(1, buf.getCurrentRefCount());
+
+    java.nio.ByteBuffer jbuf = buf.getByteBuffer(0, buf.getBufferSize());
+    assertNotNull(buf);
+    
+    assertEquals(2, buf.getCurrentRefCount());
+
+    jbuf.put(0, (byte)0xFF);
+    
+    // now release the reference
+    jbuf = null;
+    
+    while(buf.getCurrentRefCount() >= 2)
+    {
+      System.gc();
+      JNIWeakReference.getMgr().gc();
+    }
+  }
+
+  /**
+   * This is a crazy test to make sure that a direct byte buffer will
+   * still be accessible even if the IBuffer it came from goes out of
+   * scope and is collected.
+   */
+  @Test(timeout=5000)
+  public void testDirectByteBufferCanBeAccessedAfterIBufferDisappears()
+  {
+    IBuffer buf = IBuffer.make(null, 1024*1024); // 1 MB
+    assertNotNull(buf);
+    
+    assertEquals(1, buf.getCurrentRefCount());
+
+    java.nio.ByteBuffer jbuf = buf.getByteBuffer(0, buf.getBufferSize());
+    assertNotNull(buf);
+    
+    // now release the reference
+    buf.delete();
+    buf = null;
+
+    // in versions prior to 1.22, this would have caused a hard
+    // crash, but with 1.22 the getByteBuffer should have incremented
+    // the native ref count until this java ByteBuffer gets collected
+    // and we do a JNIMemoryManager gc.
+    jbuf.put(0, (byte)0xFF);
+  }
+
 }

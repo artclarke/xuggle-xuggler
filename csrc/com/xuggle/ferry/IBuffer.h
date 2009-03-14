@@ -73,56 +73,14 @@ namespace com { namespace xuggle { namespace ferry
      * Returns up to length bytes, starting at offset in the
      * underlying buffer we're managing.
      * <p> 
-     * WARNING: With this method you are accessing the direct native/C++
-     * memory, so be careful.  You must ensure that the IBuffer
-     * instance that returns the java.nio.ByteBuffer lives longer
-     * inside the Java Virtual Machine that any accesses to the
-     * returned java.nio.ByteBuffer object.  Otherwise the native
-     * library may release the underlying native memory, and accesses
-     * of the java.nio.ByteBuffer object can and will cause a
-     * Virtual Machine Crash.
-     * </p><p>
-     * Because of this you almost DEFINITELY want
-     * to be using #getByteArray(int, int).  Trust us.
-     * </p><p>
-     * Only use this method if:
-     * <ul>
-     * <li>You need to modify the data in an IBuffer before passing
-     * it on to another FERRY library.  If this is the case,
-     * make sure you don't pass the returned java.nio.ByteBuffer to
-     * other methods; instead pass the IBuffer around and make
-     * repeated calls to this method.</li>
-     * <li>After you've done performance testing,
-     * you determine the best spot to optimize your program is
-     * to avoid a memory copy on #getByteArray(int, int), and
-     * you can ensure this IBuffer object will live longer than
-     * any uses you make of the java.nio.ByteBuffer object.
-     * </li>
-     * </ul>
-     * </p>
-     * 
-     * @param offset The offset (in bytes) into the buffer managed by this IBuffer
-     * @param length The requested length (in bytes) you want to access.  The buffer returned may
-     *   actually be longer than length.
-     * 
-     * @return A java.nio.ByteBuffer that directly accesses
-     *   the native memory this IBuffer manages, or null if
-     *   error.
-     */
-    jNioByteArray getByteBuffer(int32_t offset, int32_t length);
-
-    /**
-     * Returns up to length bytes, starting at offset in the
-     * underlying buffer we're managing.
-     * <p> 
      * This method COPIES the data into the byte array being
-     * returned, and hence is safe to use even after this
-     * IBuffer is destroyed.
+     * returned..
      * </p><p>
      * If you don't NEED the direct access that getByteBuffer
      * offers (and most programs can in fact take the performance
-     * hit of the copy), we STRONGLY recommend you use this method.
-     * It's much harder to crash the JVM when you use this.
+     * hit of the copy), we recommend you use this method.
+     * It's much harder to accidentally leave native memory lying
+     * around waiting for cleanup then.
      * </p>
      * 
      * @param offset The offset (in bytes) into the buffer managed by this IBuffer
@@ -179,6 +137,11 @@ namespace com { namespace xuggle { namespace ferry
      * @return a new IBuffer, or null on error.  
      */
     static IBuffer* make(com::xuggle::ferry::RefCounted* requestor, jNioByteArray directByteBuffer, int32_t offset, int32_t length);
+
+#ifdef SWIG
+    %javamethodmodifiers java_getByteBuffer(int32_t, int32_t) "private"
+#endif // SWIG
+    jNioByteArray java_getByteBuffer(int32_t offset, int32_t length);
 
   protected:
     IBuffer();

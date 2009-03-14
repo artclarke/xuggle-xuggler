@@ -61,8 +61,8 @@ public class JNIMemoryManager
    * internal garbage collections and then exists.
    * 
    * This may end up "leaking" some memory if all Ferry objects
-   * have not otherwise beened collected, but this is not
-   * a huge problem for most application.
+   * have not otherwise been collected, but this is not
+   * a huge problem for most applications.
    */
   public void finalize()
   {

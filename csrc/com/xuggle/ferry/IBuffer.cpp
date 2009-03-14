@@ -42,7 +42,7 @@ namespace com { namespace xuggle { namespace ferry
   }
   
   jobject
-  IBuffer :: getByteBuffer(int32_t offset, int32_t length)
+  IBuffer :: java_getByteBuffer(int32_t offset, int32_t length)
   {
     void * buffer = 0;
     jobject retval = 0;
