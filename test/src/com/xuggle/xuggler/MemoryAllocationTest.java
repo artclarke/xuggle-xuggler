@@ -80,7 +80,7 @@ public class MemoryAllocationTest
    * @throws InterruptedException if it feels like it
    * 
    */
-  @Test(timeout=5000)
+  @Test(timeout=60000)
   public void testExplicitDeletionWorks() throws InterruptedException
   {
     int numLoops = 100;
@@ -109,7 +109,7 @@ public class MemoryAllocationTest
    * 
    * @throws InterruptedException If it wants to
    */
-  @Test(timeout=5000)
+  @Test(timeout=60000)
   public void testImplicitReleasingWithNoExplicitGCWorks() throws InterruptedException
   {
     int numLoops = 100;
