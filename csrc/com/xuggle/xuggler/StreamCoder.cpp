@@ -1250,7 +1250,6 @@ StreamCoder :: setPacketParameters(Packet * packet, int32_t size, int64_t srcTim
   RefPointer<IRational> coderBase = this->getTimeBase();
   RefPointer<IRational> packetBase = 0;
   
-  VS_ASSERT(mCodecContext->coded_frame, "No coded frame?");
   if (mCodecContext->coded_frame)
   {
     keyframe = mCodecContext->coded_frame->key_frame;
