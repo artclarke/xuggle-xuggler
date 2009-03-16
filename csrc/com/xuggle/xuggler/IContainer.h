@@ -220,7 +220,7 @@ namespace com { namespace xuggle { namespace xuggler
      *
      * @param  packet [In/Out] The packet we read into.
      *
-     * @return # of bytes read if successful, or -1 if not.
+     * @return 0 if successful, or <0 if not.
      */
     virtual int32_t readNextPacket(IPacket *packet)=0;
 

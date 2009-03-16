@@ -310,7 +310,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  * release any buffers currently help by this packet and allocate  
  * new ones (sorry; such is the way FFMPEG works).  
  * @param	packet [In/Out] The packet we read into.  
- * @return	# of bytes read if successful, or -1 if not.  
+ * @return	0 if successful, or <0 if not.  
  */
   public int readNextPacket(IPacket packet) {
     return XugglerJNI.IContainer_readNextPacket(swigCPtr, this, IPacket.getCPtr(packet), packet);
