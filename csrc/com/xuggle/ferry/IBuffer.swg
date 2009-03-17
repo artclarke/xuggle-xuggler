@@ -144,6 +144,9 @@
       
       // and use the byte buffer as the reference to track
       JNIWeakReference.createReference(retval, swigCPtr);
+      
+      // and tell Java this byte buffer is in native order
+      retval.order(java.nio.ByteOrder.nativeOrder());
     }
     return retval;
   }
