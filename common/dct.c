@@ -663,9 +663,9 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
         {
             pf->sub_4x4  = x264_zigzag_sub_4x4_frame_ssse3;
             pf->scan_8x8 = x264_zigzag_scan_8x8_frame_ssse3;
+            if( cpu&X264_CPU_SHUFFLE_IS_FAST )
+                pf->scan_4x4 = x264_zigzag_scan_4x4_frame_ssse3;
         }
-        if( cpu&X264_CPU_PHADD_IS_FAST )
-            pf->scan_4x4 = x264_zigzag_scan_4x4_frame_ssse3;
 #endif
 
 #ifdef ARCH_PPC
@@ -678,5 +678,7 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
 #ifdef HAVE_MMX
     if( cpu&X264_CPU_MMX )
         pf->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_mmx;
+    if( cpu&X264_CPU_SHUFFLE_IS_FAST )
+        pf->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_sse2;
 #endif
 }

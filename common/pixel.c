@@ -763,7 +763,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
             INIT2( sad_x3, _cache64_ssse3 );
             INIT2( sad_x4, _cache64_ssse3 );
         }
-        if( !(cpu&X264_CPU_PHADD_IS_FAST) )
+        if( !(cpu&X264_CPU_SHUFFLE_IS_FAST) )
         {
             INIT5( ssd, _sse2 ); /* on conroe, sse2 is faster for width8/16 */
         }

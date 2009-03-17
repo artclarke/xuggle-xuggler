@@ -151,7 +151,7 @@ static void print_bench(void)
             if( k<j ) continue;
             printf( "%s_%s%s: %"PRId64"\n", benchs[i].name,
                     b->cpu&X264_CPU_SSE4 ? "sse4" :
-                    b->cpu&X264_CPU_PHADD_IS_FAST ? "phadd" :
+                    b->cpu&X264_CPU_SHUFFLE_IS_FAST ? "fastshuffle" :
                     b->cpu&X264_CPU_SSSE3 ? "ssse3" :
                     b->cpu&X264_CPU_SSE3 ? "sse3" :
                     /* print sse2slow only if there's also a sse2fast version of the same func */
@@ -1364,10 +1364,10 @@ static int check_intra( int cpu_ref, int cpu_new )
     for( i = 0; i < 12; i++ )
         INTRA_TEST( predict_8x8, i, 8, edge );
 
-    used_asm = 1;
     set_func_name("intra_predict_8x8_filter");
     if( ip_a.predict_8x8_filter != ip_ref.predict_8x8_filter )
     {
+        used_asm = 1;
         for( i = 0; i < 32; i++ )
         {
             memcpy( edge2, edge, 33 );
@@ -1463,6 +1463,8 @@ static int check_all_flags( void )
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE | X264_CPU_SSE2 | X264_CPU_SSE2_IS_SLOW, "SSE2Slow" );
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE2_IS_FAST, "SSE2Fast" );
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_64, "SSE2Fast Cache64" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_SHUFFLE_IS_FAST, "SSE2 FastShuffle" );
+        cpu1 &= ~X264_CPU_SHUFFLE_IS_FAST;
     }
     if( x264_cpu_detect() & X264_CPU_SSE_MISALIGN )
     {
@@ -1483,7 +1485,8 @@ static int check_all_flags( void )
         cpu1 &= ~X264_CPU_CACHELINE_64;
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSSE3, "SSSE3" );
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_64, "SSSE3 Cache64" );
-        ret |= add_flags( &cpu0, &cpu1, X264_CPU_PHADD_IS_FAST, "PHADD" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_SHUFFLE_IS_FAST, "SSSE3 FastShuffle" );
+        cpu1 &= ~X264_CPU_SHUFFLE_IS_FAST;
     }
     if( x264_cpu_detect() & X264_CPU_SSE4 )
     {

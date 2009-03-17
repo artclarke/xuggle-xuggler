@@ -53,7 +53,7 @@ const x264_cpu_name_t x264_cpu_names[] = {
     {"SSE2Fast",X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE2_IS_FAST},
     {"SSE3",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3},
     {"SSSE3",   X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3},
-    {"PHADD",   X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_PHADD_IS_FAST},
+    {"FastShuffle",   X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SHUFFLE_IS_FAST},
     {"SSE4.1",  X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4},
     {"SSE4.2",  X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4|X264_CPU_SSE42},
     {"Cache32", X264_CPU_CACHELINE_32},
@@ -107,7 +107,7 @@ uint32_t x264_cpu_detect( void )
     if( cpu & X264_CPU_SSSE3 )
         cpu |= X264_CPU_SSE2_IS_FAST;
     if( cpu & X264_CPU_SSE4 )
-        cpu |= X264_CPU_PHADD_IS_FAST;
+        cpu |= X264_CPU_SHUFFLE_IS_FAST;
 
     x264_cpu_cpuid( 0x80000000, &eax, &ebx, &ecx, &edx );
     max_extended_cap = eax;
@@ -124,6 +124,7 @@ uint32_t x264_cpu_detect( void )
                 cpu |= X264_CPU_SSE2_IS_FAST;
                 cpu |= X264_CPU_SSE_MISALIGN;
                 cpu |= X264_CPU_LZCNT;
+                cpu |= X264_CPU_SHUFFLE_IS_FAST;
                 x264_cpu_mask_misalign_sse();
             }
             else

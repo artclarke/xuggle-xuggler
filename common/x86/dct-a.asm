@@ -35,7 +35,7 @@ pb_scan4framea: db 12,13,6,7,14,15,0,1,8,9,2,3,4,5,10,11
 pb_scan4frameb: db 0,1,8,9,2,3,4,5,10,11,12,13,6,7,14,15
 pb_idctdc_unpack: db 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
 pb_idctdc_unpack2: db 4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7
-pb_1: times 8 db 1
+pb_1: times 16 db 1
 
 SECTION .text
 
@@ -785,3 +785,50 @@ cglobal x264_zigzag_interleave_8x8_cavlc_mmx, 3,3
     shr     r0d, 16
     mov  [r2+8], r0w
     RET
+
+%macro INTERLEAVE_XMM 1
+    mova   m0, [r1+%1*4+ 0]
+    mova   m1, [r1+%1*4+16]
+    mova   m4, [r1+%1*4+32]
+    mova   m5, [r1+%1*4+48]
+    SBUTTERFLY wd, 0, 1, 6
+    SBUTTERFLY wd, 4, 5, 7
+    SBUTTERFLY wd, 0, 1, 6
+    SBUTTERFLY wd, 4, 5, 7
+    movq   [r0+%1+  0], m0
+    movhps [r0+%1+ 32], m0
+    movq   [r0+%1+ 64], m1
+    movhps [r0+%1+ 96], m1
+    movq   [r0+%1+  8], m4
+    movhps [r0+%1+ 40], m4
+    movq   [r0+%1+ 72], m5
+    movhps [r0+%1+104], m5
+%if %1
+    por    m2, m0
+    por    m3, m1
+    por    m2, m4
+    por    m3, m5
+%else
+    SWAP 0,2
+    SWAP 3,1
+    por    m2, m4
+    por    m3, m5
+%endif
+%endmacro
+
+INIT_XMM
+cglobal x264_zigzag_interleave_8x8_cavlc_sse2, 3,3,8
+    INTERLEAVE_XMM  0
+    INTERLEAVE_XMM 16
+    packsswb m2, m3
+    pxor     m5, m5
+    packsswb m2, m2
+    packsswb m2, m2
+    pcmpeqb  m5, m2
+    paddb    m5, [pb_1 GLOBAL]
+    movd    r0d, m5
+    mov  [r2+0], r0w
+    shr     r0d, 16
+    mov  [r2+8], r0w
+    RET
+
