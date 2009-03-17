@@ -1,20 +1,20 @@
 This file contains the version of the latest packaged build, plus
 all the SVN dependencies needed to recreate the package.
 
-Xuggle Version: 1.21.219.Final
+Xuggle Version: 1.22.237.Final
 <p>
 - Hudson Good Build
-<a href="http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_winxp/26/">
-http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_winxp/26/
+<a href="http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_winxp/32/">
+http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_winxp/32/
 </a>
 </p>
 <pre>
 Dynamic Revisions
-    * svn://svn.mplayerhq.hu/ffmpeg/trunk : 17743
-    * svn://svn.ffmpeg.org/mplayer/trunk/libswscale : 28777
+    * svn://svn.mplayerhq.hu/ffmpeg/trunk : 17954
+    * svn://svn.ffmpeg.org/mplayer/trunk/libswscale : 28934
     * http://theyard.googlecode.com/svn/theyard/code/trunk/share/gnu/cxxtest/cxxtest-3.10.1 : 170
-    * http://xuggle.googlecode.com/svn/trunk/build/java : 205
-    * http://xuggle.googlecode.com/svn/trunk/java/xuggle-xuggler : 219
+    * http://xuggle.googlecode.com/svn/trunk/build/java : 230
+    * http://xuggle.googlecode.com/svn/trunk/java/xuggle-xuggler : 237
 
 - Static Dependencies
     * libx264: ftp://ftp.videolan.org/pub/videolan/x264/snapshots/x264-snapshot-20090125-2245.tar.bz2
