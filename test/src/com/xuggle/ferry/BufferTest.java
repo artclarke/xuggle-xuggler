@@ -3,6 +3,7 @@ package com.xuggle.ferry;
 import static junit.framework.Assert.*;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 import com.xuggle.ferry.IBuffer;
 import com.xuggle.test_utils.NameAwareTestClassRunner;
@@ -302,4 +303,53 @@ public class BufferTest
     jbuf.put(0, (byte)0xFF);
   }
 
+  @Test
+  public void testByteOrderIsCorrect()
+  {
+    IBuffer buf = IBuffer.make(null, 1024*1024); // 1 MB
+    assertNotNull(buf);
+    
+    assertEquals(1, buf.getCurrentRefCount());
+
+    java.nio.ByteBuffer jbuf = buf.getByteBuffer(0, buf.getBufferSize());
+    assertNotNull(buf);
+    
+    // Set 4 bytes that have a pattern that is reversible.  On a big
+    // endian machine this is FOO and on a little endian it's BAR
+    jbuf.put(0, (byte)0xFF);
+    jbuf.put(1, (byte)0);
+    jbuf.put(2, (byte)0xFF);
+    jbuf.put(3, (byte)0);
+    
+    log.debug("Native order: {}", ByteOrder.nativeOrder());
+    int bigOrderVal = 0xFF00FF00;
+    int littleOrderVal = 0x00FF00FF;
+    int expectedVal;
+    if (ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN)
+      expectedVal = bigOrderVal;
+    else
+      expectedVal = littleOrderVal;
+    java.nio.IntBuffer ibuf = jbuf.asIntBuffer();
+    assertNotNull(ibuf);
+    
+    int val = ibuf.get(0);
+    assertEquals(expectedVal, val);
+    
+    // now let's try changing byte orders
+    jbuf.order(ByteOrder.BIG_ENDIAN);
+    ibuf = jbuf.asIntBuffer();
+    assertNotNull(ibuf);
+    
+    val = ibuf.get(0);
+    assertEquals(bigOrderVal, val);
+
+    jbuf.order(ByteOrder.LITTLE_ENDIAN);
+    ibuf = jbuf.asIntBuffer();
+    assertNotNull(ibuf);
+    
+    val = ibuf.get(0);
+    assertEquals(littleOrderVal, val);
+    
+
+  }
 }
