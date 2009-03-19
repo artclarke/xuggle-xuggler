@@ -486,7 +486,7 @@ static void inline x264_psy_trellis_init( x264_t *h, int do_both_dct )
 {
     DECLARE_ALIGNED_16( int16_t dct8x8[4][8][8] );
     DECLARE_ALIGNED_16( int16_t dct4x4[16][4][4] );
-    DECLARE_ALIGNED_16( uint8_t zero[16*FDEC_STRIDE] ) = {0};
+    DECLARE_ALIGNED_16( static uint8_t zero[16*FDEC_STRIDE] ) = {0};
     int i;
 
     if( do_both_dct || h->mb.b_transform_8x8 )
@@ -506,7 +506,7 @@ static void inline x264_psy_trellis_init( x264_t *h, int do_both_dct )
 /* Pre-calculate fenc satd scores for psy RD, minus DC coefficients */
 static inline void x264_mb_cache_fenc_satd( x264_t *h )
 {
-    DECLARE_ALIGNED_16(uint8_t zero[16]) = {0};
+    DECLARE_ALIGNED_16( static uint8_t zero[16] ) = {0};
     uint8_t *fenc;
     int x, y, satd_sum = 0, sa8d_sum = 0;
     if( h->param.analyse.i_trellis == 2 && h->mb.i_psy_trellis )
