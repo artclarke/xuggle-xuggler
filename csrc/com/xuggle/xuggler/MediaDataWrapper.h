@@ -40,6 +40,7 @@ public:
   virtual IMediaData* get();
   virtual void wrap(IMediaData* aObj);
   virtual void setKey(bool aIsKey);
+  virtual IMediaData* unwrap();
 
   /**
    * Create a new IMediaDataWrapper that wraps a given object.

@@ -18,12 +18,15 @@
  * with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
+#include <com/xuggle/ferry/Logger.h>
 #include <com/xuggle/xuggler/Global.h>
 #include <com/xuggle/xuggler/MediaDataWrapper.h>
 
 namespace com { namespace xuggle { namespace xuggler {
 
 using namespace com::xuggle::ferry;
+
+VS_LOG_SETUP(VS_CPP_PACKAGE);
 
 MediaDataWrapper :: MediaDataWrapper()
 {
@@ -110,6 +113,25 @@ MediaDataWrapper :: setKey(bool aIsKey)
 void
 MediaDataWrapper :: wrap(IMediaData*aObj)
 {
+  IMediaDataWrapper* wrapper=dynamic_cast<IMediaDataWrapper*>(aObj);
+  // loop detection to make sure we're not wrapping ourselves.
+  if (wrapper) {
+    RefPointer<IMediaData> obj;
+    IMediaDataWrapper *me = static_cast<IMediaDataWrapper*>(this);
+    do
+    {
+      if (wrapper == me)
+        break;
+      obj = wrapper->get();
+    } while (0 != (wrapper = dynamic_cast<IMediaDataWrapper*>(obj.value())));
+    
+    if (wrapper == me)
+    {
+      VS_LOG_ERROR("Attempted to wrap an object that ultimately wraps itself.  Ignoring");
+      // we're wrapping ourselves
+      return;
+    }
+  }
   mWrapped.reset(aObj, true);
   if (aObj)
   {
@@ -118,7 +140,9 @@ MediaDataWrapper :: wrap(IMediaData*aObj)
     setTimeBase(base);
     VS_REF_RELEASE(base);
     setKey(aObj->isKey());
-  } else {
+  }
+  else
+  {
     setTimeStamp(Global::NO_PTS);
     setTimeBase(0);
     setKey(true);
@@ -131,4 +155,14 @@ MediaDataWrapper :: get()
   return mWrapped.get();
 }
 
+IMediaData*
+MediaDataWrapper :: unwrap()
+{
+  RefPointer<IMediaData> unwrapped = get();
+  
+  // as long unwrapped points to an IMediaDataWrapper, then unwrap
+  while(unwrapped && dynamic_cast<IMediaDataWrapper*>(unwrapped.value()))
+    unwrapped = (dynamic_cast<IMediaDataWrapper*>(unwrapped.value()))->get();
+  return unwrapped.get();
+}
 }}}

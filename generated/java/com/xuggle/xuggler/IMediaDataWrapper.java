@@ -120,13 +120,38 @@ public class IMediaDataWrapper extends IMediaData {
     super.delete();
   }
 
-/**
- * Return the object being wrapped  
- * @return	the wrapped object  
- */
-  public IMediaData get() {
-    long cPtr = XugglerJNI.IMediaDataWrapper_get(swigCPtr, this);
-    return (cPtr == 0) ? null : new IMediaData(cPtr, false);
+
+  /**
+   * Return the object being wrapped
+   * 
+   * @return the wrapped object
+   */
+  public IMediaData get()
+  {
+    IMediaData retval = null;
+    if ((retval = getVideoPicture()) == null)
+      if ((retval = getAudioSamples()) == null)
+        if ((retval = getPacket()) == null)
+          if ((retval = getMediaDataWrapper()) == null)
+            retval = null;
+    return retval;
+  }
+  
+  /**
+   * Gets the non IMediaDataWrapper object ultimately wrapped in this
+   * wrapper, or null if there isn't one.
+   * 
+   * @return The non IMediaDataWrapper object ultimately wrapped
+   */
+  public IMediaData unwrap()
+  {
+    IMediaData retval = null;
+    if ((retval = unwrapVideoPicture()) == null)
+      if ((retval = unwrapAudioSamples()) == null)
+        if ((retval = unwrapPacket()) == null)
+          if ((retval = unwrapMediaDataWrapper()) == null)
+            retval = null;
+    return retval;
   }
 
 /**
@@ -156,6 +181,46 @@ public class IMediaDataWrapper extends IMediaData {
  */
   public static IMediaDataWrapper make(IMediaData obj) {
     long cPtr = XugglerJNI.IMediaDataWrapper_make(IMediaData.getCPtr(obj), obj);
+    return (cPtr == 0) ? null : new IMediaDataWrapper(cPtr, false);
+  }
+
+  protected IPacket getPacket() {
+    long cPtr = XugglerJNI.IMediaDataWrapper_getPacket(swigCPtr, this);
+    return (cPtr == 0) ? null : new IPacket(cPtr, false);
+  }
+
+  protected IAudioSamples getAudioSamples() {
+    long cPtr = XugglerJNI.IMediaDataWrapper_getAudioSamples(swigCPtr, this);
+    return (cPtr == 0) ? null : new IAudioSamples(cPtr, false);
+  }
+
+  protected IVideoPicture getVideoPicture() {
+    long cPtr = XugglerJNI.IMediaDataWrapper_getVideoPicture(swigCPtr, this);
+    return (cPtr == 0) ? null : new IVideoPicture(cPtr, false);
+  }
+
+  protected IMediaDataWrapper getMediaDataWrapper() {
+    long cPtr = XugglerJNI.IMediaDataWrapper_getMediaDataWrapper(swigCPtr, this);
+    return (cPtr == 0) ? null : new IMediaDataWrapper(cPtr, false);
+  }
+
+  protected IPacket unwrapPacket() {
+    long cPtr = XugglerJNI.IMediaDataWrapper_unwrapPacket(swigCPtr, this);
+    return (cPtr == 0) ? null : new IPacket(cPtr, false);
+  }
+
+  protected IAudioSamples unwrapAudioSamples() {
+    long cPtr = XugglerJNI.IMediaDataWrapper_unwrapAudioSamples(swigCPtr, this);
+    return (cPtr == 0) ? null : new IAudioSamples(cPtr, false);
+  }
+
+  protected IVideoPicture unwrapVideoPicture() {
+    long cPtr = XugglerJNI.IMediaDataWrapper_unwrapVideoPicture(swigCPtr, this);
+    return (cPtr == 0) ? null : new IVideoPicture(cPtr, false);
+  }
+
+  protected IMediaDataWrapper unwrapMediaDataWrapper() {
+    long cPtr = XugglerJNI.IMediaDataWrapper_unwrapMediaDataWrapper(swigCPtr, this);
     return (cPtr == 0) ? null : new IMediaDataWrapper(cPtr, false);
   }
 

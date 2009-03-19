@@ -38,13 +38,14 @@ namespace com { namespace xuggle { namespace xuggler {
 class VS_API_XUGGLER IMediaDataWrapper: public IMediaData
 {
 public:
+#ifndef SWIG
   /**
    * Return the object being wrapped
    * 
    * @return the wrapped object
    */
   virtual IMediaData* get()=0;
-  
+#endif
   /**
    * Set an object to wrap, or null to release the old object.
    * 
@@ -69,6 +70,20 @@ public:
    */
   static IMediaDataWrapper* make(IMediaData* obj);
 
+  /*
+   * Added for 1.23
+   */
+
+#ifndef SWIG
+  /**
+   * Gets the non IMediaDataWrapper object ultimately wrapped in this
+   * wrapper, or null if there isn't one.
+   * 
+   * @return The non IMediaDataWrapper object ultimately wrapped
+   */
+  virtual IMediaData* unwrap()=0;
+#endif
+  
 protected:
   IMediaDataWrapper();
   virtual ~IMediaDataWrapper();

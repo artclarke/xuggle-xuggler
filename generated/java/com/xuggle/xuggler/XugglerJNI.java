@@ -71,17 +71,6 @@ class XugglerJNI {
   public final static native long IRational_make__SWIG_1(double jarg1);
   public final static native long IRational_make__SWIG_2(long jarg1, IRational jarg1_);
   public final static native long IRational_make__SWIG_3(int jarg1, int jarg2);
-  public final static native long IMediaData_getTimeStamp(long jarg1, IMediaData jarg1_);
-  public final static native void IMediaData_setTimeStamp(long jarg1, IMediaData jarg1_, long jarg2);
-  public final static native long IMediaData_getTimeBase(long jarg1, IMediaData jarg1_);
-  public final static native void IMediaData_setTimeBase(long jarg1, IMediaData jarg1_, long jarg2, IRational jarg2_);
-  public final static native long IMediaData_getData(long jarg1, IMediaData jarg1_);
-  public final static native int IMediaData_getSize(long jarg1, IMediaData jarg1_);
-  public final static native boolean IMediaData_isKey(long jarg1, IMediaData jarg1_);
-  public final static native long IMediaDataWrapper_get(long jarg1, IMediaDataWrapper jarg1_);
-  public final static native void IMediaDataWrapper_wrap(long jarg1, IMediaDataWrapper jarg1_, long jarg2, IMediaData jarg2_);
-  public final static native void IMediaDataWrapper_setKey(long jarg1, IMediaDataWrapper jarg1_, boolean jarg2);
-  public final static native long IMediaDataWrapper_make(long jarg1, IMediaData jarg1_);
   public final static native long ITimeValue_make__SWIG_0(long jarg1, int jarg2);
   public final static native long ITimeValue_make__SWIG_1(long jarg1, ITimeValue jarg1_);
   public final static native long ITimeValue_get(long jarg1, ITimeValue jarg1_, int jarg2);
@@ -113,6 +102,13 @@ class XugglerJNI {
   public final static native long ICodec_findDecodingCodecByName(String jarg1);
   public final static native long ICodec_guessEncodingCodec(long jarg1, IContainerFormat jarg1_, String jarg2, String jarg3, String jarg4, int jarg5);
   public final static native String ICodec_getLongName(long jarg1, ICodec jarg1_);
+  public final static native long IMediaData_getTimeStamp(long jarg1, IMediaData jarg1_);
+  public final static native void IMediaData_setTimeStamp(long jarg1, IMediaData jarg1_, long jarg2);
+  public final static native long IMediaData_getTimeBase(long jarg1, IMediaData jarg1_);
+  public final static native void IMediaData_setTimeBase(long jarg1, IMediaData jarg1_, long jarg2, IRational jarg2_);
+  public final static native long IMediaData_getData(long jarg1, IMediaData jarg1_);
+  public final static native int IMediaData_getSize(long jarg1, IMediaData jarg1_);
+  public final static native boolean IMediaData_isKey(long jarg1, IMediaData jarg1_);
   public final static native void IPacket_reset(long jarg1, IPacket jarg1_);
   public final static native boolean IPacket_isComplete(long jarg1, IPacket jarg1_);
   public final static native long IPacket_getPts(long jarg1, IPacket jarg1_);
@@ -408,6 +404,17 @@ class XugglerJNI {
   public final static native void IContainer_setFlag(long jarg1, IContainer jarg1_, int jarg2, boolean jarg3);
   public final static native String IContainer_getURL(long jarg1, IContainer jarg1_);
   public final static native int IContainer_flushPackets(long jarg1, IContainer jarg1_);
+  public final static native void IMediaDataWrapper_wrap(long jarg1, IMediaDataWrapper jarg1_, long jarg2, IMediaData jarg2_);
+  public final static native void IMediaDataWrapper_setKey(long jarg1, IMediaDataWrapper jarg1_, boolean jarg2);
+  public final static native long IMediaDataWrapper_make(long jarg1, IMediaData jarg1_);
+  public final static native long IMediaDataWrapper_getPacket(long jarg1, IMediaDataWrapper jarg1_);
+  public final static native long IMediaDataWrapper_getAudioSamples(long jarg1, IMediaDataWrapper jarg1_);
+  public final static native long IMediaDataWrapper_getVideoPicture(long jarg1, IMediaDataWrapper jarg1_);
+  public final static native long IMediaDataWrapper_getMediaDataWrapper(long jarg1, IMediaDataWrapper jarg1_);
+  public final static native long IMediaDataWrapper_unwrapPacket(long jarg1, IMediaDataWrapper jarg1_);
+  public final static native long IMediaDataWrapper_unwrapAudioSamples(long jarg1, IMediaDataWrapper jarg1_);
+  public final static native long IMediaDataWrapper_unwrapVideoPicture(long jarg1, IMediaDataWrapper jarg1_);
+  public final static native long IMediaDataWrapper_unwrapMediaDataWrapper(long jarg1, IMediaDataWrapper jarg1_);
   public final static native long Global_NO_PTS_get();
   public final static native long Global_DEFAULT_PTS_PER_SECOND_get();
   public final static native long Global_getVersion();
@@ -422,10 +429,9 @@ class XugglerJNI {
   public final static native long SWIGIPropertyUpcast(long jarg1);
   public final static native long SWIGIPixelFormatUpcast(long jarg1);
   public final static native long SWIGIRationalUpcast(long jarg1);
-  public final static native long SWIGIMediaDataUpcast(long jarg1);
-  public final static native long SWIGIMediaDataWrapperUpcast(long jarg1);
   public final static native long SWIGITimeValueUpcast(long jarg1);
   public final static native long SWIGICodecUpcast(long jarg1);
+  public final static native long SWIGIMediaDataUpcast(long jarg1);
   public final static native long SWIGIPacketUpcast(long jarg1);
   public final static native long SWIGIAudioSamplesUpcast(long jarg1);
   public final static native long SWIGIAudioResamplerUpcast(long jarg1);
@@ -435,5 +441,6 @@ class XugglerJNI {
   public final static native long SWIGIStreamUpcast(long jarg1);
   public final static native long SWIGIContainerFormatUpcast(long jarg1);
   public final static native long SWIGIContainerUpcast(long jarg1);
+  public final static native long SWIGIMediaDataWrapperUpcast(long jarg1);
   public final static native long SWIGGlobalUpcast(long jarg1);
 }

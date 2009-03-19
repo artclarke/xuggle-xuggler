@@ -24,6 +24,7 @@
 #include <com/xuggle/ferry/Logger.h>
 #include <com/xuggle/xuggler/Global.h>
 #include <com/xuggle/xuggler/IMediaDataWrapper.h>
+#include <com/xuggle/xuggler/IAudioSamples.h>
 #include "MediaDataWrapperTest.h"
 
 using namespace VS_CPP_NAMESPACE;
@@ -141,5 +142,44 @@ MediaDataWrapperTest :: testWrapping()
   VS_TUT_ENSURE("wrong time stamp", wrapper->getTimeStamp() != objTimeStamp);
   VS_TUT_ENSURE("wrong key status", wrapper->isKey() != objKeyStatus);
   
-  
+  // Let's try wrapping ourselves; this should result in an error and not actually change the wrapped value.
+  VS_TUT_ENSURE("make sure we're null", !obj->get());
+  RefPointer<IMediaData> wrappedObj = wrapper->get();
+  VS_TUT_ENSURE_EQUALS("should be equal", obj.value(), wrappedObj.value());
+  // have the underlying wrapper wrap itself; this would cause a wrap loop if we didn't detect it
+  {
+    // Turn off logging while we do this test
+    LoggerStack stack;
+    stack.setGlobalLevel(Logger::LEVEL_ERROR, false);
+    obj->wrap(wrapper.value());
+  }
+  VS_TUT_ENSURE("should be null", !obj->get());    
 }
+
+void
+MediaDataWrapperTest :: testUnwrapping()
+{
+  RefPointer<IMediaDataWrapper> obj = IMediaDataWrapper::make(0);
+  VS_TUT_ENSURE("could not make", obj);
+  RefPointer<IRational> objBase = IRational::make(1,10);
+  obj->setTimeBase(objBase.value());
+  long long objTimeStamp = 1;
+  obj->setTimeStamp(objTimeStamp);
+  bool objKeyStatus = false;
+  obj->setKey(objKeyStatus);
+  
+  RefPointer<IMediaDataWrapper> wrapper = IMediaDataWrapper::make(obj.value());
+
+  // a wrapper wrapping just a rapper should return null.
+  VS_TUT_ENSURE("unwrapping should return null", !wrapper->unwrap());
+ 
+  // let's try wrapping a non null value
+  RefPointer<IMediaData> audio = IAudioSamples::make(1024, 2);
+  VS_TUT_ENSURE("got audio", audio);
+  
+  obj->wrap(audio.value());
+
+  RefPointer<IMediaData> unwrapped = wrapper->unwrap();
+  VS_TUT_ENSURE_EQUALS("should be our friend audio", audio.value(), unwrapped.value());
+  
+ }

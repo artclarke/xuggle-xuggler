@@ -43,7 +43,6 @@ JNI_OnLoad(JavaVM *jvm, void *)
 #include <com/xuggle/xuggler/ITimeValue.h>
 #include <com/xuggle/xuggler/IRational.h>
 #include <com/xuggle/xuggler/IMediaData.h>
-#include <com/xuggle/xuggler/IMediaDataWrapper.h>
 #include <com/xuggle/xuggler/ICodec.h>
 #include <com/xuggle/xuggler/IPacket.h>
 #include <com/xuggle/xuggler/IAudioSamples.h>
@@ -54,6 +53,7 @@ JNI_OnLoad(JavaVM *jvm, void *)
 #include <com/xuggle/xuggler/IStream.h>
 #include <com/xuggle/xuggler/IContainerFormat.h>
 #include <com/xuggle/xuggler/IContainer.h>
+#include <com/xuggle/xuggler/IMediaDataWrapper.h>
 #include <com/xuggle/xuggler/Global.h>
 
 using namespace VS_CPP_NAMESPACE;
@@ -149,10 +149,9 @@ import com.xuggle.xuggler.Converter;
 %include <com/xuggle/xuggler/IProperty.h>
 %include <com/xuggle/xuggler/IPixelFormat.h>
 %include <com/xuggle/xuggler/IRational.h>
-%include <com/xuggle/xuggler/IMediaData.h>
-%include <com/xuggle/xuggler/IMediaDataWrapper.h>
 %include <com/xuggle/xuggler/ITimeValue.h>
 %include <com/xuggle/xuggler/ICodec.h>
+%include <com/xuggle/xuggler/IMediaData.h>
 %include <com/xuggle/xuggler/IPacket.h>
 %include <com/xuggle/xuggler/IAudioSamples.h>
 %include <com/xuggle/xuggler/IAudioResampler.h>
@@ -162,5 +161,5 @@ import com.xuggle.xuggler.Converter;
 %include <com/xuggle/xuggler/IStream.h>
 %include <com/xuggle/xuggler/IContainerFormat.h>
 %include <com/xuggle/xuggler/IContainer.h>
-%include <com/xuggle/xuggler/IMediaData.h>
+%include <com/xuggle/xuggler/IMediaDataWrapper.swg>
 %include <com/xuggle/xuggler/Global.h>

@@ -13,6 +13,7 @@ class MediaDataWrapperTest : public CxxTest::TestSuite
     void testSetters();
     void testNullTimeBase();
     void testWrapping();
+    void testUnwrapping();
   private:
 };
 
