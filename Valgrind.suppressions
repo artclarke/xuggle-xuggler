@@ -81,3 +81,9 @@
    obj:*
    obj:*
 }
+{
+   ffmpeg_invalid_read_introduced_march09_streamcodertest
+   Memcheck:Addr4
+   fun:mov_read_stsz
+}
+
