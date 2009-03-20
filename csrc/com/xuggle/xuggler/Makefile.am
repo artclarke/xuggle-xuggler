@@ -20,6 +20,7 @@ libxuggle_xuggler_la_SOURCES= \
   Codec.cpp \
   Container.cpp \
   ContainerFormat.cpp \
+  Error.cpp \
   VideoPicture.cpp \
   Global.cpp \
   IAudioResampler.cpp \
@@ -27,6 +28,7 @@ libxuggle_xuggler_la_SOURCES= \
   ICodec.cpp \
   IContainer.cpp \
   IContainerFormat.cpp \
+  IError.cpp \
   IVideoPicture.cpp \
   IMediaData.cpp \
   IMediaDataWrapper.cpp \
@@ -65,6 +67,7 @@ libxuggle_xuggler_la_HEADERS= \
   ICodec.h \
   IContainerFormat.h \
   IContainer.h \
+  IError.h \
   IVideoPicture.h \
   IMediaData.h \
   IMediaDataWrapper.h \
@@ -84,6 +87,7 @@ libxuggle_xuggler_la_HEADERS= \
   Codec.h \
   ContainerFormat.h \
   Container.h \
+  Error.h \
   VideoPicture.h \
   MediaDataWrapper.h \
   Packet.h \

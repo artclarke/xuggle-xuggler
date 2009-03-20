@@ -527,6 +527,30 @@ namespace com { namespace xuggle { namespace xuggler
      */
     virtual int32_t flushPackets()=0;
     
+    /*
+     * Added for 1.23
+     */
+    
+    /**
+     * Get the number of times {@link IContainer#readNextPacket(IPacket)}
+     * will retry a read if it gets a {@link IError.Type#ERROR_AGAIN}
+     * value back.
+     * 
+     * Defaults to 1 times.  <0 means it will keep retrying immediately.
+     * 
+     * @return the read retry count
+     */
+    virtual int32_t getReadRetryCount()=0;
+    
+    /**
+     * Sets the read retry count.
+     * 
+     * @see #getReadRetryCount()
+     * 
+     * @param count The read retry count.  <0 means keep trying.
+     */
+    virtual void setReadRetryCount(int32_t count)=0;
+    
   };
 }}}
 #endif /*ICONTAINER_H_*/

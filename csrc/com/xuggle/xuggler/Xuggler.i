@@ -55,6 +55,7 @@ JNI_OnLoad(JavaVM *jvm, void *)
 #include <com/xuggle/xuggler/IContainer.h>
 #include <com/xuggle/xuggler/IMediaDataWrapper.h>
 #include <com/xuggle/xuggler/Global.h>
+#include <com/xuggle/xuggler/IError.h>
 
 using namespace VS_CPP_NAMESPACE;
 
@@ -163,3 +164,4 @@ import com.xuggle.xuggler.Converter;
 %include <com/xuggle/xuggler/IContainer.h>
 %include <com/xuggle/xuggler/IMediaDataWrapper.swg>
 %include <com/xuggle/xuggler/Global.h>
+%include <com/xuggle/xuggler/IError.h>

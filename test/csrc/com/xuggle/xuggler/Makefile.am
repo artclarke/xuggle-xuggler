@@ -23,7 +23,8 @@ check_PROGRAMS=xugglerTestAudioResampler \
   xugglerTestStreamCoderProperty \
   xugglerTestStreamCoderX264 \
   xugglerTestStream \
-  xugglerTestTimeValue 
+  xugglerTestTimeValue \
+  xugglerTestError
 
 if VS_ENABLE_GPL
 check_PROGRAMS+=xugglerTestAudioResampler \
@@ -214,6 +215,17 @@ nodist_xugglerTestTimeValue_SOURCES=\
 xugglerTestTimeValue_LDADD=\
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
+xugglerTestError_SOURCES=\
+  ErrorTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestError_SOURCES=\
+  ErrorTest_CXXRunner.cpp
+
+xugglerTestError_LDADD=\
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
 xugglerTestVideoResampler_SOURCES=\
   VideoResamplerTest.cpp \
   Main.cpp \
@@ -239,6 +251,7 @@ BUILT_SOURCES= \
   RationalTest_CXXRunner.cpp \
   StreamTest_CXXRunner.cpp \
   TimeValueTest_CXXRunner.cpp \
+  ErrorTest_CXXRunner.cpp \
   VideoResamplerTest_CXXRunner.cpp \
   StreamCoderTest_CXXRunner.cpp \
   StreamCoderPropertyTest_CXXRunner.cpp \
@@ -262,6 +275,7 @@ noinst_HEADERS = \
   StreamCoderX264Test.h \
   StreamTest.h \
   TimeValueTest.h \
+  ErrorTest.h \
   VideoResamplerTest.h
 
 clean-local:

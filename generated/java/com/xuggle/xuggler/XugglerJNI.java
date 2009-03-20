@@ -404,6 +404,8 @@ class XugglerJNI {
   public final static native void IContainer_setFlag(long jarg1, IContainer jarg1_, int jarg2, boolean jarg3);
   public final static native String IContainer_getURL(long jarg1, IContainer jarg1_);
   public final static native int IContainer_flushPackets(long jarg1, IContainer jarg1_);
+  public final static native int IContainer_getReadRetryCount(long jarg1, IContainer jarg1_);
+  public final static native void IContainer_setReadRetryCount(long jarg1, IContainer jarg1_, int jarg2);
   public final static native void IMediaDataWrapper_wrap(long jarg1, IMediaDataWrapper jarg1_, long jarg2, IMediaData jarg2_);
   public final static native void IMediaDataWrapper_setKey(long jarg1, IMediaDataWrapper jarg1_, boolean jarg2);
   public final static native long IMediaDataWrapper_make(long jarg1, IMediaData jarg1_);
@@ -426,6 +428,10 @@ class XugglerJNI {
   public final static native String Global_getAVFormatVersionStr();
   public final static native int Global_getAVCodecVersion();
   public final static native String Global_getAVCodecVersionStr();
+  public final static native int IError_getType(long jarg1, IError jarg1_);
+  public final static native String IError_getDescription(long jarg1, IError jarg1_);
+  public final static native int IError_getErrorNumber(long jarg1, IError jarg1_);
+  public final static native long IError_make(int jarg1);
   public final static native long SWIGIPropertyUpcast(long jarg1);
   public final static native long SWIGIPixelFormatUpcast(long jarg1);
   public final static native long SWIGIRationalUpcast(long jarg1);
@@ -443,4 +449,5 @@ class XugglerJNI {
   public final static native long SWIGIContainerUpcast(long jarg1);
   public final static native long SWIGIMediaDataWrapperUpcast(long jarg1);
   public final static native long SWIGGlobalUpcast(long jarg1);
+  public final static native long SWIGIErrorUpcast(long jarg1);
 }

@@ -43,7 +43,8 @@ check_PROGRAMS = xugglerTestAudioResampler$(EXEEXT) \
 	xugglerTestRational$(EXEEXT) xugglerTestStreamCoder$(EXEEXT) \
 	xugglerTestStreamCoderProperty$(EXEEXT) \
 	xugglerTestStreamCoderX264$(EXEEXT) xugglerTestStream$(EXEEXT) \
-	xugglerTestTimeValue$(EXEEXT) $(am__EXEEXT_1)
+	xugglerTestTimeValue$(EXEEXT) xugglerTestError$(EXEEXT) \
+	$(am__EXEEXT_1)
 @VS_ENABLE_GPL_TRUE@am__append_1 = xugglerTestAudioResampler \
 @VS_ENABLE_GPL_TRUE@  xugglerTestVideoResampler
 
@@ -107,6 +108,14 @@ xugglerTestContainerFormat_OBJECTS =  \
 	$(am_xugglerTestContainerFormat_OBJECTS) \
 	$(nodist_xugglerTestContainerFormat_OBJECTS)
 xugglerTestContainerFormat_DEPENDENCIES =  \
+	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
+	$(am__DEPENDENCIES_1)
+am_xugglerTestError_OBJECTS = ErrorTest.$(OBJEXT) Main.$(OBJEXT) \
+	Helper.$(OBJEXT)
+nodist_xugglerTestError_OBJECTS = ErrorTest_CXXRunner.$(OBJEXT)
+xugglerTestError_OBJECTS = $(am_xugglerTestError_OBJECTS) \
+	$(nodist_xugglerTestError_OBJECTS)
+xugglerTestError_DEPENDENCIES =  \
 	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
 	$(am__DEPENDENCIES_1)
 am_xugglerTestHelper_OBJECTS = HelperTest.$(OBJEXT) Main.$(OBJEXT) \
@@ -240,6 +249,7 @@ SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(nodist_xugglerTestContainer_SOURCES) \
 	$(xugglerTestContainerFormat_SOURCES) \
 	$(nodist_xugglerTestContainerFormat_SOURCES) \
+	$(xugglerTestError_SOURCES) $(nodist_xugglerTestError_SOURCES) \
 	$(xugglerTestHelper_SOURCES) \
 	$(nodist_xugglerTestHelper_SOURCES) \
 	$(xugglerTestMediaDataWrapper_SOURCES) \
@@ -268,7 +278,7 @@ DIST_SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(xugglerTestAudioSamples_SOURCES) $(xugglerTestCodec_SOURCES) \
 	$(xugglerTestContainer_SOURCES) \
 	$(xugglerTestContainerFormat_SOURCES) \
-	$(xugglerTestHelper_SOURCES) \
+	$(xugglerTestError_SOURCES) $(xugglerTestHelper_SOURCES) \
 	$(xugglerTestMediaDataWrapper_SOURCES) \
 	$(xugglerTestPacket_SOURCES) $(xugglerTestPixelFormat_SOURCES) \
 	$(xugglerTestRational_SOURCES) $(xugglerTestStream_SOURCES) \
@@ -612,6 +622,17 @@ nodist_xugglerTestTimeValue_SOURCES = \
 xugglerTestTimeValue_LDADD = \
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
+xugglerTestError_SOURCES = \
+  ErrorTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestError_SOURCES = \
+  ErrorTest_CXXRunner.cpp
+
+xugglerTestError_LDADD = \
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
 xugglerTestVideoResampler_SOURCES = \
   VideoResamplerTest.cpp \
   Main.cpp \
@@ -637,6 +658,7 @@ BUILT_SOURCES = \
   RationalTest_CXXRunner.cpp \
   StreamTest_CXXRunner.cpp \
   TimeValueTest_CXXRunner.cpp \
+  ErrorTest_CXXRunner.cpp \
   VideoResamplerTest_CXXRunner.cpp \
   StreamCoderTest_CXXRunner.cpp \
   StreamCoderPropertyTest_CXXRunner.cpp \
@@ -660,6 +682,7 @@ noinst_HEADERS = \
   StreamCoderX264Test.h \
   StreamTest.h \
   TimeValueTest.h \
+  ErrorTest.h \
   VideoResamplerTest.h
 
 all: $(BUILT_SOURCES)
@@ -718,6 +741,9 @@ xugglerTestContainer$(EXEEXT): $(xugglerTestContainer_OBJECTS) $(xugglerTestCont
 xugglerTestContainerFormat$(EXEEXT): $(xugglerTestContainerFormat_OBJECTS) $(xugglerTestContainerFormat_DEPENDENCIES) 
 	@rm -f xugglerTestContainerFormat$(EXEEXT)
 	$(CXXLINK) $(xugglerTestContainerFormat_OBJECTS) $(xugglerTestContainerFormat_LDADD) $(LIBS)
+xugglerTestError$(EXEEXT): $(xugglerTestError_OBJECTS) $(xugglerTestError_DEPENDENCIES) 
+	@rm -f xugglerTestError$(EXEEXT)
+	$(CXXLINK) $(xugglerTestError_OBJECTS) $(xugglerTestError_LDADD) $(LIBS)
 xugglerTestHelper$(EXEEXT): $(xugglerTestHelper_OBJECTS) $(xugglerTestHelper_DEPENDENCIES) 
 	@rm -f xugglerTestHelper$(EXEEXT)
 	$(CXXLINK) $(xugglerTestHelper_OBJECTS) $(xugglerTestHelper_LDADD) $(LIBS)

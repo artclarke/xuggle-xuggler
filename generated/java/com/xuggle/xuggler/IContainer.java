@@ -626,6 +626,28 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     return XugglerJNI.IContainer_flushPackets(swigCPtr, this);
   }
 
+/**
+ * Get the number of times {@link IContainer#readNextPacket(IPacket)} 
+ *  
+ * will retry a read if it gets a {@link IError.Type#ERROR_AGAIN}  
+ * value back.  
+ * Defaults to 1 times. <0 means it will keep retrying immediately. 
+ *  
+ * @return	the read retry count  
+ */
+  public int getReadRetryCount() {
+    return XugglerJNI.IContainer_getReadRetryCount(swigCPtr, this);
+  }
+
+/**
+ * Sets the read retry count.  
+ * @see		#getReadRetryCount()  
+ * @param	count The read retry count. <0 means keep trying.  
+ */
+  public void setReadRetryCount(int count) {
+    XugglerJNI.IContainer_setReadRetryCount(swigCPtr, this, count);
+  }
+
   public enum Type {
   /**
    * The different types of Containers we support. A container

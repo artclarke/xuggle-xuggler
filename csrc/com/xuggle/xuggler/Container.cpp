@@ -47,6 +47,7 @@ namespace com { namespace xuggle { namespace xuggler
     mNeedTrailerWrite = false;
     mNumStreams = 0;
     mInputBufferLength = 0;
+    mReadRetryCount = 1;
   }
 
   Container :: ~Container()
@@ -441,12 +442,15 @@ namespace com { namespace xuggle { namespace xuggler
       packet = &tmpPacket;
       av_init_packet(packet);
       pkt->reset();
+      int32_t numReads=0;
       do
       {
         retval = av_read_frame(mFormatContext,
             packet);
+        ++numReads;
       }
-      while (retval == AVERROR(EAGAIN));
+      while (retval == AVERROR(EAGAIN) &&
+          (mReadRetryCount < 0 || numReads <= mReadRetryCount));
 
       if (retval >= 0)
         pkt->wrapAVPacket(packet);
@@ -870,4 +874,16 @@ namespace com { namespace xuggle { namespace xuggler
     return retval;
   }
 
+  int32_t
+  Container :: getReadRetryCount()
+  {
+    return mReadRetryCount;
+  }
+  
+  void
+  Container :: setReadRetryCount(int32_t aCount)
+  {
+    mReadRetryCount = aCount;
+  }
+  
 }}}

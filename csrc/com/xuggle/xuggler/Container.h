@@ -101,6 +101,9 @@ namespace com { namespace xuggle { namespace xuggler
     virtual const char * getURL();
     virtual int32_t flushPackets();
     
+    virtual int32_t getReadRetryCount();
+    virtual void setReadRetryCount(int32_t count);
+
   protected:
     virtual ~Container();
     Container();
@@ -127,6 +130,8 @@ namespace com { namespace xuggle { namespace xuggler
 
     bool mIsMetaDataQueried;
     uint32_t mInputBufferLength;
+    
+    int32_t mReadRetryCount;
   };
 }}}
 
