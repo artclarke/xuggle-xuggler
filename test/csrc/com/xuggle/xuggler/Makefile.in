@@ -42,7 +42,8 @@ check_PROGRAMS = xugglerTestAudioResampler$(EXEEXT) \
 	xugglerTestPacket$(EXEEXT) xugglerTestPixelFormat$(EXEEXT) \
 	xugglerTestRational$(EXEEXT) xugglerTestStreamCoder$(EXEEXT) \
 	xugglerTestStreamCoderProperty$(EXEEXT) \
-	xugglerTestStreamCoderX264$(EXEEXT) xugglerTestStream$(EXEEXT) \
+	xugglerTestStreamCoderX264$(EXEEXT) \
+	xugglerTestStreamCoderFaac$(EXEEXT) xugglerTestStream$(EXEEXT) \
 	xugglerTestTimeValue$(EXEEXT) xugglerTestError$(EXEEXT) \
 	$(am__EXEEXT_1)
 @VS_ENABLE_GPL_TRUE@am__append_1 = xugglerTestAudioResampler \
@@ -178,6 +179,16 @@ xugglerTestStreamCoder_OBJECTS = $(am_xugglerTestStreamCoder_OBJECTS) \
 xugglerTestStreamCoder_DEPENDENCIES =  \
 	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
 	$(am__DEPENDENCIES_1)
+am_xugglerTestStreamCoderFaac_OBJECTS = StreamCoderFaacTest.$(OBJEXT) \
+	Main.$(OBJEXT) Helper.$(OBJEXT)
+nodist_xugglerTestStreamCoderFaac_OBJECTS =  \
+	StreamCoderFaacTest_CXXRunner.$(OBJEXT)
+xugglerTestStreamCoderFaac_OBJECTS =  \
+	$(am_xugglerTestStreamCoderFaac_OBJECTS) \
+	$(nodist_xugglerTestStreamCoderFaac_OBJECTS)
+xugglerTestStreamCoderFaac_DEPENDENCIES =  \
+	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
+	$(am__DEPENDENCIES_1)
 am_xugglerTestStreamCoderProperty_OBJECTS =  \
 	StreamCoderPropertyTest.$(OBJEXT) Main.$(OBJEXT) \
 	Helper.$(OBJEXT)
@@ -264,6 +275,8 @@ SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(nodist_xugglerTestStream_SOURCES) \
 	$(xugglerTestStreamCoder_SOURCES) \
 	$(nodist_xugglerTestStreamCoder_SOURCES) \
+	$(xugglerTestStreamCoderFaac_SOURCES) \
+	$(nodist_xugglerTestStreamCoderFaac_SOURCES) \
 	$(xugglerTestStreamCoderProperty_SOURCES) \
 	$(nodist_xugglerTestStreamCoderProperty_SOURCES) \
 	$(xugglerTestStreamCoderX264_SOURCES) \
@@ -283,6 +296,7 @@ DIST_SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(xugglerTestPacket_SOURCES) $(xugglerTestPixelFormat_SOURCES) \
 	$(xugglerTestRational_SOURCES) $(xugglerTestStream_SOURCES) \
 	$(xugglerTestStreamCoder_SOURCES) \
+	$(xugglerTestStreamCoderFaac_SOURCES) \
 	$(xugglerTestStreamCoderProperty_SOURCES) \
 	$(xugglerTestStreamCoderX264_SOURCES) \
 	$(xugglerTestTimeValue_SOURCES) \
@@ -302,6 +316,7 @@ AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
 CAPTIVES_ENABLED = @CAPTIVES_ENABLED@
 CAPTIVE_ENABLE_FFMPEG = @CAPTIVE_ENABLE_FFMPEG@
+CAPTIVE_ENABLE_LIBFAAC = @CAPTIVE_ENABLE_LIBFAAC@
 CAPTIVE_ENABLE_LIBMP3LAME = @CAPTIVE_ENABLE_LIBMP3LAME@
 CAPTIVE_ENABLE_LIBSPEEX = @CAPTIVE_ENABLE_LIBSPEEX@
 CAPTIVE_ENABLE_LIBX264 = @CAPTIVE_ENABLE_LIBX264@
@@ -589,6 +604,17 @@ nodist_xugglerTestStreamCoderX264_SOURCES = \
 xugglerTestStreamCoderX264_LDADD = \
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
+xugglerTestStreamCoderFaac_SOURCES = \
+  StreamCoderFaacTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestStreamCoderFaac_SOURCES = \
+  StreamCoderFaacTest_CXXRunner.cpp
+
+xugglerTestStreamCoderFaac_LDADD = \
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
 xugglerTestStreamCoderProperty_SOURCES = \
   StreamCoderPropertyTest.cpp \
   Main.cpp \
@@ -662,6 +688,7 @@ BUILT_SOURCES = \
   VideoResamplerTest_CXXRunner.cpp \
   StreamCoderTest_CXXRunner.cpp \
   StreamCoderPropertyTest_CXXRunner.cpp \
+  StreamCoderFaacTest_CXXRunner.cpp \
   StreamCoderX264Test_CXXRunner.cpp
 
 noinst_HEADERS = \
@@ -680,6 +707,7 @@ noinst_HEADERS = \
   StreamCoderTest.h \
   StreamCoderPropertyTest.h \
   StreamCoderX264Test.h \
+  StreamCoderFaacTest.h \
   StreamTest.h \
   TimeValueTest.h \
   ErrorTest.h \
@@ -765,6 +793,9 @@ xugglerTestStream$(EXEEXT): $(xugglerTestStream_OBJECTS) $(xugglerTestStream_DEP
 xugglerTestStreamCoder$(EXEEXT): $(xugglerTestStreamCoder_OBJECTS) $(xugglerTestStreamCoder_DEPENDENCIES) 
 	@rm -f xugglerTestStreamCoder$(EXEEXT)
 	$(CXXLINK) $(xugglerTestStreamCoder_OBJECTS) $(xugglerTestStreamCoder_LDADD) $(LIBS)
+xugglerTestStreamCoderFaac$(EXEEXT): $(xugglerTestStreamCoderFaac_OBJECTS) $(xugglerTestStreamCoderFaac_DEPENDENCIES) 
+	@rm -f xugglerTestStreamCoderFaac$(EXEEXT)
+	$(CXXLINK) $(xugglerTestStreamCoderFaac_OBJECTS) $(xugglerTestStreamCoderFaac_LDADD) $(LIBS)
 xugglerTestStreamCoderProperty$(EXEEXT): $(xugglerTestStreamCoderProperty_OBJECTS) $(xugglerTestStreamCoderProperty_DEPENDENCIES) 
 	@rm -f xugglerTestStreamCoderProperty$(EXEEXT)
 	$(CXXLINK) $(xugglerTestStreamCoderProperty_OBJECTS) $(xugglerTestStreamCoderProperty_LDADD) $(LIBS)

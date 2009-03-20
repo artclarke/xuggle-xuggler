@@ -793,6 +793,9 @@ VS_LDFLAGS
 VS_CPPFLAGS
 VS_CXXFLAGS
 VS_CFLAGS
+CAPTIVE_ENABLE_LIBFAAC
+CAPTIVE_ENABLE_LIBFAAC_FALSE
+CAPTIVE_ENABLE_LIBFAAC_TRUE
 CAPTIVE_ENABLE_LIBSPEEX
 CAPTIVE_ENABLE_LIBSPEEX_FALSE
 CAPTIVE_ENABLE_LIBSPEEX_TRUE
@@ -969,6 +972,7 @@ enable_captive_ffmpeg
 enable_captive_libx264
 enable_captive_libmp3lame
 enable_captive_libspeex
+enable_captive_libfaac
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1650,6 +1654,9 @@ Optional Features:
                           (default is yes)
   --enable-captive-libspeex
                           use our own captive versions of the Speex library
+                          encoder (default is yes)
+  --enable-captive-libfaac
+                          use our own captive versions of the faac library
                           encoder (default is yes)
 
 Optional Packages:
@@ -4460,13 +4467,13 @@ if test "${lt_cv_nm_interface+set}" = set; then
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:4463: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:4470: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4466: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:4473: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4469: output\"" >&5)
+  (eval echo "\"\$as_me:4476: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -5669,7 +5676,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5672 "configure"' > conftest.$ac_ext
+  echo '#line 5679 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7818,11 +7825,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7821: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7828: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7825: \$? = $ac_status" >&5
+   echo "$as_me:7832: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8157,11 +8164,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8160: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8167: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:8164: \$? = $ac_status" >&5
+   echo "$as_me:8171: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8262,11 +8269,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8265: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8272: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8269: \$? = $ac_status" >&5
+   echo "$as_me:8276: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8317,11 +8324,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8320: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8327: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8324: \$? = $ac_status" >&5
+   echo "$as_me:8331: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -11117,7 +11124,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11120 "configure"
+#line 11127 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11213,7 +11220,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11216 "configure"
+#line 11223 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -14971,11 +14978,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14974: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14981: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14978: \$? = $ac_status" >&5
+   echo "$as_me:14985: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -15070,11 +15077,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15073: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15080: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:15077: \$? = $ac_status" >&5
+   echo "$as_me:15084: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -15122,11 +15129,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15125: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15132: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:15129: \$? = $ac_status" >&5
+   echo "$as_me:15136: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -19889,7 +19896,7 @@ fi
 if test "x$enable_captive_ffmpeg" != "xyes"; then
   # no point in making a captive speex if we're not
   # incarcerating ffmpeg
-  enable_captive_libmp3lame=no
+  enable_captive_libspeex=no
 fi
 
 { $as_echo "$as_me:$LINENO: result: $enable_captive_libspeex" >&5
@@ -20066,12 +20073,207 @@ $as_echo "$as_me: WARNING: cannot find libspeex.  We will likely not be able to 
 fi
 fi
 
+#
+# Captive libfaac support
+#
+# Check whether --enable-captive-libfaac was given.
+if test "${enable_captive_libfaac+set}" = set; then
+  enableval=$enable_captive_libfaac;
+else
+  enable_captive_libfaac=yes
+fi
+
+{ $as_echo "$as_me:$LINENO: checking whether to use captive version of libfaac" >&5
+$as_echo_n "checking whether to use captive version of libfaac... " >&6; }
+if test "x$enable_captives" != "xyes"; then
+  enable_captive_libfaac=no
+fi
+if test "x$enable_captive_ffmpeg" != "xyes"; then
+  # no point in making a captive faac if we're not
+  # incarcerating ffmpeg
+  enable_captive_libfaac=no
+fi
+
+{ $as_echo "$as_me:$LINENO: result: $enable_captive_libfaac" >&5
+$as_echo "$enable_captive_libfaac" >&6; }
+ if  test "x$enable_captive_libfaac" = "xyes" ; then
+  CAPTIVE_ENABLE_LIBFAAC_TRUE=
+  CAPTIVE_ENABLE_LIBFAAC_FALSE='#'
+else
+  CAPTIVE_ENABLE_LIBFAAC_TRUE='#'
+  CAPTIVE_ENABLE_LIBFAAC_FALSE=
+fi
+
+CAPTIVE_ENABLE_LIBFAAC=$enable_captive_libfaac
+
+# FAAC headers
+if test "x$enable_captive_libfaac" != "xyes"; then
+  # We only check for Lame if we're not building it
+
+for ac_header in faac.h
+do
+as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
+  { $as_echo "$as_me:$LINENO: checking for $ac_header" >&5
+$as_echo_n "checking for $ac_header... " >&6; }
+if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
+  $as_echo_n "(cached) " >&6
+fi
+ac_res=`eval 'as_val=${'$as_ac_Header'}
+		 $as_echo "$as_val"'`
+	       { $as_echo "$as_me:$LINENO: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+else
+  # Is the header compilable?
+{ $as_echo "$as_me:$LINENO: checking $ac_header usability" >&5
+$as_echo_n "checking $ac_header usability... " >&6; }
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+#include <$ac_header>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_header_compiler=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_header_compiler=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+$as_echo "$ac_header_compiler" >&6; }
+
+# Is the header present?
+{ $as_echo "$as_me:$LINENO: checking $ac_header presence" >&5
+$as_echo_n "checking $ac_header presence... " >&6; }
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <$ac_header>
+_ACEOF
+if { (ac_try="$ac_cpp conftest.$ac_ext"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_cpp conftest.$ac_ext") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } >/dev/null && {
+	 test -z "$ac_cxx_preproc_warn_flag$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       }; then
+  ac_header_preproc=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+  ac_header_preproc=no
+fi
+
+rm -f conftest.err conftest.$ac_ext
+{ $as_echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+$as_echo "$ac_header_preproc" >&6; }
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_cxx_preproc_warn_flag in
+  yes:no: )
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&5
+$as_echo "$as_me: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: $ac_header: proceeding with the compiler's result" >&2;}
+    ac_header_preproc=yes
+    ;;
+  no:yes:* )
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: present but cannot be compiled" >&5
+$as_echo "$as_me: WARNING: $ac_header: present but cannot be compiled" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header:     check for missing prerequisite headers?" >&5
+$as_echo "$as_me: WARNING: $ac_header:     check for missing prerequisite headers?" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: see the Autoconf documentation" >&5
+$as_echo "$as_me: WARNING: $ac_header: see the Autoconf documentation" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&5
+$as_echo "$as_me: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the preprocessor's result" >&5
+$as_echo "$as_me: WARNING: $ac_header: proceeding with the preprocessor's result" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: in the future, the compiler will take precedence" >&5
+$as_echo "$as_me: WARNING: $ac_header: in the future, the compiler will take precedence" >&2;}
+    ( cat <<\_ASBOX
+## ------------------------------ ##
+## Report this to info@xuggle.com ##
+## ------------------------------ ##
+_ASBOX
+     ) | sed "s/^/$as_me: WARNING:     /" >&2
+    ;;
+esac
+{ $as_echo "$as_me:$LINENO: checking for $ac_header" >&5
+$as_echo_n "checking for $ac_header... " >&6; }
+if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
+  $as_echo_n "(cached) " >&6
+else
+  eval "$as_ac_Header=\$ac_header_preproc"
+fi
+ac_res=`eval 'as_val=${'$as_ac_Header'}
+		 $as_echo "$as_val"'`
+	       { $as_echo "$as_me:$LINENO: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+
+fi
+as_val=`eval 'as_val=${'$as_ac_Header'}
+		 $as_echo "$as_val"'`
+   if test "x$as_val" = x""yes; then
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+ HAVE_LIBFAAC=yes
+else
+  HAVE_LIBFAAC=no
+fi
+
+done
+
+if test "x$HAVE_LIBFAAC" = xno; then
+  { $as_echo "$as_me:$LINENO: WARNING: cannot find libfaac.  We will likely not be able to encode aac audio" >&5
+$as_echo "$as_me: WARNING: cannot find libfaac.  We will likely not be able to encode aac audio" >&2;}
+fi
+fi
 
 
 
 
 
-ac_config_files="$ac_config_files Makefile mk/Makefile.global:mk/buildtools/Makefile.global.in csrc/Makefile csrc/com/Makefile csrc/com/xuggle/Makefile csrc/com/xuggle/ferry/Makefile csrc/com/xuggle/xuggler/Makefile csrc/com/xuggle/xuggler/io/Makefile test/csrc/Makefile test/csrc/com/Makefile test/csrc/com/xuggle/Makefile test/csrc/com/xuggle/testutils/Makefile test/csrc/com/xuggle/ferry/Makefile test/csrc/com/xuggle/xuggler/Makefile captive/Makefile captive/libx264/Makefile captive/libx264/incarcerate captive/libmp3lame/Makefile captive/libmp3lame/incarcerate captive/libspeex/Makefile captive/libspeex/incarcerate captive/ffmpeg/Makefile captive/ffmpeg/incarcerate captive/ffmpeg/install.sh captive/ffmpeg/uninstall.sh"
+
+ac_config_files="$ac_config_files Makefile mk/Makefile.global:mk/buildtools/Makefile.global.in csrc/Makefile csrc/com/Makefile csrc/com/xuggle/Makefile csrc/com/xuggle/ferry/Makefile csrc/com/xuggle/xuggler/Makefile csrc/com/xuggle/xuggler/io/Makefile test/csrc/Makefile test/csrc/com/Makefile test/csrc/com/xuggle/Makefile test/csrc/com/xuggle/testutils/Makefile test/csrc/com/xuggle/ferry/Makefile test/csrc/com/xuggle/xuggler/Makefile captive/Makefile captive/libx264/Makefile captive/libx264/incarcerate captive/libmp3lame/Makefile captive/libmp3lame/incarcerate captive/libspeex/Makefile captive/libspeex/incarcerate captive/libfaac/Makefile captive/libfaac/incarcerate captive/ffmpeg/Makefile captive/ffmpeg/incarcerate captive/ffmpeg/install.sh captive/ffmpeg/uninstall.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -20258,6 +20460,13 @@ if test -z "${CAPTIVE_ENABLE_LIBSPEEX_TRUE}" && test -z "${CAPTIVE_ENABLE_LIBSPE
   { { $as_echo "$as_me:$LINENO: error: conditional \"CAPTIVE_ENABLE_LIBSPEEX\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 $as_echo "$as_me: error: conditional \"CAPTIVE_ENABLE_LIBSPEEX\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${CAPTIVE_ENABLE_LIBFAAC_TRUE}" && test -z "${CAPTIVE_ENABLE_LIBFAAC_FALSE}"; then
+  { { $as_echo "$as_me:$LINENO: error: conditional \"CAPTIVE_ENABLE_LIBFAAC\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+$as_echo "$as_me: error: conditional \"CAPTIVE_ENABLE_LIBFAAC\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -21145,6 +21354,8 @@ do
     "captive/libmp3lame/incarcerate") CONFIG_FILES="$CONFIG_FILES captive/libmp3lame/incarcerate" ;;
     "captive/libspeex/Makefile") CONFIG_FILES="$CONFIG_FILES captive/libspeex/Makefile" ;;
     "captive/libspeex/incarcerate") CONFIG_FILES="$CONFIG_FILES captive/libspeex/incarcerate" ;;
+    "captive/libfaac/Makefile") CONFIG_FILES="$CONFIG_FILES captive/libfaac/Makefile" ;;
+    "captive/libfaac/incarcerate") CONFIG_FILES="$CONFIG_FILES captive/libfaac/incarcerate" ;;
     "captive/ffmpeg/Makefile") CONFIG_FILES="$CONFIG_FILES captive/ffmpeg/Makefile" ;;
     "captive/ffmpeg/incarcerate") CONFIG_FILES="$CONFIG_FILES captive/ffmpeg/incarcerate" ;;
     "captive/ffmpeg/install.sh") CONFIG_FILES="$CONFIG_FILES captive/ffmpeg/install.sh" ;;

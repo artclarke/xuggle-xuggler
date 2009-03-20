@@ -474,7 +474,7 @@ fi
 if test "x$enable_captive_ffmpeg" != "xyes"; then
   # no point in making a captive speex if we're not
   # incarcerating ffmpeg
-  enable_captive_libmp3lame=no
+  enable_captive_libspeex=no
 fi
 
 AC_MSG_RESULT([$enable_captive_libspeex])
@@ -488,6 +488,38 @@ if test "x$enable_captive_libspeex" != "xyes"; then
 AC_CHECK_HEADERS([speex/speex.h], [HAVE_LIBSPEEX=yes], [HAVE_LIBSPEEX=no])
 if test "x$HAVE_LIBSPEEX" = xno; then
   AC_MSG_WARN([cannot find libspeex.  We will likely not be able to decode speex audio])
+fi
+fi
+
+#
+# Captive libfaac support
+#
+AC_ARG_ENABLE([captive-libfaac],
+              [AS_HELP_STRING([--enable-captive-libfaac],
+                              [use our own captive versions of the faac library encoder (default is yes)])],
+                              [],
+                              [enable_captive_libfaac=yes])
+AC_MSG_CHECKING([whether to use captive version of libfaac])
+if test "x$enable_captives" != "xyes"; then
+  enable_captive_libfaac=no
+fi
+if test "x$enable_captive_ffmpeg" != "xyes"; then
+  # no point in making a captive faac if we're not
+  # incarcerating ffmpeg
+  enable_captive_libfaac=no
+fi
+
+AC_MSG_RESULT([$enable_captive_libfaac])
+AM_CONDITIONAL(CAPTIVE_ENABLE_LIBFAAC,
+               [ test "x$enable_captive_libfaac" = "xyes" ])
+CAPTIVE_ENABLE_LIBFAAC=$enable_captive_libfaac
+AC_SUBST([CAPTIVE_ENABLE_LIBFAAC])
+# FAAC headers
+if test "x$enable_captive_libfaac" != "xyes"; then
+  # We only check for Lame if we're not building it
+AC_CHECK_HEADERS([faac.h], [HAVE_LIBFAAC=yes], [HAVE_LIBFAAC=no])
+if test "x$HAVE_LIBFAAC" = xno; then
+  AC_MSG_WARN([cannot find libfaac.  We will likely not be able to encode aac audio])
 fi
 fi
 
@@ -519,6 +551,8 @@ AC_CONFIG_FILES([Makefile
                  captive/libmp3lame/incarcerate
                  captive/libspeex/Makefile
                  captive/libspeex/incarcerate
+                 captive/libfaac/Makefile
+                 captive/libfaac/incarcerate
                  captive/ffmpeg/Makefile
                  captive/ffmpeg/incarcerate
                  captive/ffmpeg/install.sh
