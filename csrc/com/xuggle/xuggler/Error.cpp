@@ -75,7 +75,16 @@ Error :: getDescription()
   const char* retval = 0;
   if (!*mErrorStr && mErrorNo != 0)
   {
+#ifdef HAVE_STRERROR_R
+#ifdef STRERROR_R_CHAR_P
     retval = strerror_r(AVUNERROR(mErrorNo), mErrorStr, sizeof(mErrorStr));
+#else
+    strerror_r(AVUNERROR(mErrorNo), mErrorStr, sizeof(mErrorStr));
+    retval = mErrorStr;
+#endif
+#else
+    retval = strerror(AVUNERROR(mErrorNo));    
+#endif // HAVE_STRERROR_R
     if (retval != (const char*) mErrorStr)
       strncpy(mErrorStr, retval, sizeof(mErrorStr));
   }
