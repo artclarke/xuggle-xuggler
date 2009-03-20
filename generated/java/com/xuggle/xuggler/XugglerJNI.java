@@ -431,7 +431,8 @@ class XugglerJNI {
   public final static native int IError_getType(long jarg1, IError jarg1_);
   public final static native String IError_getDescription(long jarg1, IError jarg1_);
   public final static native int IError_getErrorNumber(long jarg1, IError jarg1_);
-  public final static native long IError_make(int jarg1);
+  public final static native long IError_make__SWIG_0(int jarg1);
+  public final static native long IError_make__SWIG_1(int jarg1);
   public final static native long SWIGIPropertyUpcast(long jarg1);
   public final static native long SWIGIPixelFormatUpcast(long jarg1);
   public final static native long SWIGIRationalUpcast(long jarg1);

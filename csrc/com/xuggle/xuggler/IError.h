@@ -131,6 +131,14 @@ public:
    */
   static IError* make(int32_t errorNumber);
   
+  /**
+   * Create a new IError object from an IError.Type enum value.
+   * 
+   * @param The type to use for creation.
+   * @return a new IError, or null on error.
+   */
+  static IError* make(Type type);
+
 protected:
   IError();
   virtual ~IError();

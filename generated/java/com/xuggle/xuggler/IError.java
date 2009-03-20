@@ -166,7 +166,17 @@ public class IError extends RefCounted {
  * @return	a new IError, or null on error.  
  */
   public static IError make(int errorNumber) {
-    long cPtr = XugglerJNI.IError_make(errorNumber);
+    long cPtr = XugglerJNI.IError_make__SWIG_0(errorNumber);
+    return (cPtr == 0) ? null : new IError(cPtr, false);
+  }
+
+/**
+ * Create a new IError object from an IError.Type enum value.  
+ * @param	The type to use for creation.  
+ * @return	a new IError, or null on error.  
+ */
+  public static IError make(IError.Type type) {
+    long cPtr = XugglerJNI.IError_make__SWIG_1(type.swigValue());
     return (cPtr == 0) ? null : new IError(cPtr, false);
   }
 

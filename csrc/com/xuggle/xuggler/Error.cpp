@@ -37,6 +37,26 @@ VS_LOG_SETUP(VS_CPP_PACKAGE);
 namespace com { namespace xuggle { namespace xuggler
 {
 
+struct ErrorMappingTable {
+  int32_t mFfmpegError;
+  IError::Type mXugglerError;
+} ;
+
+static struct ErrorMappingTable sErrorMappingTable[] = {
+    { AVERROR_IO,           IError::ERROR_IO },
+    { AVERROR_NUMEXPECTED,  IError::ERROR_NUMEXPECTED },
+    { AVERROR_INVALIDDATA,  IError::ERROR_INVALIDDATA },
+    { AVERROR_NOMEM,        IError::ERROR_NOMEM },
+    { AVERROR_NOFMT,        IError::ERROR_NOFMT },
+    { AVERROR_NOTSUPP,      IError::ERROR_NOTSUPPORTED },
+    { AVERROR_NOENT,        IError::ERROR_NOENT },
+    { AVERROR_EOF,          IError::ERROR_EOF },
+    { AVERROR_PATCHWELCOME, IError::ERROR_PATCHWELCOME },
+    { AVERROR(EAGAIN),       IError::ERROR_AGAIN },
+    { AVERROR(ERANGE),      IError::ERROR_RANGE },
+};
+static int32_t sErrorMappingTableSize = sizeof(sErrorMappingTable)/sizeof(struct ErrorMappingTable);
+
 Error :: Error()
 {
   mType = IError::ERROR_UNKNOWN;
@@ -76,17 +96,29 @@ Error :: getType()
 Error*
 Error :: make(int32_t aErrorNo)
 {
+  if (aErrorNo >= 0)
+    return 0;
+  
+  return make(aErrorNo, errorNumberToType(aErrorNo));
+}
+
+Error*
+Error :: make(Type aType)
+{
+  return make(typeToErrorNumber(aType), aType);
+}
+
+Error*
+Error :: make(int32_t aErrorNo, Type aType)
+{
   Error* retval = 0;
   try
   {
-    if (aErrorNo >= 0)
-      throw std::runtime_error("error number must be < 0");
-    
     retval = make();
     if (!retval)
       throw std::bad_alloc();
     retval->mErrorNo = aErrorNo;
-    retval->mType = errorNumberToType(aErrorNo);
+    retval->mType = aType;
     // null out and don't fill unless description is asked for
     *(retval->mErrorStr) = 0;
   }
@@ -96,50 +128,43 @@ Error :: make(int32_t aErrorNo)
     VS_REF_RELEASE(retval);
   }
   return retval;
+  
 }
 
 IError::Type
 Error :: errorNumberToType(int32_t errNo)
 {
   IError::Type retval = IError::ERROR_UNKNOWN;
-  switch(errNo)
+  int i = 0;
+  for(; i < sErrorMappingTableSize; i++)
   {
-    case AVERROR_IO:
-      retval = IError::ERROR_IO;
+    if (sErrorMappingTable[i].mFfmpegError == errNo)
+    {
+      retval = sErrorMappingTable[i].mXugglerError;
       break;
-    case AVERROR_NUMEXPECTED:
-      retval = IError::ERROR_NUMEXPECTED;
+    }
+  }
+  if (i >= sErrorMappingTableSize) {
+    retval = IError::ERROR_UNKNOWN;
+  }
+  return retval;
+}
+
+int32_t
+Error :: typeToErrorNumber(Type type)
+{
+  int32_t retval = AVERROR_UNKNOWN;
+  int i = 0;
+  for(; i < sErrorMappingTableSize; i++)
+  {
+    if (sErrorMappingTable[i].mXugglerError == type)
+    {
+      retval = sErrorMappingTable[i].mFfmpegError;
       break;
-    case AVERROR_INVALIDDATA:
-      retval = IError::ERROR_INVALIDDATA;
-      break;
-    case AVERROR_NOMEM:
-      retval = IError::ERROR_NOMEM;
-      break;
-    case AVERROR_NOFMT:
-      retval = IError::ERROR_NOFMT;
-      break;
-    case AVERROR_NOTSUPP:
-      retval = IError::ERROR_NOTSUPPORTED;
-      break;
-    case AVERROR_NOENT:
-      retval = IError::ERROR_NOENT;
-      break;
-    case AVERROR_EOF:
-      retval = IError::ERROR_EOF;
-      break;
-    case AVERROR_PATCHWELCOME:
-      retval = IError::ERROR_PATCHWELCOME;
-      break;
-    case AVERROR(EAGAIN):
-      retval = IError::ERROR_AGAIN;
-      break;
-    case AVERROR(ERANGE):
-      retval = IError::ERROR_RANGE;
-      break;
-    default:
-      retval = IError::ERROR_UNKNOWN;
-      break;
+    }
+  }
+  if (i >= sErrorMappingTableSize) {
+    retval = AVERROR_UNKNOWN;
   }
   return retval;
 }

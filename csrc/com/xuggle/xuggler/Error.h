@@ -42,13 +42,16 @@ public:
   virtual Type getType();
   
   static Error* make(int32_t errNo);
-
+  static Error* make(Type type);
 protected:
   Error();
   virtual ~Error();
   
 private:
+  static Error* make(int32_t errNo, Type type);
+  
   static Type errorNumberToType(int32_t errorNo);
+  static int32_t typeToErrorNumber(Type type);
   Type mType;
   int32_t mErrorNo;
   char mErrorStr[1024];

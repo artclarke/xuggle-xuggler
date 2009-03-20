@@ -61,4 +61,16 @@ ErrorTest :: testErrorCreation()
   VS_TUT_ENSURE_EQUALS("should map correctly", 
       IError::ERROR_IO,
       error->getType());
+  
+  error = IError::make(IError::ERROR_IO);
+  VS_TUT_ENSURE("made error", error);
+    
+  description = error->getDescription();
+
+  VS_TUT_ENSURE("got description", description && *description);
+
+  VS_TUT_ENSURE_EQUALS("should map correctly", 
+      AVERROR_IO,
+      error->getErrorNumber());
+  
 }

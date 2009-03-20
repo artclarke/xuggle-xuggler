@@ -47,4 +47,10 @@ IError :: make(int32_t errorNumber)
   return Error::make(errorNumber);
 }
 
+IError*
+IError :: make(Type type)
+{
+  return Error::make(type);
+}
+
 }}}
