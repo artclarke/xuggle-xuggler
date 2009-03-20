@@ -1,0 +1,65 @@
+#!/bin/sh
+
+# Modify this script to pass the necessary parameters to 
+# the configure of the captive package you're configuring
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+FAAC_OPTIONS=
+LDFLAGS="@LDFLAGS@"
+CFLAGS="@CFLAGS@"
+HOST_TYPE=@HOST_TYPE@
+HOST_OS=@HOST_OS@
+VS_DEBUG=@VS_DEBUG@
+
+VS_ENABLE_64BIT=@VS_ENABLE_64BIT@
+case $HOST_TYPE in
+  Windows)
+  CC="${CC} -mno-cygwin"
+  LDFLAGS="$LDFLAGS -mno-cygwin"
+  CFLAGS="$CFLAGS -fno-common"
+  ;;
+  Mac)
+  CFLAGS="$CFLAGS -fno-common"
+  ;;
+  *)
+  ;;
+esac
+if test "x$VS_ENABLE_64BIT" = "xyes"; then
+  CFLAGS="$CFLAGS -m64"
+  LDFLAGS="$LDFLAGS -m64"
+  case $HOST_TYPE in
+    Mac)
+    CFLAGS="$CFLAGS -arch x86_64"
+    LDFLAGS="$LDFLAGS -arch x86_64"
+    ;;
+    *)
+    ;;
+  esac
+fi
+
+# Tell FAAC about the captive libraries already built and fake
+# installed
+
+FAAC_OPTIONS="$FAAC_OPTIONS --enable-pic --enable-shared"
+if test ! "x$VS_DEBUG" = "x"; then
+  echo "Creating debug version of libFAAC: $VS_DEBUG"
+  CFLAGS="-g -O0"
+else
+  echo "Creating release version of libFAAC: $VS_DEBUG"
+fi
+
+# libFAAC doesn't support VPATH builds, so we fake it
+echo "Copying @abs_srcdir@/csrc to @abs_builddir@/csrc"
+# create the directory
+mkdir -p @abs_builddir@/csrc
+# copy over all the source
+cp -r @abs_srcdir@/csrc/* @abs_builddir@/csrc/
+# and make everything user writeable so distcheck will pass
+chmod -R u+w @abs_builddir@/csrc/*
+
+echo "Configuring FAAC with these options: $FAAC_OPTIONS"
+CFLAGS="$CFLAGS -I'@abs_top_builddir@/captive@includedir@'" \
+LDFLAGS="$LDFLAGS -L'@abs_top_builddir@/captive@libdir@'" \
+   sh @abs_builddir@/csrc/configure \
+  --prefix="${prefix}" $FAAC_OPTIONS || \
+  (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)
