@@ -1,1 +1,1 @@
-SUBDIRS = include libfaac common frontend
+SUBDIRS = include libfaac
