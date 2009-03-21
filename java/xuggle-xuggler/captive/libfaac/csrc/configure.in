@@ -76,10 +76,4 @@ AC_CHECK_TYPES([in_port_t, socklen_t], , ,
 	 #include <netinet/in.h>])
 AC_CHECK_MEMBERS(fpos_t.__pos,,, [#include <stdio.h>])
 
-AC_OUTPUT([
-common/Makefile
-common/mp4v2/Makefile
-libfaac/Makefile
-frontend/Makefile
-include/Makefile
-Makefile])
+AC_OUTPUT(libfaac/Makefile include/Makefile Makefile)

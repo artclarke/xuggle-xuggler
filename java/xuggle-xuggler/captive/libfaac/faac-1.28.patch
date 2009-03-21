@@ -1,0 +1,23 @@
+Index: csrc/configure.in
+===================================================================
+--- csrc/configure.in	(revision 251)
++++ csrc/configure.in	(working copy)
+@@ -76,10 +76,4 @@
+ 	 #include <netinet/in.h>])
+ AC_CHECK_MEMBERS(fpos_t.__pos,,, [#include <stdio.h>])
+ 
+-AC_OUTPUT([
+-common/Makefile
+-common/mp4v2/Makefile
+-libfaac/Makefile
+-frontend/Makefile
+-include/Makefile
+-Makefile])
++AC_OUTPUT(libfaac/Makefile include/Makefile Makefile)
+Index: csrc/Makefile.am
+===================================================================
+--- csrc/Makefile.am	(revision 251)
++++ csrc/Makefile.am	(working copy)
+@@ -1 +1 @@
+-SUBDIRS = include libfaac common frontend
++SUBDIRS = include libfaac
