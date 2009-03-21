@@ -175,7 +175,7 @@ namespace com { namespace xuggle { namespace xuggler
         {
           avpicture_fill((AVPicture*)mFrame, buffer, mPixelFormat, mWidth, mHeight);
           av_picture_copy((AVPicture*)mFrame, (AVPicture*)frame,
-              mPixelFormat, mWidth, mHeight);
+              (PixelFormat)mPixelFormat, mWidth, mHeight);
         }
         mFrame->key_frame = frame->key_frame;
       }
@@ -291,7 +291,7 @@ namespace com { namespace xuggle { namespace xuggler
   {
     int retval = -1;
     if (mWidth > 0 && mHeight > 0)
-      retval = avpicture_get_size(mPixelFormat, mWidth, mHeight);
+      retval = avpicture_get_size((PixelFormat)mPixelFormat, mWidth, mHeight);
     return retval;
   }
 

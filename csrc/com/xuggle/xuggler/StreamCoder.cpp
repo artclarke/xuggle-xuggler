@@ -905,7 +905,7 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
       }
       else
       {
-        suggestedBufferSize = avpicture_get_size(getPixelType(), getWidth(),
+        suggestedBufferSize = avpicture_get_size((PixelFormat)getPixelType(), getWidth(),
             getHeight());
       }
     }
