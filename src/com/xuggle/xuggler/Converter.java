@@ -1034,7 +1034,7 @@ public class Converter
           if (retval <= 0)
             throw new RuntimeException("could not decode any video.  stream: " + i);
 
-          log.info("decoded vid ts: {}; pkts ts: {}",
+          log.trace("decoded vid ts: {}; pkts ts: {}",
               inFrame.getTimeStamp(),
               iPacket.getTimeStamp());
           if (inFrame.getTimeStamp() != Global.NO_PTS)

@@ -23,6 +23,7 @@
 
 #include <com/xuggle/ferry/RefCounted.h>
 #include <com/xuggle/xuggler/Xuggler.h>
+#include <com/xuggle/xuggler/IContainerParameters.h>
 #include <com/xuggle/xuggler/IContainerFormat.h>
 #include <com/xuggle/xuggler/IStream.h>
 #include <com/xuggle/xuggler/IPacket.h>
@@ -550,7 +551,29 @@ namespace com { namespace xuggle { namespace xuggler
      * @param count The read retry count.  <0 means keep trying.
      */
     virtual void setReadRetryCount(int32_t count)=0;
+
     
+    /**
+     * Get the parameters that will be used when opening.
+     * 
+     * @see #setParameters(IContainerParameters)
+     * 
+     * @return The parameters
+     */
+    virtual IContainerParameters *getParameters()=0;
+
+    
+    /**
+     * Set the parameters for this container.
+     * 
+     * Normally this is not required, but if you're opening
+     * something like a webcam, you need to specify to the
+     * Container parameters such as a time base, width, height,
+     * etc.
+     * 
+     * @param parameters The parameters to set.  Ignored if null.
+     */
+    virtual void setParameters(IContainerParameters* parameters)=0;
   };
 }}}
 #endif /*ICONTAINER_H_*/

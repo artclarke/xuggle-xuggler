@@ -104,6 +104,9 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t getReadRetryCount();
     virtual void setReadRetryCount(int32_t count);
 
+    virtual IContainerParameters *getParameters();
+    virtual void setParameters(IContainerParameters* parameters);
+
   protected:
     virtual ~Container();
     Container();
@@ -132,6 +135,7 @@ namespace com { namespace xuggle { namespace xuggler
     uint32_t mInputBufferLength;
     
     int32_t mReadRetryCount;
+    com::xuggle::ferry::RefPointer<IContainerParameters> mParameters;
   };
 }}}
 

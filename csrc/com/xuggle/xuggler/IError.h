@@ -39,11 +39,11 @@ namespace com { namespace xuggle { namespace xuggler
 
 /**
  * Maps from int return codes to defined Error values.
- * 
+ * <p>
  * This class is used to map from Xuggler return codes
  * (for example on {@link IContainer#readNextPacket(IPacket)}
  * into an enum type if the error is known and a text description.
- * 
+ * </p><p>
  * WARNING: Do not write code that depends on the integer values
  * returned from Xuggler; instead use the integer value to create
  * one of these objects.  That's because integer values returned
@@ -51,10 +51,11 @@ namespace com { namespace xuggle { namespace xuggler
  * (for example, ERROR_AGAIN is -11 on Linux, but a different
  * value on MacOS).  This class maps the error to a os-type-safe
  * value.
- * 
+ * </p><p>
  * Also, do not depend on the string messages staying constant.  They
- * are for debugging purposes only.  And no, they won't be
- * localized.  Sorry.
+ * are for debugging purposes only.  And we can't control whether or
+ * not they are localized -- that's up to your OS.  Sorry.
+ * </p>
  */
 class VS_API_XUGGLER IError : public com::xuggle::ferry::RefCounted
 {
@@ -134,7 +135,7 @@ public:
   /**
    * Create a new IError object from an IError.Type enum value.
    * 
-   * @param The type to use for creation.
+   * @param type The type to use for creation.
    * @return a new IError, or null on error.
    */
   static IError* make(Type type);

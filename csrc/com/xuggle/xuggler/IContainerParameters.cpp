@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let
  * us know by sending e-mail to info@xuggle.com telling us briefly how you're
  * using the library and what you like or don't like about it.
  *
@@ -19,45 +19,32 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 /*
- * Error.h
+ * IContainerParameters.cpp
  *
  *  Created on: Mar 20, 2009
  *      Author: aclarke
  */
 
-#ifndef ERROR_H_
-#define ERROR_H_
-
-#include <com/xuggle/xuggler/IError.h>
-
+#include <com/xuggle/xuggler/IContainerParameters.h>
+#include <com/xuggle/xuggler/ContainerParameters.h>
 namespace com { namespace xuggle { namespace xuggler
 {
 
-class Error : public IError
+IContainerParameters :: IContainerParameters()
 {
-  VS_JNIUTILS_REFCOUNTED_OBJECT_PRIVATE_MAKE(Error);
-public:
-  virtual const char* getDescription();
-  virtual int32_t getErrorNumber();
-  virtual Type getType();
-  
-  static Error* make(int32_t errNo);
-  static Error* make(Type type);
-protected:
-  Error();
-  virtual ~Error();
-  
-private:
-  static Error* make(int32_t errNo, Type type);
-  
-  static Type errorNumberToType(int32_t errorNo);
-  static int32_t typeToErrorNumber(Type type);
-  Type mType;
-  int32_t mErrorNo;
-  char mErrorStr[256];
-  
-};
+}
+
+IContainerParameters :: ~IContainerParameters()
+{
+}
+
+IContainerParameters *
+IContainerParameters :: make()
+{
+  return ContainerParameters::make();
+}
+
 
 }}}
 
-#endif /* ERROR_H_ */
+

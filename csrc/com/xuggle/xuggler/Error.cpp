@@ -62,6 +62,7 @@ Error :: Error()
   mType = IError::ERROR_UNKNOWN;
   mErrorNo = 0;
   *mErrorStr = 0;
+  mErrorStr[sizeof(mErrorStr)-1]=0;
 }
 
 Error :: ~Error()
@@ -86,7 +87,7 @@ Error :: getDescription()
     retval = strerror(AVUNERROR(mErrorNo));    
 #endif // HAVE_STRERROR_R
     if (retval != (const char*) mErrorStr)
-      strncpy(mErrorStr, retval, sizeof(mErrorStr));
+      strncpy(mErrorStr, retval, sizeof(mErrorStr)-1);
   }
   return *mErrorStr ? mErrorStr : 0;
 }

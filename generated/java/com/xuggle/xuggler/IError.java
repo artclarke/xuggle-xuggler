@@ -10,9 +10,11 @@ package com.xuggle.xuggler;
 import com.xuggle.ferry.*;
 /**
  * Maps from int return codes to defined Error values.  
+ * <p>  
  * This class is used to map from Xuggler return codes  
  * (for example on {@link IContainer#readNextPacket(IPacket)}  
  *  
+ * </p><p>  
  * WARNING: Do not write code that depends on the integer values  
  * returned from Xuggler; instead use the integer value to create  
  * one of these objects. That's because integer values returned  
@@ -21,10 +23,13 @@ import com.xuggle.ferry.*;
  * (for example, ERROR_AGAIN is -11 on Linux, but a different  
  * value on MacOS). This class maps the error to a os-type-safe  
  * value.  
+ * </p><p>  
  * Also, do not depend on the string messages staying constant. They 
  *  
- * are for debugging purposes only. And no, they won't be  
- * localized. Sorry.  
+ * are for debugging purposes only. And we can't control whether or 
+ *  
+ * not they are localized -- that's up to your OS. Sorry.  
+ * </p>  
  */
 public class IError extends RefCounted {
   // JNIHelper.swg: Start generated code
@@ -172,7 +177,7 @@ public class IError extends RefCounted {
 
 /**
  * Create a new IError object from an IError.Type enum value.  
- * @param	The type to use for creation.  
+ * @param	type The type to use for creation.  
  * @return	a new IError, or null on error.  
  */
   public static IError make(IError.Type type) {

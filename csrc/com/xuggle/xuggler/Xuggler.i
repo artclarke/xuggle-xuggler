@@ -51,6 +51,7 @@ JNI_OnLoad(JavaVM *jvm, void *)
 #include <com/xuggle/xuggler/IVideoResampler.h>
 #include <com/xuggle/xuggler/IStreamCoder.h>
 #include <com/xuggle/xuggler/IStream.h>
+#include <com/xuggle/xuggler/IContainerParameters.h>
 #include <com/xuggle/xuggler/IContainerFormat.h>
 #include <com/xuggle/xuggler/IContainer.h>
 #include <com/xuggle/xuggler/IMediaDataWrapper.h>
@@ -160,6 +161,7 @@ import com.xuggle.xuggler.Converter;
 %include <com/xuggle/xuggler/IVideoResampler.h>
 %include <com/xuggle/xuggler/IStreamCoder.swg>
 %include <com/xuggle/xuggler/IStream.h>
+%include <com/xuggle/xuggler/IContainerParameters.h>
 %include <com/xuggle/xuggler/IContainerFormat.h>
 %include <com/xuggle/xuggler/IContainer.h>
 %include <com/xuggle/xuggler/IMediaDataWrapper.swg>

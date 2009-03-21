@@ -8,7 +8,7 @@ SUBDIRS=io
 SUFFIXES=.i
 lib_LTLIBRARIES = libxuggle-xuggler.la
 
-libxuggle_xuggler_la_LIBADD= -lavformat -lavcodec -lavutil 
+libxuggle_xuggler_la_LIBADD= -lavdevice -lavformat -lavcodec -lavutil 
 if VS_ENABLE_GPL
 libxuggle_xuggler_la_LIBADD+= -lswscale
 endif
@@ -20,6 +20,7 @@ libxuggle_xuggler_la_SOURCES= \
   Codec.cpp \
   Container.cpp \
   ContainerFormat.cpp \
+  ContainerParameters.cpp \
   Error.cpp \
   VideoPicture.cpp \
   Global.cpp \
@@ -28,6 +29,7 @@ libxuggle_xuggler_la_SOURCES= \
   ICodec.cpp \
   IContainer.cpp \
   IContainerFormat.cpp \
+  IContainerParameters.cpp \
   IError.cpp \
   IVideoPicture.cpp \
   IMediaData.cpp \
@@ -66,6 +68,7 @@ libxuggle_xuggler_la_HEADERS= \
   IAudioSamples.h \
   ICodec.h \
   IContainerFormat.h \
+  IContainerParameters.h \
   IContainer.h \
   IError.h \
   IVideoPicture.h \
@@ -86,6 +89,7 @@ libxuggle_xuggler_la_HEADERS= \
   AudioSamples.h \
   Codec.h \
   ContainerFormat.h \
+  ContainerParameters.h \
   Container.h \
   Error.h \
   VideoPicture.h \

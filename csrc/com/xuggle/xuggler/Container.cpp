@@ -27,10 +27,12 @@
 
 #include <com/xuggle/xuggler/Container.h>
 #include <com/xuggle/xuggler/ContainerFormat.h>
+#include <com/xuggle/xuggler/ContainerParameters.h>
 #include <com/xuggle/xuggler/Stream.h>
 #include <com/xuggle/xuggler/Packet.h>
 #include <com/xuggle/xuggler/Global.h>
 #include <com/xuggle/xuggler/Property.h>
+
 VS_LOG_SETUP(VS_CPP_PACKAGE);
 
 using namespace com::xuggle::ferry;
@@ -48,6 +50,7 @@ namespace com { namespace xuggle { namespace xuggler
     mNumStreams = 0;
     mInputBufferLength = 0;
     mReadRetryCount = 1;
+    mParameters = IContainerParameters::make();
   }
 
   Container :: ~Container()
@@ -231,8 +234,10 @@ namespace com { namespace xuggle { namespace xuggler
     int32_t retval = -1;
     AVInputFormat *inputFormat = 0;
     ContainerFormat *containerFormat = dynamic_cast<ContainerFormat*>(pContainerFormat);
-    AVFormatParameters params;
-    memset(&params, 0, sizeof(AVFormatParameters));
+    AVFormatParameters* params = 0;
+    ContainerParameters* cParams = dynamic_cast<ContainerParameters*>(mParameters.value());
+    if (cParams)
+      params = cParams->getAVParameters();
 
     if (containerFormat)
     {
@@ -240,7 +245,7 @@ namespace com { namespace xuggle { namespace xuggler
     } else {
       inputFormat = 0;
     }
-    retval = av_open_input_file(&mFormatContext, url, inputFormat, mInputBufferLength, &params);
+    retval = av_open_input_file(&mFormatContext, url, inputFormat, mInputBufferLength, params);
     if (retval >= 0) {
       mIsOpened = true;
       if (aStreamsCanBeAddedDynamically)
@@ -884,6 +889,19 @@ namespace com { namespace xuggle { namespace xuggler
   Container :: setReadRetryCount(int32_t aCount)
   {
     mReadRetryCount = aCount;
+  }
+  
+  IContainerParameters*
+  Container :: getParameters()
+  {
+    return mParameters.get();
+  }
+  
+  void
+  Container :: setParameters(IContainerParameters* params)
+  {
+    if (params)
+      mParameters.reset(params, true);
   }
   
 }}}

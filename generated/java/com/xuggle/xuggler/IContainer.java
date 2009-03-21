@@ -648,6 +648,28 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     XugglerJNI.IContainer_setReadRetryCount(swigCPtr, this, count);
   }
 
+/**
+ * Get the parameters that will be used when opening.  
+ * @see		#setParameters(IContainerParameters)  
+ * @return	The parameters  
+ */
+  public IContainerParameters getParameters() {
+    long cPtr = XugglerJNI.IContainer_getParameters(swigCPtr, this);
+    return (cPtr == 0) ? null : new IContainerParameters(cPtr, false);
+  }
+
+/**
+ * Set the parameters for this container.  
+ * Normally this is not required, but if you're opening  
+ * something like a webcam, you need to specify to the  
+ * Container parameters such as a time base, width, height,  
+ * etc.  
+ * @param	parameters The parameters to set. Ignored if null.  
+ */
+  public void setParameters(IContainerParameters parameters) {
+    XugglerJNI.IContainer_setParameters(swigCPtr, this, IContainerParameters.getCPtr(parameters), parameters);
+  }
+
   public enum Type {
   /**
    * The different types of Containers we support. A container

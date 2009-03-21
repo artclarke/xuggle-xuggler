@@ -26,5 +26,6 @@ extern "C"
 #include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
+#include <libavdevice/avdevice.h>
 }
 #endif /*FFMPEGINCLUDES_H_*/

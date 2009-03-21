@@ -29,17 +29,27 @@ dist-hook:
 
 install-exec-hook: incarcerate-package
 	cd csrc && $(MAKE) install-exec
+	if test -f install.sh; then \
+	  DESTDIR="$(DESTDIR)" sh install.sh; \
+	fi
 
 install-data-hook: incarcerate-package
 	cd csrc && $(MAKE) install-data
 
 uninstall-local: incarcerate-package
+	if test -f uninstall.sh; then \
+	  DESTDIR="$(DESTDIR)" sh uninstall.sh; \
+	fi
 	cd csrc && $(MAKE) uninstall
 
 check: incarcerate-package
 	cd csrc && $(MAKE) check
 
 clean-local: incarcerate-package
+	if test -f uninstall.sh; then \
+	  DESTDIR="$(vs_captive_prefix)" sh uninstall.sh; \
+	fi
 	cd csrc && $(MAKE) clean && DESTDIR="$(vs_captive_prefix)" $(MAKE) uninstall
-distclean-local: incarcerate-package
-	cd csrc && $(MAKE) distclean
+
+distclean-local:
+	rm -rf csrc

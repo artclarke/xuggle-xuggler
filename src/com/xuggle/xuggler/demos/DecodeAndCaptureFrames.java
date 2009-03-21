@@ -41,7 +41,7 @@ import com.xuggle.xuggler.Utils;
  * stream, and then writes video frames at some interval based on the
  * video presentation time stamps.
  *
- * @author aclarke
+ * @author trebor
  */
 
 public class DecodeAndCaptureFrames
@@ -109,7 +109,7 @@ public class DecodeAndCaptureFrames
    * Takes a media container (file) as the first argument, opens it,
    * reads through the file and captures video frames periodically as
    * specified by SECONDS_BETWEEN_FRAMES.  The frames are written as PNG
-   * files into the systems temorary directory.
+   * files into the system's temporary directory.
    *  
    * @param args must contain one string which represents a filename
    */
