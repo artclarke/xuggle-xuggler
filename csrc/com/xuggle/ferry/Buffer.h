@@ -30,7 +30,6 @@ namespace com { namespace xuggle { namespace ferry
   {
     VS_JNIUTILS_REFCOUNTED_OBJECT_PRIVATE_MAKE(Buffer);
   public:
-    typedef void (*FreeFunc)(void * mem, void *closure);
     
     virtual void* getBytes(int32_t offset, int32_t length);
     virtual int32_t getBufferSize();

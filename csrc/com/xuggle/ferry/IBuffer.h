@@ -21,11 +21,6 @@
 #ifndef IBUFFER_H_
 #define IBUFFER_H_
 
-#ifndef SWIG
-#include <jni.h>
-#endif
-typedef jobject jNioByteArray;
-
 #include <com/xuggle/ferry/Ferry.h>
 #include <com/xuggle/ferry/RefCounted.h>
 
@@ -52,6 +47,8 @@ namespace com { namespace xuggle { namespace ferry
   {
   public:
 #ifndef SWIG
+    typedef void (*FreeFunc)(void * mem, void *closure);
+
     /**
      * Returns up to length bytes, starting at offset in the
      * underlying buffer we're managing.
@@ -67,30 +64,25 @@ namespace com { namespace xuggle { namespace ferry
      *   would not fit within the buffer we're managing.
      */
     virtual void* getBytes(int32_t offset, int32_t length)=0;
-#endif // ! SWIG
 
     /**
-     * Returns up to length bytes, starting at offset in the
-     * underlying buffer we're managing.
-     * <p> 
-     * This method COPIES the data into the byte array being
-     * returned..
-     * </p><p>
-     * If you don't NEED the direct access that getByteBuffer
-     * offers (and most programs can in fact take the performance
-     * hit of the copy), we recommend you use this method.
-     * It's much harder to accidentally leave native memory lying
-     * around waiting for cleanup then.
-     * </p>
+     * Allocate a new buffer by wrapping a native buffer.
      * 
-     * @param offset The offset (in bytes) into the buffer managed by this IBuffer
-     * @param length The requested length (in bytes) you want to access.  The buffer returned may
-     *   actually be longer than length.
+     * @param requestor An optional value telling the IBuffer class what object requested it.  This is used for debugging memory leaks; it's a marker for the FERRY object (e.g. IPacket) that actually requested the buffer.  If you're not an FERRY object, pass in null here.
+     * @param bufToWrap Buffer to wrap
+     * @param bufferSize The minimum buffer size you're requesting in bytes; a buffer with a larger size may be returned.
+     * @param freeFunc A function that will be called when we decide to free the buffer
+     * @param closure A value that will be passed, along with this, to freeFunc
      * 
-     * @return A copy of the data that is in this IBuffer, or null
-     *   if error.
+     * @return A new buffer, or null on error.
      */
-    jbyteArray getByteArray(int32_t offset, int32_t length);
+    static IBuffer* make(RefCounted* requestor, void * bufToWrap,
+        int32_t bufferSize,
+        FreeFunc freeFunc,
+        void * closure);
+    
+
+#endif // ! SWIG
 
     /**
      * Get the current maximum number of bytes that can
@@ -109,39 +101,6 @@ namespace com { namespace xuggle { namespace ferry
      * @return A new buffer, or null on error.
      */
     static IBuffer* make(com::xuggle::ferry::RefCounted* requestor, int32_t bufferSize);
-
-    /**
-     * Allocate a new IBuffer and copy the data in the passed in buffer into the new IBuffer.
-     * 
-     * @param requestor An option value telling the IBuffer class what object requested it.  Default to null if you don't know what to pass here.
-     * @param buffer a java byte[] array passed in from a JNI call
-     * @param offset the offset to start copying from.
-     * @param length the number of bytes to copy
-     * 
-     * @return a new IBuffer, or null on error.  
-     */
-    static IBuffer* make(com::xuggle::ferry::RefCounted* requestor, jbyteArray buffer, int32_t offset, int32_t length);
-
-    /**
-     * Allocate a new IBuffer that wraps the java.nio.ByteBuffer that is passed in.  This does
-     * not copy data and so is as fast as we can get.
-     * 
-     * This will fail with an error unless the byte buffer is a direct byte buffer
-     * (i.e. {@link java.nio.ByteBuffer#isDirect()} returns true.
-     * 
-     * @param requestor An option value telling the IBuffer class what object requested it.  Default to null if you don't know what to pass here.
-     * @param directByteBuffer an instance of java.nio.ByteBuffer that has been allocated as a Direct buffer.
-     * @param offset the offset to start copying from.
-     * @param length the number of bytes to copy
-     * 
-     * @return a new IBuffer, or null on error.  
-     */
-    static IBuffer* make(com::xuggle::ferry::RefCounted* requestor, jNioByteArray directByteBuffer, int32_t offset, int32_t length);
-
-#ifdef SWIG
-    %javamethodmodifiers java_getByteBuffer(int32_t, int32_t) "private"
-#endif // SWIG
-    jNioByteArray java_getByteBuffer(int32_t offset, int32_t length);
 
   protected:
     IBuffer();

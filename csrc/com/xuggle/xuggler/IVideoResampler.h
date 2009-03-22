@@ -27,10 +27,6 @@
 #include <com/xuggle/xuggler/IVideoPicture.h>
 #include <com/xuggle/xuggler/IProperty.h>
 
-#ifdef SWIG
-  %typemap(javainterfaces) com::xuggle::xuggler::IVideoResampler, com::xuggle::xuggler::IVideoResampler*, com::xuggle::xuggler::IVideoResampler& "com.xuggle.xuggler.IConfigurable";
-#endif
-
 namespace com { namespace xuggle { namespace xuggler
   {
 

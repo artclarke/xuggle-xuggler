@@ -29,9 +29,6 @@
 #include <com/xuggle/xuggler/IPacket.h>
 #include <com/xuggle/xuggler/IProperty.h>
 
-#ifdef SWIG
-  %typemap(javainterfaces) com::xuggle::xuggler::IContainer, com::xuggle::xuggler::IContainer*, com::xuggle::xuggler::IContainer& "com.xuggle.xuggler.IConfigurable";
-#endif
 namespace com { namespace xuggle { namespace xuggler
 {
 

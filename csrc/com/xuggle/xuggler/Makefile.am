@@ -70,6 +70,7 @@ libxuggle_xuggler_la_HEADERS= \
   IContainerFormat.h \
   IContainerParameters.h \
   IContainer.h \
+  IContainer.swg \
   IError.h \
   IVideoPicture.h \
   IMediaData.h \
@@ -84,6 +85,7 @@ libxuggle_xuggler_la_HEADERS= \
   IStream.h \
   ITimeValue.h \
   IVideoResampler.h \
+  IVideoResampler.swg \
   Xuggler.i \
   AudioResampler.h \
   AudioSamples.h \

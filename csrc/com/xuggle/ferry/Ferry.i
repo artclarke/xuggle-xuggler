@@ -20,7 +20,9 @@
  */
 %module Ferry
 %{
+#include <stdexcept>
 #include <com/xuggle/ferry/JNIHelper.h>
+
 extern "C" {
   JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *);
 };
@@ -44,6 +46,8 @@ JNI_OnLoad(JavaVM *jvm, void *)
 #include <com/xuggle/ferry/Mutex.h>
 #include <com/xuggle/ferry/IBuffer.h>
 #include <com/xuggle/ferry/RefCountedTester.h>
+
+using namespace com::xuggle::ferry;
 
 %}
 %pragma(java) jniclasscode=%{

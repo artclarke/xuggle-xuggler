@@ -188,31 +188,6 @@ public class IBuffer extends RefCounted {
   }
 
 /**
- * Returns up to length bytes, starting at offset in the  
- * underlying buffer we're managing.  
- * <p>  
- * This method COPIES the data into the byte array being  
- * returned..  
- * </p><p>  
- * If you don't NEED the direct access that getByteBuffer  
- * offers (and most programs can in fact take the performance  
- * hit of the copy), we recommend you use this method.  
- * It's much harder to accidentally leave native memory lying  
- * around waiting for cleanup then.  
- * </p>  
- * @param	offset The offset (in bytes) into the buffer managed by this 
- *		 IBuffer  
- * @param	length The requested length (in bytes) you want to access. 
- *		 The buffer returned may  
- * actually be longer than length.  
- * @return	A copy of the data that is in this IBuffer, or null  
- * if error.  
- */
-  public byte[] getByteArray(int offset, int length) {
-    return FerryJNI.IBuffer_getByteArray(swigCPtr, this, offset, length);
-  }
-
-/**
  * Get the current maximum number of bytes that can  
  * be safely placed in this buffer.  
  * @return	Maximum number of bytes this buffer can manage.  
@@ -238,45 +213,43 @@ public class IBuffer extends RefCounted {
     return (cPtr == 0) ? null : new IBuffer(cPtr, false);
   }
 
+  public java.nio.ByteBuffer java_getByteBuffer(int offset, int length) {
+    return FerryJNI.IBuffer_java_getByteBuffer(swigCPtr, this, offset, length);
+  }
+
 /**
- * Allocate a new IBuffer and copy the data in the passed in buffer 
- * into the new IBuffer.  
- * @param	requestor An option value telling the IBuffer class what object 
- *		 requested it. Default to null if you don't know 
- *		 what to pass here.  
- * @param	buffer a java byte[] array passed in from a JNI call  
- * @param	offset the offset to start copying from.  
- * @param	length the number of bytes to copy  
- * @return	a new IBuffer, or null on error.  
+ * Returns up to length bytes, starting at offset in the  
+ * underlying buffer we're managing.  
+ * <p>  
+ * This method COPIES the data into the byte array being  
+ * returned..  
+ * </p><p>  
+ * If you don't NEED the direct access that getByteBuffer  
+ * offers (and most programs can in fact take the performance  
+ * hit of the copy), we recommend you use this method.  
+ * It's much harder to accidentally leave native memory lying  
+ * around waiting for cleanup then.  
+ * </p>  
+ * @param	offset The offset (in bytes) into the buffer managed by this 
+ *		 IBuffer  
+ * @param	length The requested length (in bytes) you want to access. 
+ *		 The buffer returned may  
+ * actually be longer than length.  
+ * @return	A copy of the data that is in this IBuffer, or null  
+ * if error.  
  */
+  public byte[] getByteArray(int offset, int length) {
+    return FerryJNI.IBuffer_getByteArray(swigCPtr, this, offset, length);
+  }
+
   public static IBuffer make(RefCounted requestor, byte[] buffer, int offset, int length) {
     long cPtr = FerryJNI.IBuffer_make__SWIG_1(RefCounted.getCPtr(requestor), requestor, buffer, offset, length);
     return (cPtr == 0) ? null : new IBuffer(cPtr, false);
   }
 
-/**
- * Allocate a new IBuffer that wraps the java.nio.ByteBuffer that is 
- * passed in. This does  
- * not copy data and so is as fast as we can get.  
- * This will fail with an error unless the byte buffer is a direct byte 
- * buffer  
- * (i.e. {@link java.nio.ByteBuffer#isDirect()} returns true.  
- * @param	requestor An option value telling the IBuffer class what object 
- *		 requested it. Default to null if you don't know 
- *		 what to pass here.  
- * @param	directByteBuffer an instance of java.nio.ByteBuffer that has 
- *		 been allocated as a Direct buffer.  
- * @param	offset the offset to start copying from.  
- * @param	length the number of bytes to copy  
- * @return	a new IBuffer, or null on error.  
- */
   public static IBuffer make(RefCounted requestor, java.nio.ByteBuffer directByteBuffer, int offset, int length) {
     long cPtr = FerryJNI.IBuffer_make__SWIG_2(RefCounted.getCPtr(requestor), requestor, directByteBuffer, offset, length);
     return (cPtr == 0) ? null : new IBuffer(cPtr, false);
-  }
-
-  private java.nio.ByteBuffer java_getByteBuffer(int offset, int length) {
-    return FerryJNI.IBuffer_java_getByteBuffer(swigCPtr, this, offset, length);
   }
 
 }
