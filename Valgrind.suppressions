@@ -86,4 +86,8 @@
    Memcheck:Addr4
    fun:mov_read_stsz
 }
-
+{
+   ffmpeg_cond_jump_mpegvideo.c_march09_streamcodertest
+   Memcheck:Cond
+   fun:ff_print_debug_info
+}
