@@ -319,19 +319,6 @@ public class Utils
     ByteBuffer pictureByteBuffer = pictureBuffer.getByteBuffer(
       0, pictureBuffer.getBufferSize());
     
-    // cram the image bytes into the picture
-    log.debug("src size: {}; bb pos: {}; bb limit: {}; bb capacity: {}; ib size: {}; ivp size: {}; ivp width: {}; ivp height: {}; ivp format: {}",
-        new Object[]{
-          imageBytes.length,
-          pictureByteBuffer.position(),
-          pictureByteBuffer.limit(),
-          pictureByteBuffer.capacity(),
-          pictureBuffer.getBufferSize(),
-          picture.getSize(),
-          picture.getWidth(),
-          picture.getHeight(),
-          picture.getPixelType().toString()
-    });
     if (imageInts != null)
     {
       pictureByteBuffer.order(ByteOrder.BIG_ENDIAN);
