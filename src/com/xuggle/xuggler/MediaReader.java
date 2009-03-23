@@ -19,7 +19,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-package com.xuggle.scatterchat;
+package com.xuggle.xuggler;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -73,7 +73,7 @@ public class MediaReader
 
   final Collection<IListener> mListeners = new Vector<IListener>();
 
-  // all the coders opened by this MediaReader which are candidats for
+  // all the coders opened by this MediaReader which are candidates for
   // closing
 
   final Collection<IStreamCoder> mOpenedCoders = new Vector<IStreamCoder>();
@@ -90,9 +90,10 @@ public class MediaReader
    * URL. The media stream is opened, and subsequent calls to
    * readPacket() will read stream content and dispatch it to attached
    * listeners. When the end of the stream is encountered the media
-   * container is closed.
+   * container and it's containd streams are all closed.
    *
-   * @param url the location of the media content, a file name works
+   * @param url the location of the media content, a file name will also
+   *        work here
    * @param createBufferedImages true if BufferedImages should be
    *        created during media reading
    */
@@ -122,7 +123,10 @@ public class MediaReader
    * readPacket() will read stream content and dispatch it to attached
    * listeners. If the end of the media stream is encountered, the
    * MediaReader does NOT close the container, that is left to the
-   * calling context (you).
+   * calling context (you).  Streams opend by the MediaReader during
+   * packet reading will be closed by the MediaReader, however streams
+   * opened prior to MediaReader construction will not be closed.  In
+   * short MediaReader closes what it opens.
    *
    * @param container on already open media container
    * @param createBufferedImages should BufferedImages be created during
@@ -188,8 +192,8 @@ public class MediaReader
 
       mCoders.put(streamIndex, coder);
 
-      // if the coder is not open, open it NOTE: only support decoding
-      // audio or video streams for now
+      // if the coder is not open, open it 
+      // NOTE: MediaReader currently supports audio & video streams
 
       if (!coder.isOpen() && 
         (type==ICodec.Type.CODEC_TYPE_AUDIO || type==ICodec.Type.CODEC_TYPE_VIDEO))
