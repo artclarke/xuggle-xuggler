@@ -44,9 +44,9 @@ public class JNIMemoryAllocator
   // don't allocate this unless we malloc; most classes don't even
   // touch this memory manager with a 100 foot pole
   private Set<byte[]> mBuffers;
-  private int mMaxAllocationAttempts=5;
-  private double mFallbackTimeDecay=1.5;
-  private boolean mRetryFailedAllocs = false;
+  final private int mMaxAllocationAttempts=5;
+  final private double mFallbackTimeDecay=1.5;
+  final private boolean mRetryFailedAllocs = true;
   
   /**
    * Allocate a new block of bytes.  Called from native code.
