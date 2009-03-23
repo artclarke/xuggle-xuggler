@@ -40,7 +40,7 @@ import java.awt.image.SinglePixelPackedSampleModel;
 import java.awt.image.WritableRaster;
 import java.awt.image.Raster;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -158,69 +158,6 @@ public class Utils
     return IAudioSamples.defaultPtsToSamples(duration.get(ITimeValue.Unit.MICROSECONDS), sampleRate); 
   }
   
-  /** A tables used to roll bits for byte/int translation. */
-  
-  private static final int[] mBigEndianRollTable    = {24, 16, 8, 0};
-  private static final int[] mLittleEndianRollTable = {0, 8, 16, 24};
-  private static final int[] mRollTable;
-  
-  /** Select a the correct roll table based on endian. */
-  
-  static
-  {
-    mRollTable = ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN 
-      ? mBigEndianRollTable
-      : mLittleEndianRollTable;
-  }
-  
-  /**
-   * Inefficiently convert a byte[] into an int[].  Byte array length
-   * must be a multiple of 4.
-   *
-   * @param bytes the source byte array
-   *
-   * @return the newly created integer array.
-   *
-   * @throws ArrayIndexOutOfBoundsException if byte array not a
-   * muitlpe of 4.
-   */
-  
-  public static int[] byteArrayToIntArray(byte[] bytes)
-  {
-    final int[] ints = new int[bytes.length / 4];
-    int offset = 0;
-    int roll = 0;
-    
-    for (byte b: bytes)
-    {
-      ints[offset] += (b & 0x000000ff) << mRollTable[roll];
-      roll = (++roll) % mRollTable.length;
-      if (roll == 0)
-        ++offset;
-    }
-    
-    return ints;
-  }
-  
-  /**
-   * Inefficiently convert a int[] into an byte[].
-   *
-   * @param ints the source int array
-   *
-   * @return the newly created byte array.
-   */
-  
-  public static byte[] intArrayToByteArray(int[] ints)
-  {
-    final byte[] bytes = new byte[ints.length * 4];
-    int offset = 0;
-    for (int i: ints)
-      for (int roll: mRollTable)
-        bytes[offset++] = (byte)(i >> roll);
-    
-    return bytes;
-  }
-  
   /**
    * Convert an {@link IVideoPicture} to a {@link BufferedImage}.  This
    * input picture must be of type {@link IPixelFormat.Type#ARGB}.
@@ -251,29 +188,31 @@ public class Utils
     if (aPicture == null)
       throw new IllegalArgumentException("The video picture is NULL.");
 
-    // if the pictre is not in ARGB, throw up
+    // if the picture is not in ARGB, throw up
     
     if (aPicture.getPixelType() != IPixelFormat.Type.ARGB)
       throw new IllegalArgumentException(
         "The video picture is of type " + aPicture.getPixelType() +
         " but is required to be of type " + IPixelFormat.Type.ARGB);
     
-    // if the pictre is not complete, throw up
+    // if the picture is not complete, throw up
     
     if (!aPicture.isComplete())
       throw new IllegalArgumentException("The video picture is not complete.");
     
-    // get picutre parameters
+    // get picture parameters
     
     final int w = aPicture.getWidth();
     final int h = aPicture.getHeight();
     
     // make a copy of the raw bytes in the picture and convert those
     // to integers
+    final ByteBuffer byteBuf = aPicture.getData().getByteBuffer(
+        0, aPicture.getSize());
+    final IntBuffer intBuf = byteBuf.asIntBuffer();
     
-    final byte[] bytes = aPicture.getData().getByteArray(
-      0, aPicture.getSize());
-    final int[] ints = byteArrayToIntArray(bytes);
+    final int[] ints = new int[aPicture.getSize()/4];
+    intBuf.get(ints, 0, ints.length);
     
     // recreate the alpha chanel in the integer array, not quite sure
     // why this works but is required to get proper alpha channel
@@ -349,9 +288,10 @@ public class Utils
     // get the image byte buffer buffer
     
     DataBuffer imageBuffer = aImage.getRaster().getDataBuffer();
-    byte[] imageBytes;
+    byte[] imageBytes=null;
+    int[] imageInts = null;
     
-    // handel byte buffer case
+    // handle byte buffer case
     
     if (imageBuffer instanceof DataBufferByte)
     {
@@ -362,8 +302,7 @@ public class Utils
     
     else if (imageBuffer instanceof DataBufferInt)
     {
-      int[] imageInts = ((DataBufferInt)imageBuffer).getData();
-      imageBytes = intArrayToByteArray(imageInts);
+      imageInts = ((DataBufferInt)imageBuffer).getData();
     }
     
     // if it's some other type, throw 
@@ -396,8 +335,13 @@ public class Utils
           picture.getHeight(),
           picture.getPixelType().toString()
     });
-    // only copy in the byes we need
-    pictureByteBuffer.put(imageBytes);
+    if (imageInts != null)
+    {
+      IntBuffer pictureIntBuffer = pictureByteBuffer.asIntBuffer();
+      pictureIntBuffer.put(imageInts);
+    } else {
+      pictureByteBuffer.put(imageBytes);      
+    }
     pictureByteBuffer = null;
     picture.setComplete(
       true, IPixelFormat.Type.ARGB, 
