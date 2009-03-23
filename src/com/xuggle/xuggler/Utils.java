@@ -40,6 +40,7 @@ import java.awt.image.SinglePixelPackedSampleModel;
 import java.awt.image.WritableRaster;
 import java.awt.image.Raster;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 
 import org.slf4j.Logger;
@@ -211,18 +212,12 @@ public class Utils
         0, aPicture.getSize());
     // now, for this class of problems, we don't want the code
     // to switch byte order, so we'll pretend it's in native java order
+    byteBuf.order(ByteOrder.BIG_ENDIAN);
     final IntBuffer intBuf = byteBuf.asIntBuffer();
     
     final int[] ints = new int[aPicture.getSize()/4];
     intBuf.get(ints, 0, ints.length);
-    
-    // recreate the alpha chanel in the integer array, not quite sure
-    // why this works but is required to get proper alpha channel
-    // effects
-    
-    for (int i = 0; i < ints.length; ++i)
-      ints[i] |= 0xff000000;
-    
+   
     // create the data buffer from the ints
     
     final DataBufferInt db = new DataBufferInt(ints, ints.length);
@@ -339,6 +334,7 @@ public class Utils
     });
     if (imageInts != null)
     {
+      pictureByteBuffer.order(ByteOrder.BIG_ENDIAN);
       IntBuffer pictureIntBuffer = pictureByteBuffer.asIntBuffer();
       pictureIntBuffer.put(imageInts);
     } else {
