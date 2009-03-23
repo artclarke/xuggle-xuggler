@@ -383,16 +383,20 @@ public class Utils
     ByteBuffer pictureByteBuffer = pictureBuffer.getByteBuffer(
       0, pictureBuffer.getBufferSize());
     
-    // crame the image bytes into the picture
-    log.debug("src size: {}; bb pos: {}; bb limit: {}; bb capacity: {}; ib size: {}; ivp size: {}",
+    // cram the image bytes into the picture
+    log.debug("src size: {}; bb pos: {}; bb limit: {}; bb capacity: {}; ib size: {}; ivp size: {}; ivp width: {}; ivp height: {}; ivp format: {}",
         new Object[]{
           imageBytes.length,
           pictureByteBuffer.position(),
           pictureByteBuffer.limit(),
           pictureByteBuffer.capacity(),
           pictureBuffer.getBufferSize(),
-          picture.getSize()
+          picture.getSize(),
+          picture.getWidth(),
+          picture.getHeight(),
+          picture.getPixelType().toString()
     });
+    // only copy in the byes we need
     pictureByteBuffer.put(imageBytes);
     pictureByteBuffer = null;
     picture.setComplete(
