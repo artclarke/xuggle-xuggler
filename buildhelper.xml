@@ -876,7 +876,12 @@
     if="native.makefile.exists"
     description="Special target that is only called if the Makefile already exists">
     <exec executable="make"
-      dir="${build-native.dir}"
+      dir="${build-native.dir}/csrc"
+      failonerror="true">
+      <arg line="clean"/>
+    </exec>
+    <exec executable="make"
+      dir="${build-native.dir}/test/csrc"
       failonerror="true">
       <arg line="clean"/>
     </exec>
