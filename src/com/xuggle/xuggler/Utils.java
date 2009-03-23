@@ -43,9 +43,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * A collection of useful utilities for creating blank {@link IVideoPicture} objects
  * and managing audio time stamp to sample conversions.
@@ -55,7 +52,6 @@ import org.slf4j.LoggerFactory;
  */
 public class Utils
 {
-  private static final Logger log = LoggerFactory.getLogger(Utils.class);
   
   /**
    * Get a new blank frame object encoded in {@link IPixelFormat.Type#YUV420P} format.
