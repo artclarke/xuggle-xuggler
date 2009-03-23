@@ -42,6 +42,9 @@ import java.awt.image.Raster;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * A collection of useful utilities for creating blank {@link IVideoPicture} objects
  * and managing audio time stamp to sample conversions.
@@ -51,6 +54,8 @@ import java.nio.ByteOrder;
  */
 public class Utils
 {
+  private static final Logger log = LoggerFactory.getLogger(Utils.class);
+  
   /**
    * Get a new blank frame object encoded in {@link IPixelFormat.Type#YUV420P} format.
    * 
@@ -379,7 +384,15 @@ public class Utils
       0, pictureBuffer.getBufferSize());
     
     // crame the image bytes into the picture
-    
+    log.debug("src size: {}; bb pos: {}; bb limit: {}; bb capacity: {}; ib size: {}; ivp size: {}",
+        new Object[]{
+          imageBytes.length,
+          pictureByteBuffer.position(),
+          pictureByteBuffer.limit(),
+          pictureByteBuffer.capacity(),
+          pictureBuffer.getBufferSize(),
+          picture.getSize()
+    });
     pictureByteBuffer.put(imageBytes);
     pictureByteBuffer = null;
     picture.setComplete(
