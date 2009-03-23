@@ -64,11 +64,8 @@ namespace com { namespace xuggle { namespace xuggler
       BGR24,
       YUV422P,
       YUV444P,
-      RGB32,
       YUV410P,
       YUV411P,
-      RGB565,
-      RGB555,
       GRAY8,
       MONOWHITE,
       MONOBLACK,
@@ -80,9 +77,6 @@ namespace com { namespace xuggle { namespace xuggler
       XVMC_MPEG2_IDCT,
       UYVY422,
       UYYVYY411,
-      BGR32,
-      BGR565,
-      BGR555,
       BGR8,
       BGR4,
       BGR4_BYTE,
@@ -92,8 +86,10 @@ namespace com { namespace xuggle { namespace xuggler
       NV12,
       NV21,
 
-      RGB32_1,
-      BGR32_1,
+      ARGB,
+      RGBA,
+      ABGR,
+      BGRA,
 
       GRAY16BE,
       GRAY16LE,
@@ -105,6 +101,22 @@ namespace com { namespace xuggle { namespace xuggler
       VDPAU_MPEG2,
       VDPAU_WMV3,
       VDPAU_VC1,
+      RGB48BE,
+      RGB48LE,
+
+      RGB565BE,
+      RGB565LE,
+      RGB555BE,
+      RGB555LE,
+
+      BGR565BE,
+      BGR565LE,
+      BGR555BE,
+      BGR555LE,
+
+      VAAPI_MOCO,
+      VAAPI_IDCT,
+      VAAPI_VLD,
       NB,
     } Type;
     

@@ -99,7 +99,7 @@ public class RegressionsTest
       // make a resampler
 
       IVideoResampler resampleToRgb32 = IVideoResampler.make(
-          w, h, IPixelFormat.Type.RGB32, w, h, picture1.getPixelType());
+          w, h, IPixelFormat.Type.ARGB, w, h, picture1.getPixelType());
 
       // resample the picture
 

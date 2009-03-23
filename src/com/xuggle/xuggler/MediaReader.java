@@ -336,11 +336,11 @@ public class MediaReader
 
     if (mCreateBufferedImages)
     {
-      IVideoPicture rgb32Pic = picture;
+      IVideoPicture argbPic = picture;
 
-      // if the picture is not rgb32
+      // if the picture is not ARGB
 
-      if (picture.getPixelType() != IPixelFormat.Type.RGB32)
+      if (picture.getPixelType() != IPixelFormat.Type.ARGB)
       {
         // get the resampler; create it if it doesn't exist
 
@@ -349,7 +349,7 @@ public class MediaReader
         {
           resampler = IVideoResampler.make(
             picture.getWidth(), picture.getHeight(), 
-            IPixelFormat.Type.RGB32,
+            IPixelFormat.Type.ARGB,
             picture.getWidth(), picture.getHeight(), 
             picture.getPixelType());
           
@@ -361,17 +361,17 @@ public class MediaReader
 
         // create rgb 32bit version of the image
 
-        rgb32Pic = IVideoPicture.make(resampler.getOutputPixelFormat(), 
+        argbPic = IVideoPicture.make(resampler.getOutputPixelFormat(), 
           picture.getWidth(), picture.getHeight());
-        if (resampler.resample(rgb32Pic, picture) < 0)
+        if (resampler.resample(argbPic, picture) < 0)
           throw new RuntimeException("could not resample video picture.");
-        if (rgb32Pic.getPixelType() != IPixelFormat.Type.RGB32)
+        if (argbPic.getPixelType() != IPixelFormat.Type.ARGB)
           throw new RuntimeException("could not decode video as RGB 32 bit data.");
       }
       
       // create the buffered image
 
-      image = Utils.videoPictureToImage(rgb32Pic);
+      image = Utils.videoPictureToImage(argbPic);
     }
     
     // dispatch picture here

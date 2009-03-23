@@ -14,8 +14,8 @@
        you must also make sure you update the major and minor
        revisions in that library's "configure.ac" file, and
        regenerate the build scripts -->
-  <property name="library.version.major" value="1"/>
-  <property name="library.version.minor" value="23"/>
+  <property name="library.version.major" value="2"/>
+  <property name="library.version.minor" value="0"/>
   <property name="app.mainclass" value="com.xuggle.xuggler.Xuggler"/>
 
   <!-- And bring in the standard build rules -->

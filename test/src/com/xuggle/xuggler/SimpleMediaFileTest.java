@@ -62,7 +62,7 @@ public class SimpleMediaFileTest
     obj.setVideoHeight(2);
     obj.setVideoTimeBase(IRational.make(1, 100));
     obj.setVideoCodec(ICodec.ID.CODEC_ID_FLV1);
-    obj.setVideoPixelFormat(IPixelFormat.Type.RGB32);
+    obj.setVideoPixelFormat(IPixelFormat.Type.ARGB);
     obj.setVideoNumPicturesInGroupOfPictures(12);
     obj.setVideoFrameRate(IRational.make(2, 15));
     obj.setVideoGlobalQuality(5);

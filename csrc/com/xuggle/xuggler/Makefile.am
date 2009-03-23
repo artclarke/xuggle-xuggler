@@ -72,6 +72,7 @@ libxuggle_xuggler_la_HEADERS= \
   IContainer.h \
   IContainer.swg \
   IError.h \
+  IError.swg \
   IVideoPicture.h \
   IMediaData.h \
   IMediaDataWrapper.h \

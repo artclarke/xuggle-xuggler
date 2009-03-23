@@ -166,4 +166,4 @@ import com.xuggle.xuggler.Converter;
 %include <com/xuggle/xuggler/IContainer.swg>
 %include <com/xuggle/xuggler/IMediaDataWrapper.swg>
 %include <com/xuggle/xuggler/Global.h>
-%include <com/xuggle/xuggler/IError.h>
+%include <com/xuggle/xuggler/IError.swg>

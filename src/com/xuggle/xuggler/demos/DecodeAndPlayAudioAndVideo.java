@@ -132,11 +132,11 @@ public class DecodeAndPlayAudioAndVideo
       if(videoCoder.open() < 0)
         throw new RuntimeException("could not open audio decoder for container: "+filename);
     
-      if (videoCoder.getPixelType() != IPixelFormat.Type.RGB32)
+      if (videoCoder.getPixelType() != IPixelFormat.Type.ARGB)
       {
-        // if this stream is not in RGB32, we're going to need to
+        // if this stream is not in ARGB, we're going to need to
         // convert it.  The VideoResampler does that for us.
-        resampler = IVideoResampler.make(videoCoder.getWidth(), videoCoder.getHeight(), IPixelFormat.Type.RGB32,
+        resampler = IVideoResampler.make(videoCoder.getWidth(), videoCoder.getHeight(), IPixelFormat.Type.ARGB,
             videoCoder.getWidth(), videoCoder.getHeight(), videoCoder.getPixelType());
         if (resampler == null)
           throw new RuntimeException("could not create color space resampler for: " + filename);
@@ -202,8 +202,8 @@ public class DecodeAndPlayAudioAndVideo
         {
           IVideoPicture newPic = picture;
           /*
-           * If the resampler is not null, that means we didn't get the video in RGB32 format and
-           * need to convert it into RGB32 format.
+           * If the resampler is not null, that means we didn't get the video in ARGB format and
+           * need to convert it into ARGB format.
            */
           if (resampler != null)
           {
@@ -212,7 +212,7 @@ public class DecodeAndPlayAudioAndVideo
             if (resampler.resample(newPic, picture) < 0)
               throw new RuntimeException("could not resample video from: " + filename);
           }
-          if (newPic.getPixelType() != IPixelFormat.Type.RGB32)
+          if (newPic.getPixelType() != IPixelFormat.Type.ARGB)
             throw new RuntimeException("could not decode video as RGB 32 bit data in: " + filename);
 
           long delay = millisecondsUntilTimeToDisplay(newPic);
@@ -228,7 +228,7 @@ public class DecodeAndPlayAudioAndVideo
             return;
           }
 
-          // And finally, convert the RGB32 to an image and display it
+          // And finally, convert the ARGB to an image and display it
 
           mScreen.setImage(Utils.videoPictureToImage(newPic));
         }

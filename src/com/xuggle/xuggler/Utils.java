@@ -223,7 +223,7 @@ public class Utils
   
   /**
    * Convert an {@link IVideoPicture} to a {@link BufferedImage}.  This
-   * input picture must be of type {@link IPixelFormat.Type#RGB32}.
+   * input picture must be of type {@link IPixelFormat.Type#ARGB}.
    * This method makes several copies of the raw picture bytes, which
    * is by no means the fastest way to do this.  
    *
@@ -239,7 +239,7 @@ public class Utils
    * @throws IllegalArgumentException if the passed {@link
    * IVideoPicture} is NULL;
    * @throws IllegalArgumentException if the passed {@link
-   * IVideoPicture} is not of type {@link IPixelFormat.Type#RGB32}.
+   * IVideoPicture} is not of type {@link IPixelFormat.Type#ARGB}.
    * @throws IllegalArgumentException if the passed {@link
    * IVideoPicture} is not complete.
    */
@@ -251,12 +251,12 @@ public class Utils
     if (aPicture == null)
       throw new IllegalArgumentException("The video picture is NULL.");
 
-    // if the pictre is not in RGB32, throw up
+    // if the pictre is not in ARGB, throw up
     
-    if (aPicture.getPixelType() != IPixelFormat.Type.RGB32)
+    if (aPicture.getPixelType() != IPixelFormat.Type.ARGB)
       throw new IllegalArgumentException(
         "The video picture is of type " + aPicture.getPixelType() +
-        " but is required to be of type " + IPixelFormat.Type.RGB32);
+        " but is required to be of type " + IPixelFormat.Type.ARGB);
     
     // if the pictre is not complete, throw up
     
@@ -307,7 +307,7 @@ public class Utils
   
   /**
    * Convert a {@link BufferedImage} to an {@link IVideoPicture} of
-   * type {@link IPixelFormat.Type#RGB32}.  This is NOT the most
+   * type {@link IPixelFormat.Type#ARGB}.  This is NOT the most
    * efficient way to do this conversion and is thus ripe for
    * optimization.  The {@link BufferedImage} must be a 32 RGBA type.
    * Further more the underlying data buffer of the {@link
@@ -318,7 +318,7 @@ public class Utils
    * @param aPts The presentation time stamp of the picture.
    *
    * @return An {@link IVideoPicture} in {@link
-   * IPixelFormat.Type#RGB32} format.
+   * IPixelFormat.Type#ARGB} format.
    *
 
    * @throws IllegalArgumentException if the passed {@link
@@ -378,7 +378,7 @@ public class Utils
     // create the video picture and get it's underling buffer
     
     IVideoPicture picture = IVideoPicture.make(
-      IPixelFormat.Type.RGB32, aImage.getWidth(), aImage.getHeight());
+      IPixelFormat.Type.ARGB, aImage.getWidth(), aImage.getHeight());
     IBuffer pictureBuffer = picture.getData();
     ByteBuffer pictureByteBuffer = pictureBuffer.getByteBuffer(
       0, pictureBuffer.getBufferSize());
@@ -400,10 +400,10 @@ public class Utils
     pictureByteBuffer.put(imageBytes);
     pictureByteBuffer = null;
     picture.setComplete(
-      true, IPixelFormat.Type.RGB32, 
+      true, IPixelFormat.Type.ARGB, 
       aImage.getWidth(), aImage.getHeight(), aPts);
     
-    // return the RGB32 picture
+    // return the ARGB picture
     
     return picture;
   }

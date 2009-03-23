@@ -160,7 +160,7 @@ public class UtilsTest
   public void testVideoPictureToImageIncompletePicture()
   {
     IVideoPicture picture = IVideoPicture.make(
-      IPixelFormat.Type.RGB32, 50, 50);
+      IPixelFormat.Type.ARGB, 50, 50);
     Utils.videoPictureToImage(picture);
   }
 

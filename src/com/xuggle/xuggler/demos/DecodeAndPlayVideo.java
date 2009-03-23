@@ -100,11 +100,11 @@ public class DecodeAndPlayVideo
       throw new RuntimeException("could not open video decoder for container: "+filename);
 
     IVideoResampler resampler = null;
-    if (videoCoder.getPixelType() != IPixelFormat.Type.RGB32)
+    if (videoCoder.getPixelType() != IPixelFormat.Type.ARGB)
     {
-      // if this stream is not in RGB32, we're going to need to
+      // if this stream is not in ARGB, we're going to need to
       // convert it.  The VideoResampler does that for us.
-      resampler = IVideoResampler.make(videoCoder.getWidth(), videoCoder.getHeight(), IPixelFormat.Type.RGB32,
+      resampler = IVideoResampler.make(videoCoder.getWidth(), videoCoder.getHeight(), IPixelFormat.Type.ARGB,
           videoCoder.getWidth(), videoCoder.getHeight(), videoCoder.getPixelType());
       if (resampler == null)
         throw new RuntimeException("could not create color space resampler for: " + filename);
@@ -154,8 +154,8 @@ public class DecodeAndPlayVideo
           {
             IVideoPicture newPic = picture;
             /*
-             * If the resampler is not null, that means we didn't get the video in RGB32 format and
-             * need to convert it into RGB32 format.
+             * If the resampler is not null, that means we didn't get the video in ARGB format and
+             * need to convert it into ARGB format.
              */
             if (resampler != null)
             {
@@ -164,7 +164,7 @@ public class DecodeAndPlayVideo
               if (resampler.resample(newPic, picture) < 0)
                 throw new RuntimeException("could not resample video from: " + filename);
             }
-            if (newPic.getPixelType() != IPixelFormat.Type.RGB32)
+            if (newPic.getPixelType() != IPixelFormat.Type.ARGB)
               throw new RuntimeException("could not decode video as RGB 32 bit data in: " + filename);
 
             /**
@@ -211,7 +211,7 @@ public class DecodeAndPlayVideo
               }
             }
 
-            // And finally, convert the RGB32 to an Java buffered image
+            // And finally, convert the ARGB to an Java buffered image
             BufferedImage javaImage = Utils.videoPictureToImage(newPic);
 
             // and display it on the Java Swing window

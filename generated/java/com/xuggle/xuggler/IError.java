@@ -131,6 +131,17 @@ public class IError extends RefCounted {
     super.delete();
   }
 
+
+  /**
+   * Return a string representation of this error
+   * 
+   * @return the error as a string
+   */
+  public String toString()
+  {
+    return getDescription();
+  }
+
 /**
  * Get the OS-independent Xuggler type for this error.  
  * @return	the type.  
