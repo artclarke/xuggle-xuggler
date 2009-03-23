@@ -209,6 +209,8 @@ public class Utils
     // to integers
     final ByteBuffer byteBuf = aPicture.getData().getByteBuffer(
         0, aPicture.getSize());
+    // now, for this class of problems, we don't want the code
+    // to switch byte order, so we'll pretend it's in native java order
     final IntBuffer intBuf = byteBuf.asIntBuffer();
     
     final int[] ints = new int[aPicture.getSize()/4];
