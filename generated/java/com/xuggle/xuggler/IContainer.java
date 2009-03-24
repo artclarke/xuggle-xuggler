@@ -631,7 +631,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  *  
  * will retry a read if it gets a {@link IError.Type#ERROR_AGAIN}  
  * value back.  
- * Defaults to 1 times. <0 means it will keep retrying immediately. 
+ * Defaults to 1 times. <0 means it will keep retrying indefinitely. 
  *  
  * @return	the read retry count  
  */
