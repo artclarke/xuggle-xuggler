@@ -19,7 +19,13 @@ import com.xuggle.xuggler.Utils;
 /**
  * Takes a FFMPEG device driver name (ex: "video4linux2"), and a device name (ex: /dev/video0), and displays video
  * from that device.  For example, a web camera.
- * 
+ * <p>
+ * For example, to play the default camera on these operating systems:
+ * <ul>
+ * <li>Microsoft Windows:<pre>java -cp %XUGGLE_HOME%\share\java\jars\xuggle-xuggler.jar com.xuggle.xuggler.demos.DisplayWebcamVideo vfwcap 0</pre></li>
+ * <li>Linux:<pre>java -cp $XUGGLE_HOME/share/java/jars/xuggle-xuggler.jar com.xuggle.xuggler.demos.DisplayWebcamVideo video4linux2 /dev/video0</pre></li>
+ * </ul>
+ * </p>
  * @author aclarke
  *
  */
