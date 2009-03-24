@@ -52,7 +52,7 @@ static struct ErrorMappingTable sErrorMappingTable[] = {
     { AVERROR_NOENT,        IError::ERROR_NOENT },
     { AVERROR_EOF,          IError::ERROR_EOF },
     { AVERROR_PATCHWELCOME, IError::ERROR_PATCHWELCOME },
-    { AVERROR(EAGAIN),       IError::ERROR_AGAIN },
+    { AVERROR(EAGAIN),      IError::ERROR_AGAIN },
     { AVERROR(ERANGE),      IError::ERROR_RANGE },
 };
 static int32_t sErrorMappingTableSize = sizeof(sErrorMappingTable)/sizeof(struct ErrorMappingTable);
