@@ -418,7 +418,7 @@
     <mkdir dir="${generated.src.dir}"/>
     <!-- Update any Java template files-->
     <echo message="Generating Java source from templates"/>
-    <copy todir="${generated.src.dir}">
+    <copy overwrite="true" todir="${generated.src.dir}">
       <fileset dir="${src.dir}">
         <include name="**/*.java.in"/>
       </fileset>
