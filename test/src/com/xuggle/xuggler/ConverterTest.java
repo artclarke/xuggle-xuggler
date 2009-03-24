@@ -298,12 +298,6 @@ public class ConverterTest extends TestCase
         this.getClass().getName() + "_" + this.getName() + ".mov"
     };
     
-    // check if we have the libx264 encoder
-    ICodec codec = ICodec.findEncodingCodecByName("libx264");
-    if (codec == null)
-      // we don't have libx264 so bail
-      return;
-    
     converter = new Converter();
     
     Options options = converter.defineOptions();

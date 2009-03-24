@@ -33,6 +33,9 @@ import java.awt.image.BufferedImage;
 import java.awt.Color;
 import java.util.Random;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.junit.*;
 import org.junit.runner.RunWith;
 
@@ -42,6 +45,13 @@ import static junit.framework.Assert.*;
 @RunWith(NameAwareTestClassRunner.class)
 public class UtilsTest
 {
+  private String mTestName;
+  @Before
+  public void setUp()
+  {
+    mTestName = NameAwareTestClassRunner.getTestMethodName();
+  }
+  
   @Test
   public void testGetBlankFrame()
   {
@@ -292,5 +302,77 @@ public class UtilsTest
         int color = y % 2 == 0 ? black : white;
         assertTrue("color value missmatch", pixel == color);
       }
+  }
+
+  /**
+   * Reads in an input file, and converts it to a new format, but replacing
+   * all images with a cross-hatch test pattern.
+   * 
+   * @throws ParseException
+   */
+  @Test
+  public void testUtilsCrossHatch() throws ParseException
+  {
+    Converter converter = new Converter() {
+      @Override
+      protected IVideoPicture alterVideoFrame(IVideoPicture videoFrame)
+      {
+        // override the image passed in, and instead output a cross hatch.
+        // but alternate colors every second
+        final int CROSSHATCH_WIDTH = 20;
+        final int CROSSHATCH_HEIGHT = 20;
+        if ((videoFrame.getPts()/(Global.DEFAULT_PTS_PER_SECOND))%2==1)
+          
+          return Utils.getBlankFrame(
+              videoFrame.getWidth(),
+              videoFrame.getHeight(),
+              0, 0, 0,
+              videoFrame.getTimeStamp(),
+              CROSSHATCH_WIDTH, CROSSHATCH_HEIGHT,
+              255, 255, 255);
+        else
+          return Utils.getBlankFrame(
+              videoFrame.getWidth(),
+              videoFrame.getHeight(),
+              255, 255, 255,
+              videoFrame.getTimeStamp(),
+              CROSSHATCH_WIDTH, CROSSHATCH_HEIGHT,
+              0, 0, 0);
+      }
+    };
+
+    String[] args = new String[]{
+        "--containerformat",
+        "mov",
+        "--acodec",
+        "libfaac",
+        "--asamplerate",
+        "22050",
+        "--achannels",
+        "2",
+        "--abitrate",
+        "64000",
+        "--aquality",
+        "0",
+        "--vcodec",
+        "mpeg4",
+        "--vscalefactor",
+        "1.0",
+        "--vbitrate",
+        "300000",
+        "--vbitratetolerance",
+        "12000000",
+        "--vquality",
+        "0",
+        "fixtures/testfile_videoonly_20sec.flv",
+        this.getClass().getName() + "_" + mTestName + ".mov"
+    };
+
+    Options options = converter.defineOptions();
+
+    CommandLine cmdLine = converter.parseOptions(options, args);
+    assertTrue("all commandline options successful", cmdLine != null);
+
+    converter.run(cmdLine);
   }
 }
