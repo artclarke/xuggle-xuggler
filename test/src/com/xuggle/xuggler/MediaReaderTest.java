@@ -26,8 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.xuggle.xuggler.IContainer;
-import com.xuggle.xuggler.IContainerFormat;
-import com.xuggle.xuggler.io.IURLProtocolHandler;
 import com.xuggle.xuggler.IError;
 
 import java.awt.image.BufferedImage;
@@ -45,6 +43,11 @@ public class MediaReaderTest //extends TestCase
   
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
+  @Before
+  public void setUp()
+  {
+    log.trace("setUp");
+  }
   // create a new media reader with a bad filename
 
   @Test(expected=IllegalArgumentException.class)
@@ -92,15 +95,18 @@ public class MediaReaderTest //extends TestCase
 
     // should be at end of file
 
-    assertTrue("Loop should complete with an EOF",
-      err.getType() == IError.Type.ERROR_EOF);
+    assertEquals("Loop should complete with an EOF",
+        IError.Type.ERROR_EOF,
+        err.getType());
 
     // should have read out the correct number of audio and video frames
     
-    assertTrue("incorrect number of video frames:", 
-      TEST_FILE_20_SECONDS_VIDEO_FRAME_COUNT == counts[0]);
-    assertTrue("incorrect number of audio frames:", 
-      TEST_FILE_20_SECONDS_AUDIO_FRAME_COUNT == counts[1]);
+    assertEquals("incorrect number of video frames:", 
+        counts[0],
+        TEST_FILE_20_SECONDS_VIDEO_FRAME_COUNT);
+    assertEquals("incorrect number of audio frames:",
+        counts[1],
+        TEST_FILE_20_SECONDS_AUDIO_FRAME_COUNT);
 
     // the container should null
 
@@ -112,6 +118,10 @@ public class MediaReaderTest //extends TestCase
   @Test
   public void testCreateBufferedImages()
   {
+    if (!IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
+      // we're using the LGPL version of Xuggler which can't do this... exit
+      return;
+    
     // create a new media reader
 
     MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, true);
@@ -136,8 +146,7 @@ public class MediaReaderTest //extends TestCase
 
     // read all the packets in the media file
 
-    IError err = null;
-    while ((err = mr.readPacket()) == null)
+    while (mr.readPacket() == null)
       ;
   }
   
@@ -146,6 +155,10 @@ public class MediaReaderTest //extends TestCase
   @Test
   public void testOpenWithContainer()
   {
+    if (!IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
+      // we're using the LGPL version of Xuggler which can't do this... exit
+      return;
+    
     final int[] counts = new int[2];
 
     // create the container
@@ -191,15 +204,18 @@ public class MediaReaderTest //extends TestCase
 
     // should be at end of file
 
-    assertTrue("Loop should complete with an EOF",
-      err.getType() == IError.Type.ERROR_EOF);
+    assertEquals("Loop should complete with an EOF",
+        IError.Type.ERROR_EOF,
+        err.getType());
 
     // should have read out the correct number of audio and video frames
     
-    assertTrue("incorrect number of video frames:", 
-      TEST_FILE_20_SECONDS_VIDEO_FRAME_COUNT == counts[0]);
-    assertTrue("incorrect number of audio frames:", 
-      TEST_FILE_20_SECONDS_AUDIO_FRAME_COUNT == counts[1]);
+    assertEquals("incorrect number of video frames:",
+        counts[0],
+        TEST_FILE_20_SECONDS_VIDEO_FRAME_COUNT);
+    assertEquals("incorrect number of audio frames:",
+        counts[1],
+        TEST_FILE_20_SECONDS_AUDIO_FRAME_COUNT);
 
     // the container should exist
     
@@ -207,10 +223,10 @@ public class MediaReaderTest //extends TestCase
 
     // there should exist two streams
 
-    assertTrue("container should have two streams", 
-      2 == container.getNumStreams());
+    assertEquals("container should have two streams", 
+      2, container.getNumStreams());
 
-    // both streams sould be closed
+    // both streams should be closed
 
     for (int i = 0; i < container.getNumStreams(); ++i)
       assertFalse(container.getStream(i).getStreamCoder().isOpen());

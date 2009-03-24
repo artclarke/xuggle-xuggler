@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.awt.image.BufferedImage;
 
 import com.xuggle.xuggler.Utils;
-import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
@@ -41,56 +40,65 @@ import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IError;
 
-import static com.xuggle.xuggler.ICodec.Type.*;
-
-/** General purpose media reader. */
+/**
+ * General purpose media reader.
+ * <p>
+ * The MediaReader class is a simplified interface to the Xuggler library
+ * that opens up an {@link IContainer} object, and then every time you
+ * call {@link MediaReader#readPacket()}, attempts to decode the packet and
+ * call any registers {@link IListener} objects for that packet.
+ * </p><p>
+ * The idea is to abstract away the more intricate details of the
+ * Xuggler API, and let you concentrate on what you want -- the decoded
+ * data.
+ * </p> 
+ */
 
 public class MediaReader
 {
-  // defined to support object serialization
-
-  public static final long serialVersionUID = 1;
 
   // a place to put packets
   
-  final IPacket mPacket = IPacket.make();
+  private final IPacket mPacket = IPacket.make();
 
   // the container of packets
   
-  IContainer mContainer;
+  private IContainer mContainer;
 
   // a map between stream IDs and coders
 
-  Map<Integer, IStreamCoder> mCoders = 
+  private Map<Integer, IStreamCoder> mCoders = 
     new HashMap<Integer, IStreamCoder>();
   
   // a map between stream IDs and resamplers
 
-  Map<Integer, IVideoResampler> mVideoResamplers = 
+  private Map<Integer, IVideoResampler> mVideoResamplers = 
     new HashMap<Integer, IVideoResampler>();
   
   // all the media reader listeners
 
-  final Collection<IListener> mListeners = new Vector<IListener>();
+  private final Collection<IListener> mListeners = new Vector<IListener>();
 
   // all the coders opened by this MediaReader which are candidates for
   // closing
 
-  final Collection<IStreamCoder> mOpenedCoders = new Vector<IStreamCoder>();
+  private final Collection<IStreamCoder> mOpenedCoders = new Vector<IStreamCoder>();
 
   // should this media reader create buffered images
 
-  final boolean mCreateBufferedImages;
+  private final boolean mCreateBufferedImages;
 
   // should this media reader close the container
 
-  final boolean mCloseContainer;
+  private final boolean mCloseContainer;
 
-  /** Read and dispatch data from media stream from a given source
+  /**
+   * Read and dispatch data from media stream from a given source
    * URL. The media stream is opened, and subsequent calls to
-   * readPacket() will read stream content and dispatch it to attached
+   * {@link #readPacket()}
+   * will read stream content and dispatch it to attached
    * listeners. When the end of the stream is encountered the media
-   * container and it's containd streams are all closed.
+   * container and it's contained streams are all closed.
    *
    * @param url the location of the media content, a file name will also
    *        work here
@@ -119,11 +127,12 @@ public class MediaReader
     mCreateBufferedImages = createBufferedImages;
   }
   
-  /** Read and dispatch data from a media container.  Calls to
-   * readPacket() will read stream content and dispatch it to attached
+  /**
+   * Read and dispatch data from a media container.  Calls to
+   * {@link #readPacket()} will read stream content and dispatch it to attached
    * listeners. If the end of the media stream is encountered, the
    * MediaReader does NOT close the container, that is left to the
-   * calling context (you).  Streams opend by the MediaReader during
+   * calling context (you).  Streams opened by the MediaReader during
    * packet reading will be closed by the MediaReader, however streams
    * opened prior to MediaReader construction will not be closed.  In
    * short MediaReader closes what it opens.
@@ -149,7 +158,7 @@ public class MediaReader
     mCreateBufferedImages = createBufferedImages;
   }
 
-  /** Get the underlying media container that this reader is using to
+  /** Get the underlying media {@link IContainer} that this reader is using to
    * decode streams.  Listeners can use stream index values to learn
    * more about particular streams they are receiving data from.
    *
@@ -161,14 +170,14 @@ public class MediaReader
     return mContainer;
   }
   
-  /** Get the correct coder for a given stream in the container.  If
-   * this is a new stream not been seen before Add a new stream coder to
-   * set of coders used to decode this container.
+  /** Get the correct {@link IStreamCoder} for a given stream in the container.
+   * If this is a new stream not been seen before, we record it and open
+   * it before returning.
    *
    * @param streamIndex the index of the stream to be added
    */
 
-  public IStreamCoder getStreamCoder(int streamIndex)
+  protected IStreamCoder getStreamCoder(int streamIndex)
   {
     // if the coder does not exists, get it
 
@@ -210,12 +219,18 @@ public class MediaReader
     return coder;
   }
 
-  /** This reads a single packet from the container.  If a complete
+  /**
+   * This decodes the next packet and calls registered {@link IListener}s.
+   * 
+   * <p>
+   * If a complete
    * video frame or audio sample set are decoded, it will be dispatched
    * to the listeners added to the media reader.
-   *
+   * </p>
+   * 
    * @return null if there are more packets to read, otherwise return an
-   *         IError instance.
+   *         IError instance.  If {@link IError#getType()} ==
+   *         {@link IError.Type#ERROR_EOF} then end of file has been reached.
    */
     
   public IError readPacket()
@@ -223,6 +238,9 @@ public class MediaReader
     // if there is an off nomial resul from read packet return the
     // correct error
 
+    if (mContainer == null || !mContainer.isOpened())
+      throw new RuntimeException("container has been closed");
+    
     int rv = mContainer.readNextPacket(mPacket);
     if (rv < 0)
     {
@@ -270,7 +288,7 @@ public class MediaReader
    * @param videoCoder the video coder
    */
 
-  public void decodeVideo(IStreamCoder videoCoder)
+  protected void decodeVideo(IStreamCoder videoCoder)
   {
     // create a blank video picture
     
@@ -294,7 +312,7 @@ public class MediaReader
    * @param audioCoder the audio coder
    */
 
-  public void decodeAudio(IStreamCoder audioCoder)
+  protected void decodeAudio(IStreamCoder audioCoder)
   {
     // if it doesn't exist, allocate a set of samples with the same
     // number of channels as in the audio coder and a stock size of 1024
@@ -322,17 +340,17 @@ public class MediaReader
     }
   }
 
-  /** Dispatch a video picture to attched listeners.  This is called when
+  /** Dispatch a video picture to attached listeners.  This is called when
    * a complete video picture has been decoded from the packet stream.
    * Optionally it will take the steps required to convert the
    * IVideoPicture to a BufferedImage.  If you wanted to perform a
-   * custom conversion, subclass and overide this method.
+   * custom conversion, subclass and override this method.
    *
    * @param streamIndex the index of the stream
    * @param picture the video picture to dispatch
    */
   
-  public void dispatchVideoPicture(int streamIndex, IVideoPicture picture)
+  protected void dispatchVideoPicture(int streamIndex, IVideoPicture picture)
   {
     BufferedImage image = null;
     
@@ -384,22 +402,25 @@ public class MediaReader
       l.onVideoPicture(picture, image, streamIndex);
   }
 
-  /** Dispatch audio samples to attched listeners.  This is called when
+  /** Dispatch audio samples to attached listeners.  This is called when
    * a complete set of audio samples has been decoded from the packet
    * stream.  If you wanted to perform a common custom conversion,
-   * subclass and overide this method.
+   * subclass and override this method.
    *
    * @param streamIndex the index of the stream
    * @param samples the audio samples to dispatch
    */
   
-  public void dispatchAudioSamples(int streamIndex, IAudioSamples samples)
+  protected void dispatchAudioSamples(int streamIndex, IAudioSamples samples)
   {
     for (IListener l: mListeners)
       l.onAudioSamples(samples, streamIndex);
   }
 
-  /** Close all elements of the media stream. */
+  /** Reset this {@link MediaReader} object, closing all elements we opened.
+   * For example, if the {@link MediaReader} opened the {@link IContainer},
+   * it closes it now.
+   */
   
   public void close()
   {
@@ -452,21 +473,24 @@ public class MediaReader
 
   public static interface IListener
   {
-    /** Called after a video frame has been decode from a media stream.
-     * Optionally a BufferedImage version of the frame will be passed.
-     * This method blocks, and should execute quickly.
+    /** Called after a video frame has been decoded from a media stream.
+     * Optionally a BufferedImage version of the frame may be passed
+     * if the calling {@link MediaReader} instance was configured to
+     * create BufferedImages.
+     * 
+     * This method blocks, so return quickly.
      *
      * @param picture a raw video picture
      * @param image the buffered image, which will be null if buffered
-     *        image creation is deselected for this MediaReader.
-     * @param streamIndex the index of the stream
+     *        image creation is de-selected for this MediaReader.
+     * @param streamIndex the index of the stream this object was decoded from.
      */
 
     public void onVideoPicture(IVideoPicture picture, BufferedImage image,
       int streamIndex);
     
     /** Called after audio samples have been decoded from a media
-     * stream.  This method blocks, and should execute quickly.
+     * stream.  This method blocks, so return quickly.
      *
      * @param samples a audio samples
      * @param streamIndex the index of the stream
@@ -475,7 +499,10 @@ public class MediaReader
     public void onAudioSamples(IAudioSamples samples, int streamIndex);
   }
 
-  /** Media adapter which stubs methods in the Listener. */
+  /** An implementation of {@link IListener} that implements all methods as NO-OP methods.
+   * This can be useful if you only want to override some members of {@link IListener};
+   * instead, just subclass this and override the methods you want.
+   */
 
   public static class ListenerAdapter implements IListener
   {
