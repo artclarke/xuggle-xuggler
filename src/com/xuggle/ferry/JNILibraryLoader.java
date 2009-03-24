@@ -287,7 +287,7 @@ public class JNILibraryLoader
     boolean retval = false;
     for(String candidate: aLibCandidates)
     {
-      log.debug("Attempt: library load of library: {}; version: {}: relative path: {}",
+      log.trace("Attempt: library load of library: {}; version: {}: relative path: {}",
           new Object[]{
           aLibraryName,
           aMajorVersion == null ? "<unspecified>" : aMajorVersion.longValue(),
@@ -299,7 +299,7 @@ public class JNILibraryLoader
         String absPath = candidateFile.getAbsolutePath();
         try
         {
-          log.debug("Attempt: library load of library: {}; version: {}: absolute path: {}",
+          log.trace("Attempt: library load of library: {}; version: {}: absolute path: {}",
               new Object[]{
               aLibraryName,
               aMajorVersion == null ? "<unspecified>" : aMajorVersion.longValue(),
