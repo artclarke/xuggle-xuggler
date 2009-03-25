@@ -16,6 +16,9 @@ AC_PROG_CC
 AC_PROG_CXX
 AM_PROG_LIBTOOL
 
+# Needed for incarceration
+AC_CONFIG_MACRO_DIR([m4])
+
 AC_CHECK_HEADERS(getopt.h)
 
 AC_CHECK_TYPES(u_int32_t)
