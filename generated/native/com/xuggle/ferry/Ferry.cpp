@@ -337,7 +337,6 @@ SWIGINTERN com::xuggle::ferry::IBuffer *com_xuggle_ferry_IBuffer_make__SWIG_2(co
     {
       if (!env)
         throw std::runtime_error("could not get java environment");
-      ;
       
       if (env->ExceptionCheck())
         throw std::runtime_error("pending Java exception");
@@ -359,14 +358,11 @@ SWIGINTERN com::xuggle::ferry::IBuffer *com_xuggle_ferry_IBuffer_make__SWIG_2(co
           env->ThrowNew(cls, "object passed in is not instance of java.nio.ByteBuffer");
         throw std::runtime_error("object not instanceof java.nio.ByteBuffer");
       }
-      ;      
       // let's figure out if this is a direct buffer
       int32_t availableLength = env->GetDirectBufferCapacity(directByteBuffer);
-      ;      
       if (env->ExceptionCheck())
         throw std::runtime_error("could not get java byteArray size");
       int8_t* javaBuffer = static_cast<int8_t*>(env->GetDirectBufferAddress(directByteBuffer));
-      ;
       if (env->ExceptionCheck())
         throw std::runtime_error("could not get java direct byte buffer");
       
@@ -387,14 +383,12 @@ SWIGINTERN com::xuggle::ferry::IBuffer *com_xuggle_ferry_IBuffer_make__SWIG_2(co
       globalRef = env->NewGlobalRef(directByteBuffer);
       if (env->ExceptionCheck())
         throw std::runtime_error("could not get global reference to passed in byte array");
-      ;
             
       retval = IBuffer::make(requestor, javaBuffer+offset, length,
           IBuffer_javaDirectFreeFunc, globalRef);
       if (!retval)
         throw std::runtime_error("could not wrap java byte array");
       globalRef = 0;
-      ;
 
     }
     catch (std::exception & c)
@@ -420,7 +414,6 @@ SWIGINTERN com::xuggle::ferry::IBuffer *com_xuggle_ferry_IBuffer_make__SWIG_2(co
   {
     jobject globalRef = static_cast<jobject>(closure);
     JNIEnv* env = JNIHelper::sGetEnv();
-    VS_LOG_TRACE("Freeing %p with Java Env: %p", globalRef, closure);
     if (env && globalRef)
     {
       env->DeleteGlobalRef(globalRef);

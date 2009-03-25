@@ -176,7 +176,6 @@ typedef jobject jNioByteArray;
   {
     jobject globalRef = static_cast<jobject>(closure);
     JNIEnv* env = JNIHelper::sGetEnv();
-    VS_LOG_TRACE("Freeing %p with Java Env: %p", globalRef, closure);
     if (env && globalRef)
     {
       env->DeleteGlobalRef(globalRef);
@@ -317,7 +316,6 @@ typedef jobject jNioByteArray;
     {
       if (!env)
         throw std::runtime_error("could not get java environment");
-      VS_LOG_TRACE("got env");
       
       if (env->ExceptionCheck())
         throw std::runtime_error("pending Java exception");
@@ -339,14 +337,11 @@ typedef jobject jNioByteArray;
           env->ThrowNew(cls, "object passed in is not instance of java.nio.ByteBuffer");
         throw std::runtime_error("object not instanceof java.nio.ByteBuffer");
       }
-      VS_LOG_TRACE("right instance");      
       // let's figure out if this is a direct buffer
       int32_t availableLength = env->GetDirectBufferCapacity(directByteBuffer);
-      VS_LOG_TRACE("Got length: %d", availableLength);      
       if (env->ExceptionCheck())
         throw std::runtime_error("could not get java byteArray size");
       int8_t* javaBuffer = static_cast<int8_t*>(env->GetDirectBufferAddress(directByteBuffer));
-      VS_LOG_TRACE("Got data buffer: %p", javaBuffer);
       if (env->ExceptionCheck())
         throw std::runtime_error("could not get java direct byte buffer");
       
@@ -367,14 +362,12 @@ typedef jobject jNioByteArray;
       globalRef = env->NewGlobalRef(directByteBuffer);
       if (env->ExceptionCheck())
         throw std::runtime_error("could not get global reference to passed in byte array");
-      VS_LOG_TRACE("Got global ref: %p", globalRef);
             
       retval = IBuffer::make(requestor, javaBuffer+offset, length,
           IBuffer_javaDirectFreeFunc, globalRef);
       if (!retval)
         throw std::runtime_error("could not wrap java byte array");
       globalRef = 0;
-      VS_LOG_TRACE("Made ibuffer: %p", retval);
 
     }
     catch (std::exception & c)
