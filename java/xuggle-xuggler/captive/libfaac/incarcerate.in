@@ -40,7 +40,7 @@ fi
 # Tell FAAC about the captive libraries already built and fake
 # installed
 
-FAAC_OPTIONS="$FAAC_OPTIONS --enable-pic --enable-shared"
+FAAC_OPTIONS="$FAAC_OPTIONS --enable-shared"
 if test ! "x$VS_DEBUG" = "x"; then
   echo "Creating debug version of libFAAC: $VS_DEBUG"
   CFLAGS="-g -O0"
