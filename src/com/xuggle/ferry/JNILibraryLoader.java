@@ -248,7 +248,13 @@ public class JNILibraryLoader
       if (!loadCandidateLibrary(aLibraryName, aMajorVersion, libCandidates))
       {
         // finally, try the System.loadLibrary call
-        System.loadLibrary(aLibraryName);
+        try
+        {
+          System.loadLibrary(aLibraryName);
+        } catch (UnsatisfiedLinkError e) {
+          log.error("Could not load library: {}; version: {}; Visit http://www.xuggle.com/xuggler/faq/ to find common solutions to this problem", aLibraryName, aMajorVersion == null ? "" : aMajorVersion);
+          
+        }
         // and if we get here it means we successfully loaded since no
         // exception was thrown.  Add our library to the cache.
         setLoadedLibrary(aLibraryName, aMajorVersion);
@@ -307,7 +313,7 @@ public class JNILibraryLoader
           });
               // Here's where we attempt the actual load.
           System.load(absPath);
-          log.debug("Success: library load of library: {}; version: {}: absolute path: {}",
+          log.trace("Success: library load of library: {}; version: {}: absolute path: {}",
               new Object[]{
               aLibraryName,
               aMajorVersion == null ? "<unspecified>" : aMajorVersion.longValue(),
