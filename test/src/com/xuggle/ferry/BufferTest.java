@@ -251,7 +251,7 @@ public class BufferTest
    * decrement ref counts if freed by java Garbage Collector and
    * our garbage collector
    */
-  @Test(timeout=5000)
+  @Test(timeout=30000)
   public void testDirectByteBufferIncrementsAndDecrementsRefCounts()
   {
     IBuffer buf = IBuffer.make(null, 1024*1024); // 1 MB
