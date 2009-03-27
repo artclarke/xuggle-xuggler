@@ -802,7 +802,7 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
 
     int i_qp = h->mb.i_qp;
     int mvp[2];
-    int ch, thresh;
+    int ch, thresh, ssd;
 
     int i8x8, i4x4;
     int i_decimate_mb;
@@ -856,7 +856,8 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
 
         /* there is almost never a termination during chroma, but we can't avoid the check entirely */
         /* so instead we check SSD and skip the actual check if the score is low enough. */
-        if( h->pixf.ssd[PIXEL_8x8]( p_dst, FDEC_STRIDE, p_src, FENC_STRIDE ) < thresh )
+        ssd = h->pixf.ssd[PIXEL_8x8]( p_dst, FDEC_STRIDE, p_src, FENC_STRIDE );
+        if( ssd < thresh )
             continue;
 
         h->dctf.sub8x8_dct( dct4x4, p_src, p_dst );
@@ -865,6 +866,10 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
         dct2x2dc( dct2x2, dct4x4 );
         if( h->quantf.quant_2x2_dc( dct2x2, h->quant4_mf[CQM_4PC][i_qp][0]>>1, h->quant4_bias[CQM_4PC][i_qp][0]<<1 ) )
             return 0;
+
+        /* If there wasn't a termination in DC, we can check against a much higher threshold. */
+        if( ssd < thresh*4 )
+            continue;
 
         /* calculate dct coeffs */
         for( i4x4 = 0, i_decimate_mb = 0; i4x4 < 4; i4x4++ )
