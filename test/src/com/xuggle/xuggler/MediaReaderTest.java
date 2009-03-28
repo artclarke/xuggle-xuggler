@@ -53,7 +53,8 @@ public class MediaReaderTest //extends TestCase
   @Test(expected=IllegalArgumentException.class)
     public void testMediaSourceNotExist() 
   {
-    new MediaReader("broken" + TEST_FILE_20_SECONDS, true);
+    new MediaReader("broken" + TEST_FILE_20_SECONDS, true, 
+      BufferedImage.TYPE_3BYTE_BGR);
   }  
 
   // test nominal read without buffered image creation
@@ -65,7 +66,9 @@ public class MediaReaderTest //extends TestCase
  
     // create a new media reader
 
-    MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, false);
+    MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, false,
+      BufferedImage.TYPE_3BYTE_BGR);
+
 
     // setup the the listener
 
@@ -124,7 +127,9 @@ public class MediaReaderTest //extends TestCase
     
     // create a new media reader
 
-    MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, true);
+    MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, true,
+      BufferedImage.TYPE_3BYTE_BGR);
+
 
     // setup the the listener
 
@@ -174,7 +179,8 @@ public class MediaReaderTest //extends TestCase
         
     // create a new media reader
 
-    MediaReader mr = new MediaReader(container, true);
+    MediaReader mr = new MediaReader(container, true,
+      BufferedImage.TYPE_3BYTE_BGR);
 
     // setup the the listener
 

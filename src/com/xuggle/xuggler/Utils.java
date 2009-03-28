@@ -28,15 +28,21 @@ import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.ITimeValue;
+import com.xuggle.xuggler.video.IConverter;
+import com.xuggle.xuggler.video.ConverterFactory;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.awt.image.DataBufferByte;
 import java.awt.image.DataBuffer;
 import java.awt.image.ColorModel;
+import java.awt.color.ColorSpace;
+import java.awt.color.ICC_ColorSpace;
 import java.awt.image.DirectColorModel;
+import java.awt.image.ComponentColorModel;
 import java.awt.image.SampleModel;
 import java.awt.image.SinglePixelPackedSampleModel;
+import java.awt.image.PixelInterleavedSampleModel;
 import java.awt.image.WritableRaster;
 import java.awt.image.Raster;
 import java.nio.ByteBuffer;
@@ -273,7 +279,7 @@ public class Utils
    * means the caller does not need to concern themselfs with memory
    * management issues.
    *
-   * @param aPicture The {@link IVideoPicture} to be converted.
+   * @param picture The {@link IVideoPicture} to be converted.
    * 
    * @return the resultant {@link BufferedImage} which will contain
    * the video frame.
@@ -284,65 +290,37 @@ public class Utils
    * IVideoPicture} is not of type {@link IPixelFormat.Type#ARGB}.
    * @throws IllegalArgumentException if the passed {@link
    * IVideoPicture} is not complete.
+   *
+   * @deprecated Image and picture conversion functionality has been
+   * replaced by {@link com.xuggle.xuggler.video.ConverterFactory}.  The
+   * current implemention of {@link #videoPictureToImage} creates a new
+   * {@link com.xuggle.xuggler.video.IConverter} on each call, which is
+   * not very efficient.
    */
   
-  public static BufferedImage videoPictureToImage(IVideoPicture aPicture)
+  @Deprecated
+    public static BufferedImage videoPictureToImage(IVideoPicture picture)
   {
     // if the pictre is NULL, throw up
     
-    if (aPicture == null)
+    if (picture == null)
       throw new IllegalArgumentException("The video picture is NULL.");
 
     // if the picture is not in ARGB, throw up
     
-    if (aPicture.getPixelType() != IPixelFormat.Type.ARGB)
+    if (picture.getPixelType() != IPixelFormat.Type.ARGB)
       throw new IllegalArgumentException(
-        "The video picture is of type " + aPicture.getPixelType() +
+        "The video picture is of type " + picture.getPixelType() +
         " but is required to be of type " + IPixelFormat.Type.ARGB);
     
-    // if the picture is not complete, throw up
-    
-    if (!aPicture.isComplete())
-      throw new IllegalArgumentException("The video picture is not complete.");
-    
-    // get picture parameters
-    
-    final int w = aPicture.getWidth();
-    final int h = aPicture.getHeight();
-    
-    // make a copy of the raw bytes in the picture and convert those
-    // to integers
-    final ByteBuffer byteBuf = aPicture.getData().getByteBuffer(
-        0, aPicture.getSize());
-    // now, for this class of problems, we don't want the code
-    // to switch byte order, so we'll pretend it's in native java order
-    byteBuf.order(ByteOrder.BIG_ENDIAN);
-    final IntBuffer intBuf = byteBuf.asIntBuffer();
-    
-    final int[] ints = new int[aPicture.getSize()/4];
-    intBuf.get(ints, 0, ints.length);
-   
-    // create the data buffer from the ints
-    
-    final DataBufferInt db = new DataBufferInt(ints, ints.length);
-    
-    // create an a sample model which matches the byte layout of the
-    // image data and raster which contains the data which now can be
-    // properly interpreted
-    
-    final int[] bitMasks = {0xff0000, 0xff00, 0xff, 0xff000000};
-    final SampleModel sm = new SinglePixelPackedSampleModel(
-      db.getDataType(), w, h, bitMasks);
-    final WritableRaster wr = Raster.createWritableRaster(sm, db, null);
-    
-    // create a color model
-    
-    final ColorModel cm = new DirectColorModel(
-      32, 0xff0000, 0xff00, 0xff, 0xff000000);
-    
-    // return a new image created from the color model and raster
-    
-    return new BufferedImage(cm, wr, false, null);
+    // create the converter
+
+    IConverter converter = ConverterFactory.createConverter(
+      picture, BufferedImage.TYPE_INT_ARGB);
+
+    // return the conveter
+
+    return converter.toImage(picture);
   }
   
   /**
@@ -354,13 +332,12 @@ public class Utils
    * BufferedImage} must be composed of types bytes or integers (which
    * is the most typical case).
    *
-   * @param aImage The source {@link BufferedImage}.
-   * @param aPts The presentation time stamp of the picture.
+   * @param image The source {@link BufferedImage}.
+   * @param pts The presentation time stamp of the picture.
    *
    * @return An {@link IVideoPicture} in {@link
    * IPixelFormat.Type#ARGB} format.
    *
-
    * @throws IllegalArgumentException if the passed {@link
    * BufferedImage} is NULL;
    * @throws IllegalArgumentException if the passed {@link
@@ -368,76 +345,37 @@ public class Utils
    * @throws IllegalArgumentException if the underlying data buffer of
    * the {@link BufferedImage} is composed of types other bytes or
    * integers.
+   *
+   * @deprecated Image and picture conversion functionality has been
+   * replaced by {@link com.xuggle.xuggler.video.ConverterFactory}.  The
+   * current implemention of {@link #imageToVideoPicture} creates a new
+   * {@link com.xuggle.xuggler.video.IConverter} on each call, which is
+   * not very efficient.
    */
-
-  public static IVideoPicture imageToVideoPicture(
-    BufferedImage aImage, long aPts)
+  
+  @Deprecated
+    public static IVideoPicture imageToVideoPicture(BufferedImage image, long pts)
   {
-    //if the is NULL, throw up
+    // if the image is NULL, throw up
     
-    if (aImage == null)
+    if (image == null)
       throw new IllegalArgumentException("The image is NULL.");
 
      // if image is not in TYPE_INT_ARGB, throw up
     
-    if (aImage.getType() != BufferedImage.TYPE_INT_ARGB)
+    if (image.getType() != BufferedImage.TYPE_INT_ARGB)
       throw new IllegalArgumentException(
-        "The image is of type #" + aImage.getType() +
+        "The image is of type #" + image.getType() +
         " but is required to be BufferedImage.TYPE_INT_ARGB of type #" +
         BufferedImage.TYPE_INT_ARGB + ".");
 
-    // get the image byte buffer buffer
-    
-    DataBuffer imageBuffer = aImage.getRaster().getDataBuffer();
-    byte[] imageBytes=null;
-    int[] imageInts = null;
-    
-    // handle byte buffer case
-    
-    if (imageBuffer instanceof DataBufferByte)
-    {
-      imageBytes = ((DataBufferByte)imageBuffer).getData();
-    }
-    
-    // handel integer buffer case
-    
-    else if (imageBuffer instanceof DataBufferInt)
-    {
-      imageInts = ((DataBufferInt)imageBuffer).getData();
-    }
-    
-    // if it's some other type, throw 
-    
-    else
-    {
-      throw new IllegalArgumentException(
-        "Unsupported BufferedImage data buffer type: " + 
-        imageBuffer.getDataType());
-    }
-    
-    // create the video picture and get it's underling buffer
-    
-    IVideoPicture picture = IVideoPicture.make(
-      IPixelFormat.Type.ARGB, aImage.getWidth(), aImage.getHeight());
-    IBuffer pictureBuffer = picture.getData();
-    ByteBuffer pictureByteBuffer = pictureBuffer.getByteBuffer(
-      0, pictureBuffer.getBufferSize());
-    
-    if (imageInts != null)
-    {
-      pictureByteBuffer.order(ByteOrder.BIG_ENDIAN);
-      IntBuffer pictureIntBuffer = pictureByteBuffer.asIntBuffer();
-      pictureIntBuffer.put(imageInts);
-    } else {
-      pictureByteBuffer.put(imageBytes);      
-    }
-    pictureByteBuffer = null;
-    picture.setComplete(
-      true, IPixelFormat.Type.ARGB, 
-      aImage.getWidth(), aImage.getHeight(), aPts);
-    
-    // return the ARGB picture
-    
-    return picture;
+    // create the converter
+
+    IConverter converter = ConverterFactory.createConverter(
+      IPixelFormat.Type.ARGB, image);
+
+    // return the conveter
+
+    return converter.toPicture(image, pts);
   }
 }

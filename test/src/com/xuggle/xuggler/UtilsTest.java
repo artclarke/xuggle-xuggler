@@ -151,13 +151,15 @@ public class UtilsTest
   {
     Utils.timeValueToSamples(null, 22050);
   }
-  
+
+  @SuppressWarnings("deprecation")
   @Test(expected=IllegalArgumentException.class)
   public void testVideoPictureToImageNullInput()
   {
     Utils.videoPictureToImage(null);
   }
 
+  @SuppressWarnings("deprecation")
   @Test(expected=IllegalArgumentException.class)
   public void testVideoPictureToImageWrongFormatInput()
   {
@@ -165,6 +167,7 @@ public class UtilsTest
       IPixelFormat.Type.YUV420P, 50, 50);
     Utils.videoPictureToImage(picture);
   }
+  @SuppressWarnings("deprecation")
 
   @Test(expected=IllegalArgumentException.class)
   public void testVideoPictureToImageIncompletePicture()
@@ -174,12 +177,14 @@ public class UtilsTest
     Utils.videoPictureToImage(picture);
   }
 
+  @SuppressWarnings("deprecation")
   @Test(expected=IllegalArgumentException.class)
   public void testImageToVideoPictureNullInput()
   {
     Utils.imageToVideoPicture(null, 0);
   }
 
+  @SuppressWarnings("deprecation")
   @Test(expected=IllegalArgumentException.class)
   public void testImageToVideoPictureWrongFormatInput()
   {
@@ -188,6 +193,7 @@ public class UtilsTest
     Utils.imageToVideoPicture(image, 0);
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testImageToImageSolidColor()
   {
@@ -219,6 +225,7 @@ public class UtilsTest
       }
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testImageToImageRandomColor()
   {
@@ -254,6 +261,7 @@ public class UtilsTest
       }
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testPictureToPictureWithRotate()
   {
