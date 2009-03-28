@@ -316,7 +316,7 @@ public class Utils
     // create the converter
 
     IConverter converter = ConverterFactory.createConverter(
-      picture, BufferedImage.TYPE_INT_ARGB);
+      IConverter.Type.ARGB_32, picture);
 
     // return the conveter
 
@@ -372,7 +372,7 @@ public class Utils
     // create the converter
 
     IConverter converter = ConverterFactory.createConverter(
-      IPixelFormat.Type.ARGB, image);
+      image, IPixelFormat.Type.ARGB);
 
     // return the conveter
 

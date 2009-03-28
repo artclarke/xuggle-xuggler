@@ -59,7 +59,7 @@ public class ConverterFactoryTest
   public void testVideoPictureToImageNullInput()
   {
     IConverter c = ConverterFactory.createConverter(
-      IPixelFormat.Type.YUV420P, BufferedImage.TYPE_INT_ARGB, 
+      IConverter.Type.ARGB_32, IPixelFormat.Type.YUV420P,
       TEST_WIDTH, TEST_HEIGHT);
     
     c.toImage(null);
@@ -69,7 +69,7 @@ public class ConverterFactoryTest
   public void testVideoPictureToImageIncompletePicture()
   {
     IConverter c = ConverterFactory.createConverter(
-      IPixelFormat.Type.YUV420P, BufferedImage.TYPE_INT_ARGB, 
+      IConverter.Type.ARGB_32, IPixelFormat.Type.YUV420P,
       TEST_WIDTH, TEST_HEIGHT);
 
     IVideoPicture picture = IVideoPicture.make(
@@ -82,7 +82,7 @@ public class ConverterFactoryTest
   public void testVideoPictureToImageWrongFormat()
   {
     IConverter c = ConverterFactory.createConverter(
-      IPixelFormat.Type.YUV420P, BufferedImage.TYPE_INT_ARGB, 
+      IConverter.Type.ARGB_32, IPixelFormat.Type.YUV420P,
       TEST_WIDTH, TEST_HEIGHT);
 
     IVideoPicture picture = IVideoPicture.make(
@@ -96,7 +96,7 @@ public class ConverterFactoryTest
   public void testImageToVideoPictureNullInput()
   {
     IConverter c = ConverterFactory.createConverter(
-      IPixelFormat.Type.YUV420P, BufferedImage.TYPE_INT_ARGB, 
+      IConverter.Type.ARGB_32, IPixelFormat.Type.YUV420P,
       TEST_WIDTH, TEST_HEIGHT);
     
     c.toPicture(null, 0);
@@ -106,7 +106,7 @@ public class ConverterFactoryTest
   public void testImageToVideoPictureWrongFormatInput()
   {
     IConverter c = ConverterFactory.createConverter(
-      IPixelFormat.Type.YUV420P, BufferedImage.TYPE_INT_ARGB, 
+      IConverter.Type.ARGB_32, IPixelFormat.Type.YUV420P,
       TEST_WIDTH, TEST_HEIGHT);
 
     BufferedImage image = new BufferedImage(
@@ -125,7 +125,7 @@ public class ConverterFactoryTest
     // create the converter
 
     IConverter c = ConverterFactory.createConverter(
-      IPixelFormat.Type.ARGB, BufferedImage.TYPE_INT_ARGB, 
+      IConverter.Type.ARGB_32, IPixelFormat.Type.ARGB,
       w, h);
 
     // construct an all gray image
@@ -162,7 +162,7 @@ public class ConverterFactoryTest
     // create the converter
 
     IConverter converter = ConverterFactory.createConverter(
-      IPixelFormat.Type.ARGB, BufferedImage.TYPE_INT_ARGB, 
+      IConverter.Type.ARGB_32, IPixelFormat.Type.ARGB,
       w, h);
 
     // construct an image of random colors
@@ -206,7 +206,7 @@ public class ConverterFactoryTest
     // create the converter
 
     IConverter converter = ConverterFactory.createConverter(
-      IPixelFormat.Type.ARGB, BufferedImage.TYPE_INT_ARGB, 
+      IConverter.Type.ARGB_32, IPixelFormat.Type.ARGB,
       size, size);
 
     // construct an image with black and white stripped columns

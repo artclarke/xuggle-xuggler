@@ -38,73 +38,48 @@ import com.xuggle.xuggler.IVideoResampler;
  * all image and picture types are supported.  When an unsupported
  * converter is requested, a descriptive {@link
  * UnsupportedOperationException} is thrown.  Each converter can
- * translate between any supported {@link IPixelFormat.Type} and a
- * single {@link BufferedImage} type.  Convertes can optionally resize
- * during the conversion process.
+ * translate between any supported IPixelFormat.Type and a single {@link
+ * BufferedImage} type.  Convertes can optionally resize during the
+ * conversion process.
  */
 
 public class ConverterFactory
 {
-  // a map between buffered image types and converters
-
-  private static final Map<Integer, Class<? extends IConverter>> mCoverters = 
-    new HashMap<Integer, Class<? extends IConverter>>();
-
-  /** Registser a converter type. */
-
-  public static void registerConverter(int imageType, Class<? extends IConverter> clazz)
-  {
-    mCoverters.put(imageType, clazz);
-  }
-
-  // static declaraions, register convteres here
-
-  static 
-  {
-    registerConverter(BufferedImage.TYPE_3BYTE_BGR, BgrConverter .class);
-    registerConverter(BufferedImage.TYPE_INT_ARGB , ArgbConverter.class);
-  }
-
-
-
   /** 
    * Create a converter which translates betewen {@link BufferedImage}
-   * and {@link IVideoPicture} types.  To create such a converter the
-   * image type must be specified; IVideoPicture type and size are
-   * extracted from the passed in picture.  This factory will attempt to
-   * create a converter which can perform the translation.  If no
-   * converter can be created, a descriptive {@link
-   * UnsupportedOperationException} is thrown.
+   * and {@link IVideoPicture} types.  The {@link
+   * com.xuggle.xuggler.IPixelFormat.Type} and size are extracted from
+   * the passed in picture.  This factory will attempt to create a
+   * converter which can perform the translation.  If no converter can
+   * be created, a descriptive {@link UnsupportedOperationException} is
+   * thrown.
    *
+   * @param converterType the type of converter which will be created
    * @param picture the picture from which size and type are extracted
-   * @param imageType the image type of the converter
    *
-   * @throws UnsupportedOperationException if no converter for the
-   *         specifed BufferedImage type exists
    * @throws UnsupportedOperationException if the found converter can
    *         not be properly initialized
    * @throws IllegalArgumentException if the passed {@link
    *         IVideoPicture} is NULL;
    */
 
-  public static IConverter createConverter(IVideoPicture picture,
-    int imageType)
+  public static IConverter createConverter(
+    IConverter.Type converterType,
+    IVideoPicture picture)
   {
     if (picture == null)
       throw new IllegalArgumentException("The picture is NULL.");
 
-    return createConverter(picture.getPixelType(), imageType,
+    return createConverter(converterType, picture.getPixelType(), 
       picture.getWidth(), picture.getHeight());
   }
 
-
   /** 
    * Create a converter which translates betewen {@link BufferedImage}
-   * and {@link IVideoPicture} types.  To create such a converter the
-   * picture type must be specified; BufferedImage type and size are
-   * extracted from the passed in image.  This factory will attempt to
-   * create a converter which can perform the translation.  If no
-   * converter can be created, a descriptive {@link
+   * and {@link IVideoPicture} types. The {@link BufferedImage} type and
+   * size are extracted from the passed in image.  This factory will
+   * attempt to create a converter which can perform the translation.
+   * If no converter can be created, a descriptive {@link
    * UnsupportedOperationException} is thrown.
    *
    * @param pictureType the picture type of the converter
@@ -119,87 +94,84 @@ public class ConverterFactory
    */
 
   public static IConverter createConverter(
-    IPixelFormat.Type pictureType, 
-    BufferedImage image)
+    BufferedImage image,
+    IPixelFormat.Type pictureType)
   {
     if (image == null)
       throw new IllegalArgumentException("The image is NULL.");
 
-    return createConverter(pictureType, image.getType(), 
+    // find the converter type based in image type
+
+    IConverter.Type converterType = IConverter.Type.find(image.getType());
+    if (converterType == null)
+      throw new UnsupportedOperationException(
+        "No converter found for BufferedImage type #" + 
+        image.getType());
+
+    // create and return the convert
+
+    return createConverter(converterType, pictureType,
       image.getWidth(), image.getHeight());
   }
 
   /** 
    * Create a converter which translates betewen {@link BufferedImage}
-   * and {@link IVideoPicture} types.  To create such a converter the
-   * picture and image types must be specified.  This factory will
-   * attempt to create a converter which can perform the translation.
-   * If no converter can be created, a descriptive {@link
+   * and {@link IVideoPicture} types.  This factory will attempt to
+   * create a converter which can perform the translation.  If no
+   * converter can be created, a descriptive {@link
    * UnsupportedOperationException} is thrown.
    *
+   * @param converterType the type of converter which will be created
    * @param pictureType the picture type of the converter
-   * @param imageType the image type of the converter
    * @param width the width of pictures and images
    * @param height the height of pictures and images
    *
-   * @throws UnsupportedOperationException if no converter for the
-   *         specifed BufferedImage type exists
    * @throws UnsupportedOperationException if the found converter can
    *         not be properly initialized
    */
 
   public static IConverter createConverter(
+    IConverter.Type converterType,
     IPixelFormat.Type pictureType, 
-    int imageType,
     int width, int height)
   {
-    return createConverter(pictureType, imageType, 
+    return createConverter(converterType, pictureType, 
       width, height, width, height);
   }
 
   /** 
    * Create a converter which translates betewen {@link BufferedImage}
-   * and {@link IVideoPicture} types.  To create such a converter the
-   * picture and image types must be specified.  This factory will
-   * attempt to create a converter which can perform the translation.
-   * If different image and pictures sizes are passed the convter will
-   * resize during conversion.  If no converter can be created, a
-   * descriptive {@link UnsupportedOperationException} is thrown.
+   * and {@link IVideoPicture} types.  This factory will attempt to
+   * create a converter which can perform the translation.  If different
+   * image and pictures sizes are passed the converter will resize
+   * during translation.  If no converter can be created, a descriptive
+   * {@link UnsupportedOperationException} is thrown.
    *
+   * @param converterType the type of converter which will be created
    * @param pictureType the picture type of the converter
-   * @param imageType the image type of the converter
    * @param pictureWidth the width of pictures
    * @param pictureHeight the height of pictures
    * @param imageWidth the width of images
    * @param imageHeight the height of images
    *
-   * @throws UnsupportedOperationException if no converter for the
-   *         specifed BufferedImage type exists
-   * @throws UnsupportedOperationException if the found converter can
-   *         not be properly initialized
+   * @throws UnsupportedOperationException if the converter can not be
+   *         properly created or initialized
    */
 
   public static IConverter createConverter(
+    IConverter.Type converterType,
     IPixelFormat.Type pictureType, 
-    int imageType,
     int pictureWidth, int pictureHeight,
     int imageWidth, int imageHeight)
   {
     IConverter converter = null;
-
-    // get the converter class
-    
-    Class<? extends IConverter> converterClass = mCoverters.get(imageType);
-    if (converterClass == null)
-      throw new UnsupportedOperationException(
-        "No converter exists for BufferedImage type #" + imageType + ".");
 
     try
     {
       // establish the constructor 
 
       Constructor<? extends IConverter> converterConstructor = 
-        converterClass.getConstructor(IPixelFormat.Type.class,
+        converterType.mConverterClass.getConstructor(IPixelFormat.Type.class,
           int.class, int.class, int.class, int.class);
 
       // create the converter
@@ -210,26 +182,26 @@ public class ConverterFactory
     catch (NoSuchMethodException e)
     {
       throw new UnsupportedOperationException(
-        "Converter " + converterClass + 
+        "Converter " + converterType.mConverterClass + 
         " requries a constructor of the form "  +
         "(IPixelFormat.Type, int, int, int, int)");
     }
     catch (InvocationTargetException e)
     {
       throw new UnsupportedOperationException(
-        "Converter " + converterClass + 
+        "Converter " + converterType.mConverterClass + 
         " constructor failed with: " + e.getCause());
     }
     catch (IllegalAccessException e)
     {
       throw new UnsupportedOperationException(
-        "Converter " + converterClass + 
+        "Converter " + converterType.mConverterClass + 
         " constructor failed with: " + e);
     }
     catch (InstantiationException e)
     {
       throw new UnsupportedOperationException(
-        "Converter " + converterClass + 
+        "Converter " + converterType.mConverterClass + 
         " constructor failed with: " + e);
     }
 

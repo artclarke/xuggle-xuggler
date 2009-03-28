@@ -25,6 +25,7 @@ import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.xuggler.video.IConverter;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IError;
 
@@ -54,7 +55,7 @@ public class MediaReaderTest //extends TestCase
     public void testMediaSourceNotExist() 
   {
     new MediaReader("broken" + TEST_FILE_20_SECONDS, true, 
-      BufferedImage.TYPE_3BYTE_BGR);
+      IConverter.Type.BGR_24);
   }  
 
   // test nominal read without buffered image creation
@@ -66,9 +67,7 @@ public class MediaReaderTest //extends TestCase
  
     // create a new media reader
 
-    MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, false,
-      BufferedImage.TYPE_3BYTE_BGR);
-
+    MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, false, null);
 
     // setup the the listener
 
@@ -128,7 +127,7 @@ public class MediaReaderTest //extends TestCase
     // create a new media reader
 
     MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, true,
-      BufferedImage.TYPE_3BYTE_BGR);
+      IConverter.Type.BGR_24);
 
 
     // setup the the listener
@@ -180,7 +179,7 @@ public class MediaReaderTest //extends TestCase
     // create a new media reader
 
     MediaReader mr = new MediaReader(container, true,
-      BufferedImage.TYPE_3BYTE_BGR);
+      IConverter.Type.BGR_24);
 
     // setup the the listener
 

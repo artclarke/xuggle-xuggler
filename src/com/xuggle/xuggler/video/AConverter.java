@@ -111,15 +111,6 @@ abstract public class AConverter implements IConverter
     mImageWidth = imageWidth;
     mImageHeight = imageHeight;
 
-    System.out.println("mPictureType: " + mPictureType);
-    System.out.println("mRequiredPictureType: " + mRequiredPictureType);
-    System.out.println("mImageType: " + mImageType);
-    System.out.println("mPictureWidth: " + mPictureWidth);
-    System.out.println("mPictureHeight: " + mPictureHeight);
-    System.out.println("mImageWidth: " + mImageWidth);
-    System.out.println("mImageHeight: " + mImageHeight);
-    
-
     // if the picture type is not the type or size required, create the
     // resamplers to fix that
 

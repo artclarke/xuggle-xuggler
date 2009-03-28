@@ -92,9 +92,9 @@ public class MediaReader
 
   protected final boolean mCreateBufferedImages;
 
-  // should this media reader create buffered images
+  // the type of converter to use
 
-  protected final int mImageType;
+  protected final IConverter.Type mConverterType;
 
   // should this media reader close the container
 
@@ -116,12 +116,13 @@ public class MediaReader
    *        work here
    * @param createBufferedImages true if BufferedImages should be
    *        created during media reading
-   * @param imageType the type of {@link BufferedImage} to create if
-   *        createBufferedImages is true, a good valueis {@link
-   *        BufferedImage#TYPE_INT_BGR}
+   * @param converterType the type of converter to use to create
+   *        buffered images; if createBufferedImages is FALSE, this may
+   *        be NULL 
    */
 
-  public MediaReader(String url, boolean createBufferedImages, int imageType)
+  public MediaReader(String url, boolean createBufferedImages, 
+    IConverter.Type converterType)
   {
     // create the container
 
@@ -137,10 +138,13 @@ public class MediaReader
     mCloseContainer = true;
 
     // note that we should or should not create buffered images during
-    // video decoding, and if so what type of images
+    // video decoding, and if so what type of converter to use
 
     mCreateBufferedImages = createBufferedImages;
-    mImageType = imageType;
+    mConverterType = converterType;
+    if (mCreateBufferedImages && mConverterType == null)
+      throw new IllegalArgumentException(
+        "If createBufferedImages is TRUE, converterType may not be NULL.");
   }
 
   /**
@@ -156,13 +160,13 @@ public class MediaReader
    * @param container on already open media container
    * @param createBufferedImages should BufferedImages be created during
    *        media reading
-   * @param imageType the type of {@link BufferedImage} to create if
-   *        createBufferedImages is true, a good valueis {@link
-   *        BufferedImage#TYPE_INT_BGR}
+   * @param converterType the type of converter to use to create
+   *        buffered images; if createBufferedImages is FALSE, this may
+   *        be NULL 
    */
 
   public MediaReader(IContainer container, boolean createBufferedImages, 
-    int imageType)
+    IConverter.Type converterType)
   {
     // get the container
 
@@ -172,11 +176,15 @@ public class MediaReader
 
     mCloseContainer = false;
 
+
     // note that we should or should not create buffered images during
-    // video decoding, and if so what type of images
+    // video decoding, and if so what type of converter to use
 
     mCreateBufferedImages = createBufferedImages;
-    mImageType = imageType;
+    mConverterType = converterType;
+    if (mCreateBufferedImages && mConverterType == null)
+      throw new IllegalArgumentException(
+        "If createBufferedImages is TRUE, converterType may not be NULL.");
   }
 
   /** Get the underlying media {@link IContainer} that this reader is
@@ -382,9 +390,8 @@ public class MediaReader
 
       if (mVideoConverter == null)
         mVideoConverter = ConverterFactory.createConverter(
-          picture.getPixelType(), mImageType,
-          picture.getWidth(), picture.getHeight());
-       
+          mConverterType, picture);
+
       // create the buffered image
 
       image = mVideoConverter.toImage(picture);
