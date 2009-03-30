@@ -94,7 +94,7 @@ public class MediaReader
 
   // the type of converter to use
 
-  protected final IConverter.Type mConverterType;
+  protected final ConverterFactory.Type mConverterType;
 
   // should this media reader close the container
 
@@ -116,13 +116,18 @@ public class MediaReader
    *        work here
    * @param createBufferedImages true if BufferedImages should be
    *        created during media reading
-   * @param converterType the type of converter to use to create
-   *        buffered images; if createBufferedImages is FALSE, this may
-   *        be NULL 
+   * @param converterDescriptor the descriptive of converter to use to
+   *        create buffered images; if createBufferedImages is FALSE,
+   *        this may be NULL
+   *
+   * @throws IllegalArgumentException if BufferedImage conversion is
+   *         requried and the passed converter descriptor is NULL
+   * @throws UnsupportedOperationException if the converter can not be
+   *         found
    */
 
   public MediaReader(String url, boolean createBufferedImages, 
-    IConverter.Type converterType)
+    String converterDescriptor)
   {
     // create the container
 
@@ -141,10 +146,20 @@ public class MediaReader
     // video decoding, and if so what type of converter to use
 
     mCreateBufferedImages = createBufferedImages;
-    mConverterType = converterType;
-    if (mCreateBufferedImages && mConverterType == null)
-      throw new IllegalArgumentException(
-        "If createBufferedImages is TRUE, converterType may not be NULL.");
+    if (mCreateBufferedImages)
+    {
+      if (converterDescriptor == null)
+        throw new IllegalArgumentException(
+          "If createBufferedImages is TRUE, converterDescriptor may not be NULL.");
+      
+      mConverterType = ConverterFactory 
+        .findRegisteredConverter(converterDescriptor);
+      if (mConverterType == null)
+        throw new UnsupportedOperationException(
+          "No converter \"" + converterDescriptor + "\" found.");
+    }
+    else
+      mConverterType = null;
   }
 
   /**
@@ -160,13 +175,18 @@ public class MediaReader
    * @param container on already open media container
    * @param createBufferedImages should BufferedImages be created during
    *        media reading
-   * @param converterType the type of converter to use to create
-   *        buffered images; if createBufferedImages is FALSE, this may
-   *        be NULL 
+   * @param converterDescriptor the descriptive of converter to use to
+   *        create buffered images; if createBufferedImages is FALSE,
+   *        this may be NULL
+   *
+   * @throws IllegalArgumentException if BufferedImage conversion is
+   *         requried and the passed converter descriptor is NULL
+   * @throws UnsupportedOperationException if the converter can not be
+   *         found
    */
 
   public MediaReader(IContainer container, boolean createBufferedImages, 
-    IConverter.Type converterType)
+    String converterDescriptor)
   {
     // get the container
 
@@ -176,15 +196,24 @@ public class MediaReader
 
     mCloseContainer = false;
 
-
     // note that we should or should not create buffered images during
     // video decoding, and if so what type of converter to use
 
     mCreateBufferedImages = createBufferedImages;
-    mConverterType = converterType;
-    if (mCreateBufferedImages && mConverterType == null)
-      throw new IllegalArgumentException(
-        "If createBufferedImages is TRUE, converterType may not be NULL.");
+    if (mCreateBufferedImages)
+    {
+      if (converterDescriptor == null)
+        throw new IllegalArgumentException(
+          "If createBufferedImages is TRUE, converterDescriptor may not be NULL.");
+      
+      mConverterType = ConverterFactory 
+        .findRegisteredConverter(converterDescriptor);
+      if (mConverterType == null)
+        throw new UnsupportedOperationException(
+          "No converter \"" + converterDescriptor + "\" found.");
+    }
+    else
+      mConverterType = null;
   }
 
   /** Get the underlying media {@link IContainer} that this reader is
@@ -390,7 +419,7 @@ public class MediaReader
 
       if (mVideoConverter == null)
         mVideoConverter = ConverterFactory.createConverter(
-          mConverterType, picture);
+          mConverterType.getDescriptor(), picture);
 
       // create the buffered image
 

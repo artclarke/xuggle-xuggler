@@ -316,7 +316,7 @@ public class Utils
     // create the converter
 
     IConverter converter = ConverterFactory.createConverter(
-      IConverter.Type.ARGB_32, picture);
+      ConverterFactory.XUGGLER_ARGB_32, picture);
 
     // return the conveter
 

@@ -23,6 +23,8 @@ package com.xuggle.xuggler.video;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Collection;
+import java.util.Collections;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -33,7 +35,8 @@ import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IVideoResampler;
 
-/** This factory class creates converters for translation between a
+/**
+ * This factory class creates converters for translation between a
  * number of {@link IVideoPicture} and {@link BufferedImage} types.  Not
  * all image and picture types are supported.  When an unsupported
  * converter is requested, a descriptive {@link
@@ -45,6 +48,83 @@ import com.xuggle.xuggler.IVideoResampler;
 
 public class ConverterFactory
 {
+  /** Converter descriptor for ARGB 32 */
+
+  public static final String XUGGLER_ARGB_32 = "XUGGLER-ARGB-32";
+
+  /** Converter descriptor for BGR 24 */
+
+  public static final String XUGGLER_BGR_24 = "XUGGLER-BGR-24";
+
+  // the registered converter types
+  
+  private static Map<String, Type> mConverterTypes = new HashMap<String, Type>();
+
+  // register the known converters
+
+  static
+  {
+    registerConverter(new Type(XUGGLER_ARGB_32, ArgbConverter.class, 
+        IPixelFormat.Type.ARGB, BufferedImage.TYPE_INT_ARGB));
+
+    registerConverter(new Type(XUGGLER_BGR_24, BgrConverter.class, 
+        IPixelFormat.Type.BGR24, BufferedImage.TYPE_3BYTE_BGR));
+  }
+
+  /**
+   * Register a converter with this factory. The factory oragnizes the
+   * converters by descriptor, and thus each should be unique unless one
+   * whishes to replace an existing converter.
+   *
+   * @param converterType the type for the converter to be registered
+   *
+   * @return the converter type which this converter displaced, or NULL
+   * of this is a novel converter
+   */
+
+  public static Type registerConverter(Type converterType)
+  {
+    return mConverterTypes.put(converterType.getDescriptor(), converterType);
+  }
+
+  /**
+   * Unregister a converter with this factory.
+   *
+   * @param converterType the type for the converter to be unregistered
+   *
+   * @return the converter type which removed, or NULL of this converter
+   * was not recognized
+   */
+
+  public static Type unregisterConverter(Type converterType)
+  {
+    return mConverterTypes.remove(converterType.getDescriptor());
+  }
+
+  /**
+   * Get a collection of the registered converters.  The collection is unmodifiable.
+   *
+   * @return an unmodifiable collection of converter types.
+   */
+
+  public static Collection<Type> getRegisteredConverters()
+  {
+    return Collections.unmodifiableCollection(mConverterTypes.values());
+  }
+
+  /**
+   * Find a converter given a type descriptor.
+   *
+   * @param descriptor a unique string which describes this converter
+   * 
+   * @return the converter found or NULL if it was not found.
+   */
+
+  public static Type findRegisteredConverter(String descriptor)
+  {
+    return mConverterTypes.get(descriptor);
+  }
+
   /** 
    * Create a converter which translates betewen {@link BufferedImage}
    * and {@link IVideoPicture} types.  The {@link
@@ -54,9 +134,12 @@ public class ConverterFactory
    * be created, a descriptive {@link UnsupportedOperationException} is
    * thrown.
    *
-   * @param converterType the type of converter which will be created
+   * @param converterDescriptor the unique string descriptor of the
+   *        converter which is to be created
    * @param picture the picture from which size and type are extracted
    *
+   * @throws UnsupportedOperationException if the converter can not be
+   *         found
    * @throws UnsupportedOperationException if the found converter can
    *         not be properly initialized
    * @throws IllegalArgumentException if the passed {@link
@@ -64,13 +147,13 @@ public class ConverterFactory
    */
 
   public static IConverter createConverter(
-    IConverter.Type converterType,
+    String converterDescriptor,
     IVideoPicture picture)
   {
     if (picture == null)
       throw new IllegalArgumentException("The picture is NULL.");
 
-    return createConverter(converterType, picture.getPixelType(), 
+    return createConverter(converterDescriptor, picture.getPixelType(), 
       picture.getWidth(), picture.getHeight());
   }
 
@@ -82,8 +165,8 @@ public class ConverterFactory
    * If no converter can be created, a descriptive {@link
    * UnsupportedOperationException} is thrown.
    *
-   * @param pictureType the picture type of the converter
    * @param image the image from which size and type are extracted
+   * @param pictureType the picture type of the converter
    *
    * @throws UnsupportedOperationException if no converter for the
    *         specifed BufferedImage type exists
@@ -102,15 +185,18 @@ public class ConverterFactory
 
     // find the converter type based in image type
 
-    IConverter.Type converterType = IConverter.Type.find(image.getType());
-    if (converterType == null)
+    String converterDescriptor = null;
+    for (Type converterType: getRegisteredConverters())
+      if (converterType.getImageType() == image.getType())
+        converterDescriptor = converterType.getDescriptor();
+    if (converterDescriptor == null)
       throw new UnsupportedOperationException(
         "No converter found for BufferedImage type #" + 
         image.getType());
 
-    // create and return the convert
+    // create and return the converter
 
-    return createConverter(converterType, pictureType,
+    return createConverter(converterDescriptor, pictureType,
       image.getWidth(), image.getHeight());
   }
 
@@ -121,21 +207,24 @@ public class ConverterFactory
    * converter can be created, a descriptive {@link
    * UnsupportedOperationException} is thrown.
    *
-   * @param converterType the type of converter which will be created
+   * @param converterDescriptor the unique string descriptor of the
+   *        converter which is to be created
    * @param pictureType the picture type of the converter
    * @param width the width of pictures and images
    * @param height the height of pictures and images
    *
+   * @throws UnsupportedOperationException if the converter can not be
+   *         found
    * @throws UnsupportedOperationException if the found converter can
    *         not be properly initialized
    */
 
   public static IConverter createConverter(
-    IConverter.Type converterType,
+    String converterDescriptor,
     IPixelFormat.Type pictureType, 
     int width, int height)
   {
-    return createConverter(converterType, pictureType, 
+    return createConverter(converterDescriptor, pictureType, 
       width, height, width, height);
   }
 
@@ -147,7 +236,8 @@ public class ConverterFactory
    * during translation.  If no converter can be created, a descriptive
    * {@link UnsupportedOperationException} is thrown.
    *
-   * @param converterType the type of converter which will be created
+   * @param converterDescriptor the unique string descriptor of the
+   *        converter which is to be created
    * @param pictureType the picture type of the converter
    * @param pictureWidth the width of pictures
    * @param pictureHeight the height of pictures
@@ -155,23 +245,34 @@ public class ConverterFactory
    * @param imageHeight the height of images
    *
    * @throws UnsupportedOperationException if the converter can not be
+   *         found
+   * @throws UnsupportedOperationException if the converter can not be
    *         properly created or initialized
    */
 
   public static IConverter createConverter(
-    IConverter.Type converterType,
+    String converterDescriptor,
     IPixelFormat.Type pictureType, 
     int pictureWidth, int pictureHeight,
     int imageWidth, int imageHeight)
   {
     IConverter converter = null;
+    
+    // establish the converter type
+
+    Type converterType = findRegisteredConverter(converterDescriptor);
+    if (null == converterType)
+      throw new UnsupportedOperationException(
+        "No converter \"" + converterDescriptor + "\" found.");
+
+    // create the converter
 
     try
     {
       // establish the constructor 
 
       Constructor<? extends IConverter> converterConstructor = 
-        converterType.mConverterClass.getConstructor(IPixelFormat.Type.class,
+        converterType.getConverterClass().getConstructor(IPixelFormat.Type.class,
           int.class, int.class, int.class, int.class);
 
       // create the converter
@@ -182,31 +283,130 @@ public class ConverterFactory
     catch (NoSuchMethodException e)
     {
       throw new UnsupportedOperationException(
-        "Converter " + converterType.mConverterClass + 
+        "Converter " + converterType.getConverterClass() + 
         " requries a constructor of the form "  +
         "(IPixelFormat.Type, int, int, int, int)");
     }
     catch (InvocationTargetException e)
     {
       throw new UnsupportedOperationException(
-        "Converter " + converterType.mConverterClass + 
+        "Converter " + converterType.getConverterClass() + 
         " constructor failed with: " + e.getCause());
     }
     catch (IllegalAccessException e)
     {
       throw new UnsupportedOperationException(
-        "Converter " + converterType.mConverterClass + 
+        "Converter " + converterType.getConverterClass() + 
         " constructor failed with: " + e);
     }
     catch (InstantiationException e)
     {
       throw new UnsupportedOperationException(
-        "Converter " + converterType.mConverterClass + 
+        "Converter " + converterType.getConverterClass() + 
         " constructor failed with: " + e);
     }
 
     // return the newly created converter
 
     return converter;
+  }
+
+
+  /**
+   * This class describes a converter type and is used to register and
+   * unregister types with {@link ConverterFactory}.  The factory
+   * oragnizes the converters by descriptor, and thus each should be
+   * unique unless you wish to replace an existing converter.
+   */
+
+  public static class Type 
+  {
+    /** The unique string which describes this converter. */
+
+    final private String mDescriptor;
+
+    /** The class responsible for converting between types. */
+
+    final private Class<? extends IConverter> mConverterClass;
+
+    /**
+     * The {@link com.xuggle.xuggler.IPixelFormat.Type} which the
+     * picture must be in to convert it to a {@link BufferedImage}
+     */
+
+    final private IPixelFormat.Type mPictureType;
+
+    /**
+     * The {@link BufferedImage} type which the image must be in to
+     * convert it to a {@link com.xuggle.xuggler.IVideoPicture}
+     */
+
+    final private int mImageType;
+
+    /** Construct a complete converter type description.
+     *
+     * @param descriptor a unique string which describes this converter
+     * @param converterClass the class which converts between pictures
+     *        and images
+     * @param pictureType the {@link
+     *        com.xuggle.xuggler.IPixelFormat.Type} type which the
+     *        picture must be in to convert it to an image
+     * @param imageType the {@link BufferedImage} type which the picture
+     *        must be in to convert it to a {@link BufferedImage}
+     */
+
+    public Type(String descriptor, Class<? extends IConverter> converterClass, 
+      IPixelFormat.Type pictureType, int imageType)
+    {
+      mDescriptor = descriptor;
+      mConverterClass = converterClass;
+      mPictureType = pictureType;
+      mImageType = imageType;
+    }
+
+    /** Get the unique string which describes this converter. */
+
+    public String getDescriptor()
+    {
+      return mDescriptor;
+    }
+
+    /** Get the class responsible for converting between types. */
+
+    public Class<? extends IConverter> getConverterClass()
+    {
+      return mConverterClass;
+    }
+
+    /**
+     * Get the {@link com.xuggle.xuggler.IPixelFormat.Type} which the
+     * picture must be in to convert it to a {@link BufferedImage}
+     */
+
+    public IPixelFormat.Type getPictureType()
+    {
+      return mPictureType;
+    }
+
+    /**
+     * Get the {@link BufferedImage} type which the image must be in to
+     * convert it to a {@link com.xuggle.xuggler.IVideoPicture}
+     */
+
+    public int getImageType()
+    {
+      return mImageType;
+    }
+
+    /**
+     * Get a string description of this conveter type.
+     */
+
+    public String toString()
+    {
+
+      return getDescriptor() + ": picture type " + getPictureType() +
+        ", image type " + getImageType();
+    }
   }
 }

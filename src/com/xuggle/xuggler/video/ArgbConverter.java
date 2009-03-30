@@ -152,7 +152,7 @@ public class ArgbConverter extends AConverter
 
     // get picture parameters
     
-    final int w = picture.getWidth();
+    final int w = picture.getWidth ();
     final int h = picture.getHeight();
     
     // make a copy of the raw bytes in the picture and convert those to
