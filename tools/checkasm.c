@@ -405,6 +405,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     TEST_INTRA_MBCMP( intra_sa8d_x3_8x8  , predict_8x8  , sa8d[PIXEL_8x8]  , 1, edge );
     report( "intra satd_x3 :" );
     TEST_INTRA_MBCMP( intra_sad_x3_16x16 , predict_16x16, sad [PIXEL_16x16], 0 );
+    TEST_INTRA_MBCMP( intra_sad_x3_8x8c  , predict_8x8c , sad [PIXEL_8x8]  , 0 );
     report( "intra sad_x3 :" );
 
     if( pixel_asm.ssim_4x4x2_core != pixel_ref.ssim_4x4x2_core ||
