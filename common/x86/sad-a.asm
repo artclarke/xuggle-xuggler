@@ -258,6 +258,53 @@ cglobal x264_pixel_sad_8x16_sse2, 4,4
     RET
 
 ;-----------------------------------------------------------------------------
+; void intra_sad_x3_4x4 ( uint8_t *fenc, uint8_t *fdec, int res[3] );
+;-----------------------------------------------------------------------------
+
+cglobal x264_intra_sad_x3_4x4_mmxext, 3,3
+    pxor      mm7, mm7
+    movd      mm0, [r1-FDEC_STRIDE]
+    movd      mm1, [r0+FENC_STRIDE*0]
+    movd      mm2, [r0+FENC_STRIDE*2]
+    punpckldq mm0, mm0
+    punpckldq mm1, [r0+FENC_STRIDE*1]
+    punpckldq mm2, [r0+FENC_STRIDE*3]
+    movq      mm6, mm0
+    movq      mm3, mm1
+    psadbw    mm3, mm0
+    psadbw    mm0, mm2
+    paddw     mm0, mm3
+    movd     [r2], mm0 ;V prediction cost
+    movd      mm3, [r1+FDEC_STRIDE*0-4]
+    movd      mm0, [r1+FDEC_STRIDE*1-4]
+    movd      mm4, [r1+FDEC_STRIDE*2-4]
+    movd      mm5, [r1+FDEC_STRIDE*3-4]
+    punpcklbw mm3, mm0
+    punpcklbw mm4, mm5
+    movq      mm5, mm3
+    punpckhwd mm5, mm4
+    punpckhdq mm5, mm6
+    psadbw    mm5, mm7
+    punpckhbw mm3, mm3
+    punpckhbw mm4, mm4
+    punpckhwd mm3, mm3
+    punpckhwd mm4, mm4
+    psraw     mm5, 2
+    pavgw     mm5, mm7
+    punpcklbw mm5, mm5
+    pshufw    mm5, mm5, 0x0 ;DC prediction
+    movq      mm6, mm5
+    psadbw    mm5, mm1
+    psadbw    mm6, mm2
+    psadbw    mm1, mm3
+    psadbw    mm2, mm4
+    paddw     mm5, mm6
+    paddw     mm1, mm2
+    movd   [r2+8], mm5 ;DC prediction cost
+    movd   [r2+4], mm1 ;H prediction cost
+    RET
+
+;-----------------------------------------------------------------------------
 ; void intra_sad_x3_8x8c ( uint8_t *fenc, uint8_t *fdec, int res[3] );
 ;-----------------------------------------------------------------------------
 
