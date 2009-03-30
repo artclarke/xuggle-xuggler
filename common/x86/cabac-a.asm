@@ -76,8 +76,7 @@ cglobal x264_cabac_encode_decision_asm, 0,7
     movzx t3d, byte [t0+cb.state+t1]
     mov   t4d, t5d
     shr   t5d, 6
-    and   t5d, 3
-    LOAD_GLOBAL t5d, x264_cabac_range_lps, t5, t3*4
+    LOAD_GLOBAL t5d, x264_cabac_range_lps-4, t5, t3*4
     sub   t4d, t5d
     mov   t6d, t3d
     shr   t6d, 6

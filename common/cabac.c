@@ -861,7 +861,7 @@ static inline void x264_cabac_encode_renorm( x264_cabac_t *cb )
 void x264_cabac_encode_decision_c( x264_cabac_t *cb, int i_ctx, int b )
 {
     int i_state = cb->state[i_ctx];
-    int i_range_lps = x264_cabac_range_lps[i_state][(cb->i_range>>6)&0x03];
+    int i_range_lps = x264_cabac_range_lps[i_state][(cb->i_range>>6)-4];
     cb->i_range -= i_range_lps;
     if( b != (i_state >> 6) )
     {
