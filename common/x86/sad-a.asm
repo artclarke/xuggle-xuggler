@@ -28,6 +28,7 @@
 
 SECTION_RODATA
 pb_3: times 16 db 3
+pw_8: times 4 dw 8
 pb_shuf8x8c0: db 0,0,0,0,2,2,2,2
 pb_shuf8x8c1: db 4,4,4,4,6,6,6,6
 sw_64: dd 64
@@ -302,6 +303,73 @@ cglobal x264_intra_sad_x3_4x4_mmxext, 3,3
     paddw     mm1, mm2
     movd   [r2+8], mm5 ;DC prediction cost
     movd   [r2+4], mm1 ;H prediction cost
+    RET
+
+;-----------------------------------------------------------------------------
+; void intra_sad_x3_8x8 ( uint8_t *fenc, uint8_t edge[33], int res[3]);
+;-----------------------------------------------------------------------------
+
+;m0 = DC
+;m6 = V
+;m7 = H
+;m1 = DC score
+;m2 = V score
+;m3 = H score
+;m5 = pixel row
+;m4 = temp
+
+%macro INTRA_SAD_HVDC_ITER 2
+    movq      m5, [r0+FENC_STRIDE*%1]
+    movq      m4, m5
+    psadbw    m4, m0
+%if %1
+    paddw     m1, m4
+%else
+    SWAP      m1, m4
+%endif
+    movq      m4, m5
+    psadbw    m4, m6
+%if %1
+    paddw     m2, m4
+%else
+    SWAP      m2, m4
+%endif
+    pshufw    m4, m7, %2
+    psadbw    m5, m4
+%if %1
+    paddw     m3, m5
+%else
+    SWAP      m3, m5
+%endif
+%endmacro
+
+INIT_MMX
+cglobal x264_intra_sad_x3_8x8_mmxext, 3,3
+    movq      m7, [r1+7]
+    pxor      m0, m0
+    movq      m6, [r1+16]  ;V prediction
+    pxor      m1, m1
+    psadbw    m0, m7
+    psadbw    m1, m6
+    paddw     m0, m1
+    paddw     m0, [pw_8 GLOBAL]
+    psrlw     m0, 4
+    punpcklbw m0, m0
+    pshufw    m0, m0, 0x0 ;DC prediction
+    punpckhbw m7, m7
+    INTRA_SAD_HVDC_ITER 0, 0xff
+    INTRA_SAD_HVDC_ITER 1, 0xaa
+    INTRA_SAD_HVDC_ITER 2, 0x55
+    INTRA_SAD_HVDC_ITER 3, 0x00
+    movq      m7, [r1+7]
+    punpcklbw m7, m7
+    INTRA_SAD_HVDC_ITER 4, 0xff
+    INTRA_SAD_HVDC_ITER 5, 0xaa
+    INTRA_SAD_HVDC_ITER 6, 0x55
+    INTRA_SAD_HVDC_ITER 7, 0x00
+    movd  [r2+0], m2
+    movd  [r2+4], m3
+    movd  [r2+8], m1
     RET
 
 ;-----------------------------------------------------------------------------

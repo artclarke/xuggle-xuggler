@@ -665,6 +665,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->intra_sad_x3_16x16  = x264_intra_sad_x3_16x16_mmxext;
         pixf->intra_satd_x3_8x8c  = x264_intra_satd_x3_8x8c_mmxext;
         pixf->intra_sad_x3_8x8c   = x264_intra_sad_x3_8x8c_mmxext;
+        pixf->intra_sad_x3_8x8    = x264_intra_sad_x3_8x8_mmxext;
         pixf->intra_satd_x3_4x4   = x264_intra_satd_x3_4x4_mmxext;
         pixf->intra_sad_x3_4x4    = x264_intra_sad_x3_4x4_mmxext;
     }

@@ -668,7 +668,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
         int i_satd_thresh = a->i_mbrd ? COST_MAX : X264_MIN( i_satd_inter, a->i_satd_i16x16 );
         int i_cost = 0;
         h->mb.i_cbp_luma = 0;
-        b_merged_satd = h->pixf.intra_sa8d_x3_8x8 && h->pixf.mbcmp[0] == h->pixf.satd[0];
+        b_merged_satd = h->pixf.intra_mbcmp_x3_8x8 && !h->mb.b_lossless;
 
         // FIXME some bias like in i4x4?
         if( h->sh.i_type == SLICE_TYPE_B )
@@ -689,7 +689,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             if( b_merged_satd && i_max == 9 )
             {
                 int satd[9];
-                h->pixf.intra_sa8d_x3_8x8( p_src_by, edge, satd );
+                h->pixf.intra_mbcmp_x3_8x8( p_src_by, edge, satd );
                 satd[i_pred_mode] -= 3 * a->i_lambda;
                 for( i=2; i>=0; i-- )
                 {
