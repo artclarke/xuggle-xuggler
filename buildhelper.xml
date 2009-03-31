@@ -36,7 +36,24 @@
     library.version.minor: An integer less than 256 (don't ask).
   </description>
 
-  <property file="mk/buildtools/build.properties"/>
+  <dirname property="xuggle-buildhelper.basedir" file="${ant.file.xuggle-buildhelper}"/>
+
+  <!-- Load up the ant-contrib tasks because I'm sick
+    of not having if/else/then -->
+  <taskdef resource="net/sf/antcontrib/antlib.xml"
+    classpath="${xuggle-buildhelper.basedir}/lib/ant-contrib.jar"/>
+
+  <!-- Allow a custom buildhelper file if people want one -->
+  <if>
+    <available file="${xuggle-buildhelper.basedir}/custom-buildhelper.xml"/>
+    <then>
+      <import file="${xuggle-buildhelper.basedir}/custom-buildhelper.xml"/>
+    </then>
+  </if>
+  <!-- And alternately allow a custom build.properties -->
+  <property file="${xuggle-buildhelper.basedir}/custom-build.properties"/>
+
+  <property file="${xuggle-buildhelper.basedir}/build.properties"/>
   <property name="app.name" value="${ant.project.name}"/>
   <property name="documentation.title" value="${ant.project.name}"/>
 
@@ -49,11 +66,6 @@
   <property name="generated.src.dir" location="generated/java"/>
   <property name="dist.dir" location="dist"/>
   <available property="share.exists" file="share/build.xml"/>
-
-  <!-- Load up the ant-contrib tasks because I'm sick
-    of not having if/else/then -->
-  <taskdef resource="net/sf/antcontrib/antlib.xml"
-    classpath="mk/buildtools/lib/ant-contrib.jar"/>
 
   <condition property="os.windows">
     <os family="windows"/>
@@ -145,11 +157,11 @@
     the lib directory of your project; all other dependencies are then managed
     by that jar file.
     -->
-    <echo message="Initing ivy from mk/buildtools/lib/${ivy.version}.jar"/>
-    <taskdef uri="antlib:org.apache.ivy.ant" resource="org/apache/ivy/ant/antlib.xml" classpath="mk/buildtools/lib/${ivy.version}.jar"/>
+    <echo message="Initing ivy from ${xuggle-buildhelper.basedir}/lib/${ivy.version}.jar"/>
+    <taskdef uri="antlib:org.apache.ivy.ant" resource="org/apache/ivy/ant/antlib.xml" classpath="${xuggle-buildhelper.basedir}/lib/${ivy.version}.jar"/>
     <property name="xuggle.ivy.initted" value="true"/>
     <echo message="Ivy task loaded"/>
-    <ivy:settings file="mk/buildtools/ivysettings.xml"/>
+    <ivy:settings file="${xuggle-buildhelper.basedir}/ivysettings.xml"/>
     <echo message="Ivy settings file set"/>
   </target>
 
@@ -331,7 +343,7 @@
       dir="${top.dir}"
       failonerror="false"
       failifexecutionfails="false">
-      <arg value="${top.dir}/mk/buildtools/revision.sh"/>
+      <arg value="${xuggle-buildhelper.basedir}/revision.sh"/>
       <arg value="${top.dir}"/>
       <arg value="${top.dir}LastRevisionBuilt.txt"/>
       <arg value="/dev/null"/>
@@ -357,7 +369,7 @@
       failonerror="false"
       output="${build.dir}/OS.properties"
       failifexecutionfails="false">
-      <arg value="${top.dir}/mk/buildtools/guess_os.sh"/>
+      <arg value="${xuggle-buildhelper.basedir}/guess_os.sh"/>
       <arg value="${top.dir}"/>
     </exec>
     <!-- And read it -->
@@ -549,7 +561,7 @@
       >
       <!-- Copies the stage directory contents to the root directory.
       This is not as stupid as it sounds (I hope).  -->
-      <arg value="mk/buildtools/install-build.sh"/>
+      <arg value="${xuggle-buildhelper.basedir}/install-build.sh"/>
       <arg value="${dist.dir}${file.separator}stage"/>
       <arg value="/" />
     </exec>
@@ -683,7 +695,7 @@
       overview="doc/java/overview.html"
       useexternalfile="true"
       failonerror="true"
-      stylesheetfile="mk/buildtools/javadoc.css"
+      stylesheetfile="${xuggle-buildhelper.basedir}/javadoc.css"
       verbose="false"
       classpathref="compile.classpath"
       destdir="${javadoc.dir}"
