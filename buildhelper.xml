@@ -192,7 +192,8 @@
       <artifacts pattern="${dist.dir}/war/[artifact].war" />
       <artifacts pattern="${dist.dir}/lib/[artifact].[ext]" />
     </ivy:publish>
-    <ivy:makepom ivyfile="ivy.xml"
+    <ivy:makepom
+      ivyfile="${xugglerepo.dir}/xuggle/${app.name}/ivy-${library.version.major}.${library.version.minor}.${library.revision}.xml"
       pomfile="${xugglerepo.dir}/xuggle/${app.name}/${app.name}-${library.version.major}.${library.version.minor}.${library.revision}.pom">
       <mapping conf="compile" scope="compile"/>
       <mapping conf="default" scope="runtime"/>
