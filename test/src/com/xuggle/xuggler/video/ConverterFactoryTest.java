@@ -44,8 +44,14 @@ import static java.lang.Math.*;
 @RunWith(Parameterized.class)
 public class ConverterFactoryTest
 {
-  public static final int TEST_WIDTH  = 50;
-  public static final int TEST_HEIGHT = 50;
+  // default width and height for test images, note that the width is
+  // (and should remain) a perfect multiple of 16 which intentionally
+  // avoids some issue with image resampling.  those issues are
+  // exersized in specific tests such that can be ignored until the
+  // underly cause can be estabish.
+
+  public static final int TEST_WIDTH  = 48;
+  public static final int TEST_HEIGHT = 48;
 
   private final ConverterFactory.Type mConverterType;
   private final IPixelFormat.Type mPixelType;
@@ -176,6 +182,9 @@ public class ConverterFactoryTest
     c.toPicture(image, 0);
   }
 
+  // this test makes user of mPixelType which, and thus the solid color
+  // test attempts to test across colors spaces.
+
   @Test
   public void testImageToImageSolidColor()
   {
@@ -185,7 +194,7 @@ public class ConverterFactoryTest
 
     // create the converter
 
-    IConverter c = ConverterFactory.createConverter(
+    IConverter converter = ConverterFactory.createConverter(
       mConverterType.getDescriptor(), mPixelType, w, h);
 
     // construct an all gray image
@@ -198,7 +207,8 @@ public class ConverterFactoryTest
 
     // convert image1 to a picture and then back to image2
 
-    BufferedImage image2 = c.toImage(c.toPicture(image1, 0));
+    BufferedImage image2 = converter.toImage(
+      converter.toPicture(image1, 0));
 
     // test that all the pixels in image2 are gray, but not black or
     // white
@@ -209,7 +219,108 @@ public class ConverterFactoryTest
         int pixel1 = image1.getRGB(x, y);
         int pixel2 = image2.getRGB(x, y);
 
-        String message = testPixels(pixel1, pixel2, x, y);
+        String message = testPixels(
+          mConverterType.getPictureType() == converter.getPictureType(),
+          pixel1, pixel2, x, y, 
+          converter.getPictureType());
+        assertNull(message, message);
+      }
+  }
+
+
+  // this test makes user of mPixelType which, and thus the solid color
+  // test attempts to test across colors spaces.
+
+  @Test
+  public void testImageToImageSolidColorWithResize()
+  {
+    int w1 = TEST_WIDTH;
+    int h1 = TEST_HEIGHT;
+    int w2 = TEST_WIDTH * 2;
+    int h2 = TEST_HEIGHT * 2;
+    int gray  = Color.GRAY.getRGB();
+
+    // create the converters
+
+    IConverter converter1 = ConverterFactory.createConverter(
+      mConverterType.getDescriptor(), mPixelType, w2, h2, w1, h1);
+
+    IConverter converter2 = ConverterFactory.createConverter(
+      mConverterType.getDescriptor(), mPixelType, w2, h2, w2, h2);
+
+    // construct an all gray image
+
+    BufferedImage image1 = new BufferedImage(
+      w1, h1, mConverterType.getImageType());
+    for (int x = 0; x < w1; ++x)
+      for (int y = 0; y < h1; ++y)
+        image1.setRGB(x, y, gray);
+
+    // convert image1 to a picture and then back to image2
+
+    IVideoPicture picutre = converter1.toPicture(image1, 0);
+    BufferedImage image2 = converter2.toImage(picutre);
+
+    assertEquals("image2 wrong width", w2, image2.getWidth());
+    assertEquals("image2 wrong height", h2, image2.getHeight());
+
+    // test that all the pixels in image2 are gray, but not black or
+    // white
+
+    for (int x = 0; x < w1; ++x)
+      for (int y = 0; y < h1; ++y)
+      {
+        int pixel1 = image1.getRGB(x, y);
+        int pixel2 = image2.getRGB(x * 2, y * 2);
+
+        String message = testPixels(
+          false, pixel1, pixel2, x, y, 
+          converter1.getPictureType());
+        assertNull(message, message);
+      }
+  }
+
+  // this test makes user of mPixelType which, and thus the solid color
+  // test attempts to test across colors spaces.
+
+  @Ignore @Test
+  public void testImageToImageSolidColorWithCustomSizes()
+  {
+    int w = TEST_WIDTH + 15;
+    int h = TEST_HEIGHT;
+    int gray  = Color.GRAY.getRGB();
+
+    // create the converter
+
+    IConverter converter = ConverterFactory.createConverter(
+      mConverterType.getDescriptor(), mPixelType, w, h);
+
+    // construct an all gray image
+
+    BufferedImage image1 = new BufferedImage(
+      w, h, mConverterType.getImageType());
+    for (int x = 0; x < w; ++x)
+      for (int y = 0; y < h; ++y)
+        image1.setRGB(x, y, gray);
+
+    // convert image1 to a picture and then back to image2
+
+    BufferedImage image2 = converter.toImage(
+      converter.toPicture(image1, 0));
+
+    // test that all the pixels in image2 are gray, but not black or
+    // white
+
+    for (int x = 0; x < w; ++x)
+      for (int y = 0; y < h; ++y)
+      {
+        int pixel1 = image1.getRGB(x, y);
+        int pixel2 = image2.getRGB(x, y);
+
+        String message = testPixels(
+          mConverterType.getPictureType() == converter.getPictureType(),
+          pixel1, pixel2, x, y, 
+          converter.getPictureType());
         assertNull(message, message);
       }
   }
@@ -224,7 +335,8 @@ public class ConverterFactoryTest
     // create the converter
 
     IConverter converter = ConverterFactory.createConverter(
-      mConverterType.getDescriptor(), mPixelType, w, h);
+      mConverterType.getDescriptor(), mConverterType.getPictureType(),
+      w, h);
 
     // construct an image of random colors
 
@@ -251,7 +363,10 @@ public class ConverterFactoryTest
         int pixel1 = image1.getRGB(x, y);
         int pixel2 = image2.getRGB(x, y);
 
-        String message = testPixels(pixel1, pixel2, x, y);
+        String message = testPixels(
+          mConverterType.getPictureType() == converter.getPictureType(),
+          pixel1, pixel2, x, y, 
+          converter.getPictureType());
         assertNull(message, message);
       }
   }
@@ -269,7 +384,7 @@ public class ConverterFactoryTest
     // create the converter
 
     IConverter converter = ConverterFactory.createConverter(
-      mConverterType.getDescriptor(), mPixelType,
+      mConverterType.getDescriptor(), mConverterType.getPictureType(),
       size, size);
 
     // construct an image with black and white stripped columns
@@ -310,7 +425,10 @@ public class ConverterFactoryTest
         int pixel1 = y % 2 == 0 ? black : white;
         int pixel2 = image4.getRGB(x, y);
 
-        String message = testPixels(pixel1, pixel2, x, y);
+        String message = testPixels(
+          mConverterType.getPictureType() == converter.getPictureType(),
+          pixel1, pixel2, x, y, 
+          converter.getPictureType());
         assertNull(message, message);
       }
   }
@@ -323,16 +441,17 @@ public class ConverterFactoryTest
    * pixels are mearly fairly similar in color value.
    */
 
-  public String testPixels(int pixel1, int pixel2, int x, int y)
+  public String testPixels(boolean exact, int pixel1, int pixel2, int x, int y, 
+    IPixelFormat.Type pixelType)
   {
     String message = "Color value missmatch whith pixel type " + 
-      mPixelType + ", converter " + mConverterType + 
+      pixelType + ", converter " + mConverterType + 
       ", at pixel (" + x + "," + y + ").  Value is " + 
       pixel2 + " but should be " + pixel1 + ".";
 
     // if types match, test exact pixels values
 
-    if (mConverterType.getPictureType() == mPixelType)
+    if (exact)
       return (pixel1 == pixel2)  ? null : message;
 
     // test color with margin for error

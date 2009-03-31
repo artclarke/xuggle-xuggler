@@ -127,20 +127,18 @@ abstract public class AConverter implements IConverter
           "Xuggler.  Recompile Xuggler with the GPL option enabled.");
 
       mToImageResampler = IVideoResampler.make(
-          mPictureWidth, mPictureHeight, requiredPictureType,
-          imageWidth, imageHeight, pictureType
-      );
-
+        imageWidth, imageHeight, requiredPictureType,
+        mPictureWidth, mPictureHeight, pictureType);
+      
       if (mToImageResampler == null)
         throw new RuntimeException(
           "1 Could not create could resampler to translate from " + 
           pictureType + " to " + requiredPictureType + ".");
 
       mToPictureResampler = IVideoResampler.make(
-          imageWidth, imageHeight, pictureType,
-          mPictureWidth, mPictureHeight, requiredPictureType
-      );
-
+        mPictureWidth, mPictureHeight, pictureType,
+        imageWidth, imageHeight, requiredPictureType);
+      
       if (mToPictureResampler == null)
         throw new RuntimeException(
           "2 Could not create could resampler to translate from " + 
@@ -252,11 +250,14 @@ abstract public class AConverter implements IConverter
 
     // test that it worked
 
-    if (picture2.getPixelType() != resampler.getOutputPixelFormat() || !picture2.isComplete())
+    if (picture2.getPixelType() != resampler.getOutputPixelFormat() 
+      || !picture2.isComplete())
+    {
       throw new RuntimeException(
         "did not resample from " + resampler.getInputPixelFormat() +
         " to " + resampler.getOutputPixelFormat() +
         " for picture of type " + picture1.getPixelType());
+    }
 
     // return the resample picture
 
