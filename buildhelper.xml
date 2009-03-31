@@ -48,7 +48,6 @@
   <property name="classes.dir" location="${build.dir}/classes"/>
   <property name="generated.src.dir" location="generated/java"/>
   <property name="dist.dir" location="dist"/>
-
   <available property="share.exists" file="share/build.xml"/>
 
   <!-- Load up the ant-contrib tasks because I'm sick
@@ -187,14 +186,14 @@
       forcedeliver="false"
       publishivy="true"
       overwrite="true"
-      pubrevision="${library.version.major}.${library.version.minor}.${library.revision}"
+      pubrevision="${library.version}"
       resolver="publish">
       <artifacts pattern="${dist.dir}/war/[artifact].war" />
       <artifacts pattern="${dist.dir}/lib/[artifact].[ext]" />
     </ivy:publish>
     <ivy:makepom
-      ivyfile="${xugglerepo.dir}/xuggle/${app.name}/ivy-${library.version.major}.${library.version.minor}.${library.revision}.xml"
-      pomfile="${xugglerepo.dir}/xuggle/${app.name}/${app.name}-${library.version.major}.${library.version.minor}.${library.revision}.pom">
+      ivyfile="${xugglerepo.dir}/xuggle/${app.name}/${library.version}/ivy-${library.version}.xml"
+      pomfile="${xugglerepo.dir}/xuggle/${app.name}/${library.version}/${app.name}-${library.version}.pom">
       <mapping conf="compile" scope="compile"/>
       <mapping conf="default" scope="runtime"/>
       <mapping conf="test" scope="test"/>
@@ -345,7 +344,11 @@
         <isset property="library.revision"/>
       </not>
     </condition>
-    <echo message="Building Library Version: ${library.version.major}.${library.version.minor}.${library.revision}"/>
+    <property name="library.version" 
+      value="${library.version.major}.${library.version.minor}.${library.revision}"
+      />
+
+    <echo message="Building Library Version: ${library.version}"/>
     <echo message="Installing to ${xuggle.dir} (a.k.a. ${xuggle.dir.native})"/>
 
     <!-- Get the native OS name, if available -->
@@ -494,7 +497,7 @@
       <manifest>
         <attribute name="Implementation-Vendor" value="www.xuggle.com"/>
         <attribute name="Implementation-Title" value="${app.name}"/>
-        <attribute name="Implementation-Version" value="${library.version.major}.${library.version.minor}.${library.revision}"/>
+        <attribute name="Implementation-Version" value="${library.version}"/>
         <attribute name="Class-Path" value="${manifest.classpath}"/>
         <attribute name="Main-Class" value="${app.mainclass}"/>
       </manifest>
