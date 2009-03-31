@@ -23,12 +23,8 @@ package com.xuggle.xuggler.video;
 import java.util.Collection;
 import java.util.Vector;
 
-import com.xuggle.ferry.IBuffer;
-import com.xuggle.test_utils.NameAwareTestClassRunner;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IPixelFormat;
-import com.xuggle.xuggler.ITimeValue;
-import com.xuggle.xuggler.Utils;
 
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
@@ -36,9 +32,6 @@ import java.awt.image.BufferedImage;
 import java.awt.Color;
 import java.util.Random;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
