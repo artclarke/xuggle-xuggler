@@ -83,7 +83,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->i_profile_idc  = PROFILE_HIGH444_PREDICTIVE;
     else if( param->analyse.b_transform_8x8 || param->i_cqm_preset != X264_CQM_FLAT )
         sps->i_profile_idc  = PROFILE_HIGH;
-    else if( param->b_cabac || param->i_bframe > 0 )
+    else if( param->b_cabac || param->i_bframe > 0 || param->b_interlaced )
         sps->i_profile_idc  = PROFILE_MAIN;
     else
         sps->i_profile_idc  = PROFILE_BASELINE;
