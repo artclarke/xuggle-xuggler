@@ -33,7 +33,6 @@ import java.awt.image.BufferedImage;
 
 import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.IVideoResampler;
 
 /**
  * This factory class creates converters for translation between a

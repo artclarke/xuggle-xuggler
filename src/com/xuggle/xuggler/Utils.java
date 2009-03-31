@@ -32,22 +32,6 @@ import com.xuggle.xuggler.video.IConverter;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
-import java.awt.image.DataBufferByte;
-import java.awt.image.DataBuffer;
-import java.awt.image.ColorModel;
-import java.awt.color.ColorSpace;
-import java.awt.color.ICC_ColorSpace;
-import java.awt.image.DirectColorModel;
-import java.awt.image.ComponentColorModel;
-import java.awt.image.SampleModel;
-import java.awt.image.SinglePixelPackedSampleModel;
-import java.awt.image.PixelInterleavedSampleModel;
-import java.awt.image.WritableRaster;
-import java.awt.image.Raster;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.IntBuffer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

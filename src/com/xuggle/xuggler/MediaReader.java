@@ -28,11 +28,9 @@ import java.util.Collection;
 
 import java.awt.image.BufferedImage;
 
-import com.xuggle.xuggler.Utils;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
-import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IVideoResampler;
 import com.xuggle.xuggler.IStreamCoder;
