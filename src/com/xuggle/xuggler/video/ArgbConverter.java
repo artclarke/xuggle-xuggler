@@ -130,7 +130,7 @@ public class ArgbConverter extends AConverter
     }
     pictureByteBuffer = null;
     picture.setComplete(
-      true, IPixelFormat.Type.ARGB,
+      true, getRequiredPictureType(),
       image.getWidth(), image.getHeight(), timestamp);
 
     // resample as needed

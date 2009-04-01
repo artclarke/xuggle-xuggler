@@ -131,7 +131,7 @@ public class BgrConverter extends AConverter
     }
     pictureByteBuffer = null;
     picture.setComplete(
-      true, IPixelFormat.Type.BGR24,
+      true, getRequiredPictureType(),
       image.getWidth(), image.getHeight(), timestamp);
 
     // resample as needed
