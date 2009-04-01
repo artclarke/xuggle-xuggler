@@ -888,6 +888,17 @@
     depends="init-native, doc-native-do"
     description="Generate the native documentation">
   </target>
+
+  <target name="fixtures-native-do"
+    if="native.makefile.exists">
+    <!-- Do nothign for now, but override this if you want to install any -->
+  </target>
+
+  <target name="fixtures-native"
+    depends="init-native, fixtures-native-do"
+    description="Install the native fixtures">
+  </target>
+
   <target name="clean-native-do"
     if="native.makefile.exists"
     description="Special target that is only called if the Makefile already exists">
@@ -968,6 +979,9 @@
   <target name="doc"
     depends="doc-native, doc-java"
     description="Create all documentation, including native documentation if available"/>
+  <target name="fixtures"
+    depends="fixtures-native, fixtures-java"
+    description="Install all test fixtures, including native fixtures if required"/>
 
   <!--
   Macros go here.
