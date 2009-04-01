@@ -30,7 +30,8 @@ import com.xuggle.xuggler.IPixelFormat;
  * BufferedImage} type.  Converters are created by {@link
  * ConverterFactory}.  Each converter can translate between any
  * supported {@link com.xuggle.xuggler.IPixelFormat.Type} and a single
- * {@link BufferedImage} type.  Convertes can optionally resize during
+ * {@link BufferedImage} type.  Converters can optionally resize images
+ * during
  * the conversion process.
  */
 
@@ -57,25 +58,26 @@ public interface IConverter
 
   public int getImageType();
 
-  /** Test if this converter is going to resample during conversion.
+  /** Test if this converter is going to re-sample during conversion.
    * For some conversions between {@link BufferedImage} and {@link
-   * IVideoPicture}, the IVideoPicture will need to be resampled into
+   * IVideoPicture}, the IVideoPicture will need to be re-sampled into
    * another pixel type, commonly between YUV and RGB types.  This
-   * resample is time consuming, and often relies on the SwScale
-   * libraries which may or may not be available.
+   * re-sample is time consuming, and may not be available for
+   * all installations of Xuggler.
    * 
-   * @return true if this converter will resample during conversion.
+   * @return true if this converter will re-sample during conversion.
    * 
    * @see com.xuggle.xuggler.IVideoResampler
+   * @see com.xuggle.xuggler.IVideoResampler#isSupported(com.xuggle.xuggler.IVideoResampler.Feature)
    */
 
   public boolean willResample();
 
   /** Converts a {@link BufferedImage} to an {@link IVideoPicture}.
    *
-   * @param image the source bufferd image.
-   * @param timestamp the timestamp which should be attached to the the
-   *        video picture.
+   * @param image the source buffered image.
+   * @param timestamp the time stamp which should be attached to the the
+   *        video picture (in microseconds).
    *
    * @throws IllegalArgumentException if the passed {@link
    *         BufferedImage} is NULL;

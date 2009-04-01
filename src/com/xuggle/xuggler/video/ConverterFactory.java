@@ -33,25 +33,50 @@ import java.awt.image.BufferedImage;
 
 import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.IVideoPicture;
+import com.xuggle.xuggler.IVideoResampler;
 
 /**
- * This factory class creates converters for translation between a
+ * This factory class creates {@link IConverter} objects for
+ * translation between a
  * number of {@link IVideoPicture} and {@link BufferedImage} types.  Not
  * all image and picture types are supported.  When an unsupported
  * converter is requested, a descriptive {@link
- * UnsupportedOperationException} is thrown.  Each converter can
- * translate between any supported IPixelFormat.Type and a single {@link
- * BufferedImage} type.  Convertes can optionally resize during the
+ * UnsupportedOperationException} is thrown.
+ * <p>  Each converter can
+ * translate between any supported {@link com.xuggle.xuggler.IPixelFormat.Type}
+ *  and a single {@link
+ * BufferedImage} type.  Converters can optionally resize during the
  * conversion process.
+ * </p>
+ * <p>
+ * Each converter will re-sample the {@link IVideoPicture} it is converting
+ * to get the data in the same native byte layout as a {@link BufferedImage}
+ * if needed (using {@link IVideoResampler}).  This step takes time and creates
+ * a new temporary copy of the image data.  To avoid this step
+ * you can make sure the {@link IVideoPicture#getPixelType()} is of the same
+ * binary type as a {@link BufferedImage}.
+ * </p>
+ * <p>  Put another way, if you're
+ * converting to {@link BufferedImage#TYPE_3BYTE_BGR}, we will not resample
+ * if the {@link IVideoPicture#getPixelType()} is
+ *  {@link com.xuggle.xuggler.IPixelFormat.Type#BGR24}. 
+ * </p>
  */
 
 public class ConverterFactory
 {
-  /** Converter descriptor for ARGB 32 */
+  /**
+   * Default constructor
+   */
+  protected ConverterFactory() {
+    
+  }
+  /** Converts between IVideoPictures and {@link BufferedImage} of type
+   *  {@link BufferedImage#TYPE_INT_ARGB} */
 
   public static final String XUGGLER_ARGB_32 = "XUGGLER-ARGB-32";
 
-  /** Converter descriptor for BGR 24 */
+  /** Converts between IVideoPictures and {@link BufferedImage} of type {@link BufferedImage#TYPE_3BYTE_BGR} */
 
   public static final String XUGGLER_BGR_24 = "XUGGLER-BGR-24";
 

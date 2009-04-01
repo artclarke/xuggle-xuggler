@@ -21,9 +21,14 @@
 /**
  * A collection of utilities for working with Video in the Xuggler libraries.
  *  <p>
- *  In particular, the {@link com.xuggle.xuggler.video.IConverter} interface allows for conversion
+ *  In particular, the {@link com.xuggle.xuggler.video.IConverter} interface
+ *  allows for conversion
  *  from Xuggler {@link com.xuggle.xuggler.IVideoPicture} objects into
  *  Java {@link java.awt.image.BufferedImage} objects and back.
+ *  </p>
+ *  <p>
+ *  To create an {@link com.xuggle.xuggler.video.IConverter} object, use
+ *  the {@link com.xuggle.xuggler.video.ConverterFactory} class.
  *  </p>
  */
 package com.xuggle.xuggler.video;

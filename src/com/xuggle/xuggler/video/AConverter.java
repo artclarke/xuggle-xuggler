@@ -27,17 +27,19 @@ import com.xuggle.xuggler.IVideoResampler;
 import com.xuggle.xuggler.IPixelFormat;
 
 /** An abstract converter class from which specific converters can be
- * derrived to do the actual conversions.  This class establishes if
- * {@link IVideoPicture} resamplers are needed and if so, creates them.
+ * derived to do the actual conversions.  This class establishes if
+ * the {@link IVideoPicture} needs to be re-sampled, and
+ * if so, creates appropriate {@link IVideoResampler} objects to do
+ * that.
  */
 
 abstract public class AConverter implements IConverter
 {
-  /** Resampler called when converting image to picture, may be null. */
+  /** Re-sampler called when converting image to picture, may be null. */
 
   protected IVideoResampler mToPictureResampler = null;
   
-  /** Resampler called when converting picture to image, may be null. */
+  /** Re-sampler called when converting picture to image, may be null. */
 
   protected IVideoResampler mToImageResampler = null;
 
@@ -74,9 +76,10 @@ abstract public class AConverter implements IConverter
   final private String mDescription;
 
   /** 
-   * Construct an abstract Converter.  This will create a resampler to
-   * change colorspace or resize the picture as needed for the
-   * conversions specifed.
+   * Construct an abstract Converter.  This will create a
+   * {@link IVideoResampler}
+   * to change color-space or resize the picture as needed for the
+   * conversions specified.
    *
    * @param pictureType the recognized {@link IVideoPicture} type
    * @param requiredPictureType the picture type requred to translate to
@@ -190,12 +193,12 @@ abstract public class AConverter implements IConverter
   }
 
   /**
-   * Conditionally resample during convertion to picture.
+   * Conditionally re-sample during conversion to picture.
    *
-   * @param picture the picture to conditionally resample
+   * @param picture the picture to conditionally re-sample
    *
-   * @return if willResample() returns true, the resample picture, else
-   *         the origonal picture
+   * @return if willResample() returns true, the re-sample picture, else
+   *         the original picture
    */
 
   protected IVideoPicture toPictureResample(IVideoPicture picture)
@@ -206,12 +209,12 @@ abstract public class AConverter implements IConverter
   }
 
   /**
-   * Conditionally resample during convertion to image.
+   * Conditionally re-sample during conversion to image.
    *
-   * @param picture the picture to conditionally resample
+   * @param picture the picture to conditionally re-sample
    *
-   * @return if willResample() returns true, the resample picture, else
-   *         the origonal picture
+   * @return if willResample() returns true, the re-sample picture, else
+   *         the original picture
    */
   
   protected IVideoPicture toImageResample(IVideoPicture picture)
@@ -222,12 +225,12 @@ abstract public class AConverter implements IConverter
   }
 
   /** 
-   * Resample a picture.
+   * Re-sample a picture.
    * 
-   * @param picture1 the picture to resample
-   * @param resampler the picture resamper to use
+   * @param picture1 the picture to re-sample
+   * @param resampler the picture re-samper to use
    *
-   * @throws RuntimeException if could not reample picture
+   * @throws RuntimeException if could not re-sample picture
    **/
 
   protected static IVideoPicture resample(IVideoPicture picture1,
