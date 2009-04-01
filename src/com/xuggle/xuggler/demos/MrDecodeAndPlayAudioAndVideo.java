@@ -77,6 +77,21 @@ public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
   private static long mFirstVideoTimestampInStream;
 
   /**
+   * The video stream index, used to ensure we display frames from one
+   * and only one video stream from the media container.
+   */
+
+  private int mVideoStreamIndex = -1;
+
+  /**
+   * The audio stream index, used to ensure we display samples from one
+   * and only one audio stream from the media container.
+   */
+
+  private int mAudioStreamIndex = -1;
+
+
+  /**
    * The media reader which will do much of the reading work.
    */
 
@@ -164,6 +179,23 @@ public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
   public void onVideoPicture(IVideoPicture picture, BufferedImage image,
     int streamIndex)
   {
+    // if the stream index does not match the selected stream index,
+    // then have a closer look
+
+    if (streamIndex != mVideoStreamIndex)
+    {
+      // if the selected video stream id is not yet set, go ahead an
+      // select this lucky video stream
+      
+      if (-1 == mVideoStreamIndex)
+        mVideoStreamIndex = streamIndex;
+      
+      // otherwise return, no need to show frames from this video stream
+      
+      else
+        return;
+    }
+
     // put the image onto the scren
 
     mScreen.setImage(image);
@@ -194,6 +226,24 @@ public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
   
   public void onAudioSamples(IAudioSamples samples, int streamIndex)
   {
+    // if the stream index does not match the selected stream index,
+    // then have a closer look
+
+    if (streamIndex != mAudioStreamIndex)
+    {
+      // if the selected audio stream id is not yet set, go ahead an
+      // select this lucky audio stream
+      
+      if (-1 == mAudioStreamIndex)
+        mAudioStreamIndex = streamIndex;
+      
+      // otherwise return, no need to play samples from this audio
+      // stream
+      
+      else
+        return;
+    }
+
     // if the audio line is closed open it
 
     if (mLine == null)

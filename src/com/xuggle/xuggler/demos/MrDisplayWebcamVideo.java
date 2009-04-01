@@ -34,9 +34,9 @@ import com.xuggle.xuggler.video.ConverterFactory;
 
 
 /**
- * Using {@link MediaReader}, takes a FFMPEG device driver name (ex: "video4linux2"), and a device
- * name (ex: /dev/video0), and displays video from that device.  For
- * example, a web camera.
+ * Using {@link MediaReader}, takes a FFMPEG device driver name (ex:
+ * "video4linux2"), and a device name (ex: /dev/video0), and displays
+ * video from that device.  For example, a web camera.
  * 
  * <p> For example, to play the default camera on these operating
  * systems: <ul> <li>Microsoft Windows:<pre>java -cp
@@ -49,7 +49,6 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * 
  * @author aclarke
  * @author trebor
- *
  */
 
 public class MrDisplayWebcamVideo extends MediaReader.ListenerAdapter

@@ -61,6 +61,13 @@ public class MrDecodeAndPlayVideo extends MediaReader.ListenerAdapter
   private static long mFirstVideoTimestampInStream;
 
   /**
+   * The video stream index, used to ensure we display frames from one
+   * and only one video stream from the media container.
+   */
+
+  private int mVideoStreamIndex = -1;
+
+  /**
    * Takes a media container (file) as the first argument, opens it,
    * opens up a Swing window and displays video frames with
    * <i>roughly</i> the right timing.
@@ -139,6 +146,23 @@ public class MrDecodeAndPlayVideo extends MediaReader.ListenerAdapter
   public void onVideoPicture(IVideoPicture picture, BufferedImage image,
     int streamIndex)
   {
+    // if the stream index does not match the selected stream index,
+    // then have a closer look
+
+    if (streamIndex != mVideoStreamIndex)
+    {
+      // if the selected video stream id is not yet set, go ahead an
+      // select this lucky video stream
+      
+      if (-1 == mVideoStreamIndex)
+        mVideoStreamIndex = streamIndex;
+      
+      // otherwise return, no need to show frames from this video stream
+      
+      else
+        return;
+    }
+
     // put the image onto the scren
 
     mScreen.setImage(image);

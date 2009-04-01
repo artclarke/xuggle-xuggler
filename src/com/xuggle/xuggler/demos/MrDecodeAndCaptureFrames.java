@@ -61,6 +61,13 @@ public class MrDecodeAndCaptureFrames extends MediaReader.ListenerAdapter
   private static long mLastPtsWrite = Global.NO_PTS;
 
   /**
+   * The video stream index, used to ensure we display frames from one
+   * and only one video stream from the media container.
+   */
+
+  private int mVideoStreamIndex = -1;
+
+  /**
    * Takes a media container (file) as the first argument, opens it and
    *  writes some of it's video frames to PNG image files in the
    *  temporary directory.
@@ -128,6 +135,23 @@ public class MrDecodeAndCaptureFrames extends MediaReader.ListenerAdapter
   {
     try
     {
+      // if the stream index does not match the selected stream index,
+      // then have a closer look
+      
+      if (streamIndex != mVideoStreamIndex)
+      {
+        // if the selected video stream id is not yet set, go ahead an
+        // select this lucky video stream
+        
+        if (-1 == mVideoStreamIndex)
+          mVideoStreamIndex = streamIndex;
+        
+        // otherwise return, no need to show frames from this video stream
+        
+        else
+          return;
+      }
+      
       // if uninitialized, backdate mLastPtsWrite so we get the very
       // first frame
 
