@@ -25,6 +25,8 @@ import java.util.Vector;
 
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IPixelFormat;
+import com.xuggle.xuggler.IVideoResampler;
+import com.xuggle.xuggler.IVideoResampler.Feature;
 
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
@@ -59,7 +61,7 @@ public class ConverterFactoryTest
   // pixel types to included for resampling tests, as we really want
   // them to work properly
   
-  public static final IPixelFormat.Type[] mIncludedPixleTypes =
+  public static final IPixelFormat.Type[] mIncludedPixelTypes =
   {
     IPixelFormat.Type.ARGB,    
     IPixelFormat.Type.BGR24,
@@ -69,7 +71,7 @@ public class ConverterFactoryTest
   // pixel types to exclude from test as no resamplers exist for them,
   // if new types appear, NOTE: this list is not currently being used
 
-  public static final IPixelFormat.Type[] mExcludePixleTypes =
+  public static final IPixelFormat.Type[] mExcludePixelTypes =
   {
     IPixelFormat.Type.NONE,    
     IPixelFormat.Type.PAL8,
@@ -112,7 +114,7 @@ public class ConverterFactoryTest
   {
     Collection<Object[]> parameters = new Vector<Object[]>();
     
-    for (IPixelFormat.Type pixelType: mIncludedPixleTypes)
+    for (IPixelFormat.Type pixelType: mIncludedPixelTypes)
       for (ConverterFactory.Type converterType:
              ConverterFactory.getRegisteredConverters())
         {
@@ -126,6 +128,9 @@ public class ConverterFactoryTest
   @Test(expected=IllegalArgumentException.class)
   public void testVideoPictureToImageNullInput()
   {
+    if (!IVideoResampler.isSupported(Feature.FEATURE_COLORSPACECONVERSION))
+      throw new IllegalArgumentException();
+    
     IConverter c = ConverterFactory.createConverter(
       mConverterType.getDescriptor(), mConverterType.getPictureType(),
       TEST_WIDTH, TEST_HEIGHT);
@@ -136,6 +141,9 @@ public class ConverterFactoryTest
   @Test(expected=IllegalArgumentException.class)
   public void testImageToVideoPictureNullInput()
   {
+    if (!IVideoResampler.isSupported(Feature.FEATURE_COLORSPACECONVERSION))
+      throw new IllegalArgumentException();
+
     IConverter c = ConverterFactory.createConverter(
       mConverterType.getDescriptor(), mConverterType.getPictureType(),
       TEST_WIDTH, TEST_HEIGHT);
@@ -146,6 +154,9 @@ public class ConverterFactoryTest
   @Test(expected=IllegalArgumentException.class)
   public void testVideoPictureToImageIncompletePicture()
   {
+    if (!IVideoResampler.isSupported(Feature.FEATURE_COLORSPACECONVERSION))
+      throw new IllegalArgumentException();
+
     IConverter c = ConverterFactory.createConverter(
       mConverterType.getDescriptor(), mConverterType.getPictureType(),
       TEST_WIDTH, TEST_HEIGHT);
@@ -159,6 +170,9 @@ public class ConverterFactoryTest
   @Test(expected=IllegalArgumentException.class)
   public void testVideoPictureToImageWrongFormat()
   {
+    if (!IVideoResampler.isSupported(Feature.FEATURE_COLORSPACECONVERSION))
+      throw new IllegalArgumentException();
+
     IConverter c = ConverterFactory.createConverter(
       mConverterType.getDescriptor(), IPixelFormat.Type.YUV420P,
       TEST_WIDTH, TEST_HEIGHT);
@@ -172,6 +186,9 @@ public class ConverterFactoryTest
   @Test(expected=IllegalArgumentException.class)
   public void testImageToVideoPictureWrongFormatInput()
   {
+    if (!IVideoResampler.isSupported(Feature.FEATURE_COLORSPACECONVERSION))
+      throw new IllegalArgumentException();
+
     IConverter c = ConverterFactory.createConverter(
       mConverterType.getDescriptor(), IPixelFormat.Type.YUV420P,
       TEST_WIDTH, TEST_HEIGHT);
@@ -188,6 +205,9 @@ public class ConverterFactoryTest
   @Test
   public void testImageToImageSolidColor()
   {
+    if (!IVideoResampler.isSupported(Feature.FEATURE_COLORSPACECONVERSION))
+      return;
+    
     int w = TEST_WIDTH;
     int h = TEST_HEIGHT;
     int gray  = Color.GRAY.getRGB();
@@ -234,6 +254,9 @@ public class ConverterFactoryTest
   @Test
   public void testImageToImageSolidColorWithResize()
   {
+    if (!IVideoResampler.isSupported(Feature.FEATURE_COLORSPACECONVERSION))
+      return;
+
     int w1 = TEST_WIDTH;
     int h1 = TEST_HEIGHT;
     int w2 = TEST_WIDTH * 2;
@@ -286,6 +309,9 @@ public class ConverterFactoryTest
   @Ignore @Test
   public void testImageToImageSolidColorWithCustomSizes()
   {
+    if (!IVideoResampler.isSupported(Feature.FEATURE_COLORSPACECONVERSION))
+      return;
+    
     int w = TEST_WIDTH + 15;
     int h = TEST_HEIGHT;
     int gray  = Color.GRAY.getRGB();
@@ -328,6 +354,9 @@ public class ConverterFactoryTest
   @Test
   public void testImageToImageRandomColor()
   {
+    if (!IVideoResampler.isSupported(Feature.FEATURE_COLORSPACECONVERSION))
+      return;
+
     int w = TEST_WIDTH;
     int h = TEST_HEIGHT;
     Random rnd = new Random();
@@ -374,6 +403,9 @@ public class ConverterFactoryTest
   @Test
   public void testPictureToPictureWithRotate()
   {
+    if (!IVideoResampler.isSupported(Feature.FEATURE_COLORSPACECONVERSION))
+      return;
+
     // note that the image is square in this test to make rotation
     // easier to handle
 
@@ -441,7 +473,7 @@ public class ConverterFactoryTest
    * pixels are mearly fairly similar in color value.
    */
 
-  public String testPixels(boolean exact, int pixel1, int pixel2, int x, int y, 
+  private String testPixels(boolean exact, int pixel1, int pixel2, int x, int y, 
     IPixelFormat.Type pixelType)
   {
     String message = "Color value missmatch whith pixel type " + 
@@ -478,7 +510,7 @@ public class ConverterFactoryTest
     return null;
   }
 
-  public static boolean closeEnough(int v1, int v2, int margin)
+  private static boolean closeEnough(int v1, int v2, int margin)
   {
     return abs(v2 - v1) <= margin;
   }
