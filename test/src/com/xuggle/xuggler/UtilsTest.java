@@ -168,16 +168,6 @@ public class UtilsTest
     Utils.videoPictureToImage(picture);
   }
   @SuppressWarnings("deprecation")
-
-  @Test(expected=IllegalArgumentException.class)
-  public void testVideoPictureToImageIncompletePicture()
-  {
-    IVideoPicture picture = IVideoPicture.make(
-      IPixelFormat.Type.ARGB, 50, 50);
-    Utils.videoPictureToImage(picture);
-  }
-
-  @SuppressWarnings("deprecation")
   @Test(expected=IllegalArgumentException.class)
   public void testImageToVideoPictureNullInput()
   {
@@ -204,7 +194,7 @@ public class UtilsTest
     // construct an all gray image
 
     BufferedImage image1 = new BufferedImage(
-      w, h, BufferedImage.TYPE_INT_ARGB);
+      w, h, BufferedImage.TYPE_3BYTE_BGR);
     for (int x = 0; x < w; ++x)
       for (int y = 0; y < h; ++y)
         image1.setRGB(x, y, gray);
@@ -236,7 +226,7 @@ public class UtilsTest
     // construct an image of random colors
 
     BufferedImage image1 = new BufferedImage(
-      w, h, BufferedImage.TYPE_INT_ARGB);
+      w, h, BufferedImage.TYPE_3BYTE_BGR);
     for (int x = 0; x < w; ++x)
       for (int y = 0; y < h; ++y)
       {
@@ -275,7 +265,7 @@ public class UtilsTest
     // construct an image with black and white stripped columns
 
     BufferedImage image1 = new BufferedImage(
-      size, size, BufferedImage.TYPE_INT_ARGB);
+      size, size, BufferedImage.TYPE_3BYTE_BGR);
     for (int x = 0; x < size; ++x)
       for (int y = 0; y < size; ++y)
       {
@@ -294,19 +284,21 @@ public class UtilsTest
       Math.PI/2, image2.getWidth() / 2, image2.getHeight() / 2);
     AffineTransformOp ato = new AffineTransformOp(t, 
       AffineTransformOp.TYPE_BICUBIC);
-    image2 = ato.filter(image2, null);
+    BufferedImage image3 = new BufferedImage(
+        size, size, BufferedImage.TYPE_3BYTE_BGR);
+    ato.filter(image2, image3);
 
     // convert image2 to a picture and then back to image3
 
-    BufferedImage image3 = Utils.videoPictureToImage(
-      Utils.imageToVideoPicture(image2, 0));
+    BufferedImage image4 = Utils.videoPictureToImage(
+      Utils.imageToVideoPicture(image3, 0));
 
-    // test that image3 now contains stripped rows (not columns)
+    // test that image4 now contains stripped rows (not columns)
 
     for (int x = 0; x < size; ++x)
       for (int y = 0; y < size; ++y)
       {
-        int pixel = image3.getRGB(x, y);
+        int pixel = image4.getRGB(x, y);
         int color = y % 2 == 0 ? black : white;
         assertTrue("color value missmatch", pixel == color);
       }
