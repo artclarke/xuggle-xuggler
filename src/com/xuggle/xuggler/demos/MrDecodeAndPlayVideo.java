@@ -18,6 +18,7 @@
  * with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
+
 package com.xuggle.xuggler.demos;
 
 import java.awt.image.BufferedImage;
@@ -61,14 +62,8 @@ public class MrDecodeAndPlayVideo extends MediaReader.ListenerAdapter
   private static long mFirstVideoTimestampInStream;
 
   /**
-   * The media reader which will do much of the reading work.
-   */
-
-  private MediaReader mMediaReader;
-
-  /**
    * Takes a media container (file) as the first argument, opens it,
-   * plays opens up a Swing window and displays video frames with
+   * opens up a Swing window and displays video frames with
    * <i>roughly</i> the right timing.
    *  
    * @param args Must contain one string which represents a filename
@@ -96,7 +91,7 @@ public class MrDecodeAndPlayVideo extends MediaReader.ListenerAdapter
     // create a media reader for processing video, stipulate that we
     // want BufferedImages to created in BGR 24bit color space
 
-    mMediaReader = new MediaReader(filename, true,
+    MediaReader mediaReader = new MediaReader(filename, true,
       ConverterFactory.XUGGLER_BGR_24);
     
     // note that MrDecodeAndPlayVideo is derived from
@@ -104,7 +99,7 @@ public class MrDecodeAndPlayVideo extends MediaReader.ListenerAdapter
     // to the MediaReader. MrDecodeAndPlayVideo implements
     // onVideoPicture().
 
-    mMediaReader.addListener(this);
+    mediaReader.addListener(this);
 
     // zero out the time stamps
 
@@ -120,7 +115,7 @@ public class MrDecodeAndPlayVideo extends MediaReader.ListenerAdapter
     // which is called when complete video pictures are extracted from
     // the media source
 
-    while (mMediaReader.readPacket() == null)
+    while (mediaReader.readPacket() == null)
       ;
 
     // close video screen
