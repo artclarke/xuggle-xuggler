@@ -37,7 +37,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
 
 
 /**
- * Takes a media container, finds the first video stream,
+ * Using {@link MediaReader}, takes a media container, finds the first video stream,
  * decodes that stream, and then plays the audio and video.
  *
  * This code does a VERY coarse job of matching time-stamps, and thus

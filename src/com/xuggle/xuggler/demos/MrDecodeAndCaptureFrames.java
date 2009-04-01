@@ -28,13 +28,12 @@ import java.io.File;
 import java.awt.image.BufferedImage;
 
 import com.xuggle.xuggler.Global;
-import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.MediaReader;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 /**
- * Takes a media container, finds the first video stream, decodes that
+ * Using {@link MediaReader}, takes a media container, finds the first video stream, decodes that
  * stream, and then writes video frames out to a PNG image file every 5
  * seconds, based on the video presentation timestamps.
  *

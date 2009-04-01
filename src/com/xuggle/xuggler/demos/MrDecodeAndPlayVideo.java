@@ -24,14 +24,13 @@ package com.xuggle.xuggler.demos;
 import java.awt.image.BufferedImage;
 
 import com.xuggle.xuggler.Global;
-import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.MediaReader;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 
 /**
- * Takes a media container, finds the first video stream,
+ * Using {@link MediaReader}, takes a media container, finds the first video stream,
  * decodes that stream, and plays the video.
  *
  * This code does a coarse job of matching time-stamps, and thus the

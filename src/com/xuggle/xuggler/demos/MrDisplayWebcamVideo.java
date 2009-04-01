@@ -27,7 +27,6 @@ import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.MediaReader;
-import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IContainerFormat;
 import com.xuggle.xuggler.IContainerParameters;
@@ -35,7 +34,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
 
 
 /**
- * Takes a FFMPEG device driver name (ex: "video4linux2"), and a device
+ * Using {@link MediaReader}, takes a FFMPEG device driver name (ex: "video4linux2"), and a device
  * name (ex: /dev/video0), and displays video from that device.  For
  * example, a web camera.
  * 
