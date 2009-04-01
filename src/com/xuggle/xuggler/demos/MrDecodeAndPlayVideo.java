@@ -22,14 +22,7 @@ package com.xuggle.xuggler.demos;
 
 import java.awt.image.BufferedImage;
 
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.SourceDataLine;
-
 import com.xuggle.xuggler.Global;
-import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.MediaReader;
@@ -38,26 +31,17 @@ import com.xuggle.xuggler.video.ConverterFactory;
 
 /**
  * Takes a media container, finds the first video stream,
- * decodes that stream, and then plays the audio and video.
+ * decodes that stream, and plays the video.
  *
- * This code does a VERY coarse job of matching time-stamps, and thus
- * the audio and video will float in and out of slight sync.  Getting
- * time-stamps syncing-up with audio is very system dependent and left
- * as an exercise for the reader.
+ * This code does a coarse job of matching time-stamps, and thus the
+ * video may not play in exact real time.
  * 
  * @author aclarke
  * @author trebor
  */
 
-public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
+public class MrDecodeAndPlayVideo extends MediaReader.ListenerAdapter
 {
-  /**
-   * The audio line we'll output sound to; it'll be the default audio
-   * device on your system if available
-   */
-
-  private static SourceDataLine mLine;
-
   /**
    * The window we'll draw the video on.
    */
@@ -84,8 +68,8 @@ public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
 
   /**
    * Takes a media container (file) as the first argument, opens it,
-   * plays audio as quickly as it can, and opens up a Swing window and
-   * displays video frames with <i>roughly</i> the right timing.
+   * plays opens up a Swing window and displays video frames with
+   * <i>roughly</i> the right timing.
    *  
    * @param args Must contain one string which represents a filename
    */
@@ -96,18 +80,18 @@ public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
       throw new IllegalArgumentException(
         "must pass in a filename as the first argument");
     
-    // create a new mr. decode an play audio and video
+    // create a new mr. decode an play video
     
-    new MrDecodeAndPlayAudioAndVideo(args[0]);
+    new MrDecodeAndPlayVideo(args[0]);
   }
 
-  /** Construct a MrDecodeAndPlayAudioAndVideo which reads and plays a
+  /** Construct a MrDecodeAndPlayVideo which reads and plays a
    * video file.
    * 
    * @param filename the name of the media file to read
    */
 
-  public MrDecodeAndPlayAudioAndVideo(String filename)
+  public MrDecodeAndPlayVideo(String filename)
   {
     // create a media reader for processing video, stipulate that we
     // want BufferedImages to created in BGR 24bit color space
@@ -115,35 +99,32 @@ public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
     mMediaReader = new MediaReader(filename, true,
       ConverterFactory.XUGGLER_BGR_24);
     
-    // note that MrDecodeAndPlayAudioAndVideo is derived from
-    // MediaReader.IListener and thus may be added as a listener to the
-    // MediaReader. MrDecodeAndPlayAudioAndVideo implements
-    // onVideoPicture() and onAudioSamples().
+    // note that MrDecodeAndPlayVideo is derived from
+    // MediaReader.ListenerAdapter and thus may be added as a listener
+    // to the MediaReader. MrDecodeAndPlayVideo implements
+    // onVideoPicture().
 
     mMediaReader.addListener(this);
-
-    // open the video output, the audio output is opend once we know
-    // what kind of audio stream exists in the media file
-    
-    openJavaVideo();
 
     // zero out the time stamps
 
     mFirstVideoTimestampInStream = Global.NO_PTS;
     mSystemVideoClockStartTime = 0;
 
+    // open the video screen
+
+    openJavaVideo();
+
     // read out the contents of the media file, note that nothing else
-    // happens here.  action happens in the onVideoPicture() and
-    // onAudioSamples() methods which are called when complete video
-    // pictures and audio sample sets are extracted from the media
-    // source
+    // happens here.  action happens in the onVideoPicture() method
+    // which is called when complete video pictures are extracted from
+    // the media source
 
     while (mMediaReader.readPacket() == null)
       ;
 
-    // close sound and video outputs
+    // close video screen
     
-    closeJavaSound();
     closeJavaVideo();
   }
 
@@ -185,34 +166,6 @@ public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
     }
   }
   
-  /** Called after audio samples have been decoded from a media
-   * stream.  This method blocks, so return quickly.
-   *
-   * @param samples a audio samples
-   * @param streamIndex the index of the stream
-   */
-  
-  public void onAudioSamples(IAudioSamples samples, int streamIndex)
-  {
-    // if the audio line is closed open it
-
-    if (mLine == null)
-    {
-      // get the media container from the media reader, then get the
-      // stream using the stream index passed into this method, then get
-      // the stream coder for that stream, and pass that stream coder
-      // off to open the audio out put stream with
-
-      openJavaSound(mMediaReader.getContainer()
-        .getStream(streamIndex).getStreamCoder());
-    }
-
-    // dump all the samples into the line
-
-    byte[] rawBytes = samples.getData().getByteArray(0, samples.getSize());
-    mLine.write(rawBytes, 0, samples.getSize());
-  }
-
   /**
    * Compute how long to display a video picture.
    * 
@@ -232,10 +185,11 @@ public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
      * match up the frame-rate requested for each IVideoPicture with the system
      * clock time on your computer.
      * 
-     * Remember that all Xuggler IAudioSamples and IVideoPicture objects always
-     * give timestamps in Microseconds, relative to the first decoded item.  If
-     * instead you used the packet timestamps, they can be in different units depending
-     * on your IContainer, and IStream and things can get hairy quickly.
+     * Remember that all Xuggler IVideoPicture objects always give
+     * timestamps in Microseconds, relative to the first decoded item.
+     * If instead you used the packet timestamps, they can be in
+     * different units depending on your IContainer, and IStream and
+     * things can get hairy quickly.
      */
 
     long millisecondsToSleep = 0;
@@ -255,9 +209,8 @@ public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
         systemClockCurrentTime - mSystemVideoClockStartTime;
       
       // compute how long for this frame since the first frame in the
-      // stream.  remember that IVideoPicture and IAudioSamples
-      // timestamps are always in MICROSECONDS, so we divide by 1000 to
-      // get milliseconds.
+      // stream.  remember that IVideoPicture timestamps are always in
+      // MICROSECONDS, so we divide by 1000 to get milliseconds.
       
       long millisecondsStreamTimeSinceStartOfVideo = 
         (picture.getTimeStamp() - mFirstVideoTimestampInStream) / 1000;
@@ -291,59 +244,5 @@ public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
   private static void closeJavaVideo()
   {
     System.exit(0);
-  }
-
-  /**
-   * Open a java audio line out to play the audio samples into.
-   *
-   * @param audioCoder the audio coder which contains details about the
-   *        format of the audio.
-   */
-
-  private static void openJavaSound(IStreamCoder audioCoder) 
-  {
-    try
-    {
-      // estabish the adhio format, NOTE: xuggler defaults to signed 16 bit
-      // samples
-      
-      AudioFormat audioFormat = new AudioFormat(audioCoder.getSampleRate(),
-        (int)IAudioSamples.findSampleBitDepth(audioCoder.getSampleFormat()),
-        audioCoder.getChannels(), true, false);
-      
-      // create the audio line out
-      
-      DataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
-      mLine = (SourceDataLine) AudioSystem.getLine(info);
-      
-      // open the line and start the line
-      
-      mLine.open(audioFormat);
-      mLine.start();
-    }
-    catch (LineUnavailableException lue)
-    {
-      System.out
-        .println("WARINGIN: No audio line out available: " + lue);
-    }
-  }
-
-  /**
-   * Close the java audio line out.
-   */
-
-  private static void closeJavaSound()
-  {
-    if (mLine != null)
-    {
-      // drain the audio snake, tap-tap
-
-      mLine.drain();
-      
-      // close the line.
-
-      mLine.close();
-      mLine=null;
-    }
   }
 }

@@ -1,23 +1,27 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
- * us know by sending e-mail to info@xuggle.com telling us briefly how you're
- * using the library and what you like or don't like about it.
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you
+ * let us know by sending e-mail to info@xuggle.com telling us briefly
+ * how you're using the library and what you like or don't like about
+ * it.
  *
- * This library is free software; you can redistribute it and/or modify it under the
- * terms of the GNU Lesser General Public License as published by the Free Software
- * Foundation; either version 2.1 of the License, or (at your option) any later
- * version.
+ * This library is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of the
+ * License, or (at your option) any later version.
  *
- * This library is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- * PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public License along
- * with this library; if not, write to the Free Software Foundation, Inc.,
- * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+ * USA
  */
+
 package com.xuggle.xuggler.demos;
 
 import java.awt.Dimension;
@@ -46,6 +50,7 @@ public class VideoImage extends JFrame
   /**
    * To avoid a warning... 
    */
+
   private static final long serialVersionUID = -4752966848100689153L;
   private final ImageComponent mOnscreenPicture;
 
@@ -53,6 +58,7 @@ public class VideoImage extends JFrame
   /**
    * Create the frame
    */
+
   public VideoImage()
   {
     super();
@@ -61,7 +67,6 @@ public class VideoImage extends JFrame
     getContentPane().add(mOnscreenPicture);
     this.setVisible(true);
     this.pack();
-    //
   }
   
   public void setImage(final BufferedImage aImage)
@@ -100,7 +105,8 @@ public class VideoImage extends JFrame
       public void run()
       {
         ImageComponent.this.mImage = newImage;
-        final Dimension newSize = new Dimension(mImage.getWidth(null), mImage.getHeight(null));
+        final Dimension newSize = new Dimension(mImage.getWidth(null), 
+          mImage.getHeight(null));
         if (!newSize.equals(mSize))
         {
           ImageComponent.this.mSize = newSize;
@@ -122,6 +128,5 @@ public class VideoImage extends JFrame
       if (mImage != null)
         g.drawImage(mImage, 0, 0, this);
     }
-
   }
 }
