@@ -30,17 +30,10 @@ import javax.sound.sampled.SourceDataLine;
 
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IAudioSamples;
-import com.xuggle.xuggler.IContainer;
-import com.xuggle.xuggler.IPacket;
-import com.xuggle.xuggler.IPixelFormat;
-import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
-import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.IVideoResampler;
 import com.xuggle.xuggler.MediaReader;
 import com.xuggle.xuggler.video.ConverterFactory;
-import com.xuggle.xuggler.video.IConverter;
 
 
 /**
@@ -53,6 +46,7 @@ import com.xuggle.xuggler.video.IConverter;
  * as an exercise for the reader.
  * 
  * @author aclarke
+ * @author trebor
  */
 
 public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
@@ -121,7 +115,7 @@ public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
     mMediaReader = new MediaReader(filename, true,
       ConverterFactory.XUGGLER_BGR_24);
     
-    // note that MrDecodeAndPlayAudioAndVideo is derrived from
+    // note that MrDecodeAndPlayAudioAndVideo is derived from
     // MediaReader.IListener and thus may be added as a listener to the
     // MediaReader. MrDecodeAndPlayAudioAndVideo implements
     // onVideoPicture() and onAudioSamples().

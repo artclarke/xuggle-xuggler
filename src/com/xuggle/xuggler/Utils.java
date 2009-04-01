@@ -254,13 +254,12 @@ public class Utils
   }
   
   /**
-   * Convert an {@link IVideoPicture} to a {@link BufferedImage}.  This
-   * input picture must be of type {@link IPixelFormat.Type#ARGB}.
-   * This method makes several copies of the raw picture bytes, which
-   * is by no means the fastest way to do this.  
+   * Convert an {@link IVideoPicture} to a {@link BufferedImage}.  The
+   * input picture should be of type {@link IPixelFormat.Type#BGR24}
+   * to avoid making unnecessary copies.
    *
-   * The image data ultimatly resides in java memory space, which
-   * means the caller does not need to concern themselfs with memory
+   * The image data ultimately resides in java memory space, which
+   * means the caller does not need to concern themselves with memory
    * management issues.
    *
    * @param picture The {@link IVideoPicture} to be converted.
@@ -271,13 +270,11 @@ public class Utils
    * @throws IllegalArgumentException if the passed {@link
    * IVideoPicture} is NULL;
    * @throws IllegalArgumentException if the passed {@link
-   * IVideoPicture} is not of type {@link IPixelFormat.Type#ARGB}.
-   * @throws IllegalArgumentException if the passed {@link
    * IVideoPicture} is not complete.
    *
    * @deprecated Image and picture conversion functionality has been
    * replaced by {@link com.xuggle.xuggler.video.ConverterFactory}.  The
-   * current implemention of {@link #videoPictureToImage} creates a new
+   * current implementation of {@link #videoPictureToImage} creates a new
    * {@link com.xuggle.xuggler.video.IConverter} on each call, which is
    * not very efficient.
    */
@@ -290,17 +287,10 @@ public class Utils
     if (picture == null)
       throw new IllegalArgumentException("The video picture is NULL.");
 
-    // if the picture is not in ARGB, throw up
-    
-    if (picture.getPixelType() != IPixelFormat.Type.ARGB)
-      throw new IllegalArgumentException(
-        "The video picture is of type " + picture.getPixelType() +
-        " but is required to be of type " + IPixelFormat.Type.ARGB);
-    
     // create the converter
 
     IConverter converter = ConverterFactory.createConverter(
-      ConverterFactory.XUGGLER_ARGB_32, picture);
+      ConverterFactory.XUGGLER_BGR_24, picture);
 
     // return the conveter
 
@@ -309,30 +299,26 @@ public class Utils
   
   /**
    * Convert a {@link BufferedImage} to an {@link IVideoPicture} of
-   * type {@link IPixelFormat.Type#ARGB}.  This is NOT the most
-   * efficient way to do this conversion and is thus ripe for
-   * optimization.  The {@link BufferedImage} must be a 32 RGBA type.
-   * Further more the underlying data buffer of the {@link
-   * BufferedImage} must be composed of types bytes or integers (which
-   * is the most typical case).
+   * type {@link IPixelFormat.Type#BGR24}.  The {@link BufferedImage} must be a 
+   * {@link BufferedImage#TYPE_3BYTE_BGR} type.
    *
    * @param image The source {@link BufferedImage}.
    * @param pts The presentation time stamp of the picture.
    *
    * @return An {@link IVideoPicture} in {@link
-   * IPixelFormat.Type#ARGB} format.
+   * IPixelFormat.Type#BGR24} format.
    *
    * @throws IllegalArgumentException if the passed {@link
    * BufferedImage} is NULL;
    * @throws IllegalArgumentException if the passed {@link
-   * BufferedImage} is not of type {@link BufferedImage#TYPE_INT_ARGB}.
+   * BufferedImage} is not of type {@link BufferedImage#TYPE_3BYTE_BGR}.
    * @throws IllegalArgumentException if the underlying data buffer of
    * the {@link BufferedImage} is composed of types other bytes or
    * integers.
    *
    * @deprecated Image and picture conversion functionality has been
    * replaced by {@link com.xuggle.xuggler.video.ConverterFactory}.  The
-   * current implemention of {@link #imageToVideoPicture} creates a new
+   * current implementation of {@link #imageToVideoPicture} creates a new
    * {@link com.xuggle.xuggler.video.IConverter} on each call, which is
    * not very efficient.
    */
@@ -345,20 +331,18 @@ public class Utils
     if (image == null)
       throw new IllegalArgumentException("The image is NULL.");
 
-     // if image is not in TYPE_INT_ARGB, throw up
-    
-    if (image.getType() != BufferedImage.TYPE_INT_ARGB)
+    if (image.getType() != BufferedImage.TYPE_3BYTE_BGR)
       throw new IllegalArgumentException(
         "The image is of type #" + image.getType() +
-        " but is required to be BufferedImage.TYPE_INT_ARGB of type #" +
-        BufferedImage.TYPE_INT_ARGB + ".");
+        " but is required to be BufferedImage.TYPE_3BYTE_BGR of type #" +
+        BufferedImage.TYPE_3BYTE_BGR + ".");
 
     // create the converter
 
     IConverter converter = ConverterFactory.createConverter(
-      image, IPixelFormat.Type.ARGB);
+      image, IPixelFormat.Type.BGR24);
 
-    // return the conveter
+    // return the converted picture
 
     return converter.toPicture(image, pts);
   }

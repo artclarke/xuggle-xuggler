@@ -114,6 +114,7 @@ public class DecodeAndCaptureFrames
    * @param args must contain one string which represents a filename
    */
 
+  @SuppressWarnings("deprecation")
   public static void main(String[] args)
   {
     if (args.length <= 0)
@@ -176,13 +177,13 @@ public class DecodeAndCaptureFrames
         "could not open video decoder for container: " + filename);
 
     IVideoResampler resampler = null;
-    if (videoCoder.getPixelType() != IPixelFormat.Type.ARGB)
+    if (videoCoder.getPixelType() != IPixelFormat.Type.BGR24)
     {
-      // if this stream is not in ARGB, we're going to need to
+      // if this stream is not in BGR24, we're going to need to
       // convert it.  The VideoResampler does that for us.
 
       resampler = IVideoResampler.make(
-        videoCoder.getWidth(), videoCoder.getHeight(), IPixelFormat.Type.ARGB,
+        videoCoder.getWidth(), videoCoder.getHeight(), IPixelFormat.Type.BGR24,
         videoCoder.getWidth(), videoCoder.getHeight(), videoCoder.getPixelType());
       if (resampler == null)
         throw new RuntimeException(
@@ -224,7 +225,7 @@ public class DecodeAndCaptureFrames
             IVideoPicture newPic = picture;
             
             // If the resampler is not null, it means we didn't get the
-            // video in ARGB format and need to convert it into ARGB
+            // video in BGR24 format and need to convert it into BGR24
             // format.
 
             if (resampler != null)
@@ -238,11 +239,11 @@ public class DecodeAndCaptureFrames
                   "could not resample video from: " + filename);
             }
 
-            if (newPic.getPixelType() != IPixelFormat.Type.ARGB)
+            if (newPic.getPixelType() != IPixelFormat.Type.BGR24)
               throw new RuntimeException(
-                "could not decode video as RGB 32 bit data in: " + filename);
+                "could not decode video as BGR 24 bit data in: " + filename);
 
-            // convert the ARGB to an Java buffered image
+            // convert the BGR24 to an Java buffered image
 
             BufferedImage javaImage = Utils.videoPictureToImage(newPic);
 

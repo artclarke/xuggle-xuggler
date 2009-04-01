@@ -51,6 +51,7 @@ public class DecodeAndPlayVideo
    *  
    * @param args Must contain one string which represents a filename
    */
+  @SuppressWarnings("deprecation")
   public static void main(String[] args)
   {
     if (args.length <= 0)
@@ -100,11 +101,11 @@ public class DecodeAndPlayVideo
       throw new RuntimeException("could not open video decoder for container: "+filename);
 
     IVideoResampler resampler = null;
-    if (videoCoder.getPixelType() != IPixelFormat.Type.ARGB)
+    if (videoCoder.getPixelType() != IPixelFormat.Type.BGR24)
     {
-      // if this stream is not in ARGB, we're going to need to
+      // if this stream is not in BGR24, we're going to need to
       // convert it.  The VideoResampler does that for us.
-      resampler = IVideoResampler.make(videoCoder.getWidth(), videoCoder.getHeight(), IPixelFormat.Type.ARGB,
+      resampler = IVideoResampler.make(videoCoder.getWidth(), videoCoder.getHeight(), IPixelFormat.Type.BGR24,
           videoCoder.getWidth(), videoCoder.getHeight(), videoCoder.getPixelType());
       if (resampler == null)
         throw new RuntimeException("could not create color space resampler for: " + filename);
@@ -154,8 +155,8 @@ public class DecodeAndPlayVideo
           {
             IVideoPicture newPic = picture;
             /*
-             * If the resampler is not null, that means we didn't get the video in ARGB format and
-             * need to convert it into ARGB format.
+             * If the resampler is not null, that means we didn't get the video in BGR24 format and
+             * need to convert it into BGR24 format.
              */
             if (resampler != null)
             {
@@ -164,8 +165,8 @@ public class DecodeAndPlayVideo
               if (resampler.resample(newPic, picture) < 0)
                 throw new RuntimeException("could not resample video from: " + filename);
             }
-            if (newPic.getPixelType() != IPixelFormat.Type.ARGB)
-              throw new RuntimeException("could not decode video as RGB 32 bit data in: " + filename);
+            if (newPic.getPixelType() != IPixelFormat.Type.BGR24)
+              throw new RuntimeException("could not decode video as BGR 24 bit data in: " + filename);
 
             /**
              * We could just display the images as quickly as we decode them, but it turns
@@ -211,7 +212,7 @@ public class DecodeAndPlayVideo
               }
             }
 
-            // And finally, convert the ARGB to an Java buffered image
+            // And finally, convert the BGR24 to an Java buffered image
             BufferedImage javaImage = Utils.videoPictureToImage(newPic);
 
             // and display it on the Java Swing window
