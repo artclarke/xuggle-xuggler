@@ -165,7 +165,7 @@ public class UtilsTest
   public void testVideoPictureToImageWrongFormatInput()
   {
     if (!IVideoResampler.isSupported(Feature.FEATURE_COLORSPACECONVERSION))
-      throw new IllegalArgumentException();
+      return;
     IVideoPicture picture = Utils.getBlankFrame(50, 50, 0);
     assertEquals(IPixelFormat.Type.YUV420P, picture.getPixelType());
     Utils.videoPictureToImage(picture);
