@@ -26,6 +26,7 @@ import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.ITimeValue;
 import com.xuggle.xuggler.Utils;
+import com.xuggle.xuggler.IVideoResampler.Feature;
 
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
@@ -160,13 +161,27 @@ public class UtilsTest
   }
 
   @SuppressWarnings("deprecation")
-  @Test(expected=IllegalArgumentException.class)
+  @Test
   public void testVideoPictureToImageWrongFormatInput()
   {
-    IVideoPicture picture = IVideoPicture.make(
-      IPixelFormat.Type.YUV420P, 50, 50);
+    if (!IVideoResampler.isSupported(Feature.FEATURE_COLORSPACECONVERSION))
+      throw new IllegalArgumentException();
+    IVideoPicture picture = Utils.getBlankFrame(50, 50, 0);
+    assertEquals(IPixelFormat.Type.YUV420P, picture.getPixelType());
     Utils.videoPictureToImage(picture);
   }
+  
+  @SuppressWarnings("deprecation")
+  @Test(expected=UnsupportedOperationException.class)
+  public void testLGPLBuild()
+  {
+    if (IVideoResampler.isSupported(Feature.FEATURE_COLORSPACECONVERSION))
+      throw new UnsupportedOperationException();
+    IVideoPicture picture = Utils.getBlankFrame(50, 50, 0);
+    assertEquals(IPixelFormat.Type.YUV420P, picture.getPixelType());
+    Utils.videoPictureToImage(picture);
+  }
+
   @SuppressWarnings("deprecation")
   @Test(expected=IllegalArgumentException.class)
   public void testImageToVideoPictureNullInput()
