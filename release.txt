@@ -1,25 +1,24 @@
 This file contains the version of the latest packaged build, plus
 all the SVN dependencies needed to recreate the package.
 
-Xuggle Version: 1.22.237.Final
-<p>
-- Hudson Good Build
-<a href="http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_winxp/32/">
-http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_winxp/32/
-</a>
-</p>
+Xuggler 2.0.322.FINAL
+<p>Hudson Good Build <a
+  href="http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_winxp/46/">
+http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_winxp/46/</a></p>
 <pre>
 Dynamic Revisions
-    * svn://svn.mplayerhq.hu/ffmpeg/trunk : 17954
-    * svn://svn.ffmpeg.org/mplayer/trunk/libswscale : 28934
-    * http://theyard.googlecode.com/svn/theyard/code/trunk/share/gnu/cxxtest/cxxtest-3.10.1 : 170
-    * http://xuggle.googlecode.com/svn/trunk/build/java : 230
-    * http://xuggle.googlecode.com/svn/trunk/java/xuggle-xuggler : 237
+* svn://svn.mplayerhq.hu/ffmpeg/trunk : 18306
+* svn://svn.ffmpeg.org/mplayer/trunk/libswscale : 29119
+* http://theyard.googlecode.com/svn/theyard/code/trunk/share/gnu/cxxtest/cxxtest-3.10.1 : 170
+* http://xuggle.googlecode.com/svn/trunk/build/java : 315
+* http://xuggle.googlecode.com/svn/trunk/java/xuggle-xuggler : 322
 
 - Static Dependencies
-    * libx264: ftp://ftp.videolan.org/pub/videolan/x264/snapshots/x264-snapshot-20090125-2245.tar.bz2
-    * libmp3lame: http://downloads.sourceforge.net/lame/lame-398.tar.gz: 3.98
-    * libspeex: http://downloads.xiph.org/releases/speex/speex-1.2rc1.tar.gz: 1.2 RC1
+* libx264:
+ ftp://ftp.videolan.org/pub/videolan/x264/snapshots/x264-snapshot-20090125-2245.tar.bz2
+* libmp3lame: http://downloads.sourceforge.net/lame/lame-398.tar.gz: 3.98
+* libspeex: http://downloads.xiph.org/releases/speex/speex-1.2rc1.tar.gz: 1.2 RC1
+* libfaac: http://downloads.sourceforge.net/faac/faac-1.28.zip: 1.28
 
 On Windows, here's what we built our installer with:
     * Mingw gcc/g++ 4.2.4: http://www.tdragon.net/recentgcc/
