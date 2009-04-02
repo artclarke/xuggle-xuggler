@@ -22,7 +22,6 @@ package com.xuggle.xuggler.demos;
 
 import java.awt.image.BufferedImage;
 
-import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.IContainer;
