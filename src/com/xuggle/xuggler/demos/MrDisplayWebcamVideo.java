@@ -60,18 +60,6 @@ public class MrDisplayWebcamVideo extends MediaReader.ListenerAdapter
   private static VideoImage mScreen = null;
 
   /**
-   * The moment the video started to play.
-   */
-
-  private static long mSystemVideoClockStartTime;
-
-  /**
-   * The first time stamp of the video stream.
-   */
-
-  private static long mFirstVideoTimestampInStream;
-
-  /**
    * The media reader which will do much of the reading work.
    */
 
@@ -194,11 +182,6 @@ public class MrDisplayWebcamVideo extends MediaReader.ListenerAdapter
     // onVideoPicture().
 
     mMediaReader.addListener(this);
-
-    // zero out the time stamps
-
-    mFirstVideoTimestampInStream = Global.NO_PTS;
-    mSystemVideoClockStartTime = 0;
 
     // open the video screen
 
