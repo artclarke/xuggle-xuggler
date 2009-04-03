@@ -194,7 +194,7 @@
     <ivy:retrieve file="ivy.xml" conf="${ivy.settings.name}"/>
     <ivy:publish
       update="true"
-      replacedynamicrev="false"
+      replacedynamicrev="true"
       forcedeliver="false"
       publishivy="true"
       overwrite="true"
