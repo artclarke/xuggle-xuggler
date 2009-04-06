@@ -300,6 +300,7 @@ libxuggle_xuggler_la_HEADERS = \
   IError.swg \
   IVideoPicture.h \
   IMediaData.h \
+  IMediaData.swg \
   IMediaDataWrapper.h \
   IMediaDataWrapper.swg \
   IPacket.h \

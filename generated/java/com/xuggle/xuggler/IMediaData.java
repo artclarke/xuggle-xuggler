@@ -112,6 +112,24 @@ public class IMediaData extends RefCounted {
     super.delete();
   }
 
+
+  /**
+   * Gets the underlying {@link java.nio.ByteBuffer} for this {@link IMediaData}
+   * object.  Users may modify the contents of the ByteBuffer and their
+   * changes will be reflected in the underlying memory.  See
+   * {@link com.xuggle.ferry.IBuffer} for the warnings associated with the
+   * use of raw memory.
+   * <p>
+   * This is a convenience method to allow you to avoid getting the
+   * IBuffer object that has the actual data.
+   * </p>
+   *
+   * @return The underlying ByteBuffer
+   */
+  public java.nio.ByteBuffer getByteBuffer() {
+    return this.getData().getByteBuffer(0, this.getSize());
+  }
+
 /**
  * Get the time stamp of this object in getTimeBase() units.  
  * @return	the time stamp  
