@@ -72,11 +72,17 @@ public class ConverterFactory
     
   }
   /** Converts between IVideoPictures and {@link BufferedImage} of type
-   *  {@link BufferedImage#TYPE_INT_ARGB} */
+   *  {@link BufferedImage#TYPE_INT_ARGB}.  CATION: The ARGB converter
+   *  is not currently registered as a converter because the underlying
+   *  FFMPEG support for ARGB is unstable.  If you really need ARGB
+   *  type, manually register the converter, but be aware that the ARGB
+   *  images produces may be wrong or broken.
+   */
 
   public static final String XUGGLER_ARGB_32 = "XUGGLER-ARGB-32";
 
-  /** Converts between IVideoPictures and {@link BufferedImage} of type {@link BufferedImage#TYPE_3BYTE_BGR} */
+  /** Converts between IVideoPictures and {@link BufferedImage} of type
+   * {@link BufferedImage#TYPE_3BYTE_BGR} */
 
   public static final String XUGGLER_BGR_24 = "XUGGLER-BGR-24";
 
@@ -88,8 +94,13 @@ public class ConverterFactory
 
   static
   {
-    registerConverter(new Type(XUGGLER_ARGB_32, ArgbConverter.class, 
-        IPixelFormat.Type.ARGB, BufferedImage.TYPE_INT_ARGB));
+    // The ARGB converter is not currently registered as a converter
+    // because the underlying FFMPEG support for ARGB is unstable.  If
+    // you really need ARGB type, manually register the converter, but
+    // be aware that the ARGB images produces may be wrong or broken.
+    
+    //registerConverter(new Type(XUGGLER_ARGB_32, ArgbConverter.class, 
+    //IPixelFormat.Type.ARGB, BufferedImage.TYPE_INT_ARGB));
 
     registerConverter(new Type(XUGGLER_BGR_24, BgrConverter.class, 
         IPixelFormat.Type.BGR24, BufferedImage.TYPE_3BYTE_BGR));
