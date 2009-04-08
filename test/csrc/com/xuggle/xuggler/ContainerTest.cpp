@@ -323,11 +323,24 @@ ContainerTest :: testWriteHeader()
   LoggerStack stack;
   stack.setGlobalLevel(Logger::LEVEL_WARN, false);
 
+  RefPointer<IStream> stream = container->addNewStream(0);
+  VS_TUT_ENSURE("got stream", stream);
+  
+  RefPointer<IStreamCoder> coder = stream->getStreamCoder();
+  VS_TUT_ENSURE("got coder", coder);
+  
+  coder->setCodec(ICodec::CODEC_ID_MP3);
+  coder->setSampleRate(22050);
+  coder->setChannels(1);
+  VS_TUT_ENSURE("couldn't open", coder->open() >= 0);
+  
   retval = container->writeHeader();
   VS_TUT_ENSURE("could not write header", retval >= 0);
   
   retval = container->writeTrailer();
   VS_TUT_ENSURE("could not write trailer", retval >= 0);
+  
+  VS_TUT_ENSURE("could not close coder", coder->close() >= 0);
   
   retval = container->close();
   VS_TUT_ENSURE("could not close container", retval >= 0);
@@ -407,4 +420,28 @@ ContainerTest :: testWriteToFileFromFile()
   }
   VS_TUT_ENSURE("couldn't close container", outContainer->close() >= 0);
   
+}
+
+void
+ContainerTest :: testIssue97Regression()
+{
+  int retval = -1;
+  
+  container = IContainer::make();
+  VS_TUT_ENSURE("couldn't get container", container);
+  
+  retval = container->open("ContainerTest_testIssue97Regression.mp3",
+      IContainer::WRITE,
+      0);
+  VS_TUT_ENSURE("could not open container", retval >= 0);
+
+  // turn off warning about unopened codecs
+  LoggerStack stack;
+  stack.setGlobalLevel(Logger::LEVEL_ERROR, false);
+
+  retval = container->writeHeader();
+  VS_TUT_ENSURE("header write should fail, not crash", retval < 0);
+  
+  retval = container->close();
+  VS_TUT_ENSURE("could not close container", retval >= 0);
 }

@@ -24,6 +24,7 @@ import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.test_utils.TestUtils;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
 import com.xuggle.xuggler.io.IURLProtocolHandler;
@@ -118,11 +119,22 @@ public class ContainerTest extends TestCase
         IContainer.Type.WRITE, null);
     assertTrue("could not open file", retval >= 0);
     
+    IStream stream = container.addNewStream(0);
+    IStreamCoder coder = stream.getStreamCoder();
+    coder.setCodec(ICodec.ID.CODEC_ID_MP3);
+    coder.setSampleRate(22050);
+    coder.setChannels(1);
+    retval = coder.open();
+    assertTrue("could not open coder", retval >= 0);
+    
     retval = container.writeHeader();
     assertTrue("could not write header", retval >= 0);
     
     retval = container.writeTrailer();
     assertTrue("could not write header", retval >= 0);
+   
+    retval = coder.close();
+    assertTrue("could not close coder", retval >= 0);
     
     retval = container.close();
     assertTrue("could not close the file", retval >= 0);
@@ -531,6 +543,24 @@ public class ContainerTest extends TestCase
     
     
   }
-  
+
+  /**
+   * Regression test for Issue #97
+   * http://code.google.com/p/xuggle/issues/detail?id=97
+   */
+  @Test
+  public void testIssue97Regression()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    retval = container.open(
+        this.getClass().getName()+"_"+TestUtils.getNameOfCallingMethod()
+        + ".mp3", IContainer.Type.WRITE, null);
+    assertTrue("could not open file", retval >= 0);
+    
+    retval = container.writeHeader();
+    assertTrue("should fail instead of core dumping", retval < 0);
+  }
 
 }

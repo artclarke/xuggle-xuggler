@@ -26,6 +26,12 @@ class ContainerTest : public CxxTest::TestSuite
     void testReadASmallNumberOfSamplesFromFile();
     void testWriteHeader();
     void testWriteToFileFromFile();
+    
+    /**
+     * Regression test for Issue 97
+     * http://code.google.com/p/xuggle/issues/detail?id=97
+     */
+    void testIssue97Regression();
   private:
     Helper* h;
     RefPointer<IContainer> container;

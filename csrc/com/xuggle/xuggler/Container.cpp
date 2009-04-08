@@ -562,7 +562,11 @@ namespace com { namespace xuggle { namespace xuggler
       // now we're going to walk through and record each open stream coder.
       // this is needed to catch a potential error on writeTrailer().
       mOpenCoders.clear();
-      for(int i = 0; i < getNumStreams(); i++)
+      int numStreams = getNumStreams();
+      if (numStreams <= 0)
+        throw std::runtime_error("no streams added to container");
+      
+      for(int i = 0; i < numStreams; i++)
       {
         RefPointer<IStream> stream = this->getStream(i);
         if (stream)
