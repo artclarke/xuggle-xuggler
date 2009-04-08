@@ -23,6 +23,9 @@
 
 extern "C"
 {
+// Hack here to get rid of deprecation compilation warnings
+#define attribute_deprecated
+
 #include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
