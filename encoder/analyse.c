@@ -195,7 +195,7 @@ static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
         }
         for( i = 0; i < 3; i++ )
             for( j = 0; j < 33; j++ )
-                x264_cost_ref[a->i_qp][i][j] = a->i_lambda * bs_size_te( i, j );
+                x264_cost_ref[a->i_qp][i][j] = i ? a->i_lambda * bs_size_te( i, j ) : 0;
     }
     a->p_cost_mv = p_cost_mv[a->i_qp];
     a->p_cost_ref0 = x264_cost_ref[a->i_qp][x264_clip3(h->sh.i_num_ref_idx_l0_active-1,0,2)];

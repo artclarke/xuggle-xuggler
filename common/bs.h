@@ -233,7 +233,7 @@ static inline void bs_write_te( bs_t *s, int x, int val )
 {
     if( x == 1 )
         bs_write1( s, 1^val );
-    else if( x > 1 )
+    else //if( x > 1 )
         bs_write_ue( s, val );
 }
 
@@ -265,10 +265,8 @@ static inline int bs_size_te( int x, int val )
 {
     if( x == 1 )
         return 1;
-    else if( x > 1 )
+    else //if( x > 1 )
         return x264_ue_size_tab[val+1];
-    else
-        return 0;
 }
 
 #endif
