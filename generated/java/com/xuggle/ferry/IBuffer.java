@@ -124,10 +124,12 @@ public class IBuffer extends RefCounted {
      *
      * <p> 
      * 
-     * The buffer position, mark and limit are initialized to zero.  If
-     * the limit is going to be used in the calling context, the caller
-     * must set the buffer limit to the number of elements in the
-     * buffer.
+     * The buffer position, mark are initialized to zero and limit
+     * is set to the maximum capacity of this buffer.  For some
+     * IBuffer contents, the actual usable data in this buffer will
+     * be less that the limit.  In those cases, use the getByteBuffer()
+     * method on those obejects directly and limit will be set to their
+     * current content limit.
      * 
      * </p>
      * <p>
@@ -187,11 +189,6 @@ public class IBuffer extends RefCounted {
       
       // and tell Java this byte buffer is in native order
       retval.order(java.nio.ByteOrder.nativeOrder());
-
-      // zero the position, mark and limit
-      retval.position(0);
-      retval.mark();
-      retval.limit(0);
     }
     return retval;
   }
