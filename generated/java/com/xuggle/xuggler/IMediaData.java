@@ -114,20 +114,31 @@ public class IMediaData extends RefCounted {
 
 
   /**
-   * Gets the underlying {@link java.nio.ByteBuffer} for this {@link IMediaData}
-   * object.  Users may modify the contents of the ByteBuffer and their
-   * changes will be reflected in the underlying memory.  See
-   * {@link com.xuggle.ferry.IBuffer} for the warnings associated with the
-   * use of raw memory.
+   * Gets the underlying {@link java.nio.ByteBuffer} for this {@link
+   * IMediaData} object.  Users may modify the contents of the
+   * ByteBuffer and their changes will be reflected in the underlying
+   * memory.  See {@link com.xuggle.ferry.IBuffer} for the warnings
+   * associated with the use of raw memory.  The buffer position and
+   * mark are initialized to zero, and the limit is initialized to the
+   * number of elements in the buffer.
+   *
    * <p>
+   *
    * This is a convenience method to allow you to avoid getting the
    * IBuffer object that has the actual data.
+   *
    * </p>
    *
    * @return The underlying ByteBuffer
    */
+
   public java.nio.ByteBuffer getByteBuffer() {
-    return this.getData().getByteBuffer(0, this.getSize());
+    java.nio.ByteBuffer byteBuffer = this.getData()
+      .getByteBuffer(0, this.getSize());
+    byteBuffer.position(0);
+    byteBuffer.mark();
+    byteBuffer.limit(this.getSize())
+    return byteBuffer;
   }
 
 /**

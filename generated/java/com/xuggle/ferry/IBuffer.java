@@ -119,44 +119,60 @@ public class IBuffer extends RefCounted {
   }
   
     /**
-     * Returns up to length bytes, starting at offset in the
-     * underlying buffer we're managing.
+     * Returns up to length bytes, starting at offset in the underlying
+     * buffer we're managing.
+     *
      * <p> 
-     * WARNING: If you use this method you are access the direct native
-     * memory associated with this buffer.  That means changes
-     * you make to this buffer are immediately reflected in the underlying
-     * memory.
+     * 
+     * The buffer position, mark and limit are initialized to zero.  If
+     * the limit is going to be used in the calling context, the caller
+     * must set the buffer limit to the number of elements in the
+     * buffer.
+     * 
      * </p>
      * <p>
+     *
+     * WARNING: If you use this method you are access the direct native
+     * memory associated with this buffer.  That means changes you make
+     * to this buffer are immediately reflected in the underlying
+     * memory.
+     *    
+     * </p>
+     * <p>
+     *
      * <b>NOTE FOR THE TRULY PARANOID</b>: Once you call this method,
-     * the underlying native memory allocated will not be released
-     * until all references to the returned value are no longer reachable
-     * and at least one call to {@link JNIMemoryManager#gc()} has been
+     * the underlying native memory allocated will not be released until
+     * all references to the returned value are no longer reachable and
+     * at least one call to {@link JNIMemoryManager#gc()} has been
      * performed.  The {@link JNIMemoryManager#gc()} is called whenever
      * xuggler tries to allocate new memory for any Xuggler interface,
-     * so normally you don't need
-     * to care about this.  For most Xuggler objects, you never need to care about
-     * this, because if for some reason no other Xuggler object is ever allocated
-     * (forcing an internal {@link JNIMemoryManager#gc()}), every Xuggler object has
+     * so normally you don't need to care about this.  For most Xuggler
+     * objects, you never need to care about this, because if for some
+     * reason no other Xuggler object is ever allocated (forcing an
+     * internal {@link JNIMemoryManager#gc()}), every Xuggler object has
      * a finalizer as well that will do the right thing.
+     *
      * </p>
-     * <p>But in the case of Java ByteBuffers, we can't set a finalizer, so you
-     * may find situations where {@link JNIMemoryManager#gc()} is not automatically
-     * called for you.  If you're truly paranoid or haven't called a Xuggler interface in a
-     * a while, a call to {@link JNIMemoryManager#gc}
-     * never hurts.
+     * <p>
+     *
+     * But in the case of Java ByteBuffers, we can't set a finalizer, so
+     * you may find situations where {@link JNIMemoryManager#gc()} is
+     * not automatically called for you.  If you're truly paranoid or
+     * haven't called a Xuggler interface in a a while, a call to {@link
+     * JNIMemoryManager#gc} never hurts.
      *  
      * </p>
-     * </p>
      * 
-     * @param offset The offset (in bytes) into the buffer managed by this IBuffer
-     * @param length The requested length (in bytes) you want to access.  The buffer returned may
-     *   actually be longer than length.
+     * @param offset The offset (in bytes) into the buffer managed by
+     *   this IBuffer
+     * @param length The requested length (in bytes) you want to access.
+     *   The buffer returned may actually be longer than length.
      * 
      * @return A java.nio.ByteBuffer that directly accesses
      *   the native memory this IBuffer manages, or null if
      *   error.
      */
+
   public java.nio.ByteBuffer getByteBuffer(int offset, int length)
   {
     java.nio.ByteBuffer retval = this.java_getByteBuffer(offset, length);
@@ -171,6 +187,11 @@ public class IBuffer extends RefCounted {
       
       // and tell Java this byte buffer is in native order
       retval.order(java.nio.ByteOrder.nativeOrder());
+
+      // zero the position, mark and limit
+      retval.position(0);
+      retval.mark();
+      retval.limit(0);
     }
     return retval;
   }
