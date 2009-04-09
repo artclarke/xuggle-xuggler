@@ -44,7 +44,7 @@
       .getByteBuffer(0, this.getSize());
     byteBuffer.position(0);
     byteBuffer.mark();
-    byteBuffer.limit(this.getSize())
+    byteBuffer.limit(this.getSize());
     return byteBuffer;
   }
 %}
