@@ -412,6 +412,9 @@
       </not>
     </condition>
     <mkdir dir="${build.dir}/lib"/>
+    <mkdir dir="${build.dir}/lib/compile"/>
+    <mkdir dir="${build.dir}/lib/test"/>
+    <mkdir dir="${build.dir}/lib/default"/>
     <echo message="ivy.settings.name: ${ivy.settings.name}"/>
     <ivy:resolve file="ivy.xml" conf="${ivy.settings.name}"/>
     <ivy:retrieve file="ivy.xml" conf="${ivy.settings.name}"/>
