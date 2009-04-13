@@ -34,9 +34,9 @@ using the library and what you like or don't like about it.
   <resolvers>
     <chain name="publish" returnFirst="true">     
       <filesystem name="shared_dir">
-        <ivy pattern="${xugglerepo.dir}/xuggle/${app.name}/[revision]/ivy-[revision].xml"/>
-        <artifact pattern="${xugglerepo.dir}/xuggle/${app.name}/[revision]/[artifact](-[revision]).[type]" />
-        <artifact pattern="${xugglerepo.dir}/xuggle/${app.name}/[revision]/[artifact](-[revision]).[ext]" />
+        <ivy pattern="${xugglerepo.dir}/[organization]/${app.name}/[revision]/ivy-[revision].xml"/>
+        <artifact pattern="${xugglerepo.dir}/[organization]/${app.name}/[revision]/[artifact](-[revision]).[type]" />
+        <artifact pattern="${xugglerepo.dir}/[organization]/${app.name}/[revision]/[artifact](-[revision]).[ext]" />
       </filesystem>        
     </chain>    
     <chain name="remote" returnFirst="true">     

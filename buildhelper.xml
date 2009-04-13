@@ -64,6 +64,7 @@ using the library and what you like or don't like about it.
   <property file="${xuggle-buildhelper.basedir}/build.properties"/>
   <property name="app.name" value="${ant.project.name}"/>
   <property name="documentation.title" value="${ant.project.name}"/>
+  <property name="organization.name" value="xuggle"/>
 
   <property environment="env"/>
   <property name="top.dir" location="."/>
@@ -213,8 +214,8 @@ using the library and what you like or don't like about it.
       <artifacts pattern="${dist.dir}/lib/[artifact].[ext]" />
     </ivy:publish>
     <ivy:makepom
-      ivyfile="${xugglerepo.dir}/xuggle/${app.name}/${library.version}/ivy-${library.version}.xml"
-      pomfile="${xugglerepo.dir}/xuggle/${app.name}/${library.version}/${app.name}-${library.version}.pom">
+      ivyfile="${xugglerepo.dir}/${organization.name}/${app.name}/${library.version}/ivy-${library.version}.xml"
+      pomfile="${xugglerepo.dir}/${organization.name}/${app.name}/${library.version}/${app.name}-${library.version}.pom">
       <mapping conf="compile" scope="compile"/>
       <mapping conf="default" scope="runtime"/>
       <mapping conf="test" scope="test"/>
