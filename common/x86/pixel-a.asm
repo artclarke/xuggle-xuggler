@@ -429,23 +429,23 @@ cglobal x264_pixel_var_8x8_sse2, 2,4,8
 
 %macro TRANS_SSE4 5-6 ; see above
 %ifidn %1, d
-%define mask 10101010b
-%define shift 16
-%elifidn %1, q
-%define mask 11001100b
-%define shift 32
-%endif
     mova   m%5, m%3
 %ifidn %2, ord
-    psrl%1 m%3, shift
+    psrl%1 m%3, 16
 %endif
-    pblendw m%3, m%4, mask
-    psll%1 m%4, shift
+    pblendw m%3, m%4, 10101010b
+    psll%1 m%4, 16
 %ifidn %2, ord
-    pblendw m%4, m%5, 255^mask
+    pblendw m%4, m%5, 01010101b
 %else
-    psrl%1 m%5, shift
+    psrl%1 m%5, 16
     por    m%4, m%5
+%endif
+%elifidn %1, q
+    mova   m%5, m%3
+    shufps m%3, m%4, 10001000b
+    shufps m%5, m%4, 11011101b
+    SWAP   %4, %5
 %endif
 %endmacro
 
@@ -1923,29 +1923,43 @@ HADAMARD_AC_SSE2 sse4
 ; void x264_pixel_ssim_4x4x2_core_sse2( const uint8_t *pix1, int stride1,
 ;                                       const uint8_t *pix2, int stride2, int sums[2][4] )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_ssim_4x4x2_core_sse2, 4,4,8
-    pxor      m0, m0
-    pxor      m1, m1
-    pxor      m2, m2
-    pxor      m3, m3
-    pxor      m4, m4
-%rep 4
-    movq      m5, [r0]
-    movq      m6, [r2]
+
+%macro SSIM_ITER 1
+    movq      m5, [r0+(%1&1)*r1]
+    movq      m6, [r2+(%1&1)*r3]
     punpcklbw m5, m0
     punpcklbw m6, m0
+%if %1==1
+    lea       r0, [r0+r1*2]
+    lea       r2, [r2+r3*2]
+%endif
+%if %1==0
+    movdqa    m1, m5
+    movdqa    m2, m6
+%else
     paddw     m1, m5
     paddw     m2, m6
+%endif
     movdqa    m7, m5
     pmaddwd   m5, m5
     pmaddwd   m7, m6
     pmaddwd   m6, m6
+%if %1==0
+    SWAP      m3, m5
+    SWAP      m4, m7
+%else
     paddd     m3, m5
     paddd     m4, m7
+%endif
     paddd     m3, m6
-    add       r0, r1
-    add       r2, r3
-%endrep
+%endmacro
+
+cglobal x264_pixel_ssim_4x4x2_core_sse2, 4,4,8
+    pxor      m0, m0
+    SSIM_ITER 0
+    SSIM_ITER 1
+    SSIM_ITER 2
+    SSIM_ITER 3
     ; PHADDW m1, m2
     ; PHADDD m3, m4
     movdqa    m7, [pw_1 GLOBAL]
@@ -1971,8 +1985,7 @@ cglobal x264_pixel_ssim_4x4x2_core_sse2, 4,4,8
 
     movq      [t0+ 0], m1
     movq      [t0+ 8], m3
-    psrldq    m1, 8
-    movq      [t0+16], m1
+    movhps    [t0+16], m1
     movq      [t0+24], m5
     RET
 
