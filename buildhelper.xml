@@ -1054,6 +1054,7 @@ using the library and what you like or don't like about it.
             dir="@{path}"
             outputproperty="@{property}"
             failonerror="false"
+            failifexecutionfails="false"
             >
             <arg line="pwd -P"/>
           </exec>
