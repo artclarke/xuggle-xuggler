@@ -473,7 +473,20 @@ namespace com { namespace xuggle { namespace xuggler
           pkt->getDuration(),
           pkt->getPosition(),
           packet->data);
-
+      
+      // and let's try to set the packet time base if known
+      if (pkt->getStreamIndex() >= 0)
+      {
+        RefPointer<IStream> stream = this->getStream(pkt->getStreamIndex());
+        if (stream)
+        {
+          RefPointer<IRational> streamBase = stream->getTimeBase();
+          if (streamBase)
+          {
+            pkt->setTimeBase(streamBase.value());
+          }
+        }
+      }
     }
     return retval;
   }

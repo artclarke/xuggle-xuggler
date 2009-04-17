@@ -233,7 +233,9 @@ public class ContainerTest extends TestCase
     retval = container.open(mSampleFile, IContainer.Type.READ, null);
     assertTrue("could not open file", retval >= 0);
     
-    assertEquals("unexpected duration", 149264000, container.getDuration());
+    assertEquals("unexpected duration", 149264000.0, container.getDuration(),
+        30000); // allow a leeway of at least 30 milliseconds due to some
+    // 64 bit issues.
     
   }
 
@@ -297,6 +299,32 @@ public class ContainerTest extends TestCase
     }
     assertEquals("got unexpected number of packets in file", 7950, packetsRead);
   }
+
+  @Test
+  public void testReadPacketAddsTimeBase()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+
+    IPacket packet = IPacket.make();
+    
+    // just read the first three packets
+    for(int i = 0; i < 3; i++)
+    {
+      assertTrue(container.readNextPacket(packet) >= 0);
+      IRational timebase = packet.getTimeBase();
+      assertNotNull(timebase);
+      // should be 1/1000 for flv
+      assertEquals(1, timebase.getNumerator());
+      assertEquals(1000, timebase.getDenominator());
+    }
+    
+    container.close();
+  }
+
 
   /**
    * Seeks 20 seconds into the test file for a key frame, and then counts packets
