@@ -973,9 +973,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
     uint64_t bcost = m->i_pixel == PIXEL_16x16 ? m->cost : COST_MAX64;
     int bmx = m->mv[0];
     int bmy = m->mv[1];
-    int omx = bmx;
-    int omy = bmy;
-    int pmx, pmy, i, j;
+    int omx, omy, pmx, pmy, i, j;
     unsigned bsatd;
     int satd = 0;
     int dir = -2;

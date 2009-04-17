@@ -138,7 +138,6 @@ typedef struct {
 int open_file_y4m( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
 {
     int  i, n, d;
-    int  interlaced;
     char header[MAX_YUV4_HEADER+10];
     char *tokstart, *tokend, *header_end;
     y4m_input_t *h = malloc(sizeof(y4m_input_t));
@@ -197,12 +196,12 @@ int open_file_y4m( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
         case 'I': /* Interlace type */
             switch(*tokstart++)
             {
-            case 'p': interlaced = 0; break;
+            case 'p': break;
             case '?':
             case 't':
             case 'b':
             case 'm':
-            default: interlaced = 1;
+            default:
                 fprintf(stderr, "Warning, this sequence might be interlaced\n");
             }
             break;

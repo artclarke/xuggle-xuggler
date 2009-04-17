@@ -1381,7 +1381,6 @@ int     x264_encoder_encode( x264_t *h,
     else
     {
         thread_current =
-        thread_prev    =
         thread_oldest  = h;
     }
 
