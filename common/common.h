@@ -576,6 +576,7 @@ struct x264_t
             int i_mb_count_8x8dct[2];
             int i_mb_count_ref[2][32];
             int i_mb_partition[17];
+            int i_mb_cbp[6];
             /* Adaptive direct mv pred */
             int i_direct_score[2];
             /* Metrics */
@@ -602,6 +603,7 @@ struct x264_t
         int64_t i_mb_partition[2][17];
         int64_t i_mb_count_8x8dct[2];
         int64_t i_mb_count_ref[2][2][32];
+        int64_t i_mb_cbp[6];
         /* */
         int     i_direct_score[2];
         int     i_direct_frames[2];

@@ -1240,6 +1240,15 @@ static void x264_slice_write( x264_t *h )
                             h->stat.frame.i_mb_count_ref[i_list][i_ref] ++;
                     }
         }
+        if( h->mb.i_cbp_luma || h->mb.i_cbp_chroma )
+        {
+            int cbpsum = (h->mb.i_cbp_luma&1) + ((h->mb.i_cbp_luma>>1)&1)
+                       + ((h->mb.i_cbp_luma>>2)&1) + (h->mb.i_cbp_luma>>3);
+            int b_intra = IS_INTRA(h->mb.i_type);
+            h->stat.frame.i_mb_cbp[!b_intra + 0] += cbpsum;
+            h->stat.frame.i_mb_cbp[!b_intra + 2] += h->mb.i_cbp_chroma >= 1;
+            h->stat.frame.i_mb_cbp[!b_intra + 4] += h->mb.i_cbp_chroma == 2;
+        }
         if( h->mb.i_cbp_luma && !IS_INTRA(h->mb.i_type) )
         {
             h->stat.frame.i_mb_count_8x8dct[0] ++;
@@ -1660,6 +1669,8 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
         h->stat.i_mb_partition[h->sh.i_type][i] += h->stat.frame.i_mb_partition[i];
     for( i = 0; i < 2; i++ )
         h->stat.i_mb_count_8x8dct[i] += h->stat.frame.i_mb_count_8x8dct[i];
+    for( i = 0; i < 6; i++ )
+        h->stat.i_mb_cbp[i] += h->stat.frame.i_mb_cbp[i];
     if( h->sh.i_type != SLICE_TYPE_I )
         for( i_list = 0; i_list < 2; i_list++ )
             for( i = 0; i < 32; i++ )
@@ -1902,19 +1913,21 @@ void    x264_encoder_close  ( x264_t *h )
 
     if( h->stat.i_slice_count[SLICE_TYPE_I] + h->stat.i_slice_count[SLICE_TYPE_P] + h->stat.i_slice_count[SLICE_TYPE_B] > 0 )
     {
+#define SUM3(p) (p[SLICE_TYPE_I] + p[SLICE_TYPE_P] + p[SLICE_TYPE_B])
+#define SUM3b(p,o) (p[SLICE_TYPE_I][o] + p[SLICE_TYPE_P][o] + p[SLICE_TYPE_B][o])
+        int64_t i_i8x8 = SUM3b( h->stat.i_mb_count, I_8x8 );
+        int64_t i_intra = i_i8x8 + SUM3b( h->stat.i_mb_count, I_4x4 )
+                                 + SUM3b( h->stat.i_mb_count, I_16x16 );
+        int64_t i_all_intra = i_intra + SUM3b( h->stat.i_mb_count, I_PCM);
         const int i_count = h->stat.i_slice_count[SLICE_TYPE_I] +
                             h->stat.i_slice_count[SLICE_TYPE_P] +
                             h->stat.i_slice_count[SLICE_TYPE_B];
+        int64_t i_mb_count = i_count * h->mb.i_mb_count;
         float fps = (float) h->param.i_fps_num / h->param.i_fps_den;
-#define SUM3(p) (p[SLICE_TYPE_I] + p[SLICE_TYPE_P] + p[SLICE_TYPE_B])
-#define SUM3b(p,o) (p[SLICE_TYPE_I][o] + p[SLICE_TYPE_P][o] + p[SLICE_TYPE_B][o])
         float f_bitrate = fps * SUM3(h->stat.i_slice_size) / i_count / 125;
 
         if( h->pps->b_transform_8x8_mode )
         {
-            int64_t i_i8x8 = SUM3b( h->stat.i_mb_count, I_8x8 );
-            int64_t i_intra = i_i8x8 + SUM3b( h->stat.i_mb_count, I_4x4 )
-                                     + SUM3b( h->stat.i_mb_count, I_16x16 );
             x264_log( h, X264_LOG_INFO, "8x8 transform  intra:%.1f%%  inter:%.1f%%\n",
                       100. * i_i8x8 / i_intra,
                       100. * h->stat.i_mb_count_8x8dct[1] / h->stat.i_mb_count_8x8dct[0] );
@@ -1927,6 +1940,14 @@ void    x264_encoder_close  ( x264_t *h )
                       h->stat.i_direct_frames[1] * 100. / h->stat.i_slice_count[SLICE_TYPE_B],
                       h->stat.i_direct_frames[0] * 100. / h->stat.i_slice_count[SLICE_TYPE_B] );
         }
+
+        x264_log( h, X264_LOG_INFO, "coded y,uvDC,uvAC intra:%.1f%% %.1f%% %.1f%% inter:%.1f%% %.1f%% %.1f%%\n",
+                  h->stat.i_mb_cbp[0] * 100.0 / (i_all_intra*4),
+                  h->stat.i_mb_cbp[2] * 100.0 / (i_all_intra  ),
+                  h->stat.i_mb_cbp[4] * 100.0 / (i_all_intra  ),
+                  h->stat.i_mb_cbp[1] * 100.0 / ((i_mb_count - i_all_intra)*4),
+                  h->stat.i_mb_cbp[3] * 100.0 / ((i_mb_count - i_all_intra)  ),
+                  h->stat.i_mb_cbp[5] * 100.0 / ((i_mb_count - i_all_intra)) );
 
         for( i_list = 0; i_list < 2; i_list++ )
         {
