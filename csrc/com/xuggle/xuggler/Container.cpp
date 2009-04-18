@@ -576,7 +576,8 @@ namespace com { namespace xuggle { namespace xuggler
       // this is needed to catch a potential error on writeTrailer().
       mOpenCoders.clear();
       int numStreams = getNumStreams();
-      if (numStreams <= 0)
+      if (numStreams <= 0 && 
+          !(mFormatContext->ctx_flags & AVFMTCTX_NOHEADER))
         throw std::runtime_error("no streams added to container");
       
       for(int i = 0; i < numStreams; i++)
