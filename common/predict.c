@@ -496,7 +496,7 @@ static void predict_4x4_hu( uint8_t *src )
 #define PT(x) \
     edge[16+x] = F2(SRC(x-1,-1), SRC(x,-1), SRC(x+1,-1));
 
-void x264_predict_8x8_filter( uint8_t *src, uint8_t edge[33], int i_neighbor, int i_filters )
+static void predict_8x8_filter( uint8_t *src, uint8_t edge[33], int i_neighbor, int i_filters )
 {
     /* edge[7..14] = l7..l0
      * edge[15] = lt
@@ -794,7 +794,7 @@ void x264_predict_8x8c_init( int cpu, x264_predict_t pf[7] )
 #endif
 }
 
-void x264_predict_8x8_init( int cpu, x264_predict8x8_t pf[12], x264_predict_8x8_filter_t *predict_8x8_filter )
+void x264_predict_8x8_init( int cpu, x264_predict8x8_t pf[12], x264_predict_8x8_filter_t *predict_filter )
 {
     pf[I_PRED_8x8_V]      = predict_8x8_v;
     pf[I_PRED_8x8_H]      = predict_8x8_h;
@@ -808,10 +808,10 @@ void x264_predict_8x8_init( int cpu, x264_predict8x8_t pf[12], x264_predict_8x8_
     pf[I_PRED_8x8_DC_LEFT]= predict_8x8_dc_left;
     pf[I_PRED_8x8_DC_TOP] = predict_8x8_dc_top;
     pf[I_PRED_8x8_DC_128] = predict_8x8_dc_128;
-    *predict_8x8_filter   = x264_predict_8x8_filter;
+    *predict_filter       = predict_8x8_filter;
 
 #ifdef HAVE_MMX
-    x264_predict_8x8_init_mmx( cpu, pf, predict_8x8_filter );
+    x264_predict_8x8_init_mmx( cpu, pf, predict_filter );
 #endif
 }
 

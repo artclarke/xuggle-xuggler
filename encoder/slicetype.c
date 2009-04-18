@@ -217,7 +217,7 @@ lowres_intra_mb:
             }
             i_icost = X264_MIN4( satds[0], satds[1], satds[2], satds[3] );
 
-            x264_predict_8x8_filter( pix, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
+            h->predict_8x8_filter( pix, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
             for( i=3; i<9; i++ )
             {
                 int satd;

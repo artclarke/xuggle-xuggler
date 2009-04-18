@@ -1005,7 +1005,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
 
             p_dst_by = p_dst + 8*x + 8*y*FDEC_STRIDE;
             predict_4x4_mode_available( h->mb.i_neighbour8[idx], predict_mode, &i_max );
-            x264_predict_8x8_filter( p_dst_by, edge, h->mb.i_neighbour8[idx], ALL_NEIGHBORS );
+            h->predict_8x8_filter( p_dst_by, edge, h->mb.i_neighbour8[idx], ALL_NEIGHBORS );
 
             for( i = 0; i < i_max; i++ )
             {
