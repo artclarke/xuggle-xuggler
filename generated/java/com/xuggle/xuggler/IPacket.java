@@ -139,6 +139,33 @@ public class IPacket extends IMediaData {
     super.delete();
   }
 
+
+  /**
+   * info about this packet
+   * @return information about this packet
+   */
+   
+  @Override
+  public String toString()
+  {
+    StringBuilder result = new StringBuilder();
+    
+    result.append(this.getClass().getName()+"@"+hashCode()+"[");
+    result.append("complete:"+isComplete()+";");
+    result.append("dts:"+getDts()+";");
+    result.append("pts:"+getPts()+";");
+    result.append("size:"+getSize()+";");
+    result.append("key:"+isKey()+";");
+    result.append("flags:"+getFlags()+";");
+    result.append("stream index:"+getStreamIndex()+";");
+    result.append("duration:"+getDuration()+";");
+    result.append("position:"+getPosition()+";");
+    result.append("time base:"+getTimeBase()+";");
+    result.append("]");
+    return result.toString();
+  }
+
+
 /**
  * Clear out any data in this packet, but leaves  
  * the buffer available for reuse.  

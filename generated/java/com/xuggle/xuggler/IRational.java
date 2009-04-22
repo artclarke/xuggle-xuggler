@@ -126,6 +126,19 @@ public class IRational extends RefCounted {
     super.delete();
   }
 
+
+  /**
+   * Prints the contents of this object as a fraction.
+   * @return &quot;{@link #getNumerator()}/{@link #getDenominator()}&quot;
+   */
+   
+  @Override
+  public String toString()
+  {
+    return "" + getNumerator() + "/" + getDenominator();
+  }
+
+
   public int getNumerator() {
     return XugglerJNI.IRational_getNumerator(swigCPtr, this);
   }

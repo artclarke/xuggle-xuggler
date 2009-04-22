@@ -291,7 +291,9 @@ libxuggle_xuggler_la_HEADERS = \
   Global.h \
   IAudioResampler.h \
   IAudioSamples.h \
+  IAudioSamples.swg \
   ICodec.h \
+  ICodec.swg \
   IContainerFormat.h \
   IContainerParameters.h \
   IContainer.h \
@@ -299,14 +301,17 @@ libxuggle_xuggler_la_HEADERS = \
   IError.h \
   IError.swg \
   IVideoPicture.h \
+  IVideoPicture.swg \
   IMediaData.h \
   IMediaData.swg \
   IMediaDataWrapper.h \
   IMediaDataWrapper.swg \
   IPacket.h \
+  IPacket.swg \
   IPixelFormat.h \
   IProperty.h \
   IRational.h \
+  IRational.swg \
   IStreamCoder.h \
   IStreamCoder.swg \
   IStream.h \

@@ -122,6 +122,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
    *
    * @return a 4 char array of the fourcc
    */
+  
   public char[] getCodecTagArray()
   {
     char[] retval = new char[4];
@@ -141,6 +142,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
    *
    * @throws IllegalArgumentException if the array passed in is not exactly 4 bytes.
    */
+   
    public void setCodecTag(char[] fourcc)
    {
      if (fourcc == null || fourcc.length != 4)
@@ -149,6 +151,40 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
      tag = (fourcc[3]<<24)+(fourcc[2]<<16)+(fourcc[1]<<8)+fourcc[0];
      this.setCodecTag(tag);
    }
+   
+   /**
+    * Prints  details on this IStreamCoder
+    *
+    * @return key details for this IStreamCoder
+    */
+    
+  @Override
+  public String toString()
+  {
+    StringBuilder result = new StringBuilder();
+    ICodec.Type type = getCodecType();
+    
+    result.append(this.getClass().getName()+"@"+hashCode()+"[");
+    result.append("codec="+getCodec()+";");
+    result.append("time base="+getTimeBase()+";");
+    result.append("frame rate="+getFrameRate()+";");
+    switch(type)
+    {
+      case CODEC_TYPE_VIDEO:
+        result.append("pixel type="+getPixelType()+";");
+        result.append("width="+getWidth()+";");
+        result.append("height="+getHeight()+";");
+        break;
+      case CODEC_TYPE_AUDIO:
+        result.append("sample rate="+getSampleRate()+";");
+        result.append("channels="+getChannels()+";");
+        break;
+      default:
+        break;
+    }
+    result.append("]");
+    return result.toString();
+  } 
 
 /**
  * Get the direction.  

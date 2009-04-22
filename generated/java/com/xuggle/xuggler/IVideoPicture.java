@@ -117,6 +117,31 @@ public class IVideoPicture extends IMediaData {
     super.delete();
   }
 
+
+  /**
+   * info about this packet
+   * @return information about this packet
+   */
+   
+  @Override
+  public String toString()
+  {
+    StringBuilder result = new StringBuilder();
+    
+    result.append(this.getClass().getName()+"@"+hashCode()+"[");
+    result.append("pixel type:"+getPixelType()+";");
+    result.append("width:"+getWidth()+";");
+    result.append("height:"+getHeight()+";");
+    result.append("time stamp:"+getTimeStamp()+";");
+    result.append("complete:"+isComplete()+";");
+    result.append("size:"+getSize()+";");
+    result.append("key:"+isKey()+";");
+    result.append("time base:"+IRational.make(1,(int)Global.DEFAULT_PTS_PER_SECOND)+";");
+    result.append("]");
+    return result.toString();
+  }
+
+
 /**
  * Is this a key frame?  
  * @return	is this a key frame  

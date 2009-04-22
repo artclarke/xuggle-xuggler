@@ -18,36 +18,31 @@
  * with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
+%typemap (javacode) com::xuggle::xuggler::IAudioSamples,com::xuggle::xuggler::IAudioSamples*,com::xuggle::xuggler::IAudioSamples& %{
 
-package com.xuggle.xuggler;
-
-import org.junit.Test;
-
-import java.nio.ByteBuffer;
-
-import com.xuggle.xuggler.IAudioSamples;
-
-import static junit.framework.Assert.*;
-
-public class IMediaDataTest
-{
-  // test that getByteBuffer() returns well formed ByteBuffers,
-  // specifically that the limit is properly set to the actual amount of
-  // contained data
-
-  @Test
-  public void testGetByteBuffer()
+  /**
+   * info about this packet
+   * @return information about this packet
+   */
+   
+  @Override
+  public String toString()
   {
-    int sampleCount = 1000;
-    IAudioSamples mediaData = IAudioSamples.make(sampleCount, 1);
-    mediaData.setComplete(true, sampleCount, 44000, 1, 
-      IAudioSamples.Format.FMT_S16, 0);
-    int byteCount = mediaData.getSize();
-
-    ByteBuffer byteBuffer = mediaData.getByteBuffer();
-
-    assertEquals("Position should be zero:", byteBuffer.position(), 0);
-    assertEquals("Limit should be " + byteCount + ":", 
-      byteBuffer.limit(), byteCount);
+    StringBuilder result = new StringBuilder();
+    
+    result.append(this.getClass().getName()+"@"+hashCode()+"[");
+    result.append("sample rate:"+getSampleRate()+";");
+    result.append("channels:"+getChannels()+";");
+    result.append("format:"+getFormat()+";");
+    result.append("time stamp:"+getTimeStamp()+";");
+    result.append("complete:"+isComplete()+";");
+    result.append("size:"+getSize()+";");
+    result.append("key:"+isKey()+";");
+    result.append("time base:"+IRational.make(1,(int)Global.DEFAULT_PTS_PER_SECOND)+";");
+    result.append("]");
+    return result.toString();
   }
-}
+
+%}
+
+%include <com/xuggle/xuggler/IAudioSamples.h>

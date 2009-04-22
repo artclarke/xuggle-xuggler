@@ -953,6 +953,13 @@ public class Converter
           
           if (inSamples.getTimeStamp() != Global.NO_PTS)
             inSamples.setTimeStamp(inSamples.getTimeStamp() - tsOffset);
+
+          log.debug("packet:{}; samples:{}; offset:{}",
+              new Object[]{
+              iPacket.getPts(),
+              inSamples.getTimeStamp(),
+              tsOffset
+          });
           
           /**
            * If not an error, the decodeAudio returns the number of bytes
@@ -1007,6 +1014,13 @@ public class Converter
             numSamplesConsumed += retval;
             if (oPacket.isComplete())
             {
+              log.debug("out packet:{}; samples:{}; offset:{}",
+                  new Object[]{
+                  oPacket.getPts(),
+                  outSamples.getTimeStamp(),
+                  tsOffset
+              });
+
               /**
                * If we got a complete packet out of the encoder, then go ahead and write it
                * to the container.

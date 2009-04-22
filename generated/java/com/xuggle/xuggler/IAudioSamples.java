@@ -114,6 +114,31 @@ public class IAudioSamples extends IMediaData {
     super.delete();
   }
 
+
+  /**
+   * info about this packet
+   * @return information about this packet
+   */
+   
+  @Override
+  public String toString()
+  {
+    StringBuilder result = new StringBuilder();
+    
+    result.append(this.getClass().getName()+"@"+hashCode()+"[");
+    result.append("sample rate:"+getSampleRate()+";");
+    result.append("channels:"+getChannels()+";");
+    result.append("format:"+getFormat()+";");
+    result.append("time stamp:"+getTimeStamp()+";");
+    result.append("complete:"+isComplete()+";");
+    result.append("size:"+getSize()+";");
+    result.append("key:"+isKey()+";");
+    result.append("time base:"+IRational.make(1,(int)Global.DEFAULT_PTS_PER_SECOND)+";");
+    result.append("]");
+    return result.toString();
+  }
+
+
 /**
  * Returns whether or not we think this buffer has been filled  
  * with data.  

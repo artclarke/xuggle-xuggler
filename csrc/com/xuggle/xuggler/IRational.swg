@@ -18,36 +18,19 @@
  * with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
+%typemap (javacode) com::xuggle::xuggler::IRational,com::xuggle::xuggler::IRational*,com::xuggle::xuggler::IRational& %{
 
-package com.xuggle.xuggler;
-
-import org.junit.Test;
-
-import java.nio.ByteBuffer;
-
-import com.xuggle.xuggler.IAudioSamples;
-
-import static junit.framework.Assert.*;
-
-public class IMediaDataTest
-{
-  // test that getByteBuffer() returns well formed ByteBuffers,
-  // specifically that the limit is properly set to the actual amount of
-  // contained data
-
-  @Test
-  public void testGetByteBuffer()
+  /**
+   * Prints the contents of this object as a fraction.
+   * @return &quot;{@link #getNumerator()}/{@link #getDenominator()}&quot;
+   */
+   
+  @Override
+  public String toString()
   {
-    int sampleCount = 1000;
-    IAudioSamples mediaData = IAudioSamples.make(sampleCount, 1);
-    mediaData.setComplete(true, sampleCount, 44000, 1, 
-      IAudioSamples.Format.FMT_S16, 0);
-    int byteCount = mediaData.getSize();
-
-    ByteBuffer byteBuffer = mediaData.getByteBuffer();
-
-    assertEquals("Position should be zero:", byteBuffer.position(), 0);
-    assertEquals("Limit should be " + byteCount + ":", 
-      byteBuffer.limit(), byteCount);
+    return "" + getNumerator() + "/" + getDenominator();
   }
-}
+
+%}
+
+%include <com/xuggle/xuggler/IRational.h>

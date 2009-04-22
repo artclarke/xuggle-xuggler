@@ -115,6 +115,25 @@ public class ICodec extends RefCounted {
     super.delete();
   }
 
+
+  /**
+   * Prints the type and id of this codec
+   * @return the type and id
+   */
+   
+  @Override
+  public String toString()
+  {
+    StringBuilder result = new StringBuilder();
+    
+    result.append(this.getClass().getName()+"@"+hashCode()+"[");
+    result.append("type="+getType()+";");
+    result.append("id="+getID()+";");
+    result.append("]");
+    return result.toString();
+  }
+
+
 /**
  * @return	The name of thie Codec.  
  */

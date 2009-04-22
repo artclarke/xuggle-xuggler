@@ -18,36 +18,25 @@
  * with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
+%typemap (javacode) com::xuggle::xuggler::ICodec,com::xuggle::xuggler::ICodec*,com::xuggle::xuggler::ICodec& %{
 
-package com.xuggle.xuggler;
-
-import org.junit.Test;
-
-import java.nio.ByteBuffer;
-
-import com.xuggle.xuggler.IAudioSamples;
-
-import static junit.framework.Assert.*;
-
-public class IMediaDataTest
-{
-  // test that getByteBuffer() returns well formed ByteBuffers,
-  // specifically that the limit is properly set to the actual amount of
-  // contained data
-
-  @Test
-  public void testGetByteBuffer()
+  /**
+   * Prints the type and id of this codec
+   * @return the type and id
+   */
+   
+  @Override
+  public String toString()
   {
-    int sampleCount = 1000;
-    IAudioSamples mediaData = IAudioSamples.make(sampleCount, 1);
-    mediaData.setComplete(true, sampleCount, 44000, 1, 
-      IAudioSamples.Format.FMT_S16, 0);
-    int byteCount = mediaData.getSize();
-
-    ByteBuffer byteBuffer = mediaData.getByteBuffer();
-
-    assertEquals("Position should be zero:", byteBuffer.position(), 0);
-    assertEquals("Limit should be " + byteCount + ":", 
-      byteBuffer.limit(), byteCount);
+    StringBuilder result = new StringBuilder();
+    
+    result.append(this.getClass().getName()+"@"+hashCode()+"[");
+    result.append("type="+getType()+";");
+    result.append("id="+getID()+";");
+    result.append("]");
+    return result.toString();
   }
-}
+
+%}
+
+%include <com/xuggle/xuggler/ICodec.h>

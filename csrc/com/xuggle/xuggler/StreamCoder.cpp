@@ -55,8 +55,8 @@ StreamCoder :: StreamCoder() :
   mAudioFrameBuffer = 0;
   mBytesInFrameBuffer = 0;
   mFakePtsTimeBase = IRational::make(1, AV_TIME_BASE);
-  mFakeNextPts = 0;
-  mFakeCurrPts = 0;
+  mFakeNextPts = Global::NO_PTS;
+  mFakeCurrPts = Global::NO_PTS;
   mSamplesDecoded = 0;
   mLastValidAudioTimeStamp = Global::NO_PTS;
   mStartingTimestampOfBytesInFrameBuffer = Global::NO_PTS;
@@ -148,6 +148,15 @@ StreamCoder :: make(Direction direction, IStreamCoder* aCoder)
         if(base && av_q2d(icodec->time_base)*icodec->ticks_per_frame > base && base < 1.0/1000)
         {
           codec->time_base.num *= icodec->ticks_per_frame;
+        }
+        if (!codec->time_base.num || !codec->time_base.den)
+        {
+          RefPointer<IRational> iStreamBase = coder->getTimeBase();
+          if (iStreamBase)
+          {
+            codec->time_base.num = iStreamBase->getNumerator();
+            codec->time_base.den = iStreamBase->getDenominator();
+          }
         }
         switch(codec->codec_type)
         {
@@ -592,8 +601,8 @@ StreamCoder :: open()
       throw std::runtime_error("could not open codec");
     mOpened = true;
 
-    mFakeCurrPts = mFakeNextPts = mSamplesDecoded = mLastValidAudioTimeStamp
-        = 0;
+    mSamplesDecoded = mLastValidAudioTimeStamp = 0;
+    mFakeCurrPts = mFakeNextPts = Global::NO_PTS;
 
     // Do any post open initialization here.
     if (this->getCodecType() == ICodec::CODEC_TYPE_AUDIO)
@@ -644,7 +653,12 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
   AudioSamples *samples = dynamic_cast<AudioSamples*> (pOutSamples);
   Packet* packet = dynamic_cast<Packet*> (pPacket);
 
-  if (samples && packet && mCodecContext && mOpened && mDirection == DECODING && getCodecType() == ICodec::CODEC_TYPE_AUDIO)
+  if (samples
+      && packet
+      && mCodecContext
+      && mOpened
+      && mDirection == DECODING
+      && getCodecType() == ICodec::CODEC_TYPE_AUDIO)
   {
     int outBufSize = 0;
     int32_t inBufSize = 0;
@@ -678,6 +692,7 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
             outBufSize,
             inBuf,
             inBufSize);
+        mCodecContext->reordered_opaque = packet->getPts();
         retval = avcodec_decode_audio2(mCodecContext, outBuf, &outBufSize,
             inBuf, inBufSize);
         VS_LOG_TRACE("Finished %d decodeAudio(%p, %p, %d, %p, %d);",
@@ -709,6 +724,13 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
         if (packetTs == Global::NO_PTS)
           packetTs = packet->getDts();
 
+        if (packetTs == Global::NO_PTS && mFakeNextPts == Global::NO_PTS)
+        {
+          // the container doesn't have time stamps; assume we start
+          // at zero
+          VS_LOG_DEBUG("Setting fake pts to 0");
+          mFakeNextPts = 0;
+        }
         if (packetTs != Global::NO_PTS)
         {
           // The packet had a valid stream, and a valid time base
@@ -719,7 +741,8 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
             {
               int64_t fakeTsInStreamTimeBase = Global::NO_PTS;
               // rescale our fake into the time base of stream
-              fakeTsInStreamTimeBase = timeBase->rescale(mFakeNextPts, mFakePtsTimeBase.value());
+              fakeTsInStreamTimeBase = timeBase->rescale(mFakeNextPts,
+                  mFakePtsTimeBase.value());
               tsDelta = fakeTsInStreamTimeBase - packetTs;
             }
 
@@ -729,15 +752,16 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
             // otherwise, we should reset the stream's fake time stamp based on this
             // packet
             if (mFakeNextPts != Global::NO_PTS &&
-                (tsDelta <= 1 && tsDelta >= -1))
+                (tsDelta >= -1 && tsDelta <= 1))
             {
               // we're the right value; keep our fake next pts
+              VS_LOG_DEBUG("Keeping mFakeNextPts: %lld", mFakeNextPts);
             }
             else
             {
               // rescale to our internal timebase
               int64_t packetTsInMicroseconds = mFakePtsTimeBase->rescale(packetTs, timeBase.value());
-              VS_LOG_TRACE("%p Gap in audio (%lld); Resetting calculated ts from %lld to %lld",
+              VS_LOG_DEBUG("%p Gap in audio (%lld); Resetting calculated ts from %lld to %lld",
                   this,
                   tsDelta,
                   mFakeNextPts,
