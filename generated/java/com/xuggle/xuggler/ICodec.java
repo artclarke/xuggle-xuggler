@@ -129,6 +129,7 @@ public class ICodec extends RefCounted {
     result.append(this.getClass().getName()+"@"+hashCode()+"[");
     result.append("type="+getType()+";");
     result.append("id="+getID()+";");
+    result.append("name="+getName()+";");
     result.append("]");
     return result.toString();
   }
