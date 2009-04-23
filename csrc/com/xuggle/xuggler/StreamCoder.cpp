@@ -916,7 +916,7 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
       throw std::runtime_error("frame is not of the same PixelType as this Coder expected");
     }
 
-    if (mDirection != ENCODING || !mCodec->canEncode())
+    if (mDirection != ENCODING || !mCodec || !mCodec->canEncode())
     {
       throw std::runtime_error("Codec not valid for direction StreamCoder is working in");
     }
@@ -1039,7 +1039,7 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
 
   try
   {
-    if (mDirection != ENCODING || !mCodec->canEncode())
+    if (mDirection != ENCODING || !mCodec || !mCodec->canEncode())
       throw std::runtime_error("Codec not valid for direction StreamCoder is working in");
 
     if (!packet)
@@ -1078,7 +1078,8 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
           "no bytes in buffer at specified starting sample");
 
     int32_t bytesPerSample = (samples ? samples->getSampleSize()
-        : IAudioSamples::findSampleBitDepth((IAudioSamples::Format)mCodecContext->sample_fmt) / 8
+        : IAudioSamples::findSampleBitDepth(
+            (IAudioSamples::Format)mCodecContext->sample_fmt) / 8
             * getChannels());
 
     /*
