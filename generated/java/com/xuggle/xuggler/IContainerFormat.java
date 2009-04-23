@@ -121,6 +121,34 @@ public class IContainerFormat extends RefCounted {
     super.delete();
   }
 
+
+  /**
+   * info about this format object
+   * @return information about this object
+   */
+   
+  @Override
+  public String toString()
+  {
+    StringBuilder result = new StringBuilder();
+    
+    result.append(this.getClass().getName()+"@"+hashCode()+"[");
+    if (isInput())
+    {
+      result.append("iname:"+getInputFormatShortName()+";");
+      result.append("ilongname:"+getInputFormatLongName()+";");
+    }
+    if (isOutput())
+    {
+      result.append("oname:"+getOutputFormatShortName()+";");
+      result.append("olongname:"+getOutputFormatLongName()+";");
+      result.append("omimetype:"+getOutputFormatMimeType()+";");
+    }
+    result.append("]");
+    return result.toString();
+  }
+
+
 /**
  * Sets the input format for this container.  
  * @param	shortName The short name for this container (using FFMPEG's 
