@@ -316,6 +316,7 @@ libxuggle_xuggler_la_HEADERS = \
   IStreamCoder.h \
   IStreamCoder.swg \
   IStream.h \
+  IStream.swg \
   ITimeValue.h \
   IVideoResampler.h \
   IVideoResampler.swg \

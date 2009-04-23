@@ -131,6 +131,29 @@ public class IStream extends RefCounted {
     super.delete();
   }
 
+
+  /**
+   * info about this packet
+   * @return information about this packet
+   */
+   
+  @Override
+  public String toString()
+  {
+    StringBuilder result = new StringBuilder();
+    
+    result.append(this.getClass().getName()+"@"+hashCode()+"[");
+    result.append("index:"+getIndex()+";");
+    result.append("id:"+getId()+";");
+    result.append("streamcoder:"+getStreamCoder()+";");
+    result.append("framerate:"+getFrameRate()+";");
+    result.append("timebase:"+getTimeBase()+";");
+    result.append("direction:"+getDirection()+";");
+    result.append("]");
+    return result.toString();
+  }
+
+
 /**
  * @return	The direction of this stream.  
  */

@@ -160,7 +160,7 @@ import com.xuggle.xuggler.Converter;
 %include <com/xuggle/xuggler/IVideoPicture.swg>
 %include <com/xuggle/xuggler/IVideoResampler.swg>
 %include <com/xuggle/xuggler/IStreamCoder.swg>
-%include <com/xuggle/xuggler/IStream.h>
+%include <com/xuggle/xuggler/IStream.swg>
 %include <com/xuggle/xuggler/IContainerParameters.h>
 %include <com/xuggle/xuggler/IContainerFormat.swg>
 %include <com/xuggle/xuggler/IContainer.swg>
