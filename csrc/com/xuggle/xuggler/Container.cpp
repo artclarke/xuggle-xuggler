@@ -527,6 +527,7 @@ namespace com { namespace xuggle { namespace xuggler
       packet = pkt->getAVPacket();
       if (!packet || !packet->data)
         throw std::runtime_error("no data in packet");
+      
       /*
       VS_LOG_DEBUG("write-packet: %lld, %lld, %d, %d, %d, %lld, %lld: %p",
           pkt->getDts(),
@@ -538,6 +539,7 @@ namespace com { namespace xuggle { namespace xuggler
           pkt->getPosition(),
           packet->data);
           */
+      
       if (forceInterleave)
         retval =  av_interleaved_write_frame(mFormatContext, packet);
       else
@@ -576,10 +578,20 @@ namespace com { namespace xuggle { namespace xuggler
       // this is needed to catch a potential error on writeTrailer().
       mOpenCoders.clear();
       int numStreams = getNumStreams();
-      if (numStreams <= 0 && 
+      if (numStreams < 0 && 
           !(mFormatContext->ctx_flags & AVFMTCTX_NOHEADER))
         throw std::runtime_error("no streams added to container");
       
+      if (numStreams == 0)
+      {
+        RefPointer<IContainerFormat> format = getContainerFormat();
+        if (format)
+        {
+          const char *shortName = format->getOutputFormatShortName();
+          if (shortName && !strcmp(shortName, "mp3"))
+            throw std::runtime_error("no streams added to mp3 container");
+        }
+      }
       for(int i = 0; i < numStreams; i++)
       {
         RefPointer<IStream> stream = this->getStream(i);
