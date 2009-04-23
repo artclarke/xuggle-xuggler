@@ -39,22 +39,108 @@ import com.xuggle.xuggler.IVideoResampler;
 import com.xuggle.xuggler.io.URLProtocolManager;
 
 /**
- * An example class that shows how to use the Xuggler library to open, decode, re-sample, encode and write media files.
- * <p>
- * This method is called by the {@link Xuggler} class to do all the heavy lifting.
- * </p><p>
- * Read <a href="{@docRoot}/src-html/com/xuggle/xuggler/Converter.html">the Converter.java source</a>
- * for a good example of a program exercising this library.
- * </p>
+ * An example class that shows how to use the Xuggler library to open, decode,
+ * re-sample, encode and write media files.
  * 
- * @author aclarke
+ * <p>
+ * 
+ * This class is called by the {@link Xuggler} class to do all the heavy
+ * lifting. It is meant as a Demonstration class and implements a small subset
+ * of the functionality that the (much more full-featured) <code>ffmpeg</code>
+ * command line tool implements. It is really meant to show people how the
+ * Xuggler library is used from java.
  *
+ * </p>
+ * <p>
+ * 
+ * Read <a href="{@docRoot}/src-html/com/xuggle/xuggler/Converter.html">the
+ * Converter.java source</a> for a good example of a class exercising this
+ * library.
+ * 
+ * </p>
+ * <p>
+ * 
+ * <strong>It is not our intent to replicate all features in the
+ * <code>ffmpeg</code> command line tool in this class.</strong>
+ * 
+ * </p>
+ * <p>
+ * 
+ * If you are just trying to convert pre-existing media files from one format to
+ * another with a batch-processing program we strongly recommend you use the
+ * <code>ffmpeg</code> command-line tool to do it. Look, here's even the <a
+ * href="http://ffmpeg.org/ffmpeg-doc.html">documentation</a> for that program.
+ * 
+ * </p>
+ * <p>
+ * 
+ * If on the other hand you need to programatically decide when and how you do
+ * video processing, or process only parts of files, or do transcoding live
+ * within a Java server without calling out to another process, then by all
+ * means use Xuggler and use this class as an example of how to do conversion.
+ * But please recognize you will likely need to implement code specific to your
+ * application. <strong>This class is no substitute for actually understanding
+ * the how to use the Xuggler API within your specific use-case</strong>
+ * 
+ * </p>
+ * <p>
+ * 
+ * And if you haven't gotten the impression, please stop asking us to support
+ * <code>ffmpeg</code> options like "-re" in this class. This class is only
+ * meant as a teaching-aide for the underlying Xuggler API.
+ * 
+ * </p>
+ * <p>
+ * 
+ * Instead implement your own Java class based off of this that does real-time
+ * playback yourself. Really. Please. We'd appreciate it very much.
+ * 
+ * </p>
+ * <p>
+ * Now, all that said, here's how to create a main class that uses this
+ * Converter class:
+ * </p>
+ * <pre>
+ * public static void main(String[] args)
+ * {
+ *   Converter converter = new Converter();
+ *   try {
+ *     // first define options
+ *     Options options = converter.defineOptions();
+ *     // And then parse them.
+ *     CommandLine cmdLine = converter.parseOptions(options, args);
+ *     // Finally, run the converter.
+ *     converter.run(cmdLine);
+ *   }
+ *   catch (Exception exception)
+ *   {
+ *     System.err.printf("Error: %s\n", exception.getMessage());
+ *   }
+ * }
+ * </pre>
+ * 
+ * <p>
+ * 
+ * Pass &quot;--help&quot to your main class as the argument to see the
+ * list of accepted options.
+ * 
+ * </p>
+ * @author aclarke
+ * 
  */
 public class Converter
 {
   static {
     // this forces the FFMPEG io library to be loaded which means we can bypass FFMPEG's file io if needed
       URLProtocolManager.getManager();  
+  }
+  
+  /**
+   * Create a new Converter object.  
+   */
+  public Converter()
+  {
+    
   }
   
   private final Logger log = LoggerFactory.getLogger(this.getClass());
