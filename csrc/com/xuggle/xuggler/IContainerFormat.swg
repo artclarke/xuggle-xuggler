@@ -18,14 +18,11 @@
  * with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-
-%typemap(javainterfaces) com::xuggle::xuggler::IContainer, com::xuggle::xuggler::IContainer*, com::xuggle::xuggler::IContainer& "com.xuggle.xuggler.IConfigurable";
-%typemap (javacode) com::xuggle::xuggler::IContainer,com::xuggle::xuggler::IContainer*,com::xuggle::xuggler::IContainer& %{
+%typemap (javacode) com::xuggle::xuggler::IContainerFormat,com::xuggle::xuggler::IContainerFormat*,com::xuggle::xuggler::IContainerFormat& %{
 
   /**
-   * info about this container.  We only print information that can be
-   * determined without reading data from the container.
-   * @return a string representation of this object
+   * info about this format object
+   * @return information about this object
    */
    
   @Override
@@ -34,13 +31,21 @@
     StringBuilder result = new StringBuilder();
     
     result.append(this.getClass().getName()+"@"+hashCode()+"[");
-    result.append("url:"+getURL()+";");
-    result.append("type:"+getType()+";");
-    result.append("format:"+getContainerFormat()+";");
+    if (isInput())
+    {
+      result.append("iname:"+getInputFormatShortName()+";");
+      result.append("ilongname:"+getInputFormatLongName()+";");
+    }
+    if (isOutput())
+    {
+      result.append("oname:"+getOutputFormatShortName()+";");
+      result.append("olongname:"+getOutputFormatLongName()+";");
+      result.append("omimetype:"+getOutputFormatMimeType()+";");
+    }
     result.append("]");
     return result.toString();
   }
 
 %}
 
-%include <com/xuggle/xuggler/IContainer.h>
+%include <com/xuggle/xuggler/IContainerFormat.h>

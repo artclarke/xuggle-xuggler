@@ -572,12 +572,6 @@ StreamCoder :: open()
     if (!mCodec)
       throw std::runtime_error("no codec set for coder");
 
-    if ((mDirection == ENCODING && !mCodec->canEncode()) ||
-        (mDirection == DECODING && !mCodec->canDecode()))
-    {
-      throw std::runtime_error("Codec not valid for direction StreamCoder is working in");
-    }
-
     // Fix for issue #14: http://code.google.com/p/xuggle/issues/detail?id=14
     if (mStream)
     {
@@ -658,6 +652,7 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
       && mCodecContext
       && mOpened
       && mDirection == DECODING
+      && mCodec->canDecode()
       && getCodecType() == ICodec::CODEC_TYPE_AUDIO)
   {
     int outBufSize = 0;
@@ -755,13 +750,13 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
                 (tsDelta >= -1 && tsDelta <= 1))
             {
               // we're the right value; keep our fake next pts
-              VS_LOG_DEBUG("Keeping mFakeNextPts: %lld", mFakeNextPts);
+              VS_LOG_TRACE("Keeping mFakeNextPts: %lld", mFakeNextPts);
             }
             else
             {
               // rescale to our internal timebase
               int64_t packetTsInMicroseconds = mFakePtsTimeBase->rescale(packetTs, timeBase.value());
-              VS_LOG_DEBUG("%p Gap in audio (%lld); Resetting calculated ts from %lld to %lld",
+              VS_LOG_TRACE("%p Gap in audio (%lld); Resetting calculated ts from %lld to %lld",
                   this,
                   tsDelta,
                   mFakeNextPts,
@@ -798,7 +793,13 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
   int32_t retval = -1;
   VideoPicture* frame = dynamic_cast<VideoPicture*> (pOutFrame);
   Packet* packet = dynamic_cast<Packet*> (pPacket);
-  if (frame && packet && mCodecContext && mOpened && mDirection == DECODING && getCodecType() == ICodec::CODEC_TYPE_VIDEO)
+  if (frame &&
+      packet &&
+      mCodecContext &&
+      mOpened &&
+      mDirection == DECODING &&
+      mCodec->canDecode() &&
+      getCodecType() == ICodec::CODEC_TYPE_VIDEO)
   {
     // reset the frame
     frame->setComplete(false, this->getPixelType(), -1,
@@ -913,6 +914,11 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
     if (frame && frame->getPixelType() != this->getPixelType())
     {
       throw std::runtime_error("frame is not of the same PixelType as this Coder expected");
+    }
+
+    if (mDirection != ENCODING || !mCodec->canEncode())
+    {
+      throw std::runtime_error("Codec not valid for direction StreamCoder is working in");
     }
 
   if (mCodecContext && mOpened && mDirection == ENCODING && packet)
@@ -1033,6 +1039,9 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
 
   try
   {
+    if (mDirection != ENCODING || !mCodec->canEncode())
+      throw std::runtime_error("Codec not valid for direction StreamCoder is working in");
+
     if (!packet)
       throw std::invalid_argument("Invalid packet to encode to");
     // Zero out our packet
@@ -1042,8 +1051,6 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
       throw std::runtime_error("StreamCoder not initialized properly");
     if (!mOpened)
       throw std::runtime_error("StreamCoder not open");
-    if (!(mDirection == ENCODING))
-      throw std::runtime_error("Attempting to encode while decoding");
     if (getCodecType() != ICodec::CODEC_TYPE_AUDIO)
       throw std::runtime_error("Attempting to encode audio with non audio coder");
     if (!mAudioFrameBuffer)

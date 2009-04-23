@@ -164,10 +164,11 @@ namespace com { namespace xuggle { namespace xuggler
 
     /**
      * Get the stream at the given position.
-     *
+     * 
+     * @param streamIndex the index of this stream in the container
      * @return The stream at that position in the container, or null if none there.
      */
-    virtual IStream* getStream(uint32_t position)=0;
+    virtual IStream* getStream(uint32_t streamIndex)=0;
 
     /**
      * Creates a new stream in this container and returns it.

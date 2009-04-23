@@ -208,7 +208,7 @@ StreamCoderTest :: testSetCodec()
   codec = coder->getCodec();
   VS_TUT_ENSURE_EQUALS("should allow wrong direction", codec.value(), encodec.value());
   int retval = coder->open();
-  VS_TUT_ENSURE("should fail to open because of wrong direction", retval < 0);
+  VS_TUT_ENSURE("should succeed even though wrong direction", retval >= 0);
 }
 
 void

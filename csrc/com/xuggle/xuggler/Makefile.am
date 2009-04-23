@@ -70,6 +70,7 @@ libxuggle_xuggler_la_HEADERS= \
   ICodec.h \
   ICodec.swg \
   IContainerFormat.h \
+  IContainerFormat.swg \
   IContainerParameters.h \
   IContainer.h \
   IContainer.swg \

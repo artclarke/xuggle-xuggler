@@ -113,6 +113,27 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     super.delete();
   }
 
+
+  /**
+   * info about this container.  We only print information that can be
+   * determined without reading data from the container.
+   * @return a string representation of this object
+   */
+   
+  @Override
+  public String toString()
+  {
+    StringBuilder result = new StringBuilder();
+    
+    result.append(this.getClass().getName()+"@"+hashCode()+"[");
+    result.append("url:"+getURL()+";");
+    result.append("type:"+getType()+";");
+    result.append("format:"+getContainerFormat()+";");
+    result.append("]");
+    return result.toString();
+  }
+
+
 /**
  * Set the buffer length we'll suggest to FFMPEG for reading inputs. 
  *  
@@ -251,11 +272,12 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 
 /**
  * Get the stream at the given position.  
+ * @param	streamIndex the index of this stream in the container  
  * @return	The stream at that position in the container, or null if 
  *		 none there.  
  */
-  public IStream getStream(long position) {
-    long cPtr = XugglerJNI.IContainer_getStream(swigCPtr, this, position);
+  public IStream getStream(long streamIndex) {
+    long cPtr = XugglerJNI.IContainer_getStream(swigCPtr, this, streamIndex);
     return (cPtr == 0) ? null : new IStream(cPtr, false);
   }
 
