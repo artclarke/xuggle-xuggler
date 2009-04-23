@@ -592,7 +592,7 @@ namespace com { namespace xuggle { namespace xuggler
               // add to our open list
               mOpenCoders.push_back(coder);
             else
-              VS_LOG_WARN("writing Header for container, but at least one codec (%d) is not opened first", i);
+              VS_LOG_TRACE("writing Header for container, but at least one codec (%d) is not opened first", i);
           }
         }
       }

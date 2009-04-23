@@ -135,8 +135,8 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 
 
 /**
- * Set the buffer length we'll suggest to FFMPEG for reading inputs. 
- *  
+ * Set the buffer length Xuggler will suggest to FFMPEG for reading 
+ * inputs.  
  * If called when a IContainer is open, the call is ignored and -1 is 
  * returned.  
  * @param	size The suggested buffer size.  
@@ -148,8 +148,9 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 
 /**
  * Return the input buffer length.  
- * @return	The input buffer length we've told FFMPEG to assume. 0 means 
- *		 FFMPEG should choose it's own  
+ * @return	The input buffer length Xuggler's told FFMPEG to assume. 
+ *		  
+ * 0 means FFMPEG should choose it's own  
  * size (and it'll probably be 32768).  
  */
   public long getInputBufferLength() {
@@ -174,8 +175,9 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 
 /**
  * Open this container and make it ready for reading or writing.  
- *  
- * it for them later but warn to the logging system.  
+ * The caller must call close() when done, but if not, the  
+ * {@link IContainer} will eventually close  
+ * them later but warn to the logging system.  
  * This just forwards to {@link #open(String, Type, IContainerFormat, 
  * boolean, boolean)}  
  * passing false for aStreamsCanBeAddedDynamically, and true for aLookForAllStreams. 
@@ -201,8 +203,9 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  *  
  * reading as far into the container as necessary to find all streams. 
  *  
- *  
- * it for them later but warn to the logging system.  
+ * The caller must call close() when done, but if not, the  
+ * {@link IContainer} will eventually close  
+ * them later but warn to the logging system.  
  * @param	url The resource to open; The format of this string is any 
  *		  
  * url that FFMPEG supports (including additional protocols if added 
@@ -233,7 +236,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 /**
  * Returns the IContainerFormat object being used for this IContainer, 
  *  
- * or null if we don't yet know.  
+ * or null if the {@link IContainer} doesn't yet know.  
  * @return	the IContainerFormat object, or null.  
  */
   public IContainerFormat getContainerFormat() {
@@ -260,7 +263,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 
 /**
  * The number of streams in this container.  
- * If opened in READ mode we'll query the stream and find out  
+ *  
  * how many streams are in it.  
  *  
  * the caller has added to date.  
@@ -312,8 +315,8 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  * to this container but BEFORE you close your IStreamCoders.  
  * <p>  
  * You must call {@link #writeHeader()} before you call  
- * this (and if you don't, we'll warn loudly and not actually write 
- * the trailer).  
+ *  
+ * actually write the trailer).  
  * </p>  
  * <p>  
  * If you have closed any of the IStreamCoder objects that were open 
@@ -331,7 +334,8 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  * Reads the next packet into the IPacket. This method will  
  * release any buffers currently help by this packet and allocate  
  * new ones (sorry; such is the way FFMPEG works).  
- * @param	packet [In/Out] The packet we read into.  
+ * @param	packet [In/Out] The packet the IContainer will read into. 
+ *		  
  * @return	0 if successful, or <0 if not.  
  */
   public int readNextPacket(IPacket packet) {
@@ -341,12 +345,13 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 /**
  * Writes the contents of the packet to the container.  
  * @param	packet [In] The packet to write out.  
- * @param	forceInterleave [In] If true, then we will make sure all packets 
- *		  
- * are interleaved by DTS (even across streams in a container). If false, 
- * we won't,  
+ * @param	forceInterleave [In] If true, then this {@link IContainer} 
+ *		 will  
+ * make sure all packets  
+ * are interleaved by DTS (even across streams in a container).  
+ * If false, the {@link IContainer} won't,  
  * and it's up to the caller to interleave if necessary.  
- * @return	# of bytes read if successful, or -1 if not.  
+ * @return	# of bytes written if successful, or -1 if not.  
  */
   public int writePacket(IPacket packet, boolean forceInterleave) {
     return XugglerJNI.IContainer_writePacket__SWIG_0(swigCPtr, this, IPacket.getCPtr(packet), packet, forceInterleave);
@@ -354,13 +359,13 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 
 /**
  * Writes the contents of the packet to the container, but make sure 
- * the packets are  
- * interleaved.  
- * This means we may have to queue up packets from one stream while 
- * waiting for  
- * packets from another.  
+ * the  
+ * packets are interleaved.  
+ * This means the {@link IContainer} may have to queue up packets from 
+ * one  
+ * stream while waiting for packets from another.  
  * @param	packet [In] The packet to write out.  
- * @return	# of bytes read if successful, or -1 if not.  
+ * @return	# of bytes written if successful, or -1 if not.  
  */
   public int writePacket(IPacket packet) {
     return XugglerJNI.IContainer_writePacket__SWIG_1(swigCPtr, this, IPacket.getCPtr(packet), packet);
@@ -402,7 +407,8 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  * keyframe from the  
  * sought for stream.  
  * @param	streamIndex The stream to search for the keyframe in; must 
- *		 be a stream we've either queried  
+ *		 be a  
+ * stream the IContainer has either queried  
  * meta-data about or already ready a packet for.  
  * @param	timestamp The timestamp, in the timebase of the stream you're 
  *		 looking in (not necessarily Microseconds).  
@@ -416,8 +422,9 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 
 /**
  * Gets the duration, if known, of this container.  
- * This will only work for non-streamable containers where we can calculate 
- * the container size.  
+ * This will only work for non-streamable containers where IContainer 
+ *  
+ * can calculate the container size.  
  * @return	The duration, or {@link Global#NO_PTS} if not known.  
  */
   public long getDuration() {
@@ -429,8 +436,8 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  * the earliest stream in this container.  
  * This will only return value values either either (a) for non-streamable 
  *  
- * containers where we can calculate the container size or (b) after 
- * we've actually read the  
+ *  
+ * (b) after IContainer has actually read the  
  * first packet from a streamable source.  
  * @return	The starting timestamp in microseconds, or {@link Global#NO_PTS} 
  *		 if not known.  
@@ -632,7 +639,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   }
 
 /**
- * Get the URL we've opened, or null if unknown.  
+ *  
  * @return	the URL opened, or null.  
  */
   public String getURL() {
@@ -694,7 +701,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 
   public enum Type {
   /**
-   * The different types of Containers we support. A container
+   *
    * may only be opened in a uni-directional mode.
    */
     READ,
