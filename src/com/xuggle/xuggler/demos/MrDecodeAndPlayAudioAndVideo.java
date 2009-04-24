@@ -49,7 +49,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * @author trebor
  */
 
-public class MrDecodeAndPlayAudioAndVideo implements MediaReader.IListener
+public class MrDecodeAndPlayAudioAndVideo extends MediaReader.ListenerAdapter
 {
   /**
    * The audio line we'll output sound to; it'll be the default audio

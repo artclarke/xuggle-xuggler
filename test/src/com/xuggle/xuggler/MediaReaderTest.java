@@ -72,7 +72,7 @@ public class MediaReaderTest //extends TestCase
 
     // setup the the listener
 
-    MediaReader.IListener mrl = new MediaReader.IListener()
+    MediaReader.IListener mrl = new MediaReader.ListenerAdapter()
       {
         public void onVideoPicture(IVideoPicture picture, BufferedImage image,
           int streamIndex)
@@ -133,7 +133,7 @@ public class MediaReaderTest //extends TestCase
 
     // setup the the listener
 
-    MediaReader.IListener mrl = new MediaReader.IListener()
+    MediaReader.IListener mrl = new MediaReader.ListenerAdapter()
       {
         public void onVideoPicture(IVideoPicture picture, BufferedImage image,
           int streamIndex)
@@ -184,7 +184,7 @@ public class MediaReaderTest //extends TestCase
 
     // setup the the listener
 
-    MediaReader.IListener mrl = new MediaReader.IListener()
+    MediaReader.IListener mrl = new MediaReader.ListenerAdapter()
       {
         public void onVideoPicture(IVideoPicture picture, BufferedImage image,
           int streamIndex)

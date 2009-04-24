@@ -404,9 +404,13 @@ public class MediaReader
     // if the container is not yet been opend, open it
 
     if (!mContainer.isOpened())
+    {
       if (mContainer.open(mUrl, IContainer.Type.READ, null, 
           mStreamsCanBeAddedDynamically, mQueryStreamMetaData) < 0)
         throw new RuntimeException("could not open: " + mUrl);
+      for (IListener l: mListeners)
+        l.onOpen(this);
+    }
 
     // if there is an off nomial resul from read packet return the
     // correct error
@@ -586,6 +590,11 @@ public class MediaReader
       mContainer.close();
       mContainer = null;
     }
+
+    // tell the listeners that the container is closed
+
+    for (IListener l: mListeners)
+      l.onClose(this);
   }
 
   /** Add a media reader listener.
@@ -617,7 +626,8 @@ public class MediaReader
 
   public static interface IListener
   {
-    /** Called after a video frame has been decoded from a media stream.
+    /**
+     * Called after a video frame has been decoded from a media stream.
      * Optionally a BufferedImage version of the frame may be passed
      * if the calling {@link MediaReader} instance was configured to
      * create BufferedImages.
@@ -633,7 +643,8 @@ public class MediaReader
     public void onVideoPicture(IVideoPicture picture, BufferedImage image,
       int streamIndex);
     
-    /** Called after audio samples have been decoded from a media
+    /**
+     * Called after audio samples have been decoded from a media
      * stream.  This method blocks, so return quickly.
      *
      * @param samples a audio samples
@@ -641,6 +652,24 @@ public class MediaReader
      */
 
     public void onAudioSamples(IAudioSamples samples, int streamIndex);
+
+    /**
+     * Called after the underlying container is opened, it will not be
+     * called if an open container is passed into the MediaReader.
+     *
+     * @param source the MediaReader which was just opened
+     */
+
+    public void onOpen(MediaReader source);
+
+    /**
+     * Called after the underlying container and all it's associated
+     * streams are closed.
+     * 
+     * @param source the MediaReader which was just closed
+     */
+
+    public void onClose(MediaReader source);
   }
 
   /** An implementation of {@link IListener} that implements all methods
@@ -661,6 +690,18 @@ public class MediaReader
     /** {@inheritDoc} */
 
     public void onAudioSamples(IAudioSamples samples, int streamIndex)
+    {
+    }
+
+    /** {@inheritDoc} */
+
+    public void onOpen(MediaReader source)
+    {
+    }
+
+    /** {@inheritDoc} */
+
+    public void onClose(MediaReader source)
     {
     }
   }
