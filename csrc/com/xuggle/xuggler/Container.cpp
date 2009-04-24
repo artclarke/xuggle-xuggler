@@ -133,10 +133,12 @@ namespace com { namespace xuggle { namespace xuggler
     {
       if (type == WRITE)
       {
-        retval = openOutputURL(url, pContainerFormat);
+        retval = openOutputURL(url, pContainerFormat,
+            aStreamsCanBeAddedDynamically);
       } else if (type == READ)
       {
-        retval = openInputURL(url, pContainerFormat, aStreamsCanBeAddedDynamically, aLookForAllStreams);
+        retval = openInputURL(url, pContainerFormat,
+            aStreamsCanBeAddedDynamically, aLookForAllStreams);
       }
       else
       {
@@ -265,7 +267,8 @@ namespace com { namespace xuggle { namespace xuggler
 
   int32_t
   Container :: openOutputURL(const char* url,
-      IContainerFormat* pContainerFormat)
+      IContainerFormat* pContainerFormat,
+      bool aStreamsCanBeAddedDynamically)
   {
     int32_t retval = -1;
     AVOutputFormat *outputFormat = 0;
@@ -284,6 +287,10 @@ namespace com { namespace xuggle { namespace xuggler
       mFormatContext = avformat_alloc_context();
       if (mFormatContext)
       {
+        if (aStreamsCanBeAddedDynamically)
+        {
+          mFormatContext->ctx_flags |= AVFMTCTX_NOHEADER;
+        }
         mFormatContext->oformat = outputFormat;
 
         retval = url_fopen(&mFormatContext->pb, url, URL_WRONLY);
@@ -331,40 +338,43 @@ namespace com { namespace xuggle { namespace xuggler
   Container :: addNewStream(int32_t id)
   {
     Stream *retval=0;
-    if (mFormatContext && mIsOpened)
+    try
     {
+      if (!mFormatContext)
+        throw std::runtime_error("no format context");
+      
+      if (!isOpened())
+        throw std::runtime_error("attempted to add stream to "
+            " unopened container");
+      
+      if (isHeaderWritten())
+        throw std::runtime_error("cannot add stream after header is written"
+            );
+      
       AVStream * stream=0;
       stream = av_new_stream(mFormatContext, id);
-      if (stream)
+      if (!stream)
+        throw std::runtime_error("could not allocate stream");
+
+      RefPointer<Stream>* p = new RefPointer<Stream>(
+          Stream::make(this, stream, IStream::OUTBOUND)
+      );
+      if (!p) throw std::bad_alloc();
+      if (*p)
       {
-        RefPointer<Stream>* p = new RefPointer<Stream>(
-            Stream::make(this, stream, IStream::OUTBOUND)
-        );
-        if (p)
-        {
-          if (*p)
-          {
-            mStreams.push_back(p);
-            mNumStreams++;
-            retval = p->get(); // acquire for caller
-          }
-          else
-          {
-            VS_LOG_ERROR("could not allocate Stream");
-            delete p;
-          }
-          p = 0;
-        }
-        else
-        {
-          VS_LOG_ERROR("could not allocate RefPointer");
-          VS_REF_RELEASE(retval);
-        }
+        mStreams.push_back(p);
+        mNumStreams++;
+        retval = p->get(); // acquire for caller
       }
       else
       {
-        VS_LOG_ERROR("could not allocated Stream");
+        delete p;
+        throw std::bad_alloc();
       }
+    } catch (std::exception & e)
+    {
+      VS_LOG_DEBUG("Error: %s", e.what());
+      VS_REF_RELEASE(retval);
     }
     return retval;
   }
@@ -932,6 +942,14 @@ namespace com { namespace xuggle { namespace xuggler
   {
     if (params)
       mParameters.reset(params, true);
+  }
+
+  bool
+  Container :: canStreamsBeAddedDynamically()
+  {
+    if (mFormatContext)
+      return mFormatContext->ctx_flags & AVFMTCTX_NOHEADER;
+    return false;
   }
   
 }}}

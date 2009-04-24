@@ -699,6 +699,14 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     XugglerJNI.IContainer_setParameters(swigCPtr, this, IContainerParameters.getCPtr(parameters), parameters);
   }
 
+/**
+ * Can streams be added dynamically to this container?  
+ * @return	true if streams can be added dynamically  
+ */
+  public boolean canStreamsBeAddedDynamically() {
+    return XugglerJNI.IContainer_canStreamsBeAddedDynamically(swigCPtr, this);
+  }
+
   public enum Type {
   /**
    *

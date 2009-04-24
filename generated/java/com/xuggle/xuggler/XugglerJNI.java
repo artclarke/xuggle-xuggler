@@ -431,6 +431,7 @@ class XugglerJNI {
   public final static native void IContainer_setReadRetryCount(long jarg1, IContainer jarg1_, int jarg2);
   public final static native long IContainer_getParameters(long jarg1, IContainer jarg1_);
   public final static native void IContainer_setParameters(long jarg1, IContainer jarg1_, long jarg2, IContainerParameters jarg2_);
+  public final static native boolean IContainer_canStreamsBeAddedDynamically(long jarg1, IContainer jarg1_);
   public final static native void IMediaDataWrapper_wrap(long jarg1, IMediaDataWrapper jarg1_, long jarg2, IMediaData jarg2_);
   public final static native void IMediaDataWrapper_setKey(long jarg1, IMediaDataWrapper jarg1_, boolean jarg2);
   public final static native long IMediaDataWrapper_make(long jarg1, IMediaData jarg1_);

@@ -585,6 +585,18 @@ namespace com { namespace xuggle { namespace xuggler
      * @param parameters The parameters to set.  Ignored if null.
      */
     virtual void setParameters(IContainerParameters* parameters)=0;
+    
+    /*
+     * Added for 2.1
+     */
+    
+    /**
+     * Can streams be added dynamically to this container?
+     * 
+     * @return true if streams can be added dynamically
+     */
+    virtual bool canStreamsBeAddedDynamically()=0;
+    
   };
 }}}
 #endif /*ICONTAINER_H_*/
