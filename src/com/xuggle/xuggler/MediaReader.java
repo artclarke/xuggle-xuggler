@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Vector;
 import java.util.Collection;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import java.awt.image.BufferedImage;
 
@@ -78,7 +79,7 @@ public class MediaReader
   // all the media reader listeners
 
   protected final Collection<IListener> mListeners
-    = new Vector<IListener>();
+    = new CopyOnWriteArrayList<IListener>();
 
   // all the coders opened by this MediaReader which are candidates for
   // closing
@@ -257,10 +258,10 @@ public class MediaReader
    *
    * </p>
    * 
-   * @param streamsCanBeAddedDynamically true if new streams can may
-   *         appear at any time during a {@link #readPacket} call
+   * @param streamsCanBeAddedDynamically true if new streams may appear
+   *         at any time during a {@link #readPacket} call
    *
-   * @trows RuntimeException if the media container is already open
+   * @throws RuntimeException if the media container is already open
    */
 
   public void setAddDynamicStreams(boolean streamsCanBeAddedDynamically)
@@ -301,9 +302,9 @@ public class MediaReader
    *
    * </p>
    * 
-   * @return true meta data will be queried
+   * @param queryStreamMetaData true if meta data is to be queried
    * 
-   * @trows RuntimeException if the media container is already open
+   * @throws RuntimeException if the media container is already open
    */
 
   public void setQueryMetaData(boolean queryStreamMetaData)
