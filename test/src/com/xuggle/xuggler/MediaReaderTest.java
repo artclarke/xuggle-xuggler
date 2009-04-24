@@ -51,11 +51,12 @@ public class MediaReaderTest //extends TestCase
   }
   // create a new media reader with a bad filename
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected=RuntimeException.class)
     public void testMediaSourceNotExist() 
   {
-    new MediaReader("broken" + TEST_FILE_20_SECONDS, true, 
+    MediaReader mr = new MediaReader("broken" + TEST_FILE_20_SECONDS, true, 
       ConverterFactory.XUGGLER_BGR_24);
+    mr.readPacket();
   }  
 
   // test nominal read without buffered image creation

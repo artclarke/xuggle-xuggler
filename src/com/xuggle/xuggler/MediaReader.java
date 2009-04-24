@@ -96,7 +96,19 @@ public class MediaReader
 
   // should this media reader close the container
 
-  protected final boolean mCloseContainer;
+  protected boolean mCloseContainer;
+
+  // true if new streams can may appear during a read packet at any time
+
+  protected boolean mStreamsCanBeAddedDynamically = false;
+
+  //  will reader attempt to establish meta data when container opened
+
+  protected boolean mQueryStreamMetaData = true;
+
+  // the media url
+
+  protected final String mUrl;
 
   // video picture converter
 
@@ -127,19 +139,18 @@ public class MediaReader
   public MediaReader(String url, boolean createBufferedImages, 
     String converterDescriptor)
   {
+    // the media url
+
+    mUrl = url;
+
     // create the container
 
     mContainer = IContainer.make();
     
-    // open the container
-
-    if (mContainer.open(url, IContainer.Type.READ, null, true, false) < 0)
-      throw new IllegalArgumentException("could not open: " + url);
-
     // note that we should close the container opened here
 
     mCloseContainer = true;
-
+    
     // note that we should or should not create buffered images during
     // video decoding, and if so what type of converter to use
 
@@ -162,7 +173,7 @@ public class MediaReader
 
   /**
    * Create a MediaReader which reads and dispatchs data from a media
-   * container.  Calls to {@link #readPacket()} will read stream content
+   * container.  Calls to {@link #readPacket} will read stream content
    * and dispatch it to attached listeners. If the end of the media
    * stream is encountered, the MediaReader does NOT close the
    * container, that is left to the calling context (you).  Streams
@@ -186,10 +197,16 @@ public class MediaReader
   public MediaReader(IContainer container, boolean createBufferedImages, 
     String converterDescriptor)
   {
+    mUrl = container.getURL();
+
     // get the container
 
     mContainer = container;
 
+    // get dynamic stream add ability
+
+    mStreamsCanBeAddedDynamically = container.canStreamsBeAddedDynamically();
+    
     // note that we should not close the container opened elsewere
 
     mCloseContainer = false;
@@ -225,7 +242,94 @@ public class MediaReader
   {
     return mContainer;
   }
-  
+
+  /** 
+   * Set if the underlying media container supports adding dynamic
+   * streams.  See {@link IContainer#open(String, IContainer.Type,
+   * IContainerFormat, boolean, boolean)}.  The default value for this
+   * is false.
+   *
+   * <p>
+   * 
+   * To have an effect, the MediaReader must not have been created with
+   * an already open {@link IContainer}, and this method must be called
+   * before the first call to {@link #readPacket}.
+   *
+   * </p>
+   * 
+   * @param streamsCanBeAddedDynamically true if new streams can may
+   *         appear at any time during a {@link #readPacket} call
+   *
+   * @trows RuntimeException if the media container is already open
+   */
+
+  public void setAddDynamicStreams(boolean streamsCanBeAddedDynamically)
+  {
+    if (mContainer.isOpened())
+      throw new RuntimeException("media container is already open");
+    mStreamsCanBeAddedDynamically = streamsCanBeAddedDynamically;
+  }
+
+  /** 
+   * Report if the underlying media container supports adding dynamic
+   * streams.  See {@link IContainer#open(String, IContainer.Type,
+   * IContainerFormat, boolean, boolean)}.
+   * 
+   * @return true if new streams can may appear at any time during a
+   *         {@link #readPacket} call
+   */
+
+  public boolean canAddDynamicStreams()
+  {
+    return mStreamsCanBeAddedDynamically;
+  }
+
+  /** 
+   * Set if the underlying media container will attempt to establish all
+   * meta data when the container is opened, which will potentially
+   * block until it has ready enough data to find all streams in a
+   * container.  If false, it will only block to read a minimal header
+   * for this container format.  See {@link IContainer#open(String,
+   * IContainer.Type, IContainerFormat, boolean, boolean)}.  The default
+   * value for this is true.
+   *
+   * <p>
+   * 
+   * To have an effect, the MediaReader must not have been created with
+   * an already open {@link IContainer}, and this method must be called
+   * before the first call to {@link #readPacket}.
+   *
+   * </p>
+   * 
+   * @return true meta data will be queried
+   * 
+   * @trows RuntimeException if the media container is already open
+   */
+
+  public void setQueryMetaData(boolean queryStreamMetaData)
+  {
+    if (mContainer.isOpened())
+      throw new RuntimeException("media container is already open");
+    
+    mQueryStreamMetaData = queryStreamMetaData;
+  }
+
+  /** 
+   * Report if the underlying media container will attempt to establish
+   * all meta data when the container is opened, which will potentially
+   * block until it has ready enough data to find all streams in a
+   * container.  If false, it will only block to read a minimal header
+   * for this container format.  See {@link IContainer#open(String,
+   * IContainer.Type, IContainerFormat, boolean, boolean)}.
+   * 
+   * @return true meta data will be queried
+   */
+
+  public boolean willQueryMetaData()
+  {
+    return mQueryStreamMetaData;
+  }
+
   /** Get the correct {@link IStreamCoder} for a given stream in the
    * container.  If this is a new stream not been seen before, we record
    * it and open it before returning.
@@ -278,23 +382,35 @@ public class MediaReader
   /**
    * This decodes the next packet and calls registered {@link IListener}s.
    * 
-   * <p> If a complete video frame or audio sample set are decoded, it
-   * will be dispatched to the listeners added to the media reader.
+   * <p>
+   * 
+   * If a complete video frame or audio sample set are decoded, it will
+   * be dispatched to the listeners added to the media reader.
+   *
    * </p>
    * 
    * @return null if there are more packets to read, otherwise return an
-   *         IError instance.  If {@link IError#getType()} ==
-   *         {@link IError.Type#ERROR_EOF} then end of file has been reached.
+   *         IError instance.  If {@link IError#getType()} == {@link
+   *         IError.Type#ERROR_EOF} then end of file has been reached.
    */
     
   public IError readPacket()
   {
+    // if the container is null, report that
+
+    if (mContainer == null)
+      throw new RuntimeException("container is null");
+
+    // if the container is not yet been opend, open it
+
+    if (!mContainer.isOpened())
+      if (mContainer.open(mUrl, IContainer.Type.READ, null, 
+          mStreamsCanBeAddedDynamically, mQueryStreamMetaData) < 0)
+        throw new RuntimeException("could not open: " + mUrl);
+
     // if there is an off nomial resul from read packet return the
     // correct error
 
-    if (mContainer == null || !mContainer.isOpened())
-      throw new RuntimeException("container has been closed");
-    
     int rv = mContainer.readNextPacket(mPacket);
     if (rv < 0)
     {
