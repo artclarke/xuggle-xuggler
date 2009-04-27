@@ -55,13 +55,17 @@ public class DecodeAndPlayVideo
   public static void main(String[] args)
   {
     if (args.length <= 0)
-      throw new IllegalArgumentException("must pass in a filename as the first argument");
+      throw new IllegalArgumentException("must pass in a filename" +
+      		" as the first argument");
 
     String filename = args[0];
 
     // Let's make sure that we can actually convert video pixel formats.
-    if (!IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
-      throw new RuntimeException("you must install the GPL version of Xuggler (with IVideoResampler support) for this demo to work");
+    if (!IVideoResampler.isSupported(
+        IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
+      throw new RuntimeException("you must install the GPL version" +
+      		" of Xuggler (with IVideoResampler support) for " +
+      		"this demo to work");
 
     // Create a Xuggler container object
     IContainer container = IContainer.make();
@@ -91,24 +95,28 @@ public class DecodeAndPlayVideo
       }
     }
     if (videoStreamId == -1)
-      throw new RuntimeException("could not find video stream in container: "+filename);
+      throw new RuntimeException("could not find video stream in container: "
+          +filename);
 
     /*
      * Now we have found the video stream in this file.  Let's open up our decoder so it can
      * do work.
      */
     if (videoCoder.open() < 0)
-      throw new RuntimeException("could not open video decoder for container: "+filename);
+      throw new RuntimeException("could not open video decoder for container: "
+          +filename);
 
     IVideoResampler resampler = null;
     if (videoCoder.getPixelType() != IPixelFormat.Type.BGR24)
     {
       // if this stream is not in BGR24, we're going to need to
       // convert it.  The VideoResampler does that for us.
-      resampler = IVideoResampler.make(videoCoder.getWidth(), videoCoder.getHeight(), IPixelFormat.Type.BGR24,
+      resampler = IVideoResampler.make(videoCoder.getWidth(), 
+          videoCoder.getHeight(), IPixelFormat.Type.BGR24,
           videoCoder.getWidth(), videoCoder.getHeight(), videoCoder.getPixelType());
       if (resampler == null)
-        throw new RuntimeException("could not create color space resampler for: " + filename);
+        throw new RuntimeException("could not create color space " +
+        		"resampler for: " + filename);
     }
     /*
      * And once we have that, we draw a window on screen
@@ -143,7 +151,8 @@ public class DecodeAndPlayVideo
            */
           int bytesDecoded = videoCoder.decodeVideo(picture, packet, offset);
           if (bytesDecoded < 0)
-            throw new RuntimeException("got error decoding video in: " + filename);
+            throw new RuntimeException("got error decoding video in: "
+                + filename);
           offset += bytesDecoded;
 
           /*
@@ -155,31 +164,36 @@ public class DecodeAndPlayVideo
           {
             IVideoPicture newPic = picture;
             /*
-             * If the resampler is not null, that means we didn't get the video in BGR24 format and
+             * If the resampler is not null, that means we didn't get the
+             * video in BGR24 format and
              * need to convert it into BGR24 format.
              */
             if (resampler != null)
             {
               // we must resample
-              newPic = IVideoPicture.make(resampler.getOutputPixelFormat(), picture.getWidth(), picture.getHeight());
+              newPic = IVideoPicture.make(resampler.getOutputPixelFormat(),
+                  picture.getWidth(), picture.getHeight());
               if (resampler.resample(newPic, picture) < 0)
-                throw new RuntimeException("could not resample video from: " + filename);
+                throw new RuntimeException("could not resample video from: "
+                    + filename);
             }
             if (newPic.getPixelType() != IPixelFormat.Type.BGR24)
-              throw new RuntimeException("could not decode video as BGR 24 bit data in: " + filename);
+              throw new RuntimeException("could not decode video" +
+              		" as BGR 24 bit data in: " + filename);
 
             /**
-             * We could just display the images as quickly as we decode them, but it turns
-             * out we can decode a lot faster than you think.
+             * We could just display the images as quickly as we decode them,
+             * but it turns out we can decode a lot faster than you think.
              * 
-             * So instead, the following code does a poor-man's version of trying to
-             * match up the frame-rate requested for each IVideoPicture with the system
-             * clock time on your computer.
+             * So instead, the following code does a poor-man's version of
+             * trying to match up the frame-rate requested for each
+             * IVideoPicture with the system clock time on your computer.
              * 
-             * Remember that all Xuggler IAudioSamples and IVideoPicture objects always
-             * give timestamps in Microseconds, relative to the first decoded item.  If
-             * instead you used the packet timestamps, they can be in different units depending
-             * on your IContainer, and IStream and things can get hairy quickly.
+             * Remember that all Xuggler IAudioSamples and IVideoPicture objects
+             * always give timestamps in Microseconds, relative to the first
+             * decoded item. If instead you used the packet timestamps, they can
+             * be in different units depending on your IContainer, and IStream
+             * and things can get hairy quickly.
              */
             if (firstTimestampInStream == Global.NO_PTS)
             {
@@ -190,14 +204,20 @@ public class DecodeAndPlayVideo
               systemClockStartTime = System.currentTimeMillis();
             } else {
               long systemClockCurrentTime = System.currentTimeMillis();
-              long millisecondsClockTimeSinceStartofVideo = systemClockCurrentTime - systemClockStartTime;
-              // compute how long for this frame since the first frame in the stream.
-              // remember that IVideoPicture and IAudioSamples timestamps are always in MICROSECONDS,
+              long millisecondsClockTimeSinceStartofVideo =
+                systemClockCurrentTime - systemClockStartTime;
+              // compute how long for this frame since the first frame in the
+              // stream.
+              // remember that IVideoPicture and IAudioSamples timestamps are
+              // always in MICROSECONDS,
               // so we divide by 1000 to get milliseconds.
-              long millisecondsStreamTimeSinceStartOfVideo = (picture.getTimeStamp() - firstTimestampInStream)/1000;
+              long millisecondsStreamTimeSinceStartOfVideo =
+                (picture.getTimeStamp() - firstTimestampInStream)/1000;
               final long millisecondsTolerance = 50; // and we give ourselfs 50 ms of tolerance
-              final long millisecondsToSleep = (millisecondsStreamTimeSinceStartOfVideo -
-                  (millisecondsClockTimeSinceStartofVideo+millisecondsTolerance));
+              final long millisecondsToSleep = 
+                (millisecondsStreamTimeSinceStartOfVideo -
+                  (millisecondsClockTimeSinceStartofVideo +
+                      millisecondsTolerance));
               if (millisecondsToSleep > 0)
               {
                 try
@@ -206,7 +226,8 @@ public class DecodeAndPlayVideo
                 }
                 catch (InterruptedException e)
                 {
-                  // we might get this when the user closes the dialog box, sojust return from the method.
+                  // we might get this when the user closes the dialog box, so
+                  // just return from the method.
                   return;
                 }
               }
@@ -223,7 +244,8 @@ public class DecodeAndPlayVideo
       else
       {
         /*
-         * This packet isn't part of our video stream, so we just silently drop it.
+         * This packet isn't part of our video stream, so we just
+         * silently drop it.
          */
         ;
       }
