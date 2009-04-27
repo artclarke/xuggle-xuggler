@@ -728,7 +728,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     x264_predict_8x8c_init( h->param.cpu, h->predict_8x8c );
     x264_predict_8x8_init( h->param.cpu, h->predict_8x8, &h->predict_8x8_filter );
     x264_predict_4x4_init( h->param.cpu, h->predict_4x4 );
-    if( !h->param.b_cabac );
+    if( !h->param.b_cabac )
         x264_init_vlc_tables();
     x264_pixel_init( h->param.cpu, &h->pixf );
     x264_dct_init( h->param.cpu, &h->dctf );

@@ -222,6 +222,62 @@
     SUMSUB_BADC %3, %7, %4, %8
 %endmacro
 
+%macro TRANS_SSE2 5-6
+; TRANSPOSE2x2
+; %1: transpose width (d/q) - use SBUTTERFLY qdq for dq
+; %2: ord/unord (for compat with sse4, unused)
+; %3/%4: source regs
+; %5/%6: tmp regs
+%ifidn %1, d
+%define mask [mask_10 GLOBAL]
+%define shift 16
+%elifidn %1, q
+%define mask [mask_1100 GLOBAL]
+%define shift 32
+%endif
+%if %0==6 ; less dependency if we have two tmp
+    mova   m%5, mask   ; ff00
+    mova   m%6, m%4    ; x5x4
+    psll%1 m%4, shift  ; x4..
+    pand   m%6, m%5    ; x5..
+    pandn  m%5, m%3    ; ..x0
+    psrl%1 m%3, shift  ; ..x1
+    por    m%4, m%5    ; x4x0
+    por    m%3, m%6    ; x5x1
+%else ; more dependency, one insn less. sometimes faster, sometimes not
+    mova   m%5, m%4    ; x5x4
+    psll%1 m%4, shift  ; x4..
+    pxor   m%4, m%3    ; (x4^x1)x0
+    pand   m%4, mask   ; (x4^x1)..
+    pxor   m%3, m%4    ; x4x0
+    psrl%1 m%4, shift  ; ..(x1^x4)
+    pxor   m%5, m%4    ; x5x1
+    SWAP   %4, %3, %5
+%endif
+%endmacro
+
+%macro TRANS_SSE4 5-6 ; see above
+%ifidn %1, d
+    mova   m%5, m%3
+%ifidn %2, ord
+    psrl%1 m%3, 16
+%endif
+    pblendw m%3, m%4, 10101010b
+    psll%1 m%4, 16
+%ifidn %2, ord
+    pblendw m%4, m%5, 01010101b
+%else
+    psrl%1 m%5, 16
+    por    m%4, m%5
+%endif
+%elifidn %1, q
+    mova   m%5, m%3
+    shufps m%3, m%4, 10001000b
+    shufps m%5, m%4, 11011101b
+    SWAP   %4, %5
+%endif
+%endmacro
+
 %macro HADAMARD 5-6
 ; %1=distance in words (0 for vertical pass, 1/2/4 for horizontal passes)
 ; %2=sumsub/max/amax (sum and diff / maximum / maximum of absolutes)
