@@ -160,6 +160,24 @@ public class ConverterFactory
     return mConverterTypes.get(descriptor);
   }
 
+  /**
+   * Find a descriptor given a {@link BufferedImage}.
+   *
+   * @param image a buffered image for which to find a descriptor
+   * 
+   * @return the descriptor which matches the image or NULL if it was
+   *         not found
+   */
+
+  public static String findDescriptor(BufferedImage image)
+  {
+    for (Type converterType: getRegisteredConverters())
+      if (converterType.getImageType() == image.getType())
+        return converterType.getDescriptor();
+
+    return null;
+  }
+
   /** 
    * Create a converter which translates betewen {@link BufferedImage}
    * and {@link IVideoPicture} types.  The {@link
@@ -220,10 +238,7 @@ public class ConverterFactory
 
     // find the converter type based in image type
 
-    String converterDescriptor = null;
-    for (Type converterType: getRegisteredConverters())
-      if (converterType.getImageType() == image.getType())
-        converterDescriptor = converterType.getDescriptor();
+    String converterDescriptor = findDescriptor(image);
     if (converterDescriptor == null)
       throw new UnsupportedOperationException(
         "No converter found for BufferedImage type #" + 
