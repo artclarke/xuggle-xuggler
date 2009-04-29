@@ -26,7 +26,7 @@ FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-shared"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-stripping"
 
 if test "x$CAPTIVE_ENABLE_FFMPEG_GPL" = "xyes"; then
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-gpl"
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-gpl --enable-nonfree"
 fi
 if test ! "x$VS_DEBUG" = "x"; then
   echo "Creating debug version of ffmpeg: $VS_DEBUG"
