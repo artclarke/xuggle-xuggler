@@ -264,7 +264,11 @@
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>
   {
     if(swigCPtr != 0) {
-      if (((Object)this) instanceof RefCounted && mRefCounter != null) {
+      // assigning to an object removes an incorrect java
+      // compiler warning for some
+      // generated files
+      Object object = this;
+      if (object instanceof RefCounted && mRefCounter != null) {
         mRefCounter.delete();
       } else if (swigCMemOwn) {
         swigCMemOwn = false;
