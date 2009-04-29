@@ -20104,6 +20104,13 @@ else
   CAPTIVE_ENABLE_LIBFAAC_FALSE=
 fi
 
+if test "x$VS_ENABLE_GPL" != "xyes"; then
+  # can't use faac unless you GPL this source
+  { $as_echo "$as_me:$LINENO: WARNING: cannot use captive libfaac unless gpl is enabled" >&5
+$as_echo "$as_me: WARNING: cannot use captive libfaac unless gpl is enabled" >&2;}
+  enable_captive_libfaac=no
+fi
+
 CAPTIVE_ENABLE_LIBFAAC=$enable_captive_libfaac
 
 # FAAC headers

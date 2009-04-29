@@ -512,6 +512,12 @@ fi
 AC_MSG_RESULT([$enable_captive_libfaac])
 AM_CONDITIONAL(CAPTIVE_ENABLE_LIBFAAC,
                [ test "x$enable_captive_libfaac" = "xyes" ])
+if test "x$VS_ENABLE_GPL" != "xyes"; then
+  # can't use faac unless you GPL this source
+  AC_MSG_WARN([cannot use captive libfaac unless gpl is enabled])
+  enable_captive_libfaac=no
+fi
+
 CAPTIVE_ENABLE_LIBFAAC=$enable_captive_libfaac
 AC_SUBST([CAPTIVE_ENABLE_LIBFAAC])
 # FAAC headers
