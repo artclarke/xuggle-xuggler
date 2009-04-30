@@ -121,7 +121,6 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     {
         int16_t *mvr = fref1->lowres_mvs[0][p1-p0-1][i_mb_xy];
         int dmv[2][2];
-        int mv0[2] = {0,0};
 
         h->mc.memcpy_aligned( &m[1], &m[0], sizeof(x264_me_t) );
         LOAD_HPELS_LUMA( m[1].p_fref, fref1->lowres );
@@ -135,20 +134,27 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
 
         TRY_BIDIR( dmv[0], dmv[1], 0 );
         if( dmv[0][0] | dmv[0][1] | dmv[1][0] | dmv[1][1] )
-           TRY_BIDIR( mv0, mv0, 0 );
-//      if( i_bcost < 60 ) // arbitrary threshold
-//          return i_bcost;
+        {
+            int i_cost;
+            h->mc.avg[PIXEL_8x8]( pix1, 16, m[0].p_fref[0], m[0].i_stride[0], m[1].p_fref[0], m[1].i_stride[0], i_bipred_weight );
+            i_cost = h->pixf.mbcmp[PIXEL_8x8]( m[0].p_fenc[0], FENC_STRIDE, pix1, 16 );
+            if( i_bcost > i_cost )
+                i_bcost = i_cost;
+        }
     }
 
     for( l = 0; l < 1 + b_bidir; l++ )
     {
-        DECLARE_ALIGNED_4(int16_t mvc[4][2]) = {{0}};
-        int i_mvc = 0;
-        int16_t (*fenc_mv)[2] = fenc_mvs[l];
-
         if( do_search[l] )
         {
+            int i_mvc = 0;
+            int16_t (*fenc_mv)[2] = fenc_mvs[l];
+            DECLARE_ALIGNED_4( int16_t mvc[4][2] );
+
             /* Reverse-order MV prediction. */
+            *(uint32_t*)mvc[0] = 0;
+            *(uint32_t*)mvc[1] = 0;
+            *(uint32_t*)mvc[2] = 0;
 #define MVC(mv) { *(uint32_t*)mvc[i_mvc] = *(uint32_t*)mv; i_mvc++; }
             if( i_mb_x < h->sps->i_mb_width - 1 )
                 MVC(fenc_mv[1]);
