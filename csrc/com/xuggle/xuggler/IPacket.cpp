@@ -48,13 +48,16 @@ namespace com { namespace xuggle { namespace xuggler
     Packet* retval=0;
     if (buffer)
     {
-      retval = Packet::make();
-      if (retval)
-      {
-        retval->wrapBuffer(buffer);
-      }
+      retval = Packet::make(buffer);
     }
     return retval;
   }
-  
+
+  IPacket*
+  IPacket :: make(IPacket* packet)
+  {
+    Global::init();
+    return Packet::make(dynamic_cast<Packet*>(packet));
+  }
+
 }}}

@@ -33,10 +33,15 @@ namespace com { namespace xuggle { namespace xuggler
   public:
     /* The default make() method doesn't add a payload */
     VS_JNIUTILS_REFCOUNTED_OBJECT(Packet);
+  public:
     /* This make allocates a default payload of size payloadSize */
     static Packet* make(int32_t payloadSize);
-    /* This make creates a packet that just wraps a given IBuffer */
+    /* This make a packet that just wraps a given IBuffer */
     static Packet* make(com::xuggle::ferry::IBuffer* buffer);
+    /* This makes a packet wrapping the buffer in another packet and copying
+     * it's settings
+     */
+    static Packet* make(Packet* packet);
   public:
     // IMediaData
     virtual int64_t getTimeStamp() { return getDts(); }
@@ -68,7 +73,11 @@ namespace com { namespace xuggle { namespace xuggler
     virtual void setDts(int64_t dts);
     virtual void setComplete(bool complete, int32_t size);
     virtual void setStreamIndex(int32_t streamIndex);
-    
+    virtual void setDuration(int64_t duration);
+    virtual void setPosition(int64_t position);
+    virtual int64_t getConvergenceDuration();
+    virtual void setConvergenceDuration(int64_t duration);
+
     AVPacket *getAVPacket() { return mPacket; }
     /*
      * Unfortunately people can do a getAVPacket() and have

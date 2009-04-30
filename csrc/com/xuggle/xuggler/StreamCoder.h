@@ -175,8 +175,9 @@ namespace com { namespace xuggle { namespace xuggler
     com::xuggle::ferry::RefPointer<IRational> mFakePtsTimeBase;
     int64_t mFakeNextPts;
     int64_t mFakeCurrPts;
-    int64_t mSamplesDecoded;
-    int64_t mLastValidAudioTimeStamp;
+    int64_t mSamplesForEncoding;
+    int64_t mSamplesCoded;
+    int64_t mLastExternallySetTimeStamp;
 
     com::xuggle::ferry::RefPointer<com::xuggle::ferry::IBuffer> mAudioFrameBuffer;
     int32_t mBytesInFrameBuffer;

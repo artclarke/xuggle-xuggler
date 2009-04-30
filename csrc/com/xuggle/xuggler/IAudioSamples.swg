@@ -36,6 +36,7 @@
     result.append("format:"+getFormat()+";");
     result.append("time stamp:"+getTimeStamp()+";");
     result.append("complete:"+isComplete()+";");
+    result.append("num samples:"+getNumSamples()+";");
     result.append("size:"+getSize()+";");
     result.append("key:"+isKey()+";");
     result.append("time base:"+IRational.make(1,(int)Global.DEFAULT_PTS_PER_SECOND)+";");

@@ -315,6 +315,21 @@ public class IPacket extends IMediaData {
   }
 
 /**
+ * Allocate a new packet wrapping the existing contents of  
+ * a passed in packet. Callers can then modify  
+ * {@link #getPts()},  
+ * {@link #getDts()} and other get/set methods without  
+ * modifying the original packet.  
+ * @param	packet Packet to reuse buffer from and to  
+ * copy settings from.  
+ * @return	a new packet or null on error.  
+ */
+  public static IPacket make(IPacket packet) {
+    long cPtr = XugglerJNI.IPacket_make__SWIG_2(IPacket.getCPtr(packet), packet);
+    return (cPtr == 0) ? null : new IPacket(cPtr, false);
+  }
+
+/**
  * Set if this is a key packet.  
  * @param	keyPacket true for yes, false for no.  
  */
@@ -347,6 +362,61 @@ public class IPacket extends IMediaData {
  */
   public void setStreamIndex(int streamIndex) {
     XugglerJNI.IPacket_setStreamIndex(swigCPtr, this, streamIndex);
+  }
+
+/**
+ * Set the duration.  
+ * @param	duration new duration  
+ */
+  public void setDuration(long duration) {
+    XugglerJNI.IPacket_setDuration(swigCPtr, this, duration);
+  }
+
+/**
+ * Set the position  
+ * @param	position new position  
+ */
+  public void setPosition(long position) {
+    XugglerJNI.IPacket_setPosition(swigCPtr, this, position);
+  }
+
+/**
+ * Time difference in {@link IStream#getTimeBase()} units  
+ * from the presentation time stamp of this  
+ * packet to the point at which the output from the decoder has converged 
+ *  
+ * independent from the availability of previous frames. That is, the 
+ *  
+ * frames are virtually identical no matter if decoding started from 
+ *  
+ * the very first frame or from this keyframe.  
+ * Is {@link Global#NO_PTS} if unknown.  
+ * This field is not the display duration of the current packet.  
+ * <p>  
+ * The purpose of this field is to allow seeking in streams that have 
+ * no  
+ * keyframes in the conventional sense. It corresponds to the  
+ * recovery point SEI in H.264 and match_time_delta in NUT. It is also 
+ *  
+ *  
+ * subtitles are correctly displayed after seeking.  
+ * </p>  
+ * <p>  
+ * If you didn't follow that, try drinking one to two glasses  
+ * of Absinthe. It won't help, but it'll be more fun.  
+ * </p>  
+ * @return	the convergence duration  
+ */
+  public long getConvergenceDuration() {
+    return XugglerJNI.IPacket_getConvergenceDuration(swigCPtr, this);
+  }
+
+/**
+ * Set the convergence duration.  
+ * @param	duration the new duration  
+ */
+  public void setConvergenceDuration(long duration) {
+    XugglerJNI.IPacket_setConvergenceDuration(swigCPtr, this, duration);
   }
 
 }

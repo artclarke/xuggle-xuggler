@@ -14,6 +14,7 @@ class PacketTest : public CxxTest::TestSuite
     void tearDown();
     void testCreationAndDestruction();
     void testGetDefaults();
+    void testCopyPacket();
   private:
     RefPointer<IPacket> packet;
 };

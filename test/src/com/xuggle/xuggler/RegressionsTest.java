@@ -225,4 +225,39 @@ public class RegressionsTest
 
   }
 
+  /**
+   * Tests for http://code.google.com/p/xuggle/issues/detail?id=104
+   * 
+   * Failure encoding when input file has wrong time stamps
+   * 
+   * @throws ParseException if we can't parse.
+   */
+  @Test
+  public void testRegressionIssue104() throws ParseException
+  {
+    String outFilename = this.getClass().getName() + "_" + mTestName + ".flv";
+    String[] args = new String[]{
+        "--vno",
+        "--acodec",
+        "libmp3lame",
+        "--asamplerate",
+        "22050",
+        "fixtures/testfile_wmv3_wmav2_bad_audio_timestamps.wmv",
+        outFilename
+    };
+    converter = new Converter();
+
+    Options options = converter.defineOptions();
+
+    CommandLine cmdLine = converter.parseOptions(options, args);
+    assertTrue("all commandline options successful", cmdLine != null);
+
+    converter.run(cmdLine);
+    
+    File outFile = new File(outFilename);
+    
+    assertTrue("output file not large enough", outFile.length() > 160);
+
+  }
+
 }

@@ -57,9 +57,8 @@ StreamCoder :: StreamCoder() :
   mFakePtsTimeBase = IRational::make(1, AV_TIME_BASE);
   mFakeNextPts = Global::NO_PTS;
   mFakeCurrPts = Global::NO_PTS;
-  mSamplesDecoded = 0;
-  mLastValidAudioTimeStamp = Global::NO_PTS;
-  mStartingTimestampOfBytesInFrameBuffer = Global::NO_PTS;
+  mSamplesCoded = 0;
+  mLastExternallySetTimeStamp = Global::NO_PTS;
   mDefaultAudioFrameSize = 576;
 }
 
@@ -193,7 +192,7 @@ StreamCoder :: make(Direction direction, IStreamCoder* aCoder)
   }
   catch (std::exception &e)
   {
-    VS_LOG_DEBUG("Error: %s", e.what());
+    VS_LOG_WARN("Error: %s", e.what());
     VS_REF_RELEASE(retval);
   }
   return retval;
@@ -595,7 +594,7 @@ StreamCoder :: open()
       throw std::runtime_error("could not open codec");
     mOpened = true;
 
-    mSamplesDecoded = mLastValidAudioTimeStamp = 0;
+    mSamplesCoded = mSamplesForEncoding = mLastExternallySetTimeStamp = 0;
     mFakeCurrPts = mFakeNextPts = Global::NO_PTS;
 
     // Do any post open initialization here.
@@ -611,12 +610,11 @@ StreamCoder :: open()
         // Re-create it.
         mAudioFrameBuffer = IBuffer::make(this, frame_bytes);
       mBytesInFrameBuffer = 0;
-      mStartingTimestampOfBytesInFrameBuffer = Global::NO_PTS;
     }
   }
   catch (std::exception & e)
   {
-    VS_LOG_DEBUG("Error: %s", e.what());
+    VS_LOG_WARN("Error: %s", e.what());
     retval = -1;
   }
   return retval;
@@ -635,7 +633,6 @@ StreamCoder :: close()
     mOpened = false;
   }
   mBytesInFrameBuffer = 0;
-  mStartingTimestampOfBytesInFrameBuffer = Global::NO_PTS;
   return retval;
 }
 
@@ -723,7 +720,7 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
         {
           // the container doesn't have time stamps; assume we start
           // at zero
-          VS_LOG_DEBUG("Setting fake pts to 0");
+          VS_LOG_TRACE("Setting fake pts to 0");
           mFakeNextPts = 0;
         }
         if (packetTs != Global::NO_PTS)
@@ -761,9 +758,9 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
                   tsDelta,
                   mFakeNextPts,
                   packetTsInMicroseconds);
-              mLastValidAudioTimeStamp = packetTsInMicroseconds;
-              mSamplesDecoded = 0;
-              mFakeNextPts = mLastValidAudioTimeStamp;
+              mLastExternallySetTimeStamp = packetTsInMicroseconds;
+              mSamplesCoded = 0;
+              mFakeNextPts = mLastExternallySetTimeStamp;
             }
           }
         }
@@ -772,9 +769,9 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
         // adjust our next Pts pointer
         if (numSamples > 0)
         {
-          mSamplesDecoded += numSamples;
-          mFakeNextPts = mLastValidAudioTimeStamp
-              + IAudioSamples::samplesToDefaultPts(mSamplesDecoded, getSampleRate());
+          mSamplesCoded += numSamples;
+          mFakeNextPts = mLastExternallySetTimeStamp
+              + IAudioSamples::samplesToDefaultPts(mSamplesCoded, getSampleRate());
         }
 
         // copy the packet PTS
@@ -984,7 +981,7 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
         avFrame->pts = thisTimeBase->rescale(frame->getPts(),
             mFakePtsTimeBase.value());
         /*
-         VS_LOG_DEBUG("Rescaling ts: %lld to %lld (from base %d/%d to %d/%d)",
+         VS_LOG_TRACE("Rescaling ts: %lld to %lld (from base %d/%d to %d/%d)",
          srcFrame->pts,
          avFrame->pts,
          mFakePtsTimeBase->getNumerator(),
@@ -1040,7 +1037,7 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
   try
   {
     if (mDirection != ENCODING || !mCodec || !mCodec->canEncode())
-      throw std::runtime_error("Codec not valid for direction StreamCoder is working in");
+      throw std::runtime_error("Codec not valid for encoding");
 
     if (!packet)
       throw std::invalid_argument("Invalid packet to encode to");
@@ -1072,7 +1069,17 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
       if (samples->getSampleRate() != getSampleRate())
         throw std::invalid_argument(
             "sample rate in sample does not match StreamCoder");
+
+      if (mFakeNextPts == Global::NO_PTS &&
+          samples->getTimeStamp() != Global::NO_PTS)
+        mFakeNextPts = samples->getTimeStamp() +
+        IAudioSamples::samplesToDefaultPts(startingSample, getSampleRate());
+
     }
+
+    if (mFakeNextPts == Global::NO_PTS)
+      mFakeNextPts = 0;
+
     if (availableSamples < 0 || (avSamples && availableSamples == 0))
       throw std::invalid_argument(
           "no bytes in buffer at specified starting sample");
@@ -1125,19 +1132,8 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
     bytesToCopyToFrameBuffer = FFMIN(bytesToCopyToFrameBuffer,
         availableSamples*bytesPerSample);
 
-    int64_t packetStartPts = Global::NO_PTS;
-
     if (avSamples)
     {
-      if (mBytesInFrameBuffer == 0)
-        // We have nothing in the frame buffer, so the input samples
-        // timestamp will be the output
-        mStartingTimestampOfBytesInFrameBuffer = 
-          samples->getTimeStamp()+IAudioSamples::samplesToDefaultPts(startingSample, getSampleRate());
-
-      // Set the packet to whatever we think the start of the frame is
-      packetStartPts = mStartingTimestampOfBytesInFrameBuffer;
-      
       if (availableSamples >= frameSize && mBytesInFrameBuffer == 0)
       {
         VS_LOG_TRACE("audioEncode: Using passed in buffer: %d, %d, %d",
@@ -1166,8 +1162,11 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
       // this should happen when the caller passes NULL for the
       // input samples
       frameBuffer = 0;
-      packetStartPts = mStartingTimestampOfBytesInFrameBuffer;
     }
+    mSamplesForEncoding += samplesConsumed;
+    VS_LOG_TRACE("Consumed %ld for total of %lld",
+        samplesConsumed, mSamplesForEncoding);
+    
     if (!frameBuffer || !usingInternalFrameBuffer || mBytesInFrameBuffer >= frameBytes)
     {
       // First, get the right buffer size.
@@ -1250,8 +1249,70 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
         mBytesInFrameBuffer = 0;
         if (retval >= 0)
         {
+          // and only do this if a packet is returned
+          if (retval > 0)
+          {
+            mSamplesCoded += frameSize;
+
+            // let's check to see if the time stamp of passed in
+            // samples (if any) are within tolerance of our expected
+            // time stamp.  if not, this is most likely happening
+            // because the IStreamCoder's data source lost a packet.
+            // We will adjust our starting time stamps then for this new
+            // packet
+            mFakeCurrPts = mFakeNextPts;
+            if (samples)
+            {
+              int64_t samplesTs = samples->getTimeStamp()+
+                IAudioSamples::samplesToDefaultPts(
+                    startingSample+samplesConsumed,
+                    getSampleRate());
+              int64_t samplesCached = mSamplesForEncoding - mSamplesCoded;
+              int64_t tsDelta =
+                IAudioSamples::samplesToDefaultPts(samplesCached,
+                    getSampleRate());
+              int64_t gap = samplesTs - (mFakeNextPts+tsDelta);
+              
+              // ignore negative gaps; some containers like WMV
+              // don't actually set the right time stamps, and we
+              // can assume a negative gap can't happen
+              if ((gap > 1))
+              {
+                VS_LOG_TRACE("reset;"
+                    "samplesTs:%lld;"
+                    "samplesConsumed:%ld;"
+                    "startingSample:%lu;"
+                    "samplesForEncoding:%lld;"
+                    "samplesCoded:%lld;"
+                    "samplesCached:%lld;"
+                    "tsDelta:%lld;"
+                    "fakeNextPts:%lld;"
+                    "gap:%lld;"
+                    "lastExternallySetTs:%lld;"
+                    "new fakeNextPts:%lld;",
+                    samplesTs,
+                    samplesConsumed,
+                    startingSample,
+                    mSamplesForEncoding,
+                    mSamplesCoded,
+                    samplesCached,
+                    tsDelta,
+                    mFakeNextPts,
+                    gap,
+                    mLastExternallySetTimeStamp,
+                    samplesTs - tsDelta);
+                mLastExternallySetTimeStamp = samplesTs - tsDelta;
+                mSamplesCoded = 0;
+                mSamplesForEncoding = samplesCached;
+              }
+            }
+            mFakeNextPts = mLastExternallySetTimeStamp + 
+              IAudioSamples::samplesToDefaultPts(mSamplesCoded,
+                  getSampleRate());
+
+          }
           setPacketParameters(packet, retval,
-              packetStartPts);
+              mFakeCurrPts);
 
           retval = samplesConsumed;
         }
@@ -1259,14 +1320,12 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
         {
           throw std::runtime_error("avcodec_encode_audio failed");
         }
-        // Increment this for next time around in case null is passed in.
-        mStartingTimestampOfBytesInFrameBuffer += IAudioSamples::samplesToDefaultPts(frameSize, getSampleRate());
       }
     }
   }
   catch (std::exception& e)
   {
-    VS_LOG_DEBUG("error: %s", e.what());
+    VS_LOG_WARN("error: %s", e.what());
     retval = -1;
   }
 
@@ -1274,7 +1333,8 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
 }
 
 void
-StreamCoder :: setPacketParameters(Packet * packet, int32_t size, int64_t srcTimestamp)
+StreamCoder :: setPacketParameters(Packet * packet, int32_t size,
+    int64_t srcTimestamp)
 {
   int32_t keyframe = 0;
   int64_t pts = Global::NO_PTS;
@@ -1306,7 +1366,8 @@ StreamCoder :: setPacketParameters(Packet * packet, int32_t size, int64_t srcTim
       pts = streamBase->rescale(srcTimestamp, mFakePtsTimeBase.value());
       packetBase = streamBase;
     } else {
-      // we have no attached stream; don't rescale to that stream; instead use our fake timebase and let the packet know.
+      // we have no attached stream; don't rescale to that stream; 
+      // instead use our fake timebase and let the packet know.
       pts = srcTimestamp;
       packetBase = mFakePtsTimeBase;
     }
@@ -1322,7 +1383,7 @@ StreamCoder :: setPacketParameters(Packet * packet, int32_t size, int64_t srcTim
   // output it.
   packet->setComplete(size > 0, size);
 
-//  VS_LOG_DEBUG("Encoded packet; size: %d; pts: %lld", size, pts);
+  VS_LOG_TRACE("Encoded packet; size: %d; pts: %lld", size, pts);
 }
 
 int32_t

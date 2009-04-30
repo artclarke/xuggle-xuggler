@@ -1040,10 +1040,10 @@ public class Converter
           if (inSamples.getTimeStamp() != Global.NO_PTS)
             inSamples.setTimeStamp(inSamples.getTimeStamp() - tsOffset);
 
-          log.debug("packet:{}; samples:{}; offset:{}",
+          log.trace("packet:{}; samples:{}; offset:{}",
               new Object[]{
-              iPacket.getPts(),
-              inSamples.getTimeStamp(),
+              iPacket,
+              inSamples,
               tsOffset
           });
           
@@ -1100,10 +1100,10 @@ public class Converter
             numSamplesConsumed += retval;
             if (oPacket.isComplete())
             {
-              log.debug("out packet:{}; samples:{}; offset:{}",
+              log.trace("out packet:{}; samples:{}; offset:{}",
                   new Object[]{
-                  oPacket.getPts(),
-                  outSamples.getTimeStamp(),
+                  oPacket,
+                  outSamples,
                   tsOffset
               });
 

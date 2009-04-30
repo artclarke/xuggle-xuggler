@@ -145,11 +145,25 @@ namespace com { namespace xuggle { namespace xuggler
   {
     return (mPacket ? mPacket->duration: (int64_t)-1);
   }
+  
+  void
+  Packet :: setDuration(int64_t duration)
+  {
+    if (mPacket) mPacket->duration = duration;
+  }
+  
   int64_t
   Packet :: getPosition()
   {
     return (mPacket ? mPacket->pos: (int64_t)-1);
   }
+  
+  void
+  Packet :: setPosition(int64_t position)
+  {
+    if (mPacket) mPacket->pos = position;
+  }
+  
   com::xuggle::ferry::IBuffer *
   Packet :: getData()
   {
@@ -167,7 +181,7 @@ namespace com { namespace xuggle { namespace xuggler
     (void) this->allocateNewPayload(pkt->size);
 
     // Keep a copy of this, because we're going to nuke
-    // it temorarily.
+    // it temporarily.
     uint8_t* data_buf = mPacket->data;
     void (*orig_destruct)(struct AVPacket *) = mPacket->destruct;
     
@@ -214,6 +228,7 @@ namespace com { namespace xuggle { namespace xuggler
     }
     return retval;
   }
+  
   Packet*
   Packet :: make (com::xuggle::ferry::IBuffer* buffer)
   {
@@ -225,6 +240,49 @@ namespace com { namespace xuggle { namespace xuggler
     }
     return retval;
   }
+  
+  Packet*
+  Packet :: make (Packet *packet)
+  {
+    Packet* retval=0;
+    com::xuggle::ferry::IBuffer *buffer=0;
+    IRational* timeBase = 0;
+    try
+    {
+      if (!packet)
+        return 0;
+
+      buffer=packet->getData();
+      retval = make(buffer);
+      
+      // Keep a copy of this, because we're going to nuke
+      // it temporarily.
+      uint8_t* data_buf = retval->mPacket->data;
+      void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
+      
+      // copy all data members, including data and size,
+      // but we'll overwrite those next.
+      *(retval->mPacket) = *(packet->mPacket);
+
+      retval->mPacket->data = data_buf;
+      retval->mPacket->destruct = orig_destruct;
+      
+      // separate here to catch addRef()
+      timeBase = packet->getTimeBase();
+      retval->setTimeBase(timeBase);
+      
+      retval->setComplete(retval->mPacket->size > 0,
+          retval->mPacket->size);
+    } catch (std::exception &e)
+    {
+      VS_REF_RELEASE(retval);
+    }
+    VS_REF_RELEASE(buffer);
+    VS_REF_RELEASE(timeBase);
+    
+    return retval;
+  }
+  
   int32_t
   Packet :: allocateNewPayload(int32_t payloadSize)
   {
@@ -307,4 +365,15 @@ namespace com { namespace xuggle { namespace xuggler
     av_free(buf);
   }
 
+  int64_t
+  Packet :: getConvergenceDuration()
+  {
+    return (mPacket ? mPacket->convergence_duration : -1);
+  }
+  
+  void
+  Packet :: setConvergenceDuration(int64_t duration)
+  {
+    if (mPacket) mPacket->convergence_duration = duration;
+  }
   }}}
