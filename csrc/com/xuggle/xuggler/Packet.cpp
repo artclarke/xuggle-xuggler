@@ -23,7 +23,8 @@
 #include <com/xuggle/xuggler/Packet.h>
 
 // for memset
-#include <string.h>
+#include <cstring>
+#include <stdexcept>
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);
 
@@ -242,7 +243,7 @@ namespace com { namespace xuggle { namespace xuggler
   }
   
   Packet*
-  Packet :: make (Packet *packet)
+  Packet :: make (Packet *packet, bool copyData)
   {
     Packet* retval=0;
     com::xuggle::ferry::IBuffer *buffer=0;
@@ -250,30 +251,37 @@ namespace com { namespace xuggle { namespace xuggler
     try
     {
       if (!packet)
-        return 0;
+        throw std::runtime_error("need packet to copy");
 
-      buffer=packet->getData();
-      retval = make(buffer);
-      
-      // Keep a copy of this, because we're going to nuke
-      // it temporarily.
-      uint8_t* data_buf = retval->mPacket->data;
-      void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
-      
-      // copy all data members, including data and size,
-      // but we'll overwrite those next.
-      *(retval->mPacket) = *(packet->mPacket);
+      if (copyData)
+      {
+        retval = make();
+        retval->wrapAVPacket(packet->mPacket);
+      } else {
+        buffer=packet->getData();
+        retval = make(buffer);
 
-      retval->mPacket->data = data_buf;
-      retval->mPacket->destruct = orig_destruct;
-      
-      // separate here to catch addRef()
-      timeBase = packet->getTimeBase();
-      retval->setTimeBase(timeBase);
-      
-      retval->setComplete(retval->mPacket->size > 0,
-          retval->mPacket->size);
-    } catch (std::exception &e)
+        // Keep a copy of this, because we're going to nuke
+        // it temporarily.
+        uint8_t* data_buf = retval->mPacket->data;
+        void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
+
+        // copy all data members, including data and size,
+        // but we'll overwrite those next.
+        *(retval->mPacket) = *(packet->mPacket);
+
+        retval->mPacket->data = data_buf;
+        retval->mPacket->destruct = orig_destruct;
+
+        // separate here to catch addRef()
+        timeBase = packet->getTimeBase();
+        retval->setTimeBase(timeBase);
+
+        retval->setComplete(retval->mPacket->size > 0,
+            retval->mPacket->size);
+      }
+    }
+    catch (std::exception &e)
     {
       VS_REF_RELEASE(retval);
     }

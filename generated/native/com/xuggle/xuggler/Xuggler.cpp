@@ -4517,50 +4517,6 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1make_1_1SWI
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1make_1_1SWIG_12(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
-  jlong jresult = 0 ;
-  com::xuggle::xuggler::IPacket *arg1 = (com::xuggle::xuggler::IPacket *) 0 ;
-  com::xuggle::xuggler::IPacket *result = 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  (void)jarg1_;
-  arg1 = *(com::xuggle::xuggler::IPacket **)&jarg1; 
-  {
-    // JNIHelper.swg: Start generated code
-    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
-    try
-    {
-      result = (com::xuggle::xuggler::IPacket *)com::xuggle::xuggler::IPacket::make(arg1);
-    }
-    catch(std::exception & e)
-    {
-      // we don't let a native exception override a java exception
-      if (!jenv->ExceptionCheck())
-      {
-        jclass cls=jenv->FindClass("java/lang/RuntimeException");
-        jenv->ThrowNew(cls, e.what());
-      }
-      return 0;
-    }
-    catch(...)
-    {
-      // we don't let a native exception override a java exception
-      if (!jenv->ExceptionCheck())
-      {
-        jclass cls=jenv->FindClass("java/lang/RuntimeException");
-        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
-      }
-      return 0;
-    }
-    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
-    // JNIHelper.swg: End generated code
-  }
-  *(com::xuggle::xuggler::IPacket **)&jresult = result; 
-  return jresult;
-}
-
-
 SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1setKeyPacket(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jboolean jarg2) {
   com::xuggle::xuggler::IPacket *arg1 = (com::xuggle::xuggler::IPacket *) 0 ;
   bool arg2 ;
@@ -4954,6 +4910,52 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1setConvergen
     // <<<<<<<<<<<<<<<<<<<<<<<<<<<
     // JNIHelper.swg: End generated code
   }
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1make_1_1SWIG_12(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jboolean jarg2) {
+  jlong jresult = 0 ;
+  com::xuggle::xuggler::IPacket *arg1 = (com::xuggle::xuggler::IPacket *) 0 ;
+  bool arg2 ;
+  com::xuggle::xuggler::IPacket *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::xuggler::IPacket **)&jarg1; 
+  arg2 = jarg2 ? true : false; 
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (com::xuggle::xuggler::IPacket *)com::xuggle::xuggler::IPacket::make(arg1,arg2);
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  *(com::xuggle::xuggler::IPacket **)&jresult = result; 
+  return jresult;
 }
 
 

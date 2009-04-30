@@ -126,7 +126,6 @@ class XugglerJNI {
   public final static native int IPacket_allocateNewPayload(long jarg1, IPacket jarg1_, int jarg2);
   public final static native long IPacket_make__SWIG_0();
   public final static native long IPacket_make__SWIG_1(long jarg1, IBuffer jarg1_);
-  public final static native long IPacket_make__SWIG_2(long jarg1, IPacket jarg1_);
   public final static native void IPacket_setKeyPacket(long jarg1, IPacket jarg1_, boolean jarg2);
   public final static native void IPacket_setFlags(long jarg1, IPacket jarg1_, int jarg2);
   public final static native void IPacket_setComplete(long jarg1, IPacket jarg1_, boolean jarg2, int jarg3);
@@ -135,6 +134,7 @@ class XugglerJNI {
   public final static native void IPacket_setPosition(long jarg1, IPacket jarg1_, long jarg2);
   public final static native long IPacket_getConvergenceDuration(long jarg1, IPacket jarg1_);
   public final static native void IPacket_setConvergenceDuration(long jarg1, IPacket jarg1_, long jarg2);
+  public final static native long IPacket_make__SWIG_2(long jarg1, IPacket jarg1_, boolean jarg2);
   public final static native int IAudioSamples_FMT_NONE_get();
   public final static native boolean IAudioSamples_isComplete(long jarg1, IAudioSamples jarg1_);
   public final static native int IAudioSamples_getSampleRate(long jarg1, IAudioSamples jarg1_);

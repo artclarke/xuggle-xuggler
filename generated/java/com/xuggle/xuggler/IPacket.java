@@ -315,21 +315,6 @@ public class IPacket extends IMediaData {
   }
 
 /**
- * Allocate a new packet wrapping the existing contents of  
- * a passed in packet. Callers can then modify  
- * {@link #getPts()},  
- * {@link #getDts()} and other get/set methods without  
- * modifying the original packet.  
- * @param	packet Packet to reuse buffer from and to  
- * copy settings from.  
- * @return	a new packet or null on error.  
- */
-  public static IPacket make(IPacket packet) {
-    long cPtr = XugglerJNI.IPacket_make__SWIG_2(IPacket.getCPtr(packet), packet);
-    return (cPtr == 0) ? null : new IPacket(cPtr, false);
-  }
-
-/**
  * Set if this is a key packet.  
  * @param	keyPacket true for yes, false for no.  
  */
@@ -417,6 +402,24 @@ public class IPacket extends IMediaData {
  */
   public void setConvergenceDuration(long duration) {
     XugglerJNI.IPacket_setConvergenceDuration(swigCPtr, this, duration);
+  }
+
+/**
+ * Allocate a new packet wrapping the existing contents of  
+ * a passed in packet. Callers can then modify  
+ * {@link #getPts()},  
+ * {@link #getDts()} and other get/set methods without  
+ * modifying the original packet.  
+ * @param	packet Packet to reuse buffer from and to  
+ * copy settings from.  
+ * @param	copyData if true copy data from packet  
+ * into our own buffer. If false, share the same  
+ * data buffer that packet uses  
+ * @return	a new packet or null on error.  
+ */
+  public static IPacket make(IPacket packet, boolean copyData) {
+    long cPtr = XugglerJNI.IPacket_make__SWIG_2(IPacket.getCPtr(packet), packet, copyData);
+    return (cPtr == 0) ? null : new IPacket(cPtr, false);
   }
 
 }

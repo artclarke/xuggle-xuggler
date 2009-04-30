@@ -41,7 +41,7 @@ namespace com { namespace xuggle { namespace xuggler
     /* This makes a packet wrapping the buffer in another packet and copying
      * it's settings
      */
-    static Packet* make(Packet* packet);
+    static Packet* make(Packet* packet, bool);
   public:
     // IMediaData
     virtual int64_t getTimeStamp() { return getDts(); }

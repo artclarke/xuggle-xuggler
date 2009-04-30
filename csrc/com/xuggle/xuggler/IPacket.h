@@ -160,23 +160,6 @@ namespace com { namespace xuggle { namespace xuggler
      */
     static IPacket* make(com::xuggle::ferry::IBuffer* buffer);
     
-    /*
-     * Added for 2.1
-     */
-    /**
-     * Allocate a new packet wrapping the existing contents of
-     * a passed in packet.  Callers can then modify
-     * {@link #getPts()},
-     * {@link #getDts()} and other get/set methods without
-     * modifying the original packet.
-     * 
-     * @param packet Packet to reuse buffer from and to
-     *   copy settings from.
-     *   
-     * @return a new packet or null on error.
-     */
-    static IPacket* make(IPacket *packet);
-    
   protected:
     IPacket();
     virtual ~IPacket();
@@ -262,6 +245,25 @@ namespace com { namespace xuggle { namespace xuggler
      * @param duration the new duration
      */
     virtual void setConvergenceDuration(int64_t duration)=0;
+    
+    /**
+     * Allocate a new packet wrapping the existing contents of
+     * a passed in packet.  Callers can then modify
+     * {@link #getPts()},
+     * {@link #getDts()} and other get/set methods without
+     * modifying the original packet.
+     * 
+     * @param packet Packet to reuse buffer from and to
+     *   copy settings from.
+     * @param copyData if true copy data from packet
+     *   into our own buffer.  If false, share the same
+     *   data buffer that packet uses 
+     *   
+     * @return a new packet or null on error.
+     */
+    static IPacket* make(IPacket *packet, bool copyData);
+    
+
   };
 
 }}}

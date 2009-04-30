@@ -92,7 +92,7 @@ PacketTest :: testCopyPacket()
   packet->setConvergenceDuration(convergenceDuration);
   
   // Now, make a copy
-  RefPointer<IPacket> newPacket = IPacket::make(packet.value());
+  RefPointer<IPacket> newPacket = IPacket::make(packet.value(), false);
   VS_TUT_ENSURE("should not be empty", newPacket);
   
   VS_TUT_ENSURE_EQUALS("should equal", position, newPacket->getPosition());

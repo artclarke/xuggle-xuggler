@@ -54,10 +54,10 @@ namespace com { namespace xuggle { namespace xuggler
   }
 
   IPacket*
-  IPacket :: make(IPacket* packet)
+  IPacket :: make(IPacket* packet, bool copyData)
   {
     Global::init();
-    return Packet::make(dynamic_cast<Packet*>(packet));
+    return Packet::make(dynamic_cast<Packet*>(packet), copyData);
   }
 
 }}}
