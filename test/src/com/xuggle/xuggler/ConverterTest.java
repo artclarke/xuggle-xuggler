@@ -270,6 +270,9 @@ public class ConverterTest extends TestCase
     // We do this to determine if this version of Xuggler can
     // support resampling
     boolean testResampling = IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_IMAGERESCALING);
+    // and if not, we skip this test because resampling is only supported in GPL
+    // build, and now libfaac is only supported in GPL as well.
+    if (!testResampling) return;
     
     String[] args = new String[]{
         "--containerformat",

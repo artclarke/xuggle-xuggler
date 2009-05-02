@@ -360,7 +360,7 @@ public class UtilsTest
         "--containerformat",
         "mov",
         "--acodec",
-        "libfaac",
+        "libmp3lame",
         "--asamplerate",
         "22050",
         "--achannels",
