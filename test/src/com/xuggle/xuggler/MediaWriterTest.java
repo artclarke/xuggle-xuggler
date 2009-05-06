@@ -84,25 +84,25 @@ public class MediaWriterTest
   {
     // converting to mov
 
-    {"subtitled_video.mkv",              "mov"},
-    {"testfile_h264_mp4a_tmcd.mov",      "mov"},
+    {"subtitled_video.mkv",              "mov"}, // failed to write header
+    {"testfile_h264_mp4a_tmcd.mov",      "mov"}, // failed to write header
     {"testfile_mpeg1video_mp2audio.mpg", "mov"}, // fails in QUICKTIME
 
     // converting to avi
 
-    {"subtitled_video.mkv",              "avi"},
-    {"testfile_h264_mp4a_tmcd.mov",      "avi"},
+    {"subtitled_video.mkv",              "avi"}, // failed to write header
+    {"testfile_h264_mp4a_tmcd.mov",      "avi"}, // failed to write header
 
     // converting to flv
 
-    {"subtitled_video.mkv",              "flv"},
-    {"testfile_h264_mp4a_tmcd.mov",      "flv"},
-    {"testfile_mpeg1video_mp2audio.mpg", "flv"},
+    {"subtitled_video.mkv",              "flv"}, // failed to write header
+    {"testfile_h264_mp4a_tmcd.mov",      "flv"}, // failed to write header
+    {"testfile_mpeg1video_mp2audio.mpg", "flv"}, // failed to write header
 
     // converting to mpg
 
-    {"testfile_h264_mp4a_tmcd.mov",      "mpg"},
-    {"subtitled_video.mkv",              "mpg"}, // core dump
+    {"testfile_h264_mp4a_tmcd.mov",      "mpg"}, // failed to write header
+    {"subtitled_video.mkv",              "mpg"}, // Non-aligned pointer freed
     {"testfile_bw_pattern.flv",          "mpg"}, // fails in QUICKTIME
     {"testfile_videoonly_20sec.flv",     "mpg"}, // fails in QUICKTIME
     {"testfile.flv",                     "mpg"}, // fails in QUICKTIME
