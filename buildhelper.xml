@@ -663,12 +663,67 @@ using the library and what you like or don't like about it.
       >
       <env key="${runtime.so.path.variable}"
         path="${runtime.so.path.value}"/>
+      <!-- This line makes sure that Java looks in the build dir for the
+      shared library.  -->
       <jvmarg value="-Djava.library.path=${runtime.java.library.path}"/>
       <jvmarg value="-Denv.${runtime.so.path.variable}=${runtime.so.path.value}"/>
       <jvmarg value="-XX:+HeapDumpOnOutOfMemoryError"/>
       <jvmarg value="-Xcheck:jni"/>
+      <!--
+      <jvmarg value="-verbose:jni"/>
+      <jvmarg value="-verbose:gc"/>
+      <jvmarg value="-XX:+PrintGCDetails"/>
+      <jvmarg value="-XX:+PrintGCTimeStamps"/>
+      <jvmarg value="-XX:+PrintTenuringDistribution"/>
+      -->
+      <classpath>
+        <path refid="test.classpath"/>
+      </classpath>
+      <formatter type="xml"/>
+      <batchtest todir="${test.reports.dir}">
+        <fileset dir="${test.classes.dir}">
+          <include name="**/*Test.class"/>
+          <exclude name="**/*ExhaustiveTest.class"/>
+        </fileset>
+      </batchtest>
+    </junit>
+
+    <junitreport todir="${test.classes.dir}">
+      <fileset dir="${test.reports.dir}">
+        <include name="TEST-*.xml"/>
+      </fileset>
+      <report format="frames" todir="${testdoc.dir}"/>
+    </junitreport>
+
+    <echo message="View test results in browser: ${testdoc.dir}/index.html"/>
+
+  </target>
+  
+  <target name="run-tests-java-all" depends="compile-tests-java, fixtures-java"
+    description="Run ALL JUnit tests and generate HTML reports">
+    <!-- we fail a test with a timeout if it takes longer than 5 minutes -->
+    <echo message='Running all tests, including Exhaustive tests'/>
+    <echo message='Java: java.home is ${java.home} and the target version is ${java.target_version}'/>
+    <echo message="java.library.path=${runtime.java.library.path}"/>
+    <echo message="env.${runtime.so.path.variable}=${runtime.so.path.value}"/>
+    <junit
+      fork="true"
+      haltonfailure="no"
+      haltonerror="no"
+      printsummary="yes"
+      showoutput="${test.show_output}"
+      timeout="1800000"
+      dir="${test.reports.dir}"
+      newenvironment="no"
+      >
+      <env key="${runtime.so.path.variable}"
+        path="${runtime.so.path.value}"/>
       <!-- This line makes sure that Java looks in the build dir for the
       shared library.  -->
+      <jvmarg value="-Djava.library.path=${runtime.java.library.path}"/>
+      <jvmarg value="-Denv.${runtime.so.path.variable}=${runtime.so.path.value}"/>
+      <jvmarg value="-XX:+HeapDumpOnOutOfMemoryError"/>
+      <jvmarg value="-Xcheck:jni"/>
       <!--
       <jvmarg value="-verbose:jni"/>
       <jvmarg value="-verbose:gc"/>
@@ -697,6 +752,7 @@ using the library and what you like or don't like about it.
     <echo message="View test results in browser: ${testdoc.dir}/index.html"/>
 
   </target>
+
 
   <target name="doc-java" depends="init, compile-java" description="Generate JavaDoc">
     <!-- Determine the location of Sun's API docs -->
@@ -882,6 +938,10 @@ using the library and what you like or don't like about it.
     depends="init-native, compile-native, compile-tests-native, run-tests-native-do"
     description="Runs the native test suite">
   </target>
+  <target name="run-tests-native-all"
+    depends="run-tests-native"
+    description="Runs the native test suite, including any exhaustive tests">
+  </target>
   <target name="run-memcheck-native-do"
     if="native.makefile.exists">
     <exec executable="make"
@@ -990,6 +1050,9 @@ using the library and what you like or don't like about it.
     description="clean everything, including native code if available"/>
   <target name="run-tests"
     depends="stage, run-tests-native, run-tests-java"
+    description="Run all tests, including native tests if available"/>
+  <target name="run-tests-all"
+    depends="stage, run-tests-native-all, run-tests-java-all"
     description="Run all tests, including native tests if available"/>
   <target name="run-memcheck"
     depends="run-memcheck-native, run-memcheck-java"
