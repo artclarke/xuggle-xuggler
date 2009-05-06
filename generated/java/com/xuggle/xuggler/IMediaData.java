@@ -113,6 +113,16 @@ public class IMediaData extends RefCounted {
   }
 
 
+  // used to correct timezone offsets for timestamp format 
+
+  private static final long TIME_OFFSET = -java.util.Calendar.getInstance()
+    .getTimeZone().getRawOffset();
+
+  /** The default time stamp format. */
+  
+  public static final String DEFALUT_TIME_STAMP_FORMAT =
+    "%1$tH:%1$tM:%1$tS.%1$tL";
+
   /**
    * Gets the underlying {@link java.nio.ByteBuffer} for this {@link
    * IMediaData} object.  Users may modify the contents of the
@@ -139,6 +149,45 @@ public class IMediaData extends RefCounted {
     byteBuffer.mark();
     byteBuffer.limit(this.getSize());
     return byteBuffer;
+  }
+
+  /**
+   * Get a string representation of the time stamp for this {@link
+   * IMediaData}.  The time is formatted as: <b>HH:MM:SS.ms</b>
+   *
+   * @return the printable string form of the time stamp of this media
+   *
+   * @see #getFormattedTimeStamp(String)
+   * @see #DEFALUT_TIME_STAMP_FORMAT
+   */
+
+  public String getFormattedTimeStamp()
+  {
+    return getFormattedTimeStamp(DEFALUT_TIME_STAMP_FORMAT);
+  }
+
+  /**
+   * Get a string representation of the time stamp for this {@link
+   * IMediaData}.  The format of the resulting string is specified by
+   * the format parameter.  See {@link java.util.Formatter} for 
+   * details on how to specify formats, however a good place to start
+   * is with the following format: <b>%1$tH:%1$tM:%1$tS.%1$tL</b>
+   *
+   * @param format the format for the time stamp string
+   *
+   * @return the printable string form of the timestamp
+   * 
+   * @see #getFormattedTimeStamp()
+   * @see #DEFALUT_TIME_STAMP_FORMAT
+   * @see java.util.Formatter
+   */
+
+  public String getFormattedTimeStamp(String format)
+  {
+    java.util.Formatter formatter = new java.util.Formatter();
+    return formatter.format(format,
+      (long)(getTimeStamp() * getTimeBase().getDouble() * 1000) +
+      TIME_OFFSET).toString();
   }
 
 /**
