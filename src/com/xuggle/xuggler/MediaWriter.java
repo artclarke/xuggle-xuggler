@@ -36,7 +36,6 @@ import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IPacket;
-import com.xuggle.xuggler.IVideoResampler;
 import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IContainer;
@@ -75,6 +74,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
 public class MediaWriter implements MediaReader.IListener
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
+  { log.trace("<init>"); }
 
   // the input container of packets
   
