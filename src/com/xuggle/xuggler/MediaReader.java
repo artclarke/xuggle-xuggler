@@ -122,6 +122,30 @@ public class MediaReader
    * and dispatch it to attached listeners. When the end of the stream
    * is encountered the media container and it's contained streams are
    * all closed.
+   * 
+   * <p>
+   * 
+   * No {@link BufferedImage}s are created.  To create {@link
+   * BufferedImage}s see {@link #MediaReader(String, boolean, String)}.
+   * 
+   * </p>
+   *
+   * @param url the location of the media content, a file name will also
+   *        work here
+   */
+
+  public MediaReader(String url)
+  {
+    this(url, false, null);
+  }
+
+  /**
+   * Create a MediaReader which reads and dispatchs data from a media
+   * stream for a given source URL. The media stream is opened, and
+   * subsequent calls to {@link #readPacket()} will read stream content
+   * and dispatch it to attached listeners. When the end of the stream
+   * is encountered the media container and it's contained streams are
+   * all closed.
    *
    * @param url the location of the media content, a file name will also
    *        work here
@@ -170,6 +194,32 @@ public class MediaReader
     }
     else
       mConverterType = null;
+  }
+
+  /**
+   * Create a MediaReader which reads and dispatchs data from a media
+   * container.  Calls to {@link #readPacket} will read stream content
+   * and dispatch it to attached listeners. If the end of the media
+   * stream is encountered, the MediaReader does NOT close the
+   * container, that is left to the calling context (you).  Streams
+   * opened by the MediaReader will be closed by the MediaReader,
+   * however streams outside the MediaReader will not be closed.  In
+   * short MediaReader closes what it opens.
+   * 
+   * <p>
+   * 
+   * No {@link BufferedImage}s are created.  To create {@link
+   * BufferedImage}s see {@link #MediaReader(IContainer, boolean,
+   * String)}.
+   *
+   * </p>
+   *
+   * @param container on already open media container
+   */
+
+  public MediaReader(IContainer container)
+  {
+    this(container, false, null);
   }
 
   /**
