@@ -23,11 +23,13 @@ package com.xuggle.xuggler;
 
 import java.awt.Graphics;
 import java.awt.Dimension;
-import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** 
  * Addd this to a media reader to display video.
@@ -39,6 +41,9 @@ import javax.swing.JPanel;
 
 public class MediaViewer extends JFrame implements MediaReader.IListener
 {
+  private final Logger log = LoggerFactory.getLogger(this.getClass());
+  { log.trace("<init>"); }
+  
   public static final long serialVersionUID = 0;
   
   // the video image
@@ -109,6 +114,7 @@ public class MediaViewer extends JFrame implements MediaReader.IListener
   public void onVideoPicture(IVideoPicture picture, BufferedImage image, 
     int streamIndex)
   {
+    log.trace("picture: {}", picture);
     mImage = image;
     repaint();
   }

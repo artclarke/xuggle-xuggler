@@ -20,6 +20,7 @@
  */
 #include <com/xuggle/ferry/Logger.h>
 #include <com/xuggle/ferry/RefPointer.h>
+#include <com/xuggle/xuggler/Global.h>
 #include <com/xuggle/xuggler/Codec.h>
 #include <com/xuggle/xuggler/ContainerFormat.h>
 
@@ -91,7 +92,9 @@ namespace com { namespace xuggle { namespace xuggler
     Codec *retval = 0;
     AVCodec *codec = 0;
     enum CodecID ffmpeg_id = (enum CodecID) id;
+    Global::lock();
     codec = avcodec_find_encoder(ffmpeg_id);
+    Global::unlock();
     if (codec)
       retval = Codec::make(codec);
 
@@ -105,7 +108,9 @@ namespace com { namespace xuggle { namespace xuggler
     AVCodec *codec = 0;
     if (name && *name)
     {
+      Global::lock();
       codec = avcodec_find_encoder_by_name(name);
+      Global::unlock();
       if (codec)
         retval = Codec::make(codec);
     }
@@ -124,7 +129,10 @@ namespace com { namespace xuggle { namespace xuggler
     Codec *retval = 0;
     AVCodec *codec = 0;
 
+    Global::lock();
     codec = avcodec_find_decoder((enum CodecID) id);
+    Global::unlock();
+    
     if (codec)
       retval = Codec::make(codec);
     return retval;
@@ -137,7 +145,9 @@ namespace com { namespace xuggle { namespace xuggler
     AVCodec *codec = 0;
     if (name && *name)
     {
+      Global::lock();
       codec = avcodec_find_decoder_by_name(name);
+      Global::unlock();
       if (codec)
         retval = Codec::make(codec);
     }

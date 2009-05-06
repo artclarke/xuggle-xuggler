@@ -33,7 +33,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
 
 import static junit.framework.Assert.*;
 
-public class MediaWriterTest
+public class MediaWriterExhaustiveTest
 {
   // show the videos during transcoding?
 

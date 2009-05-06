@@ -109,7 +109,6 @@ namespace com { namespace xuggle { namespace xuggler
       av_register_all();
       // and set up the device library for webcam support
       avdevice_register_all();
-      
       // turn down logging
       sGlobal = new Global();
       VS_LOG_TRACE("initialized");
