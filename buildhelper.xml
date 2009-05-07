@@ -633,7 +633,7 @@ using the library and what you like or don't like about it.
       listfiles="${build.listfiles}">
       <compilerarg line="${build.extraflags}"/>
     </javac>
-    <copy todir="${classes.dir}">
+    <copy todir="${test.classes.dir}">
       <fileset dir="${test.src.dir}">
         <include name="**/*.xml"/>
       </fileset>
