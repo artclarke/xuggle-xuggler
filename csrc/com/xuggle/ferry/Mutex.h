@@ -56,8 +56,6 @@ namespace com { namespace xuggle { namespace ferry {
     static void initJavaBindings(JavaVM* vm, void* closure);
     static bool mInitialized;
     static jclass mClass;
-    static jmethodID mLockMethod;
-    static jmethodID mUnlockMethod;
     static jmethodID mConstructorMethod;
 
 

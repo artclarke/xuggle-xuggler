@@ -38,7 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RunWith(NameAwareTestClassRunner.class)
-public class RegressionsTest
+public class RegressionsExhaustiveTest
 {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
   private String mTestName = null;

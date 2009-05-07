@@ -143,11 +143,16 @@ public class IMediaData extends RefCounted {
    */
 
   public java.nio.ByteBuffer getByteBuffer() {
-    java.nio.ByteBuffer byteBuffer = this.getData()
-      .getByteBuffer(0, this.getSize());
-    byteBuffer.position(0);
-    byteBuffer.mark();
-    byteBuffer.limit(this.getSize());
+    com.xuggle.ferry.IBuffer buf = this.getData();
+    if (buf == null)
+      return null;
+    java.nio.ByteBuffer byteBuffer = buf.getByteBuffer(0, this.getSize());
+    if (byteBuffer != null)
+    {
+      byteBuffer.position(0);
+      byteBuffer.mark();
+      byteBuffer.limit(this.getSize());
+    }
     return byteBuffer;
   }
 

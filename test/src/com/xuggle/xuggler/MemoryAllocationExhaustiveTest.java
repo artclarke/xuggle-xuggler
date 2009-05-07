@@ -2,9 +2,13 @@ package com.xuggle.xuggler;
 
 import static org.junit.Assert.*;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import com.xuggle.test_utils.NameAwareTestClassRunner;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IPixelFormat;
+import com.xuggle.ferry.IBuffer;
 import com.xuggle.ferry.JNIWeakReference;
 
 import org.junit.After;
@@ -16,7 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RunWith(NameAwareTestClassRunner.class)
-public class MemoryAllocationTest
+public class MemoryAllocationExhaustiveTest
 {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
   private String mTestName;
@@ -189,6 +193,86 @@ public class MemoryAllocationTest
     JNIWeakReference.getMgr().gc();
     assertTrue("Looks like we didn't leak the large frame????",
         0 < JNIWeakReference.getMgr().getNumPinnedObjects());
-
   }
+  
+  /**
+   * It's been pointed out to us that sometimes we core-dump
+   * if we run out of memory.  So this method tests that
+   * for packets.
+   */
+  @Test(expected=OutOfMemoryError.class)
+  public void testOutOfMemoryIPacket()
+  {
+    List<IPacket> leakyPackets = new LinkedList<IPacket>();
+    IBuffer buf = IBuffer.make(null, 1024*1024);
+    assertNotNull(buf);
+    IPacket pkt = IPacket.make(buf);
+    assertNotNull(pkt);
+    pkt.setComplete(true, 1024*1024);
+    assertNotNull(pkt.getByteBuffer());
+    while(true)
+    {
+      IPacket leakPacket = IPacket.make(pkt, true);
+      if (leakPacket == null)
+        throw new OutOfMemoryError();
+      java.nio.ByteBuffer bBuf = leakPacket.getByteBuffer();
+      if (bBuf == null)
+        throw new OutOfMemoryError();
+      bBuf.put(0, (byte)0);
+      leakyPackets.add(leakPacket);
+      log.trace("allocated media: {}", leakPacket);
+    }
+  }
+
+  /**
+   * It's been pointed out to us that sometimes we core-dump
+   * if we run out of memory.  So this method tests that
+   * for samples.
+   */
+  @Test(expected=OutOfMemoryError.class)
+  public void testOutOfMemoryIAudioSamples()
+  {
+    List<IAudioSamples> leakyMedia = new LinkedList<IAudioSamples>();
+    while(true)
+    {
+      IAudioSamples media = IAudioSamples.make(1024*1024, 1);
+      if (media == null)
+        throw new OutOfMemoryError();
+      media.setComplete(true,
+          1024*1024, 22050, 1, IAudioSamples.Format.FMT_S16, 0);
+      java.nio.ByteBuffer bBuf = media.getByteBuffer();
+      if (bBuf == null)
+        throw new OutOfMemoryError();
+      bBuf.put(0, (byte)0);
+      leakyMedia.add(media);
+      log.trace("allocated media: {}", media);
+    }
+  }
+
+  /**
+   * It's been pointed out to us that sometimes we core-dump
+   * if we run out of memory.  So this method tests that
+   * for samples.
+   */
+  @Test(expected=OutOfMemoryError.class)
+  public void testOutOfMemoryIVideoPicture()
+  {
+    List<IVideoPicture> leakyMedia = new LinkedList<IVideoPicture>();
+    while(true)
+    {
+      IVideoPicture media = IVideoPicture.make(
+          IPixelFormat.Type.YUV420P,
+          1024,
+          1024);
+      if (media == null)
+        throw new OutOfMemoryError();
+      java.nio.ByteBuffer bBuf = media.getByteBuffer();
+      if (bBuf == null)
+        throw new OutOfMemoryError();
+      bBuf.put(0, (byte)0);
+      leakyMedia.add(media);
+      log.trace("allocated media: {}", media);
+    }
+  }
+
 }

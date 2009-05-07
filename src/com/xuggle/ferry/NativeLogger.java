@@ -46,7 +46,7 @@ public class NativeLogger
     return retval;
   }
   
-  private Logger mLogger;
+  private final Logger mLogger;
   private NativeLogger(Logger logger) {
     mLogger = logger;
   }

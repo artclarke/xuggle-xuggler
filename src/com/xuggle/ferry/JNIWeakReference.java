@@ -47,17 +47,18 @@ import com.xuggle.ferry.FerryJNI;
  */
 public class JNIWeakReference extends PhantomReference<Object>
 {
-  @SuppressWarnings("unused")
-  private static final Logger log = LoggerFactory.getLogger(JNIWeakReference.class);
+  private static final Logger log =
+    LoggerFactory.getLogger(JNIWeakReference.class);
+  static { log.trace("static <init>"); }
 
-  private long mSwigCPtr;
+  private volatile long mSwigCPtr;
   // This memory manager will outlive the Java object we're referencing; that
   // means this class will sometimes show up as a potential leak, but trust us
   // here; ignore all the refs to here and see who else is holding the ref to
   // the JNIMemoryAllocator and that's your likely leak culprit (if we didn't
   // do this, then you'd get no indication of who is leaking your native object
   // so stop complaining now).
-  private JNIMemoryAllocator mMemAllocator;
+  private volatile JNIMemoryAllocator mMemAllocator;
 
   private JNIWeakReference(Object aReferent, long nativeVal)
   {
@@ -82,13 +83,13 @@ public class JNIWeakReference extends PhantomReference<Object>
       mMemAllocator = JNIMemoryAllocator.getAllocator(nativeVal);
     }
   }
-  static private JNIMemoryManager mMgr = new JNIMemoryManager();
+  static final private JNIMemoryManager mMgr = new JNIMemoryManager();
   static public JNIMemoryManager getMgr()
   {
     return mMgr;
   }
   
-  static public JNIWeakReference createReference(Object aReferent, long swigCPtr)
+  static JNIWeakReference createReference(Object aReferent, long swigCPtr)
   {
     // Clear out any pending native objects
     mMgr.gc();
@@ -99,15 +100,21 @@ public class JNIWeakReference extends PhantomReference<Object>
     return ref;
   }
   
-  public synchronized void delete()
+  void delete()
   {
-    if (mSwigCPtr != 0)
+    long swigPtr=0;
+    // acquire lock for minimum time
+    synchronized(this)
+    {
+      swigPtr = mSwigCPtr;
+      mSwigCPtr = 0;
+    }
+    if (swigPtr != 0)
     {
       //log.debug("deleting: {}; {}", this, mSwigCPtr);
-      FerryJNI.RefCounted_release(mSwigCPtr, null);
+      FerryJNI.RefCounted_release(swigPtr, null);
       // Free the memory manager we use
       mMemAllocator = null;
-      mSwigCPtr = 0;
       mMgr.removeReference(this);
     }
   }

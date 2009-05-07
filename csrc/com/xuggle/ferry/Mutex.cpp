@@ -20,23 +20,21 @@
  */
 #include "Mutex.h"
 #include "JNIHelper.h"
-#include "Logger.h"
+#include <cstdio>
 
 namespace com { namespace xuggle { namespace ferry {
 
-  jclass Mutex::mClass = 0;
-  jmethodID Mutex::mLockMethod = 0;
-  jmethodID Mutex::mUnlockMethod = 0;
-  jmethodID Mutex::mConstructorMethod = 0;
+  jclass Mutex :: mClass = 0;
+  jmethodID Mutex :: mConstructorMethod = 0;
 
-  bool Mutex::mInitialized = false;
+  bool Mutex :: mInitialized = false;
 
-  Mutex::Mutex()
+  Mutex :: Mutex()
   {
     mLock = 0;
   }
 
-  Mutex::~Mutex()
+  Mutex :: ~Mutex()
   {
     JNIEnv *env=JNIHelper::sGetEnv();
     if (env)
@@ -48,7 +46,7 @@ namespace com { namespace xuggle { namespace ferry {
   }
 
   bool
-  Mutex::init()
+  Mutex :: init()
   {
     if (!mInitialized) {
       JNIHelper::sRegisterInitializationCallback(initJavaBindings,0);
@@ -58,25 +56,17 @@ namespace com { namespace xuggle { namespace ferry {
   }
 
   void
-  Mutex::initJavaBindings(JavaVM*, void*)
+  Mutex :: initJavaBindings(JavaVM*, void*)
   {
     JNIEnv *env=JNIHelper::sGetEnv();
     if (env && !mClass)
     {
       // We're inside a JVM, let's get to work.
-      jclass cls=env->FindClass("java/util/concurrent/locks/ReentrantLock");
+      jclass cls=env->FindClass("java/lang/Object");
       if (cls)
       {
         // and find all our methods
 
-        mLockMethod = env->GetMethodID(cls,
-            "lock",
-            "()V"
-        );
-        mUnlockMethod = env->GetMethodID(cls,
-            "unlock",
-            "()V"
-        );
         mConstructorMethod = env->GetMethodID(cls,
             "<init>", "()V");
 
@@ -87,7 +77,7 @@ namespace com { namespace xuggle { namespace ferry {
   }
 
   void
-  Mutex::lock()
+  Mutex :: lock()
   {
     if (!mInitialized)
       Mutex::init();
@@ -97,13 +87,16 @@ namespace com { namespace xuggle { namespace ferry {
       JNIEnv *env=JNIHelper::sGetEnv();
       if (env)
       {
-        env->CallVoidMethod(mLock, mLockMethod);
+        //fprintf(stderr, " PRE-ENTER: %p\n", mLock);
+        if (env->MonitorEnter(mLock) != JNI_OK)
+          fprintf(stderr, "Could not enter lock: %p\n", mLock);
+        //fprintf(stderr, "POST-ENTER: %p\n", mLock);
       }
     }
   }
 
   void
-  Mutex::unlock()
+  Mutex :: unlock()
   {
     if (!mInitialized)
       Mutex::init();
@@ -113,13 +106,16 @@ namespace com { namespace xuggle { namespace ferry {
       JNIEnv *env=JNIHelper::sGetEnv();
       if (env)
       {
-        env->CallVoidMethod(mLock, mUnlockMethod);
+        //fprintf(stderr, "  PRE-EXIT: %p\n", mLock);
+        if (env->MonitorExit(mLock) != JNI_OK)
+          fprintf(stderr, "Could not exit lock: %p\n", mLock);
+        //fprintf(stderr, " POST-EXIT: %p\n", mLock);
       }
     }
   }
 
   Mutex*
-  Mutex::make()
+  Mutex :: make()
   {
     if (!mInitialized)
       Mutex::init();

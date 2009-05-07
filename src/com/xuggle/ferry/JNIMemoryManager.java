@@ -20,8 +20,8 @@ public class JNIMemoryManager
 {
   private static final Logger log = LoggerFactory.getLogger(JNIMemoryManager.class);
 
-  private ReferenceQueue<Object> mRefQueue;
-  private Set<JNIWeakReference> mRefList;
+  private final ReferenceQueue<Object> mRefQueue;
+  private final Set<JNIWeakReference> mRefList;
 
   /**
    * The constructor is package level so others can't create it.
@@ -66,9 +66,9 @@ public class JNIMemoryManager
    */
   public void finalize()
   {
-    log.debug("destroying: {}", this);
+    log.trace("destroying: {}", this);
     gc();
-    mRefList = null;
+    synchronized(mRefList) { mRefList.clear(); }
     gc();
   }
   

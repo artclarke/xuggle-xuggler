@@ -300,6 +300,16 @@
   {
     $action
   }
+  catch(std::bad_alloc & e)
+  {
+    // we don't let a native exception override a java exception
+    if (!jenv->ExceptionCheck())
+    {
+      jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+      jenv->ThrowNew(cls, "native memory exhausted");
+    }
+    return $null;
+  }
   catch(std::exception & e)
   {
     // we don't let a native exception override a java exception

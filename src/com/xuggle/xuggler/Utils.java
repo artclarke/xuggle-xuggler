@@ -86,6 +86,8 @@ public class Utils
       int crossHatchVColor)
   {
     IVideoPicture frame = IVideoPicture.make(IPixelFormat.Type.YUV420P, w, h);
+    if (frame == null)
+      throw new OutOfMemoryError("could not allocate frame");
     
     if (frame != null)
     {

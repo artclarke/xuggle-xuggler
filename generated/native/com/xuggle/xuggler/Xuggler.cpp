@@ -209,20 +209,6 @@ static void SWIGUNUSED SWIG_JavaThrowException(JNIEnv *jenv, SWIG_JavaExceptionC
 // Native.i: Start generated code
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>
 #include <com/xuggle/ferry/JNIHelper.h>
-/*
- * This will be called if an when we're loaded
- * directly by Java.  If we're linked to via
- * C/C++ linkage on another library, they
- * must call sSetVM().
- */
-JNIEXPORT jint JNICALL
-JNI_OnLoad(JavaVM *jvm, void *)
-{
-  if (!com::xuggle::ferry::JNIHelper::sGetVM())
-    com::xuggle::ferry::JNIHelper::sSetVM(jvm);
-  return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
-}
-
 #include <com/xuggle/xuggler/IProperty.h>
 #include <com/xuggle/xuggler/IPixelFormat.h>
 #include <com/xuggle/xuggler/ITimeValue.h>
@@ -244,6 +230,22 @@ JNI_OnLoad(JavaVM *jvm, void *)
 #include <com/xuggle/xuggler/IError.h>
 
 using namespace VS_CPP_NAMESPACE;
+
+/*
+ * This will be called if an when we're loaded
+ * directly by Java.  If we're linked to via
+ * C/C++ linkage on another library, they
+ * must call sSetVM().
+ */
+JNIEXPORT jint JNICALL
+JNI_OnLoad(JavaVM *jvm, void *)
+{
+  if (!com::xuggle::ferry::JNIHelper::sGetVM())
+    com::xuggle::ferry::JNIHelper::sSetVM(jvm);
+  Global::init();
+  return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
+}
+
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<
 // Native.i: End generated code
@@ -421,6 +423,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1getName
     {
       result = (char *)(arg1)->getName();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -471,6 +483,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1getHelp
     try
     {
       result = (char *)(arg1)->getHelp();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -523,6 +545,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1getUnit
     {
       result = (char *)(arg1)->getUnit();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -573,6 +605,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1getType(JN
     try
     {
       result = (com::xuggle::xuggler::IProperty::Type)(arg1)->getType();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -625,6 +667,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1getFlags(J
     {
       result = (int32_t)(arg1)->getFlags();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -675,6 +727,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1getDefaul
     try
     {
       result = (int64_t)(arg1)->getDefault();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -727,6 +789,16 @@ SWIGEXPORT jdouble JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1getDefa
     {
       result = (double)(arg1)->getDefaultAsDouble();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -777,6 +849,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1getNumFlag
     try
     {
       result = (int32_t)(arg1)->getNumFlagSettings();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -830,6 +912,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1getFlagCo
     try
     {
       result = (com::xuggle::xuggler::IProperty *)(arg1)->getFlagConstant(arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -887,6 +979,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1getFlagCo
     try
     {
       result = (com::xuggle::xuggler::IProperty *)(arg1)->getFlagConstant((char const *)arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -987,6 +1089,16 @@ SWIGEXPORT jshort JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPixelFormat_1getYU
     {
       result = (unsigned char)com::xuggle::xuggler::IPixelFormat::getYUV420PPixel(arg1,arg2,arg3,arg4);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -1037,6 +1149,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPixelFormat_1setYUV4
     {
       com::xuggle::xuggler::IPixelFormat::setYUV420PPixel(arg1,arg2,arg3,arg4,arg5);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -1084,6 +1206,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPixelFormat_1getYUV4
     try
     {
       result = (int)com::xuggle::xuggler::IPixelFormat::getYUV420PPixelOffset(arg1,arg2,arg3,arg4);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -1136,6 +1268,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1getNumerat
     {
       result = (int32_t)(arg1)->getNumerator();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -1187,6 +1329,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1getDenomin
     {
       result = (int32_t)(arg1)->getDenominator();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -1237,6 +1389,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1copy(JNIE
     try
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->copy();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -1292,6 +1454,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1compareTo(
     {
       result = (int32_t)(arg1)->compareTo(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -1338,6 +1510,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1sCompareTo
     try
     {
       result = (int32_t)com::xuggle::xuggler::IRational::sCompareTo(arg1,arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -1389,6 +1571,16 @@ SWIGEXPORT jdouble JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1getDoub
     try
     {
       result = (double)(arg1)->getDouble();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -1447,6 +1639,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1reduce(JNI
     {
       result = (int32_t)(arg1)->reduce(arg2,arg3,arg4);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -1496,6 +1698,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1sReduce(JN
     try
     {
       result = (int32_t)com::xuggle::xuggler::IRational::sReduce(arg1,arg2,arg3,arg4);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -1551,6 +1763,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1multiply(
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->multiply(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -1597,6 +1819,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1sMultiply
     try
     {
       result = (com::xuggle::xuggler::IRational *)com::xuggle::xuggler::IRational::sMultiply(arg1,arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -1652,6 +1884,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1divide(JN
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->divide(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -1698,6 +1940,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1sDivide(J
     try
     {
       result = (com::xuggle::xuggler::IRational *)com::xuggle::xuggler::IRational::sDivide(arg1,arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -1753,6 +2005,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1subtract(
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->subtract(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -1799,6 +2061,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1sSubtract
     try
     {
       result = (com::xuggle::xuggler::IRational *)com::xuggle::xuggler::IRational::sSubtract(arg1,arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -1854,6 +2126,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1add(JNIEn
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->add(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -1900,6 +2182,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1sAdd(JNIE
     try
     {
       result = (com::xuggle::xuggler::IRational *)com::xuggle::xuggler::IRational::sAdd(arg1,arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -1957,6 +2249,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1rescale(J
     {
       result = (int64_t)(arg1)->rescale(arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -2006,6 +2308,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1sRescale(
     {
       result = (int64_t)com::xuggle::xuggler::IRational::sRescale(arg1,arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -2046,6 +2358,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1make_1_1S
     try
     {
       result = (com::xuggle::xuggler::IRational *)com::xuggle::xuggler::IRational::make();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -2090,6 +2412,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1make_1_1S
     {
       result = (com::xuggle::xuggler::IRational *)com::xuggle::xuggler::IRational::make(arg1);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -2133,6 +2465,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1make_1_1S
     try
     {
       result = (com::xuggle::xuggler::IRational *)com::xuggle::xuggler::IRational::make(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -2179,6 +2521,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IRational_1make_1_1S
     {
       result = (com::xuggle::xuggler::IRational *)com::xuggle::xuggler::IRational::make(arg1,arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -2224,6 +2576,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_ITimeValue_1make_1_1
     {
       result = (com::xuggle::xuggler::ITimeValue *)com::xuggle::xuggler::ITimeValue::make(arg1,arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -2267,6 +2629,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_ITimeValue_1make_1_1
     try
     {
       result = (com::xuggle::xuggler::ITimeValue *)com::xuggle::xuggler::ITimeValue::make(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -2320,6 +2692,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_ITimeValue_1get(JNIE
     try
     {
       result = (int64_t)(arg1)->get(arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -2375,6 +2757,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ITimeValue_1compareTo
     {
       result = (int32_t)(arg1)->compareTo(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -2422,6 +2814,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ITimeValue_1compare_1
     {
       result = (int32_t)com::xuggle::xuggler::ITimeValue::compare(arg1,arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -2466,6 +2868,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ITimeValue_1compare_1
     try
     {
       result = (int32_t)com::xuggle::xuggler::ITimeValue::compare(arg1,arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -2650,6 +3062,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1getName(JN
     {
       result = (char *)(arg1)->getName();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -2700,6 +3122,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1getIDAsInt(JN
     try
     {
       result = (int)(arg1)->getIDAsInt();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -2752,6 +3184,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1getID(JNIEnv 
     {
       result = (com::xuggle::xuggler::ICodec::ID)(arg1)->getID();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -2802,6 +3244,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1getType(JNIEn
     try
     {
       result = (com::xuggle::xuggler::ICodec::Type)(arg1)->getType();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -2854,6 +3306,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1canDecode
     {
       result = (bool)(arg1)->canDecode();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -2905,6 +3367,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1canEncode
     {
       result = (bool)(arg1)->canEncode();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -2948,6 +3420,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1findEncoding
     {
       result = (com::xuggle::xuggler::ICodec *)com::xuggle::xuggler::ICodec::findEncodingCodec(arg1);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -2990,6 +3472,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1findEncoding
     try
     {
       result = (com::xuggle::xuggler::ICodec *)com::xuggle::xuggler::ICodec::findEncodingCodecByIntID(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -3038,6 +3530,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1findEncoding
     {
       result = (com::xuggle::xuggler::ICodec *)com::xuggle::xuggler::ICodec::findEncodingCodecByName((char const *)arg1);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -3082,6 +3584,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1findDecoding
     {
       result = (com::xuggle::xuggler::ICodec *)com::xuggle::xuggler::ICodec::findDecodingCodec(arg1);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -3124,6 +3636,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1findDecoding
     try
     {
       result = (com::xuggle::xuggler::ICodec *)com::xuggle::xuggler::ICodec::findDecodingCodecByIntID(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -3171,6 +3693,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1findDecoding
     try
     {
       result = (com::xuggle::xuggler::ICodec *)com::xuggle::xuggler::ICodec::findDecodingCodecByName((char const *)arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -3237,6 +3769,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1guessEncodin
     {
       result = (com::xuggle::xuggler::ICodec *)com::xuggle::xuggler::ICodec::guessEncodingCodec(arg1,(char const *)arg2,(char const *)arg3,(char const *)arg4,arg5);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -3291,6 +3833,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1getLongNam
     {
       result = (char *)(arg1)->getLongName();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -3341,6 +3893,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1getTimeS
     try
     {
       result = (int64_t)(arg1)->getTimeStamp();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -3393,6 +3955,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1setTimeSt
     {
       (arg1)->setTimeStamp(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -3441,6 +4013,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1getTimeB
     try
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->getTimeBase();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -3494,6 +4076,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1setTimeBa
     {
       (arg1)->setTimeBase(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -3542,6 +4134,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1getData(
     try
     {
       result = (com::xuggle::ferry::IBuffer *)(arg1)->getData();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -3594,6 +4196,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1getSize(J
     {
       result = (int32_t)(arg1)->getSize();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -3645,6 +4257,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1isKey
     {
       result = (bool)(arg1)->isKey();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -3694,6 +4316,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1reset(JNIEnv
     {
       (arg1)->reset();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -3742,6 +4374,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1isComple
     try
     {
       result = (bool)(arg1)->isComplete();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -3794,6 +4436,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1getPts(JNIE
     {
       result = (int64_t)(arg1)->getPts();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -3845,6 +4497,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1setPts(JNIEn
     {
       (arg1)->setPts(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -3893,6 +4555,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1getDts(JNIE
     try
     {
       result = (int64_t)(arg1)->getDts();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -3945,6 +4617,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1setDts(JNIEn
     {
       (arg1)->setDts(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -3993,6 +4675,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1getSize(JNIE
     try
     {
       result = (int32_t)(arg1)->getSize();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -4045,6 +4737,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1getMaxSize(J
     {
       result = (int32_t)(arg1)->getMaxSize();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -4095,6 +4797,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1getStreamInd
     try
     {
       result = (int32_t)(arg1)->getStreamIndex();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -4147,6 +4859,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1getFlags(JNI
     {
       result = (int32_t)(arg1)->getFlags();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -4197,6 +4919,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1isKeyPac
     try
     {
       result = (bool)(arg1)->isKeyPacket();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -4249,6 +4981,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1getDuration
     {
       result = (int64_t)(arg1)->getDuration();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -4300,6 +5042,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1getPosition
     {
       result = (int64_t)(arg1)->getPosition();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -4350,6 +5102,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1getData(JNI
     try
     {
       result = (com::xuggle::ferry::IBuffer *)(arg1)->getData();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -4404,6 +5166,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1allocateNewP
     {
       result = (int32_t)(arg1)->allocateNewPayload(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -4444,6 +5216,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1make_1_1SWI
     try
     {
       result = (com::xuggle::xuggler::IPacket *)com::xuggle::xuggler::IPacket::make();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -4488,6 +5270,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1make_1_1SWI
     try
     {
       result = (com::xuggle::xuggler::IPacket *)com::xuggle::xuggler::IPacket::make(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -4540,6 +5332,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1setKeyPacket
     {
       (arg1)->setKeyPacket(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -4588,6 +5390,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1setFlags(JNI
     try
     {
       (arg1)->setFlags(arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
     }
     catch(std::exception & e)
     {
@@ -4640,6 +5452,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1setComplete(
     {
       (arg1)->setComplete(arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -4688,6 +5510,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1setStreamInd
     try
     {
       (arg1)->setStreamIndex(arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
     }
     catch(std::exception & e)
     {
@@ -4738,6 +5570,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1setDuration(
     {
       (arg1)->setDuration(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -4787,6 +5629,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1setPosition(
     {
       (arg1)->setPosition(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -4835,6 +5687,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1getConverge
     try
     {
       result = (int64_t)(arg1)->getConvergenceDuration();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -4887,6 +5749,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1setConvergen
     {
       (arg1)->setConvergenceDuration(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -4930,6 +5802,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPacket_1make_1_1SWI
     try
     {
       result = (com::xuggle::xuggler::IPacket *)com::xuggle::xuggler::IPacket::make(arg1,arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -4994,6 +5876,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1is
     {
       result = (bool)(arg1)->isComplete();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -5044,6 +5936,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1getSam
     try
     {
       result = (int32_t)(arg1)->getSampleRate();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -5096,6 +5998,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1getCha
     {
       result = (int32_t)(arg1)->getChannels();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -5146,6 +6058,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1getSa
     try
     {
       result = (uint32_t)(arg1)->getSampleBitDepth();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -5198,6 +6120,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1getFor
     {
       result = (com::xuggle::xuggler::IAudioSamples::Format)(arg1)->getFormat();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -5248,6 +6180,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1getNu
     try
     {
       result = (uint32_t)(arg1)->getNumSamples();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -5300,6 +6242,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1getMa
     {
       result = (uint32_t)(arg1)->getMaxBufferSize();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -5350,6 +6302,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1getMa
     try
     {
       result = (uint32_t)(arg1)->getMaxSamples();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -5402,6 +6364,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1getSa
     {
       result = (uint32_t)(arg1)->getSampleSize();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -5452,6 +6424,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1getPt
     try
     {
       result = (int64_t)(arg1)->getPts();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -5504,6 +6486,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1setPts
     {
       (arg1)->setPts(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -5552,6 +6544,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1getNe
     try
     {
       result = (int64_t)(arg1)->getNextPts();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -5614,6 +6616,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1setCom
     {
       (arg1)->setComplete(arg2,arg3,arg4,arg5,arg6,arg7);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -5670,6 +6682,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1setSam
     try
     {
       result = (int32_t)(arg1)->setSample(arg2,arg3,arg4,arg5);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -5728,6 +6750,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1getSam
     {
       result = (int32_t)(arg1)->getSample(arg2,arg3,arg4);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -5770,6 +6802,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1findS
     try
     {
       result = (uint32_t)com::xuggle::xuggler::IAudioSamples::findSampleBitDepth(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -5816,6 +6858,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1make(
     {
       result = (com::xuggle::xuggler::IAudioSamples *)com::xuggle::xuggler::IAudioSamples::make(arg1,arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -5861,6 +6913,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1sampl
     {
       result = (int64_t)com::xuggle::xuggler::IAudioSamples::samplesToDefaultPts(arg1,arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -5905,6 +6967,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioSamples_1defau
     try
     {
       result = (int64_t)com::xuggle::xuggler::IAudioSamples::defaultPtsToSamples(arg1,arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -5957,6 +7029,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1getO
     {
       result = (int)(arg1)->getOutputChannels();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -6007,6 +7089,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1getO
     try
     {
       result = (int)(arg1)->getOutputRate();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -6059,6 +7151,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1getI
     {
       result = (int)(arg1)->getInputChannels();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -6109,6 +7211,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1getI
     try
     {
       result = (int)(arg1)->getInputRate();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -6169,6 +7281,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1resa
     {
       result = (int)(arg1)->resample(arg2,arg3,arg4);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -6217,6 +7339,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1mak
     try
     {
       result = (com::xuggle::xuggler::IAudioResampler *)com::xuggle::xuggler::IAudioResampler::make(arg1,arg2,arg3,arg4);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -6269,6 +7401,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1getO
     {
       result = (com::xuggle::xuggler::IAudioSamples::Format)(arg1)->getOutputFormat();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -6319,6 +7461,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1getI
     try
     {
       result = (com::xuggle::xuggler::IAudioSamples::Format)(arg1)->getInputFormat();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -6371,6 +7523,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1getF
     {
       result = (int32_t)(arg1)->getFilterLen();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -6421,6 +7583,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1getL
     try
     {
       result = (int32_t)(arg1)->getLog2PhaseCount();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -6473,6 +7645,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1
     {
       result = (bool)(arg1)->isLinear();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -6523,6 +7705,16 @@ SWIGEXPORT jdouble JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1g
     try
     {
       result = (double)(arg1)->getCutoffFrequency();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -6576,6 +7768,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1mak
     try
     {
       result = (com::xuggle::xuggler::IAudioResampler *)com::xuggle::xuggler::IAudioResampler::make(arg1,arg2,arg3,arg4,arg5,arg6);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -6638,6 +7840,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IAudioResampler_1mak
     {
       result = (com::xuggle::xuggler::IAudioResampler *)com::xuggle::xuggler::IAudioResampler::make(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -6688,6 +7900,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1is
     try
     {
       result = (bool)(arg1)->isKeyFrame();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -6740,6 +7962,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1setKey
     {
       (arg1)->setKeyFrame(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -6788,6 +8020,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1is
     try
     {
       result = (bool)(arg1)->isComplete();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -6840,6 +8082,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1getSiz
     {
       result = (int32_t)(arg1)->getSize();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -6890,6 +8142,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1getWid
     try
     {
       result = (int)(arg1)->getWidth();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -6942,6 +8204,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1getHei
     {
       result = (int)(arg1)->getHeight();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -6992,6 +8264,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1getPix
     try
     {
       result = (com::xuggle::xuggler::IPixelFormat::Type)(arg1)->getPixelType();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -7044,6 +8326,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1getPt
     {
       result = (int64_t)(arg1)->getPts();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -7095,6 +8387,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1setPts
     {
       (arg1)->setPts(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -7143,6 +8445,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1getQua
     try
     {
       result = (int)(arg1)->getQuality();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -7195,6 +8507,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1setQua
     {
       (arg1)->setQuality(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -7245,6 +8567,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1getDat
     try
     {
       result = (int)(arg1)->getDataLineSize(arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -7305,6 +8637,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1setCom
     {
       (arg1)->setComplete(arg2,arg3,arg4,arg5,arg6);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -7357,6 +8699,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1co
     {
       result = (bool)(arg1)->copy(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -7404,6 +8756,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1make_
     {
       result = (com::xuggle::xuggler::IVideoPicture *)com::xuggle::xuggler::IVideoPicture::make(arg1,arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -7447,6 +8809,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1make_
     try
     {
       result = (com::xuggle::xuggler::IVideoPicture *)com::xuggle::xuggler::IVideoPicture::make(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -7499,6 +8871,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1getI
     {
       result = (int32_t)(arg1)->getInputWidth();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -7549,6 +8931,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1getI
     try
     {
       result = (int32_t)(arg1)->getInputHeight();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -7601,6 +8993,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1getI
     {
       result = (com::xuggle::xuggler::IPixelFormat::Type)(arg1)->getInputPixelFormat();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -7651,6 +9053,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1getO
     try
     {
       result = (int32_t)(arg1)->getOutputWidth();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -7703,6 +9115,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1getO
     {
       result = (int32_t)(arg1)->getOutputHeight();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -7753,6 +9175,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1getO
     try
     {
       result = (com::xuggle::xuggler::IPixelFormat::Type)(arg1)->getOutputPixelFormat();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -7811,6 +9243,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1resa
     {
       result = (int32_t)(arg1)->resample(arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -7861,6 +9303,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1getN
     try
     {
       result = (int32_t)(arg1)->getNumProperties();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -7914,6 +9366,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1get
     try
     {
       result = (com::xuggle::xuggler::IProperty *)(arg1)->getPropertyMetaData(arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -7971,6 +9433,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1get
     try
     {
       result = (com::xuggle::xuggler::IProperty *)(arg1)->getPropertyMetaData((char const *)arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -8036,6 +9508,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1setP
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,(char const *)arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -8097,6 +9579,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1setP
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -8157,6 +9649,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1setP
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -8216,6 +9718,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1setP
     try
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,arg3);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -8278,6 +9790,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1setP
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -8335,6 +9857,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1g
     try
     {
       result = (char *)(arg1)->getPropertyAsString((char const *)arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -8395,6 +9927,16 @@ SWIGEXPORT jdouble JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1g
     {
       result = (double)(arg1)->getPropertyAsDouble((char const *)arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -8452,6 +9994,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1get
     try
     {
       result = (int64_t)(arg1)->getPropertyAsLong((char const *)arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -8511,6 +10063,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1get
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->getPropertyAsRational((char const *)arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -8569,6 +10131,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1
     {
       result = (bool)(arg1)->getPropertyAsBoolean((char const *)arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -8623,6 +10195,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1mak
     {
       result = (com::xuggle::xuggler::IVideoResampler *)com::xuggle::xuggler::IVideoResampler::make(arg1,arg2,arg3,arg4,arg5,arg6);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -8665,6 +10247,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1
     try
     {
       result = (bool)com::xuggle::xuggler::IVideoResampler::isSupported(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -9317,6 +10909,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getDire
     {
       result = (com::xuggle::xuggler::IStreamCoder::Direction)(arg1)->getDirection();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -9367,6 +10969,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getStr
     try
     {
       result = (com::xuggle::xuggler::IStream *)(arg1)->getStream();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -9419,6 +11031,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getCod
     {
       result = (com::xuggle::xuggler::ICodec *)(arg1)->getCodec();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -9470,6 +11092,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getCode
     {
       result = (com::xuggle::xuggler::ICodec::Type)(arg1)->getCodecType();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -9520,6 +11152,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getCode
     try
     {
       result = (com::xuggle::xuggler::ICodec::ID)(arg1)->getCodecID();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -9573,6 +11215,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setCode
     {
       (arg1)->setCodec(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -9622,6 +11274,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setCode
     {
       (arg1)->setCodec(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -9670,6 +11332,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getBitR
     try
     {
       result = (int32_t)(arg1)->getBitRate();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -9722,6 +11394,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setBitR
     {
       (arg1)->setBitRate(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -9770,6 +11452,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getBitR
     try
     {
       result = (int32_t)(arg1)->getBitRateTolerance();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -9822,6 +11514,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setBitR
     {
       (arg1)->setBitRateTolerance(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -9870,6 +11572,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getHeig
     try
     {
       result = (int32_t)(arg1)->getHeight();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -9922,6 +11634,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setHeig
     {
       (arg1)->setHeight(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -9970,6 +11692,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getWidt
     try
     {
       result = (int32_t)(arg1)->getWidth();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -10022,6 +11754,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setWidt
     {
       (arg1)->setWidth(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -10070,6 +11812,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getTim
     try
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->getTimeBase();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -10123,6 +11875,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setTime
     {
       (arg1)->setTimeBase(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -10171,6 +11933,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getFra
     try
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->getFrameRate();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -10224,6 +11996,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setFram
     {
       (arg1)->setFrameRate(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -10272,6 +12054,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getNumP
     try
     {
       result = (int32_t)(arg1)->getNumPicturesInGroupOfPictures();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -10324,6 +12116,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setNumP
     {
       (arg1)->setNumPicturesInGroupOfPictures(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -10372,6 +12174,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getPixe
     try
     {
       result = (com::xuggle::xuggler::IPixelFormat::Type)(arg1)->getPixelType();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -10424,6 +12236,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setPixe
     {
       (arg1)->setPixelType(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -10472,6 +12294,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getSamp
     try
     {
       result = (int32_t)(arg1)->getSampleRate();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -10524,6 +12356,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setSamp
     {
       (arg1)->setSampleRate(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -10572,6 +12414,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getSamp
     try
     {
       result = (com::xuggle::xuggler::IAudioSamples::Format)(arg1)->getSampleFormat();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -10624,6 +12476,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setSamp
     {
       (arg1)->setSampleFormat(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -10672,6 +12534,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getChan
     try
     {
       result = (int32_t)(arg1)->getChannels();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -10724,6 +12596,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setChan
     {
       (arg1)->setChannels(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -10772,6 +12654,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getAudi
     try
     {
       result = (int32_t)(arg1)->getAudioFrameSize();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -10824,6 +12716,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getGlob
     {
       result = (int32_t)(arg1)->getGlobalQuality();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -10875,6 +12777,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setGlob
     {
       (arg1)->setGlobalQuality(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -10923,6 +12835,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getFlag
     try
     {
       result = (int32_t)(arg1)->getFlags();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -10975,6 +12897,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setFlag
     {
       (arg1)->setFlags(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -11025,6 +12957,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1get
     try
     {
       result = (bool)(arg1)->getFlag(arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -11079,6 +13021,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setFlag
     {
       (arg1)->setFlag(arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -11127,6 +13079,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getNex
     try
     {
       result = (int64_t)(arg1)->getNextPredictedPts();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -11179,6 +13141,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1open(JN
     {
       result = (int32_t)(arg1)->open();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -11229,6 +13201,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1close(J
     try
     {
       result = (int32_t)(arg1)->close();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -11289,6 +13271,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1decodeA
     {
       result = (int32_t)(arg1)->decodeAudio(arg2,arg3,arg4);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -11347,6 +13339,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1decodeV
     try
     {
       result = (int32_t)(arg1)->decodeVideo(arg2,arg3,arg4);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -11407,6 +13409,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1encodeV
     {
       result = (int32_t)(arg1)->encodeVideo(arg2,arg3,arg4);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -11466,6 +13478,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1encodeA
     {
       result = (int32_t)(arg1)->encodeAudio(arg2,arg3,arg4);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -11508,6 +13530,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1make_1
     try
     {
       result = (com::xuggle::xuggler::IStreamCoder *)com::xuggle::xuggler::IStreamCoder::make(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -11560,6 +13592,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getCode
     {
       result = (int32_t)(arg1)->getCodecTag();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -11611,6 +13653,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setCode
     {
       (arg1)->setCodecTag(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -11659,6 +13711,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getNumP
     try
     {
       result = (int32_t)(arg1)->getNumProperties();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -11712,6 +13774,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getPro
     try
     {
       result = (com::xuggle::xuggler::IProperty *)(arg1)->getPropertyMetaData(arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -11769,6 +13841,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getPro
     try
     {
       result = (com::xuggle::xuggler::IProperty *)(arg1)->getPropertyMetaData((char const *)arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -11834,6 +13916,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setProp
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,(char const *)arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -11895,6 +13987,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setProp
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -11955,6 +14057,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setProp
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -12014,6 +14126,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setProp
     try
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,arg3);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -12076,6 +14198,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setProp
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -12133,6 +14265,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getP
     try
     {
       result = (char *)(arg1)->getPropertyAsString((char const *)arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -12193,6 +14335,16 @@ SWIGEXPORT jdouble JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getP
     {
       result = (double)(arg1)->getPropertyAsDouble((char const *)arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -12250,6 +14402,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getPro
     try
     {
       result = (int64_t)(arg1)->getPropertyAsLong((char const *)arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -12309,6 +14471,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getPro
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->getPropertyAsRational((char const *)arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -12367,6 +14539,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1get
     {
       result = (bool)(arg1)->getPropertyAsBoolean((char const *)arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -12419,6 +14601,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1isO
     {
       result = (bool)(arg1)->isOpen();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -12469,6 +14661,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getDefa
     try
     {
       result = (int32_t)(arg1)->getDefaultAudioFrameSize();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -12521,6 +14723,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1setDefa
     {
       (arg1)->setDefaultAudioFrameSize(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -12564,6 +14776,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1make_1
     try
     {
       result = (com::xuggle::xuggler::IStreamCoder *)com::xuggle::xuggler::IStreamCoder::make(arg1,arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -12616,6 +14838,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getDirection
     {
       result = (com::xuggle::xuggler::IStream::Direction)(arg1)->getDirection();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -12666,6 +14898,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getIndex(JNI
     try
     {
       result = (int)(arg1)->getIndex();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -12718,6 +14960,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getId(JNIEnv
     {
       result = (int)(arg1)->getId();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -12768,6 +15020,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getStreamCo
     try
     {
       result = (com::xuggle::xuggler::IStreamCoder *)(arg1)->getStreamCoder();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -12820,6 +15082,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getFrameRat
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->getFrameRate();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -12870,6 +15142,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getTimeBase
     try
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->getTimeBase();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -12922,6 +15204,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getStartTim
     {
       result = (int64_t)(arg1)->getStartTime();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -12972,6 +15264,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getDuration
     try
     {
       result = (int64_t)(arg1)->getDuration();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -13024,6 +15326,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getCurrentD
     {
       result = (int64_t)(arg1)->getCurrentDts();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -13074,6 +15386,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getNumIndexE
     try
     {
       result = (int)(arg1)->getNumIndexEntries();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -13126,6 +15448,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getNumFrame
     {
       result = (int64_t)(arg1)->getNumFrames();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -13176,6 +15508,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getSampleAs
     try
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->getSampleAspectRatio();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -13229,6 +15571,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1setSampleAsp
     {
       (arg1)->setSampleAspectRatio(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -13277,6 +15629,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getLangua
     try
     {
       result = (char *)(arg1)->getLanguage();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -13333,6 +15695,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1setLanguage(
     {
       (arg1)->setLanguage((char const *)arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -13382,6 +15754,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1getContaine
     try
     {
       result = (com::xuggle::xuggler::IContainer *)(arg1)->getContainer();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -13437,6 +15819,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStream_1setStreamCod
     {
       result = (int32_t)(arg1)->setStreamCoder(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -13487,6 +15879,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters
     try
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->getTimeBase();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -13540,6 +15942,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     {
       (arg1)->setTimeBase(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -13588,6 +16000,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     try
     {
       result = (int32_t)(arg1)->getAudioSampleRate();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -13640,6 +16062,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     {
       (arg1)->setAudioSampleRate(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -13688,6 +16120,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     try
     {
       result = (int32_t)(arg1)->getAudioChannels();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -13740,6 +16182,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     {
       (arg1)->setAudioChannels(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -13788,6 +16240,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     try
     {
       result = (int32_t)(arg1)->getVideoWidth();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -13840,6 +16302,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     {
       (arg1)->setVideoWidth(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -13888,6 +16360,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     try
     {
       result = (int32_t)(arg1)->getVideoHeight();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -13940,6 +16422,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     {
       (arg1)->setVideoHeight(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -13988,6 +16480,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     try
     {
       result = (com::xuggle::xuggler::IPixelFormat::Type)(arg1)->getPixelFormat();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -14040,6 +16542,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     {
       (arg1)->setPixelFormat(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -14088,6 +16600,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     try
     {
       result = (int32_t)(arg1)->getTVChannel();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -14140,6 +16662,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     {
       (arg1)->setTVChannel(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -14188,6 +16720,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParamete
     try
     {
       result = (char *)(arg1)->getTVStandard();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -14244,6 +16786,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     {
       (arg1)->setTVStandard((char const *)arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -14293,6 +16845,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParamet
     try
     {
       result = (bool)(arg1)->isMPEG2TSRaw();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -14345,6 +16907,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     {
       (arg1)->setMPEG2TSRaw(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -14393,6 +16965,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParamet
     try
     {
       result = (bool)(arg1)->isMPEG2TSComputePCR();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -14445,6 +17027,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     {
       (arg1)->setMPEG2TSComputePCR(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -14493,6 +17085,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParamet
     try
     {
       result = (bool)(arg1)->isInitialPause();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -14545,6 +17147,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters_
     {
       (arg1)->setInitialPause(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -14583,6 +17195,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerParameters
     try
     {
       result = (com::xuggle::xuggler::IContainerParameters *)com::xuggle::xuggler::IContainerParameters::make();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -14640,6 +17262,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1set
     try
     {
       result = (int32_t)(arg1)->setInputFormat((char const *)arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -14711,6 +17343,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1set
     {
       result = (int32_t)(arg1)->setOutputFormat((char const *)arg2,(char const *)arg3,(char const *)arg4);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -14765,6 +17407,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1
     {
       result = (char *)(arg1)->getInputFormatShortName();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -14815,6 +17467,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1
     try
     {
       result = (char *)(arg1)->getInputFormatLongName();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -14867,6 +17529,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1
     {
       result = (char *)(arg1)->getOutputFormatShortName();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -14917,6 +17589,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1
     try
     {
       result = (char *)(arg1)->getOutputFormatLongName();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -14969,6 +17651,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1
     {
       result = (char *)(arg1)->getOutputFormatMimeType();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -15009,6 +17701,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1ma
     try
     {
       result = (com::xuggle::xuggler::IContainerFormat *)com::xuggle::xuggler::IContainerFormat::make();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -15157,6 +17859,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1get
     {
       result = (int32_t)(arg1)->getInputFlags();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -15208,6 +17920,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1set
     {
       (arg1)->setInputFlags(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -15258,6 +17980,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_
     try
     {
       result = (bool)(arg1)->getInputFlag(arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -15312,6 +18044,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1set
     {
       (arg1)->setInputFlag(arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -15360,6 +18102,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1get
     try
     {
       result = (int32_t)(arg1)->getOutputFlags();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -15412,6 +18164,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1set
     {
       (arg1)->setOutputFlags(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -15462,6 +18224,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_
     try
     {
       result = (bool)(arg1)->getOutputFlag(arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -15516,6 +18288,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_1set
     {
       (arg1)->setOutputFlag(arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -15564,6 +18346,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_
     try
     {
       result = (bool)(arg1)->isOutput();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -15615,6 +18407,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainerFormat_
     try
     {
       result = (bool)(arg1)->isInput();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -15669,6 +18471,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1setInputB
     {
       result = (int32_t)(arg1)->setInputBufferLength(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -15719,6 +18531,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getInput
     try
     {
       result = (uint32_t)(arg1)->getInputBufferLength();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -15771,6 +18593,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1isOpe
     {
       result = (bool)(arg1)->isOpened();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -15821,6 +18653,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1isHea
     try
     {
       result = (bool)(arg1)->isHeaderWritten();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -15883,6 +18725,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1open_1_1S
     try
     {
       result = (int32_t)(arg1)->open((char const *)arg2,arg3,arg4);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -15951,6 +18803,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1open_1_1S
     {
       result = (int32_t)(arg1)->open((char const *)arg2,arg3,arg4,arg5,arg6);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -16003,6 +18865,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getConta
     {
       result = (com::xuggle::xuggler::IContainerFormat *)(arg1)->getContainerFormat();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -16053,6 +18925,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1close(JNI
     try
     {
       result = (int32_t)(arg1)->close();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -16105,6 +18987,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getType(J
     {
       result = (com::xuggle::xuggler::IContainer::Type)(arg1)->getType();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -16155,6 +19047,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getNumStr
     try
     {
       result = (int32_t)(arg1)->getNumStreams();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -16209,6 +19111,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getStrea
     {
       result = (com::xuggle::xuggler::IStream *)(arg1)->getStream(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -16262,6 +19174,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1addNewSt
     {
       result = (com::xuggle::xuggler::IStream *)(arg1)->addNewStream(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -16313,6 +19235,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1writeHead
     {
       result = (int32_t)(arg1)->writeHeader();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -16363,6 +19295,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1writeTrai
     try
     {
       result = (int32_t)(arg1)->writeTrailer();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -16417,6 +19359,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1readNextP
     try
     {
       result = (int32_t)(arg1)->readNextPacket(arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -16474,6 +19426,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1writePack
     {
       result = (int32_t)(arg1)->writePacket(arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -16528,6 +19490,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1writePack
     {
       result = (int32_t)(arg1)->writePacket(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -16568,6 +19540,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1make(JNI
     try
     {
       result = (com::xuggle::xuggler::IContainer *)com::xuggle::xuggler::IContainer::make();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -16619,6 +19601,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1queryStre
     try
     {
       result = (int32_t)(arg1)->queryStreamMetaData();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -16677,6 +19669,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1seekKeyFr
     {
       result = (int32_t)(arg1)->seekKeyFrame(arg2,arg3,arg4);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -16727,6 +19729,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getDurat
     try
     {
       result = (int64_t)(arg1)->getDuration();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -16779,6 +19791,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getStart
     {
       result = (int64_t)(arg1)->getStartTime();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -16829,6 +19851,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getFileS
     try
     {
       result = (int64_t)(arg1)->getFileSize();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -16881,6 +19913,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getBitRat
     {
       result = (int32_t)(arg1)->getBitRate();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -16931,6 +19973,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getNumPro
     try
     {
       result = (int32_t)(arg1)->getNumProperties();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -16984,6 +20036,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getPrope
     try
     {
       result = (com::xuggle::xuggler::IProperty *)(arg1)->getPropertyMetaData(arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -17041,6 +20103,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getPrope
     try
     {
       result = (com::xuggle::xuggler::IProperty *)(arg1)->getPropertyMetaData((char const *)arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -17106,6 +20178,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1setProper
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,(char const *)arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -17167,6 +20249,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1setProper
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -17227,6 +20319,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1setProper
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -17286,6 +20388,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1setProper
     try
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,arg3);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -17348,6 +20460,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1setProper
     {
       result = (int32_t)(arg1)->setProperty((char const *)arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -17405,6 +20527,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getPro
     try
     {
       result = (char *)(arg1)->getPropertyAsString((char const *)arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -17465,6 +20597,16 @@ SWIGEXPORT jdouble JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getPro
     {
       result = (double)(arg1)->getPropertyAsDouble((char const *)arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -17522,6 +20664,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getPrope
     try
     {
       result = (int64_t)(arg1)->getPropertyAsLong((char const *)arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -17581,6 +20733,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getPrope
     {
       result = (com::xuggle::xuggler::IRational *)(arg1)->getPropertyAsRational((char const *)arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -17638,6 +20800,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getPr
     try
     {
       result = (bool)(arg1)->getPropertyAsBoolean((char const *)arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -17727,6 +20899,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getFlags(
     {
       result = (int32_t)(arg1)->getFlags();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -17778,6 +20960,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1setFlags(
     {
       (arg1)->setFlags(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -17828,6 +21020,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getFl
     try
     {
       result = (bool)(arg1)->getFlag(arg2);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -17882,6 +21084,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1setFlag(J
     {
       (arg1)->setFlag(arg2,arg3);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -17930,6 +21142,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getURL
     try
     {
       result = (char *)(arg1)->getURL();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -17982,6 +21204,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1flushPack
     {
       result = (int32_t)(arg1)->flushPackets();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -18032,6 +21264,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getReadRe
     try
     {
       result = (int32_t)(arg1)->getReadRetryCount();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -18084,6 +21326,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1setReadRe
     {
       (arg1)->setReadRetryCount(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -18132,6 +21384,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getParam
     try
     {
       result = (com::xuggle::xuggler::IContainerParameters *)(arg1)->getParameters();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -18185,6 +21447,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1setParame
     {
       (arg1)->setParameters(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -18233,6 +21505,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1canSt
     try
     {
       result = (bool)(arg1)->canStreamsBeAddedDynamically();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -18286,6 +21568,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaDataWrapper_1wr
     {
       (arg1)->wrap(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -18335,6 +21627,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaDataWrapper_1se
     {
       (arg1)->setKey(arg2);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return ;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -18376,6 +21678,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaDataWrapper_1m
     try
     {
       result = (com::xuggle::xuggler::IMediaDataWrapper *)com::xuggle::xuggler::IMediaDataWrapper::make(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -18428,6 +21740,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaDataWrapper_1g
     {
       result = (com::xuggle::xuggler::IPacket *)com_xuggle_xuggler_IMediaDataWrapper_getPacket(arg1);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -18478,6 +21800,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaDataWrapper_1g
     try
     {
       result = (com::xuggle::xuggler::IAudioSamples *)com_xuggle_xuggler_IMediaDataWrapper_getAudioSamples(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -18530,6 +21862,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaDataWrapper_1g
     {
       result = (com::xuggle::xuggler::IVideoPicture *)com_xuggle_xuggler_IMediaDataWrapper_getVideoPicture(arg1);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -18580,6 +21922,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaDataWrapper_1g
     try
     {
       result = (com::xuggle::xuggler::IMediaDataWrapper *)com_xuggle_xuggler_IMediaDataWrapper_getMediaDataWrapper(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -18632,6 +21984,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaDataWrapper_1u
     {
       result = (com::xuggle::xuggler::IPacket *)com_xuggle_xuggler_IMediaDataWrapper_unwrapPacket(arg1);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -18682,6 +22044,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaDataWrapper_1u
     try
     {
       result = (com::xuggle::xuggler::IAudioSamples *)com_xuggle_xuggler_IMediaDataWrapper_unwrapAudioSamples(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -18734,6 +22106,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaDataWrapper_1u
     {
       result = (com::xuggle::xuggler::IVideoPicture *)com_xuggle_xuggler_IMediaDataWrapper_unwrapVideoPicture(arg1);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -18784,6 +22166,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaDataWrapper_1u
     try
     {
       result = (com::xuggle::xuggler::IMediaDataWrapper *)com_xuggle_xuggler_IMediaDataWrapper_unwrapMediaDataWrapper(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -18850,6 +22242,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_Global_1getVersion(J
     {
       result = (int64_t)com::xuggle::xuggler::Global::getVersion();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -18890,6 +22292,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_Global_1getVersionMaj
     try
     {
       result = (int32_t)com::xuggle::xuggler::Global::getVersionMajor();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -18932,6 +22344,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_Global_1getVersionMin
     {
       result = (int32_t)com::xuggle::xuggler::Global::getVersionMinor();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -18972,6 +22394,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_Global_1getVersionRev
     try
     {
       result = (int32_t)com::xuggle::xuggler::Global::getVersionRevision();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -19014,6 +22446,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_Global_1getVersion
     {
       result = (char *)com::xuggle::xuggler::Global::getVersionStr();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -19054,6 +22496,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_Global_1getAVFormatVe
     try
     {
       result = (int)com::xuggle::xuggler::Global::getAVFormatVersion();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -19096,6 +22548,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_Global_1getAVForma
     {
       result = (char *)com::xuggle::xuggler::Global::getAVFormatVersionStr();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -19137,6 +22599,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_Global_1getAVCodecVer
     {
       result = (int)com::xuggle::xuggler::Global::getAVCodecVersion();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -19177,6 +22649,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_Global_1getAVCodec
     try
     {
       result = (char *)com::xuggle::xuggler::Global::getAVCodecVersionStr();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -19229,6 +22711,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IError_1getType(JNIEn
     {
       result = (com::xuggle::xuggler::IError::Type)(arg1)->getType();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -19279,6 +22771,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IError_1getDescrip
     try
     {
       result = (char *)(arg1)->getDescription();
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {
@@ -19331,6 +22833,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IError_1getErrorNumbe
     {
       result = (int32_t)(arg1)->getErrorNumber();
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -19374,6 +22886,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IError_1make_1_1SWIG
     {
       result = (com::xuggle::xuggler::IError *)com::xuggle::xuggler::IError::make(arg1);
     }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
+    }
     catch(std::exception & e)
     {
       // we don't let a native exception override a java exception
@@ -19416,6 +22938,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IError_1make_1_1SWIG
     try
     {
       result = (com::xuggle::xuggler::IError *)com::xuggle::xuggler::IError::make(arg1);
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
+        jenv->ThrowNew(cls, "native memory exhausted");
+      }
+      return 0;
     }
     catch(std::exception & e)
     {

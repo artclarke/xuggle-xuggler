@@ -14,7 +14,17 @@ class FerryJNI {
     JNILibraryLoader.loadLibrary(
       "xuggle-ferry",
       new Long(Version.MAJOR_VERSION));
+    // This seems nuts, but it works around a Java 1.6 bug where
+    // a race condition exists when JNI_NewDirectByteBuffer is called
+    // from multiple threads.  See:
+    // http://mail.openjdk.java.net/pipermail/hotspot-runtime-dev/2009-January/000382.html
+    IBuffer buffer = IBuffer.make(null, 2);
+    buffer.getByteBuffer(0,2);
   }
+  
+  public native static boolean isMirroringNativeMemoryInJVM();
+  public native static void setMirroringNativeMemoryInJVM(boolean value);
+  
 
   public final static native long new_AtomicInteger__SWIG_0();
   public final static native long new_AtomicInteger__SWIG_1(int jarg1);

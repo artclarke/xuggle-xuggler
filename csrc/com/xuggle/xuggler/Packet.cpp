@@ -255,31 +255,37 @@ namespace com { namespace xuggle { namespace xuggler
 
       if (copyData)
       {
-        retval = make();
-        retval->wrapAVPacket(packet->mPacket);
+        int32_t numBytes = packet->getSize();
+        retval = make(numBytes);
+        if (!retval)
+          throw std::bad_alloc();
+        if (numBytes > 0)
+          memcpy(retval->mPacket->data, packet->mPacket->data,
+              numBytes);
       } else {
         buffer=packet->getData();
         retval = make(buffer);
-
-        // Keep a copy of this, because we're going to nuke
-        // it temporarily.
-        uint8_t* data_buf = retval->mPacket->data;
-        void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
-
-        // copy all data members, including data and size,
-        // but we'll overwrite those next.
-        *(retval->mPacket) = *(packet->mPacket);
-
-        retval->mPacket->data = data_buf;
-        retval->mPacket->destruct = orig_destruct;
-
-        // separate here to catch addRef()
-        timeBase = packet->getTimeBase();
-        retval->setTimeBase(timeBase);
-
-        retval->setComplete(retval->mPacket->size > 0,
-            retval->mPacket->size);
+        if (!retval)
+          throw std::bad_alloc();
       }
+      // Keep a copy of this, because we're going to nuke
+      // it temporarily.
+      uint8_t* data_buf = retval->mPacket->data;
+      void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
+
+      // copy all data members, including data and size,
+      // but we'll overwrite those next.
+      *(retval->mPacket) = *(packet->mPacket);
+
+      retval->mPacket->data = data_buf;
+      retval->mPacket->destruct = orig_destruct;
+
+      // separate here to catch addRef()
+      timeBase = packet->getTimeBase();
+      retval->setTimeBase(timeBase);
+
+      retval->setComplete(retval->mPacket->size > 0,
+          retval->mPacket->size);
     }
     catch (std::exception &e)
     {

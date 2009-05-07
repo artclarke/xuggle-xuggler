@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 
 
 @RunWith(NameAwareTestClassRunner.class)
-public class CreateAudioFileTest
+public class CreateAudioFileExhaustiveTest
 {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 

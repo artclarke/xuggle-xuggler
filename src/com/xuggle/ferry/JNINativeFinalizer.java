@@ -24,8 +24,8 @@ import org.slf4j.LoggerFactory;
  */
 public class JNINativeFinalizer
 {
-  @SuppressWarnings("unused")
   private static final Logger log = LoggerFactory.getLogger(JNINativeFinalizer.class);
+  static { log.trace("static <init>"); }
 
   protected void finalize()
   {

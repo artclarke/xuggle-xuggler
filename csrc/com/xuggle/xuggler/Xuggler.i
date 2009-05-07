@@ -24,20 +24,6 @@
 // Native.i: Start generated code
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>
 #include <com/xuggle/ferry/JNIHelper.h>
-/*
- * This will be called if an when we're loaded
- * directly by Java.  If we're linked to via
- * C/C++ linkage on another library, they
- * must call sSetVM().
- */
-JNIEXPORT jint JNICALL
-JNI_OnLoad(JavaVM *jvm, void *)
-{
-  if (!com::xuggle::ferry::JNIHelper::sGetVM())
-    com::xuggle::ferry::JNIHelper::sSetVM(jvm);
-  return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
-}
-
 #include <com/xuggle/xuggler/IProperty.h>
 #include <com/xuggle/xuggler/IPixelFormat.h>
 #include <com/xuggle/xuggler/ITimeValue.h>
@@ -59,6 +45,22 @@ JNI_OnLoad(JavaVM *jvm, void *)
 #include <com/xuggle/xuggler/IError.h>
 
 using namespace VS_CPP_NAMESPACE;
+
+/*
+ * This will be called if an when we're loaded
+ * directly by Java.  If we're linked to via
+ * C/C++ linkage on another library, they
+ * must call sSetVM().
+ */
+JNIEXPORT jint JNICALL
+JNI_OnLoad(JavaVM *jvm, void *)
+{
+  if (!com::xuggle::ferry::JNIHelper::sGetVM())
+    com::xuggle::ferry::JNIHelper::sSetVM(jvm);
+  Global::init();
+  return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
+}
+
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<
 // Native.i: End generated code
