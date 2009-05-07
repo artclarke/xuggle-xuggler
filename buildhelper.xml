@@ -477,8 +477,8 @@ using the library and what you like or don't like about it.
     </javac>
     <!-- And copy over any source XML files as they should be
       included in our resulting jar -->
-    <copy todir="${classes.dir}">
-      <fileset overwrite="true" dir="${src.dir}">
+    <copy overwrite="true" todir="${classes.dir}">
+      <fileset dir="${src.dir}">
         <include name="**/*.xml"/>
       </fileset>
     </copy>
