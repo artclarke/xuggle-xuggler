@@ -120,12 +120,18 @@ namespace com { namespace xuggle { namespace xuggler
   VideoPicture :: getData()
   {
     com::xuggle::ferry::IBuffer *retval = 0;
-    if (getSize() > 0) {
-      if (!mBuffer || mBuffer->getBufferSize() < getSize())
-      {
-        allocInternalFrameBuffer();
+    try {
+      if (getSize() > 0) {
+        if (!mBuffer || mBuffer->getBufferSize() < getSize())
+        {
+          allocInternalFrameBuffer();
+        }
+        retval = mBuffer.get();
       }
-      retval = mBuffer.get();
+    } catch (std::exception & e)
+    {
+      VS_LOG_DEBUG("Error: %s", e.what());
+      VS_REF_RELEASE(retval);
     }
     return retval;
   }
@@ -160,10 +166,9 @@ namespace com { namespace xuggle { namespace xuggler
         throw std::runtime_error("invalid size for frame");
 
       if (!mBuffer || mBuffer->getBufferSize() < bufSize)
-      {
         // reuse buffers if we can.
         allocInternalFrameBuffer();
-      }
+
       uint8_t* buffer = (uint8_t*)mBuffer->getBytes(0, bufSize);
       if (!buffer)
         throw std::runtime_error("really?  no buffer");
@@ -298,60 +303,52 @@ namespace com { namespace xuggle { namespace xuggler
   void
   VideoPicture :: allocInternalFrameBuffer()
   {
-    try
+    int bufSize = getSize();
+    if (bufSize <= 0)
+      throw std::runtime_error("invalid size for frame");
+
+    // Now, it turns out some accelerated assembly functions will
+    // read at least a word past the end of an image buffer, so
+    // we make space for that to happen.
+    // I arbitrarily choose the sizeof a long-long (64 bit).
+    int extraBytes=8;
+    bufSize += extraBytes;
+
+    // reuse buffers if we can.
+    if (!mBuffer || mBuffer->getBufferSize() < bufSize)
     {
-      int bufSize = getSize();
-      if (bufSize <= 0)
-        throw std::runtime_error("invalid size for frame");
+      // Make our copy buffer.
+      mBuffer = com::xuggle::ferry::IBuffer::make(this, bufSize);
+      if (!mBuffer)
+        throw std::runtime_error("could not allocate a buffer");
 
-      // Now, it turns out some accelerated assembly functions will
-      // read at least a word past the end of an image buffer, so
-      // we make space for that to happen.
-      // I arbitrarily choose the sizeof a long-long (64 bit).
-      int extraBytes=8;
-      bufSize += extraBytes;
-
-      // reuse buffers if we can.
-      if (!mBuffer || mBuffer->getBufferSize() < bufSize)
+      // Now, to further work around issues, I added the extra 8-bytes,
+      // and now I'm going to zero just those 8-bytes out.  I don't
+      // zero-out the whole buffer because I want Valgrind to detect
+      // if it's not written to first.  But I know this overrun
+      // issue exists in the MMX conversions in SWScale for some libraries,
+      // so I'm going to fake it out here.
       {
-        // Make our copy buffer.
-        mBuffer = com::xuggle::ferry::IBuffer::make(this, bufSize);
-        if (!mBuffer)
-          throw std::runtime_error("could not allocate a buffer");
+        unsigned char * buf =
+          ((unsigned char*)mBuffer->getBytes(0, bufSize));
 
-        // Now, to further work around issues, I added the extra 8-bytes,
-        // and now I'm going to zero just those 8-bytes out.  I don't
-        // zero-out the whole buffer because I want Valgrind to detect
-        // if it's not written to first.  But I know this overrun
-        // issue exists in the MMX conversions in SWScale for some libraries,
-        // so I'm going to fake it out here.
-        {
-          unsigned char * buf =
-            ((unsigned char*)mBuffer->getBytes(0, bufSize));
-
-          memset(buf+bufSize-extraBytes, 0, extraBytes);
-        }
+        memset(buf+bufSize-extraBytes, 0, extraBytes);
       }
-      uint8_t* buffer = (uint8_t*)mBuffer->getBytes(0, bufSize);
-      if (!buffer)
-        throw std::runtime_error("really?  no buffer");
-
-      int imageSize = avpicture_fill((AVPicture*)mFrame,
-          buffer,
-          mPixelFormat,
-          mWidth,
-          mHeight);
-      if (imageSize != bufSize-extraBytes)
-        throw std::runtime_error("could not fill picture");
-
-      mFrame->type = FF_BUFFER_TYPE_USER;
-      VS_ASSERT(mFrame->data[0] != 0, "Empty buffer");
-
     }
-    catch (std::exception& e)
-    {
-      VS_LOG_DEBUG("error: %s", e.what());
-    }
+    uint8_t* buffer = (uint8_t*)mBuffer->getBytes(0, bufSize);
+    if (!buffer)
+      throw std::runtime_error("really?  no buffer");
+
+    int imageSize = avpicture_fill((AVPicture*)mFrame,
+        buffer,
+        mPixelFormat,
+        mWidth,
+        mHeight);
+    if (imageSize != bufSize-extraBytes)
+      throw std::runtime_error("could not fill picture");
+
+    mFrame->type = FF_BUFFER_TYPE_USER;
+    VS_ASSERT(mFrame->data[0] != 0, "Empty buffer");
   }
 
 }}}
