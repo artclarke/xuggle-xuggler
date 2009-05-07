@@ -62,7 +62,7 @@ public class MultiThreadedReadingExhaustiveTest
           }
           while(reader.readPacket() == null)
           {
-            log.debug("read packet: {}", numPackets[index]);
+            log.trace("read packet: {}", numPackets[index]);
             ++numPackets[index];
           }
           } catch (OutOfMemoryError e)

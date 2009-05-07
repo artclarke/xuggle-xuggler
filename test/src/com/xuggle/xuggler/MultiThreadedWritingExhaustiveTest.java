@@ -54,7 +54,7 @@ public class MultiThreadedWritingExhaustiveTest
               {
                 super.onAudioSamples(samples, streamIndex);
                 ++mediaDataWritten;
-                log.debug("wrote audio:{}", mediaDataWritten);
+                log.trace("wrote audio:{}", mediaDataWritten);
               }
               @Override
               public void onVideoPicture(IVideoPicture picture,
@@ -62,7 +62,7 @@ public class MultiThreadedWritingExhaustiveTest
               {
                 super.onVideoPicture(picture, image, streamIndex);
                 ++mediaDataWritten;
-                log.debug("wrote video:{}", mediaDataWritten);
+                log.trace("wrote video:{}", mediaDataWritten);
               };
             };
             while (reader.readPacket() == null)
