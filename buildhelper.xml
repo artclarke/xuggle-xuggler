@@ -478,7 +478,7 @@ using the library and what you like or don't like about it.
     <!-- And copy over any source XML files as they should be
       included in our resulting jar -->
     <copy todir="${classes.dir}">
-      <fileset dir="${src.dir}">
+      <fileset overwrite="true" dir="${src.dir}">
         <include name="**/*.xml"/>
       </fileset>
     </copy>
@@ -633,7 +633,9 @@ using the library and what you like or don't like about it.
       listfiles="${build.listfiles}">
       <compilerarg line="${build.extraflags}"/>
     </javac>
-    <copy todir="${test.classes.dir}">
+    <copy
+      overwrite="yes"
+      todir="${test.classes.dir}">
       <fileset dir="${test.src.dir}">
         <include name="**/*.xml"/>
       </fileset>
