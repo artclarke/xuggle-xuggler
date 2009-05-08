@@ -211,23 +211,22 @@ public class MemoryAllocationExhaustiveTest
       throw new OutOfMemoryError("test not run on Mac OS X");
 
     List<IPacket> leakyPackets = new LinkedList<IPacket>();
-    IBuffer buf = IBuffer.make(null, 1024*1024);
-    assertNotNull(buf);
-    IPacket pkt = IPacket.make(buf);
-    assertNotNull(pkt);
-    pkt.setComplete(true, 1024*1024);
-    assertNotNull(pkt.getByteBuffer());
     while(true)
     {
-      IPacket leakPacket = IPacket.make(pkt, true);
-      if (leakPacket == null)
+      IBuffer buf = IBuffer.make(null, 1024*1024);
+      if (buf == null)
         throw new OutOfMemoryError();
-      java.nio.ByteBuffer bBuf = leakPacket.getByteBuffer();
+      IPacket pkt = IPacket.make(buf);
+      if (pkt == null)
+        throw new OutOfMemoryError();
+      pkt.setComplete(true, 1024*1024);
+      
+      java.nio.ByteBuffer bBuf = pkt.getByteBuffer();
       if (bBuf == null)
         throw new OutOfMemoryError();
       bBuf.put(0, (byte)0);
-      leakyPackets.add(leakPacket);
-      log.trace("allocated media: {}", leakPacket);
+      leakyPackets.add(pkt);
+      log.trace("allocated media: {}", pkt);
     }
   }
 
