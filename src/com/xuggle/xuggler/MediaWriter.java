@@ -182,16 +182,22 @@ public class MediaWriter implements MediaReader.IListener
 
   public MediaWriter(String url, IContainer inputContainer)
   {
-    // record the input container
+    // verify that the input container is a readable type
 
-    mInputContainer = inputContainer;
+    if (inputContainer.getType() != IContainer.Type.READ)
+      throw new IllegalArgumentException(
+        "inputContainer is improperly must be of type readable.");
 
     // verify that no streams will be added dynamically
 
-    if (mInputContainer.canStreamsBeAddedDynamically())
+    if (inputContainer.canStreamsBeAddedDynamically())
       throw new IllegalArgumentException(
         "inputContainer is improperly configured to allow " + 
         "dynamic adding of streams.");
+
+    // record the input container
+
+    mInputContainer = inputContainer;
 
     // create format 
 

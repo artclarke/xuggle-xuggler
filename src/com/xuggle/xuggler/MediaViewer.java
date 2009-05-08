@@ -21,34 +21,59 @@
 
 package com.xuggle.xuggler;
 
+import java.util.Map;
+import java.util.HashMap;
+
+import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Dimension;
+import java.awt.RenderingHints;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
-import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JFrame;
+
+import com.xuggle.xuggler.IVideoPicture;
+import com.xuggle.xuggler.video.IConverter;
+import com.xuggle.xuggler.video.ConverterFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** 
- * Addd this to a media reader to display video.
+ * Add this to a media reader to display video.
  *
  * TODO:
  *   - sound suport
  *   - add option to show media in real time
  */
 
-public class MediaViewer extends JFrame implements MediaReader.IListener
+public class MediaViewer implements MediaReader.IListener
 {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
   
-  public static final long serialVersionUID = 0;
-  
-  // the video image
-  
-  private BufferedImage mImage;
+  // video converters
+
+  Map<Integer, IConverter> mConverters = new HashMap<Integer, IConverter>();
+
+  // video frames
+
+  Map<Integer, MediaFrame> mFrames = new HashMap<Integer, MediaFrame>();
+
+  // video position index
+
+  Map<MediaFrame, Integer> mFrameIndex = new HashMap<MediaFrame, Integer>();
+
+  // next frame index
+
+  private int mNextFrameIndex = 0;
+
+  // show or hide media statistics
+
+  private boolean mShowStats;
   
   /**
    * Construct a media viewer.
@@ -56,57 +81,18 @@ public class MediaViewer extends JFrame implements MediaReader.IListener
 
   public MediaViewer()
   {
-    constructFrame();
+    this(true);
   }
     
-  /** Construct the frame. */
+  /**
+   * Construct a media viewer.
+   *
+   * @param showStats display media statistics
+   */
 
-  protected void constructFrame()
+  public MediaViewer(boolean showStats)
   {
-    // the panel which shows the video image
-  
-    JPanel videoPanel = new JPanel()
-    {
-      public static final long serialVersionUID = 0;
-      
-      /** {@inheritDoc} */
-      
-      public void paint(Graphics graphics)
-      {
-        // call parent paint
-
-        super.paint(graphics);
-        
-        // if there exists an image
-
-        if (mImage != null)
-        {
-          // resize the frame to fit the media
-
-          if (getWidth() != mImage.getWidth() ||
-            getHeight() != mImage.getHeight())
-          {
-            setPreferredSize(new Dimension(
-                mImage.getWidth(), mImage.getHeight()));
-            MediaViewer.this.invalidate();
-            MediaViewer.this.pack();
-          }
-
-          // drae the image into the rame
-
-          graphics.drawImage(mImage, 0, 0, null);
-        }
-      }
-    };
-
-    // add the videoPanel 
-
-    getContentPane().add(videoPanel);
-
-    // pack and show the frame
-
-    pack();
-    setVisible(true);
+    mShowStats = showStats;
   }
 
   /** {@inheritDoc} */
@@ -115,8 +101,70 @@ public class MediaViewer extends JFrame implements MediaReader.IListener
     int streamIndex)
   {
     log.trace("picture: {}", picture);
-    mImage = image;
-    repaint();
+
+    // if no BufferedImage is passed in, do the conversion to create one
+
+    if (null == image)
+    {
+      IConverter converter = mConverters.get(streamIndex);
+      if (null == converter)
+      {
+        converter = ConverterFactory.createConverter(
+          ConverterFactory.XUGGLER_BGR_24, picture);
+        mConverters.put(streamIndex, converter);
+      }
+      image = converter.toImage(picture);
+    }
+
+    // if should show stats, add them to the image
+
+    if (mShowStats)
+      drawStats(picture, image);
+
+    // get the frame
+
+    MediaFrame frame = mFrames.get(streamIndex);
+    if (null == frame)
+    {
+      frame = new MediaFrame(streamIndex, image);
+      mFrames.put(streamIndex, frame);
+      mFrameIndex.put(frame, mNextFrameIndex++);
+      frame.setLocation(
+        image.getWidth() * mFrameIndex.get(frame),
+        (int)frame.getLocation().getY());
+    }
+    
+    // set the image on the frame
+
+    frame.setVideoImage(image);
+  }
+
+  /**
+   * Show the video time on the video.
+   *
+   * @param picture the video picture from which to extract the time stamp
+   * @param image the image on which to draw the time stamp
+   */
+
+  public static void drawStats(IVideoPicture picture, 
+    BufferedImage image)
+  {
+    Graphics2D g = image.createGraphics();
+    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+      RenderingHints.VALUE_ANTIALIAS_ON);
+
+
+    String timeStamp = picture.getFormattedTimeStamp();
+    Rectangle2D bounds = g.getFont().getStringBounds(timeStamp,
+      g.getFontRenderContext());
+
+    double inset = bounds.getHeight() / 2;
+    g.translate(inset, image.getHeight() - inset);
+
+    g.setColor(new Color(255, 255, 255, 128));
+    g.fill(bounds);
+    g.setColor(Color.BLACK);
+    g.drawString(timeStamp, 0, 0);
   }
 
   /** {@inheritDoc} */
@@ -136,4 +184,105 @@ public class MediaViewer extends JFrame implements MediaReader.IListener
   public void onClose(MediaReader source)
   {
   }
+
+  /** A media viewer frame. */
+
+  protected class MediaFrame extends JFrame 
+  {
+    // removs the warning
+
+    public static final long serialVersionUID = 0;
+
+    // the video image
+
+    private BufferedImage mImage;
+
+    // the stream index
+
+    private final int mStreamIndex;
+
+    // the video panel
+
+    private final JPanel mVideoPanel;
+
+    /**
+     * Construct a media frame.
+     *
+     * @param showStats display media statistics on the screen
+     */
+    
+    public MediaFrame(int streamIndex, BufferedImage image)
+    {
+      // set the stream index
+
+      mStreamIndex = streamIndex;
+
+      // set title based on index
+
+      setTitle("stream " + streamIndex);
+
+      // the panel which shows the video image
+      
+      mVideoPanel = new JPanel()
+        {
+          public static final long serialVersionUID = 0;
+          
+          /** {@inheritDoc} */
+          
+          public void paint(Graphics graphics)
+          {
+            paintPanel((Graphics2D)graphics);
+          }
+        };
+      
+      // add the videoPanel 
+      
+      getContentPane().add(mVideoPanel);
+      
+      // set the initial video image
+
+      setVideoImage(image);
+
+      // show the frame
+
+      setVisible(true);
+    }
+
+    // configure the size of a the video panel
+
+    protected void setVideoSize(Dimension videoSize)
+    {
+      mVideoPanel.setPreferredSize(videoSize);
+      invalidate();
+      pack();
+    }
+    
+    // set the video image
+
+    protected void setVideoImage(BufferedImage image)
+    {
+      mImage = image;
+
+      if (mVideoPanel.getWidth() != mImage.getWidth() || 
+        mVideoPanel.getHeight() != mImage.getHeight())
+      {
+        setVideoSize(new Dimension(mImage.getWidth(), mImage.getHeight()));
+      }
+      repaint();
+    }
+
+    /** paint the video panel */
+
+    protected void paintPanel(Graphics2D graphics)
+    {
+      // call parent paint
+      
+      super.paint(graphics);
+      
+      // if the image exists, draw it
+      
+      if (mImage != null)
+        graphics.drawImage(mImage, 0, 0, null);
+    }
+  } 
 }

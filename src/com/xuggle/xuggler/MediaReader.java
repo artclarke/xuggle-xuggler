@@ -27,6 +27,9 @@ import java.util.Vector;
 import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.awt.image.BufferedImage;
 
 import com.xuggle.xuggler.ICodec;
@@ -57,6 +60,8 @@ import com.xuggle.xuggler.video.ConverterFactory;
 
 public class MediaReader
 {
+  final private Logger log = LoggerFactory.getLogger(this.getClass());
+  { log.trace("<init>"); }
 
   // a place to put packets
   
@@ -474,7 +479,9 @@ public class MediaReader
       // if this is an end of file, call close
       
       if (error.getType() == IError.Type.ERROR_EOF)
+      {
         close();
+      }
       return error;
     }
 

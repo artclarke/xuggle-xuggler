@@ -23,29 +23,55 @@ package com.xuggle.xuggler;
 
 import java.io.File;
 
+import java.awt.image.BufferedImage;
+
 import java.util.Set;
+import java.util.Vector;
 import java.util.HashSet;
+import java.util.Collection;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.junit.Test;
 import org.junit.Before;
 
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+
 import com.xuggle.xuggler.video.ConverterFactory;
+import com.xuggle.xuggler.IError;
 
 import static junit.framework.Assert.*;
 
+@RunWith(Parameterized.class)
 public class MediaWriterExhaustiveTest
 {
+  final private Logger log = LoggerFactory.getLogger(this.getClass());
+  { log.trace("<init>"); }
+
+  // location of test files
+
+  public static final String TEST_FILE_DIR = "fixtures";
+
   // show the videos during transcoding?
 
-  public static final boolean SHOW_VIDEO = false;
+  final boolean SHOW_VIDEO = System.getProperty(
+    MediaWriterExhaustiveTest.class.getName()+".ShowVideo") != null;
 
   // test the good files or the broken ones?
 
-  public static final boolean TEST_BROKEN = false;
+  public static final boolean TEST_BROKEN = System.getProperty(
+    MediaWriterExhaustiveTest.class.getName()+".TestBroken") != null;
 
-  // one of the stock test fiels
-  
-  public static final String TEST_FILE = "fixtures/testfile_bw_pattern.flv";
+  // test container (true) or MediaReader (false) cases
+
+  public static final boolean[] CONTAINER_READER_CASES = 
+  {
+    true,
+    false,
+  };
 
   // all video test files
   
@@ -70,7 +96,8 @@ public class MediaWriterExhaustiveTest
     "mkv",
   };
 
-  // the following combinations fail
+  // the following combinations currently fail to transcode
+  // ideally this list gets smaller and smaller as times goes
 
   public static final String[][] BROKEN_TEST_COMBINATIONS =
   {
@@ -78,12 +105,13 @@ public class MediaWriterExhaustiveTest
 
     {"subtitled_video.mkv",              "mov"}, // failed to write header
     {"testfile_h264_mp4a_tmcd.mov",      "mov"}, // failed to write header
-    {"testfile_mpeg1video_mp2audio.mpg", "mov"}, // fails in QUICKTIME
+    {"testfile_mpeg1video_mp2audio.mpg", "mov"}, // ERROR_IO not EOF
 
     // converting to avi
 
     {"subtitled_video.mkv",              "avi"}, // failed to write header
     {"testfile_h264_mp4a_tmcd.mov",      "avi"}, // failed to write header
+    {"testfile_mpeg1video_mp2audio.mpg", "avi"}, // ERROR_IO not EOF
 
     // converting to flv
 
@@ -98,161 +126,146 @@ public class MediaWriterExhaustiveTest
     {"testfile_bw_pattern.flv",          "mpg"}, // fails in QUICKTIME
     {"testfile_videoonly_20sec.flv",     "mpg"}, // fails in QUICKTIME
     {"testfile.flv",                     "mpg"}, // fails in QUICKTIME
+    {"testfile_mpeg1video_mp2audio.mpg", "mpg"}, // ERROR_IO not EOF
+
+    // converting to mkv
+
+    {"testfile_h264_mp4a_tmcd.mov",      "mkv"}, // "unsupported operation" on read
+    {"testfile_mpeg1video_mp2audio.mpg", "mkv"}, // ERROR_IO not EOF
   };
 
-  // all target output types
+  // construct parameters for tests
 
-  public static final String[] TEST_AUDIO_FILES =
+  @Parameters
+    public static Collection<Object[]> converterTypes()
   {
-    "testfile.mp3",
-  };
+    Collection<Object[]> parameters = new Vector<Object[]>();
 
-  MediaReader mReader;
+    for (boolean testContainer: CONTAINER_READER_CASES)
+      for (String source: TEST_VIDEO_FILES)
+        for (String destExt: TEST_VIDEO_TYPES)
+        {
+          boolean isBroken = false;
+          
+          for (String[] pair: BROKEN_TEST_COMBINATIONS)
+            if (source.equals(pair[0]) && destExt.equals(pair[1]))
+            {
+              isBroken = true;
+              break;
+            }
 
-  @Before
-    public void beforeTest()
-  {
-    mReader = new MediaReader(TEST_FILE, true, ConverterFactory.XUGGLER_BGR_24);
+          String[] parts = source.split("\\x2E");
+          String destination = "MW-" +
+            (testContainer ? "container" : "reader") + "-" +
+            parts[0] + "-" + parts[1] + "." + destExt;
+
+
+          boolean skipTest = isBroken && !TEST_BROKEN || !isBroken && TEST_BROKEN;
+          String description = 
+            (skipTest      ? "SKIPPING"  : " converting ") + " " +
+            (isBroken      ? "BROKEN"    : " good "      ) + " " + 
+            (testContainer ? "container" : " reader  "   ) + " " + 
+            source + " -> " + destination;
+
+          if (skipTest)
+          {
+            System.out.println(description);
+          }
+          else
+          {
+            Object[] tuple = {source, destination, isBroken, 
+                              testContainer, description};
+            parameters.add(tuple);
+          }
+        }
+
+    return parameters;
   }
+
+  // test parameters
+
+  private final String  mSource;
+  private final String  mDestination;
+  private final boolean mIsBroken;
+  private final boolean mTestContainer;
   
-   @Test(expected=IllegalArgumentException.class)
-    public void improperReaderConfigTest()
+  public MediaWriterExhaustiveTest(String source, String destination, 
+    boolean isBroken, boolean testContainer, String description)
   {
-    System.out.println("---- improperReaderConfigTest ----");
-    File file = new File("fixtures/should-not-be-created.flv");
-    file.delete();
-    assert(!file.exists());
-    mReader.setAddDynamicStreams(true);
-    new MediaWriter(file.toString(), mReader);
-    assert(!file.exists());
-  }
-
-  @Test(expected=IllegalArgumentException.class)
-    public void improperUrlTest()
-  {
-    File file = new File("/tmp/foo/bar/baz/should-not-be-created.flv");
-    file.delete();
-    assert(!file.exists());
-    new MediaWriter(file.toString(), mReader);
-    assert(!file.exists());
-  }
-
-  //@Test
-    public void transcodeToFlvTest()
-  {
-    File file = new File("fixtures/MediaWriter-transcode.flv");
-    file.delete();
-    assert(!file.exists());
-    new MediaWriter(file.toString(), mReader);
-    while (mReader.readPacket() == null)
-      ;
-    assert(file.exists());
-    assertEquals(file.length(), 1062946);
-    System.out.println("manually check: " + file);
-  }
-
-  //  @Test
-    public void transcodeToMovTest()
-  {
-    File file = new File("fixtures/MediaWriter-transcode.mov");
-    file.delete();
-    assert(!file.exists());
-    new MediaWriter(file.toString(), mReader);
-    while (mReader.readPacket() == null)
-      ;
-    assert(file.exists());
-    assertEquals(file.length(), 1061745);
-    System.out.println("manually check: " + file);
-  }
-
-  //@Test
-    public void transcodeWithContainer()
-  {
-    File file = new File("fixtures/MediaWriter-transcode-container.mov");
-    file.delete();
-    assert(!file.exists());
-    MediaWriter writer = new MediaWriter(file.toString(), 
-      mReader.getContainer());
-    mReader.addListener(writer);
-    while (mReader.readPacket() == null)
-      ;
-    assert(file.exists());
-    assertEquals(file.length(), 1061745);
-    System.out.println("manually check: " + file);
+    System.out.println(description);
+    mSource = TEST_FILE_DIR + "/" + source;
+    mDestination = TEST_FILE_DIR + "/" + destination;
+    mIsBroken = isBroken;
+    mTestContainer = testContainer;
   }
 
   @Test
-    public void transcodeManyToMany()
-  {
-    Set<String> destinations = new HashSet<String>();
-
-    for (String source: TEST_VIDEO_FILES)
-      for (String destExt: TEST_VIDEO_TYPES)
-      {
-        boolean broken = false;
-
-        for (String[] pair: BROKEN_TEST_COMBINATIONS)
-          if (source.equals(pair[0]) && destExt.equals(pair[1]))
-          {
-            broken = true;
-            break;
-          }
-
-        String[] parts = source.split("\\x2E");
-        String destination = "fixtures/MediaWriter-" + 
-          parts[0] + "-" + parts[1] + "." + destExt;
-
-        String description = (broken ? "BROKEN " : " good  ") + source + 
-          " -> " + destination;
-          
-        if (broken && !TEST_BROKEN || !broken && TEST_BROKEN)
-          System.out.printf(" SKIPPING  %s\n", description);
-        else
-        {
-          System.out.printf("converting %s\n", description);
-          transcode("fixtures/" + source, destination);
-          destinations.add(destination);
-        }
-      }
-
-    System.out.println("manually check: ");
-    for(String destination: destinations)
-      System.out.println("  " + destination);
-  }
-
-  public void transcode(String source, String destination)
+    public void transcodeTest()
   {
     // setup and test file status
 
-    File sourceFile = new File(source);
-    File destinationFile = new File(destination);
+    File sourceFile = new File(mSource);
+    File destinationFile = new File(mDestination);
     assert(sourceFile.exists());
     destinationFile.delete();
     assert(!destinationFile.exists());
 
-    // setup reader
+    // create the reader
 
-    MediaReader reader = null;
+    MediaReader reader = new MediaReader(mSource);
     if (SHOW_VIDEO)
-    {
-      reader = new MediaReader(source, true, ConverterFactory.XUGGLER_BGR_24);
       reader.addListener(new MediaViewer());
+
+    // construct a writer which does not get called directly by the
+    // MediaReader, and thus many things need to be handled manually
+
+    if (mTestContainer)
+    {
+      final MediaWriter writer = new MediaWriter(mDestination, reader.getContainer());
+
+      reader.addListener(new MediaReader.ListenerAdapter()
+        {
+          public void onVideoPicture(IVideoPicture picture, BufferedImage image, 
+            int streamIndex)
+          {
+            writer.onVideoPicture(picture, image, streamIndex);
+          }
+          
+          /** {@inheritDoc} */
+          
+          public void onAudioSamples(IAudioSamples samples, int streamIndex)
+          {
+            writer.onAudioSamples(samples, streamIndex);
+          }
+        });
+
+      while (reader.readPacket() == null)
+        ;
+      
+      writer.close();
     }
+
+    // construct a writre give a reader, the easy simple case
+
     else
-      reader = new MediaReader(source, false, null);
+    {
+      // constructe the writer, no need to keep a reference to the
+      // writer, it's maintained in the reader
 
-    // and the writer, no need to keep a reference around it's kept in
-    // the reader
+      new MediaWriter(mDestination, reader);
 
-    new MediaWriter(destination, reader);
+      // transcode
 
-    // transcode
+      IError error;
+      while ((error = reader.readPacket()) == null)
+        ;
 
-    while (reader.readPacket() == null)
-      ;
+      assertEquals(IError.Type.ERROR_EOF, error.getType());
+    }
 
-    // confirm results
+    // confirm file exists and has at least 50k of data
 
     assert(destinationFile.exists());
+    assert(destinationFile.length() > 50000);
   }
 }
