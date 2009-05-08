@@ -339,21 +339,45 @@ public class ConverterFactory
     }
     catch (InvocationTargetException e)
     {
-      throw new UnsupportedOperationException(
-        "Converter " + converterType.getConverterClass() + 
-        " constructor failed with: " + e.getCause());
+      Throwable cause = e.getCause();
+      if (cause != null && cause instanceof OutOfMemoryError)
+      {
+        throw (OutOfMemoryError)cause;
+      }
+      else
+      {
+        throw new UnsupportedOperationException(
+            "Converter " + converterType.getConverterClass() + 
+            " constructor failed with: " + e.getCause());
+      }
     }
     catch (IllegalAccessException e)
     {
-      throw new UnsupportedOperationException(
-        "Converter " + converterType.getConverterClass() + 
-        " constructor failed with: " + e);
+      Throwable cause = e.getCause();
+      if (cause != null && cause instanceof OutOfMemoryError)
+      {
+        throw (OutOfMemoryError)cause;
+      }
+      else
+      {
+        throw new UnsupportedOperationException(
+            "Converter " + converterType.getConverterClass() + 
+            " constructor failed with: " + e.getCause());
+      }
     }
     catch (InstantiationException e)
     {
-      throw new UnsupportedOperationException(
-        "Converter " + converterType.getConverterClass() + 
-        " constructor failed with: " + e);
+      Throwable cause = e.getCause();
+      if (cause != null && cause instanceof OutOfMemoryError)
+      {
+        throw (OutOfMemoryError)cause;
+      }
+      else
+      {
+        throw new UnsupportedOperationException(
+            "Converter " + converterType.getConverterClass() + 
+            " constructor failed with: " + e.getCause());
+      }
     }
 
     // return the newly created converter
