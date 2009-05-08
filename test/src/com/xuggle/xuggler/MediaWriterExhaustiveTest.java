@@ -25,23 +25,17 @@ import java.io.File;
 
 import java.awt.image.BufferedImage;
 
-import java.util.Set;
-import java.util.Vector;
-import java.util.HashSet;
 import java.util.Collection;
+import java.util.Vector;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.junit.Test;
-import org.junit.Before;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-
-import com.xuggle.xuggler.video.ConverterFactory;
-import com.xuggle.xuggler.IError;
 
 import static junit.framework.Assert.*;
 
@@ -186,7 +180,6 @@ public class MediaWriterExhaustiveTest
 
   private final String  mSource;
   private final String  mDestination;
-  private final boolean mIsBroken;
   private final boolean mTestContainer;
   
   public MediaWriterExhaustiveTest(String source, String destination, 
@@ -195,7 +188,6 @@ public class MediaWriterExhaustiveTest
     System.out.println(description);
     mSource = TEST_FILE_DIR + "/" + source;
     mDestination = TEST_FILE_DIR + "/" + destination;
-    mIsBroken = isBroken;
     mTestContainer = testContainer;
   }
 

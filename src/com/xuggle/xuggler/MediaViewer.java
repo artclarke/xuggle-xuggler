@@ -197,10 +197,6 @@ public class MediaViewer implements MediaReader.IListener
 
     private BufferedImage mImage;
 
-    // the stream index
-
-    private final int mStreamIndex;
-
     // the video panel
 
     private final JPanel mVideoPanel;
@@ -213,10 +209,6 @@ public class MediaViewer implements MediaReader.IListener
     
     public MediaFrame(int streamIndex, BufferedImage image)
     {
-      // set the stream index
-
-      mStreamIndex = streamIndex;
-
       // set title based on index
 
       setTitle("stream " + streamIndex);

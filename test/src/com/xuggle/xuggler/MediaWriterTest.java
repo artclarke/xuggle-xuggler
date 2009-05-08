@@ -23,16 +23,6 @@ package com.xuggle.xuggler;
 
 import java.io.File;
 
-import java.util.Set;
-import java.util.HashSet;
-
-import java.awt.Graphics;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-
-import javax.swing.JFrame;
-import javax.swing.JPanel;
 
 import org.junit.Test;
 import org.junit.Before;
