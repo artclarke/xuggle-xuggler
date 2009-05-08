@@ -653,6 +653,7 @@ using the library and what you like or don't like about it.
     <echo message='Java: java.home is ${java.home} and the target version is ${java.target_version}'/>
     <echo message="java.library.path=${runtime.java.library.path}"/>
     <echo message="env.${runtime.so.path.variable}=${runtime.so.path.value}"/>
+    <echo message="test.jvm.properties=${test.jvm.properties}"/>
     <junit
       fork="true"
       haltonfailure="no"
@@ -672,6 +673,7 @@ using the library and what you like or don't like about it.
       <jvmarg value="-Denv.${runtime.so.path.variable}=${runtime.so.path.value}"/>
       <jvmarg value="-XX:+HeapDumpOnOutOfMemoryError"/>
       <jvmarg value="-Xcheck:jni"/>
+      <jvmarg value="${test.jvm.properties}"/>
       <!--
       <jvmarg value="-verbose:jni"/>
       <jvmarg value="-verbose:gc"/>
@@ -718,6 +720,7 @@ using the library and what you like or don't like about it.
     <echo message='Java: java.home is ${java.home} and the target version is ${java.target_version}'/>
     <echo message="java.library.path=${runtime.java.library.path}"/>
     <echo message="env.${runtime.so.path.variable}=${runtime.so.path.value}"/>
+    <echo message="test.jvm.properties=${test.jvm.properties}"/>
     <junit
       fork="true"
       haltonfailure="no"
@@ -735,6 +738,7 @@ using the library and what you like or don't like about it.
       shared library.  -->
       <jvmarg value="-Djava.library.path=${runtime.java.library.path}"/>
       <jvmarg value="-Denv.${runtime.so.path.variable}=${runtime.so.path.value}"/>
+      <jvmarg value="${test.jvm.properties}"/>
       <!--
       <jvmarg value="-Xcheck:jni"/>
       <jvmarg value="-XX:+HeapDumpOnOutOfMemoryError"/>
