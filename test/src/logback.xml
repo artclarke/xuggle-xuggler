@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <!-- Uncomment if you are using the logback plugin for eclipse
+  <consolePlugin/>
+  -->
+  <appender name="CONSOLE"
+    class="ch.qos.logback.core.ConsoleAppender">
+    <layout class="ch.qos.logback.classic.PatternLayout">
+      <Pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</Pattern>
+    </layout>
+  </appender>
+  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+    <File>test.log</File>
+    <Append>true</Append>
+    <Encoding>UTF-8</Encoding>
+    <BufferedIO>false</BufferedIO>
+    <ImmediateFlush>true</ImmediateFlush>
+    <layout class="ch.qos.logback.classic.PatternLayout">
+      <Pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</Pattern>
+    </layout>
+  </appender>
+  <root>
+    <level value="DEBUG" />
+    <appender-ref ref="CONSOLE" />
+    <appender-ref ref="FILE" />
+  </root>
+</configuration>

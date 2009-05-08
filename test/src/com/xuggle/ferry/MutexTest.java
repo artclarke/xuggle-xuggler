@@ -20,15 +20,14 @@
  */
 package com.xuggle.ferry;
 
+import static org.junit.Assert.*;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.xuggle.ferry.Mutex;
 
-import junit.framework.TestCase;
-
-public class MutexTest extends TestCase
+public class MutexTest
 {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
   private Mutex mMutex=null;
@@ -36,7 +35,6 @@ public class MutexTest extends TestCase
   @Before
   public void setUp()
   {
-    log.debug("Executing test case: {}", this.getName());
     if (mMutex != null)
       mMutex.delete();
     mMutex = Mutex.make();
@@ -60,7 +58,7 @@ public class MutexTest extends TestCase
     assertTrue("not really fast", after-before < 100);    
   }
   
-  @Test
+  @Test(timeout=5000)
   public void testCompetitiveLockAndUnlock()
   {
     long before = -1;
@@ -104,7 +102,7 @@ public class MutexTest extends TestCase
       }
       catch (InterruptedException ex)
       {
-        // ignore
+        fail("was interrupted");
       }
     }
     // now we've been signaled that the other thread
@@ -119,7 +117,7 @@ public class MutexTest extends TestCase
     }
     catch (InterruptedException ex)
     {
-      // ignore
+      fail("was interrupted");
     }
     log.debug("releasing the lock");
     mMutex.unlock();

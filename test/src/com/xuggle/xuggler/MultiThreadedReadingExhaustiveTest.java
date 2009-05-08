@@ -64,30 +64,32 @@ public class MultiThreadedReadingExhaustiveTest
             return;
           }
           try {
-          final MediaReader reader = 
-            new MediaReader("fixtures/testfile_videoonly_20sec.flv",
-                true,
-                ConverterFactory.XUGGLER_BGR_24);
-          log.debug("Created reader: {}", reader);
-          if (ADD_VIEWER)
-          {
-            final MediaViewer viewer = new MediaViewer();
-            reader.addListener(viewer);
-          }
-          while(reader.readPacket() == null)
-          {
-            log.trace("read packet: {}", numPackets[index]);
-            ++numPackets[index];
-          }
+            final MediaReader reader = 
+              new MediaReader("fixtures/testfile_videoonly_20sec.flv",
+                  true,
+                  ConverterFactory.XUGGLER_BGR_24);
+            log.debug("Created reader: {}", reader);
+            if (ADD_VIEWER)
+            {
+              final MediaViewer viewer = new MediaViewer();
+              reader.addListener(viewer);
+            }
+            while(reader.readPacket() == null)
+            {
+              log.trace("read packet: {}", numPackets[index]);
+              ++numPackets[index];
+            }
           } catch (OutOfMemoryError e)
           {
             // This test will cause this error on small JVMs, and that's OK
             // we'll just let this thread abort and keep going.  There are other
             // tests in this suite that look at memory allocation errors.
-            log.debug("Thread {} exited with memory exception WHICH IS OK: {}",
-                index, e);
             numPackets[index]=-1;
+          } finally {
+            log.debug("Thread exited; memory exception: {};",
+                numPackets[index]==-1 ? "yes" : "no");
           }
+          
         }}, "TestThread_"+index);
       threads[i].setUncaughtExceptionHandler(
           new Thread.UncaughtExceptionHandler(){

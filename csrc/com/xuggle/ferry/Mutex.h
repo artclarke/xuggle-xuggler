@@ -51,6 +51,7 @@ namespace com { namespace xuggle { namespace ferry {
     virtual ~Mutex();
   private:
     jobject mLock;
+    volatile int64_t mSpinCount;
 
     static bool init();
     static void initJavaBindings(JavaVM* vm, void* closure);
