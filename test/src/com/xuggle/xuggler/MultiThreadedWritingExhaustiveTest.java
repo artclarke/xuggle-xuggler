@@ -8,6 +8,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.xuggler.mediatool.IMediaTool;
+import com.xuggle.xuggler.mediatool.MediaReader;
+import com.xuggle.xuggler.mediatool.MediaViewer;
+import com.xuggle.xuggler.mediatool.MediaWriter;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 public class MultiThreadedWritingExhaustiveTest
@@ -54,17 +58,17 @@ public class MultiThreadedWritingExhaustiveTest
                 + "_" + index + ".flv", reader){
               long mediaDataWritten = 0; 
               @Override
-              public void onAudioSamples(IAudioSamples samples, int streamIndex)
+              public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
               {
-                super.onAudioSamples(samples, streamIndex);
+                super.onAudioSamples(tool, samples, streamIndex);
                 ++mediaDataWritten;
                 log.trace("wrote audio:{}", mediaDataWritten);
               }
               @Override
-              public void onVideoPicture(IVideoPicture picture,
-                  java.awt.image.BufferedImage image, int streamIndex)
+              public void onVideoPicture(IMediaTool tool,
+                  IVideoPicture picture, java.awt.image.BufferedImage image, int streamIndex)
               {
-                super.onVideoPicture(picture, image, streamIndex);
+                super.onVideoPicture(tool, picture, image, streamIndex);
                 ++mediaDataWritten;
                 log.trace("wrote video:{}", mediaDataWritten);
               };

@@ -19,15 +19,19 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-package com.xuggle.xuggler;
+package com.xuggle.xuggler.mediatool;
 
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.video.ConverterFactory;
+import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IError;
+import com.xuggle.xuggler.IVideoPicture;
+import com.xuggle.xuggler.IVideoResampler;
 
 import java.awt.image.BufferedImage;
 
@@ -72,17 +76,17 @@ public class MediaReaderTest //extends TestCase
 
     // setup the the listener
 
-    MediaReader.IListener mrl = new MediaReader.ListenerAdapter()
+    IMediaListener mrl = new MediaAdapter()
       {
-        public void onVideoPicture(IVideoPicture picture, BufferedImage image,
-          int streamIndex)
+        public void onVideoPicture(IMediaTool tool, IVideoPicture picture,
+          BufferedImage image, int streamIndex)
         {
           assertNotNull("picture should be created", picture);
           assertNull("no buffered image should be created", image);
           ++counts[0];
         }
 
-        public void onAudioSamples(IAudioSamples samples, int streamIndex)
+        public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
         {
           assertNotNull("audio samples should be created", samples);
           ++counts[1];
@@ -133,16 +137,16 @@ public class MediaReaderTest //extends TestCase
 
     // setup the the listener
 
-    MediaReader.IListener mrl = new MediaReader.ListenerAdapter()
+    IMediaListener mrl = new MediaAdapter()
       {
-        public void onVideoPicture(IVideoPicture picture, BufferedImage image,
-          int streamIndex)
+        public void onVideoPicture(IMediaTool tool, IVideoPicture picture,
+          BufferedImage image, int streamIndex)
         {
           assertNotNull("picture should be created", picture);
           assertNotNull("buffered image should be created", image);
         }
 
-        public void onAudioSamples(IAudioSamples samples, int streamIndex)
+        public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
         {
           assertNotNull("audio samples should be created", samples);
         }
@@ -184,17 +188,17 @@ public class MediaReaderTest //extends TestCase
 
     // setup the the listener
 
-    MediaReader.IListener mrl = new MediaReader.ListenerAdapter()
+    IMediaListener mrl = new MediaAdapter()
       {
-        public void onVideoPicture(IVideoPicture picture, BufferedImage image,
-          int streamIndex)
+        public void onVideoPicture(IMediaTool tool, IVideoPicture picture,
+          BufferedImage image, int streamIndex)
         {
           assertNotNull("picture should be created", picture);
           assertNotNull("buffered image should be created", image);
           ++counts[0];
         }
 
-        public void onAudioSamples(IAudioSamples samples, int streamIndex)
+        public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
         {
           assertNotNull("audio samples should be created", samples);
           ++counts[1];

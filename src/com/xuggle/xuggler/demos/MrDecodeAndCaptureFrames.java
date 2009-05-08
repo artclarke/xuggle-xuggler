@@ -29,7 +29,9 @@ import java.awt.image.BufferedImage;
 
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.MediaReader;
+import com.xuggle.xuggler.mediatool.IMediaTool;
+import com.xuggle.xuggler.mediatool.MediaAdapter;
+import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 /**
@@ -41,7 +43,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * @author trebor
  */
 
-public class MrDecodeAndCaptureFrames extends MediaReader.ListenerAdapter
+public class MrDecodeAndCaptureFrames extends MediaAdapter
 {
   /** 
    * The number of seconds between frames.
@@ -123,15 +125,14 @@ public class MrDecodeAndCaptureFrames extends MediaReader.ListenerAdapter
    * create BufferedImages.
    * 
    * This method blocks, so return quickly.
-   *
    * @param picture a raw video picture
    * @param image the buffered image, which will be null if buffered
    *        image creation is de-selected for this MediaReader.
    * @param streamIndex the index of the stream this object was decoded from.
    */
 
-  public void onVideoPicture(IVideoPicture picture, BufferedImage image,
-    int streamIndex)
+  public void onVideoPicture(IMediaTool tool, IVideoPicture picture,
+    BufferedImage image, int streamIndex)
   {
     try
     {

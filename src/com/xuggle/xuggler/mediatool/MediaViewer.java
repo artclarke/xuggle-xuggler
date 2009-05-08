@@ -19,7 +19,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-package com.xuggle.xuggler;
+package com.xuggle.xuggler.mediatool;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -35,6 +35,7 @@ import java.awt.image.BufferedImage;
 import javax.swing.JPanel;
 import javax.swing.JFrame;
 
+import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.video.IConverter;
 import com.xuggle.xuggler.video.ConverterFactory;
@@ -50,7 +51,7 @@ import org.slf4j.LoggerFactory;
  *   - add option to show media in real time
  */
 
-public class MediaViewer implements MediaReader.IListener
+public class MediaViewer implements IMediaListener
 {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -97,8 +98,8 @@ public class MediaViewer implements MediaReader.IListener
 
   /** {@inheritDoc} */
   
-  public void onVideoPicture(IVideoPicture picture, BufferedImage image, 
-    int streamIndex)
+  public void onVideoPicture(IMediaTool tool, IVideoPicture picture, 
+    BufferedImage image, int streamIndex)
   {
     log.trace("picture: {}", picture);
 
@@ -169,19 +170,19 @@ public class MediaViewer implements MediaReader.IListener
 
   /** {@inheritDoc} */
   
-  public void onAudioSamples(IAudioSamples samples, int streamIndex)
+  public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
   {
   }
   
   /** {@inheritDoc} */
   
-  public void onOpen(MediaReader source)
+  public void onOpen(IMediaTool source)
   {
   }
   
   /** {@inheritDoc} */
   
-  public void onClose(MediaReader source)
+  public void onClose(IMediaTool source)
   {
   }
 

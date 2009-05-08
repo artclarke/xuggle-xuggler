@@ -19,7 +19,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-package com.xuggle.xuggler;
+package com.xuggle.xuggler.mediatool;
 
 import java.io.File;
 
@@ -36,6 +36,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+
+import com.xuggle.xuggler.IAudioSamples;
+import com.xuggle.xuggler.IError;
+import com.xuggle.xuggler.IVideoPicture;
+import com.xuggle.xuggler.mediatool.MediaReader;
+import com.xuggle.xuggler.mediatool.MediaViewer;
+import com.xuggle.xuggler.mediatool.MediaWriter;
 
 import static junit.framework.Assert.*;
 
@@ -215,19 +222,19 @@ public class MediaWriterExhaustiveTest
     {
       final MediaWriter writer = new MediaWriter(mDestination, reader.getContainer());
 
-      reader.addListener(new MediaReader.ListenerAdapter()
+      reader.addListener(new MediaAdapter()
         {
-          public void onVideoPicture(IVideoPicture picture, BufferedImage image, 
-            int streamIndex)
+          public void onVideoPicture(IMediaTool tool, IVideoPicture picture, 
+            BufferedImage image, int streamIndex)
           {
-            writer.onVideoPicture(picture, image, streamIndex);
+            writer.onVideoPicture(null, picture, image, streamIndex);
           }
           
           /** {@inheritDoc} */
           
-          public void onAudioSamples(IAudioSamples samples, int streamIndex)
+          public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
           {
-            writer.onAudioSamples(samples, streamIndex);
+            writer.onAudioSamples(null, samples, streamIndex);
           }
         });
 

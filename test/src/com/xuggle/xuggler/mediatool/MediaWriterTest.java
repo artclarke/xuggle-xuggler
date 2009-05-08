@@ -19,7 +19,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-package com.xuggle.xuggler;
+package com.xuggle.xuggler.mediatool;
 
 import java.io.File;
 
@@ -27,6 +27,8 @@ import java.io.File;
 import org.junit.Test;
 import org.junit.Before;
 
+import com.xuggle.xuggler.mediatool.MediaReader;
+import com.xuggle.xuggler.mediatool.MediaWriter;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 import static junit.framework.Assert.*;

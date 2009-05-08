@@ -19,7 +19,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-package com.xuggle.xuggler;
+package com.xuggle.xuggler.mediatool;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import java.awt.image.BufferedImage;
 
 import com.xuggle.xuggler.ICodec;
+import com.xuggle.xuggler.IContainerFormat;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IPacket;
@@ -50,7 +51,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * The MediaReader class is a simplified interface to the Xuggler library
  * that opens up an {@link IContainer} object, and then every time you
  * call {@link MediaReader#readPacket()}, attempts to decode the packet and
- * call any registers {@link IListener} objects for that packet.
+ * call any registers {@link IMediaListener} objects for that packet.
  * </p><p>
  * The idea is to abstract away the more intricate details of the
  * Xuggler API, and let you concentrate on what you want -- the decoded
@@ -58,7 +59,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * </p> 
  */
 
-public class MediaReader
+public class MediaReader implements IMediaTool
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -83,8 +84,8 @@ public class MediaReader
   
   // all the media reader listeners
 
-  protected final Collection<IListener> mListeners
-    = new CopyOnWriteArrayList<IListener>();
+  protected final Collection<IMediaListener> mListeners
+    = new CopyOnWriteArrayList<IMediaListener>();
 
   // all the coders opened by this MediaReader which are candidates for
   // closing
@@ -287,13 +288,6 @@ public class MediaReader
       mConverterType = null;
   }
 
-  /** Get the underlying media {@link IContainer} that this reader is
-   * using to decode streams.  Listeners can use stream index values to
-   * learn more about particular streams they are receiving data from.
-   *
-   * @return the stream container.
-   */
-
   public IContainer getContainer()
   {
     return mContainer;
@@ -436,7 +430,7 @@ public class MediaReader
   }
 
   /**
-   * This decodes the next packet and calls registered {@link IListener}s.
+   * This decodes the next packet and calls registered {@link IMediaListener}s.
    * 
    * <p>
    * 
@@ -464,7 +458,7 @@ public class MediaReader
       if (mContainer.open(mUrl, IContainer.Type.READ, null, 
           mStreamsCanBeAddedDynamically, mQueryStreamMetaData) < 0)
         throw new RuntimeException("could not open: " + mUrl);
-      for (IListener l: mListeners)
+      for (IMediaListener l: mListeners)
         l.onOpen(this);
     }
 
@@ -604,8 +598,8 @@ public class MediaReader
     
     // dispatch picture here
 
-    for (IListener l: mListeners)
-      l.onVideoPicture(picture, image, streamIndex);
+    for (IMediaListener l: mListeners)
+      l.onVideoPicture(null, picture, image, streamIndex);
   }
 
   /** Dispatch audio samples to attached listeners.  This is called when
@@ -619,14 +613,9 @@ public class MediaReader
   
   protected void dispatchAudioSamples(int streamIndex, IAudioSamples samples)
   {
-    for (IListener l: mListeners)
-      l.onAudioSamples(samples, streamIndex);
+    for (IMediaListener l: mListeners)
+      l.onAudioSamples(null, samples, streamIndex);
   }
-
-  /** Reset this {@link MediaReader} object, closing all elements we opened.
-   * For example, if the {@link MediaReader} opened the {@link IContainer},
-   * it closes it now.
-   */
   
   public void close()
   {
@@ -651,116 +640,17 @@ public class MediaReader
 
     // tell the listeners that the container is closed
 
-    for (IListener l: mListeners)
+    for (IMediaListener l: mListeners)
       l.onClose(this);
   }
 
-  /** Add a media reader listener.
-   *
-   * @param listener the listener to add
-   *
-   * @return true if this collection changed as a result of the call
-   */
-  
-  public boolean addListener(IListener listener)
+  public boolean addListener(IMediaListener listener)
   {
     return mListeners.add(listener);
   }
 
-  /** Remove a media reader listener.
-   *
-   * @param listener the listener to remove
-   *
-   * @return true if this collection changed as a result of the call
-   */
-  
-  public boolean removeListener(IListener listener)
+  public boolean removeListener(IMediaListener listener)
   {
     return mListeners.remove(listener);
-  }
-  
-  /** Media listener which receives events when audio and video content
-   * is extracted from an IContainer. */
-
-  public static interface IListener
-  {
-    /**
-     * Called after a video frame has been decoded from a media stream.
-     * Optionally a BufferedImage version of the frame may be passed
-     * if the calling {@link MediaReader} instance was configured to
-     * create BufferedImages.
-     * 
-     * This method blocks, so return quickly.
-     *
-     * @param picture a raw video picture
-     * @param image the buffered image, which will be null if buffered
-     *        image creation is de-selected for this MediaReader.
-     * @param streamIndex the index of the stream this object was decoded from.
-     */
-
-    public void onVideoPicture(IVideoPicture picture, BufferedImage image,
-      int streamIndex);
-    
-    /**
-     * Called after audio samples have been decoded from a media
-     * stream.  This method blocks, so return quickly.
-     *
-     * @param samples a audio samples
-     * @param streamIndex the index of the stream
-     */
-
-    public void onAudioSamples(IAudioSamples samples, int streamIndex);
-
-    /**
-     * Called after the underlying container is opened, it will not be
-     * called if an open container is passed into the MediaReader.
-     *
-     * @param source the MediaReader which was just opened
-     */
-
-    public void onOpen(MediaReader source);
-
-    /**
-     * Called after the underlying container and all it's associated
-     * streams are closed.
-     * 
-     * @param source the MediaReader which was just closed
-     */
-
-    public void onClose(MediaReader source);
-  }
-
-  /** An implementation of {@link IListener} that implements all methods
-   * as NO-OP methods.  This can be useful if you only want to override
-   * some members of {@link IListener}; instead, just subclass this and
-   * override the methods you want.
-   */
-
-  public static class ListenerAdapter implements IListener
-  {
-    /** {@inheritDoc} */
-
-    public void onVideoPicture(IVideoPicture picture, BufferedImage image, 
-      int streamIndex)
-    {
-    }
-    
-    /** {@inheritDoc} */
-
-    public void onAudioSamples(IAudioSamples samples, int streamIndex)
-    {
-    }
-
-    /** {@inheritDoc} */
-
-    public void onOpen(MediaReader source)
-    {
-    }
-
-    /** {@inheritDoc} */
-
-    public void onClose(MediaReader source)
-    {
-    }
   }
 }

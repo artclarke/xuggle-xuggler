@@ -19,7 +19,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-package com.xuggle.xuggler;
+package com.xuggle.xuggler.mediatool;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -30,7 +30,6 @@ import java.awt.image.BufferedImage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.xuggle.xuggler.MediaReader;
 
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IVideoPicture;
@@ -40,6 +39,7 @@ import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
+import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.video.IConverter;
 import com.xuggle.xuggler.video.ConverterFactory;
 
@@ -71,7 +71,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * </p> 
  */
 
-public class MediaWriter implements MediaReader.IListener
+public class MediaWriter implements IMediaListener
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -325,8 +325,8 @@ public class MediaWriter implements MediaReader.IListener
 
   /** {@inheritDoc} */
   
-  public void onVideoPicture(IVideoPicture picture, BufferedImage image, 
-    int streamIndex)
+  public void onVideoPicture(IMediaTool tool, IVideoPicture picture, 
+    BufferedImage image, int streamIndex)
   {
     IStreamCoder coder = getStreamCoder(streamIndex);
 
@@ -359,7 +359,7 @@ public class MediaWriter implements MediaReader.IListener
   
   /** {@inheritDoc} */
   
-  public void onAudioSamples(IAudioSamples samples, int streamIndex)
+  public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
   {
     encodeAudio(getStreamCoder(streamIndex), samples);
   }
@@ -551,13 +551,13 @@ public class MediaWriter implements MediaReader.IListener
 
   /** {@inheritDoc} */
 
-  public void onOpen(MediaReader source)
+  public void onOpen(IMediaTool source)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onClose(MediaReader source)
+  public void onClose(IMediaTool source)
   {
     close();
     source.removeListener(this);
