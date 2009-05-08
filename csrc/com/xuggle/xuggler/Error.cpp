@@ -132,6 +132,11 @@ Error :: make(int32_t aErrorNo, Type aType)
     // null out and don't fill unless description is asked for
     *(retval->mErrorStr) = 0;
   }
+  catch (std::bad_alloc & e)
+  {
+    VS_REF_RELEASE(retval);
+    throw e;
+  }
   catch (std::exception & e)
   {
     VS_LOG_TRACE("Error: %s", e.what());

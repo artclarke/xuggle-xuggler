@@ -439,6 +439,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_new_1AtomicInteger_1_1SW
     {
       result = (com::xuggle::ferry::AtomicInteger *)new com::xuggle::ferry::AtomicInteger();
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -491,6 +501,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_new_1AtomicInteger_1_1SW
     try
     {
       result = (com::xuggle::ferry::AtomicInteger *)new com::xuggle::ferry::AtomicInteger(arg1);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -550,6 +570,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_delete_1AtomicInteger(JNI
     {
       delete arg1;
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -608,6 +638,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1get(JNIEnv
     try
     {
       result = (int32_t)(arg1)->get();
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -670,6 +710,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1set(JNIEnv
     {
       (arg1)->set(arg2);
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -730,6 +780,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1getAndSet(
     try
     {
       result = (int32_t)(arg1)->getAndSet(arg2);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -792,6 +852,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1getAndIncr
     {
       result = (int32_t)(arg1)->getAndIncrement();
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -852,6 +922,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1getAndDecr
     try
     {
       result = (int32_t)(arg1)->getAndDecrement();
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -916,6 +996,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1getAndAdd(
     {
       result = (int32_t)(arg1)->getAndAdd(arg2);
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -977,6 +1067,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1incrementA
     {
       result = (int32_t)(arg1)->incrementAndGet();
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -1037,6 +1137,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1decrementA
     try
     {
       result = (int32_t)(arg1)->decrementAndGet();
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -1100,6 +1210,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1addAndGet(
     try
     {
       result = (int32_t)(arg1)->addAndGet(arg2);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -1166,6 +1286,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1compar
     {
       result = (bool)(arg1)->compareAndSet(arg2,arg3);
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -1226,6 +1356,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1isAtom
     try
     {
       result = (bool)(arg1)->isAtomic();
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -1288,6 +1428,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1acquire(JNIEn
     {
       result = (int32_t)(arg1)->acquire();
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -1348,6 +1498,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1release(JNIEn
     try
     {
       result = (int32_t)(arg1)->release();
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -1410,6 +1570,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1copyReferenc
     {
       result = (com::xuggle::ferry::RefCounted *)(arg1)->copyReference();
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -1470,6 +1640,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentRef
     try
     {
       result = (int32_t)(arg1)->getCurrentRefCount();
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -1588,6 +1768,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1getLogger(JNIEnv
     {
       result = (com::xuggle::ferry::Logger *)com::xuggle::ferry::Logger::getLogger((char const *)arg1);
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -1645,6 +1835,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1getStaticLogger(
     try
     {
       result = (com::xuggle::ferry::Logger *)com::xuggle::ferry::Logger::getStaticLogger((char const *)arg1);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -1725,6 +1925,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1log(JNIEnv *j
     {
       result = (bool)(arg1)->log((char const *)arg2,arg3,arg4,(char const *)arg5,arg6);
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -1802,6 +2012,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1error(JNIEnv 
     try
     {
       result = (bool)(arg1)->error((char const *)arg2,arg3,(char const *)arg4,arg5);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -1881,6 +2101,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1warn(JNIEnv *
     {
       result = (bool)(arg1)->warn((char const *)arg2,arg3,(char const *)arg4,arg5);
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -1958,6 +2188,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1info(JNIEnv *
     try
     {
       result = (bool)(arg1)->info((char const *)arg2,arg3,(char const *)arg4,arg5);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -2037,6 +2277,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1debug(JNIEnv 
     {
       result = (bool)(arg1)->debug((char const *)arg2,arg3,(char const *)arg4,arg5);
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -2115,6 +2365,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1trace(JNIEnv 
     {
       result = (bool)(arg1)->trace((char const *)arg2,arg3,(char const *)arg4,arg5);
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -2180,6 +2440,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1isLogging(JNI
     {
       result = (bool)(arg1)->isLogging(arg2);
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -2243,6 +2513,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1setIsLogging(JNIE
     {
       (arg1)->setIsLogging(arg2,arg3);
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -2293,6 +2573,16 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1isGlobalLoggi
     try
     {
       result = (bool)com::xuggle::ferry::Logger::isGlobalLogging(arg1);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -2346,6 +2636,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1setGlobalIsLoggin
     try
     {
       com::xuggle::ferry::Logger::setGlobalIsLogging(arg1,arg2);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
     }
     catch(std::bad_alloc & e)
     {
@@ -2406,6 +2706,16 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1getName(JNIEnv
     {
       result = (char *)(arg1)->getName();
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -2464,6 +2774,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_delete_1Logger(JNIEnv *je
     {
       delete arg1;
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -2512,6 +2832,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_Mutex_1make(JNIEnv *jenv
     try
     {
       result = (com::xuggle::ferry::Mutex *)com::xuggle::ferry::Mutex::make();
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -2572,6 +2902,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_Mutex_1lock(JNIEnv *jenv,
     {
       (arg1)->lock();
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -2628,6 +2968,16 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_Mutex_1unlock(JNIEnv *jen
     try
     {
       (arg1)->unlock();
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
     }
     catch(std::bad_alloc & e)
     {
@@ -2688,6 +3038,16 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1getBufferSize(JN
     {
       result = (int32_t)(arg1)->getBufferSize();
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -2743,6 +3103,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_10
     try
     {
       result = (com::xuggle::ferry::IBuffer *)com::xuggle::ferry::IBuffer::make(arg1,arg2);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -2809,6 +3179,16 @@ SWIGEXPORT jobject JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1java_1getByte
     {
       result = com_xuggle_ferry_IBuffer_java_getByteBuffer(arg1,arg2,arg3);
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -2874,6 +3254,16 @@ SWIGEXPORT jbyteArray JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1getByteArr
     {
       result = com_xuggle_ferry_IBuffer_getByteArray(arg1,arg2,arg3);
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -2933,6 +3323,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_11
     try
     {
       result = (com::xuggle::ferry::IBuffer *)com_xuggle_ferry_IBuffer_make__SWIG_1(arg1,arg2,arg3,arg4);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -2994,6 +3394,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_12
     {
       result = (com::xuggle::ferry::IBuffer *)com_xuggle_ferry_IBuffer_make__SWIG_2(arg1,arg2,arg3,arg4);
     }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
     catch(std::bad_alloc & e)
     {
       // we don't let a native exception override a java exception
@@ -3044,6 +3454,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_RefCountedTester_1make_1
     try
     {
       result = (com::xuggle::ferry::RefCountedTester *)com::xuggle::ferry::RefCountedTester::make();
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {
@@ -3098,6 +3518,16 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_RefCountedTester_1make_1
     try
     {
       result = (com::xuggle::ferry::RefCountedTester *)com::xuggle::ferry::RefCountedTester::make(arg1);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
     }
     catch(std::bad_alloc & e)
     {

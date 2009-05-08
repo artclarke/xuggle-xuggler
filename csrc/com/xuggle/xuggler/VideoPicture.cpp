@@ -20,7 +20,7 @@
  */
 #include <stdexcept>
 // for memset
-#include <string.h>
+#include <cstring>
 #include <com/xuggle/ferry/Logger.h>
 #include <com/xuggle/ferry/RefPointer.h>
 #include <com/xuggle/xuggler/Global.h>
@@ -59,14 +59,16 @@ namespace com { namespace xuggle { namespace xuggler
     VideoPicture * retval=0;
     try {
       retval = VideoPicture::make();
-      if (retval)
-      {
-        retval->mPixelFormat = format;
-        retval->mWidth = width;
-        retval->mHeight = height;
-        // default new frames to be key frames
-        retval->setKeyFrame(true);
-      }
+      retval->mPixelFormat = format;
+      retval->mWidth = width;
+      retval->mHeight = height;
+      // default new frames to be key frames
+      retval->setKeyFrame(true);
+    }
+    catch (std::bad_alloc &e)
+    {
+      VS_REF_RELEASE(retval);
+      throw e;
     }
     catch (std::exception& e)
     {

@@ -27,6 +27,9 @@
 // For int32_t
 #include <inttypes.h>
 
+// for std::bad_alloc
+#include <stdexcept>
+
 #include <com/xuggle/ferry/Ferry.h>
 
 namespace com { namespace xuggle { namespace ferry {
@@ -183,6 +186,8 @@ namespace com { namespace xuggle { namespace ferry {
         __class *obj = new __class(); \
         if (obj) { \
           (void) obj->acquire(); \
+        } else { \
+          throw std::bad_alloc(); \
         } \
         return obj; \
     } \

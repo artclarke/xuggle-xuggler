@@ -300,6 +300,16 @@
   {
     $action
   }
+  catch(std::invalid_argument & e)
+  {
+    // we don't let a native exception override a java exception
+    if (!jenv->ExceptionCheck())
+    {
+      jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+      jenv->ThrowNew(cls, e.what());
+    }
+    return $null;
+  }
   catch(std::bad_alloc & e)
   {
     // we don't let a native exception override a java exception

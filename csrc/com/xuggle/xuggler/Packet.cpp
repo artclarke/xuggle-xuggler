@@ -216,17 +216,19 @@ namespace com { namespace xuggle { namespace xuggler
   Packet :: make (int32_t payloadSize)
   {
     Packet *retval= 0;
-    retval = Packet::make();
-    if (retval)
-    {
-      if (retval->allocateNewPayload(payloadSize) >= 0)
+    try {
+      retval = Packet::make();
+      if (retval->allocateNewPayload(payloadSize) < 0)
       {
-        // success
-      } else {
-        // we failed.
-        VS_REF_RELEASE(retval);
+        throw std::bad_alloc();
       }
     }
+    catch (std::bad_alloc & e)
+    {
+      VS_REF_RELEASE(retval);
+      throw e;
+    }
+
     return retval;
   }
   

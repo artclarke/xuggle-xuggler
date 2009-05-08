@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -11,6 +12,18 @@ import org.slf4j.LoggerFactory;
 
 import com.xuggle.xuggler.video.ConverterFactory;
 
+/**
+ * This test opens up a lot of threads and attempts to read from them.
+ * If we run out of memory (which will happen on small, or client, 
+ * JVMs), we just catch the error but continue.
+ * 
+ * Success is when (a) threads that have no memory errors all decode
+ * the expected number of items and (b) there are no other unexplained
+ * crashes.
+ * 
+ * @author aclarke
+ *
+ */
 public class MultiThreadedReadingExhaustiveTest
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
@@ -26,6 +39,7 @@ public class MultiThreadedReadingExhaustiveTest
     final CyclicBarrier barrier = new CyclicBarrier(NUM_THREADS);
     final Thread threads[] = new Thread[NUM_THREADS];
     final int numPackets[] = new int[NUM_THREADS];
+    final AtomicInteger uncaughtExceptions = new AtomicInteger();
     
     // create all the threads
     for(int i = 0; i < threads.length; i++)
@@ -75,6 +89,15 @@ public class MultiThreadedReadingExhaustiveTest
             numPackets[index]=-1;
           }
         }}, "TestThread_"+index);
+      threads[i].setUncaughtExceptionHandler(
+          new Thread.UncaughtExceptionHandler(){
+            public void uncaughtException(Thread t, Throwable e)
+            {
+              log.debug("Uncaught exception leaked out of thread: {}; {}",
+                  e, t);
+              uncaughtExceptions.incrementAndGet();
+            }});
+
     }
     // start all the threads
     for(int i = 0; i < threads.length; i++)
@@ -82,11 +105,17 @@ public class MultiThreadedReadingExhaustiveTest
       threads[i].start();
     }
     // join all the threads
+    int numSuccess = 0;
     for(int i = 0; i < threads.length; i++)
     {
       threads[i].join();
-      if (numPackets[i] != -1)
+      if (numPackets[i] != -1) {
         assertEquals(1062, numPackets[i]);
-    }    
+        ++numSuccess;
+      }
+    }
+    assertEquals(0, uncaughtExceptions.get());
+    log.debug("Test completed successfully: {} of {} threads"
+        + " ran without memory errors", numSuccess, NUM_THREADS);
   }
 }

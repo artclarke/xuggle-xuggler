@@ -62,6 +62,11 @@ namespace com { namespace xuggle { namespace xuggler
       if (!retval->copy(srcFrame))
         throw std::runtime_error("could not copy source frame");
     }
+    catch (std::bad_alloc &e)
+    {
+      VS_REF_RELEASE(retval);
+      throw e;
+    }
     catch (std::exception & e)
     {
       VS_LOG_DEBUG("got error: %s", e.what());

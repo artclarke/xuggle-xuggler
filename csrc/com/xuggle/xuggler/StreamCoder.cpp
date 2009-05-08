@@ -190,6 +190,11 @@ StreamCoder :: make(Direction direction, IStreamCoder* aCoder)
       }
     }
   }
+  catch (std::bad_alloc &e)
+  {
+    VS_REF_RELEASE(retval);
+    throw e;
+  }
   catch (std::exception &e)
   {
     VS_LOG_WARN("Error: %s", e.what());
@@ -205,15 +210,17 @@ StreamCoder :: make(Direction direction, AVCodecContext * codecCtx,
   StreamCoder *retval = 0;
   if (codecCtx)
   {
-    retval = StreamCoder::make();
-    if (retval)
-    {
+    try {
+      retval = StreamCoder::make();
       retval->mCodecContext = codecCtx;
       retval->mDirection = direction;
       retval->mStream = stream; //do not ref count.
 
       // Set the private data to this object.
       codecCtx->opaque = retval;
+    } catch (std::bad_alloc &e) {
+      VS_REF_RELEASE(retval);
+      throw e;
     }
   }
   return retval;

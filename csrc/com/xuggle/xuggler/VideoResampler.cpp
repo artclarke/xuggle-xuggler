@@ -41,7 +41,7 @@ using namespace com::xuggle::ferry;
 namespace com { namespace xuggle { namespace xuggler
   {
 
-  VideoResampler::VideoResampler()
+  VideoResampler :: VideoResampler()
   {
     mIHeight = 0;
     mIWidth = 0;
@@ -52,7 +52,7 @@ namespace com { namespace xuggle { namespace xuggler
     mContext = 0;
   }
 
-  VideoResampler::~VideoResampler()
+  VideoResampler :: ~VideoResampler()
   {
     if (mContext)
       sws_freeContext(mContext);
@@ -126,7 +126,8 @@ namespace com { namespace xuggle { namespace xuggler
         throw std::runtime_error("incoming frame doesn't have complete data");
 
       // Allocate our output frame.
-      outFrame->setComplete(false, mOPixelFmt, mOWidth, mOHeight, inFrame->getPts());
+      outFrame->setComplete(false, mOPixelFmt, mOWidth, mOHeight,
+          inFrame->getPts());
       AVFrame *outAVFrame = outFrame->getAVFrame();
 
       // Get our input frame; since it's complete() we can pass anything
@@ -150,6 +151,10 @@ namespace com { namespace xuggle { namespace xuggler
         outFrame->setComplete(retval >= 0,mOPixelFmt, mOWidth, mOHeight,
             inFrame->getPts());
       }
+    }
+    catch (std::bad_alloc& e)
+    {
+      throw e;
     }
     catch (std::exception& e)
     {
@@ -216,6 +221,10 @@ namespace com { namespace xuggle { namespace xuggler
         if (!retval->mContext)
           throw std::runtime_error("could not allocate a image rescaler");
       }
+    }
+    catch (std::bad_alloc& e)
+    {
+      VS_REF_RELEASE(retval);
     }
     catch (std::exception& e)
     {

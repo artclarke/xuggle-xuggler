@@ -53,7 +53,7 @@ namespace com { namespace xuggle { namespace xuggler
     (void) inputWidth;
     (void) inputHeight;
     (void) inputFmt;
-    return 0;
+    throw std::invalid_argument("IVideoResampler not supported in this build"); 
 #endif
   }
 

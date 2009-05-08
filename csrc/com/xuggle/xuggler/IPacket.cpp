@@ -45,12 +45,10 @@ namespace com { namespace xuggle { namespace xuggler
   IPacket :: make(IBuffer* buffer)
   {
     Global::init();
-    Packet* retval=0;
-    if (buffer)
-    {
-      retval = Packet::make(buffer);
-    }
-    return retval;
+    if (!buffer)
+      throw std::invalid_argument("no buffer");
+    
+    return Packet::make(buffer);
   }
 
   IPacket*

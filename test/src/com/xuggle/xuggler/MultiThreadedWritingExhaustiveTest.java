@@ -2,6 +2,8 @@ package com.xuggle.xuggler;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,8 @@ public class MultiThreadedWritingExhaustiveTest
             + ".ShowVideo") != null;
     final Thread threads[] = new Thread[NUM_THREADS];
     final int numPackets[] = new int[NUM_THREADS];
+    final AtomicInteger uncaughtExceptions = new AtomicInteger();
+
     for (int i = 0; i < threads.length; i++)
     {
       final int index = i;
@@ -80,13 +84,27 @@ public class MultiThreadedWritingExhaustiveTest
 
         }
       }, "TestThread_" + index);
+      threads[i].setUncaughtExceptionHandler(
+          new Thread.UncaughtExceptionHandler(){
+            public void uncaughtException(Thread t, Throwable e)
+            {
+              log.debug("Uncaught exception leaked out of thread: {}; {}",
+                  e, t);
+              uncaughtExceptions.incrementAndGet();
+            }});
       threads[i].start();
     }
+    int numSuccess = 0;
     for (int i = 0; i < threads.length; i++)
     {
       threads[i].join();
-      if (numPackets[i] != -1)
+      if (numPackets[i] != -1) {
         assertEquals(1062, numPackets[i]);
+        ++numSuccess;
+      }
     }
+    assertEquals(0, uncaughtExceptions.get());
+    log.debug("Test completed successfully: {} of {} threads"
+        + " ran without memory errors", numSuccess, NUM_THREADS);
   }
 }

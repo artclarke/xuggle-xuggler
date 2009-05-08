@@ -6,7 +6,7 @@ IMediaData :: IMediaData()
 {
 }
 
-IMediaData::~IMediaData()
+IMediaData :: ~IMediaData()
 {
 }
 

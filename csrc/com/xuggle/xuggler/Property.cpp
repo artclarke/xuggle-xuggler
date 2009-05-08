@@ -47,14 +47,23 @@ namespace com { namespace xuggle { namespace xuggler {
   Property :: make(const AVOption *start, const AVOption *option)
   {
     Property *retval = 0;
-    if (start && option)
+    try
     {
+      if (!start)
+        throw std::bad_alloc();
+      if (!option)
+        throw std::bad_alloc();
       retval = Property::make();
       if (retval)
       {
         retval ->mOptionStart = start;
         retval->mOption = option;
       }
+    }
+    catch (std::bad_alloc & e)
+    {
+      VS_REF_RELEASE(retval);
+      throw e;
     }
     return retval;
   }

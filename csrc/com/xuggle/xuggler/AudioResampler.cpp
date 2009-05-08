@@ -141,6 +141,12 @@ namespace com { namespace xuggle { namespace xuggler
         }
       }
     }
+    catch (std::bad_alloc & e)
+    {
+      VS_LOG_ERROR("Error: %s", e.what());
+      VS_REF_RELEASE(retval);
+      throw e;
+    }
     catch (std::exception & e)
     {
       VS_LOG_ERROR("Error: %s", e.what());

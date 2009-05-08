@@ -71,19 +71,20 @@ namespace com { namespace xuggle { namespace xuggler
     // note: make will acquire this for us.
     Stream *newStream = 0;
     if (aStream) {
-      newStream = make();
-      if (newStream)
-      {
+      try {
+        newStream = make();
         newStream->mStream = aStream;
         newStream->mDirection = direction;
-
+  
         newStream->mCoder = StreamCoder::make(
               direction == INBOUND?IStreamCoder::DECODING :
               IStreamCoder::ENCODING,
               aStream->codec,
               newStream);
-        VS_ASSERT(newStream->mCoder, "Could not allocate a coder!");
         newStream->mContainer = container;
+      } catch (std::bad_alloc & e) {
+        VS_REF_RELEASE(newStream);
+        throw e;
       }
     }
     return newStream;
