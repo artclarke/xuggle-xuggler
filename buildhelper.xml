@@ -658,6 +658,7 @@ using the library and what you like or don't like about it.
       haltonfailure="no"
       haltonerror="no"
       printsummary="yes"
+      failureproperty="test.failure.property"
       showoutput="${test.show_output}"
       timeout="1800000"
       dir="${test.reports.dir}"
@@ -698,6 +699,15 @@ using the library and what you like or don't like about it.
     </junitreport>
 
     <echo message="View test results in browser: ${testdoc.dir}/index.html"/>
+    <if>
+      <isset property="test.failure.property"/>
+      <then>
+        <echo message="Test Result: !!!!!! NOT ALL TESTS PASSED !!!!"/>
+      </then>
+      <else>
+        <echo message="Test Result: 100% of tests passed"/>
+      </else>
+    </if>
 
   </target>
   
@@ -712,6 +722,7 @@ using the library and what you like or don't like about it.
       fork="true"
       haltonfailure="no"
       haltonerror="no"
+      failureproperty="test.failure.property"
       printsummary="yes"
       showoutput="${test.show_output}"
       timeout="1800000"
@@ -752,6 +763,16 @@ using the library and what you like or don't like about it.
     </junitreport>
 
     <echo message="View test results in browser: ${testdoc.dir}/index.html"/>
+    <if>
+      <isset property="test.failure.property"/>
+      <then>
+        <echo message="Test Result: !!!!!! NOT ALL TESTS PASSED !!!!"/>
+      </then>
+      <else>
+        <echo message="Test Result: 100% of tests passed"/>
+      </else>
+    </if>
+
 
   </target>
 
