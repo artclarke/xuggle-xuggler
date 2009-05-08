@@ -16,6 +16,7 @@ check_PROGRAMS=xugglerTestAudioResampler \
   xugglerTestVideoPicture \
   xugglerTestHelper \
   xugglerTestMediaDataWrapper \
+  xugglerTestMemoryAllocation \
   xugglerTestPacket \
   xugglerTestPixelFormat \
   xugglerTestRational \
@@ -125,6 +126,17 @@ nodist_xugglerTestMediaDataWrapper_SOURCES=\
   MediaDataWrapperTest_CXXRunner.cpp
 
 xugglerTestMediaDataWrapper_LDADD=\
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
+xugglerTestMemoryAllocation_SOURCES=\
+  MemoryAllocationTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestMemoryAllocation_SOURCES=\
+  MemoryAllocationTest_CXXRunner.cpp
+
+xugglerTestMemoryAllocation_LDADD=\
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
 xugglerTestPacket_SOURCES=\
@@ -258,6 +270,7 @@ BUILT_SOURCES= \
   VideoPictureTest_CXXRunner.cpp \
   HelperTest_CXXRunner.cpp \
   MediaDataWrapperTest_CXXRunner.cpp \
+  MemoryAllocationTest_CXXRunner.cpp \
   PacketTest_CXXRunner.cpp \
   PixelFormatTest_CXXRunner.cpp \
   RationalTest_CXXRunner.cpp \
@@ -280,6 +293,7 @@ noinst_HEADERS = \
   Helper.h \
   HelperTest.h \
   MediaDataWrapperTest.h \
+  MemoryAllocationTest.h \
   PacketTest.h \
   PixelFormatTest.h \
   RationalTest.h \

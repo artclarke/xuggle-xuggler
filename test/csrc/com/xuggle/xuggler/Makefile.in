@@ -39,6 +39,7 @@ check_PROGRAMS = xugglerTestAudioResampler$(EXEEXT) \
 	xugglerTestContainer$(EXEEXT) xugglerTestVideoPicture$(EXEEXT) \
 	xugglerTestHelper$(EXEEXT) \
 	xugglerTestMediaDataWrapper$(EXEEXT) \
+	xugglerTestMemoryAllocation$(EXEEXT) \
 	xugglerTestPacket$(EXEEXT) xugglerTestPixelFormat$(EXEEXT) \
 	xugglerTestRational$(EXEEXT) xugglerTestStreamCoder$(EXEEXT) \
 	xugglerTestStreamCoderProperty$(EXEEXT) \
@@ -135,6 +136,16 @@ xugglerTestMediaDataWrapper_OBJECTS =  \
 	$(am_xugglerTestMediaDataWrapper_OBJECTS) \
 	$(nodist_xugglerTestMediaDataWrapper_OBJECTS)
 xugglerTestMediaDataWrapper_DEPENDENCIES =  \
+	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
+	$(am__DEPENDENCIES_1)
+am_xugglerTestMemoryAllocation_OBJECTS =  \
+	MemoryAllocationTest.$(OBJEXT) Main.$(OBJEXT) Helper.$(OBJEXT)
+nodist_xugglerTestMemoryAllocation_OBJECTS =  \
+	MemoryAllocationTest_CXXRunner.$(OBJEXT)
+xugglerTestMemoryAllocation_OBJECTS =  \
+	$(am_xugglerTestMemoryAllocation_OBJECTS) \
+	$(nodist_xugglerTestMemoryAllocation_OBJECTS)
+xugglerTestMemoryAllocation_DEPENDENCIES =  \
 	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
 	$(am__DEPENDENCIES_1)
 am_xugglerTestPacket_OBJECTS = PacketTest.$(OBJEXT) Main.$(OBJEXT) \
@@ -265,6 +276,8 @@ SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(nodist_xugglerTestHelper_SOURCES) \
 	$(xugglerTestMediaDataWrapper_SOURCES) \
 	$(nodist_xugglerTestMediaDataWrapper_SOURCES) \
+	$(xugglerTestMemoryAllocation_SOURCES) \
+	$(nodist_xugglerTestMemoryAllocation_SOURCES) \
 	$(xugglerTestPacket_SOURCES) \
 	$(nodist_xugglerTestPacket_SOURCES) \
 	$(xugglerTestPixelFormat_SOURCES) \
@@ -293,6 +306,7 @@ DIST_SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(xugglerTestContainerFormat_SOURCES) \
 	$(xugglerTestError_SOURCES) $(xugglerTestHelper_SOURCES) \
 	$(xugglerTestMediaDataWrapper_SOURCES) \
+	$(xugglerTestMemoryAllocation_SOURCES) \
 	$(xugglerTestPacket_SOURCES) $(xugglerTestPixelFormat_SOURCES) \
 	$(xugglerTestRational_SOURCES) $(xugglerTestStream_SOURCES) \
 	$(xugglerTestStreamCoder_SOURCES) \
@@ -549,6 +563,17 @@ nodist_xugglerTestMediaDataWrapper_SOURCES = \
 xugglerTestMediaDataWrapper_LDADD = \
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
+xugglerTestMemoryAllocation_SOURCES = \
+  MemoryAllocationTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestMemoryAllocation_SOURCES = \
+  MemoryAllocationTest_CXXRunner.cpp
+
+xugglerTestMemoryAllocation_LDADD = \
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
 xugglerTestPacket_SOURCES = \
   PacketTest.cpp \
   Main.cpp \
@@ -679,6 +704,7 @@ BUILT_SOURCES = \
   VideoPictureTest_CXXRunner.cpp \
   HelperTest_CXXRunner.cpp \
   MediaDataWrapperTest_CXXRunner.cpp \
+  MemoryAllocationTest_CXXRunner.cpp \
   PacketTest_CXXRunner.cpp \
   PixelFormatTest_CXXRunner.cpp \
   RationalTest_CXXRunner.cpp \
@@ -701,6 +727,7 @@ noinst_HEADERS = \
   Helper.h \
   HelperTest.h \
   MediaDataWrapperTest.h \
+  MemoryAllocationTest.h \
   PacketTest.h \
   PixelFormatTest.h \
   RationalTest.h \
@@ -778,6 +805,9 @@ xugglerTestHelper$(EXEEXT): $(xugglerTestHelper_OBJECTS) $(xugglerTestHelper_DEP
 xugglerTestMediaDataWrapper$(EXEEXT): $(xugglerTestMediaDataWrapper_OBJECTS) $(xugglerTestMediaDataWrapper_DEPENDENCIES) 
 	@rm -f xugglerTestMediaDataWrapper$(EXEEXT)
 	$(CXXLINK) $(xugglerTestMediaDataWrapper_OBJECTS) $(xugglerTestMediaDataWrapper_LDADD) $(LIBS)
+xugglerTestMemoryAllocation$(EXEEXT): $(xugglerTestMemoryAllocation_OBJECTS) $(xugglerTestMemoryAllocation_DEPENDENCIES) 
+	@rm -f xugglerTestMemoryAllocation$(EXEEXT)
+	$(CXXLINK) $(xugglerTestMemoryAllocation_OBJECTS) $(xugglerTestMemoryAllocation_LDADD) $(LIBS)
 xugglerTestPacket$(EXEEXT): $(xugglerTestPacket_OBJECTS) $(xugglerTestPacket_DEPENDENCIES) 
 	@rm -f xugglerTestPacket$(EXEEXT)
 	$(CXXLINK) $(xugglerTestPacket_OBJECTS) $(xugglerTestPacket_LDADD) $(LIBS)

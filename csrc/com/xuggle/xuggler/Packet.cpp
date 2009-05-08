@@ -168,10 +168,7 @@ namespace com { namespace xuggle { namespace xuggler
   com::xuggle::ferry::IBuffer *
   Packet :: getData()
   {
-    com::xuggle::ferry::IBuffer *retval = mBuffer.get();
-    if (!retval)
-      throw std::bad_alloc();
-    return retval;
+    return mBuffer.get();
   }
   void
   Packet :: wrapAVPacket(AVPacket* pkt)
