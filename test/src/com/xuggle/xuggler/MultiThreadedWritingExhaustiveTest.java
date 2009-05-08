@@ -90,6 +90,7 @@ public class MultiThreadedWritingExhaustiveTest
             {
               log.debug("Uncaught exception leaked out of thread: {}; {}",
                   e, t);
+              e.printStackTrace();
               uncaughtExceptions.incrementAndGet();
             }});
       threads[i].start();

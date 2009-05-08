@@ -97,6 +97,7 @@ public class MultiThreadedReadingExhaustiveTest
             {
               log.debug("Uncaught exception leaked out of thread: {}; {}",
                   e, t);
+              e.printStackTrace();
               uncaughtExceptions.incrementAndGet();
             }});
 

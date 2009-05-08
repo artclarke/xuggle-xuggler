@@ -172,7 +172,10 @@ namespace com { namespace xuggle { namespace xuggler
   AudioSamples :: getData()
   {
     allocInternalSamples();
-    return mSamples.get();
+    IBuffer* retval = mSamples.get();
+    if (!retval)
+      throw std::bad_alloc();
+    return retval;
   }
 
   uint32_t

@@ -129,7 +129,12 @@ namespace com { namespace xuggle { namespace xuggler
           allocInternalFrameBuffer();
         }
         retval = mBuffer.get();
+        if (!retval)
+          throw std::bad_alloc();
       }
+    } catch (std::bad_alloc &e) {
+      VS_REF_RELEASE(retval);
+      throw e;
     } catch (std::exception & e)
     {
       VS_LOG_DEBUG("Error: %s", e.what());
@@ -322,7 +327,7 @@ namespace com { namespace xuggle { namespace xuggler
       // Make our copy buffer.
       mBuffer = com::xuggle::ferry::IBuffer::make(this, bufSize);
       if (!mBuffer)
-        throw std::runtime_error("could not allocate a buffer");
+        throw std::bad_alloc();
 
       // Now, to further work around issues, I added the extra 8-bytes,
       // and now I'm going to zero just those 8-bytes out.  I don't
@@ -339,7 +344,7 @@ namespace com { namespace xuggle { namespace xuggler
     }
     uint8_t* buffer = (uint8_t*)mBuffer->getBytes(0, bufSize);
     if (!buffer)
-      throw std::runtime_error("really?  no buffer");
+      throw std::bad_alloc();
 
     int imageSize = avpicture_fill((AVPicture*)mFrame,
         buffer,
