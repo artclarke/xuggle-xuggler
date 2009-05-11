@@ -572,6 +572,23 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     }
   }
 
+  /**
+   * Write packet to the output container
+   * 
+   * @param packet the packet to write out
+   */
+
+  protected void writePacket(IPacket packet)
+  {
+    if (-1 == mOutputContainer.writePacket(packet, mForceInterleave))
+      throw new RuntimeException("failed to write packet: " + packet);
+
+    // inform listeners
+
+    for (IMediaListener listener: getListeners())
+      listener.onWritePacket(this, packet);
+  }
+
   /** 
    * Flush any remaining media data in the media coders.
    */
@@ -618,23 +635,6 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   }
 
   /**
-   * Write packet to the output container
-   * 
-   * @param packet the packet to write out
-   */
-
-  protected void writePacket(IPacket packet)
-  {
-    if (-1 == mOutputContainer.writePacket(packet, mForceInterleave))
-      throw new RuntimeException("failed to write packet: " + packet);
-
-    // inform listeners
-
-    for (IMediaListener listener: getListeners())
-      listener.onWritePacket(this, packet);
-  }
-
-  /**
    * Open the output container.
    */
 
@@ -657,9 +657,10 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   }
 
   /**
-   * Reset this {@link MediaWriter} object, closing all elements we opened.
-   * For example, if the {@link MediaWriter} opened the {@link IContainer},
-   * it closes it now.
+   * Close any {@link IContainer} and {@link IStreamCoder}s opened by
+   * this {@link MediaWriter}.  If an {@link IContainer} or {@link
+   * IStreamCoder} was opened ouside this {@link MediaWriter}, it will
+   * not be closed.  Prior to closing, {@link #flush} is called.
    */
   
   public void close()

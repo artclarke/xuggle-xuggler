@@ -36,6 +36,7 @@ import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IVideoResampler;
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IStream;
+import com.xuggle.xuggler.IError;
 
 import java.awt.image.BufferedImage;
 
@@ -43,20 +44,42 @@ import static junit.framework.Assert.*;
 
 public class MediaToolTest
 {
+  public static final String INPUT_FILENAME  =
+    "fixtures/testfile_videoonly_20sec.flv";
+
   public static final int    READER_VIDEO_FRAME_COUNT  = 300;
-  public static final int    READER_AUDIO_FRAME_COUNT  = 762; // * not 763?! *
-  public static final int    READER_PACKET_READ_COUNT  = 1062;
+  public static final int    READER_AUDIO_FRAME_COUNT  = 762;
+  public static final int    READER_PACKET_READ_COUNT  = 
+    READER_VIDEO_FRAME_COUNT + READER_AUDIO_FRAME_COUNT;
   public static final int    READER_PACKET_WRITE_COUNT = 0;
 
   public static final int    WRITER_VIDEO_FRAME_COUNT  = 300;
   public static final int    WRITER_AUDIO_FRAME_COUNT  = 762;
   public static final int    WRITER_PACKET_READ_COUNT  = 0;
-  public static final int    WRITER_PACKET_WRITE_COUNT = 1065;
+  public static final int    WRITER_PACKET_WRITE_COUNT =  
+    WRITER_VIDEO_FRAME_COUNT + WRITER_AUDIO_FRAME_COUNT + 3;
 
   public static final int    OUTPUT_FILE_SIZE          = 3826466;
 
-  public static final String INPUT_FILENAME  = "fixtures/testfile_videoonly_20sec.flv";
-  public static final String OUTPUT_FILENAME = "MediaTool-output.flv";
+//  public static final String INPUT_FILENAME  = 
+//    "fixtures/ucl_h264_aac.mp4";
+//
+//   public static final int    READER_VIDEO_FRAME_COUNT  = 477;
+//   public static final int    READER_AUDIO_FRAME_COUNT  = 684;
+//   public static final int    READER_PACKET_READ_COUNT  = 
+//     READER_VIDEO_FRAME_COUNT + READER_AUDIO_FRAME_COUNT;
+//   public static final int    READER_PACKET_WRITE_COUNT = 0;
+
+//   public static final int    WRITER_VIDEO_FRAME_COUNT  = 447;
+//   public static final int    WRITER_AUDIO_FRAME_COUNT  = 684;
+//   public static final int    WRITER_PACKET_READ_COUNT  = 0;
+//   public static final int    WRITER_PACKET_WRITE_COUNT =  
+//     WRITER_VIDEO_FRAME_COUNT + WRITER_AUDIO_FRAME_COUNT + 3;
+//
+//  public static final int    OUTPUT_FILE_SIZE          = ?;
+
+  public static final String OUTPUT_FILENAME = 
+    "MediaTool-output.flv";
 
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -80,9 +103,12 @@ public class MediaToolTest
 
     reader.addListener(readerCounter);
     writer.addListener(writerCounter);
-
-    while (reader.readPacket() == null)
+    
+    IError rv;
+    while ((rv = reader.readPacket()) == null)
       ;
+
+    assertEquals(IError.Type.ERROR_EOF    , rv.getType());
 
     assertEquals(READER_VIDEO_FRAME_COUNT , readerCounter.mOnVideoPictureCount);
     assertEquals(READER_AUDIO_FRAME_COUNT , readerCounter.mOnAudioSamplesCount);

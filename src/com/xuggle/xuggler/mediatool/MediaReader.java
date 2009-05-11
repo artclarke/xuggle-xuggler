@@ -63,11 +63,7 @@ public class MediaReader extends AMediaTool
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
 
-  // a place to put packets
-  
-  protected final IPacket mPacket = IPacket.make();
-
-  // the container of packets
+  // the media container 
   
   protected IContainer mContainer;
 
@@ -459,10 +455,11 @@ public class MediaReader extends AMediaTool
         l.onOpen(this);
     }
 
-    // if there is an off nomial resul from read packet return the
+    // if there is an off-nominal result from read packet, return the
     // correct error
 
-    int rv = mContainer.readNextPacket(mPacket);
+    IPacket packet = IPacket.make();
+    int rv = mContainer.readNextPacket(packet);
     if (rv < 0)
     {
       IError error = IError.make(rv);
@@ -470,35 +467,34 @@ public class MediaReader extends AMediaTool
       // if this is an end of file, call close
       
       if (error.getType() == IError.Type.ERROR_EOF)
-      {
         close();
-      }
+
       return error;
     }
 
     // inform listeners that a pacekt was read
 
     for (IMediaListener l: getListeners())
-      l.onReadPacket(this, mPacket);
+      l.onReadPacket(this, packet);
 
     // get the coder for this packet
 
-    IStreamCoder coder = getStreamCoder(mPacket.getStreamIndex());
+    IStreamCoder coder = getStreamCoder(packet.getStreamIndex());
 
     // decode based on type
 
     switch (coder.getCodecType())
     {
       // decode audio
-
+      
     case CODEC_TYPE_AUDIO:
-      decodeAudio(coder);
+      decodeAudio(coder, packet);
       break;
 
       // decode video
 
     case CODEC_TYPE_VIDEO:
-      decodeVideo(coder);
+      decodeVideo(coder, packet);
       break;
 
       // all other stream types are currently ignored
@@ -514,9 +510,10 @@ public class MediaReader extends AMediaTool
   /** Decode and dispatch a video packet.
    *
    * @param videoCoder the video coder
+   * @param packet the packet containing the media data
    */
 
-  protected void decodeVideo(IStreamCoder videoCoder)
+  protected void decodeVideo(IStreamCoder videoCoder, IPacket packet)
   {
     // create a blank video picture
     
@@ -525,46 +522,48 @@ public class MediaReader extends AMediaTool
     
     // decode the packet into the video picture
     
-    int rv = videoCoder.decodeVideo(picture, mPacket, 0);
+    int rv = videoCoder.decodeVideo(picture, packet, 0);
     if (rv < 0)
       throw new RuntimeException("error " + rv + " decoding video");
     
     // if this is a complete picture, dispatch the picture
     
     if (picture.isComplete())
-      dispatchVideoPicture(mPacket.getStreamIndex(), picture);
+      dispatchVideoPicture(packet.getStreamIndex(), picture);
   }
 
   /** Decode and dispatch a audio packet.
    *
    * @param audioCoder the audio coder
+   * @param packet the packet containing the media data
    */
 
-  protected void decodeAudio(IStreamCoder audioCoder)
+  protected void decodeAudio(IStreamCoder audioCoder, IPacket packet)
   {
-    // if it doesn't exist, allocate a set of samples with the same
-    // number of channels as in the audio coder and a stock size of 1024
-    // (currently the buffer size will be expanded to 32k to conform to
-    // ffmpeg)
-    
-    IAudioSamples samples = IAudioSamples.make(1024, audioCoder.getChannels());
-    
     // packet may contain multiple audio frames, decode audio until
     // all audio frames are extracted from the packet 
     
-    for (int offset = 0; offset < mPacket.getSize(); /* in loop */)
+    boolean done = false;
+    int offset = 0;
+    while (offset < packet.getSize())
     {
+      // allocate a set of samples with the correct number of channels
+      // and a stock size of 1024 (currently the buffer size will be
+      // expanded to 32k to conform to ffmpeg requirements)
+          
+      IAudioSamples samples = IAudioSamples.make(1024, audioCoder.getChannels());
+
       // decode audio
-      
-      int bytesDecoded = audioCoder.decodeAudio(samples, mPacket, offset);
+
+      int bytesDecoded = audioCoder.decodeAudio(samples, packet, offset);
       if (bytesDecoded < 0)
         throw new RuntimeException("error " + bytesDecoded + " decoding audio");
       offset += bytesDecoded;
-      
-      // if samples are a complete audio frame, dispatch that frame
+
+      // if samples are a compelete audio frame, dispatch that frame
       
       if (samples.isComplete())
-        dispatchAudioSamples(mPacket.getStreamIndex(), samples);
+        dispatchAudioSamples(packet.getStreamIndex(), samples);
     }
   }
 
@@ -618,6 +617,13 @@ public class MediaReader extends AMediaTool
     for (IMediaListener l: getListeners())
       l.onAudioSamples(null, samples, streamIndex);
   }
+
+  /**
+   * Close any {@link IContainer} and {@link IStreamCoder}s opened by
+   * this {@link MediaReader}.  If an {@link IContainer} or {@link
+   * IStreamCoder} was opened ouside this {@link MediaReader}, it will
+   * not be closed.
+   */
   
   public void close()
   {
