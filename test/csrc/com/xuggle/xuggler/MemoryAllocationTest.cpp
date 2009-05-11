@@ -50,7 +50,7 @@ MemoryAllocationTest :: testCanCatchStdBadAlloc()
   }
   catch (std::bad_alloc & e)
   {
-    fprintf(stderr, "Ran out of memory after %ld bytes\n", (int64_t)bytesAllocated);
+//    fprintf(stderr, "Ran out of memory after %lld bytes\n", bytesAllocated);
     std::list<int*>::iterator iter = leakedChunks.begin();
     std::list<int*>::iterator end = leakedChunks.end();
     for(; iter != end; ++iter)
