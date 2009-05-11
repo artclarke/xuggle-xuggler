@@ -36,6 +36,7 @@ public class MultiThreadedReadingExhaustiveTest
   @Test(timeout = 30 * 60 * 1000)
   public void testMultiThreadedTest() throws InterruptedException
   {
+    log.debug("------ START -----: {}", this.getClass().getName());
     final boolean ADD_VIEWER = System.getProperty(
         MultiThreadedReadingExhaustiveTest.class.getName()+".ShowVideo") != null;
     final CyclicBarrier barrier = new CyclicBarrier(NUM_THREADS);
@@ -122,5 +123,6 @@ public class MultiThreadedReadingExhaustiveTest
     assertEquals(0, uncaughtExceptions.get());
     log.debug("Test completed successfully: {} of {} threads"
         + " ran without memory errors", numSuccess, NUM_THREADS);
+    log.debug("------  END  -----: {}", this.getClass().getName());
   }
 }

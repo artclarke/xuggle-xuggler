@@ -26,6 +26,7 @@ public class MultiThreadedWritingExhaustiveTest
   @Test(timeout = 30 * 60 * 1000)
   public void testMultiThreadedTest() throws InterruptedException
   {
+    log.debug("------ START -----: {}", this.getClass().getName());
     final boolean ADD_VIEWER = System
         .getProperty(MultiThreadedWritingExhaustiveTest.class.getName()
             + ".ShowVideo") != null;
@@ -111,5 +112,6 @@ public class MultiThreadedWritingExhaustiveTest
     assertEquals(0, uncaughtExceptions.get());
     log.debug("Test completed successfully: {} of {} threads"
         + " ran without memory errors", numSuccess, NUM_THREADS);
+    log.debug("------  END  -----: {}", this.getClass().getName());
   }
 }
