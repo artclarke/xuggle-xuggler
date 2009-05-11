@@ -71,9 +71,9 @@ public class MediaWriterTest
     file.delete();
     assert(!file.exists());
     MediaWriter writer = new MediaWriter(file.toString(), mReader);
+    mReader.readPacket();
     new MediaWriter(file.toString(), writer.getContainer());
     assert(!file.exists());
-    assert(false);
   }
 
   @Test(expected=IllegalArgumentException.class)
@@ -83,6 +83,7 @@ public class MediaWriterTest
     file.delete();
     assert(!file.exists());
     new MediaWriter(file.toString(), mReader);
+    mReader.readPacket();
     assert(!file.exists());
   }
 

@@ -34,7 +34,7 @@ MemoryAllocationTest :: testCanCatchStdBadAlloc()
   // that lets any old process keep allocating swap space and bring
   // a machine to its knees.  It works on Windows (which was the reason
   // to add the test) and Linux.
-  if (memcheck && 0)
+  if (memcheck || 1)
     return;
 
   const int CHUNK_SIZE_BYTES=10*1024*1024;

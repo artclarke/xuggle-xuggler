@@ -71,7 +71,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * </p> 
  */
 
-public class MediaWriter implements IMediaListener
+public class MediaWriter extends AMediaTool implements IMediaListener
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -83,6 +83,14 @@ public class MediaWriter implements IMediaListener
   // the output container of packets
   
   protected IContainer mOutputContainer;
+
+  // the container format
+
+  protected IContainerFormat mContainerFormat;
+
+  // the output url
+
+  protected String mUrl;
 
   // a map between input stream indicies to output stream indicies
 
@@ -99,11 +107,9 @@ public class MediaWriter implements IMediaListener
   protected Map<Integer, IConverter> mVideoConverters = 
     new HashMap<Integer, IConverter>();
   
-  // all the coders opened by this MediaWriter which are candidates for
-  // closing
+  // streasm opened by this MediaWriter must be closed
 
-  protected final Collection<IStreamCoder> mOpenedCoders 
-    = new Vector<IStreamCoder>();
+  protected final Collection<IStream> mOpenedStreams = new Vector<IStream>();
 
   // true if this media writer should close the container
 
@@ -142,7 +148,6 @@ public class MediaWriter implements IMediaListener
 
     this(url, reader.getContainer());
 
-
     // if the container can adde streams dynamically, it is not
     // currently supported, throw an exception.  this kind of test needs
     // to be done both here and in the consructor which takes a
@@ -154,7 +159,7 @@ public class MediaWriter implements IMediaListener
         "inputContainer is improperly configured to allow " + 
         "dynamic adding of streams.");
 
-    // this writer as a listerner to the reader
+    // this writer as a listener to the reader
     
     reader.addListener(this);
   }
@@ -195,29 +200,24 @@ public class MediaWriter implements IMediaListener
         "inputContainer is improperly configured to allow " + 
         "dynamic adding of streams.");
 
-    // record the input container
+    // record the input container and url
 
     mInputContainer = inputContainer;
+    mUrl = url;
 
     // create format 
 
-    IContainerFormat format = IContainerFormat.make();
-    format.setOutputFormat(mInputContainer.getContainerFormat().
-      getInputFormatShortName(), url, null);
+    mContainerFormat = IContainerFormat.make();
+    mContainerFormat.setOutputFormat(mInputContainer.getContainerFormat().
+      getInputFormatShortName(), mUrl, null);
     
     // create the container
 
     mOutputContainer = IContainer.make();
-    
-    // open the container
-
-    if (mOutputContainer.open(url, IContainer.Type.WRITE, 
-        format, true, false) < 0)
-      throw new IllegalArgumentException("could not open: " + url);
 
     // note that we should close the container opened here
 
-    mCloseContainer = true;
+    mCloseContainer = false;
   }
 
   /**
@@ -250,6 +250,11 @@ public class MediaWriter implements IMediaListener
 
     if (mOutputContainer.open(url, IContainer.Type.WRITE, format, true, false) < 0)
       throw new IllegalArgumentException("could not open: " + url);
+
+    // inform listeners
+
+    for (IMediaListener listener: getListeners())
+      listener.onOpen(this);
 
     // note that we should close the container opened here
 
@@ -352,6 +357,11 @@ public class MediaWriter implements IMediaListener
       picture = videoConverter.toPicture(image, picture.getPts());
     }
 
+    // inform listeners
+
+    for (IMediaListener listener: getListeners())
+      listener.onVideoPicture(this, picture, image, streamIndex);
+
     // encode video picture
     
     encodeVideo(coder, picture);
@@ -361,6 +371,11 @@ public class MediaWriter implements IMediaListener
   
   public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
   {
+    // inform listeners
+
+    for (IMediaListener listener: getListeners())
+      listener.onAudioSamples(this, samples, streamIndex);
+
     encodeAudio(getStreamCoder(streamIndex), samples);
   }
   
@@ -379,6 +394,11 @@ public class MediaWriter implements IMediaListener
 
   protected IStreamCoder getStreamCoder(int inputStreamIndex)
   {
+    // the output container must be open
+
+    if (!mOutputContainer.isOpened())
+      open();
+    
     // if the output stream index does not exists, create it
 
     if (null == getOutputStreamIndex(inputStreamIndex))
@@ -415,8 +435,6 @@ public class MediaWriter implements IMediaListener
           if (null == mOutputStreamIndices.get(i))
             addStreamFromContainer(i);
         }
-        
-        //addStreamFromContainer(inputStreamIndex);
       }
 
       // if the header has not been writen, do so now
@@ -493,7 +511,12 @@ public class MediaWriter implements IMediaListener
       if (coder.open() < 0)
         throw new RuntimeException("could not open coder " + coder + 
           " for stream " + stream);
-      mOpenedCoders.add(coder);
+      mOpenedStreams.add(stream);
+      
+      // inform listeners
+
+      for (IMediaListener listener: getListeners())
+        listener.onOpenStream(this, stream);
     }
   }
   
@@ -549,20 +572,6 @@ public class MediaWriter implements IMediaListener
     }
   }
 
-  /** {@inheritDoc} */
-
-  public void onOpen(IMediaTool source)
-  {
-  }
-
-  /** {@inheritDoc} */
-
-  public void onClose(IMediaTool source)
-  {
-    close();
-    source.removeListener(this);
-  }
-
   /** 
    * Flush any remaining media data in the media coders.
    */
@@ -601,6 +610,11 @@ public class MediaWriter implements IMediaListener
     // flush the container
 
     mOutputContainer.flushPackets();
+
+    // inform listeners
+
+    for (IMediaListener listener: getListeners())
+      listener.onFlush(this);
   }
 
   /**
@@ -613,6 +627,33 @@ public class MediaWriter implements IMediaListener
   {
     if (-1 == mOutputContainer.writePacket(packet, mForceInterleave))
       throw new RuntimeException("failed to write packet: " + packet);
+
+    // inform listeners
+
+    for (IMediaListener listener: getListeners())
+      listener.onWritePacket(this, packet);
+  }
+
+  /**
+   * Open the output container.
+   */
+
+  protected void open()
+  {
+    // open the container
+
+    if (mOutputContainer.open(mUrl, IContainer.Type.WRITE, mContainerFormat,
+        true, false) < 0)
+      throw new IllegalArgumentException("could not open: " + mUrl);
+
+    // inform listeners
+
+    for (IMediaListener listener: getListeners())
+      listener.onOpen(this);
+
+    // note that we should close the container opened here
+
+    mCloseContainer = true;
   }
 
   /**
@@ -637,17 +678,22 @@ public class MediaWriter implements IMediaListener
 
     // close the coders opened by this MediaWriter
 
-    for (IStreamCoder coder: mOpenedCoders)
+    for (IStream stream: mOpenedStreams)
     {
-      if ((rv = coder.close()) < 0)
+      if ((rv = stream.getStreamCoder().close()) < 0)
         throw new RuntimeException("error " + rv + ", failed close coder " +
-          coder);
+          stream.getStreamCoder());
+
+      // inform the listeners
+      
+      for (IMediaListener l: getListeners())
+        l.onCloseStream(this, stream);
     }
 
     // expunge all referneces to the coders and resamplers
     
     mCoders.clear();
-    mOpenedCoders.clear();
+    mOpenedStreams.clear();
     mVideoConverters.clear();
 
     // if we're supposed to, close the container
@@ -661,5 +707,53 @@ public class MediaWriter implements IMediaListener
       mOutputContainer = null;
       mCloseContainer = false;
     }
+
+    // inform the listeners
+
+    for (IMediaListener l: getListeners())
+      l.onClose(this);
+  }
+
+  /** {@inheritDoc} */
+
+  public void onOpen(IMediaTool tool)
+  {
+  }
+
+  /** {@inheritDoc} */
+
+  public void onClose(IMediaTool tool)
+  {
+    close();
+  }
+
+  /** {@inheritDoc} */
+
+  public void onOpenStream(IMediaTool tool, IStream stream)
+  {
+  }
+
+  /** {@inheritDoc} */
+
+  public void onCloseStream(IMediaTool tool, IStream stream)
+  {
+  }
+
+  /** {@inheritDoc} */
+
+  public void onReadPacket(IMediaTool tool, IPacket packet)
+  {
+  }
+
+  /** {@inheritDoc} */
+
+  public void onWritePacket(IMediaTool tool, IPacket packet)
+  {
+  }
+
+  /** {@inheritDoc} */
+
+  public void onFlush(IMediaTool tool)
+  {
   }
 }

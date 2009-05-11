@@ -2,6 +2,8 @@ package com.xuggle.xuggler.mediatool;
 
 import java.awt.image.BufferedImage;
 
+import com.xuggle.xuggler.IPacket;
+import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 
@@ -35,6 +37,36 @@ public class MediaAdapter implements IMediaListener
   /** {@inheritDoc} */
 
   public void onClose(IMediaTool tool)
+  {
+  }
+
+  /** {@inheritDoc} */
+
+  public void onOpenStream(IMediaTool tool, IStream stream)
+  {
+  }
+
+  /** {@inheritDoc} */
+
+  public void onCloseStream(IMediaTool tool, IStream stream)
+  {
+  }
+
+  /** {@inheritDoc} */
+
+  public void onReadPacket(IMediaTool tool, IPacket packet)
+  {
+  }
+
+  /** {@inheritDoc} */
+
+  public void onWritePacket(IMediaTool tool, IPacket packet)
+  {
+  }
+
+  /** {@inheritDoc} */
+
+  public void onFlush(IMediaTool tool)
   {
   }
 }

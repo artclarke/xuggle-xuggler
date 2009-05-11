@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Vector;
 import java.util.Collection;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +58,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * </p> 
  */
 
-public class MediaReader implements IMediaTool
+public class MediaReader extends AMediaTool
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -82,16 +81,10 @@ public class MediaReader implements IMediaTool
   protected Map<Integer, IVideoResampler> mVideoResamplers = 
     new HashMap<Integer, IVideoResampler>();
   
-  // all the media reader listeners
-
-  protected final Collection<IMediaListener> mListeners
-    = new CopyOnWriteArrayList<IMediaListener>();
-
   // all the coders opened by this MediaReader which are candidates for
   // closing
 
-  protected final Collection<IStreamCoder> mOpenedCoders 
-    = new Vector<IStreamCoder>();
+  protected final Collection<IStream> mOpenedStreams = new Vector<IStream>();
 
   // should this media reader create buffered images
 
@@ -420,7 +413,9 @@ public class MediaReader implements IMediaTool
         if (coder.open() < 0)
           throw new RuntimeException(
             "could not open coder for stream: " + streamIndex);
-        mOpenedCoders.add(coder);
+        mOpenedStreams.add(stream);
+        for (IMediaListener listener: getListeners())
+          listener.onOpenStream(this, stream);
       }
     }
       
@@ -440,8 +435,10 @@ public class MediaReader implements IMediaTool
    * </p>
    * 
    * @return null if there are more packets to read, otherwise return an
-   *         IError instance.  If {@link IError#getType()} == {@link
-   *         IError.Type#ERROR_EOF} then end of file has been reached.
+   *         IError instance.  If {@link
+   *         com.xuggle.xuggler.IError#getType()} == {@link
+   *         com.xuggle.xuggler.IError.Type#ERROR_EOF} then end of file
+   *         has been reached.
    */
     
   public IError readPacket()
@@ -458,7 +455,7 @@ public class MediaReader implements IMediaTool
       if (mContainer.open(mUrl, IContainer.Type.READ, null, 
           mStreamsCanBeAddedDynamically, mQueryStreamMetaData) < 0)
         throw new RuntimeException("could not open: " + mUrl);
-      for (IMediaListener l: mListeners)
+      for (IMediaListener l: getListeners())
         l.onOpen(this);
     }
 
@@ -478,6 +475,11 @@ public class MediaReader implements IMediaTool
       }
       return error;
     }
+
+    // inform listeners that a pacekt was read
+
+    for (IMediaListener l: getListeners())
+      l.onReadPacket(this, mPacket);
 
     // get the coder for this packet
 
@@ -598,7 +600,7 @@ public class MediaReader implements IMediaTool
     
     // dispatch picture here
 
-    for (IMediaListener l: mListeners)
+    for (IMediaListener l: getListeners())
       l.onVideoPicture(null, picture, image, streamIndex);
   }
 
@@ -613,7 +615,7 @@ public class MediaReader implements IMediaTool
   
   protected void dispatchAudioSamples(int streamIndex, IAudioSamples samples)
   {
-    for (IMediaListener l: mListeners)
+    for (IMediaListener l: getListeners())
       l.onAudioSamples(null, samples, streamIndex);
   }
   
@@ -621,13 +623,19 @@ public class MediaReader implements IMediaTool
   {
     // close the coders opened by this
 
-    for (IStreamCoder coder: mOpenedCoders)
-      coder.close();
-  
+    for (IStream stream: mOpenedStreams)
+    {
+      stream.getStreamCoder().close();
+
+      // inform listeners that the stream was closed
+
+      for (IMediaListener listener: getListeners())
+        listener.onCloseStream(this, stream);
+    }
     // expunge all referneces to the coders and resamplers
     
     mCoders.clear();
-    mOpenedCoders.clear();
+    mOpenedStreams.clear();
     mVideoResamplers.clear();
 
     // if we're supposed to, close the container
@@ -640,17 +648,7 @@ public class MediaReader implements IMediaTool
 
     // tell the listeners that the container is closed
 
-    for (IMediaListener l: mListeners)
+    for (IMediaListener l: getListeners())
       l.onClose(this);
-  }
-
-  public boolean addListener(IMediaListener listener)
-  {
-    return mListeners.add(listener);
-  }
-
-  public boolean removeListener(IMediaListener listener)
-  {
-    return mListeners.remove(listener);
   }
 }

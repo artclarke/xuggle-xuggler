@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  *   - add option to show media in real time
  */
 
-public class MediaViewer implements IMediaListener
+public class MediaViewer extends MediaAdapter
 {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -166,24 +166,6 @@ public class MediaViewer implements IMediaListener
     g.fill(bounds);
     g.setColor(Color.BLACK);
     g.drawString(timeStamp, 0, 0);
-  }
-
-  /** {@inheritDoc} */
-  
-  public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
-  {
-  }
-  
-  /** {@inheritDoc} */
-  
-  public void onOpen(IMediaTool source)
-  {
-  }
-  
-  /** {@inheritDoc} */
-  
-  public void onClose(IMediaTool source)
-  {
   }
 
   /** A media viewer frame. */
