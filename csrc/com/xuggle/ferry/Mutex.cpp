@@ -49,8 +49,8 @@ Mutex :: ~Mutex()
     {
       // OK, this is bad; someone left us in a bad
       // condition
-      fprintf(stderr, "Destroying monitor %p with non-zero spin count: %lld\n",
-          this, mSpinCount);
+      fprintf(stderr, "Destroying monitor %p with non-zero spin count: %ld\n",
+          this, (int64_t)mSpinCount);
       while (mSpinCount > 0)
       {
         this->unlock();
