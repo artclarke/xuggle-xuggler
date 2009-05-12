@@ -27,6 +27,7 @@ import java.io.File;
 import org.junit.Test;
 import org.junit.Before;
 
+import com.xuggle.xuggler.IVideoResampler;
 import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.mediatool.MediaWriter;
 import com.xuggle.xuggler.video.ConverterFactory;
@@ -90,6 +91,9 @@ public class MediaWriterTest
   @Test
     public void transcodeToFlvTest()
   {
+    if (!IVideoResampler.isSupported(
+        IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
+      return;
     File file = new File("fixtures/MediaWriter-transcode.flv");
     file.delete();
     assert(!file.exists());
@@ -104,6 +108,9 @@ public class MediaWriterTest
   @Test
     public void transcodeToMovTest()
   {
+    if (!IVideoResampler.isSupported(
+        IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
+      return;
     File file = new File("fixtures/MediaWriter-transcode.mov");
     file.delete();
     assert(!file.exists());
@@ -118,6 +125,9 @@ public class MediaWriterTest
   @Test
     public void transcodeWithContainer()
   {
+    if (!IVideoResampler.isSupported(
+        IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
+      return;
     File file = new File("fixtures/MediaWriter-transcode-container.mov");
     file.delete();
     assert(!file.exists());
