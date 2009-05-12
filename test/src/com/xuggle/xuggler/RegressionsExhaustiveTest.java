@@ -259,5 +259,25 @@ public class RegressionsExhaustiveTest
     assertTrue("output file not large enough", outFile.length() > 160);
 
   }
+  
+  @Test
+  public void testRegressionIssue119()
+  {
+    IVideoPicture picture = Utils.getBlankFrame(10, 10, 0);
+    assertNotNull(picture);
+    IStreamCoder coder = IStreamCoder.make(IStreamCoder.Direction.ENCODING);
+    assertNotNull(coder);
+    coder.setTimeBase(IRational.make(1,1000000));
+    coder.setCodec(ICodec.ID.CODEC_ID_FLV1);
+    coder.setPixelType(IPixelFormat.Type.YUV420P);
+    coder.setWidth(20);
+    coder.setHeight(20);
+    assertTrue(coder.open()>= 0);
+    
+    IPacket packet = IPacket.make();
+    assertNotNull(packet);
+    // now this should fail!
+    assertTrue(coder.encodeVideo(packet, picture, 0)<0);
+  }
 
 }

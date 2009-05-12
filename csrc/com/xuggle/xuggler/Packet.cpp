@@ -173,6 +173,7 @@ namespace com { namespace xuggle { namespace xuggler
   {
     return mBuffer.get();
   }
+  
   void
   Packet :: wrapAVPacket(AVPacket* pkt)
   {
@@ -198,7 +199,8 @@ namespace com { namespace xuggle { namespace xuggler
     mPacket->size = pkt->size;
 
     // Copy the contents of the new packet into data.
-    memcpy(mPacket->data, pkt->data, pkt->size);
+    if (pkt->data && pkt->size)
+      memcpy(mPacket->data, pkt->data, pkt->size);
     
     // And assume we're now complete.
     setComplete(true, mPacket->size);
@@ -262,9 +264,9 @@ namespace com { namespace xuggle { namespace xuggler
       {
         int32_t numBytes = packet->getSize();
         retval = make(numBytes);
-        if (!retval)
+        if (!retval || !retval->mPacket || !retval->mPacket->data)
           throw std::bad_alloc();
-        if (numBytes > 0)
+        if (numBytes > 0 && packet->mPacket->data)
           memcpy(retval->mPacket->data, packet->mPacket->data,
               numBytes);
       } else {

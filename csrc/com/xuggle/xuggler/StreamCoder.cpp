@@ -921,9 +921,11 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
       throw std::runtime_error("Attempting to encode video with non video coder");
 
     if (frame && frame->getPixelType() != this->getPixelType())
-    {
-      throw std::runtime_error("frame is not of the same PixelType as this Coder expected");
-    }
+      throw std::runtime_error("picture is not of the same PixelType as this Coder expected");
+    if (frame && frame->getWidth() != this->getWidth())
+      throw std::runtime_error("picture is not of the same width as this Coder");
+    if (frame && frame->getHeight() != this->getHeight())
+      throw std::runtime_error("picture is not of the same height as this Coder");
 
     if (mDirection != ENCODING || !mCodec || !mCodec->canEncode())
     {

@@ -100,6 +100,8 @@ namespace com { namespace xuggle { namespace xuggler
       // get the raw buffers
       unsigned char* srcBuffer = (unsigned char*)src->mBuffer->getBytes(0, src->getSize());
       unsigned char* dstBuffer = (unsigned char*)mBuffer->getBytes(0, getSize());
+      if (!srcBuffer || !dstBuffer)
+        throw std::runtime_error("could not get buffer to copy");
       memcpy(dstBuffer, srcBuffer, getSize());
 
       this->setComplete(true,
