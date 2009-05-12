@@ -543,7 +543,6 @@ public class MediaReader extends AMediaTool
     // packet may contain multiple audio frames, decode audio until
     // all audio frames are extracted from the packet 
     
-    boolean done = false;
     int offset = 0;
     while (offset < packet.getSize())
     {

@@ -28,15 +28,11 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 
 import com.xuggle.xuggler.mediatool.MediaReader;
-import com.xuggle.xuggler.video.ConverterFactory;
 import com.xuggle.xuggler.IAudioSamples;
-import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.IVideoResampler;
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IStream;
-import com.xuggle.xuggler.IError;
 
 import java.awt.image.BufferedImage;
 
@@ -83,6 +79,9 @@ public class MediaToolTest
 
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
+  public MediaToolTest() {
+    log.trace("<init>");
+  }
   // test thet the proper number of events are signaled during reading
   // and writng of a media file
 

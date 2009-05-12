@@ -35,7 +35,6 @@ import java.awt.image.BufferedImage;
 import javax.swing.JPanel;
 import javax.swing.JFrame;
 
-import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.video.IConverter;
 import com.xuggle.xuggler.video.ConverterFactory;
