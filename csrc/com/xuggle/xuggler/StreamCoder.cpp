@@ -619,6 +619,9 @@ StreamCoder :: open()
       mBytesInFrameBuffer = 0;
     }
   }
+  catch (std::bad_alloc & e) {
+    throw e;
+  }
   catch (std::exception & e)
   {
     VS_LOG_WARN("Error: %s", e.what());
@@ -810,7 +813,9 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
         -1, mFakeCurrPts);
 
     AVFrame *avFrame = avcodec_alloc_frame();
-    VS_ASSERT(avFrame, "missing AVFrame");
+    if (!avFrame)
+      throw std::bad_alloc();
+    
     if (avFrame)
     {
       RefPointer<IBuffer> buffer = packet->getData();
@@ -978,7 +983,8 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
       if (frame)
       {
         avFrame = avcodec_alloc_frame();
-        VS_ASSERT(avFrame, "Memory allocation problem");
+        if (!avFrame)
+          throw std::bad_alloc();
         frame->fillAVFrame(avFrame);
 
         avFrame->pict_type = 0; // let the encoder choose what pict_type to use
@@ -1022,6 +1028,9 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
   {
     VS_LOG_WARN("Attempting to encode when not ready");
   }
+  } catch (std::bad_alloc & e) {
+    retval = -1;
+    throw e;
   } catch (std::exception & e)
   {
     VS_LOG_WARN("Got error: %s", e.what());
@@ -1329,6 +1338,10 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
         }
       }
     }
+  }
+  catch (std::bad_alloc & e)
+  {
+    throw e;
   }
   catch (std::exception& e)
   {

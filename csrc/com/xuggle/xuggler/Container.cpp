@@ -285,25 +285,23 @@ namespace com { namespace xuggle { namespace xuggler
     if (outputFormat)
     {
       mFormatContext = avformat_alloc_context();
-      if (mFormatContext)
+      if (!mFormatContext)
+        throw std::bad_alloc();
+      
+      if (aStreamsCanBeAddedDynamically)
       {
-        if (aStreamsCanBeAddedDynamically)
-        {
-          mFormatContext->ctx_flags |= AVFMTCTX_NOHEADER;
-        }
-        mFormatContext->oformat = outputFormat;
+        mFormatContext->ctx_flags |= AVFMTCTX_NOHEADER;
+      }
+      mFormatContext->oformat = outputFormat;
 
-        retval = url_fopen(&mFormatContext->pb, url, URL_WRONLY);
-        if (retval >= 0) {
-          mIsOpened = true;
-          strncpy(mFormatContext->filename, url, sizeof(mFormatContext->filename)-1);
-        } else {
-          // failed to open; kill the context.
-          av_free(mFormatContext);
-          mFormatContext = 0;
-        }
+      retval = url_fopen(&mFormatContext->pb, url, URL_WRONLY);
+      if (retval >= 0) {
+        mIsOpened = true;
+        strncpy(mFormatContext->filename, url, sizeof(mFormatContext->filename)-1);
       } else {
-        VS_LOG_ERROR("Could not allocate format context");
+        // failed to open; kill the context.
+        av_free(mFormatContext);
+        mFormatContext = 0;
       }
     }
     else

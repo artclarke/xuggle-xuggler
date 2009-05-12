@@ -36,6 +36,9 @@ namespace com { namespace xuggle { namespace xuggler
   Packet :: Packet()
   {
     mPacket = (AVPacket*)av_malloc(sizeof(AVPacket));
+    if (!mPacket)
+      throw std::bad_alloc();
+    
     if (mPacket)
     {
       // initialize because ffmpeg doesn't
@@ -312,18 +315,21 @@ namespace com { namespace xuggle { namespace xuggler
     {
       // buffer isn't big enough; we need to make a new one.
       payload = (uint8_t*) av_malloc(payloadSize+FF_INPUT_BUFFER_PADDING_SIZE);
-      VS_ASSERT(payload, "Could not allocate memory");
-      if (payload)
-      {
-        // we don't use the JVM for packets because Ffmpeg is REAL squirly about that
-        mBuffer = Buffer::make(0, payload,
-            payloadSize,
-            Packet::freeAVBuffer, 0);
-        // and memset the padding area.
-        memset(payload + payloadSize,
-            0,
-            FF_INPUT_BUFFER_PADDING_SIZE);
+      if (!payload)
+        throw std::bad_alloc();
+      
+      // we don't use the JVM for packets because Ffmpeg is REAL squirly about that
+      mBuffer = Buffer::make(0, payload,
+          payloadSize,
+          Packet::freeAVBuffer, 0);
+      if (!mBuffer) {
+        av_free(payload);
+        throw std::bad_alloc();
       }
+      // and memset the padding area.
+      memset(payload + payloadSize,
+          0,
+          FF_INPUT_BUFFER_PADDING_SIZE);
     } else {
       payload = (uint8_t*)mBuffer->getBytes(0, payloadSize);
     }

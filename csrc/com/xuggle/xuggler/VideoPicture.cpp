@@ -35,9 +35,8 @@ namespace com { namespace xuggle { namespace xuggler
   {
     mIsComplete = false;
     mFrame = avcodec_alloc_frame();
-    VS_ASSERT(mFrame, "could not allocate frame");
     if (!mFrame)
-      throw std::runtime_error("could not allocate frame");
+      throw std::bad_alloc();
     // Set the private data pointer to point to me.
     mFrame->opaque = this;
     mWidth = -1;
