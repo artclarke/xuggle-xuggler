@@ -155,9 +155,12 @@ Mutex :: unlock()
       // reduce the spin count regardless of result while still under
       // the lock
       --mSpinCount;
+      
       if (env->MonitorExit(mLock) != JNI_OK)
       {
-        fprintf(stderr, "Could not exit lock: %p\n", mLock);
+        // this can fail in out of memory situations but there's not much
+        // we can do.
+        //fprintf(stderr, "Could not exit lock: %p\n", mLock);
         throw std::runtime_error("failed attempt to unlock mutex");
       }
       //fprintf(stderr, " POST-EXIT: %p\n", mLock);
