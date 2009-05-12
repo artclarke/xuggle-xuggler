@@ -98,7 +98,7 @@ static void *
 VSJNI_unalignMemory(void*);
 static int VSJNI_ALIGNMENT_BOUNDARY = 16; // Must be power of two
 
-static bool sVSJNI_IsMirroringNativeMemoryInJVM = false;
+static bool sVSJNI_IsMirroringNativeMemoryInJVM = true;
 VS_LOG_SETUP(VS_CPP_PACKAGE);
 
 namespace com
