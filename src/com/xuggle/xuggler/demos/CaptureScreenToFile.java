@@ -5,7 +5,6 @@ import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 
-import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IPacket;
@@ -43,7 +42,7 @@ public class CaptureScreenToFile
   private final Toolkit toolkit;
   private final Rectangle screenBounds;
 
-  private long timeStamp;
+  private long firstTimeStamp=-1;
 
   /**
    * Takes up to one argument, which just gives a file name to encode as. We
@@ -73,7 +72,7 @@ public class CaptureScreenToFile
     {
       CaptureScreenToFile videoEncoder = new CaptureScreenToFile(outFile);
       int index = 0;
-      while (index < 30)
+      while (index < 15*videoEncoder.frameRate.getDouble())
       {
         System.out.println("encoded image");
         videoEncoder.encodeImage(videoEncoder.takeSingleSnapshot());
@@ -176,6 +175,10 @@ public class CaptureScreenToFile
         BufferedImage.TYPE_3BYTE_BGR);
     IPacket packet = IPacket.make();
 
+    long now = System.currentTimeMillis();
+    if (firstTimeStamp == -1)
+      firstTimeStamp = now;
+    
     IConverter converter = null;
     try
     {
@@ -188,10 +191,9 @@ public class CaptureScreenToFile
       e.printStackTrace(System.out);
     }
 
+    long timeStamp = (now - firstTimeStamp)*1000; // convert to microseconds
     IVideoPicture outFrame = converter.toPicture(worksWithXugglerBufferedImage,
         timeStamp);
-    // increment timestamp by framerate in microseconds
-    timeStamp += Global.DEFAULT_PTS_PER_SECOND / frameRate.getDouble();
 
     outFrame.setQuality(0);
     int retval = outStreamCoder.encodeVideo(packet, outFrame, 0);
