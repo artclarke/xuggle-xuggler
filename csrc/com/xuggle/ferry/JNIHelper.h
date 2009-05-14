@@ -148,6 +148,8 @@ class JNIHelper
      * work.
      */
     VS_API_FERRY JNIHelper();
+    
+    VS_API_FERRY void throwOutOfMemoryError();
 
   private:
 
@@ -157,6 +159,7 @@ class JNIHelper
     jweak mJNIPointerReference_class;
     jmethodID mJNIPointerReference_setPointer_mid;
     jmethodID mJNIPointerReference_getPointer_mid;
+    jthrowable mOutOfMemoryErrorSingleton;
 
     struct CallbackHelper {
       CallbackFunc mCallback;

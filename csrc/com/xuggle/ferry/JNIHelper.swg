@@ -3,7 +3,6 @@
 
 %include <enums.swg>
 %include <stdint.i>
-
 %typemap(javapackage) com::xuggle::ferry::RefCounted, com::xuggle::ferry::RefCounted *, com::xuggle::ferry::RefCounted & "com.xuggle.ferry"
 
 %typemap(javabody) com::xuggle::ferry::RefCounted %{
@@ -312,11 +311,13 @@
   }
   catch(std::bad_alloc & e)
   {
-    // we don't let a native exception override a java exception
-    if (!jenv->ExceptionCheck())
-    {
-      jclass cls=jenv->FindClass("java/lang/OutOfMemoryError");
-      jenv->ThrowNew(cls, "native memory exhausted");
+    // OK, this is bad and may mean we can't do things like 
+    // allocate a new class at this time; but we should have
+    // one lying around
+    com::xuggle::ferry::JNIHelper *helper = 
+      com::xuggle::ferry::JNIHelper::getHelper();
+    if (helper) {
+      helper->throwOutOfMemoryError();
     }
     return $null;
   }

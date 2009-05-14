@@ -60,6 +60,7 @@ namespace com { namespace xuggle { namespace ferry {
     // Now, look for our get and set methods.
     mJNIPointerReference_setPointer_mid = 0;
     mJNIPointerReference_getPointer_mid = 0;
+    mOutOfMemoryErrorSingleton = 0;
   }
 
   void
@@ -105,11 +106,19 @@ namespace com { namespace xuggle { namespace ferry {
     processCallbacks(&mTerminationCallbacks, mCachedVM, true);
 
     env = this->getEnv();
-    if (mJNIPointerReference_class)
+    if (env)
     {
-      // Tell the JVM we're done with it.
-      env->DeleteWeakGlobalRef(mJNIPointerReference_class);
-      mJNIPointerReference_class = 0;
+      if (mOutOfMemoryErrorSingleton)
+      {
+        env->DeleteGlobalRef(mOutOfMemoryErrorSingleton);
+        mOutOfMemoryErrorSingleton = 0;
+      }
+      if (mJNIPointerReference_class)
+      {
+        // Tell the JVM we're done with it.
+        env->DeleteWeakGlobalRef(mJNIPointerReference_class);
+        mJNIPointerReference_class = 0;
+      }
     }
     mCachedVM = 0;
   }
@@ -129,18 +138,47 @@ namespace com { namespace xuggle { namespace ferry {
       // required.
       waitForDebugger(env);
 
-      // I don't check for 0 here because... well I don.t
-      jclass cls=env->FindClass("com/xuggle/ferry/JNIPointerReference");
+      jclass cls=0;
 
+      // let's set up a singleton out of memory error for potential
+      // reuse later
+      cls = env->FindClass("java/lang/OutOfMemoryError");
+      if (!cls || env->ExceptionCheck())
+        return;
+      
+      jmethodID constructor = env->GetMethodID(cls, "<init>", "()V");
+      if (!constructor || env->ExceptionCheck())
+        return;
+      
+      jthrowable exception=static_cast<jthrowable>(env->NewObject(cls, constructor));
+      if (!exception || env->ExceptionCheck())
+        return;
+      
+      mOutOfMemoryErrorSingleton = static_cast<jthrowable>(env->NewGlobalRef(exception));
+      if (!mOutOfMemoryErrorSingleton || env->ExceptionCheck())
+        return;
+      
+      env->DeleteLocalRef(cls);
+      cls = env->FindClass("com/xuggle/ferry/JNIPointerReference");
+      if (!cls || env->ExceptionCheck())
+        return;
       // Keep a reference around
       mJNIPointerReference_class=env->NewWeakGlobalRef(cls);
-
+      if (!mJNIPointerReference_class || env->ExceptionCheck())
+        return;
+      
       // Now, look for our get and set mehods.
       mJNIPointerReference_setPointer_mid = env->GetMethodID(cls, "setPointer",
           "(J)J");
+      if (!mJNIPointerReference_setPointer_mid || env->ExceptionCheck())
+        return;
 
       mJNIPointerReference_getPointer_mid = env->GetMethodID(cls, "getPointer",
           "()J");
+      if (!mJNIPointerReference_getPointer_mid || env->ExceptionCheck())
+        return;
+
+      env->DeleteLocalRef(cls);
 
       // Are there any pending callbacks?
       processCallbacks(&mInitializationCallbacks, mCachedVM, true);
@@ -149,7 +187,6 @@ namespace com { namespace xuggle { namespace ferry {
       // This means that any callbacks will NOT use the
       // JVM for memory management.
       VSJNI_MemoryManagerInit(mCachedVM);
-
 
     }
   }
@@ -384,5 +421,24 @@ namespace com { namespace xuggle { namespace ferry {
       throw std::runtime_error("could not delete JVM WeakGlobalRef");
   }
 
+  void
+  JNIHelper :: throwOutOfMemoryError()
+  {
+    /**
+     * Be VERY careful in this function; it gets call when we're low on 
+     * memory so you must avoid allocating memory, as that is incredibly
+     * likely to fail -- and will do so on the most inconvenient OS more
+     * often than others.
+     */
+    JNIEnv *env = this->getEnv();
+    if (!env)
+      throw std::bad_alloc();
+    if (!env->ExceptionCheck()) {
+      // don't override a pending exception
+      if (!mOutOfMemoryErrorSingleton)
+        throw std::bad_alloc();
+      env->Throw(mOutOfMemoryErrorSingleton);
+    }
+  }
 
 }}}

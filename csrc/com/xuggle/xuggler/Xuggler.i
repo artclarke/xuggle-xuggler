@@ -21,7 +21,7 @@
 %module Xuggler
 %{
 
-// Native.i: Start generated code
+// Xuggler.i: Start generated code
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>
 #include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/xuggler/IProperty.h>
@@ -63,7 +63,7 @@ JNI_OnLoad(JavaVM *jvm, void *)
 
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<
-// Native.i: End generated code
+// Xuggler.i: End generated code
 
 %}
 

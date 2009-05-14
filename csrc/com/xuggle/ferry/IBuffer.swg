@@ -319,7 +319,6 @@ typedef jobject jNioByteArray;
     catch(std::exception & c)
     {
       VS_REF_RELEASE(retval);
-      throw c;
     }
     return retval;
 
@@ -394,7 +393,6 @@ typedef jobject jNioByteArray;
         env->DeleteGlobalRef(globalRef);
       globalRef = 0;
       VS_REF_RELEASE(retval);
-      throw c;
     }
     
     return retval;
