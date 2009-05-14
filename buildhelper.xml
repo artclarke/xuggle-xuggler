@@ -899,7 +899,7 @@ using the library and what you like or don't like about it.
   </target>
   <target name="compile-native-do"
     if="native.makefile.exists" >
-    <exec executable="make"
+    <exec executable="${build.native.make}"
       dir="${build-native.dir}"
       failonerror="true">
       <arg line="all"/>
@@ -911,7 +911,7 @@ using the library and what you like or don't like about it.
   </target>
   <target name="dist-native-do"
     if="native.makefile.exists">
-    <exec executable="make"
+    <exec executable="${build.native.make}"
       dir="${build-native.dir}"
       failonerror="true">
       <arg line="dist"/>
@@ -923,7 +923,7 @@ using the library and what you like or don't like about it.
   </target>
   <target name="dist-native-test-do"
     if="native.makefile.exists">
-    <exec executable="make"
+    <exec executable="${build.native.make}"
       dir="${build-native.dir}"
       failonerror="true">
       <arg line="distcheck"/>
@@ -942,7 +942,7 @@ using the library and what you like or don't like about it.
   </target>
   <target name="stage-native-do"
     if="native.makefile.exists">
-    <exec executable="make"
+    <exec executable="${build.native.make}"
       dir="${build-native.dir}"
       failonerror="true">
       <env key="DESTDIR" value="${dist.unix.dir}/stage"/>
@@ -955,7 +955,7 @@ using the library and what you like or don't like about it.
   </target>
   <target name="run-tests-native-do"
     if="native.makefile.exists">
-    <exec executable="make"
+    <exec executable="${build.native.make}"
       dir="${build-native.dir}"
       failonerror="true">
       <arg line="check"/>
@@ -971,7 +971,7 @@ using the library and what you like or don't like about it.
   </target>
   <target name="run-memcheck-native-do"
     if="native.makefile.exists">
-    <exec executable="make"
+    <exec executable="${build.native.make}"
       dir="${build-native.dir}"
       failonerror="true">
       <arg line="memcheck"/>
@@ -983,7 +983,7 @@ using the library and what you like or don't like about it.
   </target>
   <target name="doc-native-do"
     if="native.makefile.exists">
-    <exec executable="make"
+    <exec executable="${build.native.make}"
       dir="${build-native.dir}"
       failonerror="true">
       <arg line="doc"/>
@@ -1007,12 +1007,12 @@ using the library and what you like or don't like about it.
   <target name="clean-native-do"
     if="native.makefile.exists"
     description="Special target that is only called if the Makefile already exists">
-    <exec executable="make"
+    <exec executable="${build.native.make}"
       dir="${build-native.dir}/csrc"
       failonerror="true">
       <arg line="clean"/>
     </exec>
-    <exec executable="make"
+    <exec executable="${build.native.make}"
       dir="${build-native.dir}/test/csrc"
       failonerror="true">
       <arg line="clean"/>
@@ -1031,7 +1031,7 @@ using the library and what you like or don't like about it.
   </target>
   <target name="uninstall-native-do"
     if="native.makefile.exists">
-    <exec executable="make"
+    <exec executable="${build.native.make}"
       dir="${build-native.dir}"
       failonerror="true">
       <arg line="uninstall"/>
