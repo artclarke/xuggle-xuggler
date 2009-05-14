@@ -432,11 +432,11 @@ namespace com { namespace xuggle { namespace ferry {
      */
     JNIEnv *env = this->getEnv();
     if (!env)
-      throw std::bad_alloc();
+      return;
     if (!env->ExceptionCheck()) {
       // don't override a pending exception
       if (!mOutOfMemoryErrorSingleton)
-        throw std::bad_alloc();
+        return;
       env->Throw(mOutOfMemoryErrorSingleton);
     }
   }
