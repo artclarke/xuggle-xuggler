@@ -289,14 +289,14 @@ VSJNI_malloc(jobject obj, size_t requested_size)
     // if JVM didn't like that, return bad_alloc(); when we return all the way back to
     // JVM the Exception in Java will still exist; even if someone else catches
     // std::bad_alloc()
-    if (env->ExceptionOccurred()) throw std::bad_alloc();
+    if (env->ExceptionCheck()) throw std::bad_alloc();
 
     jlong availableCapacity = env->GetDirectBufferCapacity(bytearray);
-    if (env->ExceptionOccurred()) throw std::bad_alloc();
+    if (env->ExceptionCheck()) throw std::bad_alloc();
     if (availableCapacity < size) throw std::bad_alloc();
 
     buffer = env->GetDirectBufferAddress(bytearray);
-    if (env->ExceptionOccurred()) throw std::bad_alloc();
+    if (env->ExceptionCheck()) throw std::bad_alloc();
     if (!buffer) throw std::bad_alloc();
 
     // We're going to take up the first few (usually 4 on 32bit
@@ -309,15 +309,15 @@ VSJNI_malloc(jobject obj, size_t requested_size)
     // And tell the JVM that it can't cleanup the bytearray yet; we've got
     // things to do and places to go.
     header->mRef = static_cast<jobject>(env->NewGlobalRef(bytearray));
-    if (env->ExceptionOccurred()) throw std::bad_alloc();
+    if (env->ExceptionCheck()) throw std::bad_alloc();
 
     // But be nice and delete the local ref we had since we now have a
     // stronger reference.
     env->DeleteLocalRef(bytearray);
-    if (env->ExceptionOccurred()) throw std::bad_alloc();
+    if (env->ExceptionCheck()) throw std::bad_alloc();
 #else
     // make sure we don't already have a pending exception
-    if (env->ExceptionOccurred())
+    if (env->ExceptionCheck())
       throw std::bad_alloc();
 
     jbyteArray bytearray = 0;
@@ -341,13 +341,13 @@ VSJNI_malloc(jobject obj, size_t requested_size)
     // std::bad_alloc()
     if (!bytearray)
       throw std::bad_alloc();
-    if (env->ExceptionOccurred())
+    if (env->ExceptionCheck())
       throw std::bad_alloc();
 
     // Now this is the actual memory pointed to by the java byte array
     // I use a void* buffer here so I can peak more easily in a debugger
     buffer = (void*) (env->GetByteArrayElements(bytearray, 0));
-    if (env->ExceptionOccurred())
+    if (env->ExceptionCheck())
       throw std::bad_alloc();
 
     // Technically this should never occur (i.e. if buffer is null
@@ -366,20 +366,20 @@ VSJNI_malloc(jobject obj, size_t requested_size)
     // And tell the JVM that it can't cleanup the bytearray yet; we've got
     // things to do and places to go.
     header->mRef = env->NewGlobalRef(bytearray);
-    if (env->ExceptionOccurred())
+    if (env->ExceptionCheck())
       throw std::bad_alloc();
     header->mAllocator = 0;
     if (obj)
     {
       header->mAllocator = env->NewGlobalRef(obj);
-      if (env->ExceptionOccurred())
+      if (env->ExceptionCheck())
         throw std::bad_alloc();
     }
 
     // But be nice and delete the local ref we had since we now have a
     // stronger reference.
     env->DeleteLocalRef(bytearray);
-    if (env->ExceptionOccurred())
+    if (env->ExceptionCheck())
       throw std::bad_alloc();
 
 #endif
@@ -455,7 +455,7 @@ VSJNI_free(void * mem)
         header->mRef = 0;
         env->DeleteGlobalRef(ref);
 #else
-        if (env->ExceptionOccurred())
+        if (env->ExceptionCheck())
           throw std::runtime_error("got java exception");
 
         if (header->mAllocator)
@@ -466,10 +466,10 @@ VSJNI_free(void * mem)
           // by the allocator object (knock on wood)
           env->CallVoidMethod(header->mAllocator,
               sJNIMemoryAllocatorFreeMethod, header->mRef);
-          if (env->ExceptionOccurred())
+          if (env->ExceptionCheck())
             throw std::runtime_error("got java exception");
           env->DeleteGlobalRef(header->mAllocator);
-          if (env->ExceptionOccurred())
+          if (env->ExceptionCheck())
             throw std::runtime_error("got java exception");
         }
 
@@ -477,7 +477,7 @@ VSJNI_free(void * mem)
         // ref, the gc thread won't free the underlying memory
         jbyteArray array = static_cast<jbyteArray> (env->NewLocalRef(
             header->mRef));
-        if (env->ExceptionOccurred())
+        if (env->ExceptionCheck())
           throw std::runtime_error("got java exception");
         if (!array)
           throw std::runtime_error("got java exception");
@@ -486,19 +486,19 @@ VSJNI_free(void * mem)
         // jvm can gc
         env->DeleteGlobalRef(header->mRef);
         header->mRef = 0;
-        if (env->ExceptionOccurred())
+        if (env->ExceptionCheck())
           throw std::runtime_error("got java exception");
 
         // Tell the JVM to release the elements of raw memory
         env->ReleaseByteArrayElements(array, (jbyte*) buffer, JNI_ABORT);
-        if (env->ExceptionOccurred())
+        if (env->ExceptionCheck())
           throw std::runtime_error("got java exception");
 
         // and we should be careful to delete our local ref because
         // we don't know how deep we are in native calls, or when
         // we'll actually return to the jvm
         env->DeleteLocalRef(array);
-        if (env->ExceptionOccurred())
+        if (env->ExceptionCheck())
           throw std::runtime_error("got java exception");
 #endif
       }

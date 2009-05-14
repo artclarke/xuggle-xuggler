@@ -353,7 +353,7 @@ namespace com { namespace xuggle { namespace ferry {
     if (!env)
       return 0;
     retval = env->NewLocalRef(ref);
-    if (env->ExceptionOccurred() || !retval)
+    if (env->ExceptionCheck() || !retval)
       throw std::runtime_error("could not get JVM LocalRef");
     return retval;
   }
@@ -365,7 +365,7 @@ namespace com { namespace xuggle { namespace ferry {
     if (!env)
       throw std::runtime_error("attempted to delete LocalRef without JVM");
     env->DeleteLocalRef(ref);
-    if (env->ExceptionOccurred())
+    if (env->ExceptionCheck())
       throw std::runtime_error("could not delete JVM LocalRef");
   }
 
@@ -377,7 +377,7 @@ namespace com { namespace xuggle { namespace ferry {
     if (!env)
       return 0;
     retval = env->NewGlobalRef(ref);
-    if (env->ExceptionOccurred() || !retval)
+    if (env->ExceptionCheck() || !retval)
       throw std::runtime_error("could not get JVM GlobalRef");
     return retval;
   }
@@ -389,7 +389,7 @@ namespace com { namespace xuggle { namespace ferry {
     if (!env)
       throw std::runtime_error("attempted to delete GlobalRef without JVM");
     env->DeleteGlobalRef(ref);
-    if (env->ExceptionOccurred())
+    if (env->ExceptionCheck())
       throw std::runtime_error("could not delete JVM GlobalRef");
   }
 
@@ -403,7 +403,7 @@ namespace com { namespace xuggle { namespace ferry {
       return 0;
     jweak retval = 0;
     retval = env->NewWeakGlobalRef(ref);
-    if (env->ExceptionOccurred() || !retval)
+    if (env->ExceptionCheck() || !retval)
       throw std::runtime_error("could not get JVM WeakGlobal ref");
     return retval;
   }
@@ -417,7 +417,7 @@ namespace com { namespace xuggle { namespace ferry {
     if (!env)
       throw std::runtime_error("attempted to delete WeakGlobalRef without JVM");
     env->DeleteWeakGlobalRef(ref);
-    if (env->ExceptionOccurred())
+    if (env->ExceptionCheck())
       throw std::runtime_error("could not delete JVM WeakGlobalRef");
   }
 
