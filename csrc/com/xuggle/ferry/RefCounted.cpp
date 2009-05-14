@@ -40,6 +40,7 @@ namespace com { namespace xuggle { namespace ferry {
     mRefCount = 0;
     if (mAllocator)
       JNIHelper::sDeleteGlobalRef((jobject)mAllocator);
+    mAllocator = 0;
   }
 
   void
@@ -47,7 +48,10 @@ namespace com { namespace xuggle { namespace ferry {
   {
     if (mAllocator)
       JNIHelper::sDeleteGlobalRef((jobject)mAllocator);
-    mAllocator = JNIHelper::sNewGlobalRef((jobject)allocator);
+    if (allocator)
+      mAllocator = JNIHelper::sNewGlobalRef((jobject)allocator);
+    else
+      mAllocator = 0;
   }
   
   void*

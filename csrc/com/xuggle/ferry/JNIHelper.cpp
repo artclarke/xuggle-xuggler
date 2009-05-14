@@ -353,8 +353,12 @@ namespace com { namespace xuggle { namespace ferry {
     if (!env)
       return 0;
     retval = env->NewLocalRef(ref);
-    if (env->ExceptionCheck() || !retval)
+    if (!retval)
       throw std::runtime_error("could not get JVM LocalRef");
+    if (env->ExceptionCheck()) {
+      env->DeleteLocalRef(retval);
+      throw std::runtime_error("could not get JVM LocalRef");
+    }
     return retval;
   }
 
@@ -365,8 +369,6 @@ namespace com { namespace xuggle { namespace ferry {
     if (!env)
       throw std::runtime_error("attempted to delete LocalRef without JVM");
     env->DeleteLocalRef(ref);
-    if (env->ExceptionCheck())
-      throw std::runtime_error("could not delete JVM LocalRef");
   }
 
   jobject
@@ -377,8 +379,13 @@ namespace com { namespace xuggle { namespace ferry {
     if (!env)
       return 0;
     retval = env->NewGlobalRef(ref);
-    if (env->ExceptionCheck() || !retval)
+    if (!retval)
       throw std::runtime_error("could not get JVM GlobalRef");
+    if (env->ExceptionCheck())
+    {
+      env->DeleteGlobalRef(retval);
+      throw std::runtime_error("could not get JVM GlobalRef");
+    }
     return retval;
   }
 
@@ -389,8 +396,6 @@ namespace com { namespace xuggle { namespace ferry {
     if (!env)
       throw std::runtime_error("attempted to delete GlobalRef without JVM");
     env->DeleteGlobalRef(ref);
-    if (env->ExceptionCheck())
-      throw std::runtime_error("could not delete JVM GlobalRef");
   }
 
   jweak
@@ -403,8 +408,13 @@ namespace com { namespace xuggle { namespace ferry {
       return 0;
     jweak retval = 0;
     retval = env->NewWeakGlobalRef(ref);
-    if (env->ExceptionCheck() || !retval)
+    if (!retval)
       throw std::runtime_error("could not get JVM WeakGlobal ref");
+    if (env->ExceptionCheck())
+    {
+      env->DeleteWeakGlobalRef(retval);
+      throw std::runtime_error("could not get JVM WeakGlobal ref");
+    }
     return retval;
   }
 
@@ -417,8 +427,6 @@ namespace com { namespace xuggle { namespace ferry {
     if (!env)
       throw std::runtime_error("attempted to delete WeakGlobalRef without JVM");
     env->DeleteWeakGlobalRef(ref);
-    if (env->ExceptionCheck())
-      throw std::runtime_error("could not delete JVM WeakGlobalRef");
   }
 
   void
