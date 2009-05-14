@@ -293,16 +293,21 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
         const int x8 = i8%2;
         const int y8 = i8/2;
         const int o8 = x8 + y8 * h->mb.i_b8_stride;
-        if( l1ref0[o8] == 0 || ( l1ref0[o8] < 0 && l1ref1[o8] == 0 ) )
+        const int o4 = 3*(x8 + y8 * h->mb.i_b4_stride);
+        if( l1ref0[o8] == 0 )
         {
-            const int16_t (*l1mv)[2] = (l1ref0[o8] == 0) ? l1mv0 : l1mv1;
-            const int16_t *mvcol = l1mv[3*x8 + 3*y8 * h->mb.i_b4_stride];
-            if( abs( mvcol[0] ) <= 1 && abs( mvcol[1] ) <= 1 )
+            if( abs( l1mv0[o4][0] ) <= 1 && abs( l1mv0[o4][1] ) <= 1 )
             {
-                if( ref[0] == 0 )
-                    x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 0, 0 );
-                if( ref[1] == 0 )
-                    x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 1, 0 );
+                if( ref[0] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 0, 0 );
+                if( ref[1] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 1, 0 );
+            }
+        }
+        else if( l1ref0[o8] < 0 && l1ref1[o8] == 0 )
+        {
+            if( abs( l1mv1[o4][0] ) <= 1 && abs( l1mv1[o4][1] ) <= 1 )
+            {
+                if( ref[0] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 0, 0 );
+                if( ref[1] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 1, 0 );
             }
         }
     }
