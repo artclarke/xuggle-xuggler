@@ -159,7 +159,6 @@ public class CaptureScreenToFile
     retval = outContainer.writeHeader();
     if (retval < 0)
       throw new RuntimeException("could not write file header");
-    timeStamp = 0;
   }
 
   /**
