@@ -52,6 +52,9 @@ public class MediaWriterExhaustiveTest
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
 
+  public static final String PREFIX = MediaWriterExhaustiveTest
+    .class.getName() + "-";
+
   // location of test files
 
   public static final String TEST_FILE_DIR = "fixtures";
@@ -156,7 +159,7 @@ public class MediaWriterExhaustiveTest
             }
 
           String[] parts = source.split("\\x2E");
-          String destination = "MW-" +
+          String destination = 
             (testContainer ? "container" : "reader") + "-" +
             parts[0] + "-" + parts[1] + "." + destExt;
 
@@ -194,7 +197,7 @@ public class MediaWriterExhaustiveTest
   {
     System.out.println(description);
     mSource = TEST_FILE_DIR + "/" + source;
-    mDestination = TEST_FILE_DIR + "/" + destination;
+    mDestination = PREFIX + destination;
     mTestContainer = testContainer;
   }
 

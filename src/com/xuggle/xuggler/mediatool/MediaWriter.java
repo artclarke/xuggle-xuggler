@@ -25,22 +25,26 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Vector;
 import java.util.Collection;
+
 import java.awt.image.BufferedImage;
+import java.awt.Dimension;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import com.xuggle.xuggler.ICodec;
+import com.xuggle.xuggler.Global;
+import com.xuggle.xuggler.IPacket;
+import com.xuggle.xuggler.IStream;
+import com.xuggle.xuggler.IRational;
+import com.xuggle.xuggler.IContainer;
+import com.xuggle.xuggler.IPixelFormat;
+import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
-import com.xuggle.xuggler.IPacket;
-import com.xuggle.xuggler.IStreamCoder;
-import com.xuggle.xuggler.IStream;
-import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
-import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.video.IConverter;
+import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 /**
@@ -76,21 +80,23 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
 
+  /** The default pxiel type. */
+
+  public static final IPixelFormat.Type DEFAULT_PIXEL_TYPE = 
+    IPixelFormat.Type.YUV420P;
+
+  /** The default time base. */
+
+  public static final IRational DEFAULT_TIMEBASE = IRational.make(
+    1, (int)Global.DEFAULT_PTS_PER_SECOND);
+
   // the input container of packets
   
-  protected IContainer mInputContainer;
-
-  // the output container of packets
-  
-  protected IContainer mOutputContainer;
+  protected final IContainer mInputContainer;
 
   // the container format
 
   protected IContainerFormat mContainerFormat;
-
-  // the output url
-
-  protected String mUrl;
 
   // a map between input stream indicies to output stream indicies
 
@@ -101,7 +107,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
   protected Map<Integer, IStreamCoder> mCoders = 
     new HashMap<Integer, IStreamCoder>();
-  
+
   // a map between output stream indicies and video converters
 
   protected Map<Integer, IConverter> mVideoConverters = 
@@ -110,10 +116,6 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   // streasm opened by this MediaWriter must be closed
 
   protected final Collection<IStream> mOpenedStreams = new Vector<IStream>();
-
-  // true if this media writer should close the container
-
-  protected boolean mCloseContainer;
 
   // true if the writer should ask FFMPEG to interleave media
 
@@ -180,13 +182,15 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    * @param url the url or filename of the media destination
    * @param inputContainer the source media container
    * 
-   * @throws IllegalArgumentException if the specifed {@link
-   *         MediaReader} is configure to allow dynamic adding of
-   *         streams.
+   * @throws IllegalArgumentException if the specifed {@link IContainer}
+   *         is not a of type READ or is configure to allow dynamic
+   *         adding of streams.
    */
 
   public MediaWriter(String url, IContainer inputContainer)
   {
+    super(url, IContainer.make());
+
     // verify that the input container is a readable type
 
     if (inputContainer.getType() != IContainer.Type.READ)
@@ -203,62 +207,148 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     // record the input container and url
 
     mInputContainer = inputContainer;
-    mUrl = url;
 
     // create format 
 
     mContainerFormat = IContainerFormat.make();
     mContainerFormat.setOutputFormat(mInputContainer.getContainerFormat().
-      getInputFormatShortName(), mUrl, null);
-    
-    // create the container
-
-    mOutputContainer = IContainer.make();
-
-    // note that we should close the container opened here
-
-    mCloseContainer = false;
+      getInputFormatShortName(), getUrl(), null);
   }
 
   /**
-   * create a MediaWriter which reads and disptchs data from a media
-   * stream for a given source URL. The media stream is opened, and
-   * subsequent calls to {@link #readPacket()} will read stream content
-   * and dispatch it to attached listeners. When the end of the stream
-   * is encountered the media container and it's contained streams are
-   * all closed.
+   * Create a MediaWriter which will require subsequent calls to {@link
+   * #addVideoStream} and/or {@link #addAudioStream} to configure the
+   * writer.  Streams may be added or further configured as needed until
+   * the first attempt to write data.
+   * 
+   * <p>
    *
-   * @param url the location of the media content, a file name will also
-   *        work here
+   * To write data call to {@link #onAudioSamples} and/or {@link
+   * #onVideoPicture}.
    *
-   * @throws IllegalArgumentException if BufferedImage conversion is
-   *         requried and the passed converter descriptor is NULL
-   * @throws UnsupportedOperationException if the converter can not be
-   *         found
+   * </p>
+   *
+   * @param url the url or filename of the media destination
    */
 
-  @SuppressWarnings("unused")
-  private MediaWriter(String url, IContainerFormat format)
+  public MediaWriter(String url)
   {
-    // create the container
+    super(url, IContainer.make());
 
-    mOutputContainer = IContainer.make();
-    if (null == mOutputContainer)
-      throw new RuntimeException("failed to create output IContainer");
+    // record the url and absense of the input container 
+
+    mInputContainer = null;
+
+    // create null container format
     
-    // open the container
+    mContainerFormat = null;
+  }
 
-    if (mOutputContainer.open(url, IContainer.Type.WRITE, format, true, false) < 0)
-      throw new IllegalArgumentException("could not open: " + url);
+  /** 
+   * Add a video stream.  The time base defaults to {@link
+   * #DEFAULT_TIMEBASE} and the pixel format defaults to {@link
+   * #DEFAULT_PIXEL_TYPE}.  The new {@link IStream} is returned to
+   * provide an easy way to further configure the stream.
+   * 
+   * @param inputIndex the index that will be passed to {@link
+   *        #onVideoPicture} for this stream
+   * @param streamId a format-dependent id for this stream
+   * @param codec the codec to used to encode data, to establish the
+   *        codec see {@link com.xuggle.xuggler.ICodec}
+   * @param width width of video frames
+   * @param height height of video frames
+   *
+   * @throws IllegalArgumentException if inputIndex < 0, the stream id <
+   *         0, the codec is NULL or if the container is already open.
+   * @throws IllegalArgumentException if width or height are <= 0
+   * 
+   * @see IContainer
+   * @see IStream
+   * @see IStreamCoder
+   * @see ICodec
+   */
 
-    // inform listeners
+  public IStream addVideoStream(int inputIndex, int streamId, ICodec codec,
+    int width, int height)
+  {
+    // if the container is not opened, do so
 
-    for (IMediaListener listener: getListeners())
-      listener.onOpen(this);
+    if (!isOpen())
+      open();
 
-    // note that we should close the container opened here
+    // validate parameteres and conditions
 
-    mCloseContainer = true;
+    if (width <= 0 || height <= 0)
+      throw new IllegalArgumentException(
+        "invalid video frame size [" + width + " x " + height + "]");
+
+    // add the new stream at the correct index
+
+    IStream stream = addStream(inputIndex, streamId, codec);
+    
+    // configre the stream coder
+
+    IStreamCoder coder = stream.getStreamCoder();
+    coder.setWidth(width);
+    coder.setHeight(height);
+    coder.setPixelType(DEFAULT_PIXEL_TYPE);
+
+    openStream(stream, inputIndex, stream.getIndex());
+
+    mOutputStreamIndices.put(inputIndex, stream.getIndex());
+
+    // return the new video stream
+
+    return stream;
+  }
+
+  /** 
+   * Add a generic stream the this writer.  This method is intended for
+   * internal use.
+   * 
+   * @param inputIndex the index that will be passed to {@link
+   *        #onVideoPicture} for this stream
+   * @param streamId a format-dependent id for this stream
+   * @param codec the codec to used to encode data
+   *
+   * @throws IllegalArgumentException if inputIndex < 0, the stream id <
+   *         0, the codec is NULL or if the container is already open.
+   */
+
+  protected IStream addStream(int inputIndex, int streamId, ICodec codec)
+  {
+    // validate parameteres and conditions
+
+    if (inputIndex < 0)
+      throw new IllegalArgumentException("invalid input index " + inputIndex);
+    if (streamId < 0)
+      throw new IllegalArgumentException("invalid stream id " + streamId);
+    if (null == codec)
+      throw new IllegalArgumentException("null codec");
+    if (!isOpen())
+      throw new IllegalArgumentException(
+        "output IContainer is not open, new streams may not be added");
+
+    // add the new stream at the correct index
+
+    IStream stream = mContainer.addNewStream(streamId);
+    if (stream == null)
+      throw new RuntimeException("Unable to create stream id " + streamId +
+        ", index " + inputIndex + ", codec " + codec);
+    
+    // configure the stream coder
+
+    IStreamCoder coder = stream.getStreamCoder();
+    coder.setTimeBase(DEFAULT_TIMEBASE);
+    coder.setCodec(codec);
+
+    // if the stream count is 1, don't force interleave
+
+    setForceInterleave(mContainer.getNumStreams() != 1);
+
+    // return the new video stream
+
+    return stream;
   }
 
   /**
@@ -300,18 +390,6 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   public void setForceInterleave(boolean forceInterleave)
   {
     mForceInterleave = forceInterleave;
-  }
-
-  /** Get the underlying media {@link IContainer} that this reader is
-   * using to decode streams.  Listeners can use stream index values to
-   * learn more about particular streams they are receiving data from.
-   *
-   * @return the stream container.
-   */
-
-  public IContainer getContainer()
-  {
-    return mOutputContainer;
   }
 
   /** 
@@ -357,26 +435,28 @@ public class MediaWriter extends AMediaTool implements IMediaListener
       picture = videoConverter.toPicture(image, picture.getPts());
     }
 
+    // encode video picture
+    
+    encodeVideo(coder, picture);
+
     // inform listeners
 
     for (IMediaListener listener: getListeners())
       listener.onVideoPicture(this, picture, image, streamIndex);
-
-    // encode video picture
-    
-    encodeVideo(coder, picture);
   }
   
   /** {@inheritDoc} */
   
   public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
   {
+    // encode the audio
+
+    encodeAudio(getStreamCoder(streamIndex), samples);
+
     // inform listeners
 
     for (IMediaListener listener: getListeners())
       listener.onAudioSamples(this, samples, streamIndex);
-
-    encodeAudio(getStreamCoder(streamIndex), samples);
   }
   
   /** 
@@ -396,7 +476,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   {
     // the output container must be open
 
-    if (!mOutputContainer.isOpened())
+    if (!isOpen())
       open();
     
     // if the output stream index does not exists, create it
@@ -436,23 +516,29 @@ public class MediaWriter extends AMediaTool implements IMediaListener
             addStreamFromContainer(i);
         }
       }
-
-      // if the header has not been writen, do so now
-
-      if (!mOutputContainer.isHeaderWritten())
-      {
-        int errorNo = mOutputContainer.writeHeader();
-        if (0 != errorNo)
-          throw new RuntimeException("Error " + errorNo +
-            ", failed to write header to " + mOutputContainer.getURL());
-      }
     }
 
+    // if the header has not been writen, do so now
+    
+    if (!mContainer.isHeaderWritten())
+    {
+      int errorNo = mContainer.writeHeader();
+      if (0 != errorNo)
+        throw new RuntimeException("Error " + errorNo +
+          ", failed to write header to " + getUrl());
+
+      // inform the listeners
+
+      for (IMediaListener l: getListeners())
+        l.onWriteHeader(this);
+    }
+    
     // establish the coder for the output stream index
 
     IStreamCoder coder = mCoders.get(getOutputStreamIndex(inputStreamIndex));
     if (null == coder)
-      throw new RuntimeException("invalid input stream index: " + inputStreamIndex);
+      throw new RuntimeException("invalid input stream index: "
+        + inputStreamIndex);
     
     // return the coder
     
@@ -468,25 +554,28 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     // add a new output stream, based on the id from the input
     // stream
     
-    IStream stream = mOutputContainer.addNewStream(
+    IStream stream = mContainer.addNewStream(
       mInputContainer.getStream(inputStreamIndex).getId());
 
     // create the coder
     
     IStreamCoder newCoder = IStreamCoder.make(IStreamCoder.Direction.ENCODING,
       mInputContainer.getStream(inputStreamIndex).getStreamCoder());
+
+    // an stick the coder in the stream
+
     stream.setStreamCoder(newCoder);
 
     // open the new stream
 
-    openNewStream(stream, inputStreamIndex, stream.getIndex());
+    openStream(stream, inputStreamIndex, stream.getIndex());
   }
 
   /**
    * Open a newly added stream.
    */
 
-  protected void openNewStream(IStream stream, int inputStreamIndex, 
+  protected void openStream(IStream stream, int inputStreamIndex, 
     int outputStreamIndex)
   {
     // map input to output stream indicies and output index to coder
@@ -580,7 +669,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
   protected void writePacket(IPacket packet)
   {
-    if (-1 == mOutputContainer.writePacket(packet, mForceInterleave))
+    if (-1 == mContainer.writePacket(packet, mForceInterleave))
       throw new RuntimeException("failed to write packet: " + packet);
 
     // inform listeners
@@ -626,7 +715,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
     // flush the container
 
-    mOutputContainer.flushPackets();
+    mContainer.flushPackets();
 
     // inform listeners
 
@@ -634,17 +723,15 @@ public class MediaWriter extends AMediaTool implements IMediaListener
       listener.onFlush(this);
   }
 
-  /**
-   * Open the output container.
-   */
+  /** {@inheritDoc} */
 
-  protected void open()
+  public void open()
   {
     // open the container
 
-    if (mOutputContainer.open(mUrl, IContainer.Type.WRITE, mContainerFormat,
+    if (mContainer.open(getUrl(), IContainer.Type.WRITE, mContainerFormat,
         true, false) < 0)
-      throw new IllegalArgumentException("could not open: " + mUrl);
+      throw new IllegalArgumentException("could not open: " + getUrl());
 
     // inform listeners
 
@@ -656,12 +743,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     mCloseContainer = true;
   }
 
-  /**
-   * Close any {@link IContainer} and {@link IStreamCoder}s opened by
-   * this {@link MediaWriter}.  If an {@link IContainer} or {@link
-   * IStreamCoder} was opened ouside this {@link MediaWriter}, it will
-   * not be closed.  Prior to closing, {@link #flush} is called.
-   */
+  /** {@inheritDoc} */
   
   public void close()
   {
@@ -673,9 +755,14 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
     // write the trailer on the output conteiner
     
-    if ((rv = mOutputContainer.writeTrailer()) < 0)
+    if ((rv = mContainer.writeTrailer()) < 0)
       throw new RuntimeException("error " + rv + ", failed to write trailer to "
-        + mOutputContainer.getURL());
+        + getUrl());
+
+    // inform the listeners
+
+    for (IMediaListener l: getListeners())
+      l.onWriteTrailer(this);
 
     // close the coders opened by this MediaWriter
 
@@ -699,13 +786,11 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
     // if we're supposed to, close the container
 
-    if (mCloseContainer && null != mOutputContainer)
+    if (mCloseContainer)
     {
-      if ((rv = mOutputContainer.close()) < 0)
+      if ((rv = mContainer.close()) < 0)
         throw new RuntimeException("error " + rv + ", failed close IContainer " +
-          mOutputContainer + " for " + mOutputContainer.getURL());
-        
-      mOutputContainer = null;
+          mContainer + " for " + getUrl());
       mCloseContainer = false;
     }
 
@@ -713,6 +798,13 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
     for (IMediaListener l: getListeners())
       l.onClose(this);
+  }
+
+  /** {@inheritDoc} */
+
+  public String toString()
+  {
+    return "MediaWriter[" + getUrl() + "]";
   }
 
   /** {@inheritDoc} */
@@ -725,7 +817,8 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
   public void onClose(IMediaTool tool)
   {
-    close();
+    if (isOpen())
+      close();
   }
 
   /** {@inheritDoc} */
@@ -754,7 +847,19 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
   /** {@inheritDoc} */
 
+  public void onWriteHeader(IMediaTool tool)
+  {
+  }
+
+  /** {@inheritDoc} */
+
   public void onFlush(IMediaTool tool)
+  {
+  }
+
+  /** {@inheritDoc} */
+
+  public void onWriteTrailer(IMediaTool tool)
   {
   }
 }

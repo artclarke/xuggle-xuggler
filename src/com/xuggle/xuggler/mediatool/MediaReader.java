@@ -1,22 +1,25 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
- * us know by sending e-mail to info@xuggle.com telling us briefly how you're
- * using the library and what you like or don't like about it.
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you
+ * let us know by sending e-mail to info@xuggle.com telling us briefly
+ * how you're using the library and what you like or don't like about
+ * it.
  *
- * This library is free software; you can redistribute it and/or modify it under the
- * terms of the GNU Lesser General Public License as published by the Free Software
- * Foundation; either version 2.1 of the License, or (at your option) any later
- * version.
+ * This library is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of the
+ * License, or (at your option) any later version.
  *
- * This library is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- * PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public License along
- * with this library; if not, write to the Free Software Foundation, Inc.,
- * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+ * USA
  */
 
 package com.xuggle.xuggler.mediatool;
@@ -63,10 +66,6 @@ public class MediaReader extends AMediaTool
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
 
-  // the media container 
-  
-  protected IContainer mContainer;
-
   // a map between stream IDs and coders
 
   protected Map<Integer, IStreamCoder> mCoders = 
@@ -90,10 +89,6 @@ public class MediaReader extends AMediaTool
 
   protected final ConverterFactory.Type mConverterType;
 
-  // should this media reader close the container
-
-  protected boolean mCloseContainer;
-
   // true if new streams can may appear during a read packet at any time
 
   protected boolean mStreamsCanBeAddedDynamically = false;
@@ -101,10 +96,6 @@ public class MediaReader extends AMediaTool
   //  will reader attempt to establish meta data when container opened
 
   protected boolean mQueryStreamMetaData = true;
-
-  // the media url
-
-  protected final String mUrl;
 
   // video picture converter
 
@@ -159,17 +150,7 @@ public class MediaReader extends AMediaTool
   public MediaReader(String url, boolean createBufferedImages, 
     String converterDescriptor)
   {
-    // the media url
-
-    mUrl = url;
-
-    // create the container
-
-    mContainer = IContainer.make();
-    
-    // note that we should close the container opened here
-
-    mCloseContainer = true;
+    super(url, IContainer.make());
     
     // note that we should or should not create buffered images during
     // video decoding, and if so what type of converter to use
@@ -243,20 +224,12 @@ public class MediaReader extends AMediaTool
   public MediaReader(IContainer container, boolean createBufferedImages, 
     String converterDescriptor)
   {
-    mUrl = container.getURL();
-
-    // get the container
-
-    mContainer = container;
+    super(container.getURL(), container);
 
     // get dynamic stream add ability
 
     mStreamsCanBeAddedDynamically = container.canStreamsBeAddedDynamically();
     
-    // note that we should not close the container opened elsewere
-
-    mCloseContainer = false;
-
     // note that we should or should not create buffered images during
     // video decoding, and if so what type of converter to use
 
@@ -275,11 +248,6 @@ public class MediaReader extends AMediaTool
     }
     else
       mConverterType = null;
-  }
-
-  public IContainer getContainer()
-  {
-    return mContainer;
   }
 
   /** 
@@ -304,7 +272,7 @@ public class MediaReader extends AMediaTool
 
   public void setAddDynamicStreams(boolean streamsCanBeAddedDynamically)
   {
-    if (mContainer.isOpened())
+    if (isOpen())
       throw new RuntimeException("media container is already open");
     mStreamsCanBeAddedDynamically = streamsCanBeAddedDynamically;
   }
@@ -347,7 +315,7 @@ public class MediaReader extends AMediaTool
 
   public void setQueryMetaData(boolean queryStreamMetaData)
   {
-    if (mContainer.isOpened())
+    if (isOpen())
       throw new RuntimeException("media container is already open");
     
     mQueryStreamMetaData = queryStreamMetaData;
@@ -439,21 +407,10 @@ public class MediaReader extends AMediaTool
     
   public IError readPacket()
   {
-    // if the container is null, report that
-
-    if (mContainer == null)
-      throw new RuntimeException("container is null");
-
     // if the container is not yet been opend, open it
 
-    if (!mContainer.isOpened())
-    {
-      if (mContainer.open(mUrl, IContainer.Type.READ, null, 
-          mStreamsCanBeAddedDynamically, mQueryStreamMetaData) < 0)
-        throw new RuntimeException("could not open: " + mUrl);
-      for (IMediaListener l: getListeners())
-        l.onOpen(this);
-    }
+    if (!isOpen())
+      open();
 
     // if there is an off-nominal result from read packet, return the
     // correct error
@@ -617,15 +574,30 @@ public class MediaReader extends AMediaTool
       l.onAudioSamples(null, samples, streamIndex);
   }
 
-  /**
-   * Close any {@link IContainer} and {@link IStreamCoder}s opened by
-   * this {@link MediaReader}.  If an {@link IContainer} or {@link
-   * IStreamCoder} was opened ouside this {@link MediaReader}, it will
-   * not be closed.
-   */
+  /** {@inheritDoc} */
   
+  public void open()
+  {
+    if (mContainer.open(getUrl(), IContainer.Type.READ, null, 
+        mStreamsCanBeAddedDynamically, mQueryStreamMetaData) < 0)
+      throw new RuntimeException("could not open: " + getUrl());
+
+    // inform listeners
+
+    for (IMediaListener l: getListeners())
+      l.onOpen(this);
+
+    // note that we should close the container opened here
+
+    mCloseContainer = true;
+  }
+
+  /** {@inheritDoc} */
+
   public void close()
   {
+    int rv;
+
     // close the coders opened by this
 
     for (IStream stream: mOpenedStreams)
@@ -645,15 +617,24 @@ public class MediaReader extends AMediaTool
 
     // if we're supposed to, close the container
 
-    if (mCloseContainer && mContainer !=null)
+    if (mCloseContainer)
     {
-      mContainer.close();
-      mContainer = null;
+      if ((rv = mContainer.close()) < 0)
+        throw new RuntimeException("error " + rv + ", failed close IContainer " +
+          mContainer + " for " + getUrl());
+      mCloseContainer = false;
     }
 
     // tell the listeners that the container is closed
 
     for (IMediaListener l: getListeners())
       l.onClose(this);
+  }
+
+  /** {@inheritDoc} */
+
+  public String toString()
+  {
+    return "MediaReader[" + getUrl() + "]";
   }
 }

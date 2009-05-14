@@ -114,10 +114,6 @@ public class MediaReaderTest //extends TestCase
     assertEquals("incorrect number of audio frames:",
         counts[1],
         TEST_FILE_20_SECONDS_AUDIO_FRAME_COUNT);
-
-    // the container should null
-
-    assertNull("container should not longer exist", mr.getContainer());
   }
 
   // test nominal read with buffered image creation

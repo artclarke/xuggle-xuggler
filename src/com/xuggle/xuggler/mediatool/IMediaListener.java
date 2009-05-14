@@ -102,10 +102,26 @@ public interface IMediaListener
   public void onWritePacket(IMediaTool tool, IPacket packet);
 
   /**
+   * Called after a {@link MediaWriter} writes the header.
+   *
+   * @param tool the tool that generated this event
+   */
+
+  public void onWriteHeader(IMediaTool tool);
+
+  /**
    * Called after a {@link MediaWriter} has flushed its buffers.
    *
    * @param tool the tool that generated this event
    */
 
   public void onFlush(IMediaTool tool);
+
+  /**
+   * Called after a {@link MediaWriter} writes the trailer.
+   *
+   * @param tool the tool that generated this event
+   */
+
+  public void onWriteTrailer(IMediaTool tool);
 }

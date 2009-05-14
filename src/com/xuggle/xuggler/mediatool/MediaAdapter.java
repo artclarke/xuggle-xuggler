@@ -66,7 +66,19 @@ public class MediaAdapter implements IMediaListener
 
   /** {@inheritDoc} */
 
+  public void onWriteHeader(IMediaTool tool)
+  {
+  }
+
+  /** {@inheritDoc} */
+
   public void onFlush(IMediaTool tool)
+  {
+  }
+
+  /** {@inheritDoc} */
+
+  public void onWriteTrailer(IMediaTool tool)
   {
   }
 }

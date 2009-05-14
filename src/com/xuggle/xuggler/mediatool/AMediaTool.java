@@ -25,12 +25,44 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public abstract class AMediaTool implements IMediaTool
+import com.xuggle.xuggler.IContainer;
+
+abstract class AMediaTool implements IMediaTool
 {
+  // the container to read from or write to
+  
+  protected final IContainer mContainer;
+
+  // true if this media writer should close the container
+
+  protected boolean mCloseContainer;
+
+  // the URL which is read or written
+
+  private final String mUrl;
+
   // all the media reader listeners
 
   private final Collection<IMediaListener> mListeners
     = new CopyOnWriteArrayList<IMediaListener>();
+
+  /**
+   * Construct an abstract IMediaTool.
+   *
+   * @param url the URL which will be read or written to
+   * @param the container which be read from or written to
+   */
+  
+  public AMediaTool(String url, IContainer container)
+  {
+    mUrl = url;
+    mContainer = container;
+
+    // it is assuemd that the container should not be closed by the
+    // tool, this may change if open() is laster called 
+
+    mCloseContainer = false;
+  }
 
   /** {@inheritDoc} */
 
@@ -48,8 +80,29 @@ public abstract class AMediaTool implements IMediaTool
 
   /** {@inheritDoc} */
 
-  protected Collection<IMediaListener> getListeners()
+  public Collection<IMediaListener> getListeners()
   {
     return Collections.unmodifiableCollection(mListeners);
+  } 
+
+  /** {@inheritDoc} */
+
+  public String getUrl()
+  {
+    return mUrl;
+  }
+
+  /** {@inheritDoc} */
+
+  public IContainer getContainer()
+  {
+    return mContainer;
+  }
+
+  /** {@inheritDoc} */
+  
+  public boolean isOpen()
+  {
+    return mContainer.isOpened();
   }
 }

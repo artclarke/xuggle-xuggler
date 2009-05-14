@@ -117,7 +117,9 @@ public class MediaToolTest
     assertEquals(2                        , readerCounter.mOnCloseStreamCount);
     assertEquals(READER_PACKET_READ_COUNT , readerCounter.mOnReadPacketCount);
     assertEquals(READER_PACKET_WRITE_COUNT, readerCounter.mOnWritePacketCount);
+    assertEquals(0                        , readerCounter.mOnWriteHeader);
     assertEquals(0                        , readerCounter.mOnFlushCount);
+    assertEquals(0                        , readerCounter.mOnWriteTrailer);
 
     assertEquals(WRITER_VIDEO_FRAME_COUNT , writerCounter.mOnVideoPictureCount);
     assertEquals(WRITER_AUDIO_FRAME_COUNT , writerCounter.mOnAudioSamplesCount);
@@ -127,7 +129,9 @@ public class MediaToolTest
     assertEquals(2                        , writerCounter.mOnCloseStreamCount);
     assertEquals(WRITER_PACKET_READ_COUNT , writerCounter.mOnReadPacketCount);
     assertEquals(WRITER_PACKET_WRITE_COUNT, writerCounter.mOnWritePacketCount);
+    assertEquals(1                        , writerCounter.mOnWriteHeader);
     assertEquals(1                        , writerCounter.mOnFlushCount);
+    assertEquals(1                        , writerCounter.mOnWriteTrailer);
 
     assert(outputFile.exists());
     assertEquals(OUTPUT_FILE_SIZE, outputFile.length());
@@ -143,7 +147,9 @@ public class MediaToolTest
     public int mOnCloseStreamCount = 0;
     public int mOnReadPacketCount = 0;
     public int mOnWritePacketCount = 0;
+    public int mOnWriteHeader = 0;
     public int mOnFlushCount = 0;
+    public int mOnWriteTrailer = 0;
 
     public void onVideoPicture(IMediaTool tool, IVideoPicture picture,
       BufferedImage image, int streamIndex)
@@ -187,9 +193,19 @@ public class MediaToolTest
       ++mOnWritePacketCount;
     }
 
+    public void onWriteHeader(IMediaTool tool)
+    {
+      ++mOnWriteHeader;
+    }
+
     public void onFlush(IMediaTool tool)
     {
       ++mOnFlushCount;
+    }
+
+    public void onWriteTrailer(IMediaTool tool)
+    {
+      ++mOnWriteTrailer;
     }
   };
 }
