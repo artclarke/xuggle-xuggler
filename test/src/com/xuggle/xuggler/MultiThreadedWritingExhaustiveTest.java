@@ -3,6 +3,7 @@ package com.xuggle.xuggler;
 import static org.junit.Assert.assertEquals;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -33,6 +34,8 @@ public class MultiThreadedWritingExhaustiveTest
     final Thread threads[] = new Thread[NUM_THREADS];
     final int numPackets[] = new int[NUM_THREADS];
     final AtomicInteger uncaughtExceptions = new AtomicInteger();
+    final AtomicReference<Throwable> lastUncaughtException = new AtomicReference<Throwable>(
+        null);
 
     for (int i = 0; i < threads.length; i++)
     {
@@ -56,18 +59,23 @@ public class MultiThreadedWritingExhaustiveTest
 
             // the writer will attach itself to the reader
             new MediaWriter(MultiThreadedWritingExhaustiveTest.class.getName()
-                + "_" + index + ".flv", reader){
-              long mediaDataWritten = 0; 
+                + "_" + index + ".flv", reader)
+            {
+              long mediaDataWritten = 0;
+
               @Override
-              public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
+              public void onAudioSamples(IMediaTool tool,
+                  IAudioSamples samples, int streamIndex)
               {
                 super.onAudioSamples(tool, samples, streamIndex);
                 ++mediaDataWritten;
                 log.trace("wrote audio:{}", mediaDataWritten);
               }
+
               @Override
               public void onVideoPicture(IMediaTool tool,
-                  IVideoPicture picture, java.awt.image.BufferedImage image, int streamIndex)
+                  IVideoPicture picture, java.awt.image.BufferedImage image,
+                  int streamIndex)
               {
                 super.onVideoPicture(tool, picture, image, streamIndex);
                 ++mediaDataWritten;
@@ -86,30 +94,44 @@ public class MultiThreadedWritingExhaustiveTest
                 index, e);
             numPackets[index] = -1;
           }
+          finally
+          {
+            log.debug("thread exited with {} packets processed",
+                numPackets[index]);
+          }
 
         }
       }, "TestThread_" + index);
-      threads[i].setUncaughtExceptionHandler(
-          new Thread.UncaughtExceptionHandler(){
+      threads[i]
+          .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler()
+          {
             public void uncaughtException(Thread t, Throwable e)
             {
-              log.debug("Uncaught exception leaked out of thread: {}; {}",
-                  e, t);
+              log
+                  .debug("Uncaught exception leaked out of thread: {}; {}", e,
+                      t);
               e.printStackTrace();
               uncaughtExceptions.incrementAndGet();
-            }});
+              lastUncaughtException.set(e);
+            }
+          });
       threads[i].start();
     }
     int numSuccess = 0;
     for (int i = 0; i < threads.length; i++)
     {
       threads[i].join();
-      if (numPackets[i] != -1) {
+    }
+    assertEquals("got uncaught exception: " + lastUncaughtException.get(), 0,
+        uncaughtExceptions.get());
+    for (int i = 0; i < threads.length; i++)
+    {
+      if (numPackets[i] != -1)
+      {
         assertEquals(1062, numPackets[i]);
         ++numSuccess;
       }
     }
-    assertEquals(0, uncaughtExceptions.get());
     log.debug("Test completed successfully: {} of {} threads"
         + " ran without memory errors", numSuccess, NUM_THREADS);
     log.debug("------  END  -----: {}", this.getClass().getName());

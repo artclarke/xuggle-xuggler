@@ -74,7 +74,7 @@ StreamCoder :: reset()
   // stream-coder
   if (mOpened)
   {
-    VS_LOG_WARN("Closing dangling StreamCoder");
+    VS_LOG_DEBUG("Closing dangling StreamCoder");
     (void) this->close();
   }
 

@@ -64,7 +64,7 @@ namespace com { namespace xuggle { namespace xuggler
   {
     if (mIsOpened)
     {
-      VS_LOG_WARN("Closing dangling Container");
+      VS_LOG_ERROR("Closing dangling Container");
       (void) this->close();
     }
     VS_ASSERT(!mFormatContext,
