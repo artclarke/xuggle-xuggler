@@ -22,7 +22,7 @@ public class MultiThreadedWritingExhaustiveTest
     log.trace("make warning go away");
   }
 
-  static final int NUM_THREADS = 50;
+  static final int NUM_THREADS = 25;
 
   @Test(timeout = 30 * 60 * 1000)
   public void testMultiThreadedTest() throws InterruptedException

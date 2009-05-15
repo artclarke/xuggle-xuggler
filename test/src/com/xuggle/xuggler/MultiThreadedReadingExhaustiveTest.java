@@ -31,7 +31,7 @@ public class MultiThreadedReadingExhaustiveTest
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("make warning go away"); }
 
-  static final int NUM_THREADS=200;
+  static final int NUM_THREADS=100;
   
   @Test(timeout = 30 * 60 * 1000)
   public void testMultiThreadedTest() throws InterruptedException
