@@ -134,7 +134,7 @@ public class MediaToolTest
     assertEquals(1                        , writerCounter.mOnWriteTrailer);
 
     assert(outputFile.exists());
-    assertEquals(OUTPUT_FILE_SIZE, outputFile.length());
+    assertEquals(OUTPUT_FILE_SIZE, outputFile.length(), 200);
   }
 
   class MediaEventCounter implements IMediaListener

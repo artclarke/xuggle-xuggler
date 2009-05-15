@@ -136,7 +136,7 @@ public class MediaWriterTest
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
-    assertEquals(file.length(), 1062946);
+    assertEquals(1062946, file.length(), 300);
 
     log.debug("manually check: " + file);
   }
@@ -156,7 +156,7 @@ public class MediaWriterTest
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
-    assertEquals(file.length(), 1061745);
+    assertEquals(1061745, file.length(), 300);
     log.debug("manually check: " + file);
   }
  
@@ -177,7 +177,7 @@ public class MediaWriterTest
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
-    assertEquals(file.length(), 1061745);
+    assertEquals(1061745, file.length(), 300);
     log.debug("manually check: " + file);
   }
 
@@ -241,7 +241,7 @@ public class MediaWriterTest
     writer.close();
 
     assert(file.exists());
-    assertEquals(291186, file.length());
+    assertEquals(file.length(), 291186, 300);
     log.debug("manually check: " + file);
   }
 
@@ -295,7 +295,7 @@ public class MediaWriterTest
     writer.close();
 
     assert(file.exists());
-    assertEquals(40365, file.length());
+    assertEquals(file.length(), 40365, 100);
     log.debug("manually check: " + file);
   }
 
@@ -359,8 +359,8 @@ public class MediaWriterTest
     long totalSeconds = 6;
 
     // the goal is to get 6 seconds of audio and video, in this case
-    // driven by audio, but kicking out a video frame and about the
-    // right time
+    // driven by audio, but kicking out a video frame at about the right
+    // time
 
     while (totalSamples < sampleRate * totalSeconds)
     {
@@ -404,8 +404,7 @@ public class MediaWriterTest
     writer.close();
 
     assert(file.exists());
-    assertEquals(521938, file.length());
+    assertEquals(file.length(), 521938, 200);
     log.debug("manually check: " + file);
   }
-
 }
