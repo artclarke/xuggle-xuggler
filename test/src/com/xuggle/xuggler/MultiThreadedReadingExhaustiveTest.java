@@ -99,10 +99,13 @@ public class MultiThreadedReadingExhaustiveTest
           new Thread.UncaughtExceptionHandler(){
             public void uncaughtException(Thread t, Throwable e)
             {
-              log.debug("Uncaught exception leaked out of thread: {}; {}",
-                  e, t);
-              e.printStackTrace();
-              uncaughtExceptions.incrementAndGet();
+              if (!(e instanceof OutOfMemoryError))
+              {
+                log.debug("Uncaught exception leaked out of thread: {}; {}",
+                    e, t);
+                e.printStackTrace();
+                uncaughtExceptions.incrementAndGet();
+              }
             }});
 
     }

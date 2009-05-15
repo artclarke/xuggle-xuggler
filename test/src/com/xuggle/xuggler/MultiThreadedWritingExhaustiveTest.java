@@ -108,12 +108,16 @@ public class MultiThreadedWritingExhaustiveTest
           {
             public void uncaughtException(Thread t, Throwable e)
             {
-              log
-                  .debug("Uncaught exception leaked out of thread: {}; {}", e,
-                      t);
-              e.printStackTrace();
-              uncaughtExceptions.incrementAndGet();
-              lastUncaughtException.set(e);
+              if (!(e instanceof OutOfMemoryError))
+              {
+                log.debug(
+                    "Uncaught exception leaked out of thread: {}; {}",
+                    e,
+                    t);
+                e.printStackTrace();
+                uncaughtExceptions.incrementAndGet();
+                lastUncaughtException.set(e);
+              }
             }
           });
       threads[i].start();
