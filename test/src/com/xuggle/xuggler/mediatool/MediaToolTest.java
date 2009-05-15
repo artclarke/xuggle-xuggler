@@ -1,22 +1,25 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let
- * us know by sending e-mail to info@xuggle.com telling us briefly how you're
- * using the library and what you like or don't like about it.
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you
+ * let us know by sending e-mail to info@xuggle.com telling us briefly
+ * how you're using the library and what you like or don't like about
+ * it.
  *
- * This library is free software; you can redistribute it and/or modify it under the
- * terms of the GNU Lesser General Public License as published by the Free Software
- * Foundation; either version 2.1 of the License, or (at your option) any later
- * version.
+ * This library is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of the
+ * License, or (at your option) any later version.
  *
- * This library is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- * PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public License along
- * with this library; if not, write to the Free Software Foundation, Inc.,
- * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+ * USA
  */
 
 package com.xuggle.xuggler.mediatool;
@@ -27,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
-import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IVideoPicture;
@@ -35,6 +37,8 @@ import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IStream;
 
 import java.awt.image.BufferedImage;
+
+import static com.xuggle.xuggler.mediatool.DebugListener.*;
 
 import static junit.framework.Assert.*;
 
@@ -97,8 +101,8 @@ public class MediaToolTest
     MediaReader reader = new MediaReader(INPUT_FILENAME);
     MediaWriter writer = new MediaWriter(OUTPUT_FILENAME, reader);
 
-    MediaEventCounter readerCounter = new MediaEventCounter();
-    MediaEventCounter writerCounter = new MediaEventCounter();
+    DebugListener readerCounter = new DebugListener(OPEN);
+    DebugListener writerCounter = new DebugListener(CLOSE);
 
     reader.addListener(readerCounter);
     writer.addListener(writerCounter);
@@ -109,103 +113,31 @@ public class MediaToolTest
 
     assertEquals(IError.Type.ERROR_EOF    , rv.getType());
 
-    assertEquals(READER_VIDEO_FRAME_COUNT , readerCounter.mOnVideoPictureCount);
-    assertEquals(READER_AUDIO_FRAME_COUNT , readerCounter.mOnAudioSamplesCount);
-    assertEquals(1                        , readerCounter.mOnOpenCount);
-    assertEquals(1                        , readerCounter.mOnCloseCount);
-    assertEquals(2                        , readerCounter.mOnOpenStreamCount);
-    assertEquals(2                        , readerCounter.mOnCloseStreamCount);
-    assertEquals(READER_PACKET_READ_COUNT , readerCounter.mOnReadPacketCount);
-    assertEquals(READER_PACKET_WRITE_COUNT, readerCounter.mOnWritePacketCount);
-    assertEquals(0                        , readerCounter.mOnWriteHeader);
-    assertEquals(0                        , readerCounter.mOnFlushCount);
-    assertEquals(0                        , readerCounter.mOnWriteTrailer);
+    assertEquals(READER_VIDEO_FRAME_COUNT , readerCounter.getCount(VIDEO));
+    assertEquals(READER_AUDIO_FRAME_COUNT , readerCounter.getCount(AUDIO));
+    assertEquals(1                        , readerCounter.getCount(OPEN));
+    assertEquals(1                        , readerCounter.getCount(CLOSE));
+    assertEquals(2                        , readerCounter.getCount(OPEN_STREAM));
+    assertEquals(2                        , readerCounter.getCount(CLOSE_STREAM));
+    assertEquals(READER_PACKET_READ_COUNT , readerCounter.getCount(READ_PACKET));
+    assertEquals(READER_PACKET_WRITE_COUNT, readerCounter.getCount(WRITE_PACKET));
+    assertEquals(0                        , readerCounter.getCount(HEADER));
+    assertEquals(0                        , readerCounter.getCount(FLUSH));
+    assertEquals(0                        , readerCounter.getCount(TRAILER));
 
-    assertEquals(WRITER_VIDEO_FRAME_COUNT , writerCounter.mOnVideoPictureCount);
-    assertEquals(WRITER_AUDIO_FRAME_COUNT , writerCounter.mOnAudioSamplesCount);
-    assertEquals(1                        , writerCounter.mOnOpenCount);
-    assertEquals(1                        , writerCounter.mOnCloseCount);
-    assertEquals(2                        , writerCounter.mOnOpenStreamCount);
-    assertEquals(2                        , writerCounter.mOnCloseStreamCount);
-    assertEquals(WRITER_PACKET_READ_COUNT , writerCounter.mOnReadPacketCount);
-    assertEquals(WRITER_PACKET_WRITE_COUNT, writerCounter.mOnWritePacketCount);
-    assertEquals(1                        , writerCounter.mOnWriteHeader);
-    assertEquals(1                        , writerCounter.mOnFlushCount);
-    assertEquals(1                        , writerCounter.mOnWriteTrailer);
+    assertEquals(WRITER_VIDEO_FRAME_COUNT , writerCounter.getCount(VIDEO));
+    assertEquals(WRITER_AUDIO_FRAME_COUNT , writerCounter.getCount(AUDIO));
+    assertEquals(1                        , writerCounter.getCount(OPEN));
+    assertEquals(1                        , writerCounter.getCount(CLOSE));
+    assertEquals(2                        , writerCounter.getCount(OPEN_STREAM));
+    assertEquals(2                        , writerCounter.getCount(CLOSE_STREAM));
+    assertEquals(WRITER_PACKET_READ_COUNT , writerCounter.getCount(READ_PACKET));
+    assertEquals(WRITER_PACKET_WRITE_COUNT, writerCounter.getCount(WRITE_PACKET));
+    assertEquals(1                        , writerCounter.getCount(HEADER));
+    assertEquals(1                        , writerCounter.getCount(FLUSH));
+    assertEquals(1                        , writerCounter.getCount(TRAILER));
 
     assert(outputFile.exists());
     assertEquals(OUTPUT_FILE_SIZE, outputFile.length(), 200);
   }
-
-  class MediaEventCounter implements IMediaListener
-  {
-    public int mOnVideoPictureCount = 0;
-    public int mOnAudioSamplesCount = 0;
-    public int mOnOpenCount = 0;
-    public int mOnCloseCount = 0;
-    public int mOnOpenStreamCount = 0;
-    public int mOnCloseStreamCount = 0;
-    public int mOnReadPacketCount = 0;
-    public int mOnWritePacketCount = 0;
-    public int mOnWriteHeader = 0;
-    public int mOnFlushCount = 0;
-    public int mOnWriteTrailer = 0;
-
-    public void onVideoPicture(IMediaTool tool, IVideoPicture picture,
-      BufferedImage image, int streamIndex)
-    {
-      ++mOnVideoPictureCount;
-    }
-
-    public void onAudioSamples(IMediaTool tool, IAudioSamples samples,
-      int streamIndex)
-    {
-      ++mOnAudioSamplesCount;
-    }
-
-    public void onOpen(IMediaTool tool)
-    {
-      ++mOnOpenCount;
-    }
-
-    public void onClose(IMediaTool tool)
-    {
-      ++mOnCloseCount;
-    }
-
-    public void onOpenStream(IMediaTool tool, IStream stream)
-    {
-      ++mOnOpenStreamCount;
-    }
-
-    public void onCloseStream(IMediaTool tool, IStream stream)
-    {
-      ++mOnCloseStreamCount;
-    }
-
-    public void onReadPacket(IMediaTool tool, IPacket packet)
-    {
-      ++mOnReadPacketCount;
-    }
-
-    public void onWritePacket(IMediaTool tool, IPacket packet)
-    {
-      ++mOnWritePacketCount;
-    }
-
-    public void onWriteHeader(IMediaTool tool)
-    {
-      ++mOnWriteHeader;
-    }
-
-    public void onFlush(IMediaTool tool)
-    {
-      ++mOnFlushCount;
-    }
-
-    public void onWriteTrailer(IMediaTool tool)
-    {
-      ++mOnWriteTrailer;
-    }
-  };
 }

@@ -24,6 +24,9 @@
 
 package com.xuggle.xuggler.mediatool;
 
+import java.util.Map;
+import java.util.HashMap;
+
 import java.awt.image.BufferedImage;
 
 import org.slf4j.Logger;
@@ -39,8 +42,8 @@ import com.xuggle.xuggler.mediatool.IMediaTool;
 import com.xuggle.xuggler.mediatool.IMediaListener;
 
 /**
- * An {@link IMediaTool} listener which logs {@link IMediaListener} events
- * to a log file.
+ * An {@link IMediaTool} listener which counts and logs {@link
+ * IMediaListener} events to a log file.
  */
 
 public class DebugListener implements IMediaListener
@@ -97,6 +100,10 @@ public class DebugListener implements IMediaListener
 
   public static final int ALL           = 0x7ff;
 
+  /** show no events */
+
+  public static final int NONE          = 0x000;
+
   /** show {@link #VIDEO}, {@link #AUDIO}, {@link #READ_PACKET} and
    * {@link #WRITE_PACKET} events */
 
@@ -109,7 +116,11 @@ public class DebugListener implements IMediaListener
 
   // the flags
 
-  private final int mFlags;
+  private int mFlags;
+  
+  // the event counts
+  
+  private Map<Integer, Integer> mEventCounts = new HashMap<Integer, Integer>();
   
   /** 
    * Construct a debug listener with custom display flags to log
@@ -132,11 +143,74 @@ public class DebugListener implements IMediaListener
     this(ALL);
   }
 
+  // increment count for specific event type
+
+  private void incrementCount(int flag)
+  {
+    Integer value = mEventCounts.get(flag);
+
+    if (null == value)
+      value = 0;
+
+    mEventCounts.put(flag, value + 1);
+  }
+
+  /** 
+   * Get count of events of a particular type.
+   *
+   * @param flag the flag for the specified event type.
+   * 
+   * @return the number of events of the specified type which have been
+   *         transpired
+   */
+
+  public int getCount(int flag)
+  {
+    Integer value = mEventCounts.get(flag);
+    return (null == value) ? 0 : value;
+  }
+
+  /** 
+   * Reset all the event counts.
+   */
+
+  public void resetCounts()
+  {
+    mEventCounts.clear();
+  }
+
+  /** 
+   * Set the flags which specify which events will be logs.
+   *
+   * @param flags the flags
+   * 
+   * @return old flag values.
+   */
+
+  public int setFlags(int flags)
+  {
+    int oldFlags = mFlags;
+    mFlags = flags;
+    return oldFlags;
+  }
+
+  /** 
+   * Get the flags which specify which events will be logs.
+   * 
+   * @return the flags.
+   */
+
+  public int getFlags()
+  {
+    return mFlags;
+  }
+
   /** {@inheritDoc} */
 
   public void onVideoPicture(IMediaTool tool, IVideoPicture picture, 
     BufferedImage image, int streamIndex)
   {
+    incrementCount(VIDEO);
     if ((mFlags & VIDEO) != 0)
       log.debug("onVideoPicture({}, {}, " + image + ", " + streamIndex + ")",
         tool, picture);
@@ -147,6 +221,7 @@ public class DebugListener implements IMediaListener
   public void onAudioSamples(IMediaTool tool, IAudioSamples samples,
     int streamIndex)
   {
+    incrementCount(AUDIO);
     if ((mFlags & AUDIO) != 0)
       log.debug("onAudioSamples({}, {}, " + streamIndex + ")", tool, samples);
   }
@@ -155,6 +230,7 @@ public class DebugListener implements IMediaListener
 
   public void onOpen(IMediaTool tool)
   {
+    incrementCount(OPEN);
     if ((mFlags & OPEN) != 0)
       log.debug("onOpen({})", tool);
   }
@@ -163,6 +239,7 @@ public class DebugListener implements IMediaListener
 
   public void onClose(IMediaTool tool)
   {
+    incrementCount(CLOSE);
     if ((mFlags & CLOSE) != 0)
       log.debug("onClose({})", tool);
   }
@@ -171,6 +248,7 @@ public class DebugListener implements IMediaListener
 
   public void onOpenStream(IMediaTool tool, IStream stream)
   {
+    incrementCount(OPEN_STREAM);
     if ((mFlags & OPEN_STREAM) != 0)
       log.debug("onOpenStream({}, {})", tool, stream);
   }
@@ -179,6 +257,7 @@ public class DebugListener implements IMediaListener
 
   public void onCloseStream(IMediaTool tool, IStream stream)
   {
+    incrementCount(CLOSE_STREAM);
     if ((mFlags & CLOSE_STREAM) != 0)
       log.debug("onCloseStream({}, {})", tool, stream);
   }
@@ -187,6 +266,7 @@ public class DebugListener implements IMediaListener
 
   public void onReadPacket(IMediaTool tool, IPacket packet)
   {
+    incrementCount(READ_PACKET);
     if ((mFlags & READ_PACKET) != 0)
       log.debug("onReadPacket({}, {})", tool, packet);
   }
@@ -195,6 +275,7 @@ public class DebugListener implements IMediaListener
 
   public void onWritePacket(IMediaTool tool, IPacket packet)
   {
+    incrementCount(WRITE_PACKET);
     if ((mFlags & WRITE_PACKET) != 0)
       log.debug("onWritePacket({}, {})", tool, packet);
   }
@@ -203,6 +284,7 @@ public class DebugListener implements IMediaListener
 
   public void onWriteHeader(IMediaTool tool)
   {
+    incrementCount(HEADER);
     if ((mFlags & HEADER) != 0)
       log.debug("onWriteHeader({})", tool);
   }
@@ -211,6 +293,7 @@ public class DebugListener implements IMediaListener
 
   public void onFlush(IMediaTool tool)
   {
+    incrementCount(FLUSH);
     if ((mFlags & FLUSH) != 0)
       log.debug("onFlush({})", tool);
   }
@@ -219,6 +302,7 @@ public class DebugListener implements IMediaListener
 
   public void onWriteTrailer(IMediaTool tool)
   {
+    incrementCount(TRAILER);
     if ((mFlags & TRAILER) != 0)
       log.debug("onWriteTrailer({})", tool);
   }

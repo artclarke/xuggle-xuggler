@@ -22,8 +22,8 @@
 package com.xuggle.xuggler.mediatool;
 
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Vector;
+import java.util.HashMap;
 import java.util.Collection;
 
 import java.awt.image.BufferedImage;
@@ -31,8 +31,9 @@ import java.awt.image.BufferedImage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.Global;
+import com.xuggle.xuggler.ICodec;
+import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IRational;
@@ -575,7 +576,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
         if (!mInputContainer.isOpened())
           throw new RuntimeException(
-            "Attempting to extract stream information from a closed input IContainer.");
+            "Can't get stream information from a closed input IContainer.");
 
         // have a look through the input container streams
 
@@ -594,9 +595,9 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     
     if (!mContainer.isHeaderWritten())
     {
-      int errorNo = mContainer.writeHeader();
-      if (0 != errorNo)
-        throw new RuntimeException("Error " + errorNo +
+      int rv = mContainer.writeHeader();
+      if (0 != rv)
+        throw new RuntimeException("Error " + IError.make(rv) +
           ", failed to write header to " + getUrl());
 
       // inform the listeners
@@ -643,6 +644,16 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     openStream(stream, inputStreamIndex, stream.getIndex());
   }
 
+  /**
+   * Add a stream.
+   */
+  
+  protected void addStream(IStream stream, int inputStreamIndex, 
+    int outputStreamIndex)
+  {
+    
+  }
+  
   /**
    * Open a newly added stream.
    */
@@ -828,7 +839,8 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     // write the trailer on the output conteiner
     
     if ((rv = mContainer.writeTrailer()) < 0)
-      throw new RuntimeException("error " + rv + ", failed to write trailer to "
+      throw new RuntimeException("error " + IError.make(rv) +
+        ", failed to write trailer to "
         + getUrl());
 
     // inform the listeners
@@ -841,7 +853,8 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     for (IStream stream: mOpenedStreams)
     {
       if ((rv = stream.getStreamCoder().close()) < 0)
-        throw new RuntimeException("error " + rv + ", failed close coder " +
+        throw new RuntimeException("error " + IError.make(rv) +
+          ", failed close coder " +
           stream.getStreamCoder());
 
       // inform the listeners
@@ -861,7 +874,8 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     if (mCloseContainer)
     {
       if ((rv = mContainer.close()) < 0)
-        throw new RuntimeException("error " + rv + ", failed close IContainer " +
+        throw new RuntimeException("error " + IError.make(rv) +
+          ", failed close IContainer " +
           mContainer + " for " + getUrl());
       mCloseContainer = false;
     }

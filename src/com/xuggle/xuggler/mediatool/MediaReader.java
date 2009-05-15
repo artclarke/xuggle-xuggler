@@ -25,8 +25,8 @@
 package com.xuggle.xuggler.mediatool;
 
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Vector;
+import java.util.HashMap;
 import java.util.Collection;
 
 import org.slf4j.Logger;
@@ -35,29 +35,35 @@ import org.slf4j.LoggerFactory;
 import java.awt.image.BufferedImage;
 
 import com.xuggle.xuggler.ICodec;
-import com.xuggle.xuggler.IContainerFormat;
-import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.IAudioSamples;
+import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IPacket;
-import com.xuggle.xuggler.IVideoResampler;
-import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IContainer;
-import com.xuggle.xuggler.IError;
+import com.xuggle.xuggler.IStreamCoder;
+import com.xuggle.xuggler.IAudioSamples;
+import com.xuggle.xuggler.IVideoPicture;
+import com.xuggle.xuggler.IVideoResampler;
+import com.xuggle.xuggler.IContainerFormat;
 import com.xuggle.xuggler.video.IConverter;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 /**
  * General purpose media reader.
+ *
  * <p>
- * The MediaReader class is a simplified interface to the Xuggler library
- * that opens up an {@link IContainer} object, and then every time you
- * call {@link MediaReader#readPacket()}, attempts to decode the packet and
- * call any registered {@link IMediaListener} objects for that packet.
+ *
+ * The MediaReader class is a simplified interface to the Xuggler
+ * library that opens up an {@link IContainer} object, and then every
+ * time you call {@link MediaReader#readPacket()}, attempts to decode
+ * the packet and call any registered {@link IMediaListener} objects for
+ * that packet.
+ *
  * </p><p>
+ * 
  * The idea is to abstract away the more intricate details of the
  * Xuggler API, and let you concentrate on what you want -- the decoded
  * data.
+ *
  * </p> 
  */
 
@@ -495,7 +501,7 @@ public class MediaReader extends AMediaTool
     
     int rv = videoCoder.decodeVideo(picture, packet, 0);
     if (rv < 0)
-      throw new RuntimeException("error " + rv + " decoding video");
+      throw new RuntimeException("error " + IError.make(rv) + " decoding video");
     
     // if this is a complete picture, dispatch the picture
     
@@ -622,7 +628,10 @@ public class MediaReader extends AMediaTool
 
     for (IStream stream: mOpenedStreams)
     {
-      stream.getStreamCoder().close();
+      if ((rv = stream.getStreamCoder().close()) < 0)
+        throw new RuntimeException("error " + IError.make(rv) +
+          ", failed close coder " +
+          stream.getStreamCoder());
 
       // inform listeners that the stream was closed
 
@@ -640,7 +649,8 @@ public class MediaReader extends AMediaTool
     if (mCloseContainer)
     {
       if ((rv = mContainer.close()) < 0)
-        throw new RuntimeException("error " + rv + ", failed close IContainer " +
+        throw new RuntimeException("error " + IError.make(rv) +
+          ", failed close IContainer " +
           mContainer + " for " + getUrl());
       mCloseContainer = false;
     }
