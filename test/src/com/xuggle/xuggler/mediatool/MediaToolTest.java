@@ -44,6 +44,15 @@ import static junit.framework.Assert.*;
 
 public class MediaToolTest
 {
+  // show the videos during tests
+
+  public static final boolean SHOW_VIDEO = System.getProperty(
+    MediaToolTest.class.getName()+".ShowVideo") != null;
+
+  // stock output prefix
+
+  public static final String PREFIX = MediaToolTest.class.getName() + "-";
+
   public static final String INPUT_FILENAME  =
     "fixtures/testfile_videoonly_20sec.flv";
 
@@ -79,7 +88,7 @@ public class MediaToolTest
 //  public static final int    OUTPUT_FILE_SIZE          = ?;
 
   public static final String OUTPUT_FILENAME = 
-    "MediaTool-output.flv";
+    PREFIX + "output.flv";
 
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -101,11 +110,15 @@ public class MediaToolTest
     MediaReader reader = new MediaReader(INPUT_FILENAME);
     MediaWriter writer = new MediaWriter(OUTPUT_FILENAME, reader);
 
+    if (SHOW_VIDEO)
+      writer.addListener(new MediaViewer(true));
+
     DebugListener readerCounter = new DebugListener(OPEN);
     DebugListener writerCounter = new DebugListener(CLOSE);
 
     reader.addListener(readerCounter);
     writer.addListener(writerCounter);
+
     
     IError rv;
     while ((rv = reader.readPacket()) == null)
@@ -117,6 +130,7 @@ public class MediaToolTest
     assertEquals(READER_AUDIO_FRAME_COUNT , readerCounter.getCount(AUDIO));
     assertEquals(1                        , readerCounter.getCount(OPEN));
     assertEquals(1                        , readerCounter.getCount(CLOSE));
+    assertEquals(2                        , readerCounter.getCount(ADD_STREAM));
     assertEquals(2                        , readerCounter.getCount(OPEN_STREAM));
     assertEquals(2                        , readerCounter.getCount(CLOSE_STREAM));
     assertEquals(READER_PACKET_READ_COUNT , readerCounter.getCount(READ_PACKET));
@@ -129,6 +143,7 @@ public class MediaToolTest
     assertEquals(WRITER_AUDIO_FRAME_COUNT , writerCounter.getCount(AUDIO));
     assertEquals(1                        , writerCounter.getCount(OPEN));
     assertEquals(1                        , writerCounter.getCount(CLOSE));
+    assertEquals(2                        , writerCounter.getCount(ADD_STREAM));
     assertEquals(2                        , writerCounter.getCount(OPEN_STREAM));
     assertEquals(2                        , writerCounter.getCount(CLOSE_STREAM));
     assertEquals(WRITER_PACKET_READ_COUNT , writerCounter.getCount(READ_PACKET));

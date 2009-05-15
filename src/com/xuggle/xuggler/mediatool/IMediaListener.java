@@ -66,6 +66,19 @@ public interface IMediaListener
   public void onClose(IMediaTool tool);
 
   /**
+   * Called after an {@link com.xuggle.xuggler.IStream} is added to an
+   * {@link com.xuggle.xuggler.mediatool.IMediaTool}.  This occurs when
+   * a new stream is added or encountered by the tool.  If the {@link
+   * com.xuggle.xuggler.IStream} is not already been opened, then {@link
+   * #onOpenStream} will be called at some later point.
+   *
+   * @param tool the tool that generated this event
+   * @param stream the stream opened
+   */
+
+  public void onAddStream(IMediaTool tool, IStream stream);
+
+  /**
    * Called after an {@link com.xuggle.xuggler.IStream} is opened.
    *
    * @param tool the tool that generated this event

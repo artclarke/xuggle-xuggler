@@ -388,6 +388,8 @@ public class MediaReader extends AMediaTool
       // not decode unsupported types
 
       mCoders.put(streamIndex, coder);
+      for (IMediaListener listener: getListeners())
+        listener.onAddStream(this, stream);
 
       // if the coder is not open, open it 
       // NOTE: MediaReader currently supports audio & video streams

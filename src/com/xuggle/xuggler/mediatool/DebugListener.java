@@ -68,37 +68,41 @@ public class DebugListener implements IMediaListener
 
   public static final int CLOSE         = 0x008;
 
+  /** show add stream events */
+
+  public static final int ADD_STREAM    = 0x010;
+
   /** show open stream events */
 
-  public static final int OPEN_STREAM   = 0x010;
+  public static final int OPEN_STREAM   = 0x020;
 
   /** show close stream events */
 
-  public static final int CLOSE_STREAM  = 0x020;
+  public static final int CLOSE_STREAM  = 0x040;
 
   /** show read packet events */
 
-  public static final int READ_PACKET   = 0x040;
+  public static final int READ_PACKET   = 0x080;
 
   /** show write packet events */
 
-  public static final int WRITE_PACKET  = 0x080;
+  public static final int WRITE_PACKET  = 0x100;
 
   /** show header write events */
 
-  public static final int HEADER        = 0x100;
+  public static final int HEADER        = 0x200;
 
   /** show trailer write events */
 
-  public static final int TRAILER       = 0x200;
+  public static final int TRAILER       = 0x400;
 
   /** show flush events */
 
-  public static final int FLUSH         = 0x400;
+  public static final int FLUSH         = 0x800;
 
   /** show all events */
 
-  public static final int ALL           = 0x7ff;
+  public static final int ALL           = 0xfff;
 
   /** show no events */
 
@@ -242,6 +246,15 @@ public class DebugListener implements IMediaListener
     incrementCount(CLOSE);
     if ((mFlags & CLOSE) != 0)
       log.debug("onClose({})", tool);
+  }
+  
+  /** {@inheritDoc} */
+
+  public void onAddStream(IMediaTool tool, IStream stream)
+  {
+    incrementCount(ADD_STREAM);
+    if ((mFlags & ADD_STREAM) != 0)
+      log.debug("onAddStream({}, {})", tool, stream);
   }
   
   /** {@inheritDoc} */

@@ -45,7 +45,12 @@ public class MediaReaderTest //extends TestCase
   public static final int    TEST_FILE_20_SECONDS_AUDIO_FRAME_COUNT = 762;
   public static final String TEST_FILE_20_SECONDS = 
     "fixtures/testfile_videoonly_20sec.flv";
-  
+
+  // show the videos during transcoding?
+
+  final boolean SHOW_VIDEO = System.getProperty(
+    MediaReaderTest.class.getName()+".ShowVideo") != null;
+
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
   @Before
@@ -73,6 +78,8 @@ public class MediaReaderTest //extends TestCase
     // create a new media reader
 
     MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, false, null);
+    if (SHOW_VIDEO)
+      mr.addListener(new MediaViewer(true));
 
     // setup the the listener
 
@@ -129,7 +136,8 @@ public class MediaReaderTest //extends TestCase
 
     MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, true,
       ConverterFactory.XUGGLER_BGR_24);
-
+    if (SHOW_VIDEO)
+      mr.addListener(new MediaViewer(true));
 
     // setup the the listener
 
@@ -181,6 +189,8 @@ public class MediaReaderTest //extends TestCase
 
     MediaReader mr = new MediaReader(container, true,
       ConverterFactory.XUGGLER_BGR_24);
+    if (SHOW_VIDEO)
+      mr.addListener(new MediaViewer(true));
 
     // setup the the listener
 

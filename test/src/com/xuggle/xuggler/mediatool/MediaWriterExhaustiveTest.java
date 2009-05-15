@@ -215,8 +215,6 @@ public class MediaWriterExhaustiveTest
     // create the reader
 
     MediaReader reader = new MediaReader(mSource);
-    if (SHOW_VIDEO)
-      reader.addListener(new MediaViewer());
 
     // construct a writer which does not get called directly by the
     // MediaReader, and thus many things need to be handled manually
@@ -224,6 +222,8 @@ public class MediaWriterExhaustiveTest
     if (mTestContainer)
     {
       final MediaWriter writer = new MediaWriter(mDestination, reader.getContainer());
+      if (SHOW_VIDEO)
+        writer.addListener(new MediaViewer());
 
       reader.addListener(new MediaAdapter()
         {
@@ -235,14 +235,18 @@ public class MediaWriterExhaustiveTest
           
           /** {@inheritDoc} */
           
-          public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
+          public void onAudioSamples(IMediaTool tool, IAudioSamples samples, 
+            int streamIndex)
           {
             writer.onAudioSamples(null, samples, streamIndex);
           }
         });
 
-      while (reader.readPacket() == null)
+
+      IError error;
+      while ((error = reader.readPacket()) == null)
         ;
+      assertEquals(IError.Type.ERROR_EOF, error.getType());
       
       writer.close();
     }
@@ -254,7 +258,9 @@ public class MediaWriterExhaustiveTest
       // constructe the writer, no need to keep a reference to the
       // writer, it's maintained in the reader
 
-      new MediaWriter(mDestination, reader);
+      MediaWriter writer = new MediaWriter(mDestination, reader);
+      if (SHOW_VIDEO)
+        writer.addListener(new MediaViewer());
 
       // transcode
 

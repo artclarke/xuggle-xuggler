@@ -50,6 +50,12 @@ public class MediaAdapter implements IMediaListener
 
   /** {@inheritDoc} */
 
+  public void onAddStream(IMediaTool tool, IStream stream)
+  {
+  }
+
+  /** {@inheritDoc} */
+
   public void onOpenStream(IMediaTool tool, IStream stream)
   {
   }

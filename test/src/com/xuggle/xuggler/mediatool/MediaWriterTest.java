@@ -129,7 +129,7 @@ public class MediaWriterTest
     assert(!file.exists());
     MediaWriter writer = new MediaWriter(file.toString(), mReader);
     if (SHOW_VIDEO)
-      writer.addListener(new MediaViewer());
+      writer.addListener(new MediaViewer(true));
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
@@ -149,7 +149,7 @@ public class MediaWriterTest
     assert(!file.exists());
     MediaWriter writer = new MediaWriter(file.toString(), mReader);
     if (SHOW_VIDEO)
-      writer.addListener(new MediaViewer());
+      writer.addListener(new MediaViewer(true));
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
@@ -169,7 +169,7 @@ public class MediaWriterTest
     MediaWriter writer = new MediaWriter(file.toString(), 
       mReader.getContainer());
     if (SHOW_VIDEO)
-      writer.addListener(new MediaViewer());
+      writer.addListener(new MediaViewer(true));
     mReader.addListener(writer);
     while (mReader.readPacket() == null)
       ;
@@ -202,7 +202,7 @@ public class MediaWriterTest
     
     MediaWriter writer = new MediaWriter(file.toString());
     if (SHOW_VIDEO)
-      writer.addListener(new MediaViewer());
+      writer.addListener(new MediaViewer(true));
 
     // add the video stream
 
@@ -242,7 +242,7 @@ public class MediaWriterTest
     writer.close();
 
     assert(file.exists());
-    assertEquals(file.length(), 291186, 50000);
+    assertEquals(file.length(), 291186, 60000);
     log.debug("manually check: " + file);
   }
 
@@ -332,7 +332,7 @@ public class MediaWriterTest
     MediaWriter writer = new MediaWriter(file.toString());
     //writer.addListener(new DebugListener(DebugListener.META_DATA));
     if (SHOW_VIDEO)
-      writer.addListener(new MediaViewer());
+      writer.addListener(new MediaViewer(true));
 
     // add the video stream
 

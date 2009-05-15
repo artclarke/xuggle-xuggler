@@ -32,8 +32,8 @@ import com.xuggle.xuggler.IContainer;
  * internally by the mediatool package.
  *  
  * @author trebor
- *
  */
+
 abstract class AMediaTool implements IMediaTool
 {
   // the container to read from or write to

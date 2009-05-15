@@ -1,22 +1,25 @@
 /*
  * Copyright (c) 2008-2009 by Xuggle Inc. All rights reserved.
  *
- * It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
- * us know by sending e-mail to info@xuggle.com telling us briefly how you're
- * using the library and what you like or don't like about it.
+ * It is REQUESTED BUT NOT REQUIRED if you use this library, that you
+ * let us know by sending e-mail to info@xuggle.com telling us briefly
+ * how you're using the library and what you like or don't like about
+ * it.
  *
- * This library is free software; you can redistribute it and/or modify it under the
- * terms of the GNU Lesser General Public License as published by the Free Software
- * Foundation; either version 2.1 of the License, or (at your option) any later
- * version.
+ * This library is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of the
+ * License, or (at your option) any later version.
  *
- * This library is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- * PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public License along
- * with this library; if not, write to the Free Software Foundation, Inc.,
- * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+ * USA
  */
 
 package com.xuggle.xuggler.mediatool;
@@ -52,29 +55,29 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * 
  * <p>
  * 
- * The MediaWriter class is a simplified interface to the Xuggler library that
- * opens up a media container, and allows media data to be written into it.
+ * The MediaWriter class is a simplified interface to the Xuggler
+ * library that opens up a media container, and allows media data to be
+ * written into it.
  * 
  * </p>
  * 
  * <p>
  * 
- * Calls to {@link #onAudioSamples}, and {@link #onVideoPicture} encode media
- * into packets and write those encoded packets.
+ * Calls to {@link #onAudioSamples}, and {@link #onVideoPicture} encode
+ * media into packets and write those encoded packets.
  * 
  * </p>
  * <p>
  * 
- * When {@link #onAudioSamples} or {@link #onVideoPicture} is called a stream
- * index is specified. The only requirement of these stream indices is that they
- * consistently map to specific streams. If a new index is encountered a new
- * stream will be created.
+ * When {@link #onAudioSamples} or {@link #onVideoPicture} is called a
+ * stream index is specified. The only requirement of these stream
+ * indices is that they consistently map to specific streams.
  * 
  * </p>
  * <p>
  * 
- * The idea is to abstract away the more intricate details of the Xuggler API,
- * and let you concentrate on what you want.
+ * The idea is to abstract away the more intricate details of the
+ * Xuggler API, and let you concentrate on what you want.
  * 
  * </p>
  */
@@ -112,10 +115,10 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   protected Map<Integer, Integer> mOutputStreamIndices = 
     new HashMap<Integer, Integer>();
 
-  // a map between output stream indicies and coders
+  // a map between output stream indicies and streams
 
-  protected Map<Integer, IStreamCoder> mCoders = 
-    new HashMap<Integer, IStreamCoder>();
+  protected Map<Integer, IStream> mStreams = 
+    new HashMap<Integer, IStream>();
 
   // a map between output stream indicies and video converters
 
@@ -281,20 +284,18 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   public IStream addAudioStream(int inputIndex, int streamId, ICodec codec,
     int channelCount, int sampleRate)
   {
-    // if the container is not opened, do so
-
-    if (!isOpen())
-      open();
-
-    // validate parameteres and conditions
+    // validate parameteres
 
     if (channelCount <= 0)
       throw new IllegalArgumentException(
         "invalid channel count " + channelCount);
+    if (sampleRate <= 0)
+      throw new IllegalArgumentException(
+        "invalid sample rate " + sampleRate);
 
     // add the new stream at the correct index
 
-    IStream stream = addStream(inputIndex, streamId, codec);
+    IStream stream = establishStream(inputIndex, streamId, codec);
     
     // configre the stream coder
 
@@ -302,10 +303,6 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     coder.setChannels(channelCount);
     coder.setSampleRate(sampleRate);
     coder.setSampleFormat(DEFAULT_SAMPLE_FORMAT);
-
-    // open the stream
-
-    openStream(stream, inputIndex, stream.getIndex());
 
     // return the new audio stream
 
@@ -339,12 +336,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   public IStream addVideoStream(int inputIndex, int streamId, ICodec codec,
     int width, int height)
   {
-    // if the container is not opened, do so
-
-    if (!isOpen())
-      open();
-
-    // validate parameteres and conditions
+    // validate parameteres
 
     if (width <= 0 || height <= 0)
       throw new IllegalArgumentException(
@@ -352,7 +344,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
     // add the new stream at the correct index
 
-    IStream stream = addStream(inputIndex, streamId, codec);
+    IStream stream = establishStream(inputIndex, streamId, codec);
     
     // configre the stream coder
 
@@ -360,10 +352,6 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     coder.setWidth(width);
     coder.setHeight(height);
     coder.setPixelType(DEFAULT_PIXEL_TYPE);
-
-    // open the stream
-    
-    openStream(stream, inputIndex, stream.getIndex());
 
     // return the new video stream
 
@@ -383,7 +371,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    *         0, the codec is NULL or if the container is already open.
    */
 
-  protected IStream addStream(int inputIndex, int streamId, ICodec codec)
+  protected IStream establishStream(int inputIndex, int streamId, ICodec codec)
   {
     // validate parameteres and conditions
 
@@ -393,9 +381,11 @@ public class MediaWriter extends AMediaTool implements IMediaListener
       throw new IllegalArgumentException("invalid stream id " + streamId);
     if (null == codec)
       throw new IllegalArgumentException("null codec");
+
+    // if the container is not opened, do so
+
     if (!isOpen())
-      throw new IllegalArgumentException(
-        "output IContainer is not open, new streams may not be added");
+      open();
 
     // add the new stream at the correct index
 
@@ -410,10 +400,9 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     coder.setTimeBase(DEFAULT_TIMEBASE);
     coder.setCodec(codec);
 
-    // record the mapping between the input stream index and the output
-    // stream index
+    // add the stream to the media writer
     
-    mOutputStreamIndices.put(inputIndex, stream.getIndex());
+    addStream(stream, inputIndex, stream.getIndex());
 
     // if the stream count is 1, don't force interleave
 
@@ -608,10 +597,13 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     
     // establish the coder for the output stream index
 
-    IStreamCoder coder = mCoders.get(getOutputStreamIndex(inputStreamIndex));
+    IStream stream = mStreams.get(getOutputStreamIndex(inputStreamIndex));
+    IStreamCoder coder = stream.getStreamCoder();
     if (null == coder)
       throw new RuntimeException("invalid input stream index: "
         + inputStreamIndex);
+    if (!coder.isOpen())
+      openStream(stream);
     
     // return the coder
     
@@ -639,9 +631,9 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
     stream.setStreamCoder(newCoder);
 
-    // open the new stream
+    // add the new stream
 
-    openStream(stream, inputStreamIndex, stream.getIndex());
+    addStream(stream, inputStreamIndex, stream.getIndex());
   }
 
   /**
@@ -651,38 +643,45 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   protected void addStream(IStream stream, int inputStreamIndex, 
     int outputStreamIndex)
   {
+    // map input to output stream indicies
     
+    mOutputStreamIndices.put(inputStreamIndex, outputStreamIndex);
+
+    // get the coder and add it to the index to coder map
+
+    mStreams.put(outputStreamIndex, stream);
+    
+    // inform listeners
+
+    for (IMediaListener listener: getListeners())
+      listener.onAddStream(this, stream);
   }
   
   /**
    * Open a newly added stream.
    */
 
-  protected void openStream(IStream stream, int inputStreamIndex, 
-    int outputStreamIndex)
+  protected void openStream(IStream stream)
   {
-    // map input to output stream indicies and output index to coder
+    // if the coder is not open, open it NOTE: MediaWriter currently
+    // supports audio & video streams
     
-    mOutputStreamIndices.put(inputStreamIndex, outputStreamIndex);
-  
-    // get the coder and add it to the index to coder map
-
     IStreamCoder coder = stream.getStreamCoder();
-    mCoders.put(outputStreamIndex, coder);
-    
-    // if the coder is not open, open it 
-    // NOTE: MediaWriter currently supports audio & video streams
-    
     ICodec.Type type = coder.getCodecType();
     if (!coder.isOpen() && (ICodec.Type.CODEC_TYPE_AUDIO == type ||
         ICodec.Type.CODEC_TYPE_VIDEO == type))
     {
+      // if video coder, match quality scale 
+
       if (ICodec.Type.CODEC_TYPE_VIDEO == type)
         coder.setFlag(IStreamCoder.Flags.FLAG_QSCALE, true);
 
-      if (coder.open() < 0)
-        throw new RuntimeException("could not open coder " + coder + 
-          " for stream " + stream);
+      // open the coder
+
+      int rv = coder.open();
+      if (rv < 0)
+        throw new RuntimeException("could not open stream " + stream
+          + ": " + IError.make(rv));
       mOpenedStreams.add(stream);
       
       // inform listeners
@@ -769,8 +768,10 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   {
     // flush coders
 
-    for (IStreamCoder coder: mCoders.values())
+    for (IStream stream: mStreams.values())
     {
+      IStreamCoder coder = stream.getStreamCoder();
+
       // if it's audio coder flush that
 
       if (ICodec.Type.CODEC_TYPE_AUDIO == coder.getCodecType())
@@ -865,7 +866,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
     // expunge all referneces to the coders and resamplers
     
-    mCoders.clear();
+    mStreams.clear();
     mOpenedStreams.clear();
     mVideoConverters.clear();
 
@@ -905,6 +906,12 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   {
     if (isOpen())
       close();
+  }
+
+  /** {@inheritDoc} */
+
+  public void onAddStream(IMediaTool tool, IStream stream)
+  {
   }
 
   /** {@inheritDoc} */

@@ -102,18 +102,20 @@ public class MediaViewer extends MediaAdapter
    * 
    * @param showStats display media statistics
    */
+
   public MediaViewer(boolean showStats)
   {
     this(showStats, JFrame.DISPOSE_ON_CLOSE);
   }
+
   /**
    * Construct a media viewer, optionally with some basic movie
    * statistics overlaid on the video
    *
    * @param showStats display media statistics
-   * @param defaultCloseOperation what should Swing do if the window
-   *   is closed.  See the {@link JFrame} documentation for valid
-   *   values.
+   * @param defaultCloseOperation what should Swing do if the window is
+   *   closed.  See the {@link javax.swing.WindowConstants}
+   *   documentation for valid values.
    */
 
   public MediaViewer(boolean showStats, int defaultCloseOperation)
