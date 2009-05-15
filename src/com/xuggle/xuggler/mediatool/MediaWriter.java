@@ -80,10 +80,15 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
 
-  /** The default pxiel type. */
+  /** The default pixel type. */
 
   public static final IPixelFormat.Type DEFAULT_PIXEL_TYPE = 
     IPixelFormat.Type.YUV420P;
+
+  /** The default sample format. */
+
+  public static final IAudioSamples.Format DEFAULT_SAMPLE_FORMAT = 
+    IAudioSamples.Format.FMT_S16;
 
   /** The default time base. */
 
@@ -245,6 +250,65 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   }
 
   /** 
+   * Add a audio stream.  The time base defaults to {@link
+   * #DEFAULT_TIMEBASE} and the audio format defaults to {@link
+   * #DEFAULT_SAMPLE_FORMAT}.  The new {@link IStream} is returned to
+   * provide an easy way to further configure the stream.
+   * 
+   * @param inputIndex the index that will be passed to {@link
+   *        #onAudioPicture} for this stream
+   * @param streamId a format-dependent id for this stream
+   * @param codec the codec to used to encode data, to establish the
+   *        codec see {@link com.xuggle.xuggler.ICodec}
+   * @param channelCount the number of audio channels for the stream
+   * @param sampleRate sample rate in Hz (samples per seconds), common
+   *        values are 44100, 22050, 11025, etc.
+   *
+   * @throws IllegalArgumentException if inputIndex < 0, the stream id <
+   *         0, the codec is NULL or if the container is already open.
+   * @throws IllegalArgumentException if width or height are <= 0
+   * 
+   * @see IContainer
+   * @see IStream
+   * @see IStreamCoder
+   * @see ICodec
+   */
+
+  public IStream addAudioStream(int inputIndex, int streamId, ICodec codec,
+    int channelCount, int sampleRate)
+  {
+    // if the container is not opened, do so
+
+    if (!isOpen())
+      open();
+
+    // validate parameteres and conditions
+
+    if (channelCount <= 0)
+      throw new IllegalArgumentException(
+        "invalid channel count " + channelCount);
+
+    // add the new stream at the correct index
+
+    IStream stream = addStream(inputIndex, streamId, codec);
+    
+    // configre the stream coder
+
+    IStreamCoder coder = stream.getStreamCoder();
+    coder.setChannels(channelCount);
+    coder.setSampleRate(sampleRate);
+    coder.setSampleFormat(DEFAULT_SAMPLE_FORMAT);
+
+    // open the stream
+
+    openStream(stream, inputIndex, stream.getIndex());
+
+    // return the new audio stream
+
+    return stream;
+  }
+
+  /** 
    * Add a video stream.  The time base defaults to {@link
    * #DEFAULT_TIMEBASE} and the pixel format defaults to {@link
    * #DEFAULT_PIXEL_TYPE}.  The new {@link IStream} is returned to
@@ -293,9 +357,9 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     coder.setHeight(height);
     coder.setPixelType(DEFAULT_PIXEL_TYPE);
 
+    // open the stream
+    
     openStream(stream, inputIndex, stream.getIndex());
-
-    mOutputStreamIndices.put(inputIndex, stream.getIndex());
 
     // return the new video stream
 
@@ -341,6 +405,11 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     IStreamCoder coder = stream.getStreamCoder();
     coder.setTimeBase(DEFAULT_TIMEBASE);
     coder.setCodec(codec);
+
+    // record the mapping between the input stream index and the output
+    // stream index
+    
+    mOutputStreamIndices.put(inputIndex, stream.getIndex());
 
     // if the stream count is 1, don't force interleave
 

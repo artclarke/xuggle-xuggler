@@ -32,6 +32,9 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.awt.geom.AffineTransform;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
@@ -39,24 +42,34 @@ import org.junit.Before;
 import org.junit.After;
 
 import com.xuggle.xuggler.ICodec;
+import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.IVideoPicture;
+import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoResampler;
 import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.mediatool.MediaWriter;
 import com.xuggle.xuggler.video.ConverterFactory;
+import com.xuggle.xuggler.TestAudioSamplesGenerator;
 
 import static junit.framework.Assert.*;
 
 public class MediaWriterTest
 {
+  final private Logger log = LoggerFactory.getLogger(this.getClass());
+  { log.trace("<init>"); }
+
   // show the videos during transcoding?
 
-  public static final boolean SHOW_VIDEO = false;
+  public static final boolean SHOW_VIDEO = System.getProperty(
+    MediaWriterTest.class.getName()+".ShowVideo") != null;
 
   // one of the stock test fiels
   
   public static final String TEST_FILE = "fixtures/testfile_bw_pattern.flv";
+
+  // stock output prefix
+
   public static final String PREFIX = MediaWriterTest.class.getName() + "-";
 
   // the reader for these tests
@@ -118,12 +131,14 @@ public class MediaWriterTest
     file.delete();
     assert(!file.exists());
     MediaWriter writer = new MediaWriter(file.toString(), mReader);
-    
+    if (SHOW_VIDEO)
+      writer.addListener(new MediaViewer());
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
     assertEquals(file.length(), 1062946);
-    System.out.println("manually check: " + file);
+
+    log.debug("manually check: " + file);
   }
 
   @Test
@@ -135,12 +150,14 @@ public class MediaWriterTest
     File file = new File(PREFIX + "transcode-to-mov.mov");
     file.delete();
     assert(!file.exists());
-    new MediaWriter(file.toString(), mReader);
+    MediaWriter writer = new MediaWriter(file.toString(), mReader);
+    if (SHOW_VIDEO)
+      writer.addListener(new MediaViewer());
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
     assertEquals(file.length(), 1061745);
-    System.out.println("manually check: " + file);
+    log.debug("manually check: " + file);
   }
  
   @Test
@@ -154,14 +171,15 @@ public class MediaWriterTest
     assert(!file.exists());
     MediaWriter writer = new MediaWriter(file.toString(), 
       mReader.getContainer());
+    if (SHOW_VIDEO)
+      writer.addListener(new MediaViewer());
     mReader.addListener(writer);
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
     assertEquals(file.length(), 1061745);
-    System.out.println("manually check: " + file);
+    log.debug("manually check: " + file);
   }
-
 
   @Test
     public void customVideoStream()
@@ -170,17 +188,31 @@ public class MediaWriterTest
     file.delete();
     assert(!file.exists());
 
-    int w = 200;
-    int h = 200;
+    // video parameters
+
+    int videoStreamIndex = 0;
+    int videoStreamId = 0;
     long deltaTime = 15000;
     long time = 0;
-    IVideoPicture picture = IVideoPicture.make(IPixelFormat.Type.YUV420P, w, h);
+    int w = 200;
+    int h = 200;
+
+    // create the writer
     
     MediaWriter writer = new MediaWriter(file.toString());
-    writer.addListener(new DebugListener(DebugListener.META_DATA));
-    writer.addListener(new MediaViewer());
+    if (SHOW_VIDEO)
+      writer.addListener(new MediaViewer());
+
+    // add the video stream
+
     ICodec codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_FLV1);
-    writer.addVideoStream(0, 0, codec, w, h);
+    writer.addVideoStream(videoStreamIndex, videoStreamId, codec, w, h);
+
+    // create a place for video pictures
+
+    IVideoPicture picture = IVideoPicture.make(IPixelFormat.Type.YUV420P, w, h);
+
+    // make some pictures
 
     double deltaTheta = (Math.PI * 2) / 200;
     for (double theta = 0; theta < Math.PI * 2; theta += deltaTheta)
@@ -199,15 +231,181 @@ public class MediaWriterTest
       g.fillRect(50, 50, 100, 100);
 
       picture.setPts(time);
-      writer.onVideoPicture(writer, picture, image, 0);
+      writer.onVideoPicture(writer, picture, image, videoStreamIndex);
       
       time += deltaTime;
     }
+
+    // close the writer
 
     writer.close();
 
     assert(file.exists());
     assertEquals(291186, file.length());
-    System.out.println("manually check: " + file);
+    log.debug("manually check: " + file);
   }
+
+  @Test
+    public void customAudioStream()
+  {
+    File file = new File(PREFIX + "customAudio.mp3");
+    file.delete();
+    assert(!file.exists());
+
+    // audio parameters
+
+    int audioStreamIndex = 0;
+    int audioStreamId = 0;
+    int channelCount = 2;
+    int sampleRate = 44100;
+    int totalSeconds = 5;
+
+    // create the writer
+    
+    MediaWriter writer = new MediaWriter(file.toString());
+
+    // add the audio stream
+
+    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
+    IStream stream = writer.addAudioStream(audioStreamIndex, audioStreamId,
+      codec, channelCount, sampleRate);
+    int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
+
+    // create a place for audio samples
+
+    IAudioSamples samples = IAudioSamples.make(sampleCount, channelCount);
+
+    // create the tone generator
+
+    TestAudioSamplesGenerator generator = new TestAudioSamplesGenerator();
+    generator.prepare(channelCount, sampleRate);
+
+    // let's make some noise!
+
+    int totalSamples = 0;
+    while (totalSamples < sampleRate * totalSeconds)
+    {
+      generator.fillNextSamples(samples, sampleCount);
+      writer.onAudioSamples(null, samples, audioStreamIndex);
+      totalSamples += samples.getNumSamples();
+    }
+
+    // close the writer
+
+    writer.close();
+
+    assert(file.exists());
+    assertEquals(40365, file.length());
+    log.debug("manually check: " + file);
+  }
+
+
+   @Test
+    public void customAudioVideoStream()
+  {
+    File file = new File(PREFIX + "customAudioVideo.flv");
+    file.delete();
+    assert(!file.exists());
+
+    // video parameters
+
+    int videoStreamIndex = 0;
+    int videoStreamId = 0;
+    long deltaTime = 15000;
+    int w = 200;
+    int h = 200;
+
+    // audio parameters
+
+    int audioStreamIndex = 1;
+    int audioStreamId = 0;
+    int channelCount = 2;
+    int sampleRate = 44100;
+
+    // create the writer
+    
+    MediaWriter writer = new MediaWriter(file.toString());
+    //writer.addListener(new DebugListener(DebugListener.META_DATA));
+    if (SHOW_VIDEO)
+      writer.addListener(new MediaViewer());
+
+    // add the video stream
+
+    ICodec videoCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_FLV1);
+    writer.addVideoStream(videoStreamIndex, videoStreamId, videoCodec, w, h);
+
+    // add the audio stream
+
+    ICodec audioCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
+    IStream stream = writer.addAudioStream(audioStreamIndex, audioStreamId,
+      audioCodec, channelCount, sampleRate);
+    int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
+
+    // create a place for audio samples and video pictures
+
+    IAudioSamples samples = IAudioSamples.make(sampleCount, channelCount);
+    IVideoPicture picture = IVideoPicture.make(IPixelFormat.Type.YUV420P, w, h);
+
+    // create the tone generator
+
+    TestAudioSamplesGenerator generator = new TestAudioSamplesGenerator();
+    generator.prepare(channelCount, sampleRate);
+
+    // make some media
+
+    long videoTime = 0;
+    long audioTime = 0;
+    long totalSamples = 0;
+    long totalSeconds = 6;
+
+    // the goal is to get 6 seconds of audio and video, in this case
+    // driven by audio, but kicking out a video frame and about the
+    // right time
+
+    while (totalSamples < sampleRate * totalSeconds)
+    {
+      // comput the time based on the number of samples
+
+      audioTime = (totalSamples * 1000 * 1000) / sampleRate;
+
+      // if the audioTime i>= videoTime then it's time for a video frame
+
+      if (audioTime >= videoTime)
+      {
+        BufferedImage image = new BufferedImage(w, h, 
+          BufferedImage.TYPE_3BYTE_BGR);
+      
+        Graphics2D g = image.createGraphics();
+        g.setRenderingHint(
+          RenderingHints.KEY_ANTIALIASING,
+          RenderingHints.VALUE_ANTIALIAS_ON);
+
+        double theta = videoTime / 1000000d;
+        g.setColor(Color.RED);
+        g.rotate(theta, w / 2, h / 2);
+        
+        g.fillRect(50, 50, 100, 100);
+        
+        picture.setPts(videoTime);
+        writer.onVideoPicture(writer, picture, image, videoStreamIndex);
+      
+        videoTime += deltaTime;
+      }
+
+      // generate audio
+      
+      generator.fillNextSamples(samples, sampleCount);
+      writer.onAudioSamples(null, samples, audioStreamIndex);
+      totalSamples += samples.getNumSamples();
+    }
+
+    // close the writer
+
+    writer.close();
+
+    assert(file.exists());
+    assertEquals(521938, file.length());
+    log.debug("manually check: " + file);
+  }
+
 }
