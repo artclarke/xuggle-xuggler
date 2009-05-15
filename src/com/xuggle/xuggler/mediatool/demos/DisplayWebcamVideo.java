@@ -42,10 +42,10 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * <p> For example, to play the default camera on these operating
  * systems: <ul> <li>Microsoft Windows:<pre>java -cp
  * %XUGGLE_HOME%\share\java\jars\xuggle-xuggler.jar
- * com.xuggle.xuggler.demos.MrDisplayWebcamVideo vfwcap 0</pre></li>
+ * com.xuggle.xuggler.mediatool.demos.DisplayWebcamVideo vfwcap 0</pre></li>
  * <li>Linux:<pre>java -cp
  * $XUGGLE_HOME/share/java/jars/xuggle-xuggler.jar
- * com.xuggle.xuggler.demos.MrDisplayWebcamVideo video4linux2
+ * com.xuggle.xuggler.mediatool.demos.DisplayWebcamVideo video4linux2
  * /dev/video0</pre></li> </ul> </p>
  * 
  * @author aclarke
