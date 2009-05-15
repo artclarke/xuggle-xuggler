@@ -181,6 +181,10 @@ public class MediaWriterTest
   @Test
     public void customVideoStream()
   {
+    if (!IVideoResampler.isSupported(
+        IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
+      return;
+
     File file = new File(PREFIX + "customVideo.flv");
     file.delete();
     assert(!file.exists());
@@ -300,6 +304,10 @@ public class MediaWriterTest
    @Test
     public void customAudioVideoStream()
   {
+    if (!IVideoResampler.isSupported(
+        IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
+      return;
+
     File file = new File(PREFIX + "customAudioVideo.flv");
     file.delete();
     assert(!file.exists());
