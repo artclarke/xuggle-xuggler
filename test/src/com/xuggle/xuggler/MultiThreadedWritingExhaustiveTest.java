@@ -44,11 +44,11 @@ public class MultiThreadedWritingExhaustiveTest
       {
         public void run()
         {
+          final MediaReader reader = new MediaReader(
+              "fixtures/testfile_videoonly_20sec.flv", true,
+              ConverterFactory.XUGGLER_BGR_24);
           try
           {
-            final MediaReader reader = new MediaReader(
-                "fixtures/testfile_videoonly_20sec.flv", true,
-                ConverterFactory.XUGGLER_BGR_24);
             reader.setAddDynamicStreams(false);
             reader.setQueryMetaData(true);
             if (ADD_VIEWER)
@@ -96,6 +96,7 @@ public class MultiThreadedWritingExhaustiveTest
           }
           finally
           {
+            reader.close();
             log.debug("thread exited with {} packets processed",
                 numPackets[index]);
           }

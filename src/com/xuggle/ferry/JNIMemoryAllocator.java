@@ -101,7 +101,6 @@ public class JNIMemoryAllocator
 
             log.debug("retrying ({}) allocation of {} bytes",
                 allocationAttempts, size);
-            System.gc();
             try
             {
               // give the finalizer a chance

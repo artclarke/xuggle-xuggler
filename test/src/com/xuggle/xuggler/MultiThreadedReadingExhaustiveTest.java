@@ -66,11 +66,11 @@ public class MultiThreadedReadingExhaustiveTest
             e.printStackTrace();
             return;
           }
+          final MediaReader reader = 
+            new MediaReader("fixtures/testfile_videoonly_20sec.flv",
+                true,
+                ConverterFactory.XUGGLER_BGR_24);
           try {
-            final MediaReader reader = 
-              new MediaReader("fixtures/testfile_videoonly_20sec.flv",
-                  true,
-                  ConverterFactory.XUGGLER_BGR_24);
             log.debug("Created reader: {}", reader);
             if (ADD_VIEWER)
             {
@@ -89,6 +89,7 @@ public class MultiThreadedReadingExhaustiveTest
             // tests in this suite that look at memory allocation errors.
             numPackets[index]=-1;
           } finally {
+            reader.close();
             log.debug("Thread exited; memory exception: {};",
                 numPackets[index]==-1 ? "yes" : "no");
           }
