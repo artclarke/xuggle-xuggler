@@ -19,7 +19,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-package com.xuggle.xuggler.demos;
+package com.xuggle.xuggler.mediatool.demos;
 
 import javax.imageio.ImageIO;
 

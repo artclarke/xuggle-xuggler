@@ -27,6 +27,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.xuggle.xuggler.IContainer;
 
+/**
+ * A base class for implementing {@link IMediaTool} objects used
+ * internally by the mediatool package.
+ *  
+ * @author trebor
+ *
+ */
 abstract class AMediaTool implements IMediaTool
 {
   // the container to read from or write to

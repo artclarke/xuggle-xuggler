@@ -42,18 +42,28 @@ import com.xuggle.xuggler.video.ConverterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** 
- * Add this to a media reader to display video.
- *
+/**
+ * Add this to a media reader to display video. Optionally display some basic
+ * statistics overlaid on the screen (currently just a running clock).
+ * 
+ * <p>
+ * 
  * TODO:
- *   - sound suport
- *   - add option to show media in real time
+ * 
+ * </p>
+ * <ul>
+ * 
+ * <li>sound support</li>
+ * 
+ * <li>add option to show media in real time</li>
+ * 
+ * </ul>
+ * 
  */
 
 public class MediaViewer extends MediaAdapter
 {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
-  { log.trace("<init>"); }
   
   // video converters
 
@@ -81,11 +91,12 @@ public class MediaViewer extends MediaAdapter
 
   public MediaViewer()
   {
-    this(true);
+    this(false);
   }
     
   /**
-   * Construct a media viewer.
+   * Construct a media viewer, optionally with some basic movie
+   * statistics overlayed on teh video
    *
    * @param showStats display media statistics
    */
@@ -146,9 +157,12 @@ public class MediaViewer extends MediaAdapter
    * @param image the image on which to draw the time stamp
    */
 
-  public static void drawStats(IVideoPicture picture, 
+  static void drawStats(IVideoPicture picture, 
     BufferedImage image)
   {
+    if (image == null)
+      throw new RuntimeException("must be used with a IMediaTool"+
+          " that created BuffedImages");
     Graphics2D g = image.createGraphics();
     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
       RenderingHints.VALUE_ANTIALIAS_ON);
@@ -171,7 +185,7 @@ public class MediaViewer extends MediaAdapter
 
   protected class MediaFrame extends JFrame 
   {
-    // removs the warning
+    // removes the warning
 
     public static final long serialVersionUID = 0;
 

@@ -27,6 +27,7 @@ package com.xuggle.xuggler.mediatool;
 import java.util.Collection;
 
 import com.xuggle.xuggler.IContainer;
+import com.xuggle.xuggler.IStreamCoder;
 
 
 /** 
@@ -66,7 +67,7 @@ public interface IMediaTool
   
   /** 
    * Get the underlying media {@link IContainer} that the media tool is
-   * reading from or writting to.  The returned {@link IContainer} can
+   * reading from or writing to.  The returned {@link IContainer} can
    * be further interrogated for media stream details.
    *
    * @return the media container.
@@ -100,12 +101,13 @@ public interface IMediaTool
   public abstract boolean isOpen();
     
   /** 
-   * Close this media tool.  This will close all {@IStreamCoders}
+   * Close this media tool.  This will close all {@link IStreamCoder}s
    * explicitly opened by tool, then close the internal {@link
    * IContainer}, again only if it was explicitly opened by tool.
-   * Typically the tool will close itself at the right time, but there
+   * 
+   * <p> Typically the tool will close itself at the right time, but there
    * are instances where the calling context may need to close the
-   * tool.
+   * tool. </p>
    */
 
   public abstract void close();

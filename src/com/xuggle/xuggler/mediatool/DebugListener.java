@@ -39,13 +39,13 @@ import com.xuggle.xuggler.mediatool.IMediaTool;
 import com.xuggle.xuggler.mediatool.IMediaListener;
 
 /**
- * An {@link IMediaTool} listener which logs variouse events.
+ * An {@link IMediaTool} listener which logs {@link IMediaListener} events
+ * to a log file.
  */
 
 public class DebugListener implements IMediaListener
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
-  { log.trace("<init>"); }
 
   // flag values
 

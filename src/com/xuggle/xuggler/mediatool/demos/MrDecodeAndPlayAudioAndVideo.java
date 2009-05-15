@@ -18,7 +18,7 @@
  * with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-package com.xuggle.xuggler.demos;
+package com.xuggle.xuggler.mediatool.demos;
 
 import java.awt.image.BufferedImage;
 
@@ -32,6 +32,7 @@ import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
+import com.xuggle.xuggler.demos.VideoImage;
 import com.xuggle.xuggler.mediatool.IMediaTool;
 import com.xuggle.xuggler.mediatool.MediaAdapter;
 import com.xuggle.xuggler.mediatool.MediaReader;

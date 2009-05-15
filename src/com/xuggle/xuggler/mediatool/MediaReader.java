@@ -53,7 +53,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * The MediaReader class is a simplified interface to the Xuggler library
  * that opens up an {@link IContainer} object, and then every time you
  * call {@link MediaReader#readPacket()}, attempts to decode the packet and
- * call any registers {@link IMediaListener} objects for that packet.
+ * call any registered {@link IMediaListener} objects for that packet.
  * </p><p>
  * The idea is to abstract away the more intricate details of the
  * Xuggler API, and let you concentrate on what you want -- the decoded
@@ -102,7 +102,7 @@ public class MediaReader extends AMediaTool
   protected IConverter mVideoConverter;
 
   /**
-   * Create a MediaReader which reads and dispatchs data from a media
+   * Create a MediaReader which reads and dispatches data from a media
    * stream for a given source URL. The media stream is opened, and
    * subsequent calls to {@link #readPacket()} will read stream content
    * and dispatch it to attached listeners. When the end of the stream
@@ -126,7 +126,7 @@ public class MediaReader extends AMediaTool
   }
 
   /**
-   * Create a MediaReader which reads and dispatchs data from a media
+   * Create a MediaReader which reads and dispatches data from a media
    * stream for a given source URL. The media stream is opened, and
    * subsequent calls to {@link #readPacket()} will read stream content
    * and dispatch it to attached listeners. When the end of the stream
@@ -136,13 +136,13 @@ public class MediaReader extends AMediaTool
    * @param url the location of the media content, a file name will also
    *        work here
    * @param createBufferedImages true if BufferedImages should be
-   *        created during media reading
+   *        created during media reading.
    * @param converterDescriptor the descriptive of converter to use to
    *        create buffered images; if createBufferedImages is FALSE,
    *        this may be NULL
    *
    * @throws IllegalArgumentException if BufferedImage conversion is
-   *         requried and the passed converter descriptor is NULL
+   *         required and the passed converter descriptor is NULL
    * @throws UnsupportedOperationException if the converter can not be
    *         found
    */
@@ -173,24 +173,24 @@ public class MediaReader extends AMediaTool
   }
 
   /**
-   * Create a MediaReader which reads and dispatchs data from a media
-   * container.  Calls to {@link #readPacket} will read stream content
-   * and dispatch it to attached listeners. If the end of the media
-   * stream is encountered, the MediaReader does NOT close the
-   * container, that is left to the calling context (you).  Streams
-   * opened by the MediaReader will be closed by the MediaReader,
-   * however streams outside the MediaReader will not be closed.  In
-   * short MediaReader closes what it opens.
+   * Create a MediaReader which reads and dispatches data from a media
+   * container. Calls to {@link #readPacket} will read stream content and
+   * dispatch it to attached listeners. If the end of the media stream is
+   * encountered, the MediaReader does NOT close the container, that is left to
+   * the calling context (you). {@link IStreamCoder}s opened by the MediaReader
+   * will be closed by the MediaReader, however {@link IStreamCoder}s opened
+   * outside the MediaReader will not be closed. In short MediaReader closes
+   * what it opens.
    * 
    * <p>
    * 
-   * No {@link BufferedImage}s are created.  To create {@link
-   * BufferedImage}s see {@link #MediaReader(IContainer, boolean,
-   * String)}.
-   *
+   * No {@link BufferedImage}s are created. To create {@link BufferedImage}s see
+   * {@link #MediaReader(IContainer, boolean, String)}.
+   * 
    * </p>
-   *
-   * @param container on already open media container
+   * 
+   * @param container
+   *          on already open media container
    */
 
   public MediaReader(IContainer container)
@@ -199,26 +199,28 @@ public class MediaReader extends AMediaTool
   }
 
   /**
-   * Create a MediaReader which reads and dispatchs data from a media
-   * container.  Calls to {@link #readPacket} will read stream content
-   * and dispatch it to attached listeners. If the end of the media
-   * stream is encountered, the MediaReader does NOT close the
-   * container, that is left to the calling context (you).  Streams
-   * opened by the MediaReader will be closed by the MediaReader,
-   * however streams outside the MediaReader will not be closed.  In
-   * short MediaReader closes what it opens.
-   *
-   * @param container on already open media container
-   * @param createBufferedImages should BufferedImages be created during
-   *        media reading
-   * @param converterDescriptor the descriptive of converter to use to
-   *        create buffered images; if createBufferedImages is FALSE,
-   *        this may be NULL
-   *
-   * @throws IllegalArgumentException if BufferedImage conversion is
-   *         requried and the passed converter descriptor is NULL
-   * @throws UnsupportedOperationException if the converter can not be
-   *         found
+   * Create a MediaReader which reads and dispatches data from a media
+   * container. Calls to {@link #readPacket} will read stream content and
+   * dispatch it to attached listeners. If the end of the media stream is
+   * encountered, the MediaReader does NOT close the container, that is left to
+   * the calling context (you). {@link IStreamCoder}s opened by the MediaReader
+   * will be closed by the MediaReader, however {@link IStreamCoder}s outside
+   * the MediaReader will not be closed. In short MediaReader closes what it
+   * opens.
+   * 
+   * @param container
+   *          on already open media container
+   * @param createBufferedImages
+   *          should BufferedImages be created during media reading
+   * @param converterDescriptor
+   *          the descriptive of converter to use to create buffered images; if
+   *          createBufferedImages is FALSE, this may be NULL
+   * 
+   * @throws IllegalArgumentException
+   *           if BufferedImage conversion is required and the passed converter
+   *           descriptor is NULL
+   * @throws UnsupportedOperationException
+   *           if the converter can not be found
    */
 
   public MediaReader(IContainer container, boolean createBufferedImages, 
@@ -250,24 +252,37 @@ public class MediaReader extends AMediaTool
       mConverterType = null;
   }
 
-  /** 
-   * Set if the underlying media container supports adding dynamic
-   * streams.  See {@link IContainer#open(String, IContainer.Type,
-   * IContainerFormat, boolean, boolean)}.  The default value for this
-   * is false.
-   *
+  /**
+   * Set if the underlying media container supports adding dynamic streams. See
+   * {@link IContainer#open(String, IContainer.Type, IContainerFormat, boolean, boolean)}
+   * . The default value for this is false.
+   * 
    * <p>
    * 
-   * To have an effect, the MediaReader must not have been created with
-   * an already open {@link IContainer}, and this method must be called
-   * before the first call to {@link #readPacket}.
-   *
+   * If set to false, Xuggler can assume no new streams will be added after
+   * {@link #open()} has been called, and may decide to query the entire media
+   * file to find all meta data. If true then Xuggler will not read ahead;
+   * instead it will only query meta data for a stream when a
+   * {@link #readPacket()} returns the first packet in a new stream. Note that a
+   * {@link MediaWriter} can only initialize itself from a {@link MediaReader}
+   * that has this parameter set to false.
+   * 
    * </p>
    * 
-   * @param streamsCanBeAddedDynamically true if new streams may appear
-   *         at any time during a {@link #readPacket} call
-   *
-   * @throws RuntimeException if the media container is already open
+   * <p>
+   * 
+   * To have an effect, the MediaReader must not have been created with an
+   * already open {@link IContainer}, and this method must be called before the
+   * first call to {@link #readPacket}.
+   * 
+   * </p>
+   * 
+   * @param streamsCanBeAddedDynamically
+   *          true if new streams may appear at any time during a
+   *          {@link #readPacket} call
+   * 
+   * @throws RuntimeException
+   *           if the media container is already open
    */
 
   public void setAddDynamicStreams(boolean streamsCanBeAddedDynamically)
@@ -393,15 +408,14 @@ public class MediaReader extends AMediaTool
    * 
    * <p>
    * 
-   * If a complete video frame or audio sample set are decoded, it will
-   * be dispatched to the listeners added to the media reader.
-   *
+   * If a complete {@link IVideoPicture} or {@link IAudioSamples} set are
+   * decoded, it will be dispatched to the listeners added to the media reader.
+   * 
    * </p>
    * 
-   * @return null if there are more packets to read, otherwise return an
-   *         IError instance.  If {@link
-   *         com.xuggle.xuggler.IError#getType()} == {@link
-   *         com.xuggle.xuggler.IError.Type#ERROR_EOF} then end of file
+   * @return null if there are more packets to read, otherwise return an IError
+   *         instance. If {@link com.xuggle.xuggler.IError#getType()} ==
+   *         {@link com.xuggle.xuggler.IError.Type#ERROR_EOF} then end of file
    *         has been reached.
    */
     
@@ -523,14 +537,17 @@ public class MediaReader extends AMediaTool
     }
   }
 
-  /** Dispatch a video picture to attached listeners.  This is called
-   * when a complete video picture has been decoded from the packet
-   * stream.  Optionally it will take the steps required to convert the
-   * IVideoPicture to a BufferedImage.  If you wanted to perform a
-   * custom conversion, subclass and override this method.
-   *
-   * @param streamIndex the index of the stream
-   * @param picture the video picture to dispatch
+  /**
+   * Dispatch a decoded {@link IVideoPicture} to attached listeners. This is
+   * called when a complete video picture has been decoded from the packet
+   * stream. Optionally it will take the steps required to convert the
+   * {@link IVideoPicture} to a {@link BufferedImage}. If you wanted to perform
+   * a custom conversion, subclass and override this method.
+   * 
+   * @param streamIndex
+   *          the index of the stream
+   * @param picture
+   *          the video picture to dispatch
    */
 
 
@@ -559,13 +576,16 @@ public class MediaReader extends AMediaTool
       l.onVideoPicture(null, picture, image, streamIndex);
   }
 
-  /** Dispatch audio samples to attached listeners.  This is called when
-   * a complete set of audio samples has been decoded from the packet
-   * stream.  If you wanted to perform a common custom conversion,
-   * subclass and override this method.
-   *
-   * @param streamIndex the index of the stream
-   * @param samples the audio samples to dispatch
+  /**
+   * Dispatch {@link IAudioSamples} to attached listeners. This is called when a
+   * complete set of {@link IAudioSamples} has been decoded from the packet
+   * stream. If you wanted to perform a common custom conversion, subclass and
+   * override this method.
+   * 
+   * @param streamIndex
+   *          the index of the stream
+   * @param samples
+   *          the audio samples to dispatch
    */
   
   protected void dispatchAudioSamples(int streamIndex, IAudioSamples samples)

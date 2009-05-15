@@ -27,7 +27,6 @@ import java.util.Vector;
 import java.util.Collection;
 
 import java.awt.image.BufferedImage;
-import java.awt.Dimension;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,30 +48,34 @@ import com.xuggle.xuggler.video.ConverterFactory;
 
 /**
  * General purpose media writer.
- *
+ * 
  * <p>
  * 
- * The MediaWriter class is a simplified interface to the Xuggler
- * library that opens up an {@link IContainer} object, and allows media
- * data to be writen into it.  Calls to {@link #onAudioSamples}, and
- * {@link #onVideoPicture} encode media into packets and dispatch those
- * packets.
- *
+ * The MediaWriter class is a simplified interface to the Xuggler library that
+ * opens up a media container, and allows media data to be written into it.
+ * 
  * </p>
+ * 
  * <p>
- *
- * When {@link #onAudioSamples} or {@link #onVideoPicture} is called a
- * stream index is specifed.  The only requirement of these indicies is
- * that they consistantly map to specific streams.  If a new index is
- * encountered a new stream will be created.
+ * 
+ * Calls to {@link #onAudioSamples}, and {@link #onVideoPicture} encode media
+ * into packets and write those encoded packets.
  * 
  * </p>
  * <p>
- *
- * The idea is to abstract away the more intricate details of the
- * Xuggler API, and let you concentrate on what you want.
- *
- * </p> 
+ * 
+ * When {@link #onAudioSamples} or {@link #onVideoPicture} is called a stream
+ * index is specified. The only requirement of these stream indices is that they
+ * consistently map to specific streams. If a new index is encountered a new
+ * stream will be created.
+ * 
+ * </p>
+ * <p>
+ * 
+ * The idea is to abstract away the more intricate details of the Xuggler API,
+ * and let you concentrate on what you want.
+ * 
+ * </p>
  */
 
 public class MediaWriter extends AMediaTool implements IMediaListener
@@ -256,7 +259,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    * provide an easy way to further configure the stream.
    * 
    * @param inputIndex the index that will be passed to {@link
-   *        #onAudioPicture} for this stream
+   *        #onAudioSamples} for this stream
    * @param streamId a format-dependent id for this stream
    * @param codec the codec to used to encode data, to establish the
    *        codec see {@link com.xuggle.xuggler.ICodec}
@@ -421,10 +424,10 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   }
 
   /**
-   * Test if the MediaWriter will force FFMPEG to interleave media data.
+   * Test if the MediaWriter will forcibly interleave media data.
    * The default value for this value is true.
    *
-   * @return true if MediaWriter forces ffmepg to interleave media data.
+   * @return true if MediaWriter forces Xuggler to interleave media data.
    *
    * @see #setForceInterleave
    */
@@ -445,7 +448,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    * </p>
    * <p>
    *
-   * If true MediaWriter will ask FFMPEG to place media data in time
+   * If true MediaWriter will ask Xuggler to place media data in time
    * stamp order, which is required for streaming media.
    *
    * <p>

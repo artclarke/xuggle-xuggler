@@ -14,9 +14,10 @@ import com.xuggle.xuggler.IVideoPicture;
  *
  * <p>
  * 
- * These methods will block continued media processing by operation of
- * calling tool.
- *
+ * These methods block the calling {@link IMediaTool} while they process so
+ * try to return quickly.  If you have long running actions to perform, use
+ * a separate thread.
+ * 
  * </p>
  */
 
@@ -24,12 +25,13 @@ public interface IMediaListener
 {
   /**
    * Called after a video frame has been decoded by a {@link
-   * MediaReader} or encode by a {@link MediaWriter}.  Optionally a
+   * MediaReader} or encoded by a {@link MediaWriter}.  Optionally a
    * BufferedImage version of the frame may be passed.
    *
    * @param tool the tool that generated this event
    * @param picture a raw video picture
-   * @param image the buffered image, which may be null
+   * @param image the buffered image, which may be null if conversion was
+   *   not asked for.
    * @param streamIndex the index of the stream this object was decoded from.
    */
 
@@ -38,10 +40,10 @@ public interface IMediaListener
   
   /**
    * Called after audio samples have been decoded by a {@link
-   * MediaReader} or encode by a {@link MediaWriter}.
+   * MediaReader} or encoded by a {@link MediaWriter}.
    *
    * @param tool the tool that generated this event
-   * @param samples a audio samples
+   * @param samples a set of audio samples
    * @param streamIndex the index of the stream
    */
 
