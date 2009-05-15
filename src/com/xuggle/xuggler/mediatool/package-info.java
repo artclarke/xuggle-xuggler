@@ -27,9 +27,16 @@
  * <p>
  * 
  * For a good example of using the approach see the
- * {@link com.xuggle.xuggler.mediatool.demos.MrDecodeAndPlayVideo} demonstration
+ * {@link com.xuggle.xuggler.mediatool.demos.DecodeAndPlayVideo} demonstration
  * application. In about 20 lines of Java code is opens up any media file, finds
  * all the video streams in that file, and displays them on the screen.
+ * 
+ * </p>
+ * 
+ * <p>
+ * 
+ * For see the {@link com.xuggle.xuggler.mediatool.demos.DisplayWebcamVideo}
+ * demonstration that displays a webcam on screen.
  * 
  * </p>
  * 

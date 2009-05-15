@@ -43,7 +43,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * @author trebor
  */
 
-public class MrDecodeAndCaptureFrames extends MediaAdapter
+public class DecodeAndCaptureFrames extends MediaAdapter
 {
   /** 
    * The number of seconds between frames.
@@ -85,16 +85,16 @@ public class MrDecodeAndCaptureFrames extends MediaAdapter
     
     // create a new mr. decode and capture frames
     
-    new MrDecodeAndCaptureFrames(args[0]);
+    new DecodeAndCaptureFrames(args[0]);
   }
 
-  /** Construct a MrDecodeAndCaptureFrames which reads and captures
+  /** Construct a DecodeAndCaptureFrames which reads and captures
    * frames from a video file.
    * 
    * @param filename the name of the media file to read
    */
 
-  public MrDecodeAndCaptureFrames(String filename)
+  public DecodeAndCaptureFrames(String filename)
   {
     // create a media reader for processing video, stipulate that we
     // want BufferedImages to created in BGR 24bit color space
@@ -102,9 +102,9 @@ public class MrDecodeAndCaptureFrames extends MediaAdapter
     MediaReader mediaReader = new MediaReader(filename, true,
       ConverterFactory.XUGGLER_BGR_24);
     
-    // note that MrDecodeAndCaptureFrames is derived from
+    // note that DecodeAndCaptureFrames is derived from
     // MediaReader.ListenerAdapter and thus may be added as a listener
-    // to the MediaReader. MrDecodeAndCaptureFrames implements
+    // to the MediaReader. DecodeAndCaptureFrames implements
     // onVideoPicture().
 
     mediaReader.addListener(this);

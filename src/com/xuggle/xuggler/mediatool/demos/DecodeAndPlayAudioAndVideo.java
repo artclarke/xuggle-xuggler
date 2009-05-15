@@ -52,7 +52,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * @author trebor
  */
 
-public class MrDecodeAndPlayAudioAndVideo extends MediaAdapter
+public class DecodeAndPlayAudioAndVideo extends MediaAdapter
 {
   /**
    * The audio line we'll output sound to; it'll be the default audio
@@ -116,16 +116,16 @@ public class MrDecodeAndPlayAudioAndVideo extends MediaAdapter
     
     // create a new mr. decode an play audio and video
     
-    new MrDecodeAndPlayAudioAndVideo(args[0]);
+    new DecodeAndPlayAudioAndVideo(args[0]);
   }
 
-  /** Construct a MrDecodeAndPlayAudioAndVideo which reads and plays a
+  /** Construct a DecodeAndPlayAudioAndVideo which reads and plays a
    * video file.
    * 
    * @param filename the name of the media file to read
    */
 
-  public MrDecodeAndPlayAudioAndVideo(String filename)
+  public DecodeAndPlayAudioAndVideo(String filename)
   {
     // create a media reader for processing video, stipulate that we
     // want BufferedImages to created in BGR 24bit color space
@@ -133,9 +133,9 @@ public class MrDecodeAndPlayAudioAndVideo extends MediaAdapter
     mMediaReader = new MediaReader(filename, true,
       ConverterFactory.XUGGLER_BGR_24);
     
-    // note that MrDecodeAndPlayAudioAndVideo is derived from
+    // note that DecodeAndPlayAudioAndVideo is derived from
     // MediaReader.IListener and thus may be added as a listener to the
-    // MediaReader. MrDecodeAndPlayAudioAndVideo implements
+    // MediaReader. DecodeAndPlayAudioAndVideo implements
     // onVideoPicture() and onAudioSamples().
 
     mMediaReader.addListener(this);

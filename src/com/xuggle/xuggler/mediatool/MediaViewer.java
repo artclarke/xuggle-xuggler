@@ -83,7 +83,9 @@ public class MediaViewer extends MediaAdapter
 
   // show or hide media statistics
 
-  private boolean mShowStats;
+  private final boolean mShowStats;
+
+  private final int mDefaultCloseOperation;
   
   /**
    * Construct a media viewer.
@@ -95,19 +97,34 @@ public class MediaViewer extends MediaAdapter
   }
     
   /**
-   * Construct a media viewer, optionally with some basic movie
-   * statistics overlayed on teh video
-   *
+   * Construct a media viewer, optionally with some basic
+   * movie statistics overlaid on the video.
+   * 
    * @param showStats display media statistics
    */
-
   public MediaViewer(boolean showStats)
   {
+    this(showStats, JFrame.DISPOSE_ON_CLOSE);
+  }
+  /**
+   * Construct a media viewer, optionally with some basic movie
+   * statistics overlaid on the video
+   *
+   * @param showStats display media statistics
+   * @param defaultCloseOperation what should Swing do if the window
+   *   is closed.  See the {@link JFrame} documentation for valid
+   *   values.
+   */
+
+  public MediaViewer(boolean showStats, int defaultCloseOperation)
+  {
     mShowStats = showStats;
+    mDefaultCloseOperation = defaultCloseOperation;
   }
 
   /** {@inheritDoc} */
   
+  @Override
   public void onVideoPicture(IMediaTool tool, IVideoPicture picture, 
     BufferedImage image, int streamIndex)
   {
@@ -143,6 +160,8 @@ public class MediaViewer extends MediaAdapter
       frame.setLocation(
         image.getWidth() * mFrameIndex.get(frame),
         (int)frame.getLocation().getY());
+      frame.setDefaultCloseOperation(mDefaultCloseOperation);
+
     }
     
     // set the image on the frame
@@ -150,6 +169,17 @@ public class MediaViewer extends MediaAdapter
     frame.setVideoImage(image);
   }
 
+  /** {@inheritDoc}
+   * Closes any open windows on screen. 
+   */
+  @Override
+  public void onClose(IMediaTool tool)
+  {
+    for(MediaFrame frame : mFrames.values())
+    {
+      frame.dispose(); 
+    }
+  };
   /**
    * Show the video time on the video.
    *

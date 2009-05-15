@@ -22,16 +22,15 @@ package com.xuggle.xuggler.mediatool.demos;
 
 import java.awt.image.BufferedImage;
 
+import javax.swing.JFrame;
+
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.IContainer;
-import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IContainerFormat;
 import com.xuggle.xuggler.IContainerParameters;
-import com.xuggle.xuggler.demos.VideoImage;
-import com.xuggle.xuggler.mediatool.IMediaTool;
-import com.xuggle.xuggler.mediatool.MediaAdapter;
 import com.xuggle.xuggler.mediatool.MediaReader;
+import com.xuggle.xuggler.mediatool.MediaViewer;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 
@@ -53,20 +52,8 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * @author trebor
  */
 
-public class MrDisplayWebcamVideo extends MediaAdapter
+public class DisplayWebcamVideo
 {
-  /**
-   * The window we'll draw the video on.
-   */
-
-  private static VideoImage mScreen = null;
-
-  /**
-   * The media reader which will do much of the reading work.
-   */
-
-  private MediaReader mMediaReader;
-
   /**
    * Takes a FFMPEG webcam driver name, and a device name, opens the
    * webcam, and displays its video in a Swing window.
@@ -113,17 +100,17 @@ public class MrDisplayWebcamVideo extends MediaAdapter
     
     // create a new mr. display webcam video
     
-    new MrDisplayWebcamVideo(args[0], args[1]);
+    new DisplayWebcamVideo(args[0], args[1]);
   }
 
-  /** Construct a MrDisplayWebcamVideo which reads and plays a video
+  /** Construct a DisplayWebcamVideo which reads and plays a video
    * from an attached webcam.
    * 
    * @param driverName the name of the webcan drive
    * @param deviceName the name of the webcan device
    */
 
-  public MrDisplayWebcamVideo(String driverName, String deviceName)
+  public DisplayWebcamVideo(String driverName, String deviceName)
   {
     // create a Xuggler container object
 
@@ -175,68 +162,23 @@ public class MrDisplayWebcamVideo extends MediaAdapter
     // IContainer, stipulate that we want BufferedImages to created in
     // BGR 24bit color space
 
-    mMediaReader = new MediaReader(container, true,
+    MediaReader reader = new MediaReader(container, true,
       ConverterFactory.XUGGLER_BGR_24);
     
-    // note that MrDisplayWebcamVideo is derived from
-    // MediaReader.ListenerAdapter and thus may be added as a listener
-    // to the MediaReader. MrDisplayWebcamVideo implements
-    // onVideoPicture().
-
-    mMediaReader.addListener(this);
-
-    // open the video screen
-
-    openJavaVideo();
+    // Add a media viewer that will display the video, but that exits
+    // the JVM when it is destroyed
+    reader.addListener(new MediaViewer(true, JFrame.EXIT_ON_CLOSE));
 
     // read out the contents of the media file, note that nothing else
     // happens here.  action happens in the onVideoPicture() method
     // which is called when complete video pictures are extracted from
-    // the media source
+    // the media source.  Since we're reading from a web cam this
+    // loop will never return, but if the window is closed, the JVM is
+    // exited.
 
-    while (mMediaReader.readPacket() == null)
+    while (reader.readPacket() == null)
       ;
 
-    // close video screen
-    
-    closeJavaVideo();
   }
 
-  /** 
-   * Called after a video frame has been decoded from a media stream.
-   * Optionally a BufferedImage version of the frame may be passed
-   * if the calling {@link MediaReader} instance was configured to
-   * create BufferedImages.
-   * 
-   * This method blocks, so return quickly.
-   * @param picture a raw video picture
-   * @param image the buffered image, which will be null if buffered
-   *        image creation is de-selected for this MediaReader.
-   * @param streamIndex the index of the stream this object was decoded from.
-   */
-
-  public void onVideoPicture(IMediaTool tool, IVideoPicture picture,
-    BufferedImage image, int streamIndex)
-  {
-    mScreen.setImage(image);
-  }
-
-  /**
-   * Opens a Swing window on screen.
-   */
-
-  private static void openJavaVideo()
-  {
-    mScreen = new VideoImage();
-  }
-
-  /**
-   * Forces the swing thread to terminate; I'm sure there is a right
-   * way to do this in swing, but this works too.
-   */
-
-  private static void closeJavaVideo()
-  {
-    System.exit(0);
-  }
 }

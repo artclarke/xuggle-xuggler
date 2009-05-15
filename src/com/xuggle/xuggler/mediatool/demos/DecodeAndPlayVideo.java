@@ -27,7 +27,6 @@ import java.awt.image.BufferedImage;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.mediatool.IMediaTool;
-import com.xuggle.xuggler.mediatool.MediaAdapter;
 import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.mediatool.MediaViewer;
 import com.xuggle.xuggler.video.ConverterFactory;
@@ -43,7 +42,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * @author trebor
  */
 
-public class MrDecodeAndPlayVideo extends MediaAdapter
+public class DecodeAndPlayVideo
 {
   private long mStartTimeStamp = Global.NO_PTS;
   private long mStartClockTime = 0L;
@@ -65,17 +64,17 @@ public class MrDecodeAndPlayVideo extends MediaAdapter
 
     // create a new mr. decode an play video
 
-    new MrDecodeAndPlayVideo(args[0]);
+    new DecodeAndPlayVideo(args[0]);
   }
 
   /**
-   * Construct a MrDecodeAndPlayVideo which reads and plays a video file.
+   * Construct a DecodeAndPlayVideo which reads and plays a video file.
    * 
    * @param filename
    *          the name of the media file to read
    */
 
-  public MrDecodeAndPlayVideo(String filename)
+  public DecodeAndPlayVideo(String filename)
   {
     // create a media reader for processing video, stipulate that we
     // want BufferedImages to created in BGR 24bit color space
@@ -129,6 +128,5 @@ public class MrDecodeAndPlayVideo extends MediaAdapter
 
     while (mediaReader.readPacket() == null)
       ;
-    System.exit(0);
   }
 }
