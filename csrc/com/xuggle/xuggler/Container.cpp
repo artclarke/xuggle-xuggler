@@ -64,7 +64,7 @@ namespace com { namespace xuggle { namespace xuggler
   {
     if (mIsOpened)
     {
-      VS_LOG_ERROR("Closing dangling Container");
+      VS_LOG_DEBUG("Closing dangling Container");
       (void) this->close();
     }
     VS_ASSERT(!mFormatContext,
@@ -390,7 +390,7 @@ namespace com { namespace xuggle { namespace xuggler
 
       if (mNeedTrailerWrite)
       {
-        VS_LOG_WARN("Writing dangling trailer");
+        VS_LOG_DEBUG("Writing dangling trailer");
         (void) this->writeTrailer();
       }
       mOpenCoders.clear();
