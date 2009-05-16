@@ -262,6 +262,7 @@ struct VSJNI_AllocationHeader
 static void *
 VSJNI_malloc(jobject obj, size_t requested_size)
 {
+  try {
   void* retval = 0;
   void* buffer = 0;
   JNIEnv* env = 0;
@@ -419,6 +420,9 @@ VSJNI_malloc(jobject obj, size_t requested_size)
   // but that doesn't work
   // for Java allocations, so we do this hack for everyone.
   return VSJNI_alignMemory(retval);
+  } catch (std::bad_alloc & e) {
+    return 0;
+  }
 }
 
 /**

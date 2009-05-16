@@ -68,6 +68,8 @@ namespace com { namespace xuggle { namespace xuggler
           FF_INPUT_BUFFER_PADDING_SIZE;
 
       mSamples = IBuffer::make(this, bufSize);
+      if (!mSamples)
+        throw std::bad_alloc();
 
       if (mSamples)
       {

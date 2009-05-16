@@ -72,7 +72,7 @@ public class JNIMemoryAllocator
   {
     byte[] retval = null;
     // first check the parachute
-    JNIMemoryParachute.getParachute().packChute();
+    //JNIMemoryParachute.getParachute().packChute();
     try
     {
       if (SHOULD_RETRY_FAILED_ALLOCS)
@@ -101,7 +101,7 @@ public class JNIMemoryAllocator
             if (allocationAttempts >= MAX_ALLOCATION_ATTEMPTS)
             {
               // try pulling our rip cord
-              JNIMemoryParachute.getParachute().pullCord();
+              //JNIMemoryParachute.getParachute().pullCord();
               // do one last "hope gc" to free our own memory
               JNIWeakReference.getMgr().gc();
               // and throw the error back to the native code
