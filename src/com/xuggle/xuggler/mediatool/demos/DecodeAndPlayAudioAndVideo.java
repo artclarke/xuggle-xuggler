@@ -38,7 +38,6 @@ import com.xuggle.xuggler.mediatool.MediaAdapter;
 import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.video.ConverterFactory;
 
-
 /**
  * Using {@link MediaReader}, takes a media container, finds the first video stream,
  * decodes that stream, and then plays the audio and video.
