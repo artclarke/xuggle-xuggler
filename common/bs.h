@@ -219,7 +219,12 @@ static inline void bs_write_ue( bs_t *s, int val )
 static inline void bs_write_se( bs_t *s, int val )
 {
     int size = 0;
-    int tmp = val = val <= 0 ? -val*2+1 : val*2;
+    /* Faster than (val <= 0 ? -val*2+1 : val*2) */
+    /* 4 instructions on x86, 3 on ARM */
+    int tmp = 1 - val*2;
+    if( tmp < 0 ) tmp = val*2;
+    val = tmp;
+
     if( tmp >= 0x100 )
     {
         size = 16;
@@ -258,7 +263,12 @@ static inline int bs_size_ue_big( unsigned int val )
 
 static inline int bs_size_se( int val )
 {
-    return bs_size_ue_big( val <= 0 ? -val*2 : val*2-1 );
+    int tmp = 1 - val*2;
+    if( tmp < 0 ) tmp = val*2;
+    if( tmp < 256 )
+        return x264_ue_size_tab[tmp];
+    else
+        return x264_ue_size_tab[tmp>>8]+16;
 }
 
 static inline int bs_size_te( int x, int val )
