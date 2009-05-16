@@ -31,15 +31,11 @@ cc_check() {
 int main () { $3 return 0; }
 EOF
     $CC conftest.c $CFLAGS $LDFLAGS $2 -o conftest 2>$DEVNULL
-    TMP="$?"
-    return $TMP
 }
 
 as_check() {
     echo "$1" > conftest.asm
     $AS conftest.asm $ASFLAGS $2 -o conftest.o 2>$DEVNULL
-    TMP="$?"
-    return $TMP
 }
 
 rm -f config.h config.mak x264.pc conftest*
@@ -236,6 +232,9 @@ case $host_cpu in
     ARCH="X86"
     AS="yasm"
     ASFLAGS="$ASFLAGS -O2"
+    if [[ "$asm" == yes && "$CFLAGS" != *-march* ]]; then
+      CFLAGS="$CFLAGS -march=i686"
+    fi
     if [ "$SYS" = MACOSX ]; then
       ASFLAGS="$ASFLAGS -f macho -DPREFIX"
     elif [ "$SYS" = MINGW ]; then
