@@ -397,28 +397,26 @@ public class MediaReader extends AMediaTool
           mCoders.put(i, coder);
           for (IMediaListener listener: getListeners())
             listener.onAddStream(this, stream);
-          ICodec.Type type = coder.getCodecType();
-          // if the coder is not open, open it 
-          // NOTE: MediaReader currently supports audio & video streams
-
-          if (!coder.isOpen() && 
-            (type==ICodec.Type.CODEC_TYPE_AUDIO || type==ICodec.Type.CODEC_TYPE_VIDEO))
-          {
-            if (coder.open() < 0)
-              throw new RuntimeException(
-                "could not open coder for stream: " + i);
-            mOpenedStreams.add(stream);
-            for (IMediaListener listener: getListeners())
-              listener.onOpenStream(this, stream);
-          }
-          
         }
       }
-      // now get the coder for the given stream index
-      coder = mCoders.get(streamIndex);
     }
-      
-    // return the coder, new or cached
+    coder = mCoders.get(streamIndex);
+    IStream stream = mContainer.getStream(streamIndex);
+    ICodec.Type type = coder.getCodecType();
+    // if the coder is not open, open it
+    // NOTE: MediaReader currently supports audio & video streams
+
+    if (!coder.isOpen()
+        && (type == ICodec.Type.CODEC_TYPE_AUDIO || type == ICodec.Type.CODEC_TYPE_VIDEO))
+    {
+      if (coder.open() < 0)
+        throw new RuntimeException("could not open coder for stream: "
+            + streamIndex);
+      mOpenedStreams.add(stream);
+      for (IMediaListener listener : getListeners())
+        listener.onOpenStream(this, stream);
+
+    }
     
     return coder;
   }
