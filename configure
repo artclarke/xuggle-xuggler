@@ -1640,8 +1640,8 @@ Optional Features:
   --enable-javamemory     use the Java Virtual Machine instead of the Native
                           Heap to allocate large memory objects (default is
                           yes)
-  --enable-gpl            whether to enable GPL dependent code (defaults to
-                          yes)
+  --enable-gpl            whether to enable AGPL V3 dependent code (defaults
+                          to yes)
   --enable-captives       use our own captive versions of dependent libraries
                           (default is yes)
   --enable-captive-ffmpeg use our own captive versions of the FFMPEG shared
@@ -19122,8 +19122,8 @@ $as_echo_n "checking if you smiled... " >&6; }
 { $as_echo "$as_me:$LINENO: result: let us know: info@xuggle.com" >&5
 $as_echo "let us know: info@xuggle.com" >&6; }
 
-{ $as_echo "$as_me:$LINENO: checking whether to compile Xuggle with GPL code" >&5
-$as_echo_n "checking whether to compile Xuggle with GPL code... " >&6; }
+{ $as_echo "$as_me:$LINENO: checking whether to compile Xuggle with AGPL V3 code" >&5
+$as_echo_n "checking whether to compile Xuggle with AGPL V3 code... " >&6; }
 # Check whether --enable-gpl was given.
 if test "${enable_gpl+set}" = set; then
   enableval=$enable_gpl;
@@ -19135,40 +19135,49 @@ VS_ENABLE_GPL=$enable_gpl
 { $as_echo "$as_me:$LINENO: result: $enable_gpl" >&5
 $as_echo "$enable_gpl" >&6; }
 if test "x$VS_ENABLE_GPL" = "xyes"; then
-  { $as_echo "$as_me:$LINENO: WARNING: Compiling the GPL version of Xuggle" >&5
-$as_echo "$as_me: WARNING: Compiling the GPL version of Xuggle" >&2;}
+  { $as_echo "$as_me:$LINENO: WARNING: Compiling the GNU Affero General Public License version of Xuggle" >&5
+$as_echo "$as_me: WARNING: Compiling the GNU Affero General Public License version of Xuggle" >&2;}
 
 cat >>confdefs.h <<\_ACEOF
 #define VS_ENABLE_GPL 1
 _ACEOF
 
 else
-  { $as_echo "$as_me:$LINENO: WARNING:
+  { { $as_echo "$as_me:$LINENO: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+{ { $as_echo "$as_me:$LINENO: error:
 
-  vvvvvvvvvvvvvvvvvvvvv WARNING vvvvvvvvvvvvvvvvvvvvv
+  vvvvvvvvvvvvvvvvvvvvv ERROR vvvvvvvvvvvvvvvvvvvvv
 
-  We are compiling the LGPL version of Xuggle which has
-  no support for video rescaling or color-space changing
+  Xuggler is only available for free with a GNU
+  Affero General Public License.
 
-  If you want the VideoResampler object to be active you must
-  specify --enable-gpl=yes when running configure.
+  If you are interested in a difference license,
+  please see our licensing page or send e-mail to
+  info@xuggle.com
 
-  ^^^^^^^^^^^^^^^^^^^^^ WARNING ^^^^^^^^^^^^^^^^^^^^^
 
-  " >&5
-$as_echo "$as_me: WARNING:
+  ^^^^^^^^^^^^^^^^^^^^^ ERROR ^^^^^^^^^^^^^^^^^^^^^
 
-  vvvvvvvvvvvvvvvvvvvvv WARNING vvvvvvvvvvvvvvvvvvvvv
 
-  We are compiling the LGPL version of Xuggle which has
-  no support for video rescaling or color-space changing
+See \`config.log' for more details." >&5
+$as_echo "$as_me: error:
 
-  If you want the VideoResampler object to be active you must
-  specify --enable-gpl=yes when running configure.
+  vvvvvvvvvvvvvvvvvvvvv ERROR vvvvvvvvvvvvvvvvvvvvv
 
-  ^^^^^^^^^^^^^^^^^^^^^ WARNING ^^^^^^^^^^^^^^^^^^^^^
+  Xuggler is only available for free with a GNU
+  Affero General Public License.
 
-  " >&2;}
+  If you are interested in a difference license,
+  please see our licensing page or send e-mail to
+  info@xuggle.com
+
+
+  ^^^^^^^^^^^^^^^^^^^^^ ERROR ^^^^^^^^^^^^^^^^^^^^^
+
+
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }; }
 fi
 
  if  test "x$VS_ENABLE_GPL" = "xyes" ; then
