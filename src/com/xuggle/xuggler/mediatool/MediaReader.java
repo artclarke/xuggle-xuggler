@@ -581,7 +581,7 @@ public class MediaReader extends AMediaTool
     // dispatch picture here
 
     for (IMediaListener l: getListeners())
-      l.onVideoPicture(null, picture, image, streamIndex);
+      l.onVideoPicture(this, picture, image, streamIndex);
   }
 
   /**
@@ -599,7 +599,7 @@ public class MediaReader extends AMediaTool
   protected void dispatchAudioSamples(int streamIndex, IAudioSamples samples)
   {
     for (IMediaListener l: getListeners())
-      l.onAudioSamples(null, samples, streamIndex);
+      l.onAudioSamples(this, samples, streamIndex);
   }
 
   /** {@inheritDoc} */

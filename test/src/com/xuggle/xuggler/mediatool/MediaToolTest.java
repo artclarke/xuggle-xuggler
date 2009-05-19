@@ -111,7 +111,7 @@ public class MediaToolTest
     MediaWriter writer = new MediaWriter(OUTPUT_FILENAME, reader);
 
     if (SHOW_VIDEO)
-      writer.addListener(new MediaViewer(true));
+      writer.addListener(new MediaViewer(false, true, 0));
 
     DebugListener readerCounter = new DebugListener(OPEN);
     DebugListener writerCounter = new DebugListener(CLOSE);

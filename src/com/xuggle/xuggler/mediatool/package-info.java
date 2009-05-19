@@ -23,15 +23,26 @@
  */
 
 /**
- * The media tools provide a simplified approach to decoding, viewing and
- * encoding media.
- * 
+ * The media tools provide a simplified approach to decoding, viewing
+ * and encoding media. The following code snippet is all that is
+ * required to decode, view and encode a mdiea file.
+ * thing.
+ *
+ * </p>
+ * <pre>
+ * MediaReader reader = new MediaReader(sourceUrl);
+ * reader.addListener(new MediaViewer(true));
+ * new MediaWriter(destinationUlr, reader);
+ * while (reader.readPacket() == null)
+ *   ;
+ * </pre>
  * <p>
  * 
- * For a good example of using the approach see the
- * {@link com.xuggle.xuggler.mediatool.demos.DecodeAndPlayVideo} demonstration
- * application. In about 20 lines of Java code is opens up any media file, finds
- * all the video streams in that file, and displays them on the screen.
+ * For a good example of using the approach see the {@link
+ * com.xuggle.xuggler.mediatool.demos.DecodeAndPlayVideo} demonstration
+ * application. In about 20 lines of Java code is opens up any media
+ * file, finds all the video streams in that file, and displays them on
+ * the screen.
  * 
  * </p>
  * <p>
