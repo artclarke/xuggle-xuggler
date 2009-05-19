@@ -26,21 +26,10 @@ package com.xuggle.xuggler.mediatool.demos;
 
 import java.io.File;
 
-import java.util.Calendar;
-import java.util.Formatter;
 
-import java.awt.image.BufferedImage;
-
-import com.xuggle.xuggler.Global;
-import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.IAudioSamples;
-import com.xuggle.xuggler.IMediaData;
-import com.xuggle.xuggler.mediatool.IMediaTool;
 import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.mediatool.MediaViewer;
 import com.xuggle.xuggler.mediatool.MediaWriter;
-import com.xuggle.xuggler.mediatool.MediaAdapter;
-import com.xuggle.xuggler.video.ConverterFactory;
 
 import static java.lang.System.out;
 import static java.lang.System.exit;

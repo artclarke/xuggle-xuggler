@@ -20,8 +20,6 @@
  */
 package com.xuggle.xuggler.mediatool.demos;
 
-import java.awt.image.BufferedImage;
-
 import javax.swing.JFrame;
 
 import com.xuggle.xuggler.IError;

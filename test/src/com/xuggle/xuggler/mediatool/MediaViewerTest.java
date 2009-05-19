@@ -41,9 +41,9 @@ public class MediaViewerTest
 
   // show the videos during tests
 
-  public static final boolean SHOW_VIDEO = System
-      .getProperty(MediaViewerTest.class.getName() + ".ShowVideo") != null;
-
+  public static final boolean SHOW_VIDEO = 
+    System.getProperty(MediaViewerTest.class.getName() + ".ShowVideo") != null;
+    //true;
   // test filename
 
   // public static final String INPUT_FILENAME =
@@ -60,6 +60,8 @@ public class MediaViewerTest
     assert (inputFile.exists());
 
     MediaReader reader = new MediaReader(INPUT_FILENAME);
+    reader.setAddDynamicStreams(false);
+    reader.setQueryMetaData(true);
 
     if (SHOW_VIDEO)
       reader.addListener(new MediaViewer(true, true, 0));

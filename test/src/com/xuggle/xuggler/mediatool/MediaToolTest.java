@@ -30,13 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
-import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IError;
-import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.IPacket;
-import com.xuggle.xuggler.IStream;
-
-import java.awt.image.BufferedImage;
 
 import static com.xuggle.xuggler.mediatool.DebugListener.*;
 

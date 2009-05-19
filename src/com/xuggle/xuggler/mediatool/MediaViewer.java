@@ -28,11 +28,8 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Formatter;
 import java.util.LinkedList;
-import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Condition;
 
@@ -53,7 +50,9 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.swing.JPanel;
 import javax.swing.JFrame;
 
-import com.xuggle.xuggler.IContainer;
+import com.xuggle.xuggler.Global;
+import com.xuggle.xuggler.ICodec;
+import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
@@ -75,9 +74,6 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
 public class MediaViewer extends MediaAdapter
 {
   private static final Logger log = LoggerFactory.getLogger(MediaViewer.class);
-  {
-    log.trace("<init>");
-  }
 
   // the standard time unit used in the media viewer
 
@@ -85,64 +81,50 @@ public class MediaViewer extends MediaAdapter
 
   /** default video early time window, before which video is delayed */
 
-  public static final long DEFALUT_VIDEO_EARLY_WINDOW = TIME_UNIT.convert(10,
+  public static final long DEFALUT_VIDEO_EARLY_WINDOW = TIME_UNIT.convert(50,
       MILLISECONDS);
 
   /** default video late time window, after which video is dropped */
 
-  public static final long DEFALUT_VIDEO_LATE_WINDOW = TIME_UNIT.convert(0,
+  public static final long DEFALUT_VIDEO_LATE_WINDOW = TIME_UNIT.convert(50,
       MILLISECONDS);
 
   /** default audio early time window, before which audio is delayed */
 
-  public static final long DEFALUT_AUDIO_EARLY_WINDOW =
-  // TIME_UNIT.convert(250, MILLISECONDS);
-  Long.MAX_VALUE;
+  public static final long DEFALUT_AUDIO_EARLY_WINDOW = 
+    TIME_UNIT.convert(50, MILLISECONDS);
 
   /** default audio late time window, after which audio is dropped */
 
-  public static final long DEFALUT_AUDIO_LATE_WINDOW = Long.MAX_VALUE;
-  // TIME_UNIT.convert(60, MILLISECONDS);
+  public static final long DEFALUT_AUDIO_LATE_WINDOW =
+    TIME_UNIT.convert(50, MILLISECONDS);
 
   // video converters
 
-  Map<Integer, IConverter> mConverters = new HashMap<Integer, IConverter>();
+  private final Map<Integer, IConverter> mConverters = new HashMap<Integer, IConverter>();
 
   // video frames
 
-  Map<Integer, MediaFrame> mFrames = new HashMap<Integer, MediaFrame>();
+  private final Map<Integer, MediaFrame> mFrames = new HashMap<Integer, MediaFrame>();
 
   // video queues
 
-  Map<Integer, VideoQueue> mVideoQueues = new HashMap<Integer, VideoQueue>();
+  private final Map<Integer, VideoQueue> mVideoQueues = new HashMap<Integer, VideoQueue>();
 
   // audio queues
 
-  Map<Integer, AudioQueue> mAudioQueues = new HashMap<Integer, AudioQueue>();
+  private final Map<Integer, AudioQueue> mAudioQueues = new HashMap<Integer, AudioQueue>();
+
+  // audio lines
+  private final Map<Integer, SourceDataLine> mAudioLines = new HashMap<Integer, SourceDataLine>();
 
   // video position index
 
-  Map<MediaFrame, Integer> mFrameIndex = new HashMap<MediaFrame, Integer>();
-
-  // the barrier which allows all the threads to start at once
-
-  private CyclicBarrier mBarrier = null;
-
-  // the lock
-
-  private ReentrantLock mLock = new ReentrantLock(true);
-
-  // the locks condition
-
-  private Condition mCondition = mLock.newCondition();
+  private final Map<MediaFrame, Integer> mFrameIndex = new HashMap<MediaFrame, Integer>();
 
   // next frame index
 
   private int mNextFrameIndex = 0;
-
-  // the wall clock start time of the media
-
-  private long mStartTime = Long.MIN_VALUE;
 
   // the capacity (in time) of media buffers
 
@@ -164,16 +146,15 @@ public class MediaViewer extends MediaAdapter
 
   private boolean mShowVideo = false;
 
-  /**
-   * The audio line we'll output sound to; it'll be the default audio device on
-   * your system if available
-   */
-
-  private static SourceDataLine mLine;
-
   // default behavior of windows on close
 
   private final int mDefaultCloseOperation;
+
+  private final AtomicLong mStartClockTime = new AtomicLong(Global.NO_PTS);
+
+  private final AtomicLong mStartContainerTime = new AtomicLong(Global.NO_PTS);
+
+  private final AtomicLong mAudioLantency = new AtomicLong(0);
 
   /**
    * Construct a media viewer.
@@ -232,37 +213,55 @@ public class MediaViewer extends MediaAdapter
   public MediaViewer(boolean playAudio, boolean showStats,
       int defaultCloseOperation)
   {
-    mPlayAudio = false; // playAudio;
+    mPlayAudio = true; // playAudio;
     mShowVideo = true; // playAudio;
     mShowStats = showStats;
     mDefaultCloseOperation = defaultCloseOperation;
-    mRealtime = false; // true; //mPlayAudio;
+    mRealtime = true; // true; //mPlayAudio;
   }
 
   /** Configure internal parameters of the media viewer. */
 
-  // public void configure(long videoEarlyWindow, long videoLateWindow,
-  // long audioEarlyWindow, long audioLateWindow, long streamWaightTime
-  /**
-   * Get the the current presetation time of the media, where the begining of
-   * the media is time 0.
-   * 
-   * @return the current presetation time of the media.
-   */
-
-  public long getPresentationTime()
+  @Override
+  public void onAddStream(IMediaTool tool, IStream stream)
   {
-    // if start time not initialized, do so
+    log.debug("onAddStream: {}", stream);
 
-    if (Long.MIN_VALUE == mStartTime)
+    IStreamCoder coder = stream.getStreamCoder();
+    int streamIndex = stream.getIndex();
+    if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_VIDEO)
     {
-      mStartTime = System.nanoTime();
-      debug("---- start of time ----: %d", mStartTime);
+      IConverter converter = mConverters.get(streamIndex);
+      if (null == converter)
+      {
+        converter = ConverterFactory.createConverter(
+            ConverterFactory.XUGGLER_BGR_24, coder.getPixelType(), coder
+                .getWidth(), coder.getHeight());
+        mConverters.put(streamIndex, converter);
+      }
+      MediaFrame frame = mFrames.get(streamIndex);
+      if (null == frame)
+      {
+        frame = new MediaFrame(streamIndex, null);
+        mFrames.put(streamIndex, frame);
+        mFrameIndex.put(frame, mNextFrameIndex++);
+        frame.setLocation(coder.getWidth() * mFrameIndex.get(frame),
+            (int) frame.getLocation().getY());
+        frame.setDefaultCloseOperation(mDefaultCloseOperation);
+      }
+      if (mRealtime)
+      {
+        getVideoQueue(streamIndex, frame);
+      }
+    }
+    else if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO)
+    {
+      if (mRealtime)
+      {
+        getAudioQueue(tool, streamIndex);
+      }
     }
 
-    // return media presention time converted to the stock time unit
-
-    return TIME_UNIT.convert(System.nanoTime() - mStartTime, NANOSECONDS);
   }
 
   /** {@inheritDoc} */
@@ -283,12 +282,6 @@ public class MediaViewer extends MediaAdapter
     if (null == image)
     {
       IConverter converter = mConverters.get(streamIndex);
-      if (null == converter)
-      {
-        converter = ConverterFactory.createConverter(
-            ConverterFactory.XUGGLER_BGR_24, picture);
-        mConverters.put(streamIndex, converter);
-      }
       image = converter.toImage(picture);
     }
 
@@ -300,42 +293,42 @@ public class MediaViewer extends MediaAdapter
     // get the frame
 
     MediaFrame frame = mFrames.get(streamIndex);
-    if (null == frame)
-    {
-      frame = new MediaFrame(streamIndex, image);
-      mFrames.put(streamIndex, frame);
-      mFrameIndex.put(frame, mNextFrameIndex++);
-      frame.setLocation(image.getWidth() * mFrameIndex.get(frame), (int) frame
-          .getLocation().getY());
-      frame.setDefaultCloseOperation(mDefaultCloseOperation);
-    }
 
     // if in real time, queue the video frame for viewing
 
     if (mRealtime)
     {
-      VideoQueue queue = mVideoQueues.get(streamIndex);
-      if (null == queue)
-      {
-        // check to be sure the barrier has been created
+      VideoQueue queue = getVideoQueue(streamIndex, frame);
 
-        checkBarrier(tool.getContainer());
-
-        // create the queue
-
-        queue = new VideoQueue(mBuffersCapacity, TIME_UNIT, frame);
-        mVideoQueues.put(streamIndex, queue);
-      }
-
-      // enqueu the image
-
-      queue.offerMedia(image, picture.getTimeStamp(), MICROSECONDS);
+      // enqueue the image
+      if (queue != null)
+        queue.offerMedia(image, picture.getTimeStamp() + mAudioLantency.get(),
+            MICROSECONDS);
     }
 
     // otherwise just set the image on the frame
 
     else
       frame.setVideoImage(image);
+  }
+
+  /**
+   * @param streamIndex
+   * @param frame
+   * @return
+   */
+
+  private VideoQueue getVideoQueue(int streamIndex, MediaFrame frame)
+  {
+    VideoQueue queue = mVideoQueues.get(streamIndex);
+    if (null == queue)
+    {
+      // create the queue
+
+      queue = new VideoQueue(mBuffersCapacity, TIME_UNIT, frame);
+      mVideoQueues.put(streamIndex, queue);
+    }
+    return queue;
   }
 
   /** {@inheritDoc} */
@@ -356,65 +349,46 @@ public class MediaViewer extends MediaAdapter
 
       // queue the audio frame for playing
 
-      AudioQueue queue = mAudioQueues.get(streamIndex);
-      if (null == queue)
-      {
-        // if the audio line is closed, open it
+      AudioQueue queue = getAudioQueue(tool, streamIndex);
+      // enqueue the audio samples
 
-        if (mLine == null)
-        {
-          // get the media container from the media reader, then get the
-          // stream using the stream index passed into this method, then get
-          // the stream coder for that stream, and pass that stream coder
-          // off to open the audio out put stream with
-
-          openJavaSound(tool.getContainer().getStream(streamIndex)
-              .getStreamCoder());
-        }
-
-        // check to be sure the barrier has been created
-
-        checkBarrier(tool.getContainer());
-
-        // create the queue and add it to the list
-
-        queue = new AudioQueue(mBuffersCapacity, TIME_UNIT, mLine);
-        mAudioQueues.put(streamIndex, queue);
-      }
-
-      // enqueu the audio samples
-
-      queue.offerMedia(samples, samples.getTimeStamp(), MICROSECONDS);
+      if (queue != null)
+        queue.offerMedia(samples, samples.getTimeStamp(), MICROSECONDS);
     }
     else
     {
-      if (mLine == null)
+      SourceDataLine line = getJavaSoundLine(tool.getContainer().getStream(
+          streamIndex));
+
+      if (line != null)
       {
-        // get the media container from the media reader, then get the
-        // stream using the stream index passed into this method, then get
-        // the stream coder for that stream, and pass that stream coder
-        // off to open the audio out put stream with
-
-        openJavaSound(tool.getContainer().getStream(streamIndex)
-            .getStreamCoder());
+        int size = samples.getSize();
+        line.write(samples.getData().getByteArray(0, size), 0, size);
       }
-
-      int size = samples.getSize();
-      mLine.write(samples.getData().getByteArray(0, size), 0, size);
     }
   }
 
   /**
-   * Check and create thread berrer if it has not been created.
-   * 
-   * @param container
-   *          the media container to give us hints about stream counts
+   * @param tool
+   * @param streamIndex
+   * @return
    */
 
-  protected void checkBarrier(IContainer container)
+  private AudioQueue getAudioQueue(IMediaTool tool, int streamIndex)
   {
-    if (null == mBarrier)
-      mBarrier = new CyclicBarrier(container.getNumStreams() + 1);
+    AudioQueue queue = mAudioQueues.get(streamIndex);
+    SourceDataLine line = getJavaSoundLine(tool.getContainer().getStream(
+        streamIndex));
+    if (null == queue && line != null)
+    {
+      // if the audio line is closed, open it
+
+      // create the queue and add it to the list
+
+      queue = new AudioQueue(mBuffersCapacity, TIME_UNIT, line);
+      mAudioQueues.put(streamIndex, queue);
+    }
+    return queue;
   }
 
   /**
@@ -432,6 +406,12 @@ public class MediaViewer extends MediaAdapter
 
     for (AudioQueue queue : mAudioQueues.values())
       queue.flush();
+
+    // wait for all audio lines to close
+    for (SourceDataLine line : mAudioLines.values())
+    {
+      line.drain();
+    }
   }
 
   /**
@@ -444,6 +424,10 @@ public class MediaViewer extends MediaAdapter
     flush();
     for (MediaFrame frame : mFrames.values())
       frame.dispose();
+    for (SourceDataLine line : mAudioLines.values())
+    {
+      line.close();
+    }
   };
 
   /**
@@ -455,7 +439,7 @@ public class MediaViewer extends MediaAdapter
    *          the image on which to draw the time stamp
    */
 
-  static void drawStats(IVideoPicture picture, BufferedImage image)
+  private static void drawStats(IVideoPicture picture, BufferedImage image)
   {
     if (image == null)
       throw new RuntimeException("must be used with a IMediaTool"
@@ -480,36 +464,55 @@ public class MediaViewer extends MediaAdapter
   /**
    * Open a java audio line out to play the audio samples into.
    * 
-   * @param audioCoder
-   *          the audio coder which contains details about the format of the
-   *          audio.
+   * @param stream
+   *          the stream we'll be decoding in to this line.
+   * @return the line
    */
 
-  private static void openJavaSound(IStreamCoder audioCoder)
+  private SourceDataLine getJavaSoundLine(IStream stream)
   {
-    try
+    IStreamCoder audioCoder = stream.getStreamCoder();
+    int streamIndex = stream.getIndex();
+    SourceDataLine line = mAudioLines.get(streamIndex);
+    if (line == null)
     {
-      // estabish the audio format, NOTE: xuggler defaults to signed 16 bit
-      // samples
+      try
+      {
+        // estabish the audio format, NOTE: xuggler defaults to signed 16 bit
+        // samples
 
-      AudioFormat audioFormat = new AudioFormat(audioCoder.getSampleRate(),
-          (int) IAudioSamples.findSampleBitDepth(audioCoder.getSampleFormat()),
-          audioCoder.getChannels(), true, false);
+        AudioFormat audioFormat = new AudioFormat(audioCoder.getSampleRate(),
+            (int) IAudioSamples
+                .findSampleBitDepth(audioCoder.getSampleFormat()), audioCoder
+                .getChannels(), true, false);
 
-      // create the audio line out
+        // create the audio line out
 
-      DataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
-      mLine = (SourceDataLine) AudioSystem.getLine(info);
+        DataLine.Info info = new DataLine.Info(SourceDataLine.class,
+            audioFormat);
+        line = (SourceDataLine) AudioSystem.getLine(info);
 
-      // open the line and start the line
+        // open the line and start the line
 
-      mLine.open(audioFormat);
-      mLine.start();
+        int bytesPerSample = (int) IAudioSamples.findSampleBitDepth(audioCoder
+            .getSampleFormat())
+            * audioCoder.getChannels() / 8;
+        line.open(audioFormat);
+        line.start();
+        mAudioLines.put(streamIndex, line);
+        mAudioLantency.compareAndSet(0, IAudioSamples.samplesToDefaultPts(line
+            .getBufferSize()
+            / bytesPerSample, audioCoder.getSampleRate()));
+        log.debug("Opened line with {} bytes ({} microseconds latency)", line
+            .getBufferSize(), mAudioLantency.get());
+      }
+      catch (LineUnavailableException lue)
+      {
+        log.warn("WARINING: No audio line out available: " + lue);
+        line = null;
+      }
     }
-    catch (LineUnavailableException lue)
-    {
-      log.warn("WARINING: No audio line out available: " + lue);
-    }
+    return line;
   }
 
   /**
@@ -545,7 +548,7 @@ public class MediaViewer extends MediaAdapter
      * @param unit
      *          the time unit of the capacity (MILLISECONDS, MICROSECONDS, etc).
      * @param sourceDataLine
-     *          the swing frame on which sampless are displayed
+     *          the swing frame on which samples are displayed
      */
 
     public AudioQueue(long capacity, TimeUnit unit,
@@ -561,27 +564,7 @@ public class MediaViewer extends MediaAdapter
     public void dispatch(IAudioSamples samples, long timeStamp)
     {
       int size = samples.getSize();
-      debug("pre sound");
-      // try
-      // {
-      // if (mLine.getBufferSize() - mLine.available() < size)
-      // {
-      // // debug("pre-sleep!");
-
-      // Thread.sleep(MILLISECONDS.convert(
-      // samples.getNextPts() - samples.getTimeStamp(), TIME_UNIT));
-
-      // //debug("post-sleep!");
-      // }
-
-      // }
-      // catch (InterruptedException e)
-      // {
-      // return;
-      // }
-
       mLine.write(samples.getData().getByteArray(0, size), 0, size);
-      debug("post sound");
     }
   }
 
@@ -634,6 +617,20 @@ public class MediaViewer extends MediaAdapter
   abstract class SelfServicingMediaQueue<Item> extends
       LinkedList<DelayedItem<Item>>
   {
+    /**
+     * to make warning go away
+     */
+
+    private static final long serialVersionUID = 1L;
+
+    // the lock
+
+    private ReentrantLock mLock = new ReentrantLock(true);
+
+    // the locks condition
+
+    private Condition mCondition = mLock.newCondition();
+
     // if true the queue terminates it's thread
 
     private boolean mDone = false;
@@ -649,6 +646,8 @@ public class MediaViewer extends MediaAdapter
     // the time after which media is dropped
 
     private final long mLateWindow;
+
+    private boolean mIsInitialized = false;
 
     /**
      * Construct queue and activate it's internal thread.
@@ -683,12 +682,11 @@ public class MediaViewer extends MediaAdapter
           DelayedItem<Item> delayedItem = null;
 
           // wait for all the other stream threads to wakeup
-
-          // try {mBarrier.await(250, MILLISECONDS);}
-          // catch (InterruptedException ex) { return; }
-          // catch (BrokenBarrierException ex) { return; }
-          // catch (TimeoutException ex) {}
-
+          synchronized (SelfServicingMediaQueue.this)
+          {
+            mIsInitialized = true;
+            SelfServicingMediaQueue.this.notifyAll();
+          }
           // start processing media
 
           while (!isDone)
@@ -702,8 +700,6 @@ public class MediaViewer extends MediaAdapter
 
               while (!mDone && (delayedItem = poll()) == null)
               {
-                debug("pre wait");
-
                 try
                 {
                   mCondition.await();
@@ -712,22 +708,11 @@ public class MediaViewer extends MediaAdapter
                 {
                   return;
                 }
-                // try { SelfServicingMediaQueue.this.wait(); }
-                // catch (InterruptedException e) { return; }
-                debug("post wait");
               }
-
-              // be sure presentation time set in a lock
-
-              if (delayedItem != null)
-                getPresentationTime();
 
               // notify the queue that data extracted
 
-              // SelfServicingMediaQueue.this.notifyAll();
-              debug("pre signal");
               mCondition.signalAll();
-              debug("post signal");
 
               // record "atomic" done
 
@@ -746,7 +731,15 @@ public class MediaViewer extends MediaAdapter
               {
                 // this is the story of goldilocks testing the the media
 
-                long delta = delayedItem.getDelay(TIME_UNIT);
+                long now = MICROSECONDS.convert(System.nanoTime(), NANOSECONDS);
+                mStartClockTime.compareAndSet(Global.NO_PTS, now);
+                mStartContainerTime.compareAndSet(Global.NO_PTS, delayedItem
+                    .getTimeStamp());
+                long clockTimeFromStart = now - mStartClockTime.get();
+                long streamTimeFromStart = delayedItem.getTimeStamp()
+                    - mStartContainerTime.get();
+
+                long delta = streamTimeFromStart - clockTimeFromStart;
 
                 // if the media is too new and unripe, goldilocks sleeps for a
                 // bit
@@ -756,7 +749,7 @@ public class MediaViewer extends MediaAdapter
                   // debug("delta: " + delta);
                   try
                   {
-                    sleep(MILLISECONDS.convert(delta / 4, TIME_UNIT));
+                    sleep(MILLISECONDS.convert(delta - mEarlyWindow, TIME_UNIT));
                   }
                   catch (InterruptedException e)
                   {
@@ -772,7 +765,7 @@ public class MediaViewer extends MediaAdapter
                   {
                     debug(
                         "%5d DROP [%2d]: %s[%5d] delta: %d",
-                        MILLISECONDS.convert(getPresentationTime(), TIME_UNIT),
+                        MILLISECONDS.convert(now, TIME_UNIT),
                         size(),
                         (delayedItem.getItem() instanceof BufferedImage ? "IMAGE"
                             : "sound"), MILLISECONDS.convert(delayedItem
@@ -810,7 +803,21 @@ public class MediaViewer extends MediaAdapter
 
       t.setPriority(priority);
       t.setName(name);
-      t.start();
+      synchronized (this)
+      {
+        t.start();
+        try
+        {
+          while (!mIsInitialized)
+            this.wait();
+        }
+        catch (InterruptedException e)
+        {
+          throw new RuntimeException("could not start thread");
+        }
+      }
+      debug("thread started and ready for action");
+
     }
 
     /**
@@ -826,7 +833,6 @@ public class MediaViewer extends MediaAdapter
       {
         while (!mDone && !isEmpty())
         {
-          debug("pre wait");
           try
           {
             mCondition.await();
@@ -835,15 +841,9 @@ public class MediaViewer extends MediaAdapter
           {
             return;
           }
-          // try { SelfServicingMediaQueue.this.wait(); }
-          // catch (InterruptedException e) { return; }
-          debug("post wait");
         }
 
-        // SelfServicingMediaQueue.this.notifyAll();
-        debug("pre signal");
         mCondition.signalAll();
-        debug("post signal");
 
       }
       finally
@@ -898,18 +898,16 @@ public class MediaViewer extends MediaAdapter
         while (!mDone && !isEmpty()
             && (convertedTime - peek().getTimeStamp()) > mCapacity)
         {
-          debug("pre offer wait");
           try
           {
+            // log.debug("Reader blocking; ts:{}; media:{}",
+            // timeStamp, item);
             mCondition.await();
           }
           catch (InterruptedException e)
           {
             return;
           }
-          // try { SelfServicingMediaQueue.this.wait(); }
-          // catch (InterruptedException e) { return; }
-          debug("post offer wait");
         }
 
         // if not done, put item on the queue
@@ -931,10 +929,7 @@ public class MediaViewer extends MediaAdapter
 
         // notify that things have changed
 
-        // SelfServicingMediaQueue.this.notifyAll();
-        debug("pre signal");
         mCondition.signalAll();
-        debug("post signal");
       }
       finally
       {
@@ -949,14 +944,10 @@ public class MediaViewer extends MediaAdapter
     {
       mLock.lock();
 
-      // synchronized (SelfServicingMediaQueue.this)
       try
       {
         mDone = true;
-        // SelfServicingMediaQueue.this.notifyAll();
-        debug("pre signal");
         mCondition.signalAll();
-        debug("post signal");
       }
       finally
       {
@@ -967,7 +958,7 @@ public class MediaViewer extends MediaAdapter
 
   /** A place to put frames which will be delayed. */
 
-  class DelayedItem<Item> implements Delayed
+  class DelayedItem<Item>
   {
     // buffered image
 
@@ -999,19 +990,6 @@ public class MediaViewer extends MediaAdapter
       return mTimeStamp;
     }
 
-    // compute the time remaing on this frame
-
-    public long getDelay(TimeUnit unit)
-    {
-      return unit.convert(mTimeStamp - getPresentationTime(), TIME_UNIT);
-    }
-
-    // compair two delayed images
-
-    public int compareTo(Delayed other)
-    {
-      return (int) (getDelay(TIME_UNIT) - other.getDelay(TIME_UNIT));
-    }
   }
 
   /** A media viewer frame. */
@@ -1084,13 +1062,15 @@ public class MediaViewer extends MediaAdapter
     protected void setVideoImage(BufferedImage image)
     {
       mImage = image;
-
-      if (mVideoPanel.getWidth() != mImage.getWidth()
-          || mVideoPanel.getHeight() != mImage.getHeight())
+      if (image != null)
       {
-        setVideoSize(new Dimension(mImage.getWidth(), mImage.getHeight()));
+        if (mVideoPanel.getWidth() != mImage.getWidth()
+            || mVideoPanel.getHeight() != mImage.getHeight())
+        {
+          setVideoSize(new Dimension(mImage.getWidth(), mImage.getHeight()));
+        }
+        repaint();
       }
-      repaint();
     }
 
     /** paint the video panel */
@@ -1107,4 +1087,5 @@ public class MediaViewer extends MediaAdapter
         graphics.drawImage(mImage, 0, 0, null);
     }
   }
+
 }
