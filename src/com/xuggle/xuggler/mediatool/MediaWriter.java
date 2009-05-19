@@ -702,7 +702,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     // encode the video packet
 
     IPacket packet = IPacket.make();
-    if (videoCoder.encodeVideo(packet, picture, -1) == -1)
+    if (videoCoder.encodeVideo(packet, picture, 0) < 0)
       throw new RuntimeException("failed to encode video");
 
     if (packet.isComplete())
@@ -729,7 +729,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
       // encode audio
 
       int result = audioCoder.encodeAudio(packet, samples, consumed); 
-      if (-1 == result)
+      if (result < 0)
         throw new RuntimeException("failed to encode audio");
       consumed += result;
 
@@ -751,7 +751,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
   protected void writePacket(IPacket packet)
   {
-    if (-1 == mContainer.writePacket(packet, mForceInterleave))
+    if (mContainer.writePacket(packet, mForceInterleave)<0)
       throw new RuntimeException("failed to write packet: " + packet);
 
     // inform listeners
@@ -771,7 +771,8 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     for (IStream stream: mStreams.values())
     {
       IStreamCoder coder = stream.getStreamCoder();
-
+      if (!coder.isOpen())
+        continue;
       // if it's audio coder flush that
 
       if (ICodec.Type.CODEC_TYPE_AUDIO == coder.getCodecType())
@@ -789,7 +790,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
       else if (ICodec.Type.CODEC_TYPE_VIDEO == coder.getCodecType())
       {
         IPacket packet = IPacket.make();
-        while (coder.encodeVideo(packet, null, -1) >= 0 && packet.isComplete())
+        while (coder.encodeVideo(packet, null, 0) >= 0 && packet.isComplete())
         {
           writePacket(packet);
           packet = IPacket.make();
