@@ -16,16 +16,11 @@
  * when they use these libraries.
  * </p>
  * \section license_sec Licensing
- * All Xuggle Open Source Libraries are released either under the
- * <a href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">Lesser GPL 2.1 or later</a>
- * or under the <a href="http://www.gnu.org/licenses/old-licenses/gpl-2.0.html">GPL 2.0 or later</a>.
- * See the COPYING file in each library for details.
- * <p>
- * We generally prefer the LGPL, but sometimes we
- * are required to release under GPL (for example, use of FFMPEG's libswscale library requires
- * the use of the GPL, so if you want to access the com::xuggle::xuggler::IVideoResampler object in the Xuggler library,
- * you need to compile a GPL version).  In these cases, we still try to provide a reduced functionality
- * LGPL license if possible.
+ * All Xuggle Open Source Libraries are released under the
+ * <a href="http://www.fsf.org/licensing/licenses/agpl-3.0.html"> GNU
+ * Affero General Public License v3 (AGPL)</a>.
+ * See the COPYING file in each library for details.  Non-AGPL licenses
+ * are available for a fee.  Send e-mail to info@xuggle.com if interested.
  * \section libraries_sec Libraries
  * Here is a brief summary of the current libraries in this release:
  *
