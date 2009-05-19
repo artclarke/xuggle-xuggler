@@ -418,12 +418,12 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
     trellis_node_t *nodes_cur = nodes[0];
     trellis_node_t *nodes_prev = nodes[1];
     trellis_node_t *bnode;
-    uint8_t cabac_state_sig[64];
-    uint8_t cabac_state_last[64];
     const int b_interlaced = h->mb.b_interlaced;
+    uint8_t *cabac_state_sig = &h->cabac.state[ significant_coeff_flag_offset[b_interlaced][i_ctxBlockCat] ];
+    uint8_t *cabac_state_last = &h->cabac.state[ last_coeff_flag_offset[b_interlaced][i_ctxBlockCat] ];
     const int f = 1 << 15; // no deadzone
     int i_last_nnz;
-    int i, j, nz;
+    int i, j;
 
     // (# of coefs) * (# of ctx) * (# of levels tried) = 1024
     // we don't need to keep all of those: (# of coefs) * (# of ctx) would be enough,
@@ -441,7 +441,10 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
 
     if( i < b_ac )
     {
-        memset( dct, 0, i_coefs * sizeof(*dct) );
+        /* We only need to memset an empty 4x4 block.  8x8 can be
+           implicitly emptied via zero nnz, as can dc. */
+        if( i_coefs == 16 && !dc )
+            memset( dct, 0, 16 * sizeof(int16_t) );
         return 0;
     }
 
@@ -470,26 +473,6 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
     // in 8x8 blocks, some positions share contexts, so we'll just have to hope that
     // cabac isn't too sensitive.
 
-    if( i_coefs == 64 )
-    {
-        const uint8_t *ctx_sig  = &h->cabac.state[ significant_coeff_flag_offset[b_interlaced][i_ctxBlockCat] ];
-        const uint8_t *ctx_last = &h->cabac.state[ last_coeff_flag_offset[b_interlaced][i_ctxBlockCat] ];
-        for( i = 0; i < 63; i++ )
-        {
-            cabac_state_sig[i]  = ctx_sig[ significant_coeff_flag_offset_8x8[b_interlaced][i] ];
-            cabac_state_last[i] = ctx_last[ last_coeff_flag_offset_8x8[i] ];
-        }
-    }
-    else if( !dc || i_ctxBlockCat != DCT_CHROMA_DC )
-    {
-        memcpy( cabac_state_sig,  &h->cabac.state[ significant_coeff_flag_offset[b_interlaced][i_ctxBlockCat] ], 15 );
-        memcpy( cabac_state_last, &h->cabac.state[ last_coeff_flag_offset[b_interlaced][i_ctxBlockCat] ], 15 );
-    }
-    else
-    {
-        memcpy( cabac_state_sig,  &h->cabac.state[ significant_coeff_flag_offset[b_interlaced][i_ctxBlockCat] ], 3 );
-        memcpy( cabac_state_last, &h->cabac.state[ last_coeff_flag_offset[b_interlaced][i_ctxBlockCat] ], 3 );
-    }
     memcpy( nodes_cur[0].cabac_state, &h->cabac.state[ coeff_abs_level_m1_offset[i_ctxBlockCat] ], 10 );
 
     for( i = i_last_nnz; i >= b_ac; i-- )
@@ -505,7 +488,8 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
         {
             // no need to calculate ssd of 0s: it's the same in all nodes.
             // no need to modify level_tree for ctx=0: it starts with an infinite loop of 0s.
-            const uint32_t cost_sig0 = x264_cabac_size_decision_noup2( &cabac_state_sig[i], 0 )
+            int sigindex = i_coefs == 64 ? significant_coeff_flag_offset_8x8[b_interlaced][i] : i;
+            const uint32_t cost_sig0 = x264_cabac_size_decision_noup2( &cabac_state_sig[sigindex], 0 )
                                      * (uint64_t)i_lambda2 >> ( CABAC_SIZE_BITS - LAMBDA_BITS );
             for( j = 1; j < 8; j++ )
             {
@@ -531,10 +515,12 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
 
         if( i < i_coefs-1 )
         {
-            cost_sig[0] = x264_cabac_size_decision_noup2( &cabac_state_sig[i], 0 );
-            cost_sig[1] = x264_cabac_size_decision_noup2( &cabac_state_sig[i], 1 );
-            cost_last[0] = x264_cabac_size_decision_noup2( &cabac_state_last[i], 0 );
-            cost_last[1] = x264_cabac_size_decision_noup2( &cabac_state_last[i], 1 );
+            int sigindex = i_coefs == 64 ? significant_coeff_flag_offset_8x8[b_interlaced][i] : i;
+            int lastindex = i_coefs == 64 ? last_coeff_flag_offset_8x8[i] : i;
+            cost_sig[0] = x264_cabac_size_decision_noup2( &cabac_state_sig[sigindex], 0 );
+            cost_sig[1] = x264_cabac_size_decision_noup2( &cabac_state_sig[sigindex], 1 );
+            cost_last[0] = x264_cabac_size_decision_noup2( &cabac_state_last[lastindex], 0 );
+            cost_last[1] = x264_cabac_size_decision_noup2( &cabac_state_last[lastindex], 1 );
         }
         else
         {
@@ -616,15 +602,21 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
         if( nodes_cur[j].score < bnode->score )
             bnode = &nodes_cur[j];
 
+    if( bnode == &nodes_cur[0] )
+    {
+        if( i_coefs == 16 && !dc )
+            memset( dct, 0, 16 * sizeof(int16_t) );
+        return 0;
+    }
+
     j = bnode->level_idx;
-    nz = 0;
     for( i = b_ac; i < i_coefs; i++ )
     {
         dct[zigzag[i]] = level_tree[j].abs_level * signs[i];
-        nz |= level_tree[j].abs_level;
         j = level_tree[j].next;
     }
-    return !!nz;
+
+    return 1;
 }
 
 const static uint8_t x264_zigzag_scan2[4] = {0,1,2,3};
