@@ -505,10 +505,10 @@ int read_frame_thread( x264_picture_t *p_pic, hnd_t handle, int i_frame )
 int close_file_thread( hnd_t handle )
 {
     thread_input_t *h = handle;
-    h->p_close_infile( h->p_handle );
-    x264_picture_clean( &h->pic );
     if( h->in_progress )
         x264_pthread_join( h->tid, NULL );
+    h->p_close_infile( h->p_handle );
+    x264_picture_clean( &h->pic );
     free( h->next_args );
     free( h );
     return 0;
