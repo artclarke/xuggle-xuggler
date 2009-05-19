@@ -580,7 +580,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
       }
     }
 
-    // if the header has not been writen, do so now
+    // if the header has not been written, do so now
     
     if (!mContainer.isHeaderWritten())
     {
@@ -598,9 +598,12 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     // establish the coder for the output stream index
 
     IStream stream = mStreams.get(getOutputStreamIndex(inputStreamIndex));
+    if (null == stream)
+      throw new RuntimeException("invalid input stream index (no stream): "
+         + inputStreamIndex);
     IStreamCoder coder = stream.getStreamCoder();
     if (null == coder)
-      throw new RuntimeException("invalid input stream index: "
+      throw new RuntimeException("invalid input stream index (no coder): "
         + inputStreamIndex);
     if (!coder.isOpen())
       openStream(stream);
