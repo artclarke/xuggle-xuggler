@@ -27,6 +27,10 @@ public class MultiThreadedWritingExhaustiveTest
   @Test(timeout = 30 * 60 * 1000)
   public void testMultiThreadedTest() throws InterruptedException
   {
+    if (System.getProperty("os.name", "Linux").startsWith("Windows"))
+      // doesn't run on Windows
+      return;
+    
     log.debug("------ START -----: {}", this.getClass().getName());
     final boolean ADD_VIEWER = System
         .getProperty(MultiThreadedWritingExhaustiveTest.class.getName()
