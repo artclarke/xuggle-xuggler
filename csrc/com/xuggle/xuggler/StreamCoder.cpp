@@ -927,11 +927,12 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
     if (frame && frame->getHeight() != this->getHeight())
       throw std::runtime_error("picture is not of the same height as this Coder");
 
-    if (mDirection != ENCODING || !mCodec || !mCodec->canEncode())
-    {
-      throw std::runtime_error("Codec not valid for direction StreamCoder is working in");
-    }
-
+    if (mDirection != ENCODING)
+      throw std::runtime_error("Decoding StreamCoder not valid for encoding");
+    if (!mCodec)
+      throw std::runtime_error("Codec not set");
+    if (!mCodec->canEncode())
+      throw std::runtime_error("Codec cannot be used to encode");
   if (mCodecContext && mOpened && mDirection == ENCODING && packet)
   {
     uint8_t* buf = 0;
@@ -1054,8 +1055,12 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
 
   try
   {
-    if (mDirection != ENCODING || !mCodec || !mCodec->canEncode())
-      throw std::runtime_error("Codec not valid for encoding");
+    if (mDirection != ENCODING)
+      throw std::runtime_error("Decoding StreamCoder not valid for encoding");
+    if (!mCodec)
+      throw std::runtime_error("Codec not set");
+    if (!mCodec->canEncode())
+      throw std::runtime_error("Codec cannot be used to encode");
 
     if (!packet)
       throw std::invalid_argument("Invalid packet to encode to");
