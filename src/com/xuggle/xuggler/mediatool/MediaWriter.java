@@ -132,7 +132,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    * Use a specified {@link MediaReader} as a source for media data and
    * meta data about the container and it's streams.  The {@link
    * MediaReader} must be cofigured such that streams will not be
-   * dynamically added to the container.  This is the defaul for {@link
+   * dynamically added to the container, which is the defaul for {@link
    * MediaReader}.
    * 
    * <p>
@@ -153,6 +153,37 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
   public MediaWriter(String url, MediaReader reader)
   {
+    this(url, reader, true);
+  }
+
+
+  /**
+   * Use a specified {@link MediaReader} as a source for media data and
+   * meta data about the container and it's streams.  The {@link
+   * MediaReader} must be cofigured such that streams will not be
+   * dynamically added to the container.  This is the defaul for {@link
+   * MediaReader}.
+   * 
+   * <p>
+   *
+   * The MediaWriter may optionally be added as a listener to the {@link
+   * MediaReader}.  If added as a listener, and once this constructer
+   * has returned, calles to {@link MediaReader#readPacket} will
+   * effectivy transcode the media.
+   *
+   * </p>
+   *
+   * @param url the url or filename of the media destination
+   * @param reader the media source
+   * @param addAsListener add this writer to the reader as a listener
+   * 
+   * @throws IllegalArgumentException if the specifed {@link
+   *         MediaReader} is configure to allow dynamic adding of
+   *         streams.
+   */
+
+  public MediaWriter(String url, MediaReader reader, boolean addAsListener)
+  {
     // construct around the source container
 
     this(url, reader.getContainer());
@@ -168,9 +199,10 @@ public class MediaWriter extends AMediaTool implements IMediaListener
         "inputContainer is improperly configured to allow " + 
         "dynamic adding of streams.");
 
-    // this writer as a listener to the reader
+    // optionally add this writer as a listener to the reader
     
-    reader.addListener(this);
+    if (addAsListener)
+      reader.addListener(this);
   }
 
   /**
