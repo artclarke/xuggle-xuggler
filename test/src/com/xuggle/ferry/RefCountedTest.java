@@ -27,7 +27,7 @@ import org.junit.Test;
 import org.junit.Ignore;
 
 import com.xuggle.ferry.RefCountedTester;
-import com.xuggle.ferry.JNIWeakReference;
+import com.xuggle.ferry.JNIReference;
 
 public class RefCountedTest
 {
@@ -45,7 +45,7 @@ public class RefCountedTest
   {
     System.gc();
     Thread.sleep(1000);
-    JNIWeakReference.getMgr().gc();
+    JNIReference.getMgr().gc();
   }
   
   @Test
@@ -79,7 +79,7 @@ public class RefCountedTest
     obj = null;
     System.gc();
     Thread.sleep(1000);
-    assertEquals("should be no objects for collection", 0, JNIWeakReference.getMgr().getNumPinnedObjects());
+    assertEquals("should be no objects for collection", 0, JNIReference.getMgr().getNumPinnedObjects());
   }
   
   @Test(timeout=2000)
@@ -100,7 +100,7 @@ public class RefCountedTest
     obj2 = null;
     System.gc();
     Thread.sleep(1000);
-    assertEquals("should be no objects for collection", 0, JNIWeakReference.getMgr().getNumPinnedObjects());    
+    assertEquals("should be no objects for collection", 0, JNIReference.getMgr().getNumPinnedObjects());    
   }
   
   /**
@@ -136,7 +136,7 @@ public class RefCountedTest
     Thread.sleep(1500);
     // at this point the Java proxy object will be unreachable, but should be sitting in the
     // reference queue and also awaiting finalization.  The finalization should have occurred by now.
-    assertEquals("should be only the first object for collection", 1, JNIWeakReference.getMgr().getNumPinnedObjects());        
+    assertEquals("should be only the first object for collection", 1, JNIReference.getMgr().getNumPinnedObjects());        
     assertEquals("should have a ref refcount of 1", 1, obj2.getCurrentRefCount());
   }
   
@@ -157,9 +157,9 @@ public class RefCountedTest
     // obj1 should now be unreachable, so if we try a Garbage collection it should get caught.
     System.gc();
     Thread.sleep(100); // need this time to have obj1 either finalized, or added to the weak ref queue
-    JNIWeakReference.getMgr().gc();
+    JNIReference.getMgr().gc();
     assertEquals("should now have a ref refcount of 1", 1, obj2.getCurrentRefCount());
-    assertEquals("should be only the first object for collection", 1, JNIWeakReference.getMgr().getNumPinnedObjects());        
+    assertEquals("should be only the first object for collection", 1, JNIReference.getMgr().getNumPinnedObjects());        
   }
   
   @Test(timeout=5000)
@@ -175,8 +175,8 @@ public class RefCountedTest
     obj=null;
     System.gc();
     Thread.sleep(1000);
-    JNIWeakReference.getMgr().gc();
-    assertEquals("Looks like we leaked an object", 0, JNIWeakReference.getMgr().getNumPinnedObjects());        
+    JNIReference.getMgr().gc();
+    assertEquals("Looks like we leaked an object", 0, JNIReference.getMgr().getNumPinnedObjects());        
 
   }
 

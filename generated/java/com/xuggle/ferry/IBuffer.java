@@ -161,7 +161,9 @@ public class IBuffer extends RefCounted {
      * you may find situations where {@link JNIMemoryManager#gc()} is
      * not automatically called for you.  If you're truly paranoid or
      * haven't called a Xuggler interface in a a while, a call to {@link
-     * JNIMemoryManager#gc} never hurts.
+     * JNIMemoryManager#gc()} never hurts.  You can also start up
+     * a separate thread to do this for you by calling
+     * {@link JNIMemoryManager#startCollectionThread()}
      *  
      * </p>
      * 
@@ -185,7 +187,7 @@ public class IBuffer extends RefCounted {
       FerryJNI.RefCounted_acquire(swigCPtr, null);
       
       // and use the byte buffer as the reference to track
-      JNIWeakReference.createReference(retval, swigCPtr);
+      JNIReference.createReference(retval, swigCPtr);
       
       // and tell Java this byte buffer is in native order
       retval.order(java.nio.ByteOrder.nativeOrder());

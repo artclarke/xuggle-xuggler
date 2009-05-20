@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import com.xuggle.test_utils.NameAwareTestClassRunner;
 import com.xuggle.ferry.JNILibraryLoader;
-import com.xuggle.ferry.JNIWeakReference;
+import com.xuggle.ferry.JNIReference;
 
 @RunWith(NameAwareTestClassRunner.class)
 public class JNILibraryLoaderTest
@@ -64,7 +64,7 @@ public class JNILibraryLoaderTest
   {
     System.gc();
     Thread.sleep(1000);
-    JNIWeakReference.getMgr().gc();
+    JNIReference.getMgr().gc();
   }
   
   @Test

@@ -101,7 +101,7 @@ public class JNIMemoryAllocator
               // try pulling our rip cord
               JNIMemoryParachute.getParachute().pullCord();
               // do one last "hope gc" to free our own memory
-              JNIWeakReference.getMgr().gc();
+              JNIReference.getMgr().gc();
               // and throw the error back to the native code
               throw e;
             }
@@ -128,7 +128,7 @@ public class JNIMemoryAllocator
               throw e;
             }
             // do a JNI collect before the alloc
-            JNIWeakReference.getMgr().gc();
+            JNIReference.getMgr().gc();
           }
         }
       }

@@ -55,7 +55,7 @@ public class RefCounted {
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>
   private volatile long swigCPtr;
   protected boolean swigCMemOwn;
-  private com.xuggle.ferry.JNIWeakReference mRefCounter;
+  private com.xuggle.ferry.JNIReference mRefCounter;
   private Long mLifecycleReference;
   
   // the next object looks like it is unused by the compiler, but that's not true; it most
@@ -85,7 +85,7 @@ public class RefCounted {
       mLifecycleReference = new Long(swigCPtr);      
       // Force the creation of a new weak reference, will will actually pin itself
       // inside the reference class.
-      mRefCounter = JNIWeakReference.createReference(mLifecycleReference, swigCPtr);
+      mRefCounter = JNIReference.createReference(mLifecycleReference, swigCPtr);
     }
   }
 

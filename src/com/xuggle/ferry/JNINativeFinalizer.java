@@ -30,12 +30,12 @@ import org.slf4j.LoggerFactory;
  * finalizer will not hold up the collection of any other object.
  * <p>
  * It exists so that we still have a mechanism that always frees native memory; in
- * most cases the JNIWeakReference will enqueue correctly, and then the next
+ * most cases the JNIReference will enqueue correctly, and then the next
  * call to a jni_utils based method will drain that queue, but sometimes there is
  * no extra call to one of those methods; in this case we'll drain the queue
  * when this gets finalized. 
  * </p><p>
- * It does a GC which might race with the GC that a JNIWeakReference does on
+ * It does a GC which might race with the GC that a JNIReference does on
  * allocation of a new object but that's ok.
  * </p>
  * @author aclarke
@@ -49,6 +49,6 @@ public class JNINativeFinalizer
   protected void finalize()
   {
     //log.debug("finalize");
-    JNIWeakReference.getMgr().gc();
+    JNIReference.getMgr().gc();
   }
 }

@@ -93,12 +93,12 @@ public class BufferExhaustiveTest
   public void testIntBuffersMaintainReferenceToByteBuffer()
   {
     // make sure we don't have any pinned objects lying around
-    while(JNIWeakReference.getMgr().getNumPinnedObjects()>0)
+    while(JNIReference.getMgr().getNumPinnedObjects()>0)
     {
       System.gc();
-      JNIWeakReference.getMgr().gc();
+      JNIReference.getMgr().gc();
     }
-    assertEquals(0, JNIWeakReference.getMgr().getNumPinnedObjects());
+    assertEquals(0, JNIReference.getMgr().getNumPinnedObjects());
 
     // now start the test
     IBuffer buf = IBuffer.make(null, 1024*1024);
@@ -126,14 +126,14 @@ public class BufferExhaustiveTest
     {
       arr = new byte[1024*1024]; 
       System.gc();
-      JNIWeakReference.getMgr().gc();
+      JNIReference.getMgr().gc();
       arr[0] = (byte)1;
       ibuf.put(i, 16);
     }
     
     // even though the buf and jbuf are now dead, the ibuf should
     // be forcing one buffer to be pinned.
-    assertEquals(1, JNIWeakReference.getMgr().getNumPinnedObjects());
+    assertEquals(1, JNIReference.getMgr().getNumPinnedObjects());
     
     // this is here to make sure the compiler doesn't optimize
     // away ibuf
@@ -141,15 +141,46 @@ public class BufferExhaustiveTest
     // release the ibuf
     ibuf= null;
     // try to force another gc to make sure ibuf is now collected
-    while(JNIWeakReference.getMgr().getNumPinnedObjects()>0)
+    while(JNIReference.getMgr().getNumPinnedObjects()>0)
     {
       arr = new byte[1024*1024]; 
       System.gc();
-      JNIWeakReference.getMgr().gc();
+      JNIReference.getMgr().gc();
       arr[0] = (byte)1;
     }
 
     // and make sure the ibuf is collected
-    assertEquals(0, JNIWeakReference.getMgr().getNumPinnedObjects());
+    assertEquals(0, JNIReference.getMgr().getNumPinnedObjects());
+  }
+  
+  @Test(timeout=60*1000)
+  public void testJNIMemoryManagerCollectionThread()
+  {
+    JNIMemoryManager.getMgr().startCollectionThread();
+    IBuffer buf = IBuffer.make(null, 1024*1024);
+    assertNotNull(buf);
+
+    // This will create a reference
+    java.nio.ByteBuffer jbuf = buf.getByteBuffer(0, buf.getBufferSize());
+
+    assertEquals(2, JNIMemoryManager.getMgr().getNumPinnedObjects());
+    // kill the xuggler refcount in the IBuffer
+    buf.delete();
+    assertEquals(1, JNIMemoryManager.getMgr().getNumPinnedObjects());
+    jbuf.put((byte) 0);
+    
+    // now kill reference to the byte buffer which should enqueue
+    // the reference
+    jbuf = null;
+    
+    // try to force another gc to make sure jbuf is now collected
+    // by the separate thread
+    while(JNIReference.getMgr().getNumPinnedObjects()>0)
+    {
+      byte[] arr = new byte[1024*1024]; 
+      System.gc();
+      arr[0] = (byte)1;
+    }
+    JNIMemoryManager.getMgr().stopCollectionThread();
   }
 }

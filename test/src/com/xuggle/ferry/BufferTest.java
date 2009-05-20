@@ -263,7 +263,7 @@ public class BufferTest
     while(buf.getCurrentRefCount() >= 2)
     {
       System.gc();
-      JNIWeakReference.getMgr().gc();
+      JNIReference.getMgr().gc();
     }
   }
 

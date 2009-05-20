@@ -28,7 +28,7 @@ import com.xuggle.test_utils.NameAwareTestClassRunner;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.ferry.IBuffer;
-import com.xuggle.ferry.JNIWeakReference;
+import com.xuggle.ferry.JNIMemoryManager;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -58,7 +58,7 @@ public class MemoryAllocationExhaustiveTest
     // and don't want things easily collectable screwing up hprof if running
     System.gc();
     Thread.sleep(100);
-    JNIWeakReference.getMgr().gc();
+    JNIMemoryManager.getMgr().gc();
     log.debug("----- END ----- {}", mTestName);
   }
 
@@ -67,7 +67,7 @@ public class MemoryAllocationExhaustiveTest
   {
     System.gc();
     Thread.sleep(1000);
-    JNIWeakReference.getMgr().gc();
+    JNIMemoryManager.getMgr().gc();
   }
   
   @Test
@@ -92,9 +92,9 @@ public class MemoryAllocationExhaustiveTest
     // now make sure no leaks
     System.gc();
     Thread.sleep(100);
-    JNIWeakReference.getMgr().gc();
+    JNIMemoryManager.getMgr().gc();
     assertEquals("Looks like at least one object is pinned",
-        0, JNIWeakReference.getMgr().getNumPinnedObjects());
+        0, JNIMemoryManager.getMgr().getNumPinnedObjects());
     
   }
   /**
@@ -117,10 +117,10 @@ public class MemoryAllocationExhaustiveTest
       obj.delete();
     }
 
-    while(JNIWeakReference.getMgr().getNumPinnedObjects()>0)
+    while(JNIMemoryManager.getMgr().getNumPinnedObjects()>0)
     {
       System.gc();
-      JNIWeakReference.getMgr().gc();
+      JNIMemoryManager.getMgr().gc();
     }
   }
 
@@ -149,10 +149,10 @@ public class MemoryAllocationExhaustiveTest
 
     }
 
-    while(JNIWeakReference.getMgr().getNumPinnedObjects()>0)
+    while(JNIMemoryManager.getMgr().getNumPinnedObjects()>0)
     {
       System.gc();
-      JNIWeakReference.getMgr().gc();
+      JNIMemoryManager.getMgr().gc();
     }
   }
 
@@ -209,9 +209,9 @@ public class MemoryAllocationExhaustiveTest
     
     System.gc();
     Thread.sleep(100);
-    JNIWeakReference.getMgr().gc();
+    JNIMemoryManager.getMgr().gc();
     assertTrue("Looks like we didn't leak the large frame????",
-        0 < JNIWeakReference.getMgr().getNumPinnedObjects());
+        0 < JNIMemoryManager.getMgr().getNumPinnedObjects());
   }
   
   /**
