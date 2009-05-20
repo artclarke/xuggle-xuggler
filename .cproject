@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?fileVersion 4.0.0?>
 
 <cproject>
@@ -9,7 +9,7 @@
 <folderInfo id="preference.org.eclipse.cdt.managedbuilder.core.configurationDataProvider.1344789467." name="/" resourcePath="">
 <toolChain id="cdt.managedbuild.toolchain.gnu.base.800884960" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.base">
 <targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.target.gnu.platform.base.1177013012" name="Debug Platform" osList="linux,hpux,aix,qnx" superClass="cdt.managedbuild.target.gnu.platform.base"/>
-<builder arguments="" buildPath="${workspace_loc:/xuggle-xuggler}" cleanBuildTarget="" command="ant" enableAutoBuild="false" enableCleanBuild="false" enabledIncrementalBuild="true" id="cdt.managedbuild.target.gnu.builder.base.356838936" incrementalBuildTarget="compile-native" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.base">
+<builder arguments="" buildPath="${workspace_loc:/xuggle-xuggler}" cleanBuildTarget="" command="ant" enableAutoBuild="false" enableCleanBuild="false" enabledIncrementalBuild="false" id="cdt.managedbuild.target.gnu.builder.base.356838936" incrementalBuildTarget="compile-native" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.base">
 <outputEntries>
 <entry excluding=".svn/" flags="VALUE_WORKSPACE_PATH" kind="outputPath" name=""/>
 </outputEntries>
@@ -35,7 +35,7 @@
 </inputType>
 </tool>
 <tool id="cdt.managedbuild.tool.gnu.assembler.base.1871371109" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.base">
-<option id="gnu.both.asm.option.include.paths.504061970" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+<option id="gnu.both.asm.option.include.paths.504061970" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
 <listOptionValue builtIn="false" value="/usr/include/c++/4.3"/>
 </option>
 <inputType id="cdt.managedbuild.tool.gnu.assembler.input.1245379609" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
