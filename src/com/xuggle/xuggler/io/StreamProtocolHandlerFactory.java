@@ -250,6 +250,9 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
   }
 
   /**
+   * Maps an {@link InputStream} or {@link OutputStream} to a URL for use
+   * by Xuggler.
+   *
    * Forwards to {@link #getFactory()}.
    * {@link #mapIO(String, InputStream, OutputStream)}
    */
@@ -260,6 +263,13 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
     return mFactory.mapIO(url, inputStream, outputStream);
   }
 
+  /**
+   * Maps an {@link InputStream} or {@link OutputStream} to a URL for use
+   * by Xuggler.
+   * 
+   * Forwards to {@link #getFactory()}.{@link #mapIO(String, InputStream, OutputStream, boolean, boolean)}
+   */
+
   public static String map(String url, InputStream inputStream,
       OutputStream outputStream, boolean unmapOnClose,
       boolean closeStreamOnClose)
@@ -269,6 +279,7 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
   }
 
   /**
+   * Undoes a URL to {@link InputStream} or {@link OutputStream} mapping.
    * Forwards to {@link #getFactory()}.{@link #unmapIO(String)}
    */
   public static RegistrationInformation unmap(String url)
