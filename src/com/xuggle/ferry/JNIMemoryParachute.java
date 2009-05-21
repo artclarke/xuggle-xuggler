@@ -20,7 +20,7 @@
 package com.xuggle.ferry;
 
 /**
- * The JNIMemoryParachute is a very weird beast.  Don't look here.
+ * Internal Only.  The JNIMemoryParachute is a very weird beast.  Don't look here.
  * <p>
  * Damn it... I told you not to.  So in normal cases Java handles out
  * of memory conditions by throwing an {@link OutOfMemoryError}.  However
@@ -55,6 +55,10 @@ package com.xuggle.ferry;
  * implementation to correctly return to the underlying Java layer and handle
  * the original {@link OutOfMemoryError}.
  * </p>
+ * <p>Now this is really just a hail mary (at the expense of 10k of memory) -
+ * you can still get failures if multiple threads are all trying to go through
+ * the JNI layer at the same time, but this helps minimize the odds of that
+ * long enough for you to catch an error.</p>
  * <p>See.  Told you to not read.</p>
  * 
  * @author aclarke

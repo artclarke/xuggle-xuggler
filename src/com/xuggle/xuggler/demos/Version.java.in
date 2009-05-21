@@ -16,7 +16,7 @@
  * along with Xuggler. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.xuggle.xuggler;
+package com.xuggle.xuggler.demos;
 
 /**
  * Contains the version numbers for this library.

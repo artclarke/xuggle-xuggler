@@ -21,9 +21,6 @@ package com.xuggle.ferry;
 import java.lang.ref.PhantomReference;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.xuggle.ferry.FerryJNI;
 
 /**
@@ -48,12 +45,6 @@ import com.xuggle.ferry.FerryJNI;
  */
 public class JNIReference extends PhantomReference<Object>
 {
-  private static final Logger log = LoggerFactory.getLogger(JNIReference.class);
-  static
-  {
-    log.trace("static <init>");
-  }
-
   private AtomicLong mSwigCPtr = new AtomicLong(0);
 
   // This memory manager will outlive the Java object we're referencing; that

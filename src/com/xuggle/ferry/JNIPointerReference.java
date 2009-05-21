@@ -1,20 +1,19 @@
 /*
- * Copyright (c) 2008, 2009 by Xuggle Incorporated.  All rights reserved.
+ * Copyright (c) 2008, 2009 by Xuggle Incorporated. All rights reserved.
  * 
  * This file is part of Xuggler.
  * 
  * You can redistribute Xuggler and/or modify it under the terms of the GNU
- * Affero General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option) any
- * later version.
+ * Affero General Public License as published by the Free Software Foundation,
+ * either version 3 of the License, or (at your option) any later version.
  * 
- * Xuggler is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero General Public
- * License for more details.
+ * Xuggler is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
  * 
  * You should have received a copy of the GNU Affero General Public License
- * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Xuggler. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.xuggle.ferry;
@@ -25,8 +24,7 @@ package com.xuggle.ferry;
  * 
  * An Opaque handle that holds a Native pointer/handle.
  * 
- * This class holds a opaque long value
- * that can be used to pass into JNI C
+ * This class holds a opaque long value that can be used to pass into JNI C
  * function that expect a ** in C.
  * <p>
  * For example, a function like this in native code:
@@ -36,9 +34,7 @@ package com.xuggle.ferry;
  *   int url_open(URLContext **handlePtr, char *name, int flags);
  *   int url_read(URLContext *handle, void* buf, int len);
  * </pre>
- * </code>
- * might map to the following Java method:
- * <code>
+ * </code> might map to the following Java method: <code>
  * <pre>
  * public class Example {
  *   public native int url_open(JNIPointerReference p, String name, int flags);
@@ -57,8 +53,8 @@ package com.xuggle.ferry;
  * </code>
  * 
  * <p>
- * <b>IMPORTANT: DO NOT RENAME THIS CLASS OR METHODS IN IT.  NATIVE CODE
- * DEPENDS ON THE NAMES AND SIGNATURES.</b>
+ * <b>IMPORTANT: DO NOT RENAME THIS CLASS OR METHODS IN IT. NATIVE CODE DEPENDS
+ * ON THE NAMES AND SIGNATURES.</b>
  * </p>
  * 
  */
