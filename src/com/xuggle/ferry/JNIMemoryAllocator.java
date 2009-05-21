@@ -55,11 +55,23 @@ public class JNIMemoryAllocator
   final static private boolean SHOULD_RETRY_FAILED_ALLOCS = true;
 
   /**
+   * Not for use outside the package
+   */
+  JNIMemoryAllocator()
+  {
+    
+  }
+  
+  /**
    * Allocate a new block of bytes. Called from native code.
-   * 
-   * Will retry many times if it can't get memory, backing off in timeouts to
-   * get there.
-   * 
+   * <p>
+   * Will retry many times if it can't get memory, backing off
+   * in timeouts to get there.
+   * </p>
+   * <p>
+   * Callers must eventually call {@link #free(byte[])} when done
+   * with the bytes or a leak will result.
+   * </p>
    * @param size
    *          # of bytes requested
    * @return An array of size or more bytes long, or null on failure.
@@ -158,7 +170,8 @@ public class JNIMemoryAllocator
   }
 
   /**
-   * Free memory allocated by the malloc(int) method. Called from Native code.
+   * Free memory allocated by the {@link #malloc(int)} method.
+   * Called from native code.
    * 
    * @param mem
    *          the byes to be freed.
@@ -200,7 +213,7 @@ public class JNIMemoryAllocator
   public native static void setAllocator(long nativeObj, JNIMemoryAllocator mgr);
 
   /**
-   * Get the allocate for the underlying native pointer.
+   * Get the allocator for the underlying native pointer.
    * 
    * @param nativeObj
    *          The native pointer.

@@ -21,20 +21,21 @@ package com.xuggle.ferry;
 /**
  * Internal Only.
  * 
- * This class is held on to by the RefCounted classes and nulled when that
- * object is collected. It has no references to any (non static) members and so
- * its finalizer will not hold up the collection of any other object.
+ * This class is held on to by the {@link RefCounted} classes and nulled when
+ * that object is collected. It has no references to any (non static) members
+ * and so its {@link #finalize()} method will not hold up the collection of any
+ * other object.
  * <p>
  * It exists so that we still have a mechanism that always frees native memory;
- * in most cases the JNIReference will enqueue correctly, and then the next call
- * to a Ferry based method will drain that queue, but sometimes there is no
- * extra call to one of those methods; in this case we'll drain the queue when
- * this gets finalized.
+ * in most cases the {@link JNIReference} will enqueue correctly with the
+ * {@link JNIMemoryManager}, and then the next call to a Ferry based method will
+ * drain that queue, but sometimes there is no extra call to one of those
+ * methods; in this case we'll drain the queue when this gets finalized.
  * </p>
  * <p>
  * It does a {@link JNIMemoryManager#gc()} which might race with the
- * {@link JNIMemoryManager#gc()} that a JNIReference does on allocation of a new
- * object but that's a safe race.
+ * {@link JNIMemoryManager#gc()} that a {@link JNIReference} does on allocation
+ * of a new object but that's a safe race.
  * </p>
  * 
  * @author aclarke
@@ -42,6 +43,18 @@ package com.xuggle.ferry;
  */
 public class JNINativeFinalizer
 {
+  /**
+   * Internal Only. Creates a new {@link JNINativeFinalizer}. This object must
+   * contain <strong>no references</strong> to any other objects in the system.
+   */
+  public JNINativeFinalizer()
+  {
+  }
+
+  /**
+   * Runs a {@link JNIMemoryManager#gc()} to free up any
+   * {@link RefCounted} objects that are pending release.
+   */
   protected void finalize()
   {
     JNIReference.getMgr().gc();

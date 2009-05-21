@@ -35,23 +35,30 @@ namespace com { namespace xuggle { namespace ferry {
   class AtomicInteger;
 
   /**
-   * RefCounted is the parent class of <b>every</b> native object
-   * that is passed into and out of Java.
+   * Parent of all Ferry objects -- it mains reference counts
+   * in native code.
    * <p>
    * RefCounted objects cannot be made with new.  They must be
    * constructed with special factory methods, usually called
    * make(...).
    * </p>
+   * <h2>Special note for developers in languages other than C++</h2>
+   * <p>
+   * You should not need to worry about this class very much.  Feel
+   * free to ignore it.
+   * </p>
+   * <h2>Special note for C++ Users</h2>
    * <p>
    * Users of RefCounted objects in Native (C++) code must make
-   * sure they #acquire() a reference to an object if they
-   * intend to keep using it after it is passed to them, and
-   * must call #release() when done to ensure memory is freed.
+   * sure they acquire() a reference to an object if they
+   * intend to keep using it after they have returned from
+   * the method it was passed to, and
+   * must call release() when done to ensure memory is freed.
    * </p>
    * <p>
    * Methods that return RefCounted objects on the stack are
-   * expected to #acquire() the reference for the caller, and
-   * callers <b>must</b> #release() any RefCounted object
+   * expected to acquire() the reference for the caller, and
+   * callers <b>must</b> release() any RefCounted object
    * returned on the stack.
    * <p>
    * For example:
@@ -73,9 +80,6 @@ namespace com { namespace xuggle { namespace ferry {
    * }
    * </pre>
    * </code>
-   * If you're using from Java you don't need to worry about
-   * this; the JVM will release correctly for you (in fact,
-   * that's the whole reason this class exists).
    */
   class VS_API_FERRY RefCounted
   {
@@ -107,12 +111,12 @@ namespace com { namespace xuggle { namespace ferry {
     virtual int32_t release();
 
     /**
-     * Create a new Java object that refers to the same Native object.
+     * Create a new Java object that refers to the same native object.
      * 
      * This method is meant for other language use like Java; it
      * will acquire the object but also force the creation of
-     * a new object in the target language when wrapped with
-     * SWIG.
+     * a new proxy object in the target language that just
+     * forwards to the same native object.
      * <p>
      * It is not meant for calling from C++ code; use the
      * standard acquire and release semantics for that.

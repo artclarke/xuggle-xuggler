@@ -30,7 +30,7 @@ namespace ferry {
 
 
 /**
- * This object exists in order for the ferry test
+ * Internal Only.  This object exists in order for the ferry test
  * libraries to test the memory management functionality
  * of the RefCounted class from Java.
  *

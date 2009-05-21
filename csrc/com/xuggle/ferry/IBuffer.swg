@@ -26,9 +26,11 @@
   private volatile long swigCPtr;
 
   /**
-   * DO NOT USE THIS CONSTRUCTOR - USE {@link #make(RefCounted,int)} instead.
+   * <strong>
+   * DO NOT USE THIS CONSTRUCTOR - USE {@link #make(RefCounted,int)} INSTEAD.
+   * </strong>
    * <p>
-   * Do not allocate this object using new.  Not part of public API.
+   * Internal Only. Do not allocate this object using new.  Not part of public API.
    * </p>
    * <p>
    * Unfortunately this constructor is public because the internal
@@ -36,17 +38,17 @@
    * as you may end up crashing the virtual machine.
    * </p>
    *
-   * @param pissOff Did we mention don't call this.
-   * @param weMeanIt I'm not even going to tell you.  Stop it.  Go away.
+   * @param ignore1 ignore.
+   * @param ignore2 ignore.
    *
    */ 
-  public $javaclassname(long pissOff, boolean weMeanIt) {
-    super($imclassname.SWIG$javaclassnameUpcast(pissOff), weMeanIt);
-    swigCPtr = pissOff;
+  public $javaclassname(long ignore1, boolean ignore2) {
+    super($imclassname.SWIG$javaclassnameUpcast(ignore1), ignore2);
+    swigCPtr = ignore1;
   }
   
   /**
-   * Not part of public API.
+   * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that obj is proxying for.
    *   
@@ -59,7 +61,7 @@
   }
 
   /**
-   * Not part of public API.
+   * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that we're proxying for.
    *   
@@ -122,7 +124,8 @@
      * The buffer position, mark are initialized to zero and limit
      * is set to the maximum capacity of this buffer.  For some
      * IBuffer contents, the actual usable data in this buffer will
-     * be less that the limit.  In those cases, use the getByteBuffer()
+     * be less that the limit.  In those cases, use the
+     * {@link #getByteBuffer(int, int)}
      * method on those objects directly and limit will be set to their
      * current content limit.
      * 
@@ -141,7 +144,9 @@
      * the underlying native memory allocated will not be released until
      * all references to the returned value are no longer reachable and
      * at least one call to {@link JNIMemoryManager#gc()} has been
-     * performed.  The {@link JNIMemoryManager#gc()} is called whenever
+     * performed.
+     * </p><p>
+     *  The {@link JNIMemoryManager#gc()} is called whenever
      * xuggler tries to allocate new memory for any Xuggler interface,
      * so normally you don't need to care about this.  If for some
      * reason no other Xuggler object is ever allocated (forcing an
@@ -151,7 +156,8 @@
      * </p>
      * <p>
      *
-     * But in the case of Java ByteBuffers, we can't set a finalizer, so
+     * But in the case of {@link java.nio.ByteBuffer} objects, we can't
+     * set a finalizer, so
      * you may find situations where {@link JNIMemoryManager#gc()} is
      * not automatically called for you.  If you're truly paranoid or
      * haven't called a Xuggler interface in a a while, a call to {@link
@@ -162,7 +168,12 @@
      *
      *  You can also start up
      * a separate thread to do this for you by calling
-     * {@link JNIMemoryManager#startCollectionThread()}
+     * {@link JNIMemoryManager#startCollectionThread()}.  This thread
+     * will only wake up when it has work to do, so the overhead
+     * is very low.  We don't turn it on by default since in
+     * 99.999% of cases you don't need to worry about it, but
+     * you are reading the TRULY PARANOID section, so we'll assume
+     * you care.
      *  
      * </p>
      * 
@@ -196,6 +207,23 @@
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // IBuffer.swg
+  /**
+   * Releases any underlying native memory and marks this object
+   * as invalid.
+   * <p>
+   * Normally Ferry manages when to release native memory.
+   * </p>
+   * <p>
+   * In the unlikely event you want to control EXACTLY when a native 
+   * object is released, each Xuggler object has a {@link #delete()}
+   * method that you can use. Once you call {@link #delete()},
+   * you must ENSURE your object is never referenced again from
+   * that Java object -- Ferry tries to help you avoid crashes if you
+   * accidentally use an object after deletion but on this but we
+   * cannot offer 100% protection (specifically if another thread
+   *  is accessing that object EXACTLY when you {@link #delete()} it). 
+   * </p>
+   */
 %}
 
 %{
@@ -232,6 +260,11 @@ typedef jobject jNioByteArray;
 // to java.nio.ByteBuffer
 
   public:
+  
+  /**
+   * Internal only.  Do not use.
+   */
+   
   %javamethodmodifiers java_getByteBuffer() "private"
   jNioByteArray java_getByteBuffer(int32_t offset, int32_t length)
   {
@@ -249,7 +282,6 @@ typedef jobject jNioByteArray;
     }
     return retval;
   }
-
     /**
      * Returns up to length bytes, starting at offset in the
      * underlying buffer we're managing.
@@ -305,6 +337,24 @@ typedef jobject jNioByteArray;
     return retval;
   }
 
+  /**
+   * Allocate a new IBuffer, and copy the data in buffer into
+   * the new IBuffer object.
+   *
+   * @param requestor An optional value telling the IBuffer class
+   *   what object requested it. This is used for debugging memory leaks;
+   *   it's a marker for the FERRY object (e.g. IPacket) that actually
+   *   requested the buffer. If you're not an FERRY object, pass in null here.
+   * @param buffer A java byte buffer for the data containing the
+   *   data you want to copy.
+   * @param offset The starting offset in buffer where you want
+   *   to start copying.
+   * @param length The total number of bytes you want to copy from buffer.
+   *
+   * @return a new IBuffer object with a copy of the data in buffer,
+   *   or null on failure.
+   */
+   
   static IBuffer* make(com::xuggle::ferry::RefCounted* requestor,
      jbyteArray buffer, int32_t offset, int32_t length)
   {
@@ -349,7 +399,30 @@ typedef jobject jNioByteArray;
 
   }
 
-  static IBuffer* make(com::xuggle::ferry::RefCounted* requestor, jNioByteArray directByteBuffer, int32_t offset, int32_t length)
+  /**
+   * Create a new IBuffer object that uses the direct byte buffer
+   * passed in by reference (i.e. it directly uses the bytes in
+   * the direct byte buffer).
+   *
+   * @param requestor An optional value telling the IBuffer class
+   *   what object requested it. This is used for debugging memory leaks;
+   *   it's a marker for the FERRY object (e.g. IPacket) that actually
+   *   requested the buffer. If you're not an FERRY object, pass in null here.
+   * @param directByteBuffer A direct {@link java.nio.ByteBuffer} object
+   *   you want to use for your memory.  This must be a direct object --
+   *   non direct objects will result in an JVM-dependent exception
+   *   being thrown. 
+   * @param offset The starting offset in directByteBuffer where you want
+   *   to start copying.
+   * @param length The total number of bytes you want to copy from
+   *   directByteBuffer.
+   *
+   * @return a new IBuffer object that is using directByteBuffer
+   *   behind the scenes, or null on failure.
+   */
+      
+  static IBuffer* make(com::xuggle::ferry::RefCounted* requestor,
+     jNioByteArray directByteBuffer, int32_t offset, int32_t length)
   {
     IBuffer * retval = 0;
     jobject globalRef = 0;

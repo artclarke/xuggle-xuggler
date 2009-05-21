@@ -18,26 +18,21 @@
 
 /**
  * A collection of classes that ferry objects from Java to native code and back.
- * <h2>A Warning</h2>
  * <p>
- * Arrr. This here package contains methods not part of the public Xuggle API,
- * but that are used internally by the implementation. People are welcome to
- * poke around in the source code, but this area be less well documented than
- * others, and there be dragons here. Arrrr.
+ * This package contains a variety of internal-only classes used by Xuggler to
+ * manage communication between Java and C++.
  * </p>
  * <p>
- * Ye have been warned.
+ * Classes and methods marked &quot;Internal Only&quot; are not meant for usage
+ * by anyone outside these libraries. They are public members only because they
+ * need to be for other Xuggler packages to use them -- don't go calling methods
+ * on these objects from outside Xuggler as you can quickly bring down the Java
+ * virtual machine if you don't know what you're doing.
  * </p>
- * <h2>Notes on Java and Native Memory Management</h2> Seriously. Stop reading
- * now. <br/>
- * We mean it. <br/>
- * <p>
- * OK, so you're still reading. Damn it. OK, this particular feature needs a
- * little explaining. You'll notice that every object that is exposed from
- * Native code inherits from {@link com.xuggle.ferry.RefCounted}. In general as
- * a Java user you can (and should) ignore this. But if you want more details,
- * here's what's going on.
- * </p>
+ * <h2>Notes on Java and Native Memory Management</h2> Every object that is
+ * exposed from native code inherits from {@link com.xuggle.ferry.RefCounted}.
+ * In general as a Java user you can (and should) ignore this. But if you want
+ * more details, here's what's going on. </p>
  * <p>
  * Xuggler works by implementing a reference-counted memory management scheme in
  * C++ that we then manipulate from Java so you don't have to. Every time an
@@ -112,15 +107,14 @@
  * In the unlikely event you need to "copy" a reference explicitly, every
  * Xuggler object has a "copyReference()" method that will create a new Java
  * object that points to the same underlying native object.
- * </p>
  * <p>
- * Also, in the unlikely event you want to control EXACTLY when a native object
- * is released, each Xuggler object has a "delete()" method that you can use.
- * Once you call "delete()" though you must ENSURE your object is never
- * referenced again from that Java object -- we try to help you avoid crashes if
- * you accidentally use an object after deletion but on this but we cannot offer
- * 100% protection (specifically if another thread is accessing that object
- * EXACTLY when you delete it).
+ * And In the unlikely event you want to control EXACTLY when a native object is
+ * released, each Xuggler object has a "delete()" method that you can
+ * use. Once you call "delete()", you must ENSURE your object is never
+ * referenced again from that Java object -- Ferry tries to help you avoid
+ * crashes if you accidentally use an object after deletion but on this but we
+ * cannot offer 100% protection (specifically if another thread is accessing
+ * that object EXACTLY when you "delete()" it).
  * </p>
  */
 package com.xuggle.ferry;

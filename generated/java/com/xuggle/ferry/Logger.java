@@ -32,6 +32,8 @@ public class Logger {
   private JNINativeFinalizer mUnusedVariableToAllowImports;
   
   /**
+   * Internal Only.  
+   * 
    * DO NOT USE: Do not allocate this method using new.  Not part of public API.
    * <p>
    * Unfortunately this constructor is public because the internal
@@ -49,7 +51,7 @@ public class Logger {
   }
 
   /**
-   * Not part of public API.
+   * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that obj is proxying for.
    *   
@@ -62,7 +64,7 @@ public class Logger {
   }
   
   /**
-   * Not part of public API.
+   * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that we're proxying for.
    *   
@@ -107,6 +109,24 @@ public class Logger {
 
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
+  /**
+   * Releases any underlying native memory and marks this object
+   * as invalid.
+   * <p>
+   * Normally Ferry manages when to release native memory.
+   * </p>
+   * <p>
+   * In the unlikely event you want to control EXACTLY when a native 
+   * object is released, each Xuggler object has a {@link #delete()}
+   * method that you can use. Once you call {@link #delete()},
+   * you must ENSURE your object is never referenced again from
+   * that Java object -- Ferry tries to help you avoid crashes if you
+   * accidentally use an object after deletion but on this but we
+   * cannot offer 100% protection (specifically if another thread
+   *  is accessing that object EXACTLY when you {@link #delete()} it). 
+   * </p>
+   */
+  
 
   public synchronized void delete() {
     if(swigCPtr != 0 && swigCMemOwn) {

@@ -38,7 +38,7 @@
   private com.xuggle.ferry.JNINativeFinalizer mObjectToForceFinalize;
 
   /**
-   * Not part of public API.
+   * Internal Only.  Not part of public API.
    */
   protected $javaclassname(long cPtr, boolean cMemoryOwn) {
     swigCMemOwn = cMemoryOwn;
@@ -64,7 +64,7 @@
   }
 
   /**
-   * Not part of public API.
+   * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that obj is proxying for.
    *   
@@ -77,7 +77,7 @@
   }
   
   /**
-   * Not part of public API.
+   * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that we're proxying for.
    *   
@@ -90,6 +90,24 @@
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
+  /**
+   * Releases any underlying native memory and marks this object
+   * as invalid.
+   * <p>
+   * Normally Ferry manages when to release native memory.
+   * </p>
+   * <p>
+   * In the unlikely event you want to control EXACTLY when a native 
+   * object is released, each Xuggler object has a {@link #delete()}
+   * method that you can use. Once you call {@link #delete()},
+   * you must ENSURE your object is never referenced again from
+   * that Java object -- Ferry tries to help you avoid crashes if you
+   * accidentally use an object after deletion but on this but we
+   * cannot offer 100% protection (specifically if another thread
+   *  is accessing that object EXACTLY when you {@link #delete()} it). 
+   * </p>
+   */
+  
  %}
 
 %typemap(javabody) SWIGTYPE %{
@@ -102,6 +120,8 @@
   private JNINativeFinalizer mUnusedVariableToAllowImports;
   
   /**
+   * Internal Only.  
+   * 
    * DO NOT USE: Do not allocate this method using new.  Not part of public API.
    * <p>
    * Unfortunately this constructor is public because the internal
@@ -119,7 +139,7 @@
   }
 
   /**
-   * Not part of public API.
+   * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that obj is proxying for.
    *   
@@ -132,7 +152,7 @@
   }
   
   /**
-   * Not part of public API.
+   * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that we're proxying for.
    *   
@@ -177,6 +197,24 @@
 
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
+  /**
+   * Releases any underlying native memory and marks this object
+   * as invalid.
+   * <p>
+   * Normally Ferry manages when to release native memory.
+   * </p>
+   * <p>
+   * In the unlikely event you want to control EXACTLY when a native 
+   * object is released, each Xuggler object has a {@link #delete()}
+   * method that you can use. Once you call {@link #delete()},
+   * you must ENSURE your object is never referenced again from
+   * that Java object -- Ferry tries to help you avoid crashes if you
+   * accidentally use an object after deletion but on this but we
+   * cannot offer 100% protection (specifically if another thread
+   *  is accessing that object EXACTLY when you {@link #delete()} it). 
+   * </p>
+   */
+  
 %}
 
 // Drop Java Finalization because we put it in the body.
@@ -204,7 +242,7 @@
   }
   
   /**
-   * Not part of public API.
+   * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that obj is proxying for.
    *   
@@ -217,7 +255,7 @@
   }
 
   /**
-   * Not part of public API.
+   * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that we're proxying for.
    *   
@@ -230,7 +268,7 @@
   
   /**
    * Create a new $javaclassname object that is actually referring to the
-   * exact same underlying Native object.
+   * exact same underlying native object.
    *
    * This method increases the ref count of the underlying Native object.
    *
@@ -273,6 +311,24 @@
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
+  /**
+   * Releases any underlying native memory and marks this object
+   * as invalid.
+   * <p>
+   * Normally Ferry manages when to release native memory.
+   * </p>
+   * <p>
+   * In the unlikely event you want to control EXACTLY when a native 
+   * object is released, each Xuggler object has a {@link #delete()}
+   * method that you can use. Once you call {@link #delete()},
+   * you must ENSURE your object is never referenced again from
+   * that Java object -- Ferry tries to help you avoid crashes if you
+   * accidentally use an object after deletion but on this but we
+   * cannot offer 100% protection (specifically if another thread
+   *  is accessing that object EXACTLY when you {@link #delete()} it). 
+   * </p>
+   */
+  
 %}
 
 // For RefCounted and children

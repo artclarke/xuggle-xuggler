@@ -64,7 +64,7 @@ package com.xuggle.ferry;
  * @author aclarke
  *
  */
-public class JNIMemoryParachute
+class JNIMemoryParachute
 {
   private final static JNIMemoryParachute mParachute;
   static {

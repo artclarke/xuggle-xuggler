@@ -27,19 +27,9 @@ import com.xuggle.ferry.FerryJNI;
  * Internal Only.
  * <p>
  * This class creates a {@link PhantomReference} that Ferry classes will use for
- * memory management. We do this to avoid relying on finalizers() to keep up and
- * instead make every new native allocation first release any unreachable
- * objects.
- * </p>
- * <p>
- * The thinking here is that a release of a native object is generally faster
- * than any expected operation you're actually trying to do in native code. For
- * example, freeing a block of memory should be orders of magnitude faster than
- * decoding a frame of live video.
- * </p>
- * <p>
- * Don't use this class outside of the Xuggle libraries; it works, but it's a
- * little complicated
+ * memory management. We do this to avoid relying on Java's finalizer thread to
+ * keep up and instead make every new native allocation first release any
+ * unreachable objects.
  * </p>
  * 
  */

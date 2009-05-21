@@ -26,26 +26,33 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The management object used by Ferry for collecting native memory behind the
- * scenes.
+ * Manage's native memory usage behind the scenes.
  * <p>
- * This class is used by the Ferry system as the root for our own garbage
- * collector.
+ * This class is used by the Ferry system as the root for our own memory
+ * management system.
  * </p>
  * <p>
  * In general you never need to use this mechanism as it's automatically used
- * behind the scenes. However in some situations, especially if you are
- * overriding the memory management used by Ferry, or are returning lots of
- * {@link java.nio.ByteBuffer} objects from {@link IBuffer} objects and not keeping the
- * corresponding {@link IBuffer} reference around, you may want to force a Ferry
- * collection. use this class to do that.
+ * behind the scenes.
  * </p>
  * <p>
- * How do you know if you need to use it? Well, assume you don't, but if you're
- * seeing the native heap on your program start to scale <strong>and you know
- * you're not leaking references</strong> try calling {@link #collect()}. If it
- * doesn't fix the problem, then you probably are holding on to some reference
- * in your program somewhere.
+ * However in some situations, especially if you are overriding the default
+ * memory management used by Ferry, or are returning lots of
+ * {@link java.nio.ByteBuffer} objects from {@link IBuffer} objects and not
+ * keeping the corresponding {@link IBuffer} reference around, you may want to
+ * force a Ferry &quot;collection&quot;. use this class to do that.
+ * </p>
+ * <p>
+ * A Ferry collection is much cheaper than a Java {@link System#gc()} collection
+ * -- it just examines a {@link ReferenceQueue} maintained internally and
+ * releases any pending backing native memory.
+ * </p>
+ * <p>
+ * How do you know if you need to explicitly call methods on this class? Well,
+ * assume you don't, but if you're seeing the native heap on your program start
+ * to scale <strong>and you know you're not leaking references</strong> try
+ * calling {@link #collect()}. If it doesn't fix the problem, then you probably
+ * are holding on to some reference in your program somewhere.
  * </p>
  * 
  * @author aclarke
