@@ -99,7 +99,7 @@ public class StreamIOTest extends TestCase
     // map the URL, telling the factory to unmap it
     // when closed
     String url = mProtocolString+":1";
-    mFactory.mapIO(url, stream, null);
+    mFactory.mapIO(url, stream);
     int retval = -1;
 
     // now, try opening using FFMPEG
