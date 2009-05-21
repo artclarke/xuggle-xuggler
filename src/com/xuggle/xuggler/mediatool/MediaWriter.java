@@ -128,6 +128,11 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
   protected boolean mForceInterleave = true;
 
+  // mask late stream exception policy
+  
+  protected boolean mMaskLateStreamException = false;
+
+
   /**
    * Use a specified {@link MediaReader} as a source for media data and
    * meta data about the container and it's streams.  The {@link
@@ -440,18 +445,39 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     return stream;
   }
 
+
   /**
-   * Test if the MediaWriter will forcibly interleave media data.
-   * The default value for this value is true.
+   * Set late stream exception policy.  When onVideoPicture or
+   * onAudioSamples is passed an unrecognized stream index after the the
+   * header has been written, either an exception is raised, or the
+   * media data is silently ignored.  By default exceptions are raised,
+   * not masked.
    *
-   * @return true if MediaWriter forces Xuggler to interleave media data.
-   *
-   * @see #setForceInterleave
+   * @param maskLateStreamExceptions true if late med
+   * 
+   * @see #willMaskLateStreamExceptions
    */
 
-  public boolean willForceInterleave()
+  public void setMaskLateStreamExceptions(boolean maskLateStreamExceptions)
   {
-    return mForceInterleave;
+    mMaskLateStreamException = maskLateStreamExceptions;
+  }
+  
+  /** 
+   * Get the late stream exception policy.  When onVideoPicture or
+   * onAudioSamples is passed an unrecognized stream index after the the
+   * header has been written, either an exception is raised, or the
+   * media data is silently ignored.  By default exceptions are raised,
+   * not masked.
+   *
+   * @return true if late stream data raises exceptions
+   * 
+   * @see #setMaskLateStreamExceptions
+   */
+
+  public boolean willMaskLateStreamExceptions()
+  {
+    return mMaskLateStreamException;
   }
 
   /**
@@ -481,6 +507,20 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     mForceInterleave = forceInterleave;
   }
 
+  /**
+   * Test if the MediaWriter will forcibly interleave media data.
+   * The default value for this value is true.
+   *
+   * @return true if MediaWriter forces Xuggler to interleave media data.
+   *
+   * @see #setForceInterleave
+   */
+
+  public boolean willForceInterleave()
+  {
+    return mForceInterleave;
+  }
+
   /** 
    * Map an input stream index to an output stream index.
    *
@@ -500,8 +540,12 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   public void onVideoPicture(IMediaTool tool, IVideoPicture picture, 
     BufferedImage image, int streamIndex)
   {
-    IStreamCoder coder = getStreamCoder(streamIndex);
+    // establish the coder, return silently if no coder returned
 
+    IStreamCoder coder = getStreamCoder(streamIndex);
+    if (null == coder)
+      return;
+      
     // if the BufferedImage exists use that
 
     if (null != image)
@@ -538,9 +582,15 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   
   public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
   {
+    // establish the coder, return silently if no coder returned
+
+    IStreamCoder coder = getStreamCoder(streamIndex);
+    if (null == coder)
+      return;
+      
     // encode the audio
 
-    encodeAudio(getStreamCoder(streamIndex), samples);
+    encodeAudio(coder, samples);
 
     // inform listeners
 
@@ -572,6 +622,18 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
     if (null == getOutputStreamIndex(inputStreamIndex))
     {
+      // If the header has already been written, then it is too late to
+      // establish a new stream, throw, or mask optinally mask, and
+      // exception regarding the tardy arival of the new stream
+
+      if (mContainer.isHeaderWritten())
+        if (willMaskLateStreamExceptions())
+          return null;
+        else
+          throw new RuntimeException("Input stream index " + inputStreamIndex + 
+            " has not been seen before, but the media header has already been " +
+            "written.  To mask these exceptions call setMaskLateStreamExceptions()");
+
       // if an no input container exists, create new a stream from scratch
 
       if (null == mInputContainer)

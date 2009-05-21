@@ -295,7 +295,6 @@ public class MediaWriterTest
     log.debug("manually check: " + file);
   }
 
-
    @Test
     public void customAudioVideoStream()
   {
@@ -406,5 +405,115 @@ public class MediaWriterTest
     assert(file.exists());
     assertEquals(file.length(), 521938, 120000);
     log.debug("manually check: " + file);
+  }
+
+  @Test(expected=RuntimeException.class)
+    public void lateStreamException()
+  {
+    File file = new File(PREFIX + "late-stream-exception.mp3");
+    file.delete();
+    assert(!file.exists());
+
+    // audio parameters
+
+    int audioStreamIndex = 0;
+    int audioStreamId = 0;
+    int channelCount = 2;
+    int sampleRate = 44100;
+    int totalSeconds = 5;
+
+    // create the writer
+    
+    MediaWriter writer = new MediaWriter(file.toString());
+
+    // add the audio stream
+
+    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
+    IStream stream = writer.addAudioStream(audioStreamIndex, audioStreamId,
+      codec, channelCount, sampleRate);
+    int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
+
+    // create a place for audio samples
+
+    IAudioSamples samples = IAudioSamples.make(sampleCount, channelCount);
+
+    // create the tone generator
+
+    TestAudioSamplesGenerator generator = new TestAudioSamplesGenerator();
+    generator.prepare(channelCount, sampleRate);
+
+    // write some data, so that the media header will be written
+
+    generator.fillNextSamples(samples, sampleCount);
+    writer.onAudioSamples(null, samples, audioStreamIndex);
+
+    // re-delete the output file so no broke media files persist after
+    // the test
+    
+    file.delete();
+
+    // now write some data on a different index
+
+    generator.fillNextSamples(samples, sampleCount);
+    writer.onAudioSamples(null, samples, audioStreamIndex + 1);
+
+    // should no get here
+
+    assert(false);
+  }
+
+  @Test
+    public void lateStreamExceptionMask()
+  {
+    File file = new File(PREFIX + "late-stream-exception.mp3");
+    file.delete();
+    assert(!file.exists());
+
+    // audio parameters
+
+    int audioStreamIndex = 0;
+    int audioStreamId = 0;
+    int channelCount = 2;
+    int sampleRate = 44100;
+    int totalSeconds = 5;
+
+    // create the writer
+    
+    MediaWriter writer = new MediaWriter(file.toString());
+    
+    // mask late stream exceptoins
+
+    writer.setMaskLateStreamExceptions(true);
+
+    // add the audio stream
+
+    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
+    IStream stream = writer.addAudioStream(audioStreamIndex, audioStreamId,
+      codec, channelCount, sampleRate);
+    int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
+
+    // create a place for audio samples
+
+    IAudioSamples samples = IAudioSamples.make(sampleCount, channelCount);
+
+    // create the tone generator
+
+    TestAudioSamplesGenerator generator = new TestAudioSamplesGenerator();
+    generator.prepare(channelCount, sampleRate);
+
+    // write some data, so that the media header will be written
+
+    generator.fillNextSamples(samples, sampleCount);
+    writer.onAudioSamples(null, samples, audioStreamIndex);
+
+    // now write some data on a different index
+
+    generator.fillNextSamples(samples, sampleCount);
+    writer.onAudioSamples(null, samples, audioStreamIndex + 1);
+
+    // delete the output file so no broke media files persist after the
+    // test
+    
+    file.delete();
   }
 }
