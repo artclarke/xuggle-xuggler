@@ -19,8 +19,8 @@
 
 package com.xuggle.xuggler.io;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,14 +48,14 @@ import com.xuggle.xuggler.io.URLProtocolManager;
 public class URLProtocolManager
 {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
-  Map<String, IURLProtocolHandlerFactory> protocols;
+  private final ConcurrentMap<String, IURLProtocolHandlerFactory> mProtocols;
 
   public static final String DEFAULT_PROTOCOL = "xugglerfile";
   public static final String NULL_PROTOCOL = "xugglernull";
   
-  private static URLProtocolManager sManager = new URLProtocolManager();
+  private static final URLProtocolManager sManager = new URLProtocolManager();
 
-  /*
+  /**
    * Factory method to get the global protocol manager.
    */
   public static URLProtocolManager getManager()
@@ -77,18 +77,18 @@ public class URLProtocolManager
   // use the Singleton factory method.
   private URLProtocolManager()
   {
-    protocols = new HashMap<String, IURLProtocolHandlerFactory>();
+    mProtocols = new ConcurrentHashMap<String, IURLProtocolHandlerFactory>();
     // Always register the DEFAULT
     registerFactory(DEFAULT_PROTOCOL, new FileProtocolHandlerFactory());
     // And the NULL protocols
-    registerFactory(NULL_PROTOCOL, new NullProtocolHandlerFactory());
+    registerFactory(NULL_PROTOCOL, new NullProtocolHandlerFactory());        
   }
 
   /**
    * Register a new factory for IURLProtocolHandlers for a given protocol.
-   * 
+   * <p>
    * FFMPEG is very picky; protocols must be only alpha characters (no numbers).
-   * 
+   * </p>
    * @param protocol The protocol, without colon, this factory is to be used for.
    * @param factory The factory for the manager to use whenever a handler is requested for a registered protocol;
    *   null means disable handling for this factory.
@@ -97,7 +97,7 @@ public class URLProtocolManager
   public IURLProtocolHandlerFactory registerFactory(String protocol,
       IURLProtocolHandlerFactory factory)
   {
-    IURLProtocolHandlerFactory oldFactory = protocols
+    IURLProtocolHandlerFactory oldFactory = mProtocols
         .put(protocol, factory);
     log.trace("Registering factory for URLProtocol: {}", protocol);
 
@@ -114,13 +114,13 @@ public class URLProtocolManager
 
   /*
    * Get a IURLProtocolHandler for this url.
-   * 
+   * <p>
    * IMPORTANT: This function is called from native code, and so the name and signature cannot
    * change without changing the native code.
-   * 
+   * </p><p>
    * This function is eventually invoked whenever someone tries to call url_open("yourprotocol:...", flags)
    * from FFMPEG native code.  It returns a protocol handler which will then have open(...) called on it.
-   * 
+   * </p>
    * @param url The URL we want to handle.
    * @param flags   Any flags that the url_open() function will want to pass.
    * 
@@ -144,7 +144,7 @@ public class URLProtocolManager
       protocol = DEFAULT_PROTOCOL;
     }
 
-    IURLProtocolHandlerFactory factory = protocols.get(protocol);
+    IURLProtocolHandlerFactory factory = mProtocols.get(protocol);
     if (factory != null)
     {
       result = factory.getHandler(protocol, url, flags);

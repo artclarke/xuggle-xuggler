@@ -91,7 +91,7 @@ public class FfmpegIO
    * @param protocol The protocol
    * @param manager The manager for that protocol.
    */
-  static void registerProtocolHandler(String protocol,
+  static synchronized void registerProtocolHandler(String protocol,
       URLProtocolManager manager)
   {
     native_registerProtocolHandler(protocol, manager);

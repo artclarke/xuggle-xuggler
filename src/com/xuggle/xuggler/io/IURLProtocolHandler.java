@@ -23,7 +23,7 @@ import com.xuggle.xuggler.io.FileProtocolHandler;
 import com.xuggle.xuggler.io.URLProtocolManager;
 
 /**
- * Interface that FFMPEG native code calls back to for each
+ * Interface that Xuggler native code calls back to for each
  * URL.  It is assumed a new Protocol object is made
  * per URL being read or written to.
  * <p> 
@@ -33,10 +33,11 @@ import com.xuggle.xuggler.io.URLProtocolManager;
  * <p>
  * If you throw an exception in your implementation of this handler during
  * a callback from within Xuggler, we will assume your method returned -1 while
- * still in native code.  Once the stack unwinds back into Xuggler we will
+ * still in native code.  Once the stack unwinds back into Java we will
  * re-raise your exception.
  * </p>
  * @see FileProtocolHandler
+ * @see NullProtocolHandler
  * 
  * @author aclarke
  *
@@ -60,7 +61,8 @@ public interface IURLProtocolHandler
    */
   public static final int SEEK_END = 2;
   /**
-   * A flag for {@link #seek(long, int)}.  A special hack of FFMPEG, denotes you want to find the total size of the file.
+   * A flag for {@link #seek(long, int)}.
+   * A special hack of FFMPEG, denotes you want to find the total size of the file.
    */
   public static final int SEEK_SIZE = 0x10000;
   /**
@@ -126,18 +128,36 @@ public interface IURLProtocolHandler
   public long seek(long offset, int whence);
 
   /**
-   * A request to close() from ffmpeg
+   * A request to close() from FFMPEG
    * 
    * @return -1 on error; else >= 0
    */
   public int close();
 
   /**
-   * Special callback made by Xuggler in order to determine if your stream supports streaming.
+   * Special callback made by Xuggler in order to determine if your
+   * stream supports streaming.
+   *
+   * <p>
    * 
-   * If you return true, FFMPEG may jump around in the stream.  Be warned that FFMPEG cannot write
-   * certain formats to streaming URLs (for example, the .MOV container).
+   * If this method returns true, Xuggler will assume it cannot seek backwards
+   * in this container.
+   * </p>
+   * <p>
    * 
+   * This has one main practical consequence.  When writing it means certain container formats (e.g. the MOV
+   * container) will not be usable as it requires seeking
+   * back to the start of a file to write MOV required header information once
+   * the entire file has been encoded.
+   * 
+   * </p>
+   * <p>
+   * 
+   * But if your medium is streaming, you'll want to return true for this,
+   * and then FFMPEG will not attempt to seek back in time.
+   * 
+   * </p>
+   *  
    * @param url The URL that would be passed to {@link #open(String, int)}
    * @param flags The flags that would be passed to {@link #open(String, int)}
    * @return true if you can stream that URL; false if not.

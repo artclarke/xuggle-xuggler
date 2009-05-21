@@ -155,7 +155,7 @@ public class FileProtocolHandlerTest extends TestCase
     {
       bytesRead += retval;
     }
-    assertTrue(totalBytes == bytesRead);
+    assertEquals(totalBytes, bytesRead);
     // and close
     retval = handler.close();
     assertTrue(retval >= 0);

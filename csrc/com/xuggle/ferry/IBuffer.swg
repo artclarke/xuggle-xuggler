@@ -123,7 +123,7 @@
      * is set to the maximum capacity of this buffer.  For some
      * IBuffer contents, the actual usable data in this buffer will
      * be less that the limit.  In those cases, use the getByteBuffer()
-     * method on those obejects directly and limit will be set to their
+     * method on those objects directly and limit will be set to their
      * current content limit.
      * 
      * </p>
@@ -143,8 +143,7 @@
      * at least one call to {@link JNIMemoryManager#gc()} has been
      * performed.  The {@link JNIMemoryManager#gc()} is called whenever
      * xuggler tries to allocate new memory for any Xuggler interface,
-     * so normally you don't need to care about this.  For most Xuggler
-     * objects, you never need to care about this, because if for some
+     * so normally you don't need to care about this.  If for some
      * reason no other Xuggler object is ever allocated (forcing an
      * internal {@link JNIMemoryManager#gc()}), every Xuggler object has
      * a finalizer as well that will do the right thing.
@@ -156,7 +155,12 @@
      * you may find situations where {@link JNIMemoryManager#gc()} is
      * not automatically called for you.  If you're truly paranoid or
      * haven't called a Xuggler interface in a a while, a call to {@link
-     * JNIMemoryManager#gc()} never hurts.  You can also start up
+     * JNIMemoryManager#gc()} never hurts.
+     *
+     * </p>
+     * <p>
+     *
+     *  You can also start up
      * a separate thread to do this for you by calling
      * {@link JNIMemoryManager#startCollectionThread()}
      *  
