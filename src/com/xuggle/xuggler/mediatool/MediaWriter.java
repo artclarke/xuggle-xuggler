@@ -673,6 +673,14 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     
     if (!mContainer.isHeaderWritten())
     {
+      // if any of the existing coders are not open, open them now
+
+      for (IStream stream: mStreams.values())
+        if (!stream.getStreamCoder().isOpen())
+          openStream(stream);
+
+      // write the header
+
       int rv = mContainer.writeHeader();
       if (0 != rv)
         throw new RuntimeException("Error " + IError.make(rv) +
@@ -694,8 +702,6 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     if (null == coder)
       throw new RuntimeException("invalid input stream index (no coder): "
         + inputStreamIndex);
-    if (!coder.isOpen())
-      openStream(stream);
     
     // return the coder
     
