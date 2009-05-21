@@ -197,9 +197,9 @@ public class StreamIO implements IURLProtocolHandlerFactory
     registerDefaultFactory();
   }
 
-  private final static boolean DEFAULT_UNMAP_URL_ON_OPEN=true;
-  private final static boolean DEFAULT_CLOSE_STREAM_ON_CLOSE=true;
-  
+  private final static boolean DEFAULT_UNMAP_URL_ON_OPEN = true;
+  private final static boolean DEFAULT_CLOSE_STREAM_ON_CLOSE = true;
+
   /**
    * Register a new protocol name for this factory that Xuggler.IO will use for
    * the given protocol.
@@ -222,8 +222,7 @@ public class StreamIO implements IURLProtocolHandlerFactory
    * @return The factory registered
    */
 
-  static public StreamIO registerFactory(
-      String protocolPrefix)
+  static public StreamIO registerFactory(String protocolPrefix)
   {
     URLProtocolManager manager = URLProtocolManager.getManager();
     manager.registerFactory(protocolPrefix, mFactory);
@@ -264,6 +263,10 @@ public class StreamIO implements IURLProtocolHandlerFactory
    * 
    * Forwards to {@link #getFactory()}.
    * {@link #mapIO(String, InputStream, OutputStream)}
+   * 
+   * @return Returns a URL that can be passed to Xuggler's {@link IContainer}'s
+   *         open method, and will result in IO being performed on the passed in
+   *         streams.
    */
 
   public static String map(String url, InputStream inputStream,
@@ -279,15 +282,19 @@ public class StreamIO implements IURLProtocolHandlerFactory
    * 
    * Forwards to {@link #getFactory()}.
    * {@link #mapIO(String, InputStream, OutputStream, boolean, boolean)}
+   *
+   * @return Returns a URL that can be passed to Xuggler's {@link IContainer}'s
+   *         open method, and will result in IO being performed on the passed in
+   *         streams.
    */
 
   public static String map(String url, InputStream inputStream,
       OutputStream outputStream, boolean unmapOnOpen, boolean closeStreamOnClose)
   {
-    RegistrationInformation info = mFactory.mapIO(url, inputStream, outputStream, unmapOnOpen,
-        closeStreamOnClose);
+    RegistrationInformation info = mFactory.mapIO(url, inputStream,
+        outputStream, unmapOnOpen, closeStreamOnClose);
     if (info != null)
-      throw new RuntimeException("url is already mapped: "+url);
+      throw new RuntimeException("url is already mapped: " + url);
     return DEFAULT_PROTOCOL + ":" + URLProtocolManager.getResourceFromURL(url);
   }
 
@@ -415,11 +422,11 @@ public class StreamIO implements IURLProtocolHandlerFactory
   {
     registerFactory(DEFAULT_PROTOCOL);
   }
-  
+
   /**
    * Implementation of URLProtocolHandler that can read from {@link InputStream}
    * objects or write to {@link OutputStream} objects.
-   *
+   * 
    * <p>
    * 
    * The {@link IURLProtocolHandler#URL_RDWR} mode is not supported.
@@ -432,7 +439,7 @@ public class StreamIO implements IURLProtocolHandlerFactory
    * </p>
    * 
    * @author aclarke
-   *
+   * 
    */
 
   static class Handler implements IURLProtocolHandler
@@ -441,7 +448,7 @@ public class StreamIO implements IURLProtocolHandlerFactory
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private Closeable mOpenStream = null;
-    
+
     /**
      * Only usable by the package.
      */
@@ -462,7 +469,7 @@ public class StreamIO implements IURLProtocolHandlerFactory
     {
       log.trace("Closing stream: {}", mInfo.getName());
       int retval = 0;
-      
+
       if (mOpenStream != null)
       {
         try
@@ -483,41 +490,43 @@ public class StreamIO implements IURLProtocolHandlerFactory
     /**
      * {@inheritDoc}
      */
-    
+
     public int open(String url, int flags)
     {
-      log.trace("attempting to open {} with flags {}",
-          url == null ? mInfo.getName() : url, flags);
+      log.trace("attempting to open {} with flags {}", url == null ? mInfo
+          .getName() : url, flags);
       if (mInfo.isUnmappingOnOpen())
         // the unmapIO is an atomic operation
         if (!mInfo.equals(mInfo.getFactory().unmapIO(mInfo.getName())))
         {
           // someone already unmapped this stream
-          log.error(
-              "stream {} already unmapped meaning it was likely already opened",
-              mInfo.getName());
+          log
+              .error(
+                  "stream {} already unmapped meaning it was likely already opened",
+                  mInfo.getName());
           return -1;
         }
 
-      
-      if (mOpenStream != null) {
-        log.debug("attempting to open already open handler: {}", mInfo.getName());
+      if (mOpenStream != null)
+      {
+        log.debug("attempting to open already open handler: {}", mInfo
+            .getName());
         return -1;
       }
       switch (flags)
       {
-      case URL_RDWR:
-        log.debug("do not support read/write mode for Java IO Handlers");
-        return -1;
-      case URL_WRONLY_MODE:
-        mOpenStream = mInfo.getOutput();
-        break;
-      case URL_RDONLY_MODE:
-        mOpenStream = mInfo.getInput();
-        break;
-      default:
-        log.error("Invalid flag passed to open: {}", mInfo.getName());
-        return -1;
+        case URL_RDWR:
+          log.debug("do not support read/write mode for Java IO Handlers");
+          return -1;
+        case URL_WRONLY_MODE:
+          mOpenStream = mInfo.getOutput();
+          break;
+        case URL_RDONLY_MODE:
+          mOpenStream = mInfo.getInput();
+          break;
+        default:
+          log.error("Invalid flag passed to open: {}", mInfo.getName());
+          return -1;
       }
       if (mOpenStream == null)
       {
@@ -532,23 +541,24 @@ public class StreamIO implements IURLProtocolHandlerFactory
     /**
      * {@inheritDoc}
      */
-      
+
     public int read(byte[] buf, int size)
     {
       if (mOpenStream == null || !(mOpenStream instanceof InputStream))
         return -1;
-      
-      InputStream stream = (InputStream)mOpenStream;
+
+      InputStream stream = (InputStream) mOpenStream;
       try
       {
         int ret = -1;
         ret = stream.read(buf, 0, size);
-        //log.debug("Got result for read: {}", ret);
+        // log.debug("Got result for read: {}", ret);
         return ret;
       }
       catch (IOException e)
       {
-        log.error("Got IO exception reading from file: {}; {}", mInfo.getName(), e);
+        log.error("Got IO exception reading from file: {}; {}",
+            mInfo.getName(), e);
         return -1;
       }
     }
@@ -558,7 +568,7 @@ public class StreamIO implements IURLProtocolHandlerFactory
      * 
      * This method is not supported on this class and always return -1;
      */
-    
+
     public long seek(long offset, int whence)
     {
       // not supported
@@ -568,14 +578,14 @@ public class StreamIO implements IURLProtocolHandlerFactory
     /**
      * {@inheritDoc}
      */
-    
+
     public int write(byte[] buf, int size)
     {
       if (mOpenStream == null || !(mOpenStream instanceof OutputStream))
         return -1;
-      
-      OutputStream stream = (OutputStream)mOpenStream;
-      //log.debug("writing {} bytes to: {}", size, file);
+
+      OutputStream stream = (OutputStream) mOpenStream;
+      // log.debug("writing {} bytes to: {}", size, file);
       try
       {
         stream.write(buf, 0, size);
@@ -593,7 +603,7 @@ public class StreamIO implements IURLProtocolHandlerFactory
      * 
      * Always returns true for this class.
      */
-    
+
     public boolean isStreamed(String url, int flags)
     {
       return true;
