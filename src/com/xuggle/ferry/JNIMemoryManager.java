@@ -25,20 +25,18 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.corba.se.impl.ior.ByteBuffer;
-
 /**
  * The management object used by Ferry for collecting native memory behind the
  * scenes.
  * <p>
- * This class is used by the JNI Memory system as the root for our own garbage
+ * This class is used by the Ferry system as the root for our own garbage
  * collector.
  * </p>
  * <p>
  * In general you never need to use this mechanism as it's automatically used
  * behind the scenes. However in some situations, especially if you are
  * overriding the memory management used by Ferry, or are returning lots of
- * {@link ByteBuffer} objects from {@link IBuffer} objects and not keeping the
+ * {@link java.nio.ByteBuffer} objects from {@link IBuffer} objects and not keeping the
  * corresponding {@link IBuffer} reference around, you may want to force a Ferry
  * collection. use this class to do that.
  * </p>
