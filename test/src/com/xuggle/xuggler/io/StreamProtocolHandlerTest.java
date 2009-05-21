@@ -55,7 +55,8 @@ public class StreamProtocolHandlerTest extends TestCase
     int flags = IURLProtocolHandler.URL_RDONLY_MODE;
 
     FileInputStream stream = new FileInputStream(mSampleFile);
-    final String url = mFactory.mapIO("1", stream, null, false, true);
+    String url = mProtocolString +":"+mSampleFile; 
+    mFactory.mapIO(url, stream, null, false, true);
     int retval = -1;
 
     // Test all the different ways to open a valid file.
@@ -95,9 +96,10 @@ public class StreamProtocolHandlerTest extends TestCase
 
     FileInputStream stream = new FileInputStream(mSampleFile);
     
-    // Register the URL, telling the factory to deregister it
+    // map the URL, telling the factory to unmap it
     // when closed
-    final String url = mFactory.mapIO("1", stream, null);
+    String url = mProtocolString+":1";
+    mFactory.mapIO(url, stream, null);
     int retval = -1;
 
     // now, try opening using FFMPEG
@@ -106,12 +108,12 @@ public class StreamProtocolHandlerTest extends TestCase
     retval = FfmpegIO.url_open(handle, url, flags);
     assertEquals(0, retval);
 
-    retval = FfmpegIO.url_close(handle);
-    assertEquals(0, retval);
-
     assertNull("found handler when we expected it to be unmapped",
         mFactory.unmapIO(url));
     
+    retval = FfmpegIO.url_close(handle);
+    assertEquals(0, retval);
+
   }
   @Test
   public void testFileRead() throws FileNotFoundException
@@ -197,8 +199,8 @@ public class StreamProtocolHandlerTest extends TestCase
   public void testFFMPEGIOUrlRead() throws FileNotFoundException
   {
     FileInputStream stream = new FileInputStream(mSampleFile);
-
-    testFFMPEGUrlReadTestFile(mFactory.mapIO(mSampleFile, stream, null));
+    mFactory.mapIO(mSampleFile, stream, null);
+    testFFMPEGUrlReadTestFile(mProtocolString+":"+mSampleFile);
   }
 
   private void testFFMPEGUrlReadTestFile(String filename)
@@ -231,7 +233,8 @@ public class StreamProtocolHandlerTest extends TestCase
   {
     String outFile = this.getClass().getName() + "_" + this.getName() + ".flv";
     FileOutputStream stream = new FileOutputStream(outFile);
-    testFFMPEGUrlWriteTestFile(mFactory.mapIO(outFile, null, stream));
+    mFactory.mapIO(outFile, null, stream);
+    testFFMPEGUrlWriteTestFile(mProtocolString+":"+outFile);
   }
 
   private void testFFMPEGUrlWriteTestFile(String filename)

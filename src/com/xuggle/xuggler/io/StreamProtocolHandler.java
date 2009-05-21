@@ -50,12 +50,7 @@ import com.xuggle.xuggler.io.StreamProtocolHandlerFactory.RegistrationInformatio
 
 public class StreamProtocolHandler implements IURLProtocolHandler
 {
-  private final String mName;
-  private final InputStream mIStream;
-  private final OutputStream mOStream;
-  private final boolean mIsUnmappingOnClose;
-  private final boolean mIsClosingOnClose;
-  private final StreamProtocolHandlerFactory mFactory;
+  private final RegistrationInformation mInfo;
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
   private Closeable mOpenStream = null;
@@ -69,12 +64,7 @@ public class StreamProtocolHandler implements IURLProtocolHandler
     if (tuple == null)
       throw new IllegalArgumentException();
     log.trace("Initializing handler: {}", tuple.getName());
-    mName = tuple.getName();
-    mIStream = tuple.getInput();
-    mOStream = tuple.getOutput();
-    mIsUnmappingOnClose = tuple.isUnmappingOnClose();
-    mIsClosingOnClose = tuple.isClosingStreamOnClose();
-    mFactory = tuple.getFactory();
+    mInfo = tuple;
   }
 
   /**
@@ -83,21 +73,19 @@ public class StreamProtocolHandler implements IURLProtocolHandler
 
   public int close()
   {
-    log.trace("Closing stream: {}", mName);
+    log.trace("Closing stream: {}", mInfo.getName());
     int retval = 0;
-    if (mIsUnmappingOnClose)
-      mFactory.unmapIO(mName);
     
     if (mOpenStream != null)
     {
       try
       {
-        if (mIsClosingOnClose)
+        if (mInfo.isClosingStreamOnClose())
           mOpenStream.close();
       }
       catch (IOException e)
       {
-        log.error("could not close stream {}: {}", mName, e);
+        log.error("could not close stream {}: {}", mInfo.getName(), e);
         retval = -1;
       }
     }
@@ -111,11 +99,22 @@ public class StreamProtocolHandler implements IURLProtocolHandler
   
   public int open(String url, int flags)
   {
-    log.trace("attempting to open {} with flags {}", url == null ? mName
-        : url, flags);
+    log.trace("attempting to open {} with flags {}",
+        url == null ? mInfo.getName() : url, flags);
+    if (mInfo.isUnmappingOnOpen())
+      // the unmapIO is an atomic operation
+      if (!mInfo.equals(mInfo.getFactory().unmapIO(mInfo.getName())))
+      {
+        // someone already unmapped this stream
+        log.error(
+            "stream {} already unmapped meaning it was likely already opened",
+            mInfo.getName());
+        return -1;
+      }
+
     
     if (mOpenStream != null) {
-      log.debug("attempting to open already open handler: {}", mName);
+      log.debug("attempting to open already open handler: {}", mInfo.getName());
       return -1;
     }
     switch (flags)
@@ -124,22 +123,22 @@ public class StreamProtocolHandler implements IURLProtocolHandler
       log.debug("do not support read/write mode for Java IO Handlers");
       return -1;
     case URL_WRONLY_MODE:
-      mOpenStream = mOStream;
+      mOpenStream = mInfo.getOutput();
       break;
     case URL_RDONLY_MODE:
-      mOpenStream = mIStream;
+      mOpenStream = mInfo.getInput();
       break;
     default:
-      log.error("Invalid flag passed to open: {}", mName);
+      log.error("Invalid flag passed to open: {}", mInfo.getName());
       return -1;
     }
     if (mOpenStream == null)
     {
-      log.error("cannot open stream for that mode: {}", mName);
+      log.error("cannot open stream for that mode: {}", mInfo.getName());
       return -1;
     }
 
-    log.debug("Opened file: {}", mName);
+    log.debug("Opened file: {}", mInfo.getName());
     return 0;
   }
 
@@ -162,7 +161,7 @@ public class StreamProtocolHandler implements IURLProtocolHandler
     }
     catch (IOException e)
     {
-      log.error("Got IO exception reading from file: {}; {}", mName, e);
+      log.error("Got IO exception reading from file: {}; {}", mInfo.getName(), e);
       return -1;
     }
   }
@@ -197,7 +196,7 @@ public class StreamProtocolHandler implements IURLProtocolHandler
     }
     catch (IOException e)
     {
-      log.error("Got error writing to file: {}; {}", mName, e);
+      log.error("Got error writing to file: {}; {}", mInfo.getName(), e);
       return -1;
     }
   }

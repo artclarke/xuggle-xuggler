@@ -24,6 +24,8 @@ import java.io.OutputStream;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.xuggle.xuggler.IContainer;
+
 /**
  * Allows Xuggler to read from and write to Java {@link InputStream} and
  * {@link OutputStream} objects.
@@ -73,10 +75,10 @@ import java.util.concurrent.ConcurrentMap;
  * <p>
  * 
  * By default, if you call {@link #mapIO(String, InputStream, OutputStream)},
- * the mapping will be removed automagically when Xuggler closes the container
- * that opens the file.  That means that code like the examples above will
- * not leak old InputStream references.  If you prefer to manually unmap
- * your mappings, support is provided for that too.
+ * the mapping will be removed automagically when Xuggler calls back into a
+ * registered handler and attempts to open the stream. That means that code like
+ * the examples above will not leak old InputStream references. If you prefer to
+ * manually unmap your mappings, support is provided for that too.
  * 
  * </p>
  */
@@ -109,24 +111,24 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
    * 
    */
 
-  class RegistrationInformation
+  public class RegistrationInformation
   {
     private final String mName;
     private final InputStream mInput;
     private final OutputStream mOutput;
-    private final boolean mIsUnmappingOnClose;
+    private final boolean mIsUnmappingOnOpen;
     private final boolean mIsClosingStreamOnClose;
 
     RegistrationInformation(String streamName, InputStream input,
-        OutputStream output, boolean unmapOnClose, boolean closeStreamOnClose)
+        OutputStream output, boolean unmapOnOpen, boolean closeStreamOnClose)
     {
       mName = streamName;
       mInput = input;
       mOutput = output;
-      mIsUnmappingOnClose = unmapOnClose;
+      mIsUnmappingOnOpen = unmapOnOpen;
       mIsClosingStreamOnClose = closeStreamOnClose;
     }
-    
+
     public StreamProtocolHandlerFactory getFactory()
     {
       return StreamProtocolHandlerFactory.this;
@@ -163,13 +165,13 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
     }
 
     /**
-     * Should the handler call unmap the stream when it closes?
+     * Should the handler unmap the stream after it is opened?
      * 
      * @return the decision
      */
-    public boolean isUnmappingOnClose()
+    public boolean isUnmappingOnOpen()
     {
-      return mIsUnmappingOnClose;
+      return mIsUnmappingOnOpen;
     }
 
     /**
@@ -191,6 +193,9 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
     registerDefaultFactory();
   }
 
+  private final static boolean DEFAULT_UNMAP_URL_ON_OPEN=true;
+  private final static boolean DEFAULT_CLOSE_STREAM_ON_CLOSE=true;
+  
   /**
    * Register a new protocol name for this factory that Xuggler.IO will use for
    * the given protocol.
@@ -250,9 +255,9 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
   }
 
   /**
-   * Maps an {@link InputStream} or {@link OutputStream} to a URL for use
-   * by Xuggler.
-   *
+   * Maps an {@link InputStream} or {@link OutputStream} to a URL for use by
+   * Xuggler.
+   * 
    * Forwards to {@link #getFactory()}.
    * {@link #mapIO(String, InputStream, OutputStream)}
    */
@@ -260,22 +265,26 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
   public static String map(String url, InputStream inputStream,
       OutputStream outputStream)
   {
-    return mFactory.mapIO(url, inputStream, outputStream);
+    return map(url, inputStream, outputStream, DEFAULT_UNMAP_URL_ON_OPEN,
+        DEFAULT_CLOSE_STREAM_ON_CLOSE);
   }
 
   /**
-   * Maps an {@link InputStream} or {@link OutputStream} to a URL for use
-   * by Xuggler.
+   * Maps an {@link InputStream} or {@link OutputStream} to a URL for use by
+   * Xuggler.
    * 
-   * Forwards to {@link #getFactory()}.{@link #mapIO(String, InputStream, OutputStream, boolean, boolean)}
+   * Forwards to {@link #getFactory()}.
+   * {@link #mapIO(String, InputStream, OutputStream, boolean, boolean)}
    */
 
   public static String map(String url, InputStream inputStream,
-      OutputStream outputStream, boolean unmapOnClose,
-      boolean closeStreamOnClose)
+      OutputStream outputStream, boolean unmapOnOpen, boolean closeStreamOnClose)
   {
-    return mFactory.mapIO(url, inputStream, outputStream, unmapOnClose,
+    RegistrationInformation info = mFactory.mapIO(url, inputStream, outputStream, unmapOnOpen,
         closeStreamOnClose);
+    if (info != null)
+      throw new RuntimeException("url is already mapped: "+url);
+    return DEFAULT_PROTOCOL + ":" + URLProtocolManager.getResourceFromURL(url);
   }
 
   /**
@@ -301,10 +310,10 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
    * <p>
    * 
    * When a Stream is mapped using this method, it will have
-   * {@link #unmapIO(String)} automatically called when Xuggler closes the
-   * {@link StreamProtocolHandler} it is using. It will also automatically call
-   * {@link Closeable#close()} on the underlying {@link InputStream} or
-   * {@link OutputStream} it used.
+   * {@link #unmapIO(String)} automatically called when a Xuggler
+   * {@link IContainer} opens the registered URL. It will also automatically
+   * call {@link Closeable#close()} on the underlying {@link InputStream} or
+   * {@link OutputStream} it used when Xuggler closes the {@link IContainer}.
    * 
    * </p>
    * 
@@ -315,17 +324,18 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
    *          An input stream to use for reading data, or null if none.
    * @param outputStream
    *          An output stream to use for reading data, or null if none.
-   * @return A URL that can be passed directly to Xuggler for opening.
-   * 
+   * @return The previous registration information for this url, or null if
+   *         none.
    * 
    * @throws IllegalArgumentException
    *           if both inputStream and outputStream are null.
    */
 
-  public String mapIO(String url, InputStream inputStream,
+  public RegistrationInformation mapIO(String url, InputStream inputStream,
       OutputStream outputStream)
   {
-    return mapIO(url, inputStream, outputStream, true, true);
+    return mapIO(url, inputStream, outputStream, DEFAULT_UNMAP_URL_ON_OPEN,
+        DEFAULT_CLOSE_STREAM_ON_CLOSE);
   }
 
   /**
@@ -344,23 +354,24 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
    *          An input stream to use for reading data, or null if none.
    * @param outputStream
    *          An output stream to use for reading data, or null if none.
-   * @param unmapOnClose
-   *          If true, the handler will unmap itself with
-   *          {@link IURLProtocolHandler#close()} is called.
+   * @param unmapOnOpen
+   *          If true, the handler will unmap itself after an {@link IContainer}
+   *          opens the registered URL. If true, you do not need to call
+   *          {@link #unmapIO(String)} for this url.
    * @param closeStreamOnClose
    *          If true, the handler will call {@link Closeable#close()} on the
    *          {@link InputStream} or {@link OutputStream} it was using when
    *          {@link IURLProtocolHandler#close()} is called.
-   * @return A URL that can be passed directly to Xuggler for opening.
+   * @return The previous registration information for this url, or null if
+   *         none.
    * 
    * 
    * @throws IllegalArgumentException
    *           if both inputStream and outputStream are null.
    */
 
-  public String mapIO(String url, InputStream inputStream,
-      OutputStream outputStream, boolean unmapOnClose,
-      boolean closeStreamOnClose)
+  public RegistrationInformation mapIO(String url, InputStream inputStream,
+      OutputStream outputStream, boolean unmapOnOpen, boolean closeStreamOnClose)
   {
     if (url == null || url.length() <= 0)
       throw new IllegalArgumentException("must pass in non-zero url");
@@ -371,12 +382,8 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
     }
     String streamName = URLProtocolManager.getResourceFromURL(url);
     RegistrationInformation tuple = new RegistrationInformation(streamName,
-        inputStream, outputStream, unmapOnClose, closeStreamOnClose);
-    RegistrationInformation oldTuple = mURLs.putIfAbsent(streamName, tuple);
-    if (oldTuple != null)
-      throw new RuntimeException(
-          "this factory already has a registration for: " + streamName);
-    return DEFAULT_PROTOCOL + ":" + streamName;
+        inputStream, outputStream, unmapOnOpen, closeStreamOnClose);
+    return mURLs.putIfAbsent(streamName, tuple);
   }
 
   /**
