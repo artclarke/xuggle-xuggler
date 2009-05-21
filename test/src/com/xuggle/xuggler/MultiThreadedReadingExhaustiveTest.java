@@ -128,6 +128,8 @@ public class MultiThreadedReadingExhaustiveTest
                     e, t);
                 e.printStackTrace();
                 uncaughtExceptions.incrementAndGet();
+              } else {
+                numPackets[index]=-1;
               }
             }});
 

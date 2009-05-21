@@ -140,7 +140,9 @@ public class MultiThreadedWritingExhaustiveTest
                 e.printStackTrace();
                 uncaughtExceptions.incrementAndGet();
                 lastUncaughtException.set(e);
-              }
+              } else
+                numPackets[index]=-1;
+
             }
           });
       threads[i].start();
