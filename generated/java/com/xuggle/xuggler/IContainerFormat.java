@@ -150,7 +150,7 @@ public class IContainerFormat extends RefCounted {
   }
   
   /**
-   * Returns a map of all codecs supported for output.
+   * Returns a list of all codecs supported for this Object.
    *
    * <p>
    *
@@ -158,21 +158,16 @@ public class IContainerFormat extends RefCounted {
    * we return null.
    *
    * </p>
-   * <p>
-   * 
-   * Callers can cache this value as it will not change for
-   * the lifetime of the output container format.
    *
-   * </p>
-   *
-   * @return A set of supported codecs.
+   * @return A list of supported codecs, in decreasing
+   *   order of the IContainerFormat Object's preference.
    *
    */
    
-  public java.util.Set<ICodec.ID> getOutputCodecsSupported()
+  public java.util.List<ICodec.ID> getOutputCodecsSupported()
   {
-    java.util.Set<ICodec.ID> retval =
-      new java.util.HashSet<ICodec.ID>();
+    java.util.List<ICodec.ID> retval =
+      new java.util.LinkedList<ICodec.ID>();
     
     int numCodecs = getOutputNumCodecsSupported();
     for(int i = 0; i < numCodecs; i++)

@@ -19,7 +19,7 @@
 
 package com.xuggle.xuggler;
 
-import java.util.Set;
+import java.util.List;
 
 import org.junit.*;
 
@@ -143,7 +143,7 @@ public class ContainerFormatTest extends TestCase
     retval = fmt.setOutputFormat("mov", null, null);
     assertTrue("should succeed", retval >= 0);
     
-    Set<ICodec.ID> codecs = fmt.getOutputCodecsSupported();
+    List<ICodec.ID> codecs = fmt.getOutputCodecsSupported();
     assertNotNull(codecs);
 //    for(ICodec.ID id : codecs)
 //      System.out.println("Codec: "+id);
