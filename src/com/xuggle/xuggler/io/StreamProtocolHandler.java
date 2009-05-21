@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.xuggle.xuggler.io.IURLProtocolHandler;
+import com.xuggle.xuggler.io.StreamProtocolHandlerFactory.RegistrationInformation;
 
 /**
  * Implementation of URLProtocolHandler that can read from {@link InputStream}
@@ -52,20 +53,28 @@ public class StreamProtocolHandler implements IURLProtocolHandler
   private final String mName;
   private final InputStream mIStream;
   private final OutputStream mOStream;
-  private Closeable mOpenStream = null;
-  
+  private final boolean mIsUnmappingOnClose;
+  private final boolean mIsClosingOnClose;
+  private final StreamProtocolHandlerFactory mFactory;
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
+  private Closeable mOpenStream = null;
+  
   /**
-   * Only usable by the factory.
+   * Only usable by the package.
    */
 
-  StreamProtocolHandler(String name, InputStream input, OutputStream output)
+  public StreamProtocolHandler(RegistrationInformation tuple)
   {
-    log.trace("Initializing handler: {}", name);
-    mName = name;
-    mIStream = input;
-    mOStream = output;
+    if (tuple == null)
+      throw new IllegalArgumentException();
+    log.trace("Initializing handler: {}", tuple.getName());
+    mName = tuple.getName();
+    mIStream = tuple.getInput();
+    mOStream = tuple.getOutput();
+    mIsUnmappingOnClose = tuple.isUnmappingOnClose();
+    mIsClosingOnClose = tuple.isClosingStreamOnClose();
+    mFactory = tuple.getFactory();
   }
 
   /**
@@ -76,11 +85,15 @@ public class StreamProtocolHandler implements IURLProtocolHandler
   {
     log.trace("Closing stream: {}", mName);
     int retval = 0;
+    if (mIsUnmappingOnClose)
+      mFactory.unmapIO(mName);
+    
     if (mOpenStream != null)
     {
       try
       {
-        mOpenStream.close();
+        if (mIsClosingOnClose)
+          mOpenStream.close();
       }
       catch (IOException e)
       {
@@ -111,7 +124,6 @@ public class StreamProtocolHandler implements IURLProtocolHandler
       log.debug("do not support read/write mode for Java IO Handlers");
       return -1;
     case URL_WRONLY_MODE:
-      // RandomAccessFile doesn't support write-only
       mOpenStream = mOStream;
       break;
     case URL_RDONLY_MODE:

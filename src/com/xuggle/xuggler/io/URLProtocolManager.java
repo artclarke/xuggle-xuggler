@@ -158,21 +158,51 @@ public class URLProtocolManager
     return result;
   }
   
+  /**
+   * Get the resource portion of a url.  For example for the URL
+   * <pre>
+   * http://www.xuggle.com/xuggler
+   * </pre>
+   * The protocol string is <code>http</code> and the resource
+   * string is <code>www.xuggle.com/xuggler</code>
+   * 
+   * @param url The url to parse
+   * @return The resource
+   */
+  
   public static String getResourceFromURL(String url)
   {
     String retval = url;
     if (url != null && url.length() > 0)
     {
-      int colonIndex = url.indexOf(":");
+      int colonIndex;
+      colonIndex = url.indexOf("://");
       if (colonIndex > 0)
-      {
-        // remove the URL prefix
-        retval = url.substring(colonIndex + 1);
+        retval = url.substring(colonIndex+3);
+      else {
+        colonIndex = url.indexOf(":");
+        if (colonIndex > 0)
+        {
+          // remove the URL prefix
+          retval = url.substring(colonIndex + 1);
+        }
       }
     }
     return retval;
   }
 
+  /**
+   * Get the protocol portion of a url.  For example for the URL
+   * <pre>
+   * http://www.xuggle.com/xuggler
+   * </pre>
+   * The protocol string is <code>http</code> and the resource
+   * string is <code>//www.xuggle.com/xuggler</code>
+   * 
+   * @param url The url to parse
+   * @return The protocol
+   */
+  
   public static String getProtocolFromURL(String url)
   {
     String retval = null;

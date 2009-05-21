@@ -55,7 +55,7 @@ public class StreamProtocolHandlerTest extends TestCase
     int flags = IURLProtocolHandler.URL_RDONLY_MODE;
 
     FileInputStream stream = new FileInputStream(mSampleFile);
-    final String url = mFactory.mapIO("1", stream, null);
+    final String url = mFactory.mapIO("1", stream, null, false, true);
     int retval = -1;
 
     // Test all the different ways to open a valid file.
@@ -80,24 +80,50 @@ public class StreamProtocolHandlerTest extends TestCase
     FfmpegIOHandle handle = new FfmpegIOHandle();
 
     retval = FfmpegIO.url_open(handle, url, flags);
-    assertTrue(retval == 0);
+    assertEquals(0, retval);
 
     retval = FfmpegIO.url_close(handle);
     assertTrue(retval == 0);
 
     assertNotNull(mFactory.unmapIO(url));
   }
+  
+  @Test
+  public void testAutoUnmapping() throws FileNotFoundException
+  {
+    int flags = IURLProtocolHandler.URL_RDONLY_MODE;
 
+    FileInputStream stream = new FileInputStream(mSampleFile);
+    
+    // Register the URL, telling the factory to deregister it
+    // when closed
+    final String url = mFactory.mapIO("1", stream, null);
+    int retval = -1;
+
+    // now, try opening using FFMPEG
+    FfmpegIOHandle handle = new FfmpegIOHandle();
+
+    retval = FfmpegIO.url_open(handle, url, flags);
+    assertEquals(0, retval);
+
+    retval = FfmpegIO.url_close(handle);
+    assertEquals(0, retval);
+
+    assertNull("found handler when we expected it to be unmapped",
+        mFactory.unmapIO(url));
+    
+  }
   @Test
   public void testFileRead() throws FileNotFoundException
   {
     // open our file
     FileInputStream stream = new FileInputStream(mSampleFile);
-    mHandler = new StreamProtocolHandler(mSampleFile, stream, null);
+    mHandler = new StreamProtocolHandler(
+        mFactory.new RegistrationInformation(mSampleFile, stream, null,
+            false, true));
 
     int retval = 0;
-    retval = mHandler.open(mSampleFile,
-        IURLProtocolHandler.URL_RDONLY_MODE);
+    retval = mHandler.open(mSampleFile, IURLProtocolHandler.URL_RDONLY_MODE);
     assertTrue(retval >= 0);
 
     long bytesRead = 0;
@@ -117,12 +143,13 @@ public class StreamProtocolHandlerTest extends TestCase
   public void testFileWrite() throws FileNotFoundException
   {
 
-    String copyFile = this.getClass().getName() + "_"
-        + this.getName() + ".flv";
+    String copyFile = this.getClass().getName() + "_" + this.getName() + ".flv";
 
     FileInputStream inStream = new FileInputStream(mSampleFile);
     FileOutputStream outStream = new FileOutputStream(copyFile);
-    mHandler = new StreamProtocolHandler(copyFile, null, outStream);
+    mHandler = new StreamProtocolHandler(
+        mFactory.new RegistrationInformation(copyFile, null, outStream,
+            false, true));
     int retval = 0;
 
     // First, open the write mHandler.
@@ -131,8 +158,9 @@ public class StreamProtocolHandlerTest extends TestCase
 
     // Now, create and open a read mHandler.
     // note that without a protocol string, should default to file:
-    IURLProtocolHandler reader = new StreamProtocolHandler(copyFile, inStream,
-        null);
+    IURLProtocolHandler reader = new StreamProtocolHandler(
+        mFactory.new RegistrationInformation(mSampleFile, inStream, null,
+            false, true));
     retval = reader.open(null, IURLProtocolHandler.URL_RDONLY_MODE);
 
     long bytesWritten = 0;
@@ -230,6 +258,5 @@ public class StreamProtocolHandlerTest extends TestCase
     retval = FfmpegIO.url_close(handle);
     assertTrue("url_close failed: " + retval, retval >= 0);
   }
-
 
 }

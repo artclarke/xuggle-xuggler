@@ -19,17 +19,18 @@
 
 package com.xuggle.xuggler.io;
 
-import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.io.IURLProtocolHandler;
 
 /**
  * The NullProtocolHandler implements {@link IURLProtocolHandler}, but discards
  * any data written and always returns 0 for reading.
+ * 
  * <p>
- * This is useful when you want to set up an {@link IContainer} instance to
- * encode data, but don't want to actually write the data out after encoding (because
- * all you really want are muxed packets)
+ * This can be useful if your operating system doesn't have the unix
+ * equivalent of <code>/dev/null</code> or you want to cheaply
+ * discard data.
  * </p>
+ * 
  * @author aclarke
  *
  */

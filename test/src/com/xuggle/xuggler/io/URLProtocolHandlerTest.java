@@ -137,5 +137,22 @@ public class URLProtocolHandlerTest
     retval = FfmpegIO.url_close(mHandle);
     assertEquals("should fail", -1, retval);
   }
-  
+
+  @Test
+  public void testURLProtocolManagerGetResource()
+  {
+    String url;
+    String resource;
+    String protocol;
+    url = "http://www.xuggle.com/xuggler";
+    resource = URLProtocolManager.getResourceFromURL(url);
+    protocol = URLProtocolManager.getProtocolFromURL(url);
+    assertEquals("http", protocol);
+    assertEquals("www.xuggle.com/xuggler", resource);
+    url = "file:/foo/bar";
+    resource = URLProtocolManager.getResourceFromURL(url);
+    protocol = URLProtocolManager.getProtocolFromURL(url);
+    assertEquals("file", protocol);
+    assertEquals("/foo/bar", resource);
+  }
 }
