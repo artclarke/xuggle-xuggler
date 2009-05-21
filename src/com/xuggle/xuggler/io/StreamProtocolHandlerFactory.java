@@ -33,68 +33,109 @@ import java.util.concurrent.ConcurrentMap;
  * }
  * </p>
  * <p>
- * {@link IURLProtocolHandler}s returned from this factory do not support
- * {@link IURLProtocolHandler#URL_RDWR} mode.
+ * 
+ * To use for reading (assuming an InputStream object called inputStream):
+ * </p>
+ * 
+ * <pre>
+ * IContainer container = IContainer.make();
+ * container.open(
+ *   StreamProtocolHandlerFactory.map("yourkey", inputStream, null),
+ *   IContainer.Type.READ,
+ *   null);
+ * </pre>
+ * <p>
+ * or for writing:
+ * </p>
+ * <pre>
+ * IContainer container = IContainer.make();
+ * container.open(
+ *   StreamProtocolHandlerFactory.map("yourkey", null, outputStream),
+ *   IContainer.Type.WRITE,
+ *   null);
+ * </pre>
+ * 
+ * <p>
+ * If the container is opened for reading, then the inputStream argument
+ * will be used.  If opened for writing, then the outputStream argument will
+ * be used.  You can pass any unique string you like for the first argument
+ * and should use your own conventions to maintain uniqueness.
  * </p>
  * <p>
- * All streams that are mapped in this factory share the same name space,
- * even if registered under different protocols.  So, if "exampleone" and
- * "exampletwo" were both registered as protocols for this factory, then
- * "exampleone:filename" is the same as "exampletwo:filename" and will
- * map to the same input and output streams.
+ * All streams that are mapped in this factory share the same name space, even
+ * if registered under different protocols. So, if "exampleone" and "exampletwo"
+ * were both registered as protocols for this factory, then
+ * "exampleone:filename" is the same as "exampletwo:filename" and will map to
+ * the same input and output streams.  In reality, they are all mapped to the
+ * {@link #DEFAULT_PROTOCOL} protocol.
  * </p>
  */
 
 public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
 {
   /**
-   * The default protocol that this factory uses.
+   * The default protocol that this factory uses ({@value #DEFAULT_PROTOCOL}).
    * <p>
-   * For example, passing "{@value #DEFAULT_PROTOCOL}:foo" will
-   * open an input handled by this factory, provided
-   * {@link #mapIO(String, InputStream, OutputStream)} or 
-   * {@link #map(String, InputStream, OutputStream)} had been called
-   * previously for "foo".
+   * For example, passing {@value #DEFAULT_PROTOCOL} as the protocol
+   * part of a URL, and "foo" as the non-protocol part, will open an input
+   * handled by this factory, provided
+   * {@link #mapIO(String, InputStream, OutputStream)} or
+   * {@link #map(String, InputStream, OutputStream)} had been called previously
+   * for "foo".
    * </p>
    */
-  
+
   public final static String DEFAULT_PROTOCOL = "xugglerjavaio";
 
   /** We don't allow people to create their own version of this factory */
   StreamProtocolHandlerFactory()
   {
-    
+
   }
-  
+
   /**
    * A tuple of information about a registered handler.
+   * 
    * @author aclarke
-   *
+   * 
    */
-  
+
   public class Tuple
   {
     private final String mName;
     private final InputStream mInput;
     private final OutputStream mOutput;
 
-    public Tuple(String streamName, InputStream input, OutputStream output)
+    Tuple(String streamName, InputStream input, OutputStream output)
     {
       mName = streamName;
       mInput = input;
       mOutput = output;
     }
 
+    /**
+     * Get the input stream, if there is one.
+     * @return the input stream, or nulli if none.
+     */
     public InputStream getInput()
     {
       return mInput;
     }
 
+    /**
+     * Get the output stream, if there is one.
+     * @return the output stream, or null if none.
+     */
     public OutputStream getOutput()
     {
       return mOutput;
     }
 
+    /**
+     * The name of this handler registration, without any
+     * protocol.
+     * @return the name
+     */
     public String getName()
     {
       return mName;
@@ -110,14 +151,14 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
   }
 
   /**
-   * Register a new protocol name for this factory that Xuggler.IO 
-   * will use for the given protocol.
+   * Register a new protocol name for this factory that Xuggler.IO will use for
+   * the given protocol.
    * 
    * <p>
    * 
-   * A default factory for the protocol {@value #DEFAULT_PROTOCOL} will
-   * already be registered.  This just allows you to register the same
-   * factory under different strings if you want.
+   * A default factory for the protocol {@value #DEFAULT_PROTOCOL} will already
+   * be registered. This just allows you to register the same factory under
+   * different strings if you want.
    * 
    * </p>
    * <p>
@@ -130,7 +171,7 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
    *          The protocol (e.g. "yourapphandler").
    * @return The factory registered
    */
-  
+
   static public StreamProtocolHandlerFactory registerFactory(
       String protocolPrefix)
   {
@@ -144,7 +185,7 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
    * 
    * @return the factory
    */
-  
+
   static public StreamProtocolHandlerFactory getFactory()
   {
     return mFactory;
@@ -153,7 +194,7 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
   /**
    * {@inheritDoc}
    */
-  
+
   public IURLProtocolHandler getHandler(String protocol, String url, int flags)
   {
     // Note: We need to remove any protocol markers from the url
@@ -169,9 +210,10 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
   }
 
   /**
-   * Forwards to {@link #getFactory()}{@link #mapIO(String, InputStream, OutputStream)} 
+   * Forwards to {@link #getFactory()}.
+   * {@link #mapIO(String, InputStream, OutputStream)}
    */
-  
+
   public static String map(String url, InputStream inputStream,
       OutputStream outputStream)
   {
@@ -179,7 +221,7 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
   }
 
   /**
-   * Forwards to {@link #getFactory()}{@link #unmapIO(String)} 
+   * Forwards to {@link #getFactory()}.{@link #unmapIO(String)}
    */
   public static Tuple unmap(String url)
   {
@@ -188,23 +230,24 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
 
   /**
    * Maps the given url or file name to the given {@link InputStream} or
-   * {@link OutputStream} so that Xuggler calls to open the URL
-   * can use the stream objects.
+   * {@link OutputStream} so that Xuggler calls to open the URL can use the
+   * stream objects.
    * <p>
-   * The return value can be passed directly to Xuggler and will be
-   * guaranteed to map to the streams you passed in.
+   * The return value can be passed directly to Xuggler and will be guaranteed
+   * to map to the streams you passed in.
    * </p>
    * 
-   * @param url A file or URL.  If a URL, the protocol will be stripped off
-   *   and replaced with {@link #DEFAULT_PROTOCOL} when registering.
-   * @param inputStream An input stream to use for reading data, or null if
-   *   none.
-   * @param outputStream An output stream to use for reading data, or null
-   *   if none.
+   * @param url
+   *          A file or URL. If a URL, the protocol will be stripped off and
+   *          replaced with {@link #DEFAULT_PROTOCOL} when registering.
+   * @param inputStream
+   *          An input stream to use for reading data, or null if none.
+   * @param outputStream
+   *          An output stream to use for reading data, or null if none.
    * @return A URL that can be passed directly to Xuggler for opening.
    * 
-   * @throws IllegalArgumentException if both inputStream and outputStream
-   *  are null.
+   * @throws IllegalArgumentException
+   *           if both inputStream and outputStream are null.
    */
   public String mapIO(String url, InputStream inputStream,
       OutputStream outputStream)
@@ -226,14 +269,16 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
   }
 
   /**
-   * Unmaps the registration set by {@link #mapIO(String, InputStream, OutputStream)}.
+   * Unmaps the registration set by
+   * {@link #mapIO(String, InputStream, OutputStream)}.
    * <p>
-   * If URL contains a protocol it is ignored when trying to find the
-   * matching IO stream.
+   * If URL contains a protocol it is ignored when trying to find the matching
+   * IO stream.
    * </p>
-   * @param url The stream name to unmap
-   * @return the Tuple that had been registered for that url, or null
-   *   if none.
+   * 
+   * @param url
+   *          The stream name to unmap
+   * @return the Tuple that had been registered for that url, or null if none.
    */
   public Tuple unmapIO(String url)
   {
