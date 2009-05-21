@@ -63,7 +63,16 @@ namespace com { namespace xuggle { namespace xuggler
 
     virtual bool isOutput();
     virtual bool isInput();
-    
+
+    virtual const char *getOutputExtensions();
+    virtual ICodec::ID getOutputDefaultAudioCodec();
+    virtual ICodec::ID getOutputDefaultVideoCodec();
+    virtual ICodec::ID getOutputDefaultSubtitleCodec();
+    virtual int32_t getOutputNumCodecsSupported();
+    virtual ICodec::ID getOutputCodecID(int32_t index);
+    virtual int32_t getOutputCodecTag(int32_t index);
+    virtual int32_t getOutputCodecTag(ICodec::ID id);
+    virtual bool isCodecSupportedForOutput(ICodec::ID id);
   protected:
     ContainerFormat();
     virtual ~ContainerFormat();

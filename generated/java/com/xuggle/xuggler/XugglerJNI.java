@@ -386,6 +386,15 @@ class XugglerJNI {
   public final static native void IContainerFormat_setOutputFlag(long jarg1, IContainerFormat jarg1_, int jarg2, boolean jarg3);
   public final static native boolean IContainerFormat_isOutput(long jarg1, IContainerFormat jarg1_);
   public final static native boolean IContainerFormat_isInput(long jarg1, IContainerFormat jarg1_);
+  public final static native String IContainerFormat_getOutputExtensions(long jarg1, IContainerFormat jarg1_);
+  public final static native int IContainerFormat_getOutputDefaultAudioCodec(long jarg1, IContainerFormat jarg1_);
+  public final static native int IContainerFormat_getOutputDefaultVideoCodec(long jarg1, IContainerFormat jarg1_);
+  public final static native int IContainerFormat_getOutputDefaultSubtitleCodec(long jarg1, IContainerFormat jarg1_);
+  public final static native int IContainerFormat_getOutputNumCodecsSupported(long jarg1, IContainerFormat jarg1_);
+  public final static native int IContainerFormat_getOutputCodecID(long jarg1, IContainerFormat jarg1_, int jarg2);
+  public final static native int IContainerFormat_getOutputCodecTag__SWIG_0(long jarg1, IContainerFormat jarg1_, int jarg2);
+  public final static native int IContainerFormat_getOutputCodecTag__SWIG_1(long jarg1, IContainerFormat jarg1_, int jarg2);
+  public final static native boolean IContainerFormat_isCodecSupportedForOutput(long jarg1, IContainerFormat jarg1_, int jarg2);
   public final static native int IContainer_setInputBufferLength(long jarg1, IContainer jarg1_, long jarg2);
   public final static native long IContainer_getInputBufferLength(long jarg1, IContainer jarg1_);
   public final static native boolean IContainer_isOpened(long jarg1, IContainer jarg1_);

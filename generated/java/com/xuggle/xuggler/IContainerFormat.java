@@ -143,11 +143,47 @@ public class IContainerFormat extends RefCounted {
       result.append("oname:"+getOutputFormatShortName()+";");
       result.append("olongname:"+getOutputFormatLongName()+";");
       result.append("omimetype:"+getOutputFormatMimeType()+";");
+      result.append("oextensions:"+getOutputExtensions()+";");
     }
     result.append("]");
     return result.toString();
   }
-
+  
+  /**
+   * Returns a map of all codecs supported for output.
+   *
+   * <p>
+   *
+   * If this object hasn't been set up for output, then
+   * we return null.
+   *
+   * </p>
+   * <p>
+   * 
+   * Callers can cache this value as it will not change for
+   * the lifetime of the output container format.
+   *
+   * </p>
+   *
+   * @return A set of supported codecs.
+   *
+   */
+   
+  public java.util.Set<ICodec.ID> getOutputCodecsSupported()
+  {
+    java.util.Set<ICodec.ID> retval =
+      new java.util.HashSet<ICodec.ID>();
+    
+    int numCodecs = getOutputNumCodecsSupported();
+    for(int i = 0; i < numCodecs; i++)
+    {
+      ICodec.ID id = getOutputCodecID(i);
+      if (id != ICodec.ID.CODEC_ID_NONE)
+        retval.add(id);
+    }    
+    return retval;
+  }
+  
 
 /**
  * Sets the input format for this container.  
@@ -177,40 +213,40 @@ public class IContainerFormat extends RefCounted {
   }
 
 /**
- * @return	The short name for the input format, or 0 (null) if none. 
- *		  
+ * Get the short name for the input format.  
+ * @return	The short name for the input format, or null if none.  
  */
   public String getInputFormatShortName() {
     return XugglerJNI.IContainerFormat_getInputFormatShortName(swigCPtr, this);
   }
 
 /**
- * @return	The long name for the input format, or 0 (null) if none. 
- *		  
+ * Get the long name for the input format.  
+ * @return	The long name for the input format, or null if none.  
  */
   public String getInputFormatLongName() {
     return XugglerJNI.IContainerFormat_getInputFormatLongName(swigCPtr, this);
   }
 
 /**
- * @return	The short name for the output format, or 0 (null) if none. 
- *		  
+ * Get the short name for the output format.  
+ * @return	The short name for the output format, or null if none.  
  */
   public String getOutputFormatShortName() {
     return XugglerJNI.IContainerFormat_getOutputFormatShortName(swigCPtr, this);
   }
 
 /**
- * @return	The long name for the output format, or 0 (null) if none. 
- *		  
+ * Get the long name for the output format.  
+ * @return	The long name for the output format, or null if none.  
  */
   public String getOutputFormatLongName() {
     return XugglerJNI.IContainerFormat_getOutputFormatLongName(swigCPtr, this);
   }
 
 /**
- * @return	The mime type for the output format, or 0 (null) if none. 
- *		  
+ * Get the mime type for the output format.  
+ * @return	The mime type for the output format, or null if none.  
  */
   public String getOutputFormatMimeType() {
     return XugglerJNI.IContainerFormat_getOutputFormatMimeType(swigCPtr, this);
@@ -311,6 +347,113 @@ public class IContainerFormat extends RefCounted {
  */
   public boolean isInput() {
     return XugglerJNI.IContainerFormat_isInput(swigCPtr, this);
+  }
+
+/**
+ * Get the filename extensions that this output format prefers  
+ * (most common first).  
+ * @return	a command separated string of output extensions, or  
+ * null if none.  
+ */
+  public String getOutputExtensions() {
+    return XugglerJNI.IContainerFormat_getOutputExtensions(swigCPtr, this);
+  }
+
+/**
+ * Get the default audio codec this container prefers, if known.  
+ * @return	the default audio codec id, or {@link ICodec.ID#CODEC_ID_NONE} 
+ *		  
+ * if unknown.  
+ */
+  public ICodec.ID getOutputDefaultAudioCodec() {
+    return ICodec.ID.swigToEnum(XugglerJNI.IContainerFormat_getOutputDefaultAudioCodec(swigCPtr, this));
+  }
+
+/**
+ * Get the default video codec this container prefers, if known.  
+ * @return	the default video codec id, or {@link ICodec.ID#CODEC_ID_NONE} 
+ *		  
+ * if unknown.  
+ */
+  public ICodec.ID getOutputDefaultVideoCodec() {
+    return ICodec.ID.swigToEnum(XugglerJNI.IContainerFormat_getOutputDefaultVideoCodec(swigCPtr, this));
+  }
+
+/**
+ * Get the default subtitle codec this container prefers, if known. 
+ *  
+ * @return	the default subtitle codec id, or {@link ICodec.ID#CODEC_ID_NONE} 
+ *		  
+ * if unknown.  
+ */
+  public ICodec.ID getOutputDefaultSubtitleCodec() {
+    return ICodec.ID.swigToEnum(XugglerJNI.IContainerFormat_getOutputDefaultSubtitleCodec(swigCPtr, this));
+  }
+
+/**
+ * Gets the number of different codecs this container  
+ * can include for encoding.  
+ * This can be used as an upper bound when using the  
+ * {@link #getOutputCodecID(int)} and  
+ * {@link #getOutputCodecTag(int)}  
+ * methods to dynamically query the actual codecs.  
+ * @return	The total number of different codec types that can  
+ * be encoded into this container format.  
+ */
+  public int getOutputNumCodecsSupported() {
+    return XugglerJNI.IContainerFormat_getOutputNumCodecsSupported(swigCPtr, this);
+  }
+
+/**
+ * Queries for a supported codec id from the list of codecs  
+ * that can be encoded into this ContainerFormat.  
+ * @param	index The index in our lookup table. Index >= 0 and  
+ * < {@link #getOutputNumCodecsSupported()}. Index values may  
+ * change between releases, so always query.  
+ * @return	The codec id at this position, or  
+ * {@link ICodec.ID#CODEC_ID_NONE}  
+ * if there is none.  
+ */
+  public ICodec.ID getOutputCodecID(int index) {
+    return ICodec.ID.swigToEnum(XugglerJNI.IContainerFormat_getOutputCodecID(swigCPtr, this, index));
+  }
+
+/**
+ * Queries for a supported codec tag from the list of codecs  
+ * that can be encoded into this ContainerFormat.  
+ * <p>  
+ * Tags are 4-byte values that are often used as markers  
+ * in a container format for a codec type.  
+ * </p>  
+ * @param	index The index in our lookup table. Index >= 0 and  
+ * < {@link #getOutputNumCodecsSupported()}. Index values may  
+ * change between releases, so always query.  
+ * @return	The codec id tag this position, or 0 if there is none.  
+ */
+  public int getOutputCodecTag(int index) {
+    return XugglerJNI.IContainerFormat_getOutputCodecTag__SWIG_0(swigCPtr, this, index);
+  }
+
+/**
+ * Get the 4-byte tag the container would output for  
+ * the given codec id.  
+ * @param	id the codec you are about  
+ * @return	the 4-byte codec tag, or 0 if that id is not  
+ * supported.  
+ */
+  public int getOutputCodecTag(ICodec.ID id) {
+    return XugglerJNI.IContainerFormat_getOutputCodecTag__SWIG_1(swigCPtr, this, id.swigValue());
+  }
+
+/**
+ * Returns true if this container format can output media  
+ * encoded with the given codec.  
+ * @param	id the codec you care about.  
+ * @return	true if the codec can be put in this output container;  
+ * false otherwise.  
+ */
+  public boolean isCodecSupportedForOutput(ICodec.ID id) {
+    return XugglerJNI.IContainerFormat_isCodecSupportedForOutput(swigCPtr, this, id.swigValue());
   }
 
   public enum Flags {

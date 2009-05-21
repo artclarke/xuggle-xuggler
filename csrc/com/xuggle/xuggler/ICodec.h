@@ -37,14 +37,13 @@ namespace com { namespace xuggle { namespace xuggler
   public:
     /**
      * These are the codecs this library currently supports.
-     * These are based on FFMPEG r16683 or later
+     * These are based on FFMPEG r18801 or later
      */
     typedef enum {
       CODEC_ID_NONE,
 
-      /* video codecs */
       CODEC_ID_MPEG1VIDEO,
-      CODEC_ID_MPEG2VIDEO,
+      CODEC_ID_MPEG2VIDEO, 
       CODEC_ID_MPEG2VIDEO_XVMC,
       CODEC_ID_H261,
       CODEC_ID_H263,
@@ -170,8 +169,13 @@ namespace com { namespace xuggle { namespace xuggler
       CODEC_ID_MOTIONPIXELS,
       CODEC_ID_TGV,
       CODEC_ID_TGQ,
+      CODEC_ID_TQI,
+      CODEC_ID_AURA,
+      CODEC_ID_AURA2,
+      CODEC_ID_V210X,
+      CODEC_ID_TMV,
+      CODEC_ID_V210,
 
-      /* various PCM "codecs" */
       CODEC_ID_PCM_S16LE= 0x10000,
       CODEC_ID_PCM_S16BE,
       CODEC_ID_PCM_U16LE,
@@ -197,7 +201,6 @@ namespace com { namespace xuggle { namespace xuggler
       CODEC_ID_PCM_F64BE,
       CODEC_ID_PCM_F64LE,
 
-      /* various ADPCM codecs */
       CODEC_ID_ADPCM_IMA_QT= 0x11000,
       CODEC_ID_ADPCM_IMA_WAV,
       CODEC_ID_ADPCM_IMA_DK3,
@@ -227,21 +230,17 @@ namespace com { namespace xuggle { namespace xuggler
       CODEC_ID_ADPCM_EA_MAXIS_XA,
       CODEC_ID_ADPCM_IMA_ISS,
 
-      /* AMR */
       CODEC_ID_AMR_NB= 0x12000,
       CODEC_ID_AMR_WB,
 
-      /* RealAudio codecs*/
       CODEC_ID_RA_144= 0x13000,
       CODEC_ID_RA_288,
 
-      /* various DPCM codecs */
       CODEC_ID_ROQ_DPCM= 0x14000,
       CODEC_ID_INTERPLAY_DPCM,
       CODEC_ID_XAN_DPCM,
       CODEC_ID_SOL_DPCM,
 
-      /* audio codecs */
       CODEC_ID_MP2= 0x15000,
       CODEC_ID_MP3,
       CODEC_ID_AAC,
@@ -262,7 +261,7 @@ namespace com { namespace xuggle { namespace xuggler
       CODEC_ID_SHORTEN,
       CODEC_ID_ALAC,
       CODEC_ID_WESTWOOD_SND1,
-      CODEC_ID_GSM,
+      CODEC_ID_GSM, 
       CODEC_ID_QDM2,
       CODEC_ID_COOK,
       CODEC_ID_TRUESPEECH,
@@ -274,7 +273,7 @@ namespace com { namespace xuggle { namespace xuggler
       CODEC_ID_IMC,
       CODEC_ID_MUSEPACK7,
       CODEC_ID_MLP,
-      CODEC_ID_GSM_MS, /* as found in WAV */
+      CODEC_ID_GSM_MS, 
       CODEC_ID_ATRAC3,
       CODEC_ID_VOXWARE,
       CODEC_ID_APE,
@@ -288,8 +287,10 @@ namespace com { namespace xuggle { namespace xuggler
       CODEC_ID_EAC3,
       CODEC_ID_SIPR,
       CODEC_ID_MP1,
+      CODEC_ID_TWINVQ,
+      CODEC_ID_TRUEHD,
+      CODEC_ID_MP4ALS,
 
-      /* subtitle codecs */
       CODEC_ID_DVD_SUBTITLE= 0x17000,
       CODEC_ID_DVB_SUBTITLE,
       CODEC_ID_TEXT,
@@ -297,12 +298,11 @@ namespace com { namespace xuggle { namespace xuggler
       CODEC_ID_SSA,
       CODEC_ID_MOV_TEXT,
 
-      /* other specific kind of codecs (generally used for attachments) */
       CODEC_ID_TTF= 0x18000,
 
       CODEC_ID_PROBE= 0x19000,
 
-      CODEC_ID_MPEG2TS= 0x20000,
+      CODEC_ID_MPEG2TS= 0x20000, 
     } ID;
 
     /**

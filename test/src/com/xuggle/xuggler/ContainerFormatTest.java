@@ -19,6 +19,8 @@
 
 package com.xuggle.xuggler;
 
+import java.util.Set;
+
 import org.junit.*;
 
 import com.xuggle.xuggler.IContainerFormat;
@@ -128,5 +130,28 @@ public class ContainerFormatTest extends TestCase
     assertTrue("should have global header", hasGlobalHeader);
     
 
+  }
+  
+  @Test
+  public void testGetOutputCodecsSupported()
+  {
+    IContainerFormat fmt = IContainerFormat.make();
+    
+    int retval = -1;
+    int flags = fmt.getOutputFlags();
+    assertEquals("should be not set", flags, 0);
+    retval = fmt.setOutputFormat("mov", null, null);
+    assertTrue("should succeed", retval >= 0);
+    
+    Set<ICodec.ID> codecs = fmt.getOutputCodecsSupported();
+    assertNotNull(codecs);
+//    for(ICodec.ID id : codecs)
+//      System.out.println("Codec: "+id);
+
+    assertTrue("should get at least one codec", codecs.size() > 1);
+    assertTrue("should have MP3",
+        codecs.contains(ICodec.ID.CODEC_ID_MP3));
+    assertTrue("Should contain H263",
+        codecs.contains(ICodec.ID.CODEC_ID_H263));
   }
 }

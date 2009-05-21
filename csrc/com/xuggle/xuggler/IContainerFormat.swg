@@ -40,11 +40,47 @@
       result.append("oname:"+getOutputFormatShortName()+";");
       result.append("olongname:"+getOutputFormatLongName()+";");
       result.append("omimetype:"+getOutputFormatMimeType()+";");
+      result.append("oextensions:"+getOutputExtensions()+";");
     }
     result.append("]");
     return result.toString();
   }
-
+  
+  /**
+   * Returns a map of all codecs supported for output.
+   *
+   * <p>
+   *
+   * If this object hasn't been set up for output, then
+   * we return null.
+   *
+   * </p>
+   * <p>
+   * 
+   * Callers can cache this value as it will not change for
+   * the lifetime of the output container format.
+   *
+   * </p>
+   *
+   * @return A set of supported codecs.
+   *
+   */
+   
+  public java.util.Set<ICodec.ID> getOutputCodecsSupported()
+  {
+    java.util.Set<ICodec.ID> retval =
+      new java.util.HashSet<ICodec.ID>();
+    
+    int numCodecs = getOutputNumCodecsSupported();
+    for(int i = 0; i < numCodecs; i++)
+    {
+      ICodec.ID id = getOutputCodecID(i);
+      if (id != ICodec.ID.CODEC_ID_NONE)
+        retval.add(id);
+    }    
+    return retval;
+  }
+  
 %}
 
 %include <com/xuggle/xuggler/IContainerFormat.h>

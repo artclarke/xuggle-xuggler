@@ -19,6 +19,20 @@
 
 #include <com/xuggle/xuggler/ContainerFormat.h>
 
+#ifdef VS_FFMPEG_GOT_OFF_THEIR_BUTT_AND_EXPOSED_THIS
+/*
+ * Sigh; this hack is necessary because FFMPEG doesn't actually
+ * expose the AVCodecTag structure.  This might break if they
+ * change the structure, but by placing it here it should
+ * at least cause a compiler error.
+ */
+struct AVCodecTag
+{
+  int32_t id;
+  uint32_t tag;
+};
+#endif  
+  
 namespace com { namespace xuggle { namespace xuggler
 {
 
@@ -189,6 +203,164 @@ namespace com { namespace xuggle { namespace xuggler
   ContainerFormat :: isInput()
   {
     return mInputFormat;
+  }
+
+  const char *
+  ContainerFormat :: getOutputExtensions()
+  {
+    if (!mOutputFormat || !mOutputFormat->extensions ||
+        !*mOutputFormat->extensions)
+      return 0;
+    return mOutputFormat->extensions;
+  }
+
+  ICodec::ID
+  ContainerFormat :: getOutputDefaultAudioCodec()
+  {
+    if (!mOutputFormat)
+      return ICodec::CODEC_ID_NONE;
+    return (ICodec::ID)mOutputFormat->audio_codec;
+  }
+  
+  ICodec::ID
+  ContainerFormat :: getOutputDefaultVideoCodec()
+  {
+    if (!mOutputFormat)
+      return ICodec::CODEC_ID_NONE;
+    return (ICodec::ID)mOutputFormat->video_codec;
+  }
+
+  ICodec::ID
+  ContainerFormat :: getOutputDefaultSubtitleCodec()
+  {
+    if (!mOutputFormat)
+      return ICodec::CODEC_ID_NONE;
+    return (ICodec::ID)mOutputFormat->subtitle_codec;
+  }
+  
+  int32_t
+  ContainerFormat :: getOutputNumCodecsSupported()
+  {
+    if (!mOutputFormat)
+      return 0;
+    
+#ifdef VS_FFMPEG_GOT_OFF_THEIR_BUTT_AND_EXPOSED_THIS
+    // Now, this is NOT fast, and we could make it faster
+    // if FFMPEG exposed the AVCodecTag structure, which
+    // they don't.  Here's the code that does that:
+    int numCodecs = 0;
+    for(const struct AVCodecTag * tag =
+      (mOutputFormat->codec_tag ? *mOutputFormat->codec_tag : 0);
+      tag && tag->id != ICodec::CODEC_ID_NONE;
+      tag++)
+    {
+      ++numCodecs;
+    }
+    return numCodecs;
+#else
+    // iterate through all codecs
+    int32_t numSupportedCodecs = 0;
+    AVCodec *codec = 0;
+    while((codec = av_codec_next(codec))!= 0)
+    {
+      if (codec->id != CODEC_ID_NONE) {
+        int tag = av_codec_get_tag(mOutputFormat->codec_tag,
+            codec->id);
+        if (tag)
+          ++numSupportedCodecs;
+      }
+    }
+    return numSupportedCodecs;
+#endif
+  }
+  ICodec::ID
+  ContainerFormat :: getOutputCodecID(int32_t index)
+  {
+    if (index < 0)
+      return ICodec::CODEC_ID_NONE;
+#ifdef VS_FFMPEG_GOT_OFF_THEIR_BUTT_AND_EXPOSED_THIS
+    int codecNum= 0;
+    for(const struct AVCodecTag * tag =
+      (mOutputFormat->codec_tag ? *mOutputFormat->codec_tag : 0);
+      tag && tag->id != ICodec::CODEC_ID_NONE;
+      tag++, codecNum++)
+    {
+      if (codecNum == index)
+        return (ICodec::ID)tag->id;
+    }
+    return ICodec::CODEC_ID_NONE;
+#else
+    // iterate through all codecs
+    int32_t numSupportedCodecs = 0;
+    AVCodec *codec = 0;
+    while((codec = av_codec_next(codec))!= 0)
+    {
+      if (codec->id != CODEC_ID_NONE) {
+        int tag = av_codec_get_tag(mOutputFormat->codec_tag,
+            codec->id);
+        if (tag) {
+          if (numSupportedCodecs == index) {
+            return (ICodec::ID)codec->id;
+          }
+          ++numSupportedCodecs;
+        }
+      }
+    }
+    return ICodec::CODEC_ID_NONE;
+
+#endif
+  }
+  int32_t
+  ContainerFormat :: getOutputCodecTag(int32_t index)
+  {
+    if (index < 0)
+      return 0;
+#ifdef VS_FFMPEG_GOT_OFF_THEIR_BUTT_AND_EXPOSED_THIS
+    int codecNum= 0;
+    for(const struct AVCodecTag * tag =
+      (mOutputFormat->codec_tag ? *mOutputFormat->codec_tag : 0);
+      tag && tag->id != ICodec::CODEC_ID_NONE;
+      tag++, codecNum++)
+    {
+      if (codecNum == index)
+        return tag->tag;
+    }
+    return 0;
+#else
+    // iterate through all codecs
+    int32_t numSupportedCodecs = 0;
+    AVCodec *codec = 0;
+    while((codec = av_codec_next(codec))!= 0)
+    {
+      if (codec->id != CODEC_ID_NONE) {
+        int tag = av_codec_get_tag(mOutputFormat->codec_tag,
+            codec->id);
+        if (tag) {
+          if (numSupportedCodecs == index) {
+            return (int32_t)tag;
+          }
+          ++numSupportedCodecs;
+        }
+      }
+    }
+    return 0;
+#endif
+  }
+  
+  bool
+  ContainerFormat :: isCodecSupportedForOutput(ICodec::ID id)
+  {
+    return getOutputCodecTag(id);
+  }
+  
+  int32_t
+  ContainerFormat :: getOutputCodecTag(ICodec::ID id)
+  {
+    if (!mOutputFormat)
+      return 0;
+    return (int32_t)av_codec_get_tag(mOutputFormat->codec_tag,
+        (enum CodecID)id);
+    
   }
 
 }}}

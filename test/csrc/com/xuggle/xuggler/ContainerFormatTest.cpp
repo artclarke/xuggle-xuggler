@@ -137,3 +137,51 @@ ContainerFormatTest :: testSetOutputFormat()
   retval = format->setOutputFormat("", "", "notavalidmeimetype/foo");
   VS_TUT_ENSURE("could set to an invalid format", retval < 0 );
 }
+
+void 
+ContainerFormatTest :: testGetOutputNumCodecsSupported()
+{
+  LoggerStack stack;
+  stack.setGlobalLevel(Logger::LEVEL_INFO, false);
+
+  int retval = -1;
+  format = IContainerFormat::make();
+  VS_TUT_ENSURE("could not allocate container", format);
+  
+  // Valid formats
+  retval = format->setOutputFormat("mov", 0, 0);
+  VS_TUT_ENSURE("could not set format to mov", retval >= 0);
+  
+  VS_TUT_ENSURE("no default audio codec",
+      format->getOutputDefaultAudioCodec() != ICodec::CODEC_ID_NONE);
+  VS_TUT_ENSURE("no default audio codec",
+      format->getOutputDefaultVideoCodec() != ICodec::CODEC_ID_NONE);
+  VS_TUT_ENSURE("should have non null extensions",
+      format->getOutputExtensions());
+  int numCodecsSupported = format->getOutputNumCodecsSupported();
+  VS_LOG_DEBUG("Num codecs supported: %ld", numCodecsSupported);
+  VS_TUT_ENSURE("should have more than 1 codec supported",
+      numCodecsSupported > 1);
+  for(int i = 0; i < numCodecsSupported; i++)
+  {
+    ICodec::ID id = format->getOutputCodecID(i);
+    VS_TUT_ENSURE("should not be none", id != ICodec::CODEC_ID_NONE);
+    RefPointer<ICodec> codec = ICodec::findEncodingCodec(id);
+    if (!codec) {
+      VS_LOG_DEBUG("Codec not supported: %ld", id);
+    } else {
+      int tag = format->getOutputCodecTag(i);
+      VS_LOG_DEBUG("Codec: %s; Tag: %ld; ID: %ld",
+          codec->getName(),
+          tag,
+          id);
+      VS_TUT_ENSURE("tag should be non zero", tag != 0);
+      VS_TUT_ENSURE("should say we support this",
+          format->isCodecSupportedForOutput(id));
+      VS_TUT_ENSURE_EQUALS("tags should be the same",
+          tag,
+          format->getOutputCodecTag(id));
+    }
+  }
+}
+
