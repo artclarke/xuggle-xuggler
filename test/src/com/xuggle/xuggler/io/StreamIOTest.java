@@ -26,18 +26,18 @@ import junit.framework.TestCase;
 
 import org.junit.*;
 
-public class StreamProtocolHandlerTest extends TestCase
+public class StreamIOTest extends TestCase
 {
 
-  private StreamProtocolHandlerFactory mFactory = null;
+  private StreamIO mFactory = null;
   private IURLProtocolHandler mHandler = null;
   private final String mSampleFile = "fixtures/testfile.flv";
-  private final String mProtocolString = StreamProtocolHandlerFactory.DEFAULT_PROTOCOL;
+  private final String mProtocolString = StreamIO.DEFAULT_PROTOCOL;
 
   @Before
   public void setUp()
   {
-    mFactory = new StreamProtocolHandlerFactory();
+    mFactory = new StreamIO();
     URLProtocolManager.getManager().registerFactory(mProtocolString, mFactory);
     mHandler = null;
   }
@@ -61,7 +61,7 @@ public class StreamProtocolHandlerTest extends TestCase
 
     // Test all the different ways to open a valid file.
     mHandler = mFactory.getHandler(
-        StreamProtocolHandlerFactory.DEFAULT_PROTOCOL, url, flags);
+        StreamIO.DEFAULT_PROTOCOL, url, flags);
     assertTrue("could not find a mHandler using the mFactory", mHandler != null);
 
     // the mFactory should pass the URL to the mHandler
@@ -120,7 +120,7 @@ public class StreamProtocolHandlerTest extends TestCase
   {
     // open our file
     FileInputStream stream = new FileInputStream(mSampleFile);
-    mHandler = new StreamProtocolHandler(
+    mHandler = new StreamIO.Handler(
         mFactory.new RegistrationInformation(mSampleFile, stream, null,
             false, true));
 
@@ -149,7 +149,7 @@ public class StreamProtocolHandlerTest extends TestCase
 
     FileInputStream inStream = new FileInputStream(mSampleFile);
     FileOutputStream outStream = new FileOutputStream(copyFile);
-    mHandler = new StreamProtocolHandler(
+    mHandler = new StreamIO.Handler(
         mFactory.new RegistrationInformation(copyFile, null, outStream,
             false, true));
     int retval = 0;
@@ -160,7 +160,7 @@ public class StreamProtocolHandlerTest extends TestCase
 
     // Now, create and open a read mHandler.
     // note that without a protocol string, should default to file:
-    IURLProtocolHandler reader = new StreamProtocolHandler(
+    IURLProtocolHandler reader = new StreamIO.Handler(
         mFactory.new RegistrationInformation(mSampleFile, inStream, null,
             false, true));
     retval = reader.open(null, IURLProtocolHandler.URL_RDONLY_MODE);

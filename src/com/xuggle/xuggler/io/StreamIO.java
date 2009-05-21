@@ -19,10 +19,14 @@
 package com.xuggle.xuggler.io;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.xuggle.xuggler.IContainer;
 
@@ -42,7 +46,7 @@ import com.xuggle.xuggler.IContainer;
  * 
  * <pre>
  * IContainer container = IContainer.make();
- * container.open(StreamProtocolHandlerFactory.map(&quot;yourkey&quot;, inputStream, null),
+ * container.open(StreamIO.map(&quot;yourkey&quot;, inputStream, null),
  *     IContainer.Type.READ, null);
  * </pre>
  * <p>
@@ -51,7 +55,7 @@ import com.xuggle.xuggler.IContainer;
  * 
  * <pre>
  * IContainer container = IContainer.make();
- * container.open(StreamProtocolHandlerFactory.map(&quot;yourkey&quot;, null, outputStream),
+ * container.open(StreamIO.map(&quot;yourkey&quot;, null, outputStream),
  *     IContainer.Type.WRITE, null);
  * </pre>
  * 
@@ -83,7 +87,7 @@ import com.xuggle.xuggler.IContainer;
  * </p>
  */
 
-public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
+public class StreamIO implements IURLProtocolHandlerFactory
 {
   /**
    * The default protocol that this factory uses ({@value #DEFAULT_PROTOCOL}).
@@ -99,7 +103,7 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
   public final static String DEFAULT_PROTOCOL = "xugglerjavaio";
 
   /** We don't allow people to create their own version of this factory */
-  StreamProtocolHandlerFactory()
+  StreamIO()
   {
 
   }
@@ -129,9 +133,9 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
       mIsClosingStreamOnClose = closeStreamOnClose;
     }
 
-    public StreamProtocolHandlerFactory getFactory()
+    public StreamIO getFactory()
     {
-      return StreamProtocolHandlerFactory.this;
+      return StreamIO.this;
     }
 
     /**
@@ -187,7 +191,7 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
 
   private ConcurrentMap<String, RegistrationInformation> mURLs = new ConcurrentHashMap<String, RegistrationInformation>();
 
-  private final static StreamProtocolHandlerFactory mFactory = new StreamProtocolHandlerFactory();
+  private final static StreamIO mFactory = new StreamIO();
   static
   {
     registerDefaultFactory();
@@ -218,7 +222,7 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
    * @return The factory registered
    */
 
-  static public StreamProtocolHandlerFactory registerFactory(
+  static public StreamIO registerFactory(
       String protocolPrefix)
   {
     URLProtocolManager manager = URLProtocolManager.getManager();
@@ -232,7 +236,7 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
    * @return the factory
    */
 
-  static public StreamProtocolHandlerFactory getFactory()
+  static public StreamIO getFactory()
   {
     return mFactory;
   }
@@ -249,7 +253,7 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
     RegistrationInformation tuple = mURLs.get(streamName);
     if (tuple != null)
     {
-      return new StreamProtocolHandler(tuple);
+      return new Handler(tuple);
     }
     return null;
   }
@@ -410,5 +414,189 @@ public class StreamProtocolHandlerFactory implements IURLProtocolHandlerFactory
   private static void registerDefaultFactory()
   {
     registerFactory(DEFAULT_PROTOCOL);
+  }
+  
+  /**
+   * Implementation of URLProtocolHandler that can read from {@link InputStream}
+   * objects or write to {@link OutputStream} objects.
+   *
+   * <p>
+   * 
+   * The {@link IURLProtocolHandler#URL_RDWR} mode is not supported.
+   * 
+   * </p>
+   * <p>
+   * 
+   * {@link IURLProtocolHandler#isStreamed(String, int)} always return true.
+   * 
+   * </p>
+   * 
+   * @author aclarke
+   *
+   */
+
+  static class Handler implements IURLProtocolHandler
+  {
+    private final RegistrationInformation mInfo;
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
+
+    private Closeable mOpenStream = null;
+    
+    /**
+     * Only usable by the package.
+     */
+
+    public Handler(RegistrationInformation tuple)
+    {
+      if (tuple == null)
+        throw new IllegalArgumentException();
+      log.trace("Initializing handler: {}", tuple.getName());
+      mInfo = tuple;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+
+    public int close()
+    {
+      log.trace("Closing stream: {}", mInfo.getName());
+      int retval = 0;
+      
+      if (mOpenStream != null)
+      {
+        try
+        {
+          if (mInfo.isClosingStreamOnClose())
+            mOpenStream.close();
+        }
+        catch (IOException e)
+        {
+          log.error("could not close stream {}: {}", mInfo.getName(), e);
+          retval = -1;
+        }
+      }
+      mOpenStream = null;
+      return retval;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    
+    public int open(String url, int flags)
+    {
+      log.trace("attempting to open {} with flags {}",
+          url == null ? mInfo.getName() : url, flags);
+      if (mInfo.isUnmappingOnOpen())
+        // the unmapIO is an atomic operation
+        if (!mInfo.equals(mInfo.getFactory().unmapIO(mInfo.getName())))
+        {
+          // someone already unmapped this stream
+          log.error(
+              "stream {} already unmapped meaning it was likely already opened",
+              mInfo.getName());
+          return -1;
+        }
+
+      
+      if (mOpenStream != null) {
+        log.debug("attempting to open already open handler: {}", mInfo.getName());
+        return -1;
+      }
+      switch (flags)
+      {
+      case URL_RDWR:
+        log.debug("do not support read/write mode for Java IO Handlers");
+        return -1;
+      case URL_WRONLY_MODE:
+        mOpenStream = mInfo.getOutput();
+        break;
+      case URL_RDONLY_MODE:
+        mOpenStream = mInfo.getInput();
+        break;
+      default:
+        log.error("Invalid flag passed to open: {}", mInfo.getName());
+        return -1;
+      }
+      if (mOpenStream == null)
+      {
+        log.error("cannot open stream for that mode: {}", mInfo.getName());
+        return -1;
+      }
+
+      log.debug("Opened file: {}", mInfo.getName());
+      return 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+      
+    public int read(byte[] buf, int size)
+    {
+      if (mOpenStream == null || !(mOpenStream instanceof InputStream))
+        return -1;
+      
+      InputStream stream = (InputStream)mOpenStream;
+      try
+      {
+        int ret = -1;
+        ret = stream.read(buf, 0, size);
+        //log.debug("Got result for read: {}", ret);
+        return ret;
+      }
+      catch (IOException e)
+      {
+        log.error("Got IO exception reading from file: {}; {}", mInfo.getName(), e);
+        return -1;
+      }
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * This method is not supported on this class and always return -1;
+     */
+    
+    public long seek(long offset, int whence)
+    {
+      // not supported
+      return -1;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    
+    public int write(byte[] buf, int size)
+    {
+      if (mOpenStream == null || !(mOpenStream instanceof OutputStream))
+        return -1;
+      
+      OutputStream stream = (OutputStream)mOpenStream;
+      //log.debug("writing {} bytes to: {}", size, file);
+      try
+      {
+        stream.write(buf, 0, size);
+        return size;
+      }
+      catch (IOException e)
+      {
+        log.error("Got error writing to file: {}; {}", mInfo.getName(), e);
+        return -1;
+      }
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * Always returns true for this class.
+     */
+    
+    public boolean isStreamed(String url, int flags)
+    {
+      return true;
+    }
   }
 }
