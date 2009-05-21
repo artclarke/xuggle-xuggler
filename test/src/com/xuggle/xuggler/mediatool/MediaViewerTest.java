@@ -31,21 +31,32 @@ import static junit.framework.Assert.*;
 
 public class MediaViewerTest
 {
+  // the log
+
   private final Logger log = LoggerFactory.getLogger(this.getClass());
-  {
-    log.trace("<init>");
-  }
+  { log.trace("<init>"); }
 
-  // show the videos during tests
+  // show the videos during transcoding?
 
-  public static final boolean SHOW_VIDEO = 
-    System.getProperty(MediaViewerTest.class.getName() + ".ShowVideo") != null;
-    //true;
-  // test filename
+  final boolean SHOW_VIDEO = !System.getProperty(
+    this.getClass().getName() + ".ShowVideo", "false").equals("false");
 
+  // test broken media files
+
+  final boolean TEST_BROKEN = !System.getProperty(
+    this.getClass().getName() + ".TestBroken", "false").equals("false");
+
+  // standard test name prefix
+
+  final String PREFIX = this.getClass().getName() + "-";
+
+  // location of test files
+
+  public static final String TEST_FILE_DIR = "fixtures";
+ 
   // public static final String INPUT_FILENAME =
   // "fixtures/testfile_bw_pattern.flv";
-  public static final String INPUT_FILENAME = "fixtures/testfile.flv";
+  public static final String INPUT_FILENAME = TEST_FILE_DIR + "/testfile.flv";
 
   // test thet the proper number of events are signaled during reading
   // and writng of a media file

@@ -35,27 +35,38 @@ import java.awt.image.BufferedImage;
 
 import static junit.framework.Assert.*;
 
-//import junit.framework.TestCase;
-
-public class MediaReaderTest //extends TestCase
+public class MediaReaderTest
 {
-  public static final int    TEST_FILE_20_SECONDS_VIDEO_FRAME_COUNT = 300;
-  public static final int    TEST_FILE_20_SECONDS_AUDIO_FRAME_COUNT = 762;
-  public static final String TEST_FILE_20_SECONDS = 
-    "fixtures/testfile_videoonly_20sec.flv";
+  // the log
+
+  private final Logger log = LoggerFactory.getLogger(this.getClass());
+  { log.trace("<init>"); }
 
   // show the videos during transcoding?
 
-  final boolean SHOW_VIDEO = System.getProperty(
-    MediaReaderTest.class.getName()+".ShowVideo") != null;
+  final boolean SHOW_VIDEO = !System.getProperty(
+    this.getClass().getName() + ".ShowVideo", "false").equals("false");
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+  // test broken media files
 
-  @Before
-  public void setUp()
-  {
-    log.trace("setUp");
-  }
+  final boolean TEST_BROKEN = !System.getProperty(
+    this.getClass().getName() + ".TestBroken", "false").equals("false");
+
+  // standard test name prefix
+
+  final String PREFIX = this.getClass().getName() + "-";
+
+  // location of test files
+
+  public static final String TEST_FILE_DIR = "fixtures";
+
+  // some counts
+
+  public static final int    TEST_FILE_20_SECONDS_VIDEO_FRAME_COUNT = 300;
+  public static final int    TEST_FILE_20_SECONDS_AUDIO_FRAME_COUNT = 762;
+  public static final String TEST_FILE_20_SECONDS = 
+    TEST_FILE_DIR + "/testfile_videoonly_20sec.flv";
+
   // create a new media reader with a bad filename
 
   @Test(expected=RuntimeException.class)

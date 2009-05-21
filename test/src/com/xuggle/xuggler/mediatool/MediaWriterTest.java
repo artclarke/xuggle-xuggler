@@ -48,21 +48,33 @@ import static junit.framework.Assert.*;
 
 public class MediaWriterTest
 {
-  final private Logger log = LoggerFactory.getLogger(this.getClass());
+  // the log
+
+  private final Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
 
   // show the videos during transcoding?
 
-  public static final boolean SHOW_VIDEO = System.getProperty(
-    MediaWriterTest.class.getName()+".ShowVideo") != null;
+  final boolean SHOW_VIDEO = !System.getProperty(
+    this.getClass().getName() + ".ShowVideo", "false").equals("false");
 
-  // one of the stock test fiels
+  // test broken media files
+
+  final boolean TEST_BROKEN = !System.getProperty(
+    this.getClass().getName() + ".TestBroken", "false").equals("false");
+
+  // standard test name prefix
+
+  final String PREFIX = this.getClass().getName() + "-";
+
+  // location of test files
+
+  public static final String TEST_FILE_DIR = "fixtures";
+
+  // one of the stock test files
   
-  public static final String TEST_FILE = "fixtures/testfile_bw_pattern.flv";
-
-  // stock output prefix
-
-  public static final String PREFIX = MediaWriterTest.class.getName() + "-";
+  public static final String TEST_FILE = TEST_FILE_DIR +
+    "/testfile_bw_pattern.flv";
 
   // the reader for these tests
 
@@ -420,7 +432,6 @@ public class MediaWriterTest
     int audioStreamId = 0;
     int channelCount = 2;
     int sampleRate = 44100;
-    int totalSeconds = 5;
 
     // create the writer
     
@@ -475,7 +486,6 @@ public class MediaWriterTest
     int audioStreamId = 0;
     int channelCount = 2;
     int sampleRate = 44100;
-    int totalSeconds = 5;
 
     // create the writer
     

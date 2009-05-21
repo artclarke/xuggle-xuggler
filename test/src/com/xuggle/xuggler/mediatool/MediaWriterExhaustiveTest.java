@@ -47,25 +47,29 @@ import static junit.framework.Assert.*;
 @RunWith(Parameterized.class)
 public class MediaWriterExhaustiveTest
 {
-  final private Logger log = LoggerFactory.getLogger(this.getClass());
+  // the log
+
+  private final Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
 
-  public static final String PREFIX = MediaWriterExhaustiveTest
-    .class.getName() + "-";
+  // show the videos during transcoding?
+
+  final boolean SHOW_VIDEO = !System.getProperty(
+    this.getClass().getName() + ".ShowVideo", "false").equals("false");
+
+  // test broken media files
+
+  final static boolean TEST_BROKEN = !System.getProperty(
+    MediaWriterExhaustiveTest.class.getName() + ".TestBroken", "false")
+    .equals("false");
+
+  // standard test name prefix
+
+  final String PREFIX = this.getClass().getName() + "-";
 
   // location of test files
 
   public static final String TEST_FILE_DIR = "fixtures";
-
-  // show the videos during transcoding?
-
-  final boolean SHOW_VIDEO = System.getProperty(
-    MediaWriterExhaustiveTest.class.getName()+".ShowVideo") != null;
-
-  // test the good files or the broken ones?
-
-  public static final boolean TEST_BROKEN = System.getProperty(
-    MediaWriterExhaustiveTest.class.getName()+".TestBroken") != null;
 
   // test container (true) or MediaReader (false) cases
 

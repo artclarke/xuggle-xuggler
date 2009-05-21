@@ -33,17 +33,33 @@ import static junit.framework.Assert.*;
 
 public class MediaToolTest
 {
-  // show the videos during tests
+  // the log
 
-  public static final boolean SHOW_VIDEO = System.getProperty(
-    MediaToolTest.class.getName()+".ShowVideo") != null;
+  private final Logger log = LoggerFactory.getLogger(this.getClass());
+  { log.trace("<init>"); }
 
-  // stock output prefix
+  // show the videos during transcoding?
 
-  public static final String PREFIX = MediaToolTest.class.getName() + "-";
+  final boolean SHOW_VIDEO = !System.getProperty(
+    this.getClass().getName() + ".ShowVideo", "false").equals("false");
 
-  public static final String INPUT_FILENAME  =
-    "fixtures/testfile_videoonly_20sec.flv";
+  // test broken media files
+
+  final boolean TEST_BROKEN = !System.getProperty(
+    this.getClass().getName() + ".TestBroken", "false").equals("false");
+
+  // standard test name prefix
+
+  final String PREFIX = this.getClass().getName() + "-";
+
+  // location of test files
+
+  public static final String TEST_FILE_DIR = "fixtures";
+
+  // one of the stock test files
+  
+  public static final String INPUT_FILENAME  = TEST_FILE_DIR +
+    "/testfile_videoonly_20sec.flv";
 
   public static final int    READER_VIDEO_FRAME_COUNT  = 300;
   public static final int    READER_AUDIO_FRAME_COUNT  = 762;
@@ -76,10 +92,7 @@ public class MediaToolTest
 //
 //  public static final int    OUTPUT_FILE_SIZE          = ?;
 
-  public static final String OUTPUT_FILENAME = 
-    PREFIX + "output.flv";
-
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+  public final String OUTPUT_FILENAME = PREFIX + "output.flv";
 
   public MediaToolTest() {
     log.trace("<init>");
