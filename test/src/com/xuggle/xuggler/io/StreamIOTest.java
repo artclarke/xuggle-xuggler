@@ -21,6 +21,9 @@ package com.xuggle.xuggler.io;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.RandomAccessFile;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 
 import junit.framework.TestCase;
 
@@ -99,7 +102,7 @@ public class StreamIOTest extends TestCase
     // map the URL, telling the factory to unmap it
     // when closed
     String url = mProtocolString+":1";
-    mFactory.mapIO(url, stream);
+    mFactory.mapIO(url, stream, null, true, true);
     int retval = -1;
 
     // now, try opening using FFMPEG
@@ -199,7 +202,7 @@ public class StreamIOTest extends TestCase
   public void testFFMPEGIOUrlRead() throws FileNotFoundException
   {
     FileInputStream stream = new FileInputStream(mSampleFile);
-    mFactory.mapIO(mSampleFile, stream, null);
+    mFactory.mapIO(mSampleFile, stream, null, true, true);
     testFFMPEGUrlReadTestFile(mProtocolString+":"+mSampleFile);
   }
 
@@ -233,7 +236,7 @@ public class StreamIOTest extends TestCase
   {
     String outFile = this.getClass().getName() + "_" + this.getName() + ".flv";
     FileOutputStream stream = new FileOutputStream(outFile);
-    mFactory.mapIO(outFile, null, stream);
+    mFactory.mapIO(outFile, null, stream, true, true);
     testFFMPEGUrlWriteTestFile(mProtocolString+":"+outFile);
   }
 
@@ -245,7 +248,8 @@ public class StreamIOTest extends TestCase
 
     retval = FfmpegIO.url_open(handle, filename,
         IURLProtocolHandler.URL_WRONLY_MODE);
-    assertTrue("url_open failed: " + retval, retval >= 0);
+    assertTrue("url_open failed for filename: " + filename +
+        "; : " + retval, retval >= 0);
 
     // call url_read wrapper
     byte[] buffer = new byte[4];
@@ -261,5 +265,43 @@ public class StreamIOTest extends TestCase
     retval = FfmpegIO.url_close(handle);
     assertTrue("url_close failed: " + retval, retval >= 0);
   }
+
+  @Test
+  public void testFFMPEGIORandomAccesssRead() throws FileNotFoundException
+  {
+    String inName = mSampleFile;
+    RandomAccessFile stream = new RandomAccessFile(inName, "rw");
+    mFactory.mapIO(mSampleFile, stream, null, true);
+    testFFMPEGUrlReadTestFile(mProtocolString+":"+inName);
+  }
+
+  @Test
+  public void testFFMPEGIORandomAccesssWrite() throws FileNotFoundException
+  {
+    String outName = this.getClass().getName()+this.getName()+".flv";
+    RandomAccessFile stream = new RandomAccessFile(outName, "rw");
+    mFactory.mapIO(outName, stream, stream, true);
+    testFFMPEGUrlWriteTestFile(mProtocolString+":"+outName);
+  }
+
+  @Test
+  public void testFFMPEGIOFileChannelWrite() throws FileNotFoundException
+  {
+    String outName = this.getClass().getName()+this.getName()+".flv";
+
+    WritableByteChannel channel = new FileOutputStream(outName).getChannel();
+    mFactory.mapIO(outName, null, channel, true, true);
+    testFFMPEGUrlWriteTestFile(mProtocolString+":"+outName);
+  }
+
+  @Test
+  public void testFFMPEGIOFileChannelRead() throws FileNotFoundException
+  {
+    String inName = mSampleFile;
+    ReadableByteChannel channel = new FileInputStream(inName).getChannel();
+    mFactory.mapIO(mSampleFile, channel, null, true, true);
+    testFFMPEGUrlReadTestFile(mProtocolString+":"+mSampleFile);
+  }
+
 
 }

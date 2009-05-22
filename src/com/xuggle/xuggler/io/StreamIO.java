@@ -19,9 +19,16 @@
 package com.xuggle.xuggler.io;
 
 import java.io.Closeable;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -181,6 +188,93 @@ public class StreamIO implements IURLProtocolHandlerFactory
   }
 
   /**
+   * Maps a {@link DataInput} object to a URL for use by Xuggler.
+   * 
+   * @param url
+   *          the URL to use.
+   * @param input
+   *          the {@link DataInput}
+   * @return a string that can be passed to {@link IContainer}'s open methods.
+   */
+  public static String map(String url, DataInput input)
+  {
+    return map(url, input, null, DEFAULT_UNMAP_URL_ON_OPEN);
+  }
+
+  /**
+   * Maps a {@link DataOutput} object to a URL for use by Xuggler.
+   * 
+   * @param url
+   *          the URL to use.
+   * @param output
+   *          the {@link DataOutput}
+   * @return a string that can be passed to {@link IContainer}'s open methods.
+   */
+  public static String map(String url, DataOutput output)
+  {
+    return map(url, null, output, DEFAULT_UNMAP_URL_ON_OPEN);
+  }
+
+  /**
+   * Maps a {@link RandomAccessFile} object to a URL for use by Xuggler.
+   * 
+   * @param url
+   *          the URL to use.
+   * @param file
+   *          the {@link RandomAccessFile}
+   * @return a string that can be passed to {@link IContainer}'s open methods.
+   */
+  public static String map(String url, RandomAccessFile file)
+  {
+    return map(url, file, file, DEFAULT_UNMAP_URL_ON_OPEN);
+  }
+
+  /**
+   * Maps a {@link ReadableByteChannel} to a URL for use by Xuggler.
+   * 
+   * @param url
+   *          the URL to use.
+   * @param channel
+   *          the {@link ReadableByteChannel}
+   * @return a string that can be passed to {@link IContainer}'s open methods.
+   */
+  public static String map(String url, ReadableByteChannel channel)
+  {
+    return map(url, channel, null, DEFAULT_UNMAP_URL_ON_OPEN,
+        DEFAULT_CLOSE_STREAM_ON_CLOSE);
+  }
+
+  /**
+   * Maps a {@link WritableByteChannel} to a URL for use by Xuggler.
+   * 
+   * @param url
+   *          the URL to use.
+   * @param channel
+   *          the {@link WritableByteChannell}
+   * @return a string that can be passed to {@link IContainer}'s open methods.
+   */
+  public static String map(String url, WritableByteChannel channel)
+  {
+    return map(url, null, channel, DEFAULT_UNMAP_URL_ON_OPEN,
+        DEFAULT_CLOSE_STREAM_ON_CLOSE);
+  }
+
+  /**
+   * Maps a {@link ByteChannel} to a URL for use by Xuggler.
+   * 
+   * @param url
+   *          the URL to use.
+   * @param channel
+   *          the {@link ByteChannel}
+   * @return a string that can be passed to {@link IContainer}'s open methods.
+   */
+  public static String map(String url, ByteChannel channel)
+  {
+    return map(url, channel, channel, DEFAULT_UNMAP_URL_ON_OPEN,
+        DEFAULT_CLOSE_STREAM_ON_CLOSE);
+  }
+
+  /**
    * Maps an {@link InputStream} to a URL for use by Xuggler.
    * 
    * Forwards to {@link #getFactory()}.
@@ -215,6 +309,28 @@ public class StreamIO implements IURLProtocolHandlerFactory
   }
 
   /**
+   * Maps a {@link DataInput} or {@link DataOutput} object to a URL for use by
+   * Xuggler.
+   * 
+   * Forwards to {@link #getFactory()}.
+   * {@link #mapIO(String, DataInput, DataOutput, boolean, boolean)}
+   * 
+   * @return Returns a URL that can be passed to Xuggler's {@link IContainer}'s
+   *         open method, and will result in IO being performed on the passed in
+   *         streams.
+   */
+
+  public static String map(String url, DataInput input, DataOutput output,
+      boolean unmapOnOpen)
+  {
+    RegistrationInformation info = mFactory.mapIO(url, input, output,
+        unmapOnOpen);
+    if (info != null)
+      throw new RuntimeException("url is already mapped: " + url);
+    return DEFAULT_PROTOCOL + ":" + URLProtocolManager.getResourceFromURL(url);
+  }
+
+  /**
    * Maps an {@link InputStream} or {@link OutputStream} to a URL for use by
    * Xuggler.
    * 
@@ -226,11 +342,15 @@ public class StreamIO implements IURLProtocolHandlerFactory
    *         streams.
    */
 
-  public static String map(String url, InputStream inputStream,
-      OutputStream outputStream)
+  public static String map(String url, ReadableByteChannel readChannel,
+      WritableByteChannel writeChannel, boolean unmapOnOpen,
+      boolean closeChannelOnClose)
   {
-    return map(url, inputStream, outputStream, DEFAULT_UNMAP_URL_ON_OPEN,
-        DEFAULT_CLOSE_STREAM_ON_CLOSE);
+    RegistrationInformation info = mFactory.mapIO(url, readChannel,
+        writeChannel, unmapOnOpen, closeChannelOnClose);
+    if (info != null)
+      throw new RuntimeException("url is already mapped: " + url);
+    return DEFAULT_PROTOCOL + ":" + URLProtocolManager.getResourceFromURL(url);
   }
 
   /**
@@ -262,121 +382,6 @@ public class StreamIO implements IURLProtocolHandlerFactory
   public static RegistrationInformation unmap(String url)
   {
     return mFactory.unmapIO(url);
-  }
-
-  /**
-   * Maps the given url or file name to the given {@link InputStream} or
-   * {@link OutputStream} so that Xuggler calls to open the URL can use the
-   * stream objects, and unmaps itself once Xuggler calls close on the stream.
-   * 
-   * <p>
-   * 
-   * When a Stream is mapped using this method, it will have
-   * {@link #unmapIO(String)} automatically called when a Xuggler
-   * {@link IContainer} opens the registered URL. It will also automatically
-   * call {@link Closeable#close()} on the underlying {@link InputStream} or
-   * {@link OutputStream} it used when Xuggler closes the {@link IContainer}.
-   * 
-   * </p>
-   * 
-   * @param url
-   *          A file or URL. If a URL, the protocol will be stripped off and
-   *          replaced with {@link #DEFAULT_PROTOCOL} when registering.
-   * @param inputStream
-   *          An input stream to use for reading data, or null if none.
-   * @return The previous registration information for this url, or null if
-   *         none.
-   * 
-   * @throws IllegalArgumentException
-   *           if inputStream is null.
-   */
-
-  public RegistrationInformation mapIO(String url, InputStream inputStream)
-  {
-    if (inputStream == null)
-      throw new IllegalArgumentException();
-    return mapIO(url, inputStream, null, DEFAULT_UNMAP_URL_ON_OPEN,
-        DEFAULT_CLOSE_STREAM_ON_CLOSE);
-  }
-
-  /**
-   * Maps the given url or file name to the given {@link InputStream} or
-   * {@link OutputStream} so that Xuggler calls to open the URL can use the
-   * stream objects, and unmaps itself once Xuggler calls close on the stream.
-   * 
-   * <p>
-   * 
-   * When a Stream is mapped using this method, it will have
-   * {@link #unmapIO(String)} automatically called when a Xuggler
-   * {@link IContainer} opens the registered URL. It will also automatically
-   * call {@link Closeable#close()} on the underlying {@link InputStream} or
-   * {@link OutputStream} it used when Xuggler closes the {@link IContainer}.
-   * 
-   * </p>
-   * 
-   * @param url
-   *          A file or URL. If a URL, the protocol will be stripped off and
-   *          replaced with {@link #DEFAULT_PROTOCOL} when registering.
-   * @param outputStream
-   *          An output stream to use for reading data, or null if none.
-   * @return The previous registration information for this url, or null if
-   *         none.
-   * 
-   * @throws IllegalArgumentException
-   *           if outputStream is null.
-   */
-
-  public RegistrationInformation mapIO(String url, OutputStream outputStream)
-  {
-    if (outputStream == null)
-      throw new IllegalArgumentException();
-
-    return mapIO(url, null, outputStream, DEFAULT_UNMAP_URL_ON_OPEN,
-        DEFAULT_CLOSE_STREAM_ON_CLOSE);
-  }
-
-  /**
-   * Maps the given url or file name to the given {@link InputStream} or
-   * {@link OutputStream} so that Xuggler calls to open the URL can use the
-   * stream objects, and unmaps itself once Xuggler opens this mapping for
-   * reading or writing.
-   * 
-   * <p>
-   * 
-   * When a Stream is mapped using this method, it will have
-   * {@link #unmapIO(String)} automatically called when a Xuggler
-   * {@link IContainer} opens the registered URL. It will also automatically
-   * call {@link Closeable#close()} on the underlying {@link InputStream} or
-   * {@link OutputStream} it used when Xuggler closes the {@link IContainer}.
-   * 
-   * </p>
-   * <p>
-   * 
-   * Both inputStream and outputStream may be specified (but at least one must
-   * be non null). The factory will decide which to use based on whether it is
-   * opened for reading (inputStream) or writing (outputStream).
-   * 
-   * </p>
-   * 
-   * @param url
-   *          A file or URL. If a URL, the protocol will be stripped off and
-   *          replaced with {@link #DEFAULT_PROTOCOL} when registering.
-   * @param inputStream
-   *          An input stream to use for reading data, or null if none.
-   * @param outputStream
-   *          An output stream to use for reading data, or null if none.
-   * @return The previous registration information for this url, or null if
-   *         none.
-   * 
-   * @throws IllegalArgumentException
-   *           if both inputStream and outputStream are null.
-   */
-
-  public RegistrationInformation mapIO(String url, InputStream inputStream,
-      OutputStream outputStream)
-  {
-    return mapIO(url, inputStream, outputStream, DEFAULT_UNMAP_URL_ON_OPEN,
-        DEFAULT_CLOSE_STREAM_ON_CLOSE);
   }
 
   /**
@@ -433,8 +438,111 @@ public class StreamIO implements IURLProtocolHandlerFactory
   }
 
   /**
-   * Unmaps the registration set by
-   * {@link #mapIO(String, InputStream, OutputStream)}.
+   * Maps the given url or file name to the given {@link ReadableByteChannel} or
+   * {@link WritableByteChannel} so that Xuggler calls to open the URL can use
+   * the Java channel objects.
+   * 
+   * <p>
+   * 
+   * If you set unmapOnOpen to false, or you never actually open this mapping,
+   * then you must ensure that you call {@link #unmapIO(String)} at some point
+   * in time to remove the mapping, or Xuggler will hold onto references to the
+   * channels passed in.
+   * 
+   * </p>
+   * 
+   * @param url
+   *          A file or URL. If a URL, the protocol will be stripped off and
+   *          replaced with {@link #DEFAULT_PROTOCOL} when registering.
+   * @param input
+   *          An input channel to use for reading data, or null if none.
+   * @param output
+   *          An output channel to use for reading data, or null if none.
+   * @param unmapOnOpen
+   *          If true, the handler will unmap itself after an {@link IContainer}
+   *          opens the registered URL. If true, you do not need to call
+   *          {@link #unmapIO(String)} for this url.
+   * @param closeStreamOnClose
+   *          If true, the handler will call {@link Closeable#close()} on the
+   *          {@link InputStream} or {@link OutputStream} it was using when
+   *          {@link IURLProtocolHandler#close()} is called.
+   * @return The previous registration information for this url, or null if
+   *         none.
+   * 
+   * 
+   * @throws IllegalArgumentException
+   *           if both inputStream and outputStream are null.
+   */
+
+
+  public RegistrationInformation mapIO(String url, ReadableByteChannel input,
+      WritableByteChannel output, boolean unmapOnOpen,
+      boolean closeChannelOnClose)
+  {
+    if (url == null || url.length() <= 0)
+      throw new IllegalArgumentException("must pass in non-zero url");
+    if (input == null && output == null)
+    {
+      throw new IllegalArgumentException(
+          "must pass in at least one input or one output channel");
+    }
+    String streamName = URLProtocolManager.getResourceFromURL(url);
+    RegistrationInformation tuple = new RegistrationInformation(streamName,
+        input, output, unmapOnOpen, closeChannelOnClose);
+    return mURLs.putIfAbsent(streamName, tuple);
+  }
+
+  /**
+   * Maps the given url or file name to the given {@link DataInput} or
+   * {@link DataOutput} so that Xuggler calls to open the URL can use
+   * the Java channel objects.
+   * 
+   * <p>
+   * 
+   * If you set unmapOnOpen to false, or you never actually open this mapping,
+   * then you must ensure that you call {@link #unmapIO(String)} at some point
+   * in time to remove the mapping, or we will hold onto references to the
+   * i/o objects you passed in.
+   * 
+   * </p>
+   * 
+   * @param url
+   *          A file or URL. If a URL, the protocol will be stripped off and
+   *          replaced with {@link #DEFAULT_PROTOCOL} when registering.
+   * @param input
+   *          An input object to use for reading data, or null if none.
+   * @param output
+   *          An output objectto use for reading data, or null if none.
+   * @param unmapOnOpen
+   *          If true, the handler will unmap itself after an {@link IContainer}
+   *          opens the registered URL. If true, you do not need to call
+   *          {@link #unmapIO(String)} for this url.
+   * @return The previous registration information for this url, or null if
+   *         none.
+   * 
+   * 
+   * @throws IllegalArgumentException
+   *           if both input and output are null.
+   */
+
+  public RegistrationInformation mapIO(String url, DataInput input,
+      DataOutput output, boolean unmapOnOpen)
+  {
+    if (url == null || url.length() <= 0)
+      throw new IllegalArgumentException("must pass in non-zero url");
+    if (input == null && output == null)
+    {
+      throw new IllegalArgumentException(
+          "must pass in at least one input or one output channel");
+    }
+    String streamName = URLProtocolManager.getResourceFromURL(url);
+    RegistrationInformation tuple = new RegistrationInformation(streamName,
+        input, output, unmapOnOpen);
+    return mURLs.putIfAbsent(streamName, tuple);
+  }
+
+  /**
+   * Unmaps a registration between a URL and the underlying i/o objects.
    * <p>
    * If URL contains a protocol it is ignored when trying to find the matching
    * IO stream.
@@ -482,6 +590,11 @@ public class StreamIO implements IURLProtocolHandlerFactory
     private final String mName;
     private final InputStream mInput;
     private final OutputStream mOutput;
+    private final ReadableByteChannel mInputChannel;
+    private final WritableByteChannel mOutputChannel;
+    private final DataInput mDataInput;
+    private final DataOutput mDataOutput;
+
     private final boolean mIsUnmappingOnOpen;
     private final boolean mIsClosingStreamOnClose;
 
@@ -491,8 +604,41 @@ public class StreamIO implements IURLProtocolHandlerFactory
       mName = streamName;
       mInput = input;
       mOutput = output;
+      mInputChannel = null;
+      mOutputChannel = null;
+      mDataInput = null;
+      mDataOutput = null;
       mIsUnmappingOnOpen = unmapOnOpen;
       mIsClosingStreamOnClose = closeStreamOnClose;
+    }
+
+    RegistrationInformation(String streamName,
+        ReadableByteChannel inputChannel, WritableByteChannel outputChannel,
+        boolean unmapOnOpen, boolean closeStreamOnClose)
+    {
+      mName = streamName;
+      mInput = null;
+      mOutput = null;
+      mInputChannel = inputChannel;
+      mOutputChannel = outputChannel;
+      mDataInput = null;
+      mDataOutput = null;
+      mIsUnmappingOnOpen = unmapOnOpen;
+      mIsClosingStreamOnClose = closeStreamOnClose;
+    }
+
+    public RegistrationInformation(String streamName, DataInput input,
+        DataOutput output, boolean unmapOnOpen)
+    {
+      mName = streamName;
+      mInput = null;
+      mOutput = null;
+      mInputChannel = null;
+      mOutputChannel = null;
+      mDataInput = input;
+      mDataOutput = output;
+      mIsUnmappingOnOpen = unmapOnOpen;
+      mIsClosingStreamOnClose = false;
     }
 
     /**
@@ -554,6 +700,26 @@ public class StreamIO implements IURLProtocolHandlerFactory
     {
       return mIsClosingStreamOnClose;
     }
+
+    public ReadableByteChannel getInputChannel()
+    {
+      return mInputChannel;
+    }
+
+    public WritableByteChannel getOutputChannel()
+    {
+      return mOutputChannel;
+    }
+
+    public DataInput getDataInput()
+    {
+      return mDataInput;
+    }
+
+    public DataOutput getDataOutput()
+    {
+      return mDataOutput;
+    }
   }
 
   /**
@@ -580,7 +746,7 @@ public class StreamIO implements IURLProtocolHandlerFactory
     private final RegistrationInformation mInfo;
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private Closeable mOpenStream = null;
+    private Object mOpenStream = null;
 
     /**
      * Only usable by the package.
@@ -603,12 +769,12 @@ public class StreamIO implements IURLProtocolHandlerFactory
       log.trace("Closing stream: {}", mInfo.getName());
       int retval = 0;
 
-      if (mOpenStream != null)
+      if (mOpenStream != null && mOpenStream instanceof Closeable)
       {
         try
         {
           if (mInfo.isClosingStreamOnClose())
-            mOpenStream.close();
+            ((Closeable) mOpenStream).close();
         }
         catch (IOException e)
         {
@@ -649,10 +815,21 @@ public class StreamIO implements IURLProtocolHandlerFactory
       switch (flags)
       {
         case URL_RDWR:
-          log.debug("do not support read/write mode for Java IO Handlers");
-          return -1;
+          mOpenStream = mInfo.getDataInput();
+          if (!(mOpenStream instanceof RandomAccessFile))
+            mOpenStream = mInfo.getDataOutput();
+          if (!(mOpenStream instanceof RandomAccessFile))
+          {
+            log.debug("do not support read/write mode for Java IO Handlers");
+            return -1;
+          }
+          break;
         case URL_WRONLY_MODE:
           mOpenStream = mInfo.getOutput();
+          if (mOpenStream == null)
+            mOpenStream = mInfo.getOutputChannel();
+          if (mOpenStream == null)
+            mOpenStream = mInfo.getDataOutput();
           if (mOpenStream == null)
           {
             log.error("No OutputStream specified for writing: {}", mInfo
@@ -662,6 +839,10 @@ public class StreamIO implements IURLProtocolHandlerFactory
           break;
         case URL_RDONLY_MODE:
           mOpenStream = mInfo.getInput();
+          if (mOpenStream == null)
+            mOpenStream = mInfo.getInputChannel();
+          if (mOpenStream == null)
+            mOpenStream = mInfo.getDataInput();
           if (mOpenStream == null)
           {
             log.error("No InputStream specified for reading: {}", mInfo
@@ -684,16 +865,41 @@ public class StreamIO implements IURLProtocolHandlerFactory
 
     public int read(byte[] buf, int size)
     {
-      if (mOpenStream == null || !(mOpenStream instanceof InputStream))
+      int ret = -1;
+      if (mOpenStream == null)
         return -1;
 
-      InputStream stream = (InputStream) mOpenStream;
       try
       {
-        int ret = -1;
-        ret = stream.read(buf, 0, size);
-        // log.debug("Got result for read: {}", ret);
-        return ret;
+        if (mOpenStream instanceof InputStream)
+        {
+          InputStream stream = (InputStream) mOpenStream;
+          ret = stream.read(buf, 0, size);
+          // log.debug("Got result for read: {}", ret);
+          return ret;
+        }
+        else if (mOpenStream instanceof DataInput)
+        {
+          DataInput input = (DataInput) mOpenStream;
+          if (mOpenStream instanceof RandomAccessFile) {
+            RandomAccessFile file = (RandomAccessFile) input;
+            ret = file.read(buf, 0, size);
+            return ret;
+          } else {
+            input.readFully(buf, 0, size);
+            ret = size;
+            return ret;
+          }
+        }
+        else if (mOpenStream instanceof ReadableByteChannel)
+        {
+          ReadableByteChannel channel = (ReadableByteChannel) mOpenStream;
+          ByteBuffer buffer = ByteBuffer.allocate(size);
+          ret = channel.read(buffer);
+          buffer.flip();
+          buffer.put(buf, 0, ret);
+          return ret;
+        }
       }
       catch (IOException e)
       {
@@ -701,6 +907,8 @@ public class StreamIO implements IURLProtocolHandlerFactory
             mInfo.getName(), e);
         return -1;
       }
+
+      return ret;
     }
 
     /**
@@ -711,8 +919,46 @@ public class StreamIO implements IURLProtocolHandlerFactory
 
     public long seek(long offset, int whence)
     {
-      // not supported
-      return -1;
+      final RandomAccessFile file;
+      if (mInfo.getDataInput() instanceof RandomAccessFile)
+        file = (RandomAccessFile) mInfo.getDataInput();
+      else if (mInfo.getDataOutput() instanceof RandomAccessFile)
+        file = (RandomAccessFile) mInfo.getDataOutput();
+      else
+        file = null;
+      if (file == null)
+        return -1;
+
+      try
+      {
+        final long seek;
+        if (whence == SEEK_SET)
+          seek = offset;
+        else if (whence == SEEK_CUR)
+          seek = file.getFilePointer() + offset;
+        else if (whence == SEEK_END)
+          seek = file.length() + offset;
+        else if (whence == SEEK_SIZE)
+          // odd feature of the protocol handler; this request
+          // just returns the file size without actually seeking
+          return (int) file.length();
+        else
+        {
+          log.error("invalid seek value \"{}\" for file: {}", whence, file);
+          return -1;
+        }
+
+        file.seek(seek);
+        log.debug("seeking to \"{}\" in: {}", seek, file);
+        return seek;
+      }
+      catch (IOException e)
+      {
+        log.error("got io exception \"{}\" while seeking in: {}", e
+            .getMessage(), file);
+        e.printStackTrace();
+        return -1;
+      }
     }
 
     /**
@@ -721,21 +967,41 @@ public class StreamIO implements IURLProtocolHandlerFactory
 
     public int write(byte[] buf, int size)
     {
-      if (mOpenStream == null || !(mOpenStream instanceof OutputStream))
+      if (mOpenStream == null)
         return -1;
 
-      OutputStream stream = (OutputStream) mOpenStream;
-      // log.debug("writing {} bytes to: {}", size, file);
       try
       {
-        stream.write(buf, 0, size);
-        return size;
+        if (mOpenStream instanceof OutputStream)
+        {
+          OutputStream stream = (OutputStream) mOpenStream;
+          // log.debug("writing {} bytes to: {}", size, file);
+          stream.write(buf, 0, size);
+          return size;
+        }
+        else if (mOpenStream instanceof WritableByteChannel)
+        {
+          WritableByteChannel channel = (WritableByteChannel) mOpenStream;
+          ByteBuffer buffer = ByteBuffer.allocate(size);
+          buffer.put(buf, 0, size);
+          buffer.flip();
+          return channel.write(buffer);
+        }
+        else if (mOpenStream instanceof DataOutput)
+        {
+          DataOutput output = (DataOutput) mOpenStream;
+          output.write(buf, 0, size);
+          return size;
+
+
+        }
       }
       catch (IOException e)
       {
         log.error("Got error writing to file: {}; {}", mInfo.getName(), e);
         return -1;
       }
+      return -1;
     }
 
     /**
