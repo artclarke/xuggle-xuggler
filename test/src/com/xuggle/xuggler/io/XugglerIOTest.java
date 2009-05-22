@@ -29,18 +29,18 @@ import junit.framework.TestCase;
 
 import org.junit.*;
 
-public class StreamIOTest extends TestCase
+public class XugglerIOTest extends TestCase
 {
 
-  private StreamIO mFactory = null;
+  private XugglerIO mFactory = null;
   private IURLProtocolHandler mHandler = null;
   private final String mSampleFile = "fixtures/testfile.flv";
-  private final String mProtocolString = StreamIO.DEFAULT_PROTOCOL;
+  private final String mProtocolString = XugglerIO.DEFAULT_PROTOCOL;
 
   @Before
   public void setUp()
   {
-    mFactory = new StreamIO();
+    mFactory = new XugglerIO();
     URLProtocolManager.getManager().registerFactory(mProtocolString, mFactory);
     mHandler = null;
   }
@@ -58,13 +58,13 @@ public class StreamIOTest extends TestCase
     int flags = IURLProtocolHandler.URL_RDONLY_MODE;
 
     FileInputStream stream = new FileInputStream(mSampleFile);
-    String url = mProtocolString +":"+mSampleFile; 
-    mFactory.mapIO(url, stream, null, false, true);
+    String url = mProtocolString + ":" + mSampleFile;
+    mFactory
+        .mapIO(url, new InputOutputStreamHandler(stream, null, true), false);
     int retval = -1;
 
     // Test all the different ways to open a valid file.
-    mHandler = mFactory.getHandler(
-        StreamIO.DEFAULT_PROTOCOL, url, flags);
+    mHandler = mFactory.getHandler(XugglerIO.DEFAULT_PROTOCOL, url, flags);
     assertTrue("could not find a mHandler using the mFactory", mHandler != null);
 
     // the mFactory should pass the URL to the mHandler
@@ -91,18 +91,18 @@ public class StreamIOTest extends TestCase
 
     assertNotNull(mFactory.unmapIO(url));
   }
-  
+
   @Test
   public void testAutoUnmapping() throws FileNotFoundException
   {
     int flags = IURLProtocolHandler.URL_RDONLY_MODE;
 
     FileInputStream stream = new FileInputStream(mSampleFile);
-    
+
     // map the URL, telling the factory to unmap it
     // when closed
-    String url = mProtocolString+":1";
-    mFactory.mapIO(url, stream, null, true, true);
+    String url = mProtocolString + ":1";
+    mFactory.mapIO(url, new InputOutputStreamHandler(stream, null, true), true);
     int retval = -1;
 
     // now, try opening using FFMPEG
@@ -111,21 +111,20 @@ public class StreamIOTest extends TestCase
     retval = FfmpegIO.url_open(handle, url, flags);
     assertEquals(0, retval);
 
-    assertNull("found handler when we expected it to be unmapped",
-        mFactory.unmapIO(url));
-    
+    assertNull("found handler when we expected it to be unmapped", mFactory
+        .unmapIO(url));
+
     retval = FfmpegIO.url_close(handle);
     assertEquals(0, retval);
 
   }
+
   @Test
   public void testFileRead() throws FileNotFoundException
   {
     // open our file
     FileInputStream stream = new FileInputStream(mSampleFile);
-    mHandler = new StreamIO.Handler(
-        mFactory.new RegistrationInformation(mSampleFile, stream, null,
-            false, true));
+    mHandler = new InputOutputStreamHandler(stream, null, true);
 
     int retval = 0;
     retval = mHandler.open(mSampleFile, IURLProtocolHandler.URL_RDONLY_MODE);
@@ -152,9 +151,7 @@ public class StreamIOTest extends TestCase
 
     FileInputStream inStream = new FileInputStream(mSampleFile);
     FileOutputStream outStream = new FileOutputStream(copyFile);
-    mHandler = new StreamIO.Handler(
-        mFactory.new RegistrationInformation(copyFile, null, outStream,
-            false, true));
+    mHandler = new InputOutputStreamHandler(null, outStream, true);
     int retval = 0;
 
     // First, open the write mHandler.
@@ -163,9 +160,8 @@ public class StreamIOTest extends TestCase
 
     // Now, create and open a read mHandler.
     // note that without a protocol string, should default to file:
-    IURLProtocolHandler reader = new StreamIO.Handler(
-        mFactory.new RegistrationInformation(mSampleFile, inStream, null,
-            false, true));
+    IURLProtocolHandler reader = new InputOutputStreamHandler(inStream, null,
+        true);
     retval = reader.open(null, IURLProtocolHandler.URL_RDONLY_MODE);
 
     long bytesWritten = 0;
@@ -202,8 +198,9 @@ public class StreamIOTest extends TestCase
   public void testFFMPEGIOUrlRead() throws FileNotFoundException
   {
     FileInputStream stream = new FileInputStream(mSampleFile);
-    mFactory.mapIO(mSampleFile, stream, null, true, true);
-    testFFMPEGUrlReadTestFile(mProtocolString+":"+mSampleFile);
+    mFactory.mapIO(mSampleFile,
+        new InputOutputStreamHandler(stream, null, true), true);
+    testFFMPEGUrlReadTestFile(mProtocolString + ":" + mSampleFile);
   }
 
   private void testFFMPEGUrlReadTestFile(String filename)
@@ -236,8 +233,9 @@ public class StreamIOTest extends TestCase
   {
     String outFile = this.getClass().getName() + "_" + this.getName() + ".flv";
     FileOutputStream stream = new FileOutputStream(outFile);
-    mFactory.mapIO(outFile, null, stream, true, true);
-    testFFMPEGUrlWriteTestFile(mProtocolString+":"+outFile);
+    mFactory.mapIO(outFile, new InputOutputStreamHandler(null, stream, true),
+        true);
+    testFFMPEGUrlWriteTestFile(mProtocolString + ":" + outFile);
   }
 
   private void testFFMPEGUrlWriteTestFile(String filename)
@@ -248,8 +246,8 @@ public class StreamIOTest extends TestCase
 
     retval = FfmpegIO.url_open(handle, filename,
         IURLProtocolHandler.URL_WRONLY_MODE);
-    assertTrue("url_open failed for filename: " + filename +
-        "; : " + retval, retval >= 0);
+    assertTrue("url_open failed for filename: " + filename + "; : " + retval,
+        retval >= 0);
 
     // call url_read wrapper
     byte[] buffer = new byte[4];
@@ -271,27 +269,27 @@ public class StreamIOTest extends TestCase
   {
     String inName = mSampleFile;
     RandomAccessFile stream = new RandomAccessFile(inName, "rw");
-    mFactory.mapIO(mSampleFile, stream, null, true);
-    testFFMPEGUrlReadTestFile(mProtocolString+":"+inName);
+    mFactory.mapIO(mSampleFile, new DataInputOutputHandler(stream), true);
+    testFFMPEGUrlReadTestFile(mProtocolString + ":" + inName);
   }
 
   @Test
   public void testFFMPEGIORandomAccesssWrite() throws FileNotFoundException
   {
-    String outName = this.getClass().getName()+this.getName()+".flv";
+    String outName = this.getClass().getName() + this.getName() + ".flv";
     RandomAccessFile stream = new RandomAccessFile(outName, "rw");
-    mFactory.mapIO(outName, stream, stream, true);
-    testFFMPEGUrlWriteTestFile(mProtocolString+":"+outName);
+    mFactory.mapIO(outName, new DataInputOutputHandler(stream), true);
+    testFFMPEGUrlWriteTestFile(mProtocolString + ":" + outName);
   }
 
   @Test
   public void testFFMPEGIOFileChannelWrite() throws FileNotFoundException
   {
-    String outName = this.getClass().getName()+this.getName()+".flv";
+    String outName = this.getClass().getName() + this.getName() + ".flv";
 
     WritableByteChannel channel = new FileOutputStream(outName).getChannel();
-    mFactory.mapIO(outName, null, channel, true, true);
-    testFFMPEGUrlWriteTestFile(mProtocolString+":"+outName);
+    mFactory.mapIO(outName, new ReadableWritableChannelHandler(null, channel, true), true);
+    testFFMPEGUrlWriteTestFile(mProtocolString + ":" + outName);
   }
 
   @Test
@@ -299,9 +297,26 @@ public class StreamIOTest extends TestCase
   {
     String inName = mSampleFile;
     ReadableByteChannel channel = new FileInputStream(inName).getChannel();
-    mFactory.mapIO(mSampleFile, channel, null, true, true);
-    testFFMPEGUrlReadTestFile(mProtocolString+":"+mSampleFile);
+    mFactory.mapIO(mSampleFile, new ReadableWritableChannelHandler(channel, null, true), true);
+    testFFMPEGUrlReadTestFile(mProtocolString + ":" + mSampleFile);
   }
 
+  @Test
+  public void testFFMPEGIOUrlProtocolHandlerRead()
+  {
+    IURLProtocolHandler handler = new FileProtocolHandler(mSampleFile);
+    mFactory.mapIO(mSampleFile, handler, true);
+    testFFMPEGUrlReadTestFile(mProtocolString + ":" + mSampleFile);
+  }
+
+  @Test
+  public void testFFMPEGIOURLProtocolHandlerWrite()
+  {
+    String outName = this.getClass().getName() + this.getName() + ".flv";
+
+    IURLProtocolHandler handler = new FileProtocolHandler(outName);
+    mFactory.mapIO(outName, handler, true);
+    testFFMPEGUrlWriteTestFile(mProtocolString + ":" + outName);
+  }
 
 }

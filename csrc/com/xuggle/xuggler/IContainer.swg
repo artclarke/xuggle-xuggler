@@ -39,6 +39,249 @@
     return result.toString();
   }
 
+  /**
+   * Open this container and make it ready for reading or writing.
+   * Reading or writing ability is determined by
+   * what the {@link com.xuggle.xuggler.io.IURLProtocolHandler}
+   * passed in supports.
+   * @see #open(String, IContainer.Type, IContainerFormat)
+   */  
+  public int open(
+    com.xuggle.xuggler.io.IURLProtocolHandler handler,
+    IContainer.Type type, IContainerFormat format)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(handler), type, format); 
+  }
+
+  /**
+   * Open this container and make it ready for writing.
+   * @see #open(String, IContainer.Type, IContainerFormat)
+   */  
+  public int open(
+    java.io.OutputStream output,
+    IContainerFormat format)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(output),
+     IContainer.Type.WRITE, format); 
+  }
+
+  /**
+   * Open this container and make it ready for reading.
+   * @see #open(String, IContainer.Type, IContainerFormat)
+   */  
+  public int open(
+    java.io.InputStream input,
+    IContainerFormat format)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(input),
+     IContainer.Type.READ, format); 
+  }
+
+  /**
+   * Open this container and make it ready for writing.
+   * @see #open(String, IContainer.Type, IContainerFormat)
+   */  
+  public int open(
+    java.io.DataOutput output,
+    IContainerFormat format)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(output),
+     IContainer.Type.WRITE, format); 
+  }
+
+  /**
+   * Open this container and make it ready for reading.
+   * @see #open(String, IContainer.Type, IContainerFormat)
+   */  
+  public int open(
+    java.io.DataInput input,
+    IContainerFormat format)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(input),
+     IContainer.Type.READ, format); 
+  }
+
+  /**
+   * Open this container and make it ready for reading or writing.
+   * @see #open(String, IContainer.Type, IContainerFormat)
+   */  
+  public int open(
+    java.io.RandomAccessFile file,
+    IContainer.Type type,
+    IContainerFormat format)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(file),
+     type, format); 
+  }
+
+  /**
+   * Open this container and make it ready for writing.
+   * @see #open(String, IContainer.Type, IContainerFormat)
+   */  
+  public int open(
+    java.nio.channels.WritableByteChannel output,
+    IContainerFormat format)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(output),
+     IContainer.Type.WRITE, format); 
+  }
+
+  /**
+   * Open this container and make it ready for reading.
+   * @see #open(String, IContainer.Type, IContainerFormat)
+   */  
+  public int open(
+    java.nio.channels.ReadableByteChannel input,
+    IContainerFormat format)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(input),
+     IContainer.Type.READ, format); 
+  }
+
+  /**
+   * Open this container and make it ready for reading or writing.
+   * @see #open(String, IContainer.Type, IContainerFormat)
+   */  
+  public int open(
+    java.nio.channels.ByteChannel channel,
+    IContainer.Type type,
+    IContainerFormat format)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(channel),
+     type, format); 
+  }
+
+
+/**
+ * Open this container and make it ready for reading or writing, optionally 
+ * reading as far into the container as necessary to find all streams.
+ * @see #open(String, IContainer.Type, IContainerFormat, boolean, boolean) 
+ */
+  public int open(com.xuggle.xuggler.io.IURLProtocolHandler handler,
+    IContainer.Type type, IContainerFormat format,
+    boolean streamsCanBeAddedDynamically,
+    boolean queryStreamMetaData)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(handler), type, format,
+      streamsCanBeAddedDynamically,
+      queryStreamMetaData); 
+  }
+
+  /**
+   * Open this container and make it ready for writing.
+   * @see #open(String, IContainer.Type, IContainerFormat, boolean, boolean) 
+   */  
+  public int open(
+    java.io.OutputStream output,
+    IContainerFormat format,
+    boolean streamsCanBeAddedDynamically,
+    boolean queryStreamMetaData)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(output),
+     IContainer.Type.WRITE, format, streamsCanBeAddedDynamically, queryStreamMetaData); 
+  }
+
+  /**
+   * Open this container and make it ready for reading.
+   * @see #open(String, IContainer.Type, IContainerFormat, boolean, boolean) 
+   */  
+  public int open(
+    java.io.InputStream input,
+    IContainerFormat format,
+    boolean streamsCanBeAddedDynamically,
+    boolean queryStreamMetaData)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(input),
+     IContainer.Type.READ, format, streamsCanBeAddedDynamically, queryStreamMetaData); 
+  }
+
+  /**
+   * Open this container and make it ready for writing.
+   * @see #open(String, IContainer.Type, IContainerFormat, boolean, boolean) 
+   */  
+  public int open(
+    java.io.DataOutput output,
+    IContainerFormat format,
+    boolean streamsCanBeAddedDynamically,
+    boolean queryStreamMetaData)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(output),
+     IContainer.Type.WRITE, format, streamsCanBeAddedDynamically, queryStreamMetaData); 
+  }
+
+  /**
+   * Open this container and make it ready for reading.
+   * @see #open(String, IContainer.Type, IContainerFormat, boolean, boolean) 
+   */  
+  public int open(
+    java.io.DataInput input,
+    IContainerFormat format,
+    boolean streamsCanBeAddedDynamically,
+    boolean queryStreamMetaData)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(input),
+     IContainer.Type.READ, format, streamsCanBeAddedDynamically, queryStreamMetaData); 
+  }
+
+  /**
+   * Open this container and make it ready for reading or writing.
+   * @see #open(String, IContainer.Type, IContainerFormat, boolean, boolean) 
+   */  
+  public int open(
+    java.io.RandomAccessFile file,
+    IContainer.Type type,
+    IContainerFormat format,
+    boolean streamsCanBeAddedDynamically,
+    boolean queryStreamMetaData)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(file),
+     type, format, streamsCanBeAddedDynamically, queryStreamMetaData); 
+  }
+
+  /**
+   * Open this container and make it ready for writing.
+   * @see #open(String, IContainer.Type, IContainerFormat, boolean, boolean) 
+   */  
+  public int open(
+    java.nio.channels.WritableByteChannel output,
+    IContainerFormat format,
+    boolean streamsCanBeAddedDynamically,
+    boolean queryStreamMetaData)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(output),
+     IContainer.Type.WRITE, format, streamsCanBeAddedDynamically, queryStreamMetaData); 
+  }
+
+  /**
+   * Open this container and make it ready for reading.
+   * @see #open(String, IContainer.Type, IContainerFormat, boolean, boolean) 
+   */  
+  public int open(
+    java.nio.channels.ReadableByteChannel input,
+    IContainerFormat format,
+    boolean streamsCanBeAddedDynamically,
+    boolean queryStreamMetaData)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(input),
+     IContainer.Type.READ, format, streamsCanBeAddedDynamically, queryStreamMetaData); 
+  }
+
+  /**
+   * Open this container and make it ready for reading or writing.
+   * @see #open(String, IContainer.Type, IContainerFormat, boolean, boolean) 
+   */  
+  public int open(
+    java.nio.channels.ByteChannel channel,
+    IContainer.Type type,
+    IContainerFormat format,
+    boolean streamsCanBeAddedDynamically,
+    boolean queryStreamMetaData)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(channel),
+     type, format, streamsCanBeAddedDynamically, queryStreamMetaData); 
+  }
+
+  
 %}
 
 %include <com/xuggle/xuggler/IContainer.h>

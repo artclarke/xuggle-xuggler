@@ -96,10 +96,13 @@ public class FileProtocolHandler implements IURLProtocolHandler
     if (stream != null)
       this.close();
 
-    url = getFilename(url);
-    if (url != null)
+    if (this.file == null)
     {
-      file = new File(url);
+      url = getFilename(url);
+      if (url != null)
+      {
+        file = new File(url);
+      }
     }
     log.debug("Opening file: {}", file);
 

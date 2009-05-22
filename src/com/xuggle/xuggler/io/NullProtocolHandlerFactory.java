@@ -24,7 +24,7 @@ import com.xuggle.xuggler.io.NullProtocolHandler;
 
 /**
  * Returns a new NullProtocolHandler factory. By default Xuggler IO registers
- * the Null Protocol Handler under the protocol name
+ * the Null Protocol InputOutputStreamHandler under the protocol name
  * "xugglernull".
  * 
  * Any URL can be opened.
