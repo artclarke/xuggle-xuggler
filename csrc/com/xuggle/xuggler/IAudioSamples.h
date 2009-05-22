@@ -249,6 +249,53 @@ namespace com { namespace xuggle { namespace xuggler
   protected:
     IAudioSamples();
     virtual ~IAudioSamples();
+    
+    /*
+     * Added for 2.1
+     */
+  public:
+    typedef enum {
+      CH_FRONT_LEFT             =0x00000001,
+      CH_FRONT_RIGHT            =0x00000002,
+      CH_FRONT_CENTER           =0x00000004,
+      CH_LOW_FREQUENCY          =0x00000008,
+      CH_BACK_LEFT              =0x00000010,
+      CH_BACK_RIGHT             =0x00000020,
+      CH_FRONT_LEFT_OF_CENTER   =0x00000040,
+      CH_FRONT_RIGHT_OF_CENTER  =0x00000080,
+      CH_BACK_CENTER            =0x00000100,
+      CH_SIDE_LEFT              =0x00000200,
+      CH_SIDE_RIGHT             =0x00000400,
+      CH_TOP_CENTER             =0x00000800,
+      CH_TOP_FRONT_LEFT         =0x00001000,
+      CH_TOP_FRONT_CENTER       =0x00002000,
+      CH_TOP_FRONT_RIGHT        =0x00004000,
+      CH_TOP_BACK_LEFT          =0x00008000,
+      CH_TOP_BACK_CENTER        =0x00010000,
+      CH_TOP_BACK_RIGHT         =0x00020000,
+      CH_STEREO_LEFT            =0x20000000,
+      CH_STEREO_RIGHT           =0x40000000,
+
+      /* Audio channel convenience macros */
+      CH_LAYOUT_MONO              =(CH_FRONT_CENTER),
+      CH_LAYOUT_STEREO            =(CH_FRONT_LEFT|CH_FRONT_RIGHT),
+      CH_LAYOUT_2_1               =(CH_LAYOUT_STEREO|CH_BACK_CENTER),
+      CH_LAYOUT_SURROUND          =(CH_LAYOUT_STEREO|CH_FRONT_CENTER),
+      CH_LAYOUT_4POINT0           =(CH_LAYOUT_SURROUND|CH_BACK_CENTER),
+      CH_LAYOUT_2_2               =(CH_LAYOUT_STEREO|CH_SIDE_LEFT|CH_SIDE_RIGHT),
+      CH_LAYOUT_QUAD              =(CH_LAYOUT_STEREO|CH_BACK_LEFT|CH_BACK_RIGHT),
+      CH_LAYOUT_5POINT0           =(CH_LAYOUT_SURROUND|CH_SIDE_LEFT|CH_SIDE_RIGHT),
+      CH_LAYOUT_5POINT1           =(CH_LAYOUT_5POINT0|CH_LOW_FREQUENCY),
+      CH_LAYOUT_5POINT0_BACK      =(CH_LAYOUT_SURROUND|CH_BACK_LEFT|CH_BACK_RIGHT),
+      CH_LAYOUT_5POINT1_BACK      =(CH_LAYOUT_5POINT0_BACK|CH_LOW_FREQUENCY),
+      CH_LAYOUT_7POINT1           =(CH_LAYOUT_5POINT1|CH_BACK_LEFT|CH_BACK_RIGHT),
+      CH_LAYOUT_7POINT1_WIDE      =(CH_LAYOUT_5POINT1_BACK|
+          CH_FRONT_LEFT_OF_CENTER|CH_FRONT_RIGHT_OF_CENTER
+          ),
+      CH_LAYOUT_STEREO_DOWNMIX    =(CH_STEREO_LEFT|CH_STEREO_RIGHT),
+
+
+    } ChannelLayout;
   };
 
 }}}

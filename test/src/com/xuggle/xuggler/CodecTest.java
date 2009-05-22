@@ -19,6 +19,8 @@
 
 package com.xuggle.xuggler;
 
+import java.util.Collection;
+
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,6 +135,18 @@ public class CodecTest extends TestCase
       default:
         fail("and should never get here");
       }
+    }
+  }
+  
+  @Test
+  public void testGetInstalledCodecs()
+  {
+    Collection<ICodec> installed = ICodec.getInstalledCodecs();
+    assertTrue(installed.size() > 0);
+    for(ICodec codec : installed)
+    {
+      assertNotNull(codec);
+      assertTrue(codec.getName().length() > 0);
     }
   }
 }

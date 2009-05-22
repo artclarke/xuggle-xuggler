@@ -429,4 +429,78 @@ public class IAudioSamples extends IMediaData {
     }
   }
 
+  public enum ChannelLayout {
+    CH_FRONT_LEFT(XugglerJNI.IAudioSamples_CH_FRONT_LEFT_get()),
+    CH_FRONT_RIGHT(XugglerJNI.IAudioSamples_CH_FRONT_RIGHT_get()),
+    CH_FRONT_CENTER(XugglerJNI.IAudioSamples_CH_FRONT_CENTER_get()),
+    CH_LOW_FREQUENCY(XugglerJNI.IAudioSamples_CH_LOW_FREQUENCY_get()),
+    CH_BACK_LEFT(XugglerJNI.IAudioSamples_CH_BACK_LEFT_get()),
+    CH_BACK_RIGHT(XugglerJNI.IAudioSamples_CH_BACK_RIGHT_get()),
+    CH_FRONT_LEFT_OF_CENTER(XugglerJNI.IAudioSamples_CH_FRONT_LEFT_OF_CENTER_get()),
+    CH_FRONT_RIGHT_OF_CENTER(XugglerJNI.IAudioSamples_CH_FRONT_RIGHT_OF_CENTER_get()),
+    CH_BACK_CENTER(XugglerJNI.IAudioSamples_CH_BACK_CENTER_get()),
+    CH_SIDE_LEFT(XugglerJNI.IAudioSamples_CH_SIDE_LEFT_get()),
+    CH_SIDE_RIGHT(XugglerJNI.IAudioSamples_CH_SIDE_RIGHT_get()),
+    CH_TOP_CENTER(XugglerJNI.IAudioSamples_CH_TOP_CENTER_get()),
+    CH_TOP_FRONT_LEFT(XugglerJNI.IAudioSamples_CH_TOP_FRONT_LEFT_get()),
+    CH_TOP_FRONT_CENTER(XugglerJNI.IAudioSamples_CH_TOP_FRONT_CENTER_get()),
+    CH_TOP_FRONT_RIGHT(XugglerJNI.IAudioSamples_CH_TOP_FRONT_RIGHT_get()),
+    CH_TOP_BACK_LEFT(XugglerJNI.IAudioSamples_CH_TOP_BACK_LEFT_get()),
+    CH_TOP_BACK_CENTER(XugglerJNI.IAudioSamples_CH_TOP_BACK_CENTER_get()),
+    CH_TOP_BACK_RIGHT(XugglerJNI.IAudioSamples_CH_TOP_BACK_RIGHT_get()),
+    CH_STEREO_LEFT(XugglerJNI.IAudioSamples_CH_STEREO_LEFT_get()),
+    CH_STEREO_RIGHT(XugglerJNI.IAudioSamples_CH_STEREO_RIGHT_get()),
+    CH_LAYOUT_MONO(XugglerJNI.IAudioSamples_CH_LAYOUT_MONO_get()),
+    CH_LAYOUT_STEREO(XugglerJNI.IAudioSamples_CH_LAYOUT_STEREO_get()),
+    CH_LAYOUT_2_1(XugglerJNI.IAudioSamples_CH_LAYOUT_2_1_get()),
+    CH_LAYOUT_SURROUND(XugglerJNI.IAudioSamples_CH_LAYOUT_SURROUND_get()),
+    CH_LAYOUT_4POINT0(XugglerJNI.IAudioSamples_CH_LAYOUT_4POINT0_get()),
+    CH_LAYOUT_2_2(XugglerJNI.IAudioSamples_CH_LAYOUT_2_2_get()),
+    CH_LAYOUT_QUAD(XugglerJNI.IAudioSamples_CH_LAYOUT_QUAD_get()),
+    CH_LAYOUT_5POINT0(XugglerJNI.IAudioSamples_CH_LAYOUT_5POINT0_get()),
+    CH_LAYOUT_5POINT1(XugglerJNI.IAudioSamples_CH_LAYOUT_5POINT1_get()),
+    CH_LAYOUT_5POINT0_BACK(XugglerJNI.IAudioSamples_CH_LAYOUT_5POINT0_BACK_get()),
+    CH_LAYOUT_5POINT1_BACK(XugglerJNI.IAudioSamples_CH_LAYOUT_5POINT1_BACK_get()),
+    CH_LAYOUT_7POINT1(XugglerJNI.IAudioSamples_CH_LAYOUT_7POINT1_get()),
+    CH_LAYOUT_7POINT1_WIDE(XugglerJNI.IAudioSamples_CH_LAYOUT_7POINT1_WIDE_get()),
+    CH_LAYOUT_STEREO_DOWNMIX(XugglerJNI.IAudioSamples_CH_LAYOUT_STEREO_DOWNMIX_get());
+
+    public final int swigValue() {
+      return swigValue;
+    }
+
+    public static ChannelLayout swigToEnum(int swigValue) {
+      ChannelLayout[] swigValues = ChannelLayout.class.getEnumConstants();
+      if (swigValue < swigValues.length && swigValue >= 0 && swigValues[swigValue].swigValue == swigValue)
+        return swigValues[swigValue];
+      for (ChannelLayout swigEnum : swigValues)
+        if (swigEnum.swigValue == swigValue)
+          return swigEnum;
+      throw new IllegalArgumentException("No enum " + ChannelLayout.class + " with value " + swigValue);
+    }
+
+    @SuppressWarnings("unused")
+    private ChannelLayout() {
+      this.swigValue = SwigNext.next++;
+    }
+
+    @SuppressWarnings("unused")
+    private ChannelLayout(int swigValue) {
+      this.swigValue = swigValue;
+      SwigNext.next = swigValue+1;
+    }
+
+    @SuppressWarnings("unused")
+    private ChannelLayout(ChannelLayout swigEnum) {
+      this.swigValue = swigEnum.swigValue;
+      SwigNext.next = this.swigValue+1;
+    }
+
+    private final int swigValue;
+
+    private static class SwigNext {
+      private static int next = 0;
+    }
+  }
+
 }

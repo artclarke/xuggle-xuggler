@@ -19,9 +19,9 @@
 
 #include <com/xuggle/ferry/Logger.h>
 #include <com/xuggle/xuggler/AudioResampler.h>
-#include <com/xuggle/xuggler/FfmpegIncludes.h>
 #include <com/xuggle/xuggler/AudioSamples.h>
 #include <com/xuggle/xuggler/Global.h>
+#include <com/xuggle/xuggler/FfmpegIncludes.h>
 
 #include <stdexcept>
 

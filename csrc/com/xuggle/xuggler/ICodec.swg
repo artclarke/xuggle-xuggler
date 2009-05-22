@@ -37,6 +37,172 @@
     return result.toString();
   }
 
+  /**
+   * Gets a collection of ALL audio codecs installed on this
+   * system. 
+   * 
+   * @return A collection of all installed codecs.
+   */
+
+  public static java.util.Collection<ICodec>
+  getInstalledCodecs()
+  {
+    java.util.Collection<ICodec> retval = new java.util.HashSet<ICodec>();
+    int count = getNumInstalledCodecs();
+    for(int i=0;i<count;i++)
+    {
+      ICodec codec = getInstalledCodec(i);
+      if (codec != null)
+        retval.add(codec);
+    }
+    return retval;
+  }
+
+  /**
+   * Returns a list of supported frame-rates this codec can encode
+   * video to.
+   * 
+   * <p>
+   * 
+   * Not all codecs support reporting this, in which case the returned list
+   * will be empty.
+   * 
+   * </p>
+   * 
+   * @return a list
+   */
+
+  public java.util.List<IRational>
+  getSupportedVideoFrameRates()
+  {
+    java.util.List<IRational> retval =
+      new java.util.LinkedList<IRational>();
+    int count = getNumSupportedVideoFrameRates();
+    for(int i=0;i<count;i++)
+    {
+      IRational rate = getSupportedVideoFrameRate(i);
+      if (rate != null)
+        retval.add(rate);
+    }
+    return retval;
+  }
+
+  /**
+   * Returns a list of supported pixel formats this codec can encode
+   * video in.
+   * 
+   * <p>
+   * 
+   * Not all codecs support reporting this, in which case the returned list
+   * will be empty.
+   * 
+   * </p>
+   * 
+   * @return a list
+   */
+
+  public java.util.List<IPixelFormat.Type>
+  getSupportedVideoPixelFormats()
+  {
+    java.util.List<IPixelFormat.Type> retval =
+      new java.util.LinkedList<IPixelFormat.Type>();
+    int count = getNumSupportedVideoPixelFormats();
+    for(int i=0;i<count;i++)
+    {
+      IPixelFormat.Type type = getSupportedVideoPixelFormat(i);
+      if (type != null && type != IPixelFormat.Type.NONE)
+        retval.add(type);
+    }
+    return retval;
+  }
+
+  /**
+   * Returns a list of supported audio sample rates this codec can encode
+   * audio in.
+   * 
+   * <p>
+   * 
+   * Not all codecs support reporting this, in which case the returned list
+   * will be empty.
+   * 
+   * </p>
+   * 
+   * @return a list
+   */
+
+  public java.util.List<Integer>
+  getSupportedAudioSampleRates()
+  {
+    java.util.List<Integer> retval =
+      new java.util.LinkedList<Integer>();
+    int count = getNumSupportedAudioSampleRates();
+    for(int i=0;i<count;i++)
+    {
+      int rate = getSupportedAudioSampleRate(i);
+      if (rate != 0)
+        retval.add(rate);
+    }
+    return retval;
+  }
+
+  /**
+   * Returns a list of supported audio sample formats this codec can encode
+   * audio in.
+   * 
+   * <p>
+   * 
+   * Not all codecs support reporting this, in which case the returned list
+   * will be empty.
+   * 
+   * </p>
+   * 
+   * @return a list
+   */
+
+  public java.util.List<IAudioSamples.Format>
+  getSupportedAudioSampleFormats()
+  {
+    java.util.List<IAudioSamples.Format> retval =
+      new java.util.LinkedList<IAudioSamples.Format>();
+    int count = getNumSupportedAudioSampleFormats();
+    for(int i=0;i<count;i++)
+    {
+      IAudioSamples.Format fmt = getSupportedAudioSampleFormat(i);
+      if (fmt != null && fmt != IAudioSamples.Format.FMT_NONE)
+        retval.add(fmt);
+    }
+    return retval;
+  }
+
+  /**
+   * Returns a list of supported audio channel layouts this codec can encode
+   * audio in.
+   * 
+   * <p>
+   * 
+   * Not all codecs support reporting this, in which case the returned list
+   * will be empty.
+   * 
+   * </p>
+   * 
+   * @return a list
+   */
+
+  public java.util.List<Long>
+  getSupportedAudioChannelLayouts()
+  {
+    java.util.List<Long> retval =
+      new java.util.LinkedList<Long>();
+    int count = getNumSupportedAudioChannelLayouts();
+    for(int i=0;i<count;i++)
+    {
+      long layout = getSupportedAudioChannelLayout(i);
+      if (layout != 0)
+        retval.add(layout);
+    }
+    return retval;
+  }
+
 %}
 
 %include <com/xuggle/xuggler/ICodec.h>

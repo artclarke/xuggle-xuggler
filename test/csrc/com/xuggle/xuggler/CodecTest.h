@@ -33,6 +33,13 @@ class CodecTest : public CxxTest::TestSuite
     void testInvalidArguments();
     void testFindByName();
     void testGuessEncodingCodecs();
+    void testGetInstalledCodecs();
+    void testHasCapability();
+    void testGetSupportedVideoFramRates();
+    void testGetSupportedVideoPixelFormats();
+    void testGetSupportedAudioSampleRates();
+    void testGetSupportedAudioSampleFormats();
+    void testGetSupportedAudioChannelLayouts();
   private:
     RefPointer<ICodec> codec;
 };

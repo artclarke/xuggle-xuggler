@@ -197,6 +197,43 @@ public class IContainerFormat extends RefCounted {
     return retval;
   }
   
+    /**
+   * Return a collection of all input formats installed on this system.
+   * @return the list.
+   */
+  public static java.util.Collection<IContainerFormat>
+  getInstalledInputFormats()
+  {
+    java.util.Collection<IContainerFormat> retval =
+      new java.util.HashSet<IContainerFormat>();
+    int count = getNumInstalledInputFormats();
+    for(int i = 0; i< count;++i)
+    {
+      IContainerFormat fmt = getInstalledInputFormat(i);
+      if (fmt != null)
+        retval.add(fmt);
+    }
+    return retval;
+  }
+  
+  /**
+   * Return a collection of all output formats installed on this system.
+   * @return the list.
+   */
+  public static java.util.Collection<IContainerFormat>
+  getInstalledOutputFormats()
+  {
+    java.util.Collection<IContainerFormat> retval =
+      new java.util.HashSet<IContainerFormat>();
+    int count = getNumInstalledOutputFormats();
+    for(int i = 0; i< count;++i)
+    {
+      IContainerFormat fmt = getInstalledOutputFormat(i);
+      if (fmt != null)
+        retval.add(fmt);
+    }
+    return retval;
+  }
 
 /**
  * Sets the input format for this container.  
@@ -467,6 +504,49 @@ public class IContainerFormat extends RefCounted {
  */
   public boolean isCodecSupportedForOutput(ICodec.ID id) {
     return XugglerJNI.IContainerFormat_isCodecSupportedForOutput(swigCPtr, this, id.swigValue());
+  }
+
+/**
+ * Get the number of input formats this install can demultiplex (read) 
+ *  
+ * from.  
+ * @return	the number of formats  
+ */
+  public static int getNumInstalledInputFormats() {
+    return XugglerJNI.IContainerFormat_getNumInstalledInputFormats();
+  }
+
+/**
+ * Return an object for the input format at the given index.  
+ * @param	index an index for the input format list we maintain  
+ * @return	a format object for that input or null if  
+ * unknown, index < 0 or index >= {@link getNumInstalledInputFormats()} 
+ *  
+ */
+  public static IContainerFormat getInstalledInputFormat(int index) {
+    long cPtr = XugglerJNI.IContainerFormat_getInstalledInputFormat(index);
+    return (cPtr == 0) ? null : new IContainerFormat(cPtr, false);
+  }
+
+/**
+ * Get the number of output formats this install can multiplex  
+ * (write) to.  
+ * @return	the number of formats  
+ */
+  public static int getNumInstalledOutputFormats() {
+    return XugglerJNI.IContainerFormat_getNumInstalledOutputFormats();
+  }
+
+/**
+ * Return an object for the output format at the given index.  
+ * @param	index an index for the output format list we maintain  
+ * @return	a format object for that output or null if  
+ * unknown, index < 0 or index >= {@link getNumInstalledOutputFormats()} 
+ *  
+ */
+  public static IContainerFormat getInstalledOutputFormat(int index) {
+    long cPtr = XugglerJNI.IContainerFormat_getInstalledOutputFormat(index);
+    return (cPtr == 0) ? null : new IContainerFormat(cPtr, false);
   }
 
   public enum Flags {

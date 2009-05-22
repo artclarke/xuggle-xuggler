@@ -19,10 +19,10 @@
 
 #include <com/xuggle/ferry/Logger.h>
 #include <com/xuggle/xuggler/AudioSamples.h>
-#include <com/xuggle/xuggler/FfmpegIncludes.h>
 #include <com/xuggle/xuggler/Global.h>
 
 // for memset
+#include <com/xuggle/xuggler/FfmpegIncludes.h>
 #include <string.h>
 #include <stdexcept>
 

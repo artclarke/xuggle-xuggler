@@ -28,9 +28,9 @@
 #include <com/xuggle/xuggler/ITimeValue.h>
 #include <com/xuggle/xuggler/IRational.h>
 #include <com/xuggle/xuggler/IMediaData.h>
+#include <com/xuggle/xuggler/IAudioSamples.h>
 #include <com/xuggle/xuggler/ICodec.h>
 #include <com/xuggle/xuggler/IPacket.h>
-#include <com/xuggle/xuggler/IAudioSamples.h>
 #include <com/xuggle/xuggler/IAudioResampler.h>
 #include <com/xuggle/xuggler/IVideoPicture.h>
 #include <com/xuggle/xuggler/IVideoResampler.h>
@@ -153,12 +153,12 @@ import com.xuggle.xuggler.Converter;
 %include <com/xuggle/xuggler/IPixelFormat.h>
 %include <com/xuggle/xuggler/IRational.swg>
 %include <com/xuggle/xuggler/ITimeValue.h>
-%include <com/xuggle/xuggler/ICodec.swg>
 %include <com/xuggle/xuggler/IMediaData.swg>
 %include <com/xuggle/xuggler/IPacket.swg>
 %include <com/xuggle/xuggler/IAudioSamples.swg>
-%include <com/xuggle/xuggler/IAudioResampler.h>
 %include <com/xuggle/xuggler/IVideoPicture.swg>
+%include <com/xuggle/xuggler/ICodec.swg>
+%include <com/xuggle/xuggler/IAudioResampler.h>
 %include <com/xuggle/xuggler/IVideoResampler.swg>
 %include <com/xuggle/xuggler/IStreamCoder.swg>
 %include <com/xuggle/xuggler/IStream.swg>

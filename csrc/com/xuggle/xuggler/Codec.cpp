@@ -227,4 +227,158 @@ namespace com { namespace xuggle { namespace xuggler
   {
     return mCodec ? mCodec->long_name : 0;
   }
+
+  int32_t
+  Codec :: getCapabilities()
+  {
+    if (!mCodec)
+      return 0;
+    return mCodec->capabilities;
+  }
+  bool
+  Codec :: hasCapability(Capabilities flag)
+  {
+    if (!mCodec)
+      return false;
+    return mCodec->capabilities&flag;
+  }
+
+  int32_t
+  Codec :: getNumSupportedVideoFrameRates()
+  {
+    if (!mCodec)
+      return 0;
+    int count = 0;
+    for(
+        const AVRational* p=mCodec->supported_framerates;
+        p && !(!p->den && !p->num);
+        p++
+    )
+      ++count;
+    return count;
+  }
+  IRational*
+  Codec :: getSupportedVideoFrameRate(int32_t index)
+  {
+    if (!mCodec)
+      return 0;
+    int i = 0;
+    for(
+        const AVRational* p=mCodec->supported_framerates;
+        p && !(!p->den && !p->num);
+        p++, i++
+    )
+      if (index == i)
+        return IRational::make(p->num,p->den);
+    return 0;
+  }
+
+  int32_t
+  Codec :: getNumSupportedVideoPixelFormats()
+  {
+    if (!mCodec)
+      return 0;
+    int count = 0;
+    for(const enum PixelFormat* p = mCodec->pix_fmts;
+    p && (*p!=-1);
+    p++)
+      ++count;
+    return count;
+
+  }
+
+  IPixelFormat::Type
+  Codec :: getSupportedVideoPixelFormat(int32_t index)
+  {
+    if (!mCodec)
+      return IPixelFormat::NONE;
+    int i = 0;
+    for(const enum PixelFormat* p = mCodec->pix_fmts;
+    p && (*p!=-1);
+    p++,i++)
+      if (index == i)
+        return (IPixelFormat::Type)*p;
+    return IPixelFormat::NONE;
+  }
+
+  int32_t
+  Codec :: getNumSupportedAudioSampleRates()
+  {
+    if (!mCodec)
+      return 0;
+    int i = 0;
+    for(const int *p = mCodec->supported_samplerates;
+    p && *p;
+    ++p, ++i)
+      ;
+    return i;
+  }
+  int32_t
+  Codec :: getSupportedAudioSampleRate(int32_t index)
+  {
+    if (!mCodec)
+      return 0;
+    int i = 0;
+    for(const int *p = mCodec->supported_samplerates;
+    p && *p;
+    p++, i++)
+      if (i == index)
+        return *p;
+    return 0;
+  }
+
+  int32_t
+  Codec :: getNumSupportedAudioSampleFormats()
+  {
+    if (!mCodec)
+      return 0;
+    int i = 0;
+    for(const enum SampleFormat* p=mCodec->sample_fmts;
+      p && (*p != -1);
+      p++,i++)
+      ;
+    return i;
+  }
+  
+  IAudioSamples::Format
+  Codec :: getSupportedAudioSampleFormat(int32_t index)
+  {
+    if (!mCodec)
+      return IAudioSamples::FMT_NONE;
+    int i = 0;
+    for(const enum SampleFormat* p=mCodec->sample_fmts;
+      p && (*p != -1);
+      p++,i++)
+      if (index == i)
+        return (IAudioSamples::Format)*p;
+    return IAudioSamples::FMT_NONE;
+    
+  }
+
+  int32_t
+  Codec :: getNumSupportedAudioChannelLayouts()
+  {
+    if (!mCodec)
+      return 0;
+    int i = 0;
+    for(const int64_t* p=mCodec->channel_layouts;
+      p && *p;
+      p++,i++)
+      ;
+    return i;
+  }
+  int64_t
+  Codec :: getSupportedAudioChannelLayout(int32_t index)
+  {
+    if (!mCodec)
+      return 0;
+    int i = 0;
+    for(const int64_t* p=mCodec->channel_layouts;
+      p && *p;
+      p++,i++)
+      if (index == i)
+        return *p;
+    return 0;
+  }
+
 }}}

@@ -35,6 +35,8 @@ class ContainerFormatTest : public CxxTest::TestSuite
     void testSetInputFormat();
     void testSetOutputFormat();
     void testGetOutputNumCodecsSupported();
+    void testGetInstalledInputFormats();
+    void testGetInstalledOutputFormats();
   private:
     Helper* h;
     RefPointer<IContainerFormat> format;

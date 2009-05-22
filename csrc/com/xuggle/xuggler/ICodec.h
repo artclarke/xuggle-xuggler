@@ -22,6 +22,9 @@
 
 #include <com/xuggle/ferry/RefCounted.h>
 #include <com/xuggle/xuggler/Xuggler.h>
+#include <com/xuggle/xuggler/IRational.h>
+#include <com/xuggle/xuggler/IPixelFormat.h>
+#include <com/xuggle/xuggler/IAudioSamples.h>
 namespace com
 {
 namespace xuggle
@@ -445,6 +448,158 @@ public:
    */
   virtual const char *
   getLongName()=0;
+
+  /*
+   * Added for 2.1
+   */
+
+  /**
+   * Capability flags
+   */
+  typedef enum
+  {
+    CAP_DRAW_HORIZ_BAND = 0x0001,
+    CAP_DR1 = 0x0002,
+    CAP_PARSE_ONLY = 0x0004,
+    CAP_TRUNCATED = 0x0008,
+    CAP_HWACCEL = 0x0010,
+    CAP_DELAY = 0x0020,
+    CAP_SMALL_LAST_FRAME = 0x0040,
+    CAP_HWACCEL_VDPAU = 0x0080,
+
+  } Capabilities;
+
+  /**
+   * Get the capabilites flag from the codec
+   * 
+   * @return the capabilities flag
+   */
+  virtual int32_t getCapabilities()=0;
+  
+  /**
+   * Convenience method to check individual capability flags.
+   * 
+   * @param capability the capability
+   * 
+   * @return true if flag is set; false otherwise.
+   */
+  virtual bool hasCapability(Capabilities capability)=0;
+  
+  /**
+   * Get the number of installed codecs on this system.
+   * @return the number of installed codecs.
+   */
+  static int32_t getNumInstalledCodecs();
+  
+  /**
+   * Get the {@link ICodec} at the given index.
+   * 
+   * @param index the index in our list
+   * 
+   * @return the codec, or null if index < 0 or index >= 
+   *   {@link #getNumInstalledCodecs()}
+   */
+  static ICodec* getInstalledCodec(int32_t index);
+
+  /**
+   * Get the number of frame rates this codec supports for encoding.
+   * Not all codecs will report this number.
+   * @return the number or 0 if we don't know.
+   */
+  virtual int32_t getNumSupportedVideoFrameRates()=0;
+  
+  /**
+   * Return the supported frame rate at the given index.
+   * 
+   * @param index the index in our list.
+   * 
+   * @return the frame rate, or null if unknown, if index <0 or
+   *   if index >= {@link #getNumSupportedVideoFrameRates()}
+   */
+  virtual IRational* getSupportedVideoFrameRate(int32_t index)=0;
+  
+  /**
+   * Get the number of supported video pixel formats this codec supports
+   * for encoding.  Not all codecs will report this.
+   * 
+   * @return the number or 0 if we don't know.
+   */
+  virtual int32_t getNumSupportedVideoPixelFormats()=0;
+
+  /**
+   * Return the supported video pixel format at the given index.
+   * 
+   * @param index the index in our list.
+   * 
+   * @return the pixel format, or {@link IPixelFormat.Type#NONE} if unknown,
+   *   if index <0 or
+   *   if index >= {@link #getNumSupportedVideoPixelFormats()}
+   */
+  virtual IPixelFormat::Type getSupportedVideoPixelFormat(int32_t index)=0;
+  
+  /**
+   * Get the number of different audio sample rates this codec supports
+   * for encoding.  Not all codecs will report this.
+   * 
+   * @return the number or 0 if we don't know.
+   */
+  virtual int32_t getNumSupportedAudioSampleRates()=0;
+  
+  /**
+   * Return the support audio sample rate at the given index.
+   * 
+   * @param index the index in our list.
+   * 
+   * @return the sample rate, or 0 if unknown, index < 0 or
+   *   index >= {@link #getNumSupportedAudioSampleRates()}
+   */
+  virtual int32_t getSupportedAudioSampleRate(int32_t index)=0;
+  
+  /**
+   * Get the number of different audio sample formats this codec supports
+   * for encoding.  Not all codecs will report this.
+   * 
+   * @return the number or 0 if we don't know.
+   */
+
+  virtual int32_t getNumSupportedAudioSampleFormats()=0;
+  
+  /**
+   * Get the supported sample format at this index.
+   * 
+   * @param index the index in our list.
+   * 
+   * @return the format, or {@link IAudioSamples.Format.FMT_NONE} if
+   *   unknown, index < 0 or index >=
+   *   {@link #getNumSupportedAudioSampleFormats()}.
+   */
+  virtual IAudioSamples::Format getSupportedAudioSampleFormat(int32_t index)=0;
+  
+  /**
+   * Get the number of different audio channel layouts this codec supports
+   * for encoding.  Not all codecs will report this.
+   * 
+   * 
+   * @return the number or 0 if we don't know.
+   */
+
+  virtual int32_t getNumSupportedAudioChannelLayouts()=0;
+  
+  /**
+   * Get the supported audio channel layout at this index.
+   * 
+   * The value returned is a bit flag representing the different
+   * types of audio layout this codec can support.  Test the values
+   * by bit-comparing them to the {@link IAudioSamples.ChannelLayout}
+   * enum types.
+   * 
+   * @param index the index
+   * 
+   * @return the channel layout, or 0 if unknown, index < 0 or
+   *   index >= {@link #getNumSupportedAudioChannelLayouts}.
+   */
+  virtual int64_t getSupportedAudioChannelLayout(int32_t index)=0;
+  
 };
 
 }

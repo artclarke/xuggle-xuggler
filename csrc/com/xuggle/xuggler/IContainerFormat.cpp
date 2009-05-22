@@ -21,6 +21,8 @@
 #include "Global.h"
 #include "ContainerFormat.h"
 
+#include "FfmpegIncludes.h"
+
 namespace com { namespace xuggle { namespace xuggler
 {
   IContainerFormat :: ~IContainerFormat()
@@ -33,4 +35,60 @@ namespace com { namespace xuggle { namespace xuggler
     Global::init();
     return ContainerFormat::make();
   }
+  
+  int32_t
+  IContainerFormat :: getNumInstalledInputFormats()
+  {
+    int i = 0;
+    for(AVInputFormat* f = 0;
+    (f = av_iformat_next(f))!=0;
+    ++i)
+      ;
+    return i;
+  }
+  
+  IContainerFormat*
+  IContainerFormat :: getInstalledInputFormat(int32_t index)
+  {
+    int i = 0;
+    for(AVInputFormat* f = 0;
+    (f = av_iformat_next(f))!=0;
+    ++i)
+      if (i == index) {
+        ContainerFormat * retval = ContainerFormat::make();
+        if (retval)
+          retval->setInputFormat(f);
+        return retval;
+      }
+    return 0;
+  }
+  
+  int32_t
+  IContainerFormat :: getNumInstalledOutputFormats()
+  {
+    int i = 0;
+    for(AVOutputFormat* f = 0;
+    (f = av_oformat_next(f))!=0;
+    ++i)
+      ;
+    return i;
+  }
+  
+  IContainerFormat*
+  IContainerFormat :: getInstalledOutputFormat(int32_t index)
+  {
+    int i = 0;
+    for(AVOutputFormat* f = 0;
+    (f = av_oformat_next(f))!=0;
+    ++i)
+      if (i == index)
+      {
+        ContainerFormat* retval =ContainerFormat::make();
+        if (retval)
+          retval->setOutputFormat(f);
+        return retval;
+      }
+    return 0;
+  }
+  
 }}}

@@ -18,9 +18,10 @@
  */
 
 #include "IAudioSamples.h"
-#include "FfmpegIncludes.h"
 #include "Global.h"
 #include "AudioSamples.h"
+
+#include "FfmpegIncludes.h"
 
 namespace com { namespace xuggle { namespace xuggler
 {

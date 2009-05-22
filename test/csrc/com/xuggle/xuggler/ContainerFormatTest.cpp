@@ -185,3 +185,47 @@ ContainerFormatTest :: testGetOutputNumCodecsSupported()
   }
 }
 
+void
+ContainerFormatTest :: testGetInstalledInputFormats()
+{
+  LoggerStack stack;
+  stack.setGlobalLevel(Logger::LEVEL_INFO, false);
+  int32_t count = IContainerFormat::getNumInstalledInputFormats();
+  VS_TUT_ENSURE("should be more than one", count > 1);
+  
+  for(int i=0; i < count; i++)
+  {
+    RefPointer<IContainerFormat> fmt =
+      IContainerFormat::getInstalledInputFormat(i);
+    VS_TUT_ENSURE("should be valid", fmt);
+    if (fmt) {
+      VS_LOG_DEBUG("%s; %s",
+          fmt->getInputFormatShortName(),
+          fmt->getInputFormatLongName());
+      VS_TUT_ENSURE("is input", fmt->isInput());
+    }
+  }
+}
+
+void
+ContainerFormatTest :: testGetInstalledOutputFormats()
+{
+  LoggerStack stack;
+  stack.setGlobalLevel(Logger::LEVEL_INFO, false);
+  int32_t count = IContainerFormat::getNumInstalledOutputFormats();
+  VS_TUT_ENSURE("should be more than one", count > 1);
+  
+  for(int i=0; i < count; i++)
+  {
+    RefPointer<IContainerFormat> fmt =
+      IContainerFormat::getInstalledOutputFormat(i);
+    VS_TUT_ENSURE("should be valid", fmt);
+    if (fmt) {
+      VS_LOG_DEBUG("%s; %s",
+          fmt->getOutputFormatShortName(),
+          fmt->getOutputFormatLongName());
+      VS_TUT_ENSURE("is output", fmt->isOutput());
+    }
+  }
+}
+

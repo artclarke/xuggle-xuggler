@@ -76,6 +76,43 @@
     return retval;
   }
   
+    /**
+   * Return a collection of all input formats installed on this system.
+   * @return the list.
+   */
+  public static java.util.Collection<IContainerFormat>
+  getInstalledInputFormats()
+  {
+    java.util.Collection<IContainerFormat> retval =
+      new java.util.HashSet<IContainerFormat>();
+    int count = getNumInstalledInputFormats();
+    for(int i = 0; i< count;++i)
+    {
+      IContainerFormat fmt = getInstalledInputFormat(i);
+      if (fmt != null)
+        retval.add(fmt);
+    }
+    return retval;
+  }
+  
+  /**
+   * Return a collection of all output formats installed on this system.
+   * @return the list.
+   */
+  public static java.util.Collection<IContainerFormat>
+  getInstalledOutputFormats()
+  {
+    java.util.Collection<IContainerFormat> retval =
+      new java.util.HashSet<IContainerFormat>();
+    int count = getNumInstalledOutputFormats();
+    for(int i = 0; i< count;++i)
+    {
+      IContainerFormat fmt = getInstalledOutputFormat(i);
+      if (fmt != null)
+        retval.add(fmt);
+    }
+    return retval;
+  }
 %}
 
 %include <com/xuggle/xuggler/IContainerFormat.h>

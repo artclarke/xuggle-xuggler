@@ -314,7 +314,42 @@ namespace com { namespace xuggle { namespace xuggler
     
     virtual bool isCodecSupportedForOutput(ICodec::ID id)=0;
 
+    /**
+     * Get the number of input formats this install can demultiplex (read)
+     * from.
+     * 
+     * @return the number of formats
+     */
+    static int32_t getNumInstalledInputFormats();
+    
+    /**
+     * Return an object for the input format at the given index.
+     * 
+     * @param index an index for the input format list we maintain
+     * 
+     * @return a format object for that input or null if
+     *   unknown, index < 0 or index >= {@link getNumInstalledInputFormats()}
+     */
+    static IContainerFormat* getInstalledInputFormat(int32_t index);
 
+    /**
+     * Get the number of output formats this install can multiplex 
+     * (write) to.
+     * 
+     * @return the number of formats
+     */
+    static int32_t getNumInstalledOutputFormats();
+
+    /**
+     * Return an object for the output format at the given index.
+     * 
+     * @param index an index for the output format list we maintain
+     * 
+     * @return a format object for that output or null if
+     *   unknown, index < 0 or index >= {@link getNumInstalledOutputFormats()}
+     */
+    static IContainerFormat* getInstalledOutputFormat(int32_t index);
+    
   protected:
     virtual ~IContainerFormat()=0;
     

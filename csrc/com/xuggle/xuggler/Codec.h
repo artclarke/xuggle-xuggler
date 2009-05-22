@@ -73,6 +73,26 @@ namespace com { namespace xuggle { namespace xuggler
     virtual bool canDecode();
     virtual bool canEncode();
     virtual const char * getLongName();
+    
+    virtual int32_t getCapabilities();
+    virtual bool hasCapability(Capabilities flag);
+    
+    virtual int32_t getNumSupportedVideoFrameRates();
+    virtual IRational* getSupportedVideoFrameRate(int32_t index);
+    
+    virtual int32_t getNumSupportedVideoPixelFormats();
+    virtual IPixelFormat::Type getSupportedVideoPixelFormat(int32_t index);
+    
+    virtual int32_t getNumSupportedAudioSampleRates();
+    virtual int32_t getSupportedAudioSampleRate(int32_t index);
+    
+    virtual int32_t getNumSupportedAudioSampleFormats();
+    virtual IAudioSamples::Format getSupportedAudioSampleFormat(int32_t index);
+    
+    virtual int32_t getNumSupportedAudioChannelLayouts();
+    virtual int64_t getSupportedAudioChannelLayout(int32_t index);
+    
+
 
     virtual int32_t acquire();
     virtual int32_t release();

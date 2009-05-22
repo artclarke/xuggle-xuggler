@@ -19,6 +19,7 @@
 
 package com.xuggle.xuggler;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.junit.*;
@@ -154,4 +155,32 @@ public class ContainerFormatTest extends TestCase
     assertTrue("Should contain H263",
         codecs.contains(ICodec.ID.CODEC_ID_H263));
   }
+  
+  @Test
+  public void testGetInputFormats()
+  {
+    Collection<IContainerFormat> installed =
+      IContainerFormat.getInstalledInputFormats();
+    assertTrue(installed.size() > 0);
+    for(IContainerFormat fmt : installed)
+    {
+      assertNotNull(fmt);
+      assertTrue(fmt.isInput());
+      assertTrue(fmt.getInputFormatShortName().length() > 0);
+    }
+  }
+  @Test
+  public void testGetOutputFormats()
+  {
+    Collection<IContainerFormat> installed =
+      IContainerFormat.getInstalledOutputFormats();
+    assertTrue(installed.size() > 0);
+    for(IContainerFormat fmt : installed)
+    {
+      assertNotNull(fmt);
+      assertTrue(fmt.isOutput());
+      assertTrue(fmt.getOutputFormatShortName().length() > 0);
+    }
+  }
+
 }
