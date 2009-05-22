@@ -859,15 +859,6 @@ using the library and what you like or don't like about it.
       </else>
     </if>
     <if>
-      <isset property="build.gpl"/>
-      <then>
-        <property name="build.gpl.flag" value="--enable-gpl=${build.gpl}"/>
-      </then>
-      <else>
-        <property name="build.gpl.flag" value=""/>
-      </else>
-    </if>
-    <if>
       <isset property="build.configure"/>
       <then>
         <property name="build.configure.flag" value="${build.configure}"/>
@@ -877,7 +868,7 @@ using the library and what you like or don't like about it.
       </else>
     </if>
     <property name="configure.line"
-      value="../../../configure ${build.m64.flag} ${build.gpl.flag} ${build.configure.flag} --prefix=${xuggle.dir}"/>
+      value="../../../configure ${build.m64.flag} ${build.configure.flag} --prefix=${xuggle.dir}"/>
 
     <!-- Yes, Windows is annoying and doesn't do well with
     unescaped paths... so we convert to Unix format -->
