@@ -318,34 +318,37 @@ namespace com { namespace xuggle { namespace xuggler
     } Type;
 
     /**
-     * @return The name of thie Codec.
+     * Get the name of the codec.
+     * @return The name of this Codec.
      */
     virtual const char * getName()=0;
 
     /**
+     * Get the ID of this codec, as an integer.
      * @return the ID of this codec, as an integer.
      */
     virtual int getIDAsInt()=0;
 
     /**
+     * Get the ID of this codec as an enumeration.
      * @return the ID of this codec, an enum ID
      */
     virtual ID getID()=0;
 
     /**
-     *
+     * Get the type of this codec.
      * @return The type of this Codec, as a enum Type
      */
     virtual Type getType()=0;
 
     /**
-     *
+     * Can this codec be used for decoding?
      * @return Can this Codec decode?
      */
     virtual bool canDecode()=0;
 
     /**
-     *
+     * Can this codec be used for encoding?
      * @return Can this Codec encode?
      */
     virtual bool canEncode()=0;
@@ -391,7 +394,7 @@ namespace com { namespace xuggle { namespace xuggler
     static ICodec *findDecodingCodecByName(const char*id);
 
     /**
-     * Ask us to guess an encoding coded based on the inputs
+     * Ask us to guess an encoding codec based on the inputs
      * passed in.
      * <p>
      * You must pass in at least one non null fmt, shortName,

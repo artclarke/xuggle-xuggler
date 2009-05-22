@@ -154,13 +154,15 @@ public class ICodec extends RefCounted {
 
 
 /**
- * @return	The name of thie Codec.  
+ * Get the name of the codec.  
+ * @return	The name of this Codec.  
  */
   public String getName() {
     return XugglerJNI.ICodec_getName(swigCPtr, this);
   }
 
 /**
+ * Get the ID of this codec, as an integer.  
  * @return	the ID of this codec, as an integer.  
  */
   public int getIDAsInt() {
@@ -168,6 +170,7 @@ public class ICodec extends RefCounted {
   }
 
 /**
+ * Get the ID of this codec as an enumeration.  
  * @return	the ID of this codec, an enum ID  
  */
   public ICodec.ID getID() {
@@ -175,6 +178,7 @@ public class ICodec extends RefCounted {
   }
 
 /**
+ * Get the type of this codec.  
  * @return	The type of this Codec, as a enum Type  
  */
   public ICodec.Type getType() {
@@ -182,6 +186,7 @@ public class ICodec extends RefCounted {
   }
 
 /**
+ * Can this codec be used for decoding?  
  * @return	Can this Codec decode?  
  */
   public boolean canDecode() {
@@ -189,6 +194,7 @@ public class ICodec extends RefCounted {
   }
 
 /**
+ * Can this codec be used for encoding?  
  * @return	Can this Codec encode?  
  */
   public boolean canEncode() {
@@ -258,7 +264,7 @@ public class ICodec extends RefCounted {
   }
 
 /**
- * Ask us to guess an encoding coded based on the inputs  
+ * Ask us to guess an encoding codec based on the inputs  
  * passed in.  
  * <p>  
  * You must pass in at least one non null fmt, shortName,  
