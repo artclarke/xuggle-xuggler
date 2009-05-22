@@ -523,8 +523,8 @@ namespace com { namespace xuggle { namespace xuggler
 
 
     /**
-     * Get the URL the IContainer was opened with, or null if unknown.
-     * 
+     * Get the URL the IContainer was opened with.
+     * May return null if unknown.
      * @return the URL opened, or null.
      */
     virtual const char* getURL()=0;

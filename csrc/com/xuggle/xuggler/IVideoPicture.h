@@ -56,42 +56,42 @@ namespace com { namespace xuggle { namespace xuggler
     virtual void setKeyFrame(bool aIsKey)=0;
     
     /**
-     * Is this frame completely decoded?
+     * Is this picture completely decoded?
      * 
-     * @return is this key frame completely decoded?
+     * @return is this picture completely decoded?
      */
     virtual bool isComplete()=0;
     
     /**
-     * Total size in bytes of the decoded frame.
+     * Total size in bytes of the decoded picture.
      * 
-     * @return number of bytes of decoded frame
+     * @return number of bytes of decoded picture
      */
     virtual int32_t getSize()=0;
         
     /**
-     * What is the width of the frame.
+     * What is the width of the picture.
      * 
-     * @return the width of the frame
+     * @return the width of the picture
      */
     virtual int getWidth()=0;
     
     /**
-     * What is the height of the frame
+     * What is the height of the picture
      * 
-     * @return the height of the frame
+     * @return the height of the picture
      */
     virtual int getHeight()=0;
 
     /**
-     * Returns the pixel format of the frame.
+     * Returns the pixel format of the picture.
      * 
-     * @return the pixel format of the frame.
+     * @return the pixel format of the picture.
      */
     virtual IPixelFormat::Type getPixelType()=0;
     
     /**
-     * What is the Presentation Time Stamp of this frame.
+     * What is the Presentation Time Stamp (in Microseconds) of this picture.
      * 
      * The PTS is is scaled so that 1 PTS = 
      * 1/1,000,000 of a second.
@@ -101,7 +101,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int64_t getPts()=0;
     
     /**
-     * Set the Presentation Time Stamp for this frame.
+     * Set the Presentation Time Stamp (in Microseconds) for this picture.
      * 
      * @see #getPts()
      * 
@@ -111,7 +111,7 @@ namespace com { namespace xuggle { namespace xuggler
     
     /**
      * This value is the quality setting this VideoPicture had when it was
-     * decoded, or is the value to use when this frame is next
+     * decoded, or is the value to use when this picture is next
      * encoded (if reset with setQuality()
      * 
      * @return The quality.
@@ -143,32 +143,30 @@ namespace com { namespace xuggle { namespace xuggler
      * let the object know it is now complete.
      * 
      * @param aIsComplete Is this VideoPicture complete
-     * @param format The pixel format of the data in this frame.  Must match
-     *   what the frame was originally constructed with.
-     * @param width The width of the data in this frame.  Must match what
-     *   the frame was originally constructed with.
-     * @param height The height of the data in this frame.  Must match what
-     *   the frame was originally constructed with.
-     * @param pts The presentation timestamp of the frame that is now complete.
+     * @param format The pixel format of the data in this picture.  Must match
+     *   what the picture was originally constructed with.
+     * @param width The width of the data in this picture.  Must match what
+     *   the picture was originally constructed with.
+     * @param height The height of the data in this picture.  Must match what
+     *   the picture was originally constructed with.
+     * @param pts The presentation timestamp of the picture that is now complete.
      *   The caller must ensure this PTS is in units of 1/1,000,000 seconds.
      */
     virtual void setComplete(bool aIsComplete, IPixelFormat::Type format,
         int width, int height, int64_t pts)=0;
 
     /**
-     * Copy the contents of the given srcFrame into this frame.  All
+     * Copy the contents of the given picture into this picture.  All
      * buffers are copied by value, not be reference.
      * 
-     * @param srcFrame The frame you want to copy.
+     * @param srcPicture The picture you want to copy.
      * 
-     * @return true if a successful copy; false if not.  If not, the caller
-     *   should release the destination frame (i.e. this) as it's state
-     *   is likely garbage.
+     * @return true if a successful copy; false if not.
      */
-    virtual bool copy(IVideoPicture* srcFrame)=0;
+    virtual bool copy(IVideoPicture* srcPicture)=0;
     
     /**
-     * Get a new frame object.
+     * Get a new picture object.
      * <p>
      * You can specify -1 for width and height, in which case all getData() methods
      * will return error until XUGGLER decodes something into this frame.  In general
@@ -177,25 +175,27 @@ namespace com { namespace xuggle { namespace xuggler
      * <p>
      * Note that any buffers this objects needs will be
      * lazily allocated (i.e. we won't actually grab all
-     * the memory until we need it).<p>This is useful because
+     * the memory until we need it).
+     * </p>
+     * <p>This is useful because
      * it allows you to hold a IVideoPicture object that remembers
      * things like format, width, and height, but know
      * that it doesn't actually take up a lot of memory until
      * the first time someone tries to access that memory.
      * </p>
      * @param format The pixel format (for example, YUV420P).
-     * @param width The width of the frame, in pixels, or -1 if you want XUGGLER to guess when decoding.
-     * @param height The height of the frame, in pixels, or -1 if you want XUGGLER to guess when decoding.
+     * @param width The width of the picture, in pixels, or -1 if you want XUGGLER to guess when decoding.
+     * @param height The height of the picture, in pixels, or -1 if you want XUGGLER to guess when decoding.
      * @return A new object, or null if we can't allocate one.
      */
     static IVideoPicture* make(IPixelFormat::Type format, int width, int height);
     
     /**
-     * Get a new frame by copying the data in an existing frame.
-     * @param srcFrame The frame to copy.
-     * @return The new frame, or null on error.
+     * Get a new picture by copying the data in an existing frame.
+     * @param src The picture to copy.
+     * @return The new picture, or null on error.
      */
-    static IVideoPicture* make(IVideoPicture* srcFrame);
+    static IVideoPicture* make(IVideoPicture* src);
 
   protected:
     IVideoPicture();

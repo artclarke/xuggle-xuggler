@@ -56,84 +56,126 @@ namespace com { namespace xuggle { namespace xuggler
     virtual void reset()=0;
 
     /**
+     * Is this packet complete.
      * @return Is this packet full and therefore has valid information.
      */
     virtual bool isComplete()=0;
 
     /**
+     * Get the Presentation Time Stamp (PTS) for this packet.
+     * 
+     * This is the time at which the payload for this packet should
+     * be <strong>presented</strong> to the user, in units of
+     * {@link #getTimeBase()}, relative to the start of stream.
+     * 
      * @return Get the Presentation Timestamp for this packet.
      */
     virtual int64_t getPts()=0;
     
     /**
+     * Set a new Presentation Time Stamp (PTS) for this packet.
+     * 
      * @param aPts a new PTS for this packet.
+     * 
+     * @see #getPts()
      */
     virtual void setPts(int64_t aPts)=0;
     
     /**
+     * Get the Decompression Time Stamp (DTS) for this packet.
+     * <p>
+     * This is the time at which the payload for this packet should
+     * be <strong>decompressed</strong>, in units of
+     * {@link #getTimeBase()}, relative to the start of stream.
+     * </p>
+     * <p>
+     * Some media codecs can require packets from the &quot;future&quot; to
+     * be decompressed before earliest packets as an additional way to compress
+     * data.  In general you don't need to worry about this, but if you're
+     * curious start reading about the difference between I-Frames, P-Frames
+     * and B-Frames (or Bi-Directional Frames).  B-Frames can use information
+     * from future frames when compressed.
+     * </p>
      * @return Get the Decompression Timestamp (i.e. when this was read relative
      * to the start of reading packets).
      */
     virtual int64_t getDts()=0;
 
     /**
+     * Set a new Decompression Time Stamp (DTS) for this packet.
      * @param aDts a new DTS for this packet.
+     * @see #getDts()
      */
     virtual void setDts(int64_t aDts)=0;
     
     /**
+     * Get the size in bytes of the payload currently in this packet.
      * @return Size (in bytes) of payload currently in packet.
      */
     virtual int32_t getSize()=0;
     
     /**
+     * Get the maximum size (in bytes) of payload this packet can hold.
      * @return Get maximum size (in bytes) of payload this packet can hold.
      */
     virtual int32_t getMaxSize()=0;
     
     /**
+     * Get the container-specific index for the stream this packet is
+     * part of.
      * @return Stream in container that this packet has data for.
      */
     virtual int32_t getStreamIndex()=0;
     
     /**
-     * @return Any flags on the packet.  This is access to raw FFMPEG
-     * flags, but better to use the is* methods below.
+     * Get any flags set on this packet, as a 4-byte binary-ORed bit-mask.
+     * This is access to raw FFMPEG
+     * flags, but it is easier to use the is* methods below.
+     * @return Any flags on the packet.
      */
     virtual int32_t getFlags()=0;
     
     /**
-     * @return Does this packet contain Key data (i.e. data that needs no other
-     * frames or samples to decode).
+     * Does this packet contain Key data? i.e. data that needs no other
+     * frames or samples to decode.
+     * @return true if key; false otherwise.
      */
     virtual bool isKeyPacket()=0;
     
     /**
+     * Return the duration of this packet, in units of {@link #getTimeBase()}
      * @return Duration of this packet, in same time-base as the PTS.
      */
     virtual int64_t getDuration()=0;
     
     /**
-     * @return The position of this packet in the stream.
+     * Return the position (in bytes) of this packet in the stream.
+     * @return The position of this packet in the stream, or -1 if
+     *   unknown.
      */
     virtual int64_t getPosition()=0;
     
     /**
-     * @return The raw data in this packet.  The buffer size may be larger
+     * Get the raw {@link com.xuggle.ferry.IBuffer} data in this object.
+     *   The buffer size may be larger
      * than IPacket::getSize(), but only the bytes up to getSize()
      * are valid.
+     * @return The raw data in this packet.
      */
     virtual com::xuggle::ferry::IBuffer *getData()=0;
 
     /**
      * Discard the current payload and allocate a new payload.
-     * 
+     * <p>
      * Note that if any people have access to the old payload using
      * getData(), the memory will continue to be available to them
      * until they release their hold of the IBuffer.
-     * 
-     * @param payloadSize The (minimum) payloadSize of this packet.  The system
+     * </p>
+     * <p>
+     * When requesting a packet size, the system
      *   may allocate a larger payloadSize.
+     * </p>
+     * @param payloadSize The (minimum) payloadSize of this packet in bytes.
      * 
      * @return >= 0 if successful.  < 0 if error.
      */
@@ -205,12 +247,14 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Set the duration.
      * @param duration new duration
+     * @see #getDuration()
      */
     virtual void setDuration(int64_t duration)=0;
     
     /**
-     * Set the position
+     * Set the position.
      * @param position new position
+     * @see #getPosition()
      */
     virtual void setPosition(int64_t position)=0;
     

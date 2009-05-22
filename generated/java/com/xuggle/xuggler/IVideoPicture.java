@@ -181,47 +181,48 @@ public class IVideoPicture extends IMediaData {
   }
 
 /**
- * Is this frame completely decoded?  
- * @return	is this key frame completely decoded?  
+ * Is this picture completely decoded?  
+ * @return	is this picture completely decoded?  
  */
   public boolean isComplete() {
     return XugglerJNI.IVideoPicture_isComplete(swigCPtr, this);
   }
 
 /**
- * Total size in bytes of the decoded frame.  
- * @return	number of bytes of decoded frame  
+ * Total size in bytes of the decoded picture.  
+ * @return	number of bytes of decoded picture  
  */
   public int getSize() {
     return XugglerJNI.IVideoPicture_getSize(swigCPtr, this);
   }
 
 /**
- * What is the width of the frame.  
- * @return	the width of the frame  
+ * What is the width of the picture.  
+ * @return	the width of the picture  
  */
   public int getWidth() {
     return XugglerJNI.IVideoPicture_getWidth(swigCPtr, this);
   }
 
 /**
- * What is the height of the frame  
- * @return	the height of the frame  
+ * What is the height of the picture  
+ * @return	the height of the picture  
  */
   public int getHeight() {
     return XugglerJNI.IVideoPicture_getHeight(swigCPtr, this);
   }
 
 /**
- * Returns the pixel format of the frame.  
- * @return	the pixel format of the frame.  
+ * Returns the pixel format of the picture.  
+ * @return	the pixel format of the picture.  
  */
   public IPixelFormat.Type getPixelType() {
     return IPixelFormat.Type.swigToEnum(XugglerJNI.IVideoPicture_getPixelType(swigCPtr, this));
   }
 
 /**
- * What is the Presentation Time Stamp of this frame.  
+ * What is the Presentation Time Stamp (in Microseconds) of this picture. 
+ *  
  * The PTS is is scaled so that 1 PTS =  
  * 1/1,000,000 of a second.  
  * @return	the presentation time stamp (pts)  
@@ -231,7 +232,8 @@ public class IVideoPicture extends IMediaData {
   }
 
 /**
- * Set the Presentation Time Stamp for this frame.  
+ * Set the Presentation Time Stamp (in Microseconds) for this picture. 
+ *  
  * @see		#getPts()  
  * @param	value the new timestamp  
  */
@@ -242,7 +244,7 @@ public class IVideoPicture extends IMediaData {
 /**
  * This value is the quality setting this VideoPicture had when it was 
  *  
- * decoded, or is the value to use when this frame is next  
+ * decoded, or is the value to use when this picture is next  
  * encoded (if reset with setQuality()  
  * @return	The quality.  
  */
@@ -276,17 +278,17 @@ public class IVideoPicture extends IMediaData {
  *  
  * let the object know it is now complete.  
  * @param	aIsComplete Is this VideoPicture complete  
- * @param	format The pixel format of the data in this frame. Must match 
+ * @param	format The pixel format of the data in this picture. Must 
+ *		 match  
+ * what the picture was originally constructed with.  
+ * @param	width The width of the data in this picture. Must match what 
  *		  
- * what the frame was originally constructed with.  
- * @param	width The width of the data in this frame. Must match what 
- *		  
- * the frame was originally constructed with.  
- * @param	height The height of the data in this frame. Must match what 
- *		  
- * the frame was originally constructed with.  
- * @param	pts The presentation timestamp of the frame that is now complete. 
- *		  
+ * the picture was originally constructed with.  
+ * @param	height The height of the data in this picture. Must match 
+ *		 what  
+ * the picture was originally constructed with.  
+ * @param	pts The presentation timestamp of the picture that is now 
+ *		 complete.  
  * The caller must ensure this PTS is in units of 1/1,000,000 seconds. 
  *  
  */
@@ -295,20 +297,17 @@ public class IVideoPicture extends IMediaData {
   }
 
 /**
- * Copy the contents of the given srcFrame into this frame. All  
+ * Copy the contents of the given picture into this picture. All  
  * buffers are copied by value, not be reference.  
- * @param	srcFrame The frame you want to copy.  
- * @return	true if a successful copy; false if not. If not, the caller 
- *		  
- * should release the destination frame (i.e. this) as it's state  
- * is likely garbage.  
+ * @param	srcPicture The picture you want to copy.  
+ * @return	true if a successful copy; false if not.  
  */
-  public boolean copy(IVideoPicture srcFrame) {
-    return XugglerJNI.IVideoPicture_copy(swigCPtr, this, IVideoPicture.getCPtr(srcFrame), srcFrame);
+  public boolean copy(IVideoPicture srcPicture) {
+    return XugglerJNI.IVideoPicture_copy(swigCPtr, this, IVideoPicture.getCPtr(srcPicture), srcPicture);
   }
 
 /**
- * Get a new frame object.  
+ * Get a new picture object.  
  * <p>  
  * You can specify -1 for width and height, in which case all getData() 
  * methods  
@@ -319,17 +318,19 @@ public class IVideoPicture extends IMediaData {
  * <p>  
  * Note that any buffers this objects needs will be  
  * lazily allocated (i.e. we won't actually grab all  
- * the memory until we need it).<p>This is useful because  
+ * the memory until we need it).  
+ * </p>  
+ * <p>This is useful because  
  * it allows you to hold a IVideoPicture object that remembers  
  * things like format, width, and height, but know  
  * that it doesn't actually take up a lot of memory until  
  * the first time someone tries to access that memory.  
  * </p>  
  * @param	format The pixel format (for example, YUV420P).  
- * @param	width The width of the frame, in pixels, or -1 if you want 
+ * @param	width The width of the picture, in pixels, or -1 if you want 
  *		 XUGGLER to guess when decoding.  
- * @param	height The height of the frame, in pixels, or -1 if you want 
- *		 XUGGLER to guess when decoding.  
+ * @param	height The height of the picture, in pixels, or -1 if you 
+ *		 want XUGGLER to guess when decoding.  
  * @return	A new object, or null if we can't allocate one.  
  */
   public static IVideoPicture make(IPixelFormat.Type format, int width, int height) {
@@ -338,12 +339,12 @@ public class IVideoPicture extends IMediaData {
   }
 
 /**
- * Get a new frame by copying the data in an existing frame.  
- * @param	srcFrame The frame to copy.  
- * @return	The new frame, or null on error.  
+ * Get a new picture by copying the data in an existing frame.  
+ * @param	src The picture to copy.  
+ * @return	The new picture, or null on error.  
  */
-  public static IVideoPicture make(IVideoPicture srcFrame) {
-    long cPtr = XugglerJNI.IVideoPicture_make__SWIG_1(IVideoPicture.getCPtr(srcFrame), srcFrame);
+  public static IVideoPicture make(IVideoPicture src) {
+    long cPtr = XugglerJNI.IVideoPicture_make__SWIG_1(IVideoPicture.getCPtr(src), src);
     return (cPtr == 0) ? null : new IVideoPicture(cPtr, false);
   }
 

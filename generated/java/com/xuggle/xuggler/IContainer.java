@@ -657,7 +657,8 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   }
 
 /**
- *  
+ * Get the URL the IContainer was opened with.  
+ * May return null if unknown.  
  * @return	the URL opened, or null.  
  */
   public String getURL() {

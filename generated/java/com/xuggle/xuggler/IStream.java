@@ -173,6 +173,7 @@ public class IStream extends RefCounted {
 
 
 /**
+ * Get the {@link Direction} this stream is pointing in.  
  * @return	The direction of this stream.  
  */
   public IStream.Direction getDirection() {
@@ -180,6 +181,8 @@ public class IStream extends RefCounted {
   }
 
 /**
+ * Get the relative position this stream has in the hosting  
+ * {@link IContainer} object.  
  * @return	The Index within the Container of this stream.  
  */
   public int getIndex() {
@@ -187,6 +190,7 @@ public class IStream extends RefCounted {
   }
 
 /**
+ * Return a container format specific id for this stream.  
  * @return	The (container format specific) id of this stream.  
  */
   public int getId() {
@@ -194,8 +198,7 @@ public class IStream extends RefCounted {
   }
 
 /**
- * This method gets the StreamCoder than can manipulate this stream. 
- *  
+ * Get the StreamCoder than can manipulate this stream.  
  * If the stream is an INBOUND stream, then the StreamCoder can  
  * do a IStreamCoder::DECODE. IF this stream is an OUTBOUND stream, 
  *  
@@ -238,14 +241,19 @@ public class IStream extends RefCounted {
   }
 
 /**
- * @return	The start time, in getTimeBase units, when this stream started. 
- *		  
+ * Return the start time, in {@link #getTimeBase()} units, when this 
+ * stream  
+ * started.  
+ * @return	The start time.  
  */
   public long getStartTime() {
     return XugglerJNI.IStream_getStartTime(swigCPtr, this);
   }
 
 /**
+ * Return the duration, in {@link #getTimeBase()} units, of this stream, 
+ *  
+ * or {@link Global#NO_PTS} if unknown.  
  * @return	The duration (in getTimeBase units) of this stream, if known. 
  *		  
  */
@@ -254,6 +262,9 @@ public class IStream extends RefCounted {
   }
 
 /**
+ * The current Decompression Time Stamp that will be used on this stream, 
+ *  
+ * in {@link #getTimeBase()} units.  
  * @return	The current Decompression Time Stamp that will be used on 
  *		 this stream.  
  */
@@ -262,6 +273,7 @@ public class IStream extends RefCounted {
   }
 
 /**
+ * Get the number of index entries in this stream.  
  * @return	The number of index entries in this stream.  
  */
   public int getNumIndexEntries() {
@@ -322,8 +334,9 @@ public class IStream extends RefCounted {
   }
 
 /**
- * Get the underlying container for this stream, or null if we  
- * don't know.  
+ * Get the underlying container for this stream, or null if Xuggler 
+ *  
+ * doesn't know.  
  * @return	the container, or null if we don't know.  
  */
   public IContainer getContainer() {

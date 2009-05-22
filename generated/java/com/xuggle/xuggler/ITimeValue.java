@@ -13,6 +13,7 @@ import com.xuggle.ferry.*;
  * This class also has methods  
  * that correctly account for long wrapping when comparing time values. 
  *  
+ * Do not use.  
  */
 public class ITimeValue extends RefCounted {
   // JNIHelper.swg: Start generated code

@@ -50,50 +50,53 @@ namespace com { namespace xuggle { namespace xuggler
       FEATURE_COLORSPACECONVERSION,
     } Feature;
 
-    /**
+    /** Get the width in pixels we expect on the input frame to the resampler.
      * @return The width we expect on the input frame to the resampler.
      */
     virtual int32_t getInputWidth()=0;
 
-    /**
+    /** Get the height in pixels we expect on the input frame to the resampler.
      * @return The height we expect on the input frame to the resampler.
      */
     virtual int32_t getInputHeight()=0;
 
     /**
+     * Get the input pixel format.
      * @return The pixel format we expect on the input frame to the resampler.
      */
     virtual IPixelFormat::Type getInputPixelFormat()=0;
 
     /**
+     * Get the output width, in pixels.
      * @return The width we will resample the output frame to
      */
     virtual int32_t getOutputWidth()=0;
 
     /**
+     * Get the output height, in pixels.
      * @return The height we will resample the output frame to
      */
     virtual int32_t getOutputHeight()=0;
 
     /**
+     * Get the output pixel format.
      * @return The pixel format we will resample the output frame to
      */
     virtual IPixelFormat::Type getOutputPixelFormat()=0;
 
     /**
+     * Resample in to out based on the resampler parameters.
      *
-     * Resample pInFrame to pOutFrame based on the resampler parameters.
-     *
-     * Resamples the pInFrame based on the parameters set when
+     * Resamples the in picture based on the parameters set when
      * this resampler was constructed.
      *
-     * @param pOutFrame The frame we'll resample to.  Check
-     *     pOutFrame->isComplete() after the call.
-     * @param pInFrame THe frame we'll resample from.
+     * @param out The picture we'll resample to.  Check
+     *     {@link IVideoPicture#isComplete()} after the call.
+     * @param in The picture we'll resample from.
      *
      * @return >= 0 on success; <0 on error.
      */
-    virtual int32_t resample(IVideoPicture *pOutFrame, IVideoPicture *pInFrame)=0;
+    virtual int32_t resample(IVideoPicture *out, IVideoPicture *in)=0;
 
     /*
      * Added for 1.19
@@ -254,10 +257,10 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Returns true if the asked for feature is supported.
      *
-     * @param aFeature The feature you want to find out is supported.
+     * @param feature The feature you want to find out is supported.
      * @return true if the IVideoResampler supports this feature; false otherwise.
      */
-    static bool isSupported(Feature aFeature);
+    static bool isSupported(Feature feature);
 
   protected:
     IVideoResampler();

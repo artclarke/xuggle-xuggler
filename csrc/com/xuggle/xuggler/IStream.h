@@ -57,21 +57,25 @@ namespace com { namespace xuggle { namespace xuggler
       OUTBOUND,
     } Direction;
     /**
+     * Get the {@link Direction} this stream is pointing in.
      * @return The direction of this stream.
      */
     virtual Direction getDirection()=0;
     /**
+     * Get the relative position this stream has in the hosting
+     * {@link IContainer} object.
      * @return The Index within the Container of this stream.
      */
     virtual int getIndex()=0;
 
     /**
+     * Return a container format specific id for this stream.
      * @return The (container format specific) id of this stream.
      */
     virtual int getId()=0;
 
     /**
-     * This method gets the StreamCoder than can manipulate this stream.
+     * Get the StreamCoder than can manipulate this stream.
      * If the stream is an INBOUND stream, then the StreamCoder can
      * do a IStreamCoder::DECODE.  IF this stream is an OUTBOUND stream,
      * then the StreamCoder can do all IStreamCoder::ENCODE methods.
@@ -103,21 +107,28 @@ namespace com { namespace xuggle { namespace xuggler
     virtual IRational * getTimeBase()=0;
 
     /**
-     * @return The start time, in getTimeBase units, when this stream started.
+     * Return the start time, in {@link #getTimeBase()} units, when this stream
+     * started.
+     * @return The start time.
      */
     virtual int64_t getStartTime()=0;
 
     /**
+     * Return the duration, in {@link #getTimeBase()} units, of this stream,
+     * or {@link Global#NO_PTS} if unknown.
      * @return The duration (in getTimeBase units) of this stream, if known.
      */
     virtual int64_t getDuration()=0;
 
     /**
+     * The current Decompression Time Stamp that will be used on this stream,
+     * in {@link #getTimeBase()} units.
      * @return The current Decompression Time Stamp that will be used on this stream.
      */
     virtual int64_t getCurrentDts()=0;
 
     /**
+     * Get the number of index entries in this stream.
      * @return The number of index entries in this stream.
      */
     virtual int getNumIndexEntries()=0;
@@ -172,8 +183,8 @@ namespace com { namespace xuggle { namespace xuggler
     virtual void setLanguage(const char* language)=0;
     
     /**
-     * Get the underlying container for this stream, or null if we
-     * don't know.
+     * Get the underlying container for this stream, or null if Xuggler
+     * doesn't know.
      * 
      * @return the container, or null if we don't know.
      */

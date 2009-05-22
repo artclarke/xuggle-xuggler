@@ -21,9 +21,8 @@ import com.xuggle.ferry.*;
  * </p><p>  
  * Note: There are some static convenience methods  
  * in this class that start with s*. They start with s  
- * (as opposed to overloading methods (e.g. sAdd(...) vs. add(...)) 
+ * (as opposed to overloading methods (e.g. sAdd(...) vs. add(...)). 
  *  
- * because SWIG doesn't support static overloaded methods.  
  * </p>  
  */
 public class IRational extends RefCounted {
@@ -157,10 +156,18 @@ public class IRational extends RefCounted {
   }
 
 
+/**
+ * Get the numerator for this rational.  
+ * @return	the numerator.  
+ */
   public int getNumerator() {
     return XugglerJNI.IRational_getNumerator(swigCPtr, this);
   }
 
+/**
+ * Get the denominator for this rational.  
+ * @return	the denominator.  
+ */
   public int getDenominator() {
     return XugglerJNI.IRational_getDenominator(swigCPtr, this);
   }
@@ -184,6 +191,12 @@ public class IRational extends RefCounted {
     return XugglerJNI.IRational_compareTo(swigCPtr, this, IRational.getCPtr(other), other);
   }
 
+/**
+ * Compare two rationals  
+ * @param	a the first rational  
+ * @param	b the second rational  
+ * @return	0 if a==b, 1 if a>b and -1 if b<a.  
+ */
   public static int sCompareTo(IRational a, IRational b) {
     return XugglerJNI.IRational_sCompareTo(IRational.getCPtr(a), a, IRational.getCPtr(b), b);
   }
@@ -197,7 +210,7 @@ public class IRational extends RefCounted {
   }
 
 /**
- * Reduce a fraction.  
+ * Reduce a fraction to it's lowest common denominators.  
  * This is useful for framerate calculations.  
  * @param	num the src numerator.  
  * @param	den the src denominator.  
@@ -209,6 +222,16 @@ public class IRational extends RefCounted {
     return XugglerJNI.IRational_reduce(swigCPtr, this, num, den, max);
   }
 
+/**
+ * Reduce a fraction to it's lowest common denominators.  
+ * This is useful for framerate calculations.  
+ * @param	dst The destination rational  
+ * @param	num the src numerator.  
+ * @param	den the src denominator.  
+ * @param	max the maximum allowed for nom & den in the reduced fraction. 
+ *		  
+ * @return	1 if exact, 0 otherwise  
+ */
   public static int sReduce(IRational dst, long num, long den, long max) {
     return XugglerJNI.IRational_sReduce(IRational.getCPtr(dst), dst, num, den, max);
   }
@@ -216,13 +239,19 @@ public class IRational extends RefCounted {
 /**
  * Multiplies this number by arg  
  * @param	arg number to mulitply by.  
- * @return	this*arg. Note caller must release() the return value.  
+ * @return	this*arg.  
  */
   public IRational multiply(IRational arg) {
     long cPtr = XugglerJNI.IRational_multiply(swigCPtr, this, IRational.getCPtr(arg), arg);
     return (cPtr == 0) ? null : new IRational(cPtr, false);
   }
 
+/**
+ * Multiples a by b.  
+ * @param	a the first number  
+ * @param	b the second number.  
+ * @return	a*b  
+ */
   public static IRational sMultiply(IRational a, IRational b) {
     long cPtr = XugglerJNI.IRational_sMultiply(IRational.getCPtr(a), a, IRational.getCPtr(b), b);
     return (cPtr == 0) ? null : new IRational(cPtr, false);
@@ -238,6 +267,12 @@ public class IRational extends RefCounted {
     return (cPtr == 0) ? null : new IRational(cPtr, false);
   }
 
+/**
+ * Divides a by b.  
+ * @param	a The first number.  
+ * b The second number.  
+ * @return	a/b.  
+ */
   public static IRational sDivide(IRational a, IRational b) {
     long cPtr = XugglerJNI.IRational_sDivide(IRational.getCPtr(a), a, IRational.getCPtr(b), b);
     return (cPtr == 0) ? null : new IRational(cPtr, false);
@@ -253,6 +288,12 @@ public class IRational extends RefCounted {
     return (cPtr == 0) ? null : new IRational(cPtr, false);
   }
 
+/**
+ * Subtracts a from b.  
+ * @param	a The first number.  
+ * b The second number.  
+ * @return	a-b.  
+ */
   public static IRational sSubtract(IRational a, IRational b) {
     long cPtr = XugglerJNI.IRational_sSubtract(IRational.getCPtr(a), a, IRational.getCPtr(b), b);
     return (cPtr == 0) ? null : new IRational(cPtr, false);
@@ -268,6 +309,12 @@ public class IRational extends RefCounted {
     return (cPtr == 0) ? null : new IRational(cPtr, false);
   }
 
+/**
+ * Adds a to b.  
+ * @param	a The first number.  
+ * b The second number.  
+ * @return	a+b.  
+ */
   public static IRational sAdd(IRational a, IRational b) {
     long cPtr = XugglerJNI.IRational_sAdd(IRational.getCPtr(a), a, IRational.getCPtr(b), b);
     return (cPtr == 0) ? null : new IRational(cPtr, false);
@@ -286,6 +333,16 @@ public class IRational extends RefCounted {
     return XugglerJNI.IRational_rescale(swigCPtr, this, origValue, IRational.getCPtr(origBase), origBase);
   }
 
+/**
+ * Takes a value scaled in increments of origBase and gives the  
+ * equivalent value scaled in terms of this Rational.  
+ * @param	origValue The original int64_t value you care about.  
+ * @param	origBase The original base Rational that origValue is scaled 
+ *		 with.  
+ *  
+ * @return	The new integer value, scaled in units of this IRational. 
+ *		  
+ */
   public static long sRescale(long origValue, IRational origBase, IRational newBase) {
     return XugglerJNI.IRational_sRescale(origValue, IRational.getCPtr(origBase), origBase, IRational.getCPtr(newBase), newBase);
   }
@@ -311,11 +368,9 @@ public class IRational extends RefCounted {
   }
 
 /**
- * Creates copy of a Rational from another Rational.  
- * Note: This is a NEW object. To just keep tabs on the  
- * original, use acquire() to keep a reference.  
+ * Creates deep copy of a Rational from another Rational.  
  * @param	src The source Rational to copy.  
- * @return	A new Rational; caller must call release. Returns null  
+ * @return	A new Rational; Returns null  
  * if src is null.  
  */
   public static IRational make(IRational src) {
@@ -329,7 +384,7 @@ public class IRational extends RefCounted {
  * we can, but never having den exceed what was passed in.  
  * @param	num The numerator of the resulting Rational  
  * @param	den The denominator of the resulting Rational  
- * @return	A new Rational; caller must call release.  
+ * @return	A new Rational;  
  */
   public static IRational make(int num, int den) {
     long cPtr = XugglerJNI.IRational_make__SWIG_3(num, den);

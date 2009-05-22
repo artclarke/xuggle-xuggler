@@ -36,14 +36,24 @@ namespace com { namespace xuggle { namespace xuggler
    * </p><p>
    * Note: There are some static convenience methods
    * in this class that start with s*.  They start with s
-   * (as opposed to overloading methods (e.g. sAdd(...) vs. add(...))
-   * because SWIG doesn't support static overloaded methods.
+   * (as opposed to overloading methods (e.g. sAdd(...) vs. add(...)).
    * </p>
    */
   class VS_API_XUGGLER IRational : public com::xuggle::ferry::RefCounted
   {
   public:
+    
+    /**
+     * Get the numerator for this rational.
+     * @return the numerator.
+     */
+    
     virtual int32_t getNumerator()=0;
+    
+    /**
+     * Get the denominator for this rational.
+     * @return the denominator.
+     */
     virtual int32_t getDenominator()=0;
 
     /**
@@ -59,6 +69,14 @@ namespace com { namespace xuggle { namespace xuggler
      * @return 0 if this==other, 1 if this>other and -1 if this<other.
      */
     virtual int32_t compareTo(IRational*other)=0;
+    
+    /**
+     * Compare two rationals
+     * @param a the first rational
+     * @param b the second rational
+     * @return 0 if a==b, 1 if a>b and -1 if b<a.
+     */
+    
     static int32_t sCompareTo(IRational *a, IRational *b);
 
     /**
@@ -69,7 +87,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual double getDouble()=0;
 
     /**
-     * Reduce a fraction.
+     * Reduce a fraction to it's lowest common denominators.
      * This is useful for framerate calculations.
      * @param num       the src numerator.
      * @param den       the src denominator.
@@ -77,15 +95,32 @@ namespace com { namespace xuggle { namespace xuggler
      * @return 1 if exact, 0 otherwise
      */
     virtual int32_t reduce(int64_t num, int64_t den, int64_t max)=0;
+    
+    /**
+     * Reduce a fraction to it's lowest common denominators.
+     * This is useful for framerate calculations.
+     * @param dst The destination rational  
+     * @param num       the src numerator.
+     * @param den       the src denominator.
+     * @param max the maximum allowed for nom & den in the reduced fraction.
+     * @return 1 if exact, 0 otherwise
+     */
     static int32_t sReduce(IRational *dst, int64_t num,
         int64_t den, int64_t max);
 
     /**
      * Multiplies this number by arg
      * @param arg number to mulitply by.
-     * @return this*arg.  Note caller must release() the return value.
+     * @return this*arg.
      */
     virtual IRational* multiply(IRational *arg)=0;
+    
+    /**
+     * Multiples a by b.
+     * @param a the first number
+     * @param b the second number.
+     * @return a*b
+     */
     static IRational* sMultiply(IRational* a, IRational*b);
 
     /**
@@ -94,6 +129,13 @@ namespace com { namespace xuggle { namespace xuggler
      * @return this/arg.
      */
     virtual IRational* divide(IRational *arg)=0;
+
+    /**
+     * Divides a by b.
+     * @param a The first number.
+     * @parma b The second number.
+     * @return a/b.
+     */
     static IRational* sDivide(IRational *a, IRational* b);
 
     /**
@@ -102,6 +144,12 @@ namespace com { namespace xuggle { namespace xuggler
      * @return this-arg.
      */
     virtual IRational* subtract(IRational *arg)=0;
+    /**
+     * Subtracts a from b.
+     * @param a The first number.
+     * @parma b The second number.
+     * @return a-b.
+     */
     static IRational* sSubtract(IRational *a, IRational* b);
 
     /**
@@ -110,6 +158,12 @@ namespace com { namespace xuggle { namespace xuggler
      * @return this+arg.
      */
     virtual IRational* add(IRational *arg)=0;
+    /**
+     * Adds a to b.
+     * @param a The first number.
+     * @parma b The second number.
+     * @return a+b.
+     */
     static IRational* sAdd(IRational *a, IRational* b);
 
     /**
@@ -122,6 +176,17 @@ namespace com { namespace xuggle { namespace xuggler
      * @return The new integer value, scaled in units of this IRational.
      */
     virtual int64_t rescale(int64_t origValue, IRational* origBase)=0;
+
+    /**
+     * Takes a value scaled in increments of origBase and gives the
+     * equivalent value scaled in terms of this Rational.
+     *
+     * @param origValue The original int64_t value you care about.
+     * @param origBase The original base Rational that origValue is scaled with.
+     * @param newBase The rational you want to rescale origValue into.
+     *
+     * @return The new integer value, scaled in units of this IRational.
+     */
     static int64_t sRescale(int64_t origValue, IRational* origBase, IRational* newBase);
     
     /**
@@ -137,13 +202,10 @@ namespace com { namespace xuggle { namespace xuggler
      */
     static IRational *make(double d);
     /**
-     * Creates copy of a Rational from another Rational.
-     *
-     * Note: This is a NEW object.  To just keep tabs on the
-     * original, use acquire() to keep a reference.
+     * Creates deep copy of a Rational from another Rational.
      *
      * @param src       The source Rational to copy.
-     * @return A new Rational; caller must call release.  Returns null
+     * @return A new Rational; Returns null
      *         if src is null.
      */
     static IRational* make(IRational *src);
@@ -157,7 +219,7 @@ namespace com { namespace xuggle { namespace xuggler
      * @param num The numerator of the resulting Rational
      * @param den The denominator of the resulting Rational
      *
-     * @return A new Rational; caller must call release.
+     * @return A new Rational; 
      */
     static IRational *make(int32_t num, int32_t den);
 

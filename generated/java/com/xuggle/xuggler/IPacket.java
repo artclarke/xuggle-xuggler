@@ -193,6 +193,7 @@ public class IPacket extends IMediaData {
   }
 
 /**
+ * Is this packet complete.  
  * @return	Is this packet full and therefore has valid information. 
  *		  
  */
@@ -201,6 +202,10 @@ public class IPacket extends IMediaData {
   }
 
 /**
+ * Get the Presentation Time Stamp (PTS) for this packet.  
+ * This is the time at which the payload for this packet should  
+ * be <strong>presented</strong> to the user, in units of  
+ * {@link #getTimeBase()}, relative to the start of stream.  
  * @return	Get the Presentation Timestamp for this packet.  
  */
   public long getPts() {
@@ -208,13 +213,34 @@ public class IPacket extends IMediaData {
   }
 
 /**
+ * Set a new Presentation Time Stamp (PTS) for this packet.  
  * @param	aPts a new PTS for this packet.  
+ * @see		#getPts()  
  */
   public void setPts(long aPts) {
     XugglerJNI.IPacket_setPts(swigCPtr, this, aPts);
   }
 
 /**
+ * Get the Decompression Time Stamp (DTS) for this packet.  
+ * <p>  
+ * This is the time at which the payload for this packet should  
+ * be <strong>decompressed</strong>, in units of  
+ * {@link #getTimeBase()}, relative to the start of stream.  
+ * </p>  
+ * <p>  
+ * Some media codecs can require packets from the &quot;future&quot; 
+ * to  
+ * be decompressed before earliest packets as an additional way to compress 
+ *  
+ * data. In general you don't need to worry about this, but if you're 
+ *  
+ * curious start reading about the difference between I-Frames, P-Frames 
+ *  
+ * and B-Frames (or Bi-Directional Frames). B-Frames can use information 
+ *  
+ * from future frames when compressed.  
+ * </p>  
  * @return	Get the Decompression Timestamp (i.e. when this was read 
  *		 relative  
  * to the start of reading packets).  
@@ -224,13 +250,16 @@ public class IPacket extends IMediaData {
   }
 
 /**
+ * Set a new Decompression Time Stamp (DTS) for this packet.  
  * @param	aDts a new DTS for this packet.  
+ * @see		#getDts()  
  */
   public void setDts(long aDts) {
     XugglerJNI.IPacket_setDts(swigCPtr, this, aDts);
   }
 
 /**
+ * Get the size in bytes of the payload currently in this packet.  
  * @return	Size (in bytes) of payload currently in packet.  
  */
   public int getSize() {
@@ -238,6 +267,8 @@ public class IPacket extends IMediaData {
   }
 
 /**
+ * Get the maximum size (in bytes) of payload this packet can hold. 
+ *  
  * @return	Get maximum size (in bytes) of payload this packet can hold. 
  *		  
  */
@@ -246,6 +277,8 @@ public class IPacket extends IMediaData {
   }
 
 /**
+ * Get the container-specific index for the stream this packet is  
+ * part of.  
  * @return	Stream in container that this packet has data for.  
  */
   public int getStreamIndex() {
@@ -253,23 +286,29 @@ public class IPacket extends IMediaData {
   }
 
 /**
- * @return	Any flags on the packet. This is access to raw FFMPEG  
- * flags, but better to use the is* methods below.  
+ * Get any flags set on this packet, as a 4-byte binary-ORed bit-mask. 
+ *  
+ * This is access to raw FFMPEG  
+ * flags, but it is easier to use the is* methods below.  
+ * @return	Any flags on the packet.  
  */
   public int getFlags() {
     return XugglerJNI.IPacket_getFlags(swigCPtr, this);
   }
 
 /**
- * @return	Does this packet contain Key data (i.e. data that needs no 
- *		 other  
- * frames or samples to decode).  
+ * Does this packet contain Key data? i.e. data that needs no other 
+ *  
+ * frames or samples to decode.  
+ * @return	true if key; false otherwise.  
  */
   public boolean isKeyPacket() {
     return XugglerJNI.IPacket_isKeyPacket(swigCPtr, this);
   }
 
 /**
+ * Return the duration of this packet, in units of {@link #getTimeBase()} 
+ *  
  * @return	Duration of this packet, in same time-base as the PTS.  
  */
   public long getDuration() {
@@ -277,17 +316,21 @@ public class IPacket extends IMediaData {
   }
 
 /**
- * @return	The position of this packet in the stream.  
+ * Return the position (in bytes) of this packet in the stream.  
+ * @return	The position of this packet in the stream, or -1 if  
+ * unknown.  
  */
   public long getPosition() {
     return XugglerJNI.IPacket_getPosition(swigCPtr, this);
   }
 
 /**
- * @return	The raw data in this packet. The buffer size may be larger 
- *		  
+ * Get the raw {@link com.xuggle.ferry.IBuffer} data in this object. 
+ *  
+ * The buffer size may be larger  
  * than IPacket::getSize(), but only the bytes up to getSize()  
  * are valid.  
+ * @return	The raw data in this packet.  
  */
   public IBuffer getData() {
     long cPtr = XugglerJNI.IPacket_getData(swigCPtr, this);
@@ -296,12 +339,17 @@ public class IPacket extends IMediaData {
 
 /**
  * Discard the current payload and allocate a new payload.  
+ * <p>  
  * Note that if any people have access to the old payload using  
  * getData(), the memory will continue to be available to them  
  * until they release their hold of the IBuffer.  
- * @param	payloadSize The (minimum) payloadSize of this packet. The 
- *		 system  
+ * </p>  
+ * <p>  
+ * When requesting a packet size, the system  
  * may allocate a larger payloadSize.  
+ * </p>  
+ * @param	payloadSize The (minimum) payloadSize of this packet in bytes. 
+ *		  
  * @return	>= 0 if successful. < 0 if error.  
  */
   public int allocateNewPayload(int payloadSize) {
@@ -370,14 +418,16 @@ public class IPacket extends IMediaData {
 /**
  * Set the duration.  
  * @param	duration new duration  
+ * @see		#getDuration()  
  */
   public void setDuration(long duration) {
     XugglerJNI.IPacket_setDuration(swigCPtr, this, duration);
   }
 
 /**
- * Set the position  
+ * Set the position.  
  * @param	position new position  
+ * @see		#getPosition()  
  */
   public void setPosition(long position) {
     XugglerJNI.IPacket_setPosition(swigCPtr, this, position);

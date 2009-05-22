@@ -139,6 +139,8 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
   }
 
 /**
+ * Get the width in pixels we expect on the input frame to the resampler. 
+ *  
  * @return	The width we expect on the input frame to the resampler. 
  *		  
  */
@@ -147,6 +149,8 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
   }
 
 /**
+ * Get the height in pixels we expect on the input frame to the resampler. 
+ *  
  * @return	The height we expect on the input frame to the resampler. 
  *		  
  */
@@ -155,6 +159,7 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
   }
 
 /**
+ * Get the input pixel format.  
  * @return	The pixel format we expect on the input frame to the resampler. 
  *		  
  */
@@ -163,6 +168,7 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
   }
 
 /**
+ * Get the output width, in pixels.  
  * @return	The width we will resample the output frame to  
  */
   public int getOutputWidth() {
@@ -170,6 +176,7 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
   }
 
 /**
+ * Get the output height, in pixels.  
  * @return	The height we will resample the output frame to  
  */
   public int getOutputHeight() {
@@ -177,6 +184,7 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
   }
 
 /**
+ * Get the output pixel format.  
  * @return	The pixel format we will resample the output frame to  
  */
   public IPixelFormat.Type getOutputPixelFormat() {
@@ -184,17 +192,16 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
   }
 
 /**
- * Resample pInFrame to pOutFrame based on the resampler parameters. 
- *  
- * Resamples the pInFrame based on the parameters set when  
+ * Resample in to out based on the resampler parameters.  
+ * Resamples the in picture based on the parameters set when  
  * this resampler was constructed.  
- * @param	pOutFrame The frame we'll resample to. Check  
- * pOutFrame->isComplete() after the call.  
- * @param	pInFrame THe frame we'll resample from.  
+ * @param	out The picture we'll resample to. Check  
+ * {@link IVideoPicture#isComplete()} after the call.  
+ * @param	in The picture we'll resample from.  
  * @return	>= 0 on success; <0 on error.  
  */
-  public int resample(IVideoPicture pOutFrame, IVideoPicture pInFrame) {
-    return XugglerJNI.IVideoResampler_resample(swigCPtr, this, IVideoPicture.getCPtr(pOutFrame), pOutFrame, IVideoPicture.getCPtr(pInFrame), pInFrame);
+  public int resample(IVideoPicture out, IVideoPicture in) {
+    return XugglerJNI.IVideoResampler_resample(swigCPtr, this, IVideoPicture.getCPtr(out), out, IVideoPicture.getCPtr(in), in);
   }
 
 /**
@@ -354,12 +361,12 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
 
 /**
  * Returns true if the asked for feature is supported.  
- * @param	aFeature The feature you want to find out is supported.  
+ * @param	feature The feature you want to find out is supported.  
  * @return	true if the IVideoResampler supports this feature; false 
  *		 otherwise.  
  */
-  public static boolean isSupported(IVideoResampler.Feature aFeature) {
-    return XugglerJNI.IVideoResampler_isSupported(aFeature.swigValue());
+  public static boolean isSupported(IVideoResampler.Feature feature) {
+    return XugglerJNI.IVideoResampler_isSupported(feature.swigValue());
   }
 
   public enum Feature {

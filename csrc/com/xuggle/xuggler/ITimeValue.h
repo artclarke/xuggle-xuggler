@@ -37,6 +37,7 @@ namespace com { namespace xuggle { namespace xuggler
  * Time (duration) values with units.
  * This class also has methods
  * that correctly account for long wrapping when comparing time values.
+ * @Deprecated.  Do not use.
  */
 class VS_API_XUGGLER ITimeValue: public com::xuggle::ferry::RefCounted
 {
