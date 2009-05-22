@@ -693,9 +693,17 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
             outBufSize,
             inBuf,
             inBufSize);
+        AVPacket pkt;
+        av_init_packet(&pkt);
+        if (packet && packet->getAVPacket())
+          pkt = *packet->getAVPacket();
+        // copy in our buffer
+        pkt.data = inBuf;
+        pkt.size = inBufSize;
+        
         mCodecContext->reordered_opaque = packet->getPts();
-        retval = avcodec_decode_audio2(mCodecContext, outBuf, &outBufSize,
-            inBuf, inBufSize);
+        retval = avcodec_decode_audio3(mCodecContext, outBuf, &outBufSize,
+            &pkt);
         VS_LOG_TRACE("Finished %d decodeAudio(%p, %p, %d, %p, %d);",
             retval,
             mCodecContext,
@@ -838,9 +846,17 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
             frameFinished,
             inBuf,
             inBufSize);
+        AVPacket pkt;
+        av_init_packet(&pkt);
+        if (packet && packet->getAVPacket())
+          pkt = *packet->getAVPacket();
+        // copy in our buffer
+        pkt.data = inBuf;
+        pkt.size = inBufSize;
+
         mCodecContext->reordered_opaque = packet->getPts();
-        retval = avcodec_decode_video(mCodecContext, avFrame, &frameFinished,
-            inBuf, inBufSize);
+        retval = avcodec_decode_video2(mCodecContext, avFrame, &frameFinished,
+            &pkt);
         VS_LOG_TRACE("Finished %d decodeVideo(%p, %p, %d, %p, %d);",
             retval,
             mCodecContext,
