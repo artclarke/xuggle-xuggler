@@ -271,6 +271,12 @@ public class IPixelFormat extends RefCounted {
     VAAPI_MOCO,
     VAAPI_IDCT,
     VAAPI_VLD,
+    YUV420PLE,
+    YUV420PBE,
+    YUV422PLE,
+    YUV422PBE,
+    YUV444PLE,
+    YUV444PBE,
     NB;
 
     public final int swigValue() {
