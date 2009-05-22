@@ -36,102 +36,164 @@ import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.mediatool.IMediaTool;
 import com.xuggle.xuggler.mediatool.IMediaListener;
 
+import static com.xuggle.xuggler.mediatool.DebugListener.Event.*;
+import static com.xuggle.xuggler.mediatool.DebugListener.Mode.*;
+
 /**
- * An {@link IMediaTool} listener which counts and logs {@link
- * IMediaListener} events to a log file.
+ * An {@link IMediaTool} listener which counts {@link IMediaListener}
+ * events and optinally logs specified {@link DebugListener.Event}
+ * types.  Event counts can be queried, and {@link #toString} will
+ * return an event count summery.  The detail in event log can ben
+ * controlled by {@link DebugListener.Mode}.
  */
 
 public class DebugListener implements IMediaListener
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
+  
+  // log modes
 
-  // flag values
+  public enum Mode {
 
-  /** show video events */
+    /** log no events */
 
-  public static final int VIDEO         = 0x001;
+    NOTHING, 
+      
+      /** log events without details */
 
-  /** show audio events */
+      EVENT,
 
-  public static final int AUDIO         = 0x002;
+      /** log events with source or destination URL */
 
-  /** show open events */
+      URL, 
 
-  public static final int OPEN          = 0x004;
+      /** log parameters passed to the event */
 
-  /** show close events */
+      PARAMETERS};
 
-  public static final int CLOSE         = 0x008;
+  // max event name length
+  
+  private static int mMaxNameLength = 0;
+  
+  /** The media listener event type specifiers. */
+  
+  public enum Event
+  {
+    // events
+    
+    /** video events */
+    
+    VIDEO         (0x001, "onVideoPicture"),
+      
+      /** audio events */
+      
+      AUDIO       (0x002, "onAudioSamples"),
+      
+      /** open events */
+      
+      OPEN        (0x004, "onOpen"),
+      
+      /** close events */
+      
+      CLOSE       (0x008, "onClose"),
+      
+      /** add stream events */
+      
+      ADD_STREAM  (0x010, "onAddStream"),
+      
+      /** open stream events */
+      
+      OPEN_STREAM (0x020, "onOpenStream"),
+      
+      /** close stream events */
+      
+      CLOSE_STREAM(0x040, "onCloseStream"),
+      
+      /** read packet events */
+      
+      READ_PACKET (0x080, "onReadPacket"),
+      
+      /** write packet events */
+      
+      WRITE_PACKET(0x100, "onWritePacket"),
+      
+      /** header write events */
+      
+      HEADER      (0x200, "onWriteHeader"),
+      
+      /** trailer write events */
+      
+      TRAILER     (0x400, "onWriteTrailer"),
+      
+      /** flush events */
+      
+      FLUSH       (0x800, "onFlush"),
+      
+      /** all events */
+      
+      ALL         (0xfff, "<ALL-EVENT>"),
+      
+      /** no events */
+      
+      NONE        (0x000, "<NO-EVENTS>"),
+      
+      /**
+       * {@link #VIDEO}, {@link #AUDIO}, {@link #READ_PACKET} and
+       * {@link #WRITE_PACKET} events
+       */
+      
+      DATA        (0x183, "<DATA-EVENTS>"),
+      
+      /**
+       * all events except {@link #VIDEO}, {@link #AUDIO}, {@link
+       * #READ_PACKET} and {@link #WRITE_PACKET} events
+       */
+      
+      META_DATA   (0xfff & ~0x183, "<META-DATA-EVENTS>");
 
-  /** show add stream events */
+    // event flag
 
-  public static final int ADD_STREAM    = 0x010;
+    private int mFlag;
 
-  /** show open stream events */
+    // name of called method
 
-  public static final int OPEN_STREAM   = 0x020;
+    private String mMethod;
 
-  /** show close stream events */
+    // construct an event
+    
+    Event(int flag, String method)
+    {
+      mFlag = flag;
+      mMethod = method;
+      updateMaxNameLength(name());
+    }
 
-  public static final int CLOSE_STREAM  = 0x040;
+    // get event flag
 
-  /** show read packet events */
+    public int getFlag()
+    {
+      return mFlag;
+    }
 
-  public static final int READ_PACKET   = 0x080;
+    // get event method
 
-  /** show write packet events */
-
-  public static final int WRITE_PACKET  = 0x100;
-
-  /** show header write events */
-
-  public static final int HEADER        = 0x200;
-
-  /** show trailer write events */
-
-  public static final int TRAILER       = 0x400;
-
-  /** show flush events */
-
-  public static final int FLUSH         = 0x800;
-
-  /** show all events */
-
-  public static final int ALL           = 0xfff;
-
-  /** show no events */
-
-  public static final int NONE          = 0x000;
-
-  /** show {@link #VIDEO}, {@link #AUDIO}, {@link #READ_PACKET} and
-   * {@link #WRITE_PACKET} events */
-
-  public static final int DATA          = VIDEO | AUDIO | READ_PACKET | WRITE_PACKET;
-
-  /** show all events except {@link #VIDEO}, {@link #AUDIO}, {@link
-   * #READ_PACKET} and {@link #WRITE_PACKET} events */
-
-  public static final int META_DATA     = (ALL & ~DATA);
+    public String getMethod()
+    {
+      return mMethod;
+    }
+  };
 
   // the flags
-
+  
   private int mFlags;
   
+  // log mode
+
+  private Mode mMode;
+
   // the event counts
   
-  private Map<Integer, Integer> mEventCounts = new HashMap<Integer, Integer>();
-  
-  /** 
-   * Construct a debug listener with custom display flags to log
-   * specified event types.
-   *
-   * @param flags display flags for different event types
-   */
-
-  public DebugListener(int flags)
-  {
-    mFlags = flags;
-  }
+  private Map<Event, Integer> mEventCounts = new HashMap<Event, Integer>();
 
   /** 
    * Construct a debug listener which logs all event types.
@@ -139,33 +201,61 @@ public class DebugListener implements IMediaListener
 
   public DebugListener()
   {
-    this(ALL);
+    this(PARAMETERS, ALL);
+  }
+
+  /** 
+   * Construct a debug listener with custom set of event types to log.
+   *
+   * @param events the event types which will be logged
+   */
+  
+  public DebugListener(Event... events)
+  {
+    this(PARAMETERS, events);
+  }
+
+  /** 
+   * Construct a debug listener with custom set of event types to log.
+   *
+   * @param mode log mode, see {@link DebugListener.Mode}
+   * @param events the event types which will be logged
+   */
+  
+  public DebugListener(Mode mode, Event... events)
+  {
+    mMode = mode;
+    setLogEvents(events);
   }
 
   // increment count for specific event type
 
-  private void incrementCount(int flag)
+  private void incrementCount(Event event)
   {
-    Integer value = mEventCounts.get(flag);
+    for (Event candidate: Event.values())
+      if ((candidate.getFlag() & event.getFlag()) != 0)
+      {
+        Integer value = mEventCounts.get(candidate);
 
-    if (null == value)
-      value = 0;
+        if (null == value)
+          value = 0;
 
-    mEventCounts.put(flag, value + 1);
+        mEventCounts.put(candidate, value + 1);
+      }
   }
 
   /** 
    * Get count of events of a particular type.
    *
-   * @param flag the flag for the specified event type.
+   * @param event the specified event type
    * 
    * @return the number of events of the specified type which have been
    *         transpired
    */
 
-  public int getCount(int flag)
+  public int getCount(Event event)
   {
-    Integer value = mEventCounts.get(flag);
+    Integer value = mEventCounts.get(event);
     return (null == value) ? 0 : value;
   }
 
@@ -179,29 +269,51 @@ public class DebugListener implements IMediaListener
   }
 
   /** 
-   * Set the flags which specify which events will be logs.
+   * Set the event types which will be loggged.
    *
-   * @param flags the flags
-   * 
-   * @return old flag values.
+   * @param events the events wich will be logged
    */
 
-  public int setFlags(int flags)
+  public void setLogEvents(Event... events)
   {
-    int oldFlags = mFlags;
-    mFlags = flags;
-    return oldFlags;
+    mFlags = 0;
+    for (Event event: events)
+      mFlags |= event.getFlag();
   }
 
   /** 
-   * Get the flags which specify which events will be logs.
+   * Get the flags which specify which events will be logged.
    * 
    * @return the flags.
    */
 
-  public int getFlags()
+  private int getFlags()
   {
     return mFlags;
+  }
+
+  // handle an event 
+
+  protected void handleEvent(Event event, IMediaTool tool, Object... args)
+  {
+    incrementCount(event);
+    if ((mFlags & event.getFlag()) != 0 && mMode != NOTHING)
+    {
+      StringBuilder string = new StringBuilder();
+      string.append(event.getMethod() + "(");
+      switch (mMode)
+      {
+      case URL:
+        string.append(tool.getUrl());
+        break;
+      case PARAMETERS:
+        for (Object arg: args)
+          string.append(arg + (arg == args[args.length - 1] ? "" : ", "));
+        break;
+      }
+      string.append(")");
+      log.debug(string.toString());
+    }
   }
 
   /** {@inheritDoc} */
@@ -209,10 +321,7 @@ public class DebugListener implements IMediaListener
   public void onVideoPicture(IMediaTool tool, IVideoPicture picture, 
     BufferedImage image, int streamIndex)
   {
-    incrementCount(VIDEO);
-    if ((mFlags & VIDEO) != 0)
-      log.debug("onVideoPicture({}, {}, " + image + ", " + streamIndex + ")",
-        tool, picture);
+    handleEvent(VIDEO, tool, new Object[] {picture, image, streamIndex});
   }
   
   /** {@inheritDoc} */
@@ -220,98 +329,104 @@ public class DebugListener implements IMediaListener
   public void onAudioSamples(IMediaTool tool, IAudioSamples samples,
     int streamIndex)
   {
-    incrementCount(AUDIO);
-    if ((mFlags & AUDIO) != 0)
-      log.debug("onAudioSamples({}, {}, " + streamIndex + ")", tool, samples);
+    handleEvent(AUDIO, tool, new Object[] {samples, streamIndex});
   }
   
   /** {@inheritDoc} */
 
   public void onOpen(IMediaTool tool)
   {
-    incrementCount(OPEN);
-    if ((mFlags & OPEN) != 0)
-      log.debug("onOpen({})", tool);
+    handleEvent(OPEN, tool, new Object[] {});
   }
   
   /** {@inheritDoc} */
 
   public void onClose(IMediaTool tool)
   {
-    incrementCount(CLOSE);
-    if ((mFlags & CLOSE) != 0)
-      log.debug("onClose({})", tool);
+    handleEvent(CLOSE, tool, new Object[] {});
   }
   
   /** {@inheritDoc} */
 
   public void onAddStream(IMediaTool tool, IStream stream)
   {
-    incrementCount(ADD_STREAM);
-    if ((mFlags & ADD_STREAM) != 0)
-      log.debug("onAddStream({}, {})", tool, stream);
+    handleEvent(ADD_STREAM, tool, new Object[] {stream});
   }
   
   /** {@inheritDoc} */
 
   public void onOpenStream(IMediaTool tool, IStream stream)
   {
-    incrementCount(OPEN_STREAM);
-    if ((mFlags & OPEN_STREAM) != 0)
-      log.debug("onOpenStream({}, {})", tool, stream);
+    handleEvent(OPEN_STREAM, tool, new Object[] {stream});
   }
   
   /** {@inheritDoc} */
 
   public void onCloseStream(IMediaTool tool, IStream stream)
   {
-    incrementCount(CLOSE_STREAM);
-    if ((mFlags & CLOSE_STREAM) != 0)
-      log.debug("onCloseStream({}, {})", tool, stream);
+    handleEvent(CLOSE_STREAM, tool, new Object[] {stream});
   }
   
   /** {@inheritDoc} */
 
   public void onReadPacket(IMediaTool tool, IPacket packet)
   {
-    incrementCount(READ_PACKET);
-    if ((mFlags & READ_PACKET) != 0)
-      log.debug("onReadPacket({}, {})", tool, packet);
+    handleEvent(READ_PACKET, tool, new Object[] {packet});
   }
   
   /** {@inheritDoc} */
 
   public void onWritePacket(IMediaTool tool, IPacket packet)
   {
-    incrementCount(WRITE_PACKET);
-    if ((mFlags & WRITE_PACKET) != 0)
-      log.debug("onWritePacket({}, {})", tool, packet);
+    handleEvent(WRITE_PACKET, tool, new Object[] {packet});
   }
 
   /** {@inheritDoc} */
 
   public void onWriteHeader(IMediaTool tool)
   {
-    incrementCount(HEADER);
-    if ((mFlags & HEADER) != 0)
-      log.debug("onWriteHeader({})", tool);
+    handleEvent(HEADER, tool, new Object[] {});
   }
   
   /** {@inheritDoc} */
 
   public void onFlush(IMediaTool tool)
   {
-    incrementCount(FLUSH);
-    if ((mFlags & FLUSH) != 0)
-      log.debug("onFlush({})", tool);
+    handleEvent(FLUSH, tool, new Object[] {});
   }
 
   /** {@inheritDoc} */
 
   public void onWriteTrailer(IMediaTool tool)
   {
-    incrementCount(TRAILER);
-    if ((mFlags & TRAILER) != 0)
-      log.debug("onWriteTrailer({})", tool);
+    handleEvent(TRAILER, tool, new Object[] {});
+  }
+
+  /** {@inheritDoc} */
+
+  public String toString()
+  {
+    StringBuilder sb = new StringBuilder();
+    
+    sb.append("event counts: ");
+    for (Event event: Event.values())
+      sb.append(String.format("\n  %" + getMaxNameLength() + "s: %d",
+          event.name(), getCount(event)));
+
+    return sb.toString();
+  }
+
+  // update max lane length
+  
+  private static void updateMaxNameLength(String name)
+  {
+    mMaxNameLength = Math.max(name.length(), mMaxNameLength);
+  }
+  
+  // max event name length
+  
+  public static int getMaxNameLength()
+  {
+    return mMaxNameLength;
   }
 }

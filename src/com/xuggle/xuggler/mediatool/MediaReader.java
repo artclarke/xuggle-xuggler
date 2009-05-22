@@ -102,6 +102,10 @@ public class MediaReader extends AMediaTool
 
   protected IConverter mVideoConverter;
 
+  // close on EOF only
+
+  protected boolean mCloseOnEofOnly = false;
+
   /**
    * Create a MediaReader which reads and dispatches data from a media
    * stream for a given source URL. The media stream is opened, and
@@ -353,6 +357,34 @@ public class MediaReader extends AMediaTool
     return mQueryStreamMetaData;
   }
 
+  /** 
+   * Set to close, if and only if ERROR_EOF is returned from {@link
+   * #readPacket}.  Otherwise close is called when any error value
+   * is returned.  The default value for this is false.
+   *
+   * @param closeOnEofOnly true if meta data is to be queried
+   * 
+   * @throws RuntimeException if the media container is already open
+   */
+
+  public void setCloseOnEofOnly(boolean closeOnEofOnly)
+  {
+    mCloseOnEofOnly = closeOnEofOnly;
+  }
+
+  /** 
+   * Report if close will called only if ERROR_EOF is returned from
+   * {@link #readPacket}.  Otherwise close is called when any error
+   * value is returned.  The default value for this is false.
+   * 
+   * @return true if will close on ERROR_EOF only
+   */
+
+  public boolean willCloseOnEofOnly()
+  {
+    return mCloseOnEofOnly;
+  }
+
   /** Get the correct {@link IStreamCoder} for a given stream in the
    * container.  If this is a new stream not been seen before, we record
    * it and open it before returning.
@@ -448,9 +480,9 @@ public class MediaReader extends AMediaTool
     {
       IError error = IError.make(rv);
       
-      // if this is an end of file, call close
+      // if this is an end of file, or unknow, call close
       
-      if (error.getType() == IError.Type.ERROR_EOF)
+      if (!mCloseOnEofOnly || IError.Type.ERROR_EOF == error.getType())
         close();
 
       return error;

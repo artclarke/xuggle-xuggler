@@ -45,6 +45,9 @@ import com.xuggle.xuggler.video.IConverter;
 import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.video.ConverterFactory;
 
+import static com.xuggle.xuggler.ICodec.Type.CODEC_TYPE_VIDEO;
+import static com.xuggle.xuggler.ICodec.Type.CODEC_TYPE_AUDIO;
+
 /**
  * General purpose media writer.
  * 
@@ -684,7 +687,9 @@ public class MediaWriter extends AMediaTool implements IMediaListener
       int rv = mContainer.writeHeader();
       if (0 != rv)
         throw new RuntimeException("Error " + IError.make(rv) +
-          ", failed to write header to " + getUrl());
+          ", failed to write header to container " + getContainer() +
+          " while establishing stream " + 
+          mStreams.get(getOutputStreamIndex(inputStreamIndex)));
 
       // inform the listeners
 
@@ -709,29 +714,172 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   }
 
   /**
-   * Construct a stream  using the mInputContainer information.
+   * Make the best effort to establish the ouput codec id for a given
+   * input codec and output container format.  This method relies on
+   * FFMPEGs internal database of codec IDs to identify the correct
+   * output codec ID.
+   *
+   * @param inputCodec the input codec
+   * @param outputContainerFormat the format of the output container
+   *
+   * @return the best guess output codec ID, or null if none found
    */
 
-  protected void addStreamFromContainer(int inputStreamIndex)
+  public static ICodec.ID establishOutputCodecId(ICodec inputCodec,
+    IContainerFormat outputContainerFormat)
   {
-    // add a new output stream, based on the id from the input
-    // stream
+    return establishOutputCodecId(inputCodec, outputContainerFormat);
+  }
+
+  /**
+   * Make the best effort to establish the ouput codec id for a given
+   * input codec id and output container format.  This method relies on
+   * FFMPEGs internal database of codec IDs to identify the correct
+   * output codec ID.
+   *
+   * @param inputCodecId the ID input codec
+   * @param outputContainerFormat the format of the output container
+   *
+   * @return the best guess output codec ID, or null if none found
+   */
+
+  public static ICodec.ID establishOutputCodecId(ICodec.ID inputCodecId, 
+    IContainerFormat outputContainerFormat)
+  {
+    // test parameteres
+
+    if (null == inputCodecId)
+      throw new IllegalArgumentException("null input codec id");
+    if (ICodec.ID.CODEC_ID_NONE == inputCodecId)
+      throw new IllegalArgumentException("input codec id is \"NONE\"");
+    if (null == outputContainerFormat)
+      throw new IllegalArgumentException("null output container format");
+    if (!outputContainerFormat.isOutput())
+      throw new IllegalArgumentException(
+        "passed output container format, actally an input container format");
+
+    // if the output container supports in teh input codec, and can
+    // encode, return the input codec
+
+    if (outputContainerFormat.isCodecSupportedForOutput(inputCodecId) &&
+      ICodec.findEncodingCodec(inputCodecId).canEncode())
+    {
+      return inputCodecId;
+    }
+
+    // establish the input codec type
+
+    ICodec.Type inputCodecType = ICodec.findDecodingCodec(inputCodecId)
+      .getType();
+
+    // the would be output codec 
+
+    ICodec.ID outputCodecId = null;
+
+    // find the default codec for the output container by input codec type
     
-    IStream stream = mContainer.addNewStream(
-      mInputContainer.getStream(inputStreamIndex).getId());
+    switch (inputCodecType)
+    {
+    case CODEC_TYPE_AUDIO:
+      outputCodecId = outputContainerFormat.getOutputDefaultAudioCodec();
+      break;
+    case CODEC_TYPE_VIDEO:
+      outputCodecId = outputContainerFormat.getOutputDefaultVideoCodec();
+      break;
+    case CODEC_TYPE_SUBTITLE:
+      outputCodecId = outputContainerFormat.getOutputDefaultSubtitleCodec();
+      break;
+    }
+
+    // if there still isn't a valid codec, hunt through all the codecs
+    // for the output format and see if ANY match the input codec type
+
+    if (null == outputCodecId || ICodec.ID.CODEC_ID_NONE == outputCodecId ||
+      !ICodec.findEncodingCodec(inputCodecId).canEncode())
+    {
+      for(ICodec.ID codecId: outputContainerFormat.getOutputCodecsSupported())
+      {
+        ICodec codec = ICodec.findEncodingCodec(codecId);
+        if (codec.getType() == inputCodecType)
+        {
+          // if it is a valid codec break out of the search
+
+          outputCodecId = codec.getID();
+          if (null != outputCodecId && 
+            ICodec.ID.CODEC_ID_NONE != outputCodecId || 
+            ICodec.findEncodingCodec(inputCodecId).canEncode())
+          {
+            break;
+          }
+        }
+      }
+    }
+
+    // return found ouput codec id, or null if not found
+
+    return outputCodecId;
+  }
+
+  /**
+   * Test if a given codec type is supported by the media writer.
+   * 
+   * @param type the type of codec to be tested
+   *
+   * @return true if codec type is supported type
+   */
+
+  public boolean isSupportedCodecType(ICodec.Type type)
+  {
+    return (CODEC_TYPE_VIDEO == type || CODEC_TYPE_AUDIO == type);
+  }
+
+  /**
+   * Construct a stream  using the mInputContainer information.
+   *
+   * @param inputStreamIndex the index of the stream on the input
+   *   container
+   * 
+   * @return true if the stream was added, false if it's not a supported
+   *   stream type
+   */
+
+  protected boolean addStreamFromContainer(int inputStreamIndex)
+  {
+    // get the input stream
+
+    IStream inputStream = mInputContainer.getStream(inputStreamIndex);
+    IStreamCoder inputCoder = inputStream.getStreamCoder();
+    
+    // if this stream is not a supported type, indicate failure
+
+    if (!isSupportedCodecType(inputCoder.getCodecType()))
+      return false;
+
+    // add a new output stream, based on the id from the input stream
+    
+    IStream outputStream = mContainer.addNewStream(inputStream.getId());
 
     // create the coder
     
-    IStreamCoder newCoder = IStreamCoder.make(IStreamCoder.Direction.ENCODING,
-      mInputContainer.getStream(inputStreamIndex).getStreamCoder());
+    IStreamCoder outputCoder = IStreamCoder.make(
+      IStreamCoder.Direction.ENCODING, inputCoder);
 
-    // an stick the coder in the stream
+    // set the codec for output coder
 
-    stream.setStreamCoder(newCoder);
+    outputCoder.setCodec(establishOutputCodecId(inputCoder.getCodecID(), 
+        mContainer.getContainerFormat()));
 
-    // add the new stream
+    // set output coder on the output stream
 
-    addStream(stream, inputStreamIndex, stream.getIndex());
+    outputStream.setStreamCoder(outputCoder);
+    
+    // add the new output stream
+
+    addStream(outputStream, inputStreamIndex, outputStream.getIndex());
+    
+    // indicate success
+
+    return true;
   }
 
   /**
@@ -748,6 +896,12 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     // get the coder and add it to the index to coder map
 
     mStreams.put(outputStreamIndex, stream);
+
+    // if this is a video coder, set the quality
+
+    IStreamCoder coder = stream.getStreamCoder();
+    if (CODEC_TYPE_VIDEO == coder.getCodecType())
+      coder.setFlag(IStreamCoder.Flags.FLAG_QSCALE, true);
     
     // inform listeners
 
@@ -766,16 +920,10 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     
     IStreamCoder coder = stream.getStreamCoder();
     ICodec.Type type = coder.getCodecType();
-    if (!coder.isOpen() && (ICodec.Type.CODEC_TYPE_AUDIO == type ||
-        ICodec.Type.CODEC_TYPE_VIDEO == type))
+    if (!coder.isOpen() && isSupportedCodecType(type))
     {
-      // if video coder, match quality scale 
-
-      if (ICodec.Type.CODEC_TYPE_VIDEO == type)
-        coder.setFlag(IStreamCoder.Flags.FLAG_QSCALE, true);
-
       // open the coder
-
+      
       int rv = coder.open();
       if (rv < 0)
         throw new RuntimeException("could not open stream " + stream
@@ -871,9 +1019,10 @@ public class MediaWriter extends AMediaTool implements IMediaListener
       IStreamCoder coder = stream.getStreamCoder();
       if (!coder.isOpen())
         continue;
+
       // if it's audio coder flush that
 
-      if (ICodec.Type.CODEC_TYPE_AUDIO == coder.getCodecType())
+      if (CODEC_TYPE_AUDIO == coder.getCodecType())
       {
         IPacket packet = IPacket.make();
         while (coder.encodeAudio(packet, null, 0) >= 0 && packet.isComplete())
@@ -885,7 +1034,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
       
       // else flush video coder
 
-      else if (ICodec.Type.CODEC_TYPE_VIDEO == coder.getCodecType())
+      else if (CODEC_TYPE_VIDEO == coder.getCodecType())
       {
         IPacket packet = IPacket.make();
         while (coder.encodeVideo(packet, null, 0) >= 0 && packet.isComplete())

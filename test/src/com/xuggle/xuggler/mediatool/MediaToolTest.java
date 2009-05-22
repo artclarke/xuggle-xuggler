@@ -27,7 +27,8 @@ import java.io.File;
 
 import com.xuggle.xuggler.IError;
 
-import static com.xuggle.xuggler.mediatool.DebugListener.*;
+import static com.xuggle.xuggler.mediatool.DebugListener.Event.*;
+import static com.xuggle.xuggler.mediatool.DebugListener.Mode.*;
 
 import static junit.framework.Assert.*;
 
@@ -115,8 +116,8 @@ public class MediaToolTest
     if (SHOW_VIDEO)
       writer.addListener(new MediaViewer(false, true, 0));
 
-    DebugListener readerCounter = new DebugListener(OPEN);
-    DebugListener writerCounter = new DebugListener(CLOSE);
+    DebugListener readerCounter = new DebugListener(URL, META_DATA);
+    DebugListener writerCounter = new DebugListener(EVENT, META_DATA);
 
     reader.addListener(readerCounter);
     writer.addListener(writerCounter);
@@ -156,5 +157,8 @@ public class MediaToolTest
 
     assert(outputFile.exists());
     assertEquals(OUTPUT_FILE_SIZE, outputFile.length(), 200);
+
+    log.debug("reader " + readerCounter);
+    log.debug("writer " + writerCounter);
   }
 }
