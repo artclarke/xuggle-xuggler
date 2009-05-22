@@ -520,7 +520,7 @@ public class IContainerFormat extends RefCounted {
  * Return an object for the input format at the given index.  
  * @param	index an index for the input format list we maintain  
  * @return	a format object for that input or null if  
- * unknown, index < 0 or index >= {@link getNumInstalledInputFormats()} 
+ * unknown, index < 0 or index >= {@link #getNumInstalledInputFormats()} 
  *  
  */
   public static IContainerFormat getInstalledInputFormat(int index) {
@@ -541,7 +541,7 @@ public class IContainerFormat extends RefCounted {
  * Return an object for the output format at the given index.  
  * @param	index an index for the output format list we maintain  
  * @return	a format object for that output or null if  
- * unknown, index < 0 or index >= {@link getNumInstalledOutputFormats()} 
+ * unknown, index < 0 or index >= {@link #getNumInstalledOutputFormats()} 
  *  
  */
   public static IContainerFormat getInstalledOutputFormat(int index) {

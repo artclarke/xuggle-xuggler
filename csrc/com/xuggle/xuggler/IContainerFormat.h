@@ -328,7 +328,7 @@ namespace com { namespace xuggle { namespace xuggler
      * @param index an index for the input format list we maintain
      * 
      * @return a format object for that input or null if
-     *   unknown, index < 0 or index >= {@link getNumInstalledInputFormats()}
+     *   unknown, index < 0 or index >= {@link #getNumInstalledInputFormats()}
      */
     static IContainerFormat* getInstalledInputFormat(int32_t index);
 
@@ -346,7 +346,7 @@ namespace com { namespace xuggle { namespace xuggler
      * @param index an index for the output format list we maintain
      * 
      * @return a format object for that output or null if
-     *   unknown, index < 0 or index >= {@link getNumInstalledOutputFormats()}
+     *   unknown, index < 0 or index >= {@link #getNumInstalledOutputFormats()}
      */
     static IContainerFormat* getInstalledOutputFormat(int32_t index);
     
