@@ -786,7 +786,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             if( b_merged_satd && i_max >= 6 )
             {
                 int satd[9];
-                h->pixf.intra_satd_x3_4x4( p_src_by, p_dst_by, satd );
+                h->pixf.intra_mbcmp_x3_4x4( p_src_by, p_dst_by, satd );
                 satd[i_pred_mode] -= 3 * a->i_lambda;
                 for( i=2; i>=0; i-- )
                     COPY2_IF_LT( i_best, satd[i] + 4 * a->i_lambda,
