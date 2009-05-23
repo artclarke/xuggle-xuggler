@@ -172,44 +172,46 @@ static const int i_sub_mb_p_cost_table[4] = {
 
 static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a );
 
-uint16_t *x264_cost_mv_fpel[52][4];
-uint16_t x264_cost_ref[52][3][33];
+/* Indexed by lambda instead of qp because, due to rounding,
+ * some quantizers share lambdas.  This saves memory. */
+uint16_t *x264_cost_mv_fpel[92][4];
+uint16_t x264_cost_ref[92][3][33];
 
 /* initialize an array of lambda*nbits for all possible mvs */
 static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
 {
-    static int16_t *p_cost_mv[52];
+    static int16_t *p_cost_mv[92];
     int i, j;
 
-    if( !p_cost_mv[a->i_qp] )
+    if( !p_cost_mv[a->i_lambda] )
     {
         x264_emms();
         /* could be faster, but isn't called many times */
         /* factor of 4 from qpel, 2 from sign, and 2 because mv can be opposite from mvp */
-        p_cost_mv[a->i_qp] = x264_malloc( (4*4*2048 + 1) * sizeof(int16_t) );
-        p_cost_mv[a->i_qp] += 2*4*2048;
+        p_cost_mv[a->i_lambda] = x264_malloc( (4*4*2048 + 1) * sizeof(int16_t) );
+        p_cost_mv[a->i_lambda] += 2*4*2048;
         for( i = 0; i <= 2*4*2048; i++ )
         {
-            p_cost_mv[a->i_qp][-i] =
-            p_cost_mv[a->i_qp][i]  = a->i_lambda * (log2f(i+1)*2 + 0.718f + !!i) + .5f;
+            p_cost_mv[a->i_lambda][-i] =
+            p_cost_mv[a->i_lambda][i]  = a->i_lambda * (log2f(i+1)*2 + 0.718f + !!i) + .5f;
         }
         for( i = 0; i < 3; i++ )
             for( j = 0; j < 33; j++ )
-                x264_cost_ref[a->i_qp][i][j] = i ? a->i_lambda * bs_size_te( i, j ) : 0;
+                x264_cost_ref[a->i_lambda][i][j] = i ? a->i_lambda * bs_size_te( i, j ) : 0;
     }
-    a->p_cost_mv = p_cost_mv[a->i_qp];
-    a->p_cost_ref0 = x264_cost_ref[a->i_qp][x264_clip3(h->sh.i_num_ref_idx_l0_active-1,0,2)];
-    a->p_cost_ref1 = x264_cost_ref[a->i_qp][x264_clip3(h->sh.i_num_ref_idx_l1_active-1,0,2)];
+    a->p_cost_mv = p_cost_mv[a->i_lambda];
+    a->p_cost_ref0 = x264_cost_ref[a->i_lambda][x264_clip3(h->sh.i_num_ref_idx_l0_active-1,0,2)];
+    a->p_cost_ref1 = x264_cost_ref[a->i_lambda][x264_clip3(h->sh.i_num_ref_idx_l1_active-1,0,2)];
 
     /* FIXME is this useful for all me methods? */
-    if( h->param.analyse.i_me_method >= X264_ME_ESA && !x264_cost_mv_fpel[a->i_qp][0] )
+    if( h->param.analyse.i_me_method >= X264_ME_ESA && !x264_cost_mv_fpel[a->i_lambda][0] )
     {
         for( j=0; j<4; j++ )
         {
-            x264_cost_mv_fpel[a->i_qp][j] = x264_malloc( (4*2048 + 1) * sizeof(int16_t) );
-            x264_cost_mv_fpel[a->i_qp][j] += 2*2048;
+            x264_cost_mv_fpel[a->i_lambda][j] = x264_malloc( (4*2048 + 1) * sizeof(int16_t) );
+            x264_cost_mv_fpel[a->i_lambda][j] += 2*2048;
             for( i = -2*2048; i < 2*2048; i++ )
-                x264_cost_mv_fpel[a->i_qp][j][i] = p_cost_mv[a->i_qp][i*4+j];
+                x264_cost_mv_fpel[a->i_lambda][j][i] = p_cost_mv[a->i_lambda][i*4+j];
         }
     }
 }
