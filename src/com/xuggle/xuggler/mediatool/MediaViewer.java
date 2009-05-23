@@ -311,8 +311,8 @@ public class MediaViewer extends MediaAdapter
    * statistics statistics overlaid on the video. The close behavior or the
    * window can be specified.
    * 
-   * @param playAudio
-   *          play audio, if present in media
+   * @param mode
+   *          specify the mode for playing this file
    * @param showStats
    *          display media statistics
    * @param defaultCloseOperation
