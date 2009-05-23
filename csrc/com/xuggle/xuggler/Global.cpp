@@ -105,7 +105,7 @@ namespace com { namespace xuggle { namespace xuggler
     if (helper) {
       retval = helper->isInterrupted();
       if (retval) {
-        VS_LOG_DEBUG("Thread is interrupted!");
+        VS_LOG_TRACE("Thread is interrupted!");
         /* empty statement if log is compiled out */;
       }
     }
