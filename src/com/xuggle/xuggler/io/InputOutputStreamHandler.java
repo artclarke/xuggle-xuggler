@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
  * 
  */
 
-class InputOutputStreamHandler implements IURLProtocolHandler
+public class InputOutputStreamHandler implements IURLProtocolHandler
 {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 

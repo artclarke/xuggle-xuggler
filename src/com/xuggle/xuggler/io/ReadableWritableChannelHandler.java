@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
  * 
  */
 
-class ReadableWritableChannelHandler implements IURLProtocolHandler
+public class ReadableWritableChannelHandler implements IURLProtocolHandler
 {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
