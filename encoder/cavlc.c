@@ -291,29 +291,14 @@ static inline void x264_macroblock_luma_write_cavlc( x264_t *h, bs_t *s, int i8s
 void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
 {
     const int i_mb_type = h->mb.i_type;
-    int i_mb_i_offset;
+    static const int i_offsets[3] = {5,23,0};
+    int i_mb_i_offset = i_offsets[h->sh.i_type];
     int i;
 
 #if !RDO_SKIP_BS
     const int i_mb_pos_start = bs_pos( s );
     int       i_mb_pos_tex;
 #endif
-
-    switch( h->sh.i_type )
-    {
-        case SLICE_TYPE_I:
-            i_mb_i_offset = 0;
-            break;
-        case SLICE_TYPE_P:
-            i_mb_i_offset = 5;
-            break;
-        case SLICE_TYPE_B:
-            i_mb_i_offset = 23;
-            break;
-        default:
-            x264_log(h, X264_LOG_ERROR, "internal error or slice unsupported\n" );
-            return;
-    }
 
     if( h->sh.b_mbaff
         && (!(h->mb.i_mb_y & 1) || IS_SKIP(h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride])) )
@@ -559,13 +544,8 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
             }
         }
     }
-    else if( i_mb_type == B_DIRECT )
+    else //if( i_mb_type == B_DIRECT )
         bs_write1( s, 1 );
-    else
-    {
-        x264_log(h, X264_LOG_ERROR, "invalid/unhandled mb_type\n" );
-        return;
-    }
 
 #if !RDO_SKIP_BS
     i_mb_pos_tex = bs_pos( s );
@@ -639,15 +619,10 @@ static int x264_partition_size_cavlc( x264_t *h, int i8, int i_pixel )
         if( x264_mb_type_list_table[ i_mb_type ][0][!!i8] ) cavlc_mb_mvd( h, &h->out.bs, 0, 4*i8, 4>>b_8x16 );
         if( x264_mb_type_list_table[ i_mb_type ][1][!!i8] ) cavlc_mb_mvd( h, &h->out.bs, 1, 4*i8, 4>>b_8x16 );
     }
-    else if( i_mb_type == B_8x8 )
+    else //if( i_mb_type == B_8x8 )
     {
         cavlc_mb8x8_mvd( h, &h->out.bs, 0, i8 );
         cavlc_mb8x8_mvd( h, &h->out.bs, 1, i8 );
-    }
-    else
-    {
-        x264_log(h, X264_LOG_ERROR, "invalid/unhandled mb_type\n" );
-        return 0;
     }
 
     for( j = (i_pixel < PIXEL_8x8); j >= 0; j-- )

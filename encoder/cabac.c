@@ -120,7 +120,7 @@ static void x264_cabac_mb_type( x264_t *h, x264_cabac_t *cb )
             x264_cabac_mb_type_intra( h, cb, i_mb_type, 17+0, 17+1, 17+2, 17+2, 17+3, 17+3 );
         }
     }
-    else if( h->sh.i_type == SLICE_TYPE_B )
+    else //if( h->sh.i_type == SLICE_TYPE_B )
     {
         int ctx = 0;
         if( h->mb.i_mb_type_left >= 0 && h->mb.i_mb_type_left != B_SKIP && h->mb.i_mb_type_left != B_DIRECT )
@@ -188,10 +188,6 @@ static void x264_cabac_mb_type( x264_t *h, x264_cabac_t *cb )
             for( i = 3; i < i_mb_len[idx]; i++ )
                 x264_cabac_encode_decision( cb, 27+5, i_mb_bits[idx][i] );
         }
-    }
-    else
-    {
-        x264_log(h, X264_LOG_ERROR, "unknown SLICE_TYPE unsupported in x264_macroblock_write_cabac\n" );
     }
 }
 
@@ -1052,15 +1048,10 @@ static void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int 
         if( x264_mb_type_list_table[ i_mb_type ][0][!!i8] ) x264_cabac_mb_mvd( h, cb, 0, 4*i8, 4>>b_8x16, 2<<b_8x16 );
         if( x264_mb_type_list_table[ i_mb_type ][1][!!i8] ) x264_cabac_mb_mvd( h, cb, 1, 4*i8, 4>>b_8x16, 2<<b_8x16 );
     }
-    else if( i_mb_type == B_8x8 )
+    else //if( i_mb_type == B_8x8 )
     {
         x264_cabac_mb8x8_mvd( h, cb, 0, i8 );
         x264_cabac_mb8x8_mvd( h, cb, 1, i8 );
-    }
-    else
-    {
-        x264_log(h, X264_LOG_ERROR, "invalid/unhandled mb_type %d\n",i_mb_type );
-        return;
     }
 
     for( j = (i_pixel < PIXEL_8x8); j >= 0; j-- )
