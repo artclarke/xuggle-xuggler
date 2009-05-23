@@ -15,7 +15,10 @@ import static org.junit.Assert.*;
 public class InterruptingExhaustiveTest
 {
   
-  @Test(timeout=5*1000)
+  // needs a long time out because if running in an exhaustive
+  // test on a slow machine (oh like our build server) it can
+  // sometime fail.
+  @Test(timeout=120*1000)
   public void testXugglerSupportInterruptions() throws InterruptedException
   {
     final AtomicBoolean testPassed = new AtomicBoolean(false);
