@@ -202,6 +202,19 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   }
 
   /**
+   * Open this container and make it ready for writing.
+   * @see #open(String, IContainer.Type, IContainerFormat)
+   */  
+  public int open(
+    java.io.DataOutputStream output,
+    IContainerFormat format)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(
+        (java.io.OutputStream)output),
+     IContainer.Type.WRITE, format); 
+  }
+
+  /**
    * Open this container and make it ready for reading.
    * @see #open(String, IContainer.Type, IContainerFormat)
    */  
@@ -210,6 +223,19 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     IContainerFormat format)
   {
     return open(com.xuggle.xuggler.io.XugglerIO.map(input),
+     IContainer.Type.READ, format); 
+  }
+
+  /**
+   * Open this container and make it ready for reading.
+   * @see #open(String, IContainer.Type, IContainerFormat)
+   */  
+  public int open(
+    java.io.DataInputStream input,
+    IContainerFormat format)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(
+        (java.io.InputStream)input),
      IContainer.Type.READ, format); 
   }
 
@@ -322,6 +348,21 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   }
 
   /**
+   * Open this container and make it ready for writing.
+   * @see #open(String, IContainer.Type, IContainerFormat, boolean, boolean) 
+   */  
+  public int open(
+    java.io.DataOutputStream output,
+    IContainerFormat format,
+    boolean streamsCanBeAddedDynamically,
+    boolean queryStreamMetaData)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(
+        (java.io.OutputStream)output),
+     IContainer.Type.WRITE, format, streamsCanBeAddedDynamically, queryStreamMetaData); 
+  }
+
+  /**
    * Open this container and make it ready for reading.
    * @see #open(String, IContainer.Type, IContainerFormat, boolean, boolean) 
    */  
@@ -335,6 +376,21 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
      IContainer.Type.READ, format, streamsCanBeAddedDynamically, queryStreamMetaData); 
   }
 
+  /**
+   * Open this container and make it ready for reading.
+   * @see #open(String, IContainer.Type, IContainerFormat, boolean, boolean) 
+   */  
+  public int open(
+    java.io.DataInputStream input,
+    IContainerFormat format,
+    boolean streamsCanBeAddedDynamically,
+    boolean queryStreamMetaData)
+  {
+    return open(com.xuggle.xuggler.io.XugglerIO.map(
+        (java.io.InputStream)input),
+     IContainer.Type.READ, format, streamsCanBeAddedDynamically, queryStreamMetaData); 
+  }
+  
   /**
    * Open this container and make it ready for reading or writing.
    * @see #open(String, IContainer.Type, IContainerFormat, boolean, boolean) 

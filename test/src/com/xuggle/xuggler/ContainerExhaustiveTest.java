@@ -2,12 +2,10 @@ package com.xuggle.xuggler;
 
 import static org.junit.Assert.*;
 
-import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
-import java.nio.channels.ReadableByteChannel;
 import java.util.Collection;
 import java.util.LinkedList;
 
@@ -52,8 +50,9 @@ public class ContainerExhaustiveTest
           {
             IContainer retval = IContainer.make();
             assertTrue(
-                retval.open((ReadableByteChannel)
+                retval.open(
                     new FileInputStream(TEST_FILE).getChannel(),
+                    IContainer.Type.READ,
                     null) >=0
             );
             return retval;
@@ -82,7 +81,7 @@ public class ContainerExhaustiveTest
             IContainer retval = IContainer.make();
             assertTrue(
                 retval.open(
-                    (DataInput)new DataInputStream(new FileInputStream(TEST_FILE)),
+                    new DataInputStream(new FileInputStream(TEST_FILE)),
                     null) >=0
             );
             return retval;
