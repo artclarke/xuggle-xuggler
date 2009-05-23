@@ -60,6 +60,10 @@ namespace com { namespace xuggle { namespace ferry {
     mJNIPointerReference_setPointer_mid = 0;
     mJNIPointerReference_getPointer_mid = 0;
     mOutOfMemoryErrorSingleton = 0;
+    
+    mThread_class = 0;
+    mThread_isInterrupted_mid = 0;
+    mThread_currentThread_mid = 0;
   }
 
   void
@@ -117,6 +121,11 @@ namespace com { namespace xuggle { namespace ferry {
         // Tell the JVM we're done with it.
         env->DeleteWeakGlobalRef(mJNIPointerReference_class);
         mJNIPointerReference_class = 0;
+      }
+      if (mThread_class)
+      {
+        env->DeleteWeakGlobalRef(mThread_class);
+        mThread_class = 0;
       }
     }
     mCachedVM = 0;
@@ -177,6 +186,27 @@ namespace com { namespace xuggle { namespace ferry {
       if (!mJNIPointerReference_getPointer_mid || env->ExceptionCheck())
         return;
 
+      env->DeleteLocalRef(cls);
+
+      cls = env->FindClass("java/lang/Thread");
+      if (!cls || env->ExceptionCheck())
+        return;
+      // Keep a reference around
+      mThread_class=env->NewWeakGlobalRef(cls);
+      if (!mThread_class || env->ExceptionCheck())
+        return;
+      
+      // now look for the isInterrupted method
+      mThread_currentThread_mid = env->GetStaticMethodID(cls,
+          "currentThread", "()Ljava/lang/Thread;");
+      if (!mThread_currentThread_mid || env->ExceptionCheck())
+        return;
+      
+      mThread_isInterrupted_mid = env->GetMethodID(cls,
+          "isInterrupted", "()Z");
+      if (!mThread_isInterrupted_mid || env->ExceptionCheck())
+        return;
+      
       env->DeleteLocalRef(cls);
 
       // Are there any pending callbacks?
@@ -446,6 +476,35 @@ namespace com { namespace xuggle { namespace ferry {
         return;
       env->Throw(mOutOfMemoryErrorSingleton);
     }
+  }
+  
+  int32_t
+  JNIHelper :: isInterrupted()
+  {
+    JNIEnv * env = this->getEnv();
+    if (!env)
+      return 0;
+    if (env->ExceptionCheck())
+      return 1; // a pending exception interrupts us
+    if (!mThread_class ||
+        !mThread_isInterrupted_mid ||
+        !mThread_currentThread_mid)
+      // this is an error if these are not set up, but we're
+      // going to assume no interrupt then.
+      return 0;
+    jobject thread = env->CallStaticObjectMethod(
+        static_cast<jclass>(mThread_class),
+        mThread_currentThread_mid);
+    if (!thread || env->ExceptionCheck())
+      return 1;
+    jboolean result = env->CallBooleanMethod(thread,
+        mThread_isInterrupted_mid);
+    env->DeleteLocalRef(thread);
+    if (env->ExceptionCheck())
+      result = false;
+    if (result)
+      return 1;
+    return 0; 
   }
 
 }}}

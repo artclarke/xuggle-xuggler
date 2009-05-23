@@ -229,7 +229,8 @@ public class IError extends RefCounted {
     ERROR_EOF,
     ERROR_RANGE,
     ERROR_AGAIN,
-    ERROR_PATCHWELCOME;
+    ERROR_PATCHWELCOME,
+    ERROR_INTERRUPTED;
 
     public final int swigValue() {
       return swigValue;

@@ -80,7 +80,8 @@ namespace com { namespace xuggle { namespace xuggler
     revisedFmt[sizeof(revisedFmt)-1] = 0;
     if (avc)
     {
-      snprintf(revisedFmt, sizeof(revisedFmt), "[%s @ %p] %s", avc->item_name(ptr), ptr, fmt);
+      snprintf(revisedFmt, sizeof(revisedFmt), "[%s @ %p] %s",
+          avc->item_name(ptr), ptr, fmt);
     }
     else
     {
@@ -97,6 +98,20 @@ namespace com { namespace xuggle { namespace xuggler
       ffmpegLogger->logVA(0, 0, logLevel, revisedFmt, va);
   }
 
+  static int xuggler_interrupt_cb(void)
+  {
+    JNIHelper* helper = JNIHelper::getHelper();
+    int retval = 0;
+    if (helper) {
+      retval = helper->isInterrupted();
+      if (retval) {
+        VS_LOG_TRACE("Thread is interrupted!");
+        /* empty statement if log is compiled out */;
+      }
+    }
+    return retval;
+  }
+  
   Global* Global :: sGlobal = 0;
 
   void
@@ -108,6 +123,7 @@ namespace com { namespace xuggle { namespace xuggler
       av_register_all();
       // and set up the device library for webcam support
       avdevice_register_all();
+      url_set_interrupt_cb(xuggler_interrupt_cb);
       // turn down logging
       sGlobal = new Global();
       VS_LOG_TRACE("initialized");

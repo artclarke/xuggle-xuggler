@@ -87,6 +87,8 @@ public:
     ERROR_AGAIN,
     /* Not supported, and the FFMPEG team wouldn't mind a patch */
     ERROR_PATCHWELCOME,
+    /* Thread was interrupted while trying an IO operation */
+    ERROR_INTERRUPTED,
   } Type;
   
 

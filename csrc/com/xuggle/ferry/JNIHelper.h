@@ -147,8 +147,14 @@ class JNIHelper
      * work.
      */
     VS_API_FERRY JNIHelper();
+
+    /*
+     * Added for 2.1
+     */
     
     VS_API_FERRY void throwOutOfMemoryError();
+    
+    VS_API_FERRY int32_t isInterrupted();
 
   private:
 
@@ -173,6 +179,11 @@ class JNIHelper
 
     static JNIHelper* sSingleton;
     static volatile bool sDebuggerAttached;
+
+    jweak mThread_class;
+    jmethodID mThread_isInterrupted_mid;
+    jmethodID mThread_currentThread_mid;
+
   };
 }}}
 
