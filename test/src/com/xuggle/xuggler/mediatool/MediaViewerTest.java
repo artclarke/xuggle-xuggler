@@ -27,6 +27,8 @@ import java.io.File;
 
 import com.xuggle.xuggler.IError;
 
+import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
+
 import static junit.framework.Assert.*;
 
 public class MediaViewerTest
@@ -64,6 +66,8 @@ public class MediaViewerTest
   @Test()
   public void testViewer()
   {
+    //com.xuggle.ferry.JNIMemoryAllocator.setMirroringNativeMemoryInJVM(false);
+    
     File inputFile = new File(INPUT_FILENAME);
     assert (inputFile.exists());
 
@@ -72,7 +76,7 @@ public class MediaViewerTest
     reader.setQueryMetaData(true);
 
     if (SHOW_VIDEO)
-      reader.addListener(new MediaViewer(true, true, 0));
+      reader.addListener(new MediaViewer(AUDIO_VIDEO, true, 0));
 
     IError rv;
     while ((rv = reader.readPacket()) == null)

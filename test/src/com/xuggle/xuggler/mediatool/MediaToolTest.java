@@ -27,8 +27,9 @@ import java.io.File;
 
 import com.xuggle.xuggler.IError;
 
-import static com.xuggle.xuggler.mediatool.DebugListener.Event.*;
+import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
 import static com.xuggle.xuggler.mediatool.DebugListener.Mode.*;
+import static com.xuggle.xuggler.mediatool.DebugListener.Event.*;
 
 import static junit.framework.Assert.*;
 
@@ -114,7 +115,7 @@ public class MediaToolTest
     MediaWriter writer = new MediaWriter(OUTPUT_FILENAME, reader);
 
     if (SHOW_VIDEO)
-      writer.addListener(new MediaViewer(false, true, 0));
+      writer.addListener(new MediaViewer(FAST, true, 0));
 
     DebugListener readerCounter = new DebugListener(URL, META_DATA);
     DebugListener writerCounter = new DebugListener(EVENT, META_DATA);
