@@ -36,13 +36,10 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import com.xuggle.xuggler.IAudioSamples;
-import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IVideoPicture;
 
 import static com.xuggle.xuggler.mediatool.DebugListener.Event.*;
 import static com.xuggle.xuggler.mediatool.DebugListener.Mode.*;
-
-import static junit.framework.Assert.*;
 
 @RunWith(Parameterized.class)
 public class MediaWriterExhaustiveTest

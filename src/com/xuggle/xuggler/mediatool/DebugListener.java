@@ -287,7 +287,7 @@ public class DebugListener implements IMediaListener
    * @return the flags.
    */
 
-  private int getFlags()
+  public int getFlags()
   {
     return mFlags;
   }
