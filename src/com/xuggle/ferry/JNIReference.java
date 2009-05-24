@@ -19,6 +19,7 @@
 package com.xuggle.ferry;
 
 import java.lang.ref.PhantomReference;
+import java.lang.ref.WeakReference;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.xuggle.ferry.FerryJNI;
@@ -26,14 +27,20 @@ import com.xuggle.ferry.FerryJNI;
 /**
  * Internal Only.
  * <p>
- * This class creates a {@link PhantomReference} that Ferry classes will use for
+ * This class creates a {@link WeakReference} that Ferry classes will use for
  * memory management. We do this to avoid relying on Java's finalizer thread to
  * keep up and instead make every new native allocation first release any
  * unreachable objects.
+ * </p><p>
+ * We use {@link WeakReference} objects instead of {@link PhantomReference}
+ * objects because (in theory) the JVM will collect {@link WeakReference}
+ * faster.  The downside is if you implement a finalizer on any
+ * object that 'resurrects' the object, all bets are off.  Fortunately
+ * no {@link RefCounted} objects do that.
  * </p>
  * 
  */
-public class JNIReference extends PhantomReference<Object>
+public class JNIReference extends WeakReference<Object>
 {
   private AtomicLong mSwigCPtr = new AtomicLong(0);
 
