@@ -249,6 +249,8 @@ public class JNIMemoryManager
             synchronized (JNIMemoryManager.this)
             {
               mCollectionThread = null;
+              // reset the interruption
+              Thread.currentThread().interrupt();
             }
             return;
           }

@@ -136,6 +136,10 @@ public class JNIMemoryAllocator
             }
             catch (InterruptedException e1)
             {
+              // reset the interruption so underlying
+              // code can also interrupt
+              Thread.currentThread().interrupt();
+              // and throw the error condition
               throw e;
             }
             // do a JNI collect before the alloc
