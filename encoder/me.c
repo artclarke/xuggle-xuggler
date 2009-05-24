@@ -48,7 +48,7 @@ static const int subpel_iterations[][4] =
 static const int mod6m1[8] = {5,0,1,2,3,4,5,0};
 /* radius 2 hexagon. repeated entries are to avoid having to compute mod6 every time. */
 static const int hex2[8][2] = {{-1,-2}, {-2,0}, {-1,2}, {1,2}, {2,0}, {1,-2}, {-1,-2}, {-2,0}};
-static const int square1[8][2] = {{0,-1}, {0,1}, {-1,0}, {1,0}, {-1,-1}, {1,1}, {-1,1}, {1,-1}};
+static const int square1[8][2] = {{0,-1}, {0,1}, {-1,0}, {1,0}, {-1,-1}, {-1,1}, {1,-1}, {1,1}};
 
 static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters, int *p_halfpel_thresh, int b_refine_qpel );
 
@@ -417,10 +417,10 @@ me_hex2:
             do
             {
                 static const int hex4[16][2] = {
-                    {-4, 2}, {-4, 1}, {-4, 0}, {-4,-1}, {-4,-2},
-                    { 4,-2}, { 4,-1}, { 4, 0}, { 4, 1}, { 4, 2},
-                    { 2, 3}, { 0, 4}, {-2, 3},
-                    {-2,-3}, { 0,-4}, { 2,-3},
+                    { 0,-4}, { 0, 4}, {-2,-3}, { 2,-3},
+                    {-4,-2}, { 4,-2}, {-4,-1}, { 4,-1},
+                    {-4, 0}, { 4, 0}, {-4, 1}, { 4, 1},
+                    {-4, 2}, { 4, 2}, {-2, 3}, { 2, 3},
                 };
 
                 if( 4*i > X264_MIN4( mv_x_max-omx, omx-mv_x_min,
@@ -436,10 +436,10 @@ me_hex2:
                 }
                 else
                 {
-                    COST_MV_X4( -4*i, 2*i, -4*i, 1*i, -4*i, 0*i, -4*i,-1*i );
-                    COST_MV_X4( -4*i,-2*i,  4*i,-2*i,  4*i,-1*i,  4*i, 0*i );
-                    COST_MV_X4(  4*i, 1*i,  4*i, 2*i,  2*i, 3*i,  0*i, 4*i );
-                    COST_MV_X4( -2*i, 3*i, -2*i,-3*i,  0*i,-4*i,  2*i,-3*i );
+                    COST_MV_X4(  0*i,-4*i, 0*i, 4*i, -2*i,-3*i, 2*i,-3*i );
+                    COST_MV_X4( -4*i,-2*i, 4*i,-2*i, -4*i,-1*i, 4*i,-1*i );
+                    COST_MV_X4( -4*i, 0*i, 4*i, 0*i, -4*i, 1*i, 4*i, 1*i );
+                    COST_MV_X4( -4*i, 2*i, 4*i, 2*i, -2*i, 3*i, 2*i, 3*i );
                 }
             } while( ++i <= i_me_range/4 );
             if( bmy <= mv_y_max )
