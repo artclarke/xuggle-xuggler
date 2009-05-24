@@ -812,7 +812,6 @@ using the library and what you like or don't like about it.
         path="${basedir}/mk/buildtools/lib/umlgraph.jar">
         <param name="-d" value="${javadoc.dir}"/>
         <param name="-horizontal"/>
-        <param name="-inferrel"/>
         <param name="-qualify"/>
         <param name="-postfixpackage"/>
         <param name="-useimports"/>
