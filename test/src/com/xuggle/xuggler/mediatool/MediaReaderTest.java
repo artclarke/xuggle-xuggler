@@ -36,7 +36,6 @@ import java.awt.image.BufferedImage;
 import static junit.framework.Assert.*;
 
 import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
-import static com.xuggle.xuggler.mediatool.DebugListener.Event.*;
 
 public class MediaReaderTest
 {
