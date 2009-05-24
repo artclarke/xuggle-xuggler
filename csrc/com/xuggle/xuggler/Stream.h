@@ -68,6 +68,8 @@ namespace com { namespace xuggle { namespace xuggler
     virtual void setLanguage(const char* language);
 
     virtual IContainer* getContainer();
+    virtual IStream::ParseType getParseType();
+    virtual void setParseType(ParseType type);
 
     virtual int32_t setStreamCoder(IStreamCoder *coder);
     

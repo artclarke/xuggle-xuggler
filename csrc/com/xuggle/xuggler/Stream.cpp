@@ -28,6 +28,8 @@
 #include <com/xuggle/xuggler/StreamCoder.h>
 #include <com/xuggle/xuggler/Container.h>
 
+#include "FfmpegIncludes.h"
+
 VS_LOG_SETUP(VS_CPP_PACKAGE);
 
 namespace com { namespace xuggle { namespace xuggler
@@ -322,5 +324,23 @@ namespace com { namespace xuggle { namespace xuggler
       retval = -1;
     }
     return retval;
+  }
+  
+  IStream::ParseType
+  Stream :: getParseType()
+  {
+    if (mStream) {
+      return (IStream::ParseType)mStream->need_parsing;
+    } else {
+      return IStream::PARSE_NONE;
+    }
+  }
+  
+  void
+  Stream :: setParseType(IStream::ParseType type)
+  {
+    if (mStream) {
+      mStream->need_parsing = (enum AVStreamParseType)type;
+    }
   }
 }}}

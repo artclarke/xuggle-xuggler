@@ -357,6 +357,29 @@ public class IStream extends RefCounted {
     return XugglerJNI.IStream_setStreamCoder(swigCPtr, this, IStreamCoder.getCPtr(newCoder), newCoder);
   }
 
+/**
+ * Get how the decoding codec should parse data from this stream.  
+ * @return	the parse type.  
+ */
+  public IStream.ParseType getParseType() {
+    return IStream.ParseType.swigToEnum(XugglerJNI.IStream_getParseType(swigCPtr, this));
+  }
+
+/**
+ * Set the parse type the decoding codec should use. Set to  
+ * {@link ParseType#PARSE_NONE} if you don't want any parsing  
+ * to be done.  
+ * <p>  
+ * Warning: do not set this flag unless you know what you're doing, 
+ *  
+ * and do not set after you've started decoding.  
+ * </p>  
+ * @param	type The type to set.  
+ */
+  public void setParseType(IStream.ParseType type) {
+    XugglerJNI.IStream_setParseType(swigCPtr, this, type.swigValue());
+  }
+
   public enum Direction {
   /**
    * The direction this stream is going (based on the container).
@@ -394,6 +417,54 @@ public class IStream extends RefCounted {
 
     @SuppressWarnings("unused")
     private Direction(Direction swigEnum) {
+      this.swigValue = swigEnum.swigValue;
+      SwigNext.next = this.swigValue+1;
+    }
+
+    private final int swigValue;
+
+    private static class SwigNext {
+      private static int next = 0;
+    }
+  }
+
+  public enum ParseType {
+  /**
+   * What types of parsing can we do on a call to
+   * {@link IContainer#readNextPacket(IPacket)}
+   */
+    PARSE_NONE,
+    PARSE_FULL,
+    PARSE_HEADERS,
+    PARSE_TIMESTAMPS;
+
+    public final int swigValue() {
+      return swigValue;
+    }
+
+    public static ParseType swigToEnum(int swigValue) {
+      ParseType[] swigValues = ParseType.class.getEnumConstants();
+      if (swigValue < swigValues.length && swigValue >= 0 && swigValues[swigValue].swigValue == swigValue)
+        return swigValues[swigValue];
+      for (ParseType swigEnum : swigValues)
+        if (swigEnum.swigValue == swigValue)
+          return swigEnum;
+      throw new IllegalArgumentException("No enum " + ParseType.class + " with value " + swigValue);
+    }
+
+    @SuppressWarnings("unused")
+    private ParseType() {
+      this.swigValue = SwigNext.next++;
+    }
+
+    @SuppressWarnings("unused")
+    private ParseType(int swigValue) {
+      this.swigValue = swigValue;
+      SwigNext.next = swigValue+1;
+    }
+
+    @SuppressWarnings("unused")
+    private ParseType(ParseType swigEnum) {
       this.swigValue = swigEnum.swigValue;
       SwigNext.next = this.swigValue+1;
     }

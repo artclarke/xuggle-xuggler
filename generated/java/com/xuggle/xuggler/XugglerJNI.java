@@ -393,6 +393,8 @@ class XugglerJNI {
   public final static native void IStream_setLanguage(long jarg1, IStream jarg1_, String jarg2);
   public final static native long IStream_getContainer(long jarg1, IStream jarg1_);
   public final static native int IStream_setStreamCoder(long jarg1, IStream jarg1_, long jarg2, IStreamCoder jarg2_);
+  public final static native int IStream_getParseType(long jarg1, IStream jarg1_);
+  public final static native void IStream_setParseType(long jarg1, IStream jarg1_, int jarg2);
   public final static native long IContainerParameters_getTimeBase(long jarg1, IContainerParameters jarg1_);
   public final static native void IContainerParameters_setTimeBase(long jarg1, IContainerParameters jarg1_, long jarg2, IRational jarg2_);
   public final static native int IContainerParameters_getAudioSampleRate(long jarg1, IContainerParameters jarg1_);

@@ -56,6 +56,7 @@ namespace com { namespace xuggle { namespace xuggler
       INBOUND,
       OUTBOUND,
     } Direction;
+    
     /**
      * Get the {@link Direction} this stream is pointing in.
      * @return The direction of this stream.
@@ -204,6 +205,41 @@ namespace com { namespace xuggle { namespace xuggler
      * @return >= 0 on success; < 0 on error.
      */
     virtual int32_t setStreamCoder(IStreamCoder *newCoder)=0;
+    
+    /*
+     * Added for 2.1
+     */
+    
+    /**
+     * What types of parsing can we do on a call to
+     * {@link IContainer#readNextPacket(IPacket)}
+     */
+    typedef enum ParseType {
+      PARSE_NONE,
+      PARSE_FULL,
+      PARSE_HEADERS,
+      PARSE_TIMESTAMPS,       
+    } ParseType;
+    
+    /**
+     * Get how the decoding codec should parse data from this stream.
+     * @return the parse type.
+     */
+    virtual IStream::ParseType getParseType()=0;
+    
+    /**
+     * Set the parse type the decoding codec should use.  Set to
+     * {@link ParseType#PARSE_NONE} if you don't want any parsing
+     * to be done.
+     * <p>
+     * Warning: do not set this flag unless you know what you're doing,
+     * and do not set after you've started decoding.
+     * </p>
+     * 
+     * @param type The type to set.
+     */
+    virtual void setParseType(ParseType type)=0;
+
   };
 }}}
 

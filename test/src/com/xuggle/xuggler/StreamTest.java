@@ -208,4 +208,27 @@ public class StreamTest extends TestCase
     assertTrue(mStream != null);
     assertTrue(mStream.getIndex() == index);
   }
+  
+  @Test
+  public void testGetParseType()
+  {
+    int retval = -1;
+    retval = mContainer.open("fixtures/testfile.mp3",
+        IContainer.Type.READ, null);
+    assertTrue(retval >= 0);
+    
+    assertEquals(1, mContainer.getNumStreams());
+    
+    // get the mp3 stream, which should require parsing.
+    mStream = mContainer.getStream(0);
+
+    assertEquals(IStream.ParseType.PARSE_FULL, mStream.getParseType());
+    mStream.setParseType(IStream.ParseType.PARSE_NONE);
+    assertEquals(IStream.ParseType.PARSE_NONE, mStream.getParseType());
+    
+    // now, get a container type that doesn't require parsing
+    helperGetStream(0);
+    assertEquals(IStream.ParseType.PARSE_NONE, mStream.getParseType());
+    
+  }
 }
