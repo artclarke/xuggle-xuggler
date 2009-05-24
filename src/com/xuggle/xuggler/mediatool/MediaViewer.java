@@ -21,6 +21,8 @@ package com.xuggle.xuggler.mediatool;
 
 import java.lang.Thread;
 
+import java.io.File;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Formatter;
@@ -46,12 +48,18 @@ import javax.sound.sampled.LineListener;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.LineUnavailableException;
 
+import javax.swing.JTable;
 import javax.swing.JPanel;
 import javax.swing.JFrame;
+import javax.swing.BoxLayout;
+import javax.swing.table.TableModel;
+import javax.swing.table.DefaultTableModel;
 
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IStream;
+import com.xuggle.xuggler.IMediaData;
+import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
@@ -201,6 +209,14 @@ public class MediaViewer extends MediaAdapter
 
   private final Map<MediaFrame, Integer> mFrameIndex = 
     new HashMap<MediaFrame, Integer>();
+
+  // the container which is to be viewed
+
+  private IContainer mContainer;
+
+  // the statistics frame
+
+  private StatsFrame mStatsFrame;
 
   // next frame index
 
@@ -404,7 +420,7 @@ public class MediaViewer extends MediaAdapter
       MediaFrame frame = mFrames.get(streamIndex);
       if (null == frame)
       {
-        frame = new MediaFrame(streamIndex);
+        frame = new MediaFrame(stream);
         mFrames.put(streamIndex, frame);
         mFrameIndex.put(frame, mNextFrameIndex++);
         frame.setLocation(coder.getWidth() * mFrameIndex.get(frame),
@@ -435,6 +451,11 @@ public class MediaViewer extends MediaAdapter
   public void onVideoPicture(IMediaTool tool, IVideoPicture picture,
       BufferedImage image, int streamIndex)
   {
+    // be sure container is set
+
+    if (null == mContainer)
+      mContainer = tool.getContainer();
+
     // if not supposed to play audio, don't
 
     if (!getMode().showVideo())
@@ -479,12 +500,17 @@ public class MediaViewer extends MediaAdapter
   public void onAudioSamples(IMediaTool tool, IAudioSamples samples,
       int streamIndex)
   {
+    // be sure container is set
+
+    if (null == mContainer)
+      mContainer = tool.getContainer();
+
     // if not supposed to play audio, don't
 
     if (!getMode().playAudio())
       return;
 
-    // if in realtime mode
+    // if in realtime mode, queue audio
 
     if (getMode().isRealTime())
     {
@@ -497,17 +523,32 @@ public class MediaViewer extends MediaAdapter
       if (queue != null)
         queue.offerMedia(samples, samples.getTimeStamp(), MICROSECONDS);
     }
+
+    // other wise just play the audio
+
     else
     {
-      SourceDataLine line = getJavaSoundLine(tool.getContainer().getStream(
-          streamIndex));
-
+      IStream stream = tool.getContainer().getStream(streamIndex);
+      SourceDataLine line = getJavaSoundLine(stream);
       if (line != null)
-      {
-        int size = samples.getSize();
-        line.write(samples.getData().getByteArray(0, size), 0, size);
-      }
+        playAudio(stream, line, samples);
     }
+  }
+
+  /**
+   * Play audio samples.
+   * 
+   * @param stream the source stream of the audio
+   * @param line the audio line to play audio samples on
+   * @param samples the audio samples
+   */
+
+  protected void playAudio(IStream stream, SourceDataLine line, 
+    IAudioSamples samples)
+  {
+    int size = samples.getSize();
+    line.write(samples.getData().getByteArray(0, size), 0, size);
+    updateStreamStats(stream, samples);
   }
 
   /**
@@ -527,7 +568,8 @@ public class MediaViewer extends MediaAdapter
 
       // create the queue and add it to the list
 
-      queue = new AudioQueue(mAudioQueueCapacity, TIME_UNIT, line);
+      queue = new AudioQueue(mAudioQueueCapacity, TIME_UNIT, 
+        mContainer.getStream(streamIndex), line);
       mAudioQueues.put(streamIndex, queue);
     }
     return queue;
@@ -561,6 +603,16 @@ public class MediaViewer extends MediaAdapter
    */
 
   @Override
+  public void onOpen(IMediaTool tool)
+  {
+    mContainer = tool.getContainer();
+  };
+
+  /**
+   * {@inheritDoc} Closes any open windows on screen.
+   */
+
+  @Override
   public void onClose(IMediaTool tool)
   {
     flush();
@@ -573,15 +625,32 @@ public class MediaViewer extends MediaAdapter
   };
 
   /**
-   * Show the video time on the video.
-   * 
-   * @param picture
-   *          the video picture from which to extract the time stamp
-   * @param image
-   *          the image on which to draw the time stamp
+   * Update the statistics for a given media stream.
+   *
+   * @param stream the stream for which to update the statistics
+   * @param mediaData the current media data for this stream
    */
 
-  private static void drawStats(IVideoPicture picture, BufferedImage image)
+  protected void updateStreamStats(IStream stream, IMediaData mediaData)
+  {
+    if (mShowStats)
+    {
+      if (null == mStatsFrame)
+        mStatsFrame = new StatsFrame();
+
+      mStatsFrame.update(stream, mediaData);
+    }
+  }
+
+  /**
+   * Show the video time on the video.
+   * 
+   * @param picture the video picture from which to extract the time
+   *        stamp
+   * @param image the image on which to draw the time stamp
+   */
+
+  public static void drawStats(IVideoPicture picture, BufferedImage image)
   {
     if (image == null)
       throw new RuntimeException("must be used with a IMediaTool"
@@ -689,22 +758,27 @@ public class MediaViewer extends MediaAdapter
 
     private final SourceDataLine mLine;
 
+    // source audio stream
+
+    private final IStream mStream;
+
     /**
      * Construct queue and activate it's internal thread.
      * 
-     * @param capacity
-     *          the total duraiton of media stored in the queue
-     * @param unit
-     *          the time unit of the capacity (MILLISECONDS, MICROSECONDS, etc).
-     * @param sourceDataLine
-     *          the swing frame on which samples are displayed
+     * @param capacity the total duraiton of media stored in the queue
+     * @param unit the time unit of the capacity (MILLISECONDS,
+     *        MICROSECONDS, etc).
+     * @param stream the stream from whence the audio issued forth
+     * @param sourceDataLine the swing frame on which samples are
+     *          displayed
      */
 
-    public AudioQueue(long capacity, TimeUnit unit,
-        SourceDataLine sourceDataLine)
+    public AudioQueue(long capacity, TimeUnit unit, IStream stream,
+      SourceDataLine sourceDataLine)
     {
       super(TIME_UNIT.convert(capacity, unit), DEFALUT_AUDIO_EARLY_WINDOW,
           DEFALUT_AUDIO_LATE_WINDOW, TIME_UNIT, Thread.MIN_PRIORITY, "audio");
+      mStream = stream;
       mLine = sourceDataLine;
     }
 
@@ -712,8 +786,7 @@ public class MediaViewer extends MediaAdapter
 
     public void dispatch(IAudioSamples samples, long timeStamp)
     {
-      int size = samples.getSize();
-      mLine.write(samples.getData().getByteArray(0, size), 0, size);
+      playAudio(mStream, mLine, samples);
     }
   }
 
@@ -880,28 +953,18 @@ public class MediaViewer extends MediaAdapter
               {
                 // this is the story of goldilocks testing the the media
 
-//                 long now = MICROSECONDS.convert(System.nanoTime(), NANOSECONDS);
-//                 mStartClockTime.compareAndSet(Global.NO_PTS, now);
-//                 mStartContainerTime.compareAndSet(Global.NO_PTS, delayedItem
-//                     .getTimeStamp());
-//                 long clockTimeFromStart = now - mStartClockTime.get();
-//                 long streamTimeFromStart = delayedItem.getTimeStamp()
-//                     - mStartContainerTime.get();
-
-//                 long delta = streamTimeFromStart - clockTimeFromStart;
-
                 long now = getMediaTime();
                 long delta = delayedItem.getTimeStamp() - now;
 
-                // if the media is too new and unripe, goldilocks sleeps for a
-                // bit
+                // if the media is too new and unripe, goldilocks sleeps
+                // for a bit
 
                 if (delta >= mEarlyWindow)
                 {
                   // debug("delta: " + delta);
                   try
                   {
-                    // sleep(MILLISECONDS.convert(delta - mEarlyWindow, TIME_UNIT));
+                    //sleep(MILLISECONDS.convert(delta - mEarlyWindow, TIME_UNIT));
                     sleep(MILLISECONDS.convert(delta / 3, TIME_UNIT));
                   }
                   catch (InterruptedException e)
@@ -1161,23 +1224,23 @@ public class MediaViewer extends MediaAdapter
 
     private final JPanel mVideoPanel;
 
-    // the stream index
+    // the stream
 
-    private final int mStreamIndex;
+    private final IStream mStream;
 
     /**
      * Construct a media frame.
      * 
-     * @param showStats
-     *          display media statistics on the screen
+     * @param stream the stream which will appear in this frame
      */
 
-    public MediaFrame(int streamIndex)
+    public MediaFrame(IStream stream)
     {
-      // get stream index and set title based on index
+      // get stream and set title based it
 
-      mStreamIndex = streamIndex;
-      setTitle("stream " + streamIndex);
+      mStream = stream;
+      setTitle("Stream #" + mStream.getIndex() + ", " + 
+        mStream.getStreamCoder().getCodec().getLongName());
 
       // the panel which shows the video image
 
@@ -1219,12 +1282,15 @@ public class MediaViewer extends MediaAdapter
 
       if (null == image)
       {
-        IConverter converter = mConverters.get(mStreamIndex);
+        IConverter converter = mConverters.get(mStream.getIndex());
         image = converter.toImage(picture);
       }
 
       if (mShowStats)
+      {
         drawStats(picture, image);
+        updateStreamStats(mStream, picture);
+      }
 
       mImage = image;
       if (null != image)
@@ -1250,6 +1316,130 @@ public class MediaViewer extends MediaAdapter
 
       if (mImage != null)
         graphics.drawImage(mImage, 0, 0, null);
+    }
+  }
+
+  /** A stats frame. */
+
+  protected class StatsFrame extends JFrame
+  {
+    // removes the warning
+
+    public static final long serialVersionUID = 0;
+
+    // the statistics panel
+
+    private JPanel mStatsPanel;
+
+    // the layout
+
+    BoxLayout mLayout;
+
+    // the panels for each stream
+
+    private final Map<IStream, StreamPanel> mStreamPanels = 
+      new HashMap<IStream, StreamPanel>();
+
+    /**
+     * Construct a stats frame.
+     * 
+     * @param container the container 
+     */
+
+    public StatsFrame()
+    {
+      // set the title based on the container
+
+      File file = new File(mContainer.getURL());
+      setTitle("Statistics " + file.getName());
+
+      // the panel which contains the stats
+
+      mStatsPanel = new JPanel();
+      mLayout = new BoxLayout(mStatsPanel, BoxLayout.Y_AXIS);
+      mStatsPanel.setLayout(mLayout);
+
+      // add the videoPanel
+
+      getContentPane().add(mStatsPanel);
+    }
+
+    // update a stream's statistics
+
+    protected void update(IStream stream, IMediaData mediaData)
+    {
+      if (mShowStats && !isVisible())
+        setVisible(true);
+
+      StreamPanel streamPanel = mStreamPanels.get(stream);
+      if (streamPanel == null)
+      {
+        streamPanel = new StreamPanel(stream);
+        mStreamPanels.put(stream, streamPanel);
+        mStatsPanel.add(streamPanel);
+        adjustSize();
+      }
+      
+      streamPanel.update(mediaData);
+      mLayout.invalidateLayout(mStatsPanel);
+    }
+
+    // resize window to fit frame
+
+    protected void adjustSize()
+    {
+      invalidate();
+      pack();
+    }
+
+    // a panel for stream stats
+
+    protected class StreamPanel extends JPanel
+    {
+      // removes the warning
+
+      public static final long serialVersionUID = 0;
+
+      // the stream
+
+      private IStream mStream;
+
+      // the table
+
+      private TableModel mTable = new DefaultTableModel(4, 2);
+
+      // current time stamp
+
+      private IMediaData mMediaData;
+
+      // construct the panel
+
+      public StreamPanel(IStream stream)
+      {
+        mStream = stream;
+        JTable table = new JTable(mTable);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        add(table);
+
+        IStreamCoder coder = mStream.getStreamCoder();
+
+        mTable.setValueAt("index",                 0, 0);
+        mTable.setValueAt(mStream.getIndex(),      0, 1);
+
+        mTable.setValueAt("type",                  1, 0);
+        mTable.setValueAt(coder.getCodecType(),    1, 1);
+        
+        mTable.setValueAt("direction",             2, 0);
+        mTable.setValueAt(mStream.getDirection(),  2, 1);
+      }
+
+      public void update(IMediaData mediaData)
+      {
+        mTable.setValueAt("time",                            3, 0);
+        mTable.setValueAt(mediaData.getFormattedTimeStamp(), 3, 1);
+
+        repaint();
+      }
     }
   }
 }
