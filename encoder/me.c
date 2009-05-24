@@ -23,6 +23,7 @@
  *****************************************************************************/
 
 #include "common/common.h"
+#include "macroblock.h"
 #include "me.h"
 
 /* presets selected from good points on the speed-vs-quality curve of several test videos
@@ -476,7 +477,7 @@ me_hex2:
             int delta = x264_pixel_size[sad_size].w;
             int16_t *xs = h->scratch_buffer;
             int xn;
-            uint16_t *cost_fpel_mvx = x264_cost_mv_fpel[h->mb.i_qp][-m->mvp[0]&3] + (-m->mvp[0]>>2);
+            uint16_t *cost_fpel_mvx = x264_cost_mv_fpel[x264_lambda_tab[h->mb.i_qp]][-m->mvp[0]&3] + (-m->mvp[0]>>2);
 
             h->pixf.sad_x4[sad_size]( zero, m->p_fenc[0], m->p_fenc[0]+delta,
                 m->p_fenc[0]+delta*FENC_STRIDE, m->p_fenc[0]+delta+delta*FENC_STRIDE,
