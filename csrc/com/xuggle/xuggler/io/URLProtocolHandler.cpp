@@ -43,8 +43,9 @@ static void URLProtocolHandler_CheckException(JNIEnv *env)
       
       //env->ExceptionDescribe();
       
-      // clear the exception
-      env->ExceptionClear();
+      // don't clear the exception -- the otherside of the
+      // JNI boundary should re-raise.
+      // env->ExceptionClear();
       
       // free the local reference
       env->DeleteLocalRef(exception);
@@ -128,7 +129,7 @@ int URLProtocolHandler::url_open(URLContext *h, const char *url, int flags)
   }
   catch (std::exception & e)
   {
-    VS_LOG_DEBUG("%s", e.what());
+    VS_LOG_TRACE("%s", e.what());
     retval = -1;
   }
   catch (...)
@@ -154,7 +155,7 @@ int URLProtocolHandler::url_close(URLContext *)
   }
   catch (std::exception & e)
   {
-    VS_LOG_DEBUG("%s", e.what());
+    VS_LOG_TRACE("%s", e.what());
     retval = -1;
   }
   catch (...)
@@ -180,7 +181,7 @@ int64_t URLProtocolHandler::url_seek(URLContext *, int64_t position,
   }
   catch (std::exception & e)
   {
-    VS_LOG_DEBUG("%s", e.what());
+    VS_LOG_TRACE("%s", e.what());
     retval = -1;
   }
   catch (...)
@@ -218,7 +219,7 @@ int URLProtocolHandler::url_read(URLContext *, unsigned char* buf, int size)
   }
   catch (std::exception& e)
   {
-    VS_LOG_DEBUG("%s", e.what());
+    VS_LOG_TRACE("%s", e.what());
     retval = -1;
   }
   catch (...)
@@ -259,7 +260,7 @@ int URLProtocolHandler::url_write(URLContext *, unsigned char* buf, int size)
   }
   catch (std::exception & e)
   {
-    VS_LOG_DEBUG("%s", e.what());
+    VS_LOG_TRACE("%s", e.what());
     retval = -1;
   }
   catch (...)

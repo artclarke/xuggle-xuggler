@@ -6,6 +6,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.xuggler.io.IURLProtocolHandler;
+
 import static org.junit.Assert.*;
 
 /**
@@ -73,4 +75,54 @@ public class InterruptingExhaustiveTest
     assertTrue("test did not pass", testPassed.get());
   }
 
+  @Test
+  public void testInteruptStatusPreservedAccrossJNICalls()
+  {
+    IContainer container = IContainer.make();
+    
+    IURLProtocolHandler handler = new IURLProtocolHandler(){
+      public int close()
+      {
+        return 0;
+      }
+
+      public boolean isStreamed(String url, int flags)
+      {
+        return true;
+      }
+
+      public int open(String url, int flags)
+      {
+        return 0;
+      }
+
+      public int read(byte[] buf, int size)
+      {
+        // interrupt the thread
+        Thread.currentThread().interrupt();
+        throw new RuntimeException("doh");
+      }
+
+      public long seek(long offset, int whence)
+      {
+        return -1;
+      }
+
+      public int write(byte[] buf, int size)
+      {
+        return size;
+      }
+    };
+    
+    assertTrue(!Thread.currentThread().isInterrupted());
+    try {
+      container.open(handler,
+          IContainer.Type.READ, null, true, false);
+      fail("should not get here");
+    } catch (RuntimeException e) {
+      // ignore and make sure we're interrupted below.
+    }
+    assertTrue("thread interrupt not preserved from open",
+        Thread.currentThread().isInterrupted());
+  }
 }

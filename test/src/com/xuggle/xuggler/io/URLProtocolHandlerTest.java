@@ -93,49 +93,46 @@ public class URLProtocolHandlerTest
   }
 
   
-  @Test
+  @Test(expected=IllegalStateException.class)
   public void testOpenException()
   {
-    assertEquals("should fail", -1, FfmpegIO.url_open(mHandle, "test:fail", IURLProtocolHandler.URL_RDWR));
+    FfmpegIO.url_open(mHandle, "test:fail", IURLProtocolHandler.URL_RDWR);
   }
   
-  @Test
+  @Test(expected=IllegalStateException.class)
   public void testReadException()
   {
     int retval = -1;
     retval = FfmpegIO.url_open(mHandle, "test:succeed", IURLProtocolHandler.URL_RDWR);
     assertEquals("should succeed", 0, retval);
-    retval = FfmpegIO.url_read(mHandle, mBuffer, mBuffer.length);
-    assertEquals("should fail", -1, retval);
+    FfmpegIO.url_read(mHandle, mBuffer, mBuffer.length);
   }
   
-  @Test
+  @Test(expected=IllegalStateException.class)
   public void testWriteException()
   {
     int retval = -1;
     retval = FfmpegIO.url_open(mHandle, "test:succeed", IURLProtocolHandler.URL_RDWR);
     assertEquals("should succeed", 0, retval);
-    retval = FfmpegIO.url_write(mHandle, mBuffer, mBuffer.length);
-    assertEquals("should fail", -1, retval);  }
+    FfmpegIO.url_write(mHandle, mBuffer, mBuffer.length);
+  }
   
-  @Test
+  @Test(expected=IllegalStateException.class)
   public void testSeekException()
   {
     int retval = -1;
     retval = FfmpegIO.url_open(mHandle, "test:succeed", IURLProtocolHandler.URL_RDWR);
     assertEquals("should succeed", 0, retval);
-    retval = (int)FfmpegIO.url_seek(mHandle, 0, IURLProtocolHandler.SEEK_END);
-    assertEquals("should fail", -1, retval);
+    FfmpegIO.url_seek(mHandle, 0, IURLProtocolHandler.SEEK_END);
   }
   
-  @Test
+  @Test(expected=IllegalStateException.class)
   public void testCloseException()
   {
     int retval = -1;
     retval = FfmpegIO.url_open(mHandle, "test:succeed", IURLProtocolHandler.URL_RDWR);
     assertEquals("should succeed", 0, retval);
-    retval = FfmpegIO.url_close(mHandle);
-    assertEquals("should fail", -1, retval);
+    FfmpegIO.url_close(mHandle);
   }
 
   @Test
@@ -155,4 +152,5 @@ public class URLProtocolHandlerTest
     assertEquals("file", protocol);
     assertEquals("/foo/bar", resource);
   }
+  
 }
