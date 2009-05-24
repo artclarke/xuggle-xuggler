@@ -43,9 +43,11 @@ static void URLProtocolHandler_CheckException(JNIEnv *env)
       
       //env->ExceptionDescribe();
       
-      // don't clear the exception -- the otherside of the
-      // JNI boundary should re-raise.
-      // env->ExceptionClear();
+      // Clear the pending exception.  This is necessary because
+      // other JNI methods may need to be called afterwards to 
+      // clean up the IO condition.  This means our URL
+      // protocolhandler is eating an exception, but them's the breaks.
+      env->ExceptionClear();
       
       // free the local reference
       env->DeleteLocalRef(exception);

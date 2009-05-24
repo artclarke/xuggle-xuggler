@@ -513,7 +513,7 @@ namespace com { namespace xuggle { namespace ferry {
     env->DeleteLocalRef(thread);
     if (env->ExceptionCheck())
       result = false;
-    if (result)
+    if (result != JNI_FALSE)
       return 1;
     return 0; 
   }
@@ -555,9 +555,9 @@ namespace com { namespace xuggle { namespace ferry {
       // this is an error if these are not set up, but we're
       // going to assume no interrupt then.
       return false;
-    if (env->IsInstanceOf(exception,
-        static_cast<jclass>(mInterruptedException_class))
-    )
+    if (env->IsInstanceOf(
+        exception,
+        static_cast<jclass>(mInterruptedException_class))!=JNI_FALSE)
       return true;
     return false;
   }
