@@ -22,6 +22,7 @@
 // for strncpy
 #include <string.h>
 
+#include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/ferry/Logger.h>
 
 #include <com/xuggle/xuggler/Container.h>
@@ -33,6 +34,14 @@
 #include <com/xuggle/xuggler/Property.h>
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);
+
+#define XUGGLER_CHECK_INTERRUPT(retval) do { \
+    if ((retval) < 0) { \
+       JNIHelper* helper = JNIHelper::getHelper(); \
+      if (helper && helper->isInterrupted()) \
+        (retval) = AVERROR(EINTR); \
+        } \
+} while(0)
 
 using namespace com::xuggle::ferry;
 
@@ -145,6 +154,7 @@ namespace com { namespace xuggle { namespace xuggler
         retval = -1;
       }
     }
+    XUGGLER_CHECK_INTERRUPT(retval);
     return retval;
   }
 
@@ -328,6 +338,7 @@ namespace com { namespace xuggle { namespace xuggler
         setupAllInputStreams();
       retval = mFormatContext->nb_streams;
     }
+    XUGGLER_CHECK_INTERRUPT(retval);
     return retval;
   }
 
@@ -420,6 +431,7 @@ namespace com { namespace xuggle { namespace xuggler
       mIsOpened = false;
       mIsMetaDataQueried=false;
     }
+    XUGGLER_CHECK_INTERRUPT(retval);
     return retval;
   }
 
@@ -495,6 +507,7 @@ namespace com { namespace xuggle { namespace xuggler
         }
       }
     }
+    XUGGLER_CHECK_INTERRUPT(retval);
     return retval;
   }
   int32_t
@@ -557,6 +570,7 @@ namespace com { namespace xuggle { namespace xuggler
       VS_LOG_ERROR("Error: %s", e.what());
       retval = -1;
     }
+    XUGGLER_CHECK_INTERRUPT(retval);
     return retval;
   }
 
@@ -629,6 +643,7 @@ namespace com { namespace xuggle { namespace xuggler
       VS_LOG_ERROR("Error: %s", e.what());
       retval = -1;
     }
+    XUGGLER_CHECK_INTERRUPT(retval);
     return retval;
   }
   int32_t
@@ -672,7 +687,7 @@ namespace com { namespace xuggle { namespace xuggler
     // regardless of whether or not the write trailer succeeded, since
     // an attempt has occurred, we shouldn't call it twice.
     mNeedTrailerWrite = false;
-
+    XUGGLER_CHECK_INTERRUPT(retval);
     return retval;
   }
 
@@ -710,6 +725,7 @@ namespace com { namespace xuggle { namespace xuggler
     {
       VS_LOG_WARN("Attempt to queryStreamMetaData but container is not open");
     }
+    XUGGLER_CHECK_INTERRUPT(retval);
     return retval;
   }
 
@@ -730,6 +746,7 @@ namespace com { namespace xuggle { namespace xuggler
     {
       VS_LOG_WARN("Attempt to seekKeyFrame but container is not open");
     }
+    XUGGLER_CHECK_INTERRUPT(retval);
     return retval;
   }
 
@@ -919,7 +936,7 @@ namespace com { namespace xuggle { namespace xuggler
       VS_LOG_ERROR("Error: %s", e.what());
       retval = -1;
     }
-
+    XUGGLER_CHECK_INTERRUPT(retval);
     return retval;
   }
 

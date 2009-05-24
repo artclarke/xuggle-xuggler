@@ -80,14 +80,22 @@ namespace com { namespace xuggle { namespace xuggler
 
     /**
      * Open this container and make it ready for reading or writing.
-     *
-     * The caller must call close() when done, but if not, the
+     * <p>
+     * The caller must call {@link #close()} when done, but if not, the
      * {@link IContainer} will eventually close
      * them later but warn to the logging system.
-     *
+     * </p>
+     * <p>
      * This just forwards to {@link #open(String, Type, IContainerFormat, boolean, boolean)}
      * passing false for aStreamsCanBeAddedDynamically, and true for aLookForAllStreams.
-     *
+     * </p><p>If the current thread is interrupted while this blocking method
+     * is running the method will return with a negative value.
+     * To check if the method exited because of an interruption
+     * pass the return value to {@link IError#make(int)} and then
+     * check {@link IError#getType()} to see if it is
+     * {@link IError.Type#ERROR_INTERRUPTED}.  
+     * </p>
+     * 
      * @param url The resource to open; The format of this string is any
      *   url that FFMPEG supports (including additional protocols if added
      *   through the xuggler.io library).
@@ -103,11 +111,17 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Open this container and make it ready for reading or writing, optionally
      * reading as far into the container as necessary to find all streams.
-     *
-     * The caller must call close() when done, but if not, the
+     * <p>The caller must call {@link #close()} when done, but if not, the
      * {@link IContainer} will eventually close
      * them later but warn to the logging system.
-     *
+     * </p><p>If the current thread is interrupted while this blocking method
+     * is running the method will return with a negative value.
+     * To check if the method exited because of an interruption
+     * pass the return value to {@link IError#make(int)} and then
+     * check {@link IError#getType()} to see if it is
+     * {@link IError.Type#ERROR_INTERRUPTED}.  
+     * </p>
+     * 
      * @param url The resource to open; The format of this string is any
      *   url that FFMPEG supports (including additional protocols if added
      *   through the xuggler.io library).
@@ -128,7 +142,7 @@ namespace com { namespace xuggle { namespace xuggler
         bool aStreamsCanBeAddedDynamically,
         bool aQueryStreamMetaData)=0;
 
-        /**
+    /**
      * Returns the IContainerFormat object being used for this IContainer,
      * or null if the {@link IContainer} doesn't yet know.
      *
@@ -138,7 +152,17 @@ namespace com { namespace xuggle { namespace xuggler
 
     /**
      * Close the container.  open() must have been called first, or
-     * else an error is returned.
+     * else an error is returned.<p>If the current thread is interrupted while this blocking method
+     * is running the method will return with a negative value.
+     * To check if the method exited because of an interruption
+     * pass the return value to {@link IError#make(int)} and then
+     * check {@link IError#getType()} to see if it is
+     * {@link IError.Type#ERROR_INTERRUPTED}.  
+     * </p>
+     * <p>
+     * If this method exits because of an interruption,
+     * all resources will be closed anyway.
+     * </p>
      *
      * @return >= 0 on success; < 0 on error.
      */
@@ -147,19 +171,24 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Find out the type of this container.
      *
-     * @return The Type of this container.  READ if not yet opened.
+     * @return The Type of this container.  
+     * {@link IContainer.Type#READ} if not yet opened.
      */
     virtual Type getType()=0;
 
     /**
      * The number of streams in this container.
-     *
-     * If opened in READ mode, this will query the stream and find out
-     * how many streams are in it.
-     *
-     * If opened in WRITE mode, this will return the number of streams
-     * the caller has added to date.
-     *
+     * <p>If opened in {@link IContainer.Type#READ} mode, this will query the stream and find out
+     * how many streams are in it.</p><p>If opened in
+     * {@link IContainer.Type#WRITE} mode, this will return the number of streams
+     * the caller has added to date.</p><p>If the current thread is interrupted while this blocking method
+     * is running the method will return with a negative value.
+     * To check if the method exited because of an interruption
+     * pass the return value to {@link IError#make(int)} and then
+     * check {@link IError#getType()} to see if it is
+     * {@link IError.Type#ERROR_INTERRUPTED}.  
+     * </p> 
+     * 
      * @return The number of streams in this container.
      */
     virtual int32_t getNumStreams()=0;
@@ -183,14 +212,21 @@ namespace com { namespace xuggle { namespace xuggler
 
     /**
      * Adds a header, if needed, for this container.
-     *
+     * <p>
      * Call this AFTER you've added all streams you want to add,
      * opened all IStreamCoders for those streams (with proper
      * configuration) and
      * before you write the first frame.  If you attempt to write
      * a header but haven't opened all codecs, this method will log
-     * a warning.
-     *
+     * a warning, and your output file will likely be corrupt.
+     * </p><p>If the current thread is interrupted while this blocking method
+     * is running the method will return with a negative value.
+     * To check if the method exited because of an interruption
+     * pass the return value to {@link IError#make(int)} and then
+     * check {@link IError#getType()} to see if it is
+     * {@link IError.Type#ERROR_INTERRUPTED}.  
+     * </p>
+     * 
      * @return 0 if successful.  < 0 if not.  Always -1 if this is
      *           a READ container.
      */
@@ -200,26 +236,44 @@ namespace com { namespace xuggle { namespace xuggler
      * Adds a trailer, if needed, for this container.
      *
      * Call this AFTER you've written all data you're going to write
-     * to this container but BEFORE you close your IStreamCoders.
+     * to this container but BEFORE you call
+     * {@link IStreamCoder#close()} on your {@link IStreamCoder}
+     * objects.
      * <p>
      * You must call {@link #writeHeader()} before you call
-     * this (and if you don't, the IContainer will warn loudly and not
+     * this (and if you don't, the {@link IContainer}
+     * will warn loudly and not
      * actually write the trailer).
      * </p>
      * <p>
-     * If you have closed any of the IStreamCoder objects that were open when you called
+     * If you have closed any of the {@link IStreamCoder} objects
+     * that were open when you called
      * {@link #writeHeader()}, then this method will fail.
+     * </p><p>If the current thread is interrupted while this blocking method
+     * is running the method will return with a negative value.
+     * To check if the method exited because of an interruption
+     * pass the return value to {@link IError#make(int)} and then
+     * check {@link IError#getType()} to see if it is
+     * {@link IError.Type#ERROR_INTERRUPTED}.  
      * </p>
-     * @return 0 if successful.  < 0 if not.  Always -1 if this is
+     * 
+     * @return 0 if successful.  < 0 if not.  Always <0 if this is
      *           a READ container.
      */
     virtual int32_t writeTrailer()=0;
 
     /**
      * Reads the next packet into the IPacket.  This method will
-     * release any buffers currently help by this packet and allocate
-     * new ones (sorry; such is the way FFMPEG works).
-     *
+     * release any buffers currently held by this packet and allocate
+     * new ones.
+     * <p>If the current thread is interrupted while this blocking method
+     * is running the method will return with a negative value.
+     * To check if the method exited because of an interruption
+     * pass the return value to {@link IError#make(int)} and then
+     * check {@link IError#getType()} to see if it is
+     * {@link IError.Type#ERROR_INTERRUPTED}.  
+     * </p>
+     * 
      * @param  packet [In/Out] The packet the IContainer will read into.
      *
      * @return 0 if successful, or <0 if not.
@@ -228,7 +282,14 @@ namespace com { namespace xuggle { namespace xuggler
 
     /**
      * Writes the contents of the packet to the container.
-     *
+     * <p>If the current thread is interrupted while this blocking method
+     * is running the method will return with a negative value.
+     * To check if the method exited because of an interruption
+     * pass the return value to {@link IError#make(int)} and then
+     * check {@link IError#getType()} to see if it is
+     * {@link IError.Type#ERROR_INTERRUPTED}.  
+     * </p>
+     * 
      * @param packet [In] The packet to write out.
      * @param forceInterleave [In] If true, then this {@link IContainer} will
      *   make sure all packets
@@ -236,7 +297,7 @@ namespace com { namespace xuggle { namespace xuggler
      *   If false, the {@link IContainer} won't,
      *   and it's up to the caller to interleave if necessary.
      *
-     * @return # of bytes written if successful, or -1 if not.
+     * @return # of bytes written if successful, or <0 if not.
      */
     
     virtual int32_t writePacket(IPacket *packet, bool forceInterleave)=0;
@@ -244,13 +305,19 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Writes the contents of the packet to the container, but make sure the
      * packets are interleaved.
-     *
+     * <p>
      * This means the {@link IContainer} may have to queue up packets from one
      * stream while waiting for packets from another.
-     *
+     * </p><p>If the current thread is interrupted while this blocking method
+     * is running the method will return with a negative value.
+     * To check if the method exited because of an interruption
+     * pass the return value to {@link IError#make(int)} and then
+     * check {@link IError#getType()} to see if it is
+     * {@link IError.Type#ERROR_INTERRUPTED}.  
+     * </p>
      * @param packet [In] The packet to write out.
      *
-     * @return # of bytes written if successful, or -1 if not.
+     * @return # of bytes written if successful, or <0 if not.
      */
     
     virtual int32_t writePacket(IPacket *packet)=0;
@@ -273,13 +340,18 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Attempts to read all the meta data in this stream, potentially by reading ahead
      * and decoding packets.
-     *
+     * <p>
      * Any packets this method reads ahead will be cached and correctly returned when you
      * read packets, but this method can be non-blocking potentially until end of container
      * to get all meta data.  Take care when you call it.
-     *
-     * After this method is called, other meta data methods like {@link #getDuration()} should
-     * work.
+     * </p><p>After this method is called, other meta data methods like {@link #getDuration()} should
+     * work.</p> <p>If the current thread is interrupted while this blocking method
+     * is running the method will return with a negative value.
+     * To check if the method exited because of an interruption
+     * pass the return value to {@link IError#make(int)} and then
+     * check {@link IError#getType()} to see if it is
+     * {@link IError.Type#ERROR_INTERRUPTED}.  
+     * </p>
      *
      * @return >= 0 on success; <0 on failure.
      */
@@ -289,7 +361,13 @@ namespace com { namespace xuggle { namespace xuggler
      * Seeks to the key frame at (or the first one after) the given timestamp.  This method will
      * always fail for any IContainer that is not seekable (e.g. is streamed).  When successful
      * the next call to {@link #readNextPacket(IPacket)} will get the next keyframe from the
-     * sought for stream.
+     * sought for stream.<p>If the current thread is interrupted while this blocking method
+     * is running the method will return with a negative value.
+     * To check if the method exited because of an interruption
+     * pass the return value to {@link IError#make(int)} and then
+     * check {@link IError#getType()} to see if it is
+     * {@link IError.Type#ERROR_INTERRUPTED}.  
+     * </p>
      *
      * @param streamIndex The stream to search for the keyframe in; must be a
      *   stream the IContainer has either queried
@@ -313,12 +391,13 @@ namespace com { namespace xuggle { namespace xuggler
 
     /**
      * Get the starting timestamp in microseconds of the first packet of the earliest stream in this container.
-     *
+     * <p>
      * This will only return value values either either (a) for non-streamable
      * containers where IContainer can calculate the container size or
      * (b) after IContainer has actually read the
      * first packet from a streamable source.
-     *
+     * </p>
+     * 
      * @return The starting timestamp in microseconds, or {@link Global#NO_PTS} if not known.
      */
     virtual int64_t getStartTime()=0;
@@ -334,9 +413,9 @@ namespace com { namespace xuggle { namespace xuggler
 
     /**
      * Get the calculated overall bit rate of this file.
-     *
+     * <p>
      * This will only return a valid value if the container is non-streamed and supports seek.
-     *
+     * </p>
      * @return The overall bit rate in bytes per second, or <0 on error.
      */
     virtual int32_t getBitRate()=0;
@@ -434,9 +513,12 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Gets a property on this Object.
      * 
+     * <p>
      * Note for C++ callers; you must free the returned array with
-     * delete[] in order to avoid a memory leak.  Other language
-     * folks need not worry.
+     * delete[] in order to avoid a memory leak.  If you call
+     * from Java or any other language, you don't need to worry
+     * about this.
+     * </p>
      * 
      * @param name property name
      * 
@@ -531,8 +613,15 @@ namespace com { namespace xuggle { namespace xuggler
     
     /**
      * Flush all packets to output.
-     *
-     * Will only work on output containers.
+     * <p>
+     * Will only work on {@link IContainer.Type#WRITE} containers.
+     * </p><p>If the current thread is interrupted while this blocking method
+     * is running the method will return with a negative value.
+     * To check if the method exited because of an interruption
+     * pass the return value to {@link IError#make(int)} and then
+     * check {@link IError#getType()} to see if it is
+     * {@link IError.Type#ERROR_INTERRUPTED}.  
+     * </p>
      *  
      * @return >= 0 on success; <0 on error
      */
@@ -575,12 +664,12 @@ namespace com { namespace xuggle { namespace xuggler
     
     /**
      * Set the parameters for this container.
-     * 
+     * <p> 
      * Normally this is not required, but if you're opening
      * something like a webcam, you need to specify to the
-     * Container parameters such as a time base, width, height,
+     * {@link IContainer} parameters such as a time base, width, height,
      * etc.
-     * 
+     *  </p>
      * @param parameters The parameters to set.  Ignored if null.
      */
     virtual void setParameters(IContainerParameters* parameters)=0;
