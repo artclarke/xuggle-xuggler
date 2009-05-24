@@ -38,15 +38,11 @@ public class MediaViewerTest
   private final Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
 
-  // show the videos during transcoding?
-
-  final boolean SHOW_VIDEO = !System.getProperty(
-    this.getClass().getName() + ".ShowVideo", "false").equals("false");
-
-  // test broken media files
-
-  final boolean TEST_BROKEN = !System.getProperty(
-    this.getClass().getName() + ".TestBroken", "false").equals("false");
+  // the media view mode
+  
+  final MediaViewer.Mode mViewerMode = MediaViewer.Mode.valueOf(
+    System.getProperty(this.getClass().getName() + ".ViewerMode", 
+      DISABLED.name()));
 
   // standard test name prefix
 
@@ -75,8 +71,7 @@ public class MediaViewerTest
     reader.setAddDynamicStreams(false);
     reader.setQueryMetaData(true);
 
-    if (SHOW_VIDEO)
-      reader.addListener(new MediaViewer(AUDIO_VIDEO, true, 0));
+    reader.addListener(new MediaViewer(mViewerMode, true, 0));
 
     IError rv;
     while ((rv = reader.readPacket()) == null)

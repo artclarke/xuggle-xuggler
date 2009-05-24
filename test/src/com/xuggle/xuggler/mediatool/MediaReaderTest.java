@@ -35,6 +35,9 @@ import java.awt.image.BufferedImage;
 
 import static junit.framework.Assert.*;
 
+import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
+import static com.xuggle.xuggler.mediatool.DebugListener.Event.*;
+
 public class MediaReaderTest
 {
   // the log
@@ -42,15 +45,11 @@ public class MediaReaderTest
   private final Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
 
-  // show the videos during transcoding?
-
-  final boolean SHOW_VIDEO = !System.getProperty(
-    this.getClass().getName() + ".ShowVideo", "false").equals("false");
-
-  // test broken media files
-
-  final boolean TEST_BROKEN = !System.getProperty(
-    this.getClass().getName() + ".TestBroken", "false").equals("false");
+  // the media view mode
+  
+  final MediaViewer.Mode mViewerMode = MediaViewer.Mode.valueOf(
+    System.getProperty(this.getClass().getName() + ".ViewerMode", 
+      DISABLED.name()));
 
   // standard test name prefix
 
@@ -87,8 +86,7 @@ public class MediaReaderTest
     // create a new media reader
 
     MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, false, null);
-    if (SHOW_VIDEO)
-      mr.addListener(new MediaViewer(true));
+    mr.addListener(new MediaViewer(mViewerMode, true));
 
     // setup the the listener
 
@@ -102,7 +100,8 @@ public class MediaReaderTest
           ++counts[0];
         }
 
-        public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
+        public void onAudioSamples(IMediaTool tool, IAudioSamples samples, 
+          int streamIndex)
         {
           assertNotNull("audio samples should be created", samples);
           ++counts[1];
@@ -137,16 +136,17 @@ public class MediaReaderTest
   @Test
   public void testCreateBufferedImages()
   {
-    if (!IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
-      // we're using the LGPL version of Xuggler which can't do this... exit
+    // if color space conversion is not supported, skip this test 
+
+    if (!IVideoResampler.isSupported(
+        IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
       return;
     
     // create a new media reader
 
     MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, true,
       ConverterFactory.XUGGLER_BGR_24);
-    if (SHOW_VIDEO)
-      mr.addListener(new MediaViewer(true));
+    mr.addListener(new MediaViewer(mViewerMode, true));
 
     // setup the the listener
 
@@ -177,8 +177,10 @@ public class MediaReaderTest
   @Test
   public void testOpenWithContainer()
   {
-    if (!IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
-      // we're using the LGPL version of Xuggler which can't do this... exit
+    // if color space conversion is not supported, skip this test 
+
+    if (!IVideoResampler.isSupported(
+        IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
       return;
     
     final int[] counts = new int[2];
@@ -190,7 +192,7 @@ public class MediaReaderTest
     // open the container
     
     if (container.open(TEST_FILE_20_SECONDS, IContainer.Type.READ,
-        null, true, false) < 0)
+        null, false, true) < 0)
       throw new IllegalArgumentException(
         "could not open: " + TEST_FILE_20_SECONDS);
         
@@ -198,8 +200,7 @@ public class MediaReaderTest
 
     MediaReader mr = new MediaReader(container, true,
       ConverterFactory.XUGGLER_BGR_24);
-    if (SHOW_VIDEO)
-      mr.addListener(new MediaViewer(true));
+    mr.addListener(new MediaViewer(mViewerMode, true));
 
     // setup the the listener
 
@@ -213,7 +214,8 @@ public class MediaReaderTest
           ++counts[0];
         }
 
-        public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
+        public void onAudioSamples(IMediaTool tool, IAudioSamples samples,
+          int streamIndex)
         {
           assertNotNull("audio samples should be created", samples);
           ++counts[1];

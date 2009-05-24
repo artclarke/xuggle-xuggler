@@ -46,6 +46,8 @@ import com.xuggle.xuggler.TestAudioSamplesGenerator;
 
 import static junit.framework.Assert.*;
 
+import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
+
 public class MediaWriterTest
 {
   // the log
@@ -53,15 +55,11 @@ public class MediaWriterTest
   private final Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
 
-  // show the videos during transcoding?
-
-  final boolean SHOW_VIDEO = !System.getProperty(
-    this.getClass().getName() + ".ShowVideo", "false").equals("false");
-
-  // test broken media files
-
-  final boolean TEST_BROKEN = !System.getProperty(
-    this.getClass().getName() + ".TestBroken", "false").equals("false");
+  // the media view mode
+  
+  final MediaViewer.Mode mViewerMode = MediaViewer.Mode.valueOf(
+    System.getProperty(this.getClass().getName() + ".ViewerMode", 
+      DISABLED.name()));
 
   // standard test name prefix
 
@@ -135,8 +133,7 @@ public class MediaWriterTest
     file.delete();
     assert(!file.exists());
     MediaWriter writer = new MediaWriter(file.toString(), mReader);
-    if (SHOW_VIDEO)
-      writer.addListener(new MediaViewer(true));
+    writer.addListener(new MediaViewer(mViewerMode, true));
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
@@ -155,8 +152,7 @@ public class MediaWriterTest
     file.delete();
     assert(!file.exists());
     MediaWriter writer = new MediaWriter(file.toString(), mReader);
-    if (SHOW_VIDEO)
-      writer.addListener(new MediaViewer(true));
+    writer.addListener(new MediaViewer(mViewerMode, true));
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
@@ -175,8 +171,7 @@ public class MediaWriterTest
     assert(!file.exists());
     MediaWriter writer = new MediaWriter(file.toString(), 
       mReader.getContainer());
-    if (SHOW_VIDEO)
-      writer.addListener(new MediaViewer(true));
+    writer.addListener(new MediaViewer(mViewerMode, true));
     mReader.addListener(writer);
     while (mReader.readPacket() == null)
       ;
@@ -208,8 +203,7 @@ public class MediaWriterTest
     // create the writer
     
     MediaWriter writer = new MediaWriter(file.toString());
-    if (SHOW_VIDEO)
-      writer.addListener(new MediaViewer(true));
+    writer.addListener(new MediaViewer(mViewerMode, true));
 
     // add the video stream
 
@@ -336,9 +330,7 @@ public class MediaWriterTest
     // create the writer
     
     MediaWriter writer = new MediaWriter(file.toString());
-    //writer.addListener(new DebugListener(DebugListener.META_DATA));
-    if (SHOW_VIDEO)
-      writer.addListener(new MediaViewer(true));
+    writer.addListener(new MediaViewer(mViewerMode, true));
 
     // add the video stream
 

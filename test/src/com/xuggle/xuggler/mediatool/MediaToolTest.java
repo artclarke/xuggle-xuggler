@@ -41,14 +41,10 @@ public class MediaToolTest
   { log.trace("<init>"); }
 
   // show the videos during transcoding?
-
-  final boolean SHOW_VIDEO = !System.getProperty(
-    this.getClass().getName() + ".ShowVideo", "false").equals("false");
-
-  // test broken media files
-
-  final boolean TEST_BROKEN = !System.getProperty(
-    this.getClass().getName() + ".TestBroken", "false").equals("false");
+  
+  final MediaViewer.Mode mViewerMode = MediaViewer.Mode.valueOf(
+    System.getProperty(this.getClass().getName() + ".ViewerMode", 
+      DISABLED.name()));
 
   // standard test name prefix
 
@@ -114,8 +110,7 @@ public class MediaToolTest
     MediaReader reader = new MediaReader(INPUT_FILENAME);
     MediaWriter writer = new MediaWriter(OUTPUT_FILENAME, reader);
 
-    if (SHOW_VIDEO)
-      writer.addListener(new MediaViewer(FAST, true, 0));
+    writer.addListener(new MediaViewer(mViewerMode, true, 0));
 
     DebugListener readerCounter = new DebugListener(URL, META_DATA);
     DebugListener writerCounter = new DebugListener(EVENT, META_DATA);

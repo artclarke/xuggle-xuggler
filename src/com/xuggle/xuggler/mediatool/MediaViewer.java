@@ -91,7 +91,11 @@ public class MediaViewer extends MediaAdapter
       
       /** play only video, as fast as possible */
       
-      FAST(false, true, false);
+      FAST(false, true, false),
+
+      /** play neither audio or video, also disables statistics */
+
+      DISABLED(false, false, false);
 
     // play audio
     
@@ -224,9 +228,90 @@ public class MediaViewer extends MediaAdapter
 
   private SourceDataLine mDataLine = null;
 
-  /*
-   * Get media time.  This is time which should be used to choose to
-   * delay, present, or drop a media frame.
+  /**
+   * Construct a default media viewer.
+   */
+
+  public MediaViewer()
+  {
+    this(AUDIO_VIDEO, false, JFrame.DISPOSE_ON_CLOSE);
+  }
+
+  /**
+   * Construct a media viewer which plays in the specifed mode.
+   * 
+   * @param mode the play mode of this viewer
+   */
+
+  public MediaViewer(Mode mode)
+  {
+    this(mode, false, JFrame.DISPOSE_ON_CLOSE);
+  }
+
+  /**
+   * Construct a media viewer and optionally show media statistics.
+   * 
+   * @param showStats display media statistics
+   */
+
+  public MediaViewer(boolean showStats)
+  {
+    this(AUDIO_VIDEO, showStats, JFrame.DISPOSE_ON_CLOSE);
+  }
+
+  /**
+   * Construct a media viewer which plays in the specifed mode and
+   * optionally shows media statistics.
+   * 
+   * @param mode the play mode of this viewer
+   * @param showStats display media statistics
+   */
+
+  public MediaViewer(Mode mode, boolean showStats)
+  {
+    this(mode, showStats, JFrame.DISPOSE_ON_CLOSE);
+  }
+
+  /**
+   * Construct a media viewer, optionally show media statistics and
+   * specify the default frame close behavior.
+   * 
+   * @param showStats display media statistics
+   * @param defaultCloseOperation what should Swing do if the window is
+   *    closed. See the {@link javax.swing.WindowConstants}
+   *    documentation for valid values.
+   */
+
+  public MediaViewer(boolean showStats, int defaultCloseOperation)
+  {
+    this(AUDIO_VIDEO, showStats, defaultCloseOperation);
+  }
+
+  /**
+   * Construct a media viewer which plays in the specifed mode, optionally
+   * shows media statistics and specifies the default frame close
+   * behavior.
+   * 
+   * @param mode the play mode of this viewer
+   * @param showStats display media statistics
+   * @param defaultCloseOperation what should Swing do if the window is
+   *    closed. See the {@link javax.swing.WindowConstants}
+   *    documentation for valid values.
+   */
+
+  public MediaViewer(Mode mode, boolean showStats,
+      int defaultCloseOperation)
+  {
+    setMode(mode);
+    mShowStats = showStats;
+    mDefaultCloseOperation = defaultCloseOperation;
+  }
+
+  /**
+   * Get media time.  This is time used to choose to delay, present, or
+   * drop a media frame.
+   *
+   * @return the current presentation time of the media
    */
 
   public long getMediaTime()
@@ -244,15 +329,10 @@ public class MediaViewer extends MediaAdapter
       // if no data line then no time has passed
 
       if (null == mDataLine)
-      {
-        log.debug("no media time");
         return 0;
-      }
 
       // if there is a data line use it's play time to identify media
       // time
-
-      
 
       return TIME_UNIT.convert(mDataLine.getMicrosecondPosition(), MICROSECONDS);
     }
@@ -267,68 +347,6 @@ public class MediaViewer extends MediaAdapter
     }
   }
   
-  /**
-   * Construct a media viewer.
-   */
-
-  public MediaViewer()
-  {
-    this(AUDIO_VIDEO, false, JFrame.DISPOSE_ON_CLOSE);
-  }
-
-  /**
-   * Construct a media viewer, optionally show basic media statistics statistics
-   * overlaid on the video.
-   * 
-   * @param showStats
-   *          display media statistics
-   */
-
-  public MediaViewer(boolean showStats)
-  {
-    this(AUDIO_VIDEO, showStats, JFrame.DISPOSE_ON_CLOSE);
-  }
-
-  /**
-   * Construct a media viewer, optionally show basic media statistics statistics
-   * overlaid on the video. The close behavior or the window can be specified.
-   * 
-   * @param showStats
-   *          display media statistics
-   * @param defaultCloseOperation
-   *          what should Swing do if the window is closed. See the
-   *          {@link javax.swing.WindowConstants} documentation for valid
-   *          values.
-   */
-
-  public MediaViewer(boolean showStats, int defaultCloseOperation)
-  {
-    this(AUDIO_VIDEO, showStats, defaultCloseOperation);
-  }
-
-  /**
-   * Construct a media viewer, optionally will play audio, show basic media
-   * statistics statistics overlaid on the video. The close behavior or the
-   * window can be specified.
-   * 
-   * @param mode
-   *          specify the mode for playing this file
-   * @param showStats
-   *          display media statistics
-   * @param defaultCloseOperation
-   *          what should Swing do if the window is closed. See the
-   *          {@link javax.swing.WindowConstants} documentation for valid
-   *          values.
-   */
-
-  public MediaViewer(Mode mode, boolean showStats,
-      int defaultCloseOperation)
-  {
-    setMode(mode);
-    mShowStats = showStats;
-    mDefaultCloseOperation = defaultCloseOperation;
-  }
-
   /** Set media playback mode.
    *
    * @param mode the playback mode
@@ -358,6 +376,11 @@ public class MediaViewer extends MediaAdapter
   @Override
   public void onAddStream(IMediaTool tool, IStream stream)
   {
+    // if disabled don't add a stream
+
+    if (getMode() == DISABLED)
+      return;
+
     // get the coder
 
     IStreamCoder coder = stream.getStreamCoder();
@@ -417,19 +440,6 @@ public class MediaViewer extends MediaAdapter
     if (!getMode().showVideo())
       return;
 
-//     // if no BufferedImage is passed in, do the conversion to create one
-
-//     if (null == image)
-//     {
-//       IConverter converter = mConverters.get(streamIndex);
-//       image = converter.toImage(picture);
-//     }
-
-//     // if should show stats, add them to the image
-
-//     if (mShowStats)
-//       drawStats(picture, image);
-
     // get the frame
 
     MediaFrame frame = mFrames.get(streamIndex);
@@ -437,15 +447,8 @@ public class MediaViewer extends MediaAdapter
     // if in real time, queue the video frame for viewing
 
     if (getMode().isRealTime())
-    {
-      VideoQueue queue = getVideoQueue(streamIndex, frame);
-
-      // enqueue the image
-      if (queue != null)
-        queue.offerMedia(picture, picture.getTimeStamp(), MICROSECONDS);
-//         queue.offerMedia(image, picture.getTimeStamp() + mAudioLantency.get(),
-//             MICROSECONDS);
-    }
+      getVideoQueue(streamIndex, frame)
+        .offerMedia(picture, picture.getTimeStamp(), MICROSECONDS);
 
     // otherwise just set the image on the frame
 
@@ -464,8 +467,6 @@ public class MediaViewer extends MediaAdapter
     VideoQueue queue = mVideoQueues.get(streamIndex);
     if (null == queue)
     {
-      // create the queue
-
       queue = new VideoQueue(mVideoQueueCapacity, TIME_UNIT, frame);
       mVideoQueues.put(streamIndex, queue);
     }
@@ -490,6 +491,7 @@ public class MediaViewer extends MediaAdapter
       // queue the audio frame for playing
 
       AudioQueue queue = getAudioQueue(tool, streamIndex);
+
       // enqueue the audio samples
 
       if (queue != null)
@@ -604,8 +606,7 @@ public class MediaViewer extends MediaAdapter
   /**
    * Open a java audio line out to play the audio samples into.
    * 
-   * @param stream
-   *          the stream we'll be decoding in to this line.
+   * @param stream the stream we'll be decoding in to this line.
    * @return the line
    */
 
@@ -622,12 +623,12 @@ public class MediaViewer extends MediaAdapter
         // samples
 
         AudioFormat audioFormat = new AudioFormat(audioCoder.getSampleRate(),
-            (int) IAudioSamples
-                .findSampleBitDepth(audioCoder.getSampleFormat()), audioCoder
-                .getChannels(), true, false);
-
+          (int) IAudioSamples
+          .findSampleBitDepth(audioCoder.getSampleFormat()), audioCoder
+          .getChannels(), true, false);
+        
         // create the audio line out
-
+        
         DataLine.Info info = new DataLine.Info(SourceDataLine.class,
             audioFormat);
         line = (SourceDataLine) AudioSystem.getLine(info);
@@ -640,11 +641,6 @@ public class MediaViewer extends MediaAdapter
         line.open(audioFormat);
         line.start();
         mAudioLines.put(streamIndex, line);
-//         mAudioLantency.compareAndSet(0, IAudioSamples.samplesToDefaultPts(line
-//             .getBufferSize()
-//             / bytesPerSample, audioCoder.getSampleRate()));
-//         log.debug("Opened line with {} bytes ({} microseconds latency)", line
-//             .getBufferSize(), mAudioLantency.get());
 
         // if mDataLine is not yet defined, do so
 

@@ -120,8 +120,8 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
   // a map between output stream indicies and video converters
 
-  protected Map<Integer, IConverter> mVideoConverters = 
-    new HashMap<Integer, IConverter>();
+  protected Map<IStream, IConverter> mVideoConverters = 
+    new HashMap<IStream, IConverter>();
   
   // streasm opened by this MediaWriter must be closed
 
@@ -339,6 +339,10 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     coder.setSampleRate(sampleRate);
     coder.setSampleFormat(DEFAULT_SAMPLE_FORMAT);
 
+    // add the stream to the media writer
+    
+    addStream(stream, inputIndex, stream.getIndex());
+
     // return the new audio stream
 
     return stream;
@@ -388,6 +392,10 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     coder.setHeight(height);
     coder.setPixelType(DEFAULT_PIXEL_TYPE);
 
+    // add the stream to the media writer
+    
+    addStream(stream, inputIndex, stream.getIndex());
+
     // return the new video stream
 
     return stream;
@@ -434,10 +442,6 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     IStreamCoder coder = stream.getStreamCoder();
     coder.setTimeBase(DEFAULT_TIMEBASE);
     coder.setCodec(codec);
-
-    // add the stream to the media writer
-    
-    addStream(stream, inputIndex, stream.getIndex());
 
     // if the stream count is 1, don't force interleave
 
@@ -538,62 +542,90 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     return mOutputStreamIndices.get(inputStreamIndex);
   }
 
+  /** 
+   * Push an image out to be encoded.
+   */
+
+  public void pushImage(BufferedImage image, int streamIndex, long timeStamp)
+  {
+    // convert the image to a picture and push it off to be encoded
+
+    IVideoPicture picture = convertToPicture(getStream(streamIndex), 
+      image, timeStamp);
+    onVideoPicture(this, picture, null, streamIndex);
+  }
+
   /** {@inheritDoc} */
   
   public void onVideoPicture(IMediaTool tool, IVideoPicture picture, 
     BufferedImage image, int streamIndex)
   {
-    // establish the coder, return silently if no coder returned
+    // establish the stream, return silently if no stream returned
 
-    IStreamCoder coder = getStreamCoder(streamIndex);
-    if (null == coder)
+    IStream stream = getStream(streamIndex);
+    if (null == stream)
       return;
-      
-    // if the BufferedImage exists use that
+
+    // if the BufferedImage exists, convert it to a picture
 
     if (null != image)
-    {
-      // find or create a video converter
-
-      IConverter videoConverter = mVideoConverters.get(streamIndex);
-      if (videoConverter == null)
-      {
-        videoConverter = ConverterFactory.createConverter(
-          ConverterFactory.findDescriptor(image),
-          coder.getPixelType(),
-          coder.getWidth(), coder.getHeight(),
-          image.getWidth(), image.getHeight());
-        mVideoConverters.put(streamIndex, videoConverter);
-      }
-
-      // convert image
-
-      picture = videoConverter.toPicture(image, picture.getPts());
-    }
+      picture = convertToPicture(stream, image, picture.getPts());
 
     // encode video picture
     
-    encodeVideo(coder, picture);
+    encodeVideo(stream, picture);
 
     // inform listeners
 
     for (IMediaListener listener: getListeners())
       listener.onVideoPicture(this, picture, image, streamIndex);
   }
+
+  /** 
+   * Convert an image to a picture for a given stream.
+   * 
+   * @param stream to destination stream of the image
+   */
+
+  protected IVideoPicture convertToPicture(IStream stream, BufferedImage image,
+    long timeStamp)
+  {
+    // lookup the converter
+
+    IConverter videoConverter = mVideoConverters.get(stream);
+
+    // if not found create one
+
+    if (videoConverter == null)
+    {
+      IStreamCoder coder = stream.getStreamCoder();
+      videoConverter = ConverterFactory.createConverter(
+        ConverterFactory.findDescriptor(image),
+        coder.getPixelType(),
+        coder.getWidth(), coder.getHeight(),
+        image.getWidth(), image.getHeight());
+      mVideoConverters.put(stream, videoConverter);
+    }
+
+    // return the converter
+    
+    return videoConverter.toPicture(image, timeStamp);
+  }
   
   /** {@inheritDoc} */
   
-  public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex)
+  public void onAudioSamples(IMediaTool tool, IAudioSamples samples, 
+    int streamIndex)
   {
-    // establish the coder, return silently if no coder returned
+    // establish the stream, return silently if no stream returned
 
-    IStreamCoder coder = getStreamCoder(streamIndex);
-    if (null == coder)
+    IStream stream = getStream(streamIndex);
+    if (null == stream)
       return;
-      
+
     // encode the audio
 
-    encodeAudio(coder, samples);
+    encodeAudio(stream, samples);
 
     // inform listeners
 
@@ -602,8 +634,8 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   }
   
   /** 
-   * Get the correct {@link IStreamCoder} for a given stream in the
-   * container.  If this is a new stream, which not been seen before, it
+   * Get the correct {@link IStream} for a given stream index in the
+   * container.  If this has been seen before, it
    * is assumed to be a new stream and construct the correct coder for
    * it.
    *
@@ -614,7 +646,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    *         specified stream
    */
 
-  protected IStreamCoder getStreamCoder(int inputStreamIndex)
+  protected IStream getStream(int inputStreamIndex)
   {
     // the output container must be open
 
@@ -710,7 +742,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     
     // return the coder
     
-    return coder;
+    return stream;
   }
 
   /**
@@ -938,54 +970,54 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   }
   
   /**
-   * Encode and dispatch a video packet.
+   *  Encode vidoe and dispatch video packet.
    *
-   * @param videoCoder the video coder
+   * @param stream the stream the picture will be encoded onto
+   * @param picture the picture to be encoded
    */
 
-  protected void encodeVideo(IStreamCoder videoCoder, IVideoPicture picture)
+  protected void encodeVideo(IStream stream, IVideoPicture picture)
   {
     // encode the video packet
 
     IPacket packet = IPacket.make();
-    if (videoCoder.encodeVideo(packet, picture, 0) < 0)
+    if (stream.getStreamCoder().encodeVideo(packet, picture, 0) < 0)
       throw new RuntimeException("failed to encode video");
 
     if (packet.isComplete())
       writePacket(packet);
   }
 
-  /** Encode and dispatch a audio packet.
+  /**
+   *  Encode audio and dispatch audio packet.
    *
-   * @param audioCoder the audio coder
+   * @param stream the stream the samples will be encoded onto
+   * @param samples the samples to be encoded
    */
 
-  protected void encodeAudio(IStreamCoder audioCoder, IAudioSamples samples)
+  protected void encodeAudio(IStream stream, IAudioSamples samples)
   {
+    IStreamCoder coder = stream.getStreamCoder();
+
     // convert the samples into a packet
 
-    IPacket packet = null;
     for (int consumed = 0; consumed < samples.getNumSamples(); /* in loop */)
     {
-      // if null, create packet
-
-      if (null == packet)
-        packet = IPacket.make();
-
       // encode audio
 
-      int result = audioCoder.encodeAudio(packet, samples, consumed); 
+      IPacket packet = IPacket.make();
+      int result = coder.encodeAudio(packet, samples, consumed); 
       if (result < 0)
         throw new RuntimeException("failed to encode audio");
+
+      // update total consumed
+
       consumed += result;
 
       // if a complete packed was produced write it out
 
       if (packet.isComplete())
-      {
         writePacket(packet);
-        packet = null;
-      }
     }
   }
 

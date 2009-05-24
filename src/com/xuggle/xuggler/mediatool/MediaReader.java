@@ -400,27 +400,29 @@ public class MediaReader extends AMediaTool
     if (coder == null)
     {
       // test valid stream index
+
       int numStreams = mContainer.getNumStreams();
       if (streamIndex < 0 || streamIndex >= numStreams)
         throw new RuntimeException("invalid stream index");
     
-      // let's find out about any new streams.  This means
-      // we'll inform listeners of any new streams we find
-      // as soon as we see them; without having to wait for
-      // a packet to show up.
+      // estabish all streams in the container, informing listeners of
+      // new streams without needing to wait for a packet for each
+      // stream to show up
+
       for(int i = 0; i < numStreams; i++)
       {
         coder = mCoders.get(i);
-        if (coder == null) {
+        if (coder == null) 
+        {
           // now get the coder for the given stream index
-
+          
           IStream stream = mContainer.getStream(i);
           coder = stream.getStreamCoder();
-
+          
           // put the coder into the coder map, event if it not a supported
           // type so that on further reads it will find the coder but choose
           // not decode unsupported types
-
+          
           mCoders.put(i, coder);
           for (IMediaListener listener: getListeners())
             listener.onAddStream(this, stream);
@@ -430,11 +432,13 @@ public class MediaReader extends AMediaTool
     coder = mCoders.get(streamIndex);
     IStream stream = mContainer.getStream(streamIndex);
     ICodec.Type type = coder.getCodecType();
+
     // if the coder is not open, open it
     // NOTE: MediaReader currently supports audio & video streams
 
     if (!coder.isOpen()
-        && (type == ICodec.Type.CODEC_TYPE_AUDIO || type == ICodec.Type.CODEC_TYPE_VIDEO))
+        && (type == ICodec.Type.CODEC_TYPE_AUDIO || 
+          type == ICodec.Type.CODEC_TYPE_VIDEO))
     {
       if (coder.open() < 0)
         throw new RuntimeException("could not open coder for stream: "

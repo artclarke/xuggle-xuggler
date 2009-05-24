@@ -38,8 +38,9 @@ import org.junit.runners.Parameterized.Parameters;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 
-import static com.xuggle.xuggler.mediatool.DebugListener.Event.*;
+import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
 import static com.xuggle.xuggler.mediatool.DebugListener.Mode.*;
+import static com.xuggle.xuggler.mediatool.DebugListener.Event.*;
 
 @RunWith(Parameterized.class)
 public class MediaWriterExhaustiveTest
@@ -50,13 +51,14 @@ public class MediaWriterExhaustiveTest
   { log.trace("<init>"); }
 
   // show the videos during transcoding?
-
-  final boolean SHOW_VIDEO = !System.getProperty(
-    this.getClass().getName() + ".ShowVideo", "false").equals("false");
+  
+  final MediaViewer.Mode mViewerMode = MediaViewer.Mode.valueOf(
+    System.getProperty(this.getClass().getName() + ".ViewerMode", 
+      DISABLED.name()));
 
   // test broken media files
 
-  final static boolean TEST_BROKEN = !System.getProperty(
+  final static boolean mTestBroken = !System.getProperty(
     MediaWriterExhaustiveTest.class.getName() + ".TestBroken", "false")
     .equals("false");
 
@@ -161,7 +163,8 @@ public class MediaWriterExhaustiveTest
             parts[0] + "-" + parts[1] + "." + destExt;
 
 
-          boolean skipTest = isBroken && !TEST_BROKEN || !isBroken && TEST_BROKEN;
+          boolean skipTest = isBroken && !mTestBroken || 
+            !isBroken && mTestBroken;
           String description = 
             (skipTest      ? "SKIPPING"  : " converting ") + " " +
             (isBroken      ? "BROKEN"    : " good "      ) + " " + 
@@ -221,8 +224,7 @@ public class MediaWriterExhaustiveTest
       final MediaWriter writer = new MediaWriter(mDestination, 
         reader.getContainer());
       writer.setMaskLateStreamExceptions(false);
-      if (SHOW_VIDEO)
-        writer.addListener(new MediaViewer());
+      writer.addListener(new MediaViewer(mViewerMode, true));
 
       writer.addListener(new DebugListener(OPEN, CLOSE));
 
@@ -262,8 +264,7 @@ public class MediaWriterExhaustiveTest
 
       MediaWriter writer = new MediaWriter(mDestination, reader);
       writer.setMaskLateStreamExceptions(false);
-      if (SHOW_VIDEO)
-        writer.addListener(new MediaViewer());
+      writer.addListener(new MediaViewer(mViewerMode, true));
 
       writer.addListener(new DebugListener(EVENT, META_DATA));
 
