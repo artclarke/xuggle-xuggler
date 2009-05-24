@@ -115,13 +115,8 @@ public class InterruptingExhaustiveTest
     };
     
     assertTrue(!Thread.currentThread().isInterrupted());
-    try {
-      container.open(handler,
-          IContainer.Type.READ, null, true, false);
-      fail("should not get here");
-    } catch (RuntimeException e) {
-      // ignore and make sure we're interrupted below.
-    }
+    assertTrue(container.open(handler,
+        IContainer.Type.READ, null, true, false) < 0);
     assertTrue("thread interrupt not preserved from open",
         Thread.currentThread().isInterrupted());
   }
