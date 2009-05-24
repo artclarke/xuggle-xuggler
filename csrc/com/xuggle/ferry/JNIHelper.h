@@ -155,6 +155,10 @@ class JNIHelper
     VS_API_FERRY void throwOutOfMemoryError();
     
     VS_API_FERRY int32_t isInterrupted();
+    
+    VS_API_FERRY bool isInterruptedException(jthrowable exception);
+    
+    VS_API_FERRY void interrupt();
 
   private:
 
@@ -183,7 +187,9 @@ class JNIHelper
     jweak mThread_class;
     jmethodID mThread_isInterrupted_mid;
     jmethodID mThread_currentThread_mid;
+    jmethodID mThread_interrupt_mid;
 
+    jweak mInterruptedException_class;
   };
 }}}
 

@@ -64,6 +64,8 @@ namespace com { namespace xuggle { namespace ferry {
     mThread_class = 0;
     mThread_isInterrupted_mid = 0;
     mThread_currentThread_mid = 0;
+    
+    mInterruptedException_class = 0;
   }
 
   void
@@ -126,6 +128,11 @@ namespace com { namespace xuggle { namespace ferry {
       {
         env->DeleteWeakGlobalRef(mThread_class);
         mThread_class = 0;
+      }
+      if (mInterruptedException_class)
+      {
+        env->DeleteWeakGlobalRef(mInterruptedException_class);
+        mInterruptedException_class = 0;
       }
     }
     mCachedVM = 0;
@@ -205,6 +212,10 @@ namespace com { namespace xuggle { namespace ferry {
       mThread_isInterrupted_mid = env->GetMethodID(cls,
           "isInterrupted", "()Z");
       if (!mThread_isInterrupted_mid || env->ExceptionCheck())
+        return;
+      mThread_interrupt_mid = env->GetMethodID(cls,
+          "interrupt", "()V");
+      if (!mThread_interrupt_mid || env->ExceptionCheck())
         return;
       
       env->DeleteLocalRef(cls);
@@ -507,4 +518,47 @@ namespace com { namespace xuggle { namespace ferry {
     return 0; 
   }
 
+  void
+  JNIHelper :: interrupt()
+  {
+    JNIEnv * env = this->getEnv();
+    if (!env)
+      return;
+    if (env->ExceptionCheck())
+      return; // a pending exception so we can't continue
+    if (!mThread_class ||
+        !mThread_interrupt_mid ||
+        !mThread_currentThread_mid)
+      // this is an error if these are not set up, but we're
+      // going to assume no interrupt then.
+      return;
+    jobject thread = env->CallStaticObjectMethod(
+        static_cast<jclass>(mThread_class),
+        mThread_currentThread_mid);
+    if (!thread || env->ExceptionCheck())
+      return;
+    env->CallVoidMethod(thread,
+        mThread_interrupt_mid);
+    env->DeleteLocalRef(thread);
+  }
+
+
+  bool
+  JNIHelper :: isInterruptedException(jthrowable exception)
+  {
+    JNIEnv * env = this->getEnv();
+    if (!env)
+      return false;
+    if (env->ExceptionCheck())
+      return false; // a pending exception interrupts us
+    if (!mInterruptedException_class)
+      // this is an error if these are not set up, but we're
+      // going to assume no interrupt then.
+      return false;
+    if (env->IsInstanceOf(exception,
+        static_cast<jclass>(mInterruptedException_class))
+    )
+      return true;
+    return false;
+  }
 }}}

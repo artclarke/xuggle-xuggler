@@ -30,11 +30,28 @@ VS_LOG_SETUP(VS_CPP_PACKAGE);
 
 static void URLProtocolHandler_CheckException(JNIEnv *env)
 {
-  if (env->ExceptionCheck())
-  {
-    //env->ExceptionDescribe();
-    env->ExceptionClear();
-    throw std::runtime_error("got java exception");
+  if (env) {
+    jthrowable exception = env->ExceptionOccurred();
+    if (exception)
+    {
+      JNIHelper *helper = JNIHelper::getHelper();
+      if (helper &&
+          !helper->isInterrupted() &&
+          helper->isInterruptedException(exception))
+        // preserve the interrupt
+        helper->interrupt();
+      
+      //env->ExceptionDescribe();
+      
+      // clear the exception
+      env->ExceptionClear();
+      
+      // free the local reference
+      env->DeleteLocalRef(exception);
+      
+      // and throw back to caller
+      throw std::runtime_error("got java exception");
+    }
   }
 }
 namespace com { namespace xuggle{ namespace xuggler { namespace io
