@@ -635,9 +635,6 @@ public class MediaViewer extends MediaAdapter
 
         // open the line and start the line
 
-        int bytesPerSample = (int) IAudioSamples.findSampleBitDepth(audioCoder
-            .getSampleFormat())
-            * audioCoder.getChannels() / 8;
         line.open(audioFormat);
         line.start();
         mAudioLines.put(streamIndex, line);
