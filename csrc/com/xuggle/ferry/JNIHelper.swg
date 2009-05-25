@@ -279,8 +279,16 @@
       return null;
     else
     {
-      $javaclassname retval = new $javaclassname(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      $javaclassname retval = null;
+      this.acquire();
+      try {
+         retval = new $javaclassname(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

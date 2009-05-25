@@ -79,8 +79,16 @@ public class Mutex extends RefCounted {
       return null;
     else
     {
-      Mutex retval = new Mutex(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      Mutex retval = null;
+      this.acquire();
+      try {
+         retval = new Mutex(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

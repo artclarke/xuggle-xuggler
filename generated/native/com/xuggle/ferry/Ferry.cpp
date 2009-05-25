@@ -385,6 +385,8 @@ SWIGINTERN com::xuggle::ferry::IBuffer *com_xuggle_ferry_IBuffer_make__SWIG_2(co
             
       retval = IBuffer::make(requestor, javaBuffer+offset, length,
           IBuffer_javaDirectFreeFunc, globalRef);
+      //fprintf(stderr, "Creating global ref: %p\n", globalRef);
+      
       if (!retval)
         throw std::runtime_error("could not wrap java byte array");
       globalRef = 0;
@@ -414,6 +416,7 @@ SWIGINTERN com::xuggle::ferry::IBuffer *com_xuggle_ferry_IBuffer_make__SWIG_2(co
     JNIEnv* env = JNIHelper::sGetEnv();
     if (env && globalRef)
     {
+      //fprintf(stderr, "Releasing global ref: %p\n", globalRef);
       env->DeleteGlobalRef(globalRef);
     }
   }

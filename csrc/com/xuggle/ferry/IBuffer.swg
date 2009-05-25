@@ -115,7 +115,30 @@
      return (int)swigCPtr;
   }
   
+  /**
+   * Returns up to length bytes, starting at offset in the underlying
+   * buffer we're managing.
+   *
+   * <p> 
+   * 
+   * The buffer position, mark are initialized to zero and limit
+   * is set to the maximum capacity of this buffer.  For some
+   * IBuffer contents, the actual usable data in this buffer will
+   * be less that the limit.  In those cases, use the
+   * {@link #getByteBuffer(int, int)}
+   * method on those objects directly and limit will be set to their
+   * current content limit.
+   * 
+   * </p>
+   */
+  public java.nio.ByteBuffer getByteBuffer(int offset, int length)
+  {
+    return getByteBuffer(offset, length, null);
+  }
+
+  
     /**
+     * For Advanced Users Only -- Do not use.
      * Returns up to length bytes, starting at offset in the underlying
      * buffer we're managing.
      *
@@ -181,13 +204,22 @@
      *   this IBuffer
      * @param length The requested length (in bytes) you want to access.
      *   The buffer returned may actually be longer than length.
-     * 
+     * @param referenceReturn If non null, on exit 
+     *   calling {@link com.util.concurrent.atomic.AtomicReference#get()}
+     *   on this value will return a {@link JNIReference} you can use
+     *   for explicitly de-allocting the underlying native store
+     *   of the {@link java.nio.ByteBuffer}.  Call
+     *   {@link JNIReference#delete()} for that.  <strong>Warning:</string>
+     *   if you delete this reference, then the returned byte buffer
+     *   will be invalid.  In most cases, just let Ferry delete it for
+     *   you later.
      * @return A java.nio.ByteBuffer that directly accesses
      *   the native memory this IBuffer manages, or null if
      *   error.
      */
 
-  public java.nio.ByteBuffer getByteBuffer(int offset, int length)
+  public java.nio.ByteBuffer getByteBuffer(int offset, int length,
+      java.util.concurrent.atomic.AtomicReference<JNIReference> referenceReturn)
   {
     java.nio.ByteBuffer retval = this.java_getByteBuffer(offset, length);
     if (retval != null)
@@ -197,7 +229,9 @@
       FerryJNI.RefCounted_acquire(swigCPtr, null);
       
       // and use the byte buffer as the reference to track
-      JNIReference.createReference(retval, swigCPtr);
+      JNIReference ref = JNIReference.createNonFerryReference(retval, swigCPtr);
+      if (referenceReturn != null)
+        referenceReturn.set(ref);
       
       // and tell Java this byte buffer is in native order
       retval.order(java.nio.ByteOrder.nativeOrder());
@@ -249,6 +283,7 @@ typedef jobject jNioByteArray;
     JNIEnv* env = JNIHelper::sGetEnv();
     if (env && globalRef)
     {
+      //fprintf(stderr, "Releasing global ref: %p\n", globalRef);
       env->DeleteGlobalRef(globalRef);
     }
   }
@@ -480,6 +515,8 @@ typedef jobject jNioByteArray;
             
       retval = IBuffer::make(requestor, javaBuffer+offset, length,
           IBuffer_javaDirectFreeFunc, globalRef);
+      //fprintf(stderr, "Creating global ref: %p\n", globalRef);
+      
       if (!retval)
         throw std::runtime_error("could not wrap java byte array");
       globalRef = 0;

@@ -24,7 +24,6 @@ import static org.junit.Assert.*;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Test;
-import org.junit.Ignore;
 
 import com.xuggle.ferry.RefCountedTester;
 import com.xuggle.ferry.JNIReference;
@@ -51,22 +50,33 @@ public class RefCountedTest
   @Test
   public void testCorrectStartingRefCount()
   {
+    assertEquals("should be no objects for collection", 
+        0, JNIReference.getMgr().getNumPinnedObjects());
     RefCountedTester obj = RefCountedTester.make();
     assertEquals("starting ref count", 1, obj.getCurrentRefCount());
+    obj.delete();
   }
   
   @Test
   public void testJavaCopyKeepsRefcountConstant()
   {
+    assertEquals("should be no objects for collection", 
+        0, JNIReference.getMgr().getNumPinnedObjects());
     RefCountedTester obj = RefCountedTester.make();
     assertEquals("starting ref count", 1, obj.getCurrentRefCount());
     RefCountedTester javaCopy = obj;
     assertEquals("java copy should keep ref the same", 1, javaCopy.getCurrentRefCount());
+    javaCopy.delete();
+    obj.delete();
+    assertEquals("should be no objects for collection", 
+        0, JNIReference.getMgr().getNumPinnedObjects());
   }
   
-  @Test(timeout=2000)
+  @Test(timeout=20*1000)
   public void testNativeCopyRefcountIncrement() throws InterruptedException
   {
+    assertEquals("should be no objects for collection", 
+        0, JNIReference.getMgr().getNumPinnedObjects());
     RefCountedTester obj = RefCountedTester.make();
     assertEquals("starting ref count", 1, obj.getCurrentRefCount());
     RefCountedTester nativeCopy = RefCountedTester.make(obj);
@@ -77,14 +87,21 @@ public class RefCountedTest
     assertEquals("native copy should be decremented", 1, obj.getCurrentRefCount());
     obj.delete();
     obj = null;
-    System.gc();
-    Thread.sleep(1000);
-    assertEquals("should be no objects for collection", 0, JNIReference.getMgr().getNumPinnedObjects());
+    while(JNIReference.getMgr().getNumPinnedObjects() > 0)
+    {
+      byte[] bytes = new byte[1024*1024];
+      bytes[0] = 0;
+      JNIReference.getMgr().gc();
+    }
+    assertEquals("should be no objects for collection", 
+        0, JNIReference.getMgr().getNumPinnedObjects());
   }
   
-  @Test(timeout=2000)
+  @Test(timeout=20*1000)
   public void testCopyByReference() throws InterruptedException
   {
+    assertEquals("should be no objects for collection", 
+        0, JNIReference.getMgr().getNumPinnedObjects());
     RefCountedTester obj1 = RefCountedTester.make();
     
     RefCountedTester obj2 = obj1.copyReference();
@@ -98,8 +115,12 @@ public class RefCountedTest
     assertEquals("should now have refcount of 1", 1, obj2.getCurrentRefCount());
     obj2.delete();
     obj2 = null;
-    System.gc();
-    Thread.sleep(1000);
+    while(JNIReference.getMgr().getNumPinnedObjects() > 0)
+    {
+      byte[] bytes = new byte[1024*1024];
+      bytes[0] = 0;
+      JNIReference.getMgr().gc();
+    }
     assertEquals("should be no objects for collection", 0, JNIReference.getMgr().getNumPinnedObjects());    
   }
   
@@ -114,10 +135,13 @@ public class RefCountedTest
    * will occur.
    * @throws InterruptedException if interrupted
    */
-  @Test(timeout=4000)
-  @Ignore
-  public void testGarbageCollectionDoesEventuallyReleaseNativeReferences() throws InterruptedException
+  @Test(timeout=20*1000)
+  public void testGarbageCollectionDoesEventuallyReleaseNativeReferences()
+  throws InterruptedException
   {
+    assertEquals("should be no objects for collection", 
+        0, JNIReference.getMgr().getNumPinnedObjects());
+
     RefCountedTester obj1 = RefCountedTester.make();
     
     RefCountedTester obj2 = obj1.copyReference();
@@ -130,53 +154,87 @@ public class RefCountedTest
     obj1 = null;
     
     // obj1 should now be unreachable, so if we try a Garbage collection it should get caught.
-    System.gc();
-    Thread.sleep(1500);
-    System.gc();
-    Thread.sleep(1500);
+    while(JNIReference.getMgr().getNumPinnedObjects() > 1)
+    {
+      byte[] bytes = new byte[1024*1024];
+      bytes[0] = 0;
+      JNIReference.getMgr().gc();
+    }
     // at this point the Java proxy object will be unreachable, but should be sitting in the
     // reference queue and also awaiting finalization.  The finalization should have occurred by now.
-    assertEquals("should be only the first object for collection", 1, JNIReference.getMgr().getNumPinnedObjects());        
+    assertEquals("should be only the first object for collection",
+        1, JNIReference.getMgr().getNumPinnedObjects());        
     assertEquals("should have a ref refcount of 1", 1, obj2.getCurrentRefCount());
+
+    obj2.delete();
+    assertEquals("should be no objects for collection", 
+        0, JNIReference.getMgr().getNumPinnedObjects());
+
   }
   
-  @Test
+  @Test(timeout=20*1000)
   public void testJNIWeakReferenceFlushQueue() throws InterruptedException
   {
+    assertEquals("should be no objects for collection", 
+        0, JNIReference.getMgr().getNumPinnedObjects());
+
     RefCountedTester obj1 = RefCountedTester.make();
+    assertEquals("should be no objects for collection", 
+        1, JNIReference.getMgr().getNumPinnedObjects());
     
     RefCountedTester obj2 = obj1.copyReference();
+    assertEquals("should be no objects for collection", 
+        2, JNIReference.getMgr().getNumPinnedObjects());
     
     assertTrue("should look like different objects", obj1 != obj2);
     assertTrue("should be equal though", obj1.equals(obj2));
-    assertEquals("should have same ref count", obj1.getCurrentRefCount(), obj2.getCurrentRefCount());
+    assertEquals("should have same ref count",
+        obj1.getCurrentRefCount(), obj2.getCurrentRefCount());
     assertEquals("should have ref count of 2", 2, obj2.getCurrentRefCount());
     
+    assertEquals("should be no objects for collection", 
+        2, JNIReference.getMgr().getNumPinnedObjects());
+
+    //obj1.delete();
     obj1 = null;
     
     // obj1 should now be unreachable, so if we try a Garbage collection it should get caught.
-    System.gc();
-    Thread.sleep(100); // need this time to have obj1 either finalized, or added to the weak ref queue
-    JNIReference.getMgr().gc();
+    while(obj2.getCurrentRefCount() > 1)
+    {
+      byte[] bytes = new byte[1024*1024];
+      bytes[0] = 0;
+      JNIReference.getMgr().gc();
+    }
     assertEquals("should now have a ref refcount of 1", 1, obj2.getCurrentRefCount());
-    assertEquals("should be only the first object for collection", 1, JNIReference.getMgr().getNumPinnedObjects());        
+    assertEquals("should be only the first object for collection",
+        1, JNIReference.getMgr().getNumPinnedObjects());
+
+    obj2.delete();
+    assertEquals("should be no objects for collection", 
+        0, JNIReference.getMgr().getNumPinnedObjects());
+
   }
   
-  @Test(timeout=5000)
+  @Test(timeout=5*60*1000)
   public void testReferenceCountingLoadTestOfDeath() throws InterruptedException
   {
+    assertEquals("should be no objects for collection", 
+        0, JNIReference.getMgr().getNumPinnedObjects());
     RefCountedTester obj = RefCountedTester.make();
-    for(int i = 0; i < 10000; i++)
+    for(int i = 0; i < 1000; i++)
     {
       RefCountedTester copy = obj.copyReference();
       assertNotNull("could not copy reference", copy);
-      copy = null;
     }
     obj=null;
-    System.gc();
-    Thread.sleep(1000);
-    JNIReference.getMgr().gc();
-    assertEquals("Looks like we leaked an object", 0, JNIReference.getMgr().getNumPinnedObjects());        
+    while(JNIReference.getMgr().getNumPinnedObjects() > 0)
+    {
+      byte[] bytes = new byte[1024*1024];
+      bytes[0] = 0;
+      JNIReference.getMgr().gc();
+    }
+    assertEquals("Looks like we leaked an object",
+        0, JNIReference.getMgr().getNumPinnedObjects());        
 
   }
 
@@ -192,6 +250,9 @@ public class RefCountedTest
     obj.delete();
     // this should raise an exception
     obj.getCurrentRefCount();
+    assertEquals("should be no objects for collection", 
+        0, JNIReference.getMgr().getNumPinnedObjects());
+
   }
  
 }

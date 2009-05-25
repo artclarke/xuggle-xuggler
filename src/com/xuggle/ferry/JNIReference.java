@@ -52,9 +52,12 @@ public class JNIReference extends WeakReference<Object>
   // so stop complaining now).
   private volatile JNIMemoryAllocator mMemAllocator;
 
-  private JNIReference(Object aReferent, long nativeVal)
+  private final boolean mIsFerryObject;
+  
+  private JNIReference(Object aReferent, long nativeVal, boolean isFerry)
   {
     super(aReferent, JNIMemoryManager.getMgr().getQueue());
+    mIsFerryObject = isFerry;
     mSwigCPtr.set(nativeVal);
     if (FerryJNI.RefCounted_getCurrentRefCount(nativeVal, null) == 1)
     {
@@ -89,18 +92,35 @@ public class JNIReference extends WeakReference<Object>
     return JNIMemoryManager.getMgr();
   }
 
-  static JNIReference createReference(Object aReferent, long swigCPtr)
+  static JNIReference createReference(Object aReferent, long swigCPtr,
+      boolean isFerry)
   {
     // Clear out any pending native objects
     JNIMemoryManager.getMgr().gc();
 
-    JNIReference ref = new JNIReference(aReferent, swigCPtr);
+    JNIReference ref = new JNIReference(aReferent, swigCPtr, isFerry);
     JNIMemoryManager.getMgr().addReference(ref);
-    // log.debug("added   : {}; {}", ref, swigCPtr);
+    //System.err.println("added  : "+ref+"; "+swigCPtr+" ("+isFerry+")");
     return ref;
   }
+  static JNIReference createReference(Object aReferent, long swigCPtr)
+  {
+    return createReference(aReferent, swigCPtr, true);
+  }
+  static JNIReference createNonFerryReference(Object aReferent, long swigCPtr)
+  {
+    return createReference(aReferent, swigCPtr, false);
+  }
 
-  void delete()
+
+  /**
+   * Explicitly deletes the underlying native storage used by
+   * the object this object references.  The underlying native
+   * object is now no long valid, and attempts to use it could
+   * cause unspecified behavior.
+   * 
+   */
+  public void delete()
   {
     long swigPtr = 0;
     // acquire lock for minimum time
@@ -113,5 +133,10 @@ public class JNIReference extends WeakReference<Object>
       mMemAllocator = null;
       JNIMemoryManager.getMgr().removeReference(this);
     }
+  }
+
+  boolean isFerryObject()
+  {
+    return mIsFerryObject;
   }
 }

@@ -59,7 +59,12 @@ using namespace com::xuggle::ferry;
     // from multiple threads.  See:
     // http://mail.openjdk.java.net/pipermail/hotspot-runtime-dev/2009-January/000382.html
     IBuffer buffer = IBuffer.make(null, 2);
-    buffer.getByteBuffer(0,2);
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref
+      = new java.util.concurrent.atomic.AtomicReference<JNIReference>(null);
+    buffer.getByteBuffer(0,2, ref);
+    JNIReference reference = ref.get();
+    reference.delete();
+    buffer.delete();
   }
   
   public native static boolean isMirroringNativeMemoryInJVM();

@@ -65,11 +65,14 @@ public class BufferExhaustiveTest
   {
     for(int i = 0; i < 100; i++)
     {
+      assertEquals(0, JNIReference.getMgr().getNumPinnedObjects());
       ByteBuffer nativeBytes = ByteBuffer.allocateDirect(10*1024*1024);
       IBuffer buf = IBuffer.make(null, nativeBytes, 0, nativeBytes.capacity());
       assertNotNull(buf);
+      assertEquals(1, JNIReference.getMgr().getNumPinnedObjects());
       buf.delete();
       buf = null;
+      assertEquals(0, JNIReference.getMgr().getNumPinnedObjects());
       
       // We need to do three GC's because it appears Java NIO ByteBuffers sometimes rely
       // on finalizers to free memory.  The first GC will mark something for finalization
@@ -95,6 +98,8 @@ public class BufferExhaustiveTest
     // make sure we don't have any pinned objects lying around
     while(JNIReference.getMgr().getNumPinnedObjects()>0)
     {
+      byte[] arr = new byte[10*1024*1024];
+      arr[0] = 0;
       System.gc();
       JNIReference.getMgr().gc();
     }
@@ -104,11 +109,18 @@ public class BufferExhaustiveTest
     IBuffer buf = IBuffer.make(null, 1024*1024);
     assertNotNull(buf);
 
+    assertEquals(1, JNIReference.getMgr().getNumPinnedObjects());
+
     // This will create a reference
     java.nio.ByteBuffer jbuf = buf.getByteBuffer(0, buf.getBufferSize());
 
+    assertEquals(2, JNIReference.getMgr().getNumPinnedObjects());
+
     // kill the xuggler refcount in the IBuffer
     buf.delete();
+
+    assertEquals(1, JNIReference.getMgr().getNumPinnedObjects());
+
 
     // this is the test; we want to know if creating an IntBuffer
     // ends up holding a reference to the underlying jbuf
@@ -118,6 +130,7 @@ public class BufferExhaustiveTest
     // release the reference to the bytebuffer
     jbuf = null;
 
+    assertEquals(1, JNIReference.getMgr().getNumPinnedObjects());
     assertEquals(15, ibuf.get(0));
     
     // now we're going to try for force a gc
@@ -125,7 +138,6 @@ public class BufferExhaustiveTest
     for(int i = 0; i < 1000; i++)
     {
       arr = new byte[1024*1024]; 
-      System.gc();
       JNIReference.getMgr().gc();
       arr[0] = (byte)1;
       ibuf.put(i, 16);

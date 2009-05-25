@@ -72,8 +72,16 @@ public class RefCountedTester extends RefCounted {
       return null;
     else
     {
-      RefCountedTester retval = new RefCountedTester(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      RefCountedTester retval = null;
+      this.acquire();
+      try {
+         retval = new RefCountedTester(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

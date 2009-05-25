@@ -70,7 +70,7 @@ public class MemoryAllocationExhaustiveTest
     JNIMemoryManager.getMgr().gc();
   }
   
-  @Test
+  @Test(timeout=60*1000)
   public void testCorrectRefCounting() throws InterruptedException
   {
     log.debug("create a frame");
@@ -90,9 +90,12 @@ public class MemoryAllocationExhaustiveTest
     copy.delete();
     
     // now make sure no leaks
-    System.gc();
-    Thread.sleep(100);
-    JNIMemoryManager.getMgr().gc();
+    while(JNIMemoryManager.getMgr().getNumPinnedObjects() > 0)
+    {
+      byte[] bytes = new byte[1024*1024];
+      bytes[0] = 0;
+      JNIMemoryManager.getMgr().gc();
+    }
     assertEquals("Looks like at least one object is pinned",
         0, JNIMemoryManager.getMgr().getNumPinnedObjects());
     
@@ -119,6 +122,8 @@ public class MemoryAllocationExhaustiveTest
 
     while(JNIMemoryManager.getMgr().getNumPinnedObjects()>0)
     {
+      byte[] bytes = new byte[1024*1024];
+      bytes[0]=0;
       System.gc();
       JNIMemoryManager.getMgr().gc();
     }
@@ -145,13 +150,12 @@ public class MemoryAllocationExhaustiveTest
       assertNotNull("could not allocate underlying data", obj.getData()); // Force an allocation
       //log.debug("allocated frame: {} @ time: {}", i, System.currentTimeMillis());
       obj = null;
-      //System.gc();
-
     }
 
     while(JNIMemoryManager.getMgr().getNumPinnedObjects()>0)
     {
-      System.gc();
+      byte[] bytes = new byte[1024*1024];
+      bytes[0]=0;
       JNIMemoryManager.getMgr().gc();
     }
   }
@@ -207,9 +211,14 @@ public class MemoryAllocationExhaustiveTest
           assertEquals(val, IPixelFormat.getYUV420PPixel(mLeakedLargeFrame, x, y, c));
         }
     
-    System.gc();
-    Thread.sleep(100);
-    JNIMemoryManager.getMgr().gc();
+    // now we allocate a few thousand times to try to convince
+    // a gc to occur
+    for(int i = 0; i < 10000; i++)
+    {
+      byte[] bytes = new byte[1024*1024];
+      bytes[0] = 0;
+      JNIMemoryManager.getMgr().gc();
+    }
     assertTrue("Looks like we didn't leak the large frame????",
         0 < JNIMemoryManager.getMgr().getNumPinnedObjects());
   }

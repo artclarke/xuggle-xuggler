@@ -19,8 +19,9 @@
 package com.xuggle.ferry;
 
 import java.lang.ref.ReferenceQueue;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,17 +85,29 @@ public class JNIMemoryManager
       .getLogger(JNIMemoryManager.class);
 
   private final ReferenceQueue<Object> mRefQueue;
-  private final Set<JNIReference> mRefList;
+  
+  /**
+   * A thread-safe set of references to ferry and non-ferry based objects that
+   * are referencing underlying Ferry native memory.
+   *
+   * We have to enqueue all JNIReferences, otherwise we can't be
+   * guaranteed that Java will enqueue them on a reference queue.  We
+   * try to be smart and efficient about this, but the fact remains
+   * that you have to pass this lock for all Ferry calls.
+   */
+  private final ConcurrentMap<JNIReference, JNIReference> mRefList;
+  private final AtomicLong mNumPinnedObjects;
 
-  private Thread mCollectionThread;
+  private volatile Thread mCollectionThread;
 
   /**
    * The constructor is package level so others can't create it.
    */
   JNIMemoryManager()
   {
+    mNumPinnedObjects = new AtomicLong(0);
     mRefQueue = new ReferenceQueue<Object>();
-    mRefList = new HashSet<JNIReference>();
+    mRefList = new ConcurrentHashMap<JNIReference, JNIReference>();
     mCollectionThread = null;
   }
 
@@ -119,12 +132,8 @@ public class JNIMemoryManager
    */
   public long getNumPinnedObjects()
   {
-    long result;
-    synchronized (mRefList)
-    {
-      result = mRefList.size();
-    }
-    return result;
+    long retval = mNumPinnedObjects.get();
+    return retval;
   }
 
   /**
@@ -140,11 +149,10 @@ public class JNIMemoryManager
      * applications, as it's only called when the class loader is exiting.
      */
     log.trace("destroying: {}", this);
+    mRefList.clear();
+    mNumPinnedObjects.set(0);
+
     gc();
-    synchronized (mRefList)
-    {
-      mRefList.clear();
-    }
     gc();
   }
 
@@ -157,12 +165,8 @@ public class JNIMemoryManager
    */
   boolean addReference(JNIReference ref)
   {
-    boolean result = false;
-    synchronized (mRefList)
-    {
-      result = mRefList.add(ref);
-    }
-    return result;
+    mNumPinnedObjects.incrementAndGet();
+    return mRefList.put(ref,ref)!=null;
   }
 
   /**
@@ -175,12 +179,8 @@ public class JNIMemoryManager
    */
   boolean removeReference(JNIReference ref)
   {
-    boolean result = false;
-    synchronized (mRefList)
-    {
-      result = mRefList.remove(ref);
-    }
-    return result;
+    mNumPinnedObjects.decrementAndGet();
+    return mRefList.remove(ref)!= ref;
   }
 
   /**
