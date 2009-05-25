@@ -79,8 +79,16 @@ public class IContainerFormat extends RefCounted {
       return null;
     else
     {
-      IContainerFormat retval = new IContainerFormat(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IContainerFormat retval = null;
+      this.acquire();
+      try {
+         retval = new IContainerFormat(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

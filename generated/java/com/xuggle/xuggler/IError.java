@@ -89,8 +89,16 @@ public class IError extends RefCounted {
       return null;
     else
     {
-      IError retval = new IError(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IError retval = null;
+      this.acquire();
+      try {
+         retval = new IError(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

@@ -83,8 +83,16 @@ public class IRational extends RefCounted {
       return null;
     else
     {
-      IRational retval = new IRational(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IRational retval = null;
+      this.acquire();
+      try {
+         retval = new IRational(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

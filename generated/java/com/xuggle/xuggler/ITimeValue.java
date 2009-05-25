@@ -73,8 +73,16 @@ public class ITimeValue extends RefCounted {
       return null;
     else
     {
-      ITimeValue retval = new ITimeValue(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      ITimeValue retval = null;
+      this.acquire();
+      try {
+         retval = new ITimeValue(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

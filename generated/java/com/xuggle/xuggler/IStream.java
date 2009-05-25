@@ -89,8 +89,16 @@ public class IStream extends RefCounted {
       return null;
     else
     {
-      IStream retval = new IStream(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IStream retval = null;
+      this.acquire();
+      try {
+         retval = new IStream(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

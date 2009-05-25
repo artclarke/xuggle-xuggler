@@ -70,8 +70,16 @@ public class IProperty extends RefCounted {
       return null;
     else
     {
-      IProperty retval = new IProperty(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IProperty retval = null;
+      this.acquire();
+      try {
+         retval = new IProperty(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

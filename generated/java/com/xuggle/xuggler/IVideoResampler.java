@@ -78,8 +78,16 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
       return null;
     else
     {
-      IVideoResampler retval = new IVideoResampler(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IVideoResampler retval = null;
+      this.acquire();
+      try {
+         retval = new IVideoResampler(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

@@ -73,8 +73,16 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
       return null;
     else
     {
-      IStreamCoder retval = new IStreamCoder(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IStreamCoder retval = null;
+      this.acquire();
+      try {
+         retval = new IStreamCoder(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

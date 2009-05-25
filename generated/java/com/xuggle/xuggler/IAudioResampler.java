@@ -70,8 +70,16 @@ public class IAudioResampler extends RefCounted {
       return null;
     else
     {
-      IAudioResampler retval = new IAudioResampler(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IAudioResampler retval = null;
+      this.acquire();
+      try {
+         retval = new IAudioResampler(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

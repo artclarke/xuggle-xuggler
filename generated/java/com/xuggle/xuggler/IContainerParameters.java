@@ -79,8 +79,16 @@ public class IContainerParameters extends RefCounted {
       return null;
     else
     {
-      IContainerParameters retval = new IContainerParameters(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IContainerParameters retval = null;
+      this.acquire();
+      try {
+         retval = new IContainerParameters(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

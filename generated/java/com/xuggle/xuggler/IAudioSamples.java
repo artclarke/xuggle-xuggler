@@ -72,8 +72,16 @@ public class IAudioSamples extends IMediaData {
       return null;
     else
     {
-      IAudioSamples retval = new IAudioSamples(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IAudioSamples retval = null;
+      this.acquire();
+      try {
+         retval = new IAudioSamples(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

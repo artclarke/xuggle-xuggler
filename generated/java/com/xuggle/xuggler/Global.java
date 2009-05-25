@@ -70,8 +70,16 @@ public class Global extends RefCounted {
       return null;
     else
     {
-      Global retval = new Global(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      Global retval = null;
+      this.acquire();
+      try {
+         retval = new Global(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

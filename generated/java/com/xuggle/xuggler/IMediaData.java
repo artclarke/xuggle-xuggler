@@ -70,8 +70,16 @@ public class IMediaData extends RefCounted {
       return null;
     else
     {
-      IMediaData retval = new IMediaData(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IMediaData retval = null;
+      this.acquire();
+      try {
+         retval = new IMediaData(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

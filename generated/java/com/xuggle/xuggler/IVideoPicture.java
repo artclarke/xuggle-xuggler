@@ -75,8 +75,16 @@ public class IVideoPicture extends IMediaData {
       return null;
     else
     {
-      IVideoPicture retval = new IVideoPicture(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IVideoPicture retval = null;
+      this.acquire();
+      try {
+         retval = new IVideoPicture(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

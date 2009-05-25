@@ -78,8 +78,16 @@ public class IMediaDataWrapper extends IMediaData {
       return null;
     else
     {
-      IMediaDataWrapper retval = new IMediaDataWrapper(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IMediaDataWrapper retval = null;
+      this.acquire();
+      try {
+         retval = new IMediaDataWrapper(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

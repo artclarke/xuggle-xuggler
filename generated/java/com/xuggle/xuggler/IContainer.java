@@ -71,8 +71,16 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
       return null;
     else
     {
-      IContainer retval = new IContainer(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IContainer retval = null;
+      this.acquire();
+      try {
+         retval = new IContainer(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }

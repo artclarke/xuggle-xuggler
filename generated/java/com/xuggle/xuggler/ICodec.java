@@ -73,8 +73,16 @@ public class ICodec extends RefCounted {
       return null;
     else
     {
-      ICodec retval = new ICodec(swigCPtr, false);
-      retval.acquire();
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      ICodec retval = null;
+      this.acquire();
+      try {
+         retval = new ICodec(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
       return retval;
     }
   }
