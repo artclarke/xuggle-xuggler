@@ -137,7 +137,7 @@ public class MemoryAllocationExhaustiveTest
    * 
    * @throws InterruptedException If it wants to
    */
-  @Test(timeout=60000)
+  @Test(timeout=10*60*1000)
   public void testImplicitReleasingWithNoExplicitGCWorks() throws InterruptedException
   {
     int numLoops = 100;
