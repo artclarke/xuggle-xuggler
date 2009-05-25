@@ -523,14 +523,14 @@ static int x264_validate_parameters( x264_t *h )
         const x264_level_t *l = x264_levels;
         if( h->param.i_level_idc < 0 )
         {
+            int maxrate_bak = h->param.rc.i_vbv_max_bitrate;
             if( h->param.rc.i_rc_method == X264_RC_ABR && h->param.rc.i_vbv_buffer_size <= 0 )
                 h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate * 2;
             h->sps = h->sps_array;
             x264_sps_init( h->sps, h->param.i_sps_id, &h->param );
             do h->param.i_level_idc = l->level_idc;
                 while( l[1].level_idc && x264_validate_levels( h, 0 ) && l++ );
-            if( h->param.rc.i_vbv_buffer_size <= 0 )
-                h->param.rc.i_vbv_max_bitrate = 0;
+            h->param.rc.i_vbv_max_bitrate = maxrate_bak;
         }
         else
         {
