@@ -26,16 +26,20 @@ exit 1
 fi
 
 cc_check() {
-    cat > conftest.c << EOF
-#include <$1>
-int main () { $3 return 0; }
-EOF
+    rm -f conftest.c
+    [ -n "$1" ] && echo "#include <$1>" > conftest.c
+    echo "int main () { $3 return 0; }" >> conftest.c
     $CC conftest.c $CFLAGS $LDFLAGS $2 -o conftest 2>$DEVNULL
 }
 
 as_check() {
     echo "$1" > conftest.asm
     $AS conftest.asm $ASFLAGS $2 -o conftest.o 2>$DEVNULL
+}
+
+die() {
+    echo "$@"
+    exit 1
 }
 
 rm -f config.h config.mak x264.pc conftest*
@@ -222,8 +226,7 @@ case $host_os in
     HAVE_GETOPT_LONG=0
     ;;
   *)
-    echo "Unknown system $host, edit the configure"
-    exit 1
+    die "Unknown system $host, edit the configure"
     ;;
 esac
 
@@ -300,15 +303,22 @@ if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" \)
 fi
 
 if [ $asm = yes -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
-    if as_check "pinsrd xmm0, [esp], 0" ; then
-        CFLAGS="$CFLAGS -DHAVE_MMX"
-    else
+    if ! as_check "pinsrd xmm0, [esp], 0" ; then
         VER=`($AS --version || echo no assembler) 2>$DEVNULL | head -n 1`
         echo "Found $VER"
         echo "Minimum version is yasm-0.6.1"
         echo "If you really want to compile without asm, configure with --disable-asm."
         exit 1
     fi
+    if ! cc_check '' '' 'asm("pabsw %xmm0, %xmm0");' ; then
+        VER=`(as --version || echo no gnu as) 2>$DEVNULL | head -n 1`
+        echo "Found $VER"
+        echo "Minimum version is binutils-2.17"
+        echo "Your compiler can't handle inline SSSE3 asm."
+        echo "If you really want to compile without asm, configure with --disable-asm."
+        exit 1
+    fi
+    CFLAGS="$CFLAGS -DHAVE_MMX"
 fi
 [ $asm = no ] && AS=""
 [ "x$AS" = x ] && asm="no"
