@@ -24,6 +24,8 @@ import java.lang.Thread;
 import java.io.File;
 
 import java.util.Map;
+import java.util.List;
+import java.util.Vector;
 import java.util.HashMap;
 import java.util.Formatter;
 import java.util.LinkedList;
@@ -40,7 +42,9 @@ import java.awt.Component;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.awt.event.WindowAdapter;
 
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.LineEvent;
@@ -121,7 +125,7 @@ public class MediaViewer extends MediaAdapter
     // show media in real time
 
     private final boolean mRealtime;
-    
+
     // construct a mode
 
     Mode(boolean playAudio, boolean showVideo, boolean realTime)
@@ -194,8 +198,6 @@ public class MediaViewer extends MediaAdapter
   private final Map<Integer, IConverter> mConverters = 
     new HashMap<Integer, IConverter>();
 
-  // video frames
-
   private final Map<Integer, MediaFrame> mFrames = 
     new HashMap<Integer, MediaFrame>();
 
@@ -235,6 +237,10 @@ public class MediaViewer extends MediaAdapter
 
   private boolean mShowStats;
 
+  // is this viewer in the process of closing
+
+  private boolean mClosing = false;
+    
   // display mode
 
   private Mode mMode;
@@ -330,6 +336,23 @@ public class MediaViewer extends MediaAdapter
     setMode(mode);
     mShowStats = showStats;
     mDefaultCloseOperation = defaultCloseOperation;
+
+    Runtime.getRuntime().addShutdownHook(new Thread()
+      {
+        public void run()
+        {
+          mClosing = true;
+          for (AudioQueue queue: mAudioQueues.values())
+            queue.close();
+          for (VideoQueue queue: mVideoQueues.values())
+            queue.close();
+        }
+      });
+  }
+
+  public void finalize()
+  {
+    debug("finalize!");
   }
 
   /**
@@ -429,12 +452,9 @@ public class MediaViewer extends MediaAdapter
       MediaFrame frame = mFrames.get(streamIndex);
       if (null == frame)
       {
-        frame = new MediaFrame(stream);
+        frame = new MediaFrame(mDefaultCloseOperation, stream);
         mFrames.put(streamIndex, frame);
         mFrameIndex.put(frame, mNextFrameIndex++);
-        frame.setLocation(coder.getWidth() * mFrameIndex.get(frame),
-            (int) frame.getLocation().getY());
-        frame.setDefaultCloseOperation(mDefaultCloseOperation);
       }
 
       // if real time establish video queue
@@ -555,9 +575,12 @@ public class MediaViewer extends MediaAdapter
   protected void playAudio(IStream stream, SourceDataLine line, 
     IAudioSamples samples)
   {
-    int size = samples.getSize();
-    line.write(samples.getData().getByteArray(0, size), 0, size);
-    updateStreamStats(stream, samples);
+    if (!mClosing)
+    {
+      int size = samples.getSize();
+      line.write(samples.getData().getByteArray(0, size), 0, size);
+      updateStreamStats(stream, samples);
+    }
   }
 
   /**
@@ -627,8 +650,11 @@ public class MediaViewer extends MediaAdapter
     flush();
     for (MediaFrame frame : mFrames.values())
       frame.dispose();
+    if (null != mStatsFrame)
+      mStatsFrame.dispose();
     for (SourceDataLine line : mAudioLines.values())
     {
+      line.stop();
       line.close();
     }
   };
@@ -645,7 +671,7 @@ public class MediaViewer extends MediaAdapter
     if (mShowStats)
     {
       if (null == mStatsFrame)
-        mStatsFrame = new StatsFrame(this);
+        mStatsFrame = new StatsFrame(mDefaultCloseOperation, this);
 
       mStatsFrame.update(stream, mediaData);
     }
@@ -720,18 +746,7 @@ public class MediaViewer extends MediaAdapter
         // if mDataLine is not yet defined, do so
 
         if (null == mDataLine)
-        {
           mDataLine = line;
-          line.addLineListener(new LineListener()
-            {
-              public void update(LineEvent event)
-              {
-                debug("line event: %s", event);
-              }
-            });
-          
-          debug("added LineListener");
-        }
       }
       catch (LineUnavailableException lue)
       {
@@ -1217,9 +1232,79 @@ public class MediaViewer extends MediaAdapter
 
   }
 
+  /** A JFrame which initially positions itself in a smart way */
+
+
+  protected static class PositionFrame extends JFrame
+  {
+    // removes the warning
+
+    public static final long serialVersionUID = 0;
+
+    // a collection of all know frames
+
+    private static Vector<PositionFrame> mFrames = new Vector<PositionFrame>();
+
+    /** Consruct a self positioning frame.
+     * 
+     * @param defaultCloseOperation what should Swing do if the window
+     *        is closed. See the {@link javax.swing.WindowConstants}
+     *        documentation for valid values.
+     */
+    
+    public PositionFrame(int defaultCloseOperation)
+    {
+      setDefaultCloseOperation(defaultCloseOperation);
+
+      if (mFrames.size() > 0)
+        reposition(mFrames.lastElement());
+
+      mFrames.add(this);
+
+      addWindowListener(new WindowAdapter()
+        {
+          public void windowClosed(WindowEvent e)
+          {
+            mFrames.remove(PositionFrame.this);
+            if (!mFrames.isEmpty())
+            {
+              PositionFrame frame = mFrames.firstElement();
+              frame.setLocation(0,0);
+              repositionFrom(frame);
+            }
+          }
+        });
+    }
+
+    // repostion this frame
+
+    protected void reposition(PositionFrame other)
+    {
+      setLocation(other.getX() + other.getWidth(), other.getY());
+    }
+
+    // repostion all frames from a given frame
+    
+    public void repositionFrom(PositionFrame frame)
+    {
+      if (mFrames.contains(frame))
+        for (int i = mFrames.indexOf(frame) + 1; i < mFrames.size(); ++i)
+          mFrames.get(i).reposition(mFrames.get(i - 1));
+    }
+
+    // resize window to fit frame
+
+    protected void adjustSize()
+    {
+      pack();
+      invalidate();
+      repositionFrom(this);
+    }
+  }
+
   /** A media viewer frame. */
 
-  protected class MediaFrame extends JFrame
+  protected class MediaFrame extends PositionFrame
   {
     // removes the warning
 
@@ -1244,11 +1329,16 @@ public class MediaViewer extends MediaAdapter
     /**
      * Construct a media frame.
      * 
+     * @param defaultCloseOperation what should Swing do if the window
+     *        is closed. See the {@link javax.swing.WindowConstants}
+     *        documentation for valid values.
      * @param stream the stream which will appear in this frame
      */
 
-    public MediaFrame(IStream stream)
+    public MediaFrame(int defaultCloseOperation, IStream stream)
     {
+      super(defaultCloseOperation);
+
       // get stream and set title based it
 
       mStream = stream;
@@ -1284,8 +1374,7 @@ public class MediaViewer extends MediaAdapter
     protected void setVideoSize(Dimension videoSize)
     {
       mVideoPanel.setPreferredSize(videoSize);
-      invalidate();
-      pack();
+      adjustSize();
     }
 
     // set the video image
@@ -1335,7 +1424,7 @@ public class MediaViewer extends MediaAdapter
 
   /** A stats frame. */
 
-  protected static class StatsFrame extends JFrame
+  protected static class StatsFrame extends PositionFrame
   {
     // removes the warning
 
@@ -1361,11 +1450,16 @@ public class MediaViewer extends MediaAdapter
     /**
      * Construct a stats frame.
      * 
-     * @param viewer the viewer 
+     * @param defaultCloseOperation what should Swing do if the window
+     *        is closed. See the {@link javax.swing.WindowConstants}
+     *        documentation for valid values.
+     * @param viewer the parent media viewer
      */
 
-    public StatsFrame(MediaViewer viewer)
+    public StatsFrame(int defaultCloseOperation, MediaViewer viewer)
     {
+      super(defaultCloseOperation);
+
       // get the viewer
 
       mViewer = viewer;
@@ -1407,14 +1501,6 @@ public class MediaViewer extends MediaAdapter
       //adjustSize();
     }
 
-    // resize window to fit frame
-
-    protected void adjustSize()
-    {
-      invalidate();
-      pack();
-    }
-
     // a panel for stream stats
 
     protected static class StreamPanel extends JPanel
@@ -1448,8 +1534,9 @@ public class MediaViewer extends MediaAdapter
 
       private Color[] mColors = 
       {
-        new Color(0x70, 0x70, 0x70), 
-        new Color(0x90, 0x90, 0x90),
+//         new Color(0x70, 0x70, 0x70), 
+//         new Color(0xA0, 0xA0, 0xA0),
+        new Color(0xA0, 0xA0, 0xA0),
       };
       
       // the fields of the display panel
