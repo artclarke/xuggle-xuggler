@@ -804,7 +804,7 @@ using the library and what you like or don't like about it.
       author="true" version="true"
       Use="true"
       splitindex="true"
-      Public="true"
+      Protected="true"
       includenosourcepackages="true"
       windowtitle="${documentation.title}">
       <doclet 
