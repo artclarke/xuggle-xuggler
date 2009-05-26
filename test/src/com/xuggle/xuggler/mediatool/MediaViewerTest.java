@@ -54,7 +54,9 @@ public class MediaViewerTest
  
   // public static final String INPUT_FILENAME =
   // "fixtures/testfile_bw_pattern.flv";
-  public static final String INPUT_FILENAME = TEST_FILE_DIR + "/testfile.flv";
+   public static final String INPUT_FILENAME = TEST_FILE_DIR + "/testfile.flv";
+//  public static final String INPUT_FILENAME = TEST_FILE_DIR + "/goose.wmv";
+  //public static final String INPUT_FILENAME = TEST_FILE_DIR + "/testfile_bw_pattern.flv";
 
   // test thet the proper number of events are signaled during reading
   // and writng of a media file
@@ -71,7 +73,9 @@ public class MediaViewerTest
     reader.setAddDynamicStreams(false);
     reader.setQueryMetaData(true);
 
-    reader.addListener(new MediaViewer(mViewerMode, true, 0));
+    reader.addListener(new MediaViewer(mViewerMode, true));
+//     reader.addListener(new DebugListener(DebugListener.Mode.EVENT,
+//         DebugListener.Event.ALL));
 
     IError rv;
     while ((rv = reader.readPacket()) == null)

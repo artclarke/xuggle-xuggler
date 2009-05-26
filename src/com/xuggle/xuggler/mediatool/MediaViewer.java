@@ -27,15 +27,19 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Formatter;
 import java.util.LinkedList;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Condition;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.Dimension;
+import java.awt.Component;
+import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
@@ -51,9 +55,14 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.swing.JTable;
 import javax.swing.JPanel;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.BoxLayout;
+import javax.swing.JScrollPane;
 import javax.swing.table.TableModel;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.AbstractTableModel;
 
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
@@ -159,6 +168,10 @@ public class MediaViewer extends MediaAdapter
   // the standard time unit used in the media viewer
 
   public static final TimeUnit TIME_UNIT = MICROSECONDS;
+
+  /** the stats font size */
+
+  public static final float FONT_SIZE = 25f;
 
   /** default video early time window, before which video is delayed */
 
@@ -636,7 +649,7 @@ public class MediaViewer extends MediaAdapter
     if (mShowStats)
     {
       if (null == mStatsFrame)
-        mStatsFrame = new StatsFrame();
+        mStatsFrame = new StatsFrame(this);
 
       mStatsFrame.update(stream, mediaData);
     }
@@ -983,7 +996,7 @@ public class MediaViewer extends MediaAdapter
                         "@%5d DROP queue[%2d]: %s[%5d] delta: %d",
                         MILLISECONDS.convert(now, TIME_UNIT),
                         size(),
-                        (delayedItem.getItem() instanceof BufferedImage ? "IMAGE"
+                        (delayedItem.getItem() instanceof IVideoPicture ? "IMAGE"
                             : "sound"), MILLISECONDS.convert(delayedItem
                             .getTimeStamp(), TIME_UNIT), MILLISECONDS.convert(
                             delta, TIME_UNIT));
@@ -1228,6 +1241,10 @@ public class MediaViewer extends MediaAdapter
 
     private final IStream mStream;
 
+    // the index of the stream (incase it's closed)
+
+    private final int mStreamIndex;
+
     /**
      * Construct a media frame.
      * 
@@ -1239,7 +1256,8 @@ public class MediaViewer extends MediaAdapter
       // get stream and set title based it
 
       mStream = stream;
-      setTitle("Stream #" + mStream.getIndex() + ", " + 
+      mStreamIndex = mStream.getIndex();
+      setTitle("Stream #" + mStreamIndex + ", " + 
         mStream.getStreamCoder().getCodec().getLongName());
 
       // the panel which shows the video image
@@ -1282,7 +1300,7 @@ public class MediaViewer extends MediaAdapter
 
       if (null == image)
       {
-        IConverter converter = mConverters.get(mStream.getIndex());
+        IConverter converter = mConverters.get(mStreamIndex);
         image = converter.toImage(picture);
       }
 
@@ -1321,7 +1339,7 @@ public class MediaViewer extends MediaAdapter
 
   /** A stats frame. */
 
-  protected class StatsFrame extends JFrame
+  protected static class StatsFrame extends JFrame
   {
     // removes the warning
 
@@ -1330,6 +1348,10 @@ public class MediaViewer extends MediaAdapter
     // the statistics panel
 
     private JPanel mStatsPanel;
+
+    // the viewer object
+
+    private MediaViewer mViewer;
 
     // the layout
 
@@ -1346,11 +1368,15 @@ public class MediaViewer extends MediaAdapter
      * @param container the container 
      */
 
-    public StatsFrame()
+    public StatsFrame(MediaViewer viewer)
     {
+      // get the viewer
+
+      mViewer = viewer;
+
       // set the title based on the container
 
-      File file = new File(mContainer.getURL());
+      File file = new File(mViewer.mContainer.getURL());
       setTitle("Statistics " + file.getName());
 
       // the panel which contains the stats
@@ -1368,20 +1394,21 @@ public class MediaViewer extends MediaAdapter
 
     protected void update(IStream stream, IMediaData mediaData)
     {
-      if (mShowStats && !isVisible())
+      if (!isVisible())
         setVisible(true);
 
       StreamPanel streamPanel = mStreamPanels.get(stream);
       if (streamPanel == null)
       {
-        streamPanel = new StreamPanel(stream);
+        streamPanel = new StreamPanel(stream, this);
         mStreamPanels.put(stream, streamPanel);
         mStatsPanel.add(streamPanel);
         adjustSize();
       }
       
       streamPanel.update(mediaData);
-      mLayout.invalidateLayout(mStatsPanel);
+      //mLayout.invalidateLayout(mStatsPanel);
+      //adjustSize();
     }
 
     // resize window to fit frame
@@ -1394,8 +1421,9 @@ public class MediaViewer extends MediaAdapter
 
     // a panel for stream stats
 
-    protected class StreamPanel extends JPanel
+    protected static class StreamPanel extends JPanel
     {
+
       // removes the warning
 
       public static final long serialVersionUID = 0;
@@ -1404,40 +1432,250 @@ public class MediaViewer extends MediaAdapter
 
       private IStream mStream;
 
-      // the table
+      // the frame
 
-      private TableModel mTable = new DefaultTableModel(4, 2);
+      private StatsFrame mFrame;
 
-      // current time stamp
+      // media data
 
       private IMediaData mMediaData;
 
+      // the table
+
+      private final TableModel mTableModel;
+
+      // the table
+
+      private final JTable mTable;
+
+      // stream background colors
+
+      private Color[] mColors = 
+      {
+        new Color(0x70, 0x70, 0x70), 
+        new Color(0x90, 0x90, 0x90),
+      };
+      
+      // the fields of the display panel
+
+      private enum Field
+      {
+        // stream index
+
+        INDEX("index")
+        {
+          public Object getValue(StreamPanel streamPanel)
+          {
+            return isStreamGood(streamPanel)
+              ? streamPanel.mStream.getIndex()
+              : null;
+          }
+        },
+
+          // stream id
+          
+          ID("id")
+          {
+            public Object getValue(StreamPanel streamPanel)
+            {
+              return isStreamGood(streamPanel)
+                ? streamPanel.mStream.getId()
+                : null;
+            }
+          },
+
+          // stream type
+
+          TYPE("type")
+          {
+            public Object getValue(StreamPanel streamPanel)
+            {
+              return isStreamGood(streamPanel)
+                ? streamPanel.mStream.getStreamCoder().getCodecType()
+                : null;
+            }
+          },
+
+          // stream type
+
+          NAME("name")
+          {
+            public Object getValue(StreamPanel streamPanel)
+            {
+              return isStreamGood(streamPanel)
+                ? streamPanel.mStream.getStreamCoder().getCodec().getLongName()
+                : null;
+            }
+          },
+
+          // the stream direction
+
+          DIRECTION("direction")
+          {
+            public Object getValue(StreamPanel streamPanel)
+            {
+              return isStreamGood(streamPanel)
+                ? streamPanel.mStream.getDirection()
+                : null;
+            }
+          },
+
+          // the stream time
+
+          TIME("time")
+          {
+            public Object getValue(StreamPanel streamPanel)
+            {
+              long delta = (streamPanel.mFrame.mViewer.getMode().isRealTime())
+                ? MILLISECONDS.convert( streamPanel.mMediaData.getTimeStamp() - 
+                  streamPanel.mFrame.mViewer.getMediaTime(), TIME_UNIT)
+                : 0;
+
+              return streamPanel.mMediaData.getFormattedTimeStamp() +
+                (delta <= 0 ? " + " : " - ") + Math.abs(delta);
+            }
+          };
+        
+          // field lable
+          
+        private final String mLabel;
+        
+        // last value returned
+
+        private Object mLastValue;
+
+        // construct a field
+
+        Field(String label)
+        {
+          mLabel = label + " ";
+          mLastValue = "-";
+        }
+        
+        private static boolean isStreamGood(StreamPanel streamPanel)
+        {
+          if (null == streamPanel.mStream)
+            return false;
+          if (null == streamPanel.mStream.getStreamCoder())
+            return false;
+          if (!streamPanel.mStream.getStreamCoder().isOpen())
+            return false;
+          return true;
+        }
+
+        public String getLabel()
+        {
+          return mLabel;
+        }
+        
+        public Object getCell(int col, StreamPanel streamPanel)
+        {
+          if (0 == col)
+            return getLabel();
+
+          Object value = getValue(streamPanel);
+          
+          return null != value
+            ?  mLastValue = value
+            : mLastValue;
+        }
+        
+        abstract public Object getValue(StreamPanel streamPanel);
+      };
+
       // construct the panel
 
-      public StreamPanel(IStream stream)
+      public StreamPanel(IStream stream, StatsFrame frame)
       {
+        // get the stream and frame
+
         mStream = stream;
-        JTable table = new JTable(mTable);
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-        add(table);
+        mFrame = frame;
 
-        IStreamCoder coder = mStream.getStreamCoder();
+        // set background based in stream index
 
-        mTable.setValueAt("index",                 0, 0);
-        mTable.setValueAt(mStream.getIndex(),      0, 1);
+        setBackground(mColors[mStream.getIndex() % mColors.length]);
 
-        mTable.setValueAt("type",                  1, 0);
-        mTable.setValueAt(coder.getCodecType(),    1, 1);
+        // create the table model
+
+        mTableModel = new AbstractTableModel() 
+          {
+            public static final long serialVersionUID = 0;
+
+            public int getColumnCount() { return 2; }
+            public int getRowCount() { return Field.values().length;}
+            public Object getValueAt(int row, int col)
+            {
+              return Field.values()[row].getCell(col, StreamPanel.this);
+            }
+          };
         
-        mTable.setValueAt("direction",             2, 0);
-        mTable.setValueAt(mStream.getDirection(),  2, 1);
+        // create and add the table
+
+        mTable = new JTable(mTableModel);
+        add(mTable);
+
+        // create the table cell renderer
+
+        TableCellRenderer tableCellRenderer = new TableCellRenderer()
+          {
+            public static final long serialVersionUID = 0;
+
+            JLabel mLabel = new JLabel();
+            JLabel mValue = new JLabel();
+            
+            int[] colWidths = {0, 0};
+
+            {
+              mLabel.setVerticalAlignment(JLabel.TOP);
+              mLabel.setHorizontalAlignment(JLabel.RIGHT);
+              mLabel.setForeground(new Color(128, 128, 128));
+              mLabel.setFont(mLabel.getFont().deriveFont(FONT_SIZE * 0.66f));
+              mLabel.doLayout();
+
+              mValue.setHorizontalAlignment(JLabel.LEFT);
+              mValue.setForeground(new Color(32, 32, 32));
+              mValue.setFont(mValue.getFont().deriveFont(FONT_SIZE));
+              mLabel.doLayout();
+            }
+            
+            public Component getTableCellRendererComponent(JTable table, Object value,
+              boolean isSelected, boolean hasFocus, int row, int col) 
+            {
+              JLabel cell = col == 0 ? mLabel : mValue;
+              cell.setText(null != value ? value.toString() : "NULL");
+              
+              Dimension cellSize = cell.getPreferredSize();
+              
+              if (cellSize.getHeight() > mTable.getRowHeight(row))
+              {
+                mTable.setRowHeight(row, (int)cellSize.getHeight());
+                mFrame.adjustSize();
+              }
+              
+              if (cellSize.getWidth() > colWidths[col])
+              {
+                colWidths[col] = (int)(cellSize.getWidth() * 1.1);
+                mTable.getColumnModel().getColumn(col)
+                  .setPreferredWidth(colWidths[col]);
+                mFrame.adjustSize();
+              }
+
+              return cell;
+            }
+          };
+
+        // configure to use new renderer
+
+        for (TableColumn column: Collections.list(mTable.getColumnModel().getColumns()))
+          column.setCellRenderer(tableCellRenderer);
       }
+
+      // update the stream panel with new media data
 
       public void update(IMediaData mediaData)
       {
-        mTable.setValueAt("time",                            3, 0);
-        mTable.setValueAt(mediaData.getFormattedTimeStamp(), 3, 1);
-
+        mMediaData = mediaData;
         repaint();
       }
     }
