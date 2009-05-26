@@ -23,36 +23,48 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.LinkedList;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-import com.xuggle.test_utils.NameAwareTestClassRunner;
+import com.xuggle.ferry.JNIMemoryManager.MemoryModel;
 
-
-@RunWith(NameAwareTestClassRunner.class)
+@RunWith(Parameterized.class)
 public class BufferExhaustiveTest
 {
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
-
-  private String mTestName = null;
   @Before
   public void setUp()
   {
-    mTestName = NameAwareTestClassRunner.getTestMethodName();
-    log.debug("-----START----- {}", mTestName);
   }
   @After
   public void tearDown()
   {
-    log.debug("----- END ----- {}", mTestName);
   }
 
+  @Parameters
+  public static Collection<Object[]> getModels()
+  {
+    Collection<Object[]> retval = new LinkedList<Object[]>();
+    // add all the models.
+    for(MemoryModel model: JNIMemoryManager.MemoryModel.values())
+      retval.add(new Object[]{
+          model
+      });
+//    retval.add(new Object[]{ JNIMemoryManager.MemoryModel.NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION});
+    return retval;
+  }
 
+  public BufferExhaustiveTest(MemoryModel model)
+  {
+    JNIMemoryManager.setMemoryModel(model);
+  }
+  
   /**
    * This tests tries to make sure the IBuffer correctly releases any
    * references it might hold to the underlying java.nio.ByteBuffer

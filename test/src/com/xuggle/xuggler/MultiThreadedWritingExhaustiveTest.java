@@ -21,27 +21,62 @@ package com.xuggle.xuggler;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.ferry.JNIMemoryManager;
+import com.xuggle.ferry.JNIMemoryManager.MemoryModel;
 import com.xuggle.xuggler.mediatool.IMediaTool;
 import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.mediatool.MediaViewer;
 import com.xuggle.xuggler.mediatool.MediaWriter;
 import com.xuggle.xuggler.video.ConverterFactory;
 
+@RunWith(Parameterized.class)
 public class MultiThreadedWritingExhaustiveTest
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
+  
+  @Parameters
+  public static Collection<Object[]> getModels()
   {
-    log.trace("make warning go away");
+    Collection<Object[]> retval = new LinkedList<Object[]>();
+    // add all the models.
+    int i = 0;
+    for(MemoryModel model: JNIMemoryManager.MemoryModel.values())
+    {
+      for(int j = 0; j < 5; j++) {
+        retval.add(new Object[]{
+            model, 5*(j+1), i
+        });
+        ++i;
+      }
+    }
+    return retval;
   }
 
-  static final int NUM_THREADS = 25;
+  private final int mThreads;
+  private final int mTestNumber;
+  private final MemoryModel mModel;
+  public MultiThreadedWritingExhaustiveTest(
+      JNIMemoryManager.MemoryModel model,
+      int numThreads, int testNo)
+  {
+    log.debug("Testing model: {}; Threads: {}", model, numThreads);
+    mModel = model;
+    mThreads = numThreads;
+    mTestNumber = testNo;
+    JNIMemoryManager.setMemoryModel(model);
+  }
 
   @Test(timeout = 30 * 60 * 1000)
   public void testMultiThreadedTest() throws InterruptedException
@@ -50,12 +85,11 @@ public class MultiThreadedWritingExhaustiveTest
       // doesn't run on Windows
       return;
     
-    log.debug("------ START -----: {}", this.getClass().getName());
     final boolean ADD_VIEWER = System
         .getProperty(MultiThreadedWritingExhaustiveTest.class.getName()
             + ".ShowVideo") != null;
-    final Thread threads[] = new Thread[NUM_THREADS];
-    final int numPackets[] = new int[NUM_THREADS];
+    final Thread threads[] = new Thread[mThreads];
+    final int numPackets[] = new int[mThreads];
     final AtomicInteger uncaughtExceptions = new AtomicInteger();
     final AtomicReference<Throwable> lastUncaughtException = new AtomicReference<Throwable>(
         null);
@@ -81,8 +115,10 @@ public class MultiThreadedWritingExhaustiveTest
             }
 
             // the writer will attach itself to the reader
-            new MediaWriter(MultiThreadedWritingExhaustiveTest.class.getName()
-                + "_" + index + ".flv", reader)
+            new MediaWriter(
+                MultiThreadedWritingExhaustiveTest.class.getName()
+                + "_" + mModel.toString()
+                + "_" + mTestNumber + "_" + index + ".flv", reader)
             {
               long mediaDataWritten = 0;
 
@@ -163,7 +199,6 @@ public class MultiThreadedWritingExhaustiveTest
       }
     }
     log.debug("Test completed successfully: {} of {} threads"
-        + " ran without memory errors", numSuccess, NUM_THREADS);
-    log.debug("------  END  -----: {}", this.getClass().getName());
+        + " ran without memory errors", numSuccess, mThreads);
   }
 }

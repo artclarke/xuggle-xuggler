@@ -45,48 +45,7 @@
 
 #include "Ferry.h"
 #include "RefCounted.h"
-#include "Logger.h"
 
-/**
- * Define this if you want to use the Java VM for memory
- *  VSJNI_USE_JVM_FOR_MEMMANAGEMENT
- * allocations done by folks calling VSJNI_malloc and JNIMemoryManager::malloc and free
- *
- * For most cases you're best off keeping this off.  But if you're tracking
- * down memory leaks, turn this puppy on and have fun.
- */
-
-/**
- * Define this if you want to use Java Direct Buffers for memory as
- * opposed to JNI Byte arrays.
- *
- * What's the difference?  Well on Sun's Java SE 6 at least:
- *
- * Direct Buffers: Generally Faster than heap but slower than native,
- *    and will not be as easy to debug in HPROF reports.
- *    Essentially allocated directly off the C heap, and managed in Java's
- *    Direct Heap area (bet you didn't know there was yet another
- *    heap).  The size of this heap is controlled by the undocumented
- *    JVM flag -XX:MaxDirectMemorySize=<size> setting.  What's worse,
- *    growth of this area doesn't trigger garbage collection.
- *
- *    You should almost never use this mode.
- *
- *  ByteArrays: This uses the hack spoken of in the SWIG documentation to
- *    allocate a Java byte array (byte[]) using JNI functions, and then
- *    ask for memory.  This seems like a good idea and the documentation
- *    suggests that a JVM could give you that without copying memory.  The
- *    downside is at least for Sun's JVM, they do a copy, and so performance
- *    of these are much slower than direct buffers.  Still, they are mirrored
- *    in the Java heap and so can be easier to debug memory leaks with.
- *
- * If you turn the JVM for Mem Management stuff on, we'll default to ByteArrays
- * assuming you're debugging (if you're after performance, stick with native and
- * bump up the MaxDirectMemorySize anyway to account for that).
- */
-//#define VSJNI_USE_JVM_DIRECT_BUFFERS
-
-// predeclare these
 static void *
 VSJNI_malloc(jobject obj, size_t requested_size);
 static void
@@ -97,8 +56,20 @@ static void *
 VSJNI_unalignMemory(void*);
 static int VSJNI_ALIGNMENT_BOUNDARY = 16; // Must be power of two
 
-static bool sVSJNI_IsMirroringNativeMemoryInJVM = true;
-VS_LOG_SETUP(VS_CPP_PACKAGE);
+enum VSJNIMemoryModel
+{
+  JAVA_BYTE_ARRAYS = 0,
+  JAVA_DIRECT_BUFFERS = 1,
+  NATIVE_BUFFERS = 2,
+  NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION = 3,
+};
+
+static enum VSJNIMemoryModel sVSJNI_IsMirroringNativeMemoryInJVM =
+#ifdef VSJNI_USE_JVM_FOR_MEMMANAGEMENT
+    JAVA_BYTE_ARRAYS;
+#else
+NATIVE_BUFFERS;
+#endif
 
 namespace com
 {
@@ -117,15 +88,12 @@ void *
 JNIMemoryManager::malloc(void* obj, size_t requested_size)
 {
   void * retval = VSJNI_malloc(static_cast<jobject> (obj), requested_size);
-  //  VS_LOG_DEBUG("malloc: %p (%lld (%p))",
-  //      retval, (long long)requested_size, obj);
   return retval;
 }
 
 void
 JNIMemoryManager::free(void* mem)
 {
-  //VS_LOG_DEBUG("free  : %p", mem);
   VSJNI_free(mem);
 }
 
@@ -137,14 +105,11 @@ static JavaVM* sCachedJVM = 0;
 #ifdef VSJNI_USE_JVM_FOR_MEMMANAGEMENT
 static JNIEnv*
 VSJNI_getEnv();
-#ifdef VSJNI_USE_JVM_DIRECT_BUFFERS
 static jclass sByteBufferReferenceClass = 0;
 static jmethodID sByteBufferAllocateDirectMethod = 0;
-#else
 static jclass sJNIMemoryAllocatorClass = 0;
 static jmethodID sJNIMemoryAllocatorMallocMethod = 0;
 static jmethodID sJNIMemoryAllocatorFreeMethod = 0;
-#endif // VSJNI_USE_JVM_DIRECT_BUFFERS
 #endif // VSJNI_USE_JVM_FOR_MEMMANAGEMENT
 /*
  * This method is called by the JNIHelper when it loads up and
@@ -168,25 +133,25 @@ VSJNI_MemoryManagerInit(JavaVM* aJVM)
     JNIEnv *env = VSJNI_getEnv();
     if (!env)
       throw std::runtime_error("could not find environment");
-#ifdef VSJNI_USE_JVM_DIRECT_BUFFERS
-    VS_LOG_TRACE("Using JVM for Memory Access; Using Direct Buffers");
+
     jclass cls = env->FindClass("java/nio/ByteBuffer");
     if (!cls)
-    throw std::runtime_error("could not find java.nio.ByteBuffer class");
+      throw std::runtime_error("could not find java.nio.ByteBuffer class");
 
-    sByteBufferReferenceClass=(jclass)env->NewWeakGlobalRef(cls);
+    sByteBufferReferenceClass = (jclass) env->NewWeakGlobalRef(cls);
     if (!sByteBufferReferenceClass)
-    throw std::runtime_error("could not get weak reference for class");
+      throw std::runtime_error("could not get weak reference for class");
 
     sByteBufferAllocateDirectMethod = env->GetStaticMethodID(cls,
-        "allocateDirect",
-        "(I)Ljava/nio/ByteBuffer;");
+        "allocateDirect", "(I)Ljava/nio/ByteBuffer;");
     if (!sByteBufferAllocateDirectMethod)
-    throw std::runtime_error(
-        "could not find allocateDirect(int) method in java.nio.ByteBuffer");
-#else
-    VS_LOG_TRACE("Using JVM for Memory Access; Using byte[] buffers");
-    jclass cls = env->FindClass("com/xuggle/ferry/JNIMemoryAllocator");
+      throw std::runtime_error(
+          "could not find allocateDirect(int) method in java.nio.ByteBuffer");
+    env->DeleteLocalRef(cls);
+    if (env->ExceptionCheck())
+      throw std::runtime_error("got exception in jni");
+
+    cls = env->FindClass("com/xuggle/ferry/JNIMemoryAllocator");
     if (!cls)
       throw std::runtime_error(
           "could not find com.xuggle.ferry.JNIMemoryAllocatorclass");
@@ -203,7 +168,6 @@ VSJNI_MemoryManagerInit(JavaVM* aJVM)
     if (!sJNIMemoryAllocatorFreeMethod)
       throw std::runtime_error(
           "could not find free(byte[]) method in com.xuggle.ferry.JNIMemoryAllocator");
-#endif
   }
   catch (std::exception e)
   {
@@ -215,7 +179,6 @@ VSJNI_MemoryManagerInit(JavaVM* aJVM)
 #endif
   }
 #else
-  VS_LOG_TRACE("Using Native Heap for Memory Access");
 #endif // VSJNI_USE_JVM_FOR_MEMMANGEMENT
 }
 
@@ -245,9 +208,15 @@ struct VSJNI_AllocationHeader
    * be used instead to free.
    */
   jobject mRef;
-#ifndef VSJNI_USE_JVM_DIRECT_BUFFERS
+  /**
+   * A Global Reference to the object that we actually go the
+   * mRef backing object from
+   */
   jobject mAllocator;
-#endif
+  /**
+   * Yes it's a shame, but another four bytes go to the model.
+   */
+  enum VSJNIMemoryModel mModel;
 };
 
 /**
@@ -258,168 +227,257 @@ struct VSJNI_AllocationHeader
  *
  * @param requested_size The amount of memory requested
  */
+
 static void *
-VSJNI_malloc(jobject obj, size_t requested_size)
+VS_JNI_malloc_native(JNIEnv *, jobject, size_t requested_size)
 {
-  try {
+  void *retval = 0;
+  void *buffer = 0;
+
+  // We're not in a JVM, so use malloc/free instead
+  buffer = malloc((int) requested_size + sizeof(VSJNI_AllocationHeader)
+      + VSJNI_ALIGNMENT_BOUNDARY);
+  VSJNI_AllocationHeader *header = (VSJNI_AllocationHeader*) buffer;
+  if (!header)
+    throw std::bad_alloc();
+  // initialize the header to 0; that way later on delete we can tell
+  // if this was JVMed or Malloced.
+  memset(header, 0, sizeof(VSJNI_AllocationHeader));
+  header->mModel = NATIVE_BUFFERS;
+
+  retval = (void*) ((char*) header + sizeof(VSJNI_AllocationHeader));
+  return retval;
+}
+
+static void *
+VS_JNI_malloc_javaDirectBufferBacked(JNIEnv *env, jobject,
+    size_t requested_size)
+{
+  void *retval = 0;
+  void *buffer = 0;
+  // We allocate a byte array for the actual memory
+  jlong size = requested_size + sizeof(VSJNI_AllocationHeader)
+      + VSJNI_ALIGNMENT_BOUNDARY;
+
+  jobject bytearray = env->CallStaticObjectMethod(sByteBufferReferenceClass,
+      sByteBufferAllocateDirectMethod, size);
+
+  // if JVM didn't like that, return bad_alloc(); when we return all the way back to
+  // JVM the Exception in Java will still exist; even if someone else catches
+  // std::bad_alloc()
+  if (env->ExceptionCheck())
+    throw std::bad_alloc();
+
+  jlong availableCapacity = env->GetDirectBufferCapacity(bytearray);
+  if (env->ExceptionCheck())
+    throw std::bad_alloc();
+  if (availableCapacity < size)
+    throw std::bad_alloc();
+
+  buffer = env->GetDirectBufferAddress(bytearray);
+  if (!buffer)
+    throw std::bad_alloc();
+
+  // We're going to take up the first few (usually 4 on 32bit
+  // and 8 on 64 bit machines)
+  // bytes of this for our header, so be aware if you use this 
+  // for really small objects
+  // that the overhead is QUITE high.
+  VSJNI_AllocationHeader* header = (VSJNI_AllocationHeader*) buffer;
+  memset(header, 0, sizeof(VSJNI_AllocationHeader));
+
+  // And tell the JVM that it can't cleanup the bytearray yet; we've got
+  // things to do and places to go.
+  header->mRef = static_cast<jobject> (env->NewGlobalRef(bytearray));
+  if (!header->mRef)
+    throw std::bad_alloc();
+  header->mModel = JAVA_DIRECT_BUFFERS;
+
+  // But be nice and delete the local ref we had since we now have a
+  // stronger reference.
+  env->DeleteLocalRef(bytearray);
+  if (env->ExceptionCheck())
+    throw std::bad_alloc();
+  // Finally, return the buffer, but skip past our header
+  retval = (void*) ((char*) buffer + sizeof(VSJNI_AllocationHeader));
+  return retval;
+}
+
+static void *
+VS_JNI_malloc_javaByteBacked(JNIEnv* env, jobject obj, size_t requested_size)
+{
   void* retval = 0;
   void* buffer = 0;
-  JNIEnv* env = 0;
+  // make sure we don't already have a pending exception
+  if (env->ExceptionCheck())
+    throw std::bad_alloc();
 
-  if ((int) requested_size > INT_MAX - VSJNI_ALIGNMENT_BOUNDARY)
-    // we need 16 byte clearance; and only support up to 4GBs.  Sorry folks, if
-    // you need more than 4GB of contiguous memory, it's not us.
-    return 0;
-
-  (void) obj;
-  env = VSJNI_getEnv();
-  if (env && sVSJNI_IsMirroringNativeMemoryInJVM)
+  jbyteArray bytearray = 0;
+  if (obj)
   {
-    // We're within an already registered JVM; time to start using
-    // the Java heap
-
-#ifdef VSJNI_USE_JVM_DIRECT_BUFFERS
     // We allocate a byte array for the actual memory
-    jlong size = requested_size + sizeof(VSJNI_AllocationHeader)
-    + VSJNI_ALIGNMENT_BOUNDARY;
-
-    jobject bytearray = env->CallStaticObjectMethod(sByteBufferReferenceClass,
-        sByteBufferAllocateDirectMethod, size);
-
-    // if JVM didn't like that, return bad_alloc(); when we return all the way back to
-    // JVM the Exception in Java will still exist; even if someone else catches
-    // std::bad_alloc()
-    if (env->ExceptionCheck()) throw std::bad_alloc();
-
-    jlong availableCapacity = env->GetDirectBufferCapacity(bytearray);
-    if (env->ExceptionCheck()) throw std::bad_alloc();
-    if (availableCapacity < size) throw std::bad_alloc();
-
-    buffer = env->GetDirectBufferAddress(bytearray);
-    if (env->ExceptionCheck()) throw std::bad_alloc();
-    if (!buffer) throw std::bad_alloc();
-
-    // We're going to take up the first few (usually 4 on 32bit
-    // and 8 on 64 bit machines)
-    // bytes of this for our header, so be aware if you use this 
-    // for really small objects
-    // that the overhead is QUITE high.
-    VSJNI_AllocationHeader* header= (VSJNI_AllocationHeader*)buffer;
-
-    // And tell the JVM that it can't cleanup the bytearray yet; we've got
-    // things to do and places to go.
-    header->mRef = static_cast<jobject>(env->NewGlobalRef(bytearray));
-    if (env->ExceptionCheck()) throw std::bad_alloc();
-
-    // But be nice and delete the local ref we had since we now have a
-    // stronger reference.
-    env->DeleteLocalRef(bytearray);
-    if (env->ExceptionCheck()) throw std::bad_alloc();
-#else
-    // make sure we don't already have a pending exception
-    if (env->ExceptionCheck())
-      throw std::bad_alloc();
-
-    jbyteArray bytearray = 0;
-    if (obj)
-    {
-      // We allocate a byte array for the actual memory
-      bytearray = static_cast<jbyteArray> (env->CallObjectMethod(obj,
-          sJNIMemoryAllocatorMallocMethod, requested_size
-              + sizeof(VSJNI_AllocationHeader) + VSJNI_ALIGNMENT_BOUNDARY));
-    }
-    else
-    {
-      // We allocate a byte array for the actual memory
-      bytearray = env->NewByteArray(requested_size
-          + sizeof(VSJNI_AllocationHeader) + VSJNI_ALIGNMENT_BOUNDARY);
-    }
-
-    // if JVM didn't like that, return bad_alloc(); when we 
-    // return all the way back to
-    // JVM the Exception in Java will still exist; even if someone else catches
-    // std::bad_alloc()
-    if (!bytearray)
-      throw std::bad_alloc();
-    if (env->ExceptionCheck())
-      throw std::bad_alloc();
-
-    // Now this is the actual memory pointed to by the java byte array
-    // I use a void* buffer here so I can peak more easily in a debugger
-    buffer = (void*) (env->GetByteArrayElements(bytearray, 0));
-    if (env->ExceptionCheck())
-      throw std::bad_alloc();
-
-    // Technically this should never occur (i.e. if buffer is null
-    // then a Java exception should have occurred).  still, we'll
-    // be doubly safe for fun
-    if (!buffer)
-      throw std::bad_alloc();
-
-    // We're going to take up the first few (usually 4 on 32bit
-    // and 8 on 64 bit machines)
-    // bytes of this for our header, so be aware if you use this for
-    // really small objects
-    // that the overhead is QUITE high.
-    VSJNI_AllocationHeader* header = (VSJNI_AllocationHeader*) buffer;
-
-    // And tell the JVM that it can't cleanup the bytearray yet; we've got
-    // things to do and places to go.
-    header->mRef = env->NewGlobalRef(bytearray);
-    if (env->ExceptionCheck())
-      throw std::bad_alloc();
-    header->mAllocator = 0;
-    if (obj)
-    {
-      header->mAllocator = env->NewGlobalRef(obj);
-      if (env->ExceptionCheck())
-        throw std::bad_alloc();
-    }
-
-    // But be nice and delete the local ref we had since we now have a
-    // stronger reference.
-    env->DeleteLocalRef(bytearray);
-    if (env->ExceptionCheck())
-      throw std::bad_alloc();
-
-#endif
-    // Finally, return the buffer, but skip past our header
-    retval = (void*) ((char*) buffer + sizeof(VSJNI_AllocationHeader));
-#ifdef VSJNI_MEMMANAGER_DEBUG
-    printf("jvm    ");
-#endif
+    bytearray = static_cast<jbyteArray> (env->CallObjectMethod(obj,
+        sJNIMemoryAllocatorMallocMethod, requested_size
+            + sizeof(VSJNI_AllocationHeader) + VSJNI_ALIGNMENT_BOUNDARY));
   }
   else
   {
-    // We're not in a JVM, so use malloc/free instead
-    buffer = malloc((int) requested_size + sizeof(VSJNI_AllocationHeader)
-        + VSJNI_ALIGNMENT_BOUNDARY);
-    VSJNI_AllocationHeader *header = (VSJNI_AllocationHeader*) buffer;
-    if (!header)
-      throw std::bad_alloc();
-    // initialize the header to 0; that way later on delete we can tell
-    // if this was JVMed or Malloced.
-    memset(header, 0, sizeof(VSJNI_AllocationHeader));
-
-    retval = (void*) ((char*) header + sizeof(VSJNI_AllocationHeader));
-#ifdef VSJNI_MEMMANAGER_DEBUG
-    printf("stdlib ");
-#endif
+    // We allocate a byte array for the actual memory
+    bytearray = env->NewByteArray(requested_size
+        + sizeof(VSJNI_AllocationHeader) + VSJNI_ALIGNMENT_BOUNDARY);
   }
+
+  // if JVM didn't like that, return bad_alloc(); when we 
+  // return all the way back to
+  // JVM the Exception in Java will still exist; even if someone else catches
+  // std::bad_alloc()
+  if (!bytearray)
+    throw std::bad_alloc();
+  if (env->ExceptionCheck())
+    throw std::bad_alloc();
+
+  // Now this is the actual memory pointed to by the java byte array
+  // I use a void* buffer here so I can peak more easily in a debugger
+  buffer = (void*) (env->GetByteArrayElements(bytearray, 0));
+  if (env->ExceptionCheck())
+    throw std::bad_alloc();
+
+  // Technically this should never occur (i.e. if buffer is null
+  // then a Java exception should have occurred).  still, we'll
+  // be doubly safe for fun
+  if (!buffer)
+    throw std::bad_alloc();
+
+  VSJNI_AllocationHeader* header = (VSJNI_AllocationHeader*) buffer;
+  memset(header, 0, sizeof(VSJNI_AllocationHeader));
+
+  // And tell the JVM that it can't cleanup the bytearray yet; we've got
+  // things to do and places to go.
+  header->mRef = env->NewGlobalRef(bytearray);
+  if (!header->mRef)
+    throw std::bad_alloc();
+  header->mAllocator = 0;
+  if (obj)
+  {
+    header->mAllocator = env->NewGlobalRef(obj);
+    if (!header->mAllocator)
+      throw std::bad_alloc();
+  }
+  header->mModel = JAVA_BYTE_ARRAYS;
+
+  // But be nice and delete the local ref we had since we now have a
+  // stronger reference.
+  env->DeleteLocalRef(bytearray);
+  if (env->ExceptionCheck())
+    throw std::bad_alloc();
+
+  // Finally, return the buffer, but skip past our header
+  retval = (void*) ((char*) buffer + sizeof(VSJNI_AllocationHeader));
+  return retval;
+}
+static void *
+VS_JNI_malloc_nativeWithSmallJavaByteBacked(JNIEnv* env, jobject obj,
+    size_t requested_size)
+{
+  void* retval = 0;
+  void* buffer = 0;
+
+  // make sure we don't already have a pending exception
+  if (env->ExceptionCheck())
+    throw std::bad_alloc();
+
+  jbyteArray bytearray = 0;
+  // We allocate a byte array for the actual memory
+  bytearray = env->NewByteArray(requested_size);
+
+  // if JVM didn't like that, return bad_alloc(); when we 
+  // return all the way back to
+  // JVM the Exception in Java will still exist; even if someone else catches
+  // std::bad_alloc()
+  if (!bytearray)
+    throw std::bad_alloc();
+  if (env->ExceptionCheck())
+    throw std::bad_alloc();
+
+  buffer = VS_JNI_malloc_native(env, obj, requested_size);
+  if (!buffer)
+    throw std::bad_alloc();
+
+  if (!buffer)
+    throw std::bad_alloc();
+  VSJNI_AllocationHeader *header = (VSJNI_AllocationHeader*) ((char*) buffer
+      - sizeof(VSJNI_AllocationHeader));
+
+  // Here, oddly enough, we're going to set 0, and not remember the bytearray
+  // the purpose of this model is to ask Java to always allocate our bytes,
+  // so that it does mini-collections more often.
+  header->mRef = 0;
+  header->mAllocator = 0;
+  header->mModel = NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION;
+
+  // Now, tell Java to delete that byte array it so handily made
+  // for us.
+  env->DeleteLocalRef(bytearray);
+  if (env->ExceptionCheck())
+    throw std::bad_alloc();
+
+  // Finally, return the buffer, but skip past our header
+  retval = buffer;
+  return retval;
+}
+
+static void *
+VSJNI_malloc(jobject obj, size_t requested_size)
+{
+  try
+  {
+    void* retval = 0;
+    JNIEnv* env = 0;
+
+    if ((int) requested_size > INT_MAX - VSJNI_ALIGNMENT_BOUNDARY)
+      // we need 16 byte clearance; and only support up to 4GBs.  Sorry folks, if
+      // you need more than 4GB of contiguous memory, it's not us.
+      return 0;
+
+    (void) obj;
+    env = VSJNI_getEnv();
+    enum VSJNIMemoryModel model = sVSJNI_IsMirroringNativeMemoryInJVM;
+    if (!env)
+      model = NATIVE_BUFFERS;
+    switch (model)
+    {
+      case JAVA_BYTE_ARRAYS:
+        retval = VS_JNI_malloc_javaByteBacked(env, obj, requested_size);
+        break;
+      case JAVA_DIRECT_BUFFERS:
+        retval = VS_JNI_malloc_javaDirectBufferBacked(env, obj, requested_size);
+        break;
+      case NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION:
+        retval = VS_JNI_malloc_nativeWithSmallJavaByteBacked(env, obj,
+            requested_size);
+        break;
+      case NATIVE_BUFFERS:
+        /** fall through */
+      default:
+        retval = VS_JNI_malloc_native(env, obj, requested_size);
+        break;
+    }
 #ifdef VSJNI_MEMMANAGER_DEBUG
-  printf ("alloc: actual %p(%lld) returned %p(%lld) size (%ld)\n",
-      buffer,
-      (long long)buffer,
-      retval,
-      (long long) retval,
-      (long)requested_size);
+    printf ("alloc: actual %p(%lld) returned %p(%lld) size (%ld)\n",
+        buffer,
+        (long long)buffer,
+        retval,
+        (long long) retval,
+        (long)requested_size);
 #endif
-  // Now, align on VSJNI_ALIGNMENT_BOUNDARY byte boundary;
-  // on Posix system we could have used memalign for the malloc,
-  // but that doesn't work
-  // for Java allocations, so we do this hack for everyone.
-  return VSJNI_alignMemory(retval);
-  } catch (std::bad_alloc & e) {
+    // Now, align on VSJNI_ALIGNMENT_BOUNDARY byte boundary;
+    // on Posix system we could have used memalign for the malloc,
+    // but that doesn't work
+    // for Java allocations, so we do this hack for everyone.
+    return VSJNI_alignMemory(retval);
+  }
+  catch (std::bad_alloc & e)
+  {
     return 0;
   }
 }
@@ -445,65 +503,77 @@ VSJNI_free(void * mem)
 
     // Get our header
     VSJNI_AllocationHeader *header = (VSJNI_AllocationHeader*) buffer;
-    if (header->mRef)
+    enum VSJNIMemoryModel model = header->mModel;
+    if (model != NATIVE_BUFFERS)
     {
       // We know that this was allocated with a JVM
       JNIEnv * env = VSJNI_getEnv();
       if (env)
       {
-#ifdef VSJNI_USE_JVM_DIRECT_BUFFERS
-        // delete the global ref, so that when we return the
-        // jvm can gc
-        jobject ref = header->mRef;
-        header->mRef = 0;
-        env->DeleteGlobalRef(ref);
-#else
-        if (env->ExceptionCheck())
-          throw std::runtime_error("got java exception");
-
-        if (header->mAllocator)
+        if (model == JAVA_DIRECT_BUFFERS)
         {
-          // Tell the allocator we're done
-          // We're relying on the fact that the WeakReference passed in
-          // is always outlived
-          // by the allocator object (knock on wood)
-          env->CallVoidMethod(header->mAllocator,
-              sJNIMemoryAllocatorFreeMethod, header->mRef);
+          // delete the global ref, so that when we return the
+          // jvm can gc
+          jobject ref = header->mRef;
+          header->mRef = 0;
+          env->DeleteGlobalRef(ref);
+        }
+        else if (model == NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION)
+        {
+          // delete the small memory token we asked Java to allocate for us
+          jobject ref = header->mRef;
+          header->mRef = 0;
+          env->DeleteGlobalRef(ref);
+          free(buffer);
+        }
+        else
+        {
           if (env->ExceptionCheck())
             throw std::runtime_error("got java exception");
-          env->DeleteGlobalRef(header->mAllocator);
+
+          if (header->mAllocator)
+          {
+            // Tell the allocator we're done
+            // We're relying on the fact that the WeakReference passed in
+            // is always outlived
+            // by the allocator object (knock on wood)
+            env->CallVoidMethod(header->mAllocator,
+                sJNIMemoryAllocatorFreeMethod, header->mRef);
+            if (env->ExceptionCheck())
+              throw std::runtime_error("got java exception");
+            env->DeleteGlobalRef(header->mAllocator);
+            if (env->ExceptionCheck())
+              throw std::runtime_error("got java exception");
+          }
+
+          // Get a local copy so that when we delete the global
+          // ref, the gc thread won't free the underlying memory
+          jbyteArray array = static_cast<jbyteArray> (env->NewLocalRef(
+              header->mRef));
+          if (env->ExceptionCheck())
+            throw std::runtime_error("got java exception");
+          if (!array)
+            throw std::runtime_error("got java exception");
+
+          // delete the global ref, so that when we return the
+          // jvm can gc
+          env->DeleteGlobalRef(header->mRef);
+          header->mRef = 0;
+          if (env->ExceptionCheck())
+            throw std::runtime_error("got java exception");
+
+          // Tell the JVM to release the elements of raw memory
+          env->ReleaseByteArrayElements(array, (jbyte*) buffer, JNI_ABORT);
+          if (env->ExceptionCheck())
+            throw std::runtime_error("got java exception");
+
+          // and we should be careful to delete our local ref because
+          // we don't know how deep we are in native calls, or when
+          // we'll actually return to the jvm
+          env->DeleteLocalRef(array);
           if (env->ExceptionCheck())
             throw std::runtime_error("got java exception");
         }
-
-        // Get a local copy so that when we delete the global
-        // ref, the gc thread won't free the underlying memory
-        jbyteArray array = static_cast<jbyteArray> (env->NewLocalRef(
-            header->mRef));
-        if (env->ExceptionCheck())
-          throw std::runtime_error("got java exception");
-        if (!array)
-          throw std::runtime_error("got java exception");
-
-        // delete the global ref, so that when we return the
-        // jvm can gc
-        env->DeleteGlobalRef(header->mRef);
-        header->mRef = 0;
-        if (env->ExceptionCheck())
-          throw std::runtime_error("got java exception");
-
-        // Tell the JVM to release the elements of raw memory
-        env->ReleaseByteArrayElements(array, (jbyte*) buffer, JNI_ABORT);
-        if (env->ExceptionCheck())
-          throw std::runtime_error("got java exception");
-
-        // and we should be careful to delete our local ref because
-        // we don't know how deep we are in native calls, or when
-        // we'll actually return to the jvm
-        env->DeleteLocalRef(array);
-        if (env->ExceptionCheck())
-          throw std::runtime_error("got java exception");
-#endif
       }
       else
       {
@@ -649,22 +719,18 @@ Java_com_xuggle_ferry_JNIMemoryAllocator_getAllocator(JNIEnv *env, jclass,
   return result;
 }
 
-JNIEXPORT jboolean JNICALL
-Java_com_xuggle_ferry_FerryJNI_isMirroringNativeMemoryInJVM(
-    JNIEnv *, jclass)
+JNIEXPORT jint JNICALL
+Java_com_xuggle_ferry_FerryJNI_getMemoryModel(JNIEnv *, jclass)
 {
-#ifdef VSJNI_USE_JVM_FOR_MEMMANAGEMENT
-  return (jboolean) sVSJNI_IsMirroringNativeMemoryInJVM;
-#else
-  return false;
-#endif
+  return (jint) sVSJNI_IsMirroringNativeMemoryInJVM;
 }
 
 JNIEXPORT void JNICALL
-Java_com_xuggle_ferry_FerryJNI_setMirroringNativeMemoryInJVM(
-    JNIEnv *, jclass, jboolean value)
+Java_com_xuggle_ferry_FerryJNI_setMemoryModel(JNIEnv *, jclass, jint value)
 {
-  sVSJNI_IsMirroringNativeMemoryInJVM = (bool) value;
+#ifdef VSJNI_USE_JVM_FOR_MEMMANAGEMENT
+  sVSJNI_IsMirroringNativeMemoryInJVM = (enum VSJNIMemoryModel) value;
+#endif
 }
 
 }

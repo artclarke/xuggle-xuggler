@@ -21,34 +21,52 @@ package com.xuggle.xuggler;
 
 import static org.junit.Assert.*;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.xuggle.test_utils.NameAwareTestClassRunner;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.ferry.IBuffer;
 import com.xuggle.ferry.JNIMemoryManager;
+import com.xuggle.ferry.JNIMemoryManager.MemoryModel;
 
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@RunWith(NameAwareTestClassRunner.class)
+@RunWith(Parameterized.class)
 public class MemoryAllocationExhaustiveTest
 {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
-  private String mTestName;
+  @Parameters
+  public static Collection<Object[]> getModels()
+  {
+    Collection<Object[]> retval = new LinkedList<Object[]>();
+    // add all the models.
+    for(MemoryModel model: JNIMemoryManager.MemoryModel.values())
+      retval.add(new Object[]{
+          model
+      });
+    return retval;
+  }
+
+  public MemoryAllocationExhaustiveTest(JNIMemoryManager.MemoryModel model)
+  {
+    log.debug("Testing model: {}", model);
+    JNIMemoryManager.setMemoryModel(model);
+  }
+   
   
   @Before
   public void setUp()
   {
-    mTestName = NameAwareTestClassRunner.getTestMethodName();
-    log.debug("-----START----- {}", mTestName);
   }
   
   @After
@@ -59,7 +77,6 @@ public class MemoryAllocationExhaustiveTest
     System.gc();
     Thread.sleep(100);
     JNIMemoryManager.getMgr().gc();
-    log.debug("----- END ----- {}", mTestName);
   }
 
   @AfterClass
@@ -73,19 +90,19 @@ public class MemoryAllocationExhaustiveTest
   @Test(timeout=60*1000)
   public void testCorrectRefCounting() throws InterruptedException
   {
-    log.debug("create a frame");
+    log.trace("create a frame");
     IVideoPicture obj = IVideoPicture.make(IPixelFormat.Type.YUV420P,
         2000, 2000);
-    log.debug("force frame data allocation");
+    log.trace("force frame data allocation");
     obj.getData(); // Force an allocation
-    log.debug("copy frame reference");
+    log.trace("copy frame reference");
     IVideoPicture copy = obj.copyReference();
-    log.debug("do ref count check");
+    log.trace("do ref count check");
     assertEquals(2, copy.getCurrentRefCount());
     assertEquals(2, obj.getCurrentRefCount());
-    log.debug("delete object");
+    log.trace("delete object");
     obj.delete();
-    log.debug("do second ref count check");
+    log.trace("do second ref count check");
     assertEquals(1, copy.getCurrentRefCount());
     copy.delete();
     
@@ -116,7 +133,7 @@ public class MemoryAllocationExhaustiveTest
           2000, 2000); // that's 2000x2000x3 bytes... if we're not freeing right it'll show up quick.
       assertNotNull("could not allocate object", obj);
       assertNotNull("could not allocate underlying buffer", obj.getData()); // Force an allocation
-      //log.debug("allocated frame: {} @ time: {}", i, System.currentTimeMillis());
+      //log.trace("allocated frame: {} @ time: {}", i, System.currentTimeMillis());
       obj.delete();
     }
 
@@ -143,12 +160,12 @@ public class MemoryAllocationExhaustiveTest
     int numLoops = 100;
     for(int i = 0; i < numLoops; i++)
     {
-      //log.debug("object alloc: {}", i);
+      //log.trace("object alloc: {}", i);
       IVideoPicture obj = IVideoPicture.make(IPixelFormat.Type.YUV420P,
           2000, 2000); // that's 2000x2000x3 bytes... if we're not freeing right it'll show up quick.
       assertNotNull("could not allocate frame", obj);
       assertNotNull("could not allocate underlying data", obj.getData()); // Force an allocation
-      //log.debug("allocated frame: {} @ time: {}", i, System.currentTimeMillis());
+      //log.trace("allocated frame: {} @ time: {}", i, System.currentTimeMillis());
       obj = null;
     }
 
@@ -174,29 +191,29 @@ public class MemoryAllocationExhaustiveTest
   @Test
   public void testLeakLargeFrame() throws InterruptedException
   {
-    log.debug("create a frame");    
+    log.trace("create a frame");    
     IVideoPicture obj = IVideoPicture.make(IPixelFormat.Type.YUV420P,
         2000, 2000); // that's 2000x2000x3 bytes... if we're not freeing right it'll show up quick.
     assertNotNull("could not allocate frame", obj);
-    log.debug("force frame data allocation");
+    log.trace("force frame data allocation");
     assertNotNull("could not allocate underlying data", obj.getData()); // Force an allocation
 
-    log.debug("create java byte array for fun");
+    log.trace("create java byte array for fun");
     Byte[] arrayToLeak = new Byte[1000000]; // Who'd miss 1 Meg?
     assertNotNull("could not allocate large array to leak", arrayToLeak);
-    log.debug("leak java byte array");
+    log.trace("leak java byte array");
     mLargeLeakedArray = arrayToLeak;
     mLargeLeakedArray[0] = 0;
     // Here's the leak
-    log.debug("Deliberately leaking a large frame");
+    log.trace("Deliberately leaking a large frame");
     mLeakedLargeFrame = obj;
     obj = null;
     
     // let's confirm there is actually data there
-    log.debug("set the pts");
+    log.trace("set the pts");
     mLeakedLargeFrame.setPts(0);
     
-    log.debug("try setting pixels");
+    log.trace("try setting pixels");
     IPixelFormat.YUVColorComponent colors[] = {
         IPixelFormat.YUVColorComponent.YUV_Y,
         IPixelFormat.YUVColorComponent.YUV_U,
@@ -221,6 +238,9 @@ public class MemoryAllocationExhaustiveTest
     }
     assertTrue("Looks like we didn't leak the large frame????",
         0 < JNIMemoryManager.getMgr().getNumPinnedObjects());
+    
+    // and free it so that we can move on with our tests.
+    mLeakedLargeFrame = null;
   }
   
   /**
@@ -231,6 +251,20 @@ public class MemoryAllocationExhaustiveTest
   @Test(expected=OutOfMemoryError.class)
   public void testOutOfMemoryIPacket()
   {
+    // unpin everything
+    try
+    {
+      while (JNIMemoryManager.getMgr().getNumPinnedObjects() > 0)
+      {
+        byte bytes[] = new byte[1024 * 1024];
+        bytes[0] = 0;
+        JNIMemoryManager.collect();
+      }
+    }
+    catch (OutOfMemoryError e)
+    {
+      fail("this is not a valid OOME");
+    }
     List<IPacket> leakyPackets = new LinkedList<IPacket>();
     while(true)
     {
@@ -259,6 +293,20 @@ public class MemoryAllocationExhaustiveTest
   @Test(expected=OutOfMemoryError.class)
   public void testOutOfMemoryIAudioSamples()
   {
+    try
+    {
+      while (JNIMemoryManager.getMgr().getNumPinnedObjects() > 0)
+      {
+        byte bytes[] = new byte[1024 * 1024];
+        bytes[0] = 0;
+        JNIMemoryManager.collect();
+      }
+    }
+    catch (OutOfMemoryError e)
+    {
+      fail("this is not a valid OOME");
+    }
+
     List<IAudioSamples> leakyMedia = new LinkedList<IAudioSamples>();
     while(true)
     {
@@ -284,6 +332,20 @@ public class MemoryAllocationExhaustiveTest
   @Test(expected=OutOfMemoryError.class)
   public void testOutOfMemoryIVideoPicture()
   {
+    try
+    {
+      while (JNIMemoryManager.getMgr().getNumPinnedObjects() > 0)
+      {
+        byte bytes[] = new byte[1024 * 1024];
+        bytes[0] = 0;
+        JNIMemoryManager.collect();
+      }
+    }
+    catch (OutOfMemoryError e)
+    {
+      fail("this is not a valid OOME");
+    }
+
     List<IVideoPicture> leakyMedia = new LinkedList<IVideoPicture>();
     while(true)
     {

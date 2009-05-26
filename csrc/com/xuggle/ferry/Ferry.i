@@ -67,8 +67,8 @@ using namespace com::xuggle::ferry;
     buffer.delete();
   }
   
-  public native static boolean isMirroringNativeMemoryInJVM();
-  public native static void setMirroringNativeMemoryInJVM(boolean value);
+  public native static int getMemoryModel();
+  public native static void setMemoryModel(int value);
   
 %}
 %pragma(java) moduleimports=%{

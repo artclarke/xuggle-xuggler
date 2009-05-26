@@ -21,15 +21,40 @@ package com.xuggle.ferry;
 
 import static org.junit.Assert.*;
 
+import java.util.Collection;
+import java.util.LinkedList;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import com.xuggle.ferry.RefCountedTester;
 import com.xuggle.ferry.JNIReference;
+import com.xuggle.ferry.JNIMemoryManager.MemoryModel;
 
+@RunWith(Parameterized.class)
 public class RefCountedTest
 {
+  @Parameters
+  public static Collection<Object[]> getModels()
+  {
+    Collection<Object[]> retval = new LinkedList<Object[]>();
+    // add all the models.
+    for(MemoryModel model: JNIMemoryManager.MemoryModel.values())
+      retval.add(new Object[]{
+          model
+      });
+    return retval;
+  }
+
+  public RefCountedTest(JNIMemoryManager.MemoryModel model)
+  {
+    JNIMemoryManager.setMemoryModel(model);
+  }
+   
   
   @After
   public void tearDown()

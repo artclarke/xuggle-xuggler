@@ -21,14 +21,21 @@ package com.xuggle.xuggler;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.ferry.JNIMemoryManager;
+import com.xuggle.ferry.JNIMemoryManager.MemoryModel;
 import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.mediatool.MediaViewer;
 import com.xuggle.xuggler.video.ConverterFactory;
@@ -45,13 +52,35 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * @author aclarke
  *
  */
+@RunWith(Parameterized.class)
 public class MultiThreadedReadingExhaustiveTest
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
-  { log.trace("make warning go away"); }
+  @Parameters
+  public static Collection<Object[]> getModels()
+  {
+    Collection<Object[]> retval = new LinkedList<Object[]>();
+    // add all the models.
+    for(MemoryModel model: JNIMemoryManager.MemoryModel.values())
+      // ramp up in terms of multi-threading
+      for(int i = 0; i < 5; i++)
+        retval.add(new Object[]{
+            model, 20*(i+1),
+        });
+    return retval;
+  }
 
-  static final int NUM_THREADS=100;
-  
+  final int mThreads;
+  public MultiThreadedReadingExhaustiveTest(
+      JNIMemoryManager.MemoryModel model,
+      int numThreads)
+  {
+    log.debug("Testing model: {}; Threads: {}", model, numThreads);
+    mThreads = numThreads;
+    JNIMemoryManager.setMemoryModel(model);
+  }
+   
+
   @Test(timeout = 30 * 60 * 1000)
   public void testMultiThreadedTest() throws InterruptedException
   {
@@ -59,12 +88,11 @@ public class MultiThreadedReadingExhaustiveTest
       // doesn't run on Windows
       return;
     
-    log.debug("------ START -----: {}", this.getClass().getName());
     final boolean ADD_VIEWER = System.getProperty(
         MultiThreadedReadingExhaustiveTest.class.getName()+".ShowVideo") != null;
-    final CyclicBarrier barrier = new CyclicBarrier(NUM_THREADS);
-    final Thread threads[] = new Thread[NUM_THREADS];
-    final int numPackets[] = new int[NUM_THREADS];
+    final CyclicBarrier barrier = new CyclicBarrier(mThreads);
+    final Thread threads[] = new Thread[mThreads];
+    final int numPackets[] = new int[mThreads];
     final AtomicInteger uncaughtExceptions = new AtomicInteger();
     
     // create all the threads
@@ -151,7 +179,6 @@ public class MultiThreadedReadingExhaustiveTest
     }
     assertEquals(0, uncaughtExceptions.get());
     log.debug("Test completed successfully: {} of {} threads"
-        + " ran without memory errors", numSuccess, NUM_THREADS);
-    log.debug("------  END  -----: {}", this.getClass().getName());
+        + " ran without memory errors", numSuccess, mThreads);
   }
 }

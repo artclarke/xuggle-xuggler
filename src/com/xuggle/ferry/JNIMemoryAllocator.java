@@ -26,13 +26,14 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Internal Only.
- * 
+ * <p>
  * This object allocates large memory chunks and returns them to native code.
  * The native memory then pins raw bytes based on the byte[]s returned here. The
  * net effect is that Java ends up thinking it actually allocated the memory,
  * but since a {@link RefCounted} object will also maintain a reference to this
  * allocator, you can use this to detect instances of 'leaked' references in
  * your Java code.
+ * </p>
  * <p>
  * This function is called DIRECTLY from native code; names of methods MUST NOT
  * CHANGE.
@@ -63,7 +64,7 @@ public class JNIMemoryAllocator
   }
   
   /**
-   * Allocate a new block of bytes. Called from native code.
+   * Internal Only.  Allocate a new block of bytes. Called from native code.
    * <p>
    * Will retry many times if it can't get memory, backing off
    * in timeouts to get there.
@@ -201,7 +202,7 @@ public class JNIMemoryAllocator
   }
 
   /**
-   * Native method that tells a native objects (represented by the nativeObj
+   * Internal Only.  Native method that tells a native objects (represented by the nativeObj
    * long pointer val) that this JNIMemoryAllocator is being used to allocate
    * it's large blocks of memory.
    * <p>
@@ -217,7 +218,7 @@ public class JNIMemoryAllocator
   public native static void setAllocator(long nativeObj, JNIMemoryAllocator mgr);
 
   /**
-   * Get the allocator for the underlying native pointer.
+   * Internal Only.  Get the allocator for the underlying native pointer.
    * 
    * @param nativeObj
    *          The native pointer.
@@ -226,56 +227,4 @@ public class JNIMemoryAllocator
 
   public native static JNIMemoryAllocator getAllocator(long nativeObj);
 
-  /**
-   * Are we mirroring all memory allocations from native code in the JVM?
-   * 
-   * <p>
-   * By default if this support is compiled into the Ferry native libraries,
-   * large Ferry-using objects will be allocated inside the JVM instead of the
-   * C++ heap. This aids in debugging memory leaks, but for high-performance
-   * applications it may introduce a potentially significant overhead. So you
-   * can turn if off here.
-   * </p>
-   * <p>
-   * That said, we <strong>strongly</strong> recommend you leave it on; by
-   * mirroring native memory inside the JVM we get the advantage of having
-   * Java's garbage collector know really how much memory it is using, and
-   * therefore it does a better job of auto-releasing Ferry objects.
-   * </p>
-   * <p>
-   * If you set this to false, the Java garbage collector won't know that
-   * objects allocating large chunks of memory in C++ are being pinned by
-   * objects in Java. Since the corresponding Java objects look small to the
-   * Garbage Collector, it may not aggressively collect those small objects. As
-   * a result you may start seeing OutOfMemoryErrors coming from the native
-   * calls.
-   * </p>
-   * <p>
-   * Pretty much THE ONLY REASON to turn this off is if you've decided you're
-   * going to explicitly call {@link RefCounted#delete()} when you're done a
-   * Ferried Java object and as a result want more control yourself.
-   * </p>
-   * 
-   * @return true if we're mirroring native memory in the JVM. Otherwise false.
-   */
-
-  public static boolean isMirroringNativeMemoryInJVM()
-  {
-    return FerryJNI.isMirroringNativeMemoryInJVM();
-  }
-
-  /**
-   * Set whether or not we mirror native memory allocations of large objects
-   * inside the JVM.
-   * 
-   * @param value
-   *          true for yes; false for no.
-   * 
-   * @see #isMirroringNativeMemoryInJVM()
-   */
-
-  public static void setMirroringNativeMemoryInJVM(boolean value)
-  {
-    FerryJNI.setMirroringNativeMemoryInJVM(value);
-  }
 }

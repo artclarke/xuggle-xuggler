@@ -27,8 +27,8 @@ class FerryJNI {
     buffer.delete();
   }
   
-  public native static boolean isMirroringNativeMemoryInJVM();
-  public native static void setMirroringNativeMemoryInJVM(boolean value);
+  public native static int getMemoryModel();
+  public native static void setMemoryModel(int value);
   
 
   public final static native long new_AtomicInteger__SWIG_0();

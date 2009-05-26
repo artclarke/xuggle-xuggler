@@ -210,13 +210,14 @@ public class IBuffer extends RefCounted {
      * @param length The requested length (in bytes) you want to access.
      *   The buffer returned may actually be longer than length.
      * @param referenceReturn If non null, on exit 
-     *   calling {@link com.util.concurrent.atomic.AtomicReference#get()}
+     *   calling {@link java.util.concurrent.atomic.AtomicReference#get()}
      *   on this value will return a {@link JNIReference} you can use
-     *   for explicitly de-allocting the underlying native store
+     *   for explicitly de-allocating the underlying native store
      *   of the {@link java.nio.ByteBuffer}.  Call
-     *   {@link JNIReference#delete()} for that.  <strong>Warning:</string>
-     *   if you delete this reference, then the returned byte buffer
-     *   will be invalid.  In most cases, just let Ferry delete it for
+     *   {@link JNIReference#delete()} to do that.  <strong>Warning:</strong>
+     *   if you do call {@link JNIReference#delete()} on the
+     *   value returned in this parameter, then the returned byte buffer
+     *   will be immediately invalid.  In most cases, just let Ferry delete it for
      *   you later.
      * @return A java.nio.ByteBuffer that directly accesses
      *   the native memory this IBuffer manages, or null if
