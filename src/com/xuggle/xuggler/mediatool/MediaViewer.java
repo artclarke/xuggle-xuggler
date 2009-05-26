@@ -59,6 +59,7 @@ import javax.swing.JPanel;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.BoxLayout;
+import javax.swing.WindowConstants;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableCellRenderer;
@@ -171,7 +172,7 @@ public class MediaViewer extends MediaAdapter
 
   /** the stats font size */
 
-  public static final float FONT_SIZE = 25f;
+  public static final float FONT_SIZE = 20f;
 
   /** default video early time window, before which video is delayed */
 
@@ -348,11 +349,6 @@ public class MediaViewer extends MediaAdapter
             queue.close();
         }
       });
-  }
-
-  public void finalize()
-  {
-    debug("finalize!");
   }
 
   /**
@@ -592,18 +588,17 @@ public class MediaViewer extends MediaAdapter
   private AudioQueue getAudioQueue(IMediaTool tool, int streamIndex)
   {
     AudioQueue queue = mAudioQueues.get(streamIndex);
-    SourceDataLine line = getJavaSoundLine(tool.getContainer().getStream(
-        streamIndex));
+    IStream stream = tool.getContainer().getStream(streamIndex);
+    SourceDataLine line = getJavaSoundLine(stream);
+    
+    // if no queue (and there is a line), create the queue
+
     if (null == queue && line != null)
     {
-      // if the audio line is closed, open it
-
-      // create the queue and add it to the list
-
-      queue = new AudioQueue(mAudioQueueCapacity, TIME_UNIT, 
-        mContainer.getStream(streamIndex), line);
+      queue = new AudioQueue(mAudioQueueCapacity, TIME_UNIT, stream, line);
       mAudioQueues.put(streamIndex, queue);
     }
+
     return queue;
   }
 
@@ -671,8 +666,7 @@ public class MediaViewer extends MediaAdapter
     if (mShowStats)
     {
       if (null == mStatsFrame)
-        mStatsFrame = new StatsFrame(mDefaultCloseOperation, this);
-
+        mStatsFrame = new StatsFrame(WindowConstants.DISPOSE_ON_CLOSE, this);
       mStatsFrame.update(stream, mediaData);
     }
   }
@@ -801,7 +795,9 @@ public class MediaViewer extends MediaAdapter
       SourceDataLine sourceDataLine)
     {
       super(TIME_UNIT.convert(capacity, unit), DEFALUT_AUDIO_EARLY_WINDOW,
-          DEFALUT_AUDIO_LATE_WINDOW, TIME_UNIT, Thread.MIN_PRIORITY, "audio");
+          DEFALUT_AUDIO_LATE_WINDOW, TIME_UNIT, Thread.MIN_PRIORITY, 
+        "audio stream " + stream.getIndex() + " " + 
+        stream.getStreamCoder().getCodec().getLongName());
       mStream = stream;
       mLine = sourceDataLine;
     }
@@ -843,7 +839,9 @@ public class MediaViewer extends MediaAdapter
     public VideoQueue(long capacity, TimeUnit unit, MediaFrame mediaFrame)
     {
       super(TIME_UNIT.convert(capacity, unit), DEFALUT_VIDEO_EARLY_WINDOW,
-          DEFALUT_VIDEO_LATE_WINDOW, TIME_UNIT, Thread.MIN_PRIORITY, "video");
+          DEFALUT_VIDEO_LATE_WINDOW, TIME_UNIT, Thread.MIN_PRIORITY, 
+        "video stream " + mediaFrame.mStream.getIndex() + " " + 
+        mediaFrame.mStream.getStreamCoder().getCodec().getLongName());
       mMediaFrame = mediaFrame;
     }
 
@@ -985,7 +983,7 @@ public class MediaViewer extends MediaAdapter
 
                 if (delta >= mEarlyWindow)
                 {
-                  // debug("delta: " + delta);
+                  //debug("delta: " + delta);
                   try
                   {
                     //sleep(MILLISECONDS.convert(delta - mEarlyWindow, TIME_UNIT));

@@ -25,6 +25,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
+import javax.swing.WindowConstants;
+
 import com.xuggle.xuggler.IError;
 
 import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
@@ -52,10 +54,10 @@ public class MediaViewerTest
 
   public static final String TEST_FILE_DIR = "fixtures";
  
-  // public static final String INPUT_FILENAME = TEST_FILE_DIR + "/testfile.flv";
-  // public static final String INPUT_FILENAME = TEST_FILE_DIR + "/goose.wmv";
-  public static final String INPUT_FILENAME = 
-    TEST_FILE_DIR + "/testfile_bw_pattern.flv";
+  public static final String INPUT_FILENAME = TEST_FILE_DIR + "/testfile.flv";
+  //  public static final String INPUT_FILENAME = TEST_FILE_DIR + "/goose.wmv";
+//   public static final String INPUT_FILENAME = 
+//     TEST_FILE_DIR + "/testfile_bw_pattern.flv";
 
   // test thet the proper number of events are signaled during reading
   // and writng of a media file
@@ -70,9 +72,10 @@ public class MediaViewerTest
 
     MediaReader reader = new MediaReader(INPUT_FILENAME);
 
-    reader.addListener(new MediaViewer(mViewerMode, true));
-//     reader.addListener(new DebugListener(DebugListener.Mode.EVENT,
-//         DebugListener.Event.ALL));
+    reader.addListener(new MediaViewer(mViewerMode, true, 
+        WindowConstants.EXIT_ON_CLOSE));
+    // reader.addListener(new DebugListener(DebugListener.Mode.EVENT,
+    // DebugListener.Event.ALL));
 
     IError rv;
     while ((rv = reader.readPacket()) == null)
