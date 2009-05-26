@@ -647,8 +647,12 @@ using the library and what you like or don't like about it.
     description="run memory check test suite for Java if available">
   </target>
 
-  <target name="run-tests-java" depends="compile-tests-java, fixtures-java"
+  <target name="run-tests-java" depends="compile-tests-java"
     description="Run JUnit tests and generate HTML reports">
+    <!-- Clean up an old run -->
+    <delete dir="${test.reports.dir}" quiet="true"/>
+    <antcall target="fixtures-java" inheritAll="true" inheritRefs="true">
+    </antcall>
     <!-- we fail a test with a timeout if it takes longer than 5 minutes -->
     <echo message='Java: java.home is ${java.home} and the target version is ${java.target_version}'/>
     <echo message="java.library.path=${runtime.java.library.path}"/>
@@ -685,7 +689,8 @@ using the library and what you like or don't like about it.
         <path refid="test.classpath"/>
       </classpath>
       <formatter type="xml"/>
-      <batchtest todir="${test.reports.dir}">
+      <test name="${testcase}" todir="${test.reports.dir}" if="testcase"/>
+      <batchtest todir="${test.reports.dir}" unless="testcase">
         <fileset dir="${test.classes.dir}">
           <include name="**/*Test.class"/>
           <exclude name="**/*ExhaustiveTest.class"/>
@@ -715,6 +720,10 @@ using the library and what you like or don't like about it.
   
   <target name="run-tests-java-all" depends="compile-tests-java, fixtures-java"
     description="Run ALL JUnit tests and generate HTML reports">
+    <!-- Clean up an old run -->
+    <delete dir="${test.reports.dir}" quiet="true"/>
+    <antcall target="fixtures-java" inheritAll="true" inheritRefs="true">
+    </antcall>
     <!-- we fail a test with a timeout if it takes longer than 5 minutes -->
     <echo message='Running all tests, including Exhaustive tests'/>
     <echo message='Java: java.home is ${java.home} and the target version is ${java.target_version}'/>
