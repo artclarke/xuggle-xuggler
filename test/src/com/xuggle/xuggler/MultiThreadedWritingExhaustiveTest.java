@@ -102,7 +102,7 @@ public class MultiThreadedWritingExhaustiveTest
         public void run()
         {
           final MediaReader reader = new MediaReader(
-              "fixtures/testfile_videoonly_20sec.flv", true,
+              "fixtures/testfile_videoonly_20sec.flv",
               ConverterFactory.XUGGLER_BGR_24);
           try
           {

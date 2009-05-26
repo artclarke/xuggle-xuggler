@@ -97,7 +97,7 @@ public class DecodeAndCaptureFrames extends MediaAdapter
     // create a media reader for processing video, stipulate that we
     // want BufferedImages to created in BGR 24bit color space
 
-    MediaReader mediaReader = new MediaReader(filename, true,
+    MediaReader mediaReader = new MediaReader(filename, 
       ConverterFactory.XUGGLER_BGR_24);
     
     // note that DecodeAndCaptureFrames is derived from

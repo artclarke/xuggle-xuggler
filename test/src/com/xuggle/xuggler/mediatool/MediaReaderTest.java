@@ -23,13 +23,13 @@ import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.xuggle.xuggler.mediatool.MediaReader;
-import com.xuggle.xuggler.video.ConverterFactory;
-import com.xuggle.xuggler.IAudioSamples;
-import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IError;
+import com.xuggle.xuggler.IContainer;
+import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IVideoResampler;
+import com.xuggle.xuggler.mediatool.MediaReader;
+import com.xuggle.xuggler.video.ConverterFactory;
 
 import java.awt.image.BufferedImage;
 
@@ -70,7 +70,7 @@ public class MediaReaderTest
   @Test(expected=RuntimeException.class)
     public void testMediaSourceNotExist() 
   {
-    MediaReader mr = new MediaReader("broken" + TEST_FILE_20_SECONDS, true, 
+    MediaReader mr = new MediaReader("broken" + TEST_FILE_20_SECONDS,
       ConverterFactory.XUGGLER_BGR_24);
     mr.readPacket();
   }  
@@ -84,7 +84,7 @@ public class MediaReaderTest
  
     // create a new media reader
 
-    MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, false, null);
+    MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS);
     mr.addListener(new MediaViewer(mViewerMode, true));
 
     // setup the the listener
@@ -143,7 +143,7 @@ public class MediaReaderTest
     
     // create a new media reader
 
-    MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, true,
+    MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, 
       ConverterFactory.XUGGLER_BGR_24);
     mr.addListener(new MediaViewer(mViewerMode, true));
 
@@ -197,7 +197,7 @@ public class MediaReaderTest
         
     // create a new media reader
 
-    MediaReader mr = new MediaReader(container, true,
+    MediaReader mr = new MediaReader(container, 
       ConverterFactory.XUGGLER_BGR_24);
     mr.addListener(new MediaViewer(mViewerMode, true));
 

@@ -19,15 +19,25 @@
 
 package com.xuggle.xuggler.mediatool;
 
+import java.io.File;
+import java.nio.ShortBuffer;
+
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
+
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-
 import javax.swing.WindowConstants;
 
 import com.xuggle.xuggler.IError;
+import com.xuggle.xuggler.IAudioSamples;
+import com.xuggle.xuggler.IVideoPicture;
+import com.xuggle.xuggler.video.ConverterFactory;
 
 import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
 
@@ -82,5 +92,68 @@ public class MediaViewerTest
       ;
 
     assertEquals(IError.Type.ERROR_EOF, rv.getType());
+  }
+
+  //@Test()
+  public void testModifyMedia()
+  {
+    //com.xuggle.ferry.JNIMemoryAllocator.setMirroringNativeMemoryInJVM(false);
+    
+    File inputFile = new File(INPUT_FILENAME);
+    assert (inputFile.exists());
+
+    // create a media reader
+
+    MediaReader reader = new MediaReader(INPUT_FILENAME,
+      ConverterFactory.XUGGLER_BGR_24);
+    
+    // add a writer to the reader which receives the decoded media,
+    // encodes it and writes it out to the specified file
+    
+    MediaWriter writer = new MediaWriter("output.mov", reader)
+      {
+        public void onVideoPicture(IMediaTool tool, IVideoPicture picture,
+          BufferedImage image, int streamIndex)
+        {
+          Graphics2D g = image.createGraphics();
+          String timeStamp = picture.getFormattedTimeStamp();
+          Rectangle2D bounds = g.getFont().getStringBounds(timeStamp,
+            g.getFontRenderContext());
+          
+          double inset = bounds.getHeight() / 2;
+          g.translate(inset, image.getHeight() - inset);
+          
+          g.setColor(Color.WHITE);
+          g.fill(bounds);
+          g.setColor(Color.BLACK);
+          g.drawString(timeStamp, 0, 0);
+
+          super.onVideoPicture(tool, picture, image, streamIndex);
+        }
+  
+        public void onAudioSamples(IMediaTool tool, IAudioSamples samples, 
+          int streamIndex)
+        {
+          // get the raw audio byes and reduce the value to 1 quarter
+
+          ShortBuffer buffer = samples.getByteBuffer().asShortBuffer();
+          for (int i = 0; i < buffer.limit(); ++i)
+            buffer.put(i, (short)(buffer.get(i) / 4));
+
+          // pas modifed audio to the writer to be written
+
+          super.onAudioSamples(tool, samples, streamIndex);
+        }
+      };
+
+    // add a listener to the writer to see media modified media
+    
+    writer.addListener(new MediaViewer(mViewerMode));
+
+    // read and decode packets from the source file and
+    // then encode and write out data to the output file
+    
+    while (reader.readPacket() == null)
+      ;
   }
 }

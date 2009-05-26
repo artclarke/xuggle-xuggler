@@ -66,7 +66,8 @@ public interface IMediaListener
    * @param streamIndex the index of the stream
    */
 
-  public void onAudioSamples(IMediaTool tool, IAudioSamples samples, int streamIndex);
+  public void onAudioSamples(IMediaTool tool, IAudioSamples samples, 
+    int streamIndex);
 
   /**
    * Called after an {@link com.xuggle.xuggler.IContainer} is opened.

@@ -119,7 +119,6 @@ public class MultiThreadedReadingExhaustiveTest
           }
           final MediaReader reader = 
             new MediaReader("fixtures/testfile_videoonly_20sec.flv",
-                true,
                 ConverterFactory.XUGGLER_BGR_24);
           try {
             log.debug("Created reader: {}", reader);

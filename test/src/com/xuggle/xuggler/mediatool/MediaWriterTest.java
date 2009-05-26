@@ -81,7 +81,7 @@ public class MediaWriterTest
   @Before
     public void beforeTest()
   {
-    mReader = new MediaReader(TEST_FILE, true, ConverterFactory.XUGGLER_BGR_24);
+    mReader = new MediaReader(TEST_FILE, ConverterFactory.XUGGLER_BGR_24);
   }
 
   @After

@@ -159,7 +159,7 @@ public class DisplayWebcamVideo
     // IContainer, stipulate that we want BufferedImages to created in
     // BGR 24bit color space
 
-    MediaReader reader = new MediaReader(container, true,
+    MediaReader reader = new MediaReader(container, 
       ConverterFactory.XUGGLER_BGR_24);
     
     // Add a media viewer that will display the video, but that exits

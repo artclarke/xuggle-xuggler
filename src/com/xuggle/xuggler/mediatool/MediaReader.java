@@ -82,11 +82,7 @@ public class MediaReader extends AMediaTool
 
   protected final Collection<IStream> mOpenedStreams = new Vector<IStream>();
 
-  // should this media reader create buffered images
-
-  protected final boolean mCreateBufferedImages;
-
-  // the type of converter to use
+  // the type of converter to use, NULL if no conversion should occur
 
   protected final ConverterFactory.Type mConverterType;
 
@@ -117,7 +113,7 @@ public class MediaReader extends AMediaTool
    * <p>
    * 
    * No {@link BufferedImage}s are created.  To create {@link
-   * BufferedImage}s see {@link #MediaReader(String, boolean, String)}.
+   * BufferedImage}s see {@link #MediaReader(String, String)}.
    * 
    * </p>
    *
@@ -127,46 +123,37 @@ public class MediaReader extends AMediaTool
 
   public MediaReader(String url)
   {
-    this(url, false, null);
+    this(url, null);
   }
 
   /**
    * Create a MediaReader which reads and dispatches data from a media
-   * stream for a given source URL. The media stream is opened, and
-   * subsequent calls to {@link #readPacket()} will read stream content
-   * and dispatch it to attached listeners. When the end of the stream
-   * is encountered the media container and it's contained streams are
-   * all closed.
+   * stream for a given source URL, and optionally converts pictures to
+   * images.  The media stream is opened, and subsequent calls to {@link
+   * #readPacket()} will read stream content and dispatch it to attached
+   * listeners.  When the end of the stream is encountered the media
+   * container and it's contained streams are all closed.
    *
    * @param url the location of the media content, a file name will also
    *        work here
-   * @param createBufferedImages true if BufferedImages should be
-   *        created during media reading.
-   * @param converterDescriptor the descriptive of converter to use to
-   *        create buffered images; if createBufferedImages is FALSE,
-   *        this may be NULL
+   * @param converterDescriptor the descriptor of converter to use to
+   *        create buffered images; or NULL if no BufferedImages should
+   *        be created see {@link
+   *        com.xuggle.xuggler.video.ConverterFactory}
    *
-   * @throws IllegalArgumentException if BufferedImage conversion is
-   *         required and the passed converter descriptor is NULL
    * @throws UnsupportedOperationException if the converter can not be
    *         found
    */
 
-  public MediaReader(String url, boolean createBufferedImages, 
-    String converterDescriptor)
+  public MediaReader(String url, String converterDescriptor)
   {
     super(url, IContainer.make());
-    
-    // note that we should or should not create buffered images during
-    // video decoding, and if so what type of converter to use
 
-    mCreateBufferedImages = createBufferedImages;
-    if (mCreateBufferedImages)
+    // if converterDescriptor is present, create buffered images during
+    // video decoding
+
+    if (null != converterDescriptor)
     {
-      if (converterDescriptor == null)
-        throw new IllegalArgumentException(
-          "If createBufferedImages is TRUE, converterDescriptor may not be NULL.");
-      
       mConverterType = ConverterFactory 
         .findRegisteredConverter(converterDescriptor);
       if (mConverterType == null)
@@ -190,7 +177,7 @@ public class MediaReader extends AMediaTool
    * <p>
    * 
    * No {@link BufferedImage}s are created. To create {@link BufferedImage}s see
-   * {@link #MediaReader(IContainer, boolean, String)}.
+   * {@link #MediaReader(IContainer, String)}.
    * 
    * </p>
    * 
@@ -200,7 +187,7 @@ public class MediaReader extends AMediaTool
 
   public MediaReader(IContainer container)
   {
-    this(container, false, null);
+    this(container, null);
   }
 
   /**
@@ -213,40 +200,29 @@ public class MediaReader extends AMediaTool
    * the MediaReader will not be closed. In short MediaReader closes what it
    * opens.
    * 
-   * @param container
-   *          on already open media container
-   * @param createBufferedImages
-   *          should BufferedImages be created during media reading
-   * @param converterDescriptor
-   *          the descriptive of converter to use to create buffered images; if
-   *          createBufferedImages is FALSE, this may be NULL
+   * @param container on already open media container
+   * @param converterDescriptor the descriptor of converter to use to
+   *        create buffered images; or NULL if no BufferedImages should
+   *        be created see {@link
+   *        com.xuggle.xuggler.video.ConverterFactory}
    * 
-   * @throws IllegalArgumentException
-   *           if BufferedImage conversion is required and the passed converter
-   *           descriptor is NULL
-   * @throws UnsupportedOperationException
-   *           if the converter can not be found
+   * @throws UnsupportedOperationException if the converter can not be
+   *         found
    */
 
-  public MediaReader(IContainer container, boolean createBufferedImages, 
-    String converterDescriptor)
+  public MediaReader(IContainer container, String converterDescriptor)
   {
     super(container.getURL(), container);
 
     // get dynamic stream add ability
 
     mStreamsCanBeAddedDynamically = container.canStreamsBeAddedDynamically();
-    
-    // note that we should or should not create buffered images during
-    // video decoding, and if so what type of converter to use
 
-    mCreateBufferedImages = createBufferedImages;
-    if (mCreateBufferedImages)
+    // if converterDescriptor is present, create buffered images during
+    // video decoding
+
+    if (null != converterDescriptor)
     {
-      if (converterDescriptor == null)
-        throw new IllegalArgumentException(
-          "If createBufferedImages is TRUE, converterDescriptor may not be NULL.");
-      
       mConverterType = ConverterFactory 
         .findRegisteredConverter(converterDescriptor);
       if (mConverterType == null)
@@ -258,27 +234,28 @@ public class MediaReader extends AMediaTool
   }
 
   /**
-   * Set if the underlying media container supports adding dynamic streams. See
-   * {@link IContainer#open(String, IContainer.Type, IContainerFormat, boolean, boolean)}
-   * . The default value for this is false.
+   * Set if the underlying media container supports adding dynamic
+   * streams. See {@link IContainer#open(String, IContainer.Type,
+   * IContainerFormat, boolean, boolean)} . The default value for this
+   * is false.
    * 
    * <p>
    * 
-   * If set to false, Xuggler can assume no new streams will be added after
-   * {@link #open()} has been called, and may decide to query the entire media
-   * file to find all meta data. If true then Xuggler will not read ahead;
-   * instead it will only query meta data for a stream when a
-   * {@link #readPacket()} returns the first packet in a new stream. Note that a
-   * {@link MediaWriter} can only initialize itself from a {@link MediaReader}
-   * that has this parameter set to false.
+   * If set to false, Xuggler can assume no new streams will be added
+   * after {@link #open()} has been called, and may decide to query the
+   * entire media file to find all meta data. If true then Xuggler will
+   * not read ahead; instead it will only query meta data for a stream
+   * when a {@link #readPacket()} returns the first packet in a new
+   * stream. Note that a {@link MediaWriter} can only initialize itself
+   * from a {@link MediaReader} that has this parameter set to false.
    * 
    * </p>
    * 
    * <p>
    * 
-   * To have an effect, the MediaReader must not have been created with an
-   * already open {@link IContainer}, and this method must be called before the
-   * first call to {@link #readPacket}.
+   * To have an effect, the MediaReader must not have been created with
+   * an already open {@link IContainer}, and this method must be called
+   * before the first call to {@link #readPacket}.
    * 
    * </p>
    * 
@@ -606,7 +583,7 @@ public class MediaReader extends AMediaTool
     
     // if should create buffered image, do so
 
-    if (mCreateBufferedImages)
+    if (null != mConverterType)
     {
       // if the converter is not created, create one
 

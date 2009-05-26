@@ -128,8 +128,7 @@ public class DecodeAndPlayAudioAndVideo extends MediaAdapter
     // create a media reader for processing video, stipulate that we
     // want BufferedImages to created in BGR 24bit color space
 
-    mMediaReader = new MediaReader(filename, true,
-      ConverterFactory.XUGGLER_BGR_24);
+    mMediaReader = new MediaReader(filename, ConverterFactory.XUGGLER_BGR_24);
     
     // note that DecodeAndPlayAudioAndVideo is derived from
     // MediaReader.IListener and thus may be added as a listener to the
