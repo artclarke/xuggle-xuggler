@@ -33,6 +33,9 @@ public class IPixelFormat extends RefCounted {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IPixelFormat(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIPixelFormatUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

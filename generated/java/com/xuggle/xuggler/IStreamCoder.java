@@ -30,6 +30,9 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IStreamCoder(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIStreamCoderUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

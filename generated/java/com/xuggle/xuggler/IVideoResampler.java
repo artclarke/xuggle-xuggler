@@ -35,6 +35,9 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IVideoResampler(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIVideoResamplerUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

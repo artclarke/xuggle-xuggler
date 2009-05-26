@@ -34,9 +34,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Condition;
 
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.Rectangle;
 import java.awt.Dimension;
 import java.awt.Component;
 import java.awt.Graphics2D;
@@ -57,11 +55,9 @@ import javax.swing.JPanel;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.BoxLayout;
-import javax.swing.JScrollPane;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableCellRenderer;
-import javax.swing.table.DefaultTableModel;
 import javax.swing.table.AbstractTableModel;
 
 import com.xuggle.xuggler.Global;
@@ -1365,7 +1361,7 @@ public class MediaViewer extends MediaAdapter
     /**
      * Construct a stats frame.
      * 
-     * @param container the container 
+     * @param viewer the viewer 
      */
 
     public StatsFrame(MediaViewer viewer)

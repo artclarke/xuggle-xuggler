@@ -165,7 +165,7 @@ abstract public class AConverter implements IConverter
   }
 
   /**
-   * Return the {@link IPixelFormat.Type} which matches the {@link
+   * Return the Type which matches the {@link
    * BufferedImage} type.
    * 
    * @return the picture type which allows for image translation.

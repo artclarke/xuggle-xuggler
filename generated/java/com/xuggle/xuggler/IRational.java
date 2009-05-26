@@ -40,6 +40,9 @@ public class IRational extends RefCounted {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IRational(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIRationalUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

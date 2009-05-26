@@ -36,6 +36,9 @@ public class Mutex extends RefCounted {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected Mutex(long cPtr, boolean cMemoryOwn) {
     super(FerryJNI.SWIGMutexUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

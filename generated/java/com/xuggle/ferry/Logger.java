@@ -27,6 +27,9 @@ public class Logger {
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>
 
   private volatile long swigCPtr;
+  /**
+   * Internal Only.
+   */
   protected boolean swigCMemOwn;
   @SuppressWarnings("unused")
   private JNINativeFinalizer mUnusedVariableToAllowImports;
@@ -100,7 +103,7 @@ public class Logger {
   }
   
   /**
-   * Finalize this object.  Note this should only exists on non RefCounted objects.
+   * Internal Only.  Finalize this object.  Note this should only exists on non RefCounted objects.
    */
   protected void finalize()
   {

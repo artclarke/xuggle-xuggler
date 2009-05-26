@@ -29,6 +29,9 @@ public class IAudioSamples extends IMediaData {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IAudioSamples(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIAudioSamplesUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

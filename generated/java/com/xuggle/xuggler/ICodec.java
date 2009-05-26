@@ -30,6 +30,9 @@ public class ICodec extends RefCounted {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected ICodec(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGICodecUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

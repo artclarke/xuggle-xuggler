@@ -27,6 +27,9 @@ public class IAudioResampler extends RefCounted {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IAudioResampler(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIAudioResamplerUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

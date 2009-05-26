@@ -29,6 +29,9 @@ public class RefCountedTester extends RefCounted {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected RefCountedTester(long cPtr, boolean cMemoryOwn) {
     super(FerryJNI.SWIGRefCountedTesterUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

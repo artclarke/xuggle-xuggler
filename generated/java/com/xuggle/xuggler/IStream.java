@@ -46,6 +46,9 @@ public class IStream extends RefCounted {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IStream(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIStreamUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

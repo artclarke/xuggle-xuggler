@@ -59,6 +59,9 @@ public class RefCounted {
   // JNIHelper.swg: Start generated code
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>
   private volatile long swigCPtr;
+  /**
+   * Internal Only.
+   */
   protected boolean swigCMemOwn;
   private com.xuggle.ferry.JNIReference mRefCounter;
   private Long mLifecycleReference;
@@ -166,8 +169,8 @@ public class RefCounted {
 
 
 /**
- * Acquire a reference to this object (only called from Native code). 
- *  
+ * Internal Only. Acquire a reference to this object (only called from 
+ * Native code).  
  * This increments the internal ref count by +1  
  * @return	The refcount after the acquire. Note due to multi-threaded 
  *		 issues, you should not rely on this value.  
@@ -177,8 +180,8 @@ public class RefCounted {
   }
 
 /**
- * Release a reference to this object (only called from Native code). 
- *  
+ * Internal Only. Release a reference to this object (only called from 
+ * Native code).  
  * This decrements the internal ref count by -1; the object  
  * is destroyed if it's ref count reaches zero.  
  * @return	The ref count after the release. Note due to multi-threaded 

@@ -46,6 +46,9 @@ public class IError extends RefCounted {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IError(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIErrorUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

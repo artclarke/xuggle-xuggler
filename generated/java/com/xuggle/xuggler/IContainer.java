@@ -28,6 +28,9 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IContainer(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIContainerUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

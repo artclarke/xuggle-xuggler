@@ -27,6 +27,9 @@ public class IMediaData extends RefCounted {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IMediaData(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIMediaDataUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

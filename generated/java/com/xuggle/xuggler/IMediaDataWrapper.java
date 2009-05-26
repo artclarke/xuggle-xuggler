@@ -35,6 +35,9 @@ public class IMediaDataWrapper extends IMediaData {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IMediaDataWrapper(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIMediaDataWrapperUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

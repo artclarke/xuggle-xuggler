@@ -27,6 +27,9 @@ public class Global extends RefCounted {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected Global(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGGlobalUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

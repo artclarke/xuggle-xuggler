@@ -22,7 +22,7 @@ package com.xuggle.ferry;
  * 
  * Internal Only.
  * 
- * An Opaque handle that holds a Native pointer/handle.
+ * An Opaque handle that holds a Native mPointer/handle.
  * 
  * This class holds a opaque long value that can be used to pass into JNI C
  * function that expect a ** in C.
@@ -60,14 +60,22 @@ package com.xuggle.ferry;
  */
 public class JNIPointerReference
 {
-  private long pointer = -1;
+  private long mPointer;
 
+  /**
+   * Internal Only.
+   */
+  public JNIPointerReference()
+  {
+    mPointer = -1;
+  }
+  
   @SuppressWarnings("unused")
   // This method is "private" but we assume it'll be called from
   // native code (that can override protections).
   private synchronized long getPointer()
   {
-    return pointer;
+    return mPointer;
   }
 
   // This method is "private" but we assume it'll be called from
@@ -75,13 +83,16 @@ public class JNIPointerReference
   @SuppressWarnings("unused")
   private synchronized long setPointer(long newVal)
   {
-    long oldVal = pointer;
-    pointer = newVal;
+    long oldVal = mPointer;
+    mPointer = newVal;
     return oldVal;
   }
 
+  /**
+   * Internal Only.
+   */
   public String toString()
   {
-    return "native:" + pointer;
+    return "native:" + mPointer;
   }
 }

@@ -28,6 +28,9 @@
   // JNIHelper.swg: Start generated code
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>
   private volatile long swigCPtr;
+  /**
+   * Internal Only.
+   */
   protected boolean swigCMemOwn;
   private com.xuggle.ferry.JNIReference mRefCounter;
   private Long mLifecycleReference;
@@ -115,6 +118,9 @@
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>
 
   private volatile long swigCPtr;
+  /**
+   * Internal Only.
+   */
   protected boolean swigCMemOwn;
   @SuppressWarnings("unused")
   private JNINativeFinalizer mUnusedVariableToAllowImports;
@@ -188,7 +194,7 @@
   }
   
   /**
-   * Finalize this object.  Note this should only exists on non RefCounted objects.
+   * Internal Only.  Finalize this object.  Note this should only exists on non RefCounted objects.
    */
   protected void finalize()
   {
@@ -236,6 +242,9 @@
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected $javaclassname(long cPtr, boolean cMemoryOwn) {
     super($imclassname.SWIG$javaclassnameUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;
@@ -432,6 +441,3 @@
 // as a java.nio.ByteBuffer type
 %typemap(jtype)  jNioByteArray, const jNioByteArray &  "java.nio.ByteBuffer";
 %typemap(jstype) jNioByteArray, const jNioByteArray &  "java.nio.ByteBuffer";
-    
-
-

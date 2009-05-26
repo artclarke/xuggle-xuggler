@@ -36,6 +36,9 @@ public class IContainerFormat extends RefCounted {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IContainerFormat(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIContainerFormatUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

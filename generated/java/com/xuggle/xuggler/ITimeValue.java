@@ -30,6 +30,9 @@ public class ITimeValue extends RefCounted {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected ITimeValue(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGITimeValueUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

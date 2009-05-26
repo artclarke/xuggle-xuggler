@@ -27,6 +27,9 @@ public class IProperty extends RefCounted {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IProperty(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIPropertyUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

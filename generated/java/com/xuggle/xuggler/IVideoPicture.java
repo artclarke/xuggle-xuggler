@@ -32,6 +32,9 @@ public class IVideoPicture extends IMediaData {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IVideoPicture(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIVideoPictureUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

@@ -92,7 +92,7 @@ namespace com { namespace xuggle { namespace ferry {
 #endif
     // These should never be called from Java; copyReference() and delete() should be used
     /**
-     * Acquire a reference to this object (only called from Native code).
+     * Internal Only.  Acquire a reference to this object (only called from Native code).
      *
      * This increments the internal ref count by +1
      * 
@@ -101,7 +101,7 @@ namespace com { namespace xuggle { namespace ferry {
     virtual int32_t acquire();
 
     /**
-     * Release a reference to this object (only called from Native code).
+     * Internal Only.  Release a reference to this object (only called from Native code).
      *
      * This decrements the internal ref count by -1; the object
      * is destroyed if it's ref count reaches zero.

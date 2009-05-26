@@ -54,6 +54,9 @@ public class IPacket extends IMediaData {
    
   private volatile long swigCPtr;
 
+  /**
+   * Internal Only.
+   */
   protected IPacket(long cPtr, boolean cMemoryOwn) {
     super(XugglerJNI.SWIGIPacketUpcast(cPtr), cMemoryOwn);
     swigCPtr = cPtr;

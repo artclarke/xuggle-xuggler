@@ -1003,7 +1003,7 @@ public class Converter
    * it is rencoded and written. In this implementation the audio frame is
    * passed through unmodified.
    * 
-   * @param audio
+   * @param audioFrame
    *          the source audio frame to be modified
    * 
    * @return the modified audio frame
