@@ -338,7 +338,11 @@ public class MemoryAllocationExhaustiveTest
             log.debug("Could not get ByteBuffer");
             throw new OutOfMemoryError();
           }
-          bBuf.put(media.getSize()-1, (byte) 0);
+          // some OSes will cheat and not actually commit the 
+          // pages to memory unless you use them; so let's do
+          // exactly that.
+          for(int j = 0; i < media.getSize(); i++)
+            bBuf.put(j, (byte) 0);
           Tuple tuple = new Tuple(bBuf, reference.get());
           leakyMedia.add(tuple);
           assertNotNull(tuple.getBuffer());
