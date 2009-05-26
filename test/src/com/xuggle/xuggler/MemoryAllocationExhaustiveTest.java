@@ -289,6 +289,15 @@ public class MemoryAllocationExhaustiveTest
   }
   private void testOutOfMemoryHelper(IMediaAllocator allocator)
   {
+    String osName = System.getProperty("os.name", "Linux");
+    if (osName != null && osName.length() > 0 &&
+        osName.startsWith("Mac"))
+      // turns out the Apple JVM will let a virtual machine
+      // allocate memory until the cows come home and uses
+      // swap space.  this will therefore KILL the machine
+      // it runs on.
+      return;
+    
     class Tuple {
       private final ByteBuffer mBuffer;
       private final JNIReference mReference;
