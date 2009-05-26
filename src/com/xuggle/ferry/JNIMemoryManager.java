@@ -20,6 +20,8 @@ package com.xuggle.ferry;
 
 import java.lang.ref.ReferenceQueue;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -282,7 +284,62 @@ public class JNIMemoryManager
 
   /**
    * Get the {@link MemoryModel} that Ferry is using for allocating large memory
-   * blocks. <h2>Memory Model Performance Implications</h2> Choosing the
+   * blocks.
+   * 
+   * @return the memory model currently being used.
+   * 
+   * @see MemoryModel
+   */
+  public static MemoryModel getMemoryModel()
+  {
+    int model = 0;
+    model = FerryJNI.getMemoryModel();
+    MemoryModel retval = MemoryModel.JAVA_BYTE_ARRAYS;
+    for (MemoryModel candidate : MemoryModel.values())
+      if (candidate.getNativeValue() == model)
+        retval = candidate;
+    return retval;
+  }
+
+  /**
+   * Sets the {@link MemoryModel}.
+   * <p>
+   * Only call once per process; Calling more than once has an unspecified
+   * effect.
+   * </p>
+   * 
+   * @param model The model you want to use.
+   * 
+   * @see #getMemoryModel()
+   * @see MemoryModel
+   */
+  public static void setMemoryModel(MemoryModel model)
+  {
+    FerryJNI.setMemoryModel(model.getNativeValue());
+  }
+
+  /**
+   * Internal Only.
+   * 
+   * Immediately frees all active objects in the system.  Do not
+   * call unless you REALLY know what you're doing.
+   */
+  public void flush()
+  {
+    // Make a copy so we don't modify the real map
+    // inside an iterator.
+    Map<JNIReference, JNIReference> refs = 
+      new HashMap<JNIReference, JNIReference>();
+    
+    refs.putAll(mRefList);
+    for(JNIReference ref : refs.keySet())
+      if (ref != null)
+        ref.delete();
+  }
+
+  /**
+   * The different types of native memory allocation models Ferry supports.
+   * <h2>Memory Model Performance Implications</h2> Choosing the
    * {@link MemoryModel} you use in Ferry libraries can have a big effect. Some
    * models emphasize code that will work "as you expect" (Robustness), but
    * sacrifice some execution speed to make that happen. Other models value
@@ -316,7 +373,8 @@ public class JNIMemoryManager
    * </tr>
    * 
    * <tr>
-   * <td> {@link MemoryModel#NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION}</td>
+   * <td> {@link MemoryModel#NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION}
+   * (experimental)</td>
    * <td>++</td>
    * <td>+++</td>
    * </tr>
@@ -329,7 +387,7 @@ public class JNIMemoryManager
    * 
    * <tr>
    * <td> {@link MemoryModel#JAVA_DIRECT_BUFFERS} (not recommended)</td>
-   * <td>++</td>
+   * <td>+</td>
    * <td>++</td>
    * </tr>
    * 
@@ -377,39 +435,6 @@ public class JNIMemoryManager
    * {@link MemoryModel#NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION}. If that's not
    * good enough, try {@link MemoryModel#NATIVE_BUFFERS} but see all the caveats
    * there.
-   * 
-   * @return the memory model currently being used.
-   */
-  public static MemoryModel getMemoryModel()
-  {
-    int model = 0;
-    model = FerryJNI.getMemoryModel();
-    MemoryModel retval = MemoryModel.JAVA_BYTE_ARRAYS;
-    for (MemoryModel candidate : MemoryModel.values())
-      if (candidate.getNativeValue() == model)
-        retval = candidate;
-    return retval;
-  }
-
-  /**
-   * Sets the {@link MemoryModel}.
-   * <p>
-   * Only call once per process; Calling more than once has an unspecified
-   * effect.
-   * </p>
-   * 
-   * @param model The model you want to use.
-   * 
-   * @see #getMemoryModel()
-   */
-  public static void setMemoryModel(MemoryModel model)
-  {
-    FerryJNI.setMemoryModel(model.getNativeValue());
-  }
-
-  /**
-   * The different types of native memory allocation models Ferry supports.
-   * 
    * @author aclarke
    * 
    */
@@ -425,7 +450,9 @@ public class JNIMemoryManager
      * Once an object makes it into the Tenured generation in Java, then it's
      * also efficient as unnecessary copying stops. However while in the Eden
      * generation but surviving between incremental collections, these objects
-     * may get copied many times unnecessarily.
+     * may get copied many times unnecessarily.  Since the objects are,
+     * by definition, large, this unnecessary copy can have a significant
+     * performance impact.
      * </p>
      * <h2>Robustness</h2>
      * <ol>
@@ -454,13 +481,16 @@ public class JNIMemoryManager
      * to give the object time to move to the tenured generation.</li>
      * <li>Try the {@link MemoryModel#NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION}
      * model.</li>
+     * <li>Call <code>delete()</code> when done with your objects
+     * to let Java know it doesn't need to copy the item across
+     * a collection.</li>
      * 
      * </ul>
      */
     JAVA_BYTE_ARRAYS(0),
     /**
      * Large memory blocks are allocated as Direct {@link ByteBuffer} objects
-     * (as returned from {@link ByteBuffer#allocateDirect(int)}.
+     * (as returned from {@link ByteBuffer#allocateDirect(int)}).
      * <p>
      * This model is not recommended. It is faster than
      * {@link MemoryModel#JAVA_BYTE_ARRAYS}, but because of how Sun implements
@@ -496,9 +526,9 @@ public class JNIMemoryManager
      * buffers (64mb). To make it higher pass
      * <code>-XX:MaxDirectMemorySize=<i>&lt;size&gt;</i></code> to your virtual
      * machine.</li>
-     * <li>Don't use this model.</li>
-     * <li>Don't ask why it's here. It's here because if we didn't offer it,
-     * someone would suggest it.
+     * <li>Call <code>delete()</code> when done with your objects
+     * to let Java know it doesn't need to copy the item across
+     * a collection.</li>
      * <li>Try the {@link MemoryModel#NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION}
      * model.</li>
      * 
@@ -618,6 +648,7 @@ public class JNIMemoryManager
     {
       return mNativeValue;
     }
+    
   }
 
 }

@@ -403,13 +403,17 @@
   }
   catch(std::bad_alloc & e)
   {
-    // OK, this is bad and may mean we can't do things like 
-    // allocate a new class at this time; but we should have
-    // one lying around
-    com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-    if (helper) {
-      helper->throwOutOfMemoryError();
+    // we don't let a native exception override a java exception
+    if (!jenv->ExceptionCheck())
+    {
+      // OK, this is bad and may mean we can't do things like 
+      // allocate a new class at this time; but we should have
+      // one lying around
+      com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+      if (helper) {
+        helper->throwOutOfMemoryError();
+      }
     }
     return $null;
   }

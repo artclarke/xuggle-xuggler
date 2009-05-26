@@ -110,6 +110,7 @@ class XugglerJNI {
   public final static native long IPacket_getConvergenceDuration(long jarg1, IPacket jarg1_);
   public final static native void IPacket_setConvergenceDuration(long jarg1, IPacket jarg1_, long jarg2);
   public final static native long IPacket_make__SWIG_2(long jarg1, IPacket jarg1_, boolean jarg2);
+  public final static native long IPacket_make__SWIG_3(int jarg1);
   public final static native int IAudioSamples_FMT_NONE_get();
   public final static native boolean IAudioSamples_isComplete(long jarg1, IAudioSamples jarg1_);
   public final static native int IAudioSamples_getSampleRate(long jarg1, IAudioSamples jarg1_);

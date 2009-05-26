@@ -129,8 +129,9 @@ namespace com { namespace xuggle { namespace xuggler
           allocInternalFrameBuffer();
         }
         retval = mBuffer.get();
-        if (!retval)
+        if (!retval) {
           throw std::bad_alloc();
+        }
       }
     } catch (std::bad_alloc &e) {
       VS_REF_RELEASE(retval);
@@ -326,8 +327,9 @@ namespace com { namespace xuggle { namespace xuggler
     {
       // Make our copy buffer.
       mBuffer = com::xuggle::ferry::IBuffer::make(this, bufSize);
-      if (!mBuffer)
+      if (!mBuffer) {
         throw std::bad_alloc();
+      }
 
       // Now, to further work around issues, I added the extra 8-bytes,
       // and now I'm going to zero just those 8-bytes out.  I don't

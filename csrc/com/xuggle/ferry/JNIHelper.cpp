@@ -161,13 +161,24 @@ namespace com { namespace xuggle { namespace ferry {
       if (!cls || env->ExceptionCheck())
         return;
       
-      jmethodID constructor = env->GetMethodID(cls, "<init>", "()V");
+      jmethodID constructor = env->GetMethodID(cls, "<init>", "(Ljava/lang/String;)V");
       if (!constructor || env->ExceptionCheck())
         return;
       
-      jthrowable exception=static_cast<jthrowable>(env->NewObject(cls, constructor));
-      if (!exception || env->ExceptionCheck())
+      jstring errorMessage = env->NewStringUTF(
+          "Sorry, but we're all out of native memory.    How out"
+          " of native memory are we?  Well, we're so out we're"
+          " throwing a exception we allocated at"
+          " the beginning of program time, so while the stack trace will"
+          " be wrong, at least you get some useful feedback");
+      if (!errorMessage)
         return;
+      jthrowable exception=static_cast<jthrowable>(
+          env->NewObject(cls, constructor, errorMessage));
+      env->DeleteLocalRef(errorMessage);
+      if (!exception) {
+        return;
+      }
       
       mOutOfMemoryErrorSingleton = static_cast<jthrowable>(env->NewGlobalRef(exception));
       if (!mOutOfMemoryErrorSingleton || env->ExceptionCheck())
@@ -332,6 +343,9 @@ namespace com { namespace xuggle { namespace ferry {
     JNIEnv *env = this->getEnv();
     if (!env)
       return 0;
+    
+    if (env->ExceptionCheck())
+      return 0;
 
     jlong pointerVal = env->CallLongMethod(pointerRef,
         mJNIPointerReference_getPointer_mid);
@@ -356,6 +370,8 @@ namespace com { namespace xuggle { namespace ferry {
   {
     JNIEnv *env = this->getEnv();
     if (!env)
+      return 0;
+    if (env->ExceptionCheck())
       return 0;
     if (!pointerRef)
       return 0;
@@ -392,6 +408,9 @@ namespace com { namespace xuggle { namespace ferry {
     JNIEnv *env = this->getEnv();
     if (!env)
       return 0;
+    if (env->ExceptionCheck())
+      return 0;
+
     retval = env->NewLocalRef(ref);
     if (!retval)
       throw std::runtime_error("could not get JVM LocalRef");
@@ -418,6 +437,9 @@ namespace com { namespace xuggle { namespace ferry {
     JNIEnv *env = this->getEnv();
     if (!env)
       return 0;
+    if (env->ExceptionCheck())
+      return 0;
+
     retval = env->NewGlobalRef(ref);
     if (!retval)
       throw std::runtime_error("could not get JVM GlobalRef");
@@ -446,6 +468,9 @@ namespace com { namespace xuggle { namespace ferry {
     JNIEnv *env = this->getEnv();
     if (!env)
       return 0;
+    if (env->ExceptionCheck())
+      return 0;
+
     jweak retval = 0;
     retval = env->NewWeakGlobalRef(ref);
     if (!retval)
@@ -481,12 +506,11 @@ namespace com { namespace xuggle { namespace ferry {
     JNIEnv *env = this->getEnv();
     if (!env)
       return;
-    if (!env->ExceptionCheck()) {
-      // don't override a pending exception
-      if (!mOutOfMemoryErrorSingleton)
-        return;
-      env->Throw(mOutOfMemoryErrorSingleton);
-    }
+    if (env->ExceptionCheck())
+      return;
+    if (!mOutOfMemoryErrorSingleton)
+      return;
+    env->Throw(mOutOfMemoryErrorSingleton);
   }
   
   int32_t
@@ -503,9 +527,15 @@ namespace com { namespace xuggle { namespace ferry {
       // this is an error if these are not set up, but we're
       // going to assume no interrupt then.
       return 0;
+    
+    jclass cls = static_cast<jclass>(env->NewLocalRef(mThread_class));
+    if (!cls)
+      return 0;
+    
     jobject thread = env->CallStaticObjectMethod(
-        static_cast<jclass>(mThread_class),
+        cls,
         mThread_currentThread_mid);
+    env->DeleteLocalRef(cls);
     if (!thread || env->ExceptionCheck())
       return 1;
     jboolean result = env->CallBooleanMethod(thread,
@@ -532,9 +562,15 @@ namespace com { namespace xuggle { namespace ferry {
       // this is an error if these are not set up, but we're
       // going to assume no interrupt then.
       return;
+    
+    jclass cls = static_cast<jclass>(env->NewLocalRef(mThread_class));
+    if (!cls)
+      return;
+
     jobject thread = env->CallStaticObjectMethod(
-        static_cast<jclass>(mThread_class),
+        cls,
         mThread_currentThread_mid);
+    env->DeleteLocalRef(cls);
     if (!thread || env->ExceptionCheck())
       return;
     env->CallVoidMethod(thread,
@@ -555,10 +591,18 @@ namespace com { namespace xuggle { namespace ferry {
       // this is an error if these are not set up, but we're
       // going to assume no interrupt then.
       return false;
-    if (env->IsInstanceOf(
+    jclass cls = static_cast<jclass>(env->NewLocalRef(mInterruptedException_class));
+    if (!cls)
+      return false;
+
+    jboolean retval = env->IsInstanceOf(
         exception,
-        static_cast<jclass>(mInterruptedException_class))!=JNI_FALSE)
+        static_cast<jclass>(cls)
+    );
+    env->DeleteLocalRef(cls);
+    if (retval != JNI_FALSE)
       return true;
-    return false;
+    else
+      return false;
   }
 }}}

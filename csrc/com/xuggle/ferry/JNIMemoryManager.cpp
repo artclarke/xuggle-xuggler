@@ -259,24 +259,37 @@ VS_JNI_malloc_javaDirectBufferBacked(JNIEnv *env, jobject,
   jlong size = requested_size + sizeof(VSJNI_AllocationHeader)
       + VSJNI_ALIGNMENT_BOUNDARY;
 
+  if (env->ExceptionCheck()) {
+    throw std::bad_alloc();
+  }
+  
+  jclass cls = static_cast<jclass>(env->NewLocalRef(sByteBufferReferenceClass));
+  if (!cls)
+  {
+    throw std::bad_alloc();
+  }
   jobject bytearray = env->CallStaticObjectMethod(sByteBufferReferenceClass,
-      sByteBufferAllocateDirectMethod, size);
-
+      sByteBufferAllocateDirectMethod, (jint)size);
+  env->DeleteLocalRef(cls);
   // if JVM didn't like that, return bad_alloc(); when we return all the way back to
   // JVM the Exception in Java will still exist; even if someone else catches
   // std::bad_alloc()
-  if (env->ExceptionCheck())
+  if (!bytearray || env->ExceptionCheck()) {
     throw std::bad_alloc();
+  }
 
   jlong availableCapacity = env->GetDirectBufferCapacity(bytearray);
-  if (env->ExceptionCheck())
+  if (env->ExceptionCheck()) {
     throw std::bad_alloc();
-  if (availableCapacity < size)
+  }
+  if (availableCapacity < size) {
     throw std::bad_alloc();
+  }
 
   buffer = env->GetDirectBufferAddress(bytearray);
-  if (!buffer)
+  if (!buffer || env->ExceptionCheck()) {
     throw std::bad_alloc();
+  }
 
   // We're going to take up the first few (usually 4 on 32bit
   // and 8 on 64 bit machines)
@@ -289,15 +302,18 @@ VS_JNI_malloc_javaDirectBufferBacked(JNIEnv *env, jobject,
   // And tell the JVM that it can't cleanup the bytearray yet; we've got
   // things to do and places to go.
   header->mRef = static_cast<jobject> (env->NewGlobalRef(bytearray));
-  if (!header->mRef)
+  if (!header->mRef || env->ExceptionCheck()) {
     throw std::bad_alloc();
+  }
   header->mModel = JAVA_DIRECT_BUFFERS;
 
   // But be nice and delete the local ref we had since we now have a
   // stronger reference.
   env->DeleteLocalRef(bytearray);
-  if (env->ExceptionCheck())
+  if (env->ExceptionCheck()) {
+    env->DeleteLocalRef(header->mRef);
     throw std::bad_alloc();
+  }
   // Finally, return the buffer, but skip past our header
   retval = (void*) ((char*) buffer + sizeof(VSJNI_AllocationHeader));
   return retval;

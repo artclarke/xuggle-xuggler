@@ -501,4 +501,20 @@ public class IPacket extends IMediaData {
     return (cPtr == 0) ? null : new IPacket(cPtr, false);
   }
 
+/**
+ * Allocate a new packet.  
+ * <p>  
+ * Note that any buffers this packet needs will be  
+ * lazily allocated (i.e. we won't actually grab all  
+ * the memory until we need it).  
+ * </p>  
+ * @param	size The maximum size, in bytes, of data you  
+ * want to put in this packet.  
+ * @return	a new packet, or null on error.  
+ */
+  public static IPacket make(int size) {
+    long cPtr = XugglerJNI.IPacket_make__SWIG_3(size);
+    return (cPtr == 0) ? null : new IPacket(cPtr, false);
+  }
+
 }

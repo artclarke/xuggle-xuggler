@@ -305,7 +305,22 @@ namespace com { namespace xuggle { namespace xuggler
      * @return a new packet or null on error.
      */
     static IPacket* make(IPacket *packet, bool copyData);
+
+    /**
+     * Allocate a new packet.
+     * <p>
+     * Note that any buffers this packet needs will be
+     * lazily allocated (i.e. we won't actually grab all
+     * the memory until we need it).
+     * </p>
+     * @param size The maximum size, in bytes, of data you
+     *   want to put in this packet.
+     * 
+     * @return a new packet, or null on error.
+     */
+    static IPacket* make(int32_t size);
     
+ 
 
   };
 

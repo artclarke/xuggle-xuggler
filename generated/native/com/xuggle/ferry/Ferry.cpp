@@ -250,7 +250,8 @@ SWIGINTERN jNioByteArray com_xuggle_ferry_IBuffer_java_getByteBuffer(com::xuggle
       JNIEnv *env = JNIHelper::sGetEnv();
       if (env)
       {
-        retval = env->NewDirectByteBuffer(buffer, length);
+        if (!env->ExceptionCheck())
+          retval = env->NewDirectByteBuffer(buffer, length);
       }
     }
     return retval;
@@ -265,6 +266,8 @@ SWIGINTERN jbyteArray com_xuggle_ferry_IBuffer_getByteArray(com::xuggle::ferry::
       JNIEnv *env = JNIHelper::sGetEnv();
       if (env)
       {
+        if (env->ExceptionCheck())
+          return 0;
         retval = env->NewByteArray(length);
         if (env->ExceptionCheck())
         {
@@ -318,7 +321,7 @@ SWIGINTERN com::xuggle::ferry::IBuffer *com_xuggle_ferry_IBuffer_make__SWIG_1(co
       
       // now try the copy
       env->GetByteArrayRegion(buffer, offset, length, bytes);
-      if (!env)
+      if (env->ExceptionCheck())
         throw std::runtime_error("could not copy data into native IBuffer memory");
     }
     catch(std::exception & c)
@@ -452,13 +455,17 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_new_1AtomicInteger_1_1SW
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -517,13 +524,17 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_new_1AtomicInteger_1_1SW
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -587,13 +598,17 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_delete_1AtomicInteger(JNI
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return ;
     }
@@ -658,13 +673,17 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1get(JNIEnv
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -731,13 +750,17 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1set(JNIEnv
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return ;
     }
@@ -804,13 +827,17 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1getAndSet(
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -877,13 +904,17 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1getAndIncr
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -950,13 +981,17 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1getAndDecr
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -1025,13 +1060,17 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1getAndAdd(
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -1098,13 +1137,17 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1incrementA
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -1171,13 +1214,17 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1decrementA
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -1246,13 +1293,17 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1addAndGet(
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -1323,13 +1374,17 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1compar
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -1396,13 +1451,17 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_AtomicInteger_1isAtom
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -1469,13 +1528,17 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1acquire(JNIEn
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -1542,13 +1605,17 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1release(JNIEn
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -1615,13 +1682,17 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1copyReferenc
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -1688,13 +1759,17 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentRef
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -1817,13 +1892,17 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1getLogger(JNIEnv
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -1887,13 +1966,17 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1getStaticLogger(
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -1978,13 +2061,17 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1log(JNIEnv *j
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -2068,13 +2155,17 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1error(JNIEnv 
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -2158,13 +2249,17 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1warn(JNIEnv *
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -2248,13 +2343,17 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1info(JNIEnv *
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -2338,13 +2437,17 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1debug(JNIEnv 
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -2428,13 +2531,17 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1trace(JNIEnv 
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -2505,13 +2612,17 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1isLogging(JNI
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -2580,13 +2691,17 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1setIsLogging(JNIE
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return ;
     }
@@ -2643,13 +2758,17 @@ SWIGEXPORT jboolean JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1isGlobalLoggi
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -2708,13 +2827,17 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1setGlobalIsLoggin
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return ;
     }
@@ -2779,13 +2902,17 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_ferry_FerryJNI_Logger_1getName(JNIEnv
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -2849,13 +2976,17 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_delete_1Logger(JNIEnv *je
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return ;
     }
@@ -2910,13 +3041,17 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_Mutex_1make(JNIEnv *jenv
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -2981,13 +3116,17 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_Mutex_1lock(JNIEnv *jenv,
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return ;
     }
@@ -3050,13 +3189,17 @@ SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_Mutex_1unlock(JNIEnv *jen
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return ;
     }
@@ -3121,13 +3264,17 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1getBufferSize(JN
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -3189,13 +3336,17 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_10
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -3266,13 +3417,17 @@ SWIGEXPORT jobject JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1java_1getByte
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -3343,13 +3498,17 @@ SWIGEXPORT jbyteArray JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1getByteArr
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -3415,13 +3574,17 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_11
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -3487,13 +3650,17 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_12
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -3550,13 +3717,17 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_RefCountedTester_1make_1
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }
@@ -3616,13 +3787,17 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_RefCountedTester_1make_1
     }
     catch(std::bad_alloc & e)
     {
-      // OK, this is bad and may mean we can't do things like 
-      // allocate a new class at this time; but we should have
-      // one lying around
-      com::xuggle::ferry::JNIHelper *helper = 
-      com::xuggle::ferry::JNIHelper::getHelper();
-      if (helper) {
-        helper->throwOutOfMemoryError();
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
       }
       return 0;
     }

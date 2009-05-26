@@ -56,5 +56,17 @@ namespace com { namespace xuggle { namespace xuggler
     Global::init();
     return Packet::make(dynamic_cast<Packet*>(packet), copyData);
   }
+  
+  IPacket*
+  IPacket :: make(int32_t size)
+  {
+    Global::init();
+    IPacket* retval = make();
+    if (retval) {
+      if (retval->allocateNewPayload(size) < 0)
+        VS_REF_RELEASE(retval);
+    }
+    return retval;
+  }
 
 }}}

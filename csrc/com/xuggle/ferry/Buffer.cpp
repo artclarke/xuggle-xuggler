@@ -77,26 +77,22 @@ namespace com { namespace xuggle { namespace ferry
   Buffer :: make(com::xuggle::ferry::RefCounted* requestor, int32_t bufferSize)
   {
     Buffer* retval = 0;
-    if (bufferSize > 0)
-    {
-      retval = Buffer::make();
-      if (retval)
-      {
-        void * allocator = requestor ? requestor->getJavaAllocator() : 0;
-        
-        retval->mBuffer = JNIMemoryManager::malloc(allocator, bufferSize);
-        if (retval->mBuffer)
-        {
-          retval->mBufferSize = bufferSize;
-          retval->mInternallyAllocated = true;
-        }
-        else
-        {
-          // we couldn't allocate buffer size.  Fail.
-          VS_REF_RELEASE(retval);
-        }
-      }
+    if (bufferSize <= 0)
+      return 0;
+    
+    void * allocator = requestor ? requestor->getJavaAllocator() : 0;
+    void *buffer = JNIMemoryManager::malloc(allocator, bufferSize);
+    if (!buffer)
+      return 0;
+      
+    retval = Buffer::make();
+    if (!retval) {
+      JNIMemoryManager::free(buffer);
+      return 0;
     }
+    retval->mBuffer = buffer; 
+    retval->mBufferSize = bufferSize;
+    retval->mInternallyAllocated = true;
     return retval;
   }
 

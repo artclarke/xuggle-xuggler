@@ -313,7 +313,8 @@ typedef jobject jNioByteArray;
       JNIEnv *env = JNIHelper::sGetEnv();
       if (env)
       {
-        retval = env->NewDirectByteBuffer(buffer, length);
+        if (!env->ExceptionCheck())
+          retval = env->NewDirectByteBuffer(buffer, length);
       }
     }
     return retval;
@@ -350,6 +351,8 @@ typedef jobject jNioByteArray;
       JNIEnv *env = JNIHelper::sGetEnv();
       if (env)
       {
+        if (env->ExceptionCheck())
+          return 0;
         retval = env->NewByteArray(length);
         if (env->ExceptionCheck())
         {
@@ -424,7 +427,7 @@ typedef jobject jNioByteArray;
       
       // now try the copy
       env->GetByteArrayRegion(buffer, offset, length, bytes);
-      if (!env)
+      if (env->ExceptionCheck())
         throw std::runtime_error("could not copy data into native IBuffer memory");
     }
     catch(std::exception & c)
