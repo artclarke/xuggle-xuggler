@@ -23,7 +23,7 @@
 
 // for memset
 #include <com/xuggle/xuggler/FfmpegIncludes.h>
-#include <string.h>
+#include <cstring>
 #include <stdexcept>
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);

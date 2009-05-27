@@ -818,11 +818,8 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
     // reset the frame
     frame->setComplete(false, this->getPixelType(), -1,
         -1, mFakeCurrPts);
-    // and force an allocation before we decode
-    RefPointer<IBuffer> frameBuffer = frame->getData();
-
     AVFrame *avFrame = avcodec_alloc_frame();
-    if (avFrame && frameBuffer)
+    if (avFrame)
     {
       RefPointer<IBuffer> buffer = packet->getData();
       int frameFinished = 0;
@@ -907,10 +904,6 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
 
       }
       av_free(avFrame);
-    } else {
-      // a memory allocation error
-      retval = -1;
-      throw std::bad_alloc();
     }
   }
   else
