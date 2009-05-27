@@ -24,7 +24,6 @@ import java.lang.Thread;
 import java.io.File;
 
 import java.util.Map;
-import java.util.List;
 import java.util.Vector;
 import java.util.HashMap;
 import java.util.Formatter;
@@ -47,10 +46,8 @@ import java.awt.image.BufferedImage;
 import java.awt.event.WindowAdapter;
 
 import javax.sound.sampled.DataLine;
-import javax.sound.sampled.LineEvent;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.LineListener;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.LineUnavailableException;
 
