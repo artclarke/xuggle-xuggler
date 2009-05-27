@@ -74,7 +74,7 @@ public class MultiThreadedReadingExhaustiveTest
           });
     } else {
       retval.add(new Object[] {
-          JNIMemoryManager.MemoryModel.NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION, 20
+          JNIMemoryManager.MemoryModel.NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION, 20
       });
     }
     return retval;

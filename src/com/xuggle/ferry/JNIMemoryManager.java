@@ -294,7 +294,7 @@ public class JNIMemoryManager
   {
     int model = 0;
     model = FerryJNI.getMemoryModel();
-    MemoryModel retval = MemoryModel.JAVA_BYTE_ARRAYS;
+    MemoryModel retval = MemoryModel.JAVA_STANDARD_HEAP;
     for (MemoryModel candidate : MemoryModel.values())
       if (candidate.getNativeValue() == model)
         retval = candidate;
@@ -367,13 +367,13 @@ public class JNIMemoryManager
    * </tr>
    * 
    * <tr>
-   * <td> {@link MemoryModel#JAVA_BYTE_ARRAYS} (default)</td>
+   * <td> {@link MemoryModel#JAVA_STANDARD_HEAP} (default)</td>
    * <td>++++</td>
    * <td>+</td>
    * </tr>
    * 
    * <tr>
-   * <td> {@link MemoryModel#NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION}
+   * <td> {@link MemoryModel#NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}
    * (experimental)</td>
    * <td>++</td>
    * <td>+++</td>
@@ -432,7 +432,7 @@ public class JNIMemoryManager
    * performance, first measure where your problems are, and if fingers are
    * pointing at allocation in Ferry (really -- it's unlikely) then start
    * switching first to
-   * {@link MemoryModel#NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION}. If that's not
+   * {@link MemoryModel#NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}. If that's not
    * good enough, try {@link MemoryModel#NATIVE_BUFFERS} but see all the caveats
    * there.
    * @author aclarke
@@ -479,7 +479,7 @@ public class JNIMemoryManager
      * <li>Avoid caching objects, but if you have to, try to ensure you don't
      * start your main work until several incremental collections have occurred
      * to give the object time to move to the tenured generation.</li>
-     * <li>Try the {@link MemoryModel#NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION}
+     * <li>Try the {@link MemoryModel#NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}
      * model.</li>
      * <li>Call <code>delete()</code> when done with your objects
      * to let Java know it doesn't need to copy the item across
@@ -487,13 +487,14 @@ public class JNIMemoryManager
      * 
      * </ul>
      */
-    JAVA_BYTE_ARRAYS(0),
+    JAVA_STANDARD_HEAP(0),
+    
     /**
      * Large memory blocks are allocated as Direct {@link ByteBuffer} objects
      * (as returned from {@link ByteBuffer#allocateDirect(int)}).
      * <p>
      * This model is not recommended. It is faster than
-     * {@link MemoryModel#JAVA_BYTE_ARRAYS}, but because of how Sun implements
+     * {@link MemoryModel#JAVA_STANDARD_HEAP}, but because of how Sun implements
      * direct buffers, it works poorly in low memory conditions.
      * </p>
      * <h2>Speed</h2> This is the 2nd fastest model available. It is using Java
@@ -529,12 +530,16 @@ public class JNIMemoryManager
      * <li>Call <code>delete()</code> when done with your objects
      * to let Java know it doesn't need to copy the item across
      * a collection.</li>
-     * <li>Try the {@link MemoryModel#NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION}
+     * <li>Allocate items off the standard java heap to persuade
+     * the garbage collector to do an incremental collection -- this
+     * may result it it freeing references from the direct heap.</li>
+     * <li>Try the {@link MemoryModel#JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}
      * model.</li>
      * 
      * </ul>
      */
     JAVA_DIRECT_BUFFERS(1),
+    JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION(2),
     /**
      * Large memory blocks are allocated directly in the native memory heap of
      * this machine, and Java is not notified of this underlying storage. <h2>
@@ -594,7 +599,7 @@ public class JNIMemoryManager
      * 
      * </ul>
      */
-    NATIVE_BUFFERS(2),
+    NATIVE_BUFFERS(3),
     /**
      * This is an experimental model that the folks at
      * xuggle.com are trying.  It should be almost as
@@ -617,12 +622,12 @@ public class JNIMemoryManager
      * pressure on Java to have it do more collections for objects.
      * Simultaneously by only really allocating on the native heap
      * we avoid the unnecessary copy performance problems in the
-     * {@link #JAVA_BYTE_ARRAYS} mode.
+     * {@link #JAVA_STANDARD_HEAP} mode.
      * </p>
      * <p>We're still measuring though, so don't consider this
      * model part of the full API yet.</p>
      */
-    NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION(3);
+    NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION(4);
 
     /**
      * The integer native mode that the JNIMemoryManager.cpp file expects

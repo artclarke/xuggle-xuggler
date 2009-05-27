@@ -56,7 +56,7 @@ public class BufferExhaustiveTest
       retval.add(new Object[]{
           model
       });
-//    retval.add(new Object[]{ JNIMemoryManager.MemoryModel.NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION});
+//    retval.add(new Object[]{ JNIMemoryManager.MemoryModel.NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION});
     return retval;
   }
 
