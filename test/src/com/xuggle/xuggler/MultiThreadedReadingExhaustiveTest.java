@@ -60,13 +60,23 @@ public class MultiThreadedReadingExhaustiveTest
   public static Collection<Object[]> getModels()
   {
     Collection<Object[]> retval = new LinkedList<Object[]>();
-    // add all the models.
-    for(MemoryModel model: JNIMemoryManager.MemoryModel.values())
-      // ramp up in terms of multi-threading
-      for(int i = 0; i < 5; i++)
-        retval.add(new Object[]{
-            model, 20*(i+1),
-        });
+    
+    final boolean TEST_ALL=true;
+    
+    if (TEST_ALL)
+    {
+      // add all the models.
+      for(MemoryModel model: JNIMemoryManager.MemoryModel.values())
+        // ramp up in terms of multi-threading
+        for(int i = 0; i < 5; i++)
+          retval.add(new Object[]{
+              model, 4*(i+1),
+          });
+    } else {
+      retval.add(new Object[] {
+          JNIMemoryManager.MemoryModel.NATIVE_BUFFERS_WITH_JAVA_NOTIFICATION, 20
+      });
+    }
     return retval;
   }
 

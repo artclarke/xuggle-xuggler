@@ -56,7 +56,7 @@ public class MultiThreadedWritingExhaustiveTest
     {
       for(int j = 0; j < 5; j++) {
         retval.add(new Object[]{
-            model, 5*(j+1), i
+            model, 4*(j+1), i
         });
         ++i;
       }
