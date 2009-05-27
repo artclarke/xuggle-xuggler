@@ -209,10 +209,12 @@ case $host_os in
     ;;
   cygwin*)
     SYS="MINGW"
-    CFLAGS="$CFLAGS -mno-cygwin"
-    LDFLAGS="$LDFLAGS -mno-cygwin"
     EXE=".exe"
     DEVNULL="NUL"
+    if cc_check "" -mno-cygwin; then
+        CFLAGS="$CFLAGS -mno-cygwin"
+        LDFLAGS="$LDFLAGS -mno-cygwin"
+    fi
     ;;
   mingw*)
     SYS="MINGW"
@@ -297,6 +299,8 @@ case $host_cpu in
 esac
 
 # check requirements
+
+cc_check || die "No working C compiler found."
 
 if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" \) ] ; then
     pic="yes"
