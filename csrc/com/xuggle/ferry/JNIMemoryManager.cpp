@@ -224,19 +224,42 @@ struct VSJNI_AllocationHeader
 };
 
 static void *
-VS_JNI_malloc_native(JNIEnv *env, jobject, size_t requested_size,
+VS_JNI_malloc_native(JNIEnv *env, jobject obj, size_t requested_size,
     bool notifyJavaHeap)
 {
   void *retval = 0;
   void *buffer = 0;
 
   if (notifyJavaHeap && env){
-    jbyteArray fakearray = 0;
-    // We allocate a byte array for the actual memory
-    fakearray = env->NewByteArray(requested_size);
-    if (!fakearray)
+    jbyteArray bytearray= 0;
+    if (obj)
+    {
+      // We allocate a byte array for the actual memory
+      bytearray = static_cast<jbyteArray> (env->CallObjectMethod(obj,
+          sJNIMemoryAllocatorMallocMethod, requested_size
+              + sizeof(VSJNI_AllocationHeader) + VSJNI_ALIGNMENT_BOUNDARY));
+    }
+    else
+    {
+      // We allocate a byte array for the actual memory
+      bytearray = env->NewByteArray(requested_size
+          + sizeof(VSJNI_AllocationHeader) + VSJNI_ALIGNMENT_BOUNDARY);
+    }
+    if (!bytearray)
       throw std::bad_alloc();
-    env->DeleteLocalRef(fakearray);
+    if (obj) {
+      // Tell the allocator we're done
+      // We're relying on the fact that the WeakReference passed in
+      // is always outlived
+      // by the allocator object (knock on wood)
+      env->CallVoidMethod(obj,
+          sJNIMemoryAllocatorFreeMethod, bytearray);
+      if (env->ExceptionCheck()) {
+        env->DeleteLocalRef(bytearray);
+        throw std::runtime_error("got java exception");
+      }
+    }
+    env->DeleteLocalRef(bytearray);
     if (env->ExceptionCheck())
       throw std::bad_alloc();
   }
@@ -257,7 +280,7 @@ VS_JNI_malloc_native(JNIEnv *env, jobject, size_t requested_size,
 }
 
 static void *
-VS_JNI_malloc_javaDirectBufferBacked(JNIEnv *env, jobject,
+VS_JNI_malloc_javaDirectBufferBacked(JNIEnv *env, jobject obj,
     size_t requested_size,
     bool notifyJavaHeap)
 {
@@ -273,12 +296,35 @@ VS_JNI_malloc_javaDirectBufferBacked(JNIEnv *env, jobject,
   
   // First, let's exert some pressure on the non-direct java heap
   if (notifyJavaHeap){
-    jbyteArray fakearray = 0;
-    // We allocate a byte array for the actual memory
-    fakearray = env->NewByteArray(requested_size);
-    if (!fakearray)
+    jbyteArray bytearray= 0;
+    if (obj)
+    {
+      // We allocate a byte array for the actual memory
+      bytearray = static_cast<jbyteArray> (env->CallObjectMethod(obj,
+          sJNIMemoryAllocatorMallocMethod, requested_size
+              + sizeof(VSJNI_AllocationHeader) + VSJNI_ALIGNMENT_BOUNDARY));
+    }
+    else
+    {
+      // We allocate a byte array for the actual memory
+      bytearray = env->NewByteArray(requested_size
+          + sizeof(VSJNI_AllocationHeader) + VSJNI_ALIGNMENT_BOUNDARY);
+    }
+    if (!bytearray)
       throw std::bad_alloc();
-    env->DeleteLocalRef(fakearray);
+    if (obj) {
+      // Tell the allocator we're done
+      // We're relying on the fact that the WeakReference passed in
+      // is always outlived
+      // by the allocator object (knock on wood)
+      env->CallVoidMethod(obj,
+          sJNIMemoryAllocatorFreeMethod, bytearray);
+      if (env->ExceptionCheck()) {
+        env->DeleteLocalRef(bytearray);
+        throw std::runtime_error("got java exception");
+      }
+    }
+    env->DeleteLocalRef(bytearray);
     if (env->ExceptionCheck())
       throw std::bad_alloc();
   }
@@ -442,23 +488,22 @@ VSJNI_malloc(jobject obj, size_t requested_size)
         retval = VS_JNI_malloc_javaDirectBufferBacked(env, obj, requested_size,
             true);
         break;
-      case NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION:
-        retval = VS_JNI_malloc_native(env, obj, requested_size, true);
-        break;
       case NATIVE_BUFFERS:
         retval = VS_JNI_malloc_native(env, obj, requested_size, false);
+        break;
+      case NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION:
+        retval = VS_JNI_malloc_native(env, obj, requested_size, true);
         break;
       default:
         throw std::bad_alloc();
         break;
     }
 #ifdef VSJNI_MEMMANAGER_DEBUG
-    printf ("alloc: actual %p(%lld) returned %p(%lld) size (%ld)\n",
-        buffer,
-        (long long)buffer,
+    fprintf (stderr, "alloc: returned %p(%lld) size (%ld); model: %d\n",
         retval,
         (long long) retval,
-        (long)requested_size);
+        (long)requested_size,
+        model);
 #endif
     // Now, align on VSJNI_ALIGNMENT_BOUNDARY byte boundary;
     // on Posix system we could have used memalign for the malloc,
@@ -468,6 +513,10 @@ VSJNI_malloc(jobject obj, size_t requested_size)
   }
   catch (std::bad_alloc & e)
   {
+#ifdef VSJNI_MEMMANAGER_DEBUG
+    fprintf (stderr, "alloc: bad_alloc of size %ld\n",
+        (long)requested_size);
+#endif
     return 0;
   }
 }
@@ -574,15 +623,17 @@ VSJNI_free(void * mem)
       }
         break;
       default:
+        fprintf(stderr, "ERROR: Should never get here\n");
         /** error; should never be here */
         break;
     }
 #ifdef VSJNI_MEMMANAGER_DEBUG
-    printf("free: orig %p (%lld) adjusted %p (%lld)\n",
+    printf("free: orig %p (%lld) adjusted %p (%lld); model %d\n",
         mem,
         (long long) mem,
         buffer,
-        (long long)buffer);
+        (long long)buffer,
+        model);
 #endif
   }
 }

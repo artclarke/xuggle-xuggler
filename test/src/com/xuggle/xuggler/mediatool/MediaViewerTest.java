@@ -24,7 +24,6 @@ import java.nio.ShortBuffer;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
@@ -54,7 +53,9 @@ public class MediaViewerTest
   
   final MediaViewer.Mode mViewerMode = MediaViewer.Mode.valueOf(
     System.getProperty(this.getClass().getName() + ".ViewerMode", 
-      DISABLED.name()));
+      //AUDIO_VIDEO.name()
+      DISABLED.name()
+      ));
 
   // standard test name prefix
 

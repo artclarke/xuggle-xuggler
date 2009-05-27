@@ -20,56 +20,695 @@ package com.xuggle.ferry;
 
 import java.lang.ref.ReferenceQueue;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Manage's native memory that Ferry objects allocate and destroy.
+ * Manages the native memory that Ferry objects allocate and destroy.
  * <p>
- * This class is used by the Ferry system as the root for our own memory
- * management system.
+ * Native memory isn't nicely garbage collected
+ * like Java memory is, and managing it can be challenging to
+ * those not familiar with it.  Ferry is all about making
+ * native objects behave nicely in Java, and in order to have Ferry make
+ * objects <i>look</i> like Java objects, the {@link JNIMemoryManager}
+ * does some black magic to ensure native memory is released behind
+ * the scenes.
  * </p>
  * <p>
- * In general you never need to use this mechanism as it's automatically used
- * behind the scenes.
+ * To do this by default Ferry uses a Robust mechanism for
+ * ensuring native memory is released, but that comes
+ * at the expense of some Speed.  This approach is tunable though.
  * </p>
  * <p>
- * However in some situations, especially if you are overriding the default
- * memory management used by Ferry, or are returning lots of
- * {@link java.nio.ByteBuffer} objects from {@link IBuffer} objects and not
- * keeping the corresponding {@link IBuffer} reference around, you may want to
- * force a Ferry &quot;collection&quot;. use this class to do that.
- * </p>
- * <p>
- * A Ferry collection is much cheaper than a Java {@link System#gc()} collection
- * -- it just examines a {@link ReferenceQueue} maintained internally and
- * releases any pending backing native memory.
- * </p>
- * <p>
- * How do you know if you need to explicitly call methods on this class? Well,
- * assume you don't, but if you're seeing the native heap on your program start
- * to scale <strong>and you know you're not leaking references</strong> try
- * calling {@link #collect()}. If it doesn't fix the problem, then you probably
- * are holding on to some reference in your program somewhere.
- * </p>
- * <p>
- * Or if you're running a Java Profiler and see your application
+ * if you run a Java Profiler and see your application
  * is spending a lot of time copying on incremental collections,
- * or in {@link JNIMemoryAllocator} methods, check out the
- * {@link #getMemoryModel()} method.
+ * or you need to eke out a few more microseconds of speed,
+ * or you're bored, then
+ * it's time to experiment with different {@link MemoryModel} configurations
+ * that Ferry supports
+ * by calling {@link #setMemoryModel(MemoryModel)}.  This is pretty
+ * advanced stuff though, so be warned.
  * </p>
- * 
+ * <p>Read {@link MemoryModel} for more.
+ * </p>
+ * @see MemoryModel
  * @author aclarke
  * 
  */
 public class JNIMemoryManager
 {
+  /**
+   * The different types of native memory allocation models Ferry supports.
+   * <h2>Memory Model Performance Implications</h2> Choosing the
+   * {@link MemoryModel} you use in Ferry libraries can have a big effect. Some
+   * models emphasize code that will work "as you expect" (Robustness), but
+   * sacrifice some execution speed to make that happen. Other models value
+   * speed first, and assume you know what you're doing and can manage your own
+   * memory.
+   * <p>
+   * In our experience the set of people who need robust software is larger than
+   * the set of people who need the (small) speed price paid, and so we default
+   * to the most robust model.
+   * </p>
+   * <p>
+   * Also in our experience, the set of people who really should just use the
+   * robust model, but instead think they need speed is much larger than the set
+   * of people who actually know what they're doing with java memory management,
+   * so please, <strong>we strongly recommend you start with a robust model and
+   * only change the {@link MemoryModel} if your performance testing shows you
+   * need speed.</strong> Don't say we didn't warn you.
+   * </p>
+   * 
+   * <table>
+   * <tr>
+   * <th>Model</th>
+   * <th>Robustness</th>
+   * <th>Speed</th>
+   * </tr>
+   * 
+   * <tr>
+   * <td> {@link #JAVA_STANDARD_HEAP} (default)</td>
+   * <td>+++++</td>
+   * <td>+</td>
+   * </tr>
+   * 
+   * <tr>
+   * <td> {@link #JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION} </td>
+   * <td>+++</td>
+   * <td>++</td>
+   * </tr>
+   * 
+   * <tr>
+   * <td> {@link #NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}
+   * </td>
+   * <td>+++</td>
+   * <td>+++</td>
+   * </tr>
+   * 
+   * <tr>
+   * <td> {@link #JAVA_DIRECT_BUFFERS} (not recommended)</td>
+   * <td>+</td>
+   * <td>++++</td>
+   * </tr>
+   *
+   * <tr>
+   * <td> {@link #NATIVE_BUFFERS}</td>
+   * <td>+</td>
+   * <td>+++++</td>
+   * </tr>
+   * 
+   * </table>
+   * <h2>What is &quot;Robustness&quot;?</h2>
+   * <p>
+   * Ferry objects have to allocate native memory to do their job -- it's the
+   * reason for Ferry's existence. And native memory management is very
+   * different than Java memory management (for example, native C++ code doesn't
+   * have a garbage collector). To make things easier for our Java friends,
+   * Ferry tries to make Ferry objects look like Java objects.
+   * </p>
+   * <p>
+   * Which leads us to robustness. The more of these criteria we can hit with a
+   * {@link MemoryModel} the more robust it is.
+   * </p>
+   * <ol>
+   * 
+   * <li><strong>Allocation</strong>: Calls to <code>make()</code> must correctly
+   * allocate memory that can be accessed from native or Java code and calls to
+   * <code>delete()</code> must release that memory immediately.</li>
+   * 
+   * <li><strong>Collection</strong>: Objects no longer referenced
+   * in Java should have their underlying native memory released in a timely
+   * fashion.</li>
+   * 
+   * <li><strong>Low Memory</strong>: New allocation in low memory conditions
+   * should first have the Java garbage collector release any old objects.</li>
+   * 
+   * </ol>
+   * <h2>What is &quot;Speed&quot;?</h2>
+   * <p>
+   * Speed is how fast code executes under normal operating conditions. This is
+   * more subjective than it sounds, as how do you define normal operation
+   * conditions?  But in general, we define it as &quot;generally plenty of heap
+   * space available&quot;
+   * </p>
+   * <h2>What does all of this mean?</h2>
+   * <p> Well, it means if you're first writing
+   * code, don't worry about this. If you're instead trying to optimize for
+   * performance, first measure where your problems are, and if fingers are
+   * pointing at allocation in Ferry then start trying different models.
+   * </p>
+   * <p>
+   * But before you switch models, be sure to read the caveats
+   * and restrictions on each of the non {@link #JAVA_STANDARD_HEAP}
+   * models, and make sure you have a good understanding of how
+   * <a href="http://java.sun.com/docs/hotspot/gc5.0/gc_tuning_5.html">
+   * Java Garbage Collection</a> works.
+   * </p>
+   * @author aclarke
+   * 
+   */
+  public enum MemoryModel
+  {
+    /**
+     * <p>
+     * Large memory blocks are allocated in Java byte[] arrays, and passed back
+     * into native code. Releasing of underlying native resources happens
+     * behind the scenes with no management required on the programmer's
+     * part.
+     * </p>
+     * </p> <h2>Speed</h2>
+     * <p>
+     * This is the slowest model available.
+     * </p>
+     * <p> The main decrease in speed occurs
+     * for medium-life-span objects. Short life-span objects (objects that die
+     * during the life-span of an incremental collection) are relatively efficient.
+     * Once an object makes it into the Tenured generation in Java, 
+     * then unnecessary copying stops until the next full collection.
+     * </p>
+     * <p>However while in the Eden
+     * generation but surviving between incremental collections, large
+     * native buffers
+     * may get copied many times unnecessarily.  This copying
+     * can have a significant
+     * performance impact.
+     * </p>
+     * <h2>Robustness</h2>
+     * <ol>
+     * 
+     * <li><strong>Allocation</strong>: Works as expected.</li>
+     * 
+     * <li><strong>Collection</strong>: Released either when
+     * <code>delete()</code> is called, the item is marked for collection, or
+     * we're in Low Memory conditions and the item is unused.</li>
+     * 
+     * <li><strong>Low Memory</strong>: Very strong. In this model Java always
+     * knows exactly how much native heap space is being used, and can trigger
+     * collections at the right time.</li>
+     * 
+     * </ol>
+     * 
+     * <h2>Tuning Tips</h2>
+     * <p>
+     * When using this model, these tips may increase performance, although in
+     * some situations, may instead decrease your performance. Always measure.
+     * </p>
+     * <ul>
+     * <li>Try different garbage collectors in Java.  To try the
+     * parallel incremental collector, start your Java process with:
+     * these options: <pre>-XX:+UseParallelGC</pre>
+     * The
+     * concurrent garbage collector works well too.  To use
+     * that pass these options to java on startup:
+     * <pre>-XX:+UseConcMarkSweepGC -XX:+UseParNewGC</pre></li>
+     * <li>If you are not re-using objects across Ferry calls,
+     * ensure your objects are short-lived; null out references when done.</li>
+     * <li>Potentially try caching objects and reusing large
+     * objects across multiple calls -- this may give those
+     * objects time to move into the Tenured generation and
+     * reduce the copying overhead.</li>
+     * <li>Explicitly manage Ferry memory yourself by calling
+     * <code>delete()</code> on every {@link RefCounted} object
+     * when done with your objects
+     * to let Java know it doesn't need to copy the item across
+     * a collection.  You can also use <code>copyReference()</code>
+     * to get a new Java version of the same Ferry object that
+     * you can pass to another thread if you don't know when
+     * <code>delete()</code> can be safely called.</li>
+     * 
+     * <li>Try a different {@link MemoryModel}.</li>
+     * </ul>
+     */
+    JAVA_STANDARD_HEAP(0),
+    
+    /**
+     * Large memory blocks are allocated as Direct {@link ByteBuffer} objects
+     * (as returned from {@link ByteBuffer#allocateDirect(int)}).
+     * <p>
+     * This model is not recommended. It is faster than
+     * {@link #JAVA_STANDARD_HEAP}, but because of how Sun implements
+     * direct buffers, it works poorly in low memory conditions.  This model
+     * has all the caveats of the {@link #NATIVE_BUFFERS} model, but
+     * allocation is slightly slower. 
+     * </p>
+     * <h2>Speed</h2> 
+     * <p>
+     * This is the 2nd fastest model available. In tests it is
+     * generally 20-30% faster than
+     * the {@link #JAVA_STANDARD_HEAP} model.</p>
+
+     * </p>
+     * <p> It is using Java
+     * to allocate direct memory, which is slightly slower than
+     * using {@link #NATIVE_BUFFERS}, but much faster than
+     * using the {@link #JAVA_STANDARD_HEAP} model.
+     * </p>
+     * <p>  The downside
+     * is that for high-performance applications, you may need
+     * to explicitly manage {@link RefCounted} object life-cycles
+     * with {@link RefCounted#delete()} to ensure direct memory
+     * is released in a timely manner.</p>
+     *  <h2>Robustness</h2>
+     * <ol>
+     * 
+     * <li><strong>Allocation</strong>: Weak.  Java controls
+     * allocations of direct memory from a separate heap (yet another
+     * one), and has an additional tuning option to set that.  By
+     * default on most JVMs, this heap size is set to 64mb which
+     * is very low for video processing (queue up 100 images
+     * and see what we mean).</li>
+     * 
+     * <li><strong>Collection</strong>: Released either when
+     * <code>delete()</code> is called, or when the item is marked for collection</li>
+     * 
+     * <li><strong>Low Memory</strong>: Weak. In this model Java knows 
+     * how much
+     * <strong>direct</strong> memory it has allocated, but it does not use the size of the Direct Heap
+     * to influence when it collects the normal non-direct Java Heap -- and our allocation
+     * scheme depends on normal Java Heap collection. Therefore it can fail to
+     * run collections in a timely manner because it thinks the
+     * standard heap has plenty of space to grow.  This may cause failures.</li>
+     * 
+     * </ol>
+     * 
+     * <h2>Tuning Tips</h2>
+     * <p>
+     * When using this model, these tips may increase performance, although in
+     * some situations, may instead decrease performance. Always measure.
+     * </p>
+     * <ul>
+     * <li>Increase the size of Sun's Java's direct buffer heap. Sun's Java
+     * implementation has an artificially low default separate heap for direct
+     * buffers (64mb). To make it higher pass this option to Java at
+     * startup:
+     * <pre>-XX:MaxDirectMemorySize=<i>&lt;size&gt;</i></pre>
+     * </li>
+     * <li>Paradoxically, try decreasing the size of your Java Heap if you get
+     * {@link OutOfMemoryError} exceptions. Objects that are allocated in native
+     * memory have a small proxy object representing them in the Java Heap. By
+     * decreasing your heap size, those proxy objects will exert more collection
+     * pressure, and hopefully cause Java to do incremental collections more
+     * often (and notice your unused objects).  To set the maximum
+     * size of your java heap, pass this option to java on startup:
+     * <pre>-Xmx<i>&lt;size&gt;</i></pre>
+     * To change the minimum size of your java heap, pass this
+     * option to java on startup:
+     * <pre>-Xms<i>&lt;size&gt;</i></pre>
+     * </li>
+     * <li>
+     * <li>Try different garbage collectors in Java.  To try the
+     * parallel incremental collector, start your Java process with:
+     * these options: <pre>-XX:+UseParallelGC</pre>
+     * The
+     * concurrent garbage collector works well too.  To use
+     * that pass these options to java on startup:
+     * <pre>-XX:+UseConcMarkSweepGC -XX:+UseParNewGC</pre></li>
+     * <li>If you are not re-using objects across Ferry calls,
+     * ensure your objects are short-lived; null out references when done.</li>
+     * <li>Potentially try caching objects and reusing large
+     * objects across multiple calls -- this may give those
+     * objects time to move into the Tenured generation and
+     * reduce the copying overhead.</li>
+     * <li>Explicitly manage Ferry memory yourself by calling
+     * <code>delete()</code> on every {@link RefCounted} object
+     * when done with your objects
+     * to let Java know it doesn't need to copy the item across
+     * a collection.  You can also use <code>copyReference()</code>
+     * to get a new Java version of the same Ferry object that
+     * you can pass to another thread if you don't know when
+     * <code>delete()</code> can be safely called.</li>
+     * 
+     * <li>Try the {@link MemoryModel#JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}
+     * model.</li>
+     * 
+     * </ul>
+     */
+    JAVA_DIRECT_BUFFERS(1),
+    
+    /**
+     * Large memory blocks are allocated as Direct {@link ByteBuffer} objects
+     * (as returned from {@link ByteBuffer#allocateDirect(int)}), but
+     * the Java standard-heap is <i>informed</i> of the allocation by
+     * also attempting to quickly allocate (and release) a buffer of
+     * the same size on the standard heap..
+     * <p>
+     * This model can work well if your application is mostly
+     * single-threaded, and your Ferry application is doing
+     * most of the memory allocation in your program.  The trick
+     * of <i>informing</i> Java will put pressure on the JVM to
+     * collect appropriately, but by not keeping the references we
+     * avoid unnecessary copying for objects that survive collections.
+     * </p>
+     * <p>
+     * This heuristic is not failsafe though, and can still lead
+     * to collections not occurring at the right time for some
+     * applications.
+     * </p>
+     * <p>
+     * It is similar to the {@link #NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}
+     * model and in general we recommend that model over this one.
+     * </p>
+     * <h2>Speed</h2> 
+     * <p>This model trades off some robustness for
+     * some speed.  In tests it is generally 10-20% faster than
+     * the {@link #JAVA_STANDARD_HEAP} model.</p>
+     * <p>It is worth testing as a way of avoiding the
+     * explicit memory management needed to effectively use the
+     * {@link #JAVA_DIRECT_BUFFERS} model.  However, the
+     * heuristic used is not fool-proof, and therefore may sometimes
+     * lead to unnecessary collection or {@link OutOfMemoryError} because
+     * Java didn't collect unused references in the standard heap
+     * in time (and hence did not release underlying native references).
+     *  </p>
+     *  <h2>Robustness</h2>
+     * <ol>
+     * 
+     * <li><strong>Allocation</strong>: Good.  Java controls
+     * allocations of direct memory from a separate heap (yet another
+     * one), and has an additional tuning option to set that.  By
+     * default on most JVMs, this heap size is set to 64mb which
+     * is very low for video processing (queue up 100 images
+     * and see what we mean).  With this option though we
+     * <i>inform</i> Java of the allocation in the Direct heap,
+     * and this will often encourage Java to collect memory
+     * on a more timely basis.</li>
+     * 
+     * <li><strong>Collection</strong>:  Good. Released either when
+     * <code>delete()</code> is called, or when the item is marked
+     * for collection.  Collections happen more frequently than
+     * under the {@link #JAVA_DIRECT_BUFFERS} model due to <i>informing</i>
+     * the standard heap at allocation time.  </li>
+     * 
+     * <li><strong>Low Memory</strong>: Good.  Especially for mostly
+     * single-threaded applications, the collection pressure introduced
+     * on allocation will lead to more timely collections to avoid
+     * {@link OutOfMemoryError} errors on the Direct heap. 
+     * </li>
+     * </ol>
+     * 
+     * <h2>Tuning Tips</h2>
+     * <p>
+     * When using this model, these tips may increase performance, although in
+     * some situations, may instead decrease performance. Always measure.
+     * </p>
+     * <ul>
+     * <li>Increase the size of Sun's Java's direct buffer heap. Sun's Java
+     * implementation has an artificially low default separate heap for direct
+     * buffers (64mb). To make it higher pass this option to Java at
+     * startup:
+     * <pre>-XX:MaxDirectMemorySize=<i>&lt;size&gt;</i></pre>
+     * </li>
+     * <li>Paradoxically, try decreasing the size of your Java Heap if you get
+     * {@link OutOfMemoryError} exceptions. Objects that are allocated in native
+     * memory have a small proxy object representing them in the Java Heap. By
+     * decreasing your heap size, those proxy objects will exert more collection
+     * pressure, and hopefully cause Java to do incremental collections more
+     * often (and notice your unused objects).  To set the maximum
+     * size of your java heap, pass this option to java on startup:
+     * <pre>-Xmx<i>&lt;size&gt;</i></pre>
+     * To change the minimum size of your java heap, pass this
+     * option to java on startup:
+     * <pre>-Xms<i>&lt;size&gt;</i></pre>
+     * </li>
+     * <li>
+     * <li>Try different garbage collectors in Java.  To try the
+     * parallel incremental collector, start your Java process with:
+     * these options: <pre>-XX:+UseParallelGC</pre>
+     * The
+     * concurrent garbage collector works well too.  To use
+     * that pass these options to java on startup:
+     * <pre>-XX:+UseConcMarkSweepGC -XX:+UseParNewGC</pre></li>
+     * <li>If you are not re-using objects across Ferry calls,
+     * ensure your objects are short-lived; null out references when done.</li>
+     * <li>Potentially try caching objects and reusing large
+     * objects across multiple calls -- this may give those
+     * objects time to move into the Tenured generation and
+     * reduce the copying overhead.</li>
+     * <li>Explicitly manage Ferry memory yourself by calling
+     * <code>delete()</code> on every {@link RefCounted} object
+     * when done with your objects
+     * to let Java know it doesn't need to copy the item across
+     * a collection.  You can also use <code>copyReference()</code>
+     * to get a new Java version of the same Ferry object that
+     * you can pass to another thread if you don't know when
+     * <code>delete()</code> can be safely called.</li>
+     * 
+     * <li>Try the {@link #JAVA_STANDARD_HEAP}
+     * model.</li>
+     * 
+     * </ul>
+     */
+    JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION(2),
+    
+    /**
+     * Large memory blocks are allocated in native memory, completely
+     * bypassing the Java heap.
+     * <p>
+     * It is <strong>much</strong> faster than the 
+     * {@link #JAVA_STANDARD_HEAP}, but much less robust.
+     * </p>
+     * <h2>Speed</h2> 
+     * <p>
+     * This is the fastest model available. In tests it is
+     * generally 30-40% faster than
+     * the {@link #JAVA_STANDARD_HEAP} model.</p>
+
+     * </p>
+     * <p> It is using the native operating system
+     * to allocate direct memory, which is slightly faster than
+     * using {@link #JAVA_DIRECT_BUFFERS}, and much faster than
+     * using the {@link #JAVA_STANDARD_HEAP} model.
+     * </p>
+     * <p>
+     *   The downside
+     * is that for high-performance applications, you may need to
+     * explicitly manage {@link RefCounted} object life-cycles
+     * with {@link RefCounted#delete()} to ensure native memory
+     * is released in a timely manner.</p>
+     *  <h2>Robustness</h2>
+     * <ol>
+     * 
+     * <li><strong>Allocation</strong>: Weak.  Allocations using
+     * <code>make</code> and releasing objects with
+     * {@link RefCounted#delete()} works like normal, but because
+     * Java has no idea of how much space is actually allocated
+     * in native memory, it may not collect {@link RefCounted}
+     * objects as quickly as you need it to (it will eventually
+     * collect and free all references though).</li>
+     * 
+     * <li><strong>Collection</strong>: Released either when
+     * <code>delete()</code> is called, or when the item is marked for collection</li>
+     * 
+     * <li><strong>Low Memory</strong>: Weak. In this model Java
+     * has no idea how much native memory is allocated, and therefore
+     * does not use that knowledge in its determination of
+     * when to collect.  This can lead to {@link RefCounted} objects
+     * you created surviving longer than you want to, and therefore
+     * not releasing native memory in a timely fashion.
+     * </li>
+     * </ol>
+     * 
+     * <h2>Tuning Tips</h2>
+     * <p>
+     * When using this model, these tips may increase performance, although in
+     * some situations, may instead decrease performance. Always measure.
+     * </p>
+     * <ul>
+     * <li>Paradoxically, try decreasing the size of your Java Heap if you get
+     * {@link OutOfMemoryError} exceptions. Objects that are allocated in native
+     * memory have a small proxy object representing them in the Java Heap. By
+     * decreasing your heap size, those proxy objects will exert more collection
+     * pressure, and hopefully cause Java to do incremental collections more
+     * often (and notice your unused objects).  To set the maximum
+     * size of your java heap, pass this option to java on startup:
+     * <pre>-Xmx<i>&lt;size&gt;</i></pre>
+     * To change the minimum size of your java heap, pass this
+     * option to java on startup:
+     * <pre>-Xms<i>&lt;size&gt;</i></pre>
+     * </li>
+     * <li>
+     * <li>Try different garbage collectors in Java.  To try the
+     * parallel incremental collector, start your Java process with:
+     * these options: <pre>-XX:+UseParallelGC</pre>
+     * The
+     * concurrent garbage collector works well too.  To use
+     * that pass these options to java on startup:
+     * <pre>-XX:+UseConcMarkSweepGC -XX:+UseParNewGC</pre></li>
+     * <li>Use the {@link JNIMemoryManager#startCollectionThread()} method
+     * to start up a thread dedicated to releasing objects as soon as
+     * they are enqued in a {@link ReferenceQueue}, rather than (the default)
+     * waiting for the next Ferry allocation or {@link JNIMemoryManager#collect()}
+     * explicit call.  Or periodically call {@link JNIMemoryManager#collect()}
+     * yourself.</li>
+     * <li>Cache long lived objects and reuse them across
+     * calls to avoid allocations.</li>
+     * <li>Explicitly manage Ferry memory yourself by calling
+     * <code>delete()</code> on every {@link RefCounted} object
+     * when done with your objects
+     * to let Java know it doesn't need to copy the item across
+     * a collection.  You can also use <code>copyReference()</code>
+     * to get a new Java version of the same Ferry object that
+     * you can pass to another thread if you don't know when
+     * <code>delete()</code> can be safely called.</li>
+     * 
+     * <li>Try the {@link MemoryModel#NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}
+     * model.</li>
+     * 
+     * </ul>
+     */
+    NATIVE_BUFFERS(3),
+    /**
+     * Large memory blocks are allocated in native memory, completely
+     * bypassing the Java heap, but Java is <i>informed</i> of
+     * the allocation by briefly creating (and immediately releasing)
+     * a Java standard heap byte[] array of the same size.
+     * <p>
+     * It is faster than the 
+     * {@link #JAVA_STANDARD_HEAP}, but less robust.
+     * </p>
+     * <p>
+     * This model can work well if your application is mostly 
+     * single-threaded, and your Ferry application is doing most 
+     * of the memory allocation in your program. The trick of informing
+     * Java will put pressure on the JVM to collect appropriately, but
+     * by not keeping the references to the byte[] array we temporarily
+     * allocate, we avoid unnecessary copying for objects that
+     * survive collections.
+     * </p>
+     * <p>This heuristic is not failsafe though, and can still lead
+     * to collections not occurring at the right time for some
+     * applications.
+     * </p>
+     * <p>It is similar to the {@value #JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}
+     * model.
+     * </p> 
+     * <h2>Speed</h2> 
+     * <p>
+     * In tests this model is
+     * generally 25-30% faster than
+     * the {@link #JAVA_STANDARD_HEAP} model.</p>
+     * </p>
+     * <p> It is using the native operating system
+     * to allocate direct memory, which is slightly faster than
+     * using {@link #JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}, and much faster than
+     * using the {@link #JAVA_STANDARD_HEAP} model.
+     * </p>
+     * <p>It is worth testing as a way of avoiding the
+     * explicit memory management needed to effectively use the
+     * {@link #NATIVE_BUFFERS} model.  However, the
+     * heuristic used is not fool-proof, and therefore may sometimes
+     * lead to unnecessary collection or {@link OutOfMemoryError} because
+     * Java didn't collect unused references in the standard heap
+     * in time (and hence did not release underlying native references).
+     *  </p>
+     *  <h2>Robustness</h2>
+     * <ol>
+     * 
+     * <li><strong>Allocation</strong>: Good.  
+     * With this option we allocate large, long-lived memory
+     * from the native heap, but we
+     * <i>inform</i> Java of the allocation in the Direct heap,
+     * and this will often encourage Java to collect memory
+     * on a more timely basis.</li>
+     * 
+     * <li><strong>Collection</strong>:  Good. Released either when
+     * <code>delete()</code> is called, or when the item is marked
+     * for collection.  Collections happen more frequently than
+     * under the {@link #NATIVE_BUFFERS} model due to <i>informing</i>
+     * the standard heap at allocation time.  </li>
+     * 
+     * <li><strong>Low Memory</strong>: Good.  Especially for mostly
+     * single-threaded applications, the collection pressure introduced
+     * on allocation will lead to more timely collections to avoid
+     * {@link OutOfMemoryError} errors on the native heap. 
+     * </li>
+     * </ol>
+     * 
+     * <h2>Tuning Tips</h2>
+     * <p>
+     * When using this model, these tips may increase performance, although in
+     * some situations, may instead decrease performance. Always measure.
+     * </p>
+     * <ul>
+     * <li>Paradoxically, try decreasing the size of your Java Heap if you get
+     * {@link OutOfMemoryError} exceptions. Objects that are allocated in native
+     * memory have a small proxy object representing them in the Java Heap. By
+     * decreasing your heap size, those proxy objects will exert more collection
+     * pressure, and hopefully cause Java to do incremental collections more
+     * often (and notice your unused objects).  To set the maximum
+     * size of your java heap, pass this option to java on startup:
+     * <pre>-Xmx<i>&lt;size&gt;</i></pre>
+     * To change the minimum size of your java heap, pass this
+     * option to java on startup:
+     * <pre>-Xms<i>&lt;size&gt;</i></pre>
+     * </li>
+     * <li>
+     * <li>Try different garbage collectors in Java.  To try the
+     * parallel incremental collector, start your Java process with:
+     * these options: <pre>-XX:+UseParallelGC</pre>
+     * The
+     * concurrent garbage collector works well too.  To use
+     * that pass these options to java on startup:
+     * <pre>-XX:+UseConcMarkSweepGC -XX:+UseParNewGC</pre></li>
+     * <li>Use the {@link JNIMemoryManager#startCollectionThread()} method
+     * to start up a thread dedicated to releasing objects as soon as
+     * they are enqued in a {@link ReferenceQueue}, rather than (the default)
+     * waiting for the next Ferry allocation or {@link JNIMemoryManager#collect()}
+     * explicit call.  Or periodically call {@link JNIMemoryManager#collect()}
+     * yourself.</li>
+     * <li>Cache long lived objects and reuse them across
+     * calls to avoid allocations.</li>
+     * <li>Explicitly manage Ferry memory yourself by calling
+     * <code>delete()</code> on every {@link RefCounted} object
+     * when done with your objects
+     * to let Java know it doesn't need to copy the item across
+     * a collection.  You can also use <code>copyReference()</code>
+     * to get a new Java version of the same Ferry object that
+     * you can pass to another thread if you don't know when
+     * <code>delete()</code> can be safely called.</li>
+     * 
+     * <li>Try the {@link MemoryModel#NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}
+     * model.</li>
+     * 
+     * </ul>
+     */
+    NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION(4);
+  
+    /**
+     * The integer native mode that the JNIMemoryManager.cpp file expects
+     */
+    private final int mNativeValue;
+  
+    /**
+     * Create a {@link MemoryModel}.
+     * 
+     * @param nativeValue What we actually use in native code.
+     */
+    private MemoryModel(int nativeValue)
+    {
+      mNativeValue = nativeValue;
+    }
+  
+    /**
+     * Get the native value to pass to native code
+     * 
+     * @return a value.
+     */
+    public int getNativeValue()
+    {
+      return mNativeValue;
+    }
+    
+  }
+
+  /**
+   * Our singleton (classloader while) manager.
+   */
   static final private JNIMemoryManager mMgr = new JNIMemoryManager();
 
   /**
@@ -93,20 +732,98 @@ public class JNIMemoryManager
   private static final Logger log = LoggerFactory
       .getLogger(JNIMemoryManager.class);
 
+
+  /**
+   * The reference queue that {@link RefCounted} objects
+   * will eventually find their way to.
+   */
   private final ReferenceQueue<Object> mRefQueue;
 
   /**
+   * <p>
    * A thread-safe set of references to ferry and non-ferry based objects that
    * are referencing underlying Ferry native memory.
-   * 
+   * </p><p>
    * We have to enqueue all JNIReferences, otherwise we can't be guaranteed that
    * Java will enqueue them on a reference queue. We try to be smart and
    * efficient about this, but the fact remains that you have to pass this lock
    * for all Ferry calls.
+   * </p><p>
+   * Also, we don't use a ConcurrentHashMap here because
+   * the overhead of allocating buckets in performance testing
+   * outweighed the competition for the lock.
+   * </p>
    */
-  private final ConcurrentMap<JNIReference, JNIReference> mRefList;
+  private final Set<JNIReference> mRefList;
+  /**
+   * The number of objects we think are awaiting collection;
+   * only an estimate.
+   */
   private final AtomicLong mNumPinnedObjects;
+  
+  /**
+   * A lock used for access to mRefList.
+   */
+  private final ReentrantLock mLock;
 
+  private boolean addToBuffer(JNIReference ref)
+  {
+    boolean result = false;
+    mLock.lock();
+    try {
+      mNumPinnedObjects.incrementAndGet();
+      result = mRefList.add(ref);
+    } finally {
+      mLock.unlock();
+    }
+    return result;
+  }
+  
+  private boolean removeFromBuffer(JNIReference ref)
+  {
+    boolean result;
+    mLock.lock();
+    try {
+      mNumPinnedObjects.decrementAndGet();
+      result = mRefList.remove(ref);
+    } finally {
+      mLock.unlock();
+    }
+    return result;
+  }
+
+  private void clearBuffer()
+  {
+    mLock.lock();
+    try {
+      mRefList.clear();
+      mNumPinnedObjects.set(0);
+    } finally {
+      mLock.unlock();
+    }
+  }
+
+  private void flushBuffer()
+  {
+    // Make a copy so we don't modify the real map
+    // inside an iterator.
+    Set<JNIReference> refs = 
+      new HashSet<JNIReference>();
+    mLock.lock();
+    try {
+      refs.addAll(mRefList);
+    } finally {
+      mLock.unlock();
+    }
+    for(JNIReference ref : refs)
+      if (ref != null)
+        ref.delete();
+  }
+
+
+  /**
+   * The collection thread if running.
+   */
   private volatile Thread mCollectionThread;
 
   /**
@@ -116,7 +833,8 @@ public class JNIMemoryManager
   {
     mNumPinnedObjects = new AtomicLong(0);
     mRefQueue = new ReferenceQueue<Object>();
-    mRefList = new ConcurrentHashMap<JNIReference, JNIReference>();
+    mRefList = new HashSet<JNIReference>();
+    mLock = new ReentrantLock();
     mCollectionThread = null;
   }
 
@@ -158,8 +876,7 @@ public class JNIMemoryManager
      * applications, as it's only called when the class loader is exiting.
      */
     log.trace("destroying: {}", this);
-    mRefList.clear();
-    mNumPinnedObjects.set(0);
+    clearBuffer();
 
     gc();
     gc();
@@ -173,9 +890,9 @@ public class JNIMemoryManager
    */
   boolean addReference(JNIReference ref)
   {
-    mNumPinnedObjects.incrementAndGet();
-    return mRefList.put(ref, ref) != null;
+    return addToBuffer(ref);
   }
+
 
   /**
    * Remove this reference from the set of references we're tracking, and
@@ -186,8 +903,7 @@ public class JNIMemoryManager
    */
   boolean removeReference(JNIReference ref)
   {
-    mNumPinnedObjects.decrementAndGet();
-    return mRefList.remove(ref) != ref;
+    return removeFromBuffer(ref);
   }
 
   /**
@@ -326,334 +1042,7 @@ public class JNIMemoryManager
    */
   public void flush()
   {
-    // Make a copy so we don't modify the real map
-    // inside an iterator.
-    Map<JNIReference, JNIReference> refs = 
-      new HashMap<JNIReference, JNIReference>();
-    
-    refs.putAll(mRefList);
-    for(JNIReference ref : refs.keySet())
-      if (ref != null)
-        ref.delete();
-  }
-
-  /**
-   * The different types of native memory allocation models Ferry supports.
-   * <h2>Memory Model Performance Implications</h2> Choosing the
-   * {@link MemoryModel} you use in Ferry libraries can have a big effect. Some
-   * models emphasize code that will work "as you expect" (Robustness), but
-   * sacrifice some execution speed to make that happen. Other models value
-   * speed first, and assume you know what you're doing and can manage your own
-   * memory.
-   * <p>
-   * In our experience the set of people who need robust software is larger than
-   * the set of people who need the (small) speed price paid, and so we default
-   * to the most robust model.
-   * </p>
-   * <p>
-   * Also in our experience, the set of people who really should just use the
-   * robust model, but instead think they need speed is much larger than the set
-   * of people who actually know what they're doing with java memory management,
-   * so please, <strong>we strongly recommend you start with a robust model and
-   * only change the {@link MemoryModel} if your performance testing shows you
-   * need speed.</strong> Don't say we didn't warn you.
-   * </p>
-   * 
-   * <table>
-   * <tr>
-   * <th>Model</th>
-   * <th>Robustness</th>
-   * <th>Speed</th>
-   * </tr>
-   * 
-   * <tr>
-   * <td> {@link MemoryModel#JAVA_STANDARD_HEAP} (default)</td>
-   * <td>++++</td>
-   * <td>+</td>
-   * </tr>
-   * 
-   * <tr>
-   * <td> {@link MemoryModel#NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}
-   * (experimental)</td>
-   * <td>++</td>
-   * <td>+++</td>
-   * </tr>
-   * 
-   * <tr>
-   * <td> {@link MemoryModel#NATIVE_BUFFERS}</td>
-   * <td>+</td>
-   * <td>++++</td>
-   * </tr>
-   * 
-   * <tr>
-   * <td> {@link MemoryModel#JAVA_DIRECT_BUFFERS} (not recommended)</td>
-   * <td>+</td>
-   * <td>++</td>
-   * </tr>
-   * 
-   * 
-   * 
-   * </table>
-   * <h2>What is &quot;Robustness&quot;?</h2>
-   * <p>
-   * Ferry objects have to allocate native memory to do their job -- it's the
-   * reason for Ferry's existence. And native memory management is very
-   * different than Java memory management (for example, native C++ code doesn't
-   * have a garbage collector). To make things easier for our Java friends,
-   * Ferry tries to make Ferry objects look like Java objects.
-   * </p>
-   * <p>
-   * Which leads us to robustness. The more of these criteria we can hit with a
-   * {@link MemoryModel} the more robust it is.
-   * </p>
-   * <ol>
-   * 
-   * <li><strong>Allocation</strong>: Calls to <code>make()</code> must correctly
-   * allocate memory that can be accessed from native or Java code and calls to
-   * <code>delete()</code> must release that memory immediately.</li>
-   * 
-   * <li><strong>Collection</strong>: Objects no longer referenced
-   * in Java should have their underlying native memory released in a timely
-   * fashion.</li>
-   * 
-   * <li><strong>Low Memory</strong>: New allocation in low memory conditions
-   * should first have the Java garbage collector release any old objects.</li>
-   * 
-   * </ol>
-   * <h2>What is &quot;Speed&quot;?</h2>
-   * <p>
-   * Speed is how fast code executes under normal operating conditions. This is
-   * more subjective than it sounds, as how do you define normal operation
-   * conditions?  But in general, we define it as &quot;generally plenty of heap
-   * space available&quot;
-   * </p>
-   * <h2>What does all of this mean?</h2> Well, it means if you're first writing
-   * code, don't worry about this. If you're instead trying to optimize for
-   * performance, first measure where your problems are, and if fingers are
-   * pointing at allocation in Ferry (really -- it's unlikely) then start
-   * switching first to
-   * {@link MemoryModel#NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}. If that's not
-   * good enough, try {@link MemoryModel#NATIVE_BUFFERS} but see all the caveats
-   * there.
-   * @author aclarke
-   * 
-   */
-  public enum MemoryModel
-  {
-    /**
-     * Large memory blocks are allocated in Java byte[] arrays, and passed back
-     * into native code. <h2>Speed</h2>
-     * <p>
-     * This is the slowest model available. The main decrease in speed occurs
-     * for medium-life-span objects. Short life-span objects (objects that die
-     * during the life-span of an incremental collection) are very efficient.
-     * Once an object makes it into the Tenured generation in Java, then it's
-     * also efficient as unnecessary copying stops. However while in the Eden
-     * generation but surviving between incremental collections, these objects
-     * may get copied many times unnecessarily.  Since the objects are,
-     * by definition, large, this unnecessary copy can have a significant
-     * performance impact.
-     * </p>
-     * <h2>Robustness</h2>
-     * <ol>
-     * 
-     * <li><strong>Allocation</strong>: Works as expected.</li>
-     * 
-     * <li><strong>Collection</strong>: Released either when
-     * <code>delete()</code> is called, the item is marked for collection, or
-     * we're in Low Memory conditions and the item is unused.</li>
-     * 
-     * <li><strong>Low Memory</strong>: Very strong. In this model Java always
-     * knows exactly how much native heap space is being used, and can trigger
-     * collections at the right time.</li>
-     * 
-     * </ol>
-     * 
-     * <h2>Tuning Tips</h2>
-     * <p>
-     * When using this model, these tips may increase performance, although in
-     * some situations, may instead decrease. Always measure.
-     * </p>
-     * <ul>
-     * <li>Ensure your objects are short-lived; null out references when done.</li>
-     * <li>Avoid caching objects, but if you have to, try to ensure you don't
-     * start your main work until several incremental collections have occurred
-     * to give the object time to move to the tenured generation.</li>
-     * <li>Try the {@link MemoryModel#NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}
-     * model.</li>
-     * <li>Call <code>delete()</code> when done with your objects
-     * to let Java know it doesn't need to copy the item across
-     * a collection.</li>
-     * 
-     * </ul>
-     */
-    JAVA_STANDARD_HEAP(0),
-    
-    /**
-     * Large memory blocks are allocated as Direct {@link ByteBuffer} objects
-     * (as returned from {@link ByteBuffer#allocateDirect(int)}).
-     * <p>
-     * This model is not recommended. It is faster than
-     * {@link MemoryModel#JAVA_STANDARD_HEAP}, but because of how Sun implements
-     * direct buffers, it works poorly in low memory conditions.
-     * </p>
-     * <h2>Speed</h2> This is the 2nd fastest model available. It is using Java
-     * to allocate direct memory, so in theory Java always knows how much memory
-     * it has allocated. </p> <h2>Robustness</h2>
-     * <ol>
-     * 
-     * <li><strong>Allocation</strong>: Works as expected.</li>
-     * 
-     * <li><strong>Collection</strong>: Released either when
-     * <code>delete()</code> is called, the item is marked for collection, or
-     * we're in Low Memory conditions and the item is unused.</li>
-     * 
-     * <li><strong>Low Memory</strong>: Weak. In this model Java knows how much
-     * memory it has allocated, but it does not use the size of the Direct Heap
-     * to influence when it collects the normal Java Heap -- and our allocation
-     * scheme depends on normal Java Heap collection. Therefore it can fail to
-     * run collections in time, and may cause failures.</li>
-     * 
-     * </ol>
-     * 
-     * <h2>Tuning Tips</h2>
-     * <p>
-     * When using this model, these tips may increase performance, although in
-     * some situations, may instead decrease. Always measure.
-     * </p>
-     * <ul>
-     * <li>Increase the size of Sun's Java's direct buffer heap. Sun's Java
-     * implementation has an artificially low default separate heap for direct
-     * buffers (64mb). To make it higher pass
-     * <code>-XX:MaxDirectMemorySize=<i>&lt;size&gt;</i></code> to your virtual
-     * machine.</li>
-     * <li>Call <code>delete()</code> when done with your objects
-     * to let Java know it doesn't need to copy the item across
-     * a collection.</li>
-     * <li>Allocate items off the standard java heap to persuade
-     * the garbage collector to do an incremental collection -- this
-     * may result it it freeing references from the direct heap.</li>
-     * <li>Try the {@link MemoryModel#JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}
-     * model.</li>
-     * 
-     * </ul>
-     */
-    JAVA_DIRECT_BUFFERS(1),
-    JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION(2),
-    /**
-     * Large memory blocks are allocated directly in the native memory heap of
-     * this machine, and Java is not notified of this underlying storage. <h2>
-     * Speed</h2>
-     * <p>
-     * This is the fastest model available. It is using native code to allocate
-     * direct memory, but Java has no way of knowing how much memory is
-     * allocated behind the scenes.
-     * </p>
-     * <p>
-     * Memory is still available for use from Java, and this will in fact be
-     * faster to allocate than Direct {@link ByteBuffer} objects.
-     * </p>
-     * <p>
-     * In this model, Java heap size will look low, but actual committed-pages
-     * in OS memory will be much higher.
-     * </p>
-     * <h2>Robustness</h2>
-     * <ol>
-     * 
-     * <li><strong>Allocation</strong>: Works as expected.</li>
-     * 
-     * <li><strong>Collection</strong>: Very weak. Because Java doesn't know how
-     * much memory is allocated when using this model, it doesn't do incremental
-     * collections as often as it would do for similarly sized java obejcts.
-     * Hence objects may not be collected as often as you need, leading to
-     * frequent {@link OutOfMemoryError} exceptions even though you have null
-     * all your references. To work around this, call <code>delete()</code> on
-     * Ferry objects yourself when done.
-     * 
-     * <li><strong>Low Memory</strong>: Very Weak. In this model Java has no
-     * idea how much memory is being used behind the scenes, and therefore
-     * doesn't clean up the heap as often as it might need to.</li>
-     * 
-     * </ol>
-     * 
-     * <h2>Tuning Tips</h2>
-     * <p>
-     * When using this model, these tips may increase performance, although in
-     * some situations, may instead decrease. Always measure.
-     * </p>
-     * <ul>
-     * <li>Paradoxically, try decreasing the size of your Java Heap if you get
-     * {@link OutOfMemoryError} exceptions. Objects that are allocated in native
-     * memory have a small proxy object representing them in the Java Heap. By
-     * decreasing your heap size, those proxy objects will exert more collection
-     * pressure, and hopefully cause Java to do incremental collections more
-     * often (and notice your unused objects).</li>
-     * <li>
-     * Explicitly call <code>delete</code> on every Ferry object you have
-     * finished with. This by-passes the Ferry collection schemes and
-     * immediately frees the underlying memory.  If you need
-     * to pass an object to another thread when you don't
-     * know when to call <code>delete</code>, use <code>copyReference</code>
-     * to give that thread it's own reference, pass it to the thread,
-     * and then call <code>delete</code> on the first thread.</li>
-     * 
-     * </ul>
-     */
-    NATIVE_BUFFERS(3),
-    /**
-     * This is an experimental model that the folks at
-     * xuggle.com are trying.  It should be almost as
-     * fast as {@link #NATIVE_BUFFERS} but more Robust.
-     * <p>
-     * We're still experimenting with this (and hence it's not
-     * the default), but if you're curious, give us your thoughts
-     * by trying it out and seeing if you code gets any faster,
-     * and if you get any fewer {@link OutOfMemoryError} if you
-     * were previously using the {@link #NATIVE_BUFFERS} model.
-     * </p>
-     * <p>
-     * Here's the approach; every time we need to allocate a new
-     * large buffer in native code, we first try to allocate a
-     * backing byte[] array in Java.  We then use native code to
-     * do the actual allocation, and release the Java byte[] array.
-     * The theory is in conditions where people are not trying
-     * to be smarter than us and caching Xuggler objects, the attempt
-     * to allocate the byte[] array will put sufficient collection
-     * pressure on Java to have it do more collections for objects.
-     * Simultaneously by only really allocating on the native heap
-     * we avoid the unnecessary copy performance problems in the
-     * {@link #JAVA_STANDARD_HEAP} mode.
-     * </p>
-     * <p>We're still measuring though, so don't consider this
-     * model part of the full API yet.</p>
-     */
-    NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION(4);
-
-    /**
-     * The integer native mode that the JNIMemoryManager.cpp file expects
-     */
-    private final int mNativeValue;
-
-    /**
-     * Create a {@link MemoryModel}.
-     * 
-     * @param nativeValue What we actually use in native code.
-     */
-    private MemoryModel(int nativeValue)
-    {
-      mNativeValue = nativeValue;
-    }
-
-    /**
-     * Get the native value to pass to native code
-     * 
-     * @return a value.
-     */
-    public int getNativeValue()
-    {
-      return mNativeValue;
-    }
-    
+    flushBuffer();
   }
 
 }

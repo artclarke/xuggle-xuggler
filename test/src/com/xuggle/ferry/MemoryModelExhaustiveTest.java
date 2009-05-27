@@ -156,25 +156,53 @@ public class MemoryModelExhaustiveTest extends TestCase
         true); 
   }
   
-  private void helperMaintainShortTermReference(
+  public static void helperMaintainShortTermReference(
       JNIMemoryManager.MemoryModel model,
       final boolean cleanUpAfterOurselves)
+  {
+    helperMaintainShortTermReference(model, cleanUpAfterOurselves,
+        NUM_ALLOCS_PER_TEST, TEST_BUFFER_SIZE, true);
+  }
+  public static void helperMaintainShortTermReference(
+      final JNIMemoryManager.MemoryModel model,
+      final boolean cleanUpAfterOurselves,
+      final int numAllocsPerTest,
+      final int bufferSize,
+      final boolean forceCommit)
   {
     JNIMemoryManager.setMemoryModel(model);
     System.out.println("Short Term Test; Memory model = " + JNIMemoryManager.getMemoryModel());
     int i = 0;
-    for(i = 0; i < NUM_ALLOCS_PER_TEST; i++)
+    RefCounted allocator = RefCountedTester.make();
+
+    for(i = 0; i < numAllocsPerTest; i++)
     {
-      IBuffer buffer = getTestBuffer();
+      IBuffer buffer = getTestBuffer(allocator, bufferSize, forceCommit);
       if (cleanUpAfterOurselves)
         buffer.delete();
     }
     System.out.println("Finished allocating objects: " + i);
   }
   
-  private void helperMaintainMediumTermReference(
+  public static void helperMaintainMediumTermReference(
       JNIMemoryManager.MemoryModel model,
       final boolean cleanUpAfterOurselves
+  )
+  {
+    helperMaintainMediumTermReference(model,
+        cleanUpAfterOurselves,
+        NUM_ALLOCS_PER_TEST,
+        TEST_BUFFER_SIZE,
+        MAX_BUFFERS_TO_CACHE,
+        true);
+  }
+  public static void helperMaintainMediumTermReference(
+      final JNIMemoryManager.MemoryModel model,
+      final boolean cleanUpAfterOurselves,
+      final int numAllocsPerTest,
+      final int bufferSize,
+      final int cacheSize,
+      final boolean forceCommit
   )
   {
     JNIMemoryManager.setMemoryModel(model);
@@ -187,7 +215,7 @@ public class MemoryModelExhaustiveTest extends TestCase
       protected boolean removeEldestEntry(
           java.util.Map.Entry<IBuffer,IBuffer> eldest) 
       {
-        if(size() > MAX_BUFFERS_TO_CACHE)
+        if(size() > cacheSize)
         {
           IBuffer key = eldest.getKey();
           this.remove(key);
@@ -198,12 +226,13 @@ public class MemoryModelExhaustiveTest extends TestCase
       }
     };
     int i = 0;
-    for(i = 0; i < NUM_ALLOCS_PER_TEST; i++)
+    RefCounted allocator = RefCountedTester.make();
+    for(i = 0; i < numAllocsPerTest; i++)
     {
-      IBuffer buffer = getTestBuffer();
+      IBuffer buffer = getTestBuffer(allocator, bufferSize, forceCommit);
       map.put(buffer, buffer);
       assertTrue("unexpected map size: " + map.size(), 
-          map.size() <= MAX_BUFFERS_TO_CACHE+1);
+          map.size() <= cacheSize);
     }
     System.out.println("Finished allocating objects: " + i);
   }
@@ -213,20 +242,22 @@ public class MemoryModelExhaustiveTest extends TestCase
    * @throws OutOfMemoryError
    */
   
-  private IBuffer getTestBuffer() throws OutOfMemoryError
+  public static IBuffer getTestBuffer(RefCounted allocator, int size,
+      boolean forceCommit) throws OutOfMemoryError
   {
-    int size = TEST_BUFFER_SIZE;
     IBuffer buffer = null;
     try {
-      buffer = IBuffer.make(null, size);
-      AtomicReference<JNIReference> ref = new AtomicReference<JNIReference>(null);
-      ByteBuffer jbuffer = buffer.getByteBuffer(0, size, ref);
-      for(int i = 0; i < size; i++)
-        // write to every byte to force a commit to memory on some OSes
-        jbuffer.put(i, (byte)0xFF);
-      // and release the byte buffer reference so it doesn't pollute
-      // our test
-      ref.get().delete();
+      buffer = IBuffer.make(allocator, size);
+      if (forceCommit) {
+        AtomicReference<JNIReference> ref = new AtomicReference<JNIReference>(null);
+        ByteBuffer jbuffer = buffer.getByteBuffer(0, size, ref);
+        for(int i = 0; i < size; i++)
+          // write to every byte to force a commit to memory on some OSes
+          jbuffer.put(i, (byte)0xFF);
+        // and release the byte buffer reference so it doesn't pollute
+        // our test
+        ref.get().delete();
+      }
     } catch (OutOfMemoryError e) {
       // odd here, but we're going to force the standard heap
       // to allocate until there is an exception; this should

@@ -20,6 +20,7 @@ package com.xuggle.ferry;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,11 +51,45 @@ public class JNIMemoryAllocator
 
   // don't allocate this unless we malloc; most classes don't even
   // touch this memory manager with a 100 foot pole
-  final private Set<byte[]> mBuffers = new HashSet<byte[]>();
+  final private Set<byte[]> mBuffers =
+    new HashSet<byte[]>();
+  final private ReentrantLock mLock = 
+    new ReentrantLock();
   final static private int MAX_ALLOCATION_ATTEMPTS = 5;
   final static private double FALLBACK_TIME_DECAY = 1.5;
   final static private boolean SHOULD_RETRY_FAILED_ALLOCS = true;
 
+  private void addToBuffer(byte[] mem)
+  {
+    mLock.lock();
+    try
+    {
+      if (!mBuffers.add(mem))
+      {
+        assert false : "buffers already added";
+      }
+    }
+    finally
+    {
+      mLock.unlock();
+    }
+  }
+
+  private void removeFromBuffer(byte[] mem)
+  {
+    try
+    {
+      if (!mBuffers.remove(mem))
+      {
+        assert false : "buffer not in memory";
+      }
+    }
+    finally
+    {
+      mLock.unlock();
+    }
+  }
+  
   /**
    * Not for use outside the package
    */
@@ -152,19 +187,14 @@ public class JNIMemoryAllocator
       {
         retval = new byte[size];
       }
-
-      synchronized (mBuffers)
-      {
-        if (!mBuffers.add(retval))
-        {
-          assert false : "buffers already added";
-        }
-      }
+      addToBuffer(retval);
       retval[retval.length - 1] = 0;
-      /*
-       * log.debug("malloc: {}({}:{})", new Object[]{ retval.hashCode(),
-       * retval.length, size });
-       */
+      
+//      log.debug("malloc: {}({}:{})", new Object[]
+//      {
+//          retval.hashCode(), retval.length, size
+//      });
+      
     }
     catch (Throwable t)
     {
@@ -186,14 +216,8 @@ public class JNIMemoryAllocator
   {
     try
     {
-      synchronized (mBuffers)
-      {
-        if (!mBuffers.remove(mem))
-        {
-          assert false : "buffer not in memory";
-        }
-        // log.debug("free:   {}({})", mem.hashCode(), mem.length);
-      }
+      removeFromBuffer(mem);
+//      log.debug("free:   {}({})", mem.hashCode(), mem.length);
     }
     catch (Throwable t)
     {

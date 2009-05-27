@@ -552,7 +552,12 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
     IVideoPicture picture = convertToPicture(getStream(streamIndex), 
       image, timeStamp);
-    onVideoPicture(this, picture, null, streamIndex);
+    try {
+      onVideoPicture(this, picture, null, streamIndex);
+    } finally {
+      if (picture != null)
+        picture.delete();
+    }
   }
 
   /** {@inheritDoc} */
@@ -560,6 +565,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
   public void onVideoPicture(IMediaTool tool, IVideoPicture picture, 
     BufferedImage image, int streamIndex)
   {
+    IVideoPicture convertedPicture = null;
     // establish the stream, return silently if no stream returned
 
     IStream stream = getStream(streamIndex);
@@ -567,18 +573,24 @@ public class MediaWriter extends AMediaTool implements IMediaListener
       return;
 
     // if the BufferedImage exists, convert it to a picture
+    try {
+      if (null != image) {
+        convertedPicture = convertToPicture(stream, image, picture.getPts());
+        picture = convertedPicture;
+      }
 
-    if (null != image)
-      picture = convertToPicture(stream, image, picture.getPts());
+      // encode video picture
 
-    // encode video picture
-    
-    encodeVideo(stream, picture);
+      encodeVideo(stream, picture);
 
-    // inform listeners
+      // inform listeners
 
-    for (IMediaListener listener: getListeners())
-      listener.onVideoPicture(this, picture, image, streamIndex);
+      for (IMediaListener listener: getListeners())
+        listener.onVideoPicture(this, picture, image, streamIndex);
+    } finally {
+      if (convertedPicture != null)
+        convertedPicture.delete();
+    }
   }
 
   /** 
@@ -981,11 +993,16 @@ public class MediaWriter extends AMediaTool implements IMediaListener
     // encode the video packet
 
     IPacket packet = IPacket.make();
-    if (stream.getStreamCoder().encodeVideo(packet, picture, 0) < 0)
-      throw new RuntimeException("failed to encode video");
+    try {
+      if (stream.getStreamCoder().encodeVideo(packet, picture, 0) < 0)
+        throw new RuntimeException("failed to encode video");
 
-    if (packet.isComplete())
-      writePacket(packet);
+      if (packet.isComplete())
+        writePacket(packet);
+    } finally {
+      if (packet != null)
+        packet.delete();
+    }
   }
 
   /**
@@ -1006,18 +1023,23 @@ public class MediaWriter extends AMediaTool implements IMediaListener
       // encode audio
 
       IPacket packet = IPacket.make();
-      int result = coder.encodeAudio(packet, samples, consumed); 
-      if (result < 0)
-        throw new RuntimeException("failed to encode audio");
+      try {
+        int result = coder.encodeAudio(packet, samples, consumed); 
+        if (result < 0)
+          throw new RuntimeException("failed to encode audio");
 
-      // update total consumed
+        // update total consumed
 
-      consumed += result;
+        consumed += result;
 
-      // if a complete packed was produced write it out
+        // if a complete packed was produced write it out
 
-      if (packet.isComplete())
-        writePacket(packet);
+        if (packet.isComplete())
+          writePacket(packet);
+      } finally {
+        if (packet != null)
+          packet.delete();
+      }
     }
   }
 
@@ -1060,8 +1082,10 @@ public class MediaWriter extends AMediaTool implements IMediaListener
         while (coder.encodeAudio(packet, null, 0) >= 0 && packet.isComplete())
         {
           writePacket(packet);
+          packet.delete();
           packet = IPacket.make();
         }
+        packet.delete();
       }
       
       // else flush video coder
@@ -1072,8 +1096,10 @@ public class MediaWriter extends AMediaTool implements IMediaListener
         while (coder.encodeVideo(packet, null, 0) >= 0 && packet.isComplete())
         {
           writePacket(packet);
+          packet.delete();
           packet = IPacket.make();
         }
+        packet.delete();
       }
     }
 

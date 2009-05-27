@@ -24,6 +24,7 @@ import java.lang.Thread;
 import java.io.File;
 
 import java.util.Map;
+import java.util.Queue;
 import java.util.Vector;
 import java.util.HashMap;
 import java.util.Formatter;
@@ -763,7 +764,7 @@ public class MediaViewer extends MediaAdapter
    * correct time.
    */
 
-  public class AudioQueue extends SelfServicingMediaQueue<IAudioSamples>
+  public class AudioQueue extends SelfServicingMediaQueue
   {
     // removes the warning
 
@@ -801,9 +802,10 @@ public class MediaViewer extends MediaAdapter
 
     /** {@inheritDoc} */
 
-    public void dispatch(IAudioSamples samples, long timeStamp)
+    public void dispatch(IMediaData samples, long timeStamp)
     {
-      playAudio(mStream, mLine, samples);
+      if (samples instanceof IAudioSamples)
+        playAudio(mStream, mLine, (IAudioSamples)samples);
     }
   }
 
@@ -812,7 +814,7 @@ public class MediaViewer extends MediaAdapter
    * correct time.
    */
 
-  public class VideoQueue extends SelfServicingMediaQueue<IVideoPicture>
+  public class VideoQueue extends SelfServicingMediaQueue
   {
     // removes the warning
 
@@ -844,9 +846,10 @@ public class MediaViewer extends MediaAdapter
 
     /** {@inheritDoc} */
 
-    public void dispatch(IVideoPicture picture, long timeStamp)
+    public void dispatch(IMediaData picture, long timeStamp)
     {
-      mMediaFrame.setVideoImage(picture, null);
+      if (picture instanceof IVideoPicture)
+        mMediaFrame.setVideoImage((IVideoPicture)picture, null);
     }
   }
 
@@ -855,8 +858,7 @@ public class MediaViewer extends MediaAdapter
    * timely way and presents them to the analog hole (viewer).
    */
 
-  abstract class SelfServicingMediaQueue<Item> extends
-      LinkedList<DelayedItem<Item>>
+  abstract class SelfServicingMediaQueue
   {
     /**
      * to make warning go away
@@ -864,6 +866,9 @@ public class MediaViewer extends MediaAdapter
 
     private static final long serialVersionUID = 1L;
 
+    private final Queue<DelayedItem<IMediaData>> mQueue =  new
+      LinkedList<DelayedItem<IMediaData>>();
+    
     // the lock
 
     private ReentrantLock mLock = new ReentrantLock(true);
@@ -920,7 +925,7 @@ public class MediaViewer extends MediaAdapter
         public void run()
         {
           boolean isDone = false;
-          DelayedItem<Item> delayedItem = null;
+          DelayedItem<IMediaData> delayedItem = null;
 
           // wait for all the other stream threads to wakeup
           synchronized (SelfServicingMediaQueue.this)
@@ -939,7 +944,7 @@ public class MediaViewer extends MediaAdapter
             {
               // while not done, and no item, wait for one
 
-              while (!mDone && (delayedItem = poll()) == null)
+              while (!mDone && (delayedItem = mQueue.poll()) == null)
               {
                 try
                 {
@@ -947,6 +952,9 @@ public class MediaViewer extends MediaAdapter
                 }
                 catch (InterruptedException e)
                 {
+                  // interrupt and return
+                  Thread.currentThread().interrupt();
+
                   return;
                 }
               }
@@ -965,72 +973,79 @@ public class MediaViewer extends MediaAdapter
             }
 
             // if there is an item, dispatch it
-
             if (null != delayedItem)
             {
-              do
-              {
-                // this is the story of goldilocks testing the the media
-
-                long now = getMediaTime();
-                long delta = delayedItem.getTimeStamp() - now;
-
-                // if the media is too new and unripe, goldilocks sleeps
-                // for a bit
-
-                if (delta >= mEarlyWindow)
+              IMediaData item = delayedItem.getItem();
+              try {
+                do
                 {
-                  //debug("delta: " + delta);
-                  try
-                  {
-                    //sleep(MILLISECONDS.convert(delta - mEarlyWindow, TIME_UNIT));
-                    sleep(MILLISECONDS.convert(delta / 3, TIME_UNIT));
-                  }
-                  catch (InterruptedException e)
-                  {
-                    return;
-                  }
-                }
-                else
-                {
-                  // if the media is old and moldy, goldilocks says
-                  // "ick" and drops the media on the floor
+                  // this is the story of goldilocks testing the the media
 
-                  if (delta < -mLateWindow)
+                  long now = getMediaTime();
+                  long delta = delayedItem.getTimeStamp() - now;
+
+                  // if the media is too new and unripe, goldilocks sleeps
+                  // for a bit
+
+                  if (delta >= mEarlyWindow)
                   {
-                    debug(
-                        "@%5d DROP queue[%2d]: %s[%5d] delta: %d",
-                        MILLISECONDS.convert(now, TIME_UNIT),
-                        size(),
-                        (delayedItem.getItem() instanceof IVideoPicture ? "IMAGE"
-                            : "sound"), MILLISECONDS.convert(delayedItem
-                            .getTimeStamp(), TIME_UNIT), MILLISECONDS.convert(
-                            delta, TIME_UNIT));
+                    //debug("delta: " + delta);
+                    try
+                    {
+                      //sleep(MILLISECONDS.convert(delta - mEarlyWindow, TIME_UNIT));
+                      sleep(MILLISECONDS.convert(delta / 3, TIME_UNIT));
+                    }
+                    catch (InterruptedException e)
+                    {
+                      // interrupt and return
+                      Thread.currentThread().interrupt();
+                      return;
+                    }
                   }
-
-                  // if the media is just right, goldilocks dispaches it
-                  // for presentiation becuse she's a badass bitch
-
                   else
                   {
-                    dispatch(delayedItem.getItem(), delayedItem.getTimeStamp());
-                    // debug("%5d show [%2d]: %s[%5d] delta: %d",
-                    // MILLISECONDS.convert(getPresentationTime(), TIME_UNIT),
-                    // size(),
-                    // (delayedItem.getItem() instanceof BufferedImage
-                    // ? "IMAGE"
-                    // : "sound"),
-                    // MILLISECONDS.convert(delayedItem.getTimeStamp(),
-                    // TIME_UNIT),
-                    // MILLISECONDS.convert(delta, TIME_UNIT));
+                    // if the media is old and moldy, goldilocks says
+                    // "ick" and drops the media on the floor
+
+                    if (delta < -mLateWindow)
+                    {
+                      debug(
+                          "@%5d DROP queue[%2d]: %s[%5d] delta: %d",
+                          MILLISECONDS.convert(now, TIME_UNIT),
+                          mQueue.size(),
+                          (item instanceof IVideoPicture ? "IMAGE"
+                              : "sound"), MILLISECONDS.convert(delayedItem
+                                  .getTimeStamp(), TIME_UNIT), MILLISECONDS.convert(
+                                      delta, TIME_UNIT));
+                    }
+
+                    // if the media is just right, goldilocks dispaches it
+                    // for presentiation becuse she's a badass bitch
+
+                    else
+                    {
+                      dispatch(item, delayedItem.getTimeStamp());
+                      // debug("%5d show [%2d]: %s[%5d] delta: %d",
+                      // MILLISECONDS.convert(getPresentationTime(), TIME_UNIT),
+                      // size(),
+                      // (delayedItem.getItem() instanceof BufferedImage
+                      // ? "IMAGE"
+                      // : "sound"),
+                      // MILLISECONDS.convert(delayedItem.getTimeStamp(),
+                      // TIME_UNIT),
+                      // MILLISECONDS.convert(delta, TIME_UNIT));
+                    }
+
+                    // and the moral of the story is don't mess with goldilocks
+
+                    break;
                   }
-
-                  // and the moral of the story is don't mess with goldilocks
-
-                  break;
                 }
+                while (!mDone);
+              } finally {
+                if (item != null)
+                  item.delete();
               }
-              while (true);
             }
           }
         }
@@ -1048,6 +1063,9 @@ public class MediaViewer extends MediaAdapter
         }
         catch (InterruptedException e)
         {
+          // interrupt and return
+          Thread.currentThread().interrupt();
+
           throw new RuntimeException("could not start thread");
         }
       }
@@ -1066,7 +1084,7 @@ public class MediaViewer extends MediaAdapter
       mLock.lock();
       try
       {
-        while (!mDone && !isEmpty())
+        while (!mDone && !mQueue.isEmpty())
         {
           try
           {
@@ -1074,6 +1092,8 @@ public class MediaViewer extends MediaAdapter
           }
           catch (InterruptedException e)
           {
+            // interrupt and return
+            Thread.currentThread().interrupt();
             return;
           }
         }
@@ -1096,7 +1116,7 @@ public class MediaViewer extends MediaAdapter
      *          the presentation time stamp of the item
      */
 
-    public abstract void dispatch(Item item, long timeStamp);
+    public abstract void dispatch(IMediaData item, long timeStamp);
 
     /**
      * Place an item onto the queue, if the queue is full, block.
@@ -1109,7 +1129,7 @@ public class MediaViewer extends MediaAdapter
      *          the time unit of the time stamp
      */
 
-    public void offerMedia(Item item, long timeStamp, TimeUnit unit)
+    public void offerMedia(IMediaData item, long timeStamp, TimeUnit unit)
     {
       // wait for all the other stream threads to wakeup
 
@@ -1130,8 +1150,8 @@ public class MediaViewer extends MediaAdapter
         // while not done, and over the buffer capacity, wait till media
         // is draied below it's capacity
 
-        while (!mDone && !isEmpty()
-            && (convertedTime - peek().getTimeStamp()) > mCapacity)
+        while (!mDone && !mQueue.isEmpty()
+            && (convertedTime - mQueue.peek().getTimeStamp()) > mCapacity)
         {
           try
           {
@@ -1141,6 +1161,8 @@ public class MediaViewer extends MediaAdapter
           }
           catch (InterruptedException e)
           {
+            // interrupt and return
+            Thread.currentThread().interrupt();
             return;
           }
         }
@@ -1154,7 +1176,9 @@ public class MediaViewer extends MediaAdapter
           // (item instanceof BufferedImage ? "IMAGE" : "SOUND"),
           // MILLISECONDS.convert(convertedTime, TIME_UNIT));
 
-          super.offer(new DelayedItem<Item>(item, convertedTime));
+          // put a COPY on the queue
+          mQueue.offer(new DelayedItem<IMediaData>(item.copyReference(),
+              convertedTime));
 
           // debug("2     queue[%2d]: %s[%5d]",
           // size(),
@@ -1336,7 +1360,8 @@ public class MediaViewer extends MediaAdapter
 
       // get stream and set title based it
 
-      mStream = stream;
+      // keep our own copy of the stream since we'll live in a separate thread
+      mStream = stream.copyReference();
       mStreamIndex = mStream.getIndex();
       setTitle("Stream #" + mStreamIndex + ", " + 
         mStream.getStreamCoder().getCodec().getLongName());
@@ -1427,15 +1452,15 @@ public class MediaViewer extends MediaAdapter
 
     // the statistics panel
 
-    private JPanel mStatsPanel;
+    private final JPanel mStatsPanel;
 
     // the viewer object
 
-    private MediaViewer mViewer;
+    private final MediaViewer mViewer;
 
     // the layout
 
-    BoxLayout mLayout;
+    private final BoxLayout mLayout;
 
     // the panels for each stream
 
@@ -1486,7 +1511,7 @@ public class MediaViewer extends MediaAdapter
       if (streamPanel == null)
       {
         streamPanel = new StreamPanel(stream, this);
-        mStreamPanels.put(stream, streamPanel);
+        mStreamPanels.put(stream.copyReference(), streamPanel);
         mStatsPanel.add(streamPanel);
         adjustSize();
       }
@@ -1507,14 +1532,15 @@ public class MediaViewer extends MediaAdapter
 
       // the stream
 
-      private IStream mStream;
+      private final IStream mStream;
 
       // the frame
 
-      private StatsFrame mFrame;
+      private final StatsFrame mFrame;
 
       // media data
 
+      private final Object mMediaLock; 
       private IMediaData mMediaData;
 
       // the table
@@ -1527,7 +1553,7 @@ public class MediaViewer extends MediaAdapter
 
       // stream background colors
 
-      private Color[] mColors = 
+      private final Color[] mColors = 
       {
 //         new Color(0x70, 0x70, 0x70), 
 //         new Color(0xA0, 0xA0, 0xA0),
@@ -1604,13 +1630,28 @@ public class MediaViewer extends MediaAdapter
           {
             public Object getValue(StreamPanel streamPanel)
             {
-              long delta = (streamPanel.mFrame.mViewer.getMode().isRealTime())
-                ? MILLISECONDS.convert( streamPanel.mMediaData.getTimeStamp() - 
-                  streamPanel.mFrame.mViewer.getMediaTime(), TIME_UNIT)
-                : 0;
+              IMediaData data = null;
+              synchronized(streamPanel.mMediaLock)
+              {
+                if (streamPanel.mMediaData != null)
+                  data = streamPanel.mMediaData.copyReference();
+              }
+              String retval = "";
+              if (data != null) {
+                try {
+                  long delta = (streamPanel.mFrame.mViewer.getMode().isRealTime())
+                  ? MILLISECONDS.convert( data.getTimeStamp() - 
+                      streamPanel.mFrame.mViewer.getMediaTime(), TIME_UNIT)
+                      : 0;
 
-              return streamPanel.mMediaData.getFormattedTimeStamp() +
-                (delta <= 0 ? " + " : " - ") + Math.abs(delta);
+                  retval = data.getFormattedTimeStamp() +
+                  (delta <= 0 ? " + " : " - ") + Math.abs(delta);
+
+                } finally {
+                  data.delete();
+                }
+              }
+              return retval;
             }
           };
         
@@ -1667,9 +1708,10 @@ public class MediaViewer extends MediaAdapter
       {
         // get the stream and frame
 
-        mStream = stream;
+        mStream = stream.copyReference();
         mFrame = frame;
-
+        mMediaLock = new Object();
+        mMediaData = null;
         // set background based in stream index
 
         setBackground(mColors[mStream.getIndex() % mColors.length]);
@@ -1699,10 +1741,10 @@ public class MediaViewer extends MediaAdapter
           {
             public static final long serialVersionUID = 0;
 
-            JLabel mLabel = new JLabel();
-            JLabel mValue = new JLabel();
+            private final JLabel mLabel = new JLabel();
+            private final JLabel mValue = new JLabel();
             
-            int[] colWidths = {0, 0};
+            private final int[] colWidths = {0, 0};
 
             {
               mLabel.setVerticalAlignment(JLabel.TOP);
@@ -1753,7 +1795,12 @@ public class MediaViewer extends MediaAdapter
 
       public void update(IMediaData mediaData)
       {
-        mMediaData = mediaData;
+        synchronized(mMediaLock) {
+          IMediaData oldMedia = mMediaData;
+          mMediaData = mediaData.copyReference();
+          if (oldMedia != null)
+            oldMedia.delete();
+        }
         repaint();
       }
     }
