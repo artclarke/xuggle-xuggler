@@ -207,4 +207,28 @@ public class BufferExhaustiveTest
     }
     JNIMemoryManager.getMgr().stopCollectionThread();
   }
+  
+  /**
+   * This method allocates one large IBuffer and then repeatedly
+   * copies out the bytes into a Java byte[] array.
+   * 
+   * If the system is not leaking, the garbage collector will ensure
+   * we don't run out of heap space.  If we're leaking, bad things
+   * will occur.
+   */
+  @Test
+  public void testNoLeakingMemoryOnCopy()
+  {
+    IBuffer buf = IBuffer.make(null, 1024*1024); // 1 MB
+    assertNotNull(buf);
+    for(int i = 0; i < 1000; i++)
+    {
+      byte[] outBytes = buf.getByteArray(0, buf.getBufferSize());
+      // and we do nothing with the outBytes
+      assertEquals(outBytes.length, buf.getBufferSize());
+      outBytes = null;
+    }
+  }
+  
+
 }
