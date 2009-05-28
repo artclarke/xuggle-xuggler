@@ -402,7 +402,7 @@ public class JNIMemoryManager
      * buffers (64mb). To make it higher pass this option to Java at startup:
      * 
      * <pre>
-     * -XX:MaxDirectMemorySize=&lt;i&gt;&lt;size&gt;&lt;/i&gt;
+     * -XX:MaxDirectMemorySize=&lt;size&gt;
      * </pre>
      * 
      * </li>
@@ -415,14 +415,14 @@ public class JNIMemoryManager
      * java heap, pass this option to java on startup:
      * 
      * <pre>
-     * -Xmx&lt;i&gt;&lt;size&gt;&lt;/i&gt;
+     * -Xmx&lt;size&gt;
      * </pre>
      * 
      * To change the minimum size of your java heap, pass this option to java on
      * startup:
      * 
      * <pre>
-     * -Xms&lt;i&gt;&lt;size&gt;&lt;/i&gt;
+     * -Xms&lt;size&gt;
      * </pre>
      * 
      * </li>
@@ -531,7 +531,7 @@ public class JNIMemoryManager
      * buffers (64mb). To make it higher pass this option to Java at startup:
      * 
      * <pre>
-     * -XX:MaxDirectMemorySize=&lt;i&gt;&lt;size&gt;&lt;/i&gt;
+     * -XX:MaxDirectMemorySize=&lt;size&gt;
      * </pre>
      * 
      * </li>
@@ -544,14 +544,14 @@ public class JNIMemoryManager
      * java heap, pass this option to java on startup:
      * 
      * <pre>
-     * -Xmx&lt;i&gt;&lt;size&gt;&lt;/i&gt;
+     * -Xmx&lt;size&gt;
      * </pre>
      * 
      * To change the minimum size of your java heap, pass this option to java on
      * startup:
      * 
      * <pre>
-     * -Xms&lt;i&gt;&lt;size&gt;&lt;/i&gt;
+     * -Xms&lt;size&gt;
      * </pre>
      * 
      * </li>
@@ -650,14 +650,14 @@ public class JNIMemoryManager
      * java heap, pass this option to java on startup:
      * 
      * <pre>
-     * -Xmx&lt;i&gt;&lt;size&gt;&lt;/i&gt;
+     * -Xmx&lt;size&gt;
      * </pre>
      * 
      * To change the minimum size of your java heap, pass this option to java on
      * startup:
      * 
      * <pre>
-     * -Xms&lt;i&gt;&lt;size&gt;&lt;/i&gt;
+     * -Xms&lt;size&gt;
      * </pre>
      * 
      * </li>
@@ -777,14 +777,14 @@ public class JNIMemoryManager
      * java heap, pass this option to java on startup:
      * 
      * <pre>
-     * -Xmx&lt;i&gt;&lt;size&gt;&lt;/i&gt;
+     * -Xmx&lt;size&gt;
      * </pre>
      * 
      * To change the minimum size of your java heap, pass this option to java on
      * startup:
      * 
      * <pre>
-     * -Xms&lt;i&gt;&lt;size&gt;&lt;/i&gt;
+     * -Xms&lt;size&gt;
      * </pre>
      * 
      * </li>
