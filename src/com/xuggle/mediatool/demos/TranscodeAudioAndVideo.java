@@ -17,14 +17,14 @@
  * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.xuggle.xuggler.mediatool.demos;
+package com.xuggle.mediatool.demos;
 
 import java.io.File;
 
 
-import com.xuggle.xuggler.mediatool.MediaReader;
-import com.xuggle.xuggler.mediatool.MediaViewer;
-import com.xuggle.xuggler.mediatool.MediaWriter;
+import com.xuggle.mediatool.MediaReader;
+import com.xuggle.mediatool.MediaViewer;
+import com.xuggle.mediatool.MediaWriter;
 
 import static java.lang.System.out;
 import static java.lang.System.exit;

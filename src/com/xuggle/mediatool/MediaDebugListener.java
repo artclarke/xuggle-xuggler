@@ -17,7 +17,7 @@
  * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.xuggle.xuggler.mediatool;
+package com.xuggle.mediatool;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -28,17 +28,17 @@ import java.awt.image.BufferedImage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.mediatool.IMediaListener;
+import com.xuggle.mediatool.IMediaTool;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IPacket;
 
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
 
-import com.xuggle.xuggler.mediatool.IMediaTool;
-import com.xuggle.xuggler.mediatool.IMediaListener;
 
-import static com.xuggle.xuggler.mediatool.MediaDebugListener.Event.*;
-import static com.xuggle.xuggler.mediatool.MediaDebugListener.Mode.*;
+import static com.xuggle.mediatool.MediaDebugListener.Event.*;
+import static com.xuggle.mediatool.MediaDebugListener.Mode.*;
 
 /**
  * An {@link IMediaListener} that counts {@link IMediaTool}

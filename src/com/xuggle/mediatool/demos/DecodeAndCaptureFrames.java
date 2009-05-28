@@ -17,7 +17,7 @@
  * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.xuggle.xuggler.mediatool.demos;
+package com.xuggle.mediatool.demos;
 
 import javax.imageio.ImageIO;
 
@@ -25,11 +25,11 @@ import java.io.File;
 
 import java.awt.image.BufferedImage;
 
+import com.xuggle.mediatool.IMediaTool;
+import com.xuggle.mediatool.MediaAdapter;
+import com.xuggle.mediatool.MediaReader;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.mediatool.IMediaTool;
-import com.xuggle.xuggler.mediatool.MediaAdapter;
-import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 /**

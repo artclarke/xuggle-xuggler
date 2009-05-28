@@ -33,20 +33,21 @@ import org.junit.Test;
 import org.junit.Before;
 import org.junit.After;
 
+import com.xuggle.mediatool.MediaReader;
+import com.xuggle.mediatool.MediaViewer;
+import com.xuggle.mediatool.MediaWriter;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoResampler;
-import com.xuggle.xuggler.mediatool.MediaReader;
-import com.xuggle.xuggler.mediatool.MediaWriter;
 import com.xuggle.xuggler.video.ConverterFactory;
 import com.xuggle.xuggler.TestAudioSamplesGenerator;
 
 import static junit.framework.Assert.*;
 
-import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
+import static com.xuggle.mediatool.MediaViewer.Mode.*;
 
 public class MediaWriterTest
 {

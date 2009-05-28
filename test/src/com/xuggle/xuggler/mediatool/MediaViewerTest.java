@@ -33,12 +33,16 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.WindowConstants;
 
+import com.xuggle.mediatool.IMediaTool;
+import com.xuggle.mediatool.MediaReader;
+import com.xuggle.mediatool.MediaViewer;
+import com.xuggle.mediatool.MediaWriter;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.video.ConverterFactory;
 
-import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
+import static com.xuggle.mediatool.MediaViewer.Mode.*;
 
 import static junit.framework.Assert.*;
 

@@ -17,15 +17,15 @@
  * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.xuggle.xuggler.mediatool.demos;
+package com.xuggle.mediatool.demos;
 
 import java.awt.image.BufferedImage;
 
+import com.xuggle.mediatool.IMediaTool;
+import com.xuggle.mediatool.MediaReader;
+import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.mediatool.IMediaTool;
-import com.xuggle.xuggler.mediatool.MediaReader;
-import com.xuggle.xuggler.mediatool.MediaViewer;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 /**

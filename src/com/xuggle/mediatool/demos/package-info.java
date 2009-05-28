@@ -20,4 +20,4 @@
 /**
  * A collection of demonstration applications using the Media Tools API.
  */
-package com.xuggle.xuggler.mediatool.demos;
+package com.xuggle.mediatool.demos;

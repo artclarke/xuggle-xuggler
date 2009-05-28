@@ -18,6 +18,6 @@
  */
 
 /**
- * A collection of demonstration applications using the Xuggler.
+ * A collection of demonstration applications for the Xuggler API.
  */
 package com.xuggle.xuggler.demos;

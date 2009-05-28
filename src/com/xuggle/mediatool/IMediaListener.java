@@ -17,7 +17,7 @@
  * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.xuggle.xuggler.mediatool;
+package com.xuggle.mediatool;
 
 import java.awt.image.BufferedImage;
 
@@ -101,7 +101,7 @@ public interface IMediaListener
 
   /**
    * Called after an {@link com.xuggle.xuggler.IStream} is added to an
-   * {@link com.xuggle.xuggler.mediatool.IMediaTool}.  This occurs when
+   * {@link com.xuggle.mediatool.IMediaTool}.  This occurs when
    * a new stream is added (if writing) or encountered by the tool (if reading).
    * If the {@link
    * com.xuggle.xuggler.IStream} is not already been opened, then {@link

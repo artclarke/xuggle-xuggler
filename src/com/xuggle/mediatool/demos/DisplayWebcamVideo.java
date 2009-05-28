@@ -17,17 +17,17 @@
  * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.xuggle.xuggler.mediatool.demos;
+package com.xuggle.mediatool.demos;
 
 import javax.swing.JFrame;
 
+import com.xuggle.mediatool.MediaReader;
+import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
 import com.xuggle.xuggler.IContainerParameters;
-import com.xuggle.xuggler.mediatool.MediaReader;
-import com.xuggle.xuggler.mediatool.MediaViewer;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 
@@ -39,10 +39,10 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * <p> For example, to play the default camera on these operating
  * systems: <ul> <li>Microsoft Windows:<pre>java -cp
  * %XUGGLE_HOME%\share\java\jars\xuggle-xuggler.jar
- * com.xuggle.xuggler.mediatool.demos.DisplayWebcamVideo vfwcap 0</pre></li>
+ * com.xuggle.mediatool.demos.DisplayWebcamVideo vfwcap 0</pre></li>
  * <li>Linux:<pre>java -cp
  * $XUGGLE_HOME/share/java/jars/xuggle-xuggler.jar
- * com.xuggle.xuggler.mediatool.demos.DisplayWebcamVideo video4linux2
+ * com.xuggle.mediatool.demos.DisplayWebcamVideo video4linux2
  * /dev/video0</pre></li> </ul> </p>
  * 
  * @author aclarke

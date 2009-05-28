@@ -19,8 +19,8 @@
 
 /**
  * <p>
- * The media tools provide a simplified approach to decoding, viewing
- * and encoding media using Java events.
+ * A simple API for to decoding, viewing
+ * and encoding media.
  * </p>
  * 
  * <h2>Sample Code</h2>
@@ -52,7 +52,7 @@
  * </pre>
  * 
  * <p>
- * {@link com.xuggle.xuggler.mediatool.IMediaTool} objects will
+ * {@link com.xuggle.mediatool.IMediaTool} objects will
  * make intelligent guesses about the parameters to decode and encode
  * with based on the file names, but you can change and override everything
  * if you want.
@@ -64,8 +64,8 @@
  * <p>
  * 
  * For more examples of using the mediatools see the {@link
- * com.xuggle.xuggler.mediatool.demos} demonstration
+ * com.xuggle.mediatool.demos} demonstration
  * packet. */
 
-package com.xuggle.xuggler.mediatool;
+package com.xuggle.mediatool;
 

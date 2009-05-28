@@ -17,7 +17,7 @@
  * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.xuggle.xuggler.mediatool;
+package com.xuggle.mediatool;
 
 import java.lang.Thread;
 
@@ -80,7 +80,7 @@ import org.slf4j.LoggerFactory;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
+import static com.xuggle.mediatool.MediaViewer.Mode.*;
 
 /**
  * An {@link IMediaListener} plays audio, video or both, while

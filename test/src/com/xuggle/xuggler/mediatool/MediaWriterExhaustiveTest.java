@@ -35,12 +35,18 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import com.xuggle.mediatool.IMediaTool;
+import com.xuggle.mediatool.MediaAdapter;
+import com.xuggle.mediatool.MediaDebugListener;
+import com.xuggle.mediatool.MediaReader;
+import com.xuggle.mediatool.MediaViewer;
+import com.xuggle.mediatool.MediaWriter;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 
-import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
-import static com.xuggle.xuggler.mediatool.MediaDebugListener.Mode.*;
-import static com.xuggle.xuggler.mediatool.MediaDebugListener.Event.*;
+import static com.xuggle.mediatool.MediaDebugListener.Event.*;
+import static com.xuggle.mediatool.MediaDebugListener.Mode.*;
+import static com.xuggle.mediatool.MediaViewer.Mode.*;
 
 @RunWith(Parameterized.class)
 public class MediaWriterExhaustiveTest

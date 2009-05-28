@@ -17,8 +17,7 @@
  */
 
 /**
- * Allows Xuggler to read and write from arbitrary data sources via Java
- * callbacks.
+ * An API for extending Xuggler to read and write from arbitrary data sources.
  * <p>
  * Xuggler needs to process raw media file data in order to decode and encode
  * those files. What's worse, is the only input Xuggler can give to FFMPEG is a

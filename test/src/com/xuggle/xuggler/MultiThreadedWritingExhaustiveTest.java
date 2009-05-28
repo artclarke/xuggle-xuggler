@@ -35,10 +35,10 @@ import org.slf4j.LoggerFactory;
 
 import com.xuggle.ferry.JNIMemoryManager;
 import com.xuggle.ferry.JNIMemoryManager.MemoryModel;
-import com.xuggle.xuggler.mediatool.IMediaTool;
-import com.xuggle.xuggler.mediatool.MediaReader;
-import com.xuggle.xuggler.mediatool.MediaViewer;
-import com.xuggle.xuggler.mediatool.MediaWriter;
+import com.xuggle.mediatool.IMediaTool;
+import com.xuggle.mediatool.MediaReader;
+import com.xuggle.mediatool.MediaViewer;
+import com.xuggle.mediatool.MediaWriter;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 @RunWith(Parameterized.class)

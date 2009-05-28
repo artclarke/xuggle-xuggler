@@ -18,7 +18,8 @@
  */
 
 /**
-    Allows the reading, decoding, re-sampling, encoding and writing of most media files supported by <a href="http://ffmpeg.org/">FFMPEG</a>.
+    An advanced API for reading, decoding, re-sampling, encoding and writing
+    of most media files.
     <p>
     Xuggler is a library that wraps the
     <a href="http://ffmpeg.org/">FFMPEG</a> C library with a slightly simpler interface designed

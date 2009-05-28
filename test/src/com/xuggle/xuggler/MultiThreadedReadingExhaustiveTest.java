@@ -36,8 +36,8 @@ import org.slf4j.LoggerFactory;
 
 import com.xuggle.ferry.JNIMemoryManager;
 import com.xuggle.ferry.JNIMemoryManager.MemoryModel;
-import com.xuggle.xuggler.mediatool.MediaReader;
-import com.xuggle.xuggler.mediatool.MediaViewer;
+import com.xuggle.mediatool.MediaReader;
+import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 /**

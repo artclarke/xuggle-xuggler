@@ -25,11 +25,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
+import com.xuggle.mediatool.MediaDebugListener;
+import com.xuggle.mediatool.MediaReader;
+import com.xuggle.mediatool.MediaViewer;
+import com.xuggle.mediatool.MediaWriter;
 import com.xuggle.xuggler.IError;
 
-import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
-import static com.xuggle.xuggler.mediatool.MediaDebugListener.Mode.*;
-import static com.xuggle.xuggler.mediatool.MediaDebugListener.Event.*;
+import static com.xuggle.mediatool.MediaDebugListener.Event.*;
+import static com.xuggle.mediatool.MediaDebugListener.Mode.*;
+import static com.xuggle.mediatool.MediaViewer.Mode.*;
 
 import static junit.framework.Assert.*;
 

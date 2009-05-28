@@ -18,7 +18,7 @@
  */
 
 /**
- * A collection of utilities for working with Video in the Xuggler libraries.
+ * A collection of utilities for working with Video in the Xuggle libraries.
  *  <p>
  *  In particular, the {@link com.xuggle.xuggler.video.IConverter} interface
  *  allows for conversion

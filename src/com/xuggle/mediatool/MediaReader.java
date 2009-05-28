@@ -17,7 +17,7 @@
  * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.xuggle.xuggler.mediatool;
+package com.xuggle.mediatool;
 
 import java.util.Map;
 import java.util.Vector;

@@ -17,7 +17,7 @@
  * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.xuggle.xuggler.mediatool;
+package com.xuggle.mediatool;
 
 import java.util.Map;
 import java.util.Vector;
@@ -29,6 +29,7 @@ import java.awt.image.BufferedImage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.mediatool.MediaReader;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IError;
@@ -42,7 +43,6 @@ import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IContainerFormat;
 import com.xuggle.xuggler.video.IConverter;
-import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 import static com.xuggle.xuggler.ICodec.Type.CODEC_TYPE_VIDEO;

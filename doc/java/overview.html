@@ -14,17 +14,19 @@ don't need all the bells and whistles. The Media Tool API is a simpler
 API that uses Xuggler behind the scenes, but allows you to extract
 pictures and audio from media files without being a complete Xuggler
 expert.
-<p>How simple?  Here's some code to open a video file and play it on
-screen</p>
+<p>How simple?  Here's some code to open a MPG video file,
+convert it to an FLV file, and play it on
+screen at the same time</p>
 <pre>
-MediaReader reader = new MediaReader("myfile.mpg");
+MediaReader reader = new MediaReader("input.mpg");
 reader.addListener(new MediaViewer());
+reader.addListener(new MediaWriter("output.flv", reader));
 while (reader.readPacket() == null)
   ;
 </pre>
 <p> And if for some reason, you want access to the underlying
 Xuggler objects, it'll let you at them too.</p>
-<p>See {@link com.xuggle.xuggler.mediatool}</p>
+<p>See {@link com.xuggle.mediatool}</p>
 
 <h2>Xuggler: Decode, Encode and Experience Video</h2>
 Sometimes you need to get at the raw bits and bytes.  For that, there's

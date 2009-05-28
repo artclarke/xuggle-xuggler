@@ -23,19 +23,23 @@ import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.mediatool.IMediaListener;
+import com.xuggle.mediatool.IMediaTool;
+import com.xuggle.mediatool.MediaAdapter;
+import com.xuggle.mediatool.MediaReader;
+import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IVideoResampler;
-import com.xuggle.xuggler.mediatool.MediaReader;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 import java.awt.image.BufferedImage;
 
 import static junit.framework.Assert.*;
 
-import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
+import static com.xuggle.mediatool.MediaViewer.Mode.*;
 
 public class MediaReaderTest
 {
