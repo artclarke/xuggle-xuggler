@@ -135,7 +135,7 @@ import com.xuggle.xuggler.Converter;
 
   static {
     com.xuggle.ferry.JNILibraryLoader.loadLibrary("xuggle-xuggler",
-      new Long(Version.MAJOR_VERSION));
+      new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
   }
   
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<

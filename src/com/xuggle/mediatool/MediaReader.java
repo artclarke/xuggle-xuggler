@@ -732,10 +732,18 @@ public class MediaReader extends AMediaTool implements IMediaTool
     return errorString;
   }
 
-  /** {@inheritDoc} */
+  /** {@inheritDoc}.  Prints the {@link MediaReader} class,
+   * objectid, and URL if known.
+   * @return a nicely formatted string.
+   */
 
   public String toString()
   {
-    return "MediaReader[" + getUrl() + "]";
+    StringBuilder builder = new StringBuilder();
+    builder.append(super.toString());
+    builder.append("[");
+    builder.append(mContainer != null ? mContainer.getURL() :"");
+    builder.append("]");
+    return builder.toString();
   }
 }

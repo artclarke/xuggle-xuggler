@@ -58,14 +58,13 @@
  * if you want.
  * </p>
  * 
- * <h2>How Does It Work?</h2>
- * 
- * <h2>More Sample Code</h2>
  * <p>
  * 
  * For more examples of using the mediatools see the {@link
  * com.xuggle.mediatool.demos} demonstration
- * packet. */
+ * packet.
+ * </p>
+ */
 
 package com.xuggle.mediatool;
 
