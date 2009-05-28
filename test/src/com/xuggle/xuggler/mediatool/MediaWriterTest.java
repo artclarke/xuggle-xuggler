@@ -98,7 +98,7 @@ public class MediaWriterTest
     file.delete();
     assert(!file.exists());
     mReader.setAddDynamicStreams(true);
-    new MediaWriter(file.toString(), mReader);
+    mReader.addListener(new MediaWriter(file.toString(), mReader));
     assert(!file.exists());
   }
 
@@ -108,7 +108,8 @@ public class MediaWriterTest
     File file = new File("/tmp/foo/bar/baz/should-not-be-created.flv");
     file.delete();
     assert(!file.exists());
-    new MediaWriter(file.toString(), mReader);
+    mReader.addListener(new MediaWriter(file.toString(), mReader));
+    
     mReader.readPacket();
     assert(!file.exists());
   }
@@ -118,6 +119,7 @@ public class MediaWriterTest
   {
     File file = new File(PREFIX + "should-not-be-created.flv");
     MediaWriter writer = new MediaWriter(file.toString(), mReader);
+    mReader.addListener(writer);
     mReader.readPacket();
     file.delete();
     new MediaWriter(file.toString(), writer.getContainer());
@@ -134,6 +136,7 @@ public class MediaWriterTest
     assert(!file.exists());
     MediaWriter writer = new MediaWriter(file.toString(), mReader);
     writer.addListener(new MediaViewer(mViewerMode, true));
+    mReader.addListener(writer);
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
@@ -153,6 +156,7 @@ public class MediaWriterTest
     assert(!file.exists());
     MediaWriter writer = new MediaWriter(file.toString(), mReader);
     writer.addListener(new MediaViewer(mViewerMode, true));
+    mReader.addListener(writer);
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());

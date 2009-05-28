@@ -19,8 +19,9 @@
 
 package com.xuggle.xuggler.mediatool;
 
-import java.util.Map;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import java.awt.image.BufferedImage;
 
@@ -36,120 +37,133 @@ import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.mediatool.IMediaTool;
 import com.xuggle.xuggler.mediatool.IMediaListener;
 
-import static com.xuggle.xuggler.mediatool.DebugListener.Event.*;
-import static com.xuggle.xuggler.mediatool.DebugListener.Mode.*;
+import static com.xuggle.xuggler.mediatool.MediaDebugListener.Event.*;
+import static com.xuggle.xuggler.mediatool.MediaDebugListener.Mode.*;
 
 /**
- * An {@link IMediaTool} listener which counts {@link IMediaListener}
- * events and optinally logs specified {@link DebugListener.Event}
- * types.  Event counts can be queried, and {@link #toString} will
- * return an event count summery.  The detail in event log can ben
- * controlled by {@link DebugListener.Mode}.
+ * An {@link IMediaListener} that counts {@link IMediaTool}
+ * events and optionally logs the events specified in {@link MediaDebugListener.Event}.
+ * <p>
+ * This object can be handy for debugging a media listener to see when
+ * and where events are occurring.
+ * </p>
+ * <p>
+ * Event counts can be queried, and {@link #toString} will
+ * return an event count summary.  The details in the log can be
+ * controlled by {@link MediaDebugListener.Mode}.
+ * </p>
+ * <p>
+ * A {@link MediaDebugListener} can be attached to multiple {@link IMediaTool}
+ * simultaneously, even if they are on different threads, in which case
+ * it will return aggregate counts.
+ * </p>
  */
 
-public class DebugListener implements IMediaListener
+public class MediaDebugListener extends MediaAdapter implements IMediaListener
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   
   // log modes
 
+  /**
+   * How much detail on each event you want to log.
+   */
   public enum Mode {
 
     /** log no events */
 
     NOTHING, 
-      
-      /** log events without details */
 
-      EVENT,
+    /** log events without details */
 
-      /** log events with source or destination URL */
+    EVENT,
 
-      URL, 
+    /** log events with source or destination URL */
 
-      /** log parameters passed to the event */
+    URL, 
 
-      PARAMETERS};
+    /** log parameters passed to the event */
+
+    PARAMETERS};
 
   // max event name length
   
   private static int mMaxNameLength = 0;
   
-  /** The media listener event type specifiers. */
+  /** The different type of events you'd like to print
+   * data for.  */
   
   public enum Event
   {
-    // events
-    
-    /** video events */
-    
+    /** Video events */
+
     VIDEO         (0x001, "onVideoPicture"),
-      
-      /** audio events */
-      
-      AUDIO       (0x002, "onAudioSamples"),
-      
-      /** open events */
-      
-      OPEN        (0x004, "onOpen"),
-      
-      /** close events */
-      
-      CLOSE       (0x008, "onClose"),
-      
-      /** add stream events */
-      
-      ADD_STREAM  (0x010, "onAddStream"),
-      
-      /** open stream events */
-      
-      OPEN_STREAM (0x020, "onOpenStream"),
-      
-      /** close stream events */
-      
-      CLOSE_STREAM(0x040, "onCloseStream"),
-      
-      /** read packet events */
-      
-      READ_PACKET (0x080, "onReadPacket"),
-      
-      /** write packet events */
-      
-      WRITE_PACKET(0x100, "onWritePacket"),
-      
-      /** header write events */
-      
-      HEADER      (0x200, "onWriteHeader"),
-      
-      /** trailer write events */
-      
-      TRAILER     (0x400, "onWriteTrailer"),
-      
-      /** flush events */
-      
-      FLUSH       (0x800, "onFlush"),
-      
-      /** all events */
-      
-      ALL         (0xfff, "<ALL-EVENT>"),
-      
-      /** no events */
-      
-      NONE        (0x000, "<NO-EVENTS>"),
-      
-      /**
-       * {@link #VIDEO}, {@link #AUDIO}, {@link #READ_PACKET} and
-       * {@link #WRITE_PACKET} events
-       */
-      
-      DATA        (0x183, "<DATA-EVENTS>"),
-      
-      /**
-       * all events except {@link #VIDEO}, {@link #AUDIO}, {@link
-       * #READ_PACKET} and {@link #WRITE_PACKET} events
-       */
-      
-      META_DATA   (0xfff & ~0x183, "<META-DATA-EVENTS>");
+
+    /** Audio events */
+
+    AUDIO       (0x002, "onAudioSamples"),
+
+    /** Open events */
+
+    OPEN        (0x004, "onOpen"),
+
+    /** Close events */
+
+    CLOSE       (0x008, "onClose"),
+
+    /** Add stream events */
+
+    ADD_STREAM  (0x010, "onAddStream"),
+
+    /** Open stream events */
+
+    OPEN_STREAM (0x020, "onOpenStream"),
+
+    /** Close stream events */
+
+    CLOSE_STREAM(0x040, "onCloseStream"),
+
+    /** Read packet events */
+
+    READ_PACKET (0x080, "onReadPacket"),
+
+    /** Write packet events */
+
+    WRITE_PACKET(0x100, "onWritePacket"),
+
+    /** Write header events */
+
+    HEADER      (0x200, "onWriteHeader"),
+
+    /** Write trailer events */
+
+    TRAILER     (0x400, "onWriteTrailer"),
+
+    /** Flush events */
+
+    FLUSH       (0x800, "onFlush"),
+
+    /** All events */
+
+    ALL         (0xfff, "<ALL-EVENT>"),
+
+    /** No events */
+
+    NONE        (0x000, "<NO-EVENTS>"),
+
+    /**
+     * {@link #VIDEO}, {@link #AUDIO}, {@link #READ_PACKET} and
+     * {@link #WRITE_PACKET} events
+     */
+
+    DATA        (0x183, "<DATA-EVENTS>"),
+
+    /**
+     * All events except {@link #VIDEO}, {@link #AUDIO}, {@link
+     * #READ_PACKET} and {@link #WRITE_PACKET} events
+     */
+
+    META_DATA   (0xfff & ~0x183, "<META-DATA-EVENTS>");
 
     // event flag
 
@@ -159,8 +173,9 @@ public class DebugListener implements IMediaListener
 
     private String mMethod;
 
-    // construct an event
-    
+    /**
+     * Create an event.
+     */
     Event(int flag, String method)
     {
       mFlag = flag;
@@ -168,15 +183,21 @@ public class DebugListener implements IMediaListener
       updateMaxNameLength(name());
     }
 
-    // get event flag
+    /**
+     * Get the event flag.
+     * @return the flag.
+     */
 
     public int getFlag()
     {
       return mFlag;
     }
 
-    // get event method
-
+    /**
+     * Get the {@link IMediaListener} event this event
+     * will fire for.
+     * @return The method.
+     */
     public String getMethod()
     {
       return mMethod;
@@ -185,21 +206,22 @@ public class DebugListener implements IMediaListener
 
   // the flags
   
-  private int mFlags;
+  volatile private int mFlags;
   
   // log mode
 
-  private Mode mMode;
+  volatile private Mode mMode;
 
   // the event counts
   
-  private Map<Event, Integer> mEventCounts = new HashMap<Event, Integer>();
+  final private ConcurrentMap<Event, AtomicLong> mEventCounts = 
+    new ConcurrentHashMap<Event, AtomicLong>();
 
   /** 
    * Construct a debug listener which logs all event types.
    */
 
-  public DebugListener()
+  public MediaDebugListener()
   {
     this(PARAMETERS, ALL);
   }
@@ -210,7 +232,7 @@ public class DebugListener implements IMediaListener
    * @param events the event types which will be logged
    */
   
-  public DebugListener(Event... events)
+  public MediaDebugListener(Event... events)
   {
     this(PARAMETERS, events);
   }
@@ -218,11 +240,11 @@ public class DebugListener implements IMediaListener
   /** 
    * Construct a debug listener with custom set of event types to log.
    *
-   * @param mode log mode, see {@link DebugListener.Mode}
+   * @param mode log mode, see {@link MediaDebugListener.Mode}
    * @param events the event types which will be logged
    */
   
-  public DebugListener(Mode mode, Event... events)
+  public MediaDebugListener(Mode mode, Event... events)
   {
     mMode = mode;
     setLogEvents(events);
@@ -235,17 +257,16 @@ public class DebugListener implements IMediaListener
     for (Event candidate: Event.values())
       if ((candidate.getFlag() & event.getFlag()) != 0)
       {
-        Integer value = mEventCounts.get(candidate);
-
-        if (null == value)
-          value = 0;
-
-        mEventCounts.put(candidate, value + 1);
+        AtomicLong newValue = new AtomicLong(0);
+        AtomicLong count = mEventCounts.putIfAbsent(candidate, newValue);
+        if (count == null)
+          count = newValue;
+        count.incrementAndGet();
       }
   }
 
   /** 
-   * Get count of events of a particular type.
+   * Get the current count of events of a particular type.
    *
    * @param event the specified event type
    * 
@@ -253,10 +274,10 @@ public class DebugListener implements IMediaListener
    *         transpired
    */
 
-  public int getCount(Event event)
+  public long getCount(Event event)
   {
-    Integer value = mEventCounts.get(event);
-    return (null == value) ? 0 : value;
+    AtomicLong value = mEventCounts.get(event);
+    return (null == value) ? 0 : value.get();
   }
 
   /** 
@@ -269,9 +290,9 @@ public class DebugListener implements IMediaListener
   }
 
   /** 
-   * Set the event types which will be loggged.
+   * Set the event types which will be logged.
    *
-   * @param events the events wich will be logged
+   * @param events the events which will be logged
    */
 
   public void setLogEvents(Event... events)
@@ -294,7 +315,7 @@ public class DebugListener implements IMediaListener
 
   // handle an event 
 
-  protected void handleEvent(Event event, IMediaTool tool, Object... args)
+  private void handleEvent(Event event, IMediaTool tool, Object... args)
   {
     incrementCount(event);
     if ((mFlags & event.getFlag()) != 0 && mMode != NOTHING)
@@ -402,7 +423,10 @@ public class DebugListener implements IMediaListener
     handleEvent(TRAILER, tool, new Object[] {});
   }
 
-  /** {@inheritDoc} */
+  /** {@inheritDoc}
+   * Returns a string with event counts formatted nicely.
+   * @return a formatted string.
+   */
 
   public String toString()
   {
@@ -423,8 +447,11 @@ public class DebugListener implements IMediaListener
     mMaxNameLength = Math.max(name.length(), mMaxNameLength);
   }
   
-  // max event name length
-  
+  /**
+   * Get the maximum length of an event name.
+   * @return the maximum length.
+   */
+
   public static int getMaxNameLength()
   {
     return mMaxNameLength;

@@ -114,8 +114,7 @@ public class MultiThreadedWritingExhaustiveTest
               reader.addListener(viewer);
             }
 
-            // the writer will attach itself to the reader
-            new MediaWriter(
+            reader.addListener(new MediaWriter(
                 MultiThreadedWritingExhaustiveTest.class.getName()
                 + "_" + mModel.toString()
                 + "_" + mTestNumber + "_" + index + ".flv", reader)
@@ -140,7 +139,7 @@ public class MultiThreadedWritingExhaustiveTest
                 ++mediaDataWritten;
                 log.trace("wrote video:{}", mediaDataWritten);
               };
-            };
+            });
             while (reader.readPacket() == null)
               ++numPackets[index];
           }

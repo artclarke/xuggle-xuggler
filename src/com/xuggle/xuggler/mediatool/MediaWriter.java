@@ -49,7 +49,8 @@ import static com.xuggle.xuggler.ICodec.Type.CODEC_TYPE_VIDEO;
 import static com.xuggle.xuggler.ICodec.Type.CODEC_TYPE_AUDIO;
 
 /**
- * General purpose media writer.
+ * Opens an output container, lets the user add streams, and
+ * then encodes and writes media to that container.
  * 
  * <p>
  * 
@@ -57,6 +58,12 @@ import static com.xuggle.xuggler.ICodec.Type.CODEC_TYPE_AUDIO;
  * library that opens up a media container, and allows media data to be
  * written into it.
  * 
+ * </p>
+ * 
+ * <p>
+ * The {@link MediaWriter} class implements {@link IMediaListener}, and so
+ * it can be attached to any {@link IMediaTool} that generates raw
+ * media events (e.g. {@link MediaReader}).
  * </p>
  * 
  * <p>
@@ -80,7 +87,7 @@ import static com.xuggle.xuggler.ICodec.Type.CODEC_TYPE_AUDIO;
  * </p>
  */
 
-public class MediaWriter extends AMediaTool implements IMediaListener
+public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListener
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -102,55 +109,47 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
   // the input container of packets
   
-  protected final IContainer mInputContainer;
+  private final IContainer mInputContainer;
 
   // the container format
 
-  protected IContainerFormat mContainerFormat;
+  private IContainerFormat mContainerFormat;
 
   // a map between input stream indicies to output stream indicies
 
-  protected Map<Integer, Integer> mOutputStreamIndices = 
+  private Map<Integer, Integer> mOutputStreamIndices = 
     new HashMap<Integer, Integer>();
 
   // a map between output stream indicies and streams
 
-  protected Map<Integer, IStream> mStreams = 
+  private Map<Integer, IStream> mStreams = 
     new HashMap<Integer, IStream>();
 
   // a map between output stream indicies and video converters
 
-  protected Map<IStream, IConverter> mVideoConverters = 
+  private Map<IStream, IConverter> mVideoConverters = 
     new HashMap<IStream, IConverter>();
   
   // streasm opened by this MediaWriter must be closed
 
-  protected final Collection<IStream> mOpenedStreams = new Vector<IStream>();
+  private final Collection<IStream> mOpenedStreams = new Vector<IStream>();
 
   // true if the writer should ask FFMPEG to interleave media
 
-  protected boolean mForceInterleave = true;
+  private boolean mForceInterleave = true;
 
   // mask late stream exception policy
   
-  protected boolean mMaskLateStreamException = false;
+  private boolean mMaskLateStreamException = false;
 
 
   /**
    * Use a specified {@link MediaReader} as a source for media data and
    * meta data about the container and it's streams.  The {@link
-   * MediaReader} must be cofigured such that streams will not be
-   * dynamically added to the container, which is the defaul for {@link
+   * MediaReader} must be configured such that streams will not be
+   * dynamically added to the container, which is the default for {@link
    * MediaReader}.
    * 
-   * <p>
-   *
-   * This MediaWriter will be added as a listener to the {@link
-   * MediaReader}.  Once this constructer has returned, calles to {@link
-   * MediaReader#readPacket} will effectivy transcode the media.
-   *
-   * </p>
-   *
    * @param url the url or filename of the media destination
    * @param reader the media source
    * 
@@ -161,44 +160,13 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
   public MediaWriter(String url, MediaReader reader)
   {
-    this(url, reader, true);
-  }
-
-
-  /**
-   * Use a specified {@link MediaReader} as a source for media data and
-   * meta data about the container and it's streams.  The {@link
-   * MediaReader} must be cofigured such that streams will not be
-   * dynamically added to the container.  This is the defaul for {@link
-   * MediaReader}.
-   * 
-   * <p>
-   *
-   * The MediaWriter may optionally be added as a listener to the {@link
-   * MediaReader}.  If added as a listener, and once this constructer
-   * has returned, calles to {@link MediaReader#readPacket} will
-   * effectivy transcode the media.
-   *
-   * </p>
-   *
-   * @param url the url or filename of the media destination
-   * @param reader the media source
-   * @param addAsListener add this writer to the reader as a listener
-   * 
-   * @throws IllegalArgumentException if the specifed {@link
-   *         MediaReader} is configure to allow dynamic adding of
-   *         streams.
-   */
-
-  public MediaWriter(String url, MediaReader reader, boolean addAsListener)
-  {
     // construct around the source container
 
     this(url, reader.getContainer());
 
-    // if the container can adde streams dynamically, it is not
+    // if the container can add streams dynamically, it is not
     // currently supported, throw an exception.  this kind of test needs
-    // to be done both here and in the consructor which takes a
+    // to be done both here and in the constructor which takes a
     // container because the MediaReader may not have opened it's
     // internal container and thus not set this flag yet
 
@@ -206,17 +174,12 @@ public class MediaWriter extends AMediaTool implements IMediaListener
       throw new IllegalArgumentException(
         "inputContainer is improperly configured to allow " + 
         "dynamic adding of streams.");
-
-    // optionally add this writer as a listener to the reader
-    
-    if (addAsListener)
-      reader.addListener(this);
   }
 
   /**
    * Use a specified {@link IContainer} as a source for and meta data
    * about the container and it's streams.  The {@link IContainer} must
-   * be cofigured such that streams will not be dynamically added to the
+   * be configured such that streams will not be dynamically added to the
    * container.
    * 
    * <p>
@@ -345,7 +308,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
     // return the new audio stream
 
-    return stream;
+    return stream.copyReference();
   }
 
   /** 
@@ -398,7 +361,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
 
     // return the new video stream
 
-    return stream;
+    return stream.copyReference();
   }
 
   /** 
@@ -414,7 +377,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    *         0, the codec is NULL or if the container is already open.
    */
 
-  protected IStream establishStream(int inputIndex, int streamId, ICodec codec)
+  private IStream establishStream(int inputIndex, int streamId, ICodec codec)
   {
     // validate parameteres and conditions
 
@@ -599,7 +562,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    * @param stream to destination stream of the image
    */
 
-  protected IVideoPicture convertToPicture(IStream stream, BufferedImage image,
+  private IVideoPicture convertToPicture(IStream stream, BufferedImage image,
     long timeStamp)
   {
     // lookup the converter
@@ -658,7 +621,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    *         specified stream
    */
 
-  protected IStream getStream(int inputStreamIndex)
+  private IStream getStream(int inputStreamIndex)
   {
     // the output container must be open
 
@@ -887,7 +850,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    *   stream type
    */
 
-  protected boolean addStreamFromContainer(int inputStreamIndex)
+  private boolean addStreamFromContainer(int inputStreamIndex)
   {
     // get the input stream
 
@@ -930,7 +893,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    * Add a stream.
    */
   
-  protected void addStream(IStream stream, int inputStreamIndex, 
+  private void addStream(IStream stream, int inputStreamIndex, 
     int outputStreamIndex)
   {
     // map input to output stream indicies
@@ -957,7 +920,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    * Open a newly added stream.
    */
 
-  protected void openStream(IStream stream)
+  private void openStream(IStream stream)
   {
     // if the coder is not open, open it NOTE: MediaWriter currently
     // supports audio & video streams
@@ -988,7 +951,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    * @param picture the picture to be encoded
    */
 
-  protected void encodeVideo(IStream stream, IVideoPicture picture)
+  private void encodeVideo(IStream stream, IVideoPicture picture)
   {
     // encode the video packet
 
@@ -1012,7 +975,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    * @param samples the samples to be encoded
    */
 
-  protected void encodeAudio(IStream stream, IAudioSamples samples)
+  private void encodeAudio(IStream stream, IAudioSamples samples)
   {
     IStreamCoder coder = stream.getStreamCoder();
 
@@ -1049,7 +1012,7 @@ public class MediaWriter extends AMediaTool implements IMediaListener
    * @param packet the packet to write out
    */
 
-  protected void writePacket(IPacket packet)
+  private void writePacket(IPacket packet)
   {
     if (mContainer.writePacket(packet, mForceInterleave)<0)
       throw new RuntimeException("failed to write packet: " + packet);

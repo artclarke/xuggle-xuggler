@@ -28,13 +28,13 @@ import com.xuggle.xuggler.IVideoPicture;
 
 /**
  * An implementation of {@link IMediaListener} that implements all methods as
- * NO-OP methods.
+ * empty methods.
  * 
  * <p>
  * 
  * This can be useful if you only want to override some members of
  * {@link IMediaListener}; instead, just subclass this and override the methods
- * you want.
+ * you want, rather than providing an implementation of all event callbacks.
  * 
  * </p>
  */

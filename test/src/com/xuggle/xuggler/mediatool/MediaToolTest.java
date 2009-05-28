@@ -28,8 +28,8 @@ import java.io.File;
 import com.xuggle.xuggler.IError;
 
 import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
-import static com.xuggle.xuggler.mediatool.DebugListener.Mode.*;
-import static com.xuggle.xuggler.mediatool.DebugListener.Event.*;
+import static com.xuggle.xuggler.mediatool.MediaDebugListener.Mode.*;
+import static com.xuggle.xuggler.mediatool.MediaDebugListener.Event.*;
 
 import static junit.framework.Assert.*;
 
@@ -109,11 +109,12 @@ public class MediaToolTest
 
     MediaReader reader = new MediaReader(INPUT_FILENAME);
     MediaWriter writer = new MediaWriter(OUTPUT_FILENAME, reader);
+    reader.addListener(writer);
 
     writer.addListener(new MediaViewer(mViewerMode, true, 0));
 
-    DebugListener readerCounter = new DebugListener(URL, META_DATA);
-    DebugListener writerCounter = new DebugListener(EVENT, META_DATA);
+    MediaDebugListener readerCounter = new MediaDebugListener(URL, META_DATA);
+    MediaDebugListener writerCounter = new MediaDebugListener(EVENT, META_DATA);
 
     reader.addListener(readerCounter);
     writer.addListener(writerCounter);

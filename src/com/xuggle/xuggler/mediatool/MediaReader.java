@@ -42,7 +42,7 @@ import com.xuggle.xuggler.video.IConverter;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 /**
- * General purpose media reader.
+ * Opens a media container, and decodes all audio and video in the container.
  *
  * <p>
  *
@@ -61,14 +61,14 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * </p> 
  */
 
-public class MediaReader extends AMediaTool
+public class MediaReader extends AMediaTool implements IMediaTool
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
 
   // a map between stream IDs and coders
 
-  protected Map<Integer, IStreamCoder> mCoders = 
+  private Map<Integer, IStreamCoder> mCoders = 
     new HashMap<Integer, IStreamCoder>();
   
   // a map between stream IDs and resamplers
@@ -76,27 +76,27 @@ public class MediaReader extends AMediaTool
   // all the coders opened by this MediaReader which are candidates for
   // closing
 
-  protected final Collection<IStream> mOpenedStreams = new Vector<IStream>();
+  private final Collection<IStream> mOpenedStreams = new Vector<IStream>();
 
   // the type of converter to use, NULL if no conversion should occur
 
-  protected final ConverterFactory.Type mConverterType;
+  private final ConverterFactory.Type mConverterType;
 
   // true if new streams can may appear during a read packet at any time
 
-  protected boolean mStreamsCanBeAddedDynamically = false;
+  private boolean mStreamsCanBeAddedDynamically = false;
 
   //  will reader attempt to establish meta data when container opened
 
-  protected boolean mQueryStreamMetaData = true;
+  private boolean mQueryStreamMetaData = true;
 
   // video picture converter
 
-  protected IConverter mVideoConverter;
+  private IConverter mVideoConverter;
 
   // close on EOF only
 
-  protected boolean mCloseOnEofOnly = false;
+  private boolean mCloseOnEofOnly = false;
 
   /**
    * Create a MediaReader which reads and dispatches data from a media
@@ -365,7 +365,7 @@ public class MediaReader extends AMediaTool
    * @param streamIndex the index of the stream to be added
    */
 
-  protected IStreamCoder getStreamCoder(int streamIndex)
+  private IStreamCoder getStreamCoder(int streamIndex)
   {
     // if the coder does not exists, get it
 
@@ -399,11 +399,14 @@ public class MediaReader extends AMediaTool
             // not decode unsupported types
 
             mCoders.put(i, coder);
+            // and release our rocder to the list
+            coder = null;
             for (IMediaListener listener : getListeners())
               listener.onAddStream(this, stream);
           }
           finally
           {
+            if (coder != null) coder.delete();
             if (stream != null)
               stream.delete();
           }
@@ -434,6 +437,7 @@ public class MediaReader extends AMediaTool
       if (stream != null)
         stream.delete();
     }
+    // return back the reference we had
     return coder;
   }
 
@@ -466,7 +470,7 @@ public class MediaReader extends AMediaTool
     IPacket packet = IPacket.make();
     try
     {
-    int rv = mContainer.readNextPacket(packet);
+      int rv = mContainer.readNextPacket(packet);
       if (rv < 0)
       {
         IError error = IError.make(rv);
@@ -487,7 +491,6 @@ public class MediaReader extends AMediaTool
       // get the coder for this packet
 
       IStreamCoder coder = getStreamCoder(packet.getStreamIndex());
-
       // decode based on type
 
       switch (coder.getCodecType())
@@ -498,16 +501,18 @@ public class MediaReader extends AMediaTool
           decodeAudio(coder, packet);
           break;
 
-        // decode video
+          // decode video
 
         case CODEC_TYPE_VIDEO:
           decodeVideo(coder, packet);
           break;
 
-        // all other stream types are currently ignored
+          // all other stream types are currently ignored
 
         default:
       }
+
+      
     }
     finally
     {
@@ -526,7 +531,7 @@ public class MediaReader extends AMediaTool
    * @param packet the packet containing the media data
    */
 
-  protected void decodeVideo(IStreamCoder videoCoder, IPacket packet)
+  private void decodeVideo(IStreamCoder videoCoder, IPacket packet)
   {
     // create a blank video picture
     
@@ -555,7 +560,7 @@ public class MediaReader extends AMediaTool
    * @param packet the packet containing the media data
    */
 
-  protected void decodeAudio(IStreamCoder audioCoder, IPacket packet)
+  private void decodeAudio(IStreamCoder audioCoder, IPacket packet)
   {
     // packet may contain multiple audio frames, decode audio until
     // all audio frames are extracted from the packet 
@@ -601,7 +606,7 @@ public class MediaReader extends AMediaTool
    */
 
 
-  protected void dispatchVideoPicture(int streamIndex, IVideoPicture picture)
+  private void dispatchVideoPicture(int streamIndex, IVideoPicture picture)
   {
     BufferedImage image = null;
     
@@ -638,7 +643,7 @@ public class MediaReader extends AMediaTool
    *          the audio samples to dispatch
    */
   
-  protected void dispatchAudioSamples(int streamIndex, IAudioSamples samples)
+  private void dispatchAudioSamples(int streamIndex, IAudioSamples samples)
   {
     for (IMediaListener l: getListeners())
       l.onAudioSamples(this, samples, streamIndex);
@@ -674,15 +679,15 @@ public class MediaReader extends AMediaTool
     {
       IStreamCoder coder = stream.getStreamCoder();
       try {
-      if ((rv = coder.close()) < 0)
+        if ((rv = coder.close()) < 0)
         {
           String errorString = getErrorMessage(rv);
           throw new RuntimeException("error " + errorString
               + ", failed close coder " + coder);
         }
-      // inform listeners that the stream was closed
-      for (IMediaListener listener: getListeners())
-        listener.onCloseStream(this, stream);
+        // inform listeners that the stream was closed
+        for (IMediaListener listener: getListeners())
+          listener.onCloseStream(this, stream);
       } finally {
         coder.delete();
         stream.delete();

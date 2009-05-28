@@ -83,35 +83,55 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
 
 /**
- * Add this ass a listener to a media tool to monitor the media. Optionally
- * overlay a running clock onto the video.
+ * An {@link IMediaListener} plays audio, video or both, while
+ * listening to a {@link IMediaTool} that produces raw media.
+ * <p>
+ * You can use this object to attach to a {@link MediaReader} or
+ * a {@link MediaWriter} to see the output as they work.
+ * </p>
+ * <p>
+ * You can optionally have the {@link MediaViewer} display statistics
+ * on-screen while playing about the contents of the media file, and
+ * overlay a clock on the screen while playing.
+ * </p>
+ * <p>
+ * Please note that due to limitations in Sun's sound system on Linux
+ * there is a lag between audio and video in Linux.  Not much we can do
+ * about it, but anyone who knows a fix (the issue is with the precision
+ * of {@link DataLine#getMicrosecondPosition()}), please let us know. 
+ * </p>
  */
 
-public class MediaViewer extends MediaAdapter
+public class MediaViewer extends MediaAdapter implements IMediaListener
 {
   private static final Logger log = LoggerFactory.getLogger(MediaViewer.class);
 
+  /**
+   * The mode you want to view media in.
+   * @author aclarke
+   *
+   */
   public enum Mode
   {
-    /** play audio & video streams in realtime */
-    
+    /** Play audio & video streams in real-time. */
+
     AUDIO_VIDEO(true, true, true),
-      
-      /** play only audio streams, in realtime */
-      
-      AUDIO_ONLY(true, false, true),
-      
-      /** play only video streams, in realtime */
-      
-      VIDEO_ONLY(false, true, true),
-      
-      /** play only video, as fast as possible */
-      
-      FAST(false, true, false),
 
-      /** play neither audio or video, also disables statistics */
+    /** Play only audio streams, in real-time. */
 
-      DISABLED(false, false, false);
+    AUDIO_ONLY(true, false, true),
+
+    /** Play only video streams, in real-time. */
+
+    VIDEO_ONLY(false, true, true),
+
+    /** Play only video, as fast as possible. */
+
+    FAST(false, true, false),
+
+    /** Play neither audio or video, also disables statistics. */
+
+    DISABLED(false, false, false);
 
     // play audio
     
@@ -127,7 +147,7 @@ public class MediaViewer extends MediaAdapter
 
     // construct a mode
 
-    Mode(boolean playAudio, boolean showVideo, boolean realTime)
+    private Mode(boolean playAudio, boolean showVideo, boolean realTime)
     {
       mPlayAudio = playAudio;
       mShowVideo = showVideo;
@@ -166,30 +186,30 @@ public class MediaViewer extends MediaAdapter
 
   // the standard time unit used in the media viewer
 
-  public static final TimeUnit TIME_UNIT = MICROSECONDS;
+  private static final TimeUnit TIME_UNIT = MICROSECONDS;
 
   /** the stats font size */
 
-  public static final float FONT_SIZE = 20f;
+  private static final float FONT_SIZE = 20f;
 
   /** default video early time window, before which video is delayed */
 
-  public static final long DEFALUT_VIDEO_EARLY_WINDOW =
+  private static final long DEFAULT_VIDEO_EARLY_WINDOW =
     TIME_UNIT.convert(50, MILLISECONDS);
 
   /** default video late time window, after which video is dropped */
 
-  public static final long DEFALUT_VIDEO_LATE_WINDOW =
+  private static final long DEFAULT_VIDEO_LATE_WINDOW =
     TIME_UNIT.convert(50, MILLISECONDS);
 
   /** default audio early time window, before which audio is delayed */
 
-  public static final long DEFALUT_AUDIO_EARLY_WINDOW = 
+  private static final long DEFAULT_AUDIO_EARLY_WINDOW = 
     TIME_UNIT.convert(Long.MAX_VALUE, MILLISECONDS);
 
   /** default audio late time window, after which audio is dropped */
 
-  public static final long DEFALUT_AUDIO_LATE_WINDOW =
+  private static final long DEFAULT_AUDIO_LATE_WINDOW =
     TIME_UNIT.convert(Long.MAX_VALUE, MILLISECONDS);
 
   // video converters
@@ -234,7 +254,7 @@ public class MediaViewer extends MediaAdapter
 
   // show or hide media statistics
 
-  private boolean mShowStats;
+  private final boolean mShowStats;
 
   // is this viewer in the process of closing
 
@@ -268,7 +288,7 @@ public class MediaViewer extends MediaAdapter
   }
 
   /**
-   * Construct a media viewer which plays in the specifed mode.
+   * Construct a media viewer which plays in the specified mode.
    * 
    * @param mode the play mode of this viewer
    */
@@ -290,7 +310,7 @@ public class MediaViewer extends MediaAdapter
   }
 
   /**
-   * Construct a media viewer which plays in the specifed mode and
+   * Construct a media viewer which plays in the specified mode and
    * optionally shows media statistics.
    * 
    * @param mode the play mode of this viewer
@@ -318,7 +338,7 @@ public class MediaViewer extends MediaAdapter
   }
 
   /**
-   * Construct a media viewer which plays in the specifed mode, optionally
+   * Construct a media viewer which plays in the specified mode, optionally
    * shows media statistics and specifies the default frame close
    * behavior.
    * 
@@ -413,7 +433,7 @@ public class MediaViewer extends MediaAdapter
     return mMode;
   }
 
-  /** Configure internal parameters of the media viewer. */
+  /** Internaly Only.  Configure internal parameters of the media viewer. */
 
   @Override
   public void onAddStream(IMediaTool tool, IStream stream)
@@ -468,7 +488,7 @@ public class MediaViewer extends MediaAdapter
     }
   }
 
-  /** {@inheritDoc} */
+  /** Internaly Only.  {@inheritDoc} */
 
   @Override
   public void onVideoPicture(IMediaTool tool, IVideoPicture picture,
@@ -500,12 +520,6 @@ public class MediaViewer extends MediaAdapter
       frame.setVideoImage(picture, image);
   }
 
-  /**
-   * @param streamIndex
-   * @param frame
-   * @return
-   */
-
   private VideoQueue getVideoQueue(int streamIndex, MediaFrame frame)
   {
     VideoQueue queue = mVideoQueues.get(streamIndex);
@@ -517,7 +531,7 @@ public class MediaViewer extends MediaAdapter
     return queue;
   }
 
-  /** {@inheritDoc} */
+  /** Internaly Only.  {@inheritDoc} */
 
   @Override
   public void onAudioSamples(IMediaTool tool, IAudioSamples samples,
@@ -566,7 +580,7 @@ public class MediaViewer extends MediaAdapter
    * @param samples the audio samples
    */
 
-  protected void playAudio(IStream stream, SourceDataLine line, 
+  private void playAudio(IStream stream, SourceDataLine line, 
     IAudioSamples samples)
   {
     if (!mClosing)
@@ -576,12 +590,6 @@ public class MediaViewer extends MediaAdapter
       updateStreamStats(stream, samples);
     }
   }
-
-  /**
-   * @param tool
-   * @param streamIndex
-   * @return
-   */
 
   private AudioQueue getAudioQueue(IMediaTool tool, int streamIndex)
   {
@@ -604,7 +612,7 @@ public class MediaViewer extends MediaAdapter
    * Flush all media buffers.
    */
 
-  public void flush()
+  private void flush()
   {
     // flush all the video queues
 
@@ -624,7 +632,7 @@ public class MediaViewer extends MediaAdapter
   }
 
   /**
-   * {@inheritDoc} Closes any open windows on screen.
+   * Internal Only.  {@inheritDoc}
    */
 
   @Override
@@ -634,7 +642,7 @@ public class MediaViewer extends MediaAdapter
   };
 
   /**
-   * {@inheritDoc} Closes any open windows on screen.
+   * Internal Only.  {@inheritDoc} Closes any open windows on screen.
    */
 
   @Override
@@ -659,7 +667,7 @@ public class MediaViewer extends MediaAdapter
    * @param mediaData the current media data for this stream
    */
 
-  protected void updateStreamStats(IStream stream, IMediaData mediaData)
+  private void updateStreamStats(IStream stream, IMediaData mediaData)
   {
     if (mShowStats)
     {
@@ -677,7 +685,7 @@ public class MediaViewer extends MediaAdapter
    * @param image the image on which to draw the time stamp
    */
 
-  public static void drawStats(IVideoPicture picture, BufferedImage image)
+  private static void drawStats(IVideoPicture picture, BufferedImage image)
   {
     if (image == null)
       throw new RuntimeException("must be used with a IMediaTool"
@@ -764,7 +772,7 @@ public class MediaViewer extends MediaAdapter
    * correct time.
    */
 
-  public class AudioQueue extends SelfServicingMediaQueue
+  private class AudioQueue extends SelfServicingMediaQueue
   {
     // removes the warning
 
@@ -792,8 +800,8 @@ public class MediaViewer extends MediaAdapter
     public AudioQueue(long capacity, TimeUnit unit, IStream stream,
       SourceDataLine sourceDataLine)
     {
-      super(TIME_UNIT.convert(capacity, unit), DEFALUT_AUDIO_EARLY_WINDOW,
-          DEFALUT_AUDIO_LATE_WINDOW, TIME_UNIT, Thread.MIN_PRIORITY, 
+      super(TIME_UNIT.convert(capacity, unit), DEFAULT_AUDIO_EARLY_WINDOW,
+          DEFAULT_AUDIO_LATE_WINDOW, TIME_UNIT, Thread.MIN_PRIORITY, 
         "audio stream " + stream.getIndex() + " " + 
         stream.getStreamCoder().getCodec().getLongName());
       mStream = stream;
@@ -814,7 +822,7 @@ public class MediaViewer extends MediaAdapter
    * correct time.
    */
 
-  public class VideoQueue extends SelfServicingMediaQueue
+  private class VideoQueue extends SelfServicingMediaQueue
   {
     // removes the warning
 
@@ -837,8 +845,8 @@ public class MediaViewer extends MediaAdapter
 
     public VideoQueue(long capacity, TimeUnit unit, MediaFrame mediaFrame)
     {
-      super(TIME_UNIT.convert(capacity, unit), DEFALUT_VIDEO_EARLY_WINDOW,
-          DEFALUT_VIDEO_LATE_WINDOW, TIME_UNIT, Thread.MIN_PRIORITY, 
+      super(TIME_UNIT.convert(capacity, unit), DEFAULT_VIDEO_EARLY_WINDOW,
+          DEFAULT_VIDEO_LATE_WINDOW, TIME_UNIT, Thread.MIN_PRIORITY, 
         "video stream " + mediaFrame.mStream.getIndex() + " " + 
         mediaFrame.mStream.getStreamCoder().getCodec().getLongName());
       mMediaFrame = mediaFrame;
@@ -858,7 +866,7 @@ public class MediaViewer extends MediaAdapter
    * timely way and presents them to the analog hole (viewer).
    */
 
-  abstract class SelfServicingMediaQueue
+  private abstract class SelfServicingMediaQueue
   {
     /**
      * to make warning go away
@@ -1217,7 +1225,7 @@ public class MediaViewer extends MediaAdapter
 
   /** A place to put frames which will be delayed. */
 
-  class DelayedItem<Item>
+  private class DelayedItem<Item>
   {
     // buffered image
 
@@ -1254,7 +1262,7 @@ public class MediaViewer extends MediaAdapter
   /** A JFrame which initially positions itself in a smart way */
 
 
-  protected static class PositionFrame extends JFrame
+  private static class PositionFrame extends JFrame
   {
     // removes the warning
 
@@ -1323,7 +1331,7 @@ public class MediaViewer extends MediaAdapter
 
   /** A media viewer frame. */
 
-  protected class MediaFrame extends PositionFrame
+  private class MediaFrame extends PositionFrame
   {
     // removes the warning
 
@@ -1444,7 +1452,7 @@ public class MediaViewer extends MediaAdapter
 
   /** A stats frame. */
 
-  protected static class StatsFrame extends PositionFrame
+  private static class StatsFrame extends PositionFrame
   {
     // removes the warning
 

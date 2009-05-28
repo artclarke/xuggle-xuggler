@@ -39,8 +39,8 @@ import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 
 import static com.xuggle.xuggler.mediatool.MediaViewer.Mode.*;
-import static com.xuggle.xuggler.mediatool.DebugListener.Mode.*;
-import static com.xuggle.xuggler.mediatool.DebugListener.Event.*;
+import static com.xuggle.xuggler.mediatool.MediaDebugListener.Mode.*;
+import static com.xuggle.xuggler.mediatool.MediaDebugListener.Event.*;
 
 @RunWith(Parameterized.class)
 public class MediaWriterExhaustiveTest
@@ -226,7 +226,7 @@ public class MediaWriterExhaustiveTest
       writer.setMaskLateStreamExceptions(false);
       writer.addListener(new MediaViewer(mViewerMode, true));
 
-      writer.addListener(new DebugListener(OPEN, CLOSE));
+      writer.addListener(new MediaDebugListener(OPEN, CLOSE));
 
       reader.addListener(new MediaAdapter()
         {
@@ -250,23 +250,24 @@ public class MediaWriterExhaustiveTest
       while (reader.readPacket() == null)
         ;
 
-      // closse the container
+      // close the container
       
       writer.close();
     }
 
-    // construct a writre give a reader, the easy simple case
+    // construct a writer give a reader, the easy simple case
 
     else
     {
-      // constructe the writer, no need to keep a reference to the
+      // construct the writer, no need to keep a reference to the
       // writer, it's maintained in the reader
 
       MediaWriter writer = new MediaWriter(mDestination, reader);
+      reader.addListener(writer);
       writer.setMaskLateStreamExceptions(false);
       writer.addListener(new MediaViewer(mViewerMode, true));
 
-      writer.addListener(new DebugListener(EVENT, META_DATA));
+      writer.addListener(new MediaDebugListener(EVENT, META_DATA));
 
       // transcode
 

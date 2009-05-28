@@ -85,8 +85,8 @@ public class MediaViewerTest
 
     reader.addListener(new MediaViewer(mViewerMode, true, 
         WindowConstants.EXIT_ON_CLOSE));
-    // reader.addListener(new DebugListener(DebugListener.Mode.EVENT,
-    // DebugListener.Event.ALL));
+    // reader.addListener(new MediaDebugListener(MediaDebugListener.Mode.EVENT,
+    // MediaDebugListener.Event.ALL));
 
     IError rv;
     while ((rv = reader.readPacket()) == null)

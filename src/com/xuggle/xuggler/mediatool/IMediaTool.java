@@ -26,8 +26,8 @@ import com.xuggle.xuggler.IStreamCoder;
 
 
 /** 
- * In interface for media tools like {@link MediaReader} and {@link
- * MediaWriter}.
+ * A tool that processes Media files, and generates events that {@link IMediaListener}
+ * objects can subscribe to and react to.
  */
 
 public interface IMediaTool
@@ -37,7 +37,7 @@ public interface IMediaTool
    *
    * @param listener the listener to add
    *
-   * @return true if this collection changed as a result of the call
+   * @return true if the set of listeners changed as a result of the call
    */
   
   public abstract boolean addListener(IMediaListener listener);
@@ -47,7 +47,7 @@ public interface IMediaTool
    *
    * @param listener the listener to remove
    *
-   * @return true if this collection changed as a result of the call
+   * @return true if the set of listeners changed as a result of the call
    */
   
   public abstract boolean removeListener(IMediaListener listener);

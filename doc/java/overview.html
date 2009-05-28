@@ -5,17 +5,30 @@ files in any way that you want.
 <h1>Introduction</h1>
 This release contains a collection of Java libraries that Xuggle is
 letting loose on the world.
-<p>Our intention in open sourcing these libraries is to break down
-the walls of communication between people. To that end, a lot of these
-libraries deal with getting at raw data for different systems, and for
-helping people to share and create cool stuff using that data.</p>
-<p>That said, it is not our intent to encourage people to use these
-libraries for illegal purposes, and we explicitly encourage people to
-respect the rights of others when they use these libraries.</p>
 <h1>Libraries</h1>
 Here is a brief summary of the current libraries in this release:
+
+<h2>Media Tool: Decoding, Encoding and View Media Files the Easy Way</h2>
+The Xuggler API is very powerful and full featured, but sometimes you
+don't need all the bells and whistles. The Media Tool API is a simpler
+API that uses Xuggler behind the scenes, but allows you to extract
+pictures and audio from media files without being a complete Xuggler
+expert.
+<p>How simple?  Here's some code to open a video file and play it on
+screen</p>
+<pre>
+MediaReader reader = new MediaReader("myfile.mpg");
+reader.addListener(new MediaViewer());
+while (reader.readPacket() == null)
+  ;
+</pre>
+<p> And if for some reason, you want access to the underlying
+Xuggler objects, it'll let you at them too.</p>
+<p>See {@link com.xuggle.xuggler.mediatool}</p>
+
 <h2>Xuggler: Decode, Encode and Experience Video</h2>
-A Java Library for encoding and decoding pretty much any Internet
+Sometimes you need to get at the raw bits and bytes.  For that, there's
+Xuggler: A Java Library for encoding and decoding pretty much any Internet
 available audio or video file. See {@link com.xuggle.xuggler}
 <p>This Java library is a wrapper around the excellent <a
   href="http://ffmpeg.org"> FFMPEG</a> libav* libraries. It allows Java
@@ -27,14 +40,6 @@ jump straight to the <a
   href="{@docRoot}/src-html/com/xuggle/xuggler/Converter.html">
 com.xuggle.xuggler.Converter</a> program source code for an example of
 Xuggler converting a media file.</p>
-<h2>Media Tool: Like Xuggler, but Simpler</h2>
-The Xuggler API is very powerful and full featured, but sometimes you
-don't need all the bells and whistles. The Media Tool API is a simpler
-API that uses Xuggler behind the scenes, but allows you to extra
-pictures and audio from media files without being a complete Xuggler
-expert. And if for some reason, you want access to the underlying
-Xuggler objects, it'll let you at them too.
-<p>See {@link com.xuggle.xuggler.mediatool}</p>
 
 <h2>Xuggler IO: When you need your own IO</h2>
 A Java Library for allowing people to plug in custom data sources for
@@ -72,10 +77,18 @@ directly modify C++/C memory (if possible). Most people won't use this
 outside of the Xuggler library, but if you're curious, go digging. It
 relies HEAVILY on SWIG for a lot of the heavy lifting.
 <h1>Licensing</h1>
-All Xuggle Open Source Libraries are released under the
+<p>Our intention in open sourcing these libraries is to break down
+the walls of communication between people. To that end, a lot of these
+libraries deal with getting at raw data for different systems, and for
+helping people to share and create cool stuff using that data.</p>
+<p>That said, it is not our intent to encourage people to use these
+libraries for illegal purposes, and we explicitly encourage people to
+respect the rights of others when they use these libraries.</p>
+<p>All Xuggle Open Source Libraries are released under the
 <a href="http://www.fsf.org/licensing/licenses/agpl-3.0.html"> GNU
 Affero General Public License v3 (AGPL)</a>
 . See the COPYING file in each library for details.  Non-AGPL licenses
 are available for a fee.  Send e-mail to info@xuggle.com if interested.
+</p>
 </body>
 </html>

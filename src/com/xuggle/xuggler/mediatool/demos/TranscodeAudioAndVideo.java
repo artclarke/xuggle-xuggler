@@ -36,6 +36,12 @@ import static java.lang.System.exit;
 
 public class TranscodeAudioAndVideo
 {
+  /**
+   * Transcodes a media file into a new media file, guessing parameters 
+   * and codecs
+   * based on the file names.
+   * @param args 2 strings; an input file and an output file.
+   */
   public static void main(String[] args)
   {
     if (args.length < 2)
@@ -61,7 +67,8 @@ public class TranscodeAudioAndVideo
   }
 
   /**
-   * Transcode a source url to a destination url.
+   * Transcode a source url to a destination url.  Really.  That's
+   * all this does.
    */
 
   public static void transcode(String sourceUrl, String destinationUlr)
@@ -73,17 +80,13 @@ public class TranscodeAudioAndVideo
 
     MediaReader reader = new MediaReader(sourceUrl);
 
-    // add a viewr to the reader, to see progress as the media is
-    // transcodded
+    // add a viewer to the reader, to see progress as the media is
+    // transcoded
 
     reader.addListener(new MediaViewer(true));
 
-    // create the media writer, notice that NO refence to the writer
-    // needs to be created - the writer has been automatically added as
-    // a listener to the reader and will be called when the reader
-    // dispatches media
-
-    new MediaWriter(destinationUlr, reader);
+    // create the media writer
+    reader.addListener(new MediaWriter(destinationUlr, reader));
 
     // read packets from the source file, which dispatch events to the
     // writer, this will continue until 

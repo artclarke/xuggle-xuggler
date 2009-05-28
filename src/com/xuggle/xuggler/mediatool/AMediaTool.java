@@ -26,13 +26,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import com.xuggle.xuggler.IContainer;
 
 /**
- * A base class for implementing {@link IMediaTool} objects used
- * internally by the mediatool package.
- *  
+ * Internal Only. An abstract base class for implementing {@link IMediaTool}
+ * objects used internally by the mediatool package.
+ * 
  * @author trebor
  */
 
-abstract class AMediaTool implements IMediaTool
+public abstract class AMediaTool implements IMediaTool
 {
   // the container to read from or write to
   
@@ -55,13 +55,13 @@ abstract class AMediaTool implements IMediaTool
    * Construct an abstract IMediaTool.
    *
    * @param url the URL which will be read or written to
-   * @param the container which be read from or written to
+   * @param container the container which be read from or written to
    */
   
   public AMediaTool(String url, IContainer container)
   {
     mUrl = url;
-    mContainer = container;
+    mContainer = container.copyReference();
 
     // it is assuemd that the container should not be closed by the
     // tool, this may change if open() is laster called 
@@ -101,7 +101,7 @@ abstract class AMediaTool implements IMediaTool
 
   public IContainer getContainer()
   {
-    return mContainer;
+    return mContainer == null ? null : mContainer.copyReference();
   }
 
   /** {@inheritDoc} */

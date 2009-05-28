@@ -18,77 +18,54 @@
  */
 
 /**
+ * <p>
  * The media tools provide a simplified approach to decoding, viewing
- * and encoding media. The following code snippet is all that is
- * required to decode, view and encode a mdiea file.
- * thing.
- *
+ * and encoding media using Java events.
  * </p>
+ * 
+ * <h2>Sample Code</h2>
+ * 
+ * <p>
+ * The following code snippet is all that is
+ * required to decode a FLV file and encode it as a Quicktime file.
+ * </p>
+ * 
  * <pre>
- * MediaReader reader = new MediaReader(sourceUrl);
- * reader.addListener(new MediaViewer(true));
- * new MediaWriter(destinationUlr, reader);
+ * MediaReader reader = new MediaReader("input.flv");
+ * reader.addListener(new MediaWriter("output.mov", reader));
  * while (reader.readPacket() == null)
  *   ;
  * </pre>
+ * 
+ * <p>
+ * And this code decodes a MPG file, and encodes it to flv, but this
+ * time plays the media on screen in real-time while it's doing
+ * the work.
+ * </p>
+ * 
+ * <pre>
+ * MediaReader reader = new MediaReader("input.mpg");
+ * reader.addListener(new MediaViewer(true));
+ * reader.addListener(new MediaWriter("output.flv", reader));
+ * while (reader.readPacket() == null)
+ *   ;
+ * </pre>
+ * 
+ * <p>
+ * {@link com.xuggle.xuggler.mediatool.IMediaTool} objects will
+ * make intelligent guesses about the parameters to decode and encode
+ * with based on the file names, but you can change and override everything
+ * if you want.
+ * </p>
+ * 
+ * <h2>How Does It Work?</h2>
+ * 
+ * <h2>More Sample Code</h2>
  * <p>
  * 
- * For a good example of using the approach see the {@link
- * com.xuggle.xuggler.mediatool.demos.DecodeAndPlayVideo} demonstration
- * application. In about 20 lines of Java code is opens up any media
- * file, finds all the video streams in that file, and displays them on
- * the screen.
- * 
- * </p>
- * <p>
- * 
- * For see the {@link com.xuggle.xuggler.mediatool.demos.DisplayWebcamVideo}
- * demonstration that displays a webcam on screen.
- * 
- * </p>
- * <p>
- *
- * Use a {@link com.xuggle.xuggler.mediatool.MediaReader} to read and
- * decode media.
- *
- * </p>
- * <p>
- *
- * Use a {@link com.xuggle.xuggler.mediatool.MediaWriter} to encode
- * media and write it out.
- *
- * </p>
- * <p>
- * 
- * A {@link com.xuggle.xuggler.mediatool.MediaWriter} can be added as a
- * {@link com.xuggle.xuggler.mediatool.IMediaListener} to a {@link
- * com.xuggle.xuggler.mediatool.MediaReader} to "close the loop" and
- * effectively transcode media.
- * 
- * </p>
- * <p>
- * 
- * To view the media a {@link com.xuggle.xuggler.mediatool.MediaViewer}
- * can be added as a listener to either a {@link
- * com.xuggle.xuggler.mediatool.MediaReader} or {@link
- * com.xuggle.xuggler.mediatool.MediaWriter}.
- * 
- * </p>
- * <p>
- * 
- * Various hooks are provided via the {@link
- * com.xuggle.xuggler.mediatool.IMediaListener} interface.
- * 
- * </p>
- * <p>
- * 
- * And the {@link com.xuggle.xuggler.mediatool.DebugListener} is an
- * implementation of {@link com.xuggle.xuggler.mediatool.IMediaListener}
- * that logs and counts media events so you can more easily debug what's
- * happening.
- * 
- * </p>
- */
+ * For more examples of using the mediatools see the {@link
+ * com.xuggle.xuggler.mediatool.demos} demonstration
+ * packet. */
 
 package com.xuggle.xuggler.mediatool;
 
