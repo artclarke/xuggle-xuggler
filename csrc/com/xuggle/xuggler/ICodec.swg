@@ -38,7 +38,7 @@
   }
 
   /**
-   * Gets a collection of ALL audio codecs installed on this
+   * Gets a collection of ALL codecs installed on this
    * system. 
    * 
    * @return A collection of all installed codecs.

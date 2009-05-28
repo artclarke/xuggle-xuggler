@@ -141,6 +141,14 @@ public class Global extends RefCounted {
     super.delete();
   }
 
+
+  /**
+   * The default unit of time that {@link IAudioSamples} and
+   * {@link IVideoPicture} time stamps are represented in.
+   */
+  public static final java.util.concurrent.TimeUnit DEFAULT_TIME_UNIT =
+    java.util.concurrent.TimeUnit.MICROSECONDS;
+
 /**
  * Returns a 64 bit version number for this library.  
  * @return	a 64-bit integer version number for this library. The top 

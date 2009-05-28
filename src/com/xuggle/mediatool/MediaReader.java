@@ -732,8 +732,10 @@ public class MediaReader extends AMediaTool implements IMediaTool
     return errorString;
   }
 
-  /** {@inheritDoc}.  Prints the {@link MediaReader} class,
-   * objectid, and URL if known.
+  /** 
+   * Prints the {@link MediaReader} class,
+   * object id, and URL if known.
+   * {@inheritDoc}
    * @return a nicely formatted string.
    */
 

@@ -74,15 +74,10 @@ import static com.xuggle.xuggler.ICodec.Type.CODEC_TYPE_AUDIO;
  * </p>
  * <p>
  * 
- * When {@link #onAudioSamples} or {@link #onVideoPicture} is called a
- * stream index is specified. The only requirement of these stream
- * indices is that they consistently map to specific streams.
- * 
- * </p>
- * <p>
- * 
- * The idea is to abstract away the more intricate details of the
- * Xuggler API, and let you concentrate on what you want.
+ * If you are generating video from Java {@link BufferedImage} but you
+ * don't have an {@link IVideoPicture} object handy, don't sweat.  You
+ * can use {@link #pushImage(BufferedImage, int, long)}, and {@link MediaWriter}
+ * will convert your {@link BufferedImage} into the right type.
  * 
  * </p>
  */
