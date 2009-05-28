@@ -75,6 +75,8 @@ public class BufferExhaustiveTest
   @Test
   public void testNoLeaksWhenBufferMadeFromDirectJavaByteBuffer()
   {
+    // Start from zero
+    JNIReference.getMgr().flush();
     for(int i = 0; i < 100; i++)
     {
       assertEquals(0, JNIReference.getMgr().getNumPinnedObjects());
@@ -94,6 +96,8 @@ public class BufferExhaustiveTest
       System.gc();
       Thread.yield();
     }
+    // and flush again
+    JNIReference.getMgr().flush();
   }
 
   /**
