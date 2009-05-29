@@ -22,10 +22,18 @@ package com.xuggle.mediatool;
 import java.io.File;
 import java.nio.ShortBuffer;
 
+import java.awt.Point;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Ellipse2D;
+import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+
+import java.util.concurrent.TimeUnit;
+import java.util.Random;
+import java.util.Vector;
 
 import org.junit.*;
 import org.slf4j.Logger;
@@ -33,16 +41,18 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.WindowConstants;
 
-import com.xuggle.mediatool.IMediaTool;
-import com.xuggle.mediatool.MediaReader;
-import com.xuggle.mediatool.MediaViewer;
-import com.xuggle.mediatool.MediaWriter;
 import com.xuggle.xuggler.IError;
+import com.xuggle.xuggler.ICodec;
+import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 import static com.xuggle.mediatool.MediaViewer.Mode.*;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 import static junit.framework.Assert.*;
 
@@ -50,16 +60,18 @@ public class MediaViewerTest
 {
   // the log
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+  private static final Logger log = LoggerFactory.getLogger(MediaViewerTest.class);
   { log.trace("<init>"); }
+
+  // the xuggle system time unit
+
+  public static final TimeUnit TIME_UNIT = MICROSECONDS;
 
   // the media view mode
   
   final MediaViewer.Mode mViewerMode = MediaViewer.Mode.valueOf(
     System.getProperty(this.getClass().getName() + ".ViewerMode", 
-      //AUDIO_VIDEO.name()
-      DISABLED.name()
-      ));
+      DISABLED.name()));
 
   // standard test name prefix
 
@@ -77,7 +89,7 @@ public class MediaViewerTest
   // test thet the proper number of events are signaled during reading
   // and writng of a media file
 
-  @Test()
+  //@Test()
   public void testViewer()
   {
     //com.xuggle.ferry.JNIMemoryAllocator.setMirroringNativeMemoryInJVM(false);
@@ -89,8 +101,8 @@ public class MediaViewerTest
 
     reader.addListener(new MediaViewer(mViewerMode, true, 
         WindowConstants.EXIT_ON_CLOSE));
-    // reader.addListener(new MediaDebugListener(MediaDebugListener.Mode.EVENT,
-    // MediaDebugListener.Event.ALL));
+    // reader.addListener(new DebugListener(DebugListener.Mode.EVENT,
+    // DebugListener.Event.ALL));
 
     IError rv;
     while ((rv = reader.readPacket()) == null)
@@ -99,7 +111,7 @@ public class MediaViewerTest
     assertEquals(IError.Type.ERROR_EOF, rv.getType());
   }
 
-  //@Test()
+ //@Test()
   public void testModifyMedia()
   {
     //com.xuggle.ferry.JNIMemoryAllocator.setMirroringNativeMemoryInJVM(false);
@@ -160,5 +172,235 @@ public class MediaViewerTest
     
     while (reader.readPacket() == null)
       ;
+  }
+
+  /** A ball that bounces around inside a bounding box. */
+
+  static class Ball extends Ellipse2D.Double
+  {
+    public static final long serialVersionUID = 0;
+
+    private static final int MIN_FREQ_KHZ = 60;
+    private static final int MAX_FREQ_KHZ = 880;
+
+    private final int mWidth;
+    private final int mHeight;
+    private final int mRadius   = 10;
+    private final double mSpeed = 200d / TIME_UNIT.convert(1, SECONDS);
+    private static final Random rnd = new Random();
+    private double mTheta = Math.PI / 4;
+    private Color mColor  = Color.BLUE;
+
+    /** Construct a ball.
+     *  
+     * @param width width of ball bounding box
+     * @param height height of ball bounding box
+     */
+
+    public Ball(int width, int height)
+    {
+      mWidth = width;
+      mHeight = height;
+      
+      setLocation(
+        (mWidth - 2 * mRadius) / 2,
+        (mHeight - 2 * mRadius) / 2);
+
+      mTheta = rnd.nextDouble() * Math.PI * 2;
+      mColor = new Color(
+        Math.abs(rnd.nextInt() % 256),
+        Math.abs(rnd.nextInt() % 256),
+        Math.abs(rnd.nextInt() % 256));
+    }
+    
+    // set ball location
+
+    private void setLocation(double x, double y)
+    {
+      setFrame(x, y, 2 * mRadius, 2 * mRadius);
+    }
+
+    /** 
+     * The current frequency of this ball.
+     */
+    
+    public int getFrequency()
+    {
+      double angle = Math.abs(mTheta % 2 * Math.PI) / (2 * Math.PI);
+      return (int)(1000 * (angle * MAX_FREQ_KHZ - MIN_FREQ_KHZ + MIN_FREQ_KHZ));
+    }
+
+    /** 
+     * Updat the state of the ball.
+     * 
+     * @param elapsedTime the time which has elapsed since the last update
+     */
+
+    public void update(long elapsedTime)
+    {
+      double x = getX() + Math.cos(mTheta) * mSpeed * elapsedTime;
+      double y = getY() + Math.sin(mTheta) * mSpeed * elapsedTime;
+      
+      if (x < 0)
+      {
+        mTheta = Math.PI - mTheta;
+        x = getX();
+      }
+
+      else if (x > mWidth - mRadius * 2)
+      {
+        mTheta = Math.PI - mTheta;
+        x = getX();
+      }
+      
+      if (y < 0)
+      {
+        mTheta = -mTheta;
+        y = getY();
+      }
+      else if (y > mHeight - mRadius * 2)
+      {
+        mTheta = -mTheta;
+        y = getY();
+      }
+
+      setLocation(x, y);
+    }
+
+    /** Paint the ball onto a graphics canvas
+     *
+     * @param g the graphics area to paint onto
+     */
+
+    public void paint(Graphics2D g)
+    {
+      g.setColor(mColor);
+      g.fill(this);
+    }
+  };
+  
+
+  @Test()
+  public void testCreateMedia()
+  {
+    // total duration of the video
+
+    long duration = TIME_UNIT.convert(5, SECONDS);
+
+    // video parameters
+
+    int videoStreamIndex = 0;
+    int videoStreamId = 0;
+    long frameRate = TIME_UNIT.convert(15, MILLISECONDS);
+    final int w = 200;
+    final int h = 200;
+    
+    // audio parameters
+
+    int audioStreamIndex = 1;
+    int audioStreamId = 0;
+    int channelCount = 1;
+    int sampleRate = 44100; // kHz
+
+    // create a media writer and specify the output file
+
+    MediaWriter writer = new MediaWriter("output.flv");
+
+    // add a viewer so we can see the media as it is created
+
+    writer.addListener(new MediaViewer(FAST, true));
+
+    // add the video stream
+
+    ICodec videoCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_FLV1);
+    writer.addVideoStream(videoStreamIndex, videoStreamId, videoCodec, w, h);
+
+    // add the audio stream
+
+    ICodec audioCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
+    IStream stream = writer.addAudioStream(audioStreamIndex, audioStreamId,
+      audioCodec, channelCount, sampleRate);
+    int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
+    int samplePeriod = sampleRate / sampleCount;
+
+    // create some balls to show on the screen
+
+    Vector<Ball> balls = new Vector<Ball>();
+    for (int i = 0; i < 3; ++i)
+      balls.add(new Ball(w, h));
+
+    // create a place to put images
+        
+    BufferedImage image = new BufferedImage(w, h, 
+      BufferedImage.TYPE_3BYTE_BGR);
+    
+    // create graphics for the images
+    
+    Graphics2D g = image.createGraphics();
+    g.setRenderingHint(
+      RenderingHints.KEY_ANTIALIASING,
+      RenderingHints.VALUE_ANTIALIAS_ON);
+
+    // create a place to put the audio samples
+
+    short[] audioSamples = new short[sampleCount];
+
+    // compute clock increment
+
+    long clockIncrement = samplePeriod;
+
+    // create the media
+
+    long nextFrameTime = 0;
+    for (long clock = 0; clock <= duration; clock += clockIncrement)
+    {
+      // if it is time to push a video frame do so
+
+      if (clock >= nextFrameTime)
+      {
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, w, h);
+        for (Ball ball: balls)
+        {
+          ball.update(frameRate);
+          ball.paint(g);
+        }
+        
+        writer.pushImage(videoStreamIndex, image, nextFrameTime, TIME_UNIT);
+        nextFrameTime += frameRate;
+      }
+
+//       // zero out the audio
+      
+       for (int i = 0; i < audioSamples.length; ++i)
+         audioSamples[i] = 0;
+
+//       // add audio for each ball
+
+      for (Ball ball: balls)
+        addSignal(ball.getFrequency(), sampleRate, 0.25d, 0, audioSamples);
+
+      // push out the audio samples
+      
+       writer.pushSamples(audioStreamIndex, audioSamples, clock, TIME_UNIT);
+    }
+
+    // manually close the writer
+      
+    writer.close();
+  }
+
+  public void addSignal(int frequency, int sampleRate, double volume, 
+    int startValue, short[] destination)
+  {
+    double theta = 0;
+    double amplitude = Short.MAX_VALUE * volume;
+    double epsilon = (Math.PI * 2) / (sampleRate / frequency);
+
+    for (int i = 0; i < destination.length; ++i)
+    {
+      destination[i] += (short)(amplitude * Math.sin(theta));
+      theta += epsilon;
+    }
   }
 }

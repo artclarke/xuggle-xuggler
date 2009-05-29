@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.HashMap;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
 import java.awt.image.BufferedImage;
 
@@ -47,6 +48,8 @@ import com.xuggle.xuggler.video.ConverterFactory;
 
 import static com.xuggle.xuggler.ICodec.Type.CODEC_TYPE_VIDEO;
 import static com.xuggle.xuggler.ICodec.Type.CODEC_TYPE_AUDIO;
+
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 /**
  * Opens an output container, lets the user add streams, and
@@ -501,22 +504,112 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
   }
 
   /** 
-   * Push an image out to be encoded.
+   * Push an image onto a video stream.
+   * 
+   * @param streamIndex the index of the video stream
+   * @param image the image to push out
+   * @param timeStamp the time stamp of the image
+   * @param timeUnit the time unit of the timestamp
    */
 
-  public void pushImage(BufferedImage image, int streamIndex, long timeStamp)
+  public void pushImage(int streamIndex, BufferedImage image, long timeStamp, 
+    TimeUnit timeUnit)
   {
+    // verify parameters
+
+    Integer outputIndex = getOutputStreamIndex(streamIndex);
+    if (null == outputIndex)
+      throw new IllegalArgumentException("unknow stream index: " + streamIndex);
+    if (null == image)
+      throw new IllegalArgumentException("NULL input image");
+    if (null == timeUnit)
+      throw new IllegalArgumentException("NULL time unit");
+    if (CODEC_TYPE_VIDEO  != mStreams.get(outputIndex).getStreamCoder()
+      .getCodecType())
+    {
+      throw new IllegalArgumentException("stream[" + streamIndex + 
+        "] is not video");
+    }
+
     // convert the image to a picture and push it off to be encoded
 
     IVideoPicture picture = convertToPicture(getStream(streamIndex), 
-      image, timeStamp);
-    try {
+      image, MICROSECONDS.convert(timeStamp, timeUnit));
+
+    try
+    {
       onVideoPicture(this, picture, null, streamIndex);
-    } finally {
+    } 
+    finally 
+    {
       if (picture != null)
         picture.delete();
     }
   }
+
+
+  /** 
+   * Push samples onto a audio stream.
+   * 
+   * @param streamIndex the index of the audio stream
+   * @param samples the buffer containing the audio samples to push out
+   * @param timeStamp the time stamp of the samples
+   * @param timeUnit the time unit of the timestampb
+   */
+
+  public void pushSamples(int streamIndex, short[] samples, 
+    long timeStamp, TimeUnit timeUnit)
+  {
+    // verify parameters
+
+    Integer outputIndex = getOutputStreamIndex(streamIndex);
+    if (null == outputIndex)
+      throw new IllegalArgumentException("unknow stream index: " + streamIndex);
+    if (null == samples)
+      throw new IllegalArgumentException("NULL input samples");
+    if (null == timeUnit)
+      throw new IllegalArgumentException("NULL time unit");
+    IStreamCoder coder = mStreams.get(outputIndex).getStreamCoder();
+    if (CODEC_TYPE_AUDIO != coder.getCodecType())
+    {
+      throw new IllegalArgumentException("stream[" + streamIndex + 
+        "] is not audio");
+    }
+    if (IAudioSamples.Format.FMT_S16 != coder.getSampleFormat())
+    {
+      throw new IllegalArgumentException("stream[" + streamIndex + 
+        "] is not 16 bit audio");
+    }
+
+    // establish the number of samples
+
+    long sampleCount = samples.length / coder.getChannels();
+
+
+    // create the audio samples object and extract the internal buffer
+    // as an array
+
+     IAudioSamples audioFrame = IAudioSamples.make(sampleCount, 
+       coder.getChannels());
+     //short[] buffer = audioFrame.getByteBuffer().asShortBuffer().array();
+     //     audioFrame.getByteBuffer().asShortBuffer();
+
+    // copy samples into buffer
+    
+//     for (int i = 0; i < samples.length; ++i)
+//       buffer[i] = samples[i];
+
+    // complete audio frame
+    
+//     audioFrame.setComplete(true, sampleCount, coder.getSampleRate(), 
+//       coder.getChannels(), coder.getSampleFormat(), 
+//       MICROSECONDS.convert(timeStamp, timeUnit));
+
+    // push out the samples for encoding
+
+//     onAudioSamples(this, audioFrame, streamIndex);
+  }
+
 
   /** {@inheritDoc} */
   
