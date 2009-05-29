@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.xuggle.ferry.JNIMemoryManager;
 import com.xuggle.ferry.JNIMemoryManager.MemoryModel;
-import com.xuggle.mediatool.IMediaTool;
+import com.xuggle.mediatool.IMediaPipe;
 import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.mediatool.MediaWriter;
@@ -122,7 +122,7 @@ public class MultiThreadedWritingExhaustiveTest
               long mediaDataWritten = 0;
 
               @Override
-              public void onAudioSamples(IMediaTool tool,
+              public void onAudioSamples(IMediaPipe tool,
                   IAudioSamples samples, int streamIndex)
               {
                 super.onAudioSamples(tool, samples, streamIndex);
@@ -131,7 +131,7 @@ public class MultiThreadedWritingExhaustiveTest
               }
 
               @Override
-              public void onVideoPicture(IMediaTool tool,
+              public void onVideoPicture(IMediaPipe tool,
                   IVideoPicture picture, java.awt.image.BufferedImage image,
                   int streamIndex)
               {

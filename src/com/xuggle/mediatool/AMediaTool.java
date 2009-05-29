@@ -19,20 +19,17 @@
 
 package com.xuggle.mediatool;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.xuggle.xuggler.IContainer;
 
 /**
- * Internal Only. An abstract base class for implementing {@link IMediaTool}
+ * Internal Only. An abstract base class for implementing {@link IMediaPipe}
  * objects used internally by the mediatool package.
  * 
  * @author trebor
  */
 
-public abstract class AMediaTool implements IMediaTool
+public abstract class AMediaTool extends AMediaPipe
 {
   // the container to read from or write to
   
@@ -48,11 +45,8 @@ public abstract class AMediaTool implements IMediaTool
 
   // all the media reader listeners
 
-  private final Collection<IMediaListener> mListeners
-    = new CopyOnWriteArrayList<IMediaListener>();
-
   /**
-   * Construct an abstract IMediaTool.
+   * Construct an abstract IMediaPipe.
    *
    * @param url the URL which will be read or written to
    * @param container the container which be read from or written to
@@ -68,27 +62,6 @@ public abstract class AMediaTool implements IMediaTool
 
     mCloseContainer = false;
   }
-
-  /** {@inheritDoc} */
-
-  public boolean addListener(IMediaListener listener)
-  {
-    return mListeners.add(listener);
-  }
-
-  /** {@inheritDoc} */
-
-  public boolean removeListener(IMediaListener listener)
-  {
-    return mListeners.remove(listener);
-  }
-
-  /** {@inheritDoc} */
-
-  public Collection<IMediaListener> getListeners()
-  {
-    return Collections.unmodifiableCollection(mListeners);
-  } 
 
   /** {@inheritDoc} */
 

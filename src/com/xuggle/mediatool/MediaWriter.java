@@ -66,8 +66,8 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
  * </p>
  * 
  * <p>
- * The {@link MediaWriter} class implements {@link IMediaListener}, and so
- * it can be attached to any {@link IMediaTool} that generates raw
+ * The {@link MediaWriter} class implements {@link IMediaPipeListener}, and so
+ * it can be attached to any {@link IMediaPipe} that generates raw
  * media events (e.g. {@link MediaReader}).
  * </p>
  * 
@@ -87,7 +87,8 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
  * </p>
  */
 
-public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListener
+public class MediaWriter extends AMediaTool
+implements IMediaTool, IMediaPipeListener
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -637,7 +638,7 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
 
   /** {@inheritDoc} */
   
-  public void onVideoPicture(IMediaTool tool, IVideoPicture picture, 
+  public void onVideoPicture(IMediaPipe tool, IVideoPicture picture, 
     BufferedImage image, int streamIndex)
   {
     IVideoPicture convertedPicture = null;
@@ -660,8 +661,7 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
 
       // inform listeners
 
-      for (IMediaListener listener: getListeners())
-        listener.onVideoPicture(this, picture, image, streamIndex);
+      super.onVideoPicture(this, picture, image, streamIndex);
     } finally {
       if (convertedPicture != null)
         convertedPicture.delete();
@@ -701,7 +701,7 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
   
   /** {@inheritDoc} */
   
-  public void onAudioSamples(IMediaTool tool, IAudioSamples samples, 
+  public void onAudioSamples(IMediaPipe tool, IAudioSamples samples, 
     int streamIndex)
   {
     // establish the stream, return silently if no stream returned
@@ -716,8 +716,7 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
 
     // inform listeners
 
-    for (IMediaListener listener: getListeners())
-      listener.onAudioSamples(this, samples, streamIndex);
+    super.onAudioSamples(this, samples, streamIndex);
   }
   
   /** 
@@ -812,8 +811,7 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
 
       // inform the listeners
 
-      for (IMediaListener l: getListeners())
-        l.onWriteHeader(this);
+      super.onWriteHeader(this);
     }
     
     // establish the coder for the output stream index
@@ -1024,8 +1022,7 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
     
     // inform listeners
 
-    for (IMediaListener listener: getListeners())
-      listener.onAddStream(this, stream);
+    super.onAddStream(this,outputStreamIndex);
   }
   
   /**
@@ -1038,21 +1035,26 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
     // supports audio & video streams
     
     IStreamCoder coder = stream.getStreamCoder();
-    ICodec.Type type = coder.getCodecType();
-    if (!coder.isOpen() && isSupportedCodecType(type))
+    try
     {
-      // open the coder
-      
-      int rv = coder.open();
-      if (rv < 0)
-        throw new RuntimeException("could not open stream " + stream
-          + ": " + IError.make(rv));
-      mOpenedStreams.add(stream);
-      
-      // inform listeners
+      ICodec.Type type = coder.getCodecType();
+      if (!coder.isOpen() && isSupportedCodecType(type))
+      {
+        // open the coder
 
-      for (IMediaListener listener: getListeners())
-        listener.onOpenStream(this, stream);
+        int rv = coder.open();
+        if (rv < 0)
+          throw new RuntimeException("could not open stream " + stream + ": "
+              + getErrorMessage(rv));
+        mOpenedStreams.add(stream);
+
+        // inform listeners
+        super.onOpenCoder(this, coder);
+      }
+    }
+    finally
+    {
+      coder.delete();
     }
   }
   
@@ -1131,8 +1133,7 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
 
     // inform listeners
 
-    for (IMediaListener listener: getListeners())
-      listener.onWritePacket(this, packet);
+    super.onWritePacket(this, packet);
   }
 
   /** 
@@ -1184,8 +1185,7 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
 
     // inform listeners
 
-    for (IMediaListener listener: getListeners())
-      listener.onFlush(this);
+    super.onFlush(this);
   }
 
   /** {@inheritDoc} */
@@ -1200,9 +1200,8 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
 
     // inform listeners
 
-    for (IMediaListener listener: getListeners())
-      listener.onOpen(this);
-
+    super.onOpen(this);
+    
     // note that we should close the container opened here
 
     mCloseContainer = true;
@@ -1227,22 +1226,27 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
 
     // inform the listeners
 
-    for (IMediaListener l: getListeners())
-      l.onWriteTrailer(this);
-
+    super.onWriteTrailer(this);
+    
     // close the coders opened by this MediaWriter
 
     for (IStream stream: mOpenedStreams)
     {
-      if ((rv = stream.getStreamCoder().close()) < 0)
-        throw new RuntimeException("error " + IError.make(rv) +
-          ", failed close coder " +
-          stream.getStreamCoder());
+      IStreamCoder coder = stream.getStreamCoder();
+      try
+      {
+        if ((rv = coder.close()) < 0)
+          throw new RuntimeException("error "
+              + getErrorMessage(rv)
+              + ", failed close coder " + coder);
 
-      // inform the listeners
-      
-      for (IMediaListener l: getListeners())
-        l.onCloseStream(this, stream);
+        // inform the listeners
+        super.onCloseCoder(this, coder);
+      }
+      finally
+      {
+        coder.delete();
+      }
     }
 
     // expunge all referneces to the coders and resamplers
@@ -1264,8 +1268,7 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
 
     // inform the listeners
 
-    for (IMediaListener l: getListeners())
-      l.onClose(this);
+    super.onClose(this);
   }
 
   /** {@inheritDoc} */
@@ -1277,13 +1280,13 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
 
   /** {@inheritDoc} */
 
-  public void onOpen(IMediaTool tool)
+  public void onOpen(IMediaPipe tool)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onClose(IMediaTool tool)
+  public void onClose(IMediaPipe tool)
   {
     if (isOpen())
       close();
@@ -1291,49 +1294,62 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
 
   /** {@inheritDoc} */
 
-  public void onAddStream(IMediaTool tool, IStream stream)
+  public void onAddStream(IMediaPipe tool, int streamIndex)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onOpenStream(IMediaTool tool, IStream stream)
+  public void onOpenCoder(IMediaPipe tool, IStreamCoder stream)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onCloseStream(IMediaTool tool, IStream stream)
+  public void onCloseCoder(IMediaPipe tool, IStreamCoder stream)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onReadPacket(IMediaTool tool, IPacket packet)
+  public void onReadPacket(IMediaPipe tool, IPacket packet)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWritePacket(IMediaTool tool, IPacket packet)
+  public void onWritePacket(IMediaPipe tool, IPacket packet)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteHeader(IMediaTool tool)
+  public void onWriteHeader(IMediaPipe tool)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onFlush(IMediaTool tool)
+  public void onFlush(IMediaPipe tool)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteTrailer(IMediaTool tool)
+  public void onWriteTrailer(IMediaPipe tool)
   {
   }
+  
+  private static String getErrorMessage(int rv)
+  {
+    String errorString = "";
+    IError error = IError.make(rv);
+    if (error != null) {
+       errorString = error.toString();
+       error.delete();
+    }
+    return errorString;
+  }
+
+
 }

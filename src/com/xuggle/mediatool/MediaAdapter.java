@@ -22,96 +22,96 @@ package com.xuggle.mediatool;
 import java.awt.image.BufferedImage;
 
 import com.xuggle.xuggler.IPacket;
-import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IAudioSamples;
+import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 
 /**
- * An implementation of {@link IMediaListener} that implements all methods as
+ * An implementation of {@link IMediaPipeListener} that implements all methods as
  * empty methods.
  * 
  * <p>
  * 
  * This can be useful if you only want to override some members of
- * {@link IMediaListener}; instead, just subclass this and override the methods
+ * {@link IMediaPipeListener}; instead, just subclass this and override the methods
  * you want, rather than providing an implementation of all event callbacks.
  * 
  * </p>
  */
 
-public class MediaAdapter implements IMediaListener
+public class MediaAdapter implements IMediaPipeListener
 {
   /** {@inheritDoc} */
 
-  public void onVideoPicture(IMediaTool tool, IVideoPicture picture,
+  public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
       BufferedImage image, int streamIndex)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onAudioSamples(IMediaTool tool, IAudioSamples samples,
+  public void onAudioSamples(IMediaPipe tool, IAudioSamples samples,
       int streamIndex)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onOpen(IMediaTool tool)
+  public void onOpen(IMediaPipe tool)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onClose(IMediaTool tool)
+  public void onClose(IMediaPipe tool)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onAddStream(IMediaTool tool, IStream stream)
+  public void onAddStream(IMediaPipe tool, int streamIndex)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onOpenStream(IMediaTool tool, IStream stream)
+  public void onOpenCoder(IMediaPipe tool, IStreamCoder stream)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onCloseStream(IMediaTool tool, IStream stream)
+  public void onCloseCoder(IMediaPipe tool, IStreamCoder stream)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onReadPacket(IMediaTool tool, IPacket packet)
+  public void onReadPacket(IMediaPipe tool, IPacket packet)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWritePacket(IMediaTool tool, IPacket packet)
+  public void onWritePacket(IMediaPipe tool, IPacket packet)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteHeader(IMediaTool tool)
+  public void onWriteHeader(IMediaPipe tool)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onFlush(IMediaTool tool)
+  public void onFlush(IMediaPipe tool)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteTrailer(IMediaTool tool)
+  public void onWriteTrailer(IMediaPipe tool)
   {
   }
 }

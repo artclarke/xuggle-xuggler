@@ -22,10 +22,8 @@ package com.xuggle.mediatool;
 import java.io.File;
 import java.nio.ShortBuffer;
 
-import java.awt.Point;
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.geom.Point2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
@@ -129,7 +127,7 @@ public class MediaViewerTest
     
     MediaWriter writer = new MediaWriter("output.mov", reader)
       {
-        public void onVideoPicture(IMediaTool tool, IVideoPicture picture,
+        public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
           BufferedImage image, int streamIndex)
         {
           Graphics2D g = image.createGraphics();
@@ -148,7 +146,7 @@ public class MediaViewerTest
           super.onVideoPicture(tool, picture, image, streamIndex);
         }
   
-        public void onAudioSamples(IMediaTool tool, IAudioSamples samples, 
+        public void onAudioSamples(IMediaPipe tool, IAudioSamples samples, 
           int streamIndex)
         {
           // get the raw audio byes and reduce the value to 1 quarter

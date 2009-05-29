@@ -49,7 +49,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * The MediaReader class is a simplified interface to the Xuggler
  * library that opens up an {@link IContainer} object, and then every
  * time you call {@link MediaReader#readPacket()}, attempts to decode
- * the packet and call any registered {@link IMediaListener} objects for
+ * the packet and call any registered {@link IMediaPipeListener} objects for
  * that packet.
  *
  * </p><p>
@@ -399,10 +399,9 @@ public class MediaReader extends AMediaTool implements IMediaTool
             // not decode unsupported types
 
             mCoders.put(i, coder);
-            // and release our rocder to the list
+            // and release our coder to the list
             coder = null;
-            for (IMediaListener listener : getListeners())
-              listener.onAddStream(this, stream);
+            super.onAddStream(this, i);
           }
           finally
           {
@@ -429,8 +428,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
           throw new RuntimeException("could not open coder for stream: "
               + streamIndex);
         mOpenedStreams.add(stream);
-        for (IMediaListener listener : getListeners())
-          listener.onOpenStream(this, stream);
+        super.onOpenCoder(this, coder);
         stream = null;
       }
     } finally {
@@ -442,7 +440,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
   }
 
   /**
-   * This decodes the next packet and calls registered {@link IMediaListener}s.
+   * This decodes the next packet and calls registered {@link IMediaPipeListener}s.
    * 
    * <p>
    * 
@@ -485,8 +483,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
 
       // inform listeners that a packet was read
 
-      for (IMediaListener l : getListeners())
-        l.onReadPacket(this, packet);
+      super.onReadPacket(this, packet);
 
       // get the coder for this packet
 
@@ -627,8 +624,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
     
     // dispatch picture here
 
-    for (IMediaListener l: getListeners())
-      l.onVideoPicture(this, picture, image, streamIndex);
+    super.onVideoPicture(this, picture, image, streamIndex);
   }
 
   /**
@@ -645,8 +641,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
   
   private void dispatchAudioSamples(int streamIndex, IAudioSamples samples)
   {
-    for (IMediaListener l: getListeners())
-      l.onAudioSamples(this, samples, streamIndex);
+    super.onAudioSamples(this, samples, streamIndex);
   }
 
   /** {@inheritDoc} */
@@ -659,9 +654,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
 
     // inform listeners
 
-    for (IMediaListener l: getListeners())
-      l.onOpen(this);
-
+    super.onOpen(this);
     // note that we should close the container opened here
 
     mCloseContainer = true;
@@ -686,8 +679,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
               + ", failed close coder " + coder);
         }
         // inform listeners that the stream was closed
-        for (IMediaListener listener: getListeners())
-          listener.onCloseStream(this, stream);
+        super.onCloseCoder(this,coder);
       } finally {
         coder.delete();
         stream.delete();
@@ -712,15 +704,9 @@ public class MediaReader extends AMediaTool implements IMediaTool
 
     // tell the listeners that the container is closed
 
-    for (IMediaListener l: getListeners())
-      l.onClose(this);
+    super.onClose(this);
   }
 
-  /**
-   * @param rv
-   * @return
-   */
-  
   private static String getErrorMessage(int rv)
   {
     String errorString = "";

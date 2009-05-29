@@ -35,7 +35,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import com.xuggle.mediatool.IMediaTool;
+import com.xuggle.mediatool.IMediaPipe;
 import com.xuggle.mediatool.MediaAdapter;
 import com.xuggle.mediatool.MediaDebugListener;
 import com.xuggle.mediatool.MediaReader;
@@ -236,7 +236,7 @@ public class MediaWriterExhaustiveTest
 
       reader.addListener(new MediaAdapter()
         {
-          public void onVideoPicture(IMediaTool tool, IVideoPicture picture, 
+          public void onVideoPicture(IMediaPipe tool, IVideoPicture picture, 
             BufferedImage image, int streamIndex)
           {
             writer.onVideoPicture(null, picture, image, streamIndex);
@@ -244,7 +244,7 @@ public class MediaWriterExhaustiveTest
           
           /** {@inheritDoc} */
           
-          public void onAudioSamples(IMediaTool tool, IAudioSamples samples, 
+          public void onAudioSamples(IMediaPipe tool, IAudioSamples samples, 
             int streamIndex)
           {
             writer.onAudioSamples(null, samples, streamIndex);

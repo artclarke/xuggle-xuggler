@@ -28,10 +28,10 @@ import java.awt.image.BufferedImage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.xuggle.mediatool.IMediaListener;
-import com.xuggle.mediatool.IMediaTool;
-import com.xuggle.xuggler.IStream;
+import com.xuggle.mediatool.IMediaPipeListener;
+import com.xuggle.mediatool.IMediaPipe;
 import com.xuggle.xuggler.IPacket;
+import com.xuggle.xuggler.IStreamCoder;
 
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
@@ -41,7 +41,7 @@ import static com.xuggle.mediatool.MediaDebugListener.Event.*;
 import static com.xuggle.mediatool.MediaDebugListener.Mode.*;
 
 /**
- * An {@link IMediaListener} that counts {@link IMediaTool}
+ * An {@link IMediaPipeListener} that counts {@link IMediaPipe}
  * events and optionally logs the events specified in {@link MediaDebugListener.Event}.
  * <p>
  * This object can be handy for debugging a media listener to see when
@@ -53,13 +53,13 @@ import static com.xuggle.mediatool.MediaDebugListener.Mode.*;
  * controlled by {@link MediaDebugListener.Mode}.
  * </p>
  * <p>
- * A {@link MediaDebugListener} can be attached to multiple {@link IMediaTool}
+ * A {@link MediaDebugListener} can be attached to multiple {@link IMediaPipe}
  * simultaneously, even if they are on different threads, in which case
  * it will return aggregate counts.
  * </p>
  */
 
-public class MediaDebugListener extends MediaAdapter implements IMediaListener
+public class MediaDebugListener extends MediaAdapter implements IMediaPipeListener
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   
@@ -194,7 +194,7 @@ public class MediaDebugListener extends MediaAdapter implements IMediaListener
     }
 
     /**
-     * Get the {@link IMediaListener} event this event
+     * Get the {@link IMediaPipeListener} event this event
      * will fire for.
      * @return The method.
      */
@@ -315,7 +315,7 @@ public class MediaDebugListener extends MediaAdapter implements IMediaListener
 
   // handle an event 
 
-  private void handleEvent(Event event, IMediaTool tool, Object... args)
+  private void handleEvent(Event event, IMediaPipe tool, Object... args)
   {
     incrementCount(event);
     if ((mFlags & event.getFlag()) != 0 && mMode != NOTHING)
@@ -325,7 +325,8 @@ public class MediaDebugListener extends MediaAdapter implements IMediaListener
       switch (mMode)
       {
       case URL:
-        string.append(tool.getUrl());
+        if (tool instanceof IMediaTool)
+          string.append(((IMediaTool)tool).getUrl());
         break;
       case PARAMETERS:
         for (Object arg: args)
@@ -339,7 +340,7 @@ public class MediaDebugListener extends MediaAdapter implements IMediaListener
 
   /** {@inheritDoc} */
 
-  public void onVideoPicture(IMediaTool tool, IVideoPicture picture, 
+  public void onVideoPicture(IMediaPipe tool, IVideoPicture picture, 
     BufferedImage image, int streamIndex)
   {
     handleEvent(VIDEO, tool, new Object[] {picture, image, streamIndex});
@@ -347,7 +348,7 @@ public class MediaDebugListener extends MediaAdapter implements IMediaListener
   
   /** {@inheritDoc} */
 
-  public void onAudioSamples(IMediaTool tool, IAudioSamples samples,
+  public void onAudioSamples(IMediaPipe tool, IAudioSamples samples,
     int streamIndex)
   {
     handleEvent(AUDIO, tool, new Object[] {samples, streamIndex});
@@ -355,70 +356,70 @@ public class MediaDebugListener extends MediaAdapter implements IMediaListener
   
   /** {@inheritDoc} */
 
-  public void onOpen(IMediaTool tool)
+  public void onOpen(IMediaPipe tool)
   {
     handleEvent(OPEN, tool, new Object[] {});
   }
   
   /** {@inheritDoc} */
 
-  public void onClose(IMediaTool tool)
+  public void onClose(IMediaPipe tool)
   {
     handleEvent(CLOSE, tool, new Object[] {});
   }
   
   /** {@inheritDoc} */
 
-  public void onAddStream(IMediaTool tool, IStream stream)
+  public void onAddStream(IMediaPipe tool, int streamIndex)
   {
-    handleEvent(ADD_STREAM, tool, new Object[] {stream});
+    handleEvent(ADD_STREAM, tool, new Object[] {streamIndex});
   }
   
   /** {@inheritDoc} */
 
-  public void onOpenStream(IMediaTool tool, IStream stream)
+  public void onOpenCoder(IMediaPipe tool, IStreamCoder stream)
   {
     handleEvent(OPEN_STREAM, tool, new Object[] {stream});
   }
   
   /** {@inheritDoc} */
 
-  public void onCloseStream(IMediaTool tool, IStream stream)
+  public void onCloseCoder(IMediaPipe tool, IStreamCoder stream)
   {
     handleEvent(CLOSE_STREAM, tool, new Object[] {stream});
   }
   
   /** {@inheritDoc} */
 
-  public void onReadPacket(IMediaTool tool, IPacket packet)
+  public void onReadPacket(IMediaPipe tool, IPacket packet)
   {
     handleEvent(READ_PACKET, tool, new Object[] {packet});
   }
   
   /** {@inheritDoc} */
 
-  public void onWritePacket(IMediaTool tool, IPacket packet)
+  public void onWritePacket(IMediaPipe tool, IPacket packet)
   {
     handleEvent(WRITE_PACKET, tool, new Object[] {packet});
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteHeader(IMediaTool tool)
+  public void onWriteHeader(IMediaPipe tool)
   {
     handleEvent(HEADER, tool, new Object[] {});
   }
   
   /** {@inheritDoc} */
 
-  public void onFlush(IMediaTool tool)
+  public void onFlush(IMediaPipe tool)
   {
     handleEvent(FLUSH, tool, new Object[] {});
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteTrailer(IMediaTool tool)
+  public void onWriteTrailer(IMediaPipe tool)
   {
     handleEvent(TRAILER, tool, new Object[] {});
   }

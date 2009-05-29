@@ -52,7 +52,7 @@
  * </pre>
  * 
  * <p>
- * {@link com.xuggle.mediatool.IMediaTool} objects will
+ * {@link com.xuggle.mediatool.IMediaPipe} objects will
  * make intelligent guesses about the parameters to decode and encode
  * with based on the file names, but you can change and override everything
  * if you want.

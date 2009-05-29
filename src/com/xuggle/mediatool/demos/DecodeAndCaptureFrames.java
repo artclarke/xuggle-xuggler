@@ -25,7 +25,7 @@ import java.io.File;
 
 import java.awt.image.BufferedImage;
 
-import com.xuggle.mediatool.IMediaTool;
+import com.xuggle.mediatool.IMediaPipe;
 import com.xuggle.mediatool.MediaAdapter;
 import com.xuggle.mediatool.MediaReader;
 import com.xuggle.xuggler.Global;
@@ -129,7 +129,7 @@ public class DecodeAndCaptureFrames extends MediaAdapter
    * @param streamIndex the index of the stream this object was decoded from.
    */
 
-  public void onVideoPicture(IMediaTool tool, IVideoPicture picture,
+  public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
     BufferedImage image, int streamIndex)
   {
     try
