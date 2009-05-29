@@ -24,14 +24,14 @@ import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
 
 /**
- * Using {@link MediaReader}, takes a media container, finds the first video
- * stream, decodes that stream, and plays the video.
+ * Using {@link MediaReader}, takes a media container, finds the first audio
+ * stream, decodes that stream, and plays the audio on your spakers.
  * 
  * @author aclarke
  * @author trebor
  */
 
-public class DecodeAndPlayVideo
+public class DecodeAndPlayAudio
 {
 
   /**
@@ -49,28 +49,13 @@ public class DecodeAndPlayVideo
       throw new IllegalArgumentException(
           "must pass in a filename as the first argument");
 
-    // create a new mr. decode an play video
-
-    new DecodeAndPlayVideo(args[0]);
-  }
-
-  /**
-   * Construct a DecodeAndPlayVideo which reads and plays a video file.
-   * 
-   * @param filename
-   *          the name of the media file to read
-   */
-
-  public DecodeAndPlayVideo(String filename)
-  {
     // create a media reader for processing video
 
-    MediaReader mediaReader = new MediaReader(filename);
+    MediaReader mediaReader = new MediaReader(args[0]);
 
-    //
-    // Create a MediaViewer object andtell it to play video only
-    //
-    mediaReader.addListener(new MediaViewer(MediaViewer.Mode.VIDEO_ONLY));
+    // Create a MediaViewer object and tell it to play audio only
+
+    mediaReader.addListener(new MediaViewer(MediaViewer.Mode.AUDIO_ONLY));
 
     // read out the contents of the media file, and sit back and watch
 

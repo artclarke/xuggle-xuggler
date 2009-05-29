@@ -28,7 +28,6 @@ import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
 import com.xuggle.xuggler.IContainerParameters;
-import com.xuggle.xuggler.video.ConverterFactory;
 
 
 /**
@@ -159,8 +158,7 @@ public class DisplayWebcamVideo
     // IContainer, stipulate that we want BufferedImages to created in
     // BGR 24bit color space
 
-    MediaReader reader = new MediaReader(container, 
-      ConverterFactory.XUGGLER_BGR_24);
+    MediaReader reader = new MediaReader(container);
     
     // Add a media viewer that will display the video, but that exits
     // the JVM when it is destroyed
