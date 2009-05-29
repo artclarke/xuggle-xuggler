@@ -20,7 +20,7 @@
 #include <stdexcept>
 
 // for strncpy
-#include <string.h>
+#include <cstring>
 
 #include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/ferry/Logger.h>
@@ -73,7 +73,7 @@ namespace com { namespace xuggle { namespace xuggler
     if (mIsOpened)
     {
       VS_LOG_DEBUG("Closing dangling Container");
-      (void) this->close();
+      (void) this->close(true);
     }
     VS_ASSERT(!mFormatContext,
         "this should be freed by close or already zero");
@@ -390,6 +390,12 @@ namespace com { namespace xuggle { namespace xuggler
   int32_t
   Container :: close()
   {
+    return close(false);
+  }
+  
+  int32_t
+  Container :: close(bool dangling)
+  {
     int32_t retval = -1;
     if (mFormatContext && mIsOpened)
     {
@@ -400,8 +406,16 @@ namespace com { namespace xuggle { namespace xuggler
 
       if (mNeedTrailerWrite)
       {
-        VS_LOG_DEBUG("Writing dangling trailer");
-        (void) this->writeTrailer();
+        if (dangling)
+          // don't actually write the trailer when dangling; we could
+          // block on that, which could occur inside a finalizer thread
+          // or other unexpected thread
+          VS_LOG_ERROR("Disposing of dangling container but could not write trailer");
+        else {
+          VS_LOG_DEBUG("Writing dangling trailer");
+          (void) this->writeTrailer();
+        }
+        mNeedTrailerWrite = false;
       }
       mOpenCoders.clear();
 

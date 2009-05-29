@@ -49,6 +49,7 @@ namespace com { namespace xuggle { namespace xuggler
 
     virtual Type getType();
     virtual int32_t close();
+    virtual int32_t close(bool);
     virtual int32_t getNumStreams();
 
     virtual IStream* getStream(uint32_t position);
