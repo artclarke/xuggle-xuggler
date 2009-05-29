@@ -227,7 +227,8 @@ public class MediaViewerTest
     public int getFrequency()
     {
       double angle = Math.abs(mTheta % 2 * Math.PI) / (2 * Math.PI);
-      return (int)(1000 * (angle * MAX_FREQ_KHZ - MIN_FREQ_KHZ + MIN_FREQ_KHZ));
+      return (int)(1000 * 
+        ((angle * (MAX_FREQ_KHZ - MIN_FREQ_KHZ)) + MIN_FREQ_KHZ));
     }
 
     /** 
@@ -285,7 +286,7 @@ public class MediaViewerTest
   {
     // total duration of the video
 
-    long duration = TIME_UNIT.convert(5, SECONDS);
+    long duration = TIME_UNIT.convert(5000, MILLISECONDS);
 
     // video parameters
 
@@ -308,7 +309,7 @@ public class MediaViewerTest
 
     // add a viewer so we can see the media as it is created
 
-    writer.addListener(new MediaViewer(FAST, true));
+    //writer.addListener(new MediaViewer(FAST, true));
 
     // add the video stream
 

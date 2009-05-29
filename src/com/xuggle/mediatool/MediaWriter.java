@@ -31,6 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.xuggle.mediatool.MediaReader;
+import com.xuggle.ferry.IBuffer;
+import com.xuggle.ferry.JNIReference;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IError;
@@ -90,6 +92,13 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
 
+  static
+  {
+    com.xuggle.ferry.JNIMemoryManager.setMemoryModel(
+      com.xuggle.ferry.JNIMemoryManager.MemoryModel.NATIVE_BUFFERS);
+  }
+
+
   /** The default pixel type. */
 
   public static final IPixelFormat.Type DEFAULT_PIXEL_TYPE = 
@@ -139,7 +148,6 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
   // mask late stream exception policy
   
   private boolean mMaskLateStreamException = false;
-
 
   /**
    * Use a specified {@link MediaReader} as a source for media data and
@@ -589,10 +597,22 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
     // create the audio samples object and extract the internal buffer
     // as an array
 
-     IAudioSamples audioFrame = IAudioSamples.make(sampleCount, 
-       coder.getChannels());
-     //short[] buffer = audioFrame.getByteBuffer().asShortBuffer().array();
-     //     audioFrame.getByteBuffer().asShortBuffer();
+//     log.debug("sampleCount: " + sampleCount);
+//     log.debug("channelCount: " + coder.getChannels());
+    IAudioSamples audioFrame = IAudioSamples.make(sampleCount, 
+      coder.getChannels());
+
+    audioFrame.setComplete(true, sampleCount, coder.getSampleRate(), 
+      coder.getChannels(), coder.getSampleFormat(), 
+      MICROSECONDS.convert(timeStamp, timeUnit));
+
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref = new 
+      java.util.concurrent.atomic.AtomicReference<JNIReference>(null);
+    IBuffer buffer = audioFrame.getData();
+    java.nio.ByteBuffer byteBuffer = buffer.getByteBuffer(0, 
+      audioFrame.getSize(), ref);
+
+    byteBuffer.asShortBuffer().put(samples);
 
     // copy samples into buffer
     
@@ -607,7 +627,11 @@ public class MediaWriter extends AMediaTool implements IMediaTool, IMediaListene
 
     // push out the samples for encoding
 
-//     onAudioSamples(this, audioFrame, streamIndex);
+     onAudioSamples(this, audioFrame, streamIndex);
+
+    audioFrame.delete();
+    buffer.delete();
+    ref.get().delete();
   }
 
 
