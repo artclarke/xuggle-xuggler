@@ -640,6 +640,17 @@ using the library and what you like or don't like about it.
         <include name="**/*.xml"/>
       </fileset>
     </copy>
+    <jar jarfile="${dist.dir}/lib/${app.name}-test.jar"
+      index="no"
+      basedir="${test.classes.dir}">
+      <include name="**/*"/>
+      <exclude name="output/**/*"/>
+      <manifest>
+        <attribute name="Implementation-Vendor" value="www.xuggle.com"/>
+        <attribute name="Implementation-Title" value="${app.name}-test"/>
+        <attribute name="Implementation-Version" value="${library.version}"/>
+      </manifest>
+    </jar>
   </target>
 
   <target name="run-memcheck-java"
@@ -865,6 +876,62 @@ using the library and what you like or don't like about it.
       <mapper type="glob" from="*.dot" to="*.png"/>
     </apply>
   </target>
+
+  <target name="doc-java-fast" depends="init, compile-java"
+    description="Generate JavaDoc, but without diagrams">
+    <!-- Determine the location of Sun's API docs -->
+    <condition property="javadoc.loc" value="javase/6">
+      <equals arg1="${java6.installed}" arg2="true"/>
+    </condition>
+    <condition property="javadoc.loc" value="j2se/1.5.0">
+      <not>
+        <equals arg1="${java6.installed}" arg2="true"/>
+      </not>
+    </condition>
+    <echo message="Javadoc API stub: ${javadoc.loc}"/>
+    <javadoc
+      overview="doc/java/overview.html"
+      useexternalfile="true"
+      failonerror="true"
+      stylesheetfile="${xuggle-buildhelper.basedir}/javadoc.css"
+      verbose="false"
+      classpathref="compile.classpath"
+      destdir="${javadoc.dir}"
+      linksource="yes"
+      author="true" version="true"
+      Use="true"
+      splitindex="true"
+      Protected="true"
+      includenosourcepackages="true"
+      windowtitle="${documentation.title}">
+      <packageset dir="${generated.src.dir}" defaultexcludes="yes">
+      </packageset>
+      <packageset dir="${src.dir}" defaultexcludes="yes">
+      </packageset>
+      <doctitle><![CDATA[<h1>${documentation.title}</h1>]]></doctitle>
+      <bottom><![CDATA[<i>Copyright &#169; 2009 <a href="http://www.xuggle.com/" target="_blank">Xuggle</a></i>]]></bottom>
+      <link href="http://java.sun.com/${javadoc.loc}/docs/api"/>
+      <link href="http://mina.apache.org/report/1.1/apidocs"/>
+      <link href="http://static.springframework.org/spring/docs/2.0.x/api"/>
+      <link href="http://www.slf4j.org/apidocs/"/>
+      <link href="http://logback.qos.ch/apidocs/"/>
+      <link href="http://jetm.void.fm/api/"/>
+      <link href="http://www.cs.umd.edu/projects/PL/multithreadedtc/docs/"/>
+      <link href="http://build.xuggle.com/job/red5_java_server_trunk_jdk5_i386_ubuntu/javadoc/"/>
+      <link href="http://build.xuggle.com/job/xuggle_java_utils_jdk5_i386_ubuntu/javadoc/java/api/"/>
+      <link href="http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_ubuntu/javadoc/java/api/"/>
+      <link href="http://build.xuggle.com/job/xuggle_java_xuggler_red5_jdk5_i386_ubuntu/javadoc/java/api/"/>
+
+    </javadoc>
+    <!-- copy over any images we keep for documentation to
+     overlap the javadoc tree -->
+    <copy failonerror="false" todir="${javadoc.dir}">
+      <fileset dir="${imagedoc.dir}">
+        <include name="**/*"/>
+      </fileset>
+    </copy>
+  </target>
+
 
   <target name="uptodate-native"
     depends="init">
