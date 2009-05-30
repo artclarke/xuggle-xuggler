@@ -37,6 +37,7 @@ import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.mediatool.MediaWriter;
 import com.xuggle.xuggler.ICodec;
+import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.IVideoPicture;
@@ -274,8 +275,10 @@ public class MediaWriterTest
     // add the audio stream
 
     ICodec codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
-    IStream stream = writer.addAudioStream(audioStreamIndex, audioStreamId,
-      codec, channelCount, sampleRate);
+    IContainer container = writer.getContainer();
+    IStream stream = container.getStream(
+        writer.addAudioStream(audioStreamIndex, audioStreamId,
+            codec, channelCount, sampleRate));
     int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
 
     // create a place for audio samples
@@ -345,8 +348,9 @@ public class MediaWriterTest
     // add the audio stream
 
     ICodec audioCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
-    IStream stream = writer.addAudioStream(audioStreamIndex, audioStreamId,
-      audioCodec, channelCount, sampleRate);
+    IContainer container = writer.getContainer();
+    IStream stream = container.getStream(writer.addAudioStream(audioStreamIndex, audioStreamId,
+      audioCodec, channelCount, sampleRate));
     int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
 
     // create a place for audio samples and video pictures
@@ -437,8 +441,10 @@ public class MediaWriterTest
     // add the audio stream
 
     ICodec codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
-    IStream stream = writer.addAudioStream(audioStreamIndex, audioStreamId,
-      codec, channelCount, sampleRate);
+    IContainer container = writer.getContainer();
+    IStream stream = container.getStream(
+        writer.addAudioStream(audioStreamIndex, audioStreamId,
+            codec, channelCount, sampleRate));
     int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
 
     // create a place for audio samples
@@ -495,8 +501,10 @@ public class MediaWriterTest
     // add the audio stream
 
     ICodec codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
-    IStream stream = writer.addAudioStream(audioStreamIndex, audioStreamId,
-      codec, channelCount, sampleRate);
+    IContainer container = writer.getContainer();
+    IStream stream = container.getStream(
+        writer.addAudioStream(audioStreamIndex, audioStreamId,
+            codec, channelCount, sampleRate));
     int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
 
     // create a place for audio samples

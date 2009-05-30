@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.WindowConstants;
 
+import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IStream;
@@ -317,8 +318,10 @@ public class MediaViewerTest
     // add the audio stream
 
     ICodec audioCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
-    IStream stream = writer.addAudioStream(audioStreamIndex, audioStreamId,
-      audioCodec, channelCount, sampleRate);
+    IContainer container = writer.getContainer();
+    IStream stream = container.getStream(
+        writer.addAudioStream(audioStreamIndex, audioStreamId,
+      audioCodec, channelCount, sampleRate));
     int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
     int samplePeriod = sampleRate / sampleCount;
 

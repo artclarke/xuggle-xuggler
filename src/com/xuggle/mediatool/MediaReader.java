@@ -428,7 +428,7 @@ class MediaReader extends AMediaTool implements IMediaReader
           throw new RuntimeException("could not open coder for stream: "
               + streamIndex);
         mOpenedStreams.add(stream);
-        super.onOpenCoder(this, coder);
+        super.onOpenCoder(this, stream.getIndex());
         stream = null;
       }
     } finally {
@@ -679,7 +679,7 @@ class MediaReader extends AMediaTool implements IMediaReader
               + ", failed close coder " + coder);
         }
         // inform listeners that the stream was closed
-        super.onCloseCoder(this,coder);
+        super.onCloseCoder(this,stream.getIndex());
       } finally {
         coder.delete();
         stream.delete();

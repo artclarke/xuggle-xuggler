@@ -16,9 +16,8 @@ public interface IMediaWriter extends IMediaTool, IMediaPipeListener
 
   /** 
    * Add a audio stream.  The time base defaults to {@link
-   * #DEFAULT_TIMEBASE} and the audio format defaults to {@link
-   * #DEFAULT_SAMPLE_FORMAT}.  The new {@link IStream} is returned to
-   * provide an easy way to further configure the stream.
+   * #getDefaultTimebase()} and the audio format defaults to {@link
+   * #getDefaultSampleFormat()}.  
    * 
    * @param inputIndex the index that will be passed to {@link
    *        #onAudioSamples} for this stream
@@ -29,6 +28,9 @@ public interface IMediaWriter extends IMediaTool, IMediaPipeListener
    * @param sampleRate sample rate in Hz (samples per seconds), common
    *        values are 44100, 22050, 11025, etc.
    *
+   * @returns <0 on failure; otherwise returns the index of
+   *   the new stream added by the writer.
+   *   
    * @throws IllegalArgumentException if inputIndex < 0, the stream id <
    *         0, the codec is NULL or if the container is already open.
    * @throws IllegalArgumentException if width or height are <= 0
@@ -39,14 +41,13 @@ public interface IMediaWriter extends IMediaTool, IMediaPipeListener
    * @see ICodec
    */
 
-  public abstract IStream addAudioStream(int inputIndex, int streamId,
+  public abstract int addAudioStream(int inputIndex, int streamId,
       ICodec codec, int channelCount, int sampleRate);
 
   /** 
    * Add a video stream.  The time base defaults to {@link
-   * #DEFAULT_TIMEBASE} and the pixel format defaults to {@link
-   * #DEFAULT_PIXEL_TYPE}.  The new {@link IStream} is returned to
-   * provide an easy way to further configure the stream.
+   * #getDefaultTimebase()} and the pixel format defaults to {@link
+   * #getDefaultPixelType()}.
    * 
    * @param inputIndex the index that will be passed to {@link
    *        #onVideoPicture} for this stream
@@ -60,13 +61,15 @@ public interface IMediaWriter extends IMediaTool, IMediaPipeListener
    *         0, the codec is NULL or if the container is already open.
    * @throws IllegalArgumentException if width or height are <= 0
    * 
+   * @returns <0 on failure; otherwise returns the index of
+   *   the new stream added by the writer.
    * @see IContainer
    * @see IStream
    * @see IStreamCoder
    * @see ICodec
    */
 
-  public abstract IStream addVideoStream(int inputIndex, int streamId,
+  public abstract int addVideoStream(int inputIndex, int streamId,
       ICodec codec, int width, int height);
 
   /**

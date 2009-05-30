@@ -279,7 +279,7 @@ implements IMediaPipeListener, IMediaWriter
    * @see ICodec
    */
 
-  public IStream addAudioStream(int inputIndex, int streamId, ICodec codec,
+  public int addAudioStream(int inputIndex, int streamId, ICodec codec,
     int channelCount, int sampleRate)
   {
     // validate parameteres
@@ -308,7 +308,7 @@ implements IMediaPipeListener, IMediaWriter
 
     // return the new audio stream
 
-    return stream.copyReference();
+    return stream.getIndex();
   }
 
   /** 
@@ -335,7 +335,7 @@ implements IMediaPipeListener, IMediaWriter
    * @see ICodec
    */
 
-  public IStream addVideoStream(int inputIndex, int streamId, ICodec codec,
+  public int addVideoStream(int inputIndex, int streamId, ICodec codec,
     int width, int height)
   {
     // validate parameteres
@@ -361,7 +361,7 @@ implements IMediaPipeListener, IMediaWriter
 
     // return the new video stream
 
-    return stream.copyReference();
+    return stream.getIndex();
   }
 
   /** 
@@ -945,7 +945,7 @@ implements IMediaPipeListener, IMediaWriter
         mOpenedStreams.add(stream);
 
         // inform listeners
-        super.onOpenCoder(this, coder);
+        super.onOpenCoder(this, stream.getIndex());
       }
     }
     finally
@@ -1137,7 +1137,7 @@ implements IMediaPipeListener, IMediaWriter
               + ", failed close coder " + coder);
 
         // inform the listeners
-        super.onCloseCoder(this, coder);
+        super.onCloseCoder(this, stream.getIndex());
       }
       finally
       {
@@ -1196,13 +1196,13 @@ implements IMediaPipeListener, IMediaWriter
 
   /** {@inheritDoc} */
 
-  public void onOpenCoder(IMediaPipe tool, IStreamCoder stream)
+  public void onOpenCoder(IMediaPipe tool, Integer stream)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onCloseCoder(IMediaPipe tool, IStreamCoder stream)
+  public void onCloseCoder(IMediaPipe tool, Integer stream)
   {
   }
 

@@ -23,7 +23,6 @@ import java.awt.image.BufferedImage;
 
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IAudioSamples;
-import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 
 /**
@@ -75,13 +74,13 @@ public class MediaPipeAdapter implements IMediaPipeListener
 
   /** {@inheritDoc} */
 
-  public void onOpenCoder(IMediaPipe tool, IStreamCoder stream)
+  public void onOpenCoder(IMediaPipe tool, Integer stream)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onCloseCoder(IMediaPipe tool, IStreamCoder stream)
+  public void onCloseCoder(IMediaPipe tool, Integer stream)
   {
   }
 

@@ -7,7 +7,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IPacket;
-import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 
 /**
@@ -97,12 +96,12 @@ abstract class AMediaPipe
   
   /**
    * Default implementation for
-   * {@link IMediaPipeListener#onCloseCoder(IMediaPipe, IStreamCoder)}
+   * {@link IMediaPipeListener#onCloseCoder(IMediaPipe, Integer)}
    */
-  public void onCloseCoder(IMediaPipe tool, IStreamCoder coder)
+  public void onCloseCoder(IMediaPipe tool, Integer coderIndex)
   {
     for (IMediaPipeListener listener : mListeners)
-      listener.onCloseCoder(tool, coder);
+      listener.onCloseCoder(tool, coderIndex);
   }
 
   /**
@@ -127,12 +126,12 @@ abstract class AMediaPipe
 
   /**
    * Default implementation for
-   * {@link IMediaPipeListener#onOpenCoder(IMediaPipe, IStreamCoder)}
+   * {@link IMediaPipeListener#onOpenCoder(IMediaPipe, Integer)}
    */
-  public void onOpenCoder(IMediaPipe tool, IStreamCoder coder)
+  public void onOpenCoder(IMediaPipe tool, Integer coderIndex)
   {
     for (IMediaPipeListener listener : mListeners)
-      listener.onOpenCoder(tool, coder);
+      listener.onOpenCoder(tool, coderIndex);
   }
 
   /**

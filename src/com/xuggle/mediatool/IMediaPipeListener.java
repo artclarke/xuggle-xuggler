@@ -23,7 +23,6 @@ import java.awt.image.BufferedImage;
 
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IAudioSamples;
-import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 
 /** 
@@ -103,7 +102,7 @@ public interface IMediaPipeListener
    * {@link IMediaPipe}.  This occurs when
    * a new stream is added (if writing) or encountered by the pipe (if reading).
    * If the stream is not already been opened, then {@link
-   * #onOpenCoder(IMediaPipe, IStreamCoder)} will be called at some later point.
+   * #onOpenCoder(IMediaPipe, Integer)} will be called at some later point.
    *
    * @param pipe the pipe that generated this event
    * @param streamIndex the stream opened
@@ -112,23 +111,25 @@ public interface IMediaPipeListener
   public void onAddStream(IMediaPipe pipe, int streamIndex);
 
   /**
-   * Called after an {@link IStreamCoder } is opened by
+   * Called after a decoder or encoder is opened by
    * a {@link IMediaPipe}
    *
    * @param pipe the pipe that generated this event
-   * @param coder the stream opened
+   * @param coderIndex an index for this coder if known, or
+   *   null if not.
    */
 
-  public void onOpenCoder(IMediaPipe pipe, IStreamCoder coder);
+  public void onOpenCoder(IMediaPipe pipe, Integer coderIndex);
 
   /**
-   * Called after an {@link IStreamCoder} is closed by the {@link IMediaPipe}.
+   * Called after an decoder or encoder is closed by the {@link IMediaPipe}.
    *
    * @param pipe the pipe that generated this event
-   * @param coder the stream just closed
+   * @param coderIndex an index for this coder if known, or
+   *   null if not.
    */
 
-  public void onCloseCoder(IMediaPipe pipe, IStreamCoder coder);
+  public void onCloseCoder(IMediaPipe pipe, Integer coderIndex);
 
   /**
    * Called after a {@link com.xuggle.xuggler.IPacket} has been read by
