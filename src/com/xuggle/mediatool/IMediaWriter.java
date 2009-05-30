@@ -11,7 +11,7 @@ import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
 
-public interface IMediaWriter extends IMediaTool
+public interface IMediaWriter extends IMediaTool, IMediaPipeListener
 {
 
   /** 

@@ -46,21 +46,64 @@
    * </p>
    *
    * @return The underlying ByteBuffer
+   * 
+   * @see com.xuggle.ferry.IBuffer#getByteBuffer(int, int)
    */
 
-  public java.nio.ByteBuffer getByteBuffer() {
+  public java.nio.ByteBuffer getByteBuffer()
+  {
+    return getByteBuffer(null);
+  }
+
+  /**
+   * Gets the underlying {@link java.nio.ByteBuffer} for this {@link
+   * IMediaData} object.  Users may modify the contents of the
+   * ByteBuffer and their changes will be reflected in the underlying
+   * memory.  See {@link com.xuggle.ferry.IBuffer} for the warnings
+   * associated with the use of raw memory.  The buffer position and
+   * mark are initialized to zero, and the limit is initialized to the
+   * number of elements in the buffer.
+   *
+   * <p>
+   *
+   * This is a convenience method to allow you to avoid getting the
+   * IBuffer object that has the actual data.
+   *
+   * </p>
+   *
+   * @param ref A reference that on return from this method will
+   *   contain a {@link com.xuggle.ferry.JNIReference} object
+   *   that can be used for explicit memory management.
+   * @return The underlying ByteBuffer
+   * 
+   * @see com.xuggle.ferry.IBuffer#getByteBuffer(int, int, java.util.concurrent.atomic.AtomicReference)
+   */
+
+  public java.nio.ByteBuffer getByteBuffer(
+      java.util.concurrent.atomic.AtomicReference<com.xuggle.ferry.JNIReference> ref) {
+    if (ref != null)
+      ref.set(null);
+      
     com.xuggle.ferry.IBuffer buf = this.getData();
     if (buf == null)
       return null;
-    java.nio.ByteBuffer byteBuffer = buf.getByteBuffer(0, this.getSize());
-    if (byteBuffer != null)
+    try
     {
-      byteBuffer.position(0);
-      byteBuffer.mark();
-      byteBuffer.limit(this.getSize());
+      java.nio.ByteBuffer byteBuffer = buf.getByteBuffer(0, this.getSize(), ref);
+      if (byteBuffer != null)
+      {
+        byteBuffer.position(0);
+        byteBuffer.mark();
+        byteBuffer.limit(this.getSize());
+      }
+      return byteBuffer;
     }
-    return byteBuffer;
+    finally
+    {
+      buf.delete();
+    }
   }
+
 
   /**
    * Get a string representation of the time stamp for this {@link
