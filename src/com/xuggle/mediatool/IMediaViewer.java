@@ -52,7 +52,7 @@ public interface IMediaViewer extends IMediaPipeListener
 
     /**
      * Does this mode play audio?
-     * @return
+     * @return true if we play audio
      */
     public boolean playAudio()
     {

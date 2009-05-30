@@ -120,7 +120,7 @@ public class DecodeAndCaptureFrames extends MediaPipeAdapter
   /** 
    * Called after a video frame has been decoded from a media stream.
    * Optionally a BufferedImage version of the frame may be passed
-   * if the calling {@link MediaReader} instance was configured to
+   * if the calling {@link IMediaReader} instance was configured to
    * create BufferedImages.
    * 
    * This method blocks, so return quickly.

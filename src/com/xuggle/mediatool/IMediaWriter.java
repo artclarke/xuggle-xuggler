@@ -23,12 +23,12 @@ public interface IMediaWriter extends IMediaTool, IMediaPipeListener
    *        #onAudioSamples} for this stream
    * @param streamId a format-dependent id for this stream
    * @param codec the codec to used to encode data, to establish the
-   *        codec see {@link com.xuggle.xuggler.ICodec}
+   *        codec see {@link ICodec}
    * @param channelCount the number of audio channels for the stream
    * @param sampleRate sample rate in Hz (samples per seconds), common
    *        values are 44100, 22050, 11025, etc.
    *
-   * @returns <0 on failure; otherwise returns the index of
+   * @return <0 on failure; otherwise returns the index of
    *   the new stream added by the writer.
    *   
    * @throws IllegalArgumentException if inputIndex < 0, the stream id <
@@ -53,7 +53,7 @@ public interface IMediaWriter extends IMediaTool, IMediaPipeListener
    *        #onVideoPicture} for this stream
    * @param streamId a format-dependent id for this stream
    * @param codec the codec to used to encode data, to establish the
-   *        codec see {@link com.xuggle.xuggler.ICodec}
+   *        codec see {@link ICodec}
    * @param width width of video frames
    * @param height height of video frames
    *
@@ -61,7 +61,7 @@ public interface IMediaWriter extends IMediaTool, IMediaPipeListener
    *         0, the codec is NULL or if the container is already open.
    * @throws IllegalArgumentException if width or height are <= 0
    * 
-   * @returns <0 on failure; otherwise returns the index of
+   * @return <0 on failure; otherwise returns the index of
    *   the new stream added by the writer.
    * @see IContainer
    * @see IStream
@@ -107,17 +107,17 @@ public interface IMediaWriter extends IMediaTool, IMediaPipeListener
    * <p>
    * 
    * If false the media data will be left in the order in which it is
-   * presented to the MediaWriter.
+   * presented to the IMediaWriter.
    * 
    * </p>
    * <p>
    *
-   * If true MediaWriter will ask Xuggler to place media data in time
+   * If true IMediaWriter will ask Xuggler to place media data in time
    * stamp order, which is required for streaming media.
    *
    * <p>
    *
-   * @param forceInterleave true if the MediaWriter should force
+   * @param forceInterleave true if the IMediaWriter should force
    *        interleaving of media data
    *
    * @see #willForceInterleave
@@ -126,10 +126,10 @@ public interface IMediaWriter extends IMediaTool, IMediaPipeListener
   public abstract void setForceInterleave(boolean forceInterleave);
 
   /**
-   * Test if the MediaWriter will forcibly interleave media data.
+   * Test if the IMediaWriter will forcibly interleave media data.
    * The default value for this value is true.
    *
-   * @return true if MediaWriter forces Xuggler to interleave media data.
+   * @return true if {@link IMediaWriter} forces Xuggler to interleave media data.
    *
    * @see #setForceInterleave
    */
@@ -172,8 +172,8 @@ public interface IMediaWriter extends IMediaTool, IMediaPipeListener
       long timeStamp, TimeUnit timeUnit);
 
   /**
-   * Test if the {@link MediaWriter} can write streams
-   * of this {@link ICodec.Type}
+   * Test if the {@link IMediaWriter} can write streams
+   * of this type.
    * 
    * @param type the type of codec to be tested
    *

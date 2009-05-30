@@ -279,7 +279,7 @@ public class MediaTool
   /**
    * Construct a debug listener with custom set of event types to log.
    * 
-   * @param mode log mode, see {@link MediaDebugListener.Mode}
+   * @param mode log mode, see {@link IMediaDebugListener.Mode}
    * @param events the event types which will be logged
    */
 
@@ -366,17 +366,16 @@ public class MediaTool
    * </p>
    * <p>
    * Turbo mode works by changing the global
-   * {@link JNIMemoryManager.MemoryModel} that the underlying
+   * {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel} that the underlying
    * {@link com.xuggle.xuggler} API in your program is using. If you are using
    * {@link MediaTool} in a java program that contains other code using the
    * {@link com.xuggle.xuggler} API, you will force that code to use the new
    * memory model.
    * </p>
-   * <p>
-   * 
-   * </p>
    * 
    * @param turbo should we turn on turbo mode
+   * 
+   * @see JNIMemoryManager#setMemoryModel(com.xuggle.ferry.JNIMemoryManager.MemoryModel)
    */
   public static void setTurboCharged(boolean turbo)
   {

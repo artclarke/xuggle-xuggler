@@ -22,8 +22,8 @@ public interface IMediaReader extends IMediaTool
    * entire media file to find all meta data. If true then Xuggler will
    * not read ahead; instead it will only query meta data for a stream
    * when a {@link #readPacket()} returns the first packet in a new
-   * stream. Note that a {@link MediaWriter} can only initialize itself
-   * from a {@link MediaReader} that has this parameter set to false.
+   * stream. Note that a {@link IMediaWriter} can only initialize itself
+   * from a {@link IMediaReader} that has this parameter set to false.
    * 
    * </p>
    * 
