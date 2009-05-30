@@ -19,7 +19,7 @@
 
 package com.xuggle.xuggler.video;
 
-import com.xuggle.ferry.IBuffer;
+import com.xuggle.ferry.JNIReference;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IPixelFormat;
 
@@ -36,6 +36,7 @@ import java.awt.image.Raster;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
+import java.util.concurrent.atomic.AtomicReference;
 
 /** A converter to translate {@link IVideoPicture}s to and from
  * {@link BufferedImage}s of type {@link BufferedImage#TYPE_INT_ARGB}. */
@@ -110,30 +111,43 @@ public class ArgbConverter extends AConverter
 
     // create the video picture and get it's underling buffer
 
-    IVideoPicture picture = IVideoPicture.make(
-      getRequiredPictureType(), image.getWidth(), image.getHeight());
-    IBuffer pictureBuffer = picture.getData();
-    ByteBuffer pictureByteBuffer = pictureBuffer.getByteBuffer(
-      0, pictureBuffer.getBufferSize());
-
-    if (imageInts != null)
+    final AtomicReference<JNIReference> ref = new AtomicReference<JNIReference>(null);
+    IVideoPicture resamplePicture = null;
+    try
     {
-      pictureByteBuffer.order(ByteOrder.BIG_ENDIAN);
-      IntBuffer pictureIntBuffer = pictureByteBuffer.asIntBuffer();
-      pictureIntBuffer.put(imageInts);
+      IVideoPicture picture = IVideoPicture.make(getRequiredPictureType(), image.getWidth(),
+          image.getHeight());
+
+      ByteBuffer pictureByteBuffer = picture.getByteBuffer(ref);
+
+      if (imageInts != null)
+      {
+        pictureByteBuffer.order(ByteOrder.BIG_ENDIAN);
+        IntBuffer pictureIntBuffer = pictureByteBuffer.asIntBuffer();
+        pictureIntBuffer.put(imageInts);
+      }
+      else
+      {
+        pictureByteBuffer.put(imageBytes);
+      }
+      pictureByteBuffer = null;
+      picture.setComplete(true, getRequiredPictureType(), image.getWidth(),
+          image.getHeight(), timestamp);
+
+      // resample as needed
+      if (willResample()) {
+        resamplePicture = picture;
+        picture = resample(resamplePicture, mToPictureResampler);
+      }
+      return picture;
     }
-    else
+    finally
     {
-      pictureByteBuffer.put(imageBytes);
+      if (resamplePicture != null)
+        resamplePicture.delete();
+      if (ref.get() != null)
+        ref.get().delete();
     }
-    pictureByteBuffer = null;
-    picture.setComplete(
-      true, getRequiredPictureType(),
-      image.getWidth(), image.getHeight(), timestamp);
-
-    // resample as needed
-
-    return toPictureResample(picture);
   }
 
   /** {@inheritDoc} */
@@ -146,41 +160,56 @@ public class ArgbConverter extends AConverter
 
     // resample as needed
 
-    picture = toImageResample(picture);
+    IVideoPicture resamplePic = null;
+    final AtomicReference<JNIReference> ref = 
+      new AtomicReference<JNIReference>(null);
+    try
+    {
+      if (willResample())
+      {
+        resamplePic = resample(picture, mToImageResampler);
+        picture = resamplePic;
+      }
+      // get picture parameters
 
-    // get picture parameters
-    
-    final int w = picture.getWidth ();
-    final int h = picture.getHeight();
-    
-    // make a copy of the raw bytes in the picture and convert those to
-    // integers
+      final int w = picture.getWidth();
+      final int h = picture.getHeight();
 
-    final ByteBuffer byteBuf = picture.getData().getByteBuffer(
-        0, picture.getSize());
+      // make a copy of the raw bytes in the picture and convert those to
+      // integers
 
-    // now, for this class of problems, we don't want the code
-    // to switch byte order, so we'll pretend it's in native java order
+      final ByteBuffer byteBuf = picture.getByteBuffer(ref);
 
-    byteBuf.order(ByteOrder.BIG_ENDIAN);
-    final IntBuffer intBuf = byteBuf.asIntBuffer();
-    final int[] ints = new int[picture.getSize() / 4];
-    intBuf.get(ints, 0, ints.length);
-   
-    // create the data buffer from the ints
-    
-    final DataBufferInt db = new DataBufferInt(ints, ints.length);
-    
-    // create an a sample model which matches the byte layout of the
-    // image data and raster which contains the data which now can be
-    // properly interpreted
-    
-    final SampleModel sm = new SinglePixelPackedSampleModel(
-      db.getDataType(), w, h, mBitMasks);
-    final WritableRaster wr = Raster.createWritableRaster(sm, db, null);
-    
-    // return a new image created from the color model and raster
-    
-    return new BufferedImage(mColorModel, wr, false, null);
+      // now, for this class of problems, we don't want the code
+      // to switch byte order, so we'll pretend it's in native java order
+
+      byteBuf.order(ByteOrder.BIG_ENDIAN);
+      final IntBuffer intBuf = byteBuf.asIntBuffer();
+      final int[] ints = new int[picture.getSize() / 4];
+      intBuf.get(ints, 0, ints.length);
+
+      // create the data buffer from the ints
+
+      final DataBufferInt db = new DataBufferInt(ints, ints.length);
+
+      // create an a sample model which matches the byte layout of the
+      // image data and raster which contains the data which now can be
+      // properly interpreted
+
+      final SampleModel sm = new SinglePixelPackedSampleModel(db.getDataType(),
+          w, h, mBitMasks);
+      final WritableRaster wr = Raster.createWritableRaster(sm, db, null);
+
+      // return a new image created from the color model and raster
+
+      return new BufferedImage(mColorModel, wr, false, null);
+    }
+    finally
+    {
+      if (resamplePic != null)
+        resamplePic.delete();
+      if (ref.get() != null)
+        ref.get().delete();
+    }
   }
 }

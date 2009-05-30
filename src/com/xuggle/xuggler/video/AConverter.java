@@ -190,38 +190,6 @@ abstract public class AConverter implements IConverter
     return null != mToPictureResampler && null != mToImageResampler;
   }
 
-  /**
-   * Conditionally re-sample during conversion to picture.
-   *
-   * @param picture the picture to conditionally re-sample
-   *
-   * @return if willResample() returns true, the re-sample picture, else
-   *         the original picture
-   */
-
-  protected IVideoPicture toPictureResample(IVideoPicture picture)
-  {
-    return willResample() 
-      ? resample(picture, mToPictureResampler)
-      : picture;
-  }
-
-  /**
-   * Conditionally re-sample during conversion to image.
-   *
-   * @param picture the picture to conditionally re-sample
-   *
-   * @return if willResample() returns true, the re-sample picture, else
-   *         the original picture
-   */
-  
-  protected IVideoPicture toImageResample(IVideoPicture picture)
-  {
-    return willResample()
-      ? resample(picture, mToImageResampler)
-      : picture;
-  }
-
   /** 
    * Re-sample a picture.
    * 

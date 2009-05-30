@@ -19,7 +19,7 @@
 
 package com.xuggle.xuggler.video;
 
-import com.xuggle.ferry.IBuffer;
+import com.xuggle.ferry.JNIReference;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IPixelFormat;
 
@@ -37,6 +37,7 @@ import java.awt.image.Raster;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
+import java.util.concurrent.atomic.AtomicReference;
 
 /** A converter to translate {@link IVideoPicture}s to and from
  * {@link BufferedImage}s of type {@link BufferedImage#TYPE_3BYTE_BGR}. */
@@ -111,30 +112,42 @@ public class BgrConverter extends AConverter
 
     // create the video picture and get it's underling buffer
 
-    IVideoPicture picture = IVideoPicture.make(
-      getRequiredPictureType(), image.getWidth(), image.getHeight());
-    IBuffer pictureBuffer = picture.getData();
-    ByteBuffer pictureByteBuffer = pictureBuffer.getByteBuffer(
-      0, pictureBuffer.getBufferSize());
-
-    if (imageInts != null)
+    final AtomicReference<JNIReference> ref =
+      new AtomicReference<JNIReference>(null);
+    IVideoPicture resamplePicture = null;
+    try
     {
-      pictureByteBuffer.order(ByteOrder.BIG_ENDIAN);
-      IntBuffer pictureIntBuffer = pictureByteBuffer.asIntBuffer();
-      pictureIntBuffer.put(imageInts);
+      IVideoPicture picture = IVideoPicture.make(getRequiredPictureType(), image.getWidth(),
+          image.getHeight());
+      ByteBuffer pictureByteBuffer = picture.getByteBuffer(ref);
+
+      if (imageInts != null)
+      {
+        pictureByteBuffer.order(ByteOrder.BIG_ENDIAN);
+        IntBuffer pictureIntBuffer = pictureByteBuffer.asIntBuffer();
+        pictureIntBuffer.put(imageInts);
+      }
+      else
+      {
+        pictureByteBuffer.put(imageBytes);
+      }
+      pictureByteBuffer = null;
+      picture.setComplete(true, getRequiredPictureType(), image.getWidth(),
+          image.getHeight(), timestamp);
+
+      // resample as needed
+      if (willResample())
+      {
+        resamplePicture = picture;
+        picture = resample(resamplePicture, mToPictureResampler);
+      }
+      return picture;
     }
-    else
+    finally
     {
-      pictureByteBuffer.put(imageBytes);
+      if (resamplePicture != null) resamplePicture.delete();
+      if (ref.get() != null) ref.get().delete();
     }
-    pictureByteBuffer = null;
-    picture.setComplete(
-      true, getRequiredPictureType(),
-      image.getWidth(), image.getHeight(), timestamp);
-
-    // resample as needed
-
-    return toPictureResample(picture);
   }
 
   /** {@inheritDoc} */
@@ -146,8 +159,16 @@ public class BgrConverter extends AConverter
     validatePicture(picture);
 
     // resample as needed
-
-    picture = toImageResample(picture);
+    IVideoPicture resamplePicture = null;
+    AtomicReference<JNIReference> ref = 
+      new AtomicReference<JNIReference>(null);
+    try
+    {
+    if (willResample())
+    {
+      resamplePicture = resample(picture, mToImageResampler);
+      picture = resamplePicture;
+    }
 
     // get picture parameters
     
@@ -157,8 +178,7 @@ public class BgrConverter extends AConverter
     // make a copy of the raw bytes int a DataBufferByte which the
     // writable raster can operate on
 
-    final ByteBuffer byteBuf = picture.getData().getByteBuffer(
-        0, picture.getSize());
+    final ByteBuffer byteBuf = picture.getByteBuffer(ref);
     final byte[] bytes = new byte[picture.getSize()];
     byteBuf.get(bytes, 0, bytes.length);
    
@@ -182,5 +202,13 @@ public class BgrConverter extends AConverter
     // return a new image created from the color model and raster
     
     return new BufferedImage(colorModel, wr, false, null);
+    }
+    finally
+    {
+      if (resamplePicture!=null)
+        resamplePicture.delete();
+      if (ref.get()!=null)
+        ref.get().delete();
+    }
   }
 }
