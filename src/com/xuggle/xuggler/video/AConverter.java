@@ -315,4 +315,14 @@ abstract public class AConverter implements IConverter
     return getDescription();
   }
 
+  public void close()
+  {
+    if (mToPictureResampler != null)
+      mToPictureResampler.delete();
+    mToPictureResampler = null;
+    if (mToImageResampler != null)
+      mToImageResampler.delete();
+    mToImageResampler = null;
+  }
+
 }

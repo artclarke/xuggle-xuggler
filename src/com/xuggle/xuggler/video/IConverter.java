@@ -108,4 +108,11 @@ public interface IConverter
    */
 
   public String getDescription();
+  
+  /**
+   * Release any resources used by this converter.  Calls to
+   * the converter after this call are illegal and may fail
+   * in unspecified ways.  
+   */
+  public void delete();
 }

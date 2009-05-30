@@ -212,4 +212,9 @@ public class ArgbConverter extends AConverter
         ref.get().delete();
     }
   }
+
+  public void delete()
+  {
+    super.close();
+  }
 }

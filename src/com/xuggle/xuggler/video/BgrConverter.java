@@ -211,4 +211,9 @@ public class BgrConverter extends AConverter
         ref.get().delete();
     }
   }
+
+  public void delete()
+  {
+    super.close();
+  }
 }
