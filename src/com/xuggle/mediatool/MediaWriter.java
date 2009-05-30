@@ -87,7 +87,7 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
  * </p>
  */
 
-public class MediaWriter extends AMediaTool
+class MediaWriter extends AMediaTool
 implements IMediaPipeListener, IMediaWriter
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
@@ -151,21 +151,21 @@ implements IMediaPipeListener, IMediaWriter
   private boolean mMaskLateStreamException = false;
 
   /**
-   * Use a specified {@link MediaReader} as a source for media data and
+   * Use a specified {@link IMediaReader} as a source for media data and
    * meta data about the container and it's streams.  The {@link
-   * MediaReader} must be configured such that streams will not be
+   * IMediaReader} must be configured such that streams will not be
    * dynamically added to the container, which is the default for {@link
-   * MediaReader}.
+   * IMediaReader}.
    * 
    * @param url the url or filename of the media destination
    * @param reader the media source
    * 
    * @throws IllegalArgumentException if the specifed {@link
-   *         MediaReader} is configure to allow dynamic adding of
+   *         IMediaReader} is configure to allow dynamic adding of
    *         streams.
    */
 
-  public MediaWriter(String url, IMediaReader reader)
+  MediaWriter(String url, IMediaReader reader)
   {
     // construct around the source container
 
@@ -189,13 +189,6 @@ implements IMediaPipeListener, IMediaWriter
    * be configured such that streams will not be dynamically added to the
    * container.
    * 
-   * <p>
-   *
-   * To write data call to {@link #onAudioSamples} and/or {@link
-   * #onVideoPicture}.
-   *
-   * </p>
-   *
    * @param url the url or filename of the media destination
    * @param inputContainer the source media container
    * 
@@ -204,7 +197,7 @@ implements IMediaPipeListener, IMediaWriter
    *         adding of streams.
    */
 
-  public MediaWriter(String url, IContainer inputContainer)
+  MediaWriter(String url, IContainer inputContainer)
   {
     super(url, IContainer.make());
 
@@ -248,7 +241,7 @@ implements IMediaPipeListener, IMediaWriter
    * @param url the url or filename of the media destination
    */
 
-  public MediaWriter(String url)
+  MediaWriter(String url)
   {
     super(url, IContainer.make());
 

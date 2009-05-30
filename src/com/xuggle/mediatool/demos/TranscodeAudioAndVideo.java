@@ -22,16 +22,17 @@ package com.xuggle.mediatool.demos;
 import java.io.File;
 
 
-import com.xuggle.mediatool.MediaReader;
-import com.xuggle.mediatool.MediaViewer;
-import com.xuggle.mediatool.MediaWriter;
+import com.xuggle.mediatool.IMediaReader;
+import com.xuggle.mediatool.IMediaViewer;
+import com.xuggle.mediatool.IMediaWriter;
+import com.xuggle.mediatool.MediaTool;
 
 import static java.lang.System.out;
 import static java.lang.System.exit;
 
 /** 
- * A very simple media transcoder which uses {@link MediaReader}, {@link
- * MediaWriter} and {@link MediaViewer}.
+ * A very simple media transcoder which uses {@link IMediaReader}, {@link
+ * IMediaWriter} and {@link IMediaViewer}.
  */
 
 public class TranscodeAudioAndVideo
@@ -71,22 +72,22 @@ public class TranscodeAudioAndVideo
    * all this does.
    */
 
-  public static void transcode(String sourceUrl, String destinationUlr)
+  public static void transcode(String sourceUrl, String destinationUrl)
   {
-    out.printf("transcode %s -> %s\n", sourceUrl, destinationUlr);
+    out.printf("transcode %s -> %s\n", sourceUrl, destinationUrl);
 
     // create the media reader, not that no BufferedImages need to be
     // created because the video is not going to be manipulated
 
-    MediaReader reader = new MediaReader(sourceUrl);
+    IMediaReader reader = MediaTool.makeReader(sourceUrl);
 
     // add a viewer to the reader, to see progress as the media is
     // transcoded
 
-    reader.addListener(new MediaViewer(true));
+    reader.addListener(MediaTool.makeViewer(true));
 
     // create the media writer
-    reader.addListener(new MediaWriter(destinationUlr, reader));
+    reader.addListener(MediaTool.makeWriter(destinationUrl, reader));
 
     // read packets from the source file, which dispatch events to the
     // writer, this will continue until 

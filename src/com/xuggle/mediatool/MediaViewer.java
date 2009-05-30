@@ -101,7 +101,7 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
  * </p>
  */
 
-public class MediaViewer extends MediaAdapter implements IMediaPipeListener, IMediaViewer
+class MediaViewer extends MediaPipeAdapter implements IMediaPipeListener, IMediaViewer
 {
   private static final Logger log = LoggerFactory.getLogger(MediaViewer.class);
 
@@ -222,7 +222,7 @@ public class MediaViewer extends MediaAdapter implements IMediaPipeListener, IMe
    * @param mode the play mode of this viewer
    */
 
-  public MediaViewer(Mode mode)
+  MediaViewer(Mode mode)
   {
     this(mode, false, JFrame.DISPOSE_ON_CLOSE);
   }
@@ -233,7 +233,7 @@ public class MediaViewer extends MediaAdapter implements IMediaPipeListener, IMe
    * @param showStats display media statistics
    */
 
-  public MediaViewer(boolean showStats)
+  MediaViewer(boolean showStats)
   {
     this(Mode.AUDIO_VIDEO, showStats, JFrame.DISPOSE_ON_CLOSE);
   }
@@ -246,7 +246,7 @@ public class MediaViewer extends MediaAdapter implements IMediaPipeListener, IMe
    * @param showStats display media statistics
    */
 
-  public MediaViewer(Mode mode, boolean showStats)
+  MediaViewer(Mode mode, boolean showStats)
   {
     this(mode, showStats, JFrame.DISPOSE_ON_CLOSE);
   }
@@ -261,7 +261,7 @@ public class MediaViewer extends MediaAdapter implements IMediaPipeListener, IMe
    *    documentation for valid values.
    */
 
-  public MediaViewer(boolean showStats, int defaultCloseOperation)
+  MediaViewer(boolean showStats, int defaultCloseOperation)
   {
     this(Mode.AUDIO_VIDEO, showStats, defaultCloseOperation);
   }
@@ -278,7 +278,7 @@ public class MediaViewer extends MediaAdapter implements IMediaPipeListener, IMe
    *    documentation for valid values.
    */
 
-  public MediaViewer(Mode mode, boolean showStats,
+  MediaViewer(Mode mode, boolean showStats,
       int defaultCloseOperation)
   {
     setMode(mode);

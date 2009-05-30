@@ -269,7 +269,7 @@ public class MediaWriterTest
 
     // create the writer
     
-    MediaWriter writer = new MediaWriter(file.toString());
+    IMediaWriter writer = new MediaWriter(file.toString());
 
     // add the audio stream
 
@@ -432,7 +432,7 @@ public class MediaWriterTest
 
     // create the writer
     
-    MediaWriter writer = new MediaWriter(file.toString());
+    IMediaWriter writer = new MediaWriter(file.toString());
 
     // add the audio stream
 
@@ -486,7 +486,7 @@ public class MediaWriterTest
 
     // create the writer
     
-    MediaWriter writer = new MediaWriter(file.toString());
+    IMediaWriter writer = new MediaWriter(file.toString());
     
     // mask late stream exceptoins
 

@@ -171,17 +171,36 @@ public class XugglerIO implements IURLProtocolHandlerFactory
    */
   static public String generateUniqueName(Object src)
   {
+    return generateUniqueName(src, null);
+  }
+
+  /**
+   * Generates a unique name suitable for using in the map methods for the URL
+   * parameter.
+   * 
+   * @param src The object you want to generate a unique name for, or null if
+   *        you don't have one.
+   * @param extension an option extension to append to the generated URL.
+   * @return A unique name (will be unique across time and space).
+   */
+  static public String generateUniqueName(Object src, String extension)
+  {
     StringBuilder builder = new StringBuilder();
     builder.append(UUID.randomUUID().toString());
     if (src != null)
     {
       builder.append("-");
       builder.append(src.getClass().getName());
-      builder.append("@");
+      builder.append("-");
       builder.append(Integer.toHexString(src.hashCode()));
+    }
+    if (extension != null)
+    {
+      builder.append(extension);
     }
     return builder.toString();
   }
+
 
   /**
    * Maps a {@link IURLProtocolHandler} to a url that Xuggler can open.

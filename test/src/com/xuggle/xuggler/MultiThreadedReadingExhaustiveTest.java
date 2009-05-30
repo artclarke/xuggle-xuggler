@@ -36,8 +36,9 @@ import org.slf4j.LoggerFactory;
 
 import com.xuggle.ferry.JNIMemoryManager;
 import com.xuggle.ferry.JNIMemoryManager.MemoryModel;
-import com.xuggle.mediatool.MediaReader;
-import com.xuggle.mediatool.MediaViewer;
+import com.xuggle.mediatool.IMediaReader;
+import com.xuggle.mediatool.MediaTool;
+import com.xuggle.mediatool.IMediaViewer;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 /**
@@ -127,14 +128,14 @@ public class MultiThreadedReadingExhaustiveTest
             e.printStackTrace();
             return;
           }
-          final MediaReader reader = 
-            new MediaReader("fixtures/testfile_videoonly_20sec.flv",
+          final IMediaReader reader = 
+            MediaTool.makeReader("fixtures/testfile_videoonly_20sec.flv",
                 ConverterFactory.XUGGLER_BGR_24);
           try {
             log.debug("Created reader: {}", reader);
             if (ADD_VIEWER)
             {
-              final MediaViewer viewer = new MediaViewer();
+              final IMediaViewer viewer = MediaTool.makeViewer();
               reader.addListener(viewer);
             }
             while(reader.readPacket() == null)

@@ -35,10 +35,9 @@ import org.slf4j.LoggerFactory;
 
 import com.xuggle.ferry.JNIMemoryManager;
 import com.xuggle.ferry.JNIMemoryManager.MemoryModel;
-import com.xuggle.mediatool.IMediaPipe;
-import com.xuggle.mediatool.MediaReader;
-import com.xuggle.mediatool.MediaViewer;
-import com.xuggle.mediatool.MediaWriter;
+import com.xuggle.mediatool.IMediaReader;
+import com.xuggle.mediatool.MediaTool;
+import com.xuggle.mediatool.IMediaViewer;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 @RunWith(Parameterized.class)
@@ -101,7 +100,7 @@ public class MultiThreadedWritingExhaustiveTest
       {
         public void run()
         {
-          final MediaReader reader = new MediaReader(
+          final IMediaReader reader = MediaTool.makeReader(
               "fixtures/testfile_videoonly_20sec.flv",
               ConverterFactory.XUGGLER_BGR_24);
           try
@@ -110,36 +109,14 @@ public class MultiThreadedWritingExhaustiveTest
             reader.setQueryMetaData(true);
             if (ADD_VIEWER)
             {
-              final MediaViewer viewer = new MediaViewer();
+              final IMediaViewer viewer = MediaTool.makeViewer();
               reader.addListener(viewer);
             }
 
-            reader.addListener(new MediaWriter(
+            reader.addListener(MediaTool.makeWriter(
                 MultiThreadedWritingExhaustiveTest.class.getName()
                 + "_" + mModel.toString()
-                + "_" + mTestNumber + "_" + index + ".flv", reader)
-            {
-              long mediaDataWritten = 0;
-
-              @Override
-              public void onAudioSamples(IMediaPipe tool,
-                  IAudioSamples samples, int streamIndex)
-              {
-                super.onAudioSamples(tool, samples, streamIndex);
-                ++mediaDataWritten;
-                log.trace("wrote audio:{}", mediaDataWritten);
-              }
-
-              @Override
-              public void onVideoPicture(IMediaPipe tool,
-                  IVideoPicture picture, java.awt.image.BufferedImage image,
-                  int streamIndex)
-              {
-                super.onVideoPicture(tool, picture, image, streamIndex);
-                ++mediaDataWritten;
-                log.trace("wrote video:{}", mediaDataWritten);
-              };
-            });
+                + "_" + mTestNumber + "_" + index + ".flv", reader));
             while (reader.readPacket() == null)
               ++numPackets[index];
           }

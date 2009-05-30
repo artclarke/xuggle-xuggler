@@ -20,13 +20,13 @@
 package com.xuggle.mediatool.demos;
 
 
+import com.xuggle.mediatool.IMediaReader;
 import com.xuggle.mediatool.IMediaViewer;
-import com.xuggle.mediatool.MediaReader;
-import com.xuggle.mediatool.MediaViewer;
+import com.xuggle.mediatool.MediaTool;
 
 /**
- * Using {@link MediaReader}, takes a media container, finds the first audio
- * stream, decodes that stream, and plays the audio on your spakers.
+ * Using {@link IMediaReader}, takes a media container, finds the first audio
+ * stream, decodes that stream, and plays the audio on your speakers.
  * 
  * @author aclarke
  * @author trebor
@@ -52,11 +52,11 @@ public class DecodeAndPlayAudio
 
     // create a media reader for processing video
 
-    MediaReader mediaReader = new MediaReader(args[0]);
+    IMediaReader mediaReader = MediaTool.makeReader(args[0]);
 
     // Create a MediaViewer object and tell it to play audio only
 
-    mediaReader.addListener(new MediaViewer(IMediaViewer.Mode.AUDIO_ONLY));
+    mediaReader.addListener(MediaTool.makeViewer(IMediaViewer.Mode.AUDIO_ONLY));
 
     // read out the contents of the media file, and sit back and watch
 

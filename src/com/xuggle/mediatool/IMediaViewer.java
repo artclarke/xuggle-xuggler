@@ -1,6 +1,6 @@
 package com.xuggle.mediatool;
 
-public interface IMediaViewer
+public interface IMediaViewer extends IMediaPipeListener
 {
   /**
    * The mode you want to view media in.

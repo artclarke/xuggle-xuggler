@@ -36,7 +36,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import com.xuggle.mediatool.IMediaPipe;
-import com.xuggle.mediatool.MediaAdapter;
+import com.xuggle.mediatool.MediaPipeAdapter;
 import com.xuggle.mediatool.MediaDebugListener;
 import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
@@ -234,7 +234,7 @@ public class MediaWriterExhaustiveTest
 
       writer.addListener(new MediaDebugListener(OPEN, CLOSE));
 
-      reader.addListener(new MediaAdapter()
+      reader.addListener(new MediaPipeAdapter()
         {
           public void onVideoPicture(IMediaPipe tool, IVideoPicture picture, 
             BufferedImage image, int streamIndex)

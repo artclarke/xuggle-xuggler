@@ -59,7 +59,7 @@ import static com.xuggle.mediatool.IMediaDebugListener.Mode.*;
  * </p>
  */
 
-public class MediaDebugListener extends MediaAdapter implements IMediaPipeListener, IMediaDebugListener
+class MediaDebugListener extends MediaPipeAdapter implements IMediaDebugListener
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   // update max name length
@@ -103,7 +103,7 @@ public class MediaDebugListener extends MediaAdapter implements IMediaPipeListen
    * Construct a debug listener which logs all event types.
    */
 
-  public MediaDebugListener()
+  MediaDebugListener()
   {
     this(PARAMETERS, ALL);
   }
@@ -114,7 +114,7 @@ public class MediaDebugListener extends MediaAdapter implements IMediaPipeListen
    * @param events the event types which will be logged
    */
   
-  public MediaDebugListener(Event... events)
+  MediaDebugListener(Event... events)
   {
     this(PARAMETERS, events);
   }
@@ -126,7 +126,7 @@ public class MediaDebugListener extends MediaAdapter implements IMediaPipeListen
    * @param events the event types which will be logged
    */
   
-  public MediaDebugListener(Mode mode, Event... events)
+  MediaDebugListener(Mode mode, Event... events)
   {
     mMode = mode;
     setLogEvents(events);

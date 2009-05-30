@@ -303,7 +303,7 @@ public class MediaViewerTest
 
     // create a media writer and specify the output file
 
-    MediaWriter writer = new MediaWriter("output.flv");
+    IMediaWriter writer = new MediaWriter("output.flv");
 
     // add a viewer so we can see the media as it is created
 

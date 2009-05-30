@@ -1,6 +1,6 @@
 package com.xuggle.mediatool;
 
-public interface IMediaDebugListener
+public interface IMediaDebugListener extends IMediaPipeListener
 {
   /**
    * How much detail on each event you want to log.

@@ -48,7 +48,7 @@ public interface IMediaPipeListener
 {
   /**
    * Called after a video frame has been decoded by a {@link
-   * MediaReader} or encoded by a {@link MediaWriter}.  Optionally a
+   * MediaReader} or encoded by a {@link IMediaWriter}.  Optionally a
    * BufferedImage version of the frame may be passed.
    *
    * @param pipe the pipe that generated this event
@@ -132,7 +132,7 @@ public interface IMediaPipeListener
 
   /**
    * Called after a {@link com.xuggle.xuggler.IPacket} has been read by
-   * a {@link MediaReader}.
+   * a {@link IMediaReader}.
    *
    * @param pipe the pipe that generated this event
    * @param packet the packet just read.  This {@link IPacket} is only
@@ -146,7 +146,7 @@ public interface IMediaPipeListener
 
   /**
    * Called after a {@link com.xuggle.xuggler.IPacket} has been written
-   * by a {@link MediaWriter}.
+   * by a {@link IMediaWriter}.
    *
    * @param pipe the pipe that generated this event
    * @param packet the packet just written.    This {@link IPacket} is only
@@ -159,7 +159,7 @@ public interface IMediaPipeListener
   public void onWritePacket(IMediaPipe pipe, IPacket packet);
 
   /**
-   * Called after a {@link MediaWriter} writes the header.
+   * Called after a {@link IMediaWriter} writes the header.
    *
    * @param pipe the pipe that generated this event
    */
@@ -167,7 +167,7 @@ public interface IMediaPipeListener
   public void onWriteHeader(IMediaPipe pipe);
 
   /**
-   * Called after a {@link MediaWriter} has flushed its buffers.
+   * Called after a {@link IMediaWriter} has flushed its buffers.
    *
    * @param pipe the pipe that generated this event
    */
@@ -175,7 +175,7 @@ public interface IMediaPipeListener
   public void onFlush(IMediaPipe pipe);
 
   /**
-   * Called after a {@link MediaWriter} writes the trailer.
+   * Called after a {@link IMediaWriter} writes the trailer.
    *
    * @param pipe the pipe that generated this event
    */

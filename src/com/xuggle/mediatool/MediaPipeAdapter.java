@@ -39,7 +39,7 @@ import com.xuggle.xuggler.IVideoPicture;
  * </p>
  */
 
-public class MediaAdapter implements IMediaPipeListener
+public class MediaPipeAdapter implements IMediaPipeListener
 {
   /** {@inheritDoc} */
 

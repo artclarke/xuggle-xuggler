@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import com.xuggle.mediatool.IMediaPipeListener;
 import com.xuggle.mediatool.IMediaPipe;
-import com.xuggle.mediatool.MediaAdapter;
+import com.xuggle.mediatool.MediaPipeAdapter;
 import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.xuggler.IError;
@@ -93,7 +93,7 @@ public class MediaReaderTest
 
     // setup the the listener
 
-    IMediaPipeListener mrl = new MediaAdapter()
+    IMediaPipeListener mrl = new MediaPipeAdapter()
       {
         public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
           BufferedImage image, int streamIndex)
@@ -153,7 +153,7 @@ public class MediaReaderTest
 
     // setup the the listener
 
-    IMediaPipeListener mrl = new MediaAdapter()
+    IMediaPipeListener mrl = new MediaPipeAdapter()
       {
         public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
           BufferedImage image, int streamIndex)
@@ -207,7 +207,7 @@ public class MediaReaderTest
 
     // setup the the listener
 
-    IMediaPipeListener mrl = new MediaAdapter()
+    IMediaPipeListener mrl = new MediaPipeAdapter()
       {
         public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
           BufferedImage image, int streamIndex)

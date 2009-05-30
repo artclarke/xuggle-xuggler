@@ -31,8 +31,8 @@
  * </p>
  * 
  * <pre>
- * MediaReader reader = new MediaReader("input.flv");
- * reader.addListener(new MediaWriter("output.mov", reader));
+ * IMediaReader reader = MediaTool.makeReader("input.flv");
+ * reader.addListener(MediaTool.makeWriter("output.mov", reader));
  * while (reader.readPacket() == null)
  *   ;
  * </pre>
@@ -44,9 +44,9 @@
  * </p>
  * 
  * <pre>
- * MediaReader reader = new MediaReader("input.mpg");
- * reader.addListener(new MediaViewer(true));
- * reader.addListener(new MediaWriter("output.flv", reader));
+ * IMediaReader reader = MediaTool.makeReader("input.mpg");
+ * reader.addListener(MediaTool.makeViewer(true));
+ * reader.addListener(MediaTool.makeWriter("output.flv", reader));
  * while (reader.readPacket() == null)
  *   ;
  * </pre>

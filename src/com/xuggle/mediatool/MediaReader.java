@@ -61,7 +61,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * </p> 
  */
 
-public class MediaReader extends AMediaTool implements IMediaReader
+class MediaReader extends AMediaTool implements IMediaReader
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -117,7 +117,7 @@ public class MediaReader extends AMediaTool implements IMediaReader
    *        work here
    */
 
-  public MediaReader(String url)
+  MediaReader(String url)
   {
     this(url, null);
   }
@@ -141,7 +141,7 @@ public class MediaReader extends AMediaTool implements IMediaReader
    *         found
    */
 
-  public MediaReader(String url, String converterDescriptor)
+  MediaReader(String url, String converterDescriptor)
   {
     super(url, IContainer.make());
 
@@ -181,7 +181,7 @@ public class MediaReader extends AMediaTool implements IMediaReader
    *          on already open media container
    */
 
-  public MediaReader(IContainer container)
+  MediaReader(IContainer container)
   {
     this(container, null);
   }
@@ -206,7 +206,7 @@ public class MediaReader extends AMediaTool implements IMediaReader
    *         found
    */
 
-  public MediaReader(IContainer container, String converterDescriptor)
+  MediaReader(IContainer container, String converterDescriptor)
   {
     super(container.getURL(), container);
 

@@ -26,14 +26,15 @@ import java.io.File;
 import java.awt.image.BufferedImage;
 
 import com.xuggle.mediatool.IMediaPipe;
-import com.xuggle.mediatool.MediaAdapter;
-import com.xuggle.mediatool.MediaReader;
+import com.xuggle.mediatool.IMediaReader;
+import com.xuggle.mediatool.MediaPipeAdapter;
+import com.xuggle.mediatool.MediaTool;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.video.ConverterFactory;
 
 /**
- * Using {@link MediaReader}, takes a media container, finds the first video stream, decodes that
+ * Using {@link IMediaReader}, takes a media container, finds the first video stream, decodes that
  * stream, and then writes video frames out to a PNG image file every 5
  * seconds, based on the video presentation timestamps.
  *
@@ -41,7 +42,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * @author trebor
  */
 
-public class DecodeAndCaptureFrames extends MediaAdapter
+public class DecodeAndCaptureFrames extends MediaPipeAdapter
 {
   /** 
    * The number of seconds between frames.
@@ -97,7 +98,7 @@ public class DecodeAndCaptureFrames extends MediaAdapter
     // create a media reader for processing video, stipulate that we
     // want BufferedImages to created in BGR 24bit color space
 
-    MediaReader mediaReader = new MediaReader(filename, 
+    IMediaReader mediaReader = MediaTool.makeReader(filename, 
       ConverterFactory.XUGGLER_BGR_24);
     
     // note that DecodeAndCaptureFrames is derived from

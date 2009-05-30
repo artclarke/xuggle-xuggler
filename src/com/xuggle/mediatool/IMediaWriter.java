@@ -198,4 +198,6 @@ public interface IMediaWriter extends IMediaTool, IMediaPipeListener
    */
   public abstract IRational getDefaultTimebase();
 
+  public abstract void flush();
+
 }

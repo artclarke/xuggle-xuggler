@@ -21,8 +21,8 @@ package com.xuggle.mediatool.demos;
 
 import javax.swing.JFrame;
 
-import com.xuggle.mediatool.MediaReader;
-import com.xuggle.mediatool.MediaViewer;
+import com.xuggle.mediatool.IMediaReader;
+import com.xuggle.mediatool.MediaTool;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.IContainer;
@@ -31,7 +31,7 @@ import com.xuggle.xuggler.IContainerParameters;
 
 
 /**
- * Using {@link MediaReader}, takes a FFMPEG device driver name (ex:
+ * Using {@link IMediaReader}, takes a FFMPEG device driver name (ex:
  * "video4linux2"), and a device name (ex: /dev/video0), and displays
  * video from that device.  For example, a web camera.
  * 
@@ -158,11 +158,11 @@ public class DisplayWebcamVideo
     // IContainer, stipulate that we want BufferedImages to created in
     // BGR 24bit color space
 
-    MediaReader reader = new MediaReader(container);
+    IMediaReader reader = MediaTool.makeReader(container);
     
     // Add a media viewer that will display the video, but that exits
     // the JVM when it is destroyed
-    reader.addListener(new MediaViewer(true, JFrame.EXIT_ON_CLOSE));
+    reader.addListener(MediaTool.makeViewer(true, JFrame.EXIT_ON_CLOSE));
 
     // read out the contents of the media file, note that nothing else
     // happens here.  action happens in the onVideoPicture() method

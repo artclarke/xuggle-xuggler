@@ -19,19 +19,19 @@
 
 package com.xuggle.mediatool.demos;
 
-import com.xuggle.mediatool.MediaAdapter;
-import com.xuggle.mediatool.MediaReader;
-import com.xuggle.mediatool.MediaViewer;
+import com.xuggle.mediatool.IMediaReader;
+import com.xuggle.mediatool.MediaPipeAdapter;
+import com.xuggle.mediatool.MediaTool;
 
 /**
- * Using {@link MediaReader}, takes a media container, finds the first video stream,
+ * Using {@link IMediaReader}, takes a media container, finds the first video stream,
  * decodes that stream, and then plays the audio and video.
  *
  * @author aclarke
  * @author trebor
  */
 
-public class DecodeAndPlayAudioAndVideo extends MediaAdapter
+public class DecodeAndPlayAudioAndVideo extends MediaPipeAdapter
 {
   /**
    * Takes a media container (file) as the first argument, opens it,
@@ -48,8 +48,8 @@ public class DecodeAndPlayAudioAndVideo extends MediaAdapter
         "must pass in a filename as the first argument");
     
     // create a new mr. decode an play audio and video
-    MediaReader reader = new MediaReader(args[0]);
-    reader.addListener(new MediaViewer());
+    IMediaReader reader = MediaTool.makeReader(args[0]);
+    reader.addListener(MediaTool.makeViewer());
     while(reader.readPacket() != null)
       ;
     
