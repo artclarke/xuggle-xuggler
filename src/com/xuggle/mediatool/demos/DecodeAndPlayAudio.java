@@ -20,6 +20,7 @@
 package com.xuggle.mediatool.demos;
 
 
+import com.xuggle.mediatool.IMediaViewer;
 import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
 
@@ -55,7 +56,7 @@ public class DecodeAndPlayAudio
 
     // Create a MediaViewer object and tell it to play audio only
 
-    mediaReader.addListener(new MediaViewer(MediaViewer.Mode.AUDIO_ONLY));
+    mediaReader.addListener(new MediaViewer(IMediaViewer.Mode.AUDIO_ONLY));
 
     // read out the contents of the media file, and sit back and watch
 

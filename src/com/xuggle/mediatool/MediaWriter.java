@@ -88,7 +88,7 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
  */
 
 public class MediaWriter extends AMediaTool
-implements IMediaTool, IMediaPipeListener
+implements IMediaPipeListener, IMediaWriter
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -102,17 +102,17 @@ implements IMediaTool, IMediaPipeListener
 
   /** The default pixel type. */
 
-  public static final IPixelFormat.Type DEFAULT_PIXEL_TYPE = 
+  private static final IPixelFormat.Type DEFAULT_PIXEL_TYPE = 
     IPixelFormat.Type.YUV420P;
 
   /** The default sample format. */
 
-  public static final IAudioSamples.Format DEFAULT_SAMPLE_FORMAT = 
+  private static final IAudioSamples.Format DEFAULT_SAMPLE_FORMAT = 
     IAudioSamples.Format.FMT_S16;
 
   /** The default time base. */
 
-  public static final IRational DEFAULT_TIMEBASE = IRational.make(
+  private static final IRational DEFAULT_TIMEBASE = IRational.make(
     1, (int)Global.DEFAULT_PTS_PER_SECOND);
 
   // the input container of packets
@@ -165,7 +165,7 @@ implements IMediaTool, IMediaPipeListener
    *         streams.
    */
 
-  public MediaWriter(String url, MediaReader reader)
+  public MediaWriter(String url, IMediaReader reader)
   {
     // construct around the source container
 
@@ -307,7 +307,7 @@ implements IMediaTool, IMediaPipeListener
     IStreamCoder coder = stream.getStreamCoder();
     coder.setChannels(channelCount);
     coder.setSampleRate(sampleRate);
-    coder.setSampleFormat(DEFAULT_SAMPLE_FORMAT);
+    coder.setSampleFormat(getDefaultSampleFormat());
 
     // add the stream to the media writer
     
@@ -360,7 +360,7 @@ implements IMediaTool, IMediaPipeListener
     IStreamCoder coder = stream.getStreamCoder();
     coder.setWidth(width);
     coder.setHeight(height);
-    coder.setPixelType(DEFAULT_PIXEL_TYPE);
+    coder.setPixelType(getDefaultPixelType());
 
     // add the stream to the media writer
     
@@ -402,7 +402,7 @@ implements IMediaTool, IMediaPipeListener
 
     // add the new stream at the correct index
 
-    IStream stream = mContainer.addNewStream(streamId);
+    IStream stream = getContainer().addNewStream(streamId);
     if (stream == null)
       throw new RuntimeException("Unable to create stream id " + streamId +
         ", index " + inputIndex + ", codec " + codec);
@@ -410,12 +410,12 @@ implements IMediaTool, IMediaPipeListener
     // configure the stream coder
 
     IStreamCoder coder = stream.getStreamCoder();
-    coder.setTimeBase(DEFAULT_TIMEBASE);
+    coder.setTimeBase(getDefaultTimebase());
     coder.setCodec(codec);
 
     // if the stream count is 1, don't force interleave
 
-    setForceInterleave(mContainer.getNumStreams() != 1);
+    setForceInterleave(getContainer().getNumStreams() != 1);
 
     // return the new video stream
 
@@ -747,7 +747,7 @@ implements IMediaTool, IMediaPipeListener
       // establish a new stream, throw, or mask optinally mask, and
       // exception regarding the tardy arival of the new stream
 
-      if (mContainer.isHeaderWritten())
+      if (getContainer().isHeaderWritten())
         if (willMaskLateStreamExceptions())
           return null;
         else
@@ -792,7 +792,7 @@ implements IMediaTool, IMediaPipeListener
 
     // if the header has not been written, do so now
     
-    if (!mContainer.isHeaderWritten())
+    if (!getContainer().isHeaderWritten())
     {
       // if any of the existing coders are not open, open them now
 
@@ -802,7 +802,7 @@ implements IMediaTool, IMediaPipeListener
 
       // write the header
 
-      int rv = mContainer.writeHeader();
+      int rv = getContainer().writeHeader();
       if (0 != rv)
         throw new RuntimeException("Error " + IError.make(rv) +
           ", failed to write header to container " + getContainer() +
@@ -831,114 +831,8 @@ implements IMediaTool, IMediaPipeListener
   }
 
   /**
-   * Make the best effort to establish the ouput codec id for a given
-   * input codec and output container format.  This method relies on
-   * FFMPEGs internal database of codec IDs to identify the correct
-   * output codec ID.
-   *
-   * @param inputCodec the input codec
-   * @param outputContainerFormat the format of the output container
-   *
-   * @return the best guess output codec ID, or null if none found
-   */
-
-  public static ICodec.ID establishOutputCodecId(ICodec inputCodec,
-    IContainerFormat outputContainerFormat)
-  {
-    return establishOutputCodecId(inputCodec, outputContainerFormat);
-  }
-
-  /**
-   * Make the best effort to establish the ouput codec id for a given
-   * input codec id and output container format.  This method relies on
-   * FFMPEGs internal database of codec IDs to identify the correct
-   * output codec ID.
-   *
-   * @param inputCodecId the ID input codec
-   * @param outputContainerFormat the format of the output container
-   *
-   * @return the best guess output codec ID, or null if none found
-   */
-
-  public static ICodec.ID establishOutputCodecId(ICodec.ID inputCodecId, 
-    IContainerFormat outputContainerFormat)
-  {
-    // test parameteres
-
-    if (null == inputCodecId)
-      throw new IllegalArgumentException("null input codec id");
-    if (ICodec.ID.CODEC_ID_NONE == inputCodecId)
-      throw new IllegalArgumentException("input codec id is \"NONE\"");
-    if (null == outputContainerFormat)
-      throw new IllegalArgumentException("null output container format");
-    if (!outputContainerFormat.isOutput())
-      throw new IllegalArgumentException(
-        "passed output container format, actally an input container format");
-
-    // if the output container supports in teh input codec, and can
-    // encode, return the input codec
-
-    if (outputContainerFormat.isCodecSupportedForOutput(inputCodecId) &&
-      ICodec.findEncodingCodec(inputCodecId).canEncode())
-    {
-      return inputCodecId;
-    }
-
-    // establish the input codec type
-
-    ICodec.Type inputCodecType = ICodec.findDecodingCodec(inputCodecId)
-      .getType();
-
-    // the would be output codec 
-
-    ICodec.ID outputCodecId = null;
-
-    // find the default codec for the output container by input codec type
-    
-    switch (inputCodecType)
-    {
-    case CODEC_TYPE_AUDIO:
-      outputCodecId = outputContainerFormat.getOutputDefaultAudioCodec();
-      break;
-    case CODEC_TYPE_VIDEO:
-      outputCodecId = outputContainerFormat.getOutputDefaultVideoCodec();
-      break;
-    case CODEC_TYPE_SUBTITLE:
-      outputCodecId = outputContainerFormat.getOutputDefaultSubtitleCodec();
-      break;
-    }
-
-    // if there still isn't a valid codec, hunt through all the codecs
-    // for the output format and see if ANY match the input codec type
-
-    if (null == outputCodecId || ICodec.ID.CODEC_ID_NONE == outputCodecId ||
-      !ICodec.findEncodingCodec(inputCodecId).canEncode())
-    {
-      for(ICodec.ID codecId: outputContainerFormat.getOutputCodecsSupported())
-      {
-        ICodec codec = ICodec.findEncodingCodec(codecId);
-        if (codec.getType() == inputCodecType)
-        {
-          // if it is a valid codec break out of the search
-
-          outputCodecId = codec.getID();
-          if (null != outputCodecId && 
-            ICodec.ID.CODEC_ID_NONE != outputCodecId || 
-            ICodec.findEncodingCodec(inputCodecId).canEncode())
-          {
-            break;
-          }
-        }
-      }
-    }
-
-    // return found ouput codec id, or null if not found
-
-    return outputCodecId;
-  }
-
-  /**
-   * Test if a given codec type is supported by the media writer.
+   * Test if the {@link MediaWriter} can write streams
+   * of this {@link ICodec.Type}
    * 
    * @param type the type of codec to be tested
    *
@@ -974,7 +868,7 @@ implements IMediaTool, IMediaPipeListener
 
     // add a new output stream, based on the id from the input stream
     
-    IStream outputStream = mContainer.addNewStream(inputStream.getId());
+    IStream outputStream = getContainer().addNewStream(inputStream.getId());
 
     // create the coder
     
@@ -983,8 +877,17 @@ implements IMediaTool, IMediaPipeListener
 
     // set the codec for output coder
 
-    outputCoder.setCodec(establishOutputCodecId(inputCoder.getCodecID(), 
-        mContainer.getContainerFormat()));
+    IContainerFormat format = getContainer().getContainerFormat();
+    try
+    {
+      outputCoder.setCodec(format.establishOutputCodecId(inputCoder
+          .getCodecID()));
+    }
+    finally
+    {
+      if (format != null)
+        format.delete();
+    }
 
     // set output coder on the output stream
 
@@ -1128,7 +1031,7 @@ implements IMediaTool, IMediaPipeListener
 
   private void writePacket(IPacket packet)
   {
-    if (mContainer.writePacket(packet, mForceInterleave)<0)
+    if (getContainer().writePacket(packet, mForceInterleave)<0)
       throw new RuntimeException("failed to write packet: " + packet);
 
     // inform listeners
@@ -1181,7 +1084,7 @@ implements IMediaTool, IMediaPipeListener
 
     // flush the container
 
-    mContainer.flushPackets();
+    getContainer().flushPackets();
 
     // inform listeners
 
@@ -1194,7 +1097,7 @@ implements IMediaTool, IMediaPipeListener
   {
     // open the container
 
-    if (mContainer.open(getUrl(), IContainer.Type.WRITE, mContainerFormat,
+    if (getContainer().open(getUrl(), IContainer.Type.WRITE, mContainerFormat,
         true, false) < 0)
       throw new IllegalArgumentException("could not open: " + getUrl());
 
@@ -1204,7 +1107,7 @@ implements IMediaTool, IMediaPipeListener
     
     // note that we should close the container opened here
 
-    mCloseContainer = true;
+    setShouldCloseContainer(true);
   }
 
   /** {@inheritDoc} */
@@ -1219,7 +1122,7 @@ implements IMediaTool, IMediaPipeListener
 
     // write the trailer on the output conteiner
     
-    if ((rv = mContainer.writeTrailer()) < 0)
+    if ((rv = getContainer().writeTrailer()) < 0)
       throw new RuntimeException("error " + IError.make(rv) +
         ", failed to write trailer to "
         + getUrl());
@@ -1257,13 +1160,13 @@ implements IMediaTool, IMediaPipeListener
 
     // if we're supposed to, close the container
 
-    if (mCloseContainer)
+    if (getShouldCloseContainer())
     {
-      if ((rv = mContainer.close()) < 0)
+      if ((rv = getContainer().close()) < 0)
         throw new RuntimeException("error " + IError.make(rv) +
           ", failed close IContainer " +
-          mContainer + " for " + getUrl());
-      mCloseContainer = false;
+          getContainer() + " for " + getUrl());
+      setShouldCloseContainer(false);
     }
 
     // inform the listeners
@@ -1349,6 +1252,34 @@ implements IMediaTool, IMediaPipeListener
        error.delete();
     }
     return errorString;
+  }
+
+  /**
+   * Get the default pixel type
+   * @return the default pixel type
+   */
+  public IPixelFormat.Type getDefaultPixelType()
+  {
+    return DEFAULT_PIXEL_TYPE;
+  }
+
+  /**
+   * Get the default audio sample format
+   * @return the format
+   */
+  public IAudioSamples.Format getDefaultSampleFormat()
+  {
+    return DEFAULT_SAMPLE_FORMAT;
+  }
+
+  /**
+   * Get the default time base we'll use on our encoders
+   * if one is not specified by the codec.
+   * @return the default time base
+   */
+  public IRational getDefaultTimebase()
+  {
+    return DEFAULT_TIMEBASE;
   }
 
 

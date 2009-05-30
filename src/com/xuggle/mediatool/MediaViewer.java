@@ -80,7 +80,6 @@ import org.slf4j.LoggerFactory;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static com.xuggle.mediatool.MediaViewer.Mode.*;
 
 /**
  * An {@link IMediaPipeListener} plays audio, video or both, while
@@ -102,79 +101,9 @@ import static com.xuggle.mediatool.MediaViewer.Mode.*;
  * </p>
  */
 
-public class MediaViewer extends MediaAdapter implements IMediaPipeListener
+public class MediaViewer extends MediaAdapter implements IMediaPipeListener, IMediaViewer
 {
   private static final Logger log = LoggerFactory.getLogger(MediaViewer.class);
-
-  /**
-   * The mode you want to view media in.
-   * @author aclarke
-   *
-   */
-  public enum Mode
-  {
-    /** Play audio & video streams in real-time. */
-
-    AUDIO_VIDEO(true, true, true),
-
-    /** Play only audio streams, in real-time. */
-
-    AUDIO_ONLY(true, false, true),
-
-    /** Play only video streams, in real-time. */
-
-    VIDEO_ONLY(false, true, true),
-
-    /** Play only video, as fast as possible. */
-
-    FAST(false, true, false),
-
-    /** Play neither audio or video, also disables statistics. */
-
-    DISABLED(false, false, false);
-
-    // play audio
-    
-    private final boolean mPlayAudio;
-    
-    // show video
-    
-    private final boolean mShowVideo;
-
-    // show media in real time
-
-    private final boolean mRealtime;
-
-    // construct a mode
-
-    private Mode(boolean playAudio, boolean showVideo, boolean realTime)
-    {
-      mPlayAudio = playAudio;
-      mShowVideo = showVideo;
-      mRealtime = realTime;
-    }
-
-    // play audio
-
-    public boolean playAudio()
-    {
-      return mPlayAudio;
-    }
-
-    // show video
-
-    public boolean showVideo()
-    {
-      return mShowVideo;
-    }
-
-    // show video
-
-    public boolean isRealTime()
-    {
-      return mRealtime;
-    }
-  }
 
   // the capacity (in time) of media buffers
 
@@ -284,7 +213,7 @@ public class MediaViewer extends MediaAdapter implements IMediaPipeListener
 
   public MediaViewer()
   {
-    this(AUDIO_VIDEO, false, JFrame.DISPOSE_ON_CLOSE);
+    this(Mode.AUDIO_VIDEO, false, JFrame.DISPOSE_ON_CLOSE);
   }
 
   /**
@@ -306,7 +235,7 @@ public class MediaViewer extends MediaAdapter implements IMediaPipeListener
 
   public MediaViewer(boolean showStats)
   {
-    this(AUDIO_VIDEO, showStats, JFrame.DISPOSE_ON_CLOSE);
+    this(Mode.AUDIO_VIDEO, showStats, JFrame.DISPOSE_ON_CLOSE);
   }
 
   /**
@@ -334,7 +263,7 @@ public class MediaViewer extends MediaAdapter implements IMediaPipeListener
 
   public MediaViewer(boolean showStats, int defaultCloseOperation)
   {
-    this(AUDIO_VIDEO, showStats, defaultCloseOperation);
+    this(Mode.AUDIO_VIDEO, showStats, defaultCloseOperation);
   }
 
   /**
@@ -370,13 +299,31 @@ public class MediaViewer extends MediaAdapter implements IMediaPipeListener
   }
 
   /**
+   * Will this viewer show a stats window?
+   * @return will this viewer show a stats window?
+   */
+  public boolean willShowStatsWindow()
+  {
+    return mShowStats;
+  }
+
+  /**
+   * Get the default close operation.
+   * @return the default close operation
+   */
+  public int getDefaultCloseOperation()
+  {
+    return mDefaultCloseOperation;
+  }
+  
+  /**
    * Get media time.  This is time used to choose to delay, present, or
    * drop a media frame.
    *
    * @return the current presentation time of the media
    */
 
-  public long getMediaTime()
+  private long getMediaTime()
   {
     // if not in real time mode, then this call is in error
 
@@ -443,7 +390,7 @@ public class MediaViewer extends MediaAdapter implements IMediaPipeListener
     if (!(tool instanceof IMediaTool))
       return;
     
-    if (getMode() == DISABLED)
+    if (getMode() == Mode.DISABLED)
       return;
 
     // get the coder

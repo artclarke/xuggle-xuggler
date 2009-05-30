@@ -46,7 +46,7 @@ import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.video.ConverterFactory;
 
-import static com.xuggle.mediatool.MediaViewer.Mode.*;
+import static com.xuggle.mediatool.IMediaViewer.Mode.*;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -67,7 +67,7 @@ public class MediaViewerTest
 
   // the media view mode
   
-  final MediaViewer.Mode mViewerMode = MediaViewer.Mode.valueOf(
+  final MediaViewer.Mode mViewerMode = IMediaViewer.Mode.valueOf(
     System.getProperty(this.getClass().getName() + ".ViewerMode", 
       DISABLED.name()));
 
@@ -119,7 +119,7 @@ public class MediaViewerTest
 
     // create a media reader
 
-    MediaReader reader = new MediaReader(INPUT_FILENAME,
+    IMediaReader reader = new MediaReader(INPUT_FILENAME,
       ConverterFactory.XUGGLER_BGR_24);
     
     // add a writer to the reader which receives the decoded media,
@@ -307,7 +307,7 @@ public class MediaViewerTest
 
     // add a viewer so we can see the media as it is created
 
-    //writer.addListener(new MediaViewer(FAST, true));
+    //writer.addListener(new MediaViewer(FAST_VIDEO, true));
 
     // add the video stream
 

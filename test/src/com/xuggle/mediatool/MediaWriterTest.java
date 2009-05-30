@@ -47,7 +47,7 @@ import com.xuggle.xuggler.TestAudioSamplesGenerator;
 
 import static junit.framework.Assert.*;
 
-import static com.xuggle.mediatool.MediaViewer.Mode.*;
+import static com.xuggle.mediatool.IMediaViewer.Mode.*;
 
 public class MediaWriterTest
 {
@@ -58,7 +58,7 @@ public class MediaWriterTest
 
   // the media view mode
   
-  final MediaViewer.Mode mViewerMode = MediaViewer.Mode.valueOf(
+  final MediaViewer.Mode mViewerMode = IMediaViewer.Mode.valueOf(
     System.getProperty(this.getClass().getName() + ".ViewerMode", 
       DISABLED.name()));
 

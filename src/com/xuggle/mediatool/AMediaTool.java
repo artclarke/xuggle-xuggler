@@ -29,15 +29,15 @@ import com.xuggle.xuggler.IContainer;
  * @author trebor
  */
 
-public abstract class AMediaTool extends AMediaPipe
+abstract class AMediaTool extends AMediaPipe
 {
   // the container to read from or write to
   
-  protected final IContainer mContainer;
+  private final IContainer mContainer;
 
   // true if this media writer should close the container
 
-  protected boolean mCloseContainer;
+  private boolean mCloseContainer;
 
   // the URL which is read or written
 
@@ -60,7 +60,7 @@ public abstract class AMediaTool extends AMediaPipe
     // it is assuemd that the container should not be closed by the
     // tool, this may change if open() is laster called 
 
-    mCloseContainer = false;
+    setShouldCloseContainer(false);
   }
 
   /** {@inheritDoc} */
@@ -82,5 +82,26 @@ public abstract class AMediaTool extends AMediaPipe
   public boolean isOpen()
   {
     return mContainer.isOpened();
+  }
+
+  /**
+   * Should this {@link IMediaTool} call {@link IContainer#close()}
+   * when {@link IMediaTool#close()} is called.
+   * @param value should we close the container
+   */
+  public void setShouldCloseContainer(boolean value)
+  {
+    mCloseContainer = value;
+  }
+
+  /**
+   * Should this {@link IMediaTool} call {@link IContainer#close()}
+   * when {@link IMediaTool#close()} is called.
+   * 
+   * @return should we close the container
+   */
+  public boolean getShouldCloseContainer()
+  {
+    return mCloseContainer;
   }
 }

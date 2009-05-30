@@ -61,7 +61,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * </p> 
  */
 
-public class MediaReader extends AMediaTool implements IMediaTool
+public class MediaReader extends AMediaTool implements IMediaReader
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -374,7 +374,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
     {
       // test valid stream index
 
-      int numStreams = mContainer.getNumStreams();
+      int numStreams = getContainer().getNumStreams();
       if (streamIndex < 0 || streamIndex >= numStreams)
         throw new RuntimeException("invalid stream index");
     
@@ -389,7 +389,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
         {
           // now get the coder for the given stream index
           
-          IStream stream = mContainer.getStream(i);
+          IStream stream = getContainer().getStream(i);
           try
           {
             coder = stream.getStreamCoder();
@@ -413,7 +413,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
       }
     }
     coder = mCoders.get(streamIndex);
-    IStream stream = mContainer.getStream(streamIndex);
+    IStream stream = getContainer().getStream(streamIndex);
     try
     {
       ICodec.Type type = coder.getCodecType();
@@ -468,7 +468,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
     IPacket packet = IPacket.make();
     try
     {
-      int rv = mContainer.readNextPacket(packet);
+      int rv = getContainer().readNextPacket(packet);
       if (rv < 0)
       {
         IError error = IError.make(rv);
@@ -648,7 +648,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
   
   public void open()
   {
-    if (mContainer.open(getUrl(), IContainer.Type.READ, null, 
+    if (getContainer().open(getUrl(), IContainer.Type.READ, null, 
         mStreamsCanBeAddedDynamically, mQueryStreamMetaData) < 0)
       throw new RuntimeException("could not open: " + getUrl());
 
@@ -657,7 +657,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
     super.onOpen(this);
     // note that we should close the container opened here
 
-    mCloseContainer = true;
+    setShouldCloseContainer(true);
   }
 
   /** {@inheritDoc} */
@@ -693,13 +693,13 @@ public class MediaReader extends AMediaTool implements IMediaTool
 
     // if we're supposed to, close the container
 
-    if (mCloseContainer)
+    if (getShouldCloseContainer())
     {
-      if ((rv = mContainer.close()) < 0)
+      if ((rv = getContainer().close()) < 0)
         throw new RuntimeException("error " + getErrorMessage(rv) +
           ", failed close IContainer " +
-          mContainer + " for " + getUrl());
-      mCloseContainer = false;
+          getContainer() + " for " + getUrl());
+      setShouldCloseContainer(false);
     }
 
     // tell the listeners that the container is closed
@@ -730,7 +730,7 @@ public class MediaReader extends AMediaTool implements IMediaTool
     StringBuilder builder = new StringBuilder();
     builder.append(super.toString());
     builder.append("[");
-    builder.append(mContainer != null ? mContainer.getURL() :"");
+    builder.append(getContainer() != null ? getContainer().getURL() :"");
     builder.append("]");
     return builder.toString();
   }

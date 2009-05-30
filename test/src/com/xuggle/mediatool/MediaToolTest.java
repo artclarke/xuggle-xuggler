@@ -31,9 +31,9 @@ import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.mediatool.MediaWriter;
 import com.xuggle.xuggler.IError;
 
-import static com.xuggle.mediatool.MediaDebugListener.Event.*;
-import static com.xuggle.mediatool.MediaDebugListener.Mode.*;
-import static com.xuggle.mediatool.MediaViewer.Mode.*;
+import static com.xuggle.mediatool.IMediaDebugListener.Event.*;
+import static com.xuggle.mediatool.IMediaDebugListener.Mode.*;
+import static com.xuggle.mediatool.IMediaViewer.Mode.*;
 
 import static junit.framework.Assert.*;
 
@@ -46,7 +46,7 @@ public class MediaToolTest
 
   // show the videos during transcoding?
   
-  final MediaViewer.Mode mViewerMode = MediaViewer.Mode.valueOf(
+  final MediaViewer.Mode mViewerMode = IMediaViewer.Mode.valueOf(
     System.getProperty(this.getClass().getName() + ".ViewerMode", 
       DISABLED.name()));
 

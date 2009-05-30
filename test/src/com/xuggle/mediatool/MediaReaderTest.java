@@ -39,7 +39,7 @@ import java.awt.image.BufferedImage;
 
 import static junit.framework.Assert.*;
 
-import static com.xuggle.mediatool.MediaViewer.Mode.*;
+import static com.xuggle.mediatool.IMediaViewer.Mode.*;
 
 public class MediaReaderTest
 {
@@ -50,7 +50,7 @@ public class MediaReaderTest
 
   // the media view mode
   
-  final MediaViewer.Mode mViewerMode = MediaViewer.Mode.valueOf(
+  final MediaViewer.Mode mViewerMode = IMediaViewer.Mode.valueOf(
     System.getProperty(this.getClass().getName() + ".ViewerMode", 
       DISABLED.name()));
 
@@ -74,7 +74,7 @@ public class MediaReaderTest
   @Test(expected=RuntimeException.class)
     public void testMediaSourceNotExist() 
   {
-    MediaReader mr = new MediaReader("broken" + TEST_FILE_20_SECONDS,
+    IMediaReader mr = new MediaReader("broken" + TEST_FILE_20_SECONDS,
       ConverterFactory.XUGGLER_BGR_24);
     mr.readPacket();
   }  

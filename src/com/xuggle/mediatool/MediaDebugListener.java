@@ -37,8 +37,8 @@ import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
 
 
-import static com.xuggle.mediatool.MediaDebugListener.Event.*;
-import static com.xuggle.mediatool.MediaDebugListener.Mode.*;
+import static com.xuggle.mediatool.IMediaDebugListener.Event.*;
+import static com.xuggle.mediatool.IMediaDebugListener.Mode.*;
 
 /**
  * An {@link IMediaPipeListener} that counts {@link IMediaPipe}
@@ -59,150 +59,32 @@ import static com.xuggle.mediatool.MediaDebugListener.Mode.*;
  * </p>
  */
 
-public class MediaDebugListener extends MediaAdapter implements IMediaPipeListener
+public class MediaDebugListener extends MediaAdapter implements IMediaPipeListener, IMediaDebugListener
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
-  
-  // log modes
-
-  /**
-   * How much detail on each event you want to log.
-   */
-  public enum Mode {
-
-    /** log no events */
-
-    NOTHING, 
-
-    /** log events without details */
-
-    EVENT,
-
-    /** log events with source or destination URL */
-
-    URL, 
-
-    /** log parameters passed to the event */
-
-    PARAMETERS};
+  // update max name length
 
   // max event name length
+  private static final int mMaxNameLength;
+  static {
+    int maxNameLen = 0;
+    for (Event event : Event.values())
+      maxNameLen = Math.max(event.name().length(), maxNameLen);
+    mMaxNameLength = maxNameLen;
+  }
   
-  private static int mMaxNameLength = 0;
-  
-  /** The different type of events you'd like to print
-   * data for.  */
-  
-  public enum Event
+  /**
+   * Get the maximum length of an event name.
+   * @return the maximum length.
+   */
+
+  private static int getMaxNameLength()
   {
-    /** Video events */
-
-    VIDEO         (0x001, "onVideoPicture"),
-
-    /** Audio events */
-
-    AUDIO       (0x002, "onAudioSamples"),
-
-    /** Open events */
-
-    OPEN        (0x004, "onOpen"),
-
-    /** Close events */
-
-    CLOSE       (0x008, "onClose"),
-
-    /** Add stream events */
-
-    ADD_STREAM  (0x010, "onAddStream"),
-
-    /** Open stream events */
-
-    OPEN_STREAM (0x020, "onOpenStream"),
-
-    /** Close stream events */
-
-    CLOSE_STREAM(0x040, "onCloseStream"),
-
-    /** Read packet events */
-
-    READ_PACKET (0x080, "onReadPacket"),
-
-    /** Write packet events */
-
-    WRITE_PACKET(0x100, "onWritePacket"),
-
-    /** Write header events */
-
-    HEADER      (0x200, "onWriteHeader"),
-
-    /** Write trailer events */
-
-    TRAILER     (0x400, "onWriteTrailer"),
-
-    /** Flush events */
-
-    FLUSH       (0x800, "onFlush"),
-
-    /** All events */
-
-    ALL         (0xfff, "<ALL-EVENT>"),
-
-    /** No events */
-
-    NONE        (0x000, "<NO-EVENTS>"),
-
-    /**
-     * {@link #VIDEO}, {@link #AUDIO}, {@link #READ_PACKET} and
-     * {@link #WRITE_PACKET} events
-     */
-
-    DATA        (0x183, "<DATA-EVENTS>"),
-
-    /**
-     * All events except {@link #VIDEO}, {@link #AUDIO}, {@link
-     * #READ_PACKET} and {@link #WRITE_PACKET} events
-     */
-
-    META_DATA   (0xfff & ~0x183, "<META-DATA-EVENTS>");
-
-    // event flag
-
-    private int mFlag;
-
-    // name of called method
-
-    private String mMethod;
-
-    /**
-     * Create an event.
-     */
-    Event(int flag, String method)
-    {
-      mFlag = flag;
-      mMethod = method;
-      updateMaxNameLength(name());
-    }
-
-    /**
-     * Get the event flag.
-     * @return the flag.
-     */
-
-    public int getFlag()
-    {
-      return mFlag;
-    }
-
-    /**
-     * Get the {@link IMediaPipeListener} event this event
-     * will fire for.
-     * @return The method.
-     */
-    public String getMethod()
-    {
-      return mMethod;
-    }
-  };
+    return mMaxNameLength;
+  }
+  
+  
+  // log modes
 
   // the flags
   
@@ -441,20 +323,4 @@ public class MediaDebugListener extends MediaAdapter implements IMediaPipeListen
     return sb.toString();
   }
 
-  // update max lane length
-  
-  private static void updateMaxNameLength(String name)
-  {
-    mMaxNameLength = Math.max(name.length(), mMaxNameLength);
-  }
-  
-  /**
-   * Get the maximum length of an event name.
-   * @return the maximum length.
-   */
-
-  public static int getMaxNameLength()
-  {
-    return mMaxNameLength;
-  }
 }

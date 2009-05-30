@@ -44,9 +44,9 @@ import com.xuggle.mediatool.MediaWriter;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 
-import static com.xuggle.mediatool.MediaDebugListener.Event.*;
-import static com.xuggle.mediatool.MediaDebugListener.Mode.*;
-import static com.xuggle.mediatool.MediaViewer.Mode.*;
+import static com.xuggle.mediatool.IMediaDebugListener.Event.*;
+import static com.xuggle.mediatool.IMediaDebugListener.Mode.*;
+import static com.xuggle.mediatool.IMediaViewer.Mode.*;
 
 @RunWith(Parameterized.class)
 public class MediaWriterExhaustiveTest
@@ -58,7 +58,7 @@ public class MediaWriterExhaustiveTest
 
   // show the videos during transcoding?
   
-  final MediaViewer.Mode mViewerMode = MediaViewer.Mode.valueOf(
+  final MediaViewer.Mode mViewerMode = IMediaViewer.Mode.valueOf(
     System.getProperty(this.getClass().getName() + ".ViewerMode", 
       DISABLED.name()));
 

@@ -20,6 +20,7 @@
 package com.xuggle.mediatool.demos;
 
 
+import com.xuggle.mediatool.IMediaViewer;
 import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
 
@@ -70,7 +71,7 @@ public class DecodeAndPlayVideo
     //
     // Create a MediaViewer object andtell it to play video only
     //
-    mediaReader.addListener(new MediaViewer(MediaViewer.Mode.VIDEO_ONLY));
+    mediaReader.addListener(new MediaViewer(IMediaViewer.Mode.VIDEO_ONLY));
 
     // read out the contents of the media file, and sit back and watch
 

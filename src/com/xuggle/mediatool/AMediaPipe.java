@@ -23,7 +23,7 @@ import com.xuggle.xuggler.IVideoPicture;
  * @author aclarke
  *
  */
-public class AMediaPipe
+abstract class AMediaPipe
 // We deliberately don't declare these, but they
 // are commented out so you can easily add them to check compliance
 //implements IMediaPipeListener, IMediaPipe
