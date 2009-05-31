@@ -21,6 +21,7 @@ package com.xuggle.xuggler;
 
 import static org.junit.Assert.assertEquals;
 
+import java.awt.image.BufferedImage;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,7 +39,6 @@ import com.xuggle.ferry.JNIMemoryManager.MemoryModel;
 import com.xuggle.mediatool.IMediaReader;
 import com.xuggle.mediatool.MediaTool;
 import com.xuggle.mediatool.IMediaViewer;
-import com.xuggle.xuggler.video.ConverterFactory;
 
 @RunWith(Parameterized.class)
 public class MultiThreadedWritingExhaustiveTest
@@ -101,10 +101,10 @@ public class MultiThreadedWritingExhaustiveTest
         public void run()
         {
           final IMediaReader reader = MediaTool.makeReader(
-              "fixtures/testfile_videoonly_20sec.flv",
-              ConverterFactory.XUGGLER_BGR_24);
+              "fixtures/testfile_videoonly_20sec.flv");
           try
           {
+            reader.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
             reader.setAddDynamicStreams(false);
             reader.setQueryMetaData(true);
             if (ADD_VIEWER)

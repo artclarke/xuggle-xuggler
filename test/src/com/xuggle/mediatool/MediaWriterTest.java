@@ -43,7 +43,6 @@ import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoResampler;
-import com.xuggle.xuggler.video.ConverterFactory;
 import com.xuggle.xuggler.TestAudioSamplesGenerator;
 
 import static junit.framework.Assert.*;
@@ -83,7 +82,8 @@ public class MediaWriterTest
   @Before
     public void beforeTest()
   {
-    mReader = new MediaReader(TEST_FILE, ConverterFactory.XUGGLER_BGR_24);
+    mReader = new MediaReader(TEST_FILE);
+    mReader.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
   }
 
   @After

@@ -45,7 +45,6 @@ import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.video.ConverterFactory;
 
 import static com.xuggle.mediatool.IMediaViewer.Mode.*;
 
@@ -120,8 +119,9 @@ public class MediaViewerTest
 
     // create a media reader
 
-    IMediaReader reader = new MediaReader(INPUT_FILENAME,
-      ConverterFactory.XUGGLER_BGR_24);
+    IMediaReader reader = new MediaReader(INPUT_FILENAME);
+    reader.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
+
     
     // add a writer to the reader which receives the decoded media,
     // encodes it and writes it out to the specified file

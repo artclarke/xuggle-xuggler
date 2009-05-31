@@ -33,7 +33,6 @@ import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IVideoResampler;
-import com.xuggle.xuggler.video.ConverterFactory;
 
 import java.awt.image.BufferedImage;
 
@@ -74,8 +73,9 @@ public class MediaReaderTest
   @Test(expected=RuntimeException.class)
     public void testMediaSourceNotExist() 
   {
-    IMediaReader mr = new MediaReader("broken" + TEST_FILE_20_SECONDS,
-      ConverterFactory.XUGGLER_BGR_24);
+    IMediaReader mr = new MediaReader("broken" + TEST_FILE_20_SECONDS);
+    mr.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
+
     mr.readPacket();
   }  
 
@@ -147,8 +147,9 @@ public class MediaReaderTest
     
     // create a new media reader
 
-    MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS, 
-      ConverterFactory.XUGGLER_BGR_24);
+    MediaReader mr = new MediaReader(TEST_FILE_20_SECONDS);
+    mr.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
+
     mr.addListener(new MediaViewer(mViewerMode, true));
 
     // setup the the listener
@@ -201,8 +202,8 @@ public class MediaReaderTest
         
     // create a new media reader
 
-    MediaReader mr = new MediaReader(container, 
-      ConverterFactory.XUGGLER_BGR_24);
+    MediaReader mr = new MediaReader(container);
+    mr.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
     mr.addListener(new MediaViewer(mViewerMode, true));
 
     // setup the the listener

@@ -80,7 +80,7 @@ class MediaReader extends AMediaTool implements IMediaReader
 
   // the type of converter to use, NULL if no conversion should occur
 
-  private final ConverterFactory.Type mConverterType;
+  private ConverterFactory.Type mConverterType;
 
   // true if new streams can may appear during a read packet at any time
 
@@ -97,6 +97,11 @@ class MediaReader extends AMediaTool implements IMediaReader
   // close on EOF only
 
   private boolean mCloseOnEofOnly = false;
+
+  // What buffered image type do people want us to produce
+  // -1 disables
+  
+  private int mBufferedImageType = -1;
 
   /**
    * Create a MediaReader which reads and dispatches data from a media
@@ -119,45 +124,7 @@ class MediaReader extends AMediaTool implements IMediaReader
 
   MediaReader(String url)
   {
-    this(url, null);
-  }
-
-  /**
-   * Create a MediaReader which reads and dispatches data from a media
-   * stream for a given source URL, and optionally converts pictures to
-   * images.  The media stream is opened, and subsequent calls to {@link
-   * #readPacket()} will read stream content and dispatch it to attached
-   * listeners.  When the end of the stream is encountered the media
-   * container and it's contained streams are all closed.
-   *
-   * @param url the location of the media content, a file name will also
-   *        work here
-   * @param converterDescriptor the descriptor of converter to use to
-   *        create buffered images; or NULL if no BufferedImages should
-   *        be created see {@link
-   *        com.xuggle.xuggler.video.ConverterFactory}
-   *
-   * @throws UnsupportedOperationException if the converter can not be
-   *         found
-   */
-
-  MediaReader(String url, String converterDescriptor)
-  {
     super(url, IContainer.make());
-
-    // if converterDescriptor is present, create buffered images during
-    // video decoding
-
-    if (null != converterDescriptor)
-    {
-      mConverterType = ConverterFactory 
-        .findRegisteredConverter(converterDescriptor);
-      if (mConverterType == null)
-        throw new UnsupportedOperationException(
-          "No converter \"" + converterDescriptor + "\" found.");
-    }
-    else
-      mConverterType = null;
   }
 
   /**
@@ -183,50 +150,11 @@ class MediaReader extends AMediaTool implements IMediaReader
 
   MediaReader(IContainer container)
   {
-    this(container, null);
-  }
-
-  /**
-   * Create a MediaReader which reads and dispatches data from a media
-   * container. Calls to {@link #readPacket} will read stream content and
-   * dispatch it to attached listeners. If the end of the media stream is
-   * encountered, the MediaReader does NOT close the container, that is left to
-   * the calling context (you). {@link IStreamCoder}s opened by the MediaReader
-   * will be closed by the MediaReader, however {@link IStreamCoder}s outside
-   * the MediaReader will not be closed. In short MediaReader closes what it
-   * opens.
-   * 
-   * @param container on already open media container
-   * @param converterDescriptor the descriptor of converter to use to
-   *        create buffered images; or NULL if no BufferedImages should
-   *        be created see {@link
-   *        com.xuggle.xuggler.video.ConverterFactory}
-   * 
-   * @throws UnsupportedOperationException if the converter can not be
-   *         found
-   */
-
-  MediaReader(IContainer container, String converterDescriptor)
-  {
     super(container.getURL(), container);
 
     // get dynamic stream add ability
 
     mStreamsCanBeAddedDynamically = container.canStreamsBeAddedDynamically();
-
-    // if converterDescriptor is present, create buffered images during
-    // video decoding
-
-    if (null != converterDescriptor)
-    {
-      mConverterType = ConverterFactory 
-        .findRegisteredConverter(converterDescriptor);
-      if (mConverterType == null)
-        throw new UnsupportedOperationException(
-          "No converter \"" + converterDescriptor + "\" found.");
-    }
-    else
-      mConverterType = null;
   }
 
   /**
@@ -313,7 +241,44 @@ class MediaReader extends AMediaTool implements IMediaReader
     
     mQueryStreamMetaData = queryStreamMetaData;
   }
+  
+  /**
+   * Asks the {@link IMediaReader} to generate {@link BufferedImage}
+   * images when calling {@link IMediaPipeListener#onVideoPicture(IMediaPipe, IVideoPicture, BufferedImage, int)}.
+   * 
+   * @param bufferedImageType The buffered image type (e.g.
+   *   {@link BufferedImage#TYPE_3BYTE_BGR}).  Set to -1 to disable
+   *   this feature.
+   *   
+   * @see BufferedImage
+   * @throws RuntimeException if the media container has been opened you
+   *   cannot change this setting.
+   */
 
+  public void setBufferedImageTypeToGenerate(int bufferedImageType)
+  {
+    if (isOpen())
+      throw new RuntimeException("media container is already open");
+    if (bufferedImageType >= 0 &&
+        bufferedImageType != BufferedImage.TYPE_3BYTE_BGR)
+      // can remove this once the any converter is created
+      throw new RuntimeException("Only BufferedImage.TYPE_3BYTE_BGR supported: "+
+          bufferedImageType);
+    mBufferedImageType = bufferedImageType;
+  }
+  
+  /**
+   * Get the {@link BufferedImage} type this {@link IMediaReader} will
+   * generate.
+   * @return the type, or -1 if disabled.
+   * 
+   * @see #getBufferedImageTypeToGenerate()
+   */
+  public int getBufferedImageTypeToGenerate()
+  {
+    return mBufferedImageType;
+  }
+  
   /** 
    * Report if the underlying media container will attempt to establish
    * all meta data when the container is opened, which will potentially
@@ -609,17 +574,28 @@ class MediaReader extends AMediaTool implements IMediaReader
     
     // if should create buffered image, do so
 
-    if (null != mConverterType)
+    if (mBufferedImageType >= 0)
     {
-      // if the converter is not created, create one
+      if (mConverterType == null) {
+        mConverterType = ConverterFactory 
+        .findRegisteredConverter(ConverterFactory.XUGGLER_BGR_24);
+      if (mConverterType == null)
+        throw new UnsupportedOperationException(
+          "No converter \"" + ConverterFactory.XUGGLER_BGR_24 + "\" found.");
+      }
+        // if the converter is not created, create one
 
       if (mVideoConverter == null)
-        mVideoConverter = ConverterFactory.createConverter(
-          mConverterType.getDescriptor(), picture);
+        mVideoConverter = ConverterFactory.createConverter(mConverterType
+            .getDescriptor(), picture);
 
       // create the buffered image
 
       image = mVideoConverter.toImage(picture);
+    } else {
+      // reset it for next time someone calls.
+      mConverterType = null;
+      mVideoConverter = null;
     }
     
     // dispatch picture here

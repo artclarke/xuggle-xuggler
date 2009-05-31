@@ -62,24 +62,6 @@ public class MediaTool
    * Create an {@link IMediaReader} to reads and dispatches decoded media from a
    * media container for a given source URL.
    * 
-   * @param url the location of the media content, a file name will also work
-   *        here
-   * @param converterDescriptor the descriptor of converter to use to create
-   *        buffered images; or NULL if no BufferedImages should be created see
-   *        {@link com.xuggle.xuggler.video.ConverterFactory}
-   * 
-   * @throws UnsupportedOperationException if the converter can not be found
-   */
-
-  public static IMediaReader makeReader(String url, String converterDescriptor)
-  {
-    return new MediaReader(url, converterDescriptor);
-  }
-
-  /**
-   * Create an {@link IMediaReader} to reads and dispatches decoded media from a
-   * media container for a given source URL.
-   * 
    * <p>
    * 
    * Any Xuggler resourced opened by the {@link IMediaReader} will be closed by
@@ -95,32 +77,6 @@ public class MediaTool
   public static IMediaReader makeReader(IContainer container)
   {
     return new MediaReader(container);
-  }
-
-  /**
-   * Create an {@link IMediaReader} to reads and dispatches decoded media from a
-   * media container for a given source URL.
-   * 
-   * <p>
-   * 
-   * Any Xuggler resourced opened by the {@link IMediaReader} will be closed by
-   * the {@link IMediaReader}, however resources opened outside the
-   * {@link IMediaReader} will not be closed. In short {@link IMediaReader}
-   * closes what it opens.
-   * 
-   * </p>
-   * 
-   * @param container an already created media container to read data from.
-   * @param converterDescriptor the descriptor of converter to use to create
-   *        buffered images; or NULL if no BufferedImages should be created see
-   *        {@link com.xuggle.xuggler.video.ConverterFactory}
-   * 
-   * @throws UnsupportedOperationException if the converter can not be found
-   */
-  public static IMediaReader makeReader(IContainer container,
-      String converterDescriptor)
-  {
-    return new MediaReader(container, converterDescriptor);
   }
 
   /* MediaWriter constructors */

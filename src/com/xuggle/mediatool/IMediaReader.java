@@ -1,5 +1,7 @@
 package com.xuggle.mediatool;
 
+import java.awt.image.BufferedImage;
+
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
@@ -133,12 +135,42 @@ public interface IMediaReader extends IMediaTool
 
   public abstract IError readPacket();
 
-  /** {@inheritDoc} */
+  /**
+   * Asks the {@link IMediaReader} to generate {@link BufferedImage}
+   * images when calling {@link IMediaPipeListener#onVideoPicture(IMediaPipe, IVideoPicture, BufferedImage, int)}.
+   * 
+   * <p>
+   * NOTE: Only {@link BufferedImage#TYPE_3BYTE_BGR} is supported today.
+   * </p>
+   * 
+   * <p>
+   * If set to a non-negative value, {@link IMediaReader} will
+   * resample any video data it has decoded into the right colorspace
+   * for the {@link BufferedImage}, and generate a new {@link BufferedImage}
+   * to pass in on each {@link IMediaPipeListener#onVideoPicture(IMediaPipe, IVideoPicture, BufferedImage, int)
+   * } call.
+   * </p>
+   * 
+   * @param bufferedImageType The buffered image type (e.g.
+   *   {@link BufferedImage#TYPE_3BYTE_BGR}) you want 
+   *   {@link IMediaReader} to generate.  Set to -1 to disable
+   *   this feature.
+   *   
+   * @see BufferedImage
+   * @throws RuntimeException if the media container has been opened you
+   *   cannot change this setting.
+   */
 
-  public abstract void open();
+  public abstract int getBufferedImageTypeToGenerate();
 
-  /** {@inheritDoc} */
+  /**
+   * Get the {@link BufferedImage} type this {@link IMediaReader} will
+   * generate.
+   * @return the type, or -1 if disabled.
+   * 
+   * @see #getBufferedImageTypeToGenerate()
+   */
 
-  public abstract void close();
+  public abstract void setBufferedImageTypeToGenerate(int bufferedImageType);
 
 }

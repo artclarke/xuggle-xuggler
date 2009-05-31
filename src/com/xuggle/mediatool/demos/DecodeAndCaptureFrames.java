@@ -31,7 +31,6 @@ import com.xuggle.mediatool.MediaPipeAdapter;
 import com.xuggle.mediatool.MediaTool;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.video.ConverterFactory;
 
 /**
  * Using {@link IMediaReader}, takes a media container, finds the first video stream, decodes that
@@ -95,25 +94,27 @@ public class DecodeAndCaptureFrames extends MediaPipeAdapter
 
   public DecodeAndCaptureFrames(String filename)
   {
-    // create a media reader for processing video, stipulate that we
-    // want BufferedImages to created in BGR 24bit color space
+    // create a media reader for processing video
 
-    IMediaReader mediaReader = MediaTool.makeReader(filename, 
-      ConverterFactory.XUGGLER_BGR_24);
+    IMediaReader reader = MediaTool.makeReader(filename);
+    
+    // stipulate that we want BufferedImages created in BGR 24bit color space
+    reader.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
+
     
     // note that DecodeAndCaptureFrames is derived from
     // MediaReader.ListenerAdapter and thus may be added as a listener
     // to the MediaReader. DecodeAndCaptureFrames implements
     // onVideoPicture().
 
-    mediaReader.addListener(this);
+    reader.addListener(this);
 
     // read out the contents of the media file, note that nothing else
     // happens here.  action happens in the onVideoPicture() method
     // which is called when complete video pictures are extracted from
     // the media source
 
-    while (mediaReader.readPacket() == null)
+    while (reader.readPacket() == null)
       ;
   }
 

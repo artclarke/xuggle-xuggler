@@ -21,6 +21,7 @@ package com.xuggle.xuggler;
 
 import static org.junit.Assert.assertEquals;
 
+import java.awt.image.BufferedImage;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.BrokenBarrierException;
@@ -39,7 +40,6 @@ import com.xuggle.ferry.JNIMemoryManager.MemoryModel;
 import com.xuggle.mediatool.IMediaReader;
 import com.xuggle.mediatool.MediaTool;
 import com.xuggle.mediatool.IMediaViewer;
-import com.xuggle.xuggler.video.ConverterFactory;
 
 /**
  * This test opens up a lot of threads and attempts to read from them.
@@ -129,9 +129,10 @@ public class MultiThreadedReadingExhaustiveTest
             return;
           }
           final IMediaReader reader = 
-            MediaTool.makeReader("fixtures/testfile_videoonly_20sec.flv",
-                ConverterFactory.XUGGLER_BGR_24);
+            MediaTool.makeReader("fixtures/testfile_videoonly_20sec.flv");
           try {
+            reader.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
+
             log.debug("Created reader: {}", reader);
             if (ADD_VIEWER)
             {
