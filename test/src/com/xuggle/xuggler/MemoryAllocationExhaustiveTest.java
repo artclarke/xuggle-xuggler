@@ -363,7 +363,7 @@ public class MemoryAllocationExhaustiveTest
           if (buffer != null)
             buffer.delete();
           if (i %100 == 0) {
-            log.debug(
+            log.trace(
                 "iteration: {}; allocated {} bytes; pinned: {}; holding: {}",
                 new Object[]{i,
                 bytesBeforeFailure,
