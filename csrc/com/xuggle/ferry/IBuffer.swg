@@ -115,6 +115,804 @@
      return (int)swigCPtr;
   }
   
+
+  private void validateArgs(Object array, int arrayLength,
+      int arrayPos,
+      int bufferSize,
+      int bufferPos,
+      int length)
+  {
+    if (arrayPos < 0)
+      throw new IndexOutOfBoundsException();
+    if (bufferPos < 0)
+      throw new IndexOutOfBoundsException();
+    if (length < 0)
+      throw new IndexOutOfBoundsException();
+    if (arrayPos+length > arrayLength)
+      throw new IndexOutOfBoundsException();
+    if (bufferPos + length > bufferSize)
+      throw new IndexOutOfBoundsException();
+  }
+  
+  /**
+   * Absolute bulk put method.
+   * <p>
+   * This method transfers bytes into this buffer from the given source array.
+   * If there are more bytes to be copied from the array than there is
+   * space remaining at the specified destination offset,
+   * then no bytes are transferred and a BufferOverflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and copying the bytes over, but is more efficient in
+   * the {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param src The array from which bytes are to be read.  Must be non null.
+   * @param srcPos The offset within <code>src</code> of the first byte to be read;
+   *   must be non-negative and less than <code>src.length</code>
+   * @param destPos The offset in the IBuffer where you want to copy
+   *   data to.  Must be non-negative and less than <code>getBufferSize()</code>
+   * @param length The number of bytes to be read from <code>src</code>;
+   *  must be non-negative and no larger than <code>src.length - srcPos</code>
+   *  
+   * @throws NullPointerException if <code>src</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *   mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient space
+   *   in this {@link IBuffer}.
+   *   
+   */
+  public void put(byte[] src, int srcPos, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer buffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    try
+    {
+      if (buffer == null)
+        return;
+      buffer.clear();
+      validateArgs(src, src.length, srcPos, buffer.limit(), destPos, length);
+      
+      buffer.position(destPos);
+      buffer.put(src, srcPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+
+  /**
+   * Absolute bulk get method.
+   * <p>
+   * This method transfers bytes from this {@link IBuffer} into the given
+   * <code>dest</code>
+   * array. If there are fewer bytes in the {@link IBuffer} starting
+   * at position <code>srcPos</code> than are required
+   * to satisfy the request, then no bytes are
+   * transferred and a BufferUnderflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and reading the bytes out, but is more efficient in the
+   * {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param srcPos The offset in the IBuffer where you want to start
+   *        copying data from.
+   *        Must be non-negative and less than <code>getBufferSize()</code>
+   * @param dest The array to which bytes are to be written. Must be non null.
+   * @param destPos The offset within <code>dest</code> of the first byte to be
+   *        written; must be non-negative and less than <code>dest.length</code>
+   * @param length The number of bytes to be copied into <code>dest</code>; must be
+   *        non-negative and no larger than <code>dest.length - destPos</code>
+   * 
+   * @throws NullPointerException if <code>dest</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *         mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient data in this
+   *         {@link IBuffer} to satisfy the request.
+   * 
+   */
+  public void get(int srcPos, byte[] dest, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer buffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    try
+    {
+      if (buffer == null)
+        return;
+      validateArgs(dest, dest.length, destPos, buffer.limit(), srcPos, length);
+      
+      buffer.position(srcPos);
+      buffer.get(dest, destPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+
+  /**
+   * Absolute bulk put method.
+   * <p>
+   * This method transfers shorts into this buffer from the given source array.
+   * If there are more shorts to be copied from the array than there is
+   * space remaining at the specified destination offset,
+   * then no shorts are transferred and a BufferOverflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and copying the bytes over, but is more efficient in
+   * the {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param src The array from which shorts are to be read.  Must be non null.
+   * @param srcPos The offset within <code>src</code> of the first short to be read;
+   *   must be non-negative and less than <code>src.length</code>
+   * @param destPos The offset in the IBuffer where you want to copy
+   *   data to.  Must be non-negative and less than <code>getBufferSize()</code>
+   * @param length The number of shorts to be read from <code>src</code>;
+   *  must be non-negative and no larger than <code>src.length - srcPos</code>
+   *  
+   * @throws NullPointerException if <code>src</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *   mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient space
+   *   in this {@link IBuffer}.
+   *   
+   */
+  public void put(short[] src, int srcPos, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer bbuffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    
+    try
+    {
+      if (bbuffer == null)
+        return;
+      java.nio.ShortBuffer buffer = bbuffer.asShortBuffer();
+      buffer.clear();
+      validateArgs(src, src.length, srcPos, buffer.limit(), destPos, length);
+      buffer.position(destPos);
+      buffer.put(src, srcPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+
+  /**
+   * Absolute bulk get method.
+   * <p>
+   * This method transfers shorts from this {@link IBuffer} into the given
+   * <code>dest</code>
+   * array. If there are fewer shorts in the {@link IBuffer} starting
+   * at position <code>srcPos</code> than are required
+   * to satisfy the request, then no shorts are
+   * transferred and a BufferUnderflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and reading the bytes out, but is more efficient in the
+   * {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param srcPos The offset in the IBuffer where you want to start
+   *        copying data from.
+   *        Must be non-negative and less than <code>getBufferSize()</code>
+   * @param dest The array to which shorts are to be written. Must be non null.
+   * @param destPos The offset within <code>dest</code> of the first short to be
+   *        written; must be non-negative and less than <code>dest.length</code>
+   * @param length The number of shorts to be copied into <code>dest</code>; must be
+   *        non-negative and no larger than <code>dest.length - destPos</code>
+   * 
+   * @throws NullPointerException if <code>dest</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *         mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient data in this
+   *         {@link IBuffer} to satisfy the request.
+   * 
+   */
+  public void get(int srcPos, short[] dest, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer bbuffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    try
+    {
+      if (bbuffer == null)
+        return;
+      java.nio.ShortBuffer buffer = bbuffer.asShortBuffer();
+      validateArgs(dest, dest.length, destPos, buffer.limit(), srcPos, length);
+      buffer.position(srcPos);
+      buffer.get(dest, destPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+
+  
+  /**
+   * Absolute bulk put method.
+   * <p>
+   * This method transfers ints into this buffer from the given source array.
+   * If there are more ints to be copied from the array than there is
+   * space remaining at the specified destination offset,
+   * then no ints are transferred and a BufferOverflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and copying the bytes over, but is more efficient in
+   * the {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param src The array from which ints are to be read.  Must be non null.
+   * @param srcPos The offset within <code>src</code> of the first int to be read;
+   *   must be non-negative and less than <code>src.length</code>
+   * @param destPos The offset in the IBuffer where you want to copy
+   *   data to.  Must be non-negative and less than <code>getBufferSize()</code>
+   * @param length The number of ints to be read from <code>src</code>;
+   *  must be non-negative and no larger than <code>src.length - srcPos</code>
+   *  
+   * @throws NullPointerException if <code>src</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *   mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient space
+   *   in this {@link IBuffer}.
+   *   
+   */
+  public void put(int[] src, int srcPos, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer bbuffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    
+    try
+    {
+      if (bbuffer == null)
+        return;
+      java.nio.IntBuffer buffer = bbuffer.asIntBuffer();
+      buffer.clear();
+      validateArgs(src, src.length, srcPos, buffer.limit(), destPos, length);
+      buffer.position(destPos);
+      buffer.put(src, srcPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+
+  /**
+   * Absolute bulk get method.
+   * <p>
+   * This method transfers ints from this {@link IBuffer} into the given
+   * <code>dest</code>
+   * array. If there are fewer ints in the {@link IBuffer} starting
+   * at position <code>srcPos</code> than are required
+   * to satisfy the request, then no ints are
+   * transferred and a BufferUnderflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and reading the bytes out, but is more efficient in the
+   * {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param srcPos The offset in the IBuffer where you want to start
+   *        copying data from.
+   *        Must be non-negative and less than <code>getBufferSize()</code>
+   * @param dest The array to which ints are to be written. Must be non null.
+   * @param destPos The offset within <code>dest</code> of the first int to be
+   *        written; must be non-negative and less than <code>dest.length</code>
+   * @param length The number of ints to be copied into <code>dest</code>; must be
+   *        non-negative and no larger than <code>dest.length - destPos</code>
+   * 
+   * @throws NullPointerException if <code>dest</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *         mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient data in this
+   *         {@link IBuffer} to satisfy the request.
+   * 
+   */
+  public void get(int srcPos, int[] dest, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer bbuffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    try
+    {
+      if (bbuffer == null)
+        return;
+      java.nio.IntBuffer buffer = bbuffer.asIntBuffer();
+      validateArgs(dest, dest.length, destPos, buffer.limit(), srcPos, length);
+      buffer.position(srcPos);
+      buffer.get(dest, destPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+
+
+  /**
+   * Absolute bulk put method.
+   * <p>
+   * This method transfers longs into this buffer from the given source array.
+   * If there are more longs to be copied from the array than there is
+   * space remaining at the specified destination offset,
+   * then no longs are transferred and a BufferOverflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and copying the bytes over, but is more efficient in
+   * the {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param src The array from which longs are to be read.  Must be non null.
+   * @param srcPos The offset within <code>src</code> of the first long to be read;
+   *   must be non-negative and less than <code>src.length</code>
+   * @param destPos The offset in the IBuffer where you want to copy
+   *   data to.  Must be non-negative and less than <code>getBufferSize()</code>
+   * @param length The number of longs to be read from <code>src</code>;
+   *  must be non-negative and no larger than <code>src.length - srcPos</code>
+   *  
+   * @throws NullPointerException if <code>src</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *   mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient space
+   *   in this {@link IBuffer}.
+   *   
+   */
+  public void put(long[] src, int srcPos, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer bbuffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    
+    try
+    {
+      if (bbuffer == null)
+        return;
+      java.nio.LongBuffer buffer = bbuffer.asLongBuffer();
+      buffer.clear();
+      validateArgs(src, src.length, srcPos, buffer.limit(), destPos, length);
+      buffer.position(destPos);
+      buffer.put(src, srcPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+
+  /**
+   * Absolute bulk get method.
+   * <p>
+   * This method transfers longs from this {@link IBuffer} into the given
+   * <code>dest</code>
+   * array. If there are fewer longs in the {@link IBuffer} starting
+   * at position <code>srcPos</code> than are required
+   * to satisfy the request, then no longs are
+   * transferred and a BufferUnderflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and reading the bytes out, but is more efficient in the
+   * {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param srcPos The offset in the IBuffer where you want to start
+   *        copying data from.
+   *        Must be non-negative and less than <code>getBufferSize()</code>
+   * @param dest The array to which longs are to be written. Must be non null.
+   * @param destPos The offset within <code>dest</code> of the first long to be
+   *        written; must be non-negative and less than <code>dest.length</code>
+   * @param length The number of longs to be copied into <code>dest</code>; must be
+   *        non-negative and no larger than <code>dest.length - destPos</code>
+   * 
+   * @throws NullPointerException if <code>dest</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *         mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient data in this
+   *         {@link IBuffer} to satisfy the request.
+   * 
+   */
+  public void get(int srcPos, long[] dest, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer bbuffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    try
+    {
+      if (bbuffer == null)
+        return;
+      java.nio.LongBuffer buffer = bbuffer.asLongBuffer();
+      validateArgs(dest, dest.length, destPos, buffer.limit(), srcPos, length);
+      buffer.position(srcPos);
+      buffer.get(dest, destPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+  
+  /**
+   * Absolute bulk put method.
+   * <p>
+   * This method transfers doubles into this buffer from the given source array.
+   * If there are more doubles to be copied from the array than there is
+   * space remaining at the specified destination offset,
+   * then no doubles are transferred and a BufferOverflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and copying the bytes over, but is more efficient in
+   * the {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param src The array from which doubles are to be read.  Must be non null.
+   * @param srcPos The offset within <code>src</code> of the first double to be read;
+   *   must be non-negative and less than <code>src.length</code>
+   * @param destPos The offset in the IBuffer where you want to copy
+   *   data to.  Must be non-negative and less than <code>getBufferSize()</code>
+   * @param length The number of doubles to be read from <code>src</code>;
+   *  must be non-negative and no larger than <code>src.length - srcPos</code>
+   *  
+   * @throws NullPointerException if <code>src</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *   mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient space
+   *   in this {@link IBuffer}.
+   *   
+   */
+  public void put(double[] src, int srcPos, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer bbuffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    
+    try
+    {
+      if (bbuffer == null)
+        return;
+      java.nio.DoubleBuffer buffer = bbuffer.asDoubleBuffer();
+      buffer.clear();
+      validateArgs(src, src.length, srcPos, buffer.limit(), destPos, length);
+      buffer.position(destPos);
+      buffer.put(src, srcPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+
+  /**
+   * Absolute bulk get method.
+   * <p>
+   * This method transfers doubles from this {@link IBuffer} into the given
+   * <code>dest</code>
+   * array. If there are fewer doubles in the {@link IBuffer} starting
+   * at position <code>srcPos</code> than are required
+   * to satisfy the request, then no doubles are
+   * transferred and a BufferUnderflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and reading the bytes out, but is more efficient in the
+   * {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param srcPos The offset in the IBuffer where you want to start
+   *        copying data from.
+   *        Must be non-negative and less than <code>getBufferSize()</code>
+   * @param dest The array to which doubles are to be written. Must be non null.
+   * @param destPos The offset within <code>dest</code> of the first double to be
+   *        written; must be non-negative and less than <code>dest.length</code>
+   * @param length The number of doubles to be copied into <code>dest</code>; must be
+   *        non-negative and no larger than <code>dest.length - destPos</code>
+   * 
+   * @throws NullPointerException if <code>dest</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *         mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient data in this
+   *         {@link IBuffer} to satisfy the request.
+   * 
+   */
+  public void get(int srcPos, double[] dest, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer bbuffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    try
+    {
+      if (bbuffer == null)
+        return;
+      java.nio.DoubleBuffer buffer = bbuffer.asDoubleBuffer();
+      validateArgs(dest, dest.length, destPos, buffer.limit(), srcPos, length);
+      buffer.position(srcPos);
+      buffer.get(dest, destPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+
+  /**
+   * Absolute bulk put method.
+   * <p>
+   * This method transfers floats into this buffer from the given source array.
+   * If there are more floats to be copied from the array than there is
+   * space remaining at the specified destination offset,
+   * then no floats are transferred and a BufferOverflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and copying the bytes over, but is more efficient in
+   * the {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param src The array from which floats are to be read.  Must be non null.
+   * @param srcPos The offset within <code>src</code> of the first float to be read;
+   *   must be non-negative and less than <code>src.length</code>
+   * @param destPos The offset in the IBuffer where you want to copy
+   *   data to.  Must be non-negative and less than <code>getBufferSize()</code>
+   * @param length The number of floats to be read from <code>src</code>;
+   *  must be non-negative and no larger than <code>src.length - srcPos</code>
+   *  
+   * @throws NullPointerException if <code>src</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *   mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient space
+   *   in this {@link IBuffer}.
+   *   
+   */
+  public void put(float[] src, int srcPos, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer bbuffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    
+    try
+    {
+      if (bbuffer == null)
+        return;
+      java.nio.FloatBuffer buffer = bbuffer.asFloatBuffer();
+      buffer.clear();
+      validateArgs(src, src.length, srcPos, buffer.limit(), destPos, length);
+      buffer.position(destPos);
+      buffer.put(src, srcPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+
+  /**
+   * Absolute bulk get method.
+   * <p>
+   * This method transfers floats from this {@link IBuffer} into the given
+   * <code>dest</code>
+   * array. If there are fewer floats in the {@link IBuffer} starting
+   * at position <code>srcPos</code> than are required
+   * to satisfy the request, then no floats are
+   * transferred and a BufferUnderflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and reading the bytes out, but is more efficient in the
+   * {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param srcPos The offset in the IBuffer where you want to start
+   *        copying data from.
+   *        Must be non-negative and less than <code>getBufferSize()</code>
+   * @param dest The array to which floats are to be written. Must be non null.
+   * @param destPos The offset within <code>dest</code> of the first float to be
+   *        written; must be non-negative and less than <code>dest.length</code>
+   * @param length The number of floats to be copied into <code>dest</code>; must be
+   *        non-negative and no larger than <code>dest.length - destPos</code>
+   * 
+   * @throws NullPointerException if <code>dest</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *         mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient data in this
+   *         {@link IBuffer} to satisfy the request.
+   * 
+   */
+  public void get(int srcPos, float[] dest, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer bbuffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    try
+    {
+      if (bbuffer == null)
+        return;
+      java.nio.FloatBuffer buffer = bbuffer.asFloatBuffer();
+      validateArgs(dest, dest.length, destPos, buffer.limit(), srcPos, length);
+      buffer.position(srcPos);
+      buffer.get(dest, destPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+
+  /**
+   * Absolute bulk put method.
+   * <p>
+   * This method transfers chars into this buffer from the given source array.
+   * If there are more chars to be copied from the array than there is
+   * space remaining at the specified destination offset,
+   * then no chars are transferred and a BufferOverflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and copying the bytes over, but is more efficient in
+   * the {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param src The array from which chars are to be read.  Must be non null.
+   * @param srcPos The offset within <code>src</code> of the first char to be read;
+   *   must be non-negative and less than <code>src.length</code>
+   * @param destPos The offset in the IBuffer where you want to copy
+   *   data to.  Must be non-negative and less than <code>getBufferSize()</code>
+   * @param length The number of chars to be read from <code>src</code>;
+   *  must be non-negative and no larger than <code>src.length - srcPos</code>
+   *  
+   * @throws NullPointerException if <code>src</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *   mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient space
+   *   in this {@link IBuffer}.
+   *   
+   */
+  public void put(char[] src, int srcPos, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer bbuffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    
+    try
+    {
+      if (bbuffer == null)
+        return;
+      java.nio.CharBuffer buffer = bbuffer.asCharBuffer();
+      buffer.clear();
+      validateArgs(src, src.length, srcPos, buffer.limit(), destPos, length);
+      buffer.position(destPos);
+      buffer.put(src, srcPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+
+  /**
+   * Absolute bulk get method.
+   * <p>
+   * This method transfers chars from this {@link IBuffer} into the given
+   * <code>dest</code>
+   * array. If there are fewer chars in the {@link IBuffer} starting
+   * at position <code>srcPos</code> than are required
+   * to satisfy the request, then no chars are
+   * transferred and a BufferUnderflowException is thrown.
+   * </p>
+   * <p>
+   * This method is equivalent to calling {@link #getByteBuffer(int, int)}
+   * yourself and reading the bytes out, but is more efficient in the
+   * {@link JNIMemoryManager.MemoryModel#NATIVE_BUFFERS} memory model.
+   * </p>
+   * 
+   * @param srcPos The offset in the IBuffer where you want to start
+   *        copying data from.
+   *        Must be non-negative and less than <code>getBufferSize()</code>
+   * @param dest The array to which chars are to be written. Must be non null.
+   * @param destPos The offset within <code>dest</code> of the first char to be
+   *        written; must be non-negative and less than <code>dest.length</code>
+   * @param length The number of chars to be copied into <code>dest</code>; must be
+   *        non-negative and no larger than <code>dest.length - destPos</code>
+   * 
+   * @throws NullPointerException if <code>dest</code> is null.
+   * @throws IndexOutOfBoundsException if the preconditions on the arguments
+   *         mentioned above are not honored.
+   * @throws BufferOverflowException if there is insufficient data in this
+   *         {@link IBuffer} to satisfy the request.
+   * 
+   */
+  public void get(int srcPos, char[] dest, int destPos, int length)
+  {
+    java.util.concurrent.atomic.AtomicReference<JNIReference> ref =
+      new java.util.concurrent.atomic.AtomicReference<JNIReference>();
+    java.nio.ByteBuffer bbuffer = this.getByteBuffer(0, this.getBufferSize(),
+        ref);
+    
+    try
+    {
+      if (bbuffer == null)
+        return;
+      java.nio.CharBuffer buffer = bbuffer.asCharBuffer();
+      validateArgs(dest, dest.length, destPos, buffer.limit(), srcPos, length);
+      buffer.position(srcPos);
+      buffer.get(dest, destPos, length);
+      return;
+    }
+    finally
+    {
+      if (ref.get() != null)
+        ref.get().delete();
+    }
+  }
+
+
   /**
    * Returns up to length bytes, starting at offset in the underlying
    * buffer we're managing.
@@ -124,12 +922,15 @@
    * The buffer position, mark are initialized to zero and limit
    * is set to the maximum capacity of this buffer.  For some
    * IBuffer contents, the actual usable data in this buffer will
-   * be less that the limit.  In those cases, use the
-   * {@link #getByteBuffer(int, int)}
-   * method on those objects directly and limit will be set to their
-   * current content limit.
+   * be less that the limit.
    * 
    * </p>
+   * <p>
+   * If you want to control exactly when the underlying memory
+   * beyind the returned {@link java.nio.ByteBuffer} is released,
+   * use {@link #getByteBuffer(int, int, java.util.concurrent.atomic.AtomicReference)}.
+   * </p>
+   * @see #getByteBuffer(int, int, java.util.concurrent.atomic.AtomicReference)
    */
   public java.nio.ByteBuffer getByteBuffer(int offset, int length)
   {
@@ -137,25 +938,24 @@
   }
 
   
+
     /**
-     * For Advanced Users Only -- Do not use.
      * Returns up to length bytes, starting at offset in the underlying
-     * buffer we're managing.
+     * buffer we're managing, and also passed back a {@link JNIReference}
+     * that can optionally be used by the caller to free the underlying
+     * native memory.
      *
      * <p> 
      * 
      * The buffer position, mark are initialized to zero and limit
      * is set to the maximum capacity of this buffer.  For some
      * IBuffer contents, the actual usable data in this buffer will
-     * be less that the limit.  In those cases, use the
-     * {@link #getByteBuffer(int, int)}
-     * method on those objects directly and limit will be set to their
-     * current content limit.
+     * be less that the limit.
      * 
      * </p>
      * <p>
      *
-     * WARNING: If you use this method you are access the direct native
+     * If you use this method you are accessing the direct native
      * memory associated with this buffer.  That means changes you make
      * to this buffer are immediately reflected in the underlying
      * memory.
@@ -163,40 +963,31 @@
      * </p>
      * <p>
      *
-     * <b>NOTE FOR THE TRULY PARANOID</b>: Once you call this method,
+     * <b>Once you call this method,
      * the underlying native memory allocated will not be released until
-     * all references to the returned value are no longer reachable and
+     * all references to the returned ByteBuffer are no longer reachable and
      * at least one call to {@link JNIMemoryManager#gc()} has been
-     * performed.
+     * performed.  You can force the memory to be collect earlier
+     * by using the {@link JNIReference} value returned when you
+     * call this method.
      * </p><p>
      *  The {@link JNIMemoryManager#gc()} is called whenever
      * xuggler tries to allocate new memory for any Xuggler interface,
      * so normally you don't need to care about this.  If for some
-     * reason no other Xuggler object is ever allocated (forcing an
-     * internal {@link JNIMemoryManager#gc()}), every Xuggler object has
+     * reason no other Xuggler object is ever allocated, every
+     * Xuggler object has
      * a finalizer as well that will do the right thing.
      *
      * </p>
      * <p>
      *
-     * But in the case of {@link java.nio.ByteBuffer} objects, we can't
-     * set a finalizer, so
-     * you may find situations where {@link JNIMemoryManager#gc()} is
-     * not automatically called for you.  If you're truly paranoid or
-     * haven't called a Xuggler interface in a a while, a call to {@link
-     * JNIMemoryManager#gc()} never hurts.
-     *
-     * </p>
-     * <p>
-     *
-     *  You can also start up
-     * a separate thread to do this for you by calling
+     * You can also start up
+     * a separate thread to do continuously do Ferry garabage
+     * collections by calling
      * {@link JNIMemoryManager#startCollectionThread()}.  This thread
      * will only wake up when it has work to do, so the overhead
      * is very low.  We don't turn it on by default since in
-     * 99.999% of cases you don't need to worry about it, but
-     * you are reading the TRULY PARANOID section, so we'll assume
-     * you care.
+     * 99.999% of cases you don't need to worry about it.
      *  
      * </p>
      * 
@@ -212,13 +1003,11 @@
      *   {@link JNIReference#delete()} to do that.  <strong>Warning:</strong>
      *   if you do call {@link JNIReference#delete()} on the
      *   value returned in this parameter, then the returned byte buffer
-     *   will be immediately invalid.  In most cases, just let Ferry delete it for
-     *   you later.
+     *   will be immediately invalid.
      * @return A java.nio.ByteBuffer that directly accesses
      *   the native memory this IBuffer manages, or null if
      *   error.
      */
-
   public java.nio.ByteBuffer getByteBuffer(int offset, int length,
       java.util.concurrent.atomic.AtomicReference<JNIReference> referenceReturn)
   {

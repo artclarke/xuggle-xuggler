@@ -151,6 +151,370 @@ public class IMediaData extends RefCounted {
   
   public static final String DEFALUT_TIME_STAMP_FORMAT =
     "%1$tH:%1$tM:%1$tS.%1$tL";
+/**
+ * Absolute bulk put method.
+ * <p>
+ * This method delegates to the same put method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#put(byte[], int, int, int)
+ */
+public void put(byte[] src, int srcPos, int destPos, int length)
+{
+  com.xuggle.ferry.IBuffer buffer = getData();
+  try
+  {
+    if (buffer == null)
+      return;
+    buffer.put(src, srcPos, destPos, length);
+    return;
+  }
+  finally
+  {
+    if (buffer != null) buffer.delete();
+  }
+}
+
+/**
+ * Absolute bulk get method.
+ * <p>
+ * This method delegates to the same get method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#get(int, byte[], int, int)
+ */
+public void get(int srcPos, byte[] dest, int destPos, int length)
+{
+   com.xuggle.ferry.IBuffer buffer = getData();
+   try
+   {
+     if (buffer == null)
+       return;
+     buffer.get(srcPos, dest, destPos, length);
+     return;
+   }
+   finally
+   {
+     if (buffer != null) buffer.delete();
+   }
+}
+
+/**
+ * Absolute bulk put method.
+ * <p>
+ * This method delegates to the same put method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#put(char[], int, int, int)
+ */
+public void put(char[] src, int srcPos, int destPos, int length)
+{
+  com.xuggle.ferry.IBuffer buffer = getData();
+  try
+  {
+    if (buffer == null)
+      return;
+    buffer.put(src, srcPos, destPos, length);
+    return;
+  }
+  finally
+  {
+    if (buffer != null) buffer.delete();
+  }
+}
+
+/**
+ * Absolute bulk get method.
+ * <p>
+ * This method delegates to the same get method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#get(int, char[], int, int)
+ */
+public void get(int srcPos, char[] dest, int destPos, int length)
+{
+   com.xuggle.ferry.IBuffer buffer = getData();
+   try
+   {
+     if (buffer == null)
+       return;
+     buffer.get(srcPos, dest, destPos, length);
+     return;
+   }
+   finally
+   {
+     if (buffer != null) buffer.delete();
+   }
+}
+
+/**
+ * Absolute bulk put method.
+ * <p>
+ * This method delegates to the same put method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#put(short[], int, int, int)
+ */
+public void put(short[] src, int srcPos, int destPos, int length)
+{
+  com.xuggle.ferry.IBuffer buffer = getData();
+  try
+  {
+    if (buffer == null)
+      return;
+    buffer.put(src, srcPos, destPos, length);
+    return;
+  }
+  finally
+  {
+    if (buffer != null) buffer.delete();
+  }
+}
+
+/**
+ * Absolute bulk get method.
+ * <p>
+ * This method delegates to the same get method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#get(int, short[], int, int)
+ */
+public void get(int srcPos, short[] dest, int destPos, int length)
+{
+   com.xuggle.ferry.IBuffer buffer = getData();
+   try
+   {
+     if (buffer == null)
+       return;
+     buffer.get(srcPos, dest, destPos, length);
+     return;
+   }
+   finally
+   {
+     if (buffer != null) buffer.delete();
+   }
+}
+
+/**
+ * Absolute bulk put method.
+ * <p>
+ * This method delegates to the same put method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#put(int[], int, int, int)
+ */
+public void put(int[] src, int srcPos, int destPos, int length)
+{
+  com.xuggle.ferry.IBuffer buffer = getData();
+  try
+  {
+    if (buffer == null)
+      return;
+    buffer.put(src, srcPos, destPos, length);
+    return;
+  }
+  finally
+  {
+    if (buffer != null) buffer.delete();
+  }
+}
+
+/**
+ * Absolute bulk get method.
+ * <p>
+ * This method delegates to the same get method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#get(int, int[], int, int)
+ */
+public void get(int srcPos, int[] dest, int destPos, int length)
+{
+   com.xuggle.ferry.IBuffer buffer = getData();
+   try
+   {
+     if (buffer == null)
+       return;
+     buffer.get(srcPos, dest, destPos, length);
+     return;
+   }
+   finally
+   {
+     if (buffer != null) buffer.delete();
+   }
+}
+
+/**
+ * Absolute bulk put method.
+ * <p>
+ * This method delegates to the same put method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#put(long[], int, int, int)
+ */
+public void put(long[] src, int srcPos, int destPos, int length)
+{
+  com.xuggle.ferry.IBuffer buffer = getData();
+  try
+  {
+    if (buffer == null)
+      return;
+    buffer.put(src, srcPos, destPos, length);
+    return;
+  }
+  finally
+  {
+    if (buffer != null) buffer.delete();
+  }
+}
+
+/**
+ * Absolute bulk get method.
+ * <p>
+ * This method delegates to the same get method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#get(int, long[], int, int)
+ */
+public void get(int srcPos, long[] dest, int destPos, int length)
+{
+   com.xuggle.ferry.IBuffer buffer = getData();
+   try
+   {
+     if (buffer == null)
+       return;
+     buffer.get(srcPos, dest, destPos, length);
+     return;
+   }
+   finally
+   {
+     if (buffer != null) buffer.delete();
+   }
+}
+
+/**
+ * Absolute bulk put method.
+ * <p>
+ * This method delegates to the same put method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#put(float[], int, int, int)
+ */
+public void put(float[] src, int srcPos, int destPos, int length)
+{
+  com.xuggle.ferry.IBuffer buffer = getData();
+  try
+  {
+    if (buffer == null)
+      return;
+    buffer.put(src, srcPos, destPos, length);
+    return;
+  }
+  finally
+  {
+    if (buffer != null) buffer.delete();
+  }
+}
+
+/**
+ * Absolute bulk get method.
+ * <p>
+ * This method delegates to the same get method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#get(int, float[], int, int)
+ */
+public void get(int srcPos, float[] dest, int destPos, int length)
+{
+   com.xuggle.ferry.IBuffer buffer = getData();
+   try
+   {
+     if (buffer == null)
+       return;
+     buffer.get(srcPos, dest, destPos, length);
+     return;
+   }
+   finally
+   {
+     if (buffer != null) buffer.delete();
+   }
+}
+
+/**
+ * Absolute bulk put method.
+ * <p>
+ * This method delegates to the same put method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#put(double[], int, int, int)
+ */
+public void put(double[] src, int srcPos, int destPos, int length)
+{
+  com.xuggle.ferry.IBuffer buffer = getData();
+  try
+  {
+    if (buffer == null)
+      return;
+    buffer.put(src, srcPos, destPos, length);
+    return;
+  }
+  finally
+  {
+    if (buffer != null) buffer.delete();
+  }
+}
+
+/**
+ * Absolute bulk get method.
+ * <p>
+ * This method delegates to the same get method on the
+ * underlying {@link com.xuggle.ferry.IBuffer} returned from {@link #getData()} ,
+ * but may be more efficient in some {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel}
+ * configurations.
+ * </p>
+ * @see com.xuggle.ferry.IBuffer#get(int, double[], int, int)
+ */
+public void get(int srcPos, double[] dest, int destPos, int length)
+{
+   com.xuggle.ferry.IBuffer buffer = getData();
+   try
+   {
+     if (buffer == null)
+       return;
+     buffer.get(srcPos, dest, destPos, length);
+     return;
+   }
+   finally
+   {
+     if (buffer != null) buffer.delete();
+   }
+}
+
 
   /**
    * Gets the underlying {@link java.nio.ByteBuffer} for this {@link

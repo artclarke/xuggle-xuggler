@@ -233,6 +233,5 @@ public class BufferExhaustiveTest
       outBytes = null;
     }
   }
-  
 
 }

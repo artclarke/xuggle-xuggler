@@ -216,35 +216,6 @@ public class BufferTest
     }
   }
   
-  /**
-   * This is a crazy test to make sure that a direct byte buffer will
-   * decrement ref counts if freed by java Garbage Collector and
-   * our garbage collector
-   */
-  @Test(timeout=5*60*1000)
-  public void testDirectByteBufferIncrementsAndDecrementsRefCounts()
-  {
-    IBuffer buf = IBuffer.make(null, 1024*1024); // 1 MB
-    assertNotNull(buf);
-    
-    assertEquals(1, buf.getCurrentRefCount());
-
-    java.nio.ByteBuffer jbuf = buf.getByteBuffer(0, buf.getBufferSize());
-    assertNotNull(buf);
-    
-    assertEquals(2, buf.getCurrentRefCount());
-
-    jbuf.put(0, (byte)0xFF);
-    
-    // now release the reference
-    jbuf = null;
-    
-    while(buf.getCurrentRefCount() >= 2)
-    {
-      System.gc();
-      JNIReference.getMgr().gc();
-    }
-  }
 
   /**
    * This is a crazy test to make sure that a direct byte buffer will
@@ -271,6 +242,38 @@ public class BufferTest
     // the native ref count until this java ByteBuffer gets collected
     // and we do a JNIMemoryManager gc.
     jbuf.put(0, (byte)0xFF);
+  }
+
+  /**
+   * This is a crazy test to make sure that a direct byte buffer will
+   * decrement ref counts if freed by java Garbage Collector and
+   * our garbage collector
+   */
+  @Test(timeout=5*60*1000)
+  public void testDirectByteBufferIncrementsAndDecrementsRefCounts()
+  {
+    IBuffer buf = IBuffer.make(null, 1024*1024); // 1 MB
+    assertNotNull(buf);
+    
+    assertEquals(1, buf.getCurrentRefCount());
+
+    java.nio.ByteBuffer jbuf = buf.getByteBuffer(0, buf.getBufferSize());
+    assertNotNull(buf);
+    
+    assertEquals(2, buf.getCurrentRefCount());
+
+    jbuf.put(0, (byte)0xFF);
+    
+    // now release the reference
+    jbuf = null;
+    
+    while(buf.getCurrentRefCount() >= 2)
+    {
+      // force the collector to run eventually
+      byte[] garbage = new byte[1024*1024];
+      garbage[0] = 0;
+      JNIReference.getMgr().gc();
+    }
   }
 
   /**
@@ -324,5 +327,187 @@ public class BufferTest
     assertEquals(littleOrderVal, val);
     
   }
+  
+  @Test
+  public void testGetInvalidArgs()
+  {
+    IBuffer buf = IBuffer.make(null, 1);
+    
+    byte[] in = new byte[]{ 0x38, 0x2C };
+    byte[] out = new byte[]{ 0x53, 0x7C};
+    try {
+      buf.put(in, 0, 0, 2);
+      fail("should fail on 2 bytes");
+    } catch (IndexOutOfBoundsException e) {}
+    try {
+      buf.get(0, out, 0, 2);
+      fail("should fail on 2 bytes");
+    } catch (IndexOutOfBoundsException e) {}
+    try {
+      buf.put(in, -1, 0, 1);
+      fail("should fail on 2 bytes");
+    } catch (IndexOutOfBoundsException e) {}
+    try {
+      buf.get(-1, out, 0, 1);
+      fail("should fail on 2 bytes");
+    } catch (IndexOutOfBoundsException e) {}
+    try {
+      buf.put(in, 0, -1, 1);
+      fail("should fail on 2 bytes");
+    } catch (IndexOutOfBoundsException e) {}
+    try {
+      buf.get(0, out, -1, 1);
+      fail("should fail on 2 bytes");
+    } catch (IndexOutOfBoundsException e) {}
+    try {
+      buf.put(in, 0, 1, 1);
+      fail("should fail on 2 bytes");
+    } catch (IndexOutOfBoundsException e) {}
+    try {
+      buf.get(0, out, 3, 1);
+      fail("should fail on 2 bytes");
+    } catch (IndexOutOfBoundsException e) {}
+    try {
+      buf.put(in, 3, 0, 1);
+      fail("should fail on 2 bytes");
+    } catch (IndexOutOfBoundsException e) {}
+    try {
+      buf.get(1, out, 0, 1);
+      fail("should fail on 2 bytes");
+    } catch (IndexOutOfBoundsException e) {}
+    buf.put(in, 0, 0, 1);
+    buf.get(0, out, 0, 1);
+    assertEquals(in[0], out[0]);
+    assertNotSame(in[1], out[1]);
+    
+    buf.delete();
+  }
+
+  @Test
+  public void testByteGetPut()
+  {
+    // free up any references from other tests
+    JNIMemoryManager.getMgr().flush();
+    byte[] in = new byte[]{ 0x38, 0x2C, 0x18, 0x7F };
+    byte[] out = new byte[in.length];
+    IBuffer buf = IBuffer.make(null, 1024);
+    buf.put(in, 0, 0, in.length);
+    buf.get(0, out, 0, in.length);
+    for(int i = 0; i < in.length; i++)
+      assertEquals("mismatched bytes at " + i,
+          in[i], out[i]);
+    buf.delete();
+    assertEquals("more objects around than expected",
+        0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+  }
+
+  @Test
+  public void testShortGetPut()
+  {
+    // free up any references from other tests
+    JNIMemoryManager.getMgr().flush();
+    short[] in = new short[]{ 0x38, 0x2C, 0x18, 0x7F };
+    short[] out = new short[in.length];
+    IBuffer buf = IBuffer.make(null, 1024);
+    buf.put(in, 0, 0, in.length);
+    buf.get(0, out, 0, in.length);
+    for(int i = 0; i < in.length; i++)
+      assertEquals("mismatched bytes at " + i,
+          in[i], out[i]);
+    buf.delete();
+    assertEquals("more objects around than expected",
+        0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+  }
+
+  @Test
+  public void testIntGetPut()
+  {
+    // free up any references from other tests
+    JNIMemoryManager.getMgr().flush();
+    int[] in = new int[]{ 0x38, 0x2C, 0x18, 0x7F };
+    int[] out = new int[in.length];
+    IBuffer buf = IBuffer.make(null, 1024);
+    buf.put(in, 0, 0, in.length);
+    buf.get(0, out, 0, in.length);
+    for(int i = 0; i < in.length; i++)
+      assertEquals("mismatched bytes at " + i,
+          in[i], out[i]);
+    buf.delete();
+    assertEquals("more objects around than expected",
+        0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+  }
+
+  @Test
+  public void testCharGetPut()
+  {
+    // free up any references from other tests
+    JNIMemoryManager.getMgr().flush();
+    char[] in = new char[]{ 0x38, 0x2C, 0x18, 0x7F };
+    char[] out = new char[in.length];
+    IBuffer buf = IBuffer.make(null, 1024);
+    buf.put(in, 0, 0, in.length);
+    buf.get(0, out, 0, in.length);
+    for(int i = 0; i < in.length; i++)
+      assertEquals("mismatched bytes at " + i,
+          in[i], out[i]);
+    buf.delete();
+    assertEquals("more objects around than expected",
+        0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+  }
+
+  @Test
+  public void testLongGetPut()
+  {
+    // free up any references from other tests
+    JNIMemoryManager.getMgr().flush();
+    long[] in = new long[]{ 0x38, 0x2C, 0x18, 0x7F };
+    long[] out = new long[in.length];
+    IBuffer buf = IBuffer.make(null, 1024);
+    buf.put(in, 0, 0, in.length);
+    buf.get(0, out, 0, in.length);
+    for(int i = 0; i < in.length; i++)
+      assertEquals("mismatched bytes at " + i,
+          in[i], out[i]);
+    buf.delete();
+    assertEquals("more objects around than expected",
+        0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+  }
+
+  @Test
+  public void testDoubleGetPut()
+  {
+    // free up any references from other tests
+    JNIMemoryManager.getMgr().flush();
+    double[] in = new double[]{ 0x38, 0x2C, 0x18, 0x7F };
+    double[] out = new double[in.length];
+    IBuffer buf = IBuffer.make(null, 1024);
+    buf.put(in, 0, 0, in.length);
+    buf.get(0, out, 0, in.length);
+    for(int i = 0; i < in.length; i++)
+      assertEquals("mismatched bytes at " + i,
+          in[i], out[i]);
+    buf.delete();
+    assertEquals("more objects around than expected",
+        0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+  }
+
+  @Test
+  public void testFloatGetPut()
+  {
+    // free up any references from other tests
+    JNIMemoryManager.getMgr().flush();
+    float[] in = new float[]{ 0x38, 0x2C, 0x18, 0x7F };
+    float[] out = new float[in.length];
+    IBuffer buf = IBuffer.make(null, 1024);
+    buf.put(in, 0, 0, in.length);
+    buf.get(0, out, 0, in.length);
+    for(int i = 0; i < in.length; i++)
+      assertEquals("mismatched bytes at " + i,
+          in[i], out[i]);
+    buf.delete();
+    assertEquals("more objects around than expected",
+        0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+  }
+
 
 }
