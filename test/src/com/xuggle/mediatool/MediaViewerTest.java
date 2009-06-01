@@ -178,7 +178,7 @@ public class MediaViewerTest
   {
     int ballCount = 3;
 
-    // total duration of the video
+    // total duration of the media
 
     long duration = TIME_UNIT.convert(20, SECONDS);
 
@@ -196,6 +196,7 @@ public class MediaViewerTest
     int audioStreamId = 0;
     int channelCount = 1;
     int sampleRate = 44100; // Hz
+    int sampleCount = 1000;
 
     // create a media writer and specify the output file
 
@@ -203,7 +204,7 @@ public class MediaViewerTest
 
     // add a viewer so we can see the media as it is created
 
-    writer.addListener(new MediaViewer(true));
+    writer.addListener(new MediaViewer(mViewerMode, true));
 
     // add the video stream
 
@@ -216,30 +217,28 @@ public class MediaViewerTest
     writer.addAudioStream(audioStreamIndex, audioStreamId, audioCodec, 
       channelCount, sampleRate);
 
-    // establish audio frame sample count and audio frame sample period
-
-    IStream stream = writer.getContainer().getStream(audioStreamIndex);
-    int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
-    int samplePeriod = (int)((sampleCount * DEFAULT_PTS_PER_SECOND) / sampleRate);
-
     // create some balls to show on the screen
 
     Balls balls = new Balls(ballCount, w, h, sampleCount);
 
-    // compute clock increment, currently the audio sample period
-    // because audio is created more often then video samples
-
-    long clockIncrement = samplePeriod;
-
-    // create the media
+    // the clock time of the next frame
 
     long nextFrameTime = 0;
-    for (long clock = 0; clock <= duration; clock += clockIncrement)
+
+    // the total number of audio samples
+
+    long totalSampleCount = 0;
+
+    // loop through clock time, which starts at zero and increases based
+    // on the total number of samples created thus far
+
+    for (long clock = 0; clock < duration; clock = IAudioSamples
+           .samplesToDefaultPts(totalSampleCount, sampleRate))
     {
-      // if the clock time exceeds the time of the next video frame,
+      // while the clock time exceeds the time of the next video frame,
       // get and encode the next video frame
 
-      if (clock >= nextFrameTime)
+      while (clock >= nextFrameTime)
       {
         BufferedImage frame = balls.getVideoFrame(frameRate);
         writer.encodeVideo(videoStreamIndex, frame, nextFrameTime, TIME_UNIT);
@@ -250,6 +249,7 @@ public class MediaViewerTest
 
       short[] samples = balls.getAudioFrame(sampleRate);
       writer.encodeAudio(audioStreamIndex, samples, clock, TIME_UNIT);
+      totalSampleCount += sampleCount;
     }
 
     // manually close the writer
