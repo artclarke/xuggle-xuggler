@@ -21,6 +21,7 @@ package com.xuggle.mediatool;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import java.awt.image.BufferedImage;
@@ -222,7 +223,7 @@ class MediaDebugListener extends MediaPipeAdapter implements IMediaDebugListener
   /** {@inheritDoc} */
 
   public void onVideoPicture(IMediaPipe tool, IVideoPicture picture, 
-    BufferedImage image, int streamIndex)
+    BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
   {
     handleEvent(VIDEO, tool, new Object[] {picture, image, streamIndex});
   }

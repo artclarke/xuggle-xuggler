@@ -1,13 +1,38 @@
+/*
+ * Copyright (c) 2008, 2009 by Xuggle Incorporated.  All rights reserved.
+ * 
+ * This file is part of Xuggler.
+ * 
+ * You can redistribute Xuggler and/or modify it under the terms of the GNU
+ * Affero General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any
+ * later version.
+ * 
+ * Xuggler is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero General Public
+ * License for more details.
+ * 
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.xuggle.mediatool;
 
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IStreamCoder;
 
+/**
+ * An {@link IMediaPipe} that manages reading or writing to an {@link
+ * IContainer}.
+ * 
+ */
+
 public interface IMediaTool extends IMediaPipe
 {
 
   /** 
-   * Get the underlying media {@link IContainer} that the media tool is
+   * Get the underlying media {@link IContainer} that the {@link IMediaTool} is
    * reading from or writing to.  The returned {@link IContainer} can
    * be further interrogated for media stream details.
    *
@@ -17,7 +42,7 @@ public interface IMediaTool extends IMediaPipe
   public abstract IContainer getContainer();
 
   /**
-   * The URL from which media is being read or written to.
+   * The URL from which the {@link IContainer} is being read or written to.
    * 
    * @return the source or destination URL.
    */
@@ -25,7 +50,7 @@ public interface IMediaTool extends IMediaPipe
   public abstract String getUrl();
 
   /** 
-   * Open this media tool.  This will open the internal {@link
+   * Open this {@link IMediaTool}.  This will open the internal {@link
    * IContainer}.  Typically the tool will open itself at the right
    * time, but there may exist rare cases where the calling context
    * may need to open the tool.
@@ -34,7 +59,7 @@ public interface IMediaTool extends IMediaPipe
   public abstract void open();
 
   /**
-   * Test if this media tool is open.
+   * Test if this {@link IMediaTool} is open.
    * 
    * @return true if the media tool is open.
    */
@@ -42,7 +67,7 @@ public interface IMediaTool extends IMediaPipe
   public abstract boolean isOpen();
     
   /** 
-   * Close this media tool.  This will close all {@link IStreamCoder}s
+   * Close this {@link IMediaTool}.  This will close all {@link IStreamCoder}s
    * explicitly opened by tool, then close the internal {@link
    * IContainer}, again only if it was explicitly opened by tool.
    * 

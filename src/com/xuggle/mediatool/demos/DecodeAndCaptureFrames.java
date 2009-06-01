@@ -22,6 +22,7 @@ package com.xuggle.mediatool.demos;
 import javax.imageio.ImageIO;
 
 import java.io.File;
+import java.util.concurrent.TimeUnit;
 
 import java.awt.image.BufferedImage;
 
@@ -132,7 +133,7 @@ public class DecodeAndCaptureFrames extends MediaPipeAdapter
    */
 
   public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
-    BufferedImage image, int streamIndex)
+    BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
   {
     try
     {

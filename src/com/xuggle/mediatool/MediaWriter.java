@@ -52,8 +52,7 @@ import static com.xuggle.xuggler.ICodec.Type.CODEC_TYPE_AUDIO;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 /**
- * Opens an output container, lets the user add streams, and
- * then encodes and writes media to that container.
+ * An {@link IMediaTool} that encodes and decodes media to containers.
  * 
  * <p>
  * 
@@ -543,7 +542,8 @@ implements IMediaPipeListener, IMediaWriter
   
     // inform listeners
 
-    super.onVideoPicture(this, picture, image, streamIndex);
+    super.onVideoPicture(this, picture, image, picture.getTimeStamp(),
+        TimeUnit.MICROSECONDS, streamIndex);
 
   }
 
@@ -1196,11 +1196,11 @@ implements IMediaPipeListener, IMediaWriter
   /** {@inheritDoc} */
 
   public void onVideoPicture(IMediaPipe tool, IVideoPicture picture, 
-    BufferedImage image, int streamIndex)
+    BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
   {
     if (image != null)
-      encodeVideo(streamIndex, image, picture.getTimeStamp(),
-          TimeUnit.MICROSECONDS);
+      encodeVideo(streamIndex, image, timeStamp,
+          timeUnit);
     else
       encodeVideo(streamIndex, picture);
   }

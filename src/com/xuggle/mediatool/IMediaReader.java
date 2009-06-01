@@ -1,6 +1,26 @@
+/*
+ * Copyright (c) 2008, 2009 by Xuggle Incorporated.  All rights reserved.
+ * 
+ * This file is part of Xuggler.
+ * 
+ * You can redistribute Xuggler and/or modify it under the terms of the GNU
+ * Affero General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any
+ * later version.
+ * 
+ * Xuggler is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero General Public
+ * License for more details.
+ * 
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.xuggle.mediatool;
 
 import java.awt.image.BufferedImage;
+import java.util.concurrent.TimeUnit;
 
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IContainer;
@@ -8,41 +28,86 @@ import com.xuggle.xuggler.IContainerFormat;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IVideoPicture;
 
+/**
+ * An {@link IMediaTool} that reads and decodes media from a container.
+ * 
+ * <p>
+ * An {@link IMediaReader} opens up a media container,
+ * reads packets from it, decodes the data, and then dispatches
+ * information about the data to any registered
+ * {@link IMediaPipeListener} objects.  The main method of
+ * interest is {@link #readPacket()}.
+ * 
+ * </p>
+ * <p>
+ * 
+ * Here's an example of a very simple program that prints out
+ * a line when the {@link IMediaReader} decides to open a container.
+ * 
+ *  </p>
+ *  <pre>
+ *  IMediaDebugListener myListener = new MediaPipeAdapter(){
+ *    public void onOpen(IMediaPipe pipe) {
+ *      System.out.println("opened: " + ((IMediaReader)pipe).getUrl());
+ *    }
+ *  };
+ *  IMediaReader reader = MediaTool.makeReader("myinputfile.flv");
+ *  reader.addListener(myListener);
+ *  while(reader.readPacket() == null)
+ *    ;
+ *  </pre>
+ *  <p>
+ *  
+ *  And here's a slightly more involved example where we read
+ *  a file and display it on screen in real-time:
+ *  
+ *  </p>
+ *  <pre>
+ *  IMediaReader reader = MediaTool.makeReader("myinputfile.flv");
+ *  reader.addListener(MediaTool.makeViewer());
+ *  while(reader.readPacket() == null)
+ *    ;
+ *  </pre>
+ *  <p>
+ *  For examples of this class in action, see the
+ *  {@link com.xuggle.mediatool.demos} package.
+ *  </p>
+ * @author trebor
+ * @author aclarke
+ *
+ */
+
 public interface IMediaReader extends IMediaTool
 {
 
   /**
-   * Set if the underlying media container supports adding dynamic
-   * streams. See {@link IContainer#open(String, IContainer.Type,
-   * IContainerFormat, boolean, boolean)} . The default value for this
-   * is false.
+   * Set if the underlying media container supports adding dynamic streams. See
+   * {@link IContainer#open(String, IContainer.Type, IContainerFormat, boolean, boolean)}
+   * . The default value for this is false.
    * 
    * <p>
    * 
-   * If set to false, Xuggler can assume no new streams will be added
-   * after {@link #open()} has been called, and may decide to query the
-   * entire media file to find all meta data. If true then Xuggler will
-   * not read ahead; instead it will only query meta data for a stream
-   * when a {@link #readPacket()} returns the first packet in a new
-   * stream. Note that a {@link IMediaWriter} can only initialize itself
-   * from a {@link IMediaReader} that has this parameter set to false.
+   * If set to false, the {@link IMediaReader} can assume no new streams will be
+   * added after {@link #open()} has been called, and may decide to query the
+   * entire media file to find all meta data. If true then {@link IMediaReader}
+   * will not read ahead; instead it will only query meta data for a stream when
+   * a {@link #readPacket()} returns the first packet in a new stream. Note that
+   * a {@link IMediaWriter} can only initialize itself from a
+   * {@link IMediaReader} that has this parameter set to false.
    * 
    * </p>
-   * 
    * <p>
    * 
-   * To have an effect, the MediaReader must not have been created with
-   * an already open {@link IContainer}, and this method must be called
-   * before the first call to {@link #readPacket}.
+   * To have an effect, the MediaReader must not have been created with an
+   * already open {@link IContainer}, and this method must be called before the
+   * first call to {@link #readPacket}.
    * 
    * </p>
    * 
-   * @param streamsCanBeAddedDynamically
-   *          true if new streams may appear at any time during a
-   *          {@link #readPacket} call
+   * @param streamsCanBeAddedDynamically true if new streams may appear at any
+   *        time during a {@link #readPacket} call
    * 
-   * @throws RuntimeException
-   *           if the media container is already open
+   * @throws RuntimeException if the media container is already open
    */
 
   public abstract void setAddDynamicStreams(boolean streamsCanBeAddedDynamically);
@@ -54,6 +119,7 @@ public interface IMediaReader extends IMediaTool
    * 
    * @return true if new streams can may appear at any time during a
    *         {@link #readPacket} call
+   * @see #setAddDynamicStreams(boolean)
    */
 
   public abstract boolean canAddDynamicStreams();
@@ -91,15 +157,17 @@ public interface IMediaReader extends IMediaTool
    * IContainer.Type, IContainerFormat, boolean, boolean)}.
    * 
    * @return true meta data will be queried
+   * @see #setQueryMetaData(boolean)
    */
 
   public abstract boolean willQueryMetaData();
 
-  /** 
-   * Set to close, if and only if ERROR_EOF is returned from {@link
-   * #readPacket}.  Otherwise close is called when any error value
-   * is returned.  The default value for this is false.
-   *
+  /**
+   * Should {@link IMediaReader} automatically call {@link #close()}, only if
+   * ERROR_EOF is returned from {@link #readPacket}. Otherwise {@link #close()}
+   * is automatically called when any error value is returned. The default value
+   * for this is false.
+   * 
    * @param closeOnEofOnly true if meta data is to be queried
    * 
    * @throws RuntimeException if the media container is already open
@@ -113,12 +181,14 @@ public interface IMediaReader extends IMediaTool
    * value is returned.  The default value for this is false.
    * 
    * @return true if will close on ERROR_EOF only
+   * @see #setCloseOnEofOnly(boolean)
    */
 
   public abstract boolean willCloseOnEofOnly();
 
   /**
-   * This decodes the next packet and calls registered {@link IMediaPipeListener}s.
+   * Decodes the next packet and calls all registered {@link IMediaPipeListener}
+   * objects.
    * 
    * <p>
    * 
@@ -127,8 +197,17 @@ public interface IMediaReader extends IMediaTool
    * 
    * </p>
    * 
+   * <p>
+   * 
+   * This method will automatically call {@link #open()} if it has not
+   * already been called, and will automatically call {@link #close()} when
+   * it reads an error or end of file from the file.  The default
+   * close behavior can be changed with {@link #setCloseOnEofOnly(boolean)}.
+   * 
+   * </p>
+   * 
    * @return null if there are more packets to read, otherwise return an IError
-   *         instance. If {@link com.xuggle.xuggler.IError#getType()} ==
+   *         instance. If {@link IError#getType()} ==
    *         {@link com.xuggle.xuggler.IError.Type#ERROR_EOF} then end of file
    *         has been reached.
    */
@@ -136,29 +215,32 @@ public interface IMediaReader extends IMediaTool
   public abstract IError readPacket();
 
   /**
-   * Asks the {@link IMediaReader} to generate {@link BufferedImage}
-   * images when calling {@link IMediaPipeListener#onVideoPicture(IMediaPipe, IVideoPicture, BufferedImage, int)}.
+   * Asks the {@link IMediaReader} to generate {@link BufferedImage} images when
+   * calling
+   * {@link IMediaPipeListener#onVideoPicture(IMediaPipe, IVideoPicture, BufferedImage, long, TimeUnit, int)}
+   * .
    * 
    * <p>
    * NOTE: Only {@link BufferedImage#TYPE_3BYTE_BGR} is supported today.
    * </p>
    * 
    * <p>
-   * If set to a non-negative value, {@link IMediaReader} will
-   * resample any video data it has decoded into the right colorspace
-   * for the {@link BufferedImage}, and generate a new {@link BufferedImage}
-   * to pass in on each {@link IMediaPipeListener#onVideoPicture(IMediaPipe, IVideoPicture, BufferedImage, int)
-   * } call.
+   * If set to a non-negative value, {@link IMediaReader} will resample any
+   * video data it has decoded into the right colorspace for the
+   * {@link BufferedImage}, and generate a new {@link BufferedImage} to pass in
+   * on each
+   * {@link IMediaPipeListener#onVideoPicture(IMediaPipe, IVideoPicture, BufferedImage, long, TimeUnit, int)
+   * }
+   * call.
    * </p>
    * 
    * @param bufferedImageType The buffered image type (e.g.
-   *   {@link BufferedImage#TYPE_3BYTE_BGR}) you want 
-   *   {@link IMediaReader} to generate.  Set to -1 to disable
-   *   this feature.
-   *   
+   *        {@link BufferedImage#TYPE_3BYTE_BGR}) you want {@link IMediaReader}
+   *        to generate. Set to -1 to disable this feature.
+   * 
    * @see BufferedImage
-   * @throws RuntimeException if the media container has been opened you
-   *   cannot change this setting.
+   * @throws RuntimeException if the media container has been opened you cannot
+   *         change this setting.
    */
 
   public abstract void setBufferedImageTypeToGenerate(int bufferedImageType);
@@ -172,5 +254,29 @@ public interface IMediaReader extends IMediaTool
    */
 
   public abstract int getBufferedImageTypeToGenerate();
+  
+  /**
+   * {@inheritDoc}
+   */
+
+  public abstract IContainer getContainer();
+
+  /**
+   * {@inheritDoc}
+   */
+
+  public abstract String getUrl();
+
+  /**
+   * {@inheritDoc}
+   */
+
+  public abstract void open();
+
+  /**
+   * {@inheritDoc}
+   */
+
+  public abstract void close();
 
 }

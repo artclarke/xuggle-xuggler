@@ -25,6 +25,7 @@ import java.awt.image.BufferedImage;
 
 import java.util.Collection;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -237,9 +238,9 @@ public class MediaWriterExhaustiveTest
       reader.addListener(new MediaPipeAdapter()
         {
           public void onVideoPicture(IMediaPipe tool, IVideoPicture picture, 
-            BufferedImage image, int streamIndex)
+            BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
           {
-            writer.onVideoPicture(null, picture, image, streamIndex);
+            writer.onVideoPicture(null, picture, image, timeStamp, timeUnit, streamIndex);
           }
           
           /** {@inheritDoc} */

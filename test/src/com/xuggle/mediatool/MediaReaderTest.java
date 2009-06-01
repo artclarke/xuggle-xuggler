@@ -35,6 +35,7 @@ import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IVideoResampler;
 
 import java.awt.image.BufferedImage;
+import java.util.concurrent.TimeUnit;
 
 import static junit.framework.Assert.*;
 
@@ -96,7 +97,7 @@ public class MediaReaderTest
     IMediaPipeListener mrl = new MediaPipeAdapter()
       {
         public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
-          BufferedImage image, int streamIndex)
+          BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
         {
           assertNotNull("picture should be created", picture);
           assertNull("no buffered image should be created", image);
@@ -157,7 +158,7 @@ public class MediaReaderTest
     IMediaPipeListener mrl = new MediaPipeAdapter()
       {
         public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
-          BufferedImage image, int streamIndex)
+          BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
         {
           assertNotNull("picture should be created", picture);
           assertNotNull("buffered image should be created", image);
@@ -211,7 +212,7 @@ public class MediaReaderTest
     IMediaPipeListener mrl = new MediaPipeAdapter()
       {
         public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
-          BufferedImage image, int streamIndex)
+          BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
         {
           assertNotNull("picture should be created", picture);
           assertNotNull("buffered image should be created", image);

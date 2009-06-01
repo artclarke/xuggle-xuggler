@@ -21,10 +21,16 @@ package com.xuggle.mediatool;
 
 import java.util.Collection;
 
-
-/** 
- * A tool that processes Media files, and generates events that {@link IMediaPipeListener}
- * objects can subscribe to and react to.
+/**
+ * An object that generates events that {@link IMediaPipeListener} objects can
+ * subscribe to and react to.
+ * <p>
+ * This is the interface that defines how you
+ * {@link #addListener(IMediaPipeListener)} s and
+ * {@link #removeListener(IMediaPipeListener)}s from different
+ * {@link IMediaPipe} objects such as {@link IMediaReader}.
+ * 
+ * </p>
  */
 
 public interface IMediaPipe

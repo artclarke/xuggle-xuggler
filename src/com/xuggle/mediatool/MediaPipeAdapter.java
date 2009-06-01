@@ -20,6 +20,7 @@
 package com.xuggle.mediatool;
 
 import java.awt.image.BufferedImage;
+import java.util.concurrent.TimeUnit;
 
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IAudioSamples;
@@ -43,7 +44,7 @@ public class MediaPipeAdapter implements IMediaPipeListener
   /** {@inheritDoc} */
 
   public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
-      BufferedImage image, int streamIndex)
+      BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
   {
   }
 

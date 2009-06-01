@@ -443,7 +443,7 @@ class MediaViewer extends MediaPipeAdapter implements IMediaPipeListener, IMedia
 
   @Override
   public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
-      BufferedImage image, int streamIndex)
+      BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
   {
     // be sure container is set
     if (!(tool instanceof IMediaTool))

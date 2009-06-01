@@ -129,11 +129,11 @@ public class MediaViewerTest
     MediaWriter writer = new MediaWriter("output.mov", reader)
       {
         public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
-          BufferedImage image, int streamIndex)
+          BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
         {
           Graphics2D g = image.createGraphics();
-          String timeStamp = picture.getFormattedTimeStamp();
-          Rectangle2D bounds = g.getFont().getStringBounds(timeStamp,
+          String timeStampStr = picture.getFormattedTimeStamp();
+          Rectangle2D bounds = g.getFont().getStringBounds(timeStampStr,
             g.getFontRenderContext());
           
           double inset = bounds.getHeight() / 2;
@@ -142,9 +142,10 @@ public class MediaViewerTest
           g.setColor(Color.WHITE);
           g.fill(bounds);
           g.setColor(Color.BLACK);
-          g.drawString(timeStamp, 0, 0);
+          g.drawString(timeStampStr, 0, 0);
 
-          super.onVideoPicture(tool, picture, image, streamIndex);
+          super.onVideoPicture(tool, picture, image, timeStamp,
+              timeUnit, streamIndex);
         }
   
         public void onAudioSamples(IMediaPipe tool, IAudioSamples samples, 

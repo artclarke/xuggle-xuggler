@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.HashMap;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -244,7 +245,7 @@ class MediaReader extends AMediaTool implements IMediaReader
   
   /**
    * Asks the {@link IMediaReader} to generate {@link BufferedImage}
-   * images when calling {@link IMediaPipeListener#onVideoPicture(IMediaPipe, IVideoPicture, BufferedImage, int)}.
+   * images when calling {@link IMediaPipeListener#onVideoPicture(IMediaPipe, IVideoPicture, BufferedImage, long, TimeUnit, int)}.
    * 
    * @param bufferedImageType The buffered image type (e.g.
    *   {@link BufferedImage#TYPE_3BYTE_BGR}).  Set to -1 to disable
@@ -600,7 +601,8 @@ class MediaReader extends AMediaTool implements IMediaReader
     
     // dispatch picture here
 
-    super.onVideoPicture(this, picture, image, streamIndex);
+    super.onVideoPicture(this, picture, image, picture.getTimeStamp(),
+        TimeUnit.MICROSECONDS, streamIndex);
   }
 
   /**

@@ -62,7 +62,7 @@
  * 
  * For more examples of using the mediatools see the {@link
  * com.xuggle.mediatool.demos} demonstration
- * packet.
+ * package.
  * </p>
  */
 

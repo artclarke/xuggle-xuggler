@@ -20,6 +20,7 @@
 package com.xuggle.mediatool;
 
 import java.io.File;
+import java.util.concurrent.TimeUnit;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -240,7 +241,8 @@ public class MediaWriterTest
       g.fillRect(50, 50, 100, 100);
 
       picture.setPts(time);
-      writer.onVideoPicture(writer, picture, image, videoStreamIndex);
+      writer.onVideoPicture(writer, picture, image, picture.getTimeStamp(),
+          TimeUnit.MICROSECONDS, videoStreamIndex);
       
       time += deltaTime;
     }
@@ -459,7 +461,8 @@ public class MediaWriterTest
         g.fillRect(50, 50, 100, 100);
         
         picture.setPts(videoTime);
-        writer.onVideoPicture(writer, picture, image, videoStreamIndex);
+        writer.onVideoPicture(writer, picture, image,
+            videoTime, TimeUnit.MICROSECONDS, videoStreamIndex);
       
         videoTime += deltaTime;
       }
