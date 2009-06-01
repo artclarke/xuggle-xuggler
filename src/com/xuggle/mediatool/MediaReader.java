@@ -50,7 +50,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * The MediaReader class is a simplified interface to the Xuggler
  * library that opens up an {@link IContainer} object, and then every
  * time you call {@link MediaReader#readPacket()}, attempts to decode
- * the packet and call any registered {@link IMediaPipeListener} objects for
+ * the packet and call any registered {@link IMediaListener} objects for
  * that packet.
  *
  * </p><p>
@@ -62,7 +62,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
  * </p> 
  */
 
-class MediaReader extends AMediaTool implements IMediaReader
+class MediaReader extends AMediaCoderMixin implements IMediaReader
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -245,7 +245,7 @@ class MediaReader extends AMediaTool implements IMediaReader
   
   /**
    * Asks the {@link IMediaReader} to generate {@link BufferedImage}
-   * images when calling {@link IMediaPipeListener#onVideoPicture(IMediaPipe, IVideoPicture, BufferedImage, long, TimeUnit, int)}.
+   * images when calling {@link IMediaListener#onVideoPicture(IMediaGenerator, IVideoPicture, BufferedImage, long, TimeUnit, int)}.
    * 
    * @param bufferedImageType The buffered image type (e.g.
    *   {@link BufferedImage#TYPE_3BYTE_BGR}).  Set to -1 to disable
@@ -402,7 +402,7 @@ class MediaReader extends AMediaTool implements IMediaReader
   }
 
   /**
-   * This decodes the next packet and calls registered {@link IMediaPipeListener}s.
+   * This decodes the next packet and calls registered {@link IMediaListener}s.
    * 
    * <p>
    * 

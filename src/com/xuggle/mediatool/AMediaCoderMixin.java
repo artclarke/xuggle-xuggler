@@ -24,13 +24,13 @@ package com.xuggle.mediatool;
 import com.xuggle.xuggler.IContainer;
 
 /**
- * Internal Only. An abstract base class for implementing {@link IMediaPipe}
+ * Internal Only. An abstract base class for implementing {@link IMediaGenerator}
  * objects used internally by the mediatool package.
  * 
  * @author trebor
  */
 
-abstract class AMediaTool extends AMediaPipe
+abstract class AMediaCoderMixin extends AMediaToolMixin
 {
   // the container to read from or write to
   
@@ -47,13 +47,13 @@ abstract class AMediaTool extends AMediaPipe
   // all the media reader listeners
 
   /**
-   * Construct an abstract IMediaPipe.
+   * Construct an abstract IMediaGenerator.
    *
    * @param url the URL which will be read or written to
    * @param container the container which be read from or written to
    */
   
-  public AMediaTool(String url, IContainer container)
+  public AMediaCoderMixin(String url, IContainer container)
   {
     mUrl = url;
     mContainer = container.copyReference();
@@ -86,8 +86,8 @@ abstract class AMediaTool extends AMediaPipe
   }
 
   /**
-   * Should this {@link IMediaTool} call {@link IContainer#close()}
-   * when {@link IMediaTool#close()} is called.
+   * Should this {@link IMediaCoder} call {@link IContainer#close()}
+   * when {@link IMediaCoder#close()} is called.
    * @param value should we close the container
    */
   public void setShouldCloseContainer(boolean value)
@@ -96,8 +96,8 @@ abstract class AMediaTool extends AMediaPipe
   }
 
   /**
-   * Should this {@link IMediaTool} call {@link IContainer#close()}
-   * when {@link IMediaTool#close()} is called.
+   * Should this {@link IMediaCoder} call {@link IContainer#close()}
+   * when {@link IMediaCoder#close()} is called.
    * 
    * @return should we close the container
    */

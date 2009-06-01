@@ -33,15 +33,15 @@ import com.xuggle.xuggler.ICodec;
  * <strong>Start Here --</strong> A Factory for MediaTools, and global
  * settings for the API.
  * <p>
- * Here's an example of a {@link MediaTool} program that opens up an input media
+ * Here's an example of a {@link ToolFactory} program that opens up an input media
  * file, transcodes all the media to a new format, while playing the media on
  * your machine:
  * </p>
  * 
  * <pre>
- * IMediaReader reader = MediaTool.makeReader(&quot;input.mpg&quot;);
- * reader.addListener(MediaTool.makeViewer(true));
- * reader.addListener(MediaTool.makeWriter(&quot;output.flv&quot;, reader));
+ * IMediaReader reader = ToolFactory.makeReader(&quot;input.mpg&quot;);
+ * reader.addListener(ToolFactory.makeViewer(true));
+ * reader.addListener(ToolFactory.makeWriter(&quot;output.flv&quot;, reader));
  * while (reader.readPacket() == null)
  *   ;
  * </pre>
@@ -50,13 +50,13 @@ import com.xuggle.xuggler.ICodec;
  * @author aclarke
  * 
  */
-public class MediaTool
+public class ToolFactory
 {
 
   /**
    * A private constructor to force only static members in this class.
    */
-  private MediaTool()
+  private ToolFactory()
   {
 
   }
@@ -265,7 +265,7 @@ public class MediaTool
   }
 
   /**
-   * A sample program for the {@link MediaTool}.  If given
+   * A sample program for the {@link ToolFactory}.  If given
    * one argument on the command line, it will interpret that
    * as a media file to read and play.  If given more than one,
    * it will attempt to transcode the first file into formats
@@ -276,7 +276,7 @@ public class MediaTool
    * and &quot;output2.mp4&quot;
    * </p>
    * <pre>
-   * com.xuggle.mediatool.MediaTool input.flv output1.mov output2.mp4
+   * com.xuggle.mediatool.ToolFactory input.flv output1.mov output2.mp4
    * </pre>
    * 
    * @param args input filename and option output filenames
@@ -297,24 +297,24 @@ public class MediaTool
       exit(0);
     }
 
-    IMediaReader reader = MediaTool.makeReader(args[0]);
-    reader.addListener(MediaTool.makeViewer(true));
+    IMediaReader reader = ToolFactory.makeReader(args[0]);
+    reader.addListener(ToolFactory.makeViewer(true));
     for(int i = 1; i< args.length; i++)
-      reader.addListener(MediaTool.makeWriter(args[i], reader));
+      reader.addListener(ToolFactory.makeWriter(args[i], reader));
     while (reader.readPacket() == null)
       ;
 
   }
 
   /**
-   * Turns on and off Turbo-Charging for the {@link MediaTool} package.
+   * Turns on and off Turbo-Charging for the {@link ToolFactory} package.
    * <p>
    * Turbo-Charging is off by default.
    * </p>
    * <p>
-   * When running Turbo-Charged {@link MediaTool} will make a variety of tuning
+   * When running Turbo-Charged {@link ToolFactory} will make a variety of tuning
    * assumptions that can speed up execution of your program, sometimes by
-   * significant amounts.  {@link MediaTool} was designed from
+   * significant amounts.  {@link ToolFactory} was designed from
    * the ground up to run Turbo-Charged, but it can cause issues
    * for other {@link com.xuggle.xuggler}-based programs running
    * in the same Java process.
@@ -327,7 +327,7 @@ public class MediaTool
    * <p>
    * If you turn on Turbo-Charging and then access any of the
    * underlying {@link com.xuggle.xuggler} interfaces (e.g.
-   * {@link IMediaTool#getContainer()}) behind MediaTool,
+   * {@link IMediaCoder#getContainer()}) behind ToolFactory,
    * you must:
    * <ul>
    * <li>Call
@@ -348,7 +348,7 @@ public class MediaTool
    * Turbo-Charging works by changing the global
    * {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel} that the underlying
    * {@link com.xuggle.xuggler} API in your program is using. If you are using
-   * {@link MediaTool} in a java program that contains other code using the
+   * {@link ToolFactory} in a java program that contains other code using the
    * {@link com.xuggle.xuggler} API, you will force that code to use the new
    * memory model.
    * </p>
@@ -399,7 +399,7 @@ public class MediaTool
   }
 
   /**
-   * Is {@link MediaTool} running in Turbo-Charged mode?
+   * Is {@link ToolFactory} running in Turbo-Charged mode?
    * @return true if Turbo-Charged.  false if really just slogging
    *   along and finding its own way.
    */

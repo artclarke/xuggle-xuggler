@@ -52,7 +52,7 @@ import static com.xuggle.xuggler.ICodec.Type.CODEC_TYPE_AUDIO;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 /**
- * An {@link IMediaTool} that encodes and decodes media to containers.
+ * An {@link IMediaCoder} that encodes and decodes media to containers.
  * 
  * <p>
  * 
@@ -63,8 +63,8 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
  * </p>
  * 
  * <p>
- * The {@link MediaWriter} class implements {@link IMediaPipeListener}, and so
- * it can be attached to any {@link IMediaPipe} that generates raw
+ * The {@link MediaWriter} class implements {@link IMediaListener}, and so
+ * it can be attached to any {@link IMediaGenerator} that generates raw
  * media events (e.g. {@link MediaReader}).
  * </p>
  * 
@@ -84,8 +84,8 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
  * </p>
  */
 
-class MediaWriter extends AMediaTool
-implements IMediaPipeListener, IMediaWriter
+class MediaWriter extends AMediaCoderMixin
+implements IMediaListener, IMediaWriter
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -1169,13 +1169,13 @@ implements IMediaPipeListener, IMediaWriter
 
   /** {@inheritDoc} */
 
-  public void onOpen(IMediaPipe tool)
+  public void onOpen(IMediaGenerator tool)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onClose(IMediaPipe tool)
+  public void onClose(IMediaGenerator tool)
   {
     if (isOpen())
       close();
@@ -1183,25 +1183,25 @@ implements IMediaPipeListener, IMediaWriter
 
   /** {@inheritDoc} */
 
-  public void onAddStream(IMediaPipe tool, int streamIndex)
+  public void onAddStream(IMediaGenerator tool, int streamIndex)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onOpenCoder(IMediaPipe tool, Integer stream)
+  public void onOpenCoder(IMediaGenerator tool, Integer stream)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onCloseCoder(IMediaPipe tool, Integer stream)
+  public void onCloseCoder(IMediaGenerator tool, Integer stream)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onVideoPicture(IMediaPipe tool, IVideoPicture picture, 
+  public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture, 
     BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
   {
     if (image != null)
@@ -1213,7 +1213,7 @@ implements IMediaPipeListener, IMediaWriter
 
   /** {@inheritDoc} */
 
-  public void onAudioSamples(IMediaPipe tool, IAudioSamples samples,
+  public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples,
       int streamIndex)
   {
     encodeAudio(streamIndex, samples);
@@ -1221,31 +1221,31 @@ implements IMediaPipeListener, IMediaWriter
 
   /** {@inheritDoc} */
 
-  public void onReadPacket(IMediaPipe tool, IPacket packet)
+  public void onReadPacket(IMediaGenerator tool, IPacket packet)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWritePacket(IMediaPipe tool, IPacket packet)
+  public void onWritePacket(IMediaGenerator tool, IPacket packet)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteHeader(IMediaPipe tool)
+  public void onWriteHeader(IMediaGenerator tool)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onFlush(IMediaPipe tool)
+  public void onFlush(IMediaGenerator tool)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteTrailer(IMediaPipe tool)
+  public void onWriteTrailer(IMediaGenerator tool)
   {
   }
   

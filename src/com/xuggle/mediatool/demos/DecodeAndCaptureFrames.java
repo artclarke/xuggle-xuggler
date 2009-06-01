@@ -26,10 +26,10 @@ import java.util.concurrent.TimeUnit;
 
 import java.awt.image.BufferedImage;
 
-import com.xuggle.mediatool.IMediaPipe;
+import com.xuggle.mediatool.IMediaGenerator;
 import com.xuggle.mediatool.IMediaReader;
-import com.xuggle.mediatool.MediaPipeAdapter;
-import com.xuggle.mediatool.MediaTool;
+import com.xuggle.mediatool.MediaListenerAdapter;
+import com.xuggle.mediatool.ToolFactory;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IVideoPicture;
 
@@ -42,7 +42,7 @@ import com.xuggle.xuggler.IVideoPicture;
  * @author trebor
  */
 
-public class DecodeAndCaptureFrames extends MediaPipeAdapter
+public class DecodeAndCaptureFrames extends MediaListenerAdapter
 {
   /** 
    * The number of seconds between frames.
@@ -97,7 +97,7 @@ public class DecodeAndCaptureFrames extends MediaPipeAdapter
   {
     // create a media reader for processing video
 
-    IMediaReader reader = MediaTool.makeReader(filename);
+    IMediaReader reader = ToolFactory.makeReader(filename);
     
     // stipulate that we want BufferedImages created in BGR 24bit color space
     reader.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
@@ -132,7 +132,7 @@ public class DecodeAndCaptureFrames extends MediaPipeAdapter
    * @param streamIndex the index of the stream this object was decoded from.
    */
 
-  public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
+  public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
     BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
   {
     try

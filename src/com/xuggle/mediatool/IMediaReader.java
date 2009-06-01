@@ -29,13 +29,13 @@ import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IVideoPicture;
 
 /**
- * An {@link IMediaTool} that reads and decodes media from a container.
+ * An {@link IMediaCoder} that reads and decodes media from a container.
  * 
  * <p>
  * An {@link IMediaReader} opens up a media container,
  * reads packets from it, decodes the data, and then dispatches
  * information about the data to any registered
- * {@link IMediaPipeListener} objects.  The main method of
+ * {@link IMediaListener} objects.  The main method of
  * interest is {@link #readPacket()}.
  * 
  * </p>
@@ -46,12 +46,12 @@ import com.xuggle.xuggler.IVideoPicture;
  * 
  *  </p>
  *  <pre>
- *  IMediaDebugListener myListener = new MediaPipeAdapter(){
- *    public void onOpen(IMediaPipe pipe) {
+ *  IMediaDebugListener myListener = new MediaListenerAdapter(){
+ *    public void onOpen(IMediaGenerator pipe) {
  *      System.out.println("opened: " + ((IMediaReader)pipe).getUrl());
  *    }
  *  };
- *  IMediaReader reader = MediaTool.makeReader("myinputfile.flv");
+ *  IMediaReader reader = ToolFactory.makeReader("myinputfile.flv");
  *  reader.addListener(myListener);
  *  while(reader.readPacket() == null)
  *    ;
@@ -63,8 +63,8 @@ import com.xuggle.xuggler.IVideoPicture;
  *  
  *  </p>
  *  <pre>
- *  IMediaReader reader = MediaTool.makeReader("myinputfile.flv");
- *  reader.addListener(MediaTool.makeViewer());
+ *  IMediaReader reader = ToolFactory.makeReader("myinputfile.flv");
+ *  reader.addListener(ToolFactory.makeViewer());
  *  while(reader.readPacket() == null)
  *    ;
  *  </pre>
@@ -77,7 +77,7 @@ import com.xuggle.xuggler.IVideoPicture;
  *
  */
 
-public interface IMediaReader extends IMediaTool
+public interface IMediaReader extends IMediaCoder
 {
 
   /**
@@ -187,7 +187,7 @@ public interface IMediaReader extends IMediaTool
   public abstract boolean willCloseOnEofOnly();
 
   /**
-   * Decodes the next packet and calls all registered {@link IMediaPipeListener}
+   * Decodes the next packet and calls all registered {@link IMediaListener}
    * objects.
    * 
    * <p>
@@ -217,7 +217,7 @@ public interface IMediaReader extends IMediaTool
   /**
    * Asks the {@link IMediaReader} to generate {@link BufferedImage} images when
    * calling
-   * {@link IMediaPipeListener#onVideoPicture(IMediaPipe, IVideoPicture, BufferedImage, long, TimeUnit, int)}
+   * {@link IMediaListener#onVideoPicture(IMediaGenerator, IVideoPicture, BufferedImage, long, TimeUnit, int)}
    * .
    * 
    * <p>
@@ -229,7 +229,7 @@ public interface IMediaReader extends IMediaTool
    * video data it has decoded into the right colorspace for the
    * {@link BufferedImage}, and generate a new {@link BufferedImage} to pass in
    * on each
-   * {@link IMediaPipeListener#onVideoPicture(IMediaPipe, IVideoPicture, BufferedImage, long, TimeUnit, int)
+   * {@link IMediaListener#onVideoPicture(IMediaGenerator, IVideoPicture, BufferedImage, long, TimeUnit, int)
    * }
    * call.
    * </p>

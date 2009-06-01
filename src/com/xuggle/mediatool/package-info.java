@@ -20,7 +20,7 @@
 /**
  * <p>
  * A simple API for to decoding, viewing
- * and encoding media -- Start with {@link MediaTool}.
+ * and encoding media -- Start with {@link ToolFactory}.
  * </p>
  * 
  * <h2>Sample Code</h2>
@@ -31,8 +31,8 @@
  * </p>
  * 
  * <pre>
- * IMediaReader reader = MediaTool.makeReader("input.flv");
- * reader.addListener(MediaTool.makeWriter("output.mov", reader));
+ * IMediaReader reader = ToolFactory.makeReader("input.flv");
+ * reader.addListener(ToolFactory.makeWriter("output.mov", reader));
  * while (reader.readPacket() == null)
  *   ;
  * </pre>
@@ -44,15 +44,15 @@
  * </p>
  * 
  * <pre>
- * IMediaReader reader = MediaTool.makeReader("input.mpg");
- * reader.addListener(MediaTool.makeViewer(true));
- * reader.addListener(MediaTool.makeWriter("output.flv", reader));
+ * IMediaReader reader = ToolFactory.makeReader("input.mpg");
+ * reader.addListener(ToolFactory.makeViewer(true));
+ * reader.addListener(ToolFactory.makeWriter("output.flv", reader));
  * while (reader.readPacket() == null)
  *   ;
  * </pre>
  * 
  * <p>
- * {@link com.xuggle.mediatool.IMediaPipe} objects will
+ * {@link com.xuggle.mediatool.IMediaGenerator} objects will
  * make intelligent guesses about the parameters to decode and encode
  * with based on the file names, but you can change and override everything
  * if you want.

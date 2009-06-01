@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 import com.xuggle.ferry.JNIMemoryManager;
 import com.xuggle.ferry.JNIMemoryManager.MemoryModel;
 import com.xuggle.mediatool.IMediaReader;
-import com.xuggle.mediatool.MediaTool;
+import com.xuggle.mediatool.ToolFactory;
 import com.xuggle.mediatool.IMediaViewer;
 
 @RunWith(Parameterized.class)
@@ -100,7 +100,7 @@ public class MultiThreadedWritingExhaustiveTest
       {
         public void run()
         {
-          final IMediaReader reader = MediaTool.makeReader(
+          final IMediaReader reader = ToolFactory.makeReader(
               "fixtures/testfile_videoonly_20sec.flv");
           try
           {
@@ -109,11 +109,11 @@ public class MultiThreadedWritingExhaustiveTest
             reader.setQueryMetaData(true);
             if (ADD_VIEWER)
             {
-              final IMediaViewer viewer = MediaTool.makeViewer();
+              final IMediaViewer viewer = ToolFactory.makeViewer();
               reader.addListener(viewer);
             }
 
-            reader.addListener(MediaTool.makeWriter(
+            reader.addListener(ToolFactory.makeWriter(
                 MultiThreadedWritingExhaustiveTest.class.getName()
                 + "_" + mModel.toString()
                 + "_" + mTestNumber + "_" + index + ".flv", reader));

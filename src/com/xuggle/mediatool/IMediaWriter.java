@@ -32,7 +32,7 @@ import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 
 /**
- * An {@link IMediaTool} that encodes and decodes media to containers.
+ * An {@link IMediaCoder} that encodes and decodes media to containers.
  *  
  * <p>
  * 
@@ -43,9 +43,9 @@ import com.xuggle.xuggler.IVideoPicture;
  * </p>
  * 
  * <p>
- * The {@link IMediaWriter} class implements {@link IMediaPipeListener},
+ * The {@link IMediaWriter} class implements {@link IMediaListener},
  * and so
- * it can be attached to any {@link IMediaPipe} that generates raw
+ * it can be attached to any {@link IMediaGenerator} that generates raw
  * media events (e.g. {@link IMediaReader}).  If will query the input
  * pipe for all of it's streams, and create the right output streams
  * (and mappings) in the new file.
@@ -76,7 +76,7 @@ import com.xuggle.xuggler.IVideoPicture;
  * </p>
  */
 
-public interface IMediaWriter extends IMediaTool, IMediaPipeListener
+public interface IMediaWriter extends IMediaCoder, IMediaTool
 {
 
   /**

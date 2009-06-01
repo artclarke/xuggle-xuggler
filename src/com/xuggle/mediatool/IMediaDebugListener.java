@@ -20,14 +20,14 @@
 package com.xuggle.mediatool;
 
 /**
- * An {@link IMediaPipeListener} that logs counts of different events to a log
+ * An {@link IMediaListener} that logs counts of different events to a log
  * file.
  * 
  * <p>
  * 
  * The {@link IMediaDebugListener} implementation can be a handy tool for
- * debugging {@link IMediaPipe} objectss. It allows you to configure different
- * levels of details, and can be attached to multiple {@link IMediaPipe} objects
+ * debugging {@link IMediaGenerator} objectss. It allows you to configure different
+ * levels of details, and can be attached to multiple {@link IMediaGenerator} objects
  * simultaneously.
  * 
  * </p>
@@ -37,7 +37,7 @@ package com.xuggle.mediatool;
  * 
  */
 
-public interface IMediaDebugListener extends IMediaPipeListener
+public interface IMediaDebugListener extends IMediaListener
 {
   /**
    * How much detail on each event you want to log.
@@ -163,7 +163,7 @@ public interface IMediaDebugListener extends IMediaPipeListener
     }
 
     /**
-     * Get the {@link IMediaPipeListener} event this event
+     * Get the {@link IMediaListener} event this event
      * will fire for.
      * @return The method.
      */

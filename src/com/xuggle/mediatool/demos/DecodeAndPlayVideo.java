@@ -22,7 +22,7 @@ package com.xuggle.mediatool.demos;
 
 import com.xuggle.mediatool.IMediaReader;
 import com.xuggle.mediatool.IMediaViewer;
-import com.xuggle.mediatool.MediaTool;
+import com.xuggle.mediatool.ToolFactory;
 
 /**
  * Using {@link IMediaReader}, takes a media container, finds the first video
@@ -66,12 +66,12 @@ public class DecodeAndPlayVideo
   {
     // create a media reader for processing video
 
-    IMediaReader mediaReader = MediaTool.makeReader(filename);
+    IMediaReader mediaReader = ToolFactory.makeReader(filename);
 
     //
     // Create a MediaViewer object andtell it to play video only
     //
-    mediaReader.addListener(MediaTool.makeViewer(IMediaViewer.Mode.VIDEO_ONLY));
+    mediaReader.addListener(ToolFactory.makeViewer(IMediaViewer.Mode.VIDEO_ONLY));
 
     // read out the contents of the media file, and sit back and watch
 

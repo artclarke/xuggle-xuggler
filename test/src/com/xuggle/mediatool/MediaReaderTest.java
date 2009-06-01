@@ -23,9 +23,9 @@ import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.xuggle.mediatool.IMediaPipeListener;
-import com.xuggle.mediatool.IMediaPipe;
-import com.xuggle.mediatool.MediaPipeAdapter;
+import com.xuggle.mediatool.IMediaListener;
+import com.xuggle.mediatool.IMediaGenerator;
+import com.xuggle.mediatool.MediaListenerAdapter;
 import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.xuggler.IError;
@@ -94,9 +94,9 @@ public class MediaReaderTest
 
     // setup the the listener
 
-    IMediaPipeListener mrl = new MediaPipeAdapter()
+    IMediaListener mrl = new MediaListenerAdapter()
       {
-        public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
+        public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
           BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
         {
           assertNotNull("picture should be created", picture);
@@ -104,7 +104,7 @@ public class MediaReaderTest
           ++counts[0];
         }
 
-        public void onAudioSamples(IMediaPipe tool, IAudioSamples samples, 
+        public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples, 
           int streamIndex)
         {
           assertNotNull("audio samples should be created", samples);
@@ -155,16 +155,16 @@ public class MediaReaderTest
 
     // setup the the listener
 
-    IMediaPipeListener mrl = new MediaPipeAdapter()
+    IMediaListener mrl = new MediaListenerAdapter()
       {
-        public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
+        public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
           BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
         {
           assertNotNull("picture should be created", picture);
           assertNotNull("buffered image should be created", image);
         }
 
-        public void onAudioSamples(IMediaPipe tool, IAudioSamples samples, int streamIndex)
+        public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples, int streamIndex)
         {
           assertNotNull("audio samples should be created", samples);
         }
@@ -209,9 +209,9 @@ public class MediaReaderTest
 
     // setup the the listener
 
-    IMediaPipeListener mrl = new MediaPipeAdapter()
+    IMediaListener mrl = new MediaListenerAdapter()
       {
-        public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
+        public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
           BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
         {
           assertNotNull("picture should be created", picture);
@@ -219,7 +219,7 @@ public class MediaReaderTest
           ++counts[0];
         }
 
-        public void onAudioSamples(IMediaPipe tool, IAudioSamples samples,
+        public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples,
           int streamIndex)
         {
           assertNotNull("audio samples should be created", samples);

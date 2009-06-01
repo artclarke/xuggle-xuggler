@@ -22,18 +22,18 @@ package com.xuggle.mediatool;
 import java.util.Collection;
 
 /**
- * An object that generates events that {@link IMediaPipeListener} objects can
+ * An object that generates events that {@link IMediaListener} objects can
  * subscribe to and react to.
  * <p>
  * This is the interface that defines how you
- * {@link #addListener(IMediaPipeListener)} s and
- * {@link #removeListener(IMediaPipeListener)}s from different
- * {@link IMediaPipe} objects such as {@link IMediaReader}.
+ * {@link #addListener(IMediaListener)} s and
+ * {@link #removeListener(IMediaListener)}s from different
+ * {@link IMediaGenerator} objects such as {@link IMediaReader}.
  * 
  * </p>
  */
 
-public interface IMediaPipe
+public interface IMediaGenerator
 {
   /**
    * Add a media tool listener.
@@ -43,7 +43,7 @@ public interface IMediaPipe
    * @return true if the set of listeners changed as a result of the call
    */
   
-  public abstract boolean addListener(IMediaPipeListener listener);
+  public abstract boolean addListener(IMediaListener listener);
   
   /**
    * Remove a media tool listener.
@@ -53,7 +53,7 @@ public interface IMediaPipe
    * @return true if the set of listeners changed as a result of the call
    */
   
-  public abstract boolean removeListener(IMediaPipeListener listener);
+  public abstract boolean removeListener(IMediaListener listener);
   
   /**
    * Get the list of existing media tools listeners.
@@ -61,7 +61,7 @@ public interface IMediaPipe
    * @return an unmodifiable collection of listeners
    */
   
-  public abstract Collection<IMediaPipeListener> getListeners();
+  public abstract Collection<IMediaListener> getListeners();
   
 
 }

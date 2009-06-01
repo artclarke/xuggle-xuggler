@@ -22,8 +22,8 @@ package com.xuggle.mediatool;
 import javax.sound.sampled.DataLine;
 
 /**
- * An {@link IMediaPipeListener} that plays audio, video or both, while
- * listening to a {@link IMediaPipe} that produces raw media.
+ * An {@link IMediaListener} that plays audio, video or both, while
+ * listening to a {@link IMediaGenerator} that produces raw media.
  * 
  * <p>
  * 
@@ -48,7 +48,7 @@ import javax.sound.sampled.DataLine;
  * </p>
  */
 
-public interface IMediaViewer extends IMediaPipeListener
+public interface IMediaViewer extends IMediaListener
 {
   /**
    * The mode you want to view media in.

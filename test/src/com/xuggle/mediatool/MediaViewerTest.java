@@ -128,7 +128,7 @@ public class MediaViewerTest
     
     MediaWriter writer = new MediaWriter("output.mov", reader)
       {
-        public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
+        public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
           BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
         {
           Graphics2D g = image.createGraphics();
@@ -148,7 +148,7 @@ public class MediaViewerTest
               timeUnit, streamIndex);
         }
   
-        public void onAudioSamples(IMediaPipe tool, IAudioSamples samples, 
+        public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples, 
           int streamIndex)
         {
           // get the raw audio byes and reduce the value to 1 quarter

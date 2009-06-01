@@ -25,7 +25,7 @@ import java.io.File;
 import com.xuggle.mediatool.IMediaReader;
 import com.xuggle.mediatool.IMediaViewer;
 import com.xuggle.mediatool.IMediaWriter;
-import com.xuggle.mediatool.MediaTool;
+import com.xuggle.mediatool.ToolFactory;
 
 import static java.lang.System.out;
 import static java.lang.System.exit;
@@ -79,15 +79,15 @@ public class TranscodeAudioAndVideo
     // create the media reader, not that no BufferedImages need to be
     // created because the video is not going to be manipulated
 
-    IMediaReader reader = MediaTool.makeReader(sourceUrl);
+    IMediaReader reader = ToolFactory.makeReader(sourceUrl);
 
     // add a viewer to the reader, to see progress as the media is
     // transcoded
 
-    reader.addListener(MediaTool.makeViewer(true));
+    reader.addListener(ToolFactory.makeViewer(true));
 
     // create the media writer
-    reader.addListener(MediaTool.makeWriter(destinationUrl, reader));
+    reader.addListener(ToolFactory.makeWriter(destinationUrl, reader));
 
     // read packets from the source file, which dispatch events to the
     // writer, this will continue until 

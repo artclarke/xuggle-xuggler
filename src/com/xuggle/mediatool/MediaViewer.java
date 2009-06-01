@@ -82,8 +82,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 /**
- * An {@link IMediaPipeListener} plays audio, video or both, while
- * listening to a {@link IMediaPipe} that produces raw media.
+ * An {@link IMediaListener} plays audio, video or both, while
+ * listening to a {@link IMediaGenerator} that produces raw media.
  * <p>
  * You can use this object to attach to a {@link MediaReader} or
  * a {@link MediaWriter} to see the output as they work.
@@ -101,7 +101,7 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
  * </p>
  */
 
-class MediaViewer extends MediaPipeAdapter implements IMediaPipeListener, IMediaViewer
+class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMediaViewer
 {
   private static final Logger log = LoggerFactory.getLogger(MediaViewer.class);
 
@@ -383,11 +383,11 @@ class MediaViewer extends MediaPipeAdapter implements IMediaPipeListener, IMedia
   /** Internaly Only.  Configure internal parameters of the media viewer. */
 
   @Override
-  public void onAddStream(IMediaPipe tool, int streamIndex)
+  public void onAddStream(IMediaGenerator tool, int streamIndex)
   {
     // if disabled don't add a stream
 
-    if (!(tool instanceof IMediaTool))
+    if (!(tool instanceof IMediaCoder))
       return;
     
     if (getMode() == Mode.DISABLED)
@@ -395,7 +395,7 @@ class MediaViewer extends MediaPipeAdapter implements IMediaPipeListener, IMedia
 
     // get the coder
 
-    IContainer container = ((IMediaTool)tool).getContainer();
+    IContainer container = ((IMediaCoder)tool).getContainer();
     IStream stream = container.getStream(streamIndex);
     IStreamCoder coder = stream.getStreamCoder();
 
@@ -442,15 +442,15 @@ class MediaViewer extends MediaPipeAdapter implements IMediaPipeListener, IMedia
   /** Internaly Only.  {@inheritDoc} */
 
   @Override
-  public void onVideoPicture(IMediaPipe tool, IVideoPicture picture,
+  public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
       BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
   {
     // be sure container is set
-    if (!(tool instanceof IMediaTool))
+    if (!(tool instanceof IMediaCoder))
       throw new UnsupportedOperationException();
 
     if (null == mContainer)
-      mContainer = ((IMediaTool)tool).getContainer();
+      mContainer = ((IMediaCoder)tool).getContainer();
 
     // if not supposed to play audio, don't
 
@@ -487,16 +487,16 @@ class MediaViewer extends MediaPipeAdapter implements IMediaPipeListener, IMedia
   /** Internaly Only.  {@inheritDoc} */
 
   @Override
-  public void onAudioSamples(IMediaPipe tool, IAudioSamples samples,
+  public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples,
       int streamIndex)
   {
     // be sure container is set
 
-    if (!(tool instanceof IMediaTool))
+    if (!(tool instanceof IMediaCoder))
       throw new UnsupportedOperationException();
 
     if (null == mContainer)
-      mContainer = ((IMediaTool)tool).getContainer();
+      mContainer = ((IMediaCoder)tool).getContainer();
 
     // if not supposed to play audio, don't
 
@@ -521,7 +521,7 @@ class MediaViewer extends MediaPipeAdapter implements IMediaPipeListener, IMedia
 
     else
     {
-      IStream stream = ((IMediaTool)tool).getContainer().getStream(streamIndex);
+      IStream stream = ((IMediaCoder)tool).getContainer().getStream(streamIndex);
       SourceDataLine line = getJavaSoundLine(stream);
       if (line != null)
         playAudio(stream, line, samples);
@@ -547,13 +547,13 @@ class MediaViewer extends MediaPipeAdapter implements IMediaPipeListener, IMedia
     }
   }
 
-  private AudioQueue getAudioQueue(IMediaPipe tool, int streamIndex)
+  private AudioQueue getAudioQueue(IMediaGenerator tool, int streamIndex)
   {
-    if (!(tool instanceof IMediaTool))
+    if (!(tool instanceof IMediaCoder))
       throw new UnsupportedOperationException();
 
     AudioQueue queue = mAudioQueues.get(streamIndex);
-    IStream stream = ((IMediaTool)tool).getContainer().getStream(streamIndex);
+    IStream stream = ((IMediaCoder)tool).getContainer().getStream(streamIndex);
     SourceDataLine line = getJavaSoundLine(stream);
     
     // if no queue (and there is a line), create the queue
@@ -595,12 +595,12 @@ class MediaViewer extends MediaPipeAdapter implements IMediaPipeListener, IMedia
    */
 
   @Override
-  public void onOpen(IMediaPipe tool)
+  public void onOpen(IMediaGenerator tool)
   {    
-    if (!(tool instanceof IMediaTool))
+    if (!(tool instanceof IMediaCoder))
       throw new UnsupportedOperationException();
 
-    mContainer = ((IMediaTool)tool).getContainer();
+    mContainer = ((IMediaCoder)tool).getContainer();
   };
 
   /**
@@ -608,7 +608,7 @@ class MediaViewer extends MediaPipeAdapter implements IMediaPipeListener, IMedia
    */
 
   @Override
-  public void onClose(IMediaPipe tool)
+  public void onClose(IMediaGenerator tool)
   {
     flush();
     for (MediaFrame frame : mFrames.values())
@@ -650,7 +650,7 @@ class MediaViewer extends MediaPipeAdapter implements IMediaPipeListener, IMedia
   private static void drawStats(IVideoPicture picture, BufferedImage image)
   {
     if (image == null)
-      throw new RuntimeException("must be used with a IMediaPipe"
+      throw new RuntimeException("must be used with a IMediaGenerator"
           + " that created BufferedImages");
     Graphics2D g = image.createGraphics();
     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
