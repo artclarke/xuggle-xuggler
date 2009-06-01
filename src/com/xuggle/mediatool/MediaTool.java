@@ -265,24 +265,28 @@ public class MediaTool
   }
 
   /**
-   * A sample program for the {@link MediaTool} that takes an input media file
-   * and an output file name, then transcodes the input to the output format
-   * while displaying the media in real time.
+   * A sample program for the {@link MediaTool}.  If given
+   * one argument on the command line, it will interpret that
+   * as a media file to read and play.  If given more than one,
+   * it will attempt to transcode the first file into formats
+   * guessed for all the other arguments.
+   * <p>
+   * For example, this decodes and plays &quot;input.flv&quot;, while
+   * transcoding &quot;input.flv&quot; into &quot;output1.mov&quot;
+   * and &quot;output2.mp4&quot;
+   * </p>
+   * <pre>
+   * com.xuggle.mediatool.MediaTool input.flv output1.mov output2.mp4
+   * </pre>
    * 
-   * @param args input filename and output filename
+   * @param args input filename and option output filenames
    */
 
   public static void main(String[] args)
   {
-    if (args.length < 2)
+    if (args.length < 1)
     {
-      out.println("To perform a simple media transcode.  The destination "
-          + "format will be guessed from the file extention.");
-      out.println("");
-      out.println("   TranscodeAudioAndVideo <source-file> <destination-file>");
-      out.println("");
-      out
-          .println("The destination type will be guess from the supplied file extsion.");
+      System.out.println("Must enter at least one Source File to read.");
       exit(0);
     }
 
@@ -295,7 +299,8 @@ public class MediaTool
 
     IMediaReader reader = MediaTool.makeReader(args[0]);
     reader.addListener(MediaTool.makeViewer(true));
-    reader.addListener(MediaTool.makeWriter(args[1], reader));
+    for(int i = 1; i< args.length; i++)
+      reader.addListener(MediaTool.makeWriter(args[i], reader));
     while (reader.readPacket() == null)
       ;
 
@@ -307,10 +312,10 @@ public class MediaTool
    * Turbo-Charging is off by default.
    * </p>
    * <p>
-   * When running in Turbo-Mode {@link MediaTool} will make a variety of tuning
+   * When running Turbo-Charged {@link MediaTool} will make a variety of tuning
    * assumptions that can speed up execution of your program, sometimes by
    * significant amounts.  {@link MediaTool} was designed from
-   * the ground up to run in Turbo-Mode, but it can cause issues
+   * the ground up to run Turbo-Charged, but it can cause issues
    * for other {@link com.xuggle.xuggler}-based programs running
    * in the same Java process.
    * </p>
@@ -340,13 +345,44 @@ public class MediaTool
    * errors, or to premature releasing of resources.
    * </p>
    * <p>
-   * Turbo mode works by changing the global
+   * Turbo-Charging works by changing the global
    * {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel} that the underlying
    * {@link com.xuggle.xuggler} API in your program is using. If you are using
    * {@link MediaTool} in a java program that contains other code using the
    * {@link com.xuggle.xuggler} API, you will force that code to use the new
    * memory model.
    * </p>
+   * <p>
+   * 
+   * Turbo-Charging should not be used by pregnant women.
+   * 
+   * </p>
+   * <p>
+   * 
+   * Badgers considering Turbo-Charging should check burrows for
+   * at least three feet of vertical clearance.
+   * 
+   * </p>
+   * <p>
+   * 
+   * Turbo-Charging Java Programs should be given at least 2-weeks of
+   * vacation per year in order to adequately recover from the
+   * Turbo-Charging experience. 
+   * 
+   * </p>
+   * <p>
+   * 
+   * Turbo-Charging is illegal without a license in British Columbia.
+   * Contact the Royal Canadian Mounted Police.  
+   * </p>
+   * <p>
+   * 
+   * Writing documentation about Turbo-Charging may lead to
+   * excessive stupidity.  Limiting documentation to four warnings
+   * or fewer is strongly recommended.
+   * 
+   * </p>
+   * 
    * 
    * @param turbo should we turn on turbo mode
    * 
@@ -363,8 +399,9 @@ public class MediaTool
   }
 
   /**
-   * Is {@link MediaTool} running in turbo charged mode?
-   * @return true if trubo-charged
+   * Is {@link MediaTool} running in Turbo-Charged mode?
+   * @return true if Turbo-Charged.  false if really just slogging
+   *   along and finding its own way.
    */
   public static boolean isTurboCharged()
   {
