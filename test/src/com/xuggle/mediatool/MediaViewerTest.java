@@ -29,9 +29,10 @@ import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
-import java.util.concurrent.TimeUnit;
 import java.util.Random;
 import java.util.Vector;
+import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.*;
 import org.slf4j.Logger;
@@ -42,14 +43,16 @@ import javax.swing.WindowConstants;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.ICodec;
+import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IAudioSamples;
-
+  
 import static com.xuggle.mediatool.IMediaViewer.Mode.*;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static com.xuggle.xuggler.Global.DEFAULT_PTS_PER_SECOND;
 
 import static junit.framework.Assert.*;
 
@@ -121,7 +124,6 @@ public class MediaViewerTest
     IMediaReader reader = new MediaReader(INPUT_FILENAME);
     reader.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
 
-    
     // add a writer to the reader which receives the decoded media,
     // encodes it and writes it out to the specified file
     
@@ -170,6 +172,238 @@ public class MediaViewerTest
     while (reader.readPacket() == null)
       ;
   }
+  
+  @Test()
+    public void testCreateMedia()
+  {
+    int ballCount = 3;
+
+    // total duration of the video
+
+    long duration = TIME_UNIT.convert(20, SECONDS);
+
+    // video parameters
+
+    int videoStreamIndex = 0;
+    int videoStreamId = 0;
+    long frameRate = TIME_UNIT.convert(15, MILLISECONDS);
+    final int w = 320;
+    final int h = 200;
+    
+    // audio parameters
+
+    int audioStreamIndex = 1;
+    int audioStreamId = 0;
+    int channelCount = 1;
+    int sampleRate = 44100; // Hz
+
+    // create a media writer and specify the output file
+
+    IMediaWriter writer = new MediaWriter("output.flv");
+
+    // add a viewer so we can see the media as it is created
+
+    writer.addListener(new MediaViewer(true));
+
+    // add the video stream
+
+    ICodec videoCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_FLV1);
+    writer.addVideoStream(videoStreamIndex, videoStreamId, videoCodec, w, h);
+
+    // add the audio stream
+
+    ICodec audioCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
+    writer.addAudioStream(audioStreamIndex, audioStreamId, audioCodec, 
+      channelCount, sampleRate);
+
+    // establish audio frame sample count and audio frame sample period
+
+    IStream stream = writer.getContainer().getStream(audioStreamIndex);
+    int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
+    int samplePeriod = (int)((sampleCount * DEFAULT_PTS_PER_SECOND) / sampleRate);
+
+    // create some balls to show on the screen
+
+    Balls balls = new Balls(ballCount, w, h, sampleCount);
+
+    // compute clock increment, currently the audio sample period
+    // because audio is created more often then video samples
+
+    long clockIncrement = samplePeriod;
+
+    // create the media
+
+    long nextFrameTime = 0;
+    for (long clock = 0; clock <= duration; clock += clockIncrement)
+    {
+      // if the clock time exceeds the time of the next video frame,
+      // get and encode the next video frame
+
+      if (clock >= nextFrameTime)
+      {
+        BufferedImage frame = balls.getVideoFrame(frameRate);
+        writer.encodeVideo(videoStreamIndex, frame, nextFrameTime, TIME_UNIT);
+        nextFrameTime += frameRate;
+      }
+
+      // compute and encode the audio for the balls
+
+      short[] samples = balls.getAudioFrame(sampleRate);
+      writer.encodeAudio(audioStreamIndex, samples, clock, TIME_UNIT);
+    }
+
+    // manually close the writer
+      
+    writer.close();
+  }
+
+  /**
+   * Add a signal of a given frequency to a set of audio samples.  If
+   * the total signal value exceeds the percision of the samples, the
+   * signal is clipped.
+   * 
+   * @param frequency the frequency of the signal to add
+   * @param sampleRate the number samples in a second
+   * @param volume the amplitude of the signal
+   * @param progress the start position the signal, initally should be
+   *        zero
+   * @param samples the array to which the samples will be added
+   * 
+   * @return the progress at the end of the sample period
+   */
+
+  public static double addSignal(int frequency, int sampleRate, double volume, 
+    double progress, short[] samples)
+  {
+    final double amplitude = Short.MAX_VALUE * volume;
+    final double epsilon = ((Math.PI * 2) * frequency) / sampleRate;
+
+    // for each sample
+
+    for (int i = 0; i < samples.length; ++i)
+    {
+      // compute sample as int
+
+      int sample = samples[i] + (short)(amplitude * Math.sin(progress));
+
+      // clip if nedded
+
+      sample = Math.max(Short.MIN_VALUE, sample);
+      sample = Math.min(Short.MAX_VALUE, sample);
+
+      // insert new sample
+
+      samples[i] = (short)sample;
+
+      // update progress
+        
+      progress += epsilon;
+    }
+
+    // return progress
+
+    return progress;
+  }
+
+  static class Balls
+  {
+    // the balls
+
+    private final Collection<Ball> mBalls;
+
+    // a place to store frame images
+      
+    private final BufferedImage mImage;
+    
+    // the graphics for the image
+
+    private final Graphics2D mGraphics;
+
+    // a place to put the audio samples
+
+    private final short[] mSamples;
+
+    /** 
+     * Grow a set of balls.
+     */
+
+    public Balls(int ballCount, int width, int height, int sampleCount)
+    {
+      // create the balls
+
+      mBalls = new Vector<Ball>();
+      while (mBalls.size() < ballCount)
+        mBalls.add(new Ball(width, height));
+
+      // create a place to put images
+      
+      mImage = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
+      
+      // create graphics for the images
+    
+      mGraphics = mImage.createGraphics();
+      mGraphics.setRenderingHint(
+        RenderingHints.KEY_ANTIALIASING,
+        RenderingHints.VALUE_ANTIALIAS_ON);
+
+      // create a place to put the audio samples
+
+      mSamples = new short[sampleCount];
+    }
+
+    /**
+     * Get a video frame containing the balls.
+     * 
+     * @param elapsedTime the time which has elapsed since the last
+     *        video frame
+     */
+
+    public BufferedImage getVideoFrame(long elapsedTime)
+    {
+      // clear the frame
+
+      mGraphics.setColor(Color.WHITE);
+      mGraphics.fillRect(0, 0, mImage.getWidth(), mImage.getHeight());
+
+      // update and paint the balls
+
+      for (Ball ball: mBalls)
+      {
+        ball.update(elapsedTime);
+        ball.paint(mGraphics);
+      }
+
+      // return the frame image
+
+      return mImage;
+    }
+
+    /**
+     * Get a video frame containing the ball sounds.
+     * 
+     * @param elapsedTime the time which has elapsed since the last
+     *        audio update
+     */
+
+    public short[] getAudioFrame(int sampleRate)
+    {
+      // zero out the audio
+      
+      for (int i = 0; i < mSamples.length; ++i)
+        mSamples[i] = 0;
+      
+      // add audio for each ball
+      
+      for (Ball ball: mBalls)
+        ball.mAudioAngle = addSignal(ball.getFrequency(), sampleRate, 
+          1d / mBalls.size(), ball.mAudioAngle, mSamples);
+
+      // return new audio samples
+
+      return mSamples;
+    }
+
+  }
 
   /** A ball that bounces around inside a bounding box. */
 
@@ -177,16 +411,17 @@ public class MediaViewerTest
   {
     public static final long serialVersionUID = 0;
 
-    private static final int MIN_FREQ_KHZ = 60;
-    private static final int MAX_FREQ_KHZ = 880;
+    private static final int MIN_FREQ_HZ = 220;
+    private static final int MAX_FREQ_HZ = 880;
 
     private final int mWidth;
     private final int mHeight;
-    private final int mRadius   = 10;
-    private final double mSpeed = 200d / TIME_UNIT.convert(1, SECONDS);
+    private final int mRadius;
+    private final double mSpeed;
     private static final Random rnd = new Random();
-    private double mTheta = Math.PI / 4;
+    private double mAngle = 0;
     private Color mColor  = Color.BLUE;
+    public double mAudioAngle = 0;
 
     /** Construct a ball.
      *  
@@ -198,20 +433,35 @@ public class MediaViewerTest
     {
       mWidth = width;
       mHeight = height;
-      
+
+      // set a random radius
+
+      mRadius = rnd.nextInt(10) + 10;
+
+      // set the speed
+
+      mSpeed = (rnd.nextInt(200) + 100d) / TIME_UNIT.convert(1, SECONDS);
+
+      // start in the middle
+
       setLocation(
         (mWidth - 2 * mRadius) / 2,
         (mHeight - 2 * mRadius) / 2);
 
-      mTheta = rnd.nextDouble() * Math.PI * 2;
+      // set random angle
+
+      mAngle = rnd.nextDouble() * Math.PI * 2;
+
+      // set random color
+
       mColor = new Color(
-        Math.abs(rnd.nextInt() % 256),
-        Math.abs(rnd.nextInt() % 256),
-        Math.abs(rnd.nextInt() % 256));
+        rnd.nextInt(256),
+        rnd.nextInt(256),
+        rnd.nextInt(256));
     }
     
     // set ball location
-
+ 
     private void setLocation(double x, double y)
     {
       setFrame(x, y, 2 * mRadius, 2 * mRadius);
@@ -220,45 +470,33 @@ public class MediaViewerTest
     /** 
      * The current frequency of this ball.
      */
-    
+
     public int getFrequency()
     {
-      double angle = Math.abs(mTheta % 2 * Math.PI) / (2 * Math.PI);
-      return (int)(1000 * 
-        ((angle * (MAX_FREQ_KHZ - MIN_FREQ_KHZ)) + MIN_FREQ_KHZ));
+      double angle = (Math.toDegrees(mAngle) % 360 + 360) % 360;
+      return (int)(angle / 360 * (MAX_FREQ_HZ - MIN_FREQ_HZ) + MIN_FREQ_HZ);
     }
 
     /** 
-     * Updat the state of the ball.
+     * Update the state of the ball.
      * 
      * @param elapsedTime the time which has elapsed since the last update
      */
 
     public void update(long elapsedTime)
     {
-      double x = getX() + Math.cos(mTheta) * mSpeed * elapsedTime;
-      double y = getY() + Math.sin(mTheta) * mSpeed * elapsedTime;
+      double x = getX() + Math.cos(mAngle) * mSpeed * elapsedTime;
+      double y = getY() + Math.sin(mAngle) * mSpeed * elapsedTime;
       
-      if (x < 0)
+      if (x < 0 || x > mWidth - mRadius * 2)
       {
-        mTheta = Math.PI - mTheta;
-        x = getX();
-      }
-
-      else if (x > mWidth - mRadius * 2)
-      {
-        mTheta = Math.PI - mTheta;
+        mAngle = Math.PI - mAngle;
         x = getX();
       }
       
-      if (y < 0)
+      if (y < 0 || y > mHeight - mRadius * 2)
       {
-        mTheta = -mTheta;
-        y = getY();
-      }
-      else if (y > mHeight - mRadius * 2)
-      {
-        mTheta = -mTheta;
+        mAngle = -mAngle;
         y = getY();
       }
 
@@ -276,131 +514,4 @@ public class MediaViewerTest
       g.fill(this);
     }
   };
-  
-
-  @Test()
-  public void testCreateMedia()
-  {
-    // total duration of the video
-
-    long duration = TIME_UNIT.convert(5000, MILLISECONDS);
-
-    // video parameters
-
-    int videoStreamIndex = 0;
-    int videoStreamId = 0;
-    long frameRate = TIME_UNIT.convert(15, MILLISECONDS);
-    final int w = 200;
-    final int h = 200;
-    
-    // audio parameters
-
-    int audioStreamIndex = 1;
-    int audioStreamId = 0;
-    int channelCount = 1;
-    int sampleRate = 44100; // kHz
-
-    // create a media writer and specify the output file
-
-    IMediaWriter writer = new MediaWriter("output.flv");
-
-    // add a viewer so we can see the media as it is created
-
-    //writer.addListener(new MediaViewer(FAST_VIDEO_ONLY, true));
-
-    // add the video stream
-
-    ICodec videoCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_FLV1);
-    writer.addVideoStream(videoStreamIndex, videoStreamId, videoCodec, w, h);
-
-    // add the audio stream
-
-    ICodec audioCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
-    IContainer container = writer.getContainer();
-    IStream stream = container.getStream(
-        writer.addAudioStream(audioStreamIndex, audioStreamId,
-      audioCodec, channelCount, sampleRate));
-    int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
-    int samplePeriod = sampleRate / sampleCount;
-
-    // create some balls to show on the screen
-
-    Vector<Ball> balls = new Vector<Ball>();
-    for (int i = 0; i < 3; ++i)
-      balls.add(new Ball(w, h));
-
-    // create a place to put images
-        
-    BufferedImage image = new BufferedImage(w, h, 
-      BufferedImage.TYPE_3BYTE_BGR);
-    
-    // create graphics for the images
-    
-    Graphics2D g = image.createGraphics();
-    g.setRenderingHint(
-      RenderingHints.KEY_ANTIALIASING,
-      RenderingHints.VALUE_ANTIALIAS_ON);
-
-    // create a place to put the audio samples
-
-    short[] audioSamples = new short[sampleCount];
-
-    // compute clock increment
-
-    long clockIncrement = samplePeriod;
-
-    // create the media
-
-    long nextFrameTime = 0;
-    for (long clock = 0; clock <= duration; clock += clockIncrement)
-    {
-      // if it is time to push a video frame do so
-
-      if (clock >= nextFrameTime)
-      {
-        g.setColor(Color.WHITE);
-        g.fillRect(0, 0, w, h);
-        for (Ball ball: balls)
-        {
-          ball.update(frameRate);
-          ball.paint(g);
-        }
-        
-        writer.encodeVideo(videoStreamIndex, image, nextFrameTime, TIME_UNIT);
-        nextFrameTime += frameRate;
-      }
-
-//       // zero out the audio
-      
-       for (int i = 0; i < audioSamples.length; ++i)
-         audioSamples[i] = 0;
-
-//       // add audio for each ball
-
-      for (Ball ball: balls)
-        addSignal(ball.getFrequency(), sampleRate, 0.25d, 0, audioSamples);
-
-      // push out the audio samples
-      
-       writer.encodeAudio(audioStreamIndex, audioSamples, clock, TIME_UNIT);
-    }
-
-    // manually close the writer
-      
-    writer.close();
-  }
-
-  public void addSignal(int frequency, int sampleRate, double volume, 
-    int startValue, short[] destination)
-  {
-    double theta = 0;
-    double amplitude = Short.MAX_VALUE * volume;
-    double epsilon = (Math.PI * 2) / (sampleRate / frequency);
-
-    for (int i = 0; i < destination.length; ++i)
-    {
-      destination[i] += (short)(amplitude * Math.sin(theta));
-      theta += epsilon;
-    }
-  }
 }
