@@ -20,7 +20,7 @@
 /**
  * <p>
  * A simple API for to decoding, viewing
- * and encoding media.
+ * and encoding media -- Start with {@link MediaTool}.
  * </p>
  * 
  * <h2>Sample Code</h2>

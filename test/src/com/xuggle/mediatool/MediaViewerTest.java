@@ -309,7 +309,7 @@ public class MediaViewerTest
 
     // add a viewer so we can see the media as it is created
 
-    //writer.addListener(new MediaViewer(FAST_VIDEO, true));
+    //writer.addListener(new MediaViewer(FAST_VIDEO_ONLY, true));
 
     // add the video stream
 

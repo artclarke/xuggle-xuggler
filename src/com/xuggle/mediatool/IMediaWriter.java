@@ -355,5 +355,17 @@ public interface IMediaWriter extends IMediaTool, IMediaPipeListener
    * </p>
    */
   public abstract void flush();
+  
+  /** 
+   * Map an input stream index to an output stream index.
+   *
+   * @param inputStreamIndex the input stream index value
+   *
+   * @return the associated output stream index or null, if the input
+   *         stream index has not been mapped to an output index.
+   */
+
+  public abstract Integer getOutputStreamIndex(int inputStreamIndex);
+
 
 }

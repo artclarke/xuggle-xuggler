@@ -30,7 +30,7 @@ import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.ICodec;
 
 /**
- * <strong>Start Here --</strong> Creates the different MediaTool objects, and provides global
+ * <strong>Start Here --</strong> A Factory for MediaTools, and global
  * settings for the API.
  * <p>
  * Here's an example of a {@link MediaTool} program that opens up an input media

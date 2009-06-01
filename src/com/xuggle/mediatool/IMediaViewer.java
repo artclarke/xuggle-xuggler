@@ -71,7 +71,7 @@ public interface IMediaViewer extends IMediaPipeListener
 
     /** Play only video, as fast as possible. */
 
-    FAST_VIDEO(false, true, false),
+    FAST_VIDEO_ONLY(false, true, false),
 
     /** Play neither audio or video, also disables statistics. */
 

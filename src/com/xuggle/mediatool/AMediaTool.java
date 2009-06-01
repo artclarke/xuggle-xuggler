@@ -30,7 +30,7 @@ import com.xuggle.xuggler.IContainer;
  * @author trebor
  */
 
-abstract class AMediaTool extends AMediaPipeEventGenerator
+abstract class AMediaTool extends AMediaPipe
 {
   // the container to read from or write to
   
