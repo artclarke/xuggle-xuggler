@@ -29,6 +29,7 @@ import java.awt.image.BufferedImage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.Before;
 import org.junit.After;
@@ -296,7 +297,7 @@ public class MediaWriterTest
     while (totalSamples < sampleRate * totalSeconds)
     {
       generator.fillNextSamples(samples, sampleCount);
-      writer.onAudioSamples(null, samples, audioStreamIndex);
+      writer.encodeAudio(audioStreamIndex, samples);
       totalSamples += samples.getNumSamples();
     }
 
@@ -308,6 +309,65 @@ public class MediaWriterTest
     assertEquals(file.length(), 40365, 100);
     log.debug("manually check: " + file);
   }
+
+  @Test @Ignore
+  public void customAudioStreamWithoutTimeStamps()
+  {
+    File file = new File(PREFIX + "customAudioWithoutTimeStamps.mp3");
+    file.delete();
+    assert (!file.exists());
+
+    // audio parameters
+
+    int audioStreamIndex = 0;
+    int audioStreamId = 0;
+    int channelCount = 2;
+    int sampleRate = 44100;
+    int totalSeconds = 5;
+
+    // create the writer
+
+    IMediaWriter writer = new MediaWriter(file.toString());
+
+    // add the audio stream
+
+    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
+    IContainer container = writer.getContainer();
+    int streamIndex = writer.addAudioStream(
+        audioStreamIndex, audioStreamId, codec, channelCount, sampleRate); 
+    IStream stream = container.getStream(streamIndex);
+    int sampleCount = stream.getStreamCoder().getDefaultAudioFrameSize();
+
+    // create a place for audio samples
+
+    IAudioSamples samples = IAudioSamples.make(sampleCount, channelCount);
+
+    // create the tone generator
+
+    TestAudioSamplesGenerator generator = new TestAudioSamplesGenerator();
+    generator.prepare(channelCount, sampleRate);
+
+    // let's make some noise!
+
+    int totalSamples = 0;
+    short[] javaSamples = new short[sampleCount*channelCount];
+    while (totalSamples < sampleRate * totalSeconds)
+    {
+      generator.fillNextSamples(samples, sampleCount);
+      samples.get(0, javaSamples, 0, javaSamples.length);
+      writer.encodeAudio(streamIndex, javaSamples);
+      totalSamples += samples.getNumSamples();
+    }
+
+    // close the writer
+
+    writer.close();
+
+    assert (file.exists());
+    assertEquals(file.length(), 40365, 100);
+    log.debug("manually check: " + file);
+  }
+
 
    @Test
     public void customAudioVideoStream()

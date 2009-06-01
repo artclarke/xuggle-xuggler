@@ -161,7 +161,7 @@ public interface IMediaReader extends IMediaTool
    *   cannot change this setting.
    */
 
-  public abstract int getBufferedImageTypeToGenerate();
+  public abstract void setBufferedImageTypeToGenerate(int bufferedImageType);
 
   /**
    * Get the {@link BufferedImage} type this {@link IMediaReader} will
@@ -171,6 +171,6 @@ public interface IMediaReader extends IMediaTool
    * @see #getBufferedImageTypeToGenerate()
    */
 
-  public abstract void setBufferedImageTypeToGenerate(int bufferedImageType);
+  public abstract int getBufferedImageTypeToGenerate();
 
 }

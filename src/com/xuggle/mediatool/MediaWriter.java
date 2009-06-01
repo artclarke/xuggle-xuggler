@@ -31,8 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.xuggle.mediatool.MediaReader;
-import com.xuggle.ferry.IBuffer;
-import com.xuggle.ferry.JNIReference;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IError;
@@ -135,8 +133,8 @@ implements IMediaPipeListener, IMediaWriter
 
   // a map between output stream indicies and video converters
 
-  private Map<IStream, IConverter> mVideoConverters = 
-    new HashMap<IStream, IConverter>();
+  private Map<Integer, IConverter> mVideoConverters = 
+    new HashMap<Integer, IConverter>();
   
   // streasm opened by this MediaWriter must be closed
 
@@ -505,42 +503,75 @@ implements IMediaPipeListener, IMediaWriter
     return mOutputStreamIndices.get(inputStreamIndex);
   }
 
-  /** 
-   * Push an image onto a video stream.
-   * 
-   * @param streamIndex the index of the video stream
-   * @param image the image to push out
-   * @param timeStamp the time stamp of the image
-   * @param timeUnit the time unit of the timestamp
-   */
-
-  public void pushImage(int streamIndex, BufferedImage image, long timeStamp, 
-    TimeUnit timeUnit)
+  private void encodeVideo(int streamIndex, IVideoPicture picture,
+      BufferedImage image)
   {
+    // establish the stream, return silently if no stream returned
+    if (null == picture)
+      throw new IllegalArgumentException("no picture");
+    
+    IStream stream = getStream(streamIndex);
+    if (null == stream)
+      return;
+
     // verify parameters
 
     Integer outputIndex = getOutputStreamIndex(streamIndex);
     if (null == outputIndex)
       throw new IllegalArgumentException("unknow stream index: " + streamIndex);
-    if (null == image)
-      throw new IllegalArgumentException("NULL input image");
-    if (null == timeUnit)
-      throw new IllegalArgumentException("NULL time unit");
     if (CODEC_TYPE_VIDEO  != mStreams.get(outputIndex).getStreamCoder()
       .getCodecType())
     {
       throw new IllegalArgumentException("stream[" + streamIndex + 
         "] is not video");
     }
+    // encode video picture
+
+    // encode the video packet
+    
+    IPacket packet = IPacket.make();
+    try {
+      if (stream.getStreamCoder().encodeVideo(packet, picture, 0) < 0)
+        throw new RuntimeException("failed to encode video");
+  
+      if (packet.isComplete())
+        writePacket(packet);
+    } finally {
+      if (packet != null)
+        packet.delete();
+    }
+  
+    // inform listeners
+
+    super.onVideoPicture(this, picture, image, streamIndex);
+
+  }
+
+  
+  public void encodeVideo(int streamIndex, IVideoPicture picture)
+  {
+    encodeVideo(streamIndex, picture, null);
+  }
+
+  
+  public void encodeVideo(int streamIndex, BufferedImage image, long timeStamp, 
+    TimeUnit timeUnit)
+  {
+    // verify parameters
+
+    if (null == image)
+      throw new IllegalArgumentException("NULL input image");
+    if (null == timeUnit)
+      throw new IllegalArgumentException("NULL time unit");
 
     // convert the image to a picture and push it off to be encoded
 
-    IVideoPicture picture = convertToPicture(getStream(streamIndex), 
+    IVideoPicture picture = convertToPicture(streamIndex, 
       image, MICROSECONDS.convert(timeStamp, timeUnit));
 
     try
     {
-      onVideoPicture(this, picture, null, streamIndex);
+      encodeVideo(streamIndex, picture, image);
     } 
     finally 
     {
@@ -550,166 +581,156 @@ implements IMediaPipeListener, IMediaWriter
   }
 
 
-  /** 
-   * Push samples onto a audio stream.
-   * 
-   * @param streamIndex the index of the audio stream
-   * @param samples the buffer containing the audio samples to push out
-   * @param timeStamp the time stamp of the samples
-   * @param timeUnit the time unit of the timestampb
-   */
-
-  public void pushSamples(int streamIndex, short[] samples, 
-    long timeStamp, TimeUnit timeUnit)
-  {
-    // verify parameters
-
-    Integer outputIndex = getOutputStreamIndex(streamIndex);
-    if (null == outputIndex)
-      throw new IllegalArgumentException("unknow stream index: " + streamIndex);
-    if (null == samples)
-      throw new IllegalArgumentException("NULL input samples");
-    if (null == timeUnit)
-      throw new IllegalArgumentException("NULL time unit");
-    IStreamCoder coder = mStreams.get(outputIndex).getStreamCoder();
-    if (CODEC_TYPE_AUDIO != coder.getCodecType())
-    {
-      throw new IllegalArgumentException("stream[" + streamIndex + 
-        "] is not audio");
-    }
-    if (IAudioSamples.Format.FMT_S16 != coder.getSampleFormat())
-    {
-      throw new IllegalArgumentException("stream[" + streamIndex + 
-        "] is not 16 bit audio");
-    }
-
-    // establish the number of samples
-
-    long sampleCount = samples.length / coder.getChannels();
-
-
-    // create the audio samples object and extract the internal buffer
-    // as an array
-
-//     log.debug("sampleCount: " + sampleCount);
-//     log.debug("channelCount: " + coder.getChannels());
-    IAudioSamples audioFrame = IAudioSamples.make(sampleCount, 
-      coder.getChannels());
-
-    audioFrame.setComplete(true, sampleCount, coder.getSampleRate(), 
-      coder.getChannels(), coder.getSampleFormat(), 
-      MICROSECONDS.convert(timeStamp, timeUnit));
-
-    java.util.concurrent.atomic.AtomicReference<JNIReference> ref = new 
-      java.util.concurrent.atomic.AtomicReference<JNIReference>(null);
-    IBuffer buffer = audioFrame.getData();
-    java.nio.ByteBuffer byteBuffer = buffer.getByteBuffer(0, 
-      audioFrame.getSize(), ref);
-
-    byteBuffer.asShortBuffer().put(samples);
-
-    // copy samples into buffer
-    
-//     for (int i = 0; i < samples.length; ++i)
-//       buffer[i] = samples[i];
-
-    // complete audio frame
-    
-//     audioFrame.setComplete(true, sampleCount, coder.getSampleRate(), 
-//       coder.getChannels(), coder.getSampleFormat(), 
-//       MICROSECONDS.convert(timeStamp, timeUnit));
-
-    // push out the samples for encoding
-
-     onAudioSamples(this, audioFrame, streamIndex);
-
-    audioFrame.delete();
-    buffer.delete();
-    ref.get().delete();
-  }
-
-
   /** {@inheritDoc} */
   
-  public void onVideoPicture(IMediaPipe tool, IVideoPicture picture, 
-    BufferedImage image, int streamIndex)
+  
+  public void encodeAudio(
+      int streamIndex, IAudioSamples samples)
   {
-    IVideoPicture convertedPicture = null;
+    if (null == samples)
+      throw new IllegalArgumentException("NULL input samples");
     // establish the stream, return silently if no stream returned
 
     IStream stream = getStream(streamIndex);
     if (null == stream)
       return;
 
-    // if the BufferedImage exists, convert it to a picture
-    try {
-      if (null != image) {
-        convertedPicture = convertToPicture(stream, image, picture.getPts());
-        picture = convertedPicture;
+    IStreamCoder coder = stream.getStreamCoder();
+    try
+    {
+      if (CODEC_TYPE_AUDIO != coder.getCodecType())
+      {
+        throw new IllegalArgumentException("stream[" + streamIndex + 
+        "] is not audio");
       }
 
-      // encode video picture
+      // encode the audio
 
-      encodeVideo(stream, picture);
+      // convert the samples into a packet
 
-      // inform listeners
+      for (int consumed = 0; consumed < samples.getNumSamples(); /* in loop */)
+      {
+        // encode audio
 
-      super.onVideoPicture(this, picture, image, streamIndex);
-    } finally {
-      if (convertedPicture != null)
-        convertedPicture.delete();
+        IPacket packet = IPacket.make();
+        try {
+          int result = coder.encodeAudio(packet, samples, consumed); 
+          if (result < 0)
+            throw new RuntimeException("failed to encode audio");
+
+          // update total consumed
+
+          consumed += result;
+
+          // if a complete packed was produced write it out
+
+          if (packet.isComplete())
+            writePacket(packet);
+        } finally {
+          if (packet != null)
+            packet.delete();
+        }
+      }      // inform listeners
+
+      super.onAudioSamples(this, samples, streamIndex);
+    }
+    finally
+    {
+      if (coder != null) coder.delete();
     }
   }
 
+  
+  public void encodeAudio(int streamIndex, short[] samples, 
+    long timeStamp, TimeUnit timeUnit)
+  {
+    // verify parameters
+    if (null == samples)
+      throw new IllegalArgumentException("NULL input samples");
+
+    IStream stream = getStream(streamIndex);
+    if (null == stream)
+      return;
+
+    IStreamCoder coder = stream.getStreamCoder();
+    try
+    {
+      if (IAudioSamples.Format.FMT_S16 != coder.getSampleFormat())
+      {
+        throw new IllegalArgumentException("stream[" + streamIndex
+            + "] is not 16 bit audio");
+      }
+
+      // establish the number of samples
+
+      long sampleCount = samples.length / coder.getChannels();
+
+      // create the audio samples object and extract the internal buffer
+      // as an array
+
+      IAudioSamples audioFrame = IAudioSamples.make(sampleCount, coder
+          .getChannels());
+
+      /**
+       * We allow people to pass in a null timeUnit for audio as
+       * a signal that time stamps are unknown.  This is a common
+       * case for audio data, and Xuggler should handle it if
+       * we set a invalid time stamp on the audio.
+       */
+      final long timeStampMicro;
+      if (timeUnit == null)
+        timeStampMicro = Global.NO_PTS;
+      else
+        timeStampMicro = MICROSECONDS.convert(timeStamp, timeUnit);
+
+      audioFrame.setComplete(true, sampleCount, coder.getSampleRate(), coder
+          .getChannels(), coder.getSampleFormat(), timeStampMicro);
+
+      audioFrame.put(samples, 0, 0, samples.length);
+      encodeAudio(streamIndex, audioFrame);
+    }
+    finally
+    {
+      if (coder != null)
+        coder.delete();
+    }
+  }
+
+  public void encodeAudio(int streamIndex, short[] samples)
+  {
+    encodeAudio(streamIndex, samples, Global.NO_PTS, null);
+  }
+  
   /** 
    * Convert an image to a picture for a given stream.
    * 
    * @param stream to destination stream of the image
    */
 
-  private IVideoPicture convertToPicture(IStream stream, BufferedImage image,
+  private IVideoPicture convertToPicture(int streamIndex, BufferedImage image,
     long timeStamp)
   {
     // lookup the converter
 
-    IConverter videoConverter = mVideoConverters.get(stream);
+    IConverter videoConverter = mVideoConverters.get(streamIndex);
 
     // if not found create one
 
     if (videoConverter == null)
     {
+      IStream stream = mStreams.get(streamIndex);
       IStreamCoder coder = stream.getStreamCoder();
       videoConverter = ConverterFactory.createConverter(
         ConverterFactory.findDescriptor(image),
         coder.getPixelType(),
         coder.getWidth(), coder.getHeight(),
         image.getWidth(), image.getHeight());
-      mVideoConverters.put(stream, videoConverter);
+      mVideoConverters.put(streamIndex, videoConverter);
     }
 
     // return the converter
     
     return videoConverter.toPicture(image, timeStamp);
-  }
-  
-  /** {@inheritDoc} */
-  
-  public void onAudioSamples(IMediaPipe tool, IAudioSamples samples, 
-    int streamIndex)
-  {
-    // establish the stream, return silently if no stream returned
-
-    IStream stream = getStream(streamIndex);
-    if (null == stream)
-      return;
-
-    // encode the audio
-
-    encodeAudio(stream, samples);
-
-    // inform listeners
-
-    super.onAudioSamples(this, samples, streamIndex);
   }
   
   /** 
@@ -737,8 +758,8 @@ implements IMediaPipeListener, IMediaWriter
     if (null == getOutputStreamIndex(inputStreamIndex))
     {
       // If the header has already been written, then it is too late to
-      // establish a new stream, throw, or mask optinally mask, and
-      // exception regarding the tardy arival of the new stream
+      // establish a new stream, throw, or mask optionally mask, and
+      // exception regarding the tardy arrival of the new stream
 
       if (getContainer().isHeaderWritten())
         if (willMaskLateStreamExceptions())
@@ -955,68 +976,6 @@ implements IMediaPipeListener, IMediaWriter
   }
   
   /**
-   *  Encode vidoe and dispatch video packet.
-   *
-   * @param stream the stream the picture will be encoded onto
-   * @param picture the picture to be encoded
-   */
-
-  private void encodeVideo(IStream stream, IVideoPicture picture)
-  {
-    // encode the video packet
-
-    IPacket packet = IPacket.make();
-    try {
-      if (stream.getStreamCoder().encodeVideo(packet, picture, 0) < 0)
-        throw new RuntimeException("failed to encode video");
-
-      if (packet.isComplete())
-        writePacket(packet);
-    } finally {
-      if (packet != null)
-        packet.delete();
-    }
-  }
-
-  /**
-   *  Encode audio and dispatch audio packet.
-   *
-   * @param stream the stream the samples will be encoded onto
-   * @param samples the samples to be encoded
-   */
-
-  private void encodeAudio(IStream stream, IAudioSamples samples)
-  {
-    IStreamCoder coder = stream.getStreamCoder();
-
-    // convert the samples into a packet
-
-    for (int consumed = 0; consumed < samples.getNumSamples(); /* in loop */)
-    {
-      // encode audio
-
-      IPacket packet = IPacket.make();
-      try {
-        int result = coder.encodeAudio(packet, samples, consumed); 
-        if (result < 0)
-          throw new RuntimeException("failed to encode audio");
-
-        // update total consumed
-
-        consumed += result;
-
-        // if a complete packed was produced write it out
-
-        if (packet.isComplete())
-          writePacket(packet);
-      } finally {
-        if (packet != null)
-          packet.delete();
-      }
-    }
-  }
-
-  /**
    * Write packet to the output container
    * 
    * @param packet the packet to write out
@@ -1167,6 +1126,34 @@ implements IMediaPipeListener, IMediaWriter
     super.onClose(this);
   }
 
+  /**
+   * Get the default pixel type
+   * @return the default pixel type
+   */
+  public IPixelFormat.Type getDefaultPixelType()
+  {
+    return DEFAULT_PIXEL_TYPE;
+  }
+
+  /**
+   * Get the default audio sample format
+   * @return the format
+   */
+  public IAudioSamples.Format getDefaultSampleFormat()
+  {
+    return DEFAULT_SAMPLE_FORMAT;
+  }
+
+  /**
+   * Get the default time base we'll use on our encoders
+   * if one is not specified by the codec.
+   * @return the default time base
+   */
+  public IRational getDefaultTimebase()
+  {
+    return DEFAULT_TIMEBASE;
+  }
+
   /** {@inheritDoc} */
 
   public String toString()
@@ -1208,6 +1195,26 @@ implements IMediaPipeListener, IMediaWriter
 
   /** {@inheritDoc} */
 
+  public void onVideoPicture(IMediaPipe tool, IVideoPicture picture, 
+    BufferedImage image, int streamIndex)
+  {
+    if (image != null)
+      encodeVideo(streamIndex, image, picture.getTimeStamp(),
+          TimeUnit.MICROSECONDS);
+    else
+      encodeVideo(streamIndex, picture);
+  }
+
+  /** {@inheritDoc} */
+
+  public void onAudioSamples(IMediaPipe tool, IAudioSamples samples,
+      int streamIndex)
+  {
+    encodeAudio(streamIndex, samples);
+  }
+
+  /** {@inheritDoc} */
+
   public void onReadPacket(IMediaPipe tool, IPacket packet)
   {
   }
@@ -1245,34 +1252,6 @@ implements IMediaPipeListener, IMediaWriter
        error.delete();
     }
     return errorString;
-  }
-
-  /**
-   * Get the default pixel type
-   * @return the default pixel type
-   */
-  public IPixelFormat.Type getDefaultPixelType()
-  {
-    return DEFAULT_PIXEL_TYPE;
-  }
-
-  /**
-   * Get the default audio sample format
-   * @return the format
-   */
-  public IAudioSamples.Format getDefaultSampleFormat()
-  {
-    return DEFAULT_SAMPLE_FORMAT;
-  }
-
-  /**
-   * Get the default time base we'll use on our encoders
-   * if one is not specified by the codec.
-   * @return the default time base
-   */
-  public IRational getDefaultTimebase()
-  {
-    return DEFAULT_TIMEBASE;
   }
 
 

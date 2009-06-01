@@ -368,7 +368,7 @@ public class MediaViewerTest
           ball.paint(g);
         }
         
-        writer.pushImage(videoStreamIndex, image, nextFrameTime, TIME_UNIT);
+        writer.encodeVideo(videoStreamIndex, image, nextFrameTime, TIME_UNIT);
         nextFrameTime += frameRate;
       }
 
@@ -384,7 +384,7 @@ public class MediaViewerTest
 
       // push out the audio samples
       
-       writer.pushSamples(audioStreamIndex, audioSamples, clock, TIME_UNIT);
+       writer.encodeAudio(audioStreamIndex, audioSamples, clock, TIME_UNIT);
     }
 
     // manually close the writer
