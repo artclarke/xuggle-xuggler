@@ -713,14 +713,7 @@ namespace com { namespace xuggle { namespace xuggler
     {
       if (!mIsMetaDataQueried)
       {
-        // this sucks but we have to do a global lock when this
-        // method is called because it might do a avcodec_open
-        // behind the scenes.  This doubly sucks because this
-        // method can end up sucking in the entire file especially
-        // if dynamic streams cannot be added
-        Global::lock();
         retval = av_find_stream_info(mFormatContext);
-        Global::unlock();
         // for shits and giggles, dump the ffmpeg output
         // dump_format(mFormatContext, 0, (mFormatContext ? mFormatContext->filename :0), 0);
         mIsMetaDataQueried = true;

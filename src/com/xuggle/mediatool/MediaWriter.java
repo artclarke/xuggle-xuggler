@@ -564,6 +564,12 @@ implements IMediaPipeListener, IMediaWriter
     if (null == timeUnit)
       throw new IllegalArgumentException("NULL time unit");
 
+    // try to set up the stream, and if we're not going to encode
+    // it, don't bother converting it.
+    IStream stream = getStream(streamIndex);
+    if (null == stream)
+      return;
+
     // convert the image to a picture and push it off to be encoded
 
     IVideoPicture picture = convertToPicture(streamIndex, 

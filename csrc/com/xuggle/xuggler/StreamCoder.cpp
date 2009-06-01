@@ -591,10 +591,7 @@ StreamCoder :: open()
       }
     }
 
-    // Ffmpeg doesn't like it if multiple threads try to open a codec at the same time.
-    Global::lock();
     retval = avcodec_open(mCodecContext, mCodec->getAVCodec());
-    Global::unlock();
 
     if (retval < 0)
       throw std::runtime_error("could not open codec");
@@ -635,10 +632,7 @@ StreamCoder :: close()
   int32_t retval = -1;
   if (mCodecContext && mOpened)
   {
-    // Ffmpeg doesn't like it if multiple threads try to close a codec at the same time.
-    Global::lock();
     retval = avcodec_close(mCodecContext);
-    Global::unlock();
     mOpened = false;
   }
   mBytesInFrameBuffer = 0;

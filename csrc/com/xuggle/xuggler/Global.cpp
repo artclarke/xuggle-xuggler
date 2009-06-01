@@ -112,6 +112,35 @@ namespace com { namespace xuggle { namespace xuggler
     return retval;
   }
   
+  static int xuggler_lockmgr_cb(void** ctx, enum AVLockOp op)
+  {
+    if (!ctx)
+      return 1;
+    
+    int retval=0;
+    com::xuggle::ferry::Mutex* mutex=
+      static_cast<com::xuggle::ferry::Mutex*>(*ctx);
+    switch(op)
+    {
+      case AV_LOCK_CREATE:
+        mutex = com::xuggle::ferry::Mutex::make();
+        *ctx = mutex;
+        retval = !!mutex;
+        break;
+      case AV_LOCK_DESTROY:
+        if (mutex) mutex->release();
+        *ctx = 0;
+        break;
+      case AV_LOCK_OBTAIN:
+        if (mutex) mutex->lock();
+        break;
+      case AV_LOCK_RELEASE:
+        if (mutex) mutex->unlock();
+        break;
+    }
+    return retval;
+  }
+  
   Global* Global :: sGlobal = 0;
 
   void
@@ -119,6 +148,7 @@ namespace com { namespace xuggle { namespace xuggler
   {
     if (!sGlobal)
     {
+      av_lockmgr_register(xuggler_lockmgr_cb);
       av_log_set_callback(xuggler_log_callback);
       av_register_all();
       // and set up the device library for webcam support
@@ -135,6 +165,7 @@ namespace com { namespace xuggle { namespace xuggler
   {
     Global *val = (Global*)closure;
     if (!vm && val) {
+      av_lockmgr_register(0);
       delete val;
     }
   }
