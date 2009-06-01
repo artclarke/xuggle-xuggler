@@ -47,36 +47,156 @@ import com.xuggle.xuggler.IVideoPicture;
 
 public interface IMediaListener
 {
+  
+  /**
+   * Base class for all IMediaEvents that {@link IMediaListener}s
+   * can listen for.
+   * @author aclarke
+   *
+   */
+  public class MediaEvent
+  {
+    private final IMediaGenerator mSource;
+    public MediaEvent(IMediaGenerator source)
+    {
+      mSource = source;
+    }
+    /**
+     * Get the source of this event.
+     * @return the source
+     */
+    public IMediaGenerator getSource()
+    {
+      return mSource;
+    }
+    
+  }
+  
+  /**
+   * {@link MediaEvent} for {@link IMediaListener#onVideoPicture(MediaVideoPictureEvent)}
+   * 
+   * @author aclarke
+   *
+   */
+  public class MediaVideoPictureEvent extends MediaEvent
+  {
+    private final IVideoPicture mVideoPicture;
+    private final BufferedImage mBufferedImage;
+    private final long mTimeStamp;
+    private final TimeUnit mTimeUnit;
+    private final int mStreamIndex;
+
+    public MediaVideoPictureEvent(IMediaGenerator source, 
+        IVideoPicture picture, BufferedImage image,
+        long timeStamp, TimeUnit timeUnit,
+        int streamIndex)
+    {
+      super(source);
+      if (image == null && picture == null)
+        throw new IllegalArgumentException();
+      mVideoPicture = picture;
+      mBufferedImage = image;
+      if (image == null)
+      {
+        timeStamp = picture.getTimeStamp();
+        timeUnit = TimeUnit.MICROSECONDS;
+      }
+      mTimeStamp = timeStamp;
+      if (timeUnit == null)
+        throw new IllegalArgumentException();
+      mTimeUnit = timeUnit;
+      mStreamIndex = streamIndex;
+    }
+    public MediaVideoPictureEvent(IMediaGenerator source,
+        IVideoPicture picture, int streamIndex)
+    {
+      this(source, picture, null, 0, null, streamIndex);
+    }
+    public MediaVideoPictureEvent(IMediaGenerator source,
+        BufferedImage image, long timeStamp, TimeUnit timeUnit,
+        int streamIndex)
+    {
+      this(source, null, image, timeStamp, timeUnit, streamIndex);
+    }
+
+    /**
+     * The video picture.  May be null if {@link #getBufferedImage()}
+     * is not null.
+     * <p>
+     * The returned {@link IVideoPicture} will only be valid for
+     * the duration of the {@link IMediaListener#onVideoPicture(MediaVideoPictureEvent)}
+     * call, and {@link IMediaListener} implementations must not use it after
+     * the call returns.  If you need to keep a copy of this data then
+     * use {@link IVideoPicture#copyReference()} to create a reference
+     * that will outlive your call.
+     * </p>
+     * 
+     * @return the videoPicture, or null if unavailable
+     */
+    public IVideoPicture getVideoPicture()
+    {
+      return mVideoPicture;
+    }
+
+    /**
+     * The buffered image, if available.  If null,
+     * you must use {@link #getVideoPicture()}
+     * @return the bufferedImage, or null if not available
+     */
+    public BufferedImage getBufferedImage()
+    {
+      return mBufferedImage;
+    }
+
+    /**
+     * The time stamp of this media, in {@link TimeUnit#MICROSECONDS}.
+     * @return the timeStamp
+     */
+    public long getTimeStamp()
+    {
+      return TimeUnit.MICROSECONDS.convert(mTimeStamp, mTimeUnit);
+    }
+    /**
+     * Get the time stamp of this media in the specified units.
+     * @param unit the time unit
+     * @return the time stamp
+     * @throws IllegalArgumentException if unit is null
+     */
+    public long getTimeStamp(TimeUnit unit)
+    {
+      if (unit == null)
+        throw new IllegalArgumentException();
+      return unit.convert(mTimeStamp, mTimeUnit);
+    }
+
+    /**
+     * The time unit of {@link #getTimeStamp()}.
+     * @return the timeUnit
+     */
+    public TimeUnit getTimeUnit()
+    {
+      return mTimeUnit;
+    }
+
+    /**
+     * @return the streamIndex
+     */
+    public int getStreamIndex()
+    {
+      return mStreamIndex;
+    }
+  }
+  
+  
   /**
    * Called after a video picture has been decoded by a {@link IMediaReader} or
    * encoded by a {@link IMediaWriter}.
    * 
-   * <p>
-   * 
-   * Generators of this event will guarantee that either <code>picture</code> or
-   * <code>image</code> will be non-null. If both are non-null, then
-   * <code>image</code> should be assumed to be the correct data and
-   * <code>picture</code> should be ignored.
-   * 
-   * </p>
-   * 
-   * @param pipe the pipe that generated this event
-   * @param picture a raw video picture. This picture will only be valid for the
-   *        duration of this call. If you need to remember the data, you must
-   *        either copy it out of the video picture, or use
-   *        {@link IVideoPicture#copyReference()} to create a new object that
-   *        points to the same memory as picture.
-   * @param image if not null, then this represents the image data encoded or
-   *        decoded.
-   * @param timeStamp if image is not null, this is the timeStamp for image;
-   *        else this value should be ignored
-   * @param timeUnit if image is not null, this is the timeUnit of timeStamp
-   *        else this value should be ignored
-   * @param streamIndex the index of the stream this object was decoded from.
+   * @param event An event containing either an {@link IVideoPicture},
+   *   a {@link BufferedImage}, or both.
    */
 
-  public void onVideoPicture(IMediaGenerator pipe, IVideoPicture picture,
-      BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex);
+  public void onVideoPicture(MediaVideoPictureEvent event);
 
   /**
    * Called after audio samples have been decoded or encoded by an

@@ -19,12 +19,9 @@
 
 package com.xuggle.mediatool;
 
-import java.awt.image.BufferedImage;
-import java.util.concurrent.TimeUnit;
 
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IAudioSamples;
-import com.xuggle.xuggler.IVideoPicture;
 
 /**
  * An implementation of {@link IMediaListener} that implements all methods as
@@ -43,8 +40,7 @@ public abstract class MediaListenerAdapter implements IMediaListener
 {
   /** {@inheritDoc} */
 
-  public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
-      BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
+  public void onVideoPicture(MediaVideoPictureEvent event)
   {
   }
 

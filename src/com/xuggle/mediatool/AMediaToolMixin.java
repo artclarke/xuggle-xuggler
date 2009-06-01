@@ -19,15 +19,13 @@
 
 package com.xuggle.mediatool;
 
-import java.awt.image.BufferedImage;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 
+import com.xuggle.mediatool.IMediaListener.MediaVideoPictureEvent;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IPacket;
-import com.xuggle.xuggler.IVideoPicture;
 
 /**
  * An abstract implementation
@@ -155,14 +153,12 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onVideoPicture(IMediaGenerator, IVideoPicture, BufferedImage, long, TimeUnit, int)}
+   * {@link IMediaListener#onVideoPicture(MediaVideoPictureEvent)}
    */
-  public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
-      BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
+  public void onVideoPicture(MediaVideoPictureEvent event)
   {
     for (IMediaListener listener : getListeners())
-      listener.onVideoPicture(tool, picture, image, timeStamp, timeUnit,
-          streamIndex);
+      listener.onVideoPicture(event);
   }
 
   /**

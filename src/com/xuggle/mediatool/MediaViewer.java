@@ -442,15 +442,14 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
   /** Internaly Only.  {@inheritDoc} */
 
   @Override
-  public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
-      BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
+  public void onVideoPicture(MediaVideoPictureEvent event)
   {
     // be sure container is set
-    if (!(tool instanceof IMediaCoder))
+    if (!(event.getSource() instanceof IMediaCoder))
       throw new UnsupportedOperationException();
 
     if (null == mContainer)
-      mContainer = ((IMediaCoder)tool).getContainer();
+      mContainer = ((IMediaCoder)event.getSource()).getContainer();
 
     // if not supposed to play audio, don't
 
@@ -459,18 +458,18 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
 
     // get the frame
 
-    MediaFrame frame = mFrames.get(streamIndex);
+    MediaFrame frame = mFrames.get(event.getStreamIndex());
 
     // if in real time, queue the video frame for viewing
 
     if (getMode().isRealTime())
-      getVideoQueue(streamIndex, frame)
-        .offerMedia(picture, picture.getTimeStamp(), MICROSECONDS);
+      getVideoQueue(event.getStreamIndex(), frame)
+        .offerMedia(event.getVideoPicture(), event.getTimeStamp(), MICROSECONDS);
 
     // otherwise just set the image on the frame
 
     else
-      frame.setVideoImage(picture, image);
+      frame.setVideoImage(event.getVideoPicture(), event.getBufferedImage());
   }
 
   private VideoQueue getVideoQueue(int streamIndex, MediaFrame frame)

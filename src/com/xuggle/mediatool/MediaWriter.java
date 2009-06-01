@@ -542,8 +542,8 @@ implements IMediaListener, IMediaWriter
   
     // inform listeners
 
-    super.onVideoPicture(this, picture, image, picture.getTimeStamp(),
-        TimeUnit.MICROSECONDS, streamIndex);
+    super.onVideoPicture(new MediaVideoPictureEvent(this, picture, image,
+        picture.getTimeStamp(), TimeUnit.MICROSECONDS, streamIndex));
 
   }
 
@@ -1201,14 +1201,15 @@ implements IMediaListener, IMediaWriter
 
   /** {@inheritDoc} */
 
-  public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture, 
-    BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
+  public void onVideoPicture(MediaVideoPictureEvent event)
   {
-    if (image != null)
-      encodeVideo(streamIndex, image, timeStamp,
-          timeUnit);
+    if (event.getBufferedImage() != null)
+      encodeVideo(event.getStreamIndex(),
+          event.getBufferedImage(),
+          event.getTimeStamp(event.getTimeUnit()),
+          event.getTimeUnit());
     else
-      encodeVideo(streamIndex, picture);
+      encodeVideo(event.getStreamIndex(), event.getVideoPicture());
   }
 
   /** {@inheritDoc} */

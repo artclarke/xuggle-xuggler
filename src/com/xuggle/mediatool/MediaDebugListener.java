@@ -21,10 +21,8 @@ package com.xuggle.mediatool;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import java.awt.image.BufferedImage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +31,6 @@ import com.xuggle.mediatool.IMediaListener;
 import com.xuggle.mediatool.IMediaGenerator;
 import com.xuggle.xuggler.IPacket;
 
-import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
 
 
@@ -222,10 +219,11 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
 
   /** {@inheritDoc} */
 
-  public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture, 
-    BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
+  public void onVideoPicture(MediaVideoPictureEvent event)
   {
-    handleEvent(VIDEO, tool, new Object[] {picture, image, streamIndex});
+    handleEvent(VIDEO, event.getSource(), new Object[] {event.getVideoPicture(),
+        event.getBufferedImage(),
+        event.getStreamIndex()});
   }
   
   /** {@inheritDoc} */

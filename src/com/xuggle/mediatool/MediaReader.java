@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
 
+import com.xuggle.mediatool.IMediaListener.MediaVideoPictureEvent;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IPacket;
@@ -245,7 +246,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
   
   /**
    * Asks the {@link IMediaReader} to generate {@link BufferedImage}
-   * images when calling {@link IMediaListener#onVideoPicture(IMediaGenerator, IVideoPicture, BufferedImage, long, TimeUnit, int)}.
+   * images when calling {@link IMediaListener#onVideoPicture(MediaVideoPictureEvent)}.
    * 
    * @param bufferedImageType The buffered image type (e.g.
    *   {@link BufferedImage#TYPE_3BYTE_BGR}).  Set to -1 to disable
@@ -597,8 +598,9 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
     
     // dispatch picture here
 
-    super.onVideoPicture(this, picture, image, picture.getTimeStamp(),
-        TimeUnit.MICROSECONDS, streamIndex);
+    
+    super.onVideoPicture(new MediaVideoPictureEvent(this, picture, image,
+        picture.getTimeStamp(), TimeUnit.MICROSECONDS, streamIndex));
   }
 
   /**

@@ -20,7 +20,6 @@
 package com.xuggle.mediatool;
 
 import java.io.File;
-import java.util.concurrent.TimeUnit;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -38,6 +37,7 @@ import org.junit.After;
 import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.mediatool.MediaWriter;
+import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IStream;
@@ -241,8 +241,8 @@ public class MediaWriterTest
       g.fillRect(50, 50, 100, 100);
 
       picture.setPts(time);
-      writer.onVideoPicture(writer, picture, image, picture.getTimeStamp(),
-          TimeUnit.MICROSECONDS, videoStreamIndex);
+      writer.encodeVideo(videoStreamIndex, image,
+          time, Global.DEFAULT_TIME_UNIT);
       
       time += deltaTime;
     }
@@ -461,8 +461,8 @@ public class MediaWriterTest
         g.fillRect(50, 50, 100, 100);
         
         picture.setPts(videoTime);
-        writer.onVideoPicture(writer, picture, image,
-            videoTime, TimeUnit.MICROSECONDS, videoStreamIndex);
+        writer.encodeVideo(videoStreamIndex, image, videoTime,
+            Global.DEFAULT_TIME_UNIT);
       
         videoTime += deltaTime;
       }
@@ -470,7 +470,7 @@ public class MediaWriterTest
       // generate audio
       
       generator.fillNextSamples(samples, sampleCount);
-      writer.onAudioSamples(null, samples, audioStreamIndex);
+      writer.encodeAudio(audioStreamIndex, samples);
       totalSamples += samples.getNumSamples();
     }
 
@@ -522,7 +522,7 @@ public class MediaWriterTest
     // write some data, so that the media header will be written
 
     generator.fillNextSamples(samples, sampleCount);
-    writer.onAudioSamples(null, samples, audioStreamIndex);
+    writer.encodeAudio(audioStreamIndex, samples);
 
     // re-delete the output file so no broke media files persist after
     // the test
@@ -532,7 +532,7 @@ public class MediaWriterTest
     // now write some data on a different index
 
     generator.fillNextSamples(samples, sampleCount);
-    writer.onAudioSamples(null, samples, audioStreamIndex + 1);
+    writer.encodeAudio(audioStreamIndex+1, samples);
 
     // should no get here
 
@@ -582,12 +582,12 @@ public class MediaWriterTest
     // write some data, so that the media header will be written
 
     generator.fillNextSamples(samples, sampleCount);
-    writer.onAudioSamples(null, samples, audioStreamIndex);
+    writer.encodeAudio(audioStreamIndex, samples);
 
     // now write some data on a different index
 
     generator.fillNextSamples(samples, sampleCount);
-    writer.onAudioSamples(null, samples, audioStreamIndex + 1);
+    writer.encodeAudio(audioStreamIndex+1, samples);
 
     // delete the output file so no broke media files persist after the
     // test

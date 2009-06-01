@@ -22,16 +22,13 @@ package com.xuggle.mediatool.demos;
 import javax.imageio.ImageIO;
 
 import java.io.File;
-import java.util.concurrent.TimeUnit;
 
 import java.awt.image.BufferedImage;
 
-import com.xuggle.mediatool.IMediaGenerator;
 import com.xuggle.mediatool.IMediaReader;
 import com.xuggle.mediatool.MediaListenerAdapter;
 import com.xuggle.mediatool.ToolFactory;
 import com.xuggle.xuggler.Global;
-import com.xuggle.xuggler.IVideoPicture;
 
 /**
  * Using {@link IMediaReader}, takes a media container, finds the first video stream, decodes that
@@ -51,10 +48,10 @@ public class DecodeAndCaptureFrames extends MediaListenerAdapter
   public static final double SECONDS_BETWEEN_FRAMES = 5;
 
   /** 
-   * The number of nano-seconds between frames. 
+   * The number of micro-seconds between frames. 
    */
 
-  public static final long NANO_SECONDS_BETWEEN_FRAMES = 
+  public static final long MICRO_SECONDS_BETWEEN_FRAMES = 
     (long)(Global.DEFAULT_PTS_PER_SECOND * SECONDS_BETWEEN_FRAMES);
   
   /** Time of last frame write. */
@@ -126,27 +123,22 @@ public class DecodeAndCaptureFrames extends MediaListenerAdapter
    * create BufferedImages.
    * 
    * This method blocks, so return quickly.
-   * @param picture a raw video picture
-   * @param image the buffered image, which will be null if buffered
-   *        image creation is de-selected for this MediaReader.
-   * @param streamIndex the index of the stream this object was decoded from.
    */
 
-  public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
-    BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
+  public void onVideoPicture(MediaVideoPictureEvent event)
   {
     try
     {
       // if the stream index does not match the selected stream index,
       // then have a closer look
       
-      if (streamIndex != mVideoStreamIndex)
+      if (event.getStreamIndex() != mVideoStreamIndex)
       {
         // if the selected video stream id is not yet set, go ahead an
         // select this lucky video stream
         
         if (-1 == mVideoStreamIndex)
-          mVideoStreamIndex = streamIndex;
+          mVideoStreamIndex = event.getStreamIndex();
         
         // otherwise return, no need to show frames from this video stream
         
@@ -158,11 +150,11 @@ public class DecodeAndCaptureFrames extends MediaListenerAdapter
       // first frame
 
       if (mLastPtsWrite == Global.NO_PTS)
-        mLastPtsWrite = picture.getPts() - NANO_SECONDS_BETWEEN_FRAMES;
+        mLastPtsWrite = event.getTimeStamp() - MICRO_SECONDS_BETWEEN_FRAMES;
 
       // if it's time to write the next frame
 
-      if (picture.getPts() - mLastPtsWrite >= NANO_SECONDS_BETWEEN_FRAMES)
+      if (event.getTimeStamp() - mLastPtsWrite >= MICRO_SECONDS_BETWEEN_FRAMES)
       {
         // Make a temporary file name
 
@@ -170,18 +162,18 @@ public class DecodeAndCaptureFrames extends MediaListenerAdapter
 
         // write out PNG
 
-        ImageIO.write(image, "png", file);
+        ImageIO.write(event.getBufferedImage(), "png", file);
 
         // indicate file written
 
-        double seconds = ((double)picture.getPts())
+        double seconds = ((double)event.getTimeStamp())
           / Global.DEFAULT_PTS_PER_SECOND;
         System.out.printf("at elapsed time of %6.3f seconds wrote: %s\n",
           seconds, file);
         
         // update last write time
         
-        mLastPtsWrite += NANO_SECONDS_BETWEEN_FRAMES;
+        mLastPtsWrite += MICRO_SECONDS_BETWEEN_FRAMES;
       }
     }
     catch (Exception e)

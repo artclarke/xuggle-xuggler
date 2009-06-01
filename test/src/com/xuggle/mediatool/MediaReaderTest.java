@@ -31,11 +31,9 @@ import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IAudioSamples;
-import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IVideoResampler;
 
 import java.awt.image.BufferedImage;
-import java.util.concurrent.TimeUnit;
 
 import static junit.framework.Assert.*;
 
@@ -96,11 +94,10 @@ public class MediaReaderTest
 
     IMediaListener mrl = new MediaListenerAdapter()
       {
-        public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
-          BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
+        public void onVideoPicture(MediaVideoPictureEvent event)
         {
-          assertNotNull("picture should be created", picture);
-          assertNull("no buffered image should be created", image);
+          assertNotNull("picture should be created", event.getVideoPicture());
+          assertNull("no buffered image should be created", event.getBufferedImage());
           ++counts[0];
         }
 
@@ -157,11 +154,10 @@ public class MediaReaderTest
 
     IMediaListener mrl = new MediaListenerAdapter()
       {
-        public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
-          BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
+        public void onVideoPicture(MediaVideoPictureEvent event)
         {
-          assertNotNull("picture should be created", picture);
-          assertNotNull("buffered image should be created", image);
+          assertNotNull("picture should be created", event.getVideoPicture());
+          assertNotNull("buffered image should be created", event.getBufferedImage());
         }
 
         public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples, int streamIndex)
@@ -211,11 +207,10 @@ public class MediaReaderTest
 
     IMediaListener mrl = new MediaListenerAdapter()
       {
-        public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
-          BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
+        public void onVideoPicture(MediaVideoPictureEvent event)
         {
-          assertNotNull("picture should be created", picture);
-          assertNotNull("buffered image should be created", image);
+          assertNotNull("picture should be created", event.getVideoPicture());
+          assertNotNull("buffered image should be created", event.getBufferedImage());
           ++counts[0];
         }
 

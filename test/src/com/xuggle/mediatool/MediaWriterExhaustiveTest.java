@@ -21,11 +21,9 @@ package com.xuggle.mediatool;
 
 import java.io.File;
 
-import java.awt.image.BufferedImage;
 
 import java.util.Collection;
 import java.util.Vector;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +41,6 @@ import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.mediatool.MediaWriter;
 import com.xuggle.xuggler.IAudioSamples;
-import com.xuggle.xuggler.IVideoPicture;
 
 import static com.xuggle.mediatool.IMediaDebugListener.Event.*;
 import static com.xuggle.mediatool.IMediaDebugListener.Mode.*;
@@ -237,10 +234,9 @@ public class MediaWriterExhaustiveTest
 
       reader.addListener(new MediaListenerAdapter()
         {
-          public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture, 
-            BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
+          public void onVideoPicture(MediaVideoPictureEvent event)
           {
-            writer.onVideoPicture(null, picture, image, timeStamp, timeUnit, streamIndex);
+            writer.onVideoPicture(null);
           }
           
           /** {@inheritDoc} */

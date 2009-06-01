@@ -44,7 +44,6 @@ import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IAudioSamples;
-import com.xuggle.xuggler.IVideoPicture;
 
 import static com.xuggle.mediatool.IMediaViewer.Mode.*;
 
@@ -128,24 +127,22 @@ public class MediaViewerTest
     
     MediaWriter writer = new MediaWriter("output.mov", reader)
       {
-        public void onVideoPicture(IMediaGenerator tool, IVideoPicture picture,
-          BufferedImage image, long timeStamp, TimeUnit timeUnit, int streamIndex)
+        public void onVideoPicture(MediaVideoPictureEvent event)
         {
-          Graphics2D g = image.createGraphics();
-          String timeStampStr = picture.getFormattedTimeStamp();
+          Graphics2D g = event.getBufferedImage().createGraphics();
+          String timeStampStr = event.getVideoPicture().getFormattedTimeStamp();
           Rectangle2D bounds = g.getFont().getStringBounds(timeStampStr,
             g.getFontRenderContext());
           
           double inset = bounds.getHeight() / 2;
-          g.translate(inset, image.getHeight() - inset);
+          g.translate(inset, event.getBufferedImage().getHeight() - inset);
           
           g.setColor(Color.WHITE);
           g.fill(bounds);
           g.setColor(Color.BLACK);
           g.drawString(timeStampStr, 0, 0);
 
-          super.onVideoPicture(tool, picture, image, timeStamp,
-              timeUnit, streamIndex);
+          super.onVideoPicture(event);
         }
   
         public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples, 
