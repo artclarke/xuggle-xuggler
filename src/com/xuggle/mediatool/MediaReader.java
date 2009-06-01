@@ -252,14 +252,10 @@ class MediaReader extends AMediaTool implements IMediaReader
    *   this feature.
    *   
    * @see BufferedImage
-   * @throws RuntimeException if the media container has been opened you
-   *   cannot change this setting.
    */
 
   public void setBufferedImageTypeToGenerate(int bufferedImageType)
   {
-    if (isOpen())
-      throw new RuntimeException("media container is already open");
     if (bufferedImageType >= 0 &&
         bufferedImageType != BufferedImage.TYPE_3BYTE_BGR)
       // can remove this once the any converter is created

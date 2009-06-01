@@ -239,8 +239,6 @@ public interface IMediaReader extends IMediaTool
    *        to generate. Set to -1 to disable this feature.
    * 
    * @see BufferedImage
-   * @throws RuntimeException if the media container has been opened you cannot
-   *         change this setting.
    */
 
   public abstract void setBufferedImageTypeToGenerate(int bufferedImageType);
