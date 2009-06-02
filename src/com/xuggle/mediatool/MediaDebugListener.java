@@ -236,9 +236,9 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
   
   /** {@inheritDoc} */
 
-  public void onOpen(IMediaGenerator tool)
+  public void onOpen(MediaOpenEvent event)
   {
-    handleEvent(OPEN, tool, new Object[] {});
+    handleEvent(OPEN, event.getSource(), new Object[] {});
   }
   
   /** {@inheritDoc} */

@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.awt.image.BufferedImage;
 
 import com.xuggle.mediatool.IMediaListener.MediaAudioSamplesEvent;
+import com.xuggle.mediatool.IMediaListener.MediaOpenEvent;
 import com.xuggle.mediatool.IMediaListener.MediaVideoPictureEvent;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IError;
@@ -631,7 +632,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
 
     // inform listeners
 
-    super.onOpen(this);
+    super.onOpen(new MediaOpenEvent(this));
     // note that we should close the container opened here
 
     setShouldCloseContainer(true);

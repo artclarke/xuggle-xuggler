@@ -598,12 +598,12 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
    */
 
   @Override
-  public void onOpen(IMediaGenerator tool)
+  public void onOpen(MediaOpenEvent event)
   {    
-    if (!(tool instanceof IMediaCoder))
+    if (!(event.getSource() instanceof IMediaCoder))
       throw new UnsupportedOperationException();
 
-    mContainer = ((IMediaCoder)tool).getContainer();
+    mContainer = ((IMediaCoder)event.getSource()).getContainer();
   };
 
   /**

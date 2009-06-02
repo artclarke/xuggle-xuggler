@@ -51,7 +51,7 @@ public abstract class MediaListenerAdapter implements IMediaListener
 
   /** {@inheritDoc} */
 
-  public void onOpen(IMediaGenerator tool)
+  public void onOpen(MediaOpenEvent event)
   {
   }
 

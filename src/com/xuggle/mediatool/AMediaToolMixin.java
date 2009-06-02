@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.xuggle.mediatool.IMediaListener.MediaAudioSamplesEvent;
+import com.xuggle.mediatool.IMediaListener.MediaOpenEvent;
 import com.xuggle.mediatool.IMediaListener.MediaVideoPictureEvent;
 import com.xuggle.xuggler.IPacket;
 
@@ -124,12 +125,13 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onOpen(IMediaGenerator)}
+   * {@link IMediaListener#onOpen(MediaOpenEvent)}
+   * @param event TODO
    */
-  public void onOpen(IMediaGenerator tool)
+  public void onOpen(MediaOpenEvent event)
   {
     for (IMediaListener listener : getListeners())
-      listener.onOpen(tool);
+      listener.onOpen(event);
   }
 
   /**

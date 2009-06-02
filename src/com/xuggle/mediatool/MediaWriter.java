@@ -1062,7 +1062,7 @@ implements IMediaWriter
 
     // inform listeners
 
-    super.onOpen(this);
+    super.onOpen(new MediaOpenEvent(this));
     
     // note that we should close the container opened here
 
@@ -1170,7 +1170,7 @@ implements IMediaWriter
 
   /** {@inheritDoc} */
 
-  public void onOpen(IMediaGenerator tool)
+  public void onOpen(MediaOpenEvent event)
   {
   }
 

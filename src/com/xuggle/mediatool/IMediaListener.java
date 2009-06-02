@@ -271,7 +271,14 @@ public interface IMediaListener
     
   }
   
-  
+  public class MediaOpenEvent extends MediaEvent {
+
+    public MediaOpenEvent(IMediaGenerator source)
+    {
+      super(source);
+    }
+    
+  }
   /**
    * Called after a video picture has been decoded by a {@link IMediaReader} or
    * encoded by a {@link IMediaWriter}.
@@ -293,11 +300,10 @@ public interface IMediaListener
 
   /**
    * Called after an {@link IMediaGenerator} is opened.
-   * 
-   * @param pipe the pipe that generated this event
+   * @param event TODO
    */
 
-  public void onOpen(IMediaGenerator pipe);
+  public void onOpen(MediaOpenEvent event);
 
   /**
    * Called after an {@link IMediaGenerator} is closed.
