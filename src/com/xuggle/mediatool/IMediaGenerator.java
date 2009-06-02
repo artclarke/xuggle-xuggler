@@ -22,7 +22,7 @@ package com.xuggle.mediatool;
 import java.util.Collection;
 
 /**
- * An object that generates events that {@link IMediaListener} objects can
+ * Generates events that {@link IMediaListener} objects can
  * subscribe to and react to.
  * <p>
  * This is the interface that defines how you

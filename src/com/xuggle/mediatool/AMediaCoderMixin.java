@@ -24,7 +24,7 @@ package com.xuggle.mediatool;
 import com.xuggle.xuggler.IContainer;
 
 /**
- * An abstract base class that provides implementation of all
+ * An abstract implementation of all
  * {@link IMediaCoder} methods, but does not declare {@link IMediaCoder}.
  * 
  * <p>
@@ -56,7 +56,7 @@ public abstract class AMediaCoderMixin extends AMediaToolMixin
   // all the media reader listeners
 
   /**
-   * Construct an abstract IMediaGenerator.
+   * Construct an {@link AMediaCoderMixin}.
    *
    * @param url the URL which will be read or written to
    * @param container the container which be read from or written to
@@ -73,22 +73,36 @@ public abstract class AMediaCoderMixin extends AMediaToolMixin
     setShouldCloseContainer(false);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * The URL from which the {@link IContainer} is being read or written to.
+   * 
+   * @return the source or destination URL.
+   */
 
   public String getUrl()
   {
     return mUrl;
   }
 
-  /** {@inheritDoc} */
+  /** 
+   * Get the underlying media {@link IContainer} that the {@link IMediaCoder} is
+   * reading from or writing to.  The returned {@link IContainer} can
+   * be further interrogated for media stream details.
+   *
+   * @return the media container.
+   */
 
   public IContainer getContainer()
   {
     return mContainer == null ? null : mContainer.copyReference();
   }
 
-  /** {@inheritDoc} */
-  
+  /**
+   * Test if this {@link IMediaCoder} is open.
+   * 
+   * @return true if the media tool is open.
+   */
+
   public boolean isOpen()
   {
     return mContainer.isOpened();

@@ -19,9 +19,6 @@
 
 package com.xuggle.mediatool;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.xuggle.mediatool.event.IAddStreamEvent;
 import com.xuggle.mediatool.event.IAudioSamplesEvent;
@@ -38,9 +35,16 @@ import com.xuggle.mediatool.event.IWriteTrailerEvent;
 
 
 /**
- * Forwards every call on the {@link IMediaListener} interface methods to all 
- * listeners added on the {@link IMediaGenerator} interface.
+ * An abstract implementation of all
+ * {@link IMediaTool} methods, but does not declare {@link IMediaTool}.
+ *
+ * <p>
  * 
+ * Forwards every call on the {@link IMediaListener} interface methods to all 
+ * listeners added on the {@link IMediaGenerator} interface, but
+ * does not declare it implements those interfaces.
+ * 
+ * </p>
  * <p>
  * 
  * Mixin classes can be extended by anyone, but the extending class
@@ -53,40 +57,15 @@ import com.xuggle.mediatool.event.IWriteTrailerEvent;
  * @author aclarke
  *
  */
-public class AMediaToolMixin
-{
-  private final Collection<IMediaListener> mListeners = new CopyOnWriteArrayList<IMediaListener>();
 
+public abstract class AMediaToolMixin extends AMediaGeneratorMixin
+{
   /**
    * Create an AMediaToolMixin
    */
   public AMediaToolMixin()
   {
     super();
-  }
-
-  /**
-   * Default implementation for {@link IMediaGenerator#addListener(IMediaListener)}
-   */
-  public boolean addListener(IMediaListener listener)
-  {
-    return mListeners.add(listener);
-  }
-
-  /**
-   * Default implementation for {@link IMediaGenerator#removeListener(IMediaListener)}
-   */
-  public boolean removeListener(IMediaListener listener)
-  {
-    return mListeners.remove(listener);
-  }
-
-  /**
-   * Default implementation for {@link IMediaGenerator#getListeners()}
-   */
-  public Collection<IMediaListener> getListeners()
-  {
-    return Collections.unmodifiableCollection(mListeners);
   }
 
   /**

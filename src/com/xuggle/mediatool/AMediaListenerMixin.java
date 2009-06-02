@@ -35,110 +35,134 @@ import com.xuggle.mediatool.event.IWriteTrailerEvent;
 
 
 /**
- * An implementation of {@link IMediaListener} that 
- * implements all methods as empty methods.
+ * An abstract empty implementation of all
+ * {@link IMediaListener} methods, but does not declare {@link IMediaListener}.
+ * 
+ * <p>
+ * This class implements every method on {@link IMediaListener}, but
+ * does nothing with the events.
+ * </p>
  * 
  * <p>
  * 
  * This can be useful if you only want to override some members of
  * {@link IMediaListener}; instead, just subclass this and override the methods
- * you want, rather than providing an implementation of all methods.
+ * you want, rather than providing an implementation of all event callbacks.
  * 
  * </p>
+ * <p>
+ * 
+ * Mixin classes can be extended by anyone, but the extending class
+ * gets to decide which, if any, of the interfaces they actually
+ * want to support.
+ * 
+ * </p>
+ * 
  */
 
-public class MediaListenerAdapter
-extends AMediaListenerMixin implements IMediaListener
+public abstract class AMediaListenerMixin
 {
   /**
-   * Construct an empty {@link MediaListenerAdapter}.
+   * Construct an empty {@link AMediaListenerMixin}.
    */
-  public MediaListenerAdapter()
+  public AMediaListenerMixin()
   {
-    super();
+    
   }
   
-  /** {@inheritDoc} */
+  /** Empty implementation of
+   * {@link IMediaListener#onVideoPicture(IVideoPictureEvent)}.
+   */
 
   public void onVideoPicture(IVideoPictureEvent event)
   {
-    super.onVideoPicture(event);
   }
 
-  /** {@inheritDoc} */
-
+  /** Empty implementation of
+   * {@link IMediaListener#onAudioSamples(IAudioSamplesEvent)}.
+   */
+  
   public void onAudioSamples(IAudioSamplesEvent event)
   {
-    super.onAudioSamples(event);
   }
 
-  /** {@inheritDoc} */
+  /** Empty implementation of
+   * {@link IMediaListener#onOpen(IOpenEvent)}.
+   */
 
   public void onOpen(IOpenEvent event)
   {
-    super.onOpen(event);
   }
 
-  /** {@inheritDoc} */
+  /** Empty implementation of
+   * {@link IMediaListener#onClose(ICloseEvent)}.
+   */
 
   public void onClose(ICloseEvent event)
   {
-    super.onClose(event);
   }
 
-  /** {@inheritDoc} */
+  /** Empty implementation of
+   * {@link IMediaListener#onAddStream(IAddStreamEvent)}.
+   */
 
   public void onAddStream(IAddStreamEvent event)
   {
-    super.onAddStream(event);
   }
 
-  /** {@inheritDoc} */
+  /** Empty implementation of
+   * {@link IMediaListener#onOpenCoder(IOpenCoderEvent)}.
+   */
 
   public void onOpenCoder(IOpenCoderEvent event)
   {
-    super.onOpenCoder(event);
   }
 
-  /** {@inheritDoc} */
+  /** Empty implementation of
+   * {@link IMediaListener#onCloseCoder(ICloseCoderEvent)}.
+   */
 
   public void onCloseCoder(ICloseCoderEvent event)
   {
-    super.onCloseCoder(event);
   }
 
-  /** {@inheritDoc} */
+  /** Empty implementation of
+   * {@link IMediaListener#onReadPacket(IReadPacketEvent)}.
+   */
 
   public void onReadPacket(IReadPacketEvent event)
   {
-    super.onReadPacket(event);
   }
 
-  /** {@inheritDoc} */
+  /** Empty implementation of
+   * {@link IMediaListener#onWritePacket(IWritePacketEvent)}.
+   */
 
   public void onWritePacket(IWritePacketEvent event)
   {
-    super.onWritePacket(event);
   }
 
-  /** {@inheritDoc} */
+  /** Empty implementation of
+   * {@link IMediaListener#onWriteHeader(IWriteHeaderEvent)}.
+   */
 
   public void onWriteHeader(IWriteHeaderEvent event)
   {
-    super.onWriteHeader(event);
   }
 
-  /** {@inheritDoc} */
+  /** Empty implementation of
+   * {@link IMediaListener#onFlush(IFlushEvent)}.
+   */
 
   public void onFlush(IFlushEvent event)
   {
-    super.onFlush(event);
   }
 
-  /** {@inheritDoc} */
+  /** Empty implementation of
+   * {@link IMediaListener#onWriteTrailer(IWriteTrailerEvent)}.
+   */
 
   public void onWriteTrailer(IWriteTrailerEvent event)
   {
-    super.onWriteTrailer(event);
   }
 }

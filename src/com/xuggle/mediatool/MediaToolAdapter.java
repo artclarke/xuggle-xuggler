@@ -33,7 +33,24 @@ import com.xuggle.mediatool.event.IVideoPictureEvent;
 import com.xuggle.mediatool.event.IWriteHeaderEvent;
 import com.xuggle.mediatool.event.IWritePacketEvent;
 import com.xuggle.mediatool.event.IWriteTrailerEvent;
-
+/**
+ * An implementation of {@link IMediaTool} that
+ * forwards all {@link IMediaListener} events to
+ * listeners registered with {@link #addListener(IMediaListener)}.
+ * <p>
+ * Forwards every call on the {@link IMediaListener} interface methods to all 
+ * listeners added on the {@link IMediaGenerator} interface, and
+ * declares its support of the {@link IMediaTool} interface.
+ * </p>
+ * <p>
+ * This can be useful if you want to implement your own 
+ * {@link IMediaTool}, want help implementing the
+ * {@link IMediaListener} call backs, and want your parent
+ * class to declare support for the {@link IMediaTool} interface.
+ * </p>
+ * @author aclarke
+ *
+ */
 public class MediaToolAdapter  extends AMediaToolMixin
 implements IMediaTool
 {

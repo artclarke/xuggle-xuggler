@@ -29,7 +29,8 @@ import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IVideoPicture;
 
 /**
- * An {@link IMediaCoder} that reads and decodes media from a container.
+ * An {@link IMediaCoder} that reads and decodes media from an
+ * {@link IContainer}.
  * 
  * <p>
  * An {@link IMediaReader} opens up a media container,
