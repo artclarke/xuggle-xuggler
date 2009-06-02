@@ -234,7 +234,7 @@ public class MediaWriterExhaustiveTest
         {
           public void onVideoPicture(MediaVideoPictureEvent event)
           {
-            writer.onVideoPicture(null);
+            writer.onVideoPicture(event);
           }
           
           /** {@inheritDoc} */
