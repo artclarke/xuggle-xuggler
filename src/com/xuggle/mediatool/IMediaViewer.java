@@ -24,7 +24,14 @@ import javax.sound.sampled.DataLine;
 /**
  * An {@link IMediaListener} that plays audio, video or both, while
  * listening to a {@link IMediaGenerator} that produces raw media.
+ * <p>
  * 
+ * The {@link IMediaViewer} is currently in <strong>experimental</strong>
+ * mode.  That means we expect there will be some API and functionality
+ * changes in future releases.  You should not expect backwards
+ * compatibility on this release.
+ * 
+ * </p>
  * <p>
  * 
  * You can use this object to attach to a {@link IMediaReader} or

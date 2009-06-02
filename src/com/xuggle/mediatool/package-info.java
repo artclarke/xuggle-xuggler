@@ -87,7 +87,7 @@
  * will make intelligent
  * guesses about the parameters to decode and encode with based on
  *  the URLs or file
- * names you creat the objects with,
+ * names you create the objects with,
  *  but you can change and override everything if you want.
  * To do that use the
  * {@link com.xuggle.mediatool.IMediaCoder#getContainer()} interface to get the
@@ -143,6 +143,47 @@
  * 
  * </p>
  * 
+ * <h2>How To Make a Media Pipeline</h2>
+ * <p>
+ * Sometimes it can be useful to chain together a series of objects
+ * to filter media and provide lots of effects.  See the
+ * {@link com.xuggle.mediatool.demos.ModifyAudioAndVideo} demo for an
+ * example of that, but here's the basic structure of the code
+ * to make a pipeline:
+ * </p>
+ * <pre>
+   IMediaReader reader = ToolFactory.makeReader(inputFile.toString());
+   reader.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
+
+    // create a writer and configure it's parameters from the reader
+    
+    IMediaWriter writer = ToolFactory.makeWriter(outputFile.toString(), reader);
+
+    // create a tool which paints a time stamp onto the video
+
+    IMediaTool addTimeStamp = new TimeStampTool();
+
+    // create a tool which reduces audio volume to 1/10th original
+
+    IMediaTool reduceVolume = new VolumeAdjust(0.1);
+
+    // create a tool chain:
+    //   reader -> addTimeStamp -> reduceVolume -> writer
+
+    reader.addListener(addTimeStamp);
+    addTimeStamp.addListener(reduceVolume);
+    reduceVolume.addListener(writer);
+
+    // add a viewer to the writer, to see the modified media
+    
+    writer.addListener(ToolFactory.makeViewer(AUDIO_VIDEO));
+
+    // read and decode packets from the source file and
+    // then encode and write out data to the output file
+    
+    while (reader.readPacket() == null)
+      ;
+ * </pre>
  * <h2>Package Use Conventions</h2>
  * 
  * <p>
@@ -169,4 +210,3 @@
  */
 
 package com.xuggle.mediatool;
-

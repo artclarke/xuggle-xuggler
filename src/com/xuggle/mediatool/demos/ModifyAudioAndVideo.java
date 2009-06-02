@@ -27,31 +27,18 @@ import java.nio.ShortBuffer;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-
-import com.xuggle.xuggler.ICodec;
-
-import java.awt.image.BufferedImage;
-
-import com.xuggle.xuggler.IAudioSamples;
 
 import com.xuggle.mediatool.IMediaTool;
 import com.xuggle.mediatool.ToolFactory;
 import com.xuggle.mediatool.IMediaReader;
-import com.xuggle.mediatool.IMediaViewer;
 import com.xuggle.mediatool.IMediaWriter;
 import com.xuggle.mediatool.MediaToolAdapter;
-import com.xuggle.mediatool.MediaListenerAdapter;
 import com.xuggle.mediatool.event.IAudioSamplesEvent;
 import com.xuggle.mediatool.event.IVideoPictureEvent;
 
 import static com.xuggle.mediatool.IMediaViewer.Mode.AUDIO_VIDEO;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static com.xuggle.xuggler.Global.DEFAULT_TIME_UNIT;
 
 /**
  * Reand and modify andio and video frames and use the {@link
