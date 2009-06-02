@@ -34,6 +34,7 @@ import com.xuggle.mediatool.event.AddStreamEvent;
 import com.xuggle.mediatool.event.AudioSamplesEvent;
 import com.xuggle.mediatool.event.CloseCoderEvent;
 import com.xuggle.mediatool.event.CloseEvent;
+import com.xuggle.mediatool.event.IVideoPictureEvent;
 import com.xuggle.mediatool.event.OpenCoderEvent;
 import com.xuggle.mediatool.event.OpenEvent;
 import com.xuggle.mediatool.event.ReadPacketEvent;
@@ -253,7 +254,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
   
   /**
    * Asks the {@link IMediaReader} to generate {@link BufferedImage}
-   * images when calling {@link IMediaListener#onVideoPicture(VideoPictureEvent)}.
+   * images when calling {@link IMediaListener#onVideoPicture(IVideoPictureEvent)}.
    * 
    * @param bufferedImageType The buffered image type (e.g.
    *   {@link BufferedImage#TYPE_3BYTE_BGR}).  Set to -1 to disable

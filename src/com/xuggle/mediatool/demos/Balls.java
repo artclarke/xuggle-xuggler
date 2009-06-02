@@ -23,13 +23,11 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.RenderingHints;
-import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
 import java.util.Random;
 import java.util.Vector;
 import java.util.Collection;
-import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static com.xuggle.xuggler.Global.DEFAULT_TIME_UNIT;

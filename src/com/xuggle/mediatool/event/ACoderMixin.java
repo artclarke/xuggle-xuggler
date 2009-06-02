@@ -5,8 +5,8 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaCoder;
 
-public class CoderEvent extends Event {
-  public CoderEvent(IMediaCoder source)
+public abstract class ACoderMixin extends AEventMixin {
+  public ACoderMixin(IMediaCoder source)
   {
     super(source);
   }

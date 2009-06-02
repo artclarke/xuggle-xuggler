@@ -3,11 +3,11 @@
  */
 package com.xuggle.mediatool.event;
 
-import com.xuggle.mediatool.IMediaGenerator;
+import com.xuggle.mediatool.IMediaCoder;
 
-public class AddStreamEvent extends StreamEvent
+public class AddStreamEvent extends AStreamCoderMixin implements IAddStreamEvent
 {
-  public AddStreamEvent(IMediaGenerator source, Integer streamIndex)
+  public AddStreamEvent(IMediaCoder source, Integer streamIndex)
   {
     super(source, streamIndex);
   }

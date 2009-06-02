@@ -27,8 +27,8 @@ import com.xuggle.mediatool.IMediaListener;
 import com.xuggle.mediatool.MediaListenerAdapter;
 import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
-import com.xuggle.mediatool.event.AudioSamplesEvent;
-import com.xuggle.mediatool.event.VideoPictureEvent;
+import com.xuggle.mediatool.event.IAudioSamplesEvent;
+import com.xuggle.mediatool.event.IVideoPictureEvent;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IVideoResampler;
@@ -94,14 +94,14 @@ public class MediaReaderTest
 
     IMediaListener mrl = new MediaListenerAdapter()
       {
-        public void onVideoPicture(VideoPictureEvent event)
+        public void onVideoPicture(IVideoPictureEvent event)
         {
           assertNotNull("picture should be created", event.getPicture());
           assertNull("no buffered image should be created", event.getImage());
           ++counts[0];
         }
 
-        public void onAudioSamples(AudioSamplesEvent event)
+        public void onAudioSamples(IAudioSamplesEvent event)
         {
           assertNotNull("audio samples should be created", event.getAudioSamples());
           ++counts[1];
@@ -153,13 +153,13 @@ public class MediaReaderTest
 
     IMediaListener mrl = new MediaListenerAdapter()
       {
-        public void onVideoPicture(VideoPictureEvent event)
+        public void onVideoPicture(IVideoPictureEvent event)
         {
           assertNotNull("picture should be created", event.getPicture());
           assertNotNull("buffered image should be created", event.getImage());
         }
 
-        public void onAudioSamples(AudioSamplesEvent event)
+        public void onAudioSamples(IAudioSamplesEvent event)
         {
           assertNotNull("audio samples should be created", event.getAudioSamples());
         }
@@ -206,14 +206,14 @@ public class MediaReaderTest
 
     IMediaListener mrl = new MediaListenerAdapter()
       {
-        public void onVideoPicture(VideoPictureEvent event)
+        public void onVideoPicture(IVideoPictureEvent event)
         {
           assertNotNull("picture should be created", event.getPicture());
           assertNotNull("buffered image should be created", event.getImage());
           ++counts[0];
         }
 
-        public void onAudioSamples(AudioSamplesEvent event)
+        public void onAudioSamples(IAudioSamplesEvent event)
         {
           assertNotNull("audio samples should be created", event.getAudioSamples());
           ++counts[1];

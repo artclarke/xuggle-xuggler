@@ -5,16 +5,15 @@ import java.util.concurrent.TimeUnit;
 
 import com.xuggle.mediatool.IMediaGenerator;
 import com.xuggle.mediatool.IMediaListener;
-import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
 
 /**
- * {@link Event} for {@link IMediaListener#onVideoPicture(VideoPictureEvent)}
+ * {@link AEventMixin} for {@link IMediaListener#onVideoPicture(IVideoPictureEvent)}
  * 
  * @author aclarke
  *
  */
-public class VideoPictureEvent extends RawMediaEvent
+public class VideoPictureEvent extends ARawMediaMixin implements IVideoPictureEvent
 {
 
   public VideoPictureEvent(IMediaGenerator source, 
@@ -36,37 +35,24 @@ public class VideoPictureEvent extends RawMediaEvent
     this(source, null, image, timeStamp, timeUnit, streamIndex);
   }
 
-  /**
-   * {inheritDoc}
+  /* (non-Javadoc)
+   * @see com.xuggle.mediatool.event.IVideoPictureEvent#getMediaData()
    */
   @Override
   public IVideoPicture getMediaData()
   {
     return (IVideoPicture) super.getMediaData();
   }
-  /**
-   * The video picture.  May be null if {@link #getImage()}
-   * is not null.
-   * <p>
-   * The returned {@link IAudioSamples} will only be valid for
-   * the duration of the {@link IMediaListener#onVideoPicture(VideoPictureEvent)}
-   * call, and {@link IMediaListener} implementations must not use it after
-   * the call returns.  If you need to keep a copy of this data then
-   * use {@link IAudioSamples#copyReference()} to create a reference
-   * that will outlive your call.
-   * </p>
-   * 
-   * @return the videoPicture, or null if unavailable
+  /* (non-Javadoc)
+   * @see com.xuggle.mediatool.event.IVideoPictureEvent#getPicture()
    */
   public IVideoPicture getPicture()
   {
     return getMediaData();
   }
 
-  /**
-   * The buffered image, if available.  If null,
-   * you must use {@link #getPicture()}
-   * @return the bufferedImage, or null if not available
+  /* (non-Javadoc)
+   * @see com.xuggle.mediatool.event.IVideoPictureEvent#getImage()
    */
   public BufferedImage getImage()
   {

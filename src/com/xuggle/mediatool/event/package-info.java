@@ -19,5 +19,16 @@
 
 /**
  * Events that can be fired by the {@link com.xuggle.mediatool} package.
+ * 
+ * {@link IEvent} is the top of the interface inheritance tree.  If
+ * a given interface is instantiable as an event, you will find a class
+ * with the same name without the starting &quot;I&quot;
+ * <p>
+ * Mixin classes (e.g. {@link AEventMixin}) are provided as abstract classes
+ * implementing all the methods implied by their name, but not
+ * actually declaring the interface.  In this way child classes can
+ * extend them, but separately decide which functionality to admit they
+ * have to the outside world.
+ * </p> 
  */
 package com.xuggle.mediatool.event;

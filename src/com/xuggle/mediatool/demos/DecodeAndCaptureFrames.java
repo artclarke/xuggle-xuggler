@@ -28,7 +28,7 @@ import java.awt.image.BufferedImage;
 import com.xuggle.mediatool.IMediaReader;
 import com.xuggle.mediatool.MediaListenerAdapter;
 import com.xuggle.mediatool.ToolFactory;
-import com.xuggle.mediatool.event.VideoPictureEvent;
+import com.xuggle.mediatool.event.IVideoPictureEvent;
 import com.xuggle.xuggler.Global;
 
 /**
@@ -126,7 +126,7 @@ public class DecodeAndCaptureFrames extends MediaListenerAdapter
    * This method blocks, so return quickly.
    */
 
-  public void onVideoPicture(VideoPictureEvent event)
+  public void onVideoPicture(IVideoPictureEvent event)
   {
     try
     {

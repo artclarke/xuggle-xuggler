@@ -21,14 +21,24 @@ package com.xuggle.mediatool;
 import java.awt.image.BufferedImage;
 
 import com.xuggle.mediatool.event.AddStreamEvent;
-import com.xuggle.mediatool.event.AudioSamplesEvent;
 import com.xuggle.mediatool.event.CloseCoderEvent;
 import com.xuggle.mediatool.event.CloseEvent;
 import com.xuggle.mediatool.event.FlushEvent;
+import com.xuggle.mediatool.event.IAddStreamEvent;
+import com.xuggle.mediatool.event.IAudioSamplesEvent;
+import com.xuggle.mediatool.event.ICloseCoderEvent;
+import com.xuggle.mediatool.event.ICloseEvent;
+import com.xuggle.mediatool.event.IFlushEvent;
+import com.xuggle.mediatool.event.IOpenCoderEvent;
+import com.xuggle.mediatool.event.IOpenEvent;
+import com.xuggle.mediatool.event.IReadPacketEvent;
+import com.xuggle.mediatool.event.IVideoPictureEvent;
+import com.xuggle.mediatool.event.IWriteHeaderEvent;
+import com.xuggle.mediatool.event.IWritePacketEvent;
+import com.xuggle.mediatool.event.IWriteTrailerEvent;
 import com.xuggle.mediatool.event.OpenCoderEvent;
 import com.xuggle.mediatool.event.OpenEvent;
 import com.xuggle.mediatool.event.ReadPacketEvent;
-import com.xuggle.mediatool.event.VideoPictureEvent;
 import com.xuggle.mediatool.event.WriteHeaderEvent;
 import com.xuggle.mediatool.event.WritePacketEvent;
 import com.xuggle.mediatool.event.WriteTrailerEvent;
@@ -67,7 +77,7 @@ public interface IMediaListener
    *   a {@link BufferedImage}, or both.
    */
 
-  public void onVideoPicture(VideoPictureEvent event);
+  public void onVideoPicture(IVideoPictureEvent event);
 
   /**
    * Called after audio samples have been decoded or encoded by an
@@ -76,46 +86,46 @@ public interface IMediaListener
    *   for this event.
    */
 
-  public void onAudioSamples(AudioSamplesEvent event);
+  public void onAudioSamples(IAudioSamplesEvent event);
 
   /**
    * Called after an {@link IMediaGenerator} is opened.
    * @param event A {@link OpenEvent}
    */
 
-  public void onOpen(OpenEvent event);
+  public void onOpen(IOpenEvent event);
 
   /**
    * Called after an {@link IMediaGenerator} is closed.
    * @param event A {@link CloseEvent}
    */
 
-  public void onClose(CloseEvent event);
+  public void onClose(ICloseEvent event);
 
   /**
    * Called after an stream is added to an {@link IMediaGenerator}. This occurs when
    * a new stream is added (if writing) or encountered by the pipe (if reading).
    * If the stream is not already been opened, then
-   * {@link #onOpenCoder(OpenCoderEvent)} will be called at some later
+   * {@link #onOpenCoder(IOpenCoderEvent)} will be called at some later
    * point.
    * @param event A {@link AddStreamEvent} event
    */
 
-  public void onAddStream(AddStreamEvent event);
+  public void onAddStream(IAddStreamEvent event);
 
   /**
    * Called after a decoder or encoder is opened by a {@link IMediaGenerator}
    * @param event A {@link OpenCoderEvent}
    */
 
-  public void onOpenCoder(OpenCoderEvent event);
+  public void onOpenCoder(IOpenCoderEvent event);
 
   /**
    * Called after an decoder or encoder is closed by the {@link IMediaGenerator}.
    * @param event A {@link CloseCoderEvent}
    */
 
-  public void onCloseCoder(CloseCoderEvent event);
+  public void onCloseCoder(ICloseCoderEvent event);
 
   /**
    * Called after a {@link com.xuggle.xuggler.IPacket} has been read by a
@@ -128,7 +138,7 @@ public interface IMediaListener
    *        with a reference you can own.
    */
 
-  public void onReadPacket(ReadPacketEvent event);
+  public void onReadPacket(IReadPacketEvent event);
 
   /**
    * Called after a {@link com.xuggle.xuggler.IPacket} has been written by a
@@ -141,26 +151,26 @@ public interface IMediaListener
    *        with a reference you can own.
    */
 
-  public void onWritePacket(WritePacketEvent event);
+  public void onWritePacket(IWritePacketEvent event);
 
   /**
    * Called after a {@link IMediaWriter} writes the header.
    * @param event A {@link WriteHeaderEvent}
    */
 
-  public void onWriteHeader(WriteHeaderEvent event);
+  public void onWriteHeader(IWriteHeaderEvent event);
 
   /**
    * Called after a {@link IMediaWriter} has flushed its buffers.
    * @param event A {@link FlushEvent}
    */
 
-  public void onFlush(FlushEvent event);
+  public void onFlush(IFlushEvent event);
 
   /**
    * Called after a {@link IMediaWriter} writes the trailer.
    * @param event A {@link WriteTrailerEvent}
    */
 
-  public void onWriteTrailer(WriteTrailerEvent event);
+  public void onWriteTrailer(IWriteTrailerEvent event);
 }

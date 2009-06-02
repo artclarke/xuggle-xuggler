@@ -9,16 +9,15 @@ import com.xuggle.mediatool.IMediaListener;
  * @author aclarke
  *
  */
-public class Event
+public abstract class AEventMixin
 {
   private final IMediaGenerator mSource;
-  public Event(IMediaGenerator source)
+  public AEventMixin(IMediaGenerator source)
   {
     mSource = source;
   }
-  /**
-   * Get the source of this event.
-   * @return the source
+  /* (non-Javadoc)
+   * @see com.xuggle.mediatool.event.IEvent#getSource()
    */
   public IMediaGenerator getSource()
   {

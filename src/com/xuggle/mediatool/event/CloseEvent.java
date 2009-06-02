@@ -5,7 +5,7 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaCoder;
 
-public class CloseEvent extends CoderEvent
+public class CloseEvent extends ACoderMixin implements ICloseEvent
 {
   public CloseEvent(IMediaCoder source)
   {

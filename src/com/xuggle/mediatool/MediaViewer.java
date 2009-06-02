@@ -63,11 +63,11 @@ import javax.swing.table.TableColumn;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.AbstractTableModel;
 
-import com.xuggle.mediatool.event.AddStreamEvent;
-import com.xuggle.mediatool.event.AudioSamplesEvent;
-import com.xuggle.mediatool.event.CloseEvent;
-import com.xuggle.mediatool.event.OpenEvent;
-import com.xuggle.mediatool.event.VideoPictureEvent;
+import com.xuggle.mediatool.event.IAddStreamEvent;
+import com.xuggle.mediatool.event.IAudioSamplesEvent;
+import com.xuggle.mediatool.event.ICloseEvent;
+import com.xuggle.mediatool.event.IOpenEvent;
+import com.xuggle.mediatool.event.IVideoPictureEvent;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IStream;
@@ -388,19 +388,16 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
   /** Internaly Only.  Configure internal parameters of the media viewer. */
 
   @Override
-  public void onAddStream(AddStreamEvent event)
+  public void onAddStream(IAddStreamEvent event)
   {
     // if disabled don't add a stream
 
-    if (!(event.getSource() instanceof IMediaCoder))
-      return;
-    
     if (getMode() == Mode.DISABLED)
       return;
 
     // get the coder
 
-    IContainer container = ((IMediaCoder)event.getSource()).getContainer();
+    IContainer container = event.getSource().getContainer();
     IStream stream = container.getStream(event.getStreamIndex());
     IStreamCoder coder = stream.getStreamCoder();
 
@@ -448,7 +445,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
   /** Internaly Only.  {@inheritDoc} */
 
   @Override
-  public void onVideoPicture(VideoPictureEvent event)
+  public void onVideoPicture(IVideoPictureEvent event)
   {
     // be sure container is set
     if (!(event.getSource() instanceof IMediaCoder))
@@ -492,7 +489,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
   /** Internaly Only.  {@inheritDoc} */
 
   @Override
-  public void onAudioSamples(AudioSamplesEvent event)
+  public void onAudioSamples(IAudioSamplesEvent event)
   {
     // be sure container is set
 
@@ -604,7 +601,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
    */
 
   @Override
-  public void onOpen(OpenEvent event)
+  public void onOpen(IOpenEvent event)
   {    
     mContainer = event.getSource().getContainer();
   };
@@ -614,7 +611,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
    */
 
   @Override
-  public void onClose(CloseEvent event)
+  public void onClose(ICloseEvent event)
   {
     flush();
     for (MediaFrame frame : mFrames.values())

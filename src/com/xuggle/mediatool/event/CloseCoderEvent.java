@@ -3,11 +3,11 @@
  */
 package com.xuggle.mediatool.event;
 
-import com.xuggle.mediatool.IMediaGenerator;
+import com.xuggle.mediatool.IMediaCoder;
 
-public class CloseCoderEvent extends StreamEvent
+public class CloseCoderEvent extends AStreamCoderMixin implements ICloseCoderEvent
 {
-  public CloseCoderEvent(IMediaGenerator source, Integer streamIndex)
+  public CloseCoderEvent(IMediaCoder source, Integer streamIndex)
   {
     super(source, streamIndex);
   }

@@ -23,18 +23,18 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import com.xuggle.mediatool.event.AddStreamEvent;
-import com.xuggle.mediatool.event.AudioSamplesEvent;
-import com.xuggle.mediatool.event.CloseCoderEvent;
-import com.xuggle.mediatool.event.CloseEvent;
-import com.xuggle.mediatool.event.FlushEvent;
-import com.xuggle.mediatool.event.OpenCoderEvent;
-import com.xuggle.mediatool.event.OpenEvent;
-import com.xuggle.mediatool.event.ReadPacketEvent;
-import com.xuggle.mediatool.event.VideoPictureEvent;
-import com.xuggle.mediatool.event.WriteHeaderEvent;
-import com.xuggle.mediatool.event.WritePacketEvent;
-import com.xuggle.mediatool.event.WriteTrailerEvent;
+import com.xuggle.mediatool.event.IAddStreamEvent;
+import com.xuggle.mediatool.event.IAudioSamplesEvent;
+import com.xuggle.mediatool.event.ICloseCoderEvent;
+import com.xuggle.mediatool.event.ICloseEvent;
+import com.xuggle.mediatool.event.IFlushEvent;
+import com.xuggle.mediatool.event.IOpenCoderEvent;
+import com.xuggle.mediatool.event.IOpenEvent;
+import com.xuggle.mediatool.event.IReadPacketEvent;
+import com.xuggle.mediatool.event.IVideoPictureEvent;
+import com.xuggle.mediatool.event.IWriteHeaderEvent;
+import com.xuggle.mediatool.event.IWritePacketEvent;
+import com.xuggle.mediatool.event.IWriteTrailerEvent;
 
 
 /**
@@ -83,10 +83,10 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onAddStream(AddStreamEvent)}
+   * {@link IMediaListener#onAddStream(IAddStreamEvent)}
    * @param event TODO
    */
-  public void onAddStream(AddStreamEvent event)
+  public void onAddStream(IAddStreamEvent event)
   {
     for (IMediaListener listener : getListeners())
       listener.onAddStream(event);
@@ -94,10 +94,10 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onAudioSamples(AudioSamplesEvent)}
+   * {@link IMediaListener#onAudioSamples(IAudioSamplesEvent)}
    * @param event TODO
    */
-  public void onAudioSamples(AudioSamplesEvent event)
+  public void onAudioSamples(IAudioSamplesEvent event)
   {
     for (IMediaListener listener : getListeners())
       listener.onAudioSamples(event);
@@ -105,10 +105,10 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onClose(CloseEvent)}
+   * {@link IMediaListener#onClose(ICloseEvent)}
    * @param event TODO
    */
-  public void onClose(CloseEvent event)
+  public void onClose(ICloseEvent event)
   {
     for (IMediaListener listener : getListeners())
       listener.onClose(event);
@@ -116,10 +116,10 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onCloseCoder(CloseCoderEvent)}
+   * {@link IMediaListener#onCloseCoder(ICloseCoderEvent)}
    * @param event TODO
    */
-  public void onCloseCoder(CloseCoderEvent event)
+  public void onCloseCoder(ICloseCoderEvent event)
   {
     for (IMediaListener listener : getListeners())
       listener.onCloseCoder(event);
@@ -127,10 +127,10 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onFlush(FlushEvent)}
+   * {@link IMediaListener#onFlush(IFlushEvent)}
    * @param event TODO
    */
-  public void onFlush(FlushEvent event)
+  public void onFlush(IFlushEvent event)
   {
     for (IMediaListener listener : getListeners())
       listener.onFlush(event);
@@ -138,10 +138,10 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onOpen(OpenEvent)}
+   * {@link IMediaListener#onOpen(IOpenEvent)}
    * @param event TODO
    */
-  public void onOpen(OpenEvent event)
+  public void onOpen(IOpenEvent event)
   {
     for (IMediaListener listener : getListeners())
       listener.onOpen(event);
@@ -149,10 +149,10 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onOpenCoder(OpenCoderEvent)}
+   * {@link IMediaListener#onOpenCoder(IOpenCoderEvent)}
    * @param event TODO
    */
-  public void onOpenCoder(OpenCoderEvent event)
+  public void onOpenCoder(IOpenCoderEvent event)
   {
     for (IMediaListener listener : getListeners())
       listener.onOpenCoder(event);
@@ -160,10 +160,10 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onReadPacket(ReadPacketEvent)}
+   * {@link IMediaListener#onReadPacket(IReadPacketEvent)}
    * @param event TODO
    */
-  public void onReadPacket(ReadPacketEvent event)
+  public void onReadPacket(IReadPacketEvent event)
   {
     for (IMediaListener listener : getListeners())
       listener.onReadPacket(event);
@@ -171,9 +171,9 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onVideoPicture(VideoPictureEvent)}
+   * {@link IMediaListener#onVideoPicture(IVideoPictureEvent)}
    */
-  public void onVideoPicture(VideoPictureEvent event)
+  public void onVideoPicture(IVideoPictureEvent event)
   {
     for (IMediaListener listener : getListeners())
       listener.onVideoPicture(event);
@@ -181,10 +181,10 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onWriteHeader(WriteHeaderEvent)}
+   * {@link IMediaListener#onWriteHeader(IWriteHeaderEvent)}
    * @param event TODO
    */
-  public void onWriteHeader(WriteHeaderEvent event)
+  public void onWriteHeader(IWriteHeaderEvent event)
   {
     for (IMediaListener listener : getListeners())
       listener.onWriteHeader(event);
@@ -192,10 +192,10 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onWritePacket(WritePacketEvent)}
+   * {@link IMediaListener#onWritePacket(IWritePacketEvent)}
    * @param event TODO
    */
-  public void onWritePacket(WritePacketEvent event)
+  public void onWritePacket(IWritePacketEvent event)
   {
     for (IMediaListener listener : getListeners())
       listener.onWritePacket(event);
@@ -203,10 +203,10 @@ public class AMediaToolMixin
 
   /**
    * Default implementation for
-   * {@link IMediaListener#onWriteTrailer(WriteTrailerEvent)}
+   * {@link IMediaListener#onWriteTrailer(IWriteTrailerEvent)}
    * @param event TODO
    */
-  public void onWriteTrailer(WriteTrailerEvent event)
+  public void onWriteTrailer(IWriteTrailerEvent event)
   {
     for (IMediaListener listener : getListeners())
       listener.onWriteTrailer(event);

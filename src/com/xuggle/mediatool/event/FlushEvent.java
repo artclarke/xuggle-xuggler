@@ -5,7 +5,7 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaCoder;
 
-public class FlushEvent extends CoderEvent
+public class FlushEvent extends ACoderMixin implements IFlushEvent
 {
   public FlushEvent(IMediaCoder source)
   {

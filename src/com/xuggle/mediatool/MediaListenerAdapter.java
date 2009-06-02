@@ -19,18 +19,18 @@
 
 package com.xuggle.mediatool;
 
-import com.xuggle.mediatool.event.AddStreamEvent;
-import com.xuggle.mediatool.event.AudioSamplesEvent;
-import com.xuggle.mediatool.event.CloseCoderEvent;
-import com.xuggle.mediatool.event.CloseEvent;
-import com.xuggle.mediatool.event.FlushEvent;
-import com.xuggle.mediatool.event.OpenCoderEvent;
-import com.xuggle.mediatool.event.OpenEvent;
-import com.xuggle.mediatool.event.ReadPacketEvent;
-import com.xuggle.mediatool.event.VideoPictureEvent;
-import com.xuggle.mediatool.event.WriteHeaderEvent;
-import com.xuggle.mediatool.event.WritePacketEvent;
-import com.xuggle.mediatool.event.WriteTrailerEvent;
+import com.xuggle.mediatool.event.IAddStreamEvent;
+import com.xuggle.mediatool.event.IAudioSamplesEvent;
+import com.xuggle.mediatool.event.ICloseCoderEvent;
+import com.xuggle.mediatool.event.ICloseEvent;
+import com.xuggle.mediatool.event.IFlushEvent;
+import com.xuggle.mediatool.event.IOpenCoderEvent;
+import com.xuggle.mediatool.event.IOpenEvent;
+import com.xuggle.mediatool.event.IReadPacketEvent;
+import com.xuggle.mediatool.event.IVideoPictureEvent;
+import com.xuggle.mediatool.event.IWriteHeaderEvent;
+import com.xuggle.mediatool.event.IWritePacketEvent;
+import com.xuggle.mediatool.event.IWriteTrailerEvent;
 
 
 
@@ -51,73 +51,73 @@ public abstract class MediaListenerAdapter implements IMediaListener
 {
   /** {@inheritDoc} */
 
-  public void onVideoPicture(VideoPictureEvent event)
+  public void onVideoPicture(IVideoPictureEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onAudioSamples(AudioSamplesEvent event)
+  public void onAudioSamples(IAudioSamplesEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onOpen(OpenEvent event)
+  public void onOpen(IOpenEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onClose(CloseEvent event)
+  public void onClose(ICloseEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onAddStream(AddStreamEvent event)
+  public void onAddStream(IAddStreamEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onOpenCoder(OpenCoderEvent event)
+  public void onOpenCoder(IOpenCoderEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onCloseCoder(CloseCoderEvent event)
+  public void onCloseCoder(ICloseCoderEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onReadPacket(ReadPacketEvent event)
+  public void onReadPacket(IReadPacketEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWritePacket(WritePacketEvent event)
+  public void onWritePacket(IWritePacketEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteHeader(WriteHeaderEvent event)
+  public void onWriteHeader(IWriteHeaderEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onFlush(FlushEvent event)
+  public void onFlush(IFlushEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteTrailer(WriteTrailerEvent event)
+  public void onWriteTrailer(IWriteTrailerEvent event)
   {
   }
 }

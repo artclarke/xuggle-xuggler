@@ -5,19 +5,18 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaGenerator;
 
-public class StreamEvent extends Event
+public abstract class AStreamMixin extends AEventMixin
 {
   private final Integer mStreamIndex;
 
-  public StreamEvent(IMediaGenerator source, Integer streamIndex)
+  public AStreamMixin(IMediaGenerator source, Integer streamIndex)
   {
     super(source);
     mStreamIndex = streamIndex;
   }
 
-  /**
-   * Get the stream index.
-   * @return the stream index if known, or null if not
+  /* (non-Javadoc)
+   * @see com.xuggle.mediatool.event.IStreamEvent#getStreamIndex()
    */
   public Integer getStreamIndex()
   {

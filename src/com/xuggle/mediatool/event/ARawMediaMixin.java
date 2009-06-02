@@ -6,18 +6,17 @@ package com.xuggle.mediatool.event;
 import java.util.concurrent.TimeUnit;
 
 import com.xuggle.mediatool.IMediaGenerator;
-import com.xuggle.mediatool.IMediaListener;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IMediaData;
 
-public class RawMediaEvent extends StreamEvent
+public abstract class ARawMediaMixin extends AStreamMixin
 {
   private final IMediaData mMediaData;
   private final Object mJavaData;
   private final long mTimeStamp;
   private final TimeUnit mTimeUnit;
 
-  public RawMediaEvent(IMediaGenerator source, 
+  public ARawMediaMixin(IMediaGenerator source, 
       IMediaData picture, Object image,
       long timeStamp, TimeUnit timeUnit,
       int streamIndex)
@@ -38,49 +37,31 @@ public class RawMediaEvent extends StreamEvent
     mTimeUnit = timeUnit;
   }
 
-  /**
-   * The {@link IMediaData} for this object.
-   * May be null if {@link #getJavaData()}
-   * is not null.
-   * <p>
-   * The returned {@link IMediaData} will only be valid for
-   * the duration of the callbackand {@link IMediaListener} implementations
-   * must not use it after
-   * the call returns.  If you need to keep a copy of this data then
-   * use {@link IMediaData#copyReference()} to create a reference
-   * that will outlive your call.
-   * </p>
-   * 
-   * @return the media data, or null if unavailable
+  /* (non-Javadoc)
+   * @see com.xuggle.mediatool.event.IRawMediaEvent#getMediaData()
    */
   public IMediaData getMediaData()
   {
     return mMediaData;
   }
 
-  /**
-   * The Java object registered with this event.  If null,
-   * you must use {@link #getMediaData()}
-   * @return the object, or null if not available
+  /* (non-Javadoc)
+   * @see com.xuggle.mediatool.event.IRawMediaEvent#getJavaData()
    */
   public Object getJavaData()
   {
     return mJavaData;
   }
 
-  /**
-   * The time stamp of this media, in {@link TimeUnit#MICROSECONDS}.
-   * @return the timeStamp, or null if none.
+  /* (non-Javadoc)
+   * @see com.xuggle.mediatool.event.IRawMediaEvent#getTimeStamp()
    */
   public Long getTimeStamp()
   {
     return getTimeStamp(TimeUnit.MICROSECONDS);
   }
-  /**
-   * Get the time stamp of this media in the specified units.
-   * @param unit the time unit
-   * @return the time stamp, or null if none
-   * @throws IllegalArgumentException if unit is null
+  /* (non-Javadoc)
+   * @see com.xuggle.mediatool.event.IRawMediaEvent#getTimeStamp(java.util.concurrent.TimeUnit)
    */
   public Long getTimeStamp(TimeUnit unit)
   {
@@ -91,9 +72,8 @@ public class RawMediaEvent extends StreamEvent
     return unit.convert(mTimeStamp, mTimeUnit);
   }
 
-  /**
-   * The time unit of {@link #getTimeStamp()}.
-   * @return the timeUnit
+  /* (non-Javadoc)
+   * @see com.xuggle.mediatool.event.IRawMediaEvent#getTimeUnit()
    */
   public TimeUnit getTimeUnit()
   {

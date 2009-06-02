@@ -5,12 +5,12 @@ import com.xuggle.mediatool.IMediaListener;
 import com.xuggle.xuggler.IAudioSamples;
 
 /**
- * {@link Event} for {@link IMediaListener#onAudioSamples(AudioSamplesEvent)}
+ * {@link AEventMixin} for {@link IMediaListener#onAudioSamples(IAudioSamplesEvent)}
  * 
  * @author aclarke
  *
  */
-public class AudioSamplesEvent extends RawMediaEvent
+public class AudioSamplesEvent extends ARawMediaMixin implements IAudioSamplesEvent
 {
   public AudioSamplesEvent (IMediaGenerator source,
       IAudioSamples samples,
@@ -19,8 +19,8 @@ public class AudioSamplesEvent extends RawMediaEvent
     super(source, samples, null, 0, null, streamIndex);
   }
   
-  /**
-   * {@inheritDoc}
+  /* (non-Javadoc)
+   * @see com.xuggle.mediatool.event.IAudioSamplesEvent#getMediaData()
    */
   @Override
   public IAudioSamples getMediaData()
@@ -28,6 +28,9 @@ public class AudioSamplesEvent extends RawMediaEvent
     return (IAudioSamples) super.getMediaData();
   }
   
+  /* (non-Javadoc)
+   * @see com.xuggle.mediatool.event.IAudioSamplesEvent#getAudioSamples()
+   */
   public IAudioSamples getAudioSamples()
   {
     return getMediaData();

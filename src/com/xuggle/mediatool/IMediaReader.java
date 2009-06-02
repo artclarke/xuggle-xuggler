@@ -21,6 +21,7 @@ package com.xuggle.mediatool;
 
 import java.awt.image.BufferedImage;
 
+import com.xuggle.mediatool.event.IVideoPictureEvent;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
@@ -216,7 +217,7 @@ public interface IMediaReader extends IMediaCoder
   /**
    * Asks the {@link IMediaReader} to generate {@link BufferedImage} images when
    * calling
-   * {@link IMediaListener#onVideoPicture(VideoPictureEvent)}
+   * {@link IMediaListener#onVideoPicture(IVideoPictureEvent)}
    * .
    * 
    * <p>
@@ -228,7 +229,7 @@ public interface IMediaReader extends IMediaCoder
    * video data it has decoded into the right colorspace for the
    * {@link BufferedImage}, and generate a new {@link BufferedImage} to pass in
    * on each
-   * {@link IMediaListener#onVideoPicture(VideoPictureEvent)
+   * {@link IMediaListener#onVideoPicture(IVideoPictureEvent)
    * }
    * call.
    * </p>

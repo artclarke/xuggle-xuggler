@@ -29,18 +29,18 @@ import org.slf4j.LoggerFactory;
 
 import com.xuggle.mediatool.IMediaListener;
 import com.xuggle.mediatool.IMediaGenerator;
-import com.xuggle.mediatool.event.AddStreamEvent;
-import com.xuggle.mediatool.event.AudioSamplesEvent;
-import com.xuggle.mediatool.event.CloseCoderEvent;
-import com.xuggle.mediatool.event.CloseEvent;
-import com.xuggle.mediatool.event.FlushEvent;
-import com.xuggle.mediatool.event.OpenCoderEvent;
-import com.xuggle.mediatool.event.OpenEvent;
-import com.xuggle.mediatool.event.ReadPacketEvent;
-import com.xuggle.mediatool.event.VideoPictureEvent;
-import com.xuggle.mediatool.event.WriteHeaderEvent;
-import com.xuggle.mediatool.event.WritePacketEvent;
-import com.xuggle.mediatool.event.WriteTrailerEvent;
+import com.xuggle.mediatool.event.IAddStreamEvent;
+import com.xuggle.mediatool.event.IAudioSamplesEvent;
+import com.xuggle.mediatool.event.ICloseCoderEvent;
+import com.xuggle.mediatool.event.ICloseEvent;
+import com.xuggle.mediatool.event.IFlushEvent;
+import com.xuggle.mediatool.event.IOpenCoderEvent;
+import com.xuggle.mediatool.event.IOpenEvent;
+import com.xuggle.mediatool.event.IReadPacketEvent;
+import com.xuggle.mediatool.event.IVideoPictureEvent;
+import com.xuggle.mediatool.event.IWriteHeaderEvent;
+import com.xuggle.mediatool.event.IWritePacketEvent;
+import com.xuggle.mediatool.event.IWriteTrailerEvent;
 
 import static com.xuggle.mediatool.IMediaDebugListener.Event.*;
 import static com.xuggle.mediatool.IMediaDebugListener.Mode.*;
@@ -53,7 +53,7 @@ import static com.xuggle.mediatool.IMediaDebugListener.Mode.*;
  * and where events are occurring.
  * </p>
  * <p>
- * Event counts can be queried, and {@link #toString} will
+ * AEventMixin counts can be queried, and {@link #toString} will
  * return an event count summary.  The details in the log can be
  * controlled by {@link MediaDebugListener.Mode}.
  * </p>
@@ -227,7 +227,7 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
 
   /** {@inheritDoc} */
 
-  public void onVideoPicture(VideoPictureEvent event)
+  public void onVideoPicture(IVideoPictureEvent event)
   {
     handleEvent(VIDEO, event.getSource(), new Object[] {event.getPicture(),
         event.getImage(),
@@ -236,7 +236,7 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
   
   /** {@inheritDoc} */
 
-  public void onAudioSamples(AudioSamplesEvent event)
+  public void onAudioSamples(IAudioSamplesEvent event)
   {
     handleEvent(AUDIO, event.getSource(), new Object[] {
         event.getAudioSamples(),
@@ -245,21 +245,21 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
   
   /** {@inheritDoc} */
 
-  public void onOpen(OpenEvent event)
+  public void onOpen(IOpenEvent event)
   {
     handleEvent(OPEN, event.getSource(), new Object[] {});
   }
   
   /** {@inheritDoc} */
 
-  public void onClose(CloseEvent event)
+  public void onClose(ICloseEvent event)
   {
     handleEvent(CLOSE, event.getSource(), new Object[] {});
   }
   
   /** {@inheritDoc} */
 
-  public void onAddStream(AddStreamEvent event)
+  public void onAddStream(IAddStreamEvent event)
   {
     handleEvent(ADD_STREAM, event.getSource(),
         new Object[] {event.getStreamIndex()});
@@ -267,7 +267,7 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
   
   /** {@inheritDoc} */
 
-  public void onOpenCoder(OpenCoderEvent event)
+  public void onOpenCoder(IOpenCoderEvent event)
   {
     handleEvent(OPEN_STREAM, event.getSource(),
         new Object[] {event.getStreamIndex()});
@@ -275,7 +275,7 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
   
   /** {@inheritDoc} */
 
-  public void onCloseCoder(CloseCoderEvent event)
+  public void onCloseCoder(ICloseCoderEvent event)
   {
     handleEvent(CLOSE_STREAM, event.getSource(),
         new Object[] {event.getStreamIndex()});
@@ -283,7 +283,7 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
   
   /** {@inheritDoc} */
 
-  public void onReadPacket(ReadPacketEvent event)
+  public void onReadPacket(IReadPacketEvent event)
   {
     handleEvent(READ_PACKET, event.getSource(),
         new Object[] {event.getPacket()});
@@ -291,7 +291,7 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
   
   /** {@inheritDoc} */
 
-  public void onWritePacket(WritePacketEvent event)
+  public void onWritePacket(IWritePacketEvent event)
   {
     handleEvent(WRITE_PACKET, event.getSource(),
         new Object[] {event.getPacket()});
@@ -299,21 +299,21 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
 
   /** {@inheritDoc} */
 
-  public void onWriteHeader(WriteHeaderEvent event)
+  public void onWriteHeader(IWriteHeaderEvent event)
   {
     handleEvent(HEADER, event.getSource(), new Object[] {});
   }
   
   /** {@inheritDoc} */
 
-  public void onFlush(FlushEvent event)
+  public void onFlush(IFlushEvent event)
   {
     handleEvent(FLUSH, event.getSource(), new Object[] {});
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteTrailer(WriteTrailerEvent event)
+  public void onWriteTrailer(IWriteTrailerEvent event)
   {
     handleEvent(TRAILER, event.getSource(), new Object[] {});
   }

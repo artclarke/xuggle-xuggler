@@ -40,8 +40,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.WindowConstants;
 
-import com.xuggle.mediatool.event.AudioSamplesEvent;
-import com.xuggle.mediatool.event.VideoPictureEvent;
+import com.xuggle.mediatool.event.IAudioSamplesEvent;
+import com.xuggle.mediatool.event.IVideoPictureEvent;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IAudioSamples;
@@ -128,7 +128,7 @@ public class MediaViewerTest
     MediaWriter writer = new MediaWriter("output.mov", reader)
       {
         @Override
-        public void onVideoPicture(VideoPictureEvent event)
+        public void onVideoPicture(IVideoPictureEvent event)
         {
           Graphics2D g = event.getImage().createGraphics();
           String timeStampStr = event.getPicture().getFormattedTimeStamp();
@@ -147,7 +147,7 @@ public class MediaViewerTest
         }
   
         @Override
-        public void onAudioSamples(AudioSamplesEvent event)
+        public void onAudioSamples(IAudioSamplesEvent event)
         {
           // get the raw audio byes and reduce the value to 1 quarter
 
