@@ -257,10 +257,10 @@ SWIGINTERN jNioByteArray com_xuggle_ferry_IBuffer_java_getByteBuffer(com::xuggle
     return retval;
   }
 SWIGINTERN jbyteArray com_xuggle_ferry_IBuffer_getByteArray(com::xuggle::ferry::IBuffer *self,int32_t offset,int32_t length){
-    const jbyte * buffer = 0;
+    jbyte * buffer = 0;
     jbyteArray retval = 0;
     
-    buffer = static_cast<const jbyte*>(self->getBytes(offset, length));
+    buffer = static_cast<jbyte*>(self->getBytes(offset, length));
     if (buffer)
     {
       JNIEnv *env = JNIHelper::sGetEnv();

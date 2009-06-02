@@ -1131,10 +1131,10 @@ typedef jobject jNioByteArray;
      */
   jbyteArray getByteArray(int32_t offset, int32_t length)
   {
-    const jbyte * buffer = 0;
+    jbyte * buffer = 0;
     jbyteArray retval = 0;
     
-    buffer = static_cast<const jbyte*>($self->getBytes(offset, length));
+    buffer = static_cast<jbyte*>($self->getBytes(offset, length));
     if (buffer)
     {
       JNIEnv *env = JNIHelper::sGetEnv();
