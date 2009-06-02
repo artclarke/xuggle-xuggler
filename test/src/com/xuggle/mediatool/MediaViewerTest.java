@@ -40,11 +40,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.WindowConstants;
 
-import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.ICodec;
-import com.xuggle.xuggler.Global;
-import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IAudioSamples;
   
 import static com.xuggle.mediatool.IMediaViewer.Mode.*;
@@ -52,7 +49,6 @@ import static com.xuggle.mediatool.IMediaViewer.Mode.*;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static com.xuggle.xuggler.Global.DEFAULT_PTS_PER_SECOND;
 
 import static junit.framework.Assert.*;
 
@@ -129,6 +125,7 @@ public class MediaViewerTest
     
     MediaWriter writer = new MediaWriter("output.mov", reader)
       {
+        @Override
         public void onVideoPicture(MediaVideoPictureEvent event)
         {
           Graphics2D g = event.getBufferedImage().createGraphics();
@@ -147,18 +144,18 @@ public class MediaViewerTest
           super.onVideoPicture(event);
         }
   
-        public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples, 
-          int streamIndex)
+        @Override
+        public void onAudioSamples(MediaAudioSamplesEvent event)
         {
           // get the raw audio byes and reduce the value to 1 quarter
 
-          ShortBuffer buffer = samples.getByteBuffer().asShortBuffer();
+          ShortBuffer buffer = event.getAudioSamples().getByteBuffer().asShortBuffer();
           for (int i = 0; i < buffer.limit(); ++i)
             buffer.put(i, (short)(buffer.get(i) / 4));
 
           // pas modifed audio to the writer to be written
 
-          super.onAudioSamples(tool, samples, streamIndex);
+          super.onAudioSamples(event);
         }
       };
 

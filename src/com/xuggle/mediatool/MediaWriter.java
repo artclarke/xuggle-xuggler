@@ -85,7 +85,7 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
  */
 
 class MediaWriter extends AMediaCoderMixin
-implements IMediaListener, IMediaWriter
+implements IMediaWriter
 {
   final private Logger log = LoggerFactory.getLogger(this.getClass());
   { log.trace("<init>"); }
@@ -638,7 +638,8 @@ implements IMediaListener, IMediaWriter
         }
       }      // inform listeners
 
-      super.onAudioSamples(this, samples, streamIndex);
+      super.onAudioSamples(new MediaAudioSamplesEvent(this, samples,
+          streamIndex));
     }
     finally
     {
@@ -1214,10 +1215,9 @@ implements IMediaListener, IMediaWriter
 
   /** {@inheritDoc} */
 
-  public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples,
-      int streamIndex)
+  public void onAudioSamples(MediaAudioSamplesEvent event)
   {
-    encodeAudio(streamIndex, samples);
+    encodeAudio(event.getStreamIndex(), event.getAudioSamples());
   }
 
   /** {@inheritDoc} */

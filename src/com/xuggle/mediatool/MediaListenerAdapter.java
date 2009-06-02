@@ -21,7 +21,6 @@ package com.xuggle.mediatool;
 
 
 import com.xuggle.xuggler.IPacket;
-import com.xuggle.xuggler.IAudioSamples;
 
 /**
  * An implementation of {@link IMediaListener} that implements all methods as
@@ -46,8 +45,7 @@ public abstract class MediaListenerAdapter implements IMediaListener
 
   /** {@inheritDoc} */
 
-  public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples,
-      int streamIndex)
+  public void onAudioSamples(MediaAudioSamplesEvent event)
   {
   }
 

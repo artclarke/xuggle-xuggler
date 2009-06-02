@@ -24,13 +24,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.xuggle.mediatool.IMediaListener;
-import com.xuggle.mediatool.IMediaGenerator;
 import com.xuggle.mediatool.MediaListenerAdapter;
 import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IContainer;
-import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoResampler;
 
 import java.awt.image.BufferedImage;
@@ -101,10 +99,9 @@ public class MediaReaderTest
           ++counts[0];
         }
 
-        public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples, 
-          int streamIndex)
+        public void onAudioSamples(MediaAudioSamplesEvent event)
         {
-          assertNotNull("audio samples should be created", samples);
+          assertNotNull("audio samples should be created", event.getAudioSamples());
           ++counts[1];
         }
       };
@@ -160,9 +157,9 @@ public class MediaReaderTest
           assertNotNull("buffered image should be created", event.getBufferedImage());
         }
 
-        public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples, int streamIndex)
+        public void onAudioSamples(MediaAudioSamplesEvent event)
         {
-          assertNotNull("audio samples should be created", samples);
+          assertNotNull("audio samples should be created", event.getAudioSamples());
         }
       };
     mr.addListener(mrl);
@@ -214,10 +211,9 @@ public class MediaReaderTest
           ++counts[0];
         }
 
-        public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples,
-          int streamIndex)
+        public void onAudioSamples(MediaAudioSamplesEvent event)
         {
-          assertNotNull("audio samples should be created", samples);
+          assertNotNull("audio samples should be created", event.getAudioSamples());
           ++counts[1];
         }
       };

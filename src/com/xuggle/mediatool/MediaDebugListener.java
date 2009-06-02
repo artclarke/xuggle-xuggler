@@ -31,7 +31,6 @@ import com.xuggle.mediatool.IMediaListener;
 import com.xuggle.mediatool.IMediaGenerator;
 import com.xuggle.xuggler.IPacket;
 
-import com.xuggle.xuggler.IAudioSamples;
 
 
 import static com.xuggle.mediatool.IMediaDebugListener.Event.*;
@@ -228,10 +227,11 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
   
   /** {@inheritDoc} */
 
-  public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples,
-    int streamIndex)
+  public void onAudioSamples(MediaAudioSamplesEvent event)
   {
-    handleEvent(AUDIO, tool, new Object[] {samples, streamIndex});
+    handleEvent(AUDIO, event.getSource(), new Object[] {
+        event.getAudioSamples(),
+        event.getStreamIndex()});
   }
   
   /** {@inheritDoc} */

@@ -34,13 +34,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import com.xuggle.mediatool.IMediaGenerator;
 import com.xuggle.mediatool.MediaListenerAdapter;
 import com.xuggle.mediatool.MediaDebugListener;
 import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.mediatool.MediaWriter;
-import com.xuggle.xuggler.IAudioSamples;
 
 import static com.xuggle.mediatool.IMediaDebugListener.Event.*;
 import static com.xuggle.mediatool.IMediaDebugListener.Mode.*;
@@ -241,10 +239,9 @@ public class MediaWriterExhaustiveTest
           
           /** {@inheritDoc} */
           
-          public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples, 
-            int streamIndex)
+          public void onAudioSamples(MediaAudioSamplesEvent event)
           {
-            writer.onAudioSamples(null, samples, streamIndex);
+            writer.onAudioSamples(event);
           }
         });
 

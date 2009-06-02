@@ -21,6 +21,8 @@ package com.xuggle.mediatool;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.TimeUnit;
 
+import com.xuggle.xuggler.Global;
+import com.xuggle.xuggler.IMediaData;
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
@@ -72,30 +74,24 @@ public interface IMediaListener
     
   }
   
-  /**
-   * {@link MediaEvent} for {@link IMediaListener#onVideoPicture(MediaVideoPictureEvent)}
-   * 
-   * @author aclarke
-   *
-   */
-  public class MediaVideoPictureEvent extends MediaEvent
+  public class MediaRawMediaEvent extends MediaEvent
   {
-    private final IVideoPicture mVideoPicture;
-    private final BufferedImage mBufferedImage;
+    private final IMediaData mMediaData;
+    private final Object mJavaData;
     private final long mTimeStamp;
     private final TimeUnit mTimeUnit;
     private final int mStreamIndex;
 
-    public MediaVideoPictureEvent(IMediaGenerator source, 
-        IVideoPicture picture, BufferedImage image,
+    public MediaRawMediaEvent(IMediaGenerator source, 
+        IMediaData picture, Object image,
         long timeStamp, TimeUnit timeUnit,
         int streamIndex)
     {
       super(source);
       if (image == null && picture == null)
         throw new IllegalArgumentException();
-      mVideoPicture = picture;
-      mBufferedImage = image;
+      mMediaData = picture;
+      mJavaData = image;
       if (image == null)
       {
         timeStamp = picture.getTimeStamp();
@@ -107,65 +103,57 @@ public interface IMediaListener
       mTimeUnit = timeUnit;
       mStreamIndex = streamIndex;
     }
-    public MediaVideoPictureEvent(IMediaGenerator source,
-        IVideoPicture picture, int streamIndex)
-    {
-      this(source, picture, null, 0, null, streamIndex);
-    }
-    public MediaVideoPictureEvent(IMediaGenerator source,
-        BufferedImage image, long timeStamp, TimeUnit timeUnit,
-        int streamIndex)
-    {
-      this(source, null, image, timeStamp, timeUnit, streamIndex);
-    }
 
     /**
-     * The video picture.  May be null if {@link #getBufferedImage()}
+     * The {@link IMediaData} for this object.
+     * May be null if {@link #getJavaData()}
      * is not null.
      * <p>
-     * The returned {@link IVideoPicture} will only be valid for
-     * the duration of the {@link IMediaListener#onVideoPicture(MediaVideoPictureEvent)}
-     * call, and {@link IMediaListener} implementations must not use it after
+     * The returned {@link IMediaData} will only be valid for
+     * the duration of the callbackand {@link IMediaListener} implementations
+     * must not use it after
      * the call returns.  If you need to keep a copy of this data then
-     * use {@link IVideoPicture#copyReference()} to create a reference
+     * use {@link IMediaData#copyReference()} to create a reference
      * that will outlive your call.
      * </p>
      * 
-     * @return the videoPicture, or null if unavailable
+     * @return the media data, or null if unavailable
      */
-    public IVideoPicture getVideoPicture()
+    public IMediaData getMediaData()
     {
-      return mVideoPicture;
+      return mMediaData;
     }
 
     /**
-     * The buffered image, if available.  If null,
-     * you must use {@link #getVideoPicture()}
-     * @return the bufferedImage, or null if not available
+     * The Java object registered with this event.  If null,
+     * you must use {@link #getMediaData()}
+     * @return the object, or null if not available
      */
-    public BufferedImage getBufferedImage()
+    public Object getJavaData()
     {
-      return mBufferedImage;
+      return mJavaData;
     }
 
     /**
      * The time stamp of this media, in {@link TimeUnit#MICROSECONDS}.
-     * @return the timeStamp
+     * @return the timeStamp, or null if none.
      */
-    public long getTimeStamp()
+    public Long getTimeStamp()
     {
-      return TimeUnit.MICROSECONDS.convert(mTimeStamp, mTimeUnit);
+      return getTimeStamp(TimeUnit.MICROSECONDS);
     }
     /**
      * Get the time stamp of this media in the specified units.
      * @param unit the time unit
-     * @return the time stamp
+     * @return the time stamp, or null if none
      * @throws IllegalArgumentException if unit is null
      */
-    public long getTimeStamp(TimeUnit unit)
+    public Long getTimeStamp(TimeUnit unit)
     {
       if (unit == null)
         throw new IllegalArgumentException();
+      if (mTimeStamp == Global.NO_PTS)
+        return null;
       return unit.convert(mTimeStamp, mTimeUnit);
     }
 
@@ -185,6 +173,102 @@ public interface IMediaListener
     {
       return mStreamIndex;
     }
+    
+  }
+  /**
+   * {@link MediaEvent} for {@link IMediaListener#onVideoPicture(MediaVideoPictureEvent)}
+   * 
+   * @author aclarke
+   *
+   */
+  public class MediaVideoPictureEvent extends MediaRawMediaEvent
+  {
+
+    public MediaVideoPictureEvent(IMediaGenerator source, 
+        IVideoPicture picture, BufferedImage image,
+        long timeStamp, TimeUnit timeUnit,
+        int streamIndex)
+    {
+      super(source, picture, image, timeStamp, timeUnit, streamIndex);
+    }
+    public MediaVideoPictureEvent(IMediaGenerator source, IVideoPicture picture,
+        int streamIndex)
+    {
+      this(source, picture, null, 0, null, streamIndex);
+    }
+    public MediaVideoPictureEvent(IMediaGenerator source,
+        BufferedImage image, long timeStamp, TimeUnit timeUnit,
+        int streamIndex)
+    {
+      this(source, null, image, timeStamp, timeUnit, streamIndex);
+    }
+
+    /**
+     * {inheritDoc}
+     */
+    @Override
+    public IVideoPicture getMediaData()
+    {
+      return (IVideoPicture) super.getMediaData();
+    }
+    /**
+     * The video picture.  May be null if {@link #getBufferedImage()}
+     * is not null.
+     * <p>
+     * The returned {@link IAudioSamples} will only be valid for
+     * the duration of the {@link IMediaListener#onVideoPicture(MediaVideoPictureEvent)}
+     * call, and {@link IMediaListener} implementations must not use it after
+     * the call returns.  If you need to keep a copy of this data then
+     * use {@link IAudioSamples#copyReference()} to create a reference
+     * that will outlive your call.
+     * </p>
+     * 
+     * @return the videoPicture, or null if unavailable
+     */
+    public IVideoPicture getVideoPicture()
+    {
+      return getMediaData();
+    }
+
+    /**
+     * The buffered image, if available.  If null,
+     * you must use {@link #getVideoPicture()}
+     * @return the bufferedImage, or null if not available
+     */
+    public BufferedImage getBufferedImage()
+    {
+      return (BufferedImage) getJavaData();
+    }
+  }
+  /**
+   * {@link MediaEvent} for {@link IMediaListener#onAudioSamples(MediaAudioSamplesEvent)
+   * 
+   * @author aclarke
+   *
+   */
+  public class MediaAudioSamplesEvent extends MediaRawMediaEvent
+  {
+    public MediaAudioSamplesEvent (IMediaGenerator source,
+        IAudioSamples samples,
+        int streamIndex)
+    {
+      super(source, samples, null, 0, null, streamIndex);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public IAudioSamples getMediaData()
+    {
+      return (IAudioSamples) super.getMediaData();
+    }
+    
+    public IAudioSamples getAudioSamples()
+    {
+      return getMediaData();
+    }
+    
   }
   
   
@@ -201,19 +285,11 @@ public interface IMediaListener
   /**
    * Called after audio samples have been decoded or encoded by an
    * {@link IMediaGenerator}
-   * 
-   * @param pipe the pipe that generated this event
-   * @param samples a set of audio samples. The samples will only be valid for
-   *        the duration of this call. If you need to remember the data, you
-   *        must either copy it out of the {@link IAudioSamples} object into
-   *        your own object, or use {@link IAudioSamples#copyReference()} to
-   *        create a new object you can own that points to the same
-   *        memory as samples.
-   * @param streamIndex the index of the stream
+   * @param event An event containing the {@link IAudioSamples}
+   *   for this event.
    */
 
-  public void onAudioSamples(IMediaGenerator pipe, IAudioSamples samples,
-      int streamIndex);
+  public void onAudioSamples(MediaAudioSamplesEvent event);
 
   /**
    * Called after an {@link IMediaGenerator} is opened.

@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
 
+import com.xuggle.mediatool.IMediaListener.MediaAudioSamplesEvent;
 import com.xuggle.mediatool.IMediaListener.MediaVideoPictureEvent;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IError;
@@ -617,7 +618,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
   
   private void dispatchAudioSamples(int streamIndex, IAudioSamples samples)
   {
-    super.onAudioSamples(this, samples, streamIndex);
+    super.onAudioSamples(new MediaAudioSamplesEvent(this, samples, streamIndex));
   }
 
   /** {@inheritDoc} */

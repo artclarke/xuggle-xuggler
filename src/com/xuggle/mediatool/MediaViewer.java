@@ -486,11 +486,13 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
   /** Internaly Only.  {@inheritDoc} */
 
   @Override
-  public void onAudioSamples(IMediaGenerator tool, IAudioSamples samples,
-      int streamIndex)
+  public void onAudioSamples(MediaAudioSamplesEvent event)
   {
     // be sure container is set
 
+    final IMediaGenerator tool = event.getSource();
+    final int streamIndex = event.getStreamIndex();
+    final IAudioSamples samples = event.getAudioSamples();
     if (!(tool instanceof IMediaCoder))
       throw new UnsupportedOperationException();
 
@@ -508,12 +510,14 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
     {
       // queue the audio frame for playing
 
-      AudioQueue queue = getAudioQueue(tool, streamIndex);
+      AudioQueue queue = getAudioQueue(event.getSource(),
+          event.getStreamIndex());
 
       // enqueue the audio samples
 
       if (queue != null)
-        queue.offerMedia(samples, samples.getTimeStamp(), MICROSECONDS);
+        queue.offerMedia(samples, event.getTimeStamp(),
+            event.getTimeUnit());
     }
 
     // other wise just play the audio
