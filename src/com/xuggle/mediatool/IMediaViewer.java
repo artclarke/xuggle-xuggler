@@ -130,12 +130,17 @@ public interface IMediaViewer extends IMediaListener
    * Will this viewer show a stats window?
    * @return will this viewer show a stats window?
    */
+
   public abstract boolean willShowStatsWindow();
 
   /**
-   * Get the default close operation.
+   * Get the default close operation. The close operation speciefies
+   * what should Swing do if the window is closed.  See the {@link
+   * javax.swing.WindowConstants} documentation for valid values.
+   *
    * @return the default close operation
    */
+
   public abstract int getDefaultCloseOperation();
 
   /** Get media playback mode.
