@@ -31,6 +31,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.xuggle.mediatool.MediaReader;
+import com.xuggle.mediatool.event.AddStreamEvent;
+import com.xuggle.mediatool.event.AudioSamplesEvent;
+import com.xuggle.mediatool.event.CloseCoderEvent;
+import com.xuggle.mediatool.event.CloseEvent;
+import com.xuggle.mediatool.event.FlushEvent;
+import com.xuggle.mediatool.event.OpenCoderEvent;
+import com.xuggle.mediatool.event.OpenEvent;
+import com.xuggle.mediatool.event.ReadPacketEvent;
+import com.xuggle.mediatool.event.VideoPictureEvent;
+import com.xuggle.mediatool.event.WriteHeaderEvent;
+import com.xuggle.mediatool.event.WritePacketEvent;
+import com.xuggle.mediatool.event.WriteTrailerEvent;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IError;
@@ -542,7 +554,7 @@ implements IMediaWriter
   
     // inform listeners
 
-    super.onVideoPicture(new MediaVideoPictureEvent(this, picture, image,
+    super.onVideoPicture(new VideoPictureEvent(this, picture, image,
         picture.getTimeStamp(), TimeUnit.MICROSECONDS, streamIndex));
 
   }
@@ -638,7 +650,7 @@ implements IMediaWriter
         }
       }      // inform listeners
 
-      super.onAudioSamples(new MediaAudioSamplesEvent(this, samples,
+      super.onAudioSamples(new AudioSamplesEvent(this, samples,
           streamIndex));
     }
     finally
@@ -832,7 +844,7 @@ implements IMediaWriter
 
       // inform the listeners
 
-      super.onWriteHeader(this);
+      super.onWriteHeader(new WriteHeaderEvent(this));
     }
     
     // establish the coder for the output stream index
@@ -946,7 +958,7 @@ implements IMediaWriter
     
     // inform listeners
 
-    super.onAddStream(this,outputStreamIndex);
+    super.onAddStream(new AddStreamEvent(this, outputStreamIndex));
   }
   
   /**
@@ -973,7 +985,7 @@ implements IMediaWriter
         mOpenedStreams.add(stream);
 
         // inform listeners
-        super.onOpenCoder(this, stream.getIndex());
+        super.onOpenCoder(new OpenCoderEvent(this, stream.getIndex()));
       }
     }
     finally
@@ -995,7 +1007,7 @@ implements IMediaWriter
 
     // inform listeners
 
-    super.onWritePacket(this, packet);
+    super.onWritePacket(new WritePacketEvent(this,packet));
   }
 
   /** 
@@ -1047,7 +1059,7 @@ implements IMediaWriter
 
     // inform listeners
 
-    super.onFlush(this);
+    super.onFlush(new FlushEvent(this));
   }
 
   /** {@inheritDoc} */
@@ -1062,7 +1074,7 @@ implements IMediaWriter
 
     // inform listeners
 
-    super.onOpen(new MediaOpenEvent(this));
+    super.onOpen(new OpenEvent(this));
     
     // note that we should close the container opened here
 
@@ -1088,7 +1100,7 @@ implements IMediaWriter
 
     // inform the listeners
 
-    super.onWriteTrailer(this);
+    super.onWriteTrailer(new WriteTrailerEvent(this));
     
     // close the coders opened by this MediaWriter
 
@@ -1103,7 +1115,7 @@ implements IMediaWriter
               + ", failed close coder " + coder);
 
         // inform the listeners
-        super.onCloseCoder(this, stream.getIndex());
+        super.onCloseCoder(new CloseCoderEvent(this, stream.getIndex()));
       }
       finally
       {
@@ -1130,7 +1142,7 @@ implements IMediaWriter
 
     // inform the listeners
 
-    super.onClose(this);
+    super.onClose(new CloseEvent(this));
   }
 
   /**
@@ -1170,13 +1182,13 @@ implements IMediaWriter
 
   /** {@inheritDoc} */
 
-  public void onOpen(MediaOpenEvent event)
+  public void onOpen(OpenEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onClose(IMediaGenerator tool)
+  public void onClose(CloseEvent event)
   {
     if (isOpen())
       close();
@@ -1184,69 +1196,69 @@ implements IMediaWriter
 
   /** {@inheritDoc} */
 
-  public void onAddStream(IMediaGenerator tool, int streamIndex)
+  public void onAddStream(AddStreamEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onOpenCoder(IMediaGenerator tool, Integer stream)
+  public void onOpenCoder(OpenCoderEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onCloseCoder(IMediaGenerator tool, Integer stream)
+  public void onCloseCoder(CloseCoderEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onVideoPicture(MediaVideoPictureEvent event)
+  public void onVideoPicture(VideoPictureEvent event)
   {
-    if (event.getBufferedImage() != null)
+    if (event.getImage() != null)
       encodeVideo(event.getStreamIndex(),
-          event.getBufferedImage(),
+          event.getImage(),
           event.getTimeStamp(event.getTimeUnit()),
           event.getTimeUnit());
     else
-      encodeVideo(event.getStreamIndex(), event.getVideoPicture());
+      encodeVideo(event.getStreamIndex(), event.getPicture());
   }
 
   /** {@inheritDoc} */
 
-  public void onAudioSamples(MediaAudioSamplesEvent event)
+  public void onAudioSamples(AudioSamplesEvent event)
   {
     encodeAudio(event.getStreamIndex(), event.getAudioSamples());
   }
 
   /** {@inheritDoc} */
 
-  public void onReadPacket(IMediaGenerator tool, IPacket packet)
+  public void onReadPacket(ReadPacketEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWritePacket(IMediaGenerator tool, IPacket packet)
+  public void onWritePacket(WritePacketEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteHeader(IMediaGenerator tool)
+  public void onWriteHeader(WriteHeaderEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onFlush(IMediaGenerator tool)
+  public void onFlush(FlushEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteTrailer(IMediaGenerator tool)
+  public void onWriteTrailer(WriteTrailerEvent event)
   {
   }
   

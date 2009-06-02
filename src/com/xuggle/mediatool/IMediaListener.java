@@ -19,10 +19,19 @@
 package com.xuggle.mediatool;
 
 import java.awt.image.BufferedImage;
-import java.util.concurrent.TimeUnit;
 
-import com.xuggle.xuggler.Global;
-import com.xuggle.xuggler.IMediaData;
+import com.xuggle.mediatool.event.AddStreamEvent;
+import com.xuggle.mediatool.event.AudioSamplesEvent;
+import com.xuggle.mediatool.event.CloseCoderEvent;
+import com.xuggle.mediatool.event.CloseEvent;
+import com.xuggle.mediatool.event.FlushEvent;
+import com.xuggle.mediatool.event.OpenCoderEvent;
+import com.xuggle.mediatool.event.OpenEvent;
+import com.xuggle.mediatool.event.ReadPacketEvent;
+import com.xuggle.mediatool.event.VideoPictureEvent;
+import com.xuggle.mediatool.event.WriteHeaderEvent;
+import com.xuggle.mediatool.event.WritePacketEvent;
+import com.xuggle.mediatool.event.WriteTrailerEvent;
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
@@ -51,235 +60,6 @@ public interface IMediaListener
 {
   
   /**
-   * Base class for all IMediaEvents that {@link IMediaListener}s
-   * can listen for.
-   * @author aclarke
-   *
-   */
-  public class MediaEvent
-  {
-    private final IMediaGenerator mSource;
-    public MediaEvent(IMediaGenerator source)
-    {
-      mSource = source;
-    }
-    /**
-     * Get the source of this event.
-     * @return the source
-     */
-    public IMediaGenerator getSource()
-    {
-      return mSource;
-    }
-    
-  }
-  
-  public class MediaRawMediaEvent extends MediaEvent
-  {
-    private final IMediaData mMediaData;
-    private final Object mJavaData;
-    private final long mTimeStamp;
-    private final TimeUnit mTimeUnit;
-    private final int mStreamIndex;
-
-    public MediaRawMediaEvent(IMediaGenerator source, 
-        IMediaData picture, Object image,
-        long timeStamp, TimeUnit timeUnit,
-        int streamIndex)
-    {
-      super(source);
-      if (image == null && picture == null)
-        throw new IllegalArgumentException();
-      mMediaData = picture;
-      mJavaData = image;
-      if (image == null)
-      {
-        timeStamp = picture.getTimeStamp();
-        timeUnit = TimeUnit.MICROSECONDS;
-      }
-      mTimeStamp = timeStamp;
-      if (timeUnit == null)
-        throw new IllegalArgumentException();
-      mTimeUnit = timeUnit;
-      mStreamIndex = streamIndex;
-    }
-
-    /**
-     * The {@link IMediaData} for this object.
-     * May be null if {@link #getJavaData()}
-     * is not null.
-     * <p>
-     * The returned {@link IMediaData} will only be valid for
-     * the duration of the callbackand {@link IMediaListener} implementations
-     * must not use it after
-     * the call returns.  If you need to keep a copy of this data then
-     * use {@link IMediaData#copyReference()} to create a reference
-     * that will outlive your call.
-     * </p>
-     * 
-     * @return the media data, or null if unavailable
-     */
-    public IMediaData getMediaData()
-    {
-      return mMediaData;
-    }
-
-    /**
-     * The Java object registered with this event.  If null,
-     * you must use {@link #getMediaData()}
-     * @return the object, or null if not available
-     */
-    public Object getJavaData()
-    {
-      return mJavaData;
-    }
-
-    /**
-     * The time stamp of this media, in {@link TimeUnit#MICROSECONDS}.
-     * @return the timeStamp, or null if none.
-     */
-    public Long getTimeStamp()
-    {
-      return getTimeStamp(TimeUnit.MICROSECONDS);
-    }
-    /**
-     * Get the time stamp of this media in the specified units.
-     * @param unit the time unit
-     * @return the time stamp, or null if none
-     * @throws IllegalArgumentException if unit is null
-     */
-    public Long getTimeStamp(TimeUnit unit)
-    {
-      if (unit == null)
-        throw new IllegalArgumentException();
-      if (mTimeStamp == Global.NO_PTS)
-        return null;
-      return unit.convert(mTimeStamp, mTimeUnit);
-    }
-
-    /**
-     * The time unit of {@link #getTimeStamp()}.
-     * @return the timeUnit
-     */
-    public TimeUnit getTimeUnit()
-    {
-      return mTimeUnit;
-    }
-
-    /**
-     * @return the streamIndex
-     */
-    public int getStreamIndex()
-    {
-      return mStreamIndex;
-    }
-    
-  }
-  /**
-   * {@link MediaEvent} for {@link IMediaListener#onVideoPicture(MediaVideoPictureEvent)}
-   * 
-   * @author aclarke
-   *
-   */
-  public class MediaVideoPictureEvent extends MediaRawMediaEvent
-  {
-
-    public MediaVideoPictureEvent(IMediaGenerator source, 
-        IVideoPicture picture, BufferedImage image,
-        long timeStamp, TimeUnit timeUnit,
-        int streamIndex)
-    {
-      super(source, picture, image, timeStamp, timeUnit, streamIndex);
-    }
-    public MediaVideoPictureEvent(IMediaGenerator source, IVideoPicture picture,
-        int streamIndex)
-    {
-      this(source, picture, null, 0, null, streamIndex);
-    }
-    public MediaVideoPictureEvent(IMediaGenerator source,
-        BufferedImage image, long timeStamp, TimeUnit timeUnit,
-        int streamIndex)
-    {
-      this(source, null, image, timeStamp, timeUnit, streamIndex);
-    }
-
-    /**
-     * {inheritDoc}
-     */
-    @Override
-    public IVideoPicture getMediaData()
-    {
-      return (IVideoPicture) super.getMediaData();
-    }
-    /**
-     * The video picture.  May be null if {@link #getBufferedImage()}
-     * is not null.
-     * <p>
-     * The returned {@link IAudioSamples} will only be valid for
-     * the duration of the {@link IMediaListener#onVideoPicture(MediaVideoPictureEvent)}
-     * call, and {@link IMediaListener} implementations must not use it after
-     * the call returns.  If you need to keep a copy of this data then
-     * use {@link IAudioSamples#copyReference()} to create a reference
-     * that will outlive your call.
-     * </p>
-     * 
-     * @return the videoPicture, or null if unavailable
-     */
-    public IVideoPicture getVideoPicture()
-    {
-      return getMediaData();
-    }
-
-    /**
-     * The buffered image, if available.  If null,
-     * you must use {@link #getVideoPicture()}
-     * @return the bufferedImage, or null if not available
-     */
-    public BufferedImage getBufferedImage()
-    {
-      return (BufferedImage) getJavaData();
-    }
-  }
-  /**
-   * {@link MediaEvent} for {@link IMediaListener#onAudioSamples(MediaAudioSamplesEvent)
-   * 
-   * @author aclarke
-   *
-   */
-  public class MediaAudioSamplesEvent extends MediaRawMediaEvent
-  {
-    public MediaAudioSamplesEvent (IMediaGenerator source,
-        IAudioSamples samples,
-        int streamIndex)
-    {
-      super(source, samples, null, 0, null, streamIndex);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public IAudioSamples getMediaData()
-    {
-      return (IAudioSamples) super.getMediaData();
-    }
-    
-    public IAudioSamples getAudioSamples()
-    {
-      return getMediaData();
-    }
-    
-  }
-  
-  public class MediaOpenEvent extends MediaEvent {
-
-    public MediaOpenEvent(IMediaGenerator source)
-    {
-      super(source);
-    }
-    
-  }
-  /**
    * Called after a video picture has been decoded by a {@link IMediaReader} or
    * encoded by a {@link IMediaWriter}.
    * 
@@ -287,7 +67,7 @@ public interface IMediaListener
    *   a {@link BufferedImage}, or both.
    */
 
-  public void onVideoPicture(MediaVideoPictureEvent event);
+  public void onVideoPicture(VideoPictureEvent event);
 
   /**
    * Called after audio samples have been decoded or encoded by an
@@ -296,103 +76,91 @@ public interface IMediaListener
    *   for this event.
    */
 
-  public void onAudioSamples(MediaAudioSamplesEvent event);
+  public void onAudioSamples(AudioSamplesEvent event);
 
   /**
    * Called after an {@link IMediaGenerator} is opened.
-   * @param event TODO
+   * @param event A {@link OpenEvent}
    */
 
-  public void onOpen(MediaOpenEvent event);
+  public void onOpen(OpenEvent event);
 
   /**
    * Called after an {@link IMediaGenerator} is closed.
-   * 
-   * @param pipe the pipe that generated this event
+   * @param event A {@link CloseEvent}
    */
 
-  public void onClose(IMediaGenerator pipe);
+  public void onClose(CloseEvent event);
 
   /**
    * Called after an stream is added to an {@link IMediaGenerator}. This occurs when
    * a new stream is added (if writing) or encountered by the pipe (if reading).
    * If the stream is not already been opened, then
-   * {@link #onOpenCoder(IMediaGenerator, Integer)} will be called at some later
+   * {@link #onOpenCoder(OpenCoderEvent)} will be called at some later
    * point.
-   * 
-   * @param pipe the pipe that generated this event
-   * @param streamIndex the stream opened
+   * @param event A {@link AddStreamEvent} event
    */
 
-  public void onAddStream(IMediaGenerator pipe, int streamIndex);
+  public void onAddStream(AddStreamEvent event);
 
   /**
    * Called after a decoder or encoder is opened by a {@link IMediaGenerator}
-   * 
-   * @param pipe the pipe that generated this event
-   * @param coderIndex an index for this coder if known, or null if not.
+   * @param event A {@link OpenCoderEvent}
    */
 
-  public void onOpenCoder(IMediaGenerator pipe, Integer coderIndex);
+  public void onOpenCoder(OpenCoderEvent event);
 
   /**
    * Called after an decoder or encoder is closed by the {@link IMediaGenerator}.
-   * 
-   * @param pipe the pipe that generated this event
-   * @param coderIndex an index for this coder if known, or null if not.
+   * @param event A {@link CloseCoderEvent}
    */
 
-  public void onCloseCoder(IMediaGenerator pipe, Integer coderIndex);
+  public void onCloseCoder(CloseCoderEvent event);
 
   /**
    * Called after a {@link com.xuggle.xuggler.IPacket} has been read by a
    * {@link IMediaReader}.
-   * 
-   * @param pipe the pipe that generated this event
-   * @param packet the packet just read. This {@link IPacket} is only valid for
+   * @param event A {@link ReadPacketEvent}.  This {@link IPacket}
+   *        in this event is only valid for
    *        the duration of this call. If you need to use the data after this
    *        call has returned, you must either copy the data in this call, or
    *        use {@link IPacket#copyReference()} to create a new object
    *        with a reference you can own.
    */
 
-  public void onReadPacket(IMediaGenerator pipe, IPacket packet);
+  public void onReadPacket(ReadPacketEvent event);
 
   /**
    * Called after a {@link com.xuggle.xuggler.IPacket} has been written by a
    * {@link IMediaWriter}.
-   * 
-   * @param pipe the pipe that generated this event
-   * @param packet the packet just written. This {@link IPacket} is only valid
+   * @param event A {@link WritePacketEvent}.  The {@link IPacket}
+   * in this event is only valid
    *        for the duration of this call. If you need to use the data after
    *        this call has returned, you must either copy the data in this call,
    *        or use {@link IPacket#copyReference()} to create a new object
    *        with a reference you can own.
    */
 
-  public void onWritePacket(IMediaGenerator pipe, IPacket packet);
+  public void onWritePacket(WritePacketEvent event);
 
   /**
    * Called after a {@link IMediaWriter} writes the header.
-   * 
-   * @param pipe the pipe that generated this event
+   * @param event A {@link WriteHeaderEvent}
    */
 
-  public void onWriteHeader(IMediaGenerator pipe);
+  public void onWriteHeader(WriteHeaderEvent event);
 
   /**
    * Called after a {@link IMediaWriter} has flushed its buffers.
-   * 
-   * @param pipe the pipe that generated this event
+   * @param event A {@link FlushEvent}
    */
 
-  public void onFlush(IMediaGenerator pipe);
+  public void onFlush(FlushEvent event);
 
   /**
    * Called after a {@link IMediaWriter} writes the trailer.
-   * 
-   * @param pipe the pipe that generated this event
+   * @param event A {@link WriteTrailerEvent}
    */
 
-  public void onWriteTrailer(IMediaGenerator pipe);
+  public void onWriteTrailer(WriteTrailerEvent event);
 }

@@ -20,7 +20,7 @@
 /**
  * <p>
  * A simple API for to decoding, viewing
- * and encoding media -- Start with {@link ToolFactory}.
+ * and encoding media -- Start with {@link com.xuggle.mediatool.ToolFactory}.
  * </p>
  * 
  * <h2>Sample Code</h2>

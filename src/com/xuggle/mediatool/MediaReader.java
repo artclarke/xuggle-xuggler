@@ -30,9 +30,14 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
 
-import com.xuggle.mediatool.IMediaListener.MediaAudioSamplesEvent;
-import com.xuggle.mediatool.IMediaListener.MediaOpenEvent;
-import com.xuggle.mediatool.IMediaListener.MediaVideoPictureEvent;
+import com.xuggle.mediatool.event.AddStreamEvent;
+import com.xuggle.mediatool.event.AudioSamplesEvent;
+import com.xuggle.mediatool.event.CloseCoderEvent;
+import com.xuggle.mediatool.event.CloseEvent;
+import com.xuggle.mediatool.event.OpenCoderEvent;
+import com.xuggle.mediatool.event.OpenEvent;
+import com.xuggle.mediatool.event.ReadPacketEvent;
+import com.xuggle.mediatool.event.VideoPictureEvent;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IPacket;
@@ -248,7 +253,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
   
   /**
    * Asks the {@link IMediaReader} to generate {@link BufferedImage}
-   * images when calling {@link IMediaListener#onVideoPicture(MediaVideoPictureEvent)}.
+   * images when calling {@link IMediaListener#onVideoPicture(VideoPictureEvent)}.
    * 
    * @param bufferedImageType The buffered image type (e.g.
    *   {@link BufferedImage#TYPE_3BYTE_BGR}).  Set to -1 to disable
@@ -366,7 +371,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
             mCoders.put(i, coder);
             // and release our coder to the list
             coder = null;
-            super.onAddStream(this, i);
+            super.onAddStream(new AddStreamEvent(this, i));
           }
           finally
           {
@@ -393,7 +398,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
           throw new RuntimeException("could not open coder for stream: "
               + streamIndex);
         mOpenedStreams.add(stream);
-        super.onOpenCoder(this, stream.getIndex());
+        super.onOpenCoder(new OpenCoderEvent(this, stream.getIndex()));
         stream = null;
       }
     } finally {
@@ -448,7 +453,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
 
       // inform listeners that a packet was read
 
-      super.onReadPacket(this, packet);
+      super.onReadPacket(new ReadPacketEvent(this,packet));
 
       // get the coder for this packet
 
@@ -601,7 +606,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
     // dispatch picture here
 
     
-    super.onVideoPicture(new MediaVideoPictureEvent(this, picture, image,
+    super.onVideoPicture(new VideoPictureEvent(this, picture, image,
         picture.getTimeStamp(), TimeUnit.MICROSECONDS, streamIndex));
   }
 
@@ -619,7 +624,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
   
   private void dispatchAudioSamples(int streamIndex, IAudioSamples samples)
   {
-    super.onAudioSamples(new MediaAudioSamplesEvent(this, samples, streamIndex));
+    super.onAudioSamples(new AudioSamplesEvent(this, samples, streamIndex));
   }
 
   /** {@inheritDoc} */
@@ -632,7 +637,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
 
     // inform listeners
 
-    super.onOpen(new MediaOpenEvent(this));
+    super.onOpen(new OpenEvent(this));
     // note that we should close the container opened here
 
     setShouldCloseContainer(true);
@@ -657,7 +662,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
               + ", failed close coder " + coder);
         }
         // inform listeners that the stream was closed
-        super.onCloseCoder(this,stream.getIndex());
+        super.onCloseCoder(new CloseCoderEvent(this, stream.getIndex()));
       } finally {
         coder.delete();
         stream.delete();
@@ -682,7 +687,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
 
     // tell the listeners that the container is closed
 
-    super.onClose(this);
+    super.onClose(new CloseEvent(this));
   }
 
   private static String getErrorMessage(int rv)

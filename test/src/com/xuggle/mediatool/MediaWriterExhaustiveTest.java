@@ -39,6 +39,8 @@ import com.xuggle.mediatool.MediaDebugListener;
 import com.xuggle.mediatool.MediaReader;
 import com.xuggle.mediatool.MediaViewer;
 import com.xuggle.mediatool.MediaWriter;
+import com.xuggle.mediatool.event.AudioSamplesEvent;
+import com.xuggle.mediatool.event.VideoPictureEvent;
 
 import static com.xuggle.mediatool.IMediaDebugListener.Event.*;
 import static com.xuggle.mediatool.IMediaDebugListener.Mode.*;
@@ -232,14 +234,14 @@ public class MediaWriterExhaustiveTest
 
       reader.addListener(new MediaListenerAdapter()
         {
-          public void onVideoPicture(MediaVideoPictureEvent event)
+          public void onVideoPicture(VideoPictureEvent event)
           {
             writer.onVideoPicture(event);
           }
           
           /** {@inheritDoc} */
           
-          public void onAudioSamples(MediaAudioSamplesEvent event)
+          public void onAudioSamples(AudioSamplesEvent event)
           {
             writer.onAudioSamples(event);
           }

@@ -28,6 +28,7 @@ import java.awt.image.BufferedImage;
 import com.xuggle.mediatool.IMediaReader;
 import com.xuggle.mediatool.MediaListenerAdapter;
 import com.xuggle.mediatool.ToolFactory;
+import com.xuggle.mediatool.event.VideoPictureEvent;
 import com.xuggle.xuggler.Global;
 
 /**
@@ -125,7 +126,7 @@ public class DecodeAndCaptureFrames extends MediaListenerAdapter
    * This method blocks, so return quickly.
    */
 
-  public void onVideoPicture(MediaVideoPictureEvent event)
+  public void onVideoPicture(VideoPictureEvent event)
   {
     try
     {
@@ -162,7 +163,7 @@ public class DecodeAndCaptureFrames extends MediaListenerAdapter
 
         // write out PNG
 
-        ImageIO.write(event.getBufferedImage(), "png", file);
+        ImageIO.write(event.getImage(), "png", file);
 
         // indicate file written
 

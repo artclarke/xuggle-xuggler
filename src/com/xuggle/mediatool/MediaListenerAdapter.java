@@ -19,8 +19,20 @@
 
 package com.xuggle.mediatool;
 
+import com.xuggle.mediatool.event.AddStreamEvent;
+import com.xuggle.mediatool.event.AudioSamplesEvent;
+import com.xuggle.mediatool.event.CloseCoderEvent;
+import com.xuggle.mediatool.event.CloseEvent;
+import com.xuggle.mediatool.event.FlushEvent;
+import com.xuggle.mediatool.event.OpenCoderEvent;
+import com.xuggle.mediatool.event.OpenEvent;
+import com.xuggle.mediatool.event.ReadPacketEvent;
+import com.xuggle.mediatool.event.VideoPictureEvent;
+import com.xuggle.mediatool.event.WriteHeaderEvent;
+import com.xuggle.mediatool.event.WritePacketEvent;
+import com.xuggle.mediatool.event.WriteTrailerEvent;
 
-import com.xuggle.xuggler.IPacket;
+
 
 /**
  * An implementation of {@link IMediaListener} that implements all methods as
@@ -39,73 +51,73 @@ public abstract class MediaListenerAdapter implements IMediaListener
 {
   /** {@inheritDoc} */
 
-  public void onVideoPicture(MediaVideoPictureEvent event)
+  public void onVideoPicture(VideoPictureEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onAudioSamples(MediaAudioSamplesEvent event)
+  public void onAudioSamples(AudioSamplesEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onOpen(MediaOpenEvent event)
+  public void onOpen(OpenEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onClose(IMediaGenerator tool)
+  public void onClose(CloseEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onAddStream(IMediaGenerator tool, int streamIndex)
+  public void onAddStream(AddStreamEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onOpenCoder(IMediaGenerator tool, Integer stream)
+  public void onOpenCoder(OpenCoderEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onCloseCoder(IMediaGenerator tool, Integer stream)
+  public void onCloseCoder(CloseCoderEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onReadPacket(IMediaGenerator tool, IPacket packet)
+  public void onReadPacket(ReadPacketEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWritePacket(IMediaGenerator tool, IPacket packet)
+  public void onWritePacket(WritePacketEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteHeader(IMediaGenerator tool)
+  public void onWriteHeader(WriteHeaderEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onFlush(IMediaGenerator tool)
+  public void onFlush(FlushEvent event)
   {
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteTrailer(IMediaGenerator tool)
+  public void onWriteTrailer(WriteTrailerEvent event)
   {
   }
 }

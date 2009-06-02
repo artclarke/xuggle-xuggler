@@ -18,9 +18,9 @@ expert.
 convert it to an FLV file, and play it on
 screen at the same time</p>
 <pre>
-IMediaReader reader = MediaTool.newReader("input.mpg");
-reader.addListener(MediaTool.newViewer());
-reader.addListener(MediaTool.newWriter("output.flv", reader));
+IMediaReader reader = ToolFactory.newReader("input.mpg");
+reader.addListener(ToolFactory.newViewer());
+reader.addListener(ToolFactory.newWriter("output.flv", reader));
 while (reader.readPacket() == null)
   ;
 </pre>

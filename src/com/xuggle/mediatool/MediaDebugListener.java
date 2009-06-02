@@ -29,9 +29,18 @@ import org.slf4j.LoggerFactory;
 
 import com.xuggle.mediatool.IMediaListener;
 import com.xuggle.mediatool.IMediaGenerator;
-import com.xuggle.xuggler.IPacket;
-
-
+import com.xuggle.mediatool.event.AddStreamEvent;
+import com.xuggle.mediatool.event.AudioSamplesEvent;
+import com.xuggle.mediatool.event.CloseCoderEvent;
+import com.xuggle.mediatool.event.CloseEvent;
+import com.xuggle.mediatool.event.FlushEvent;
+import com.xuggle.mediatool.event.OpenCoderEvent;
+import com.xuggle.mediatool.event.OpenEvent;
+import com.xuggle.mediatool.event.ReadPacketEvent;
+import com.xuggle.mediatool.event.VideoPictureEvent;
+import com.xuggle.mediatool.event.WriteHeaderEvent;
+import com.xuggle.mediatool.event.WritePacketEvent;
+import com.xuggle.mediatool.event.WriteTrailerEvent;
 
 import static com.xuggle.mediatool.IMediaDebugListener.Event.*;
 import static com.xuggle.mediatool.IMediaDebugListener.Mode.*;
@@ -218,16 +227,16 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
 
   /** {@inheritDoc} */
 
-  public void onVideoPicture(MediaVideoPictureEvent event)
+  public void onVideoPicture(VideoPictureEvent event)
   {
-    handleEvent(VIDEO, event.getSource(), new Object[] {event.getVideoPicture(),
-        event.getBufferedImage(),
+    handleEvent(VIDEO, event.getSource(), new Object[] {event.getPicture(),
+        event.getImage(),
         event.getStreamIndex()});
   }
   
   /** {@inheritDoc} */
 
-  public void onAudioSamples(MediaAudioSamplesEvent event)
+  public void onAudioSamples(AudioSamplesEvent event)
   {
     handleEvent(AUDIO, event.getSource(), new Object[] {
         event.getAudioSamples(),
@@ -236,72 +245,77 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
   
   /** {@inheritDoc} */
 
-  public void onOpen(MediaOpenEvent event)
+  public void onOpen(OpenEvent event)
   {
     handleEvent(OPEN, event.getSource(), new Object[] {});
   }
   
   /** {@inheritDoc} */
 
-  public void onClose(IMediaGenerator tool)
+  public void onClose(CloseEvent event)
   {
-    handleEvent(CLOSE, tool, new Object[] {});
+    handleEvent(CLOSE, event.getSource(), new Object[] {});
   }
   
   /** {@inheritDoc} */
 
-  public void onAddStream(IMediaGenerator tool, int streamIndex)
+  public void onAddStream(AddStreamEvent event)
   {
-    handleEvent(ADD_STREAM, tool, new Object[] {streamIndex});
+    handleEvent(ADD_STREAM, event.getSource(),
+        new Object[] {event.getStreamIndex()});
   }
   
   /** {@inheritDoc} */
 
-  public void onOpenCoder(IMediaGenerator tool, Integer stream)
+  public void onOpenCoder(OpenCoderEvent event)
   {
-    handleEvent(OPEN_STREAM, tool, new Object[] {stream});
+    handleEvent(OPEN_STREAM, event.getSource(),
+        new Object[] {event.getStreamIndex()});
   }
   
   /** {@inheritDoc} */
 
-  public void onCloseCoder(IMediaGenerator tool, Integer stream)
+  public void onCloseCoder(CloseCoderEvent event)
   {
-    handleEvent(CLOSE_STREAM, tool, new Object[] {stream});
+    handleEvent(CLOSE_STREAM, event.getSource(),
+        new Object[] {event.getStreamIndex()});
   }
   
   /** {@inheritDoc} */
 
-  public void onReadPacket(IMediaGenerator tool, IPacket packet)
+  public void onReadPacket(ReadPacketEvent event)
   {
-    handleEvent(READ_PACKET, tool, new Object[] {packet});
+    handleEvent(READ_PACKET, event.getSource(),
+        new Object[] {event.getPacket()});
   }
   
   /** {@inheritDoc} */
 
-  public void onWritePacket(IMediaGenerator tool, IPacket packet)
+  public void onWritePacket(WritePacketEvent event)
   {
-    handleEvent(WRITE_PACKET, tool, new Object[] {packet});
+    handleEvent(WRITE_PACKET, event.getSource(),
+        new Object[] {event.getPacket()});
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteHeader(IMediaGenerator tool)
+  public void onWriteHeader(WriteHeaderEvent event)
   {
-    handleEvent(HEADER, tool, new Object[] {});
+    handleEvent(HEADER, event.getSource(), new Object[] {});
   }
   
   /** {@inheritDoc} */
 
-  public void onFlush(IMediaGenerator tool)
+  public void onFlush(FlushEvent event)
   {
-    handleEvent(FLUSH, tool, new Object[] {});
+    handleEvent(FLUSH, event.getSource(), new Object[] {});
   }
 
   /** {@inheritDoc} */
 
-  public void onWriteTrailer(IMediaGenerator tool)
+  public void onWriteTrailer(WriteTrailerEvent event)
   {
-    handleEvent(TRAILER, tool, new Object[] {});
+    handleEvent(TRAILER, event.getSource(), new Object[] {});
   }
 
   /** {@inheritDoc}

@@ -63,6 +63,11 @@ import javax.swing.table.TableColumn;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.AbstractTableModel;
 
+import com.xuggle.mediatool.event.AddStreamEvent;
+import com.xuggle.mediatool.event.AudioSamplesEvent;
+import com.xuggle.mediatool.event.CloseEvent;
+import com.xuggle.mediatool.event.OpenEvent;
+import com.xuggle.mediatool.event.VideoPictureEvent;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IStream;
@@ -383,11 +388,11 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
   /** Internaly Only.  Configure internal parameters of the media viewer. */
 
   @Override
-  public void onAddStream(IMediaGenerator tool, int streamIndex)
+  public void onAddStream(AddStreamEvent event)
   {
     // if disabled don't add a stream
 
-    if (!(tool instanceof IMediaCoder))
+    if (!(event.getSource() instanceof IMediaCoder))
       return;
     
     if (getMode() == Mode.DISABLED)
@@ -395,11 +400,12 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
 
     // get the coder
 
-    IContainer container = ((IMediaCoder)tool).getContainer();
-    IStream stream = container.getStream(streamIndex);
+    IContainer container = ((IMediaCoder)event.getSource()).getContainer();
+    IStream stream = container.getStream(event.getStreamIndex());
     IStreamCoder coder = stream.getStreamCoder();
 
     // configure video stream
+    int streamIndex = event.getStreamIndex();
 
     if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_VIDEO)
     {
@@ -435,14 +441,14 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
       // if real time establish audio queue
 
       if (getMode().isRealTime())
-        getAudioQueue(tool, streamIndex);
+        getAudioQueue(event.getSource(), streamIndex);
     }
   }
 
   /** Internaly Only.  {@inheritDoc} */
 
   @Override
-  public void onVideoPicture(MediaVideoPictureEvent event)
+  public void onVideoPicture(VideoPictureEvent event)
   {
     // be sure container is set
     if (!(event.getSource() instanceof IMediaCoder))
@@ -464,12 +470,12 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
 
     if (getMode().isRealTime())
       getVideoQueue(event.getStreamIndex(), frame)
-        .offerMedia(event.getVideoPicture(), event.getTimeStamp(), MICROSECONDS);
+        .offerMedia(event.getPicture(), event.getTimeStamp(), MICROSECONDS);
 
     // otherwise just set the image on the frame
 
     else
-      frame.setVideoImage(event.getVideoPicture(), event.getBufferedImage());
+      frame.setVideoImage(event.getPicture(), event.getImage());
   }
 
   private VideoQueue getVideoQueue(int streamIndex, MediaFrame frame)
@@ -486,7 +492,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
   /** Internaly Only.  {@inheritDoc} */
 
   @Override
-  public void onAudioSamples(MediaAudioSamplesEvent event)
+  public void onAudioSamples(AudioSamplesEvent event)
   {
     // be sure container is set
 
@@ -598,12 +604,9 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
    */
 
   @Override
-  public void onOpen(MediaOpenEvent event)
+  public void onOpen(OpenEvent event)
   {    
-    if (!(event.getSource() instanceof IMediaCoder))
-      throw new UnsupportedOperationException();
-
-    mContainer = ((IMediaCoder)event.getSource()).getContainer();
+    mContainer = event.getSource().getContainer();
   };
 
   /**
@@ -611,7 +614,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
    */
 
   @Override
-  public void onClose(IMediaGenerator tool)
+  public void onClose(CloseEvent event)
   {
     flush();
     for (MediaFrame frame : mFrames.values())
