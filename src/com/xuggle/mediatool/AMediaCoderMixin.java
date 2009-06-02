@@ -24,13 +24,22 @@ package com.xuggle.mediatool;
 import com.xuggle.xuggler.IContainer;
 
 /**
- * Internal Only. An abstract base class for implementing {@link IMediaGenerator}
- * objects used internally by the mediatool package.
+ * An abstract base class that provides implementation of all
+ * {@link IMediaCoder} methods, but does not declare {@link IMediaCoder}.
+ * 
+ * <p>
+ * 
+ * Mixin classes can be extended by anyone, but the extending class
+ * gets to decide which, if any, of the interfaces they actually
+ * want to support.
+ * 
+ * </p>
  * 
  * @author trebor
+ * @author aclarke
  */
 
-abstract class AMediaCoderMixin extends AMediaToolMixin
+public abstract class AMediaCoderMixin extends AMediaToolMixin
 {
   // the container to read from or write to
   

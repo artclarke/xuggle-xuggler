@@ -38,10 +38,18 @@ import com.xuggle.mediatool.event.IWriteTrailerEvent;
 
 
 /**
- * An abstract implementation
- * of {@link IMediaGenerator} and of
- * {@link IMediaListener} that just forwards each event
- * to all the registered listeners.
+ * Forwards every call on the {@link IMediaListener} interface methods to all 
+ * listeners added on the {@link IMediaGenerator} interface.
+ * 
+ * <p>
+ * 
+ * Mixin classes can be extended by anyone, but the extending class
+ * gets to decide which, if any, of the interfaces they actually
+ * want to support.
+ * 
+ * </p>
+ * 
+ * @author trebor
  * @author aclarke
  *
  */
@@ -82,9 +90,8 @@ public class AMediaToolMixin
   }
 
   /**
-   * Default implementation for
-   * {@link IMediaListener#onAddStream(IAddStreamEvent)}
-   * @param event TODO
+   * Calls {@link IMediaListener#onAddStream(IAddStreamEvent)} on all
+   * registered listeners.
    */
   public void onAddStream(IAddStreamEvent event)
   {
@@ -93,9 +100,9 @@ public class AMediaToolMixin
   }
 
   /**
-   * Default implementation for
-   * {@link IMediaListener#onAudioSamples(IAudioSamplesEvent)}
-   * @param event TODO
+   * Calls {@link IMediaListener#onAudioSamples(IAudioSamplesEvent)}
+   *  on all
+   * registered listeners.
    */
   public void onAudioSamples(IAudioSamplesEvent event)
   {
@@ -104,9 +111,9 @@ public class AMediaToolMixin
   }
 
   /**
-   * Default implementation for
-   * {@link IMediaListener#onClose(ICloseEvent)}
-   * @param event TODO
+   * Calls {@link IMediaListener#onClose(ICloseEvent)}
+   *  on all
+   * registered listeners.
    */
   public void onClose(ICloseEvent event)
   {
@@ -115,9 +122,9 @@ public class AMediaToolMixin
   }
 
   /**
-   * Default implementation for
-   * {@link IMediaListener#onCloseCoder(ICloseCoderEvent)}
-   * @param event TODO
+   * Calls {@link IMediaListener#onCloseCoder(ICloseCoderEvent)}
+   *  on all
+   * registered listeners.
    */
   public void onCloseCoder(ICloseCoderEvent event)
   {
@@ -126,9 +133,9 @@ public class AMediaToolMixin
   }
 
   /**
-   * Default implementation for
-   * {@link IMediaListener#onFlush(IFlushEvent)}
-   * @param event TODO
+   * Calls {@link IMediaListener#onFlush(IFlushEvent)}
+   *  on all
+   * registered listeners.
    */
   public void onFlush(IFlushEvent event)
   {
@@ -137,9 +144,9 @@ public class AMediaToolMixin
   }
 
   /**
-   * Default implementation for
-   * {@link IMediaListener#onOpen(IOpenEvent)}
-   * @param event TODO
+   * Calls {@link IMediaListener#onOpen(IOpenEvent)}
+   *  on all
+   * registered listeners.
    */
   public void onOpen(IOpenEvent event)
   {
@@ -148,9 +155,9 @@ public class AMediaToolMixin
   }
 
   /**
-   * Default implementation for
-   * {@link IMediaListener#onOpenCoder(IOpenCoderEvent)}
-   * @param event TODO
+   * Calls {@link IMediaListener#onOpenCoder(IOpenCoderEvent)}
+   *  on all
+   * registered listeners.
    */
   public void onOpenCoder(IOpenCoderEvent event)
   {
@@ -159,9 +166,9 @@ public class AMediaToolMixin
   }
 
   /**
-   * Default implementation for
-   * {@link IMediaListener#onReadPacket(IReadPacketEvent)}
-   * @param event TODO
+   * Calls {@link IMediaListener#onReadPacket(IReadPacketEvent)}
+   *  on all
+   * registered listeners.
    */
   public void onReadPacket(IReadPacketEvent event)
   {
@@ -170,8 +177,9 @@ public class AMediaToolMixin
   }
 
   /**
-   * Default implementation for
-   * {@link IMediaListener#onVideoPicture(IVideoPictureEvent)}
+   * Calls {@link IMediaListener#onVideoPicture(IVideoPictureEvent)}
+   *  on all
+   * registered listeners.
    */
   public void onVideoPicture(IVideoPictureEvent event)
   {
@@ -180,9 +188,9 @@ public class AMediaToolMixin
   }
 
   /**
-   * Default implementation for
-   * {@link IMediaListener#onWriteHeader(IWriteHeaderEvent)}
-   * @param event TODO
+   * Calls {@link IMediaListener#onWriteHeader(IWriteHeaderEvent)}
+   *  on all
+   * registered listeners.
    */
   public void onWriteHeader(IWriteHeaderEvent event)
   {
@@ -191,9 +199,9 @@ public class AMediaToolMixin
   }
 
   /**
-   * Default implementation for
-   * {@link IMediaListener#onWritePacket(IWritePacketEvent)}
-   * @param event TODO
+   * Calls {@link IMediaListener#onWritePacket(IWritePacketEvent)}
+   *  on all
+   * registered listeners.
    */
   public void onWritePacket(IWritePacketEvent event)
   {
@@ -202,9 +210,9 @@ public class AMediaToolMixin
   }
 
   /**
-   * Default implementation for
-   * {@link IMediaListener#onWriteTrailer(IWriteTrailerEvent)}
-   * @param event TODO
+   * Calls {@link IMediaListener#onWriteTrailer(IWriteTrailerEvent)}
+   *  on all
+   * registered listeners.
    */
   public void onWriteTrailer(IWriteTrailerEvent event)
   {

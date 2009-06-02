@@ -32,7 +32,8 @@ import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 
 /**
- * An {@link IMediaCoder} that encodes and decodes media to containers.
+ * An {@link IMediaCoder} that encodes and decodes media to containers,
+ * and can optionally do work based on other {@link IMediaGenerator} objects.
  *  
  * <p>
  * 
