@@ -19,11 +19,23 @@
 
 package com.xuggle.mediatool.event;
 
+/**
+ * An {@link IEvent} that corresponds to a stream
+ * in some container.
+ * 
+ * @author aclarke
+ *
+ */
 public interface IStreamEvent extends IEvent
 {
 
   /**
    * Get the stream index.
+   * 
+   * The stream index can be null if the 
+   * {@link com.xuggle.mediatool.IMediaGenerator} that
+   * generated this event has no concept of streams.
+   * 
    * @return the stream index if known, or null if not
    */
   public abstract Integer getStreamIndex();

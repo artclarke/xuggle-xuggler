@@ -1,20 +1,19 @@
 /*
- * Copyright (c) 2008, 2009 by Xuggle Incorporated.  All rights reserved.
+ * Copyright (c) 2008, 2009 by Xuggle Incorporated. All rights reserved.
  * 
  * This file is part of Xuggler.
  * 
  * You can redistribute Xuggler and/or modify it under the terms of the GNU
- * Affero General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option) any
- * later version.
+ * Affero General Public License as published by the Free Software Foundation,
+ * either version 3 of the License, or (at your option) any later version.
  * 
- * Xuggler is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero General Public
- * License for more details.
+ * Xuggler is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
  * 
  * You should have received a copy of the GNU Affero General Public License
- * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Xuggler. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.xuggle.mediatool.event;
@@ -25,6 +24,13 @@ import com.xuggle.mediatool.IMediaGenerator;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IMediaData;
 
+/**
+ * An abstract implementation of {@link IRawMediaEvent}, but does not declare
+ * {@link IRawMediaEvent}.
+ * 
+ * @author aclarke
+ * 
+ */
 public abstract class ARawMediaMixin extends AStreamMixin
 {
   private final IMediaData mMediaData;
@@ -32,10 +38,22 @@ public abstract class ARawMediaMixin extends AStreamMixin
   private final long mTimeStamp;
   private final TimeUnit mTimeUnit;
 
-  public ARawMediaMixin(IMediaGenerator source, 
-      IMediaData picture, Object image,
-      long timeStamp, TimeUnit timeUnit,
-      int streamIndex)
+  /**
+   * Create an {@link ARawMediaMixin}.
+   * 
+   * @param source the source
+   * @param picture a picture
+   * @param image an image
+   * @param timeStamp a time stamp value. If image is null this value is
+   *        ignored.
+   * @param timeUnit a time unit for timeStamp. If image is null this value is
+   *        ignored.
+   * @param streamIndex the stream index this media is associated with
+   * or null if none.
+   * @throws IllegalArgumentException if both picture and image are null.
+   */
+  public ARawMediaMixin(IMediaGenerator source, IMediaData picture,
+      Object image, long timeStamp, TimeUnit timeUnit, Integer streamIndex)
   {
     super(source, streamIndex);
     if (image == null && picture == null)
@@ -53,7 +71,8 @@ public abstract class ARawMediaMixin extends AStreamMixin
     mTimeUnit = timeUnit;
   }
 
-  /* (non-Javadoc)
+  /**
+   * Implementation of {@link IRawMediaEvent#getMediaData()}.
    * @see com.xuggle.mediatool.event.IRawMediaEvent#getMediaData()
    */
   public IMediaData getMediaData()
@@ -61,7 +80,8 @@ public abstract class ARawMediaMixin extends AStreamMixin
     return mMediaData;
   }
 
-  /* (non-Javadoc)
+  /**
+   * Implementation of {@link IRawMediaEvent#getJavaData()}.
    * @see com.xuggle.mediatool.event.IRawMediaEvent#getJavaData()
    */
   public Object getJavaData()
@@ -69,15 +89,19 @@ public abstract class ARawMediaMixin extends AStreamMixin
     return mJavaData;
   }
 
-  /* (non-Javadoc)
+  /**
+   * Implementation of {@link IRawMediaEvent#getTimeStamp()}.
    * @see com.xuggle.mediatool.event.IRawMediaEvent#getTimeStamp()
    */
   public Long getTimeStamp()
   {
     return getTimeStamp(TimeUnit.MICROSECONDS);
   }
-  /* (non-Javadoc)
-   * @see com.xuggle.mediatool.event.IRawMediaEvent#getTimeStamp(java.util.concurrent.TimeUnit)
+
+  /**
+   * Implementation of {@link IRawMediaEvent#getTimeStamp(TimeUnit)}.
+   * @see
+   * com.xuggle.mediatool.event.IRawMediaEvent#getTimeStamp(java.util.concurrent.TimeUnit)
    */
   public Long getTimeStamp(TimeUnit unit)
   {
@@ -88,7 +112,8 @@ public abstract class ARawMediaMixin extends AStreamMixin
     return unit.convert(mTimeStamp, mTimeUnit);
   }
 
-  /* (non-Javadoc)
+  /**
+   * Implementation of {@link IRawMediaEvent#getTimeUnit()}.
    * @see com.xuggle.mediatool.event.IRawMediaEvent#getTimeUnit()
    */
   public TimeUnit getTimeUnit()

@@ -19,6 +19,12 @@
 
 package com.xuggle.mediatool.event;
 
+/**
+ * Dispatched by {@link com.xuggle.mediatool.IMediaListener#onClose(ICloseEvent)}.
+ * @author aclarke
+ *
+ */
+
 public interface ICloseEvent extends ICoderEvent
 {
 

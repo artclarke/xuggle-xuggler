@@ -24,6 +24,12 @@ import java.util.concurrent.TimeUnit;
 import com.xuggle.mediatool.IMediaListener;
 import com.xuggle.xuggler.IMediaData;
 
+/**
+ * An {@link IEvent} that contains raw, decoded, media data.
+ * 
+ * @author aclarke
+ *
+ */
 public interface IRawMediaEvent extends IStreamEvent
 {
 
@@ -33,9 +39,11 @@ public interface IRawMediaEvent extends IStreamEvent
    * is not null.
    * <p>
    * The returned {@link IMediaData} will only be valid for
-   * the duration of the callbackand {@link IMediaListener} implementations
-   * must not use it after
-   * the call returns.  If you need to keep a copy of this data then
+   * the duration of the {@link IMediaListener} method call
+   * it was dispatched on and 
+   * implementations must not access it after
+   * that call returns.  If you need to keep a copy of this data
+   * either copy the data into your own object, or
    * use {@link IMediaData#copyReference()} to create a reference
    * that will outlive your call.
    * </p>
@@ -46,7 +54,9 @@ public interface IRawMediaEvent extends IStreamEvent
 
   /**
    * The Java object registered with this event.  If null,
-   * you must use {@link #getMediaData()}
+   * you must use {@link #getMediaData()}.  Not all
+   * {@link IRawMediaEvent} support the ability to attach
+   * java data.
    * @return the object, or null if not available
    */
   public abstract Object getJavaData();

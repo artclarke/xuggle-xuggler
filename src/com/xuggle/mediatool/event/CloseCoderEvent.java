@@ -21,8 +21,18 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaCoder;
 
+/**
+ * An implementation of {@link ICloseCoderEvent}.
+ * @author aclarke
+ *
+ */
 public class CloseCoderEvent extends AStreamCoderMixin implements ICloseCoderEvent
 {
+  /**
+   * Create a {@link CloseCoderEvent}.
+   * @param source the source of this event.
+   * @param streamIndex the index of the stream, or null if unknown.
+   */
   public CloseCoderEvent(IMediaCoder source, Integer streamIndex)
   {
     super(source, streamIndex);

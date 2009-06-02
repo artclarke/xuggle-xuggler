@@ -19,6 +19,12 @@
 
 package com.xuggle.mediatool.event;
 
+/**
+ * Dispatched by {@link com.xuggle.mediatool.IMediaListener#onAddStream(IAddStreamEvent)}.
+ * 
+ * @author aclarke
+ *
+ */
 public interface IAddStreamEvent extends IStreamEvent, ICoderEvent
 {
 

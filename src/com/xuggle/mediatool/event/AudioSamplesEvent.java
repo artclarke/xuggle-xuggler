@@ -20,26 +20,35 @@
 package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaGenerator;
-import com.xuggle.mediatool.IMediaListener;
 import com.xuggle.xuggler.IAudioSamples;
 
 /**
- * {@link AEventMixin} for {@link IMediaListener#onAudioSamples(IAudioSamplesEvent)}
+ * An implementation of {@link IAudioSamplesEvent}.
  * 
  * @author aclarke
  *
  */
 public class AudioSamplesEvent extends ARawMediaMixin implements IAudioSamplesEvent
 {
+  /**
+   * Create an {@link AudioSamplesEvent}.
+   * @param source the source
+   * @param samples the samples (must be non null).
+   * @param streamIndex the stream index of the stream that generated
+   *   these samples, or null if unknown.
+   * @throws IllegalArgumentException if samples is null.
+   */
   public AudioSamplesEvent (IMediaGenerator source,
       IAudioSamples samples,
-      int streamIndex)
+      Integer streamIndex)
   {
     super(source, samples, null, 0, null, streamIndex);
   }
   
-  /* (non-Javadoc)
-   * @see com.xuggle.mediatool.event.IAudioSamplesEvent#getMediaData()
+  /**
+   * {@inheritDoc}
+   * 
+   *  @see com.xuggle.mediatool.event.IAudioSamplesEvent#getMediaData()
    */
   @Override
   public IAudioSamples getMediaData()
@@ -47,7 +56,8 @@ public class AudioSamplesEvent extends ARawMediaMixin implements IAudioSamplesEv
     return (IAudioSamples) super.getMediaData();
   }
   
-  /* (non-Javadoc)
+  /**
+   * {@inheritDoc}
    * @see com.xuggle.mediatool.event.IAudioSamplesEvent#getAudioSamples()
    */
   public IAudioSamples getAudioSamples()

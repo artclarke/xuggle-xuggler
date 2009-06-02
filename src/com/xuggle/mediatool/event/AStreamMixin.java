@@ -21,17 +21,29 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaGenerator;
 
+/**
+ * An abstract implementation of {@link IStreamEvent}, but does not declare
+ * {@link IStreamEvent}.
+ * @author aclarke
+ *
+ */
 public abstract class AStreamMixin extends AEventMixin
 {
   private final Integer mStreamIndex;
 
+  /**
+   * Create an {@link AStreamMixin}.
+   * @param source the source.
+   * @param streamIndex the stream index, or null if unknown.
+   */
   public AStreamMixin(IMediaGenerator source, Integer streamIndex)
   {
     super(source);
     mStreamIndex = streamIndex;
   }
 
-  /* (non-Javadoc)
+  /**
+   * Implementation of {@link IStreamEvent#getStreamIndex()}.
    * @see com.xuggle.mediatool.event.IStreamEvent#getStreamIndex()
    */
   public Integer getStreamIndex()

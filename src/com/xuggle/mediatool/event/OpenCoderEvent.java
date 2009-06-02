@@ -21,8 +21,19 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaCoder;
 
+/**
+ * An implementation of {@link IOpenCoderEvent}.
+ * @author aclarke
+ *
+ */
+
 public class OpenCoderEvent extends AStreamCoderMixin implements IOpenCoderEvent
 {
+  /**
+   * Create an {@link OpenCoderEvent}.
+   * @param source the source of this event.
+   * @param streamIndex the stream this event occurred on, or null if unknown.
+   */
   public OpenCoderEvent(IMediaCoder source, Integer streamIndex)
   {
     super(source, streamIndex);

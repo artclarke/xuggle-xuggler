@@ -21,6 +21,12 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.xuggler.IAudioSamples;
 
+/**
+ * Dispatched by {@link com.xuggle.mediatool.IMediaListener#onAudioSamples(IAudioSamplesEvent)}.
+ * @author aclarke
+ *
+ */
+
 public interface IAudioSamplesEvent extends IRawMediaEvent
 {
 
@@ -29,6 +35,10 @@ public interface IAudioSamplesEvent extends IRawMediaEvent
    */
   public abstract IAudioSamples getMediaData();
 
+  /**
+   * Forwards to {@link #getMediaData()}.
+   * @see #getMediaData()  
+   */
   public abstract IAudioSamples getAudioSamples();
 
 }

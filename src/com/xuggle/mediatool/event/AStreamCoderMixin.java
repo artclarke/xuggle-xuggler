@@ -21,13 +21,28 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaCoder;
 
+/**
+ * An abstract implementation of {@link IStreamEvent} and {@link ICoderEvent}
+ * but does not declare {@link IStreamEvent} or {@link ICoderEvent}.
+ * @author aclarke
+ *
+ */
 public abstract class AStreamCoderMixin extends AStreamMixin
 {
 
+  /**
+   * Create an {@link AStreamCoderMixin}.
+   * @param source The source.
+   * @param streamIndex The stream index.
+   */
   public AStreamCoderMixin(IMediaCoder source, Integer streamIndex)
   {
     super(source, streamIndex);
   }
+  
+  /**
+   * Implementation of {@link ICoderEvent#getSource()}.
+   */
   @Override
   public IMediaCoder getSource()
   {

@@ -21,8 +21,19 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaCoder;
 
+/**
+ * An implementation of {@link IFlushEvent}.
+ * @author aclarke
+ *
+ */
+
 public class FlushEvent extends ACoderMixin implements IFlushEvent
 {
+  
+  /**
+   * Create a {@link FlushEvent}.
+   * @param source the source.
+   */
   public FlushEvent(IMediaCoder source)
   {
     super(source);

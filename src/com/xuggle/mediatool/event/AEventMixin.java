@@ -20,24 +20,30 @@
 package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaGenerator;
-import com.xuggle.mediatool.IMediaListener;
 
 /**
- * Base class for all IMediaEvents that {@link IMediaListener}s
- * can listen for.
+ * An abstract implementation of {@link IEvent}, but does not
+ * declare {@link IEvent}.
  * @author aclarke
  *
  */
 public abstract class AEventMixin
 {
   private final IMediaGenerator mSource;
+
+  /**
+   * Create an {@link AEventMixin}.
+   * @param source
+   */
   public AEventMixin(IMediaGenerator source)
   {
     mSource = source;
   }
-  /* (non-Javadoc)
-   * @see com.xuggle.mediatool.event.IEvent#getSource()
+
+  /**
+   * Implementation of {@link IEvent#getSource()}.
    */
+
   public IMediaGenerator getSource()
   {
     return mSource;

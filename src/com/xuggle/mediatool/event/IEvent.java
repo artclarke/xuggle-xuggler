@@ -21,12 +21,18 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaGenerator;
 
+/**
+ * The base class of all MediaTool events.
+ * 
+ * @author aclarke
+ *
+ */
 public interface IEvent
 {
 
   /**
    * Get the source of this event.
-   * @return the source
+   * @return the source.
    */
   public abstract IMediaGenerator getSource();
 

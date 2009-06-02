@@ -95,7 +95,7 @@
  * can then query all other information.  If your code
  * is executing inside a {@link com.xuggle.mediatool.IMediaListener}
  * method, you can get the object that generated that event
- * by calling {@link com.xuggle.mediatool.event.IEvent#getSource()}.
+ * by calling {@link com.xuggle.mediatool.event.IEvent#getSource()}
  * of an {@link com.xuggle.mediatool.IMediaListener} event, and
  * from there you can query the {@link com.xuggle.xuggler.IContainer}
  * if needed.
@@ -144,6 +144,7 @@
  * </p>
  * 
  * <h2>How To Make a Media Pipeline</h2>
+ * 
  * <p>
  * Sometimes it can be useful to chain together a series of objects
  * to filter media and provide lots of effects.  See the

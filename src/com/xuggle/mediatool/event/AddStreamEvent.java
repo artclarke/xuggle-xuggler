@@ -21,8 +21,19 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaCoder;
 
+/**
+ * An implementation of {@link IAddStreamEvent}.
+ * @author aclarke
+ *
+ */
 public class AddStreamEvent extends AStreamCoderMixin implements IAddStreamEvent
 {
+  /**
+   * Create an {@link AddStreamEvent}.
+   * @param source the source of this event.
+   * @param streamIndex the stream index of the added stream, or
+   *   null if unknown.
+   */
   public AddStreamEvent(IMediaCoder source, Integer streamIndex)
   {
     super(source, streamIndex);

@@ -21,8 +21,18 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaCoder;
 
+/**
+ * An implementation of {@link IWriteHeaderEvent}.
+ * @author aclarke
+ *
+ */
+
 public class WriteHeaderEvent extends ACoderMixin implements IWriteHeaderEvent
 {
+  /**
+   * Creates a {@link WriteHeaderEvent}.
+   * @param source the source of this event.
+   */
   public WriteHeaderEvent(IMediaCoder source)
   {
     super(source);

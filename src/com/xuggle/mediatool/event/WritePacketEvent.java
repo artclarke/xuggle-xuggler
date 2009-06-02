@@ -22,8 +22,20 @@ package com.xuggle.mediatool.event;
 import com.xuggle.mediatool.IMediaCoder;
 import com.xuggle.xuggler.IPacket;
 
+/**
+ * An implementation of {@link IWritePacketEvent}.
+ * @author aclarke
+ *
+ */
+
 public class WritePacketEvent extends APacketMixin implements IWritePacketEvent
 {
+  /**
+   * Creates a {@link WritePacketEvent}.
+   * 
+   * @param source the source of this event.
+   * @param packet the packet that was written.
+   */
   public WritePacketEvent(IMediaCoder source, IPacket packet)
   {
     super(source, packet);

@@ -19,6 +19,12 @@
 
 package com.xuggle.mediatool.event;
 
+/**
+ * Dispatched by {@link com.xuggle.mediatool.IMediaListener#onWriteTrailer(IWriteTrailerEvent)}.
+ * @author aclarke
+ *
+ */
+
 public interface IWriteTrailerEvent extends ICoderEvent
 {
 

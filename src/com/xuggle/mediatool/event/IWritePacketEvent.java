@@ -19,6 +19,12 @@
 
 package com.xuggle.mediatool.event;
 
+/**
+ * Dispatched by {@link com.xuggle.mediatool.IMediaListener#onWritePacket(IWritePacketEvent)}.
+ * @author aclarke
+ *
+ */
+
 public interface IWritePacketEvent extends IPacketEvent
 {
 

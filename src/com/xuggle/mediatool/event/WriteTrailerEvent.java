@@ -21,8 +21,19 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaCoder;
 
+/**
+ * An implementation of {@link IWriteTrailerEvent}.
+ * 
+ * @author aclarke
+ *
+ */
+
 public class WriteTrailerEvent extends ACoderMixin implements IWriteTrailerEvent
 {
+  /**
+   * Creates a {@link WriteTrailerEvent}.
+   * @param source the source of this event.
+   */
   public WriteTrailerEvent(IMediaCoder source)
   {
     super(source);

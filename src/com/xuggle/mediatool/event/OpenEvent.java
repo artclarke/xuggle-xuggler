@@ -21,8 +21,18 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaCoder;
 
+/**
+ * An implementation of {@link IOpenEvent}.
+ * @author aclarke
+ *
+ */
+
 public class OpenEvent extends ACoderMixin implements IOpenEvent {
 
+  /**
+   * Creates an {@link OpenEvent}.
+   * @param source the source of this event.
+   */
   public OpenEvent(IMediaCoder source)
   {
     super(source);

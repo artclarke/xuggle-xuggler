@@ -22,11 +22,37 @@ package com.xuggle.mediatool.event;
 import com.xuggle.mediatool.IMediaCoder;
 import com.xuggle.xuggler.IPacket;
 
+/**
+ * An {@link ICoderEvent} and {@link IStreamEvent} that contains
+ * an {@link IPacket} object.
+ * 
+ * @author aclarke
+ *
+ */
 public interface IPacketEvent extends IStreamEvent, ICoderEvent
 {
 
+  /**
+   * Returns the {@link IPacket} for this event.
+   * 
+   * <p>
+   * The returned {@link IPacket} will only be valid for
+   * the duration of the {@link com.xuggle.mediatool.IMediaListener} method call
+   * it was dispatched on and 
+   * implementations must not access it after
+   * that call returns.  If you need to keep a copy of this data
+   * either copy the data into your own object, or
+   * use {@link IPacket#copyReference()} to create a reference
+   * that will outlive your call.
+   * </p>
+   * 
+   * @return the packet
+   */
   public abstract IPacket getPacket();
 
+  /**
+   * {@inheritDoc}
+   */
   public abstract IMediaCoder getSource();
 
 }

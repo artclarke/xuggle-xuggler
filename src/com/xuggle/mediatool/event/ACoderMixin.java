@@ -21,11 +21,27 @@ package com.xuggle.mediatool.event;
 
 import com.xuggle.mediatool.IMediaCoder;
 
+/**
+ * An abstract implementation of {@link ICoderEvent}, but
+ * does not declare {@link ICoderEvent}.
+ * 
+ * @author aclarke
+ *
+ */
 public abstract class ACoderMixin extends AEventMixin {
+  /**
+   * Create an {@link ACoderMixin}.
+   * @param source
+   */
   public ACoderMixin(IMediaCoder source)
   {
     super(source);
   }
+  
+  /**
+   * Implementation of {@link ICoderEvent#getSource()}.
+   */
+
   @Override
   public IMediaCoder getSource()
   {

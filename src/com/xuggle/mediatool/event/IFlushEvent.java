@@ -19,6 +19,12 @@
 
 package com.xuggle.mediatool.event;
 
+/**
+ * Dispatched by {@link com.xuggle.mediatool.IMediaListener#onFlush(IFlushEvent)}.
+ * @author aclarke
+ *
+ */
+
 public interface IFlushEvent extends ICoderEvent
 {
 

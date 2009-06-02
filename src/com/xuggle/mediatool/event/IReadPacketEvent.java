@@ -19,6 +19,12 @@
 
 package com.xuggle.mediatool.event;
 
+/**
+ * Dispatched by {@link com.xuggle.mediatool.IMediaListener#onReadPacket(IReadPacketEvent)}.
+ * @author aclarke
+ *
+ */
+
 public interface IReadPacketEvent extends IPacketEvent
 {
 

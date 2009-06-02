@@ -22,16 +22,31 @@ package com.xuggle.mediatool.event;
 import com.xuggle.mediatool.IMediaCoder;
 import com.xuggle.xuggler.IPacket;
 
+/**
+ * An abstract implementation of {@link IPacketEvent}, but does
+ * not declare {@link IPacketEvent}.
+ * 
+ * @author aclarke
+ *
+ */
 public abstract class APacketMixin extends AStreamCoderMixin
 {
   private final IPacket mPacket;
+  
+  /**
+   * Create an {@link APacketMixin}.
+   * @param source the source
+   * @param packet a packet.  This event will <strong>not</strong>
+   *   call {@link IPacket#copyReference()} on this packet.
+   */
   public APacketMixin(IMediaCoder source, 
       IPacket packet)
   {
     super(source, packet == null ? null : packet.getStreamIndex());
     mPacket = packet;
   }
-  /* (non-Javadoc)
+  /**
+   * Implementation of {@link IPacketEvent#getPacket()}.
    * @see com.xuggle.mediatool.event.IPacketEvent#getPacket()
    */
   public IPacket getPacket()

@@ -22,8 +22,19 @@ package com.xuggle.mediatool.event;
 import com.xuggle.mediatool.IMediaCoder;
 import com.xuggle.xuggler.IPacket;
 
+/**
+ * An implementation of {@link IReadPacketEvent}.
+ * @author aclarke
+ *
+ */
+
 public class ReadPacketEvent extends APacketMixin implements IReadPacketEvent
 {
+  /**
+   * Creates a {@link ReadPacketEvent}.
+   * @param source the source of this event.
+   * @param packet the packet that was read.
+   */
   public ReadPacketEvent(IMediaCoder source, IPacket packet)
   {
     super(source, packet);

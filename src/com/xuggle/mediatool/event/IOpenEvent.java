@@ -19,6 +19,12 @@
 
 package com.xuggle.mediatool.event;
 
+/**
+ * Dispatched by {@link com.xuggle.mediatool.IMediaListener#onOpen(IOpenEvent)}.
+ * @author aclarke
+ *
+ */
+
 public interface IOpenEvent extends ICoderEvent
 {
 
