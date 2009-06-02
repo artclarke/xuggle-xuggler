@@ -29,7 +29,6 @@ import java.awt.image.BufferedImage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.Before;
 import org.junit.After;
@@ -312,7 +311,7 @@ public class MediaWriterTest
     log.debug("manually check: " + file);
   }
 
-  @Test @Ignore
+  @Test
   public void customAudioStreamWithoutTimeStamps()
   {
     File file = new File(PREFIX + "customAudioWithoutTimeStamps.mp3");

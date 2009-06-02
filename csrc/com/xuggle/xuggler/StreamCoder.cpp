@@ -1289,7 +1289,7 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
             // We will adjust our starting time stamps then for this new
             // packet
             mFakeCurrPts = mFakeNextPts;
-            if (samples)
+            if (samples && samples->getTimeStamp() != Global::NO_PTS)
             {
               int64_t samplesTs = samples->getTimeStamp()+
                 IAudioSamples::samplesToDefaultPts(
