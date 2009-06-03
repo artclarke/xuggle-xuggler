@@ -296,18 +296,6 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
     setMode(mode);
     mShowStats = showStats;
     mDefaultCloseOperation = defaultCloseOperation;
-
-    Runtime.getRuntime().addShutdownHook(new Thread()
-      {
-        public void run()
-        {
-          mClosing = true;
-          for (AudioQueue queue: mAudioQueues.values())
-            queue.close();
-          for (VideoQueue queue: mVideoQueues.values())
-            queue.close();
-        }
-      });
   }
 
   /**
@@ -614,11 +602,10 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
     for (AudioQueue queue : mAudioQueues.values())
       queue.flush();
 
-    // wait for all audio lines to close
+    // wait for all audio lines to drain
+
     for (SourceDataLine line : mAudioLines.values())
-    {
       line.drain();
-    }
   }
 
   /**
@@ -636,18 +623,47 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
    */
 
   @Override
-  public void onClose(ICloseEvent event)
+    public void onClose(ICloseEvent event)
   {
+    // note that we are closing
+
+    mClosing = true;
+
+    // flush buffers
+
     flush();
+
+    // close all audio and video queues
+
+    for (AudioQueue queue: mAudioQueues.values())
+      queue.close();
+    for (VideoQueue queue: mVideoQueues.values())
+      queue.close();
+
+//     if (true)
+//       return;
+
+    // close video frames
+
     for (MediaFrame frame : mFrames.values())
       frame.dispose();
+
+    // close stats frame
+
     if (null != mStatsFrame)
       mStatsFrame.dispose();
+
+    // close audio lines
+
     for (SourceDataLine line : mAudioLines.values())
     {
       line.stop();
       line.close();
     }
+
+    // note that we done closing
+
+    mClosing = false;
   };
 
   /**
@@ -674,7 +690,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
    *        stamp
    * @param image the image on which to draw the time stamp
    */
-
+  
   private static void drawStats(IVideoPicture picture, BufferedImage image)
   {
     if (image == null)
@@ -918,10 +934,12 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
 
       // create and start the thread
 
-      Thread t = new Thread()
+      Thread t = new Thread(name)
       {
         public void run()
         {
+          log.debug("thread started");
+
           boolean isDone = false;
           DelayedItem<IMediaData> delayedItem = null;
 
@@ -969,12 +987,14 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
             {
               mLock.unlock();
             }
-
+            
             // if there is an item, dispatch it
             if (null != delayedItem)
             {
               IMediaData item = delayedItem.getItem();
-              try {
+
+              try 
+              {
                 do
                 {
                   // this is the story of goldilocks testing the the media
@@ -1023,6 +1043,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
                     else
                     {
                       dispatch(item, delayedItem.getTimeStamp());
+
                       // debug("%5d show [%2d]: %s[%5d] delta: %d",
                       // MILLISECONDS.convert(getPresentationTime(), TIME_UNIT),
                       // size(),
@@ -1040,17 +1061,20 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
                   }
                 }
                 while (!mDone);
-              } finally {
+              } 
+              finally 
+              {
                 if (item != null)
                   item.delete();
               }
             }
           }
+
+          log.debug("thread ended");
         }
       };
 
       t.setPriority(priority);
-      t.setName(name);
       synchronized (this)
       {
         t.start();
@@ -1062,13 +1086,13 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
         catch (InterruptedException e)
         {
           // interrupt and return
+
           Thread.currentThread().interrupt();
 
           throw new RuntimeException("could not start thread");
         }
       }
-      debug("thread started and ready for action");
-
+      //debug("thread started and ready for action");
     }
 
     /**
@@ -1175,6 +1199,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
           // MILLISECONDS.convert(convertedTime, TIME_UNIT));
 
           // put a COPY on the queue
+          
           mQueue.offer(new DelayedItem<IMediaData>(item.copyReference(),
               convertedTime));
 
@@ -1215,7 +1240,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
 
   /** A place to put frames which will be delayed. */
 
-  private class DelayedItem<Item>
+  private class DelayedItem<Item extends IMediaData>
   {
     // buffered image
 
@@ -1246,7 +1271,6 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
     {
       return mTimeStamp;
     }
-
   }
 
   /** A JFrame which initially positions itself in a smart way */
@@ -1356,9 +1380,9 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
     {
       super(defaultCloseOperation);
 
-      // get stream and set title based it
+      // get stream and set title based it, establish a copy of the
+      // stream since it lives in a separate thread
 
-      // keep our own copy of the stream since we'll live in a separate thread
       mStream = stream.copyReference();
       mStreamIndex = mStream.getIndex();
       setTitle("Stream #" + mStreamIndex + ", " + 
@@ -1793,7 +1817,8 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
 
       public void update(IMediaData mediaData)
       {
-        synchronized(mMediaLock) {
+        synchronized(mMediaLock) 
+        {
           IMediaData oldMedia = mMediaData;
           mMediaData = mediaData.copyReference();
           if (oldMedia != null)
