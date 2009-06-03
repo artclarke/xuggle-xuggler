@@ -186,6 +186,40 @@ public interface IMediaWriter extends IMediaCoder, IMediaTool
    * @param inputIndex the index that will be passed to
    *        {@link #encodeAudio(int, IAudioSamples)} for this stream
    * @param streamId a format-dependent id for this stream
+   * @param codecId the codec id to used to encode data, to establish the codec see
+   *        {@link ICodec}
+   * @param channelCount the number of audio channels for the stream
+   * @param sampleRate sample rate in Hz (samples per seconds), common values
+   *        are 44100, 22050, 11025, etc.
+   * 
+   * @return <0 on failure; otherwise returns the index of the new stream added
+   *         by the writer.
+   * 
+   * @throws IllegalArgumentException if inputIndex < 0, the stream id < 0, the
+   *         codec is NULL or if the container is already open.
+   * @throws IllegalArgumentException if width or height are <= 0
+   * @throws UnsupportedOperationException if the given codec cannot be
+   *   used for encoding.
+   * 
+   * @see IContainer
+   * @see IStream
+   * @see IStreamCoder
+   * @see ICodec
+   */
+  public abstract int addAudioStream(int inputIndex, int streamId,
+      ICodec.ID codecId, int width, int height);
+
+  /**
+   * Add an audio stream that will later have data encoded with
+   * {@link #encodeAudio(int, IAudioSamples)}.
+   * <p>
+   * The time base defaults to {@link #getDefaultTimebase()} and the audio
+   * format defaults to {@link #getDefaultSampleFormat()}.
+   * </p>
+   * 
+   * @param inputIndex the index that will be passed to
+   *        {@link #encodeAudio(int, IAudioSamples)} for this stream
+   * @param streamId a format-dependent id for this stream
    * @param codec the codec to used to encode data, to establish the codec see
    *        {@link ICodec}
    * @param channelCount the number of audio channels for the stream
@@ -207,6 +241,42 @@ public interface IMediaWriter extends IMediaCoder, IMediaTool
 
   public abstract int addAudioStream(int inputIndex, int streamId,
       ICodec codec, int channelCount, int sampleRate);
+
+  /**
+   * Add a video stream that will later have data encoded with
+   * {@link #encodeVideo(int, IVideoPicture)}.
+   * 
+   * <p>
+   * 
+   * The time base defaults to {@link #getDefaultTimebase()} and the pixel
+   * format defaults to {@link #getDefaultPixelType()}.
+   * 
+   * </p>
+   * 
+   * @param inputIndex the index that will be passed to
+   *        {@link #encodeVideo(int, IVideoPicture)} for this stream
+   * @param streamId a format-dependent id for this stream
+   * @param codecId the codec to used to encode data, to establish the codec see
+   *        {@link ICodec}
+   * @param width width of video frames
+   * @param height height of video frames
+   * 
+   * @throws IllegalArgumentException if inputIndex < 0, the stream id < 0, the
+   *         codec is NULL or if the container is already open.
+   * @throws IllegalArgumentException if width or height are <= 0
+   * 
+   * @return <0 on failure; otherwise returns the index of the new stream added
+   *         by the writer.
+   * @see IContainer
+   * @see IStream
+   * @see IStreamCoder
+   * @see ICodec
+   * @throws UnsupportedOperationException if the given codec cannot be
+   *   used for encoding.
+
+   */
+  public abstract int addVideoStream(int inputIndex, int streamId,
+      ICodec.ID codecId, int width, int height);
 
   /**
    * Add a video stream that will later have data encoded with

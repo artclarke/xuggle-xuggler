@@ -331,6 +331,45 @@ implements IMediaWriter
     return stream.getIndex();
   }
 
+  public int addVideoStream(int inputIndex, int streamId,
+      ICodec.ID codecId, int width, int height)
+  {
+    if (codecId == null)
+      throw new IllegalArgumentException("null codecId");
+    ICodec codec = ICodec.findEncodingCodec(codecId);
+    if (codec == null)
+      throw new UnsupportedOperationException("cannot encode with codec: "+
+          codecId);
+    try
+    {
+      return addVideoStream(inputIndex, streamId, codec, width, height);
+    }
+    finally
+    {
+      codec.delete();
+    }
+  }
+  
+  public int addAudioStream(int inputIndex, int streamId,
+      ICodec.ID codecId, int width, int height)
+  {
+    if (codecId == null)
+      throw new IllegalArgumentException("null codecId");
+    ICodec codec = ICodec.findEncodingCodec(codecId);
+    if (codec == null)
+      throw new UnsupportedOperationException("cannot encode with codec: "+
+          codecId);
+    try
+    {
+      return addAudioStream(inputIndex, streamId, codec, width, height);
+    }
+    finally
+    {
+      codec.delete();
+    }
+  }
+  
+  
   /** 
    * Add a video stream.  The time base defaults to {@link
    * #DEFAULT_TIMEBASE} and the pixel format defaults to {@link
