@@ -113,30 +113,31 @@ public class MediaWriterExhaustiveTest
   {
     // converting to mov
 
-    {"testfile_mpeg1video_mp2audio.mpg", "mov"}, // QUICKTIME fail (VLC OK)
+    {"testfile_mpeg1video_mp2audio.mpg", "mov"}, // QUICKTIME fail (VLC OK); I'd guess this works now that right codec is chosen
+
+    //    // converting to avi
+    {"subtitled_video.mkv",              "avi"}, // Works on Linux; non-aligned pointer on Mac
     
-    // converting to avi
-    
-    {"ucl_h264_aac.mp4",                 "avi"}, // falis in VLC
-    {"testfile_h264_mp4a_tmcd.mov",      "avi"}, // failed to write header
-    {"subtitled_video.mkv",              "avi"}, // Non-aligned pointer freed
-    
-    // converting to flv
-    
-    {"subtitled_video.mkv",              "flv"}, // failed to write header
-    {"ucl_h264_aac.mp4",                 "flv"}, // no video VLC
-    {"testfile_h264_mp4a_tmcd.mov",      "flv"}, // no video VLC
-    {"testfile_mpeg1video_mp2audio.mpg", "flv"}, // failed to write header
+    {"subtitled_video.mkv",              "flv"}, // Fails due to unsupported sample rate in FLV; should add audio resampler
+    {"testfile_mpeg1video_mp2audio.mpg", "flv"}, // Fails due to unsupported sample rate in FLV; should add audio resampler
     
     // converting to mpg
     
-    {"testfile_h264_mp4a_tmcd.mov",      "mpg"}, // failed to write header
-    {"subtitled_video.mkv",              "mpg"}, // Non-aligned pointer freed
-    {"testfile_bw_pattern.flv",          "mpg"}, // QUICKTIME fail
-    {"testfile_videoonly_20sec.flv",     "mpg"}, // QUICKTIME fail
-    {"testfile.flv",                     "mpg"}, // QUICKTIME fail
-    {"ucl_h264_aac.mp4",                 "mpg"}, // QUICKTIME fail, no audio VLC
-    {"testfile_mpeg1video_mp2audio.mpg", "mpg"}, // buffer underflow
+    {"subtitled_video.mkv",              "mpg"}, // Fails due to unsupported 359/12 frame frate for MPEG
+    {"testfile_bw_pattern.flv",          "mpg"}, // Fails due to unsupported 239/4 frame frate for MPEG
+    {"testfile_videoonly_20sec.flv",     "mpg"}, // Fails due to unsupported 15/1 frame rate for MPEG
+    {"testfile.flv",                     "mpg"}, // Fails due to unsupported 15/1 frame rate for MPEG
+    
+    
+    // Now Working
+    
+//    {"ucl_h264_aac.mp4",                 "avi"}, // falis in VLC
+//    {"testfile_h264_mp4a_tmcd.mov",      "avi"}, // failed to write header
+//    {"ucl_h264_aac.mp4",                 "flv"}, // no video VLC
+//    {"testfile_h264_mp4a_tmcd.mov",      "flv"}, // no video VLC
+//    {"testfile_h264_mp4a_tmcd.mov",      "mpg"}, // failed to write header
+//    {"ucl_h264_aac.mp4",                 "mpg"}, // QUICKTIME fail, no audio VLC
+//    {"testfile_mpeg1video_mp2audio.mpg", "mpg"}, // buffer underflow, but creates valid file
     
     // converting to mkv (currently all working)
   };

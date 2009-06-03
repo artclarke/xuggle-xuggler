@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.xuggle.mediatool.ToolFactory;
 import com.xuggle.mediatool.IMediaWriter;
-import com.xuggle.xuggler.ICodec;
+import com.xuggle.xuggler.IRational;
 
 /**
  * A demo of using MediaTool to take screen shots.
@@ -37,8 +37,8 @@ import com.xuggle.xuggler.ICodec;
 
 public class CaptureScreenToFile
 {
-  private static final double FRAMES_PER_SECOND = 10;
-  private static final double SECONDS_TO_RUN_FOR = 10;
+  private static IRational FRAME_RATE=IRational.make(3,1);
+  private static final int SECONDS_TO_RUN_FOR = 15;
   
   /**
    * Takes a screen shot of your entire screen and writes it to
@@ -50,20 +50,24 @@ public class CaptureScreenToFile
   {
     try
     {
-      String outFile = "output.flv";
+      final String outFile;
+      if (args.length > 0)
+        outFile = args[0];
+      else
+        outFile = "output.mp4";
       int index = 0;
-      Robot robot = new Robot();
-      Toolkit toolkit = Toolkit.getDefaultToolkit();
-      Rectangle screenBounds = new Rectangle(toolkit.getScreenSize());
+      final Robot robot = new Robot();
+      final Toolkit toolkit = Toolkit.getDefaultToolkit();
+      final Rectangle screenBounds = new Rectangle(toolkit.getScreenSize());
       
       // make a media writer
-      IMediaWriter writer = ToolFactory.makeWriter(outFile);
+      final IMediaWriter writer = ToolFactory.makeWriter(outFile);
       writer.addVideoStream(0, 0,
-          ICodec.ID.CODEC_ID_FLV1, screenBounds.width,
-          screenBounds.height);
+          FRAME_RATE,
+          screenBounds.width, screenBounds.height);
       
       long startTime = System.nanoTime();
-      while (index < SECONDS_TO_RUN_FOR*FRAMES_PER_SECOND)
+      while (index < SECONDS_TO_RUN_FOR*FRAME_RATE.getDouble())
       {
         System.out.println("encoded image: " +index);
         
@@ -79,7 +83,7 @@ public class CaptureScreenToFile
             System.nanoTime()-startTime, TimeUnit.NANOSECONDS);
         
         // sleep for framerate milliseconds
-        Thread.sleep((long) (1000 / FRAMES_PER_SECOND));
+        Thread.sleep((long) (1000 / FRAME_RATE.getDouble()));
 
         // and increment the frame count
         index++;

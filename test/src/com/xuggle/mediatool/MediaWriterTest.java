@@ -39,8 +39,10 @@ import com.xuggle.mediatool.MediaWriter;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
+import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IPixelFormat;
+import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoResampler;
@@ -163,7 +165,7 @@ public class MediaWriterTest
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
-    assertEquals(929711, file.length(), 300);
+    assertEquals(928504, file.length(), 300);
     log.debug("manually check: " + file);
   }
  
@@ -183,7 +185,7 @@ public class MediaWriterTest
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
-    assertEquals(929711, file.length(), 300);
+    assertEquals(928504, file.length(), 300);
     log.debug("manually check: " + file);
   }
 
@@ -592,5 +594,28 @@ public class MediaWriterTest
     // test
     
     file.delete();
+  }
+  
+  @Test
+  public void testTimebaseGuessingWhenCodecSpecifiedAllowed()
+  {
+    IMediaWriter writer = new MediaWriter(PREFIX+
+        "testTimebaseGuessingWhenCodecSpecifiedAllowed1.mpg");
+    try {
+      writer.addVideoStream(0,
+          0,
+          IRational.make(27,1),
+          100, 100);
+      fail("shouldn't get here");
+    } catch (UnsupportedOperationException e) {}
+    writer = new MediaWriter(PREFIX+
+      "testTimebaseGuessingWhenCodecSpecifiedAllowed2.mpg");
+    writer.addVideoStream(0,
+        0,
+        100, 100);
+    IStreamCoder coder = writer.getContainer().getStream(0).getStreamCoder();
+    // should have set the highest possible
+    assertEquals(1, coder.getTimeBase().getNumerator());
+    assertEquals(60, coder.getTimeBase().getDenominator());
   }
 }

@@ -19,6 +19,7 @@
 
 package com.xuggle.mediatool;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import java.util.HashMap;
@@ -274,6 +275,57 @@ implements IMediaWriter
     mContainerFormat = null;
   }
 
+  public int addAudioStream(int inputIndex, int streamId,
+      int channelCount, int sampleRate)
+  {
+    IContainerFormat format = null;
+    if (getContainer() != null)
+      format = getContainer().getContainerFormat();
+    if (format != null && !format.isOutput())
+    {
+      format.delete();
+      format = null;
+    }
+    String url = getUrl();
+    if (format == null && (url == null || url.length()<0))
+      throw new IllegalArgumentException("Cannot guess codec without container or url");
+    ICodec codec = ICodec.guessEncodingCodec(format,
+        null, url, null,
+        ICodec.Type.CODEC_TYPE_AUDIO);
+    if (codec == null)
+      throw new UnsupportedOperationException("could not guess audio codec");
+    
+    try {
+      return addAudioStream(inputIndex, streamId, codec,
+          channelCount, sampleRate);
+    }
+    finally
+    {
+      if (codec != null)
+        codec.delete();
+    }
+  }
+  
+  public int addAudioStream(int inputIndex, int streamId,
+      ICodec.ID codecId, int channelCount, int sampleRate)
+  {
+    if (codecId == null)
+      throw new IllegalArgumentException("null codecId");
+    ICodec codec = ICodec.findEncodingCodec(codecId);
+    if (codec == null)
+      throw new UnsupportedOperationException("cannot encode with codec: "+
+          codecId);
+    try
+    {
+      return addAudioStream(inputIndex, streamId, codec,
+          channelCount, sampleRate);
+    }
+    finally
+    {
+      codec.delete();
+    }
+  }
+
   /** 
    * Add a audio stream.  The time base defaults to {@link
    * #DEFAULT_TIMEBASE} and the audio format defaults to {@link
@@ -320,7 +372,7 @@ implements IMediaWriter
     IStreamCoder coder = stream.getStreamCoder();
     coder.setChannels(channelCount);
     coder.setSampleRate(sampleRate);
-    coder.setSampleFormat(getDefaultSampleFormat());
+    coder.setSampleFormat(DEFAULT_SAMPLE_FORMAT);
 
     // add the stream to the media writer
     
@@ -331,27 +383,55 @@ implements IMediaWriter
     return stream.getIndex();
   }
 
+  
+  public int addVideoStream(int inputIndex, int streamId,
+      int width, int height)
+  {
+    return addVideoStream(inputIndex, streamId, 
+        (IRational)null, width,height);
+  }
+  
+  public int addVideoStream(int inputIndex, int streamId,
+      IRational frameRate,
+      int width, int height)
+  {
+    IContainerFormat format = null;
+    if (getContainer() != null)
+      format = getContainer().getContainerFormat();
+    if (format != null && !format.isOutput())
+    {
+      format.delete();
+      format = null;
+    }
+    String url = getUrl();
+    if (format == null && (url == null || url.length()<0))
+      throw new IllegalArgumentException("Cannot guess codec without container or url");
+    ICodec codec = ICodec.guessEncodingCodec(format,
+        null, url, null,
+        ICodec.Type.CODEC_TYPE_VIDEO);
+    if (codec == null)
+      throw new UnsupportedOperationException("could not guess video codec");
+    
+    try {
+      return addVideoStream(inputIndex, streamId,
+          codec, frameRate,
+          width, height);
+    }
+    finally
+    {
+      if (codec != null)
+        codec.delete();
+    }    
+  }
+  
   public int addVideoStream(int inputIndex, int streamId,
       ICodec.ID codecId, int width, int height)
   {
-    if (codecId == null)
-      throw new IllegalArgumentException("null codecId");
-    ICodec codec = ICodec.findEncodingCodec(codecId);
-    if (codec == null)
-      throw new UnsupportedOperationException("cannot encode with codec: "+
-          codecId);
-    try
-    {
-      return addVideoStream(inputIndex, streamId, codec, width, height);
-    }
-    finally
-    {
-      codec.delete();
-    }
+    return addVideoStream(inputIndex, streamId, codecId,
+        null, width, height);
   }
-  
-  public int addAudioStream(int inputIndex, int streamId,
-      ICodec.ID codecId, int channelCount, int sampleRate)
+  public int addVideoStream(int inputIndex, int streamId,
+      ICodec.ID codecId, IRational frameRate, int width, int height)
   {
     if (codecId == null)
       throw new IllegalArgumentException("null codecId");
@@ -361,8 +441,8 @@ implements IMediaWriter
           codecId);
     try
     {
-      return addAudioStream(inputIndex, streamId, codec,
-          channelCount, sampleRate);
+      return addVideoStream(inputIndex, streamId, codec, 
+          frameRate, width, height);
     }
     finally
     {
@@ -370,7 +450,13 @@ implements IMediaWriter
     }
   }
   
-  
+  public int addVideoStream(int inputIndex, int streamId,
+      ICodec codec, 
+      int width, int height)
+  {
+    return addVideoStream(inputIndex, streamId, codec,
+        null, width, height);
+  }
   /** 
    * Add a video stream.  The time base defaults to {@link
    * #DEFAULT_TIMEBASE} and the pixel format defaults to {@link
@@ -395,8 +481,9 @@ implements IMediaWriter
    * @see ICodec
    */
 
-  public int addVideoStream(int inputIndex, int streamId, ICodec codec,
-    int width, int height)
+  public int addVideoStream(int inputIndex, int streamId,
+      ICodec codec, IRational frameRate,
+      int width, int height)
   {
     // validate parameteres
 
@@ -411,13 +498,99 @@ implements IMediaWriter
     // configre the stream coder
 
     IStreamCoder coder = stream.getStreamCoder();
-    coder.setWidth(width);
-    coder.setHeight(height);
-    coder.setPixelType(getDefaultPixelType());
+    try
+    {
+      List<IRational> supportedFrameRates = codec.getSupportedVideoFrameRates();
+      IRational timeBase = null;
+      if (supportedFrameRates != null && supportedFrameRates.size() > 0)
+      {
+        IRational highestResolution = null;
+        // If we have a list of supported frame rates, then
+        // we must pick at least one of them.  and if the
+        // user passed in a frameRate, it must match 
+        // this list.
+        for(IRational supportedRate: supportedFrameRates)
+        {
+          if (!IRational.positive(supportedRate))
+            continue;
+          if (highestResolution == null)
+            highestResolution = supportedRate.copyReference();
 
-    // add the stream to the media writer
-    
-    addStream(stream, inputIndex, stream.getIndex());
+          if (IRational.positive(frameRate))
+          {
+            if (supportedRate.compareTo(frameRate) == 0)
+              // use this
+              highestResolution = frameRate.copyReference();
+          }
+          else if (highestResolution.getDouble() < supportedRate.getDouble())
+          {
+            highestResolution.delete();
+            highestResolution = supportedRate.copyReference();
+          }
+          supportedRate.delete();
+        }
+        // if we had a frame rate suggested, but we
+        // didn't find a match among the supported elements,
+        // throw an error.
+        if (IRational.positive(frameRate) &&
+            (highestResolution == null ||
+                highestResolution.compareTo(frameRate) != 0))
+          throw new UnsupportedOperationException("container does not"+
+              " support encoding at given frame rate: " + frameRate);
+        
+        // if we got through the supported list and found NO valid
+        // resolution, fail.
+        if (highestResolution == null)
+          throw new UnsupportedOperationException(
+              "could not find supported frame rate for container: " +
+              getUrl());
+        if (timeBase == null)
+          timeBase = IRational.make(highestResolution.getDenominator(),
+              highestResolution.getNumerator());
+        highestResolution.delete();
+        highestResolution = null;
+      }
+      // if a positive frame rate was passed in, we
+      // should either use the inverse of it, or if
+      // there is a supported frame rate, but not
+      // this, then throw an error.
+      if (IRational.positive(frameRate) && timeBase == null)
+      {
+        timeBase = IRational.make(
+            frameRate.getDenominator(),
+            frameRate.getNumerator());
+      }
+      
+      if (timeBase == null)
+      {
+        timeBase = getDefaultTimebase();
+        
+        // Finally MPEG4 has some code failing if the time base
+        // is too aggressive...
+        if (codec.getID() == ICodec.ID.CODEC_ID_MPEG4 &&
+            timeBase.getDenominator() > ((1<<16)-1))
+        {
+          // this codec can't support that high of a frame rate
+          timeBase.delete();
+          timeBase = IRational.make(1,(1<<16)-1);
+        }
+      }
+      coder.setTimeBase(timeBase);
+      timeBase.delete();
+      timeBase= null;
+
+      coder.setWidth(width);
+      coder.setHeight(height);
+      coder.setPixelType(DEFAULT_PIXEL_TYPE);
+
+      // add the stream to the media writer
+
+      addStream(stream, inputIndex, stream.getIndex());
+    }
+    finally
+    {
+      coder.delete();
+    }
 
     // return the new video stream
 
@@ -463,8 +636,9 @@ implements IMediaWriter
     // configure the stream coder
 
     IStreamCoder coder = stream.getStreamCoder();
-    coder.setTimeBase(getDefaultTimebase());
     coder.setCodec(codec);
+    coder.delete();
+    coder = null;
 
     // if the stream count is 1, don't force interleave
 
@@ -944,45 +1118,36 @@ implements IMediaWriter
 
     IStream inputStream = mInputContainer.getStream(inputStreamIndex);
     IStreamCoder inputCoder = inputStream.getStreamCoder();
+    ICodec.Type inputType = inputCoder.getCodecType();
+    ICodec.ID inputID = inputCoder.getCodecID();
     
     // if this stream is not a supported type, indicate failure
 
-    if (!isSupportedCodecType(inputCoder.getCodecType()))
+    if (!isSupportedCodecType(inputType))
       return false;
 
-    // add a new output stream, based on the id from the input stream
-    
-    IStream outputStream = getContainer().addNewStream(inputStream.getId());
-
-    // create the coder
-    
-    IStreamCoder outputCoder = IStreamCoder.make(
-      IStreamCoder.Direction.ENCODING, inputCoder);
-
-    // set the codec for output coder
-
     IContainerFormat format = getContainer().getContainerFormat();
-    try
-    {
-      outputCoder.setCodec(format.establishOutputCodecId(inputCoder
-          .getCodecID()));
-    }
-    finally
-    {
-      if (format != null)
-        format.delete();
-    }
-
-    // set output coder on the output stream
-
-    outputStream.setStreamCoder(outputCoder);
     
-    // add the new output stream
-
-    addStream(outputStream, inputStreamIndex, outputStream.getIndex());
-    
-    // indicate success
-
+    switch(inputType)
+    {
+      case CODEC_TYPE_AUDIO:
+        addAudioStream(inputStream.getIndex(),
+            inputStream.getId(),
+            format.establishOutputCodecId(inputID),
+            inputCoder.getChannels(),
+            inputCoder.getSampleRate());
+        break;
+      case CODEC_TYPE_VIDEO:
+        addVideoStream(inputStream.getIndex(),
+            inputStream.getId(),
+            format.establishOutputCodecId(inputID),
+            inputCoder.getFrameRate(),
+            inputCoder.getWidth(),
+            inputCoder.getHeight());
+        break;
+      default:
+        break;
+    }
     return true;
   }
 
@@ -1221,7 +1386,7 @@ implements IMediaWriter
    */
   public IRational getDefaultTimebase()
   {
-    return DEFAULT_TIMEBASE;
+    return DEFAULT_TIMEBASE.copyReference();
   }
 
   /** {@inheritDoc} */

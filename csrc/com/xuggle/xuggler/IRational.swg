@@ -29,7 +29,48 @@
   {
     return "" + getNumerator() + "/" + getDenominator();
   }
-
+  /**
+   * Is this number positive?
+   * @return true if > 0; false if not.
+   */
+  public boolean isPositive()
+  {
+    if (getDenominator() == 0)
+      return false;
+    return getDouble() > 0;
+  }
+  /**
+   * Is this number not null and positive.
+   * @param num the number; may be null
+   * @return true if not-null and > 0; else false;
+   */
+  public static boolean positive(IRational num)
+  {
+    if (num == null)
+      return false;
+    return num.isPositive();
+  }
+  /**
+   * Is this number negative?
+   * @return true if < 0; false if not.
+   */
+  public boolean isNegative()
+  {
+    if (getDenominator() == 0)
+      return false;
+    return getDouble() < 0;
+  }
+  /**
+   * Is this number not null and negative.
+   * @param num the number; may be null
+   * @return true if not-null and < 0; else false;
+   */
+  public static boolean negative(IRational num)
+  {
+    if (num == null)
+      return false;
+    return num.isNegative();
+  }
 %}
 
 %include <com/xuggle/xuggler/IRational.h>
