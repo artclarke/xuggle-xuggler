@@ -207,7 +207,7 @@ public interface IMediaWriter extends IMediaCoder, IMediaTool
    * @see ICodec
    */
   public abstract int addAudioStream(int inputIndex, int streamId,
-      ICodec.ID codecId, int width, int height);
+      ICodec.ID codecId, int channelCount, int sampleRate);
 
   /**
    * Add an audio stream that will later have data encoded with

@@ -351,7 +351,7 @@ implements IMediaWriter
   }
   
   public int addAudioStream(int inputIndex, int streamId,
-      ICodec.ID codecId, int width, int height)
+      ICodec.ID codecId, int channelCount, int sampleRate)
   {
     if (codecId == null)
       throw new IllegalArgumentException("null codecId");
@@ -361,7 +361,8 @@ implements IMediaWriter
           codecId);
     try
     {
-      return addAudioStream(inputIndex, streamId, codec, width, height);
+      return addAudioStream(inputIndex, streamId, codec,
+          channelCount, sampleRate);
     }
     finally
     {

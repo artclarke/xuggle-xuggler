@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.junit.*;
 
+import com.xuggle.ferry.JNIMemoryManager;
 import com.xuggle.xuggler.IContainerFormat;
 
 import junit.framework.TestCase;
@@ -182,5 +183,61 @@ public class ContainerFormatTest extends TestCase
       assertTrue(fmt.getOutputFormatShortName().length() > 0);
     }
   }
+  
+  @Test
+  public void testEstablishOutputCodecId()
+  {
+    JNIMemoryManager.getMgr().flush();
+    IContainerFormat fmt = IContainerFormat.make();
+    fmt.setOutputFormat("flv", null, null);
+    assertEquals(ICodec.ID.CODEC_ID_FLV1,
+        fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_VIDEO));
+    assertEquals(ICodec.ID.CODEC_ID_MP3,
+        fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_AUDIO));
+    
+    fmt.setOutputFormat("mp4", null, null);
+    assertEquals(ICodec.ID.CODEC_ID_MPEG4,
+        fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_VIDEO));
+    assertEquals(ICodec.ID.CODEC_ID_AAC,
+        fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_AUDIO));
+
+    fmt.setOutputFormat("3gp", null, null);
+    assertEquals(ICodec.ID.CODEC_ID_H263,
+        fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_VIDEO));
+    assertEquals(ICodec.ID.CODEC_ID_AAC,
+        fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_AUDIO));
+
+    fmt.delete();
+    assertEquals(0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+  }
+  
+  @Test
+  public void testEstablishOutputCodecIdFailOnMismatchedArgs()
+  {
+    JNIMemoryManager.getMgr().flush();
+    IContainerFormat fmt = IContainerFormat.make();
+    fmt.setOutputFormat("flv", null, null);
+    try {
+      fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_VIDEO,
+          ICodec.ID.CODEC_ID_MP3);
+      fail("should not get here");
+    } catch (IllegalArgumentException e) {}
+    fmt.delete();
+    assertEquals(0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+  }
+  @Test
+  public void testEstablishOutputCodecIdFailOnInputFormat()
+  {
+    JNIMemoryManager.getMgr().flush();
+    IContainerFormat fmt = IContainerFormat.make();
+    fmt.setInputFormat("flv");
+    try {
+      fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_VIDEO);
+      fail("should not get here");
+    } catch (IllegalArgumentException e) {}
+    fmt.delete();
+    assertEquals(0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+  }
+
 
 }
