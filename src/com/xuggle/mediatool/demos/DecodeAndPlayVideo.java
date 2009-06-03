@@ -50,32 +50,22 @@ public class DecodeAndPlayVideo
       throw new IllegalArgumentException(
           "must pass in a filename as the first argument");
 
-    // create a new mr. decode an play video
+    String filename = args[0];
+    
+    // create a new reader
 
-    new DecodeAndPlayVideo(args[0]);
-  }
-
-  /**
-   * Construct a DecodeAndPlayVideo which reads and plays a video file.
-   * 
-   * @param filename
-   *          the name of the media file to read
-   */
-
-  public DecodeAndPlayVideo(String filename)
-  {
-    // create a media reader for processing video
-
-    IMediaReader mediaReader = ToolFactory.makeReader(filename);
+    IMediaReader reader = ToolFactory.makeReader(filename);
 
     //
-    // Create a MediaViewer object andtell it to play video only
+    // Create a MediaViewer object and tell it to play video only
     //
-    mediaReader.addListener(ToolFactory.makeViewer(IMediaViewer.Mode.VIDEO_ONLY));
+    reader.addListener(ToolFactory.makeViewer(IMediaViewer.Mode.VIDEO_ONLY));
 
     // read out the contents of the media file, and sit back and watch
 
-    while (mediaReader.readPacket() == null)
+    while (reader.readPacket() == null)
       ;
+    
+    reader.close();
   }
 }

@@ -154,9 +154,7 @@ public class DisplayWebcamVideo
         error.getDescription());
     }      
 
-    // create a media reader for processing video from a given
-    // IContainer, stipulate that we want BufferedImages to created in
-    // BGR 24bit color space
+    // create a media reader to wrap that container
 
     IMediaReader reader = ToolFactory.makeReader(container);
     

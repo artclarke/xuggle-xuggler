@@ -70,7 +70,7 @@ public class GenerateAudioAndVideo
     final int videoStreamIndex = 0;
     final int videoStreamId = 0;
     final long frameRate = DEFAULT_TIME_UNIT.convert(15, MILLISECONDS);
-    final int with = 320;
+    final int width = 320;
     final int height = 200;
     
     // audio parameters
@@ -93,19 +93,17 @@ public class GenerateAudioAndVideo
 
     // add the video stream
 
-    ICodec videoCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_FLV1);
-    writer.addVideoStream(videoStreamIndex, videoStreamId, videoCodec, 
-      with, height);
+    writer.addVideoStream(videoStreamIndex, videoStreamId,
+        ICodec.ID.CODEC_ID_FLV1, width, height);
 
     // add the audio stream
 
-    ICodec audioCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
-    writer.addAudioStream(audioStreamIndex, audioStreamId, audioCodec, 
-      channelCount, sampleRate);
+    writer.addAudioStream(audioStreamIndex, audioStreamId,
+        ICodec.ID.CODEC_ID_MP3, channelCount, sampleRate);
 
     // create some balls to show on the screen
 
-    Balls balls = new Balls(ballCount, with, height, sampleCount);
+    Balls balls = new Balls(ballCount, width, height, sampleCount);
 
     // the clock time of the next frame
 

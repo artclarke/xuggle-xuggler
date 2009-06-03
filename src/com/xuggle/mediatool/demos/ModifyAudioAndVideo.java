@@ -41,7 +41,7 @@ import com.xuggle.mediatool.event.IVideoPictureEvent;
 import static com.xuggle.mediatool.IMediaViewer.Mode.AUDIO_VIDEO;
 
 /**
- * Reand and modify andio and video frames and use the {@link
+ * Read and modify audio and video frames and use the {@link
  * IMediaWriter} to encode that media and write it out to a file.
  *
  * @author trebor

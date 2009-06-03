@@ -52,15 +52,16 @@ public class DecodeAndPlayAudio
 
     // create a media reader for processing video
 
-    IMediaReader mediaReader = ToolFactory.makeReader(args[0]);
+    IMediaReader reader = ToolFactory.makeReader(args[0]);
 
     // Create a MediaViewer object and tell it to play audio only
 
-    mediaReader.addListener(ToolFactory.makeViewer(IMediaViewer.Mode.AUDIO_ONLY));
+    reader.addListener(ToolFactory.makeViewer(IMediaViewer.Mode.AUDIO_ONLY));
 
     // read out the contents of the media file, and sit back and watch
 
-    while (mediaReader.readPacket() == null)
+    while (reader.readPacket() == null)
       ;
+    reader.close();
   }
 }

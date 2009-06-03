@@ -115,6 +115,7 @@ public class DecodeAndCaptureFrames extends MediaListenerAdapter
 
     while (reader.readPacket() == null)
       ;
+    reader.close();
   }
 
   /** 
