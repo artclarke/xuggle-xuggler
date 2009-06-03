@@ -20,18 +20,6 @@
 package com.xuggle.mediatool;
 
 import java.io.File;
-import java.nio.ShortBuffer;
-
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.geom.Ellipse2D;
-import java.awt.RenderingHints;
-import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
-
-import java.util.Random;
-import java.util.Vector;
-import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.*;
@@ -40,19 +28,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.WindowConstants;
 
-import com.xuggle.mediatool.event.IAudioSamplesEvent;
-import com.xuggle.mediatool.event.IVideoPictureEvent;
-import com.xuggle.xuggler.IError;
-import com.xuggle.xuggler.ICodec;
-import com.xuggle.xuggler.IAudioSamples;
-  
-import static com.xuggle.mediatool.IMediaViewer.Mode.*;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
-import static junit.framework.Assert.*;
+import static com.xuggle.mediatool.IMediaViewer.Mode.*;
 
 public class MediaViewerTest
 {
