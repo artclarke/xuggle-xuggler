@@ -36,6 +36,39 @@ import com.xuggle.xuggler.IVideoPicture;
  * {@link IMediaGenerator} objects.
  * 
  * <p>
+ * Here's some pseudo code that shows how to encode an audio file:
+ * </p>
+ * <pre>
+ * IMediaWriter writer = ToolFactory.makeWriter("output.mp3");
+ * int sampleRate = 22050;
+ * int channels = 1;
+ * writer.addAudioStream(0, 0, sampleRate, channels);
+ * 
+ * while(haveMoreAudio())
+ * {
+ *   short[] samples = getSourceSamples();
+ *   writer.encodeAudio(0, samples);
+ * }
+ * writer.close();
+ * </pre>
+ * <p>And here's some pseudo code that shows how to encode a
+ * video image every 1 second:
+ * </p>
+ * <pre>
+ * IMediaWriter writer = ToolFactory.makeWriter("output.mp4");
+ * writer.addVideoStream(0, 0, sampleRate, channels);
+ * 
+ * long startTime = System.nanoTime(); 
+ * while(haveMoreVideo())
+ * {
+ *   BufferedImage image = getImage();
+ *   writer.encodeAudio(0, image,
+ *    System.nanoTime()-startTime, TimeUnit.NANOSECONDS);
+ *   Thread.sleep(1000);
+ * }
+ * writer.close();
+ * </pre>
+ * <p>
  * 
  * An {@link IMediaWriter} is a simplified interface to the Xuggler library that
  * opens up a media container, and allows media data to be written into it.
@@ -394,8 +427,10 @@ public interface IMediaWriter extends IMediaCoder, IMediaTool
    * @param inputIndex the index that will be passed to
    *        {@link #encodeVideo(int, IVideoPicture)} for this stream
    * @param streamId a format-dependent id for this stream
-   * @frameRate The frame rate if known or required by the output codec.
-   *   See {@link #addVideoStream(int, int, com.xuggle.xuggler.ICodec.ID, IRational, int, int)}.
+   * @param frameRate The frame rate if known or required by the output codec.
+   *        See
+   *        {@link #addVideoStream(int, int, com.xuggle.xuggler.ICodec.ID, IRational, int, int)}
+   *        .
    * @param width width of video frames
    * @param height height of video frames
    * 
@@ -406,7 +441,8 @@ public interface IMediaWriter extends IMediaCoder, IMediaTool
    * @return <0 on failure; otherwise returns the index of the new stream added
    *         by the writer.
    * 
-   * @see #addVideoStream(int, int, com.xuggle.xuggler.ICodec.ID, IRational, int, int)
+   * @see #addVideoStream(int, int, com.xuggle.xuggler.ICodec.ID, IRational,
+   *      int, int)
    * @see IContainer
    * @see IStream
    * @see IStreamCoder
@@ -436,8 +472,10 @@ public interface IMediaWriter extends IMediaCoder, IMediaTool
    * @param streamId a format-dependent id for this stream
    * @param codecId the codec to used to encode data, to establish the codec see
    *        {@link ICodec}
-   * @frameRate The frame rate if known or required by the output codec.
-   *   See {@link #addVideoStream(int, int, com.xuggle.xuggler.ICodec.ID, IRational, int, int)}.
+   * @param frameRate The frame rate if known or required by the output codec.
+   *        See
+   *        {@link #addVideoStream(int, int, com.xuggle.xuggler.ICodec.ID, IRational, int, int)}
+   *        .
    * @param width width of video frames
    * @param height height of video frames
    * 
@@ -447,13 +485,14 @@ public interface IMediaWriter extends IMediaCoder, IMediaTool
    * 
    * @return <0 on failure; otherwise returns the index of the new stream added
    *         by the writer.
-   * @see #addVideoStream(int, int, com.xuggle.xuggler.ICodec.ID, IRational, int, int)
+   * @see #addVideoStream(int, int, com.xuggle.xuggler.ICodec.ID, IRational,
+   *      int, int)
    * @see IContainer
    * @see IStream
    * @see IStreamCoder
    * @see ICodec
-   * @throws UnsupportedOperationException if the given codec cannot be
-   *   used for encoding.
+   * @throws UnsupportedOperationException if the given codec cannot be used for
+   *         encoding.
    */
   
   public abstract int addVideoStream(int inputIndex, int streamId,

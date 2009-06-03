@@ -62,6 +62,5 @@ public class DecodeAndPlayAudio
 
     while (reader.readPacket() == null)
       ;
-    reader.close();
   }
 }

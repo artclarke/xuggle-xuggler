@@ -103,7 +103,7 @@ public class ModifyAudioAndVideo
 
     // add a viewer to the writer, to see media modified media
     
-    writer.addListener(ToolFactory.makeViewer(AUDIO_VIDEO));
+    writer.addListener(ToolFactory.makeViewer());
 
     // read and decode packets from the source file and
     // then encode and write out data to the output file
@@ -113,7 +113,7 @@ public class ModifyAudioAndVideo
   }  
 
   /** 
-   * Create a tool which adds a time stamp to the video.
+   * Create a tool which adds a time stamp to a video image.
    */
 
   static class TimeStampTool extends MediaToolAdapter
@@ -153,7 +153,7 @@ public class ModifyAudioAndVideo
   }
 
   /** 
-   * Create a tool which nievly adjusts the volume of audio.
+   * Create a tool which adjusts the volume of audio by some constant factor.
    */
 
   static class VolumeAdjust extends MediaToolAdapter

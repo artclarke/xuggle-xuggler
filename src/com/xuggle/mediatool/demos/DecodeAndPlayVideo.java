@@ -66,6 +66,5 @@ public class DecodeAndPlayVideo
     while (reader.readPacket() == null)
       ;
     
-    reader.close();
   }
 }
