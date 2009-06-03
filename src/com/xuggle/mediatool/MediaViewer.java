@@ -87,22 +87,29 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 /**
- * An {@link IMediaListener} plays audio, video or both, while
- * listening to a {@link IMediaGenerator} that produces raw media.
+ * An {@link IMediaListener} plays audio, video or both, while listening
+ * to a {@link IMediaGenerator} that produces raw media.
+ *
  * <p>
- * You can use this object to attach to a {@link MediaReader} or
- * a {@link MediaWriter} to see the output as they work.
+ * 
+ * You can use this object to attach to a {@link MediaReader} or a
+ * {@link MediaWriter} to see the output as they work.
+ *
  * </p>
  * <p>
+ *
  * You can optionally have the {@link MediaViewer} display statistics
  * on-screen while playing about the contents of the media file, and
  * overlay a clock on the screen while playing.
+ *
  * </p>
  * <p>
+ *
  * Please note that due to limitations in Sun's sound system on Linux
  * there is a lag between audio and video in Linux.  Not much we can do
  * about it, but anyone who knows a fix (the issue is with the precision
- * of {@link DataLine#getMicrosecondPosition()}), please let us know. 
+ * of {@link DataLine#getMicrosecondPosition()}), please let us know.
+ *
  * </p>
  */
 
@@ -395,17 +402,20 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
     if (getMode() == Mode.DISABLED)
       return;
 
-    // get the coder
+    // get the coder, and stream index
 
     IContainer container = event.getSource().getContainer();
     IStream stream = container.getStream(event.getStreamIndex());
     IStreamCoder coder = stream.getStreamCoder();
-
-    // configure video stream
     int streamIndex = event.getStreamIndex();
 
-    if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_VIDEO)
+    // if video stream and showing video, configure video stream
+
+    if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_VIDEO &&
+      getMode().showVideo())
     {
+      // create a converter for this video stream
+
       IConverter converter = mConverters.get(streamIndex);
       if (null == converter)
       {
@@ -431,9 +441,11 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
         getVideoQueue(streamIndex, frame);
     }
 
-    // configure audio stream
+    // if audio stream and playing audio, configure audio stream
 
-    else if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO)
+    else if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO &&
+      getMode().playAudio())
+
     {
       // if real time establish audio queue
 
@@ -447,17 +459,24 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
   @Override
   public void onVideoPicture(IVideoPictureEvent event)
   {
-    // be sure container is set
-    if (!(event.getSource() instanceof IMediaCoder))
-      throw new UnsupportedOperationException();
-
-    if (null == mContainer)
-      mContainer = ((IMediaCoder)event.getSource()).getContainer();
-
-    // if not supposed to play audio, don't
+    // if not configured to show video, return now
 
     if (!getMode().showVideo())
       return;
+
+    // verify container is defined
+
+    if (null == mContainer)
+    {
+      // if source does not posses a container then throw exception
+
+      if (!(event.getSource() instanceof IMediaCoder))
+        throw new UnsupportedOperationException();
+
+      // establish container
+
+      mContainer = ((IMediaCoder)event.getSource()).getContainer();
+    }
 
     // get the frame
 
@@ -491,27 +510,34 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
   @Override
   public void onAudioSamples(IAudioSamplesEvent event)
   {
-    // be sure container is set
-
-    final IMediaGenerator tool = event.getSource();
-    final int streamIndex = event.getStreamIndex();
-    final IAudioSamples samples = event.getAudioSamples();
-    if (!(tool instanceof IMediaCoder))
-      throw new UnsupportedOperationException();
-
-    if (null == mContainer)
-      mContainer = ((IMediaCoder)tool).getContainer();
-
-    // if not supposed to play audio, don't
+    // if not configured to play audio, return now
 
     if (!getMode().playAudio())
       return;
 
-    // if in realtime mode, queue audio
+    // verify container is defined
+
+    if (null == mContainer)
+    {
+      // if source does not posses a container then throw exception
+
+      if (!(event.getSource() instanceof IMediaCoder))
+        throw new UnsupportedOperationException();
+
+      // establish container
+
+      mContainer = ((IMediaCoder)event.getSource()).getContainer();
+    }
+
+    // establish the audio samples
+
+    final IAudioSamples samples = event.getAudioSamples();
+
+    // if in realtime mode, add samples to queue audio
 
     if (getMode().isRealTime())
     {
-      // queue the audio frame for playing
+      // establish audio queue
 
       AudioQueue queue = getAudioQueue(event.getSource(),
           event.getStreamIndex());
@@ -519,15 +545,14 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
       // enqueue the audio samples
 
       if (queue != null)
-        queue.offerMedia(samples, event.getTimeStamp(),
-            event.getTimeUnit());
+        queue.offerMedia(samples, event.getTimeStamp(), event.getTimeUnit());
     }
 
-    // other wise just play the audio
+    // other wise just play the audio directly
 
     else
     {
-      IStream stream = ((IMediaCoder)tool).getContainer().getStream(streamIndex);
+      IStream stream = mContainer.getStream(event.getStreamIndex());
       SourceDataLine line = getJavaSoundLine(stream);
       if (line != null)
         playAudio(stream, line, samples);
