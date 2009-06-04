@@ -383,7 +383,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
   /** Internaly Only.  Configure internal parameters of the media viewer. */
 
   @Override
-  public void onAddStream(IAddStreamEvent event)
+    public void onAddStream(IAddStreamEvent event)
   {
     // if disabled don't add a stream
 
@@ -418,7 +418,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
       MediaFrame frame = mFrames.get(streamIndex);
       if (null == frame)
       {
-        frame = new MediaFrame(mDefaultCloseOperation, stream);
+        frame = new MediaFrame(mDefaultCloseOperation, stream, this);
         mFrames.put(streamIndex, frame);
         mFrameIndex.put(frame, mNextFrameIndex++);
       }
@@ -447,7 +447,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
   @Override
   public void onVideoPicture(IVideoPictureEvent event)
   {
-    // if not configured to show video, return now
+    // if not configured to show video, or closing, return now
 
     if (!getMode().showVideo())
       return;
@@ -628,7 +628,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
     // note that we are closing
 
     mClosing = true;
-
+    
     // flush buffers
 
     flush();
@@ -1290,6 +1290,10 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
 
   private static class PositionFrame extends JFrame
   {
+    // containing media viewer (because this class is static)
+
+    protected final MediaViewer mViewer;
+
     // removes the warning
 
     public static final long serialVersionUID = 0;
@@ -1305,9 +1309,10 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
      *        documentation for valid values.
      */
     
-    public PositionFrame(int defaultCloseOperation)
+    public PositionFrame(int defaultCloseOperation, MediaViewer viewer)
     {
       setDefaultCloseOperation(defaultCloseOperation);
+      mViewer = viewer;
 
       if (mFrames.size() > 0)
         reposition(mFrames.lastElement());
@@ -1353,6 +1358,29 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
       invalidate();
       repositionFrom(this);
     }
+
+    // chatch dispose hook
+
+    public void dispose()
+    {
+      // currently the dispose is passed through
+
+      super.dispose();
+
+//       if (!isDisplayable())
+//         return;
+
+//       log.debug("dispose: " + this);
+//       log.debug("frames: " + mFrames.size());
+//       super.dispose();
+      
+//       mFrames.remove(this);
+//       log.debug("frames: " + mFrames.size());
+//       log.debug("frames empty: " + mFrames.isEmpty());
+//       log.debug("closing: " + mViewer.mClosing);
+//       if (mFrames.isEmpty() && !mViewer.mClosing)
+//         mViewer.onClose(null);
+    }
   }
 
   /** A media viewer frame. */
@@ -1386,11 +1414,13 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
      *        is closed. See the {@link javax.swing.WindowConstants}
      *        documentation for valid values.
      * @param stream the stream which will appear in this frame
+     * @param viewer containing media viewer
      */
 
-    public MediaFrame(int defaultCloseOperation, IStream stream)
+    public MediaFrame(int defaultCloseOperation, IStream stream, 
+      MediaViewer viewer)
     {
-      super(defaultCloseOperation);
+      super(defaultCloseOperation, viewer);
 
       // get stream and set title based it, establish a copy of the
       // stream since it lives in a separate thread
@@ -1488,10 +1518,6 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
 
     private final JPanel mStatsPanel;
 
-    // the viewer object
-
-    private final MediaViewer mViewer;
-
     // the layout
 
     private final BoxLayout mLayout;
@@ -1512,11 +1538,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
 
     public StatsFrame(int defaultCloseOperation, MediaViewer viewer)
     {
-      super(defaultCloseOperation);
-
-      // get the viewer
-
-      mViewer = viewer;
+      super(defaultCloseOperation, viewer);
 
       // set the title based on the container
 
