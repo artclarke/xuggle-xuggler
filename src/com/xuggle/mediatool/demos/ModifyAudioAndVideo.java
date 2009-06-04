@@ -84,13 +84,13 @@ public class ModifyAudioAndVideo
     
     IMediaWriter writer = ToolFactory.makeWriter(outputFile.toString(), reader);
 
-    // create a tool which paints vidoe time stamp into frame
+    // create a tool which paints video time stamp into frame
 
     IMediaTool addTimeStamp = new TimeStampTool();
 
-    // create a tool which reduces aduio volume to 1/10th original
+    // create a tool which reduces audio volume to 1/10th original
 
-    IMediaTool reduceVolume = new VolumeAdjust(0.1);
+    IMediaTool reduceVolume = new VolumeAdjustTool(0.1);
 
     // create a tool chain:
     //   reader -> addTimeStamp -> reduceVolume -> writer
@@ -154,7 +154,7 @@ public class ModifyAudioAndVideo
    * Create a tool which adjusts the volume of audio by some constant factor.
    */
 
-  static class VolumeAdjust extends MediaToolAdapter
+  static class VolumeAdjustTool extends MediaToolAdapter
   {
     // the amount to adjust the volume by
 
@@ -167,7 +167,7 @@ public class ModifyAudioAndVideo
      *        recommended.
      */
 
-    public VolumeAdjust(double volume)
+    public VolumeAdjustTool(double volume)
     {
       mVolume = volume;
     }

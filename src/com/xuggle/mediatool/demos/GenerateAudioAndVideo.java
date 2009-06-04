@@ -22,8 +22,6 @@ package com.xuggle.mediatool.demos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.xuggle.xuggler.ICodec;
-
 import java.awt.image.BufferedImage;
 
 import com.xuggle.mediatool.IMediaViewer;
@@ -59,11 +57,11 @@ public class GenerateAudioAndVideo
   {
     // the number of balls to bounce around
 
-    final int ballCount = 3;
+    final int ballCount = 2;
 
     // total duration of the media
 
-    final long duration = DEFAULT_TIME_UNIT.convert(5, SECONDS);
+    final long duration = DEFAULT_TIME_UNIT.convert(60, SECONDS);
 
     // video parameters
 
@@ -83,7 +81,7 @@ public class GenerateAudioAndVideo
 
     // create a media writer and specify the output file
 
-    final IMediaWriter writer = ToolFactory.makeWriter("output.flv");
+    final IMediaWriter writer = ToolFactory.makeWriter("myballs.mov");
 
     // add a viewer so we can see the media as it is created
 
@@ -94,16 +92,16 @@ public class GenerateAudioAndVideo
     // add the video stream
 
     writer.addVideoStream(videoStreamIndex, videoStreamId,
-        ICodec.ID.CODEC_ID_FLV1, width, height);
+        width, height);
 
     // add the audio stream
 
     writer.addAudioStream(audioStreamIndex, audioStreamId,
-        ICodec.ID.CODEC_ID_MP3, channelCount, sampleRate);
+        channelCount, sampleRate);
 
     // create some balls to show on the screen
 
-    Balls balls = new Balls(ballCount, width, height, sampleCount);
+    Balls balls = new MovingBalls(ballCount, width, height, sampleCount);
 
     // the clock time of the next frame
 

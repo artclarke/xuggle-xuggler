@@ -29,7 +29,8 @@ import com.xuggle.mediatool.IMediaWriter;
 import com.xuggle.xuggler.IRational;
 
 /**
- * A demo of using MediaTool to take screen shots.
+ * Using {@link IMediaWriter}, takes snapshots of your desktop and
+ * encodes them to video.
  * 
  * @author aclarke
  * 
@@ -55,40 +56,45 @@ public class CaptureScreenToFile
         outFile = args[0];
       else
         outFile = "output.mp4";
-      int index = 0;
+      // This is the robot for taking a snapshot of the
+      // screen.  It's part of Java AWT
       final Robot robot = new Robot();
       final Toolkit toolkit = Toolkit.getDefaultToolkit();
       final Rectangle screenBounds = new Rectangle(toolkit.getScreenSize());
       
-      // make a media writer
+      // First, let's make a IMediaWriter to write the file.
       final IMediaWriter writer = ToolFactory.makeWriter(outFile);
+      
+      // We tell it we're going to add one video stream, with id 0,
+      // at position 0, and that it will have a fixed frame rate of
+      // FRAME_RATE.
       writer.addVideoStream(0, 0,
           FRAME_RATE,
           screenBounds.width, screenBounds.height);
       
+      // Now, we're going to loop
       long startTime = System.nanoTime();
-      while (index < SECONDS_TO_RUN_FOR*FRAME_RATE.getDouble())
+      for (int index = 0; index < SECONDS_TO_RUN_FOR*FRAME_RATE.getDouble(); index++)
       {
-        System.out.println("encoded image: " +index);
-        
         // take the screen shot
         BufferedImage screen = robot.createScreenCapture(screenBounds);
         
-        // convert to the right type
+        // convert to the right image type
         BufferedImage bgrScreen = convertToType(screen,
             BufferedImage.TYPE_3BYTE_BGR);
         
         // encode the image
         writer.encodeVideo(0,bgrScreen,
             System.nanoTime()-startTime, TimeUnit.NANOSECONDS);
+
+        System.out.println("encoded image: " +index);
         
         // sleep for framerate milliseconds
         Thread.sleep((long) (1000 / FRAME_RATE.getDouble()));
 
-        // and increment the frame count
-        index++;
       }
-      // Close the writer
+      // Finally we tell the writer to close and write the trailer if
+      // needed
       writer.close();
     }
     catch (Throwable e)

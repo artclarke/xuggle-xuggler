@@ -54,6 +54,12 @@
  * For more examples of using the mediatools see the
  * {@link com.xuggle.mediatool.demos} demonstration package.
  * </p>
+ * <h2>Tutorials</h2>
+ * <p>
+ * Check out the <a
+ * href="http://wiki.xuggle.com/MediaTool_Introduction">MediaTool Tutorial</a>
+ * on our Wiki site.
+ * </p>
  * 
  * <h2>How To Use</h2>
  * <p>
@@ -70,8 +76,8 @@
  * The {@link com.xuggle.mediatool.IMediaReader} and
  * {@link com.xuggle.mediatool.IMediaWriter} objects are the workhorses of this
  * package. They read and write to {@link com.xuggle.xuggler.IContainer}
- * objects, but hide the the complexity of encoding and decoding audio.
- * Instead, they generate events that they notify intertested
+ * objects, but hide the the complexity of encoding and decoding audio. Instead,
+ * they generate events that they notify intertested
  * {@link com.xuggle.mediatool.IMediaListener} objects about. Interested
  * {@link com.xuggle.mediatool.IMediaListener} objects are registered through
  * the {@link com.xuggle.mediatool.IMediaGenerator} interface, which both
@@ -79,26 +85,22 @@
  * {@link com.xuggle.mediatool.IMediaWriter} extend.
  * 
  * </p>
- *  <p>
- *  
+ * <p>
+ * 
  * {@link com.xuggle.mediatool.IMediaCoder} objects (which both
- * {@link com.xuggle.mediatool.IMediaReader} and 
- * {@link com.xuggle.mediatool.IMediaWriter} are)
- * will make intelligent
- * guesses about the parameters to decode and encode with based on
- *  the URLs or file
- * names you create the objects with,
- *  but you can change and override everything if you want.
- * To do that use the
+ * {@link com.xuggle.mediatool.IMediaReader} and
+ * {@link com.xuggle.mediatool.IMediaWriter} are) will make intelligent guesses
+ * about the parameters to decode and encode with based on the URLs or file
+ * names you create the objects with, but you can change and override everything
+ * if you want. To do that use the
  * {@link com.xuggle.mediatool.IMediaCoder#getContainer()} interface to get the
- * underlying {@link com.xuggle.xuggler.IContainer} object where they
- * can then query all other information.  If your code
- * is executing inside a {@link com.xuggle.mediatool.IMediaListener}
- * method, you can get the object that generated that event
- * by calling {@link com.xuggle.mediatool.event.IEvent#getSource()}
- * of an {@link com.xuggle.mediatool.IMediaListener} event, and
- * from there you can query the {@link com.xuggle.xuggler.IContainer}
- * if needed.
+ * underlying {@link com.xuggle.xuggler.IContainer} object where they can then
+ * query all other information. If your code is executing inside a
+ * {@link com.xuggle.mediatool.IMediaListener} method, you can get the object
+ * that generated that event by calling
+ * {@link com.xuggle.mediatool.event.IEvent#getSource()} of an
+ * {@link com.xuggle.mediatool.IMediaListener} event, and from there you can
+ * query the {@link com.xuggle.xuggler.IContainer} if needed.
  * 
  * </p>
  * <p>
@@ -146,45 +148,46 @@
  * <h2>How To Make a Media Pipeline</h2>
  * 
  * <p>
- * Sometimes it can be useful to chain together a series of objects
- * to filter media and provide lots of effects.  See the
- * {@link com.xuggle.mediatool.demos.ModifyAudioAndVideo} demo for an
- * example of that, but here's the basic structure of the code
- * to make a pipeline:
+ * Sometimes it can be useful to chain together a series of objects to filter
+ * media and provide lots of effects. See the
+ * {@link com.xuggle.mediatool.demos.ModifyAudioAndVideo} demo for an example of
+ * that, but here's the basic structure of the code to make a pipeline:
  * </p>
+ * 
  * <pre>
-   IMediaReader reader = ToolFactory.makeReader(inputFile.toString());
-   reader.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
-
-    // create a writer and configure it's parameters from the reader
-    
-    IMediaWriter writer = ToolFactory.makeWriter(outputFile.toString(), reader);
-
-    // create a tool which paints a time stamp onto the video
-
-    IMediaTool addTimeStamp = new TimeStampTool();
-
-    // create a tool which reduces audio volume to 1/10th original
-
-    IMediaTool reduceVolume = new VolumeAdjust(0.1);
-
-    // create a tool chain:
-    //   reader -> addTimeStamp -> reduceVolume -> writer
-
-    reader.addListener(addTimeStamp);
-    addTimeStamp.addListener(reduceVolume);
-    reduceVolume.addListener(writer);
-
-    // add a viewer to the writer, to see the modified media
-    
-    writer.addListener(ToolFactory.makeViewer(AUDIO_VIDEO));
-
-    // read and decode packets from the source file and
-    // then encode and write out data to the output file
-    
-    while (reader.readPacket() == null)
-      ;
+ * IMediaReader reader = ToolFactory.makeReader(inputFile.toString());
+ * reader.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
+ * 
+ * // create a writer and configure it's parameters from the reader
+ * 
+ * IMediaWriter writer = ToolFactory.makeWriter(outputFile.toString(), reader);
+ * 
+ * // create a tool which paints a time stamp onto the video
+ * 
+ * IMediaTool addTimeStamp = new TimeStampTool();
+ * 
+ * // create a tool which reduces audio volume to 1/10th original
+ * 
+ * IMediaTool reduceVolume = new VolumeAdjustTool(0.1);
+ * 
+ * // create a tool chain:
+ * //   reader -&gt; addTimeStamp -&gt; reduceVolume -&gt; writer
+ * 
+ * reader.addListener(addTimeStamp);
+ * addTimeStamp.addListener(reduceVolume);
+ * reduceVolume.addListener(writer);
+ * 
+ * // add a viewer to the writer, to see the modified media
+ * 
+ * writer.addListener(ToolFactory.makeViewer(AUDIO_VIDEO));
+ * 
+ * // read and decode packets from the source file and
+ * // then encode and write out data to the output file
+ * 
+ * while (reader.readPacket() == null)
+ *   ;
  * </pre>
+ * 
  * <h2>Package Use Conventions</h2>
  * 
  * <p>
@@ -199,8 +202,8 @@
  * <li>All abstract classes begin with the latter &quot;A&quot;. For example:
  * {@link com.xuggle.mediatool.AMediaListenerMixin}.</li>
  * <li>Event interfaces and classes can be found in
- * {@link com.xuggle.mediatool.event} and end with &quot;Event;&quot;.
- * For example: {@link com.xuggle.mediatool.event.AddStreamEvent}.</li>
+ * {@link com.xuggle.mediatool.event} and end with &quot;Event;&quot;. For
+ * example: {@link com.xuggle.mediatool.event.AddStreamEvent}.</li>
  * <li>Mixin classes will implement all methods suggested by their name, but
  * will not declare the corresponding interface. For example:
  * {@link com.xuggle.mediatool.AMediaListenerMixin}.</li>
