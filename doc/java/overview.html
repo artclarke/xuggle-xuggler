@@ -2,14 +2,13 @@
 <body>
 Xuggle: To encode, decode, and generally juggle audio and video
 files in any way that you want.
-<h2>Media Tool: Decoding, Encoding and View Media Files the Easy Way</h2>
-The Xuggler API is very powerful and full featured, but sometimes you
-don't need all the bells and whistles. The Media Tool API is a simpler
+<h2>MediaTool: Decoding, Encoding and View Media Files the Easy Way</h2>
+The MediaTool API is a simple
 API that uses Xuggler behind the scenes, but allows you to extract
 pictures and audio from media files without being a complete Xuggler
 expert.
-<p>How simple?  Here's some code to open a MPG video file,
-convert it to an FLV file, and play it on
+<p>How simple?  Here's some code to open a MPEG video file,
+convert it to an Adobe Flash Video file, and play it on
 screen at the same time:</p>
 <pre>
 IMediaReader reader = ToolFactory.newReader("input.mpg");
@@ -20,7 +19,9 @@ while (reader.readPacket() == null)
 </pre>
 <p> And if for some reason, you want access to the underlying
 Xuggler objects, it'll let you at them too.</p>
-<p>See {@link com.xuggle.mediatool}</p>
+<p>See {@link com.xuggle.mediatool} for the Java doc or
+<a href="http://wiki.xuggle.com/MediaTool_Introduction">MediaTools Introduction</a> for
+a full tutorial.</p>
 
 <h2>Xuggler: Decode, Encode and Experience Video</h2>
 Sometimes you need to get at the raw bits and bytes.  For that, there's

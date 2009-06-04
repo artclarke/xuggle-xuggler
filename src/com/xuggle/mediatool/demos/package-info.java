@@ -18,6 +18,8 @@
  */
 
 /**
- * A collection of demonstration applications using the Media Tools API.
+ * MediaTool Demonstration applications
+ * used by the <a href="http://wiki.xuggle.com/MediaTool_Introduction">MediaTool tutorials</a>.
+ * 
  */
 package com.xuggle.mediatool.demos;
