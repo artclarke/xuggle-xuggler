@@ -19,6 +19,7 @@
 
 package com.xuggle.xuggler.demos;
 
+import com.xuggle.xuggler.Configuration;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IConfigurable;
@@ -44,11 +45,18 @@ public class GetContainerInfo
    */
   public static void main(String[] args)
   {
+    // If the user passes -Dxuggle.options, then we print
+    // out all possible options as well.
+    String optionString = System.getProperty("xuggle.options");
+    if (optionString != null)
+    {
+      Configuration.printHelp(System.out);
+    }
+
     if (args.length <= 0)
       throw new IllegalArgumentException("must pass in a filename as the first argument");
     
     String filename = args[0];
-    
     // Create a Xuggler container object
     IContainer container = IContainer.make();
     
@@ -101,72 +109,5 @@ public class GetContainerInfo
       System.out.printf("\n");
     }
     
-    // If the user passes -Dxuggle.options, then we print
-    // out all possible options as well.
-    String optionString = System.getProperty("xuggle.options");
-    if (optionString != null)
-      printOptions(container);
-  }
-
-  /**
-   * This method iterates through the container, and prints out
-   * available options for the container, and each stream.
-   * 
-   * @param aContainer Container to print options for.
-   */
-  private static void printOptions(IContainer aContainer)
-  {
-    
-    System.out.printf("\n");
-    System.out.printf("IContainer Options:\n");
-    int numOptions = aContainer.getNumProperties();
-    
-    for(int i = 0; i < numOptions; i++)
-    {
-      IProperty prop = aContainer.getPropertyMetaData(i);
-      printOption(aContainer, prop);
-    }
-    System.out.printf("\n");
-    
-    int numStreams = aContainer.getNumStreams();
-    for(int i = 0; i < numStreams; i++)
-    {
-      IStreamCoder coder = aContainer.getStream(i).getStreamCoder();
-      System.out.printf("IStreamCoder options for Stream %d of type %s:\n",
-          i,
-          coder.getCodecType());
-      numOptions = coder.getNumProperties();
-      for(int j = 0; j < numOptions; j++)
-      {
-        IProperty prop = coder.getPropertyMetaData(j);
-        printOption(coder, prop);
-      }
-    }
-  }
-
-  private static void printOption(IConfigurable configObj, IProperty aProp)
-  {
-    if (aProp.getType() != IProperty.Type.PROPERTY_FLAGS)
-    {
-      System.out.printf("  %s: %s\n",
-          aProp.getName(),
-          configObj.getPropertyAsString(aProp.getName()));
-    } else {
-      // it's a flag
-      System.out.printf("  %s: %d (", aProp.getName(),
-          configObj.getPropertyAsLong(aProp.getName()));
-      int numSettings = aProp.getNumFlagSettings();
-      long value = configObj.getPropertyAsLong(aProp.getName());
-      for(int i = 0; i < numSettings; i++)
-      {
-        IProperty prop = aProp.getFlagConstant(i);
-        long flagMask = prop.getDefault();
-        boolean isSet = (value & flagMask)>0;
-        System.out.printf("%s%s; ",
-            isSet ? "+" : "-",
-                prop.getName());
-      }
-      System.out.printf(")\n");
-    }
   }
 }
