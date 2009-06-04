@@ -79,6 +79,14 @@ public class GenerateAudioAndVideo
     final int sampleRate = 44100; // Hz
     final int sampleCount = 1000;
 
+    // the clock time of the next frame
+
+    long nextFrameTime = 0;
+
+    // the total number of audio samples
+
+    long totalSampleCount = 0;
+
     // create a media writer and specify the output file
 
     final IMediaWriter writer = ToolFactory.makeWriter("myballs.mov");
@@ -102,14 +110,6 @@ public class GenerateAudioAndVideo
     // create some balls to show on the screen
 
     Balls balls = new MovingBalls(ballCount, width, height, sampleCount);
-
-    // the clock time of the next frame
-
-    long nextFrameTime = 0;
-
-    // the total number of audio samples
-
-    long totalSampleCount = 0;
 
     // loop through clock time, which starts at zero and increases based
     // on the total number of samples created thus far
