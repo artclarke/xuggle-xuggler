@@ -22,9 +22,7 @@ package com.xuggle.xuggler.demos;
 import com.xuggle.xuggler.Configuration;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec;
-import com.xuggle.xuggler.IConfigurable;
 import com.xuggle.xuggler.IContainer;
-import com.xuggle.xuggler.IProperty;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
 
