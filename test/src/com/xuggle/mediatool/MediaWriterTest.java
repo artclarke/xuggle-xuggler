@@ -63,7 +63,7 @@ public class MediaWriterTest
   
   final MediaViewer.Mode mViewerMode = IMediaViewer.Mode.valueOf(
     System.getProperty(this.getClass().getName() + ".ViewerMode", 
-      AUDIO_VIDEO.name()));
+      DISABLED.name()));
 
   // standard test name prefix
 
