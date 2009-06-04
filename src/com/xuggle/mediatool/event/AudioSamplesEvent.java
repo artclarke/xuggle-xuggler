@@ -19,6 +19,8 @@
 
 package com.xuggle.mediatool.event;
 
+import java.util.concurrent.TimeUnit;
+
 import com.xuggle.mediatool.IMediaGenerator;
 import com.xuggle.xuggler.IAudioSamples;
 
@@ -42,7 +44,7 @@ public class AudioSamplesEvent extends ARawMediaMixin implements IAudioSamplesEv
       IAudioSamples samples,
       Integer streamIndex)
   {
-    super(source, samples, null, 0, null, streamIndex);
+    super(source, samples, null, samples.getTimeStamp(), TimeUnit.MICROSECONDS, streamIndex);
   }
   
   /**
