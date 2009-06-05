@@ -30,7 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Finds and loads native libraries that we depend on.
+ * Internal Only.  Finds and loads native libraries that we depend on.
  * <p>
  * It supplements the Java builtin {@link System#loadLibrary(String)} by looking
  * in more places.

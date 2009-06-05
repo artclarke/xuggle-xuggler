@@ -8,11 +8,9 @@ API that uses Xuggler behind the scenes, but allows you to extract
 pictures and audio from media files without being a complete Xuggler
 expert.
 <p>How simple?  Here's some code to open a MPEG video file,
-convert it to an Adobe Flash Video file, and play it on
-screen at the same time:</p>
+convert it to an Adobe Flash Video file:</p>
 <pre>
 IMediaReader reader = ToolFactory.newReader("input.mpg");
-reader.addListener(ToolFactory.newViewer());
 reader.addListener(ToolFactory.newWriter("output.flv", reader));
 while (reader.readPacket() == null)
   ;

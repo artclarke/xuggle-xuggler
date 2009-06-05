@@ -18,25 +18,27 @@
 
 package com.xuggle.ferry;
 
-import java.lang.ref.PhantomReference;
 import java.lang.ref.WeakReference;
+import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.xuggle.ferry.FerryJNI;
 
 /**
- * Internal Only.
+ * Returned by {@link IBuffer#getByteBuffer(int, int, java.util.concurrent.atomic.AtomicReference)}
+ * for users that want to explicitly manage when the returned {@link java.nio.ByteBuffer}
+ * is released.
  * <p>
  * This class creates a {@link WeakReference} that Ferry classes will use for
  * memory management. We do this to avoid relying on Java's finalizer thread to
  * keep up and instead make every new native allocation first release any
  * unreachable objects.
  * </p><p>
- * We use {@link WeakReference} objects instead of {@link PhantomReference}
- * objects because (in theory) the JVM will collect {@link WeakReference}
- * faster.  The downside is if you implement a finalizer on any
- * object that 'resurrects' the object, all bets are off.  Fortunately
- * no {@link RefCounted} objects do that.
+ * Most times these objects are managed behind the scenes when you
+ * call {@link RefCounted#delete()}.  But when we return
+ * {@link java.nio.ByteBuffer} objects, there is no equivalent of
+ * delete(), so this object can be used if you want to explicitly control
+ * when the {@link ByteBuffer}'s underlying native memory is freed.
  * </p>
  * 
  */

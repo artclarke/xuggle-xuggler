@@ -34,7 +34,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static com.xuggle.xuggler.Global.DEFAULT_TIME_UNIT;
 
 /**
- * Generate andio and video frames and use the {@link IMediaWriter} to
+ * Generate audio and video frames and use the {@link IMediaWriter} to
  * encode that media and write it out to a file.
  *
  * @author trebor

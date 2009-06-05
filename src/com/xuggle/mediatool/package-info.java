@@ -18,7 +18,8 @@
 
 /**
  * <p>
- * A simple API for to decoding, viewing and encoding media -- Start with
+ * A simple API for to decoding, viewing and encoding media:  
+ * <a href="http://blog.xuggle.com/2009/06/05/introduction-to-xuggler-mediatools/">tutorial here</a>; start with
  * {@link com.xuggle.mediatool.ToolFactory}.
  * </p>
  * 
@@ -37,24 +38,19 @@
  * </pre>
  * 
  * <p>
- * And this code decodes a MPG file, and encodes it to flv, but this time plays
- * the media on screen in real-time while it's doing the work.
- * </p>
- * 
- * <pre>
- * IMediaReader reader = ToolFactory.makeReader(&quot;input.mpg&quot;);
- * reader.addListener(ToolFactory.makeViewer(true));
- * reader.addListener(ToolFactory.makeWriter(&quot;output.flv&quot;, reader));
- * while (reader.readPacket() == null)
- *   ;
- * </pre>
- * 
- * <p>
- * 
  * For more examples of using the mediatools see the
  * {@link com.xuggle.mediatool.demos} demonstration package.
  * </p>
  * <h2>Tutorials</h2>
+ * <h3>Using MediaTool to Decode &amp; Encode</h3>
+ * <div style="text-align: center">
+<object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/9aJvPPzhyik&fmt=18&color1=0xb1b1b1&color2=0xcfcfcf&feature=player_embedded&fs=1"></param><param name="allowFullScreen" value="true"></param><embed src="http://www.youtube.com/v/9aJvPPzhyik&fmt=18&color1=0xb1b1b1&color2=0xcfcfcf&feature=player_embedded&fs=1" type="application/x-shockwave-flash" allowfullscreen="true" width="425" height="344"></embed></object>
+    </div>
+   <h3>Using MediaTool to Change &amp; Create Media</h3>
+   <div style="text-align: center">
+<object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/JBXyE4_3ERI&fmt=18&color1=0xb1b1b1&color2=0xcfcfcf&feature=player_embedded&fs=1"></param><param name="allowFullScreen" value="true"></param><embed src="http://www.youtube.com/v/JBXyE4_3ERI&fmt=18&color1=0xb1b1b1&color2=0xcfcfcf&feature=player_embedded&fs=1" type="application/x-shockwave-flash" allowfullscreen="true" width="425" height="344"></embed></object>
+   </div>
+   <h3>Text Version of Tutorials</h3>
  * <p>
  * Check out the <a
  * href="http://wiki.xuggle.com/MediaTool_Introduction">MediaTool Tutorial</a>
@@ -109,7 +105,13 @@
  * <strong>experimental</strong> interface that can be added to a
  * {@link com.xuggle.mediatool.IMediaGenerator} to display audio and video data
  * that the {@link com.xuggle.mediatool.IMediaReader} is generating in real
- * time. An {@link com.xuggle.mediatool.IMediaDebugListener} object can be
+ * time. <strong>This Tool is currently alpha and pretty buggy, but can
+ * be helpful for debugging video</strong>.
+ * 
+ * </p>
+ * <p>
+ * 
+ * An {@link com.xuggle.mediatool.IMediaDebugListener} object can be
  * attached to {@link com.xuggle.mediatool.IMediaGenerator} objects and will log
  * the events they generate to a log file. See the <a
  * href="http://logback.qos.ch/">logback</a> logging project for information on

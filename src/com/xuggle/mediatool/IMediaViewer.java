@@ -22,35 +22,40 @@ package com.xuggle.mediatool;
 import javax.sound.sampled.DataLine;
 
 /**
- * An {@link IMediaListener} that plays audio, video or both, while
- * listening to a {@link IMediaGenerator} that produces raw media.
+ * <strong>EXPERIMENTAL ONLY</strong>: An {@link IMediaListener} that plays
+ * audio, video or both, while listening to a {@link IMediaGenerator} that
+ * produces raw media.
  * <p>
  * 
- * The {@link IMediaViewer} is currently in <strong>experimental</strong>
- * mode.  That means we expect there will be some API and functionality
- * changes in future releases.  You should not expect backwards
- * compatibility on this release.
+ * The {@link IMediaViewer} is currently in <strong>experimental</strong> mode.
+ * That means it has some bugs where it can hang (in particular if there isn't
+ * as much audio in the file as video, but there are others), and
+ * we expect there will be some API and functionality changes in
+ * future releases. It's really something we're playing with and would like
+ * to get feedback on, but do not use it in production projects .
+ * You should not expect backwards compatibility on this
+ * part of the API.
  * 
  * </p>
  * <p>
  * 
- * You can use this object to attach to a {@link IMediaReader} or
- * a {@link IMediaWriter} to see the output as they work.
+ * You can use this object to attach to a {@link IMediaReader} or a
+ * {@link IMediaWriter} to see the output as they work.
  * 
  * </p>
  * <p>
  * 
- * You can optionally have the {@link IMediaViewer} display statistics
- * on-screen while playing about the contents of the media file, and
- * overlay a clock on the screen while playing.
+ * You can optionally have the {@link IMediaViewer} display statistics on-screen
+ * while playing about the contents of the media file, and overlay a clock on
+ * the screen while playing.
  * 
  * </p>
  * <p>
  * 
- * Please note that due to limitations in Sun's sound system on Linux
- * there is a lag between audio and video in Linux.  Not much we can do
- * about it, but anyone who knows a fix (the issue is with the precision
- * of {@link DataLine#getMicrosecondPosition()}), please let us know. 
+ * Please note that due to limitations in Sun's sound system on Linux there is a
+ * lag between audio and video in Linux. Not much we can do about it, but anyone
+ * who knows a fix (the issue is with the precision of
+ * {@link DataLine#getMicrosecondPosition()}), please let us know.
  * 
  * </p>
  */
