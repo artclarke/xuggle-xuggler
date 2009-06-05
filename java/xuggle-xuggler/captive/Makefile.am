@@ -1,4 +1,5 @@
 include $(abs_top_builddir)/mk/Makefile.global
+EXTRA_DIST=COPYING
 if CAPTIVE_ENABLE_LIBFAAC
   LIBFAAC=libfaac
 endif
