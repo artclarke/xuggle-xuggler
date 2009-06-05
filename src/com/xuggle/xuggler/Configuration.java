@@ -156,6 +156,8 @@ public class Configuration
         container.open(filename,
             IContainer.Type.WRITE, null);
         printConfigurable(stream, container);
+        container.close();
+        container.delete();
       } finally {
         tmpFile.delete();
       }
