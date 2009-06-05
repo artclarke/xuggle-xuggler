@@ -28,6 +28,8 @@ FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-stripping"
 if test "x$CAPTIVE_ENABLE_FFMPEG_GPL" = "xyes"; then
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-gpl --enable-nonfree"
 fi
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-version3"
+
 if test ! "x$VS_DEBUG" = "x"; then
   echo "Creating debug version of ffmpeg: $VS_DEBUG"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-optimizations"
