@@ -836,6 +836,9 @@ using the library and what you like or don't like about it.
         <param name="-postfixpackage"/>
         <param name="-useimports"/>
         <param name="-views"/>
+        <param name="-nodefillcolor" value="grey80"/>
+        <param name="-nodefontsize" value="15"/>
+        <param name="-nodefontcolor" value="grey20"/>
       </doclet>
       <packageset dir="${generated.src.dir}" defaultexcludes="yes">
       </packageset>
