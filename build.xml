@@ -15,7 +15,7 @@
        revisions in that library's "configure.ac" file, and
        regenerate the build scripts -->
   <property name="library.version.major" value="3"/>
-  <property name="library.version.minor" value="0"/>
+  <property name="library.version.minor" value="1"/>
   <property name="app.mainclass" value="com.xuggle.xuggler.Xuggler"/>
 
   <!-- And bring in the standard build rules -->
