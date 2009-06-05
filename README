@@ -1,5 +1,9 @@
 Welcome to Xuggle
 
+= Licensing Note =
+See the COPYING file for our license.  For the license used
+in libraries in the 'captive' directory, see the captive directory.
+
 = What is Xuggler ? =
 Xuggler is a Java library that allows you to decode and
 encode a variety of media file formats directly from Java.
@@ -16,19 +20,9 @@ is designed with the following goals:
 
 = What languages are supported? =
 
-Today Xuggler works under Java, but may be extended in the future
-to work under other languages such as Python, Perl, Ruby etc.
+Today Xuggler works under Java
 
-The architecture is designed to allow the library to plug in relatively
-easily to any scripting language that does reference-counting based
-memory management or garbage-collection based memory manage (i.e.
-most of them).  Patches for additional languages are welcome.
-If you're interested in doing this, we use a concept call
-"ferrying" to transport objects across language barriers.  Start
-in com.xuggle.ferry.  And we use SWIG to generate the actual
-wrappers to our C++ libraries.
-
-People can also use the C++ api directly, but bear in mind two caveats:
+People can also use the C++ api directly, but bear in mind three caveats:
 - You must explicitly release all references you create to objects
   with ->release() calls; every make() or get...() method returns
   a reference.  A template class called com.xuggle.ferry.RefPointer
@@ -43,6 +37,10 @@ People can also use the C++ api directly, but bear in mind two caveats:
   threads can safely access it).  If performance is the goal,
   Xuggler will NEVER be faster that calling FFMPEG directly; just
   a little safer.
+
+- Our current build system relies on autoconf and g++, so
+  linking this C++ library on Windows can be difficult if you're
+  using Microsoft's Visual C++ compiler.
 
 = How to use Xuggle? =
 
@@ -71,5 +69,5 @@ what you need from the Java docs, then please, check out the C++ docs.
 
 = Where can I find out more? =
 Visit:
-http://www.xuggle.com/
+http://www.xuggle.com/xuggler
 
