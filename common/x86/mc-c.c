@@ -70,6 +70,7 @@ extern void x264_integral_init4v_mmx( uint16_t *sum8, uint16_t *sum4, int stride
 extern void x264_integral_init4v_sse2( uint16_t *sum8, uint16_t *sum4, int stride );
 extern void x264_integral_init8v_mmx( uint16_t *sum8, int stride );
 extern void x264_integral_init8v_sse2( uint16_t *sum8, int stride );
+extern void x264_integral_init4v_ssse3( uint16_t *sum8, uint16_t *sum4, int stride );
 #define LOWRES(cpu) \
 extern void x264_frame_init_lowres_core_##cpu( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,\
                                                int src_stride, int dst_stride, int width, int height );
@@ -339,6 +340,9 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->hpel_filter = x264_hpel_filter_ssse3;
     pf->frame_init_lowres_core = x264_frame_init_lowres_core_ssse3;
     pf->mc_chroma = x264_mc_chroma_ssse3;
+
+    if( cpu&X264_CPU_SHUFFLE_IS_FAST )
+        pf->integral_init4v = x264_integral_init4v_ssse3;
 
     if( !(cpu&X264_CPU_SSE4) )
         return;
