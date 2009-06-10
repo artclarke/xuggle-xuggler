@@ -538,6 +538,52 @@ using the library and what you like or don't like about it.
     <antcall target="ivy-publish" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
     </antcall>
+    <echo message="Staging Java Jars to right location"/>
+    <mkdir dir="${dist.dir}/stage-core/${xuggle.dir}/share/java/jars"/>
+    <copy todir="${dist.dir}/stage-core/${xuggle.dir}/share/java/jars">
+      <fileset dir="${dist.dir}/lib">
+        <include name="**/*.jar"/>
+      </fileset>
+    </copy>
+    <mkdir dir="${dist.dir}/stage/${xuggle.dir}/share/java/jars"/>
+    <copy todir="${dist.dir}/stage/${xuggle.dir}/share/java/jars">
+      <fileset dir="${dist.dir}/lib">
+        <include name="**/*.jar"/>
+      </fileset>
+    </copy>
+    <echo message="Generating Installer source files from templates"/>
+    <copy failonerror="false" todir="${build.dir}">
+      <fileset dir="${top.dir}${file.separator}mk">
+        <include name="**/*.in"/>
+      </fileset>
+      <filterset>
+        <filter token="LIB_MAJOR_VERSION" value="${library.version.major}"/>
+        <filter token="LIB_MINOR_VERSION" value="${library.version.minor}"/>
+        <filter token="LIB_REVISION" value="${library.revision}"/>
+        <filter token="APP_NAME" value="${app.name}"/>
+      </filterset>
+      <globmapper from="*.in" to="*"/>
+    </copy>
+    <if>
+      <isset property="os.windows"/>
+      <then>
+        <if>
+          <available file="build/windowsx86.nsi"/>
+          <then>
+            <exec executable="makensis"
+              failonerror="true"
+              failifexecutionfails="false"
+              >
+              <arg value="/DXUGGLE_HOME=${dist.dir}${file.separator}stage${xuggle.dir}"/>
+              <arg value="build/windowsx86.nsi"/>
+            </exec>
+          </then>
+          <else>
+            <echo message="could not find NSI file"/>
+          </else>
+        </if>
+      </then>
+    </if>
   </target>
   <!-- Don't make install depend on dist or stage; that's because some people
        need to run "install" as root, and depending on stage will create
@@ -545,12 +591,6 @@ using the library and what you like or don't like about it.
   <target name="install-java"
     depends="init"
     description="Publishes the jar files to XUGGLE_HOME">
-    <mkdir dir="${xuggle.dir.native}/share/java/jars"/>
-    <copy todir="${xuggle.dir.native}/share/java/jars">
-      <fileset dir="${dist.dir}/lib">
-        <include name="**/*.jar"/>
-      </fileset>
-    </copy>
   </target>
   <target name="install-native"
     depends="init-native, install-native-do"
@@ -1034,6 +1074,22 @@ using the library and what you like or don't like about it.
   </target>
   <target name="stage-native-do"
     if="native.makefile.exists">
+    <!-- stage the captive binaries -->
+    <exec executable="${build.native.make}"
+      dir="${build-native.dir}/captive"
+      failonerror="true">
+      <env key="DESTDIR" value="${dist.unix.dir}/stage-captive"/>
+      <arg line="install"/>
+    </exec>
+    <!-- stage the core binaries -->
+    <exec executable="${build.native.make}"
+      dir="${build-native.dir}/csrc"
+      failonerror="true">
+      <env key="DESTDIR" value="${dist.unix.dir}/stage-core"/>
+      <arg line="install"/>
+    </exec>
+    <!-- now, restage both to a combined target; we have to do a make
+      instead of an ant copy, since ant copy will drop file attributes -->
     <exec executable="${build.native.make}"
       dir="${build-native.dir}"
       failonerror="true">
