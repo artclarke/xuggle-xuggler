@@ -414,7 +414,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
         pixel_asm.ssim_end4 != pixel_ref.ssim_end4 )
     {
         float res_c, res_a;
-        int sums[5][4] = {{0}};
+        DECLARE_ALIGNED_16( int sums[5][4] ) = {{0}};
         used_asm = ok = 1;
         x264_emms();
         res_c = x264_pixel_ssim_wxh( &pixel_c,   buf1+2, 32, buf2+2, 32, 32, 28, buf3 );
