@@ -314,7 +314,7 @@ void x264_frame_init_lowres( x264_t *h, x264_frame_t *frame )
     // duplicate last row and column so that their interpolation doesn't have to be special-cased
     for( y=0; y<i_height; y++ )
         src[i_width+y*i_stride] = src[i_width-1+y*i_stride];
-    h->mc.memcpy_aligned( src+i_stride*i_height, src+i_stride*(i_height-1), i_width );
+    memcpy( src+i_stride*i_height, src+i_stride*(i_height-1), i_width );
     h->mc.frame_init_lowres_core( src, frame->lowres[0], frame->lowres[1], frame->lowres[2], frame->lowres[3],
                                   i_stride, frame->i_stride_lowres, frame->i_width_lowres, frame->i_lines_lowres );
     x264_frame_expand_border_lowres( frame );
