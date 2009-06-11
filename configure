@@ -202,7 +202,7 @@ case $host_os in
     CFLAGS="$CFLAGS -I/usr/X11R6/include"
     LDFLAGS="$LDFLAGS -lm"
     ;;
-  linux*)
+  *linux*)
     SYS="LINUX"
     CFLAGS="$CFLAGS -DHAVE_MALLOC_H"
     LDFLAGS="$LDFLAGS -lm"
