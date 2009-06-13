@@ -21,50 +21,6 @@
   <!-- And bring in the standard build rules -->
   <import file="mk/buildtools/buildhelper.xml"/>
 
-  <!-- If we're on windows, auto build the installer when staging -->
-  <target name="stage"
-    depends="xuggle-buildhelper.stage"
-    >
-    <echo message="Staging Java Jars to right location"/>
-    <mkdir dir="${dist.dir}/stage/${xuggle.dir}/share/java/jars"/>
-    <copy todir="${dist.dir}/stage/${xuggle.dir}/share/java/jars">
-      <fileset dir="${dist.dir}/lib">
-        <include name="**/*.jar"/>
-      </fileset>
-    </copy>
-    <echo message="Generating Installer source files from templates"/>
-    <copy failonerror="false" todir="${build.dir}">
-      <fileset dir="${top.dir}${file.separator}mk">
-        <include name="**/*.in"/>
-      </fileset>
-      <filterset>
-        <filter token="LIB_MAJOR_VERSION" value="${library.version.major}"/>
-        <filter token="LIB_MINOR_VERSION" value="${library.version.minor}"/>
-        <filter token="LIB_REVISION" value="${library.revision}"/>
-      </filterset>
-      <globmapper from="*.in" to="*"/>
-    </copy>
-    <if>
-      <isset property="os.windows"/>
-      <then>
-        <if>
-          <available file="build/windowsx86.nsi"/>
-          <then>
-            <exec executable="makensis"
-              failonerror="true"
-              failifexecutionfails="false"
-              >
-              <arg value="/DXUGGLE_HOME=${dist.dir}${file.separator}stage${xuggle.dir}"/>
-              <arg value="build/windowsx86.nsi"/>
-            </exec>
-          </then>
-          <else>
-            <echo message="could not find NSI file"/>
-          </else>
-        </if>
-      </then>
-    </if>
-  </target>
   <target name="install-java"
     depends="xuggle-buildhelper.install-java, install-red5">
   </target>
