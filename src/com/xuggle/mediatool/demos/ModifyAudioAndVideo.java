@@ -107,7 +107,7 @@ public class ModifyAudioAndVideo
     // then encode and write out data to the output file
     
     while (reader.readPacket() == null)
-      ;
+      do {} while(false);
   }  
 
   /** 

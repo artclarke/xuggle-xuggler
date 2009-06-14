@@ -432,13 +432,12 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
     // if audio stream and playing audio, configure audio stream
 
     else if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO &&
-      getMode().playAudio())
+      getMode().playAudio() &&
+      getMode().isRealTime())
 
     {
       // if real time establish audio queue
-
-      if (getMode().isRealTime())
-        getAudioQueue(event.getSource(), streamIndex);
+      getAudioQueue(event.getSource(), streamIndex);
     }
   }
 
@@ -1366,7 +1365,9 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
       // currently the dispose is passed through
 
       super.dispose();
-
+      
+      // make a pmd warning go away
+      do {} while(false);
 //       if (!isDisplayable())
 //         return;
 

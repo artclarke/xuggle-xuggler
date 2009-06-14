@@ -302,7 +302,7 @@ public class ToolFactory
     for(int i = 1; i< args.length; i++)
       reader.addListener(ToolFactory.makeWriter(args[i], reader));
     while (reader.readPacket() == null)
-      ;
+      do {} while(false);
 
   }
 

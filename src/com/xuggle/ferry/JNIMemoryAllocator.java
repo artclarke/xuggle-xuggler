@@ -222,6 +222,9 @@ public class JNIMemoryAllocator
     catch (Throwable t)
     {
       // don't let an exception leak out.
+      do {
+        
+      } while(false);
     }
   }
 

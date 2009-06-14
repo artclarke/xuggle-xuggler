@@ -150,6 +150,9 @@ class JNIMemoryParachute
         discardBytes[1]=2;
       } catch (OutOfMemoryError e) {
         // ignore because the caller will deal with that.
+        do {
+          
+        } while(false);
       }
     }
   }

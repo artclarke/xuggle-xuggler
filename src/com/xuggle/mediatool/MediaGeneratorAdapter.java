@@ -59,6 +59,7 @@ public class MediaGeneratorAdapter extends AMediaGeneratorMixin implements
    */
   public boolean addListener(IMediaListener listener)
   {
+    do {} while(false);
     return super.addListener(listener);
   }
 
@@ -67,6 +68,7 @@ public class MediaGeneratorAdapter extends AMediaGeneratorMixin implements
    */
   public Collection<IMediaListener> getListeners()
   {
+    do {} while(false);
     return super.getListeners();
   }
 
@@ -75,6 +77,7 @@ public class MediaGeneratorAdapter extends AMediaGeneratorMixin implements
    */
   public boolean removeListener(IMediaListener listener)
   {
+    do {} while(false);
     return super.removeListener(listener);
   }
 

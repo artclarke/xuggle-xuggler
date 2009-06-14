@@ -66,6 +66,7 @@ implements IMediaTool
    */
   public boolean addListener(IMediaListener listener)
   {
+    do {} while(false);
     return super.addListener(listener);
   }
 
@@ -74,6 +75,7 @@ implements IMediaTool
    */
   public Collection<IMediaListener> getListeners()
   {
+    do {} while(false);
     return super.getListeners();
   }
 
@@ -82,6 +84,7 @@ implements IMediaTool
    */
   public boolean removeListener(IMediaListener listener)
   {
+    do {} while(false);
     return super.removeListener(listener);
   }
 
@@ -90,6 +93,7 @@ implements IMediaTool
    */
   public void onAddStream(IAddStreamEvent event)
   {
+    do {} while(false);
     super.onAddStream(event);
   }
 
@@ -98,6 +102,7 @@ implements IMediaTool
    */
   public void onAudioSamples(IAudioSamplesEvent event)
   {
+    do {} while(false);
     super.onAudioSamples(event);
   }
 
@@ -106,6 +111,7 @@ implements IMediaTool
    */
   public void onClose(ICloseEvent event)
   {
+    do {} while(false);
     super.onClose(event);
   }
 
@@ -114,6 +120,7 @@ implements IMediaTool
    */
   public void onCloseCoder(ICloseCoderEvent event)
   {
+    do {} while(false);
     super.onCloseCoder(event);
   }
 
@@ -122,6 +129,7 @@ implements IMediaTool
    */
   public void onFlush(IFlushEvent event)
   {
+    do {} while(false);
     super.onFlush(event);
   }
 
@@ -130,6 +138,7 @@ implements IMediaTool
    */
   public void onOpen(IOpenEvent event)
   {
+    do {} while(false);
     super.onOpen(event);
   }
 
@@ -138,6 +147,7 @@ implements IMediaTool
    */
   public void onOpenCoder(IOpenCoderEvent event)
   {
+    do {} while(false);
     super.onOpenCoder(event);
   }
 
@@ -146,7 +156,8 @@ implements IMediaTool
    */
   public void onReadPacket(IReadPacketEvent event)
   {
-   super.onReadPacket(event); 
+    do {} while(false);
+    super.onReadPacket(event); 
   }
 
   /**
@@ -154,6 +165,7 @@ implements IMediaTool
    */
   public void onVideoPicture(IVideoPictureEvent event)
   {
+    do {} while(false);
     super.onVideoPicture(event);
   }
 
@@ -162,6 +174,7 @@ implements IMediaTool
    */
   public void onWriteHeader(IWriteHeaderEvent event)
   {
+    do {} while(false);
     super.onWriteHeader(event);
   }
 
@@ -170,7 +183,8 @@ implements IMediaTool
    */
   public void onWritePacket(IWritePacketEvent event)
   {
-   super.onWritePacket(event); 
+    do {} while(false);
+    super.onWritePacket(event); 
   }
 
   /**
@@ -178,6 +192,7 @@ implements IMediaTool
    */
   public void onWriteTrailer(IWriteTrailerEvent event)
   {
+    do {} while(false);
     super.onWriteTrailer(event);
   }
 

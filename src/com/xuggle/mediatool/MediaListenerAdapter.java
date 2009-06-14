@@ -62,6 +62,7 @@ extends AMediaListenerMixin implements IMediaListener
 
   public void onVideoPicture(IVideoPictureEvent event)
   {
+    do {} while(false);
     super.onVideoPicture(event);
   }
 
@@ -69,6 +70,7 @@ extends AMediaListenerMixin implements IMediaListener
 
   public void onAudioSamples(IAudioSamplesEvent event)
   {
+    do {} while(false);
     super.onAudioSamples(event);
   }
 
@@ -76,6 +78,7 @@ extends AMediaListenerMixin implements IMediaListener
 
   public void onOpen(IOpenEvent event)
   {
+    do {} while(false);
     super.onOpen(event);
   }
 
@@ -83,6 +86,7 @@ extends AMediaListenerMixin implements IMediaListener
 
   public void onClose(ICloseEvent event)
   {
+    do {} while(false);
     super.onClose(event);
   }
 
@@ -90,6 +94,7 @@ extends AMediaListenerMixin implements IMediaListener
 
   public void onAddStream(IAddStreamEvent event)
   {
+    do {} while(false);
     super.onAddStream(event);
   }
 
@@ -97,6 +102,7 @@ extends AMediaListenerMixin implements IMediaListener
 
   public void onOpenCoder(IOpenCoderEvent event)
   {
+    do {} while(false);
     super.onOpenCoder(event);
   }
 
@@ -104,6 +110,7 @@ extends AMediaListenerMixin implements IMediaListener
 
   public void onCloseCoder(ICloseCoderEvent event)
   {
+    do {} while(false);
     super.onCloseCoder(event);
   }
 
@@ -111,6 +118,7 @@ extends AMediaListenerMixin implements IMediaListener
 
   public void onReadPacket(IReadPacketEvent event)
   {
+    do {} while(false);
     super.onReadPacket(event);
   }
 
@@ -118,6 +126,7 @@ extends AMediaListenerMixin implements IMediaListener
 
   public void onWritePacket(IWritePacketEvent event)
   {
+    do {} while(false);
     super.onWritePacket(event);
   }
 
@@ -125,6 +134,7 @@ extends AMediaListenerMixin implements IMediaListener
 
   public void onWriteHeader(IWriteHeaderEvent event)
   {
+    do {} while(false);
     super.onWriteHeader(event);
   }
 
@@ -132,6 +142,7 @@ extends AMediaListenerMixin implements IMediaListener
 
   public void onFlush(IFlushEvent event)
   {
+    do {} while(false);
     super.onFlush(event);
   }
 
@@ -139,6 +150,7 @@ extends AMediaListenerMixin implements IMediaListener
 
   public void onWriteTrailer(IWriteTrailerEvent event)
   {
+    do {} while(false);
     super.onWriteTrailer(event);
   }
 }

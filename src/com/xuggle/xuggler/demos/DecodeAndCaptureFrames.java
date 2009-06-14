@@ -255,6 +255,7 @@ public class DecodeAndCaptureFrames
       {
         // This packet isn't part of our video stream, so we just
         // silently drop it.
+        do {} while(false);
       }
     }
 

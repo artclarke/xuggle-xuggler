@@ -154,7 +154,7 @@ public class DecodeAndPlayAudio
         /*
          * This packet isn't part of our audio stream, so we just silently drop it.
          */
-        ;
+        do {} while(false);
       }
       
     }

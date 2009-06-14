@@ -255,29 +255,28 @@ public class JNILibraryLoader
 
     List<String> libCandidates = getLibraryCandidates(aLibraryName,
         aMajorVersion);
-    if (libCandidates != null && libCandidates.size() > 0)
+    if (libCandidates != null && libCandidates.size() > 0
+        && !loadCandidateLibrary(aLibraryName, aMajorVersion, libCandidates))
     {
-      if (!loadCandidateLibrary(aLibraryName, aMajorVersion, libCandidates))
+      // finally, try the System.loadLibrary call
+      try
       {
-        // finally, try the System.loadLibrary call
-        try
-        {
-          System.loadLibrary(aLibraryName);
-        }
-        catch (UnsatisfiedLinkError e)
-        {
-          log
-              .error(
-                  "Could not load library: {}; version: {}; Visit http://www.xuggle.com/xuggler/faq/ to find common solutions to this problem",
-                  aLibraryName, aMajorVersion == null ? "" : aMajorVersion);
-
-        }
-        // and if we get here it means we successfully loaded since no
-        // exception was thrown. Add our library to the cache.
-        setLoadedLibrary(aLibraryName, aMajorVersion);
+        System.loadLibrary(aLibraryName);
       }
+      catch (UnsatisfiedLinkError e)
+      {
+        log
+            .error(
+                "Could not load library: {}; version: {}; Visit http://www.xuggle.com/xuggler/faq/ to find common solutions to this problem",
+                aLibraryName, aMajorVersion == null ? "" : aMajorVersion);
+
+      }
+      // and if we get here it means we successfully loaded since no
+      // exception was thrown. Add our library to the cache.
+      setLoadedLibrary(aLibraryName, aMajorVersion);
     }
   }
+ 
 
   /**
    * Tell the cache that we've loaded this version.

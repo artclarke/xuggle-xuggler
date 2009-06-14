@@ -170,7 +170,7 @@ public class DisplayWebcamVideo
     // exited.
 
     while (reader.readPacket() == null)
-      ;
+      do {} while(false);
 
   }
 

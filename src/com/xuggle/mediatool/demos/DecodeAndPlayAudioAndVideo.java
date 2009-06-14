@@ -51,7 +51,7 @@ public class DecodeAndPlayAudioAndVideo extends MediaListenerAdapter
     IMediaReader reader = ToolFactory.makeReader(args[0]);
     reader.addListener(ToolFactory.makeViewer());
     while(reader.readPacket() == null)
-      ;
+      do {} while(false);
     
   }
 

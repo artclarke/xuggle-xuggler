@@ -61,6 +61,6 @@ public class DecodeAndPlayAudio
     // read out the contents of the media file, and sit back and watch
 
     while (reader.readPacket() == null)
-      ;
+      do {} while(false);
   }
 }

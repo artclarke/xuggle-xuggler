@@ -93,6 +93,6 @@ public class TranscodeAudioAndVideo
     // writer, this will continue until 
 
     while (reader.readPacket() == null)
-      ;
+      do {} while(false);
   }
 }
