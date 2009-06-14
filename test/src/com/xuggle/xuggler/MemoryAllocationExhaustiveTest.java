@@ -357,6 +357,15 @@ public class MemoryAllocationExhaustiveTest
           assertNotNull(tuple.getBuffer());
           assertNotNull(tuple.getReference());
           bytesBeforeFailure += media.getSize();
+          
+          if (bytesBeforeFailure > 4*1024*1024*1024)
+          {
+            // this test causes too much swapping on 64 bit machines, so
+            // if we get this far, just return
+            mSuccess = true;
+            return;
+          }
+          
         } finally {
           if (media != null)
             media.delete();

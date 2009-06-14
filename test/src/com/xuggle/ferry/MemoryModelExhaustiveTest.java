@@ -266,13 +266,16 @@ public class MemoryModelExhaustiveTest extends TestCase
       System.out.println("Attempting recovery from OOME");
       List<byte[]> leakedBytes = new LinkedList<byte[]>();
       try {
-        leakedBytes.clear();
+        long numPinned = JNIMemoryManager.getMgr().getNumPinnedObjects();
         try {
-          while(true)
+          while(numPinned <= JNIMemoryManager.getMgr().getNumPinnedObjects())
             leakedBytes.add(new byte[size]);
         } catch (OutOfMemoryError e1) {
-          leakedBytes.clear();
+          // ignore
+          do {} while(false);
         }
+        leakedBytes.clear();
+        JNIMemoryManager.collect();
         buffer = IBuffer.make(null, size);
       }
       catch (OutOfMemoryError e2)
