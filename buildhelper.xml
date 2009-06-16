@@ -539,6 +539,14 @@ using the library and what you like or don't like about it.
     <antcall target="ivy-publish" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
     </antcall>
+    <!-- and zip up the ivys -->
+    <mkdir dir="${dist.dir}/repo"/>
+    <tar
+        basedir="${dist.dir}/ivys"
+        destfile="${dist.dir}/repo/${app.name}-repo.${library.version}.tar.gz"
+        includes="**/*"
+        compression="gzip">
+    </tar>
   </target>
   <!-- Don't make install depend on dist or stage; that's because some people
        need to run "install" as root, and depending on stage will create
