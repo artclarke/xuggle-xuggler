@@ -543,7 +543,7 @@ using the library and what you like or don't like about it.
     <mkdir dir="${dist.dir}/repo"/>
     <tar
         basedir="${dist.dir}/ivys"
-        destfile="${dist.dir}/repo/${app.name}-repo.${library.version}.tar.gz"
+        destfile="${dist.dir}/repo/${app.name}.${library.version}-repo.tar.gz"
         includes="**/*"
         compression="gzip">
     </tar>
@@ -1011,7 +1011,8 @@ using the library and what you like or don't like about it.
       failonerror="true">
       <arg line="dist"/>
     </exec>
-    <copy todir="${dist.dir}/src">
+    <copy
+        tofile="${dist.dir}/src/${app.name}.${library.version}-src.tar.gz">
       <fileset dir="${build-native.dir}">
         <include name="**/*.tar.gz"/>
       </fileset>
@@ -1088,7 +1089,7 @@ using the library and what you like or don't like about it.
         f: archive -->
 
       <arg value="-pczvf"/>
-      <arg value="${dist.dir}/bin/${app.name}-core-bin.${library.version}.tar.gz"/>
+      <arg value="${dist.dir}/bin/${app.name}.${library.version}-core-bin.tar.gz"/>
       <arg value="."/>
     </exec>
     <exec dir="${dist.dir}/stage-captive/${xuggle.dir}"
@@ -1100,7 +1101,7 @@ using the library and what you like or don't like about it.
         f: archive -->
 
       <arg value="-pczvf"/>
-      <arg value="${dist.dir}/bin/${app.name}-captive-bin.${library.version}.tar.gz"/>
+      <arg value="${dist.dir}/bin/${app.name}.${library.version}-captive-bin.tar.gz"/>
       <arg value="."/>
     </exec>
     <exec dir="${dist.dir}/stage/${xuggle.dir}"
@@ -1112,7 +1113,7 @@ using the library and what you like or don't like about it.
         f: archive -->
 
       <arg value="-pczvf"/>
-      <arg value="${dist.dir}/bin/${app.name}-bin.${library.version}.tar.gz"/>
+      <arg value="${dist.dir}/bin/${app.name}.${library.version}-bin.tar.gz"/>
       <arg value="."/>
     </exec>
 
