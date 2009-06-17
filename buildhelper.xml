@@ -1095,7 +1095,7 @@ using the library and what you like or don't like about it.
     <exec dir="${dist.dir}/stage/${xuggle.dir}"
         executable="tar">
       <arg value="-pczf"/>
-      <arg value="${dist.dir}/bin/${app.name}.${library.version}-bin-${xuggle.os}.tar.gz"/>
+      <arg value="${dist.dir}/bin/${app.name}.${library.version}-all-bin-${xuggle.os}.tar.gz"/>
       <arg value="."/>
     </exec>
 
