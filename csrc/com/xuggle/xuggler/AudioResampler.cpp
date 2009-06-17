@@ -195,6 +195,9 @@ namespace com { namespace xuggle { namespace xuggler
     try {
       if (!outSamples)
         throw std::invalid_argument("no output samples");
+      
+      if (outSamples == inSamples)
+        throw std::invalid_argument("resampling into the same IAudioSamples is not allowed");
 
       // null out the output samples.
       outSamples->setComplete(false, 0, mOSampleRate, mOChannels,
