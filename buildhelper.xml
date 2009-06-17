@@ -1273,6 +1273,9 @@ using the library and what you like or don't like about it.
   <target name="doc"
     depends="doc-native, doc-java"
     description="Create all documentation, including native documentation if available"/>
+  <target name="doc-fast"
+    depends="doc-java-fast"
+    description="Create all documentation, including native documentation if available, but without diagrams"/>
   <target name="fixtures"
     depends="fixtures-native, fixtures-java"
     description="Install all test fixtures, including native fixtures if required"/>
