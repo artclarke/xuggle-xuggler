@@ -215,18 +215,8 @@ public class JNIMemoryAllocator
 
   public void free(byte[] mem)
   {
-    try
-    {
-      removeFromBuffer(mem);
+    removeFromBuffer(mem);
 //      log.debug("free:   {}({})", mem.hashCode(), mem.length);
-    }
-    catch (Throwable t)
-    {
-      // don't let an exception leak out.
-      do {
-        
-      } while(false);
-    }
   }
 
   /**
