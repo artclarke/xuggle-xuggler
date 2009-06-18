@@ -595,15 +595,42 @@ using the library and what you like or don't like about it.
 
   <target name="clobber-java" depends="init, clobber-share, clean-java"
     description="Cleans everything; make sure you can regenerate if needed">
-    <delete failonerror="false" dir="${dist.dir}"/>
-    <delete failonerror="false" dir="${javadoc.dir}"/>
+    <delete
+        includeemptydirs="yes"
+        failonerror="false">
+      <fileset
+          includes="**/*"
+          dir="${dist.dir}"
+          followsymlinks="false"/>
+    </delete>
+    <delete
+        includeemptydirs="yes"
+        failonerror="false">
+      <fileset
+          includes="**/*"
+          dir="${javadoc.dir}"
+          followsymlinks="false"/>
+    </delete>
   </target>
 
   <target name="clean-java" depends="clean-share"
     description="clean up" >
-    <!-- Delete the ${build.dir} and ${dist.dir} directory trees -->
-    <delete failonerror="false" dir="${classes.dir}"/>
-    <delete failonerror="false" dir="${test.classes.dir}"/>
+    <delete
+        includeemptydirs="yes"
+        failonerror="false">
+      <fileset
+          includes="**/*"
+          dir="${classes.dir}"
+          followsymlinks="false"/>
+    </delete>
+    <delete
+        includeemptydirs="yes"
+        failonerror="false">
+      <fileset
+          includes="**/*"
+          dir="${test.classes.dir}"
+          followsymlinks="false"/>
+    </delete>
   </target>
 
   <target name="fixtures-java" depends="init"
