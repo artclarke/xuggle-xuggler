@@ -595,7 +595,7 @@ using the library and what you like or don't like about it.
 
   <target name="clobber-java" depends="init, clobber-share, clean-java"
     description="Cleans everything; make sure you can regenerate if needed">
-    <delete failonerror="false" dir="${build.dir}"/>
+    <delete failonerror="false" dir="${dist.dir}"/>
     <delete failonerror="false" dir="${javadoc.dir}"/>
   </target>
 
@@ -604,7 +604,6 @@ using the library and what you like or don't like about it.
     <!-- Delete the ${build.dir} and ${dist.dir} directory trees -->
     <delete failonerror="false" dir="${classes.dir}"/>
     <delete failonerror="false" dir="${test.classes.dir}"/>
-    <delete failonerror="false" dir="${dist.dir}"/>
   </target>
 
   <target name="fixtures-java" depends="init"
