@@ -196,4 +196,28 @@ public class IMediaDataTest
     assertEquals("more objects around than expected",
         0, JNIMemoryManager.getMgr().getNumPinnedObjects());
   }
+  
+  @Test
+  public void testToStringDoesNotLeak()
+  {
+    JNIMemoryManager.getMgr().flush();
+    assertEquals("more objects around than expected",
+        0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+    IAudioSamples samples = IAudioSamples.make(1024, 2);
+    samples.toString();
+    IVideoPicture picture = Utils.getBlankFrame(100, 100, 0);
+    picture.toString();
+    IPacket packet = IPacket.make(1024);
+    packet.toString();
+    packet.getFormattedTimeStamp();
+    IRational timeBase = IRational.make(1,25);
+    packet.setTimeBase(timeBase);
+    timeBase.delete();
+    packet.getFormattedTimeStamp();
+    packet.delete();
+    samples.delete();
+    picture.delete();
+    assertEquals("more objects around than expected",
+        0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+  }
 }

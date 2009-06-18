@@ -149,7 +149,7 @@ public class IMediaData extends RefCounted {
 
   /** The default time stamp format. */
   
-  public static final String DEFALUT_TIME_STAMP_FORMAT =
+  public static final String DEFAULT_TIME_STAMP_FORMAT =
     "%1$tH:%1$tM:%1$tS.%1$tL";
 /**
  * Absolute bulk put method.
@@ -599,12 +599,12 @@ public void get(int srcPos, double[] dest, int destPos, int length)
    * @return the printable string form of the time stamp of this media
    *
    * @see #getFormattedTimeStamp(String)
-   * @see #DEFALUT_TIME_STAMP_FORMAT
+   * @see #DEFAULT_TIME_STAMP_FORMAT
    */
 
   public String getFormattedTimeStamp()
   {
-    return getFormattedTimeStamp(DEFALUT_TIME_STAMP_FORMAT);
+    return getFormattedTimeStamp(DEFAULT_TIME_STAMP_FORMAT);
   }
 
   /**
@@ -619,16 +619,21 @@ public void get(int srcPos, double[] dest, int destPos, int length)
    * @return the printable string form of the timestamp
    * 
    * @see #getFormattedTimeStamp()
-   * @see #DEFALUT_TIME_STAMP_FORMAT
+   * @see #DEFAULT_TIME_STAMP_FORMAT
    * @see java.util.Formatter
    */
 
   public String getFormattedTimeStamp(String format)
   {
     java.util.Formatter formatter = new java.util.Formatter();
-    return formatter.format(format,
-      (long)(getTimeStamp() * getTimeBase().getDouble() * 1000) +
+    IRational timeBase = getTimeBase();
+    if (timeBase == null)
+      timeBase = IRational.make(1,(int)Global.DEFAULT_PTS_PER_SECOND);
+    String retval = formatter.format(format,
+      (long)(getTimeStamp() * timeBase.getDouble() * 1000) +
       TIME_OFFSET).toString();
+    timeBase.delete();
+    return retval;
   }
 
 /**

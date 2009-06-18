@@ -20,8 +20,10 @@
 package com.xuggle.xuggler;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.xuggle.ferry.IBuffer;
+import com.xuggle.ferry.JNIReference;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IVideoPicture;
@@ -90,104 +92,126 @@ public class Utils
     
     if (frame != null)
     {
-      IBuffer data = frame.getData();
-      int bufSize = frame.getSize();
-      java.nio.ByteBuffer buffer = data.getByteBuffer(0, bufSize);
-      if (buffer != null)
+      AtomicReference<JNIReference> ref = new AtomicReference<JNIReference>(
+          null);
+      IBuffer data = null;
+      try
       {
-        // we have the raw data; now we set it to the specified YUV value.
-        int lineLength = 0;
-        int offset = 0;
-        
-        // first let's check the L
-        offset = 0;
-        lineLength = frame.getDataLineSize(0);
-        int sliceLen = lineLength*h;
-        for(int i = offset ; i < offset + sliceLen; i++)
+        data = frame.getData();
+        int bufSize = frame.getSize();
+        java.nio.ByteBuffer buffer = data.getByteBuffer(0, bufSize, ref);
+        if (buffer != null)
         {
-          int x = (i-offset) % lineLength;
-          int y = (i-offset) / lineLength;
-          if (crossHatchH > 0 && crossHatchW > 0 && ( 
-              ((x / crossHatchW)%2==1 && (y / crossHatchH)%2==0) ||
-              ((x / crossHatchW)%2==0 && (y / crossHatchH)%2==1)
-          ))
-            buffer.put(i, (byte)crossHatchYColor);
-          else
-            buffer.put(i, (byte)yColor);
-        }
+          // we have the raw data; now we set it to the specified YUV value.
+          int lineLength = 0;
+          int offset = 0;
 
-        // now, check the U value
-        offset = (frame.getDataLineSize(0)*h);
-        lineLength = frame.getDataLineSize(1);
-        sliceLen = lineLength * ((h+1) / 2);
-        for(int i = offset ; i < offset + sliceLen; i++)
-        {
-          if (crossHatchH > 0 && crossHatchW > 0)
+          // first let's check the L
+          offset = 0;
+          lineLength = frame.getDataLineSize(0);
+          int sliceLen = lineLength * h;
+          for (int i = offset; i < offset + sliceLen; i++)
           {
-            // put x and y in bottom right of pixel range
-            int x = ((i-offset) % lineLength)*2;
-            int y = ((i-offset) / lineLength)*2;
-            
-            int[] xCoords = new int[] { x, x+1, x, x+1 };
-            int[] yCoords = new int[] { y, y, y+1, y+1};
-            int finalColor = 0;
-            for(int j =0; j < xCoords.length; j++)
+            int x = (i - offset) % lineLength;
+            int y = (i - offset) / lineLength;
+            if (crossHatchH > 0
+                && crossHatchW > 0
+                && (((x / crossHatchW) % 2 == 1 && (y / crossHatchH) % 2 == 0) || ((x / crossHatchW) % 2 == 0 && (y / crossHatchH) % 2 == 1)))
+              buffer.put(i, (byte) crossHatchYColor);
+            else
+              buffer.put(i, (byte) yColor);
+          }
+
+          // now, check the U value
+          offset = (frame.getDataLineSize(0) * h);
+          lineLength = frame.getDataLineSize(1);
+          sliceLen = lineLength * ((h + 1) / 2);
+          for (int i = offset; i < offset + sliceLen; i++)
+          {
+            if (crossHatchH > 0 && crossHatchW > 0)
             {
-              int color = uColor;
-              x = xCoords[j];
-              y = yCoords[j];
-              if (
-                  ((x / crossHatchW)%2==1 && (y / crossHatchH)%2==0) ||
-                  ((x / crossHatchW)%2==0 && (y / crossHatchH)%2==1)
-                )
+              // put x and y in bottom right of pixel range
+              int x = ((i - offset) % lineLength) * 2;
+              int y = ((i - offset) / lineLength) * 2;
+
+              int[] xCoords = new int[]
               {
-                color = crossHatchUColor;
+                  x, x + 1, x, x + 1
+              };
+              int[] yCoords = new int[]
+              {
+                  y, y, y + 1, y + 1
+              };
+              int finalColor = 0;
+              for (int j = 0; j < xCoords.length; j++)
+              {
+                int color = uColor;
+                x = xCoords[j];
+                y = yCoords[j];
+                if (((x / crossHatchW) % 2 == 1 && (y / crossHatchH) % 2 == 0)
+                    || ((x / crossHatchW) % 2 == 0 && (y / crossHatchH) % 2 == 1))
+                {
+                  color = crossHatchUColor;
+                }
+                finalColor += color;
               }
-              finalColor += color;
+              finalColor /= xCoords.length;
+              buffer.put(i, (byte) finalColor);
             }
-            finalColor /= xCoords.length;
-            buffer.put(i, (byte)finalColor);
+            else
+              buffer.put(i, (byte) uColor);
           }
-          else
-            buffer.put(i, (byte)uColor);
-        }
 
-        // and finally the V
-        offset = (frame.getDataLineSize(0)*h) + (frame.getDataLineSize(1)*((h+1)/2));
-        lineLength = frame.getDataLineSize(2);
-        sliceLen = lineLength * ((h+1) / 2);
-        for(int i = offset; i < offset + sliceLen; i++)
-        {
-          if (crossHatchH > 0 && crossHatchW > 0)
+          // and finally the V
+          offset = (frame.getDataLineSize(0) * h)
+              + (frame.getDataLineSize(1) * ((h + 1) / 2));
+          lineLength = frame.getDataLineSize(2);
+          sliceLen = lineLength * ((h + 1) / 2);
+          for (int i = offset; i < offset + sliceLen; i++)
           {
-            // put x and y in bottom right of pixel range
-            int x = ((i-offset) % lineLength)*2;
-            int y = ((i-offset) / lineLength)*2;
-            
-            int[] xCoords = new int[] { x, x+1, x, x+1 };
-            int[] yCoords = new int[] { y, y, y+1, y+1};
-            int finalColor = 0;
-            for(int j =0; j < xCoords.length; j++)
+            if (crossHatchH > 0 && crossHatchW > 0)
             {
-              int color = vColor;
-              x = xCoords[j];
-              y = yCoords[j];
-              if (
-                  ((x / crossHatchW)%2==1 && (y / crossHatchH)%2==0) ||
-                  ((x / crossHatchW)%2==0 && (y / crossHatchH)%2==1)
-                )
-                color =crossHatchVColor;
-              finalColor += color;
+              // put x and y in bottom right of pixel range
+              int x = ((i - offset) % lineLength) * 2;
+              int y = ((i - offset) / lineLength) * 2;
+
+              int[] xCoords = new int[]
+              {
+                  x, x + 1, x, x + 1
+              };
+              int[] yCoords = new int[]
+              {
+                  y, y, y + 1, y + 1
+              };
+              int finalColor = 0;
+              for (int j = 0; j < xCoords.length; j++)
+              {
+                int color = vColor;
+                x = xCoords[j];
+                y = yCoords[j];
+                if (((x / crossHatchW) % 2 == 1 && (y / crossHatchH) % 2 == 0)
+                    || ((x / crossHatchW) % 2 == 0 && (y / crossHatchH) % 2 == 1))
+                  color = crossHatchVColor;
+                finalColor += color;
+              }
+              finalColor /= xCoords.length;
+              buffer.put(i, (byte) finalColor);
             }
-            finalColor /= xCoords.length;
-            buffer.put(i, (byte)finalColor);
+            else
+              buffer.put(i, (byte) vColor);
           }
-          else
-            buffer.put(i, (byte)vColor);
         }
+        // set it complete
+        frame.setComplete(true, IPixelFormat.Type.YUV420P, w, h, pts);
       }
-      // set it complete
-      frame.setComplete(true, IPixelFormat.Type.YUV420P, w, h, pts);
+      finally
+      {
+        if (data != null)
+          data.delete();
+        if (ref.get() != null)
+          ref.get().delete();
+      }
+
     }
     return frame;
   }

@@ -37,7 +37,9 @@
     result.append("complete:"+isComplete()+";");
     result.append("size:"+getSize()+";");
     result.append("key:"+isKey()+";");
-    result.append("time base:"+IRational.make(1,(int)Global.DEFAULT_PTS_PER_SECOND)+";");
+    IRational timeBase = IRational.make(1,(int)Global.DEFAULT_PTS_PER_SECOND);
+    result.append("time base:"+timeBase+";");
+    if (timeBase != null) timeBase.delete();
     result.append("]");
     return result.toString();
   }

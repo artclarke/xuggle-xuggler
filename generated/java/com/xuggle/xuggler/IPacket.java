@@ -189,7 +189,9 @@ public class IPacket extends IMediaData {
     result.append("stream index:"+getStreamIndex()+";");
     result.append("duration:"+getDuration()+";");
     result.append("position:"+getPosition()+";");
-    result.append("time base:"+getTimeBase()+";");
+    IRational timeBase = getTimeBase();
+    result.append("time base:"+timeBase+";");
+    if (timeBase != null) timeBase.delete();
     result.append("]");
     return result.toString();
   }
