@@ -1496,12 +1496,6 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
 
     protected void paintPanel(Graphics2D graphics)
     {
-      // call parent paint
-
-      super.paint(graphics);
-
-      // if the image exists, draw it
-
       if (mImage != null)
         graphics.drawImage(mImage, 0, 0, null);
     }
