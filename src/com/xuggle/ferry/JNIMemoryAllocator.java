@@ -77,6 +77,7 @@ public class JNIMemoryAllocator
 
   private void removeFromBuffer(byte[] mem)
   {
+    mLock.lock();
     try
     {
       if (!mBuffers.remove(mem))
