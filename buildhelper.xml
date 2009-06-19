@@ -1106,24 +1106,37 @@ using the library and what you like or don't like about it.
     </copy>
     <mkdir dir="${dist.dir}/bin"/>
     <!-- create the right tar files -->
-    <exec dir="${dist.dir}/stage-core/${xuggle.dir}"
-        executable="tar">
+    <exec
+        dir="${dist.dir}/stage-core/${xuggle.dir}"
+        executable="tar" osfamily="unix">
       <arg value="-pczf"/>
       <arg value="${dist.dir}/bin/${app.name}.${library.version}-core-bin-${xuggle.os}.tar.gz"/>
       <arg value="."/>
     </exec>
+    <zip
+        destfile="${dist.dir}/bin/${app.name}.${library.version}-core-bin-${xuggle.os}.zip"
+        basedir="${dist.dir}/stage-core/${xuggle.dir}"
+      />
     <exec dir="${dist.dir}/stage-captive/${xuggle.dir}"
-        executable="tar">
+        executable="tar" osfamily="unix">
       <arg value="-pczf"/>
       <arg value="${dist.dir}/bin/${app.name}.${library.version}-captive-bin-${xuggle.os}.tar.gz"/>
       <arg value="."/>
     </exec>
+    <zip
+        destfile="${dist.dir}/bin/${app.name}.${library.version}-captive-bin-${xuggle.os}.zip"
+        basedir="${dist.dir}/stage-captive/${xuggle.dir}"
+      />
     <exec dir="${dist.dir}/stage/${xuggle.dir}"
-        executable="tar">
+        executable="tar" osfamily="unix">
       <arg value="-pczf"/>
       <arg value="${dist.dir}/bin/${app.name}.${library.version}-all-bin-${xuggle.os}.tar.gz"/>
       <arg value="."/>
     </exec>
+    <zip
+        destfile="${dist.dir}/bin/${app.name}.${library.version}-all-bin-${xuggle.os}.zip"
+        basedir="${dist.dir}/stage-captive/${xuggle.dir}"
+      />
 
     <echo message="Generating Installer source files from templates"/>
     <copy failonerror="false" todir="${build.dir}">
