@@ -541,12 +541,24 @@ using the library and what you like or don't like about it.
     </antcall>
     <!-- and zip up the ivys -->
     <mkdir dir="${dist.dir}/repo"/>
-    <tar
+    <if>
+      <not>
+        <isset property="os.windows"/>
+      </not>
+      <then>
+        <tar
+            basedir="${dist.dir}/ivys"
+            destfile="${dist.dir}/repo/${app.name}.${library.version}-repo.tar.gz"
+            includes="**/*"
+            compression="gzip">
+        </tar>
+      </then>
+    </if>
+    <zip
         basedir="${dist.dir}/ivys"
-        destfile="${dist.dir}/repo/${app.name}.${library.version}-repo.tar.gz"
-        includes="**/*"
-        compression="gzip">
-    </tar>
+        destfile="${dist.dir}/repo/${app.name}.${library.version}-repo.zip"
+        >
+    </zip>
   </target>
   <!-- Don't make install depend on dist or stage; that's because some people
        need to run "install" as root, and depending on stage will create
