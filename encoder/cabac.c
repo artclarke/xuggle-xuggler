@@ -390,14 +390,11 @@ static void x264_cabac_mb_ref( x264_t *h, x264_cabac_t *cb, int i_list, int idx 
     x264_cabac_encode_decision( cb, 54 + ctx, 0 );
 }
 
-static inline void x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int l, int mvd )
+static inline void x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int l, int mvd, int ctx )
 {
     static const uint8_t ctxes[9] = { 0,3,4,5,6,6,6,6,6 };
-    const int amvd = abs( h->mb.cache.mvd[i_list][x264_scan8[idx] - 1][l] ) +
-                     abs( h->mb.cache.mvd[i_list][x264_scan8[idx] - 8][l] );
     const int i_abs = abs( mvd );
     const int ctxbase = l ? 47 : 40;
-    int ctx = (amvd>2) + (amvd>32);
     int i;
 
     if( i_abs == 0 )
@@ -443,16 +440,19 @@ static inline void x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int i_lis
 static NOINLINE uint32_t x264_cabac_mb_mvd( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int width, int height )
 {
     DECLARE_ALIGNED_4( int16_t mvp[2] );
+    uint32_t amvd;
     int mdx, mdy;
 
     /* Calculate mvd */
     x264_mb_predict_mv( h, i_list, idx, width, mvp );
     mdx = h->mb.cache.mv[i_list][x264_scan8[idx]][0] - mvp[0];
     mdy = h->mb.cache.mv[i_list][x264_scan8[idx]][1] - mvp[1];
+    amvd = x264_cabac_amvd_sum(h->mb.cache.mvd[i_list][x264_scan8[idx] - 1],
+                               h->mb.cache.mvd[i_list][x264_scan8[idx] - 8]);
 
     /* encode */
-    x264_cabac_mb_mvd_cpn( h, cb, i_list, idx, 0, mdx );
-    x264_cabac_mb_mvd_cpn( h, cb, i_list, idx, 1, mdy );
+    x264_cabac_mb_mvd_cpn( h, cb, i_list, idx, 0, mdx, amvd&0xFFFF );
+    x264_cabac_mb_mvd_cpn( h, cb, i_list, idx, 1, mdy, amvd>>16 );
 
     return pack16to32_mask(mdx,mdy);
 }

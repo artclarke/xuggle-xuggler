@@ -107,6 +107,35 @@ static ALWAYS_INLINE int array_non_zero_int_mmx( void *v, int i_count )
     }
     else return array_non_zero_int_c( v, i_count );
 }
+#define x264_cabac_amvd_sum x264_cabac_amvd_sum_mmxext
+static ALWAYS_INLINE uint32_t x264_cabac_amvd_sum_mmxext(int16_t *mvdleft, int16_t *mvdtop)
+{
+    static const uint64_t pw_2    = 0x0002000200020002ULL;
+    static const uint64_t pw_28   = 0x001C001C001C001CULL;
+    static const uint64_t pw_2184 = 0x0888088808880888ULL;
+    /* MIN(((x+28)*2184)>>16,2) = (x>2) + (x>32) */
+    /* 2184 = fix16(1/30) */
+    uint32_t amvd;
+    asm(
+        "movd      %1, %%mm0 \n"
+        "movd      %2, %%mm1 \n"
+        "pxor   %%mm2, %%mm2 \n"
+        "pxor   %%mm3, %%mm3 \n"
+        "psubw  %%mm0, %%mm2 \n"
+        "psubw  %%mm1, %%mm3 \n"
+        "pmaxsw %%mm2, %%mm0 \n"
+        "pmaxsw %%mm3, %%mm1 \n"
+        "paddw     %3, %%mm0 \n"
+        "paddw  %%mm1, %%mm0 \n"
+        "pmulhuw   %4, %%mm0 \n"
+        "pminsw    %5, %%mm0 \n"
+        "movd   %%mm0, %0    \n"
+        :"=r"(amvd)
+        :"m"(*(uint32_t*)mvdleft),"m"(*(uint32_t*)mvdtop),
+         "m"(pw_28),"m"(pw_2184),"m"(pw_2)
+    );
+    return amvd;
+}
 #endif
 
 #endif
