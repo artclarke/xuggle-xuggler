@@ -485,9 +485,9 @@ using the library and what you like or don't like about it.
     </copy>
   </target>
 
-  <target name="dist-java"
+  <target name="stage-java"
     depends="compile-java, fixtures-java"
-    description="generate the distribution" >
+    description="Stages the final install directory structure under ${dist.dir}/stage">
     <!-- Create the distribution directory -->
     <antcall target="ivy-retrieve" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
@@ -533,9 +533,9 @@ using the library and what you like or don't like about it.
     </antcall>
   </target>
 
-  <target name="stage-java"
-    depends="init, dist-java"
-    description="Stages the final install directory structure under ${dist.dir}/stage">
+  <target name="dist-java"
+    depends="init, stage-java"
+    description="generate the distribution" >
     <antcall target="ivy-publish" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
     </antcall>
@@ -1055,67 +1055,6 @@ using the library and what you like or don't like about it.
         <include name="**/*.tar.gz"/>
       </fileset>
     </copy>
-  </target>
-  <target name="dist-native"
-    depends="init-native, compile-native, dist-native-do"
-    description="Builds the native source distribution">
-  </target>
-  <target name="dist-native-test-do"
-    if="native.makefile.exists">
-    <exec executable="${build.native.make}"
-      dir="${build-native.dir}"
-      failonerror="true">
-      <arg line="distcheck"/>
-    </exec>
-  </target>
-  <target name="dist-native-test"
-    depends="init-native, dist-native-test-do"
-    description="Builds the native source distribution, and makes sure it's complete">
-  </target>
-  <target name="compile-tests-native-do"
-    if="native.makefile.exists">
-  </target>
-  <target name="compile-tests-native"
-    depends="init-native, compile-tests-native-do"
-    description="Compiles the native test code">
-  </target>
-  <target name="stage-native-do"
-    if="native.makefile.exists">
-    <!-- stage the captive binaries -->
-    <exec executable="${build.native.make}"
-      dir="${build-native.dir}/captive"
-      failonerror="true">
-      <env key="DESTDIR" value="${dist.unix.dir}/stage-captive"/>
-      <arg line="install"/>
-    </exec>
-    <!-- stage the core binaries -->
-    <exec executable="${build.native.make}"
-      dir="${build-native.dir}/csrc"
-      failonerror="true">
-      <env key="DESTDIR" value="${dist.unix.dir}/stage-core"/>
-      <arg line="install"/>
-    </exec>
-    <!-- now, restage both to a combined target; we have to do a make
-      instead of an ant copy, since ant copy will drop file attributes -->
-    <exec executable="${build.native.make}"
-      dir="${build-native.dir}"
-      failonerror="true">
-      <env key="DESTDIR" value="${dist.unix.dir}/stage"/>
-      <arg line="install"/>
-    </exec>
-    <echo message="Staging Java Jars to right location"/>
-    <mkdir dir="${dist.dir}/stage-core/${xuggle.dir}/share/java/jars"/>
-    <copy todir="${dist.dir}/stage-core/${xuggle.dir}/share/java/jars">
-      <fileset dir="${dist.dir}/lib">
-        <include name="**/*.jar"/>
-      </fileset>
-    </copy>
-    <mkdir dir="${dist.dir}/stage/${xuggle.dir}/share/java/jars"/>
-    <copy todir="${dist.dir}/stage/${xuggle.dir}/share/java/jars">
-      <fileset dir="${dist.dir}/lib">
-        <include name="**/*.jar"/>
-      </fileset>
-    </copy>
     <mkdir dir="${dist.dir}/bin"/>
     <!-- create the right tar files -->
     <exec
@@ -1184,8 +1123,69 @@ using the library and what you like or don't like about it.
       </then>
     </if>
   </target>
+  <target name="dist-native"
+    depends="init-native, stage-native"
+    description="Builds the native source distribution">
+  </target>
+  <target name="dist-native-test-do"
+    if="native.makefile.exists">
+    <exec executable="${build.native.make}"
+      dir="${build-native.dir}"
+      failonerror="true">
+      <arg line="distcheck"/>
+    </exec>
+  </target>
+  <target name="dist-native-test"
+    depends="init-native, dist-native-test-do"
+    description="Builds the native source distribution, and makes sure it's complete">
+  </target>
+  <target name="compile-tests-native-do"
+    if="native.makefile.exists">
+  </target>
+  <target name="compile-tests-native"
+    depends="init-native, compile-tests-native-do"
+    description="Compiles the native test code">
+  </target>
+  <target name="stage-native-do"
+    if="native.makefile.exists">
+    <!-- stage the captive binaries -->
+    <exec executable="${build.native.make}"
+      dir="${build-native.dir}/captive"
+      failonerror="true">
+      <env key="DESTDIR" value="${dist.unix.dir}/stage-captive"/>
+      <arg line="install"/>
+    </exec>
+    <!-- stage the core binaries -->
+    <exec executable="${build.native.make}"
+      dir="${build-native.dir}/csrc"
+      failonerror="true">
+      <env key="DESTDIR" value="${dist.unix.dir}/stage-core"/>
+      <arg line="install"/>
+    </exec>
+    <!-- now, restage both to a combined target; we have to do a make
+      instead of an ant copy, since ant copy will drop file attributes -->
+    <exec executable="${build.native.make}"
+      dir="${build-native.dir}"
+      failonerror="true">
+      <env key="DESTDIR" value="${dist.unix.dir}/stage"/>
+      <arg line="install"/>
+    </exec>
+    <echo message="Staging Java Jars to right location"/>
+    <mkdir dir="${dist.dir}/stage-core/${xuggle.dir}/share/java/jars"/>
+    <copy todir="${dist.dir}/stage-core/${xuggle.dir}/share/java/jars">
+      <fileset dir="${dist.dir}/lib">
+        <include name="**/*.jar"/>
+      </fileset>
+    </copy>
+    <mkdir dir="${dist.dir}/stage/${xuggle.dir}/share/java/jars"/>
+    <copy todir="${dist.dir}/stage/${xuggle.dir}/share/java/jars">
+      <fileset dir="${dist.dir}/lib">
+        <include name="**/*.jar"/>
+      </fileset>
+    </copy>
+  </target>
   <target name="stage-native"
-    depends="init-native, stage-native-do"
+    depends="init-native, compile-native, stage-native-do"
     description="Stages the native libraries to ${dist.dir}/stage/${xuggle.dir}">
   </target>
   <target name="run-tests-native-do"
