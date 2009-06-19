@@ -36,9 +36,9 @@ void x264_mb_predict_mv( x264_t *h, int i_list, int idx, int i_width, int16_t mv
     int     i_refc = h->mb.cache.ref[i_list][i8 - 8 + i_width ];
     int16_t *mv_c  = h->mb.cache.mv[i_list][i8 - 8 + i_width];
 
-    int i_count;
+    int i_count = 0;
 
-    if( (idx&0x03) == 3 || ( i_width == 2 && (idx&0x3) == 2 )|| i_refc == -2 )
+    if( (idx&3) >= 2 + (i_width&1) || i_refc == -2 )
     {
         i_refc = h->mb.cache.ref[i_list][i8 - 8 - 1];
         mv_c   = h->mb.cache.mv[i_list][i8 - 8 - 1];
@@ -46,38 +46,52 @@ void x264_mb_predict_mv( x264_t *h, int i_list, int idx, int i_width, int16_t mv
 
     if( h->mb.i_partition == D_16x8 )
     {
-        if( idx == 0 && i_refb == i_ref )
+        if( idx == 0 )
         {
-            *(uint32_t*)mvp = *(uint32_t*)mv_b;
-            return;
+            if( i_refb == i_ref )
+            {
+                *(uint32_t*)mvp = *(uint32_t*)mv_b;
+                return;
+            }
         }
-        else if( idx != 0 && i_refa == i_ref )
+        else
         {
-            *(uint32_t*)mvp = *(uint32_t*)mv_a;
-            return;
+            if( i_refa == i_ref )
+            {
+                *(uint32_t*)mvp = *(uint32_t*)mv_a;
+                return;
+            }
         }
     }
     else if( h->mb.i_partition == D_8x16 )
     {
-        if( idx == 0 && i_refa == i_ref )
+        if( idx == 0 )
         {
-            *(uint32_t*)mvp = *(uint32_t*)mv_a;
-            return;
+            if( i_refa == i_ref )
+            {
+                *(uint32_t*)mvp = *(uint32_t*)mv_a;
+                return;
+            }
         }
-        else if( idx != 0 && i_refc == i_ref )
+        else
         {
-            *(uint32_t*)mvp = *(uint32_t*)mv_c;
-            return;
+            if( i_refc == i_ref )
+            {
+                *(uint32_t*)mvp = *(uint32_t*)mv_c;
+                return;
+            }
         }
     }
 
-    i_count = 0;
     if( i_refa == i_ref ) i_count++;
     if( i_refb == i_ref ) i_count++;
     if( i_refc == i_ref ) i_count++;
 
     if( i_count > 1 )
+    {
+median:
         x264_median_mv( mvp, mv_a, mv_b, mv_c );
+    }
     else if( i_count == 1 )
     {
         if( i_refa == i_ref )
@@ -90,7 +104,7 @@ void x264_mb_predict_mv( x264_t *h, int i_list, int idx, int i_width, int16_t mv
     else if( i_refb == -2 && i_refc == -2 && i_refa != -2 )
         *(uint32_t*)mvp = *(uint32_t*)mv_a;
     else
-        x264_median_mv( mvp, mv_a, mv_b, mv_c );
+        goto median;
 }
 
 void x264_mb_predict_mv_16x16( x264_t *h, int i_list, int i_ref, int16_t mvp[2] )
@@ -102,7 +116,7 @@ void x264_mb_predict_mv_16x16( x264_t *h, int i_list, int i_ref, int16_t mvp[2] 
     int     i_refc = h->mb.cache.ref[i_list][X264_SCAN8_0 - 8 + 4];
     int16_t *mv_c  = h->mb.cache.mv[i_list][X264_SCAN8_0 - 8 + 4];
 
-    int i_count;
+    int i_count = 0;
 
     if( i_refc == -2 )
     {
@@ -110,13 +124,15 @@ void x264_mb_predict_mv_16x16( x264_t *h, int i_list, int i_ref, int16_t mvp[2] 
         mv_c   = h->mb.cache.mv[i_list][X264_SCAN8_0 - 8 - 1];
     }
 
-    i_count = 0;
     if( i_refa == i_ref ) i_count++;
     if( i_refb == i_ref ) i_count++;
     if( i_refc == i_ref ) i_count++;
 
     if( i_count > 1 )
+    {
+median:
         x264_median_mv( mvp, mv_a, mv_b, mv_c );
+    }
     else if( i_count == 1 )
     {
         if( i_refa == i_ref )
@@ -129,7 +145,7 @@ void x264_mb_predict_mv_16x16( x264_t *h, int i_list, int i_ref, int16_t mvp[2] 
     else if( i_refb == -2 && i_refc == -2 && i_refa != -2 )
         *(uint32_t*)mvp = *(uint32_t*)mv_a;
     else
-        x264_median_mv( mvp, mv_a, mv_b, mv_c );
+        goto median;
 }
 
 
@@ -156,7 +172,7 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
 {
     int i_mb_4x4 = 16 * h->mb.i_mb_stride * h->mb.i_mb_y + 4 * h->mb.i_mb_x;
     int i_mb_8x8 =  4 * h->mb.i_mb_stride * h->mb.i_mb_y + 2 * h->mb.i_mb_x;
-    int i8, i4;
+    int i8;
     const int type_col = h->fref1[0]->mb_type[ h->mb.i_mb_xy ];
 
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, 0 );
@@ -182,6 +198,8 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
             const int16_t *mv_col = h->fref1[0]->mv[0][ i_mb_4x4 + 3*x8 + 3*y8 * h->mb.i_b4_stride];
             const int l0x = ( dist_scale_factor * mv_col[0] + 128 ) >> 8;
             const int l0y = ( dist_scale_factor * mv_col[1] + 128 ) >> 8;
+            if( h->param.i_threads > 1 && (l0y > h->mb.mv_max_spel[1] || l0y-mv_col[1] > h->mb.mv_max_spel[1]) )
+                return 0;
             x264_macroblock_cache_ref( h, 2*x8, 2*y8, 2, 2, 0, i_ref );
             x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 0, pack16to32_mask(l0x, l0y) );
             x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 1, pack16to32_mask(l0x-mv_col[0], l0y-mv_col[1]) );
@@ -194,26 +212,6 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
              *   (not currently used), we would also have to check
              *   l1mv1 like in spatial mode */
             return 0;
-        }
-    }
-
-    if( h->param.i_threads > 1 )
-    {
-        for( i4=0; i4<16; i4+=4 )
-        {
-            if( h->mb.cache.mv[0][x264_scan8[i4]][1] > h->mb.mv_max_spel[1]
-             || h->mb.cache.mv[1][x264_scan8[i4]][1] > h->mb.mv_max_spel[1] )
-            {
-#if 0
-                fprintf(stderr, "direct_temporal: (%d,%d) (%d,%d) > %d \n",
-                        h->mb.cache.mv[0][x264_scan8[i4]][0],
-                        h->mb.cache.mv[0][x264_scan8[i4]][1],
-                        h->mb.cache.mv[1][x264_scan8[i4]][0],
-                        h->mb.cache.mv[1][x264_scan8[i4]][1],
-                        h->mb.mv_max_spel[1]);
-#endif
-                return 0;
-            }
         }
     }
 
