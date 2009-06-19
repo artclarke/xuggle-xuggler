@@ -328,7 +328,7 @@ public class Converter
     OptionBuilder.withArgName("quality");
     OptionBuilder.hasArg(true);
     OptionBuilder
-        .withDescription("quality setting to use for video.  0 means same as source; higher numbers are (perversely) lower quality.  Defaults to 0.");
+        .withDescription("quality setting to use for video.  0 means same as source; higher numbers are (perversely) lower quality.  Defaults to 0.  If set, then bitrate flags are ignored.");
     Option vquality = OptionBuilder.create("vquality");
 
     options.addOption(help);
@@ -494,7 +494,7 @@ public class Converter
     int abitrate = getIntOptionValue(cmdLine, "abitrate", 0);
     int vbitrate = getIntOptionValue(cmdLine, "vbitrate", 0);
     int vbitratetolerance = getIntOptionValue(cmdLine, "vbitratetolerance", 0);
-    int vquality = getIntOptionValue(cmdLine, "vquality", 0);
+    int vquality = getIntOptionValue(cmdLine, "vquality", -1);
     int vstream = getIntOptionValue(cmdLine, "vstream", -1);
     double vscaleFactor = getDoubleOptionValue(cmdLine, "vscalefactor", 1.0);
 
@@ -815,8 +815,11 @@ public class Converter
         oc.setHeight(oHeight);
         oc.setWidth(oWidth);
 
-        oc.setFlag(IStreamCoder.Flags.FLAG_QSCALE, true);
-        oc.setGlobalQuality(vquality);
+        if (vquality >= 0)
+        {
+          oc.setFlag(IStreamCoder.Flags.FLAG_QSCALE, true);
+          oc.setGlobalQuality(vquality);
+        }
 
         /**
          * TimeBases are important, especially for Video. In general Audio
