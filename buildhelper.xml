@@ -531,14 +531,14 @@ using the library and what you like or don't like about it.
     <antcall target="ivy-deliver" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
     </antcall>
+    <antcall target="ivy-publish" inheritAll="true" inheritRefs="true">
+      <param name="ivy.settings.name" value="default"/>
+    </antcall>
   </target>
 
   <target name="dist-java"
     depends="init, stage-java"
     description="generate the distribution" >
-    <antcall target="ivy-publish" inheritAll="true" inheritRefs="true">
-      <param name="ivy.settings.name" value="default"/>
-    </antcall>
     <!-- and zip up the ivys -->
     <mkdir dir="${dist.dir}/repo"/>
     <if>
