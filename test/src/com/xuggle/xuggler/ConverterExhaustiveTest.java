@@ -11,6 +11,28 @@ public class ConverterExhaustiveTest extends TestCase
 {
   private Converter converter=null;
 
+  /**
+   * See: http://code.google.com/p/xuggle/issues/detail?id=165
+   * @throws ParseException if it feels like it
+   */
+  @Test
+  public void testIssue165() throws ParseException
+  {
+    String[] args = new String[]{
+        "fixtures/youtube_h264_mp3.flv",
+        this.getClass().getName() + "_" + this.getName() + ".mov"
+    };
+    
+    converter = new Converter();
+    
+    Options options = converter.defineOptions();
+
+    CommandLine cmdLine = converter.parseOptions(options, args);
+    assertTrue("all commandline options successful", cmdLine != null);
+    
+    converter.run(cmdLine);
+  }
+
   @Test
   public void testConversionH264() throws ParseException
   {
@@ -107,6 +129,5 @@ public class ConverterExhaustiveTest extends TestCase
     
     converter.run(cmdLine);
   }
-
 
 }

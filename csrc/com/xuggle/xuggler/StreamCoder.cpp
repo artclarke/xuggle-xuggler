@@ -865,6 +865,8 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
           if (!timeBase) timeBase = this->getTimeBase();
 
           int64_t packetTs = avFrame->reordered_opaque;
+          // if none, assume this packet's decode time, since
+          // it's presentation time should have been in reordered_opaque
           if (packetTs == Global::NO_PTS)
             packetTs = packet->getDts();
 
@@ -873,8 +875,19 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
             if (timeBase->getNumerator() != 0)
             {
               // The decoder set a PTS, so we let it override us
-              mFakeNextPts = mFakePtsTimeBase->rescale(packetTs,
+              int64_t nextPts = mFakePtsTimeBase->rescale(packetTs,
                   timeBase.value());
+              // some youtube videos incorrectly return a packet
+              // with the wrong re-ordered opaque setting.  this
+              // detects that and uses the PTS from the packet instead.
+              // See: http://code.google.com/p/xuggle/issues/detail?id=165
+              // in this way we enforce that timestamps are always
+              // increasing
+              if (nextPts < mFakeNextPts &&
+                  packet->getPts() != Global::NO_PTS)
+                nextPts = mFakePtsTimeBase->rescale(packet->getPts(),
+                    timeBase.value());
+              mFakeNextPts = nextPts;
             }
           }
 
