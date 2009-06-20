@@ -709,6 +709,99 @@ void x264_hpel_filter_altivec( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint
     }
 }
 
+static void frame_init_lowres_core_altivec( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
+                                           int src_stride, int dst_stride, int width, int height )
+{
+    int w = width/16;
+    int end = (width & 15);
+    int x, y;
+    vec_u8_t src0v, src1v, src2v;
+    vec_u8_t lv, hv, src1p1v;
+    vec_u8_t avg0v, avg1v, avghv, avghp1v, avgleftv, avgrightv;
+    static const vec_u8_t inverse_bridge_shuffle = CV(0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E );
+
+    for( y=0; y<height; y++ )
+    {
+        uint8_t *src1 = src0+src_stride;
+        uint8_t *src2 = src1+src_stride;
+
+        src0v = vec_ld(0, src0);
+        src1v = vec_ld(0, src1);
+        src2v = vec_ld(0, src2);
+
+        avg0v = vec_avg(src0v, src1v);
+        avg1v = vec_avg(src1v, src2v);
+
+        for( x=0; x<w; x++ )
+        {
+            lv = vec_ld(16*(x*2+1), src0);
+            src1v = vec_ld(16*(x*2+1), src1);
+            avghv = vec_avg(lv, src1v);
+
+            lv = vec_ld(16*(x*2+2), src0);
+            src1p1v = vec_ld(16*(x*2+2), src1);
+            avghp1v = vec_avg(lv, src1p1v);
+
+            avgleftv = vec_avg(vec_sld(avg0v, avghv, 1), avg0v);
+            avgrightv = vec_avg(vec_sld(avghv, avghp1v, 1), avghv);
+
+            vec_st(vec_perm(avgleftv, avgrightv, inverse_bridge_shuffle), 16*x, dst0);
+            vec_st((vec_u8_t)vec_pack((vec_u16_t)avgleftv,(vec_u16_t)avgrightv), 16*x, dsth);
+
+            avg0v = avghp1v;
+
+            hv = vec_ld(16*(x*2+1), src2);
+            avghv = vec_avg(src1v, hv);
+
+            hv = vec_ld(16*(x*2+2), src2);
+            avghp1v = vec_avg(src1p1v, hv);
+
+            avgleftv = vec_avg(vec_sld(avg1v, avghv, 1), avg1v);
+            avgrightv = vec_avg(vec_sld(avghv, avghp1v, 1), avghv);
+
+            vec_st(vec_perm(avgleftv, avgrightv, inverse_bridge_shuffle), 16*x, dstv);
+            vec_st((vec_u8_t)vec_pack((vec_u16_t)avgleftv,(vec_u16_t)avgrightv), 16*x, dstc);
+
+            avg1v = avghp1v;
+
+        }
+        if (end)
+        {
+            lv = vec_ld(16*(x*2+1), src0);
+            src1v = vec_ld(16*(x*2+1), src1);
+            avghv = vec_avg(lv, src1v);
+
+            lv = vec_ld(16*(x*2+1), src2);
+            avghp1v = vec_avg(src1v, lv);
+
+            avgleftv = vec_avg(vec_sld(avg0v, avghv, 1), avg0v);
+            avgrightv = vec_avg(vec_sld(avg1v, avghp1v, 1), avg1v);
+
+            lv = vec_perm(avgleftv, avgrightv, inverse_bridge_shuffle);
+            hv = (vec_u8_t)vec_pack((vec_u16_t)avgleftv,(vec_u16_t)avgrightv);
+
+            vec_ste((vec_u32_t)lv,16*x,(uint32_t*)dst0);
+            vec_ste((vec_u32_t)lv,16*x+4,(uint32_t*)dst0);
+            vec_ste((vec_u32_t)hv,16*x,(uint32_t*)dsth);
+            vec_ste((vec_u32_t)hv,16*x+4,(uint32_t*)dsth);
+
+            lv = vec_sld(lv, lv, 8);
+            hv = vec_sld(hv, hv, 8);
+
+            vec_ste((vec_u32_t)lv,16*x,(uint32_t*)dstv);
+            vec_ste((vec_u32_t)lv,16*x+4,(uint32_t*)dstv);
+            vec_ste((vec_u32_t)hv,16*x,(uint32_t*)dstc);
+            vec_ste((vec_u32_t)hv,16*x+4,(uint32_t*)dstc);
+        }
+
+        src0 += src_stride*2;
+        dst0 += dst_stride;
+        dsth += dst_stride;
+        dstv += dst_stride;
+        dstc += dst_stride;
+    }
+}
+
 void x264_mc_altivec_init( x264_mc_functions_t *pf )
 {
     pf->mc_luma   = mc_luma_altivec;
@@ -719,4 +812,5 @@ void x264_mc_altivec_init( x264_mc_functions_t *pf )
     pf->copy[PIXEL_16x16] = x264_mc_copy_w16_aligned_altivec;
 
     pf->hpel_filter = x264_hpel_filter_altivec;
+    pf->frame_init_lowres_core = frame_init_lowres_core_altivec;
 }
