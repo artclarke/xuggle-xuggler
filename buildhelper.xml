@@ -559,6 +559,24 @@ using the library and what you like or don't like about it.
         destfile="${dist.dir}/repo/${app.name}.${library.version}-repo.zip"
         >
     </zip>
+    <if>
+      <isset property="env.JOB_NAME"/>
+      <then>
+        <!-- We're running in Hudson -->
+        <copy
+            tofile="${dist.dir}/${env.JOB_NAME}-repo.zip"
+            file="${dist.dir}/repo/${app.name}.${library.version}-repo.zip"
+            failonerror="false"
+            >
+        </copy>
+        <copy
+            tofile="${dist.dir}/${env.JOB_NAME}-repo.tar.gz"
+            file="${dist.dir}/repo/${app.name}.${library.version}-repo.tar.gz"
+            failonerror="false"
+            >
+        </copy>
+      </then>
+    </if>
   </target>
   <!-- Don't make install depend on dist or stage; that's because some people
        need to run "install" as root, and depending on stage will create
@@ -1120,6 +1138,30 @@ using the library and what you like or don't like about it.
             <echo message="could not find NSI file"/>
           </else>
         </if>
+      </then>
+    </if>
+    <if>
+      <isset property="env.JOB_NAME"/>
+      <then>
+        <!-- We're running in Hudson -->
+        <copy
+            tofile="${dist.dir}/${env.JOB_NAME}-src.tar.gz"
+            file="${dist.dir}/src/${app.name}.${library.version}-src.tar.gz"
+            failonerror="false"
+            >
+        </copy>
+        <copy
+            tofile="${dist.dir}/${env.JOB_NAME}-all-bin.tar.gz"
+            file="${dist.dir}/bin/${app.name}.${library.version}-all-bin-${xuggle.os}.tar.gz"
+            failonerror="false"
+            >
+        </copy>
+        <copy
+            tofile="${dist.dir}/${env.JOB_NAME}-all-bin.zip"
+            file="${dist.dir}/bin/${app.name}.${library.version}-all-bin-${xuggle.os}.zip"
+            failonerror="false"
+            >
+        </copy>
       </then>
     </if>
   </target>
