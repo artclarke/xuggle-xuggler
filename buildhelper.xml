@@ -1124,7 +1124,7 @@ using the library and what you like or don't like about it.
     </if>
   </target>
   <target name="dist-native"
-    depends="init-native, stage-native"
+    depends="init-native, stage-native, dist-native-do"
     description="Builds the native source distribution">
   </target>
   <target name="dist-native-test-do"
