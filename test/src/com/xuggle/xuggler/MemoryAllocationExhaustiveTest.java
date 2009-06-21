@@ -112,8 +112,8 @@ public class MemoryAllocationExhaustiveTest
     log.trace("copy frame reference");
     IVideoPicture copy = obj.copyReference();
     log.trace("do ref count check");
-    assertEquals(2, copy.getCurrentRefCount());
-    assertEquals(2, obj.getCurrentRefCount());
+    assertEquals(1, copy.getCurrentRefCount());
+    assertEquals(1, obj.getCurrentRefCount());
     log.trace("delete object");
     obj.delete();
     log.trace("do second ref count check");

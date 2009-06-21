@@ -72,22 +72,20 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
    * @return the new Java object.
    */
   public IStreamCoder copyReference() {
-    if (swigCPtr == 0)
-      return null;
-    else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      IStreamCoder retval = null;
-      this.acquire();
-      try {
-         retval = new IStreamCoder(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+    return (IStreamCoder) super.copyReference();
+  }
+
+  /**
+   * Releases ths instance of IStreamCoder and frees any underlying
+   * native memory.
+   * <p>
+   * @{inheritDoc}
+   * </p> 
+   */
+  public void delete()
+  {
+    do {} while(false); // remove a warning
+    super.delete();
   }
 
   /**
@@ -116,33 +114,6 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-  /**
-   * Releases any underlying native memory and marks this object
-   * as invalid.
-   * <p>
-   * Normally Ferry manages when to release native memory.
-   * </p>
-   * <p>
-   * In the unlikely event you want to control EXACTLY when a native 
-   * object is released, each Xuggler object has a {@link #delete()}
-   * method that you can use. Once you call {@link #delete()},
-   * you must ENSURE your object is never referenced again from
-   * that Java object -- Ferry tries to help you avoid crashes if you
-   * accidentally use an object after deletion but on this but we
-   * cannot offer 100% protection (specifically if another thread
-   *  is accessing that object EXACTLY when you {@link #delete()} it). 
-   * </p>
-   */
-  
-
-  public synchronized void delete() {
-    if(swigCPtr != 0 && swigCMemOwn) {
-      swigCMemOwn = false;
-      throw new UnsupportedOperationException("C++ destructor does not have public access");
-    }
-    swigCPtr = 0;
-    super.delete();
-  }
 
 
   /**

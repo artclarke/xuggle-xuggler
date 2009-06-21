@@ -71,22 +71,20 @@ public class IAudioSamples extends IMediaData {
    * @return the new Java object.
    */
   public IAudioSamples copyReference() {
-    if (swigCPtr == 0)
-      return null;
-    else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      IAudioSamples retval = null;
-      this.acquire();
-      try {
-         retval = new IAudioSamples(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+    return (IAudioSamples) super.copyReference();
+  }
+
+  /**
+   * Releases ths instance of IAudioSamples and frees any underlying
+   * native memory.
+   * <p>
+   * @{inheritDoc}
+   * </p> 
+   */
+  public void delete()
+  {
+    do {} while(false); // remove a warning
+    super.delete();
   }
 
   /**
@@ -115,33 +113,6 @@ public class IAudioSamples extends IMediaData {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-  /**
-   * Releases any underlying native memory and marks this object
-   * as invalid.
-   * <p>
-   * Normally Ferry manages when to release native memory.
-   * </p>
-   * <p>
-   * In the unlikely event you want to control EXACTLY when a native 
-   * object is released, each Xuggler object has a {@link #delete()}
-   * method that you can use. Once you call {@link #delete()},
-   * you must ENSURE your object is never referenced again from
-   * that Java object -- Ferry tries to help you avoid crashes if you
-   * accidentally use an object after deletion but on this but we
-   * cannot offer 100% protection (specifically if another thread
-   *  is accessing that object EXACTLY when you {@link #delete()} it). 
-   * </p>
-   */
-  
-
-  public synchronized void delete() {
-    if(swigCPtr != 0 && swigCMemOwn) {
-      swigCMemOwn = false;
-      throw new UnsupportedOperationException("C++ destructor does not have public access");
-    }
-    swigCPtr = 0;
-    super.delete();
-  }
 
 
   /**

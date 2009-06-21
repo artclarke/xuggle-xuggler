@@ -66,6 +66,10 @@ public class RefCounted {
   private com.xuggle.ferry.JNIReference mRefCounter;
   private Long mLifecycleReference;
   
+  private java.util.concurrent.atomic.AtomicLong mRefCount =
+    new java.util.concurrent.atomic.AtomicLong(1L);
+  
+  
   // the next object looks like it is unused by the compiler, but that's not true; it most
   // definitely is used :)
   @SuppressWarnings("unused")
@@ -122,8 +126,6 @@ public class RefCounted {
     return swigCPtr;
   }
   
-  // <<<<<<<<<<<<<<<<<<<<<<<<<<<
-  // JNIHelper.swg: End generated code
   /**
    * Releases any underlying native memory and marks this object
    * as invalid.
@@ -141,33 +143,67 @@ public class RefCounted {
    *  is accessing that object EXACTLY when you {@link #delete()} it). 
    * </p>
    */
+   
+   public void delete()
+   {
+     long refCount = mRefCount.decrementAndGet();
+     /**
+      * Only delete for the thread that wins the set-to-zero
+      * competition.
+      */
+     if (refCount == 0)
+     {
+       {
+         if(swigCPtr != 0) {
+           // assigning to an object removes an incorrect java
+           // compiler warning for some
+           // generated files
+           Object object = this;
+           if (object instanceof RefCounted && mRefCounter != null) {
+             mRefCounter.delete();
+           } else if (swigCMemOwn) {
+             swigCMemOwn = false;
+           }
+         }
+         mRefCounter = null;
+         mObjectToForceFinalize = null;
+         mLifecycleReference = null;
+         swigCPtr = 0;
+       }
+     }
+   }
+   
+   /**
+    * Internal Only.  Returns true if, at this instant, this reference points to a valid
+    * underlying native object.
+    *
+    * @return true if a valid object; false otherwise.
+    */
+   public boolean isValidReference()
+   {
+     return mRefCount.get() > 0;
+   }
+   
+  /**
+   * Create a new RefCounted object that is actually referring to the
+   * exact same underlying native object.
+   *
+   * This method increases the ref count of the underlying Native object.
+   *
+   * @return the new Java object.
+   */
+  public RefCounted copyReference() {
+    long oldRef = mRefCount.getAndIncrement();
+    if (oldRef <= 0)
+      throw new IllegalStateException("invalid reference count: " + oldRef);
+    return this;
+  }
+
+   
+   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+   // JNIHelper.swg: End generated code
   
  
-  public synchronized void delete() 
-  // JNIHelper.swg: Start generated code
-  // >>>>>>>>>>>>>>>>>>>>>>>>>>>
-  {
-    if(swigCPtr != 0) {
-      // assigning to an object removes an incorrect java
-      // compiler warning for some
-      // generated files
-      Object object = this;
-      if (object instanceof RefCounted && mRefCounter != null) {
-        mRefCounter.delete();
-      } else if (swigCMemOwn) {
-        swigCMemOwn = false;
-        throw new UnsupportedOperationException("C++ destructor does not have public access");
-      }
-    }
-    mRefCounter = null;
-    mObjectToForceFinalize = null;
-    mLifecycleReference = null;
-    swigCPtr = 0;
-  }
-  // <<<<<<<<<<<<<<<<<<<<<<<<<<<
-  // JNIHelper.swg: End generated code
-
-
 /**
  * Internal Only. Acquire a reference to this object (only called from 
  * Native code).  
@@ -189,23 +225,6 @@ public class RefCounted {
  */
   protected int release() {
     return FerryJNI.RefCounted_release(swigCPtr, this);
-  }
-
-/**
- *  
- * This method is meant for other language use like Java; it  
- * will acquire the object but also force the creation of  
- * a new proxy object in the target language that just  
- * forwards to the same native object.  
- * <p>  
- * It is not meant for calling from C++ code; use the  
- * standard acquire and release semantics for that.  
- * </p>  
- * @return	A new Java object.  
- */
-  public RefCounted copyReference() {
-    long cPtr = FerryJNI.RefCounted_copyReference(swigCPtr, this);
-    return (cPtr == 0) ? null : new RefCounted(cPtr, false);
   }
 
 /**

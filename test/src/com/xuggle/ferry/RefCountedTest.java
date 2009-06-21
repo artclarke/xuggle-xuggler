@@ -91,8 +91,15 @@ public class RefCountedTest
     assertEquals("starting ref count", 1, obj.getCurrentRefCount());
     RefCountedTester javaCopy = obj;
     assertEquals("java copy should keep ref the same", 1, javaCopy.getCurrentRefCount());
+    assertTrue(obj.isValidReference());
+    assertTrue(javaCopy.isValidReference());
     javaCopy.delete();
+    assertFalse(obj.isValidReference());
+    assertFalse(javaCopy.isValidReference());
     obj.delete();
+    assertFalse(obj.isValidReference());
+    assertFalse(javaCopy.isValidReference());
+    
     assertEquals("should be no objects for collection", 
         0, JNIReference.getMgr().getNumPinnedObjects());
   }
@@ -131,14 +138,15 @@ public class RefCountedTest
     
     RefCountedTester obj2 = obj1.copyReference();
     
-    assertTrue("should look like different objects", obj1 != obj2);
+    assertTrue("should not look like different objects", obj1 == obj2);
     assertTrue("should be equal though", obj1.equals(obj2));
     assertEquals("should have same ref count", obj1.getCurrentRefCount(), obj2.getCurrentRefCount());
-    assertEquals("should have ref count of 2", 2, obj2.getCurrentRefCount());
+    assertEquals("should have ref count", 1, obj2.getCurrentRefCount());
     
     obj1.delete(); obj1 = null;
-    assertEquals("should now have refcount of 1", 1, obj2.getCurrentRefCount());
+    assertEquals("should still have refcount of 1", 1, obj2.getCurrentRefCount());
     obj2.delete();
+    // that should have caused a deletion
     obj2 = null;
     while(JNIReference.getMgr().getNumPinnedObjects() > 0)
     {
@@ -150,14 +158,9 @@ public class RefCountedTest
   }
   
   /**
-   * This test tries to make sure the Java gargage collector
+   * This test tries to make sure the Java garbage collector
    * eventually forces a collection of RefCounted objects, even
    * if we don't call our own mini-gc methods.
-   * <p>
-   * It's disabled though because it can occasionally fail due
-   * to Java just deciding it doesn't need to collect yet.  But
-   * the fact that it passes sometimes does show that a collection
-   * will occur.
    * @throws InterruptedException if interrupted
    */
   @Test(timeout=20*1000)
@@ -167,19 +170,14 @@ public class RefCountedTest
     assertEquals("should be no objects for collection", 
         0, JNIReference.getMgr().getNumPinnedObjects());
 
+    @SuppressWarnings("unused")
     RefCountedTester obj1 = RefCountedTester.make();
-    
-    RefCountedTester obj2 = obj1.copyReference();
-    
-    assertTrue("should look like different objects", obj1 != obj2);
-    assertTrue("should be equal though", obj1.equals(obj2));
-    assertEquals("should have same ref count", obj1.getCurrentRefCount(), obj2.getCurrentRefCount());
-    assertEquals("should have ref count of 2", 2, obj2.getCurrentRefCount());
-    
+    assertEquals("should be no objects for collection", 
+        1, JNIReference.getMgr().getNumPinnedObjects());
     obj1 = null;
     
     // obj1 should now be unreachable, so if we try a Garbage collection it should get caught.
-    while(JNIReference.getMgr().getNumPinnedObjects() > 1)
+    while(JNIReference.getMgr().getNumPinnedObjects() > 0)
     {
       byte[] bytes = new byte[1024*1024];
       bytes[0] = 0;
@@ -188,13 +186,7 @@ public class RefCountedTest
     // at this point the Java proxy object will be unreachable, but should be sitting in the
     // reference queue and also awaiting finalization.  The finalization should have occurred by now.
     assertEquals("should be only the first object for collection",
-        1, JNIReference.getMgr().getNumPinnedObjects());        
-    assertEquals("should have a ref refcount of 1", 1, obj2.getCurrentRefCount());
-
-    obj2.delete();
-    assertEquals("should be no objects for collection", 
-        0, JNIReference.getMgr().getNumPinnedObjects());
-
+        0, JNIReference.getMgr().getNumPinnedObjects());        
   }
   
   @Test(timeout=20*1000)
@@ -204,37 +196,29 @@ public class RefCountedTest
         0, JNIReference.getMgr().getNumPinnedObjects());
 
     RefCountedTester obj1 = RefCountedTester.make();
-    assertEquals("should be no objects for collection", 
-        1, JNIReference.getMgr().getNumPinnedObjects());
+    assertEquals(1, JNIReference.getMgr().getNumPinnedObjects());
     
     RefCountedTester obj2 = obj1.copyReference();
-    assertEquals("should be no objects for collection", 
-        2, JNIReference.getMgr().getNumPinnedObjects());
+    assertEquals(1, JNIReference.getMgr().getNumPinnedObjects());
     
-    assertTrue("should look like different objects", obj1 != obj2);
+    assertTrue("should look like same objects", obj1 == obj2);
     assertTrue("should be equal though", obj1.equals(obj2));
     assertEquals("should have same ref count",
         obj1.getCurrentRefCount(), obj2.getCurrentRefCount());
-    assertEquals("should have ref count of 2", 2, obj2.getCurrentRefCount());
+    assertEquals("should have ref count", 1, obj2.getCurrentRefCount());
     
-    assertEquals("should be no objects for collection", 
-        2, JNIReference.getMgr().getNumPinnedObjects());
+    assertEquals(1, JNIReference.getMgr().getNumPinnedObjects());
 
-    //obj1.delete();
     obj1 = null;
-    
-    // obj1 should now be unreachable, so if we try a Garbage collection it should get caught.
-    while(obj2.getCurrentRefCount() > 1)
+    obj2 = null;
+    // both objects should now be unreachable, so if we try a Garbage
+    // collection they should get caught.
+    while(JNIMemoryManager.getMgr().getNumPinnedObjects() > 0)
     {
       byte[] bytes = new byte[1024*1024];
       bytes[0] = 0;
       JNIReference.getMgr().gc();
     }
-    assertEquals("should now have a ref refcount of 1", 1, obj2.getCurrentRefCount());
-    assertEquals("should be only the first object for collection",
-        1, JNIReference.getMgr().getNumPinnedObjects());
-
-    obj2.delete();
     assertEquals("should be no objects for collection", 
         0, JNIReference.getMgr().getNumPinnedObjects());
 
@@ -252,6 +236,9 @@ public class RefCountedTest
       assertNotNull("could not copy reference", copy);
     }
     obj=null;
+    // all those copyReference calls shouldn't have pinned new objects
+    assertEquals("should be no objects for collection", 
+        1, JNIReference.getMgr().getNumPinnedObjects());
     while(JNIReference.getMgr().getNumPinnedObjects() > 0)
     {
       byte[] bytes = new byte[1024*1024];

@@ -47,7 +47,6 @@ class FerryJNI {
   public final static native boolean AtomicInteger_isAtomic(long jarg1, AtomicInteger jarg1_);
   public final static native int RefCounted_acquire(long jarg1, RefCounted jarg1_);
   public final static native int RefCounted_release(long jarg1, RefCounted jarg1_);
-  public final static native long RefCounted_copyReference(long jarg1, RefCounted jarg1_);
   public final static native int RefCounted_getCurrentRefCount(long jarg1, RefCounted jarg1_);
   public final static native int Logger_LEVEL_ERROR_get();
   public final static native int Logger_LEVEL_WARN_get();

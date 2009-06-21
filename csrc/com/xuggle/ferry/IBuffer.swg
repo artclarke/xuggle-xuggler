@@ -80,17 +80,21 @@
    *
    * @return the new Java object.
    */
+  @Override
   public $javaclassname copyReference() {
-    if (swigCPtr == 0)
-      return null;
-    else
-    {
-      $javaclassname retval = new $javaclassname(swigCPtr, false);
-      retval.acquire();
-      return retval;
-    }
+    return ($javaclassname) super.copyReference();
   }
 
+  /**
+   * {inheritDoc}
+   */
+  @Override
+  public void delete()
+  {
+    do {} while(false);
+    super.delete();
+  }
+  
   /**
    * Compares two values, returning true if the underlying objects in native code are the same object.
    *
@@ -1028,27 +1032,8 @@
     }
     return retval;
   }
-  
-  // <<<<<<<<<<<<<<<<<<<<<<<<<<<
-  // IBuffer.swg
-  /**
-   * Releases any underlying native memory and marks this object
-   * as invalid.
-   * <p>
-   * Normally Ferry manages when to release native memory.
-   * </p>
-   * <p>
-   * In the unlikely event you want to control EXACTLY when a native 
-   * object is released, each Xuggler object has a {@link #delete()}
-   * method that you can use. Once you call {@link #delete()},
-   * you must ENSURE your object is never referenced again from
-   * that Java object -- Ferry tries to help you avoid crashes if you
-   * accidentally use an object after deletion but on this but we
-   * cannot offer 100% protection (specifically if another thread
-   *  is accessing that object EXACTLY when you {@link #delete()} it). 
-   * </p>
-   */
 %}
+%typemap(javadestruct, methodname="doNotSet", methodmodifiers="public synchronized") com::xuggle::ferry::IBuffer ""
 
 %{
 static void IBuffer_javaDirectFreeFunc(void *, void * closure);

@@ -110,6 +110,7 @@ namespace com { namespace xuggle { namespace ferry {
      */
     virtual int32_t release();
 
+#ifndef SWIG
     /**
      * Create a new Java object that refers to the same native object.
      * 
@@ -124,7 +125,8 @@ namespace com { namespace xuggle { namespace ferry {
      * @return A new Java object.
      */
     virtual RefCounted* copyReference();
-
+#endif // ! SWIG
+    
     /**
      * Return the current reference count on this object.
      *
