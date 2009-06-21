@@ -1334,7 +1334,7 @@ using the library and what you like or don't like about it.
   <!-- stage stages java first, so that the native stage
        can copy any jars -->
   <target name="stage"
-    depends="stage-java, stage-native"
+    depends="compile-native, stage-java, stage-native"
     description="stage everything for a final installation, but use ${dist.dir}/stage as the root directory">
     <antcall target="stage-share" inheritAll="true" inheritRefs="true"/>
   </target>
