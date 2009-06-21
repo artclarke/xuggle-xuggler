@@ -1,4 +1,4 @@
-include $(abs_top_builddir)/mk/Makefile.global
+include $(abs_top_builddir)/Makefile.global
 
 # This file assume the container folder contains the following files:
 # README : A file saying (at least) what revision we have captive

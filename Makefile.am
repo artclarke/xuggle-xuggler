@@ -1,5 +1,8 @@
 include $(abs_top_builddir)/mk/Makefile.global
-SUBDIRS=captive csrc test/csrc
+if CAPTIVES_ENABLED
+  CAPTIVES=captive
+endif
+SUBDIRS=$(CAPTIVES) csrc test/csrc
 EXTRA_DIST= \
   src \
   test/src \

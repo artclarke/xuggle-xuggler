@@ -155,11 +155,6 @@ AC_ARG_VAR(VALGRIND,
           [Location of the 'valgrind' program; if found, then "ant run-tests-memcheck" will do full memory and error checking])
 AM_CONDITIONAL(HAVE_VALGRIND, [ test "x$VALGRIND" != "x" ])
 
-AC_PATH_PROG([YASM],[yasm])
-AC_ARG_VAR(YASM,
-          [Location of the 'yasm' program; if found, we'll build with some cool assembly on x86/x86_64 systems.])
-AM_CONDITIONAL(HAVE_YASM, [ test "x$YASM" != "x" ])
-
 AC_MSG_CHECKING([for bunny fur])
 AC_MSG_RESULT([no])
 
@@ -351,185 +346,9 @@ AC_ARG_ENABLE([captives],
 AC_MSG_CHECKING([whether to use captive versions of dependent libraries])
 AC_MSG_RESULT([$enable_captives])
 CAPTIVES_ENABLED=$enable_captives
+AM_CONDITIONAL(CAPTIVES_ENABLED,
+               [ test "x$CAPTIVES_ENABLED" = "xyes" ])
 AC_SUBST([CAPTIVES_ENABLED])
-
-#
-# Captive ffmpeg support
-#
-AC_ARG_ENABLE([captive-ffmpeg],
-              [AS_HELP_STRING([--enable-captive-ffmpeg],
-                              [use our own captive versions of the FFMPEG shared library (default is yes)])],
-                              [],
-                              [enable_captive_ffmpeg=yes])
-AC_MSG_CHECKING([whether to use captive version of ffmpeg])
-if test "x$enable_captives" != "xyes"; then
-  enable_captive_ffmpeg=no
-fi
-AC_MSG_RESULT([$enable_captive_ffmpeg])
-AM_CONDITIONAL(CAPTIVE_ENABLE_FFMPEG,
-               [ test "x$enable_captive_ffmpeg" = "xyes" ])
-CAPTIVE_ENABLE_FFMPEG=$enable_captive_ffmpeg
-AC_SUBST([CAPTIVE_ENABLE_FFMPEG])
-
-#
-# Add any passthrough options for FFMPEG here, but make
-# sure your incarcerate script knows to use them.
-# Checks for libraries.
-if test "x$enable_captive_ffmpeg" != "xyes"; then
-  # Only check for an installed FFMPEG if we're not going to build
-  # FFMPEG ourselves.
-AC_CHECK_LIB([avcodec], [avcodec_find_encoder], [have_ffmpeg=yes], [have_ffmpeg=no], [-lavformat -lavutil])
-if test "x$have_ffmpeg" = xno; then
-  AC_MSG_FAILURE([cannot link to the ffmpeg libraries; If they are in a non-standard location you can try re-running configure with LDFLAGS=-L/location/to/find/libraries.  Or if you're building 64-bit of this library, make sure ffmpeg is also compiled for 64-bit.])
-fi
-# FFMPEG headers
-AC_CHECK_HEADERS([libavcodec/avcodec.h libavformat/avformat.h libavutil/avutil.h], [VS_FFMPEG=yes], [VS_FFMPEG=no])
-if test "x$VS_FFMPEG" = xno; then
-  AC_MSG_FAILURE([cannot find the ffmpeg header files. If they are in a non-standard location you can try re-running configure with CFLAGS=-I/location/to/find/headers])
-fi
-fi
-
-#
-# Captive libx264 support
-#
-AC_ARG_ENABLE([captive-libx264],
-              [AS_HELP_STRING([--enable-captive-libx264],
-                              [use our own captive versions of the X264 library encoder (default is yes)])],
-                              [],
-                              [enable_captive_libx264=yes])
-AC_MSG_CHECKING([whether to use captive version of libx264])
-if test "x$enable_captives" != "xyes"; then
-  enable_captive_libx264=no
-fi
-if test "x$enable_captive_ffmpeg" != "xyes"; then
-  # no point in making a captive libx264 if we're not
-  # incarcerating ffmpeg
-  enable_captive_libx264=no
-fi
-if test "x$VS_ENABLE_GPL" != "xyes"; then
-  # can't use x264 unless you GPL this source
-  AC_MSG_WARN([cannot use captive libx264 unless gpl is enabled])
-  enable_captive_libx264=no
-fi
-
-AC_MSG_RESULT([$enable_captive_libx264])
-AM_CONDITIONAL(CAPTIVE_ENABLE_LIBX264,
-               [ test "x$enable_captive_libx264" = "xyes" ])
-CAPTIVE_ENABLE_LIBX264=$enable_captive_libx264
-AC_SUBST([CAPTIVE_ENABLE_LIBX264])
-
-# X264 headers
-if test "x$enable_captive_libx264" != "xyes"; then
-  # We only check for x264 if we're not building it
-AC_CHECK_HEADERS([x264.h], [HAVE_LIBX264=yes], [HAVE_LIBX264=no])
-if test "x$HAVE_LIBX264" = xno; then
-  AC_MSG_WARN([cannot find libx264; "ant run-tests" may not pass all tests.  To fix, recompile FFMPEG with X264 support.])
-fi
-fi
-
-
-
-#
-# Captive libmp3lame support
-#
-AC_ARG_ENABLE([captive-libmp3lame],
-              [AS_HELP_STRING([--enable-captive-libmp3lame],
-                              [use our own captive versions of the LAME mp3 encoder (default is yes)])],
-                              [],
-                              [enable_captive_libmp3lame=yes])
-AC_MSG_CHECKING([whether to use captive version of libmp3lame])
-if test "x$enable_captives" != "xyes"; then
-  enable_captive_libmp3lame=no
-fi
-if test "x$enable_captive_ffmpeg" != "xyes"; then
-  # no point in making a captive lame if we're not
-  # incarcerating ffmpeg
-  enable_captive_libmp3lame=no
-fi
-AC_MSG_RESULT([$enable_captive_libmp3lame])
-AM_CONDITIONAL(CAPTIVE_ENABLE_LIBMP3LAME,
-               [ test "x$enable_captive_libmp3lame" = "xyes" ])
-CAPTIVE_ENABLE_LIBMP3LAME=$enable_captive_libmp3lame
-AC_SUBST([CAPTIVE_ENABLE_LIBMP3LAME])
-
-# LAME headers
-if test "x$enable_captive_libmp3lame" != "xyes"; then
-  # We only check for Lame if we're not building it
-AC_CHECK_HEADERS([lame/lame.h], [HAVE_LIBMP3LAME=yes], [HAVE_LIBMP3LAME=no])
-if test "x$HAVE_LIBMP3LAME" = xno; then
-  AC_MSG_WARN([cannot find libmp3lame; "ant run-tests" may not pass all tests.  To fix, recompile FFMPEG with LAME support.])
-fi
-fi
-
-#
-# Captive libspeex support
-#
-AC_ARG_ENABLE([captive-libspeex],
-              [AS_HELP_STRING([--enable-captive-libspeex],
-                              [use our own captive versions of the Speex library encoder (default is yes)])],
-                              [],
-                              [enable_captive_libspeex=yes])
-AC_MSG_CHECKING([whether to use captive version of libspeex])
-if test "x$enable_captives" != "xyes"; then
-  enable_captive_libspeex=no
-fi
-if test "x$enable_captive_ffmpeg" != "xyes"; then
-  # no point in making a captive speex if we're not
-  # incarcerating ffmpeg
-  enable_captive_libspeex=no
-fi
-
-AC_MSG_RESULT([$enable_captive_libspeex])
-AM_CONDITIONAL(CAPTIVE_ENABLE_LIBSPEEX,
-               [ test "x$enable_captive_libspeex" = "xyes" ])
-CAPTIVE_ENABLE_LIBSPEEX=$enable_captive_libspeex
-AC_SUBST([CAPTIVE_ENABLE_LIBSPEEX])
-# SPEEX headers
-if test "x$enable_captive_libspeex" != "xyes"; then
-  # We only check for Lame if we're not building it
-AC_CHECK_HEADERS([speex/speex.h], [HAVE_LIBSPEEX=yes], [HAVE_LIBSPEEX=no])
-if test "x$HAVE_LIBSPEEX" = xno; then
-  AC_MSG_WARN([cannot find libspeex.  We will likely not be able to decode speex audio])
-fi
-fi
-
-#
-# Captive libfaac support
-#
-AC_ARG_ENABLE([captive-libfaac],
-              [AS_HELP_STRING([--enable-captive-libfaac],
-                              [use our own captive versions of the faac library encoder (default is yes)])],
-                              [],
-                              [enable_captive_libfaac=yes])
-AC_MSG_CHECKING([whether to use captive version of libfaac])
-if test "x$enable_captives" != "xyes"; then
-  enable_captive_libfaac=no
-fi
-if test "x$enable_captive_ffmpeg" != "xyes"; then
-  # no point in making a captive faac if we're not
-  # incarcerating ffmpeg
-  enable_captive_libfaac=no
-fi
-
-AC_MSG_RESULT([$enable_captive_libfaac])
-AM_CONDITIONAL(CAPTIVE_ENABLE_LIBFAAC,
-               [ test "x$enable_captive_libfaac" = "xyes" ])
-if test "x$VS_ENABLE_GPL" != "xyes"; then
-  # can't use faac unless you GPL this source
-  AC_MSG_WARN([cannot use captive libfaac unless gpl is enabled])
-  enable_captive_libfaac=no
-fi
-
-CAPTIVE_ENABLE_LIBFAAC=$enable_captive_libfaac
-AC_SUBST([CAPTIVE_ENABLE_LIBFAAC])
-# FAAC headers
-if test "x$enable_captive_libfaac" != "xyes"; then
-  # We only check for Lame if we're not building it
-AC_CHECK_HEADERS([faac.h], [HAVE_LIBFAAC=yes], [HAVE_LIBFAAC=no])
-if test "x$HAVE_LIBFAAC" = xno; then
-  AC_MSG_WARN([cannot find libfaac.  We will likely not be able to encode aac audio])
-fi
-fi
 
 dnl substitute our values for compiling; we don't reset the
 dnl CFLAGS values because then they'll be propagated to captives
@@ -538,6 +357,9 @@ AC_SUBST([VS_CXXFLAGS])
 AC_SUBST([VS_CPPFLAGS])
 AC_SUBST([VS_LDFLAGS])
 
+if test "x$enable_captives" = "xyes"; then
+  AC_CONFIG_SUBDIRS([captive])
+fi
 AC_CONFIG_FILES([Makefile
                  mk/Makefile.global:mk/buildtools/Makefile.global.in
                  csrc/Makefile
@@ -552,18 +374,5 @@ AC_CONFIG_FILES([Makefile
                  test/csrc/com/xuggle/testutils/Makefile
                  test/csrc/com/xuggle/ferry/Makefile
                  test/csrc/com/xuggle/xuggler/Makefile
-                 captive/Makefile
-                 captive/libx264/Makefile
-                 captive/libx264/incarcerate
-                 captive/libmp3lame/Makefile
-                 captive/libmp3lame/incarcerate
-                 captive/libspeex/Makefile
-                 captive/libspeex/incarcerate
-                 captive/libfaac/Makefile
-                 captive/libfaac/incarcerate
-                 captive/ffmpeg/Makefile
-                 captive/ffmpeg/incarcerate
-                 captive/ffmpeg/install.sh
-                 captive/ffmpeg/uninstall.sh
                  ])
 AC_OUTPUT

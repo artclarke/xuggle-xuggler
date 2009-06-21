@@ -78,7 +78,7 @@ chmod -R u+w @abs_builddir@/csrc/*
 
 echo "Configuring X264 with these options: $X264_OPTIONS"
 sh @abs_builddir@/csrc/configure \
-  --extra-cflags="$CFLAGS -I'@abs_top_builddir@/captive@includedir@'" \
-  --extra-ldflags="$LDFLAGS -L'@abs_top_builddir@/captive@libdir@'" \
+  --extra-cflags="$CFLAGS -I'@abs_top_builddir@@includedir@'" \
+  --extra-ldflags="$LDFLAGS -L'@abs_top_builddir@@libdir@'" \
   --prefix="${prefix}" $X264_OPTIONS || \
   (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)
