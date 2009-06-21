@@ -36,9 +36,9 @@ if test "x$VS_ENABLE_64BIT" = "xyes"; then
 fi
   
 sh @abs_srcdir@/csrc/configure \
-  CPPFLAGS="$CPPFLAGS -I'@abs_top_builddir@/captive@includedir@'" \
+  CPPFLAGS="$CPPFLAGS -I'@abs_top_builddir@@includedir@'" \
   CFLAGS="$CFLAGS" \
   CXXFLAGS="$CXXFLAGS" \
-  LDFLAGS="$LDFLAGS -L'@abs_top_builddir@/captive@libdir@'" \
+  LDFLAGS="$LDFLAGS -L'@abs_top_builddir@@libdir@'" \
   --prefix="${prefix}" || \
   (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)

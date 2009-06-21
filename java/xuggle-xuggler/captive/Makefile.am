@@ -1,4 +1,5 @@
-include $(abs_top_builddir)/mk/Makefile.global
+ACLOCAL_AMFLAGS=-I m4
+include $(abs_top_builddir)/Makefile.global
 EXTRA_DIST=COPYING
 if CAPTIVE_ENABLE_LIBFAAC
   LIBFAAC=libfaac

@@ -19,8 +19,8 @@ CAPTIVE_ENABLE_FFMPEG_GPL=@VS_ENABLE_GPL@
 FFMPEG_OPTIONS=
 # Tell FFMPEG about the captive libraries already built and fake
 # installed
-FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-I@abs_top_builddir@/captive@includedir@"
-FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-L@abs_top_builddir@/captive@libdir@"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-I@abs_top_builddir@@includedir@"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-L@abs_top_builddir@@libdir@"
 
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-shared"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-stripping"
