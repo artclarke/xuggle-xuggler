@@ -16187,8 +16187,8 @@ VS_ENABLE_GPL=$enable_gpl
 { $as_echo "$as_me:$LINENO: result: $enable_gpl" >&5
 $as_echo "$enable_gpl" >&6; }
 if test "x$VS_ENABLE_GPL" = "xyes"; then
-  { $as_echo "$as_me:$LINENO: WARNING: Compiling the GNU Affero General Public License version of FFmpeg" >&5
-$as_echo "$as_me: WARNING: Compiling the GNU Affero General Public License version of FFmpeg" >&2;}
+  { $as_echo "$as_me:$LINENO: WARNING: Compiling the GNU General Public License version of FFmpeg" >&5
+$as_echo "$as_me: WARNING: Compiling the GNU General Public License version of FFmpeg" >&2;}
 
 cat >>confdefs.h <<\_ACEOF
 #define VS_ENABLE_GPL 1

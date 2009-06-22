@@ -165,7 +165,7 @@ AC_ARG_ENABLE([gpl],
 VS_ENABLE_GPL=$enable_gpl
 AC_MSG_RESULT([$enable_gpl])
 if test "x$VS_ENABLE_GPL" = "xyes"; then
-  AC_MSG_WARN([Compiling the GNU Affero General Public License version of FFmpeg])
+  AC_MSG_WARN([Compiling the GNU General Public License version of FFmpeg])
   AC_DEFINE(VS_ENABLE_GPL, 1, AC_PACKAGE_NAME [ will enable any code that depends on GPL code ])
 else
   AC_MSG_WARN([ 
