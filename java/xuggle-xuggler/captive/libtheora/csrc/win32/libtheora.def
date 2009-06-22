@@ -1,0 +1,44 @@
+LIBRARY	libtheora
+EXPORTS
+	theora_version_string
+	theora_version_number
+	
+	theora_encode_init
+	theora_encode_YUVin
+	theora_encode_packetout
+	theora_encode_header
+	theora_encode_comment
+	theora_encode_tables
+	
+	theora_decode_header
+	theora_decode_init
+	theora_decode_packetin
+	theora_decode_YUVout
+	
+	theora_granule_time
+	
+	theora_info_init
+	theora_info_clear
+	
+	theora_clear
+
+	theora_comment_init
+	theora_comment_add
+	theora_comment_add_tag
+	theora_comment_query
+	theora_comment_query_count
+	theora_comment_clear
+	theora_packet_isheader
+
+	th_comment_init
+	th_comment_clear
+	th_encode_alloc
+	th_encode_ctl
+	th_encode_flushheader
+	th_encode_free
+	th_encode_packetout
+	th_encode_ycbcr_in
+	th_granule_time
+	th_info_clear
+	th_info_init	th_packet_isheader
+

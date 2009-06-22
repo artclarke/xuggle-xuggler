@@ -344,15 +344,117 @@ if test "x$HAVE_LIBFAAC" = xno; then
 fi
 fi
 
+#
+# Captive libogg support
+#
+AC_ARG_ENABLE([captive-libogg],
+              [AS_HELP_STRING([--enable-captive-libogg],
+                              [use our own captive versions of the ogg library encoder (default is yes)])],
+                              [],
+                              [enable_captive_libogg=yes])
+AC_MSG_CHECKING([whether to use captive version of libogg])
+if test "x$enable_captives" != "xyes"; then
+  enable_captive_libogg=no
+fi
+if test "x$enable_captive_ffmpeg" != "xyes"; then
+  # no point in making a captive ogg if we're not
+  # incarcerating ffmpeg
+  enable_captive_libogg=no
+fi
+
+AC_MSG_RESULT([$enable_captive_libogg])
+AM_CONDITIONAL(CAPTIVE_ENABLE_LIBOGG,
+               [ test "x$enable_captive_libogg" = "xyes" ])
+CAPTIVE_ENABLE_LIBOGG=$enable_captive_libogg
+AC_SUBST([CAPTIVE_ENABLE_LIBOGG])
+# OGG headers
+if test "x$enable_captive_libogg" != "xyes"; then
+  # We only check for Lame if we're not building it
+AC_CHECK_HEADERS([ogg/ogg.h], [HAVE_LIBOGG=yes], [HAVE_LIBOGG=no])
+if test "x$HAVE_LIBOGG" = xno; then
+  AC_MSG_WARN([cannot find libogg.  We will likely not be able to encode vorbis video or theora audio])
+fi
+fi
+
+#
+# Captive libvorbis support
+#
+AC_ARG_ENABLE([captive-libvorbis],
+              [AS_HELP_STRING([--enable-captive-libvorbis],
+                              [use our own captive versions of the vorbis library encoder (default is yes)])],
+                              [],
+                              [enable_captive_libvorbis=yes])
+AC_MSG_CHECKING([whether to use captive version of libvorbis])
+if test "x$enable_captives" != "xyes"; then
+  enable_captive_libvorbis=no
+fi
+if test "x$enable_captive_ffmpeg" != "xyes"; then
+  # no point in making a captive vorbis if we're not
+  # incarcerating ffmpeg
+  enable_captive_libvorbis=no
+fi
+
+AC_MSG_RESULT([$enable_captive_libvorbis])
+AM_CONDITIONAL(CAPTIVE_ENABLE_LIBVORBIS,
+               [ test "x$enable_captive_libvorbis" = "xyes" ])
+CAPTIVE_ENABLE_LIBVORBIS=$enable_captive_libvorbis
+AC_SUBST([CAPTIVE_ENABLE_LIBVORBIS])
+# vorbis headers
+if test "x$enable_captive_libvorbis" != "xyes"; then
+  # We only check for Lame if we're not building it
+AC_CHECK_HEADERS([vorbis/vorbisenc.h], [HAVE_LIBVORBIS=yes], [HAVE_LIBVORBIS=no])
+if test "x$HAVE_LIBVORBIS" = xno; then
+  AC_MSG_WARN([cannot find libvorbis.  We will likely not be able to encode vorbis audio])
+fi
+fi
+
+#
+# Captive libtheora support
+#
+AC_ARG_ENABLE([captive-libtheora],
+              [AS_HELP_STRING([--enable-captive-libtheora],
+                              [use our own captive versions of the theora library encoder (default is yes)])],
+                              [],
+                              [enable_captive_libtheora=yes])
+AC_MSG_CHECKING([whether to use captive version of libtheora])
+if test "x$enable_captives" != "xyes"; then
+  enable_captive_libtheora=no
+fi
+if test "x$enable_captive_ffmpeg" != "xyes"; then
+  # no point in making a captive theora if we're not
+  # incarcerating ffmpeg
+  enable_captive_libtheora=no
+fi
+
+AC_MSG_RESULT([$enable_captive_libtheora])
+AM_CONDITIONAL(CAPTIVE_ENABLE_LIBTHEORA,
+               [ test "x$enable_captive_libtheora" = "xyes" ])
+CAPTIVE_ENABLE_LIBTHEORA=$enable_captive_libtheora
+AC_SUBST([CAPTIVE_ENABLE_LIBTHEORA])
+# theora headers
+if test "x$enable_captive_libtheora" != "xyes"; then
+  # We only check for Lame if we're not building it
+AC_CHECK_HEADERS([theora/theora.h], [HAVE_LIBTHEORA=yes], [HAVE_LIBTHEORA=no])
+if test "x$HAVE_LIBTHEORA" = xno; then
+  AC_MSG_WARN([cannot find libtheora.  We will likely not be able to encode theora audio])
+fi
+fi
+
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_FILES([Makefile
                  Makefile.global
+                 libogg/Makefile
+                 libogg/incarcerate
+                 libvorbis/Makefile
+                 libvorbis/incarcerate
+                 libtheora/Makefile
+                 libtheora/incarcerate
+                 libspeex/Makefile
+                 libspeex/incarcerate
                  libx264/Makefile
                  libx264/incarcerate
                  libmp3lame/Makefile
                  libmp3lame/incarcerate
-                 libspeex/Makefile
-                 libspeex/incarcerate
                  libfaac/Makefile
                  libfaac/incarcerate
                  ffmpeg/Makefile
