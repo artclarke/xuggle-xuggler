@@ -69,7 +69,22 @@ public class Global extends RefCounted {
    * @return the new Java object.
    */
   public Global copyReference() {
-    return (Global) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      Global retval = null;
+      this.acquire();
+      try {
+         retval = new Global(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -111,7 +126,7 @@ public class Global extends RefCounted {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 
   /**
    * The default unit of time that {@link IAudioSamples} and

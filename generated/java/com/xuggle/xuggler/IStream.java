@@ -88,7 +88,22 @@ public class IStream extends RefCounted {
    * @return the new Java object.
    */
   public IStream copyReference() {
-    return (IStream) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IStream retval = null;
+      this.acquire();
+      try {
+         retval = new IStream(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -130,7 +145,7 @@ public class IStream extends RefCounted {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 
   /**
    * info about this packet

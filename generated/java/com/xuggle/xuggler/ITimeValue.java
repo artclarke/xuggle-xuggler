@@ -72,7 +72,22 @@ public class ITimeValue extends RefCounted {
    * @return the new Java object.
    */
   public ITimeValue copyReference() {
-    return (ITimeValue) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      ITimeValue retval = null;
+      this.acquire();
+      try {
+         retval = new ITimeValue(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -114,7 +129,7 @@ public class ITimeValue extends RefCounted {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 /**
  * Make a new time value.  
  * @param	value The value.  

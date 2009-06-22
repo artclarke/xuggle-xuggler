@@ -72,7 +72,22 @@ public class ICodec extends RefCounted {
    * @return the new Java object.
    */
   public ICodec copyReference() {
-    return (ICodec) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      ICodec retval = null;
+      this.acquire();
+      try {
+         retval = new ICodec(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -114,7 +129,7 @@ public class ICodec extends RefCounted {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 
   /**
    * Prints the type and id of this codec

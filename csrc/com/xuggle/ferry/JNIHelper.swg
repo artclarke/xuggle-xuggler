@@ -34,11 +34,7 @@
   protected boolean swigCMemOwn;
   private com.xuggle.ferry.JNIReference mRefCounter;
   private Long mLifecycleReference;
-  
-  private java.util.concurrent.atomic.AtomicLong mRefCount =
-    new java.util.concurrent.atomic.AtomicLong(1L);
-  
-  
+
   // the next object looks like it is unused by the compiler, but that's not true; it most
   // definitely is used :)
   @SuppressWarnings("unused")
@@ -113,44 +109,23 @@
    * </p>
    */
    
-   public void delete()
+   public synchronized void delete()
    {
-     long refCount = mRefCount.decrementAndGet();
-     /**
-      * Only delete for the thread that wins the set-to-zero
-      * competition.
-      */
-     if (refCount == 0)
-     {
-       {
-         if(swigCPtr != 0) {
-           // assigning to an object removes an incorrect java
-           // compiler warning for some
-           // generated files
-           Object object = this;
-           if (object instanceof RefCounted && mRefCounter != null) {
-             mRefCounter.delete();
-           } else if (swigCMemOwn) {
-             swigCMemOwn = false;
-           }
-         }
-         mRefCounter = null;
-         mObjectToForceFinalize = null;
-         mLifecycleReference = null;
-         swigCPtr = 0;
+     if(swigCPtr != 0) {
+       // assigning to an object removes an incorrect java
+       // compiler warning for some
+       // generated files
+       Object object = this;
+       if (object instanceof RefCounted && mRefCounter != null) {
+         mRefCounter.delete();
+       } else if (swigCMemOwn) {
+         swigCMemOwn = false;
        }
      }
-   }
-   
-   /**
-    * Internal Only.  Returns true if, at this instant, this reference points to a valid
-    * underlying native object.
-    *
-    * @return true if a valid object; false otherwise.
-    */
-   public boolean isValidReference()
-   {
-     return mRefCount.get() > 0;
+     mRefCounter = null;
+     mObjectToForceFinalize = null;
+     mLifecycleReference = null;
+     swigCPtr = 0;
    }
    
   /**
@@ -162,10 +137,22 @@
    * @return the new Java object.
    */
   public $javaclassname copyReference() {
-    long oldRef = mRefCount.getAndIncrement();
-    if (oldRef <= 0)
-      throw new IllegalStateException("invalid reference count: " + oldRef);
-    return this;
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      $javaclassname retval = null;
+      this.acquire();
+      try {
+         retval = new $javaclassname(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
    
@@ -345,7 +332,22 @@
    * @return the new Java object.
    */
   public $javaclassname copyReference() {
-    return ($javaclassname) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      $javaclassname retval = null;
+      this.acquire();
+      try {
+         retval = new $javaclassname(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -387,11 +389,13 @@
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-%}
+  %}
+  
 
 // For RefCounted and children
 %typemap(javadestruct, methodname="doNotSet", methodmodifiers="public synchronized") com::xuggle::ferry::RefCounted ""
 %typemap(javadestruct_derived, methodname="doNotSet", methodmodifiers="public synchronized") SWIGTYPE ""
+
 
 %typemap(check) SWIGTYPE *self %{
   if (!$1) {

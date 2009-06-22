@@ -78,7 +78,22 @@ public class IContainerParameters extends RefCounted {
    * @return the new Java object.
    */
   public IContainerParameters copyReference() {
-    return (IContainerParameters) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IContainerParameters retval = null;
+      this.acquire();
+      try {
+         retval = new IContainerParameters(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -120,7 +135,7 @@ public class IContainerParameters extends RefCounted {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 /**
  * Get the time base. For container formats such as  
  * webcameras, this is used as the requested frame rate.  

@@ -71,7 +71,22 @@ public class IAudioSamples extends IMediaData {
    * @return the new Java object.
    */
   public IAudioSamples copyReference() {
-    return (IAudioSamples) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IAudioSamples retval = null;
+      this.acquire();
+      try {
+         retval = new IAudioSamples(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -113,7 +128,7 @@ public class IAudioSamples extends IMediaData {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 
   /**
    * info about this packet

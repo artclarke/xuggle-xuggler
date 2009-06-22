@@ -78,6 +78,19 @@ public class IBuffer extends RefCounted {
   }
   
   /**
+   * Releases ths instance of IBuffer and frees any underlying
+   * native memory.
+   * <p>
+   * {@inheritDoc}
+   * </p> 
+   */
+  public void delete()
+  {
+    do {} while(false); // remove a warning
+    super.delete();
+  }
+  
+  /**
    * Create a new IBuffer object that is actually referring to the
    * exact same underlying Native object.
    *
@@ -85,21 +98,25 @@ public class IBuffer extends RefCounted {
    *
    * @return the new Java object.
    */
-  @Override
   public IBuffer copyReference() {
-    return (IBuffer) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IBuffer retval = null;
+      this.acquire();
+      try {
+         retval = new IBuffer(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
-  /**
-   * {inheritDoc}
-   */
-  @Override
-  public void delete()
-  {
-    do {} while(false);
-    super.delete();
-  }
-  
   /**
    * Compares two values, returning true if the underlying objects in native code are the same object.
    *
@@ -1037,6 +1054,9 @@ public class IBuffer extends RefCounted {
     }
     return retval;
   }
+  
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+  // IBuffer.swg
 
 /**
  * Get the current maximum number of bytes that can  

@@ -78,7 +78,22 @@ public class Mutex extends RefCounted {
    * @return the new Java object.
    */
   public Mutex copyReference() {
-    return (Mutex) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      Mutex retval = null;
+      this.acquire();
+      try {
+         retval = new Mutex(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -120,7 +135,7 @@ public class Mutex extends RefCounted {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
   public static Mutex make() {
     long cPtr = FerryJNI.Mutex_make();
     return (cPtr == 0) ? null : new Mutex(cPtr, false);

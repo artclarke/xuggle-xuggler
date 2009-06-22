@@ -126,7 +126,7 @@ namespace com { namespace xuggle { namespace ferry {
      */
     virtual RefCounted* copyReference();
 #endif // ! SWIG
-    
+
     /**
      * Return the current reference count on this object.
      *

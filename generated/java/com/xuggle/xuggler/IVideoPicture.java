@@ -74,7 +74,22 @@ public class IVideoPicture extends IMediaData {
    * @return the new Java object.
    */
   public IVideoPicture copyReference() {
-    return (IVideoPicture) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IVideoPicture retval = null;
+      this.acquire();
+      try {
+         retval = new IVideoPicture(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -116,7 +131,7 @@ public class IVideoPicture extends IMediaData {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 
   /**
    * info about this packet

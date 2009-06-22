@@ -77,7 +77,22 @@ public class IMediaDataWrapper extends IMediaData {
    * @return the new Java object.
    */
   public IMediaDataWrapper copyReference() {
-    return (IMediaDataWrapper) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IMediaDataWrapper retval = null;
+      this.acquire();
+      try {
+         retval = new IMediaDataWrapper(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -119,7 +134,7 @@ public class IMediaDataWrapper extends IMediaData {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 
   /**
    * Return the object being wrapped

@@ -70,7 +70,22 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
    * @return the new Java object.
    */
   public IContainer copyReference() {
-    return (IContainer) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IContainer retval = null;
+      this.acquire();
+      try {
+         retval = new IContainer(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -112,7 +127,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 
   /**
    * info about this container.  We only print information that can be

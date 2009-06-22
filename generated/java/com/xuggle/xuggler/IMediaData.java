@@ -69,7 +69,22 @@ public class IMediaData extends RefCounted {
    * @return the new Java object.
    */
   public IMediaData copyReference() {
-    return (IMediaData) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IMediaData retval = null;
+      this.acquire();
+      try {
+         retval = new IMediaData(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -111,7 +126,7 @@ public class IMediaData extends RefCounted {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 
   // used to correct timezone offsets for timestamp format 
 

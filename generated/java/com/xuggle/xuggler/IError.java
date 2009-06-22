@@ -88,7 +88,22 @@ public class IError extends RefCounted {
    * @return the new Java object.
    */
   public IError copyReference() {
-    return (IError) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IError retval = null;
+      this.acquire();
+      try {
+         retval = new IError(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -130,7 +145,7 @@ public class IError extends RefCounted {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 
   /**
    * Return a string representation of this error

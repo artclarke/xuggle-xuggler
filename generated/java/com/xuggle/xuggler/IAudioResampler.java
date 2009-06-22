@@ -69,7 +69,22 @@ public class IAudioResampler extends RefCounted {
    * @return the new Java object.
    */
   public IAudioResampler copyReference() {
-    return (IAudioResampler) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IAudioResampler retval = null;
+      this.acquire();
+      try {
+         retval = new IAudioResampler(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -111,7 +126,7 @@ public class IAudioResampler extends RefCounted {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 /**
  * number of channels in output audio.  
  * @return	Number of channels we'll resample the output to.  

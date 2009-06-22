@@ -71,7 +71,22 @@ public class RefCountedTester extends RefCounted {
    * @return the new Java object.
    */
   public RefCountedTester copyReference() {
-    return (RefCountedTester) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      RefCountedTester retval = null;
+      this.acquire();
+      try {
+         retval = new RefCountedTester(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -113,7 +128,7 @@ public class RefCountedTester extends RefCounted {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
   public static RefCountedTester make() {
     long cPtr = FerryJNI.RefCountedTester_make__SWIG_0();
     return (cPtr == 0) ? null : new RefCountedTester(cPtr, false);

@@ -78,7 +78,22 @@ public class IContainerFormat extends RefCounted {
    * @return the new Java object.
    */
   public IContainerFormat copyReference() {
-    return (IContainerFormat) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IContainerFormat retval = null;
+      this.acquire();
+      try {
+         retval = new IContainerFormat(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -120,7 +135,7 @@ public class IContainerFormat extends RefCounted {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 
   /**
    * info about this format object

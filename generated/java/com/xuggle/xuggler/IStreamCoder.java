@@ -72,7 +72,22 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
    * @return the new Java object.
    */
   public IStreamCoder copyReference() {
-    return (IStreamCoder) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IStreamCoder retval = null;
+      this.acquire();
+      try {
+         retval = new IStreamCoder(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -114,7 +129,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 
   /**
    * Returns the fourcc tag, in order of least significant byte

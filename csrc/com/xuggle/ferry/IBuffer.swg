@@ -73,6 +73,19 @@
   }
   
   /**
+   * Releases ths instance of $javaclassname and frees any underlying
+   * native memory.
+   * <p>
+   * {@inheritDoc}
+   * </p> 
+   */
+  public void delete()
+  {
+    do {} while(false); // remove a warning
+    super.delete();
+  }
+  
+  /**
    * Create a new $javaclassname object that is actually referring to the
    * exact same underlying Native object.
    *
@@ -80,21 +93,25 @@
    *
    * @return the new Java object.
    */
-  @Override
   public $javaclassname copyReference() {
-    return ($javaclassname) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      $javaclassname retval = null;
+      this.acquire();
+      try {
+         retval = new $javaclassname(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
-  /**
-   * {inheritDoc}
-   */
-  @Override
-  public void delete()
-  {
-    do {} while(false);
-    super.delete();
-  }
-  
   /**
    * Compares two values, returning true if the underlying objects in native code are the same object.
    *
@@ -1032,8 +1049,12 @@
     }
     return retval;
   }
+  
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+  // IBuffer.swg
 %}
 %typemap(javadestruct, methodname="doNotSet", methodmodifiers="public synchronized") com::xuggle::ferry::IBuffer ""
+%typemap(javadestruct_derived, methodname="doNotSet", methodmodifiers="public synchronized") com::xuggle::ferry::IBuffer ""
 
 %{
 static void IBuffer_javaDirectFreeFunc(void *, void * closure);

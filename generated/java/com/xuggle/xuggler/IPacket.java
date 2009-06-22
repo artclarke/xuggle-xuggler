@@ -96,7 +96,22 @@ public class IPacket extends IMediaData {
    * @return the new Java object.
    */
   public IPacket copyReference() {
-    return (IPacket) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IPacket retval = null;
+      this.acquire();
+      try {
+         retval = new IPacket(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -138,7 +153,7 @@ public class IPacket extends IMediaData {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 
   /**
    * info about this packet

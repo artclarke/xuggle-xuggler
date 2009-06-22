@@ -75,7 +75,22 @@ public class IPixelFormat extends RefCounted {
    * @return the new Java object.
    */
   public IPixelFormat copyReference() {
-    return (IPixelFormat) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IPixelFormat retval = null;
+      this.acquire();
+      try {
+         retval = new IPixelFormat(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -117,7 +132,7 @@ public class IPixelFormat extends RefCounted {
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 /**
  * Returns the byte for the coordinates at x and y for the color component 
  * c.  

@@ -77,7 +77,22 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
    * @return the new Java object.
    */
   public IVideoResampler copyReference() {
-    return (IVideoResampler) super.copyReference();
+    if (swigCPtr == 0)
+      return null;
+    else
+    {
+      // acquire before making copy to avoid memory allocator being
+      // overridden
+      IVideoResampler retval = null;
+      this.acquire();
+      try {
+         retval = new IVideoResampler(swigCPtr, false);
+      } catch (Throwable t) {
+        this.release();
+        throw new RuntimeException(t);
+      }
+      return retval;
+    }
   }
 
   /**
@@ -119,7 +134,7 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
-
+  
 /**
  * Get the width in pixels we expect on the input frame to the resampler. 
  *  
