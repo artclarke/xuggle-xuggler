@@ -168,8 +168,10 @@ public class MemoryAllocationExhaustiveTest
       throws InterruptedException
   {
     log.debug("Testing {}", "testImplicitReleasingWithNoExplicitGCWorks");
-    if (JNIMemoryManager.getMemoryModel() ==
-      JNIMemoryManager.MemoryModel.NATIVE_BUFFERS)
+    JNIMemoryManager.MemoryModel model = JNIMemoryManager.getMemoryModel();
+    if (
+        model == JNIMemoryManager.MemoryModel.NATIVE_BUFFERS ||
+        model == JNIMemoryManager.MemoryModel.JAVA_DIRECT_BUFFERS)
     {
       log.debug("Skipping test; explicitly won't work with this model: {}",
           JNIMemoryManager.getMemoryModel());

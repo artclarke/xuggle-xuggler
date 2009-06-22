@@ -84,7 +84,7 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
    * Releases ths instance of IVideoResampler and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

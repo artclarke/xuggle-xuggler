@@ -79,7 +79,7 @@ public class ICodec extends RefCounted {
    * Releases ths instance of ICodec and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

@@ -76,7 +76,7 @@ public class IAudioResampler extends RefCounted {
    * Releases ths instance of IAudioResampler and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

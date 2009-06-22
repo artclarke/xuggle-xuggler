@@ -76,7 +76,7 @@ public class IProperty extends RefCounted {
    * Releases ths instance of IProperty and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

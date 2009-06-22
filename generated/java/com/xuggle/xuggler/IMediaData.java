@@ -76,7 +76,7 @@ public class IMediaData extends RefCounted {
    * Releases ths instance of IMediaData and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

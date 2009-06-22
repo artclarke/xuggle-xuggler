@@ -77,7 +77,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
    * Releases ths instance of IContainer and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

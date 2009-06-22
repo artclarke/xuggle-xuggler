@@ -85,7 +85,7 @@ public class Mutex extends RefCounted {
    * Releases ths instance of Mutex and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

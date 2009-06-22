@@ -78,7 +78,7 @@ public class IAudioSamples extends IMediaData {
    * Releases ths instance of IAudioSamples and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

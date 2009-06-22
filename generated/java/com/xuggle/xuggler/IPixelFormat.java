@@ -82,7 +82,7 @@ public class IPixelFormat extends RefCounted {
    * Releases ths instance of IPixelFormat and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

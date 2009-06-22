@@ -81,7 +81,7 @@ public class IVideoPicture extends IMediaData {
    * Releases ths instance of IVideoPicture and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

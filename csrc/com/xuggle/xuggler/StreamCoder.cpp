@@ -603,6 +603,12 @@ StreamCoder :: open()
     // Do any post open initialization here.
     if (this->getCodecType() == ICodec::CODEC_TYPE_AUDIO)
     {
+      // Libvorbis requires a time-base; and many folks don't set it...
+      if (mCodecContext->time_base.num == 0 && mCodecContext->sample_rate > 0)
+      {
+        mCodecContext->time_base.num = 1;
+        mCodecContext->time_base.den = mCodecContext->sample_rate;
+      }
       int32_t frame_bytes = getAudioFrameSize() * getChannels()
           * IAudioSamples::findSampleBitDepth((IAudioSamples::Format) mCodecContext->sample_fmt) / 8;
       if (frame_bytes <= 0)

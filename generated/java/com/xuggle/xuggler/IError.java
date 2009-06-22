@@ -95,7 +95,7 @@ public class IError extends RefCounted {
    * Releases ths instance of IError and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

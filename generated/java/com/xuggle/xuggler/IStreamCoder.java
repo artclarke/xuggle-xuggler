@@ -79,7 +79,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
    * Releases ths instance of IStreamCoder and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

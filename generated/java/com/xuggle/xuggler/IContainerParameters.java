@@ -85,7 +85,7 @@ public class IContainerParameters extends RefCounted {
    * Releases ths instance of IContainerParameters and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

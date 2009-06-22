@@ -89,7 +89,7 @@ public class IRational extends RefCounted {
    * Releases ths instance of IRational and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

@@ -11,11 +11,6 @@ AC_INIT([xuggler],[VSM4_LIB_MAJOR_VERSION.VSM4_LIB_MINOR_VERSION],[info@xuggle.c
 AC_PREREQ([2.63])
 AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
 AM_MAINTAINER_MODE
-AC_CONFIG_SRCDIR([csrc/com/xuggle/Xuggle.h])
-AC_CONFIG_HEADER([csrc/com/xuggle/ferry/config.h:config.h.in])
-AC_CONFIG_HEADER([csrc/com/xuggle/xuggler/config.h:config.h.in])
-AC_CONFIG_HEADER([csrc/com/xuggle/xuggler/io/config.h:config.h.in])
-
 AC_PREFIX_DEFAULT([${XUGGLE_HOME:-/usr/local}])
 
 LIB_MAJOR_VERSION=VSM4_LIB_MAJOR_VERSION
@@ -24,6 +19,25 @@ AC_SUBST([LIB_MAJOR_VERSION])
 AC_SUBST([LIB_MINOR_VERSION])
 AC_DEFINE(VS_LIB_MAJOR_VERSION, [VSM4_LIB_MAJOR_VERSION], [Major version of library])
 AC_DEFINE(VS_LIB_MINOR_VERSION, [VSM4_LIB_MINOR_VERSION], [Minor version of library])
+
+#
+# CAPTIVE building support
+#
+AC_ARG_ENABLE([captives],
+              [AS_HELP_STRING([--enable-captives],
+                              [use our own captive versions of dependent libraries (default is yes)])],
+                              [],
+                              [enable_captives=yes])
+AC_MSG_CHECKING([whether to use captive versions of dependent libraries])
+AC_MSG_RESULT([$enable_captives])
+CAPTIVES_ENABLED=$enable_captives
+AM_CONDITIONAL(CAPTIVES_ENABLED,
+               [ test "x$CAPTIVES_ENABLED" = "xyes" ])
+AC_SUBST([CAPTIVES_ENABLED])
+
+if test "x$enable_captives" = "xyes"; then
+  AC_CONFIG_SUBDIRS([captive])
+fi
 
 VS_CPPFLAGS=
 VS_CFLAGS=
@@ -335,21 +349,6 @@ AC_SUBST(VS_ENABLE_GPL)
 AM_CONDITIONAL(VS_ENABLE_GPL,
                [ test "x$VS_ENABLE_GPL" = "xyes" ])
 
-#
-# CAPTIVE building support
-#
-AC_ARG_ENABLE([captives],
-              [AS_HELP_STRING([--enable-captives],
-                              [use our own captive versions of dependent libraries (default is yes)])],
-                              [],
-                              [enable_captives=yes])
-AC_MSG_CHECKING([whether to use captive versions of dependent libraries])
-AC_MSG_RESULT([$enable_captives])
-CAPTIVES_ENABLED=$enable_captives
-AM_CONDITIONAL(CAPTIVES_ENABLED,
-               [ test "x$CAPTIVES_ENABLED" = "xyes" ])
-AC_SUBST([CAPTIVES_ENABLED])
-
 dnl substitute our values for compiling; we don't reset the
 dnl CFLAGS values because then they'll be propagated to captives
 AC_SUBST([VS_CFLAGS])
@@ -357,9 +356,12 @@ AC_SUBST([VS_CXXFLAGS])
 AC_SUBST([VS_CPPFLAGS])
 AC_SUBST([VS_LDFLAGS])
 
-if test "x$enable_captives" = "xyes"; then
-  AC_CONFIG_SUBDIRS([captive])
-fi
+
+dnl Now, output everything
+AC_CONFIG_SRCDIR([csrc/com/xuggle/Xuggle.h])
+AC_CONFIG_HEADER([csrc/com/xuggle/ferry/config.h:config.h.in])
+AC_CONFIG_HEADER([csrc/com/xuggle/xuggler/config.h:config.h.in])
+AC_CONFIG_HEADER([csrc/com/xuggle/xuggler/io/config.h:config.h.in])
 AC_CONFIG_FILES([Makefile
                  mk/Makefile.global:mk/buildtools/Makefile.global.in
                  csrc/Makefile

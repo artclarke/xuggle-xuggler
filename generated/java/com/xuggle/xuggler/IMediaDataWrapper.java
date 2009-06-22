@@ -84,7 +84,7 @@ public class IMediaDataWrapper extends IMediaData {
    * Releases ths instance of IMediaDataWrapper and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

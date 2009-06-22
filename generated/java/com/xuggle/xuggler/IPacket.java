@@ -103,7 +103,7 @@ public class IPacket extends IMediaData {
    * Releases ths instance of IPacket and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

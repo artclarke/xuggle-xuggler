@@ -79,7 +79,7 @@ public class ITimeValue extends RefCounted {
    * Releases ths instance of ITimeValue and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()

@@ -5,17 +5,37 @@ import junit.framework.TestCase;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.junit.Test;
 
 public class ConverterExhaustiveTest extends TestCase
 {
   private Converter converter=null;
 
+  public void testConversionOggVorbisTheora() throws ParseException
+  {
+    String[] args = new String[]{
+        "--vcodec",
+        "libtheora",
+        "--acodec",
+        "libvorbis",
+        "fixtures/testfile.flv",
+        this.getClass().getName() + "_" + this.getName() + ".ogg"
+    };
+    
+    converter = new Converter();
+    
+    Options options = converter.defineOptions();
+
+    CommandLine cmdLine = converter.parseOptions(options, args);
+    assertTrue("all commandline options successful", cmdLine != null);
+    
+    converter.run(cmdLine);
+    
+  }
+
   /**
    * See: http://code.google.com/p/xuggle/issues/detail?id=165
    * @throws ParseException if it feels like it
    */
-  @Test
   public void testIssue165() throws ParseException
   {
     String[] args = new String[]{
@@ -33,7 +53,6 @@ public class ConverterExhaustiveTest extends TestCase
     converter.run(cmdLine);
   }
 
-  @Test
   public void testConversionH264() throws ParseException
   {
     // We do this to determine if this version of Xuggler can
@@ -83,7 +102,6 @@ public class ConverterExhaustiveTest extends TestCase
     converter.run(cmdLine);
   }
 
-  @Test
   public void testConversionAac() throws ParseException
   {
     // We do this to determine if this version of Xuggler can

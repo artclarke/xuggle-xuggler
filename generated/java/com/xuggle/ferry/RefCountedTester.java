@@ -78,7 +78,7 @@ public class RefCountedTester extends RefCounted {
    * Releases ths instance of RefCountedTester and frees any underlying
    * native memory.
    * <p>
-   * @{inheritDoc}
+   * {@inheritDoc}
    * </p> 
    */
   public void delete()
