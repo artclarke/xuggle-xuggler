@@ -44,6 +44,17 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
   }
   
   /**
+   * Internal Only.
+   */
+  protected IVideoResampler(long cPtr, boolean cMemoryOwn,
+      java.util.concurrent.atomic.AtomicLong ref)
+  {
+    super(XugglerJNI.SWIGIVideoResamplerUpcast(cPtr),
+     cMemoryOwn, ref);
+    swigCPtr = cPtr;
+  }
+    
+  /**
    * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that obj is proxying for.
@@ -72,27 +83,14 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
    * Create a new IVideoResampler object that is actually referring to the
    * exact same underlying native object.
    *
-   * This method increases the ref count of the underlying Native object.
-   *
    * @return the new Java object.
    */
+  @Override
   public IVideoResampler copyReference() {
     if (swigCPtr == 0)
       return null;
     else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      IVideoResampler retval = null;
-      this.acquire();
-      try {
-         retval = new IVideoResampler(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+      return new IVideoResampler(swigCPtr, swigCMemOwn, getJavaRefCount());
   }
 
   /**
@@ -102,6 +100,7 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
    * {@inheritDoc}
    * </p> 
    */
+  @Override
   public void delete()
   {
     do {} while(false); // remove a warning

@@ -18,5 +18,6 @@
  */
 
 %typemap(javapackage) com::xuggle::ferry::RefCounted, com::xuggle::ferry::RefCounted*, com::xuggle::ferry::RefCounted& "com.xuggle.ferry"
-
+%javamethodmodifiers com::xuggle::ferry::RefCounted::getCurrentRefCount() "private"
+%rename("getCurrentNativeRefCount") com::xuggle::ferry::RefCounted::getCurrentRefCount();
 %include <com/xuggle/ferry/RefCounted.h>

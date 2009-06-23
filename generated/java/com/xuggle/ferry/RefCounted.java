@@ -70,13 +70,27 @@ public class RefCounted {
   // definitely is used :)
   @SuppressWarnings("unused")
   private com.xuggle.ferry.JNINativeFinalizer mObjectToForceFinalize;
+  private java.util.concurrent.atomic.AtomicLong mJavaRefCount;
 
   /**
    * Internal Only.  Not part of public API.
    */
   protected RefCounted(long cPtr, boolean cMemoryOwn) {
+    this(cPtr, cMemoryOwn, new java.util.concurrent.atomic.AtomicLong(0L));
+  }
+  
+  /**
+   * Internal Only.  Not part of public API.
+   */
+  protected RefCounted(long cPtr, boolean cMemoryOwn,
+      java.util.concurrent.atomic.AtomicLong ref)
+  {
     swigCMemOwn = cMemoryOwn;
     swigCPtr = cPtr;
+    // Create the reference count that java-only objects will use
+    // to avoid calling acquire and release on copyReference
+    ref.incrementAndGet();
+    mJavaRefCount = ref;
     if (swigCPtr != 0)
     {
       // This object must:
@@ -93,7 +107,8 @@ public class RefCounted {
       mLifecycleReference = new Long(swigCPtr);      
       // Force the creation of a new weak reference, will will actually pin itself
       // inside the reference class.
-      mRefCounter = JNIReference.createReference(mLifecycleReference, swigCPtr);
+      mRefCounter = JNIReference.createReference(mLifecycleReference, swigCPtr,
+          mJavaRefCount);
     }
   }
 
@@ -140,7 +155,7 @@ public class RefCounted {
    * </p>
    */
    
-   public synchronized void delete()
+   public void delete()
    {
      if(swigCPtr != 0) {
        // assigning to an object removes an incorrect java
@@ -152,7 +167,9 @@ public class RefCounted {
        } else if (swigCMemOwn) {
          swigCMemOwn = false;
        }
+
      }
+     mJavaRefCount = null;
      mRefCounter = null;
      mObjectToForceFinalize = null;
      mLifecycleReference = null;
@@ -163,33 +180,48 @@ public class RefCounted {
    * Create a new RefCounted object that is actually referring to the
    * exact same underlying native object.
    *
-   * This method increases the ref count of the underlying Native object.
-   *
    * @return the new Java object.
    */
   public RefCounted copyReference() {
     if (swigCPtr == 0)
       return null;
     else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      RefCounted retval = null;
-      this.acquire();
-      try {
-         retval = new RefCounted(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+      return new RefCounted(swigCPtr, swigCMemOwn, getJavaRefCount());
   }
 
+  /**
+   * Internal Only.  Do not use.
+   */
+  protected java.util.concurrent.atomic.AtomicLong getJavaRefCount()
+  {
+    return mJavaRefCount;
+  }
    
-   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+    /**
+     * Return the current reference count on this object.
+     * <p>
+     * The number returned represents the value at the instant
+     * the message was called, and the value can change even
+     * before this method returns.  Callers are advised not to
+     * depend on the value of this except to check that
+     * the value == 1.
+     * </p>
+     * <p>
+     * If the value returned is one, and you know you have a valid
+     * reference to that object, then congratulations; you are the
+     * only person referencing that object.
+     * </p>
+     * @return The current ref count.
+     */
+  public long getCurrentRefCount()
+  {
+    return mJavaRefCount.get()+getCurrentNativeRefCount()-1;
+  }
+     // <<<<<<<<<<<<<<<<<<<<<<<<<<<
    // JNIHelper.swg: End generated code
   
+ 
  
 /**
  * Internal Only. Acquire a reference to this object (only called from 
@@ -228,8 +260,8 @@ public class RefCounted {
  * </p>  
  * @return	The current ref count.  
  */
-  public int getCurrentRefCount() {
-    return FerryJNI.RefCounted_getCurrentRefCount(swigCPtr, this);
+  private int getCurrentNativeRefCount() {
+    return FerryJNI.RefCounted_getCurrentNativeRefCount(swigCPtr, this);
   }
 
 }

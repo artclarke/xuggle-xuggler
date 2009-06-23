@@ -37,6 +37,17 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   }
   
   /**
+   * Internal Only.
+   */
+  protected IContainer(long cPtr, boolean cMemoryOwn,
+      java.util.concurrent.atomic.AtomicLong ref)
+  {
+    super(XugglerJNI.SWIGIContainerUpcast(cPtr),
+     cMemoryOwn, ref);
+    swigCPtr = cPtr;
+  }
+    
+  /**
    * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that obj is proxying for.
@@ -65,27 +76,14 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
    * Create a new IContainer object that is actually referring to the
    * exact same underlying native object.
    *
-   * This method increases the ref count of the underlying Native object.
-   *
    * @return the new Java object.
    */
+  @Override
   public IContainer copyReference() {
     if (swigCPtr == 0)
       return null;
     else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      IContainer retval = null;
-      this.acquire();
-      try {
-         retval = new IContainer(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+      return new IContainer(swigCPtr, swigCMemOwn, getJavaRefCount());
   }
 
   /**
@@ -95,6 +93,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
    * {@inheritDoc}
    * </p> 
    */
+  @Override
   public void delete()
   {
     do {} while(false); // remove a warning

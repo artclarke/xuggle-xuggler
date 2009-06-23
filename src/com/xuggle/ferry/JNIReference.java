@@ -44,7 +44,7 @@ import com.xuggle.ferry.FerryJNI;
  */
 public class JNIReference extends WeakReference<Object>
 {
-  private AtomicLong mSwigCPtr = new AtomicLong(0);
+  private final AtomicLong mSwigCPtr = new AtomicLong(0);
 
   // This memory manager will outlive the Java object we're referencing; that
   // means this class will sometimes show up as a potential leak, but trust us
@@ -55,13 +55,20 @@ public class JNIReference extends WeakReference<Object>
   private volatile JNIMemoryAllocator mMemAllocator;
 
   private final boolean mIsFerryObject;
+
+  private final AtomicLong mJavaRefCount;
   
-  private JNIReference(Object aReferent, long nativeVal, boolean isFerry)
+  private JNIReference(Object aReferent,
+      long nativeVal,
+      boolean isFerry,
+      AtomicLong javaRefCount)
   {
     super(aReferent, JNIMemoryManager.getMgr().getQueue());
     mIsFerryObject = isFerry;
+    mJavaRefCount = javaRefCount;
     mSwigCPtr.set(nativeVal);
-    if (FerryJNI.RefCounted_getCurrentRefCount(nativeVal, null) == 1)
+    if (mJavaRefCount.get() == 1 && 
+        FerryJNI.RefCounted_getCurrentNativeRefCount(nativeVal, null) == 1)
     {
       // it's only safe to set the allocator if you're the only reference
       // holder. Otherwise
@@ -75,7 +82,6 @@ public class JNIReference extends WeakReference<Object>
     }
     else
     {
-
       // This creates a Strong reference to the allocator currently being used
       // so that if the Java proxy object the native object depended upon goes
       // away, the memory manager it was using stays around until this reference
@@ -95,23 +101,26 @@ public class JNIReference extends WeakReference<Object>
   }
 
   static JNIReference createReference(Object aReferent, long swigCPtr,
-      boolean isFerry)
+      boolean isFerry, AtomicLong javaRefCount)
   {
     // Clear out any pending native objects
     JNIMemoryManager.getMgr().gc();
 
-    JNIReference ref = new JNIReference(aReferent, swigCPtr, isFerry);
+    JNIReference ref = new JNIReference(aReferent,
+        swigCPtr, isFerry, javaRefCount);
     JNIMemoryManager.getMgr().addReference(ref);
     //System.err.println("added  : "+ref+"; "+swigCPtr+" ("+isFerry+")");
     return ref;
   }
-  static JNIReference createReference(Object aReferent, long swigCPtr)
+  static JNIReference createReference(Object aReferent, long swigCPtr,
+      AtomicLong javaRefCount)
   {
-    return createReference(aReferent, swigCPtr, true);
+    return createReference(aReferent, swigCPtr, true, javaRefCount);
   }
-  static JNIReference createNonFerryReference(Object aReferent, long swigCPtr)
+  static JNIReference createNonFerryReference(Object aReferent,
+      long swigCPtr, AtomicLong javaRefCount)
   {
-    return createReference(aReferent, swigCPtr, false);
+    return createReference(aReferent, swigCPtr, false, javaRefCount);
   }
 
 
@@ -124,17 +133,20 @@ public class JNIReference extends WeakReference<Object>
    */
   public void delete()
   {
-    long swigPtr = 0;
     // acquire lock for minimum time
-    swigPtr = mSwigCPtr.getAndSet(0);
+    final long swigPtr = mSwigCPtr.getAndSet(0);
     if (swigPtr != 0)
     {
-      // log.debug("deleting: {}; {}", this, mSwigCPtr);
-      FerryJNI.RefCounted_release(swigPtr, null);
+      if (mJavaRefCount.decrementAndGet() == 0)
+      {
+        // log.debug("deleting: {}; {}", this, mSwigCPtr);
+        FerryJNI.RefCounted_release(swigPtr, null);
+      }
       // Free the memory manager we use
       mMemAllocator = null;
       JNIMemoryManager.getMgr().removeReference(this);
     }
+
   }
 
   boolean isFerryObject()

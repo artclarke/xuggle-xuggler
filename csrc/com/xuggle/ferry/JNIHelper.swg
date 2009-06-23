@@ -39,13 +39,27 @@
   // definitely is used :)
   @SuppressWarnings("unused")
   private com.xuggle.ferry.JNINativeFinalizer mObjectToForceFinalize;
+  private java.util.concurrent.atomic.AtomicLong mJavaRefCount;
 
   /**
    * Internal Only.  Not part of public API.
    */
-  protected $javaclassname(long cPtr, boolean cMemoryOwn) {
+  protected RefCounted(long cPtr, boolean cMemoryOwn) {
+    this(cPtr, cMemoryOwn, new java.util.concurrent.atomic.AtomicLong(0L));
+  }
+  
+  /**
+   * Internal Only.  Not part of public API.
+   */
+  protected RefCounted(long cPtr, boolean cMemoryOwn,
+      java.util.concurrent.atomic.AtomicLong ref)
+  {
     swigCMemOwn = cMemoryOwn;
     swigCPtr = cPtr;
+    // Create the reference count that java-only objects will use
+    // to avoid calling acquire and release on copyReference
+    ref.incrementAndGet();
+    mJavaRefCount = ref;
     if (swigCPtr != 0)
     {
       // This object must:
@@ -62,7 +76,8 @@
       mLifecycleReference = new Long(swigCPtr);      
       // Force the creation of a new weak reference, will will actually pin itself
       // inside the reference class.
-      mRefCounter = JNIReference.createReference(mLifecycleReference, swigCPtr);
+      mRefCounter = JNIReference.createReference(mLifecycleReference, swigCPtr,
+          mJavaRefCount);
     }
   }
 
@@ -74,7 +89,7 @@
    * @param obj The java proxy object for a native object.
    * @return The raw pointer obj is proxying for.
    */
-  public static long getCPtr($javaclassname obj) {
+  public static long getCPtr(RefCounted obj) {
     if (obj == null) return 0;
     return obj.getMyCPtr();
   }
@@ -109,7 +124,7 @@
    * </p>
    */
    
-   public synchronized void delete()
+   public void delete()
    {
      if(swigCPtr != 0) {
        // assigning to an object removes an incorrect java
@@ -121,7 +136,9 @@
        } else if (swigCMemOwn) {
          swigCMemOwn = false;
        }
+
      }
+     mJavaRefCount = null;
      mRefCounter = null;
      mObjectToForceFinalize = null;
      mLifecycleReference = null;
@@ -129,10 +146,8 @@
    }
    
   /**
-   * Create a new $javaclassname object that is actually referring to the
+   * Create a new RefCounted object that is actually referring to the
    * exact same underlying native object.
-   *
-   * This method increases the ref count of the underlying Native object.
    *
    * @return the new Java object.
    */
@@ -140,25 +155,42 @@
     if (swigCPtr == 0)
       return null;
     else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      $javaclassname retval = null;
-      this.acquire();
-      try {
-         retval = new $javaclassname(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+      return new $javaclassname(swigCPtr, swigCMemOwn, getJavaRefCount());
   }
 
+  /**
+   * Internal Only.  Do not use.
+   */
+  protected java.util.concurrent.atomic.AtomicLong getJavaRefCount()
+  {
+    return mJavaRefCount;
+  }
    
-   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+    /**
+     * Return the current reference count on this object.
+     * <p>
+     * The number returned represents the value at the instant
+     * the message was called, and the value can change even
+     * before this method returns.  Callers are advised not to
+     * depend on the value of this except to check that
+     * the value == 1.
+     * </p>
+     * <p>
+     * If the value returned is one, and you know you have a valid
+     * reference to that object, then congratulations; you are the
+     * only person referencing that object.
+     * </p>
+     * @return The current ref count.
+     */
+  public long getCurrentRefCount()
+  {
+    return mJavaRefCount.get()+getCurrentNativeRefCount()-1;
+  }
+     // <<<<<<<<<<<<<<<<<<<<<<<<<<<
    // JNIHelper.swg: End generated code
   
+ 
  %}
 
 %typemap(javabody) SWIGTYPE %{
@@ -299,6 +331,17 @@
   }
   
   /**
+   * Internal Only.
+   */
+  protected $javaclassname(long cPtr, boolean cMemoryOwn,
+      java.util.concurrent.atomic.AtomicLong ref)
+  {
+    super($imclassname.SWIG$javaclassnameUpcast(cPtr),
+     cMemoryOwn, ref);
+    swigCPtr = cPtr;
+  }
+    
+  /**
    * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that obj is proxying for.
@@ -327,27 +370,14 @@
    * Create a new $javaclassname object that is actually referring to the
    * exact same underlying native object.
    *
-   * This method increases the ref count of the underlying Native object.
-   *
    * @return the new Java object.
    */
+  @Override
   public $javaclassname copyReference() {
     if (swigCPtr == 0)
       return null;
     else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      $javaclassname retval = null;
-      this.acquire();
-      try {
-         retval = new $javaclassname(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+      return new $javaclassname(swigCPtr, swigCMemOwn, getJavaRefCount());
   }
 
   /**
@@ -357,6 +387,7 @@
    * {@inheritDoc}
    * </p> 
    */
+  @Override
   public void delete()
   {
     do {} while(false); // remove a warning

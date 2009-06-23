@@ -51,6 +51,13 @@ public class IBuffer extends RefCounted {
     super(FerryJNI.SWIGIBufferUpcast(ignore1), ignore2);
     swigCPtr = ignore1;
   }
+  protected IBuffer(long cPtr, boolean cMemoryOwn,
+      java.util.concurrent.atomic.AtomicLong ref)
+  {
+    super(FerryJNI.SWIGIBufferUpcast(cPtr),
+     cMemoryOwn, ref);
+    swigCPtr = cPtr;
+  }
   
   /**
    * Internal Only.  Not part of public API.
@@ -84,6 +91,7 @@ public class IBuffer extends RefCounted {
    * {@inheritDoc}
    * </p> 
    */
+  @Override
   public void delete()
   {
     do {} while(false); // remove a warning
@@ -94,27 +102,14 @@ public class IBuffer extends RefCounted {
    * Create a new IBuffer object that is actually referring to the
    * exact same underlying Native object.
    *
-   * This method increases the ref count of the underlying Native object.
-   *
    * @return the new Java object.
    */
+  @Override
   public IBuffer copyReference() {
     if (swigCPtr == 0)
       return null;
     else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      IBuffer retval = null;
-      this.acquire();
-      try {
-         retval = new IBuffer(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+      return new IBuffer(swigCPtr, swigCMemOwn, getJavaRefCount());
   }
 
   /**
@@ -1042,10 +1037,13 @@ public class IBuffer extends RefCounted {
     {
       // increment the ref count of this class to reflect the
       // byte buffer
-      FerryJNI.RefCounted_acquire(swigCPtr, null);
+      java.util.concurrent.atomic.AtomicLong refCount =
+        this.getJavaRefCount();
+      refCount.incrementAndGet();
       
       // and use the byte buffer as the reference to track
-      JNIReference ref = JNIReference.createNonFerryReference(retval, swigCPtr);
+      JNIReference ref = JNIReference.createNonFerryReference(
+          retval, swigCPtr, refCount);
       if (referenceReturn != null)
         referenceReturn.set(ref);
       

@@ -42,6 +42,17 @@ public class IPixelFormat extends RefCounted {
   }
   
   /**
+   * Internal Only.
+   */
+  protected IPixelFormat(long cPtr, boolean cMemoryOwn,
+      java.util.concurrent.atomic.AtomicLong ref)
+  {
+    super(XugglerJNI.SWIGIPixelFormatUpcast(cPtr),
+     cMemoryOwn, ref);
+    swigCPtr = cPtr;
+  }
+    
+  /**
    * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that obj is proxying for.
@@ -70,27 +81,14 @@ public class IPixelFormat extends RefCounted {
    * Create a new IPixelFormat object that is actually referring to the
    * exact same underlying native object.
    *
-   * This method increases the ref count of the underlying Native object.
-   *
    * @return the new Java object.
    */
+  @Override
   public IPixelFormat copyReference() {
     if (swigCPtr == 0)
       return null;
     else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      IPixelFormat retval = null;
-      this.acquire();
-      try {
-         retval = new IPixelFormat(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+      return new IPixelFormat(swigCPtr, swigCMemOwn, getJavaRefCount());
   }
 
   /**
@@ -100,6 +98,7 @@ public class IPixelFormat extends RefCounted {
    * {@inheritDoc}
    * </p> 
    */
+  @Override
   public void delete()
   {
     do {} while(false); // remove a warning

@@ -36,6 +36,17 @@ public class IAudioResampler extends RefCounted {
   }
   
   /**
+   * Internal Only.
+   */
+  protected IAudioResampler(long cPtr, boolean cMemoryOwn,
+      java.util.concurrent.atomic.AtomicLong ref)
+  {
+    super(XugglerJNI.SWIGIAudioResamplerUpcast(cPtr),
+     cMemoryOwn, ref);
+    swigCPtr = cPtr;
+  }
+    
+  /**
    * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that obj is proxying for.
@@ -64,27 +75,14 @@ public class IAudioResampler extends RefCounted {
    * Create a new IAudioResampler object that is actually referring to the
    * exact same underlying native object.
    *
-   * This method increases the ref count of the underlying Native object.
-   *
    * @return the new Java object.
    */
+  @Override
   public IAudioResampler copyReference() {
     if (swigCPtr == 0)
       return null;
     else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      IAudioResampler retval = null;
-      this.acquire();
-      try {
-         retval = new IAudioResampler(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+      return new IAudioResampler(swigCPtr, swigCMemOwn, getJavaRefCount());
   }
 
   /**
@@ -94,6 +92,7 @@ public class IAudioResampler extends RefCounted {
    * {@inheritDoc}
    * </p> 
    */
+  @Override
   public void delete()
   {
     do {} while(false); // remove a warning

@@ -39,6 +39,17 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
   }
   
   /**
+   * Internal Only.
+   */
+  protected IStreamCoder(long cPtr, boolean cMemoryOwn,
+      java.util.concurrent.atomic.AtomicLong ref)
+  {
+    super(XugglerJNI.SWIGIStreamCoderUpcast(cPtr),
+     cMemoryOwn, ref);
+    swigCPtr = cPtr;
+  }
+    
+  /**
    * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that obj is proxying for.
@@ -67,27 +78,14 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
    * Create a new IStreamCoder object that is actually referring to the
    * exact same underlying native object.
    *
-   * This method increases the ref count of the underlying Native object.
-   *
    * @return the new Java object.
    */
+  @Override
   public IStreamCoder copyReference() {
     if (swigCPtr == 0)
       return null;
     else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      IStreamCoder retval = null;
-      this.acquire();
-      try {
-         retval = new IStreamCoder(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+      return new IStreamCoder(swigCPtr, swigCMemOwn, getJavaRefCount());
   }
 
   /**
@@ -97,6 +95,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
    * {@inheritDoc}
    * </p> 
    */
+  @Override
   public void delete()
   {
     do {} while(false); // remove a warning

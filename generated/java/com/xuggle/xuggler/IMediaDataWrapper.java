@@ -44,6 +44,17 @@ public class IMediaDataWrapper extends IMediaData {
   }
   
   /**
+   * Internal Only.
+   */
+  protected IMediaDataWrapper(long cPtr, boolean cMemoryOwn,
+      java.util.concurrent.atomic.AtomicLong ref)
+  {
+    super(XugglerJNI.SWIGIMediaDataWrapperUpcast(cPtr),
+     cMemoryOwn, ref);
+    swigCPtr = cPtr;
+  }
+    
+  /**
    * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that obj is proxying for.
@@ -72,27 +83,14 @@ public class IMediaDataWrapper extends IMediaData {
    * Create a new IMediaDataWrapper object that is actually referring to the
    * exact same underlying native object.
    *
-   * This method increases the ref count of the underlying Native object.
-   *
    * @return the new Java object.
    */
+  @Override
   public IMediaDataWrapper copyReference() {
     if (swigCPtr == 0)
       return null;
     else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      IMediaDataWrapper retval = null;
-      this.acquire();
-      try {
-         retval = new IMediaDataWrapper(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+      return new IMediaDataWrapper(swigCPtr, swigCMemOwn, getJavaRefCount());
   }
 
   /**
@@ -102,6 +100,7 @@ public class IMediaDataWrapper extends IMediaData {
    * {@inheritDoc}
    * </p> 
    */
+  @Override
   public void delete()
   {
     do {} while(false); // remove a warning

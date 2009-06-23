@@ -46,6 +46,13 @@
     super($imclassname.SWIG$javaclassnameUpcast(ignore1), ignore2);
     swigCPtr = ignore1;
   }
+  protected $javaclassname(long cPtr, boolean cMemoryOwn,
+      java.util.concurrent.atomic.AtomicLong ref)
+  {
+    super($imclassname.SWIG$javaclassnameUpcast(cPtr),
+     cMemoryOwn, ref);
+    swigCPtr = cPtr;
+  }
   
   /**
    * Internal Only.  Not part of public API.
@@ -79,6 +86,7 @@
    * {@inheritDoc}
    * </p> 
    */
+  @Override
   public void delete()
   {
     do {} while(false); // remove a warning
@@ -89,27 +97,14 @@
    * Create a new $javaclassname object that is actually referring to the
    * exact same underlying Native object.
    *
-   * This method increases the ref count of the underlying Native object.
-   *
    * @return the new Java object.
    */
+  @Override
   public $javaclassname copyReference() {
     if (swigCPtr == 0)
       return null;
     else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      $javaclassname retval = null;
-      this.acquire();
-      try {
-         retval = new $javaclassname(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+      return new $javaclassname(swigCPtr, swigCMemOwn, getJavaRefCount());
   }
 
   /**
@@ -1037,10 +1032,13 @@
     {
       // increment the ref count of this class to reflect the
       // byte buffer
-      FerryJNI.RefCounted_acquire(swigCPtr, null);
+      java.util.concurrent.atomic.AtomicLong refCount =
+        this.getJavaRefCount();
+      refCount.incrementAndGet();
       
       // and use the byte buffer as the reference to track
-      JNIReference ref = JNIReference.createNonFerryReference(retval, swigCPtr);
+      JNIReference ref = JNIReference.createNonFerryReference(
+          retval, swigCPtr, refCount);
       if (referenceReturn != null)
         referenceReturn.set(ref);
       

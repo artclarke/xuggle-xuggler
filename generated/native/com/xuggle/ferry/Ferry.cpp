@@ -234,6 +234,17 @@ JNI_OnLoad(JavaVM *jvm, void *)
 
 using namespace com::xuggle::ferry;
 
+/**
+ * Here to maintain BW-compatibility with Version 3.x of Xuggler;
+ * can be removed when major version goes pass 3.
+ */
+extern "C" {
+SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentNativeRefCount(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_);
+SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentRefCount(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_)
+{
+  return Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentNativeRefCount(jenv, jcls, jarg1, jarg1_);
+}
+}
 
 
 static void IBuffer_javaDirectFreeFunc(void *, void * closure);
@@ -1647,7 +1658,7 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1release(JNIEn
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentRefCount(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentNativeRefCount(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
   jint jresult = 0 ;
   com::xuggle::ferry::RefCounted *arg1 = (com::xuggle::ferry::RefCounted *) 0 ;
   int32_t result;

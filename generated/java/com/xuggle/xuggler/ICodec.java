@@ -39,6 +39,17 @@ public class ICodec extends RefCounted {
   }
   
   /**
+   * Internal Only.
+   */
+  protected ICodec(long cPtr, boolean cMemoryOwn,
+      java.util.concurrent.atomic.AtomicLong ref)
+  {
+    super(XugglerJNI.SWIGICodecUpcast(cPtr),
+     cMemoryOwn, ref);
+    swigCPtr = cPtr;
+  }
+    
+  /**
    * Internal Only.  Not part of public API.
    *
    * Get the raw value of the native object that obj is proxying for.
@@ -67,27 +78,14 @@ public class ICodec extends RefCounted {
    * Create a new ICodec object that is actually referring to the
    * exact same underlying native object.
    *
-   * This method increases the ref count of the underlying Native object.
-   *
    * @return the new Java object.
    */
+  @Override
   public ICodec copyReference() {
     if (swigCPtr == 0)
       return null;
     else
-    {
-      // acquire before making copy to avoid memory allocator being
-      // overridden
-      ICodec retval = null;
-      this.acquire();
-      try {
-         retval = new ICodec(swigCPtr, false);
-      } catch (Throwable t) {
-        this.release();
-        throw new RuntimeException(t);
-      }
-      return retval;
-    }
+      return new ICodec(swigCPtr, swigCMemOwn, getJavaRefCount());
   }
 
   /**
@@ -97,6 +95,7 @@ public class ICodec extends RefCounted {
    * {@inheritDoc}
    * </p> 
    */
+  @Override
   public void delete()
   {
     do {} while(false); // remove a warning
