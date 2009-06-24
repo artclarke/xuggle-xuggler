@@ -150,9 +150,9 @@ namespace com { namespace xuggle { namespace xuggler
     if (!mBuffer || mBuffer->getBufferSize() < getSize())
       allocInternalFrameBuffer();
     unsigned char* buffer = (unsigned char*)mBuffer->getBytes(0, getSize());
+    *frame = *mFrame;
     avpicture_fill((AVPicture*)frame, buffer, mPixelFormat, mWidth, mHeight);
     frame->quality = getQuality();
-    frame->top_field_first = mFrame->top_field_first;
     frame->type = FF_BUFFER_TYPE_USER;
   }
 
@@ -360,4 +360,19 @@ namespace com { namespace xuggle { namespace xuggler
     VS_ASSERT(mFrame->data[0] != 0, "Empty buffer");
   }
 
+  IVideoPicture::PictType
+  VideoPicture :: getPictureType()
+  {
+    IVideoPicture::PictType retval = IVideoPicture::DEFAULT_TYPE;
+    if (mFrame)
+      retval = (PictType) mFrame->pict_type;
+    return retval;
+  }
+  
+  void
+  VideoPicture :: setPictureType(IVideoPicture::PictType type)
+  {
+    if (mFrame)
+      mFrame->pict_type = (int) type;
+  }
 }}}

@@ -346,4 +346,81 @@ public class IVideoPicture extends IMediaData {
     return (cPtr == 0) ? null : new IVideoPicture(cPtr, false);
   }
 
+/**
+ * Get the picture type.  
+ * <p>  
+ * This will be set on decoding to tell you what type of  
+ * packet this was decoded from, and when encoding  
+ * is a request to the encoder for how to encode the picture.  
+ * </p>  
+ * <p>  
+ * The request may be ignored by your codec.  
+ * </p>  
+ * @return	the picture type.  
+ */
+  public IVideoPicture.PictType getPictureType() {
+    return IVideoPicture.PictType.swigToEnum(XugglerJNI.IVideoPicture_getPictureType(swigCPtr, this));
+  }
+
+/**
+ * Set the picture type.  
+ * @param	type The type.  
+ * @see		#getPictureType()  
+ */
+  public void setPictureType(IVideoPicture.PictType type) {
+    XugglerJNI.IVideoPicture_setPictureType(swigCPtr, this, type.swigValue());
+  }
+
+  public enum PictType {
+  /**
+   * The different types of images that we can set.
+   * @see		#getPictureType()
+   */
+    DEFAULT_TYPE(XugglerJNI.IVideoPicture_DEFAULT_TYPE_get()),
+    I_TYPE(XugglerJNI.IVideoPicture_I_TYPE_get()),
+    P_TYPE(XugglerJNI.IVideoPicture_P_TYPE_get()),
+    B_TYPE(XugglerJNI.IVideoPicture_B_TYPE_get()),
+    S_TYPE(XugglerJNI.IVideoPicture_S_TYPE_get()),
+    SI_TYPE(XugglerJNI.IVideoPicture_SI_TYPE_get()),
+    SP_TYPE(XugglerJNI.IVideoPicture_SP_TYPE_get()),
+    BI_TYPE(XugglerJNI.IVideoPicture_BI_TYPE_get());
+
+    public final int swigValue() {
+      return swigValue;
+    }
+
+    public static PictType swigToEnum(int swigValue) {
+      PictType[] swigValues = PictType.class.getEnumConstants();
+      if (swigValue < swigValues.length && swigValue >= 0 && swigValues[swigValue].swigValue == swigValue)
+        return swigValues[swigValue];
+      for (PictType swigEnum : swigValues)
+        if (swigEnum.swigValue == swigValue)
+          return swigEnum;
+      throw new IllegalArgumentException("No enum " + PictType.class + " with value " + swigValue);
+    }
+
+    @SuppressWarnings("unused")
+    private PictType() {
+      this.swigValue = SwigNext.next++;
+    }
+
+    @SuppressWarnings("unused")
+    private PictType(int swigValue) {
+      this.swigValue = swigValue;
+      SwigNext.next = swigValue+1;
+    }
+
+    @SuppressWarnings("unused")
+    private PictType(PictType swigEnum) {
+      this.swigValue = swigEnum.swigValue;
+      SwigNext.next = this.swigValue+1;
+    }
+
+    private final int swigValue;
+
+    private static class SwigNext {
+      private static int next = 0;
+    }
+  }
+
 }

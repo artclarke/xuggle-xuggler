@@ -1014,8 +1014,6 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
           throw std::bad_alloc();
         frame->fillAVFrame(avFrame);
 
-        avFrame->pict_type = 0; // let the encoder choose what pict_type to use
-
         // convert into the time base that this coder wants
         // to output in
         avFrame->pts = thisTimeBase->rescale(frame->getPts(),

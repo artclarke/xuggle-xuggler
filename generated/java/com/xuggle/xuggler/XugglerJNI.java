@@ -181,6 +181,16 @@ class XugglerJNI {
   public final static native boolean IVideoPicture_copy(long jarg1, IVideoPicture jarg1_, long jarg2, IVideoPicture jarg2_);
   public final static native long IVideoPicture_make__SWIG_0(int jarg1, int jarg2, int jarg3);
   public final static native long IVideoPicture_make__SWIG_1(long jarg1, IVideoPicture jarg1_);
+  public final static native int IVideoPicture_DEFAULT_TYPE_get();
+  public final static native int IVideoPicture_I_TYPE_get();
+  public final static native int IVideoPicture_P_TYPE_get();
+  public final static native int IVideoPicture_B_TYPE_get();
+  public final static native int IVideoPicture_S_TYPE_get();
+  public final static native int IVideoPicture_SI_TYPE_get();
+  public final static native int IVideoPicture_SP_TYPE_get();
+  public final static native int IVideoPicture_BI_TYPE_get();
+  public final static native int IVideoPicture_getPictureType(long jarg1, IVideoPicture jarg1_);
+  public final static native void IVideoPicture_setPictureType(long jarg1, IVideoPicture jarg1_, int jarg2);
   public final static native int ICodec_CODEC_ID_PCM_S16LE_get();
   public final static native int ICodec_CODEC_ID_ADPCM_IMA_QT_get();
   public final static native int ICodec_CODEC_ID_AMR_NB_get();

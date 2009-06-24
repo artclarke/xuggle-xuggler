@@ -9233,6 +9233,254 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1make_
 }
 
 
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1DEFAULT_1TYPE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IVideoPicture::PictType result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IVideoPicture::PictType)com::xuggle::xuggler::IVideoPicture::DEFAULT_TYPE;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1I_1TYPE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IVideoPicture::PictType result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IVideoPicture::PictType)com::xuggle::xuggler::IVideoPicture::I_TYPE;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1P_1TYPE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IVideoPicture::PictType result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IVideoPicture::PictType)com::xuggle::xuggler::IVideoPicture::P_TYPE;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1B_1TYPE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IVideoPicture::PictType result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IVideoPicture::PictType)com::xuggle::xuggler::IVideoPicture::B_TYPE;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1S_1TYPE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IVideoPicture::PictType result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IVideoPicture::PictType)com::xuggle::xuggler::IVideoPicture::S_TYPE;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1SI_1TYPE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IVideoPicture::PictType result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IVideoPicture::PictType)com::xuggle::xuggler::IVideoPicture::SI_TYPE;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1SP_1TYPE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IVideoPicture::PictType result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IVideoPicture::PictType)com::xuggle::xuggler::IVideoPicture::SP_TYPE;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1BI_1TYPE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IVideoPicture::PictType result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IVideoPicture::PictType)com::xuggle::xuggler::IVideoPicture::BI_TYPE;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1getPictureType(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IVideoPicture *arg1 = (com::xuggle::xuggler::IVideoPicture *) 0 ;
+  com::xuggle::xuggler::IVideoPicture::PictType result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::xuggler::IVideoPicture **)&jarg1; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return 0;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (com::xuggle::xuggler::IVideoPicture::PictType)(arg1)->getPictureType();
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
+      }
+      return 0;
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoPicture_1setPictureType(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  com::xuggle::xuggler::IVideoPicture *arg1 = (com::xuggle::xuggler::IVideoPicture *) 0 ;
+  com::xuggle::xuggler::IVideoPicture::PictType arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::xuggler::IVideoPicture **)&jarg1; 
+  arg2 = (com::xuggle::xuggler::IVideoPicture::PictType)jarg2; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return ;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      (arg1)->setPictureType(arg2);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
+      }
+      return ;
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return ;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+}
+
+
 SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1CODEC_1ID_1PCM_1S16LE_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   com::xuggle::xuggler::ICodec::ID result;

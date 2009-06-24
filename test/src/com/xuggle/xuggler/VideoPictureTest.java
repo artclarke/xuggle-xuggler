@@ -122,5 +122,16 @@ public class VideoPictureTest extends TestCase
     h.cleanupHelper();
 
   }
+  
+  @Test
+  public void testGetPictureType()
+  {
+    IVideoPicture pict = Utils.getBlankFrame(10, 10, 0);
+    IVideoPicture.PictType defaultType = IVideoPicture.PictType.DEFAULT_TYPE;
+    IVideoPicture.PictType setType = IVideoPicture.PictType.S_TYPE;
+    assertEquals(defaultType, pict.getPictureType());
+    pict.setPictureType(setType);
+    assertEquals(setType,pict.getPictureType());
+  }
 
 }

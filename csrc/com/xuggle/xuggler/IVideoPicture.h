@@ -197,6 +197,48 @@ namespace com { namespace xuggle { namespace xuggler
      */
     static IVideoPicture* make(IVideoPicture* src);
 
+    /*
+     * Added for 3.1
+     */
+    
+    /**
+     * The different types of images that we can set. 
+     * 
+     * @see #getPictureType()
+     */
+    typedef enum {
+      DEFAULT_TYPE=0,
+      I_TYPE = 1,
+      P_TYPE = 2,
+      B_TYPE = 3,
+      S_TYPE = 4,
+      SI_TYPE = 5,
+      SP_TYPE = 6,
+      BI_TYPE = 7,
+    } PictType;
+    
+    /**
+     * Get the picture type.
+     * <p>
+     * This will be set on decoding to tell you what type of
+     * packet this was decoded from, and when encoding
+     * is a request to the encoder for how to encode the picture.
+     * </p>
+     * <p>
+     * The request may be ignored by your codec.
+     * </p>
+     * @return the picture type.
+     */
+    virtual PictType getPictureType()=0;
+    /**
+     * Set the picture type.
+     * 
+     * @param type The type.
+     * 
+     * @see #getPictureType()
+     */
+    virtual void setPictureType(PictType type)=0;
+    
   protected:
     IVideoPicture();
     virtual ~IVideoPicture();
