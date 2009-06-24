@@ -552,7 +552,8 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
 /*****************************************************************************
  * RD only; doesn't generate a valid bitstream
  * doesn't write cbp or chroma dc (I don't know how much this matters)
- * doesn't write ref or subpartition (never varies between calls, so no point in doing so)
+ * doesn't write ref (never varies between calls, so no point in doing so)
+ * only writes subpartition for p8x8, needed for sub-8x8 mode decision RDO
  * works on all partition sizes except 16x16
  *****************************************************************************/
 static int x264_partition_size_cavlc( x264_t *h, int i8, int i_pixel )
@@ -565,6 +566,7 @@ static int x264_partition_size_cavlc( x264_t *h, int i8, int i_pixel )
     if( i_mb_type == P_8x8 )
     {
         cavlc_mb8x8_mvd( h, &h->out.bs, i8 );
+        bs_write_ue( &h->out.bs, sub_mb_type_p_to_golomb[ h->mb.i_sub_partition[i8] ] );
     }
     else if( i_mb_type == P_L0 )
         cavlc_mb_mvd( h, &h->out.bs, 0, 4*i8, 4>>b_8x16 );

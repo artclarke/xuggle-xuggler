@@ -986,7 +986,8 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
 /*****************************************************************************
  * RD only; doesn't generate a valid bitstream
  * doesn't write cbp or chroma dc (I don't know how much this matters)
- * doesn't write ref or subpartition (never varies between calls, so no point in doing so)
+ * doesn't write ref (never varies between calls, so no point in doing so)
+ * only writes subpartition for p8x8, needed for sub-8x8 mode decision RDO
  * works on all partition sizes except 16x16
  *****************************************************************************/
 static void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int i_pixel )
@@ -998,6 +999,7 @@ static void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int 
     if( i_mb_type == P_8x8 )
     {
         x264_cabac_mb8x8_mvd( h, cb, i8 );
+        x264_cabac_mb_sub_p_partition( cb, h->mb.i_sub_partition[i8] );
     }
     else if( i_mb_type == P_L0 )
         x264_cabac_mb_mvd( h, cb, 0, 4*i8, 4>>b_8x16, 2<<b_8x16 );
