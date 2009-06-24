@@ -528,12 +528,20 @@ using the library and what you like or don't like about it.
         <attribute name="Main-Class" value="${app.mainclass}"/>
       </manifest>
     </jar>
+    <antcall target="stage-webapp-java" inheritAll="true" inheritRefs="true">
+      <param name="ivy.settings.name" value="default"/>
+    </antcall>
     <antcall target="ivy-deliver" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
     </antcall>
     <antcall target="ivy-publish" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
     </antcall>
+  </target>
+  <target
+      name="stage-webapp-java"
+      description="stage any Java webapps in this build"
+      >
   </target>
 
   <target name="dist-java"
