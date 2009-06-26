@@ -855,7 +855,7 @@ static int check_mc( int cpu_ref, int cpu_new )
     if( mc_a.frame_init_lowres_core != mc_ref.frame_init_lowres_core )
     {
         uint8_t *dstc[4] = { buf3, buf3+1024, buf3+2048, buf3+3072 };
-        uint8_t *dsta[4] = { buf4, buf4+1024, buf4+2048, buf3+3072 };
+        uint8_t *dsta[4] = { buf4, buf4+1024, buf4+2048, buf4+3072 };
         set_func_name( "lowres_init" );
         ok = 1; used_asm = 1;
         for( w=40; w<=48; w+=8 )
