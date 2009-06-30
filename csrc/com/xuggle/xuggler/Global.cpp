@@ -37,8 +37,15 @@
 #include <com/xuggle/xuggler/VideoResampler.h>
 #include <com/xuggle/xuggler/MediaDataWrapper.h>
 
-VS_LOG_SETUP(VS_CPP_PACKAGE);
-
+/**
+ * WARNING: Do not use logging in this class, and do
+ * not set any static file variables to values other
+ * than zero.  The class loader
+ * in Java will call Global::init, and MacOS will crash
+ * if during the JNI library load the method we call calls
+ * back into Java:
+ * http://code.google.com/p/xuggle/issues/detail?id=174
+ */
 namespace com { namespace xuggle { namespace xuggler
 {
   using namespace com::xuggle::ferry;
@@ -56,7 +63,10 @@ namespace com { namespace xuggle { namespace xuggler
 
     if (!ffmpegLogger)
     {
-      ffmpegLogger = Logger::getStaticLogger( "org.ffmpeg" );
+      Global::lock();
+      if (!ffmpegLogger)
+        ffmpegLogger = Logger::getStaticLogger( "org.ffmpeg" );
+      Global::unlock();
     }
 
     Logger::Level logLevel = Logger::LEVEL_ERROR;
@@ -104,10 +114,6 @@ namespace com { namespace xuggle { namespace xuggler
     int retval = 0;
     if (helper) {
       retval = helper->isInterrupted();
-      if (retval) {
-        VS_LOG_TRACE("Thread is interrupted!");
-        /* empty statement if log is compiled out */;
-      }
     }
     return retval;
   }
@@ -156,7 +162,6 @@ namespace com { namespace xuggle { namespace xuggler
       url_set_interrupt_cb(xuggler_interrupt_cb);
       // turn down logging
       sGlobal = new Global();
-      VS_LOG_TRACE("initialized");
     }
   }
 

@@ -284,8 +284,12 @@ StreamCoder :: setCodec(ICodec * newCodec)
     // thing
     if (mCodec && mCodecContext && !mOpened)
     {
-      mCodecContext->codec_id = (enum CodecID) mCodec->getIDAsInt();
       mCodecContext->codec_type = (enum CodecType) mCodec->getType();
+//      if (mDirection == ENCODING)
+//      {
+//        avcodec_get_context_defaults2(mCodecContext, mCodecContext->codec_type);
+//      }
+      mCodecContext->codec_id = (enum CodecID) mCodec->getIDAsInt();
     }
     else
     {

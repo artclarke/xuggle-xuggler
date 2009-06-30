@@ -550,6 +550,7 @@ class XugglerJNI {
   public final static native long SWIGIPixelFormatUpcast(long jarg1);
   public final static native long SWIGIRationalUpcast(long jarg1);
   public final static native long SWIGITimeValueUpcast(long jarg1);
+  public final static native long SWIGIMetaDataUpcast(long jarg1);
   public final static native long SWIGIMediaDataUpcast(long jarg1);
   public final static native long SWIGIPacketUpcast(long jarg1);
   public final static native long SWIGIAudioSamplesUpcast(long jarg1);

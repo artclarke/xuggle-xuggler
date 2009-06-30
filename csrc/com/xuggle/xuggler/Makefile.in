@@ -67,22 +67,24 @@ am__libxuggle_xuggler_la_SOURCES_DIST = AudioResampler.cpp \
 	IAudioResampler.cpp IAudioSamples.cpp ICodec.cpp \
 	IContainer.cpp IContainerFormat.cpp IContainerParameters.cpp \
 	IError.cpp IVideoPicture.cpp IMediaData.cpp \
-	IMediaDataWrapper.cpp IPacket.cpp IPixelFormat.cpp \
-	IProperty.cpp IRational.cpp IStreamCoder.cpp IStream.cpp \
-	ITimeValue.cpp IVideoResampler.cpp MediaDataWrapper.cpp \
-	Packet.cpp Property.cpp Rational.cpp StreamCoder.cpp \
-	Stream.cpp TimeValue.cpp VideoResampler.cpp
+	IMediaDataWrapper.cpp IMetaData.cpp IPacket.cpp \
+	IPixelFormat.cpp IProperty.cpp IRational.cpp IStreamCoder.cpp \
+	IStream.cpp ITimeValue.cpp IVideoResampler.cpp \
+	MediaDataWrapper.cpp MetaData.cpp Packet.cpp Property.cpp \
+	Rational.cpp StreamCoder.cpp Stream.cpp TimeValue.cpp \
+	VideoResampler.cpp
 @VS_ENABLE_GPL_TRUE@am__objects_1 = VideoResampler.lo
 am_libxuggle_xuggler_la_OBJECTS = AudioResampler.lo AudioSamples.lo \
 	Codec.lo Container.lo ContainerFormat.lo \
 	ContainerParameters.lo Error.lo VideoPicture.lo Global.lo \
 	IAudioResampler.lo IAudioSamples.lo ICodec.lo IContainer.lo \
 	IContainerFormat.lo IContainerParameters.lo IError.lo \
-	IVideoPicture.lo IMediaData.lo IMediaDataWrapper.lo IPacket.lo \
-	IPixelFormat.lo IProperty.lo IRational.lo IStreamCoder.lo \
-	IStream.lo ITimeValue.lo IVideoResampler.lo \
-	MediaDataWrapper.lo Packet.lo Property.lo Rational.lo \
-	StreamCoder.lo Stream.lo TimeValue.lo $(am__objects_1)
+	IVideoPicture.lo IMediaData.lo IMediaDataWrapper.lo \
+	IMetaData.lo IPacket.lo IPixelFormat.lo IProperty.lo \
+	IRational.lo IStreamCoder.lo IStream.lo ITimeValue.lo \
+	IVideoResampler.lo MediaDataWrapper.lo MetaData.lo Packet.lo \
+	Property.lo Rational.lo StreamCoder.lo Stream.lo TimeValue.lo \
+	$(am__objects_1)
 nodist_libxuggle_xuggler_la_OBJECTS = Xuggler.lo
 libxuggle_xuggler_la_OBJECTS = $(am_libxuggle_xuggler_la_OBJECTS) \
 	$(nodist_libxuggle_xuggler_la_OBJECTS)
@@ -270,11 +272,12 @@ libxuggle_xuggler_la_SOURCES = AudioResampler.cpp AudioSamples.cpp \
 	IAudioResampler.cpp IAudioSamples.cpp ICodec.cpp \
 	IContainer.cpp IContainerFormat.cpp IContainerParameters.cpp \
 	IError.cpp IVideoPicture.cpp IMediaData.cpp \
-	IMediaDataWrapper.cpp IPacket.cpp IPixelFormat.cpp \
-	IProperty.cpp IRational.cpp IStreamCoder.cpp IStream.cpp \
-	ITimeValue.cpp IVideoResampler.cpp MediaDataWrapper.cpp \
-	Packet.cpp Property.cpp Rational.cpp StreamCoder.cpp \
-	Stream.cpp TimeValue.cpp $(am__append_2)
+	IMediaDataWrapper.cpp IMetaData.cpp IPacket.cpp \
+	IPixelFormat.cpp IProperty.cpp IRational.cpp IStreamCoder.cpp \
+	IStream.cpp ITimeValue.cpp IVideoResampler.cpp \
+	MediaDataWrapper.cpp MetaData.cpp Packet.cpp Property.cpp \
+	Rational.cpp StreamCoder.cpp Stream.cpp TimeValue.cpp \
+	$(am__append_2)
 nodist_libxuggle_xuggler_la_SOURCES = \
   Xuggler.cpp
 
@@ -301,6 +304,8 @@ libxuggle_xuggler_la_HEADERS = \
   IVideoPicture.swg \
   IMediaData.h \
   IMediaData.swg \
+  IMetaData.h \
+  IMetaData.swg \
   IMediaDataWrapper.h \
   IMediaDataWrapper.swg \
   IPacket.h \
@@ -326,6 +331,7 @@ libxuggle_xuggler_la_HEADERS = \
   Error.h \
   VideoPicture.h \
   MediaDataWrapper.h \
+  MetaData.h \
   Packet.h \
   PixelFormat.h \
   Property.h \

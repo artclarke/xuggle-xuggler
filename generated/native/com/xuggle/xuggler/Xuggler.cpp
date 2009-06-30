@@ -213,6 +213,7 @@ static void SWIGUNUSED SWIG_JavaThrowException(JNIEnv *jenv, SWIG_JavaExceptionC
 #include <com/xuggle/xuggler/IPixelFormat.h>
 #include <com/xuggle/xuggler/ITimeValue.h>
 #include <com/xuggle/xuggler/IRational.h>
+#include <com/xuggle/xuggler/IMetaData.h>
 #include <com/xuggle/xuggler/IMediaData.h>
 #include <com/xuggle/xuggler/IAudioSamples.h>
 #include <com/xuggle/xuggler/ICodec.h>
@@ -31672,6 +31673,14 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_SWIGITimeValueUpcast
     (void)jenv;
     (void)jcls;
     *(com::xuggle::ferry::RefCounted **)&baseptr = *(com::xuggle::xuggler::ITimeValue **)&jarg1;
+    return baseptr;
+}
+
+SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_SWIGIMetaDataUpcast(JNIEnv *jenv, jclass jcls, jlong jarg1) {
+    jlong baseptr = 0;
+    (void)jenv;
+    (void)jcls;
+    *(com::xuggle::ferry::RefCounted **)&baseptr = *(com::xuggle::xuggler::IMetaData **)&jarg1;
     return baseptr;
 }
 

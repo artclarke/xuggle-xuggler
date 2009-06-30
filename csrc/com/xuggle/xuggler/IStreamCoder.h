@@ -175,7 +175,12 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Set the Codec to the passed in Codec, discarding the old
      * Codec if set.
-     *
+     * <p>
+     * Once you call setCodec, all settings on the IStreamCoder are
+     * reset to default values.  So you probably want to call this 
+     * first.
+     * </p>
+     * 
      * @param codec Codec to set.
      */
     virtual void setCodec(ICodec *codec)=0;
@@ -184,6 +189,11 @@ namespace com { namespace xuggle { namespace xuggler
      * Look up a Codec based on the passed in ID, and then set it.
      * To see if you actually set the correct ID, call getCodec() and
      * check for 0 (null).
+     * <p>
+     * Once you call setCodec, all settings on the IStreamCoder are
+     * reset to default values.  So you probably want to call this 
+     * first.
+     * </p>
      *
      * @param id ID of codec to set.
      */

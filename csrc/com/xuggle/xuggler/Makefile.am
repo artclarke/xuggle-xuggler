@@ -34,6 +34,7 @@ libxuggle_xuggler_la_SOURCES= \
   IVideoPicture.cpp \
   IMediaData.cpp \
   IMediaDataWrapper.cpp \
+  IMetaData.cpp \
   IPacket.cpp \
   IPixelFormat.cpp \
   IProperty.cpp \
@@ -43,6 +44,7 @@ libxuggle_xuggler_la_SOURCES= \
   ITimeValue.cpp \
   IVideoResampler.cpp \
   MediaDataWrapper.cpp \
+  MetaData.cpp \
   Packet.cpp \
   Property.cpp \
   Rational.cpp \
@@ -81,6 +83,8 @@ libxuggle_xuggler_la_HEADERS= \
   IVideoPicture.swg \
   IMediaData.h \
   IMediaData.swg \
+  IMetaData.h \
+  IMetaData.swg \
   IMediaDataWrapper.h \
   IMediaDataWrapper.swg \
   IPacket.h \
@@ -106,6 +110,7 @@ libxuggle_xuggler_la_HEADERS= \
   Error.h \
   VideoPicture.h \
   MediaDataWrapper.h \
+  MetaData.h \
   Packet.h \
   PixelFormat.h \
   Property.h \

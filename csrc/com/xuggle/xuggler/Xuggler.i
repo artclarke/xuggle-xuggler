@@ -27,6 +27,7 @@
 #include <com/xuggle/xuggler/IPixelFormat.h>
 #include <com/xuggle/xuggler/ITimeValue.h>
 #include <com/xuggle/xuggler/IRational.h>
+#include <com/xuggle/xuggler/IMetaData.h>
 #include <com/xuggle/xuggler/IMediaData.h>
 #include <com/xuggle/xuggler/IAudioSamples.h>
 #include <com/xuggle/xuggler/ICodec.h>
@@ -153,6 +154,7 @@ import com.xuggle.xuggler.Converter;
 %include <com/xuggle/xuggler/IPixelFormat.h>
 %include <com/xuggle/xuggler/IRational.swg>
 %include <com/xuggle/xuggler/ITimeValue.h>
+%include <com/xuggle/xuggler/IMetaData.swg>
 %include <com/xuggle/xuggler/IMediaData.swg>
 %include <com/xuggle/xuggler/IPacket.swg>
 %include <com/xuggle/xuggler/IAudioSamples.swg>
