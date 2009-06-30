@@ -95,6 +95,7 @@ typedef struct
     void (*add4x4_idct)  ( uint8_t *p_dst, int16_t dct[4][4] );
 
     void (*sub8x8_dct)   ( int16_t dct[4][4][4], uint8_t *pix1, uint8_t *pix2 );
+    void (*sub8x8_dct_dc)( int16_t dct[2][2], uint8_t *pix1, uint8_t *pix2 );
     void (*add8x8_idct)  ( uint8_t *p_dst, int16_t dct[4][4][4] );
     void (*add8x8_idct_dc) ( uint8_t *p_dst, int16_t dct[2][2] );
 

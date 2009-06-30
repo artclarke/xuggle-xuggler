@@ -36,6 +36,7 @@ pb_scan4frameb: db 0,1,8,9,2,3,4,5,10,11,12,13,6,7,14,15
 pb_idctdc_unpack: db 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
 pb_idctdc_unpack2: db 4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7
 pb_1: times 16 db 1
+pw_1: times 8 dw 1
 
 SECTION .text
 
@@ -426,6 +427,79 @@ cglobal x264_add16x16_idct_dc_ssse3, 2,2,8
     IDCT_DC_STORE FDEC_STRIDE*-4, xmm0, xmm1
     IDCT_DC_STORE 0, xmm2, xmm3
     ret
+
+;-----------------------------------------------------------------------------
+; void sub8x8_dct_dc( int16_t dct[2][2], uint8_t *pix1, uint8_t *pix2 )
+;-----------------------------------------------------------------------------
+
+%macro DCTDC_2ROW_MMX 3
+    movq      %1, [r1+FENC_STRIDE*(0+%3)]
+    movq      m1, [r1+FENC_STRIDE*(1+%3)]
+    movq      m2, [r2+FDEC_STRIDE*(0+%3)]
+    movq      m3, [r2+FDEC_STRIDE*(1+%3)]
+    movq      %2, %1
+    punpckldq %1, m1
+    punpckhdq %2, m1
+    movq      m1, m2
+    punpckldq m2, m3
+    punpckhdq m1, m3
+    psadbw    %1, m7
+    psadbw    %2, m7
+    psadbw    m2, m7
+    psadbw    m1, m7
+    psubw     %1, m2
+    psubw     %2, m1
+%endmacro
+
+INIT_MMX
+cglobal x264_sub8x8_dct_dc_mmxext, 3,3
+    pxor      m7, m7
+    call .loop
+    add       r1, FENC_STRIDE*4
+    add       r2, FDEC_STRIDE*4
+    add       r0, 4
+.loop:
+    DCTDC_2ROW_MMX m0, m4, 0
+    DCTDC_2ROW_MMX m5, m6, 2
+    paddw     m0, m5
+    paddw     m4, m6
+    punpcklwd m0, m4
+    movd    [r0], m0
+    ret
+
+INIT_XMM
+%macro DCTDC_2ROW_SSE2 3
+    movq      m0, [r1+FENC_STRIDE*(0+%1)]
+    movq      m1, [r1+FENC_STRIDE*(1+%1)]
+    movq      m2, [r2+FDEC_STRIDE*(0+%1)]
+    movq      m3, [r2+FDEC_STRIDE*(1+%1)]
+    punpckldq m0, m1
+    punpckldq m2, m3
+    psadbw    m0, m7
+    psadbw    m2, m7
+%if %2
+    paddw     %3, m0
+    paddw     m6, m2
+%else
+    SWAP      %3, m0
+    SWAP      m6, m2
+%endif
+%endmacro
+
+cglobal x264_sub8x8_dct_dc_sse2, 3,3,8
+    pxor     m7, m7
+    DCTDC_2ROW_SSE2 0, 0, m4
+    DCTDC_2ROW_SSE2 2, 1, m4
+    add      r1, FENC_STRIDE*4
+    add      r2, FDEC_STRIDE*4
+    psubq    m4, m6
+    DCTDC_2ROW_SSE2 0, 0, m5
+    DCTDC_2ROW_SSE2 2, 1, m5
+    psubq    m5, m6
+    packssdw m4, m5
+    packssdw m4, m4
+    movq   [r0], m4
+    RET
 
 ;-----------------------------------------------------------------------------
 ; void x264_zigzag_scan_8x8_frame_ssse3( int16_t level[64], int16_t dct[8][8] )

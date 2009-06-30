@@ -160,6 +160,30 @@ static int name( uint8_t *pix, int i_stride ) \
 PIXEL_VAR_C( x264_pixel_var_16x16, 16, 8 )
 PIXEL_VAR_C( x264_pixel_var_8x8,    8, 6 )
 
+/****************************************************************************
+ * pixel_var2_wxh
+ ****************************************************************************/
+static int pixel_var2_8x8( uint8_t *pix1, int i_stride1, uint8_t *pix2, int i_stride2, int *ssd )
+{
+    uint32_t var = 0, sum = 0, sqr = 0;
+    int x, y;
+    for( y = 0; y < 8; y++ )
+    {
+        for( x = 0; x < 8; x++ )
+        {
+            int diff = pix1[x] - pix2[x];
+            sum += diff;
+            sqr += diff * diff;
+        }
+        pix1 += i_stride1;
+        pix2 += i_stride2;
+    }
+    sum = abs(sum);
+    var = sqr - (sum * sum >> 6);
+    *ssd = sqr;
+    return var;
+}
+
 
 #define HADAMARD4(d0,d1,d2,d3,s0,s1,s2,s3) {\
     int t0 = s0 + s1;\
@@ -611,6 +635,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
 
     pixf->ssim_4x4x2_core = ssim_4x4x2_core;
     pixf->ssim_end4 = ssim_end4;
+    pixf->var2_8x8 = pixel_var2_8x8;
 
 #ifdef HAVE_MMX
     if( cpu&X264_CPU_MMX )
@@ -636,6 +661,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->sa8d[PIXEL_8x8]   = x264_pixel_sa8d_8x8_mmxext;
         pixf->intra_sa8d_x3_8x8 = x264_intra_sa8d_x3_8x8_mmxext;
         pixf->ssim_4x4x2_core  = x264_pixel_ssim_4x4x2_core_mmxext;
+        pixf->var2_8x8 = x264_pixel_var2_8x8_mmxext;
 
         if( cpu&X264_CPU_CACHELINE_32 )
         {
@@ -682,6 +708,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
 #ifdef ARCH_X86_64
         pixf->intra_sa8d_x3_8x8 = x264_intra_sa8d_x3_8x8_sse2;
 #endif
+        pixf->var2_8x8 = x264_pixel_var2_8x8_sse2;
     }
 
     if( (cpu&X264_CPU_SSE2) && !(cpu&X264_CPU_SSE2_IS_SLOW) )
@@ -761,6 +788,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
 #ifdef ARCH_X86_64
         pixf->intra_sa8d_x3_8x8 = x264_intra_sa8d_x3_8x8_ssse3;
 #endif
+        pixf->var2_8x8 = x264_pixel_var2_8x8_ssse3;
         if( cpu&X264_CPU_CACHELINE_64 )
         {
             INIT2( sad, _cache64_ssse3 );

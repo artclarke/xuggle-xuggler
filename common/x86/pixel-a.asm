@@ -386,6 +386,119 @@ cglobal x264_pixel_var_8x8_sse2, 2,4,8
     jg .loop
     VAR_END 6
 
+%macro VAR2_END 0
+    HADDW   m5, m7
+    movd   r1d, m5
+    imul   r1d, r1d
+    HADDD   m6, m1
+    shr    r1d, 6
+    movd   eax, m6
+    mov   [r4], eax
+    sub    eax, r1d  ; sqr - (sum * sum >> shift)
+    RET
+%endmacro
+
+;-----------------------------------------------------------------------------
+; int x264_pixel_var2_8x8_mmxext( uint8_t *, int, uint8_t *, int, int * )
+;-----------------------------------------------------------------------------
+%ifndef ARCH_X86_64
+INIT_MMX
+cglobal x264_pixel_var2_8x8_mmxext, 5,6
+    VAR_START 0
+    mov      r5d, 8
+.loop:
+    movq      m0, [r0]
+    movq      m1, m0
+    movq      m4, m0
+    movq      m2, [r2]
+    movq      m3, m2
+    punpcklbw m0, m7
+    punpckhbw m1, m7
+    punpcklbw m2, m7
+    punpckhbw m3, m7
+    psubw     m0, m2
+    psubw     m1, m3
+    paddw     m5, m0
+    paddw     m5, m1
+    pmaddwd   m0, m0
+    pmaddwd   m1, m1
+    paddd     m6, m0
+    paddd     m6, m1
+    add       r0, r1
+    add       r2, r3
+    dec       r5d
+    jg .loop
+    VAR2_END
+    RET
+%endif
+
+INIT_XMM
+cglobal x264_pixel_var2_8x8_sse2, 5,6,8
+    VAR_START 1
+    mov      r5d, 4
+.loop:
+    movq      m1, [r0]
+    movhps    m1, [r0+r1]
+    movq      m3, [r2]
+    movhps    m3, [r2+r3]
+    DEINTB    0, 1, 2, 3, 7
+    psubw     m0, m2
+    psubw     m1, m3
+    paddw     m5, m0
+    paddw     m5, m1
+    pmaddwd   m0, m0
+    pmaddwd   m1, m1
+    paddd     m6, m0
+    paddd     m6, m1
+    lea       r0, [r0+r1*2]
+    lea       r2, [r2+r3*2]
+    dec      r5d
+    jg .loop
+    VAR2_END
+    RET
+
+cglobal x264_pixel_var2_8x8_ssse3, 5,6,8
+    pxor      m5, m5    ; sum
+    pxor      m6, m6    ; sum squared
+    mova      m7, [hsub_mul GLOBAL]
+    mov      r5d, 2
+.loop:
+    movq      m0, [r0]
+    movq      m2, [r2]
+    movq      m1, [r0+r1]
+    movq      m3, [r2+r3]
+    lea       r0, [r0+r1*2]
+    lea       r2, [r2+r3*2]
+    punpcklbw m0, m2
+    punpcklbw m1, m3
+    movq      m2, [r0]
+    movq      m3, [r2]
+    punpcklbw m2, m3
+    movq      m3, [r0+r1]
+    movq      m4, [r2+r3]
+    punpcklbw m3, m4
+    pmaddubsw m0, m7
+    pmaddubsw m1, m7
+    pmaddubsw m2, m7
+    pmaddubsw m3, m7
+    paddw     m5, m0
+    paddw     m5, m1
+    paddw     m5, m2
+    paddw     m5, m3
+    pmaddwd   m0, m0
+    pmaddwd   m1, m1
+    pmaddwd   m2, m2
+    pmaddwd   m3, m3
+    paddd     m6, m0
+    paddd     m6, m1
+    paddd     m6, m2
+    paddd     m6, m3
+    lea       r0, [r0+r1*2]
+    lea       r2, [r2+r3*2]
+    dec      r5d
+    jg .loop
+    VAR2_END
+    RET
 
 ;=============================================================================
 ; SATD

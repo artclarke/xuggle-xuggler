@@ -354,6 +354,23 @@ static int check_pixel( int cpu_ref, int cpu_new )
     TEST_PIXEL_VAR( PIXEL_8x8 );
     report( "pixel var :" );
 
+    ok = 1; used_asm = 0;
+    if( pixel_asm.var2_8x8 != pixel_ref.var2_8x8 )
+    {
+        int res_c, res_asm, ssd_c, ssd_asm;
+        set_func_name( "var2_8x8" );
+        used_asm = 1;
+        res_c   = call_c( pixel_c.var2_8x8, buf1, 16, buf2, 16, &ssd_c );
+        res_asm = call_a( pixel_asm.var2_8x8, buf1, 16, buf2, 16, &ssd_asm );
+        if( res_c != res_asm || ssd_c != ssd_asm )
+        {
+            ok = 0;
+            fprintf( stderr, "var[%d]: %d != %d or %d != %d [FAILED]\n", i, res_c, res_asm, ssd_c, ssd_asm );
+        }
+    }
+
+    report( "pixel var2 :" );
+
     for( i=0, ok=1, used_asm=0; i<4; i++ )
         if( pixel_asm.hadamard_ac[i] != pixel_ref.hadamard_ac[i] )
         {
@@ -480,6 +497,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     DECLARE_ALIGNED_16( int16_t dct2[16][4][4] );
     DECLARE_ALIGNED_16( int16_t dct4[16][4][4] );
     DECLARE_ALIGNED_16( int16_t dct8[4][8][8] );
+    DECLARE_ALIGNED_8( int16_t dctdc[2][2][2] );
     x264_t h_buf;
     x264_t *h = &h_buf;
 
@@ -514,6 +532,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     ok = 1; used_asm = 0;
     TEST_DCT( sub4x4_dct, dct1[0], dct2[0], 16*2 );
     TEST_DCT( sub8x8_dct, dct1, dct2, 16*2*4 );
+    TEST_DCT( sub8x8_dct_dc, dctdc[0], dctdc[1], 4*2 );
     TEST_DCT( sub16x16_dct, dct1, dct2, 16*2*16 );
     report( "sub_dct4 :" );
 

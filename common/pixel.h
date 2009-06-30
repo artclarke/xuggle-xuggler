@@ -73,6 +73,7 @@ typedef struct
     x264_pixel_cmp_x3_t fpelcmp_x3[7];
     x264_pixel_cmp_x4_t fpelcmp_x4[7];
     x264_pixel_cmp_t sad_aligned[7]; /* Aligned SAD for mbcmp */
+    int (*var2_8x8)( uint8_t *, int, uint8_t *, int, int * );
 
     int (*var[4])( uint8_t *pix, int stride );
     uint64_t (*hadamard_ac[4])( uint8_t *pix, int stride );
