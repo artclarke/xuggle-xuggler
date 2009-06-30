@@ -32,7 +32,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-check_PROGRAMS = xugglerTestAudioResampler$(EXEEXT) \
+check_PROGRAMS = xugglerTestMetaData$(EXEEXT) \
+	xugglerTestAudioResampler$(EXEEXT) \
 	xugglerTestAudioSamples$(EXEEXT) \
 	xugglerTestAudioResampler$(EXEEXT) xugglerTestCodec$(EXEEXT) \
 	xugglerTestContainerFormat$(EXEEXT) \
@@ -47,7 +48,7 @@ check_PROGRAMS = xugglerTestAudioResampler$(EXEEXT) \
 	xugglerTestStreamCoderFaac$(EXEEXT) xugglerTestStream$(EXEEXT) \
 	xugglerTestTimeValue$(EXEEXT) xugglerTestError$(EXEEXT) \
 	$(am__EXEEXT_1)
-@VS_ENABLE_GPL_TRUE@am__append_1 = xugglerTestAudioResampler \
+@VS_ENABLE_GPL_TRUE@am__append_1 = \
 @VS_ENABLE_GPL_TRUE@  xugglerTestVideoResampler
 
 subdir = test/csrc/com/xuggle/xuggler
@@ -62,8 +63,7 @@ CONFIG_HEADER = $(top_builddir)/csrc/com/xuggle/ferry/config.h \
 	$(top_builddir)/csrc/com/xuggle/xuggler/config.h \
 	$(top_builddir)/csrc/com/xuggle/xuggler/io/config.h
 CONFIG_CLEAN_FILES =
-@VS_ENABLE_GPL_TRUE@am__EXEEXT_1 = xugglerTestAudioResampler$(EXEEXT) \
-@VS_ENABLE_GPL_TRUE@	xugglerTestVideoResampler$(EXEEXT)
+@VS_ENABLE_GPL_TRUE@am__EXEEXT_1 = xugglerTestVideoResampler$(EXEEXT)
 am_xugglerTestAudioResampler_OBJECTS = AudioResamplerTest.$(OBJEXT) \
 	Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestAudioResampler_OBJECTS =  \
@@ -146,6 +146,14 @@ xugglerTestMemoryAllocation_OBJECTS =  \
 	$(am_xugglerTestMemoryAllocation_OBJECTS) \
 	$(nodist_xugglerTestMemoryAllocation_OBJECTS)
 xugglerTestMemoryAllocation_DEPENDENCIES =  \
+	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
+	$(am__DEPENDENCIES_1)
+am_xugglerTestMetaData_OBJECTS = MetaDataTest.$(OBJEXT) Main.$(OBJEXT) \
+	Helper.$(OBJEXT)
+nodist_xugglerTestMetaData_OBJECTS = MetaDataTest_CXXRunner.$(OBJEXT)
+xugglerTestMetaData_OBJECTS = $(am_xugglerTestMetaData_OBJECTS) \
+	$(nodist_xugglerTestMetaData_OBJECTS)
+xugglerTestMetaData_DEPENDENCIES =  \
 	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
 	$(am__DEPENDENCIES_1)
 am_xugglerTestPacket_OBJECTS = PacketTest.$(OBJEXT) Main.$(OBJEXT) \
@@ -278,6 +286,8 @@ SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(nodist_xugglerTestMediaDataWrapper_SOURCES) \
 	$(xugglerTestMemoryAllocation_SOURCES) \
 	$(nodist_xugglerTestMemoryAllocation_SOURCES) \
+	$(xugglerTestMetaData_SOURCES) \
+	$(nodist_xugglerTestMetaData_SOURCES) \
 	$(xugglerTestPacket_SOURCES) \
 	$(nodist_xugglerTestPacket_SOURCES) \
 	$(xugglerTestPixelFormat_SOURCES) \
@@ -307,7 +317,8 @@ DIST_SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(xugglerTestError_SOURCES) $(xugglerTestHelper_SOURCES) \
 	$(xugglerTestMediaDataWrapper_SOURCES) \
 	$(xugglerTestMemoryAllocation_SOURCES) \
-	$(xugglerTestPacket_SOURCES) $(xugglerTestPixelFormat_SOURCES) \
+	$(xugglerTestMetaData_SOURCES) $(xugglerTestPacket_SOURCES) \
+	$(xugglerTestPixelFormat_SOURCES) \
 	$(xugglerTestRational_SOURCES) $(xugglerTestStream_SOURCES) \
 	$(xugglerTestStreamCoder_SOURCES) \
 	$(xugglerTestStreamCoderFaac_SOURCES) \
@@ -470,6 +481,17 @@ inst_checkdir = $(bindir)
 # Make sure we set the abs_top_srcdir environment variable so the 
 # tests can auto-find their fixtures
 TESTS = $(check_PROGRAMS)
+xugglerTestMetaData_SOURCES = \
+  MetaDataTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestMetaData_SOURCES = \
+  MetaDataTest_CXXRunner.cpp
+
+xugglerTestMetaData_LDADD = \
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
 xugglerTestAudioSamples_SOURCES = \
   AudioSamplesTest.cpp \
   Main.cpp \
@@ -691,6 +713,7 @@ xugglerTestVideoResampler_LDADD = \
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
 BUILT_SOURCES = \
+  MetaDataTest_CXXRunner.cpp \
   AudioSamplesTest_CXXRunner.cpp \
   AudioResamplerTest_CXXRunner.cpp \
   CodecTest_CXXRunner.cpp \
@@ -713,6 +736,7 @@ BUILT_SOURCES = \
   StreamCoderX264Test_CXXRunner.cpp
 
 noinst_HEADERS = \
+  MetaDataTest.h \
   AudioResamplerTest.h \
   AudioSamplesTest.h \
   CodecTest.h \
@@ -803,6 +827,9 @@ xugglerTestMediaDataWrapper$(EXEEXT): $(xugglerTestMediaDataWrapper_OBJECTS) $(x
 xugglerTestMemoryAllocation$(EXEEXT): $(xugglerTestMemoryAllocation_OBJECTS) $(xugglerTestMemoryAllocation_DEPENDENCIES) 
 	@rm -f xugglerTestMemoryAllocation$(EXEEXT)
 	$(CXXLINK) $(xugglerTestMemoryAllocation_OBJECTS) $(xugglerTestMemoryAllocation_LDADD) $(LIBS)
+xugglerTestMetaData$(EXEEXT): $(xugglerTestMetaData_OBJECTS) $(xugglerTestMetaData_DEPENDENCIES) 
+	@rm -f xugglerTestMetaData$(EXEEXT)
+	$(CXXLINK) $(xugglerTestMetaData_OBJECTS) $(xugglerTestMetaData_LDADD) $(LIBS)
 xugglerTestPacket$(EXEEXT): $(xugglerTestPacket_OBJECTS) $(xugglerTestPacket_DEPENDENCIES) 
 	@rm -f xugglerTestPacket$(EXEEXT)
 	$(CXXLINK) $(xugglerTestPacket_OBJECTS) $(xugglerTestPacket_LDADD) $(LIBS)

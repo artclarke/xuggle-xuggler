@@ -7,7 +7,9 @@ include @top_builddir@/mk/Makefile.global
 
 EXTRA_LIBS=
 
-check_PROGRAMS=xugglerTestAudioResampler \
+check_PROGRAMS=\
+  xugglerTestMetaData \
+  xugglerTestAudioResampler \
   xugglerTestAudioSamples \
   xugglerTestAudioResampler \
   xugglerTestCodec \
@@ -29,7 +31,7 @@ check_PROGRAMS=xugglerTestAudioResampler \
   xugglerTestError
 
 if VS_ENABLE_GPL
-check_PROGRAMS+=xugglerTestAudioResampler \
+check_PROGRAMS+= \
   xugglerTestVideoResampler
 endif
 
@@ -39,6 +41,17 @@ inst_checkdir=$(bindir)
 # Make sure we set the abs_top_srcdir environment variable so the 
 # tests can auto-find their fixtures
 TESTS=$(check_PROGRAMS)
+
+xugglerTestMetaData_SOURCES= \
+  MetaDataTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestMetaData_SOURCES= \
+  MetaDataTest_CXXRunner.cpp
+
+xugglerTestMetaData_LDADD= \
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
 xugglerTestAudioSamples_SOURCES= \
   AudioSamplesTest.cpp \
@@ -262,6 +275,7 @@ xugglerTestVideoResampler_LDADD=\
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
 BUILT_SOURCES= \
+  MetaDataTest_CXXRunner.cpp \
   AudioSamplesTest_CXXRunner.cpp \
   AudioResamplerTest_CXXRunner.cpp \
   CodecTest_CXXRunner.cpp \
@@ -284,6 +298,7 @@ BUILT_SOURCES= \
   StreamCoderX264Test_CXXRunner.cpp
 
 noinst_HEADERS = \
+  MetaDataTest.h \
   AudioResamplerTest.h \
   AudioSamplesTest.h \
   CodecTest.h \

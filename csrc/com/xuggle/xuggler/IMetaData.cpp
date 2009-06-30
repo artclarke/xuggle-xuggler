@@ -18,27 +18,23 @@
  */
 
 #include "IMetaData.h"
+#include "MetaData.h"
 
-namespace com
+namespace com { namespace xuggle { namespace xuggler
 {
 
-namespace xuggle
-{
-
-namespace xuggler
-{
-
-IMetaData::IMetaData()
+IMetaData :: IMetaData()
 {
 
 }
 
-IMetaData::~IMetaData()
+IMetaData :: ~IMetaData()
 {
 }
 
+IMetaData*
+IMetaData :: make()
+{
+  return MetaData::make();
 }
-
-}
-
-}
+}}}

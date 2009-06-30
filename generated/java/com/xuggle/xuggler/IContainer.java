@@ -1141,6 +1141,26 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     return XugglerJNI.IContainer_canStreamsBeAddedDynamically(swigCPtr, this);
   }
 
+/**
+ * Get the {@link IMetaData} for this object,  
+ * or null if none.  
+ * @return	the {@link IMetaData}.  
+ */
+  public IMetaData getMetaData() {
+    long cPtr = XugglerJNI.IContainer_getMetaData(swigCPtr, this);
+    return (cPtr == 0) ? null : new IMetaData(cPtr, false);
+  }
+
+/**
+ * Set the {@link IMetaData} on this object, overriding  
+ * any previous meta data. You should call this  
+ * method before you call {@link #writeHeader}, as  
+ * it probably won't do anything after that.  
+ */
+  public void setMetaData(IMetaData data) {
+    XugglerJNI.IContainer_setMetaData(swigCPtr, this, IMetaData.getCPtr(data), data);
+  }
+
   public enum Type {
   /**
    *

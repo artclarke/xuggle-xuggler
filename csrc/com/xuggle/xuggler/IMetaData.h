@@ -26,18 +26,80 @@
 namespace com { namespace xuggle { namespace xuggler
 {
 
+/**
+ * Get MetaData about a {@link IContainer} or {@link IStream}.
+ * 
+ * MetaData is a bag of key/value pairs that can be embedded
+ * in some {@link IContainer} or some {@link IStream} objects
+ * in an {@link IContainer}.
+ * 
+ */
 class VS_API_XUGGLER IMetaData : public com::xuggle::ferry::RefCounted
 {
+public:
+  typedef enum {
+    METADATA_NONE=0,
+    METADATA_MATCH_CASE=1,
+//    METADATA_IGNORE_SUFFIX=2,
+  } Flags;
+
+  /**
+   * Get the total number of keys currently in this
+   * {@link IMetaData} object.
+   * 
+   * @return the number of keys.
+   */
+  virtual int32_t getNumKeys()=0;
+  
+  /**
+   * Get the key at the given position, or null if no such
+   * key at that position.
+   * 
+   * <p>
+   * Note: positions of keys may change between
+   * calls to {@link #setValue(String, String)} and 
+   * should be requiried.
+   * </p>
+   * 
+   * @param position The position.  Must be >=0 and < 
+   * {@link #getNumKeys()}.
+   * 
+   * @return the key, or null if not found.
+   */
+  virtual const char* getKey(int32_t position)=0;
+
+  /**
+   * Get the value for the given key.
+   * 
+   * @param key The key
+   * @param flag A flag for how to search
+   * 
+   * @return The value, or null if none.
+   */
+  virtual const char *getValue(const char* key, Flags flag)=0;
+  
+  /**
+   * Sets the value for the given key to value.  This overrides
+   * any prior setting for key, or adds key to the meta-data
+   * if appropriate.
+   * 
+   * @param key The key to set.
+   * @param value The value to set.
+   */
+  virtual int32_t setValue(const char* key, const char* value)=0;
+  
+  /**
+   * Create a new {@link IMetaData} bag of properties with
+   * no values set.
+   */
+  static IMetaData* make();
+ 
 protected:
   IMetaData();
   virtual
   ~IMetaData();
 };
 
-}
-
-}
-
-}
+}}}
 
 #endif /* IMETADATA_H_ */

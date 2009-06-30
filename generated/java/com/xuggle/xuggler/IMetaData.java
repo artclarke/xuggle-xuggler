@@ -8,6 +8,12 @@
 
 package com.xuggle.xuggler;
 import com.xuggle.ferry.*;
+/**
+ * Get MetaData about a {@link IContainer} or {@link IStream}.  
+ * MetaData is a bag of key/value pairs that can be embedded  
+ * in some {@link IContainer} or some {@link IStream} objects  
+ * in an {@link IContainer}.  
+ */
 public class IMetaData extends RefCounted {
   // JNIHelper.swg: Start generated code
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -122,4 +128,101 @@ public class IMetaData extends RefCounted {
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
   
+/**
+ * Get the total number of keys currently in this  
+ * {@link IMetaData} object.  
+ * @return	the number of keys.  
+ */
+  public int getNumKeys() {
+    return XugglerJNI.IMetaData_getNumKeys(swigCPtr, this);
+  }
+
+/**
+ * Get the key at the given position, or null if no such  
+ * key at that position.  
+ * <p>  
+ * Note: positions of keys may change between  
+ * calls to {@link #setValue(String, String)} and  
+ * should be requiried.  
+ * </p>  
+ * @param	position The position. Must be >=0 and <  
+ * {@link #getNumKeys()}.  
+ * @return	the key, or null if not found.  
+ */
+  public String getKey(int position) {
+    return XugglerJNI.IMetaData_getKey(swigCPtr, this, position);
+  }
+
+/**
+ * Get the value for the given key.  
+ * @param	key The key  
+ * @param	flag A flag for how to search  
+ * @return	The value, or null if none.  
+ */
+  public String getValue(String key, IMetaData.Flags flag) {
+    return XugglerJNI.IMetaData_getValue(swigCPtr, this, key, flag.swigValue());
+  }
+
+/**
+ * Sets the value for the given key to value. This overrides  
+ * any prior setting for key, or adds key to the meta-data  
+ * if appropriate.  
+ * @param	key The key to set.  
+ * @param	value The value to set.  
+ */
+  public int setValue(String key, String value) {
+    return XugglerJNI.IMetaData_setValue(swigCPtr, this, key, value);
+  }
+
+/**
+ * Create a new {@link IMetaData} bag of properties with  
+ * no values set.  
+ */
+  public static IMetaData make() {
+    long cPtr = XugglerJNI.IMetaData_make();
+    return (cPtr == 0) ? null : new IMetaData(cPtr, false);
+  }
+
+  public enum Flags {
+    METADATA_NONE(XugglerJNI.IMetaData_METADATA_NONE_get()),
+    METADATA_MATCH_CASE(XugglerJNI.IMetaData_METADATA_MATCH_CASE_get());
+
+    public final int swigValue() {
+      return swigValue;
+    }
+
+    public static Flags swigToEnum(int swigValue) {
+      Flags[] swigValues = Flags.class.getEnumConstants();
+      if (swigValue < swigValues.length && swigValue >= 0 && swigValues[swigValue].swigValue == swigValue)
+        return swigValues[swigValue];
+      for (Flags swigEnum : swigValues)
+        if (swigEnum.swigValue == swigValue)
+          return swigEnum;
+      throw new IllegalArgumentException("No enum " + Flags.class + " with value " + swigValue);
+    }
+
+    @SuppressWarnings("unused")
+    private Flags() {
+      this.swigValue = SwigNext.next++;
+    }
+
+    @SuppressWarnings("unused")
+    private Flags(int swigValue) {
+      this.swigValue = swigValue;
+      SwigNext.next = swigValue+1;
+    }
+
+    @SuppressWarnings("unused")
+    private Flags(Flags swigEnum) {
+      this.swigValue = swigEnum.swigValue;
+      SwigNext.next = this.swigValue+1;
+    }
+
+    private final int swigValue;
+
+    private static class SwigNext {
+      private static int next = 0;
+    }
+  }
+
 }

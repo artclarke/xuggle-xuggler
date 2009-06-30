@@ -27,6 +27,7 @@
 #include <com/xuggle/xuggler/IStream.h>
 #include <com/xuggle/xuggler/IPacket.h>
 #include <com/xuggle/xuggler/IProperty.h>
+#include <com/xuggle/xuggler/IMetaData.h>
 
 namespace com { namespace xuggle { namespace xuggler
 {
@@ -675,7 +676,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual void setParameters(IContainerParameters* parameters)=0;
     
     /*
-     * Added for 2.1
+     * Added for 3.0
      */
     
     /**
@@ -684,6 +685,25 @@ namespace com { namespace xuggle { namespace xuggler
      * @return true if streams can be added dynamically
      */
     virtual bool canStreamsBeAddedDynamically()=0;
+
+    /*
+     * Added for 3.1
+     */
+    
+    /**
+     * Get the {@link IMetaData} for this object,
+     * or null if none.
+     * 
+     * @return the {@link IMetaData}.
+     */
+    virtual IMetaData* getMetaData()=0;
+    /**
+     * Set the {@link IMetaData} on this object, overriding
+     * any previous meta data.  You should call this
+     * method before you call {@link #writeHeader}, as
+     * it probably won't do anything after that.
+     */
+    virtual void setMetaData(IMetaData* data)=0;
     
   };
 }}}

@@ -109,6 +109,9 @@ namespace com { namespace xuggle { namespace xuggler
 
     virtual bool canStreamsBeAddedDynamically();
 
+    virtual IMetaData* getMetaData();
+    virtual void setMetaData(IMetaData* metaData);
+    
   protected:
     virtual ~Container();
     Container();
@@ -138,6 +141,7 @@ namespace com { namespace xuggle { namespace xuggler
     
     int32_t mReadRetryCount;
     com::xuggle::ferry::RefPointer<IContainerParameters> mParameters;
+    com::xuggle::ferry::RefPointer<IMetaData> mMetaData;
   };
 }}}
 

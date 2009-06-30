@@ -32,6 +32,7 @@
 #include <com/xuggle/xuggler/Packet.h>
 #include <com/xuggle/xuggler/Global.h>
 #include <com/xuggle/xuggler/Property.h>
+#include <com/xuggle/xuggler/MetaData.h>
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);
 
@@ -75,6 +76,8 @@ namespace com { namespace xuggle { namespace xuggler
       VS_LOG_DEBUG("Closing dangling Container");
       (void) this->close(true);
     }
+    mMetaData.reset();
+
     VS_ASSERT(!mFormatContext,
         "this should be freed by close or already zero");
   }
@@ -439,6 +442,7 @@ namespace com { namespace xuggle { namespace xuggler
       } else
       {
         retval = url_fclose(mFormatContext->pb);
+        av_metadata_free(&mFormatContext->metadata);
         av_free(mFormatContext);
       }
       mFormatContext = 0;
@@ -979,5 +983,30 @@ namespace com { namespace xuggle { namespace xuggler
       return mFormatContext->ctx_flags & AVFMTCTX_NOHEADER;
     return false;
   }
+
+  IMetaData*
+  Container :: getMetaData()
+  {
+    if (!mMetaData && mFormatContext)
+    {
+      mMetaData = MetaData::make(mFormatContext->metadata);
+    }
+    return mMetaData.get();
+  }
+  void
+  Container :: setMetaData(IMetaData * data)
+  {
+    mMetaData.reset();
+    if (!mFormatContext)
+      return;
+    if (!data)
+      return;
+    MetaData* actualData = dynamic_cast<MetaData*>(data);
+    if (actualData)
+    {
+      actualData->override(&mFormatContext->metadata);
+    }
+  }
+  
   
 }}}

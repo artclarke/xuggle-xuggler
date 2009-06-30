@@ -77,6 +77,13 @@ class XugglerJNI {
   public final static native int ITimeValue_compareTo(long jarg1, ITimeValue jarg1_, long jarg2, ITimeValue jarg2_);
   public final static native int ITimeValue_compare__SWIG_0(long jarg1, ITimeValue jarg1_, long jarg2, ITimeValue jarg2_);
   public final static native int ITimeValue_compare__SWIG_1(long jarg1, long jarg2);
+  public final static native int IMetaData_METADATA_NONE_get();
+  public final static native int IMetaData_METADATA_MATCH_CASE_get();
+  public final static native int IMetaData_getNumKeys(long jarg1, IMetaData jarg1_);
+  public final static native String IMetaData_getKey(long jarg1, IMetaData jarg1_, int jarg2);
+  public final static native String IMetaData_getValue(long jarg1, IMetaData jarg1_, String jarg2, int jarg3);
+  public final static native int IMetaData_setValue(long jarg1, IMetaData jarg1_, String jarg2, String jarg3);
+  public final static native long IMetaData_make();
   public final static native long IMediaData_getTimeStamp(long jarg1, IMediaData jarg1_);
   public final static native void IMediaData_setTimeStamp(long jarg1, IMediaData jarg1_, long jarg2);
   public final static native long IMediaData_getTimeBase(long jarg1, IMediaData jarg1_);
@@ -519,6 +526,8 @@ class XugglerJNI {
   public final static native long IContainer_getParameters(long jarg1, IContainer jarg1_);
   public final static native void IContainer_setParameters(long jarg1, IContainer jarg1_, long jarg2, IContainerParameters jarg2_);
   public final static native boolean IContainer_canStreamsBeAddedDynamically(long jarg1, IContainer jarg1_);
+  public final static native long IContainer_getMetaData(long jarg1, IContainer jarg1_);
+  public final static native void IContainer_setMetaData(long jarg1, IContainer jarg1_, long jarg2, IMetaData jarg2_);
   public final static native void IMediaDataWrapper_wrap(long jarg1, IMediaDataWrapper jarg1_, long jarg2, IMediaData jarg2_);
   public final static native void IMediaDataWrapper_setKey(long jarg1, IMediaDataWrapper jarg1_, boolean jarg2);
   public final static native long IMediaDataWrapper_make(long jarg1, IMediaData jarg1_);
