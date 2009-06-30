@@ -492,21 +492,33 @@ using the library and what you like or don't like about it.
     <antcall target="ivy-retrieve" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
     </antcall>
-    <!-- Copy over all the Jar files we need -->
     <copy todir="${dist.dir}/lib">
       <fileset dir="${build.dir}/lib/default">
         <include name="**/*.jar"/>
       </fileset>
     </copy>
+    <antcall target="jar" inheritAll="true" inheritRefs="true">
+    </antcall>
+    <antcall target="ivy-deliver" inheritAll="true" inheritRefs="true">
+      <param name="ivy.settings.name" value="default"/>
+    </antcall>
+    <antcall target="ivy-publish" inheritAll="true" inheritRefs="true">
+      <param name="ivy.settings.name" value="default"/>
+    </antcall>
+  </target>
+
+  <target name="jar"
+      description="Create any Jar or War files for this build">
+    <!-- Copy over all the Jar files we need -->
     <if>
       <not>
         <isset property="manifest.classpath"/>
       </not>
       <then>
         <manifestclasspath
-          property="manifest.classpath"
-          jarfile="${dist.dir}/lib/${app.name}.jar"
-          >
+            property="manifest.classpath"
+            jarfile="${dist.dir}/lib/${app.name}.jar"
+            >
           <classpath>
             <fileset dir="${dist.dir}/lib">
               <include name="**/*.jar"/>
@@ -517,8 +529,8 @@ using the library and what you like or don't like about it.
       </then>
     </if>
     <jar jarfile="${dist.dir}/lib/${app.name}.jar"
-      index="no"
-      basedir="${classes.dir}">
+        index="no"
+        basedir="${classes.dir}">
       <include name="**/*"/>
       <manifest>
         <attribute name="Implementation-Vendor" value="www.xuggle.com"/>
@@ -528,25 +540,19 @@ using the library and what you like or don't like about it.
         <attribute name="Main-Class" value="${app.mainclass}"/>
       </manifest>
     </jar>
-    <antcall target="stage-webapp-java" inheritAll="true" inheritRefs="true">
-      <param name="ivy.settings.name" value="default"/>
-    </antcall>
-    <antcall target="ivy-deliver" inheritAll="true" inheritRefs="true">
-      <param name="ivy.settings.name" value="default"/>
-    </antcall>
-    <antcall target="ivy-publish" inheritAll="true" inheritRefs="true">
+    <antcall target="webapp" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
     </antcall>
   </target>
   <target
-      name="stage-webapp-java"
-      description="stage any Java webapps in this build"
+      name="webapp"
+      description="Create any Java webapps in this build"
       >
   </target>
 
   <target name="dist-java"
-    depends="init, stage-java"
-    description="generate the distribution" >
+      depends="init, stage-java"
+      description="generate the distribution" >
     <!-- and zip up the ivys -->
     <mkdir dir="${dist.dir}/repo"/>
     <if>
