@@ -128,6 +128,54 @@ public class IMetaData extends RefCounted {
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
   
+  /**
+   * Return the meta-data, with all values expanded.
+   */
+  @Override
+  public String toString()
+  {
+    StringBuilder result = new StringBuilder();
+    result.append(this.getClass().getName()).append("@").append(hashCode());
+    result.append("[");
+    java.util.Collection<String> keys = getKeys();
+    for(String key: keys)
+    {
+      String value = getValue(key, IMetaData.Flags.METADATA_NONE);
+      result.append(key).append("=").append(value).append(";");
+    }
+    result.append("]");
+    return result.toString();
+  }
+  
+  /**
+   * Get the set of keys currently in this {@link IMediaData} object
+   * as an unordered collection.
+   * @return the keys.
+   */
+  public java.util.Collection<String> getKeys()
+  {
+    int numKeys = getNumKeys();
+    
+    java.util.List<String> retval = new java.util.ArrayList<String>(numKeys);
+    for(int i = 0; i < getNumKeys(); i++)
+    {
+      String key = getKey(i);
+      if (key != null && key.length() > 0)
+        retval.add(key);
+    }
+    return retval;
+  }
+ 
+  /**
+   * Return the value for this key, comparing case insensitively.
+   * @param key the key
+   * @return the value.
+   */
+  public String getValue(String key)
+  {
+    return getValue(key, IMetaData.Flags.METADATA_NONE);
+  }
+
 /**
  * Get the total number of keys currently in this  
  * {@link IMetaData} object.  
