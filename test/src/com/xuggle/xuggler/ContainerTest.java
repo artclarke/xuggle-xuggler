@@ -273,10 +273,10 @@ public class ContainerTest extends TestCase
     
     int retval = -1;
     
-    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    retval = container.open("fixtures/testfile.mp3", IContainer.Type.READ, null);
     assertTrue("could not open file", retval >= 0);
     
-    assertEquals("unexpected bit rate", 64000, container.getBitRate());
+    assertEquals("unexpected bit rate", 127999, container.getBitRate(), 1000);
     
   }
   

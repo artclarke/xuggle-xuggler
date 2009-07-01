@@ -159,8 +159,12 @@ public class StreamCoderTest extends TestCase
     int sampleRate = -1;
     int channels = -1;
     
+    IContainer container = IContainer.make();
+    container.open("fixtures/testfile.mp3", IContainer.Type.READ, null);
+    IStream stream = container.getStream(0);
+    
     // get the audio stream
-    mCoder = getStreamCoder(sampleFile, 1);
+    mCoder = stream.getStreamCoder();
     bitRate = mCoder.getBitRate();
     height = mCoder.getHeight();
     width = mCoder.getWidth();
@@ -174,23 +178,26 @@ public class StreamCoderTest extends TestCase
     log.debug("Bitrate: {}", bitRate);
     log.debug("Height: {}", height);
     log.debug("Width: {}", width);
-    log.debug("Timebase: {}/{}", timebase.getNumerator(),
-        timebase.getDenominator());
+    log.debug("Timebase: {}", timebase);
     log.debug("Num Group of Pictures: {}", gops);
     log.debug("Pixel Format: {}", pixFmt);
     log.debug("Sample Rate: {}", sampleRate);
     log.debug("Channels: {}", channels);
     
     // now our assertions
-    assertEquals(64000, bitRate);
+    assertEquals(128000, bitRate, 1000);
     assertEquals(0, height);
     assertEquals(0, width);
     assertEquals(1, timebase.getNumerator());
-    assertEquals(1000, timebase.getDenominator());
+    assertEquals(90000, timebase.getDenominator());
     assertEquals(12, gops);
     assertEquals(IPixelFormat.Type.NONE, pixFmt);
-    assertEquals(22050, sampleRate);
-    assertEquals(1, channels);    
+    assertEquals(44100, sampleRate);
+    assertEquals(2, channels);    
+    stream.delete();
+    container.close();
+    container.delete();
+
   }
 
   @Test
