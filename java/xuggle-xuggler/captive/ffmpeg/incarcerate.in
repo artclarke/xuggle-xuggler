@@ -118,6 +118,7 @@ if [ -d @abs_srcdir@/patches ]; then
 fi
 
 echo "Configuring FFMPEG with these options: $FFMPEG_OPTIONS"
-sh @abs_builddir@/csrc/configure \
+cd @abs_builddir@/csrc
+sh ./configure \
   --prefix="${prefix}" $FFMPEG_OPTIONS || \
   (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)
