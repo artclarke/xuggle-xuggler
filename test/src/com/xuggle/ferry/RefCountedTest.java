@@ -240,29 +240,6 @@ public class RefCountedTest
 
   }
   
-  @Test(timeout=5*60*1000)
-  public void testReferenceCountingLoadTestOfDeath() throws InterruptedException
-  {
-    assertEquals("should be no objects for collection", 
-        0, JNIReference.getMgr().getNumPinnedObjects());
-    RefCountedTester obj = RefCountedTester.make();
-    for(int i = 0; i < 1000; i++)
-    {
-      RefCountedTester copy = obj.copyReference();
-      assertNotNull("could not copy reference", copy);
-    }
-    obj=null;
-    while(JNIReference.getMgr().getNumPinnedObjects() > 0)
-    {
-      byte[] bytes = new byte[1024*1024];
-      bytes[0] = 0;
-      JNIReference.getMgr().gc();
-    }
-    assertEquals("Looks like we leaked an object",
-        0, JNIReference.getMgr().getNumPinnedObjects());        
-
-  }
-
   /**
    * Tests that calling .delete() on a RefCounted object and
    * then derefing it raises an exception, but does not crash
