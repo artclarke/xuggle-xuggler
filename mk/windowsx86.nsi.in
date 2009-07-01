@@ -74,8 +74,8 @@ Section -Main SEC0000
     WriteRegStr HKLM "${REGKEY}\Components" Main 1
     ${EnvVarUpdate} $0 "XUGGLE_HOME" "R" "HKLM" $INSTDIR
     ${EnvVarUpdate} $0 "XUGGLE_HOME" "A" "HKLM" $INSTDIR
-    ${EnvVarUpdate} $0 "PATH" "R" "HKLM" "${XUGGLE_HOME}\bin"
-    ${EnvVarUpdate} $0 "PATH" "P" "HKLM" "${XUGGLE_HOME}\bin"
+    ${EnvVarUpdate} $0 "PATH" "R" "HKLM" "${INSTDIR}\bin"
+    ${EnvVarUpdate} $0 "PATH" "P" "HKLM" "${INSTDIR}\bin"
 SectionEnd
 
 Section -post SEC0001
@@ -107,7 +107,7 @@ done${UNSECTION_ID}:
 
 # Uninstaller sections
 Section /o -un.Main UNSEC0000
-    ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "${XUGGLE_HOME}\bin"
+    ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "${INSTDIR}\bin"
     RmDir /r /REBOOTOK $INSTDIR
     DeleteRegValue HKLM "${REGKEY}\Components" Main
 SectionEnd
