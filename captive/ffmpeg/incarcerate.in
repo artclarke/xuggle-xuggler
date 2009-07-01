@@ -96,17 +96,22 @@ case $HOST_TYPE in
   ;;
 esac
 
+echo "Copying @abs_srcdir@/csrc to @abs_builddir@/csrc"
+# create the directory
+mkdir -p @abs_builddir@/csrc
+# copy over all the source
+cp -r @abs_srcdir@/csrc/* @abs_builddir@/csrc/
+# and make everything user writeable so distcheck will pass
+chmod -R u+w @abs_builddir@/csrc/*
+# Apply patches if any
+if [ -d @abs_srcdir@/patches ]; then
+  cd @abs_builddir@/csrc
+  for patch in @abs_srcdir@/patches/*; do
+    patch -p0 < "$patch"
+  done
+fi
+
 echo "Configuring FFMPEG with these options: $FFMPEG_OPTIONS"
-sh @abs_srcdir@/csrc/configure \
+sh @abs_builddir@/csrc/configure \
   --prefix="${prefix}" $FFMPEG_OPTIONS || \
   (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)
-if test $? -eq 0 ; then
-  # Annoyingly, ffmpeg makes a link back to the main Makefile, not
-  # a copy, which can cause havoc in our makefile as we expect after
-  # a configure that the top level makefile in our build directory
-  # has been updated, so we force that here.
-  rm -f "@abs_builddir@/csrc/Makefile"
-  cp "@abs_srcdir@/csrc/Makefile" "@abs_builddir@/csrc/Makefile"
-else
-  exit 255
-fi
