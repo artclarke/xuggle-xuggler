@@ -128,8 +128,11 @@ namespace com { namespace xuggle { namespace xuggler
      * @see #lock()
      */
     static void unlock();
+#endif // ! SWIG
+
 
     /**
+     * Internal Only.  Do not call.
      * Methods using the C++ interface that will not necessarily
      * create other Global object should call this.  In general,
      * unless you're extending xuggler directly yourself, ordinary
@@ -139,11 +142,8 @@ namespace com { namespace xuggle { namespace xuggler
      * initialization functions are called, and any XUGGLER required
      * environmental contexts are set up.
      * </p>
-     * It is safe to call multiple times.
      */
     static void init();
-
-#endif // ! SWIG
 
   private:
     Global();

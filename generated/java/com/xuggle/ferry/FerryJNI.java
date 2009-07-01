@@ -14,6 +14,7 @@ class FerryJNI {
     JNILibraryLoader.loadLibrary(
       "xuggle-ferry",
       new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
+    com.xuggle.ferry.Ferry.init();
     // This seems nuts, but it works around a Java 1.6 bug where
     // a race condition exists when JNI_NewDirectByteBuffer is called
     // from multiple threads.  See:
@@ -26,8 +27,13 @@ class FerryJNI {
     reference.delete();
     buffer.delete();
   }
-  
+  /**
+   * Internal Only.  Do not call.
+   */
   public native static int getMemoryModel();
+  /**
+   * Internal Only.  Do not call.
+   */
   public native static void setMemoryModel(int value);
   
 

@@ -19,4 +19,11 @@ package com.xuggle.ferry;
  */
 
 public class Ferry {
+
+
+  /**
+   * Internal Only.  Do not use.
+   */
+  public native static void init();
+
 }

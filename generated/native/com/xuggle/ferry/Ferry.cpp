@@ -219,10 +219,10 @@ extern "C" {
  * must call sSetVM().
  */
 JNIEXPORT jint JNICALL
-JNI_OnLoad(JavaVM *jvm, void *)
+JNI_OnLoad(JavaVM *, void *)
 {
-  if (!com::xuggle::ferry::JNIHelper::sGetVM())
-    com::xuggle::ferry::JNIHelper::sSetVM(jvm);
+  /* Because of static initialize in Mac OS, the only safe thing
+   * to do here is return the version */
   return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
 }
 #include <com/xuggle/ferry/RefCounted.h>
@@ -244,6 +244,18 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentRef
 {
   return Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentNativeRefCount(jenv, jcls, jarg1, jarg1_);
 }
+
+
+JNIEXPORT void JNICALL
+Java_com_xuggle_ferry_Ferry_init(JNIEnv *env, jclass)
+{
+  JavaVM* vm=0;
+  if (!com::xuggle::ferry::JNIHelper::sGetVM()) {
+    env->GetJavaVM(&vm);
+    com::xuggle::ferry::JNIHelper::sSetVM(vm);
+  }
+}
+
 }
 
 

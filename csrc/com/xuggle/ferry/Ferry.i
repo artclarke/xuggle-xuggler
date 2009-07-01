@@ -33,10 +33,10 @@ extern "C" {
  * must call sSetVM().
  */
 JNIEXPORT jint JNICALL
-JNI_OnLoad(JavaVM *jvm, void *)
+JNI_OnLoad(JavaVM *, void *)
 {
-  if (!com::xuggle::ferry::JNIHelper::sGetVM())
-    com::xuggle::ferry::JNIHelper::sSetVM(jvm);
+  /* Because of static initialize in Mac OS, the only safe thing
+   * to do here is return the version */
   return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
 }
 #include <com/xuggle/ferry/RefCounted.h>
@@ -58,6 +58,18 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentRef
 {
   return Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentNativeRefCount(jenv, jcls, jarg1, jarg1_);
 }
+
+
+JNIEXPORT void JNICALL
+Java_com_xuggle_ferry_Ferry_init(JNIEnv *env, jclass)
+{
+  JavaVM* vm=0;
+  if (!com::xuggle::ferry::JNIHelper::sGetVM()) {
+    env->GetJavaVM(&vm);
+    com::xuggle::ferry::JNIHelper::sSetVM(vm);
+  }
+}
+
 }
 %}
 %pragma(java) jniclasscode=%{
@@ -65,6 +77,7 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentRef
     JNILibraryLoader.loadLibrary(
       "xuggle-ferry",
       new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
+    com.xuggle.ferry.Ferry.init();
     // This seems nuts, but it works around a Java 1.6 bug where
     // a race condition exists when JNI_NewDirectByteBuffer is called
     // from multiple threads.  See:
@@ -77,8 +90,13 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentRef
     reference.delete();
     buffer.delete();
   }
-  
+  /**
+   * Internal Only.  Do not call.
+   */
   public native static int getMemoryModel();
+  /**
+   * Internal Only.  Do not call.
+   */
   public native static void setMemoryModel(int value);
   
 %}
@@ -93,6 +111,14 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentRef
  * </p>
  */
 %}
+%pragma(java) modulecode=%{
+
+  /**
+   * Internal Only.  Do not use.
+   */
+  public native static void init();
+%}
+
 %import <com/xuggle/ferry/JNIHelper.swg>
 
 %include <com/xuggle/Xuggle.h>

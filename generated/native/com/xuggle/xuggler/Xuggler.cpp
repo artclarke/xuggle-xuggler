@@ -239,11 +239,10 @@ using namespace VS_CPP_NAMESPACE;
  * must call sSetVM().
  */
 JNIEXPORT jint JNICALL
-JNI_OnLoad(JavaVM *jvm, void *)
+JNI_OnLoad(JavaVM *, void *)
 {
-  if (!com::xuggle::ferry::JNIHelper::sGetVM())
-    com::xuggle::ferry::JNIHelper::sSetVM(jvm);
-  Global::init();
+  /* Because of static initialize in Mac OS, the only safe thing
+   * to do here is return the version */
   return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
 }
 
@@ -32002,6 +32001,68 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_Global_1getAVCodec
   }
   if(result) jresult = jenv->NewStringUTF((const char *)result);
   return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_Global_1init(JNIEnv *jenv, jclass jcls) {
+  (void)jenv;
+  (void)jcls;
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      com::xuggle::xuggler::Global::init();
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
+      }
+      return ;
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return ;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
 }
 
 

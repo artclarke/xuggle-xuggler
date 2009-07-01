@@ -218,6 +218,22 @@ public class Global extends RefCounted {
   }
 
 /**
+ * Internal Only. Do not call.  
+ * Methods using the C++ interface that will not necessarily  
+ * create other Global object should call this. In general,  
+ * unless you're extending xuggler directly yourself, ordinary  
+ * users of this library don't need to call this.  
+ * <p>  
+ * It's main purpose is to ensure any FFMPEG required environment  
+ * initialization functions are called, and any XUGGLER required  
+ * environmental contexts are set up.  
+ * </p>  
+ */
+  public static void init() {
+    XugglerJNI.Global_init();
+  }
+
+/**
  * A value that means no time stamp is set for a given object.  
  * if the {@link IMediaData#getTimeStamp()} method of an  
  * object returns this value it means the time stamp wasn't set.  

@@ -18,6 +18,8 @@ class XugglerJNI {
   static {
     com.xuggle.ferry.JNILibraryLoader.loadLibrary("xuggle-xuggler",
       new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
+    com.xuggle.ferry.Ferry.init();
+    com.xuggle.xuggler.Global.init();
   }
   
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -552,6 +554,7 @@ class XugglerJNI {
   public final static native String Global_getAVFormatVersionStr();
   public final static native int Global_getAVCodecVersion();
   public final static native String Global_getAVCodecVersionStr();
+  public final static native void Global_init();
   public final static native int IError_getType(long jarg1, IError jarg1_);
   public final static native String IError_getDescription(long jarg1, IError jarg1_);
   public final static native int IError_getErrorNumber(long jarg1, IError jarg1_);

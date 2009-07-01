@@ -53,11 +53,10 @@ using namespace VS_CPP_NAMESPACE;
  * must call sSetVM().
  */
 JNIEXPORT jint JNICALL
-JNI_OnLoad(JavaVM *jvm, void *)
+JNI_OnLoad(JavaVM *, void *)
 {
-  if (!com::xuggle::ferry::JNIHelper::sGetVM())
-    com::xuggle::ferry::JNIHelper::sSetVM(jvm);
-  Global::init();
+  /* Because of static initialize in Mac OS, the only safe thing
+   * to do here is return the version */
   return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
 }
 
@@ -137,6 +136,8 @@ import com.xuggle.xuggler.Converter;
   static {
     com.xuggle.ferry.JNILibraryLoader.loadLibrary("xuggle-xuggler",
       new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
+    com.xuggle.ferry.Ferry.init();
+    com.xuggle.xuggler.Global.init();
   }
   
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<
