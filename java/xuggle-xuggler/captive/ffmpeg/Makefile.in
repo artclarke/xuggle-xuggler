@@ -423,15 +423,7 @@ clean-local: incarcerate-package
 	cd csrc && $(MAKE) clean && DESTDIR="$(vs_captive_prefix)" $(MAKE) uninstall
 
 distclean-local: incarcerate-package
-	cd csrc && $(MAKE) distclean
-	rm -f "@abs_builddir@/csrc/Makefile"
-	rm -f "@abs_builddir@/csrc/libswscale/libswscale.pc"
-	rm -f "@abs_builddir@/csrc/libswscale/libswscale-uninstalled.pc"
-
-# These are special hacks to deal with the fact that we copy
-# FFmpeg's top level Makefile in the incarcerate script
-
-csrc/Makefile : $(srcdir)/csrc/configure $(srcdir)/csrc/Makefile
+	rm -rf csrc
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
