@@ -24,6 +24,10 @@ public:
   void testCreation();
   void testContainerGetMetaData();
   void testContainerSetMetaData();
+  void testContainerGetMetaDataIsWriteThrough();
+  void testStreamGetMetaData();
+  void testStreamSetMetaData();
+  void testStreamGetMetaDataIsWriteThrough();
 
 };
 

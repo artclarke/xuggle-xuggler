@@ -20,9 +20,11 @@
 #ifndef STREAM_H_
 #define STREAM_H_
 
+#include <com/xuggle/ferry/RefPointer.h>
 #include <com/xuggle/xuggler/IStream.h>
 #include <com/xuggle/xuggler/FfmpegIncludes.h>
 #include <com/xuggle/xuggler/IRational.h>
+#include <com/xuggle/xuggler/IMetaData.h>
 
 namespace com { namespace xuggle { namespace xuggler
 {
@@ -75,6 +77,9 @@ namespace com { namespace xuggle { namespace xuggler
     
     virtual AVStream* getAVStream() { return mStream; }
     
+    virtual IMetaData* getMetaData();
+    virtual void setMetaData(IMetaData* metaData);
+
   protected:
     Stream();
     virtual ~Stream();
@@ -91,6 +96,7 @@ namespace com { namespace xuggle { namespace xuggler
      * a null if needed.
      */
     char mLanguage[5];
+    com::xuggle::ferry::RefPointer<IMetaData> mMetaData;
   };
 
 }}}

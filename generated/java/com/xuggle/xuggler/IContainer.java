@@ -1154,7 +1154,8 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 /**
  * Set the {@link IMetaData} on this object, overriding  
  * any previous meta data. You should call this  
- * method before you call {@link #writeHeader}, as  
+ * method on writable containers and  
+ * before you call {@link #writeHeader}, as  
  * it probably won't do anything after that.  
  */
   public void setMetaData(IMetaData data) {

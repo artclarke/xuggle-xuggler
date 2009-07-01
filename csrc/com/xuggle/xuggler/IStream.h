@@ -26,7 +26,8 @@ namespace com { namespace xuggle { namespace xuggler
   class IStreamCoder;
   class IContainer;
   class IRational;
-
+  class IMetaData;
+  
   /**
    * Represents a stream of similar data (eg video) in a {@link IContainer}.
    * <p>
@@ -240,6 +241,27 @@ namespace com { namespace xuggle { namespace xuggler
      */
     virtual void setParseType(ParseType type)=0;
 
+    /*
+     * Added for 3.1
+     */
+    
+    /**
+     * Get the {@link IMetaData} for this object,
+     * or null if none.
+     * 
+     * @return the {@link IMetaData}.
+     */
+    virtual IMetaData* getMetaData()=0;
+    
+    /**
+     * Set the {@link IMetaData} on this object, overriding
+     * any previous meta data.  You should call this
+     * method on writable containers and
+     * before you call {@link #writeHeader}, as
+     * it probably won't do anything after that.
+     */
+    virtual void setMetaData(IMetaData* data)=0;
+    
   };
 }}}
 

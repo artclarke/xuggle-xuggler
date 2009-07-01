@@ -27,11 +27,11 @@
 #include <com/xuggle/xuggler/IStream.h>
 #include <com/xuggle/xuggler/IPacket.h>
 #include <com/xuggle/xuggler/IProperty.h>
-#include <com/xuggle/xuggler/IMetaData.h>
 
 namespace com { namespace xuggle { namespace xuggler
 {
-
+  class IMetaData;
+  
   /**
    * A file (or network data source) that contains one or more {@link IStream}s of
    * audio and video data.
@@ -697,10 +697,12 @@ namespace com { namespace xuggle { namespace xuggler
      * @return the {@link IMetaData}.
      */
     virtual IMetaData* getMetaData()=0;
+    
     /**
      * Set the {@link IMetaData} on this object, overriding
      * any previous meta data.  You should call this
-     * method before you call {@link #writeHeader}, as
+     * method on writable containers and
+     * before you call {@link #writeHeader}, as
      * it probably won't do anything after that.
      */
     virtual void setMetaData(IMetaData* data)=0;

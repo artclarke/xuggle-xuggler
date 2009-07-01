@@ -27,7 +27,7 @@
 #include <com/xuggle/xuggler/Rational.h>
 #include <com/xuggle/xuggler/StreamCoder.h>
 #include <com/xuggle/xuggler/Container.h>
-
+#include <com/xuggle/xuggler/MetaData.h>
 #include "FfmpegIncludes.h"
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);
@@ -53,6 +53,7 @@ namespace com { namespace xuggle { namespace xuggler
   Stream :: reset()
   {
     VS_ASSERT("should be a valid object", getCurrentRefCount() >= 1);
+    mMetaData.reset();
     if (mStream && mDirection == OUTBOUND)
     {
       // when outbound we manage our AVStream context;
@@ -61,7 +62,6 @@ namespace com { namespace xuggle { namespace xuggler
     }
     mStream = 0;
     VS_REF_RELEASE(mCoder);
-    
     // We don't keep a reference to the container to avoid a ref-count loop
     // and so we don't release.
     mContainer = 0;
@@ -343,4 +343,33 @@ namespace com { namespace xuggle { namespace xuggler
       mStream->need_parsing = (enum AVStreamParseType)type;
     }
   }
+  
+  IMetaData*
+  Stream :: getMetaData()
+  {
+    if (!mMetaData && mStream)
+    {
+      if (mDirection == IStream::OUTBOUND)
+        mMetaData = MetaData::make(&mStream->metadata);
+      else
+        // make a read-only copy so when libav deletes the
+        // input version we don't delete our copy
+        mMetaData = MetaData::make(mStream->metadata);
+    }
+    return mMetaData.get();
+  }
+  
+  void
+  Stream :: setMetaData(IMetaData * copy)
+  {
+    MetaData* data = dynamic_cast<MetaData*>(getMetaData());
+    if (data) {
+      data->copy(copy);
+      // release for the get above
+      data->release();
+    }
+    return;
+  }
+  
+
 }}}

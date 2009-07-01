@@ -18,27 +18,27 @@ namespace xuggler
 
 MetaData :: MetaData()
 {
-  mMetaData = 0;
+  mLocalMeta = 0;
+  mMetaData = &mLocalMeta;
 }
 
 MetaData :: ~MetaData()
 {
-  if (mMetaData)
-    av_metadata_free(&mMetaData);
-  mMetaData = 0;
+  if (mMetaData && *mMetaData)
+    av_metadata_free(mMetaData);
 }
 
 int32_t
 MetaData :: getNumKeys()
 {
-  if (!mMetaData)
+  if (!mMetaData || !*mMetaData)
     return 0;
   
   AVMetadataTag* tag=0;
   int32_t retval=0;
   do
   {
-    tag = av_metadata_get(mMetaData, "", tag, AV_METADATA_IGNORE_SUFFIX);
+    tag = av_metadata_get(*mMetaData, "", tag, AV_METADATA_IGNORE_SUFFIX);
     if (tag)
       retval++;
   } while(tag);
@@ -48,14 +48,14 @@ MetaData :: getNumKeys()
 const char*
 MetaData :: getKey(int32_t index)
 {
-  if (!mMetaData || index < 0)
+  if (!mMetaData || !*mMetaData || index < 0)
     return 0;
 
   AVMetadataTag* tag=0;
   int32_t position=-1;
   do
   {
-    tag = av_metadata_get(mMetaData, "", tag, AV_METADATA_IGNORE_SUFFIX);
+    tag = av_metadata_get(*mMetaData, "", tag, AV_METADATA_IGNORE_SUFFIX);
     if (tag) {
       position++;
       if (position == index)
@@ -67,9 +67,9 @@ MetaData :: getKey(int32_t index)
 const char*
 MetaData :: getValue(const char *key, Flags flag)
 {
-   if (!mMetaData || !key || !*key)
+   if (!mMetaData || !*mMetaData || !key || !*key)
      return 0;
-   AVMetadataTag* tag = av_metadata_get(mMetaData, key, 0, (int)flag);
+   AVMetadataTag* tag = av_metadata_get(*mMetaData, key, 0, (int)flag);
    if (tag)
      return tag->value;
    else
@@ -79,9 +79,23 @@ MetaData :: getValue(const char *key, Flags flag)
 int32_t
 MetaData :: setValue(const char* key, const char* value)
 {
-  if (!key || !*key)
+  if (!key || !*key || !mMetaData)
     return -1;
-  return (int32_t)av_metadata_set(&mMetaData, key, value);
+  return (int32_t)av_metadata_set(mMetaData, key, value);
+}
+
+MetaData*
+MetaData :: make(AVMetadata** metaToUse)
+{
+  if (!metaToUse)
+    return 0;
+  
+  MetaData* retval = make();
+  
+  if (retval)
+    retval->mMetaData = metaToUse;
+
+  return retval;
 }
 
 MetaData*
@@ -95,7 +109,7 @@ MetaData :: make(AVMetadata* metaDataToCopy)
       tag = av_metadata_get(metaDataToCopy, "", tag, 
           AV_METADATA_IGNORE_SUFFIX);
       if (tag)
-        if (av_metadata_set(&retval->mMetaData, tag->key, tag->value) < 0)
+        if (av_metadata_set(retval->mMetaData, tag->key, tag->value) < 0)
         {
           VS_REF_RELEASE(retval);
           break;
@@ -106,22 +120,25 @@ MetaData :: make(AVMetadata* metaDataToCopy)
 }
 
 int32_t
-MetaData :: override(AVMetadata **dest)
+MetaData :: copy(IMetaData* dataToCopy)
 {
-  if (!dest)
+  MetaData* data = dynamic_cast<MetaData*>(dataToCopy);
+  if (!data)
     return -1;
-  if (*dest)
-    av_metadata_free(dest);
-  *dest = 0;
-  if (!mMetaData)
+  if (data == this)
     return 0;
+  
+  if (mMetaData && *mMetaData) {
+    av_metadata_free(mMetaData);
+    *mMetaData = 0;
+  }
   
   AVMetadataTag* tag = 0;
   do {
-    tag = av_metadata_get(mMetaData, "", tag, 
+    tag = av_metadata_get(*data->mMetaData, "", tag, 
         AV_METADATA_IGNORE_SUFFIX);
     if (tag) {
-      int32_t retval = av_metadata_set(dest,
+      int32_t retval = av_metadata_set(mMetaData,
           tag->key, tag->value);
       if (retval < 0)
       {

@@ -63,8 +63,10 @@ MetaDataTest :: testContainerGetMetaData()
     {
       const char* key = meta->getKey(i);
       VS_TUT_ENSURE("should be found", key);
+      VS_TUT_ENSURE("should be found", *key);
       const char* value = meta->getValue(key, IMetaData::METADATA_NONE);
       VS_TUT_ENSURE("should be found", value);
+      VS_TUT_ENSURE("should be found", *value);
     }
   }
 }
@@ -77,14 +79,109 @@ MetaDataTest :: testContainerSetMetaData()
       0, "libmp3lame", 0);
   RefPointer<IMetaData> meta = h.container->getMetaData();
   VS_TUT_ENSURE("got meta data", meta);
+  meta = IMetaData::make();
   if (meta)
   {
     VS_TUT_ENSURE_EQUALS("", meta->getNumKeys(), 0);
     meta->setValue("author", "Art Clarke");
     h.container->setMetaData(meta.value());
-    meta.reset();
   }
   meta = h.container->getMetaData();
+  VS_TUT_ENSURE("got meta data", meta);
+  if (meta)
+  {
+    VS_TUT_ENSURE_EQUALS("", meta->getNumKeys(), 1);
+    const char* value = meta->getValue("author", IMetaData::METADATA_NONE);
+    VS_TUT_ENSURE("", strcmp("Art Clarke",value)==0);
+  }
+}
+
+void
+MetaDataTest :: testContainerGetMetaDataIsWriteThrough()
+{
+  Helper h;
+  h.setupWriting("testContainerSetMetaDataIsWriteThrough.mp3",
+      0, "libmp3lame", 0);
+  RefPointer<IMetaData> meta = h.container->getMetaData();
+  VS_TUT_ENSURE("got meta data", meta);
+  if (meta)
+  {
+    VS_TUT_ENSURE_EQUALS("", meta->getNumKeys(), 0);
+    meta->setValue("author", "Art Clarke");
+  }
+  meta = h.container->getMetaData();
+  VS_TUT_ENSURE("got meta data", meta);
+  if (meta)
+  {
+    VS_TUT_ENSURE_EQUALS("", meta->getNumKeys(), 1);
+    const char* value = meta->getValue("author", IMetaData::METADATA_NONE);
+    VS_TUT_ENSURE("", strcmp("Art Clarke",value)==0);
+  }
+}
+void
+MetaDataTest :: testStreamGetMetaData()
+{
+  Helper h;
+  h.setupReading("testfile.mp3");
+  RefPointer<IStream> stream = h.container->getStream(0);
+  RefPointer<IMetaData> meta = stream->getMetaData();
+  VS_TUT_ENSURE("got meta data", meta);
+  if (meta) {
+    int32_t numKeys = meta->getNumKeys();
+    VS_TUT_ENSURE_EQUALS("should be right", numKeys, 0);
+    for(int32_t i = 0; i < numKeys; i++)
+    {
+      const char* key = meta->getKey(i);
+      VS_TUT_ENSURE("should be found", key);
+      VS_TUT_ENSURE("should be found", *key);
+      const char* value = meta->getValue(key, IMetaData::METADATA_NONE);
+      VS_TUT_ENSURE("should be found", value);
+      VS_TUT_ENSURE("should be found", *value);
+    }
+  }
+}
+  
+void
+MetaDataTest :: testStreamSetMetaData()
+{
+  Helper h;
+  h.setupWriting("testStreamSetMetaData.mp3",
+      0, "libmp3lame", 0);
+  RefPointer<IStream> stream = h.container->getStream(0);
+  RefPointer<IMetaData> meta = stream->getMetaData();
+  VS_TUT_ENSURE("got meta data", meta);
+  meta = IMetaData::make();
+  if (meta)
+  {
+    VS_TUT_ENSURE_EQUALS("", meta->getNumKeys(), 0);
+    meta->setValue("author", "Art Clarke");
+    stream->setMetaData(meta.value());
+  }
+  meta = stream->getMetaData();
+  VS_TUT_ENSURE("got meta data", meta);
+  if (meta)
+  {
+    VS_TUT_ENSURE_EQUALS("", meta->getNumKeys(), 1);
+    const char* value = meta->getValue("author", IMetaData::METADATA_NONE);
+    VS_TUT_ENSURE("", strcmp("Art Clarke",value)==0);
+  }
+}
+
+void
+MetaDataTest :: testStreamGetMetaDataIsWriteThrough()
+{
+  Helper h;
+  h.setupWriting("testStreamSetMetaDataIsWriteThrough.mp3",
+      0, "libmp3lame", 0);
+  RefPointer<IStream> stream = h.container->getStream(0);
+  RefPointer<IMetaData> meta = stream->getMetaData();
+  VS_TUT_ENSURE("got meta data", meta);
+  if (meta)
+  {
+    VS_TUT_ENSURE_EQUALS("", meta->getNumKeys(), 0);
+    meta->setValue("author", "Art Clarke");
+  }
+  meta = stream->getMetaData();
   VS_TUT_ENSURE("got meta data", meta);
   if (meta)
   {

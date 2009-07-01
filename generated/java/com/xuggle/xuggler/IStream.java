@@ -376,6 +376,27 @@ public class IStream extends RefCounted {
     XugglerJNI.IStream_setParseType(swigCPtr, this, type.swigValue());
   }
 
+/**
+ * Get the {@link IMetaData} for this object,  
+ * or null if none.  
+ * @return	the {@link IMetaData}.  
+ */
+  public IMetaData getMetaData() {
+    long cPtr = XugglerJNI.IStream_getMetaData(swigCPtr, this);
+    return (cPtr == 0) ? null : new IMetaData(cPtr, false);
+  }
+
+/**
+ * Set the {@link IMetaData} on this object, overriding  
+ * any previous meta data. You should call this  
+ * method on writable containers and  
+ * before you call {@link #writeHeader}, as  
+ * it probably won't do anything after that.  
+ */
+  public void setMetaData(IMetaData data) {
+    XugglerJNI.IStream_setMetaData(swigCPtr, this, IMetaData.getCPtr(data), data);
+  }
+
   public enum Direction {
   /**
    * The direction this stream is going (based on the container).

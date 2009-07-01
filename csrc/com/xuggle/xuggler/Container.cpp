@@ -76,8 +76,6 @@ namespace com { namespace xuggle { namespace xuggler
       VS_LOG_DEBUG("Closing dangling Container");
       (void) this->close(true);
     }
-    mMetaData.reset();
-
     VS_ASSERT(!mFormatContext,
         "this should be freed by close or already zero");
   }
@@ -400,6 +398,8 @@ namespace com { namespace xuggle { namespace xuggler
   Container :: close(bool dangling)
   {
     int32_t retval = -1;
+    mMetaData.reset();
+
     if (mFormatContext && mIsOpened)
     {
       VS_ASSERT(mNumStreams == mStreams.size(),
@@ -442,7 +442,6 @@ namespace com { namespace xuggle { namespace xuggler
       } else
       {
         retval = url_fclose(mFormatContext->pb);
-        av_metadata_free(&mFormatContext->metadata);
         av_free(mFormatContext);
       }
       mFormatContext = 0;
@@ -989,23 +988,25 @@ namespace com { namespace xuggle { namespace xuggler
   {
     if (!mMetaData && mFormatContext)
     {
-      mMetaData = MetaData::make(mFormatContext->metadata);
+      if (this->getType() == WRITE)
+        mMetaData = MetaData::make(&mFormatContext->metadata);
+      else
+        // make a read-only copy so when libav deletes the
+        // input version we don't delete our copy
+        mMetaData = MetaData::make(mFormatContext->metadata);
     }
     return mMetaData.get();
   }
   void
-  Container :: setMetaData(IMetaData * data)
+  Container :: setMetaData(IMetaData * copy)
   {
-    mMetaData.reset();
-    if (!mFormatContext)
-      return;
-    if (!data)
-      return;
-    MetaData* actualData = dynamic_cast<MetaData*>(data);
-    if (actualData)
-    {
-      actualData->override(&mFormatContext->metadata);
+    MetaData* data = dynamic_cast<MetaData*>(getMetaData());
+    if (data) {
+      data->copy(copy);
+      // release for the get above
+      data->release();
     }
+    return;
   }
   
   
