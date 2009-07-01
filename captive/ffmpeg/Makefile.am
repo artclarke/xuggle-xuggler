@@ -59,12 +59,5 @@ clean-local: incarcerate-package
 	cd csrc && $(MAKE) clean && DESTDIR="$(vs_captive_prefix)" $(MAKE) uninstall
 
 distclean-local: incarcerate-package
-	cd csrc && $(MAKE) distclean
-	rm -f "@abs_builddir@/csrc/Makefile"
-	rm -f "@abs_builddir@/csrc/libswscale/libswscale.pc"
-	rm -f "@abs_builddir@/csrc/libswscale/libswscale-uninstalled.pc"
+	rm -rf csrc
 
-# These are special hacks to deal with the fact that we copy
-# FFmpeg's top level Makefile in the incarcerate script
-
-csrc/Makefile : $(srcdir)/csrc/configure $(srcdir)/csrc/Makefile
