@@ -151,7 +151,8 @@ namespace com { namespace xuggle { namespace xuggler
       allocInternalFrameBuffer();
     unsigned char* buffer = (unsigned char*)mBuffer->getBytes(0, getSize());
     *frame = *mFrame;
-    avpicture_fill((AVPicture*)frame, buffer, mPixelFormat, mWidth, mHeight);
+    avpicture_fill((AVPicture*)frame, buffer, (enum PixelFormat) mPixelFormat,
+        mWidth, mHeight);
     frame->quality = getQuality();
     frame->type = FF_BUFFER_TYPE_USER;
   }
@@ -186,7 +187,8 @@ namespace com { namespace xuggle { namespace xuggler
         // Make sure the frame isn't already using our buffer
         if(buffer != frame->data[0])
         {
-          avpicture_fill((AVPicture*)mFrame, buffer, mPixelFormat, mWidth, mHeight);
+          avpicture_fill((AVPicture*)mFrame, buffer,
+              (enum PixelFormat) mPixelFormat, mWidth, mHeight);
           av_picture_copy((AVPicture*)mFrame, (AVPicture*)frame,
               (PixelFormat)mPixelFormat, mWidth, mHeight);
         }
@@ -350,7 +352,7 @@ namespace com { namespace xuggle { namespace xuggler
 
     int imageSize = avpicture_fill((AVPicture*)mFrame,
         buffer,
-        mPixelFormat,
+        (enum PixelFormat) mPixelFormat,
         mWidth,
         mHeight);
     if (imageSize != bufSize-extraBytes)
