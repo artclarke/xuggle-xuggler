@@ -63,6 +63,10 @@ public class Xuggler {
     
     
   }
-
+  /**
+   * Internal Only.  Do not use.
+   */
+  public native static void init();
+  
 
 }

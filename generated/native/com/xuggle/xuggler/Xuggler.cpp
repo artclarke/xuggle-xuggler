@@ -232,6 +232,7 @@ static void SWIGUNUSED SWIG_JavaThrowException(JNIEnv *jenv, SWIG_JavaExceptionC
 
 using namespace VS_CPP_NAMESPACE;
 
+extern "C" {
 /*
  * This will be called if an when we're loaded
  * directly by Java.  If we're linked to via
@@ -244,6 +245,18 @@ JNI_OnLoad(JavaVM *, void *)
   /* Because of static initialize in Mac OS, the only safe thing
    * to do here is return the version */
   return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
+}
+
+JNIEXPORT void JNICALL
+Java_com_xuggle_xuggler_Xuggler_init(JNIEnv *env, jclass)
+{
+  JavaVM* vm=0;
+  if (!com::xuggle::ferry::JNIHelper::sGetVM()) {
+    env->GetJavaVM(&vm);
+    com::xuggle::ferry::JNIHelper::sSetVM(vm);
+  }
+}
+
 }
 
 

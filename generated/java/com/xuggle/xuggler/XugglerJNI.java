@@ -18,8 +18,7 @@ class XugglerJNI {
   static {
     com.xuggle.ferry.JNILibraryLoader.loadLibrary("xuggle-xuggler",
       new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
-    com.xuggle.ferry.Ferry.init();
-    com.xuggle.xuggler.Global.init();
+    com.xuggle.xuggler.Xuggler.init();
   }
   
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<
