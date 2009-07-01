@@ -680,6 +680,9 @@ public class Converter
          */
         if (abitrate == 0)
           abitrate = ic.getBitRate();
+        if (abitrate == 0)
+          // some containers don't give a bit-rate
+          abitrate = 64000;
         oc.setBitRate(abitrate);
         /**
          * If the user didn't specify the number of channels to encode audio as,
@@ -772,6 +775,8 @@ public class Converter
          */
         if (vbitrate == 0)
           vbitrate = ic.getBitRate();
+        if (vbitrate == 0)
+          vbitrate = 250000;
         oc.setBitRate(vbitrate);
         if (vbitratetolerance > 0)
           oc.setBitRateTolerance(vbitratetolerance);
