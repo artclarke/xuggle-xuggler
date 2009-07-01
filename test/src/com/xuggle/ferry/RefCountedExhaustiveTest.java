@@ -89,8 +89,7 @@ public class RefCountedExhaustiveTest
         // some server JVMs can allocate lots of bytes without
         // causing a collection (64 bit machines).  In those
         // cases, just end the test.
-        JNIReference.getMgr().flush();
-        break;
+        return;
       }
 
     }
