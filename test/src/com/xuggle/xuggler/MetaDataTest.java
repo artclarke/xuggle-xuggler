@@ -96,5 +96,27 @@ public class MetaDataTest
     assertEquals(title, meta.getValue("title"));
   }
 
+  @Test
+  public void testGetFLVMetaDataContainer()
+  {
+    IContainer container = IContainer.make();
+    container.open("fixtures/testfile.flv", IContainer.Type.READ, null);
+    IMetaData meta = container.getMetaData();
+    Collection<String> keys = meta.getKeys();
+    for(String key : keys)
+    {
+      System.out.println(key + " = " + meta.getValue(key));
+    }
+    if (meta.getNumKeys() > 0)
+    {
+      // This means the version of FFmpeg we're using has our
+      // patch for FLV meta-data installed.  Let's make sure it's
+      // right
+      assertEquals(11, meta.getNumKeys());
+      meta.setValue("author", "Your Mom");
+      assertEquals("Your Mom", meta.getValue("author"));
+    }
+  }
+
 
 }

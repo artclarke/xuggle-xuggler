@@ -1,0 +1,38 @@
+Index: libavformat/flvdec.c
+===================================================================
+--- libavformat/flvdec.c	(revision 19316)
++++ libavformat/flvdec.c	(working copy)
+@@ -218,8 +218,14 @@
+         vcodec = vstream ? vstream->codec : NULL;
+ 
+         if(amf_type == AMF_DATA_TYPE_BOOL) {
++            strncpy(str_val, num_val > 0 ? "true" : "false", sizeof(str_val)-1);
++            str_val[sizeof(str_val)-1] = 0;
++            av_metadata_set(&s->metadata, key, str_val);
+             if(!strcmp(key, "stereo") && acodec) acodec->channels = num_val > 0 ? 2 : 1;
+         } else if(amf_type == AMF_DATA_TYPE_NUMBER) {
++            snprintf(str_val, sizeof(str_val)-1, "%0.lf", num_val);
++            str_val[sizeof(str_val)-1] = 0;
++            av_metadata_set(&s->metadata, key, str_val);
+             if(!strcmp(key, "duration")) s->duration = num_val * AV_TIME_BASE;
+ //            else if(!strcmp(key, "width")  && vcodec && num_val > 0) vcodec->width  = num_val;
+ //            else if(!strcmp(key, "height") && vcodec && num_val > 0) vcodec->height = num_val;
+@@ -247,7 +253,8 @@
+                     }
+                 }
+             }
+-        }
++        } else if (amf_type == AMF_DATA_TYPE_STRING)
++            av_metadata_set(&s->metadata, key, str_val);
+     }
+ 
+     return 0;
+@@ -375,7 +382,7 @@
+         if ((flags & 0xf0) == 0x50) /* video info / command frame */
+             goto skip;
+     } else {
+-        if (type == FLV_TAG_TYPE_META && size > 13+1+4 && 0)
++        if (type == FLV_TAG_TYPE_META && size > 13+1+4)
+             flv_read_metabody(s, next);
+         else /* skip packet */
+             av_log(s, AV_LOG_DEBUG, "skipping flv packet: type %d, size %d, flags %d\n", type, size, flags);

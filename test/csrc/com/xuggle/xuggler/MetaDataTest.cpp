@@ -72,6 +72,31 @@ MetaDataTest :: testContainerGetMetaData()
 }
   
 void
+MetaDataTest :: testFLVContainerGetMetaData()
+{
+  Helper h;
+  return;
+  h.setupReading("testfile.flv");
+  RefPointer<IMetaData> meta = h.container->getMetaData();
+  VS_TUT_ENSURE("got meta data", meta);
+  if (meta) {
+    int32_t numKeys = meta->getNumKeys();
+    if (numKeys > 0) { // using FFmpeg with a patch for FLV meta-data reading
+      VS_TUT_ENSURE_EQUALS("should be right", numKeys, 11);
+      for(int32_t i = 0; i < numKeys; i++)
+      {
+        const char* key = meta->getKey(i);
+        VS_TUT_ENSURE("should be found", key);
+        VS_TUT_ENSURE("should be found", *key);
+        const char* value = meta->getValue(key, IMetaData::METADATA_NONE);
+        VS_TUT_ENSURE("should be found", value);
+        VS_TUT_ENSURE("should be found", *value);
+      }
+    }
+  }
+}
+  
+void
 MetaDataTest :: testContainerSetMetaData()
 {
   Helper h;

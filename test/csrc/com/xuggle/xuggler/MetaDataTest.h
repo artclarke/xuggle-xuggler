@@ -23,6 +23,7 @@ public:
   void tearDown();
   void testCreation();
   void testContainerGetMetaData();
+  void testFLVContainerGetMetaData();
   void testContainerSetMetaData();
   void testContainerGetMetaDataIsWriteThrough();
   void testStreamGetMetaData();

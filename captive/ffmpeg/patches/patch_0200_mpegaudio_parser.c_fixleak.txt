@@ -1,0 +1,11 @@
+Index: libavcodec/mpegaudio_parser.c
+===================================================================
+--- libavcodec/mpegaudio_parser.c	(revision 19316)
++++ libavcodec/mpegaudio_parser.c	(working copy)
+@@ -145,5 +145,5 @@
+     sizeof(MpegAudioParseContext),
+     NULL,
+     mpegaudio_parse,
+-    NULL,
++    ff_parse_close,
+ };

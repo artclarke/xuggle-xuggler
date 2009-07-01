@@ -108,10 +108,13 @@ if [ -d @abs_srcdir@/patches ]; then
   cd @abs_builddir@/csrc
   for patch in @abs_srcdir@/patches/*; do
     if [ -f "$patch" ]; then
+      echo "Applying patch: ${patch}"
       patch -p0 < "$patch"
-      if [ $? -ne 0]; then
+      if test "$?" -ne 0; then
         echo "Could not apply patch: $patch"
         exit 255
+      else
+        echo "Applied patch: ${patch}"
       fi
     fi
   done
