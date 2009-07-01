@@ -107,7 +107,7 @@ chmod -R u+w @abs_builddir@/csrc/*
 if [ -d @abs_srcdir@/patches ]; then
   cd @abs_builddir@/csrc
   for patch in @abs_srcdir@/patches/*; do
-    patch -p0 < "$patch"
+    patch -p0 < "$patch" || (echo "Could not apply patch: $patch" && exit 1)
   done
 fi
 
