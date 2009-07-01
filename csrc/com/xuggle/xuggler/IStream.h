@@ -257,7 +257,7 @@ namespace com { namespace xuggle { namespace xuggler
      * Set the {@link IMetaData} on this object, overriding
      * any previous meta data.  You should call this
      * method on writable containers and
-     * before you call {@link #writeHeader}, as
+     * before you call {@link IContainer#writeHeader}, as
      * it probably won't do anything after that.
      */
     virtual void setMetaData(IMetaData* data)=0;
