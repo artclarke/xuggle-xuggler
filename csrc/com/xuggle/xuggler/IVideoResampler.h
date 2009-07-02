@@ -32,11 +32,6 @@ namespace com { namespace xuggle { namespace xuggler
   /**
    * Converts {@link IVideoPicture} objects of a given width, height and format to a new
    * width, height or format.
-   * <p>
-   * This object is only active in GPL-licensed version of the Xuggler.  You can
-   * use the {@link #isSupported(Feature)} to determine if you can use this object (or
-   * the make(...) methods will also return null.
-   * </p>
    */
   class VS_API_XUGGLER IVideoResampler : public com::xuggle::ferry::RefCounted
   {

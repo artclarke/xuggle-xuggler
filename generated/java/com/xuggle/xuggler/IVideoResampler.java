@@ -12,13 +12,6 @@ import com.xuggle.ferry.*;
  * Converts {@link IVideoPicture} objects of a given width, height and 
  * format to a new  
  * width, height or format.  
- * <p>  
- * This object is only active in GPL-licensed version of the Xuggler. 
- * You can  
- * use the {@link #isSupported(Feature)} to determine if you can use 
- * this object (or  
- * the make(...) methods will also return null.  
- * </p>  
  */
 public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IConfigurable {
   // JNIHelper.swg: Start generated code
@@ -134,6 +127,23 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // JNIHelper.swg: End generated code
   
+
+  /**
+   * {@inheritDoc}
+   */
+  public java.util.Collection<String> getPropertyNames()
+  {
+    java.util.Collection<String> retval = new java.util.LinkedList<String>();
+    int numProperties = this.getNumProperties();
+    for(int i = 0; i < numProperties; i++)
+    {
+      IProperty property = this.getPropertyMetaData(i);
+      String name = property.getName();
+      retval.add(name);
+    }
+    return retval;
+  }
+
 /**
  * Get the width in pixels we expect on the input frame to the resampler. 
  *  

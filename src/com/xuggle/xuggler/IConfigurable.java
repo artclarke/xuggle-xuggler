@@ -30,6 +30,14 @@ package com.xuggle.xuggler;
 public interface IConfigurable
 {
   /**
+   * Gets a collection of all properties settable on this object.
+   * You can then query current settings with {@link #getPropertyAsString(String)}
+   * and set properties with {@link #setProperty(String, String)}.
+   * @return a collection of all properties for this object.
+   */
+  public java.util.Collection<String> getPropertyNames();
+  
+  /**
    * Returns the total number of settable properties on this object  
    * @return      total number of options (not including constant definitions) 
    *                

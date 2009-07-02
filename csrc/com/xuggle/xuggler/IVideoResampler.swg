@@ -18,4 +18,23 @@
  */
 
 %typemap(javainterfaces) com::xuggle::xuggler::IVideoResampler, com::xuggle::xuggler::IVideoResampler*, com::xuggle::xuggler::IVideoResampler& "com.xuggle.xuggler.IConfigurable";
+%typemap (javacode) com::xuggle::xuggler::IVideoResampler,com::xuggle::xuggler::IVideoResampler*,com::xuggle::xuggler::IVideoResampler& %{
+
+  /**
+   * {@inheritDoc}
+   */
+  public java.util.Collection<String> getPropertyNames()
+  {
+    java.util.Collection<String> retval = new java.util.LinkedList<String>();
+    int numProperties = this.getNumProperties();
+    for(int i = 0; i < numProperties; i++)
+    {
+      IProperty property = this.getPropertyMetaData(i);
+      String name = property.getName();
+      retval.add(name);
+    }
+    return retval;
+  }
+%}
+
 %include <com/xuggle/xuggler/IVideoResampler.h>

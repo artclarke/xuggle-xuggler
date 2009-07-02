@@ -19,6 +19,8 @@
 
 package com.xuggle.xuggler;
 
+import java.util.Collection;
+
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +31,7 @@ import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
+import com.xuggle.xuggler.IStreamCoder.Direction;
 
 import junit.framework.TestCase;
 
@@ -322,5 +325,18 @@ public class StreamCoderTest extends TestCase
     assertTrue(retval != null);
     
     return retval;
+  }
+  
+  @Test
+  public void testGetPropertyNames()
+  {
+    IStreamCoder coder = IStreamCoder.make(Direction.ENCODING);
+    Collection<String> properties = coder.getPropertyNames();
+    assertTrue(properties.size() > 0);
+    for(String name : properties)
+    {
+      String value = coder.getPropertyAsString(name);
+      log.debug("{}={}", name, value);
+    }
   }
 }

@@ -355,6 +355,22 @@
     }
     return null;
   }
+  /**
+   * {@inheritDoc}
+   */
+  public java.util.Collection<String> getPropertyNames()
+  {
+    java.util.Collection<String> retval = new java.util.LinkedList<String>();
+    int numProperties = this.getNumProperties();
+    for(int i = 0; i < numProperties; i++)
+    {
+      IProperty property = this.getPropertyMetaData(i);
+      String name = property.getName();
+      retval.add(name);
+    }
+    return retval;
+  }
+
   
 %}
 

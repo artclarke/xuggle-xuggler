@@ -198,7 +198,25 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
     }
     result.append("]");
     return result.toString();
-  } 
+  }
+  
+  /**
+   * {@inheritDoc}
+   */
+  public java.util.Collection<String> getPropertyNames()
+  {
+    java.util.Collection<String> retval = new java.util.LinkedList<String>();
+    int numProperties = this.getNumProperties();
+    for(int i = 0; i < numProperties; i++)
+    {
+      IProperty property = this.getPropertyMetaData(i);
+      String name = property.getName();
+      retval.add(name);
+    }
+    return retval;
+  }
+
+  
 
 /**
  * Get the direction.  
