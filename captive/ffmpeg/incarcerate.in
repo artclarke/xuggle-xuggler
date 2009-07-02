@@ -109,7 +109,7 @@ if [ -d @abs_srcdir@/patches ]; then
   for patch in @abs_srcdir@/patches/*; do
     if [ -f "$patch" ]; then
       echo "Applying patch: ${patch}"
-      patch -p0 < "$patch"
+      patch -p0 --input="$patch" --ignore-whitespace
       if test "$?" -ne 0; then
         echo "Could not apply patch: $patch"
         exit 255
