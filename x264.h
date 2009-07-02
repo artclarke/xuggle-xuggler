@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 67
+#define X264_BUILD 68
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -83,7 +83,6 @@ typedef struct x264_t x264_t;
 #define X264_CQM_FLAT                0
 #define X264_CQM_JVT                 1
 #define X264_CQM_CUSTOM              2
-#define X264_RC_NONE                 -1
 #define X264_RC_CQP                  0
 #define X264_RC_CRF                  1
 #define X264_RC_ABR                  2
@@ -103,8 +102,7 @@ static const char * const x264_transfer_names[] = { "", "bt709", "undef", "", "b
 static const char * const x264_colmatrix_names[] = { "GBR", "bt709", "undef", "", "fcc", "bt470bg", "smpte170m", "smpte240m", "YCgCo", 0 };
 
 /* Colorspace type
- * legacy only; nothing other than I420 is really supported.
- */
+ * legacy only; nothing other than I420 is really supported. */
 #define X264_CSP_MASK           0x00ff  /* */
 #define X264_CSP_NONE           0x0000  /* Invalid mode     */
 #define X264_CSP_I420           0x0001  /* yuv 4:2:0 planar */
@@ -118,8 +116,7 @@ static const char * const x264_colmatrix_names[] = { "GBR", "bt709", "undef", ""
 #define X264_CSP_MAX            0x0009  /* end of list */
 #define X264_CSP_VFLIP          0x1000  /* */
 
-/* Slice type
- */
+/* Slice type */
 #define X264_TYPE_AUTO          0x0000  /* Let x264 choose the right type */
 #define X264_TYPE_IDR           0x0001
 #define X264_TYPE_I             0x0002
@@ -129,13 +126,15 @@ static const char * const x264_colmatrix_names[] = { "GBR", "bt709", "undef", ""
 #define IS_X264_TYPE_I(x) ((x)==X264_TYPE_I || (x)==X264_TYPE_IDR)
 #define IS_X264_TYPE_B(x) ((x)==X264_TYPE_B || (x)==X264_TYPE_BREF)
 
-/* Log level
- */
+/* Log level */
 #define X264_LOG_NONE          (-1)
 #define X264_LOG_ERROR          0
 #define X264_LOG_WARNING        1
 #define X264_LOG_INFO           2
 #define X264_LOG_DEBUG          3
+
+/* Threading */
+#define X264_THREADS_AUTO 0 /* Automatically select optimal number of threads */
 
 /* Zones: override ratecontrol or other options for specific sections of the video.
  * See x264_encoder_reconfig() for which options can be changed.

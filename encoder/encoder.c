@@ -383,6 +383,26 @@ static int x264_validate_parameters( x264_t *h )
         }
     }
 
+    /* Detect default ffmpeg settings and terminate with an error. */
+    {
+        int score = 0;
+        score += h->param.analyse.i_me_range == 0;
+        score += h->param.rc.i_qp_step == 3;
+        score += h->param.i_keyint_max == 12;
+        score += h->param.rc.i_qp_min == 2;
+        score += h->param.rc.i_qp_max == 31;
+        score += h->param.rc.f_qcompress == 0.5;
+        score += fabs(h->param.rc.f_ip_factor - 1.25) < 0.01;
+        score += fabs(h->param.rc.f_pb_factor - 1.25) < 0.01;
+        score += h->param.analyse.inter == 0 && h->param.analyse.i_subpel_refine == 8;
+        if( score >= 5 )
+        {
+            x264_log( h, X264_LOG_ERROR, "broken ffmpeg default settings detected\n" );
+            x264_log( h, X264_LOG_ERROR, "use an encoding preset (vpre)\n" );
+            return -1;
+        }
+    }
+
     if( h->param.rc.i_rc_method < 0 || h->param.rc.i_rc_method > 2 )
     {
         x264_log( h, X264_LOG_ERROR, "no ratecontrol method specified\n" );

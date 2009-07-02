@@ -43,7 +43,7 @@ void    x264_param_default( x264_param_t *param )
 
     /* CPU autodetect */
     param->cpu = x264_cpu_detect();
-    param->i_threads = 1;
+    param->i_threads = X264_THREADS_AUTO;
     param->b_deterministic = 1;
 
     /* Video properties */
@@ -64,10 +64,10 @@ void    x264_param_default( x264_param_t *param )
     param->i_level_idc     = -1;
 
     /* Encoder parameters */
-    param->i_frame_reference = 1;
+    param->i_frame_reference = 3;
     param->i_keyint_max = 250;
     param->i_keyint_min = 25;
-    param->i_bframe = 0;
+    param->i_bframe = 3;
     param->i_scenecut_threshold = 40;
     param->i_bframe_adaptive = X264_B_ADAPT_FAST;
     param->i_bframe_bias = 0;
@@ -80,14 +80,14 @@ void    x264_param_default( x264_param_t *param )
     param->b_cabac = 1;
     param->i_cabac_init_idc = 0;
 
-    param->rc.i_rc_method = X264_RC_NONE;
+    param->rc.i_rc_method = X264_RC_CRF;
     param->rc.i_bitrate = 0;
     param->rc.f_rate_tolerance = 1.0;
     param->rc.i_vbv_max_bitrate = 0;
     param->rc.i_vbv_buffer_size = 0;
     param->rc.f_vbv_buffer_init = 0.9;
-    param->rc.i_qp_constant = 26;
-    param->rc.f_rf_constant = 0;
+    param->rc.i_qp_constant = 23;
+    param->rc.f_rf_constant = 23;
     param->rc.i_qp_min = 10;
     param->rc.i_qp_max = 51;
     param->rc.i_qp_step = 4;
@@ -119,17 +119,21 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.f_psy_rd = 1.0;
     param->analyse.f_psy_trellis = 0;
     param->analyse.i_me_range = 16;
-    param->analyse.i_subpel_refine = 6;
+    param->analyse.i_subpel_refine = 7;
+    param->analyse.b_mixed_references = 1;
     param->analyse.b_chroma_me = 1;
     param->analyse.i_mv_range_thread = -1;
     param->analyse.i_mv_range = -1; // set from level_idc
     param->analyse.i_chroma_qp_offset = 0;
     param->analyse.b_fast_pskip = 1;
+    param->analyse.b_weighted_bipred = 1;
     param->analyse.b_dct_decimate = 1;
+    param->analyse.b_transform_8x8 = 1;
+    param->analyse.i_trellis = 1;
     param->analyse.i_luma_deadzone[0] = 21;
     param->analyse.i_luma_deadzone[1] = 11;
-    param->analyse.b_psnr = 1;
-    param->analyse.b_ssim = 1;
+    param->analyse.b_psnr = 0;
+    param->analyse.b_ssim = 0;
 
     param->i_cqm_preset = X264_CQM_FLAT;
     memset( param->cqm_4iy, 16, 16 );
@@ -262,7 +266,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     OPT("threads")
     {
         if( !strcmp(value, "auto") )
-            p->i_threads = 0;
+            p->i_threads = X264_THREADS_AUTO;
         else
             p->i_threads = atoi(value);
     }
