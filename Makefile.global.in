@@ -116,7 +116,7 @@ SWIGOUTTMPDIR=$(abs_top_builddir)/swig/java
 SWIGOUTTMPCPPDIR=$(abs_top_builddir)/swig/native
 SWIGEXT=.i
 SWIGCPPEXT=.cpp
-ifdef SWIG
+ifdef VS_SWIG
 SWIG=@SWIG@
 SWIGFLAGS=$(VS_INCLUDES)
 SWIGFLAGS+=-DVS_PRODUCT=$(VS_PRODUCT) -DVS_REVISION=$(VS_REVISION) -package $(VS_CPP_PACKAGE)

@@ -101,6 +101,15 @@ using the library and what you like or don't like about it.
   <condition property="xugglerepo.dir" value="${env.XUGGLE_REPO}">
     <isset property="env.XUGGLE_REPO"/>
   </condition>
+  <!-- Set the variable XUGGLE_MAINTAINER and then all maintainer-mode
+       build settings will be enabled, including building with swig.
+       If this is off, we don't use swig to regenerate java files (as
+       we've had lots of problems with people having the wrong version of
+       swig)
+     -->
+  <condition property="build.configure.maintainer" value="true">
+    <isset property="env.XUGGLE_MAINTAINER"/>
+  </condition>
 
 
   <!-- JUnit Test stuff -->
@@ -1041,8 +1050,17 @@ using the library and what you like or don't like about it.
         <property name="build.configure.flag" value=""/>
       </else>
     </if>
+    <if>
+      <isset property="build.configure.maintainer"/>
+      <then>
+        <property name="build.configure.maintainer.flag" value="--enable-maintainer-mode --enable-swig"/>
+      </then>
+      <else>
+        <property name="build.configure.maintainer.flag" value=""/>
+      </else>
+    </if>
     <property name="configure.line"
-      value="../../../configure ${build.m64.flag} ${build.configure.flag} --prefix=${xuggle.dir}"/>
+        value="../../../configure ${build.m64.flag} ${build.configure.flag} ${build.configure.maintainer.flag} --prefix=${xuggle.dir}"/>
 
     <!-- Yes, Windows is annoying and doesn't do well with
     unescaped paths... so we convert to Unix format -->
