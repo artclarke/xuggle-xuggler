@@ -111,6 +111,13 @@ using the library and what you like or don't like about it.
     <isset property="env.XUGGLE_MAINTAINER"/>
   </condition>
 
+  <condition property="build.headless.setting"
+      value="-Djava.awt.headless=true"
+      else="-Djava.awt.headless=true"
+      >
+    <isset property="build.headless"/>
+  </condition>
+
 
   <!-- JUnit Test stuff -->
   <property name="test.dir" value="test"/>
@@ -770,6 +777,7 @@ using the library and what you like or don't like about it.
       <jvmarg value="-Denv.${runtime.so.path.variable}=${runtime.so.path.value}"/>
       <jvmarg value="-XX:+HeapDumpOnOutOfMemoryError"/>
       <jvmarg value="-Xcheck:jni"/>
+      <jvmarg value="${build.headless.setting}"/>
       <jvmarg line="${test.jvm.properties}"/>
       <!--
       <jvmarg value="-verbose:jni"/>
@@ -840,6 +848,7 @@ using the library and what you like or don't like about it.
       shared library.  -->
       <jvmarg value="-Djava.library.path=${runtime.java.library.path}"/>
       <jvmarg value="-Denv.${runtime.so.path.variable}=${runtime.so.path.value}"/>
+      <jvmarg value="${build.headless.setting}"/>
       <jvmarg line="${exhaustivetest.jvm.properties}"/>
       <!--
       <jvmarg value="-Xcheck:jni"/>
