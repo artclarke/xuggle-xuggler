@@ -6,6 +6,8 @@ import java.util.Collection;
 
 import org.junit.Test;
 
+import com.xuggle.ferry.IBuffer;
+
 public class MetaDataTest
 {
 
@@ -70,12 +72,43 @@ public class MetaDataTest
     
     IMetaData meta = container.getMetaData();
     String author = "Your Mom";
-    String genre = "Fat Mothers";
+    String genre = "6";
     String title = "Ode to Mothers";
     meta.setValue("title", title);
     meta.setValue("author", author);
     meta.setValue("genre", genre);
+    meta.setValue("year", "2009");
+    meta.setValue("album", "So large the sun rotates around her");
+    meta.setValue("comment", "I wonder why genre is blues?");
     container.writeHeader();
+    
+    // Let's add some fake data
+    byte[] fakeData = new byte[64*576];
+    for(int i = 0; i < fakeData.length; i++)
+      fakeData[i] = (byte)i; // garbage
+    
+    IBuffer buffer = IBuffer.make(null, fakeData, 0, fakeData.length);
+    IAudioSamples samples = IAudioSamples.make(buffer,
+        coder.getChannels(), coder.getSampleFormat());
+    samples.setComplete(true,
+        fakeData.length/2, coder.getSampleRate(),
+        coder.getChannels(), coder.getSampleFormat(), 0);
+    IPacket packet = IPacket.make();
+    int samplesDecoded = 0;
+    do {
+      int ret = coder.encodeAudio(packet, samples, samplesDecoded);
+      if (ret <= 0)
+        break;
+      samplesDecoded += ret;
+      if (samplesDecoded >= samples.getNumSamples())
+        break;
+      if (packet.isComplete())
+        container.writePacket(packet);
+    } while(true);
+    // flush
+    coder.encodeAudio(packet, null, 0);
+    if (packet.isComplete())
+      container.writePacket(packet);
     container.writeTrailer();
     coder.close();
     coder.delete();
@@ -84,12 +117,11 @@ public class MetaDataTest
     container.delete();
     
     container = IContainer.make();
+    assertTrue(container.open(filename, IContainer.Type.READ, null)>=0);
     meta = container.getMetaData();
-    assertNull(meta);
-    container.open(filename, IContainer.Type.READ, null);
-    meta = container.getMetaData();
+    System.out.println("Metadata = " + meta);
     assertEquals(author, meta.getValue("author"));
-    assertEquals(genre, meta.getValue("genre"));
+    assertEquals("Grunge", meta.getValue("genre"));
     assertEquals(title, meta.getValue("title"));
   }
 

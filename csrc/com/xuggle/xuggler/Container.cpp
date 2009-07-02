@@ -53,7 +53,10 @@ namespace com { namespace xuggle { namespace xuggler
   Container :: Container()
   {
     VS_LOG_TRACE("Making container: %p", this);
-    mFormatContext = 0;
+    mFormatContext = avformat_alloc_context();
+    if (!mFormatContext)
+      throw std::bad_alloc();
+    
     mIsOpened = false;
     mIsMetaDataQueried=false;
     mNeedTrailerWrite = false;
@@ -66,12 +69,15 @@ namespace com { namespace xuggle { namespace xuggler
   Container :: ~Container()
   {
     reset();
+    if (mFormatContext)
+      av_free(mFormatContext);
     VS_LOG_TRACE("Destroyed container: %p", this);
   }
 
   void
   Container :: reset()
   {
+    mMetaData.reset();
     if (mIsOpened)
     {
       VS_LOG_DEBUG("Closing dangling Container");
@@ -138,6 +144,13 @@ namespace com { namespace xuggle { namespace xuggler
 
     // reset if an open is called before a close.
     reset();
+    if (!mFormatContext)
+    {
+      // always reset to a new one
+      mFormatContext = avformat_alloc_context();
+      if (!mFormatContext)
+        throw std::bad_alloc();
+    }
 
     if (url && *url)
     {
@@ -252,6 +265,8 @@ namespace com { namespace xuggle { namespace xuggler
     if (cParams)
       params = cParams->getAVParameters();
 
+    // We have prealloced the format
+    params->prealloced_context = 1;
     if (containerFormat)
     {
       inputFormat = containerFormat->getInputFormat();
@@ -271,6 +286,12 @@ namespace com { namespace xuggle { namespace xuggler
         retval = queryStreamMetaData();
       }
     } else {
+      // kill the old context
+      av_free(mFormatContext);
+      mFormatContext = avformat_alloc_context();
+      if (!mFormatContext)
+        throw std::bad_alloc();
+
       VS_LOG_TRACE("Could not open output file: %s", url);
     }
     return retval;
@@ -295,10 +316,6 @@ namespace com { namespace xuggle { namespace xuggler
     }
     if (outputFormat)
     {
-      mFormatContext = avformat_alloc_context();
-      if (!mFormatContext)
-        throw std::bad_alloc();
-      
       if (aStreamsCanBeAddedDynamically)
       {
         mFormatContext->ctx_flags |= AVFMTCTX_NOHEADER;
@@ -312,7 +329,10 @@ namespace com { namespace xuggle { namespace xuggler
       } else {
         // failed to open; kill the context.
         av_free(mFormatContext);
-        mFormatContext = 0;
+        // and make a new one
+        mFormatContext = avformat_alloc_context();
+        if (!mFormatContext)
+          throw std::bad_alloc();
       }
     }
     else
@@ -440,12 +460,13 @@ namespace com { namespace xuggle { namespace xuggler
       {
         av_close_input_file(mFormatContext);
         retval = 0;
+        mFormatContext = 0;
       } else
       {
         retval = url_fclose(mFormatContext->pb);
         av_free(mFormatContext);
+        mFormatContext = 0;
       }
-      mFormatContext = 0;
       mIsOpened = false;
       mIsMetaDataQueried=false;
     }
@@ -609,7 +630,12 @@ namespace com { namespace xuggle { namespace xuggler
 #endif // VS_DEBUG
 
       // This checks to make sure that parameters are set correctly.
-      retval = av_set_parameters(mFormatContext, 0);
+      AVFormatParameters* params = 0;
+      ContainerParameters* cParams = dynamic_cast<ContainerParameters*>(mParameters.value());
+      if (cParams)
+        params = cParams->getAVParameters();
+
+      retval = av_set_parameters(mFormatContext, params);
       if (retval < 0)
         throw std::runtime_error("incorrect parameters set on container");
 

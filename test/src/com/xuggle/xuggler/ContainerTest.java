@@ -393,14 +393,16 @@ public class ContainerTest extends TestCase
   {
     IContainer container = IContainer.make();
 
-    assertEquals("should only be able to set properties once file is open",
-        0, container.getNumProperties());
+    int numProperties = container.getNumProperties();
+    assertTrue("should be able to set properties before opening",
+        numProperties>0);
 
     int retval = -1;
     retval = container.open(mSampleFile, IContainer.Type.READ, null);
     assertTrue("could not open file", retval >= 0);
 
-    assertTrue("should have some properties", container.getNumProperties()>0);
+    assertEquals("should have same properties",
+        numProperties, container.getNumProperties());
     long probeSize = container.getPropertyAsLong("probesize");
     log.debug("probesize: {}", probeSize);
     assertTrue("should have a non-zero probesize",

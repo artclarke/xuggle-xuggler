@@ -146,24 +146,7 @@ public class Configuration
    */
   private static void printSupportedContainerProperties(java.io.PrintStream stream)
   {
-    try
-    {
-      IContainer container = IContainer.make();
-      java.io.File tmpFile = java.io.File.createTempFile("xuggler", ".flv");
-      try
-      {
-        String filename = tmpFile.getAbsolutePath();
-        container.open(filename,
-            IContainer.Type.WRITE, null);
-        printConfigurable(stream, container);
-        container.close();
-        container.delete();
-      } finally {
-        tmpFile.delete();
-      }
-    } catch (Throwable t) {
-      return;
-    }
+    printConfigurable(stream, IContainer.make());
   }
 
   /**
