@@ -188,7 +188,8 @@ namespace com { namespace xuggle { namespace xuggler
     void setCodecInternal(int32_t id);
 
     void reset();
-    void setPacketParameters(Packet *packet, int32_t size, int64_t srcTimeStamp);
+    void setPacketParameters(Packet *packet, int32_t size,
+        int64_t srcTimeStamp, int64_t duration);
   };
 
 }}}

@@ -1047,7 +1047,9 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
           avFrame);
       if (retval >= 0)
       {
-        setPacketParameters(packet, retval, frame ? frame->getTimeStamp() : Global::NO_PTS);
+        setPacketParameters(packet, retval,
+            frame ? frame->getTimeStamp() : Global::NO_PTS,
+                -1);
       }
       if (avFrame)
         av_free(avFrame);
@@ -1361,7 +1363,8 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
 
           }
           setPacketParameters(packet, retval,
-              mFakeCurrPts);
+              mFakeCurrPts,
+              IAudioSamples::samplesToDefaultPts(frameSize, getSampleRate()));
 
           retval = samplesConsumed;
         }
@@ -1387,13 +1390,20 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
 
 void
 StreamCoder :: setPacketParameters(Packet * packet, int32_t size,
-    int64_t srcTimestamp)
+    int64_t srcTimestamp, int64_t duration)
 {
   int32_t keyframe = 0;
   int64_t pts = Global::NO_PTS;
   RefPointer<IRational> streamBase = mStream ? mStream->getTimeBase() : 0;
   RefPointer<IRational> coderBase = this->getTimeBase();
   RefPointer<IRational> packetBase = 0;
+ 
+  if (duration >= 0)
+  {
+    if (streamBase)
+      duration = streamBase->rescale(duration, mFakePtsTimeBase.value());
+    packet->setDuration(duration);
+  }
   
   if (mCodecContext->coded_frame)
   {

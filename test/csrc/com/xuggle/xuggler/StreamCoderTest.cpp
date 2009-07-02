@@ -373,6 +373,7 @@ StreamCoderTest :: testDecodingAndEncodingFullyInterleavedFile()
 
           if (opacket->isComplete())
           {
+            VS_TUT_ENSURE("audio duration not set", opacket->getDuration() > 0);
             VS_TUT_ENSURE("could not encode audio", opacket->getSize() > 0);
             RefPointer<IBuffer> encodedBuffer = opacket->getData();
             VS_TUT_ENSURE("no encoded data", encodedBuffer);
