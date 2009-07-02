@@ -97,8 +97,15 @@ public class URLProtocolManager
   public IURLProtocolHandlerFactory registerFactory(String protocol,
       IURLProtocolHandlerFactory factory)
   {
-    IURLProtocolHandlerFactory oldFactory = mProtocols
-        .put(protocol, factory);
+    if (protocol == null)
+      throw new IllegalArgumentException("protocol required");
+    
+    IURLProtocolHandlerFactory oldFactory;
+    if (factory == null)
+      oldFactory = mProtocols.remove(protocol);
+    else
+      oldFactory = mProtocols.put(protocol, factory);
+    
     log.trace("Registering factory for URLProtocol: {}", protocol);
 
     if (oldFactory == null)
