@@ -10,8 +10,57 @@ package com.xuggle.xuggler;
 import com.xuggle.ferry.*;
 /**
  * A file (or network data source) that contains one or more {@link 
- * IStream}s of  
+ * IStream}  
+ * objects of  
  * audio and video data.  
+ * <p>  
+ * Typical usage for reading looks like this:  
+ * <pre>  
+ * IContainer container = IContainer.make();  
+ * if (container.open("myfile.flv", IContainer.Type.READ, null) <0) 
+ *  
+ * &nbsp;&nbsp;throw new RuntimeException("failed to open");  
+ * int numStreams = container.getNumStreams();  
+ * for(i = 0; i < numStreams; i++) {  
+ * &nbsp;&nbsp;IStream stream = container.getStream(i);  
+ * &nbsp;&nbsp;...query IStream for stream information...  
+ * }  
+ * IPacket packet = IPacket.make();  
+ * while(container.readNextPacket(packet) >= 0)  
+ * {  
+ * &nbsp;&nbsp;... Do something with the packet...  
+ * }  
+ * container.close();  
+ * </pre>  
+ * <p>  
+ * Typical usage for writing looks like this (makes an FLV file  
+ * with one audio track encoded as mp3 data):  
+ * </p>  
+ * <pre>  
+ * IContainer container = IContainer.make();  
+ * if (container.open("myfile.flv", IContainer.Type.WRITE, null) <0) 
+ *  
+ * &nbsp;&nbsp;throw new RuntimeException("failed to open");  
+ * IStream stream = container.addNewStream(0);  
+ * IStreamCoder coder = stream.getStreamCoder();  
+ * coder.setCodec(ICodec.ID.CODEC_ID_MP3);  
+ * coder.setSampleRate(22050);  
+ * coder.setChannels(2);  
+ * coder.setBitRate(64000);  
+ * if (coder.open()<0) throw new RuntimeException("could not open coder"); 
+ *  
+ * if (container.writeHeader() < 0) throw new RuntimeException();  
+ * IPacket packet = IPacket.make();  
+ * while( ... have more data to process ... ) {  
+ *  
+ * &nbsp;&nbsp;then assuming it generated an IPacket for you...  
+ * &nbsp;&nbsp;if (container.writePacket(packet)<0)  
+ * &nbsp;&nbsp;&nbsp;&nbsp;throw new RuntimeException("could not write 
+ * packet");  
+ * }  
+ * if (container.writeTrailer() <0) throw new RuntimeException();  
+ * container.close();  
+ * </pre>  
  */
 public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfigurable {
   // JNIHelper.swg: Start generated code
