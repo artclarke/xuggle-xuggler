@@ -496,7 +496,12 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 
   /**
    * Gets the SDP data as a Java string.
-   * 
+   * <p>
+   * This method only supports SDP files up to 4K in size.
+   * If you have a larger SDP file, use the
+   * {@link #createSDPData(com.xuggle.ferry.IBuffer)} method and pass in your
+   * own {@link com.xuggle.ferry.IBuffer} object.
+   * </p> 
    * @return A {@link String} representing the data.
    * @see #createSDPData(IBuffer)
    */
@@ -1227,6 +1232,21 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 /**
  * Get the {@link IMetaData} for this object,  
  * or null if none.  
+ * <p>  
+ * If the {@link IContainer} or {@link IStream} object  
+ * that this {@link IMetaData} came from was opened  
+ * for reading, then changes via {@link IMetaData#setValue(String, String)} 
+ *  
+ * will have no effect on the underlying media.  
+ * </p>  
+ * <p>  
+ * If the {@link IContainer} or {@link IStream} object  
+ * that this {@link IMetaData} came from was opened  
+ * for writing, then changes via {@link IMetaData#setValue(String, String)} 
+ *  
+ * will have no effect after {@link IContainer#writeHeader()}  
+ * is called.  
+ * </p>  
  * @return	the {@link IMetaData}.  
  */
   public IMetaData getMetaData() {
@@ -1238,8 +1258,9 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  * Set the {@link IMetaData} on this object, overriding  
  * any previous meta data. You should call this  
  * method on writable containers and  
- * before you call {@link #writeHeader}, as  
+ * before you call {@link IContainer#writeHeader}, as  
  * it probably won't do anything after that.  
+ * @see		#getMetaData()  
  */
   public void setMetaData(IMetaData data) {
     XugglerJNI.IContainer_setMetaData(swigCPtr, this, IMetaData.getCPtr(data), data);

@@ -13,7 +13,6 @@ public class MetaDataTest
   public final void testGetKeys()
   {
     IMetaData meta = IMetaData.make();
-    assertEquals(0, meta.getNumKeys());
     Collection<String> keys = meta.getKeys();
     assertNotNull(keys);
     assertEquals(0, keys.size());
@@ -28,7 +27,6 @@ public class MetaDataTest
   public final void testGetValue()
   {
     IMetaData meta = IMetaData.make();
-    assertEquals(0, meta.getNumKeys());
     Collection<String> keys = meta.getKeys();
     assertNotNull(keys);
     assertEquals(0, keys.size());
@@ -47,7 +45,6 @@ public class MetaDataTest
     IContainer container = IContainer.make();
     container.open("fixtures/testfile.mp3", IContainer.Type.READ, null);
     IMetaData meta = container.getMetaData();
-    assertEquals(5, meta.getNumKeys());
     Collection<String> keys = meta.getKeys();
     for(String key : keys)
     {
@@ -107,12 +104,12 @@ public class MetaDataTest
     {
       System.out.println(key + " = " + meta.getValue(key));
     }
-    if (meta.getNumKeys() > 0)
+    if (keys.size() > 0)
     {
       // This means the version of FFmpeg we're using has our
       // patch for FLV meta-data installed.  Let's make sure it's
       // right
-      assertEquals(11, meta.getNumKeys());
+      assertEquals(11, keys.size());
       meta.setValue("author", "Your Mom");
       assertEquals("Your Mom", meta.getValue("author"));
     }

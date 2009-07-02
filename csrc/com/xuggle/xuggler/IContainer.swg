@@ -339,7 +339,12 @@
 
   /**
    * Gets the SDP data as a Java string.
-   * 
+   * <p>
+   * This method only supports SDP files up to 4K in size.
+   * If you have a larger SDP file, use the
+   * {@link #createSDPData(com.xuggle.ferry.IBuffer)} method and pass in your
+   * own {@link com.xuggle.ferry.IBuffer} object.
+   * </p> 
    * @return A {@link String} representing the data.
    * @see #createSDPData(IBuffer)
    */

@@ -24,7 +24,13 @@
 #include <com/xuggle/ferry/RefCounted.h>
 namespace com { namespace xuggle { namespace xuggler {
   /**
-   * Represents attributes properties can have on objects in Xuggler.
+   * Represents settable properties that effect how Xuggler objects
+   * operate.
+   * <p>
+   * For example, setting the &quot;b&quot; property on an
+   * {@link IStreamCoder} sets the bit-rate the coder will attempt
+   * to encode at.
+   * </p> 
    */
   class VS_API_XUGGLER IProperty : public com::xuggle::ferry::RefCounted
   {

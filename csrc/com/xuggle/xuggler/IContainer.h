@@ -752,7 +752,19 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Get the {@link IMetaData} for this object,
      * or null if none.
-     * 
+     * <p>
+     * If the {@link IContainer} or {@link IStream} object
+     * that this {@link IMetaData} came from was opened
+     * for reading, then changes via {@link IMetaData#setValue(String, String)}
+     * will have no effect on the underlying media.
+     * </p>
+     * <p>
+     * If the {@link IContainer} or {@link IStream} object
+     * that this {@link IMetaData} came from was opened
+     * for writing, then changes via {@link IMetaData#setValue(String, String)}
+     * will have no effect after {@link IContainer#writeHeader()}
+     * is called.
+     * </p>
      * @return the {@link IMetaData}.
      */
     virtual IMetaData* getMetaData()=0;
@@ -761,8 +773,10 @@ namespace com { namespace xuggle { namespace xuggler
      * Set the {@link IMetaData} on this object, overriding
      * any previous meta data.  You should call this
      * method on writable containers and
-     * before you call {@link #writeHeader}, as
+     * before you call {@link IContainer#writeHeader}, as
      * it probably won't do anything after that.
+     * 
+     * @see #getMetaData()
      */
     virtual void setMetaData(IMetaData* data)=0;
 

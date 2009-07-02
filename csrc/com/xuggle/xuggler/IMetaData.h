@@ -28,11 +28,24 @@ namespace com { namespace xuggle { namespace xuggler
 
 /**
  * Get MetaData about a {@link IContainer} or {@link IStream}.
- * 
+ * <p>
  * MetaData is a bag of key/value pairs that can be embedded
- * in some {@link IContainer} or some {@link IStream} objects
- * in an {@link IContainer}.
- * 
+ * in some {@link IContainer} or some {@link IStream}
+ * in an {@link IContainer}, and are then written to
+ * or read from a media file.  Keys must be unique, and
+ * any attempt to set a key value replaces any previous values.
+ * </p>
+ * <p>
+ * An example is the "title" meta-data item in an MP3 file.
+ * </p>
+ * <p>
+ * Support for IMetaData differs depending upon the {@link
+ * IContainer} format you're using and the implementation
+ * in <a href="http://www.ffmpeg.org/">FFmpeg</a>.  For example,
+ * MP3 meta-data reading and writing is supported, but
+ * (as of the writing of this comment) FLV meta-data writing
+ * is not supported.
+ * </p>
  */
 class VS_API_XUGGLER IMetaData : public com::xuggle::ferry::RefCounted
 {

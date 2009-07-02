@@ -39,6 +39,7 @@ namespace com { namespace xuggle { namespace xuggler
   int32_t
   IContainerFormat :: getNumInstalledInputFormats()
   {
+    Global::init();
     int i = 0;
     for(AVInputFormat* f = 0;
     (f = av_iformat_next(f))!=0;
@@ -50,6 +51,7 @@ namespace com { namespace xuggle { namespace xuggler
   IContainerFormat*
   IContainerFormat :: getInstalledInputFormat(int32_t index)
   {
+    Global::init();
     int i = 0;
     for(AVInputFormat* f = 0;
     (f = av_iformat_next(f))!=0;
@@ -66,6 +68,7 @@ namespace com { namespace xuggle { namespace xuggler
   int32_t
   IContainerFormat :: getNumInstalledOutputFormats()
   {
+    Global::init();
     int i = 0;
     for(AVOutputFormat* f = 0;
     (f = av_oformat_next(f))!=0;
@@ -77,6 +80,7 @@ namespace com { namespace xuggle { namespace xuggler
   IContainerFormat*
   IContainerFormat :: getInstalledOutputFormat(int32_t index)
   {
+    Global::init();
     int i = 0;
     for(AVOutputFormat* f = 0;
     (f = av_oformat_next(f))!=0;

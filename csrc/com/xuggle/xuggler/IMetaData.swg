@@ -65,4 +65,7 @@
     return getValue(key, IMetaData.Flags.METADATA_NONE);
   }
 %}
+%javamethodmodifiers com::xuggle::xuggler::IMetaData::getNumKeys "private"
+%javamethodmodifiers com::xuggle::xuggler::IMetaData::getKey(int32_t) "private"
+
 %include <com/xuggle/xuggler/IMetaData.h>

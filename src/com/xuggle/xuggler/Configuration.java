@@ -200,14 +200,13 @@ public class Configuration
   {
     if (prop.getType() != IProperty.Type.PROPERTY_FLAGS)
     {
-      stream.printf("  %s %s: %s\n",
-          prop.getType(),
+      stream.printf("  %s; default= %s; type=%s;\n",
           prop.getName(),
-          configObj.getPropertyAsString(prop.getName()));
+          configObj.getPropertyAsString(prop.getName()),
+          prop.getType());
     } else {
       // it's a flag
-      stream.printf("  %s %s: %d (",
-          prop.getType(),
+      stream.printf("  %s; default= %d; valid values=(",
           prop.getName(),
           configObj.getPropertyAsLong(prop.getName()));
       int numSettings = prop.getNumFlagSettings();
@@ -221,7 +220,10 @@ public class Configuration
             isSet ? "+" : "-",
                 fprop.getName());
       }
-      stream.printf(")\n");
+      stream.printf("); type=%s;\n", prop.getType());
     }
+    stream.printf("    help for %s: %s\n",
+        prop.getName(),
+        prop.getHelp() == null ? "no help available" : prop.getHelp());
   }
 }
