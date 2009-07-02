@@ -448,6 +448,7 @@ ContainerTest :: testIssue97Regression()
 void
 ContainerTest :: testGetSDP()
 {
+  RefPointer<IBuffer> buffer = IBuffer::make(0, 4096);
   RefPointer<IContainerFormat> format;
   RefPointer<IContainer> cont;
   RefPointer<IStream> stream;
@@ -468,11 +469,11 @@ ContainerTest :: testGetSDP()
   coder->setPixelType(IPixelFormat::YUV420P);
   RefPointer<IRational> timeBase = IRational::make(1,90000);
   coder->setTimeBase(timeBase.value());
-  char * sdp = cont->getSDP();
+  int32_t len = cont->createSDPData(buffer.value());
+  char * sdp = (char*)buffer->getBytes(0, len);
   VS_LOG_DEBUG("SDP: %s", sdp);
   VS_TUT_ENSURE("", sdp);
   if (sdp)
     VS_TUT_ENSURE("", *sdp);
-  delete [] sdp;
   cont->close();
 }

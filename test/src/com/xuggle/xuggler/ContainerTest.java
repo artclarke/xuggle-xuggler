@@ -23,6 +23,7 @@ import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.ferry.IBuffer;
 import com.xuggle.test_utils.TestUtils;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
@@ -591,7 +592,7 @@ public class ContainerTest extends TestCase
   }
 
   @Test
-  public void testGetSDP()
+  public void testCreateSDPData()
   {
     IContainerFormat format = IContainerFormat.make();
     format.setOutputFormat("rtp", null, null);
@@ -606,8 +607,16 @@ public class ContainerTest extends TestCase
     coder.setTimeBase(IRational.make(1,90000));
     coder.open();
     
-    String sdp = container.getSDP();
-    log.debug("SDP({}) = {}", sdp.length(), sdp);
+    IBuffer buffer = IBuffer.make(null, 4192);
+    int len = container.createSDPData(buffer);
+    assertTrue(len > 1);
+    byte[] stringBuf = new byte[len-1];
+    buffer.get(0, stringBuf, 0, stringBuf.length);
+    String sdp = new String(stringBuf);
     assertNotNull(sdp);
+    log.debug("SDP({}) = {}", sdp.length(), sdp);
+    
+    String otherSdp = container.createSDPData();
+    assertEquals(sdp, otherSdp);
   }
 }

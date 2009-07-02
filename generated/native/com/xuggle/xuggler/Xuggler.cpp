@@ -30553,15 +30553,18 @@ SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1setMetaDa
 }
 
 
-SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getSDP(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
-  jstring jresult = 0 ;
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1createSDPData(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jobject jarg2_) {
+  jint jresult = 0 ;
   com::xuggle::xuggler::IContainer *arg1 = (com::xuggle::xuggler::IContainer *) 0 ;
-  char *result = 0 ;
+  com::xuggle::ferry::IBuffer *arg2 = (com::xuggle::ferry::IBuffer *) 0 ;
+  int32_t result;
   
   (void)jenv;
   (void)jcls;
   (void)jarg1_;
+  (void)jarg2_;
   arg1 = *(com::xuggle::xuggler::IContainer **)&jarg1; 
+  arg2 = *(com::xuggle::ferry::IBuffer **)&jarg2; 
   
   if (!arg1) {
     SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
@@ -30574,7 +30577,7 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getSDP
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>
     try
     {
-      result = (char *)(arg1)->getSDP();
+      result = (int32_t)(arg1)->createSDPData(arg2);
     }
     catch(std::invalid_argument & e)
     {
@@ -30625,8 +30628,7 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getSDP
     // <<<<<<<<<<<<<<<<<<<<<<<<<<<
     // JNIHelper.swg: End generated code
   }
-  if(result) jresult = jenv->NewStringUTF((const char *)result);
-  delete [] result;
+  jresult = (jint)result; 
   return jresult;
 }
 

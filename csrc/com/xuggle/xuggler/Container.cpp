@@ -24,7 +24,6 @@
 
 #include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/ferry/Logger.h>
-
 #include <com/xuggle/xuggler/Container.h>
 #include <com/xuggle/xuggler/ContainerFormat.h>
 #include <com/xuggle/xuggler/ContainerParameters.h>
@@ -33,6 +32,8 @@
 #include <com/xuggle/xuggler/Global.h>
 #include <com/xuggle/xuggler/Property.h>
 #include <com/xuggle/xuggler/MetaData.h>
+#include <com/xuggle/ferry/IBuffer.h>
+
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);
 
@@ -1009,26 +1010,37 @@ namespace com { namespace xuggle { namespace xuggler
     return;
   }
   
-  char *
-  Container :: getSDP()
+  int32_t
+  Container:: createSDPData(com::xuggle::ferry::IBuffer* buffer)
   {
     if (!mFormatContext)
-      return 0;
+      return -1;
+    if (!buffer)
+      return -1;
     
-    const int32_t bufSize = 4096;
-    char* retval = new char[bufSize]; // hope 4k is enough
+    int32_t bufSize = buffer->getBufferSize();
+    if (bufSize <= 0)
+      return -1;
     
-    if (retval)
+    char* bytes = static_cast<char*>(buffer->getBytes(0, bufSize));
+    if (!bytes)
+      return -1;
+    
+    bytes[0] = 0;
+    // null terminate the buffer to ensure strlen below doesn't
+    // overrun
+    bytes[bufSize-1]=0;
+    int32_t ret = avf_sdp_create(&mFormatContext, 1, bytes, bufSize-1);
+
+    if (ret < 0)
     {
-      *retval = 0;
-      if (avf_sdp_create(&mFormatContext, 1, retval, bufSize)<0)
-      {
-        VS_LOG_INFO("Could not create SDP file");
-        delete[] retval;
-        retval = 0;
-      }
+      VS_LOG_INFO("Could not create SDP file: %d", ret);
+      return ret;
     }
-    return retval;
+    // Otherwise, we have to figure out the length, including the 
+    // terminating null
+    ret = strlen(bytes)+1;
+    return ret;
   }
   
   

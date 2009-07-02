@@ -21,6 +21,7 @@
 #define ICONTAINER_H_
 
 #include <com/xuggle/ferry/RefCounted.h>
+#include <com/xuggle/ferry/IBuffer.h>
 #include <com/xuggle/xuggler/Xuggler.h>
 #include <com/xuggle/xuggler/IContainerParameters.h>
 #include <com/xuggle/xuggler/IContainerFormat.h>
@@ -707,23 +708,20 @@ namespace com { namespace xuggle { namespace xuggler
      */
     virtual void setMetaData(IMetaData* data)=0;
 
-#ifdef SWIG
-    %newobject getSDP();
-#endif
     /**
-     * Returns a string containining SDP file that
+     * Fills the given buffer with a null-terminated ASCII
+     * set of bytes representing SDP data that
      * is suitable for use with an RTSP-based system.
      * <p>
      * This method only works if Xuggler is linking
      * against a version of FFmpeg that supports RTSP.
      * </p>
-     * @return an SDP file.
-     * <p>
-     * Note for Native API Users: You must call
-     * delete[] on this returned string.
-     * </p>
+     * @param buffer the {@link com.xuggle.ferry.IBuffer}
+     * object to fill with data.
+     * @return the number of bytes written, including the
+     * terminating 0 byte, or < 0 on error.
      */
-    virtual char* getSDP()=0;
+    virtual int32_t createSDPData(com::xuggle::ferry::IBuffer* buffer)=0;
   };
 }}}
 #endif /*ICONTAINER_H_*/

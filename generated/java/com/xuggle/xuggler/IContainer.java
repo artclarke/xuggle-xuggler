@@ -445,6 +445,24 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
      type, format, streamsCanBeAddedDynamically, queryStreamMetaData); 
   }
 
+  /**
+   * Gets the SDP data as a Java string.
+   * 
+   * @return A {@link String} representing the data.
+   * @see #createSDPData(IBuffer)
+   */
+  public String createSDPData()
+  {
+    IBuffer buffer = IBuffer.make(null, 4096);
+    int len = this.createSDPData(buffer);
+    if (len > 1)
+    {
+      byte [] stringBuf = new byte[len-1];
+      buffer.get(0, stringBuf, 0, stringBuf.length);
+      return new String(stringBuf);
+    }
+    return null;
+  }
   
 
 /**
@@ -1163,20 +1181,20 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   }
 
 /**
- * Returns a string containining SDP file that  
+ * Fills the given buffer with a null-terminated ASCII  
+ * set of bytes representing SDP data that  
  * is suitable for use with an RTSP-based system.  
  * <p>  
  * This method only works if Xuggler is linking  
  * against a version of FFmpeg that supports RTSP.  
  * </p>  
- * @return	an SDP file.  
- * <p>  
- * Note for Native API Users: You must call  
- * delete[] on this returned string.  
- * </p>  
+ * @param	buffer the {@link com.xuggle.ferry.IBuffer}  
+ * object to fill with data.  
+ * @return	the number of bytes written, including the  
+ * terminating 0 byte, or < 0 on error.  
  */
-  public String getSDP() {
-    return XugglerJNI.IContainer_getSDP(swigCPtr, this);
+  public int createSDPData(IBuffer buffer) {
+    return XugglerJNI.IContainer_createSDPData(swigCPtr, this, IBuffer.getCPtr(buffer), buffer);
   }
 
   public enum Type {

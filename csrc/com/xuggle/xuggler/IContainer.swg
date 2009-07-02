@@ -337,6 +337,24 @@
      type, format, streamsCanBeAddedDynamically, queryStreamMetaData); 
   }
 
+  /**
+   * Gets the SDP data as a Java string.
+   * 
+   * @return A {@link String} representing the data.
+   * @see #createSDPData(IBuffer)
+   */
+  public String createSDPData()
+  {
+    IBuffer buffer = IBuffer.make(null, 4096);
+    int len = this.createSDPData(buffer);
+    if (len > 1)
+    {
+      byte [] stringBuf = new byte[len-1];
+      buffer.get(0, stringBuf, 0, stringBuf.length);
+      return new String(stringBuf);
+    }
+    return null;
+  }
   
 %}
 

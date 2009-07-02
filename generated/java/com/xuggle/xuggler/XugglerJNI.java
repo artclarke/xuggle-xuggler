@@ -531,7 +531,7 @@ class XugglerJNI {
   public final static native boolean IContainer_canStreamsBeAddedDynamically(long jarg1, IContainer jarg1_);
   public final static native long IContainer_getMetaData(long jarg1, IContainer jarg1_);
   public final static native void IContainer_setMetaData(long jarg1, IContainer jarg1_, long jarg2, IMetaData jarg2_);
-  public final static native String IContainer_getSDP(long jarg1, IContainer jarg1_);
+  public final static native int IContainer_createSDPData(long jarg1, IContainer jarg1_, long jarg2, IBuffer jarg2_);
   public final static native void IMediaDataWrapper_wrap(long jarg1, IMediaDataWrapper jarg1_, long jarg2, IMediaData jarg2_);
   public final static native void IMediaDataWrapper_setKey(long jarg1, IMediaDataWrapper jarg1_, boolean jarg2);
   public final static native long IMediaDataWrapper_make(long jarg1, IMediaData jarg1_);
