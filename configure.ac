@@ -58,6 +58,27 @@ if test "x$enable_optimizations" = xno; then
   AC_SUBST([VS_DEBUG])
 fi
 
+AC_ARG_ENABLE([swig],
+              [AS_HELP_STRING([--enable-swig],
+                              [use swig to regenerate java interfaces (default is no)])],
+                              [],
+                              [enable_swig=no])
+AC_MSG_CHECKING([whether to regnerate java interfaces from swig])
+AC_MSG_RESULT([$enable_swig])
+
+AM_CONDITIONAL([VS_SWIG], [ test "$x$enable_swig" = xno ])
+if test "x$enable_swig" != xno; then
+  AC_PATH_PROG([SWIG],[swig])
+  AC_ARG_VAR(SWIG,
+             [Location of the 'swig' program; if found, then we will renerate the Java interface to Xuggle from the C++ interface])
+  if test "x$SWIG" = "x"; then
+    AC_MSG_FAILURE([Could not find swig, and it is required to regenerate java interfaces])
+  else
+    VS_SWIG=1
+    AC_SUBST([VS_SWIG])
+  fi
+fi
+
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 AC_MSG_CHECKING([whether we saw a bunny])
@@ -159,11 +180,6 @@ AC_LANG(C++)
 AC_FUNC_STRERROR_R
 AC_MSG_CHECKING([for bunny tracks])
 AC_MSG_RESULT([no])
-AC_PATH_PROG([SWIG],[swig])
-AC_ARG_VAR(SWIG,
-          [Location of the 'swig' program; if found, then we will renerate the Java interface to Xuggle from the C++ interface])
-AM_CONDITIONAL(HAVE_SWIG, [ test "x$SWIG" != "x" ])
-
 AC_PATH_PROG([VALGRIND],[valgrind])
 AC_ARG_VAR(VALGRIND,
           [Location of the 'valgrind' program; if found, then "ant run-tests-memcheck" will do full memory and error checking])
@@ -175,7 +191,7 @@ AC_MSG_RESULT([no])
 AC_PATH_PROG([DOXYGEN],[doxygen])
 AC_ARG_VAR(DOXYGEN,
            [Location of the 'doxygen' program; if found, then we will renerate documentation from the C++ interface])
-AM_CONDITIONAL(HAVE_DOXYGEN, [ test "x$VALGRIND" != "x" ])
+AM_CONDITIONAL(HAVE_DOXYGEN, [ test "x$DOXYGEN" != "x" ])
 
 AC_PATH_PROG([PERL],[perl])
 AC_ARG_VAR(PERL,
