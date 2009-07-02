@@ -131,7 +131,11 @@ public class MultiThreadedWritingExhaustiveTest
           }
           finally
           {
-            reader.close();
+            try {
+              reader.close();
+            } catch (RuntimeException e) {
+              log.debug("Got and ignoring: {}", e);
+            }
             log.debug("thread exited with {} packets processed",
                 numPackets[index]);
           }
