@@ -1009,5 +1009,27 @@ namespace com { namespace xuggle { namespace xuggler
     return;
   }
   
+  char *
+  Container :: getSDP()
+  {
+    if (!mFormatContext)
+      return 0;
+    
+    const int32_t bufSize = 4096;
+    char* retval = new char[bufSize]; // hope 4k is enough
+    
+    if (retval)
+    {
+      *retval = 0;
+      if (avf_sdp_create(&mFormatContext, 1, retval, bufSize)<0)
+      {
+        VS_LOG_INFO("Could not create SDP file");
+        delete[] retval;
+        retval = 0;
+      }
+    }
+    return retval;
+  }
+  
   
 }}}

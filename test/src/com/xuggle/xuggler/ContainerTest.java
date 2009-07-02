@@ -590,4 +590,24 @@ public class ContainerTest extends TestCase
     assertTrue("should fail instead of core dumping", retval < 0);
   }
 
+  @Test
+  public void testGetSDP()
+  {
+    IContainerFormat format = IContainerFormat.make();
+    format.setOutputFormat("rtp", null, null);
+    IContainer container = IContainer.make();
+    container.open("rtp://127.0.0.1:23832", IContainer.Type.WRITE, format);
+    IStream stream = container.addNewStream(0);
+    IStreamCoder coder = stream.getStreamCoder();
+    coder.setCodec(ICodec.ID.CODEC_ID_H263);
+    coder.setWidth(352);
+    coder.setHeight(288);
+    coder.setPixelType(IPixelFormat.Type.YUV420P);
+    coder.setTimeBase(IRational.make(1,90000));
+    coder.open();
+    
+    String sdp = container.getSDP();
+    log.debug("SDP({}) = {}", sdp.length(), sdp);
+    assertNotNull(sdp);
+  }
 }

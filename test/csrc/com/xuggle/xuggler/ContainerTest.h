@@ -51,6 +51,8 @@ class ContainerTest : public CxxTest::TestSuite
      * http://code.google.com/p/xuggle/issues/detail?id=97
      */
     void testIssue97Regression();
+    
+    void testGetSDP();
   private:
     Helper* h;
     RefPointer<IContainer> container;

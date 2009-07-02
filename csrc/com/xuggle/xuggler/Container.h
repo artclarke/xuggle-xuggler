@@ -111,7 +111,8 @@ namespace com { namespace xuggle { namespace xuggler
 
     virtual IMetaData* getMetaData();
     virtual void setMetaData(IMetaData* metaData);
-    
+    virtual char* getSDP();
+
   protected:
     virtual ~Container();
     Container();

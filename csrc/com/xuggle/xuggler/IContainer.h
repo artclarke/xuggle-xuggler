@@ -706,7 +706,24 @@ namespace com { namespace xuggle { namespace xuggler
      * it probably won't do anything after that.
      */
     virtual void setMetaData(IMetaData* data)=0;
-    
+
+#ifdef SWIG
+    %newobject getSDP();
+#endif
+    /**
+     * Returns a string containining SDP file that
+     * is suitable for use with an RTSP-based system.
+     * <p>
+     * This method only works if Xuggler is linking
+     * against a version of FFmpeg that supports RTSP.
+     * </p>
+     * @return an SDP file.
+     * <p>
+     * Note for Native API Users: You must call
+     * delete[] on this returned string.
+     * </p>
+     */
+    virtual char* getSDP()=0;
   };
 }}}
 #endif /*ICONTAINER_H_*/

@@ -444,3 +444,35 @@ ContainerTest :: testIssue97Regression()
   retval = container->close();
   VS_TUT_ENSURE("could not close container", retval >= 0);
 }
+
+void
+ContainerTest :: testGetSDP()
+{
+  RefPointer<IContainerFormat> format;
+  RefPointer<IContainer> cont;
+  RefPointer<IStream> stream;
+  LoggerStack stack;
+  stack.setGlobalLevel(Logger::LEVEL_DEBUG, false);
+
+  format = IContainerFormat::make();
+  format->setOutputFormat("rtp", 0, 0);
+  
+  cont = IContainer::make();
+  cont->open("rtp://127.0.0.1:23832",
+      IContainer::WRITE, format.value());
+  stream = cont->addNewStream(0);
+  RefPointer<IStreamCoder> coder = stream->getStreamCoder();
+  coder->setCodec(ICodec::CODEC_ID_H263);
+  coder->setWidth(352);
+  coder->setHeight(288);
+  coder->setPixelType(IPixelFormat::YUV420P);
+  RefPointer<IRational> timeBase = IRational::make(1,90000);
+  coder->setTimeBase(timeBase.value());
+  char * sdp = cont->getSDP();
+  VS_LOG_DEBUG("SDP: %s", sdp);
+  VS_TUT_ENSURE("", sdp);
+  if (sdp)
+    VS_TUT_ENSURE("", *sdp);
+  delete [] sdp;
+  cont->close();
+}

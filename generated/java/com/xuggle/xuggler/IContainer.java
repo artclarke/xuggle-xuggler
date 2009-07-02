@@ -1162,6 +1162,23 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     XugglerJNI.IContainer_setMetaData(swigCPtr, this, IMetaData.getCPtr(data), data);
   }
 
+/**
+ * Returns a string containining SDP file that  
+ * is suitable for use with an RTSP-based system.  
+ * <p>  
+ * This method only works if Xuggler is linking  
+ * against a version of FFmpeg that supports RTSP.  
+ * </p>  
+ * @return	an SDP file.  
+ * <p>  
+ * Note for Native API Users: You must call  
+ * delete[] on this returned string.  
+ * </p>  
+ */
+  public String getSDP() {
+    return XugglerJNI.IContainer_getSDP(swigCPtr, this);
+  }
+
   public enum Type {
   /**
    *
