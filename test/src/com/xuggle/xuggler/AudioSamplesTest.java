@@ -23,6 +23,7 @@ import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.ferry.IBuffer;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.ICodec;
@@ -95,6 +96,68 @@ public class AudioSamplesTest extends TestCase
     assertTrue("unexpected # of samples", totalSamples == 3291264);
   }
   
+  @Test
+  public void testReadingSamplesIntoIBuffer()
+  {
+    IBuffer buffer = IBuffer.make(null, 192000*2);
+    Helper h = new Helper();
+    
+    h.setupReadingObject(h.sampleFile);
+    
+    int retval = -1;
+    int audioStream = -1;
+    int totalSamples = 0;
+    for (int i = 0; i < h.mContainer.getNumStreams(); i++)
+    {
+      if (h.mCoders[i].getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO)
+      {
+        audioStream = i;
+        // open our stream coder
+        retval = h.mCoders[i].open();
+        assertTrue("Could not open decoder", retval >=0);
+
+        assertTrue("unexpected samples inbuffer",
+            h.mSamples[i].getNumSamples() == 0);
+        break;
+      }
+    }
+    assertTrue("Could not find audio stream", audioStream >= 0);
+    
+    IAudioSamples samples = IAudioSamples.make(buffer,
+        h.mCoders[audioStream].getChannels(),
+        h.mCoders[audioStream].getSampleFormat());
+    assertNotNull(samples);
+    while (h.mContainer.readNextPacket(h.mPacket) == 0)
+    {
+      if (h.mPacket.getStreamIndex() == audioStream)
+      {
+        int offset = 0;
+        while (offset < h.mPacket.getSize())
+        {
+          retval = h.mCoders[audioStream].decodeAudio(
+              samples,
+              h.mPacket,
+              offset);
+          assertTrue("could not decode any audio", retval >0);
+          offset += retval;
+          assertTrue("did not write any samples",
+              samples.getNumSamples() > 0);
+          log.debug("Decoded {} samples",
+              samples.getNumSamples());
+          totalSamples += samples.getNumSamples();
+        }
+      } else {
+        log.debug("skipping video packet");
+      }
+    }
+    h.mCoders[audioStream].close();
+    log.debug("Total audio samples: {}", totalSamples);
+    assertTrue("didn't get any audio", totalSamples > 0);
+    // this will change if you change the file.
+    assertTrue("unexpected # of samples", totalSamples == 3291264);
+  }
+  
+
   @Test
   public void testGetNextPts()
   {

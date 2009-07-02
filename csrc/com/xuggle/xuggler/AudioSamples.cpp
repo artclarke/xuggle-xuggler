@@ -115,6 +115,44 @@ namespace com { namespace xuggle { namespace xuggler
     }
     return retval;
   }
+  
+  AudioSamples*
+  AudioSamples :: make(IBuffer* buffer, int channels,
+      IAudioSamples::Format format)
+  {
+    if (!buffer)
+      return 0;
+    if (format == IAudioSamples::FMT_NONE)
+      return 0;
+    if (channels < 0)
+      return 0;
+    if (buffer->getBufferSize()<= 0)
+      return 0;
+    
+    int bytesPerSample = IAudioSamples::findSampleBitDepth(format)/8*channels;
+    int samplesRequested = buffer->getBufferSize()/bytesPerSample;
+    AudioSamples* retval = 0;
+    try
+    {
+      retval = make(samplesRequested, channels);
+      if (!retval)
+        return 0;
+      retval->mSampleFmt = format;
+      retval->mSamples.reset(buffer, true);
+    }
+    catch (std::bad_alloc &e)
+    {
+      VS_REF_RELEASE(retval);
+      throw e;
+    }
+    catch (std::exception& e)
+    {
+      VS_LOG_DEBUG("error: %s", e.what());
+      VS_REF_RELEASE(retval);
+    }
+
+    return retval;
+  }
 
   bool
   AudioSamples :: isComplete()

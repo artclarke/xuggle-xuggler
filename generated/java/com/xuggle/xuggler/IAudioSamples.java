@@ -348,7 +348,7 @@ public class IAudioSamples extends IMediaData {
  * @return	A new object, or null if we can't allocate one.  
  */
   public static IAudioSamples make(long numSamples, long numChannels) {
-    long cPtr = XugglerJNI.IAudioSamples_make(numSamples, numChannels);
+    long cPtr = XugglerJNI.IAudioSamples_make__SWIG_0(numSamples, numChannels);
     return (cPtr == 0) ? null : new IAudioSamples(cPtr, false);
   }
 
@@ -375,6 +375,27 @@ public class IAudioSamples extends IMediaData {
  */
   public static long defaultPtsToSamples(long duration, int sampleRate) {
     return XugglerJNI.IAudioSamples_defaultPtsToSamples(duration, sampleRate);
+  }
+
+/**
+ * Creates an {@link IAudioSamples} object by wrapping an  
+ * {@link com.xuggle.ferry.IBuffer object}.  
+ * <p>  
+ * If you are decoding into this buffer, the buffer must be at least 
+ *  
+ * 192k*channels large (an FFmpeg requirement) or the decodeAudio  
+ * call on {@link IStreamCoder} will fail with an error.  
+ * If you are encoding from, any size should do.  
+ * </p>  
+ * @param	buffer the buffer to wrap  
+ * @param	channels the number of channels of audio you will put it the 
+ *		 buffer  
+ * @param	format the audio sample format  
+ * @return	a new {@link IAudioSamples} object, or null on error.  
+ */
+  public static IAudioSamples make(IBuffer buffer, int channels, IAudioSamples.Format format) {
+    long cPtr = XugglerJNI.IAudioSamples_make__SWIG_1(IBuffer.getCPtr(buffer), buffer, channels, format.swigValue());
+    return (cPtr == 0) ? null : new IAudioSamples(cPtr, false);
   }
 
   public enum Format {

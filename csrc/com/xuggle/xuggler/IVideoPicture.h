@@ -238,7 +238,32 @@ namespace com { namespace xuggle { namespace xuggler
      * @see #getPictureType()
      */
     virtual void setPictureType(PictType type)=0;
+
+    /*
+     * Added for 3.1
+     */
     
+    /**
+     * Get a new picture object, by wrapping an existing
+     * {@link com.xuggle.ferry.IBuffer}.
+     * <p>
+     * Use this method if you have existing video data that you want
+     * to have us wrap and pass to FFmpeg.  Note that if decoding
+     * into this video picture and the decoded data actually takes more
+     * space than is in this buffer, this object will release the reference
+     * to the passed in buffer and allocate a new buffer instead so the decode
+     * can continue.
+     * </p>
+     * @param buffer The {@link com.xuggle.ferry.IBuffer} to wrap.
+     * @param format The pixel format (for example, YUV420P).
+     * @param width The width of the picture, in pixels.
+     * @param height The height of the picture, in pixels.
+     * @return A new object, or null if we can't allocate one.
+     */
+    static IVideoPicture* make(
+        com::xuggle::ferry::IBuffer* buffer,
+        IPixelFormat::Type format, int width, int height);
+
   protected:
     IVideoPicture();
     virtual ~IVideoPicture();

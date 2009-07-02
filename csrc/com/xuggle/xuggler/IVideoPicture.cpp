@@ -43,7 +43,17 @@ namespace com { namespace xuggle { namespace xuggler
     Global::init();
     return VideoPicture::make(format, width, height);
   }
+
+  IVideoPicture*
+  IVideoPicture :: make(
+      com::xuggle::ferry::IBuffer* buffer,
+      IPixelFormat::Type format, int width, int height)
+  {
+    Global::init();
+    return VideoPicture::make(buffer, format, width, height);
+  }
   
+
   IVideoPicture*
   IVideoPicture :: make(IVideoPicture *srcFrame)
   {

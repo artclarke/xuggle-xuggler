@@ -48,6 +48,14 @@ namespace com { namespace xuggle { namespace xuggler
     return AudioSamples::make(numSamples, numChannels);
   }
   
+  IAudioSamples*
+  IAudioSamples :: make(com::xuggle::ferry::IBuffer* buffer, int channels,
+      IAudioSamples::Format format)
+  {
+    Global::init();
+    return AudioSamples::make(buffer, channels, format);
+  }
+  
   int64_t
   IAudioSamples :: samplesToDefaultPts(int64_t samples, int sampleRate)
   {

@@ -23,6 +23,7 @@ import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.ferry.IBuffer;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IPixelFormat;
@@ -39,6 +40,30 @@ public class VideoPictureTest extends TestCase
     log.debug("Executing test case: {}", this.getName());
   }
   
+  @Test
+  public void testFrameCreationFromBuffer()
+  {
+    int width=100;
+    int height=100;
+    IPixelFormat.Type format = IPixelFormat.Type.BGR24;
+    IBuffer buffer = IBuffer.make(null, width*height*3);
+    // put fake data in buffer
+    byte[] bytes=new byte[1];
+    for(int i = 0; i < buffer.getBufferSize(); i++)
+    {
+      bytes[0] = (byte)i; 
+      buffer.put(bytes, 0, i, 1);
+    }
+    IVideoPicture picture = IVideoPicture.make(buffer, format, width, height);
+    assertNotNull(picture);
+    assertEquals(buffer.getBufferSize(), picture.getSize());
+    
+    for(int i = 0; i < picture.getSize(); i++)
+    {
+      picture.get(i, bytes, 0, 1);
+      assertEquals((byte)i, bytes[0]);
+    }
+  }
   @Test
   public void testFrameCreation()
   {
@@ -132,6 +157,80 @@ public class VideoPictureTest extends TestCase
     assertEquals(defaultType, pict.getPictureType());
     pict.setPictureType(setType);
     assertEquals(setType,pict.getPictureType());
+  }
+
+  @Test
+  public void testReadingFramesIntoIBuffers()
+  {
+    IBuffer buffer = IBuffer.make(null, 424*176*3); // should be bigger than needed
+    Helper h = new Helper();
+    
+    // CHANGE THESE IF YOU CHANGE THE INPUT FILE
+    int expectedFrames = 2236;
+    int expectedKeyFrames = 270;
+
+    h.setupReadingObject(h.sampleFile);
+    
+    int retval = -1;
+    int videoStream = -1;
+    int totalFrames = 0;
+    int totalKeyFrames = 0;
+    for (int i = 0; i < h.mContainer.getNumStreams(); i++)
+    {
+      if (h.mCoders[i].getCodecType() == ICodec.Type.CODEC_TYPE_VIDEO)
+      {
+        videoStream = i;
+        // open our stream coder
+        retval = h.mCoders[i].open();
+        assertTrue("Could not open decoder", retval >=0);
+        assertTrue("Frame should not be complete",
+            !h.mFrames[i].isComplete());
+        break;
+      }
+    }
+    assertTrue("Could not find video stream", videoStream >= 0);
+    
+    IVideoPicture picture = IVideoPicture.make(buffer,
+        h.mCoders[videoStream].getPixelType(),
+        h.mCoders[videoStream].getWidth(),
+        h.mCoders[videoStream].getHeight());
+    assertNotNull(picture);
+    while (h.mContainer.readNextPacket(h.mPacket) == 0)
+    {
+      if (h.mPacket.getStreamIndex() == videoStream)
+      {
+        int offset = 0;
+        while (offset < h.mPacket.getSize())
+        {
+          retval = h.mCoders[videoStream].decodeVideo(
+              picture,
+              h.mPacket,
+              offset);
+          assertTrue("could not decode any video", retval >0);
+          offset += retval;
+          if (picture.isComplete())
+          {
+            totalFrames ++;
+            if (picture.isKeyFrame())
+              totalKeyFrames++;
+          }
+        }
+      } else {
+        log.debug("skipping audio packet");
+      }
+    }
+    log.debug("Total frames: {}", totalFrames);
+    log.debug("Total key frames: {}", totalKeyFrames);
+    assertTrue("didn't get any frames", totalFrames > 0);
+    assertTrue("didn't get any key frames", totalKeyFrames > 0);
+    assertTrue("didn't get any non key frames", totalKeyFrames < totalFrames);
+
+    // this will change if you change the file.
+    assertTrue("unexpected # of frames", totalFrames == expectedFrames);
+    assertTrue("unexpected # of key frames", totalKeyFrames == expectedKeyFrames);
+    
+    h.cleanupHelper();
+
   }
 
 }

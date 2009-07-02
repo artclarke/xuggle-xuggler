@@ -76,6 +76,38 @@ namespace com { namespace xuggle { namespace xuggler
 
     return retval;
   }
+  
+  VideoPicture*
+  VideoPicture :: make(
+      com::xuggle::ferry::IBuffer* buffer, IPixelFormat::Type format,
+      int width, int height)
+  {
+    if (!buffer)
+      return 0;
+    VideoPicture *retval = 0;
+    try {
+      retval = make(format, width,height);
+      if (!retval)
+        throw std::bad_alloc();
+      
+      if (retval->getSize() > 0 && retval->getSize() > buffer->getBufferSize())
+        throw std::runtime_error("input buffer is not large enough for given picture");
+      
+      /** Use the buffer */
+      retval->mBuffer.reset(buffer, true);
+    }
+    catch (std::bad_alloc &e)
+    {
+      VS_REF_RELEASE(retval);
+      throw e;
+    }
+    catch (std::exception& e)
+    {
+      VS_LOG_DEBUG("error: %s", e.what());
+      VS_REF_RELEASE(retval);
+    }
+    return retval;
+  }
 
   bool
   VideoPicture :: copy(IVideoPicture * srcFrame)

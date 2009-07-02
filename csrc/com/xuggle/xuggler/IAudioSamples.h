@@ -23,6 +23,7 @@
 #include <com/xuggle/xuggler/Xuggler.h>
 #include <com/xuggle/xuggler/IMediaData.h>
 #include <com/xuggle/xuggler/IRational.h>
+#include <com/xuggle/ferry/IBuffer.h>
 namespace com { namespace xuggle { namespace xuggler
 {
 
@@ -296,6 +297,29 @@ namespace com { namespace xuggle { namespace xuggler
 
 
     } ChannelLayout;
+    
+    /*
+     * Added for 3.1
+     */
+    
+    /**
+     * Creates an {@link IAudioSamples} object by wrapping an
+     * {@link com.xuggle.ferry.IBuffer object}.
+     * <p>
+     * If you are decoding into this buffer, the buffer must be at least
+     * 192k*channels large (an FFmpeg requirement) or the decodeAudio
+     * call on {@link IStreamCoder} will fail with an error.
+     * If you are encoding from, any size should do.
+     * </p>
+     * @param buffer the buffer to wrap
+     * @param channels the number of channels of audio you will put it the buffer
+     * @param format the audio sample format
+     * 
+     * @return a new {@link IAudioSamples} object, or null on error.
+     */
+    static IAudioSamples* make(
+        com::xuggle::ferry::IBuffer* buffer, int channels,
+        IAudioSamples::Format format);
   };
 
 }}}

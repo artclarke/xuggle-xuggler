@@ -109,6 +109,9 @@ namespace com { namespace xuggle { namespace xuggler
     
     virtual IVideoPicture::PictType getPictureType();
     virtual void setPictureType(IVideoPicture::PictType type);
+    
+    static VideoPicture* make(com::xuggle::ferry::IBuffer* buffer,
+        IPixelFormat::Type format, int width, int height);
 
   protected:
     VideoPicture();
