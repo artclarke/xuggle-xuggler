@@ -240,10 +240,16 @@ namespace com { namespace xuggle { namespace xuggler
   Packet :: make (com::xuggle::ferry::IBuffer* buffer)
   {
     Packet *retval= 0;
+    if (!buffer)
+      return;
+    if (buffer->getBufferSize()<=0)
+      return;
+    
     retval = Packet::make();
     if (retval)
     {
       retval->wrapBuffer(buffer);
+      retval->setComplete(true, buffer->getBufferSize());
     }
     return retval;
   }
