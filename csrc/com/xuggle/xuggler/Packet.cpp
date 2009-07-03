@@ -241,15 +241,14 @@ namespace com { namespace xuggle { namespace xuggler
   {
     Packet *retval= 0;
     if (!buffer)
-      return;
+      return 0;
     if (buffer->getBufferSize()<=0)
-      return;
+      return 0;
     
     retval = Packet::make();
     if (retval)
     {
       retval->wrapBuffer(buffer);
-      retval->setComplete(true, buffer->getBufferSize());
     }
     return retval;
   }
