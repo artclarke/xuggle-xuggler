@@ -107,10 +107,7 @@ done${UNSECTION_ID}:
 
 # Uninstaller sections
 Section /o -un.Main UNSEC0000
-# We deliberately don't remove the path setting because mulitple xuggle
-# install program go in this location, and we don't want the uninstall
-# of one (e.g. xuggle-xuggler) to break another (xuggle-ffmpeg).
-#    ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" $INSTDIR\bin
+    ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" $INSTDIR\bin
     RmDir /r /REBOOTOK $INSTDIR
     DeleteRegValue HKLM "${REGKEY}\Components" Main
 SectionEnd
