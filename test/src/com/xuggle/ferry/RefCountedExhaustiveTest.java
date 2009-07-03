@@ -25,8 +25,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.junit.After;
-import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -53,18 +52,13 @@ public class RefCountedExhaustiveTest
   {
     JNIMemoryManager.setMemoryModel(model);
   }
+  
+  @Before
+  public void setUp()
+  {
+    JNIMemoryManager.getMgr().flush();
+  }
    
-  
-  @After
-  public void tearDown()
-  {
-  }
-  
-  @AfterClass
-  public static void tearDownClass() throws InterruptedException
-  {
-  }
-  
   @Test(timeout=5*60*1000)
   public void testReferenceCountingLoadTestOfDeath() throws InterruptedException
   {
