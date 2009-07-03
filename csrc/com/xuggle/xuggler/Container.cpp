@@ -83,8 +83,6 @@ namespace com { namespace xuggle { namespace xuggler
       VS_LOG_DEBUG("Closing dangling Container");
       (void) this->close(true);
     }
-    VS_ASSERT(!mFormatContext,
-        "this should be freed by close or already zero");
   }
 
   AVFormatContext *
