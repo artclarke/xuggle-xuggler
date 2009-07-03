@@ -98,15 +98,33 @@ esac
 
 echo "Copying @abs_srcdir@/csrc to @abs_builddir@/csrc"
 # create the directory
-mkdir -p @abs_builddir@/csrc
+mkdir -p @abs_builddir@
 # copy over all the source
-cp -r @abs_srcdir@/csrc/* @abs_builddir@/csrc/
+cp -r @abs_srcdir@/csrc @abs_builddir@/
 # and make everything user writeable so distcheck will pass
-chmod -R u+w @abs_builddir@/csrc/*
-# Apply patches if any
+chmod -R u+w @abs_builddir@/csrc
+# copy over all patches
 if [ -d @abs_srcdir@/patches ]; then
+  cp -r @abs_srcdir@/patches @abs_builddir@/
+  # and make everything user writeable so distcheck will pass
+  chmod -R u+w @abs_builddir@/patches
+fi
+# Apply patches if any
+case $HOST_TYPE in
+  Windows)
+  if [ -d @abs_builddir@/patches ]; then
+    # I shit you not, this needs to happen due to patch
+    # on windows 32.  Sit back, drink some coffee, and wait
+    find @abs_builddir@/patches -exec dos2unix \{\} \;
+    find @abs_builddir@/csrc -exec dos2unix \{\} \;
+  fi
+  ;;
+  *)
+  ;;
+esac
+if [ -d @abs_builddir@/patches ]; then
   cd @abs_builddir@/csrc
-  for patch in @abs_srcdir@/patches/*; do
+  for patch in @abs_builddir@/patches/*; do
     if [ -f "$patch" ]; then
       echo "Applying patch: ${patch}"
       patch -p0 --input="$patch" --ignore-whitespace
@@ -118,6 +136,9 @@ if [ -d @abs_srcdir@/patches ]; then
       fi
     fi
   done
+fi
+if [ -d @abs_builddir@/patches ]; then
+  rm -rf @abs_builddir@/patches
 fi
 
 echo "Configuring FFMPEG with these options: $FFMPEG_OPTIONS"
