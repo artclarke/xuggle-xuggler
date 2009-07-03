@@ -305,6 +305,7 @@ QUANT_AC x264_quant_8x8_sse4, 8
 
 %macro DEQUANT16_FLAT 2-5
     mova   m0, %1
+    psllw  m0, m4
 %assign i %0-2
 %rep %0-1
 %if i
@@ -313,7 +314,6 @@ QUANT_AC x264_quant_8x8_sse4, 8
 %else
     pmullw m0, [r0+%2]
 %endif
-    psllw  m %+ i, m4
     mova   [r0+%2], m %+ i
     %assign i i-1
     %rotate 1
