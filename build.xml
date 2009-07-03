@@ -5,7 +5,7 @@
   basedir="."
   xmlns:ivy="antlib:org.apache.ivy.ant"
   >
-  <!-- $Id$ -->
+  <!-- $Id$ Main Build File -->
   <description>
     Builder for the Xuggler Java Library
   </description>
