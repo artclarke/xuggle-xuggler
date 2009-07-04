@@ -391,6 +391,7 @@
     <echo message="Installing to ${xuggle.dir} (a.k.a. ${xuggle.dir.native})"/>
 
     <!-- Get the native OS name, if available -->
+    <delete failonerror="false" file="${build.dir}/OS.properties" />
     <exec executable="sh"
         dir="${top.dir}"
         failonerror="false"
@@ -401,6 +402,8 @@
     </exec>
     <!-- And read it -->
     <property file="${build.dir}/OS.properties"/>
+    <!-- And delete it so it doesn't show up in src bundles -->
+    <delete failonerror="false" file="${build.dir}/OS.properties" />
     <condition property="xuggle.os" value="${os.name}">
       <not>
         <isset property="xuggle.os"/>
@@ -659,7 +662,6 @@
         includeemptydirs="yes"
         failonerror="false">
       <fileset
-          includes="**/*"
           dir="${dist.dir}"
           followsymlinks="false"/>
     </delete>
@@ -667,7 +669,6 @@
         includeemptydirs="yes"
         failonerror="false">
       <fileset
-          includes="**/*"
           dir="${javadoc.dir}"
           followsymlinks="false"/>
     </delete>
@@ -679,7 +680,6 @@
         includeemptydirs="yes"
         failonerror="false">
       <fileset
-          includes="**/*"
           dir="${classes.dir}"
           followsymlinks="false"/>
     </delete>
@@ -687,7 +687,6 @@
         includeemptydirs="yes"
         failonerror="false">
       <fileset
-          includes="**/*"
           dir="${test.classes.dir}"
           followsymlinks="false"/>
     </delete>
@@ -1362,7 +1361,7 @@
       description="Do a complete distribution clean of the native code">
     <!-- We just nuke the build directory where everything should
       be under -->
-    <delete failonerror="false" dir="${build-native.dir}"/>
+    <delete failonerror="false" dir="${build.dir}/native"/>
   </target>
   <target name="uninstall-native-do"
       if="native.makefile.exists">
