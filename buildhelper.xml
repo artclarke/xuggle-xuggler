@@ -351,45 +351,7 @@
       depends="windows-init, mac-init, unix-init">
   </target>
 
-  <target name="init" depends="os-init, java6.check, ivy-init" >
-    <!-- Create the time stamp -->
-    <tstamp/>
-
-    <!-- Create the build directory structure used by compile -->
-    <mkdir dir="${build.dir}"/>
-    <mkdir dir="${dist.dir}"/>
-    <mkdir dir="${dist.dir}/lib"/>
-    <mkdir dir="${dist.dir}/src"/>
-    <mkdir dir="${dist.dir}/war"/>
-    <mkdir dir="${test.classes.dir}"/>
-    <mkdir dir="${test.reports.dir}"/>
-    <mkdir dir="${test.fixtures.dir}"/>
-
-    <!-- Get the SVN Revision if available -->
-    <exec executable="sh"
-        dir="${top.dir}"
-        failonerror="false"
-        failifexecutionfails="false">
-      <arg value="${xuggle-buildhelper.basedir}/revision.sh"/>
-      <arg value="${top.dir}"/>
-      <arg value="${top.dir}LastRevisionBuilt.txt"/>
-      <arg value="/dev/null"/>
-      <arg value="${build.dir}/Revision.properties"/>
-    </exec>
-    <!-- And read it -->
-    <property file="${build.dir}/Revision.properties"/>
-    <condition property="library.revision" value="0">
-      <not>
-        <isset property="library.revision"/>
-      </not>
-    </condition>
-    <property name="library.version" 
-        value="${library.version.major}.${library.version.minor}.${library.revision}"
-      />
-
-    <echo message="Building Library Version: ${library.version}"/>
-    <echo message="Installing to ${xuggle.dir} (a.k.a. ${xuggle.dir.native})"/>
-
+  <target name="init-native" depends="init" >
     <!-- Get the native OS name, if available -->
     <delete failonerror="false" file="${build.dir}/OS.properties" />
     <exec executable="sh"
@@ -429,6 +391,49 @@
     <property name="runtime.java.library.path"
         value="${dist.dir}${file.separator}stage${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"
       />
+  </target>
+  <target name="revision"
+      description="gets the latest SVN revision and writes it to build/Revision.properties">
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${build.dir}"/>
+    <!-- Get the SVN Revision if available -->
+    <exec executable="sh"
+        dir="${top.dir}"
+        failonerror="false"
+        failifexecutionfails="false">
+      <arg value="${xuggle-buildhelper.basedir}/revision.sh"/>
+      <arg value="${top.dir}"/>
+      <arg value="${top.dir}LastRevisionBuilt.txt"/>
+      <arg value="/dev/null"/>
+      <arg value="${build.dir}/Revision.properties"/>
+    </exec>
+    <!-- And read it -->
+    <property file="${build.dir}/Revision.properties"/>
+    <condition property="library.revision" value="0">
+      <not>
+        <isset property="library.revision"/>
+      </not>
+    </condition>
+    <property name="library.version" 
+        value="${library.version.major}.${library.version.minor}.${library.revision}"
+      />
+
+    <echo message="Building Library Version: ${library.version}"/>
+  </target>
+  <target name="init" depends="os-init, java6.check, ivy-init, revision" >
+    <!-- Create the time stamp -->
+    <tstamp/>
+
+    <mkdir dir="${dist.dir}"/>
+    <mkdir dir="${dist.dir}/lib"/>
+    <mkdir dir="${dist.dir}/src"/>
+    <mkdir dir="${dist.dir}/war"/>
+    <mkdir dir="${test.classes.dir}"/>
+    <mkdir dir="${test.reports.dir}"/>
+    <mkdir dir="${test.fixtures.dir}"/>
+
+    <echo message="Installing to ${xuggle.dir} (a.k.a. ${xuggle.dir.native})"/>
+
   </target>
 
   <target name="ivy-retrieve" 
@@ -619,7 +624,7 @@
       description="Publishes the jar files to XUGGLE_HOME">
   </target>
   <target name="install-native"
-      depends="init-native, install-native-do"
+      depends="setup-native, install-native-do"
       description="Publishes the native files to XUGGLE_HOME">
   </target>
   <target name="install-native-do"
@@ -670,6 +675,13 @@
         failonerror="false">
       <fileset
           dir="${javadoc.dir}"
+          followsymlinks="false"/>
+    </delete>
+    <delete
+        includeemptydirs="yes"
+        failonerror="false">
+      <fileset
+          dir="${testdoc.dir}"
           followsymlinks="false"/>
     </delete>
   </target>
@@ -1083,8 +1095,8 @@
         file="${build-native.dir}/Makefile"/>
     <echo message="${build-native.dir}/Makefile should now exist=${native.makefile.exists}"/>
   </target>
-  <target name="init-native"
-      depends="uptodate-native, configure-native"
+  <target name="setup-native"
+      depends="init-native, uptodate-native, configure-native"
       description="Runs configure in the current directory if Makefile is not up to date"
       >
   </target>
@@ -1097,7 +1109,7 @@
     </exec>
   </target>
   <target name="compile-native"
-      depends="init-native, compile-native-do"
+      depends="setup-native, compile-native-do"
       description="Builds the native library">
   </target>
   <target name="dist-native-do"
@@ -1223,7 +1235,7 @@
     </if>
   </target>
   <target name="dist-native"
-      depends="init-native, stage-native, dist-native-do"
+      depends="setup-native, stage-native, dist-native-do"
       description="Builds the native source distribution">
   </target>
   <target name="dist-native-test-do"
@@ -1235,14 +1247,14 @@
     </exec>
   </target>
   <target name="dist-native-test"
-      depends="init-native, dist-native-test-do"
+      depends="setup-native, dist-native-test-do"
       description="Builds the native source distribution, and makes sure it's complete">
   </target>
   <target name="compile-tests-native-do"
       if="native.makefile.exists">
   </target>
   <target name="compile-tests-native"
-      depends="init-native, compile-tests-native-do"
+      depends="setup-native, compile-tests-native-do"
       description="Compiles the native test code">
   </target>
   <target name="stage-native-do"
@@ -1284,7 +1296,7 @@
     </copy>
   </target>
   <target name="stage-native"
-      depends="init-native, compile-native, stage-native-do"
+      depends="setup-native, compile-native, stage-native-do"
       description="Stages the native libraries to ${dist.dir}/stage/${xuggle.dir}">
   </target>
   <target name="run-tests-native-do"
@@ -1296,7 +1308,7 @@
     </exec>
   </target>
   <target name="run-tests-native"
-      depends="init-native, compile-native, compile-tests-native, run-tests-native-do"
+      depends="setup-native, compile-native, compile-tests-native, run-tests-native-do"
       description="Runs the native test suite">
   </target>
   <target name="run-tests-native-all"
@@ -1312,7 +1324,7 @@
     </exec>
   </target>
   <target name="run-memcheck-native"
-      depends="init-native, run-memcheck-native-do"
+      depends="setup-native, run-memcheck-native-do"
       description="Runs the native memory checking suite">
   </target>
   <target name="doc-native-do"
@@ -1324,7 +1336,7 @@
     </exec>
   </target>
   <target name="doc-native"
-      depends="init-native, doc-native-do"
+      depends="setup-native, doc-native-do"
       description="Generate the native documentation">
   </target>
 
@@ -1334,7 +1346,7 @@
   </target>
 
   <target name="fixtures-native"
-      depends="init-native, fixtures-native-do"
+      depends="setup-native, fixtures-native-do"
       description="Install the native fixtures">
   </target>
 
@@ -1353,7 +1365,7 @@
     </exec>
   </target>
   <target name="clean-native"
-      depends="init-native, clean-native-do"
+      depends="setup-native, clean-native-do"
       description="Cleans the native tree">
   </target>
   <target name="clobber-native"
@@ -1362,6 +1374,7 @@
     <!-- We just nuke the build directory where everything should
       be under -->
     <delete failonerror="false" dir="${build.dir}/native"/>
+    <delete failonerror="false" dir="doc/cpp/api"/>
   </target>
   <target name="uninstall-native-do"
       if="native.makefile.exists">
@@ -1372,7 +1385,7 @@
     </exec>
   </target>
   <target name="uninstall-native"
-      depends="init-native, uninstall-native-do"
+      depends="setup-native, uninstall-native-do"
       description="Do a complete uninstall of the native code">
   </target>
 
@@ -1407,7 +1420,15 @@
   </target>
   <target name="clobber"
       depends="clobber-java, clobber-native"
-      description="clobber everything, including native code if available"/>
+      description="clobber everything, including native code if available">
+    <delete
+        includeemptydirs="yes"
+        failonerror="false">
+      <fileset
+          dir="${build.dir}"
+          followsymlinks="false"/>
+    </delete>
+  </target>
   <target name="clean"
       depends="clean-native, clean-java"
       description="clean everything, including native code if available"/>
@@ -1429,6 +1450,47 @@
   <target name="fixtures"
       depends="fixtures-native, fixtures-java"
       description="Install all test fixtures, including native fixtures if required"/>
+  <target name="srcdist"
+      depends="clobber"
+      description="Clobbers the full tree, and then builds a source bundle">
+    <mkdir dir="${dist.dir}/src"/>
+    <antcall target="revision"
+        inheritall="true" inheritrefs="true"/>
+    <if>
+      <isset property="os.windows"/>
+      <then>
+        <!-- Warning; If you build a src bundle on Windows AND it includes
+             native code, the Ant tar task doesn't preserve file permisisons.
+             Truly unfortunate, so we pretend EVERYTHING is executable.  -->
+        <tar
+            destfile="${dist.dir}/src/${app.name}.${library.version}-src.tar.gz"
+            compression="gzip"
+          >
+          <tarfileset dir="${top.dir}"
+              filemode="755"
+              excludes="dist/**/*"/>
+        </tar>
+      </then>
+      <else>
+        <exec
+            dir="${top.dir}"
+            executable="tar"
+            osfamily="unix">
+          <arg 
+              line="--exclude=dist -pczf ${dist.dir}/src/${app.name}.${library.version}-src.tar.gz ."
+            />
+        </exec>
+      </else>
+    </if>
+    <zip
+        destfile="${dist.dir}/src/${app.name}.${library.version}-src.zip"
+        >
+      <zipfileset dir="${top.dir}"
+          filemode="755"
+          excludes="dist/**/*"/>
+    </zip>
+  </target>
+
 
   <!--
     Macros go here.
