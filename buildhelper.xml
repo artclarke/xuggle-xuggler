@@ -1,38 +1,38 @@
 <?xml version="1.0"?>
 
 <!--
-Copyright (c) 2009 by Xuggle Inc.
+  Copyright (c) 2009 by Xuggle Inc.
 
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
+  Permission is hereby granted, free of charge, to any person obtaining
+  a copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:
 
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
-us know by sending e-mail to info\@xuggle.com telling us briefly how you're
-using the library and what you like or don't like about it.
+  It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+  us know by sending e-mail to info\@xuggle.com telling us briefly how you're
+  using the library and what you like or don't like about it.
 -->
 
 <project
-  name="xuggle-buildhelper"
-  default="stage"
-  basedir="."
-  xmlns:ivy="antlib:org.apache.ivy.ant"
-  >
+    name="xuggle-buildhelper"
+    default="stage"
+    basedir="."
+    xmlns:ivy="antlib:org.apache.ivy.ant"
+    >
   <description>
     This build file is a generic build file meant to be imported by
     other builds.  It has the standard rules used by the Yard build
@@ -49,7 +49,7 @@ using the library and what you like or don't like about it.
   <!-- Load up the ant-contrib tasks because I'm sick
     of not having if/else/then -->
   <taskdef resource="net/sf/antcontrib/antlib.xml"
-    classpath="${xuggle-buildhelper.basedir}/lib/ant-contrib.jar"/>
+      classpath="${xuggle-buildhelper.basedir}/lib/ant-contrib.jar"/>
 
   <!-- Allow a custom buildhelper file if people want one -->
   <if>
@@ -96,17 +96,17 @@ using the library and what you like or don't like about it.
   <property name="ivy.retrieve.pattern" value="${ivy.lib.dir}/[conf]/[artifact].[ext]" />
   <property name="ivy.distrib.dir" value="${dist.dir}"/>
   <!-- You can set the variable XUGGLE_REPO in which case ivy will publish
-       all jars to that location; otherwise it'll publishm them under
-       dist/ivys/share/java -->
+    all jars to that location; otherwise it'll publishm them under
+    dist/ivys/share/java -->
   <condition property="xugglerepo.dir" value="${env.XUGGLE_REPO}">
     <isset property="env.XUGGLE_REPO"/>
   </condition>
   <!-- Set the variable XUGGLE_MAINTAINER and then all maintainer-mode
-       build settings will be enabled, including building with swig.
-       If this is off, we don't use swig to regenerate java files (as
-       we've had lots of problems with people having the wrong version of
-       swig)
-     -->
+    build settings will be enabled, including building with swig.
+    If this is off, we don't use swig to regenerate java files (as
+    we've had lots of problems with people having the wrong version of
+    swig)
+  -->
   <condition property="build.configure.maintainer" value="true">
     <isset property="env.XUGGLE_MAINTAINER"/>
   </condition>
@@ -174,13 +174,13 @@ using the library and what you like or don't like about it.
 
   <target name="ivy-init" unless="xuggle.ivy.initted">
     <!--
-    Ivy tasks and lib directory
-    http://ant.apache.org/ivy
-    http://testearly.com/2007/06/24/ivy-in-42-steps
+      Ivy tasks and lib directory
+      http://ant.apache.org/ivy
+      http://testearly.com/2007/06/24/ivy-in-42-steps
 
-    In order for this to work, you need to set the right ivy JAR file into
-    the lib directory of your project; all other dependencies are then managed
-    by that jar file.
+      In order for this to work, you need to set the right ivy JAR file into
+      the lib directory of your project; all other dependencies are then managed
+      by that jar file.
     -->
     <echo message="Initing ivy from ${xuggle-buildhelper.basedir}/lib/${ivy.version}.jar"/>
     <taskdef uri="antlib:org.apache.ivy.ant" resource="org/apache/ivy/ant/antlib.xml" classpath="${xuggle-buildhelper.basedir}/lib/${ivy.version}.jar"/>
@@ -191,8 +191,8 @@ using the library and what you like or don't like about it.
   </target>
 
   <target name="ivy-deliver"
-    depends="ivy-init"
-    description="Deliver any libraries">
+      depends="ivy-init"
+      description="Deliver any libraries">
     <!-- Ivy configuration -->
     <condition property="ivy.settings.name" value="default">
       <not>
@@ -206,8 +206,8 @@ using the library and what you like or don't like about it.
   </target>
 
   <target name="ivy-publish"
-    depends="ivy-init"
-    description="Publish any libraries">
+      depends="ivy-init"
+      description="Publish any libraries">
     <!-- Ivy configuration -->
     <condition property="ivy.settings.name" value="default">
       <not>
@@ -218,20 +218,20 @@ using the library and what you like or don't like about it.
     <ivy:resolve file="ivy.xml" conf="${ivy.settings.name}"/>
     <ivy:retrieve file="ivy.xml" conf="${ivy.settings.name}"/>
     <ivy:publish
-      conf="default"
-      update="true"
-      replacedynamicrev="true"
-      forcedeliver="false"
-      publishivy="true"
-      overwrite="true"
-      pubrevision="${library.version}"
-      resolver="publish">
+        conf="default"
+        update="true"
+        replacedynamicrev="true"
+        forcedeliver="false"
+        publishivy="true"
+        overwrite="true"
+        pubrevision="${library.version}"
+        resolver="publish">
       <artifacts pattern="${dist.dir}/war/[artifact].war" />
       <artifacts pattern="${dist.dir}/lib/[artifact].[ext]" />
     </ivy:publish>
     <ivy:makepom
-      ivyfile="${xugglerepo.dir}/${organization.name}/${app.name}/${library.version}/ivy-${library.version}.xml"
-      pomfile="${xugglerepo.dir}/${organization.name}/${app.name}/${library.version}/${app.name}-${library.version}.pom">
+        ivyfile="${xugglerepo.dir}/${organization.name}/${app.name}/${library.version}/ivy-${library.version}.xml"
+        pomfile="${xugglerepo.dir}/${organization.name}/${app.name}/${library.version}/${app.name}-${library.version}.pom">
       <mapping conf="compile" scope="compile"/>
       <mapping conf="default" scope="runtime"/>
       <mapping conf="test" scope="test"/>
@@ -239,37 +239,37 @@ using the library and what you like or don't like about it.
   </target>
 
   <target name="clean-share"
-    if="share.exists"
-    description="Clean all share objects">
+      if="share.exists"
+      description="Clean all share objects">
     <ant dir="share" target="clean" inheritAll="false" />
   </target>
 
   <target name="clobber-share"
-    if="share.exists"
-    description="Clobber all share objects">
+      if="share.exists"
+      description="Clobber all share objects">
     <ant dir="share" target="clobber" inheritAll="false" />
   </target>
 
   <target name="stage-share"
-    if="share.exists"
-    description="Stage all share libraries">
+      if="share.exists"
+      description="Stage all share libraries">
     <ant dir="share" target="stage" inheritAll="false" />
   </target>
 
   <target name="install-share"
-    if="share.exists"
-    description="Install all share libraries">
+      if="share.exists"
+      description="Install all share libraries">
     <ant dir="share" target="install" inheritAll="false" />
   </target>
 
   <target name="uninstall-share"
-    if="share.exists"
-    description="Install all share libraries">
+      if="share.exists"
+      description="Install all share libraries">
     <ant dir="share" target="uninstall" inheritAll="false" />
   </target>
 
   <target name="windows-init"
-    if="os.windows">
+      if="os.windows">
     <condition property="env.XUGGLE_HOME" value="c:/msys/local">
       <not>
         <isset property="env.XUGGLE_HOME"/>
@@ -299,7 +299,7 @@ using the library and what you like or don't like about it.
     <echo message="Converted windows path: '${env.XUGGLE_HOME}' to short name: '${xuggle.dir.native}' and UNIX name: '${xuggle.dir}'" />
   </target>
   <target name="mac-init"
-    if="os.mac">
+      if="os.mac">
     <condition property="env.XUGGLE_HOME" value="/usr/local">
       <not>
         <isset property="env.XUGGLE_HOME"/>
@@ -323,7 +323,7 @@ using the library and what you like or don't like about it.
     <property name="runtime.so.path.directory" value="lib"/>
   </target>
   <target name="unix-init"
-    if="os.unix">
+      if="os.unix">
     <condition property="env.XUGGLE_HOME" value="/usr/local">
       <not>
         <isset property="env.XUGGLE_HOME"/>
@@ -348,7 +348,7 @@ using the library and what you like or don't like about it.
   </target>
 
   <target name="os-init"
-    depends="windows-init, mac-init, unix-init">
+      depends="windows-init, mac-init, unix-init">
   </target>
 
   <target name="init" depends="os-init, java6.check, ivy-init" >
@@ -367,9 +367,9 @@ using the library and what you like or don't like about it.
 
     <!-- Get the SVN Revision if available -->
     <exec executable="sh"
-      dir="${top.dir}"
-      failonerror="false"
-      failifexecutionfails="false">
+        dir="${top.dir}"
+        failonerror="false"
+        failifexecutionfails="false">
       <arg value="${xuggle-buildhelper.basedir}/revision.sh"/>
       <arg value="${top.dir}"/>
       <arg value="${top.dir}LastRevisionBuilt.txt"/>
@@ -384,7 +384,7 @@ using the library and what you like or don't like about it.
       </not>
     </condition>
     <property name="library.version" 
-      value="${library.version.major}.${library.version.minor}.${library.revision}"
+        value="${library.version.major}.${library.version.minor}.${library.revision}"
       />
 
     <echo message="Building Library Version: ${library.version}"/>
@@ -392,10 +392,10 @@ using the library and what you like or don't like about it.
 
     <!-- Get the native OS name, if available -->
     <exec executable="sh"
-      dir="${top.dir}"
-      failonerror="false"
-      output="${build.dir}/OS.properties"
-      failifexecutionfails="false">
+        dir="${top.dir}"
+        failonerror="false"
+        output="${build.dir}/OS.properties"
+        failifexecutionfails="false">
       <arg value="${xuggle-buildhelper.basedir}/guess_os.sh"/>
       <arg value="${top.dir}"/>
     </exec>
@@ -421,16 +421,16 @@ using the library and what you like or don't like about it.
       </else>
     </if>
     <property name="runtime.so.path.value"
-      value="${dist.dir}${file.separator}stage${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"
+        value="${dist.dir}${file.separator}stage${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"
       />
     <property name="runtime.java.library.path"
-      value="${dist.dir}${file.separator}stage${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"
+        value="${dist.dir}${file.separator}stage${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"
       />
   </target>
 
   <target name="ivy-retrieve" 
-    depends="ivy-init"
-    description="Retrieves the libraries if needed">
+      depends="ivy-init"
+      description="Retrieves the libraries if needed">
     <!-- Ivy configuration -->
     <condition property="ivy.settings.name" value="default">
       <not>
@@ -455,8 +455,8 @@ using the library and what you like or don't like about it.
   </target>
 
   <target name="compile-java"
-    depends="init"
-    description="compile the source " >
+      depends="init"
+      description="compile the source " >
     <antcall target="ivy-retrieve" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="compile"/>
     </antcall>
@@ -477,17 +477,17 @@ using the library and what you like or don't like about it.
     </copy>
     <!-- Compile the java code from ${src.dir} into ${build.dir} -->
     <javac
-      source="${java.source}"
-      destdir="${classes.dir}"
-      classpathref="compile.classpath"
-      optimize="${build.optimize}"
-      verbose="${build.verbose}"
-      fork="${build.fork}"
-      nowarn="${build.nowarn}"
-      deprecation="${build.deprecation}"
-      debug="${debug.state}"
-      debuglevel="${debug.level}"
-      listfiles="${build.listfiles}">
+        source="${java.source}"
+        destdir="${classes.dir}"
+        classpathref="compile.classpath"
+        optimize="${build.optimize}"
+        verbose="${build.verbose}"
+        fork="${build.fork}"
+        nowarn="${build.nowarn}"
+        deprecation="${build.deprecation}"
+        debug="${debug.state}"
+        debuglevel="${debug.level}"
+        listfiles="${build.listfiles}">
       <src path="${generated.src.dir}"/>
       <src path="${src.dir}"/>
       <compilerarg line="${build.extraflags}"/>
@@ -502,8 +502,8 @@ using the library and what you like or don't like about it.
   </target>
 
   <target name="stage-java"
-    depends="compile-java, fixtures-java"
-    description="Stages the final install directory structure under ${dist.dir}/stage">
+      depends="compile-java, fixtures-java"
+      description="Stages the final install directory structure under ${dist.dir}/stage">
     <!-- Create the distribution directory -->
     <antcall target="ivy-retrieve" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
@@ -609,18 +609,18 @@ using the library and what you like or don't like about it.
     </if>
   </target>
   <!-- Don't make install depend on dist or stage; that's because some people
-       need to run "install" as root, and depending on stage will create
-       root-owned files in their build directory.  -->
+    need to run "install" as root, and depending on stage will create
+    root-owned files in their build directory.  -->
   <target name="install-java"
-    depends="init"
-    description="Publishes the jar files to XUGGLE_HOME">
+      depends="init"
+      description="Publishes the jar files to XUGGLE_HOME">
   </target>
   <target name="install-native"
-    depends="init-native, install-native-do"
-    description="Publishes the native files to XUGGLE_HOME">
+      depends="init-native, install-native-do"
+      description="Publishes the native files to XUGGLE_HOME">
   </target>
   <target name="install-native-do"
-    if="native.makefile.exists">
+      if="native.makefile.exists">
     <if>
       <not>
         <available file="${dist.dir}/stage"/>
@@ -631,12 +631,12 @@ using the library and what you like or don't like about it.
     </if>
     <!-- This assumes we staged stuff first; if not, bad things can happen -->
     <exec
-      executable="sh"
-      dir="${top.dir}"
-      failonerror="true"
-      >
+        executable="sh"
+        dir="${top.dir}"
+        failonerror="true"
+        >
       <!-- Copies the stage directory contents to the root directory.
-      This is not as stupid as it sounds (I hope).  -->
+        This is not as stupid as it sounds (I hope).  -->
       <arg value="${xuggle-buildhelper.basedir}/install-build.sh"/>
       <arg value="${dist.dir}${file.separator}stage"/>
       <arg value="/" />
@@ -644,17 +644,17 @@ using the library and what you like or don't like about it.
   </target>
 
   <target name="uninstall-java"
-    depends="init"
-    description="uninstalls any installed jar files from XUGGLE_HOME">
+      depends="init"
+      description="uninstalls any installed jar files from XUGGLE_HOME">
     <delete
-      failonerror="false"
-      includeemptydirs="true"
-      verbose="true"
-      dir="${xuggle.dir.native}/share/xuggle/java/${app.name}"/>
+        failonerror="false"
+        includeemptydirs="true"
+        verbose="true"
+        dir="${xuggle.dir.native}/share/xuggle/java/${app.name}"/>
   </target>
 
   <target name="clobber-java" depends="init, clobber-share, clean-java"
-    description="Cleans everything; make sure you can regenerate if needed">
+      description="Cleans everything; make sure you can regenerate if needed">
     <delete
         includeemptydirs="yes"
         failonerror="false">
@@ -674,7 +674,7 @@ using the library and what you like or don't like about it.
   </target>
 
   <target name="clean-java" depends="clean-share"
-    description="clean up" >
+      description="clean up" >
     <delete
         includeemptydirs="yes"
         failonerror="false">
@@ -694,7 +694,7 @@ using the library and what you like or don't like about it.
   </target>
 
   <target name="fixtures-java" depends="init"
-    description="install fixtures needed by tests in the right place">
+      description="install fixtures needed by tests in the right place">
     <!-- copy over fixtures -->
     <copy todir="${test.fixtures.dir}">
       <fileset dir="${test.src.fixtures.dir}">
@@ -708,30 +708,30 @@ using the library and what you like or don't like about it.
       <param name="ivy.settings.name" value="test"/>
     </antcall>
     <javac
-      source="${java.source}"
-      srcdir="${test.src.dir}"
-      destdir="${test.classes.dir}"
-      classpathref="test.classpath"
-      optimize="${build.optimize}"
-      verbose="${build.verbose}"
-      fork="${build.fork}"
-      nowarn="${build.nowarn}"
-      deprecation="${build.deprecation}"
-      debug="${debug.state}"
-      debuglevel="${debug.level}"
-      listfiles="${build.listfiles}">
+        source="${java.source}"
+        srcdir="${test.src.dir}"
+        destdir="${test.classes.dir}"
+        classpathref="test.classpath"
+        optimize="${build.optimize}"
+        verbose="${build.verbose}"
+        fork="${build.fork}"
+        nowarn="${build.nowarn}"
+        deprecation="${build.deprecation}"
+        debug="${debug.state}"
+        debuglevel="${debug.level}"
+        listfiles="${build.listfiles}">
       <compilerarg line="${build.extraflags}"/>
     </javac>
     <copy
-      overwrite="yes"
-      todir="${test.classes.dir}">
+        overwrite="yes"
+        todir="${test.classes.dir}">
       <fileset dir="${test.src.dir}">
         <include name="**/*.xml"/>
       </fileset>
     </copy>
     <jar jarfile="${dist.dir}/lib/${app.name}-test.jar"
-      index="no"
-      basedir="${test.classes.dir}">
+        index="no"
+        basedir="${test.classes.dir}">
       <include name="**/*"/>
       <exclude name="output/**/*"/>
       <manifest>
@@ -743,12 +743,12 @@ using the library and what you like or don't like about it.
   </target>
 
   <target name="run-memcheck-java"
-    depends="init, compile-tests-java, fixtures-java"
-    description="run memory check test suite for Java if available">
+      depends="init, compile-tests-java, fixtures-java"
+      description="run memory check test suite for Java if available">
   </target>
 
   <target name="run-tests-java" depends="compile-tests-java"
-    description="Run JUnit tests and generate HTML reports">
+      description="Run JUnit tests and generate HTML reports">
     <!-- Clean up an old run -->
     <delete dir="${test.reports.dir}" quiet="true"/>
     <antcall target="fixtures-java" inheritAll="true" inheritRefs="true">
@@ -759,20 +759,20 @@ using the library and what you like or don't like about it.
     <echo message="env.${runtime.so.path.variable}=${runtime.so.path.value}"/>
     <echo message="test.jvm.properties=${test.jvm.properties}"/>
     <junit
-      fork="true"
-      haltonfailure="no"
-      haltonerror="no"
-      printsummary="yes"
-      failureproperty="test.failure.property"
-      showoutput="${test.show_output}"
-      timeout="1800000"
-      dir="${test.reports.dir}"
-      newenvironment="no"
-      >
+        fork="true"
+        haltonfailure="no"
+        haltonerror="no"
+        printsummary="yes"
+        failureproperty="test.failure.property"
+        showoutput="${test.show_output}"
+        timeout="1800000"
+        dir="${test.reports.dir}"
+        newenvironment="no"
+        >
       <env key="${runtime.so.path.variable}"
-        path="${runtime.so.path.value}"/>
+          path="${runtime.so.path.value}"/>
       <!-- This line makes sure that Java looks in the build dir for the
-      shared library.  -->
+        shared library.  -->
       <jvmarg value="-Djava.library.path=${runtime.java.library.path}"/>
       <jvmarg value="-Denv.${runtime.so.path.variable}=${runtime.so.path.value}"/>
       <jvmarg value="-XX:+HeapDumpOnOutOfMemoryError"/>
@@ -780,12 +780,12 @@ using the library and what you like or don't like about it.
       <jvmarg value="${build.headless.setting}"/>
       <jvmarg line="${test.jvm.properties}"/>
       <!--
-      <jvmarg value="-verbose:jni"/>
-      <jvmarg value="-verbose:gc"/>
-      <jvmarg value="-XX:+PrintGCDetails"/>
-      <jvmarg value="-XX:+PrintGCTimeStamps"/>
-      <jvmarg value="-XX:+PrintTenuringDistribution"/>
-      -->
+        <jvmarg value="-verbose:jni"/>
+          <jvmarg value="-verbose:gc"/>
+            <jvmarg value="-XX:+PrintGCDetails"/>
+              <jvmarg value="-XX:+PrintGCTimeStamps"/>
+                <jvmarg value="-XX:+PrintTenuringDistribution"/>
+                -->
       <classpath>
         <path refid="test.classpath"/>
       </classpath>
@@ -818,9 +818,9 @@ using the library and what you like or don't like about it.
     </if>
 
   </target>
-  
+
   <target name="run-tests-java-all" depends="compile-tests-java, fixtures-java"
-    description="Run ALL JUnit tests and generate HTML reports">
+      description="Run ALL JUnit tests and generate HTML reports">
     <!-- Clean up an old run -->
     <delete dir="${test.reports.dir}" quiet="true"/>
     <antcall target="fixtures-java" inheritAll="true" inheritRefs="true">
@@ -832,33 +832,33 @@ using the library and what you like or don't like about it.
     <echo message="env.${runtime.so.path.variable}=${runtime.so.path.value}"/>
     <echo message="exhaustivetest.jvm.properties=${exhaustivetest.jvm.properties}"/>
     <junit
-      fork="true"
-      haltonfailure="no"
-      haltonerror="no"
-      failureproperty="test.failure.property"
-      printsummary="yes"
-      showoutput="${test.show_output}"
-      timeout="1800000"
-      dir="${test.reports.dir}"
-      newenvironment="no"
-      >
+        fork="true"
+        haltonfailure="no"
+        haltonerror="no"
+        failureproperty="test.failure.property"
+        printsummary="yes"
+        showoutput="${test.show_output}"
+        timeout="1800000"
+        dir="${test.reports.dir}"
+        newenvironment="no"
+        >
       <env key="${runtime.so.path.variable}"
-        path="${runtime.so.path.value}"/>
+          path="${runtime.so.path.value}"/>
       <!-- This line makes sure that Java looks in the build dir for the
-      shared library.  -->
+        shared library.  -->
       <jvmarg value="-Djava.library.path=${runtime.java.library.path}"/>
       <jvmarg value="-Denv.${runtime.so.path.variable}=${runtime.so.path.value}"/>
       <jvmarg value="${build.headless.setting}"/>
       <jvmarg line="${exhaustivetest.jvm.properties}"/>
       <!--
-      <jvmarg value="-Xcheck:jni"/>
-      <jvmarg value="-XX:+HeapDumpOnOutOfMemoryError"/>
-      <jvmarg value="-verbose:jni"/>
-      <jvmarg value="-verbose:gc"/>
-      <jvmarg value="-XX:+PrintGCDetails"/>
-      <jvmarg value="-XX:+PrintGCTimeStamps"/>
-      <jvmarg value="-XX:+PrintTenuringDistribution"/>
-      -->
+        <jvmarg value="-Xcheck:jni"/>
+          <jvmarg value="-XX:+HeapDumpOnOutOfMemoryError"/>
+            <jvmarg value="-verbose:jni"/>
+              <jvmarg value="-verbose:gc"/>
+                <jvmarg value="-XX:+PrintGCDetails"/>
+                  <jvmarg value="-XX:+PrintGCTimeStamps"/>
+                    <jvmarg value="-XX:+PrintTenuringDistribution"/>
+                    -->
       <classpath>
         <path refid="test.classpath"/>
       </classpath>
@@ -904,23 +904,23 @@ using the library and what you like or don't like about it.
     </condition>
     <echo message="Javadoc API stub: ${javadoc.loc}"/>
     <javadoc
-      overview="doc/java/overview.html"
-      useexternalfile="true"
-      failonerror="true"
-      stylesheetfile="${xuggle-buildhelper.basedir}/javadoc.css"
-      verbose="false"
-      classpathref="compile.classpath"
-      destdir="${javadoc.dir}"
-      linksource="yes"
-      author="true" version="true"
-      Use="true"
-      splitindex="true"
-      Protected="true"
-      includenosourcepackages="true"
-      windowtitle="${documentation.title}">
+        overview="doc/java/overview.html"
+        useexternalfile="true"
+        failonerror="true"
+        stylesheetfile="${xuggle-buildhelper.basedir}/javadoc.css"
+        verbose="false"
+        classpathref="compile.classpath"
+        destdir="${javadoc.dir}"
+        linksource="yes"
+        author="true" version="true"
+        Use="true"
+        splitindex="true"
+        Protected="true"
+        includenosourcepackages="true"
+        windowtitle="${documentation.title}">
       <doclet 
-        name="gr.spinellis.umlgraph.doclet.UmlGraphDoc"
-        path="${basedir}/mk/buildtools/lib/umlgraph.jar">
+          name="gr.spinellis.umlgraph.doclet.UmlGraphDoc"
+          path="${basedir}/mk/buildtools/lib/umlgraph.jar">
         <param name="-d" value="${javadoc.dir}"/>
         <param name="-horizontal"/>
         <param name="-qualify"/>
@@ -937,53 +937,53 @@ using the library and what you like or don't like about it.
       </packageset>
       <doctitle><![CDATA[<h1>${documentation.title}</h1>]]></doctitle>
       <bottom><![CDATA[<i>Copyright &#169; 2009 <a href="http://www.xuggle.com/" target="_blank">Xuggle</a></i>]]></bottom>
-      <link href="http://java.sun.com/${javadoc.loc}/docs/api"/>
-      <link href="http://mina.apache.org/report/1.1/apidocs"/>
-      <link href="http://static.springframework.org/spring/docs/2.0.x/api"/>
-      <link href="http://www.slf4j.org/apidocs/"/>
-      <link href="http://logback.qos.ch/apidocs/"/>
-      <link href="http://jetm.void.fm/api/"/>
-      <link href="http://www.cs.umd.edu/projects/PL/multithreadedtc/docs/"/>
-      <link href="http://build.xuggle.com/job/red5_java_server_trunk_jdk5_i386_ubuntu/javadoc/"/>
-      <link href="http://build.xuggle.com/job/xuggle_java_utils_jdk5_i386_ubuntu/javadoc/java/api/"/>
-      <link href="http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_ubuntu/javadoc/java/api/"/>
-      <link href="http://build.xuggle.com/job/xuggle_java_xuggler_red5_jdk5_i386_ubuntu/javadoc/java/api/"/>
+    <link href="http://java.sun.com/${javadoc.loc}/docs/api"/>
+    <link href="http://mina.apache.org/report/1.1/apidocs"/>
+    <link href="http://static.springframework.org/spring/docs/2.0.x/api"/>
+    <link href="http://www.slf4j.org/apidocs/"/>
+    <link href="http://logback.qos.ch/apidocs/"/>
+    <link href="http://jetm.void.fm/api/"/>
+    <link href="http://www.cs.umd.edu/projects/PL/multithreadedtc/docs/"/>
+    <link href="http://build.xuggle.com/job/red5_java_server_trunk_jdk5_i386_ubuntu/javadoc/"/>
+    <link href="http://build.xuggle.com/job/xuggle_java_utils_jdk5_i386_ubuntu/javadoc/java/api/"/>
+    <link href="http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_ubuntu/javadoc/java/api/"/>
+    <link href="http://build.xuggle.com/job/xuggle_java_xuggler_red5_jdk5_i386_ubuntu/javadoc/java/api/"/>
 
-    </javadoc>
-    <!-- copy over any images we keep for documentation to
-     overlap the javadoc tree -->
-    <copy failonerror="false" todir="${javadoc.dir}">
-      <fileset dir="${imagedoc.dir}">
-        <include name="**/*"/>
-      </fileset>
-    </copy>
-    <apply
+  </javadoc>
+  <!-- copy over any images we keep for documentation to
+    overlap the javadoc tree -->
+  <copy failonerror="false" todir="${javadoc.dir}">
+    <fileset dir="${imagedoc.dir}">
+      <include name="**/*"/>
+    </fileset>
+  </copy>
+  <apply
       executable="dot"
       dest="${javadoc.dir}"
       failifexecutionfails="no"
       parallel="false">
-      <arg value="-Tpng"/>
-      <arg value="-o"/>
-      <targetfile/>
-      <srcfile/>
-      <fileset dir="${javadoc.dir}" includes="*.dot"/>
-      <mapper type="glob" from="*.dot" to="*.png"/>
-    </apply>
-  </target>
+    <arg value="-Tpng"/>
+    <arg value="-o"/>
+    <targetfile/>
+    <srcfile/>
+    <fileset dir="${javadoc.dir}" includes="*.dot"/>
+    <mapper type="glob" from="*.dot" to="*.png"/>
+  </apply>
+</target>
 
-  <target name="doc-java-fast" depends="init, compile-java"
+<target name="doc-java-fast" depends="init, compile-java"
     description="Generate JavaDoc, but without diagrams">
-    <!-- Determine the location of Sun's API docs -->
-    <condition property="javadoc.loc" value="javase/6">
+  <!-- Determine the location of Sun's API docs -->
+  <condition property="javadoc.loc" value="javase/6">
+    <equals arg1="${java6.installed}" arg2="true"/>
+  </condition>
+  <condition property="javadoc.loc" value="j2se/1.5.0">
+    <not>
       <equals arg1="${java6.installed}" arg2="true"/>
-    </condition>
-    <condition property="javadoc.loc" value="j2se/1.5.0">
-      <not>
-        <equals arg1="${java6.installed}" arg2="true"/>
-      </not>
-    </condition>
-    <echo message="Javadoc API stub: ${javadoc.loc}"/>
-    <javadoc
+    </not>
+  </condition>
+  <echo message="Javadoc API stub: ${javadoc.loc}"/>
+  <javadoc
       overview="doc/java/overview.html"
       useexternalfile="true"
       failonerror="true"
@@ -998,48 +998,48 @@ using the library and what you like or don't like about it.
       Protected="true"
       includenosourcepackages="true"
       windowtitle="${documentation.title}">
-      <packageset dir="${generated.src.dir}" defaultexcludes="yes">
-      </packageset>
-      <packageset dir="${src.dir}" defaultexcludes="yes">
-      </packageset>
-      <doctitle><![CDATA[<h1>${documentation.title}</h1>]]></doctitle>
-      <bottom><![CDATA[<i>Copyright &#169; 2009 <a href="http://www.xuggle.com/" target="_blank">Xuggle</a></i>]]></bottom>
-      <link href="http://java.sun.com/${javadoc.loc}/docs/api"/>
-      <link href="http://mina.apache.org/report/1.1/apidocs"/>
-      <link href="http://static.springframework.org/spring/docs/2.0.x/api"/>
-      <link href="http://www.slf4j.org/apidocs/"/>
-      <link href="http://logback.qos.ch/apidocs/"/>
-      <link href="http://jetm.void.fm/api/"/>
-      <link href="http://www.cs.umd.edu/projects/PL/multithreadedtc/docs/"/>
-      <link href="http://build.xuggle.com/job/red5_java_server_trunk_jdk5_i386_ubuntu/javadoc/"/>
-      <link href="http://build.xuggle.com/job/xuggle_java_utils_jdk5_i386_ubuntu/javadoc/java/api/"/>
-      <link href="http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_ubuntu/javadoc/java/api/"/>
-      <link href="http://build.xuggle.com/job/xuggle_java_xuggler_red5_jdk5_i386_ubuntu/javadoc/java/api/"/>
+    <packageset dir="${generated.src.dir}" defaultexcludes="yes">
+    </packageset>
+    <packageset dir="${src.dir}" defaultexcludes="yes">
+    </packageset>
+    <doctitle><![CDATA[<h1>${documentation.title}</h1>]]></doctitle>
+    <bottom><![CDATA[<i>Copyright &#169; 2009 <a href="http://www.xuggle.com/" target="_blank">Xuggle</a></i>]]></bottom>
+  <link href="http://java.sun.com/${javadoc.loc}/docs/api"/>
+  <link href="http://mina.apache.org/report/1.1/apidocs"/>
+  <link href="http://static.springframework.org/spring/docs/2.0.x/api"/>
+  <link href="http://www.slf4j.org/apidocs/"/>
+  <link href="http://logback.qos.ch/apidocs/"/>
+  <link href="http://jetm.void.fm/api/"/>
+  <link href="http://www.cs.umd.edu/projects/PL/multithreadedtc/docs/"/>
+  <link href="http://build.xuggle.com/job/red5_java_server_trunk_jdk5_i386_ubuntu/javadoc/"/>
+  <link href="http://build.xuggle.com/job/xuggle_java_utils_jdk5_i386_ubuntu/javadoc/java/api/"/>
+  <link href="http://build.xuggle.com/job/xuggle_java_xuggler_jdk5_i386_ubuntu/javadoc/java/api/"/>
+  <link href="http://build.xuggle.com/job/xuggle_java_xuggler_red5_jdk5_i386_ubuntu/javadoc/java/api/"/>
 
-    </javadoc>
-    <!-- copy over any images we keep for documentation to
-     overlap the javadoc tree -->
-    <copy failonerror="false" todir="${javadoc.dir}">
-      <fileset dir="${imagedoc.dir}">
-        <include name="**/*"/>
-      </fileset>
-    </copy>
+</javadoc>
+<!-- copy over any images we keep for documentation to
+  overlap the javadoc tree -->
+<copy failonerror="false" todir="${javadoc.dir}">
+  <fileset dir="${imagedoc.dir}">
+    <include name="**/*"/>
+  </fileset>
+</copy>
   </target>
 
 
   <target name="uptodate-native"
-    depends="init">
+      depends="init">
     <available property="native.configure.exists"
-      file="${top.dir}/configure"/>
+        file="${top.dir}/configure"/>
     <echo message="${top.dir}/configure exists=${native.configure.exists}"/>
     <available property="native.makefile.exists"
-      file="${build-native.dir}/Makefile"/>
+        file="${build-native.dir}/Makefile"/>
     <echo message="${build-native.dir}/Makefile exists=${native.makefile.exists}"/>
   </target>
   <target name="configure-native"
-    if="native.configure.exists"
-    unless="native.makefile.exists"
-    description="Run configure">
+      if="native.configure.exists"
+      unless="native.makefile.exists"
+      description="Run configure">
     <mkdir dir="${build-native.dir}"/>
     <if>
       <isset property="build.m64"/>
@@ -1072,37 +1072,37 @@ using the library and what you like or don't like about it.
         value="../../../configure ${build.m64.flag} ${build.configure.flag} ${build.configure.maintainer.flag} --prefix=${xuggle.dir}"/>
 
     <!-- Yes, Windows is annoying and doesn't do well with
-    unescaped paths... so we convert to Unix format -->
+      unescaped paths... so we convert to Unix format -->
     <unix-pathconvert property="top.dir.unix" path="${top.dir}"/>
     <echo message="executing: ${configure.line}"/>
     <exec executable="sh"
-      dir="${build-native.dir}"
-      failonerror="true">
+        dir="${build-native.dir}"
+        failonerror="true">
       <arg line="${configure.line}"/>
     </exec>
     <available property="native.makefile.exists"
-      file="${build-native.dir}/Makefile"/>
+        file="${build-native.dir}/Makefile"/>
     <echo message="${build-native.dir}/Makefile should now exist=${native.makefile.exists}"/>
   </target>
   <target name="init-native"
-    depends="uptodate-native, configure-native"
-    description="Runs configure in the current directory if Makefile is not up to date"
-    >
+      depends="uptodate-native, configure-native"
+      description="Runs configure in the current directory if Makefile is not up to date"
+      >
   </target>
   <target name="compile-native-do"
-    if="native.makefile.exists" >
+      if="native.makefile.exists" >
     <exec executable="${build.native.make}"
-      dir="${build-native.dir}"
-      failonerror="true">
+        dir="${build-native.dir}"
+        failonerror="true">
       <arg line="all"/>
     </exec>
   </target>
   <target name="compile-native"
-    depends="init-native, compile-native-do"
-    description="Builds the native library">
+      depends="init-native, compile-native-do"
+      description="Builds the native library">
   </target>
   <target name="dist-native-do"
-    if="native.makefile.exists">
+      if="native.makefile.exists">
     <!-- Build binary distributions for all OS in ZIP format -->
     <mkdir dir="${dist.dir}/bin"/>
     <zip
@@ -1224,49 +1224,49 @@ using the library and what you like or don't like about it.
     </if>
   </target>
   <target name="dist-native"
-    depends="init-native, stage-native, dist-native-do"
-    description="Builds the native source distribution">
+      depends="init-native, stage-native, dist-native-do"
+      description="Builds the native source distribution">
   </target>
   <target name="dist-native-test-do"
-    if="native.makefile.exists">
+      if="native.makefile.exists">
     <exec executable="${build.native.make}"
-      dir="${build-native.dir}"
-      failonerror="true">
+        dir="${build-native.dir}"
+        failonerror="true">
       <arg line="distcheck"/>
     </exec>
   </target>
   <target name="dist-native-test"
-    depends="init-native, dist-native-test-do"
-    description="Builds the native source distribution, and makes sure it's complete">
+      depends="init-native, dist-native-test-do"
+      description="Builds the native source distribution, and makes sure it's complete">
   </target>
   <target name="compile-tests-native-do"
-    if="native.makefile.exists">
+      if="native.makefile.exists">
   </target>
   <target name="compile-tests-native"
-    depends="init-native, compile-tests-native-do"
-    description="Compiles the native test code">
+      depends="init-native, compile-tests-native-do"
+      description="Compiles the native test code">
   </target>
   <target name="stage-native-do"
-    if="native.makefile.exists">
+      if="native.makefile.exists">
     <!-- stage the captive binaries -->
     <exec executable="${build.native.make}"
-      dir="${build-native.dir}/captive"
-      failonerror="true">
+        dir="${build-native.dir}/captive"
+        failonerror="true">
       <env key="DESTDIR" value="${dist.unix.dir}/stage-ffmpeg"/>
       <arg line="install"/>
     </exec>
     <!-- stage the core binaries -->
     <exec executable="${build.native.make}"
-      dir="${build-native.dir}/csrc"
-      failonerror="true">
+        dir="${build-native.dir}/csrc"
+        failonerror="true">
       <env key="DESTDIR" value="${dist.unix.dir}/stage-core"/>
       <arg line="install"/>
     </exec>
     <!-- now, restage both to a combined target; we have to do a make
       instead of an ant copy, since ant copy will drop file attributes -->
     <exec executable="${build.native.make}"
-      dir="${build-native.dir}"
-      failonerror="true">
+        dir="${build-native.dir}"
+        failonerror="true">
       <env key="DESTDIR" value="${dist.unix.dir}/stage"/>
       <arg line="install"/>
     </exec>
@@ -1285,161 +1285,161 @@ using the library and what you like or don't like about it.
     </copy>
   </target>
   <target name="stage-native"
-    depends="init-native, compile-native, stage-native-do"
-    description="Stages the native libraries to ${dist.dir}/stage/${xuggle.dir}">
+      depends="init-native, compile-native, stage-native-do"
+      description="Stages the native libraries to ${dist.dir}/stage/${xuggle.dir}">
   </target>
   <target name="run-tests-native-do"
-    if="native.makefile.exists">
+      if="native.makefile.exists">
     <exec executable="${build.native.make}"
-      dir="${build-native.dir}"
-      failonerror="true">
+        dir="${build-native.dir}"
+        failonerror="true">
       <arg line="check"/>
     </exec>
   </target>
   <target name="run-tests-native"
-    depends="init-native, compile-native, compile-tests-native, run-tests-native-do"
-    description="Runs the native test suite">
+      depends="init-native, compile-native, compile-tests-native, run-tests-native-do"
+      description="Runs the native test suite">
   </target>
   <target name="run-tests-native-all"
-    depends="run-tests-native"
-    description="Runs the native test suite, including any exhaustive tests">
+      depends="run-tests-native"
+      description="Runs the native test suite, including any exhaustive tests">
   </target>
   <target name="run-memcheck-native-do"
-    if="native.makefile.exists">
+      if="native.makefile.exists">
     <exec executable="${build.native.make}"
-      dir="${build-native.dir}"
-      failonerror="true">
+        dir="${build-native.dir}"
+        failonerror="true">
       <arg line="memcheck"/>
     </exec>
   </target>
   <target name="run-memcheck-native"
-    depends="init-native, run-memcheck-native-do"
-    description="Runs the native memory checking suite">
+      depends="init-native, run-memcheck-native-do"
+      description="Runs the native memory checking suite">
   </target>
   <target name="doc-native-do"
-    if="native.makefile.exists">
+      if="native.makefile.exists">
     <exec executable="${build.native.make}"
-      dir="${build-native.dir}"
-      failonerror="true">
+        dir="${build-native.dir}"
+        failonerror="true">
       <arg line="doc"/>
     </exec>
   </target>
   <target name="doc-native"
-    depends="init-native, doc-native-do"
-    description="Generate the native documentation">
+      depends="init-native, doc-native-do"
+      description="Generate the native documentation">
   </target>
 
   <target name="fixtures-native-do"
-    if="native.makefile.exists">
+      if="native.makefile.exists">
     <!-- Do nothign for now, but override this if you want to install any -->
   </target>
 
   <target name="fixtures-native"
-    depends="init-native, fixtures-native-do"
-    description="Install the native fixtures">
+      depends="init-native, fixtures-native-do"
+      description="Install the native fixtures">
   </target>
 
   <target name="clean-native-do"
-    if="native.makefile.exists"
-    description="Special target that is only called if the Makefile already exists">
+      if="native.makefile.exists"
+      description="Special target that is only called if the Makefile already exists">
     <exec executable="${build.native.make}"
-      dir="${build-native.dir}/csrc"
-      failonerror="true">
+        dir="${build-native.dir}/csrc"
+        failonerror="true">
       <arg line="clean"/>
     </exec>
     <exec executable="${build.native.make}"
-      dir="${build-native.dir}/test/csrc"
-      failonerror="true">
+        dir="${build-native.dir}/test/csrc"
+        failonerror="true">
       <arg line="clean"/>
     </exec>
   </target>
   <target name="clean-native"
-    depends="init-native, clean-native-do"
-    description="Cleans the native tree">
+      depends="init-native, clean-native-do"
+      description="Cleans the native tree">
   </target>
   <target name="clobber-native"
-    depends="init"
-    description="Do a complete distribution clean of the native code">
+      depends="init"
+      description="Do a complete distribution clean of the native code">
     <!-- We just nuke the build directory where everything should
-         be under -->
+      be under -->
     <delete failonerror="false" dir="${build-native.dir}"/>
   </target>
   <target name="uninstall-native-do"
-    if="native.makefile.exists">
+      if="native.makefile.exists">
     <exec executable="${build.native.make}"
-      dir="${build-native.dir}"
-      failonerror="true">
+        dir="${build-native.dir}"
+        failonerror="true">
       <arg line="uninstall"/>
     </exec>
   </target>
   <target name="uninstall-native"
-    depends="init-native, uninstall-native-do"
-    description="Do a complete uninstall of the native code">
+      depends="init-native, uninstall-native-do"
+      description="Do a complete uninstall of the native code">
   </target>
 
   <target name="all" depends="run-tests, doc, dist, install"
-    description="build everything (including native), run all tests, and build all docs"/>
+      description="build everything (including native), run all tests, and build all docs"/>
 
   <target name="compile"
-    depends="compile-native, compile-java"
-    description="compile everything, including native code if available"/>
+      depends="compile-native, compile-java"
+      description="compile everything, including native code if available"/>
   <target name="compile-tests"
-    depends="compile-tests-native, compile-tests-java"
-    description="compile everything, including native code if available"/>
+      depends="compile-tests-native, compile-tests-java"
+      description="compile everything, including native code if available"/>
   <target name="dist"
-    depends="dist-native, dist-java"
-    description="dist everything, including native code if available"/>
+      depends="dist-native, dist-java"
+      description="dist everything, including native code if available"/>
   <!-- stage stages java first, so that the native stage
-       can copy any jars -->
+    can copy any jars -->
   <target name="stage"
-    depends="compile-native, stage-java, stage-native"
-    description="stage everything for a final installation, but use ${dist.dir}/stage as the root directory">
+      depends="compile-native, stage-java, stage-native"
+      description="stage everything for a final installation, but use ${dist.dir}/stage as the root directory">
     <antcall target="stage-share" inheritAll="true" inheritRefs="true"/>
   </target>
   <target name="install"
-    depends="install-native, install-java"
-    description="install everything, including native code if available">
+      depends="install-native, install-java"
+      description="install everything, including native code if available">
     <antcall target="install-share" inheritAll="true" inheritRefs="true"/>
   </target>
   <target name="uninstall"
-    depends="uninstall-native, uninstall-java"
-    description="uninstall everything, including native code if available">
+      depends="uninstall-native, uninstall-java"
+      description="uninstall everything, including native code if available">
     <antcall target="uninstall-share"/>
   </target>
   <target name="clobber"
-    depends="clobber-java, clobber-native"
-    description="clobber everything, including native code if available"/>
+      depends="clobber-java, clobber-native"
+      description="clobber everything, including native code if available"/>
   <target name="clean"
-    depends="clean-native, clean-java"
-    description="clean everything, including native code if available"/>
+      depends="clean-native, clean-java"
+      description="clean everything, including native code if available"/>
   <target name="run-tests"
-    depends="stage, run-tests-native, run-tests-java"
-    description="Run all tests, including native tests if available"/>
+      depends="stage, run-tests-native, run-tests-java"
+      description="Run all tests, including native tests if available"/>
   <target name="run-tests-all"
-    depends="stage, run-tests-native-all, run-tests-java-all"
-    description="Run all tests, including native tests if available"/>
+      depends="stage, run-tests-native-all, run-tests-java-all"
+      description="Run all tests, including native tests if available"/>
   <target name="run-memcheck"
-    depends="run-memcheck-native, run-memcheck-java"
-    description="Run all memory tests, including native tests if available"/>
+      depends="run-memcheck-native, run-memcheck-java"
+      description="Run all memory tests, including native tests if available"/>
   <target name="doc"
-    depends="doc-native, doc-java"
-    description="Create all documentation, including native documentation if available"/>
+      depends="doc-native, doc-java"
+      description="Create all documentation, including native documentation if available"/>
   <target name="doc-fast"
-    depends="doc-java-fast"
-    description="Create all documentation, including native documentation if available, but without diagrams"/>
+      depends="doc-java-fast"
+      description="Create all documentation, including native documentation if available, but without diagrams"/>
   <target name="fixtures"
-    depends="fixtures-native, fixtures-java"
-    description="Install all test fixtures, including native fixtures if required"/>
+      depends="fixtures-native, fixtures-java"
+      description="Install all test fixtures, including native fixtures if required"/>
 
   <!--
-  Macros go here.
+    Macros go here.
   -->
   <!-- Creates a tomcat or red5 war -->
   <macrodef name="webapp">
     <attribute name="name"/>
     <sequential>
       <war destfile="${dist.dir}/war/@{name}.war"
-        webxml="web/@{name}/WEB-INF/web.xml">
+          webxml="web/@{name}/WEB-INF/web.xml">
         <fileset dir="web/@{name}"/>
         <lib dir="${dist.dir}/lib"/>
       </war>
@@ -1455,18 +1455,18 @@ using the library and what you like or don't like about it.
   </macrodef>
   <macrodef name="install-red5webapp">
     <attribute name="name"/>
-        <sequential>
-    <if>
-      <available file="${env.RED5_HOME}/webapps"/>
-      <then>
+    <sequential>
+      <if>
+        <available file="${env.RED5_HOME}/webapps"/>
+        <then>
           <uninstall-red5webapp name="@{name}"/>
           <mkdir dir="${env.RED5_HOME}/webapps/@{name}"/>
           <!-- auto deploy into red5 -->
           <unzip src="${dist.dir}/war/@{name}.war"
-            dest="${env.RED5_HOME}/webapps/@{name}"/>
-      </then>
-    </if>
-        </sequential>
+              dest="${env.RED5_HOME}/webapps/@{name}"/>
+        </then>
+      </if>
+    </sequential>
   </macrodef>
   <!--
     This macro converts a path to a unix path, and makes
@@ -1475,22 +1475,22 @@ using the library and what you like or don't like about it.
     or cygwin style.
 
     This is needed to work with captive builds.
-    -->
+  -->
   <macrodef name="unix-pathconvert">
     <attribute name="property"/>
     <attribute name="path"/>
     <sequential>
       <if>
         <available
-          file="@{path}"/>
+            file="@{path}"/>
         <then>
           <exec
-            executable="sh"
-            dir="@{path}"
-            outputproperty="@{property}"
-            failonerror="false"
-            failifexecutionfails="false"
-            >
+              executable="sh"
+              dir="@{path}"
+              outputproperty="@{property}"
+              failonerror="false"
+              failifexecutionfails="false"
+              >
             <arg line="pwd -P"/>
           </exec>
         </then>
