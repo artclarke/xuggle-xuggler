@@ -71,25 +71,12 @@ public class RefCountedExhaustiveTest
       assertNotNull("could not copy reference", copy);
     }
     obj=null;
-    long bytesBeforeFailure = 0;
-    final long cap = (4L*1024L*1024L*1024L*1024L);
     while(JNIReference.getMgr().getNumPinnedObjects() > 0)
     {
       byte[] bytes = new byte[1024*1024];
       bytes[0] = 0;
       JNIReference.getMgr().gc();
-      bytesBeforeFailure += bytes.length;
-      if (bytesBeforeFailure > cap)
-      {
-        // some server JVMs can allocate lots of bytes without
-        // causing a collection (64 bit machines).  In those
-        // cases, just end the test.
-        System.out.println("Allocated too many bytes, so letting this finish: "
-            + bytesBeforeFailure);
-        JNIReference.getMgr().flush();
-        return;
-      }
-
+      System.gc(); // needed on x86_64 systems because otherwise they really delay collecting
     }
     assertEquals("Looks like we leaked an object",
         0, JNIReference.getMgr().getNumPinnedObjects());        
