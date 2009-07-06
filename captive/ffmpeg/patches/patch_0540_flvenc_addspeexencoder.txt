@@ -1,0 +1,41 @@
+Index: libavformat/flvenc.c
+===================================================================
+--- libavformat/flvenc.c	(revision 19361)
++++ libavformat/flvenc.c	(working copy)
+@@ -43,6 +43,7 @@
+     {CODEC_ID_ADPCM_SWF, FLV_CODECID_ADPCM  >> FLV_AUDIO_CODECID_OFFSET},
+     {CODEC_ID_AAC,       FLV_CODECID_AAC    >> FLV_AUDIO_CODECID_OFFSET},
+     {CODEC_ID_NELLYMOSER, FLV_CODECID_NELLYMOSER >> FLV_AUDIO_CODECID_OFFSET},
++    {CODEC_ID_SPEEX, FLV_CODECID_SPEEX >> FLV_AUDIO_CODECID_OFFSET},
+     {CODEC_ID_NONE,      0}
+ };
+ 
+@@ -70,6 +71,11 @@
+         case    11025:
+             flags |= FLV_SAMPLERATE_11025HZ;
+             break;
++        case 16000:
++            // special case for speex; in this case FLV lies and says 11025
++            flags |= FLV_SAMPLERATE_11025HZ;
++            break;
++            break;
+         case     8000: //nellymoser only
+         case     5512: //not mp3
+             if(enc->codec_id != CODEC_ID_MP3){
+@@ -109,6 +115,16 @@
+             flags |= FLV_CODECID_NELLYMOSER | FLV_SAMPLESSIZE_16BIT;
+         }
+         break;
++    case CODEC_ID_SPEEX:
++      if (enc->sample_rate == 16000 &&
++          enc->channels == 1 &&
++          enc->sample_fmt == SAMPLE_FMT_S16) {
++        flags |= FLV_CODECID_SPEEX | FLV_SAMPLESSIZE_16BIT | FLV_SAMPLERATE_11025HZ;
++      } else {
++        av_log(enc, AV_LOG_ERROR, "speex codec settings not compatible with flv\n");
++        return -1;
++      }
++      break;
+     case 0:
+         flags |= enc->codec_tag<<4;
+         break;

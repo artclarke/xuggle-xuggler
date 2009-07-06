@@ -1,0 +1,24 @@
+Index: libavformat/flvdec.c
+===================================================================
+--- libavformat/flvdec.c	(revision 19361)
++++ libavformat/flvdec.c	(working copy)
+@@ -217,11 +217,17 @@
+         acodec = astream ? astream->codec : NULL;
+         vcodec = vstream ? vstream->codec : NULL;
+ 
+-        if(amf_type == AMF_DATA_TYPE_NUMBER) {
++         if(amf_type == AMF_DATA_TYPE_BOOL) {
++            av_strlcpy(str_val, num_val > 0 ? "true" : "false", sizeof(str_val));
++            av_metadata_set(&s->metadata, key, str_val);
++         } else if(amf_type == AMF_DATA_TYPE_NUMBER) {
++            snprintf(str_val, sizeof(str_val), "%.f", num_val);
++            av_metadata_set(&s->metadata, key, str_val);
+             if(!strcmp(key, "duration")) s->duration = num_val * AV_TIME_BASE;
+             else if(!strcmp(key, "videodatarate") && vcodec && 0 <= (int)(num_val * 1024.0))
+                 vcodec->bit_rate = num_val * 1024.0;
+-        }
++        } else if (amf_type == AMF_DATA_TYPE_STRING)
++          av_metadata_set(&s->metadata, key, str_val);
+     }
+ 
+     return 0;
