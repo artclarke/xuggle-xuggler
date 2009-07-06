@@ -154,6 +154,7 @@ public class BufferExhaustiveTest
     for(int i = 0; i < 1000; i++)
     {
       arr = new byte[1024*1024]; 
+      System.gc();
       JNIReference.getMgr().gc();
       arr[0] = (byte)1;
       ibuf.put(i, 16);
@@ -233,5 +234,39 @@ public class BufferExhaustiveTest
       outBytes = null;
     }
   }
+
+  /**
+   * This is a crazy test to make sure that a direct byte buffer will
+   * decrement ref counts if freed by java Garbage Collector and
+   * our garbage collector
+   */
+  @Test(timeout=5*60*1000)
+  public void testDirectByteBufferIncrementsAndDecrementsRefCounts()
+  {
+    IBuffer buf = IBuffer.make(null, 1024*1024); // 1 MB
+    assertNotNull(buf);
+    
+    assertEquals(1, buf.getCurrentRefCount());
+
+    java.nio.ByteBuffer jbuf = buf.getByteBuffer(0, buf.getBufferSize());
+    assertNotNull(buf);
+    
+    assertEquals(2, buf.getCurrentRefCount());
+
+    jbuf.put(0, (byte)0xFF);
+    
+    // now release the reference
+    jbuf = null;
+    
+    while(buf.getCurrentRefCount() >= 2)
+    {
+      // force the collector to run eventually
+      byte[] garbage = new byte[1024*1024];
+      garbage[0] = 0;
+      System.gc();
+      JNIReference.getMgr().gc();
+    }
+  }
+
 
 }
