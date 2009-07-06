@@ -351,7 +351,31 @@
       depends="windows-init, mac-init, unix-init">
   </target>
 
-  <target name="init-native" depends="init" >
+  <target name="revision"
+      description="gets the latest SVN revision and writes it to build/Revision.properties">
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${build.dir}"/>
+    <!-- Get the SVN Revision if available -->
+    <exec executable="sh"
+        dir="${top.dir}"
+        failonerror="false"
+        failifexecutionfails="false">
+      <arg value="${xuggle-buildhelper.basedir}/revision.sh"/>
+      <arg value="${top.dir}"/>
+      <arg value="${top.dir}LastRevisionBuilt.txt"/>
+      <arg value="/dev/null"/>
+      <arg value="${build.dir}/Revision.properties"/>
+    </exec>
+    <!-- And read it -->
+    <property file="${build.dir}/Revision.properties"/>
+    <condition property="library.revision" value="0">
+      <not>
+        <isset property="library.revision"/>
+      </not>
+    </condition>
+    <property name="library.version" 
+        value="${library.version.major}.${library.version.minor}.${library.revision}"
+      />
     <!-- Get the native OS name, if available -->
     <delete failonerror="false" file="${build.dir}/OS.properties" />
     <exec executable="sh"
@@ -390,32 +414,6 @@
       />
     <property name="runtime.java.library.path"
         value="${dist.dir}${file.separator}stage${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"
-      />
-  </target>
-  <target name="revision"
-      description="gets the latest SVN revision and writes it to build/Revision.properties">
-    <!-- Create the build directory structure used by compile -->
-    <mkdir dir="${build.dir}"/>
-    <!-- Get the SVN Revision if available -->
-    <exec executable="sh"
-        dir="${top.dir}"
-        failonerror="false"
-        failifexecutionfails="false">
-      <arg value="${xuggle-buildhelper.basedir}/revision.sh"/>
-      <arg value="${top.dir}"/>
-      <arg value="${top.dir}LastRevisionBuilt.txt"/>
-      <arg value="/dev/null"/>
-      <arg value="${build.dir}/Revision.properties"/>
-    </exec>
-    <!-- And read it -->
-    <property file="${build.dir}/Revision.properties"/>
-    <condition property="library.revision" value="0">
-      <not>
-        <isset property="library.revision"/>
-      </not>
-    </condition>
-    <property name="library.version" 
-        value="${library.version.major}.${library.version.minor}.${library.revision}"
       />
 
     <echo message="Building Library Version: ${library.version}"/>
@@ -1096,7 +1094,7 @@
     <echo message="${build-native.dir}/Makefile should now exist=${native.makefile.exists}"/>
   </target>
   <target name="setup-native"
-      depends="init-native, uptodate-native, configure-native"
+      depends="init, uptodate-native, configure-native"
       description="Runs configure in the current directory if Makefile is not up to date"
       >
   </target>
