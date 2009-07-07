@@ -1,12 +1,13 @@
 Index: libavformat/utils.c
 ===================================================================
---- libavformat/utils.c	(revision 19327)
+--- libavformat/utils.c	(revision 19367)
 +++ libavformat/utils.c	(working copy)
-@@ -499,6 +499,7 @@
+@@ -499,7 +499,7 @@
      av_freep(&pd->buf);
      if (pb)
          url_fclose(pb);
-+    av_free(*ic_ptr);
-     *ic_ptr = NULL;
+-    *ic_ptr = NULL;
++    av_freep(ic_ptr);
      return err;
  
+ }
