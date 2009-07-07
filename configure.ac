@@ -7,7 +7,7 @@
 m4_define([VSM4_LIB_MAJOR_VERSION], [3])
 m4_define([VSM4_LIB_MINOR_VERSION], [1])
 
-AC_INIT([xuggler-captive],[VSM4_LIB_MAJOR_VERSION.VSM4_LIB_MINOR_VERSION],[info@xuggle.com])
+AC_INIT([xuggle-ffmpeg],[VSM4_LIB_MAJOR_VERSION.VSM4_LIB_MINOR_VERSION],[info@xuggle.com])
 AC_PREREQ([2.63])
 AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
 AM_MAINTAINER_MODE
