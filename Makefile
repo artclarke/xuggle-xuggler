@@ -105,12 +105,12 @@ endif
 
 SRC2 = $(SRCS) $(SRCCLI)
 # These should cover most of the important codepaths
-OPT0 = --crf 30 -b1 -m1 -r1 --me dia --no-cabac --direct temporal --no-ssim --no-psnr
-OPT1 = --crf 16 -b2 -m3 -r3 --me hex -8 --direct spatial --no-dct-decimate
-OPT2 = --crf 26 -b2 -m5 -r2 --me hex -8 -w --cqm jvt --nr 100
-OPT3 = --crf 18 -b3 -m9 -r5 --me umh -8 -t1 -A all --mixed-refs -w --b-pyramid --direct auto --no-fast-pskip
-OPT4 = --crf 22 -b3 -m7 -r4 --me esa -8 -t2 -A all --mixed-refs --psy-rd 1.0:1.0
-OPT5 = --frames 50 --crf 24 -b3 -m9 -r3 --me tesa -8 -t1 --mixed-refs
+OPT0 = --crf 30 -b1 -m1 -r1 --me dia --no-cabac --direct temporal --ssim --no-weightb
+OPT1 = --crf 16 -b2 -m3 -r3 --me hex --no-8x8dct --direct spatial --no-dct-decimate -t0
+OPT2 = --crf 26 -b4 -m5 -r2 --me hex --cqm jvt --nr 100 --psnr --no-mixed-refs --b-adapt 2
+OPT3 = --crf 18 -b3 -m9 -r5 --me umh -t1 -A all --b-pyramid --direct auto --no-fast-pskip
+OPT4 = --crf 22 -b3 -m7 -r4 --me esa -t2 -A all --psy-rd 1.0:1.0
+OPT5 = --frames 50 --crf 24 -b3 -m9 -r3 --me tesa -t1
 OPT6 = --frames 50 -q0 -m9 -r2 --me hex -Aall
 OPT7 = --frames 50 -q0 -m2 -r1 --me hex --no-cabac
 
@@ -125,7 +125,7 @@ fprofiled:
 	mv config.mak config.mak2
 	sed -e 's/CFLAGS.*/& -fprofile-generate/; s/LDFLAGS.*/& -fprofile-generate/' config.mak2 > config.mak
 	$(MAKE) x264$(EXE)
-	$(foreach V, $(VIDS), $(foreach I, 0 1 2 3 4 5 6 7, ./x264$(EXE) $(OPT$I) $(V) --progress -o $(DEVNULL) ;))
+	$(foreach V, $(VIDS), $(foreach I, 0 1 2 3 4 5 6 7, ./x264$(EXE) $(OPT$I) --threads 1 $(V) -o $(DEVNULL) ;))
 	rm -f $(SRC2:%.c=%.o)
 	sed -e 's/CFLAGS.*/& -fprofile-use/; s/LDFLAGS.*/& -fprofile-use/' config.mak2 > config.mak
 	$(MAKE)
