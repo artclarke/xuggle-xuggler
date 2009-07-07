@@ -83,8 +83,8 @@ StreamCoderSpeexTest :: testEncodingSpeexAudio()
 
   RefPointer<IPacket> packet = IPacket::make();
 
-  hw->setupWriting("StreamCoderSpeexTest_output.flv",
-      "flv", "libspeex", "flv");
+  hw->setupWriting("StreamCoderSpeexTest_output.ogg",
+      "libtheora", "libspeex", "ogg");
 
   RefPointer<IPacket> opacket = IPacket::make();
   VS_TUT_ENSURE("! opacket", opacket);
