@@ -677,10 +677,10 @@ uninstall-am:
 
 include $(abs_top_builddir)/mk/Makefile.global
 
-@HAVE_DOXYGEN_TRUE@doc: all
+.PHONY : doc
+@HAVE_DOXYGEN_TRUE@doc:
 @HAVE_DOXYGEN_TRUE@	$(MKDIR_P) $(DOC_DIR)
 @HAVE_DOXYGEN_TRUE@	cd $(abs_top_srcdir) && $(DOXYGEN) $(abs_top_srcdir)/mk/buildtools/Doxyfile
-@HAVE_DOXYGEN_FALSE@.PHONY : doc
 @HAVE_DOXYGEN_FALSE@doc:
 @HAVE_DOXYGEN_FALSE@	@echo "You must have 'doxygen' installed on your system to generate"
 @HAVE_DOXYGEN_FALSE@	@echo "the documentation.  Try installing it, and running"

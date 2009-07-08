@@ -28,12 +28,12 @@ EXTRA_DIST= \
 
 DOC_DIR=$(abs_top_srcdir)/doc/cpp/api
 
+.PHONY : doc
 if HAVE_DOXYGEN
-doc: all
+doc:
 	$(MKDIR_P) $(DOC_DIR)
 	cd $(abs_top_srcdir) && $(DOXYGEN) $(abs_top_srcdir)/mk/buildtools/Doxyfile
 else
-.PHONY : doc
 doc:
 	@echo "You must have 'doxygen' installed on your system to generate"
 	@echo "the documentation.  Try installing it, and running"
