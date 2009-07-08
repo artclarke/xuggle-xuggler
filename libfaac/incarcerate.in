@@ -61,5 +61,6 @@ echo "Configuring FAAC with these options: $FAAC_OPTIONS"
 CFLAGS="$CFLAGS -I'@abs_top_builddir@@includedir@'" \
 LDFLAGS="$LDFLAGS -L'@abs_top_builddir@@libdir@'" \
    sh @abs_builddir@/csrc/configure \
+   --disable-dependency-tracking \
   --prefix="${prefix}" $FAAC_OPTIONS || \
   (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)
