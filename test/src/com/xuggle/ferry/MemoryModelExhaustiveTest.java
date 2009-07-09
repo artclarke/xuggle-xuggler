@@ -1,9 +1,8 @@
 package com.xuggle.ferry;
 
+
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import junit.framework.TestCase;
@@ -50,12 +49,6 @@ public class MemoryModelExhaustiveTest extends TestCase
   {
     helperMaintainMediumTermReference(
         JNIMemoryManager.MemoryModel.JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION,
-        false); 
-  }
-  public void testMediumTermReference_NATIVE_BUFFERS()
-  {
-    helperMaintainMediumTermReference(
-        JNIMemoryManager.MemoryModel.NATIVE_BUFFERS,
         false); 
   }
   public void testMediumTermReference_NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION()
@@ -111,12 +104,6 @@ public class MemoryModelExhaustiveTest extends TestCase
   {
     helperMaintainShortTermReference(
         JNIMemoryManager.MemoryModel.JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION,
-        false); 
-  }
-  public void testShortTermReference_NATIVE_BUFFERS()
-  {
-    helperMaintainShortTermReference(
-        JNIMemoryManager.MemoryModel.NATIVE_BUFFERS,
         false); 
   }
   public void testShortTermReference_NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION()
@@ -237,11 +224,6 @@ public class MemoryModelExhaustiveTest extends TestCase
     System.out.println("Finished allocating objects: " + i);
   }
 
-  /**
-   * @return
-   * @throws OutOfMemoryError
-   */
-  
   public static IBuffer getTestBuffer(RefCounted allocator, int size,
       boolean forceCommit) throws OutOfMemoryError
   {
@@ -264,17 +246,8 @@ public class MemoryModelExhaustiveTest extends TestCase
       // clear up some ferry references and let the allocation
       // of the direct heap succeed.
       System.out.println("Attempting recovery from OOME");
-      List<byte[]> leakedBytes = new LinkedList<byte[]>();
       try {
-        long numPinned = JNIMemoryManager.getMgr().getNumPinnedObjects();
-        try {
-          while(numPinned <= JNIMemoryManager.getMgr().getNumPinnedObjects())
-            leakedBytes.add(new byte[size]);
-        } catch (OutOfMemoryError e1) {
-          // ignore
-          do {} while(false);
-        }
-        leakedBytes.clear();
+        MemoryTestHelper.forceJavaHeapWeakReferenceClear();
         JNIMemoryManager.collect();
         buffer = IBuffer.make(null, size);
       }
