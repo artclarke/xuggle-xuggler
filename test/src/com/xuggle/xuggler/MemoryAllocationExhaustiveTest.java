@@ -31,6 +31,7 @@ import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.ferry.IBuffer;
 import com.xuggle.ferry.JNIMemoryManager;
 import com.xuggle.ferry.JNIReference;
+import com.xuggle.ferry.MemoryTestHelper;
 
 import org.junit.After;
 import org.junit.Before;
@@ -263,15 +264,7 @@ public class MemoryAllocationExhaustiveTest
     // now we're going to force a GC to occur by overallocating
     // memory and catching the exception.  This is to test that
     // as many weak references as could be were cleared.
-    List<Byte[]> leakBytes = new LinkedList<Byte[]>();
-    try {
-      while(true) {
-        leakBytes.add(new Byte[1024*1024]);
-      }
-    }catch (OutOfMemoryError e) {
-      // free them out.
-      leakBytes.clear();
-    }
+    MemoryTestHelper.forceJavaHeapWeakReferenceClear();
     
     assertTrue("Looks like we didn't leak the large frame????",
         0 < JNIMemoryManager.getMgr().getNumPinnedObjects());

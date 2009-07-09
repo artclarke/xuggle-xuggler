@@ -59,7 +59,7 @@ public class RefCountedExhaustiveTest
     JNIMemoryManager.getMgr().flush();
   }
    
-  @Test(timeout=5*60*1000)
+  @Test(timeout=60*1000)
   public void testReferenceCountingLoadTestOfDeath() throws InterruptedException
   {
     assertEquals("should be no objects for collection", 
@@ -71,13 +71,11 @@ public class RefCountedExhaustiveTest
       assertNotNull("could not copy reference", copy);
     }
     obj=null;
+    
+    // Force a java collection
     while(JNIReference.getMgr().getNumPinnedObjects() > 0)
-    {
-      byte[] bytes = new byte[1024*1024];
-      bytes[0] = 0;
-      JNIReference.getMgr().gc();
-      System.gc(); // needed on x86_64 systems because otherwise they really delay collecting
-    }
+      MemoryTestHelper.forceJavaHeapWeakReferenceClear();
+    
     assertEquals("Looks like we leaked an object",
         0, JNIReference.getMgr().getNumPinnedObjects());        
 

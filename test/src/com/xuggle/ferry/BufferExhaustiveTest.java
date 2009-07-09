@@ -112,13 +112,8 @@ public class BufferExhaustiveTest
   public void testIntBuffersMaintainReferenceToByteBuffer()
   {
     // make sure we don't have any pinned objects lying around
-    while(JNIReference.getMgr().getNumPinnedObjects()>0)
-    {
-      byte[] arr = new byte[10*1024*1024];
-      arr[0] = 0;
-      System.gc();
-      JNIReference.getMgr().gc();
-    }
+    MemoryTestHelper.forceJavaHeapWeakReferenceClear();
+    JNIMemoryManager.collect();
     assertEquals(0, JNIReference.getMgr().getNumPinnedObjects());
 
     // now start the test
@@ -150,34 +145,20 @@ public class BufferExhaustiveTest
     assertEquals(15, ibuf.get(0));
     
     // now we're going to try for force a gc
-    byte[] arr;
-    for(int i = 0; i < 1000; i++)
-    {
-      arr = new byte[1024*1024]; 
-      System.gc();
-      JNIReference.getMgr().gc();
-      arr[0] = (byte)1;
-      ibuf.put(i, 16);
-    }
-    
+    MemoryTestHelper.forceJavaHeapWeakReferenceClear();
+
     // even though the buf and jbuf are now dead, the ibuf should
     // be forcing one buffer to be pinned.
     assertEquals(1, JNIReference.getMgr().getNumPinnedObjects());
     
     // this is here to make sure the compiler doesn't optimize
     // away ibuf
-    assertEquals(16, ibuf.get(999));
+    assertEquals(15, ibuf.get(0));
     // release the ibuf
     ibuf= null;
     // try to force another gc to make sure ibuf is now collected
-    while(JNIReference.getMgr().getNumPinnedObjects()>0)
-    {
-      arr = new byte[1024*1024]; 
-      System.gc();
-      JNIReference.getMgr().gc();
-      arr[0] = (byte)1;
-    }
-
+    MemoryTestHelper.forceJavaHeapWeakReferenceClear();
+    JNIMemoryManager.collect();
     // and make sure the ibuf is collected
     assertEquals(0, JNIReference.getMgr().getNumPinnedObjects());
   }
@@ -204,12 +185,8 @@ public class BufferExhaustiveTest
     
     // try to force another gc to make sure jbuf is now collected
     // by the separate thread
-    while(JNIReference.getMgr().getNumPinnedObjects()>0)
-    {
-      byte[] arr = new byte[1024*1024]; 
-      System.gc();
-      arr[0] = (byte)1;
-    }
+    MemoryTestHelper.forceJavaHeapWeakReferenceClear();
+    JNIMemoryManager.collect();
     JNIMemoryManager.getMgr().stopCollectionThread();
   }
   
@@ -258,14 +235,9 @@ public class BufferExhaustiveTest
     // now release the reference
     jbuf = null;
     
-    while(buf.getCurrentRefCount() >= 2)
-    {
-      // force the collector to run eventually
-      byte[] garbage = new byte[1024*1024];
-      garbage[0] = 0;
-      System.gc();
-      JNIReference.getMgr().gc();
-    }
+    MemoryTestHelper.forceJavaHeapWeakReferenceClear();
+    JNIMemoryManager.collect();
+    assertEquals(1, buf.getCurrentRefCount());
   }
 
 
