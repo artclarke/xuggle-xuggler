@@ -125,16 +125,14 @@ public class MediaToolExhaustiveTest
           i + ".mov";
         // adds itself to the reader
         writer = new MediaWriter(outURL, reader);
+        reader.addListener(writer);
       }
       if (doViewer)
       {
         MediaViewer viewer = new MediaViewer(viewerMode,
             true, 
             WindowConstants.EXIT_ON_CLOSE);
-        if (writer != null && false)
-          writer.addListener(viewer);
-        else
-          reader.addListener(viewer);
+        reader.addListener(viewer);
           
       }
       while(reader.readPacket() == null)
