@@ -235,8 +235,10 @@ public class BufferExhaustiveTest
     // now release the reference
     jbuf = null;
     
-    MemoryTestHelper.forceJavaHeapWeakReferenceClear();
-    JNIMemoryManager.collect();
+    while(buf.getCurrentRefCount()>1) {
+      MemoryTestHelper.forceJavaHeapWeakReferenceClear();
+      JNIMemoryManager.collect();
+    }
     assertEquals(1, buf.getCurrentRefCount());
   }
 
