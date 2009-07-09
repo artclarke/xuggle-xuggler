@@ -65,8 +65,8 @@ CodecTest :: testFindByName()
 
 
   // should not find these.
-  codec = ICodec::findEncodingCodecByName("aac");
-  VS_TUT_ENSURE("could find AAC encoder", !codec);
+  codec = ICodec::findEncodingCodecByName("xan_wc3");
+  VS_TUT_ENSURE("could find xan_wc3 encoder", !codec);
 
   codec = ICodec::findDecodingCodecByName("adts");
   VS_TUT_ENSURE("could find ADTS Decoder", !codec);
