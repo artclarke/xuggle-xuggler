@@ -223,6 +223,46 @@ namespace com { namespace xuggle { namespace xuggler
      */
     static IRational *make(int32_t num, int32_t den);
 
+    /*
+     * Added for 3.1
+     */
+    
+    typedef enum Rounding {
+        ROUND_ZERO     = 0,
+        ROUND_INF      = 1,
+        ROUND_DOWN     = 2,
+        ROUND_UP       = 3,
+        ROUND_NEAR_INF = 5,
+    } Rounding;
+    /**
+     * Takes a value scaled in increments of origBase and gives the
+     * equivalent value scaled in terms of this Rational.
+     *
+     * @param origValue The original int64_t value you care about.
+     * @param origBase The original base Rational that origValue is scaled with.
+     * @param rounding How you want rounding to occur
+     * @return The new integer value, scaled in units of this IRational.
+     */
+    virtual int64_t rescale(int64_t origValue,
+        IRational* origBase,
+        Rounding rounding)=0;
+
+    /**
+     * Takes a value scaled in increments of origBase and gives the
+     * equivalent value scaled in terms of this Rational.
+     *
+     * @param origValue The original int64_t value you care about.
+     * @param origBase The original base Rational that origValue is scaled with.
+     * @param newBase The rational you want to rescale origValue into.
+     * @param rounding How you want rounding to occur
+     * 
+     * @return The new integer value, scaled in units of this IRational.
+     */
+    static int64_t sRescale(int64_t origValue,
+        IRational* origBase, IRational* newBase,
+        Rounding rounding);
+
+
   protected:
     IRational();
     virtual ~IRational();

@@ -207,4 +207,23 @@ namespace com { namespace xuggle { namespace xuggler
     }
     return retval;
   }
+  
+  int64_t
+  Rational :: rescale(int64_t origValue, IRational *origBase,
+      Rounding rounding)
+  {
+    int64_t retval=origValue;
+    Rational *arg=dynamic_cast<Rational*>(origBase);
+
+    if (arg)
+    {
+      int64_t b = arg->mRational.num  * (int64_t)this->mRational.den;
+      int64_t c = this->mRational.num * (int64_t)arg->mRational.den;
+
+      retval = av_rescale_rnd(origValue, b,
+          c, (enum AVRounding)rounding);
+    }
+    return retval;
+    
+  }
 }}}

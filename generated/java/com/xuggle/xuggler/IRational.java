@@ -367,7 +367,7 @@ public class IRational extends RefCounted {
  *		  
  */
   public long rescale(long origValue, IRational origBase) {
-    return XugglerJNI.IRational_rescale(swigCPtr, this, origValue, IRational.getCPtr(origBase), origBase);
+    return XugglerJNI.IRational_rescale__SWIG_0(swigCPtr, this, origValue, IRational.getCPtr(origBase), origBase);
   }
 
 /**
@@ -381,7 +381,7 @@ public class IRational extends RefCounted {
  *		  
  */
   public static long sRescale(long origValue, IRational origBase, IRational newBase) {
-    return XugglerJNI.IRational_sRescale(origValue, IRational.getCPtr(origBase), origBase, IRational.getCPtr(newBase), newBase);
+    return XugglerJNI.IRational_sRescale__SWIG_0(origValue, IRational.getCPtr(origBase), origBase, IRational.getCPtr(newBase), newBase);
   }
 
 /**
@@ -426,6 +426,80 @@ public class IRational extends RefCounted {
   public static IRational make(int num, int den) {
     long cPtr = XugglerJNI.IRational_make__SWIG_3(num, den);
     return (cPtr == 0) ? null : new IRational(cPtr, false);
+  }
+
+/**
+ * Takes a value scaled in increments of origBase and gives the  
+ * equivalent value scaled in terms of this Rational.  
+ * @param	origValue The original int64_t value you care about.  
+ * @param	origBase The original base Rational that origValue is scaled 
+ *		 with.  
+ * @param	rounding How you want rounding to occur  
+ * @return	The new integer value, scaled in units of this IRational. 
+ *		  
+ */
+  public long rescale(long origValue, IRational origBase, IRational.Rounding rounding) {
+    return XugglerJNI.IRational_rescale__SWIG_1(swigCPtr, this, origValue, IRational.getCPtr(origBase), origBase, rounding.swigValue());
+  }
+
+/**
+ * Takes a value scaled in increments of origBase and gives the  
+ * equivalent value scaled in terms of this Rational.  
+ * @param	origValue The original int64_t value you care about.  
+ * @param	origBase The original base Rational that origValue is scaled 
+ *		 with.  
+ *  
+ * @param	rounding How you want rounding to occur  
+ * @return	The new integer value, scaled in units of this IRational. 
+ *		  
+ */
+  public static long sRescale(long origValue, IRational origBase, IRational newBase, IRational.Rounding rounding) {
+    return XugglerJNI.IRational_sRescale__SWIG_1(origValue, IRational.getCPtr(origBase), origBase, IRational.getCPtr(newBase), newBase, rounding.swigValue());
+  }
+
+  public enum Rounding {
+    ROUND_ZERO(XugglerJNI.IRational_ROUND_ZERO_get()),
+    ROUND_INF(XugglerJNI.IRational_ROUND_INF_get()),
+    ROUND_DOWN(XugglerJNI.IRational_ROUND_DOWN_get()),
+    ROUND_UP(XugglerJNI.IRational_ROUND_UP_get()),
+    ROUND_NEAR_INF(XugglerJNI.IRational_ROUND_NEAR_INF_get());
+
+    public final int swigValue() {
+      return swigValue;
+    }
+
+    public static Rounding swigToEnum(int swigValue) {
+      Rounding[] swigValues = Rounding.class.getEnumConstants();
+      if (swigValue < swigValues.length && swigValue >= 0 && swigValues[swigValue].swigValue == swigValue)
+        return swigValues[swigValue];
+      for (Rounding swigEnum : swigValues)
+        if (swigEnum.swigValue == swigValue)
+          return swigEnum;
+      throw new IllegalArgumentException("No enum " + Rounding.class + " with value " + swigValue);
+    }
+
+    @SuppressWarnings("unused")
+    private Rounding() {
+      this.swigValue = SwigNext.next++;
+    }
+
+    @SuppressWarnings("unused")
+    private Rounding(int swigValue) {
+      this.swigValue = swigValue;
+      SwigNext.next = swigValue+1;
+    }
+
+    @SuppressWarnings("unused")
+    private Rounding(Rounding swigEnum) {
+      this.swigValue = swigEnum.swigValue;
+      SwigNext.next = this.swigValue+1;
+    }
+
+    private final int swigValue;
+
+    private static class SwigNext {
+      private static int next = 0;
+    }
   }
 
 }

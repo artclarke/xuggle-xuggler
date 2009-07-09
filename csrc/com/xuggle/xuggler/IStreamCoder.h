@@ -805,6 +805,35 @@ namespace com { namespace xuggle { namespace xuggler
      * @return A new IStreamCoder, or null on error.
      */
     static IStreamCoder* make(Direction direction, IStreamCoder* copyCoder);
+    
+    /*
+     * Added for 3.1
+     */
+    
+    /**
+     * Get the number of frames this StreamCoder had to drop to
+     * encode at the specified {@link #getTimeBase()}
+     * <p>
+     * IStreamCoder objects can encode audio and video, but
+     * guarantee that every packet outputted has monotonically
+     * increasing timestamps (i.e. 0, 1, 2, 3, 4, 5, etc. without
+     * repeats).  Sometimes data is passed too quickly into an
+     * IStreamCoder via {@link #encodeVideo} or {@link #encodeAudio},
+     * and the underlying codec can't handle it that quickly.  In those
+     * cases the IStreamCoder must drop the most recent frame of data.
+     * </p>
+     * <p>
+     * If you're seeing a lot of dropped frames you can try either
+     * sending less frequent data to the IStreamCoder, or adjusting
+     * the {@link #getTimeBase()} to the highest possible resolution.
+     * Be warned though; some codecs (such as MPEG2) require fixed
+     * time-bases (like 1/25) and so setting a higher resolution
+     * time base might end up with the codec not able to encode
+     * any data.
+     * </p>
+     * @return the number of frames dropped.
+     */
+    virtual int64_t getNumDroppedFrames()=0;
   };
 
 }}}

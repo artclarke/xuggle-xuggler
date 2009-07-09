@@ -966,6 +966,33 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
     return (cPtr == 0) ? null : new IStreamCoder(cPtr, false);
   }
 
+/**
+ * Get the number of frames this StreamCoder had to drop to  
+ * encode at the specified {@link #getTimeBase()}  
+ * <p>  
+ * IStreamCoder objects can encode audio and video, but  
+ * guarantee that every packet outputted has monotonically  
+ * increasing timestamps (i.e. 0, 1, 2, 3, 4, 5, etc. without  
+ * repeats). Sometimes data is passed too quickly into an  
+ * IStreamCoder via {@link #encodeVideo} or {@link #encodeAudio},  
+ *  
+ *  
+ * </p>  
+ * <p>  
+ * If you're seeing a lot of dropped frames you can try either  
+ * sending less frequent data to the IStreamCoder, or adjusting  
+ * the {@link #getTimeBase()} to the highest possible resolution.  
+ * Be warned though; some codecs (such as MPEG2) require fixed  
+ * time-bases (like 1/25) and so setting a higher resolution  
+ * time base might end up with the codec not able to encode  
+ * any data.  
+ * </p>  
+ * @return	the number of frames dropped.  
+ */
+  public long getNumDroppedFrames() {
+    return XugglerJNI.IStreamCoder_getNumDroppedFrames(swigCPtr, this);
+  }
+
   public enum Direction {
   /**
    * The Direction in which this StreamCoder will work.

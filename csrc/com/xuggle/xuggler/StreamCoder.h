@@ -157,6 +157,8 @@ namespace com { namespace xuggle { namespace xuggler
     int32_t setStream(Stream*);
     int32_t streamClosed(Stream*);
 
+    virtual int64_t getNumDroppedFrames();
+
     // RefCounted interface
     virtual int32_t acquire();
     virtual int32_t release();
@@ -172,6 +174,7 @@ namespace com { namespace xuggle { namespace xuggler
 
     // Variables used for patching up PTS values
     com::xuggle::ferry::RefPointer<IRational> mFakePtsTimeBase;
+    int64_t mLastPtsEncoded;
     int64_t mFakeNextPts;
     int64_t mFakeCurrPts;
     int64_t mSamplesForEncoding;
@@ -182,6 +185,7 @@ namespace com { namespace xuggle { namespace xuggler
     int32_t mBytesInFrameBuffer;
     int64_t mStartingTimestampOfBytesInFrameBuffer;
     int32_t mDefaultAudioFrameSize;
+    int64_t mNumDroppedFrames;
     
     int32_t calcAudioFrameSize();
 
@@ -189,7 +193,10 @@ namespace com { namespace xuggle { namespace xuggler
 
     void reset();
     void setPacketParameters(Packet *packet, int32_t size,
-        int64_t srcTimeStamp, int64_t duration);
+        int64_t dts,
+        IRational * timebase,
+        bool keyframe,
+        int64_t duration);
   };
 
 }}}

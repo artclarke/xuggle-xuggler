@@ -108,4 +108,16 @@ namespace com { namespace xuggle { namespace xuggler
       Global::init();
       return Rational::make(num, den);
     }
+    
+    int64_t
+    IRational :: sRescale(int64_t origValue,
+        IRational* origBase, IRational* newBase,
+        Rounding rounding)
+    {
+      if (!origBase || !newBase)
+        return origValue;
+      return newBase->rescale(origValue, origBase, rounding);
+    }
+
+
   }}}

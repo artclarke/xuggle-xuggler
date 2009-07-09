@@ -56,9 +56,11 @@ StreamCoder :: StreamCoder() :
   mFakePtsTimeBase = IRational::make(1, AV_TIME_BASE);
   mFakeNextPts = Global::NO_PTS;
   mFakeCurrPts = Global::NO_PTS;
+  mLastPtsEncoded = Global::NO_PTS;
   mSamplesCoded = 0;
   mLastExternallySetTimeStamp = Global::NO_PTS;
   mDefaultAudioFrameSize = 576;
+  mNumDroppedFrames = 0;
 }
 
 StreamCoder :: ~StreamCoder()
@@ -601,8 +603,9 @@ StreamCoder :: open()
       throw std::runtime_error("could not open codec");
     mOpened = true;
 
+    mNumDroppedFrames = 0;
     mSamplesCoded = mSamplesForEncoding = mLastExternallySetTimeStamp = 0;
-    mFakeCurrPts = mFakeNextPts = Global::NO_PTS;
+    mFakeCurrPts = mFakeNextPts = mLastPtsEncoded = Global::NO_PTS;
 
     // Do any post open initialization here.
     if (this->getCodecType() == ICodec::CODEC_TYPE_AUDIO)
@@ -909,12 +912,14 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
 
           // adjust our next Pts pointer
           mFakeNextPts += (int64_t)frameDelay;
-//          VS_LOG_TRACE("frame complete: %s; pts: %lld; packet ts: %lld; tb: %ld/%ld",
-//              frameFinished ? "yes" : "no",
+//          VS_LOG_DEBUG("frame complete: %s; pts: %lld; packet ts: %lld; opaque ts: %lld; tb: %ld/%ld",
+//              (frameFinished ? "yes" : "no"),
 //              mFakeCurrPts,
-//              packet ? packet->getDts() : 0,
-//                  timeBase->getNumerator(), timeBase->getDenominator()
-//                  );
+//              (packet ? packet->getDts() : 0),
+//              packetTs,
+//              timeBase->getNumerator(),
+//              timeBase->getDenominator()
+//          );
         }
         frame->setComplete(frameFinished, this->getPixelType(),
             this->getWidth(), this->getHeight(), mFakeCurrPts);
@@ -1010,7 +1015,7 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
        * Plus, this forces us to KNOW what we're passing into the encoder.
        */
       AVFrame* avFrame = 0;
-
+      bool dropFrame = false;
       if (frame)
       {
         avFrame = avcodec_alloc_frame();
@@ -1020,36 +1025,67 @@ StreamCoder :: encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
 
         // convert into the time base that this coder wants
         // to output in
-        avFrame->pts = thisTimeBase->rescale(frame->getPts(),
-            mFakePtsTimeBase.value());
-        /*
-         VS_LOG_TRACE("Rescaling ts: %lld to %lld (from base %d/%d to %d/%d)",
-         srcFrame->pts,
-         avFrame->pts,
-         mFakePtsTimeBase->getNumerator(),
-         mFakePtsTimeBase->getDenominator(),
-         thisTimeBase->getNumerator(),
-         thisTimeBase->getDenominator());
-         */
+        int64_t codecTimeBasePts = thisTimeBase->rescale(
+            frame->getPts(),
+            mFakePtsTimeBase.value(),
+            IRational::ROUND_DOWN); 
+        if (mLastPtsEncoded != Global::NO_PTS) {
+          // adjust for rounding;
+          // fixes http://code.google.com/p/xuggle/issues/detail?id=180
+          if (codecTimeBasePts < mLastPtsEncoded)
+          {
+            VS_LOG_TRACE(
+                "Dropping frame with timestamp %lld (if coder supports higher time-base use that instead)",
+                frame->getPts());
+            dropFrame = true;
+          } else if (codecTimeBasePts == mLastPtsEncoded)
+          {
+            // else we're close enough; increment by 1
+            ++codecTimeBasePts;
+          }
+        }
+        VS_LOG_TRACE("Rescaling ts: %lld to %lld (last: %lld) (from base %d/%d to %d/%d)",
+            frame->getPts(),
+            codecTimeBasePts,
+            mLastPtsEncoded,
+            mFakePtsTimeBase->getNumerator(),
+            mFakePtsTimeBase->getDenominator(),
+            thisTimeBase->getNumerator(),
+            thisTimeBase->getDenominator());
+        avFrame->pts = codecTimeBasePts;
+        if (!dropFrame)
+          mLastPtsEncoded = avFrame->pts;
       }
 
-      VS_LOG_TRACE("Attempting encodeVideo(%p, %p, %d, %p)",
-          mCodecContext,
-          buf,
-          bufLen,
-          avFrame);
-      retval = avcodec_encode_video(mCodecContext, buf, bufLen, avFrame);
-      VS_LOG_TRACE("Finished %d encodeVideo(%p, %p, %d, %p)",
-          retval,
-          mCodecContext,
-          buf,
-          bufLen,
-          avFrame);
+      if (!dropFrame) {
+        VS_LOG_TRACE("Attempting encodeVideo(%p, %p, %d, %p)",
+            mCodecContext,
+            buf,
+            bufLen,
+            avFrame);
+        retval = avcodec_encode_video(mCodecContext, buf, bufLen, avFrame);
+        VS_LOG_TRACE("Finished %d encodeVideo(%p, %p, %d, %p)",
+            retval,
+            mCodecContext,
+            buf,
+            bufLen,
+            avFrame);
+      } else {
+        ++mNumDroppedFrames;
+        retval = 0;
+      }
       if (retval >= 0)
       {
-        setPacketParameters(packet, retval,
-            frame ? frame->getTimeStamp() : Global::NO_PTS,
-                -1);
+        int64_t dts = (avFrame ? mLastPtsEncoded : mLastPtsEncoded+1);
+        setPacketParameters(packet,
+            retval,
+            // if the last packet, increment the pts encoded
+            // by one
+            dts,
+            thisTimeBase.value(),
+            (mCodecContext->coded_frame ?
+                mCodecContext->coded_frame->key_frame : 0),
+            -1);
       }
       if (avFrame)
         av_free(avFrame);
@@ -1362,9 +1398,13 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
                   getSampleRate());
 
           }
+          
           setPacketParameters(packet, retval,
               mFakeCurrPts,
-              IAudioSamples::samplesToDefaultPts(frameSize, getSampleRate()));
+              mFakePtsTimeBase.value(),
+              true,
+              IAudioSamples::samplesToDefaultPts(frameSize, getSampleRate())
+          );
 
           retval = samplesConsumed;
         }
@@ -1389,63 +1429,56 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
 }
 
 void
-StreamCoder :: setPacketParameters(Packet * packet, int32_t size,
-    int64_t srcTimestamp, int64_t duration)
+StreamCoder :: setPacketParameters(
+    Packet * packet, int32_t size,
+    int64_t dts,
+    IRational *timebase,
+    bool keyframe,
+    int64_t duration)
 {
-  int32_t keyframe = 0;
-  int64_t pts = Global::NO_PTS;
-  RefPointer<IRational> streamBase = mStream ? mStream->getTimeBase() : 0;
-  RefPointer<IRational> coderBase = this->getTimeBase();
-  RefPointer<IRational> packetBase = 0;
- 
-  if (duration >= 0)
-  {
-    if (streamBase)
-      duration = streamBase->rescale(duration, mFakePtsTimeBase.value());
-    packet->setDuration(duration);
-  }
+  packet->setDuration(duration);
+
+//  VS_LOG_DEBUG("input:  dts: %lld; pts: %lld",
+//      dts,
+//      mCodecContext->coded_frame ? mCodecContext->coded_frame->pts : Global::NO_PTS);
   
-  if (mCodecContext->coded_frame)
+  
+  int64_t pts = dts;
+  
+  if (mCodecContext->coded_frame &&
+      mCodecContext->coded_frame->pts != Global::NO_PTS)
   {
-    keyframe = mCodecContext->coded_frame->key_frame;
-    if (streamBase && mCodecContext->coded_frame->pts != Global::NO_PTS)
-    {
-      // rescale from the encoder time base to the stream timebase
-      pts = streamBase->rescale(mCodecContext->coded_frame->pts,
-          coderBase.value());
-      packetBase = streamBase;
-    } else {
-      // assume they're equal
-      pts = mCodecContext->coded_frame->pts;
-      packetBase = coderBase;
-    }
+    RefPointer<IRational> coderBase = getTimeBase();
+    pts = timebase->rescale(mCodecContext->coded_frame->pts,
+         coderBase.value());
   }
-  // If for some reason FFMPEG's encoder didn't put a PTS on this
-  // packet, we'll fake one.
-  if (pts == Global::NO_PTS && srcTimestamp != Global::NO_PTS)
-  {
-    if (streamBase)
-    {
-      pts = streamBase->rescale(srcTimestamp, mFakePtsTimeBase.value());
-      packetBase = streamBase;
-    } else {
-      // we have no attached stream; don't rescale to that stream; 
-      // instead use our fake timebase and let the packet know.
-      pts = srcTimestamp;
-      packetBase = mFakePtsTimeBase;
-    }
-  }
+  if (pts == Global::NO_PTS)
+    pts = dts;
+  
+  if (pts != Global::NO_PTS &&
+      (dts == Global::NO_PTS || dts > pts))
+    // if our pts is earlier than what we think our decode time stamp should
+    // be, well, then adjust the decode timestamp.  We should ALWAYS
+    // honor PTS if set
+    dts = pts;
+  
   packet->setKeyPacket(keyframe);
   packet->setPts(pts);
-  // for now, set the dts and pts to be the same
-  packet->setDts(pts);
-  packet->setStreamIndex(mStream ? mStream->getIndex() : -1);
-  packet->setTimeBase(packetBase.value());
+  packet->setDts(dts);
+  packet->setStreamIndex(-1);
+  packet->setTimeBase(timebase);
   // We will sometimes encode some data, but have zero data to send.
   // in that case, mark the packet as incomplete so people don't
   // output it.
   packet->setComplete(size > 0, size);
 
+//  VS_LOG_DEBUG("output: dts: %lld; pts: %lld",
+//      dts,
+//      pts);
+
+  if (mStream)
+    mStream->stampOutputPacket(packet);
+  
   VS_LOG_TRACE("Encoded packet; size: %d; pts: %lld", size, pts);
 }
 
@@ -1627,6 +1660,12 @@ StreamCoder :: setStream(Stream* stream)
   }
   retval = 0;
   return retval;
+}
+
+int64_t
+StreamCoder :: getNumDroppedFrames()
+{
+  return mNumDroppedFrames;
 }
 
 }}}

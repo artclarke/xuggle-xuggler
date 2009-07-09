@@ -28,6 +28,7 @@
 #include <com/xuggle/xuggler/StreamCoder.h>
 #include <com/xuggle/xuggler/Container.h>
 #include <com/xuggle/xuggler/MetaData.h>
+#include <com/xuggle/xuggler/Packet.h>
 #include "FfmpegIncludes.h"
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);
@@ -41,6 +42,7 @@ namespace com { namespace xuggle { namespace xuggler
     mDirection = INBOUND;
     mCoder = 0;
     mContainer = 0;
+    mLastDts = Global::NO_PTS;
     memset(mLanguage, 0, sizeof(mLanguage));
   }
 
@@ -370,6 +372,64 @@ namespace com { namespace xuggle { namespace xuggler
     }
     return;
   }
-  
+
+  int32_t
+  Stream :: stampOutputPacket(IPacket* packet)
+  {
+    if (!packet)
+      return -1;
+
+//    VS_LOG_DEBUG("input:  duration: %lld; dts: %lld; pts: %lld;",
+//        packet->getDuration(), packet->getDts(), packet->getPts());
+
+    packet->setStreamIndex(this->getIndex());
+    
+    com::xuggle::ferry::RefPointer<IRational> thisBase = getTimeBase();
+    com::xuggle::ferry::RefPointer<IRational> packetBase = packet->getTimeBase();
+    if (!thisBase || !packetBase)
+      return -1;
+    
+    int64_t duration = packet->getDuration();
+    int64_t dts = packet->getDts();
+    int64_t pts = packet->getPts();
+    
+    if (duration >= 0)
+      duration = thisBase->rescale(duration, packetBase.value(),
+          IRational::ROUND_DOWN);
+    
+    if (pts != Global::NO_PTS)
+    {
+      pts = thisBase->rescale(pts, packetBase.value(), IRational::ROUND_DOWN);
+    }
+    if (dts != Global::NO_PTS)
+    {
+      dts = thisBase->rescale(dts, packetBase.value(), IRational::ROUND_DOWN);
+      if (mLastDts != Global::NO_PTS && dts == mLastDts)
+      {
+        // adjust for rounding; we never want to insert a frame that
+        // is not monotonically increasing.  Note we only do this if
+        // we're off by one; that's because we ROUND_DOWN and then assume
+        // that can be off by at most one.  If we're off by more than one
+        // then it's really an error on the person muxing to this stream.
+        dts = mLastDts+1;
+        // and round up pts
+        if (pts != Global::NO_PTS)
+          ++pts;
+        // and if after all that adjusting, pts is less than dts
+        // let dts win.
+        if (pts == Global::NO_PTS || pts < dts)
+          pts = dts;
+      }
+      mLastDts = dts;
+    }
+    
+//    VS_LOG_DEBUG("output: duration: %lld; dts: %lld; pts: %lld;",
+//        duration, dts, pts);
+    packet->setDuration(duration);
+    packet->setPts(pts);
+    packet->setDts(dts);
+    packet->setTimeBase(thisBase.value());
+    return 0;
+  }
 
 }}}

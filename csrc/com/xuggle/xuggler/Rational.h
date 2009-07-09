@@ -82,6 +82,13 @@ namespace com { namespace xuggle { namespace xuggler
      * @return A new Rational; caller must call release.
      */
     static Rational *make(int32_t num, int32_t den);
+    
+    virtual int64_t rescale(int64_t origValue,
+        IRational* origBase,
+        Rounding rounding);
+
+
+    
   protected:
     Rational();
     virtual ~Rational();

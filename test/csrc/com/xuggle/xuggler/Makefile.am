@@ -341,4 +341,5 @@ clean-local:
 	rm -rf *.mov
 	rm -rf *.mp4
 	rm -rf *.mp3
+	rm -rf *.ogg
 	rm -rf memcheck*.log
