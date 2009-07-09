@@ -847,7 +847,7 @@
         failureproperty="test.failure.property"
         printsummary="yes"
         showoutput="${test.show_output}"
-        timeout="1800000"
+        timeout="7200000"
         dir="${test.reports.dir}"
         newenvironment="no"
         >
