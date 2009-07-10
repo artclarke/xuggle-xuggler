@@ -37,6 +37,8 @@ if [ -z "$OUTFILE" ]; then
     echo "Usage: product_name license.txt license-key binary.tar.gz outputfile.sh"
     exit 1;
 fi
+echo "Creating installer; Product: ${PRODUCT}; License: ${LICENSEKEY};"
+
 :> "$OUTFILE"
 cat >> "$OUTFILE" <<_EOF_
 #!/bin/bash
@@ -51,7 +53,7 @@ read ignore
 more << "__END_LICENSE__"
 _EOF_
 cat < "$LICENSE" >> $OUTFILE
-echo
+echo >> $OUTFILE
 echo "License Key: ${LICENSEKEY}" >> $OUTFILE
 cat >> "$OUTFILE" <<_EOF_
 __END_LICENSE__
@@ -97,8 +99,14 @@ THIS=\$0
 # take the tarfile and pipe it into tar
 echo "Installing ${PRODUCT} to \$userInstallDir"
 tail -n +\$GET_TAR_LINENO \$THIS | tar --directory \${userInstallDir} -xzv
-if [ $? -ne 0 ]; then
-    echo "Failed to install ${PRODUCT}.  You may need to be root."
+if [ \$? -ne 0 ]; then
+    echo
+    echo "-------------------- ERROR -----------------------"
+    echo "Failed to install ${PRODUCT}."
+    echo "You may need to be root to install to \${userInstallDir}."
+    echo "-------------------- ERROR -----------------------"
+    echo
+    exit 1
 fi
 
 #
