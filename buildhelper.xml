@@ -573,8 +573,8 @@
   </target>
 
   <target name="dist-java"
-      depends="init, stage-java"
-      description="generate the distribution" >
+      depends="init"
+      description="generate the java distribution; must stage first" >
     <!-- and tar up the ivys -->
     <mkdir dir="${dist.dir}/repo"/>
     <tar
@@ -1192,8 +1192,8 @@
     </if>
   </target>
   <target name="dist-native"
-      depends="setup-native, stage-native, dist-native-do"
-      description="Builds the native source distribution">
+      depends="setup-native, dist-native-do"
+      description="Builds the native distribution; must stage first">
   </target>
   <target name="dist-native-test-do"
       if="native.makefile.exists">
@@ -1356,7 +1356,7 @@
       depends="compile-tests-native, compile-tests-java"
       description="compile everything, including native code if available"/>
   <target name="dist"
-      depends="dist-native, dist-java"
+      depends="stage, dist-native, dist-java"
       description="dist everything, including native code if available"/>
   <!-- stage stages java first, so that the native stage
     can copy any jars -->
