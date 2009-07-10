@@ -50,7 +50,7 @@ ReserveFile "${NSISDIR}\Plugins\AdvSplash.dll"
 !insertmacro MUI_LANGUAGE English
 
 # Installer attributes
-OutFile ../dist/${XUGGLE_NAME}-setup-@LIB_MAJOR_VERSION@.@LIB_MINOR_VERSION@.@LIB_REVISION@.exe
+OutFile ../dist/bin/${XUGGLE_NAME}-setup-@LIB_MAJOR_VERSION@.@LIB_MINOR_VERSION@.@LIB_REVISION@.exe
 InstallDir Xuggle
 CRCCheck on
 XPStyle on
