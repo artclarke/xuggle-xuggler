@@ -75,7 +75,7 @@ while [ -z "\$accepts" ]; do
     esac
 done
 
-installDir=/usr/local
+installDir=/usr/local/xuggler
 if [ ! -z "\$XUGGLE_HOME" ]; then
     installDir=\$XUGGLE_HOME
 fi
@@ -86,6 +86,14 @@ if [ -z "\$userInstallDir" ]; then
 fi
 if [ ! -d "\$userInstallDir" ]; then
     mkdir "\$userInstallDir"
+    if [ \$? -ne 0 ]; then
+      echo "-------------------- ERROR -----------------------"
+      echo "Failed to install ${PRODUCT}."
+      echo "You may need to be root to install to \${userInstallDir}."
+      echo "-------------------- ERROR -----------------------"
+      echo
+      exit 1;
+    fi
 fi
 _EOF_
 
