@@ -31,13 +31,14 @@
 PRODUCT="$1"
 LICENSE="$2"
 LICENSEKEY="$3"
-BINARIES="$4"
-OUTFILE="$5"
+VERSION="$4"
+BINARIES="$5"
+OUTFILE="$6"
 if [ -z "$OUTFILE" ]; then
-    echo "Usage: product_name license.txt license-key binary.tar.gz outputfile.sh"
+    echo "Usage: product_name license.txt license-key version-string binary.tar.gz outputfile.sh"
     exit 1;
 fi
-echo "Creating installer; Product: ${PRODUCT}; License: ${LICENSEKEY};"
+echo "Creating installer; Product: ${PRODUCT}; Version: ${VERSION}; License: ${LICENSEKEY};"
 
 :> "$OUTFILE"
 cat >> "$OUTFILE" <<_EOF_
@@ -45,6 +46,7 @@ cat >> "$OUTFILE" <<_EOF_
 echo ""
 echo "Installer: ${PRODUCT}"
 echo "License Key: ${LICENSEKEY}"
+echo "Version: ${VERSION}"
 echo ""
 echo "Built by: http://www.xuggle.com"
 echo ""

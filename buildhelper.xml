@@ -1134,8 +1134,9 @@
           <arg value="xuggle-xuggler-core"/>
           <arg value="${top.dir}/COPYING"/>
           <arg value="AGPL License"/>
+          <arg value="${library.version}"/>
           <arg value="${dist.dir}/bin/${app.name}.${library.version}-core-bin-${xuggle.os}.tar.gz"/>
-          <arg value="${dist.dir}/bin/xuggle-xuggler-core-${xuggle.os}.sh"/>
+          <arg value="${dist.dir}/bin/xuggle-xuggler-core.${library.version}-${xuggle.os}.sh"/>
         </exec>
         <exec dir="${dist.dir}/stage-ffmpeg/${xuggle.dir}"
             executable="tar" osfamily="unix">
@@ -1150,8 +1151,9 @@
           <arg value="xuggle-ffmpeg"/>
           <arg value="${top.dir}/COPYING"/>
           <arg value="AGPL License"/>
+          <arg value="${library.version}"/>
           <arg value="${dist.dir}/bin/${app.name}.${library.version}-ffmpeg-bin-${xuggle.os}.tar.gz"/>
-          <arg value="${dist.dir}/bin/xuggle-ffmpeg-${xuggle.os}.sh"/>
+          <arg value="${dist.dir}/bin/xuggle-ffmpeg.${library.version}-${xuggle.os}.sh"/>
         </exec>
         <exec dir="${dist.dir}/stage/${xuggle.dir}"
             executable="tar" osfamily="unix">
@@ -1166,8 +1168,9 @@
           <arg value="xuggle-xuggler"/>
           <arg value="${top.dir}/COPYING"/>
           <arg value="AGPL License"/>
+          <arg value="${library.version}"/>
           <arg value="${dist.dir}/bin/${app.name}.${library.version}-all-bin-${xuggle.os}.tar.gz"/>
-          <arg value="${dist.dir}/bin/xuggle-xuggler-${xuggle.os}.sh"/>
+          <arg value="${dist.dir}/bin/xuggle-xuggler.${library.version}-${xuggle.os}.sh"/>
         </exec>
       </then>
       <else>
