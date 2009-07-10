@@ -643,19 +643,49 @@ static int check_dct( int cpu_ref, int cpu_new )
 #define TEST_ZIGZAG_SUB( name, t1, t2, size ) \
     if( zigzag_asm.name != zigzag_ref.name ) \
     { \
+        int nz_a, nz_c; \
         set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" );\
         used_asm = 1; \
         memcpy( buf3, buf1, 16*FDEC_STRIDE ); \
         memcpy( buf4, buf1, 16*FDEC_STRIDE ); \
-        call_c1( zigzag_c.name, t1, buf2, buf3 );  \
-        call_a1( zigzag_asm.name, t2, buf2, buf4 ); \
-        if( memcmp( t1, t2, size*sizeof(int16_t) )|| memcmp( buf3, buf4, 16*FDEC_STRIDE ) )  \
+        nz_c = call_c1( zigzag_c.name, t1, buf2, buf3 );  \
+        nz_a = call_a1( zigzag_asm.name, t2, buf2, buf4 ); \
+        if( memcmp( t1, t2, size*sizeof(int16_t) )|| memcmp( buf3, buf4, 16*FDEC_STRIDE ) || nz_c != nz_a )  \
         { \
             ok = 0; \
             fprintf( stderr, #name " [FAILED]\n" ); \
         } \
         call_c2( zigzag_c.name, t1, buf2, buf3 );  \
         call_a2( zigzag_asm.name, t2, buf2, buf4 ); \
+    }
+
+#define TEST_ZIGZAG_SUBAC( name, t1, t2 ) \
+    if( zigzag_asm.name != zigzag_ref.name ) \
+    { \
+        int nz_a, nz_c; \
+        int16_t dc_a, dc_c; \
+        set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" );\
+        used_asm = 1; \
+        for( i = 0; i < 2; i++ ) \
+        { \
+            memcpy( buf3, buf2, 16*FDEC_STRIDE ); \
+            memcpy( buf4, buf2, 16*FDEC_STRIDE ); \
+            for( j = 0; j < 4; j++ ) \
+            { \
+                memcpy( buf3 + j*FDEC_STRIDE, (i?buf1:buf2) + j*FENC_STRIDE, 4 ); \
+                memcpy( buf4 + j*FDEC_STRIDE, (i?buf1:buf2) + j*FENC_STRIDE, 4 ); \
+            } \
+            nz_c = call_c1( zigzag_c.name, t1, buf2, buf3, &dc_c );  \
+            nz_a = call_a1( zigzag_asm.name, t2, buf2, buf4, &dc_a ); \
+            if( memcmp( t1+1, t2+1, 15*sizeof(int16_t) ) || memcmp( buf3, buf4, 16*FDEC_STRIDE ) || nz_c != nz_a || dc_c != dc_a )  \
+            { \
+                ok = 0; \
+                fprintf( stderr, #name " [FAILED]\n" ); \
+                break; \
+            } \
+        } \
+        call_c2( zigzag_c.name, t1, buf2, buf3, &dc_c );  \
+        call_a2( zigzag_asm.name, t2, buf2, buf4, &dc_a ); \
     }
 
 #define TEST_INTERLEAVE( name, t1, t2, dct, size )   \
@@ -687,6 +717,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     TEST_ZIGZAG_SCAN( scan_8x8, level1, level2, (void*)dct1, 64 );
     TEST_ZIGZAG_SCAN( scan_4x4, level1, level2, dct1[0], 16  );
     TEST_ZIGZAG_SUB( sub_4x4, level1, level2, 16 );
+    TEST_ZIGZAG_SUBAC( sub_4x4ac, level1, level2 );
     report( "zigzag_frame :" );
 
     interlace = 1;
@@ -698,6 +729,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     TEST_ZIGZAG_SCAN( scan_8x8, level1, level2, (void*)dct1, 64 );
     TEST_ZIGZAG_SCAN( scan_4x4, level1, level2, dct1[0], 16  );
     TEST_ZIGZAG_SUB( sub_4x4, level1, level2, 16 );
+    TEST_ZIGZAG_SUBAC( sub_4x4ac, level1, level2 );
     report( "zigzag_field :" );
 
     ok = 1; used_asm = 0;

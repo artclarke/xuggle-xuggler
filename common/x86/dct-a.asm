@@ -31,6 +31,8 @@ pw_32: times 8 dw 32
 pw_8000: times 8 dw 0x8000
 hsub_mul: times 8 db 1, -1
 pb_sub4frame:   db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
+pb_sub4field:   db 0,4,1,8,12,5,9,13,2,6,10,14,3,7,11,15
+pb_subacmask:   dw 0,-1,-1,-1,-1,-1,-1,-1
 pb_scan4framea: db 12,13,6,7,14,15,0,1,8,9,2,3,4,5,10,11
 pb_scan4frameb: db 0,1,8,9,2,3,4,5,10,11,12,13,6,7,14,15
 pb_idctdc_unpack: db 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
@@ -780,7 +782,12 @@ cglobal x264_zigzag_scan_4x4_field_mmxext, 2,3
 ;-----------------------------------------------------------------------------
 ; void x264_zigzag_sub_4x4_frame_ssse3( int16_t level[16], const uint8_t *src, uint8_t *dst )
 ;-----------------------------------------------------------------------------
-cglobal x264_zigzag_sub_4x4_frame_ssse3, 3,3,8
+%macro ZIGZAG_SUB_4x4 2
+%ifidn %1, ac
+cglobal x264_zigzag_sub_4x4%1_%2_ssse3, 4,4,8
+%else
+cglobal x264_zigzag_sub_4x4%1_%2_ssse3, 3,3,8
+%endif
     movd      xmm0, [r1+0*FENC_STRIDE]
     movd      xmm1, [r1+1*FENC_STRIDE]
     movd      xmm2, [r1+2*FENC_STRIDE]
@@ -799,7 +806,11 @@ cglobal x264_zigzag_sub_4x4_frame_ssse3, 3,3,8
     punpckldq xmm6, xmm7
     punpcklqdq xmm0, xmm2
     punpcklqdq xmm4, xmm6
+%ifidn %2, frame
     movdqa    xmm7, [pb_sub4frame GLOBAL]
+%else
+    movdqa    xmm7, [pb_sub4field GLOBAL]
+%endif
     pshufb    xmm0, xmm7
     pshufb    xmm4, xmm7
     pxor      xmm6, xmm6
@@ -811,9 +822,28 @@ cglobal x264_zigzag_sub_4x4_frame_ssse3, 3,3,8
     punpckhbw xmm5, xmm6
     psubw     xmm0, xmm4
     psubw     xmm1, xmm5
+%ifidn %1, ac
+    movd       r2d, xmm0
+    pand      xmm0, [pb_subacmask GLOBAL]
+%endif
     movdqa    [r0], xmm0
+    pxor      xmm2, xmm2
     movdqa [r0+16], xmm1
+    por       xmm0, xmm1
+    pcmpeqb   xmm0, xmm2
+    pmovmskb   eax, xmm0
+%ifidn %1, ac
+    mov       [r3], r2w
+%endif
+    sub        eax, 0xffff
+    shr        eax, 31
     RET
+%endmacro
+
+ZIGZAG_SUB_4x4   , frame
+ZIGZAG_SUB_4x4 ac, frame
+ZIGZAG_SUB_4x4   , field
+ZIGZAG_SUB_4x4 ac, field
 
 ;-----------------------------------------------------------------------------
 ; void x264_zigzag_interleave_8x8_cavlc_mmx( int16_t *dst, int16_t *src, uint8_t *nnz )
