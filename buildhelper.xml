@@ -575,44 +575,14 @@
   <target name="dist-java"
       depends="init, stage-java"
       description="generate the distribution" >
-    <!-- and zip up the ivys -->
+    <!-- and tar up the ivys -->
     <mkdir dir="${dist.dir}/repo"/>
-    <if>
-      <not>
-        <isset property="os.windows"/>
-      </not>
-      <then>
-        <tar
-            basedir="${dist.dir}/ivys"
-            destfile="${dist.dir}/repo/${app.name}.${library.version}-repo.tar.gz"
-            includes="**/*"
-            compression="gzip">
-        </tar>
-      </then>
-    </if>
-    <zip
+    <tar
         basedir="${dist.dir}/ivys"
-        destfile="${dist.dir}/repo/${app.name}.${library.version}-repo.zip"
-        >
-    </zip>
-    <if>
-      <isset property="env.JOB_NAME"/>
-      <then>
-        <!-- We're running in Hudson -->
-        <copy
-            tofile="${dist.dir}/${env.JOB_NAME}-repo.zip"
-            file="${dist.dir}/repo/${app.name}.${library.version}-repo.zip"
-            failonerror="false"
-            >
-        </copy>
-        <copy
-            tofile="${dist.dir}/${env.JOB_NAME}-repo.tar.gz"
-            file="${dist.dir}/repo/${app.name}.${library.version}-repo.tar.gz"
-            failonerror="false"
-            >
-        </copy>
-      </then>
-    </if>
+        destfile="${dist.dir}/repo/${app.name}.${library.version}-repo.tar.gz"
+        includes="**/*"
+        compression="gzip">
+    </tar>
   </target>
   <!-- Don't make install depend on dist or stage; that's because some people
     need to run "install" as root, and depending on stage will create
@@ -1112,7 +1082,6 @@
   </target>
   <target name="dist-native-do"
       if="native.makefile.exists">
-    <!-- Build binary distributions for all OS in ZIP format -->
     <mkdir dir="${dist.dir}/bin"/>
     <if>
       <not>
@@ -1470,13 +1439,6 @@
         </exec>
       </else>
     </if>
-    <zip
-        destfile="${dist.dir}/src/${app.name}.${library.version}-src.zip"
-        >
-      <zipfileset dir="${top.dir}"
-          filemode="755"
-          excludes="dist/**/*"/>
-    </zip>
   </target>
 
 
