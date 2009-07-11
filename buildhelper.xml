@@ -1221,14 +1221,14 @@
         dir="${build-native.dir}/captive"
         failonerror="true">
       <env key="DESTDIR" value="${dist.unix.dir}/stage-ffmpeg"/>
-      <arg line="install"/>
+      <arg line="install-strip"/>
     </exec>
     <!-- stage the core binaries -->
     <exec executable="${build.native.make}"
         dir="${build-native.dir}/csrc"
         failonerror="true">
       <env key="DESTDIR" value="${dist.unix.dir}/stage-core"/>
-      <arg line="install"/>
+      <arg line="install-strip"/>
     </exec>
     <!-- now, restage both to a combined target; we have to do a make
       instead of an ant copy, since ant copy will drop file attributes -->
@@ -1236,7 +1236,7 @@
         dir="${build-native.dir}"
         failonerror="true">
       <env key="DESTDIR" value="${dist.unix.dir}/stage"/>
-      <arg line="install"/>
+      <arg line="install-strip"/>
     </exec>
     <echo message="Staging Java Jars to right location"/>
     <mkdir dir="${dist.dir}/stage-core/${xuggle.dir}/share/java/jars"/>
