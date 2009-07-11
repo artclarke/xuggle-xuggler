@@ -19,6 +19,8 @@ CAPTIVE_ENABLE_LIBFAAC=@CAPTIVE_ENABLE_LIBFAAC@
 CAPTIVE_ENABLE_FFMPEG_GPL=@VS_ENABLE_GPL@
 
 FFMPEG_OPTIONS=
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-version=xuggle-@LIB_MAJOR_VERSION@.@LIB_MINOR_VERSION@"
+
 # Tell FFMPEG about the captive libraries already built and fake
 # installed
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-I@abs_top_builddir@@includedir@"
