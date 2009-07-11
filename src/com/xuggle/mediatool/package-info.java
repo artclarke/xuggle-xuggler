@@ -141,7 +141,7 @@
  * Mixin classes are similar to Adapter classes, but do not declare the
  * interfaces they implement formally. In this way they can be included
  * in-sub-classes without forcing the sub-class to declare they implement a
- * method. For example, the {@link com.xuggle.mediatool.MediaToolMixin} class
+ * method. For example, the {@link com.xuggle.mediatool.AMediaToolMixin} class
  * can be useful to help implement {@link com.xuggle.mediatool.IMediaReader}
  * (and in fact, we use it for exactly that internally).
  * 
