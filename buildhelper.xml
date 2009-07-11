@@ -1107,6 +1107,7 @@
           <arg value="${dist.dir}/bin/${app.name}.${library.version}-core-bin-${xuggle.os}.tar.gz"/>
           <arg value="${dist.dir}/bin/xuggle-xuggler-core.${library.version}-${xuggle.os}.sh"/>
         </exec>
+        <delete file="${dist.dir}/bin/${app.name}.${library.version}-core-bin-${xuggle.os}.tar.gz"/>
         <exec dir="${dist.dir}/stage-ffmpeg/${xuggle.dir}"
             executable="tar" osfamily="unix">
           <arg value="-pczf"/>
@@ -1124,6 +1125,7 @@
           <arg value="${dist.dir}/bin/${app.name}.${library.version}-ffmpeg-bin-${xuggle.os}.tar.gz"/>
           <arg value="${dist.dir}/bin/xuggle-ffmpeg.${library.version}-${xuggle.os}.sh"/>
         </exec>
+        <delete file="${dist.dir}/bin/${app.name}.${library.version}-ffmpeg-bin-${xuggle.os}.tar.gz"/>
         <exec dir="${dist.dir}/stage/${xuggle.dir}"
             executable="tar" osfamily="unix">
           <arg value="-pczf"/>
@@ -1141,6 +1143,7 @@
           <arg value="${dist.dir}/bin/${app.name}.${library.version}-all-bin-${xuggle.os}.tar.gz"/>
           <arg value="${dist.dir}/bin/xuggle-xuggler.${library.version}-${xuggle.os}.sh"/>
         </exec>
+        <delete file="${dist.dir}/bin/${app.name}.${library.version}-all-bin-${xuggle.os}.tar.gz"/>
       </then>
       <else>
         <!-- Build Windows installers -->
