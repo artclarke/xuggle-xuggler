@@ -200,9 +200,9 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "\n" );
     H0( "Ratecontrol:\n" );
     H0( "\n" );
-    H0( "  -q, --qp <integer>          Set QP (0=lossless) [%d]\n", defaults->rc.i_qp_constant );
+    H0( "  -q, --qp <integer>          Set QP (0-51, 0=lossless)\n" );
     H0( "  -B, --bitrate <integer>     Set bitrate (kbit/s)\n" );
-    H0( "      --crf <float>           Quality-based VBR (nominal QP)\n" );
+    H0( "      --crf <float>           Quality-based VBR (0-51, 0=lossless) [%.1f]\n", defaults->rc.f_rf_constant );
     H1( "      --vbv-maxrate <integer> Max local bitrate (kbit/s) [%d]\n", defaults->rc.i_vbv_max_bitrate );
     H0( "      --vbv-bufsize <integer> Enable CBR and set size of the VBV buffer (kbit) [%d]\n", defaults->rc.i_vbv_buffer_size );
     H1( "      --vbv-init <float>      Initial VBV buffer occupancy [%.1f]\n", defaults->rc.f_vbv_buffer_init );
