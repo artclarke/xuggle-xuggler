@@ -18,8 +18,10 @@ CAPTIVE_ENABLE_LIBMP3LAME=@CAPTIVE_ENABLE_LIBMP3LAME@
 CAPTIVE_ENABLE_LIBFAAC=@CAPTIVE_ENABLE_LIBFAAC@
 CAPTIVE_ENABLE_FFMPEG_GPL=@VS_ENABLE_GPL@
 
+SVN_REVISION=`@abs_top_srcdir@/revision.sh @abs_top_srcdir@ @abs_top_srcdir@/LastRevisionBuilt.txt @abs_top_srcdir@/LastRevisionBuild.txt`
+
 FFMPEG_OPTIONS=
-FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-version=xuggle-@LIB_MAJOR_VERSION@.@LIB_MINOR_VERSION@"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-version=xuggle-@LIB_MAJOR_VERSION@.@LIB_MINOR_VERSION@.${SVN_REVISION}"
 
 # Tell FFMPEG about the captive libraries already built and fake
 # installed
