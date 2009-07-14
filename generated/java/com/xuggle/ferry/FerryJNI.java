@@ -78,10 +78,13 @@ class FerryJNI {
   public final static native void Mutex_unlock(long jarg1, Mutex jarg1_);
   public final static native int IBuffer_getBufferSize(long jarg1, IBuffer jarg1_);
   public final static native long IBuffer_make__SWIG_0(long jarg1, RefCounted jarg1_, int jarg2);
+  public final static native int IBuffer_getType(long jarg1, IBuffer jarg1_);
+  public final static native void IBuffer_setType(long jarg1, IBuffer jarg1_, int jarg2);
+  public final static native long IBuffer_make__SWIG_1(long jarg1, RefCounted jarg1_, int jarg2, int jarg3, boolean jarg4);
   public final static native java.nio.ByteBuffer IBuffer_java_getByteBuffer(long jarg1, IBuffer jarg1_, int jarg2, int jarg3);
   public final static native byte[] IBuffer_getByteArray(long jarg1, IBuffer jarg1_, int jarg2, int jarg3);
-  public final static native long IBuffer_make__SWIG_1(long jarg1, RefCounted jarg1_, byte[] jarg2, int jarg3, int jarg4);
-  public final static native long IBuffer_make__SWIG_2(long jarg1, RefCounted jarg1_, java.nio.ByteBuffer jarg2, int jarg3, int jarg4);
+  public final static native long IBuffer_make__SWIG_2(long jarg1, RefCounted jarg1_, byte[] jarg2, int jarg3, int jarg4);
+  public final static native long IBuffer_make__SWIG_3(long jarg1, RefCounted jarg1_, java.nio.ByteBuffer jarg2, int jarg3, int jarg4);
   public final static native long RefCountedTester_make__SWIG_0();
   public final static native long RefCountedTester_make__SWIG_1(long jarg1, RefCountedTester jarg1_);
   public final static native long SWIGMutexUpcast(long jarg1);

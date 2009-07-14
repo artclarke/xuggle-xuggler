@@ -54,6 +54,11 @@ namespace com { namespace xuggle { namespace ferry
   }
   
 
-  
+  IBuffer*
+  IBuffer::make(com::xuggle::ferry::RefCounted* requestor,
+      Type type, int32_t numElements, bool zero)
+  {
+    return Buffer::make(requestor, type, numElements, zero);
+  }
 
 }}}

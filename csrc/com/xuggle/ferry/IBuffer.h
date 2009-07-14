@@ -105,6 +105,66 @@ public:
   static IBuffer*
   make(com::xuggle::ferry::RefCounted* requestor, int32_t bufferSize);
 
+  /*
+   * Added for 3.1
+   */
+  typedef enum {
+    IBUFFER_UINT8,
+    IBUFFER_SINT8,
+    IBUFFER_UINT16,
+    IBUFFER_SINT16,
+    IBUFFER_UINT32,
+    IBUFFER_SINT32,
+    IBUFFER_UINT64,
+    IBUFFER_SINT64,
+    IBUFFER_FLT32,
+    IBUFFER_DBL64,
+    IBUFFER_DBL128,
+    IBUFFER_NB,
+  } Type;
+  
+  /**
+   * Get the type this buffer was created as.
+   * <p>
+   * A type is really just a hint.  Like
+   * {@link java.nio.ByteBuffer objects},
+   * {@link IBuffer} objects can be cast to and from any type.
+   * </p>
+   * @return the type  
+   */
+  virtual Type getType()=0;
+  
+  /**
+   * Reset the buffer type to a new type.
+   * <p>
+   * This method does not do any data conversion, it
+   * just changes the reported type (so changing from
+   * {@link Type#IBUFFER_UINT8} to {@link Type#IBUFFER_SINT16}
+   * is really just a "cast" operation).
+   * </p>
+   * @param type the type to set to. 
+   */
+  virtual void setType(Type type)=0;
+  
+  /**
+   * Allocate a new buffer of at least bufferSize.
+   * 
+   * @param requestor An optional value telling the IBuffer class what object requested it.  This is used for debugging memory leaks; it's a marker for the FERRY object (e.g. IPacket) that actually requested the buffer.  If you're not an FERRY object, pass in null here.
+   * @param type The type of buffer.
+   * @param numElements The minimum number of elements of the specified
+   *                    type you will put in this buffer.
+   * @param zero If true, we will guarantee the buffer contains
+   *             only zeros.  If false, we will not (it is 
+   *             faster to not, but then the buffer will have
+   *             garbage-data in it).
+   * 
+   * @return A new buffer, or null on error.
+   */
+  static IBuffer*
+  make(com::xuggle::ferry::RefCounted* requestor,
+      Type type, int32_t numElements, bool zero);
+
+
 protected:
   IBuffer();
   virtual

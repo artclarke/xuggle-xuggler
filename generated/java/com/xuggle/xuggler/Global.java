@@ -224,8 +224,8 @@ public class Global extends RefCounted {
  * unless you're extending xuggler directly yourself, ordinary  
  * users of this library don't need to call this.  
  * <p>  
- * It's main purpose is to ensure any FFMPEG required environment  
- * initialization functions are called, and any XUGGLER required  
+ * It's main purpose is to ensure any FFmpeg required environment  
+ * initialization functions are called, and any Xuggler required  
  * environmental contexts are set up.  
  * </p>  
  */

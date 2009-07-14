@@ -28,12 +28,27 @@ VS_LOG_SETUP(VS_CPP_PACKAGE);
 
 namespace com { namespace xuggle { namespace ferry
 {
-
+  uint8_t Buffer :: mTypeSize[] = {
+      // Must be in right order
+      sizeof(uint8_t),
+      sizeof(int8_t),
+      sizeof(uint16_t),
+      sizeof(int16_t),
+      sizeof(uint32_t),
+      sizeof(int32_t),
+      sizeof(uint64_t),
+      sizeof(int64_t),
+      sizeof(float),
+      sizeof(double),
+      sizeof(long double),
+      0
+  };
   Buffer :: Buffer() : mBuffer(0), mBufferSize(0)
   {
     mFreeFunc = 0;
     mClosure = 0;
     mInternallyAllocated = false;
+    mType = IBUFFER_UINT8; // bytes
   }
 
   Buffer :: ~Buffer()
@@ -116,5 +131,38 @@ namespace com { namespace xuggle { namespace ferry
     }
     return retval;
   }
+  
+  IBuffer::Type
+  Buffer :: getType()
+  {
+    return mType;
+  }
+  
+  void
+  Buffer :: setType(Type type)
+  {
+    mType = type;
+  }
+  
+  Buffer*
+  Buffer :: make(com::xuggle::ferry::RefCounted* requestor,
+      Type type, int32_t numElements, bool zero)
+  {
+    if (numElements <= 0)
+      return 0;
+    if (type < 0 || type >= IBUFFER_NB)
+      return 0;
+    
+    int32_t bytesRequested = numElements*mTypeSize[(int32_t)type];
+    Buffer *retval = Buffer::make(requestor, bytesRequested);
+    if (retval)
+    {
+      retval->mType = type;
+      if (zero)
+        memset(retval->getBytes(0, bytesRequested), 0, bytesRequested);
+    }
+    return retval;
+  }
+  
   
 }}}

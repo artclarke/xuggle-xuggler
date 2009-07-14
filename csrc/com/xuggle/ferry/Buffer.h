@@ -36,7 +36,8 @@ namespace com { namespace xuggle { namespace ferry
     /**
      * Allocate a new buffer of at least bufferSize.
      */
-    static VS_API_FERRY Buffer* make(RefCounted* requestor, int32_t bufferSize);
+    static VS_API_FERRY Buffer* make(RefCounted* requestor,
+        int32_t bufferSize);
     
     /**
      * Create an iBuffer that wraps the given buffer, and calls
@@ -46,6 +47,13 @@ namespace com { namespace xuggle { namespace ferry
     static VS_API_FERRY Buffer* make(RefCounted* requestor, void * bufToWrap, int32_t bufferSize,
      FreeFunc freeFunc, void * closure);
     
+    virtual Type getType();
+    virtual void setType(Type);
+
+    static Buffer*
+    make(com::xuggle::ferry::RefCounted* requestor,
+        Type type, int32_t numElements, bool zero);
+
   protected:
     Buffer();
     virtual ~Buffer();
@@ -55,6 +63,8 @@ namespace com { namespace xuggle { namespace ferry
     void* mClosure;
     int32_t mBufferSize;
     bool mInternallyAllocated;
+    Type mType;
+    static uint8_t mTypeSize[];
   };
 
 }}}

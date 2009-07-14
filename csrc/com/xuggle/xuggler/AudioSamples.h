@@ -88,7 +88,10 @@ namespace com { namespace xuggle { namespace xuggler
   protected:
     AudioSamples();
     virtual ~AudioSamples();
+  private:
     void allocInternalSamples();
+    static void setBufferType(IAudioSamples::Format format,
+        com::xuggle::ferry::IBuffer * buffer);
     com::xuggle::ferry::RefPointer<com::xuggle::ferry::IBuffer> mSamples;
     com::xuggle::ferry::RefPointer<IRational> mTimeBase;
     uint32_t mNumSamples;

@@ -1083,6 +1083,56 @@ public class IBuffer extends RefCounted {
   }
 
 /**
+ * Get the type this buffer was created as.  
+ * <p>  
+ * A type is really just a hint. Like  
+ * {@link java.nio.ByteBuffer objects},  
+ * {@link IBuffer} objects can be cast to and from any type.  
+ * </p>  
+ * @return	the type  
+ */
+  public IBuffer.Type getType() {
+    return IBuffer.Type.swigToEnum(FerryJNI.IBuffer_getType(swigCPtr, this));
+  }
+
+/**
+ * Reset the buffer type to a new type.  
+ * <p>  
+ * This method does not do any data conversion, it  
+ * just changes the reported type (so changing from  
+ * {@link Type#IBUFFER_UINT8} to {@link Type#IBUFFER_SINT16}  
+ * is really just a "cast" operation).  
+ * </p>  
+ * @param	type the type to set to.  
+ */
+  public void setType(IBuffer.Type type) {
+    FerryJNI.IBuffer_setType(swigCPtr, this, type.swigValue());
+  }
+
+/**
+ * Allocate a new buffer of at least bufferSize.  
+ * @param	requestor An optional value telling the IBuffer class what 
+ *		 object requested it. This is used for debugging 
+ *		 memory leaks; it's a marker for the FERRY object 
+ *		 (e.g. IPacket) that actually requested the buffer. 
+ *		 If you're not an FERRY object, pass in null here. 
+ *		  
+ * @param	type The type of buffer.  
+ * @param	numElements The minimum number of elements of the specified 
+ *		  
+ * type you will put in this buffer.  
+ * @param	zero If true, we will guarantee the buffer contains  
+ * only zeros. If false, we will not (it is  
+ * faster to not, but then the buffer will have  
+ * garbage-data in it).  
+ * @return	A new buffer, or null on error.  
+ */
+  public static IBuffer make(RefCounted requestor, IBuffer.Type type, int numElements, boolean zero) {
+    long cPtr = FerryJNI.IBuffer_make__SWIG_1(RefCounted.getCPtr(requestor), requestor, type.swigValue(), numElements, zero);
+    return (cPtr == 0) ? null : new IBuffer(cPtr, false);
+  }
+
+/**
  * Internal only. Do not use.  
  */
   public java.nio.ByteBuffer java_getByteBuffer(int offset, int length) {
@@ -1133,7 +1183,7 @@ public class IBuffer extends RefCounted {
  * or null on failure.  
  */
   public static IBuffer make(RefCounted requestor, byte[] buffer, int offset, int length) {
-    long cPtr = FerryJNI.IBuffer_make__SWIG_1(RefCounted.getCPtr(requestor), requestor, buffer, offset, length);
+    long cPtr = FerryJNI.IBuffer_make__SWIG_2(RefCounted.getCPtr(requestor), requestor, buffer, offset, length);
     return (cPtr == 0) ? null : new IBuffer(cPtr, false);
   }
 
@@ -1162,8 +1212,60 @@ public class IBuffer extends RefCounted {
  * behind the scenes, or null on failure.  
  */
   public static IBuffer make(RefCounted requestor, java.nio.ByteBuffer directByteBuffer, int offset, int length) {
-    long cPtr = FerryJNI.IBuffer_make__SWIG_2(RefCounted.getCPtr(requestor), requestor, directByteBuffer, offset, length);
+    long cPtr = FerryJNI.IBuffer_make__SWIG_3(RefCounted.getCPtr(requestor), requestor, directByteBuffer, offset, length);
     return (cPtr == 0) ? null : new IBuffer(cPtr, false);
+  }
+
+  public enum Type {
+    IBUFFER_UINT8,
+    IBUFFER_SINT8,
+    IBUFFER_UINT16,
+    IBUFFER_SINT16,
+    IBUFFER_UINT32,
+    IBUFFER_SINT32,
+    IBUFFER_UINT64,
+    IBUFFER_SINT64,
+    IBUFFER_FLT32,
+    IBUFFER_DBL64,
+    IBUFFER_DBL128,
+    IBUFFER_NB;
+
+    public final int swigValue() {
+      return swigValue;
+    }
+
+    public static Type swigToEnum(int swigValue) {
+      Type[] swigValues = Type.class.getEnumConstants();
+      if (swigValue < swigValues.length && swigValue >= 0 && swigValues[swigValue].swigValue == swigValue)
+        return swigValues[swigValue];
+      for (Type swigEnum : swigValues)
+        if (swigEnum.swigValue == swigValue)
+          return swigEnum;
+      throw new IllegalArgumentException("No enum " + Type.class + " with value " + swigValue);
+    }
+
+    @SuppressWarnings("unused")
+    private Type() {
+      this.swigValue = SwigNext.next++;
+    }
+
+    @SuppressWarnings("unused")
+    private Type(int swigValue) {
+      this.swigValue = swigValue;
+      SwigNext.next = swigValue+1;
+    }
+
+    @SuppressWarnings("unused")
+    private Type(Type swigEnum) {
+      this.swigValue = swigEnum.swigValue;
+      SwigNext.next = this.swigValue+1;
+    }
+
+    private final int swigValue;
+
+    private static class SwigNext {
+      private static int next = 0;
+    }
   }
 
 }

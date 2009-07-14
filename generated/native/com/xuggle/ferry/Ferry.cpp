@@ -313,7 +313,7 @@ SWIGINTERN jbyteArray com_xuggle_ferry_IBuffer_getByteArray(com::xuggle::ferry::
     }
     return retval;
   }
-SWIGINTERN com::xuggle::ferry::IBuffer *com_xuggle_ferry_IBuffer_make__SWIG_1(com::xuggle::ferry::RefCounted *requestor,jbyteArray buffer,int32_t offset,int32_t length){
+SWIGINTERN com::xuggle::ferry::IBuffer *com_xuggle_ferry_IBuffer_make__SWIG_2(com::xuggle::ferry::RefCounted *requestor,jbyteArray buffer,int32_t offset,int32_t length){
     IBuffer* retval = 0;
     try
     {
@@ -354,7 +354,7 @@ SWIGINTERN com::xuggle::ferry::IBuffer *com_xuggle_ferry_IBuffer_make__SWIG_1(co
     return retval;
 
   }
-SWIGINTERN com::xuggle::ferry::IBuffer *com_xuggle_ferry_IBuffer_make__SWIG_2(com::xuggle::ferry::RefCounted *requestor,jNioByteArray directByteBuffer,int32_t offset,int32_t length){
+SWIGINTERN com::xuggle::ferry::IBuffer *com_xuggle_ferry_IBuffer_make__SWIG_3(com::xuggle::ferry::RefCounted *requestor,jNioByteArray directByteBuffer,int32_t offset,int32_t length){
     IBuffer * retval = 0;
     jobject globalRef = 0;
     JNIEnv* env = JNIHelper::sGetEnv();
@@ -3324,6 +3324,234 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_10
 }
 
 
+SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1getType(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  com::xuggle::ferry::IBuffer *arg1 = (com::xuggle::ferry::IBuffer *) 0 ;
+  com::xuggle::ferry::IBuffer::Type result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::ferry::IBuffer **)&jarg1; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return 0;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (com::xuggle::ferry::IBuffer::Type)(arg1)->getType();
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
+      }
+      return 0;
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1setType(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  com::xuggle::ferry::IBuffer *arg1 = (com::xuggle::ferry::IBuffer *) 0 ;
+  com::xuggle::ferry::IBuffer::Type arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::ferry::IBuffer **)&jarg1; 
+  arg2 = (com::xuggle::ferry::IBuffer::Type)jarg2; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return ;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      (arg1)->setType(arg2);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
+      }
+      return ;
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return ;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return ;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_11(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jint jarg3, jboolean jarg4) {
+  jlong jresult = 0 ;
+  com::xuggle::ferry::RefCounted *arg1 = (com::xuggle::ferry::RefCounted *) 0 ;
+  com::xuggle::ferry::IBuffer::Type arg2 ;
+  int32_t arg3 ;
+  bool arg4 ;
+  com::xuggle::ferry::IBuffer *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::ferry::RefCounted **)&jarg1; 
+  arg2 = (com::xuggle::ferry::IBuffer::Type)jarg2; 
+  arg3 = (int32_t)jarg3; 
+  arg4 = jarg4 ? true : false; 
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (com::xuggle::ferry::IBuffer *)com::xuggle::ferry::IBuffer::make(arg1,arg2,arg3,arg4);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
+      }
+      return 0;
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  *(com::xuggle::ferry::IBuffer **)&jresult = result; 
+  return jresult;
+}
+
+
 SWIGEXPORT jobject JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1java_1getByteBuffer(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jint jarg3) {
   jobject jresult = 0 ;
   com::xuggle::ferry::IBuffer *arg1 = (com::xuggle::ferry::IBuffer *) 0 ;
@@ -3486,7 +3714,7 @@ SWIGEXPORT jbyteArray JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1getByteArr
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_11(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jbyteArray jarg2, jint jarg3, jint jarg4) {
+SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_12(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jbyteArray jarg2, jint jarg3, jint jarg4) {
   jlong jresult = 0 ;
   com::xuggle::ferry::RefCounted *arg1 = (com::xuggle::ferry::RefCounted *) 0 ;
   jbyteArray arg2 ;
@@ -3506,7 +3734,7 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_11
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>
     try
     {
-      result = (com::xuggle::ferry::IBuffer *)com_xuggle_ferry_IBuffer_make__SWIG_1(arg1,arg2,arg3,arg4);
+      result = (com::xuggle::ferry::IBuffer *)com_xuggle_ferry_IBuffer_make__SWIG_2(arg1,arg2,arg3,arg4);
     }
     catch(std::invalid_argument & e)
     {
@@ -3562,7 +3790,7 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_11
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_12(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jobject jarg2, jint jarg3, jint jarg4) {
+SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_13(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jobject jarg2, jint jarg3, jint jarg4) {
   jlong jresult = 0 ;
   com::xuggle::ferry::RefCounted *arg1 = (com::xuggle::ferry::RefCounted *) 0 ;
   jNioByteArray arg2 ;
@@ -3582,7 +3810,7 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_ferry_FerryJNI_IBuffer_1make_1_1SWIG_12
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>
     try
     {
-      result = (com::xuggle::ferry::IBuffer *)com_xuggle_ferry_IBuffer_make__SWIG_2(arg1,arg2,arg3,arg4);
+      result = (com::xuggle::ferry::IBuffer *)com_xuggle_ferry_IBuffer_make__SWIG_3(arg1,arg2,arg3,arg4);
     }
     catch(std::invalid_argument & e)
     {

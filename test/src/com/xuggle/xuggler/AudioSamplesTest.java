@@ -193,4 +193,29 @@ public class AudioSamplesTest extends TestCase
     
     
   }
+
+  @Test
+  public void testGetBufferType()
+  {
+    int sampleRate = 440;
+    int channels=1;
+    
+    IAudioSamples samples = IAudioSamples.make(sampleRate, 1);
+    assertNotNull(samples);
+
+    samples.setComplete(true, sampleRate, sampleRate,
+        channels, IAudioSamples.Format.FMT_S16, 0);
+    assertTrue(samples.isComplete());
+    
+    IBuffer buffer;
+    buffer = samples.getData();
+    assertEquals(IBuffer.Type.IBUFFER_SINT16, buffer.getType());
+
+    samples.setComplete(true, sampleRate, sampleRate,
+        channels, IAudioSamples.Format.FMT_S32, 0);
+    assertTrue(samples.isComplete());
+    buffer = samples.getData();
+    assertEquals(IBuffer.Type.IBUFFER_SINT32, buffer.getType());
+ }
+
 }

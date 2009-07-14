@@ -69,6 +69,7 @@ namespace com { namespace xuggle { namespace xuggler
       mSamples = IBuffer::make(this, bufSize);
       if (!mSamples)
         throw std::bad_alloc();
+      setBufferType(mSampleFmt, mSamples.value());
 
       if (mSamples)
       {
@@ -139,6 +140,7 @@ namespace com { namespace xuggle { namespace xuggler
         return 0;
       retval->mSampleFmt = format;
       retval->mSamples.reset(buffer, true);
+      setBufferType(format, buffer);
     }
     catch (std::bad_alloc &e)
     {
@@ -235,6 +237,9 @@ namespace com { namespace xuggle { namespace xuggler
     mChannels = channels;
     mSampleRate = sampleRate;
     mSampleFmt = format;
+    if (mSamples)
+      // if we've allocated a buffer, reset the type
+      setBufferType(mSampleFmt, mSamples.value());
 
     if (mIsComplete)
     {
@@ -332,4 +337,32 @@ namespace com { namespace xuggle { namespace xuggler
     return retval;
   }
 
+  void
+  AudioSamples :: setBufferType(IAudioSamples::Format format,
+      IBuffer* buffer)
+  {
+    if (!buffer)
+      return;
+    switch(format)
+    {
+      case FMT_FLT:
+        buffer->setType(IBuffer::IBUFFER_FLT32);
+        break;
+      case FMT_S16:
+        buffer->setType(IBuffer::IBUFFER_SINT16);
+        break;
+      case FMT_S24:
+        // Dear god.. don't use this type of audio
+        buffer->setType(IBuffer::IBUFFER_UINT8);
+        break;
+      case FMT_S32:
+        buffer->setType(IBuffer::IBUFFER_SINT32);
+        break;
+      case FMT_U8:
+        buffer->setType(IBuffer::IBUFFER_UINT8);
+        break;
+      default:
+        break;
+    }
+  }
 }}}
