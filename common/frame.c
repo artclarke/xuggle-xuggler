@@ -50,7 +50,7 @@ x264_frame_t *x264_frame_new( x264_t *h )
     frame->i_plane = 3;
     for( i = 0; i < 3; i++ )
     {
-        frame->i_stride[i] = ALIGN( i_stride >> !!i, 16 );
+        frame->i_stride[i] = ALIGN( i_stride >> !!i, align );
         frame->i_width[i] = i_width >> !!i;
         frame->i_lines[i] = i_lines >> !!i;
     }

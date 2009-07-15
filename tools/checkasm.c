@@ -803,8 +803,8 @@ static int check_mc( int cpu_ref, int cpu_new )
             used_asm = 1; \
             memset(buf3, 0xCD, 1024); \
             memset(buf4, 0xCD, 1024); \
-            call_c( mc_c.mc_chroma, dst1, 16, src, 32, dx, dy, w, h ); \
-            call_a( mc_a.mc_chroma, dst2, 16, src, 32, dx, dy, w, h ); \
+            call_c( mc_c.mc_chroma, dst1, 16, src, 64, dx, dy, w, h ); \
+            call_a( mc_a.mc_chroma, dst2, 16, src, 64, dx, dy, w, h ); \
             /* mc_chroma width=2 may write garbage to the right of dst. ignore that. */\
             for( j=0; j<h; j++ ) \
                 for( i=w; i<4; i++ ) \
@@ -834,8 +834,9 @@ static int check_mc( int cpu_ref, int cpu_new )
 
     ok = 1; used_asm = 0;
     for( dy = -1; dy < 9; dy++ )
-        for( dx = -1; dx < 9; dx++ )
+        for( dx = -128; dx < 128; dx++ )
         {
+            if( rand()&15 ) continue;
             MC_TEST_CHROMA( 8, 8 );
             MC_TEST_CHROMA( 8, 4 );
             MC_TEST_CHROMA( 4, 8 );

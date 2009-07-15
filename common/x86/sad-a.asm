@@ -28,9 +28,8 @@
 
 SECTION_RODATA
 pb_3: times 16 db 3
+pb_shuf8x8c: db 0,0,0,0,2,2,2,2,4,4,4,4,6,6,6,6
 pw_8: times 4 dw 8
-pb_shuf8x8c0: db 0,0,0,0,2,2,2,2
-pb_shuf8x8c1: db 4,4,4,4,6,6,6,6
 sw_64: dd 64
 
 SECTION .text
@@ -450,16 +449,32 @@ cglobal x264_intra_sad_x3_8x8c_%1, 3,3
     psrlw       m0, 2
     pavgw       m0, m7 ; s0+s2, s1, s3, s1+s3
 %ifidn %1, ssse3
-    movq        m1, m0
-    pshufb      m0, [pb_shuf8x8c0 GLOBAL]
-    pshufb      m1, [pb_shuf8x8c1 GLOBAL]
+    movq2dq   xmm0, m0
+    pshufb    xmm0, [pb_shuf8x8c GLOBAL]
+    movq      xmm1, [r0+FENC_STRIDE*0]
+    movq      xmm2, [r0+FENC_STRIDE*1]
+    movq      xmm3, [r0+FENC_STRIDE*2]
+    movq      xmm4, [r0+FENC_STRIDE*3]
+    movhps    xmm1, [r0+FENC_STRIDE*4]
+    movhps    xmm2, [r0+FENC_STRIDE*5]
+    movhps    xmm3, [r0+FENC_STRIDE*6]
+    movhps    xmm4, [r0+FENC_STRIDE*7]
+    psadbw    xmm1, xmm0
+    psadbw    xmm2, xmm0
+    psadbw    xmm3, xmm0
+    psadbw    xmm4, xmm0
+    paddw     xmm1, xmm2
+    paddw     xmm1, xmm3
+    paddw     xmm1, xmm4
+    movhlps   xmm0, xmm1
+    paddw     xmm1, xmm0
+    movd      [r2], xmm1
 %else
     packuswb    m0, m0
     punpcklbw   m0, m0
     movq        m1, m0
     punpcklbw   m0, m0 ; 4x dc0 4x dc1
     punpckhbw   m1, m1 ; 4x dc2 4x dc3
-%endif
     movq        m2, [r0+FENC_STRIDE*0]
     movq        m3, [r0+FENC_STRIDE*1]
     movq        m4, [r0+FENC_STRIDE*2]
@@ -483,6 +498,7 @@ cglobal x264_intra_sad_x3_8x8c_%1, 3,3
     paddw       m6, m0
     paddw       m2, m6
     movd      [r2], m2
+%endif
     RET
 %endmacro
 

@@ -37,14 +37,14 @@
 ; Name of the .rodata section.
 ; Kludge: Something on OS X fails to align .rodata even given an align attribute,
 ; so use a different read-only section.
-%macro SECTION_RODATA 0
+%macro SECTION_RODATA 0-1 16
     %ifidn __OUTPUT_FORMAT__,macho64
-        SECTION .text align=16
+        SECTION .text align=%1
     %elifidn __OUTPUT_FORMAT__,macho
-        SECTION .text align=16
+        SECTION .text align=%1
         fakegot:
     %else
-        SECTION .rodata align=16
+        SECTION .rodata align=%1
     %endif
 %endmacro
 
