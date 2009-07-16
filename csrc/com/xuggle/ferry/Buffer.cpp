@@ -40,7 +40,6 @@ namespace com { namespace xuggle { namespace ferry
       sizeof(int64_t),
       sizeof(float),
       sizeof(double),
-      sizeof(long double),
       0
   };
   Buffer :: Buffer() : mBuffer(0), mBufferSize(0)
@@ -164,5 +163,19 @@ namespace com { namespace xuggle { namespace ferry
     return retval;
   }
   
+  int32_t
+  Buffer :: getTypeSize(Type type)
+  {
+    if (type < 0 || type >= IBUFFER_NB)
+      return 0;
+    return mTypeSize[(int32_t)type];
+  }
   
+  int32_t
+  Buffer :: getSize()
+  {
+    if (mType < 0 || mType >= IBUFFER_NB)
+      return 0;
+    return getBufferSize()/mTypeSize[(int32_t)mType];
+  }
 }}}

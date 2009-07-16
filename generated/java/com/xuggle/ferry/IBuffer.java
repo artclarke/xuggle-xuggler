@@ -1110,6 +1110,24 @@ public class IBuffer extends RefCounted {
   }
 
 /**
+ * Returns the size, in bytes, of elements of given Type.  
+ * @return	the size in bytes.  
+ */
+  public static int getTypeSize(IBuffer.Type type) {
+    return FerryJNI.IBuffer_getTypeSize(type.swigValue());
+  }
+
+/**
+ * Returns the size, in units of {@link #getType()} of  
+ * this buffer.  
+ * @return	number of items of type {@link #getType()} that  
+ * will fit in this buffer.  
+ */
+  public int getSize() {
+    return FerryJNI.IBuffer_getSize(swigCPtr, this);
+  }
+
+/**
  * Allocate a new buffer of at least bufferSize.  
  * @param	requestor An optional value telling the IBuffer class what 
  *		 object requested it. This is used for debugging 
@@ -1227,7 +1245,6 @@ public class IBuffer extends RefCounted {
     IBUFFER_SINT64,
     IBUFFER_FLT32,
     IBUFFER_DBL64,
-    IBUFFER_DBL128,
     IBUFFER_NB;
 
     public final int swigValue() {

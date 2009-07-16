@@ -119,7 +119,6 @@ public:
     IBUFFER_SINT64,
     IBUFFER_FLT32,
     IBUFFER_DBL64,
-    IBUFFER_DBL128,
     IBUFFER_NB,
   } Type;
   
@@ -145,6 +144,22 @@ public:
    * @param type the type to set to. 
    */
   virtual void setType(Type type)=0;
+  
+  /**
+   * Returns the size, in bytes, of elements of given Type.
+   * 
+   * @return the size in bytes.
+   */
+  static int32_t getTypeSize(Type type);
+  
+  /**
+   * Returns the size, in units of {@link #getType()} of
+   * this buffer.
+   * 
+   * @return number of items of type {@link #getType()} that
+   *   will fit in this buffer.
+   */
+  virtual int32_t getSize()=0;
   
   /**
    * Allocate a new buffer of at least bufferSize.

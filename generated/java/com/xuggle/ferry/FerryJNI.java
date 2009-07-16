@@ -80,6 +80,8 @@ class FerryJNI {
   public final static native long IBuffer_make__SWIG_0(long jarg1, RefCounted jarg1_, int jarg2);
   public final static native int IBuffer_getType(long jarg1, IBuffer jarg1_);
   public final static native void IBuffer_setType(long jarg1, IBuffer jarg1_, int jarg2);
+  public final static native int IBuffer_getTypeSize(int jarg1);
+  public final static native int IBuffer_getSize(long jarg1, IBuffer jarg1_);
   public final static native long IBuffer_make__SWIG_1(long jarg1, RefCounted jarg1_, int jarg2, int jarg3, boolean jarg4);
   public final static native java.nio.ByteBuffer IBuffer_java_getByteBuffer(long jarg1, IBuffer jarg1_, int jarg2, int jarg3);
   public final static native byte[] IBuffer_getByteArray(long jarg1, IBuffer jarg1_, int jarg2, int jarg3);

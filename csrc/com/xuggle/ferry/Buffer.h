@@ -49,11 +49,13 @@ namespace com { namespace xuggle { namespace ferry
     
     virtual Type getType();
     virtual void setType(Type);
+    virtual int32_t getSize(); 
 
     static Buffer*
     make(com::xuggle::ferry::RefCounted* requestor,
         Type type, int32_t numElements, bool zero);
-
+    
+    static int32_t getTypeSize(Type type);
   protected:
     Buffer();
     virtual ~Buffer();

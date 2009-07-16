@@ -84,30 +84,9 @@ import com.xuggle.ferry.*;
 %}
 
 %pragma(java) moduleimports=%{
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Options;
-
-import com.xuggle.xuggler.Converter;
-
 /**
- * A very simple command line program that decodes a video file, and re-encodes it to a new file.
- * <p>
- * Very loosely based on the FFMPEG command line program, just with far fewer
- * bells and whistles.  It is meant many as a demonstration program for those trying
- * to learn this library.
- * </p>
- * <p>
- * To use, make sure that the Xuggler shared libraries have been installed in your system, and
- * then run (from the root of your build tree):
- * <code>
- * <pre>
- * java -jar dist/lib/xuggle-xuggler.jar --help
- * </pre>
- * </code>
- * And yes, I hate Java classpaths as much, if not more, than you do.
- * </p>
- * <p>
- * In reality, the {@link Converter} program does all the work here.
+ * Internal Only.
+ * 
  * @see com.xuggle.xuggler.Converter
  */
 %}
@@ -122,28 +101,13 @@ import com.xuggle.xuggler.Converter;
    */
   public static void main(String[] args)
   {
-    Converter converter = new Converter();
-    
-    try {
-      // first define options
-      Options options = converter.defineOptions();
-      // And then parse them.
-      CommandLine cmdLine = converter.parseOptions(options, args);
-      // Finally, run the converter.
-      converter.run(cmdLine);
-    }
-    catch (Exception exception)
-    {
-      System.err.printf("Error: %s\n", exception.getMessage());
-    }
-    
-    
+    System.out.println("WARNING: The Converter main class has moved to: com.xuggle.xuggler.Converter");
   }
   /**
    * Internal Only.  Do not use.
    */
   public native static void init();
-  
+
 %}
 
 %pragma(java) jniclasscode=%{
