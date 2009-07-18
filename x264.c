@@ -215,7 +215,8 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H1( "      --chroma-qp-offset <integer>  QP difference between chroma and luma [%d]\n", defaults->analyse.i_chroma_qp_offset );
     H1( "      --aq-mode <integer>     AQ method [%d]\n"
         "                                  - 0: Disabled\n"
-        "                                  - 1: Variance AQ (complexity mask)\n", defaults->rc.i_aq_mode );
+        "                                  - 1: Variance AQ (complexity mask)\n"
+        "                                  - 2: Auto-variance AQ (experimental)\n", defaults->rc.i_aq_mode );
     H0( "      --aq-strength <float>   Reduces blocking and blurring in flat and\n"
         "                              textured areas. [%.1f]\n"
         "                                  - 0.5: weak AQ\n"
@@ -640,11 +641,12 @@ static int  Parse( int argc, char **argv,
             else if( !strcasecmp( optarg, "psnr" ) )
             {
                 param->analyse.f_psy_rd = 0;
-                param->rc.i_aq_mode = 0;
+                param->rc.i_aq_mode = X264_AQ_NONE;
             }
             else if( !strcasecmp( optarg, "ssim" ) )
             {
                 param->analyse.f_psy_rd = 0;
+                param->rc.i_aq_mode = X264_AQ_AUTOVARIANCE;
             }
             else if( !strcasecmp( optarg, "touhou" ) )
             {

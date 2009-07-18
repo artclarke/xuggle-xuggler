@@ -561,8 +561,7 @@ me_hex2:
              * because sum(abs(diff)) >= abs(diff(sum)). */
             uint16_t *sums_base = m->integral;
             /* due to a GCC bug on some platforms (win32?), zero[] may not actually be aligned.
-             * unlike the similar case in ratecontrol.c, this is not a problem because it is not used for any
-             * SSE instructions and the only loss is a tiny bit of performance. */
+             * this is not a problem because it is not used for any SSE instructions. */
             DECLARE_ALIGNED_16( static uint8_t zero[8*FENC_STRIDE] );
             DECLARE_ALIGNED_16( int enc_dc[4] );
             int sad_size = i_pixel <= PIXEL_8x8 ? PIXEL_8x8 : PIXEL_4x4;

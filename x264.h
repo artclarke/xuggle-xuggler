@@ -88,6 +88,7 @@ typedef struct x264_t x264_t;
 #define X264_RC_ABR                  2
 #define X264_AQ_NONE                 0
 #define X264_AQ_VARIANCE             1
+#define X264_AQ_AUTOVARIANCE         2
 #define X264_B_ADAPT_NONE            0
 #define X264_B_ADAPT_FAST            1
 #define X264_B_ADAPT_TRELLIS         2
