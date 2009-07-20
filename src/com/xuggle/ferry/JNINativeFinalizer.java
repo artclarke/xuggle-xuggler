@@ -57,6 +57,6 @@ public class JNINativeFinalizer
    */
   protected void finalize()
   {
-    JNIReference.getMgr().gc();
+    JNIReference.getMgr().gcInternal();
   }
 }

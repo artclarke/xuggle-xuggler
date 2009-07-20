@@ -58,15 +58,25 @@ public class JNIReference extends WeakReference<Object>
 
   private final AtomicLong mJavaRefCount;
   
-  private JNIReference(Object aReferent,
-      long nativeVal,
-      boolean isFerry,
-      AtomicLong javaRefCount)
+  // A static memory allocator that is only constructed once
+  private static final JNIMemoryAllocator sMemAllocator = new JNIMemoryAllocator();
+  private final boolean sUseStaticMemAllocator = true;
+  
+  private JNIReference(
+      final Object aReferent,
+      final long nativeVal,
+      final boolean isFerry,
+      final AtomicLong javaRefCount)
   {
     super(aReferent, JNIMemoryManager.getMgr().getQueue());
     mIsFerryObject = isFerry;
     mJavaRefCount = javaRefCount;
     mSwigCPtr.set(nativeVal);
+    JNIMemoryManager.MemoryModel model = JNIMemoryManager.getMemoryModel();
+    if (model == JNIMemoryManager.MemoryModel.JAVA_DIRECT_BUFFERS ||
+        model == JNIMemoryManager.MemoryModel.NATIVE_BUFFERS)
+      // don't use our allocators
+      return;
     if (mJavaRefCount.get() == 1 && 
         FerryJNI.RefCounted_getCurrentNativeRefCount(nativeVal, null) == 1)
     {
@@ -75,7 +85,10 @@ public class JNIReference extends WeakReference<Object>
       // we default to having a null allocator, and allocations are anonymous,
       // but at least
       // won't crash under heavy multi-threaded situations.
-      mMemAllocator = new JNIMemoryAllocator();
+      if (sUseStaticMemAllocator)
+        mMemAllocator = sMemAllocator;
+      else
+        mMemAllocator = new JNIMemoryAllocator();
       // we are the only owner of this object; tell it we're the object it can
       // allocate from
       JNIMemoryAllocator.setAllocator(nativeVal, mMemAllocator);
@@ -104,7 +117,7 @@ public class JNIReference extends WeakReference<Object>
       boolean isFerry, AtomicLong javaRefCount)
   {
     // Clear out any pending native objects
-    JNIMemoryManager.getMgr().gc();
+    JNIMemoryManager.getMgr().gcInternal();
 
     JNIReference ref = new JNIReference(aReferent,
         swigCPtr, isFerry, javaRefCount);
@@ -144,13 +157,25 @@ public class JNIReference extends WeakReference<Object>
       }
       // Free the memory manager we use
       mMemAllocator = null;
-      JNIMemoryManager.getMgr().removeReference(this);
     }
 
   }
 
+  /**
+   * Returns true if this object derived from {@link RefCounted}.
+   * @return true if a ferry object.
+   */
   boolean isFerryObject()
   {
     return mIsFerryObject;
+  }
+ 
+  /**
+   * Returns true if the underlying reference has had {@link #delete()} called.
+   * @return True if {@link #delete()} was called.
+   */
+  boolean isDeleted()
+  {
+    return mSwigCPtr.get() == 0;
   }
 }

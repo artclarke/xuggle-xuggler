@@ -19,6 +19,7 @@
 
 package com.xuggle.ferry;
 
+
 import static org.junit.Assert.*;
 
 import java.util.Collection;
@@ -255,6 +256,42 @@ public class RefCountedTest
     assertEquals("should be no objects for collection", 
         0, JNIReference.getMgr().getNumPinnedObjects());
 
+  }
+  
+  @Test
+  public void testJNIMemoryManagerHeapExpansion()
+  {
+    LinkedList<RefCountedTester> heldRefs = new LinkedList<RefCountedTester>();
+    JNIMemoryManager mgr = JNIMemoryManager.getMgr();
+    mgr.flush();
+    mgr.setMinimumReferencesToCache(1024);
+    int maxItems = 10000;
+    // 10000 should cause several heap expansions to occur
+    for(int i = 0; i < maxItems; i++)
+    {
+      heldRefs.add(RefCountedTester.make());
+    }
+    assertEquals("didn't pin as many as it should", maxItems, mgr.getNumPinnedObjects());
+    // now release them.
+    heldRefs.clear();
+    // and force a collection
+    MemoryTestHelper.forceJavaHeapWeakReferenceClear();
+    // Do a collection
+    mgr.gc();
+    assertEquals("didn't pin as many as it should", 0, mgr.getNumPinnedObjects());
+    // this should cause the heap to shrink, and then grow
+    for(int i = 0; i < maxItems/2; i++)
+    {
+      heldRefs.add(RefCountedTester.make());
+    }
+    assertEquals("didn't pin as many as it should", maxItems/2, mgr.getNumPinnedObjects());
+    // now release them.
+    heldRefs.clear();
+    // and force a collection
+    MemoryTestHelper.forceJavaHeapWeakReferenceClear();
+    // Do a collection
+    mgr.gc();
+    assertEquals("didn't pin as many as it should", 0, mgr.getNumPinnedObjects());
   }
  
 }

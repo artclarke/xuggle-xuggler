@@ -18,15 +18,11 @@
 
 package com.xuggle.ferry;
 
+
 import java.lang.ref.ReferenceQueue;
 import java.nio.ByteBuffer;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Manages the native memory that Ferry objects allocate and destroy.
@@ -856,7 +852,21 @@ public class JNIMemoryManager
   /**
    * Our singleton (classloader while) manager.
    */
-  static final private JNIMemoryManager mMgr = new JNIMemoryManager();
+  private static final JNIMemoryManager mMgr = new JNIMemoryManager();
+
+  private static MemoryModel mMemoryModel;
+  /*
+   * This is executed in hot code, so instead we cache the value
+   * and assume it's only set from Java code.
+   */
+  static {
+    int model = 0;
+    mMemoryModel = MemoryModel.JAVA_STANDARD_HEAP;
+    model = FerryJNI.getMemoryModel();
+    for (MemoryModel candidate : MemoryModel.values())
+      if (candidate.getNativeValue() == model)
+        mMemoryModel = candidate;
+  }
 
   /**
    * Get the global {@link JNIMemoryManager} being used.
@@ -869,15 +879,17 @@ public class JNIMemoryManager
   }
 
   /**
-   * A convenience way to call {@link #getMgr()}.{@link #gc()}
+   * A convenience way to call {@link #getMgr()}.{@link #gc()}.
+   * <p>
+   * Really somewhat mis-named, as this will cause us to free any
+   * native memory allocated by ferry, but won't cause us to walk
+   * our own internal heap -- that's only done on allocation.
+   * </p>
    */
   static public void collect()
   {
     getMgr().gc();
   }
-
-  private static final Logger log = LoggerFactory
-      .getLogger(JNIMemoryManager.class);
 
   /**
    * The reference queue that {@link RefCounted} objects will eventually find
@@ -886,114 +898,210 @@ public class JNIMemoryManager
   private final ReferenceQueue<Object> mRefQueue;
 
   /**
-   * <p>
-   * A thread-safe set of references to ferry and non-ferry based objects that
-   * are referencing underlying Ferry native memory.
-   * </p>
-   * <p>
-   * We have to enqueue all JNIReferences, otherwise we can't be guaranteed that
-   * Java will enqueue them on a reference queue. We try to be smart and
-   * efficient about this, but the fact remains that you have to pass this lock
-   * for all Ferry calls.
-   * </p>
-   * <p>
-   * Also, we don't use a ConcurrentHashMap here because the overhead of
-   * allocating buckets in performance testing outweighed the competition for
-   * the lock.
-   * </p>
+   * Used for managing our collect-and-sweep JNIReference heap.
    */
-  private final Set<JNIReference> mRefList;
+  private final Lock mLock;
+  private JNIReference mValidReferences[];
+  private volatile int mNextAvailableReferenceSlot;
+  private volatile int mMaxValidReference;
+  private int mMinimumReferencesToCache;
+  private double mExpandIncrement;
+  private double mShrinkScaleFactor;
+  private double mMaxFreeRatio;
+  private double mMinFreeRatio;
+  
   /**
-   * The number of objects we think are awaiting collection; only an estimate.
+   * The constructor is package level so others can't create it.
    */
-  private final AtomicLong mNumPinnedObjects;
+  JNIMemoryManager()
+  {
+    mRefQueue = new ReferenceQueue<Object>();
+    mCollectionThread = null;
+    mLock = new ReentrantLock();
+    final int minReferences=1024*4;
+    mMinimumReferencesToCache = minReferences;
+    mExpandIncrement = 0.20; // expand by 20% at a time
+    mShrinkScaleFactor = 0.25; // shrink by 25% of mExpandIncrement
+    mValidReferences = new JNIReference[minReferences]; 
+    mMaxValidReference = minReferences;
+    mNextAvailableReferenceSlot = 0;
+    mMaxFreeRatio = 0.70;
+    mMinFreeRatio = 0.30;
+  }
 
   /**
-   * A lock used for access to mRefList.
+   * Sets the minimum number of references to cache.
+   * <p>
+   * The {@link JNIMemoryManager} needs to cache weak references
+   * to allocated Ferry object.  This setting controls the minimum
+   * size of that cache.
+   * </p>
+   * 
+   * @param minimumReferencesToCache Minimum number of references to cache.
+   * @throws IllegalArgumentException if <= 0
    */
-  private final ReentrantLock mLock;
-
-  private boolean addToBuffer(JNIReference ref)
+  public void setMinimumReferencesToCache(int minimumReferencesToCache)
   {
-    boolean result = false;
-    mLock.lock();
-    try
-    {
-      mNumPinnedObjects.incrementAndGet();
-      result = mRefList.add(ref);
-    }
-    finally
-    {
-      mLock.unlock();
-    }
-    return result;
+    if (minimumReferencesToCache <= 0)
+      throw new IllegalArgumentException("Must pass in a positive integer");
+    mMinimumReferencesToCache = minimumReferencesToCache;
   }
 
-  private boolean removeFromBuffer(JNIReference ref)
+  /**
+   * Get the minimum number of references to cache.
+   * @return The minimum number of references to cache.
+   * @see #setMinimumReferencesToCache(long)
+   */
+  public int getMinimumReferencesToCache()
   {
-    boolean result;
-    mLock.lock();
-    try
-    {
-      mNumPinnedObjects.decrementAndGet();
-      result = mRefList.remove(ref);
-    }
-    finally
-    {
-      mLock.unlock();
-    }
-    return result;
+    return mMinimumReferencesToCache;
   }
 
-  private void clearBuffer()
+  /**
+   * Get the percentage value we will increment the reference cache by
+   * if we need to expand it.
+   * @param expandIncrement A percentage we will increment the reference cache
+   *  by if we need to expand it.
+   * @throws IllegalArgumentException if <= 0
+   */
+  public void setExpandIncrement(double expandIncrement)
   {
-    mLock.lock();
-    try
-    {
-      mRefList.clear();
-      mNumPinnedObjects.set(0);
-    }
-    finally
-    {
-      mLock.unlock();
-    }
+    if (expandIncrement <= 0)
+      throw new IllegalArgumentException("Must pass in positive percentage");
+    mExpandIncrement = expandIncrement/100;
   }
 
-  private void flushBuffer()
+  /**
+   * Get the percentage value we will increment the reference cache by
+   * if we need to expand it.
+   * @return the percentage value.
+   * @see #setExpandIncrement(float)
+   */
+  public double getExpandIncrement()
   {
-    // Make a copy so we don't modify the real map
-    // inside an iterator.
-    Set<JNIReference> refs = new HashSet<JNIReference>();
-    mLock.lock();
-    try
+    return mExpandIncrement*100;
+  }
+
+  /**
+   * Set the percentage value we will shrink the reference cache by when
+   * we determine shrinking is possible.
+   * <p>
+   * If we decide to shrink, the amount we shrink the cache by is
+   * {@link #getExpandIncrement()}*{@link #getShrinkFactor()}.
+   * </p>
+   * 
+   * @param shrinkFactor The shrink percentage.
+   * @see #setExpandIncrement(float)
+   * @throws IllegalArgumentException if shrinkFactor <=0 or >= 100.
+   */
+  public void setShrinkFactor(double shrinkFactor)
+  {
+    if (shrinkFactor <= 0 || shrinkFactor >= 100)
+      throw new IllegalArgumentException("only 0 < shrinkFactor < 100 allowed");
+    mShrinkScaleFactor = shrinkFactor/100;
+  }
+
+  /**
+   * Get the shrink factor.
+   * @return the shrink factor.
+   * @see #setShrinkFactor(double)
+   */
+  public double getShrinkFactor()
+  {
+    return mShrinkScaleFactor*100;
+  }
+
+
+  /**
+   * Sets the maximum ratio of free space we'll allow without
+   * trying to shrink the memory manager heap.
+   * @param maxFreeRatio The maximum amount (0 < maxFreeRatio < 100) of
+   *   free space.
+   */
+  public void setMaxFreeRatio(double maxFreeRatio)
+  {
+    mMaxFreeRatio = maxFreeRatio/100;
+  }
+
+  /**
+   * Get the maximum ratio of free space we'll allow in a memory manager heap
+   * before trying to shrink on the next collection. 
+   * @return the ratio of free space
+   * @see #setMaxFreeRatio(double)
+   */
+  public double getMaxFreeRatio()
+  {
+    return mMaxFreeRatio*100;
+  }
+
+  /**
+   * Sets the minimum ratio of free space to total memory manager heap
+   * size we'll allow before expanding the heap.  
+   * @param minFreeRatio The minimum free ratio.
+   */
+  public void setMinFreeRatio(double minFreeRatio)
+  {
+    mMinFreeRatio = minFreeRatio/100;
+  }
+
+  /**
+   * Gets the minimum ratio of free space to total memory manager heap
+   * size we'll allow before expanding the heap.
+   * @returns The minimum free ratio.
+   * @see #setMinFreeRatio(double)
+   */
+  public double getMinFreeRatio()
+  {
+    return mMinFreeRatio*100;
+  }
+
+  private int sweepAndCollect()
+  {
+    // time to sweep, collect, and possibly grow.
+    JNIReference[] survivors = new JNIReference[mMaxValidReference];
+    int numSurvivors=0;
+    final int numValid = mMaxValidReference;
+    for(int i = 0; i < numValid; i++)
     {
-      refs.addAll(mRefList);
+      JNIReference victim = mValidReferences[i];
+      if (victim != null && !victim.isDeleted())
+      {
+        survivors[numSurvivors] = victim;
+        ++numSurvivors;
+      }
     }
-    finally
+    final int survivorLength = survivors.length;
+    int freeSpace = survivorLength - numSurvivors;
+    if (freeSpace > survivorLength * mMaxFreeRatio)
     {
-      mLock.unlock();
+      // time to shrink
+      int newSize = (int) (survivorLength*(1.0 - mExpandIncrement*mShrinkScaleFactor));
+      // never shrink smaller than the minimum
+      if (newSize >= mMinimumReferencesToCache) {
+        JNIReference[] shrunk = new JNIReference[newSize];
+        System.arraycopy(survivors, 0, shrunk, 0, newSize);
+        survivors = shrunk;
+      }
+    } else if (freeSpace <= survivorLength*mMinFreeRatio)
+    {
+      // time to expand
+      int newSize = (int) (survivorLength*(1.0 + mExpandIncrement));
+      JNIReference[] expanded = new JNIReference[newSize];
+      System.arraycopy(survivors, 0, expanded, 0, survivorLength);
+      survivors = expanded;
     }
-    for (JNIReference ref : refs)
-      if (ref != null)
-        ref.delete();
+    // and swap in our new array
+    // ORDER REALLY MATTERS HERE.  See #addReference
+    mValidReferences = survivors;
+    mMaxValidReference = survivors.length;
+    mNextAvailableReferenceSlot = numSurvivors;
+    return numSurvivors;
   }
 
   /**
    * The collection thread if running.
    */
   private volatile Thread mCollectionThread;
-
-  /**
-   * The constructor is package level so others can't create it.
-   */
-  JNIMemoryManager()
-  {
-    mNumPinnedObjects = new AtomicLong(0);
-    mRefQueue = new ReferenceQueue<Object>();
-    mRefList = new HashSet<JNIReference>();
-    mLock = new ReentrantLock();
-    mCollectionThread = null;
-  }
 
   /**
    * Get the underlying queue we track references with.
@@ -1011,18 +1119,34 @@ public class JNIMemoryManager
    * This may be different than what you think because the Java garbage
    * collector may not have collected all objects yet.
    * </p>
-   * 
+   * <p>
+   * Also, this method needs to walk the entire ferry reference heap, so it
+   * can be expensive and not accurate (as the value may change even before
+   * this method returns).  Use only for debugging.
+   * </p>
    * @return number of ferry objects in use.
    */
   public long getNumPinnedObjects()
   {
-    long retval = mNumPinnedObjects.get();
-    return retval;
+    long numPinnedObjects = 0;
+    mLock.lock();
+    try {
+      int numItems = mNextAvailableReferenceSlot;
+      for(int i = 0; i < numItems; i++)
+      {
+        JNIReference ref = mValidReferences[i];
+        if (ref != null && !ref.isDeleted())
+          ++numPinnedObjects;
+      }
+    } finally {
+      mLock.unlock();
+    }
+    return numPinnedObjects;
   }
 
   /**
    * A finalizer for the memory manager itself. It just calls internal garbage
-   * collections and then exists.
+   * collections and then exits.
    */
   public void finalize()
   {
@@ -1032,10 +1156,6 @@ public class JNIMemoryManager
      * otherwise been collected, but this is not a huge problem for most
      * applications, as it's only called when the class loader is exiting.
      */
-    log.trace("destroying: {}", this);
-    clearBuffer();
-
-    gc();
     gc();
   }
 
@@ -1045,37 +1165,65 @@ public class JNIMemoryManager
    * @param ref The reference to collect.
    * @return true if already in list; false otherwise.
    */
-  boolean addReference(JNIReference ref)
+  final boolean addReference(final JNIReference ref)
   {
-    return addToBuffer(ref);
-  }
-
-  /**
-   * Remove this reference from the set of references we're tracking, and
-   * collect it.
-   * 
-   * @param ref The reference to remove
-   * @return true if the reference was in the queue; false if not.
-   */
-  boolean removeReference(JNIReference ref)
-  {
-    return removeFromBuffer(ref);
+    mLock.lock();
+    try {
+      int slot = mNextAvailableReferenceSlot++;
+      if (slot >= mMaxValidReference)
+      {
+        sweepAndCollect();
+        slot = mNextAvailableReferenceSlot++;
+      }
+      mValidReferences[slot] = ref;
+    } finally {
+      mLock.unlock();
+    }
+    return true;
   }
 
   /**
    * Do a Ferry Garbage Collection.
-   * 
+   * <p>
    * This takes all Ferry objects that are no longer reachable and deletes the
    * underlying native memory. It is called every time you allocate a new Ferry
-   * object to ensure we're freeing up native objects as soon as possible
+   * object to ensure Ferry is freeing up native objects as soon as possible
    * (rather than waiting for the potentially slow finalizer thread). It is also
    * called via a finalizer on an object that is referenced by the Ferry'ed
    * object (that way, the earlier of the next Ferry allocation, or the
    * finalizer thread, frees up unused native memory). Lastly, you can use
    * {@link #startCollectionThread()} to start up a thread to call this
    * automagically for you (and that thread will exit when your JVM exits).
+   * </p>
    */
   public void gc()
+  {
+    gc(false);
+  }
+
+  /**
+   * Does a Ferry Garbage Collection, and also sweeps our internal
+   * {@link JNIReference} heap to remove any lightweight references we may
+   * have left around.
+   * @param doSweep if true, we sweep the heap.  This involves a global lock
+   *   and so should be used sparingly.
+   */
+  public void gc(boolean doSweep)
+  {
+    gcInternal();
+    if (doSweep) {
+      mLock.lock();
+      try {
+        sweepAndCollect();
+      } finally {
+        mLock.unlock();
+      }
+    }
+  }
+  /**
+   * The actual GC; 
+   */
+  void gcInternal()
   {
     JNIReference ref = null;
     while ((ref = (JNIReference) mRefQueue.poll()) != null)
@@ -1164,13 +1312,7 @@ public class JNIMemoryManager
    */
   public static MemoryModel getMemoryModel()
   {
-    int model = 0;
-    model = FerryJNI.getMemoryModel();
-    MemoryModel retval = MemoryModel.JAVA_STANDARD_HEAP;
-    for (MemoryModel candidate : MemoryModel.values())
-      if (candidate.getNativeValue() == model)
-        retval = candidate;
-    return retval;
+    return mMemoryModel;
   }
 
   /**
@@ -1188,6 +1330,7 @@ public class JNIMemoryManager
   public static void setMemoryModel(MemoryModel model)
   {
     FerryJNI.setMemoryModel(model.getNativeValue());
+    mMemoryModel = model;
   }
 
   /**
@@ -1196,9 +1339,25 @@ public class JNIMemoryManager
    * Immediately frees all active objects in the system. Do not call unless you
    * REALLY know what you're doing.
    */
-  public void flush()
+  final public void flush()
   {
-    flushBuffer();
+    mLock.lock();
+    try {
+      int numSurvivors = sweepAndCollect();
+      for(int i = 0; i < numSurvivors; i++)
+      {
+        final JNIReference ref = mValidReferences[i];
+        if (ref != null)
+          ref.delete();
+      }
+      sweepAndCollect();
+      // finally, reset the valid references to the minimum
+      mValidReferences = new JNIReference[mMinimumReferencesToCache];
+      mNextAvailableReferenceSlot = 0;
+      mMaxValidReference = mMinimumReferencesToCache;
+    } finally {
+      mLock.unlock();
+    }
   }
 
 }
