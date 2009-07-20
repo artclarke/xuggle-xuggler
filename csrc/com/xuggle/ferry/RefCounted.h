@@ -84,29 +84,36 @@ namespace com { namespace xuggle { namespace ferry {
   class VS_API_FERRY RefCounted
   {
   public:
-    // Allow all of these to be overridden by another
-    // implementation if desired.
-#ifdef SWIG
-    %javamethodmodifiers acquire() "protected"
-    %javamethodmodifiers release() "protected"
-#endif
-    // These should never be called from Java; copyReference() and delete() should be used
     /**
-     * Internal Only.  Acquire a reference to this object (only called from Native code).
-     *
-     * This increments the internal ref count by +1
-     * 
-     * @return The refcount after the acquire.  Note due to multi-threaded issues, you should not rely on this value.
+     * Internal Only.  <strong>DO NOT USE FROM JAVA</strong>.
+     * <p>
+     * Acquire a reference to this object.
+     * This increments the native internal ref count in native code by +1.  
+     *  </p>
+     * <p>
+     * This method is called internally by Ferry in Java, and you should
+     * not call it without knowing what you are doing.  But if you do
+     * call it, make sure you call {@link #release()} once for each call
+     * you make to this method.
+     * </p>
+     * @return The refcount after the acquire.  Note due to multi-threaded issues, you should not rely on this value,
+     * as it may change before the method returns to you.
      */
     virtual int32_t acquire();
 
     /**
-     * Internal Only.  Release a reference to this object (only called from Native code).
-     *
-     * This decrements the internal ref count by -1; the object
-     * is destroyed if it's ref count reaches zero.
-     * 
-     * @return The ref count after the release.  Note due to multi-threaded issues, you should not rely on this value.
+     * Internal Only.  <strong>DO NOT USE FROM JAVA</strong>.
+     * <p>
+     * This decrements the native internal ref count by -1; the object is destroyed if its ref count reaches zero.
+     * </p>
+     * <p>
+     * This method is called internally by Ferry in Java, and you should
+     * not call it without knowing what you are doing.  But if you do
+     * call it, make sure you had previously called {@link #acquire()} once for each call
+     * to {@link #release()} you make.
+     * </p>
+     * @return The ref count after the release.  Note due to multi-threaded issues, you should not rely on this value,
+     * as it may change before the method returns to you.
      */
     virtual int32_t release();
 

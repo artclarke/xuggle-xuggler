@@ -156,15 +156,6 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int64_t getPosition()=0;
     
     /**
-     * Get the raw {@link com.xuggle.ferry.IBuffer} data in this object.
-     *   The buffer size may be larger
-     * than IPacket::getSize(), but only the bytes up to getSize()
-     * are valid.
-     * @return The raw data in this packet.
-     */
-    virtual com::xuggle::ferry::IBuffer *getData()=0;
-
-    /**
      * Discard the current payload and allocate a new payload.
      * <p>
      * Note that if any people have access to the old payload using

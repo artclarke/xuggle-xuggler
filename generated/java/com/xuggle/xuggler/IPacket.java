@@ -113,20 +113,6 @@ public class IPacket extends IMediaData {
   }
 
   /**
-   * Releases ths instance of IPacket and frees any underlying
-   * native memory.
-   * <p>
-   * {@inheritDoc}
-   * </p> 
-   */
-  @Override
-  public void delete()
-  {
-    do {} while(false); // remove a warning
-    super.delete();
-  }
-
-  /**
    * Compares two values, returning true if the underlying objects in native code are the same object.
    *
    * That means you can have two different Java objects, but when you do a comparison, you'll find out
@@ -320,19 +306,6 @@ public class IPacket extends IMediaData {
  */
   public long getPosition() {
     return XugglerJNI.IPacket_getPosition(swigCPtr, this);
-  }
-
-/**
- * Get the raw {@link com.xuggle.ferry.IBuffer} data in this object. 
- *  
- * The buffer size may be larger  
- * than IPacket::getSize(), but only the bytes up to getSize()  
- * are valid.  
- * @return	The raw data in this packet.  
- */
-  public IBuffer getData() {
-    long cPtr = XugglerJNI.IPacket_getData(swigCPtr, this);
-    return (cPtr == 0) ? null : new IBuffer(cPtr, false);
   }
 
 /**

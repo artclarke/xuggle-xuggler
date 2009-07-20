@@ -117,6 +117,16 @@ Java_com_xuggle_ferry_Ferry_init(JNIEnv *env, jclass)
    * Internal Only.  Do not use.
    */
   public native static void init();
+  
+  /**
+   * Internal Only.  Do not use.
+   *
+   */
+  public final static int release(long cptr)
+  {
+    return FerryJNI.RefCounted_release(cptr, (RefCounted)null);
+  }
+   
 %}
 
 %import <com/xuggle/ferry/JNIHelper.swg>

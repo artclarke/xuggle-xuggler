@@ -95,20 +95,6 @@ public class IContainerFormat extends RefCounted {
   }
 
   /**
-   * Releases ths instance of IContainerFormat and frees any underlying
-   * native memory.
-   * <p>
-   * {@inheritDoc}
-   * </p> 
-   */
-  @Override
-  public void delete()
-  {
-    do {} while(false); // remove a warning
-    super.delete();
-  }
-
-  /**
    * Compares two values, returning true if the underlying objects in native code are the same object.
    *
    * That means you can have two different Java objects, but when you do a comparison, you'll find out

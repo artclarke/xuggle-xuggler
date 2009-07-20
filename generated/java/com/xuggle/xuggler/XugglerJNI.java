@@ -97,7 +97,7 @@ class XugglerJNI {
   public final static native void IMediaData_setTimeStamp(long jarg1, IMediaData jarg1_, long jarg2);
   public final static native long IMediaData_getTimeBase(long jarg1, IMediaData jarg1_);
   public final static native void IMediaData_setTimeBase(long jarg1, IMediaData jarg1_, long jarg2, IRational jarg2_);
-  public final static native long IMediaData_getData(long jarg1, IMediaData jarg1_);
+  public final static native long IMediaData_getData_internal(long jarg1, IMediaData jarg1_);
   public final static native int IMediaData_getSize(long jarg1, IMediaData jarg1_);
   public final static native boolean IMediaData_isKey(long jarg1, IMediaData jarg1_);
   public final static native void IPacket_reset(long jarg1, IPacket jarg1_);
@@ -113,7 +113,6 @@ class XugglerJNI {
   public final static native boolean IPacket_isKeyPacket(long jarg1, IPacket jarg1_);
   public final static native long IPacket_getDuration(long jarg1, IPacket jarg1_);
   public final static native long IPacket_getPosition(long jarg1, IPacket jarg1_);
-  public final static native long IPacket_getData(long jarg1, IPacket jarg1_);
   public final static native int IPacket_allocateNewPayload(long jarg1, IPacket jarg1_, int jarg2);
   public final static native long IPacket_make__SWIG_0();
   public final static native long IPacket_make__SWIG_1(long jarg1, IBuffer jarg1_);

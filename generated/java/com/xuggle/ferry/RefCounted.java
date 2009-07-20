@@ -224,25 +224,47 @@ public class RefCounted {
  
  
 /**
- * Internal Only. Acquire a reference to this object (only called from 
- * Native code).  
- * This increments the internal ref count by +1  
+ * Internal Only. <strong>DO NOT USE FROM JAVA</strong>.  
+ * <p>  
+ * Acquire a reference to this object.  
+ * This increments the native internal ref count in native code by +1. 
+ *  
+ * </p>  
+ * <p>  
+ * This method is called internally by Ferry in Java, and you should 
+ *  
+ * not call it without knowing what you are doing. But if you do  
+ * call it, make sure you call {@link #release()} once for each call 
+ *  
+ * you make to this method.  
+ * </p>  
  * @return	The refcount after the acquire. Note due to multi-threaded 
- *		 issues, you should not rely on this value.  
+ *		 issues, you should not rely on this value,  
+ * as it may change before the method returns to you.  
  */
-  protected int acquire() {
+  public int acquire() {
     return FerryJNI.RefCounted_acquire(swigCPtr, this);
   }
 
 /**
- * Internal Only. Release a reference to this object (only called from 
- * Native code).  
- * This decrements the internal ref count by -1; the object  
- * is destroyed if it's ref count reaches zero.  
+ * Internal Only. <strong>DO NOT USE FROM JAVA</strong>.  
+ * <p>  
+ * This decrements the native internal ref count by -1; the object is 
+ * destroyed if its ref count reaches zero.  
+ * </p>  
+ * <p>  
+ * This method is called internally by Ferry in Java, and you should 
+ *  
+ * not call it without knowing what you are doing. But if you do  
+ * call it, make sure you had previously called {@link #acquire()} once 
+ * for each call  
+ * to {@link #release()} you make.  
+ * </p>  
  * @return	The ref count after the release. Note due to multi-threaded 
- *		 issues, you should not rely on this value.  
+ *		 issues, you should not rely on this value,  
+ * as it may change before the method returns to you.  
  */
-  protected int release() {
+  public int release() {
     return FerryJNI.RefCounted_release(swigCPtr, this);
   }
 

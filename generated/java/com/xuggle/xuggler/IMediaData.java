@@ -86,20 +86,6 @@ public class IMediaData extends RefCounted {
   }
 
   /**
-   * Releases ths instance of IMediaData and frees any underlying
-   * native memory.
-   * <p>
-   * {@inheritDoc}
-   * </p> 
-   */
-  @Override
-  public void delete()
-  {
-    do {} while(false); // remove a warning
-    super.delete();
-  }
-
-  /**
    * Compares two values, returning true if the underlying objects in native code are the same object.
    *
    * That means you can have two different Java objects, but when you do a comparison, you'll find out
@@ -148,18 +134,11 @@ public class IMediaData extends RefCounted {
  */
 public void put(byte[] src, int srcPos, int destPos, int length)
 {
-  com.xuggle.ferry.IBuffer buffer = getData();
-  try
-  {
-    if (buffer == null)
-      return;
-    buffer.put(src, srcPos, destPos, length);
+  com.xuggle.ferry.IBuffer buffer = getDataCached();
+  if (buffer == null)
     return;
-  }
-  finally
-  {
-    if (buffer != null) buffer.delete();
-  }
+  buffer.put(src, srcPos, destPos, length);
+  return;
 }
 
 /**
@@ -174,18 +153,11 @@ public void put(byte[] src, int srcPos, int destPos, int length)
  */
 public void get(int srcPos, byte[] dest, int destPos, int length)
 {
-   com.xuggle.ferry.IBuffer buffer = getData();
-   try
-   {
-     if (buffer == null)
-       return;
-     buffer.get(srcPos, dest, destPos, length);
+   com.xuggle.ferry.IBuffer buffer = getDataCached();
+   if (buffer == null)
      return;
-   }
-   finally
-   {
-     if (buffer != null) buffer.delete();
-   }
+   buffer.get(srcPos, dest, destPos, length);
+   return;
 }
 
 /**
@@ -200,18 +172,11 @@ public void get(int srcPos, byte[] dest, int destPos, int length)
  */
 public void put(char[] src, int srcPos, int destPos, int length)
 {
-  com.xuggle.ferry.IBuffer buffer = getData();
-  try
-  {
-    if (buffer == null)
-      return;
-    buffer.put(src, srcPos, destPos, length);
+  com.xuggle.ferry.IBuffer buffer = getDataCached();
+  if (buffer == null)
     return;
-  }
-  finally
-  {
-    if (buffer != null) buffer.delete();
-  }
+  buffer.put(src, srcPos, destPos, length);
+  return;
 }
 
 /**
@@ -226,18 +191,11 @@ public void put(char[] src, int srcPos, int destPos, int length)
  */
 public void get(int srcPos, char[] dest, int destPos, int length)
 {
-   com.xuggle.ferry.IBuffer buffer = getData();
-   try
-   {
-     if (buffer == null)
-       return;
-     buffer.get(srcPos, dest, destPos, length);
+   com.xuggle.ferry.IBuffer buffer = getDataCached();
+   if (buffer == null)
      return;
-   }
-   finally
-   {
-     if (buffer != null) buffer.delete();
-   }
+   buffer.get(srcPos, dest, destPos, length);
+   return;
 }
 
 /**
@@ -252,18 +210,11 @@ public void get(int srcPos, char[] dest, int destPos, int length)
  */
 public void put(short[] src, int srcPos, int destPos, int length)
 {
-  com.xuggle.ferry.IBuffer buffer = getData();
-  try
-  {
-    if (buffer == null)
-      return;
-    buffer.put(src, srcPos, destPos, length);
+  com.xuggle.ferry.IBuffer buffer = getDataCached();
+  if (buffer == null)
     return;
-  }
-  finally
-  {
-    if (buffer != null) buffer.delete();
-  }
+  buffer.put(src, srcPos, destPos, length);
+  return;
 }
 
 /**
@@ -278,18 +229,11 @@ public void put(short[] src, int srcPos, int destPos, int length)
  */
 public void get(int srcPos, short[] dest, int destPos, int length)
 {
-   com.xuggle.ferry.IBuffer buffer = getData();
-   try
-   {
-     if (buffer == null)
-       return;
-     buffer.get(srcPos, dest, destPos, length);
+   com.xuggle.ferry.IBuffer buffer = getDataCached();
+   if (buffer == null)
      return;
-   }
-   finally
-   {
-     if (buffer != null) buffer.delete();
-   }
+   buffer.get(srcPos, dest, destPos, length);
+   return;
 }
 
 /**
@@ -304,18 +248,11 @@ public void get(int srcPos, short[] dest, int destPos, int length)
  */
 public void put(int[] src, int srcPos, int destPos, int length)
 {
-  com.xuggle.ferry.IBuffer buffer = getData();
-  try
-  {
-    if (buffer == null)
-      return;
-    buffer.put(src, srcPos, destPos, length);
+  com.xuggle.ferry.IBuffer buffer = getDataCached();
+  if (buffer == null)
     return;
-  }
-  finally
-  {
-    if (buffer != null) buffer.delete();
-  }
+  buffer.put(src, srcPos, destPos, length);
+  return;
 }
 
 /**
@@ -330,18 +267,11 @@ public void put(int[] src, int srcPos, int destPos, int length)
  */
 public void get(int srcPos, int[] dest, int destPos, int length)
 {
-   com.xuggle.ferry.IBuffer buffer = getData();
-   try
-   {
-     if (buffer == null)
-       return;
-     buffer.get(srcPos, dest, destPos, length);
+   com.xuggle.ferry.IBuffer buffer = getDataCached();
+   if (buffer == null)
      return;
-   }
-   finally
-   {
-     if (buffer != null) buffer.delete();
-   }
+   buffer.get(srcPos, dest, destPos, length);
+   return;
 }
 
 /**
@@ -356,18 +286,11 @@ public void get(int srcPos, int[] dest, int destPos, int length)
  */
 public void put(long[] src, int srcPos, int destPos, int length)
 {
-  com.xuggle.ferry.IBuffer buffer = getData();
-  try
-  {
-    if (buffer == null)
-      return;
-    buffer.put(src, srcPos, destPos, length);
+  com.xuggle.ferry.IBuffer buffer = getDataCached();
+  if (buffer == null)
     return;
-  }
-  finally
-  {
-    if (buffer != null) buffer.delete();
-  }
+  buffer.put(src, srcPos, destPos, length);
+  return;
 }
 
 /**
@@ -382,18 +305,11 @@ public void put(long[] src, int srcPos, int destPos, int length)
  */
 public void get(int srcPos, long[] dest, int destPos, int length)
 {
-   com.xuggle.ferry.IBuffer buffer = getData();
-   try
-   {
-     if (buffer == null)
-       return;
-     buffer.get(srcPos, dest, destPos, length);
+   com.xuggle.ferry.IBuffer buffer = getDataCached();
+   if (buffer == null)
      return;
-   }
-   finally
-   {
-     if (buffer != null) buffer.delete();
-   }
+   buffer.get(srcPos, dest, destPos, length);
+   return;
 }
 
 /**
@@ -408,18 +324,11 @@ public void get(int srcPos, long[] dest, int destPos, int length)
  */
 public void put(float[] src, int srcPos, int destPos, int length)
 {
-  com.xuggle.ferry.IBuffer buffer = getData();
-  try
-  {
-    if (buffer == null)
-      return;
-    buffer.put(src, srcPos, destPos, length);
+  com.xuggle.ferry.IBuffer buffer = getDataCached();
+  if (buffer == null)
     return;
-  }
-  finally
-  {
-    if (buffer != null) buffer.delete();
-  }
+  buffer.put(src, srcPos, destPos, length);
+  return;
 }
 
 /**
@@ -434,18 +343,11 @@ public void put(float[] src, int srcPos, int destPos, int length)
  */
 public void get(int srcPos, float[] dest, int destPos, int length)
 {
-   com.xuggle.ferry.IBuffer buffer = getData();
-   try
-   {
-     if (buffer == null)
-       return;
-     buffer.get(srcPos, dest, destPos, length);
+   com.xuggle.ferry.IBuffer buffer = getDataCached();
+   if (buffer == null)
      return;
-   }
-   finally
-   {
-     if (buffer != null) buffer.delete();
-   }
+   buffer.get(srcPos, dest, destPos, length);
+   return;
 }
 
 /**
@@ -460,18 +362,11 @@ public void get(int srcPos, float[] dest, int destPos, int length)
  */
 public void put(double[] src, int srcPos, int destPos, int length)
 {
-  com.xuggle.ferry.IBuffer buffer = getData();
-  try
-  {
-    if (buffer == null)
-      return;
-    buffer.put(src, srcPos, destPos, length);
+  com.xuggle.ferry.IBuffer buffer = getDataCached();
+  if (buffer == null)
     return;
-  }
-  finally
-  {
-    if (buffer != null) buffer.delete();
-  }
+  buffer.put(src, srcPos, destPos, length);
+  return;
 }
 
 /**
@@ -486,18 +381,11 @@ public void put(double[] src, int srcPos, int destPos, int length)
  */
 public void get(int srcPos, double[] dest, int destPos, int length)
 {
-   com.xuggle.ferry.IBuffer buffer = getData();
-   try
-   {
-     if (buffer == null)
-       return;
-     buffer.get(srcPos, dest, destPos, length);
+   com.xuggle.ferry.IBuffer buffer = getDataCached();
+   if (buffer == null)
      return;
-   }
-   finally
-   {
-     if (buffer != null) buffer.delete();
-   }
+   buffer.get(srcPos, dest, destPos, length);
+   return;
 }
 
 
@@ -556,24 +444,17 @@ public void get(int srcPos, double[] dest, int destPos, int length)
     if (ref != null)
       ref.set(null);
       
-    com.xuggle.ferry.IBuffer buf = this.getData();
+    com.xuggle.ferry.IBuffer buf = this.getDataCached();
     if (buf == null)
       return null;
-    try
+    java.nio.ByteBuffer byteBuffer = buf.getByteBuffer(0, this.getSize(), ref);
+    if (byteBuffer != null)
     {
-      java.nio.ByteBuffer byteBuffer = buf.getByteBuffer(0, this.getSize(), ref);
-      if (byteBuffer != null)
-      {
-        byteBuffer.position(0);
-        byteBuffer.mark();
-        byteBuffer.limit(this.getSize());
-      }
-      return byteBuffer;
+      byteBuffer.position(0);
+      byteBuffer.mark();
+      byteBuffer.limit(this.getSize());
     }
-    finally
-    {
-      buf.delete();
-    }
+    return byteBuffer;
   }
 
 
@@ -620,6 +501,68 @@ public void get(int srcPos, double[] dest, int destPos, int length)
     timeBase.delete();
     return retval;
   }
+  
+  /**
+   * Get any underlying raw data available for this object.
+   * 
+   * @return The raw data, or null if not accessible.
+   */
+  public IBuffer getData()
+  {
+    IBuffer cachedData = getDataCached();
+    return cachedData == null ? null : cachedData.copyReference();
+  }
+
+  private IBuffer mData;
+
+  /**
+   * Get any underlying raw data available for this object, but do
+   * not create a new Java wrapping object for it.
+   *
+   * <p>
+   * Do not call {@link com.xuggle.ferry.RefCounted#delete()} on
+   * the returned value. 
+   * </p>
+   * 
+   * @return The raw data, or null if not accessible.
+   */
+  public IBuffer getDataCached()
+  {
+    long cPtr = XugglerJNI.IMediaData_getData_internal(swigCPtr, this);
+    if (mData == null)
+      mData = (cPtr == 0) ? null : new IBuffer(cPtr, false);
+    else {
+      long cachedPtr = mData.getMyCPtr();
+      if (cachedPtr == cPtr) {
+        // release the ref
+        com.xuggle.ferry.Ferry.release(cPtr);
+      } else {
+        mData.delete();
+        mData = (cPtr == 0) ? null : new IBuffer(cPtr, false);
+      }
+    }
+    return mData;
+  }
+
+  /**
+   * Releases this instance of IMediaData and frees any underlying
+   * native memory.
+   * <p>
+   * {@inheritDoc}
+   * </p> 
+   */
+  @Override
+  public void delete()
+  {
+    if (mData != null) {
+      mData.delete();
+      mData = null;
+    }
+    super.delete();
+  }
+
+
+  
 
 /**
  * Get the time stamp of this object in getTimeBase() units.  
@@ -661,8 +604,8 @@ public void get(int srcPos, double[] dest, int destPos, int length)
  * Get any underlying raw data available for this object.  
  * @return	The raw data, or null if not accessible.  
  */
-  public IBuffer getData() {
-    long cPtr = XugglerJNI.IMediaData_getData(swigCPtr, this);
+  protected IBuffer getData_internal() {
+    long cPtr = XugglerJNI.IMediaData_getData_internal(swigCPtr, this);
     return (cPtr == 0) ? null : new IBuffer(cPtr, false);
   }
 
