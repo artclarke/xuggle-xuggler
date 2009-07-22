@@ -609,11 +609,13 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
     }
 
     j = bnode->level_idx;
-    for( i = b_ac; i < i_coefs; i++ )
+    for( i = b_ac; j; i++ )
     {
         dct[zigzag[i]] = level_tree[j].abs_level * signs[i];
         j = level_tree[j].next;
     }
+    for( ; i < i_coefs; i++ )
+        dct[zigzag[i]] = 0;
 
     return 1;
 }
