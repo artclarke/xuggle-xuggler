@@ -87,7 +87,12 @@ namespace com { namespace xuggle { namespace xuggler
         IRational* origBase,
         Rounding rounding);
 
-
+    static int64_t rescale(int64_t srcValue,
+        int32_t dstNumerator,
+        int32_t dstDenominator,
+        int32_t srcNumerator,
+        int32_t srcDenominator,
+        Rounding rounding);
     
   protected:
     Rational();

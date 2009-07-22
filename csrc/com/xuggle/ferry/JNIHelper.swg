@@ -76,7 +76,9 @@
       mLifecycleReference = new Long(swigCPtr);      
       // Force the creation of a new weak reference, will will actually pin itself
       // inside the reference class.
-      mRefCounter = JNIReference.createReference(mLifecycleReference, swigCPtr,
+      mRefCounter = JNIReference.createReference(
+          this,
+          mLifecycleReference, swigCPtr,
           mJavaRefCount);
     }
   }

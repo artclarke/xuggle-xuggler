@@ -1038,6 +1038,7 @@
       
       // and use the byte buffer as the reference to track
       JNIReference ref = JNIReference.createNonFerryReference(
+          this,
           retval, swigCPtr, refCount);
       if (referenceReturn != null)
         referenceReturn.set(ref);

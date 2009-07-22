@@ -443,6 +443,34 @@ public class IRational extends RefCounted {
     return XugglerJNI.IRational_sRescale__SWIG_1(origValue, IRational.getCPtr(origBase), origBase, IRational.getCPtr(newBase), newBase, rounding.swigValue());
   }
 
+/**
+ * Rescales a long value to another long value.  
+ * <p>  
+ * This method doesn't use IRational values, but  
+ * instead uses numerators and denominators  
+ * passed in by the caller. It will not result  
+ * in any memory allocations.  
+ * </p>  
+ * @param	srcValue The value to rescale.  
+ * @param	dstNumerator The numerator of the units  
+ * you want to scale to. Must be non-zero.  
+ * @param	dstDenominator The denominator of the units  
+ * you want to scale to. Must be non-zero.  
+ * @param	srcNumerator The numerator of the units  
+ * <code>srcValue</code> is expressed in.  
+ * Must be non-zero.  
+ * @param	srcDenominator The denominator of the units  
+ * <code>srcValue</code> is expressed in.  
+ * Must be non-zero.  
+ * @param	rounding How you want rounding to occur  
+ * @return	The new integer value, scaled in units of  
+ * dstNumerator/dstNumerator, or 0 if there  
+ * is a parameter error.  
+ */
+  public static long rescale(long srcValue, int dstNumerator, int dstDenominator, int srcNumerator, int srcDenominator, IRational.Rounding rounding) {
+    return XugglerJNI.IRational_rescale__SWIG_2(srcValue, dstNumerator, dstDenominator, srcNumerator, srcDenominator, rounding.swigValue());
+  }
+
   public enum Rounding {
     ROUND_ZERO(XugglerJNI.IRational_ROUND_ZERO_get()),
     ROUND_INF(XugglerJNI.IRational_ROUND_INF_get()),

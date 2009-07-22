@@ -262,6 +262,42 @@ namespace com { namespace xuggle { namespace xuggler
         IRational* origBase, IRational* newBase,
         Rounding rounding);
 
+    /*
+     * Added for 3.2
+     */
+    
+    /**
+     * Rescales a long value to another long value.
+     * <p>
+     * This method doesn't use IRational values, but
+     * instead uses numerators and denominators
+     * passed in by the caller.  It will not result
+     * in any memory allocations.
+     * </p>
+     * 
+     * @param srcValue The value to rescale.
+     * @param dstNumerator The numerator of the units
+     *   you want to scale to.  Must be non-zero.
+     * @param dstDenominator The denominator of the units
+     *   you want to scale to.  Must be non-zero.
+     * @param srcNumerator The numerator of the units
+     *   <code>srcValue</code> is expressed in.
+     *   Must be non-zero.
+     * @param srcDenominator The denominator of the units
+     *   <code>srcValue</code> is expressed in.
+     *   Must be non-zero.
+     * @param rounding How you want rounding to occur
+     * 
+     * @return The new integer value, scaled in units of
+     *   dstNumerator/dstNumerator, or 0 if there
+     *   is a parameter error.
+     */
+    static int64_t rescale(int64_t srcValue,
+        int32_t dstNumerator,
+        int32_t dstDenominator,
+        int32_t srcNumerator,
+        int32_t srcDenominator,
+        Rounding rounding);
 
   protected:
     IRational();

@@ -224,6 +224,28 @@ namespace com { namespace xuggle { namespace xuggler
           c, (enum AVRounding)rounding);
     }
     return retval;
-    
   }
+  
+  int64_t
+  Rational :: rescale(int64_t srcValue,
+      int32_t dstNumerator,
+      int32_t dstDenominator,
+      int32_t srcNumerator,
+      int32_t srcDenominator,
+      Rounding rounding)
+  {
+    int64_t retval = srcValue;
+    if (!dstNumerator || !dstDenominator ||
+        !srcNumerator || !srcDenominator)
+      return 0;
+
+    int64_t b = srcNumerator * (int64_t)dstDenominator;
+    int64_t c = dstNumerator * (int64_t)srcDenominator;
+
+    retval = av_rescale_rnd(srcValue, b,
+        c, (enum AVRounding)rounding);
+
+    return retval;
+  }
+ 
 }}}

@@ -80,6 +80,7 @@ class XugglerJNI {
   public final static native int IRational_ROUND_NEAR_INF_get();
   public final static native long IRational_rescale__SWIG_1(long jarg1, IRational jarg1_, long jarg2, long jarg3, IRational jarg3_, int jarg4);
   public final static native long IRational_sRescale__SWIG_1(long jarg1, long jarg2, IRational jarg2_, long jarg3, IRational jarg3_, int jarg4);
+  public final static native long IRational_rescale__SWIG_2(long jarg1, int jarg2, int jarg3, int jarg4, int jarg5, int jarg6);
   public final static native long ITimeValue_make__SWIG_0(long jarg1, int jarg2);
   public final static native long ITimeValue_make__SWIG_1(long jarg1, ITimeValue jarg1_);
   public final static native long ITimeValue_get(long jarg1, ITimeValue jarg1_, int jarg2);

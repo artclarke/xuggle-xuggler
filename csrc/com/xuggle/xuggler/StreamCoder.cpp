@@ -660,6 +660,11 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
   AudioSamples *samples = dynamic_cast<AudioSamples*> (pOutSamples);
   Packet* packet = dynamic_cast<Packet*> (pPacket);
 
+  if (samples)
+    // reset the samples
+    samples->setComplete(false, 0, getSampleRate(), getChannels(),
+        (IAudioSamples::Format) mCodecContext->sample_fmt, Global::NO_PTS);
+
   if (samples
       && packet
       && mCodecContext
@@ -670,10 +675,6 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
   {
     int outBufSize = 0;
     int32_t inBufSize = 0;
-
-    // reset the samples
-    samples->setComplete(false, 0, getSampleRate(), getChannels(),
-        (IAudioSamples::Format) mCodecContext->sample_fmt, Global::NO_PTS);
 
     outBufSize = samples->getMaxBufferSize();
     inBufSize = packet->getSize() - startingByte;
@@ -814,6 +815,11 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
   int32_t retval = -1;
   VideoPicture* frame = dynamic_cast<VideoPicture*> (pOutFrame);
   Packet* packet = dynamic_cast<Packet*> (pPacket);
+  if (frame)
+    // reset the frame
+    frame->setComplete(false, this->getPixelType(), -1,
+        -1, mFakeCurrPts);
+
   if (frame &&
       packet &&
       mCodecContext &&
@@ -822,9 +828,6 @@ StreamCoder :: decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
       mCodec->canDecode() &&
       getCodecType() == ICodec::CODEC_TYPE_VIDEO)
   {
-    // reset the frame
-    frame->setComplete(false, this->getPixelType(), -1,
-        -1, mFakeCurrPts);
     AVFrame *avFrame = avcodec_alloc_frame();
     if (avFrame)
     {

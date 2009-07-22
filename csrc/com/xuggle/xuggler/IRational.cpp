@@ -119,5 +119,18 @@ namespace com { namespace xuggle { namespace xuggler
       return newBase->rescale(origValue, origBase, rounding);
     }
 
+    int64_t
+    IRational :: rescale(int64_t srcValue,
+        int32_t dstNumerator,
+        int32_t dstDenominator,
+        int32_t srcNumerator,
+        int32_t srcDenominator,
+        Rounding rounding)
+    {
+      return Rational::rescale(srcValue,
+          dstNumerator, dstDenominator,
+          srcNumerator, srcDenominator,
+          rounding);
+    }
 
   }}}

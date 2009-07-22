@@ -62,7 +62,30 @@ public class JNIReference extends WeakReference<Object>
   private static final JNIMemoryAllocator sMemAllocator = new JNIMemoryAllocator();
   private final boolean sUseStaticMemAllocator = true;
   
+  // Only turn this to true if you need memory debugging on.  Given how
+  // hot this code is, remembering debug info is an unnecessary extra
+  // step.
+  private static final boolean mMemoryDebugging = false;
+  private static class DebugInfo {
+    private final int mHashCode;
+    private final Class<? extends Object> mClass;
+    public DebugInfo(Object aObject)
+    {
+      mClass = aObject.getClass();
+      mHashCode = aObject.hashCode();
+    }
+    public Class<? extends Object> getObjectClass()
+    {
+      return mClass;
+    }
+    public int getObjectHashCode()
+    {
+      return mHashCode;
+    }
+  }
+  final private DebugInfo mDebugInfo;
   private JNIReference(
+      final Object proxy,
       final Object aReferent,
       final long nativeVal,
       final boolean isFerry,
@@ -72,6 +95,11 @@ public class JNIReference extends WeakReference<Object>
     mIsFerryObject = isFerry;
     mJavaRefCount = javaRefCount;
     mSwigCPtr.set(nativeVal);
+    if (mMemoryDebugging) {
+      mDebugInfo = new DebugInfo(proxy);
+    } else {
+      mDebugInfo = null;
+    }
     JNIMemoryManager.MemoryModel model = JNIMemoryManager.getMemoryModel();
     if (model == JNIMemoryManager.MemoryModel.JAVA_DIRECT_BUFFERS ||
         model == JNIMemoryManager.MemoryModel.NATIVE_BUFFERS)
@@ -113,27 +141,31 @@ public class JNIReference extends WeakReference<Object>
     return JNIMemoryManager.getMgr();
   }
 
-  static JNIReference createReference(Object aReferent, long swigCPtr,
+  static JNIReference createReference(Object proxy, 
+      Object aReferent, long swigCPtr,
       boolean isFerry, AtomicLong javaRefCount)
   {
     // Clear out any pending native objects
     JNIMemoryManager.getMgr().gcInternal();
 
-    JNIReference ref = new JNIReference(aReferent,
+    JNIReference ref = new JNIReference(
+        proxy, aReferent,
         swigCPtr, isFerry, javaRefCount);
     JNIMemoryManager.getMgr().addReference(ref);
     //System.err.println("added  : "+ref+"; "+swigCPtr+" ("+isFerry+")");
     return ref;
   }
-  static JNIReference createReference(Object aReferent, long swigCPtr,
+  static JNIReference createReference(Object proxy,
+      Object aReferent, long swigCPtr,
       AtomicLong javaRefCount)
   {
-    return createReference(aReferent, swigCPtr, true, javaRefCount);
+    return createReference(proxy, aReferent, swigCPtr, true, javaRefCount);
   }
-  static JNIReference createNonFerryReference(Object aReferent,
+  static JNIReference createNonFerryReference(
+      Object proxy, Object aReferent,
       long swigCPtr, AtomicLong javaRefCount)
   {
-    return createReference(aReferent, swigCPtr, false, javaRefCount);
+    return createReference(proxy, aReferent, swigCPtr, false, javaRefCount);
   }
 
 
@@ -177,5 +209,23 @@ public class JNIReference extends WeakReference<Object>
   boolean isDeleted()
   {
     return mSwigCPtr.get() == 0;
+  }
+  /**
+   * Creates a string representation of this reference.
+   */
+  @Override
+  public String toString()
+  {
+    final StringBuilder builder = new StringBuilder();
+    builder.append(super.toString());
+    builder.append("[");
+    builder.append("native=").append(mSwigCPtr.get()).append(";");
+    if (mDebugInfo != null) {
+      builder.append("proxyClass=").append(mDebugInfo.getObjectClass().getCanonicalName()).append(";");
+      builder.append("hashCode=").append(mDebugInfo.getObjectHashCode()).append(";");
+    }
+    builder.append("];");
+    
+    return builder.toString();
   }
 }
