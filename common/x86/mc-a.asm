@@ -511,6 +511,66 @@ AVG_CACHELINE_CHECK 12, 64, mmxext
 AVG_CACHELINE_CHECK 16, 64, sse2
 AVG_CACHELINE_CHECK 20, 64, sse2
 
+; computed jump assumes this loop is exactly 48 bytes
+%macro AVG16_CACHELINE_LOOP_SSSE3 2 ; alignment
+ALIGN 16
+avg_w16_align%1_%2_ssse3:
+%if %2&15==0
+    movdqa  xmm1, [r2+16]
+    palignr xmm1, [r2], %1
+    pavgb   xmm1, [r2+r4]
+%else
+    movdqa  xmm1, [r2+16]
+    movdqa  xmm2, [r2+r4+16]
+    palignr xmm1, [r2], %1
+    palignr xmm2, [r2+r4], %2
+    pavgb   xmm1, xmm2
+%endif
+    movdqa  [r0], xmm1
+    add    r2, r3
+    add    r0, r1
+    dec    r5d
+    jg     avg_w16_align%1_%2_ssse3
+    rep ret
+%endmacro
+
+%assign j 1
+%assign k 2
+%rep 15
+AVG16_CACHELINE_LOOP_SSSE3 j, j
+AVG16_CACHELINE_LOOP_SSSE3 j, k
+%assign j j+1
+%assign k k+1
+%endrep
+
+cglobal x264_pixel_avg2_w16_cache64_ssse3
+    mov    eax, r2m
+    and    eax, 0x3f
+    cmp    eax, 0x30
+    jle x264_pixel_avg2_w16_sse2
+    PROLOGUE 6,7
+    lea    r6, [r4+r2]
+    and    r4, ~0xf
+    and    r6, 0x1f
+    and    r2, ~0xf
+    lea    r6, [r6*3]    ;(offset + align*2)*3
+    sub    r4, r2
+    shl    r6, 4         ;jump = (offset + align*2)*48
+%define avg_w16_addr avg_w16_align1_1_ssse3-(avg_w16_align2_2_ssse3-avg_w16_align1_1_ssse3)
+%ifdef PIC
+    lea   r11, [avg_w16_addr GLOBAL]
+    add    r6, r11
+%else
+    lea    r6, [avg_w16_addr + r6 GLOBAL]
+%endif
+%ifdef UNIX64
+    jmp    r6
+%else
+    call   r6
+    RET
+%endif
+
+
 ;=============================================================================
 ; pixel copy
 ;=============================================================================
