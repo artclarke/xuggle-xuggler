@@ -101,6 +101,14 @@ namespace com { namespace xuggle { namespace xuggler
   AudioSamples :: make(uint32_t numSamples,
       uint32_t numChannels)
   {
+    return make(numSamples, numChannels, IAudioSamples::FMT_S16);
+  }
+  
+  AudioSamples*
+  AudioSamples :: make(uint32_t numSamples,
+      uint32_t numChannels,
+      IAudioSamples::Format format)
+  {
     AudioSamples *retval=0;
     if (numSamples > 0 && numChannels > 0)
     {
@@ -110,7 +118,7 @@ namespace com { namespace xuggle { namespace xuggler
         // FFMPEG actually requires a minimum buffer size, so we
         // make sure we're always at least that large.
         retval->mChannels = numChannels;
-        retval->mSampleFmt = FMT_S16;
+        retval->mSampleFmt = format;
         retval->mRequestedSamples = numSamples;
       }
     }

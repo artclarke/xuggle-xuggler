@@ -182,6 +182,7 @@ class XugglerJNI {
   public final static native int IAudioSamples_CH_LAYOUT_7POINT1_WIDE_get();
   public final static native int IAudioSamples_CH_LAYOUT_STEREO_DOWNMIX_get();
   public final static native long IAudioSamples_make__SWIG_1(long jarg1, IBuffer jarg1_, int jarg2, int jarg3);
+  public final static native long IAudioSamples_make__SWIG_2(long jarg1, long jarg2, int jarg3);
   public final static native boolean IVideoPicture_isKeyFrame(long jarg1, IVideoPicture jarg1_);
   public final static native void IVideoPicture_setKeyFrame(long jarg1, IVideoPicture jarg1_, boolean jarg2);
   public final static native boolean IVideoPicture_isComplete(long jarg1, IVideoPicture jarg1_);

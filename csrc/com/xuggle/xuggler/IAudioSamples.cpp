@@ -47,7 +47,16 @@ namespace com { namespace xuggle { namespace xuggler
     Global::init();
     return AudioSamples::make(numSamples, numChannels);
   }
+
+  IAudioSamples*
+  IAudioSamples :: make(uint32_t numSamples, uint32_t numChannels,
+      IAudioSamples::Format format)
+  {
+    Global::init();
+    return AudioSamples::make(numSamples, numChannels, format);
+  }
   
+
   IAudioSamples*
   IAudioSamples :: make(com::xuggle::ferry::IBuffer* buffer, int channels,
       IAudioSamples::Format format)

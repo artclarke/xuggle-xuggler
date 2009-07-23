@@ -384,6 +384,26 @@ public class IAudioSamples extends IMediaData {
     return (cPtr == 0) ? null : new IAudioSamples(cPtr, false);
   }
 
+/**
+ * Get a new audio samples buffer.  
+ * <p>  
+ * Note that any buffers this objects needs will be  
+ * lazily allocated (i.e. we won't actually grab all  
+ * the memory until we need it).  
+ * </p>  
+ * @param	numSamples The minimum number of samples you're  
+ * going to want to put in this buffer. We may (and probably  
+ * will) return a larger buffer, but you cannot assume that.  
+ * @param	numChannels The number of channels in the audio you'll  
+ * want to put in this buffer.  
+ * @param	format The format of this buffer  
+ * @return	A new object, or null if we can't allocate one.  
+ */
+  public static IAudioSamples make(long numSamples, long numChannels, IAudioSamples.Format format) {
+    long cPtr = XugglerJNI.IAudioSamples_make__SWIG_2(numSamples, numChannels, format.swigValue());
+    return (cPtr == 0) ? null : new IAudioSamples(cPtr, false);
+  }
+
   public enum Format {
   /**
    * The format we use to represent audio. Today

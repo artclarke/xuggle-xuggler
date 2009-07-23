@@ -320,6 +320,30 @@ namespace com { namespace xuggle { namespace xuggler
     static IAudioSamples* make(
         com::xuggle::ferry::IBuffer* buffer, int channels,
         IAudioSamples::Format format);
+
+    /*
+     * Added for 3.2
+     * 
+     */
+    /**
+     * Get a new audio samples buffer.
+     * <p>
+     * Note that any buffers this objects needs will be
+     * lazily allocated (i.e. we won't actually grab all
+     * the memory until we need it).
+     * </p>
+     * @param numSamples The minimum number of samples you're
+     *   going to want to put in this buffer.  We may (and probably
+     *   will) return a larger buffer, but you cannot assume that.
+     * @param numChannels The number of channels in the audio you'll
+     *   want to put in this buffer.
+     * @param format The format of this buffer
+     * @return A new object, or null if we can't allocate one.
+     */
+    static IAudioSamples* make(uint32_t numSamples,
+        uint32_t numChannels,
+        IAudioSamples::Format format);
+    
   };
 
 }}}

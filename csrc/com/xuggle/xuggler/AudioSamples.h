@@ -82,6 +82,8 @@ namespace com { namespace xuggle { namespace xuggler
      */
     static AudioSamples* make(uint32_t numSamples,
         uint32_t numChannels);
+    static AudioSamples* make(uint32_t numSamples,
+        uint32_t numChannels, IAudioSamples::Format);
     
     static AudioSamples* make(com::xuggle::ferry::IBuffer* buffer, int channels,
         IAudioSamples::Format format);
