@@ -966,7 +966,7 @@ public final class JNIMemoryManager
   /**
    * Get the minimum number of references to cache.
    * @return The minimum number of references to cache.
-   * @see #setMinimumReferencesToCache(long)
+   * @see #setMinimumReferencesToCache(int)
    */
   public int getMinimumReferencesToCache()
   {
@@ -991,7 +991,7 @@ public final class JNIMemoryManager
    * Get the percentage value we will increment the reference cache by
    * if we need to expand it.
    * @return the percentage value.
-   * @see #setExpandIncrement(float)
+   * @see #setExpandIncrement(double)
    */
   public double getExpandIncrement()
   {
@@ -1007,7 +1007,7 @@ public final class JNIMemoryManager
    * </p>
    * 
    * @param shrinkFactor The shrink percentage.
-   * @see #setExpandIncrement(float)
+   * @see #setExpandIncrement(double)
    * @throws IllegalArgumentException if shrinkFactor <=0 or >= 100.
    */
   public void setShrinkFactor(double shrinkFactor)
@@ -1063,7 +1063,7 @@ public final class JNIMemoryManager
   /**
    * Gets the minimum ratio of free space to total memory manager heap
    * size we'll allow before expanding the heap.
-   * @returns The minimum free ratio.
+   * @return The minimum free ratio.
    * @see #setMinFreeRatio(double)
    */
   public double getMinFreeRatio()
