@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
  * 
  */
 
-public class JNIMemoryAllocator
+public final class JNIMemoryAllocator
 {
   private static final Logger log = LoggerFactory
       .getLogger(JNIMemoryAllocator.class);

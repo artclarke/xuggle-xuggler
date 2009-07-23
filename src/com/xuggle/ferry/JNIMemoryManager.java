@@ -21,6 +21,7 @@ package com.xuggle.ferry;
 
 import java.lang.ref.ReferenceQueue;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -54,7 +55,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author aclarke
  * 
  */
-public class JNIMemoryManager
+public final class JNIMemoryManager
 {
   /**
    * The different types of native memory allocation models Ferry supports. <h2>
@@ -900,6 +901,7 @@ public class JNIMemoryManager
   /**
    * Used for managing our collect-and-sweep JNIReference heap.
    */
+  private final AtomicBoolean mSpinLock;
   private final Lock mLock;
   private JNIReference mValidReferences[];
   private volatile int mNextAvailableReferenceSlot;
@@ -918,6 +920,7 @@ public class JNIMemoryManager
     mRefQueue = new ReferenceQueue<Object>();
     mCollectionThread = null;
     mLock = new ReentrantLock();
+    mSpinLock = new AtomicBoolean(false);
     final int minReferences=1024*4;
     mMinimumReferencesToCache = minReferences;
     mExpandIncrement = 0.20; // expand by 20% at a time
@@ -927,6 +930,19 @@ public class JNIMemoryManager
     mNextAvailableReferenceSlot = 0;
     mMaxFreeRatio = 0.70;
     mMinFreeRatio = 0.30;
+  }
+  
+  private void blockingLock()
+  {
+    mLock.lock();
+    while(!mSpinLock.compareAndSet(false, true))
+      ; // grab the spin lock
+  }
+  private void blockingUnlock()
+  {
+    final boolean result = mSpinLock.compareAndSet(true, false);
+    assert result : "Should never ever be unlocked here";
+    mLock.unlock();
   }
 
   /**
@@ -1129,7 +1145,7 @@ public class JNIMemoryManager
   public long getNumPinnedObjects()
   {
     long numPinnedObjects = 0;
-    mLock.lock();
+    blockingLock();
     try {
       int numItems = mNextAvailableReferenceSlot;
       for(int i = 0; i < numItems; i++)
@@ -1139,7 +1155,7 @@ public class JNIMemoryManager
           ++numPinnedObjects;
       }
     } finally {
-      mLock.unlock();
+      blockingUnlock();
     }
     return numPinnedObjects;
   }
@@ -1167,7 +1183,42 @@ public class JNIMemoryManager
    */
   final boolean addReference(final JNIReference ref)
   {
-    mLock.lock();
+    /* Implementation note: This method is extremely
+     * hot, and so I've unrolled the lock and unlock
+     * methods from above.  Take care if you change
+     * them to change the unrolled versions here.
+     * 
+     */
+    // First try to grab the non blocking lock
+    boolean gotNonblockingLock = false;
+    gotNonblockingLock = mSpinLock.compareAndSet(false, true);
+    if (gotNonblockingLock)
+    {
+      final int slot = mNextAvailableReferenceSlot++;
+      if (slot < mMaxValidReference)
+      {
+        mValidReferences[slot] = ref;
+        // unlock the non-blocking lock, and progress to a full lock.
+        final boolean result = mSpinLock.compareAndSet(true, false);
+        assert result : "Should never be unlocked here";
+        return true;
+      }
+      // try the big lock without blocking
+      if (!mLock.tryLock()) {
+        // we couldn't get the big lock, so release the spin lock
+        // and try getting the bit lock while blocking
+        gotNonblockingLock = false;
+        mSpinLock.compareAndSet(true, false);
+      }
+    }
+    // The above code needs to make sure that we never
+    // have gotNonblockingLock set, unless we have both
+    // the spin lock and the big lock.
+    if (!gotNonblockingLock){
+      mLock.lock();
+      while(!mSpinLock.compareAndSet(false, true))
+        ; // grab the spin lock
+    }
     try {
       int slot = mNextAvailableReferenceSlot++;
       if (slot >= mMaxValidReference)
@@ -1177,6 +1228,8 @@ public class JNIMemoryManager
       }
       mValidReferences[slot] = ref;
     } finally {
+      final boolean result = mSpinLock.compareAndSet(true, false);
+      assert result : "Should never ever be unlocked here";
       mLock.unlock();
     }
     return true;
@@ -1212,11 +1265,11 @@ public class JNIMemoryManager
   {
     gcInternal();
     if (doSweep) {
-      mLock.lock();
+      blockingLock();
       try {
         sweepAndCollect();
       } finally {
-        mLock.unlock();
+        blockingUnlock();
       }
     }
   }
@@ -1341,7 +1394,7 @@ public class JNIMemoryManager
    */
   final public void flush()
   {
-    mLock.lock();
+    blockingLock();
     try {
       int numSurvivors = sweepAndCollect();
       for(int i = 0; i < numSurvivors; i++)
@@ -1356,7 +1409,7 @@ public class JNIMemoryManager
       mNextAvailableReferenceSlot = 0;
       mMaxValidReference = mMinimumReferencesToCache;
     } finally {
-      mLock.unlock();
+      blockingUnlock();
     }
   }
 

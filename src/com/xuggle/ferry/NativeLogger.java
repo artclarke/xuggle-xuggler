@@ -35,7 +35,7 @@ import com.xuggle.ferry.NativeLogger;
  * </p>
  * 
  */
-public class NativeLogger
+public final class NativeLogger
 {
   // This is a logger this class can use for its own logging
   private static final Logger log = LoggerFactory.getLogger(NativeLogger.class);

@@ -41,7 +41,7 @@ package com.xuggle.ferry;
  * @author aclarke
  * 
  */
-public class JNINativeFinalizer
+public final class JNINativeFinalizer
 {
   /**
    * Internal Only. Creates a new {@link JNINativeFinalizer}. This object must

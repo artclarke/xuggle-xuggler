@@ -42,7 +42,7 @@ import com.xuggle.ferry.FerryJNI;
  * </p>
  * 
  */
-public class JNIReference extends WeakReference<Object>
+public final class JNIReference extends WeakReference<Object>
 {
   private final AtomicLong mSwigCPtr = new AtomicLong(0);
 

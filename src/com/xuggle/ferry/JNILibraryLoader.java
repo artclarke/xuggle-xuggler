@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
  * </p>
  * 
  */
-public class JNILibraryLoader
+public final class JNILibraryLoader
 {
   private static final Logger log = LoggerFactory
       .getLogger(JNILibraryLoader.class);
