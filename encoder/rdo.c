@@ -123,16 +123,16 @@ static inline int ssd_plane( x264_t *h, int size, int p, int x, int y )
             int dc = h->pixf.sad[size]( fdec, FDEC_STRIDE, zero, 0 ) >> 1;
             satd = abs(h->pixf.satd[size]( fdec, FDEC_STRIDE, zero, 0 ) - dc - sum_satd( h, size, x, y ));
         }
-        satd = (satd * h->mb.i_psy_rd * x264_lambda_tab[h->mb.i_qp] + 128) >> 8;
+        satd = (satd * h->mb.i_psy_rd * h->mb.i_psy_rd_lambda + 128) >> 8;
     }
     return h->pixf.ssd[size](fenc, FENC_STRIDE, fdec, FDEC_STRIDE) + satd;
 }
 
 static inline int ssd_mb( x264_t *h )
 {
-    return ssd_plane(h, PIXEL_16x16, 0, 0, 0)
-         + ssd_plane(h, PIXEL_8x8,   1, 0, 0)
-         + ssd_plane(h, PIXEL_8x8,   2, 0, 0);
+    int chromassd = ssd_plane(h, PIXEL_8x8, 1, 0, 0) + ssd_plane(h, PIXEL_8x8, 2, 0, 0);
+    chromassd = (chromassd * h->mb.i_chroma_lambda2_offset + 128) >> 8;
+    return ssd_plane(h, PIXEL_16x16, 0, 0, 0) + chromassd;
 }
 
 static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
@@ -202,6 +202,7 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i4, int i_pixel )
 {
     uint64_t i_ssd, i_bits;
     int i8 = i4 >> 2;
+    int chromassd;
 
     if( i_pixel == PIXEL_16x16 )
     {
@@ -222,9 +223,10 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i4, int i_pixel )
     if( i_pixel == PIXEL_8x16 )
         x264_macroblock_encode_p8x8( h, i8+2 );
 
-    i_ssd = ssd_plane( h, i_pixel,   0, (i8&1)*8, (i8>>1)*8 )
-          + ssd_plane( h, i_pixel+3, 1, (i8&1)*4, (i8>>1)*4 )
-          + ssd_plane( h, i_pixel+3, 2, (i8&1)*4, (i8>>1)*4 );
+    chromassd = ssd_plane( h, i_pixel+3, 1, (i8&1)*4, (i8>>1)*4 )
+              + ssd_plane( h, i_pixel+3, 2, (i8&1)*4, (i8>>1)*4 );
+    chromassd = (chromassd * h->mb.i_chroma_lambda2_offset + 128) >> 8;
+    i_ssd = ssd_plane( h, i_pixel,   0, (i8&1)*8, (i8>>1)*8 ) + chromassd;
 
     if( h->param.b_cabac )
     {
@@ -355,31 +357,6 @@ void x264_rdo_init( void )
         cabac_transition_5ones[i_ctx] = ctx;
     }
 }
-
-// should the intra and inter lambdas be different?
-// I'm just matching the behaviour of deadzone quant.
-static const int lambda2_tab[2][52] = {
-    // inter lambda = .85 * .85 * 2**(qp/3. + 10 - LAMBDA_BITS)
-    {    46,      58,      73,      92,     117,     147,
-        185,     233,     294,     370,     466,     587,
-        740,     932,    1174,    1480,    1864,    2349,
-       2959,    3728,    4697,    5918,    7457,    9395,
-      11837,   14914,   18790,   23674,   29828,   37581,
-      47349,   59656,   75163,   94699,  119313,  150326,
-     189399,  238627,  300652,  378798,  477255,  601304,
-     757596,  954511, 1202608, 1515192, 1909022, 2405217,
-    3030384, 3818045, 4810435, 6060769 },
-    // intra lambda = .65 * .65 * 2**(qp/3. + 10 - LAMBDA_BITS)
-    {    27,      34,      43,      54,      68,      86,
-        108,     136,     172,     216,     273,     343,
-        433,     545,     687,     865,    1090,    1374,
-       1731,    2180,    2747,    3461,    4361,    5494,
-       6922,    8721,   10988,   13844,   17442,   21976,
-      27688,   34885,   43953,   55377,   69771,   87906,
-     110755,  139543,  175813,  221511,  279087,  351627,
-     443023,  558174,  703255,  886046, 1116348, 1406511,
-    1772093, 2232697, 2813022, 3544186 }
-};
 
 typedef struct {
     int64_t score;
@@ -623,23 +600,23 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
 const static uint8_t x264_zigzag_scan2[4] = {0,1,2,3};
 
 int x264_quant_dc_trellis( x264_t *h, int16_t *dct, int i_quant_cat,
-                            int i_qp, int i_ctxBlockCat, int b_intra )
+                            int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma )
 {
     return quant_trellis_cabac( h, (int16_t*)dct,
         h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
         NULL, i_ctxBlockCat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[h->mb.b_interlaced],
-        i_ctxBlockCat, lambda2_tab[b_intra][i_qp], 0, 1, i_ctxBlockCat==DCT_CHROMA_DC ? 4 : 16, 0 );
+        i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, i_ctxBlockCat==DCT_CHROMA_DC ? 4 : 16, 0 );
 }
 
 int x264_quant_4x4_trellis( x264_t *h, int16_t dct[4][4], int i_quant_cat,
-                             int i_qp, int i_ctxBlockCat, int b_intra, int idx )
+                             int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma, int idx )
 {
     int b_ac = (i_ctxBlockCat == DCT_LUMA_AC || i_ctxBlockCat == DCT_CHROMA_AC);
     return quant_trellis_cabac( h, (int16_t*)dct,
         h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
         x264_dct4_weight2_zigzag[h->mb.b_interlaced],
         x264_zigzag_scan4[h->mb.b_interlaced],
-        i_ctxBlockCat, lambda2_tab[b_intra][i_qp], b_ac, 0, 16, idx );
+        i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx );
 }
 
 int x264_quant_8x8_trellis( x264_t *h, int16_t dct[8][8], int i_quant_cat,
@@ -649,6 +626,6 @@ int x264_quant_8x8_trellis( x264_t *h, int16_t dct[8][8], int i_quant_cat,
         h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],
         x264_dct8_weight2_zigzag[h->mb.b_interlaced],
         x264_zigzag_scan8[h->mb.b_interlaced],
-        DCT_LUMA_8x8, lambda2_tab[b_intra][i_qp], 0, 0, 64, idx );
+        DCT_LUMA_8x8, h->mb.i_trellis_lambda2[0][b_intra], 0, 0, 64, idx );
 }
 

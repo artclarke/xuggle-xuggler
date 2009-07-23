@@ -269,8 +269,9 @@ static void Help( x264_param_t *defaults, int b_longhelp )
         "                                  - 6: RD mode decision for I/P-frames\n"
         "                                  - 7: RD mode decision for all frames\n"
         "                                  - 8: RD refinement for I/P-frames\n"
-        "                                  - 9: RD refinement for all frames\n" );
-    else H0( "                                  decision quality: 1=fast, 9=best.\n"  );
+        "                                  - 9: RD refinement for all frames\n"
+        "                                  - 10: QP-RD - requires trellis=2, aq-mode>0\n" );
+    else H0( "                                  decision quality: 1=fast, 10=best.\n"  );
     H0( "      --psy-rd                Strength of psychovisual optimization [\"%.1f:%.1f\"]\n"
         "                                  #1: RD (requires subme>=6)\n"
         "                                  #2: Trellis (requires trellis, experimental)\n",
@@ -581,7 +582,7 @@ static int  Parse( int argc, char **argv,
             else if( !strcasecmp( optarg, "placebo" ) )
             {
                 param->analyse.i_me_method = X264_ME_TESA;
-                param->analyse.i_subpel_refine = 9;
+                param->analyse.i_subpel_refine = 10;
                 param->analyse.i_me_range = 24;
                 param->i_frame_reference = 16;
                 param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;

@@ -288,10 +288,6 @@ void x264_adaptive_quant( x264_t *h )
 {
     x264_emms();
     h->mb.i_qp = x264_clip3( h->rc->f_qpm + h->fenc->f_qp_offset[h->mb.i_mb_xy] + .5, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
-    /* If the QP of this MB is within 1 of the previous MB, code the same QP as the previous MB,
-     * to lower the bit cost of the qp_delta. */
-    if( abs(h->mb.i_qp - h->mb.i_last_qp) == 1 )
-        h->mb.i_qp = h->mb.i_last_qp;
 }
 
 int x264_ratecontrol_new( x264_t *h )
