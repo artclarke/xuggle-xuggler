@@ -473,4 +473,17 @@ public void get(int srcPos, double[] dest, int destPos, int length)
 %javamethodmodifiers com::xuggle::xuggler::IMediaData::getData "protected"
 %rename(getData_internal) com::xuggle::xuggler::IMediaData::getData;
 
+%{
+/**
+ * Here to maintain BW-compatibility with Version 3.x of Xuggler;
+ * can be removed when major version goes pass 3.
+ */
+extern "C" {
+SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1getData_1internal(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_);
+SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1getData(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_)
+{
+  return Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1getData_1internal(jenv, jcls, jarg1, jarg1_);
+}
+}
+%}
 %include <com/xuggle/xuggler/IMediaData.h>
