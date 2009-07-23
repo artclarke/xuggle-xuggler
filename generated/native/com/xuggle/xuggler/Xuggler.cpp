@@ -264,6 +264,19 @@ Java_com_xuggle_xuggler_Xuggler_init(JNIEnv *env, jclass)
 // Xuggler.i: End generated code
 
 
+
+/**
+ * Here to maintain BW-compatibility with Version 3.x of Xuggler;
+ * can be removed when major version goes pass 3.
+ */
+extern "C" {
+SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1getData_1internal(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_);
+SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1getData(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_)
+{
+  return Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1getData_1internal(jenv, jcls, jarg1, jarg1_);
+}
+}
+
 SWIGINTERN com::xuggle::xuggler::IPacket *com_xuggle_xuggler_IMediaDataWrapper_getPacket(com::xuggle::xuggler::IMediaDataWrapper *self){
       IMediaData* data = self->get();
       IPacket* retval = dynamic_cast<IPacket*>(data);
