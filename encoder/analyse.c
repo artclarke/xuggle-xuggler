@@ -2265,7 +2265,7 @@ void x264_macroblock_analyse( x264_t *h )
         x264_adaptive_quant( h );
         /* If the QP of this MB is within 1 of the previous MB, code the same QP as the previous MB,
          * to lower the bit cost of the qp_delta.  Don't do this if QPRD is enabled. */
-        if( analysis.i_mbrd < 3 && abs(h->mb.i_qp - h->mb.i_last_qp) == 1 )
+        if( h->param.analyse.i_subpel_refine < 10 && abs(h->mb.i_qp - h->mb.i_last_qp) == 1 )
             h->mb.i_qp = h->mb.i_last_qp;
     }
 
