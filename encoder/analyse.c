@@ -309,8 +309,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
         int i_fmv_range = 4 * h->param.analyse.i_mv_range;
         // limit motion search to a slightly smaller range than the theoretical limit,
         // since the search may go a few iterations past its given range
-        int i_fpel_border = 5; // umh unconditional radius
-        int i_spel_border = 8; // 1.5 for subpel_satd, 1.5 for subpel_rd, 2 for bime, round up
+        int i_fpel_border = 6; // umh: 1 for diamond, 2 for octagon, 2 for hpel
 
         /* Calculate max allowed MV range */
 #define CLIP_FMV(mv) x264_clip3( mv, -i_fmv_range, i_fmv_range-1 )
@@ -348,7 +347,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
 
             h->mb.mv_min[1] = 4*( -16*mb_y - 24 );
             h->mb.mv_max[1] = 4*( 16*( mb_height - mb_y - 1 ) + 24 );
-            h->mb.mv_min_spel[1] = x264_clip3( h->mb.mv_min[1], X264_MAX(4*(-512+i_spel_border), -i_fmv_range), i_fmv_range );
+            h->mb.mv_min_spel[1] = x264_clip3( h->mb.mv_min[1], -i_fmv_range, i_fmv_range );
             h->mb.mv_max_spel[1] = CLIP_FMV( h->mb.mv_max[1] );
             h->mb.mv_max_spel[1] = X264_MIN( h->mb.mv_max_spel[1], thread_mvy_range*4 );
             h->mb.mv_min_fpel[1] = (h->mb.mv_min_spel[1]>>2) + i_fpel_border;

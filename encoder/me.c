@@ -535,7 +535,7 @@ me_hex2:
                     }
                 }
             } while( ++i <= i_me_range/4 );
-            if( bmy <= mv_y_max )
+            if( bmy <= mv_y_max && bmy >= mv_y_min )
                 goto me_hex2;
             break;
         }
@@ -718,8 +718,6 @@ me_hex2:
         int qpel = subpel_iterations[h->mb.i_subpel_refine][3];
         refine_subpel( h, m, hpel, qpel, p_halfpel_thresh, 0 );
     }
-    else if( m->mv[1] > h->mb.mv_max_spel[1] )
-        m->mv[1] = h->mb.mv_max_spel[1];
 }
 #undef COST_MV
 
@@ -790,8 +788,8 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     /* try the subpel component of the predicted mv */
     if( hpel_iters && h->mb.i_subpel_refine < 3 )
     {
-        int mx = x264_clip3( m->mvp[0], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
-        int my = x264_clip3( m->mvp[1], h->mb.mv_min_spel[1], h->mb.mv_max_spel[1] );
+        int mx = x264_clip3( m->mvp[0], h->mb.mv_min_spel[0]+2, h->mb.mv_max_spel[0]-2 );
+        int my = x264_clip3( m->mvp[1], h->mb.mv_min_spel[1]+2, h->mb.mv_max_spel[1]-2 );
         if( (mx-bmx)|(my-bmy) )
             COST_MV_SAD( mx, my );
     }
@@ -818,9 +816,6 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 
     if( !b_refine_qpel )
     {
-        /* check for mvrange */
-        if( bmy > h->mb.mv_max_spel[1] )
-            bmy = h->mb.mv_max_spel[1];
         bcost = COST_MAX;
         COST_MV_SATD( bmx, bmy, -1 );
     }
@@ -844,6 +839,8 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     bdir = -1;
     for( i = qpel_iters; i > 0; i-- )
     {
+        if( bmy <= h->mb.mv_min_spel[1] || bmy >= h->mb.mv_max_spel[1] )
+            break;
         odir = bdir;
         omx = bmx;
         omy = bmy;
@@ -853,14 +850,6 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
         COST_MV_SATD( omx + 1, omy, 3 );
         if( bmx == omx && bmy == omy )
             break;
-    }
-
-    /* check for mvrange */
-    if( bmy > h->mb.mv_max_spel[1] )
-    {
-        bmy = h->mb.mv_max_spel[1];
-        bcost = COST_MAX;
-        COST_MV_SATD( bmx, bmy, -1 );
     }
 
     m->cost = bcost;
@@ -970,8 +959,8 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
     /* each byte of visited represents 8 possible m1y positions, so a 4D array isn't needed */
     DECLARE_ALIGNED_16( uint8_t visited[8][8][8] );
 
-    if( bm0y > h->mb.mv_max_spel[1] - 8 ||
-        bm1y > h->mb.mv_max_spel[1] - 8 )
+    if( bm0y < h->mb.mv_min_spel[1] + 8 || bm1y < h->mb.mv_min_spel[1] + 8 ||
+        bm0y > h->mb.mv_max_spel[1] - 8 || bm1y > h->mb.mv_max_spel[1] - 8 )
         return;
 
     h->mc.memzero_aligned( visited, sizeof(visited) );
@@ -1096,6 +1085,10 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
         }
     }
 
+    if( bmy < h->mb.mv_min_spel[1] + 3 ||
+        bmy > h->mb.mv_max_spel[1] - 3 )
+        return;
+
     /* subpel hex search, same pattern as ME HEX. */
     dir = -2;
     omx = bmx;
@@ -1109,8 +1102,8 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
         for( i = 1; i < 10; i++ )
         {
             const int odir = mod6m1[dir+1];
-            if( bmy > h->mb.mv_max_spel[1] - 2 ||
-                bmy < h->mb.mv_min_spel[1] - 2 )
+            if( bmy < h->mb.mv_min_spel[1] + 3 ||
+                bmy > h->mb.mv_max_spel[1] - 3 )
                 break;
             dir = -2;
             omx = bmx;
@@ -1128,7 +1121,6 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
     for( i=0; i<8; i++ ) COST_MV_SATD( omx + square1[i+1][0], omy + square1[i+1][1], satds[i], 1 );
     for( i=0; i<8; i++ ) COST_MV_RD  ( omx + square1[i+1][0], omy + square1[i+1][1], satds[i], 0,0 );
 
-    bmy = x264_clip3( bmy, h->mb.mv_min_spel[1],  h->mb.mv_max_spel[1] );
     m->cost = bcost;
     m->mv[0] = bmx;
     m->mv[1] = bmy;
