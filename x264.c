@@ -173,8 +173,9 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     else H0( "                                  - ultrafast,veryfast,fast,medium,slow,slower\n" );
     H0( "      --tune                  Tune the settings for a particular type of source\n" );
     H0( "                                  Overridden by user settings\n");
-    H1( "                                  - film,animation,grain,psnr,ssim,touhou\n");
-    else H0( "                                  - film,animation,grain,psnr,ssim\n");
+    H1( "                                  - film,animation,grain,psnr,ssim\n"
+        "                                  - fastdecode,touhou\n");
+    else H0( "                                  - film,animation,grain,psnr,ssim,fastdecode\n");
     H0( "      --slow-firstpass        Don't use faster settings with --pass 1\n" );
     H0( "\n" );
     H0( "Frame-type options:\n" );
@@ -648,6 +649,12 @@ static int  Parse( int argc, char **argv,
             {
                 param->analyse.f_psy_rd = 0;
                 param->rc.i_aq_mode = X264_AQ_AUTOVARIANCE;
+            }
+            else if( !strcasecmp( optarg, "fastdecode" ) )
+            {
+                param->b_deblocking_filter = 0;
+                param->b_cabac = 0;
+                param->analyse.b_weighted_bipred = 0;
             }
             else if( !strcasecmp( optarg, "touhou" ) )
             {
