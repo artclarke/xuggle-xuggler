@@ -172,7 +172,7 @@ public class RefCountedExhaustiveTest
     // and force a collection
     MemoryTestHelper.forceJavaHeapWeakReferenceClear();
     // Do a collection
-    mgr.gc();
+    mgr.gc(true);
     assertEquals("didn't pin as many as it should", 0, mgr.getNumPinnedObjects());
     // this should cause the heap to shrink, and then grow
     for(int i = 0; i < maxItems/2; i++)
@@ -185,7 +185,7 @@ public class RefCountedExhaustiveTest
     // and force a collection
     MemoryTestHelper.forceJavaHeapWeakReferenceClear();
     // Do a collection
-    mgr.gc();
+    mgr.gc(true);
     assertEquals("didn't pin as many as it should", 0, mgr.getNumPinnedObjects());
   }
   
