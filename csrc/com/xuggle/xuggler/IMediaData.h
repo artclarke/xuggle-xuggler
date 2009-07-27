@@ -84,6 +84,25 @@ public:
    */
   virtual bool isKey()=0;
 
+  /*
+   * Added for 3.2
+   */
+  /**
+   * Sets the underlying buffer used by this object.
+   * <p>
+   * This is an advanced method and is not recommended for use by those
+   * who don't fully understand how IBuffers work.  Implementations of
+   * {@link IMediaData} may behave in undefined ways if the buffer you
+   * pass in is not big enough for what you ask them to do (e.g. they may
+   * discard your buffer and allocate a larger one if they need more space).
+   * It is up to the caller to ensure the buffer passed in is large enough,
+   * and is not simultaneously in use by another part of the system.
+   * </p>
+   * @param buffer The buffer to set.  If null, this method
+   *   is ignored.
+   */
+  virtual void setData(com::xuggle::ferry::IBuffer* buffer)=0;
+  
 protected:
   IMediaData();
   virtual ~IMediaData();

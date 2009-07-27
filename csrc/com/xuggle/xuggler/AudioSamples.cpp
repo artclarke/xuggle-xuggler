@@ -143,12 +143,10 @@ namespace com { namespace xuggle { namespace xuggler
     AudioSamples* retval = 0;
     try
     {
-      retval = make(samplesRequested, channels);
+      retval = make(samplesRequested, channels, format);
       if (!retval)
         return 0;
-      retval->mSampleFmt = format;
-      retval->mSamples.reset(buffer, true);
-      setBufferType(format, buffer);
+      retval->setData(buffer);
     }
     catch (std::bad_alloc &e)
     {
@@ -164,6 +162,14 @@ namespace com { namespace xuggle { namespace xuggler
     return retval;
   }
 
+  void
+  AudioSamples :: setData(com::xuggle::ferry::IBuffer* buffer)
+  {
+    if (!buffer) return;
+    mSamples.reset(buffer, true);
+    setBufferType(mSampleFmt, buffer);
+  }
+  
   bool
   AudioSamples :: isComplete()
   {

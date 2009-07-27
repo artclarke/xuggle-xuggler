@@ -40,6 +40,7 @@ public:
   virtual void wrap(IMediaData* aObj);
   virtual void setKey(bool aIsKey);
   virtual IMediaData* unwrap();
+  virtual void setData(com::xuggle::ferry::IBuffer*);
 
   /**
    * Create a new IMediaDataWrapper that wraps a given object.

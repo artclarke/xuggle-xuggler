@@ -101,6 +101,7 @@ class XugglerJNI {
   public final static native long IMediaData_getData_internal(long jarg1, IMediaData jarg1_);
   public final static native int IMediaData_getSize(long jarg1, IMediaData jarg1_);
   public final static native boolean IMediaData_isKey(long jarg1, IMediaData jarg1_);
+  public final static native void IMediaData_setData(long jarg1, IMediaData jarg1_, long jarg2, IBuffer jarg2_);
   public final static native void IPacket_reset(long jarg1, IPacket jarg1_);
   public final static native boolean IPacket_isComplete(long jarg1, IPacket jarg1_);
   public final static native long IPacket_getPts(long jarg1, IPacket jarg1_);

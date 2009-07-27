@@ -148,6 +148,13 @@ MediaDataWrapper :: wrap(IMediaData*aObj)
   }
 }
 
+void
+MediaDataWrapper :: setData(com::xuggle::ferry::IBuffer *buffer)
+{
+  if (mWrapped)
+    mWrapped->setData(buffer);
+}
+
 IMediaData*
 MediaDataWrapper :: get()
 {

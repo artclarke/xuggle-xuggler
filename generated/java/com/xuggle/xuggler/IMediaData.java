@@ -627,4 +627,28 @@ public void get(int srcPos, double[] dest, int destPos, int length)
     return XugglerJNI.IMediaData_isKey(swigCPtr, this);
   }
 
+/**
+ * Sets the underlying buffer used by this object.  
+ * <p>  
+ * This is an advanced method and is not recommended for use by those 
+ *  
+ * who don't fully understand how IBuffers work. Implementations of 
+ *  
+ * {@link IMediaData} may behave in undefined ways if the buffer you 
+ *  
+ * pass in is not big enough for what you ask them to do (e.g. they 
+ * may  
+ * discard your buffer and allocate a larger one if they need more space). 
+ *  
+ * It is up to the caller to ensure the buffer passed in is large enough, 
+ *  
+ *  
+ * </p>  
+ * @param	buffer The buffer to set. If null, this method  
+ * is ignored.  
+ */
+  public void setData(IBuffer buffer) {
+    XugglerJNI.IMediaData_setData(swigCPtr, this, IBuffer.getCPtr(buffer), buffer);
+  }
+
 }

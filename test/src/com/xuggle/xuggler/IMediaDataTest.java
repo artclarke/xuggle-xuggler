@@ -23,6 +23,7 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
+import com.xuggle.ferry.IBuffer;
 import com.xuggle.ferry.JNIMemoryManager;
 import com.xuggle.xuggler.IAudioSamples;
 
@@ -217,6 +218,56 @@ public class IMediaDataTest
     packet.delete();
     samples.delete();
     picture.delete();
+    assertEquals("more objects around than expected",
+        0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+  }
+  
+  @Test
+  public void testSetData()
+  {
+    JNIMemoryManager.getMgr().flush();
+    assertEquals("more objects around than expected",
+        0, JNIMemoryManager.getMgr().getNumPinnedObjects());
+    int bufSize = 100;
+    byte[] inData = new byte[bufSize];
+    byte[] outData = new byte[inData.length];
+    for(int i = 0; i < inData.length; i++)
+      inData[i] = (byte) i;
+    IBuffer buffer = IBuffer.make(null, inData, 0, inData.length);
+    IAudioSamples samples = IAudioSamples.make(1024,2);
+    samples.setData(buffer);
+    
+    IBuffer outBuffer = samples.getData();
+    outBuffer.get(0, outData, 0, outData.length);
+    for(int i = 0; i < inData.length; i++)
+      assertEquals(inData[i], outData[i]);
+    outBuffer.delete();
+    
+    samples.toString();
+    IVideoPicture picture = IVideoPicture.make(IPixelFormat.Type.YUV420P,
+        4,4);
+    picture.setData(buffer);
+
+    outBuffer = picture.getData();
+    outBuffer.get(0, outData, 0, outData.length);
+    for(int i = 0; i < inData.length; i++)
+      assertEquals(inData[i], outData[i]);
+    outBuffer.delete();
+    
+    IPacket packet = IPacket.make(1024);
+    packet.setData(buffer);
+    
+    outBuffer = packet.getData();
+    outBuffer.get(0, outData, 0, outData.length);
+    for(int i = 0; i < inData.length; i++)
+      assertEquals(inData[i], outData[i]);
+    outBuffer.delete();
+    
+    
+    packet.delete();
+    samples.delete();
+    picture.delete();
+    buffer.delete();
     assertEquals("more objects around than expected",
         0, JNIMemoryManager.getMgr().getNumPinnedObjects());
   }

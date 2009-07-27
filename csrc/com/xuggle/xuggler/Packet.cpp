@@ -351,6 +351,12 @@ namespace com { namespace xuggle { namespace xuggler
   }
 
   void
+  Packet :: setData(IBuffer* buffer)
+  {
+    wrapBuffer(buffer);
+  }
+  
+  void
   Packet :: wrapBuffer(IBuffer *buffer)
   {
     if (buffer != mBuffer.value())

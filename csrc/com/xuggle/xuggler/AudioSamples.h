@@ -58,6 +58,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int64_t getNextPts();
     virtual int32_t setSample(uint32_t sampleIndex, int32_t channel, Format format, int32_t sample);
     virtual int32_t getSample(uint32_t sampleIndex, int32_t channel, Format format);
+    virtual void setData(com::xuggle::ferry::IBuffer* buffer);
 
     /*
      * Convenience method that from C++ returns the buffer

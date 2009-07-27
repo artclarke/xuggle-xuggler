@@ -109,6 +109,14 @@ namespace com { namespace xuggle { namespace xuggler
     return retval;
   }
 
+  void
+  VideoPicture :: setData(com::xuggle::ferry::IBuffer* buffer)
+  {
+    if (!buffer) return;
+    /** Use the buffer */
+    mBuffer.reset(buffer, true);
+  }
+  
   bool
   VideoPicture :: copy(IVideoPicture * srcFrame)
   {

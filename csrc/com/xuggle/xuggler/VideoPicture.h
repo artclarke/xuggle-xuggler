@@ -59,7 +59,8 @@ namespace com { namespace xuggle { namespace xuggler
     virtual void setComplete(bool aIsComplete, IPixelFormat::Type format,
         int width, int height, int64_t pts);
     virtual bool copy(IVideoPicture* srcFrame);
-    
+    virtual void setData(com::xuggle::ferry::IBuffer* buffer);
+
     // Not for calling from Java
     /**
      * Called by the StreamCoder before it encodes a picture.
