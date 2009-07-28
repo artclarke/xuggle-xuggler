@@ -55,7 +55,7 @@
         <echo message="Uninstalling ${app.name}.jar with native dependencies from: ${env.RED5_HOME}"/>
         <delete>
           <fileset dir="${env.RED5_HOME}/lib"
-            includes="${app.name}*.jar"
+            includes="${app.name}.jar"
             />
         </delete>
       </then>
