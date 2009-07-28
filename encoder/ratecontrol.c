@@ -883,12 +883,7 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp )
     if( rce )
         rce->new_qp = rc->qp;
 
-    /* accum_p_qp needs to be here so that future frames can benefit from the
-     * data before this frame is done. but this only works because threading
-     * guarantees to not re-encode any frames. so the non-threaded case does
-     * accum_p_qp later. */
-    if( h->param.i_threads > 1 )
-        accum_p_qp_update( h, rc->qp );
+    accum_p_qp_update( h, rc->qp );
 
     if( h->sh.i_type != SLICE_TYPE_B )
         rc->last_non_b_pict_type = h->sh.i_type;
@@ -1142,9 +1137,6 @@ void x264_ratecontrol_end( x264_t *h, int bits )
         rc->cplxr_sum *= rc->cbr_decay;
         rc->wanted_bits_window += rc->bitrate / rc->fps;
         rc->wanted_bits_window *= rc->cbr_decay;
-
-        if( h->param.i_threads == 1 )
-            accum_p_qp_update( h, rc->qpa_rc );
     }
 
     if( rc->b_2pass )
