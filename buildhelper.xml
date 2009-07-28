@@ -227,14 +227,13 @@
         forcedeliver="false"
         publishivy="true"
         overwrite="true"
-        pubrevision="${library.version}"
         resolver="publish">
       <artifacts pattern="${dist.dir}/war/[artifact].war" />
       <artifacts pattern="${dist.dir}/lib/[artifact].[ext]" />
     </ivy:publish>
     <ivy:makepom
-        ivyfile="${xugglerepo.dir}/${organization.name}/${app.name}/${library.version}/ivy-${library.version}.xml"
-        pomfile="${xugglerepo.dir}/${organization.name}/${app.name}/${library.version}/${app.name}-${library.version}.pom">
+      ivyfile="${xugglerepo.dir}/${organization.name}/${app.name}/${library.version}.${DSTAMP}${TSTAMP}/ivy-${library.version}.${DSTAMP}${TSTAMP}.xml"
+      pomfile="${xugglerepo.dir}/${organization.name}/${app.name}/${library.version}.${DSTAMP}${TSTAMP}/${app.name}-${library.version}.${DSTAMP}${TSTAMP}.pom">
       <mapping conf="compile" scope="compile"/>
       <mapping conf="default" scope="runtime"/>
       <mapping conf="test" scope="test"/>
@@ -420,6 +419,11 @@
       />
 
     <echo message="Building Library Version: ${library.version}"/>
+    <condition property="ivy.deliver.revision" value="${library.version}.${DSTAMP}${TSTAMP}">
+      <not>
+        <isset property="ivy.deliver.revision"/>
+      </not>
+    </condition>
   </target>
   <target name="init" depends="os-init, java6.check, ivy-init, revision" >
     <!-- Create the time stamp -->
