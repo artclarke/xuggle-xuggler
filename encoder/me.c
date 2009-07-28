@@ -861,10 +861,23 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
 #define BIME_CACHE( dx, dy ) \
 { \
     int i = 4 + 3*dx + dy; \
+    int mvx0 = om0x+dx, mvy0 = om0y+dy;\
+    int mvx1 = om1x+dx, mvy1 = om1y+dy;\
     stride0[i] = bw;\
     stride1[i] = bw;\
-    src0[i] = h->mc.get_ref( pix0[i], &stride0[i], m0->p_fref, m0->i_stride[0], om0x+dx, om0y+dy, bw, bh ); \
-    src1[i] = h->mc.get_ref( pix1[i], &stride1[i], m1->p_fref, m1->i_stride[0], om1x+dx, om1y+dy, bw, bh ); \
+    src0[i] = h->mc.get_ref( pix0[i], &stride0[i], m0->p_fref, m0->i_stride[0], mvx0, mvy0, bw, bh ); \
+    src1[i] = h->mc.get_ref( pix1[i], &stride1[i], m1->p_fref, m1->i_stride[0], mvx1, mvy1, bw, bh ); \
+    if( rd )\
+    {\
+        if( h->mb.b_interlaced & ref0 )\
+            mvy0 += (h->mb.i_mb_y & 1)*4 - 2;\
+        if( h->mb.b_interlaced & ref1 )\
+            mvy1 += (h->mb.i_mb_y & 1)*4 - 2;\
+        h->mc.mc_chroma( pixu0[i], 8, m0->p_fref[4], m0->i_stride[1], mvx0, mvy0, bw>>1, bh>>1 );\
+        h->mc.mc_chroma( pixu1[i], 8, m1->p_fref[4], m1->i_stride[1], mvx1, mvy1, bw>>1, bh>>1 );\
+        h->mc.mc_chroma( pixv0[i], 8, m0->p_fref[5], m0->i_stride[1], mvx0, mvy0, bw>>1, bh>>1 );\
+        h->mc.mc_chroma( pixv1[i], 8, m1->p_fref[5], m1->i_stride[1], mvx1, mvy1, bw>>1, bh>>1 );\
+    }\
 }
 
 #define BIME_CACHE2(a,b) \
@@ -880,8 +893,8 @@ if( pass == 0 || !((visited[(m0x)&7][(m0y)&7][(m1x)&7] & (1<<((m1y)&7)))) ) \
     int i0 = 4 + 3*(m0x-om0x) + (m0y-om0y); \
     int i1 = 4 + 3*(m1x-om1x) + (m1y-om1y); \
     visited[(m0x)&7][(m0y)&7][(m1x)&7] |= (1<<((m1y)&7));\
-    h->mc.avg[i_pixel]( pix, bw, src0[i0], stride0[i0], src1[i1], stride1[i1], i_weight ); \
-    cost = h->pixf.mbcmp[i_pixel]( m0->p_fenc[0], FENC_STRIDE, pix, bw ) \
+    h->mc.avg[i_pixel]( pix, FDEC_STRIDE, src0[i0], stride0[i0], src1[i1], stride1[i1], i_weight ); \
+    cost = h->pixf.mbcmp[i_pixel]( m0->p_fenc[0], FENC_STRIDE, pix, FDEC_STRIDE ) \
          + p_cost_m0x[ m0x ] + p_cost_m0y[ m0y ] \
          + p_cost_m1x[ m1x ] + p_cost_m1y[ m1y ]; \
     if( rd ) \
@@ -893,7 +906,9 @@ if( pass == 0 || !((visited[(m0x)&7][(m0y)&7][(m1x)&7] & (1<<((m1y)&7)))) ) \
                 bcost = cost; \
             *(uint32_t*)cache0_mv = *(uint32_t*)cache0_mv2 = pack16to32_mask(m0x,m0y); \
             *(uint32_t*)cache1_mv = *(uint32_t*)cache1_mv2 = pack16to32_mask(m1x,m1y); \
-            costrd = x264_rd_cost_part( h, i_lambda2, i8, m0->i_pixel ); \
+            h->mc.avg[i_pixel+3]( pixu, FDEC_STRIDE, pixu0[i0], 8, pixu1[i1], 8, i_weight );\
+            h->mc.avg[i_pixel+3]( pixv, FDEC_STRIDE, pixv0[i0], 8, pixv1[i1], 8, i_weight );\
+            costrd = x264_rd_cost_part( h, i_lambda2, i8*4, m0->i_pixel ); \
             if( costrd < bcostrd ) \
             {\
                 bcostrd = costrd;\
@@ -937,15 +952,23 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
     const int i_pixel = m0->i_pixel;
     const int bw = x264_pixel_size[i_pixel].w;
     const int bh = x264_pixel_size[i_pixel].h;
-    const int16_t *p_cost_m0x = m0->p_cost_mv - x264_clip3( m0->mvp[0], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
-    const int16_t *p_cost_m0y = m0->p_cost_mv - x264_clip3( m0->mvp[1], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
-    const int16_t *p_cost_m1x = m1->p_cost_mv - x264_clip3( m1->mvp[0], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
-    const int16_t *p_cost_m1y = m1->p_cost_mv - x264_clip3( m1->mvp[1], h->mb.mv_min_spel[0], h->mb.mv_max_spel[0] );
+    const int16_t *p_cost_m0x = m0->p_cost_mv - m0->mvp[0];
+    const int16_t *p_cost_m0y = m0->p_cost_mv - m0->mvp[1];
+    const int16_t *p_cost_m1x = m1->p_cost_mv - m1->mvp[0];
+    const int16_t *p_cost_m1y = m1->p_cost_mv - m1->mvp[1];
     DECLARE_ALIGNED_16( uint8_t pix0[9][16*16] );
     DECLARE_ALIGNED_16( uint8_t pix1[9][16*16] );
-    DECLARE_ALIGNED_16( uint8_t pix[16*16] );
+    DECLARE_ALIGNED_8( uint8_t pixu0[9][8*8] );
+    DECLARE_ALIGNED_8( uint8_t pixu1[9][8*8] );
+    DECLARE_ALIGNED_8( uint8_t pixv0[9][8*8] );
+    DECLARE_ALIGNED_8( uint8_t pixv1[9][8*8] );
     uint8_t *src0[9];
     uint8_t *src1[9];
+    uint8_t *pix  = &h->mb.pic.p_fdec[0][(i8>>1)*8*FDEC_STRIDE+(i8&1)*8];
+    uint8_t *pixu = &h->mb.pic.p_fdec[1][(i8>>1)*4*FDEC_STRIDE+(i8&1)*4];
+    uint8_t *pixv = &h->mb.pic.p_fdec[2][(i8>>1)*4*FDEC_STRIDE+(i8&1)*4];
+    int ref0 = h->mb.cache.ref[0][x264_scan8[i8*4]];
+    int ref1 = h->mb.cache.ref[1][x264_scan8[i8*4]];
     int stride0[9];
     int stride1[9];
     int bm0x = m0->mv[0], om0x = bm0x;
@@ -1010,7 +1033,11 @@ void x264_me_refine_bidir_satd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_w
 
 void x264_me_refine_bidir_rd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight, int i8, int i_lambda2 )
 {
+    /* Motion compensation is done as part of bidir_rd; don't repeat
+     * it in encoding. */
+    h->mb.b_skip_mc = 1;
     x264_me_refine_bidir( h, m0, m1, i_weight, i8, i_lambda2, 1 );
+    h->mb.b_skip_mc = 0;
 }
 
 #undef COST_MV_SATD

@@ -2128,25 +2128,25 @@ static void x264_refine_bidir( x264_t *h, x264_mb_analysis_t *a )
 
     switch( h->mb.i_partition )
     {
-    case D_16x16:
-        if( h->mb.i_type == B_BI_BI )
-            x264_me_refine_bidir_satd( h, &a->l0.me16x16, &a->l1.me16x16, i_biweight );
-        break;
-    case D_16x8:
-        for( i=0; i<2; i++ )
-            if( a->i_mb_partition16x8[i] == D_BI_8x8 )
-                x264_me_refine_bidir_satd( h, &a->l0.me16x8[i], &a->l1.me16x8[i], i_biweight );
-        break;
-    case D_8x16:
-        for( i=0; i<2; i++ )
-            if( a->i_mb_partition8x16[i] == D_BI_8x8 )
-                x264_me_refine_bidir_satd( h, &a->l0.me8x16[i], &a->l1.me8x16[i], i_biweight );
-        break;
-    case D_8x8:
-        for( i=0; i<4; i++ )
-            if( h->mb.i_sub_partition[i] == D_BI_8x8 )
-                x264_me_refine_bidir_satd( h, &a->l0.me8x8[i], &a->l1.me8x8[i], i_biweight );
-        break;
+        case D_16x16:
+            if( h->mb.i_type == B_BI_BI )
+                x264_me_refine_bidir_satd( h, &a->l0.me16x16, &a->l1.me16x16, i_biweight );
+            break;
+        case D_16x8:
+            for( i=0; i<2; i++ )
+                if( a->i_mb_partition16x8[i] == D_BI_8x8 )
+                    x264_me_refine_bidir_satd( h, &a->l0.me16x8[i], &a->l1.me16x8[i], i_biweight );
+            break;
+        case D_8x16:
+            for( i=0; i<2; i++ )
+                if( a->i_mb_partition8x16[i] == D_BI_8x8 )
+                    x264_me_refine_bidir_satd( h, &a->l0.me8x16[i], &a->l1.me8x16[i], i_biweight );
+            break;
+        case D_8x8:
+            for( i=0; i<4; i++ )
+                if( h->mb.i_sub_partition[i] == D_BI_8x8 )
+                    x264_me_refine_bidir_satd( h, &a->l0.me8x8[i], &a->l1.me8x8[i], i_biweight );
+            break;
     }
 }
 

@@ -976,7 +976,8 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
     int nnz8x8 = 0;
     int ch, nz;
 
-    x264_mb_mc_8x8( h, i8 );
+    if( !h->mb.b_skip_mc )
+        x264_mb_mc_8x8( h, i8 );
 
     if( h->mb.b_lossless )
     {
