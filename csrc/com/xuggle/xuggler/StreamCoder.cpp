@@ -1403,12 +1403,21 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
                   getSampleRate());
 
           }
-          
+          RefPointer<IRational> thisTimeBase = getTimeBase();
+          int64_t ts;
+          int64_t duration = IAudioSamples::samplesToDefaultPts(frameSize, getSampleRate());
+          if (!thisTimeBase) {
+            thisTimeBase.reset(mFakePtsTimeBase.value(), true);
+            ts = mFakeCurrPts;
+          } else {
+            ts = thisTimeBase->rescale(mFakeCurrPts, mFakePtsTimeBase.value());
+            duration = thisTimeBase->rescale(duration, mFakePtsTimeBase.value());
+          }
           setPacketParameters(packet, retval,
-              mFakeCurrPts,
-              mFakePtsTimeBase.value(),
+              ts,
+              thisTimeBase.value(),
               true,
-              IAudioSamples::samplesToDefaultPts(frameSize, getSampleRate())
+              duration
           );
 
           retval = samplesConsumed;

@@ -988,6 +988,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  * time stamps on output packets for the {@link IStream}  
  * it is ultimately destined for.  
  * <p>  
+ * If this {@link IStreamCoder} does not know which {@link IStream} 
  *  
  * it is destined for, or this {@link IStreamCoder} isn't used  
  * with an {@link IStream} at all, then this setting is ignored.  

@@ -847,11 +847,15 @@ namespace com { namespace xuggle { namespace xuggler
      * Should the {@link IStreamCoder} automatically adjust
      * time stamps on output packets for the {@link IStream}
      * it is ultimately destined for.
+     * 
      * <p>
-     * If this {@link IStreamCoder} doesn't know which {@link IStream}
+     * 
+     * If this {@link IStreamCoder} does not know which {@link IStream}
      * it is destined for, or this {@link IStreamCoder} isn't used
      * with an {@link IStream} at all, then this setting is ignored.
+     * 
      * </p>
+     * 
      * @param value true to automatically adjust.
      * @since 3.2
      */
