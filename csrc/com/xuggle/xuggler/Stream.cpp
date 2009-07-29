@@ -382,12 +382,21 @@ namespace com { namespace xuggle { namespace xuggler
 //    VS_LOG_DEBUG("input:  duration: %lld; dts: %lld; pts: %lld;",
 //        packet->getDuration(), packet->getDts(), packet->getPts());
 
+    // Always just reset this; cheaper than checking if it's
+    // already set
     packet->setStreamIndex(this->getIndex());
     
     com::xuggle::ferry::RefPointer<IRational> thisBase = getTimeBase();
     com::xuggle::ferry::RefPointer<IRational> packetBase = packet->getTimeBase();
     if (!thisBase || !packetBase)
       return -1;
+    if (thisBase->compareTo(packetBase.value()) == 0) {
+//      VS_LOG_DEBUG("Same timebase: %d/%d vs %d/%d",
+//          thisBase->getNumerator(), thisBase->getDenominator(),
+//          packetBase->getNumerator(), packetBase->getDenominator());
+      // it's already got the right time values
+      return 0;
+    }
     
     int64_t duration = packet->getDuration();
     int64_t dts = packet->getDts();
@@ -429,6 +438,8 @@ namespace com { namespace xuggle { namespace xuggler
     packet->setPts(pts);
     packet->setDts(dts);
     packet->setTimeBase(thisBase.value());
+//    VS_LOG_DEBUG("Reset timebase: %d/%d",
+//        thisBase->getNumerator(), thisBase->getDenominator());
     return 0;
   }
 

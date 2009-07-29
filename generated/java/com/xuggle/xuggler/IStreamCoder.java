@@ -903,6 +903,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  * @return	the number of samples in an audio frame size if the codec 
  *		  
  * doesn't specify the size.  
+ * @since	1.21  
  */
   public int getDefaultAudioFrameSize() {
     return XugglerJNI.IStreamCoder_getDefaultAudioFrameSize(swigCPtr, this);
@@ -914,6 +915,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  * samples into a packet. This setting is ignored if <= 0  
  *  
  * @see		#getDefaultAudioFrameSize()  
+ * @since	1.21  
  */
   public void setDefaultAudioFrameSize(int aNewSize) {
     XugglerJNI.IStreamCoder_setDefaultAudioFrameSize(swigCPtr, this, aNewSize);
@@ -946,6 +948,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  *		 in.  
  * @param	copyCoder The coder to copy settings from.  
  * @return	A new IStreamCoder, or null on error.  
+ * @since	1.22  
  */
   public static IStreamCoder make(IStreamCoder.Direction direction, IStreamCoder copyCoder) {
     long cPtr = XugglerJNI.IStreamCoder_make__SWIG_1(direction.swigValue(), IStreamCoder.getCPtr(copyCoder), copyCoder);
@@ -974,9 +977,38 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  * any data.  
  * </p>  
  * @return	the number of frames dropped.  
+ * @since	3.1  
  */
   public long getNumDroppedFrames() {
     return XugglerJNI.IStreamCoder_getNumDroppedFrames(swigCPtr, this);
+  }
+
+/**
+ * Should the {@link IStreamCoder} automatically adjust  
+ * time stamps on output packets for the {@link IStream}  
+ * it is ultimately destined for.  
+ * <p>  
+ *  
+ * it is destined for, or this {@link IStreamCoder} isn't used  
+ * with an {@link IStream} at all, then this setting is ignored.  
+ * </p>  
+ * @param	value true to automatically adjust.  
+ * @since	3.2  
+ */
+  public void setAutomaticallyStampPacketsForStream(boolean value) {
+    XugglerJNI.IStreamCoder_setAutomaticallyStampPacketsForStream(swigCPtr, this, value);
+  }
+
+/**
+ * Does this {@link IStreamCoder} automatically adjust  
+ * time stamps on output packets for the {@link IStream} it  
+ * is ultimately destined for.  
+ * @return	true for yes; false for no  
+ * @see		#setAutomaticallyStampPacketsForStream(boolean)  
+ * @since	3.2  
+ */
+  public boolean getAutomaticallyStampPacketsForStream() {
+    return XugglerJNI.IStreamCoder_getAutomaticallyStampPacketsForStream(swigCPtr, this);
   }
 
   public enum Direction {

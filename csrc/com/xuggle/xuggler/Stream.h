@@ -81,15 +81,6 @@ namespace com { namespace xuggle { namespace xuggler
     virtual IMetaData* getMetaData();
     virtual void setMetaData(IMetaData* metaData);
 
-    /**
-     * Takes a packet destined for this stream, and stamps
-     * the stream index, and converts the time stamp to the
-     * correct units (adjusting for rounding errors between
-     * stream conversions).
-     * 
-     * @param packet to stamp
-     * @return >= 0 on success; <0 on failure.
-     */
     virtual int32_t stampOutputPacket(IPacket* packet);
   protected:
     Stream();

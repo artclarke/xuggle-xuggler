@@ -27,6 +27,7 @@ namespace com { namespace xuggle { namespace xuggler
   class IContainer;
   class IRational;
   class IMetaData;
+  class IPacket;
   
   /**
    * Represents a stream of similar data (eg video) in a {@link IContainer}.
@@ -143,7 +144,7 @@ namespace com { namespace xuggle { namespace xuggler
      * @return The number of frames (encoded) in this stream.
      */
     virtual int64_t getNumFrames()=0;
-
+    
   protected:
     virtual ~IStream()=0;
     IStream();
@@ -275,6 +276,21 @@ namespace com { namespace xuggle { namespace xuggler
     * @see #getMetaData()
     */
    virtual void setMetaData(IMetaData* data)=0;
+
+   /*
+    * Added for 3.2
+    */
+   
+   /**
+    * Takes a packet destined for this stream, and stamps
+    * the stream index, and converts the time stamp to the
+    * correct units (adjusting for rounding errors between
+    * stream conversions).
+    * 
+    * @param packet to stamp
+    * @return >= 0 on success; <0 on failure.
+    */
+   virtual int32_t stampOutputPacket(IPacket* packet)=0;
     
   };
 }}}

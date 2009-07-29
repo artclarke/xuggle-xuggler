@@ -158,6 +158,8 @@ namespace com { namespace xuggle { namespace xuggler
     int32_t streamClosed(Stream*);
 
     virtual int64_t getNumDroppedFrames();
+    virtual void setAutomaticallyStampPacketsForStream(bool value);
+    virtual bool getAutomaticallyStampPacketsForStream();
 
     // RefCounted interface
     virtual int32_t acquire();
@@ -186,6 +188,7 @@ namespace com { namespace xuggle { namespace xuggler
     int64_t mStartingTimestampOfBytesInFrameBuffer;
     int32_t mDefaultAudioFrameSize;
     int64_t mNumDroppedFrames;
+    bool mAutomaticallyStampPacketsForStream;
     
     int32_t calcAudioFrameSize();
 

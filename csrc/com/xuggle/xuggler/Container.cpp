@@ -577,11 +577,26 @@ namespace com { namespace xuggle { namespace xuggler
       if (!mNeedTrailerWrite)
         throw std::runtime_error("container has not written header yet");
 
-      if ((uint32_t)pkt->getStreamIndex() >= mNumStreams)
+      int32_t pktIndex = pkt->getStreamIndex();
+      
+      if ((uint32_t)pktIndex >= mNumStreams)
         throw std::runtime_error("packet being written to stream that doesn't exist");
 
+      RefPointer<Stream> *streamPtr = mStreams.at(pktIndex);
+      if (!streamPtr || !*streamPtr)
+        throw std::runtime_error("no stream set up for this packet");
+      
+      Stream* stream = streamPtr->value();
+
+      // Create a new packet that wraps the input data; this
+      // just copies meta-data
+      RefPointer<Packet> outPacket = Packet::make(pkt, false);
+      // Stamp it with the stream data
+      if (stream->stampOutputPacket(outPacket.value()) <0)
+        throw std::runtime_error("could not stamp output packet");
+      
       AVPacket *packet = 0;
-      packet = pkt->getAVPacket();
+      packet = outPacket->getAVPacket();
       if (!packet || !packet->data)
         throw std::runtime_error("no data in packet");
       

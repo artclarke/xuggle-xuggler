@@ -399,6 +399,18 @@ public class IStream extends RefCounted {
     XugglerJNI.IStream_setMetaData(swigCPtr, this, IMetaData.getCPtr(data), data);
   }
 
+/**
+ * Takes a packet destined for this stream, and stamps  
+ * the stream index, and converts the time stamp to the  
+ * correct units (adjusting for rounding errors between  
+ * stream conversions).  
+ * @param	packet to stamp  
+ * @return	>= 0 on success; <0 on failure.  
+ */
+  public int stampOutputPacket(IPacket packet) {
+    return XugglerJNI.IStream_stampOutputPacket(swigCPtr, this, IPacket.getCPtr(packet), packet);
+  }
+
   public enum Direction {
   /**
    * The direction this stream is going (based on the container).

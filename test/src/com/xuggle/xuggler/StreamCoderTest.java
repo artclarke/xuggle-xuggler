@@ -339,4 +339,11 @@ public class StreamCoderTest extends TestCase
       log.debug("{}={}", name, value);
     }
   }
+  
+  @Test
+  public void testGetAutomaticallyStampOutputStream()
+  {
+    IStreamCoder coder = IStreamCoder.make(Direction.ENCODING);
+    assertTrue(coder.getAutomaticallyStampPacketsForStream());
+  }
 }

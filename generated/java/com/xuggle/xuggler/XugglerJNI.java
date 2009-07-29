@@ -408,6 +408,8 @@ class XugglerJNI {
   public final static native void IStreamCoder_setDefaultAudioFrameSize(long jarg1, IStreamCoder jarg1_, int jarg2);
   public final static native long IStreamCoder_make__SWIG_1(int jarg1, long jarg2, IStreamCoder jarg2_);
   public final static native long IStreamCoder_getNumDroppedFrames(long jarg1, IStreamCoder jarg1_);
+  public final static native void IStreamCoder_setAutomaticallyStampPacketsForStream(long jarg1, IStreamCoder jarg1_, boolean jarg2);
+  public final static native boolean IStreamCoder_getAutomaticallyStampPacketsForStream(long jarg1, IStreamCoder jarg1_);
   public final static native int IStream_getDirection(long jarg1, IStream jarg1_);
   public final static native int IStream_getIndex(long jarg1, IStream jarg1_);
   public final static native int IStream_getId(long jarg1, IStream jarg1_);
@@ -429,6 +431,7 @@ class XugglerJNI {
   public final static native void IStream_setParseType(long jarg1, IStream jarg1_, int jarg2);
   public final static native long IStream_getMetaData(long jarg1, IStream jarg1_);
   public final static native void IStream_setMetaData(long jarg1, IStream jarg1_, long jarg2, IMetaData jarg2_);
+  public final static native int IStream_stampOutputPacket(long jarg1, IStream jarg1_, long jarg2, IPacket jarg2_);
   public final static native long IContainerParameters_getTimeBase(long jarg1, IContainerParameters jarg1_);
   public final static native void IContainerParameters_setTimeBase(long jarg1, IContainerParameters jarg1_, long jarg2, IRational jarg2_);
   public final static native int IContainerParameters_getAudioSampleRate(long jarg1, IContainerParameters jarg1_);

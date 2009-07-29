@@ -61,6 +61,7 @@ StreamCoder :: StreamCoder() :
   mLastExternallySetTimeStamp = Global::NO_PTS;
   mDefaultAudioFrameSize = 576;
   mNumDroppedFrames = 0;
+  mAutomaticallyStampPacketsForStream = true;
 }
 
 StreamCoder :: ~StreamCoder()
@@ -79,6 +80,7 @@ StreamCoder :: reset()
     (void) this->close();
   }
 
+  mAutomaticallyStampPacketsForStream = true;
   mOpened = false;
   if (mCodecContext && (!mStream || mDirection != DECODING))
   {
@@ -1479,8 +1481,13 @@ StreamCoder :: setPacketParameters(
 //      dts,
 //      pts);
 
-  if (mStream)
-    mStream->stampOutputPacket(packet);
+  if (mStream) {
+    packet->setStreamIndex(mStream->getIndex());
+//    VS_LOG_DEBUG("use AutomaticallyStampPacketsForStream: %d", mAutomaticallyStampPacketsForStream);
+
+    if (mAutomaticallyStampPacketsForStream)
+      mStream->stampOutputPacket(packet);
+  }
   
   VS_LOG_TRACE("Encoded packet; size: %d; pts: %lld", size, pts);
 }
@@ -1669,6 +1676,19 @@ int64_t
 StreamCoder :: getNumDroppedFrames()
 {
   return mNumDroppedFrames;
+}
+
+void
+StreamCoder :: setAutomaticallyStampPacketsForStream(bool value)
+{
+//  VS_LOG_DEBUG("setAutomaticallyStampPacketsForStream: %d", value);
+  mAutomaticallyStampPacketsForStream = value;
+}
+
+bool
+StreamCoder :: getAutomaticallyStampPacketsForStream()
+{
+  return mAutomaticallyStampPacketsForStream;
 }
 
 }}}

@@ -766,6 +766,7 @@ namespace com { namespace xuggle { namespace xuggler
      * 
      * @return the number of samples in an audio frame size if the codec
      *   doesn't specify the size.
+     * @since 1.21
      */
     virtual int32_t getDefaultAudioFrameSize()=0;
     
@@ -777,6 +778,7 @@ namespace com { namespace xuggle { namespace xuggler
      *   or if the codec requires it's own frame size (e.g. Nellymoser).
      *   
      * @see #getDefaultAudioFrameSize()
+     * @since 1.21
      */
     virtual void setDefaultAudioFrameSize(int32_t aNewSize)=0;
     
@@ -803,6 +805,7 @@ namespace com { namespace xuggle { namespace xuggler
      * @param copyCoder The coder to copy settings from.
      * 
      * @return A new IStreamCoder, or null on error.
+     * @since 1.22
      */
     static IStreamCoder* make(Direction direction, IStreamCoder* copyCoder);
     
@@ -832,8 +835,37 @@ namespace com { namespace xuggle { namespace xuggler
      * any data.
      * </p>
      * @return the number of frames dropped.
+     * @since 3.1
      */
     virtual int64_t getNumDroppedFrames()=0;
+    
+    /*
+     * Added for 3.2
+     */
+    
+    /**
+     * Should the {@link IStreamCoder} automatically adjust
+     * time stamps on output packets for the {@link IStream}
+     * it is ultimately destined for.
+     * <p>
+     * If this {@link IStreamCoder} doesn't know which {@link IStream}
+     * it is destined for, or this {@link IStreamCoder} isn't used
+     * with an {@link IStream} at all, then this setting is ignored.
+     * </p>
+     * @param value true to automatically adjust.
+     * @since 3.2
+     */
+    virtual void setAutomaticallyStampPacketsForStream(bool value)=0;
+    
+    /**
+     * Does this {@link IStreamCoder} automatically adjust
+     * time stamps on output packets for the {@link IStream} it
+     * is ultimately destined for.
+     * @return true for yes; false for no
+     * @see #setAutomaticallyStampPacketsForStream(boolean)
+     * @since 3.2
+     */
+    virtual bool getAutomaticallyStampPacketsForStream()=0;
   };
 
 }}}
