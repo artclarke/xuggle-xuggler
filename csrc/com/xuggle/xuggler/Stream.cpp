@@ -291,7 +291,12 @@ namespace com { namespace xuggle { namespace xuggler
   }
 
   int32_t
-  Stream :: setStreamCoder(IStreamCoder *aCoder)
+  Stream :: setStreamCoder(IStreamCoder *coder)
+  {
+    return setStreamCoder(coder, true);
+  }
+  int32_t
+  Stream :: setStreamCoder(IStreamCoder *aCoder, bool assumeOnlyStream)
   {
     int32_t retval = -1;
     try
@@ -312,7 +317,7 @@ namespace com { namespace xuggle { namespace xuggler
         mCoder->streamClosed(this);
       }
 
-      if (coder->setStream(this) < 0)
+      if (coder->setStream(this, assumeOnlyStream) < 0)
         throw std::runtime_error("IStreamCoder doesn't like this stream");
 
       VS_REF_RELEASE(mCoder);

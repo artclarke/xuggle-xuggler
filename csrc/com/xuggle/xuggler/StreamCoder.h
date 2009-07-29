@@ -154,7 +154,7 @@ namespace com { namespace xuggle { namespace xuggler
         AVCodecContext *context, Stream* stream);
     static StreamCoder* make(Direction direction, IStreamCoder* copyCoder);
     
-    int32_t setStream(Stream*);
+    int32_t setStream(Stream*, bool assumeOnlyStream);
     int32_t streamClosed(Stream*);
 
     virtual int64_t getNumDroppedFrames();

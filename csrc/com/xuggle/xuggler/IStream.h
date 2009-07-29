@@ -209,7 +209,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t setStreamCoder(IStreamCoder *newCoder)=0;
     
     /*
-     * Added for 2.1
+     * Added for 3.0
      */
     
     /**
@@ -226,6 +226,7 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Get how the decoding codec should parse data from this stream.
      * @return the parse type.
+     * @since 3.0
      */
     virtual IStream::ParseType getParseType()=0;
     
@@ -239,6 +240,7 @@ namespace com { namespace xuggle { namespace xuggler
      * </p>
      * 
      * @param type The type to set.
+     * @since 3.0
      */
     virtual void setParseType(ParseType type)=0;
 
@@ -263,6 +265,7 @@ namespace com { namespace xuggle { namespace xuggler
      * is called.
      * </p>
      * @return the {@link IMetaData}.
+     * @since 3.1
      */
    virtual IMetaData* getMetaData()=0;
     
@@ -274,6 +277,7 @@ namespace com { namespace xuggle { namespace xuggler
     * it probably won't do anything after that.
     * 
     * @see #getMetaData()
+    * @since 3.1
     */
    virtual void setMetaData(IMetaData* data)=0;
 
@@ -289,9 +293,27 @@ namespace com { namespace xuggle { namespace xuggler
     * 
     * @param packet to stamp
     * @return >= 0 on success; <0 on failure.
+    * @since 3.2
     */
    virtual int32_t stampOutputPacket(IPacket* packet)=0;
     
+
+   /**
+    * Sets the stream coder to use for this stream.
+    * 
+    * This method will only cause a change if the IStreamCoder currently set on this
+    * IStream is not open.  Otherwise the call is ignored and an error is returned.
+    * 
+    * @param newCoder The new stream coder to use.
+    * @param assumeOnlyStream If true then this {@link IStream} will notify the {@link IStreamCoder} that it is the only stream and the {@link IStreamCoder} may use it to determine time stamps to output packets with.
+    *   If false then the {@link IStreamCoder}
+    *   does not support automatic stamping of packets with stream index IDs
+    *   and users must call {@link #stampOutputPacket(IPacket)} themselves.
+    * @return >= 0 on success; < 0 on error.
+    * @since 3.2
+    */
+   virtual int32_t setStreamCoder(IStreamCoder *newCoder, bool assumeOnlyStream)=0;
+   
   };
 }}}
 

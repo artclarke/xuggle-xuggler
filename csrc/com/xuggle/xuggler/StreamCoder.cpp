@@ -393,7 +393,7 @@ StreamCoder :: getTimeBase()
   {
     retval = Rational::make(&mCodecContext->time_base);
   }
-  else
+  else if (mAutomaticallyStampPacketsForStream)
   {
     retval = mStream ? mStream->getTimeBase() : 0;
   }
@@ -584,6 +584,22 @@ StreamCoder :: open()
 
     if (!mCodec)
       throw std::runtime_error("no codec set for coder");
+    
+    // don't allow us to open a coder without a time base
+    if (mCodecContext->time_base.num == 0)
+    {
+      if (this->getCodecType() == ICodec::CODEC_TYPE_AUDIO)
+      {
+        if (mCodecContext->sample_rate > 0)
+        {
+          mCodecContext->time_base.num = 1;
+          mCodecContext->time_base.den = mCodecContext->sample_rate;
+        } else {
+          throw std::runtime_error("no sample rate set on coder");
+        }
+      } else
+        throw std::runtime_error("no timebase set on coder");
+    }
 
     // Fix for issue #14: http://code.google.com/p/xuggle/issues/detail?id=14
     if (mStream)
@@ -598,7 +614,7 @@ StreamCoder :: open()
         }
       }
     }
-
+    
     retval = avcodec_open(mCodecContext, mCodec->getAVCodec());
 
     if (retval < 0)
@@ -612,12 +628,6 @@ StreamCoder :: open()
     // Do any post open initialization here.
     if (this->getCodecType() == ICodec::CODEC_TYPE_AUDIO)
     {
-      // Libvorbis requires a time-base; and many folks don't set it...
-      if (mCodecContext->time_base.num == 0 && mCodecContext->sample_rate > 0)
-      {
-        mCodecContext->time_base.num = 1;
-        mCodecContext->time_base.den = mCodecContext->sample_rate;
-      }
       int32_t frame_bytes = getAudioFrameSize() * getChannels()
           * IAudioSamples::findSampleBitDepth((IAudioSamples::Format) mCodecContext->sample_fmt) / 8;
       if (frame_bytes <= 0)
@@ -1661,11 +1671,13 @@ StreamCoder :: setDefaultAudioFrameSize(int32_t aNewSize)
   if (aNewSize >0)
     mDefaultAudioFrameSize = aNewSize;
 }
+
 int32_t
-StreamCoder :: setStream(Stream* stream)
+StreamCoder :: setStream(Stream* stream, bool assumeOnlyStream)
 {
   int32_t retval = -1;
-  mStream = stream;
+  if (assumeOnlyStream)
+    mStream = stream;
   AVStream *avStream= stream ? stream->getAVStream() : 0;
   if (avStream)
   {

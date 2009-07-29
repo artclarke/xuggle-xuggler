@@ -336,12 +336,13 @@ public class IStream extends RefCounted {
  * @return	>= 0 on success; < 0 on error.  
  */
   public int setStreamCoder(IStreamCoder newCoder) {
-    return XugglerJNI.IStream_setStreamCoder(swigCPtr, this, IStreamCoder.getCPtr(newCoder), newCoder);
+    return XugglerJNI.IStream_setStreamCoder__SWIG_0(swigCPtr, this, IStreamCoder.getCPtr(newCoder), newCoder);
   }
 
 /**
  * Get how the decoding codec should parse data from this stream.  
  * @return	the parse type.  
+ * @since	3.0  
  */
   public IStream.ParseType getParseType() {
     return IStream.ParseType.swigToEnum(XugglerJNI.IStream_getParseType(swigCPtr, this));
@@ -357,6 +358,7 @@ public class IStream extends RefCounted {
  * and do not set after you've started decoding.  
  * </p>  
  * @param	type The type to set.  
+ * @since	3.0  
  */
   public void setParseType(IStream.ParseType type) {
     XugglerJNI.IStream_setParseType(swigCPtr, this, type.swigValue());
@@ -381,6 +383,7 @@ public class IStream extends RefCounted {
  * is called.  
  * </p>  
  * @return	the {@link IMetaData}.  
+ * @since	3.1  
  */
   public IMetaData getMetaData() {
     long cPtr = XugglerJNI.IStream_getMetaData(swigCPtr, this);
@@ -394,6 +397,7 @@ public class IStream extends RefCounted {
  * before you call {@link IContainer#writeHeader}, as  
  * it probably won't do anything after that.  
  * @see		#getMetaData()  
+ * @since	3.1  
  */
   public void setMetaData(IMetaData data) {
     XugglerJNI.IStream_setMetaData(swigCPtr, this, IMetaData.getCPtr(data), data);
@@ -406,9 +410,33 @@ public class IStream extends RefCounted {
  * stream conversions).  
  * @param	packet to stamp  
  * @return	>= 0 on success; <0 on failure.  
+ * @since	3.2  
  */
   public int stampOutputPacket(IPacket packet) {
     return XugglerJNI.IStream_stampOutputPacket(swigCPtr, this, IPacket.getCPtr(packet), packet);
+  }
+
+/**
+ * Sets the stream coder to use for this stream.  
+ * This method will only cause a change if the IStreamCoder currently 
+ * set on this  
+ * IStream is not open. Otherwise the call is ignored and an error is 
+ * returned.  
+ * @param	newCoder The new stream coder to use.  
+ * @param	assumeOnlyStream If true then this {@link IStream} will notify 
+ *		 the {@link IStreamCoder} that it is the only stream 
+ *		 and the {@link IStreamCoder} may use it to determine 
+ *		 time stamps to output packets with.  
+ * If false then the {@link IStreamCoder}  
+ * does not support automatic stamping of packets with stream index 
+ * IDs  
+ * and users must call {@link #stampOutputPacket(IPacket)} themselves. 
+ *  
+ * @return	>= 0 on success; < 0 on error.  
+ * @since	3.2  
+ */
+  public int setStreamCoder(IStreamCoder newCoder, boolean assumeOnlyStream) {
+    return XugglerJNI.IStream_setStreamCoder__SWIG_1(swigCPtr, this, IStreamCoder.getCPtr(newCoder), newCoder, assumeOnlyStream);
   }
 
   public enum Direction {

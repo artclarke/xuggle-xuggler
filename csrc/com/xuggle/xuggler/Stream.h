@@ -82,6 +82,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual void setMetaData(IMetaData* metaData);
 
     virtual int32_t stampOutputPacket(IPacket* packet);
+    virtual int32_t setStreamCoder(IStreamCoder *newCoder, bool assumeOnlyStream);
   protected:
     Stream();
     virtual ~Stream();
