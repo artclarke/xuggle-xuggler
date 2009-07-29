@@ -153,7 +153,7 @@ public class RefCountedExhaustiveTest
     assertEquals(0, JNIMemoryManager.getMgr().getNumPinnedObjects());
   }
   
-  @Test
+  @Test(timeout=5*60*1000)
   public void testJNIMemoryManagerHeapExpansion()
   {
     LinkedList<RefCountedTester> heldRefs = new LinkedList<RefCountedTester>();
@@ -169,10 +169,11 @@ public class RefCountedExhaustiveTest
     assertEquals("didn't pin as many as it should", maxItems, mgr.getNumPinnedObjects());
     // now release them.
     heldRefs.clear();
-    // and force a collection
-    MemoryTestHelper.forceJavaHeapWeakReferenceClear();
-    // Do a collection
-    mgr.gc(true);
+    while(mgr.getNumPinnedObjects() != 0) {
+      MemoryTestHelper.forceJavaHeapWeakReferenceClear();
+      // Do a collection
+      mgr.gc(true);
+    }
     assertEquals("didn't pin as many as it should", 0, mgr.getNumPinnedObjects());
     // this should cause the heap to shrink, and then grow
     for(int i = 0; i < maxItems/2; i++)
@@ -183,9 +184,11 @@ public class RefCountedExhaustiveTest
     // now release them.
     heldRefs.clear();
     // and force a collection
-    MemoryTestHelper.forceJavaHeapWeakReferenceClear();
-    // Do a collection
-    mgr.gc(true);
+    while(mgr.getNumPinnedObjects() != 0) {
+      MemoryTestHelper.forceJavaHeapWeakReferenceClear();
+      // Do a collection
+      mgr.gc(true);
+    }
     assertEquals("didn't pin as many as it should", 0, mgr.getNumPinnedObjects());
   }
   

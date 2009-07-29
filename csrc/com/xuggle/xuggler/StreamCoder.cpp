@@ -586,7 +586,7 @@ StreamCoder :: open()
       throw std::runtime_error("no codec set for coder");
     
     // don't allow us to open a coder without a time base
-    if (mCodecContext->time_base.num == 0)
+    if (mDirection == ENCODING && mCodecContext->time_base.num == 0)
     {
       if (this->getCodecType() == ICodec::CODEC_TYPE_AUDIO)
       {
