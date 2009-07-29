@@ -465,10 +465,6 @@ public class XugglerIO implements IURLProtocolHandlerFactory
    * @return Returns a URL that can be passed to Xuggler's {@link IContainer}'s
    *         open method, and will result in IO being performed on the passed in
    *         streams.
-   * 
-   * @return Returns a URL that can be passed to Xuggler's {@link IContainer}'s
-   *         open method, and will result in IO being performed on the passed in
-   *         streams.
    */
 
   public static String map(String url, DataInput in, DataOutput out,

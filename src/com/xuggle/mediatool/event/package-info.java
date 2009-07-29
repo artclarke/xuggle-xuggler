@@ -17,7 +17,7 @@
  */
 
 /**
- * Events that can be fired by the {@link com.xuggle.mediatool} package.
+ * Events that can be fired by the <code>com.xuggle.mediatool</code> package.
  * 
  * {@link com.xuggle.mediatool.event.IEvent} is the top of the interface
  * inheritance tree. If a given interface is instantiable as an event, you will

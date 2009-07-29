@@ -316,17 +316,17 @@ public class ToolFactory
    * assumptions that can speed up execution of your program, sometimes by
    * significant amounts.  {@link ToolFactory} was designed from
    * the ground up to run Turbo-Charged, but it can cause issues
-   * for other {@link com.xuggle.xuggler}-based programs running
+   * for other com.xuggle.xuggler-based programs running
    * in the same Java process.
    * </p>
    * <p> It is safe to turn on if your program only uses
-   * interfaces in the {@link com.xuggle.mediatool} API, and you are not running
+   * interfaces in the com.xuggle.mediatool API, and you are not running
    * in the same Java process as other programs using the
-   * {@link com.xuggle.xuggler} API.
+   * com.xuggle.xuggler API.
    * </p>
    * <p>
    * If you turn on Turbo-Charging and then access any of the
-   * underlying {@link com.xuggle.xuggler} interfaces (e.g.
+   * underlying com.xuggle.xuggler interfaces (e.g.
    * {@link IMediaCoder#getContainer()}) behind ToolFactory,
    * you must:
    * <ul>
@@ -334,7 +334,7 @@ public class ToolFactory
    * {@link RefCounted#delete()} on any references returned on the stack
    * to your methods.</li>
    * <li>Call {@link RefCounted#copyReference()} on any
-   * {@link com.xuggle.xuggler} parameters passed to your methods
+   * com.xuggle.xuggler parameters passed to your methods
    * that you need to keep a reference to after your method returns.</li>
    * <li>Ensure you do not call {@link RefCounted#delete()} on
    * parameters passed <strong>into</strong> your methods.  The calling
@@ -347,9 +347,9 @@ public class ToolFactory
    * <p>
    * Turbo-Charging works by changing the global
    * {@link com.xuggle.ferry.JNIMemoryManager.MemoryModel} that the underlying
-   * {@link com.xuggle.xuggler} API in your program is using. If you are using
+   * com.xuggle.xuggler API in your program is using. If you are using
    * {@link ToolFactory} in a java program that contains other code using the
-   * {@link com.xuggle.xuggler} API, you will force that code to use the new
+   * com.xuggle.xuggler API, you will force that code to use the new
    * memory model.
    * </p>
    * <p>

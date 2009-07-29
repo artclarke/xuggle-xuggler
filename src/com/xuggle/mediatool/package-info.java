@@ -39,7 +39,7 @@
  * 
  * <p>
  * For more examples of using the mediatools see the
- * {@link com.xuggle.mediatool.demos} demonstration package.
+ * com.xuggle.mediatool.demos demonstration package.
  * </p>
  * <h2>Tutorials</h2>
  * <h3>Using MediaTool to Decode &amp; Encode</h3>
@@ -204,7 +204,7 @@
  * <li>All abstract classes begin with the latter &quot;A&quot;. For example:
  * {@link com.xuggle.mediatool.AMediaListenerMixin}.</li>
  * <li>Event interfaces and classes can be found in
- * {@link com.xuggle.mediatool.event} and end with &quot;Event;&quot;. For
+ * com.xuggle.mediatool.event and end with &quot;Event;&quot;. For
  * example: {@link com.xuggle.mediatool.event.AddStreamEvent}.</li>
  * <li>Mixin classes will implement all methods suggested by their name, but
  * will not declare the corresponding interface. For example:

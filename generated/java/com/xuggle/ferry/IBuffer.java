@@ -161,7 +161,7 @@ public class IBuffer extends RefCounted {
    * This method transfers bytes into this buffer from the given source array.
    * If there are more bytes to be copied from the array than there is
    * space remaining at the specified destination offset,
-   * then no bytes are transferred and a BufferOverflowException is thrown.
+   * then no bytes are transferred and a java.nio.BufferOverflowException is thrown.
    * </p>
    * <p>
    * This method is equivalent to calling {@link #getByteBuffer(int, int)}
@@ -180,7 +180,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>src</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *   mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient space
+   * @throws java.nio.BufferOverflowException if there is insufficient space
    *   in this {@link IBuffer}.
    *   
    */
@@ -237,7 +237,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>dest</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *         mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient data in this
+   * @throws java.nio.BufferOverflowException if there is insufficient data in this
    *         {@link IBuffer} to satisfy the request.
    * 
    */
@@ -271,7 +271,7 @@ public class IBuffer extends RefCounted {
    * This method transfers shorts into this buffer from the given source array.
    * If there are more shorts to be copied from the array than there is
    * space remaining at the specified destination offset,
-   * then no shorts are transferred and a BufferOverflowException is thrown.
+   * then no shorts are transferred and a java.nio.BufferOverflowException is thrown.
    * </p>
    * <p>
    * This method is equivalent to calling {@link #getByteBuffer(int, int)}
@@ -290,7 +290,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>src</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *   mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient space
+   * @throws java.nio.BufferOverflowException if there is insufficient space
    *   in this {@link IBuffer}.
    *   
    */
@@ -348,7 +348,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>dest</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *         mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient data in this
+   * @throws java.nio.BufferOverflowException if there is insufficient data in this
    *         {@link IBuffer} to satisfy the request.
    * 
    */
@@ -383,7 +383,7 @@ public class IBuffer extends RefCounted {
    * This method transfers ints into this buffer from the given source array.
    * If there are more ints to be copied from the array than there is
    * space remaining at the specified destination offset,
-   * then no ints are transferred and a BufferOverflowException is thrown.
+   * then no ints are transferred and a java.nio.BufferOverflowException is thrown.
    * </p>
    * <p>
    * This method is equivalent to calling {@link #getByteBuffer(int, int)}
@@ -402,7 +402,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>src</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *   mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient space
+   * @throws java.nio.BufferOverflowException if there is insufficient space
    *   in this {@link IBuffer}.
    *   
    */
@@ -460,7 +460,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>dest</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *         mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient data in this
+   * @throws java.nio.BufferOverflowException if there is insufficient data in this
    *         {@link IBuffer} to satisfy the request.
    * 
    */
@@ -495,7 +495,7 @@ public class IBuffer extends RefCounted {
    * This method transfers longs into this buffer from the given source array.
    * If there are more longs to be copied from the array than there is
    * space remaining at the specified destination offset,
-   * then no longs are transferred and a BufferOverflowException is thrown.
+   * then no longs are transferred and a java.nio.BufferOverflowException is thrown.
    * </p>
    * <p>
    * This method is equivalent to calling {@link #getByteBuffer(int, int)}
@@ -514,7 +514,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>src</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *   mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient space
+   * @throws java.nio.BufferOverflowException if there is insufficient space
    *   in this {@link IBuffer}.
    *   
    */
@@ -572,7 +572,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>dest</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *         mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient data in this
+   * @throws java.nio.BufferOverflowException if there is insufficient data in this
    *         {@link IBuffer} to satisfy the request.
    * 
    */
@@ -606,7 +606,7 @@ public class IBuffer extends RefCounted {
    * This method transfers doubles into this buffer from the given source array.
    * If there are more doubles to be copied from the array than there is
    * space remaining at the specified destination offset,
-   * then no doubles are transferred and a BufferOverflowException is thrown.
+   * then no doubles are transferred and a java.nio.BufferOverflowException is thrown.
    * </p>
    * <p>
    * This method is equivalent to calling {@link #getByteBuffer(int, int)}
@@ -625,7 +625,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>src</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *   mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient space
+   * @throws java.nio.BufferOverflowException if there is insufficient space
    *   in this {@link IBuffer}.
    *   
    */
@@ -683,7 +683,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>dest</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *         mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient data in this
+   * @throws java.nio.BufferOverflowException if there is insufficient data in this
    *         {@link IBuffer} to satisfy the request.
    * 
    */
@@ -717,7 +717,7 @@ public class IBuffer extends RefCounted {
    * This method transfers floats into this buffer from the given source array.
    * If there are more floats to be copied from the array than there is
    * space remaining at the specified destination offset,
-   * then no floats are transferred and a BufferOverflowException is thrown.
+   * then no floats are transferred and a java.nio.BufferOverflowException is thrown.
    * </p>
    * <p>
    * This method is equivalent to calling {@link #getByteBuffer(int, int)}
@@ -736,7 +736,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>src</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *   mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient space
+   * @throws java.nio.BufferOverflowException if there is insufficient space
    *   in this {@link IBuffer}.
    *   
    */
@@ -794,7 +794,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>dest</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *         mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient data in this
+   * @throws java.nio.BufferOverflowException if there is insufficient data in this
    *         {@link IBuffer} to satisfy the request.
    * 
    */
@@ -828,7 +828,7 @@ public class IBuffer extends RefCounted {
    * This method transfers chars into this buffer from the given source array.
    * If there are more chars to be copied from the array than there is
    * space remaining at the specified destination offset,
-   * then no chars are transferred and a BufferOverflowException is thrown.
+   * then no chars are transferred and a java.nio.BufferOverflowException is thrown.
    * </p>
    * <p>
    * This method is equivalent to calling {@link #getByteBuffer(int, int)}
@@ -847,7 +847,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>src</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *   mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient space
+   * @throws java.nio.BufferOverflowException if there is insufficient space
    *   in this {@link IBuffer}.
    *   
    */
@@ -905,7 +905,7 @@ public class IBuffer extends RefCounted {
    * @throws NullPointerException if <code>dest</code> is null.
    * @throws IndexOutOfBoundsException if the preconditions on the arguments
    *         mentioned above are not honored.
-   * @throws BufferOverflowException if there is insufficient data in this
+   * @throws java.nio.BufferOverflowException if there is insufficient data in this
    *         {@link IBuffer} to satisfy the request.
    * 
    */

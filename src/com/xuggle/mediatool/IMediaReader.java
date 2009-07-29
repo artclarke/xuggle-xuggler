@@ -71,7 +71,7 @@ import com.xuggle.xuggler.IVideoPicture;
  *  </pre>
  *  <p>
  *  For examples of this class in action, see the
- *  {@link com.xuggle.mediatool.demos} package.
+ *  com.xuggle.mediatool.demos package.
  *  </p>
  * @author trebor
  * @author aclarke

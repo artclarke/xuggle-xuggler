@@ -66,7 +66,7 @@
          <tr>
            <td>&nbsp;</td>
            <td>Allow <a href="http://ffmpeg.org/">FFMPEG</a> to read data from Java objects</td>
-           <td>Through the {@link com.xuggle.xuggler.io} package you can extend
+           <td>Through the <code>com.xuggle.xuggler.io</code> package you can extend
         Xuggler to read raw bytes to, and write raw bytes to, any Java object
         you want. That way you can directly integrate with anything, be in
         <a href="http://red5.googlecode.com/">Red5</a>, Wowza, Adobe FMS... you name it.</td>
@@ -131,7 +131,7 @@
     arbitrary data sources.
     </p>
     <p>
-    Or, check out the contents of the {@link com.xuggle.xuggler.demos} package
+    Or, check out the contents of the <code>com.xuggle.xuggler.demos</code> package
     for some cool demos that show the Xuggler in action.
     </p>
     Or, if you have other questions, check out <a href="http://www.xuggle.com/">Xuggle</a>.  We'd love to hear from you.
@@ -171,9 +171,5 @@
     <p>
     Really.  We mean that.
     </p>
-    <br>
-    OK, fine... if you can't take a hint, you can read
-    {@link com.xuggle.ferry more details here}
-    </br>
 */
 package com.xuggle.xuggler;
