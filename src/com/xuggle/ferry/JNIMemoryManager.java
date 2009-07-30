@@ -25,6 +25,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Manages the native memory that Ferry objects allocate and destroy.
  * <p>
@@ -854,6 +857,7 @@ public final class JNIMemoryManager
    * Our singleton (classloader while) manager.
    */
   private static final JNIMemoryManager mMgr = new JNIMemoryManager();
+  final private Logger log = LoggerFactory.getLogger(this.getClass());
 
   private static MemoryModel mMemoryModel;
   /*
@@ -1160,6 +1164,30 @@ public final class JNIMemoryManager
     return numPinnedObjects;
   }
 
+  /**
+   * Dump the contents of our memory cache to the log.
+   * <p>
+   * This method requires a global lock in order to run so only
+   * use for debugging.  
+   * </p>
+   */
+  public void dumpMemoryLog()
+  {
+    blockingLock();
+    try {
+      int numItems = mNextAvailableReferenceSlot;
+      log.debug("Memory slots in use: {}", numItems);
+      for(int i = 0; i < numItems; i++)
+      {
+        JNIReference ref = mValidReferences[i];
+        log.debug("Slot: {}; Ref: {}", i, ref);
+      }
+    } finally {
+      blockingUnlock();
+    }
+    return;
+    
+  }
   /**
    * A finalizer for the memory manager itself. It just calls internal garbage
    * collections and then exits.
