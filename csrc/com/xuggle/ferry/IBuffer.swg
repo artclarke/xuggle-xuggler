@@ -979,7 +979,7 @@
      * </p>
      * <p>
      *
-     * <b>Once you call this method,
+     * Once you call this method,
      * the underlying native memory allocated will not be released until
      * all references to the returned ByteBuffer are no longer reachable and
      * at least one call to {@link JNIMemoryManager#gc()} has been
