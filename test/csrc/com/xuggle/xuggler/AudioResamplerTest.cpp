@@ -223,7 +223,7 @@ AudioResamplerTest :: testResamplingAudio()
         VS_TUT_ENSURE("could not write any samples",
             samples->getNumSamples() > 0);
         numSamples += samples->getNumSamples();
-
+        resamples = IAudioSamples::make((samples->getNumSamples()*2),2);
         // now, resample the audio
         retval = resampler->resample(resamples.value(), samples.value(), 0);
         VS_TUT_ENSURE("could not resample", retval > 0);
@@ -361,7 +361,7 @@ AudioResamplerTest :: testTimeStampIsAdjustedWhenResamplerEatsBytesUpsampling()
 
   for (int i = 0; i < numSamples; i++)
   {
-    // This is a hack and doesn't need real randomness; just tesing.
+    // This is a hack and doesn't need real randomness; just testing.
     bool negative= rand() % 2;
     inputBuf[i] = (int16_t)(32767.0*((double)rand()/(double)(RAND_MAX))) * (negative ? -1 : 1);
   }

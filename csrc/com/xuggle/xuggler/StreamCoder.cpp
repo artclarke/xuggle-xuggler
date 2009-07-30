@@ -688,6 +688,9 @@ StreamCoder :: decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
     int outBufSize = 0;
     int32_t inBufSize = 0;
 
+    // When decoding with FFMPEG, ffmpeg needs the sample buffer
+    // to be at least this long.
+    samples->ensureCapacity(AVCODEC_MAX_AUDIO_FRAME_SIZE);
     outBufSize = samples->getMaxBufferSize();
     inBufSize = packet->getSize() - startingByte;
 

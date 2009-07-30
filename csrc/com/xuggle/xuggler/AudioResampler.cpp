@@ -244,9 +244,15 @@ namespace com { namespace xuggle { namespace xuggler
       // method in libavcodec/resample.c changes.
       unsigned int neededSampleRoom = (unsigned int)(numSamples * conversionRatio)+16;
       // leave -1 space for rounding
-      if (outSamples->getMaxBufferSize() < neededSampleRoom * sampleSize)
+      if (outSamples->getMaxBufferSize() < neededSampleRoom * sampleSize) {
+        VS_LOG_ERROR("maxBufferSize: %d; neededSampleRoom: %d; sampleSize: %d; numSamples: %d; conversionRatio: %f;",
+            (int32_t)outSamples->getMaxBufferSize(),
+            neededSampleRoom,
+            sampleSize,
+            numSamples,
+            conversionRatio);
         throw std::invalid_argument("not enough room in output buffer");
-
+      }
       short * inBuf = inSamples ? inSamples->getRawSamples(0) : 0;
 
       short *outBuf = outSamples->getRawSamples(0);

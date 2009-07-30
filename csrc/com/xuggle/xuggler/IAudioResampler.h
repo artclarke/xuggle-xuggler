@@ -55,11 +55,17 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int getInputRate()=0;
     /**
      * Re-sample up to numSamples from inputSamples to outputSamples.
-     * 
+     * <p>
      * This function re-samples the audio in inputSamples to have the same
      * number of channels, and the same sample rate, as this {@link IAudioResampler} was
      * initialized with.
-     * 
+     * </p>
+     * <p>
+     * Caller is responsible for making sure that the IAudioSamples object
+     * passed in has enough space.  This object requires space for an
+     * additional 16-samples * output-channels
+     * per {@link IAudioSamples} passed in.
+     * </p>
      * 
      * @param outputSamples  [out] The sample buffer we output to.
      * @param inputSamples [in] The samples we're going to re-sample.

@@ -57,14 +57,16 @@ namespace com { namespace xuggle { namespace xuggler
     mRequestedSamples = 0;
   }
 
+#define VS_AUDIOSAMPLES_RESAMPLER_LEADIN 16
+#define VS_AUDIOSAMPLES_BUFFER_PADDING 64
   void
   AudioSamples :: allocInternalSamples()
   {
     if (!mSamples)
     {
-      int32_t bufSize = FFMAX(AVCODEC_MAX_AUDIO_FRAME_SIZE,
-          mRequestedSamples * getSampleSize()) +
-          FF_INPUT_BUFFER_PADDING_SIZE;
+      int32_t bufSize = (mRequestedSamples + VS_AUDIOSAMPLES_RESAMPLER_LEADIN) *
+          getSampleSize() +
+          VS_AUDIOSAMPLES_BUFFER_PADDING;
 
       mSamples = IBuffer::make(this, bufSize);
       if (!mSamples)
@@ -82,6 +84,26 @@ namespace com { namespace xuggle { namespace xuggler
       }
       
     }
+  }
+  
+  int32_t
+  AudioSamples :: ensureCapacity(int32_t capacity)
+  {
+    if (mSamples && 
+        mSamples->getBufferSize() < (capacity + VS_AUDIOSAMPLES_BUFFER_PADDING))
+    {
+      // crap; need to ditch and re-recreate
+      mSamples=0;
+    }
+    int32_t sampleSize = getSampleSize();
+    int32_t requiredSamples;
+    if (sampleSize > 0)
+      requiredSamples = capacity / getSampleSize();
+    else
+      requiredSamples = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+    mRequestedSamples = requiredSamples;
+    
+    return 0;
   }
   short*
   AudioSamples :: getRawSamples(uint32_t startingSample)
@@ -204,7 +226,7 @@ namespace com { namespace xuggle { namespace xuggler
   AudioSamples :: getMaxBufferSize()
   {
     allocInternalSamples();
-    return mSamples->getBufferSize()-FF_INPUT_BUFFER_PADDING_SIZE;
+    return mSamples->getBufferSize()-VS_AUDIOSAMPLES_BUFFER_PADDING;
   }
 
   uint32_t

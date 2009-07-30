@@ -59,6 +59,10 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t setSample(uint32_t sampleIndex, int32_t channel, Format format, int32_t sample);
     virtual int32_t getSample(uint32_t sampleIndex, int32_t channel, Format format);
     virtual void setData(com::xuggle::ferry::IBuffer* buffer);
+    virtual void setComplete(bool complete, uint32_t numSamples,
+        int32_t sampleRate, int32_t channels, Format sampleFmt,
+        int64_t pts);
+
 
     /*
      * Convenience method that from C++ returns the buffer
@@ -68,16 +72,13 @@ namespace com { namespace xuggle { namespace xuggler
      *   That means that only getNumSamples()-startingSample
      *   samples are available in this AudioSamples collection.
      */
-    short *getRawSamples(uint32_t startingSample);
-    /*
-     * Should be called by a C++ user of this class
-     * if you change the number of samples in the
-     * buffer.
+    virtual short *getRawSamples(uint32_t startingSample);
+    
+    /**
+     * Called by decoder before decoding to ensure sufficient space
      */
-    virtual void setComplete(bool complete, uint32_t numSamples,
-        int32_t sampleRate, int32_t channels, Format sampleFmt,
-        int64_t pts);
-
+    virtual int32_t ensureCapacity(int32_t capacityInBytes);
+    
     /*
      * This creates an audio sample.
      */

@@ -612,10 +612,20 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  * Decode this packet into pOutSamples. It will  
  * try to fill up the audio samples object, starting  
  * from the byteOffset inside this packet.  
+ * <p>  
  * The caller is responsible for allocating the  
  * IAudioSamples object. This function will overwrite  
  * any data in the samples object.  
- * @param	pOutSamples The AudioSamples we decode.  
+ * </p>  
+ * <p>  
+ * Note that the IAudioSamples object passed in must have  
+ * a {@link IAudioSamples#getMaxBufferSize()} of at least  
+ * 192kbytes. Sorry, but this requirement is imposed  
+ * on us via FFmpeg. If the buffer is not large enough,  
+ * this method will reallocate the underlying buffers to  
+ * make them at least 192kbytes.  
+ * </p>  
+ * @param	pOutSamples The AudioSamples we decode to  
  * @param	packet The packet we're attempting to decode from.  
  *  
  * @return	number of bytes actually processed from the packet, or negative 
