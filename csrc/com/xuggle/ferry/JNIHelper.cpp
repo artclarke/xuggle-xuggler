@@ -499,15 +499,29 @@ namespace com { namespace xuggle { namespace ferry {
   {
     /**
      * Be VERY careful in this function; it gets call when we're low on 
-     * memory so you must avoid allocating memory, as that is incredibly
+     * memory so you check any allocations of memory, as they are incredibly
      * likely to fail -- and will do so on the most inconvenient OS more
      * often than others.
      */
     JNIEnv *env = this->getEnv();
     if (!env)
       return;
+    // exception already pending?
     if (env->ExceptionCheck())
       return;
+    jclass cls=0;
+
+    // let's set up a singleton out of memory error for potential
+    // reuse later
+    cls = env->FindClass("java/lang/OutOfMemoryError");
+    // couldn't find the class?
+    if (cls) {
+      int retval = env->ThrowNew(cls, "out of native memory");
+      env->DeleteLocalRef(cls);
+      if (retval == 0) // success
+        return;
+    }
+      
     if (!mOutOfMemoryErrorSingleton)
       return;
     env->Throw(mOutOfMemoryErrorSingleton);
