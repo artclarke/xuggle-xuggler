@@ -1048,6 +1048,26 @@
     }
     return retval;
   }
+
+  /**
+   * {@inheritDoc}
+   * Includes the maximum number of bytes that will fit in this
+   * {@link IBuffer}, the type of the {@link IBuffer}, and the maximum
+   * size in units of {@link IBuffer.Type} that will fit in the
+   * {@link IBuffer}.
+   */
+  @Override
+  public String toString()
+  {
+    final StringBuilder builder = new StringBuilder();
+    builder.append(super.toString());
+    builder.append("[");
+    builder.append("bytes=").append(getBufferSize()).append(";");
+    builder.append("type=").append(getType()).append(";");
+    builder.append("size=").append(getSize()).append(";");
+    builder.append("]");
+    return builder.toString();
+  }
   
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<
   // IBuffer.swg
@@ -1330,6 +1350,5 @@ typedef jobject jNioByteArray;
     
     return retval;
   }
-
 
 }
