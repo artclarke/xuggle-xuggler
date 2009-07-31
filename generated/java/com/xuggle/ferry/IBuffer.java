@@ -1055,11 +1055,12 @@ public class IBuffer extends RefCounted {
   }
 
   /**
-   * {@inheritDoc}
-   * Includes the maximum number of bytes that will fit in this
+   * Prints the same as {@link Object#toString()} but appends
+   * the maximum number of bytes that will fit in this
    * {@link IBuffer}, the type of the {@link IBuffer}, and the maximum
    * size in units of {@link IBuffer.Type} that will fit in the
    * {@link IBuffer}.
+   * {@inheritDoc}
    */
   @Override
   public String toString()
