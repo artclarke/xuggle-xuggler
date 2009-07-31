@@ -1541,9 +1541,9 @@ int32_t
 StreamCoder :: streamClosed(Stream*stream)
 {
   int32_t retval = 0;
-  (void) stream; // removes a warning because in release mode the assert is ignored
-  VS_ASSERT(stream == mStream, "Should be closed on the same stream");
-  reset();
+  if (stream == mStream) {
+    reset();
+  }
   return retval;
 }
 
