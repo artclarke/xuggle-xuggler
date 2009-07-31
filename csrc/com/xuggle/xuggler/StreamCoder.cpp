@@ -1175,6 +1175,9 @@ StreamCoder :: encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
         throw std::invalid_argument(
             "sample rate in sample does not match StreamCoder");
 
+      if (!samples->isComplete())
+        throw std::invalid_argument("input samples are not complete");
+      
       if (mFakeNextPts == Global::NO_PTS &&
           samples->getTimeStamp() != Global::NO_PTS)
         mFakeNextPts = samples->getTimeStamp() +

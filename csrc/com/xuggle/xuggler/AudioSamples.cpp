@@ -57,15 +57,13 @@ namespace com { namespace xuggle { namespace xuggler
     mRequestedSamples = 0;
   }
 
-#define VS_AUDIOSAMPLES_RESAMPLER_LEADIN 16
 #define VS_AUDIOSAMPLES_BUFFER_PADDING 64
   void
   AudioSamples :: allocInternalSamples()
   {
     if (!mSamples)
     {
-      int32_t bufSize = (mRequestedSamples + VS_AUDIOSAMPLES_RESAMPLER_LEADIN) *
-          getSampleSize() +
+      int32_t bufSize = mRequestedSamples * getSampleSize() +
           VS_AUDIOSAMPLES_BUFFER_PADDING;
 
       mSamples = IBuffer::make(this, bufSize);

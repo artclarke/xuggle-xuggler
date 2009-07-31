@@ -101,7 +101,7 @@ class XugglerJNI {
   public final static native long IMediaData_getData_internal(long jarg1, IMediaData jarg1_);
   public final static native int IMediaData_getSize(long jarg1, IMediaData jarg1_);
   public final static native boolean IMediaData_isKey(long jarg1, IMediaData jarg1_);
-  public final static native void IMediaData_setData(long jarg1, IMediaData jarg1_, long jarg2, IBuffer jarg2_);
+  public final static native void IMediaData_setData_internal(long jarg1, IMediaData jarg1_, long jarg2, IBuffer jarg2_);
   public final static native void IPacket_reset(long jarg1, IPacket jarg1_);
   public final static native boolean IPacket_isComplete(long jarg1, IPacket jarg1_);
   public final static native long IPacket_getPts(long jarg1, IPacket jarg1_);
@@ -272,6 +272,8 @@ class XugglerJNI {
   public final static native double IAudioResampler_getCutoffFrequency(long jarg1, IAudioResampler jarg1_);
   public final static native long IAudioResampler_make__SWIG_1(int jarg1, int jarg2, int jarg3, int jarg4, int jarg5, int jarg6);
   public final static native long IAudioResampler_make__SWIG_2(int jarg1, int jarg2, int jarg3, int jarg4, int jarg5, int jarg6, int jarg7, int jarg8, boolean jarg9, double jarg10);
+  public final static native int IAudioResampler_getMinimumNumSamplesRequiredInOutputSamples__SWIG_0(long jarg1, IAudioResampler jarg1_, long jarg2, IAudioSamples jarg2_);
+  public final static native int IAudioResampler_getMinimumNumSamplesRequiredInOutputSamples__SWIG_1(long jarg1, IAudioResampler jarg1_, int jarg2);
   public final static native int IVideoResampler_getInputWidth(long jarg1, IVideoResampler jarg1_);
   public final static native int IVideoResampler_getInputHeight(long jarg1, IVideoResampler jarg1_);
   public final static native int IVideoResampler_getInputPixelFormat(long jarg1, IVideoResampler jarg1_);

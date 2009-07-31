@@ -203,6 +203,36 @@ namespace com { namespace xuggle { namespace xuggler
   protected:
     IAudioResampler();
     virtual ~IAudioResampler();
+    
+  public:
+    /*
+     * Added for 3.2
+     */
+    
+    /**
+     * Get the minimum number of samples that must be placeable in an
+     * output set of samples in order for a resample with this resampler
+     * to succeed.
+     * 
+     * @param inSamples The input samples that will be passed to
+     *   {@link #resample}.
+     * @return The minimum number of samples, or < 0 on error.
+     * @since 3.2
+     */
+    virtual int32_t getMinimumNumSamplesRequiredInOutputSamples(IAudioSamples* inSamples)=0;
+
+    /**
+     * Get the minimum number of samples that must be placeable in an
+     * output set of samples in order for a resample with this resampler
+     * to succeed.
+     * 
+     * @param numSamples The number of input samples.
+     * @return The minimum number of samples, or < 0 on error.
+     * @since 3.2
+     */
+    virtual int32_t getMinimumNumSamplesRequiredInOutputSamples(
+        int32_t numSamples)=0;
+
   };
 
   }}}

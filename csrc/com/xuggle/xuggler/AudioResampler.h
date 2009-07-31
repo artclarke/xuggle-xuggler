@@ -62,6 +62,11 @@ namespace com { namespace xuggle { namespace xuggler
         int32_t filterLen, int32_t log2PhaseCount,
         bool isLinear, double cutoff);
         
+    virtual int32_t getMinimumNumSamplesRequiredInOutputSamples(
+        IAudioSamples* inSamples);
+    virtual int32_t getMinimumNumSamplesRequiredInOutputSamples(
+        int32_t numSamples);
+
   protected:
     AudioResampler();
     virtual ~AudioResampler();

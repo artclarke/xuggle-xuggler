@@ -314,4 +314,31 @@ public class IAudioResampler extends RefCounted {
     return (cPtr == 0) ? null : new IAudioResampler(cPtr, false);
   }
 
+/**
+ * Get the minimum number of samples that must be placeable in an  
+ * output set of samples in order for a resample with this resampler 
+ *  
+ * to succeed.  
+ * @param	inSamples The input samples that will be passed to  
+ * {@link #resample}.  
+ * @return	The minimum number of samples, or < 0 on error.  
+ * @since	3.2  
+ */
+  public int getMinimumNumSamplesRequiredInOutputSamples(IAudioSamples inSamples) {
+    return XugglerJNI.IAudioResampler_getMinimumNumSamplesRequiredInOutputSamples__SWIG_0(swigCPtr, this, IAudioSamples.getCPtr(inSamples), inSamples);
+  }
+
+/**
+ * Get the minimum number of samples that must be placeable in an  
+ * output set of samples in order for a resample with this resampler 
+ *  
+ * to succeed.  
+ * @param	numSamples The number of input samples.  
+ * @return	The minimum number of samples, or < 0 on error.  
+ * @since	3.2  
+ */
+  public int getMinimumNumSamplesRequiredInOutputSamples(int numSamples) {
+    return XugglerJNI.IAudioResampler_getMinimumNumSamplesRequiredInOutputSamples__SWIG_1(swigCPtr, this, numSamples);
+  }
+
 }

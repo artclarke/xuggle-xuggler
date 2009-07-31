@@ -1167,6 +1167,8 @@ public class Converter
           {
             retval = as.resample(reSamples, inSamples, inSamples
                 .getNumSamples());
+            if (retval < 0)
+              throw new RuntimeException("Could not resample audio");
 
             outSamples = reSamples;
           }

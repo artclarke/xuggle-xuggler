@@ -182,6 +182,91 @@ namespace com { namespace xuggle { namespace xuggler
     return mISampleRate;
   }
 
+  int32_t
+  AudioResampler :: getMinimumNumSamplesRequiredInOutputSamples(
+      IAudioSamples *inSamples)
+  {
+    int32_t retval = -1;
+    try {
+      int32_t numSamples = 0;
+      if (inSamples)
+      {
+        if (!inSamples->isComplete())
+          throw std::invalid_argument("input samples are not complete");
+        
+        if (inSamples->getSampleRate() != mISampleRate)
+          throw std::invalid_argument("unexpected input sample rate");
+
+        if (inSamples->getChannels() != mIChannels)
+          throw std::invalid_argument("unexpected # of input channels");
+        
+        if (inSamples->getFormat() != mIFmt)
+          throw std::invalid_argument("unexpected sample format");
+
+        numSamples = inSamples->getNumSamples();
+      } else {
+        numSamples = 0;
+      }
+      retval = getMinimumNumSamplesRequiredInOutputSamples(numSamples);
+    }
+    catch (std::invalid_argument & e)
+    {
+      VS_LOG_DEBUG("invalid argument: %s", e.what());
+      retval = -1;
+    }
+    catch (std::exception & e)
+    {
+      VS_LOG_DEBUG("Unknown exception: %s", e.what());
+    }
+    return retval;
+  }
+  
+  int32_t
+  AudioResampler :: getMinimumNumSamplesRequiredInOutputSamples(
+      int32_t numSamples)
+  {
+    int32_t retval = -1;
+
+    try
+    {
+      if (numSamples < 0)
+        throw std::invalid_argument("numSamples < 0 not allowed");
+      
+      double conversionRatio = 1;
+      {
+        double top = mOSampleRate;
+        VS_ASSERT(top, "should never be zero");
+        double bot = mISampleRate;
+        VS_ASSERT(bot, "should never be zero");
+        conversionRatio = top/bot;
+        VS_ASSERT(conversionRatio > 0, "the variables used should have been checked on construction");
+      }
+      if (conversionRatio <= 0)
+        throw std::invalid_argument("programmer error");
+
+      // FFMPEG's re-sample function doesn't let you specify the size of your
+      // output buffer, but does use up all the space you might expect
+      // plus 16-bytes as a lead-in/lead-out for it to seed the resampler.
+      // Hence, the hard-coded 16 here.
+      // NOTE: 16 might change IF the value of filters in the audio_resample
+      // method in libavcodec/resample.c changes.
+#define VS_FFMPEG_AUDIO_RESAMPLER_LEADIN 16
+      retval = 
+          (numSamples * conversionRatio)+VS_FFMPEG_AUDIO_RESAMPLER_LEADIN;
+    }
+    catch (std::invalid_argument & e)
+    {
+      VS_LOG_DEBUG("invalid argument: %s", e.what());
+      retval = -1;
+    }
+    catch (std::exception & e)
+    {
+      VS_LOG_DEBUG("Unknown exception: %s", e.what());
+    }
+
+    return retval;
+  }
+  
   int
   AudioResampler :: resample(IAudioSamples * pOutSamples,
       IAudioSamples* pInSamples,
@@ -205,6 +290,9 @@ namespace com { namespace xuggle { namespace xuggler
 
       if (inSamples)
       {
+        if (!inSamples->isComplete())
+          throw std::invalid_argument("input samples are not complete");
+        
         if (inSamples->getSampleRate() != mISampleRate)
           throw std::invalid_argument("unexpected input sample rate");
 
@@ -221,36 +309,26 @@ namespace com { namespace xuggle { namespace xuggler
         sampleSize = inSamples->getSampleBitDepth()/8;
       } else {
         numSamples = 0;
-        sampleSize = sizeof(short);
+        sampleSize = IAudioSamples::findSampleBitDepth(mIFmt)/8;
       }
 
-      double conversionRatio = 1;
-      {
-        double top = mOSampleRate*mOChannels*IAudioSamples::findSampleBitDepth(mOFmt);
-        VS_ASSERT(top, "should never be zero");
-        double bot = mISampleRate*mIChannels*IAudioSamples::findSampleBitDepth(mIFmt);
-        VS_ASSERT(bot, "should never be zero");
-        conversionRatio = top/bot;
-        VS_ASSERT(conversionRatio > 0, "the variables used should have been checked on construction");
-      }
-      if (conversionRatio <= 0)
-        throw std::invalid_argument("programmer error");
-
-      // FFMPEG's encode function doesn't let you specify the size of your
-      // output buffer, but does use up all the space you might expect
-      // plus 16-bytes as a lead-in/lead-out for it to seed the resampler.
-      // Hence, the hard-coded 16 here.
-      // NOTE: 16 might change IF the value of filters in the audio_resample
-      // method in libavcodec/resample.c changes.
-      unsigned int neededSampleRoom = (unsigned int)(numSamples * conversionRatio)+16;
-      // leave -1 space for rounding
-      if (outSamples->getMaxBufferSize() < neededSampleRoom * sampleSize) {
-        VS_LOG_ERROR("maxBufferSize: %d; neededSampleRoom: %d; sampleSize: %d; numSamples: %d; conversionRatio: %f;",
-            (int32_t)outSamples->getMaxBufferSize(),
-            neededSampleRoom,
-            sampleSize,
-            numSamples,
-            conversionRatio);
+      int32_t neededSamples = getMinimumNumSamplesRequiredInOutputSamples(numSamples);
+      int32_t bytesPerOutputSample = mOChannels*IAudioSamples::findSampleBitDepth(mOFmt)/8;
+      int32_t neededBytes = neededSamples * bytesPerOutputSample;
+      // This causes a buffer resize to occur if needed
+      if (outSamples->ensureCapacity(neededBytes) < 0)
+        throw std::runtime_error("attempted to resize output buffer but failed");
+      
+      uint32_t outBufSize = outSamples->getMaxBufferSize();
+      int32_t gap = (neededSamples*bytesPerOutputSample)-outBufSize;
+      
+      if (gap > 0) {
+//        VS_LOG_ERROR("maxBufferSize: %d; neededSampleRoom: %d; sampleSize: %d; numSamples: %d; conversionRatio: %f;",
+//            (int32_t)outSamples->getMaxBufferSize(),
+//            neededSampleRoom,
+//            sampleSize,
+//            numSamples,
+//            conversionRatio);
         throw std::invalid_argument("not enough room in output buffer");
       }
       short * inBuf = inSamples ? inSamples->getRawSamples(0) : 0;
@@ -340,14 +418,6 @@ namespace com { namespace xuggle { namespace xuggler
           int sampleDelta = retval - expectedSamples;
           int64_t ptsDelta = IAudioSamples::samplesToDefaultPts(sampleDelta, mOSampleRate);
           mPtsOffset += ptsDelta;
-          VS_LOG_TRACE("Resample ate some samples (cr: %f): %d vs %d (%d); adjust PTS offset by %lld to %lld; pts set to %lld",
-              conversionRatio,
-              expectedSamples,
-              retval,
-              sampleDelta,
-              ptsDelta,
-              mPtsOffset,
-              mNextPts);
         }
       }
     }

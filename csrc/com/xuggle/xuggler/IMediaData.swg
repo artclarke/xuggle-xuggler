@@ -409,17 +409,72 @@ public void get(int srcPos, double[] dest, int destPos, int length)
   }
   
   /**
+   * The data used by {@link #getDataCached()}.
+   */
+  private IBuffer mData;
+
+  /**
    * Get any underlying raw data available for this object.
    * 
    * @return The raw data, or null if not accessible.
    */
   public IBuffer getData()
   {
-    IBuffer cachedData = getDataCached();
-    return cachedData == null ? null : cachedData.copyReference();
+    IBuffer retval = getData_internal();
+    if (retval == null)
+    {
+       if (mData != null)
+         mData.delete();
+       mData = retval;
+    } else {
+      if (mData == null) {
+        mData = retval.copyReference();
+      } else {
+        if (mData.getMyCPtr() != retval.getMyCPtr())
+        {
+          mData.delete();
+          mData = retval.copyReference();
+        }
+      }
+    }
+    return retval;
   }
-
-  private IBuffer mData;
+  
+  /**
+   * Sets the underlying buffer used by this object.
+   * <p>
+   * This is an advanced method and is not recommended for use by those
+   * who don't fully understand how IBuffers work.  Implementations of
+   * {@link IMediaData} may behave in undefined ways if the buffer you
+   * pass in is not big enough for what you ask them to do (e.g. they may
+   * discard your buffer and allocate a larger one if they need more space).
+   * It is up to the caller to ensure the buffer passed in is large enough,
+   * and is not simultaneously in use by another part of the system.
+   * </p>
+   * @param buffer The buffer to set.  If null, this method
+   *   is ignored.
+   * @since 3.2
+   */
+  public void setData(IBuffer buffer)
+  {
+    if (buffer == null)
+    {
+      if (mData != null)
+        mData.delete();
+      mData = buffer;
+    } else {
+      if (mData == null) {
+        mData = buffer.copyReference();
+      } else {
+        if (mData.getMyCPtr() != buffer.getMyCPtr())
+        {
+          mData.delete();
+          mData = buffer.copyReference();
+        }
+      }
+    }
+    setData_internal(buffer);
+  }
 
   /**
    * Get any underlying raw data available for this object, but do
@@ -431,22 +486,12 @@ public void get(int srcPos, double[] dest, int destPos, int length)
    * </p>
    * 
    * @return The raw data, or null if not accessible.
+   * @since 3.2
    */
   public IBuffer getDataCached()
   {
-    long cPtr = XugglerJNI.IMediaData_getData_internal(swigCPtr, this);
     if (mData == null)
-      mData = (cPtr == 0) ? null : new IBuffer(cPtr, false);
-    else {
-      long cachedPtr = mData.getMyCPtr();
-      if (cachedPtr == cPtr) {
-        // release the ref
-        com.xuggle.ferry.Ferry.release(cPtr);
-      } else {
-        mData.delete();
-        mData = (cPtr == 0) ? null : new IBuffer(cPtr, false);
-      }
-    }
+      mData = getData_internal(); // Try crossing the boundary anyway
     return mData;
   }
 
@@ -471,14 +516,22 @@ public void get(int srcPos, double[] dest, int destPos, int length)
   
 %}
 %javamethodmodifiers com::xuggle::xuggler::IMediaData::getData "protected"
+%javamethodmodifiers com::xuggle::xuggler::IMediaData::setData "protected"
 %rename(getData_internal) com::xuggle::xuggler::IMediaData::getData;
+%rename(setData_internal) com::xuggle::xuggler::IMediaData::setData;
 
 %{
 /**
  * Here to maintain BW-compatibility with Version 3.x of Xuggler;
- * can be removed when major version goes pass 3.
+ * can be removed when major version goes past 3.
  */
 extern "C" {
+SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1setData_1internal(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jobject jarg2_);
+SWIGEXPORT void JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1setData(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jobject jarg2_)
+{
+  return Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1setData_1internal(jenv, jcls, jarg1, jarg1_, jarg2, jarg2_);
+}
+
 SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1getData_1internal(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_);
 SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMediaData_1getData(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_)
 {
