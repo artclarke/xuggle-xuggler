@@ -76,8 +76,13 @@ ifndef VS_TEST
 endif
 
 ifdef VS_DEBUG
-  AM_CPPFLAGS+=-DVS_DEBUG
-  AM_CFLAGS+=-DVS_DEBUG
+  AM_CPPFLAGS+=-DVS_DEBUG -g3 -O0
+  AM_CFLAGS+=-DVS_DEBUG -g3 -O0
+  AM_CXXFLAGS+=-DVS_DEBUG -g3 -O0
+else
+  AM_CPPFLAGS+=-g -O2
+  AM_CFLAGS+=-g -O2
+  AM_CXXFLAGS+=-g -O2
 endif
 
 ifdef VS_TEST

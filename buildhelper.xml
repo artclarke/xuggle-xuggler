@@ -113,6 +113,9 @@
   <condition property="build.configure.maintainer" value="true">
     <isset property="env.XUGGLE_MAINTAINER"/>
   </condition>
+  <condition property="build.configure.debug" value="true">
+    <isset property="env.XUGGLE_DEBUG"/>
+  </condition>
 
   <condition property="build.headless.setting"
       value="-Djava.awt.headless=true"
@@ -1054,8 +1057,17 @@
         <property name="build.configure.maintainer.flag" value=""/>
       </else>
     </if>
+    <if>
+      <isset property="build.configure.debug"/>
+      <then>
+        <property name="build.configure.debug.flag" value="--enable-optimizations=no"/>
+      </then>
+      <else>
+        <property name="build.configure.debug.flag" value=""/>
+      </else>
+    </if>
     <property name="configure.line"
-        value="../../../configure ${build.m64.flag} ${build.configure.flag} ${build.configure.maintainer.flag} --prefix=${xuggle.dir}"/>
+      value="../../../configure ${build.m64.flag} ${build.configure.flag} ${build.configure.maintainer.flag} ${build.configure.debug.flag} --prefix=${xuggle.dir}"/>
 
     <!-- Yes, Windows is annoying and doesn't do well with
       unescaped paths... so we convert to Unix format -->
@@ -1064,6 +1076,11 @@
     <exec executable="sh"
         dir="${build-native.dir}"
         failonerror="true">
+      <env key="CXXFLAGS" value=""/>
+      <env key="CFLAGS" value=""/>
+      <env key="CPPFLAGS" value=""/>
+      <env key="LDFLAGS" value=""/>
+      <env key="ASFLAGS" value=""/>
       <arg line="${configure.line}"/>
     </exec>
     <available property="native.makefile.exists"
@@ -1174,11 +1191,20 @@
       if="native.makefile.exists">
     <!-- now, restage both to a combined target; we have to do a make
       instead of an ant copy, since ant copy will drop file attributes -->
+    <if>
+      <isset property="build.configure.debug"/>
+      <then>
+        <property name="build.install.target" value="install"/>
+      </then>
+      <else>
+        <property name="build.install.target" value="install-strip"/>
+      </else>
+    </if>
     <exec executable="${build.native.make}"
         dir="${build-native.dir}"
         failonerror="true">
       <env key="DESTDIR" value="${dist.unix.dir}/stage"/>
-      <arg line="install-strip"/>
+      <arg line="${build.install.target}"/>
     </exec>
     <echo message="Staging Java Jars to right location"/>
     <mkdir dir="${dist.dir}/stage/${xuggle.dir}/share/java/jars"/>
@@ -1195,14 +1221,14 @@
             dir="${build-native.dir}/captive"
             failonerror="true">
           <env key="DESTDIR" value="${dist.unix.dir}/stage-captive"/>
-          <arg line="install-strip"/>
+          <arg line="${build.install.target}"/>
         </exec>
         <!-- stage the core binaries -->
         <exec executable="${build.native.make}"
             dir="${build-native.dir}/csrc"
             failonerror="true">
           <env key="DESTDIR" value="${dist.unix.dir}/stage-core"/>
-          <arg line="install-strip"/>
+          <arg line="${build.install.target}"/>
         </exec>
         <mkdir dir="${dist.dir}/stage-core/${xuggle.dir}/share/java/jars"/>
         <copy todir="${dist.dir}/stage-core/${xuggle.dir}/share/java/jars">
