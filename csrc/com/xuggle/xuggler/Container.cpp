@@ -423,8 +423,6 @@ namespace com { namespace xuggle { namespace xuggler
     {
       VS_ASSERT(mNumStreams == mStreams.size(),
           "unexpected number of streams");
-      VS_ASSERT(mNumStreams == mFormatContext->nb_streams,
-          "Container and FormatContext out of sync");
 
       if (mNeedTrailerWrite)
       {
