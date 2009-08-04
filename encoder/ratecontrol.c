@@ -58,6 +58,7 @@ typedef struct
     double coeff;
     double count;
     double decay;
+    double offset;
 } predictor_t;
 
 struct x264_ratecontrol_t
@@ -409,9 +410,11 @@ int x264_ratecontrol_new( x264_t *h )
         rc->pred[i].coeff= 2.0;
         rc->pred[i].count= 1.0;
         rc->pred[i].decay= 0.5;
+        rc->pred[i].offset= 0.0;
         rc->row_preds[i].coeff= .25;
         rc->row_preds[i].count= 1.0;
         rc->row_preds[i].decay= 0.5;
+        rc->row_preds[i].offset= 0.0;
     }
     *rc->pred_b_from_p = rc->pred[0];
 
@@ -953,7 +956,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
         if( y < h->sps->i_mb_height-1 )
         {
             int i_estimated;
-            int avg_qp = X264_MAX(h->fref0[0]->i_row_qp[y+1], h->fref1[0]->i_row_qp[y+1])
+            int avg_qp = X264_MIN(h->fref0[0]->i_row_qp[y+1], h->fref1[0]->i_row_qp[y+1])
                        + rc->pb_offset * ((h->fenc->i_type == X264_TYPE_BREF) ? 0.5 : 1);
             rc->qpm = X264_MIN(X264_MAX( rc->qp, avg_qp), 51); //avg_qp could go higher than 51 due to pb_offset
             i_estimated = row_bits_so_far(h, y); //FIXME: compute full estimated size
@@ -1153,10 +1156,6 @@ void x264_ratecontrol_end( x264_t *h, int bits )
             {
                 update_predictor( rc->pred_b_from_p, qp2qscale(rc->qpa_rc),
                                   h->fref1[h->i_ref1-1]->i_satd, rc->bframe_bits / rc->bframes );
-                /* In some cases, such as completely blank scenes, pred_b_from_p can go nuts */
-                /* Hackily cap the predictor coeff in case this happens. */
-                /* FIXME FIXME FIXME */
-                rc->pred_b_from_p->coeff = X264_MIN( rc->pred_b_from_p->coeff, 10. );
                 rc->bframe_bits = 0;
             }
         }
@@ -1270,17 +1269,28 @@ static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
 
 static double predict_size( predictor_t *p, double q, double var )
 {
-     return p->coeff*var / (q*p->count);
+     return (p->coeff*var + p->offset) / (q*p->count);
 }
 
 static void update_predictor( predictor_t *p, double q, double var, double bits )
 {
+    const double range = 1.5;
     if( var < 10 )
         return;
-    p->count *= p->decay;
-    p->coeff *= p->decay;
-    p->count ++;
-    p->coeff += bits*q / var;
+    double old_coeff = p->coeff / p->count;
+    double new_coeff = bits*q / var;
+    double new_coeff_clipped = x264_clip3f( new_coeff, old_coeff/range, old_coeff*range );
+    double new_offset = bits*q - new_coeff_clipped * var;
+    if( new_offset >= 0 )
+        new_coeff = new_coeff_clipped;
+    else
+        new_offset = 0;
+    p->count  *= p->decay;
+    p->coeff  *= p->decay;
+    p->offset *= p->decay;
+    p->count  ++;
+    p->coeff  += new_coeff;
+    p->offset += new_offset;
 }
 
 // update VBV after encoding a frame
@@ -1350,7 +1360,7 @@ static double clip_qscale( x264_t *h, int pict_type, double q )
         double bits = predict_size( &rcc->pred[h->sh.i_type], q, rcc->last_satd );
         double qf = 1.0;
         if( bits > rcc->buffer_fill/2 )
-            qf = x264_clip3f( rcc->buffer_fill/(2*bits), 0.2, 1.0 );
+            qf = rcc->buffer_fill/(2*bits);
         q /= qf;
         bits *= qf;
         if( bits < rcc->buffer_rate/2 )
