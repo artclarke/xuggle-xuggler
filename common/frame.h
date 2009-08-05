@@ -63,6 +63,8 @@ typedef struct
     int8_t  *mb_type;
     int16_t (*mv[2])[2];
     int16_t (*lowres_mvs[2][X264_BFRAME_MAX+1])[2];
+    uint16_t (*lowres_costs[X264_BFRAME_MAX+2][X264_BFRAME_MAX+2]);
+    uint8_t  (*lowres_inter_types[X264_BFRAME_MAX+2][X264_BFRAME_MAX+2]);
     int     *lowres_mv_costs[2][X264_BFRAME_MAX+1];
     int8_t  *ref[2];
     int     i_ref[2];
@@ -83,6 +85,7 @@ typedef struct
     float   *f_qp_offset;
     int     b_intra_calculated;
     uint16_t *i_intra_cost;
+    uint32_t *i_propagate_cost;
     uint16_t *i_inv_qscale_factor;
 
     /* threading */

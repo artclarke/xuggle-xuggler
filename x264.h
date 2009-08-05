@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 68
+#define X264_BUILD 69
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -242,6 +242,7 @@ typedef struct x264_param_t
         int          i_noise_reduction; /* adaptive pseudo-deadzone */
         float        f_psy_rd; /* Psy RD strength */
         float        f_psy_trellis; /* Psy trellis strength */
+        int          b_psy; /* Toggle all psy optimizations */
 
         /* the deadzone size that will be used in luma quantization */
         int          i_luma_deadzone[2]; /* {inter, intra} */
@@ -271,6 +272,8 @@ typedef struct x264_param_t
 
         int         i_aq_mode;      /* psy adaptive QP. (X264_AQ_*) */
         float       f_aq_strength;
+        int         b_mb_tree;      /* Macroblock-tree ratecontrol. */
+        int         i_lookahead;
 
         /* 2pass */
         int         b_stat_write;   /* Enable stat writing in psz_stat_out */

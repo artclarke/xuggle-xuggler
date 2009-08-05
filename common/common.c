@@ -95,6 +95,7 @@ void    x264_param_default( x264_param_t *param )
     param->rc.f_pb_factor = 1.3;
     param->rc.i_aq_mode = X264_AQ_VARIANCE;
     param->rc.f_aq_strength = 1.0;
+    param->rc.i_lookahead = 40;
 
     param->rc.b_stat_write = 0;
     param->rc.psz_stat_out = "x264_2pass.log";
@@ -104,6 +105,7 @@ void    x264_param_default( x264_param_t *param )
     param->rc.f_qblur = 0.5;
     param->rc.f_complexity_blur = 20;
     param->rc.i_zones = 0;
+    param->rc.b_mb_tree = 1;
 
     /* Log */
     param->pf_log = x264_log_default;
@@ -117,6 +119,7 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_SPATIAL;
     param->analyse.i_me_method = X264_ME_HEX;
     param->analyse.f_psy_rd = 1.0;
+    param->analyse.b_psy = 1;
     param->analyse.f_psy_trellis = 0;
     param->analyse.i_me_range = 16;
     param->analyse.i_subpel_refine = 7;
@@ -493,6 +496,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
             p->analyse.f_psy_trellis = 0;
         }
     }
+    OPT("psy")
+        p->analyse.b_psy = atobool(value);
     OPT("chroma-me")
         p->analyse.b_chroma_me = atobool(value);
     OPT("mixed-refs")
@@ -524,6 +529,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->rc.f_rf_constant = atof(value);
         p->rc.i_rc_method = X264_RC_CRF;
     }
+    OPT("rc-lookahead")
+        p->rc.i_lookahead = atoi(value);
     OPT2("qpmin", "qp-min")
         p->rc.i_qp_min = atoi(value);
     OPT2("qpmax", "qp-max")
@@ -559,6 +566,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     }
     OPT("qcomp")
         p->rc.f_qcompress = atof(value);
+    OPT("mbtree")
+        p->rc.b_mb_tree = atobool(value);
     OPT("qblur")
         p->rc.f_qblur = atof(value);
     OPT2("cplxblur", "cplx-blur")
@@ -843,7 +852,9 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " analyse=%#x:%#x", p->analyse.intra, p->analyse.inter );
     s += sprintf( s, " me=%s", x264_motion_est_names[ p->analyse.i_me_method ] );
     s += sprintf( s, " subme=%d", p->analyse.i_subpel_refine );
-    s += sprintf( s, " psy_rd=%.1f:%.1f", p->analyse.f_psy_rd, p->analyse.f_psy_trellis );
+    s += sprintf( s, " psy=%d", p->analyse.b_psy );
+    if( p->analyse.b_psy )
+        s += sprintf( s, " psy_rd=%.1f:%.1f", p->analyse.f_psy_rd, p->analyse.f_psy_trellis );
     s += sprintf( s, " mixed_ref=%d", p->analyse.b_mixed_references );
     s += sprintf( s, " me_range=%d", p->analyse.i_me_range );
     s += sprintf( s, " chroma_me=%d", p->analyse.b_chroma_me );
@@ -868,9 +879,12 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " keyint=%d keyint_min=%d scenecut=%d",
                   p->i_keyint_max, p->i_keyint_min, p->i_scenecut_threshold );
 
-    s += sprintf( s, " rc=%s", p->rc.i_rc_method == X264_RC_ABR ?
+    if( p->rc.b_mb_tree )
+        s += sprintf( s, " rc_lookahead=%d", p->rc.i_lookahead );
+
+    s += sprintf( s, " rc=%s mbtree=%d", p->rc.i_rc_method == X264_RC_ABR ?
                                ( p->rc.b_stat_read ? "2pass" : p->rc.i_vbv_buffer_size ? "cbr" : "abr" )
-                               : p->rc.i_rc_method == X264_RC_CRF ? "crf" : "cqp" );
+                               : p->rc.i_rc_method == X264_RC_CRF ? "crf" : "cqp", p->rc.b_mb_tree );
     if( p->rc.i_rc_method == X264_RC_ABR || p->rc.i_rc_method == X264_RC_CRF )
     {
         if( p->rc.i_rc_method == X264_RC_CRF )
@@ -892,7 +906,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
     if( !(p->rc.i_rc_method == X264_RC_CQP && p->rc.i_qp_constant == 0) )
     {
         s += sprintf( s, " ip_ratio=%.2f", p->rc.f_ip_factor );
-        if( p->i_bframe )
+        if( p->i_bframe && !p->rc.b_mb_tree )
             s += sprintf( s, " pb_ratio=%.2f", p->rc.f_pb_factor );
         s += sprintf( s, " aq=%d", p->rc.i_aq_mode );
         if( p->rc.i_aq_mode )

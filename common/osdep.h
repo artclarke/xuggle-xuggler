@@ -147,7 +147,9 @@
 #ifdef WORDS_BIGENDIAN
 #define endian_fix(x) (x)
 #define endian_fix32(x) (x)
-#elif defined(__GNUC__) && defined(HAVE_MMX)
+#define endian_fix16(x) (x)
+#else
+#if defined(__GNUC__) && defined(HAVE_MMX)
 static ALWAYS_INLINE uint32_t endian_fix32( uint32_t x )
 {
     asm("bswap %0":"+r"(x));
@@ -169,6 +171,11 @@ static ALWAYS_INLINE intptr_t endian_fix( intptr_t x )
         return endian_fix32(x>>32) + ((uint64_t)endian_fix32(x)<<32);
     else
         return endian_fix32(x);
+}
+#endif
+static ALWAYS_INLINE uint16_t endian_fix16( uint16_t x )
+{
+    return (x<<8)|(x>>8);
 }
 #endif
 

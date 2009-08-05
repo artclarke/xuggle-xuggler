@@ -42,7 +42,7 @@
 
 #define bs_write_ue bs_write_ue_big
 
-static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
+static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
                                     x264_nal_t **pp_nal, int *pi_nal,
                                     x264_picture_t *pic_out );
 
@@ -441,6 +441,7 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.i_qp_min = x264_clip3( (int)(X264_MIN3( qp_p, qp_i, qp_b )), 0, 51 );
         h->param.rc.i_qp_max = x264_clip3( (int)(X264_MAX3( qp_p, qp_i, qp_b ) + .999), 0, 51 );
         h->param.rc.i_aq_mode = 0;
+        h->param.rc.b_mb_tree = 0;
     }
     h->param.rc.i_qp_max = x264_clip3( h->param.rc.i_qp_max, 0, 51 );
     h->param.rc.i_qp_min = x264_clip3( h->param.rc.i_qp_min, 0, h->param.rc.i_qp_max );
@@ -473,6 +474,15 @@ static int x264_validate_parameters( x264_t *h )
     if( !h->param.i_bframe )
         h->param.i_bframe_adaptive = X264_B_ADAPT_NONE;
     h->param.analyse.b_weighted_bipred = h->param.analyse.b_weighted_bipred && h->param.i_bframe > 0;
+    h->param.rc.i_lookahead = x264_clip3( h->param.rc.i_lookahead, 0, X264_LOOKAHEAD_MAX );
+    h->param.rc.i_lookahead = X264_MIN( h->param.rc.i_lookahead, h->param.i_keyint_max );
+    if( h->param.rc.b_stat_read )
+        h->param.rc.i_lookahead = 0;
+    else if( !h->param.rc.i_lookahead )
+        h->param.rc.b_mb_tree = 0;
+    if( h->param.rc.f_qcompress == 1 )
+        h->param.rc.b_mb_tree = 0;
+
     h->mb.b_direct_auto_write = h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_AUTO
                                 && h->param.i_bframe
                                 && ( h->param.rc.b_stat_write || !h->param.rc.b_stat_read );
@@ -513,6 +523,11 @@ static int x264_validate_parameters( x264_t *h )
     if( !h->param.b_cabac )
         h->param.analyse.i_trellis = 0;
     h->param.analyse.i_trellis = x264_clip3( h->param.analyse.i_trellis, 0, 2 );
+    if( !h->param.analyse.b_psy )
+    {
+        h->param.analyse.f_psy_rd = 0;
+        h->param.analyse.f_psy_trellis = 0;
+    }
     if( !h->param.analyse.i_trellis )
         h->param.analyse.f_psy_trellis = 0;
     h->param.analyse.f_psy_rd = x264_clip3f( h->param.analyse.f_psy_rd, 0, 10 );
@@ -537,6 +552,17 @@ static int x264_validate_parameters( x264_t *h )
     h->param.rc.f_aq_strength = x264_clip3f( h->param.rc.f_aq_strength, 0, 3 );
     if( h->param.rc.f_aq_strength == 0 )
         h->param.rc.i_aq_mode = 0;
+    /* MB-tree requires AQ to be on, even if the strength is zero. */
+    if( !h->param.rc.i_aq_mode && h->param.rc.b_mb_tree )
+    {
+        h->param.rc.i_aq_mode = 1;
+        h->param.rc.f_aq_strength = 0;
+    }
+    if( h->param.rc.b_mb_tree && h->param.b_bframe_pyramid )
+    {
+        x264_log( h, X264_LOG_WARNING, "b-pyramid + mb-tree is not supported\n" );
+        h->param.b_bframe_pyramid = 0;
+    }
     h->param.analyse.i_noise_reduction = x264_clip3( h->param.analyse.i_noise_reduction, 0, 1<<16 );
     if( h->param.analyse.i_subpel_refine == 10 && (h->param.analyse.i_trellis != 2 || !h->param.rc.i_aq_mode) )
         h->param.analyse.i_subpel_refine = 9;
@@ -723,6 +749,9 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         h->frames.i_delay = X264_MAX(h->param.i_bframe,3)*4 + h->param.i_threads - 1;
     else
         h->frames.i_delay = h->param.i_bframe + h->param.i_threads - 1;
+    if( h->param.rc.b_mb_tree )
+        h->frames.i_delay = X264_MAX( h->frames.i_delay, h->param.rc.i_lookahead );
+
     h->frames.i_max_ref0 = h->param.i_frame_reference;
     h->frames.i_max_ref1 = h->sps->vui.i_num_reorder_frames;
     h->frames.i_max_dpb  = h->sps->vui.i_max_dec_frame_buffering;
@@ -730,7 +759,8 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         && ( h->param.rc.i_rc_method == X264_RC_ABR
           || h->param.rc.i_rc_method == X264_RC_CRF
           || h->param.i_bframe_adaptive
-          || h->param.i_scenecut_threshold );
+          || h->param.i_scenecut_threshold
+          || h->param.rc.b_mb_tree );
     h->frames.b_have_lowres |= (h->param.rc.b_stat_read && h->param.rc.i_vbv_buffer_size > 0);
     h->frames.b_have_sub8x8_esa = !!(h->param.analyse.inter & X264_ANALYSE_PSUB8x8);
 
@@ -1443,7 +1473,12 @@ int     x264_encoder_encode( x264_t *h,
         if( h->frames.b_have_lowres )
             x264_frame_init_lowres( h, fenc );
 
-        if( h->param.rc.i_aq_mode )
+        if( h->param.rc.b_mb_tree && h->param.rc.b_stat_read )
+        {
+            if( x264_macroblock_tree_read( h, fenc ) )
+                return -1;
+        }
+        else if( h->param.rc.i_aq_mode )
             x264_adaptive_quant_frame( h, fenc );
 
         if( h->frames.i_input <= h->frames.i_delay + 1 - h->param.i_threads )
@@ -1461,7 +1496,8 @@ int     x264_encoder_encode( x264_t *h,
         /* 2: Select frame types */
         if( h->frames.next[0] == NULL )
         {
-            x264_encoder_frame_end( thread_oldest, thread_current, pp_nal, pi_nal, pic_out );
+            if( x264_encoder_frame_end( thread_oldest, thread_current, pp_nal, pi_nal, pic_out ) < 0 )
+                return -1;
             return 0;
         }
 
@@ -1621,11 +1657,12 @@ int     x264_encoder_encode( x264_t *h,
     else
         x264_slices_write( h );
 
-    x264_encoder_frame_end( thread_oldest, thread_current, pp_nal, pi_nal, pic_out );
+    if( x264_encoder_frame_end( thread_oldest, thread_current, pp_nal, pi_nal, pic_out ) < 0 )
+        return -1;
     return 0;
 }
 
-static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
+static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
                                     x264_nal_t **pp_nal, int *pi_nal,
                                     x264_picture_t *pic_out )
 {
@@ -1640,7 +1677,7 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     if( !h->out.i_nal )
     {
         pic_out->i_type = X264_TYPE_AUTO;
-        return;
+        return 0;
     }
 
     x264_frame_push_unused( thread_current, h->fenc );
@@ -1670,7 +1707,8 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     /* update rc */
     x264_emms();
-    x264_ratecontrol_end( h, h->out.i_frame_size * 8 );
+    if( x264_ratecontrol_end( h, h->out.i_frame_size * 8 ) < 0 )
+        return -1;
 
     /* restore CPU state (before using float again) */
     x264_emms();
@@ -1784,6 +1822,8 @@ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     if( h->param.psz_dump_yuv )
         x264_frame_dump( h );
+
+    return 0;
 }
 
 static void x264_print_intra( int64_t *i_mb_count, double i_count, int b_print_pcm, char *intra )

@@ -276,8 +276,8 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
         h->mb.i_trellis_lambda2[1][1] = x264_trellis_lambda2_tab[1][h->mb.i_chroma_qp];
     }
     h->mb.i_psy_rd_lambda = a->i_lambda;
-    /* Adjusting chroma lambda based on QP offset hurts PSNR, so we'll leave it as part of psy-RD. */
-    h->mb.i_chroma_lambda2_offset = h->mb.i_psy_rd ? x264_chroma_lambda2_offset_tab[h->mb.i_qp-h->mb.i_chroma_qp+12] : 256;
+    /* Adjusting chroma lambda based on QP offset hurts PSNR but improves visual quality. */
+    h->mb.i_chroma_lambda2_offset = h->param.analyse.b_psy ? x264_chroma_lambda2_offset_tab[h->mb.i_qp-h->mb.i_chroma_qp+12] : 256;
 
     h->mb.i_me_method = h->param.analyse.i_me_method;
     h->mb.i_subpel_refine = h->param.analyse.i_subpel_refine;
