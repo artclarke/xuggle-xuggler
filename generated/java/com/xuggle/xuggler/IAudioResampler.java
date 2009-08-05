@@ -160,6 +160,19 @@ public class IAudioResampler extends RefCounted {
  * additional 16-samples output-channels  
  * per {@link IAudioSamples} passed in.  
  * </p>  
+ * <p>  
+ * <strong>  
+ * If the {@code outputSamples} is not large enough to fit the required 
+ *  
+ * resamples, then the {@link IAudioResampler} will attempt to allocate 
+ *  
+ * a new output buffer and override the buffer set on {@code outputSamples}. 
+ *  
+ * </strong>  
+ * To ensure you have enough space in your output buffer, use the  
+ * {@link #getMinimumNumSamplesRequiredInOutputSamples(int)} method. 
+ *  
+ * </p>  
  * @param	outputSamples [out] The sample buffer we output to.  
  * @param	inputSamples [in] The samples we're going to re-sample.  
  * @param	numSamples [in] The number of samples from inputSamples to 
