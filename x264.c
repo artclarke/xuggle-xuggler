@@ -781,7 +781,7 @@ static int  Parse( int argc, char **argv,
                 }
                 break;
             case OPT_QPFILE:
-                opt->qpfile = fopen( optarg, "r" );
+                opt->qpfile = fopen( optarg, "rb" );
                 if( !opt->qpfile )
                 {
                     fprintf( stderr, "x264 [error]: can't open `%s'\n", optarg );
@@ -1036,7 +1036,7 @@ static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
 			fseek( opt->qpfile , file_pos , SEEK_SET );
 			break;
 		}
-        if( num < i_frame )
+        if( num < i_frame && ret == 3 )
             continue;
         pic->i_qpplus1 = qp+1;
         if     ( type == 'I' ) pic->i_type = X264_TYPE_IDR;
