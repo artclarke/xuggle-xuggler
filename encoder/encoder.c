@@ -746,11 +746,13 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     /* Init frames. */
     if( h->param.i_bframe_adaptive == X264_B_ADAPT_TRELLIS )
-        h->frames.i_delay = X264_MAX(h->param.i_bframe,3)*4 + h->param.i_threads - 1;
+        h->frames.i_delay = X264_MAX(h->param.i_bframe,3)*4;
     else
-        h->frames.i_delay = h->param.i_bframe + h->param.i_threads - 1;
+        h->frames.i_delay = h->param.i_bframe;
     if( h->param.rc.b_mb_tree )
         h->frames.i_delay = X264_MAX( h->frames.i_delay, h->param.rc.i_lookahead );
+    h->frames.i_delay += h->param.i_threads - 1;
+    h->frames.i_delay = X264_MIN( h->frames.i_delay, X264_LOOKAHEAD_MAX );
 
     h->frames.i_max_ref0 = h->param.i_frame_reference;
     h->frames.i_max_ref1 = h->sps->vui.i_num_reorder_frames;
