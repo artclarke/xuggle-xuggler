@@ -63,6 +63,8 @@ typedef struct {
 int open_file_yuv( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
 {
     yuv_input_t *h = malloc(sizeof(yuv_input_t));
+    if( !h )
+        return -1;
     h->width = p_param->i_width;
     h->height = p_param->i_height;
     h->next_frame = 0;
@@ -141,6 +143,8 @@ int open_file_y4m( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
     char header[MAX_YUV4_HEADER+10];
     char *tokstart, *tokend, *header_end;
     y4m_input_t *h = malloc(sizeof(y4m_input_t));
+    if( !h )
+        return -1;
 
     h->next_frame = 0;
 
@@ -335,6 +339,8 @@ typedef struct {
 int open_file_avis( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
 {
     avis_input_t *h = malloc(sizeof(avis_input_t));
+    if( !h )
+        return -1;
     AVISTREAMINFO info;
     int i;
 
@@ -440,13 +446,19 @@ typedef struct thread_input_arg_t {
 int open_file_thread( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
 {
     thread_input_t *h = malloc(sizeof(thread_input_t));
-    x264_picture_alloc( &h->pic, X264_CSP_I420, p_param->i_width, p_param->i_height );
+    if( !h || x264_picture_alloc( &h->pic, X264_CSP_I420, p_param->i_width, p_param->i_height ) < 0 )
+    {
+        fprintf( stderr, "x264 [error]: malloc failed\n" );
+        return -1;
+    }
     h->p_read_frame = p_read_frame;
     h->p_close_infile = p_close_infile;
     h->p_handle = *p_handle;
     h->in_progress = 0;
     h->next_frame = -1;
     h->next_args = malloc(sizeof(thread_input_arg_t));
+    if( !h->next_args )
+        return -1;
     h->next_args->h = h;
     h->next_args->status = 0;
     h->frame_total = p_get_frame_total( h->p_handle );
@@ -469,12 +481,11 @@ static void read_frame_thread_int( thread_input_arg_t *i )
 int read_frame_thread( x264_picture_t *p_pic, hnd_t handle, int i_frame )
 {
     thread_input_t *h = handle;
-    UNUSED void *stuff;
     int ret = 0;
 
     if( h->next_frame >= 0 )
     {
-        x264_pthread_join( h->tid, &stuff );
+        x264_pthread_join( h->tid, NULL );
         ret |= h->next_args->status;
         h->in_progress = 0;
     }
@@ -493,7 +504,8 @@ int read_frame_thread( x264_picture_t *p_pic, hnd_t handle, int i_frame )
         h->next_frame =
         h->next_args->i_frame = i_frame+1;
         h->next_args->pic = &h->pic;
-        x264_pthread_create( &h->tid, NULL, (void*)read_frame_thread_int, h->next_args );
+        if( x264_pthread_create( &h->tid, NULL, (void*)read_frame_thread_int, h->next_args ) )
+            return -1;
         h->in_progress = 1;
     }
     else
@@ -731,8 +743,12 @@ int write_nalu_mp4( hnd_t handle, uint8_t *p_nalu, int i_size )
             p_mp4->p_config->profile_compatibility = p_nalu[6];
             p_mp4->p_config->AVCLevelIndication = p_nalu[7];
             p_slot = (GF_AVCConfigSlot *)malloc(sizeof(GF_AVCConfigSlot));
+            if( !p_slot )
+                return -1;
             p_slot->size = i_size - 4;
             p_slot->data = (char *)malloc(p_slot->size);
+            if( p_slot->data )
+                return -1;
             memcpy(p_slot->data, p_nalu + 4, i_size - 4);
             gf_list_add(p_mp4->p_config->sequenceParameterSets, p_slot);
             p_slot = NULL;
@@ -745,8 +761,12 @@ int write_nalu_mp4( hnd_t handle, uint8_t *p_nalu, int i_size )
         if (!p_mp4->b_pps)
         {
             p_slot = (GF_AVCConfigSlot *)malloc(sizeof(GF_AVCConfigSlot));
+            if( !p_slot )
+                return -1;
             p_slot->size = i_size - 4;
             p_slot->data = (char *)malloc(p_slot->size);
+            if( !p_slot->data )
+                return -1;
             memcpy(p_slot->data, p_nalu + 4, i_size - 4);
             gf_list_add(p_mp4->p_config->pictureParameterSets, p_slot);
             p_slot = NULL;

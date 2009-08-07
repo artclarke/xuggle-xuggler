@@ -1584,6 +1584,11 @@ int main(int argc, char *argv[])
     srand( i );
 
     buf1 = x264_malloc( 0x3e00 + 16*BENCH_ALIGNS );
+    if( !buf1 )
+    {
+        fprintf( stderr, "malloc failed, unable to initiate tests!\n" );
+        return -1;
+    }
     buf2 = buf1 + 0xf00;
     buf3 = buf2 + 0xf00;
     buf4 = buf3 + 0x1000;

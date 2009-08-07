@@ -302,6 +302,8 @@ fail:
 static char *x264_strcat_filename( char *input, char *suffix )
 {
     char *output = x264_malloc( strlen( input ) + strlen( suffix ) + 1 );
+    if( !output )
+        return NULL;
     strcpy( output, input );
     strcat( output, suffix );
     return output;
@@ -314,8 +316,8 @@ int x264_ratecontrol_new( x264_t *h )
 
     x264_emms();
 
-    rc = h->rc = x264_malloc( h->param.i_threads * sizeof(x264_ratecontrol_t) );
-    memset( rc, 0, h->param.i_threads * sizeof(x264_ratecontrol_t) );
+    CHECKED_MALLOCZERO( h->rc, h->param.i_threads * sizeof(x264_ratecontrol_t) );
+    rc = h->rc;
 
     rc->b_abr = h->param.rc.i_rc_method != X264_RC_CQP && !h->param.rc.b_stat_read;
     rc->b_2pass = h->param.rc.i_rc_method == X264_RC_ABR && h->param.rc.b_stat_read;
@@ -426,8 +428,8 @@ int x264_ratecontrol_new( x264_t *h )
 
     rc->lstep = pow( 2, h->param.rc.i_qp_step / 6.0 );
     rc->last_qscale = qp2qscale(26);
-    rc->pred = x264_malloc( 5*sizeof(predictor_t) );
-    rc->pred_b_from_p = x264_malloc( sizeof(predictor_t) );
+    CHECKED_MALLOC( rc->pred, 5*sizeof(predictor_t) );
+    CHECKED_MALLOC( rc->pred_b_from_p, sizeof(predictor_t) );
     for( i = 0; i < 5; i++ )
     {
         rc->last_qscale_for[i] = qp2qscale( ABR_INIT_QP );
@@ -466,6 +468,8 @@ int x264_ratecontrol_new( x264_t *h )
         if( h->param.rc.b_mb_tree )
         {
             char *mbtree_stats_in = x264_strcat_filename( h->param.rc.psz_stat_in, ".mbtree" );
+            if( !mbtree_stats_in )
+                return -1;
             rc->p_mbtree_stat_file_in = fopen( mbtree_stats_in, "rb" );
             x264_free( mbtree_stats_in );
             if( !rc->p_mbtree_stat_file_in )
@@ -548,8 +552,7 @@ int x264_ratecontrol_new( x264_t *h )
             return -1;
         }
 
-        rc->entry = (ratecontrol_entry_t*) x264_malloc(rc->num_entries * sizeof(ratecontrol_entry_t));
-        memset(rc->entry, 0, rc->num_entries * sizeof(ratecontrol_entry_t));
+        CHECKED_MALLOCZERO( rc->entry, rc->num_entries * sizeof(ratecontrol_entry_t) );
 
         /* init all to skipped p frames */
         for(i=0; i<rc->num_entries; i++)
@@ -626,6 +629,8 @@ int x264_ratecontrol_new( x264_t *h )
     {
         char *p;
         rc->psz_stat_file_tmpname = x264_strcat_filename( h->param.rc.psz_stat_out, ".temp" );
+        if( !rc->psz_stat_file_tmpname )
+            return -1;
 
         rc->p_stat_file_out = fopen( rc->psz_stat_file_tmpname, "wb" );
         if( rc->p_stat_file_out == NULL )
@@ -635,12 +640,15 @@ int x264_ratecontrol_new( x264_t *h )
         }
 
         p = x264_param2string( &h->param, 1 );
-        fprintf( rc->p_stat_file_out, "#options: %s\n", p );
+        if( p )
+            fprintf( rc->p_stat_file_out, "#options: %s\n", p );
         x264_free( p );
         if( h->param.rc.b_mb_tree && !h->param.rc.b_stat_read )
         {
             rc->psz_mbtree_stat_file_tmpname = x264_strcat_filename( h->param.rc.psz_stat_out, ".mbtree.temp" );
             rc->psz_mbtree_stat_file_name = x264_strcat_filename( h->param.rc.psz_stat_out, ".mbtree" );
+            if( !rc->psz_mbtree_stat_file_tmpname || !rc->psz_mbtree_stat_file_name )
+                return -1;
 
             rc->p_mbtree_stat_file_out = fopen( rc->psz_mbtree_stat_file_tmpname, "wb" );
             if( rc->p_mbtree_stat_file_out == NULL )
@@ -652,11 +660,7 @@ int x264_ratecontrol_new( x264_t *h )
     }
 
     if( h->param.rc.b_mb_tree && (h->param.rc.b_stat_read || h->param.rc.b_stat_write) )
-    {
-        rc->qp_buffer = x264_malloc( h->mb.i_mb_count * sizeof(uint16_t));
-        if( !rc->qp_buffer )
-            return -1;
-    }
+        CHECKED_MALLOC( rc->qp_buffer, h->mb.i_mb_count * sizeof(uint16_t) );
 
     for( i=0; i<h->param.i_threads; i++ )
     {
@@ -664,12 +668,14 @@ int x264_ratecontrol_new( x264_t *h )
         if( i )
         {
             rc[i] = rc[0];
-            memcpy( &h->thread[i]->param, &h->param, sizeof( x264_param_t ) );
+            memcpy( &h->thread[i]->param, &h->param, sizeof(x264_param_t) );
             h->thread[i]->mb.b_variable_qp = h->mb.b_variable_qp;
         }
     }
 
     return 0;
+fail:
+    return -1;
 }
 
 static int parse_zone( x264_t *h, x264_zone_t *z, char *p )
@@ -692,7 +698,7 @@ static int parse_zone( x264_t *h, x264_zone_t *z, char *p )
     p += len;
     if( !*p )
         return 0;
-    z->param = x264_malloc( sizeof(x264_param_t) );
+    CHECKED_MALLOC( z->param, sizeof(x264_param_t) );
     memcpy( z->param, &h->param, sizeof(x264_param_t) );
     while( (tok = strtok_r( p, ",", &saveptr )) )
     {
@@ -710,6 +716,8 @@ static int parse_zone( x264_t *h, x264_zone_t *z, char *p )
         p = NULL;
     }
     return 0;
+fail:
+    return -1;
 }
 
 static int parse_zones( x264_t *h )
@@ -718,13 +726,13 @@ static int parse_zones( x264_t *h )
     int i;
     if( h->param.rc.psz_zones && !h->param.rc.i_zones )
     {
-        char *p, *tok, UNUSED *saveptr;
-        char *psz_zones = x264_malloc( strlen(h->param.rc.psz_zones)+1 );
+        char *psz_zones, *p, *tok, UNUSED *saveptr;
+        CHECKED_MALLOC( psz_zones, strlen( h->param.rc.psz_zones )+1 );
         strcpy( psz_zones, h->param.rc.psz_zones );
         h->param.rc.i_zones = 1;
         for( p = psz_zones; *p; p++ )
             h->param.rc.i_zones += (*p == '/');
-        h->param.rc.zones = x264_malloc( h->param.rc.i_zones * sizeof(x264_zone_t) );
+        CHECKED_MALLOC( h->param.rc.zones, h->param.rc.i_zones * sizeof(x264_zone_t) );
         p = psz_zones;
         for( i = 0; i < h->param.rc.i_zones; i++ )
         {
@@ -756,7 +764,7 @@ static int parse_zones( x264_t *h )
         }
 
         rc->i_zones = h->param.rc.i_zones + 1;
-        rc->zones = x264_malloc( rc->i_zones * sizeof(x264_zone_t) );
+        CHECKED_MALLOC( rc->zones, rc->i_zones * sizeof(x264_zone_t) );
         memcpy( rc->zones+1, h->param.rc.zones, (rc->i_zones-1) * sizeof(x264_zone_t) );
 
         // default zone to fall back to if none of the others match
@@ -764,7 +772,7 @@ static int parse_zones( x264_t *h )
         rc->zones[0].i_end = INT_MAX;
         rc->zones[0].b_force_qp = 0;
         rc->zones[0].f_bitrate_factor = 1;
-        rc->zones[0].param = x264_malloc( sizeof(x264_param_t) );
+        CHECKED_MALLOC( rc->zones[0].param, sizeof(x264_param_t) );
         memcpy( rc->zones[0].param, &h->param, sizeof(x264_param_t) );
         for( i = 1; i < rc->i_zones; i++ )
         {
@@ -774,6 +782,8 @@ static int parse_zones( x264_t *h )
     }
 
     return 0;
+fail:
+    return -1;
 }
 
 static x264_zone_t *get_zone( x264_t *h, int frame_num )
@@ -1821,7 +1831,7 @@ static double count_expected_bits( x264_t *h )
     return expected_bits;
 }
 
-static void vbv_pass2( x264_t *h )
+static int vbv_pass2( x264_t *h )
 {
     /* for each interval of buffer_full .. underflow, uniformly increase the qp of all
      * frames in the interval until either buffer is full at some intermediate frame or the
@@ -1829,7 +1839,7 @@ static void vbv_pass2( x264_t *h )
      * Then do the converse to put bits back into overflow areas until target size is met */
 
     x264_ratecontrol_t *rcc = h->rc;
-    double *fills = x264_malloc((rcc->num_entries+1)*sizeof(double));
+    double *fills;
     double all_available_bits = h->param.rc.i_bitrate * 1000. * rcc->num_entries / rcc->fps;
     double expected_bits = 0;
     double adjustment;
@@ -1839,6 +1849,7 @@ static void vbv_pass2( x264_t *h )
     double qscale_max = qp2qscale(h->param.rc.i_qp_max);
     int iterations = 0;
     int adj_min, adj_max;
+    CHECKED_MALLOC( fills, (rcc->num_entries+1)*sizeof(double) );
 
     fills++;
 
@@ -1880,6 +1891,9 @@ static void vbv_pass2( x264_t *h )
         rcc->entry[i].expected_vbv = rcc->buffer_size - fills[i];
 
     x264_free(fills-1);
+    return 0;
+fail:
+    return -1;
 }
 
 static int init_pass2( x264_t *h )
@@ -1947,9 +1961,9 @@ static int init_pass2( x264_t *h )
         rce->blurred_complexity = cplx_sum / weight_sum;
     }
 
-    qscale = x264_malloc(sizeof(double)*rcc->num_entries);
-    if(filter_size > 1)
-        blurred_qscale = x264_malloc(sizeof(double)*rcc->num_entries);
+    CHECKED_MALLOC( qscale, sizeof(double)*rcc->num_entries );
+    if( filter_size > 1 )
+        CHECKED_MALLOC( blurred_qscale, sizeof(double)*rcc->num_entries );
     else
         blurred_qscale = qscale;
 
@@ -2031,7 +2045,8 @@ static int init_pass2( x264_t *h )
         x264_free(blurred_qscale);
 
     if(rcc->b_vbv)
-        vbv_pass2(h);
+        if( vbv_pass2( h ) )
+            return -1;
     expected_bits = count_expected_bits(h);
 
     if(fabs(expected_bits/all_available_bits - 1.0) > 0.01)
@@ -2066,6 +2081,6 @@ static int init_pass2( x264_t *h )
     }
 
     return 0;
+fail:
+    return -1;
 }
-
-

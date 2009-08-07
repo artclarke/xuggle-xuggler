@@ -470,7 +470,7 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
     bs_rbsp_trailing( s );
 }
 
-void x264_sei_version_write( x264_t *h, bs_t *s )
+int x264_sei_version_write( x264_t *h, bs_t *s )
 {
     int i;
     // random ID number generated according to ISO-11578
@@ -479,8 +479,12 @@ void x264_sei_version_write( x264_t *h, bs_t *s )
         0x96, 0x2c, 0xd8, 0x20, 0xd9, 0x23, 0xee, 0xef
     };
     char *opts = x264_param2string( &h->param, 0 );
-    char *version = x264_malloc( 200 + strlen(opts) );
+    char *version;
     int length;
+
+    if( !opts )
+        return -1;
+    CHECKED_MALLOC( version, 200 + strlen( opts ) );
 
     sprintf( version, "x264 - core %d%s - H.264/MPEG-4 AVC codec - "
              "Copyleft 2003-2009 - http://www.videolan.org/x264.html - options: %s",
@@ -502,6 +506,10 @@ void x264_sei_version_write( x264_t *h, bs_t *s )
 
     x264_free( opts );
     x264_free( version );
+    return 0;
+fail:
+    x264_free( opts );
+    return -1;
 }
 
 const x264_level_t x264_levels[] =

@@ -93,9 +93,9 @@ int x264_cqm_init( x264_t *h )
         }
         else
         {
-            h->  quant4_mf[i] = x264_malloc(52*size*sizeof(uint16_t) );
-            h->dequant4_mf[i] = x264_malloc( 6*size*sizeof(int) );
-            h->unquant4_mf[i] = x264_malloc(52*size*sizeof(int) );
+            CHECKED_MALLOC( h->  quant4_mf[i], 52*size*sizeof(uint16_t) );
+            CHECKED_MALLOC( h->dequant4_mf[i],  6*size*sizeof(int) );
+            CHECKED_MALLOC( h->unquant4_mf[i], 52*size*sizeof(int) );
         }
 
         for( j = (i<4 ? 0 : 4); j < i; j++ )
@@ -105,7 +105,7 @@ int x264_cqm_init( x264_t *h )
         if( j < i )
             h->quant4_bias[i] = h->quant4_bias[j];
         else
-            h->quant4_bias[i] = x264_malloc(52*size*sizeof(uint16_t) );
+            CHECKED_MALLOC( h->quant4_bias[i], 52*size*sizeof(uint16_t) );
     }
 
     for( q = 0; q < 6; q++ )
@@ -171,6 +171,9 @@ int x264_cqm_init( x264_t *h )
         return -1;
     }
     return 0;
+fail:
+    x264_cqm_delete( h );
+    return -1;
 }
 
 void x264_cqm_delete( x264_t *h )

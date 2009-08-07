@@ -37,14 +37,16 @@
 #define FIX8(f) ((int)(f*(1<<8)+.5))
 
 #define CHECKED_MALLOC( var, size )\
-{\
+do {\
     var = x264_malloc( size );\
     if( !var )\
-    {\
-        x264_log( h, X264_LOG_ERROR, "malloc failed\n" );\
         goto fail;\
-    }\
-}
+} while( 0 )
+#define CHECKED_MALLOCZERO( var, size )\
+do {\
+    CHECKED_MALLOC( var, size );\
+    memset( var, 0, size );\
+} while( 0 )
 
 #define X264_BFRAME_MAX 16
 #define X264_THREAD_MAX 128
@@ -83,7 +85,6 @@
 /* x264_malloc : will do or emulate a memalign
  * you have to use x264_free for buffers allocated with x264_malloc */
 void *x264_malloc( int );
-void *x264_realloc( void *p, int i_size );
 void  x264_free( void * );
 
 /* x264_slurp_file: malloc space for the whole file and read it */

@@ -62,11 +62,10 @@ static mk_Context *mk_createContext(mk_Writer *w, mk_Context *parent, unsigned i
     w->freelist = w->freelist->next;
   } else {
     c = malloc(sizeof(*c));
+    if (c == NULL)
+      return NULL;
     memset(c, 0, sizeof(*c));
   }
-
-  if (c == NULL)
-    return NULL;
 
   c->parent = parent;
   c->owner = w;

@@ -43,8 +43,8 @@
 #define bs_write_ue bs_write_ue_big
 
 static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
-                                    x264_nal_t **pp_nal, int *pi_nal,
-                                    x264_picture_t *pic_out );
+                                   x264_nal_t **pp_nal, int *pi_nal,
+                                   x264_picture_t *pic_out );
 
 /****************************************************************************
  *
@@ -295,17 +295,18 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
 
 /* If we are within a reasonable distance of the end of the memory allocated for the bitstream, */
 /* reallocate, adding an arbitrary amount of space (100 kilobytes). */
-static void x264_bitstream_check_buffer( x264_t *h )
+static int x264_bitstream_check_buffer( x264_t *h )
 {
+    uint8_t *bs_bak = h->out.p_bitstream;
     if( ( h->param.b_cabac && (h->cabac.p_end - h->cabac.p < 2500) )
      || ( h->out.bs.p_end - h->out.bs.p < 2500 ) )
     {
-        uint8_t *bs_bak = h->out.p_bitstream;
         intptr_t delta;
         int i;
 
         h->out.i_bitstream += 100000;
-        h->out.p_bitstream = x264_realloc( h->out.p_bitstream, h->out.i_bitstream );
+        CHECKED_MALLOC( h->out.p_bitstream, h->out.i_bitstream );
+        h->mc.memcpy_aligned( h->out.p_bitstream, bs_bak, (h->out.i_bitstream - 100000) & ~15 );
         delta = h->out.p_bitstream - bs_bak;
 
         h->out.bs.p_start += delta;
@@ -318,7 +319,12 @@ static void x264_bitstream_check_buffer( x264_t *h )
 
         for( i = 0; i <= h->out.i_nal; i++ )
             h->out.nal[i].p_payload += delta;
+        x264_free( bs_bak );
     }
+    return 0;
+fail:
+    x264_free( bs_bak );
+    return -1;
 }
 
 /****************************************************************************
@@ -666,27 +672,21 @@ static void mbcmp_init( x264_t *h )
  ****************************************************************************/
 x264_t *x264_encoder_open   ( x264_param_t *param )
 {
-    x264_t *h = x264_malloc( sizeof( x264_t ) );
+    x264_t *h;
     char buf[1000], *p;
     int i;
 
-    memset( h, 0, sizeof( x264_t ) );
+    CHECKED_MALLOCZERO( h, sizeof(x264_t) );
 
     /* Create a copy of param */
-    memcpy( &h->param, param, sizeof( x264_param_t ) );
+    memcpy( &h->param, param, sizeof(x264_param_t) );
 
     if( x264_validate_parameters( h ) < 0 )
-    {
-        x264_free( h );
-        return NULL;
-    }
+        goto fail;
 
     if( h->param.psz_cqm_file )
         if( x264_cqm_parse_file( h, h->param.psz_cqm_file ) < 0 )
-        {
-            x264_free( h );
-            return NULL;
-        }
+            goto fail;
 
     if( h->param.rc.psz_stat_out )
         h->param.rc.psz_stat_out = strdup( h->param.rc.psz_stat_out );
@@ -737,10 +737,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     x264_validate_levels( h, 1 );
 
     if( x264_cqm_init( h ) < 0 )
-    {
-        x264_free( h );
-        return NULL;
-    }
+        goto fail;
 
     h->mb.i_mb_count = h->sps->i_mb_width * h->sps->i_mb_height;
 
@@ -822,20 +819,25 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     h->thread[0] = h;
     h->i_thread_num = 0;
     for( i = 1; i < h->param.i_threads; i++ )
-        h->thread[i] = x264_malloc( sizeof(x264_t) );
+        CHECKED_MALLOC( h->thread[i], sizeof(x264_t) );
 
     for( i = 0; i < h->param.i_threads; i++ )
     {
         if( i > 0 )
             *h->thread[i] = *h;
         h->thread[i]->fdec = x264_frame_pop_unused( h );
-        h->thread[i]->out.p_bitstream = x264_malloc( h->out.i_bitstream );
+        if( !h->thread[i]->fdec )
+            goto fail;
+        CHECKED_MALLOC( h->thread[i]->out.p_bitstream, h->out.i_bitstream );
         if( x264_macroblock_cache_init( h->thread[i] ) < 0 )
-            return NULL;
+            goto fail;
     }
 
     if( x264_ratecontrol_new( h ) < 0 )
-        return NULL;
+        goto fail;
+
+    if( x264_lowres_context_alloc( h ) )
+        goto fail;
 
     if( h->param.psz_dump_yuv )
     {
@@ -846,8 +848,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         else
         {
             x264_log( h, X264_LOG_ERROR, "can't write to fdec.yuv\n" );
-            x264_free( h );
-            return NULL;
+            goto fail;
         }
     }
 
@@ -858,6 +859,9 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         "High 4:4:4 Predictive", h->sps->i_level_idc/10, h->sps->i_level_idc%10 );
 
     return h;
+fail:
+    x264_free( h );
+    return NULL;
 }
 
 /****************************************************************************
@@ -938,7 +942,8 @@ int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
     {
         /* identify ourself */
         x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
-        x264_sei_version_write( h, &h->out.bs );
+        if( x264_sei_version_write( h, &h->out.bs ) )
+            return -1;
         x264_nal_end( h );
 
         /* generate sequence parameters */
@@ -1106,7 +1111,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y )
     }
 }
 
-static inline void x264_reference_update( x264_t *h )
+static inline int x264_reference_update( x264_t *h )
 {
     int i;
 
@@ -1119,8 +1124,10 @@ static inline void x264_reference_update( x264_t *h )
         {
             x264_frame_push_unused( h, h->fdec );
             h->fdec = x264_frame_pop_unused( h );
+            if( !h->fdec )
+                return -1;
         }
-        return;
+        return 0;
     }
 
     /* move lowres copy of the image to the ref frame */
@@ -1139,6 +1146,9 @@ static inline void x264_reference_update( x264_t *h )
     if( h->frames.reference[h->frames.i_max_dpb] )
         x264_frame_push_unused( h, x264_frame_shift( h->frames.reference ) );
     h->fdec = x264_frame_pop_unused( h );
+    if( !h->fdec )
+        return -1;
+    return 0;
 }
 
 static inline void x264_reference_reset( x264_t *h )
@@ -1188,7 +1198,7 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
     x264_macroblock_slice_init( h );
 }
 
-static void x264_slice_write( x264_t *h )
+static int x264_slice_write( x264_t *h )
 {
     int i_skip;
     int mb_xy, i_mb_x, i_mb_y;
@@ -1232,12 +1242,14 @@ static void x264_slice_write( x264_t *h )
          * Slice I: choose I_4x4 or I_16x16 mode
          * Slice P: choose between using P mode or intra (4x4 or 16x16)
          * */
-        x264_macroblock_analyse( h );
+        if( x264_macroblock_analyse( h ) )
+            return -1;
 
         /* encode this macroblock -> be careful it can change the mb type to P_SKIP if needed */
         x264_macroblock_encode( h );
 
-        x264_bitstream_check_buffer( h );
+        if( x264_bitstream_check_buffer( h ) )
+            return -1;
 
         if( h->param.b_cabac )
         {
@@ -1347,6 +1359,7 @@ static void x264_slice_write( x264_t *h )
                               + NALU_OVERHEAD * 8
                               - h->stat.frame.i_tex_bits
                               - h->stat.frame.i_mv_bits;
+    return 0;
 }
 
 static void x264_thread_sync_context( x264_t *dst, x264_t *src )
@@ -1375,7 +1388,7 @@ static void x264_thread_sync_stat( x264_t *dst, x264_t *src )
     memcpy( &dst->stat.i_slice_count, &src->stat.i_slice_count, sizeof(dst->stat) - sizeof(dst->stat.frame) );
 }
 
-static int x264_slices_write( x264_t *h )
+static void *x264_slices_write( x264_t *h )
 {
     int i_frame_size;
 
@@ -1387,10 +1400,12 @@ static int x264_slices_write( x264_t *h )
 
 #if VISUALIZE
     if( h->param.b_visualize )
-        x264_visualize_init( h );
+        if( x264_visualize_init( h ) )
+            return (void *)-1;
 #endif
 
-    x264_stack_align( x264_slice_write, h );
+    if( x264_stack_align( x264_slice_write, h ) )
+        return (void *)-1;
     i_frame_size = h->out.nal[h->out.i_nal-1].i_payload;
 
 #if VISUALIZE
@@ -1402,7 +1417,7 @@ static int x264_slices_write( x264_t *h )
 #endif
 
     h->out.i_frame_size = i_frame_size;
-    return 0;
+    return (void *)0;
 }
 
 /****************************************************************************
@@ -1448,7 +1463,8 @@ int     x264_encoder_encode( x264_t *h,
     }
 
     // ok to call this before encoding any frames, since the initial values of fdec have b_kept_as_ref=0
-    x264_reference_update( h );
+    if( x264_reference_update( h ) )
+        return -1;
     h->fdec->i_lines_completed = -1;
 
     /* no data out */
@@ -1460,6 +1476,8 @@ int     x264_encoder_encode( x264_t *h,
     {
         /* 1: Copy the picture to a frame and move it to a buffer */
         x264_frame_t *fenc = x264_frame_pop_unused( h );
+        if( !fenc )
+            return -1;
 
         if( x264_frame_copy_picture( h, fenc, pic_in ) < 0 )
             return -1;
@@ -1635,7 +1653,8 @@ int     x264_encoder_encode( x264_t *h,
         {
             /* identify ourself */
             x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
-            x264_sei_version_write( h, &h->out.bs );
+            if( x264_sei_version_write( h, &h->out.bs ) )
+                return -1;
             x264_nal_end( h );
         }
 
@@ -1653,27 +1672,30 @@ int     x264_encoder_encode( x264_t *h,
     /* Write frame */
     if( h->param.i_threads > 1 )
     {
-        x264_pthread_create( &h->thread_handle, NULL, (void*)x264_slices_write, h );
+        if( x264_pthread_create( &h->thread_handle, NULL, (void*)x264_slices_write, h ) )
+            return -1;
         h->b_thread_active = 1;
     }
     else
-        x264_slices_write( h );
+        if( (intptr_t)x264_slices_write( h ) )
+            return -1;
 
-    if( x264_encoder_frame_end( thread_oldest, thread_current, pp_nal, pi_nal, pic_out ) < 0 )
-        return -1;
-    return 0;
+    return x264_encoder_frame_end( thread_oldest, thread_current, pp_nal, pi_nal, pic_out );
 }
 
 static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
-                                    x264_nal_t **pp_nal, int *pi_nal,
-                                    x264_picture_t *pic_out )
+                                   x264_nal_t **pp_nal, int *pi_nal,
+                                   x264_picture_t *pic_out )
 {
     int i, i_list;
     char psz_message[80];
 
     if( h->b_thread_active )
     {
-        x264_pthread_join( h->thread_handle, NULL );
+        void *ret = NULL;
+        x264_pthread_join( h->thread_handle, &ret );
+        if( (intptr_t)ret )
+            return (intptr_t)ret;
         h->b_thread_active = 0;
     }
     if( !h->out.i_nal )

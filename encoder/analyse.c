@@ -213,7 +213,7 @@ uint16_t *x264_cost_mv_fpel[92][4];
 uint16_t x264_cost_ref[92][3][33];
 
 /* initialize an array of lambda*nbits for all possible mvs */
-static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
+static int x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
 {
     static int16_t *p_cost_mv[92];
     int i, j;
@@ -223,7 +223,7 @@ static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
         x264_emms();
         /* could be faster, but isn't called many times */
         /* factor of 4 from qpel, 2 from sign, and 2 because mv can be opposite from mvp */
-        p_cost_mv[a->i_lambda] = x264_malloc( (4*4*2048 + 1) * sizeof(int16_t) );
+        CHECKED_MALLOC( p_cost_mv[a->i_lambda], (4*4*2048 + 1) * sizeof(int16_t) );
         p_cost_mv[a->i_lambda] += 2*4*2048;
         for( i = 0; i <= 2*4*2048; i++ )
         {
@@ -243,12 +243,15 @@ static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
     {
         for( j=0; j<4; j++ )
         {
-            x264_cost_mv_fpel[a->i_lambda][j] = x264_malloc( (4*2048 + 1) * sizeof(int16_t) );
+            CHECKED_MALLOC( x264_cost_mv_fpel[a->i_lambda][j], (4*2048 + 1) * sizeof(int16_t) );
             x264_cost_mv_fpel[a->i_lambda][j] += 2*2048;
             for( i = -2*2048; i < 2*2048; i++ )
                 x264_cost_mv_fpel[a->i_lambda][j][i] = p_cost_mv[a->i_lambda][i*4+j];
         }
     }
+    return 0;
+fail:
+    return -1;
 }
 
 static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
@@ -2253,7 +2256,7 @@ static inline void x264_mb_analyse_qp_rd( x264_t *h, x264_mb_analysis_t *a )
 /*****************************************************************************
  * x264_macroblock_analyse:
  *****************************************************************************/
-void x264_macroblock_analyse( x264_t *h )
+int x264_macroblock_analyse( x264_t *h )
 {
     x264_mb_analysis_t analysis;
     int i_cost = COST_MAX;
@@ -2328,12 +2331,13 @@ void x264_macroblock_analyse( x264_t *h )
             int i_thresh16x8;
             int i_satd_inter, i_satd_intra;
 
-            x264_mb_analyse_load_costs( h, &analysis );
+            if( x264_mb_analyse_load_costs( h, &analysis ) )
+                return -1;
 
             x264_mb_analyse_inter_p16x16( h, &analysis );
 
             if( h->mb.i_type == P_SKIP )
-                return;
+                return 0;
 
             if( flags & X264_ANALYSE_PSUB16x16 )
             {
@@ -2620,7 +2624,8 @@ void x264_macroblock_analyse( x264_t *h )
             int i_satd_inter = 0; // shut up uninitialized warning
             h->mb.b_skip_mc = 0;
 
-            x264_mb_analyse_load_costs( h, &analysis );
+            if( x264_mb_analyse_load_costs( h, &analysis ) )
+                return -1;
 
             /* select best inter mode */
             /* direct must be first */
@@ -2646,7 +2651,7 @@ void x264_macroblock_analyse( x264_t *h )
                 {
                     h->mb.i_type = B_SKIP;
                     x264_analyse_update_cache( h, &analysis );
-                    return;
+                    return 0;
                 }
             }
 
@@ -2871,6 +2876,7 @@ void x264_macroblock_analyse( x264_t *h )
         x264_psy_trellis_init( h, 0 );
     if( h->mb.b_trellis == 1 || h->mb.b_noise_reduction )
         h->mb.i_skip_intra = 0;
+    return 0;
 }
 
 /*-------------------- Update MB from the analysis ----------------------*/

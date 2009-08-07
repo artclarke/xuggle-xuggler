@@ -28,7 +28,7 @@
 
 x264_frame_t *x264_frame_new( x264_t *h )
 {
-    x264_frame_t *frame = x264_malloc( sizeof(x264_frame_t) );
+    x264_frame_t *frame;
     int i, j;
 
     int i_mb_count = h->mb.i_mb_count;
@@ -38,9 +38,7 @@ x264_frame_t *x264_frame_new( x264_t *h )
     int chroma_plane_size;
     int align = h->param.cpu&X264_CPU_CACHELINE_64 ? 64 : h->param.cpu&X264_CPU_CACHELINE_32 ? 32 : 16;
 
-    if( !frame ) return NULL;
-
-    memset( frame, 0, sizeof(x264_frame_t) );
+    CHECKED_MALLOCZERO( frame, sizeof(x264_frame_t) );
 
     /* allocate frame data (+64 for extra data for me) */
     i_width  = ALIGN( h->param.i_width, 16 );
@@ -92,8 +90,7 @@ x264_frame_t *x264_frame_new( x264_t *h )
         for( j = 0; j <= !!h->param.i_bframe; j++ )
             for( i = 0; i <= h->param.i_bframe; i++ )
             {
-                CHECKED_MALLOC( frame->lowres_mvs[j][i], 2*h->mb.i_mb_count*sizeof(int16_t) );
-                memset( frame->lowres_mvs[j][i], 0, 2*h->mb.i_mb_count*sizeof(int16_t) );
+                CHECKED_MALLOCZERO( frame->lowres_mvs[j][i], 2*h->mb.i_mb_count*sizeof(int16_t) );
                 CHECKED_MALLOC( frame->lowres_mv_costs[j][i], h->mb.i_mb_count*sizeof(int) );
             }
         CHECKED_MALLOC( frame->i_intra_cost, i_mb_count * sizeof(uint16_t) );
@@ -149,13 +146,15 @@ x264_frame_t *x264_frame_new( x264_t *h )
             CHECKED_MALLOC( frame->i_inv_qscale_factor, h->mb.i_mb_count * sizeof(uint16_t) );
     }
 
-    x264_pthread_mutex_init( &frame->mutex, NULL );
-    x264_pthread_cond_init( &frame->cv, NULL );
+    if( x264_pthread_mutex_init( &frame->mutex, NULL ) )
+        goto fail;
+    if( x264_pthread_cond_init( &frame->cv, NULL ) )
+        goto fail;
 
     return frame;
 
 fail:
-    x264_frame_delete( frame );
+    x264_free( frame );
     return NULL;
 }
 
@@ -956,7 +955,8 @@ x264_frame_t *x264_frame_pop_unused( x264_t *h )
         frame = x264_frame_pop( h->frames.unused );
     else
         frame = x264_frame_new( h );
-    assert( frame->i_reference_count == 0 );
+    if( !frame )
+        return NULL;
     frame->i_reference_count = 1;
     frame->b_intra_calculated = 0;
     return frame;

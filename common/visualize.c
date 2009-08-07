@@ -94,10 +94,13 @@ static void mv(int x0, int y0, int16_t dmv[2], int ref, int zoom, char *col)
 /* }}} */
 
 /* {{{ [fold] void x264_visualize_init( x264_t *h ) */
-void x264_visualize_init( x264_t *h )
+int x264_visualize_init( x264_t *h )
 {
     int mb = h->sps->i_mb_width * h->sps->i_mb_height;
-    h->visualize = x264_malloc(mb * sizeof(visualize_t));
+    CHECKED_MALLOC( h->visualize, mb * sizeof(visualize_t) );
+    return 0;
+fail:
+    return -1;
 }
 /* }}} */
 /* {{{ [fold] void x264_visualize_mb( x264_t *h ) */

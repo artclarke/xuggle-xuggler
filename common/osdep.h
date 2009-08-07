@@ -90,10 +90,16 @@
 #if defined(SYS_BEOS)
 #include <kernel/OS.h>
 #define x264_pthread_t               thread_id
-#define x264_pthread_create(t,u,f,d) { *(t)=spawn_thread(f,"",10,d); \
-                                       resume_thread(*(t)); }
+static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(void *), void *d )
+{
+     *t = spawn_thread( f, "", 10, d );
+     if( *t < B_NO_ERROR )
+         return -1;
+     resume_thread( *t );
+     return 0;
+}
 #define x264_pthread_join(t,s)       { long tmp; \
-                                       wait_for_thread(t,(s)?(long*)(s):&tmp); }
+                                       wait_for_thread(t,(s)?(long*)(*(s)):&tmp); }
 #ifndef usleep
 #define usleep(t)                    snooze(t)
 #endif
@@ -105,7 +111,7 @@
 
 #else
 #define x264_pthread_t               int
-#define x264_pthread_create(t,u,f,d)
+#define x264_pthread_create(t,u,f,d) 0
 #define x264_pthread_join(t,s)
 #endif //SYS_*
 
@@ -125,12 +131,12 @@
 #define x264_pthread_cond_wait       pthread_cond_wait
 #else
 #define x264_pthread_mutex_t         int
-#define x264_pthread_mutex_init(m,f)
+#define x264_pthread_mutex_init(m,f) 0
 #define x264_pthread_mutex_destroy(m)
 #define x264_pthread_mutex_lock(m)
 #define x264_pthread_mutex_unlock(m)
 #define x264_pthread_cond_t          int
-#define x264_pthread_cond_init(c,f)
+#define x264_pthread_cond_init(c,f)  0
 #define x264_pthread_cond_destroy(c)
 #define x264_pthread_cond_broadcast(c)
 #define x264_pthread_cond_wait(c,m)

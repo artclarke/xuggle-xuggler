@@ -606,11 +606,14 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
  ****************************************************************************/
 void x264_log( x264_t *h, int i_level, const char *psz_fmt, ... )
 {
-    if( i_level <= h->param.i_log_level )
+    if( !h || i_level <= h->param.i_log_level )
     {
         va_list arg;
         va_start( arg, psz_fmt );
-        h->param.pf_log( h->param.p_log_private, i_level, psz_fmt, arg );
+        if( !h )
+            x264_log_default( NULL, i_level, psz_fmt, arg );
+        else
+            h->param.pf_log( h->param.p_log_private, i_level, psz_fmt, arg );
         va_end( arg );
     }
 }
@@ -643,18 +646,21 @@ static void x264_log_default( void *p_unused, int i_level, const char *psz_fmt, 
 /****************************************************************************
  * x264_picture_alloc:
  ****************************************************************************/
-void x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_height )
+int x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_height )
 {
     pic->i_type = X264_TYPE_AUTO;
     pic->i_qpplus1 = 0;
     pic->img.i_csp = i_csp;
     pic->img.i_plane = 3;
     pic->img.plane[0] = x264_malloc( 3 * i_width * i_height / 2 );
+    if( !pic->img.plane[0] )
+        return -1;
     pic->img.plane[1] = pic->img.plane[0] + i_width * i_height;
     pic->img.plane[2] = pic->img.plane[1] + i_width * i_height / 4;
     pic->img.i_stride[0] = i_width;
     pic->img.i_stride[1] = i_width / 2;
     pic->img.i_stride[2] = i_width / 2;
+    return 0;
 }
 
 /****************************************************************************
@@ -717,22 +723,25 @@ int x264_nal_encode( void *p_data, int *pi_data, int b_annexeb, x264_nal_t *nal 
  ****************************************************************************/
 void *x264_malloc( int i_size )
 {
+    uint8_t *align_buf = NULL;
 #ifdef SYS_MACOSX
     /* Mac OS X always returns 16 bytes aligned memory */
-    return malloc( i_size );
+    align_buf = malloc( i_size );
 #elif defined( HAVE_MALLOC_H )
-    return memalign( 16, i_size );
+    align_buf = memalign( 16, i_size );
 #else
-    uint8_t * buf;
-    uint8_t * align_buf;
-    buf = (uint8_t *) malloc( i_size + 15 + sizeof( void ** ) +
-              sizeof( int ) );
-    align_buf = buf + 15 + sizeof( void ** ) + sizeof( int );
-    align_buf -= (intptr_t) align_buf & 15;
-    *( (void **) ( align_buf - sizeof( void ** ) ) ) = buf;
-    *( (int *) ( align_buf - sizeof( void ** ) - sizeof( int ) ) ) = i_size;
-    return align_buf;
+    uint8_t *buf = malloc( i_size + 15 + sizeof(void **) + sizeof(int) );
+    if( buf )
+    {
+        align_buf = buf + 15 + sizeof(void **) + sizeof(int);
+        align_buf -= (intptr_t) align_buf & 15;
+        *( (void **) ( align_buf - sizeof(void **) ) ) = buf;
+        *( (int *) ( align_buf - sizeof(void **) - sizeof(int) ) ) = i_size;
+    }
 #endif
+    if( !align_buf )
+        x264_log( NULL, X264_LOG_ERROR, "malloc of size %d failed\n", i_size );
+    return align_buf;
 }
 
 /****************************************************************************
@@ -748,31 +757,6 @@ void x264_free( void *p )
         free( *( ( ( void **) p ) - 1 ) );
 #endif
     }
-}
-
-/****************************************************************************
- * x264_realloc:
- ****************************************************************************/
-void *x264_realloc( void *p, int i_size )
-{
-#ifdef HAVE_MALLOC_H
-    return realloc( p, i_size );
-#else
-    int       i_old_size = 0;
-    uint8_t * p_new;
-    if( p )
-    {
-        i_old_size = *( (int*) ( (uint8_t*) p - sizeof( void ** ) -
-                         sizeof( int ) ) );
-    }
-    p_new = x264_malloc( i_size );
-    if( i_old_size > 0 && i_size > 0 )
-    {
-        memcpy( p_new, p, ( i_old_size < i_size ) ? i_old_size : i_size );
-    }
-    x264_free( p );
-    return p_new;
-#endif
 }
 
 /****************************************************************************
@@ -838,6 +822,8 @@ char *x264_param2string( x264_param_t *p, int b_res )
     if( p->rc.psz_zones )
         len += strlen(p->rc.psz_zones);
     buf = s = x264_malloc( len );
+    if( !buf )
+        return NULL;
 
     if( b_res )
     {

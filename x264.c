@@ -985,7 +985,8 @@ generic_option:
     {
         if( open_file_thread( NULL, &opt->hin, param ) )
         {
-            fprintf( stderr, "x264 [warning]: threaded input failed\n" );
+            fprintf( stderr, "x264 [error]: threaded input failed\n" );
+            return -1;
         }
         else
         {
@@ -1065,12 +1066,13 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
 {
     x264_picture_t pic_out;
     x264_nal_t *nal;
-    int i_nal, i;
+    int i_nal, i, i_nalu_size;
     int i_file = 0;
 
     if( x264_encoder_encode( h, &nal, &i_nal, pic, &pic_out ) < 0 )
     {
         fprintf( stderr, "x264 [error]: x264_encoder_encode failed\n" );
+        return -1;
     }
 
     for( i = 0; i < i_nal; i++ )
@@ -1082,11 +1084,16 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
             mux_buffer_size = nal[i].i_payload * 2 + 4;
             x264_free( mux_buffer );
             mux_buffer = x264_malloc( mux_buffer_size );
+            if( !mux_buffer )
+                return -1;
         }
 
         i_size = mux_buffer_size;
         x264_nal_encode( mux_buffer, &i_size, 1, &nal[i] );
-        i_file += p_write_nalu( hout, mux_buffer, i_size );
+        i_nalu_size = p_write_nalu( hout, mux_buffer, i_size );
+        if( i_nalu_size < 0 )
+            return -1;
+        i_file += i_nalu_size;
     }
     if (i_nal)
         p_set_eop( hout, &pic_out );
@@ -1131,7 +1138,11 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     }
 
     /* Create a new pic */
-    x264_picture_alloc( &pic, X264_CSP_I420, param->i_width, param->i_height );
+    if( x264_picture_alloc( &pic, X264_CSP_I420, param->i_width, param->i_height ) < 0 )
+    {
+        fprintf( stderr, "x264 [error]: malloc failed\n" );
+        return -1;
+    }
 
     i_start = x264_mdate();
 
@@ -1152,7 +1163,10 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
             pic.i_qpplus1 = 0;
         }
 
-        i_file += Encode_frame( h, opt->hout, &pic );
+        i_frame_size = Encode_frame( h, opt->hout, &pic );
+        if( i_frame_size < 0 )
+            return -1;
+        i_file += i_frame_size;
 
         i_frame++;
 
@@ -1180,8 +1194,10 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     }
     /* Flush delayed B-frames */
     do {
-        i_file +=
         i_frame_size = Encode_frame( h, opt->hout, NULL );
+        if( i_frame_size < 0 )
+            return -1;
+        i_file += i_frame_size;
     } while( i_frame_size );
 
     i_end = x264_mdate();
