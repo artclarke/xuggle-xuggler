@@ -168,8 +168,8 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "                                  - baseline,main,high\n" );
     H0( "      --preset                Use a preset to select encoding settings [medium]\n" );
     H0( "                                  Overridden by user settings\n");
-    H0( "                                  - ultrafast,veryfast,faster,fast\n"
-        "                                  - medium,slow,slower,placebo\n" );
+    H0( "                                  - ultrafast,veryfast,faster,fast,medium\n"
+        "                                  - slow,slower,veryslow,placebo\n" );
     H0( "      --tune                  Tune the settings for a particular type of source\n" );
     H0( "                                  Overridden by user settings\n");
     H1( "                                  - film,animation,grain,psnr,ssim\n"
@@ -598,6 +598,19 @@ static int  Parse( int argc, char **argv,
                 param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_AUTO;
                 param->analyse.inter |= X264_ANALYSE_PSUB8x8;
                 param->analyse.i_trellis = 2;
+                param->rc.i_lookahead = 60;
+            }
+            else if( !strcasecmp( optarg, "veryslow" ) )
+            {
+                param->analyse.i_me_method = X264_ME_UMH;
+                param->analyse.i_subpel_refine = 10;
+                param->analyse.i_me_range = 24;
+                param->i_frame_reference = 16;
+                param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;
+                param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_AUTO;
+                param->analyse.inter |= X264_ANALYSE_PSUB8x8;
+                param->analyse.i_trellis = 2;
+                param->i_bframe = 8;
                 param->rc.i_lookahead = 60;
             }
             else if( !strcasecmp( optarg, "placebo" ) )
