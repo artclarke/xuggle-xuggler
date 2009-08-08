@@ -791,6 +791,7 @@ static void x264_slicetype_analyse( x264_t *h, int keyframe )
         for( j = 1; j < num_frames; j++ )
             frames[j]->i_type = X264_TYPE_P;
         reset_start = !keyframe + 1;
+        num_bframes = 0;
     }
 
     /* Perform the actual macroblock tree analysis.
@@ -799,16 +800,15 @@ static void x264_slicetype_analyse( x264_t *h, int keyframe )
         x264_macroblock_tree( h, &a, frames, X264_MIN(num_analysed_frames, h->param.rc.i_lookahead), keyframe );
 
     /* Enforce keyframe limit. */
-    if( h->param.i_bframe )
-        for( j = 0; j <= num_bframes; j++ )
-            if( j+1 > keyint_limit )
-            {
-                if( j )
-                    frames[j]->i_type = X264_TYPE_P;
-                frames[j+1]->i_type = idr_frame_type;
-                reset_start = j+2;
-                break;
-            }
+    for( j = 0; j <= num_bframes; j++ )
+        if( j+1 > keyint_limit )
+        {
+            if( j )
+                frames[j]->i_type = X264_TYPE_P;
+            frames[j+1]->i_type = idr_frame_type;
+            reset_start = j+2;
+            break;
+        }
 
     /* Restore frametypes for all frames that haven't actually been decided yet. */
     for( j = reset_start; j <= num_frames; j++ )
