@@ -85,7 +85,7 @@ typedef struct
     float   *f_qp_offset;
     int     b_intra_calculated;
     uint16_t *i_intra_cost;
-    uint32_t *i_propagate_cost;
+    uint16_t *i_propagate_cost;
     uint16_t *i_inv_qscale_factor;
 
     /* threading */

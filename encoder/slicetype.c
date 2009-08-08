@@ -403,41 +403,32 @@ static int x264_slicetype_frame_cost_recalculate( x264_t *h, x264_mb_analysis_t 
 static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, int p0, int p1, int b )
 {
     x264_frame_t *refs[2] = {frames[p0],frames[p1]};
-    int dist_scale_factor = p1 != p0 ? 128 : ( ((b-p0) << 8) + ((p1-p0) >> 1) ) / (p1-p0);
+    int dist_scale_factor = ( ((b-p0) << 8) + ((p1-p0) >> 1) ) / (p1-p0);
     int i_bipred_weight = h->param.analyse.b_weighted_bipred ? 64 - (dist_scale_factor>>2) : 32;
+    int16_t (*mvs[2])[2] = { frames[b]->lowres_mvs[0][b-p0-1], frames[b]->lowres_mvs[1][p1-b-1] };
 
     for( h->mb.i_mb_y = 0; h->mb.i_mb_y < h->sps->i_mb_height; h->mb.i_mb_y++ )
     {
-        for( h->mb.i_mb_x = 0; h->mb.i_mb_x < h->sps->i_mb_width; h->mb.i_mb_x++ )
+        int mb_index = h->mb.i_mb_y*h->mb.i_mb_stride;
+        for( h->mb.i_mb_x = 0; h->mb.i_mb_x < h->sps->i_mb_width; h->mb.i_mb_x++, mb_index++ )
         {
-            int mb_index = h->mb.i_mb_x + h->mb.i_mb_y*h->mb.i_mb_stride;
             int inter_cost = frames[b]->lowres_costs[b-p0][p1-b][mb_index];
-            int intra_cost = (frames[b]->i_intra_cost[mb_index] * frames[b]->i_inv_qscale_factor[mb_index]+128)>>8;
-            int lists_used = frames[b]->lowres_inter_types[b-p0][p1-b][mb_index];
-            /* The approximate amount of data that this block contains. */
-            int propagate_amount = intra_cost + frames[b]->i_propagate_cost[mb_index];
-
-            /* Divide by 64 for per-pixel summing. */
-            propagate_amount = (((uint64_t)propagate_amount*(intra_cost-inter_cost)) / intra_cost + 32) >> 6;
+            int intra_cost = frames[b]->i_intra_cost[mb_index];
 
             /* Don't propagate for an intra block. */
             if( inter_cost < intra_cost )
             {
-                int mv[2][2], list;
-                mv[0][0] = frames[b]->lowres_mvs[0][b-p0-1][mb_index][0];
-                mv[0][1] = frames[b]->lowres_mvs[0][b-p0-1][mb_index][1];
-                if( b != p1 )
-                {
-                    mv[1][0] = frames[b]->lowres_mvs[1][p1-b-1][mb_index][0];
-                    mv[1][1] = frames[b]->lowres_mvs[1][p1-b-1][mb_index][1];
-                }
-
+                int lists_used = frames[b]->lowres_inter_types[b-p0][p1-b][mb_index];
+                /* The approximate amount of data that this block contains. */
+                int propagate_amount = frames[b]->i_propagate_cost[mb_index] + ((intra_cost * frames[b]->i_inv_qscale_factor[mb_index] + 128)>>8);
+                propagate_amount = ((uint64_t)propagate_amount*(intra_cost-inter_cost)) / intra_cost;
+                int list;
                 /* Follow the MVs to the previous frame(s). */
                 for( list = 0; list < 2; list++ )
                     if( (lists_used >> list)&1 )
                     {
-                        int x = mv[list][0];
-                        int y = mv[list][1];
+                        int x = mvs[list][mb_index][0];
+                        int y = mvs[list][mb_index][1];
                         int listamount = propagate_amount;
                         int mbx = (x>>5)+h->mb.i_mb_x;
                         int mby = ((y>>5)+h->mb.i_mb_y);
@@ -445,10 +436,12 @@ static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, in
                         int idx1 = idx0 + 1;
                         int idx2 = idx0 + h->mb.i_mb_stride;
                         int idx3 = idx0 + h->mb.i_mb_stride + 1;
-                        int idx0weight = (32-(y&31))*(32-(x&31));
-                        int idx1weight = (32-(y&31))*(x&31);
-                        int idx2weight = (y&31)*(32-(x&31));
-                        int idx3weight = (y&31)*(x&31);
+                        x &= 31;
+                        y &= 31;
+                        int idx0weight = (32-y)*(32-x);
+                        int idx1weight = (32-y)*x;
+                        int idx2weight = y*(32-x);
+                        int idx3weight = y*x;
 
                         /* Apply bipred weighting. */
                         if( lists_used == 3 )
@@ -460,21 +453,21 @@ static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, in
                          * be counted. */
                         if( mbx < h->sps->i_mb_width-1 && mby < h->sps->i_mb_height-1 && mbx >= 0 && mby >= 0 )
                         {
-                            CLIP_ADD( refs[list]->i_propagate_cost[idx0], (listamount*idx0weight+8)>>4 );
-                            CLIP_ADD( refs[list]->i_propagate_cost[idx1], (listamount*idx1weight+8)>>4 );
-                            CLIP_ADD( refs[list]->i_propagate_cost[idx2], (listamount*idx2weight+8)>>4 );
-                            CLIP_ADD( refs[list]->i_propagate_cost[idx3], (listamount*idx3weight+8)>>4 );
+                            CLIP_ADD( refs[list]->i_propagate_cost[idx0], (listamount*idx0weight+512)>>10 );
+                            CLIP_ADD( refs[list]->i_propagate_cost[idx1], (listamount*idx1weight+512)>>10 );
+                            CLIP_ADD( refs[list]->i_propagate_cost[idx2], (listamount*idx2weight+512)>>10 );
+                            CLIP_ADD( refs[list]->i_propagate_cost[idx3], (listamount*idx3weight+512)>>10 );
                         }
                         else /* Check offsets individually */
                         {
                             if( mbx < h->sps->i_mb_width && mby < h->sps->i_mb_height && mbx >= 0 && mby >= 0 )
-                                CLIP_ADD( refs[list]->i_propagate_cost[idx0], (listamount*idx0weight+8)>>4 );
+                                CLIP_ADD( refs[list]->i_propagate_cost[idx0], (listamount*idx0weight+512)>>10 );
                             if( mbx+1 < h->sps->i_mb_width && mby < h->sps->i_mb_height && mbx+1 >= 0 && mby >= 0 )
-                                CLIP_ADD( refs[list]->i_propagate_cost[idx1], (listamount*idx1weight+8)>>4 );
+                                CLIP_ADD( refs[list]->i_propagate_cost[idx1], (listamount*idx1weight+512)>>10 );
                             if( mbx < h->sps->i_mb_width && mby+1 < h->sps->i_mb_height && mbx >= 0 && mby+1 >= 0 )
-                                CLIP_ADD( refs[list]->i_propagate_cost[idx2], (listamount*idx2weight+8)>>4 );
+                                CLIP_ADD( refs[list]->i_propagate_cost[idx2], (listamount*idx2weight+512)>>10 );
                             if( mbx+1 < h->sps->i_mb_width && mby+1 < h->sps->i_mb_height && mbx+1 >= 0 && mby+1 >= 0 )
-                                CLIP_ADD( refs[list]->i_propagate_cost[idx3], (listamount*idx3weight+8)>>4 );
+                                CLIP_ADD( refs[list]->i_propagate_cost[idx3], (listamount*idx3weight+512)>>10 );
                         }
                     }
             }
@@ -497,7 +490,7 @@ static void x264_macroblock_tree( x264_t *h, x264_mb_analysis_t *a, x264_frame_t
     if( last_nonb < 0 )
         return;
 
-    memset( frames[last_nonb]->i_propagate_cost, 0, h->mb.i_mb_count * sizeof(uint32_t) );
+    memset( frames[last_nonb]->i_propagate_cost, 0, h->mb.i_mb_count * sizeof(uint16_t) );
     while( i-- > idx )
     {
         cur_nonb = i;
@@ -506,12 +499,12 @@ static void x264_macroblock_tree( x264_t *h, x264_mb_analysis_t *a, x264_frame_t
         if( cur_nonb < idx )
             break;
         x264_slicetype_frame_cost( h, a, frames, cur_nonb, last_nonb, last_nonb, 0 );
-        memset( frames[cur_nonb]->i_propagate_cost, 0, h->mb.i_mb_count * sizeof(uint32_t) );
+        memset( frames[cur_nonb]->i_propagate_cost, 0, h->mb.i_mb_count * sizeof(uint16_t) );
         x264_macroblock_tree_propagate( h, frames, cur_nonb, last_nonb, last_nonb );
         while( frames[i]->i_type == X264_TYPE_B && i > 0 )
         {
             x264_slicetype_frame_cost( h, a, frames, cur_nonb, last_nonb, i, 0 );
-            memset( frames[i]->i_propagate_cost, 0, h->mb.i_mb_count * sizeof(uint32_t) );
+            memset( frames[i]->i_propagate_cost, 0, h->mb.i_mb_count * sizeof(uint16_t) );
             x264_macroblock_tree_propagate( h, frames, cur_nonb, last_nonb, i );
             i--;
         }

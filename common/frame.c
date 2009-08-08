@@ -95,7 +95,7 @@ x264_frame_t *x264_frame_new( x264_t *h )
             }
         CHECKED_MALLOC( frame->i_intra_cost, i_mb_count * sizeof(uint16_t) );
         memset( frame->i_intra_cost, -1, i_mb_count * sizeof(uint16_t) );
-        CHECKED_MALLOC( frame->i_propagate_cost, i_mb_count * sizeof(uint32_t) );
+        CHECKED_MALLOC( frame->i_propagate_cost, i_mb_count * sizeof(uint16_t) );
         for( j = 0; j <= h->param.i_bframe+1; j++ )
             for( i = 0; i <= h->param.i_bframe+1; i++ )
             {
