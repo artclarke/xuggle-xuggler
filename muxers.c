@@ -747,7 +747,7 @@ int write_nalu_mp4( hnd_t handle, uint8_t *p_nalu, int i_size )
                 return -1;
             p_slot->size = i_size - 4;
             p_slot->data = (char *)malloc(p_slot->size);
-            if( p_slot->data )
+            if( !p_slot->data )
                 return -1;
             memcpy(p_slot->data, p_nalu + 4, i_size - 4);
             gf_list_add(p_mp4->p_config->sequenceParameterSets, p_slot);
