@@ -478,8 +478,11 @@ static int x264_validate_parameters( x264_t *h )
     h->param.i_bframe_bias = x264_clip3( h->param.i_bframe_bias, -90, 100 );
     h->param.b_bframe_pyramid = h->param.b_bframe_pyramid && h->param.i_bframe > 1;
     if( !h->param.i_bframe )
+    {
         h->param.i_bframe_adaptive = X264_B_ADAPT_NONE;
-    h->param.analyse.b_weighted_bipred = h->param.analyse.b_weighted_bipred && h->param.i_bframe > 0;
+        h->param.analyse.i_direct_mv_pred = 0;
+        h->param.analyse.b_weighted_bipred = 0;
+    }
     h->param.rc.i_lookahead = x264_clip3( h->param.rc.i_lookahead, 0, X264_LOOKAHEAD_MAX );
     h->param.rc.i_lookahead = X264_MIN( h->param.rc.i_lookahead, h->param.i_keyint_max );
     if( h->param.rc.b_stat_read )
