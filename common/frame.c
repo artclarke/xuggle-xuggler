@@ -174,6 +174,13 @@ void x264_frame_delete( x264_frame_t *frame )
             x264_free( frame->lowres_mvs[j][i] );
             x264_free( frame->lowres_mv_costs[j][i] );
         }
+    x264_free( frame->i_propagate_cost );
+    for( j = 0; j <= X264_BFRAME_MAX+1; j++ )
+        for( i = 0; i <= X264_BFRAME_MAX+1; i++ )
+        {
+            x264_free( frame->lowres_costs[j][i] );
+            x264_free( frame->lowres_inter_types[j][i] );
+        }
     x264_free( frame->f_qp_offset );
     x264_free( frame->i_inv_qscale_factor );
     x264_free( frame->i_intra_cost );
