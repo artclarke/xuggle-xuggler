@@ -356,6 +356,33 @@ static void frame_init_lowres_core( uint8_t *src0, uint8_t *dst0, uint8_t *dsth,
     }
 }
 
+#if defined(__GNUC__) && (defined(ARCH_X86) || defined(ARCH_X86_64))
+// gcc isn't smart enough to use the "idiv" instruction
+static ALWAYS_INLINE int32_t div_64_32(int64_t x, int32_t y) {
+    int32_t quotient, remainder;
+    asm("idiv %4"
+        :"=a"(quotient), "=d"(remainder)
+        :"a"((uint32_t)x), "d"((int32_t)(x>>32)), "r"(y)
+    );
+    return quotient;
+}
+#else
+#define div_64_32(x,y) ((x)/(y))
+#endif
+
+/* Estimate the total amount of influence on future quality that could be had if we
+ * were to improve the reference samples used to inter predict any given macroblock. */
+static void mbtree_propagate_cost( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
+                                   uint16_t *inter_costs, uint16_t *inv_qscales, int len )
+{
+    int i;
+    for( i=0; i<len; i++ )
+    {
+        int propagate_amount = propagate_in[i] + ((intra_costs[i] * inv_qscales[i] + 128)>>8);
+        dst[i] = div_64_32((int64_t)propagate_amount * (intra_costs[i] - inter_costs[i]), intra_costs[i]);
+    }
+}
+
 void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 {
     pf->mc_luma   = mc_luma;
@@ -391,6 +418,8 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->integral_init8h = integral_init8h;
     pf->integral_init4v = integral_init4v;
     pf->integral_init8v = integral_init8v;
+
+    pf->mbtree_propagate_cost = mbtree_propagate_cost;
 
 #ifdef HAVE_MMX
     x264_mc_init_mmx( cpu, pf );

@@ -648,6 +648,7 @@ static int x264_validate_parameters( x264_t *h )
     BOOLIFY( analyse.b_fast_pskip );
     BOOLIFY( rc.b_stat_write );
     BOOLIFY( rc.b_stat_read );
+    BOOLIFY( rc.b_mb_tree );
 #undef BOOLIFY
 
     return 0;

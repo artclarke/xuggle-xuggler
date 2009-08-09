@@ -34,6 +34,7 @@ filt_mul51: times 8 db 1, -5
 pw_1:  times 8 dw 1
 pw_16: times 8 dw 16
 pw_32: times 8 dw 32
+pd_128: times 4 dd 128
 
 SECTION .text
 
@@ -1081,3 +1082,43 @@ INIT_XMM
 FRAME_INIT_LOWRES sse2, 12
 %define PALIGNR PALIGNR_SSSE3
 FRAME_INIT_LOWRES ssse3, 12
+
+;-----------------------------------------------------------------------------
+; void mbtree_propagate_cost( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
+;                             uint16_t *inter_costs, uint16_t *inv_qscales, int len )
+;-----------------------------------------------------------------------------
+cglobal x264_mbtree_propagate_cost_sse2, 6,6
+    shl r5d, 1
+    lea r0, [r0+r5*2]
+    lea r1, [r1+r5]
+    lea r2, [r2+r5]
+    lea r3, [r3+r5]
+    lea r4, [r4+r5]
+    neg r5
+    pxor      xmm5, xmm5
+    movdqa    xmm4, [pd_128 GLOBAL]
+.loop:
+    movq      xmm2, [r2+r5] ; intra
+    movq      xmm0, [r4+r5] ; invq
+    punpcklwd xmm2, xmm5
+    punpcklwd xmm0, xmm5
+    pmaddwd   xmm0, xmm2
+    paddd     xmm0, xmm4
+    psrld     xmm0, 8       ; intra*invq>>8
+    movq      xmm1, [r1+r5] ; prop
+    movq      xmm3, [r3+r5] ; inter
+    punpcklwd xmm1, xmm5
+    punpcklwd xmm3, xmm5
+    paddd     xmm0, xmm1    ; prop + (intra*invq>>8)
+    cvtdq2ps  xmm1, xmm2    ; intra
+    psubd     xmm2, xmm3    ; intra - inter
+    cvtdq2ps  xmm0, xmm0
+    cvtdq2ps  xmm2, xmm2
+    mulps     xmm0, xmm2    ; (prop + (intra*invq>>8)) * (intra - inter)
+    divps     xmm0, xmm1    ; / intra
+    cvttps2dq xmm0, xmm0    ; truncation isn't really desired, but matches the integer implementation
+    movdqa [r0+r5*2], xmm0
+    add r5, 8
+    jl .loop
+    REP_RET
+

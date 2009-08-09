@@ -960,6 +960,32 @@ static int check_mc( int cpu_ref, int cpu_new )
     INTEGRAL_INIT( integral_init8v, 9, sum, stride );
     report( "integral init :" );
 
+    if( mc_a.mbtree_propagate_cost != mc_ref.mbtree_propagate_cost )
+    {
+        ok = 1; used_asm = 1;
+        set_func_name( "mbtree_propagate" );
+        int *dsta = (int*)buf3;
+        int *dstc = dsta+400;
+        uint16_t *prop = (uint16_t*)buf1;
+        uint16_t *intra = (uint16_t*)buf4;
+        uint16_t *inter = intra+400;
+        uint16_t *qscale = inter+400;
+        uint16_t *rand = (uint16_t*)buf2;
+        for( i=0; i<400; i++ )
+        {
+            intra[i]  = *rand++ & 0x7fff;
+            intra[i] += !intra[i];
+            inter[i]  = *rand++ & 0x7fff;
+            qscale[i] = *rand++ & 0x7fff;
+        }
+        call_c( mc_c.mbtree_propagate_cost, dstc, prop, intra, inter, qscale, 400 );
+        call_a( mc_a.mbtree_propagate_cost, dsta, prop, intra, inter, qscale, 400 );
+        // I don't care about exact rounding, this is just how close the floating-point implementation happens to be
+        for( i=0; i<400; i++ )
+            ok &= abs(dstc[i]-dsta[i]) <= (abs(dstc[i])>512) || fabs((double)dstc[i]/dsta[i]-1) < 1e-6;
+        report( "mbtree propagate :" );
+    }
+
     return ret;
 }
 

@@ -406,22 +406,21 @@ static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, in
     int dist_scale_factor = ( ((b-p0) << 8) + ((p1-p0) >> 1) ) / (p1-p0);
     int i_bipred_weight = h->param.analyse.b_weighted_bipred ? 64 - (dist_scale_factor>>2) : 32;
     int16_t (*mvs[2])[2] = { frames[b]->lowres_mvs[0][b-p0-1], frames[b]->lowres_mvs[1][p1-b-1] };
+    int *buf = h->scratch_buffer;
 
     for( h->mb.i_mb_y = 0; h->mb.i_mb_y < h->sps->i_mb_height; h->mb.i_mb_y++ )
     {
         int mb_index = h->mb.i_mb_y*h->mb.i_mb_stride;
+        h->mc.mbtree_propagate_cost( buf, frames[b]->i_propagate_cost+mb_index,
+            frames[b]->i_intra_cost+mb_index, frames[b]->lowres_costs[b-p0][p1-b]+mb_index,
+            frames[b]->i_inv_qscale_factor+mb_index, h->sps->i_mb_width );
         for( h->mb.i_mb_x = 0; h->mb.i_mb_x < h->sps->i_mb_width; h->mb.i_mb_x++, mb_index++ )
         {
-            int inter_cost = frames[b]->lowres_costs[b-p0][p1-b][mb_index];
-            int intra_cost = frames[b]->i_intra_cost[mb_index];
-
+            int propagate_amount = buf[h->mb.i_mb_x];
             /* Don't propagate for an intra block. */
-            if( inter_cost < intra_cost )
+            if( propagate_amount > 0 )
             {
                 int lists_used = frames[b]->lowres_inter_types[b-p0][p1-b][mb_index];
-                /* The approximate amount of data that this block contains. */
-                int propagate_amount = frames[b]->i_propagate_cost[mb_index] + ((intra_cost * frames[b]->i_inv_qscale_factor[mb_index] + 128)>>8);
-                propagate_amount = ((uint64_t)propagate_amount*(intra_cost-inter_cost)) / intra_cost;
                 int list;
                 /* Follow the MVs to the previous frame(s). */
                 for( list = 0; list < 2; list++ )
