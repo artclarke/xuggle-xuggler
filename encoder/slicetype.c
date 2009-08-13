@@ -261,7 +261,7 @@ lowres_intra_mb:
         }
     }
 
-    frames[b]->lowres_costs[b-p0][p1-b][i_mb_xy] = i_bcost;
+    fenc->lowres_costs[b-p0][p1-b][i_mb_xy] = i_bcost;
 
     return i_bcost;
 }

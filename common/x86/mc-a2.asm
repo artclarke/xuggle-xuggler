@@ -1090,10 +1090,10 @@ FRAME_INIT_LOWRES ssse3, 12
 cglobal x264_mbtree_propagate_cost_sse2, 6,6
     shl r5d, 1
     lea r0, [r0+r5*2]
-    lea r1, [r1+r5]
-    lea r2, [r2+r5]
-    lea r3, [r3+r5]
-    lea r4, [r4+r5]
+    add r1, r5
+    add r2, r5
+    add r3, r5
+    add r4, r5
     neg r5
     pxor      xmm5, xmm5
     movdqa    xmm4, [pd_128 GLOBAL]

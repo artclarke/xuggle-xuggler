@@ -93,15 +93,15 @@ x264_frame_t *x264_frame_new( x264_t *h )
                 CHECKED_MALLOCZERO( frame->lowres_mvs[j][i], 2*h->mb.i_mb_count*sizeof(int16_t) );
                 CHECKED_MALLOC( frame->lowres_mv_costs[j][i], h->mb.i_mb_count*sizeof(int) );
             }
-        CHECKED_MALLOC( frame->i_intra_cost, i_mb_count * sizeof(uint16_t) );
-        memset( frame->i_intra_cost, -1, i_mb_count * sizeof(uint16_t) );
-        CHECKED_MALLOC( frame->i_propagate_cost, i_mb_count * sizeof(uint16_t) );
+        CHECKED_MALLOC( frame->i_propagate_cost, (i_mb_count+3) * sizeof(uint16_t) );
         for( j = 0; j <= h->param.i_bframe+1; j++ )
             for( i = 0; i <= h->param.i_bframe+1; i++ )
             {
-                CHECKED_MALLOC( frame->lowres_costs[j][i], i_mb_count * sizeof(uint16_t) );
-                CHECKED_MALLOC( frame->lowres_inter_types[j][i], i_mb_count * sizeof(uint8_t) );
+                CHECKED_MALLOC( frame->lowres_costs[j][i], (i_mb_count+3) * sizeof(uint16_t) );
+                CHECKED_MALLOC( frame->lowres_inter_types[j][i], (i_mb_count+3) * sizeof(uint8_t) );
             }
+        frame->i_intra_cost = frame->lowres_costs[0][0];
+        memset( frame->i_intra_cost, -1, (i_mb_count+3) * sizeof(uint16_t) );
     }
 
     if( h->param.analyse.i_me_method >= X264_ME_ESA )
@@ -143,7 +143,8 @@ x264_frame_t *x264_frame_new( x264_t *h )
     {
         CHECKED_MALLOC( frame->f_qp_offset, h->mb.i_mb_count * sizeof(float) );
         if( h->frames.b_have_lowres )
-            CHECKED_MALLOC( frame->i_inv_qscale_factor, h->mb.i_mb_count * sizeof(uint16_t) );
+            /* shouldn't really be initialized, just silences a valgrind false-positive in x264_mbtree_propagate_cost_sse2 */
+            CHECKED_MALLOCZERO( frame->i_inv_qscale_factor, (h->mb.i_mb_count+3) * sizeof(uint16_t) );
     }
 
     if( x264_pthread_mutex_init( &frame->mutex, NULL ) )
@@ -183,7 +184,6 @@ void x264_frame_delete( x264_frame_t *frame )
         }
     x264_free( frame->f_qp_offset );
     x264_free( frame->i_inv_qscale_factor );
-    x264_free( frame->i_intra_cost );
     x264_free( frame->i_row_bits );
     x264_free( frame->i_row_qp );
     x264_free( frame->mb_type );
@@ -312,7 +312,7 @@ void x264_frame_expand_border_lowres( x264_frame_t *frame )
 {
     int i;
     for( i = 0; i < 4; i++ )
-        plane_expand_border( frame->lowres[i], frame->i_stride_lowres, frame->i_stride_lowres - 2*PADH, frame->i_lines_lowres, PADH, PADV, 1, 1 );
+        plane_expand_border( frame->lowres[i], frame->i_stride_lowres, frame->i_width_lowres, frame->i_lines_lowres, PADH, PADV, 1, 1 );
 }
 
 void x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame )
