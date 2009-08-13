@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 70
+#define X264_BUILD 71
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -431,5 +431,9 @@ int     x264_encoder_encode ( x264_t *, x264_nal_t **, int *, x264_picture_t *, 
 /* x264_encoder_close:
  *      close an encoder handler */
 void    x264_encoder_close  ( x264_t * );
+/* x264_encoder_delayed_frames:
+ *      return the number of currently delayed (buffered) frames
+ *      this should be used at the end of the stream, to know when you have all the encoded frames. */
+int     x264_encoder_delayed_frames( x264_t * );
 
 #endif

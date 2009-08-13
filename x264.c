@@ -1192,13 +1192,14 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
             fflush( stderr ); // needed in windows
         }
     }
-    /* Flush delayed B-frames */
-    do {
+    /* Flush delayed frames */
+    while( x264_encoder_delayed_frames( h ) )
+    {
         i_frame_size = Encode_frame( h, opt->hout, NULL );
         if( i_frame_size < 0 )
             return -1;
         i_file += i_frame_size;
-    } while( i_frame_size );
+    }
 
     i_end = x264_mdate();
     x264_picture_clean( &pic );

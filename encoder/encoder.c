@@ -2137,3 +2137,20 @@ void    x264_encoder_close  ( x264_t *h )
         x264_free( h->thread[i] );
     }
 }
+
+/****************************************************************************
+ * x264_encoder_delayed_frames:
+ ****************************************************************************/
+int x264_encoder_delayed_frames( x264_t *h )
+{
+    int delayed_frames = 0;
+    int i;
+    for( i=0; i<h->param.i_threads; i++ )
+        delayed_frames += h->thread[i]->b_thread_active;
+    h = h->thread[ h->i_thread_phase % h->param.i_threads ];
+    for( i=0; h->frames.current[i]; i++ )
+        delayed_frames++;
+    for( i=0; h->frames.next[i]; i++ )
+        delayed_frames++;
+    return delayed_frames;
+}
