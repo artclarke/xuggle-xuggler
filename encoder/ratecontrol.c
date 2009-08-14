@@ -1459,7 +1459,7 @@ static double clip_qscale( x264_t *h, int pict_type, double q )
         double bits = predict_size( &rcc->pred[h->sh.i_type], q, rcc->last_satd );
         double qf = 1.0;
         if( bits > rcc->buffer_fill/2 )
-            qf = rcc->buffer_fill/(2*bits);
+            qf = x264_clip3f( rcc->buffer_fill/(2*bits), 0.2, 1.0 );
         q /= qf;
         bits *= qf;
         if( bits < rcc->buffer_rate/2 )
