@@ -739,7 +739,7 @@ static void x264_slicetype_analyse( x264_t *h, int keyframe )
                 frames[i+1]->i_type = X264_TYPE_B;
                 frames[i+2]->i_type = X264_TYPE_P;
 
-                for( j = i+2; j <= X264_MIN( h->param.i_bframe, num_frames-2 ); j++ )
+                for( j = i+2; j <= X264_MIN( h->param.i_bframe, num_frames-1 ); j++ )
                 {
                     int pthresh = X264_MAX(INTER_THRESH - P_SENS_BIAS * (j-i-1), INTER_THRESH/10);
                     int pcost = x264_slicetype_frame_cost( h, &a, frames, i+0, j+1, j+1, 1 );
