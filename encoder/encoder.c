@@ -417,7 +417,10 @@ static int x264_validate_parameters( x264_t *h )
     h->param.rc.f_rf_constant = x264_clip3f( h->param.rc.f_rf_constant, 0, 51 );
     h->param.rc.i_qp_constant = x264_clip3( h->param.rc.i_qp_constant, 0, 51 );
     if( h->param.rc.i_rc_method == X264_RC_CRF )
+    {
         h->param.rc.i_qp_constant = h->param.rc.f_rf_constant;
+        h->param.rc.i_bitrate = 0;
+    }
     if( (h->param.rc.i_rc_method == X264_RC_CQP || h->param.rc.i_rc_method == X264_RC_CRF)
         && h->param.rc.i_qp_constant == 0 )
     {
@@ -484,7 +487,13 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.b_weighted_bipred = 0;
     }
     h->param.rc.i_lookahead = x264_clip3( h->param.rc.i_lookahead, 0, X264_LOOKAHEAD_MAX );
-    h->param.rc.i_lookahead = X264_MIN( h->param.rc.i_lookahead, h->param.i_keyint_max );
+    {
+        int maxrate = X264_MAX( h->param.rc.i_vbv_max_bitrate, h->param.rc.i_bitrate );
+        float bufsize = maxrate ? (float)h->param.rc.i_vbv_buffer_size / maxrate : 0;
+        float fps = h->param.i_fps_num > 0 && h->param.i_fps_den > 0 ? (float) h->param.i_fps_num / h->param.i_fps_den : 25.0;
+        h->param.rc.i_lookahead = X264_MIN( h->param.rc.i_lookahead, X264_MAX( h->param.i_keyint_max, bufsize*fps ) );
+    }
+
     if( h->param.rc.b_stat_read )
         h->param.rc.i_lookahead = 0;
     else if( !h->param.rc.i_lookahead )
@@ -750,7 +759,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
         h->frames.i_delay = X264_MAX(h->param.i_bframe,3)*4;
     else
         h->frames.i_delay = h->param.i_bframe;
-    if( h->param.rc.b_mb_tree )
+    if( h->param.rc.b_mb_tree || h->param.rc.i_vbv_buffer_size )
         h->frames.i_delay = X264_MAX( h->frames.i_delay, h->param.rc.i_lookahead );
     h->frames.i_delay += h->param.i_threads - 1;
     h->frames.i_delay = X264_MIN( h->frames.i_delay, X264_LOOKAHEAD_MAX );

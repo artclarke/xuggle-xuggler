@@ -83,10 +83,15 @@ typedef struct
     int     *i_row_bits;
     int     *i_row_qp;
     float   *f_qp_offset;
+    float   *f_qp_offset_aq;
     int     b_intra_calculated;
     uint16_t *i_intra_cost;
     uint16_t *i_propagate_cost;
     uint16_t *i_inv_qscale_factor;
+
+    /* vbv */
+    uint8_t i_planned_type[X264_LOOKAHEAD_MAX+1];
+    int i_planned_satd[X264_LOOKAHEAD_MAX+1];
 
     /* threading */
     int     i_lines_completed; /* in pixels */
