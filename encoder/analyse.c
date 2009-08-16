@@ -2211,9 +2211,9 @@ static inline void x264_mb_analyse_qp_rd( x264_t *h, x264_mb_analysis_t *a )
         h->mb.i_qp = orig_qp;
         failures = 0;
         prevcost = origcost;
-        while( h->mb.i_qp > 0 && h->mb.i_qp < 51 )
+        h->mb.i_qp += direction;
+        while( h->mb.i_qp >= h->param.rc.i_qp_min && h->mb.i_qp <= h->param.rc.i_qp_max )
         {
-            h->mb.i_qp += direction;
             h->mb.i_chroma_qp = h->chroma_qp_table[h->mb.i_qp];
             cost = x264_rd_cost_mb( h, a->i_lambda2 );
             COPY2_IF_LT( bcost, cost, bqp, h->mb.i_qp );
@@ -2236,6 +2236,7 @@ static inline void x264_mb_analyse_qp_rd( x264_t *h, x264_mb_analysis_t *a )
                 break;
             if( direction == 1 && !h->mb.cbp[h->mb.i_mb_xy] )
                 break;
+            h->mb.i_qp += direction;
         }
     }
 
@@ -2243,8 +2244,8 @@ static inline void x264_mb_analyse_qp_rd( x264_t *h, x264_mb_analysis_t *a )
     h->mb.i_chroma_qp = h->chroma_qp_table[h->mb.i_qp];
 
     /* Check transform again; decision from before may no longer be optimal. */
-    if( h->mb.i_qp != orig_qp && x264_mb_transform_8x8_allowed( h ) &&
-        h->param.analyse.b_transform_8x8 )
+    if( h->mb.i_qp != orig_qp && h->param.analyse.b_transform_8x8 &&
+        x264_mb_transform_8x8_allowed( h ) )
     {
         h->mb.b_transform_8x8 ^= 1;
         cost = x264_rd_cost_mb( h, a->i_lambda2 );

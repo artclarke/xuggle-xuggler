@@ -140,6 +140,7 @@ static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
     int b_transform_bak = h->mb.b_transform_8x8;
     int i_ssd;
     int i_bits;
+    int type_bak = h->mb.i_type;
 
     x264_macroblock_encode( h );
 
@@ -165,6 +166,7 @@ static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
     }
 
     h->mb.b_transform_8x8 = b_transform_bak;
+    h->mb.i_type = type_bak;
 
     return i_ssd + i_bits;
 }
@@ -206,9 +208,7 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i4, int i_pixel )
 
     if( i_pixel == PIXEL_16x16 )
     {
-        int type_bak = h->mb.i_type;
         int i_cost = x264_rd_cost_mb( h, i_lambda2 );
-        h->mb.i_type = type_bak;
         return i_cost;
     }
 
