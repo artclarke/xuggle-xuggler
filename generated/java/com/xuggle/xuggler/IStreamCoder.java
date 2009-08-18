@@ -283,8 +283,13 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
 
 /**
  * Look up a Codec based on the passed in ID, and then set it.  
+ * <p>  
+ * Forwards to {@link #setCodecId(ICodec.ID)}.  
+ * </p>  
+ * <p>  
  * To see if you actually set the correct ID, call getCodec() and  
  * check for 0 (null).  
+ * </p>  
  * <p>  
  * Once you call setCodec, all settings on the IStreamCoder are  
  * reset to default values. So you probably want to call this  
@@ -1020,6 +1025,27 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  */
   public boolean getAutomaticallyStampPacketsForStream() {
     return XugglerJNI.IStreamCoder_getAutomaticallyStampPacketsForStream(swigCPtr, this);
+  }
+
+/**
+ * Look up a Codec based on the passed in ID, and then set it.  
+ * <p>  
+ * Forwards to {@link #setCodec(ICodec.ID)}.  
+ * </p>  
+ * <p>  
+ * To see if you actually set the correct ID, call getCodec() and  
+ * check for 0 (null).  
+ * </p>  
+ * <p>  
+ * Once you call setCodec, all settings on the IStreamCoder are  
+ * reset to default values. So you probably want to call this  
+ * first.  
+ * </p>  
+ * @param	id ID of codec to set.  
+ * @since	3.2  
+ */
+  public void setCodecID(ICodec.ID id) {
+    XugglerJNI.IStreamCoder_setCodecID(swigCPtr, this, id.swigValue());
   }
 
   public enum Direction {

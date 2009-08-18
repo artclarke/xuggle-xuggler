@@ -191,6 +191,9 @@ namespace com { namespace xuggle { namespace xuggler
     
     /**
      * Get a new rational that will be set to 0/0.
+     * The rational will not have {@link #init()} called
+     * and hence will be modifiable by {@link #setValue(double)}
+     * until {@link #init()} is called.
      * @return a rational number object
      */
     static IRational *make();
@@ -302,6 +305,72 @@ namespace com { namespace xuggle { namespace xuggler
   protected:
     IRational();
     virtual ~IRational();
+    
+  public:
+    /*
+     * Added for 3.2
+     */
+   
+   /**
+    * Sets the numerator on this object.
+    * <p>
+    * If {@link #isFinalized} is true, then this method is ignored.
+    * </p>
+    * 
+    * @since 3.2
+    */
+   virtual void setNumerator(int32_t value)=0;
+
+   
+   /**
+    * Sets the denominator on this object.
+    * <p>
+    * If {@link #isFinalized} is true, then this method is ignored.
+    * </p>
+    * 
+    * @since 3.2
+    */
+   virtual void setDenominator(int32_t value)=0;
+   
+   /**
+    * Sets the numerator and denominator on this object by
+    * reducing the double to the closest integer numerator
+    * and denominator.
+    * <p>
+    * If {@link #isFinalized} is true, then this method is ignored.
+    * </p>
+    * 
+    * @since 3.2
+    */
+   virtual void setValue(double value)=0;
+
+   /**
+    * An alias for {@link #getDouble()} but matching JavaBean
+    * conventions.
+    * @since 3.2
+    */
+   virtual double getValue()=0;
+
+   /**
+    * Returns true if {@link #init()} has been called and
+    * this object is now considered finalized and immutable.
+    * 
+    * @since 3.2
+    */
+   virtual bool isFinalized()=0;
+   
+   /**
+    * Marks this object as finalized and immutable.  Any
+    * setters called after the first {@link #init()} call
+    * will be ignored.
+    * <p>
+    * Most <code>make</code> methods will call this method
+    * automatically, with the exception of the blank factory
+    * method {@link #make()}.
+    * </p> 
+    * @since 3.2
+    */
+   virtual void init()=0;
   };
 
 }}}

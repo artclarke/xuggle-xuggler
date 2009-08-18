@@ -30,21 +30,47 @@ namespace com { namespace xuggle { namespace xuggler
     // default to 0 for the value.
     mRational.den = 1;
     mRational.num = 0;
+    mInitialized = false;
   }
 
   Rational :: ~Rational()
   {
   }
 
+  void
+  Rational :: init()
+  {
+    if (!mInitialized) {
+      (void) reduce(mRational.num,
+          mRational.den,
+          FFMAX(mRational.den, mRational.num));
+    }
+    mInitialized = true;
+  }
+  
   Rational *
   Rational :: make(double d)
   {
     Rational *result=0;
     result = Rational::make();
     if (result) {
-      result->mRational = av_d2q(d, 0x7fffffff);
+      result->setValue(d);
+      result->init();
     }
     return result;
+  }
+  
+  void
+  Rational :: setValue(double d)
+  {
+    if (!mInitialized)
+      mRational = av_d2q(d, 0x7fffffff);
+  }
+  
+  double
+  Rational :: getValue()
+  {
+    return getDouble();
   }
 
   Rational *
@@ -56,6 +82,7 @@ namespace com { namespace xuggle { namespace xuggler
       result = Rational::make();
       if (result) {
         result->mRational = *src;
+        result->init();
       }
     }
     return result;
@@ -76,9 +103,27 @@ namespace com { namespace xuggle { namespace xuggler
       result = Rational::make();
       if (result) {
         result->mRational = src->mRational;
+        result->init();
       }
     }
     return result;
+  }
+  void
+  Rational :: setNumerator(int32_t num)
+  {
+    if (!mInitialized)
+      mRational.num = num;
+  }
+  void
+  Rational :: setDenominator(int32_t den)
+  {
+    if (!mInitialized)
+      mRational.den = den;
+  }
+  bool
+  Rational :: isFinalized()
+  {
+    return mInitialized;
   }
   Rational *
   Rational :: make(int32_t num, int32_t den)
@@ -86,9 +131,9 @@ namespace com { namespace xuggle { namespace xuggler
     Rational *result=0;
     result = Rational::make();
     if (result) {
-      result->mRational.num = num;
-      result->mRational.den = den;
-      (void) result->reduce(num, den, FFMAX(den, num));
+      result->setNumerator(num);
+      result->setDenominator(den);
+      result->init();
     }
     return result;
   }

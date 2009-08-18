@@ -51,6 +51,7 @@ namespace com { namespace xuggle { namespace xuggler
 
     virtual void setCodec(ICodec *);
     virtual void setCodec(ICodec::ID);
+    virtual void setCodecID(ICodec::ID id) { setCodec(id); }
 
     virtual int32_t getBitRate();
     virtual void setBitRate(int32_t rate);

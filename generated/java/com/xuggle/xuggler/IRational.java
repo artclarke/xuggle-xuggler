@@ -372,6 +372,9 @@ public class IRational extends RefCounted {
 
 /**
  * Get a new rational that will be set to 0/0.  
+ * The rational will not have {@link #init()} called  
+ * and hence will be modifiable by {@link #setValue(double)}  
+ * until {@link #init()} is called.  
  * @return	a rational number object  
  */
   public static IRational make() {
@@ -469,6 +472,74 @@ public class IRational extends RefCounted {
  */
   public static long rescale(long srcValue, int dstNumerator, int dstDenominator, int srcNumerator, int srcDenominator, IRational.Rounding rounding) {
     return XugglerJNI.IRational_rescale__SWIG_2(srcValue, dstNumerator, dstDenominator, srcNumerator, srcDenominator, rounding.swigValue());
+  }
+
+/**
+ * Sets the numerator on this object.  
+ * <p>  
+ * If {@link #isFinalized} is true, then this method is ignored.  
+ * </p>  
+ * @since	3.2  
+ */
+  public void setNumerator(int value) {
+    XugglerJNI.IRational_setNumerator(swigCPtr, this, value);
+  }
+
+/**
+ * Sets the denominator on this object.  
+ * <p>  
+ * If {@link #isFinalized} is true, then this method is ignored.  
+ * </p>  
+ * @since	3.2  
+ */
+  public void setDenominator(int value) {
+    XugglerJNI.IRational_setDenominator(swigCPtr, this, value);
+  }
+
+/**
+ * Sets the numerator and denominator on this object by  
+ * reducing the double to the closest integer numerator  
+ * and denominator.  
+ * <p>  
+ * If {@link #isFinalized} is true, then this method is ignored.  
+ * </p>  
+ * @since	3.2  
+ */
+  public void setValue(double value) {
+    XugglerJNI.IRational_setValue(swigCPtr, this, value);
+  }
+
+/**
+ * An alias for {@link #getDouble()} but matching JavaBean  
+ * conventions.  
+ * @since	3.2  
+ */
+  public double getValue() {
+    return XugglerJNI.IRational_getValue(swigCPtr, this);
+  }
+
+/**
+ * Returns true if {@link #init()} has been called and  
+ * this object is now considered finalized and immutable.  
+ * @since	3.2  
+ */
+  public boolean isFinalized() {
+    return XugglerJNI.IRational_isFinalized(swigCPtr, this);
+  }
+
+/**
+ * Marks this object as finalized and immutable. Any  
+ * setters called after the first {@link #init()} call  
+ * will be ignored.  
+ * <p>  
+ * Most <code>make</code> methods will call this method  
+ * automatically, with the exception of the blank factory  
+ * method {@link #make()}.  
+ * </p>  
+ * @since	3.2  
+ */
+  public void init() {
+    XugglerJNI.IRational_init(swigCPtr, this);
   }
 
   public enum Rounding {

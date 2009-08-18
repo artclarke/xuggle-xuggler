@@ -81,6 +81,12 @@ class XugglerJNI {
   public final static native long IRational_rescale__SWIG_1(long jarg1, IRational jarg1_, long jarg2, long jarg3, IRational jarg3_, int jarg4);
   public final static native long IRational_sRescale__SWIG_1(long jarg1, long jarg2, IRational jarg2_, long jarg3, IRational jarg3_, int jarg4);
   public final static native long IRational_rescale__SWIG_2(long jarg1, int jarg2, int jarg3, int jarg4, int jarg5, int jarg6);
+  public final static native void IRational_setNumerator(long jarg1, IRational jarg1_, int jarg2);
+  public final static native void IRational_setDenominator(long jarg1, IRational jarg1_, int jarg2);
+  public final static native void IRational_setValue(long jarg1, IRational jarg1_, double jarg2);
+  public final static native double IRational_getValue(long jarg1, IRational jarg1_);
+  public final static native boolean IRational_isFinalized(long jarg1, IRational jarg1_);
+  public final static native void IRational_init(long jarg1, IRational jarg1_);
   public final static native long ITimeValue_make__SWIG_0(long jarg1, int jarg2);
   public final static native long ITimeValue_make__SWIG_1(long jarg1, ITimeValue jarg1_);
   public final static native long ITimeValue_get(long jarg1, ITimeValue jarg1_, int jarg2);
@@ -412,6 +418,7 @@ class XugglerJNI {
   public final static native long IStreamCoder_getNumDroppedFrames(long jarg1, IStreamCoder jarg1_);
   public final static native void IStreamCoder_setAutomaticallyStampPacketsForStream(long jarg1, IStreamCoder jarg1_, boolean jarg2);
   public final static native boolean IStreamCoder_getAutomaticallyStampPacketsForStream(long jarg1, IStreamCoder jarg1_);
+  public final static native void IStreamCoder_setCodecID(long jarg1, IStreamCoder jarg1_, int jarg2);
   public final static native int IStream_getDirection(long jarg1, IStream jarg1_);
   public final static native int IStream_getIndex(long jarg1, IStream jarg1_);
   public final static native int IStream_getId(long jarg1, IStream jarg1_);

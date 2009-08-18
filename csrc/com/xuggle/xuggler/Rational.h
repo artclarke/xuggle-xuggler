@@ -93,13 +93,20 @@ namespace com { namespace xuggle { namespace xuggler
         int32_t srcNumerator,
         int32_t srcDenominator,
         Rounding rounding);
-    
+ 
+    virtual void setNumerator(int32_t value);
+    virtual void setDenominator(int32_t value);
+    virtual void setValue(double value);
+    virtual double getValue();
+    virtual bool isFinalized();
+    virtual void init();
   protected:
     Rational();
     virtual ~Rational();
   private:
     // note not a pointer.
     AVRational mRational;
+    bool mInitialized;
   };
 
 }}}
