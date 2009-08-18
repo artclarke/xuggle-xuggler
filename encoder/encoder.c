@@ -882,6 +882,7 @@ fail:
  ****************************************************************************/
 int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
 {
+    h = h->thread[h->i_thread_phase%h->param.i_threads];
 #define COPY(var) h->param.var = param->var
     COPY( i_frame_reference ); // but never uses more refs than initially specified
     COPY( i_bframe_bias );
@@ -1391,6 +1392,7 @@ static void x264_thread_sync_context( x264_t *dst, x264_t *src )
 
     // copy everything except the per-thread pointers and the constants.
     memcpy( &dst->i_frame, &src->i_frame, offsetof(x264_t, mb.type) - offsetof(x264_t, i_frame) );
+    dst->param = src->param;
     dst->stat = src->stat;
 }
 
