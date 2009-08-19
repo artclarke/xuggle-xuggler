@@ -680,6 +680,40 @@ static void mbcmp_init( x264_t *h )
     memcpy( h->pixf.fpelcmp_x4, satd ? h->pixf.satd_x4 : h->pixf.sad_x4, sizeof(h->pixf.fpelcmp_x4) );
 }
 
+static void x264_set_aspect_ratio( x264_t *h, x264_param_t *param, int initial )
+{
+    /* VUI */
+    if( param->vui.i_sar_width > 0 && param->vui.i_sar_height > 0 )
+    {
+        int i_w = param->vui.i_sar_width;
+        int i_h = param->vui.i_sar_height;
+        int old_w = h->param.vui.i_sar_width;
+        int old_h = h->param.vui.i_sar_height;
+
+        x264_reduce_fraction( &i_w, &i_h );
+
+        while( i_w > 65535 || i_h > 65535 )
+        {
+            i_w /= 2;
+            i_h /= 2;
+        }
+
+        if( i_w != old_w || i_h != old_h || initial )
+        {
+            h->param.vui.i_sar_width = 0;
+            h->param.vui.i_sar_height = 0;
+            if( i_w == 0 || i_h == 0 )
+                x264_log( h, X264_LOG_WARNING, "cannot create valid sample aspect ratio\n" );
+            else
+            {
+                x264_log( h, initial?X264_LOG_INFO:X264_LOG_DEBUG, "using SAR=%d/%d\n", i_w, i_h );
+                h->param.vui.i_sar_width = i_w;
+                h->param.vui.i_sar_height = i_h;
+            }
+        }
+    }
+}
+
 /****************************************************************************
  * x264_encoder_open:
  ****************************************************************************/
@@ -694,6 +728,9 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     /* Create a copy of param */
     memcpy( &h->param, param, sizeof(x264_param_t) );
 
+    if( param->param_free )
+        param->param_free( param );
+
     if( x264_validate_parameters( h ) < 0 )
         goto fail;
 
@@ -706,33 +743,7 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
     if( h->param.rc.psz_stat_in )
         h->param.rc.psz_stat_in = strdup( h->param.rc.psz_stat_in );
 
-    /* VUI */
-    if( h->param.vui.i_sar_width > 0 && h->param.vui.i_sar_height > 0 )
-    {
-        int i_w = param->vui.i_sar_width;
-        int i_h = param->vui.i_sar_height;
-
-        x264_reduce_fraction( &i_w, &i_h );
-
-        while( i_w > 65535 || i_h > 65535 )
-        {
-            i_w /= 2;
-            i_h /= 2;
-        }
-
-        h->param.vui.i_sar_width = 0;
-        h->param.vui.i_sar_height = 0;
-        if( i_w == 0 || i_h == 0 )
-        {
-            x264_log( h, X264_LOG_WARNING, "cannot create valid sample aspect ratio\n" );
-        }
-        else
-        {
-            x264_log( h, X264_LOG_INFO, "using SAR=%d/%d\n", i_w, i_h );
-            h->param.vui.i_sar_width = i_w;
-            h->param.vui.i_sar_height = i_h;
-        }
-    }
+    x264_set_aspect_ratio( h, param, 1 );
 
     x264_reduce_fraction( &h->param.i_fps_num, &h->param.i_fps_den );
 
@@ -883,6 +894,7 @@ fail:
 int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
 {
     h = h->thread[h->i_thread_phase%h->param.i_threads];
+    x264_set_aspect_ratio( h, param, 0 );
 #define COPY(var) h->param.var = param->var
     COPY( i_frame_reference ); // but never uses more refs than initially specified
     COPY( i_bframe_bias );
@@ -1563,6 +1575,13 @@ int     x264_encoder_encode( x264_t *h,
         /* waiting for filling bframe buffer */
         pic_out->i_type = X264_TYPE_AUTO;
         return 0;
+    }
+
+    if( h->fenc->param )
+    {
+        x264_encoder_reconfig( h, h->fenc->param );
+        if( h->fenc->param->param_free )
+            h->fenc->param->param_free( h->fenc->param );
     }
 
     if( h->fenc->i_type == X264_TYPE_IDR )

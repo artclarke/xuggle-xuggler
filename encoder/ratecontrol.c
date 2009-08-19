@@ -703,6 +703,7 @@ static int parse_zone( x264_t *h, x264_zone_t *z, char *p )
         return 0;
     CHECKED_MALLOC( z->param, sizeof(x264_param_t) );
     memcpy( z->param, &h->param, sizeof(x264_param_t) );
+    z->param->param_free = x264_free;
     while( (tok = strtok_r( p, ",", &saveptr )) )
     {
         char *val = strchr( tok, '=' );
@@ -849,10 +850,9 @@ void x264_ratecontrol_delete( x264_t *h )
     if( rc->zones )
     {
         x264_free( rc->zones[0].param );
-        if( h->param.rc.psz_zones )
-            for( i=1; i<rc->i_zones; i++ )
-                if( rc->zones[i].param != rc->zones[0].param )
-                    x264_free( rc->zones[i].param );
+        for( i=1; i<rc->i_zones; i++ )
+            if( rc->zones[i].param != rc->zones[0].param && rc->zones[i].param->param_free )
+                rc->zones[i].param->param_free( rc->zones[i].param );
         x264_free( rc->zones );
     }
     x264_free( rc );

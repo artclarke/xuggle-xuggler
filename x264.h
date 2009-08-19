@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 71
+#define X264_BUILD 72
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -294,6 +294,12 @@ typedef struct x264_param_t
     int b_aud;                  /* generate access unit delimiters */
     int b_repeat_headers;       /* put SPS/PPS before each keyframe */
     int i_sps_id;               /* SPS and PPS id number */
+
+    /* Optional callback for freeing this x264_param_t when it is done being used.
+     * Only used when the x264_param_t sits in memory for an indefinite period of time,
+     * i.e. when an x264_param_t is passed to x264_t in an x264_picture_t or in zones.
+     * Not used when x264_encoder_reconfig is called directly. */
+    void (*param_free)( void* );
 } x264_param_t;
 
 typedef struct {
@@ -354,6 +360,13 @@ typedef struct
     int     i_qpplus1;
     /* In: user pts, Out: pts of encoded picture (user)*/
     int64_t i_pts;
+    /* In: custom encoding parameters to be set from this frame forwards
+           (in coded order, not display order). If NULL, continue using
+           parameters from the previous frame.  Some parameters, such as
+           aspect ratio, can only be changed per-GOP due to the limitations
+           of H.264 itself; in this case, the caller must force an IDR frame
+           if it needs the changed parameter to apply immediately. */
+    x264_param_t *param;
 
     /* In: raw data */
     x264_image_t img;
@@ -419,8 +432,10 @@ int x264_nal_encode( void *, int *, int b_annexeb, x264_nal_t *nal );
  *      create a new encoder handler, all parameters from x264_param_t are copied */
 x264_t *x264_encoder_open   ( x264_param_t * );
 /* x264_encoder_reconfig:
- *      change encoder options while encoding,
- *      analysis-related parameters from x264_param_t are copied */
+ *      analysis-related parameters from x264_param_t are copied.
+ *      this takes effect immediately, on whichever frame is encoded next;
+ *      due to delay, this may not be the next frame passed to encoder_encode.
+ *      if the change should apply to some particular frame, use x264_picture_t->param instead. */
 int     x264_encoder_reconfig( x264_t *, x264_param_t * );
 /* x264_encoder_headers:
  *      return the SPS and PPS that will be used for the whole stream */

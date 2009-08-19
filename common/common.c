@@ -660,6 +660,7 @@ int x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_heigh
     pic->img.i_stride[0] = i_width;
     pic->img.i_stride[1] = i_width / 2;
     pic->img.i_stride[2] = i_width / 2;
+    pic->param = NULL;
     return 0;
 }
 

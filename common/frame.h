@@ -35,6 +35,8 @@ typedef struct
     int     i_type;
     int     i_qpplus1;
     int64_t i_pts;
+    x264_param_t *param;
+
     int     i_frame;    /* Presentation frame number */
     int     i_frame_num; /* Coded frame number */
     int     b_kept_as_ref;
