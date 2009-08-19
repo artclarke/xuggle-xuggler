@@ -748,7 +748,7 @@ static int check_mc( int cpu_ref, int cpu_new )
     x264_mc_functions_t mc_a;
     x264_pixel_function_t pixel;
 
-    uint8_t *src     = &buf1[2*32+2];
+    uint8_t *src     = &buf1[2*64+2];
     uint8_t *src2[4] = { &buf1[3*64+2], &buf1[5*64+2],
                          &buf1[7*64+2], &buf1[9*64+2] };
     uint8_t *dst1    = buf3;
