@@ -848,21 +848,19 @@ static void x264_slicetype_analyse( x264_t *h, int keyframe )
             frames[j]->i_type = X264_TYPE_P;
 
     /* Perform the actual macroblock tree analysis.
-     * Don't go farther than the lookahead parameter; this helps in short GOPs. */
+     * Don't go farther than the maximum keyframe interval; this helps in short GOPs. */
     if( h->param.rc.b_mb_tree )
-        x264_macroblock_tree( h, &a, frames, X264_MIN(num_frames, h->param.rc.i_lookahead), keyframe );
+        x264_macroblock_tree( h, &a, frames, X264_MIN(num_frames, h->param.i_keyint_max), keyframe );
 
     /* Enforce keyframe limit. */
     for( j = 0; j < num_frames; j++ )
     {
-        if( (j+1)%h->param.i_keyint_max > keyint_limit )
+        if( ((j-keyint_limit) % h->param.i_keyint_max) == 0 )
         {
             if( j )
                 frames[j]->i_type = X264_TYPE_P;
-            frames[j+1]->i_type = idr_frame_type;
-            if( j <= num_bframes )
-                reset_start = j+2;
-            break;
+            frames[j+1]->i_type = X264_TYPE_IDR;
+            reset_start = X264_MIN( reset_start, j+2 );
         }
     }
 
