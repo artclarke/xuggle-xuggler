@@ -892,7 +892,8 @@ void x264_slicetype_decide( x264_t *h )
     }
     else if( (h->param.i_bframe && h->param.i_bframe_adaptive)
              || h->param.i_scenecut_threshold
-             || h->param.rc.b_mb_tree )
+             || h->param.rc.b_mb_tree
+             || (h->param.rc.i_vbv_buffer_size && h->param.rc.i_lookahead) )
         x264_slicetype_analyse( h, 0 );
 
     for( bframes = 0;; bframes++ )
@@ -950,8 +951,8 @@ int x264_rc_analyse_slice( x264_t *h )
     if( IS_X264_TYPE_I(h->fenc->i_type) )
     {
         p1 = b = 0;
-        /* For MB-tree, we have to perform propagation analysis on I-frames too. */
-        if( h->param.rc.b_mb_tree )
+        /* For MB-tree and VBV lookahead, we have to perform propagation analysis on I-frames too. */
+        if( h->param.rc.b_mb_tree || (h->param.rc.i_vbv_buffer_size && h->param.rc.i_lookahead) )
         {
             h->frames.last_nonb = h->fenc;
             x264_slicetype_analyse( h, 1 );
