@@ -2203,17 +2203,30 @@ static inline void x264_mb_analyse_qp_rd( x264_t *h, x264_mb_analysis_t *a )
 {
     int bcost, cost, direction, failures, prevcost, origcost;
     int orig_qp = h->mb.i_qp, bqp = h->mb.i_qp;
+    int last_qp_tried = 0;
     origcost = bcost = x264_rd_cost_mb( h, a->i_lambda2 );
 
     /* If CBP is already zero, don't raise the quantizer any higher. */
     for( direction = h->mb.cbp[h->mb.i_mb_xy] ? 1 : -1; direction >= -1; direction-=2 )
     {
+        /* Without psy-RD, require monotonicity when moving quant away from previous
+         * macroblock's quant; allow 1 failure when moving quant towards previous quant.
+         * With psy-RD, allow 1 failure when moving quant away from previous quant,
+         * allow 2 failures when moving quant towards previous quant.
+         * Psy-RD generally seems to result in more chaotic RD score-vs-quantizer curves. */
+        int threshold = (!!h->mb.i_psy_rd);
+        /* Raise the threshold for failures if we're moving towards the last QP. */
+        if( ( h->mb.i_last_qp < orig_qp && direction == -1 ) ||
+            ( h->mb.i_last_qp > orig_qp && direction ==  1 ) )
+            threshold++;
         h->mb.i_qp = orig_qp;
         failures = 0;
         prevcost = origcost;
         h->mb.i_qp += direction;
         while( h->mb.i_qp >= h->param.rc.i_qp_min && h->mb.i_qp <= h->param.rc.i_qp_max )
         {
+            if( h->mb.i_last_qp == h->mb.i_qp )
+                last_qp_tried = 1;
             h->mb.i_chroma_qp = h->chroma_qp_table[h->mb.i_qp];
             cost = x264_rd_cost_mb( h, a->i_lambda2 );
             COPY2_IF_LT( bcost, cost, bqp, h->mb.i_qp );
@@ -2226,18 +2239,21 @@ static inline void x264_mb_analyse_qp_rd( x264_t *h, x264_mb_analysis_t *a )
                 failures++;
             prevcost = cost;
 
-            /* Without psy-RD, require monotonicity when lowering
-             * quant, allow 1 failure when raising quant.
-             * With psy-RD, allow 1 failure when lowering quant,
-             * allow 2 failures when raising quant.
-             * Psy-RD generally seems to result in more chaotic
-             * RD score-vs-quantizer curves. */
-            if( failures > ((direction + 1)>>1)+(!!h->mb.i_psy_rd) )
+            if( failures > threshold )
                 break;
             if( direction == 1 && !h->mb.cbp[h->mb.i_mb_xy] )
                 break;
             h->mb.i_qp += direction;
         }
+    }
+
+    /* Always try the last block's QP. */
+    if( !last_qp_tried )
+    {
+        h->mb.i_qp = h->mb.i_last_qp;
+        h->mb.i_chroma_qp = h->chroma_qp_table[h->mb.i_qp];
+        cost = x264_rd_cost_mb( h, a->i_lambda2 );
+        COPY2_IF_LT( bcost, cost, bqp, h->mb.i_qp );
     }
 
     h->mb.i_qp = bqp;
