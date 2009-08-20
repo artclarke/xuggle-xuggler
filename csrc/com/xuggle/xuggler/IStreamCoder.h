@@ -884,7 +884,7 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Look up a Codec based on the passed in ID, and then set it.
      * <p>
-     * Forwards to {@link #setCodec(ICodec.ID)}.
+     * Forwards to {@link #setCodecID(com.xuggle.xuggler.ICodec.ID)}  
      * </p>
      * <p>
      * To see if you actually set the correct ID, call getCodec() and
