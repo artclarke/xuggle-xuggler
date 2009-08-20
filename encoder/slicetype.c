@@ -257,6 +257,8 @@ lowres_intra_mb:
             {
                 fenc->i_intra_mbs[b-p0] += b_intra;
                 fenc->i_cost_est[0][0] += i_icost;
+                if( h->param.rc.i_aq_mode )
+                    fenc->i_cost_est_aq[0][0] += (i_icost * fenc->i_inv_qscale_factor[i_mb_xy] + 128) >> 8;
             }
         }
     }
@@ -305,6 +307,7 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
         {
             frames[b]->i_intra_mbs[b-p0] = 0;
             frames[b]->i_cost_est[0][0] = 0;
+            frames[b]->i_cost_est_aq[0][0] = 0;
         }
         if( p1 != p0 )
             dist_scale_factor = ( ((b-p0) << 8) + ((p1-p0) >> 1) ) / (p1-p0);
