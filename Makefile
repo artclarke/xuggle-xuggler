@@ -55,6 +55,14 @@ SRCS += $(ALTIVECSRC)
 $(ALTIVECSRC:%.c=%.o): CFLAGS += $(ALTIVECFLAGS)
 endif
 
+# NEON optims
+ifeq ($(ARCH),ARM)
+ifneq ($(AS),)
+ASMSRC += common/arm/cpu-a.S
+OBJASM  = $(ASMSRC:%.S=%.o)
+endif
+endif
+
 # VIS optims
 ifeq ($(ARCH),UltraSparc)
 ASMSRC += common/sparc/pixel.asm
@@ -88,6 +96,10 @@ checkasm: tools/checkasm.o libx264.a
 
 %.o: %.asm
 	$(AS) $(ASFLAGS) -o $@ $<
+
+%.o: %.S
+	$(AS) $(ASFLAGS) -o $@ $<
+
 # delete local/anonymous symbols, so they don't show up in oprofile
 	-@ $(STRIP) -x $@
 

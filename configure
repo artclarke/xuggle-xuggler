@@ -10,7 +10,7 @@ echo "  --help                   print this message"
 echo "  --disable-avis-input     disables avisynth input (win32 only)"
 echo "  --disable-mp4-output     disables mp4 output (using gpac)"
 echo "  --disable-pthread        disables multithreaded encoding"
-echo "  --disable-asm            disables assembly optimizations on x86"
+echo "  --disable-asm            disables assembly optimizations on x86 and arm"
 echo "  --enable-debug           adds -g, doesn't strip"
 echo "  --enable-gprof           adds -pg, doesn't strip"
 echo "  --enable-visualize       enables visualization (X11 only)"
@@ -157,7 +157,6 @@ CC="${CC-${cross_prefix}gcc}"
 AR="${AR-${cross_prefix}ar}"
 RANLIB="${RANLIB-${cross_prefix}ranlib}"
 STRIP="${STRIP-${cross_prefix}strip}"
-AS=""
 
 if [ "x$host" = x ]; then
     host=`./config.guess`
@@ -286,6 +285,7 @@ case $host_cpu in
     ;;
   arm*)
     ARCH="ARM"
+    AS="${AS-${cross_prefix}gcc}"
     ;;
   s390|s390x)
     ARCH="S390"
@@ -324,6 +324,17 @@ if [ $asm = yes -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
     fi
     CFLAGS="$CFLAGS -DHAVE_MMX"
 fi
+
+if [ $asm = yes -a $ARCH = ARM ] ; then
+    if  cc_check '' '' 'asm("rev r0, r0");' ; then      CFLAGS="$CFLAGS -DHAVE_ARMV6"
+        cc_check '' '' 'asm("movt r0, #0");'         && CFLAGS="$CFLAGS -DHAVE_ARMV6T2"
+        cc_check '' '' 'asm("vadd.i16 q0, q0, q0");' && CFLAGS="$CFLAGS -DHAVE_NEON"
+        ASFLAGS="$ASFLAGS $CFLAGS -c"
+    else
+        asm="no"
+    fi
+fi
+
 [ $asm = no ] && AS=""
 [ "x$AS" = x ] && asm="no"
 

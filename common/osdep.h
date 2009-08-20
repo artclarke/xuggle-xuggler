@@ -163,6 +163,13 @@ static ALWAYS_INLINE intptr_t endian_fix( intptr_t x )
     asm("bswap %0":"+r"(x));
     return x;
 }
+#elif defined(__GNUC__) && defined(HAVE_ARMV6)
+static ALWAYS_INLINE intptr_t endian_fix( intptr_t x )
+{
+    asm("rev %0, %0":"+r"(x));
+    return x;
+}
+#define endian_fix32 endian_fix
 #else
 static ALWAYS_INLINE uint32_t endian_fix32( uint32_t x )
 {

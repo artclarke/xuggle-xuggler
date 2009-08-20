@@ -63,6 +63,9 @@ typedef struct x264_t x264_t;
 #define X264_CPU_SSE42          0x004000  /* SSE4.2 */
 #define X264_CPU_SSE_MISALIGN   0x008000  /* Phenom support for misaligned SSE instruction arguments */
 #define X264_CPU_LZCNT          0x010000  /* Phenom support for "leading zero count" instruction. */
+#define X264_CPU_ARMV6          0x020000
+#define X264_CPU_NEON           0x040000  /* ARM NEON */
+#define X264_CPU_FAST_NEON_MRC  0x080000  /* Transfer from NEON to ARM register is fast (Cortex-A9) */
 
 /* Analyse flags
  */
