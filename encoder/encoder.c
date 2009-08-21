@@ -981,6 +981,7 @@ int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
         x264_nal_start( h, NAL_PPS, NAL_PRIORITY_HIGHEST );
         x264_pps_write( &h->out.bs, h->pps );
         x264_nal_end( h );
+        bs_flush( &h->out.bs );
     }
     /* now set output*/
     *pi_nal = h->out.i_nal;
@@ -1374,6 +1375,7 @@ static int x264_slice_write( x264_t *h )
             bs_write_ue( &h->out.bs, i_skip );  /* last skip run */
         /* rbsp_slice_trailing_bits */
         bs_rbsp_trailing( &h->out.bs );
+        bs_flush( &h->out.bs );
     }
 
     x264_nal_end( h );

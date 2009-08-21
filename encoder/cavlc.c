@@ -298,6 +298,7 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
 #if !RDO_SKIP_BS
     if( i_mb_type == I_PCM )
     {
+        uint8_t *p_start = s->p_start;
         bs_write_ue( s, i_mb_i_offset + 25 );
         i_mb_pos_tex = bs_pos( s );
         h->stat.frame.i_mv_bits += i_mb_pos_tex - i_mb_pos_start;
@@ -312,6 +313,9 @@ void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
         for( i = 0; i < 8; i++ )
             memcpy( s->p + i*8, h->mb.pic.p_fenc[2] + i*FENC_STRIDE, 8 );
         s->p += 64;
+
+        bs_init( s, s->p, s->p_end - s->p );
+        s->p_start = p_start;
 
         /* if PCM is chosen, we need to store reconstructed frame data */
         h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[0], FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE, 16 );
