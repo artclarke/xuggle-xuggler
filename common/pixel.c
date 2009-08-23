@@ -29,6 +29,9 @@
 #ifdef ARCH_PPC
 #   include "ppc/pixel.h"
 #endif
+#ifdef ARCH_ARM
+#   include "arm/pixel.h"
+#endif
 #ifdef ARCH_UltraSparc
 #   include "sparc/pixel.h"
 #endif
@@ -453,6 +456,10 @@ SATD_X_DECL7( _ssse3 )
 SATD_X_DECL7( _sse4 )
 #endif
 
+#ifdef HAVE_ARMV6
+SATD_X_DECL7( _neon )
+#endif
+
 /****************************************************************************
  * structural similarity metric
  ****************************************************************************/
@@ -815,6 +822,47 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     }
 #endif //HAVE_MMX
 
+#ifdef HAVE_ARMV6
+    if( cpu&X264_CPU_ARMV6 )
+    {
+        pixf->sad[PIXEL_4x8] = x264_pixel_sad_4x8_armv6;
+        pixf->sad[PIXEL_4x4] = x264_pixel_sad_4x4_armv6;
+        pixf->sad_aligned[PIXEL_4x8] = x264_pixel_sad_4x8_armv6;
+        pixf->sad_aligned[PIXEL_4x4] = x264_pixel_sad_4x4_armv6;
+    }
+    if( cpu&X264_CPU_NEON )
+    {
+        INIT5( sad, _neon );
+        INIT5( sad_aligned, _neon );
+        INIT7( sad_x3, _neon );
+        INIT7( sad_x4, _neon );
+        INIT7( ssd, _neon );
+        INIT7( satd, _neon );
+        INIT7( satd_x3, _neon );
+        INIT7( satd_x4, _neon );
+        INIT4( hadamard_ac, _neon );
+        pixf->sa8d[PIXEL_8x8]   = x264_pixel_sa8d_8x8_neon;
+        pixf->sa8d[PIXEL_16x16] = x264_pixel_sa8d_16x16_neon;
+        pixf->var[PIXEL_8x8]    = x264_pixel_var_8x8_neon;
+        pixf->var[PIXEL_16x16]  = x264_pixel_var_16x16_neon;
+        pixf->var2_8x8          = x264_pixel_var2_8x8_neon;
+
+        pixf->ssim_4x4x2_core   = x264_pixel_ssim_4x4x2_core_neon;
+        pixf->ssim_end4         = x264_pixel_ssim_end4_neon;
+
+        if( cpu&X264_CPU_FAST_NEON_MRC )
+        {
+            pixf->sad[PIXEL_4x8] = x264_pixel_sad_4x8_neon;
+            pixf->sad[PIXEL_4x4] = x264_pixel_sad_4x4_neon;
+            pixf->sad_aligned[PIXEL_4x8] = x264_pixel_sad_aligned_4x8_neon;
+            pixf->sad_aligned[PIXEL_4x4] = x264_pixel_sad_aligned_4x4_neon;
+        }
+        else    // really just scheduled for dual issue / A8
+        {
+            INIT5( sad_aligned, _neon_dual );
+        }
+    }
+#endif
 #ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC )
     {
