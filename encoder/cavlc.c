@@ -227,7 +227,7 @@ static void cavlc_qp_delta( x264_t *h, bs_t *s )
 
 static void cavlc_mb_mvd( x264_t *h, bs_t *s, int i_list, int idx, int width )
 {
-    DECLARE_ALIGNED_4( int16_t mvp[2] );
+    ALIGNED_4( int16_t mvp[2] );
     x264_mb_predict_mv( h, i_list, idx, width, mvp );
     bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[idx]][0] - mvp[0] );
     bs_write_se( s, h->mb.cache.mv[i_list][x264_scan8[idx]][1] - mvp[1] );

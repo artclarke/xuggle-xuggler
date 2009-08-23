@@ -764,7 +764,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
         {\
             int i_edge = (i_dir ? (mb_y <= b_interlaced) : (mb_x == 0));\
             int i_qpn, i, mbn_xy, mbn_8x8, mbn_4x4;\
-            DECLARE_ALIGNED_4( uint8_t bS[4] );  /* filtering strength */\
+            ALIGNED_4( uint8_t bS[4] );  /* filtering strength */\
             if( i_edge )\
                 i_edge+= b_8x8_transform;\
             else\

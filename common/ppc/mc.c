@@ -303,7 +303,7 @@ static void mc_chroma_altivec_4xh( uint8_t *dst, int i_dst_stride,
     int d8x = mvx & 0x07;
     int d8y = mvy & 0x07;
 
-    DECLARE_ALIGNED_16( uint16_t coeff[4] );
+    ALIGNED_16( uint16_t coeff[4] );
     coeff[0] = (8-d8x)*(8-d8y);
     coeff[1] = d8x    *(8-d8y);
     coeff[2] = (8-d8x)*d8y;
@@ -384,7 +384,7 @@ static void mc_chroma_altivec_8xh( uint8_t *dst, int i_dst_stride,
     int d8x = mvx & 0x07;
     int d8y = mvy & 0x07;
 
-    DECLARE_ALIGNED_16( uint16_t coeff[4] );
+    ALIGNED_16( uint16_t coeff[4] );
     coeff[0] = (8-d8x)*(8-d8y);
     coeff[1] = d8x    *(8-d8y);
     coeff[2] = (8-d8x)*d8y;

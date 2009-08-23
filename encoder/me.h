@@ -40,13 +40,13 @@ typedef struct
     uint16_t *integral;
     int      i_stride[2];
 
-    DECLARE_ALIGNED_4( int16_t mvp[2] );
+    ALIGNED_4( int16_t mvp[2] );
 
     /* output */
     int cost_mv;        /* lambda * nbits for the chosen mv */
     int cost;           /* satd + lambda * nbits */
-    DECLARE_ALIGNED_4( int16_t mv[2] );
-} DECLARE_ALIGNED_16( x264_me_t );
+    ALIGNED_4( int16_t mv[2] );
+} ALIGNED_16( x264_me_t );
 
 typedef struct {
     int sad;

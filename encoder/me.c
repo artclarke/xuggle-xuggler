@@ -182,7 +182,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
     int omx, omy, pmx, pmy;
     uint8_t *p_fenc = m->p_fenc[0];
     uint8_t *p_fref = m->p_fref[0];
-    DECLARE_ALIGNED_16( uint8_t pix[16*16] );
+    ALIGNED_ARRAY_16( uint8_t, pix,[16*16] );
 
     int i, j;
     int dir;
@@ -563,8 +563,8 @@ me_hex2:
             uint16_t *sums_base = m->integral;
             /* due to a GCC bug on some platforms (win32?), zero[] may not actually be aligned.
              * this is not a problem because it is not used for any SSE instructions. */
-            DECLARE_ALIGNED_16( static uint8_t zero[8*FENC_STRIDE] );
-            DECLARE_ALIGNED_16( int enc_dc[4] );
+            ALIGNED_16( static uint8_t zero[8*FENC_STRIDE] );
+            ALIGNED_ARRAY_16( int, enc_dc,[4] );
             int sad_size = i_pixel <= PIXEL_8x8 ? PIXEL_8x8 : PIXEL_4x4;
             int delta = x264_pixel_size[sad_size].w;
             int16_t *xs = h->scratch_buffer;
@@ -777,7 +777,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     const int i_pixel = m->i_pixel;
     const int b_chroma_me = h->mb.b_chroma_me && i_pixel <= PIXEL_8x8;
 
-    DECLARE_ALIGNED_16( uint8_t pix[2][32*18] ); // really 17x17, but round up for alignment
+    ALIGNED_ARRAY_16( uint8_t, pix,[2],[32*18] );   // really 17x17, but round up for alignment
     int omx, omy;
     int i;
 
@@ -950,9 +950,9 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
     const int16_t *p_cost_m0y = m0->p_cost_mv - m0->mvp[1];
     const int16_t *p_cost_m1x = m1->p_cost_mv - m1->mvp[0];
     const int16_t *p_cost_m1y = m1->p_cost_mv - m1->mvp[1];
-    DECLARE_ALIGNED_16( uint8_t pixy_buf[2][9][16*16] );
-    DECLARE_ALIGNED_8( uint8_t pixu_buf[2][9][8*8] );
-    DECLARE_ALIGNED_8( uint8_t pixv_buf[2][9][8*8] );
+    ALIGNED_ARRAY_16( uint8_t, pixy_buf,[2],[9][16*16] );
+    ALIGNED_8( uint8_t pixu_buf[2][9][8*8] );
+    ALIGNED_8( uint8_t pixv_buf[2][9][8*8] );
     uint8_t *src0[9];
     uint8_t *src1[9];
     uint8_t *pix  = &h->mb.pic.p_fdec[0][(i8>>1)*8*FDEC_STRIDE+(i8&1)*8];
@@ -972,7 +972,7 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
     int mc_list0 = 1, mc_list1 = 1;
     uint64_t bcostrd = COST_MAX64;
     /* each byte of visited represents 8 possible m1y positions, so a 4D array isn't needed */
-    DECLARE_ALIGNED_16( uint8_t visited[8][8][8] );
+    ALIGNED_ARRAY_16( uint8_t, visited,[8],[8][8] );
     /* all permutations of an offset in up to 2 of the dimensions */
     static const int8_t dia4d[32][4] = {
         {0,0,0,1}, {0,0,0,-1}, {0,0,1,0}, {0,0,-1,0},
@@ -989,7 +989,7 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
         bm0y > h->mb.mv_max_spel[1] - 8 || bm1y > h->mb.mv_max_spel[1] - 8 )
         return;
 
-    h->mc.memzero_aligned( visited, sizeof(visited) );
+    h->mc.memzero_aligned( visited, sizeof(uint8_t[8][8][8]) );
 
     BIME_CACHE( 0, 0, 0 );
     BIME_CACHE( 0, 0, 1 );
@@ -1082,7 +1082,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
     const int bh = x264_pixel_size[m->i_pixel].h>>2;
     const int i_pixel = m->i_pixel;
 
-    DECLARE_ALIGNED_16( uint8_t pix[16*16] );
+    ALIGNED_ARRAY_16( uint8_t, pix,[16*16] );
     uint64_t bcost = m->i_pixel == PIXEL_16x16 ? m->cost : COST_MAX64;
     int bmx = m->mv[0];
     int bmy = m->mv[1];

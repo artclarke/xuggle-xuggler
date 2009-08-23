@@ -75,9 +75,9 @@ extern void predict_16x16_dc_left_core_sse2( uint8_t *src, int i_dc_left );
 extern void predict_16x16_v_sse2( uint8_t *src );
 extern void predict_16x16_p_core_sse2( uint8_t *src, int i00, int b, int c );
 
-DECLARE_ALIGNED_8( static const int8_t pb_12345678[8] ) = {1,2,3,4,5,6,7,8};
-DECLARE_ALIGNED_8( static const int8_t pb_m87654321[8] ) = {-8,-7,-6,-5,-4,-3,-2,-1};
-DECLARE_ALIGNED_8( static const int8_t pb_m32101234[8] ) = {-3,-2,-1,0,1,2,3,4};
+ALIGNED_8( static const int8_t pb_12345678[8] ) = {1,2,3,4,5,6,7,8};
+ALIGNED_8( static const int8_t pb_m87654321[8] ) = {-8,-7,-6,-5,-4,-3,-2,-1};
+ALIGNED_8( static const int8_t pb_m32101234[8] ) = {-3,-2,-1,0,1,2,3,4};
 
 #define PREDICT_P_SUM(j,i)\
     H += i * ( src[j+i - FDEC_STRIDE ]  - src[j-i - FDEC_STRIDE ] );\
@@ -332,7 +332,7 @@ void x264_intra_sa8d_x3_8x8_##cpu( uint8_t *fenc, uint8_t edge[33], int res[3] )
     PREDICT_8x8_LOAD_TOP\
     PREDICT_8x8_LOAD_LEFT\
     int t;\
-    DECLARE_ALIGNED_16( int16_t sa8d_1d[2][8] );\
+    ALIGNED_16( int16_t sa8d_1d[2][8] );\
     SUMSUB(l0,l4,l1,l5,l2,l6,l3,l7);\
     SUMSUB(l0,l2,l1,l3,l4,l6,l5,l7);\
     SUMSUB(l0,l1,l2,l3,l4,l5,l6,l7);\

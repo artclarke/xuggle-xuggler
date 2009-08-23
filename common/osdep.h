@@ -67,9 +67,20 @@
 #else
 #define DECLARE_ALIGNED( var, n ) var __attribute__((aligned(n)))
 #endif
-#define DECLARE_ALIGNED_16( var ) DECLARE_ALIGNED( var, 16 )
-#define DECLARE_ALIGNED_8( var )  DECLARE_ALIGNED( var, 8 )
-#define DECLARE_ALIGNED_4( var )  DECLARE_ALIGNED( var, 4 )
+#define ALIGNED_16( var ) DECLARE_ALIGNED( var, 16 )
+#define ALIGNED_8( var )  DECLARE_ALIGNED( var, 8 )
+#define ALIGNED_4( var )  DECLARE_ALIGNED( var, 4 )
+
+// current arm compilers only maintain 8-byte stack alignment
+// and cannot align stack variables to more than 8-bytes
+#ifdef ARCH_ARM
+#define ALIGNED_ARRAY_16( type, name, sub1, ... )\
+    ALIGNED_8( uint8_t name##_8 [sizeof(type sub1 __VA_ARGS__) + 8] );\
+    type (*name) __VA_ARGS__ = (void*)(name##_8 + ((intptr_t)name##_8 & 8))
+#else
+#define ALIGNED_ARRAY_16( type, name, sub1, ... )\
+    ALIGNED_16( type name sub1 __VA_ARGS__ )
+#endif
 
 #if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
 #define UNUSED __attribute__((unused))

@@ -104,7 +104,7 @@ static inline int sum_sa8d( x264_t *h, int pixel, int x, int y )
 
 static inline int ssd_plane( x264_t *h, int size, int p, int x, int y )
 {
-    DECLARE_ALIGNED_16(static uint8_t zero[16]);
+    ALIGNED_16(static uint8_t zero[16]);
     int satd = 0;
     uint8_t *fdec = h->mb.pic.p_fdec[p] + x + y*FDEC_STRIDE;
     uint8_t *fenc = h->mb.pic.p_fenc[p] + x + y*FENC_STRIDE;

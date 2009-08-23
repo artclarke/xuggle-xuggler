@@ -39,7 +39,7 @@ typedef struct
     uint8_t *p_end;
 
     /* aligned for memcpy_aligned starting here */
-    DECLARE_ALIGNED_16( int f8_bits_encoded ); // only if using x264_cabac_size_decision()
+    ALIGNED_16( int f8_bits_encoded ); // only if using x264_cabac_size_decision()
 
     /* context */
     uint8_t state[460];

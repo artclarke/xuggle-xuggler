@@ -41,7 +41,7 @@
 static inline void write16x4(uint8_t *dst, int dst_stride,
                              register vec_u8_t r0, register vec_u8_t r1,
                              register vec_u8_t r2, register vec_u8_t r3) {
-    DECLARE_ALIGNED_16(unsigned char result[64]);
+    ALIGNED_16(unsigned char result[64]);
     uint32_t *src_int = (uint32_t *)result, *dst_int = (uint32_t *)dst;
     int int_dst_stride = dst_stride/4;
 
@@ -220,7 +220,7 @@ static inline vec_u8_t h264_deblock_q1(register vec_u8_t p0,
 }
 
 #define h264_loop_filter_luma_altivec(p2, p1, p0, q0, q1, q2, alpha, beta, tc0) {            \
-    DECLARE_ALIGNED_16(unsigned char temp[16]);                                              \
+    ALIGNED_16(unsigned char temp[16]);                                              \
     register vec_u8_t alphavec;                                                              \
     register vec_u8_t betavec;                                                               \
     register vec_u8_t mask;                                                                  \

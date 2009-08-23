@@ -32,8 +32,8 @@
 
 // GCC doesn't align stack variables on ARM, so use .bss
 #ifdef ARCH_ARM
-#undef DECLARE_ALIGNED_16
-#define DECLARE_ALIGNED_16( var ) DECLARE_ALIGNED( static var, 16 )
+#undef ALIGNED_16
+#define ALIGNED_16( var ) DECLARE_ALIGNED( static var, 16 )
 #endif
 
 /* buf1, buf2: initialised to random data and shouldn't write into them */
@@ -236,7 +236,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_predict_t predict_4x4[9+3];
     x264_predict8x8_t predict_8x8[9+3];
     x264_predict_8x8_filter_t predict_8x8_filter;
-    DECLARE_ALIGNED_16( uint8_t edge[33] );
+    ALIGNED_16( uint8_t edge[33] );
     uint16_t cost_mv[32];
     int ret = 0, ok, used_asm;
     int i, j;
@@ -438,7 +438,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
         pixel_asm.ssim_end4 != pixel_ref.ssim_end4 )
     {
         float res_c, res_a;
-        DECLARE_ALIGNED_16( int sums[5][4] ) = {{0}};
+        ALIGNED_16( int sums[5][4] ) = {{0}};
         used_asm = ok = 1;
         x264_emms();
         res_c = x264_pixel_ssim_wxh( &pixel_c,   buf1+2, 32, buf2+2, 32, 32, 28, buf3 );
@@ -463,8 +463,8 @@ static int check_pixel( int cpu_ref, int cpu_new )
     for( i=0; i<100 && ok; i++ )
         if( pixel_asm.ads[i&3] != pixel_ref.ads[i&3] )
         {
-            DECLARE_ALIGNED_16( uint16_t sums[72] );
-            DECLARE_ALIGNED_16( int dc[4] );
+            ALIGNED_16( uint16_t sums[72] );
+            ALIGNED_16( int dc[4] );
             int16_t mvs_a[32], mvs_c[32];
             int mvn_a, mvn_c;
             int thresh = rand() & 0x3fff;
@@ -500,11 +500,11 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_dct_function_t dct_asm;
     x264_quant_function_t qf;
     int ret = 0, ok, used_asm, i, j, interlace;
-    DECLARE_ALIGNED_16( int16_t dct1[16][4][4] );
-    DECLARE_ALIGNED_16( int16_t dct2[16][4][4] );
-    DECLARE_ALIGNED_16( int16_t dct4[16][4][4] );
-    DECLARE_ALIGNED_16( int16_t dct8[4][8][8] );
-    DECLARE_ALIGNED_8( int16_t dctdc[2][2][2] );
+    ALIGNED_16( int16_t dct1[16][4][4] );
+    ALIGNED_16( int16_t dct2[16][4][4] );
+    ALIGNED_16( int16_t dct4[16][4][4] );
+    ALIGNED_16( int16_t dct8[4][8][8] );
+    ALIGNED_8( int16_t dctdc[2][2][2] );
     x264_t h_buf;
     x264_t *h = &h_buf;
 
@@ -629,8 +629,8 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_zigzag_function_t zigzag_ref;
     x264_zigzag_function_t zigzag_asm;
 
-    DECLARE_ALIGNED_16( int16_t level1[64] );
-    DECLARE_ALIGNED_16( int16_t level2[64] );
+    ALIGNED_16( int16_t level1[64] );
+    ALIGNED_16( int16_t level2[64] );
 
 #define TEST_ZIGZAG_SCAN( name, t1, t2, dct, size )   \
     if( zigzag_asm.name != zigzag_ref.name ) \
@@ -1066,9 +1066,9 @@ static int check_quant( int cpu_ref, int cpu_new )
     x264_quant_function_t qf_c;
     x264_quant_function_t qf_ref;
     x264_quant_function_t qf_a;
-    DECLARE_ALIGNED_16( int16_t dct1[64] );
-    DECLARE_ALIGNED_16( int16_t dct2[64] );
-    DECLARE_ALIGNED_16( uint8_t cqm_buf[64] );
+    ALIGNED_16( int16_t dct1[64] );
+    ALIGNED_16( int16_t dct2[64] );
+    ALIGNED_16( uint8_t cqm_buf[64] );
     int ret = 0, ok, used_asm;
     int oks[2] = {1,1}, used_asms[2] = {0,0};
     int i, j, i_cqm, qp;
@@ -1382,8 +1382,8 @@ static int check_intra( int cpu_ref, int cpu_new )
 {
     int ret = 0, ok = 1, used_asm = 0;
     int i;
-    DECLARE_ALIGNED_16( uint8_t edge[33] );
-    DECLARE_ALIGNED_16( uint8_t edge2[33] );
+    ALIGNED_16( uint8_t edge[33] );
+    ALIGNED_16( uint8_t edge2[33] );
     struct
     {
         x264_predict_t      predict_16x16[4+3];
