@@ -58,7 +58,8 @@ endif
 # NEON optims
 ifeq ($(ARCH),ARM)
 ifneq ($(AS),)
-ASMSRC += common/arm/cpu-a.S common/arm/pixel-a.S
+ASMSRC += common/arm/cpu-a.S common/arm/pixel-a.S common/arm/mc-a.S
+SRCS   += common/arm/mc-c.c
 OBJASM  = $(ASMSRC:%.S=%.o)
 endif
 endif

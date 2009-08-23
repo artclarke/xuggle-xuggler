@@ -29,6 +29,9 @@
 #ifdef ARCH_PPC
 #include "ppc/mc.h"
 #endif
+#ifdef ARCH_ARM
+#include "arm/mc.h"
+#endif
 
 
 static inline void pixel_avg( uint8_t *dst,  int i_dst_stride,
@@ -427,6 +430,9 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 #ifdef ARCH_PPC
     if( cpu&X264_CPU_ALTIVEC )
         x264_mc_altivec_init( pf );
+#endif
+#ifdef HAVE_ARMV6
+    x264_mc_init_arm( cpu, pf );
 #endif
 }
 
