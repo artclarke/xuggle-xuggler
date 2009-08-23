@@ -90,3 +90,10 @@
     vmax.s16    \d1, \s1, \s2
 .endif
 .endm
+
+.macro TRANSPOSE4x4_16  d0 d1 d2 d3
+    vtrn.32     \d0, \d2
+    vtrn.32     \d1, \d3
+    vtrn.16     \d0, \d1
+    vtrn.16     \d2, \d3
+.endm

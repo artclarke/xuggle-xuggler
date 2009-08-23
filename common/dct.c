@@ -28,6 +28,9 @@
 #ifdef ARCH_PPC
 #   include "ppc/dct.h"
 #endif
+#ifdef ARCH_ARM
+#   include "arm/dct.h"
+#endif
 
 int x264_dct4_weight2_zigzag[2][16];
 int x264_dct8_weight2_zigzag[2][64];
@@ -499,6 +502,30 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
         dctf->add16x16_idct8= x264_add16x16_idct8_altivec;
     }
 #endif
+
+#ifdef HAVE_ARMV6
+    if( cpu&X264_CPU_NEON )
+    {
+        dctf->sub4x4_dct    = x264_sub4x4_dct_neon;
+        dctf->sub8x8_dct    = x264_sub8x8_dct_neon;
+        dctf->sub16x16_dct  = x264_sub16x16_dct_neon;
+        dctf->add8x8_idct_dc = x264_add8x8_idct_dc_neon;
+        dctf->add16x16_idct_dc = x264_add16x16_idct_dc_neon;
+        dctf->sub8x8_dct_dc = x264_sub8x8_dct_dc_neon;
+        dctf->dct4x4dc      = x264_dct4x4dc_neon;
+        dctf->idct4x4dc     = x264_idct4x4dc_neon;
+
+        dctf->add4x4_idct   = x264_add4x4_idct_neon;
+        dctf->add8x8_idct   = x264_add8x8_idct_neon;
+        dctf->add16x16_idct = x264_add16x16_idct_neon;
+
+        dctf->sub8x8_dct8   = x264_sub8x8_dct8_neon;
+        dctf->sub16x16_dct8 = x264_sub16x16_dct8_neon;
+
+        dctf->add8x8_idct8  = x264_add8x8_idct8_neon;
+        dctf->add16x16_idct8= x264_add16x16_idct8_neon;
+    }
+#endif
 }
 
 void x264_dct_init_weights( void )
@@ -738,6 +765,10 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
 #ifdef ARCH_PPC
         if( cpu&X264_CPU_ALTIVEC )
             pf->scan_4x4   = x264_zigzag_scan_4x4_frame_altivec;
+#endif
+#ifdef HAVE_ARMV6
+        if( cpu&X264_CPU_NEON )
+            pf->scan_4x4 = x264_zigzag_scan_4x4_frame_neon;
 #endif
     }
 
