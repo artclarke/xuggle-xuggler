@@ -976,16 +976,13 @@ int x264_rc_analyse_slice( x264_t *h )
     frames[p0] = h->fref0[0];
     frames[b] = h->fenc;
 
-    if( h->param.rc.b_mb_tree )
-        cost = x264_slicetype_frame_cost_recalculate( h, frames, p0, p1, b );
-    else
-    {
-        cost = x264_slicetype_frame_cost( h, &a, frames, p0, p1, b, 0 );
+    cost = x264_slicetype_frame_cost( h, &a, frames, p0, p1, b, 0 );
 
-        /* In AQ, use the weighted score instead. */
-        if( h->param.rc.i_aq_mode )
-            cost = frames[b]->i_cost_est_aq[b-p0][p1-b];
-    }
+    if( h->param.rc.b_mb_tree && !h->param.rc.b_stat_read )
+        cost = x264_slicetype_frame_cost_recalculate( h, frames, p0, p1, b );
+    /* In AQ, use the weighted score instead. */
+    else if( h->param.rc.i_aq_mode )
+        cost = frames[b]->i_cost_est_aq[b-p0][p1-b];
 
     h->fenc->i_row_satd = h->fenc->i_row_satds[b-p0][p1-b];
     h->fdec->i_row_satd = h->fdec->i_row_satds[b-p0][p1-b];

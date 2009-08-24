@@ -1060,8 +1060,11 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
             int i_qp_max = X264_MIN( prev_row_qp + h->param.rc.i_qp_step, h->param.rc.i_qp_max );
             int i_qp_min = X264_MAX( prev_row_qp - h->param.rc.i_qp_step, h->param.rc.i_qp_min );
             float buffer_left_planned = rc->buffer_fill - rc->frame_size_planned;
-            /* More threads means we have to be more cautious in letting ratecontrol use up extra bits. */
-            float rc_tol = (buffer_left_planned / h->param.i_threads);
+            /* More threads means we have to be more cautious in letting ratecontrol use up extra bits.
+             * In 2-pass mode we can be more trusting of the planned frame sizes, since they were decided
+             * by actual encoding instead of SATD prediction. */
+            float rc_tol = h->param.rc.b_stat_read ? (buffer_left_planned / rc->buffer_size) * rc->frame_size_planned
+                                                   : (buffer_left_planned / h->param.i_threads);
 
             /* Don't modify the row QPs until a sufficent amount of the bits of the frame have been processed, in case a flat */
             /* area at the top of the frame was measured inaccurately. */
