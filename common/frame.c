@@ -849,6 +849,13 @@ void x264_deblock_v_luma_altivec( uint8_t *pix, int stride, int alpha, int beta,
 void x264_deblock_h_luma_altivec( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 #endif // ARCH_PPC
 
+#ifdef HAVE_ARMV6
+void x264_deblock_v_luma_neon( uint8_t *, int, int, int, int8_t * );
+void x264_deblock_h_luma_neon( uint8_t *, int, int, int, int8_t * );
+void x264_deblock_v_chroma_neon( uint8_t *, int, int, int, int8_t * );
+void x264_deblock_h_chroma_neon( uint8_t *, int, int, int, int8_t * );
+#endif
+
 void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
 {
     pf->deblock_v_luma = deblock_v_luma_c;
@@ -890,6 +897,16 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
         pf->deblock_h_luma = x264_deblock_h_luma_altivec;
    }
 #endif // ARCH_PPC
+
+#ifdef HAVE_ARMV6
+   if( cpu&X264_CPU_NEON )
+   {
+        pf->deblock_v_luma   = x264_deblock_v_luma_neon;
+        pf->deblock_h_luma   = x264_deblock_h_luma_neon;
+        pf->deblock_v_chroma = x264_deblock_v_chroma_neon;
+        pf->deblock_h_chroma = x264_deblock_h_chroma_neon;
+   }
+#endif
 }
 
 
