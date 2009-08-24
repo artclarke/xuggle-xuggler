@@ -29,6 +29,9 @@
 #ifdef ARCH_PPC
 #   include "ppc/quant.h"
 #endif
+#ifdef ARCH_ARM
+#   include "arm/quant.h"
+#endif
 
 #define QUANT_ONE( coef, mf, f ) \
 { \
@@ -426,6 +429,25 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 
         pf->dequant_4x4 = x264_dequant_4x4_altivec;
         pf->dequant_8x8 = x264_dequant_8x8_altivec;
+    }
+#endif
+
+#ifdef HAVE_ARMV6
+    if( cpu&X264_CPU_ARMV6 )
+        pf->coeff_last[DCT_CHROMA_DC] = x264_coeff_last4_arm;
+
+    if( cpu&X264_CPU_NEON )
+    {
+        pf->quant_2x2_dc   = x264_quant_2x2_dc_neon;
+        pf->quant_4x4      = x264_quant_4x4_neon;
+        pf->quant_4x4_dc   = x264_quant_4x4_dc_neon;
+        pf->quant_8x8      = x264_quant_8x8_neon;
+        pf->dequant_4x4    = x264_dequant_4x4_neon;
+        pf->dequant_4x4_dc = x264_dequant_4x4_dc_neon;
+        pf->dequant_8x8    = x264_dequant_8x8_neon;
+        pf->coeff_last[ DCT_LUMA_AC] = x264_coeff_last15_neon;
+        pf->coeff_last[DCT_LUMA_4x4] = x264_coeff_last16_neon;
+        pf->coeff_last[DCT_LUMA_8x8] = x264_coeff_last64_neon;
     }
 #endif
     pf->coeff_last[  DCT_LUMA_DC] = pf->coeff_last[DCT_LUMA_4x4];
