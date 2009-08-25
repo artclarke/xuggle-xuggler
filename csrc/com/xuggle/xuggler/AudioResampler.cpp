@@ -252,7 +252,7 @@ namespace com { namespace xuggle { namespace xuggler
       // method in libavcodec/resample.c changes.
 #define VS_FFMPEG_AUDIO_RESAMPLER_LEADIN 16
       retval = 
-          (numSamples * conversionRatio)+VS_FFMPEG_AUDIO_RESAMPLER_LEADIN;
+          (int32_t)((numSamples * conversionRatio)+VS_FFMPEG_AUDIO_RESAMPLER_LEADIN+0.5);
     }
     catch (std::invalid_argument & e)
     {
