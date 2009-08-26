@@ -422,6 +422,9 @@ class XugglerJNI {
   public final static native void IStreamCoder_setAutomaticallyStampPacketsForStream(long jarg1, IStreamCoder jarg1_, boolean jarg2);
   public final static native boolean IStreamCoder_getAutomaticallyStampPacketsForStream(long jarg1, IStreamCoder jarg1_);
   public final static native void IStreamCoder_setCodecID(long jarg1, IStreamCoder jarg1_, int jarg2);
+  public final static native int IStreamCoder_setExtraData(long jarg1, IStreamCoder jarg1_, long jarg2, IBuffer jarg2_, int jarg3, int jarg4, boolean jarg5);
+  public final static native int IStreamCoder_getExtraData(long jarg1, IStreamCoder jarg1_, long jarg2, IBuffer jarg2_, int jarg3, int jarg4);
+  public final static native int IStreamCoder_getExtraDataSize(long jarg1, IStreamCoder jarg1_);
   public final static native int IStream_getDirection(long jarg1, IStream jarg1_);
   public final static native int IStream_getIndex(long jarg1, IStream jarg1_);
   public final static native int IStream_getId(long jarg1, IStream jarg1_);

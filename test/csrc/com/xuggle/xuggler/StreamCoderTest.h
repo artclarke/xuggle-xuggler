@@ -36,10 +36,11 @@ class StreamCoderTest : public CxxTest::TestSuite
     void testOpenAndClose();
     void testOpenButNoClose();
     void testCloseButNoOpen();
-    void testDecodingAndEncodingFullyInterleavedFile();
     void testTimestamps();
     void testGetFrameSize();
+    void testGetSetExtraData();
     void disabled_testDecodingAndEncodingNellymoserAudio();
+    void testDecodingAndEncodingFullyInterleavedFile();
   private:
     Helper* h;
     Helper* hw;

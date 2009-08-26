@@ -105,6 +105,27 @@
     return retval;
   }
 
+  /**
+   * Returns <strong>a read-only copy</strong> of the extra data in this stream coder as a new {@link IBuffer}.
+   * @return the extra data, or null if none or error.
+   * @since 3.3
+   */
+  public IBuffer getExtraData()
+  {
+    int size = getExtraDataSize();
+    if (size <= 0)
+      return null;
+    
+    IBuffer retval = IBuffer.make(this, size);
+    if (retval == null)
+      return null;
+    if (getExtraData(retval, 0, size) != size) {
+      retval.delete();
+      retval = null;
+    }
+    return retval;
+  }
+
   
 %}
 

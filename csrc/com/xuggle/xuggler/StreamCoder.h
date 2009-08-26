@@ -165,6 +165,11 @@ namespace com { namespace xuggle { namespace xuggler
     // RefCounted interface
     virtual int32_t acquire();
     virtual int32_t release();
+
+    virtual int32_t setExtraData(com::xuggle::ferry::IBuffer* src, int32_t offset, int32_t length, bool allocNew);
+    virtual int32_t getExtraData(com::xuggle::ferry::IBuffer *dest, int32_t offset, int32_t maxBytesToCopy);
+    virtual int32_t getExtraDataSize();
+
   protected:
     StreamCoder();
     virtual ~StreamCoder();

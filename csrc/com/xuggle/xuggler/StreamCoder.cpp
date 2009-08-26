@@ -1718,4 +1718,63 @@ StreamCoder :: getAutomaticallyStampPacketsForStream()
   return mAutomaticallyStampPacketsForStream;
 }
 
+int32_t
+StreamCoder :: setExtraData(com::xuggle::ferry::IBuffer* src, int32_t offset, int32_t numBytes, bool allocNew)
+{
+  if (!mCodecContext
+      || !src)
+    return -1;
+
+  void* bytes = src->getBytes(offset, numBytes);
+  if (!bytes)
+    return -1;
+
+  if (mCodecContext->extradata_size < numBytes || !mCodecContext->extradata)
+  {
+    if (allocNew)
+    {
+      av_free(mCodecContext->extradata);
+      mCodecContext->extradata_size = 0;
+      mCodecContext->extradata = (uint8_t*)av_malloc(numBytes+FF_INPUT_BUFFER_PADDING_SIZE);
+      if (!mCodecContext->extradata) {
+        return -1;
+      }
+      mCodecContext->extradata_size=numBytes;
+    }
+    else
+      return -1;
+  }
+  memcpy(mCodecContext->extradata, bytes, numBytes);
+  return numBytes;
+}
+int32_t
+StreamCoder :: getExtraData(com::xuggle::ferry::IBuffer *dest, int32_t offset, int32_t maxBytesToCopy)
+{
+  if (!mCodecContext
+      || !mCodecContext->extradata
+      || mCodecContext->extradata_size <= 0
+      || !dest
+      || offset < 0
+      || maxBytesToCopy < 0
+      || dest->getSize() < offset+maxBytesToCopy)
+    return 0;
+
+  int32_t bytesToCopy = FFMIN(maxBytesToCopy, mCodecContext->extradata_size);
+  if (bytesToCopy <= 0)
+    return 0;
+  void* bytes = dest->getBytes(offset, bytesToCopy);
+  if (!bytes)
+    return 0;
+  memcpy(bytes, mCodecContext->extradata, bytesToCopy);
+  return bytesToCopy;
+}
+
+int32_t
+StreamCoder :: getExtraDataSize()
+{
+  if (mCodecContext)
+    return mCodecContext->extradata_size;
+  return 0;
+}
+
 }}}

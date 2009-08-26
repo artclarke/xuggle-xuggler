@@ -202,6 +202,27 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
     return retval;
   }
 
+  /**
+   * Returns <strong>a read-only copy</strong> of the extra data in this stream coder as a new {@link IBuffer}.
+   * @return the extra data, or null if none or error.
+   * @since 3.3
+   */
+  public IBuffer getExtraData()
+  {
+    int size = getExtraDataSize();
+    if (size <= 0)
+      return null;
+    
+    IBuffer retval = IBuffer.make(this, size);
+    if (retval == null)
+      return null;
+    if (getExtraData(retval, 0, size) != size) {
+      retval.delete();
+      retval = null;
+    }
+    return retval;
+  }
+
   
 
 /**
@@ -1043,6 +1064,81 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  */
   public void setCodecID(ICodec.ID id) {
     XugglerJNI.IStreamCoder_setCodecID(swigCPtr, this, id.swigValue());
+  }
+
+/**
+ * Copies data from the given buffer into the extra-data area maintained 
+ *  
+ * by encoders.  
+ * <p>  
+ * This is an extremely advanced method, and incorrect usage can result 
+ *  
+ * in Java crashes so take care. In general people should not need to 
+ * use this.  
+ * </p>  
+ * <p>  
+ * For some codecs (e.g. for H264, this is global header information 
+ * and  
+ * for rv10 it is additional flags),  
+ * Xuggler maintains extra information about  
+ * the codec in a extra data buffer. In general Xuggler will allocate 
+ * this  
+ * data as needed and you never need to set it (or get it). But if you 
+ * know what you're  
+ * doing, you can ask Xuggler to replace the existing extra data for 
+ * the  
+ * given codec with a copy of the data in the given buffer.  
+ * </p>  
+ * <p>  
+ * You should call this method after you call {@link #open()} but before 
+ *  
+ * you encode or decode any media.  
+ * </p>  
+ * @param	src The data to copy  
+ * @param	offset The position, in bytes, to start copying data from 
+ *		 src  
+ * @param	length The number of bytes to copy from data  
+ * @param	allocNew If true, and there is not enough space in the existing 
+ *		  
+ * extra data buffer, then Xuggler will discard the old buffer and allocate 
+ * a new buffer.  
+ * If false, then Xuggler will attempt to copy the data into the existing 
+ * buffer and if there  
+ * is not enough space in the existing buffer, no bytes will be copied 
+ * and an error will  
+ * be returned. In general, you should set this to false if that works 
+ * for you.  
+ * @return	The number of bytes copied, or < 0 on error.  
+ * @since	3.3  
+ */
+  public int setExtraData(IBuffer src, int offset, int length, boolean allocNew) {
+    return XugglerJNI.IStreamCoder_setExtraData(swigCPtr, this, IBuffer.getCPtr(src), src, offset, length, allocNew);
+  }
+
+/**
+ * Copies the current content of the extra-data buffer maintained by 
+ * this codec (e.g. header bytes)  
+ * into the dest buffer.  
+ * @param	dest The buffer to copy to.  
+ * @param	offset The position, in bytes, to start writing data to in 
+ *		 dest.  
+ * @param	maxBytesToCopy The maximum number of bytes to copy.  
+ * @return	The number of bytes copied, or < 0 on error.  
+ * @since	3.3  
+ */
+  public int getExtraData(IBuffer dest, int offset, int maxBytesToCopy) {
+    return XugglerJNI.IStreamCoder_getExtraData(swigCPtr, this, IBuffer.getCPtr(dest), dest, offset, maxBytesToCopy);
+  }
+
+/**
+ * Gets the current number of bytes of data maintained in the coder 
+ * extra-data area.  
+ * @return	The number of bytes. If 0, then no data is currently available. 
+ *		  
+ * @since	3.3  
+ */
+  public int getExtraDataSize() {
+    return XugglerJNI.IStreamCoder_getExtraDataSize(swigCPtr, this);
   }
 
   public enum Direction {

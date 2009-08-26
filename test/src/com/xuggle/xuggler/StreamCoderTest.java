@@ -25,6 +25,7 @@ import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.ferry.IBuffer;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IPixelFormat;
@@ -312,10 +313,8 @@ public class StreamCoderTest extends TestCase
     mContainer = IContainer.make();
     assertTrue(mContainer != null);
     
-    errorVal = mContainer.open(sampleFile, IContainer.Type.READ, null);
+    errorVal = mContainer.open(url, IContainer.Type.READ, null);
     assertTrue(errorVal >= 0);
-    
-    assertTrue(mContainer.getNumStreams() == 2);
     
     mStream = mContainer.getStream(index);
     assertTrue(mStream != null);
@@ -346,4 +345,36 @@ public class StreamCoderTest extends TestCase
     IStreamCoder coder = IStreamCoder.make(Direction.ENCODING);
     assertTrue(coder.getAutomaticallyStampPacketsForStream());
   }
+  
+  @Test
+  public void testOpenGetAndSetExtraData()
+  {
+    // For this test file, this is the header info for the video stream
+    byte[] expected = {
+        1, 77, 64, 20, -1, -31, 0, 20, 39, 77, 64,
+        20, -87, 24, 60, 54, -9, -128, 53, 6, 1,
+        6, -74, -62, -75, -17, 124, 4, 1, 0, 4,
+        40, -34, 9, -120
+    };
+    int retval = -1;
+    mCoder = getStreamCoder("fixtures/testfile_h264_mp4a_tmcd.mov", 0);
+
+    assertEquals(ICodec.Type.CODEC_TYPE_VIDEO, mCoder.getCodecType());
+    retval = mCoder.open();
+    assertTrue("Could not open codec", retval >= 0);
+    int extraDataSize = mCoder.getExtraDataSize();
+    assertEquals(expected.length, extraDataSize);
+
+    IBuffer buffer = mCoder.getExtraData();
+    assertNotNull(buffer);
+    assertEquals(extraDataSize, buffer.getBufferSize());
+    retval = mCoder.close();
+    assertTrue("Could not close codec", retval >= 0);
+    byte[] actual = new byte[expected.length];
+    buffer.get(0, actual, 0, actual.length);
+    for(int i = 0; i < expected.length; i++)
+      assertEquals("differ at: "+i, expected[i], actual[i]);
+  }
+
+
 }

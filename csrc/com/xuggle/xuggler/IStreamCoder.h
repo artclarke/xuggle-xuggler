@@ -901,6 +901,68 @@ namespace com { namespace xuggle { namespace xuggler
      */
     virtual void setCodecID(ICodec::ID id)=0;
 
+    /*
+     * Added for 3.3
+     */
+
+    /**
+     * Copies data from the given buffer into the extra-data area maintained
+     * by encoders.
+     * <p>
+     * This is an extremely advanced method, and incorrect usage can result
+     * in Java crashes so take care.  In general people should not need to use this.
+     * </p>
+     * <p>
+     * For some codecs (e.g. for H264, this is global header information and
+     * for rv10 it is additional flags),
+     *  Xuggler maintains extra information about
+     * the codec in a extra data buffer.  In general Xuggler will allocate this
+     * data as needed and you never need to set it (or get it).  But if you know what you're
+     * doing, you can ask Xuggler to replace the existing extra data for the
+     * given codec with a copy of the data in the given buffer.
+     * </p>
+     * <p>
+     * You should call this method after you call {@link #open()} but before
+     * you encode or decode any media.
+     * </p>
+     * @param src The data to copy
+     * @param offset The position, in bytes, to start copying data from src
+     * @param length The number of bytes to copy from data
+     * @param allocNew If true, and there is not enough space in the existing
+     *   extra data buffer, then Xuggler will discard the old buffer and allocate a new buffer.
+     *   If false, then Xuggler will attempt to copy the data into the existing buffer and if there
+     *   is not enough space in the existing buffer, no bytes will be copied and an error will
+     *   be returned.  In general, you should set this to false if that works for you.
+     * @return The number of bytes copied, or < 0 on error.
+     *
+     * @since 3.3
+     */
+    virtual int32_t setExtraData(com::xuggle::ferry::IBuffer* src,
+        int32_t offset,
+        int32_t length, bool allocNew)=0;
+
+    /**
+     * Copies the current content of the extra-data buffer maintained by this codec (e.g. header bytes)
+     * into the dest buffer.
+     *
+     * @param dest The buffer to copy to.
+     * @param offset The position, in bytes, to start writing data to in dest.
+     * @param maxBytesToCopy The maximum number of bytes to copy.
+     * @return The number of bytes copied, or < 0 on error.
+     *
+     * @since 3.3
+     */
+    virtual int32_t getExtraData(com::xuggle::ferry::IBuffer *dest,
+        int32_t offset,
+        int32_t maxBytesToCopy)=0;
+
+    /**
+     * Gets the current number of bytes of data maintained in the coder extra-data area.
+     * @return The number of bytes.  If 0, then no data is currently available.
+     *
+     * @since 3.3
+     */
+    virtual int32_t getExtraDataSize()=0;
   };
 
 }}}

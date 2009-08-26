@@ -843,3 +843,58 @@ StreamCoderTest :: disabled_testDecodingAndEncodingNellymoserAudio()
     VS_TUT_ENSURE_EQUALS("unexpected number of video key frames",
         numKeyFrames, h->expected_video_key_frames);
 }
+
+void
+StreamCoderTest :: testGetSetExtraData()
+{
+  int retval = 0;
+  h->setupReading("testfile_h264_mp4a_tmcd.mov");
+  for(int i = 0; i < h->num_streams; i++)
+  {
+    if (h->coders[i]->getCodecType() != ICodec::CODEC_TYPE_VIDEO)
+      continue;
+    retval = h->coders[i]->open();
+    VS_TUT_ENSURE(0, retval >= 0);
+    int32_t extraDataSize = h->coders[i]->getExtraDataSize();
+    VS_TUT_ENSURE(0, extraDataSize > 0);
+    uint8_t* bytes;
+    if (extraDataSize > 0)
+    {
+      RefPointer<IBuffer> buffer = IBuffer::make(0, extraDataSize);
+      retval = h->coders[i]->getExtraData(buffer.value(), 0, extraDataSize);
+      VS_TUT_ENSURE_EQUALS(0, retval, extraDataSize);
+      bytes = (uint8_t*)buffer->getBytes(0, extraDataSize);
+      for(int j = 0; j < extraDataSize; j++)
+      {
+//        VS_LOG_DEBUG("Byte %d: %hhd", j, bytes[j]);
+        bytes[j] = 5;
+      }
+      retval = h->coders[i]->setExtraData(buffer.value(), 0, extraDataSize, false);
+      VS_TUT_ENSURE_EQUALS(0, retval, extraDataSize);
+      // reset the buffer
+      buffer = IBuffer::make(0, extraDataSize+1);
+      retval = h->coders[i]->getExtraData(buffer.value(), 0, extraDataSize);
+      VS_TUT_ENSURE_EQUALS(0, retval, extraDataSize);
+      bytes = (uint8_t*)buffer->getBytes(0, extraDataSize);
+      for(int j = 0; j < extraDataSize; j++)
+      {
+        VS_TUT_ENSURE_EQUALS(0, bytes[j], 5);
+      }
+      bytes[extraDataSize] = 5;
+      // test the path where we re-alloc buffers
+      retval = h->coders[i]->setExtraData(buffer.value(), 0, extraDataSize+1, true);
+      VS_TUT_ENSURE_EQUALS(0, retval, extraDataSize+1);
+      // reset the buffer
+      buffer = IBuffer::make(0, extraDataSize+1);
+      retval = h->coders[i]->getExtraData(buffer.value(), 0, extraDataSize+1);
+      VS_TUT_ENSURE_EQUALS(0, retval, extraDataSize+1);
+      bytes = (uint8_t*)buffer->getBytes(0, extraDataSize+1);
+      for(int j = 0; j < extraDataSize+1; j++)
+      {
+        VS_TUT_ENSURE_EQUALS(0, bytes[j], 5);
+      }
+      h->coders[i]->close();
+    }
+  }
+}
+
