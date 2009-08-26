@@ -16,6 +16,11 @@ package com.xuggle.xuggler;
 
 public class Xuggler {
 
+  static {
+    // Force the JNI library to load
+    XugglerJNI.noop();
+  }
+
   /**
    * 
    * A simple test of xuggler, this program takes an input

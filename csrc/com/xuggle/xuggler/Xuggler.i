@@ -92,6 +92,11 @@ import com.xuggle.ferry.*;
 %}
 
 %pragma(java) modulecode=%{
+  static {
+    // Force the JNI library to load
+    XugglerJNI.noop();
+  }
+
   /**
    * 
    * A simple test of xuggler, this program takes an input
@@ -119,6 +124,9 @@ import com.xuggle.ferry.*;
       new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
     com.xuggle.xuggler.Xuggler.init();
     com.xuggle.xuggler.Global.init();
+  }
+  public static void noop() {
+    // Here only to force JNI library to load
   }
   
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<

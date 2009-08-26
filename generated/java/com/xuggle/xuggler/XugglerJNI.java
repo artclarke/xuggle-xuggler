@@ -21,6 +21,9 @@ class XugglerJNI {
     com.xuggle.xuggler.Xuggler.init();
     com.xuggle.xuggler.Global.init();
   }
+  public static void noop() {
+    // Here only to force JNI library to load
+  }
   
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<
 // Xuggler.i: End generated code
