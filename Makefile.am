@@ -1,4 +1,5 @@
 include $(abs_top_builddir)/mk/Makefile.global
+ACLOCAL_AMFLAGS=-I m4
 if CAPTIVES_ENABLED
   CAPTIVES=captive
 endif

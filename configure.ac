@@ -35,6 +35,7 @@ AM_CONDITIONAL(CAPTIVES_ENABLED,
                [ test "x$CAPTIVES_ENABLED" = "xyes" ])
 AC_SUBST([CAPTIVES_ENABLED])
 
+AC_CONFIG_MACRO_DIR([m4])
 if test "x$enable_captives" = "xyes"; then
   AC_CONFIG_SUBDIRS([captive])
 fi
