@@ -861,7 +861,7 @@ static void x264_slicetype_analyse( x264_t *h, int keyframe )
     {
         if( ((j-keyint_limit) % h->param.i_keyint_max) == 0 )
         {
-            if( j )
+            if( j && h->param.i_keyint_max > 1 )
                 frames[j]->i_type = X264_TYPE_P;
             frames[j+1]->i_type = X264_TYPE_IDR;
             reset_start = X264_MIN( reset_start, j+2 );

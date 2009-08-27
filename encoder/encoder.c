@@ -478,6 +478,8 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_SPATIAL;
     }
     h->param.i_bframe = x264_clip3( h->param.i_bframe, 0, X264_BFRAME_MAX );
+    if( h->param.i_keyint_max == 1 )
+        h->param.i_bframe = 0;
     h->param.i_bframe_bias = x264_clip3( h->param.i_bframe_bias, -90, 100 );
     h->param.b_bframe_pyramid = h->param.b_bframe_pyramid && h->param.i_bframe > 1;
     if( !h->param.i_bframe )
