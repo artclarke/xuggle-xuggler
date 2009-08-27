@@ -161,15 +161,14 @@ static const uint8_t exp2_lut[64] = {
     177, 182, 186, 191, 196, 201, 206, 211, 216, 221, 226, 232, 237, 242, 248, 253,
 };
 
+/* Not a general-purpose function; multiplies input by -1/6 to convert
+ * qp to qscale. */
 static ALWAYS_INLINE int x264_exp2fix8( float x )
 {
-    int i, f;
-    x += 8;
-    if( x <= 0 ) return 0;
-    if( x >= 16 ) return 0xffff;
-    i = x;
-    f = (x-i)*64;
-    return (exp2_lut[f]+256) << i >> 8;
+    if( x >= 512.f/6.f ) return 0;
+    if( x <= -512.f/6.f ) return 0xffff;
+    int i = x*(-64.f/6.f) + 512;
+    return (exp2_lut[i&63]+256) << (i>>6) >> 8;
 }
 
 static const float log2_lut[128] = {

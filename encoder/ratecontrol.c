@@ -251,7 +251,7 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame )
             frame->f_qp_offset[mb_x + mb_y*h->mb.i_mb_stride] =
             frame->f_qp_offset_aq[mb_x + mb_y*h->mb.i_mb_stride] = qp_adj;
             if( h->frames.b_have_lowres )
-                frame->i_inv_qscale_factor[mb_x + mb_y*h->mb.i_mb_stride] = x264_exp2fix8(qp_adj*(-1.f/6.f));
+                frame->i_inv_qscale_factor[mb_x + mb_y*h->mb.i_mb_stride] = x264_exp2fix8(qp_adj);
         }
 }
 
