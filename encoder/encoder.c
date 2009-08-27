@@ -762,6 +762,8 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     x264_validate_levels( h, 1 );
 
+    h->chroma_qp_table = i_chroma_qp_table + 12 + h->pps->i_chroma_qp_index_offset;
+
     if( x264_cqm_init( h ) < 0 )
         goto fail;
 
@@ -795,8 +797,6 @@ x264_t *x264_encoder_open   ( x264_param_t *param )
 
     h->i_ref0 = 0;
     h->i_ref1 = 0;
-
-    h->chroma_qp_table = i_chroma_qp_table + 12 + h->pps->i_chroma_qp_index_offset;
 
     x264_rdo_init( );
 

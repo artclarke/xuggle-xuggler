@@ -515,6 +515,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     memset( h, 0, sizeof(*h) );
     h->pps = h->pps_array;
     x264_param_default( &h->param );
+    h->chroma_qp_table = i_chroma_qp_table + 12;
     h->param.analyse.i_luma_deadzone[0] = 0;
     h->param.analyse.i_luma_deadzone[1] = 0;
     h->param.analyse.b_transform_8x8 = 1;
@@ -978,6 +979,7 @@ static int check_mc( int cpu_ref, int cpu_new )
         uint16_t *inter = intra+400;
         uint16_t *qscale = inter+400;
         uint16_t *rand = (uint16_t*)buf2;
+        x264_emms();
         for( i=0; i<400; i++ )
         {
             intra[i]  = *rand++ & 0x7fff;
@@ -1077,6 +1079,7 @@ static int check_quant( int cpu_ref, int cpu_new )
     memset( h, 0, sizeof(*h) );
     h->pps = h->pps_array;
     x264_param_default( &h->param );
+    h->chroma_qp_table = i_chroma_qp_table + 12;
     h->param.rc.i_qp_min = 26;
     h->param.analyse.b_transform_8x8 = 1;
 

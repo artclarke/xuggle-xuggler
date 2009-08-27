@@ -78,6 +78,7 @@ int x264_cqm_init( x264_t *h )
                         32 - h->param.analyse.i_luma_deadzone[0],
                         32 - 11, 32 - 21 };
     int max_qp_err = -1;
+    int max_chroma_qp_err = -1;
 
     for( i = 0; i < 6; i++ )
     {
@@ -148,8 +149,10 @@ int x264_cqm_init( x264_t *h )
                 h->  quant4_mf[i_list][q][i] = j = SHIFT(quant4_mf[i_list][q%6][0][i], q/6 - 1);
                 // round to nearest, unless that would cause the deadzone to be negative
                 h->quant4_bias[i_list][q][i] = X264_MIN( DIV(deadzone[i_list]<<10, j), (1<<15)/j );
-                if( j > 0xffff && q > max_qp_err )
+                if( j > 0xffff && q > max_qp_err && (i_list == CQM_4IY || i_list == CQM_4PY) )
                     max_qp_err = q;
+                if( j > 0xffff && q > max_chroma_qp_err && (i_list == CQM_4IC || i_list == CQM_4PC) )
+                    max_chroma_qp_err = q;
             }
         if( h->param.analyse.b_transform_8x8 )
         for( i_list = 0; i_list < 2; i_list++ )
@@ -165,9 +168,14 @@ int x264_cqm_init( x264_t *h )
 
     if( !h->mb.b_lossless && max_qp_err >= h->param.rc.i_qp_min )
     {
-        x264_log( h, X264_LOG_ERROR, "Quantization overflow.\n" );
-        x264_log( h, X264_LOG_ERROR, "Your CQM is incompatible with QP < %d, but min QP is set to %d\n",
-                  max_qp_err+1, h->param.rc.i_qp_min );
+        x264_log( h, X264_LOG_ERROR, "Quantization overflow.  Your CQM is incompatible with QP < %d,\n", max_qp_err+1 );
+        x264_log( h, X264_LOG_ERROR, "but min QP is set to %d.\n", h->param.rc.i_qp_min );
+        return -1;
+    }
+    if( !h->mb.b_lossless && max_chroma_qp_err >= h->chroma_qp_table[h->param.rc.i_qp_min] )
+    {
+        x264_log( h, X264_LOG_ERROR, "Quantization overflow.  Your CQM is incompatible with QP < %d,\n", max_chroma_qp_err+1 );
+        x264_log( h, X264_LOG_ERROR, "but min chroma QP is implied to be %d.\n", h->chroma_qp_table[h->param.rc.i_qp_min] );
         return -1;
     }
     return 0;
