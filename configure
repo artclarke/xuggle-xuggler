@@ -239,6 +239,9 @@ case $host_cpu in
     if [[ "$asm" == yes && "$CFLAGS" != *-march* ]]; then
       CFLAGS="$CFLAGS -march=i686"
     fi
+    if [[ "$asm" == yes && "$CFLAGS" != *-mfpmath* ]]; then
+      CFLAGS="$CFLAGS -mfpmath=sse -msse"
+    fi
     if [ "$SYS" = MACOSX ]; then
       ASFLAGS="$ASFLAGS -f macho -DPREFIX"
     elif [ "$SYS" = MINGW ]; then

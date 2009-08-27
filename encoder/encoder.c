@@ -338,9 +338,9 @@ fail:
 static int x264_validate_parameters( x264_t *h )
 {
 #ifdef HAVE_MMX
-    if( !(x264_cpu_detect() & X264_CPU_MMXEXT) )
+    if( !(x264_cpu_detect() & X264_CPU_SSE) )
     {
-        x264_log( h, X264_LOG_ERROR, "your cpu does not support MMXEXT, but x264 was compiled with asm support\n");
+        x264_log( h, X264_LOG_ERROR, "your cpu does not support SSE1, but x264 was compiled with asm support\n");
         x264_log( h, X264_LOG_ERROR, "to run x264, recompile without asm support (configure --disable-asm)\n");
         return -1;
     }
