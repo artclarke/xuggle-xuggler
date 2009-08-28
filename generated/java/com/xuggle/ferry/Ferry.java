@@ -21,6 +21,10 @@ package com.xuggle.ferry;
 public class Ferry {
 
 
+  static {
+    FerryJNI.noop();
+  }
+  
   /**
    * Internal Only.  Do not use.
    */

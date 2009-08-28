@@ -90,6 +90,9 @@ Java_com_xuggle_ferry_Ferry_init(JNIEnv *env, jclass)
     reference.delete();
     buffer.delete();
   }
+  static void noop()
+  {
+  }
   /**
    * Internal Only.  Do not call.
    */
@@ -113,6 +116,10 @@ Java_com_xuggle_ferry_Ferry_init(JNIEnv *env, jclass)
 %}
 %pragma(java) modulecode=%{
 
+  static {
+    FerryJNI.noop();
+  }
+  
   /**
    * Internal Only.  Do not use.
    */
