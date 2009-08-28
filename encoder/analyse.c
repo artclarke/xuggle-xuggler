@@ -2021,7 +2021,6 @@ static void x264_mb_analyse_p_rd( x264_t *h, x264_mb_analysis_t *a, int i_satd )
         x264_analyse_update_cache( h, a );
         a->l0.i_rd16x16 = x264_rd_cost_mb( h, a->i_lambda2 );
     }
-    a->l0.me16x16.cost = a->l0.i_rd16x16;
 
     if( a->l0.i_cost16x8 <= thresh )
     {
@@ -2534,7 +2533,7 @@ int x264_macroblock_analyse( x264_t *h )
                 x264_mb_analyse_p_rd( h, &analysis, X264_MIN(i_satd_inter, i_satd_intra) );
                 i_type = P_L0;
                 i_partition = D_16x16;
-                i_cost = analysis.l0.me16x16.cost;
+                i_cost = analysis.l0.i_rd16x16;
                 COPY2_IF_LT( i_cost, analysis.l0.i_cost16x8, i_partition, D_16x8 );
                 COPY2_IF_LT( i_cost, analysis.l0.i_cost8x16, i_partition, D_8x16 );
                 COPY3_IF_LT( i_cost, analysis.l0.i_cost8x8, i_partition, D_8x8, i_type, P_8x8 );
@@ -2561,6 +2560,7 @@ int x264_macroblock_analyse( x264_t *h )
                 else if( i_partition == D_16x16 )
                 {
                     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, analysis.l0.me16x16.i_ref );
+                    analysis.l0.me16x16.cost = analysis.l0.i_rd16x16;
                     x264_me_refine_qpel_rd( h, &analysis.l0.me16x16, analysis.i_lambda2, 0, 0 );
                 }
                 else if( i_partition == D_16x8 )
@@ -2862,9 +2862,15 @@ int x264_macroblock_analyse( x264_t *h )
                 if( i_partition == D_16x16 )
                 {
                     if( i_type == B_L0_L0 )
+                    {
+                        analysis.l0.me16x16.cost = analysis.l0.i_rd16x16;
                         x264_me_refine_qpel_rd( h, &analysis.l0.me16x16, analysis.i_lambda2, 0, 0 );
+                    }
                     else if( i_type == B_L1_L1 )
+                    {
+                        analysis.l1.me16x16.cost = analysis.l1.i_rd16x16;
                         x264_me_refine_qpel_rd( h, &analysis.l1.me16x16, analysis.i_lambda2, 0, 1 );
+                    }
                     else if( i_type == B_BI_BI )
                         x264_me_refine_bidir_rd( h, &analysis.l0.me16x16, &analysis.l1.me16x16, i_biweight, 0, analysis.i_lambda2 );
                 }
