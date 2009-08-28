@@ -2669,7 +2669,7 @@ int x264_macroblock_analyse( x264_t *h )
             const unsigned int flags = h->param.analyse.inter;
             int i_type;
             int i_partition;
-            int i_satd_inter = 0; // shut up uninitialized warning
+            int i_satd_inter;
             h->mb.b_skip_mc = 0;
 
             if( x264_mb_analyse_load_costs( h, &analysis ) )
@@ -2814,9 +2814,10 @@ int x264_macroblock_analyse( x264_t *h )
                 }
             }
 
+            i_satd_inter = i_cost;
+
             if( analysis.i_mbrd )
             {
-                i_satd_inter = i_cost;
                 x264_mb_analyse_b_rd( h, &analysis, i_satd_inter );
                 i_type = B_SKIP;
                 i_cost = i_bskip_cost;
