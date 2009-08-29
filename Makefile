@@ -99,12 +99,10 @@ checkasm: tools/checkasm.o libx264.a
 
 %.o: %.asm
 	$(AS) $(ASFLAGS) -o $@ $<
+	-@ $(STRIP) -x $@ # delete local/anonymous symbols, so they don't show up in oprofile
 
 %.o: %.S
 	$(AS) $(ASFLAGS) -o $@ $<
-
-# delete local/anonymous symbols, so they don't show up in oprofile
-	-@ $(STRIP) -x $@
 
 .depend: config.mak
 	rm -f .depend
