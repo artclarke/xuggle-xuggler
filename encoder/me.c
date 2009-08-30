@@ -633,39 +633,35 @@ me_hex2:
                 }
 
                 limit = i_me_range / 2;
-                if( nmvsad > limit*2 )
+                sad_thresh = bsad*sad_thresh>>3;
+                while( nmvsad > limit*2 && sad_thresh > bsad )
                 {
                     // halve the range if the domain is too large... eh, close enough
-                    bsad = bsad*(sad_thresh+8)>>4;
-                    for( i=0; i<nmvsad && mvsads[i].sad <= bsad; i++ );
+                    sad_thresh = (sad_thresh + bsad) >> 1;
+                    for( i=0; i<nmvsad && mvsads[i].sad <= sad_thresh; i++ );
                     for( j=i; j<nmvsad; j++ )
-                        if( mvsads[j].sad <= bsad )
-                        {
-                            /* mvsad_t is not guaranteed to be 8 bytes on all archs, so check before using explicit write-combining */
-                            if( sizeof( mvsad_t ) == sizeof( uint64_t ) )
-                                *(uint64_t*)&mvsads[i++] = *(uint64_t*)&mvsads[j];
-                            else
-                                mvsads[i++] = mvsads[j];
-                        }
+                    {
+                        /* mvsad_t is not guaranteed to be 8 bytes on all archs, so check before using explicit write-combining */
+                        if( sizeof( mvsad_t ) == sizeof( uint64_t ) )
+                            *(uint64_t*)&mvsads[i] = *(uint64_t*)&mvsads[j];
+                        else
+                            mvsads[i] = mvsads[j];
+                        i += mvsads[j].sad <= sad_thresh;
+                    }
                     nmvsad = i;
                 }
-                if( nmvsad > limit )
+                while( nmvsad > limit )
                 {
-                    for( i=0; i<limit; i++ )
-                    {
-                        int bj = i;
-                        int bsad = mvsads[bj].sad;
-                        for( j=i+1; j<nmvsad; j++ )
-                            COPY2_IF_LT( bsad, mvsads[j].sad, bj, j );
-                        if( bj > i )
-                        {
-                            if( sizeof( mvsad_t ) == sizeof( uint64_t ) )
-                                XCHG( uint64_t, *(uint64_t*)&mvsads[i], *(uint64_t*)&mvsads[bj] );
-                            else
-                                XCHG( mvsad_t, mvsads[i], mvsads[bj] );
-                        }
-                    }
-                    nmvsad = limit;
+                    int bsad = mvsads[0].sad;
+                    int bi = 0;
+                    for( i=1; i<nmvsad; i++ )
+                        COPY2_IF_GT( bsad, mvsads[i].sad, bi, i );
+                    nmvsad--;
+                    mvsads[bi] = mvsads[nmvsad];
+                    if( sizeof( mvsad_t ) == sizeof( uint64_t ) )
+                        *(uint64_t*)&mvsads[bi] = *(uint64_t*)&mvsads[nmvsad];
+                    else
+                        mvsads[bi] = mvsads[nmvsad];
                 }
                 for( i=0; i<nmvsad; i++ )
                     COST_MV( mvsads[i].mx, mvsads[i].my );
