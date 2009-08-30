@@ -767,10 +767,13 @@ static void x264_slicetype_analyse( x264_t *h, int keyframe )
             /* Perform the frametype analysis. */
             for( n = 2; n < num_frames-1; n++ )
                 x264_slicetype_path( h, &a, frames, n, max_bframes, num_frames-max_bframes, best_paths );
-            num_bframes = strspn( best_paths[num_frames-2], "B" );
-            /* Load the results of the analysis into the frame types. */
-            for( j = 1; j < num_frames; j++ )
-                frames[j]->i_type = best_paths[num_frames-2][j-1] == 'B' ? X264_TYPE_B : X264_TYPE_P;
+            if( num_frames > 1 )
+            {
+                num_bframes = strspn( best_paths[num_frames-2], "B" );
+                /* Load the results of the analysis into the frame types. */
+                for( j = 1; j < num_frames; j++ )
+                    frames[j]->i_type = best_paths[num_frames-2][j-1] == 'B' ? X264_TYPE_B : X264_TYPE_P;
+            }
             frames[num_frames]->i_type = X264_TYPE_P;
         }
         else if( h->param.i_bframe_adaptive == X264_B_ADAPT_FAST )
