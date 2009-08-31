@@ -62,7 +62,11 @@
   <property file="${xuggle-buildhelper.basedir}/custom-build.properties"/>
 
   <property file="${xuggle-buildhelper.basedir}/build.properties"/>
+  <!-- This can be overriden in containing build.xml or build.properties -->
   <property name="app.name" value="${ant.project.name}"/>
+  <property name="app.mainclass" value=""/>
+  <property name="app.red5.mainclass" value=""/>
+  <property name="app.red5.mainmethod" value=""/>
   <property name="documentation.title" value="${ant.project.name}"/>
   <property name="organization.name" value="xuggle"/>
   <property name="captive.name" value="xuggle-ffmpeg"/>
@@ -570,6 +574,8 @@
         <attribute name="Implementation-Version" value="${library.version}"/>
         <attribute name="Class-Path" value="${manifest.classpath}"/>
         <attribute name="Main-Class" value="${app.mainclass}"/>
+        <attribute name="Red5-Plugin-Main-Class" value="${app.red5.mainclass}"/>
+        <attribute name="Red5-Plugin-Main-Method" value="${app.red5.mainmethod}"/>
       </manifest>
     </jar>
     <antcall target="webapp" inheritAll="true" inheritRefs="true">
