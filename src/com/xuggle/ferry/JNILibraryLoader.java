@@ -269,12 +269,14 @@ public final class JNILibraryLoader
             .error(
                 "Could not load library: {}; version: {}; Visit http://www.xuggle.com/xuggler/faq/ to find common solutions to this problem",
                 aLibraryName, aMajorVersion == null ? "" : aMajorVersion);
+        throw e;
 
       }
       // and if we get here it means we successfully loaded since no
       // exception was thrown. Add our library to the cache.
       setLoadedLibrary(aLibraryName, aMajorVersion);
     }
+    log.info("Successfully Loaded library: {}; Version: {}", aLibraryName, aMajorVersion);
   }
  
 
