@@ -27,8 +27,6 @@
 #define _ISOC99_SOURCE
 #undef NDEBUG // always check asserts, the speed effect is far too small to disable them
 #include <math.h>
-#include <limits.h>
-#include <assert.h>
 
 #include "common/common.h"
 #include "common/cpu.h"
@@ -1052,7 +1050,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
         update_predictor( rc->row_pred, qp2qscale(rc->qpm), h->fdec->i_row_satd[y], h->fdec->i_row_bits[y] );
 
         /* tweak quality based on difference from predicted size */
-        if( y < h->sps->i_mb_height-1 && h->stat.i_slice_count[h->sh.i_type] > 0 )
+        if( y < h->sps->i_mb_height-1 && h->stat.i_frame_count[h->sh.i_type] > 0 )
         {
             int prev_row_qp = h->fdec->i_row_qp[y];
             int b0 = predict_row_size_sum( h, y, rc->qpm );
@@ -1127,8 +1125,8 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
              * So just calculate the average QP used so far. */
             int i;
 
-            h->param.rc.i_qp_constant = (h->stat.i_slice_count[SLICE_TYPE_P] == 0) ? 24
-                                      : 1 + h->stat.f_slice_qp[SLICE_TYPE_P] / h->stat.i_slice_count[SLICE_TYPE_P];
+            h->param.rc.i_qp_constant = (h->stat.i_frame_count[SLICE_TYPE_P] == 0) ? 24
+                                      : 1 + h->stat.f_frame_qp[SLICE_TYPE_P] / h->stat.i_frame_count[SLICE_TYPE_P];
             rc->qp_constant[SLICE_TYPE_P] = x264_clip3( h->param.rc.i_qp_constant, 0, 51 );
             rc->qp_constant[SLICE_TYPE_I] = x264_clip3( (int)( qscale2qp( qp2qscale( h->param.rc.i_qp_constant ) / fabs( h->param.rc.f_ip_factor )) + 0.5 ), 0, 51 );
             rc->qp_constant[SLICE_TYPE_B] = x264_clip3( (int)( qscale2qp( qp2qscale( h->param.rc.i_qp_constant ) * fabs( h->param.rc.f_pb_factor )) + 0.5 ), 0, 51 );
@@ -1572,9 +1570,9 @@ static float rate_estimate_qscale( x264_t *h )
     int pict_type = h->sh.i_type;
     double lmin = rcc->lmin[pict_type];
     double lmax = rcc->lmax[pict_type];
-    int64_t total_bits = 8*(h->stat.i_slice_size[SLICE_TYPE_I]
-                          + h->stat.i_slice_size[SLICE_TYPE_P]
-                          + h->stat.i_slice_size[SLICE_TYPE_B]);
+    int64_t total_bits = 8*(h->stat.i_frame_size[SLICE_TYPE_I]
+                          + h->stat.i_frame_size[SLICE_TYPE_P]
+                          + h->stat.i_frame_size[SLICE_TYPE_B]);
 
     if( rcc->b_2pass )
     {

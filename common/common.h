@@ -50,8 +50,6 @@ do {\
 
 #define X264_BFRAME_MAX 16
 #define X264_THREAD_MAX 128
-#define X264_SLICE_MAX 4
-#define X264_NAL_MAX (4 + X264_SLICE_MAX)
 #define X264_PCM_COST (386*8)
 #define X264_LOOKAHEAD_MAX 250
 
@@ -68,6 +66,7 @@ do {\
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <limits.h>
 #include "x264.h"
 #include "bs.h"
 #include "set.h"
@@ -293,7 +292,8 @@ struct x264_t
     struct
     {
         int         i_nal;
-        x264_nal_t  nal[X264_NAL_MAX];
+        int         i_nals_allocated;
+        x264_nal_t  *nal;
         int         i_bitstream;    /* size of p_bitstream */
         uint8_t     *p_bitstream;   /* will hold data for all nal */
         bs_t        bs;
@@ -488,6 +488,8 @@ struct x264_t
         /* skip flag for motion compensation */
         /* if we've already done MC, we don't need to do it again */
         int b_skip_mc;
+        /* set to true if we are re-encoding a macroblock. */
+        int b_reencode_mb;
 
         struct
         {
@@ -623,9 +625,9 @@ struct x264_t
         /* Cumulated stats */
 
         /* per slice info */
-        int     i_slice_count[5];
-        int64_t i_slice_size[5];
-        double  f_slice_qp[5];
+        int     i_frame_count[5];
+        int64_t i_frame_size[5];
+        double  f_frame_qp[5];
         int     i_consecutive_bframes[X264_BFRAME_MAX+1];
         /* */
         int64_t i_ssd_global[5];

@@ -62,6 +62,9 @@ void    x264_param_default( x264_param_t *param )
     param->i_fps_num       = 25;
     param->i_fps_den       = 1;
     param->i_level_idc     = -1;
+    param->i_slice_max_size = 0;
+    param->i_slice_max_mbs = 0;
+    param->i_slice_count = 0;
 
     /* Encoder parameters */
     param->i_frame_reference = 3;
@@ -370,6 +373,12 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         else
             p->b_deblocking_filter = atobool(value);
     }
+    OPT("slice-max-size")
+        p->i_slice_max_size = atoi(value);
+    OPT("slice-max-mbs")
+        p->i_slice_max_mbs = atoi(value);
+    OPT("slices")
+        p->i_slice_count = atoi(value);
     OPT("cabac")
         p->b_cabac = atobool(value);
     OPT("cabac-idc")
@@ -773,9 +782,9 @@ void x264_reduce_fraction( int *n, int *d )
     c = a % b;
     while(c)
     {
-	a = b;
-	b = c;
-	c = a % b;
+        a = b;
+        b = c;
+        c = a % b;
     }
     *n /= b;
     *d /= b;
@@ -851,6 +860,12 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " deadzone=%d,%d", p->analyse.i_luma_deadzone[0], p->analyse.i_luma_deadzone[1] );
     s += sprintf( s, " chroma_qp_offset=%d", p->analyse.i_chroma_qp_offset );
     s += sprintf( s, " threads=%d", p->i_threads );
+    if( p->i_slice_count )
+        s += sprintf( s, " slices=%d", p->i_slice_count );
+    if( p->i_slice_max_size )
+        s += sprintf( s, " slice_max_size=%d", p->i_slice_max_size );
+    if( p->i_slice_max_mbs )
+        s += sprintf( s, " slice_max_mbs=%d", p->i_slice_max_mbs );
     s += sprintf( s, " nr=%d", p->analyse.i_noise_reduction );
     s += sprintf( s, " decimate=%d", p->analyse.b_dct_decimate );
     s += sprintf( s, " mbaff=%d", p->b_interlaced );

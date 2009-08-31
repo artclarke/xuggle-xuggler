@@ -22,7 +22,6 @@
  *****************************************************************************/
 
 #include <math.h>
-#include <limits.h>
 
 #include "common/common.h"
 #include "common/cpu.h"

@@ -196,6 +196,10 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H1( "      --no-deblock            Disable loop filter\n" );
     H0( "  -f, --deblock <alpha:beta>  Loop filter AlphaC0 and Beta parameters [%d:%d]\n",
                                        defaults->i_deblocking_filter_alphac0, defaults->i_deblocking_filter_beta );
+    H1( "      --slices <integer>      Number of slices per frame; forces rectangular\n"
+        "                              slices and is overridden by other slicing options\n" );
+    H1( "      --slice-max-size <integer> Limit the size of each slice in bytes\n");
+    H1( "      --slice-max-mbs <integer> Limit the size of each slice in macroblocks\n");
     H0( "      --interlaced            Enable pure-interlaced mode\n" );
     H0( "\n" );
     H0( "Ratecontrol:\n" );
@@ -459,6 +463,9 @@ static struct option long_options[] =
     { "zones",       required_argument, NULL, 0 },
     { "qpfile",      required_argument, NULL, OPT_QPFILE },
     { "threads",     required_argument, NULL, 0 },
+    { "slice-max-size",    required_argument, NULL, 0 },
+    { "slice-max-mbs",     required_argument, NULL, 0 },
+    { "slices",            required_argument, NULL, 0 },
     { "thread-input",      no_argument, NULL, OPT_THREAD_INPUT },
     { "non-deterministic", no_argument, NULL, 0 },
     { "psnr",              no_argument, NULL, 0 },
@@ -1030,13 +1037,13 @@ static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
     {
         file_pos = ftell( opt->qpfile );
         ret = fscanf( opt->qpfile, "%d %c %d\n", &num, &type, &qp );
-		if( num > i_frame || ret == EOF )
-		{
-			pic->i_type = X264_TYPE_AUTO;
-			pic->i_qpplus1 = 0;
-			fseek( opt->qpfile , file_pos , SEEK_SET );
-			break;
-		}
+        if( num > i_frame || ret == EOF )
+        {
+            pic->i_type = X264_TYPE_AUTO;
+            pic->i_qpplus1 = 0;
+            fseek( opt->qpfile , file_pos , SEEK_SET );
+            break;
+        }
         if( num < i_frame && ret == 3 )
             continue;
         pic->i_qpplus1 = qp+1;

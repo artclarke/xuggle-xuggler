@@ -24,7 +24,6 @@
 
 #define _ISOC99_SOURCE
 #include <math.h>
-#include <limits.h>
 #ifndef _MSC_VER
 #include <unistd.h>
 #endif
@@ -457,23 +456,30 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
 /* Max = 4 */
 static void predict_16x16_mode_available( unsigned int i_neighbour, int *mode, int *pi_count )
 {
-    if( i_neighbour & MB_TOPLEFT )
+    int b_top = i_neighbour & MB_TOP;
+    int b_left = i_neighbour & MB_LEFT;
+    if( b_top && b_left )
     {
         /* top and left available */
         *mode++ = I_PRED_16x16_V;
         *mode++ = I_PRED_16x16_H;
         *mode++ = I_PRED_16x16_DC;
-        *mode++ = I_PRED_16x16_P;
-        *pi_count = 4;
+        *pi_count = 3;
+        if( i_neighbour & MB_TOPLEFT )
+        {
+            /* top left available*/
+            *mode++ = I_PRED_16x16_P;
+            *pi_count = 4;
+        }
     }
-    else if( i_neighbour & MB_LEFT )
+    else if( b_left )
     {
         /* left available*/
         *mode++ = I_PRED_16x16_DC_LEFT;
         *mode++ = I_PRED_16x16_H;
         *pi_count = 2;
     }
-    else if( i_neighbour & MB_TOP )
+    else if( b_top )
     {
         /* top available*/
         *mode++ = I_PRED_16x16_DC_TOP;
@@ -491,23 +497,30 @@ static void predict_16x16_mode_available( unsigned int i_neighbour, int *mode, i
 /* Max = 4 */
 static void predict_8x8chroma_mode_available( unsigned int i_neighbour, int *mode, int *pi_count )
 {
-    if( i_neighbour & MB_TOPLEFT )
+    int b_top = i_neighbour & MB_TOP;
+    int b_left = i_neighbour & MB_LEFT;
+    if( b_top && b_left )
     {
         /* top and left available */
         *mode++ = I_PRED_CHROMA_V;
         *mode++ = I_PRED_CHROMA_H;
         *mode++ = I_PRED_CHROMA_DC;
-        *mode++ = I_PRED_CHROMA_P;
-        *pi_count = 4;
+        *pi_count = 3;
+        if( i_neighbour & MB_TOPLEFT )
+        {
+            /* top left available */
+            *mode++ = I_PRED_CHROMA_P;
+            *pi_count = 4;
+        }
     }
-    else if( i_neighbour & MB_LEFT )
+    else if( b_left )
     {
         /* left available*/
         *mode++ = I_PRED_CHROMA_DC_LEFT;
         *mode++ = I_PRED_CHROMA_H;
         *pi_count = 2;
     }
-    else if( i_neighbour & MB_TOP )
+    else if( b_top )
     {
         /* top available*/
         *mode++ = I_PRED_CHROMA_DC_TOP;
@@ -526,10 +539,9 @@ static void predict_8x8chroma_mode_available( unsigned int i_neighbour, int *mod
 static void predict_4x4_mode_available( unsigned int i_neighbour,
                                         int *mode, int *pi_count )
 {
-    int b_l = i_neighbour & MB_LEFT;
-    int b_t = i_neighbour & MB_TOP;
-
-    if( b_l && b_t )
+    int b_top = i_neighbour & MB_TOP;
+    int b_left = i_neighbour & MB_LEFT;
+    if( b_top && b_left )
     {
         *pi_count = 6;
         *mode++ = I_PRED_4x4_DC;
@@ -546,14 +558,14 @@ static void predict_4x4_mode_available( unsigned int i_neighbour,
         *mode++ = I_PRED_4x4_VL;
         *mode++ = I_PRED_4x4_HU;
     }
-    else if( b_l )
+    else if( b_left )
     {
         *mode++ = I_PRED_4x4_DC_LEFT;
         *mode++ = I_PRED_4x4_H;
         *mode++ = I_PRED_4x4_HU;
         *pi_count = 3;
     }
-    else if( b_t )
+    else if( b_top )
     {
         *mode++ = I_PRED_4x4_DC_TOP;
         *mode++ = I_PRED_4x4_V;

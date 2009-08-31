@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 72
+#define X264_BUILD 73
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -297,6 +297,11 @@ typedef struct x264_param_t
     int b_aud;                  /* generate access unit delimiters */
     int b_repeat_headers;       /* put SPS/PPS before each keyframe */
     int i_sps_id;               /* SPS and PPS id number */
+
+    /* Slicing parameters */
+    int i_slice_max_size;    /* Max size per slice in bytes; includes estimated NAL overhead. */
+    int i_slice_max_mbs;     /* Max number of MBs per slice; overrides i_slice_count. */
+    int i_slice_count;       /* Number of slices per frame: forces rectangular slices. */
 
     /* Optional callback for freeing this x264_param_t when it is done being used.
      * Only used when the x264_param_t sits in memory for an indefinite period of time,
