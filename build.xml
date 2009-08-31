@@ -18,6 +18,8 @@
   <property name="library.version.minor" value="3"/>
   <property name="license.key" value="AGPL License"/>
   <property name="app.mainclass" value="com.xuggle.xuggler.Converter"/>
+  <property name="app.red5.mainclass" value="com.xuggle.xuggler.Global"/>
+  <property name="app.red5.mainmethod" value="init"/>
 
   <!-- And bring in the standard build rules -->
   <import file="mk/buildtools/buildhelper.xml"/>
@@ -34,7 +36,8 @@
     <if>
       <available file="${env.RED5_HOME}"/>
       <then>
-        <copy todir="${env.RED5_HOME}/lib">
+        <mkdir dir="${env.RED5_HOME}/plugins"/>
+        <copy todir="${env.RED5_HOME}/plugins">
           <fileset dir="${dist.dir}/lib">
             <include name="${app.name}.jar"/>
           </fileset>
@@ -50,11 +53,11 @@
     name="uninstall-red5"
     description="Installed Red5 applications to $RED5_HOME">
     <if>
-      <available file="${env.RED5_HOME}/lib"/>
+      <available file="${env.RED5_HOME}/plugins"/>
       <then>
         <echo message="Uninstalling ${app.name}.jar with native dependencies from: ${env.RED5_HOME}"/>
         <delete>
-          <fileset dir="${env.RED5_HOME}/lib"
+          <fileset dir="${env.RED5_HOME}/plugins"
             includes="${app.name}.jar"
             />
         </delete>
