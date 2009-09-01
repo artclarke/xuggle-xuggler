@@ -749,6 +749,7 @@ public class ICodec extends RefCounted {
     CODEC_ID_PCM_F32LE,
     CODEC_ID_PCM_F64BE,
     CODEC_ID_PCM_F64LE,
+    CODEC_ID_PCM_BLURAY,
     CODEC_ID_ADPCM_IMA_QT(XugglerJNI.ICodec_CODEC_ID_ADPCM_IMA_QT_get()),
     CODEC_ID_ADPCM_IMA_WAV,
     CODEC_ID_ADPCM_IMA_DK3,
@@ -840,6 +841,7 @@ public class ICodec extends RefCounted {
     CODEC_ID_XSUB,
     CODEC_ID_SSA,
     CODEC_ID_MOV_TEXT,
+    CODEC_ID_HDMV_PGS_SUBTITLE,
     CODEC_ID_TTF(XugglerJNI.ICodec_CODEC_ID_TTF_get()),
     CODEC_ID_PROBE(XugglerJNI.ICodec_CODEC_ID_PROBE_get()),
     CODEC_ID_MPEG2TS(XugglerJNI.ICodec_CODEC_ID_MPEG2TS_get());
