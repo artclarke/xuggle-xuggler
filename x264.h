@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 73
+#define X264_BUILD 74
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -436,9 +436,17 @@ int x264_nal_encode( void *, int *, int b_annexeb, x264_nal_t *nal );
  * Encoder functions:
  ****************************************************************************/
 
+/* Force a link error in the case of linking against an incompatible API version.
+ * Glue #defines exist to force correct macro expansion; the final output of the macro
+ * is x264_encoder_open_##X264_BUILD (for purposes of dlopen). */
+#define x264_encoder_glue1(x,y) x##y
+#define x264_encoder_glue2(x,y) x264_encoder_glue1(x,y)
+#define x264_encoder_open x264_encoder_glue2(x264_encoder_open_,X264_BUILD)
+
 /* x264_encoder_open:
  *      create a new encoder handler, all parameters from x264_param_t are copied */
-x264_t *x264_encoder_open   ( x264_param_t * );
+x264_t *x264_encoder_open( x264_param_t * );
+
 /* x264_encoder_reconfig:
  *      analysis-related parameters from x264_param_t are copied.
  *      this takes effect immediately, on whichever frame is encoded next;

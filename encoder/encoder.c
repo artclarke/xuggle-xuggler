@@ -736,7 +736,7 @@ static void x264_set_aspect_ratio( x264_t *h, x264_param_t *param, int initial )
 /****************************************************************************
  * x264_encoder_open:
  ****************************************************************************/
-x264_t *x264_encoder_open   ( x264_param_t *param )
+x264_t *x264_encoder_open( x264_param_t *param )
 {
     x264_t *h;
     char buf[1000], *p;
