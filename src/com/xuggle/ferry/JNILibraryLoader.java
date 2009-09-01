@@ -276,7 +276,7 @@ public final class JNILibraryLoader
       // exception was thrown. Add our library to the cache.
       setLoadedLibrary(aLibraryName, aMajorVersion);
     }
-    log.info("Successfully Loaded library: {}; Version: {}", aLibraryName, aMajorVersion);
+    log.debug("Successfully Loaded library: {}; Version: {}", aLibraryName, aMajorVersion);
   }
  
 
