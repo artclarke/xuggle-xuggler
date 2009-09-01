@@ -233,7 +233,7 @@ static void Help( x264_param_t *defaults, int b_longhelp )
         "                                  - 3: Nth pass, overwrites stats file\n" );
     H0( "      --stats <string>        Filename for 2 pass stats [\"%s\"]\n", defaults->rc.psz_stat_out );
     H0( "      --no-mbtree             Disable mb-tree ratecontrol.\n");
-    H0( "      --qcomp <float>         QP curve compression: 0.0 => CBR, 1.0 => CQP [%.2f]\n", defaults->rc.f_qcompress );
+    H1( "      --qcomp <float>         QP curve compression [%.2f]\n", defaults->rc.f_qcompress );
     H1( "      --cplxblur <float>      Reduce fluctuations in QP (before curve compression) [%.1f]\n", defaults->rc.f_complexity_blur );
     H1( "      --qblur <float>         Reduce fluctuations in QP (after curve compression) [%.1f]\n", defaults->rc.f_qblur );
     H0( "      --zones <zone0>/<zone1>/...  Tweak the bitrate of some regions of the video\n" );
