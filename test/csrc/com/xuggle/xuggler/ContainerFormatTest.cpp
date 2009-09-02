@@ -180,7 +180,7 @@ ContainerFormatTest :: testGetOutputNumCodecsSupported()
           format->isCodecSupportedForOutput(id));
       VS_TUT_ENSURE_EQUALS("tags should be the same",
           tag,
-          format->getOutputCodecTag(id));
+          format->getOutputCodecTag(i));
     }
   }
 }

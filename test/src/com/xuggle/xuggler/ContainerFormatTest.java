@@ -20,12 +20,15 @@
 package com.xuggle.xuggler;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.*;
 
 import com.xuggle.ferry.JNIMemoryManager;
 import com.xuggle.xuggler.IContainerFormat;
+import com.xuggle.xuggler.ICodec.ID;
 
 import junit.framework.TestCase;
 
@@ -238,6 +241,42 @@ public class ContainerFormatTest extends TestCase
     fmt.delete();
     assertEquals(0, JNIMemoryManager.getMgr().getNumPinnedObjects());
   }
+  
+  @Test
+  public void testIssue200()
+  {
+    IContainerFormat format = IContainerFormat.make();
+    format.setOutputFormat("flv", null, null);
+
+    List<ID> codecs = format.getOutputCodecsSupported();
+    // now let's make sure there are no dups
+    Set<ID> uniqueCodecs = new HashSet<ID>();
+    for(ID id : codecs) {
+      assertFalse("id not unique: "+id, uniqueCodecs.contains(id));
+      uniqueCodecs.add(id);
+    }
+  }
+  /**
+   * Make sure the first video codec returned for FLV is FLV1.
+   */
+  @Test
+  public void testIssue201()
+  {
+    IContainerFormat format = IContainerFormat.make();
+    format.setOutputFormat("flv", null, null);
+
+    List<ID> codecs = format.getOutputCodecsSupported();
+    for(ID id : codecs) {
+      ICodec codec = ICodec.findEncodingCodec(id);
+      assertNotNull(codec);
+      if (codec.getType() == ICodec.Type.CODEC_TYPE_VIDEO) {
+        assertEquals(ICodec.ID.CODEC_ID_FLV1, id);
+        // and the test is now finished.
+        break;
+      }
+    }
+  }
 
 
+  
 }

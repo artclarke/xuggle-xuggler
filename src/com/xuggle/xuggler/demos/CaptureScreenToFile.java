@@ -153,6 +153,7 @@ public class CaptureScreenToFile
     if (codec == null)
       throw new RuntimeException("could not guess a codec");
 
+    codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_FLASHSV);
     outStreamCoder.setNumPicturesInGroupOfPictures(30);
     outStreamCoder.setCodec(codec);
 

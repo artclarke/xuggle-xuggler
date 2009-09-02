@@ -56,22 +56,57 @@
    *
    * </p>
    *
-   * @return A list of supported codecs, in decreasing
-   *   order of the IContainerFormat Object's preference.
-   *
+   * @return A list of supported codecs, in decreasing preferred order.
+   * @since 3.1
    */
-   
   public java.util.List<ICodec.ID> getOutputCodecsSupported()
   {
-    java.util.List<ICodec.ID> retval =
+    final java.util.List<ICodec.ID> retval =
       new java.util.LinkedList<ICodec.ID>();
+    final java.util.Set<ICodec.ID> uniqueSet =
+      new java.util.HashSet<ICodec.ID>();
     
     int numCodecs = getOutputNumCodecsSupported();
     for(int i = 0; i < numCodecs; i++)
     {
       ICodec.ID id = getOutputCodecID(i);
-      if (id != ICodec.ID.CODEC_ID_NONE)
+      // remove duplicate IDs
+      if (id != ICodec.ID.CODEC_ID_NONE && !uniqueSet.contains(id))
         retval.add(id);
+      uniqueSet.add(id);
+    }    
+    return retval;
+  }
+
+  /**
+   * Returns a list of all codec tags supported for this container.
+   *
+   * <p>
+   *
+   * If this object hasn't been set up for output, then
+   * we return null.
+   *
+   * </p>
+   *
+   * @return A list of supported codec tags, in decreasing preferred order.
+   * @since 3.3
+   */
+  public java.util.List<Integer> getOutputTagsSupported()
+  {
+    final java.util.List<Integer> retval =
+      new java.util.LinkedList<Integer>();
+    final java.util.Set<Integer> uniqueSet =
+      new java.util.HashSet<Integer>();
+    
+    int numCodecs = getOutputNumCodecsSupported();
+    for(int i = 0; i < numCodecs; i++)
+    {
+      int tag = getOutputCodecTag(i);
+      ICodec.ID id = getOutputCodecID(i);
+      // remove duplicate tags
+      if (id != ICodec.ID.CODEC_ID_NONE && !uniqueSet.contains(tag))
+        retval.add(tag);
+      uniqueSet.add(tag);
     }    
     return retval;
   }

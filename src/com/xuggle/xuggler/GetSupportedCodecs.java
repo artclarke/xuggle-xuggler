@@ -33,11 +33,12 @@ public class GetSupportedCodecs
 
     System.out.println("Container Format: "+format);
     System.out.println();
+    System.out.println("Total codecs supported: " + format.getOutputNumCodecsSupported());
     System.out.println("Supported Codecs:");
     for(ID id : codecs) {
       if (id != null) {
         ICodec codec = ICodec.findEncodingCodec(id);
-        if (codec != null) {
+        if (codec != null && codec.canEncode()) {
           System.out.println(codec);
         }
       }
