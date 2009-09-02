@@ -124,7 +124,7 @@ function x264_quant_8x8_neon, export=1
 .endfunc
 
 .macro DEQUANT_START mf_size offset dc=no
-    movw        r3,  #0x2b
+    mov         r3,  #0x2b
     mul         r3,  r3,  r2
     lsr         r3,  r3,  #8            // i_qbits = i_qp / 6
     add         ip,  r3,  r3,  lsl #1

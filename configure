@@ -305,7 +305,7 @@ esac
 
 cc_check || die "No working C compiler found."
 
-if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" \) ] ; then
+if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" -o $ARCH = "ARM" \) ] ; then
     pic="yes"
 fi
 
@@ -332,12 +332,12 @@ if [ $asm = yes -a $ARCH = ARM ] ; then
     # set flags so neon is built by default
     echo $CFLAGS | grep -Eq '(-mcpu|-march|-mfpu|-mfloat-abi)' || CFLAGS="$CFLAGS -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp"
 
-    if  cc_check '' '' 'asm("rev r0, r0");' ; then      CFLAGS="$CFLAGS -DHAVE_ARMV6"
+    if  cc_check '' '' 'asm("rev ip, ip");' ; then      CFLAGS="$CFLAGS -DHAVE_ARMV6"
         cc_check '' '' 'asm("movt r0, #0");'         && CFLAGS="$CFLAGS -DHAVE_ARMV6T2"
         cc_check '' '' 'asm("vadd.i16 q0, q0, q0");' && CFLAGS="$CFLAGS -DHAVE_NEON"
         ASFLAGS="$ASFLAGS $CFLAGS -c"
     else
-        echo "You specified a pre-ARMv6 CPU in your CFLAGS."
+        echo "You specified a pre-ARMv6 or Thumb-1 CPU in your CFLAGS."
         echo "If you really want to run on such a CPU, configure with --disable-asm."
         exit 1
     fi
@@ -437,6 +437,10 @@ fi
 
 if [ "$debug" = "yes" ]; then
     CFLAGS="-O1 -g $CFLAGS"
+elif [ $ARCH = ARM ]; then
+    # arm-gcc-4.2 produces incorrect output with -ffast-math
+    # and it doesn't save any speed anyway on 4.4, so disable it
+    CFLAGS="-O4 -fno-fast-math $CFLAGS"
 else
     CFLAGS="-O4 -ffast-math $CFLAGS"
 fi

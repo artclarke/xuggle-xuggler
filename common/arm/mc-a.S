@@ -135,6 +135,7 @@ memcpy_table:
 .word memcpy_aligned_8_8_neon
 .text
 
+.ltorg
 
 // void x264_memzero_aligned( void *dst, size_t n )
 function x264_memzero_aligned_neon, export=1

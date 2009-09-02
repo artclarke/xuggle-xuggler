@@ -102,7 +102,7 @@ function x264_predict_4x4_ddr_armv6, export=1
     add     r4, r4, r3, lsl #8
     add     r5, r5, r4, lsl #8
     add     r6, r6, r5, lsl #8
-    ldr     ip, pb_1
+    ldr     ip, =0x01010101
     PRED4x4_LOWPASS r1, r2, r3, r4, r5, r6, ip
     str     r1, [r0, #0*FDEC_STRIDE]
     lsl     r2, r1, #8
@@ -117,8 +117,6 @@ function x264_predict_4x4_ddr_armv6, export=1
     str     r5, [r0, #3*FDEC_STRIDE]
     pop     {r4-r6,pc}
 .endfunc
-
-pb_1: .word 0x01010101
 
 function x264_predict_4x4_ddl_neon, export=1
     sub         r0, #FDEC_STRIDE

@@ -200,12 +200,6 @@ SAD_FUNC  16, 16, _aligned, ,:128
 
 .macro SAD_FUNC_DUAL w, h
 function x264_pixel_sad_aligned_\w\()x\h\()_neon_dual, export=1
-.if \w == 16
-    .set r, \h / 2 - 2
-.else
-    .set r, \h / 2 - 1
-.endif
-
     SAD_DUAL_START_\w
 .rept \h / 2 - \w / 8
     SAD_DUAL_\w
@@ -1209,9 +1203,8 @@ function x264_pixel_ssim_end4_neon, export=1
     vshl.s32    q2,  q2,  #6
     vadd.s32    q1,  q8,  q8
 
-    mov         r3, #416        // ssim_c1= .01*.01*255*255*64
-    movw        ip, #39355      // ssim_c2= .03*.03*255*255*64*63 - 3<<16
-    movt        ip, #3
+    mov         r3, #416        // ssim_c1 = .01*.01*255*255*64
+    movconst    ip, 235963      // ssim_c2 = .03*.03*255*255*64*63
     vdup.32     q14, r3
     vdup.32     q15, ip
 
