@@ -45,6 +45,7 @@ void    x264_param_default( x264_param_t *param )
     param->cpu = x264_cpu_detect();
     param->i_threads = X264_THREADS_AUTO;
     param->b_deterministic = 1;
+    param->i_sync_lookahead = X264_SYNC_LOOKAHEAD_AUTO;
 
     /* Video properties */
     param->i_csp           = X264_CSP_I420;
@@ -275,6 +276,13 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
             p->i_threads = X264_THREADS_AUTO;
         else
             p->i_threads = atoi(value);
+    }
+    OPT("sync-lookahead")
+    {
+        if( !strcmp(value, "auto") )
+            p->i_sync_lookahead = X264_SYNC_LOOKAHEAD_AUTO;
+        else
+            p->i_sync_lookahead = atoi(value);
     }
     OPT2("deterministic", "n-deterministic")
         p->b_deterministic = atobool(value);

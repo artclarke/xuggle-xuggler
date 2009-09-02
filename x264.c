@@ -355,6 +355,7 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "      --ssim                  Enable SSIM computation\n" );
     H0( "      --threads <integer>     Force a specific number of threads\n" );
     H1( "      --thread-input          Run Avisynth in its own thread\n" );
+    H1( "      --sync-lookahead <integer> Number of buffer frames for threaded lookahead\n" );
     H1( "      --non-deterministic     Slightly improve quality of SMP, at the cost of repeatability\n" );
     H1( "      --asm <integer>         Override CPU detection\n" );
     H1( "      --no-asm                Disable all CPU optimizations\n" );
@@ -467,6 +468,7 @@ static struct option long_options[] =
     { "slice-max-mbs",     required_argument, NULL, 0 },
     { "slices",            required_argument, NULL, 0 },
     { "thread-input",      no_argument, NULL, OPT_THREAD_INPUT },
+    { "sync-lookahead",    required_argument, NULL, 0 },
     { "non-deterministic", no_argument, NULL, 0 },
     { "psnr",              no_argument, NULL, 0 },
     { "ssim",              no_argument, NULL, 0 },
@@ -988,7 +990,7 @@ generic_option:
 
 #ifdef HAVE_PTHREAD
     if( b_thread_input || param->i_threads > 1
-        || (param->i_threads == 0 && x264_cpu_num_processors() > 1) )
+        || (param->i_threads == X264_THREADS_AUTO && x264_cpu_num_processors() > 1) )
     {
         if( open_file_thread( NULL, &opt->hin, param ) )
         {

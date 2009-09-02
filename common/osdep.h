@@ -137,6 +137,9 @@ static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(vo
 #define x264_pthread_cond_destroy    pthread_cond_destroy
 #define x264_pthread_cond_broadcast  pthread_cond_broadcast
 #define x264_pthread_cond_wait       pthread_cond_wait
+#define x264_pthread_attr_t          pthread_attr_t
+#define x264_pthread_attr_init       pthread_attr_init
+#define x264_pthread_attr_destroy    pthread_attr_destroy
 #else
 #define x264_pthread_mutex_t         int
 #define x264_pthread_mutex_init(m,f) 0
@@ -148,6 +151,9 @@ static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(vo
 #define x264_pthread_cond_destroy(c)
 #define x264_pthread_cond_broadcast(c)
 #define x264_pthread_cond_wait(c,m)
+#define x264_pthread_attr_t          int
+#define x264_pthread_attr_init(a)    0
+#define x264_pthread_attr_destroy(a)
 #endif
 
 #define WORD_SIZE sizeof(void*)
@@ -214,6 +220,13 @@ static int ALWAYS_INLINE x264_clz( uint32_t x )
     x >>= y^4;
     return z + lut[x];
 }
+#endif
+
+#if defined(SYS_LINUX) && defined(HAVE_PTHREAD)
+#include <unistd.h>
+#define x264_lower_thread_priority(p) { UNUSED int nice_ret = nice(p); }
+#else
+#define x264_lower_thread_priority(p)
 #endif
 
 #endif /* X264_OSDEP_H */

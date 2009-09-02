@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 74
+#define X264_BUILD 75
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -139,6 +139,7 @@ static const char * const x264_colmatrix_names[] = { "GBR", "bt709", "undef", ""
 
 /* Threading */
 #define X264_THREADS_AUTO 0 /* Automatically select optimal number of threads */
+#define X264_SYNC_LOOKAHEAD_AUTO -1 /* Automatically select optimal lookahead thread buffer size */
 
 /* Zones: override ratecontrol or other options for specific sections of the video.
  * See x264_encoder_reconfig() for which options can be changed.
@@ -158,6 +159,7 @@ typedef struct x264_param_t
     unsigned int cpu;
     int         i_threads;       /* encode multiple frames in parallel */
     int         b_deterministic; /* whether to allow non-deterministic optimizations when threaded */
+    int         i_sync_lookahead; /* threaded lookahead buffer */
 
     /* Video Properties */
     int         i_width;

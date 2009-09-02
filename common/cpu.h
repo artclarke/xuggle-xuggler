@@ -33,12 +33,12 @@ void     x264_cpu_mask_misalign_sse( void );
  * gcc 4.2 introduced __attribute__((force_align_arg_pointer)) to fix this
  * problem, but I don't want to require such a new version.
  * This applies only to x86_32, since other architectures that need alignment
- * also have ABIs that ensure aligned stack. */
+ * either have ABIs that ensure aligned stack, or don't support it at all. */
 #if defined(ARCH_X86) && defined(HAVE_MMX)
-int x264_stack_align( void (*func)(x264_t*), x264_t *arg );
-#define x264_stack_align(func,arg) x264_stack_align((void (*)(x264_t*))func,arg)
+int x264_stack_align( void (*func)(), ... );
+#define x264_stack_align(func,...) x264_stack_align((void (*)())func, __VA_ARGS__)
 #else
-#define x264_stack_align(func,arg) func(arg)
+#define x264_stack_align(func,...) func(__VA_ARGS__)
 #endif
 
 typedef struct {

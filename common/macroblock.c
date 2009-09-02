@@ -703,7 +703,7 @@ int x264_macroblock_cache_init( x264_t *h )
         for( j=0; j<3; j++ )
         {
             /* shouldn't really be initialized, just silences a valgrind false-positive in predict_8x8_filter_mmx */
-            CHECKED_MALLOCZERO( h->mb.intra_border_backup[i][j], h->fdec->i_stride[j] );
+            CHECKED_MALLOCZERO( h->mb.intra_border_backup[i][j], (h->sps->i_mb_width*16+32)>>!!j );
             h->mb.intra_border_backup[i][j] += 8;
         }
 

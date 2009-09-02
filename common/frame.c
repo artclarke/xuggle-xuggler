@@ -26,7 +26,7 @@
 
 #define ALIGN(x,a) (((x)+((a)-1))&~((a)-1))
 
-x264_frame_t *x264_frame_new( x264_t *h )
+x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
 {
     x264_frame_t *frame;
     int i, j;
@@ -60,9 +60,23 @@ x264_frame_t *x264_frame_new( x264_t *h )
         CHECKED_MALLOC( frame->buffer[i], chroma_plane_size );
         frame->plane[i] = frame->buffer[i] + (frame->i_stride[i] * i_padv + PADH)/2;
     }
+
+    for( i = 0; i < h->param.i_bframe + 2; i++ )
+        for( j = 0; j < h->param.i_bframe + 2; j++ )
+            CHECKED_MALLOC( frame->i_row_satds[i][j], i_lines/16 * sizeof(int) );
+
+    frame->i_poc = -1;
+    frame->i_type = X264_TYPE_AUTO;
+    frame->i_qpplus1 = 0;
+    frame->i_pts = -1;
+    frame->i_frame = -1;
+    frame->i_frame_num = -1;
+    frame->i_lines_completed = -1;
+    frame->b_fdec = b_fdec;
+
     /* all 4 luma planes allocated together, since the cacheline split code
      * requires them to be in-phase wrt cacheline alignment. */
-    if( h->param.analyse.i_subpel_refine )
+    if( h->param.analyse.i_subpel_refine && b_fdec )
     {
         CHECKED_MALLOC( frame->buffer[0], 4*luma_plane_size);
         for( i = 0; i < 4; i++ )
@@ -75,77 +89,68 @@ x264_frame_t *x264_frame_new( x264_t *h )
         frame->plane[0] = frame->buffer[0] + frame->i_stride[0] * i_padv + PADH;
     }
 
-    if( h->frames.b_have_lowres )
+    if( b_fdec ) /* fdec frame */
     {
-        frame->i_width_lowres = frame->i_width[0]/2;
-        frame->i_stride_lowres = ALIGN( frame->i_width_lowres + 2*PADH, align );
-        frame->i_lines_lowres = frame->i_lines[0]/2;
-
-        luma_plane_size = frame->i_stride_lowres * ( frame->i_lines[0]/2 + 2*i_padv );
-
-        CHECKED_MALLOC( frame->buffer_lowres[0], 4 * luma_plane_size );
-        for( i = 0; i < 4; i++ )
-            frame->lowres[i] = frame->buffer_lowres[0] + (frame->i_stride_lowres * i_padv + PADH) + i * luma_plane_size;
-
-        for( j = 0; j <= !!h->param.i_bframe; j++ )
-            for( i = 0; i <= h->param.i_bframe; i++ )
-            {
-                CHECKED_MALLOCZERO( frame->lowres_mvs[j][i], 2*h->mb.i_mb_count*sizeof(int16_t) );
-                CHECKED_MALLOC( frame->lowres_mv_costs[j][i], h->mb.i_mb_count*sizeof(int) );
-            }
-        CHECKED_MALLOC( frame->i_propagate_cost, (i_mb_count+3) * sizeof(uint16_t) );
-        for( j = 0; j <= h->param.i_bframe+1; j++ )
-            for( i = 0; i <= h->param.i_bframe+1; i++ )
-            {
-                CHECKED_MALLOC( frame->lowres_costs[j][i], (i_mb_count+3) * sizeof(uint16_t) );
-                CHECKED_MALLOC( frame->lowres_inter_types[j][i], (i_mb_count+3)/4 * sizeof(uint8_t) );
-            }
-        frame->i_intra_cost = frame->lowres_costs[0][0];
-        memset( frame->i_intra_cost, -1, (i_mb_count+3) * sizeof(uint16_t) );
+        CHECKED_MALLOC( frame->mb_type, i_mb_count * sizeof(int8_t));
+        CHECKED_MALLOC( frame->mv[0], 2*16 * i_mb_count * sizeof(int16_t) );
+        CHECKED_MALLOC( frame->ref[0], 4 * i_mb_count * sizeof(int8_t) );
+        if( h->param.i_bframe )
+        {
+            CHECKED_MALLOC( frame->mv[1], 2*16 * i_mb_count * sizeof(int16_t) );
+            CHECKED_MALLOC( frame->ref[1], 4 * i_mb_count * sizeof(int8_t) );
+        }
+        else
+        {
+            frame->mv[1]  = NULL;
+            frame->ref[1] = NULL;
+        }
+        CHECKED_MALLOC( frame->i_row_bits, i_lines/16 * sizeof(int) );
+        CHECKED_MALLOC( frame->i_row_qp, i_lines/16 * sizeof(int) );
+        if( h->param.analyse.i_me_method >= X264_ME_ESA )
+        {
+            CHECKED_MALLOC( frame->buffer[3],
+                            frame->i_stride[0] * (frame->i_lines[0] + 2*i_padv) * sizeof(uint16_t) << h->frames.b_have_sub8x8_esa );
+            frame->integral = (uint16_t*)frame->buffer[3] + frame->i_stride[0] * i_padv + PADH;
+        }
     }
-
-    if( h->param.analyse.i_me_method >= X264_ME_ESA )
+    else /* fenc frame */
     {
-        CHECKED_MALLOC( frame->buffer[3],
-                        frame->i_stride[0] * (frame->i_lines[0] + 2*i_padv) * sizeof(uint16_t) << h->frames.b_have_sub8x8_esa );
-        frame->integral = (uint16_t*)frame->buffer[3] + frame->i_stride[0] * i_padv + PADH;
-    }
-
-    frame->i_poc = -1;
-    frame->i_type = X264_TYPE_AUTO;
-    frame->i_qpplus1 = 0;
-    frame->i_pts = -1;
-    frame->i_frame = -1;
-    frame->i_frame_num = -1;
-    frame->i_lines_completed = -1;
-
-    CHECKED_MALLOC( frame->mb_type, i_mb_count * sizeof(int8_t));
-    CHECKED_MALLOC( frame->mv[0], 2*16 * i_mb_count * sizeof(int16_t) );
-    CHECKED_MALLOC( frame->ref[0], 4 * i_mb_count * sizeof(int8_t) );
-    if( h->param.i_bframe )
-    {
-        CHECKED_MALLOC( frame->mv[1], 2*16 * i_mb_count * sizeof(int16_t) );
-        CHECKED_MALLOC( frame->ref[1], 4 * i_mb_count * sizeof(int8_t) );
-    }
-    else
-    {
-        frame->mv[1]  = NULL;
-        frame->ref[1] = NULL;
-    }
-
-    CHECKED_MALLOC( frame->i_row_bits, i_lines/16 * sizeof(int) );
-    CHECKED_MALLOC( frame->i_row_qp, i_lines/16 * sizeof(int) );
-    for( i = 0; i < h->param.i_bframe + 2; i++ )
-        for( j = 0; j < h->param.i_bframe + 2; j++ )
-            CHECKED_MALLOC( frame->i_row_satds[i][j], i_lines/16 * sizeof(int) );
-
-    if( h->param.rc.i_aq_mode )
-    {
-        CHECKED_MALLOC( frame->f_qp_offset, h->mb.i_mb_count * sizeof(float) );
-        CHECKED_MALLOC( frame->f_qp_offset_aq, h->mb.i_mb_count * sizeof(float) );
         if( h->frames.b_have_lowres )
-            /* shouldn't really be initialized, just silences a valgrind false-positive in x264_mbtree_propagate_cost_sse2 */
-            CHECKED_MALLOCZERO( frame->i_inv_qscale_factor, (h->mb.i_mb_count+3) * sizeof(uint16_t) );
+        {
+            frame->i_width_lowres = frame->i_width[0]/2;
+            frame->i_stride_lowres = ALIGN( frame->i_width_lowres + 2*PADH, align );
+            frame->i_lines_lowres = frame->i_lines[0]/2;
+
+            luma_plane_size = frame->i_stride_lowres * ( frame->i_lines[0]/2 + 2*i_padv );
+
+            CHECKED_MALLOC( frame->buffer_lowres[0], 4 * luma_plane_size );
+            for( i = 0; i < 4; i++ )
+                frame->lowres[i] = frame->buffer_lowres[0] + (frame->i_stride_lowres * i_padv + PADH) + i * luma_plane_size;
+
+            for( j = 0; j <= !!h->param.i_bframe; j++ )
+                for( i = 0; i <= h->param.i_bframe; i++ )
+                {
+                    CHECKED_MALLOCZERO( frame->lowres_mvs[j][i], 2*h->mb.i_mb_count*sizeof(int16_t) );
+                    CHECKED_MALLOC( frame->lowres_mv_costs[j][i], h->mb.i_mb_count*sizeof(int) );
+                }
+            CHECKED_MALLOC( frame->i_propagate_cost, (i_mb_count+3) * sizeof(uint16_t) );
+            for( j = 0; j <= h->param.i_bframe+1; j++ )
+                for( i = 0; i <= h->param.i_bframe+1; i++ )
+                {
+                    CHECKED_MALLOC( frame->lowres_costs[j][i], (i_mb_count+3) * sizeof(uint16_t) );
+                    CHECKED_MALLOC( frame->lowres_inter_types[j][i], (i_mb_count+3)/4 * sizeof(uint8_t) );
+                }
+            frame->i_intra_cost = frame->lowres_costs[0][0];
+            memset( frame->i_intra_cost, -1, (i_mb_count+3) * sizeof(uint16_t) );
+        }
+        if( h->param.rc.i_aq_mode )
+        {
+            CHECKED_MALLOC( frame->f_qp_offset, h->mb.i_mb_count * sizeof(float) );
+            CHECKED_MALLOC( frame->f_qp_offset_aq, h->mb.i_mb_count * sizeof(float) );
+            if( h->frames.b_have_lowres )
+                /* shouldn't really be initialized, just silences a valgrind false-positive in x264_mbtree_propagate_cost_sse2 */
+                CHECKED_MALLOCZERO( frame->i_inv_qscale_factor, (h->mb.i_mb_count+3) * sizeof(uint16_t) );
+        }
     }
 
     if( x264_pthread_mutex_init( &frame->mutex, NULL ) )
@@ -971,19 +976,19 @@ void x264_frame_push_unused( x264_t *h, x264_frame_t *frame )
     assert( frame->i_reference_count > 0 );
     frame->i_reference_count--;
     if( frame->i_reference_count == 0 )
-        x264_frame_push( h->frames.unused, frame );
-    assert( h->frames.unused[ sizeof(h->frames.unused) / sizeof(*h->frames.unused) - 1 ] == NULL );
+        x264_frame_push( h->frames.unused[frame->b_fdec], frame );
 }
 
-x264_frame_t *x264_frame_pop_unused( x264_t *h )
+x264_frame_t *x264_frame_pop_unused( x264_t *h, int b_fdec )
 {
     x264_frame_t *frame;
-    if( h->frames.unused[0] )
-        frame = x264_frame_pop( h->frames.unused );
+    if( h->frames.unused[b_fdec][0] )
+        frame = x264_frame_pop( h->frames.unused[b_fdec] );
     else
-        frame = x264_frame_new( h );
+        frame = x264_frame_new( h, b_fdec );
     if( !frame )
         return NULL;
+    frame->b_last_minigop_bframe = 0;
     frame->i_reference_count = 1;
     frame->b_intra_calculated = 0;
     return frame;
@@ -1007,4 +1012,55 @@ void x264_frame_sort( x264_frame_t **list, int b_dts )
             }
         }
     } while( !b_ok );
+}
+
+void x264_frame_delete_list( x264_frame_t **list )
+{
+    int i = 0;
+    while( list[i] )
+        x264_frame_delete( list[i++] );
+    x264_free( list );
+}
+
+int x264_synch_frame_list_init( x264_synch_frame_list_t *slist, int max_size )
+{
+    if( max_size < 0 )
+        return -1;
+    slist->i_max_size = max_size;
+    slist->i_size = 0;
+    CHECKED_MALLOCZERO( slist->list, (max_size+1) * sizeof(x264_frame_t*) );
+    if( x264_pthread_mutex_init( &slist->mutex, NULL ) ||
+        x264_pthread_cond_init( &slist->cv_fill, NULL ) ||
+        x264_pthread_cond_init( &slist->cv_empty, NULL ) )
+        return -1;
+    return 0;
+fail:
+    return -1;
+}
+
+void x264_synch_frame_list_delete( x264_synch_frame_list_t *slist )
+{
+    x264_pthread_mutex_destroy( &slist->mutex );
+    x264_pthread_cond_destroy( &slist->cv_fill );
+    x264_pthread_cond_destroy( &slist->cv_empty );
+    x264_frame_delete_list( slist->list );
+}
+
+void x264_synch_frame_list_push( x264_synch_frame_list_t *slist, x264_frame_t *frame )
+{
+    x264_pthread_mutex_lock( &slist->mutex );
+    while( slist->i_size == slist->i_max_size )
+        x264_pthread_cond_wait( &slist->cv_empty, &slist->mutex );
+    slist->list[ slist->i_size++ ] = frame;
+    x264_pthread_mutex_unlock( &slist->mutex );
+    x264_pthread_cond_broadcast( &slist->cv_fill );
+}
+
+int x264_synch_frame_list_get_size( x264_synch_frame_list_t *slist )
+{
+    int size;
+    x264_pthread_mutex_lock( &slist->mutex );
+    size = slist->i_size;
+    x264_pthread_mutex_unlock( &slist->mutex );
+    return size;
 }

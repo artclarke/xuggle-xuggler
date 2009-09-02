@@ -922,11 +922,7 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp )
     }
 
     if( h->sh.i_type != SLICE_TYPE_B )
-    {
-        rc->bframes = 0;
-        while( h->frames.current[rc->bframes] && IS_X264_TYPE_B(h->frames.current[rc->bframes]->i_type) )
-            rc->bframes++;
-    }
+        rc->bframes = h->fenc->i_bframes;
 
     if( i_force_qp )
     {
@@ -1250,7 +1246,7 @@ int x264_ratecontrol_end( x264_t *h, int bits )
         if( h->sh.i_type == SLICE_TYPE_B )
         {
             rc->bframe_bits += bits;
-            if( !h->frames.current[0] || !IS_X264_TYPE_B(h->frames.current[0]->i_type) )
+            if( h->fenc->b_last_minigop_bframe )
             {
                 update_predictor( rc->pred_b_from_p, qp2qscale(rc->qpa_rc),
                                   h->fref1[h->i_ref1-1]->i_satd, rc->bframe_bits / rc->bframes );

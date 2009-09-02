@@ -239,6 +239,19 @@ typedef struct
 
 } x264_slice_header_t;
 
+typedef struct x264_lookahead_t
+{
+    uint8_t                       b_thread_active;
+    uint8_t                       b_exit_thread;
+    uint8_t                       b_analyse_keyframe;
+    int                           i_last_idr;
+    int                           i_slicetype_length;
+    x264_frame_t                  *last_nonb;
+    x264_synch_frame_list_t       ifbuf;
+    x264_synch_frame_list_t       next;
+    x264_synch_frame_list_t       ofbuf;
+} x264_lookahead_t;
+
 /* From ffmpeg
  */
 #define X264_SCAN8_SIZE (6*8)
@@ -283,7 +296,7 @@ struct x264_t
     /* encoder parameters */
     x264_param_t    param;
 
-    x264_t          *thread[X264_THREAD_MAX];
+    x264_t          *thread[X264_THREAD_MAX+1];
     x264_pthread_t  thread_handle;
     int             b_thread_active;
     int             i_thread_phase; /* which thread to use for the next frame */
@@ -349,13 +362,9 @@ struct x264_t
     struct
     {
         /* Frames to be encoded (whose types have been decided) */
-        x264_frame_t *current[X264_LOOKAHEAD_MAX+3];
-        /* Temporary buffer (frames types not yet decided) */
-        x264_frame_t *next[X264_LOOKAHEAD_MAX+3];
-        /* Unused frames */
-        x264_frame_t *unused[X264_LOOKAHEAD_MAX + X264_THREAD_MAX*2 + 16+4];
-        /* For adaptive B decision */
-        x264_frame_t *last_nonb;
+        x264_frame_t **current;
+        /* Unused frames: 0 = fenc, 1 = fdec */
+        x264_frame_t **unused[2];
 
         /* frames used for reference + sentinels */
         x264_frame_t *reference[16+2];
@@ -667,6 +676,7 @@ struct x264_t
 #if VISUALIZE
     struct visualize_t *visualize;
 #endif
+    x264_lookahead_t *lookahead;
 };
 
 // included at the end because it needs x264_t

@@ -364,7 +364,7 @@ static int x264_validate_parameters( x264_t *h )
         return -1;
     }
 
-    if( h->param.i_threads == 0 )
+    if( h->param.i_threads == X264_THREADS_AUTO )
         h->param.i_threads = x264_cpu_num_processors() * 3/2;
     h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_THREAD_MAX );
     if( h->param.i_threads > 1 )
@@ -519,6 +519,14 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.b_mb_tree = 0;
     if( h->param.rc.f_qcompress == 1 )
         h->param.rc.b_mb_tree = 0;
+#ifdef HAVE_PTHREAD
+    if( h->param.i_sync_lookahead )
+        h->param.i_sync_lookahead = x264_clip3( h->param.i_sync_lookahead, h->param.i_threads + h->param.i_bframe, X264_LOOKAHEAD_MAX );
+    if( h->param.rc.b_stat_read || h->param.i_threads == 1 )
+        h->param.i_sync_lookahead = 0;
+#else
+    h->param.i_sync_lookahead = 0;
+#endif
 
     h->mb.b_direct_auto_write = h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_AUTO
                                 && h->param.i_bframe
@@ -740,7 +748,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
 {
     x264_t *h;
     char buf[1000], *p;
-    int i;
+    int i, i_slicetype_length;
 
     CHECKED_MALLOCZERO( h, sizeof(x264_t) );
 
@@ -793,8 +801,10 @@ x264_t *x264_encoder_open( x264_param_t *param )
         h->frames.i_delay = h->param.i_bframe;
     if( h->param.rc.b_mb_tree || h->param.rc.i_vbv_buffer_size )
         h->frames.i_delay = X264_MAX( h->frames.i_delay, h->param.rc.i_lookahead );
+    i_slicetype_length = h->frames.i_delay;
     h->frames.i_delay += h->param.i_threads - 1;
     h->frames.i_delay = X264_MIN( h->frames.i_delay, X264_LOOKAHEAD_MAX );
+    h->frames.i_delay += h->param.i_sync_lookahead;
 
     h->frames.i_max_ref0 = h->param.i_frame_reference;
     h->frames.i_max_ref1 = h->sps->vui.i_num_reorder_frames;
@@ -810,7 +820,12 @@ x264_t *x264_encoder_open( x264_param_t *param )
 
     h->frames.i_last_idr = - h->param.i_keyint_max;
     h->frames.i_input    = 0;
-    h->frames.last_nonb  = NULL;
+
+    CHECKED_MALLOCZERO( h->frames.unused[0], (h->frames.i_delay + 3) * sizeof(x264_frame_t *) );
+    /* Allocate room for max refs plus a few extra just in case. */
+    CHECKED_MALLOCZERO( h->frames.unused[1], (h->param.i_threads + 20) * sizeof(x264_frame_t *) );
+    CHECKED_MALLOCZERO( h->frames.current, (h->param.i_sync_lookahead + h->param.i_bframe
+                        + h->param.i_threads + 3) * sizeof(x264_frame_t *) );
 
     h->i_ref0 = 0;
     h->i_ref1 = 0;
@@ -861,14 +876,14 @@ x264_t *x264_encoder_open( x264_param_t *param )
 
     h->thread[0] = h;
     h->i_thread_num = 0;
-    for( i = 1; i < h->param.i_threads; i++ )
+    for( i = 1; i < h->param.i_threads + !!h->param.i_sync_lookahead; i++ )
         CHECKED_MALLOC( h->thread[i], sizeof(x264_t) );
 
     for( i = 0; i < h->param.i_threads; i++ )
     {
         if( i > 0 )
             *h->thread[i] = *h;
-        h->thread[i]->fdec = x264_frame_pop_unused( h );
+        h->thread[i]->fdec = x264_frame_pop_unused( h, 1 );
         if( !h->thread[i]->fdec )
             goto fail;
         CHECKED_MALLOC( h->thread[i]->out.p_bitstream, h->out.i_bitstream );
@@ -878,6 +893,9 @@ x264_t *x264_encoder_open( x264_param_t *param )
         if( x264_macroblock_cache_init( h->thread[i] ) < 0 )
             goto fail;
     }
+
+    if( x264_lookahead_init( h, i_slicetype_length ) )
+        goto fail;
 
     if( x264_ratecontrol_new( h ) < 0 )
         goto fail;
@@ -1181,8 +1199,6 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y )
 
 static inline int x264_reference_update( x264_t *h )
 {
-    int i;
-
     if( h->fdec->i_frame >= 0 )
         h->i_frame++;
 
@@ -1191,29 +1207,18 @@ static inline int x264_reference_update( x264_t *h )
         if( h->param.i_threads > 1 )
         {
             x264_frame_push_unused( h, h->fdec );
-            h->fdec = x264_frame_pop_unused( h );
+            h->fdec = x264_frame_pop_unused( h, 1 );
             if( !h->fdec )
                 return -1;
         }
         return 0;
     }
 
-    /* move lowres copy of the image to the ref frame */
-    for( i = 0; i < 4; i++)
-    {
-        XCHG( uint8_t*, h->fdec->lowres[i], h->fenc->lowres[i] );
-        XCHG( uint8_t*, h->fdec->buffer_lowres[i], h->fenc->buffer_lowres[i] );
-    }
-
-    /* adaptive B decision needs a pointer, since it can't use the ref lists */
-    if( h->sh.i_type != SLICE_TYPE_B )
-        h->frames.last_nonb = h->fdec;
-
     /* move frame in the buffer */
     x264_frame_push( h->frames.reference, h->fdec );
     if( h->frames.reference[h->frames.i_max_dpb] )
         x264_frame_push_unused( h, x264_frame_shift( h->frames.reference ) );
-    h->fdec = x264_frame_pop_unused( h );
+    h->fdec = x264_frame_pop_unused( h, 1 );
     if( !h->fdec )
         return -1;
     return 0;
@@ -1516,6 +1521,8 @@ static void *x264_slices_write( x264_t *h )
 {
     int i_frame_size = 0;
     int i_slice_num = 0;
+    if( h->param.i_sync_lookahead )
+        x264_lower_thread_priority( 10 );
 
 #ifdef HAVE_MMX
     /* Misalign mask has to be set separately for each thread. */
@@ -1619,7 +1626,7 @@ int     x264_encoder_encode( x264_t *h,
     if( pic_in != NULL )
     {
         /* 1: Copy the picture to a frame and move it to a buffer */
-        x264_frame_t *fenc = x264_frame_pop_unused( h );
+        x264_frame_t *fenc = x264_frame_pop_unused( h, 0 );
         if( !fenc )
             return -1;
 
@@ -1632,8 +1639,6 @@ int     x264_encoder_encode( x264_t *h,
 
         fenc->i_frame = h->frames.i_input++;
 
-        x264_frame_push( h->frames.next, fenc );
-
         if( h->frames.b_have_lowres )
             x264_frame_init_lowres( h, fenc );
 
@@ -1645,55 +1650,33 @@ int     x264_encoder_encode( x264_t *h,
         else if( h->param.rc.i_aq_mode )
             x264_adaptive_quant_frame( h, fenc );
 
+        /* 2: Place the frame into the queue for its slice type decision */
+        x264_lookahead_put_frame( h, fenc );
+
         if( h->frames.i_input <= h->frames.i_delay + 1 - h->param.i_threads )
         {
-            /* Nothing yet to encode */
-            /* waiting for filling bframe buffer */
+            /* Nothing yet to encode, waiting for filling of buffers */
             pic_out->i_type = X264_TYPE_AUTO;
             return 0;
         }
     }
-
-    if( h->frames.current[0] == NULL )
+    else
     {
-        int bframes = 0;
-        /* 2: Select frame types */
-        if( h->frames.next[0] == NULL )
-        {
-            if( x264_encoder_frame_end( thread_oldest, thread_current, pp_nal, pi_nal, pic_out ) < 0 )
-                return -1;
-            return 0;
-        }
-
-        x264_stack_align( x264_slicetype_decide, h );
-
-        /* 3: move some B-frames and 1 non-B to encode queue */
-        while( IS_X264_TYPE_B( h->frames.next[bframes]->i_type ) )
-            bframes++;
-        x264_frame_push( h->frames.current, x264_frame_shift( &h->frames.next[bframes] ) );
-        /* FIXME: when max B-frames > 3, BREF may no longer be centered after GOP closing */
-        if( h->param.b_bframe_pyramid && bframes > 1 )
-        {
-            x264_frame_t *mid = x264_frame_shift( &h->frames.next[bframes/2] );
-            mid->i_type = X264_TYPE_BREF;
-            x264_frame_push( h->frames.current, mid );
-            bframes--;
-        }
-        while( bframes-- )
-            x264_frame_push( h->frames.current, x264_frame_shift( h->frames.next ) );
+        /* signal kills for lookahead thread */
+        h->lookahead->b_exit_thread = 1;
+        x264_pthread_cond_broadcast( &h->lookahead->ifbuf.cv_fill );
     }
+
+    /* 3: The picture is analyzed in the lookahead */
+    if( !h->frames.current[0] )
+        x264_lookahead_get_frames( h );
+
+    if( !h->frames.current[0] && x264_lookahead_is_empty( h ) )
+        return x264_encoder_frame_end( thread_oldest, thread_current, pp_nal, pi_nal, pic_out );
 
     /* ------------------- Get frame to be encoded ------------------------- */
     /* 4: get picture to encode */
     h->fenc = x264_frame_shift( h->frames.current );
-    if( h->fenc == NULL )
-    {
-        /* Nothing yet to encode (ex: waiting for I/P with B frames) */
-        /* waiting for filling bframe buffer */
-        pic_out->i_type = X264_TYPE_AUTO;
-        return 0;
-    }
-
     if( h->fenc->param )
     {
         x264_encoder_reconfig( h, h->fenc->param );
@@ -1704,6 +1687,7 @@ int     x264_encoder_encode( x264_t *h,
     if( h->fenc->i_type == X264_TYPE_IDR )
     {
         h->frames.i_last_idr = h->fenc->i_frame;
+        h->i_frame_num = 0;
     }
 
     /* ------------------- Setup frame context ----------------------------- */
@@ -2029,6 +2013,8 @@ void    x264_encoder_close  ( x264_t *h )
                    || h->stat.i_mb_count[SLICE_TYPE_P][I_PCM]
                    || h->stat.i_mb_count[SLICE_TYPE_B][I_PCM];
 
+    x264_lookahead_delete( h );
+
     for( i=0; i<h->param.i_threads; i++ )
     {
         // don't strictly have to wait for the other threads, but it's simpler than canceling them
@@ -2248,21 +2234,9 @@ void    x264_encoder_close  ( x264_t *h )
         h = h->thread[ h->i_thread_phase % h->param.i_threads ];
 
     /* frames */
-    for( i = 0; h->frames.current[i]; i++ )
-    {
-        assert( h->frames.current[i]->i_reference_count == 1 );
-        x264_frame_delete( h->frames.current[i] );
-    }
-    for( i = 0; h->frames.next[i]; i++ )
-    {
-        assert( h->frames.next[i]->i_reference_count == 1 );
-        x264_frame_delete( h->frames.next[i] );
-    }
-    for( i = 0; h->frames.unused[i]; i++ )
-    {
-        assert( h->frames.unused[i]->i_reference_count == 0 );
-        x264_frame_delete( h->frames.unused[i] );
-    }
+    x264_frame_delete_list( h->frames.unused[0] );
+    x264_frame_delete_list( h->frames.unused[1] );
+    x264_frame_delete_list( h->frames.current );
 
     h = h->thread[0];
 
@@ -2302,7 +2276,8 @@ int x264_encoder_delayed_frames( x264_t *h )
     h = h->thread[ h->i_thread_phase % h->param.i_threads ];
     for( i=0; h->frames.current[i]; i++ )
         delayed_frames++;
-    for( i=0; h->frames.next[i]; i++ )
-        delayed_frames++;
+    delayed_frames += x264_synch_frame_list_get_size( &h->lookahead->ifbuf );
+    delayed_frames += x264_synch_frame_list_get_size( &h->lookahead->next );
+    delayed_frames += x264_synch_frame_list_get_size( &h->lookahead->ofbuf );
     return delayed_frames;
 }
