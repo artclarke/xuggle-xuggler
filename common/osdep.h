@@ -222,9 +222,21 @@ static int ALWAYS_INLINE x264_clz( uint32_t x )
 }
 #endif
 
-#if defined(SYS_LINUX) && defined(HAVE_PTHREAD)
+#ifdef USE_REAL_PTHREAD
+#ifdef SYS_MINGW
+#define x264_lower_thread_priority(p)\
+{\
+    x264_pthread_t handle = pthread_self();\
+    struct sched_param sp;\
+    int policy = SCHED_OTHER;\
+    pthread_getschedparam( handle, &policy, &sp );\
+    sp.sched_priority -= p;\
+    pthread_setschedparam( handle, policy, &sp );\
+}
+#else
 #include <unistd.h>
 #define x264_lower_thread_priority(p) { UNUSED int nice_ret = nice(p); }
+#endif /* USE_REAL_PTHREAD */
 #else
 #define x264_lower_thread_priority(p)
 #endif

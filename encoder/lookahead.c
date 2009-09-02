@@ -153,22 +153,8 @@ int x264_lookahead_init( x264_t *h, int i_slicetype_length )
     if( x264_macroblock_cache_init( look_h ) )
         goto fail;
 
-    UNUSED x264_pthread_attr_t attr;
-    if( x264_pthread_attr_init( &attr ) )
+    if( x264_pthread_create( &look_h->thread_handle, NULL, (void *)x264_lookahead_thread, look_h ) )
         goto fail;
-#if defined(USE_REAL_PTHREAD) && !defined(SYS_LINUX)
-    int offset = sched_get_priority_max( SCHED_OTHER );
-    x264_log( h, X264_LOG_DEBUG, "setting priority of lookahead thread to %d\n", offset );
-    struct sched_param sp;
-    pthread_attr_getschedparam( &attr, &sp );
-    sp.sched_priority = offset;
-    pthread_attr_setschedparam( &attr, &sp );
-#endif
-
-    if( x264_pthread_create( &look_h->thread_handle, &attr, (void *)x264_lookahead_thread, look_h ) )
-        goto fail;
-
-    x264_pthread_attr_destroy( &attr );
 
     return 0;
 fail:
