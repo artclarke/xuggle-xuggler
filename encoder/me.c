@@ -1079,7 +1079,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
     const int i_pixel = m->i_pixel;
 
     ALIGNED_ARRAY_16( uint8_t, pix,[16*16] );
-    uint64_t bcost = m->i_pixel == PIXEL_16x16 ? m->cost : COST_MAX64;
+    uint64_t bcost = COST_MAX64;
     int bmx = m->mv[0];
     int bmy = m->mv[1];
     int omx, omy, pmx, pmy, i, j;
@@ -1095,7 +1095,10 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
     p_cost_mvx = m->p_cost_mv - pmx;
     p_cost_mvy = m->p_cost_mv - pmy;
     COST_MV_SATD( bmx, bmy, bsatd, 0 );
-    COST_MV_RD( bmx, bmy, 0, 0, 0 );
+    if( m->i_pixel != PIXEL_16x16 )
+        COST_MV_RD( bmx, bmy, 0, 0, 0 )
+    else
+        bcost = m->cost;
 
     /* check the predicted mv */
     if( (bmx != pmx || bmy != pmy)

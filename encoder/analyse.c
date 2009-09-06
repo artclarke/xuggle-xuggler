@@ -2574,7 +2574,7 @@ int x264_macroblock_analyse( x264_t *h )
                 else if( i_partition == D_16x16 )
                 {
                     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, analysis.l0.me16x16.i_ref );
-                    analysis.l0.me16x16.cost = analysis.l0.i_rd16x16;
+                    analysis.l0.me16x16.cost = i_cost;
                     x264_me_refine_qpel_rd( h, &analysis.l0.me16x16, analysis.i_lambda2, 0, 0 );
                 }
                 else if( i_partition == D_16x8 )
@@ -2878,12 +2878,12 @@ int x264_macroblock_analyse( x264_t *h )
                 {
                     if( i_type == B_L0_L0 )
                     {
-                        analysis.l0.me16x16.cost = analysis.l0.i_rd16x16;
+                        analysis.l0.me16x16.cost = i_cost;
                         x264_me_refine_qpel_rd( h, &analysis.l0.me16x16, analysis.i_lambda2, 0, 0 );
                     }
                     else if( i_type == B_L1_L1 )
                     {
-                        analysis.l1.me16x16.cost = analysis.l1.i_rd16x16;
+                        analysis.l1.me16x16.cost = i_cost;
                         x264_me_refine_qpel_rd( h, &analysis.l1.me16x16, analysis.i_lambda2, 0, 1 );
                     }
                     else if( i_type == B_BI_BI )
