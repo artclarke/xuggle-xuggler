@@ -1229,6 +1229,8 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
             h->mb.i_partition = D_16x16;
             x264_macroblock_cache_mv_ptr( h, 0, 0, 4, 4, 0, a->l0.me16x16.mv );
             a->l0.i_rd16x16 = x264_rd_cost_mb( h, a->i_lambda2 );
+            if( !(h->mb.i_cbp_luma|h->mb.i_cbp_chroma) )
+                h->mb.i_type = P_SKIP;
         }
     }
 }
