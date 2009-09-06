@@ -77,7 +77,7 @@ static int (*p_write_nalu)( hnd_t handle, uint8_t *p_nal, int i_size );
 static int (*p_set_eop)( hnd_t handle, x264_picture_t *p_picture );
 static int (*p_close_outfile)( hnd_t handle );
 
-static void Help( x264_param_t *defaults, int b_longhelp );
+static void Help( x264_param_t *defaults, int longhelp );
 static int  Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt );
 static int  Encode( x264_param_t *param, cli_opt_t *opt );
 
@@ -129,10 +129,11 @@ static char const *strtable_lookup( const char * const table[], int index )
 /*****************************************************************************
  * Help:
  *****************************************************************************/
-static void Help( x264_param_t *defaults, int b_longhelp )
+static void Help( x264_param_t *defaults, int longhelp )
 {
 #define H0 printf
-#define H1 if(b_longhelp) printf
+#define H1 if(longhelp>=1) printf
+#define H2 if(longhelp==2) printf
     H0( "x264 core:%d%s\n"
         "Syntax: x264 [options] -o outfile infile [widthxheight]\n"
         "\n"
@@ -146,8 +147,9 @@ static void Help( x264_param_t *defaults, int b_longhelp )
         "\n"
         "Options:\n"
         "\n"
-        "  -h, --help                  List the more commonly used options\n"
-        "      --longhelp              List all options\n"
+        "  -h, --help                  List basic options\n"
+        "      --longhelp              List more options\n"
+        "      --fullhelp              List all options\n"
         "\n",
         X264_BUILD, X264_VERSION,
 #ifdef AVIS_INPUT
@@ -161,6 +163,24 @@ static void Help( x264_param_t *defaults, int b_longhelp )
         "no"
 #endif
       );
+    H0( "Example usage:\n" );
+    H0( "\n" );
+    H0( "      Constant quality mode:\n" );
+    H0( "            x264 --crf 24 -o output input\n" );
+    H0( "\n" );
+    H0( "      Two-pass with a bitrate of 1000kbps:\n" );
+    H0( "            x264 --pass 1 --bitrate 1000 -o output input\n" );
+    H0( "            x264 --pass 2 --bitrate 1000 -o output input\n" );
+    H0( "\n" );
+    H0( "      Lossless:\n" );
+    H0( "            x264 --crf 0 -o output input\n" );
+    H0( "\n" );
+    H0( "      Maximum PSNR at the cost of speed and visual quality:\n" );
+    H0( "            x264 --preset placebo --tune psnr -o output input\n" );
+    H0( "\n" );
+    H0( "      Constant bitrate at 1000kbps with a 2 second-buffer:\n");
+    H0( "            x264 --vbv-bufsize 2000 --bitrate 1000 -o output input\n" );
+    H0( "\n" );
     H0( "Presets:\n" );
     H0( "\n" );
     H0( "      --profile               Force H.264 profile [high]\n" );
@@ -172,72 +192,72 @@ static void Help( x264_param_t *defaults, int b_longhelp )
         "                                  - slow,slower,veryslow,placebo\n" );
     H0( "      --tune                  Tune the settings for a particular type of source\n" );
     H0( "                                  Overridden by user settings\n");
-    H1( "                                  - film,animation,grain,psnr,ssim\n"
+    H2( "                                  - film,animation,grain,psnr,ssim\n"
         "                                  - fastdecode,touhou\n");
     else H0( "                                  - film,animation,grain,psnr,ssim,fastdecode\n");
-    H0( "      --slow-firstpass        Don't use faster settings with --pass 1\n" );
+    H1( "      --slow-firstpass        Don't use faster settings with --pass 1\n" );
     H0( "\n" );
     H0( "Frame-type options:\n" );
     H0( "\n" );
     H0( "  -I, --keyint <integer>      Maximum GOP size [%d]\n", defaults->i_keyint_max );
-    H1( "  -i, --min-keyint <integer>  Minimum GOP size [%d]\n", defaults->i_keyint_min );
-    H1( "      --no-scenecut           Disable adaptive I-frame decision\n" );
-    H1( "      --scenecut <integer>    How aggressively to insert extra I-frames [%d]\n", defaults->i_scenecut_threshold );
-    H0( "  -b, --bframes <integer>     Number of B-frames between I and P [%d]\n", defaults->i_bframe );
+    H2( "  -i, --min-keyint <integer>  Minimum GOP size [%d]\n", defaults->i_keyint_min );
+    H2( "      --no-scenecut           Disable adaptive I-frame decision\n" );
+    H2( "      --scenecut <integer>    How aggressively to insert extra I-frames [%d]\n", defaults->i_scenecut_threshold );
+    H1( "  -b, --bframes <integer>     Number of B-frames between I and P [%d]\n", defaults->i_bframe );
     H1( "      --b-adapt               Adaptive B-frame decision method [%d]\n"
         "                                  Higher values may lower threading efficiency.\n"
         "                                  - 0: Disabled\n"
         "                                  - 1: Fast\n"
         "                                  - 2: Optimal (slow with high --bframes)\n", defaults->i_bframe_adaptive );
-    H1( "      --b-bias <integer>      Influences how often B-frames are used [%d]\n", defaults->i_bframe_bias );
-    H0( "      --b-pyramid             Keep some B-frames as references\n" );
-    H0( "      --no-cabac              Disable CABAC\n" );
-    H0( "  -r, --ref <integer>         Number of reference frames [%d]\n", defaults->i_frame_reference );
+    H2( "      --b-bias <integer>      Influences how often B-frames are used [%d]\n", defaults->i_bframe_bias );
+    H1( "      --b-pyramid             Keep some B-frames as references\n" );
+    H1( "      --no-cabac              Disable CABAC\n" );
+    H1( "  -r, --ref <integer>         Number of reference frames [%d]\n", defaults->i_frame_reference );
     H1( "      --no-deblock            Disable loop filter\n" );
-    H0( "  -f, --deblock <alpha:beta>  Loop filter AlphaC0 and Beta parameters [%d:%d]\n",
+    H1( "  -f, --deblock <alpha:beta>  Loop filter parameters [%d:%d]\n",
                                        defaults->i_deblocking_filter_alphac0, defaults->i_deblocking_filter_beta );
-    H1( "      --slices <integer>      Number of slices per frame; forces rectangular\n"
+    H2( "      --slices <integer>      Number of slices per frame; forces rectangular\n"
         "                              slices and is overridden by other slicing options\n" );
-    H1( "      --slice-max-size <integer> Limit the size of each slice in bytes\n");
-    H1( "      --slice-max-mbs <integer> Limit the size of each slice in macroblocks\n");
+    else H1( "      --slices <integer>      Number of slices per frame\n" );
+    H2( "      --slice-max-size <integer> Limit the size of each slice in bytes\n");
+    H2( "      --slice-max-mbs <integer> Limit the size of each slice in macroblocks\n");
     H0( "      --interlaced            Enable pure-interlaced mode\n" );
     H0( "\n" );
     H0( "Ratecontrol:\n" );
     H0( "\n" );
-    H0( "  -q, --qp <integer>          Set QP (0-51, 0=lossless)\n" );
+    H1( "  -q, --qp <integer>          Force constant QP (0-51, 0=lossless)\n" );
     H0( "  -B, --bitrate <integer>     Set bitrate (kbit/s)\n" );
     H0( "      --crf <float>           Quality-based VBR (0-51, 0=lossless) [%.1f]\n", defaults->rc.f_rf_constant );
-    H0( "      --rc-lookahead <integer> Number of frames for frametype lookahead [%d]\n", defaults->rc.i_lookahead );
+    H1( "      --rc-lookahead <integer> Number of frames for frametype lookahead [%d]\n", defaults->rc.i_lookahead );
     H0( "      --vbv-maxrate <integer> Max local bitrate (kbit/s) [%d]\n", defaults->rc.i_vbv_max_bitrate );
     H0( "      --vbv-bufsize <integer> Set size of the VBV buffer (kbit) [%d]\n", defaults->rc.i_vbv_buffer_size );
-    H1( "      --vbv-init <float>      Initial VBV buffer occupancy [%.1f]\n", defaults->rc.f_vbv_buffer_init );
-    H1( "      --qpmin <integer>       Set min QP [%d]\n", defaults->rc.i_qp_min );
-    H1( "      --qpmax <integer>       Set max QP [%d]\n", defaults->rc.i_qp_max );
-    H1( "      --qpstep <integer>      Set max QP step [%d]\n", defaults->rc.i_qp_step );
-    H0( "      --ratetol <float>       Allowed variance of average bitrate [%.1f]\n", defaults->rc.f_rate_tolerance );
-    H0( "      --ipratio <float>       QP factor between I and P [%.2f]\n", defaults->rc.f_ip_factor );
-    H0( "      --pbratio <float>       QP factor between P and B [%.2f]\n", defaults->rc.f_pb_factor );
-    H1( "      --chroma-qp-offset <integer>  QP difference between chroma and luma [%d]\n", defaults->analyse.i_chroma_qp_offset );
-    H1( "      --aq-mode <integer>     AQ method [%d]\n"
+    H2( "      --vbv-init <float>      Initial VBV buffer occupancy [%.1f]\n", defaults->rc.f_vbv_buffer_init );
+    H2( "      --qpmin <integer>       Set min QP [%d]\n", defaults->rc.i_qp_min );
+    H2( "      --qpmax <integer>       Set max QP [%d]\n", defaults->rc.i_qp_max );
+    H2( "      --qpstep <integer>      Set max QP step [%d]\n", defaults->rc.i_qp_step );
+    H2( "      --ratetol <float>       Allowed variance of average bitrate [%.1f]\n", defaults->rc.f_rate_tolerance );
+    H2( "      --ipratio <float>       QP factor between I and P [%.2f]\n", defaults->rc.f_ip_factor );
+    H2( "      --pbratio <float>       QP factor between P and B [%.2f]\n", defaults->rc.f_pb_factor );
+    H2( "      --chroma-qp-offset <integer>  QP difference between chroma and luma [%d]\n", defaults->analyse.i_chroma_qp_offset );
+    H2( "      --aq-mode <integer>     AQ method [%d]\n"
         "                                  - 0: Disabled\n"
         "                                  - 1: Variance AQ (complexity mask)\n"
         "                                  - 2: Auto-variance AQ (experimental)\n", defaults->rc.i_aq_mode );
-    H0( "      --aq-strength <float>   Reduces blocking and blurring in flat and\n"
-        "                              textured areas. [%.1f]\n"
-        "                                  - 0.5: weak AQ\n"
-        "                                  - 1.5: strong AQ\n", defaults->rc.f_aq_strength );
-    H0( "\n" );
-    H0( "  -p, --pass <1|2|3>          Enable multipass ratecontrol\n"
-        "                                  - 1: First pass, creates stats file\n"
-        "                                  - 2: Last pass, does not overwrite stats file\n"
-        "                                  - 3: Nth pass, overwrites stats file\n" );
-    H0( "      --stats <string>        Filename for 2 pass stats [\"%s\"]\n", defaults->rc.psz_stat_out );
-    H0( "      --no-mbtree             Disable mb-tree ratecontrol.\n");
-    H1( "      --qcomp <float>         QP curve compression [%.2f]\n", defaults->rc.f_qcompress );
-    H1( "      --cplxblur <float>      Reduce fluctuations in QP (before curve compression) [%.1f]\n", defaults->rc.f_complexity_blur );
-    H1( "      --qblur <float>         Reduce fluctuations in QP (after curve compression) [%.1f]\n", defaults->rc.f_qblur );
-    H0( "      --zones <zone0>/<zone1>/...  Tweak the bitrate of some regions of the video\n" );
-    H1( "                              Each zone is of the form\n"
+    H1( "      --aq-strength <float>   Reduces blocking and blurring in flat and\n"
+        "                              textured areas. [%.1f]\n", defaults->rc.f_aq_strength );
+    H1( "\n" );
+    H2( "  -p, --pass <1|2|3>          Enable multipass ratecontrol\n" );
+    else H0( "  -p, --pass <1|2>            Enable multipass ratecontrol\n" );
+    H0( "                                  - 1: First pass, creates stats file\n"
+        "                                  - 2: Last pass, does not overwrite stats file\n" );
+    H2( "                                  - 3: Nth pass, overwrites stats file\n" );
+    H1( "      --stats <string>        Filename for 2 pass stats [\"%s\"]\n", defaults->rc.psz_stat_out );
+    H2( "      --no-mbtree             Disable mb-tree ratecontrol.\n");
+    H2( "      --qcomp <float>         QP curve compression [%.2f]\n", defaults->rc.f_qcompress );
+    H2( "      --cplxblur <float>      Reduce fluctuations in QP (before curve compression) [%.1f]\n", defaults->rc.f_complexity_blur );
+    H2( "      --qblur <float>         Reduce fluctuations in QP (after curve compression) [%.1f]\n", defaults->rc.f_qblur );
+    H2( "      --zones <zone0>/<zone1>/...  Tweak the bitrate of regions of the video\n" );
+    H2( "                              Each zone is of the form\n"
         "                                  <start frame>,<end frame>,<option>\n"
         "                                  where <option> is either\n"
         "                                      q=<integer> (force QP)\n"
@@ -245,30 +265,30 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H1( "      --qpfile <string>       Force frametypes and QPs for some or all frames\n"
         "                              Format of each line: framenumber frametype QP\n"
         "                              QP of -1 lets x264 choose. Frametypes: I,i,P,B,b.\n" );
-    H0( "\n" );
-    H0( "Analysis:\n" );
-    H0( "\n" );
-    H0( "  -A, --partitions <string>   Partitions to consider [\"p8x8,b8x8,i8x8,i4x4\"]\n"
+    H1( "\n" );
+    H1( "Analysis:\n" );
+    H1( "\n" );
+    H1( "  -A, --partitions <string>   Partitions to consider [\"p8x8,b8x8,i8x8,i4x4\"]\n"
         "                                  - p8x8, p4x4, b8x8, i8x8, i4x4\n"
         "                                  - none, all\n"
         "                                  (p4x4 requires p8x8. i8x8 requires --8x8dct.)\n" );
-    H0( "      --direct <string>       Direct MV prediction mode [\"%s\"]\n"
+    H1( "      --direct <string>       Direct MV prediction mode [\"%s\"]\n"
         "                                  - none, spatial, temporal, auto\n",
                                        strtable_lookup( x264_direct_pred_names, defaults->analyse.i_direct_mv_pred ) );
-    H0( "      --no-weightb            Disable weighted prediction for B-frames\n" );
-    H0( "      --me <string>           Integer pixel motion estimation method [\"%s\"]\n",
+    H2( "      --no-weightb            Disable weighted prediction for B-frames\n" );
+    H1( "      --me <string>           Integer pixel motion estimation method [\"%s\"]\n",
                                        strtable_lookup( x264_motion_est_names, defaults->analyse.i_me_method ) );
-    H1( "                                  - dia: diamond search, radius 1 (fast)\n"
+    H2( "                                  - dia: diamond search, radius 1 (fast)\n"
         "                                  - hex: hexagonal search, radius 2\n"
         "                                  - umh: uneven multi-hexagon search\n"
         "                                  - esa: exhaustive search\n"
         "                                  - tesa: hadamard exhaustive search (slow)\n" );
-    else H0( "                                  - dia, hex, umh\n" );
-    H0( "      --merange <integer>     Maximum motion vector search range [%d]\n", defaults->analyse.i_me_range );
-    H1( "      --mvrange <integer>     Maximum motion vector length [-1 (auto)]\n" );
-    H1( "      --mvrange-thread <int>  Minimum buffer between threads [-1 (auto)]\n" );
-    H0( "  -m, --subme <integer>       Subpixel motion estimation and mode decision [%d]\n", defaults->analyse.i_subpel_refine );
-    H1( "                                  - 0: fullpel only (not recommended)\n"
+    else H1( "                                  - dia, hex, umh\n" );
+    H2( "      --merange <integer>     Maximum motion vector search range [%d]\n", defaults->analyse.i_me_range );
+    H2( "      --mvrange <integer>     Maximum motion vector length [-1 (auto)]\n" );
+    H2( "      --mvrange-thread <int>  Minimum buffer between threads [-1 (auto)]\n" );
+    H1( "  -m, --subme <integer>       Subpixel motion estimation and mode decision [%d]\n", defaults->analyse.i_subpel_refine );
+    H2( "                                  - 0: fullpel only (not recommended)\n"
         "                                  - 1: SAD mode decision, one qpel iteration\n"
         "                                  - 2: SATD mode decision\n"
         "                                  - 3-5: Progressively more qpel\n"
@@ -277,66 +297,66 @@ static void Help( x264_param_t *defaults, int b_longhelp )
         "                                  - 8: RD refinement for I/P-frames\n"
         "                                  - 9: RD refinement for all frames\n"
         "                                  - 10: QP-RD - requires trellis=2, aq-mode>0\n" );
-    else H0( "                                  decision quality: 1=fast, 10=best.\n"  );
-    H0( "      --psy-rd                Strength of psychovisual optimization [\"%.1f:%.1f\"]\n"
+    else H1( "                                  decision quality: 1=fast, 10=best.\n"  );
+    H1( "      --psy-rd                Strength of psychovisual optimization [\"%.1f:%.1f\"]\n"
         "                                  #1: RD (requires subme>=6)\n"
         "                                  #2: Trellis (requires trellis, experimental)\n",
                                        defaults->analyse.f_psy_rd, defaults->analyse.f_psy_trellis );
-    H1( "      --no-psy                Disable all visual optimizations that worsen\n"
+    H2( "      --no-psy                Disable all visual optimizations that worsen\n"
         "                              both PSNR and SSIM.\n" );
-    H0( "      --no-mixed-refs         Don't decide references on a per partition basis\n" );
-    H1( "      --no-chroma-me          Ignore chroma in motion estimation\n" );
-    H0( "      --no-8x8dct             Disable adaptive spatial transform size\n" );
-    H0( "  -t, --trellis <integer>     Trellis RD quantization. Requires CABAC. [%d]\n"
+    H2( "      --no-mixed-refs         Don't decide references on a per partition basis\n" );
+    H2( "      --no-chroma-me          Ignore chroma in motion estimation\n" );
+    H1( "      --no-8x8dct             Disable adaptive spatial transform size\n" );
+    H1( "  -t, --trellis <integer>     Trellis RD quantization. Requires CABAC. [%d]\n"
         "                                  - 0: disabled\n"
         "                                  - 1: enabled only on the final encode of a MB\n"
         "                                  - 2: enabled on all mode decisions\n", defaults->analyse.i_trellis );
-    H0( "      --no-fast-pskip         Disables early SKIP detection on P-frames\n" );
-    H0( "      --no-dct-decimate       Disables coefficient thresholding on P-frames\n" );
-    H0( "      --nr <integer>          Noise reduction [%d]\n", defaults->analyse.i_noise_reduction );
-    H1( "\n" );
-    H1( "      --deadzone-inter <int>  Set the size of the inter luma quantization deadzone [%d]\n", defaults->analyse.i_luma_deadzone[0] );
-    H1( "      --deadzone-intra <int>  Set the size of the intra luma quantization deadzone [%d]\n", defaults->analyse.i_luma_deadzone[1] );
-    H1( "                                  Deadzones should be in the range 0 - 32.\n" );
-    H1( "      --cqm <string>          Preset quant matrices [\"flat\"]\n"
+    H2( "      --no-fast-pskip         Disables early SKIP detection on P-frames\n" );
+    H2( "      --no-dct-decimate       Disables coefficient thresholding on P-frames\n" );
+    H1( "      --nr <integer>          Noise reduction [%d]\n", defaults->analyse.i_noise_reduction );
+    H2( "\n" );
+    H2( "      --deadzone-inter <int>  Set the size of the inter luma quantization deadzone [%d]\n", defaults->analyse.i_luma_deadzone[0] );
+    H2( "      --deadzone-intra <int>  Set the size of the intra luma quantization deadzone [%d]\n", defaults->analyse.i_luma_deadzone[1] );
+    H2( "                                  Deadzones should be in the range 0 - 32.\n" );
+    H2( "      --cqm <string>          Preset quant matrices [\"flat\"]\n"
         "                                  - jvt, flat\n" );
-    H0( "      --cqmfile <string>      Read custom quant matrices from a JM-compatible file\n" );
-    H1( "                                  Overrides any other --cqm* options.\n" );
-    H1( "      --cqm4 <list>           Set all 4x4 quant matrices\n"
+    H1( "      --cqmfile <string>      Read custom quant matrices from a JM-compatible file\n" );
+    H2( "                                  Overrides any other --cqm* options.\n" );
+    H2( "      --cqm4 <list>           Set all 4x4 quant matrices\n"
         "                                  Takes a comma-separated list of 16 integers.\n" );
-    H1( "      --cqm8 <list>           Set all 8x8 quant matrices\n"
+    H2( "      --cqm8 <list>           Set all 8x8 quant matrices\n"
         "                                  Takes a comma-separated list of 64 integers.\n" );
-    H1( "      --cqm4i, --cqm4p, --cqm8i, --cqm8p\n"
+    H2( "      --cqm4i, --cqm4p, --cqm8i, --cqm8p\n"
         "                              Set both luma and chroma quant matrices\n" );
-    H1( "      --cqm4iy, --cqm4ic, --cqm4py, --cqm4pc\n"
+    H2( "      --cqm4iy, --cqm4ic, --cqm4py, --cqm4pc\n"
         "                              Set individual quant matrices\n" );
-    H1( "\n" );
-    H1( "Video Usability Info (Annex E):\n" );
-    H1( "The VUI settings are not used by the encoder but are merely suggestions to\n" );
-    H1( "the playback equipment. See doc/vui.txt for details. Use at your own risk.\n" );
-    H1( "\n" );
-    H1( "      --overscan <string>     Specify crop overscan setting [\"%s\"]\n"
+    H2( "\n" );
+    H2( "Video Usability Info (Annex E):\n" );
+    H2( "The VUI settings are not used by the encoder but are merely suggestions to\n" );
+    H2( "the playback equipment. See doc/vui.txt for details. Use at your own risk.\n" );
+    H2( "\n" );
+    H2( "      --overscan <string>     Specify crop overscan setting [\"%s\"]\n"
         "                                  - undef, show, crop\n",
                                        strtable_lookup( x264_overscan_names, defaults->vui.i_overscan ) );
-    H1( "      --videoformat <string>  Specify video format [\"%s\"]\n"
+    H2( "      --videoformat <string>  Specify video format [\"%s\"]\n"
         "                                  - component, pal, ntsc, secam, mac, undef\n",
                                        strtable_lookup( x264_vidformat_names, defaults->vui.i_vidformat ) );
-    H1( "      --fullrange <string>    Specify full range samples setting [\"%s\"]\n"
+    H2( "      --fullrange <string>    Specify full range samples setting [\"%s\"]\n"
         "                                  - off, on\n",
                                        strtable_lookup( x264_fullrange_names, defaults->vui.b_fullrange ) );
-    H1( "      --colorprim <string>    Specify color primaries [\"%s\"]\n"
+    H2( "      --colorprim <string>    Specify color primaries [\"%s\"]\n"
         "                                  - undef, bt709, bt470m, bt470bg\n"
         "                                    smpte170m, smpte240m, film\n",
                                        strtable_lookup( x264_colorprim_names, defaults->vui.i_colorprim ) );
-    H1( "      --transfer <string>     Specify transfer characteristics [\"%s\"]\n"
+    H2( "      --transfer <string>     Specify transfer characteristics [\"%s\"]\n"
         "                                  - undef, bt709, bt470m, bt470bg, linear,\n"
         "                                    log100, log316, smpte170m, smpte240m\n",
                                        strtable_lookup( x264_transfer_names, defaults->vui.i_transfer ) );
-    H1( "      --colormatrix <string>  Specify color matrix setting [\"%s\"]\n"
+    H2( "      --colormatrix <string>  Specify color matrix setting [\"%s\"]\n"
         "                                  - undef, bt709, fcc, bt470bg\n"
         "                                    smpte170m, smpte240m, GBR, YCgCo\n",
                                        strtable_lookup( x264_colmatrix_names, defaults->vui.i_colmatrix ) );
-    H1( "      --chromaloc <integer>   Specify chroma sample location (0 to 5) [%d]\n",
+    H2( "      --chromaloc <integer>   Specify chroma sample location (0 to 5) [%d]\n",
                                        defaults->vui.i_chroma_loc );
     H0( "\n" );
     H0( "Input/Output:\n" );
@@ -347,22 +367,22 @@ static void Help( x264_param_t *defaults, int b_longhelp )
     H0( "      --seek <integer>        First frame to encode\n" );
     H0( "      --frames <integer>      Maximum number of frames to encode\n" );
     H0( "      --level <string>        Specify level (as defined by Annex A)\n" );
-    H0( "\n" );
-    H0( "  -v, --verbose               Print stats for each frame\n" );
-    H0( "      --no-progress           Don't show the progress indicator while encoding\n" );
+    H1( "\n" );
+    H1( "  -v, --verbose               Print stats for each frame\n" );
+    H1( "      --no-progress           Don't show the progress indicator while encoding\n" );
     H0( "      --quiet                 Quiet Mode\n" );
-    H0( "      --psnr                  Enable PSNR computation\n" );
-    H0( "      --ssim                  Enable SSIM computation\n" );
-    H0( "      --threads <integer>     Force a specific number of threads\n" );
-    H1( "      --thread-input          Run Avisynth in its own thread\n" );
-    H1( "      --sync-lookahead <integer> Number of buffer frames for threaded lookahead\n" );
-    H1( "      --non-deterministic     Slightly improve quality of SMP, at the cost of repeatability\n" );
-    H1( "      --asm <integer>         Override CPU detection\n" );
-    H1( "      --no-asm                Disable all CPU optimizations\n" );
-    H1( "      --visualize             Show MB types overlayed on the encoded video\n" );
-    H1( "      --dump-yuv <string>     Save reconstructed frames\n" );
-    H1( "      --sps-id <integer>      Set SPS and PPS id numbers [%d]\n", defaults->i_sps_id );
-    H1( "      --aud                   Use access unit delimiters\n" );
+    H1( "      --psnr                  Enable PSNR computation\n" );
+    H1( "      --ssim                  Enable SSIM computation\n" );
+    H1( "      --threads <integer>     Force a specific number of threads\n" );
+    H2( "      --thread-input          Run Avisynth in its own thread\n" );
+    H2( "      --sync-lookahead <integer> Number of buffer frames for threaded lookahead\n" );
+    H2( "      --non-deterministic     Slightly improve quality of SMP, at the cost of repeatability\n" );
+    H2( "      --asm <integer>         Override CPU detection\n" );
+    H2( "      --no-asm                Disable all CPU optimizations\n" );
+    H2( "      --visualize             Show MB types overlayed on the encoded video\n" );
+    H2( "      --dump-yuv <string>     Save reconstructed frames\n" );
+    H2( "      --sps-id <integer>      Set SPS and PPS id numbers [%d]\n", defaults->i_sps_id );
+    H2( "      --aud                   Use access unit delimiters\n" );
     H0( "\n" );
 }
 
@@ -378,12 +398,14 @@ static void Help( x264_param_t *defaults, int b_longhelp )
 #define OPT_PRESET 265
 #define OPT_TUNE 266
 #define OPT_SLOWFIRSTPASS 267
+#define OPT_FULLHELP 268
 
 static char short_options[] = "8A:B:b:f:hI:i:m:o:p:q:r:t:Vvw";
 static struct option long_options[] =
 {
     { "help",              no_argument, NULL, 'h' },
     { "longhelp",          no_argument, NULL, OPT_LONGHELP },
+    { "fullhelp",          no_argument, NULL, OPT_FULLHELP },
     { "version",           no_argument, NULL, 'V' },
     { "profile",     required_argument, NULL, OPT_PROFILE },
     { "preset",      required_argument, NULL, OPT_PRESET },
@@ -739,6 +761,9 @@ static int  Parse( int argc, char **argv,
                 exit(0);
             case OPT_LONGHELP:
                 Help( &defaults, 1 );
+                exit(0);
+            case OPT_FULLHELP:
+                Help( &defaults, 2 );
                 exit(0);
             case 'V':
 #ifdef X264_POINTVER

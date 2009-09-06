@@ -1146,7 +1146,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
         }
     }
 
-    /* square refine, same as pattern as ME HEX. */
+    /* square refine, same pattern as ME HEX. */
     omx = bmx;
     omy = bmy;
     for( i=0; i<8; i++ ) COST_MV_SATD( omx + square1[i+1][0], omy + square1[i+1][1], satds[i], 1 );
