@@ -1227,7 +1227,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         }
     }
     /* Flush delayed frames */
-    while( x264_encoder_delayed_frames( h ) )
+    while( !b_ctrl_c && x264_encoder_delayed_frames( h ) )
     {
         i_frame_size = Encode_frame( h, opt->hout, NULL );
         if( i_frame_size < 0 )
