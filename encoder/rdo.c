@@ -560,7 +560,14 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
                     n.score += (uint64_t)f8_bits * i_lambda2 >> ( CABAC_SIZE_BITS - LAMBDA_BITS );
                 }
 
-                n.score += ssd;
+                if( j || i || dc )
+                    n.score += ssd;
+                /* Optimize rounding for DC coefficients in DC-only luma 4x4/8x8 blocks. */
+                else
+                {
+                    d = i_coef * signs[0] - ((unquant_abs_level * signs[0] + 8)&~15);
+                    n.score += (int64_t)d*d * coef_weight[i];
+                }
 
                 /* save the node if it's better than any existing node with the same cabac ctx */
                 if( n.score < nodes_cur[node_ctx].score )
