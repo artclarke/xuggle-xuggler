@@ -835,6 +835,7 @@ public class ICodec extends RefCounted {
     CODEC_ID_TWINVQ,
     CODEC_ID_TRUEHD,
     CODEC_ID_MP4ALS,
+    CODEC_ID_ATRAC1,
     CODEC_ID_DVD_SUBTITLE(XugglerJNI.ICodec_CODEC_ID_DVD_SUBTITLE_get()),
     CODEC_ID_DVB_SUBTITLE,
     CODEC_ID_TEXT,
