@@ -658,7 +658,7 @@ static void x264_slicetype_path( x264_t *h, x264_mb_analysis_t *a, x264_frame_t 
     memcpy( best_paths[length], paths[best_path_index], length );
 }
 
-static int scenecut( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int p0, int p1 )
+static int scenecut( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int p0, int p1, int print )
 {
     x264_frame_t *frame = frames[p1];
     x264_slicetype_frame_cost( h, a, frames, p0, p1, p1, 0 );
@@ -688,7 +688,7 @@ static int scenecut( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, in
     }
 
     res = pcost >= (1.0 - f_bias) * icost;
-    if( res )
+    if( res && print )
     {
         int imb = frame->i_intra_mbs[p1-p0];
         int pmb = NUM_MBS - imb;
@@ -737,7 +737,7 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     else if( num_frames == 1 )
     {
         frames[1]->i_type = X264_TYPE_P;
-        if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, 0, 1 ) )
+        if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, 0, 1, 1 ) )
             frames[1]->i_type = idr_frame_type;
         return;
     }
@@ -753,7 +753,7 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     int max_bframes = X264_MIN(num_frames-1, h->param.i_bframe);
     int num_analysed_frames = num_frames;
     int reset_start;
-    if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, 0, 1 ) )
+    if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, 0, 1, 1 ) )
     {
         frames[1]->i_type = idr_frame_type;
         return;
@@ -836,7 +836,7 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
 
         /* Check scenecut on the first minigop. */
         for( j = 1; j < num_bframes+1; j++ )
-            if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, j, j+1 ) )
+            if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, j, j+1, 0 ) )
             {
                 frames[j]->i_type = X264_TYPE_P;
                 num_analysed_frames = j;
