@@ -748,7 +748,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
 {
     x264_t *h;
     char buf[1000], *p;
-    int i, i_slicetype_length;
+    int i, qp, i_slicetype_length;
 
     CHECKED_MALLOCZERO( h, sizeof(x264_t) );
 
@@ -869,6 +869,12 @@ x264_t *x264_encoder_open( x264_param_t *param )
         p += sprintf( p, " none!" );
     x264_log( h, X264_LOG_INFO, "%s\n", buf );
 
+    for( qp = h->param.rc.i_qp_min; qp <= h->param.rc.i_qp_max; qp++ )
+        if( x264_analyse_init_costs( h, qp ) )
+            goto fail;
+    if( x264_analyse_init_costs( h, X264_LOOKAHEAD_QP ) )
+        goto fail;
+
     h->out.i_nal = 0;
     h->out.i_bitstream = X264_MAX( 1000000, h->param.i_width * h->param.i_height * 4
         * ( h->param.rc.i_rc_method == X264_RC_ABR ? pow( 0.95, h->param.rc.i_qp_min )
@@ -898,9 +904,6 @@ x264_t *x264_encoder_open( x264_param_t *param )
         goto fail;
 
     if( x264_ratecontrol_new( h ) < 0 )
-        goto fail;
-
-    if( x264_lowres_context_alloc( h ) )
         goto fail;
 
     if( h->param.psz_dump_yuv )
@@ -1332,12 +1335,7 @@ static int x264_slice_write( x264_t *h )
         /* load cache */
         x264_macroblock_cache_load( h, i_mb_x, i_mb_y );
 
-        /* analyse parameters
-         * Slice I: choose I_4x4 or I_16x16 mode
-         * Slice P: choose between using P mode or intra (4x4 or 16x16)
-         * */
-        if( x264_macroblock_analyse( h ) )
-            return -1;
+        x264_macroblock_analyse( h );
 
         /* encode this macroblock -> be careful it can change the mb type to P_SKIP if needed */
         x264_macroblock_encode( h );
@@ -2229,6 +2227,8 @@ void    x264_encoder_close  ( x264_t *h )
         free( h->param.rc.psz_stat_in );
 
     x264_cqm_delete( h );
+
+    x264_analyse_free_costs( h );
 
     if( h->param.i_threads > 1)
         h = h->thread[ h->i_thread_phase % h->param.i_threads ];

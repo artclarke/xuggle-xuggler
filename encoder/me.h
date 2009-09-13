@@ -31,7 +31,7 @@ typedef struct
 {
     /* input */
     int      i_pixel;   /* PIXEL_WxH */
-    int16_t *p_cost_mv; /* lambda * nbits for each possible mv */
+    uint16_t *p_cost_mv; /* lambda * nbits for each possible mv */
     int      i_ref_cost;
     int      i_ref;
 

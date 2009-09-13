@@ -953,6 +953,8 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp )
         }
     }
 
+    q = x264_clip3f( q, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
+
     rc->qpa_rc =
     rc->qpa_aq = 0;
     h->fdec->f_qp_avg_rc =

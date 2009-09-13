@@ -52,6 +52,8 @@ do {\
 #define X264_THREAD_MAX 128
 #define X264_PCM_COST (386*8)
 #define X264_LOOKAHEAD_MAX 250
+// arbitrary, but low because SATD scores are 1/4 normal
+#define X264_LOOKAHEAD_QP 12
 
 // number of pixels (per thread) in progress at any given time.
 // 16 for the macroblock in progress + 3 for deblocking + 3 for motion compensation filter + 2 for extra safety
@@ -346,6 +348,12 @@ struct x264_t
     uint16_t        (*quant8_mf[2])[64];     /* [2][52][64] */
     uint16_t        (*quant4_bias[4])[16];   /* [4][52][16] */
     uint16_t        (*quant8_bias[2])[64];   /* [2][52][64] */
+
+    /* mv/ref cost arrays.  Indexed by lambda instead of
+     * qp because, due to rounding, some quantizers share
+     * lambdas.  This saves memory. */
+    uint16_t *cost_mv[92];
+    uint16_t *cost_mv_fpel[92][4];
 
     const uint8_t   *chroma_qp_table; /* includes both the nonlinear luma->chroma mapping and chroma_qp_offset */
 

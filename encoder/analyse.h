@@ -24,9 +24,10 @@
 #ifndef X264_ANALYSE_H
 #define X264_ANALYSE_H
 
-int  x264_macroblock_analyse( x264_t *h );
+int x264_analyse_init_costs( x264_t *h, int qp );
+void x264_analyse_free_costs( x264_t *h );
+void x264_macroblock_analyse( x264_t *h );
 void x264_slicetype_decide( x264_t *h );
-int  x264_lowres_context_alloc( x264_t *h );
 
 void x264_slicetype_analyse( x264_t *h, int keyframe );
 

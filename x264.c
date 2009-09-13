@@ -262,9 +262,10 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                  where <option> is either\n"
         "                                      q=<integer> (force QP)\n"
         "                                  or  b=<float> (bitrate multiplier)\n" );
-    H1( "      --qpfile <string>       Force frametypes and QPs for some or all frames\n"
+    H2( "      --qpfile <string>       Force frametypes and QPs for some or all frames\n"
         "                              Format of each line: framenumber frametype QP\n"
-        "                              QP of -1 lets x264 choose. Frametypes: I,i,P,B,b.\n" );
+        "                              QP of -1 lets x264 choose. Frametypes: I,i,P,B,b.\n"
+        "                              QPs are restricted by qpmin/qpmax.\n" );
     H1( "\n" );
     H1( "Analysis:\n" );
     H1( "\n" );
