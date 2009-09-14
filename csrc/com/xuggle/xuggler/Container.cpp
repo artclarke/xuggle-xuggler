@@ -1079,6 +1079,45 @@ namespace com { namespace xuggle { namespace xuggler
     ret = strlen(bytes)+1;
     return ret;
   }
-  
+
+  int32_t
+  Container :: setForcedAudioCodec(ICodec::ID id)
+  {
+    int32_t retval=-1;
+    if (mFormatContext && id != ICodec::CODEC_ID_NONE)
+    {
+      RefPointer<ICodec> codec = ICodec::findDecodingCodec(id);
+      if (codec && codec->getType() == ICodec::CODEC_TYPE_AUDIO)
+        mFormatContext->audio_codec_id = (enum CodecID) id;
+    }
+    return retval;
+  }
+
+  int32_t
+  Container :: setForcedVideoCodec(ICodec::ID id)
+  {
+    int32_t retval=-1;
+    if (mFormatContext && id != ICodec::CODEC_ID_NONE)
+    {
+      RefPointer<ICodec> codec = ICodec::findDecodingCodec(id);
+      if (codec && codec->getType() == ICodec::CODEC_TYPE_VIDEO)
+        mFormatContext->video_codec_id = (enum CodecID) id;
+    }
+    return retval;
+  }
+
+  int32_t
+  Container :: setForcedSubtitleCodec(ICodec::ID id)
+  {
+    int32_t retval=-1;
+    if (mFormatContext && id != ICodec::CODEC_ID_NONE)
+    {
+      RefPointer<ICodec> codec = ICodec::findDecodingCodec(id);
+      if (codec && codec->getType() == ICodec::CODEC_TYPE_SUBTITLE)
+        mFormatContext->subtitle_codec_id = (enum CodecID) id;
+    }
+    return retval;
+  }
+
   
 }}}

@@ -279,4 +279,72 @@ public class RegressionsExhaustiveTest
     assertTrue(coder.encodeVideo(packet, picture, 0)<0);
   }
 
+  /**
+   * Tests for http://code.google.com/p/xuggle/issues/detail?id=203
+   * 
+   * Failure with setting input rates
+   * 
+   * @throws ParseException if we can't parse.
+   */
+  @Test
+  public void testRegressionIssue203() throws ParseException
+  {
+    String outFilename = this.getClass().getName() + "_" + mTestName + ".flv";
+    String[] args = new String[]{
+        "--icontainerformat",
+        "s16le",
+        "--iasamplerate",
+        "16000",
+        "--iachannels",
+        "1",
+        "fixtures/test.raw",
+        outFilename
+    };
+    converter = new Converter();
+
+    Options options = converter.defineOptions();
+
+    CommandLine cmdLine = converter.parseOptions(options, args);
+    assertTrue("all commandline options successful", cmdLine != null);
+
+    converter.run(cmdLine);
+    
+    File outFile = new File(outFilename);
+    
+    assertTrue("output file not large enough", outFile.length() > 160);
+
+  }
+
+  @Test
+  public void testRegressionIssue203_2()
+  {
+    IContainerFormat fmt = IContainerFormat.make();
+    fmt.setInputFormat("s16le");
+    
+    IContainer container = IContainer.make();
+    int retval;
+    retval = container.open("fixtures/test.raw",
+        IContainer.Type.READ,
+        fmt,
+        false,
+        false);
+    assertTrue(retval >= 0);
+    int numStreams = container.getNumStreams();
+    assertEquals(1, numStreams);
+    for(int i = 0; i < numStreams; i++)
+    {
+      IStream stream = container.getStream(i);
+      IStreamCoder coder = stream.getStreamCoder();
+      coder.setSampleRate(16000);
+    }
+    IPacket pkt = IPacket.make();
+    
+    // read one packet; this will core dump before the fix.
+    retval = container.readNextPacket(pkt);
+    // should hopefully get error instead of core dump.
+    System.out.println("Duration: " + pkt.getDuration());
+    assertTrue(retval >= 0);
+        
+  }
+
 }

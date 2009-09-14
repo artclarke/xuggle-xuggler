@@ -23,6 +23,7 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IAudioResampler;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.ICodec;
@@ -245,6 +246,12 @@ public class Converter
         .withDescription("output container format to use (e.g. \"mov\")");
     Option containerFormat = OptionBuilder.create("containerformat");
 
+    OptionBuilder.withArgName("icontainer-format");
+    OptionBuilder.hasArg(true);
+    OptionBuilder
+        .withDescription("input container format to use (e.g. \"mov\")");
+    Option icontainerFormat = OptionBuilder.create("icontainerformat");    
+    
     /*
      * Audio options
      */
@@ -258,18 +265,36 @@ public class Converter
         .withDescription("audio codec to encode with (e.g. \"libmp3lame\")");
     Option acodec = OptionBuilder.create("acodec");
 
+    OptionBuilder.withArgName("icodec");
+    OptionBuilder.hasArg(true);
+    OptionBuilder
+        .withDescription("input audio codec  (e.g. \"libmp3lame\")");
+    Option iacodec = OptionBuilder.create("iacodec");    
+    
     OptionBuilder.withArgName("sample-rate");
     OptionBuilder.hasArg(true);
     OptionBuilder
         .withDescription("audio sample rate to (up/down) encode with (in hz) (e.g. \"22050\")");
     Option asamplerate = OptionBuilder.create("asamplerate");
 
+    OptionBuilder.withArgName("isample-rate");
+    OptionBuilder.hasArg(true);
+    OptionBuilder
+        .withDescription("input audio sample rate to (up/down) encode with (in hz) (e.g. \"22050\")");
+    Option iasamplerate = OptionBuilder.create("iasamplerate");    
+    
     OptionBuilder.withArgName("channels");
     OptionBuilder.hasArg(true);
     OptionBuilder
         .withDescription("number of audio channels (1 or 2) to encode with (e.g. \"2\")");
     Option achannels = OptionBuilder.create("achannels");
 
+    OptionBuilder.withArgName("ichannels");
+    OptionBuilder.hasArg(true);
+    OptionBuilder
+        .withDescription("input number of audio channels (1 or 2)");
+    Option iachannels = OptionBuilder.create("iachannels");    
+    
     OptionBuilder.withArgName("abit-rate");
     OptionBuilder.hasArg(true);
     OptionBuilder
@@ -348,6 +373,11 @@ public class Converter
     options.addOption(vstream);
     options.addOption(vquality);
 
+    options.addOption(icontainerFormat);
+    options.addOption(iacodec);
+    options.addOption(iachannels);
+    options.addOption(iasamplerate);
+    
     return options;
   }
 
@@ -498,6 +528,11 @@ public class Converter
     int vstream = getIntOptionValue(cmdLine, "vstream", -1);
     double vscaleFactor = getDoubleOptionValue(cmdLine, "vscalefactor", 1.0);
 
+    String icontainerFormat = cmdLine.getOptionValue("icontainerformat");    
+    String iacodec = cmdLine.getOptionValue("iacodec");
+    int isampleRate = getIntOptionValue(cmdLine, "iasamplerate", 0);
+    int ichannels = getIntOptionValue(cmdLine, "iachannels", 0);
+    
     // Should have everything now!
     int retval = 0;
 
@@ -506,12 +541,54 @@ public class Converter
      */
     mIContainer = IContainer.make();
     mOContainer = IContainer.make();
+    IContainerFormat iFmt = null;
     IContainerFormat oFmt = null;
+
+    
+    // override input format
+    if (icontainerFormat != null)
+    {
+      iFmt = IContainerFormat.make();
+     
+      /**
+       * Try to find an output format based on what the user specified, or
+       * failing that, based on the outputURL (e.g. if it ends in .flv, we'll
+       * guess FLV).
+       */
+      retval = iFmt.setInputFormat(icontainerFormat);
+      if (retval < 0)
+        throw new RuntimeException("could not find input container format: "
+            + icontainerFormat);
+    }    
+    
+    // override the input codec
+    if (iacodec != null)
+    {
+      ICodec codec = null;
+      /**
+       * Looks like they did specify one; let's look it up by name.
+       */
+      codec = ICodec.findDecodingCodecByName(iacodec);
+      if (codec == null || codec.getType() != ICodec.Type.CODEC_TYPE_AUDIO)
+        throw new RuntimeException("could not find decoder: " + iacodec);
+      /**
+       * Now, tell the output stream coder that it's to use that codec.
+       */
+      mIContainer.setForcedAudioCodec(codec.getID());
+    }
+    
 
     /**
      * Open the input container for Reading.
      */
-    retval = mIContainer.open(inputURL, IContainer.Type.READ, null);
+    IContainerParameters parameters = IContainerParameters.make();
+    if (isampleRate > 0)
+      parameters.setAudioSampleRate(isampleRate);
+    if (ichannels > 0)
+      parameters.setAudioChannels(ichannels);
+    mIContainer.setParameters(parameters);
+
+    retval = mIContainer.open(inputURL, IContainer.Type.READ, iFmt);
     if (retval < 0)
       throw new RuntimeException("could not open url: " + inputURL);
 
@@ -532,6 +609,7 @@ public class Converter
         throw new RuntimeException("could not find output container format: "
             + containerFormat);
     }
+       
     /**
      * Open the output container for writing. If oFmt is null, we are telling
      * Xuggler to guess the output container format based on the outputURL.
@@ -684,6 +762,7 @@ public class Converter
           // some containers don't give a bit-rate
           abitrate = 64000;
         oc.setBitRate(abitrate);
+        
         /**
          * If the user didn't specify the number of channels to encode audio as,
          * just assume we're keeping the same number of channels.
@@ -1167,8 +1246,6 @@ public class Converter
           {
             retval = as.resample(reSamples, inSamples, inSamples
                 .getNumSamples());
-            if (retval < 0)
-              throw new RuntimeException("Could not resample audio");
 
             outSamples = reSamples;
           }

@@ -23,6 +23,7 @@
 #include <com/xuggle/ferry/RefCounted.h>
 #include <com/xuggle/ferry/IBuffer.h>
 #include <com/xuggle/xuggler/Xuggler.h>
+#include <com/xuggle/xuggler/ICodec.h>
 #include <com/xuggle/xuggler/IContainerParameters.h>
 #include <com/xuggle/xuggler/IContainerFormat.h>
 #include <com/xuggle/xuggler/IStream.h>
@@ -794,6 +795,38 @@ namespace com { namespace xuggle { namespace xuggler
      * terminating 0 byte, or < 0 on error.
      */
     virtual int32_t createSDPData(com::xuggle::ferry::IBuffer* buffer)=0;
+    
+    /*
+     * For 3.3
+     */
+    
+    /**
+     * Forces the {@link IContainer} to assume all audio streams are
+     * encoded with the given audio codec when demuxing.
+     * @param id The codec id
+     * @return < 0 on error (e.g. not an audio codec); >= 0 on success.
+     * @since 3.3
+     */
+    virtual int32_t setForcedAudioCodec(ICodec::ID id)=0;
+    
+    /**
+     * Forces the {@link IContainer} to assume all video streams are
+     * encoded with the given video codec when demuxing.
+     * @param id The codec id
+     * @return < 0 on error (e.g. not an video codec); >= 0 on success.
+     * @since 3.3
+     */
+    virtual int32_t setForcedVideoCodec(ICodec::ID id)=0;
+    
+    /**
+     * Forces the {@link IContainer} to assume all subtitle streams are
+     * encoded with the given subtitle codec when demuxing.
+     * @param id The codec id
+     * @return < 0 on error (e.g. not an subtitle codec); >= 0 on success.
+     * @since 3.3
+     */
+    virtual int32_t setForcedSubtitleCodec(ICodec::ID id)=0;
+    
   };
 }}}
 #endif /*ICONTAINER_H_*/

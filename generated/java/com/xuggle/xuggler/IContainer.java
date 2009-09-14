@@ -1269,6 +1269,43 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     return XugglerJNI.IContainer_createSDPData(swigCPtr, this, IBuffer.getCPtr(buffer), buffer);
   }
 
+/**
+ * Forces the {@link IContainer} to assume all audio streams are  
+ * encoded with the given audio codec when demuxing.  
+ * @param	id The codec id  
+ * @return	< 0 on error (e.g. not an audio codec); >= 0 on success. 
+ *		  
+ * @since	3.3  
+ */
+  public int setForcedAudioCodec(ICodec.ID id) {
+    return XugglerJNI.IContainer_setForcedAudioCodec(swigCPtr, this, id.swigValue());
+  }
+
+/**
+ * Forces the {@link IContainer} to assume all video streams are  
+ * encoded with the given video codec when demuxing.  
+ * @param	id The codec id  
+ * @return	< 0 on error (e.g. not an video codec); >= 0 on success. 
+ *		  
+ * @since	3.3  
+ */
+  public int setForcedVideoCodec(ICodec.ID id) {
+    return XugglerJNI.IContainer_setForcedVideoCodec(swigCPtr, this, id.swigValue());
+  }
+
+/**
+ * Forces the {@link IContainer} to assume all subtitle streams are 
+ *  
+ * encoded with the given subtitle codec when demuxing.  
+ * @param	id The codec id  
+ * @return	< 0 on error (e.g. not an subtitle codec); >= 0 on success. 
+ *		  
+ * @since	3.3  
+ */
+  public int setForcedSubtitleCodec(ICodec.ID id) {
+    return XugglerJNI.IContainer_setForcedSubtitleCodec(swigCPtr, this, id.swigValue());
+  }
+
   public enum Type {
   /**
    *

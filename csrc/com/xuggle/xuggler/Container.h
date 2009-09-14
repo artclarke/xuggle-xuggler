@@ -113,6 +113,11 @@ namespace com { namespace xuggle { namespace xuggler
     virtual void setMetaData(IMetaData* metaData);
     virtual int32_t createSDPData(com::xuggle::ferry::IBuffer* buffer);
 
+    virtual int32_t setForcedAudioCodec(ICodec::ID id);
+    virtual int32_t setForcedVideoCodec(ICodec::ID id);
+    virtual int32_t setForcedSubtitleCodec(ICodec::ID id);
+    
+
   protected:
     virtual ~Container();
     Container();
