@@ -841,6 +841,8 @@ void x264_ratecontrol_delete( x264_t *h )
         x264_free( rc->psz_mbtree_stat_file_tmpname );
         x264_free( rc->psz_mbtree_stat_file_name );
     }
+    if( rc->p_mbtree_stat_file_in )
+        fclose( rc->p_mbtree_stat_file_in );
     x264_free( rc->pred );
     x264_free( rc->pred_b_from_p );
     x264_free( rc->entry );
