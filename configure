@@ -310,10 +310,10 @@ if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" -o
 fi
 
 if [ $asm = yes -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
-    if ! as_check "pinsrd xmm0, [esp], 0" ; then
+    if ! as_check "lzcnt eax, eax" ; then
         VER=`($AS --version || echo no assembler) 2>$DEVNULL | head -n 1`
         echo "Found $VER"
-        echo "Minimum version is yasm-0.6.1"
+        echo "Minimum version is yasm-0.6.2"
         echo "If you really want to compile without asm, configure with --disable-asm."
         exit 1
     fi
