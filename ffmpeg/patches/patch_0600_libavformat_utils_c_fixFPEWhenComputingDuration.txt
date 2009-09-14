@@ -1,0 +1,13 @@
+Index: libavformat/utils.c
+===================================================================
+--- libavformat/utils.c	(revision 19836)
++++ libavformat/utils.c	(working copy)
+@@ -788,7 +788,7 @@
+ 
+     if (pkt->duration == 0) {
+         compute_frame_duration(&num, &den, st, pc, pkt);
+-        if (den && num) {
++        if (den && num && st->time_base.den && st->time_base.num) {
+             pkt->duration = av_rescale(1, num * (int64_t)st->time_base.den, den * (int64_t)st->time_base.num);
+ 
+             if(pkt->duration != 0 && s->packet_buffer)
