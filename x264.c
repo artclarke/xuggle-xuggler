@@ -1136,17 +1136,38 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
     return i_file;
 }
 
+static void Print_status( int64_t i_start, int i_frame, int i_frame_total, int64_t i_file, x264_param_t *param )
+{
+    char    buf[200];
+    int64_t i_elapsed = x264_mdate() - i_start;
+    double fps = i_elapsed > 0 ? i_frame * 1000000. / i_elapsed : 0;
+    double bitrate = (double) i_file * 8 * param->i_fps_num / ( (double) param->i_fps_den * i_frame * 1000 );
+    if( i_frame_total )
+    {
+        int eta = i_elapsed * (i_frame_total - i_frame) / ((int64_t)i_frame * 1000000);
+        sprintf( buf, "x264 [%.1f%%] %d/%d frames, %.2f fps, %.2f kb/s, eta %d:%02d:%02d",
+                 100. * i_frame / i_frame_total, i_frame, i_frame_total, fps, bitrate,
+                 eta/3600, (eta/60)%60, eta%60 );
+    }
+    else
+    {
+        sprintf( buf, "x264 %d frames: %.2f fps, %.2f kb/s", i_frame, fps, bitrate );
+    }
+    fprintf( stderr, "%s  \r", buf+5 );
+    SetConsoleTitle( buf );
+    fflush( stderr ); // needed in windows
+}
+
 static int  Encode( x264_param_t *param, cli_opt_t *opt )
 {
     x264_t *h;
     x264_picture_t pic;
 
-    int     i_frame, i_frame_total;
+    int     i_frame, i_frame_total, i_frame_output;
     int64_t i_start, i_end;
     int64_t i_file;
     int     i_frame_size;
     int     i_update_interval;
-    char    buf[200];
 
     opt->b_progress &= param->i_log_level < X264_LOG_DEBUG;
     i_frame_total = p_get_frame_total( opt->hin );
@@ -1182,7 +1203,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     i_start = x264_mdate();
 
     /* Encode frames */
-    for( i_frame = 0, i_file = 0; b_ctrl_c == 0 && (i_frame < i_frame_total || i_frame_total == 0); )
+    for( i_frame = 0, i_file = 0, i_frame_output = 0; b_ctrl_c == 0 && (i_frame < i_frame_total || i_frame_total == 0); )
     {
         if( p_read_frame( &pic, opt->hin, i_frame + opt->i_seek ) )
             break;
@@ -1202,30 +1223,14 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         if( i_frame_size < 0 )
             return -1;
         i_file += i_frame_size;
+        if( i_frame_size )
+            i_frame_output++;
 
         i_frame++;
 
         /* update status line (up to 1000 times per input file) */
-        if( opt->b_progress && i_frame % i_update_interval == 0 )
-        {
-            int64_t i_elapsed = x264_mdate() - i_start;
-            double fps = i_elapsed > 0 ? i_frame * 1000000. / i_elapsed : 0;
-            double bitrate = (double) i_file * 8 * param->i_fps_num / ( (double) param->i_fps_den * i_frame * 1000 );
-            if( i_frame_total )
-            {
-                int eta = i_elapsed * (i_frame_total - i_frame) / ((int64_t)i_frame * 1000000);
-                sprintf( buf, "x264 [%.1f%%] %d/%d frames, %.2f fps, %.2f kb/s, eta %d:%02d:%02d",
-                         100. * i_frame / i_frame_total, i_frame, i_frame_total, fps, bitrate,
-                         eta/3600, (eta/60)%60, eta%60 );
-            }
-            else
-            {
-                sprintf( buf, "x264 %d frames: %.2f fps, %.2f kb/s", i_frame, fps, bitrate );
-            }
-            fprintf( stderr, "%s  \r", buf+5 );
-            SetConsoleTitle( buf );
-            fflush( stderr ); // needed in windows
-        }
+        if( opt->b_progress && i_frame_output % i_update_interval == 0 && i_frame_output )
+            Print_status( i_start, i_frame_output, i_frame_total, i_file, param );
     }
     /* Flush delayed frames */
     while( !b_ctrl_c && x264_encoder_delayed_frames( h ) )
@@ -1234,6 +1239,9 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         if( i_frame_size < 0 )
             return -1;
         i_file += i_frame_size;
+        i_frame_output++;
+        if( opt->b_progress && i_frame_output % i_update_interval == 0 && i_frame_output )
+            Print_status( i_start, i_frame_output, i_frame_total, i_file, param );
     }
 
     i_end = x264_mdate();
@@ -1246,7 +1254,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     fprintf( stderr, "\n" );
 
     if( b_ctrl_c )
-        fprintf( stderr, "aborted at input frame %d\n", opt->i_seek + i_frame );
+        fprintf( stderr, "aborted at input frame %d, output frame %d\n", opt->i_seek + i_frame, i_frame_output );
 
     p_close_infile( opt->hin );
     p_close_outfile( opt->hout );
@@ -1256,7 +1264,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         double fps = (double)i_frame * (double)1000000 /
                      (double)( i_end - i_start );
 
-        fprintf( stderr, "encoded %d frames, %.2f fps, %.2f kb/s\n", i_frame, fps,
+        fprintf( stderr, "encoded %d frames, %.2f fps, %.2f kb/s\n", i_frame_output, fps,
                  (double) i_file * 8 * param->i_fps_num /
                  ( (double) param->i_fps_den * i_frame * 1000 ) );
     }
