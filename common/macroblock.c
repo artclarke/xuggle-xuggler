@@ -1196,7 +1196,7 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
                             | ((h->mb.i_neighbour & MB_TOP) ? MB_TOP|MB_TOPLEFT : 0);
 }
 
-static void ALWAYS_INLINE x264_macroblock_store_pic( x264_t *h, int i)
+static void ALWAYS_INLINE x264_macroblock_store_pic( x264_t *h, int i )
 {
     int w = i ? 8 : 16;
     int i_stride = h->fdec->i_stride[!!i];
