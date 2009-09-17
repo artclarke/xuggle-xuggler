@@ -21,21 +21,21 @@
 #ifndef X264_MATROSKA_H
 #define X264_MATROSKA_H
 
-typedef struct mk_Writer mk_Writer;
+typedef struct mk_writer mk_writer;
 
-mk_Writer *mk_createWriter( const char *filename );
+mk_writer *mk_create_writer( const char *filename );
 
-int  mk_writeHeader( mk_Writer *w, const char *writingApp,
-                     const char *codecID,
-                     const void *codecPrivate, unsigned codecPrivateSize,
-                     int64_t default_frame_duration,
-                     int64_t timescale,
-                     unsigned width, unsigned height,
-                     unsigned d_width, unsigned d_height );
+int mk_writeHeader( mk_writer *w, const char *writing_app,
+                    const char *codec_id,
+                    const void *codec_private, unsigned codec_private_size,
+                    int64_t default_frame_duration,
+                    int64_t timescale,
+                    unsigned width, unsigned height,
+                    unsigned d_width, unsigned d_height );
 
-int  mk_startFrame( mk_Writer *w );
-int  mk_addFrameData( mk_Writer *w, const void *data, unsigned size );
-int  mk_setFrameFlags( mk_Writer *w, int64_t timestamp, int keyframe );
-int  mk_close( mk_Writer *w );
+int  mk_start_frame( mk_writer *w );
+int  mk_add_frame_data( mk_writer *w, const void *data, unsigned size );
+int  mk_set_frame_flags( mk_writer *w, int64_t timestamp, int keyframe );
+int  mk_close( mk_writer *w );
 
 #endif
