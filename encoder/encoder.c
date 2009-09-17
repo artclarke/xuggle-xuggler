@@ -880,6 +880,9 @@ x264_t *x264_encoder_open( x264_param_t *param )
         * ( h->param.rc.i_rc_method == X264_RC_ABR ? pow( 0.95, h->param.rc.i_qp_min )
           : pow( 0.95, h->param.rc.i_qp_constant ) * X264_MAX( 1, h->param.rc.f_ip_factor )));
 
+    CHECKED_MALLOC( h->nal_buffer, h->out.i_bitstream * 3/2 + 4 );
+    h->nal_buffer_size = h->out.i_bitstream * 3/2 + 4;
+
     h->thread[0] = h;
     h->i_thread_num = 0;
     for( i = 1; i < h->param.i_threads + !!h->param.i_sync_lookahead; i++ )
@@ -1013,44 +1016,73 @@ static int x264_nal_end( x264_t *h )
     return 0;
 }
 
+static int x264_encoder_encapsulate_nals( x264_t *h )
+{
+    int nal_size = 0, i;
+    for( i = 0; i < h->out.i_nal; i++ )
+        nal_size += h->out.nal[i].i_payload;
+
+    /* Worst-case NAL unit escaping: reallocate the buffer if it's too small. */
+    if( h->nal_buffer_size < nal_size * 3/2 + h->out.i_nal * 4 )
+    {
+        uint8_t *buf = x264_malloc( nal_size * 2 + h->out.i_nal * 4 );
+        if( !buf )
+            return -1;
+        x264_free( h->nal_buffer );
+        h->nal_buffer = buf;
+    }
+
+    uint8_t *nal_buffer = h->nal_buffer;
+
+    for( i = 0; i < h->out.i_nal; i++ )
+    {
+        int size = x264_nal_encode( nal_buffer, h->param.b_annexb, &h->out.nal[i] );
+        h->out.nal[i].i_payload = size;
+        h->out.nal[i].p_payload = nal_buffer;
+        nal_buffer += size;
+    }
+
+    return nal_buffer - h->nal_buffer;
+}
+
 /****************************************************************************
  * x264_encoder_headers:
  ****************************************************************************/
 int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
 {
+    int frame_size = 0;
     /* init bitstream context */
     h->out.i_nal = 0;
     bs_init( &h->out.bs, h->out.p_bitstream, h->out.i_bitstream );
 
-    /* Put SPS and PPS */
-    if( h->i_frame == 0 )
-    {
-        /* identify ourself */
-        x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
-        if( x264_sei_version_write( h, &h->out.bs ) )
-            return -1;
-        if( x264_nal_end( h ) )
-            return -1;
+    /* Write SEI, SPS and PPS. */
+    x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
+    if( x264_sei_version_write( h, &h->out.bs ) )
+        return -1;
+    if( x264_nal_end( h ) )
+        return -1;
 
-        /* generate sequence parameters */
-        x264_nal_start( h, NAL_SPS, NAL_PRIORITY_HIGHEST );
-        x264_sps_write( &h->out.bs, h->sps );
-        if( x264_nal_end( h ) )
-            return -1;
+    /* generate sequence parameters */
+    x264_nal_start( h, NAL_SPS, NAL_PRIORITY_HIGHEST );
+    x264_sps_write( &h->out.bs, h->sps );
+    if( x264_nal_end( h ) )
+        return -1;
 
-        /* generate picture parameters */
-        x264_nal_start( h, NAL_PPS, NAL_PRIORITY_HIGHEST );
-        x264_pps_write( &h->out.bs, h->pps );
-        if( x264_nal_end( h ) )
-            return -1;
-        bs_flush( &h->out.bs );
-    }
+    /* generate picture parameters */
+    x264_nal_start( h, NAL_PPS, NAL_PRIORITY_HIGHEST );
+    x264_pps_write( &h->out.bs, h->pps );
+    if( x264_nal_end( h ) )
+        return -1;
+    bs_flush( &h->out.bs );
+
+    frame_size = x264_encoder_encapsulate_nals( h );
+
     /* now set output*/
     *pi_nal = h->out.i_nal;
     *pp_nal = &h->out.nal[0];
     h->out.i_nal = 0;
 
-    return 0;
+    return frame_size;
 }
 
 static inline void x264_reference_build_list( x264_t *h, int i_poc )
@@ -1517,7 +1549,6 @@ static void x264_thread_sync_stat( x264_t *dst, x264_t *src )
 
 static void *x264_slices_write( x264_t *h )
 {
-    int i_frame_size = 0;
     int i_slice_num = 0;
     if( h->param.i_sync_lookahead )
         x264_lower_thread_priority( 10 );
@@ -1554,7 +1585,6 @@ static void *x264_slices_write( x264_t *h )
         if( x264_stack_align( x264_slice_write, h ) )
             return (void *)-1;
         h->sh.i_first_mb = h->sh.i_last_mb + 1;
-        i_frame_size += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD;
     }
 
 #if VISUALIZE
@@ -1565,7 +1595,6 @@ static void *x264_slices_write( x264_t *h )
     }
 #endif
 
-    h->out.i_frame_size = i_frame_size;
     return (void *)0;
 }
 
@@ -1737,18 +1766,8 @@ int     x264_encoder_encode( x264_t *h,
     /* build ref list 0/1 */
     x264_reference_build_list( h, h->fdec->i_poc );
 
-    /* Init the rate control */
-    x264_ratecontrol_start( h, h->fenc->i_qpplus1 );
-    i_global_qp = x264_ratecontrol_qp( h );
-
-    pic_out->i_qpplus1 =
-    h->fdec->i_qpplus1 = i_global_qp + 1;
-
     if( h->sh.i_type == SLICE_TYPE_B )
         x264_macroblock_bipred_init( h );
-
-    /* ------------------------ Create slice header  ----------------------- */
-    x264_slice_init( h, i_nal_type, i_global_qp );
 
     if( i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE )
         h->i_frame_num++;
@@ -1780,6 +1799,8 @@ int     x264_encoder_encode( x264_t *h,
     h->i_nal_type = i_nal_type;
     h->i_nal_ref_idc = i_nal_ref_idc;
 
+    int overhead = NALU_OVERHEAD;
+
     /* Write SPS and PPS */
     if( i_nal_type == NAL_SLICE_IDR && h->param.b_repeat_headers )
     {
@@ -1791,6 +1812,7 @@ int     x264_encoder_encode( x264_t *h,
                 return -1;
             if( x264_nal_end( h ) )
                 return -1;
+            overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD;
         }
 
         /* generate sequence parameters */
@@ -1798,13 +1820,26 @@ int     x264_encoder_encode( x264_t *h,
         x264_sps_write( &h->out.bs, h->sps );
         if( x264_nal_end( h ) )
             return -1;
+        overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD;
 
         /* generate picture parameters */
         x264_nal_start( h, NAL_PPS, NAL_PRIORITY_HIGHEST );
         x264_pps_write( &h->out.bs, h->pps );
         if( x264_nal_end( h ) )
             return -1;
+        overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD;
     }
+
+    /* Init the rate control */
+    /* FIXME: Include slice header bit cost. */
+    x264_ratecontrol_start( h, h->fenc->i_qpplus1, overhead*8 );
+    i_global_qp = x264_ratecontrol_qp( h );
+
+    pic_out->i_qpplus1 =
+    h->fdec->i_qpplus1 = i_global_qp + 1;
+
+    /* ------------------------ Create slice header  ----------------------- */
+    x264_slice_init( h, i_nal_type, i_global_qp );
 
     /* Write frame */
     if( h->param.i_threads > 1 )
@@ -1824,7 +1859,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
                                    x264_nal_t **pp_nal, int *pi_nal,
                                    x264_picture_t *pic_out )
 {
-    int i, i_list;
+    int i, i_list, frame_size;
     char psz_message[80];
 
     if( h->b_thread_active )
@@ -1846,6 +1881,9 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     /* End bitstream, set output  */
     *pi_nal = h->out.i_nal;
     *pp_nal = h->out.nal;
+
+    frame_size = x264_encoder_encapsulate_nals( h );
+
     h->out.i_nal = 0;
 
     /* Set output picture properties */
@@ -1868,11 +1906,8 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     /* update rc */
     x264_emms();
-    if( x264_ratecontrol_end( h, h->out.i_frame_size * 8 ) < 0 )
+    if( x264_ratecontrol_end( h, frame_size * 8 ) < 0 )
         return -1;
-
-    /* restore CPU state (before using float again) */
-    x264_emms();
 
     x264_noise_reduction_update( thread_current );
 
@@ -1881,7 +1916,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     /* Slice stat */
     h->stat.i_frame_count[h->sh.i_type]++;
-    h->stat.i_frame_size[h->sh.i_type] += h->out.i_frame_size + h->out.i_nal*NALU_OVERHEAD;
+    h->stat.i_frame_size[h->sh.i_type] += frame_size;
     h->stat.f_frame_qp[h->sh.i_type] += h->fdec->f_qp_avg_aq;
 
     for( i = 0; i < X264_MBTYPE_MAX; i++ )
@@ -1955,7 +1990,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
               h->stat.frame.i_mb_count_i,
               h->stat.frame.i_mb_count_p,
               h->stat.frame.i_mb_count_skip,
-              h->out.i_frame_size,
+              frame_size,
               psz_message );
 
     // keep stats all in one place
@@ -1984,7 +2019,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     if( h->param.psz_dump_yuv )
         x264_frame_dump( h );
 
-    return 0;
+    return frame_size;
 }
 
 static void x264_print_intra( int64_t *i_mb_count, double i_count, int b_print_pcm, char *intra )
@@ -2214,7 +2249,7 @@ void    x264_encoder_close  ( x264_t *h )
                       f_bitrate );
         }
         else
-            x264_log( h, X264_LOG_INFO, "kb/s:%.1f\n", f_bitrate );
+            x264_log( h, X264_LOG_INFO, "kb/s:%.2f\n", f_bitrate );
     }
 
     /* rc */

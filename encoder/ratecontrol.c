@@ -141,9 +141,9 @@ struct x264_ratecontrol_t
 
 static int parse_zones( x264_t *h );
 static int init_pass2(x264_t *);
-static float rate_estimate_qscale( x264_t *h );
+static float rate_estimate_qscale( x264_t *h, int overhead );
 static void update_vbv( x264_t *h, int bits );
-static void update_vbv_plan( x264_t *h );
+static void update_vbv_plan( x264_t *h, int overhead );
 static double predict_size( predictor_t *p, double q, double var );
 static void update_predictor( predictor_t *p, double q, double var, double bits );
 
@@ -887,7 +887,7 @@ static void accum_p_qp_update( x264_t *h, float qp )
 }
 
 /* Before encoding a frame, choose a QP for it */
-void x264_ratecontrol_start( x264_t *h, int i_force_qp )
+void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
 {
     x264_ratecontrol_t *rc = h->rc;
     ratecontrol_entry_t *rce = NULL;
@@ -920,7 +920,7 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp )
     {
         memset( h->fdec->i_row_bits, 0, h->sps->i_mb_height * sizeof(int) );
         rc->row_pred = &rc->row_preds[h->sh.i_type];
-        update_vbv_plan( h );
+        update_vbv_plan( h, overhead );
     }
 
     if( h->sh.i_type != SLICE_TYPE_B )
@@ -932,11 +932,11 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp )
     }
     else if( rc->b_abr )
     {
-        q = qscale2qp( rate_estimate_qscale( h ) );
+        q = qscale2qp( rate_estimate_qscale( h, overhead ) );
     }
     else if( rc->b_2pass )
     {
-        rce->new_qscale = rate_estimate_qscale( h );
+        rce->new_qscale = rate_estimate_qscale( h, overhead );
         q = qscale2qp( rce->new_qscale );
     }
     else /* CQP */
@@ -1414,10 +1414,10 @@ static void update_vbv( x264_t *h, int bits )
 }
 
 // provisionally update VBV according to the planned size of all frames currently in progress
-static void update_vbv_plan( x264_t *h )
+static void update_vbv_plan( x264_t *h, int overhead )
 {
     x264_ratecontrol_t *rcc = h->rc;
-    rcc->buffer_fill = h->thread[0]->rc->buffer_fill_final;
+    rcc->buffer_fill = h->thread[0]->rc->buffer_fill_final;// - overhead;
     if( h->param.i_threads > 1 )
     {
         int j = h->rc - h->thread[0]->rc;
@@ -1562,7 +1562,7 @@ static double clip_qscale( x264_t *h, int pict_type, double q )
 }
 
 // update qscale for 1 frame based on actual bits used so far
-static float rate_estimate_qscale( x264_t *h )
+static float rate_estimate_qscale( x264_t *h, int overhead )
 {
     float q;
     x264_ratecontrol_t *rcc = h->rc;
@@ -1615,7 +1615,7 @@ static float rate_estimate_qscale( x264_t *h )
         else
             q += rcc->pb_offset;
 
-        rcc->frame_size_planned = predict_size( rcc->pred_b_from_p, q, h->fref1[h->i_ref1-1]->i_satd );
+        rcc->frame_size_planned = predict_size( rcc->pred_b_from_p, q, h->fref1[h->i_ref1-1]->i_satd ) + overhead;
         x264_ratecontrol_set_estimated_size(h, rcc->frame_size_planned);
         rcc->last_satd = 0;
         return qp2qscale(q);
@@ -1778,7 +1778,7 @@ static float rate_estimate_qscale( x264_t *h )
         if( rcc->b_2pass && rcc->b_vbv )
             rcc->frame_size_planned = qscale2bits(&rce, q);
         else
-            rcc->frame_size_planned = predict_size( &rcc->pred[h->sh.i_type], q, rcc->last_satd );
+            rcc->frame_size_planned = predict_size( &rcc->pred[h->sh.i_type], q, rcc->last_satd ) + overhead;
         x264_ratecontrol_set_estimated_size(h, rcc->frame_size_planned);
         return q;
     }

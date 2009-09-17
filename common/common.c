@@ -151,6 +151,7 @@ void    x264_param_default( x264_param_t *param )
     memset( param->cqm_8py, 16, 64 );
 
     param->b_repeat_headers = 1;
+    param->b_annexb = 1;
     param->b_aud = 0;
 }
 
@@ -603,6 +604,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->b_repeat_headers = !atobool(value);
     OPT("repeat-headers")
         p->b_repeat_headers = atobool(value);
+    OPT("annexb")
+        p->b_annexb = atobool(value);
     else
         return X264_PARAM_BAD_NAME;
 #undef OPT
@@ -695,23 +698,23 @@ void x264_picture_clean( x264_picture_t *pic )
 /****************************************************************************
  * x264_nal_encode:
  ****************************************************************************/
-int x264_nal_encode( void *p_data, int *pi_data, int b_annexeb, x264_nal_t *nal )
+int x264_nal_encode( uint8_t *dst, int b_annexb, x264_nal_t *nal )
 {
-    uint8_t *dst = p_data;
     uint8_t *src = nal->p_payload;
-    uint8_t *end = &nal->p_payload[nal->i_payload];
-    int i_count = 0;
+    uint8_t *end = nal->p_payload + nal->i_payload;
+    uint8_t *orig_dst = dst;
+    int i_count = 0, size;
 
-    /* FIXME this code doesn't check overflow */
-
-    if( b_annexeb )
+    /* long nal start code (we always use long ones) */
+    if( b_annexb )
     {
-        /* long nal start code (we always use long ones)*/
         *dst++ = 0x00;
         *dst++ = 0x00;
         *dst++ = 0x00;
         *dst++ = 0x01;
     }
+    else /* save room for size later */
+        dst += 4;
 
     /* nal header */
     *dst++ = ( 0x00 << 7 ) | ( nal->i_ref_idc << 5 ) | nal->i_type;
@@ -729,9 +732,19 @@ int x264_nal_encode( void *p_data, int *pi_data, int b_annexeb, x264_nal_t *nal 
             i_count = 0;
         *dst++ = *src++;
     }
-    *pi_data = dst - (uint8_t*)p_data;
+    size = (dst - orig_dst) - 4;
 
-    return *pi_data;
+    /* Write the size header for mp4/etc */
+    if( !b_annexb )
+    {
+        /* Size doesn't include the size of the header we're writing now. */
+        orig_dst[0] = size>>24;
+        orig_dst[1] = size>>16;
+        orig_dst[2] = size>> 8;
+        orig_dst[3] = size>> 0;
+    }
+
+    return size+4;
 }
 
 

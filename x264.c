@@ -1112,20 +1112,7 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
 
     for( i = 0; i < i_nal; i++ )
     {
-        int i_size;
-
-        if( mux_buffer_size < nal[i].i_payload * 3/2 + 4 )
-        {
-            mux_buffer_size = nal[i].i_payload * 2 + 4;
-            x264_free( mux_buffer );
-            mux_buffer = x264_malloc( mux_buffer_size );
-            if( !mux_buffer )
-                return -1;
-        }
-
-        i_size = mux_buffer_size;
-        x264_nal_encode( mux_buffer, &i_size, 1, &nal[i] );
-        i_nalu_size = p_write_nalu( hout, mux_buffer, i_size );
+        i_nalu_size = p_write_nalu( hout, nal[i].p_payload, nal[i].i_payload );
         if( i_nalu_size < 0 )
             return -1;
         i_file += i_nalu_size;
