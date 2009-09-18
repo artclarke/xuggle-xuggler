@@ -513,12 +513,11 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.i_lookahead = X264_MIN( h->param.rc.i_lookahead, X264_MAX( h->param.i_keyint_max, bufsize*fps ) );
     }
 
+    h->param.rc.f_qcompress = x264_clip3f( h->param.rc.f_qcompress, 0.0, 1.0 );
+    if( !h->param.rc.i_lookahead || h->param.i_keyint_max == 1 || h->param.rc.f_qcompress == 1 )
+        h->param.rc.b_mb_tree = 0;
     if( h->param.rc.b_stat_read )
         h->param.rc.i_lookahead = 0;
-    else if( !h->param.rc.i_lookahead || h->param.i_keyint_max == 1 )
-        h->param.rc.b_mb_tree = 0;
-    if( h->param.rc.f_qcompress == 1 )
-        h->param.rc.b_mb_tree = 0;
 #ifdef HAVE_PTHREAD
     if( h->param.i_sync_lookahead )
         h->param.i_sync_lookahead = x264_clip3( h->param.i_sync_lookahead, h->param.i_threads + h->param.i_bframe, X264_LOOKAHEAD_MAX );
