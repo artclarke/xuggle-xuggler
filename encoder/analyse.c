@@ -2617,20 +2617,20 @@ void x264_macroblock_analyse( x264_t *h )
                         }
                         else if( h->mb.i_sub_partition[i8x8] == D_L0_8x4 )
                         {
-                           x264_me_refine_qpel_rd( h, &analysis.l0.me8x4[i8x8][0], analysis.i_lambda2, i8x8*4+0, 0 );
-                           x264_me_refine_qpel_rd( h, &analysis.l0.me8x4[i8x8][1], analysis.i_lambda2, i8x8*4+2, 0 );
+                            x264_me_refine_qpel_rd( h, &analysis.l0.me8x4[i8x8][0], analysis.i_lambda2, i8x8*4+0, 0 );
+                            x264_me_refine_qpel_rd( h, &analysis.l0.me8x4[i8x8][1], analysis.i_lambda2, i8x8*4+2, 0 );
                         }
                         else if( h->mb.i_sub_partition[i8x8] == D_L0_4x8 )
                         {
-                           x264_me_refine_qpel_rd( h, &analysis.l0.me4x8[i8x8][0], analysis.i_lambda2, i8x8*4+0, 0 );
-                           x264_me_refine_qpel_rd( h, &analysis.l0.me4x8[i8x8][1], analysis.i_lambda2, i8x8*4+1, 0 );
+                            x264_me_refine_qpel_rd( h, &analysis.l0.me4x8[i8x8][0], analysis.i_lambda2, i8x8*4+0, 0 );
+                            x264_me_refine_qpel_rd( h, &analysis.l0.me4x8[i8x8][1], analysis.i_lambda2, i8x8*4+1, 0 );
                         }
                         else if( h->mb.i_sub_partition[i8x8] == D_L0_4x4 )
                         {
-                           x264_me_refine_qpel_rd( h, &analysis.l0.me4x4[i8x8][0], analysis.i_lambda2, i8x8*4+0, 0 );
-                           x264_me_refine_qpel_rd( h, &analysis.l0.me4x4[i8x8][1], analysis.i_lambda2, i8x8*4+1, 0 );
-                           x264_me_refine_qpel_rd( h, &analysis.l0.me4x4[i8x8][2], analysis.i_lambda2, i8x8*4+2, 0 );
-                           x264_me_refine_qpel_rd( h, &analysis.l0.me4x4[i8x8][3], analysis.i_lambda2, i8x8*4+3, 0 );
+                            x264_me_refine_qpel_rd( h, &analysis.l0.me4x4[i8x8][0], analysis.i_lambda2, i8x8*4+0, 0 );
+                            x264_me_refine_qpel_rd( h, &analysis.l0.me4x4[i8x8][1], analysis.i_lambda2, i8x8*4+1, 0 );
+                            x264_me_refine_qpel_rd( h, &analysis.l0.me4x4[i8x8][2], analysis.i_lambda2, i8x8*4+2, 0 );
+                            x264_me_refine_qpel_rd( h, &analysis.l0.me4x4[i8x8][3], analysis.i_lambda2, i8x8*4+3, 0 );
                         }
                     }
                 }
@@ -2941,6 +2941,19 @@ void x264_macroblock_analyse( x264_t *h )
     }
 
     x264_analyse_update_cache( h, &analysis );
+
+    /* In rare cases we can end up qpel-RDing our way back to a larger partition size
+     * without realizing it.  Check for this and account for it if necessary. */
+    if( analysis.i_mbrd >= 2 )
+    {
+        /* Don't bother with bipred or 8x8-and-below, the odds are incredibly low. */
+        static const uint8_t check_mv_lists[X264_MBTYPE_MAX] = {[P_L0]=1, [B_L0_L0]=1, [B_L1_L1]=2};
+        int list = check_mv_lists[h->mb.i_type] - 1;
+        if( list >= 0 && h->mb.i_partition != D_16x16 &&
+            *(uint32_t*)&h->mb.cache.mv[list][x264_scan8[0]] == *(uint32_t*)&h->mb.cache.mv[list][x264_scan8[12]] &&
+            h->mb.cache.ref[list][x264_scan8[0]] == h->mb.cache.ref[list][x264_scan8[12]] )
+                h->mb.i_partition = D_16x16;
+    }
 
     if( !analysis.i_mbrd )
         x264_mb_analyse_transform( h );
