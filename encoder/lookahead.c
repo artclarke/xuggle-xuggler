@@ -174,9 +174,9 @@ void x264_lookahead_delete( x264_t *h )
     }
     x264_synch_frame_list_delete( &h->lookahead->ifbuf );
     x264_synch_frame_list_delete( &h->lookahead->next );
-    x264_synch_frame_list_delete( &h->lookahead->ofbuf );
     if( h->lookahead->last_nonb )
         x264_frame_push_unused( h, h->lookahead->last_nonb );
+    x264_synch_frame_list_delete( &h->lookahead->ofbuf );
     x264_free( h->lookahead );
 }
 
