@@ -400,6 +400,7 @@ static void Help( x264_param_t *defaults, int longhelp )
 #define OPT_TUNE 266
 #define OPT_SLOWFIRSTPASS 267
 #define OPT_FULLHELP 268
+#define OPT_FPS 269
 
 static char short_options[] = "8A:B:b:f:hI:i:m:o:p:q:r:t:Vvw";
 static struct option long_options[] =
@@ -439,7 +440,7 @@ static struct option long_options[] =
     { "asm",         required_argument, NULL, 0 },
     { "no-asm",            no_argument, NULL, 0 },
     { "sar",         required_argument, NULL, 0 },
-    { "fps",         required_argument, NULL, 0 },
+    { "fps",         required_argument, NULL, OPT_FPS },
     { "frames",      required_argument, NULL, OPT_FRAMES },
     { "seek",        required_argument, NULL, OPT_SEEK },
     { "output",      required_argument, NULL, 'o' },
@@ -541,6 +542,7 @@ static int  Parse( int argc, char **argv,
     int b_turbo = 1;
     int b_pass1 = 0;
     int b_user_ref = 0;
+    int b_user_fps = 0;
 
     memset( opt, 0, sizeof(cli_opt_t) );
     opt->b_progress = 1;
@@ -858,6 +860,9 @@ static int  Parse( int argc, char **argv,
             case 'p':
                 b_pass1 = atoi( optarg ) == 1;
                 goto generic_option;
+            case OPT_FPS:
+                b_user_fps = 1;
+                goto generic_option;
             default:
 generic_option:
             {
@@ -987,6 +992,8 @@ generic_option:
 
     /* open the input */
     {
+        int i_fps_num = param->i_fps_num;
+        int i_fps_den = param->i_fps_den;
         if( b_avis )
         {
 #ifdef AVIS_INPUT
@@ -999,7 +1006,7 @@ generic_option:
             return -1;
 #endif
         }
-        if ( b_y4m )
+        if( b_y4m )
         {
             p_open_infile = open_file_y4m;
             p_get_frame_total = get_frame_total_y4m;
@@ -1011,6 +1018,12 @@ generic_option:
         {
             fprintf( stderr, "x264 [error]: could not open input file '%s'\n", psz_filename );
             return -1;
+        }
+        /* Restore the user's frame rate if fps has been explicitly set on the commandline. */
+        if( b_user_fps )
+        {
+            param->i_fps_num = i_fps_num;
+            param->i_fps_den = i_fps_den;
         }
     }
 
@@ -1226,7 +1239,8 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         if( i_frame_size < 0 )
             return -1;
         i_file += i_frame_size;
-        i_frame_output++;
+        if( i_frame_size )
+            i_frame_output++;
         if( opt->b_progress && i_frame_output % i_update_interval == 0 && i_frame_output )
             Print_status( i_start, i_frame_output, i_frame_total, i_file, param );
     }
