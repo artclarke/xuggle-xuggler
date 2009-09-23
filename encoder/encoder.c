@@ -873,6 +873,11 @@ x264_t *x264_encoder_open( x264_param_t *param )
             goto fail;
     if( x264_analyse_init_costs( h, X264_LOOKAHEAD_QP ) )
         goto fail;
+    if( h->cost_mv[1][2013] != 24 )
+    {
+        x264_log( h, X264_LOG_ERROR, "MV cost test failed: x264 has been miscompiled!\n" );
+        goto fail;
+    }
 
     h->out.i_nal = 0;
     h->out.i_bitstream = X264_MAX( 1000000, h->param.i_width * h->param.i_height * 4
