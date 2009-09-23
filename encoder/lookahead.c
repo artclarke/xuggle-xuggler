@@ -43,7 +43,7 @@ static void x264_lookahead_shift( x264_synch_frame_list_t *dst, x264_synch_frame
     int i = count;
     while( i-- )
     {
-        assert( dst->i_size != dst->i_max_size );
+        assert( dst->i_size < dst->i_max_size );
         assert( src->i_size );
         dst->list[ dst->i_size++ ] = x264_frame_shift( src->list );
         src->i_size--;
@@ -95,7 +95,6 @@ static void x264_lookahead_thread( x264_t *h )
     if( h->param.cpu&X264_CPU_SSE_MISALIGN )
         x264_cpu_mask_misalign_sse();
 #endif
-    h->lookahead->b_thread_active = 1;
     while( !h->lookahead->b_exit_thread )
     {
         x264_pthread_mutex_lock( &h->lookahead->ifbuf.mutex );
@@ -115,14 +114,17 @@ static void x264_lookahead_thread( x264_t *h )
             x264_lookahead_slicetype_decide( h );
         }
     }   /* end of input frames */
-    x264_pthread_mutex_lock( &h->lookahead->next.mutex );
     x264_pthread_mutex_lock( &h->lookahead->ifbuf.mutex );
+    x264_pthread_mutex_lock( &h->lookahead->next.mutex );
     x264_lookahead_shift( &h->lookahead->next, &h->lookahead->ifbuf, h->lookahead->ifbuf.i_size );
-    x264_pthread_mutex_unlock( &h->lookahead->ifbuf.mutex );
     x264_pthread_mutex_unlock( &h->lookahead->next.mutex );
+    x264_pthread_mutex_unlock( &h->lookahead->ifbuf.mutex );
     while( h->lookahead->next.i_size )
         x264_lookahead_slicetype_decide( h );
+    x264_pthread_mutex_lock( &h->lookahead->ofbuf.mutex );
     h->lookahead->b_thread_active = 0;
+    x264_pthread_cond_broadcast( &h->lookahead->ofbuf.cv_fill );
+    x264_pthread_mutex_unlock( &h->lookahead->ofbuf.mutex );
 }
 #endif
 
@@ -155,6 +157,7 @@ int x264_lookahead_init( x264_t *h, int i_slicetype_length )
 
     if( x264_pthread_create( &look_h->thread_handle, NULL, (void *)x264_lookahead_thread, look_h ) )
         goto fail;
+    look->b_thread_active = 1;
 
     return 0;
 fail:
@@ -190,8 +193,13 @@ void x264_lookahead_put_frame( x264_t *h, x264_frame_t *frame )
 
 int x264_lookahead_is_empty( x264_t *h )
 {
-    return !x264_synch_frame_list_get_size( &h->lookahead->ofbuf ) &&
-           !x264_synch_frame_list_get_size( &h->lookahead->next );
+    int b_empty;
+    x264_pthread_mutex_lock( &h->lookahead->ofbuf.mutex );
+    x264_pthread_mutex_lock( &h->lookahead->next.mutex );
+    b_empty = !h->lookahead->next.i_size && !h->lookahead->ofbuf.i_size;
+    x264_pthread_mutex_unlock( &h->lookahead->next.mutex );
+    x264_pthread_mutex_unlock( &h->lookahead->ofbuf.mutex );
+    return b_empty;
 }
 
 static void x264_lookahead_encoder_shift( x264_t *h )
@@ -201,8 +209,6 @@ static void x264_lookahead_encoder_shift( x264_t *h )
 
     while( h->lookahead->ofbuf.list[i_frames] )
     {
-        while( h->lookahead->b_thread_active && !h->lookahead->ofbuf.i_size )
-            x264_pthread_cond_wait( &h->lookahead->ofbuf.cv_fill, &h->lookahead->ofbuf.mutex );
         if( IS_X264_TYPE_B( h->lookahead->ofbuf.list[bframes]->i_type ) )
             bframes++;
         else

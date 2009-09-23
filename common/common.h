@@ -245,8 +245,8 @@ typedef struct
 
 typedef struct x264_lookahead_t
 {
+    volatile uint8_t              b_exit_thread;
     uint8_t                       b_thread_active;
-    uint8_t                       b_exit_thread;
     uint8_t                       b_analyse_keyframe;
     int                           i_last_idr;
     int                           i_slicetype_length;

@@ -1055,12 +1055,3 @@ void x264_synch_frame_list_push( x264_synch_frame_list_t *slist, x264_frame_t *f
     x264_pthread_mutex_unlock( &slist->mutex );
     x264_pthread_cond_broadcast( &slist->cv_fill );
 }
-
-int x264_synch_frame_list_get_size( x264_synch_frame_list_t *slist )
-{
-    int size;
-    x264_pthread_mutex_lock( &slist->mutex );
-    size = slist->i_size;
-    x264_pthread_mutex_unlock( &slist->mutex );
-    return size;
-}

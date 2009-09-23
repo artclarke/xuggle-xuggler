@@ -2369,8 +2369,12 @@ int x264_encoder_delayed_frames( x264_t *h )
     h = h->thread[ h->i_thread_phase % h->param.i_threads ];
     for( i=0; h->frames.current[i]; i++ )
         delayed_frames++;
-    delayed_frames += x264_synch_frame_list_get_size( &h->lookahead->ifbuf );
-    delayed_frames += x264_synch_frame_list_get_size( &h->lookahead->next );
-    delayed_frames += x264_synch_frame_list_get_size( &h->lookahead->ofbuf );
+    x264_pthread_mutex_lock( &h->lookahead->ofbuf.mutex );
+    x264_pthread_mutex_lock( &h->lookahead->ifbuf.mutex );
+    x264_pthread_mutex_lock( &h->lookahead->next.mutex );
+    delayed_frames += h->lookahead->ifbuf.i_size + h->lookahead->next.i_size + h->lookahead->ofbuf.i_size;
+    x264_pthread_mutex_unlock( &h->lookahead->next.mutex );
+    x264_pthread_mutex_unlock( &h->lookahead->ifbuf.mutex );
+    x264_pthread_mutex_unlock( &h->lookahead->ofbuf.mutex );
     return delayed_frames;
 }
