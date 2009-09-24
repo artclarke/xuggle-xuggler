@@ -104,6 +104,10 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
   final private ConcurrentMap<Event, AtomicLong> mEventCounts = 
     new ConcurrentHashMap<Event, AtomicLong>();
 
+  // the symbolic name of this listener
+  
+  private final String mName;
+
   /** 
    * Construct a debug listener which logs all event types.
    */
@@ -133,10 +137,26 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
   
   MediaDebugListener(Mode mode, Event... events)
   {
+    this(null, mode, events);
+  }
+
+  /**
+   * Construct a debug listener with custom name and set of event types to
+   * log.
+   * 
+   * @param name symbolic name for this debug listener
+   * @param mode log mode, see {@link MediaDebugListener.Mode}
+   * @param events the event types which will be logged
+   */
+
+  MediaDebugListener(String name, Mode mode, Event... events)
+  {
+    mName = name;
     mMode = mode;
     setLogEvents(events);
   }
-
+  
+  
   // increment count for specific event type
 
   private void incrementCount(Event event)
@@ -208,6 +228,9 @@ class MediaDebugListener extends MediaListenerAdapter implements IMediaDebugList
     if ((mFlags & event.getFlag()) != 0 && mMode != NOTHING)
     {
       StringBuilder string = new StringBuilder();
+      if (mName != null)
+        string.append(mName + " ");
+      
       string.append(event.getMethod() + "(");
       switch (mMode)
       {

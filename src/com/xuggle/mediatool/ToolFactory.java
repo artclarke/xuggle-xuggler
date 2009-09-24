@@ -263,6 +263,21 @@ public class ToolFactory
   {
     return new MediaDebugListener(mode, events);
   }
+  
+  /**
+   * Construct a debug listener with custom name and set of event types to
+   * log.
+   * 
+   * @param name symbolic name for this listener
+   * @param mode log mode, see {@link IMediaDebugListener.Mode}
+   * @param events the event types which will be logged
+   */
+
+  public static IMediaDebugListener makeDebugListener(String name,
+    IMediaDebugListener.Mode mode, IMediaDebugListener.Event... events)
+  {
+    return new MediaDebugListener(name, mode, events);
+  }
 
   /**
    * A sample program for the {@link ToolFactory}.  If given
