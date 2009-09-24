@@ -1787,9 +1787,6 @@ int     x264_encoder_encode( x264_t *h,
     if( h->sh.i_type == SLICE_TYPE_B )
         x264_macroblock_bipred_init( h );
 
-    if( i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE )
-        h->i_frame_num++;
-
     /* ---------------------- Write the bitstream -------------------------- */
     /* Init bitstream context */
     h->out.i_nal = 0;
@@ -1858,6 +1855,9 @@ int     x264_encoder_encode( x264_t *h,
 
     /* ------------------------ Create slice header  ----------------------- */
     x264_slice_init( h, i_nal_type, i_global_qp );
+
+    if( i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE )
+        h->i_frame_num++;
 
     /* Write frame */
     if( h->param.i_threads > 1 )
