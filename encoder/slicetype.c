@@ -956,6 +956,10 @@ void x264_slicetype_decide( x264_t *h )
         frames[b] = h->lookahead->next.list[bframes];
 
         x264_slicetype_frame_cost( h, &a, frames, p0, p1, b, 0 );
+
+        /* We need the intra costs for row SATDs. */
+        if( b && h->param.rc.i_vbv_buffer_size )
+            x264_slicetype_frame_cost( h, &a, frames, b, b, b, 0 );
     }
 }
 
@@ -977,7 +981,11 @@ int x264_rc_analyse_slice( x264_t *h )
     assert( cost >= 0 );
 
     if( h->param.rc.b_mb_tree && !h->param.rc.b_stat_read )
+    {
         cost = x264_slicetype_frame_cost_recalculate( h, frames, p0, p1, b );
+        if( b && h->param.rc.i_vbv_buffer_size )
+            x264_slicetype_frame_cost_recalculate( h, frames, b, b, b );
+    }
     /* In AQ, use the weighted score instead. */
     else if( h->param.rc.i_aq_mode )
         cost = frames[b]->i_cost_est_aq[b-p0][p1-b];
@@ -986,5 +994,7 @@ int x264_rc_analyse_slice( x264_t *h )
     h->fdec->i_row_satd = h->fdec->i_row_satds[b-p0][p1-b];
     h->fdec->i_satd = cost;
     memcpy( h->fdec->i_row_satd, h->fenc->i_row_satd, h->sps->i_mb_height * sizeof(int) );
+    if( !IS_X264_TYPE_I(h->fenc->i_type) )
+        memcpy( h->fdec->i_row_satds[0][0], h->fenc->i_row_satds[0][0], h->sps->i_mb_height * sizeof(int) );
     return cost;
 }
