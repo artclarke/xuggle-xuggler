@@ -145,6 +145,9 @@ public class MetaDataTest
       meta.setValue("author", "Your Mom");
       assertEquals("Your Mom", meta.getValue("author"));
     }
+    container.close();
+    meta.delete();
+    container.delete();
   }
 
 
