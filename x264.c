@@ -1260,14 +1260,14 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     p_close_infile( opt->hin );
     p_close_outfile( opt->hout );
 
-    if( i_frame > 0 )
+    if( i_frame_output > 0 )
     {
-        double fps = (double)i_frame * (double)1000000 /
+        double fps = (double)i_frame_output * (double)1000000 /
                      (double)( i_end - i_start );
 
         fprintf( stderr, "encoded %d frames, %.2f fps, %.2f kb/s\n", i_frame_output, fps,
                  (double) i_file * 8 * param->i_fps_num /
-                 ( (double) param->i_fps_den * i_frame * 1000 ) );
+                 ( (double) param->i_fps_den * i_frame_output * 1000 ) );
     }
 
     return 0;
