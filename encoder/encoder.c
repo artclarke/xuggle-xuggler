@@ -774,7 +774,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
     x264_reduce_fraction( &h->param.i_fps_num, &h->param.i_fps_den );
 
     /* Init x264_t */
-    h->i_frame = 0;
+    h->i_frame = -1;
     h->i_frame_num = 0;
     h->i_idr_pic_id = 0;
 
@@ -1238,9 +1238,6 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y )
 
 static inline int x264_reference_update( x264_t *h )
 {
-    if( h->fdec->i_frame >= 0 )
-        h->i_frame++;
-
     if( !h->fdec->b_kept_as_ref )
     {
         if( h->param.i_threads > 1 )
@@ -1712,6 +1709,7 @@ int     x264_encoder_encode( x264_t *h,
         x264_pthread_cond_broadcast( &h->lookahead->ifbuf.cv_fill );
     }
 
+    h->i_frame++;
     /* 3: The picture is analyzed in the lookahead */
     if( !h->frames.current[0] )
         x264_lookahead_get_frames( h );
@@ -2079,6 +2077,17 @@ void    x264_encoder_close  ( x264_t *h )
             x264_frame_delete( h->thread[i]->fenc );
         }
     }
+
+    if( h->param.i_threads > 1 )
+    {
+        x264_t *thread_prev;
+
+        thread_prev = h->thread[ h->i_thread_phase % h->param.i_threads ];
+        x264_thread_sync_ratecontrol( h, thread_prev, h );
+        x264_thread_sync_ratecontrol( thread_prev, thread_prev, h );
+        h->i_frame = thread_prev->i_frame + 1 - h->param.i_threads;
+    }
+    h->i_frame++;
 
     /* Slices used and PSNR */
     for( i=0; i<5; i++ )
