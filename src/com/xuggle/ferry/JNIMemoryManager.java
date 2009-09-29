@@ -1180,7 +1180,8 @@ public final class JNIMemoryManager
       for(int i = 0; i < numItems; i++)
       {
         JNIReference ref = mValidReferences[i];
-        log.debug("Slot: {}; Ref: {}", i, ref);
+        if (ref != null)
+          log.debug("Slot: {}; Ref: {}", i, ref);
       }
     } finally {
       blockingUnlock();
