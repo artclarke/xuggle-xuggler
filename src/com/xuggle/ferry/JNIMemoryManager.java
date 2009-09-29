@@ -1186,8 +1186,35 @@ public final class JNIMemoryManager
       blockingUnlock();
     }
     return;
-    
   }
+  
+  /**
+   * Will object allocations contain debug information when allocated?
+   * @see #setMemoryDebugging(boolean)
+   */
+  public boolean isMemoryDebugging()
+  {
+    return JNIReference.isMemoryDebugging();
+  }
+
+  /**
+   * Set whether the {@link JNIMemoryManager} should cause objects
+   * to be allocated with debugging information.  This is false
+   * by default as it causes a slight performance hit per-allocation.
+   * <p>
+   * If true, then each allocation after setting to true will remember
+   * the class of each object allocated, and the unique java hash
+   * code ({@link Object#hashCode()}) of each object allocated.  Then
+   * in calls to {@link #dumpMemoryLog()}, those classes and hash
+   * values will also be printed.
+   * </p>
+   * @param value true to turn on memory debugging; false to turn it off.
+   */
+  public void setMemoryDebugging(boolean value)
+  {
+    JNIReference.setMemoryDebugging(value);
+  }
+  
   /**
    * A finalizer for the memory manager itself. It just calls internal garbage
    * collections and then exits.

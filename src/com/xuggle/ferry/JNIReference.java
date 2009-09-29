@@ -65,7 +65,13 @@ public final class JNIReference extends WeakReference<Object>
   // Only turn this to true if you need memory debugging on.  Given how
   // hot this code is, remembering debug info is an unnecessary extra
   // step.
-  private static final boolean mMemoryDebugging = false;
+  private static volatile boolean mMemoryDebugging = false;
+  /* package */ static void setMemoryDebugging(boolean value) {
+    mMemoryDebugging = value;
+  }
+  /* package */ static boolean isMemoryDebugging() {
+    return mMemoryDebugging; 
+  }
   private static class DebugInfo {
     private final int mHashCode;
     private final Class<? extends Object> mClass;
@@ -211,7 +217,17 @@ public final class JNIReference extends WeakReference<Object>
     return mSwigCPtr.get() == 0;
   }
   /**
-   * Creates a string representation of this reference.
+   * Creates a string representation of this reference.  If the underlying
+   * object this reference points to has been deleted, then "native" will
+   * be zero.  If {@link JNIMemoryManager#isMemoryDebugging()} is true,
+   * then the class and hashcode of the object this reference points to (or
+   * used to point to) is also printed.
+   * <p>
+   * If the reference still points to an actual object, we will also print
+   * the contents of that object.  It may return "null" in which case the
+   * underlying object is no longer reachable, but if native != 0, it means
+   * it has not yet been collected by Ferry.
+   * </p>
    */
   @Override
   public String toString()
@@ -224,6 +240,7 @@ public final class JNIReference extends WeakReference<Object>
       builder.append("proxyClass=").append(mDebugInfo.getObjectClass().getCanonicalName()).append(";");
       builder.append("hashCode=").append(mDebugInfo.getObjectHashCode()).append(";");
     }
+    builder.append("object=[").append(get()).append("];");
     builder.append("];");
     
     return builder.toString();
