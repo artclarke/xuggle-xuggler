@@ -175,7 +175,7 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
 
     bs_write_ue( s, sh->i_type + 5 );   /* same type things */
     bs_write_ue( s, sh->i_pps_id );
-    bs_write( s, sh->sps->i_log2_max_frame_num, sh->i_frame_num );
+    bs_write( s, sh->sps->i_log2_max_frame_num, sh->i_frame_num & ((1<<sh->sps->i_log2_max_frame_num)-1) );
 
     if( !sh->sps->b_frame_mbs_only )
     {
@@ -191,7 +191,7 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
 
     if( sh->sps->i_poc_type == 0 )
     {
-        bs_write( s, sh->sps->i_log2_max_poc_lsb, sh->i_poc_lsb );
+        bs_write( s, sh->sps->i_log2_max_poc_lsb, sh->i_poc_lsb & ((1<<sh->sps->i_log2_max_poc_lsb)-1) );
         if( sh->pps->b_pic_order && !sh->b_field_pic )
         {
             bs_write_se( s, sh->i_delta_poc_bottom );
