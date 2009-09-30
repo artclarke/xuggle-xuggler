@@ -812,7 +812,7 @@ void x264_ratecontrol_summary( x264_t *h )
     if( rc->b_abr && h->param.rc.i_rc_method == X264_RC_ABR && rc->cbr_decay > .9999 )
     {
         double base_cplx = h->mb.i_mb_count * (h->param.i_bframe ? 120 : 80);
-        double mbtree_offset = h->param.rc.b_mb_tree ? (1.0-h->param.rc.f_qcompress)*12.5 : 0;
+        double mbtree_offset = h->param.rc.b_mb_tree ? (1.0-h->param.rc.f_qcompress)*13.5 : 0;
         x264_log( h, X264_LOG_INFO, "final ratefactor: %.2f\n",
                   qscale2qp( pow( base_cplx, 1 - rc->qcompress )
                              * rc->cplxr_sum / rc->wanted_bits_window ) - mbtree_offset );
