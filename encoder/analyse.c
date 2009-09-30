@@ -24,9 +24,7 @@
 
 #define _ISOC99_SOURCE
 #include <math.h>
-#ifndef _MSC_VER
 #include <unistd.h>
-#endif
 
 #include "common/common.h"
 #include "common/cpu.h"

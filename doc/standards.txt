@@ -1,5 +1,5 @@
-x264 is written in C. The particular variant of C is: intersection of gcc-2.95 and msvc. This means C89 + a few C99 features.
-The extra utilities (mostly checkasm) are written in C99, with no attempt at compatibility with old compilers.
+x264 is written in C. The particular variant of C is: intersection of C99 and gcc>=3.4.
+checkasm is written in gcc, with no attempt at compatibility with anything else.
 
 We make the following additional assumptions which are true of real systems but not guaranteed by C99:
 * Two's complement.

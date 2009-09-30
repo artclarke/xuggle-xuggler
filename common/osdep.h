@@ -39,19 +39,6 @@
 #include <fcntl.h> // _O_BINARY
 #endif
 
-#ifdef _MSC_VER
-#define inline __inline
-#define strcasecmp stricmp
-#define strncasecmp strnicmp
-#define snprintf _snprintf
-#define fseek _fseeki64
-#define ftell _ftelli64
-#define isfinite _finite
-#define strtok_r strtok_s
-#define _CRT_SECURE_NO_DEPRECATE
-#define X264_VERSION "" // no configure script for msvc
-#endif
-
 #if (defined(SYS_OPENBSD) && !defined(isfinite)) || defined(SYS_SunOS)
 #define isfinite finite
 #endif
@@ -62,11 +49,7 @@
 #endif
 #endif
 
-#ifdef _MSC_VER
-#define DECLARE_ALIGNED( var, n ) __declspec(align(n)) var
-#else
 #define DECLARE_ALIGNED( var, n ) var __attribute__((aligned(n)))
-#endif
 #define ALIGNED_16( var ) DECLARE_ALIGNED( var, 16 )
 #define ALIGNED_8( var )  DECLARE_ALIGNED( var, 8 )
 #define ALIGNED_4( var )  DECLARE_ALIGNED( var, 4 )
@@ -161,7 +144,7 @@ static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(vo
 #define WORD_SIZE sizeof(void*)
 
 #if !defined(_WIN64) && !defined(__LP64__)
-#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER)
 #define BROKEN_STACK_ALIGNMENT /* define it if stack is not mod16 */
 #endif
 #endif

@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#if !(defined(_MSC_VER) || defined(__MINGW32__))
+#ifndef __MINGW32__
 #include <sys/time.h>
 #else
 #include <sys/types.h>
@@ -31,9 +31,8 @@
 
 int64_t x264_mdate( void )
 {
-#if !(defined(_MSC_VER) || defined(__MINGW32__))
+#ifndef __MINGW32__
     struct timeval tv_date;
-
     gettimeofday( &tv_date, NULL );
     return( (int64_t) tv_date.tv_sec * 1000000 + (int64_t) tv_date.tv_usec );
 #else
