@@ -660,6 +660,7 @@ static int  Parse( int argc, char **argv,
                 param->analyse.i_trellis = 2;
                 param->i_bframe = 16;
                 param->rc.i_lookahead = 60;
+                b_turbo = 0;
             }
             else
             {

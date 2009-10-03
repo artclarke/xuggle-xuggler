@@ -31,6 +31,7 @@
 #include "common/common.h"
 #include "common/cpu.h"
 #include "ratecontrol.h"
+#include "me.h"
 
 typedef struct
 {
@@ -49,6 +50,8 @@ typedef struct
     int s_count;
     float blurred_complexity;
     char direct_mode;
+    int refcount[16];
+    int refs;
 } ratecontrol_entry_t;
 
 typedef struct
@@ -299,6 +302,33 @@ int x264_macroblock_tree_read( x264_t *h, x264_frame_t *frame )
 fail:
     x264_log(h, X264_LOG_ERROR, "Incomplete MB-tree stats file.\n");
     return -1;
+}
+
+int x264_reference_build_list_optimal( x264_t *h )
+{
+    ratecontrol_entry_t *rce = h->rc->rce;
+    x264_frame_t *frames[16];
+    int ref, i;
+
+    if( rce->refs != h->i_ref0 )
+        return -1;
+
+    memcpy( frames, h->fref0, sizeof(frames) );
+
+    /* For now don't reorder ref 0; it seems to lower quality
+       in most cases due to skips. */
+    for( ref = 1; ref < h->i_ref0; ref++ )
+    {
+        int max = -1;
+        int bestref = 1;
+        for( i = 1; i < h->i_ref0; i++ )
+            /* Favor lower POC as a tiebreaker. */
+            COPY2_IF_GT( max, rce->refcount[i], bestref, i );
+        rce->refcount[bestref] = -1;
+        h->fref0[ref] = frames[bestref];
+    }
+
+    return 0;
 }
 
 static char *x264_strcat_filename( char *input, char *suffix )
@@ -581,6 +611,7 @@ int x264_ratecontrol_new( x264_t *h )
             int e;
             char *next;
             float qp;
+            int ref;
 
             next= strchr(p, ';');
             if(next)
@@ -603,6 +634,20 @@ int x264_ratecontrol_new( x264_t *h )
                    &rce->mv_bits, &rce->misc_bits, &rce->i_count, &rce->p_count,
                    &rce->s_count, &rce->direct_mode);
 
+            p = strstr( p, "ref:" );
+            if( !p )
+                goto parse_error;
+            p += 4;
+            for( ref = 0; ref < 16; ref++ )
+            {
+                if( sscanf( p, " %d", &rce->refcount[ref] ) != 1 )
+                    break;
+                p = strchr( p+1, ' ' );
+                if( !p )
+                    goto parse_error;
+            }
+            rce->refs = ref;
+
             switch(pict_type)
             {
                 case 'I': rce->kept_as_ref = 1;
@@ -614,6 +659,7 @@ int x264_ratecontrol_new( x264_t *h )
             }
             if(e < 10)
             {
+parse_error:
                 x264_log(h, X264_LOG_ERROR, "statistics are damaged at line %d, parser out=%d\n", i, e);
                 return -1;
             }
@@ -1222,7 +1268,7 @@ int x264_ratecontrol_end( x264_t *h, int bits )
                           dir_avg>0 ? 's' : dir_avg<0 ? 't' : '-' )
                         : '-';
         if( fprintf( rc->p_stat_file_out,
-                 "in:%d out:%d type:%c q:%.2f tex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d d:%c;\n",
+                 "in:%d out:%d type:%c q:%.2f tex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d d:%c ref:",
                  h->fenc->i_frame, h->i_frame,
                  c_type, rc->qpa_rc,
                  h->stat.frame.i_tex_bits,
@@ -1232,7 +1278,19 @@ int x264_ratecontrol_end( x264_t *h, int bits )
                  h->stat.frame.i_mb_count_p,
                  h->stat.frame.i_mb_count_skip,
                  c_direct) < 0 )
-             goto fail;
+            goto fail;
+
+        for( i = 0; i < h->i_ref0; i++ )
+        {
+            int refcount = h->param.b_interlaced ? h->stat.frame.i_mb_count_ref[0][i*2]
+                                                 + h->stat.frame.i_mb_count_ref[0][i*2+1] :
+                                                   h->stat.frame.i_mb_count_ref[0][i];
+            if( fprintf( rc->p_stat_file_out, "%d ", refcount ) < 0 )
+                goto fail;
+        }
+
+        if( fprintf( rc->p_stat_file_out, ";\n" ) < 0 )
+            goto fail;
 
         /* Don't re-write the data in multi-pass mode. */
         if( h->param.rc.b_mb_tree && h->fenc->b_kept_as_ref && !h->param.rc.b_stat_read )

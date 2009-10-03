@@ -30,6 +30,7 @@ void x264_ratecontrol_delete( x264_t * );
 void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame );
 void x264_adaptive_quant( x264_t * );
 int  x264_macroblock_tree_read( x264_t *h, x264_frame_t *frame );
+int  x264_reference_build_list_optimal( x264_t *h );
 void x264_thread_sync_ratecontrol( x264_t *cur, x264_t *prev, x264_t *next );
 void x264_ratecontrol_start( x264_t *, int i_force_qp, int overhead );
 int  x264_ratecontrol_slice_type( x264_t *, int i_frame );
