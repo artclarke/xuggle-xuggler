@@ -1308,8 +1308,10 @@ static void x264_mb_analyse_inter_p8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
         x264_macroblock_cache_mv_ptr( h, 2*x8, 2*y8, 2, 2, 0, l0m->mv );
         x264_macroblock_cache_ref( h, 2*x8, 2*y8, 2, 2, 0, l0m->i_ref );
 
-        /* mb type cost */
-        l0m->cost += a->i_lambda * i_sub_mb_p_cost_table[D_L0_8x8];
+        /* If CABAC is on and we're not doing sub-8x8 analysis, the costs
+           are effectively zero. */
+        if( !h->param.b_cabac || (h->param.analyse.inter & X264_ANALYSE_PSUB8x8) )
+            l0m->cost += a->i_lambda * i_sub_mb_p_cost_table[D_L0_8x8];
     }
 
     a->l0.i_cost8x8 = a->l0.me8x8[0].cost + a->l0.me8x8[1].cost +
@@ -1361,7 +1363,8 @@ static void x264_mb_analyse_inter_p8x8( x264_t *h, x264_mb_analysis_t *a )
 
         /* mb type cost */
         m->cost += i_ref_cost;
-        m->cost += a->i_lambda * i_sub_mb_p_cost_table[D_L0_8x8];
+        if( !h->param.b_cabac || (h->param.analyse.inter & X264_ANALYSE_PSUB8x8) )
+            m->cost += a->i_lambda * i_sub_mb_p_cost_table[D_L0_8x8];
     }
 
     a->l0.i_cost8x8 = a->l0.me8x8[0].cost + a->l0.me8x8[1].cost +
