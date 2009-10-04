@@ -20,6 +20,12 @@
 
 #include "config.h"
 
+#ifdef PREFIX
+#   define EXTERN_ASM _
+#else
+#   define EXTERN_ASM
+#endif
+
 #ifdef __ELF__
 #   define ELF
 #else
@@ -35,7 +41,8 @@ ELF     .eabi_attribute 25, \val
         .endm
 
         .macro function name
-        .global \name
+        .global EXTERN_ASM\name
+EXTERN_ASM\name:
 ELF     .hidden \name
 ELF     .type   \name, %function
         .func   \name

@@ -110,16 +110,17 @@ SAD4_ARMV6 8
 
 .macro SAD_FUNC w, h, name, align:vararg
 function x264_pixel_sad\name\()_\w\()x\h\()_neon
-.if \w == 16
-    .set r, \h / 2 - 1
-.else
-    .set r, \h - 1
-.endif
-
     SAD_START_\w \align
-.rept r
+
+.if \w == 16
+.rept \h / 2 - 1
     SAD_\w \align
 .endr
+.else
+.rept \h - 1
+    SAD_\w \align
+.endr
+.endif
 
 .if \w > 8
     vabal.u8    q8,  d4,  d6

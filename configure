@@ -23,6 +23,7 @@ echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS"
 echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS"
 echo "  --host=HOST              build programs to run on HOST"
 echo "  --cross-prefix=PREFIX    use PREFIX for compilation tools"
+echo "  --sysroot=SYSROOT        root of cross-build tree"
 echo ""
 exit 1
 fi
@@ -223,6 +224,10 @@ for opt do
         --cross-prefix=*)
             cross_prefix="${opt#--cross-prefix=}"
             ;;
+        --sysroot=*)
+            CFLAGS="$CFLAGS --sysroot=${opt#--sysroot=}"
+            LDFLAGS="$LDFLAGS --sysroot=${opt#--sysroot=}"
+            ;;
         *)
             echo "Unknown option $opt, ignored"
             ;;
@@ -367,7 +372,17 @@ case $host_cpu in
     ;;
   arm*)
     ARCH="ARM"
-    AS="${AS-${cross_prefix}gcc}"
+    if [ "$SYS" = MACOSX ] ; then
+      AS="${AS-extras/gas-preprocessor.pl $CC}"
+      ASFLAGS="$ASFLAGS -DPREFIX -DPIC"  # apple's ld doesn't support movw/movt relocations at all
+      # build for armv7 by default
+      if ! echo $CFLAGS | grep -Eq '\-arch' ; then
+        CFLAGS="$CFLAGS -arch armv7"
+        LDFLAGS="$LDFLAGS -arch armv7"
+      fi
+    else
+      AS="${AS-${cross_prefix}gcc}"
+    fi
     ;;
   s390|s390x)
     ARCH="S390"
