@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 76
+#define X264_BUILD 77
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -206,6 +206,7 @@ typedef struct x264_param_t
     int         i_cabac_init_idc;
 
     int         b_interlaced;
+    int         b_constrained_intra;
 
     int         i_cqm_preset;
     char        *psz_cqm_file;      /* JM format */

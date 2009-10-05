@@ -222,6 +222,7 @@ static void Help( x264_param_t *defaults, int longhelp )
     H2( "      --slice-max-size <integer> Limit the size of each slice in bytes\n");
     H2( "      --slice-max-mbs <integer> Limit the size of each slice in macroblocks\n");
     H0( "      --interlaced            Enable pure-interlaced mode\n" );
+    H2( "      --constrained-intra     Enable constrained intra prediction.\n" );
     H0( "\n" );
     H0( "Ratecontrol:\n" );
     H0( "\n" );
@@ -428,6 +429,7 @@ static struct option long_options[] =
     { "filter",      required_argument, NULL, 0 },
     { "deblock",     required_argument, NULL, 'f' },
     { "interlaced",        no_argument, NULL, 0 },
+    { "constrained-intra", no_argument, NULL, 0 },
     { "cabac",             no_argument, NULL, 0 },
     { "no-cabac",          no_argument, NULL, 0 },
     { "qp",          required_argument, NULL, 'q' },

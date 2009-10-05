@@ -76,6 +76,8 @@ void    x264_param_default( x264_param_t *param )
     param->i_bframe_adaptive = X264_B_ADAPT_FAST;
     param->i_bframe_bias = 0;
     param->b_bframe_pyramid = 0;
+    param->b_interlaced = 0;
+    param->b_constrained_intra = 0;
 
     param->b_deblocking_filter = 1;
     param->i_deblocking_filter_alphac0 = 0;
@@ -394,6 +396,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->i_cabac_init_idc = atoi(value);
     OPT("interlaced")
         p->b_interlaced = atobool(value);
+    OPT("constrained-intra")
+        p->b_constrained_intra = atobool(value);
     OPT("cqm")
     {
         if( strstr( value, "flat" ) )
@@ -890,6 +894,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " nr=%d", p->analyse.i_noise_reduction );
     s += sprintf( s, " decimate=%d", p->analyse.b_dct_decimate );
     s += sprintf( s, " mbaff=%d", p->b_interlaced );
+    s += sprintf( s, " constrained_intra=%d", p->b_constrained_intra );
 
     s += sprintf( s, " bframes=%d", p->i_bframe );
     if( p->i_bframe )

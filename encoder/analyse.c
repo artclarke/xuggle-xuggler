@@ -662,7 +662,7 @@ static void x264_mb_analyse_intra_chroma( x264_t *h, x264_mb_analysis_t *a )
     p_srcc[0] = h->mb.pic.p_fenc[1];
     p_srcc[1] = h->mb.pic.p_fenc[2];
 
-    predict_8x8chroma_mode_available( h->mb.i_neighbour, predict_mode, &i_max );
+    predict_8x8chroma_mode_available( h->mb.i_neighbour_intra, predict_mode, &i_max );
     a->i_satd_i8x8chroma = COST_MAX;
     if( i_max == 4 && b_merged_satd )
     {
@@ -731,7 +731,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     /*---------------- Try all mode and calculate their score ---------------*/
 
     /* 16x16 prediction selection */
-    predict_16x16_mode_available( h->mb.i_neighbour, predict_mode, &i_max );
+    predict_16x16_mode_available( h->mb.i_neighbour_intra, predict_mode, &i_max );
 
     if( b_merged_satd && i_max == 4 )
     {
@@ -996,7 +996,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
         int old_pred_mode = a->i_predict16x16;
         i_thresh = a->i_satd_i16x16_dir[old_pred_mode] * 9/8;
         i_best = a->i_satd_i16x16;
-        predict_16x16_mode_available( h->mb.i_neighbour, predict_mode, &i_max );
+        predict_16x16_mode_available( h->mb.i_neighbour_intra, predict_mode, &i_max );
         for( i = 0; i < i_max; i++ )
         {
             int i_mode = predict_mode[i];
@@ -1009,7 +1009,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     }
 
     /* RD selection for chroma prediction */
-    predict_8x8chroma_mode_available( h->mb.i_neighbour, predict_mode, &i_max );
+    predict_8x8chroma_mode_available( h->mb.i_neighbour_intra, predict_mode, &i_max );
     if( i_max > 1 )
     {
         i_thresh = a->i_satd_i8x8chroma * 5/4;

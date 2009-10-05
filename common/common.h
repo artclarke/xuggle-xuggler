@@ -461,6 +461,7 @@ struct x264_t
         unsigned int i_neighbour;
         unsigned int i_neighbour8[4];       /* neighbours of each 8x8 or 4x4 block that are available */
         unsigned int i_neighbour4[16];      /* at the time the block is coded */
+        unsigned int i_neighbour_intra;     /* for constrained intra pred */
         int     i_mb_type_top;
         int     i_mb_type_left;
         int     i_mb_type_topleft;
