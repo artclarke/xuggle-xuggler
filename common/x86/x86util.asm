@@ -28,6 +28,13 @@
     SWAP %3, %4
 %endmacro
 
+%macro SBUTTERFLY2 4
+    mova      m%4, m%2
+    punpckh%1 m%2, m%3
+    punpckl%1 m%4, m%3
+    SWAP %2, %4, %3
+%endmacro
+
 %macro TRANSPOSE4x4W 5
     SBUTTERFLY wd, %1, %2, %5
     SBUTTERFLY wd, %3, %4, %5
@@ -386,10 +393,10 @@
 %macro SUMSUBD2_AB 4
     mova    %4, %1
     mova    %3, %2
-    psraw   %2, 1
-    psraw   %1, 1
-    paddw   %2, %4
-    psubw   %1, %3
+    psraw   %2, 1  ; %2: %2>>1
+    psraw   %1, 1  ; %1: %1>>1
+    paddw   %2, %4 ; %2: %2>>1+%1
+    psubw   %1, %3 ; %1: %1>>1-%2
 %endmacro
 
 %macro DCT4_1D 5
@@ -410,14 +417,24 @@
 %macro IDCT4_1D 5-6
 %ifnum %5
     SUMSUBD2_AB m%2, m%4, m%6, m%5
+    ; %2: %2>>1-%4 %4: %2+%4>>1
     SUMSUB_BA   m%3, m%1, m%6
+    ; %3: %1+%3 %1: %1-%3
     SUMSUB_BADC m%4, m%3, m%2, m%1, m%6
+    ; %4: %1+%3 + (%2+%4>>1)
+    ; %3: %1+%3 - (%2+%4>>1)
+    ; %2: %1-%3 + (%2>>1-%4)
+    ; %1: %1-%3 - (%2>>1-%4)
 %else
     SUMSUBD2_AB m%2, m%4, [%5], [%5+16]
     SUMSUB_BA   m%3, m%1
     SUMSUB_BADC m%4, m%3, m%2, m%1
 %endif
     SWAP %1, %4, %3
+    ; %1: %1+%3 + (%2+%4>>1) row0
+    ; %2: %1-%3 + (%2>>1-%4) row1
+    ; %3: %1-%3 - (%2>>1-%4) row2
+    ; %4: %1+%3 - (%2+%4>>1) row3
 %endmacro
 
 

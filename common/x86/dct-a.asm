@@ -27,6 +27,8 @@
 %include "x86util.asm"
 
 SECTION_RODATA
+pw_32_0: times 4 dw 32
+         times 4 dw 0
 pw_32: times 8 dw 32
 pw_8000: times 8 dw 0x8000
 hsub_mul: times 8 db 1, -1
@@ -148,6 +150,59 @@ cglobal x264_add4x4_idct_mmx, 2,2
     STORE_DIFF  m3, m4, m7, [r0+3*FDEC_STRIDE]
     RET
 
+INIT_XMM
+cglobal x264_add4x4_idct_sse4, 2,2,6
+    mova      m0, [r1+0x00]     ; row1/row0
+    mova      m2, [r1+0x10]     ; row3/row2
+    mova      m1, m0            ; row1/row0
+    psraw     m0, 1             ; row1>>1/...
+    mova      m3, m2            ; row3/row2
+    psraw     m2, 1             ; row3>>1/...
+    movsd     m0, m1            ; row1>>1/row0
+    movsd     m2, m3            ; row3>>1/row2
+    psubw     m0, m3            ; row1>>1-row3/row0-2
+    paddw     m2, m1            ; row3>>1+row1/row0+2
+    SBUTTERFLY2 wd, 0, 2, 1
+    SUMSUB_BA m2, m0, m1
+    pshuflw   m1, m2, 10110001b
+    pshufhw   m2, m2, 10110001b
+    punpckldq m1, m0
+    punpckhdq m2, m0
+    SWAP 0, 1
+
+    mova      m1, [pw_32_0 GLOBAL]
+    paddw     m1, m0            ; row1/row0 corrected
+    psraw     m0, 1             ; row1>>1/...
+    mova      m3, m2            ; row3/row2
+    psraw     m2, 1             ; row3>>1/...
+    movsd     m0, m1            ; row1>>1/row0
+    movsd     m2, m3            ; row3>>1/row2
+    psubw     m0, m3            ; row1>>1-row3/row0-2
+    paddw     m2, m1            ; row3>>1+row1/row0+2
+    SBUTTERFLY2 qdq, 0, 2, 1
+    SUMSUB_BA m2, m0, m1
+
+    movd      m4, [r0+FDEC_STRIDE*0]
+    movd      m1, [r0+FDEC_STRIDE*1]
+    movd      m3, [r0+FDEC_STRIDE*2]
+    movd      m5, [r0+FDEC_STRIDE*3]
+    punpckldq m1, m4            ; row0/row1
+    pxor      m4, m4
+    punpckldq m3, m5            ; row3/row2
+    punpcklbw m1, m4
+    psraw     m2, 6
+    punpcklbw m3, m4
+    psraw     m0, 6
+    paddsw    m2, m1
+    paddsw    m0, m3
+    packuswb  m0, m2            ; row0/row1/row3/row2
+    pextrd   [r0+FDEC_STRIDE*0], m0, 3
+    pextrd   [r0+FDEC_STRIDE*1], m0, 2
+    movd     [r0+FDEC_STRIDE*2], m0
+    pextrd   [r0+FDEC_STRIDE*3], m0, 1
+    RET
+
+INIT_MMX
 ;-----------------------------------------------------------------------------
 ; void x264_sub8x8_dct_mmx( int16_t dct[4][4][4], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------

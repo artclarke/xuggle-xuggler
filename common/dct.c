@@ -482,6 +482,10 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
         dctf->add8x8_idct_dc = x264_add8x8_idct_dc_ssse3;
         dctf->add16x16_idct_dc = x264_add16x16_idct_dc_ssse3;
     }
+
+    if( cpu&X264_CPU_SSE4 )
+        dctf->add4x4_idct   = x264_add4x4_idct_sse4;
+
 #endif //HAVE_MMX
 
 #ifdef ARCH_PPC
