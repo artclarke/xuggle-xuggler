@@ -724,6 +724,8 @@ static void x264_set_aspect_ratio( x264_t *h, x264_param_t *param, int initial )
             i_h /= 2;
         }
 
+        x264_reduce_fraction( &i_w, &i_h );
+
         if( i_w != old_w || i_h != old_h || initial )
         {
             h->param.vui.i_sar_width = 0;
