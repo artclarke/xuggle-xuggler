@@ -165,9 +165,9 @@ extern const float x264_log2_lz_lut[32];
  * qp to qscale. */
 static ALWAYS_INLINE int x264_exp2fix8( float x )
 {
-    if( x >= 512.f/6.f ) return 0;
-    if( x <= -512.f/6.f ) return 0xffff;
-    int i = x*(-64.f/6.f) + 512;
+    int i = x*(-64.f/6.f) + 512.5f;
+    if( i < 0 ) return 0;
+    if( i > 1023 ) return 0xffff;
     return (x264_exp2_lut[i&63]+256) << (i>>6) >> 8;
 }
 
