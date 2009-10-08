@@ -94,6 +94,7 @@ typedef struct
     uint16_t *i_intra_cost;
     uint16_t *i_propagate_cost;
     uint16_t *i_inv_qscale_factor;
+    int     b_scenecut; /* Set to zero if the frame cannot possibly be part of a real scenecut. */
 
     /* vbv */
     uint8_t i_planned_type[X264_LOOKAHEAD_MAX+1];

@@ -991,6 +991,7 @@ x264_frame_t *x264_frame_pop_unused( x264_t *h, int b_fdec )
     frame->b_last_minigop_bframe = 0;
     frame->i_reference_count = 1;
     frame->b_intra_calculated = 0;
+    frame->b_scenecut = 1;
     return frame;
 }
 
