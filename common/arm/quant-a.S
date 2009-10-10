@@ -63,7 +63,7 @@ pmovmskb_byte:
     bx          lr
 .endm
 
-// quant_2x2_dc( int16_t dct[2][2], int mf, int bias )
+// quant_2x2_dc( int16_t dct[4], int mf, int bias )
 function x264_quant_2x2_dc_neon, export=1
     vld1.64     {d0}, [r0,:64]
     vabs.s16    d3,  d0
@@ -79,7 +79,7 @@ function x264_quant_2x2_dc_neon, export=1
     QUANT_END   d3
 .endfunc
 
-// quant_4x4_dc( int16_t dct[4][4], int mf, int bias )
+// quant_4x4_dc( int16_t dct[16], int mf, int bias )
 function x264_quant_4x4_dc_neon, export=1
     vld1.64     {d28-d31}, [r0,:128]
     vabs.s16    q8,  q14
@@ -91,7 +91,7 @@ function x264_quant_4x4_dc_neon, export=1
     QUANT_END   d0
 .endfunc
 
-// quant_4x4( int16_t dct[4][4], uint16_t mf[16], uint16_t bias[16] )
+// quant_4x4( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
 function x264_quant_4x4_neon, export=1
     vld1.64     {d28-d31}, [r0,:128]
     vabs.s16    q8,  q14
@@ -103,7 +103,7 @@ function x264_quant_4x4_neon, export=1
     QUANT_END   d0
 .endfunc
 
-// quant_8x8( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64] )
+// quant_8x8( int16_t dct[64], uint16_t mf[64], uint16_t bias[64] )
 function x264_quant_8x8_neon, export=1
     vld1.64     {d28-d31}, [r0,:128]
     vabs.s16    q8,  q14
@@ -137,7 +137,7 @@ function x264_quant_8x8_neon, export=1
     subs        r3,  r3,  #\offset      // 6 for 8x8
 .endm
 
-// dequant_4x4( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
+// dequant_4x4( int16_t dct[16], int dequant_mf[6][16], int i_qp )
 .macro DEQUANT size bits
 function x264_dequant_\size\()_neon, export=1
     DEQUANT_START \bits+2, \bits
@@ -219,7 +219,7 @@ dequant_\size\()_rshift_loop:
 DEQUANT 4x4, 4
 DEQUANT 8x8, 6
 
-// dequant_4x4_dc( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
+// dequant_4x4_dc( int16_t dct[16], int dequant_mf[6][16], int i_qp )
 function x264_dequant_4x4_dc_neon, export=1
     DEQUANT_START 6, 6, yes
     blt         dequant_4x4_dc_rshift

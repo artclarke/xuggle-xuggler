@@ -609,27 +609,27 @@ const static uint8_t x264_zigzag_scan2[4] = {0,1,2,3};
 int x264_quant_dc_trellis( x264_t *h, int16_t *dct, int i_quant_cat,
                             int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma )
 {
-    return quant_trellis_cabac( h, (int16_t*)dct,
+    return quant_trellis_cabac( h, dct,
         h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
         NULL, i_ctxBlockCat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[h->mb.b_interlaced],
         i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, i_ctxBlockCat==DCT_CHROMA_DC ? 4 : 16, 0 );
 }
 
-int x264_quant_4x4_trellis( x264_t *h, int16_t dct[4][4], int i_quant_cat,
+int x264_quant_4x4_trellis( x264_t *h, int16_t *dct, int i_quant_cat,
                              int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma, int idx )
 {
     int b_ac = (i_ctxBlockCat == DCT_LUMA_AC || i_ctxBlockCat == DCT_CHROMA_AC);
-    return quant_trellis_cabac( h, (int16_t*)dct,
+    return quant_trellis_cabac( h, dct,
         h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
         x264_dct4_weight2_zigzag[h->mb.b_interlaced],
         x264_zigzag_scan4[h->mb.b_interlaced],
         i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx );
 }
 
-int x264_quant_8x8_trellis( x264_t *h, int16_t dct[8][8], int i_quant_cat,
+int x264_quant_8x8_trellis( x264_t *h, int16_t *dct, int i_quant_cat,
                              int i_qp, int b_intra, int idx )
 {
-    return quant_trellis_cabac( h, (int16_t*)dct,
+    return quant_trellis_cabac( h, dct,
         h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],
         x264_dct8_weight2_zigzag[h->mb.b_interlaced],
         x264_zigzag_scan8[h->mb.b_interlaced],

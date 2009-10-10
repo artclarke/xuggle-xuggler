@@ -500,11 +500,11 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_dct_function_t dct_asm;
     x264_quant_function_t qf;
     int ret = 0, ok, used_asm, i, j, interlace;
-    ALIGNED_16( int16_t dct1[16][4][4] );
-    ALIGNED_16( int16_t dct2[16][4][4] );
-    ALIGNED_16( int16_t dct4[16][4][4] );
-    ALIGNED_16( int16_t dct8[4][8][8] );
-    ALIGNED_8( int16_t dctdc[2][2][2] );
+    ALIGNED_16( int16_t dct1[16][16] );
+    ALIGNED_16( int16_t dct2[16][16] );
+    ALIGNED_16( int16_t dct4[16][16] );
+    ALIGNED_16( int16_t dct8[4][64] );
+    ALIGNED_8( int16_t dctdc[2][4] );
     x264_t h_buf;
     x264_t *h = &h_buf;
 
@@ -608,9 +608,9 @@ static int check_dct( int cpu_ref, int cpu_new )
         for( i=0; i<16 && ok; i++ )\
         {\
             for( j=0; j<16; j++ )\
-                dct1[0][0][j] = !i ? (j^j>>1^j>>2^j>>3)&1 ? 4080 : -4080 /* max dc */\
-                              : i<8 ? (*p++)&1 ? 4080 : -4080 /* max elements */\
-                              : ((*p++)&0x1fff)-0x1000; /* general case */\
+                dct1[0][j] = !i ? (j^j>>1^j>>2^j>>3)&1 ? 4080 : -4080 /* max dc */\
+                           : i<8 ? (*p++)&1 ? 4080 : -4080 /* max elements */\
+                           : ((*p++)&0x1fff)-0x1000; /* general case */\
             memcpy( dct2, dct1, 32 );\
             call_c1( dct_c.name, dct1[0] );\
             call_a1( dct_asm.name, dct2[0] );\
@@ -741,7 +741,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     report( "zigzag_field :" );
 
     ok = 1; used_asm = 0;
-    TEST_INTERLEAVE( interleave_8x8_cavlc, level1, level2, dct1[0][0], 64 );
+    TEST_INTERLEAVE( interleave_8x8_cavlc, level1, level2, dct1[0], 64 );
     report( "zigzag_interleave :" );
 #undef TEST_ZIGZAG_SCAN
 #undef TEST_ZIGZAG_SUB
@@ -1118,25 +1118,21 @@ static int check_quant( int cpu_ref, int cpu_new )
 #define INIT_QUANT8() \
         { \
             static const int scale1d[8] = {32,31,24,31,32,31,24,31}; \
-            int x, y; \
-            for( y = 0; y < 8; y++ ) \
-                for( x = 0; x < 8; x++ ) \
-                { \
-                    unsigned int scale = (255*scale1d[y]*scale1d[x])/16; \
-                    dct1[y*8+x] = dct2[y*8+x] = j ? (rand()%(2*scale+1))-scale : 0; \
-                } \
+            for( i = 0; i < 64; i++ ) \
+            { \
+                unsigned int scale = (255*scale1d[i>>3]*scale1d[i&7])/16; \
+                dct1[i] = dct2[i] = j ? (rand()%(2*scale+1))-scale : 0; \
+            } \
         }
 
 #define INIT_QUANT4() \
         { \
             static const int scale1d[4] = {4,6,4,6}; \
-            int x, y; \
-            for( y = 0; y < 4; y++ ) \
-                for( x = 0; x < 4; x++ ) \
-                { \
-                    unsigned int scale = 255*scale1d[y]*scale1d[x]; \
-                    dct1[y*4+x] = dct2[y*4+x] = j ? (rand()%(2*scale+1))-scale : 0; \
-                } \
+            for( i = 0; i < 16; i++ ) \
+            { \
+                unsigned int scale = 255*scale1d[i>>2]*scale1d[i&3]; \
+                dct1[i] = dct2[i] = j ? (rand()%(2*scale+1))-scale : 0; \
+            } \
         }
 
 #define TEST_QUANT_DC( name, cqm ) \
@@ -1151,16 +1147,16 @@ static int check_quant( int cpu_ref, int cpu_new )
                     int result_c, result_a; \
                     for( i = 0; i < 16; i++ ) \
                         dct1[i] = dct2[i] = j ? (rand() & 0x1fff) - 0xfff : 0; \
-                    result_c = call_c1( qf_c.name, (void*)dct1, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
-                    result_a = call_a1( qf_a.name, (void*)dct2, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
+                    result_c = call_c1( qf_c.name, dct1, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
+                    result_a = call_a1( qf_a.name, dct2, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
                     if( memcmp( dct1, dct2, 16*2 ) || result_c != result_a )       \
                     { \
                         oks[0] = 0; \
                         fprintf( stderr, #name "(cqm=%d): [FAILED]\n", i_cqm ); \
                         break; \
                     } \
-                    call_c2( qf_c.name, (void*)dct1, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
-                    call_a2( qf_a.name, (void*)dct2, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
+                    call_c2( qf_c.name, dct1, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
+                    call_a2( qf_a.name, dct2, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
                 } \
             } \
         }
@@ -1176,16 +1172,16 @@ static int check_quant( int cpu_ref, int cpu_new )
                 { \
                     int result_c, result_a; \
                     INIT_QUANT##w() \
-                    result_c = call_c1( qf_c.qname, (void*)dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
-                    result_a = call_a1( qf_a.qname, (void*)dct2, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                    result_c = call_c1( qf_c.qname, dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                    result_a = call_a1( qf_a.qname, dct2, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
                     if( memcmp( dct1, dct2, w*w*2 ) || result_c != result_a ) \
                     { \
                         oks[0] = 0; \
                         fprintf( stderr, #qname "(qp=%d, cqm=%d, block="#block"): [FAILED]\n", qp, i_cqm ); \
                         break; \
                     } \
-                    call_c2( qf_c.qname, (void*)dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
-                    call_a2( qf_a.qname, (void*)dct2, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                    call_c2( qf_c.qname, dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                    call_a2( qf_a.qname, dct2, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
                 } \
             } \
         }
@@ -1206,18 +1202,18 @@ static int check_quant( int cpu_ref, int cpu_new )
             for( qp = 51; qp > 0; qp-- ) \
             { \
                 INIT_QUANT##w() \
-                call_c1( qf_c.qname, (void*)dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                call_c1( qf_c.qname, dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
                 memcpy( dct2, dct1, w*w*2 ); \
-                call_c1( qf_c.dqname, (void*)dct1, h->dequant##w##_mf[block], qp ); \
-                call_a1( qf_a.dqname, (void*)dct2, h->dequant##w##_mf[block], qp ); \
+                call_c1( qf_c.dqname, dct1, h->dequant##w##_mf[block], qp ); \
+                call_a1( qf_a.dqname, dct2, h->dequant##w##_mf[block], qp ); \
                 if( memcmp( dct1, dct2, w*w*2 ) ) \
                 { \
                     oks[1] = 0; \
                     fprintf( stderr, #dqname "(qp=%d, cqm=%d, block="#block"): [FAILED]\n", qp, i_cqm ); \
                     break; \
                 } \
-                call_c2( qf_c.dqname, (void*)dct1, h->dequant##w##_mf[block], qp ); \
-                call_a2( qf_a.dqname, (void*)dct2, h->dequant##w##_mf[block], qp ); \
+                call_c2( qf_c.dqname, dct1, h->dequant##w##_mf[block], qp ); \
+                call_a2( qf_a.dqname, dct2, h->dequant##w##_mf[block], qp ); \
             } \
         }
 
@@ -1235,17 +1231,17 @@ static int check_quant( int cpu_ref, int cpu_new )
             { \
                 for( i = 0; i < 16; i++ ) \
                     dct1[i] = rand(); \
-                call_c1( qf_c.qname, (void*)dct1, h->quant##w##_mf[block][qp][0]>>1, h->quant##w##_bias[block][qp][0]>>1 ); \
+                call_c1( qf_c.qname, dct1, h->quant##w##_mf[block][qp][0]>>1, h->quant##w##_bias[block][qp][0]>>1 ); \
                 memcpy( dct2, dct1, w*w*2 ); \
-                call_c1( qf_c.dqname, (void*)dct1, h->dequant##w##_mf[block], qp ); \
-                call_a1( qf_a.dqname, (void*)dct2, h->dequant##w##_mf[block], qp ); \
+                call_c1( qf_c.dqname, dct1, h->dequant##w##_mf[block], qp ); \
+                call_a1( qf_a.dqname, dct2, h->dequant##w##_mf[block], qp ); \
                 if( memcmp( dct1, dct2, w*w*2 ) ) \
                 { \
                     oks[1] = 0; \
                     fprintf( stderr, #dqname "(qp=%d, cqm=%d, block="#block"): [FAILED]\n", qp, i_cqm ); \
                 } \
-                call_c2( qf_c.dqname, (void*)dct1, h->dequant##w##_mf[block], qp ); \
-                call_a2( qf_a.dqname, (void*)dct2, h->dequant##w##_mf[block], qp ); \
+                call_c2( qf_c.dqname, dct1, h->dequant##w##_mf[block], qp ); \
+                call_a2( qf_a.dqname, dct2, h->dequant##w##_mf[block], qp ); \
             } \
         }
 
@@ -1293,8 +1289,8 @@ static int check_quant( int cpu_ref, int cpu_new )
                 dct1[idx] = !(rand()&3) + (!(rand()&15))*(rand()&3); \
             if( ac ) \
                 dct1[0] = 0; \
-            result_c = call_c( qf_c.decname, (void*)dct1 ); \
-            result_a = call_a( qf_a.decname, (void*)dct1 ); \
+            result_c = call_c( qf_c.decname, dct1 ); \
+            result_a = call_a( qf_a.decname, dct1 ); \
             if( X264_MIN(result_c,thresh) != X264_MIN(result_a,thresh) ) \
             { \
                 ok = 0; \
@@ -1324,8 +1320,8 @@ static int check_quant( int cpu_ref, int cpu_new )
                 nnz |= dct1[idx] = !(rand()&3) + (!(rand()&15))*rand(); \
             if( !nnz ) \
                 dct1[ac] = 1; \
-            result_c = call_c( qf_c.last, (void*)(dct1+ac) ); \
-            result_a = call_a( qf_a.last, (void*)(dct1+ac) ); \
+            result_c = call_c( qf_c.last, dct1+ac ); \
+            result_a = call_a( qf_a.last, dct1+ac ); \
             if( result_c != result_a ) \
             { \
                 ok = 0; \
@@ -1359,8 +1355,8 @@ static int check_quant( int cpu_ref, int cpu_new )
                 nnz |= dct1[idx] = !(rand()&3) + (!(rand()&15))*rand(); \
             if( !nnz ) \
                 dct1[ac] = 1; \
-            result_c = call_c( qf_c.lastname, (void*)(dct1+ac), &runlevel_c ); \
-            result_a = call_a( qf_a.lastname, (void*)(dct1+ac), &runlevel_a ); \
+            result_c = call_c( qf_c.lastname, dct1+ac, &runlevel_c ); \
+            result_a = call_a( qf_a.lastname, dct1+ac, &runlevel_a ); \
             if( result_c != result_a || runlevel_c.last != runlevel_a.last || \
                 memcmp(runlevel_c.level, runlevel_a.level, sizeof(int16_t)*result_c) || \
                 memcmp(runlevel_c.run, runlevel_a.run, sizeof(uint8_t)*(result_c-1)) ) \

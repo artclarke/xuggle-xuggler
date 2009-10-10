@@ -592,8 +592,8 @@ static void predict_4x4_mode_available( unsigned int i_neighbour,
 /* For trellis=2, we need to do this for both sizes of DCT, for trellis=1 we only need to use it on the chosen mode. */
 static void inline x264_psy_trellis_init( x264_t *h, int do_both_dct )
 {
-    ALIGNED_ARRAY_16( int16_t, dct8x8,[4],[8][8] );
-    ALIGNED_ARRAY_16( int16_t, dct4x4,[16],[4][4] );
+    ALIGNED_ARRAY_16( int16_t, dct8x8,[4],[64] );
+    ALIGNED_ARRAY_16( int16_t, dct4x4,[16],[16] );
     ALIGNED_16( static uint8_t zero[16*FDEC_STRIDE] ) = {0};
     int i;
 

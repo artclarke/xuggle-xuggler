@@ -341,9 +341,9 @@ struct x264_t
     x264_pps_t      *pps;
     int             i_idr_pic_id;
 
-    /* quantization matrix for decoding, [cqm][qp%6][coef_y][coef_x] */
-    int             (*dequant4_mf[4])[4][4]; /* [4][6][4][4] */
-    int             (*dequant8_mf[2])[8][8]; /* [2][6][8][8] */
+    /* quantization matrix for decoding, [cqm][qp%6][coef] */
+    int             (*dequant4_mf[4])[16];   /* [4][6][16] */
+    int             (*dequant8_mf[2])[64];   /* [2][6][64] */
     /* quantization matrix for trellis, [cqm][qp][coef] */
     int             (*unquant4_mf[4])[16];   /* [4][52][16] */
     int             (*unquant8_mf[2])[64];   /* [2][52][64] */
