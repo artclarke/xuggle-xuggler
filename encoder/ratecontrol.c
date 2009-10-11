@@ -294,7 +294,11 @@ int x264_macroblock_tree_read( x264_t *h, x264_frame_t *frame )
             goto fail;
 
         for( i = 0; i < h->mb.i_mb_count; i++ )
+        {
             frame->f_qp_offset[i] = ((float)(int16_t)endian_fix16( rc->qp_buffer[i] )) * (1/256.0);
+            if( h->frames.b_have_lowres )
+                frame->i_inv_qscale_factor[i] = x264_exp2fix8(frame->f_qp_offset[i]);
+        }
     }
     else
         x264_adaptive_quant_frame( h, frame );
@@ -1131,8 +1135,10 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
             /* More threads means we have to be more cautious in letting ratecontrol use up extra bits.
              * In 2-pass mode we can be more trusting of the planned frame sizes, since they were decided
              * by actual encoding instead of SATD prediction. */
-            float rc_tol = h->param.rc.b_stat_read ? (buffer_left_planned / rc->buffer_size) * rc->frame_size_planned
-                                                   : (buffer_left_planned / h->param.i_threads);
+            float rc_tol = buffer_left_planned / h->param.i_threads * rc->rate_tolerance;
+            if( h->param.rc.b_stat_read )
+                rc_tol *= rc->frame_size_planned / rc->buffer_size;
+
             /* Don't modify the row QPs until a sufficent amount of the bits of the frame have been processed, in case a flat */
             /* area at the top of the frame was measured inaccurately. */
             if( row_bits_so_far(h,y) < 0.05 * rc->frame_size_planned )
