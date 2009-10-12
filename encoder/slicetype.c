@@ -697,7 +697,7 @@ static int scenecut( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, in
     int curp0, curp1, i, maxp1 = p0 + 1;
 
     /* Only do analysis during a normal scenecut check. */
-    if( real_scenecut )
+    if( real_scenecut && h->param.i_bframe )
     {
         /* Look ahead to avoid coding short flashes as scenecuts. */
         if( h->param.i_bframe_adaptive == X264_B_ADAPT_TRELLIS )
