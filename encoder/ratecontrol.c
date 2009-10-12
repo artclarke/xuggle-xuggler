@@ -1108,22 +1108,22 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     if( y < h->sps->i_mb_height-1 )
     {
         int prev_row_qp = h->fdec->i_row_qp[y];
-        int b0 = predict_row_size_sum( h, y, rc->qpm );
-        int b1 = b0;
         int i_qp_max = X264_MIN( prev_row_qp + h->param.rc.i_qp_step, h->param.rc.i_qp_max );
         int i_qp_min = X264_MAX( prev_row_qp - h->param.rc.i_qp_step, h->param.rc.i_qp_min );
-        float buffer_left_planned = rc->buffer_fill - rc->frame_size_planned;
 
         /* B-frames shouldn't use lower QP than their reference frames. */
         if( h->sh.i_type == SLICE_TYPE_B )
-            i_qp_min = X264_MAX( i_qp_min, X264_MIN( h->fref0[0]->i_row_qp[y+1], h->fref1[0]->i_row_qp[y+1] ) );
+        {
+            i_qp_min = X264_MAX( i_qp_min, X264_MAX( h->fref0[0]->i_row_qp[y+1], h->fref1[0]->i_row_qp[y+1] ) );
+            rc->qpm = X264_MAX( rc->qpm, i_qp_min );
+        }
 
-        /* More threads means we have to be more cautious in letting ratecontrol use up extra bits.
-         * In 2-pass mode we can be more trusting of the planned frame sizes, since they were decided
-         * by actual encoding instead of SATD prediction. */
+        int b0 = predict_row_size_sum( h, y, rc->qpm );
+        int b1 = b0;
+        float buffer_left_planned = rc->buffer_fill - rc->frame_size_planned;
+
+        /* More threads means we have to be more cautious in letting ratecontrol use up extra bits. */
         float rc_tol = buffer_left_planned / h->param.i_threads * rc->rate_tolerance;
-        if( h->param.rc.b_stat_read )
-            rc_tol *= rc->frame_size_planned / rc->buffer_size;
 
         /* Don't modify the row QPs until a sufficent amount of the bits of the frame have been processed, in case a flat */
         /* area at the top of the frame was measured inaccurately. */
@@ -1696,8 +1696,12 @@ static float rate_estimate_qscale( x264_t *h )
         else
             q += rcc->pb_offset;
 
-        rcc->frame_size_planned = predict_size( rcc->pred_b_from_p, q, h->fref1[h->i_ref1-1]->i_satd );
+        if( rcc->b_2pass && rcc->b_vbv )
+            rcc->frame_size_planned = qscale2bits( &rce, q );
+        else
+            rcc->frame_size_planned = predict_size( rcc->pred_b_from_p, q, h->fref1[h->i_ref1-1]->i_satd );
         x264_ratecontrol_set_estimated_size(h, rcc->frame_size_planned);
+
         /* For row SATDs */
         if( rcc->b_vbv )
             rcc->last_satd = x264_rc_analyse_slice( h );
