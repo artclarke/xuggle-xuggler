@@ -349,7 +349,7 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
         }
 
         if( b != p1 )
-            i_score = i_score * 100 / (120 + h->param.i_bframe_bias);
+            i_score = (uint64_t)i_score * 100 / (120 + h->param.i_bframe_bias);
         else
             frames[b]->b_intra_calculated = 1;
 
