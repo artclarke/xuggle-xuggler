@@ -621,23 +621,21 @@ static void x264_slicetype_path( x264_t *h, x264_mb_analysis_t *a, x264_frame_t 
 {
     char paths[X264_BFRAME_MAX+2][X264_LOOKAHEAD_MAX] = {{0}};
     int num_paths = X264_MIN(max_bframes+1, length);
-    int suffix_size, loc, path;
+    int path;
     int best_cost = COST_MAX;
     int best_path_index = 0;
-    length = X264_MIN(length,X264_LOOKAHEAD_MAX);
+    length = X264_MIN( length, X264_LOOKAHEAD_MAX );
 
-    /* Iterate over all currently possible paths and add suffixes to each one */
-    for( suffix_size = 0; suffix_size < num_paths; suffix_size++ )
-    {
-        memcpy( paths[suffix_size], best_paths[length - (suffix_size + 1)], length - (suffix_size + 1) );
-        for( loc = 0; loc < suffix_size; loc++ )
-            strcat( paths[suffix_size], "B" );
-        strcat( paths[suffix_size], "P" );
-    }
-
-    /* Calculate the actual cost of each of the current paths */
+    /* Iterate over all currently possible paths */
     for( path = 0; path < num_paths; path++ )
     {
+        /* Add suffixes to the current path */
+        int len = length - (path + 1);
+        memcpy( paths[path], best_paths[len], len );
+        memset( paths[path]+len, 'B', path );
+        strcat( paths[path], "P" );
+
+        /* Calculate the actual cost of the current path */
         int cost = x264_slicetype_path_cost( h, a, frames, paths[path], best_cost );
         if( cost < best_cost )
         {
