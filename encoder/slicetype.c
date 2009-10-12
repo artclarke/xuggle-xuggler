@@ -997,9 +997,19 @@ void x264_slicetype_decide( x264_t *h )
 
         x264_slicetype_frame_cost( h, &a, frames, p0, p1, b, 0 );
 
-        /* We need the intra costs for row SATDs. */
         if( b && h->param.rc.i_vbv_buffer_size )
+        {
+            /* We need the intra costs for row SATDs. */
             x264_slicetype_frame_cost( h, &a, frames, b, b, b, 0 );
+
+            /* We need B-frame costs for row SATDs. */
+            for( i = 0; i < bframes; i++ )
+            {
+                b = bframes - i;
+                frames[b] = h->lookahead->next.list[i];
+                x264_slicetype_frame_cost( h, &a, frames, p0, p1, b, 0 );
+            }
+        }
     }
 }
 
@@ -1011,8 +1021,14 @@ int x264_rc_analyse_slice( x264_t *h )
 
     if( IS_X264_TYPE_I(h->fenc->i_type) )
         p1 = b = 0;
-    else // P
+    else if( h->fenc->i_type == X264_TYPE_P )
         p1 = b = h->fenc->i_bframes + 1;
+    else //B
+    {
+        p1 = (h->fref1[0]->i_poc - h->fref0[0]->i_poc)/2;
+        b  = (h->fref1[0]->i_poc - h->fenc->i_poc)/2;
+        frames[p1] = h->fref1[0];
+    }
     frames[p0] = h->fref0[0];
     frames[b] = h->fenc;
 
