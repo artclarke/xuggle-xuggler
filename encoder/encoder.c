@@ -272,7 +272,17 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
         }
         else
         {
-            bs_write1( s, 0 );  /* adaptive_ref_pic_marking_mode_flag */
+            bs_write1( s, sh->i_mmco_command_count > 0 ); /* adaptive_ref_pic_marking_mode_flag */
+            if( sh->i_mmco_command_count > 0 )
+            {
+                int i;
+                for( i = 0; i < sh->i_mmco_command_count; i++ )
+                {
+                    bs_write_ue( s, 1 ); /* mark short term ref as unused */
+                    bs_write_ue( s, sh->mmco[i].i_difference_of_pic_nums - 1 );
+                }
+                bs_write_ue( s, 0 ); /* end command list */
+            }
         }
     }
 
@@ -498,7 +508,9 @@ static int x264_validate_parameters( x264_t *h )
     if( h->param.i_keyint_max == 1 )
         h->param.i_bframe = 0;
     h->param.i_bframe_bias = x264_clip3( h->param.i_bframe_bias, -90, 100 );
-    h->param.b_bframe_pyramid = h->param.b_bframe_pyramid && h->param.i_bframe > 1;
+    if( h->param.i_bframe <= 1 )
+        h->param.i_bframe_pyramid = X264_B_PYRAMID_NONE;
+    h->param.i_bframe_pyramid = x264_clip3( h->param.i_bframe_pyramid, X264_B_PYRAMID_NONE, X264_B_PYRAMID_NORMAL );
     if( !h->param.i_bframe )
     {
         h->param.i_bframe_adaptive = X264_B_ADAPT_NONE;
@@ -602,10 +614,10 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.i_aq_mode = 1;
         h->param.rc.f_aq_strength = 0;
     }
-    if( h->param.rc.b_mb_tree && h->param.b_bframe_pyramid )
+    if( h->param.rc.b_mb_tree && h->param.i_bframe_pyramid )
     {
         x264_log( h, X264_LOG_WARNING, "b-pyramid + mb-tree is not supported\n" );
-        h->param.b_bframe_pyramid = 0;
+        h->param.i_bframe_pyramid = X264_B_PYRAMID_NONE;
     }
     h->param.analyse.i_noise_reduction = x264_clip3( h->param.analyse.i_noise_reduction, 0, 1<<16 );
     if( h->param.analyse.i_subpel_refine == 10 && (h->param.analyse.i_trellis != 2 || !h->param.rc.i_aq_mode) )
@@ -980,7 +992,7 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     if( h->pps->b_transform_8x8_mode )
         COPY( analyse.b_transform_8x8 );
     if( h->frames.i_max_ref1 > 1 )
-        COPY( b_bframe_pyramid );
+        COPY( i_bframe_pyramid );
     COPY( i_slice_max_size );
     COPY( i_slice_max_mbs );
     COPY( i_slice_count );
@@ -1091,6 +1103,21 @@ int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
     return frame_size;
 }
 
+/* Check to see whether we have chosen a reference list ordering different
+ * from the standard's default. */
+static inline void x264_reference_check_reorder( x264_t *h )
+{
+    int i;
+    for( i = 0; i < h->i_ref0 - 1; i++ )
+        /* P and B-frames use different default orders. */
+        if( h->sh.i_type == SLICE_TYPE_P ? h->fref0[i]->i_frame_num < h->fref0[i+1]->i_frame_num
+                                         : h->fref0[i]->i_poc < h->fref0[i+1]->i_poc )
+        {
+            h->b_ref_reorder[0] = 1;
+            break;
+        }
+}
+
 static inline void x264_reference_build_list( x264_t *h, int i_poc )
 {
     int i;
@@ -1125,6 +1152,15 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
             }
         }
     } while( !b_ok );
+
+    if( h->sh.i_mmco_remove_from_end )
+        for( i = h->i_ref0-1; i >= h->i_ref0 - h->sh.i_mmco_remove_from_end; i-- )
+        {
+            int diff = h->i_frame_num - h->fref0[i]->i_frame_num;
+            h->sh.mmco[h->sh.i_mmco_command_count].i_poc = h->fref0[i]->i_poc;
+            h->sh.mmco[h->sh.i_mmco_command_count++].i_difference_of_pic_nums = diff;
+        }
+
     /* Order ref1 from lower to higher poc (bubble sort) for B-frame */
     do
     {
@@ -1139,6 +1175,8 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
             }
         }
     } while( !b_ok );
+
+    x264_reference_check_reorder( h );
 
     h->i_ref1 = X264_MIN( h->i_ref1, h->frames.i_max_ref1 );
     h->i_ref0 = X264_MIN( h->i_ref0, h->frames.i_max_ref0 );
@@ -1226,6 +1264,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y )
 
 static inline int x264_reference_update( x264_t *h )
 {
+    int i, j;
     if( !h->fdec->b_kept_as_ref )
     {
         if( h->param.i_threads > 1 )
@@ -1238,9 +1277,15 @@ static inline int x264_reference_update( x264_t *h )
         return 0;
     }
 
+    /* apply mmco from previous frame. */
+    for( i = 0; i < h->sh.i_mmco_command_count; i++ )
+        for( j = 0; h->frames.reference[j]; j++ )
+            if( h->frames.reference[j]->i_poc == h->sh.mmco[i].i_poc )
+                x264_frame_push_unused( h, x264_frame_shift( &h->frames.reference[j] ) );
+
     /* move frame in the buffer */
     x264_frame_push( h->frames.reference, h->fdec );
-    if( h->frames.reference[h->frames.i_max_dpb] )
+    if( h->frames.reference[h->sps->i_num_ref_frames] )
         x264_frame_push_unused( h, x264_frame_shift( h->frames.reference ) );
     h->fdec = x264_frame_pop_unused( h, 1 );
     if( !h->fdec )
@@ -1254,6 +1299,40 @@ static inline void x264_reference_reset( x264_t *h )
         x264_frame_push_unused( h, x264_frame_pop( h->frames.reference ) );
     h->fdec->i_poc =
     h->fenc->i_poc = 0;
+}
+
+static inline void x264_reference_hierarchy_reset( x264_t *h )
+{
+    int i, ref;
+    int b_hasdelayframe = 0;
+    if( !h->param.i_bframe_pyramid )
+        return;
+
+    /* look for delay frames -- chain must only contain frames that are disposable */
+    for( i = 0; h->frames.current[i] && IS_DISPOSABLE( h->frames.current[i]->i_type ); i++ )
+        b_hasdelayframe |= h->frames.current[i]->i_dts
+                        != h->frames.current[i]->i_frame + h->sps->vui.i_num_reorder_frames;
+
+    if( h->param.i_bframe_pyramid != X264_B_PYRAMID_STRICT && !b_hasdelayframe )
+        return;
+
+    /* Remove last BREF. There will never be old BREFs in the
+     * dpb during a BREF decode when pyramid == STRICT */
+    for( ref = 0; h->frames.reference[ref]; ref++ )
+    {
+        if( h->param.i_bframe_pyramid == X264_B_PYRAMID_STRICT
+            && h->frames.reference[ref]->i_type == X264_TYPE_BREF )
+        {
+            int diff = h->i_frame_num - h->frames.reference[ref]->i_frame_num;
+            h->sh.mmco[h->sh.i_mmco_command_count++].i_difference_of_pic_nums = diff;
+            x264_frame_push_unused( h, x264_frame_pop( h->frames.reference ) );
+            h->b_ref_reorder[0] = 1;
+            break;
+        }
+    }
+
+    /* Prepare to room in the dpb for the delayed display time of the later b-frame's */
+    h->sh.i_mmco_remove_from_end = X264_MAX( ref + 2 - h->frames.i_max_dpb, 0 );
 }
 
 static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
@@ -1622,7 +1701,7 @@ int     x264_encoder_encode( x264_t *h,
                              x264_picture_t *pic_out )
 {
     x264_t *thread_current, *thread_prev, *thread_oldest;
-    int     i_nal_type, i;
+    int     i_nal_type;
     int     i_nal_ref_idc;
 
     int   i_global_qp;
@@ -1721,35 +1800,41 @@ int     x264_encoder_encode( x264_t *h,
         h->frames.i_last_idr = h->fenc->i_frame;
         h->i_frame_num = 0;
     }
+    h->sh.i_mmco_command_count = 0;
+    h->sh.i_mmco_remove_from_end = 0;
+    h->b_ref_reorder[0] =
+    h->b_ref_reorder[1] = 0;
 
     /* ------------------- Setup frame context ----------------------------- */
     /* 5: Init data dependent of frame type */
     if( h->fenc->i_type == X264_TYPE_IDR )
     {
         /* reset ref pictures */
-        x264_reference_reset( h );
-
         i_nal_type    = NAL_SLICE_IDR;
         i_nal_ref_idc = NAL_PRIORITY_HIGHEST;
         h->sh.i_type = SLICE_TYPE_I;
+        x264_reference_reset( h );
     }
     else if( h->fenc->i_type == X264_TYPE_I )
     {
         i_nal_type    = NAL_SLICE;
         i_nal_ref_idc = NAL_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
         h->sh.i_type = SLICE_TYPE_I;
+        x264_reference_hierarchy_reset( h );
     }
     else if( h->fenc->i_type == X264_TYPE_P )
     {
         i_nal_type    = NAL_SLICE;
         i_nal_ref_idc = NAL_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
         h->sh.i_type = SLICE_TYPE_P;
+        x264_reference_hierarchy_reset( h );
     }
     else if( h->fenc->i_type == X264_TYPE_BREF )
     {
         i_nal_type    = NAL_SLICE;
-        i_nal_ref_idc = NAL_PRIORITY_HIGH; /* maybe add MMCO to forget it? -> low */
+        i_nal_ref_idc = h->param.i_bframe_pyramid == X264_B_PYRAMID_STRICT ? NAL_PRIORITY_LOW : NAL_PRIORITY_HIGH;
         h->sh.i_type = SLICE_TYPE_B;
+        x264_reference_hierarchy_reset( h );
     }
     else    /* B frame */
     {
@@ -1839,20 +1924,10 @@ int     x264_encoder_encode( x264_t *h,
     h->fdec->i_qpplus1 = i_global_qp + 1;
 
     if( h->param.rc.b_stat_read && h->sh.i_type != SLICE_TYPE_I )
+    {
         x264_reference_build_list_optimal( h );
-
-    /* Check to see whether we have chosen a reference list ordering different
-     * from the standard's default. */
-    h->b_ref_reorder[0] =
-    h->b_ref_reorder[1] = 0;
-    for( i = 0; i < h->i_ref0 - 1; i++ )
-        /* P and B-frames use different default orders. */
-        if( h->sh.i_type == SLICE_TYPE_P ? h->fref0[i]->i_frame_num < h->fref0[i+1]->i_frame_num
-                                         : h->fref0[i]->i_poc < h->fref0[i+1]->i_poc )
-        {
-            h->b_ref_reorder[0] = 1;
-            break;
-        }
+        x264_reference_check_reorder( h );
+    }
 
     if( h->sh.i_type == SLICE_TYPE_B )
         x264_macroblock_bipred_init( h );

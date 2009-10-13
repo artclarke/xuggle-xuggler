@@ -189,11 +189,13 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->vui.b_fixed_frame_rate = 1;
     }
 
-    sps->vui.i_num_reorder_frames = param->b_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
+    sps->vui.i_num_reorder_frames = param->i_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
     /* extra slot with pyramid so that we don't have to override the
      * order of forgetting old pictures */
     sps->vui.i_max_dec_frame_buffering =
-    sps->i_num_ref_frames = X264_MIN(16, X264_MAX(param->i_frame_reference, 1 + sps->vui.i_num_reorder_frames));
+    sps->i_num_ref_frames = X264_MIN(16, X264_MAX3(param->i_frame_reference, 1 + sps->vui.i_num_reorder_frames,
+                                                   param->i_bframe_pyramid ? 4 : 1 ));
+    sps->i_num_ref_frames -= param->i_bframe_pyramid == X264_B_PYRAMID_STRICT;
 
     sps->vui.b_bitstream_restriction = 1;
     if( sps->vui.b_bitstream_restriction )
@@ -540,7 +542,7 @@ int x264_validate_levels( x264_t *h, int verbose )
 {
     int ret = 0;
     int mbs = h->sps->i_mb_width * h->sps->i_mb_height;
-    int dpb = mbs * 384 * h->sps->i_num_ref_frames;
+    int dpb = mbs * 384 * h->sps->vui.i_max_dec_frame_buffering;
     int cbp_factor = h->sps->i_profile_idc==PROFILE_HIGH ? 5 : 4;
 
     const x264_level_t *l = x264_levels;
@@ -554,7 +556,7 @@ int x264_validate_levels( x264_t *h, int verbose )
                h->sps->i_mb_width, h->sps->i_mb_height, l->frame_size );
     if( dpb > l->dpb )
         ERROR( "DPB size (%d frames, %d bytes) > level limit (%d frames, %d bytes)\n",
-                h->sps->i_num_ref_frames, dpb, (int)(l->dpb / (384*mbs)), l->dpb );
+                h->sps->vui.i_max_dec_frame_buffering, dpb, (int)(l->dpb / (384*mbs)), l->dpb );
 
 #define CHECK( name, limit, val ) \
     if( (val) > (limit) ) \

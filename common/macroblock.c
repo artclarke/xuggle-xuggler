@@ -694,7 +694,7 @@ int x264_macroblock_cache_init( x264_t *h )
 
     for( i=0; i<2; i++ )
     {
-        int i_refs = X264_MIN(16, (i ? 1 : h->param.i_frame_reference) + h->param.b_bframe_pyramid) << h->param.b_interlaced;
+        int i_refs = X264_MIN(16, (i ? 1 + !!h->param.i_bframe_pyramid : h->param.i_frame_reference) ) << h->param.b_interlaced;
         for( j=0; j < i_refs; j++ )
             CHECKED_MALLOC( h->mb.mvr[i][j], 2 * i_mb_count * sizeof(int16_t) );
     }

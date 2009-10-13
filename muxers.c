@@ -726,7 +726,7 @@ int set_param_mp4( hnd_t handle, x264_param_t *p_param )
 
     p_mp4->i_time_res = p_param->i_fps_num;
     p_mp4->i_time_inc = p_param->i_fps_den;
-    p_mp4->i_init_delay = p_param->i_bframe ? (p_param->b_bframe_pyramid ? 2 : 1) : 0;
+    p_mp4->i_init_delay = p_param->i_bframe ? (p_param->i_bframe_pyramid ? 2 : 1) : 0;
     p_mp4->i_init_delay *= p_mp4->i_time_inc;
     fprintf( stderr, "mp4 [info]: initial delay %d (scale %d)\n",
              p_mp4->i_init_delay, p_mp4->i_time_res );

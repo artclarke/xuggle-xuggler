@@ -937,6 +937,13 @@ void x264_slicetype_decide( x264_t *h )
     for( bframes = 0;; bframes++ )
     {
         frm = h->lookahead->next.list[bframes];
+        if( h->param.i_bframe_pyramid < X264_B_PYRAMID_NORMAL && !h->param.rc.b_stat_read
+            && frm->i_type == X264_TYPE_BREF )
+        {
+            frm->i_type = X264_TYPE_B;
+            x264_log( h, X264_LOG_WARNING, "Externally supplied B-ref at frame %d incompatible with B-pyramid %s\n",
+                      frm->i_frame, x264_b_pyramid_names[h->param.i_bframe_pyramid] );
+        }
 
         /* Limit GOP size */
         if( frm->i_frame - h->lookahead->i_last_idr >= h->param.i_keyint_max )

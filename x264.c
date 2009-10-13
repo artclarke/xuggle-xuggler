@@ -207,7 +207,11 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                  - 1: Fast\n"
         "                                  - 2: Optimal (slow with high --bframes)\n", defaults->i_bframe_adaptive );
     H2( "      --b-bias <integer>      Influences how often B-frames are used [%d]\n", defaults->i_bframe_bias );
-    H1( "      --b-pyramid             Keep some B-frames as references\n" );
+    H1( "      --b-pyramid <string>    Keep some B-frames as references [%s]\n"
+        "                                  - none: Disabled\n"
+        "                                  - strict: Strictly heirarchical pyramid\n"
+        "                                  - normal: Non-strict (not Blu-ray compatible)\n",
+        strtable_lookup( x264_b_pyramid_names, defaults->i_bframe_pyramid ) );
     H1( "      --no-cabac              Disable CABAC\n" );
     H1( "  -r, --ref <integer>         Number of reference frames [%d]\n", defaults->i_frame_reference );
     H1( "      --no-deblock            Disable loop filter\n" );
@@ -416,7 +420,7 @@ static struct option long_options[] =
     { "b-adapt",     required_argument, NULL, 0 },
     { "no-b-adapt",        no_argument, NULL, 0 },
     { "b-bias",      required_argument, NULL, 0 },
-    { "b-pyramid",         no_argument, NULL, 0 },
+    { "b-pyramid",   required_argument, NULL, 0 },
     { "min-keyint",  required_argument, NULL, 'i' },
     { "keyint",      required_argument, NULL, 'I' },
     { "scenecut",    required_argument, NULL, 0 },

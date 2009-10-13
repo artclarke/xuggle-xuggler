@@ -38,7 +38,8 @@ typedef struct
     x264_param_t *param;
 
     int     i_frame;    /* Presentation frame number */
-    int     i_frame_num; /* Coded frame number */
+    int     i_dts; /* Coded frame number */
+    int     i_frame_num; /* 7.4.3 frame_num */
     int     b_kept_as_ref;
     uint8_t b_fdec;
     uint8_t b_last_minigop_bframe; /* this frame is the last b in a sequence of bframes */

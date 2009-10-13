@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 77
+#define X264_BUILD 78
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -95,9 +95,13 @@ typedef struct x264_t x264_t;
 #define X264_B_ADAPT_NONE            0
 #define X264_B_ADAPT_FAST            1
 #define X264_B_ADAPT_TRELLIS         2
+#define X264_B_PYRAMID_NONE          0
+#define X264_B_PYRAMID_STRICT        1
+#define X264_B_PYRAMID_NORMAL        2
 
 static const char * const x264_direct_pred_names[] = { "none", "spatial", "temporal", "auto", 0 };
 static const char * const x264_motion_est_names[] = { "dia", "hex", "umh", "esa", "tesa", 0 };
+static const char * const x264_b_pyramid_names[] = { "none", "strict", "normal", 0 };
 static const char * const x264_overscan_names[] = { "undef", "show", "crop", 0 };
 static const char * const x264_vidformat_names[] = { "component", "pal", "ntsc", "secam", "mac", "undef", 0 };
 static const char * const x264_fullrange_names[] = { "off", "on", 0 };
@@ -196,7 +200,7 @@ typedef struct x264_param_t
     int         i_bframe;   /* how many b-frame between 2 references pictures */
     int         i_bframe_adaptive;
     int         i_bframe_bias;
-    int         b_bframe_pyramid;   /* Keep some B-frames as references */
+    int         i_bframe_pyramid;   /* Keep some B-frames as references: 0=off, 1=strict heirarchical, 2=normal */
 
     int         b_deblocking_filter;
     int         i_deblocking_filter_alphac0;    /* [-6, 6] -6 light filter, 6 strong */

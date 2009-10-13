@@ -217,18 +217,22 @@ static void x264_lookahead_encoder_shift( x264_t *h )
     }
     if( h->lookahead->ofbuf.list[i_frames] )
     {
+        int i_dts = h->lookahead->ofbuf.list[0]->i_frame;
+        h->lookahead->ofbuf.list[bframes]->i_dts = i_dts;
         x264_frame_push( h->frames.current, x264_frame_shift( &h->lookahead->ofbuf.list[bframes] ) );
         h->lookahead->ofbuf.i_size--;
-        if( h->param.b_bframe_pyramid && bframes > 1 )
+        if( h->param.i_bframe_pyramid && bframes > 1 )
         {
             x264_frame_t *mid = x264_frame_shift( &h->lookahead->ofbuf.list[bframes/2] );
             h->lookahead->ofbuf.i_size--;
             mid->i_type = X264_TYPE_BREF;
+            mid->i_dts = ++i_dts;
             x264_frame_push( h->frames.current, mid );
             bframes--;
         }
         while( bframes-- )
         {
+            h->lookahead->ofbuf.list[0]->i_dts = ++i_dts;
             x264_frame_push( h->frames.current, x264_frame_shift( h->lookahead->ofbuf.list ) );
             h->lookahead->ofbuf.i_size--;
         }
