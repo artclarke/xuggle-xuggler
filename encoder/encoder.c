@@ -2335,7 +2335,7 @@ void    x264_encoder_close  ( x264_t *h )
         free( h->param.rc.psz_stat_in );
 
     x264_cqm_delete( h );
-
+    x264_free( h->nal_buffer );
     x264_analyse_free_costs( h );
 
     if( h->param.i_threads > 1)
