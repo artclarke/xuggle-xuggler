@@ -10,7 +10,13 @@ import com.xuggle.ferry.IBuffer;
 
 public class MetaDataTest
 {
-
+  public static final String AUTHOR_KEY = "TPE1";
+  public static final String GENRE_KEY = "TCON";
+  public static final String TITLE_KEY = "TIT2";
+  public static final String YEAR_KEY = "TYER";
+  public static final String ALBUM_KEY = "TALB";
+  public static final String COMMENT_KEY = "comment";
+  
   @Test
   public final void testGetKeys()
   {
@@ -52,9 +58,9 @@ public class MetaDataTest
     {
       System.out.println(key + " = " + meta.getValue(key));
     }
-    assertNotNull(meta.getValue("author"));
-    meta.setValue("author", "Your Mom");
-    assertEquals("Your Mom", meta.getValue("author"));
+    assertNotNull(meta.getValue(AUTHOR_KEY));
+    meta.setValue(AUTHOR_KEY, "Your Mom");
+    assertEquals("Your Mom", meta.getValue(AUTHOR_KEY));
   }
 
   @Test
@@ -74,12 +80,12 @@ public class MetaDataTest
     String author = "Your Mom";
     String genre = "6";
     String title = "Ode to Mothers";
-    meta.setValue("title", title);
-    meta.setValue("author", author);
-    meta.setValue("genre", genre);
-    meta.setValue("year", "2009");
-    meta.setValue("album", "So large the sun rotates around her");
-    meta.setValue("comment", "I wonder why genre is blues?");
+    meta.setValue(TITLE_KEY, title);
+    meta.setValue(AUTHOR_KEY, author);
+    meta.setValue(GENRE_KEY, genre);
+    meta.setValue(YEAR_KEY, "2009");
+    meta.setValue(ALBUM_KEY, "So large the sun rotates around her");
+    meta.setValue(COMMENT_KEY, "I wonder why genre is blues?");
     container.writeHeader();
     
     // Let's add some fake data
@@ -120,9 +126,9 @@ public class MetaDataTest
     assertTrue(container.open(filename, IContainer.Type.READ, null)>=0);
     meta = container.getMetaData();
     System.out.println("Metadata = " + meta);
-    assertEquals(author, meta.getValue("author"));
-    assertEquals("Grunge", meta.getValue("genre"));
-    assertEquals(title, meta.getValue("title"));
+    assertEquals(author, meta.getValue(AUTHOR_KEY));
+    assertEquals("Grunge", meta.getValue(GENRE_KEY));
+    assertEquals(title, meta.getValue(TITLE_KEY));
   }
 
   @Test
@@ -142,8 +148,8 @@ public class MetaDataTest
       // patch for FLV meta-data installed.  Let's make sure it's
       // right
       assertEquals(11, keys.size());
-      meta.setValue("author", "Your Mom");
-      assertEquals("Your Mom", meta.getValue("author"));
+      meta.setValue(AUTHOR_KEY, "Your Mom");
+      assertEquals("Your Mom", meta.getValue(AUTHOR_KEY));
     }
     container.close();
     meta.delete();
