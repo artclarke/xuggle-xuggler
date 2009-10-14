@@ -935,7 +935,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
             fclose( f );
         else
         {
-            x264_log( h, X264_LOG_ERROR, "can't write to fdec.yuv\n" );
+            x264_log( h, X264_LOG_ERROR, "dump_yuv: can't write to %s\n", h->param.psz_dump_yuv );
             goto fail;
         }
     }
