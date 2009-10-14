@@ -93,12 +93,19 @@ public class ConcatenateAudioAndVideo
    * @param sourceUrl2 the file which will appear second in the output
    * @param destinationUrl the file which will be produced
    */
-  
+
   public static void concatenate(String sourceUrl1, String sourceUrl2,
     String destinationUrl)
   {
     out.printf("transcode %s + %s -> %s\n", sourceUrl1, sourceUrl2,
       destinationUrl);
+
+    //////////////////////////////////////////////////////////////////////
+    //                                                                  //
+    // NOTE: be sure that the audio and video parameters match those of //
+    // your input media                                                 //
+    //                                                                  //
+    //////////////////////////////////////////////////////////////////////
 
     // video parameters
 
