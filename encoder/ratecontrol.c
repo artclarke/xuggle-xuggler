@@ -525,7 +525,6 @@ int x264_ratecontrol_new( x264_t *h )
         {
             int i;
             char *opts = stats_buf;
-            char buf[12];
             stats_in = strchr( stats_buf, '\n' );
             if( !stats_in )
                 return -1;
@@ -542,9 +541,13 @@ int x264_ratecontrol_new( x264_t *h )
 
             /* since B-adapt doesn't (yet) take into account B-pyramid,
              * the converse is not a problem */
-            sprintf( buf, "b_pyramid=%d", h->param.i_bframe_pyramid );
-            if( !strstr( opts, buf ) )
-                x264_log( h, X264_LOG_WARNING, "different B-pyramid setting than 1st pass\n" );
+            if( h->param.i_bframe )
+            {
+                char buf[12];
+                sprintf( buf, "b_pyramid=%d", h->param.i_bframe_pyramid );
+                if( !strstr( opts, buf ) )
+                    x264_log( h, X264_LOG_WARNING, "different B-pyramid setting than 1st pass\n" );
+            }
 
             if( ( p = strstr( opts, "keyint=" ) ) && sscanf( p, "keyint=%d", &i )
                 && h->param.i_keyint_max != i )
