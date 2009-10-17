@@ -1359,7 +1359,7 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
 
     // avoid NaN's in the rc_eq
     if(!isfinite(q) || rce->tex_bits + rce->mv_bits == 0)
-        q = rcc->last_qscale;
+        q = rcc->last_qscale_for[rce->pict_type];
     else
     {
         rcc->last_rceq = q;
@@ -1848,7 +1848,7 @@ static float rate_estimate_qscale( x264_t *h )
 
                 q = x264_clip3f(q, lmin, lmax);
             }
-            else if( h->param.rc.i_rc_method == X264_RC_CRF )
+            else if( h->param.rc.i_rc_method == X264_RC_CRF && rcc->qcompress != 1 )
             {
                 q = qp2qscale( ABR_INIT_QP ) / fabs( h->param.rc.f_ip_factor );
             }
@@ -1862,7 +1862,7 @@ static float rate_estimate_qscale( x264_t *h )
         rcc->last_qscale = q;
 
         if( !(rcc->b_2pass && !rcc->b_vbv) && h->fenc->i_frame == 0 )
-            rcc->last_qscale_for[SLICE_TYPE_P] = q;
+            rcc->last_qscale_for[SLICE_TYPE_P] = q * fabs( h->param.rc.f_ip_factor );
 
         if( rcc->b_2pass && rcc->b_vbv )
             rcc->frame_size_planned = qscale2bits(&rce, q);
