@@ -945,7 +945,7 @@ fail:
  ****************************************************************************/
 int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
 {
-    h = h->thread[h->i_thread_phase%h->param.i_threads];
+    h = h->thread[h->i_thread_phase];
     x264_set_aspect_ratio( h, param, 0 );
 #define COPY(var) h->param.var = param->var
     COPY( i_frame_reference ); // but never uses more refs than initially specified
@@ -1629,11 +1629,10 @@ int     x264_encoder_encode( x264_t *h,
 
     if( h->param.i_threads > 1)
     {
-        int i = ++h->i_thread_phase;
-        int t = h->param.i_threads;
-        thread_current = h->thread[ i%t ];
-        thread_prev    = h->thread[ (i-1)%t ];
-        thread_oldest  = h->thread[ (i+1)%t ];
+        thread_prev    = h->thread[ h->i_thread_phase ];
+        h->i_thread_phase = (h->i_thread_phase + 1) % h->param.i_threads;
+        thread_current = h->thread[ h->i_thread_phase ];
+        thread_oldest  = h->thread[ (h->i_thread_phase + 1) % h->param.i_threads ];
         x264_thread_sync_context( thread_current, thread_prev );
         x264_thread_sync_ratecontrol( thread_current, thread_prev, thread_oldest );
         h = thread_current;
@@ -2089,7 +2088,7 @@ void    x264_encoder_close  ( x264_t *h )
     {
         x264_t *thread_prev;
 
-        thread_prev = h->thread[ h->i_thread_phase % h->param.i_threads ];
+        thread_prev = h->thread[h->i_thread_phase];
         x264_thread_sync_ratecontrol( h, thread_prev, h );
         x264_thread_sync_ratecontrol( thread_prev, thread_prev, h );
         h->i_frame = thread_prev->i_frame + 1 - h->param.i_threads;
@@ -2340,7 +2339,7 @@ void    x264_encoder_close  ( x264_t *h )
     x264_analyse_free_costs( h );
 
     if( h->param.i_threads > 1)
-        h = h->thread[ h->i_thread_phase % h->param.i_threads ];
+        h = h->thread[h->i_thread_phase];
 
     /* frames */
     x264_frame_delete_list( h->frames.unused[0] );
@@ -2382,7 +2381,7 @@ int x264_encoder_delayed_frames( x264_t *h )
     int i;
     for( i=0; i<h->param.i_threads; i++ )
         delayed_frames += h->thread[i]->b_thread_active;
-    h = h->thread[ h->i_thread_phase % h->param.i_threads ];
+    h = h->thread[h->i_thread_phase];
     for( i=0; h->frames.current[i]; i++ )
         delayed_frames++;
     x264_pthread_mutex_lock( &h->lookahead->ofbuf.mutex );
