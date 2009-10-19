@@ -150,6 +150,25 @@ StreamCoderX264Test :: testDecodingAndEncodingH264Video()
     VS_TUT_ENSURE("should not have width", frame->getWidth() <= 0);
     VS_TUT_ENSURE("should not have height", frame->getHeight() <= 0);
 
+    oc->setProperty("coder", "0");
+    oc->setProperty("flags", "+loop");
+    oc->setProperty("cmp", "+chroma");
+    oc->setProperty("partitions", "-parti8x8+parti4x4+partp8x8-partp4x4-partb8x8");
+    oc->setProperty("me_method", "hex");
+    oc->setProperty("subq", "3");
+    oc->setProperty("me_range", "16");
+    oc->setProperty("g", "250");
+    oc->setProperty("keyint_min", "25");
+    oc->setProperty("sc_threshold", "40");
+    oc->setProperty("i_qfactor", "0.71");
+    oc->setProperty("b_strategy", "1");
+    oc->setProperty("qcomp", "0.6");
+    oc->setProperty("qmin", "10");
+    oc->setProperty("qmax", "51");
+    oc->setProperty("qdiff", "4");
+    oc->setProperty("directpred", "1");
+    oc->setProperty("flags2", "+fastpskip");
+    oc->setProperty("cqp", "0");
     retval = ic->open();
     VS_TUT_ENSURE("Could not open input coder", retval >= 0);
     retval = oc->open();
@@ -242,22 +261,23 @@ StreamCoderX264Test :: testDecodingAndEncodingH264Video()
                        opacket.value(),
                        frame.value(),
                        -1);
-
           VS_TUT_ENSURE("could not encode video", retval >= 0);
-          VS_TUT_ENSURE("could not encode video", opacket->isComplete());
+          if (opacket->isComplete())
+          {
+            VS_TUT_ENSURE("could not encode video", opacket->isComplete());
 
-          VS_TUT_ENSURE("could not encode video", opacket->getSize() > 0);
+            VS_TUT_ENSURE("could not encode video", opacket->getSize() > 0);
 
-          RefPointer<IBuffer> encodedBuffer = opacket->getData();
-          VS_TUT_ENSURE("no encoded data", encodedBuffer);
-          VS_TUT_ENSURE("less data than there should be",
-                  encodedBuffer->getBufferSize() >=
-                  opacket->getSize());
+            RefPointer<IBuffer> encodedBuffer = opacket->getData();
+            VS_TUT_ENSURE("no encoded data", encodedBuffer);
+            VS_TUT_ENSURE("less data than there should be",
+                encodedBuffer->getBufferSize() >=
+                opacket->getSize());
 
-          // now, write the packet to disk.
-          retval = hw->container->writePacket(opacket.value());
-          VS_TUT_ENSURE("could not write packet", retval >= 0);
-
+            // now, write the packet to disk.
+            retval = hw->container->writePacket(opacket.value());
+            VS_TUT_ENSURE("could not write packet", retval >= 0);
+          }
 
         }
       }
