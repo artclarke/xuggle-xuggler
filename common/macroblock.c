@@ -928,14 +928,9 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
         *(uint32_t*)&h->mb.cache.intra4x4_pred_mode[x264_scan8[0] - 8] = 0xFFFFFFFFU;
 
         /* load non_zero_count */
-        h->mb.cache.non_zero_count[x264_scan8[0] - 8] =
-        h->mb.cache.non_zero_count[x264_scan8[1] - 8] =
-        h->mb.cache.non_zero_count[x264_scan8[4] - 8] =
-        h->mb.cache.non_zero_count[x264_scan8[5] - 8] =
-        h->mb.cache.non_zero_count[x264_scan8[16+0] - 8] =
-        h->mb.cache.non_zero_count[x264_scan8[16+1] - 8] =
-        h->mb.cache.non_zero_count[x264_scan8[16+4+0] - 8] =
-        h->mb.cache.non_zero_count[x264_scan8[16+4+1] - 8] = 0x80;
+        *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[0] - 8] =
+        *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[16+0] - 9] =
+        *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[16+4] - 9] = 0x80808080U;
     }
 
     if( i_mb_x > 0 && i_mb_xy > h->sh.i_first_mb )
@@ -1231,7 +1226,7 @@ void x264_macroblock_cache_save( x264_t *h )
     int8_t *intra4x4_pred_mode = h->mb.intra4x4_pred_mode[i_mb_xy];
     uint8_t *non_zero_count = h->mb.non_zero_count[i_mb_xy];
 
-    int i, y;
+    int y;
 
     x264_macroblock_store_pic( h, 0 );
     x264_macroblock_store_pic( h, 1 );
@@ -1264,8 +1259,7 @@ void x264_macroblock_cache_save( x264_t *h )
         h->mb.i_cbp_luma = 0xf;
         h->mb.cbp[i_mb_xy] = 0x72f;   /* all set */
         h->mb.b_transform_8x8 = 0;
-        for( i = 0; i < 16 + 2*4; i++ )
-            non_zero_count[i] = 16;
+        memset( non_zero_count, 16, 24 );
     }
     else
     {
