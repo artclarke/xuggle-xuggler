@@ -200,7 +200,7 @@ static void Help( x264_param_t *defaults, int longhelp )
     H2( "      --b-bias <integer>      Influences how often B-frames are used [%d]\n", defaults->i_bframe_bias );
     H1( "      --b-pyramid <string>    Keep some B-frames as references [%s]\n"
         "                                  - none: Disabled\n"
-        "                                  - strict: Strictly heirarchical pyramid\n"
+        "                                  - strict: Strictly hierarchical pyramid\n"
         "                                  - normal: Non-strict (not Blu-ray compatible)\n",
         strtable_lookup( x264_b_pyramid_names, defaults->i_bframe_pyramid ) );
     H1( "      --no-cabac              Disable CABAC\n" );
