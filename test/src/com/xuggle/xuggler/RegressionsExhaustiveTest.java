@@ -289,7 +289,7 @@ public class RegressionsExhaustiveTest
   @Test
   public void testRegressionIssue203() throws ParseException
   {
-    String outFilename = this.getClass().getName() + "_" + mTestName + ".flv";
+    String outFilename = this.getClass().getName() + "_" + mTestName + ".wav";
     String[] args = new String[]{
         "--icontainerformat",
         "s16le",
