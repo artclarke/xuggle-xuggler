@@ -860,6 +860,27 @@ public class Converter
         if (vbitratetolerance > 0)
           oc.setBitRateTolerance(vbitratetolerance);
 
+        if (oc.getCodecID() == ICodec.ID.CODEC_ID_H264){
+          // update properties based on latest x264
+          oc.setProperty("coder", "0");
+          oc.setProperty("flags", "+loop");
+          oc.setProperty("cmp", "+chroma");
+          oc.setProperty("partitions", "-parti8x8+parti4x4+partp8x8-partp4x4-partb8x8");
+          oc.setProperty("me_method", "hex");
+          oc.setProperty("subq", "3");
+          oc.setProperty("me_range", "16");
+          oc.setProperty("keyint_min", "25");
+          oc.setProperty("sc_threshold", "40");
+          oc.setProperty("i_qfactor", "0.71");
+          oc.setProperty("b_strategy", "1");
+          oc.setProperty("qcomp", "0.6");
+          oc.setProperty("qmin", "10");
+          oc.setProperty("qmax", "51");
+          oc.setProperty("qdiff", "4");
+          oc.setProperty("directpred", "1");
+          oc.setProperty("flags2", "+fastpskip");
+          oc.setProperty("cqp", "0");
+        }
         int oWidth = ic.getWidth();
         int oHeight = ic.getHeight();
 
@@ -921,8 +942,7 @@ public class Converter
         IRational num = null;
         num = ic.getFrameRate();
         oc.setFrameRate(num);
-        oc
-            .setTimeBase(IRational.make(num.getDenominator(), num
+        oc.setTimeBase(IRational.make(num.getDenominator(), num
                 .getNumerator()));
         num = null;
 
