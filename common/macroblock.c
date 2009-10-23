@@ -173,7 +173,7 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
     int i_mb_4x4 = 16 * h->mb.i_mb_stride * h->mb.i_mb_y + 4 * h->mb.i_mb_x;
     int i_mb_8x8 =  4 * h->mb.i_mb_stride * h->mb.i_mb_y + 2 * h->mb.i_mb_x;
     int i8;
-    const int type_col = h->fref1[0]->mb_type[ h->mb.i_mb_xy ];
+    const int type_col = h->fref1[0]->mb_type[h->mb.i_mb_xy];
 
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, 0 );
 
@@ -190,7 +190,7 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
         const int x8 = i8%2;
         const int y8 = i8/2;
         const int i_part_8x8 = i_mb_8x8 + x8 + y8 * h->mb.i_b8_stride;
-        const int i_ref = h->mb.map_col_to_list0[ h->fref1[0]->ref[0][ i_part_8x8 ] ];
+        const int i_ref = map_col_to_list0(h->fref1[0]->ref[0][i_part_8x8]);
 
         if( i_ref >= 0 )
         {
@@ -793,16 +793,16 @@ void x264_macroblock_slice_init( x264_t *h )
         for( i = 0; i < h->i_ref1; i++ )
             h->fdec->ref_poc[1][i] = h->fref1[i]->i_poc;
 
-        h->mb.map_col_to_list0[-1] = -1;
-        h->mb.map_col_to_list0[-2] = -2;
+        map_col_to_list0(-1) = -1;
+        map_col_to_list0(-2) = -2;
         for( i = 0; i < h->fref1[0]->i_ref[0]; i++ )
         {
             int poc = h->fref1[0]->ref_poc[0][i];
-            h->mb.map_col_to_list0[i] = -2;
+            map_col_to_list0(i) = -2;
             for( j = 0; j < h->i_ref0; j++ )
                 if( h->fref0[j]->i_poc == poc )
                 {
-                    h->mb.map_col_to_list0[i] = j;
+                    map_col_to_list0(i) = j;
                     break;
                 }
         }

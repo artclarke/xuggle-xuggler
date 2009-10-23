@@ -819,8 +819,9 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                 else
                     h->predict_8x8[i_mode]( p_dst_by, edge );
 
-                i_satd = sa8d( p_dst_by, FDEC_STRIDE, p_src_by, FENC_STRIDE )
-                       + a->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) ? 1 : 4);
+                i_satd = sa8d( p_dst_by, FDEC_STRIDE, p_src_by, FENC_STRIDE ) + a->i_lambda * 4;
+                if( i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) )
+                    i_satd -= a->i_lambda * 3;
 
                 COPY2_IF_LT( i_best, i_satd, a->i_predict8x8[idx], i_mode );
                 a->i_satd_i8x8_dir[i_mode][idx] = i_satd;
@@ -895,8 +896,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                 h->pixf.intra_mbcmp_x3_4x4( p_src_by, p_dst_by, satd );
                 satd[i_pred_mode] -= 3 * a->i_lambda;
                 for( i=2; i>=0; i-- )
-                    COPY2_IF_LT( i_best, satd[i] + 4 * a->i_lambda,
-                                 a->i_predict4x4[idx], i );
+                    COPY2_IF_LT( i_best, satd[i], a->i_predict4x4[idx], i );
                 i = 3;
             }
             else
@@ -911,13 +911,13 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                 else
                     h->predict_4x4[i_mode]( p_dst_by );
 
-                i_satd = h->pixf.mbcmp[PIXEL_4x4]( p_dst_by, FDEC_STRIDE,
-                                                   p_src_by, FENC_STRIDE )
-                       + a->i_lambda * (i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) ? 1 : 4);
+                i_satd = h->pixf.mbcmp[PIXEL_4x4]( p_dst_by, FDEC_STRIDE, p_src_by, FENC_STRIDE );
+                if( i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) )
+                    i_satd -= a->i_lambda * 3;
 
                 COPY2_IF_LT( i_best, i_satd, a->i_predict4x4[idx], i_mode );
             }
-            i_cost += i_best;
+            i_cost += i_best + 4 * a->i_lambda;
 
             if( i_cost > i_satd_thresh || idx == 15 )
                 break;
