@@ -465,17 +465,6 @@ static int x264_validate_parameters( x264_t *h )
     h->param.rc.i_qp_max = x264_clip3( h->param.rc.i_qp_max, 0, 51 );
     h->param.rc.i_qp_min = x264_clip3( h->param.rc.i_qp_min, 0, h->param.rc.i_qp_max );
 
-    if( ( h->param.i_width % 16 || h->param.i_height % 16 )
-        && h->param.i_height != 1080 && !h->mb.b_lossless )
-    {
-        // There's nothing special about 1080 in that the warning still applies to it,
-        // but chances are the user can't help it if his content is already 1080p,
-        // so there's no point in warning in that case.
-        x264_log( h, X264_LOG_WARNING,
-                  "width or height not divisible by 16 (%dx%d), compression will suffer.\n",
-                  h->param.i_width, h->param.i_height );
-    }
-
     int max_slices = (h->param.i_height+((16<<h->param.b_interlaced)-1))/(16<<h->param.b_interlaced);
     h->param.i_slice_count = x264_clip3( h->param.i_slice_count, 0, max_slices );
     h->param.i_slice_max_size = X264_MAX( h->param.i_slice_max_size, 0 );
