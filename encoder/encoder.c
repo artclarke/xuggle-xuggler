@@ -1313,7 +1313,8 @@ static inline void x264_reference_hierarchy_reset( x264_t *h )
             && h->frames.reference[ref]->i_type == X264_TYPE_BREF )
         {
             int diff = h->i_frame_num - h->frames.reference[ref]->i_frame_num;
-            h->sh.mmco[h->sh.i_mmco_command_count++].i_difference_of_pic_nums = diff;
+            h->sh.mmco[h->sh.i_mmco_command_count].i_difference_of_pic_nums = diff;
+            h->sh.mmco[h->sh.i_mmco_command_count++].i_poc = h->frames.reference[ref]->i_poc;
             x264_frame_push_unused( h, x264_frame_pop( h->frames.reference ) );
             h->b_ref_reorder[0] = 1;
             break;
