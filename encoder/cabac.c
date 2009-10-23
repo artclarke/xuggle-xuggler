@@ -213,10 +213,10 @@ static void x264_cabac_mb_cbp_luma( x264_t *h, x264_cabac_t *cb )
     int cbp = h->mb.i_cbp_luma;
     int cbp_l = h->mb.cache.i_cbp_left;
     int cbp_t = h->mb.cache.i_cbp_top;
-    x264_cabac_encode_decision( cb, 76 - ((cbp_l >> 1) & 1) - ((cbp_t >> 1) & 2), (h->mb.i_cbp_luma >> 0) & 1 );
-    x264_cabac_encode_decision( cb, 76 - ((cbp   >> 0) & 1) - ((cbp_t >> 2) & 2), (h->mb.i_cbp_luma >> 1) & 1 );
-    x264_cabac_encode_decision( cb, 76 - ((cbp_l >> 3) & 1) - ((cbp   << 1) & 2), (h->mb.i_cbp_luma >> 2) & 1 );
-    x264_cabac_encode_decision_noup( cb, 76 - ((cbp   >> 2) & 1) - ((cbp   >> 0) & 2), (h->mb.i_cbp_luma >> 3) & 1 );
+    x264_cabac_encode_decision     ( cb, 76 - ((cbp_l >> 1) & 1) - ((cbp_t >> 1) & 2), (cbp >> 0) & 1 );
+    x264_cabac_encode_decision     ( cb, 76 - ((cbp   >> 0) & 1) - ((cbp_t >> 2) & 2), (cbp >> 1) & 1 );
+    x264_cabac_encode_decision     ( cb, 76 - ((cbp_l >> 3) & 1) - ((cbp   << 1) & 2), (cbp >> 2) & 1 );
+    x264_cabac_encode_decision_noup( cb, 76 - ((cbp   >> 2) & 1) - ((cbp   >> 0) & 2), (cbp >> 3) & 1 );
 }
 
 static void x264_cabac_mb_cbp_chroma( x264_t *h, x264_cabac_t *cb )
@@ -242,7 +242,6 @@ static void x264_cabac_mb_cbp_chroma( x264_t *h, x264_cabac_t *cb )
 
 static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
 {
-    int i_mbn_xy = h->mb.i_mb_prev_xy;
     int i_dqp = h->mb.i_qp - h->mb.i_last_qp;
     int ctx;
 
@@ -255,9 +254,9 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
         i_dqp = 0;
     }
 
-    /* No need to test for PCM / SKIP */
-    ctx = h->mb.i_last_dqp &&
-        ( h->mb.type[i_mbn_xy] == I_16x16 || (h->mb.cbp[i_mbn_xy]&0x3f) );
+    /* Since, per the above, empty-CBP I16x16 blocks never have delta quants,
+     * we don't have to check for them. */
+    ctx = h->mb.i_last_dqp && h->mb.cbp[h->mb.i_mb_prev_xy];
 
     if( i_dqp != 0 )
     {
@@ -265,11 +264,11 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
         /* dqp is interpreted modulo 52 */
         if( val >= 51 && val != 52 )
             val = 103 - val;
-        while( val-- )
+        do
         {
             x264_cabac_encode_decision( cb, 60 + ctx, 1 );
             ctx = 2+(ctx>>1);
-        }
+        } while( --val );
     }
     x264_cabac_encode_decision_noup( cb, 60 + ctx, 0 );
 }
@@ -357,54 +356,54 @@ static inline void x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int i_lis
 #if RDO_SKIP_BS
     if( i_abs == 0 )
         x264_cabac_encode_decision( cb, ctxbase + ctx, 0 );
-    else if( i_abs < 9 )
+    else
     {
         x264_cabac_encode_decision( cb, ctxbase + ctx, 1 );
-        if( i_abs > 4 )
-        {
-            x264_cabac_encode_decision( cb, ctxbase + 3, 1 );
-            x264_cabac_encode_decision( cb, ctxbase + 4, 1 );
-            x264_cabac_encode_decision( cb, ctxbase + 5, 1 );
-            cb->f8_bits_encoded += cabac_size_unary[i_abs - 3][cb->state[ctxbase+6]];
-            cb->state[ctxbase+6] = cabac_transition_unary[i_abs - 3][cb->state[ctxbase+6]];
-        }
-        else
+        if( i_abs <= 3 )
         {
             for( i = 1; i < i_abs; i++ )
                 x264_cabac_encode_decision( cb, ctxbase + i + 2, 1 );
             x264_cabac_encode_decision( cb, ctxbase + i_abs + 2, 0 );
             x264_cabac_encode_bypass( cb, mvd < 0 );
         }
-    }
-    else
-    {
-        x264_cabac_encode_decision( cb, ctxbase + ctx, 1 );
-        x264_cabac_encode_decision( cb, ctxbase + 3, 1 );
-        x264_cabac_encode_decision( cb, ctxbase + 4, 1 );
-        x264_cabac_encode_decision( cb, ctxbase + 5, 1 );
-        cb->f8_bits_encoded += cabac_size_5ones[cb->state[ctxbase+6]];
-        cb->state[ctxbase+6] = cabac_transition_5ones[cb->state[ctxbase+6]];
-        x264_cabac_encode_ue_bypass( cb, 3, i_abs - 9 );
+        else
+        {
+            x264_cabac_encode_decision( cb, ctxbase + 3, 1 );
+            x264_cabac_encode_decision( cb, ctxbase + 4, 1 );
+            x264_cabac_encode_decision( cb, ctxbase + 5, 1 );
+            if( i_abs < 9 )
+            {
+                cb->f8_bits_encoded += cabac_size_unary[i_abs - 3][cb->state[ctxbase+6]];
+                cb->state[ctxbase+6] = cabac_transition_unary[i_abs - 3][cb->state[ctxbase+6]];
+            }
+            else
+            {
+                cb->f8_bits_encoded += cabac_size_5ones[cb->state[ctxbase+6]];
+                cb->state[ctxbase+6] = cabac_transition_5ones[cb->state[ctxbase+6]];
+                x264_cabac_encode_ue_bypass( cb, 3, i_abs - 9 );
+            }
+        }
     }
 #else
     static const uint8_t ctxes[8] = { 3,4,5,6,6,6,6,6 };
 
     if( i_abs == 0 )
         x264_cabac_encode_decision( cb, ctxbase + ctx, 0 );
-    else if( i_abs < 9 )
-    {
-        x264_cabac_encode_decision( cb, ctxbase + ctx, 1 );
-        for( i = 1; i < i_abs; i++ )
-            x264_cabac_encode_decision( cb, ctxbase + ctxes[i-1], 1 );
-        x264_cabac_encode_decision( cb, ctxbase + ctxes[i_abs-1], 0 );
-        x264_cabac_encode_bypass( cb, mvd < 0 );
-    }
     else
     {
         x264_cabac_encode_decision( cb, ctxbase + ctx, 1 );
-        for( i = 1; i < 9; i++ )
-            x264_cabac_encode_decision( cb, ctxbase + ctxes[i-1], 1 );
-        x264_cabac_encode_ue_bypass( cb, 3, i_abs - 9 );
+        if( i_abs < 9 )
+        {
+            for( i = 1; i < i_abs; i++ )
+                x264_cabac_encode_decision( cb, ctxbase + ctxes[i-1], 1 );
+            x264_cabac_encode_decision( cb, ctxbase + ctxes[i_abs-1], 0 );
+        }
+        else
+        {
+            for( i = 1; i < 9; i++ )
+                x264_cabac_encode_decision( cb, ctxbase + ctxes[i-1], 1 );
+            x264_cabac_encode_ue_bypass( cb, 3, i_abs - 9 );
+        }
         x264_cabac_encode_bypass( cb, mvd < 0 );
     }
 #endif
