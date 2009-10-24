@@ -1,10 +1,7 @@
 /*****************************************************************************
- * muxers.h: h264 file i/o modules
+ * matroska_ebml.h:
  *****************************************************************************
- * Copyright (C) 2003-2009 x264 project
- *
- * Authors: Laurent Aimar <fenrir@via.ecp.fr>
- *          Loren Merritt <lorenm@u.washington.edu>
+ * Copyright (C) 2005 Mike Matsnev
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,27 +18,24 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef X264_MUXERS_H
-#define X264_MUXERS_H
+#ifndef X264_MATROSKA_EBML_H
+#define X264_MATROSKA_EBML_H
 
-#include "common/common.h"
-#include "x264.h"
+typedef struct mk_writer mk_writer;
 
-typedef void *hnd_t;
+mk_writer *mk_create_writer( const char *filename );
 
-static inline int64_t gcd( int64_t a, int64_t b )
-{
-    while( 1 )
-    {
-        int64_t c = a % b;
-        if( !c )
-            return b;
-        a = b;
-        b = c;
-    }
-}
+int mk_writeHeader( mk_writer *w, const char *writing_app,
+                    const char *codec_id,
+                    const void *codec_private, unsigned codec_private_size,
+                    int64_t default_frame_duration,
+                    int64_t timescale,
+                    unsigned width, unsigned height,
+                    unsigned d_width, unsigned d_height );
 
-#include "input/input.h"
-#include "output/output.h"
+int mk_start_frame( mk_writer *w );
+int mk_add_frame_data( mk_writer *w, const void *data, unsigned size );
+int mk_set_frame_flags( mk_writer *w, int64_t timestamp, int keyframe );
+int mk_close( mk_writer *w );
 
 #endif

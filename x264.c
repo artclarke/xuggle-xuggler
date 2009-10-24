@@ -61,18 +61,9 @@ typedef struct {
     FILE *qpfile;
 } cli_opt_t;
 
-/* input file operation function pointers */
-int (*p_open_infile)( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param );
-int (*p_get_frame_total)( hnd_t handle );
-int (*p_read_frame)( x264_picture_t *p_pic, hnd_t handle, int i_frame );
-int (*p_close_infile)( hnd_t handle );
-
-/* output file operation function pointers */
-static int (*p_open_outfile)( char *psz_filename, hnd_t *p_handle );
-static int (*p_set_outfile_param)( hnd_t handle, x264_param_t *p_param );
-static int (*p_write_nalu)( hnd_t handle, uint8_t *p_nal, int i_size );
-static int (*p_set_eop)( hnd_t handle, x264_picture_t *p_picture );
-static int (*p_close_outfile)( hnd_t handle );
+/* i/o file operation function pointer structs */
+cli_input_t input;
+static cli_output_t output;
 
 static void Help( x264_param_t *defaults, int longhelp );
 static int  Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt );
@@ -550,18 +541,9 @@ static int  Parse( int argc, char **argv,
     memset( opt, 0, sizeof(cli_opt_t) );
     opt->b_progress = 1;
 
-    /* Default input file driver */
-    p_open_infile = open_file_yuv;
-    p_get_frame_total = get_frame_total_yuv;
-    p_read_frame = read_frame_yuv;
-    p_close_infile = close_file_yuv;
-
-    /* Default output file driver */
-    p_open_outfile = open_file_bsf;
-    p_set_outfile_param = set_param_bsf;
-    p_write_nalu = write_nalu_bsf;
-    p_set_eop = set_eop_bsf;
-    p_close_outfile = close_file_bsf;
+    /* Default i/o modules */
+    input = yuv_input;
+    output = raw_output;
 
     /* Presets are applied before all other options. */
     for( optind = 0;; )
@@ -795,27 +777,17 @@ static int  Parse( int argc, char **argv,
                 if( !strncasecmp(optarg + strlen(optarg) - 4, ".mp4", 4) )
                 {
 #ifdef MP4_OUTPUT
-                    p_open_outfile = open_file_mp4;
-                    p_write_nalu = write_nalu_mp4;
-                    p_set_outfile_param = set_param_mp4;
-                    p_set_eop = set_eop_mp4;
-                    p_close_outfile = close_file_mp4;
+                    output = mp4_output;
 #else
                     fprintf( stderr, "x264 [error]: not compiled with MP4 output support\n" );
                     return -1;
 #endif
                 }
                 else if( !strncasecmp(optarg + strlen(optarg) - 4, ".mkv", 4) )
-                {
-                    p_open_outfile = open_file_mkv;
-                    p_write_nalu = write_nalu_mkv;
-                    p_set_outfile_param = set_param_mkv;
-                    p_set_eop = set_eop_mkv;
-                    p_close_outfile = close_file_mkv;
-                }
+                    output = mkv_output;
                 if( !strcmp(optarg, "-") )
                     opt->hout = stdout;
-                else if( p_open_outfile( optarg, &opt->hout ) )
+                else if( output.open_file( optarg, &opt->hout ) )
                 {
                     fprintf( stderr, "x264 [error]: can't open output file `%s'\n", optarg );
                     return -1;
@@ -1001,24 +973,16 @@ generic_option:
         if( b_avis )
         {
 #ifdef AVIS_INPUT
-            p_open_infile = open_file_avis;
-            p_get_frame_total = get_frame_total_avis;
-            p_read_frame = read_frame_avis;
-            p_close_infile = close_file_avis;
+            input = avis_input;
 #else
             fprintf( stderr, "x264 [error]: not compiled with AVIS input support\n" );
             return -1;
 #endif
         }
         if( b_y4m )
-        {
-            p_open_infile = open_file_y4m;
-            p_get_frame_total = get_frame_total_y4m;
-            p_read_frame = read_frame_y4m;
-            p_close_infile = close_file_y4m;
-        }
+            input = y4m_input;
 
-        if( p_open_infile( psz_filename, &opt->hin, param ) )
+        if( input.open_file( psz_filename, &opt->hin, param ) )
         {
             fprintf( stderr, "x264 [error]: could not open input file '%s'\n", psz_filename );
             return -1;
@@ -1035,18 +999,13 @@ generic_option:
     if( b_thread_input || param->i_threads > 1
         || (param->i_threads == X264_THREADS_AUTO && x264_cpu_num_processors() > 1) )
     {
-        if( open_file_thread( NULL, &opt->hin, param ) )
+        if( thread_input.open_file( NULL, &opt->hin, param ) )
         {
             fprintf( stderr, "x264 [error]: threaded input failed\n" );
             return -1;
         }
         else
-        {
-            p_open_infile = open_file_thread;
-            p_get_frame_total = get_frame_total_thread;
-            p_read_frame = read_frame_thread;
-            p_close_infile = close_file_thread;
-        }
+            input = thread_input;
     }
 #endif
 
@@ -1129,13 +1088,13 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
 
     for( i = 0; i < i_nal; i++ )
     {
-        i_nalu_size = p_write_nalu( hout, nal[i].p_payload, nal[i].i_payload );
+        i_nalu_size = output.write_nalu( hout, nal[i].p_payload, nal[i].i_payload );
         if( i_nalu_size < 0 )
             return -1;
         i_file += i_nalu_size;
     }
-    if (i_nal)
-        p_set_eop( hout, &pic_out );
+    if( i_nal )
+        output.set_eop( hout, &pic_out );
 
     return i_file;
 }
@@ -1174,7 +1133,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     int     i_update_interval;
 
     opt->b_progress &= param->i_log_level < X264_LOG_DEBUG;
-    i_frame_total = p_get_frame_total( opt->hin );
+    i_frame_total = input.get_frame_total( opt->hin );
     i_frame_total -= opt->i_seek;
     if( ( i_frame_total == 0 || param->i_frame_total < i_frame_total )
         && param->i_frame_total > 0 )
@@ -1185,15 +1144,15 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     if( ( h = x264_encoder_open( param ) ) == NULL )
     {
         fprintf( stderr, "x264 [error]: x264_encoder_open failed\n" );
-        p_close_infile( opt->hin );
+        input.close_file( opt->hin );
         return -1;
     }
 
-    if( p_set_outfile_param( opt->hout, param ) )
+    if( output.set_param( opt->hout, param ) )
     {
         fprintf( stderr, "x264 [error]: can't set outfile param\n" );
-        p_close_infile( opt->hin );
-        p_close_outfile( opt->hout );
+        input.close_file( opt->hin );
+        output.close_file( opt->hout );
         return -1;
     }
 
@@ -1209,7 +1168,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     /* Encode frames */
     for( i_frame = 0, i_file = 0, i_frame_output = 0; b_ctrl_c == 0 && (i_frame < i_frame_total || i_frame_total == 0); )
     {
-        if( p_read_frame( &pic, opt->hin, i_frame + opt->i_seek ) )
+        if( input.read_frame( &pic, opt->hin, i_frame + opt->i_seek ) )
             break;
 
         pic.i_pts = (int64_t)i_frame * param->i_fps_den;
@@ -1261,8 +1220,8 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     if( b_ctrl_c )
         fprintf( stderr, "aborted at input frame %d, output frame %d\n", opt->i_seek + i_frame, i_frame_output );
 
-    p_close_infile( opt->hin );
-    p_close_outfile( opt->hout );
+    input.close_file( opt->hin );
+    output.close_file( opt->hout );
 
     if( i_frame_output > 0 )
     {

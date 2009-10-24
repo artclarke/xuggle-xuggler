@@ -1,5 +1,5 @@
 /*****************************************************************************
- * matroska.c:
+ * matroska_ebml.c:
  *****************************************************************************
  * Copyright (C) 2005 Mike Matsnev
  *
@@ -21,20 +21,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include "common/osdep.h"
-#include "matroska.h"
+#include "matroska_ebml.h"
 
 #define CLSIZE 1048576
 #define CHECK(x)\
-do\
-{\
-    if( (x) < 0 ) return -1;\
-}\
-while( 0 )
+do {\
+    if( (x) < 0 )\
+        return -1;\
+} while( 0 )
 
 struct mk_context
 {
     struct mk_context *next, **prev, *parent;
-    struct mk_writer *owner;
+    mk_writer *owner;
     unsigned id;
 
     void *data;
@@ -63,7 +62,7 @@ struct mk_writer
 
 static mk_context *mk_create_context( mk_writer *w, mk_context *parent, unsigned id )
 {
-    mk_context  *c;
+    mk_context *c;
 
     if( w->freelist )
     {
@@ -172,7 +171,7 @@ static int mk_flush_context_id( mk_context *c )
     return 0;
 }
 
-static int mk_flush_context_data(mk_context *c)
+static int mk_flush_context_data( mk_context *c )
 {
     if( !c->d_cur )
         return 0;
@@ -187,7 +186,7 @@ static int mk_flush_context_data(mk_context *c)
     return 0;
 }
 
-static int mk_close_context(mk_context *c, unsigned *off)
+static int mk_close_context( mk_context *c, unsigned *off )
 {
     if( c->id )
     {
@@ -376,7 +375,7 @@ int mk_writeHeader( mk_writer *w, const char *writing_app,
     w->timescale = timescale;
     w->def_duration = default_frame_duration;
 
-    if( !(c = mk_create_context(w, w->root, 0x1a45dfa3)) ) // EBML
+    if( !(c = mk_create_context( w, w->root, 0x1a45dfa3 )) ) // EBML
         return -1;
     CHECK( mk_write_uint( c, 0x4286, 1 ) ); // EBMLVersion
     CHECK( mk_write_uint( c, 0x42f7, 1 ) ); // EBMLReadVersion
@@ -392,7 +391,7 @@ int mk_writeHeader( mk_writer *w, const char *writing_app,
     CHECK( mk_flush_context_id( c ) );
     CHECK( mk_close_context( c, 0 ) );
 
-    if( !(c = mk_create_context(w, w->root, 0x1549a966)) ) // SegmentInfo
+    if( !(c = mk_create_context( w, w->root, 0x1549a966 )) ) // SegmentInfo
         return -1;
     CHECK( mk_write_string( c, 0x4d80, "Haali Matroska Writer b0" ) );
     CHECK( mk_write_string( c, 0x5741, writing_app ) );
@@ -489,11 +488,11 @@ static int mk_flush_frame( mk_writer *w )
     CHECK( mk_append_context_data( w->cluster, c_delta_flags, 3 ) );
     if( w->frame )
     {
-        CHECK( mk_append_context_data(w->cluster, w->frame->data, w->frame->d_cur));
+        CHECK( mk_append_context_data( w->cluster, w->frame->data, w->frame->d_cur ) );
         w->frame->d_cur = 0;
     }
     if( !w->keyframe )
-        CHECK( mk_write_sint(w->cluster, 0xfb, ref ) ); // ReferenceBlock
+        CHECK( mk_write_sint( w->cluster, 0xfb, ref ) ); // ReferenceBlock
 
     w->in_frame = 0;
     w->prev_frame_tc_scaled = w->cluster_tc_scaled + delta;
@@ -515,7 +514,7 @@ int mk_start_frame( mk_writer *w )
     return 0;
 }
 
-int mk_set_frame_flags( mk_writer *w,int64_t timestamp, int keyframe )
+int mk_set_frame_flags( mk_writer *w, int64_t timestamp, int keyframe )
 {
     if( !w->in_frame )
         return -1;
@@ -538,7 +537,7 @@ int mk_add_frame_data( mk_writer *w, const void *data, unsigned size )
         if( !(w->frame = mk_create_context( w, NULL, 0 )) )
         return -1;
 
-  return mk_append_context_data( w->frame, data, size );
+    return mk_append_context_data( w->frame, data, size );
 }
 
 int mk_close( mk_writer *w )
@@ -550,7 +549,7 @@ int mk_close( mk_writer *w )
     {
         fseek( w->fp, w->duration_ptr, SEEK_SET );
         if( mk_write_float_raw( w->root, (float)((double)(w->max_frame_tc+w->def_duration) / w->timescale) ) < 0 ||
-            mk_flush_context_data(w->root) < 0 )
+            mk_flush_context_data( w->root ) < 0 )
             ret = -1;
     }
     mk_destroy_contexts( w );
@@ -558,4 +557,3 @@ int mk_close( mk_writer *w )
     free( w );
     return ret;
 }
-

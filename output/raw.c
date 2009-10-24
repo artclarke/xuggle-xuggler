@@ -1,5 +1,5 @@
 /*****************************************************************************
- * muxers.h: h264 file i/o modules
+ * raw.c: x264 raw bitstream output module
  *****************************************************************************
  * Copyright (C) 2003-2009 x264 project
  *
@@ -21,27 +21,39 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef X264_MUXERS_H
-#define X264_MUXERS_H
+#include "muxers.h"
 
-#include "common/common.h"
-#include "x264.h"
-
-typedef void *hnd_t;
-
-static inline int64_t gcd( int64_t a, int64_t b )
+static int open_file( char *psz_filename, hnd_t *p_handle )
 {
-    while( 1 )
-    {
-        int64_t c = a % b;
-        if( !c )
-            return b;
-        a = b;
-        b = c;
-    }
+    if( !(*p_handle = fopen( psz_filename, "w+b" )) )
+        return -1;
+
+    return 0;
 }
 
-#include "input/input.h"
-#include "output/output.h"
+static int set_param( hnd_t handle, x264_param_t *p_param )
+{
+    return 0;
+}
 
-#endif
+static int write_nalu( hnd_t handle, uint8_t *p_nalu, int i_size )
+{
+    if( fwrite( p_nalu, i_size, 1, (FILE*)handle ) > 0 )
+        return i_size;
+    return -1;
+}
+
+static int set_eop( hnd_t handle, x264_picture_t *p_picture )
+{
+    return 0;
+}
+
+static int close_file( hnd_t handle )
+{
+    if( !handle || handle == stdout )
+        return 0;
+
+    return fclose( (FILE*)handle );
+}
+
+cli_output_t raw_output = { open_file, set_param, write_nalu, set_eop, close_file };

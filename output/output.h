@@ -1,7 +1,10 @@
 /*****************************************************************************
- * matroska.h:
+ * output.h: x264 file output modules
  *****************************************************************************
- * Copyright (C) 2005 Mike Matsnev
+ * Copyright (C) 2003-2009 x264 project
+ *
+ * Authors: Laurent Aimar <fenrir@via.ecp.fr>
+ *          Loren Merritt <lorenm@u.washington.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,24 +21,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef X264_MATROSKA_H
-#define X264_MATROSKA_H
+#ifndef X264_OUTPUT_H
+#define X264_OUTPUT_H
 
-typedef struct mk_writer mk_writer;
+typedef struct
+{
+    int (*open_file)( char *psz_filename, hnd_t *p_handle );
+    int (*set_param)( hnd_t handle, x264_param_t *p_param );
+    int (*write_nalu)( hnd_t handle, uint8_t *p_nal, int i_size );
+    int (*set_eop)( hnd_t handle, x264_picture_t *p_picture );
+    int (*close_file)( hnd_t handle );
+} cli_output_t;
 
-mk_writer *mk_create_writer( const char *filename );
-
-int mk_writeHeader( mk_writer *w, const char *writing_app,
-                    const char *codec_id,
-                    const void *codec_private, unsigned codec_private_size,
-                    int64_t default_frame_duration,
-                    int64_t timescale,
-                    unsigned width, unsigned height,
-                    unsigned d_width, unsigned d_height );
-
-int  mk_start_frame( mk_writer *w );
-int  mk_add_frame_data( mk_writer *w, const void *data, unsigned size );
-int  mk_set_frame_flags( mk_writer *w, int64_t timestamp, int keyframe );
-int  mk_close( mk_writer *w );
+extern cli_output_t raw_output;
+extern cli_output_t mkv_output;
+extern cli_output_t mp4_output;
 
 #endif

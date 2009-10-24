@@ -12,7 +12,23 @@ SRCS = common/mc.c common/predict.c common/pixel.c common/macroblock.c \
        encoder/set.c encoder/macroblock.c encoder/cabac.c \
        encoder/cavlc.c encoder/encoder.c encoder/lookahead.c
 
-SRCCLI = x264.c matroska.c muxers.c
+SRCCLI = x264.c input/yuv.c input/y4m.c output/raw.c \
+         output/matroska.c output/matroska_ebml.c
+
+MUXERS := $(shell grep -E "(IN|OUT)PUT" config.h)
+
+# Optional muxer module sources
+ifneq ($(findstring AVIS_INPUT, $(MUXERS)),)
+SRCCLI += input/avis.c
+endif
+
+ifneq ($(findstring HAVE_PTHREAD, $(CFLAGS)),)
+SRCCLI += input/thread.c
+endif
+
+ifneq ($(findstring MP4_OUTPUT, $(MUXERS)),)
+SRCCLI += output/mp4.c
+endif
 
 # Visualization sources
 ifeq ($(VIS),yes)

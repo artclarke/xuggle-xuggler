@@ -1,5 +1,5 @@
 /*****************************************************************************
- * muxers.h: h264 file i/o modules
+ * input.h: x264 file input modules
  *****************************************************************************
  * Copyright (C) 2003-2009 x264 project
  *
@@ -21,27 +21,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef X264_MUXERS_H
-#define X264_MUXERS_H
+#ifndef X264_INPUT_H
+#define X264_INPUT_H
 
-#include "common/common.h"
-#include "x264.h"
-
-typedef void *hnd_t;
-
-static inline int64_t gcd( int64_t a, int64_t b )
+typedef struct
 {
-    while( 1 )
-    {
-        int64_t c = a % b;
-        if( !c )
-            return b;
-        a = b;
-        b = c;
-    }
-}
+    int (*open_file)( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param );
+    int (*get_frame_total)( hnd_t handle );
+    int (*read_frame)( x264_picture_t *p_pic, hnd_t handle, int i_frame );
+    int (*close_file)( hnd_t handle );
+} cli_input_t;
 
-#include "input/input.h"
-#include "output/output.h"
+extern cli_input_t yuv_input;
+extern cli_input_t y4m_input;
+extern cli_input_t avis_input;
+extern cli_input_t thread_input;
 
 #endif
