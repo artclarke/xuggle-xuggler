@@ -400,7 +400,7 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
     %endif
 %endmacro
 
-%macro PROLOGUE 2-4+ ; #args, #regs, arg_names...
+%macro PROLOGUE 2-4+ ; #args, #regs, #xmm_regs, arg_names...
     ASSERT %2 >= %1
     %assign regs_used %2
     ASSERT regs_used <= 7
@@ -476,9 +476,6 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 %ifidn __OUTPUT_FORMAT__,elf
 SECTION .note.GNU-stack noalloc noexec nowrite progbits
 %endif
-
-%assign FENC_STRIDE 16
-%assign FDEC_STRIDE 32
 
 ; merge mmx and sse*
 
@@ -586,7 +583,10 @@ INIT_MMX
 %endrep
 %endmacro
 
-%macro SAVE_MM_PERMUTATION 1
+; If SAVE_MM_PERMUTATION is placed at the end of a function and given the
+; function name, then any later calls to that function will automatically
+; load the permutation, so values can be returned in mmregs.
+%macro SAVE_MM_PERMUTATION 1 ; name to save as
     %assign %%i 0
     %rep num_mmregs
     CAT_XDEFINE %1_m, %%i, m %+ %%i
@@ -594,7 +594,7 @@ INIT_MMX
     %endrep
 %endmacro
 
-%macro LOAD_MM_PERMUTATION 1
+%macro LOAD_MM_PERMUTATION 1 ; name to load from
     %assign %%i 0
     %rep num_mmregs
     CAT_XDEFINE m, %%i, %1_m %+ %%i
@@ -610,7 +610,7 @@ INIT_MMX
     %endif
 %endmacro
 
-;Substitutions that reduce instruction size but are functionally equivalent
+; Substitutions that reduce instruction size but are functionally equivalent
 %macro add 2
     %ifnum %2
         %if %2==128

@@ -730,7 +730,7 @@ parse_error:
         if( i )
         {
             rc[i] = rc[0];
-            memcpy( &h->thread[i]->param, &h->param, sizeof(x264_param_t) );
+            h->thread[i]->param = h->param;
             h->thread[i]->mb.b_variable_qp = h->mb.b_variable_qp;
         }
     }

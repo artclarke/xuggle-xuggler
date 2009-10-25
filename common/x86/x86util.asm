@@ -21,6 +21,9 @@
 ;* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
 ;*****************************************************************************
 
+%assign FENC_STRIDE 16
+%assign FDEC_STRIDE 32
+
 %macro SBUTTERFLY 4
     mova      m%4, m%2
     punpckl%1 m%2, m%3

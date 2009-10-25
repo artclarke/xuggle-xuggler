@@ -20,7 +20,7 @@
 
 #include "common.h"
 
-#define SHIFT(x,s) ((s)<0 ? (x)<<-(s) : (s)==0 ? (x) : ((x)+(1<<((s)-1)))>>(s))
+#define SHIFT(x,s) ((s)<=0 ? (x)<<-(s) : ((x)+(1<<((s)-1)))>>(s))
 #define DIV(n,d) (((n) + ((d)>>1)) / (d))
 
 static const int dequant4_scale[6][3] =
