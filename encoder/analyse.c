@@ -1488,20 +1488,23 @@ static int x264_mb_analyse_inter_p4x4_chroma( x264_t *h, x264_mb_analysis_t *a, 
 
     if( pixel == PIXEL_4x4 )
     {
-        CHROMA4x4MC( 2,2, a->l0.me4x4[i8x8][0], 0,0 );
-        CHROMA4x4MC( 2,2, a->l0.me4x4[i8x8][1], 2,0 );
-        CHROMA4x4MC( 2,2, a->l0.me4x4[i8x8][2], 0,2 );
-        CHROMA4x4MC( 2,2, a->l0.me4x4[i8x8][3], 2,2 );
+        x264_me_t *m = a->l0.me4x4[i8x8];
+        CHROMA4x4MC( 2,2, m[0], 0,0 );
+        CHROMA4x4MC( 2,2, m[1], 2,0 );
+        CHROMA4x4MC( 2,2, m[2], 0,2 );
+        CHROMA4x4MC( 2,2, m[3], 2,2 );
     }
     else if( pixel == PIXEL_8x4 )
     {
-        CHROMA4x4MC( 4,2, a->l0.me8x4[i8x8][0], 0,0 );
-        CHROMA4x4MC( 4,2, a->l0.me8x4[i8x8][1], 0,2 );
+        x264_me_t *m = a->l0.me8x4[i8x8];
+        CHROMA4x4MC( 4,2, m[0], 0,0 );
+        CHROMA4x4MC( 4,2, m[1], 0,2 );
     }
     else
     {
-        CHROMA4x4MC( 2,4, a->l0.me4x8[i8x8][0], 0,0 );
-        CHROMA4x4MC( 2,4, a->l0.me4x8[i8x8][1], 2,0 );
+        x264_me_t *m = a->l0.me4x8[i8x8];
+        CHROMA4x4MC( 2,4, m[0], 0,0 );
+        CHROMA4x4MC( 2,4, m[1], 2,0 );
     }
 
     return h->pixf.mbcmp[PIXEL_4x4]( &h->mb.pic.p_fenc[1][oe], FENC_STRIDE, pix1, 16 )
@@ -1643,11 +1646,6 @@ static void x264_mb_analyse_inter_direct( x264_t *h, x264_mb_analysis_t *a )
         /* mb type cost */
         a->i_cost8x8direct[i] += a->i_lambda * i_sub_mb_b_cost_table[D_DIRECT_8x8];
     }
-}
-
-#define WEIGHTED_AVG( size, pix, stride, src1, stride1, src2, stride2 ) \
-{ \
-    h->mc.avg[size]( pix, stride, src1, stride1, src2, stride2, h->mb.bipred_weight[a->l0.i_ref][a->l1.i_ref] ); \
 }
 
 static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
