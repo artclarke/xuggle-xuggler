@@ -808,7 +808,7 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
         }
         else if( h->param.i_bframe_adaptive == X264_B_ADAPT_FAST )
         {
-            for( i = 0; i < num_frames-(2-!i); )
+            for( i = 0; i <= num_frames-2; )
             {
                 cost2p1 = x264_slicetype_frame_cost( h, &a, frames, i+0, i+2, i+2, 1 );
                 if( frames[i+2]->i_intra_mbs[2] > i_mb_count / 2 )
@@ -826,8 +826,7 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
                 if( cost1p0 + cost2p0 < cost1b1 + cost2p1 )
                 {
                     frames[i+1]->i_type = X264_TYPE_P;
-                    frames[i+2]->i_type = X264_TYPE_P;
-                    i += 2;
+                    i += 1;
                     continue;
                 }
 
@@ -835,24 +834,19 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
                 #define INTER_THRESH 300
                 #define P_SENS_BIAS (50 - h->param.i_bframe_bias)
                 frames[i+1]->i_type = X264_TYPE_B;
-                frames[i+2]->i_type = X264_TYPE_P;
 
-                for( j = i+2; j <= X264_MIN( h->param.i_bframe, num_frames-1 ); j++ )
+                for( j = i+2; j <= X264_MIN( i+h->param.i_bframe, num_frames-1 ); j++ )
                 {
                     int pthresh = X264_MAX(INTER_THRESH - P_SENS_BIAS * (j-i-1), INTER_THRESH/10);
                     int pcost = x264_slicetype_frame_cost( h, &a, frames, i+0, j+1, j+1, 1 );
-
                     if( pcost > pthresh*i_mb_count || frames[j+1]->i_intra_mbs[j-i+1] > i_mb_count/3 )
-                    {
-                        frames[j]->i_type = X264_TYPE_P;
                         break;
-                    }
-                    else
-                        frames[j]->i_type = X264_TYPE_B;
+                    frames[j]->i_type = X264_TYPE_B;
                 }
+                frames[j]->i_type = X264_TYPE_P;
                 i = j;
             }
-            frames[i+!i]->i_type = X264_TYPE_P;
+            frames[num_frames]->i_type = X264_TYPE_P;
             num_bframes = 0;
             while( num_bframes < num_frames && frames[num_bframes+1]->i_type == X264_TYPE_B )
                 num_bframes++;
@@ -878,15 +872,11 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     }
     else
     {
-        for( j = 1; j < num_frames; j++ )
+        for( j = 1; j <= num_frames; j++ )
             frames[j]->i_type = X264_TYPE_P;
         reset_start = !keyframe + 1;
         num_bframes = 0;
     }
-
-    for( j = 1; j <= num_frames; j++ )
-        if( frames[j]->i_type == X264_TYPE_AUTO )
-            frames[j]->i_type = X264_TYPE_P;
 
     /* Perform the actual macroblock tree analysis.
      * Don't go farther than the maximum keyframe interval; this helps in short GOPs. */
