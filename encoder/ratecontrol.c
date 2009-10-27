@@ -268,7 +268,9 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame )
 void x264_adaptive_quant( x264_t *h )
 {
     x264_emms();
-    h->mb.i_qp = x264_clip3( h->rc->f_qpm + h->fenc->f_qp_offset[h->mb.i_mb_xy] + .5, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
+    /* MB-tree currently doesn't adjust quantizers in B-frames. */
+    float qp_offset = h->sh.i_type == SLICE_TYPE_B ? h->fenc->f_qp_offset_aq[h->mb.i_mb_xy] : h->fenc->f_qp_offset[h->mb.i_mb_xy];
+    h->mb.i_qp = x264_clip3( h->rc->f_qpm + qp_offset + .5, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
 }
 
 int x264_macroblock_tree_read( x264_t *h, x264_frame_t *frame )
