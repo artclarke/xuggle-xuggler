@@ -954,14 +954,22 @@ cglobal x264_mc_chroma_ssse3%1, 0,6,%2
     movifnidn r4d, r7m
     SPLATW     m6, m6
     SPLATW     m7, m7
-    movh       m0, [r2]
-    punpcklbw  m0, [r2+1]
-    add r2, r3
+    mov        r5, r2
+    and        r2, ~3
+    and        r5, 3
+%ifdef PIC
+    lea       r11, [ch_shuffle GLOBAL]
+    movu       m5, [r11 + r5*2]
+%else
+    movu       m5, [ch_shuffle + r5*2 GLOBAL]
+%endif
+    movu       m0, [r2]
+    pshufb     m0, m5
 .loop4:
-    movh       m1, [r2]
-    movh       m3, [r2+r3]
-    punpcklbw  m1, [r2+1]
-    punpcklbw  m3, [r2+r3+1]
+    movu       m1, [r2+r3]
+    pshufb     m1, m5
+    movu       m3, [r2+2*r3]
+    pshufb     m3, m5
     lea        r2, [r2+2*r3]
     mova       m2, m1
     mova       m4, m3
@@ -969,8 +977,8 @@ cglobal x264_mc_chroma_ssse3%1, 0,6,%2
     pmaddubsw  m1, m6
     pmaddubsw  m2, m7
     pmaddubsw  m3, m6
-    paddw      m0, m5
-    paddw      m2, m5
+    paddw      m0, [pw_32 GLOBAL]
+    paddw      m2, [pw_32 GLOBAL]
     paddw      m1, m0
     paddw      m3, m2
     mova       m0, m4
