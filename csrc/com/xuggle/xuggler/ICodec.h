@@ -44,7 +44,7 @@ class VS_API_XUGGLER ICodec : public com::xuggle::ferry::RefCounted
 public:
   /**
    * These are the codecs this library currently supports.
-   * These are based on FFMPEG r18801 or later
+   * These are based on FFMPEG r20379 or later
    */
   typedef enum
   {
@@ -185,8 +185,9 @@ public:
     CODEC_ID_V210,
     CODEC_ID_DPX,
     CODEC_ID_MAD,
+    CODEC_ID_FRWU,
 
-    CODEC_ID_PCM_S16LE = 0x10000,
+    CODEC_ID_PCM_S16LE= 0x10000,
     CODEC_ID_PCM_S16BE,
     CODEC_ID_PCM_U16LE,
     CODEC_ID_PCM_U16BE,
@@ -212,7 +213,7 @@ public:
     CODEC_ID_PCM_F64LE,
     CODEC_ID_PCM_BLURAY,
 
-    CODEC_ID_ADPCM_IMA_QT = 0x11000,
+    CODEC_ID_ADPCM_IMA_QT= 0x11000,
     CODEC_ID_ADPCM_IMA_WAV,
     CODEC_ID_ADPCM_IMA_DK3,
     CODEC_ID_ADPCM_IMA_DK4,
@@ -241,18 +242,18 @@ public:
     CODEC_ID_ADPCM_EA_MAXIS_XA,
     CODEC_ID_ADPCM_IMA_ISS,
 
-    CODEC_ID_AMR_NB = 0x12000,
+    CODEC_ID_AMR_NB= 0x12000,
     CODEC_ID_AMR_WB,
 
-    CODEC_ID_RA_144 = 0x13000,
+    CODEC_ID_RA_144= 0x13000,
     CODEC_ID_RA_288,
 
-    CODEC_ID_ROQ_DPCM = 0x14000,
+    CODEC_ID_ROQ_DPCM= 0x14000,
     CODEC_ID_INTERPLAY_DPCM,
     CODEC_ID_XAN_DPCM,
     CODEC_ID_SOL_DPCM,
 
-    CODEC_ID_MP2 = 0x15000,
+    CODEC_ID_MP2= 0x15000,
     CODEC_ID_MP3,
     CODEC_ID_AAC,
     CODEC_ID_AC3,
@@ -303,7 +304,7 @@ public:
     CODEC_ID_MP4ALS,
     CODEC_ID_ATRAC1,
 
-    CODEC_ID_DVD_SUBTITLE = 0x17000,
+    CODEC_ID_DVD_SUBTITLE= 0x17000,
     CODEC_ID_DVB_SUBTITLE,
     CODEC_ID_TEXT,
     CODEC_ID_XSUB,
@@ -311,11 +312,11 @@ public:
     CODEC_ID_MOV_TEXT,
     CODEC_ID_HDMV_PGS_SUBTITLE,
 
-    CODEC_ID_TTF = 0x18000,
+    CODEC_ID_TTF= 0x18000,
 
-    CODEC_ID_PROBE = 0x19000,
+    CODEC_ID_PROBE= 0x19000,
 
-    CODEC_ID_MPEG2TS = 0x20000,
+    CODEC_ID_MPEG2TS= 0x20000,
   } ID;
 
   /**

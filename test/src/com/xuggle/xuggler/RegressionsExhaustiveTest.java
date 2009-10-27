@@ -347,4 +347,10 @@ public class RegressionsExhaustiveTest
         
   }
 
+  @Test
+  public void testRegressionIssue219()
+  {
+    for (ICodec c: ICodec.getInstalledCodecs())
+      c.getID();
+  }
 }
