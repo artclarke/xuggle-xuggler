@@ -506,7 +506,7 @@ static void x264_macroblock_tree( x264_t *h, x264_mb_analysis_t *a, x264_frame_t
         i--;
     last_nonb = i;
 
-    if( last_nonb < 0 )
+    if( last_nonb < idx )
         return;
 
     memset( frames[last_nonb]->i_propagate_cost, 0, h->mb.i_mb_count * sizeof(uint16_t) );
@@ -519,14 +519,14 @@ static void x264_macroblock_tree( x264_t *h, x264_mb_analysis_t *a, x264_frame_t
             break;
         x264_slicetype_frame_cost( h, a, frames, cur_nonb, last_nonb, last_nonb, 0 );
         memset( frames[cur_nonb]->i_propagate_cost, 0, h->mb.i_mb_count * sizeof(uint16_t) );
-        x264_macroblock_tree_propagate( h, frames, cur_nonb, last_nonb, last_nonb );
-        while( frames[i]->i_type == X264_TYPE_B && i > 0 )
+        while( i > cur_nonb )
         {
             x264_slicetype_frame_cost( h, a, frames, cur_nonb, last_nonb, i, 0 );
             memset( frames[i]->i_propagate_cost, 0, h->mb.i_mb_count * sizeof(uint16_t) );
             x264_macroblock_tree_propagate( h, frames, cur_nonb, last_nonb, i );
             i--;
         }
+        x264_macroblock_tree_propagate( h, frames, cur_nonb, last_nonb, last_nonb );
         last_nonb = cur_nonb;
     }
 
