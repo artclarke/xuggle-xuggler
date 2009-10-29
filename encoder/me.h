@@ -84,13 +84,23 @@ if((y)<(x))\
     (c)=(d);\
 }
 
-#define COPY4_IF_LT(x,y,a,b,c,d,f,e)\
+#define COPY4_IF_LT(x,y,a,b,c,d,e,f)\
 if((y)<(x))\
 {\
     (x)=(y);\
     (a)=(b);\
     (c)=(d);\
-    (f)=(e);\
+    (e)=(f);\
+}
+
+#define COPY5_IF_LT(x,y,a,b,c,d,e,f,g,h)\
+if((y)<(x))\
+{\
+    (x)=(y);\
+    (a)=(b);\
+    (c)=(d);\
+    (e)=(f);\
+    (g)=(h);\
 }
 
 #define COPY2_IF_GT(x,y,a,b)\
