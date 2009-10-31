@@ -40,6 +40,12 @@
     %endif
 %endif
 
+%ifdef PREFIX
+    %define mangle(x) _ %+ x
+%else
+    %define mangle(x) x
+%endif
+
 ; FIXME: All of the 64bit asm functions that take a stride as an argument
 ; via register, assume that the high dword of that register is filled with 0.
 ; This is true in practice (since we never do any 64bit arithmetic on strides,
@@ -446,9 +452,7 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 
 ; Symbol prefix for C linkage
 %macro cglobal 1-2+
-    %ifdef PREFIX
-        %xdefine %1 _ %+ %1
-    %endif
+    %xdefine %1 mangle(%1)
     %xdefine %1.skip_prologue %1 %+ .skip_prologue
     %ifidn __OUTPUT_FORMAT__,elf
         global %1:function hidden
@@ -465,9 +469,7 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 %endmacro
 
 %macro cextern 1
-    %ifdef PREFIX
-        %xdefine %1 _%1
-    %endif
+    %xdefine %1 mangle(%1)
     extern %1
 %endmacro
 
