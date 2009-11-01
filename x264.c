@@ -32,7 +32,6 @@
 #include "common/cpu.h"
 #include "x264.h"
 #include "muxers.h"
-#include "config.h"
 
 #ifdef _WIN32
 #include <windows.h>

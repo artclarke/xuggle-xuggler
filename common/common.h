@@ -80,6 +80,7 @@ do {\
 #include "dct.h"
 #include "cabac.h"
 #include "quant.h"
+#include "config.h"
 
 /****************************************************************************
  * General functions

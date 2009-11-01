@@ -67,7 +67,7 @@ static void x264_frame_dump( x264_t *h )
     if( !f )
         return;
     /* Write the frame in display order */
-    fseek( f, h->fdec->i_frame * h->param.i_height * h->param.i_width * 3/2, SEEK_SET );
+    fseek( f, (uint64_t)h->fdec->i_frame * h->param.i_height * h->param.i_width * 3/2, SEEK_SET );
     for( i = 0; i < h->fdec->i_plane; i++ )
         for( y = 0; y < h->param.i_height >> !!i; y++ )
             fwrite( &h->fdec->plane[i][y*h->fdec->i_stride[i]], 1, h->param.i_width >> !!i, f );
