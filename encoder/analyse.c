@@ -236,7 +236,7 @@ static const int i_sub_mb_p_cost_table[4] = {
 static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a );
 
 static uint16_t x264_cost_ref[92][3][33];
-static x264_pthread_mutex_t cost_ref_mutex = X264_PTHREAD_MUTEX_INITIALIZER;
+static UNUSED x264_pthread_mutex_t cost_ref_mutex = X264_PTHREAD_MUTEX_INITIALIZER;
 
 int x264_analyse_init_costs( x264_t *h, int qp )
 {
@@ -1101,7 +1101,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
         {
             uint64_t pels_h = 0;
             uint8_t pels_v[7];
-            uint16_t i_nnz[2];
+            uint16_t i_nnz[2] = {0}; //shut up gcc
             uint8_t *p_dst_by;
             int j;
             int cbp_luma_new = 0;

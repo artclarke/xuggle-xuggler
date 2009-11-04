@@ -259,11 +259,17 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
     if( ref[0] >= 0 )
         x264_mb_predict_mv_16x16( h, 0, ref[0], mv[0] );
     else
-        *(uint32_t*)mv[0] = 0;
+    {
+        mv[0][0] = 0;
+        mv[0][1] = 0;
+    }
     if( ref[1] >= 0 )
         x264_mb_predict_mv_16x16( h, 1, ref[1], mv[1] );
     else
-        *(uint32_t*)mv[1] = 0;
+    {
+        mv[1][0] = 0;
+        mv[1][1] = 0;
+    }
 
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, ref[0] );
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, ref[1] );
