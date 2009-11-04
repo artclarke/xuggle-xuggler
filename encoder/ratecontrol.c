@@ -37,13 +37,13 @@ typedef struct
 {
     int pict_type;
     int kept_as_ref;
-    float qscale;
+    double qscale;
     int mv_bits;
     int tex_bits;
     int misc_bits;
     uint64_t expected_bits; /*total expected bits up to the current frame (current one excluded)*/
     double expected_vbv;
-    float new_qscale;
+    double new_qscale;
     int new_qp;
     int i_count;
     int p_count;
