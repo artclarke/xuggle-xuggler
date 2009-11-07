@@ -27,7 +27,7 @@
 
 // done in gas because .fpu neon overrides the refusal to assemble
 // instructions the selected -march/-mcpu doesn't support
-function x264_cpu_neon_test, export=1
+function x264_cpu_neon_test
     vadd.i16    q0, q0, q0
     bx          lr
 .endfunc
@@ -62,7 +62,7 @@ function x264_cpu_disable_armv7_counter
 
 // return: 0 if transfers neon -> arm transfers take more than 10 cycles
 //         nonzero otherwise
-function x264_cpu_fast_neon_mrc_test, export=1
+function x264_cpu_fast_neon_mrc_test
     // check for user access to performance counters
     mrc         p15, 0, r0, c9, c14, 0
     cmp         r0, #0

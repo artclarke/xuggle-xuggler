@@ -30,7 +30,7 @@
 // They also use nothing above armv5te, but we don't care about pre-armv6
 
 // void prefetch_ref( uint8_t *pix, int stride, int parity )
-function x264_prefetch_ref_arm, export=1
+function x264_prefetch_ref_arm
     sub         r2, r2, #1
     add         r0, r0, #64
     and         r2, r2, r1
@@ -50,7 +50,7 @@ function x264_prefetch_ref_arm, export=1
 
 // void prefetch_fenc( uint8_t *pix_y, int stride_y,
 //                     uint8_t *pix_uv, int stride_uv, int mb_x )
-function x264_prefetch_fenc_arm, export=1
+function x264_prefetch_fenc_arm
     ldr         ip, [sp]
     push        {lr}
     and         lr, ip, #3
@@ -76,7 +76,7 @@ function x264_prefetch_fenc_arm, export=1
 
 
 // void *x264_memcpy_aligned( void * dst, const void * src, size_t n )
-function x264_memcpy_aligned_neon, export=1
+function x264_memcpy_aligned_neon
     orr         r3,  r0,  r1,  lsr #1
     movrel      ip,  memcpy_table
     and         r3,  r3,  #0xc
@@ -138,7 +138,7 @@ memcpy_table:
 .ltorg
 
 // void x264_memzero_aligned( void *dst, size_t n )
-function x264_memzero_aligned_neon, export=1
+function x264_memzero_aligned_neon
     vmov.i8     q0, #0
     vmov.i8     q1, #0
 memzero_loop:
@@ -155,7 +155,7 @@ memzero_loop:
 //                 uint8_t *src1, int src1_stride,
 //                 uint8_t *src2, int src2_stride, int weight );
 .macro AVGH w h
-function x264_pixel_avg_\w\()x\h\()_neon, export=1
+function x264_pixel_avg_\w\()x\h\()_neon
     ldr         ip, [sp, #8]
     push        {r4-r6,lr}
     cmp         ip, #32
@@ -230,7 +230,7 @@ AVGH 16, 16
 .endm
 
 .macro AVG_WEIGHT ext
-function x264_pixel_avg_weight_w4_\ext\()_neon, export=1
+function x264_pixel_avg_weight_w4_\ext\()_neon
     load_weights_\ext
 1:  // height loop
     subs            lr,  lr,  #2
@@ -246,7 +246,7 @@ function x264_pixel_avg_weight_w4_\ext\()_neon, export=1
     pop             {r4-r6,pc}
 .endfunc
 
-function x264_pixel_avg_weight_w8_\ext\()_neon, export=1
+function x264_pixel_avg_weight_w8_\ext\()_neon
     load_weights_\ext
 1:  // height loop
     subs            lr,  lr,  #4
@@ -270,7 +270,7 @@ function x264_pixel_avg_weight_w8_\ext\()_neon, export=1
     pop             {r4-r6,pc}
 .endfunc
 
-function x264_pixel_avg_weight_w16_\ext\()_neon, export=1
+function x264_pixel_avg_weight_w16_\ext\()_neon
     load_weights_\ext
 1:  // height loop
     subs            lr,  lr,  #2
@@ -295,7 +295,7 @@ AVG_WEIGHT add_add
 AVG_WEIGHT add_sub
 AVG_WEIGHT sub_add
 
-function x264_pixel_avg_w4_neon, export=1
+function x264_pixel_avg_w4_neon
     subs        lr,  lr,  #2
     vld1.32     {d0[]}, [r2], r3
     vld1.32     {d2[]}, [r4], r5
@@ -309,7 +309,7 @@ function x264_pixel_avg_w4_neon, export=1
     pop         {r4-r6,pc}
 .endfunc
 
-function x264_pixel_avg_w8_neon, export=1
+function x264_pixel_avg_w8_neon
     subs        lr,  lr,  #4
     vld1.64     {d0}, [r2], r3
     vld1.64     {d2}, [r4], r5
@@ -331,7 +331,7 @@ function x264_pixel_avg_w8_neon, export=1
     pop         {r4-r6,pc}
 .endfunc
 
-function x264_pixel_avg_w16_neon, export=1
+function x264_pixel_avg_w16_neon
     subs        lr,  lr,  #4
     vld1.64     {d0-d1}, [r2], r3
     vld1.64     {d2-d3}, [r4], r5
@@ -354,7 +354,7 @@ function x264_pixel_avg_w16_neon, export=1
 .endfunc
 
 
-function x264_pixel_avg2_w4_neon, export=1
+function x264_pixel_avg2_w4_neon
     ldr         ip,  [sp, #4]
     push        {lr}
     ldr         lr,  [sp, #4]
@@ -372,7 +372,7 @@ avg2_w4_loop:
     pop         {pc}
 .endfunc
 
-function x264_pixel_avg2_w8_neon, export=1
+function x264_pixel_avg2_w8_neon
     ldr         ip,  [sp, #4]
     push        {lr}
     ldr         lr,  [sp, #4]
@@ -390,7 +390,7 @@ avg2_w8_loop:
     pop         {pc}
 .endfunc
 
-function x264_pixel_avg2_w16_neon, export=1
+function x264_pixel_avg2_w16_neon
     ldr         ip,  [sp, #4]
     push        {lr}
     ldr         lr,  [sp, #4]
@@ -408,7 +408,7 @@ avg2_w16_loop:
     pop         {pc}
 .endfunc
 
-function x264_pixel_avg2_w20_neon, export=1
+function x264_pixel_avg2_w20_neon
     ldr         ip,  [sp, #4]
     push        {lr}
     sub         r1,  r1,  #16
@@ -432,8 +432,8 @@ avg2_w20_loop:
 .endfunc
 
 
-// void mc_copy( uint8_t *src, int src_stride, uint8_t *dst, int dst_stride, int height )
-function x264_mc_copy_w4_neon, export=1
+// void mc_copy( uint8_t *dst, int dst_stride, uint8_t *src, int src_stride, int height )
+function x264_mc_copy_w4_neon
     ldr         ip,  [sp]
 copy_w4_loop:
     subs        ip,  ip,  #4
@@ -449,7 +449,7 @@ copy_w4_loop:
     bx          lr
 .endfunc
 
-function x264_mc_copy_w8_neon, export=1
+function x264_mc_copy_w8_neon
     ldr         ip,  [sp]
 copy_w8_loop:
     subs        ip,  ip,  #4
@@ -465,7 +465,7 @@ copy_w8_loop:
     bx          lr
 .endfunc
 
-function x264_mc_copy_w16_neon, export=1
+function x264_mc_copy_w16_neon
     ldr         ip,  [sp]
 copy_w16_loop:
     subs        ip,  ip,  #4
@@ -481,7 +481,7 @@ copy_w16_loop:
     bx          lr
 .endfunc
 
-function x264_mc_copy_w16_aligned_neon, export=1
+function x264_mc_copy_w16_aligned_neon
     ldr         ip,  [sp]
 copy_w16_aligned_loop:
     subs        ip,  ip,  #4
@@ -501,7 +501,7 @@ copy_w16_aligned_loop:
 // void x264_mc_chroma_neon( uint8_t *dst, int i_dst_stride,
 //                           uint8_t *src, int i_src_stride,
 //                           int dx, int dy, int i_width, int i_height );
-function x264_mc_chroma_neon, export=1
+function x264_mc_chroma_neon
     push            {r4-r6, lr}
     ldrd            r4,  [sp, #16]
     ldr             r6,  [sp, #24]
@@ -741,7 +741,7 @@ mc_chroma_w8:
 
 
 // hpel_filter_v( uint8_t *dst, uint8_t *src, int16_t *buf, int stride, int width)
-function x264_hpel_filter_v_neon, export=1
+function x264_hpel_filter_v_neon
     ldr             ip,  [sp]
     sub             r1,  r1,  r3,  lsl #1
     push            {lr}
@@ -781,7 +781,7 @@ filter_v_loop:
 .endfunc
 
 // hpel_filter_c( uint8_t *dst, int16_t *buf, int width );
-function x264_hpel_filter_c_neon, export=1
+function x264_hpel_filter_c_neon
     sub             r1,  #16
     vld1.64         {d0-d3}, [r1,:128]!
 
@@ -866,7 +866,7 @@ filter_c_loop:
 .endfunc
 
 // hpel_filter_h( uint8_t *dst, uint8_t *src, int width );
-function x264_hpel_filter_h_neon, export=1
+function x264_hpel_filter_h_neon
     sub             r1,  #16
     vmov.u8         d30, #5
     vld1.64         {d0-d3}, [r1,:128]!
@@ -956,7 +956,7 @@ filter_h_loop:
 // frame_init_lowres_core( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv,
 //                         uint8_t *dstc, int src_stride, int dst_stride, int width,
 //                         int height )
-function x264_frame_init_lowres_core_neon, export=1
+function x264_frame_init_lowres_core_neon
     push            {r4-r10,lr}
     vpush           {d8-d15}
     ldrd            r4,  [sp, #96]

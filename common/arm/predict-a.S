@@ -32,7 +32,7 @@ pw_76543210: .short 7,6,5,4,3,2,1,0
 .text
 
 // because gcc doesn't believe in using the free shift in add
-function x264_predict_4x4_h_armv6, export=1
+function x264_predict_4x4_h_armv6
     ldrb    r1, [r0, #0*FDEC_STRIDE-1]
     ldrb    r2, [r0, #1*FDEC_STRIDE-1]
     ldrb    r3, [r0, #2*FDEC_STRIDE-1]
@@ -52,7 +52,7 @@ function x264_predict_4x4_h_armv6, export=1
     bx      lr
 .endfunc
 
-function x264_predict_4x4_dc_armv6, export=1
+function x264_predict_4x4_dc_armv6
     mov     ip, #0
     ldr     r1, [r0, #-FDEC_STRIDE]
     ldrb    r2, [r0, #0*FDEC_STRIDE-1]
@@ -89,7 +89,7 @@ function x264_predict_4x4_dc_armv6, export=1
     uadd8   \a2, \a2, \c2
 .endm
 
-function x264_predict_4x4_ddr_armv6, export=1
+function x264_predict_4x4_ddr_armv6
     ldr     r1, [r0, # -FDEC_STRIDE]
     ldrb    r2, [r0, # -FDEC_STRIDE-1]
     ldrb    r3, [r0, #0*FDEC_STRIDE-1]
@@ -118,7 +118,7 @@ function x264_predict_4x4_ddr_armv6, export=1
     pop     {r4-r6,pc}
 .endfunc
 
-function x264_predict_4x4_ddl_neon, export=1
+function x264_predict_4x4_ddl_neon
     sub         r0, #FDEC_STRIDE
     mov         ip, #FDEC_STRIDE
     vld1.64     {d0}, [r0], ip
@@ -137,7 +137,7 @@ function x264_predict_4x4_ddl_neon, export=1
     bx          lr
 .endfunc
 
-function x264_predict_8x8_dc_neon, export=1
+function x264_predict_8x8_dc_neon
     mov     ip, #0
     ldrd    r2, [r1, #8]
     push    {r4-r5,lr}
@@ -162,7 +162,7 @@ function x264_predict_8x8_dc_neon, export=1
 .endfunc
 
 
-function x264_predict_8x8_h_neon, export=1
+function x264_predict_8x8_h_neon
     add         r1, r1, #7
     mov         ip, #FDEC_STRIDE
     vld1.64     {d16}, [r1]
@@ -185,7 +185,7 @@ function x264_predict_8x8_h_neon, export=1
     bx          lr
 .endfunc
 
-function x264_predict_8x8c_h_neon, export=1
+function x264_predict_8x8c_h_neon
     sub         r1, r0, #1
     mov         ip, #FDEC_STRIDE
 .rept 4
@@ -197,7 +197,7 @@ function x264_predict_8x8c_h_neon, export=1
     bx          lr
 .endfunc
 
-function x264_predict_8x8c_v_neon, export=1
+function x264_predict_8x8c_v_neon
     sub         r0, r0, #FDEC_STRIDE
     mov         ip, #FDEC_STRIDE
     vld1.64     {d0}, [r0,:64], ip
@@ -208,7 +208,7 @@ function x264_predict_8x8c_v_neon, export=1
 .endfunc
 
 
-function x264_predict_16x16_dc_neon, export=1
+function x264_predict_16x16_dc_neon
     sub         r3, r0, #FDEC_STRIDE
     sub         r0, r0, #1
     vld1.64     {d0-d1}, [r3,:128]
@@ -245,7 +245,7 @@ function x264_predict_16x16_dc_neon, export=1
     bx          lr
 .endfunc
 
-function x264_predict_16x16_h_neon, export=1
+function x264_predict_16x16_h_neon
     sub         r1, r0, #1
     mov         ip, #FDEC_STRIDE
 .rept 8
@@ -259,7 +259,7 @@ function x264_predict_16x16_h_neon, export=1
     bx          lr
 .endfunc
 
-function x264_predict_16x16_v_neon, export=1
+function x264_predict_16x16_v_neon
     sub         r0, r0, #FDEC_STRIDE
     mov         ip, #FDEC_STRIDE
     vld1.64     {d0-d1}, [r0,:128], ip

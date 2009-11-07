@@ -64,7 +64,7 @@ pmovmskb_byte:
 .endm
 
 // quant_2x2_dc( int16_t dct[4], int mf, int bias )
-function x264_quant_2x2_dc_neon, export=1
+function x264_quant_2x2_dc_neon
     vld1.64     {d0}, [r0,:64]
     vabs.s16    d3,  d0
     vdup.16     d2,  r2
@@ -80,7 +80,7 @@ function x264_quant_2x2_dc_neon, export=1
 .endfunc
 
 // quant_4x4_dc( int16_t dct[16], int mf, int bias )
-function x264_quant_4x4_dc_neon, export=1
+function x264_quant_4x4_dc_neon
     vld1.64     {d28-d31}, [r0,:128]
     vabs.s16    q8,  q14
     vabs.s16    q9,  q15
@@ -92,7 +92,7 @@ function x264_quant_4x4_dc_neon, export=1
 .endfunc
 
 // quant_4x4( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
-function x264_quant_4x4_neon, export=1
+function x264_quant_4x4_neon
     vld1.64     {d28-d31}, [r0,:128]
     vabs.s16    q8,  q14
     vabs.s16    q9,  q15
@@ -104,7 +104,7 @@ function x264_quant_4x4_neon, export=1
 .endfunc
 
 // quant_8x8( int16_t dct[64], uint16_t mf[64], uint16_t bias[64] )
-function x264_quant_8x8_neon, export=1
+function x264_quant_8x8_neon
     vld1.64     {d28-d31}, [r0,:128]
     vabs.s16    q8,  q14
     vabs.s16    q9,  q15
@@ -139,7 +139,7 @@ function x264_quant_8x8_neon, export=1
 
 // dequant_4x4( int16_t dct[16], int dequant_mf[6][16], int i_qp )
 .macro DEQUANT size bits
-function x264_dequant_\size\()_neon, export=1
+function x264_dequant_\size\()_neon
     DEQUANT_START \bits+2, \bits
 .ifc \size, 8x8
     mov         r2,  #4
@@ -220,7 +220,7 @@ DEQUANT 4x4, 4
 DEQUANT 8x8, 6
 
 // dequant_4x4_dc( int16_t dct[16], int dequant_mf[6][16], int i_qp )
-function x264_dequant_4x4_dc_neon, export=1
+function x264_dequant_4x4_dc_neon
     DEQUANT_START 6, 6, yes
     blt         dequant_4x4_dc_rshift
 
@@ -267,7 +267,7 @@ dequant_4x4_dc_rshift:
 
 
 // int coeff_last( int16_t *l )
-function x264_coeff_last4_arm, export=1
+function x264_coeff_last4_arm
     ldrd        r2,  [r0]
     subs        r0,  r3,  #0
     movne       r0,  #2
@@ -278,7 +278,7 @@ function x264_coeff_last4_arm, export=1
 .endfunc
 
 .macro COEFF_LAST_1x size
-function x264_coeff_last\size\()_neon, export=1
+function x264_coeff_last\size\()_neon
 .if \size == 15
     sub         r0,  r0,  #2
     vld1.64     {d0-d3}, [r0]
@@ -306,7 +306,7 @@ function x264_coeff_last\size\()_neon, export=1
 COEFF_LAST_1x 15
 COEFF_LAST_1x 16
 
-function x264_coeff_last64_neon, export=1
+function x264_coeff_last64_neon
     vld1.64     {d16-d19}, [r0,:128]!
     vqmovn.u16  d16, q8
     vqmovn.u16  d17, q9

@@ -115,7 +115,7 @@
     vqmovun.s16     d1,  q12
 .endm
 
-function x264_deblock_v_luma_neon, export=1
+function x264_deblock_v_luma_neon
     h264_loop_filter_start
 
     vld1.64         {d0, d1},  [r0,:128], r1
@@ -141,7 +141,7 @@ function x264_deblock_v_luma_neon, export=1
     bx              lr
 .endfunc
 
-function x264_deblock_h_luma_neon, export=1
+function x264_deblock_h_luma_neon
     h264_loop_filter_start
 
     sub             r0,  r0,  #4
@@ -226,7 +226,7 @@ function x264_deblock_h_luma_neon, export=1
     vqmovun.s16     d0,  q11
 .endm
 
-function x264_deblock_v_chroma_neon, export=1
+function x264_deblock_v_chroma_neon
     h264_loop_filter_start
 
     sub             r0,  r0,  r1, lsl #1
@@ -244,7 +244,7 @@ function x264_deblock_v_chroma_neon, export=1
     bx              lr
 .endfunc
 
-function x264_deblock_h_chroma_neon, export=1
+function x264_deblock_h_chroma_neon
     h264_loop_filter_start
 
     sub             r0,  r0,  #2

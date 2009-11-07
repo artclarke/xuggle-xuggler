@@ -27,7 +27,7 @@ void x264_prefetch_ref_arm( uint8_t *, int, int );
 void x264_prefetch_fenc_arm( uint8_t *, int, uint8_t *, int, int );
 
 void *x264_memcpy_aligned_neon( void * dst, const void * src, size_t n );
-void x264_memzero_aligned_neon( void *dst, size_t n );
+void x264_memzero_aligned_neon( void *dst, int n );
 
 void x264_pixel_avg_16x16_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int, int );
 void x264_pixel_avg_16x8_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int, int );
