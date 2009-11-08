@@ -996,25 +996,27 @@ void x264_slicetype_decide( x264_t *h )
     if( h->param.rc.i_rc_method != X264_RC_CQP )
     {
         x264_mb_analysis_t a;
-        int p0=0, p1, b;
+        int p0, p1, b;
+        p1 = b = bframes + 1;
 
         x264_lowres_context_init( h, &a );
 
         frames[0] = h->lookahead->last_nonb;
         memcpy( &frames[1], h->lookahead->next.list, (bframes+1) * sizeof(x264_frame_t*) );
         if( IS_X264_TYPE_I( h->lookahead->next.list[bframes]->i_type ) )
-            p0 = p1 = b = 1;
+            p0 = bframes + 1;
         else // P
-            p1 = b = bframes + 1;
+            p0 = 0;
 
         x264_slicetype_frame_cost( h, &a, frames, p0, p1, b, 0 );
 
-        if( p0 != p1 && h->param.rc.i_vbv_buffer_size )
+        if( (p0 != p1 || bframes) && h->param.rc.i_vbv_buffer_size )
         {
             /* We need the intra costs for row SATDs. */
             x264_slicetype_frame_cost( h, &a, frames, b, b, b, 0 );
 
             /* We need B-frame costs for row SATDs. */
+            p0 = 0;
             for( b = 1; b <= bframes; b++ )
             {
                 if( frames[b]->i_type == X264_TYPE_B )
