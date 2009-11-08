@@ -920,13 +920,17 @@ x264_t *x264_encoder_open( x264_param_t *param )
     {
         /* create or truncate the reconstructed video file */
         FILE *f = fopen( h->param.psz_dump_yuv, "w" );
-        if( f )
-            fclose( f );
-        else
+        if( !f )
         {
             x264_log( h, X264_LOG_ERROR, "dump_yuv: can't write to %s\n", h->param.psz_dump_yuv );
             goto fail;
         }
+        else if( !x264_is_regular_file( f ) )
+        {
+            x264_log( h, X264_LOG_ERROR, "dump_yuv: incompatible with non-regular file %s\n", h->param.psz_dump_yuv );
+            goto fail;
+        }
+        fclose( f );
     }
 
     x264_log( h, X264_LOG_INFO, "profile %s, level %d.%d\n",

@@ -25,7 +25,9 @@
 
 static int open_file( char *psz_filename, hnd_t *p_handle )
 {
-    if( !(*p_handle = fopen( psz_filename, "w+b" )) )
+    if( !strcmp( psz_filename, "-" ) )
+        *p_handle = stdout;
+    else if( !(*p_handle = fopen( psz_filename, "w+b" )) )
         return -1;
 
     return 0;

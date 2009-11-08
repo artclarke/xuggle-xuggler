@@ -160,10 +160,11 @@ static int get_frame_total( hnd_t handle )
 {
     y4m_hnd_t *h = handle;
     int i_frame_total = 0;
-    uint64_t init_pos = ftell( h->fh );
 
-    if( !fseek( h->fh, 0, SEEK_END ) )
+    if( x264_is_regular_file( h->fh ) )
     {
+        uint64_t init_pos = ftell( h->fh );
+        fseek( h->fh, 0, SEEK_END );
         uint64_t i_size = ftell( h->fh );
         fseek( h->fh, init_pos, SEEK_SET );
         i_frame_total = (int)((i_size - h->seq_header_len) /
@@ -173,19 +174,11 @@ static int get_frame_total( hnd_t handle )
     return i_frame_total;
 }
 
-static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
+static int read_frame_internal( x264_picture_t *p_pic, y4m_hnd_t *h )
 {
-    y4m_hnd_t *h = handle;
     int slen = strlen( Y4M_FRAME_MAGIC );
     int i = 0;
     char header[16];
-
-    if( i_frame != h->next_frame )
-    {
-        if( fseek( h->fh, (uint64_t)i_frame*(3*(h->width*h->height)/2+h->frame_header_len)
-                 + h->seq_header_len, SEEK_SET ) )
-            return -1;
-    }
 
     /* Read frame header - without terminating '\n' */
     if( fread( header, 1, slen, h->fh ) != slen )
@@ -209,13 +202,36 @@ static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
     }
     h->frame_header_len = i+slen+1;
 
-    if( fread( p_pic->img.plane[0], 1, h->width*h->height, h->fh ) <= 0
-     || fread( p_pic->img.plane[1], 1, h->width * h->height / 4, h->fh ) <= 0
-     || fread( p_pic->img.plane[2], 1, h->width * h->height / 4, h->fh ) <= 0 )
+    if( fread( p_pic->img.plane[0], h->width * h->height, 1, h->fh ) <= 0
+     || fread( p_pic->img.plane[1], h->width * h->height / 4, 1, h->fh ) <= 0
+     || fread( p_pic->img.plane[2], h->width * h->height / 4, 1, h->fh ) <= 0 )
+        return -1;
+
+    return 0;
+}
+
+static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
+{
+    y4m_hnd_t *h = handle;
+
+    if( i_frame > h->next_frame )
+    {
+        if( x264_is_regular_file( h->fh ) )
+            fseek( h->fh, (uint64_t)i_frame*(3*(h->width*h->height)/2+h->frame_header_len)
+                 + h->seq_header_len, SEEK_SET );
+        else
+            while( i_frame > h->next_frame )
+            {
+                if( read_frame_internal( p_pic, h ) )
+                    return -1;
+                h->next_frame++;
+            }
+    }
+
+    if( read_frame_internal( p_pic, h ) )
         return -1;
 
     h->next_frame = i_frame+1;
-
     return 0;
 }
 

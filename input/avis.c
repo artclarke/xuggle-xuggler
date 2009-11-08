@@ -33,6 +33,16 @@ typedef struct
 
 static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
 {
+    FILE *fh = fopen( psz_filename, "r" );
+    if( !fh )
+        return -1;
+    else if( !x264_is_regular_file( fh ) )
+    {
+        fprintf( stderr, "avis [error]: AVIS input is incompatible with non-regular file `%s'\n", psz_filename );
+        return -1;
+    }
+    fclose( fh );
+
     avis_hnd_t *h = malloc( sizeof(avis_hnd_t) );
     if( !h )
         return -1;

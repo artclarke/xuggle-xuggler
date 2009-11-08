@@ -18,9 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
-#include "common/osdep.h"
+#include "muxers.h"
 #include "matroska_ebml.h"
 
 #define CLSIZE 1048576
@@ -346,7 +344,10 @@ mk_writer *mk_create_writer( const char *filename )
         return NULL;
     }
 
-    w->fp = fopen( filename, "wb" );
+    if( !strcmp( filename, "-" ) )
+        w->fp = stdout;
+    else
+        w->fp = fopen( filename, "wb" );
     if( !w->fp )
     {
         mk_destroy_contexts( w );
@@ -545,7 +546,7 @@ int mk_close( mk_writer *w )
     int ret = 0;
     if( mk_flush_frame( w ) < 0 || mk_close_cluster( w ) < 0 )
         ret = -1;
-    if( w->wrote_header )
+    if( w->wrote_header && x264_is_regular_file( w->fp ) )
     {
         fseek( w->fp, w->duration_ptr, SEEK_SET );
         if( mk_write_float_raw( w->root, (float)((double)(w->max_frame_tc+w->def_duration) / w->timescale) ) < 0 ||

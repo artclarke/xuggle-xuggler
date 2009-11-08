@@ -226,4 +226,12 @@ static int ALWAYS_INLINE x264_clz( uint32_t x )
 #define x264_lower_thread_priority(p)
 #endif
 
+static inline uint8_t x264_is_regular_file( FILE *filehandle )
+{
+    struct stat file_stat;
+    if( fstat( fileno( filehandle ), &file_stat ) )
+        return 0;
+    return S_ISREG( file_stat.st_mode );
+}
+
 #endif /* X264_OSDEP_H */

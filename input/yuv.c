@@ -55,8 +55,9 @@ static int get_frame_total( hnd_t handle )
     yuv_hnd_t *h = handle;
     int i_frame_total = 0;
 
-    if( !fseek( h->fh, 0, SEEK_END ) )
+    if( x264_is_regular_file( h->fh ) )
     {
+        fseek( h->fh, 0, SEEK_END );
         uint64_t i_size = ftell( h->fh );
         fseek( h->fh, 0, SEEK_SET );
         i_frame_total = (int)(i_size / ( h->width * h->height * 3 / 2 ));
@@ -65,21 +66,34 @@ static int get_frame_total( hnd_t handle )
     return i_frame_total;
 }
 
+static int read_frame_internal( x264_picture_t *p_pic, yuv_hnd_t *h )
+{
+    return fread( p_pic->img.plane[0], h->width * h->height, 1, h->fh ) <= 0
+        || fread( p_pic->img.plane[1], h->width * h->height / 4, 1, h->fh ) <= 0
+        || fread( p_pic->img.plane[2], h->width * h->height / 4, 1, h->fh ) <= 0;
+}
+
 static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
 {
     yuv_hnd_t *h = handle;
 
-    if( i_frame != h->next_frame )
-        if( fseek( h->fh, (uint64_t)i_frame * h->width * h->height * 3 / 2, SEEK_SET ) )
-            return -1;
+    if( i_frame > h->next_frame )
+    {
+        if( x264_is_regular_file( h->fh ) )
+            fseek( h->fh, (uint64_t)i_frame * h->width * h->height * 3 / 2, SEEK_SET );
+        else
+            while( i_frame > h->next_frame )
+            {
+                if( read_frame_internal( p_pic, h ) )
+                    return -1;
+                h->next_frame++;
+            }
+    }
 
-    if( fread( p_pic->img.plane[0], 1, h->width * h->height, h->fh ) <= 0
-     || fread( p_pic->img.plane[1], 1, h->width * h->height / 4, h->fh ) <= 0
-     || fread( p_pic->img.plane[2], 1, h->width * h->height / 4, h->fh ) <= 0 )
+    if( read_frame_internal( p_pic, h ) )
         return -1;
 
     h->next_frame = i_frame+1;
-
     return 0;
 }
 

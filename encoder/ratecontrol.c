@@ -880,11 +880,13 @@ void x264_ratecontrol_delete( x264_t *h )
 {
     x264_ratecontrol_t *rc = h->rc;
     int i;
+    int b_regular_file;
 
     if( rc->p_stat_file_out )
     {
+        b_regular_file = x264_is_regular_file( rc->p_stat_file_out );
         fclose( rc->p_stat_file_out );
-        if( h->i_frame >= rc->num_entries )
+        if( h->i_frame >= rc->num_entries && b_regular_file )
             if( rename( rc->psz_stat_file_tmpname, h->param.rc.psz_stat_out ) != 0 )
             {
                 x264_log( h, X264_LOG_ERROR, "failed to rename \"%s\" to \"%s\"\n",
@@ -894,8 +896,9 @@ void x264_ratecontrol_delete( x264_t *h )
     }
     if( rc->p_mbtree_stat_file_out )
     {
+        b_regular_file = x264_is_regular_file( rc->p_mbtree_stat_file_out );
         fclose( rc->p_mbtree_stat_file_out );
-        if( h->i_frame >= rc->num_entries )
+        if( h->i_frame >= rc->num_entries && b_regular_file )
             if( rename( rc->psz_mbtree_stat_file_tmpname, rc->psz_mbtree_stat_file_name ) != 0 )
             {
                 x264_log( h, X264_LOG_ERROR, "failed to rename \"%s\" to \"%s\"\n",
