@@ -76,7 +76,7 @@ static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
 static void mc_luma_neon( uint8_t *dst,    int i_dst_stride,
                           uint8_t *src[4], int i_src_stride,
                           int mvx, int mvy,
-                          int i_width, int i_height )
+                          int i_width, int i_height, const x264_weight_t *weight )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
     int offset = (mvy>>2)*i_src_stride + (mvx>>2);
@@ -90,18 +90,19 @@ static void mc_luma_neon( uint8_t *dst,    int i_dst_stride,
         x264_pixel_avg_wtab_neon[i_width>>2](
                 dst, i_dst_stride, src1, i_src_stride,
                 src2, i_height );
+        if( weight->weightfn )
+            weight->weightfn[i_width>>2]( dst, i_dst_stride, dst, i_dst_stride, weight, i_height );
     }
+    else if( weight->weightfn )
+        weight->weightfn[i_width>>2]( dst, i_dst_stride, src1, i_src_stride, weight, i_height );
     else
-    {
-        x264_mc_copy_wtab_neon[i_width>>2](
-                dst, i_dst_stride, src1, i_src_stride, i_height );
-    }
+        x264_mc_copy_wtab_neon[i_width>>2]( dst, i_dst_stride, src1, i_src_stride, i_height );
 }
 
 static uint8_t *get_ref_neon( uint8_t *dst,   int *i_dst_stride,
                               uint8_t *src[4], int i_src_stride,
                               int mvx, int mvy,
-                              int i_width, int i_height )
+                              int i_width, int i_height, const x264_weight_t *weight )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
     int offset = (mvy>>2)*i_src_stride + (mvx>>2);
@@ -115,6 +116,13 @@ static uint8_t *get_ref_neon( uint8_t *dst,   int *i_dst_stride,
         x264_pixel_avg_wtab_neon[i_width>>2](
                 dst, *i_dst_stride, src1, i_src_stride,
                 src2, i_height );
+        if( weight->weightfn )
+            weight->weightfn[i_width>>2]( dst, *i_dst_stride, dst, *i_dst_stride, weight, i_height );
+        return dst;
+    }
+    else if( weight->weightfn )
+    {
+        weight->weightfn[i_width>>2]( dst, *i_dst_stride, src1, i_src_stride, weight, i_height );
         return dst;
     }
     else

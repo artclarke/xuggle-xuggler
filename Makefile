@@ -64,11 +64,9 @@ endif
 
 # AltiVec optims
 ifeq ($(ARCH),PPC)
-ALTIVECSRC += common/ppc/mc.c common/ppc/pixel.c common/ppc/dct.c \
-              common/ppc/quant.c common/ppc/deblock.c \
-              common/ppc/predict.c
-SRCS += $(ALTIVECSRC)
-$(ALTIVECSRC:%.c=%.o): CFLAGS += $(ALTIVECFLAGS)
+SRCS += common/ppc/mc.c common/ppc/pixel.c common/ppc/dct.c \
+        common/ppc/quant.c common/ppc/deblock.c \
+        common/ppc/predict.c
 endif
 
 # NEON optims

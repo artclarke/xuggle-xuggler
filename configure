@@ -267,9 +267,9 @@ case $host_cpu in
     ARCH="PPC"
     if [ $SYS = MACOSX ]
     then
-      ALTIVECFLAGS="$ALTIVECFLAGS -faltivec -fastf -mcpu=G4"
+      CFLAGS="$CFLAGS -faltivec -fastf -mcpu=G4"
     else
-      ALTIVECFLAGS="$ALTIVECFLAGS -maltivec -mabi=altivec -DHAVE_ALTIVEC_H"
+      CFLAGS="$CFLAGS -maltivec -mabi=altivec -DHAVE_ALTIVEC_H"
     fi
     ;;
   sparc)
@@ -467,7 +467,6 @@ ARCH=$ARCH
 SYS=$SYS
 CC=$CC
 CFLAGS=$CFLAGS
-ALTIVECFLAGS=$ALTIVECFLAGS
 LDFLAGS=$LDFLAGS
 AR=$AR
 RANLIB=$RANLIB
