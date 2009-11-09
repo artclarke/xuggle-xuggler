@@ -120,6 +120,67 @@ PIXEL_AVG_C( pixel_avg_4x2,   4, 2 )
 PIXEL_AVG_C( pixel_avg_2x4,   2, 4 )
 PIXEL_AVG_C( pixel_avg_2x2,   2, 2 )
 
+static void x264_weight_cache( x264_t *h, x264_weight_t *w )
+{
+    w->weightfn = h->mc.weight;
+}
+#define opscale(x) dst[x] = x264_clip_uint8( ( ( ( src[x] * weight->i_scale ) + (1<<(weight->i_denom - 1) ) )>> weight->i_denom ) + weight->i_offset )
+#define opscale_noden(x) dst[x] = x264_clip_uint8( ( src[x] * weight->i_scale ) + weight->i_offset )
+static inline void mc_weight( uint8_t *dst, int i_dst_stride, uint8_t *src, int i_src_stride, const x264_weight_t *weight, int i_width, int i_height )
+{
+
+    int x, y;
+    if( weight->i_denom >= 1 )
+    {
+        for( y = 0; y < i_height; y++, dst += i_dst_stride, src += i_src_stride )
+        {
+            for( x = 0; x < i_width; x++ )
+                opscale( x );
+        }
+    }
+    else
+    {
+        for( y = 0; y < i_height; y++, dst += i_dst_stride, src += i_src_stride )
+            for( x = 0; x < i_width; x++ )
+                opscale_noden( x );
+    }
+}
+
+#define MC_WEIGHT_C( name, lx ) \
+    static void name( uint8_t *dst, int i_dst_stride, uint8_t *src, int i_src_stride, const x264_weight_t *weight, int height ) \
+{ \
+    int x, y; \
+    if( weight->i_denom >= 1 ) \
+    { \
+        for( y = 0; y < height; y++, dst += i_dst_stride, src += i_src_stride ) \
+            for( x = 0; x < lx; x++ ) \
+                opscale( x ); \
+    } \
+    else \
+    { \
+        for( y = 0; y < height; y++, dst += i_dst_stride, src += i_src_stride ) \
+            for( x = 0; x < lx; x++ ) \
+                opscale_noden( x ); \
+    } \
+}
+
+MC_WEIGHT_C( mc_weight_w20, 20 )
+MC_WEIGHT_C( mc_weight_w16, 16 )
+MC_WEIGHT_C( mc_weight_w12, 12 )
+MC_WEIGHT_C( mc_weight_w8,   8 )
+MC_WEIGHT_C( mc_weight_w4,   4 )
+MC_WEIGHT_C( mc_weight_w2,   2 )
+
+static weight_fn_t x264_mc_weight_wtab[6] =
+{
+    mc_weight_w2,
+    mc_weight_w4,
+    mc_weight_w8,
+    mc_weight_w12,
+    mc_weight_w16,
+    mc_weight_w20,
+};
+const x264_weight_t weight_none[3] = { {{0}} };
 static void mc_copy( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, int i_width, int i_height )
 {
     int y;
@@ -163,7 +224,7 @@ static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
 static void mc_luma( uint8_t *dst,    int i_dst_stride,
                      uint8_t *src[4], int i_src_stride,
                      int mvx, int mvy,
-                     int i_width, int i_height )
+                     int i_width, int i_height, const x264_weight_t *weight )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
     int offset = (mvy>>2)*i_src_stride + (mvx>>2);
@@ -174,17 +235,19 @@ static void mc_luma( uint8_t *dst,    int i_dst_stride,
         uint8_t *src2 = src[hpel_ref1[qpel_idx]] + offset + ((mvx&3) == 3);
         pixel_avg( dst, i_dst_stride, src1, i_src_stride,
                    src2, i_src_stride, i_width, i_height );
+        if( weight->weightfn )
+            mc_weight( dst, i_dst_stride, dst, i_dst_stride, weight, i_width, i_height );
     }
+    else if( weight->weightfn )
+        mc_weight( dst, i_dst_stride, src1, i_src_stride, weight, i_width, i_height );
     else
-    {
         mc_copy( src1, i_src_stride, dst, i_dst_stride, i_width, i_height );
-    }
 }
 
 static uint8_t *get_ref( uint8_t *dst,   int *i_dst_stride,
                          uint8_t *src[4], int i_src_stride,
                          int mvx, int mvy,
-                         int i_width, int i_height )
+                         int i_width, int i_height, const x264_weight_t *weight )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
     int offset = (mvy>>2)*i_src_stride + (mvx>>2);
@@ -195,6 +258,13 @@ static uint8_t *get_ref( uint8_t *dst,   int *i_dst_stride,
         uint8_t *src2 = src[hpel_ref1[qpel_idx]] + offset + ((mvx&3) == 3);
         pixel_avg( dst, *i_dst_stride, src1, i_src_stride,
                    src2, i_src_stride, i_width, i_height );
+        if( weight->weightfn )
+            mc_weight( dst, *i_dst_stride, dst, *i_dst_stride, weight, i_width, i_height );
+        return dst;
+    }
+    else if( weight->weightfn )
+    {
+        mc_weight( dst, *i_dst_stride, src1, i_src_stride, weight, i_width, i_height );
         return dst;
     }
     else
@@ -402,6 +472,11 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->avg[PIXEL_4x2]  = pixel_avg_4x2;
     pf->avg[PIXEL_2x4]  = pixel_avg_2x4;
     pf->avg[PIXEL_2x2]  = pixel_avg_2x2;
+
+    pf->weight    = x264_mc_weight_wtab;
+    pf->offsetadd = x264_mc_weight_wtab;
+    pf->offsetsub = x264_mc_weight_wtab;
+    pf->weight_cache = x264_weight_cache;
 
     pf->copy_16x16_unaligned = mc_copy_w16;
     pf->copy[PIXEL_16x16] = mc_copy_w16;

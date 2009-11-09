@@ -773,12 +773,13 @@ static int check_mc( int cpu_ref, int cpu_new )
 #define MC_TEST_LUMA( w, h ) \
         if( mc_a.mc_luma != mc_ref.mc_luma && !(w&(w-1)) && h<=16 ) \
         { \
+            const x264_weight_t *weight = weight_none; \
             set_func_name( "mc_luma_%dx%d", w, h );\
             used_asm = 1; \
             memset(buf3, 0xCD, 1024); \
             memset(buf4, 0xCD, 1024); \
-            call_c( mc_c.mc_luma, dst1, 32, src2, 64, dx, dy, w, h ); \
-            call_a( mc_a.mc_luma, dst2, 32, src2, 64, dx, dy, w, h ); \
+            call_c( mc_c.mc_luma, dst1, 32, src2, 64, dx, dy, w, h, weight ); \
+            call_a( mc_a.mc_luma, dst2, 32, src2, 64, dx, dy, w, h, weight ); \
             if( memcmp( buf3, buf4, 1024 ) ) \
             { \
                 fprintf( stderr, "mc_luma[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h ); \
@@ -789,12 +790,13 @@ static int check_mc( int cpu_ref, int cpu_new )
         { \
             uint8_t *ref = dst2; \
             int ref_stride = 32; \
+            const x264_weight_t *weight = weight_none; \
             set_func_name( "get_ref_%dx%d", w, h );\
             used_asm = 1; \
             memset(buf3, 0xCD, 1024); \
             memset(buf4, 0xCD, 1024); \
-            call_c( mc_c.mc_luma, dst1, 32, src2, 64, dx, dy, w, h ); \
-            ref = (uint8_t*) call_a( mc_a.get_ref, ref, &ref_stride, src2, 64, dx, dy, w, h ); \
+            call_c( mc_c.mc_luma, dst1, 32, src2, 64, dx, dy, w, h, weight ); \
+            ref = (uint8_t*) call_a( mc_a.get_ref, ref, &ref_stride, src2, 64, dx, dy, w, h, weight ); \
             for( i=0; i<h; i++ ) \
                 if( memcmp( dst1+i*32, ref+i*ref_stride, w ) ) \
                 { \
@@ -881,6 +883,79 @@ static int check_mc( int cpu_ref, int cpu_new )
     for( w = -63; w <= 127 && ok; w++ )
         MC_TEST_AVG( avg, w );
     report( "mc wpredb :" );
+
+#define MC_TEST_WEIGHT( name, weight, aligned ) \
+    int align_off = (aligned ? 0 : rand()%16); \
+    for( i = 1, ok = 1, used_asm = 0; i <= 5; i++ ) \
+    { \
+        ALIGNED_16( uint8_t buffC[640] ); \
+        ALIGNED_16( uint8_t buffA[640] ); \
+        j = X264_MAX( i*4, 2 ); \
+        memset( buffC, 0, 640 ); \
+        memset( buffA, 0, 640 ); \
+        x264_t ha; \
+        ha.mc = mc_a; \
+        /* w12 is the same as w16 in some cases */ \
+        if( i == 3 && mc_a.name[i] == mc_a.name[i+1] ) \
+            continue; \
+        if( mc_a.name[i] != mc_ref.name[i] ) \
+        { \
+            int k; \
+            set_func_name( "%s_w%d", #name, j ); \
+            used_asm = 1; \
+            call_c1( mc_c.weight[i], buffC, 32, buf2+align_off, 32, &weight, 16 ); \
+            mc_a.weight_cache(&ha, &weight); \
+            call_a1( weight.weightfn[i], buffA, 32, buf2+align_off, 32, &weight, 16 ); \
+            for( k = 0; k < 16; k++ ) \
+                if( memcmp( &buffC[k*32], &buffA[k*32], j ) ) \
+                { \
+                    ok = 0; \
+                    fprintf( stderr, #name "[%d]: [FAILED] s:%d o:%d d%d\n", i, s, o, d ); \
+                    break; \
+                } \
+            call_c2( mc_c.weight[i], buffC, 32, buf2+align_off, 32, &weight, 16 ); \
+            call_a2( weight.weightfn[i], buffA, 32, buf2+align_off, 32, &weight, 16 ); \
+        } \
+    }
+
+    ok = 1; used_asm = 0;
+
+    int s,o,d;
+    int align_cnt = 0;
+    for( s = 0; s <= 127 && ok; s++ )
+    {
+        for( o = -128; o <= 127 && ok; o++ )
+        {
+            if( rand() & 2047 ) continue;
+            for( d = 0 ; d <= 7 && ok; d++ )
+            {
+                if( s == 1<<d )
+                    continue;
+                x264_weight_t weight = { .i_scale = s, .i_denom = d, .i_offset = o };
+                MC_TEST_WEIGHT( weight, weight, (align_cnt++ % 4) );
+            }
+        }
+
+    }
+    report( "mc weight :" );
+
+    ok = 1; used_asm = 0;
+    s = 1; d = 0;
+    for( o = 0; o <= 127 && ok; o++ )
+    {
+        if( rand() & 15 ) continue;
+        x264_weight_t weight = { .i_scale = 1, .i_denom = 0, .i_offset = o };
+        MC_TEST_WEIGHT( offsetadd, weight, (align_cnt++ % 4) );
+    }
+    report( "mc offsetadd :" );
+    ok = 1; used_asm = 0;
+    for( o = -128; o < 0 && ok; o++ )
+    {
+        if( rand() & 15 ) continue;
+        x264_weight_t weight = { .i_scale = 1, .i_denom = 0, .i_offset = o };
+        MC_TEST_WEIGHT( offsetsub, weight, (align_cnt++ % 4) );
+    }
+    report( "mc offsetsub :" );
 
     if( mc_a.hpel_filter != mc_ref.hpel_filter )
     {
@@ -990,6 +1065,7 @@ static int check_mc( int cpu_ref, int cpu_new )
         call_c( mc_c.mbtree_propagate_cost, dstc, prop, intra, inter, qscale, 400 );
         call_a( mc_a.mbtree_propagate_cost, dsta, prop, intra, inter, qscale, 400 );
         // I don't care about exact rounding, this is just how close the floating-point implementation happens to be
+        x264_emms();
         for( i=0; i<400; i++ )
             ok &= abs(dstc[i]-dsta[i]) <= (abs(dstc[i])>512) || fabs((double)dstc[i]/dsta[i]-1) < 1e-6;
         report( "mbtree propagate :" );

@@ -73,6 +73,7 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
     frame->i_frame_num = -1;
     frame->i_lines_completed = -1;
     frame->b_fdec = b_fdec;
+    frame->orig = frame;
 
     /* all 4 luma planes allocated together, since the cacheline split code
      * requires them to be in-phase wrt cacheline alignment. */
@@ -86,8 +87,10 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
     else
     {
         CHECKED_MALLOC( frame->buffer[0], luma_plane_size);
-        frame->plane[0] = frame->buffer[0] + frame->i_stride[0] * i_padv + PADH;
+        frame->filtered[0] = frame->plane[0] = frame->buffer[0] + frame->i_stride[0] * i_padv + PADH;
     }
+
+    frame->b_duplicate = 0;
 
     if( b_fdec ) /* fdec frame */
     {
@@ -168,38 +171,43 @@ fail:
 void x264_frame_delete( x264_frame_t *frame )
 {
     int i, j;
-    for( i = 0; i < 4; i++ )
-        x264_free( frame->buffer[i] );
-    for( i = 0; i < 4; i++ )
-        x264_free( frame->buffer_lowres[i] );
-    for( i = 0; i < X264_BFRAME_MAX+2; i++ )
-        for( j = 0; j < X264_BFRAME_MAX+2; j++ )
-            x264_free( frame->i_row_satds[i][j] );
-    for( j = 0; j < 2; j++ )
-        for( i = 0; i <= X264_BFRAME_MAX; i++ )
-        {
-            x264_free( frame->lowres_mvs[j][i] );
-            x264_free( frame->lowres_mv_costs[j][i] );
-        }
-    x264_free( frame->i_propagate_cost );
-    for( j = 0; j <= X264_BFRAME_MAX+1; j++ )
-        for( i = 0; i <= X264_BFRAME_MAX+1; i++ )
-        {
-            x264_free( frame->lowres_costs[j][i] );
-            x264_free( frame->lowres_inter_types[j][i] );
-        }
-    x264_free( frame->f_qp_offset );
-    x264_free( frame->f_qp_offset_aq );
-    x264_free( frame->i_inv_qscale_factor );
-    x264_free( frame->i_row_bits );
-    x264_free( frame->i_row_qp );
-    x264_free( frame->mb_type );
-    x264_free( frame->mv[0] );
-    x264_free( frame->mv[1] );
-    x264_free( frame->ref[0] );
-    x264_free( frame->ref[1] );
-    x264_pthread_mutex_destroy( &frame->mutex );
-    x264_pthread_cond_destroy( &frame->cv );
+    /* Duplicate frames are blank copies of real frames (including pointers),
+     * so freeing those pointers would cause a double free later. */
+    if( !frame->b_duplicate )
+    {
+        for( i = 0; i < 4; i++ )
+            x264_free( frame->buffer[i] );
+        for( i = 0; i < 4; i++ )
+            x264_free( frame->buffer_lowres[i] );
+        for( i = 0; i < X264_BFRAME_MAX+2; i++ )
+            for( j = 0; j < X264_BFRAME_MAX+2; j++ )
+                x264_free( frame->i_row_satds[i][j] );
+        for( j = 0; j < 2; j++ )
+            for( i = 0; i <= X264_BFRAME_MAX; i++ )
+            {
+                x264_free( frame->lowres_mvs[j][i] );
+                x264_free( frame->lowres_mv_costs[j][i] );
+            }
+        x264_free( frame->i_propagate_cost );
+        for( j = 0; j <= X264_BFRAME_MAX+1; j++ )
+            for( i = 0; i <= X264_BFRAME_MAX+1; i++ )
+            {
+                x264_free( frame->lowres_costs[j][i] );
+                x264_free( frame->lowres_inter_types[j][i] );
+            }
+        x264_free( frame->f_qp_offset );
+        x264_free( frame->f_qp_offset_aq );
+        x264_free( frame->i_inv_qscale_factor );
+        x264_free( frame->i_row_bits );
+        x264_free( frame->i_row_qp );
+        x264_free( frame->mb_type );
+        x264_free( frame->mv[0] );
+        x264_free( frame->mv[1] );
+        x264_free( frame->ref[0] );
+        x264_free( frame->ref[1] );
+        x264_pthread_mutex_destroy( &frame->mutex );
+        x264_pthread_cond_destroy( &frame->cv );
+    }
     x264_free( frame );
 }
 
@@ -747,7 +755,15 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                             int i8q= mbn_8x8+(xn>>1)+(yn>>1)*s8x8;\
                             int i4p= mb_4x4+x+y*s4x4;\
                             int i4q= mbn_4x4+xn+yn*s4x4;\
-                            if((h->mb.ref[0][i8p] != h->mb.ref[0][i8q] ||\
+                            int refs_equal;\
+                            if( h->mb.ref[0][i8p] < 0 || h->mb.ref[0][i8q] < 0 )\
+                                refs_equal = h->mb.ref[0][i8p] == h->mb.ref[0][i8q];\
+                            else if( !h->mb.b_interlaced )\
+                                refs_equal = h->fref0[h->mb.ref[0][i8p]]->i_poc == h->fref0[h->mb.ref[0][i8q]]->i_poc;\
+                            else\
+                                refs_equal = ( h->fref0[h->mb.ref[0][i8p]>>1]->i_poc == h->fref0[h->mb.ref[0][i8q]>>1]->i_poc ) &&\
+                                                 ( (h->mb.ref[0][i8p]&1) == (h->mb.ref[0][i8q]&1) );\
+                            if((!refs_equal ||\
                                 abs( h->mb.mv[0][i4p][0] - h->mb.mv[0][i4q][0] ) >= 4 ||\
                                 abs( h->mb.mv[0][i4p][1] - h->mb.mv[0][i4q][1] ) >= mvy_limit ) ||\
                                (h->sh.i_type == SLICE_TYPE_B &&\
@@ -992,6 +1008,32 @@ x264_frame_t *x264_frame_pop_unused( x264_t *h, int b_fdec )
     frame->i_reference_count = 1;
     frame->b_intra_calculated = 0;
     frame->b_scenecut = 1;
+
+    memset( frame->weight, 0, sizeof(frame->weight) );
+    memset( frame->f_weighted_cost_delta, 0, sizeof(frame->f_weighted_cost_delta) );
+
+    return frame;
+}
+
+void x264_frame_push_blank_unused( x264_t *h, x264_frame_t *frame )
+{
+    assert( frame->i_reference_count > 0 );
+    frame->i_reference_count--;
+    if( frame->i_reference_count == 0 )
+        x264_frame_push( h->frames.blank_unused, frame );
+}
+
+x264_frame_t *x264_frame_pop_blank_unused( x264_t *h )
+{
+    x264_frame_t *frame;
+    if( h->frames.blank_unused[0] )
+        frame = x264_frame_pop( h->frames.blank_unused );
+    else
+        frame = x264_malloc( sizeof(x264_frame_t) );
+    if( !frame )
+        return NULL;
+    frame->b_duplicate = 1;
+    frame->i_reference_count = 1;
     return frame;
 }
 
@@ -1015,9 +1057,27 @@ void x264_frame_sort( x264_frame_t **list, int b_dts )
     } while( !b_ok );
 }
 
+void x264_weight_scale_plane( x264_t *h, uint8_t *dst, int i_dst_stride, uint8_t *src, int i_src_stride,
+                         int i_width, int i_height, x264_weight_t *w )
+{
+    int x;
+    /* Weight horizontal strips of height 16. This was found to be the optimal height
+     * in terms of the cache loads. */
+    while( i_height > 0 )
+    {
+        for( x = 0; x < i_width ; x += 16 )
+            w->weightfn[16>>2]( dst+x, i_dst_stride, src+x, i_src_stride, w, X264_MIN( i_height, 16 ) );
+        i_height -= 16;
+        dst += 16 * i_dst_stride;
+        src += 16 * i_src_stride;
+    }
+}
+
 void x264_frame_delete_list( x264_frame_t **list )
 {
     int i = 0;
+    if( !list )
+        return;
     while( list[i] )
         x264_frame_delete( list[i++] );
     x264_free( list );

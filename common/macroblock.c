@@ -477,7 +477,7 @@ static NOINLINE void x264_mb_mc_0xywh( x264_t *h, int x, int y, int width, int h
 
     h->mc.mc_luma( &h->mb.pic.p_fdec[0][4*y*FDEC_STRIDE+4*x], FDEC_STRIDE,
                    h->mb.pic.p_fref[0][i_ref], h->mb.pic.i_stride[0],
-                   mvx, mvy, 4*width, 4*height );
+                   mvx, mvy, 4*width, 4*height, &h->sh.weight[i_ref][0] );
 
     // chroma is offset if MCing from a field of opposite parity
     if( h->mb.b_interlaced & i_ref )
@@ -487,9 +487,20 @@ static NOINLINE void x264_mb_mc_0xywh( x264_t *h, int x, int y, int width, int h
                      h->mb.pic.p_fref[0][i_ref][4], h->mb.pic.i_stride[1],
                      mvx, mvy, 2*width, 2*height );
 
+    if( h->sh.weight[i_ref][1].weightfn )
+        h->sh.weight[i_ref][1].weightfn[width>>1]( &h->mb.pic.p_fdec[1][2*y*FDEC_STRIDE+2*x], FDEC_STRIDE,
+                                                   &h->mb.pic.p_fdec[1][2*y*FDEC_STRIDE+2*x], FDEC_STRIDE,
+                                                   &h->sh.weight[i_ref][1], height*2 );
+
     h->mc.mc_chroma( &h->mb.pic.p_fdec[2][2*y*FDEC_STRIDE+2*x], FDEC_STRIDE,
                      h->mb.pic.p_fref[0][i_ref][5], h->mb.pic.i_stride[2],
                      mvx, mvy, 2*width, 2*height );
+
+    if( h->sh.weight[i_ref][2].weightfn )
+        h->sh.weight[i_ref][2].weightfn[width>>1]( &h->mb.pic.p_fdec[2][2*y*FDEC_STRIDE+2*x], FDEC_STRIDE,
+                                                   &h->mb.pic.p_fdec[2][2*y*FDEC_STRIDE+2*x], FDEC_STRIDE,
+                                                   &h->sh.weight[i_ref][2],height*2 );
+
 }
 static NOINLINE void x264_mb_mc_1xywh( x264_t *h, int x, int y, int width, int height )
 {
@@ -500,7 +511,7 @@ static NOINLINE void x264_mb_mc_1xywh( x264_t *h, int x, int y, int width, int h
 
     h->mc.mc_luma( &h->mb.pic.p_fdec[0][4*y*FDEC_STRIDE+4*x], FDEC_STRIDE,
                    h->mb.pic.p_fref[1][i_ref], h->mb.pic.i_stride[0],
-                   mvx, mvy, 4*width, 4*height );
+                   mvx, mvy, 4*width, 4*height, weight_none );
 
     if( h->mb.b_interlaced & i_ref )
         mvy += (h->mb.i_mb_y & 1)*4 - 2;
@@ -531,9 +542,9 @@ static NOINLINE void x264_mb_mc_01xywh( x264_t *h, int x, int y, int width, int 
     uint8_t *src0, *src1;
 
     src0 = h->mc.get_ref( tmp0, &i_stride0, h->mb.pic.p_fref[0][i_ref0], h->mb.pic.i_stride[0],
-                          mvx0, mvy0, 4*width, 4*height );
+                          mvx0, mvy0, 4*width, 4*height, weight_none );
     src1 = h->mc.get_ref( tmp1, &i_stride1, h->mb.pic.p_fref[1][i_ref1], h->mb.pic.i_stride[0],
-                          mvx1, mvy1, 4*width, 4*height );
+                          mvx1, mvy1, 4*width, 4*height, weight_none );
     h->mc.avg[i_mode]( &h->mb.pic.p_fdec[0][4*y*FDEC_STRIDE+4*x], FDEC_STRIDE,
                        src0, i_stride0, src1, i_stride1, weight );
 
@@ -701,8 +712,53 @@ int x264_macroblock_cache_init( x264_t *h )
     for( i=0; i<2; i++ )
     {
         int i_refs = X264_MIN(16, (i ? 1 + !!h->param.i_bframe_pyramid : h->param.i_frame_reference) ) << h->param.b_interlaced;
+        if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
+            i_refs = X264_MIN(16, i_refs + 2); //smart weights add two duplicate frames
+        else if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_BLIND )
+            i_refs = X264_MIN(16, i_refs + 1); //blind weights add one duplicate frame
+
         for( j=0; j < i_refs; j++ )
             CHECKED_MALLOC( h->mb.mvr[i][j], 2 * i_mb_count * sizeof(int16_t) );
+    }
+
+    if( h->param.analyse.i_weighted_pred )
+    {
+        int i_padv = PADV << h->param.b_interlaced;
+#define ALIGN(x,a) (((x)+((a)-1))&~((a)-1))
+        int align = h->param.cpu&X264_CPU_CACHELINE_64 ? 64 : h->param.cpu&X264_CPU_CACHELINE_32 ? 32 : 16;
+        int i_stride, luma_plane_size;
+        int numweightbuf;
+
+        if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE )
+        {
+            // only need buffer for lookahead thread
+            if( !h->param.i_sync_lookahead || h == h->thread[h->param.i_threads] )
+            {
+                // Fake analysis only works on lowres
+                i_stride = ALIGN( h->sps->i_mb_width*8 + 2*PADH, align );
+                luma_plane_size = i_stride * (h->sps->i_mb_height*8+2*i_padv);
+                // Only need 1 buffer for analysis
+                numweightbuf = 1;
+            }
+            else
+                numweightbuf = 0;
+        }
+        else
+        {
+            i_stride = ALIGN( h->sps->i_mb_width*16 + 2*PADH, align );
+            luma_plane_size = i_stride * (h->sps->i_mb_height*16+2*i_padv);
+
+            if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
+                //SMART can weight one ref and one offset -1
+                numweightbuf = 2;
+            else
+                //blind only has one weighted copy (offset -1)
+                numweightbuf = 1;
+        }
+
+        for( i = 0; i < numweightbuf; i++ )
+            CHECKED_MALLOC( h->mb.p_weight_buf[i], luma_plane_size );
+#undef ALIGN
     }
 
     for( i=0; i<=h->param.b_interlaced; i++ )
@@ -765,6 +821,9 @@ void x264_macroblock_cache_end( x264_t *h )
     for( i=0; i<2; i++ )
         for( j=0; j<32; j++ )
             x264_free( h->mb.mvr[i][j] );
+    for( i=0; i<16; i++ )
+        x264_free( h->mb.p_weight_buf[i] );
+
     if( h->param.b_cabac )
     {
         x264_free( h->mb.chroma_pred_mode );
@@ -866,8 +925,14 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int i_mb
     {
         h->mb.pic.p_fref[0][j][i==0 ? 0:i+3] = &fref[0][j >> h->mb.b_interlaced]->plane[i][ref_pix_offset[j&1]];
         if( i == 0 )
+        {
             for( k = 1; k < 4; k++ )
                 h->mb.pic.p_fref[0][j][k] = &fref[0][j >> h->mb.b_interlaced]->filtered[k][ref_pix_offset[j&1]];
+            if( h->sh.weight[j][0].weightfn )
+                h->mb.pic.p_fref_w[j] = &h->fenc->weighted[j >> h->mb.b_interlaced][ref_pix_offset[j&1]];
+            else
+                h->mb.pic.p_fref_w[j] = h->mb.pic.p_fref[0][j][0];
+        }
     }
     if( h->sh.i_type == SLICE_TYPE_B )
         for( j = 0; j < h->mb.pic.i_fref[1]; j++ )

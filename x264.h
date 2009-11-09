@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 78
+#define X264_BUILD 79
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -95,6 +95,9 @@ typedef struct x264_t x264_t;
 #define X264_B_ADAPT_NONE            0
 #define X264_B_ADAPT_FAST            1
 #define X264_B_ADAPT_TRELLIS         2
+#define X264_WEIGHTP_NONE            0
+#define X264_WEIGHTP_BLIND           1
+#define X264_WEIGHTP_SMART           2
 #define X264_B_PYRAMID_NONE          0
 #define X264_B_PYRAMID_STRICT        1
 #define X264_B_PYRAMID_NORMAL        2
@@ -235,6 +238,7 @@ typedef struct x264_param_t
         unsigned int inter;     /* inter partitions */
 
         int          b_transform_8x8;
+        int          i_weighted_pred; /* weighting for P-frames */
         int          b_weighted_bipred; /* implicit weighting for B-frames */
         int          i_direct_mv_pred; /* spatial vs temporal mv prediction */
         int          i_chroma_qp_offset;

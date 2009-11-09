@@ -136,6 +136,7 @@ void    x264_param_default( x264_param_t *param )
     param->analyse.i_chroma_qp_offset = 0;
     param->analyse.b_fast_pskip = 1;
     param->analyse.b_weighted_bipred = 1;
+    param->analyse.i_weighted_pred = X264_WEIGHTP_SMART;
     param->analyse.b_dct_decimate = 1;
     param->analyse.b_transform_8x8 = 1;
     param->analyse.i_trellis = 1;
@@ -489,6 +490,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->analyse.b_transform_8x8 = atobool(value);
     OPT2("weightb", "weight-b")
         p->analyse.b_weighted_bipred = atobool(value);
+    OPT("weightp")
+        p->analyse.i_weighted_pred = atoi(value);
     OPT2("direct", "direct-pred")
         b_error |= parse_enum( value, x264_direct_pred_names, &p->analyse.i_direct_mv_pred );
     OPT("chroma-qp-offset")
@@ -903,6 +906,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
                       p->i_bframe_pyramid, p->i_bframe_adaptive, p->i_bframe_bias,
                       p->analyse.i_direct_mv_pred, p->analyse.b_weighted_bipred );
     }
+    s += sprintf( s, " wpredp=%d", p->analyse.i_weighted_pred > 0 ? p->analyse.i_weighted_pred : 0 );
 
     s += sprintf( s, " keyint=%d keyint_min=%d scenecut=%d",
                   p->i_keyint_max, p->i_keyint_min, p->i_scenecut_threshold );

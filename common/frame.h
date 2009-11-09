@@ -28,7 +28,7 @@
 #define PADH 32
 #define PADV 32
 
-typedef struct
+typedef struct x264_frame
 {
     /* */
     int     i_poc;
@@ -65,6 +65,11 @@ typedef struct
     uint8_t *buffer[4];
     uint8_t *buffer_lowres[4];
 
+    x264_weight_t weight[16][3]; /* the weights for the P frames used to encode this frame */
+    uint8_t *weighted[16]; /* plane[0] weighted of the reference frames */
+    int b_duplicate;
+    struct x264_frame *orig;
+
     /* motion data */
     int8_t  *mb_type;
     int16_t (*mv[2])[2];
@@ -96,6 +101,7 @@ typedef struct
     uint16_t *i_propagate_cost;
     uint16_t *i_inv_qscale_factor;
     int     b_scenecut; /* Set to zero if the frame cannot possibly be part of a real scenecut. */
+    float   f_weighted_cost_delta[X264_BFRAME_MAX+2];
 
     /* vbv */
     uint8_t i_planned_type[X264_LOOKAHEAD_MAX+1];
@@ -103,6 +109,7 @@ typedef struct
 
     /* threading */
     int     i_lines_completed; /* in pixels */
+    int     i_lines_weighted; /* FIXME: this only supports weighting of one reference frame */
     int     i_reference_count; /* number of threads using this frame (not necessarily the number of pointers) */
     x264_pthread_mutex_t mutex;
     x264_pthread_cond_t  cv;
@@ -160,6 +167,10 @@ x264_frame_t *x264_frame_pop( x264_frame_t **list );
 void          x264_frame_unshift( x264_frame_t **list, x264_frame_t *frame );
 x264_frame_t *x264_frame_shift( x264_frame_t **list );
 void          x264_frame_push_unused( x264_t *h, x264_frame_t *frame );
+void          x264_frame_push_blank_unused( x264_t *h, x264_frame_t *frame );
+x264_frame_t *x264_frame_pop_blank_unused( x264_t *h );
+void x264_weight_scale_plane( x264_t *h, uint8_t *dst, int i_dst_stride, uint8_t *src, int i_src_stride,
+                              int i_width, int i_height, x264_weight_t *w );
 x264_frame_t *x264_frame_pop_unused( x264_t *h, int b_fdec );
 void          x264_frame_sort( x264_frame_t **list, int b_dts );
 void          x264_frame_delete_list( x264_frame_t **list );

@@ -21,6 +21,33 @@
 #ifndef X264_MC_H
 #define X264_MC_H
 
+struct x264_weight_t;
+typedef void (* weight_fn_t)( uint8_t *, int, uint8_t *,int, const struct x264_weight_t *, int );
+typedef struct x264_weight_t
+{
+    /* aligning the first member is a gcc hack to force the struct to be
+     * 16 byte aligned, as well as force sizeof(struct) to be a multiple of 16 */
+    ALIGNED_16( int16_t cachea[8] );
+    int16_t cacheb[8];
+    int32_t i_denom;
+    int32_t i_scale;
+    int32_t i_offset;
+    weight_fn_t *weightfn;
+} ALIGNED_16( x264_weight_t );
+
+extern const x264_weight_t weight_none[3];
+
+#define SET_WEIGHT( w, b, s, d, o )\
+{\
+    (w).i_scale = (s);\
+    (w).i_denom = (d);\
+    (w).i_offset = (o);\
+    if( b )\
+        h->mc.weight_cache( h, &w );\
+    else\
+        w.weightfn = NULL;\
+}
+
 /* Do the MC
  * XXX: Only width = 4, 8 or 16 are valid
  * width == 4 -> height == 4 or 8
@@ -32,12 +59,12 @@ typedef struct
 {
     void (*mc_luma)(uint8_t *dst, int i_dst, uint8_t **src, int i_src,
                     int mvx, int mvy,
-                    int i_width, int i_height );
+                    int i_width, int i_height, const x264_weight_t *weight );
 
     /* may round up the dimensions if they're not a power of 2 */
     uint8_t* (*get_ref)(uint8_t *dst, int *i_dst, uint8_t **src, int i_src,
                         int mvx, int mvy,
-                        int i_width, int i_height );
+                        int i_width, int i_height, const x264_weight_t *weight );
 
     /* mc_chroma may write up to 2 bytes of garbage to the right of dst,
      * so it must be run from left to right. */
@@ -74,6 +101,10 @@ typedef struct
 
     void (*frame_init_lowres_core)( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
                                     int src_stride, int dst_stride, int width, int height );
+    weight_fn_t *weight;
+    weight_fn_t *offsetadd;
+    weight_fn_t *offsetsub;
+    void (*weight_cache)( x264_t *, x264_weight_t * );
 
     void (*mbtree_propagate_cost)( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
                                    uint16_t *inter_costs, uint16_t *inv_qscales, int len );

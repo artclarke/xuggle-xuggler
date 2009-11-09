@@ -50,6 +50,8 @@ typedef struct
     int s_count;
     float blurred_complexity;
     char direct_mode;
+    int8_t weight[2];
+    int8_t i_weight_denom;
     int refcount[16];
     int refs;
 } ratecontrol_entry_t;
@@ -314,12 +316,17 @@ int x264_reference_build_list_optimal( x264_t *h )
 {
     ratecontrol_entry_t *rce = h->rc->rce;
     x264_frame_t *frames[16];
+    x264_weight_t weights[16][3];
+    int refcount[16];
     int ref, i;
 
     if( rce->refs != h->i_ref0 )
         return -1;
 
     memcpy( frames, h->fref0, sizeof(frames) );
+    memcpy( refcount, rce->refcount, sizeof(refcount) );
+    memcpy( weights, h->fenc->weight, sizeof(weights) );
+    memset( h->fenc->weight, 0, sizeof(h->fenc->weight) );
 
     /* For now don't reorder ref 0; it seems to lower quality
        in most cases due to skips. */
@@ -327,11 +334,18 @@ int x264_reference_build_list_optimal( x264_t *h )
     {
         int max = -1;
         int bestref = 1;
+
         for( i = 1; i < h->i_ref0; i++ )
-            /* Favor lower POC as a tiebreaker. */
-            COPY2_IF_GT( max, rce->refcount[i], bestref, i );
-        rce->refcount[bestref] = -1;
+            if( !frames[i]->b_duplicate || frames[i]->i_frame != h->fref0[ref-1]->i_frame )
+                /* Favor lower POC as a tiebreaker. */
+                COPY2_IF_GT( max, refcount[i], bestref, i );
+
+        /* FIXME: If there are duplicates from frames other than ref0 then it is possible
+         * that the optimal ordering doesnt place every duplicate. */
+
+        refcount[bestref] = -1;
         h->fref0[ref] = frames[bestref];
+        memcpy( h->fenc->weight[ref], weights[bestref], sizeof(weights[bestref]) );
     }
 
     return 0;
@@ -541,6 +555,13 @@ int x264_ratecontrol_new( x264_t *h )
                 return -1;
             }
 
+            if( ( p = strstr( opts, "wpredp=" ) ) && sscanf( p, "wpredp=%d", &i ) &&
+                X264_MAX( 0, h->param.analyse.i_weighted_pred ) != i )
+            {
+                x264_log( h, X264_LOG_ERROR, "different weightp option than 1st pass (had weightp=%d)\n", i );
+                return -1;
+            }
+
             /* since B-adapt doesn't (yet) take into account B-pyramid,
              * the converse is not a problem */
             if( h->param.i_bframe )
@@ -658,6 +679,13 @@ int x264_ratecontrol_new( x264_t *h )
                     goto parse_error;
             }
             rce->refs = ref;
+
+            /* find weights */
+            rce->i_weight_denom = -1;
+            char *w = strchr( p, 'w' );
+            if( w )
+                if( sscanf( w, "w:%hhd,%hhd,%hhd", &rce->i_weight_denom, &rce->weight[0], &rce->weight[1] ) != 3 )
+                    rce->i_weight_denom = -1;
 
             switch(pict_type)
             {
@@ -1240,6 +1268,15 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
     }
 }
 
+void x264_ratecontrol_set_weights( x264_t *h, x264_frame_t *frm )
+{
+    ratecontrol_entry_t *rce = &h->rc->entry[frm->i_frame];
+    if( h->param.analyse.i_weighted_pred <= 0 )
+        return;
+    if( rce->i_weight_denom >= 0 )
+        SET_WEIGHT( frm->weight[0][0], 1, rce->weight[0], rce->i_weight_denom, rce->weight[1] );
+}
+
 /* After encoding one frame, save stats and update ratecontrol state */
 int x264_ratecontrol_end( x264_t *h, int bits )
 {
@@ -1282,16 +1319,25 @@ int x264_ratecontrol_end( x264_t *h, int bits )
                  c_direct) < 0 )
             goto fail;
 
-        for( i = 0; i < h->i_ref0; i++ )
+        /* Only write information for reference reordering once. */
+        int use_old_stats = h->param.rc.b_stat_read && rc->rce->refs > 1;
+        for( i = 0; i < (use_old_stats ? rc->rce->refs : h->i_ref0); i++ )
         {
-            int refcount = h->param.b_interlaced ? h->stat.frame.i_mb_count_ref[0][i*2]
-                                                 + h->stat.frame.i_mb_count_ref[0][i*2+1] :
-                                                   h->stat.frame.i_mb_count_ref[0][i];
+            int refcount = use_old_stats         ? rc->rce->refcount[i]
+                         : h->param.b_interlaced ? h->stat.frame.i_mb_count_ref[0][i*2]
+                                                 + h->stat.frame.i_mb_count_ref[0][i*2+1]
+                         :                         h->stat.frame.i_mb_count_ref[0][i];
             if( fprintf( rc->p_stat_file_out, "%d ", refcount ) < 0 )
                 goto fail;
         }
 
-        if( fprintf( rc->p_stat_file_out, ";\n" ) < 0 )
+        if( h->sh.weight[0][0].weightfn )
+        {
+            if( fprintf( rc->p_stat_file_out, "w:%d,%d,%d", h->sh.weight[0][0].i_denom, h->sh.weight[0][0].i_scale, h->sh.weight[0][0].i_offset ) < 0 )
+                goto fail;
+        }
+
+        if( fprintf( rc->p_stat_file_out, ";\n") < 0 )
             goto fail;
 
         /* Don't re-write the data in multi-pass mode. */

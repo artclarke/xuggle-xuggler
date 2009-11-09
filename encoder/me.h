@@ -29,13 +29,17 @@
 
 typedef struct
 {
+    /* aligning the first member is a gcc hack to force the struct to be
+     * 16 byte aligned, as well as force sizeof(struct) to be a multiple of 16 */
     /* input */
-    int      i_pixel;   /* PIXEL_WxH */
+    ALIGNED_16( int i_pixel );   /* PIXEL_WxH */
     uint16_t *p_cost_mv; /* lambda * nbits for each possible mv */
     int      i_ref_cost;
     int      i_ref;
+    const x264_weight_t *weight;
 
     uint8_t *p_fref[6];
+    uint8_t *p_fref_w;
     uint8_t *p_fenc[3];
     uint16_t *integral;
     int      i_stride[2];

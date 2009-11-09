@@ -273,6 +273,10 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                  - none, spatial, temporal, auto\n",
                                        strtable_lookup( x264_direct_pred_names, defaults->analyse.i_direct_mv_pred ) );
     H2( "      --no-weightb            Disable weighted prediction for B-frames\n" );
+    H1( "      --weightp               Weighted prediction for P-frames [2]\n"
+        "                              - 0: Disabled\n"
+        "                              - 1: Blind offset\n"
+        "                              - 2: Smart analysis\n");
     H1( "      --me <string>           Integer pixel motion estimation method [\"%s\"]\n",
                                        strtable_lookup( x264_motion_est_names, defaults->analyse.i_me_method ) );
     H2( "                                  - dia: diamond search, radius 1 (fast)\n"
@@ -454,6 +458,7 @@ static struct option long_options[] =
     { "direct",      required_argument, NULL, 0 },
     { "weightb",           no_argument, NULL, 'w' },
     { "no-weightb",        no_argument, NULL, 0 },
+    { "weightp",     required_argument, NULL, 0 },
     { "me",          required_argument, NULL, 0 },
     { "merange",     required_argument, NULL, 0 },
     { "mvrange",     required_argument, NULL, 0 },
@@ -651,6 +656,7 @@ static int  Parse( int argc, char **argv,
                 param->analyse.i_trellis = 0;
                 param->i_bframe_adaptive = X264_B_ADAPT_NONE;
                 param->rc.b_mb_tree = 0;
+                param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
             }
             else if( !strcasecmp( optarg, "veryfast" ) )
             {
@@ -661,6 +667,7 @@ static int  Parse( int argc, char **argv,
                 param->analyse.b_mixed_references = 0;
                 param->analyse.i_trellis = 0;
                 param->rc.b_mb_tree = 0;
+                param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
             }
             else if( !strcasecmp( optarg, "faster" ) )
             {
@@ -668,6 +675,7 @@ static int  Parse( int argc, char **argv,
                 param->i_frame_reference = 2;
                 param->analyse.i_subpel_refine = 4;
                 param->rc.b_mb_tree = 0;
+                param->analyse.i_weighted_pred = X264_WEIGHTP_BLIND;
             }
             else if( !strcasecmp( optarg, "fast" ) )
             {
@@ -789,6 +797,7 @@ static int  Parse( int argc, char **argv,
                 param->b_deblocking_filter = 0;
                 param->b_cabac = 0;
                 param->analyse.b_weighted_bipred = 0;
+                param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
             }
             else if( !strcasecmp( optarg, "touhou" ) )
             {
@@ -979,6 +988,7 @@ generic_option:
             param->b_cabac = 0;
             param->i_cqm_preset = X264_CQM_FLAT;
             param->i_bframe = 0;
+            param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
             if( param->b_interlaced )
             {
                 fprintf( stderr, "x264 [error]: baseline profile doesn't support interlacing\n" );

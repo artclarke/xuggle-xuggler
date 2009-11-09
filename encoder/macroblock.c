@@ -503,15 +503,25 @@ static void x264_macroblock_encode_pskip( x264_t *h )
     {
         h->mc.mc_luma( h->mb.pic.p_fdec[0],    FDEC_STRIDE,
                        h->mb.pic.p_fref[0][0], h->mb.pic.i_stride[0],
-                       mvx, mvy, 16, 16 );
+                       mvx, mvy, 16, 16, &h->sh.weight[0][0] );
 
         h->mc.mc_chroma( h->mb.pic.p_fdec[1],       FDEC_STRIDE,
                          h->mb.pic.p_fref[0][0][4], h->mb.pic.i_stride[1],
                          mvx, mvy, 8, 8 );
 
+        if( h->sh.weight[0][1].weightfn )
+            h->sh.weight[0][1].weightfn[8>>2]( h->mb.pic.p_fdec[1], FDEC_STRIDE,
+                                               h->mb.pic.p_fdec[1], FDEC_STRIDE,
+                                               &h->sh.weight[0][1], 8 );
+
         h->mc.mc_chroma( h->mb.pic.p_fdec[2],       FDEC_STRIDE,
                          h->mb.pic.p_fref[0][0][5], h->mb.pic.i_stride[2],
                          mvx, mvy, 8, 8 );
+
+        if( h->sh.weight[0][2].weightfn )
+            h->sh.weight[0][2].weightfn[8>>2]( h->mb.pic.p_fdec[2], FDEC_STRIDE,
+                                               h->mb.pic.p_fdec[2], FDEC_STRIDE,
+                                               &h->sh.weight[0][2], 8 );
     }
 
     x264_macroblock_encode_skip( h );
@@ -930,7 +940,7 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
         /* Motion compensation */
         h->mc.mc_luma( h->mb.pic.p_fdec[0],    FDEC_STRIDE,
                        h->mb.pic.p_fref[0][0], h->mb.pic.i_stride[0],
-                       mvp[0], mvp[1], 16, 16 );
+                       mvp[0], mvp[1], 16, 16, &h->sh.weight[0][0] );
     }
 
     for( i8x8 = 0, i_decimate_mb = 0; i8x8 < 4; i8x8++ )
@@ -966,6 +976,11 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
             h->mc.mc_chroma( h->mb.pic.p_fdec[1+ch],       FDEC_STRIDE,
                              h->mb.pic.p_fref[0][0][4+ch], h->mb.pic.i_stride[1+ch],
                              mvp[0], mvp[1], 8, 8 );
+
+            if( h->sh.weight[0][1+ch].weightfn )
+                h->sh.weight[0][1+ch].weightfn[8>>2]( h->mb.pic.p_fdec[1+ch], FDEC_STRIDE,
+                                                      h->mb.pic.p_fdec[1+ch], FDEC_STRIDE,
+                                                      &h->sh.weight[0][1+ch], 8 );
         }
 
         /* there is almost never a termination during chroma, but we can't avoid the check entirely */
@@ -1172,7 +1187,8 @@ void x264_macroblock_encode_p4x4( x264_t *h, int i4 )
     const int mvy   = x264_clip3( h->mb.cache.mv[0][x264_scan8[i4]][1], h->mb.mv_min[1], h->mb.mv_max[1] );
     int nz;
 
-    h->mc.mc_luma( p_fdec, FDEC_STRIDE, h->mb.pic.p_fref[0][i_ref], h->mb.pic.i_stride[0], mvx + 4*4*block_idx_x[i4], mvy + 4*4*block_idx_y[i4], 4, 4 );
+    h->mc.mc_luma( p_fdec, FDEC_STRIDE, h->mb.pic.p_fref[0][i_ref], h->mb.pic.i_stride[0],
+                   mvx + 4*4*block_idx_x[i4], mvy + 4*4*block_idx_y[i4], 4, 4, &h->sh.weight[i_ref][0] );
 
     if( h->mb.b_lossless )
     {

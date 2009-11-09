@@ -60,6 +60,13 @@ do {\
 // 16 for the macroblock in progress + 3 for deblocking + 3 for motion compensation filter + 2 for extra safety
 #define X264_THREAD_HEIGHT 24
 
+/* WEIGHTP_FAKE is set when mb_tree & psy are enabled, but normal weightp is disabled
+ * (such as in baseline). It checks for fades in lookahead and adjusts qp accordingly
+ * to increase quality. Defined as (-1) so that if(i_weighted_pred > 0) is true only when
+ * real weights are being used. */
+
+#define X264_WEIGHTP_FAKE (-1)
+
 /****************************************************************************
  * Includes
  ****************************************************************************/
@@ -233,6 +240,9 @@ typedef struct
         int arg;
     } ref_pic_list_order[2][16];
 
+    /* P-frame weighting */
+    x264_weight_t weight[16][3];
+
     int i_mmco_remove_from_end;
     int i_mmco_command_count;
     struct /* struct for future expansion */
@@ -390,6 +400,9 @@ struct x264_t
         /* Unused frames: 0 = fenc, 1 = fdec */
         x264_frame_t **unused[2];
 
+        /* Unused blank frames (for duplicates) */
+        x264_frame_t **blank_unused;
+
         /* frames used for reference + sentinels */
         x264_frame_t *reference[16+2];
 
@@ -502,6 +515,9 @@ struct x264_t
         uint8_t *intra_border_backup[2][3]; /* bottom pixels of the previous mb row, used for intra prediction after the framebuffer has been deblocked */
         uint8_t (*nnz_backup)[16];          /* when using cavlc + 8x8dct, the deblocker uses a modified nnz */
 
+         /* buffer for weighted versions of the reference frames */
+        uint8_t *p_weight_buf[16];
+
         /* current value */
         int     i_type;
         int     i_partition;
@@ -564,6 +580,7 @@ struct x264_t
             /* pointer over mb of the references */
             int i_fref[2];
             uint8_t *p_fref[2][32][4+2]; /* last: lN, lH, lV, lHV, cU, cV */
+            uint8_t *p_fref_w[32];  /* weighted fullpel luma */
             uint16_t *p_integral[2][16];
 
             /* fref stride */
@@ -681,6 +698,8 @@ struct x264_t
         /* */
         int     i_direct_score[2];
         int     i_direct_frames[2];
+        /* num p-frames weighted */
+        int     i_wpred[3];
 
     } stat;
 

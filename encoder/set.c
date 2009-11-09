@@ -80,7 +80,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->i_profile_idc  = PROFILE_HIGH444_PREDICTIVE;
     else if( param->analyse.b_transform_8x8 || param->i_cqm_preset != X264_CQM_FLAT )
         sps->i_profile_idc  = PROFILE_HIGH;
-    else if( param->b_cabac || param->i_bframe > 0 || param->b_interlaced )
+    else if( param->b_cabac || param->i_bframe > 0 || param->b_interlaced || param->analyse.i_weighted_pred > 0 )
         sps->i_profile_idc  = PROFILE_MAIN;
     else
         sps->i_profile_idc  = PROFILE_BASELINE;
@@ -375,7 +375,7 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
     pps->i_num_ref_idx_l0_active = 1;
     pps->i_num_ref_idx_l1_active = 1;
 
-    pps->b_weighted_pred = 0;
+    pps->b_weighted_pred = param->analyse.i_weighted_pred > 0;
     pps->b_weighted_bipred = param->analyse.b_weighted_bipred ? 2 : 0;
 
     pps->i_pic_init_qp = param->rc.i_rc_method == X264_RC_ABR ? 26 : param->rc.i_qp_constant;

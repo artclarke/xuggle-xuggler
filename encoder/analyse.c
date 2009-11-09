@@ -377,14 +377,44 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
                     int i_ref = i ? h->i_ref1 : h->i_ref0;
                     for( j=0; j<i_ref; j++ )
                     {
-                        x264_frame_cond_wait( fref[j], thresh );
+                        x264_frame_cond_wait( fref[j]->orig, thresh );
+                        fref[j]->i_lines_completed = fref[j]->orig->i_lines_completed;
                         thread_mvy_range = X264_MIN( thread_mvy_range, fref[j]->i_lines_completed - pix_y );
                     }
                 }
+
                 if( h->param.b_deterministic )
                     thread_mvy_range = h->param.analyse.i_mv_range_thread;
                 if( h->mb.b_interlaced )
                     thread_mvy_range >>= 1;
+
+                for( j=0; j<h->i_ref0; j++ )
+                {
+                    if( h->sh.weight[j][0].weightfn )
+                    {
+                        x264_frame_t *frame = h->fref0[j];
+                        int width = frame->i_width[0] + 2*PADH;
+                        int i_padv = PADV << h->param.b_interlaced;
+                        int offset, height;
+                        uint8_t *src = frame->filtered[0] - frame->i_stride[0]*i_padv - PADH;
+                        int k;
+                        height = X264_MIN( 16 + thread_mvy_range + pix_y + i_padv, h->fref0[j]->i_lines[0] + i_padv*2 ) - h->fenc->i_lines_weighted;
+                        offset = h->fenc->i_lines_weighted*frame->i_stride[0];
+                        h->fenc->i_lines_weighted += height;
+                        if( height )
+                        {
+                            for( k = j; k < h->i_ref0; k++ )
+                                if( h->sh.weight[k][0].weightfn )
+                                {
+                                    uint8_t *dst = h->fenc->weighted[k] - h->fenc->i_stride[0]*i_padv - PADH;
+                                    x264_weight_scale_plane( h, dst + offset, frame->i_stride[0],
+                                                             src + offset, frame->i_stride[0],
+                                                             width, height, &h->sh.weight[k][0] );
+                                }
+                        }
+                        break;
+                    }
+                }
             }
 
             h->mb.mv_min[1] = 4*( -16*mb_y - 24 );
@@ -1155,6 +1185,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
 }
 
 #define LOAD_FENC( m, src, xoff, yoff) \
+    (m)->p_cost_mv = a->p_cost_mv; \
     (m)->i_stride[0] = h->mb.pic.i_stride[0]; \
     (m)->i_stride[1] = h->mb.pic.i_stride[1]; \
     (m)->p_fenc[0] = &(src)[0][(xoff)+(yoff)*FENC_STRIDE]; \
@@ -1162,13 +1193,19 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     (m)->p_fenc[2] = &(src)[2][((xoff)>>1)+((yoff)>>1)*FENC_STRIDE];
 
 #define LOAD_HPELS(m, src, list, ref, xoff, yoff) \
-    (m)->p_fref[0] = &(src)[0][(xoff)+(yoff)*(m)->i_stride[0]]; \
+    (m)->p_fref_w = (m)->p_fref[0] = &(src)[0][(xoff)+(yoff)*(m)->i_stride[0]]; \
     (m)->p_fref[1] = &(src)[1][(xoff)+(yoff)*(m)->i_stride[0]]; \
     (m)->p_fref[2] = &(src)[2][(xoff)+(yoff)*(m)->i_stride[0]]; \
     (m)->p_fref[3] = &(src)[3][(xoff)+(yoff)*(m)->i_stride[0]]; \
     (m)->p_fref[4] = &(src)[4][((xoff)>>1)+((yoff)>>1)*(m)->i_stride[1]]; \
     (m)->p_fref[5] = &(src)[5][((xoff)>>1)+((yoff)>>1)*(m)->i_stride[1]]; \
-    (m)->integral = &h->mb.pic.p_integral[list][ref][(xoff)+(yoff)*(m)->i_stride[0]];
+    (m)->integral = &h->mb.pic.p_integral[list][ref][(xoff)+(yoff)*(m)->i_stride[0]]; \
+    (m)->weight = weight_none; \
+    (m)->i_ref = ref;
+
+#define LOAD_WPELS(m, src, list, ref, xoff, yoff) \
+    (m)->p_fref_w = &(src)[(xoff)+(yoff)*(m)->i_stride[0]]; \
+    (m)->weight = h->sh.weight[i_ref];
 
 #define REF_COST(list, ref) \
     (a->p_cost_ref##list[ref])
@@ -1183,7 +1220,6 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
 
     /* 16x16 Search on all ref frame */
     m.i_pixel = PIXEL_16x16;
-    m.p_cost_mv = a->p_cost_mv;
     LOAD_FENC( &m, h->mb.pic.p_fenc, 0, 0 );
 
     a->l0.me16x16.cost = INT_MAX;
@@ -1192,10 +1228,11 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
         const int i_ref_cost = REF_COST( 0, i_ref );
         i_halfpel_thresh -= i_ref_cost;
         m.i_ref_cost = i_ref_cost;
-        m.i_ref = i_ref;
 
         /* search with ref */
         LOAD_HPELS( &m, h->mb.pic.p_fref[0][i_ref], 0, i_ref, 0, 0 );
+        LOAD_WPELS( &m, h->mb.pic.p_fref_w[i_ref], 0, i_ref, 0, 0 );
+
         x264_mb_predict_mv_16x16( h, 0, i_ref, m.mvp );
         x264_mb_predict_mv_ref16x16( h, 0, i_ref, mvc, &i_mvc );
         x264_me_search_ref( h, &m, mvc, i_mvc, p_halfpel_thresh );
@@ -1280,7 +1317,6 @@ static void x264_mb_analyse_inter_p8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
         const int y8 = i/2;
 
         m.i_pixel = PIXEL_8x8;
-        m.p_cost_mv = a->p_cost_mv;
 
         LOAD_FENC( &m, p_fenc, 8*x8, 8*y8 );
         l0m->cost = INT_MAX;
@@ -1289,9 +1325,10 @@ static void x264_mb_analyse_inter_p8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
             const int i_ref_cost = REF_COST( 0, i_ref );
             i_halfpel_thresh -= i_ref_cost;
             m.i_ref_cost = i_ref_cost;
-            m.i_ref = i_ref;
 
             LOAD_HPELS( &m, h->mb.pic.p_fref[0][i_ref], 0, i_ref, 8*x8, 8*y8 );
+            LOAD_WPELS( &m, h->mb.pic.p_fref_w[i_ref], 0, i_ref, 8*x8, 8*y8 );
+
             x264_macroblock_cache_ref( h, 2*x8, 2*y8, 2, 2, 0, i_ref );
             x264_mb_predict_mv( h, 0, 4*i, 2, m.mvp );
             x264_me_search_ref( h, &m, a->l0.mvc[i_ref], i+1, p_halfpel_thresh );
@@ -1326,7 +1363,6 @@ static void x264_mb_analyse_inter_p8x8( x264_t *h, x264_mb_analysis_t *a )
 {
     const int i_ref = a->l0.me16x16.i_ref;
     const int i_ref_cost = h->param.b_cabac || i_ref ? REF_COST( 0, i_ref ) : 0;
-    uint8_t  **p_fref = h->mb.pic.p_fref[0][i_ref];
     uint8_t  **p_fenc = h->mb.pic.p_fenc;
     int i_mvc;
     int16_t (*mvc)[2] = a->l0.mvc[i_ref];
@@ -1345,12 +1381,12 @@ static void x264_mb_analyse_inter_p8x8( x264_t *h, x264_mb_analysis_t *a )
         const int y8 = i/2;
 
         m->i_pixel = PIXEL_8x8;
-        m->p_cost_mv = a->p_cost_mv;
         m->i_ref_cost = i_ref_cost;
-        m->i_ref = i_ref;
 
         LOAD_FENC( m, p_fenc, 8*x8, 8*y8 );
-        LOAD_HPELS( m, p_fref, 0, i_ref, 8*x8, 8*y8 );
+        LOAD_HPELS( m, h->mb.pic.p_fref[0][i_ref], 0, i_ref, 8*x8, 8*y8 );
+        LOAD_WPELS( m, h->mb.pic.p_fref_w[i_ref], 0, i_ref, 8*x8, 8*y8 );
+
         x264_mb_predict_mv( h, 0, 4*i, 2, m->mvp );
         x264_me_search( h, m, mvc, i_mvc );
 
@@ -1392,7 +1428,6 @@ static void x264_mb_analyse_inter_p16x8( x264_t *h, x264_mb_analysis_t *a )
         const int i_ref8s = ( ref8[0] == ref8[1] ) ? 1 : 2;
 
         m.i_pixel = PIXEL_16x8;
-        m.p_cost_mv = a->p_cost_mv;
 
         LOAD_FENC( &m, p_fenc, 0, 8*i );
         l0m->cost = INT_MAX;
@@ -1401,7 +1436,6 @@ static void x264_mb_analyse_inter_p16x8( x264_t *h, x264_mb_analysis_t *a )
             const int i_ref = ref8[j];
             const int i_ref_cost = REF_COST( 0, i_ref );
             m.i_ref_cost = i_ref_cost;
-            m.i_ref = i_ref;
 
             /* if we skipped the 16x16 predictor, we wouldn't have to copy anything... */
             *(uint32_t*)mvc[0] = *(uint32_t*)a->l0.mvc[i_ref][0];
@@ -1409,6 +1443,8 @@ static void x264_mb_analyse_inter_p16x8( x264_t *h, x264_mb_analysis_t *a )
             *(uint32_t*)mvc[2] = *(uint32_t*)a->l0.mvc[i_ref][2*i+2];
 
             LOAD_HPELS( &m, h->mb.pic.p_fref[0][i_ref], 0, i_ref, 0, 8*i );
+            LOAD_WPELS( &m, h->mb.pic.p_fref_w[i_ref], 0, i_ref, 0, 8*i );
+
             x264_macroblock_cache_ref( h, 0, 2*i, 4, 2, 0, i_ref );
             x264_mb_predict_mv( h, 0, 8*i, 4, m.mvp );
             x264_me_search( h, &m, mvc, 3 );
@@ -1442,7 +1478,6 @@ static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a )
         const int i_ref8s = ( ref8[0] == ref8[1] ) ? 1 : 2;
 
         m.i_pixel = PIXEL_8x16;
-        m.p_cost_mv = a->p_cost_mv;
 
         LOAD_FENC( &m, p_fenc, 8*i, 0 );
         l0m->cost = INT_MAX;
@@ -1451,13 +1486,14 @@ static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a )
             const int i_ref = ref8[j];
             const int i_ref_cost = REF_COST( 0, i_ref );
             m.i_ref_cost = i_ref_cost;
-            m.i_ref = i_ref;
 
             *(uint32_t*)mvc[0] = *(uint32_t*)a->l0.mvc[i_ref][0];
             *(uint32_t*)mvc[1] = *(uint32_t*)a->l0.mvc[i_ref][i+1];
             *(uint32_t*)mvc[2] = *(uint32_t*)a->l0.mvc[i_ref][i+3];
 
             LOAD_HPELS( &m, h->mb.pic.p_fref[0][i_ref], 0, i_ref, 8*i, 0 );
+            LOAD_WPELS( &m, h->mb.pic.p_fref_w[i_ref], 0, i_ref, 8*i, 0 );
+
             x264_macroblock_cache_ref( h, 2*i, 0, 2, 4, 0, i_ref );
             x264_mb_predict_mv( h, 0, 4*i, 2, m.mvp );
             x264_me_search( h, &m, mvc, 3 );
@@ -1483,10 +1519,16 @@ static int x264_mb_analyse_inter_p4x4_chroma( x264_t *h, x264_mb_analysis_t *a, 
     const int oe = 4*(i8x8&1) + 2*(i8x8&2)*FENC_STRIDE;
     const int i_ref = a->l0.me8x8[i8x8].i_ref;
     const int mvy_offset = h->mb.b_interlaced & i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
+    x264_weight_t *weight = h->sh.weight[i_ref];
 
 #define CHROMA4x4MC( width, height, me, x, y ) \
     h->mc.mc_chroma( &pix1[x+y*16], 16, &p_fref[4][or+x+y*i_stride], i_stride, (me).mv[0], (me).mv[1]+mvy_offset, width, height ); \
-    h->mc.mc_chroma( &pix2[x+y*16], 16, &p_fref[5][or+x+y*i_stride], i_stride, (me).mv[0], (me).mv[1]+mvy_offset, width, height );
+    if( weight[1].weightfn ) \
+        weight[1].weightfn[width>>2]( &pix1[x+y*16], 16, &pix1[x+y*16], 16, &weight[1], height ); \
+    h->mc.mc_chroma( &pix2[x+y*16], 16, &p_fref[5][or+x+y*i_stride], i_stride, (me).mv[0], (me).mv[1]+mvy_offset, width, height ); \
+    if( weight[2].weightfn ) \
+        weight[1].weightfn[width>>2]( &pix2[x+y*16], 16, &pix2[x+y*16], 16, &weight[2], height );
+
 
     if( pixel == PIXEL_4x4 )
     {
@@ -1533,10 +1575,10 @@ static void x264_mb_analyse_inter_p4x4( x264_t *h, x264_mb_analysis_t *a, int i8
         x264_me_t *m = &a->l0.me4x4[i8x8][i4x4];
 
         m->i_pixel = PIXEL_4x4;
-        m->p_cost_mv = a->p_cost_mv;
 
         LOAD_FENC( m, p_fenc, 4*x4, 4*y4 );
         LOAD_HPELS( m, p_fref, 0, i_ref, 4*x4, 4*y4 );
+        LOAD_WPELS( m, h->mb.pic.p_fref_w[i_ref], 0, i_ref, 4*x4, 4*y4 );
 
         x264_mb_predict_mv( h, 0, idx, 1, m->mvp );
         x264_me_search( h, m, &a->l0.me8x8[i8x8].mv, i_mvc );
@@ -1573,10 +1615,10 @@ static void x264_mb_analyse_inter_p8x4( x264_t *h, x264_mb_analysis_t *a, int i8
         x264_me_t *m = &a->l0.me8x4[i8x8][i8x4];
 
         m->i_pixel = PIXEL_8x4;
-        m->p_cost_mv = a->p_cost_mv;
 
         LOAD_FENC( m, p_fenc, 4*x4, 4*y4 );
         LOAD_HPELS( m, p_fref, 0, i_ref, 4*x4, 4*y4 );
+        LOAD_WPELS( m, h->mb.pic.p_fref_w[i_ref], 0, i_ref, 4*x4, 4*y4 );
 
         x264_mb_predict_mv( h, 0, idx, 2, m->mvp );
         x264_me_search( h, m, &a->l0.me4x4[i8x8][0].mv, i_mvc );
@@ -1610,10 +1652,10 @@ static void x264_mb_analyse_inter_p4x8( x264_t *h, x264_mb_analysis_t *a, int i8
         x264_me_t *m = &a->l0.me4x8[i8x8][i4x8];
 
         m->i_pixel = PIXEL_4x8;
-        m->p_cost_mv = a->p_cost_mv;
 
         LOAD_FENC( m, p_fenc, 4*x4, 4*y4 );
         LOAD_HPELS( m, p_fref, 0, i_ref, 4*x4, 4*y4 );
+        LOAD_WPELS( m, h->mb.pic.p_fref_w[i_ref], 0, i_ref, 4*x4, 4*y4 );
 
         x264_mb_predict_mv( h, 0, idx, 1, m->mvp );
         x264_me_search( h, m, &a->l0.me4x4[i8x8][0].mv, i_mvc );
@@ -1665,7 +1707,8 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 
     /* 16x16 Search on all ref frame */
     m.i_pixel = PIXEL_16x16;
-    m.p_cost_mv = a->p_cost_mv;
+    m.weight = weight_none;
+
     LOAD_FENC( &m, h->mb.pic.p_fenc, 0, 0 );
 
     /* ME for List 0 */
@@ -1690,6 +1733,8 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
         /* save mv for predicting neighbors */
         *(uint32_t*)h->mb.mvr[0][i_ref][h->mb.i_mb_xy] = *(uint32_t*)m.mv;
     }
+    a->l0.me16x16.i_ref = a->l0.i_ref;
+
     /* subtract ref cost, so we don't have to add it for the other MB types */
     a->l0.me16x16.cost -= REF_COST( 0, a->l0.i_ref );
 
@@ -1717,6 +1762,8 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
         /* save mv for predicting neighbors */
         *(uint32_t*)h->mb.mvr[1][i_ref][h->mb.i_mb_xy] = *(uint32_t*)m.mv;
     }
+    a->l1.me16x16.i_ref = a->l1.i_ref;
+
     /* subtract ref cost, so we don't have to add it for the other MB types */
     a->l1.me16x16.cost -= REF_COST( 1, a->l1.i_ref );
 
@@ -1726,11 +1773,11 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 
     /* get cost of BI mode */
     src0 = h->mc.get_ref( pix0, &stride0,
-                           h->mb.pic.p_fref[0][a->l0.i_ref], h->mb.pic.i_stride[0],
-                           a->l0.me16x16.mv[0], a->l0.me16x16.mv[1], 16, 16 );
+                          h->mb.pic.p_fref[0][a->l0.i_ref], h->mb.pic.i_stride[0],
+                          a->l0.me16x16.mv[0], a->l0.me16x16.mv[1], 16, 16, weight_none );
     src1 = h->mc.get_ref( pix1, &stride1,
-                           h->mb.pic.p_fref[1][a->l1.i_ref], h->mb.pic.i_stride[0],
-                           a->l1.me16x16.mv[0], a->l1.me16x16.mv[1], 16, 16 );
+                          h->mb.pic.p_fref[1][a->l1.i_ref], h->mb.pic.i_stride[0],
+                          a->l1.me16x16.mv[0], a->l1.me16x16.mv[1], 16, 16, weight_none );
 
     h->mc.avg[PIXEL_16x16]( pix0, 16, src0, stride0, src1, stride1, h->mb.bipred_weight[a->l0.i_ref][a->l1.i_ref] );
 
@@ -1859,7 +1906,6 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
             x264_me_t *m = &lX->me8x8[i];
 
             m->i_pixel = PIXEL_8x8;
-            m->p_cost_mv = a->p_cost_mv;
 
             LOAD_FENC( m, h->mb.pic.p_fenc, 8*x8, 8*y8 );
             LOAD_HPELS( m, p_fref[l], l, lX->i_ref, 8*x8, 8*y8 );
@@ -1871,7 +1917,7 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
 
             /* BI mode */
             src[l] = h->mc.get_ref( pix[l], &stride[l], m->p_fref, m->i_stride[0],
-                                    m->mv[0], m->mv[1], 8, 8 );
+                                    m->mv[0], m->mv[1], 8, 8, weight_none );
             i_part_cost_bi += m->cost_mv;
             /* FIXME: ref cost */
         }
@@ -1922,7 +1968,6 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
             x264_me_t *m = &lX->me16x8[i];
 
             m->i_pixel = PIXEL_16x8;
-            m->p_cost_mv = a->p_cost_mv;
 
             LOAD_FENC( m, h->mb.pic.p_fenc, 0, 8*i );
             LOAD_HPELS( m, p_fref[l], l, lX->i_ref, 0, 8*i );
@@ -1935,7 +1980,7 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
 
             /* BI mode */
             src[l] = h->mc.get_ref( pix[l], &stride[l], m->p_fref, m->i_stride[0],
-                                    m->mv[0], m->mv[1], 16, 8 );
+                                    m->mv[0], m->mv[1], 16, 8, weight_none );
             /* FIXME: ref cost */
             i_part_cost_bi += m->cost_mv;
         }
@@ -1991,7 +2036,6 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
             x264_me_t *m = &lX->me8x16[i];
 
             m->i_pixel = PIXEL_8x16;
-            m->p_cost_mv = a->p_cost_mv;
 
             LOAD_FENC( m, h->mb.pic.p_fenc, 8*i, 0 );
             LOAD_HPELS( m, p_fref[l], l, lX->i_ref, 8*i, 0 );
@@ -2004,7 +2048,7 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
 
             /* BI mode */
             src[l] = h->mc.get_ref( pix[l], &stride[l], m->p_fref,  m->i_stride[0],
-                                    m->mv[0], m->mv[1], 8, 16 );
+                                    m->mv[0], m->mv[1], 8, 16, weight_none );
             /* FIXME: ref cost */
             i_part_cost_bi += m->cost_mv;
         }
