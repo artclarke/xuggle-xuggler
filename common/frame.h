@@ -65,7 +65,7 @@ typedef struct x264_frame
     uint8_t *buffer[4];
     uint8_t *buffer_lowres[4];
 
-    x264_weight_t weight[16][3]; /* the weights for the P frames used to encode this frame */
+    x264_weight_t weight[16][3]; /* [ref_index][plane] */
     uint8_t *weighted[16]; /* plane[0] weighted of the reference frames */
     int b_duplicate;
     struct x264_frame *orig;

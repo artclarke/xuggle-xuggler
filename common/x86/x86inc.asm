@@ -277,15 +277,11 @@ DECLARE_REG 6, rax, eax, ax,  al,  [rsp + stack_offset + 56]
     %endif
 %endmacro
 
-%macro PROLOGUE 2-4+ ; #args, #regs, #xmm_regs, arg_names...
+%macro PROLOGUE 2-4+ 0 ; #args, #regs, #xmm_regs, arg_names...
     ASSERT %2 >= %1
     %assign regs_used %2
     ASSERT regs_used <= 7
-    %if %0 > 2
-        %assign xmm_regs_used %3
-    %else
-        %assign xmm_regs_used 0
-    %endif
+    %assign xmm_regs_used %3
     ASSERT xmm_regs_used <= 16
     %if regs_used > 4
         push r4

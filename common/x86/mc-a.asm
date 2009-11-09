@@ -198,7 +198,7 @@ AVG_WEIGHT ssse3, 16, 7
     mova     m3, [r4]
     mova     m4, [r4+16]
     pxor     m2, m2
-%if ( %1 == 20 || %1 == 12 )
+%if %1 == 20 || %1 == 12
     movdq2q mm3, xmm3
     movdq2q mm4, xmm4
     pxor    mm2, mm2

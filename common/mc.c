@@ -124,8 +124,8 @@ static void x264_weight_cache( x264_t *h, x264_weight_t *w )
 {
     w->weightfn = h->mc.weight;
 }
-#define opscale(x) dst[x] = x264_clip_uint8( ( ( ( src[x] * weight->i_scale ) + (1<<(weight->i_denom - 1) ) )>> weight->i_denom ) + weight->i_offset )
-#define opscale_noden(x) dst[x] = x264_clip_uint8( ( src[x] * weight->i_scale ) + weight->i_offset )
+#define opscale(x) dst[x] = x264_clip_uint8( ((src[x] * weight->i_scale + (1<<(weight->i_denom - 1))) >> weight->i_denom) + weight->i_offset )
+#define opscale_noden(x) dst[x] = x264_clip_uint8( src[x] * weight->i_scale + weight->i_offset )
 static inline void mc_weight( uint8_t *dst, int i_dst_stride, uint8_t *src, int i_src_stride, const x264_weight_t *weight, int i_width, int i_height )
 {
 

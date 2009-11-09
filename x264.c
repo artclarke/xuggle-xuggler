@@ -560,11 +560,11 @@ static int select_output( char *filename, const char *pipe_format )
 
 static int select_input( char *filename, char *resolution, const char *pipe_format, x264_param_t *param )
 {
-    char *psz = filename + strlen( filename ) - 1;
-    while( psz > filename && *psz != '.' )
-        psz--;
+    char *ext = filename + strlen( filename ) - 1;
+    while( ext > filename && *ext != '.' )
+        ext--;
 
-    if( !strcasecmp( psz, ".avi" ) || !strcasecmp( psz, ".avs" ) )
+    if( !strcasecmp( ext, ".avi" ) || !strcasecmp( ext, ".avs" ) )
     {
 #ifdef AVIS_INPUT
         input = avis_input;
@@ -573,16 +573,17 @@ static int select_input( char *filename, char *resolution, const char *pipe_form
         return -1;
 #endif
     }
-    else if( !strcasecmp( psz, ".y4m" ) || (!strcmp( filename, "-" ) && !strcasecmp( pipe_format, "y4m" )) )
+    else if( !strcasecmp( ext, ".y4m" ) || (!strcmp( filename, "-" ) && !strcasecmp( pipe_format, "y4m" )) )
         input = y4m_input;
     else // yuv
     {
         if( !resolution )
         {
             /* try to parse the file name */
-            for( psz = filename; *psz; psz++ )
-                if( *psz >= '0' && *psz <= '9' &&
-                    sscanf( psz, "%ux%u", &param->i_width, &param->i_height ) == 2 )
+            char *p;
+            for( p = filename; *p; p++ )
+                if( *p >= '0' && *p <= '9' &&
+                    sscanf( p, "%ux%u", &param->i_width, &param->i_height ) == 2 )
                 {
                     if( param->i_log_level >= X264_LOG_INFO )
                         fprintf( stderr, "x264 [info]: %dx%d (given by file name) @ %.2f fps\n", param->i_width,

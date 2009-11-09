@@ -197,7 +197,7 @@ static void x264_weight_cache_mmxext( x264_t *h, x264_weight_t *w )
         return;
     }
     w->weightfn = h->mc.weight;
-    den1 = 1 << ( w->i_denom - 1 ) | w->i_offset << w->i_denom;
+    den1 = 1 << (w->i_denom - 1) | w->i_offset << w->i_denom;
     for( i = 0; i < 8; i++ )
     {
         w->cachea[i] = w->i_scale;
@@ -219,10 +219,10 @@ static void x264_weight_cache_ssse3( x264_t *h, x264_weight_t *w )
         return;
     }
     w->weightfn = h->mc.weight;
-    den1 = ( w->i_scale ) << ( 8- w->i_denom );
+    den1 = w->i_scale << (8 - w->i_denom);
     for(i = 0;i<8;i++)
     {
-        w->cachea[i] = den1 ;
+        w->cachea[i] = den1;
         w->cacheb[i] = w->i_offset;
     }
 }
@@ -278,11 +278,11 @@ static uint8_t *get_ref_##name( uint8_t *dst,   int *i_dst_stride,\
         x264_pixel_avg_wtab_##name[i_width>>2](\
                 dst, *i_dst_stride, src1, i_src_stride,\
                 src2, i_height );\
-        if( weight->weightfn )                                       \
-            weight->weightfn[i_width>>2]( dst, *i_dst_stride, dst, *i_dst_stride, weight, i_height ); \
+        if( weight->weightfn )\
+            weight->weightfn[i_width>>2]( dst, *i_dst_stride, dst, *i_dst_stride, weight, i_height );\
         return dst;\
     }\
-    else if( weight->weightfn ) \
+    else if( weight->weightfn )\
     {\
         weight->weightfn[i_width>>2]( dst, *i_dst_stride, src1, i_src_stride, weight, i_height );\
         return dst;\

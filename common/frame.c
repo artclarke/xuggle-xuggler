@@ -53,8 +53,8 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
         frame->i_lines[i] = i_lines >> !!i;
     }
 
-    luma_plane_size = (frame->i_stride[0] * ( frame->i_lines[0] + 2*i_padv ));
-    chroma_plane_size = (frame->i_stride[1] * ( frame->i_lines[1] + 2*i_padv ));
+    luma_plane_size = (frame->i_stride[0] * (frame->i_lines[0] + 2*i_padv));
+    chroma_plane_size = (frame->i_stride[1] * (frame->i_lines[1] + 2*i_padv));
     for( i = 1; i < 3; i++ )
     {
         CHECKED_MALLOC( frame->buffer[i], chroma_plane_size );
@@ -79,14 +79,14 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
      * requires them to be in-phase wrt cacheline alignment. */
     if( h->param.analyse.i_subpel_refine && b_fdec )
     {
-        CHECKED_MALLOC( frame->buffer[0], 4*luma_plane_size);
+        CHECKED_MALLOC( frame->buffer[0], 4*luma_plane_size );
         for( i = 0; i < 4; i++ )
             frame->filtered[i] = frame->buffer[0] + i*luma_plane_size + frame->i_stride[0] * i_padv + PADH;
         frame->plane[0] = frame->filtered[0];
     }
     else
     {
-        CHECKED_MALLOC( frame->buffer[0], luma_plane_size);
+        CHECKED_MALLOC( frame->buffer[0], luma_plane_size );
         frame->filtered[0] = frame->plane[0] = frame->buffer[0] + frame->i_stride[0] * i_padv + PADH;
     }
 
@@ -124,7 +124,7 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
             frame->i_stride_lowres = ALIGN( frame->i_width_lowres + 2*PADH, align );
             frame->i_lines_lowres = frame->i_lines[0]/2;
 
-            luma_plane_size = frame->i_stride_lowres * ( frame->i_lines[0]/2 + 2*i_padv );
+            luma_plane_size = frame->i_stride_lowres * (frame->i_lines[0]/2 + 2*i_padv);
 
             CHECKED_MALLOC( frame->buffer_lowres[0], 4 * luma_plane_size );
             for( i = 0; i < 4; i++ )
@@ -339,8 +339,8 @@ void x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame )
         int i_subsample = i ? 1 : 0;
         int i_width = h->param.i_width >> i_subsample;
         int i_height = h->param.i_height >> i_subsample;
-        int i_padx = ( h->sps->i_mb_width * 16 - h->param.i_width ) >> i_subsample;
-        int i_pady = ( h->sps->i_mb_height * 16 - h->param.i_height ) >> i_subsample;
+        int i_padx = (h->sps->i_mb_width * 16 - h->param.i_width) >> i_subsample;
+        int i_pady = (h->sps->i_mb_height * 16 - h->param.i_height) >> i_subsample;
 
         if( i_padx )
         {
@@ -761,8 +761,8 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                             else if( !h->mb.b_interlaced )\
                                 refs_equal = h->fref0[h->mb.ref[0][i8p]]->i_poc == h->fref0[h->mb.ref[0][i8q]]->i_poc;\
                             else\
-                                refs_equal = ( h->fref0[h->mb.ref[0][i8p]>>1]->i_poc == h->fref0[h->mb.ref[0][i8q]>>1]->i_poc ) &&\
-                                                 ( (h->mb.ref[0][i8p]&1) == (h->mb.ref[0][i8q]&1) );\
+                                refs_equal = h->fref0[h->mb.ref[0][i8p]>>1]->i_poc == h->fref0[h->mb.ref[0][i8q]>>1]->i_poc\
+                                           && (h->mb.ref[0][i8p]&1) == (h->mb.ref[0][i8q]&1);\
                             if((!refs_equal ||\
                                 abs( h->mb.mv[0][i4p][0] - h->mb.mv[0][i4q][0] ) >= 4 ||\
                                 abs( h->mb.mv[0][i4p][1] - h->mb.mv[0][i4q][1] ) >= mvy_limit ) ||\
@@ -1065,7 +1065,7 @@ void x264_weight_scale_plane( x264_t *h, uint8_t *dst, int i_dst_stride, uint8_t
      * in terms of the cache loads. */
     while( i_height > 0 )
     {
-        for( x = 0; x < i_width ; x += 16 )
+        for( x = 0; x < i_width; x += 16 )
             w->weightfn[16>>2]( dst+x, i_dst_stride, src+x, i_src_stride, w, X264_MIN( i_height, 16 ) );
         i_height -= 16;
         dst += 16 * i_dst_stride;

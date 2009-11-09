@@ -927,7 +927,7 @@ static int check_mc( int cpu_ref, int cpu_new )
         for( o = -128; o <= 127 && ok; o++ )
         {
             if( rand() & 2047 ) continue;
-            for( d = 0 ; d <= 7 && ok; d++ )
+            for( d = 0; d <= 7 && ok; d++ )
             {
                 if( s == 1<<d )
                     continue;
