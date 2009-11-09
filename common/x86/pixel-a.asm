@@ -231,6 +231,9 @@ cglobal x264_pixel_ssd_%1x%2_%3, 0,0,0
 .startloop:
 %ifdef ARCH_X86_64
     DECLARE_REG_TMP 0,1,2,3
+%ifnidn %3, mmx
+    PROLOGUE 0,0,8
+%endif
 %else
     PROLOGUE 0,5
     DECLARE_REG_TMP 1,2,3,4
