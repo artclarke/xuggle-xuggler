@@ -50,8 +50,8 @@ typedef struct
     int s_count;
     float blurred_complexity;
     char direct_mode;
-    int8_t weight[2];
-    int8_t i_weight_denom;
+    int16_t weight[2];
+    int16_t i_weight_denom;
     int refcount[16];
     int refs;
 } ratecontrol_entry_t;
@@ -684,7 +684,7 @@ int x264_ratecontrol_new( x264_t *h )
             rce->i_weight_denom = -1;
             char *w = strchr( p, 'w' );
             if( w )
-                if( sscanf( w, "w:%hhd,%hhd,%hhd", &rce->i_weight_denom, &rce->weight[0], &rce->weight[1] ) != 3 )
+                if( sscanf( w, "w:%hd,%hd,%hd", &rce->i_weight_denom, &rce->weight[0], &rce->weight[1] ) != 3 )
                     rce->i_weight_denom = -1;
 
             switch(pict_type)
