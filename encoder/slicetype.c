@@ -59,7 +59,7 @@ static void get_h264_weight( unsigned int weight_nonh264, int offset, x264_weigh
 /* due to a GCC bug on some platforms (win32), flat[16] may not actually be aligned. */
 ALIGNED_16( static uint8_t flat[17] ) = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
 
-static void weights_plane_analyse( x264_t *h, uint8_t *plane, int width, int height, int stride, unsigned int *sum, uint64_t *var )
+static NOINLINE void weights_plane_analyse( x264_t *h, uint8_t *plane, int width, int height, int stride, unsigned int *sum, uint64_t *var )
 {
     int x,y;
     unsigned int sad = 0;
@@ -85,7 +85,7 @@ static void weights_plane_analyse( x264_t *h, uint8_t *plane, int width, int hei
    (dst)[3] = &(src)[3][i_pel_offset]; \
 }
 
-static uint8_t *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, uint8_t *dest, int b_lowres )
+static NOINLINE uint8_t *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, uint8_t *dest, int b_lowres )
 {
     uint8_t **ref_planes = b_lowres ? ref->lowres : ref->filtered;
     int ref0_distance = fenc->i_frame - ref->i_frame - 1;
@@ -114,13 +114,15 @@ static uint8_t *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fenc, x264_
                 h->mc.mc_luma( pix, i_stride, src, i_stride,
                                mvx, mvy, mbsize, mbsize, weight_none );
             }
+        x264_emms();
         return dest;
     }
+    x264_emms();
     return ref_planes[0];
 }
 #undef LOAD_HPELS_LUMA
 
-static unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, uint8_t *src, x264_weight_t *w, int b_lowres )
+static NOINLINE unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, uint8_t *src, x264_weight_t *w, int b_lowres )
 {
     int x, y;
     unsigned int cost = 0;
@@ -160,6 +162,7 @@ static unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, uint8_t *sr
         // Multiply by 2 as there will be a duplicate. 10 bits added as if there is a weighted frame, then an additional duplicate is used.
         cost += lambda * numslices * ( 10 + 2 * ( bs_size_ue( w[0].i_denom ) + bs_size_se( w[0].i_scale ) + bs_size_se( w[0].i_offset ) ) );
     }
+    x264_emms();
     return cost;
 }
 
