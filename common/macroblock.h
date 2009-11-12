@@ -338,21 +338,22 @@ static ALWAYS_INLINE uint32_t pack16to32_mask( int a, int b )
 }
 static ALWAYS_INLINE void x264_macroblock_cache_rect1( void *dst, int width, int height, uint8_t val )
 {
+    uint32_t *d = dst;
     if( width == 4 )
     {
         uint32_t val2 = val * 0x01010101;
-                          ((uint32_t*)dst)[0] = val2;
-        if( height >= 2 ) ((uint32_t*)dst)[2] = val2;
-        if( height == 4 ) ((uint32_t*)dst)[4] = val2;
-        if( height == 4 ) ((uint32_t*)dst)[6] = val2;
+                          M32( d+0 ) = val2;
+        if( height >= 2 ) M32( d+2 ) = val2;
+        if( height == 4 ) M32( d+4 ) = val2;
+        if( height == 4 ) M32( d+6 ) = val2;
     }
     else // 2
     {
         uint32_t val2 = val * 0x0101;
-                          ((uint16_t*)dst)[ 0] = val2;
-        if( height >= 2 ) ((uint16_t*)dst)[ 4] = val2;
-        if( height == 4 ) ((uint16_t*)dst)[ 8] = val2;
-        if( height == 4 ) ((uint16_t*)dst)[12] = val2;
+                          M16( d+0 ) = val2;
+        if( height >= 2 ) M16( d+2 ) = val2;
+        if( height == 4 ) M16( d+4 ) = val2;
+        if( height == 4 ) M16( d+6 ) = val2;
     }
 }
 static ALWAYS_INLINE void x264_macroblock_cache_rect4( void *dst, int width, int height, uint32_t val )
@@ -360,25 +361,27 @@ static ALWAYS_INLINE void x264_macroblock_cache_rect4( void *dst, int width, int
     int dy;
     if( width == 1 || WORD_SIZE < 8 )
     {
+        uint32_t *d = dst;
         for( dy = 0; dy < height; dy++ )
         {
-                             ((uint32_t*)dst)[8*dy+0] = val;
-            if( width >= 2 ) ((uint32_t*)dst)[8*dy+1] = val;
-            if( width == 4 ) ((uint32_t*)dst)[8*dy+2] = val;
-            if( width == 4 ) ((uint32_t*)dst)[8*dy+3] = val;
+                             M32( d+8*dy+0 ) = val;
+            if( width >= 2 ) M32( d+8*dy+1 ) = val;
+            if( width == 4 ) M32( d+8*dy+2 ) = val;
+            if( width == 4 ) M32( d+8*dy+3 ) = val;
         }
     }
     else
     {
         uint64_t val64 = val + ((uint64_t)val<<32);
+        uint64_t *d = dst;
         for( dy = 0; dy < height; dy++ )
         {
-                             ((uint64_t*)dst)[4*dy+0] = val64;
-            if( width == 4 ) ((uint64_t*)dst)[4*dy+1] = val64;
+                             M64( d+4*dy+0 ) = val64;
+            if( width == 4 ) M64( d+4*dy+1 ) = val64;
         }
     }
 }
-#define x264_macroblock_cache_mv_ptr(a,x,y,w,h,l,mv) x264_macroblock_cache_mv(a,x,y,w,h,l,*(uint32_t*)mv)
+#define x264_macroblock_cache_mv_ptr( a, x, y, w, h, l, mv ) x264_macroblock_cache_mv( a, x, y, w, h, l, M32( mv ) )
 static ALWAYS_INLINE void x264_macroblock_cache_mv( x264_t *h, int x, int y, int width, int height, int i_list, uint32_t mv )
 {
     x264_macroblock_cache_rect4( &h->mb.cache.mv[i_list][X264_SCAN8_0+x+8*y], width, height, mv );
@@ -462,7 +465,7 @@ static inline int x264_mb_transform_8x8_allowed( x264_t *h )
         return 0;
     if( h->mb.i_type != P_8x8 )
         return partition_tab[h->mb.i_type];
-    return *(uint32_t*)h->mb.i_sub_partition == D_L0_8x8*0x01010101;
+    return M32( h->mb.i_sub_partition ) == D_L0_8x8*0x01010101;
 }
 
 #endif

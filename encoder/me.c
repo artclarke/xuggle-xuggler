@@ -211,7 +211,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
         COST_MV_HPEL( bmx, bmy );
         for( i = 0; i < i_mvc; i++ )
         {
-            if( *(uint32_t*)mvc[i] && (bmv - *(uint32_t*)mvc[i]) )
+            if( M32( mvc[i] ) && (bmv - M32( mvc[i] )) )
             {
                 int mx = x264_clip3( mvc[i][0], mv_x_min*4, mv_x_max*4 );
                 int my = x264_clip3( mvc[i][1], mv_y_min*4, mv_y_max*4 );
@@ -643,7 +643,7 @@ me_hex2:
                     {
                         /* mvsad_t is not guaranteed to be 8 bytes on all archs, so check before using explicit write-combining */
                         if( sizeof( mvsad_t ) == sizeof( uint64_t ) )
-                            *(uint64_t*)&mvsads[i] = *(uint64_t*)&mvsads[j];
+                            CP64( &mvsads[i], &mvsads[j] );
                         else
                             mvsads[i] = mvsads[j];
                         i += mvsads[j].sad <= sad_thresh;
@@ -659,7 +659,7 @@ me_hex2:
                     nmvsad--;
                     mvsads[bi] = mvsads[nmvsad];
                     if( sizeof( mvsad_t ) == sizeof( uint64_t ) )
-                        *(uint64_t*)&mvsads[bi] = *(uint64_t*)&mvsads[nmvsad];
+                        CP64( &mvsads[bi], &mvsads[nmvsad] );
                     else
                         mvsads[bi] = mvsads[nmvsad];
                 }
@@ -974,8 +974,10 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
                     if( cost < bcost * SATD_THRESH )
                     {
                         bcost = X264_MIN( cost, bcost );
-                        *(uint32_t*)cache0_mv = *(uint32_t*)cache0_mv2 = pack16to32_mask(m0x,m0y);
-                        *(uint32_t*)cache1_mv = *(uint32_t*)cache1_mv2 = pack16to32_mask(m1x,m1y);
+                        M32( cache0_mv  ) = pack16to32_mask(m0x,m0y);
+                        M32( cache0_mv2 ) = pack16to32_mask(m0x,m0y);
+                        M32( cache1_mv  ) = pack16to32_mask(m1x,m1y);
+                        M32( cache1_mv2 ) = pack16to32_mask(m1x,m1y);
                         h->mc.avg[i_pixel+3]( pixu, FDEC_STRIDE, pixu_buf[0][i0], 8, pixu_buf[1][i1], 8, i_weight );
                         h->mc.avg[i_pixel+3]( pixv, FDEC_STRIDE, pixv_buf[0][i0], 8, pixv_buf[1][i1], 8, i_weight );
                         uint64_t costrd = x264_rd_cost_part( h, i_lambda2, i8*4, m0->i_pixel );
@@ -1038,7 +1040,8 @@ void x264_me_refine_bidir_rd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_wei
     if( satd <= bsatd * SATD_THRESH ) \
     { \
         uint64_t cost; \
-        *(uint32_t*)cache_mv = *(uint32_t*)cache_mv2 = pack16to32_mask(mx,my); \
+        M32( cache_mv  ) = pack16to32_mask(mx,my); \
+        M32( cache_mv2 ) = pack16to32_mask(mx,my); \
         cost = x264_rd_cost_part( h, i_lambda2, i4, m->i_pixel ); \
         COPY4_IF_LT( bcost, cost, bmx, mx, bmy, my, dir, do_dir?mdir:dir ); \
     } \

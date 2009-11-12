@@ -266,12 +266,12 @@ static void predict_8x8c_dc_left( uint8_t *src )
 
     for( y = 0; y < 4; y++ )
     {
-        *(uint64_t*)src = dc0;
+        M64( src ) = dc0;
         src += FDEC_STRIDE;
     }
     for( y = 0; y < 4; y++ )
     {
-        *(uint64_t*)src = dc1;
+        M64( src ) = dc1;
         src += FDEC_STRIDE;
     }
 
@@ -296,8 +296,8 @@ static void predict_8x8c_dc_left( uint8_t *src )
 #define PREDICT_8x8_DC(v) \
     int y; \
     for( y = 0; y < 8; y++ ) { \
-        ((uint32_t*)src)[0] = \
-        ((uint32_t*)src)[1] = v; \
+        M32( src+0 ) = v; \
+        M32( src+4 ) = v; \
         src += FDEC_STRIDE; \
     }
 

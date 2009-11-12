@@ -155,8 +155,16 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qp )
 
 #define STORE_8x8_NNZ(idx,nz)\
 {\
-    *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[idx*4+0]] = nz * 0x0101;\
-    *(uint16_t*)&h->mb.cache.non_zero_count[x264_scan8[idx*4+2]] = nz * 0x0101;\
+    M16( &h->mb.cache.non_zero_count[x264_scan8[idx*4+0]] ) = nz * 0x0101;\
+    M16( &h->mb.cache.non_zero_count[x264_scan8[idx*4+2]] ) = nz * 0x0101;\
+}
+
+#define CLEAR_16x16_NNZ \
+{\
+    M32( &h->mb.cache.non_zero_count[x264_scan8[ 0]] ) = 0;\
+    M32( &h->mb.cache.non_zero_count[x264_scan8[ 2]] ) = 0;\
+    M32( &h->mb.cache.non_zero_count[x264_scan8[ 8]] ) = 0;\
+    M32( &h->mb.cache.non_zero_count[x264_scan8[10]] ) = 0;\
 }
 
 void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qp )
@@ -244,10 +252,7 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qp )
     if( decimate_score < 6 )
     {
         h->mb.i_cbp_luma = 0;
-        *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 0]] = 0;
-        *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 2]] = 0;
-        *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 8]] = 0;
-        *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[10]] = 0;
+        CLEAR_16x16_NNZ
     }
 
     h->dctf.dct4x4dc( dct_dc4x4 );
@@ -661,10 +666,10 @@ void x264_macroblock_encode( x264_t *h )
         if( h->mb.i_skip_intra )
         {
             h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[0], FDEC_STRIDE, h->mb.pic.i8x8_fdec_buf, 16, 16 );
-            *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 0]] = h->mb.pic.i8x8_nnz_buf[0];
-            *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 2]] = h->mb.pic.i8x8_nnz_buf[1];
-            *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 8]] = h->mb.pic.i8x8_nnz_buf[2];
-            *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[10]] = h->mb.pic.i8x8_nnz_buf[3];
+            M32( &h->mb.cache.non_zero_count[x264_scan8[ 0]] ) = h->mb.pic.i8x8_nnz_buf[0];
+            M32( &h->mb.cache.non_zero_count[x264_scan8[ 2]] ) = h->mb.pic.i8x8_nnz_buf[1];
+            M32( &h->mb.cache.non_zero_count[x264_scan8[ 8]] ) = h->mb.pic.i8x8_nnz_buf[2];
+            M32( &h->mb.cache.non_zero_count[x264_scan8[10]] ) = h->mb.pic.i8x8_nnz_buf[3];
             h->mb.i_cbp_luma = h->mb.pic.i8x8_cbp;
             /* In RD mode, restore the now-overwritten DCT data. */
             if( h->mb.i_skip_intra == 2 )
@@ -691,10 +696,10 @@ void x264_macroblock_encode( x264_t *h )
         if( h->mb.i_skip_intra )
         {
             h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[0], FDEC_STRIDE, h->mb.pic.i4x4_fdec_buf, 16, 16 );
-            *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 0]] = h->mb.pic.i4x4_nnz_buf[0];
-            *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 2]] = h->mb.pic.i4x4_nnz_buf[1];
-            *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 8]] = h->mb.pic.i4x4_nnz_buf[2];
-            *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[10]] = h->mb.pic.i4x4_nnz_buf[3];
+            M32( &h->mb.cache.non_zero_count[x264_scan8[ 0]] ) = h->mb.pic.i4x4_nnz_buf[0];
+            M32( &h->mb.cache.non_zero_count[x264_scan8[ 2]] ) = h->mb.pic.i4x4_nnz_buf[1];
+            M32( &h->mb.cache.non_zero_count[x264_scan8[ 8]] ) = h->mb.pic.i4x4_nnz_buf[2];
+            M32( &h->mb.cache.non_zero_count[x264_scan8[10]] ) = h->mb.pic.i4x4_nnz_buf[3];
             h->mb.i_cbp_luma = h->mb.pic.i4x4_cbp;
             /* In RD mode, restore the now-overwritten DCT data. */
             if( h->mb.i_skip_intra == 2 )
@@ -707,7 +712,7 @@ void x264_macroblock_encode( x264_t *h )
 
             if( (h->mb.i_neighbour4[i] & (MB_TOPRIGHT|MB_TOP)) == MB_TOP )
                 /* emulate missing topright samples */
-                *(uint32_t*) &p_dst[4-FDEC_STRIDE] = p_dst[3-FDEC_STRIDE] * 0x01010101U;
+                M32( &p_dst[4-FDEC_STRIDE] ) = p_dst[3-FDEC_STRIDE] * 0x01010101U;
 
             if( h->mb.b_lossless )
                 x264_predict_lossless_4x4( h, p_dst, i, i_mode );
@@ -779,10 +784,7 @@ void x264_macroblock_encode( x264_t *h )
             if( i_decimate_mb < 6 && b_decimate )
             {
                 h->mb.i_cbp_luma = 0;
-                *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 0]] = 0;
-                *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 2]] = 0;
-                *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 8]] = 0;
-                *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[10]] = 0;
+                CLEAR_16x16_NNZ
             }
             else
             {
@@ -851,10 +853,7 @@ void x264_macroblock_encode( x264_t *h )
                 if( i_decimate_mb < 6 )
                 {
                     h->mb.i_cbp_luma = 0;
-                    *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 0]] = 0;
-                    *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 2]] = 0;
-                    *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[ 8]] = 0;
-                    *(uint32_t*)&h->mb.cache.non_zero_count[x264_scan8[10]] = 0;
+                    CLEAR_16x16_NNZ
                 }
                 else
                 {
@@ -899,7 +898,7 @@ void x264_macroblock_encode( x264_t *h )
     {
         if( h->mb.i_type == P_L0 && h->mb.i_partition == D_16x16 &&
             !(h->mb.i_cbp_luma | h->mb.i_cbp_chroma) &&
-            *(uint32_t*)h->mb.cache.mv[0][x264_scan8[0]] == *(uint32_t*)h->mb.cache.pskip_mv
+            M32( h->mb.cache.mv[0][x264_scan8[0]] ) == M32( h->mb.cache.pskip_mv )
             && h->mb.cache.ref[0][x264_scan8[0]] == 0 )
         {
             h->mb.i_type = P_SKIP;

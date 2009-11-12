@@ -44,11 +44,10 @@
 #define PREDICT_16x16_DC(v) \
     for( i = 0; i < 16; i++ )\
     {\
-        uint32_t *p = (uint32_t*)src;\
-        *p++ = v;\
-        *p++ = v;\
-        *p++ = v;\
-        *p++ = v;\
+        M32( src+ 0 ) = v;\
+        M32( src+ 4 ) = v;\
+        M32( src+ 8 ) = v;\
+        M32( src+12 ) = v;\
         src += FDEC_STRIDE;\
     }
 
@@ -104,32 +103,28 @@ static void predict_16x16_h( uint8_t *src )
     for( i = 0; i < 16; i++ )
     {
         const uint32_t v = 0x01010101 * src[-1];
-        uint32_t *p = (uint32_t*)src;
-
-        *p++ = v;
-        *p++ = v;
-        *p++ = v;
-        *p++ = v;
-
+        M32( src+ 0 ) = v;
+        M32( src+ 4 ) = v;
+        M32( src+ 8 ) = v;
+        M32( src+12 ) = v;
         src += FDEC_STRIDE;
 
     }
 }
 static void predict_16x16_v( uint8_t *src )
 {
-    uint32_t v0 = *(uint32_t*)&src[ 0-FDEC_STRIDE];
-    uint32_t v1 = *(uint32_t*)&src[ 4-FDEC_STRIDE];
-    uint32_t v2 = *(uint32_t*)&src[ 8-FDEC_STRIDE];
-    uint32_t v3 = *(uint32_t*)&src[12-FDEC_STRIDE];
+    uint32_t v0 = M32( &src[ 0-FDEC_STRIDE] );
+    uint32_t v1 = M32( &src[ 4-FDEC_STRIDE] );
+    uint32_t v2 = M32( &src[ 8-FDEC_STRIDE] );
+    uint32_t v3 = M32( &src[12-FDEC_STRIDE] );
     int i;
 
     for( i = 0; i < 16; i++ )
     {
-        uint32_t *p = (uint32_t*)src;
-        *p++ = v0;
-        *p++ = v1;
-        *p++ = v2;
-        *p++ = v3;
+        M32( src+ 0 ) = v0;
+        M32( src+ 4 ) = v1;
+        M32( src+ 8 ) = v2;
+        M32( src+12 ) = v3;
         src += FDEC_STRIDE;
     }
 }
@@ -178,9 +173,8 @@ static void predict_8x8c_dc_128( uint8_t *src )
 
     for( y = 0; y < 8; y++ )
     {
-        uint32_t *p = (uint32_t*)src;
-        *p++ = 0x80808080;
-        *p++ = 0x80808080;
+        M32( src+0 ) = 0x80808080;
+        M32( src+4 ) = 0x80808080;
         src += FDEC_STRIDE;
     }
 }
@@ -199,16 +193,14 @@ static void predict_8x8c_dc_left( uint8_t *src )
 
     for( y = 0; y < 4; y++ )
     {
-        uint32_t *p = (uint32_t*)src;
-        *p++ = dc0;
-        *p++ = dc0;
+        M32( src+0 ) = dc0;
+        M32( src+4 ) = dc0;
         src += FDEC_STRIDE;
     }
     for( y = 0; y < 4; y++ )
     {
-        uint32_t *p = (uint32_t*)src;
-        *p++ = dc1;
-        *p++ = dc1;
+        M32( src+0 ) = dc1;
+        M32( src+4 ) = dc1;
         src += FDEC_STRIDE;
     }
 
@@ -228,9 +220,8 @@ static void predict_8x8c_dc_top( uint8_t *src )
 
     for( y = 0; y < 8; y++ )
     {
-        uint32_t *p = (uint32_t*)src;
-        *p++ = dc0;
-        *p++ = dc1;
+        M32( src+0 ) = dc0;
+        M32( src+4 ) = dc1;
         src += FDEC_STRIDE;
     }
 }
@@ -264,17 +255,15 @@ static void predict_8x8c_dc( uint8_t *src )
 
     for( y = 0; y < 4; y++ )
     {
-        uint32_t *p = (uint32_t*)src;
-        *p++ = dc0;
-        *p++ = dc1;
+        M32( src+0 ) = dc0;
+        M32( src+4 ) = dc1;
         src += FDEC_STRIDE;
     }
 
     for( y = 0; y < 4; y++ )
     {
-        uint32_t *p = (uint32_t*)src;
-        *p++ = dc2;
-        *p++ = dc3;
+        M32( src+0 ) = dc2;
+        M32( src+4 ) = dc3;
         src += FDEC_STRIDE;
     }
 }
@@ -285,23 +274,21 @@ static void predict_8x8c_h( uint8_t *src )
     for( i = 0; i < 8; i++ )
     {
         uint32_t v = 0x01010101 * src[-1];
-        uint32_t *p = (uint32_t*)src;
-        *p++ = v;
-        *p++ = v;
+        M32( src+0 ) = v;
+        M32( src+4 ) = v;
         src += FDEC_STRIDE;
     }
 }
 static void predict_8x8c_v( uint8_t *src )
 {
-    uint32_t v0 = *(uint32_t*)&src[0-FDEC_STRIDE];
-    uint32_t v1 = *(uint32_t*)&src[4-FDEC_STRIDE];
+    uint32_t v0 = M32( src+0-FDEC_STRIDE );
+    uint32_t v1 = M32( src+4-FDEC_STRIDE );
     int i;
 
     for( i = 0; i < 8; i++ )
     {
-        uint32_t *p = (uint32_t*)src;
-        *p++ = v0;
-        *p++ = v1;
+        M32( src+0 ) = v0;
+        M32( src+4 ) = v1;
         src += FDEC_STRIDE;
     }
 }
@@ -343,7 +330,7 @@ static void predict_8x8c_p( uint8_t *src )
  ****************************************************************************/
 
 #define SRC(x,y) src[(x)+(y)*FDEC_STRIDE]
-#define SRC32(x,y) *(uint32_t*)&SRC(x,y)
+#define SRC32(x,y) M32( &SRC(x,y) )
 
 #define PREDICT_4x4_DC(v)\
     SRC32(0,0) = SRC32(0,1) = SRC32(0,2) = SRC32(0,3) = v;
@@ -535,7 +522,7 @@ static void predict_8x8_filter( uint8_t *src, uint8_t edge[33], int i_neighbor, 
             }
             else
             {
-                *(uint64_t*)(edge+24) = SRC(7,-1) * 0x0101010101010101ULL;
+                M64( edge+24 ) = SRC(7,-1) * 0x0101010101010101ULL;
                 edge[32] = SRC(7,-1);
             }
         }
@@ -561,8 +548,8 @@ static void predict_8x8_filter( uint8_t *src, uint8_t edge[33], int i_neighbor, 
 #define PREDICT_8x8_DC(v) \
     int y; \
     for( y = 0; y < 8; y++ ) { \
-        ((uint32_t*)src)[0] = \
-        ((uint32_t*)src)[1] = v; \
+        M32( src+0 ) = v; \
+        M32( src+4 ) = v; \
         src += FDEC_STRIDE; \
     }
 
@@ -593,17 +580,17 @@ static void predict_8x8_dc( uint8_t *src, uint8_t edge[33] )
 static void predict_8x8_h( uint8_t *src, uint8_t edge[33] )
 {
     PREDICT_8x8_LOAD_LEFT
-#define ROW(y) ((uint32_t*)(src+y*FDEC_STRIDE))[0] =\
-               ((uint32_t*)(src+y*FDEC_STRIDE))[1] = 0x01010101U * l##y
+#define ROW(y) M32( src+y*FDEC_STRIDE+0 ) =\
+               M32( src+y*FDEC_STRIDE+4 ) = 0x01010101U * l##y;
     ROW(0); ROW(1); ROW(2); ROW(3); ROW(4); ROW(5); ROW(6); ROW(7);
 #undef ROW
 }
 static void predict_8x8_v( uint8_t *src, uint8_t edge[33] )
 {
-    const uint64_t top = *(uint64_t*)(edge+16);
+    const uint64_t top = M64( edge+16 );
     int y;
     for( y = 0; y < 8; y++ )
-        *(uint64_t*)(src+y*FDEC_STRIDE) = top;
+        M64( src+y*FDEC_STRIDE ) = top;
 }
 static void predict_8x8_ddl( uint8_t *src, uint8_t edge[33] )
 {

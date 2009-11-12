@@ -78,6 +78,21 @@ do {\
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
+
+/* Unions for type-punning without aliasing violations.
+ * Mn: load or store n bits, aligned, native-endian
+ * CPn: copy n bits, aligned, native-endian
+ * we don't use memcpy for CPn because memcpy's args aren't assumed to be aligned */
+typedef union { uint16_t i; uint8_t  c[2]; } x264_union16_t;
+typedef union { uint32_t i; uint16_t b[2]; uint8_t  c[4]; } x264_union32_t;
+typedef union { uint64_t i; uint32_t a[2]; uint16_t b[4]; uint8_t c[8]; } x264_union64_t;
+#define M16(src) (((x264_union16_t*)(src))->i)
+#define M32(src) (((x264_union32_t*)(src))->i)
+#define M64(src) (((x264_union64_t*)(src))->i)
+#define CP16(dst,src) M16(dst) = M16(src)
+#define CP32(dst,src) M32(dst) = M32(src)
+#define CP64(dst,src) M64(dst) = M64(src)
+
 #include "x264.h"
 #include "bs.h"
 #include "set.h"

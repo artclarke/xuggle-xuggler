@@ -38,8 +38,8 @@ static inline void x264_median_mv_mmxext( int16_t *dst, int16_t *a, int16_t *b, 
         "pminsw %%mm2, %%mm0 \n"
         "pmaxsw %%mm1, %%mm0 \n"
         "movd   %%mm0, %0    \n"
-        :"=m"(*(uint32_t*)dst)
-        :"m"(*(uint32_t*)a), "m"(*(uint32_t*)b), "m"(*(uint32_t*)c)
+        :"=m"(*(x264_union32_t*)dst)
+        :"m"(M32( a )), "m"(M32( b )), "m"(M32( c ))
     );
 }
 #define x264_predictor_difference x264_predictor_difference_mmxext
@@ -69,7 +69,7 @@ static inline int x264_predictor_difference_mmxext( int16_t (*mvc)[2], intptr_t 
         "jg 1b                \n"
         "movq    %%mm4, %0    \n"
         :"=m"(output), "+r"(i_mvc)
-        :"r"(mvc), "m"(*(struct {int16_t x[4];} *)mvc)
+        :"r"(mvc), "m"(M64( mvc ))
     );
     sum += output[0] + output[1] + output[2] + output[3];
     return sum;
@@ -98,7 +98,7 @@ static ALWAYS_INLINE uint32_t x264_cabac_amvd_sum_mmxext(int16_t *mvdleft, int16
         "pminsw    %5, %%mm0 \n"
         "movd   %%mm0, %0    \n"
         :"=r"(amvd)
-        :"m"(*(uint32_t*)mvdleft),"m"(*(uint32_t*)mvdtop),
+        :"m"(M32( mvdleft )),"m"(M32( mvdtop )),
          "m"(pw_28),"m"(pw_2184),"m"(pw_2)
     );
     return amvd;
