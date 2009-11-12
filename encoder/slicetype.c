@@ -85,70 +85,63 @@ static NOINLINE void weights_plane_analyse( x264_t *h, uint8_t *plane, int width
    (dst)[3] = &(src)[3][i_pel_offset]; \
 }
 
-static NOINLINE uint8_t *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, uint8_t *dest, int b_lowres )
+static NOINLINE uint8_t *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, uint8_t *dest )
 {
-    uint8_t **ref_planes = b_lowres ? ref->lowres : ref->filtered;
     int ref0_distance = fenc->i_frame - ref->i_frame - 1;
     /* Note: this will never run during lookahead as weights_analyse is only called if no
      * motion search has been done. */
-    if( h->frames.b_have_lowres && fenc->lowres_mvs[0][ref0_distance][0][0] != 0x7FFF
-        && ( h->param.analyse.i_subpel_refine || h->param.i_threads > 1 ))
+    if( fenc->lowres_mvs[0][ref0_distance][0][0] != 0x7FFF )
     {
         uint8_t *src[4];
-        int i_stride = b_lowres ? fenc->i_stride_lowres : fenc->i_stride[0];
-        int i_lines = b_lowres ? fenc->i_lines_lowres : fenc->i_lines[0];
-        int i_width = b_lowres ? fenc->i_width_lowres : fenc->i_width[0];
+        int i_stride = fenc->i_stride_lowres;
+        int i_lines = fenc->i_lines_lowres;
+        int i_width = fenc->i_width_lowres;
         int i_mb_xy = 0;
-        int mbsizeshift = b_lowres ? 3 : 4;
-        int mbsize = 1 << mbsizeshift;
         int x,y;
         int i_pel_offset = 0;
 
-        for( y = 0; y < i_lines; y += mbsize, i_pel_offset = y*i_stride )
-            for( x = 0; x < i_width; x += mbsize, i_mb_xy++, i_pel_offset += mbsize )
+        for( y = 0; y < i_lines; y += 8, i_pel_offset = y*i_stride )
+            for( x = 0; x < i_width; x += 8, i_mb_xy++, i_pel_offset += 8 )
             {
                 uint8_t *pix = &dest[ i_pel_offset ];
-                int mvx = fenc->lowres_mvs[0][ref0_distance][i_mb_xy][0] << !b_lowres;
-                int mvy = fenc->lowres_mvs[0][ref0_distance][i_mb_xy][1] << !b_lowres;
-                LOAD_HPELS_LUMA( src, ref_planes );
+                int mvx = fenc->lowres_mvs[0][ref0_distance][i_mb_xy][0];
+                int mvy = fenc->lowres_mvs[0][ref0_distance][i_mb_xy][1];
+                LOAD_HPELS_LUMA( src, ref->lowres );
                 h->mc.mc_luma( pix, i_stride, src, i_stride,
-                               mvx, mvy, mbsize, mbsize, weight_none );
+                               mvx, mvy, 8, 8, weight_none );
             }
         x264_emms();
         return dest;
     }
     x264_emms();
-    return ref_planes[0];
+    return ref->lowres[0];
 }
 #undef LOAD_HPELS_LUMA
 
-static NOINLINE unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, uint8_t *src, x264_weight_t *w, int b_lowres )
+static NOINLINE unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, uint8_t *src, x264_weight_t *w )
 {
     int x, y;
     unsigned int cost = 0;
-    int mbsize = b_lowres ? 8 : 16;
-    int pixelsize = mbsize == 8 ? PIXEL_8x8 : PIXEL_16x16;
-    int i_stride = b_lowres ? fenc->i_stride_lowres : fenc->i_stride[0];
-    int i_lines = b_lowres ? fenc->i_lines_lowres : fenc->i_lines[0];
-    int i_width = b_lowres ? fenc->i_width_lowres : fenc->i_width[0];
-    uint8_t *fenc_plane = b_lowres ? fenc->lowres[0] : fenc->plane[0];
-    ALIGNED_ARRAY_16( uint8_t, buf,[16*16] );
+    int i_stride = fenc->i_stride_lowres;
+    int i_lines = fenc->i_lines_lowres;
+    int i_width = fenc->i_width_lowres;
+    uint8_t *fenc_plane = fenc->lowres[0];
+    ALIGNED_ARRAY_16( uint8_t, buf, [8*8] );
     int pixoff = 0;
     int i_mb = 0;
 
     if( w )
-        for( y = 0; y < i_lines; y += mbsize, pixoff = y*i_stride )
-            for( x = 0; x < i_width; x += mbsize, i_mb++, pixoff += mbsize)
+        for( y = 0; y < i_lines; y += 8, pixoff = y*i_stride )
+            for( x = 0; x < i_width; x += 8, i_mb++, pixoff += 8)
             {
-                w->weightfn[mbsize>>2]( buf, 16, &src[pixoff], i_stride, w, mbsize );
-                cost += X264_MIN( h->pixf.mbcmp[pixelsize]( buf, 16, &fenc_plane[pixoff], i_stride ), fenc->i_intra_cost[i_mb] );
+                w->weightfn[8>>2]( buf, 8, &src[pixoff], i_stride, w, 8 );
+                cost += X264_MIN( h->pixf.mbcmp[PIXEL_8x8]( buf, 8, &fenc_plane[pixoff], i_stride ), fenc->i_intra_cost[i_mb] );
             }
     else
-        for( y = 0; y < i_lines; y += mbsize, pixoff = y*i_stride )
-            for( x = 0; x < i_width; x+=mbsize, i_mb++, pixoff += mbsize )
-                cost += X264_MIN( h->pixf.mbcmp[pixelsize]( &src[pixoff], i_stride, &fenc_plane[pixoff], i_stride ), fenc->i_intra_cost[i_mb] );
+        for( y = 0; y < i_lines; y += 8, pixoff = y*i_stride )
+            for( x = 0; x < i_width; x += 8, i_mb++, pixoff += 8 )
+                cost += X264_MIN( h->pixf.mbcmp[PIXEL_8x8]( &src[pixoff], i_stride, &fenc_plane[pixoff], i_stride ), fenc->i_intra_cost[i_mb] );
 
-    int lambda = b_lowres ? 1 : 4;
     if( w )
     {
         int numslices;
@@ -160,13 +153,14 @@ static NOINLINE unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, ui
             numslices = 1;
         // FIXME still need to calculate for --slice-max-size
         // Multiply by 2 as there will be a duplicate. 10 bits added as if there is a weighted frame, then an additional duplicate is used.
-        cost += lambda * numslices * ( 10 + 2 * ( bs_size_ue( w[0].i_denom ) + bs_size_se( w[0].i_scale ) + bs_size_se( w[0].i_offset ) ) );
+        // Since using lowres frames, assume lambda = 1.
+        cost += numslices * ( 10 + 2 * ( bs_size_ue( w[0].i_denom ) + bs_size_se( w[0].i_scale ) + bs_size_se( w[0].i_offset ) ) );
     }
     x264_emms();
     return cost;
 }
 
-void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int b_lowres, int b_lookahead )
+void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int b_lookahead )
 {
     unsigned int fenc_sum, ref_sum;
     float fenc_mean, ref_mean;
@@ -209,8 +203,8 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
         x264_lowres_context_init( h, &a );
         x264_slicetype_frame_cost( h, &a, &fenc, 0, 0, 0, 0 );
     }
-    uint8_t *mcbuf = x264_weight_cost_init_luma( h, fenc, ref, h->mb.p_weight_buf[0], b_lowres );
-    origscore = minscore = x264_weight_cost( h, fenc, mcbuf, 0, b_lowres );
+    uint8_t *mcbuf = x264_weight_cost_init_luma( h, fenc, ref, h->mb.p_weight_buf[0] );
+    origscore = minscore = x264_weight_cost( h, fenc, mcbuf, 0 );
 
     if( !minscore )
         return;
@@ -221,13 +215,13 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
     for( i_off = offset_search; i_off <= offset_search+!b_lookahead; i_off++ )
     {
         SET_WEIGHT( weights[0], 1, minscale, mindenom, i_off );
-        unsigned int s = x264_weight_cost( h, fenc, mcbuf, &weights[0], b_lowres );
+        unsigned int s = x264_weight_cost( h, fenc, mcbuf, &weights[0] );
         COPY3_IF_LT( minscore, s, minoff, i_off, found, 1 );
     }
     x264_emms();
 
     /* FIXME: More analysis can be done here on SAD vs. SATD termination. */
-    if( !found || (minscale == 1<<mindenom && minoff == 0) || minscore >= fenc->i_width[0] * fenc->i_lines[0] * (b_lowres ? 2 : 8) )
+    if( !found || (minscale == 1<<mindenom && minoff == 0) || minscore >= fenc->i_width[0] * fenc->i_lines[0] * 2 )
     {
         SET_WEIGHT( weights[0], 0, 1, 0, 0 );
         return;
@@ -521,7 +515,7 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
             if( ( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART
                   || h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE ) && b == p1 )
             {
-                x264_weights_analyse( h, frames[b], frames[p0], 1, 1 );
+                x264_weights_analyse( h, frames[b], frames[p0], 1 );
                 w = frames[b]->weight[0];
             }
             frames[b]->lowres_mvs[0][b-p0-1][0][0] = 0;
@@ -1268,12 +1262,9 @@ void x264_slicetype_decide( x264_t *h )
     }
 
     /* Analyse for weighted P frames */
-    if( h->lookahead->next.list[bframes]->i_type == X264_TYPE_P )
-    {
-        memset( h->lookahead->next.list[bframes]->weight, 0, sizeof(h->lookahead->next.list[bframes]->weight) );
-        if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART && h->param.i_threads > 1 )
-            x264_weights_analyse( h, h->lookahead->next.list[bframes], h->lookahead->last_nonb, 1, 0 );
-    }
+    if( !h->param.rc.b_stat_read && h->lookahead->next.list[bframes]->i_type == X264_TYPE_P
+        && h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
+        x264_weights_analyse( h, h->lookahead->next.list[bframes], h->lookahead->last_nonb, 0 );
 
     /* shift sequence to coded order.
        use a small temporary list to avoid shifting the entire next buffer around */

@@ -326,7 +326,7 @@ int x264_reference_build_list_optimal( x264_t *h )
     memcpy( frames, h->fref0, sizeof(frames) );
     memcpy( refcount, rce->refcount, sizeof(refcount) );
     memcpy( weights, h->fenc->weight, sizeof(weights) );
-    memset( h->fenc->weight, 0, sizeof(h->fenc->weight) );
+    memset( &h->fenc->weight[1][0], 0, sizeof(x264_weight_t[15][3]) );
 
     /* For now don't reorder ref 0; it seems to lower quality
        in most cases due to skips. */
@@ -1333,7 +1333,7 @@ int x264_ratecontrol_end( x264_t *h, int bits )
 
         if( h->sh.weight[0][0].weightfn )
         {
-            if( fprintf( rc->p_stat_file_out, "w:%d,%d,%d", h->sh.weight[0][0].i_denom, h->sh.weight[0][0].i_scale, h->sh.weight[0][0].i_offset ) < 0 )
+            if( fprintf( rc->p_stat_file_out, "w:%"PRId32",%"PRId32",%"PRId32, h->sh.weight[0][0].i_denom, h->sh.weight[0][0].i_scale, h->sh.weight[0][0].i_offset ) < 0 )
                 goto fail;
         }
 

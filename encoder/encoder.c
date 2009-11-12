@@ -851,7 +851,8 @@ x264_t *x264_encoder_open( x264_param_t *param )
           || h->param.rc.i_rc_method == X264_RC_CRF
           || h->param.i_bframe_adaptive
           || h->param.i_scenecut_threshold
-          || h->param.rc.b_mb_tree );
+          || h->param.rc.b_mb_tree
+          || h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART );
     h->frames.b_have_lowres |= h->param.rc.b_stat_read && h->param.rc.i_vbv_buffer_size > 0;
     h->frames.b_have_sub8x8_esa = !!(h->param.analyse.inter & X264_ANALYSE_PSUB8x8);
 
@@ -1327,8 +1328,6 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
             w[1].weightfn = w[2].weightfn = NULL;
             if( h->param.rc.b_stat_read )
                 x264_ratecontrol_set_weights( h, h->fenc );
-            else if( h->param.i_threads == 1 )
-                x264_weights_analyse( h, h->fenc, h->fref0[0], 0, 0 );
 
             if( !h->fenc->weight[0][0].weightfn )
             {

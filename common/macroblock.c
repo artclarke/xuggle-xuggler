@@ -726,7 +726,7 @@ int x264_macroblock_cache_init( x264_t *h )
 
         if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE )
         {
-            // only need buffer for lookahead thread
+            // only need buffer for lookahead
             if( !h->param.i_sync_lookahead || h == h->thread[h->param.i_threads] )
             {
                 // Fake analysis only works on lowres
