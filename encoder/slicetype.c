@@ -132,7 +132,7 @@ static NOINLINE unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, ui
     int i_lines = b_lowres ? fenc->i_lines_lowres : fenc->i_lines[0];
     int i_width = b_lowres ? fenc->i_width_lowres : fenc->i_width[0];
     uint8_t *fenc_plane = b_lowres ? fenc->lowres[0] : fenc->plane[0];
-    ALIGNED_16( uint8_t buf[16*16] );
+    ALIGNED_ARRAY_16( uint8_t, buf,[16*16] );
     int pixoff = 0;
     int i_mb = 0;
 
