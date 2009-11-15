@@ -151,6 +151,7 @@ static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(vo
 
 #ifdef WORDS_BIGENDIAN
 #define endian_fix(x) (x)
+#define endian_fix64(x) (x)
 #define endian_fix32(x) (x)
 #define endian_fix16(x) (x)
 #else
@@ -160,31 +161,34 @@ static ALWAYS_INLINE uint32_t endian_fix32( uint32_t x )
     asm("bswap %0":"+r"(x));
     return x;
 }
-static ALWAYS_INLINE intptr_t endian_fix( intptr_t x )
-{
-    asm("bswap %0":"+r"(x));
-    return x;
-}
 #elif defined(__GNUC__) && defined(HAVE_ARMV6)
-static ALWAYS_INLINE intptr_t endian_fix( intptr_t x )
+static ALWAYS_INLINE uint32_t endian_fix32( uint32_t x )
 {
     asm("rev %0, %0":"+r"(x));
     return x;
 }
-#define endian_fix32 endian_fix
 #else
 static ALWAYS_INLINE uint32_t endian_fix32( uint32_t x )
 {
     return (x<<24) + ((x<<8)&0xff0000) + ((x>>8)&0xff00) + (x>>24);
 }
-static ALWAYS_INLINE intptr_t endian_fix( intptr_t x )
+#endif
+#if defined(__GNUC__) && defined(ARCH_X86_64)
+static ALWAYS_INLINE uint64_t endian_fix64( uint64_t x )
 {
-    if( WORD_SIZE == 8 )
-        return endian_fix32(x>>32) + ((uint64_t)endian_fix32(x)<<32);
-    else
-        return endian_fix32(x);
+    asm("bswap %0":"+r"(x));
+    return x;
+}
+#else
+static ALWAYS_INLINE uint64_t endian_fix64( uint64_t x )
+{
+    return endian_fix32(x>>32) + ((uint64_t)endian_fix32(x)<<32);
 }
 #endif
+static ALWAYS_INLINE intptr_t endian_fix( intptr_t x )
+{
+    return WORD_SIZE == 8 ? endian_fix64(x) : endian_fix32(x);
+}
 static ALWAYS_INLINE uint16_t endian_fix16( uint16_t x )
 {
     return (x<<8)|(x>>8);

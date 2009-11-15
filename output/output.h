@@ -28,7 +28,7 @@ typedef struct
 {
     int (*open_file)( char *psz_filename, hnd_t *p_handle );
     int (*set_param)( hnd_t handle, x264_param_t *p_param );
-    int (*write_nalu)( hnd_t handle, uint8_t *p_nal, int i_size );
+    int (*write_nalu)( hnd_t handle, uint8_t *p_nal, int i_size, x264_picture_t *p_picture );
     int (*set_eop)( hnd_t handle, x264_picture_t *p_picture );
     int (*close_file)( hnd_t handle );
 } cli_output_t;
@@ -36,5 +36,6 @@ typedef struct
 extern cli_output_t raw_output;
 extern cli_output_t mkv_output;
 extern cli_output_t mp4_output;
+extern cli_output_t flv_output;
 
 #endif

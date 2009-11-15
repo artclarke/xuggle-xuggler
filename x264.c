@@ -66,7 +66,7 @@ static cli_output_t output;
 
 /* i/o modules that work with pipes (and fifos) */
 static const char * const stdin_format_names[] = { "yuv", "y4m", 0 };
-static const char * const stdout_format_names[] = { "raw", "mkv", 0 };
+static const char * const stdout_format_names[] = { "raw", "mkv", "flv", 0 };
 
 static void Help( x264_param_t *defaults, int longhelp );
 static int  Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt );
@@ -134,6 +134,7 @@ static void Help( x264_param_t *defaults, int longhelp )
         "Outfile type is selected by filename:\n"
         " .264 -> Raw bytestream\n"
         " .mkv -> Matroska\n"
+        " .flv -> Flash Video\n"
         " .mp4 -> MP4 if compiled with GPAC support (%s)\n"
         "\n"
         "Options:\n"
@@ -364,7 +365,7 @@ static void Help( x264_param_t *defaults, int longhelp )
     H0( "\n" );
     H0( "  -o, --output                Specify output file\n" );
     H1( "      --stdout                Specify stdout format [\"%s\"]\n"
-        "                                  - raw, mkv\n", stdout_format_names[0] );
+        "                                  - raw, mkv, flv\n", stdout_format_names[0] );
     H1( "      --stdin                 Specify stdin format [\"%s\"]\n"
         "                                  - yuv, y4m\n", stdin_format_names[0] );
     H0( "      --sar width:height      Specify Sample Aspect Ratio\n" );
@@ -536,7 +537,7 @@ static struct option long_options[] =
     {0, 0, 0, 0}
 };
 
-static int select_output( char *filename, const char *pipe_format )
+static int select_output( char *filename, const char *pipe_format, x264_param_t *param )
 {
     char *ext = filename + strlen( filename ) - 1;
     while( *ext != '.' && ext > filename )
@@ -545,14 +546,19 @@ static int select_output( char *filename, const char *pipe_format )
     if( !strcasecmp( ext, ".mp4" ) )
     {
 #ifdef MP4_OUTPUT
-        output = mp4_output;
+        output = mp4_output; // FIXME use b_annexb=0
 #else
         fprintf( stderr, "x264 [error]: not compiled with MP4 output support\n" );
         return -1;
 #endif
     }
     else if( !strcasecmp( ext, ".mkv" ) || (!strcmp( filename, "-" ) && !strcasecmp( pipe_format, "mkv" )) )
-        output = mkv_output;
+        output = mkv_output; // FIXME use b_annexb=0
+    else if( !strcasecmp( ext, ".flv" ) || (!strcmp( filename, "-" ) && !strcasecmp( pipe_format, "flv" )) )
+    {
+        output = flv_output;
+        param->b_annexb = 0;
+    }
     else
         output = raw_output;
     return 0;
@@ -1027,7 +1033,7 @@ generic_option:
     }
     input_filename = argv[optind++];
 
-    if( select_output( output_filename, stdout_format ) )
+    if( select_output( output_filename, stdout_format, param ) )
         return -1;
     if( output.open_file( output_filename, &opt->hout ) )
     {
@@ -1148,7 +1154,7 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic )
 
     for( i = 0; i < i_nal; i++ )
     {
-        i_nalu_size = output.write_nalu( hout, nal[i].p_payload, nal[i].i_payload );
+        i_nalu_size = output.write_nalu( hout, nal[i].p_payload, nal[i].i_payload, &pic_out );
         if( i_nalu_size < 0 )
             return -1;
         i_file += i_nalu_size;

@@ -13,7 +13,8 @@ SRCS = common/mc.c common/predict.c common/pixel.c common/macroblock.c \
        encoder/cavlc.c encoder/encoder.c encoder/lookahead.c
 
 SRCCLI = x264.c input/yuv.c input/y4m.c output/raw.c \
-         output/matroska.c output/matroska_ebml.c
+         output/matroska.c output/matroska_ebml.c \
+         output/flv.c output/flv_bytestream.c
 
 MUXERS := $(shell grep -E "(IN|OUT)PUT" config.h)
 

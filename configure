@@ -348,9 +348,13 @@ fi
 
 CFLAGS="$CFLAGS -DARCH_$ARCH -DSYS_$SYS"
 
-echo "unsigned int endian = 'B' << 24 | 'I' << 16 | 'G' << 8 | 'E';" > conftest.c
+echo "int i = 0x42494745; double f = 0x1.0656e6469616ep+102;" > conftest.c
 $CC $CFLAGS conftest.c -c -o conftest.o 2>$DEVNULL || die "endian test failed"
-grep -q BIGE conftest.o && CFLAGS="$CFLAGS -DWORDS_BIGENDIAN"
+if grep -q BIGE conftest.o && grep -q FPendian conftest.o ; then
+    CFLAGS="$CFLAGS -DWORDS_BIGENDIAN"
+elif !(grep -q EGIB conftest.o && grep -q naidnePF conftest.o) ; then
+    die "endian test failed"
+fi
 
 # autodetect options that weren't forced nor disabled
 
