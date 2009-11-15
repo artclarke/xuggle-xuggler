@@ -3154,7 +3154,7 @@ static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a  )
             int ref = h->mb.cache.ref[l][x264_scan8[0]];
             if( ref < 0 )
                 continue;
-            completed = (l ? h->fref1 : h->fref0)[ ref >> h->mb.b_interlaced ]->i_lines_completed;
+            completed = (l ? h->fref1 : h->fref0)[ ref >> h->mb.b_interlaced ]->orig->i_lines_completed;
             if( (h->mb.cache.mv[l][x264_scan8[15]][1] >> (2 - h->mb.b_interlaced)) + h->mb.i_mb_y*16 > completed )
             {
                 x264_log( h, X264_LOG_WARNING, "internal error (MV out of thread range)\n");
