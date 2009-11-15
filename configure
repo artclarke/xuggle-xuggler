@@ -180,7 +180,7 @@ case $host_os in
     CFLAGS="$CFLAGS -falign-loops=16"
     LDFLAGS="$LDFLAGS -lm"
     if [ "$pic" = "no" ]; then
-        CFLAGS="$CFLAGS -mdynamic-no-pic"
+        cc_check "" -mdynamic-no-pic && CFLAGS="$CFLAGS -mdynamic-no-pic"
     fi
     ;;
   freebsd*)
@@ -255,8 +255,10 @@ case $host_cpu in
     AS="yasm"
     if [ "$SYS" = MACOSX ];then
       ASFLAGS="$ASFLAGS -f macho64 -m amd64 -DPIC -DPREFIX"
-      CFLAGS="$CFLAGS -arch x86_64"
-      LDFLAGS="$LDFLAGS -arch x86_64"
+      if cc_check '' "-arch x86_64"; then
+        CFLAGS="$CFLAGS -arch x86_64"
+        LDFLAGS="$LDFLAGS -arch x86_64"
+      fi
     elif [ "$SYS" = MINGW ]; then
       ASFLAGS="$ASFLAGS -f win32 -m amd64 -DPREFIX"
     else
