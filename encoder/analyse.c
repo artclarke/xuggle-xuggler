@@ -378,8 +378,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
                     for( j=0; j<i_ref; j++ )
                     {
                         x264_frame_cond_wait( fref[j]->orig, thresh );
-                        fref[j]->i_lines_completed = fref[j]->orig->i_lines_completed;
-                        thread_mvy_range = X264_MIN( thread_mvy_range, fref[j]->i_lines_completed - pix_y );
+                        thread_mvy_range = X264_MIN( thread_mvy_range, fref[j]->orig->i_lines_completed - pix_y );
                     }
                 }
 
