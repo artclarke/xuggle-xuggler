@@ -69,11 +69,13 @@
 #define UNUSED __attribute__((unused))
 #define ALWAYS_INLINE __attribute__((always_inline)) inline
 #define NOINLINE __attribute__((noinline))
+#define MAY_ALIAS __attribute__((may_alias))
 #define x264_constant_p(x) __builtin_constant_p(x)
 #else
 #define UNUSED
 #define ALWAYS_INLINE inline
 #define NOINLINE
+#define MAY_ALIAS
 #define x264_constant_p(x) 0
 #endif
 

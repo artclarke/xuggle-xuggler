@@ -61,7 +61,7 @@ pic="no"
 vis="no"
 shared="no"
 
-CFLAGS="$CFLAGS -Wall -I. -Wno-strict-aliasing"
+CFLAGS="$CFLAGS -Wall -I."
 LDFLAGS="$LDFLAGS"
 ASFLAGS="$ASFLAGS"
 HAVE_GETOPT_LONG=1

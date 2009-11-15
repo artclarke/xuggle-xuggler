@@ -188,7 +188,7 @@ static int read_frame_internal( x264_picture_t *p_pic, y4m_hnd_t *h )
     if( strncmp( header, Y4M_FRAME_MAGIC, slen ) )
     {
         fprintf( stderr, "Bad header magic (%"PRIx32" <=> %s)\n",
-                *((uint32_t*)header), header );
+                 M32(header), header );
         return -1;
     }
 
