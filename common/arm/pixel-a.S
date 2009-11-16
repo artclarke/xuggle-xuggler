@@ -512,8 +512,6 @@ function x264_pixel_var_8x8_neon
     VAR_SQR_SUM     q1,  q9,   q14, d24
     vld1.64         {d26}, [r0,:64], r1
     VAR_SQR_SUM     q2,  q10,  q15, d26
-
-    mov             r2,  #6
     b               x264_var_end
 .endfunc
 
@@ -529,7 +527,6 @@ function x264_pixel_var_16x16_neon
     VAR_SQR_SUM     q2,  q13,  q15, d19, vpaddl.u16
 
     mov             ip,  #7
-    mov             r2,  #8
 var16_loop:
     subs            ip,  ip,  #1
     vld1.64         {d16-d17}, [r0,:128], r1
@@ -554,8 +551,6 @@ function x264_var_end
     vpadd.u32       d0,  d0,  d2
 
     vmov            r0,  r1,  d0
-    mul             r0,  r0,  r0
-    sub             r0,  r1,  r0,  lsr r2
     bx              lr
 .endfunc
 

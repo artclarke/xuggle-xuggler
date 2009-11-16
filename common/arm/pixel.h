@@ -52,8 +52,8 @@ DECL_X1( ssd, neon )
 int x264_pixel_sa8d_8x8_neon( uint8_t *, int, uint8_t *, int );
 int x264_pixel_sa8d_16x16_neon( uint8_t *, int, uint8_t *, int );
 
-int x264_pixel_var_8x8_neon( uint8_t *, int );
-int x264_pixel_var_16x16_neon( uint8_t *, int );
+uint64_t x264_pixel_var_8x8_neon( uint8_t *, int );
+uint64_t x264_pixel_var_16x16_neon( uint8_t *, int );
 int x264_pixel_var2_8x8_neon( uint8_t *, int, uint8_t *, int, int * );
 
 uint64_t x264_pixel_hadamard_ac_8x8_neon( uint8_t *, int );

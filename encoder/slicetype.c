@@ -56,24 +56,23 @@ static void get_h264_weight( unsigned int weight_nonh264, int offset, x264_weigh
     }
     w->i_scale = X264_MIN( w->i_scale, 127 );
 }
-/* due to a GCC bug on some platforms (win32), flat[16] may not actually be aligned. */
-ALIGNED_16( static uint8_t flat[17] ) = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
 
 static NOINLINE void weights_plane_analyse( x264_t *h, uint8_t *plane, int width, int height, int stride, unsigned int *sum, uint64_t *var )
 {
     int x,y;
-    unsigned int sad = 0;
+    uint64_t sad = 0;
     uint64_t ssd = 0;
     uint8_t *p = plane;
     for( y = 0; y < height>>4; y++, p += stride*16 )
         for( x = 0; x < width; x+=16 )
         {
-            sad += h->pixf.sad_aligned[PIXEL_16x16]( p + x, stride, flat, 0 );
-            ssd += h->pixf.ssd[PIXEL_16x16]( p + x, stride, flat, 0 );
+            uint64_t res = h->pixf.var[PIXEL_16x16]( p + x, stride );
+            sad += (uint32_t)res;
+            ssd += res >> 32;
         }
 
     *sum = sad;
-    *var = ssd - (uint64_t) sad * sad / (width * height);
+    *var = ssd - ((uint64_t)sad * sad + width * height / 2) / (width * height);
     x264_emms();
 }
 
@@ -126,24 +125,19 @@ static NOINLINE unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, ui
     int i_lines = fenc->i_lines_lowres;
     int i_width = fenc->i_width_lowres;
     uint8_t *fenc_plane = fenc->lowres[0];
-    ALIGNED_ARRAY_16( uint8_t, buf, [8*8] );
+    ALIGNED_8( uint8_t buf[8*8] );
     int pixoff = 0;
     int i_mb = 0;
 
     if( w )
+    {
         for( y = 0; y < i_lines; y += 8, pixoff = y*i_stride )
             for( x = 0; x < i_width; x += 8, i_mb++, pixoff += 8)
             {
                 w->weightfn[8>>2]( buf, 8, &src[pixoff], i_stride, w, 8 );
                 cost += X264_MIN( h->pixf.mbcmp[PIXEL_8x8]( buf, 8, &fenc_plane[pixoff], i_stride ), fenc->i_intra_cost[i_mb] );
             }
-    else
-        for( y = 0; y < i_lines; y += 8, pixoff = y*i_stride )
-            for( x = 0; x < i_width; x += 8, i_mb++, pixoff += 8 )
-                cost += X264_MIN( h->pixf.mbcmp[PIXEL_8x8]( &src[pixoff], i_stride, &fenc_plane[pixoff], i_stride ), fenc->i_intra_cost[i_mb] );
-
-    if( w )
-    {
+        /* Add cost of weights in the slice header. */
         int numslices;
         if( h->param.i_slice_count )
             numslices = h->param.i_slice_count;
@@ -151,11 +145,15 @@ static NOINLINE unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, ui
             numslices = (h->sps->i_mb_width * h->sps->i_mb_height + h->param.i_slice_max_mbs-1) / h->param.i_slice_max_mbs;
         else
             numslices = 1;
-        // FIXME still need to calculate for --slice-max-size
-        // Multiply by 2 as there will be a duplicate. 10 bits added as if there is a weighted frame, then an additional duplicate is used.
-        // Since using lowres frames, assume lambda = 1.
+        /* FIXME: find a way to account for --slice-max-size?
+         * Multiply by 2 as there will be a duplicate. 10 bits added as if there is a weighted frame, then an additional duplicate is used.
+         * Since using lowres frames, assume lambda = 1. */
         cost += numslices * ( 10 + 2 * ( bs_size_ue( w[0].i_denom ) + bs_size_se( w[0].i_scale ) + bs_size_se( w[0].i_offset ) ) );
     }
+    else
+        for( y = 0; y < i_lines; y += 8, pixoff = y*i_stride )
+            for( x = 0; x < i_width; x += 8, i_mb++, pixoff += 8 )
+                cost += X264_MIN( h->pixf.mbcmp[PIXEL_8x8]( &src[pixoff], i_stride, &fenc_plane[pixoff], i_stride ), fenc->i_intra_cost[i_mb] );
     x264_emms();
     return cost;
 }
@@ -171,17 +169,16 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
     int i_delta_index = fenc->i_frame - ref->i_frame - 1;
     /* epsilon is chosen to require at least a numerator of 127 (with denominator = 128) */
     const float epsilon = 1.0/128.0;
-
     float guess_scale;
     int found;
     x264_weight_t *weights = fenc->weight[0];
 
     weights_plane_analyse( h, fenc->plane[0], fenc->i_width[0], fenc->i_lines[0], fenc->i_stride[0], &fenc_sum, &fenc_var );
-    weights_plane_analyse( h, ref->plane[0], ref->i_width[0], ref->i_lines[0], ref->i_stride[0], &ref_sum, &ref_var );
+    weights_plane_analyse( h,  ref->plane[0],  ref->i_width[0],  ref->i_lines[0],  ref->i_stride[0],  &ref_sum,  &ref_var );
     fenc_var = round( sqrt( fenc_var ) );
-    ref_var = round( sqrt( ref_var ) );
+    ref_var  = round( sqrt(  ref_var ) );
     fenc_mean = (float)fenc_sum / (fenc->i_lines[0] * fenc->i_width[0]);
-    ref_mean = (float)ref_sum / (fenc->i_lines[0] * fenc->i_width[0]);
+    ref_mean  = (float) ref_sum / (fenc->i_lines[0] * fenc->i_width[0]);
 
     //early termination
     if( fabs( ref_mean - fenc_mean ) < 0.5 && fabsf( 1 - (float)fenc_var / ref_var ) < epsilon )
@@ -220,7 +217,7 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
     x264_emms();
 
     /* FIXME: More analysis can be done here on SAD vs. SATD termination. */
-	/* 0.2% termination derived experimentally to avoid weird weights in frames that are mostly intra. */
+    /* 0.2% termination derived experimentally to avoid weird weights in frames that are mostly intra. */
     if( !found || (minscale == 1<<mindenom && minoff == 0) || (float)minscore / origscore > 0.998 )
     {
         SET_WEIGHT( weights[0], 0, 1, 0, 0 );

@@ -179,6 +179,22 @@ static inline double qscale2bits(ratecontrol_entry_t *rce, double qscale)
            + rce->misc_bits;
 }
 
+static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x264_frame_t *frame, int i )
+{
+    int w = i ? 8 : 16;
+    int shift = i ? 6 : 8;
+    int stride = frame->i_stride[i];
+    int offset = h->mb.b_interlaced
+        ? w * (mb_x + (mb_y&~1) * stride) + (mb_y&1) * stride
+        : w * (mb_x + mb_y * stride);
+    int pix = i ? PIXEL_8x8 : PIXEL_16x16;
+    stride <<= h->mb.b_interlaced;
+    uint64_t res = h->pixf.var[pix]( frame->plane[i] + offset, stride );
+    uint32_t sum = (uint32_t)res;
+    uint32_t sqr = res >> 32;
+    return sqr - (sum * sum >> shift);
+}
+
 // Find the total AC energy of the block in all planes.
 static NOINLINE uint32_t ac_energy_mb( x264_t *h, int mb_x, int mb_y, x264_frame_t *frame )
 {
@@ -186,18 +202,9 @@ static NOINLINE uint32_t ac_energy_mb( x264_t *h, int mb_x, int mb_y, x264_frame
      * and putting it after floating point ops.  As a result, we put the emms at the end of the
      * function and make sure that its always called before the float math.  Noinline makes
      * sure no reordering goes on. */
-    uint32_t var = 0, i;
-    for( i = 0; i < 3; i++ )
-    {
-        int w = i ? 8 : 16;
-        int stride = frame->i_stride[i];
-        int offset = h->mb.b_interlaced
-            ? w * (mb_x + (mb_y&~1) * stride) + (mb_y&1) * stride
-            : w * (mb_x + mb_y * stride);
-        int pix = i ? PIXEL_8x8 : PIXEL_16x16;
-        stride <<= h->mb.b_interlaced;
-        var += h->pixf.var[pix]( frame->plane[i]+offset, stride );
-    }
+    uint32_t var = ac_energy_plane( h, mb_x, mb_y, frame, 0 );
+    var         += ac_energy_plane( h, mb_x, mb_y, frame, 1 );
+    var         += ac_energy_plane( h, mb_x, mb_y, frame, 2 );
     x264_emms();
     return var;
 }

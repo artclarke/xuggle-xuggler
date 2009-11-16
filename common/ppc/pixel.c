@@ -1636,7 +1636,7 @@ static int pixel_ssd_8x8_altivec ( uint8_t *pix1, int i_stride_pix1,
 /****************************************************************************
  * variance
  ****************************************************************************/
-static int x264_pixel_var_16x16_altivec( uint8_t *pix, int i_stride )
+static uint64_t x264_pixel_var_16x16_altivec( uint8_t *pix, int i_stride )
 {
     ALIGNED_16(uint32_t sum_tab[4]);
     ALIGNED_16(uint32_t sqr_tab[4]);
@@ -1661,11 +1661,10 @@ static int x264_pixel_var_16x16_altivec( uint8_t *pix, int i_stride )
 
     uint32_t sum = sum_tab[3];
     uint32_t sqr = sqr_tab[3];
-    uint32_t var = sqr - (sum * sum >> 8);
-    return var;
+    return sum + ((uint64_t)sqr<<32);
 }
 
-static int x264_pixel_var_8x8_altivec( uint8_t *pix, int i_stride )
+static uint64_t x264_pixel_var_8x8_altivec( uint8_t *pix, int i_stride )
 {
     ALIGNED_16(uint32_t sum_tab[4]);
     ALIGNED_16(uint32_t sqr_tab[4]);
@@ -1700,8 +1699,7 @@ static int x264_pixel_var_8x8_altivec( uint8_t *pix, int i_stride )
 
     uint32_t sum = sum_tab[3];
     uint32_t sqr = sqr_tab[3];
-    uint32_t var = sqr - (sum * sum >> 6);
-    return var;
+    return sum + ((uint64_t)sqr<<32);
 }
 
 

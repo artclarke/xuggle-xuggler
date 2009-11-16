@@ -316,14 +316,15 @@ SSD  4,  8, ssse3
 %endif
 %endmacro
 
-%macro VAR_END 1
+%macro VAR_END 0
     HADDW   m5, m7
-    movd   r1d, m5
-    imul   r1d, r1d
+    movd   eax, m5
     HADDD   m6, m1
-    shr    r1d, %1
-    movd   eax, m6
-    sub    eax, r1d  ; sqr - (sum * sum >> shift)
+    movd   edx, m6
+%ifdef ARCH_X86_64
+    shl    rdx, 32
+    add    rax, rdx
+%endif
     RET
 %endmacro
 
@@ -370,12 +371,12 @@ INIT_MMX
 cglobal x264_pixel_var_16x16_mmxext, 2,3
     VAR_START 0
     VAR_2ROW 8, 16
-    VAR_END 8
+    VAR_END
 
 cglobal x264_pixel_var_8x8_mmxext, 2,3
     VAR_START 0
     VAR_2ROW r1, 4
-    VAR_END 6
+    VAR_END
 
 INIT_XMM
 cglobal x264_pixel_var_16x16_sse2, 2,3,8
@@ -389,7 +390,7 @@ cglobal x264_pixel_var_16x16_sse2, 2,3,8
     VAR_CORE
     dec r2d
     jg .loop
-    VAR_END 8
+    VAR_END
 
 cglobal x264_pixel_var_8x8_sse2, 2,4,8
     VAR_START 1
@@ -405,7 +406,7 @@ cglobal x264_pixel_var_8x8_sse2, 2,4,8
     VAR_CORE
     dec r2d
     jg .loop
-    VAR_END 6
+    VAR_END
 
 %macro VAR2_END 0
     HADDW   m5, m7

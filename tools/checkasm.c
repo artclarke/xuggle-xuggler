@@ -344,16 +344,20 @@ static int check_pixel( int cpu_ref, int cpu_new )
 #define TEST_PIXEL_VAR( i ) \
     if( pixel_asm.var[i] != pixel_ref.var[i] ) \
     { \
-        int res_c, res_asm; \
         set_func_name( "%s_%s", "var", pixel_names[i] ); \
         used_asm = 1; \
-        res_c   = call_c( pixel_c.var[i], buf1, 16 ); \
-        res_asm = call_a( pixel_asm.var[i], buf1, 16 ); \
+        /* abi-check wrapper can't return uint64_t, so separate it from return value check */\
+        call_c1( pixel_c.var[i], buf1, 16 ); \
+        call_a1( pixel_asm.var[i], buf1, 16 ); \
+        uint64_t res_c   = pixel_c.var[i]( buf1, 16 ); \
+        uint64_t res_asm = pixel_asm.var[i]( buf1, 16 ); \
         if( res_c != res_asm ) \
         { \
             ok = 0; \
-            fprintf( stderr, "var[%d]: %d != %d [FAILED]\n", i, res_c, res_asm ); \
+            fprintf( stderr, "var[%d]: %d %d != %d %d [FAILED]\n", i, (int)res_c, (int)(res_c>>32), (int)res_asm, (int)(res_asm>>32) ); \
         } \
+        call_c2( pixel_c.var[i], buf1, 16 ); \
+        call_a2( pixel_asm.var[i], buf1, 16 ); \
     }
 
     ok = 1; used_asm = 0;
@@ -386,6 +390,8 @@ static int check_pixel( int cpu_ref, int cpu_new )
             for( j=0; j<32; j++ )
             {
                 uint8_t *pix = (j&16 ? buf1 : buf3) + (j&15)*256;
+                call_c1( pixel_c.hadamard_ac[i], buf1, 16 );
+                call_a1( pixel_asm.hadamard_ac[i], buf1, 16 );
                 uint64_t rc = pixel_c.hadamard_ac[i]( pix, 16 );
                 uint64_t ra = pixel_asm.hadamard_ac[i]( pix, 16 );
                 if( rc != ra )
