@@ -1232,8 +1232,11 @@ static void x264_weighted_pred_init( x264_t *h )
                 {
                     weightluma = 1;
                     h->sh.weight[0][0].i_denom = denom = h->sh.weight[j][0].i_denom;
+                    assert( x264_clip3( denom, 0, 7 ) == denom );
                 }
                 assert( h->sh.weight[j][0].i_denom == denom );
+                assert( x264_clip3( h->sh.weight[j][0].i_scale, 0, 127 ) == h->sh.weight[j][0].i_scale );
+                assert( x264_clip3( h->sh.weight[j][0].i_offset, -128, 127 ) == h->sh.weight[j][0].i_offset );
                 h->fenc->weighted[j] = h->mb.p_weight_buf[buffer_next++] +
                     h->fenc->i_stride[0] * i_padv + PADH;
             }
@@ -1342,10 +1345,13 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
                     SET_WEIGHT( h->fenc->weight[0][0], 1, 1, 0, h->fenc->weight[0][0].i_offset );
                 }
                 x264_weighted_reference_duplicate( h, 0, weight_none );
-                w[0] = h->fenc->weight[0][0];
-                w[0].i_offset--;
-                h->mc.weight_cache( h, &w[0] );
-                x264_weighted_reference_duplicate( h, 0, w );
+                if( h->fenc->weight[0][0].i_offset > -128 )
+                {
+                    w[0] = h->fenc->weight[0][0];
+                    w[0].i_offset--;
+                    h->mc.weight_cache( h, &w[0] );
+                    x264_weighted_reference_duplicate( h, 0, w );
+                }
             }
         }
         else if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_BLIND )

@@ -184,7 +184,6 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
     ref_mean = (float)ref_sum / (fenc->i_lines[0] * fenc->i_width[0]);
 
     //early termination
-
     if( fabs( ref_mean - fenc_mean ) < 0.5 && fabsf( 1 - (float)fenc_var / ref_var ) < epsilon )
         return;
 
@@ -221,7 +220,8 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
     x264_emms();
 
     /* FIXME: More analysis can be done here on SAD vs. SATD termination. */
-    if( !found || (minscale == 1<<mindenom && minoff == 0) || minscore >= fenc->i_width[0] * fenc->i_lines[0] * 2 )
+	/* 0.2% termination derived experimentally to avoid weird weights in frames that are mostly intra. */
+    if( !found || (minscale == 1<<mindenom && minoff == 0) || (float)minscore / origscore > 0.998 )
     {
         SET_WEIGHT( weights[0], 0, 1, 0, 0 );
         return;
