@@ -38,8 +38,16 @@ static void x264_lowres_context_init( x264_t *h, x264_mb_analysis_t *a )
     a->i_qp = X264_LOOKAHEAD_QP;
     a->i_lambda = x264_lambda_tab[ a->i_qp ];
     x264_mb_analyse_load_costs( h, a );
-    h->mb.i_me_method = X264_MIN( X264_ME_HEX, h->param.analyse.i_me_method ); // maybe dia?
-    h->mb.i_subpel_refine = 4; // 3 should be enough, but not tweaking for speed now
+    if( h->param.analyse.i_subpel_refine > 1 )
+    {
+        h->mb.i_me_method = X264_MIN( X264_ME_HEX, h->param.analyse.i_me_method );
+        h->mb.i_subpel_refine = 4;
+    }
+    else
+    {
+        h->mb.i_me_method = X264_ME_DIA;
+        h->mb.i_subpel_refine = 3;
+    }
     h->mb.b_chroma_me = 0;
 }
 
@@ -415,7 +423,7 @@ lowres_intra_mb:
             uint8_t *pix = &pix1[8+FDEC_STRIDE - 1];
             uint8_t *src = &fenc->lowres[0][i_pel_offset - 1];
             const int intra_penalty = 5;
-            int satds[4];
+            int satds[3];
 
             memcpy( pix-FDEC_STRIDE, src-i_stride, 17 );
             for( i=0; i<8; i++ )
@@ -423,29 +431,30 @@ lowres_intra_mb:
             pix++;
 
             if( h->pixf.intra_mbcmp_x3_8x8c )
-            {
                 h->pixf.intra_mbcmp_x3_8x8c( h->mb.pic.p_fenc[0], pix, satds );
-                h->predict_8x8c[I_PRED_CHROMA_P]( pix );
-                satds[I_PRED_CHROMA_P] =
-                    h->pixf.mbcmp[PIXEL_8x8]( pix, FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE );
-            }
             else
             {
-                for( i=0; i<4; i++ )
+                for( i=0; i<3; i++ )
                 {
                     h->predict_8x8c[i]( pix );
                     satds[i] = h->pixf.mbcmp[PIXEL_8x8]( pix, FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE );
                 }
             }
-            i_icost = X264_MIN4( satds[0], satds[1], satds[2], satds[3] );
+            i_icost = X264_MIN3( satds[0], satds[1], satds[2] );
 
-            h->predict_8x8_filter( pix, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
-            for( i=3; i<9; i++ )
+            if( h->param.analyse.i_subpel_refine > 1 )
             {
-                int satd;
-                h->predict_8x8[i]( pix, edge );
-                satd = h->pixf.mbcmp[PIXEL_8x8]( pix, FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE );
+                h->predict_8x8c[I_PRED_CHROMA_P]( pix );
+                int satd = h->pixf.mbcmp[PIXEL_8x8]( pix, FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE );
                 i_icost = X264_MIN( i_icost, satd );
+                h->predict_8x8_filter( pix, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
+                for( i=3; i<9; i++ )
+                {
+                    int satd;
+                    h->predict_8x8[i]( pix, edge );
+                    satd = h->pixf.mbcmp[PIXEL_8x8]( pix, FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE );
+                    i_icost = X264_MIN( i_icost, satd );
+                }
             }
 
             i_icost += intra_penalty;
