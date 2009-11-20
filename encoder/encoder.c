@@ -1958,8 +1958,10 @@ int     x264_encoder_encode( x264_t *h,
     else
     {
         /* signal kills for lookahead thread */
+        x264_pthread_mutex_lock( &h->lookahead->ifbuf.mutex );
         h->lookahead->b_exit_thread = 1;
         x264_pthread_cond_broadcast( &h->lookahead->ifbuf.cv_fill );
+        x264_pthread_mutex_unlock( &h->lookahead->ifbuf.mutex );
     }
 
     h->i_frame++;
