@@ -2566,7 +2566,7 @@ void    x264_encoder_close  ( x264_t *h )
                           fixed_pred_modes[i][8] * 100.0 / sum_pred_modes[i] );
         }
 
-        if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
+        if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART && h->stat.i_frame_count[SLICE_TYPE_P] > 0 )
             x264_log( h, X264_LOG_INFO, "Weighted P-Frames: Y:%.1f%%\n",
                       h->stat.i_wpred[0] * 100.0 / h->stat.i_frame_count[SLICE_TYPE_P] );
 
