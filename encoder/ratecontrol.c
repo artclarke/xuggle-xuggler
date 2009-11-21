@@ -546,13 +546,24 @@ int x264_ratecontrol_new( x264_t *h )
         /* check whether 1st pass options were compatible with current options */
         if( !strncmp( stats_buf, "#options:", 9 ) )
         {
-            int i;
+            int i, j;
             char *opts = stats_buf;
             stats_in = strchr( stats_buf, '\n' );
             if( !stats_in )
                 return -1;
             *stats_in = '\0';
             stats_in++;
+            if( sscanf( opts, "#options: %dx%d", &i, &j ) != 2 )
+            {
+                x264_log( h, X264_LOG_ERROR, "resolution specified in stats file not valid\n" );
+                return -1;
+            }
+            else if( h->param.rc.b_mb_tree && (i != h->param.i_width || j != h->param.i_height)  )
+            {
+                x264_log( h, X264_LOG_ERROR, "MB-tree doesn't support different resolution than 1st pass (%dx%d vs %dx%d)\n",
+                          h->param.i_width, h->param.i_height, i, j );
+                return -1;
+            }
 
             if( ( p = strstr( opts, "bframes=" ) ) && sscanf( p, "bframes=%d", &i )
                 && h->param.i_bframe != i )
