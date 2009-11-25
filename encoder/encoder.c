@@ -1935,7 +1935,11 @@ int     x264_encoder_encode( x264_t *h,
         fenc->i_frame = h->frames.i_input++;
 
         if( h->frames.b_have_lowres )
+        {
+            if( h->param.analyse.i_weighted_pred )
+                x264_weight_plane_analyse( h, fenc );
             x264_frame_init_lowres( h, fenc );
+        }
 
         if( h->param.rc.b_mb_tree && h->param.rc.b_stat_read )
         {

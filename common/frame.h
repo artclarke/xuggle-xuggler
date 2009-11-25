@@ -102,6 +102,8 @@ typedef struct x264_frame
     uint16_t *i_inv_qscale_factor;
     int     b_scenecut; /* Set to zero if the frame cannot possibly be part of a real scenecut. */
     float   f_weighted_cost_delta[X264_BFRAME_MAX+2];
+    uint32_t i_pixel_sum;
+    uint64_t i_pixel_ssd;
 
     /* vbv */
     uint8_t i_planned_type[X264_LOOKAHEAD_MAX+1];

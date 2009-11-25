@@ -52,7 +52,7 @@ static void x264_lowres_context_init( x264_t *h, x264_mb_analysis_t *a )
 }
 
 /* makes a non-h264 weight (i.e. fix7), into an h264 weight */
-static void get_h264_weight( unsigned int weight_nonh264, int offset, x264_weight_t *w )
+static void x264_weight_get_h264( unsigned int weight_nonh264, int offset, x264_weight_t *w )
 {
     w->i_offset = offset;
     w->i_denom = 7;
@@ -65,31 +65,24 @@ static void get_h264_weight( unsigned int weight_nonh264, int offset, x264_weigh
     w->i_scale = X264_MIN( w->i_scale, 127 );
 }
 
-static NOINLINE void weights_plane_analyse( x264_t *h, uint8_t *plane, int width, int height, int stride, unsigned int *sum, uint64_t *var )
+void x264_weight_plane_analyse( x264_t *h, x264_frame_t *frame )
 {
     int x,y;
-    uint64_t sad = 0;
+    uint32_t sad = 0;
     uint64_t ssd = 0;
-    uint8_t *p = plane;
+    uint8_t *p = frame->plane[0];
+    int stride = frame->i_stride[0];
+    int width = frame->i_width[0];
+    int height = frame->i_lines[0];
     for( y = 0; y < height>>4; y++, p += stride*16 )
-        for( x = 0; x < width; x+=16 )
+        for( x = 0; x < width; x += 16 )
         {
             uint64_t res = h->pixf.var[PIXEL_16x16]( p + x, stride );
             sad += (uint32_t)res;
             ssd += res >> 32;
         }
-
-    *sum = sad;
-    *var = ssd - ((uint64_t)sad * sad + width * height / 2) / (width * height);
-    x264_emms();
-}
-
-#define LOAD_HPELS_LUMA(dst, src) \
-{ \
-   (dst)[0] = &(src)[0][i_pel_offset]; \
-   (dst)[1] = &(src)[1][i_pel_offset]; \
-   (dst)[2] = &(src)[2][i_pel_offset]; \
-   (dst)[3] = &(src)[3][i_pel_offset]; \
+    frame->i_pixel_sum = sad;
+    frame->i_pixel_ssd = ssd - ((uint64_t)sad * sad + width * height / 2) / (width * height);
 }
 
 static NOINLINE uint8_t *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, uint8_t *dest )
@@ -99,23 +92,20 @@ static NOINLINE uint8_t *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fe
      * motion search has been done. */
     if( fenc->lowres_mvs[0][ref0_distance][0][0] != 0x7FFF )
     {
-        uint8_t *src[4];
         int i_stride = fenc->i_stride_lowres;
         int i_lines = fenc->i_lines_lowres;
         int i_width = fenc->i_width_lowres;
         int i_mb_xy = 0;
         int x,y;
-        int i_pel_offset = 0;
+        uint8_t *p = dest;
 
-        for( y = 0; y < i_lines; y += 8, i_pel_offset = y*i_stride )
-            for( x = 0; x < i_width; x += 8, i_mb_xy++, i_pel_offset += 8 )
+        for( y = 0; y < i_lines; y += 8, p += i_stride*8 )
+            for( x = 0; x < i_width; x += 8, i_mb_xy++ )
             {
-                uint8_t *pix = &dest[ i_pel_offset ];
                 int mvx = fenc->lowres_mvs[0][ref0_distance][i_mb_xy][0];
                 int mvy = fenc->lowres_mvs[0][ref0_distance][i_mb_xy][1];
-                LOAD_HPELS_LUMA( src, ref->lowres );
-                h->mc.mc_luma( pix, i_stride, src, i_stride,
-                               mvx, mvy, 8, 8, weight_none );
+                h->mc.mc_luma( p+x, i_stride, ref->lowres, i_stride,
+                               mvx+(x<<2), mvy+(y<<2), 8, 8, weight_none );
             }
         x264_emms();
         return dest;
@@ -123,7 +113,6 @@ static NOINLINE uint8_t *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fe
     x264_emms();
     return ref->lowres[0];
 }
-#undef LOAD_HPELS_LUMA
 
 static NOINLINE unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, uint8_t *src, x264_weight_t *w )
 {
@@ -168,9 +157,7 @@ static NOINLINE unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, ui
 
 void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int b_lookahead )
 {
-    unsigned int fenc_sum, ref_sum;
-    float fenc_mean, ref_mean;
-    uint64_t fenc_var, ref_var;
+    float fenc_mean, ref_mean, fenc_var, ref_var;
     int i_off, offset_search;
     int minoff, minscale, mindenom;
     unsigned int minscore, origscore;
@@ -181,22 +168,20 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
     int found;
     x264_weight_t *weights = fenc->weight[0];
 
-    weights_plane_analyse( h, fenc->plane[0], fenc->i_width[0], fenc->i_lines[0], fenc->i_stride[0], &fenc_sum, &fenc_var );
-    weights_plane_analyse( h,  ref->plane[0],  ref->i_width[0],  ref->i_lines[0],  ref->i_stride[0],  &ref_sum,  &ref_var );
-    fenc_var = round( sqrt( fenc_var ) );
-    ref_var  = round( sqrt(  ref_var ) );
-    fenc_mean = (float)fenc_sum / (fenc->i_lines[0] * fenc->i_width[0]);
-    ref_mean  = (float) ref_sum / (fenc->i_lines[0] * fenc->i_width[0]);
+    fenc_var = round( sqrt( fenc->i_pixel_ssd ) );
+    ref_var  = round( sqrt(  ref->i_pixel_ssd ) );
+    fenc_mean = (float)fenc->i_pixel_sum / (fenc->i_lines[0] * fenc->i_width[0]);
+    ref_mean  = (float) ref->i_pixel_sum / (fenc->i_lines[0] * fenc->i_width[0]);
 
     //early termination
-    if( fabs( ref_mean - fenc_mean ) < 0.5 && fabsf( 1 - (float)fenc_var / ref_var ) < epsilon )
+    if( fabs( ref_mean - fenc_mean ) < 0.5 && fabs( 1 - fenc_var / ref_var ) < epsilon )
     {
         SET_WEIGHT( weights[0], 0, 1, 0, 0 );
         return;
     }
 
-    guess_scale = ref_var ? (float)fenc_var/ref_var : 0;
-    get_h264_weight( round( guess_scale * 128 ), 0, &weights[0] );
+    guess_scale = ref_var ? fenc_var/ref_var : 0;
+    x264_weight_get_h264( round( guess_scale * 128 ), 0, &weights[0] );
 
     found = 0;
     mindenom = weights[0].i_denom;
@@ -527,6 +512,7 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
             if( ( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART
                   || h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE ) && b == p1 )
             {
+                x264_emms();
                 x264_weights_analyse( h, frames[b], frames[p0], 1 );
                 w = frames[b]->weight[0];
             }
@@ -1276,7 +1262,10 @@ void x264_slicetype_decide( x264_t *h )
     /* Analyse for weighted P frames */
     if( !h->param.rc.b_stat_read && h->lookahead->next.list[bframes]->i_type == X264_TYPE_P
         && h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
+    {
+        x264_emms();
         x264_weights_analyse( h, h->lookahead->next.list[bframes], h->lookahead->last_nonb, 0 );
+    }
 
     /* shift sequence to coded order.
        use a small temporary list to avoid shifting the entire next buffer around */
