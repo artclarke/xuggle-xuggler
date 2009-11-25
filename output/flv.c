@@ -39,7 +39,7 @@ typedef struct
     int64_t i_fps_den;
     int64_t i_init_delay;
     int64_t i_framenum;
-    int64_t i_mspf;
+    double d_mspf;
 
     uint64_t i_duration_pos;
     uint64_t i_filesize_pos;
@@ -104,7 +104,7 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
     put_amf_double( c, p_param->i_height );
 
     put_amf_string( c, "framerate" );
-    put_amf_double( c, p_param->i_fps_num / p_param->i_fps_den );
+    put_amf_double( c, (double)p_param->i_fps_num / p_param->i_fps_den );
 
     put_amf_string( c, "videocodecid" );
     put_amf_double( c, FLV_CODECID_H264 );
@@ -132,7 +132,7 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
     p_flv->i_fps_num = p_param->i_fps_num;
     p_flv->i_fps_den = p_param->i_fps_den;
     p_flv->i_init_delay = p_param->i_bframe ? (p_param->i_bframe_pyramid ? 2 : 1) : 0;
-    p_flv->i_mspf = 1000 * p_flv->i_fps_den / p_flv->i_fps_num;
+    p_flv->d_mspf = 1000 * (double)p_flv->i_fps_den / p_flv->i_fps_num;
 
     fprintf( stderr, "flv [info]: initial delay %i frames\n",
              (int)p_flv->i_init_delay );
@@ -144,10 +144,9 @@ static int write_nalu( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_t
 {
     flv_hnd_t *p_flv = handle;
     flv_buffer *c = p_flv->c;
-    uint64_t dts = (uint64_t)p_flv->i_framenum * p_flv->i_mspf;
-    uint64_t pts = (uint64_t)p_picture->i_pts * p_flv->i_mspf / p_flv->i_fps_den;
-    uint64_t timestamp = dts + p_flv->i_init_delay * p_flv->i_mspf;
-    uint64_t offset = p_flv->i_init_delay * p_flv->i_mspf + pts - dts;
+    uint64_t dts = (uint64_t)p_flv->i_framenum * p_flv->d_mspf;
+    uint64_t pts = (uint64_t)p_picture->i_pts * p_flv->d_mspf / p_flv->i_fps_den;
+    uint64_t offset = p_flv->i_init_delay * p_flv->d_mspf + pts - dts;
     uint8_t type = p_nalu[4] & 0x1f;
 
     switch( type )
@@ -208,8 +207,8 @@ static int write_nalu( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_t
                 // A new frame - write packet header
                 put_byte( c, FLV_TAG_TYPE_VIDEO );
                 put_be24( c, 0 ); // calculated later
-                put_be24( c, timestamp );
-                put_byte( c, timestamp >> 24 );
+                put_be24( c, dts );
+                put_byte( c, dts >> 24 );
                 put_be24( c, 0 );
 
                 p_flv->start = c->d_cur;
