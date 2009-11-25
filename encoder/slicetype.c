@@ -190,7 +190,10 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
 
     //early termination
     if( fabs( ref_mean - fenc_mean ) < 0.5 && fabsf( 1 - (float)fenc_var / ref_var ) < epsilon )
+    {
+        SET_WEIGHT( weights[0], 0, 1, 0, 0 );
         return;
+    }
 
     guess_scale = ref_var ? (float)fenc_var/ref_var : 0;
     get_h264_weight( round( guess_scale * 128 ), 0, &weights[0] );
@@ -211,7 +214,10 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
     origscore = minscore = x264_weight_cost( h, fenc, mcbuf, 0 );
 
     if( !minscore )
+    {
+        SET_WEIGHT( weights[0], 0, 1, 0, 0 );
         return;
+    }
 
     // This gives a slight improvement due to rounding errors but only tests
     // one offset on lookahead.
