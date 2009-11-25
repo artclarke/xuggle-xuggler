@@ -1235,16 +1235,20 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
         }
 
         /* load skip */
-        if( h->sh.i_type == SLICE_TYPE_B && h->param.b_cabac )
+        if( h->sh.i_type == SLICE_TYPE_B )
         {
-            uint8_t skipbp;
-            x264_macroblock_cache_skip( h, 0, 0, 4, 4, 0 );
-            skipbp = i_left_type >= 0 ? h->mb.skipbp[i_left_xy] : 0;
-            h->mb.cache.skip[x264_scan8[0] - 1] = skipbp & 0x2;
-            h->mb.cache.skip[x264_scan8[8] - 1] = skipbp & 0x8;
-            skipbp = i_top_type >= 0 ? h->mb.skipbp[i_top_xy] : 0;
-            h->mb.cache.skip[x264_scan8[0] - 8] = skipbp & 0x4;
-            h->mb.cache.skip[x264_scan8[4] - 8] = skipbp & 0x8;
+            h->mb.bipred_weight = h->mb.bipred_weight_buf[h->mb.b_interlaced&(i_mb_y&1)];
+            if( h->param.b_cabac )
+            {
+                uint8_t skipbp;
+                x264_macroblock_cache_skip( h, 0, 0, 4, 4, 0 );
+                skipbp = i_left_type >= 0 ? h->mb.skipbp[i_left_xy] : 0;
+                h->mb.cache.skip[x264_scan8[0] - 1] = skipbp & 0x2;
+                h->mb.cache.skip[x264_scan8[8] - 1] = skipbp & 0x8;
+                skipbp = i_top_type >= 0 ? h->mb.skipbp[i_top_xy] : 0;
+                h->mb.cache.skip[x264_scan8[0] - 8] = skipbp & 0x4;
+                h->mb.cache.skip[x264_scan8[4] - 8] = skipbp & 0x8;
+            }
         }
 
         if( h->sh.i_type == SLICE_TYPE_P )
@@ -1446,45 +1450,50 @@ void x264_macroblock_cache_save( x264_t *h )
     }
 }
 
+
 void x264_macroblock_bipred_init( x264_t *h )
 {
-    int i_ref0, i_ref1;
-    for( i_ref0 = 0; i_ref0 < h->i_ref0; i_ref0++ )
-    {
-        int poc0 = h->fref0[i_ref0]->i_poc;
-        for( i_ref1 = 0; i_ref1 < h->i_ref1; i_ref1++ )
+    int i_ref0, i_ref1, field;
+    for( field = 0; field <= h->sh.b_mbaff; field++ )
+        for( i_ref0 = 0; i_ref0 < (h->i_ref0<<h->sh.b_mbaff); i_ref0++ )
         {
-            int dist_scale_factor;
-            int poc1 = h->fref1[i_ref1]->i_poc;
-            int td = x264_clip3( poc1 - poc0, -128, 127 );
-            if( td == 0 /* || pic0 is a long-term ref */ )
-                dist_scale_factor = 256;
-            else
+            int poc0 = h->fref0[i_ref0>>h->sh.b_mbaff]->i_poc;
+            if( h->sh.b_mbaff && field^(i_ref0&1) )
+                poc0 += h->sh.i_delta_poc_bottom;
+            for( i_ref1 = 0; i_ref1 < (h->i_ref1<<h->sh.b_mbaff); i_ref1++ )
             {
-                int tb = x264_clip3( h->fdec->i_poc - poc0, -128, 127 );
-                int tx = (16384 + (abs(td) >> 1)) / td;
-                dist_scale_factor = x264_clip3( (tb * tx + 32) >> 6, -1024, 1023 );
-            }
-            h->mb.dist_scale_factor[i_ref0][i_ref1] = dist_scale_factor;
+                int dist_scale_factor;
+                int poc1 = h->fref1[i_ref1>>h->sh.b_mbaff]->i_poc;
+                if( h->sh.b_mbaff && field^(i_ref1&1) )
+                    poc1 += h->sh.i_delta_poc_bottom;
+                int cur_poc = h->fdec->i_poc + field*h->sh.i_delta_poc_bottom;
+                int td = x264_clip3( poc1 - poc0, -128, 127 );
+                if( td == 0 /* || pic0 is a long-term ref */ )
+                    dist_scale_factor = 256;
+                else
+                {
+                    int tb = x264_clip3( cur_poc - poc0, -128, 127 );
+                    int tx = (16384 + (abs(td) >> 1)) / td;
+                    dist_scale_factor = x264_clip3( (tb * tx + 32) >> 6, -1024, 1023 );
+                }
 
-            dist_scale_factor >>= 2;
-            if( h->param.analyse.b_weighted_bipred
-                  && dist_scale_factor >= -64
-                  && dist_scale_factor <= 128 )
-            {
-                h->mb.bipred_weight[i_ref0][i_ref1] = 64 - dist_scale_factor;
-                // ssse3 implementation of biweight doesn't support the extrema.
-                // if we ever generate them, we'll have to drop that optimization.
-                assert( dist_scale_factor >= -63 && dist_scale_factor <= 127 );
+                // FIXME: will need this if we ever do temporal MV pred with interlaced
+                if( !h->sh.b_mbaff )
+                    h->mb.dist_scale_factor[i_ref0][i_ref1] = dist_scale_factor;
+
+                dist_scale_factor >>= 2;
+                if( h->param.analyse.b_weighted_bipred
+                      && dist_scale_factor >= -64
+                      && dist_scale_factor <= 128 )
+                {
+                    h->mb.bipred_weight_buf[field][i_ref0][i_ref1] = 64 - dist_scale_factor;
+                    // ssse3 implementation of biweight doesn't support the extrema.
+                    // if we ever generate them, we'll have to drop that optimization.
+                    assert( dist_scale_factor >= -63 && dist_scale_factor <= 127 );
+                }
+                else
+                    h->mb.bipred_weight_buf[field][i_ref0][i_ref1] = 32;
             }
-            else
-                h->mb.bipred_weight[i_ref0][i_ref1] = 32;
         }
-    }
-    if( h->sh.b_mbaff )
-    {
-        for( i_ref0 = 2*h->i_ref0-1; i_ref0 >= 0; i_ref0-- )
-            for( i_ref1 = 2*h->i_ref1-1; i_ref1 >= 0; i_ref1-- )
-                h->mb.bipred_weight[i_ref0][i_ref1] = h->mb.bipred_weight[i_ref0>>1][i_ref1>>1];
-    }
 }
+

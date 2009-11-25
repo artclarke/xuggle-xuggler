@@ -1545,7 +1545,7 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
     if( h->sps->i_poc_type == 0 )
     {
         h->sh.i_poc_lsb = h->fdec->i_poc & ( (1 << h->sps->i_log2_max_poc_lsb) - 1 );
-        h->sh.i_delta_poc_bottom = 0;   /* XXX won't work for field */
+        h->sh.i_delta_poc_bottom = 0;
     }
     else if( h->sps->i_poc_type == 1 )
     {
