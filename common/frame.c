@@ -747,16 +747,13 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                             bS[i] = bS[i-1];\
                         else\
                         {\
-                            /* FIXME: A given frame may occupy more than one position in\
-                             * the reference list. So we should compare the frame numbers,\
-                             * not the indices in the ref list.\
-                             * No harm yet, as we don't generate that case.*/\
                             int i8p= mb_8x8+(x>>1)+(y>>1)*s8x8;\
                             int i8q= mbn_8x8+(xn>>1)+(yn>>1)*s8x8;\
                             int i4p= mb_4x4+x+y*s4x4;\
                             int i4q= mbn_4x4+xn+yn*s4x4;\
                             int refs_equal;\
-                            if( h->mb.ref[0][i8p] < 0 || h->mb.ref[0][i8q] < 0 )\
+                            /* We don't use duplicate refs in B-frames, so we can take this shortcut for now. */ \
+                            if( h->sh.i_type == SLICE_TYPE_B || h->mb.ref[0][i8p] < 0 || h->mb.ref[0][i8q] < 0 )\
                                 refs_equal = h->mb.ref[0][i8p] == h->mb.ref[0][i8q];\
                             else if( !h->mb.b_interlaced )\
                                 refs_equal = h->fref0[h->mb.ref[0][i8p]]->i_poc == h->fref0[h->mb.ref[0][i8q]]->i_poc;\
