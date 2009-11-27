@@ -1,5 +1,5 @@
 /*****************************************************************************
- * avis.c: x264 avi/avs input module
+ * vfw.c: x264 avisynth input via VFW module
  *****************************************************************************
  * Copyright (C) 2003-2009 x264 project
  *
@@ -28,8 +28,9 @@
 typedef struct
 {
     PAVISTREAM p_avi;
-    int width, height;
-} avis_hnd_t;
+    int width;
+    int height;
+} vfw_hnd_t;
 
 static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
 {
@@ -38,12 +39,12 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
         return -1;
     else if( !x264_is_regular_file( fh ) )
     {
-        fprintf( stderr, "avis [error]: AVIS input is incompatible with non-regular file `%s'\n", psz_filename );
+        fprintf( stderr, "vfw [error]: VFW input is incompatible with non-regular file `%s'\n", psz_filename );
         return -1;
     }
     fclose( fh );
 
-    avis_hnd_t *h = malloc( sizeof(avis_hnd_t) );
+    vfw_hnd_t *h = malloc( sizeof(vfw_hnd_t) );
     if( !h )
         return -1;
     AVISTREAMINFO info;
@@ -68,7 +69,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
     // check input format
     if( info.fccHandler != MAKEFOURCC('Y', 'V', '1', '2') )
     {
-        fprintf( stderr, "avis [error]: unsupported input format (%c%c%c%c)\n",
+        fprintf( stderr, "vfw [error]: unsupported input format (%c%c%c%c)\n",
             (char)(info.fccHandler & 0xff), (char)((info.fccHandler >> 8) & 0xff),
             (char)((info.fccHandler >> 16) & 0xff), (char)((info.fccHandler >> 24)) );
 
@@ -85,8 +86,9 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
     i = gcd( info.dwRate, info.dwScale );
     p_param->i_fps_den = info.dwScale / i;
     p_param->i_fps_num = info.dwRate / i;
+    p_param->i_csp = X264_CSP_YV12;
 
-    fprintf( stderr, "avis [info]: %dx%d @ %.2f fps (%d frames)\n",
+    fprintf( stderr, "vfw [info]: %dx%d @ %.2f fps (%d frames)\n",
              p_param->i_width, p_param->i_height,
              (double)p_param->i_fps_num / (double)p_param->i_fps_den,
              (int)info.dwLength );
@@ -96,7 +98,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
 
 static int get_frame_total( hnd_t handle )
 {
-    avis_hnd_t *h = handle;
+    vfw_hnd_t *h = handle;
     AVISTREAMINFO info;
 
     if( AVIStreamInfo( h->p_avi, &info, sizeof(AVISTREAMINFO) ) )
@@ -107,23 +109,17 @@ static int get_frame_total( hnd_t handle )
 
 static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
 {
-    avis_hnd_t *h = handle;
-
-    p_pic->img.i_csp = X264_CSP_YV12;
-
-    if( AVIStreamRead( h->p_avi, i_frame, 1, p_pic->img.plane[0], h->width * h->height * 3 / 2, NULL, NULL ) )
-        return -1;
-
-    return 0;
+    vfw_hnd_t *h = handle;
+    return AVIStreamRead( h->p_avi, i_frame, 1, p_pic->img.plane[0], h->width * h->height * 3 / 2, NULL, NULL );
 }
 
 static int close_file( hnd_t handle )
 {
-    avis_hnd_t *h = handle;
+    vfw_hnd_t *h = handle;
     AVIStreamRelease( h->p_avi );
     AVIFileExit();
     free( h );
     return 0;
 }
 
-cli_input_t avis_input = { open_file, get_frame_total, read_frame, close_file };
+cli_input_t avs_input = { open_file, get_frame_total, x264_picture_alloc, read_frame, NULL, x264_picture_clean, close_file };

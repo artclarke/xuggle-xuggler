@@ -130,7 +130,7 @@ static void Help( x264_param_t *defaults, int longhelp )
         "\n"
         "Infile can be raw YUV 4:2:0 (in which case resolution is required),\n"
         "  or YUV4MPEG 4:2:0 (*.y4m),\n"
-        "  or AVI or Avisynth if compiled with AVIS support (%s).\n"
+        "  or Avisynth if compiled with support (%s).\n"
         "Outfile type is selected by filename:\n"
         " .264 -> Raw bytestream\n"
         " .mkv -> Matroska\n"
@@ -144,8 +144,10 @@ static void Help( x264_param_t *defaults, int longhelp )
         "      --fullhelp              List all options\n"
         "\n",
         X264_BUILD, X264_VERSION,
-#ifdef AVIS_INPUT
-        "yes",
+#ifdef AVS_INPUT
+        "native",
+#elif defined(VFW_INPUT)
+        "vfw (fallback)",
 #else
         "no",
 #endif
@@ -539,9 +541,9 @@ static struct option long_options[] =
 
 static int select_output( char *filename, const char *pipe_format, x264_param_t *param )
 {
-    char *ext = filename + strlen( filename ) - 1;
-    while( *ext != '.' && ext > filename )
-        ext--;
+    const char *ext = get_filename_extension( filename );
+    if( !strcmp( filename, "-" ) )
+        ext = pipe_format;
 
     if( !strcasecmp( ext, ".mp4" ) )
     {
@@ -552,9 +554,9 @@ static int select_output( char *filename, const char *pipe_format, x264_param_t 
         return -1;
 #endif
     }
-    else if( !strcasecmp( ext, ".mkv" ) || (!strcmp( filename, "-" ) && !strcasecmp( pipe_format, "mkv" )) )
+    else if( !strcasecmp( ext, "mkv" ) )
         output = mkv_output; // FIXME use b_annexb=0
-    else if( !strcasecmp( ext, ".flv" ) || (!strcmp( filename, "-" ) && !strcasecmp( pipe_format, "flv" )) )
+    else if( !strcasecmp( ext, "flv" ) )
     {
         output = flv_output;
         param->b_annexb = 0;
@@ -566,22 +568,22 @@ static int select_output( char *filename, const char *pipe_format, x264_param_t 
 
 static int select_input( char *filename, char *resolution, const char *pipe_format, x264_param_t *param )
 {
-    char *ext = filename + strlen( filename ) - 1;
-    while( ext > filename && *ext != '.' )
-        ext--;
+    const char *ext = get_filename_extension( filename );
+    if( !strcmp( filename, "-" ) )
+        ext = pipe_format;
 
-    if( !strcasecmp( ext, ".avi" ) || !strcasecmp( ext, ".avs" ) )
+    if( !strcasecmp( ext, "avi" ) || !strcasecmp( ext, "avs" ) )
     {
-#ifdef AVIS_INPUT
-        input = avis_input;
+#if defined(AVS_INPUT) || defined(VFW_INPUT)
+        input = avs_input;
 #else
-        fprintf( stderr, "x264 [error]: not compiled with AVIS input support\n" );
+        fprintf( stderr, "x264 [error]: not compiled with AVS input support\n" );
         return -1;
 #endif
     }
-    else if( !strcasecmp( ext, ".y4m" ) || (!strcmp( filename, "-" ) && !strcasecmp( pipe_format, "y4m" )) )
+    else if( !strcasecmp( ext, "y4m" ) )
         input = y4m_input;
-    else // yuv
+    else if( !strcasecmp( ext, "yuv" ) )
     {
         if( !resolution )
         {
@@ -610,6 +612,14 @@ static int select_input( char *filename, char *resolution, const char *pipe_form
             return -1;
         }
         input = yuv_input;
+    }
+    else
+    {
+#ifdef AVS_INPUT
+        input = avs_input;
+#else
+        input = yuv_input;
+#endif
     }
 
     return 0;
@@ -1223,7 +1233,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     }
 
     /* Create a new pic */
-    if( x264_picture_alloc( &pic, X264_CSP_I420, param->i_width, param->i_height ) < 0 )
+    if( input.picture_alloc( &pic, param->i_csp, param->i_width, param->i_height ) )
     {
         fprintf( stderr, "x264 [error]: malloc failed\n" );
         return -1;
@@ -1257,6 +1267,9 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
 
         i_frame++;
 
+        if( input.release_frame && input.release_frame( &pic, opt->hin ) )
+            break;
+
         /* update status line (up to 1000 times per input file) */
         if( opt->b_progress && i_frame_output % i_update_interval == 0 && i_frame_output )
             Print_status( i_start, i_frame_output, i_frame_total, i_file, param );
@@ -1275,7 +1288,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     }
 
     i_end = x264_mdate();
-    x264_picture_clean( &pic );
+    input.picture_clean( &pic );
     /* Erase progress indicator before printing encoding stats. */
     if( opt->b_progress )
         fprintf( stderr, "                                                                               \r" );

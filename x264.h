@@ -388,9 +388,11 @@ typedef struct
            of H.264 itself; in this case, the caller must force an IDR frame
            if it needs the changed parameter to apply immediately. */
     x264_param_t *param;
-
     /* In: raw data */
     x264_image_t img;
+    /* private user data. libx264 doesn't touch this,
+       not even copy it from input to output frames. */
+    void *opaque;
 } x264_picture_t;
 
 /* x264_picture_alloc:

@@ -19,8 +19,12 @@ SRCCLI = x264.c input/yuv.c input/y4m.c output/raw.c \
 MUXERS := $(shell grep -E "(IN|OUT)PUT" config.h)
 
 # Optional muxer module sources
-ifneq ($(findstring AVIS_INPUT, $(MUXERS)),)
-SRCCLI += input/avis.c
+ifneq ($(findstring VFW_INPUT, $(MUXERS)),)
+SRCCLI += input/vfw.c
+endif
+
+ifneq ($(findstring AVS_INPUT, $(MUXERS)),)
+SRCCLI += input/avs.c
 endif
 
 ifneq ($(findstring HAVE_PTHREAD, $(CFLAGS)),)

@@ -41,6 +41,15 @@ static inline int64_t gcd( int64_t a, int64_t b )
     }
 }
 
+static inline char *get_filename_extension( char *filename )
+{
+    char *ext = filename + strlen( filename );
+    while( *ext != '.' && ext > filename )
+        ext--;
+    ext += *ext == '.';
+    return ext;
+}
+
 #include "input/input.h"
 #include "output/output.h"
 

@@ -48,7 +48,7 @@ typedef struct thread_input_arg_t
 static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
 {
     thread_hnd_t *h = malloc( sizeof(thread_hnd_t) );
-    if( !h || x264_picture_alloc( &h->pic, X264_CSP_I420, p_param->i_width, p_param->i_height ) < 0 )
+    if( !h || input.picture_alloc( &h->pic, p_param->i_csp, p_param->i_width, p_param->i_height ) )
     {
         fprintf( stderr, "x264 [error]: malloc failed\n" );
         return -1;
@@ -63,6 +63,8 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
     h->next_args->h = h;
     h->next_args->status = 0;
     h->frame_total = input.get_frame_total( h->p_handle );
+    thread_input.picture_alloc = h->input.picture_alloc;
+    thread_input.picture_clean = h->input.picture_clean;
 
     *p_handle = h;
     return 0;
@@ -111,16 +113,24 @@ static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
     return ret;
 }
 
+static int release_frame( x264_picture_t *pic, hnd_t handle )
+{
+    thread_hnd_t *h = handle;
+    if( h->input.release_frame )
+        return h->input.release_frame( pic, h->p_handle );
+    return 0;
+}
+
 static int close_file( hnd_t handle )
 {
     thread_hnd_t *h = handle;
     if( h->in_progress )
         x264_pthread_join( h->tid, NULL );
     h->input.close_file( h->p_handle );
-    x264_picture_clean( &h->pic );
+    h->input.picture_clean( &h->pic );
     free( h->next_args );
     free( h );
     return 0;
 }
 
-cli_input_t thread_input = { open_file, get_frame_total, read_frame, close_file };
+cli_input_t thread_input = { open_file, get_frame_total, NULL, read_frame, release_frame, NULL, close_file };

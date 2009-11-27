@@ -28,13 +28,16 @@ typedef struct
 {
     int (*open_file)( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param );
     int (*get_frame_total)( hnd_t handle );
+    int (*picture_alloc)( x264_picture_t *pic, int i_csp, int i_width, int i_height );
     int (*read_frame)( x264_picture_t *p_pic, hnd_t handle, int i_frame );
+    int (*release_frame)( x264_picture_t *pic, hnd_t handle );
+    void (*picture_clean)( x264_picture_t *pic );
     int (*close_file)( hnd_t handle );
 } cli_input_t;
 
 extern cli_input_t yuv_input;
 extern cli_input_t y4m_input;
-extern cli_input_t avis_input;
+extern cli_input_t avs_input;
 extern cli_input_t thread_input;
 
 #endif
