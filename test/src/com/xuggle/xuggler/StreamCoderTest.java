@@ -193,7 +193,7 @@ public class StreamCoderTest extends TestCase
     assertEquals(0, height);
     assertEquals(0, width);
     assertEquals(1, timebase.getNumerator());
-    assertEquals(90000, timebase.getDenominator());
+    assertEquals(14112000, timebase.getDenominator());
     assertEquals(12, gops);
     assertEquals(IPixelFormat.Type.NONE, pixFmt);
     assertEquals(44100, sampleRate);

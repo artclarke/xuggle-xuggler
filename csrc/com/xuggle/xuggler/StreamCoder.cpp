@@ -119,6 +119,11 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
     retval = StreamCoder::make();
     if (retval)
     {
+      // In FFmpeg r20623 they started defaulting the sample
+      // format to NONE, but Xuggler uses assume S16, so we
+      // override that.
+      if (codecCtx->sample_fmt == SAMPLE_FMT_NONE)
+        codecCtx->sample_fmt = SAMPLE_FMT_S16;
       retval->mCodecContext = codecCtx;
       retval->mDirection = direction;
       retval->mStream = 0;
@@ -218,6 +223,12 @@ StreamCoder::make(Direction direction, AVCodecContext * codecCtx,
     try
     {
       retval = StreamCoder::make();
+      // In FFmpeg r20623 they started defaulting the sample
+      // format to NONE, but Xuggler uses assume S16, so we
+      // override that.
+      if (codecCtx->sample_fmt == SAMPLE_FMT_NONE)
+        codecCtx->sample_fmt = SAMPLE_FMT_S16;
+
       retval->mCodecContext = codecCtx;
       retval->mDirection = direction;
       retval->mStream = stream; //do not ref count.
