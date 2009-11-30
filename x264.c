@@ -545,7 +545,7 @@ static int select_output( char *filename, const char *pipe_format, x264_param_t 
     if( !strcmp( filename, "-" ) )
         ext = pipe_format;
 
-    if( !strcasecmp( ext, ".mp4" ) )
+    if( !strcasecmp( ext, "mp4" ) )
     {
 #ifdef MP4_OUTPUT
         output = mp4_output; // FIXME use b_annexb=0
