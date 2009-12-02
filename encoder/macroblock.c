@@ -1181,13 +1181,9 @@ void x264_macroblock_encode_p4x4( x264_t *h, int i4 )
     int i_qp = h->mb.i_qp;
     uint8_t *p_fenc = &h->mb.pic.p_fenc[0][block_idx_xy_fenc[i4]];
     uint8_t *p_fdec = &h->mb.pic.p_fdec[0][block_idx_xy_fdec[i4]];
-    const int i_ref = h->mb.cache.ref[0][x264_scan8[i4]];
-    const int mvx   = x264_clip3( h->mb.cache.mv[0][x264_scan8[i4]][0], h->mb.mv_min[0], h->mb.mv_max[0] );
-    const int mvy   = x264_clip3( h->mb.cache.mv[0][x264_scan8[i4]][1], h->mb.mv_min[1], h->mb.mv_max[1] );
     int nz;
 
-    h->mc.mc_luma( p_fdec, FDEC_STRIDE, h->mb.pic.p_fref[0][i_ref], h->mb.pic.i_stride[0],
-                   mvx + 4*4*block_idx_x[i4], mvy + 4*4*block_idx_y[i4], 4, 4, &h->sh.weight[i_ref][0] );
+    /* Don't need motion compensation as this function is only used in qpel-RD, which caches pixel data. */
 
     if( h->mb.b_lossless )
     {
