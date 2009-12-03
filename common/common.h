@@ -256,7 +256,7 @@ typedef struct
     } ref_pic_list_order[2][16];
 
     /* P-frame weighting */
-    x264_weight_t weight[16][3];
+    x264_weight_t weight[32][3];
 
     int i_mmco_remove_from_end;
     int i_mmco_command_count;

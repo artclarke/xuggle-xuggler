@@ -1202,7 +1202,7 @@ static void x264_weighted_pred_init( x264_t *h )
     // and duplicates of that frame.
     h->fenc->i_lines_weighted = 0;
 
-    for( i_ref = 0; i_ref < h->i_ref0; i_ref++ )
+    for( i_ref = 0; i_ref < (h->i_ref0 << h->sh.b_mbaff); i_ref++ )
         for( i = 0; i < 3; i++ )
             h->sh.weight[i_ref][i].weightfn = NULL;
 
