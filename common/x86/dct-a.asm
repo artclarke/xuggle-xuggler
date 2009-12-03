@@ -26,17 +26,35 @@
 %include "x86inc.asm"
 %include "x86util.asm"
 
+%macro SHUFFLE_16BIT 8
+    %rep 8
+        db %1*2
+        db %1*2+1
+        %rotate 1
+    %endrep
+%endmacro
+
 SECTION_RODATA
 pw_32_0: times 4 dw 32
          times 4 dw 0
 pw_32: times 8 dw 32
 pw_8000: times 8 dw 0x8000
 hsub_mul: times 8 db 1, -1
+
 pb_sub4frame:   db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
 pb_sub4field:   db 0,4,1,8,12,5,9,13,2,6,10,14,3,7,11,15
 pb_subacmask:   dw 0,-1,-1,-1,-1,-1,-1,-1
-pb_scan4framea: db 12,13,6,7,14,15,0,1,8,9,2,3,4,5,10,11
-pb_scan4frameb: db 0,1,8,9,2,3,4,5,10,11,12,13,6,7,14,15
+pb_scan4framea: SHUFFLE_16BIT 6,3,7,0,4,1,2,5
+pb_scan4frameb: SHUFFLE_16BIT 0,4,1,2,5,6,3,7
+
+pb_scan8fielda: SHUFFLE_16BIT 0,1,2,-1,-1,3,4,-1
+pb_scan8fieldb: SHUFFLE_16BIT -1,-1,-1,3,4,-1,-1,5
+pb_scan8fieldc: SHUFFLE_16BIT -1,6,0,1,2,7,-1,-1
+pb_scan8fieldd: SHUFFLE_16BIT 5,0,1,2,6,-1,-1,-1
+pb_scan8fielde: SHUFFLE_16BIT 6,0,1,2,3,7,-1,-1
+pb_scan8fieldf: SHUFFLE_16BIT 5,6,0,1,2,3,7,-1
+pb_scan8fieldg: SHUFFLE_16BIT 4,5,0,1,2,3,6,7
+
 pb_idctdc_unpack: db 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
 pb_idctdc_unpack2: db 4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7
 pb_1: times 16 db 1
@@ -832,6 +850,72 @@ cglobal x264_zigzag_scan_4x4_field_mmxext, 2,3
     mov       [r0], r2d
     mov        r2d, [r1+12]
     mov    [r0+12], r2d
+    RET
+
+;-----------------------------------------------------------------------------
+; void x264_zigzag_scan_8x8_field_mmxext( int16_t level[64], int16_t dct[8][8] )
+;-----------------------------------------------------------------------------
+
+; Output order:
+;  0  1  2  8  9  3  4 10
+; 16 11  5  6  7 12 17 24
+; 18 13 14 15 19 25 32 26
+; 20 21 22 23 27 33 40 34
+; 28 29 30 31 35 41 48 42
+; 36 37 38 39 43 49 50 44
+; 45 46 47 51 56 57 52 53
+; 54 55 58 59 60 61 62 63
+
+cglobal x264_zigzag_scan_8x8_field_ssse3, 2,4,8
+    movdqa xmm0, [r1+ 0]                   ;  0  1  2  3  4  5  6  7
+    movdqu xmm1, [r1+10]                   ;  5  6  7  8  9 10 11 12
+    movdqu xmm3, [r1+26]                   ; 13 14 15 16 17 18 19 20
+    movdqu xmm4, [r1+40]                   ; 20 21 22 23 24 25 26 27
+    movdqu xmm5, [r1+56]                   ; 28 29 30 31 32 33 34 35
+    movdqu xmm6, [r1+72]                   ; 36 37 38 39 40 41 42 43
+    movdqa xmm2, xmm1
+    movdqa xmm7, [pb_scan8fielde GLOBAL]
+    pshufb xmm0, [pb_scan8fielda GLOBAL]   ;  0  1  2  _  _  3  4  _
+    pshufb xmm1, [pb_scan8fieldb GLOBAL]   ;  _  _  _  8  9  _  _ 10
+    por    xmm0, xmm1
+    pshufb xmm2, [pb_scan8fieldc GLOBAL]   ;  _ 11  5  6  7 12  _  _
+    pshufb xmm3, [pb_scan8fieldd GLOBAL]   ; 18 13 14 15 19  _  _  _
+    pshufb xmm4, xmm7                      ; 26 20 21 22 23 27  _  _
+    pshufb xmm5, xmm7                      ; 34 28 29 30 31 35  _  _
+    pshufb xmm6, xmm7                      ; 42 36 37 38 39 43  _  _
+    movdqa [r0+ 0], xmm0
+    movdqa [r0+16], xmm2
+    movdqa [r0+32], xmm3
+    movdqu [r0+46], xmm4
+    movdqu [r0+62], xmm5
+    movdqu [r0+78], xmm6
+    movdqu xmm0, [r1+88]                   ; 44 45 46 47 48 49 50 51
+    movdqu xmm1, [r1+104]                  ; 52 53 54 55 56 57 58 59
+    movq   xmm2, [r1+120]                  ; 60 61 62 63
+    pshufb xmm0, [pb_scan8fieldf GLOBAL]   ; 49 50 44 45 46 47 51 _
+    pshufb xmm1, [pb_scan8fieldg GLOBAL]   ; 56 57 52 53 54 55 58 59
+    movdqu [r0+90], xmm0
+    movdqu [r0+104], xmm1
+    movq   [r0+120], xmm2
+
+    mov     r2w, [r1+32]
+    mov     r3w, [r1+34]
+    mov [r0+16], r2w
+    mov [r0+28], r3w
+    mov     r2w, [r1+48]
+    mov     r3w, [r1+50]
+    mov [r0+30], r2w
+    mov [r0+42], r3w
+    mov     r2w, [r1+64]
+    mov     r3w, [r1+66]
+    mov [r0+44], r2w
+    mov [r0+58], r3w
+    mov     r2w, [r1+80]
+    mov     r3w, [r1+82]
+    mov     r1w, [r1+96]
+    mov [r0+60], r2w
+    mov [r0+74], r3w
+    mov [r0+76], r1w
     RET
 
 ;-----------------------------------------------------------------------------
