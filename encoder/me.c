@@ -1026,7 +1026,7 @@ void x264_me_refine_bidir_rd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_wei
     if( !avoid_mvp || !(mx == pmx && my == pmy) ) \
     { \
         h->mc.mc_luma( pix, FDEC_STRIDE, m->p_fref, m->i_stride[0], mx, my, bw, bh, &m->weight[0] ); \
-        dst = h->pixf.mbcmp_unaligned[i_pixel]( m->p_fenc[0], FENC_STRIDE, pix, FDEC_STRIDE ) \
+        dst = h->pixf.mbcmp[i_pixel]( m->p_fenc[0], FENC_STRIDE, pix, FDEC_STRIDE ) \
             + p_cost_mvx[mx] + p_cost_mvy[my]; \
         COPY1_IF_LT( bsatd, dst ); \
     } \
