@@ -720,12 +720,14 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
         pf->sub_4x4ac  = zigzag_sub_4x4ac_field;
 #ifdef HAVE_MMX
         if( cpu&X264_CPU_MMXEXT )
+        {
             pf->scan_4x4 = x264_zigzag_scan_4x4_field_mmxext;
+            pf->scan_8x8 = x264_zigzag_scan_8x8_field_mmxext;
+        }
         if( cpu&X264_CPU_SSSE3 )
         {
             pf->sub_4x4  = x264_zigzag_sub_4x4_field_ssse3;
             pf->sub_4x4ac= x264_zigzag_sub_4x4ac_field_ssse3;
-            pf->scan_8x8 = x264_zigzag_scan_8x8_field_ssse3;
         }
 #endif
 

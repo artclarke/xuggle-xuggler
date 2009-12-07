@@ -866,56 +866,82 @@ cglobal x264_zigzag_scan_4x4_field_mmxext, 2,3
 ; 45 46 47 51 56 57 52 53
 ; 54 55 58 59 60 61 62 63
 
-cglobal x264_zigzag_scan_8x8_field_ssse3, 2,4,8
-    movdqa xmm0, [r1+ 0]                   ;  0  1  2  3  4  5  6  7
-    movdqu xmm1, [r1+10]                   ;  5  6  7  8  9 10 11 12
-    movdqu xmm3, [r1+26]                   ; 13 14 15 16 17 18 19 20
-    movdqu xmm4, [r1+40]                   ; 20 21 22 23 24 25 26 27
-    movdqu xmm5, [r1+56]                   ; 28 29 30 31 32 33 34 35
-    movdqu xmm6, [r1+72]                   ; 36 37 38 39 40 41 42 43
-    movdqa xmm2, xmm1
-    movdqa xmm7, [pb_scan8fielde GLOBAL]
-    pshufb xmm0, [pb_scan8fielda GLOBAL]   ;  0  1  2  _  _  3  4  _
-    pshufb xmm1, [pb_scan8fieldb GLOBAL]   ;  _  _  _  8  9  _  _ 10
-    por    xmm0, xmm1
-    pshufb xmm2, [pb_scan8fieldc GLOBAL]   ;  _ 11  5  6  7 12  _  _
-    pshufb xmm3, [pb_scan8fieldd GLOBAL]   ; 18 13 14 15 19  _  _  _
-    pshufb xmm4, xmm7                      ; 26 20 21 22 23 27  _  _
-    pshufb xmm5, xmm7                      ; 34 28 29 30 31 35  _  _
-    pshufb xmm6, xmm7                      ; 42 36 37 38 39 43  _  _
-    movdqa [r0+ 0], xmm0
-    movdqa [r0+16], xmm2
-    movdqa [r0+32], xmm3
-    movdqu [r0+46], xmm4
-    movdqu [r0+62], xmm5
-    movdqu [r0+78], xmm6
-    movdqu xmm0, [r1+88]                   ; 44 45 46 47 48 49 50 51
-    movdqu xmm1, [r1+104]                  ; 52 53 54 55 56 57 58 59
-    movq   xmm2, [r1+120]                  ; 60 61 62 63
-    pshufb xmm0, [pb_scan8fieldf GLOBAL]   ; 49 50 44 45 46 47 51 _
-    pshufb xmm1, [pb_scan8fieldg GLOBAL]   ; 56 57 52 53 54 55 58 59
-    movdqu [r0+90], xmm0
-    movdqu [r0+104], xmm1
-    movq   [r0+120], xmm2
-
-    mov     r2w, [r1+32]
-    mov     r3w, [r1+34]
-    mov [r0+16], r2w
-    mov [r0+28], r3w
-    mov     r2w, [r1+48]
-    mov     r3w, [r1+50]
-    mov [r0+30], r2w
-    mov [r0+42], r3w
-    mov     r2w, [r1+64]
-    mov     r3w, [r1+66]
-    mov [r0+44], r2w
-    mov [r0+58], r3w
-    mov     r2w, [r1+80]
-    mov     r3w, [r1+82]
-    mov     r1w, [r1+96]
-    mov [r0+60], r2w
-    mov [r0+74], r3w
-    mov [r0+76], r1w
+cglobal x264_zigzag_scan_8x8_field_mmxext, 2,3
+    movq       mm0, [r1+2*0]        ; 03 02 01 00
+    movq       mm1, [r1+2*4]        ; 07 06 05 04
+    movq       mm2, [r1+2*8]        ; 11 10 09 08
+    pshufw     mm3, mm0, 011111111b ; 03 03 03 03
+    movd        r2, mm2             ; 09 08
+    pshufw     mm2, mm2, 000111001b ; 08 11 10 09
+    punpcklwd  mm3, mm1             ; 05 03 04 03
+    pinsrw     mm0, r2, 3           ; 08 02 01 00
+    movq       mm4, mm2
+    punpcklwd  mm2, mm3             ; 04 10 03 09
+    pshufw     mm2, mm2, 010110100b ; 10 04 03 09
+    movq  [r0+2*0], mm0             ; 08 02 01 00
+    movq  [r0+2*4], mm2             ; 10 04 03 09
+    movq       mm3, [r1+2*12]       ; 15 14 13 12
+    movq       mm5, [r1+2*16]       ; 19 18 17 16
+    punpckldq  mm6, mm5             ; 17 16 XX XX
+    psrlq      mm1, 16              ; XX 07 06 05
+    punpckhwd  mm6, mm4             ; 08 17 11 16
+    punpckldq  mm6, mm1             ; 06 05 11 16
+    movq  [r0+2*8], mm6             ; 06 05 11 16
+    psrlq      mm1, 16              ; XX XX 07 06
+    punpcklwd  mm1, mm5             ; 17 07 16 06
+    movq       mm0, [r1+2*20]       ; 23 22 21 20
+    movq       mm2, [r1+2*24]       ; 27 26 25 24
+    movq       mm6, mm3
+    punpckhdq  mm1, mm1             ; 17 07 17 07
+    punpcklwd  mm6, mm2             ; 25 13 24 12
+    pextrw      r2, mm5, 2
+    movq [r0+2*24], mm0             ; 23 22 21 20
+    punpcklwd  mm1, mm6             ; 24 17 12 07
+    movq [r0+2*12], mm1
+    pinsrw     mm3, r2, 0           ; 15 14 13 18
+    movq [r0+2*16], mm3             ; 15 14 13 18
+    movq       mm7, [r1+2*28]
+    movq       mm0, [r1+2*32]       ; 35 34 33 32
+    psrlq      mm5, 48              ; XX XX XX 19
+    pshufw     mm1, mm2, 011111001b ; 27 27 26 25
+    punpcklwd  mm5, mm0             ; 33 XX 32 19
+    psrlq      mm2, 48              ; XX XX XX 27
+    punpcklwd  mm5, mm1             ; 26 32 25 19
+    movq [r0+2*32], mm7
+    movq [r0+2*20], mm5             ; 26 32 25 19
+    movq       mm7, [r1+2*36]
+    movq       mm1, [r1+2*40]       ; 43 42 41 40
+    pshufw     mm3, mm0, 011111001b ; 35 35 34 33
+    punpcklwd  mm2, mm1             ; 41 XX 40 27
+    movq [r0+2*40], mm7
+    punpcklwd  mm2, mm3             ; 34 40 33 27
+    movq [r0+2*28], mm2
+    movq       mm7, [r1+2*44]       ; 47 46 45 44
+    movq       mm2, [r1+2*48]       ; 51 50 49 48
+    psrlq      mm0, 48              ; XX XX XX 35
+    punpcklwd  mm0, mm2             ; 49 XX 48 35
+    pshufw     mm3, mm1, 011111001b ; 43 43 42 41
+    punpcklwd  mm0, mm3             ; 42 48 41 35
+    movq [r0+2*36], mm0
+    pextrw      r2, mm2, 3          ; 51
+    psrlq      mm1, 48              ; XX XX XX 43
+    punpcklwd  mm1, mm7             ; 45 XX 44 43
+    psrlq      mm2, 16              ; XX 51 50 49
+    punpcklwd  mm1, mm2             ; 50 44 49 43
+    pshufw     mm1, mm1, 010110100b ; 44 50 49 43
+    movq [r0+2*44], mm1
+    psrlq      mm7, 16              ; XX 47 46 45
+    pinsrw     mm7, r2, 3           ; 51 47 46 45
+    movq [r0+2*48], mm7
+    movq       mm0, [r1+2*56]       ; 59 58 57 56
+    movq       mm1, [r1+2*52]       ; 55 54 53 52
+    movq       mm2, mm0
+    movq       mm7, [r1+2*60]
+    punpckldq  mm2, mm1             ; 53 52 57 56
+    punpckhdq  mm1, mm0             ; 59 58 55 54
+    movq [r0+2*52], mm2
+    movq [r0+2*56], mm1
+    movq [r0+2*60], mm7
     RET
 
 ;-----------------------------------------------------------------------------
