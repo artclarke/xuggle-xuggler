@@ -157,20 +157,20 @@ static void Help( x264_param_t *defaults, int longhelp )
     H0( "Example usage:\n" );
     H0( "\n" );
     H0( "      Constant quality mode:\n" );
-    H0( "            x264 --crf 24 -o output input\n" );
+    H0( "            x264 --crf 24 -o <output> <input>\n" );
     H0( "\n" );
     H0( "      Two-pass with a bitrate of 1000kbps:\n" );
-    H0( "            x264 --pass 1 --bitrate 1000 -o output input\n" );
-    H0( "            x264 --pass 2 --bitrate 1000 -o output input\n" );
+    H0( "            x264 --pass 1 --bitrate 1000 -o <output> <input>\n" );
+    H0( "            x264 --pass 2 --bitrate 1000 -o <output> <input>\n" );
     H0( "\n" );
     H0( "      Lossless:\n" );
-    H0( "            x264 --crf 0 -o output input\n" );
+    H0( "            x264 --crf 0 -o <output> <input>\n" );
     H0( "\n" );
     H0( "      Maximum PSNR at the cost of speed and visual quality:\n" );
-    H0( "            x264 --preset placebo --tune psnr -o output input\n" );
+    H0( "            x264 --preset placebo --tune psnr -o <output> <input>\n" );
     H0( "\n" );
     H0( "      Constant bitrate at 1000kbps with a 2 second-buffer:\n");
-    H0( "            x264 --vbv-bufsize 2000 --bitrate 1000 -o output input\n" );
+    H0( "            x264 --vbv-bufsize 2000 --bitrate 1000 -o <output> <input>\n" );
     H0( "\n" );
     H0( "Presets:\n" );
     H0( "\n" );
@@ -245,12 +245,16 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                  - fastdecode:\n"
         "                                    --no-cabac --no-deblock --no-weightb\n"
         "                                    --weightp 0\n"
+        "                                  - zerolatency:\n"
+        "                                    --bframes 0 --rc-lookahead 0\n"
+        "                                    --sync-lookahead 0 --sliced-threads\n"
         "                                  - touhou:\n"
         "                                    --aq-strength 1.3 --deblock -1:-1\n"
         "                                    --partitions {p4x4 if p8x8 set}\n"
         "                                    --psy-rd <unset>:0.2\n"
         "                                    --ref {Double if >1 else 1}\n" );
-    else H0( "                                  - film,animation,grain,psnr,ssim,fastdecode\n" );
+    else H0( "                                  - film,animation,grain,psnr,ssim\n"
+             "                                  - fastdecode,zerolatency\n" );
     H1( "      --slow-firstpass        Don't use faster settings with --pass 1\n" );
     H0( "\n" );
     H0( "Frame-type options:\n" );
@@ -444,6 +448,7 @@ static void Help( x264_param_t *defaults, int longhelp )
     H1( "      --psnr                  Enable PSNR computation\n" );
     H1( "      --ssim                  Enable SSIM computation\n" );
     H1( "      --threads <integer>     Force a specific number of threads\n" );
+    H2( "      --sliced-threads        Low-latency but lower-efficiency threading\n" );
     H2( "      --thread-input          Run Avisynth in its own thread\n" );
     H2( "      --sync-lookahead <integer> Number of buffer frames for threaded lookahead\n" );
     H2( "      --non-deterministic     Slightly improve quality of SMP, at the cost of repeatability\n" );
@@ -563,6 +568,8 @@ static struct option long_options[] =
     { "zones",       required_argument, NULL, 0 },
     { "qpfile",      required_argument, NULL, OPT_QPFILE },
     { "threads",     required_argument, NULL, 0 },
+    { "sliced-threads",    no_argument, NULL, 0 },
+    { "no-sliced-threads", no_argument, NULL, 0 },
     { "slice-max-size",    required_argument, NULL, 0 },
     { "slice-max-mbs",     required_argument, NULL, 0 },
     { "slices",            required_argument, NULL, 0 },
@@ -877,6 +884,13 @@ static int  Parse( int argc, char **argv,
                 param->b_cabac = 0;
                 param->analyse.b_weighted_bipred = 0;
                 param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
+            }
+            else if( !strcasecmp( optarg, "zerolatency" ) )
+            {
+                param->rc.i_lookahead = 0;
+                param->i_sync_lookahead = 0;
+                param->i_bframe = 0;
+                param->b_sliced_threads = 1;
             }
             else if( !strcasecmp( optarg, "touhou" ) )
             {

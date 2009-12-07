@@ -128,11 +128,12 @@ struct x264_ratecontrol_t
     double lmin[5];             /* min qscale by frame type */
     double lmax[5];
     double lstep;               /* max change (multiply) in qscale per frame */
-    uint16_t *qp_buffer; /* Global buffer for converting MB-tree quantizer data. */
+    uint16_t *qp_buffer;        /* Global buffer for converting MB-tree quantizer data. */
 
     /* MBRC stuff */
     double frame_size_estimated;
     double frame_size_planned;
+    double slice_size_planned;
     predictor_t (*row_pred)[2];
     predictor_t row_preds[5][2];
     predictor_t *pred_b_from_p; /* predict B-frame size from P-frame satd */
@@ -1121,7 +1122,7 @@ static double row_bits_so_far( x264_t *h, int y )
 {
     int i;
     double bits = 0;
-    for( i = 0; i <= y; i++ )
+    for( i = h->i_threadslice_start; i <= y; i++ )
         bits += h->fdec->i_row_bits[i];
     return bits;
 }
@@ -1130,7 +1131,7 @@ static double predict_row_size_sum( x264_t *h, int y, int qp )
 {
     int i;
     double bits = row_bits_so_far(h, y);
-    for( i = y+1; i < h->sps->i_mb_height; i++ )
+    for( i = y+1; i < h->i_threadslice_end; i++ )
         bits += predict_row_size( h, i, qp );
     return bits;
 }
@@ -1161,7 +1162,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     }
 
     /* tweak quality based on difference from predicted size */
-    if( y < h->sps->i_mb_height-1 )
+    if( y < h->i_threadslice_end-1 )
     {
         int prev_row_qp = h->fdec->i_row_qp[y];
         int i_qp_max = X264_MIN( prev_row_qp + h->param.rc.i_qp_step, h->param.rc.i_qp_max );
@@ -1174,16 +1175,20 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
             rc->qpm = X264_MAX( rc->qpm, i_qp_min );
         }
 
-        int b0 = predict_row_size_sum( h, y, rc->qpm );
-        int b1 = b0;
         float buffer_left_planned = rc->buffer_fill - rc->frame_size_planned;
-
+        float slice_size_planned = h->param.b_sliced_threads ? rc->slice_size_planned : rc->frame_size_planned;
+        float size_of_other_slices = rc->frame_size_planned - slice_size_planned;
         /* More threads means we have to be more cautious in letting ratecontrol use up extra bits. */
         float rc_tol = buffer_left_planned / h->param.i_threads * rc->rate_tolerance;
+        int b1 = predict_row_size_sum( h, y, rc->qpm );
+
+        /* Assume that if this slice has become larger than expected,
+         * the other slices will have gotten equally larger. */
+        b1 += X264_MAX( size_of_other_slices * b1 / slice_size_planned, size_of_other_slices );
 
         /* Don't modify the row QPs until a sufficent amount of the bits of the frame have been processed, in case a flat */
         /* area at the top of the frame was measured inaccurately. */
-        if( row_bits_so_far(h,y) < 0.05 * rc->frame_size_planned )
+        if( row_bits_so_far(h,y) < 0.05 * (rc->frame_size_planned-size_of_other_slices) )
             return;
 
         if( h->sh.i_type != SLICE_TYPE_I )
@@ -1199,6 +1204,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
         {
             rc->qpm ++;
             b1 = predict_row_size_sum( h, y, rc->qpm );
+            b1 += X264_MAX( size_of_other_slices * b1 / slice_size_planned, size_of_other_slices );
         }
 
         while( rc->qpm > i_qp_min
@@ -1208,6 +1214,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
         {
             rc->qpm --;
             b1 = predict_row_size_sum( h, y, rc->qpm );
+            b1 += X264_MAX( size_of_other_slices * b1 / slice_size_planned, size_of_other_slices );
         }
 
         /* avoid VBV underflow */
@@ -1216,6 +1223,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
         {
             rc->qpm ++;
             b1 = predict_row_size_sum( h, y, rc->qpm );
+            b1 += X264_MAX( size_of_other_slices * b1 / slice_size_planned, size_of_other_slices );
         }
 
         x264_ratecontrol_set_estimated_size(h, b1);
@@ -1568,7 +1576,7 @@ static void update_vbv_plan( x264_t *h, int overhead )
 {
     x264_ratecontrol_t *rcc = h->rc;
     rcc->buffer_fill = h->thread[0]->rc->buffer_fill_final - overhead;
-    if( h->param.i_threads > 1 )
+    if( h->param.i_threads > 1 && !h->param.b_sliced_threads )
     {
         int j = h->rc - h->thread[0]->rc;
         int i;
@@ -1612,7 +1620,7 @@ static double clip_qscale( x264_t *h, int pict_type, double q )
             {
                 double frame_q[3];
                 double cur_bits = predict_size( &rcc->pred[h->sh.i_type], q, rcc->last_satd );
-                double buffer_fill_cur = rcc->buffer_fill - cur_bits + rcc->buffer_rate;
+                double buffer_fill_cur = rcc->buffer_fill - cur_bits;
                 double target_fill;
                 frame_q[0] = h->sh.i_type == SLICE_TYPE_I ? q * h->param.rc.f_ip_factor : q;
                 frame_q[1] = frame_q[0] * h->param.rc.f_pb_factor;
@@ -1621,13 +1629,14 @@ static double clip_qscale( x264_t *h, int pict_type, double q )
                 /* Loop over the planned future frames. */
                 for( j = 0; buffer_fill_cur >= 0 && buffer_fill_cur <= rcc->buffer_size; j++ )
                 {
+                    buffer_fill_cur += rcc->buffer_rate;
                     int i_type = h->fenc->i_planned_type[j];
                     int i_satd = h->fenc->i_planned_satd[j];
                     if( i_type == X264_TYPE_AUTO )
                         break;
                     i_type = IS_X264_TYPE_I( i_type ) ? SLICE_TYPE_I : IS_X264_TYPE_B( i_type ) ? SLICE_TYPE_B : SLICE_TYPE_P;
                     cur_bits = predict_size( &rcc->pred[i_type], frame_q[i_type], i_satd );
-                    buffer_fill_cur = buffer_fill_cur - cur_bits + rcc->buffer_rate;
+                    buffer_fill_cur -= cur_bits;
                 }
                 /* Try to get to get the buffer at least 50% filled, but don't set an impossible goal. */
                 target_fill = X264_MIN( rcc->buffer_fill + j * rcc->buffer_rate * 0.5, rcc->buffer_size * 0.5 );
@@ -1793,7 +1802,7 @@ static float rate_estimate_qscale( x264_t *h )
 
             if( rcc->b_vbv )
             {
-                if( h->param.i_threads > 1 )
+                if( h->param.i_threads > 1 && !h->param.b_sliced_threads )
                 {
                     int j = h->rc - h->thread[0]->rc;
                     int i;
@@ -1943,6 +1952,58 @@ static float rate_estimate_qscale( x264_t *h )
         x264_ratecontrol_set_estimated_size(h, rcc->frame_size_planned);
         return q;
     }
+}
+
+void x264_threads_distribute_ratecontrol( x264_t *h )
+{
+    int i, row, totalsize = 0;
+    if( h->rc->b_vbv )
+        for( row = 0; row < h->sps->i_mb_height; row++ )
+            totalsize += h->fdec->i_row_satd[row];
+    for( i = 0; i < h->param.i_threads; i++ )
+    {
+        x264_ratecontrol_t *t = h->thread[i]->rc;
+        x264_ratecontrol_t *rc = h->rc;
+        memcpy( t, rc, sizeof( x264_ratecontrol_t ) );
+        /* Calculate the planned slice size. */
+        if( h->rc->b_vbv && rc->frame_size_planned )
+        {
+            int size = 0;
+            for( row = h->i_threadslice_start; row < h->i_threadslice_end; row++ )
+                size += h->fdec->i_row_satd[row];
+            t->slice_size_planned = size * rc->frame_size_planned / totalsize;
+        }
+        else
+            t->slice_size_planned = 0;
+    }
+}
+
+void x264_threads_merge_ratecontrol( x264_t *h )
+{
+    int i, j, k;
+    x264_ratecontrol_t *rc = h->rc;
+    x264_emms();
+
+    for( i = 1; i < h->param.i_threads; i++ )
+    {
+        x264_ratecontrol_t *t = h->thread[i]->rc;
+        rc->qpa_rc += t->qpa_rc;
+        rc->qpa_aq += t->qpa_aq;
+        for( j = 0; j < 5; j++ )
+            for( k = 0; k < 2; k++ )
+            {
+                rc->row_preds[j][k].coeff += t->row_preds[j][k].coeff;
+                rc->row_preds[j][k].offset += t->row_preds[j][k].offset;
+                rc->row_preds[j][k].count += t->row_preds[j][k].count;
+            }
+    }
+    for( j = 0; j < 5; j++ )
+        for( k = 0; k < 2; k++ )
+        {
+            rc->row_preds[j][k].coeff /= h->param.i_threads;
+            rc->row_preds[j][k].offset /= h->param.i_threads;
+            rc->row_preds[j][k].count /= h->param.i_threads;
+        }
 }
 
 void x264_thread_sync_ratecontrol( x264_t *cur, x264_t *prev, x264_t *next )

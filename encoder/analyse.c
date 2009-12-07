@@ -285,6 +285,38 @@ void x264_analyse_free_costs( x264_t *h )
     }
 }
 
+void x264_analyse_weight_frame( x264_t *h, int end )
+{
+    int j;
+    for( j=0; j<h->i_ref0; j++ )
+    {
+        if( h->sh.weight[j][0].weightfn )
+        {
+            x264_frame_t *frame = h->fref0[j];
+            int width = frame->i_width[0] + 2*PADH;
+            int i_padv = PADV << h->param.b_interlaced;
+            int offset, height;
+            uint8_t *src = frame->filtered[0] - frame->i_stride[0]*i_padv - PADH;
+            int k;
+            height = X264_MIN( 16 + end + i_padv, h->fref0[j]->i_lines[0] + i_padv*2 ) - h->fenc->i_lines_weighted;
+            offset = h->fenc->i_lines_weighted*frame->i_stride[0];
+            h->fenc->i_lines_weighted += height;
+            if( height )
+            {
+                for( k = j; k < h->i_ref0; k++ )
+                    if( h->sh.weight[k][0].weightfn )
+                    {
+                        uint8_t *dst = h->fenc->weighted[k] - h->fenc->i_stride[0]*i_padv - PADH;
+                        x264_weight_scale_plane( h, dst + offset, frame->i_stride[0],
+                                                 src + offset, frame->i_stride[0],
+                                                 width, height, &h->sh.weight[k][0] );
+                    }
+            }
+            break;
+        }
+    }
+}
+
 /* initialize an array of lambda*nbits for all possible mvs */
 static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
 {
@@ -361,13 +393,13 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
         h->mb.mv_max_spel[0] = CLIP_FMV( h->mb.mv_max[0] );
         h->mb.mv_min_fpel[0] = (h->mb.mv_min_spel[0]>>2) + i_fpel_border;
         h->mb.mv_max_fpel[0] = (h->mb.mv_max_spel[0]>>2) - i_fpel_border;
-        if( h->mb.i_mb_x == 0)
+        if( h->mb.i_mb_x == 0 )
         {
             int mb_y = h->mb.i_mb_y >> h->sh.b_mbaff;
             int mb_height = h->sps->i_mb_height >> h->sh.b_mbaff;
             int thread_mvy_range = i_fmv_range;
 
-            if( h->param.i_threads > 1 )
+            if( h->param.i_threads > 1 && !h->param.b_sliced_threads )
             {
                 int pix_y = (h->mb.i_mb_y | h->mb.b_interlaced) * 16;
                 int thresh = pix_y + h->param.analyse.i_mv_range_thread;
@@ -387,33 +419,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
                 if( h->mb.b_interlaced )
                     thread_mvy_range >>= 1;
 
-                for( j=0; j<h->i_ref0; j++ )
-                {
-                    if( h->sh.weight[j][0].weightfn )
-                    {
-                        x264_frame_t *frame = h->fref0[j];
-                        int width = frame->i_width[0] + 2*PADH;
-                        int i_padv = PADV << h->param.b_interlaced;
-                        int offset, height;
-                        uint8_t *src = frame->filtered[0] - frame->i_stride[0]*i_padv - PADH;
-                        int k;
-                        height = X264_MIN( 16 + thread_mvy_range + pix_y + i_padv, h->fref0[j]->i_lines[0] + i_padv*2 ) - h->fenc->i_lines_weighted;
-                        offset = h->fenc->i_lines_weighted*frame->i_stride[0];
-                        h->fenc->i_lines_weighted += height;
-                        if( height )
-                        {
-                            for( k = j; k < h->i_ref0; k++ )
-                                if( h->sh.weight[k][0].weightfn )
-                                {
-                                    uint8_t *dst = h->fenc->weighted[k] - h->fenc->i_stride[0]*i_padv - PADH;
-                                    x264_weight_scale_plane( h, dst + offset, frame->i_stride[0],
-                                                             src + offset, frame->i_stride[0],
-                                                             width, height, &h->sh.weight[k][0] );
-                                }
-                        }
-                        break;
-                    }
-                }
+                x264_analyse_weight_frame( h, pix_y + thread_mvy_range );
             }
 
             h->mb.mv_min[1] = 4*( -16*mb_y - 24 );
@@ -1247,7 +1253,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
         {
             h->mb.i_type = P_SKIP;
             x264_analyse_update_cache( h, a );
-            assert( h->mb.cache.pskip_mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 );
+            assert( h->mb.cache.pskip_mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 || h->param.b_sliced_threads );
             return;
         }
 
@@ -1263,7 +1269,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     }
 
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.me16x16.i_ref );
-    assert( a->l0.me16x16.mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 );
+    assert( a->l0.me16x16.mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 || h->param.b_sliced_threads );
 
     h->mb.i_type = P_L0;
     if( a->i_mbrd )
@@ -2419,7 +2425,7 @@ void x264_macroblock_analyse( x264_t *h )
         analysis.b_try_pskip = 0;
         if( h->param.analyse.b_fast_pskip )
         {
-            if( h->param.i_threads > 1 && h->mb.cache.pskip_mv[1] > h->mb.mv_max_spel[1] )
+            if( h->param.i_threads > 1 && !h->param.b_sliced_threads && h->mb.cache.pskip_mv[1] > h->mb.mv_max_spel[1] )
                 // FIXME don't need to check this if the reference frame is done
                 {}
             else if( h->param.analyse.i_subpel_refine >= 3 )
@@ -2437,7 +2443,7 @@ void x264_macroblock_analyse( x264_t *h )
         {
             h->mb.i_type = P_SKIP;
             h->mb.i_partition = D_16x16;
-            assert( h->mb.cache.pskip_mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 );
+            assert( h->mb.cache.pskip_mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 || h->param.b_sliced_threads );
         }
         else
         {
@@ -3145,7 +3151,7 @@ static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a  )
     }
 
 #ifndef NDEBUG
-    if( h->param.i_threads > 1 && !IS_INTRA(h->mb.i_type) )
+    if( h->param.i_threads > 1 && !h->param.b_sliced_threads && !IS_INTRA(h->mb.i_type) )
     {
         int l;
         for( l=0; l <= (h->sh.i_type == SLICE_TYPE_B); l++ )

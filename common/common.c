@@ -281,6 +281,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         else
             p->i_threads = atoi(value);
     }
+    OPT("sliced-threads")
+        p->b_sliced_threads = atobool(value);
     OPT("sync-lookahead")
     {
         if( !strcmp(value, "auto") )
@@ -888,6 +890,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " deadzone=%d,%d", p->analyse.i_luma_deadzone[0], p->analyse.i_luma_deadzone[1] );
     s += sprintf( s, " chroma_qp_offset=%d", p->analyse.i_chroma_qp_offset );
     s += sprintf( s, " threads=%d", p->i_threads );
+    s += sprintf( s, " sliced_threads=%d", p->b_sliced_threads );
     if( p->i_slice_count )
         s += sprintf( s, " slices=%d", p->i_slice_count );
     if( p->i_slice_max_size )

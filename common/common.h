@@ -341,6 +341,8 @@ struct x264_t
     x264_pthread_t  thread_handle;
     int             b_thread_active;
     int             i_thread_phase; /* which thread to use for the next frame */
+    int             i_threadslice_start; /* first row in this thread slice */
+    int             i_threadslice_end; /* row after the end of this thread slice */
 
     /* bitstream output */
     struct

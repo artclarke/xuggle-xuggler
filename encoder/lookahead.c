@@ -172,6 +172,7 @@ void x264_lookahead_delete( x264_t *h )
         x264_pthread_mutex_unlock( &h->lookahead->ifbuf.mutex );
         x264_pthread_join( h->thread[h->param.i_threads]->thread_handle, NULL );
         x264_macroblock_cache_end( h->thread[h->param.i_threads] );
+        x264_free( h->thread[h->param.i_threads]->scratch_buffer );
         x264_free( h->thread[h->param.i_threads] );
     }
     x264_synch_frame_list_delete( &h->lookahead->ifbuf );

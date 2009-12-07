@@ -43,6 +43,8 @@ void x264_ratecontrol_set_estimated_size( x264_t *, int bits );
 int  x264_ratecontrol_get_estimated_size( x264_t const *);
 int  x264_rc_analyse_slice( x264_t *h );
 int x264_weighted_reference_duplicate( x264_t *h, int i_ref, const x264_weight_t *w );
+void x264_threads_distribute_ratecontrol( x264_t *h );
+void x264_threads_merge_ratecontrol( x264_t *h );
 
 #endif
 
