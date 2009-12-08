@@ -405,21 +405,19 @@ static ALWAYS_INLINE void x264_macroblock_cache_intra8x8_pred( x264_t *h, int x,
 }
 #define array_non_zero(a) array_non_zero_int(a, sizeof(a))
 #define array_non_zero_int array_non_zero_int
-static ALWAYS_INLINE int array_non_zero_int( void *v, int i_count )
+static ALWAYS_INLINE int array_non_zero_int( int16_t *v, int i_count )
 {
-    union {uint16_t s[4]; uint64_t l;} *x = v;
     if(i_count == 8)
-        return !!x[0].l;
+        return !!M64( &v[0] );
     else if(i_count == 16)
-        return !!(x[0].l|x[1].l);
+        return !!(M64( &v[0] ) | M64( &v[4] ));
     else if(i_count == 32)
-        return !!(x[0].l|x[1].l|x[2].l|x[3].l);
+        return !!(M64( &v[0] ) | M64( &v[4] ) | M64( &v[8] ) | M64( &v[12] ));
     else
     {
         int i;
-        i_count /= sizeof(uint64_t);
-        for( i = 0; i < i_count; i++ )
-            if( x[i].l ) return 1;
+        for( i = 0; i < i_count; i+=4 )
+            if( M64( &v[i] ) ) return 1;
         return 0;
     }
 }
