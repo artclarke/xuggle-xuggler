@@ -36,6 +36,7 @@
 typedef struct
 {
     int pict_type;
+    int frame_type;
     int kept_as_ref;
     double qscale;
     int mv_bits;
@@ -128,7 +129,9 @@ struct x264_ratecontrol_t
     double lmin[5];             /* min qscale by frame type */
     double lmax[5];
     double lstep;               /* max change (multiply) in qscale per frame */
-    uint16_t *qp_buffer;        /* Global buffer for converting MB-tree quantizer data. */
+    uint16_t *qp_buffer[2];     /* Global buffers for converting MB-tree quantizer data. */
+    int qpbuf_pos;              /* In order to handle pyramid reordering, QP buffer acts as a stack.
+                                 * This value is the current position (0 or 1). */
 
     /* MBRC stuff */
     double frame_size_estimated;
@@ -278,8 +281,8 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame )
 void x264_adaptive_quant( x264_t *h )
 {
     x264_emms();
-    /* MB-tree currently doesn't adjust quantizers in B-frames. */
-    float qp_offset = h->sh.i_type == SLICE_TYPE_B ? h->fenc->f_qp_offset_aq[h->mb.i_mb_xy] : h->fenc->f_qp_offset[h->mb.i_mb_xy];
+    /* MB-tree currently doesn't adjust quantizers in unreferenced frames. */
+    float qp_offset = h->fdec->b_kept_as_ref ? h->fenc->f_qp_offset[h->mb.i_mb_xy] : h->fenc->f_qp_offset_aq[h->mb.i_mb_xy];
     h->mb.i_qp = x264_clip3( h->rc->f_qpm + qp_offset + .5, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
 }
 
@@ -289,28 +292,35 @@ int x264_macroblock_tree_read( x264_t *h, x264_frame_t *frame )
     uint8_t i_type_actual = rc->entry[frame->i_frame].pict_type;
     int i;
 
-    if( i_type_actual != SLICE_TYPE_B )
+    if( rc->entry[frame->i_frame].kept_as_ref )
     {
         uint8_t i_type;
-
-        if( !fread( &i_type, 1, 1, rc->p_mbtree_stat_file_in ) )
-            goto fail;
-
-        if( i_type != i_type_actual )
+        if( rc->qpbuf_pos < 0 )
         {
-            x264_log(h, X264_LOG_ERROR, "MB-tree frametype %d doesn't match actual frametype %d.\n", i_type,i_type_actual);
-            return -1;
-        }
+            do
+            {
+                rc->qpbuf_pos++;
 
-        if( fread( rc->qp_buffer, sizeof(uint16_t), h->mb.i_mb_count, rc->p_mbtree_stat_file_in ) != h->mb.i_mb_count )
-            goto fail;
+                if( !fread( &i_type, 1, 1, rc->p_mbtree_stat_file_in ) )
+                    goto fail;
+                if( fread( rc->qp_buffer[rc->qpbuf_pos], sizeof(uint16_t), h->mb.i_mb_count, rc->p_mbtree_stat_file_in ) != h->mb.i_mb_count )
+                    goto fail;
+
+                if( i_type != i_type_actual && rc->qpbuf_pos == 1 )
+                {
+                    x264_log(h, X264_LOG_ERROR, "MB-tree frametype %d doesn't match actual frametype %d.\n", i_type, i_type_actual);
+                    return -1;
+                }
+            } while( i_type != i_type_actual );
+        }
 
         for( i = 0; i < h->mb.i_mb_count; i++ )
         {
-            frame->f_qp_offset[i] = ((float)(int16_t)endian_fix16( rc->qp_buffer[i] )) * (1/256.0);
+            frame->f_qp_offset[i] = ((float)(int16_t)endian_fix16( rc->qp_buffer[rc->qpbuf_pos][i] )) * (1/256.0);
             if( h->frames.b_have_lowres )
                 frame->i_inv_qscale_factor[i] = x264_exp2fix8(frame->f_qp_offset[i]);
         }
+        rc->qpbuf_pos--;
     }
     else
         x264_adaptive_quant_frame( h, frame );
@@ -581,20 +591,20 @@ int x264_ratecontrol_new( x264_t *h )
                 return -1;
             }
 
-            /* since B-adapt doesn't (yet) take into account B-pyramid,
-             * the converse is not a problem */
-            if( h->param.i_bframe )
+            if( h->param.i_bframe && ( p = strstr( opts, "b_pyramid=" ) ) &&
+                sscanf( p, "b_pyramid=%d", &i ) && h->param.i_bframe_pyramid != i )
             {
-                char buf[12];
-                sprintf( buf, "b_pyramid=%d", h->param.i_bframe_pyramid );
-                if( !strstr( opts, buf ) )
-                    x264_log( h, X264_LOG_WARNING, "different B-pyramid setting than 1st pass\n" );
+                x264_log( h, X264_LOG_ERROR, "different B-pyramid setting than 1st pass (%d vs %d)\n", h->param.i_bframe_pyramid, i );
+                return -1;
             }
 
             if( ( p = strstr( opts, "keyint=" ) ) && sscanf( p, "keyint=%d", &i )
                 && h->param.i_keyint_max != i )
-                x264_log( h, X264_LOG_WARNING, "different keyint than 1st pass (%d vs %d)\n",
+            {
+                x264_log( h, X264_LOG_ERROR, "different keyint than 1st pass (%d vs %d)\n",
                           h->param.i_keyint_max, i );
+                return -1;
+            }
 
             if( strstr( opts, "qp=0" ) && h->param.rc.i_rc_method == X264_RC_ABR )
                 x264_log( h, X264_LOG_WARNING, "1st pass was lossless, bitrate prediction will be inaccurate\n" );
@@ -706,13 +716,30 @@ int x264_ratecontrol_new( x264_t *h )
                 if( sscanf( w, "w:%hd,%hd,%hd", &rce->i_weight_denom, &rce->weight[0], &rce->weight[1] ) != 3 )
                     rce->i_weight_denom = -1;
 
-            switch(pict_type)
+            if( pict_type != 'b' )
+                rce->kept_as_ref = 1;
+            switch( pict_type )
             {
-                case 'I': rce->kept_as_ref = 1;
-                case 'i': rce->pict_type = SLICE_TYPE_I; break;
-                case 'P': rce->pict_type = SLICE_TYPE_P; break;
-                case 'B': rce->kept_as_ref = 1;
-                case 'b': rce->pict_type = SLICE_TYPE_B; break;
+                case 'I':
+                    rce->frame_type = X264_TYPE_IDR;
+                    rce->pict_type  = SLICE_TYPE_I;
+                    break;
+                case 'i':
+                    rce->frame_type = X264_TYPE_I;
+                    rce->pict_type  = SLICE_TYPE_I;
+                    break;
+                case 'P':
+                    rce->frame_type = X264_TYPE_P;
+                    rce->pict_type  = SLICE_TYPE_P;
+                    break;
+                case 'B':
+                    rce->frame_type = X264_TYPE_BREF;
+                    rce->pict_type  = SLICE_TYPE_B;
+                    break;
+                case 'b':
+                    rce->frame_type = X264_TYPE_B;
+                    rce->pict_type  = SLICE_TYPE_B;
+                    break;
                 default:  e = -1; break;
             }
             if(e < 10)
@@ -771,7 +798,12 @@ parse_error:
     }
 
     if( h->param.rc.b_mb_tree && (h->param.rc.b_stat_read || h->param.rc.b_stat_write) )
-        CHECKED_MALLOC( rc->qp_buffer, h->mb.i_mb_count * sizeof(uint16_t) );
+    {
+        CHECKED_MALLOC( rc->qp_buffer[0], h->mb.i_mb_count * sizeof(uint16_t) );
+        if( h->param.i_bframe_pyramid && h->param.rc.b_stat_read )
+            CHECKED_MALLOC( rc->qp_buffer[1], h->mb.i_mb_count * sizeof(uint16_t) );
+        rc->qpbuf_pos = -1;
+    }
 
     for( i=0; i<h->param.i_threads; i++ )
     {
@@ -959,7 +991,8 @@ void x264_ratecontrol_delete( x264_t *h )
     x264_free( rc->pred );
     x264_free( rc->pred_b_from_p );
     x264_free( rc->entry );
-    x264_free( rc->qp_buffer );
+    x264_free( rc->qp_buffer[0] );
+    x264_free( rc->qp_buffer[1] );
     if( rc->zones )
     {
         x264_free( rc->zones[0].param );
@@ -1275,23 +1308,10 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
             }
             return X264_TYPE_AUTO;
         }
-        switch( rc->entry[frame_num].pict_type )
-        {
-            case SLICE_TYPE_I:
-                return rc->entry[frame_num].kept_as_ref ? X264_TYPE_IDR : X264_TYPE_I;
-
-            case SLICE_TYPE_B:
-                return rc->entry[frame_num].kept_as_ref ? X264_TYPE_BREF : X264_TYPE_B;
-
-            case SLICE_TYPE_P:
-            default:
-                return X264_TYPE_P;
-        }
+        return rc->entry[frame_num].frame_type;
     }
     else
-    {
         return X264_TYPE_AUTO;
-    }
 }
 
 void x264_ratecontrol_set_weights( x264_t *h, x264_frame_t *frm )
@@ -1373,10 +1393,10 @@ int x264_ratecontrol_end( x264_t *h, int bits )
             int i;
             /* Values are stored as big-endian FIX8.8 */
             for( i = 0; i < h->mb.i_mb_count; i++ )
-                rc->qp_buffer[i] = endian_fix16( h->fenc->f_qp_offset[i]*256.0 );
+                rc->qp_buffer[0][i] = endian_fix16( h->fenc->f_qp_offset[i]*256.0 );
             if( fwrite( &i_type, 1, 1, rc->p_mbtree_stat_file_out ) < 1 )
                 goto fail;
-            if( fwrite( rc->qp_buffer, sizeof(uint16_t), h->mb.i_mb_count, rc->p_mbtree_stat_file_out ) < h->mb.i_mb_count )
+            if( fwrite( rc->qp_buffer[0], sizeof(uint16_t), h->mb.i_mb_count, rc->p_mbtree_stat_file_out ) < h->mb.i_mb_count )
                 goto fail;
         }
     }
@@ -2025,6 +2045,7 @@ void x264_thread_sync_ratecontrol( x264_t *cur, x264_t *prev, x264_t *next )
         COPY(short_term_cplxcount);
         COPY(bframes);
         COPY(prev_zone);
+        COPY(qpbuf_pos);
 #undef COPY
     }
     if( cur != next )

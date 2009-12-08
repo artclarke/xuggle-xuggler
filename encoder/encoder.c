@@ -649,11 +649,6 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.i_aq_mode = 1;
         h->param.rc.f_aq_strength = 0;
     }
-    if( h->param.rc.b_mb_tree && h->param.i_bframe_pyramid )
-    {
-        x264_log( h, X264_LOG_WARNING, "b-pyramid + mb-tree is not supported\n" );
-        h->param.i_bframe_pyramid = X264_B_PYRAMID_NONE;
-    }
     h->param.analyse.i_noise_reduction = x264_clip3( h->param.analyse.i_noise_reduction, 0, 1<<16 );
     if( h->param.analyse.i_subpel_refine == 10 && (h->param.analyse.i_trellis != 2 || !h->param.rc.i_aq_mode) )
         h->param.analyse.i_subpel_refine = 9;
