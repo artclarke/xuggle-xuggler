@@ -57,6 +57,7 @@ typedef struct
     AVS_Clip *clip;
     AVS_ScriptEnvironment *env;
     HMODULE library;
+    int num_frames;
     /* declare function pointers for the utilized functions to be loaded without __declspec,
        as the avisynth header does not compensate for this type of usage */
     struct
@@ -231,12 +232,13 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
     p_param->i_height = vi->height;
     p_param->i_fps_num = vi->fps_numerator;
     p_param->i_fps_den = vi->fps_denominator;
+    h->num_frames = vi->num_frames;
     p_param->i_csp = X264_CSP_YV12;
 
     fprintf( stderr, "avs [info]: %dx%d @ %.2f fps (%d frames)\n",
              p_param->i_width, p_param->i_height,
              (double)p_param->i_fps_num / p_param->i_fps_den,
-             vi->num_frames );
+             h->num_frames );
 
     *p_handle = h;
     return 0;
@@ -245,8 +247,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
 static int get_frame_total( hnd_t handle )
 {
     avs_hnd_t *h = handle;
-    const AVS_VideoInfo *vi = h->func.avs_get_video_info( h->clip );
-    return vi->num_frames;
+    return h->num_frames;
 }
 
 static int picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_height )
@@ -261,6 +262,8 @@ static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
 {
     static int plane[3] = { AVS_PLANAR_Y, AVS_PLANAR_V, AVS_PLANAR_U };
     avs_hnd_t *h = handle;
+    if( i_frame >= h->num_frames )
+        return -1;
     AVS_VideoFrame *frm =
     p_pic->opaque = h->func.avs_get_frame( h->clip, i_frame );
     int i;
