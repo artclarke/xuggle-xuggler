@@ -715,11 +715,23 @@ static int x264_validate_parameters( x264_t *h )
     /* ensure the booleans are 0 or 1 so they can be used in math */
 #define BOOLIFY(x) h->param.x = !!h->param.x
     BOOLIFY( b_cabac );
+    BOOLIFY( b_constrained_intra );
     BOOLIFY( b_deblocking_filter );
+    BOOLIFY( b_deterministic );
     BOOLIFY( b_interlaced );
+    BOOLIFY( b_visualize );
+    BOOLIFY( b_aud );
+    BOOLIFY( b_repeat_headers );
+    BOOLIFY( b_annexb );
     BOOLIFY( analyse.b_transform_8x8 );
+    BOOLIFY( analyse.b_weighted_bipred );
     BOOLIFY( analyse.b_chroma_me );
+    BOOLIFY( analyse.b_mixed_references );
     BOOLIFY( analyse.b_fast_pskip );
+    BOOLIFY( analyse.b_dct_decimate );
+    BOOLIFY( analyse.b_psy );
+    BOOLIFY( analyse.b_psnr );
+    BOOLIFY( analyse.b_ssim );
     BOOLIFY( rc.b_stat_write );
     BOOLIFY( rc.b_stat_read );
     BOOLIFY( rc.b_mb_tree );
