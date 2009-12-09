@@ -46,7 +46,7 @@ static void x264_lowres_context_init( x264_t *h, x264_mb_analysis_t *a )
     else
     {
         h->mb.i_me_method = X264_ME_DIA;
-        h->mb.i_subpel_refine = 3;
+        h->mb.i_subpel_refine = 2;
     }
     h->mb.b_chroma_me = 0;
 }
@@ -303,14 +303,25 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     }
 #define TRY_BIDIR( mv0, mv1, penalty ) \
     { \
-        int stride1 = 16, stride2 = 16; \
-        uint8_t *src1, *src2; \
         int i_cost; \
-        src1 = h->mc.get_ref( pix1, &stride1, m[0].p_fref, m[0].i_stride[0], \
-                              (mv0)[0], (mv0)[1], 8, 8, w ); \
-        src2 = h->mc.get_ref( pix2, &stride2, m[1].p_fref, m[1].i_stride[0], \
-                              (mv1)[0], (mv1)[1], 8, 8, w ); \
-        h->mc.avg[PIXEL_8x8]( pix1, 16, src1, stride1, src2, stride2, i_bipred_weight ); \
+        if( h->param.analyse.i_subpel_refine <= 1 ) \
+        { \
+            int hpel_idx1 = (((mv0)[0]&2)>>1) + ((mv0)[1]&2); \
+            int hpel_idx2 = (((mv1)[0]&2)>>1) + ((mv1)[1]&2); \
+            uint8_t *src1 = m[0].p_fref[hpel_idx1] + ((mv0)[0]>>2) + ((mv0)[1]>>2) * m[0].i_stride[0]; \
+            uint8_t *src2 = m[1].p_fref[hpel_idx2] + ((mv1)[0]>>2) + ((mv1)[1]>>2) * m[1].i_stride[0]; \
+            h->mc.avg[PIXEL_8x8]( pix1, 16, src1, m[0].i_stride[0], src2, m[1].i_stride[0], i_bipred_weight ); \
+        } \
+        else \
+        { \
+            int stride1 = 16, stride2 = 16; \
+            uint8_t *src1, *src2; \
+            src1 = h->mc.get_ref( pix1, &stride1, m[0].p_fref, m[0].i_stride[0], \
+                                  (mv0)[0], (mv0)[1], 8, 8, w ); \
+            src2 = h->mc.get_ref( pix2, &stride2, m[1].p_fref, m[1].i_stride[0], \
+                                  (mv1)[0], (mv1)[1], 8, 8, w ); \
+            h->mc.avg[PIXEL_8x8]( pix1, 16, src1, stride1, src2, stride2, i_bipred_weight ); \
+        } \
         i_cost = penalty + h->pixf.mbcmp[PIXEL_8x8]( \
                            m[0].p_fenc[0], FENC_STRIDE, pix1, 16 ); \
         COPY2_IF_LT( i_bcost, i_cost, list_used, 3 ); \
@@ -321,6 +332,7 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     m[0].i_stride[0] = i_stride;
     m[0].p_fenc[0] = h->mb.pic.p_fenc[0];
     m[0].weight = w;
+    m[0].i_ref = 0;
     LOAD_HPELS_LUMA( m[0].p_fref, fref0->lowres );
     m[0].p_fref_w = m[0].p_fref[0];
     if( w[0].weightfn )
@@ -329,10 +341,13 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     if( b_bidir )
     {
         int16_t *mvr = fref1->lowres_mvs[0][p1-p0-1][i_mb_xy];
-        int dmv[2][2];
+        ALIGNED_8( int16_t dmv[2][2] );
 
-        h->mc.memcpy_aligned( &m[1], &m[0], sizeof(x264_me_t) );
-        m[1].i_ref = p1;
+        m[1].i_pixel = PIXEL_8x8;
+        m[1].p_cost_mv = a->p_cost_mv;
+        m[1].i_stride[0] = i_stride;
+        m[1].p_fenc[0] = h->mb.pic.p_fenc[0];
+        m[1].i_ref = 0;
         m[1].weight = weight_none;
         LOAD_HPELS_LUMA( m[1].p_fref, fref1->lowres );
         m[1].p_fref_w = m[1].p_fref[0];
@@ -343,9 +358,11 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         dmv[1][1] = dmv[0][1] - mvr[1];
         CLIP_MV( dmv[0] );
         CLIP_MV( dmv[1] );
+        if( h->param.analyse.i_subpel_refine <= 1 )
+            M64( dmv ) &= ~0x0001000100010001ULL; /* mv & ~1 */
 
         TRY_BIDIR( dmv[0], dmv[1], 0 );
-        if( dmv[0][0] | dmv[0][1] | dmv[1][0] | dmv[1][1] )
+        if( M64( dmv ) )
         {
             int i_cost;
             h->mc.avg[PIXEL_8x8]( pix1, 16, m[0].p_fref[0], m[0].i_stride[0], m[1].p_fref[0], m[1].i_stride[0], i_bipred_weight );
