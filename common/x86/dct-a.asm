@@ -46,15 +46,6 @@ pb_sub4field:   db 0,4,1,8,12,5,9,13,2,6,10,14,3,7,11,15
 pb_subacmask:   dw 0,-1,-1,-1,-1,-1,-1,-1
 pb_scan4framea: SHUFFLE_16BIT 6,3,7,0,4,1,2,5
 pb_scan4frameb: SHUFFLE_16BIT 0,4,1,2,5,6,3,7
-
-pb_scan8fielda: SHUFFLE_16BIT 0,1,2,-1,-1,3,4,-1
-pb_scan8fieldb: SHUFFLE_16BIT -1,-1,-1,3,4,-1,-1,5
-pb_scan8fieldc: SHUFFLE_16BIT -1,6,0,1,2,7,-1,-1
-pb_scan8fieldd: SHUFFLE_16BIT 5,0,1,2,6,-1,-1,-1
-pb_scan8fielde: SHUFFLE_16BIT 6,0,1,2,3,7,-1,-1
-pb_scan8fieldf: SHUFFLE_16BIT 5,6,0,1,2,3,7,-1
-pb_scan8fieldg: SHUFFLE_16BIT 4,5,0,1,2,3,6,7
-
 pb_idctdc_unpack: db 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
 pb_idctdc_unpack2: db 4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7
 pb_1: times 16 db 1

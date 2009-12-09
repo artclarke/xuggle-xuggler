@@ -728,6 +728,7 @@ static int x264_validate_parameters( x264_t *h )
     BOOLIFY( b_constrained_intra );
     BOOLIFY( b_deblocking_filter );
     BOOLIFY( b_deterministic );
+    BOOLIFY( b_sliced_threads );
     BOOLIFY( b_interlaced );
     BOOLIFY( b_visualize );
     BOOLIFY( b_aud );
