@@ -870,7 +870,7 @@ static int parse_zones( x264_t *h )
     int i;
     if( h->param.rc.psz_zones && !h->param.rc.i_zones )
     {
-        char *psz_zones, *p, *tok, UNUSED *saveptr;
+        char *psz_zones, *p;
         CHECKED_MALLOC( psz_zones, strlen( h->param.rc.psz_zones )+1 );
         strcpy( psz_zones, h->param.rc.psz_zones );
         h->param.rc.i_zones = 1;
@@ -880,10 +880,11 @@ static int parse_zones( x264_t *h )
         p = psz_zones;
         for( i = 0; i < h->param.rc.i_zones; i++ )
         {
-            tok = strtok_r( p, "/", &saveptr );
-            if( !tok || parse_zone( h, &h->param.rc.zones[i], tok ) )
+            int i_tok = strcspn( p, "/" );
+            p[i_tok] = 0;
+            if( parse_zone( h, &h->param.rc.zones[i], p ) )
                 return -1;
-            p = NULL;
+            p += i_tok + 1;
         }
         x264_free( psz_zones );
     }
