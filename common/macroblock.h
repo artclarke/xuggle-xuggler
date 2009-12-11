@@ -263,6 +263,7 @@ enum cabac_ctx_block_cat_e
 
 int  x264_macroblock_cache_init( x264_t *h );
 void x264_macroblock_slice_init( x264_t *h );
+void x264_macroblock_thread_init( x264_t *h );
 void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y );
 void x264_macroblock_cache_save( x264_t *h );
 void x264_macroblock_cache_end( x264_t *h );

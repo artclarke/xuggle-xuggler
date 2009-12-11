@@ -1602,6 +1602,8 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
     {
         /* Nothing to do ? */
     }
+
+    x264_macroblock_slice_init( h );
 }
 
 static int x264_slice_write( x264_t *h )
@@ -1620,7 +1622,7 @@ static int x264_slice_write( x264_t *h )
     x264_nal_start( h, h->i_nal_type, h->i_nal_ref_idc );
 
     /* Slice header */
-    x264_macroblock_slice_init( h );
+    x264_macroblock_thread_init( h );
     x264_slice_header_write( &h->out.bs, &h->sh, h->i_nal_ref_idc );
     if( h->param.b_cabac )
     {

@@ -835,6 +835,20 @@ void x264_macroblock_slice_init( x264_t *h )
 
     setup_inverse_delta_pocs( h );
 
+    h->mb.i_neighbour4[6] =
+    h->mb.i_neighbour4[9] =
+    h->mb.i_neighbour4[12] =
+    h->mb.i_neighbour4[14] = MB_LEFT|MB_TOP|MB_TOPLEFT|MB_TOPRIGHT;
+    h->mb.i_neighbour4[3] =
+    h->mb.i_neighbour4[7] =
+    h->mb.i_neighbour4[11] =
+    h->mb.i_neighbour4[13] =
+    h->mb.i_neighbour4[15] =
+    h->mb.i_neighbour8[3] = MB_LEFT|MB_TOP|MB_TOPLEFT;
+}
+
+void x264_macroblock_thread_init( x264_t *h )
+{
     /* fdec:      fenc:
      * yyyyyyy
      * yYYYY      YYYY
@@ -851,17 +865,6 @@ void x264_macroblock_slice_init( x264_t *h )
     h->mb.pic.p_fdec[0] = h->mb.pic.fdec_buf + 2*FDEC_STRIDE;
     h->mb.pic.p_fdec[1] = h->mb.pic.fdec_buf + 19*FDEC_STRIDE;
     h->mb.pic.p_fdec[2] = h->mb.pic.fdec_buf + 19*FDEC_STRIDE + 16;
-
-    h->mb.i_neighbour4[6] =
-    h->mb.i_neighbour4[9] =
-    h->mb.i_neighbour4[12] =
-    h->mb.i_neighbour4[14] = MB_LEFT|MB_TOP|MB_TOPLEFT|MB_TOPRIGHT;
-    h->mb.i_neighbour4[3] =
-    h->mb.i_neighbour4[7] =
-    h->mb.i_neighbour4[11] =
-    h->mb.i_neighbour4[13] =
-    h->mb.i_neighbour4[15] =
-    h->mb.i_neighbour8[3] = MB_LEFT|MB_TOP|MB_TOPLEFT;
 }
 
 void x264_prefetch_fenc( x264_t *h, x264_frame_t *fenc, int i_mb_x, int i_mb_y )
