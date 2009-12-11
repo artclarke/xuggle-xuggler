@@ -155,6 +155,17 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
             fprintf( stderr, "avs [error]: %s\n", avs_as_string( res ) );
             return -1;
         }
+        /* check if the user is using a multi-threaded script and apply distributor if necessary.
+           adapted from avisynth's vfw interface */
+        AVS_Value mt_test = h->func.avs_invoke( h->env, "GetMTMode", avs_new_value_bool( 0 ), NULL );
+        int mt_mode = avs_is_int( mt_test ) ? avs_as_int( mt_test ) : 0;
+        h->func.avs_release_value( mt_test );
+        if( mt_mode > 0 && mt_mode < 5 )
+        {
+            AVS_Value temp = h->func.avs_invoke( h->env, "Distributor", res, NULL );
+            h->func.avs_release_value( res );
+            res = temp;
+        }
     }
     else /* non script file */
     {
@@ -213,7 +224,8 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
     if( !avs_is_yv12( vi ) || avs_version >= AVS_INTERFACE_OTHER_PLANAR )
     {
         h->func.avs_release_clip( h->clip );
-        fprintf( stderr, "avs [warning]: converting input clip to YV12\n" );
+        fprintf( stderr, "avs %s\n", !avs_is_yv12( vi ) ? "[warning]: converting input clip to YV12"
+               : "[info]: Avisynth 2.6+ detected, forcing conversion to YV12" );
         const char *arg_name[2] = { NULL, "interlaced" };
         AVS_Value arg_arr[2] = { res, avs_new_value_bool( p_param->b_interlaced ) };
         AVS_Value res2 = h->func.avs_invoke( h->env, "ConvertToYV12", avs_new_value_array( arg_arr, 2 ), arg_name );
