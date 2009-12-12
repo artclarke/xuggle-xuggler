@@ -1813,7 +1813,7 @@ static float rate_estimate_qscale( x264_t *h )
     }
     else
     {
-        double abr_buffer = 2 * rcc->rate_tolerance * rcc->bitrate;
+        double abr_buffer = 2 * rcc->rate_tolerance * rcc->bitrate * (h->param.b_sliced_threads?1:h->param.i_threads);
 
         if( rcc->b_2pass )
         {
@@ -2275,7 +2275,11 @@ static int init_pass2( x264_t *h )
 
     expected_bits = 1;
     for(i=0; i<rcc->num_entries; i++)
-        expected_bits += qscale2bits(&rcc->entry[i], get_qscale(h, &rcc->entry[i], 1.0, i));
+    {
+        double q = get_qscale(h, &rcc->entry[i], 1.0, i);
+        expected_bits += qscale2bits(&rcc->entry[i], q);
+        rcc->last_qscale_for[rcc->entry[i].pict_type] = q;
+    }
     step_mult = all_available_bits / expected_bits;
 
     rate_factor = 0;
@@ -2292,6 +2296,7 @@ static int init_pass2( x264_t *h )
         for(i=0; i<rcc->num_entries; i++)
         {
             qscale[i] = get_qscale(h, &rcc->entry[i], rate_factor, i);
+            rcc->last_qscale_for[rcc->entry[i].pict_type] = qscale[i];
         }
 
         /* fixed I/B qscale relative to P */
