@@ -235,7 +235,7 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                    --ref {Double if >1 else 1}\n"
         "                                  - grain:\n"
         "                                    --aq-strength 0.5 --no-dct-decimate\n"
-        "                                    --deadzone inter 6 --deadzone-intra 6\n"
+        "                                    --deadzone-inter 6 --deadzone-intra 6\n"
         "                                    --deblock -2:-2 --ipratio 1.1 \n"
         "                                    --pbratio 1.1 --psy-rd <unset>:0.25\n"
         "                                    --qcomp 0.8\n"

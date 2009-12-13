@@ -2042,7 +2042,7 @@ int     x264_encoder_encode( x264_t *h,
 
         if( h->frames.b_have_lowres )
         {
-            if( h->param.analyse.i_weighted_pred )
+            if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE || h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
                 x264_weight_plane_analyse( h, fenc );
             x264_frame_init_lowres( h, fenc );
         }
