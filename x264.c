@@ -199,7 +199,7 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                    --partitions i8x8,i4x4 --ref 1\n"
         "                                    --subme 1 --trellis 0 --weightp 0\n"
         "                                  - faster:\n"
-        "                                    --no-mbtree --no-mixed-refs --refs 2\n"
+        "                                    --no-mbtree --no-mixed-refs --ref 2\n"
         "                                    --subme 4 --weightp 1\n"
         "                                  - fast\n"
         "                                    --rc-lookahead 30 --ref 2 --subme 6\n"
@@ -214,13 +214,13 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                    --ref 8 --subme 9 --trellis 2\n"
         "                                  - veryslow\n"
         "                                    --b-adapt 2 --bframes 8 --direct auto\n"
-        "                                    --me umh --me-range 24 --partitions all\n"
+        "                                    --me umh --merange 24 --partitions all\n"
         "                                    --ref 16 --subme 10 --trellis 2\n"
         "                                    --rc-lookahead 60\n"
         "                                  - placebo\n"
         "                                    --bframes 16 --b-adapt 2 --direct auto\n"
         "                                    --slow-firstpass --no-fast-pskip\n"
-        "                                    --me tesa --me-range 24 --partitions all\n"
+        "                                    --me tesa --merange 24 --partitions all\n"
         "                                    --rc-lookahead 60 --ref 16 --subme 10\n"
         "                                    --trellis 2\n" );
     else H0( "                                  - ultrafast,veryfast,faster,fast,medium\n"
@@ -265,7 +265,7 @@ static void Help( x264_param_t *defaults, int longhelp )
     H2( "      --no-scenecut           Disable adaptive I-frame decision\n" );
     H2( "      --scenecut <integer>    How aggressively to insert extra I-frames [%d]\n", defaults->i_scenecut_threshold );
     H1( "  -b, --bframes <integer>     Number of B-frames between I and P [%d]\n", defaults->i_bframe );
-    H1( "      --b-adapt               Adaptive B-frame decision method [%d]\n"
+    H1( "      --b-adapt <integer>     Adaptive B-frame decision method [%d]\n"
         "                                  Higher values may lower threading efficiency.\n"
         "                                  - 0: Disabled\n"
         "                                  - 1: Fast\n"
@@ -312,9 +312,8 @@ static void Help( x264_param_t *defaults, int longhelp )
     H1( "      --aq-strength <float>   Reduces blocking and blurring in flat and\n"
         "                              textured areas. [%.1f]\n", defaults->rc.f_aq_strength );
     H1( "\n" );
-    H2( "  -p, --pass <1|2|3>          Enable multipass ratecontrol\n" );
-    else H0( "  -p, --pass <1|2>            Enable multipass ratecontrol\n" );
-    H0( "                                  - 1: First pass, creates stats file\n"
+    H0( "  -p, --pass <integer>        Enable multipass ratecontrol\n"
+        "                                  - 1: First pass, creates stats file\n"
         "                                  - 2: Last pass, does not overwrite stats file\n" );
     H2( "                                  - 3: Nth pass, overwrites stats file\n" );
     H1( "      --stats <string>        Filename for 2 pass stats [\"%s\"]\n", defaults->rc.psz_stat_out );
@@ -343,7 +342,7 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                  - none, spatial, temporal, auto\n",
                                        strtable_lookup( x264_direct_pred_names, defaults->analyse.i_direct_mv_pred ) );
     H2( "      --no-weightb            Disable weighted prediction for B-frames\n" );
-    H1( "      --weightp               Weighted prediction for P-frames [%d]\n"
+    H1( "      --weightp <integer>     Weighted prediction for P-frames [%d]\n"
         "                              - 0: Disabled\n"
         "                              - 1: Blind offset\n"
         "                              - 2: Smart analysis\n", defaults->analyse.i_weighted_pred );
