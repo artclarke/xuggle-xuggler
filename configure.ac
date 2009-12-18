@@ -33,7 +33,7 @@ AC_ARG_ENABLE([optimizations],
 AC_MSG_CHECKING([whether to enable compiler optimizations])
 AC_MSG_RESULT([$enable_optimizations])
 
-AM_CONDITIONAL([VS_DEBUG], [ test "$x$enable_optimizations" = xno ])
+AM_CONDITIONAL([VS_DEBUG], [ test "x$enable_optimizations" = xno ])
 if test "x$enable_optimizations" = xno; then
   VS_DEBUG=1
   AC_SUBST([VS_DEBUG])

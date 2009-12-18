@@ -3144,7 +3144,7 @@ $as_echo_n "checking whether to enable compiler optimizations... " >&6; }
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $enable_optimizations" >&5
 $as_echo "$enable_optimizations" >&6; }
 
- if  test "$x$enable_optimizations" = xno ; then
+ if  test "x$enable_optimizations" = xno ; then
   VS_DEBUG_TRUE=
   VS_DEBUG_FALSE='#'
 else
