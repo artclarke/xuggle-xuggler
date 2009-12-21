@@ -727,6 +727,8 @@ public class ICodec extends RefCounted {
     CODEC_ID_MAD,
     CODEC_ID_FRWU,
     CODEC_ID_FLASHSV2,
+    CODEC_ID_CDGRAPHICS,
+    CODEC_ID_R210,
     CODEC_ID_PCM_S16LE(XugglerJNI.ICodec_CODEC_ID_PCM_S16LE_get()),
     CODEC_ID_PCM_S16BE,
     CODEC_ID_PCM_U16LE,
