@@ -38,10 +38,11 @@ typedef struct x264_frame
     int64_t i_dts;
     x264_param_t *param;
 
-    int     i_frame;    /* Presentation frame number */
-    int     i_coded; /* Coded frame number */
+    int     i_frame;     /* Presentation frame number */
+    int     i_coded;     /* Coded frame number */
     int     i_frame_num; /* 7.4.3 frame_num */
     int     b_kept_as_ref;
+    int     b_keyframe;
     uint8_t b_fdec;
     uint8_t b_last_minigop_bframe; /* this frame is the last b in a sequence of bframes */
     uint8_t i_bframes;   /* number of bframes following this nonb in coded order */
@@ -117,6 +118,10 @@ typedef struct x264_frame
     x264_pthread_mutex_t mutex;
     x264_pthread_cond_t  cv;
 
+    /* periodic intra refresh */
+    float   f_pir_position;
+    int     i_pir_start_col;
+    int     i_pir_end_col;
 } x264_frame_t;
 
 /* synchronized frame list */

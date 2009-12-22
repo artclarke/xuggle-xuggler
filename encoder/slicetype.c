@@ -937,7 +937,7 @@ static int scenecut_internal( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **f
     int icost = frame->i_cost_est[0][0];
     int pcost = frame->i_cost_est[p1-p0][0];
     float f_bias;
-    int i_gop_size = frame->i_frame - h->lookahead->i_last_idr;
+    int i_gop_size = frame->i_frame - h->lookahead->i_last_keyframe;
     float f_thresh_max = h->param.i_scenecut_threshold / 100.0;
     /* magic numbers pulled out of thin air */
     float f_thresh_min = f_thresh_max * h->param.i_keyint_min
@@ -946,7 +946,7 @@ static int scenecut_internal( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **f
 
     if( h->param.i_keyint_min == h->param.i_keyint_max )
         f_thresh_min= f_thresh_max;
-    if( i_gop_size < h->param.i_keyint_min / 4 )
+    if( i_gop_size < h->param.i_keyint_min / 4 || h->param.b_intra_refresh )
         f_bias = f_thresh_min / 4;
     else if( i_gop_size <= h->param.i_keyint_min )
         f_bias = f_thresh_min * i_gop_size / h->param.i_keyint_min;
@@ -1033,11 +1033,11 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     if( !j )
         return;
 
-    keyint_limit = h->param.i_keyint_max - frames[0]->i_frame + h->lookahead->i_last_idr - 1;
-    orig_num_frames = num_frames = X264_MIN( j, keyint_limit );
+    keyint_limit = h->param.i_keyint_max - frames[0]->i_frame + h->lookahead->i_last_keyframe - 1;
+    orig_num_frames = num_frames = h->param.b_intra_refresh ? j : X264_MIN( j, keyint_limit );
 
     x264_lowres_context_init( h, &a );
-    idr_frame_type = frames[1]->i_frame - h->lookahead->i_last_idr >= h->param.i_keyint_min ? X264_TYPE_IDR : X264_TYPE_I;
+    idr_frame_type = frames[1]->i_frame - h->lookahead->i_last_keyframe >= h->param.i_keyint_min ? X264_TYPE_IDR : X264_TYPE_I;
 
     /* This is important psy-wise: if we have a non-scenecut keyframe,
      * there will be significant visual artifacts if the frames just before
@@ -1166,16 +1166,17 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
         x264_macroblock_tree( h, &a, frames, X264_MIN(num_frames, h->param.i_keyint_max), keyframe );
 
     /* Enforce keyframe limit. */
-    for( j = 0; j < num_frames; j++ )
-    {
-        if( ((j-keyint_limit) % h->param.i_keyint_max) == 0 )
+    if( !h->param.b_intra_refresh )
+        for( j = 0; j < num_frames; j++ )
         {
-            if( j && h->param.i_keyint_max > 1 )
-                frames[j]->i_type = X264_TYPE_P;
-            frames[j+1]->i_type = X264_TYPE_IDR;
-            reset_start = X264_MIN( reset_start, j+2 );
+            if( ((j-keyint_limit) % h->param.i_keyint_max) == 0 )
+            {
+                if( j && h->param.i_keyint_max > 1 )
+                    frames[j]->i_type = X264_TYPE_P;
+                frames[j+1]->i_type = X264_TYPE_IDR;
+                reset_start = X264_MIN( reset_start, j+2 );
+            }
         }
-    }
 
     if( h->param.rc.i_vbv_buffer_size )
         x264_vbv_lookahead( h, &a, frames, num_frames, keyframe );
@@ -1230,7 +1231,7 @@ void x264_slicetype_decide( x264_t *h )
         }
 
         /* Limit GOP size */
-        if( frm->i_frame - h->lookahead->i_last_idr >= h->param.i_keyint_max )
+        if( (!h->param.b_intra_refresh || frm->i_frame == 0) && frm->i_frame - h->lookahead->i_last_keyframe >= h->param.i_keyint_max )
         {
             if( frm->i_type == X264_TYPE_AUTO )
                 frm->i_type = X264_TYPE_IDR;
@@ -1240,7 +1241,8 @@ void x264_slicetype_decide( x264_t *h )
         if( frm->i_type == X264_TYPE_IDR )
         {
             /* Close GOP */
-            h->lookahead->i_last_idr = frm->i_frame;
+            h->lookahead->i_last_keyframe = frm->i_frame;
+            frm->b_keyframe = 1;
             if( bframes > 0 )
             {
                 bframes--;
@@ -1349,6 +1351,7 @@ int x264_rc_analyse_slice( x264_t *h )
 {
     int p0=0, p1, b;
     int cost;
+    x264_emms();
 
     if( IS_X264_TYPE_I(h->fenc->i_type) )
         p1 = b = 0;
@@ -1382,5 +1385,24 @@ int x264_rc_analyse_slice( x264_t *h )
     memcpy( h->fdec->i_row_satd, h->fenc->i_row_satd, h->sps->i_mb_height * sizeof(int) );
     if( !IS_X264_TYPE_I(h->fenc->i_type) )
         memcpy( h->fdec->i_row_satds[0][0], h->fenc->i_row_satds[0][0], h->sps->i_mb_height * sizeof(int) );
+
+    if( h->param.b_intra_refresh && h->param.rc.i_vbv_buffer_size && h->fenc->i_type == X264_TYPE_P )
+    {
+        int x, y;
+        int ip_factor = 256 * h->param.rc.f_ip_factor; /* fix8 */
+        for( y = 0; y < h->sps->i_mb_height; y++ )
+        {
+            int mb_xy = y * h->mb.i_mb_stride;
+            for( x = h->fdec->i_pir_start_col; x <= h->fdec->i_pir_end_col; x++, mb_xy++ )
+            {
+                int intra_cost = (h->fenc->i_intra_cost[mb_xy] * ip_factor) >> 8;
+                int inter_cost = h->fenc->lowres_costs[b-p0][p1-b][mb_xy];
+                int diff = intra_cost - inter_cost;
+                h->fdec->i_row_satd[y] += diff;
+                cost += diff;
+            }
+        }
+    }
+
     return cost;
 }

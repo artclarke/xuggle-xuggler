@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 81
+#define X264_BUILD 82
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -201,6 +201,8 @@ typedef struct x264_param_t
     int         i_keyint_max;       /* Force an IDR keyframe at this interval */
     int         i_keyint_min;       /* Scenecuts closer together than this are coded as I, not IDR. */
     int         i_scenecut_threshold; /* how aggressively to insert extra I frames */
+    int         b_intra_refresh;    /* Whether or not to use periodic intra refresh instead of IDR frames. */
+
     int         i_bframe;   /* how many b-frame between 2 references pictures */
     int         i_bframe_adaptive;
     int         i_bframe_bias;
@@ -383,6 +385,9 @@ typedef struct
     int     i_type;
     /* In: force quantizer for > 0 */
     int     i_qpplus1;
+    /* Out: whether this frame is a keyframe.  Important when using modes that result in
+     * SEI recovery points being used instead of IDR frames. */
+    int     b_keyframe;
     /* In: user pts, Out: pts of encoded picture (user)*/
     int64_t i_pts;
     /* Out: frame dts. Since the pts of the first frame is always zero,

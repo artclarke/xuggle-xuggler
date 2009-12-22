@@ -1005,6 +1005,7 @@ x264_frame_t *x264_frame_pop_unused( x264_t *h, int b_fdec )
     frame->i_reference_count = 1;
     frame->b_intra_calculated = 0;
     frame->b_scenecut = 1;
+    frame->b_keyframe = 0;
 
     memset( frame->weight, 0, sizeof(frame->weight) );
     memset( frame->f_weighted_cost_delta, 0, sizeof(frame->f_weighted_cost_delta) );

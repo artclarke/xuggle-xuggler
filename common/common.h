@@ -285,7 +285,7 @@ typedef struct x264_lookahead_t
     volatile uint8_t              b_exit_thread;
     uint8_t                       b_thread_active;
     uint8_t                       b_analyse_keyframe;
-    int                           i_last_idr;
+    int                           i_last_keyframe;
     int                           i_slicetype_length;
     x264_frame_t                  *last_nonb;
     x264_synch_frame_list_t       ifbuf;
@@ -423,7 +423,7 @@ struct x264_t
         /* frames used for reference + sentinels */
         x264_frame_t *reference[16+2];
 
-        int i_last_idr; /* Frame number of the last IDR */
+        int i_last_keyframe; /* Frame number of the last keyframe */
 
         int i_input;    /* Number of input frames already accepted */
 
@@ -559,6 +559,7 @@ struct x264_t
         int b_skip_mc;
         /* set to true if we are re-encoding a macroblock. */
         int b_reencode_mb;
+        int ip_offset; /* Used by PIR to offset the quantizer of intra-refresh blocks. */
 
         struct
         {

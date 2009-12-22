@@ -467,6 +467,23 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
     bs_rbsp_trailing( s );
 }
 
+void x264_sei_recovery_point_write( x264_t *h, bs_t *s, int recovery_frame_cnt )
+{
+    int payload_size;
+
+    bs_write( s, 8, 0x06 ); // payload_type = Recovery Point
+    payload_size = bs_size_ue( recovery_frame_cnt ) + 4;
+
+    bs_write( s, 8, (payload_size + 7) / 8);
+    bs_write_ue( s, recovery_frame_cnt ); // recovery_frame_cnt
+    bs_write( s, 1, 1 ); //exact_match_flag 1
+    bs_write( s, 1, 0 ); //broken_link_flag 0
+    bs_write( s, 2, 0 ); //changing_slice_group 0
+
+    bs_align_10( s );
+    bs_rbsp_trailing( s );
+}
+
 int x264_sei_version_write( x264_t *h, bs_t *s )
 {
     int i;

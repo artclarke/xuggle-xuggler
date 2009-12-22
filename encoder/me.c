@@ -536,7 +536,7 @@ me_hex2:
                     }
                 }
             } while( ++i <= i_me_range/4 );
-            if( bmy <= mv_y_max && bmy >= mv_y_min )
+            if( bmy <= mv_y_max && bmy >= mv_y_min && bmx <= mv_x_max && bmx >= mv_x_min )
                 goto me_hex2;
             break;
         }
@@ -843,7 +843,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     bdir = -1;
     for( i = qpel_iters; i > 0; i-- )
     {
-        if( bmy <= h->mb.mv_min_spel[1] || bmy >= h->mb.mv_max_spel[1] )
+        if( bmy <= h->mb.mv_min_spel[1] || bmy >= h->mb.mv_max_spel[1] || bmx <= h->mb.mv_min_spel[0] || bmx >= h->mb.mv_max_spel[0] )
             break;
         odir = bdir;
         omx = bmx;
@@ -936,7 +936,9 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
     };
 
     if( bm0y < h->mb.mv_min_spel[1] + 8 || bm1y < h->mb.mv_min_spel[1] + 8 ||
-        bm0y > h->mb.mv_max_spel[1] - 8 || bm1y > h->mb.mv_max_spel[1] - 8 )
+        bm0y > h->mb.mv_max_spel[1] - 8 || bm1y > h->mb.mv_max_spel[1] - 8 ||
+        bm0x < h->mb.mv_min_spel[0] + 8 || bm1x < h->mb.mv_min_spel[0] + 8 ||
+        bm0x > h->mb.mv_max_spel[0] - 8 || bm1x > h->mb.mv_max_spel[0] - 8 )
         return;
 
     h->mc.memzero_aligned( visited, sizeof(uint8_t[8][8][8]) );
@@ -1106,8 +1108,8 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
         }
     }
 
-    if( bmy < h->mb.mv_min_spel[1] + 3 ||
-        bmy > h->mb.mv_max_spel[1] - 3 )
+    if( bmy < h->mb.mv_min_spel[1] + 3 || bmy > h->mb.mv_max_spel[1] - 3 ||
+        bmx < h->mb.mv_min_spel[0] + 3 || bmx > h->mb.mv_max_spel[0] - 3 )
     {
         h->mb.b_skip_mc = 0;
         return;

@@ -313,6 +313,7 @@ static void Help( x264_param_t *defaults, int longhelp )
     H2( "  -i, --min-keyint <integer>  Minimum GOP size [%d]\n", defaults->i_keyint_min );
     H2( "      --no-scenecut           Disable adaptive I-frame decision\n" );
     H2( "      --scenecut <integer>    How aggressively to insert extra I-frames [%d]\n", defaults->i_scenecut_threshold );
+    H2( "      --intra-refresh         Use Periodic Intra Refresh instead of IDR frames\n" );
     H1( "  -b, --bframes <integer>     Number of B-frames between I and P [%d]\n", defaults->i_bframe );
     H1( "      --b-adapt <integer>     Adaptive B-frame decision method [%d]\n"
         "                                  Higher values may lower threading efficiency.\n"
@@ -550,6 +551,7 @@ static struct option long_options[] =
     { "b-pyramid",   required_argument, NULL, 0 },
     { "min-keyint",  required_argument, NULL, 'i' },
     { "keyint",      required_argument, NULL, 'I' },
+    { "intra-refresh",     no_argument, NULL, 0 },
     { "scenecut",    required_argument, NULL, 0 },
     { "no-scenecut",       no_argument, NULL, 0 },
     { "nf",                no_argument, NULL, 0 },

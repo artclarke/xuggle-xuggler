@@ -308,7 +308,7 @@ static int write_frame( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_
         offset = cts - dts;
     }
 
-    p_mp4->p_sample->IsRAP = p_picture->i_type == X264_TYPE_IDR ? 1 : 0;
+    p_mp4->p_sample->IsRAP = p_picture->b_keyframe;
     p_mp4->p_sample->DTS = dts;
     p_mp4->p_sample->CTS_Offset = offset;
     gf_isom_add_sample( p_mp4->p_file, p_mp4->i_track, p_mp4->i_descidx, p_mp4->p_sample );

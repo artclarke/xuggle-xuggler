@@ -160,6 +160,11 @@ static inline void bs_align_1( bs_t *s )
     bs_write( s, s->i_left&7, (1 << (s->i_left&7)) - 1 );
     bs_flush( s );
 }
+static inline void bs_align_10( bs_t *s )
+{
+    if( s->i_left&7 )
+        bs_write( s, s->i_left&7, 1 << ( (s->i_left&7) - 1 ) );
+}
 
 /* golomb functions */
 

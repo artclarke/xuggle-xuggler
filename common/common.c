@@ -356,6 +356,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
             p->i_scenecut_threshold = atoi(value);
         }
     }
+    OPT("intra-refresh")
+        p->b_intra_refresh = atobool(value);
     OPT("bframes")
         p->i_bframe = atoi(value);
     OPT("b-adapt")
@@ -915,8 +917,8 @@ char *x264_param2string( x264_param_t *p, int b_res )
     }
     s += sprintf( s, " wpredp=%d", p->analyse.i_weighted_pred > 0 ? p->analyse.i_weighted_pred : 0 );
 
-    s += sprintf( s, " keyint=%d keyint_min=%d scenecut=%d",
-                  p->i_keyint_max, p->i_keyint_min, p->i_scenecut_threshold );
+    s += sprintf( s, " keyint=%d keyint_min=%d scenecut=%d intra_refresh=%d",
+                  p->i_keyint_max, p->i_keyint_min, p->i_scenecut_threshold, p->b_intra_refresh );
 
     if( p->rc.b_mb_tree || p->rc.i_vbv_buffer_size )
         s += sprintf( s, " rc_lookahead=%d", p->rc.i_lookahead );

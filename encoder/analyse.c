@@ -84,6 +84,7 @@ typedef struct
     /* I: Intra part */
     /* Take some shortcuts in intra search if intra is deemed unlikely */
     int b_fast_intra;
+    int b_force_intra; /* For Periodic Intra Refresh.  Only supported in P-frames. */
     int b_try_pskip;
 
     /* Luma part */
@@ -325,15 +326,8 @@ static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
     a->p_cost_ref1 = x264_cost_ref[a->i_lambda][x264_clip3(h->sh.i_num_ref_idx_l1_active-1,0,2)];
 }
 
-static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
+static void x264_mb_analyse_init_qp( x264_t *h, x264_mb_analysis_t *a, int i_qp )
 {
-    int i = h->param.analyse.i_subpel_refine - (h->sh.i_type == SLICE_TYPE_B);
-
-    /* mbrd == 1 -> RD mode decision */
-    /* mbrd == 2 -> RD refinement */
-    /* mbrd == 3 -> QPRD */
-    a->i_mbrd = (i>=6) + (i>=8) + (h->param.analyse.i_subpel_refine>=10);
-
     /* conduct the analysis using this lamda and QP */
     a->i_qp = h->mb.i_qp = i_qp;
     h->mb.i_chroma_qp = h->chroma_qp_table[i_qp];
@@ -352,6 +346,19 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     h->mb.i_psy_rd_lambda = a->i_lambda;
     /* Adjusting chroma lambda based on QP offset hurts PSNR but improves visual quality. */
     h->mb.i_chroma_lambda2_offset = h->param.analyse.b_psy ? x264_chroma_lambda2_offset_tab[h->mb.i_qp-h->mb.i_chroma_qp+12] : 256;
+
+}
+
+static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
+{
+    int i = h->param.analyse.i_subpel_refine - (h->sh.i_type == SLICE_TYPE_B);
+
+    /* mbrd == 1 -> RD mode decision */
+    /* mbrd == 2 -> RD refinement */
+    /* mbrd == 3 -> QPRD */
+    a->i_mbrd = (i>=6) + (i>=8) + (h->param.analyse.i_subpel_refine>=10);
+
+    x264_mb_analyse_init_qp( h, a, i_qp );
 
     h->mb.i_me_method = h->param.analyse.i_me_method;
     h->mb.i_subpel_refine = h->param.analyse.i_subpel_refine;
@@ -391,6 +398,14 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
         h->mb.mv_max[0] = 4*( 16*( h->sps->i_mb_width - h->mb.i_mb_x - 1 ) + 24 );
         h->mb.mv_min_spel[0] = CLIP_FMV( h->mb.mv_min[0] );
         h->mb.mv_max_spel[0] = CLIP_FMV( h->mb.mv_max[0] );
+        if( h->param.b_intra_refresh && h->sh.i_type == SLICE_TYPE_P )
+        {
+            int max_x = (h->fref0[0]->i_pir_end_col * 16 - 3)*4; /* 3 pixels of hpel border */
+            int max_mv = max_x - 4*16*h->mb.i_mb_x;
+            /* If we're left of the refresh bar, don't reference right of it. */
+            if( max_mv > 0 && h->mb.i_mb_x < h->fdec->i_pir_start_col )
+                h->mb.mv_max_spel[0] = X264_MIN( h->mb.mv_max_spel[0], max_mv );
+        }
         h->mb.mv_min_fpel[0] = (h->mb.mv_min_spel[0]>>2) + i_fpel_border;
         h->mb.mv_max_fpel[0] = (h->mb.mv_max_spel[0]>>2) - i_fpel_border;
         if( h->mb.i_mb_x == 0 )
@@ -489,6 +504,14 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
             }
         }
         h->mb.b_skip_mc = 0;
+        if( h->param.b_intra_refresh && h->sh.i_type == SLICE_TYPE_P &&
+            h->mb.i_mb_x >= h->fdec->i_pir_start_col && h->mb.i_mb_x <= h->fdec->i_pir_end_col )
+        {
+            a->b_force_intra = 1;
+            a->b_fast_intra = 0;
+        }
+        else
+            a->b_force_intra = 0;
     }
 }
 
@@ -1275,7 +1298,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     if( a->i_mbrd )
     {
         x264_mb_cache_fenc_satd( h );
-        if( a->l0.me16x16.i_ref == 0 && M32( a->l0.me16x16.mv ) == M32( h->mb.cache.pskip_mv ) )
+        if( a->l0.me16x16.i_ref == 0 && M32( a->l0.me16x16.mv ) == M32( h->mb.cache.pskip_mv ) && !a->b_force_intra )
         {
             h->mb.i_partition = D_16x16;
             x264_macroblock_cache_mv_ptr( h, 0, 0, 4, 4, 0, a->l0.me16x16.mv );
@@ -2399,6 +2422,7 @@ void x264_macroblock_analyse( x264_t *h )
     /*--------------------------- Do the analysis ---------------------------*/
     if( h->sh.i_type == SLICE_TYPE_I )
     {
+intra_analysis:
         if( analysis.i_mbrd )
             x264_mb_cache_fenc_satd( h );
         x264_mb_analyse_intra( h, &analysis, COST_MAX );
@@ -2421,20 +2445,31 @@ void x264_macroblock_analyse( x264_t *h )
 
         h->mc.prefetch_ref( h->mb.pic.p_fref[0][0][h->mb.i_mb_x&3], h->mb.pic.i_stride[0], 0 );
 
-        /* Fast P_SKIP detection */
         analysis.b_try_pskip = 0;
-        if( h->param.analyse.b_fast_pskip )
+        if( analysis.b_force_intra )
         {
-            if( h->param.i_threads > 1 && !h->param.b_sliced_threads && h->mb.cache.pskip_mv[1] > h->mb.mv_max_spel[1] )
-                // FIXME don't need to check this if the reference frame is done
-                {}
-            else if( h->param.analyse.i_subpel_refine >= 3 )
-                analysis.b_try_pskip = 1;
-            else if( h->mb.i_mb_type_left == P_SKIP ||
-                     h->mb.i_mb_type_top == P_SKIP ||
-                     h->mb.i_mb_type_topleft == P_SKIP ||
-                     h->mb.i_mb_type_topright == P_SKIP )
-                b_skip = x264_macroblock_probe_pskip( h );
+            if( !h->param.analyse.b_psy )
+            {
+                x264_mb_analyse_init_qp( h, &analysis, X264_MAX( h->mb.i_qp - h->mb.ip_offset, h->param.rc.i_qp_min ) );
+                goto intra_analysis;
+            }
+        }
+        else
+        {
+            /* Fast P_SKIP detection */
+            if( h->param.analyse.b_fast_pskip )
+            {
+                if( h->param.i_threads > 1 && !h->param.b_sliced_threads && h->mb.cache.pskip_mv[1] > h->mb.mv_max_spel[1] )
+                    // FIXME don't need to check this if the reference frame is done
+                    {}
+                else if( h->param.analyse.i_subpel_refine >= 3 )
+                    analysis.b_try_pskip = 1;
+                else if( h->mb.i_mb_type_left == P_SKIP ||
+                         h->mb.i_mb_type_top == P_SKIP ||
+                         h->mb.i_mb_type_topleft == P_SKIP ||
+                         h->mb.i_mb_type_topright == P_SKIP )
+                    b_skip = x264_macroblock_probe_pskip( h );
+            }
         }
 
         h->mc.prefetch_ref( h->mb.pic.p_fref[0][0][h->mb.i_mb_x&3], h->mb.pic.i_stride[0], 1 );
@@ -2622,6 +2657,17 @@ void x264_macroblock_analyse( x264_t *h )
             COPY2_IF_LT( i_cost, analysis.i_satd_i8x8, i_type, I_8x8 );
             COPY2_IF_LT( i_cost, analysis.i_satd_i4x4, i_type, I_4x4 );
             COPY2_IF_LT( i_cost, analysis.i_satd_pcm, i_type, I_PCM );
+
+            if( analysis.b_force_intra && !IS_INTRA(i_type) )
+            {
+                /* Intra masking: copy fdec to fenc and re-encode the block as intra in order to make it appear as if
+                 * it was an inter block. */
+                h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fenc[0], FENC_STRIDE, h->mb.pic.p_fdec[0], FDEC_STRIDE, 16 );
+                h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fenc[1], FENC_STRIDE, h->mb.pic.p_fdec[1], FDEC_STRIDE, 8 );
+                h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fenc[2], FENC_STRIDE, h->mb.pic.p_fdec[2], FDEC_STRIDE, 8 );
+                x264_mb_analyse_init_qp( h, &analysis, X264_MAX( h->mb.i_qp - h->mb.ip_offset, h->param.rc.i_qp_min ) );
+                goto intra_analysis;
+            }
 
             h->mb.i_type = i_type;
 

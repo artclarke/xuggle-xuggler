@@ -185,7 +185,7 @@ static int write_frame( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_
 
     p_mkv->b_writing_frame = 0;
 
-    if( mk_set_frame_flags( p_mkv->w, i_stamp, p_picture->i_type == X264_TYPE_IDR ) < 0 )
+    if( mk_set_frame_flags( p_mkv->w, i_stamp, p_picture->b_keyframe ) < 0 )
         return -1;
 
     return i_size;

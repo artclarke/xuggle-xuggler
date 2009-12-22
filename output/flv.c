@@ -264,7 +264,7 @@ static int write_frame( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_
     x264_put_be24( c, 0 );
 
     p_flv->start = c->d_cur;
-    x264_put_byte( c, p_picture->i_type == X264_TYPE_IDR ? FLV_FRAME_KEY : FLV_FRAME_INTER );
+    x264_put_byte( c, p_picture->b_keyframe ? FLV_FRAME_KEY : FLV_FRAME_INTER );
     x264_put_byte( c, 1 ); // AVC NALU
     x264_put_be24( c, offset );
 
