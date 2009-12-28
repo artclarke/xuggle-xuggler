@@ -1,7 +1,7 @@
 /*****************************************************************************
  * flv.c:
  *****************************************************************************
- * Copyright (C) 2009 Kieran Kunhya
+ * Copyright (C) 2009 Kieran Kunhya <kieran@kunhya.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include "muxers.h"
 #include "flv_bytestream.h"
+
 #define CHECK(x)\
 do {\
     if( (x) < 0 )\
@@ -30,22 +31,27 @@ typedef struct
 {
     flv_buffer *c;
 
-    uint8_t b_sps;
-    uint8_t b_pps;
     uint8_t *sei;
     int sei_len;
 
     int64_t i_fps_num;
     int64_t i_fps_den;
-    int64_t i_init_delay;
     int64_t i_framenum;
-    double d_mspf;
+    int     i_init_delay;
+    int     i_delay_time;
 
+    uint64_t i_framerate_pos;
     uint64_t i_duration_pos;
     uint64_t i_filesize_pos;
     uint64_t i_bitrate_pos;
 
     uint8_t b_write_length;
+    int64_t i_init_delta;
+    int64_t i_prev_timestamps[2];
+
+    int i_timebase_num;
+    int i_timebase_den;
+    int b_vfr_input;
 
     unsigned start;
 } flv_hnd_t;
@@ -104,13 +110,20 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
     x264_put_amf_double( c, p_param->i_height );
 
     x264_put_amf_string( c, "framerate" );
-    x264_put_amf_double( c, (double)p_param->i_fps_num / p_param->i_fps_den );
+
+    if( !p_param->b_vfr_input )
+        x264_put_amf_double( c, (double)p_param->i_fps_num / p_param->i_fps_den );
+    else
+    {
+        p_flv->i_framerate_pos = c->d_cur + c->d_total + 1;
+        x264_put_amf_double( c, 0 ); // written at end of encoding
+    }
 
     x264_put_amf_string( c, "videocodecid" );
     x264_put_amf_double( c, FLV_CODECID_H264 );
 
     x264_put_amf_string( c, "duration" );
-    p_flv->i_duration_pos = c->d_cur + c->d_total + 1; // + 1 because of the following AMF_DATA_TYPE_NUMBER byte
+    p_flv->i_duration_pos = c->d_cur + c->d_total + 1;
     x264_put_amf_double( c, 0 ); // written at end of encoding
 
     x264_put_amf_string( c, "filesize" );
@@ -131,133 +144,146 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
 
     p_flv->i_fps_num = p_param->i_fps_num;
     p_flv->i_fps_den = p_param->i_fps_den;
+    p_flv->i_timebase_num = p_param->i_timebase_num;
+    p_flv->i_timebase_den = p_param->i_timebase_den;
     p_flv->i_init_delay = p_param->i_bframe ? (p_param->i_bframe_pyramid ? 2 : 1) : 0;
-    p_flv->d_mspf = 1000 * (double)p_flv->i_fps_den / p_flv->i_fps_num;
+    p_flv->b_vfr_input = p_param->b_vfr_input;
 
-    fprintf( stderr, "flv [info]: initial delay %i frames\n",
-             (int)p_flv->i_init_delay );
 
     return 0;
 }
 
-static int write_nalu( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_t *p_picture )
+static int write_headers( hnd_t handle, x264_nal_t *p_nal )
 {
     flv_hnd_t *p_flv = handle;
     flv_buffer *c = p_flv->c;
-    uint64_t dts = (uint64_t)p_flv->i_framenum * p_flv->d_mspf;
-    uint64_t pts = (uint64_t)p_picture->i_pts * p_flv->d_mspf / p_flv->i_fps_den;
-    uint64_t offset = p_flv->i_init_delay * p_flv->d_mspf + pts - dts;
-    uint8_t type = p_nalu[4] & 0x1f;
 
-    switch( type )
-    {
-        // sps
-        case 0x07:
-            if( !p_flv->b_sps )
-            {
-                uint8_t *sps = p_nalu + 4;
+    int sei_size = p_nal[0].i_payload;
+    int sps_size = p_nal[1].i_payload;
+    int pps_size = p_nal[2].i_payload;
 
-                x264_put_byte( c, FLV_TAG_TYPE_VIDEO );
-                x264_put_be24( c, 0 ); // rewrite later, pps size unknown
-                x264_put_be24( c, 0 ); // timestamp
-                x264_put_byte( c, 0 ); // timestamp extended
-                x264_put_be24( c, 0 ); // StreamID - Always 0
-                p_flv->start = c->d_cur; // needed for overwriting length
+    // SEI
+    /* It is within the spec to write this as-is but for
+     * mplayer/ffmpeg playback this is deferred until before the first frame */
 
-                x264_put_byte( c, 7 | FLV_FRAME_KEY ); // Frametype and CodecID
-                x264_put_byte( c, 0 ); // AVC sequence header
-                x264_put_be24( c, 0 ); // composition time
+    p_flv->sei = malloc( sei_size );
+    if( !p_flv->sei )
+        return -1;
+    p_flv->sei_len = sei_size;
 
-                x264_put_byte( c, 1 );      // version
-                x264_put_byte( c, sps[1] ); // profile
-                x264_put_byte( c, sps[2] ); // profile
-                x264_put_byte( c, sps[3] ); // level
-                x264_put_byte( c, 0xff );   // 6 bits reserved (111111) + 2 bits nal size length - 1 (11)
-                x264_put_byte( c, 0xe1 );   // 3 bits reserved (111) + 5 bits number of sps (00001)
+    memcpy( p_flv->sei, p_nal[0].p_payload, sei_size );
 
-                x264_put_be16( c, i_size - 4 );
-                flv_append_data( c, sps, i_size - 4 );
+    // SPS
+    uint8_t *sps = p_nal[1].p_payload + 4;
 
-                p_flv->b_sps = 1;
-            }
-            break;
+    x264_put_byte( c, FLV_TAG_TYPE_VIDEO );
+    x264_put_be24( c, 0 ); // rewrite later
+    x264_put_be24( c, 0 ); // timestamp
+    x264_put_byte( c, 0 ); // timestamp extended
+    x264_put_be24( c, 0 ); // StreamID - Always 0
+    p_flv->start = c->d_cur; // needed for overwriting length
 
-        // pps
-        case 0x08:
-            if( !p_flv->b_pps )
-            {
-                x264_put_byte( c, 1 ); // number of pps
-                x264_put_be16( c, i_size - 4 );
-                flv_append_data( c, p_nalu + 4, i_size - 4 );
+    x264_put_byte( c, 7 | FLV_FRAME_KEY ); // Frametype and CodecID
+    x264_put_byte( c, 0 ); // AVC sequence header
+    x264_put_be24( c, 0 ); // composition time
 
-                // rewrite data length info
-                unsigned length = c->d_cur - p_flv->start;
-                rewrite_amf_be24( c, length, p_flv->start - 10 );
-                x264_put_be32( c, length + 11 ); // Last tag size
+    x264_put_byte( c, 1 );      // version
+    x264_put_byte( c, sps[1] ); // profile
+    x264_put_byte( c, sps[2] ); // profile
+    x264_put_byte( c, sps[3] ); // level
+    x264_put_byte( c, 0xff );   // 6 bits reserved (111111) + 2 bits nal size length - 1 (11)
+    x264_put_byte( c, 0xe1 );   // 3 bits reserved (111) + 5 bits number of sps (00001)
 
-                p_flv->b_pps = 1;
-            }
-            break;
+    x264_put_be16( c, sps_size - 4 );
+    flv_append_data( c, sps, sps_size - 4 );
 
-        // slice
-        case 0x1:
-        case 0x5:
-            if( !p_flv->b_write_length )
-            {
-                // A new frame - write packet header
-                x264_put_byte( c, FLV_TAG_TYPE_VIDEO );
-                x264_put_be24( c, 0 ); // calculated later
-                x264_put_be24( c, dts );
-                x264_put_byte( c, dts >> 24 );
-                x264_put_be24( c, 0 );
+    // PPS
+    x264_put_byte( c, 1 ); // number of pps
+    x264_put_be16( c, pps_size - 4 );
+    flv_append_data( c, p_nal[2].p_payload + 4, pps_size - 4 );
 
-                p_flv->start = c->d_cur;
-                x264_put_byte( c, p_picture->i_type == X264_TYPE_IDR ? FLV_FRAME_KEY : FLV_FRAME_INTER );
-                x264_put_byte( c, 1 ); // AVC NALU
-                x264_put_be24( c, offset );
+    // rewrite data length info
+    unsigned length = c->d_cur - p_flv->start;
+    rewrite_amf_be24( c, length, p_flv->start - 10 );
+    x264_put_be32( c, length + 11 ); // Last tag size
+    CHECK( flv_flush_data( c ) );
 
-                p_flv->b_write_length = 1;
-            }
-            if( p_flv->sei )
-            {
-                flv_append_data( c, p_flv->sei, p_flv->sei_len );
-                free( p_flv->sei );
-                p_flv->sei = NULL;
-            }
-            flv_append_data( c, p_nalu, i_size );
-            break;
-        // sei
-        case 0x6:
-            /* It is within the spec to write this as-is but for
-             * mplayer/ffmpeg playback this is deferred until before the first frame */
-
-            p_flv->sei = malloc( i_size );
-            if( !p_flv->sei )
-                return -1;
-            p_flv->sei_len = i_size;
-
-            memcpy( p_flv->sei, p_nalu, i_size );
-            break;
-    }
-    return i_size;
+    return sei_size + sps_size + pps_size;
 }
 
-static int set_eop( hnd_t handle, x264_picture_t *p_picture )
+static int write_frame( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_t *p_picture )
 {
     flv_hnd_t *p_flv = handle;
     flv_buffer *c = p_flv->c;
 
-    if( p_flv->b_write_length )
+    int64_t dts;
+    int64_t cts;
+    int64_t offset;
+
+    if( !p_flv->i_framenum )
+        p_flv->i_delay_time = p_picture->i_dts;
+
+    if( !p_flv->i_init_delay )
+        dts = cts = (int64_t)((p_picture->i_pts * 1000 * p_flv->i_timebase_num / p_flv->i_timebase_den) + 0.5);
+    else
     {
-        unsigned length = c->d_cur - p_flv->start;
-        rewrite_amf_be24( c, length, p_flv->start - 10 );
-        x264_put_be32( c, 11 + length ); // Last tag size
-        CHECK( flv_flush_data( c ) );
-        p_flv->b_write_length = 0;
+        // Use DTS compression
+        dts = p_picture->i_dts - p_flv->i_delay_time;
+
+        if( p_flv->i_framenum == 1 )
+            p_flv->i_init_delta = p_picture->i_dts - p_flv->i_delay_time;
+
+        if( p_flv->i_framenum > p_flv->i_init_delay )
+        {
+            dts = p_flv->i_prev_timestamps[ (p_flv->i_framenum - p_flv->i_init_delay) % p_flv->i_init_delay ];
+            dts = (int64_t)((dts * 1000 * p_flv->i_timebase_num / p_flv->i_timebase_den) + 0.5);
+        }
+        else if( p_flv->i_init_delta )
+        {
+            // Compressed DTSs might not fit in input timescale
+            double compressed_dts;
+            compressed_dts = (p_flv->i_framenum * ((double)p_flv->i_init_delta / (2 * p_flv->i_init_delay)));
+            dts = (int64_t)((compressed_dts * 1000 * p_flv->i_timebase_num / p_flv->i_timebase_den) + 0.5);
+        }
+
+        p_flv->i_prev_timestamps[ p_flv->i_framenum % p_flv->i_init_delay ] = p_picture->i_dts - p_flv->i_delay_time;
+
+        cts = p_picture->i_pts;
+        cts = (int64_t)((cts * 1000 * p_flv->i_timebase_num / p_flv->i_timebase_den) + 0.5);
+     }
+
+    offset = cts - dts;
+
+    assert( cts >= dts );
+
+    // A new frame - write packet header
+    x264_put_byte( c, FLV_TAG_TYPE_VIDEO );
+    x264_put_be24( c, 0 ); // calculated later
+    x264_put_be24( c, dts );
+    x264_put_byte( c, dts >> 24 );
+    x264_put_be24( c, 0 );
+
+    p_flv->start = c->d_cur;
+    x264_put_byte( c, p_picture->i_type == X264_TYPE_IDR ? FLV_FRAME_KEY : FLV_FRAME_INTER );
+    x264_put_byte( c, 1 ); // AVC NALU
+    x264_put_be24( c, offset );
+
+    if( p_flv->sei )
+    {
+        flv_append_data( c, p_flv->sei, p_flv->sei_len );
+        free( p_flv->sei );
+        p_flv->sei = NULL;
     }
+    flv_append_data( c, p_nalu, i_size );
+
+    unsigned length = c->d_cur - p_flv->start;
+    rewrite_amf_be24( c, length, p_flv->start - 10 );
+    x264_put_be32( c, 11 + length ); // Last tag size
+    CHECK( flv_flush_data( c ) );
+
     p_flv->i_framenum++;
 
-    return 0;
+    return i_size;
 }
 
 static void rewrite_amf_double( FILE *fp, uint64_t position, double value )
@@ -267,20 +293,29 @@ static void rewrite_amf_double( FILE *fp, uint64_t position, double value )
     fwrite( &x, 8, 1, fp );
 }
 
-static int close_file( hnd_t handle )
+static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest_pts )
 {
     flv_hnd_t *p_flv = handle;
     flv_buffer *c = p_flv->c;
 
     CHECK( flv_flush_data( c ) );
 
+    double total_duration = (double)(2 * largest_pts - second_largest_pts) * p_flv->i_timebase_num / p_flv->i_timebase_den;
+
     if( x264_is_regular_file( c->fp ) )
     {
-        double duration = p_flv->i_fps_den * p_flv->i_framenum / p_flv->i_fps_num;
+        double framerate;
         uint64_t filesize = ftell( c->fp );
-        rewrite_amf_double( c->fp, p_flv->i_duration_pos, duration );
+
+        if( p_flv->i_framerate_pos )
+        {
+            framerate = (double)p_flv->i_framenum / total_duration;
+            rewrite_amf_double( c->fp, p_flv->i_framerate_pos, framerate );
+        }
+
+        rewrite_amf_double( c->fp, p_flv->i_duration_pos, total_duration );
         rewrite_amf_double( c->fp, p_flv->i_filesize_pos, filesize );
-        rewrite_amf_double( c->fp, p_flv->i_bitrate_pos, filesize * 8 / ( duration * 1000 ) );
+        rewrite_amf_double( c->fp, p_flv->i_bitrate_pos, filesize * 8 / ( total_duration * 1000 ) );
     }
 
     fclose( c->fp );
@@ -290,4 +325,4 @@ static int close_file( hnd_t handle )
     return 0;
 }
 
-cli_output_t flv_output = { open_file, set_param, write_nalu, set_eop, close_file };
+cli_output_t flv_output = { open_file, set_param, write_headers, write_frame, close_file };

@@ -30,14 +30,32 @@ typedef struct
     int next_frame;
 } yuv_hnd_t;
 
-static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
+static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, cli_input_opt_t *opt )
 {
     yuv_hnd_t *h = malloc( sizeof(yuv_hnd_t) );
     if( !h )
         return -1;
-    h->width = p_param->i_width;
-    h->height = p_param->i_height;
+
+    if( !opt->resolution )
+    {
+        /* try to parse the file name */
+        char *p;
+        for( p = psz_filename; *p; p++ )
+            if( *p >= '0' && *p <= '9' && sscanf( p, "%ux%u", &info->width, &info->height ) == 2 )
+                break;
+    }
+    else
+        sscanf( opt->resolution, "%ux%u", &info->width, &info->height );
+    if( !info->width || !info->height )
+    {
+        fprintf( stderr, "yuv [error]: rawyuv input requires a resolution.\n" );
+        return -1;
+    }
+
     h->next_frame = 0;
+    info->vfr     = 0;
+    h->width      = info->width;
+    h->height     = info->height;
 
     if( !strcmp( psz_filename, "-" ) )
         h->fh = stdin;

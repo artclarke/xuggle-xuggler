@@ -8,6 +8,8 @@ echo "available options:"
 echo ""
 echo "  --help                   print this message"
 echo "  --disable-avs-input      disables avisynth input (win32 only)"
+echo "  --disable-lavf-input     disables libavformat input"
+echo "  --disable-ffms-input     disables ffmpegsource input"
 echo "  --disable-mp4-output     disables mp4 output (using gpac)"
 echo "  --disable-pthread        disables multithreaded encoding"
 echo "  --disable-asm            disables assembly optimizations on x86 and arm"
@@ -29,7 +31,7 @@ cc_check() {
     rm -f conftest.c
     [ -n "$1" ] && echo "#include <$1>" > conftest.c
     echo "int main () { $3 return 0; }" >> conftest.c
-    $CC conftest.c $CFLAGS $LDFLAGS $2 -o conftest 2>$DEVNULL
+    $CC conftest.c $CFLAGS $LDFLAGS $LDFLAGSCLI $2 -o conftest 2>$DEVNULL
 }
 
 as_check() {
@@ -52,6 +54,8 @@ includedir='${prefix}/include'
 DEVNULL='/dev/null'
 
 avs_input="auto"
+lavf_input="auto"
+ffms_input="auto"
 mp4_output="auto"
 pthread="auto"
 asm="yes"
@@ -63,6 +67,7 @@ shared="no"
 
 CFLAGS="$CFLAGS -Wall -I."
 LDFLAGS="$LDFLAGS"
+LDFLAGSCLI="$LDFLAGSCLI"
 ASFLAGS="$ASFLAGS"
 HAVE_GETOPT_LONG=1
 cross_prefix=""
@@ -95,16 +100,23 @@ for opt do
         --disable-asm)
             asm="no"
             ;;
-        --enable-avs-input=*)
-            avs_input="$optarg"
-            if [ "$avs_input" != "auto" -a "$avs_input" != "vfw" -a "$avs_input" != "avs" ] ; then
-                echo "unrecognized enable-avis-input option '$avs_input'"
-                echo "available options are 'auto', 'avs', or 'vfw'"
-                avs_input="auto"
-            fi
+        --enable-avs-input)
+            avs_input="auto"
             ;;
         --disable-avs-input)
             avs_input="no"
+            ;;
+        --enable-lavf-input)
+            lavf_input="auto"
+            ;;
+        --disable-lavf-input)
+            lavf_input="no"
+            ;;
+        --enable-ffms-input)
+            ffms_input="auto"
+            ;;
+        --disable-ffms-input)
+            ffms_input="no"
             ;;
         --enable-mp4-output)
             mp4_output="yes"
@@ -402,6 +414,48 @@ if test "$pthread" = "yes" ; then
     LDFLAGS="$LDFLAGS $libpthread"
 fi
 
+if [ "$lavf_input" = "auto" ] ; then
+    lavf_input="no"
+    if [ `pkg-config --exists libavformat libavcodec libswscale 2>$DEVNULL` ] ; then
+        LAVF_LDFLAGS="$LAVF_LDFLAGS $(pkg-config --libs libavformat libavcodec libswscale)"
+        LAVF_CDFLAGS="$LAVF_CFLAGS $(pkg-config --cflags libavformat libavcodec libswscale)"
+    fi
+    if [ -z "$LAVF_LDFLAGS" -a -z "$LAVF_CFLAGS" ]; then
+        LAVF_LDFLAGS="-lavformat -lswscale"
+        for lib in -lpostproc -lavcodec -lavutil -lm -lz -lbz2 $libpthread -lavifil32; do
+            cc_check "" $lib && LAVF_LDFLAGS="$LAVF_LDFLAGS $lib"
+        done
+    fi
+    LAVF_LDFLAGS="-L. $LAVF_LDFLAGS"
+    if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LDFLAGS" && \
+       cc_check libswscale/swscale.h "$LAVF_CFLAGS $LAVF_LDFLAGS" ; then
+        # avcodec_decode_video2 is currently the most recently added function that we use; it was added in r18351
+        if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LDFLAGS" "avcodec_decode_video2( NULL, NULL, NULL, NULL );" ; then
+            lavf_input="yes"
+            echo "#define LAVF_INPUT" >> config.h
+            LDFLAGSCLI="$LDFLAGSCLI $LAVF_LDFLAGS"
+            [ -n "$LAVF_CFLAGS" ] && CFLAGS="$CFLAGS $LAVF_CFLAGS"
+        else
+            echo "Warning: libavformat is too old, update to ffmpeg r18351+"
+        fi
+    fi
+fi
+
+if [ "$ffms_input" = "auto" ] ; then
+    ffms_input="no"
+    if [ "$lavf_input" = "yes" ] ; then
+        if cc_check ffms.h -lFFMS2 "FFMS_DestroyVideoSource(0);" ; then
+           ffms_input="yes"
+           echo "#define FFMS_INPUT" >> config.h
+           LDFLAGSCLI="$LDFLAGSCLI -lFFMS2"
+        elif cc_check ffms.h "-lFFMS2 $LAVF_LDFLAGS -lstdc++" "FFMS_DestroyVideoSource(0);" ; then
+           ffms_input="yes"
+           echo "#define FFMS_INPUT" >> config.h
+           LDFLAGSCLI="-lFFMS2 $LDFLAGSCLI -lstdc++"
+        fi
+    fi
+fi
+
 MP4_LDFLAGS="-lgpac_static"
 if [ $SYS = MINGW ]; then
     MP4_LDFLAGS="$MP4_LDFLAGS -lwinmm"
@@ -412,32 +466,18 @@ if [ "$mp4_output" = "auto" ] ; then
 fi
 if [ "$mp4_output" = "yes" ] ; then
     echo "#define MP4_OUTPUT" >> config.h
-    LDFLAGS="$LDFLAGS $MP4_LDFLAGS"
+    LDFLAGSCLI="$LDFLAGSCLI $MP4_LDFLAGS"
 fi
 
-if [ "$avs_input" = "auto" -o "$avs_input" = "avs" ] ; then
+if [ "$avs_input" = "auto" ] ; then
+    avs_input=no
     if [ $SYS = MINGW ] && cc_check avisynth_c.h ; then
-        avs_input="avs"
+        avs_input="yes"
         echo "#define AVS_INPUT" >> config.h
         echo "#define HAVE_AVISYNTH_C_H" >> config.h
     elif [ $SYS = MINGW ] && cc_check extras/avisynth_c.h ; then
-        avs_input="avs"
+        avs_input="yes"
         echo "#define AVS_INPUT" >> config.h
-    else
-        avs_input="auto"
-    fi
-fi
-if [ "$avs_input" = "auto" -o "$avs_input" = "vfw" ] ; then
-    if [ $SYS = MINGW ] && cc_check "stdlib.h" -lvfw32 ; then
-        echo "#define VFW_INPUT" >> config.h
-        LDFLAGS="$LDFLAGS -lvfw32"
-        avs_input="vfw"
-    elif [ $SYS = MINGW ] && cc_check "stdlib.h" -lavifil32 ; then
-        echo "#define VFW_INPUT" >> config.h
-        LDFLAGS="$LDFLAGS -lavifil32"
-        avs_input="vfw"
-    else
-        avs_input="no";
     fi
 fi
 
@@ -486,6 +526,7 @@ SYS=$SYS
 CC=$CC
 CFLAGS=$CFLAGS
 LDFLAGS=$LDFLAGS
+LDFLAGSCLI=$LDFLAGSCLI
 AR=$AR
 RANLIB=$RANLIB
 STRIP=$STRIP
@@ -541,6 +582,8 @@ echo "Platform:   $ARCH"
 echo "System:     $SYS"
 echo "asm:        $asm"
 echo "avs input:  $avs_input"
+echo "lavf input: $lavf_input"
+echo "ffms input: $ffms_input"
 echo "mp4 output: $mp4_output"
 echo "pthread:    $pthread"
 echo "debug:      $debug"

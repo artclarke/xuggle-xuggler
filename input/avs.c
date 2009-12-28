@@ -117,7 +117,7 @@ static void avs_build_filter_sequence( char *filename_ext, const char *filter[AV
         filter[i++] = all_purpose[j];
 }
 
-static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
+static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, cli_input_opt_t *opt )
 {
     FILE *fh = fopen( psz_filename, "r" );
     if( !fh )
@@ -175,7 +175,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
         int i;
         for( i = 0; filter[i]; i++ )
         {
-            fprintf( stderr, "avs [info]: Trying %s... ", filter[i] );
+            fprintf( stderr, "avs [info]: trying %s... ", filter[i] );
             if( !h->func.avs_function_exists( h->env, filter[i] ) )
             {
                 fprintf( stderr, "not found\n" );
@@ -183,7 +183,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
             }
             if( !strncasecmp( filter[i], "FFmpegSource", 12 ) )
             {
-                fprintf( stderr, "Indexing... " );
+                fprintf( stderr, "indexing... " );
                 fflush( stderr );
             }
             res = h->func.avs_invoke( h->env, filter[i], arg, NULL );
@@ -225,13 +225,13 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
     {
         h->func.avs_release_clip( h->clip );
         fprintf( stderr, "avs %s\n", !avs_is_yv12( vi ) ? "[warning]: converting input clip to YV12"
-               : "[info]: Avisynth 2.6+ detected, forcing conversion to YV12" );
+               : "[info]: avisynth 2.6+ detected, forcing conversion to YV12" );
         const char *arg_name[2] = { NULL, "interlaced" };
-        AVS_Value arg_arr[2] = { res, avs_new_value_bool( p_param->b_interlaced ) };
+        AVS_Value arg_arr[2] = { res, avs_new_value_bool( info->interlaced ) };
         AVS_Value res2 = h->func.avs_invoke( h->env, "ConvertToYV12", avs_new_value_array( arg_arr, 2 ), arg_name );
         if( avs_is_error( res2 ) )
         {
-            fprintf( stderr, "avs [error]: Couldn't convert input clip to YV12\n" );
+            fprintf( stderr, "avs [error]: couldn't convert input clip to YV12\n" );
             return -1;
         }
         h->clip = h->func.avs_take_clip( res2, h->env );
@@ -240,17 +240,13 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
     }
     h->func.avs_release_value( res );
 
-    p_param->i_width = vi->width;
-    p_param->i_height = vi->height;
-    p_param->i_fps_num = vi->fps_numerator;
-    p_param->i_fps_den = vi->fps_denominator;
+    info->width = vi->width;
+    info->height = vi->height;
+    info->fps_num = vi->fps_numerator;
+    info->fps_den = vi->fps_denominator;
     h->num_frames = vi->num_frames;
-    p_param->i_csp = X264_CSP_YV12;
-
-    fprintf( stderr, "avs [info]: %dx%d @ %.2f fps (%d frames)\n",
-             p_param->i_width, p_param->i_height,
-             (double)p_param->i_fps_num / p_param->i_fps_den,
-             h->num_frames );
+    info->csp = X264_CSP_YV12;
+    info->vfr = 0;
 
     *p_handle = h;
     return 0;

@@ -1327,17 +1327,22 @@ void x264_slicetype_decide( x264_t *h )
 
     /* shift sequence to coded order.
        use a small temporary list to avoid shifting the entire next buffer around */
-    int i_dts = h->lookahead->next.list[0]->i_frame;
+    int i_coded = h->lookahead->next.list[0]->i_frame;
     if( bframes )
     {
         int index[] = { brefs+1, 1 };
         for( i = 0; i < bframes; i++ )
-            frames[ index[h->lookahead->next.list[i]->i_type == X264_TYPE_BREF]++ ] = h->lookahead->next.list[i];
+        {
+            int idx = index[h->lookahead->next.list[i]->i_type == X264_TYPE_BREF]++;
+            frames[idx] = h->lookahead->next.list[i];
+            frames[idx]->i_dts = h->lookahead->next.list[idx]->i_pts;
+        }
         frames[0] = h->lookahead->next.list[bframes];
+        frames[0]->i_dts = h->lookahead->next.list[0]->i_pts;
         memcpy( h->lookahead->next.list, frames, (bframes+1) * sizeof(x264_frame_t*) );
     }
     for( i = 0; i <= bframes; i++ )
-         h->lookahead->next.list[i]->i_dts = i_dts++;
+         h->lookahead->next.list[i]->i_coded = i_coded++;
 }
 
 int x264_rc_analyse_slice( x264_t *h )

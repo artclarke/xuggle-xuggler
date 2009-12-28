@@ -38,19 +38,23 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
     return 0;
 }
 
-static int write_nalu( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_t *p_picture )
+static int write_headers( hnd_t handle, x264_nal_t *p_nal )
 {
-    if( fwrite( p_nalu, i_size, 1, (FILE*)handle ) > 0 )
+    int size = p_nal[0].i_payload + p_nal[1].i_payload + p_nal[2].i_payload;
+
+    if( fwrite( p_nal[0].p_payload, size, 1, (FILE*)handle ) )
+        return size;
+    return -1;
+}
+
+static int write_frame( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_t *p_picture )
+{
+    if( fwrite( p_nalu, i_size, 1, (FILE*)handle ) )
         return i_size;
     return -1;
 }
 
-static int set_eop( hnd_t handle, x264_picture_t *p_picture )
-{
-    return 0;
-}
-
-static int close_file( hnd_t handle )
+static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest_pts )
 {
     if( !handle || handle == stdout )
         return 0;
@@ -58,4 +62,5 @@ static int close_file( hnd_t handle )
     return fclose( (FILE*)handle );
 }
 
-cli_output_t raw_output = { open_file, set_param, write_nalu, set_eop, close_file };
+cli_output_t raw_output = { open_file, set_param, write_headers, write_frame, close_file };
+

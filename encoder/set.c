@@ -180,12 +180,12 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     }
 
     sps->vui.b_timing_info_present = 0;
-    if( param->i_fps_num > 0 && param->i_fps_den > 0)
+    if( param->i_timebase_num > 0 && param->i_timebase_den > 0 )
     {
         sps->vui.b_timing_info_present = 1;
-        sps->vui.i_num_units_in_tick = param->i_fps_den;
-        sps->vui.i_time_scale = param->i_fps_num * 2;
-        sps->vui.b_fixed_frame_rate = 1;
+        sps->vui.i_num_units_in_tick = param->i_timebase_num;
+        sps->vui.i_time_scale = param->i_timebase_den * 2;
+        sps->vui.b_fixed_frame_rate = !param->b_vfr_input;
     }
 
     sps->vui.i_num_reorder_frames = param->i_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;

@@ -37,7 +37,7 @@ typedef struct
 #define Y4M_FRAME_MAGIC "FRAME"
 #define MAX_FRAME_HEADER 80
 
-static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
+static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, cli_input_opt_t *opt )
 {
     y4m_hnd_t *h = malloc( sizeof(y4m_hnd_t) );
     int  i, n, d;
@@ -47,6 +47,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
         return -1;
 
     h->next_frame = 0;
+    info->vfr = 0;
 
     if( !strcmp( psz_filename, "-" ) )
         h->fh = stdin;
@@ -83,17 +84,17 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
         switch( *tokstart++ )
         {
             case 'W': /* Width. Required. */
-                h->width = p_param->i_width = strtol( tokstart, &tokend, 10 );
+                h->width = info->width = strtol( tokstart, &tokend, 10 );
                 tokstart=tokend;
                 break;
             case 'H': /* Height. Required. */
-                h->height = p_param->i_height = strtol( tokstart, &tokend, 10 );
+                h->height = info->height = strtol( tokstart, &tokend, 10 );
                 tokstart=tokend;
                 break;
             case 'C': /* Color space */
                 if( strncmp( "420", tokstart, 3 ) )
                 {
-                    fprintf( stderr, "Colorspace unhandled\n" );
+                    fprintf( stderr, "y4m [error]: colorspace unhandled\n" );
                     return -1;
                 }
                 tokstart = strchr( tokstart, 0x20 );
@@ -107,25 +108,25 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
                     case 'b':
                     case 'm':
                     default:
-                        fprintf( stderr, "Warning, this sequence might be interlaced\n" );
+                        info->interlaced = 1;
                 }
                 break;
             case 'F': /* Frame rate - 0:0 if unknown */
                 if( sscanf( tokstart, "%d:%d", &n, &d ) == 2 && n && d )
                 {
                     x264_reduce_fraction( &n, &d );
-                    p_param->i_fps_num = n;
-                    p_param->i_fps_den = d;
+                    info->fps_num = n;
+                    info->fps_den = d;
                 }
                 tokstart = strchr( tokstart, 0x20 );
                 break;
             case 'A': /* Pixel aspect - 0:0 if unknown */
                 /* Don't override the aspect ratio if sar has been explicitly set on the commandline. */
-                if( sscanf( tokstart, "%d:%d", &n, &d ) == 2 && n && d && !p_param->vui.i_sar_width && !p_param->vui.i_sar_height )
+                if( sscanf( tokstart, "%d:%d", &n, &d ) == 2 && n && d )
                 {
                     x264_reduce_fraction( &n, &d );
-                    p_param->vui.i_sar_width = n;
-                    p_param->vui.i_sar_height = d;
+                    info->sar_width  = n;
+                    info->sar_height = d;
                 }
                 tokstart = strchr( tokstart, 0x20 );
                 break;
@@ -138,7 +139,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
                         strncmp( "420MPEG2",tokstart, 8 ) &&
                         strncmp( "420PALDV",tokstart, 8 ) )
                     {
-                        fprintf( stderr, "Unsupported extended colorspace\n" );
+                        fprintf( stderr, "y4m [error]: unsupported extended colorspace\n" );
                         return -1;
                     }
                 }
@@ -146,10 +147,6 @@ static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param
                 break;
         }
     }
-
-    fprintf( stderr, "yuv4mpeg: %ix%i@%i/%ifps, %i:%i\n",
-             h->width, h->height, p_param->i_fps_num, p_param->i_fps_den,
-             p_param->vui.i_sar_width, p_param->vui.i_sar_height );
 
     *p_handle = h;
     return 0;
@@ -187,7 +184,7 @@ static int read_frame_internal( x264_picture_t *p_pic, y4m_hnd_t *h )
     header[slen] = 0;
     if( strncmp( header, Y4M_FRAME_MAGIC, slen ) )
     {
-        fprintf( stderr, "Bad header magic (%"PRIx32" <=> %s)\n",
+        fprintf( stderr, "y4m [error]: bad header magic (%"PRIx32" <=> %s)\n",
                  M32(header), header );
         return -1;
     }
@@ -197,7 +194,7 @@ static int read_frame_internal( x264_picture_t *p_pic, y4m_hnd_t *h )
         i++;
     if( i == MAX_FRAME_HEADER )
     {
-        fprintf( stderr, "Bad frame header!\n" );
+        fprintf( stderr, "y4m [error]: bad frame header!\n" );
         return -1;
     }
     h->frame_header_len = i+slen+1;

@@ -45,10 +45,10 @@ typedef struct thread_input_arg_t
     int status;
 } thread_input_arg_t;
 
-static int open_file( char *psz_filename, hnd_t *p_handle, x264_param_t *p_param )
+static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, cli_input_opt_t *opt )
 {
     thread_hnd_t *h = malloc( sizeof(thread_hnd_t) );
-    if( !h || input.picture_alloc( &h->pic, p_param->i_csp, p_param->i_width, p_param->i_height ) )
+    if( !h || input.picture_alloc( &h->pic, info->csp, info->width, info->height ) )
     {
         fprintf( stderr, "x264 [error]: malloc failed\n" );
         return -1;

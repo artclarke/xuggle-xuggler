@@ -31,12 +31,14 @@ typedef struct
     GF_ISOSample *p_sample;
     int i_track;
     uint32_t i_descidx;
-    int i_time_inc;
     int i_time_res;
+    int64_t i_time_inc;
     int i_numframe;
     int i_init_delay;
-    uint8_t b_sps;
-    uint8_t b_pps;
+    int i_delay_time;
+
+    int64_t i_prev_timestamps[2];
+    int64_t i_init_delta;
 } mp4_hnd_t;
 
 static void recompute_bitrate_mp4( GF_ISOFile *p_file, int i_track )
@@ -59,9 +61,11 @@ static void recompute_bitrate_mp4( GF_ISOFile *p_file, int i_track )
     for( i = 0; i < count; i++ )
     {
         GF_ISOSample *samp = gf_isom_get_sample_info( p_file, i_track, i+1, &di, &offset );
-
-        if( samp->dataLength>esd->decoderConfig->bufferSizeDB )
-            esd->decoderConfig->bufferSizeDB = samp->dataLength;
+        if( !samp )
+        {
+            fprintf( stderr, "mp4 [error]: failure reading back frame %u\n", i );
+            break;
+        }
 
         if( esd->decoderConfig->bufferSizeDB < samp->dataLength )
             esd->decoderConfig->bufferSizeDB = samp->dataLength;
@@ -90,9 +94,10 @@ static void recompute_bitrate_mp4( GF_ISOFile *p_file, int i_track )
     gf_odf_desc_del( (GF_Descriptor*)esd );
 }
 
-static int close_file( hnd_t handle )
+static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest_pts )
 {
     mp4_hnd_t *p_mp4 = handle;
+    uint64_t total_duration = 0;
 
     if( !p_mp4 )
         return 0;
@@ -110,6 +115,34 @@ static int close_file( hnd_t handle )
 
     if( p_mp4->p_file )
     {
+        /* The mdhd duration is defined as CTS[final] - CTS[0] + duration of last frame.
+         * The mdhd duration (in seconds) should be able to be longer than the tkhd duration since the track is managed by edts.
+         * So, if mdhd duration is equal to the last DTS or less, we give the last composition time delta to the last sample duration.
+         * And then, the mdhd duration is updated, but it time-wise doesn't give the actual duration.
+         * The tkhd duration is the actual track duration. */
+        uint64_t mdhd_duration = (2 * largest_pts - second_largest_pts - p_mp4->i_delay_time) * p_mp4->i_time_inc;
+        total_duration = gf_isom_get_media_duration( p_mp4->p_file, p_mp4->i_track );
+        if( mdhd_duration != total_duration )
+        {
+            uint64_t last_dts = gf_isom_get_sample_dts( p_mp4->p_file, p_mp4->i_track, p_mp4->i_numframe );
+            uint32_t last_duration = (uint32_t)( mdhd_duration > last_dts ? mdhd_duration - last_dts : (largest_pts - second_largest_pts) * p_mp4->i_time_inc  );
+            gf_isom_set_last_sample_duration( p_mp4->p_file, p_mp4->i_track, last_duration );
+            total_duration = gf_isom_get_media_duration( p_mp4->p_file, p_mp4->i_track );
+        }
+
+        /* Write an Edit Box if the first CTS offset is positive.
+         * A media_time is given by not the mvhd timescale but rather the mdhd timescale.
+         * The reason is that an Edit Box maps the presentation time-line to the media time-line.
+         * Any demuxers should follow the Edit Box if it exists. */
+        GF_ISOSample *sample = gf_isom_get_sample_info( p_mp4->p_file, p_mp4->i_track, 1, NULL, NULL );
+        if( sample->CTS_Offset > 0 )
+        {
+            uint32_t mvhd_timescale = gf_isom_get_timescale( p_mp4->p_file );
+            uint64_t tkhd_duration = (uint64_t)( mdhd_duration * ( (double)mvhd_timescale / p_mp4->i_time_res ) );
+            gf_isom_append_edit_segment( p_mp4->p_file, p_mp4->i_track, tkhd_duration, sample->CTS_Offset, GF_ISOM_EDIT_NORMAL );
+        }
+        gf_isom_sample_del( &sample );
+
         recompute_bitrate_mp4( p_mp4->p_file, p_mp4->i_track );
         gf_isom_set_pl_indication( p_mp4->p_file, GF_ISOM_PL_VISUAL, 0x15 );
         gf_isom_set_storage_mode( p_mp4->p_file, GF_ISOM_STORE_FLAT );
@@ -144,7 +177,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle )
 
     if( !(p_mp4->p_sample = gf_isom_sample_new()) )
     {
-        close_file( p_mp4 );
+        close_file( p_mp4, 0, 0 );
         return -1;
     }
 
@@ -159,8 +192,13 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
 {
     mp4_hnd_t *p_mp4 = handle;
 
+    p_mp4->i_time_res = p_param->i_timebase_den;
+    p_mp4->i_time_inc = p_param->i_timebase_num;
+
+    p_mp4->i_init_delay = p_param->i_bframe ? (p_param->i_bframe_pyramid ? 2 : 1) : 0;
+
     p_mp4->i_track = gf_isom_new_track( p_mp4->p_file, 0, GF_ISOM_MEDIA_VISUAL,
-                                        p_param->i_fps_num );
+                                        p_mp4->i_time_res );
 
     p_mp4->p_config = gf_odf_avc_cfg_new();
     gf_isom_avc_config_new( p_mp4->p_file, p_mp4->i_track, p_mp4->p_config,
@@ -187,90 +225,88 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
     if( !p_mp4->p_sample->data )
         return -1;
 
-    p_mp4->i_time_res = p_param->i_fps_num;
-    p_mp4->i_time_inc = p_param->i_fps_den;
-    p_mp4->i_init_delay = p_param->i_bframe ? (p_param->i_bframe_pyramid ? 2 : 1) : 0;
-    p_mp4->i_init_delay *= p_mp4->i_time_inc;
-    fprintf( stderr, "mp4 [info]: initial delay %d (scale %d)\n",
-             p_mp4->i_init_delay, p_mp4->i_time_res );
-
     return 0;
 }
 
-static int write_nalu( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_t *p_picture )
+static int write_headers( hnd_t handle, x264_nal_t *p_nal )
 {
     mp4_hnd_t *p_mp4 = handle;
     GF_AVCConfigSlot *p_slot;
-    uint8_t type = p_nalu[4] & 0x1f;
-    int psize;
 
-    switch( type )
-    {
-        // sps
-        case 0x07:
-            if( !p_mp4->b_sps )
-            {
-                p_mp4->p_config->configurationVersion = 1;
-                p_mp4->p_config->AVCProfileIndication = p_nalu[5];
-                p_mp4->p_config->profile_compatibility = p_nalu[6];
-                p_mp4->p_config->AVCLevelIndication = p_nalu[7];
-                p_slot = malloc( sizeof(GF_AVCConfigSlot) );
-                if( !p_slot )
-                    return -1;
-                p_slot->size = i_size - 4;
-                p_slot->data = malloc( p_slot->size );
-                if( !p_slot->data )
-                    return -1;
-                memcpy( p_slot->data, p_nalu + 4, i_size - 4 );
-                gf_list_add( p_mp4->p_config->sequenceParameterSets, p_slot );
-                p_slot = NULL;
-                p_mp4->b_sps = 1;
-            }
-            break;
+    int sei_size = p_nal[0].i_payload;
+    int sps_size = p_nal[1].i_payload - 4;
+    int pps_size = p_nal[2].i_payload - 4;
 
-        // pps
-        case 0x08:
-            if( !p_mp4->b_pps )
-            {
-                p_slot = malloc( sizeof(GF_AVCConfigSlot) );
-                if( !p_slot )
-                    return -1;
-                p_slot->size = i_size - 4;
-                p_slot->data = malloc( p_slot->size );
-                if( !p_slot->data )
-                    return -1;
-                memcpy( p_slot->data, p_nalu + 4, i_size - 4 );
-                gf_list_add( p_mp4->p_config->pictureParameterSets, p_slot );
-                p_slot = NULL;
-                p_mp4->b_pps = 1;
-                if( p_mp4->b_sps )
-                    gf_isom_avc_config_update( p_mp4->p_file, p_mp4->i_track, 1, p_mp4->p_config );
-            }
-            break;
+    uint8_t *sei = p_nal[0].p_payload;
+    uint8_t *sps = p_nal[1].p_payload + 4;
+    uint8_t *pps = p_nal[2].p_payload + 4;
 
-        // slice, sei
-        case 0x1:
-        case 0x5:
-        case 0x6:
-            psize = i_size - 4;
-            memcpy( p_mp4->p_sample->data + p_mp4->p_sample->dataLength, p_nalu, i_size );
-            p_mp4->p_sample->data[p_mp4->p_sample->dataLength + 0] = psize >> 24;
-            p_mp4->p_sample->data[p_mp4->p_sample->dataLength + 1] = psize >> 16;
-            p_mp4->p_sample->data[p_mp4->p_sample->dataLength + 2] = psize >>  8;
-            p_mp4->p_sample->data[p_mp4->p_sample->dataLength + 3] = psize >>  0;
-            p_mp4->p_sample->dataLength += i_size;
-            break;
-    }
+    // SPS
 
-    return i_size;
+    p_mp4->p_config->configurationVersion = 1;
+    p_mp4->p_config->AVCProfileIndication = sps[1];
+    p_mp4->p_config->profile_compatibility = sps[2];
+    p_mp4->p_config->AVCLevelIndication = sps[3];
+    p_slot = malloc( sizeof(GF_AVCConfigSlot) );
+    if( !p_slot )
+        return -1;
+    p_slot->size = sps_size;
+    p_slot->data = malloc( p_slot->size );
+    if( !p_slot->data )
+        return -1;
+    memcpy( p_slot->data, sps, sps_size );
+    gf_list_add( p_mp4->p_config->sequenceParameterSets, p_slot );
+
+    // PPS
+
+    p_slot = malloc( sizeof(GF_AVCConfigSlot) );
+    if( !p_slot )
+        return -1;
+    p_slot->size = pps_size;
+    p_slot->data = malloc( p_slot->size );
+    if( !p_slot->data )
+        return -1;
+    memcpy( p_slot->data, pps, pps_size );
+    gf_list_add( p_mp4->p_config->pictureParameterSets, p_slot );
+    gf_isom_avc_config_update( p_mp4->p_file, p_mp4->i_track, 1, p_mp4->p_config );
+
+    // SEI
+
+    memcpy( p_mp4->p_sample->data + p_mp4->p_sample->dataLength, sei, sei_size );
+    p_mp4->p_sample->dataLength += sei_size;
+
+    return sei_size + sps_size + pps_size;
 }
-
-static int set_eop( hnd_t handle, x264_picture_t *p_picture )
+static int write_frame( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_t *p_picture )
 {
     mp4_hnd_t *p_mp4 = handle;
-    uint64_t dts = (uint64_t)p_mp4->i_numframe * p_mp4->i_time_inc;
-    uint64_t pts = (uint64_t)p_picture->i_pts;
-    int32_t offset = p_mp4->i_init_delay + pts - dts;
+    int64_t dts;
+    int64_t cts;
+    int32_t offset = 0;
+
+    memcpy( p_mp4->p_sample->data + p_mp4->p_sample->dataLength, p_nalu, i_size );
+    p_mp4->p_sample->dataLength += i_size;
+
+    if( !p_mp4->i_numframe )
+        p_mp4->i_delay_time = p_picture->i_dts * -1;
+
+    if( !p_mp4->i_init_delay )
+        dts = cts = p_picture->i_pts * p_mp4->i_time_inc;
+    else
+    {
+        if( p_mp4->i_numframe <= p_mp4->i_init_delay )
+            dts = p_picture->i_dts + p_mp4->i_delay_time;
+        else
+            dts = p_mp4->i_prev_timestamps[ (p_mp4->i_numframe - p_mp4->i_init_delay) % p_mp4->i_init_delay ] + p_mp4->i_delay_time;
+
+        // unordered pts
+        p_mp4->i_prev_timestamps[ p_mp4->i_numframe % p_mp4->i_init_delay ] = p_picture->i_dts + p_mp4->i_delay_time;
+
+        dts *= p_mp4->i_time_inc;
+        cts = (p_picture->i_pts + p_mp4->i_delay_time) * p_mp4->i_time_inc;
+
+        offset = cts - dts;
+    }
 
     p_mp4->p_sample->IsRAP = p_picture->i_type == X264_TYPE_IDR ? 1 : 0;
     p_mp4->p_sample->DTS = dts;
@@ -280,7 +316,7 @@ static int set_eop( hnd_t handle, x264_picture_t *p_picture )
     p_mp4->p_sample->dataLength = 0;
     p_mp4->i_numframe++;
 
-    return 0;
+    return i_size;
 }
 
-cli_output_t mp4_output = { open_file, set_param, write_nalu, set_eop, close_file };
+cli_output_t mp4_output = { open_file, set_param, write_headers, write_frame, close_file };

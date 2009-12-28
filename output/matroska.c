@@ -25,63 +25,15 @@ typedef struct
 {
     mk_writer *w;
 
-    uint8_t *sps, *pps;
-    int sps_len, pps_len;
-
     int width, height, d_width, d_height;
 
     int64_t frame_duration;
-    int fps_num;
 
-    int b_header_written;
     char b_writing_frame;
+    int i_timebase_num;
+    int i_timebase_den;
+
 } mkv_hnd_t;
-
-static int write_header( mkv_hnd_t *p_mkv )
-{
-    int ret;
-    uint8_t *avcC;
-    int avcC_len;
-
-    if( !p_mkv->sps || !p_mkv->pps ||
-        !p_mkv->width || !p_mkv->height ||
-        !p_mkv->d_width || !p_mkv->d_height )
-        return -1;
-
-    avcC_len = 5 + 1 + 2 + p_mkv->sps_len + 1 + 2 + p_mkv->pps_len;
-    avcC = malloc( avcC_len );
-    if( !avcC )
-        return -1;
-
-    avcC[0] = 1;
-    avcC[1] = p_mkv->sps[1];
-    avcC[2] = p_mkv->sps[2];
-    avcC[3] = p_mkv->sps[3];
-    avcC[4] = 0xff; // nalu size length is four bytes
-    avcC[5] = 0xe1; // one sps
-
-    avcC[6] = p_mkv->sps_len >> 8;
-    avcC[7] = p_mkv->sps_len;
-
-    memcpy( avcC+8, p_mkv->sps, p_mkv->sps_len );
-
-    avcC[8+p_mkv->sps_len] = 1; // one pps
-    avcC[9+p_mkv->sps_len] = p_mkv->pps_len >> 8;
-    avcC[10+p_mkv->sps_len] = p_mkv->pps_len;
-
-    memcpy( avcC+11+p_mkv->sps_len, p_mkv->pps, p_mkv->pps_len );
-
-    ret = mk_writeHeader( p_mkv->w, "x264", "V_MPEG4/ISO/AVC",
-                          avcC, avcC_len, p_mkv->frame_duration, 50000,
-                          p_mkv->width, p_mkv->height,
-                          p_mkv->d_width, p_mkv->d_height );
-
-    free( avcC );
-
-    p_mkv->b_header_written = 1;
-
-    return ret;
-}
 
 static int open_file( char *psz_filename, hnd_t *p_handle )
 {
@@ -112,16 +64,14 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
     mkv_hnd_t   *p_mkv = handle;
     int64_t dw, dh;
 
-    if( p_param->i_fps_num > 0 )
+    if( p_param->i_fps_num > 0 && !p_param->b_vfr_input )
     {
         p_mkv->frame_duration = (int64_t)p_param->i_fps_den *
                                 (int64_t)1000000000 / p_param->i_fps_num;
-        p_mkv->fps_num = p_param->i_fps_num;
     }
     else
     {
         p_mkv->frame_duration = 0;
-        p_mkv->fps_num = 1;
     }
 
     p_mkv->width = p_param->i_width;
@@ -147,99 +97,113 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
 
     p_mkv->d_width = (int)dw;
     p_mkv->d_height = (int)dh;
+    p_mkv->i_timebase_num = p_param->i_timebase_num;
+    p_mkv->i_timebase_den = p_param->i_timebase_den;
 
     return 0;
 }
 
-static int write_nalu( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_t *p_picture )
+static int write_headers( hnd_t handle, x264_nal_t *p_nal )
 {
     mkv_hnd_t *p_mkv = handle;
-    uint8_t type = p_nalu[4] & 0x1f;
-    uint8_t dsize[4];
-    int psize;
 
-    switch( type )
+    int sei_size = p_nal[0].i_payload;
+    int sps_size = p_nal[1].i_payload - 4;
+    int pps_size = p_nal[2].i_payload - 4;
+
+    uint8_t *sei = p_nal[0].p_payload;
+    uint8_t *sps = p_nal[1].p_payload + 4;
+    uint8_t *pps = p_nal[2].p_payload + 4;
+
+    int ret;
+    uint8_t *avcC;
+    int avcC_len;
+
+    if( !p_mkv->width || !p_mkv->height ||
+        !p_mkv->d_width || !p_mkv->d_height )
+        return -1;
+
+    avcC_len = 5 + 1 + 2 + sps_size + 1 + 2 + pps_size;
+    avcC = malloc( avcC_len );
+    if( !avcC )
+        return -1;
+
+    avcC[0] = 1;
+    avcC[1] = sps[1];
+    avcC[2] = sps[2];
+    avcC[3] = sps[3];
+    avcC[4] = 0xff; // nalu size length is four bytes
+    avcC[5] = 0xe1; // one sps
+
+    avcC[6] = sps_size >> 8;
+    avcC[7] = sps_size;
+
+    memcpy( avcC+8, sps, sps_size );
+
+    avcC[8+sps_size] = 1; // one pps
+    avcC[9+sps_size] = pps_size >> 8;
+    avcC[10+sps_size] = pps_size;
+
+    memcpy( avcC+11+sps_size, pps, pps_size );
+
+    ret = mk_writeHeader( p_mkv->w, "x264", "V_MPEG4/ISO/AVC",
+                          avcC, avcC_len, p_mkv->frame_duration, 50000,
+                          p_mkv->width, p_mkv->height,
+                          p_mkv->d_width, p_mkv->d_height );
+
+    free( avcC );
+
+    // SEI
+
+    if( !p_mkv->b_writing_frame )
     {
-        // sps
-        case 0x07:
-            if( !p_mkv->sps )
-            {
-                p_mkv->sps = malloc( i_size - 4 );
-                if( !p_mkv->sps )
-                    return -1;
-                p_mkv->sps_len = i_size - 4;
-                memcpy( p_mkv->sps, p_nalu + 4, i_size - 4 );
-            }
-            break;
+        if( mk_start_frame( p_mkv->w ) < 0 )
+            return -1;
+        p_mkv->b_writing_frame = 1;
+    }
+    if( mk_add_frame_data( p_mkv->w, sei, sei_size ) < 0 )
+        return -1;
 
-        // pps
-        case 0x08:
-            if( !p_mkv->pps )
-            {
-                p_mkv->pps = malloc( i_size - 4 );
-                if( !p_mkv->pps )
-                    return -1;
-                p_mkv->pps_len = i_size - 4;
-                memcpy( p_mkv->pps, p_nalu + 4, i_size - 4 );
-            }
-            break;
+    return sei_size + sps_size + pps_size;
+}
 
-        // slice, sei
-        case 0x1:
-        case 0x5:
-        case 0x6:
-            if( !p_mkv->b_writing_frame )
-            {
-                if( mk_start_frame( p_mkv->w ) < 0 )
-                    return -1;
-                p_mkv->b_writing_frame = 1;
-            }
-            psize = i_size - 4;
-            dsize[0] = psize >> 24;
-            dsize[1] = psize >> 16;
-            dsize[2] = psize >> 8;
-            dsize[3] = psize;
-            if( mk_add_frame_data( p_mkv->w, dsize, 4 ) < 0 ||
-                mk_add_frame_data( p_mkv->w, p_nalu + 4, i_size - 4 ) < 0 )
-                return -1;
-            break;
+static int write_frame( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_t *p_picture )
+{
+    mkv_hnd_t *p_mkv = handle;
 
-        default:
-            break;
+    if( !p_mkv->b_writing_frame )
+    {
+        if( mk_start_frame( p_mkv->w ) < 0 )
+            return -1;
+        p_mkv->b_writing_frame = 1;
     }
 
-    if( !p_mkv->b_header_written && p_mkv->pps && p_mkv->sps &&
-        write_header( p_mkv ) < 0 )
+    if( mk_add_frame_data( p_mkv->w, p_nalu, i_size ) < 0 )
+        return -1;
+
+    int64_t i_stamp = (int64_t)((p_picture->i_pts * 1e9 * p_mkv->i_timebase_num / p_mkv->i_timebase_den) + 0.5);
+
+    p_mkv->b_writing_frame = 0;
+
+    if( mk_set_frame_flags( p_mkv->w, i_stamp, p_picture->i_type == X264_TYPE_IDR ) < 0 )
         return -1;
 
     return i_size;
 }
 
-static int set_eop( hnd_t handle, x264_picture_t *p_picture )
-{
-    mkv_hnd_t *p_mkv = handle;
-    int64_t i_stamp = (int64_t)(p_picture->i_pts * 1e9 / p_mkv->fps_num);
-
-    p_mkv->b_writing_frame = 0;
-
-    return mk_set_frame_flags( p_mkv->w, i_stamp, p_picture->i_type == X264_TYPE_IDR );
-}
-
-static int close_file( hnd_t handle )
+static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest_pts )
 {
     mkv_hnd_t *p_mkv = handle;
     int ret;
+    int64_t i_last_delta;
 
-    if( p_mkv->sps )
-        free( p_mkv->sps );
-    if( p_mkv->pps )
-        free( p_mkv->pps );
+    i_last_delta = (int64_t)(((largest_pts - second_largest_pts) * p_mkv->i_timebase_num / p_mkv->i_timebase_den) + 0.5);
 
-    ret = mk_close( p_mkv->w );
+    ret = mk_close( p_mkv->w, i_last_delta );
 
     free( p_mkv );
 
     return ret;
 }
 
-cli_output_t mkv_output = { open_file, set_param, write_nalu, set_eop, close_file };
+cli_output_t mkv_output = { open_file, set_param, write_headers, write_frame, close_file };

@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 80
+#define X264_BUILD 81
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -311,6 +311,9 @@ typedef struct x264_param_t
     int b_annexb;               /* if set, place start codes (4 bytes) before NAL units,
                                  * otherwise place size (4 bytes) before NAL units. */
     int i_sps_id;               /* SPS and PPS id number */
+    int b_vfr_input;            /* VFR input */
+    int i_timebase_num;         /* Timebase numerator */
+    int i_timebase_den;         /* Timebase denominator */
 
     /* Slicing parameters */
     int i_slice_max_size;    /* Max size per slice in bytes; includes estimated NAL overhead. */
@@ -382,6 +385,9 @@ typedef struct
     int     i_qpplus1;
     /* In: user pts, Out: pts of encoded picture (user)*/
     int64_t i_pts;
+    /* Out: frame dts. Since the pts of the first frame is always zero,
+     *      initial frames may have a negative dts which must be dealt with by any muxer */
+    int64_t i_dts;
     /* In: custom encoding parameters to be set from this frame forwards
            (in coded order, not display order). If NULL, continue using
            parameters from the previous frame.  Some parameters, such as

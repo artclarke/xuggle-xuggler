@@ -19,16 +19,20 @@ SRCCLI = x264.c input/yuv.c input/y4m.c output/raw.c \
 MUXERS := $(shell grep -E "(IN|OUT)PUT" config.h)
 
 # Optional muxer module sources
-ifneq ($(findstring VFW_INPUT, $(MUXERS)),)
-SRCCLI += input/vfw.c
-endif
-
 ifneq ($(findstring AVS_INPUT, $(MUXERS)),)
 SRCCLI += input/avs.c
 endif
 
 ifneq ($(findstring HAVE_PTHREAD, $(CFLAGS)),)
 SRCCLI += input/thread.c
+endif
+
+ifneq ($(findstring LAVF_INPUT, $(MUXERS)),)
+SRCCLI += input/lavf.c
+endif
+
+ifneq ($(findstring FFMS_INPUT, $(MUXERS)),)
+SRCCLI += input/ffms.c
 endif
 
 ifneq ($(findstring MP4_OUTPUT, $(MUXERS)),)
@@ -110,8 +114,8 @@ libx264.a: .depend $(OBJS) $(OBJASM)
 $(SONAME): .depend $(OBJS) $(OBJASM)
 	$(CC) -shared -o $@ $(OBJS) $(OBJASM) $(SOFLAGS) $(LDFLAGS)
 
-x264$(EXE): $(OBJCLI) libx264.a 
-	$(CC) -o $@ $+ $(LDFLAGS)
+x264$(EXE): $(OBJCLI) libx264.a
+	$(CC) -o $@ $+ $(LDFLAGS) $(LDFLAGSCLI)
 
 checkasm: tools/checkasm.o libx264.a
 	$(CC) -o $@ $+ $(LDFLAGS)

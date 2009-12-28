@@ -156,6 +156,7 @@ void    x264_param_default( x264_param_t *param )
     param->b_repeat_headers = 1;
     param->b_annexb = 1;
     param->b_aud = 0;
+    param->b_vfr_input = 1;
 }
 
 static int parse_enum( const char *arg, const char * const *names, int *dst )
@@ -615,6 +616,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->b_repeat_headers = atobool(value);
     OPT("annexb")
         p->b_annexb = atobool(value);
+    OPT("force-cfr")
+        p->b_vfr_input = !atobool(value);
     else
         return X264_PARAM_BAD_NAME;
 #undef OPT

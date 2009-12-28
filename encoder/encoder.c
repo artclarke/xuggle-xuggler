@@ -395,7 +395,8 @@ static int x264_validate_parameters( x264_t *h )
                   h->param.i_width, h->param.i_height );
         return -1;
     }
-    if( h->param.i_csp != X264_CSP_I420 && h->param.i_csp != X264_CSP_YV12 )
+    int i_csp = h->param.i_csp & X264_CSP_MASK;
+    if( i_csp != X264_CSP_I420 && i_csp != X264_CSP_YV12 )
     {
         x264_log( h, X264_LOG_ERROR, "invalid CSP (only I420/YV12 supported)\n" );
         return -1;
@@ -558,6 +559,12 @@ static int x264_validate_parameters( x264_t *h )
         float bufsize = maxrate ? (float)h->param.rc.i_vbv_buffer_size / maxrate : 0;
         float fps = h->param.i_fps_num > 0 && h->param.i_fps_den > 0 ? (float) h->param.i_fps_num / h->param.i_fps_den : 25.0;
         h->param.rc.i_lookahead = X264_MIN( h->param.rc.i_lookahead, X264_MAX( h->param.i_keyint_max, bufsize*fps ) );
+    }
+
+    if( !h->param.i_timebase_num || !h->param.i_timebase_den )
+    {
+        h->param.i_timebase_num = h->param.i_fps_den;
+        h->param.i_timebase_den = h->param.i_fps_num;
     }
 
     h->param.rc.f_qcompress = x264_clip3f( h->param.rc.f_qcompress, 0.0, 1.0 );
@@ -833,6 +840,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
     x264_set_aspect_ratio( h, param, 1 );
 
     x264_reduce_fraction( &h->param.i_fps_num, &h->param.i_fps_den );
+    x264_reduce_fraction( &h->param.i_timebase_num, &h->param.i_timebase_den );
 
     /* Init x264_t */
     h->i_frame = -1;
@@ -866,6 +874,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
         h->frames.i_delay += h->param.i_threads - 1;
     h->frames.i_delay = X264_MIN( h->frames.i_delay, X264_LOOKAHEAD_MAX );
     h->frames.i_delay += h->param.i_sync_lookahead;
+    h->frames.i_bframe_delay = h->param.i_bframe ? (h->param.i_bframe_pyramid ? 2 : 1) : 0;
 
     h->frames.i_max_ref0 = h->param.i_frame_reference;
     h->frames.i_max_ref1 = h->sps->vui.i_num_reorder_frames;
@@ -1542,7 +1551,7 @@ static inline void x264_reference_hierarchy_reset( x264_t *h )
 
     /* look for delay frames -- chain must only contain frames that are disposable */
     for( i = 0; h->frames.current[i] && IS_DISPOSABLE( h->frames.current[i]->i_type ); i++ )
-        b_hasdelayframe |= h->frames.current[i]->i_dts
+        b_hasdelayframe |= h->frames.current[i]->i_coded
                         != h->frames.current[i]->i_frame + h->sps->vui.i_num_reorder_frames;
 
     if( h->param.i_bframe_pyramid != X264_B_PYRAMID_STRICT && !b_hasdelayframe )
@@ -2040,6 +2049,9 @@ int     x264_encoder_encode( x264_t *h,
 
         fenc->i_frame = h->frames.i_input++;
 
+        if( h->frames.i_bframe_delay && fenc->i_frame == h->frames.i_bframe_delay )
+            h->frames.i_bframe_delay_time = fenc->i_pts;
+
         if( h->frames.b_have_lowres )
         {
             if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE || h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
@@ -2308,7 +2320,9 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
         pic_out->i_type = X264_TYPE_P;
     else
         pic_out->i_type = X264_TYPE_B;
+
     pic_out->i_pts = h->fenc->i_pts;
+    pic_out->i_dts = h->fenc->i_dts - h->frames.i_bframe_delay_time;
 
     pic_out->img.i_plane = h->fdec->i_plane;
     for(i = 0; i < 3; i++)
