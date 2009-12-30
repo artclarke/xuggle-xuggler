@@ -1,0 +1,6 @@
+Spandsp Version 0.0.6pre12
+Software Homepage: http://www.soft-switch.org/
+License: LGPL 2.1
+Source Download URL: http://www.soft-switch.org/downloads/spandsp/spandsp-0.0.6pre12.tgz
+Modifications:
+ - Ran autoreconf --force --install
