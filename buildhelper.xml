@@ -308,6 +308,7 @@
     <property name="runtime.so.path.variable" value="PATH"/>
     <property name="runtime.so.path.origvalue" value="${env.PATH}"/>
     <property name="runtime.so.path.directory" value="bin"/>
+    <property name="runtime.rt.jar" value="${java.home}/lib/rt.jar"/>
     <echo message="Converted windows path: '${env.XUGGLE_HOME}' to short name: '${xuggle.dir.native}' and UNIX name: '${xuggle.dir}'" />
   </target>
   <target name="mac-init"
@@ -333,6 +334,7 @@
     <property name="runtime.so.path.variable" value="DYLD_LIBRARY_PATH"/>
     <property name="runtime.so.path.origvalue" value="${env.DYLD_LIBRARY_PATH}"/>
     <property name="runtime.so.path.directory" value="lib"/>
+    <property name="runtime.rt.jar" value="${java.home}/../Classes/classes.jar"/>
   </target>
   <target name="unix-init"
       if="os.unix">
@@ -357,6 +359,7 @@
     <property name="runtime.so.path.variable" value="LD_LIBRARY_PATH"/>
     <property name="runtime.so.path.origvalue" value="${env.LD_LIBRARY_PATH}"/>
     <property name="runtime.so.path.directory" value="lib"/>
+    <property name="runtime.rt.jar" value="${java.home}/lib/rt.jar"/>
   </target>
 
   <target name="os-init"
@@ -591,7 +594,7 @@
           <injar location="${dist.dir}/lib/${app.name}.jar" />
           <outjar location="${dist.dir}/lib/${app.name}-pro.jar" />
           <libraryjar refid="compile.classpath"/>
-          <libraryjar location="${java.home}/lib/rt.jar"/>
+          <libraryjar location="${runtime.rt.jar}" />
         </proguard>
         <!-- Copy obsfucated jar over original jar -->
         <move
