@@ -49,7 +49,10 @@
   <!-- Load up the ant-contrib tasks because I'm sick
     of not having if/else/then -->
   <taskdef resource="net/sf/antcontrib/antlib.xml"
-      classpath="${xuggle-buildhelper.basedir}/lib/ant-contrib.jar"/>
+    classpath="${xuggle-buildhelper.basedir}/lib/ant-contrib.jar"/>
+  <!-- And load up proguard for obsfucation support -->
+  <taskdef resource="proguard/ant/task.properties"
+    classpath="${xuggle-buildhelper.basedir}/lib/proguard-4.4.jar" />
 
   <!-- Allow a custom buildhelper file if people want one -->
   <if>
@@ -578,6 +581,26 @@
         <attribute name="Red5-Plugin-Main-Method" value="${app.red5.mainmethod}"/>
       </manifest>
     </jar>
+    <if>
+      <!-- Check if a Proguard obsfucation instruction set exists -->
+      <available file="${top.dir}/mk/${app.name}.pro"/>
+      <then>
+        <proguard 
+          printmapping="${build.dir}/${app.name}.promap"
+          configuration="${top.dir}/mk/${app.name}.pro">
+          <injar location="${dist.dir}/lib/${app.name}.jar" />
+          <outjar location="${dist.dir}/lib/${app.name}-pro.jar" />
+          <libraryjar refid="compile.classpath"/>
+          <libraryjar location="${java.home}/lib/rt.jar"/>
+        </proguard>
+        <!-- Copy obsfucated jar over original jar -->
+        <move
+          overwrite="true"
+          file="${dist.dir}/lib/${app.name}-pro.jar"
+          tofile="${dist.dir}/lib/${app.name}.jar"
+          />
+      </then>
+    </if>
     <antcall target="webapp" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
     </antcall>
