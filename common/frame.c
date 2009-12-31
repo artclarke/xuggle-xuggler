@@ -124,11 +124,11 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
             frame->i_stride_lowres = ALIGN( frame->i_width_lowres + 2*PADH, align );
             frame->i_lines_lowres = frame->i_lines[0]/2;
 
-            luma_plane_size = frame->i_stride_lowres * (frame->i_lines[0]/2 + 2*i_padv);
+            luma_plane_size = frame->i_stride_lowres * (frame->i_lines[0]/2 + 2*PADV);
 
             CHECKED_MALLOC( frame->buffer_lowres[0], 4 * luma_plane_size );
             for( i = 0; i < 4; i++ )
-                frame->lowres[i] = frame->buffer_lowres[0] + (frame->i_stride_lowres * i_padv + PADH) + i * luma_plane_size;
+                frame->lowres[i] = frame->buffer_lowres[0] + (frame->i_stride_lowres * PADV + PADH) + i * luma_plane_size;
 
             for( j = 0; j <= !!h->param.i_bframe; j++ )
                 for( i = 0; i <= h->param.i_bframe; i++ )
