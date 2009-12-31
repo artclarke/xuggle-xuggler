@@ -1339,8 +1339,11 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
     int b_ok;
 
     /* build ref list 0/1 */
-    h->i_ref0 = 0;
-    h->i_ref1 = 0;
+    h->mb.pic.i_fref[0] = h->i_ref0 = 0;
+    h->mb.pic.i_fref[1] = h->i_ref1 = 0;
+    if( h->sh.i_type == SLICE_TYPE_I )
+        return;
+
     for( i = 0; h->frames.reference[i]; i++ )
     {
         if( h->frames.reference[i]->i_poc < i_poc )
