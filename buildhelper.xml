@@ -73,6 +73,8 @@
   <property name="documentation.title" value="${ant.project.name}"/>
   <property name="organization.name" value="xuggle"/>
   <property name="captive.name" value="xuggle-ffmpeg"/>
+  <property name="documentation.includes" value="**"/>
+  <property name="documentation.excludes" value="com/xuggle/not/a/valid/package/**"/>
 
   <property environment="env"/>
   <property name="top.dir" location="."/>
@@ -953,8 +955,12 @@
         <param name="-nodefontcolor" value="grey20"/>
       </doclet>
       <packageset dir="${generated.src.dir}" defaultexcludes="yes">
+        <include name="${documentation.includes}"/>
+        <exclude name="${documentation.excludes}"/>
       </packageset>
       <packageset dir="${src.dir}" defaultexcludes="yes">
+        <include name="${documentation.includes}"/>
+        <exclude name="${documentation.excludes}"/>
       </packageset>
       <doctitle><![CDATA[<h1>${documentation.title}</h1>]]></doctitle>
       <bottom><![CDATA[<i>Copyright &#169; 2009 <a href="http://www.xuggle.com/" target="_blank">Xuggle</a></i>]]></bottom>
@@ -1020,8 +1026,12 @@
       includenosourcepackages="true"
       windowtitle="${documentation.title}">
     <packageset dir="${generated.src.dir}" defaultexcludes="yes">
+      <include name="${documentation.includes}"/>
+      <exclude name="${documentation.excludes}"/>
     </packageset>
     <packageset dir="${src.dir}" defaultexcludes="yes">
+      <include name="${documentation.includes}"/>
+      <exclude name="${documentation.excludes}"/>
     </packageset>
     <doctitle><![CDATA[<h1>${documentation.title}</h1>]]></doctitle>
     <bottom><![CDATA[<i>Copyright &#169; 2009 <a href="http://www.xuggle.com/" target="_blank">Xuggle</a></i>]]></bottom>
