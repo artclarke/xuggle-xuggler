@@ -160,7 +160,6 @@
       <include name="**/*.jar"/>
       <exclude name="ivy*.jar"/>
     </fileset>
-    <pathelement location="${env.RED5_HOME}/red5.jar"/>
   </path>
   <path id="test.classpath">
     <pathelement location="${classes.dir}"/>
@@ -169,7 +168,6 @@
       <include name="**/*.jar"/>
       <exclude name="ivy*.jar"/>
     </fileset>
-    <pathelement location="${env.RED5_HOME}/red5.jar"/>
   </path>
 
   <target name="java6.check">

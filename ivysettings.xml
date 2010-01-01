@@ -54,6 +54,7 @@ using the library and what you like or don't like about it.
         <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact]/[artifact](-[revision]).[ext]" />
         <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact](-[revision]).[ext]" />
         <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[artifact](-[revision]).[ext]" />
+        <artifact pattern="http://build.xuggle.com/view/Stable/job/red5_jdk6_stable/lastSuccessfulBuild/artifact/workingcopy/dist/[artifact].[ext]" />
       </url>   
       <url name="googlecode">
         <artifact pattern="http://red5.googlecode.com/svn/repository/[artifact](-[revision]).[ext]" />
