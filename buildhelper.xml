@@ -972,7 +972,7 @@
     <link href="http://build.xuggle.com/view/Stable/job/red5_jdk6_stable/javadoc/"/>
     <link href="http://build.xuggle.com/job/xuggle_java_utils_jdk5_i386_ubuntu/javadoc/java/api/"/>
     <link href="http://build.xuggle.com/view/Stable/job/xuggler_jdk5_stable/javadoc/java/api/"/>
-    <link href="http://build.xuggle.com/job/xuggle_java_xuggler_red5_jdk5_i386_ubuntu/javadoc/java/api/"/>
+    <link href="http://build.xuggle.com/job/xuggle_java_xuggler_red5_jdk6_i386_ubuntu/javadoc/java/api/"/>
 
   </javadoc>
   <!-- copy over any images we keep for documentation to
@@ -1043,7 +1043,7 @@
   <link href="http://build.xuggle.com/job/red5_java_server_trunk_jdk6_i386_ubuntu/javadoc/"/>
   <link href="http://build.xuggle.com/job/xuggle_java_utils_jdk5_i386_ubuntu/javadoc/java/api/"/>
   <link href="http://build.xuggle.com/view/Stable/job/xuggler_jdk5_stable/javadoc/java/api/"/>
-  <link href="http://build.xuggle.com/job/xuggle_java_xuggler_red5_jdk5_i386_ubuntu/javadoc/java/api/"/>
+  <link href="http://build.xuggle.com/job/xuggle_java_xuggler_red5_jdk6_i386_ubuntu/javadoc/java/api/"/>
 
 </javadoc>
 <!-- copy over any images we keep for documentation to
