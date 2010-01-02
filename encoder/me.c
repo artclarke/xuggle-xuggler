@@ -729,6 +729,11 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
     refine_subpel( h, m, hpel, qpel, NULL, 1 );
 }
 
+void x264_me_refine_qpel_refdupe( x264_t *h, x264_me_t *m, int *p_halfpel_thresh )
+{
+    refine_subpel( h, m, 0, X264_MIN( 2, subpel_iterations[h->mb.i_subpel_refine][3] ), p_halfpel_thresh, 0 );
+}
+
 #define COST_MV_SAD( mx, my ) \
 { \
     int stride = 16; \

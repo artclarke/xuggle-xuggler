@@ -661,6 +661,7 @@ struct x264_t
         /* maps fref1[0]'s ref indices into the current list0 */
 #define map_col_to_list0(col) h->mb.map_col_to_list0[col+2]
         int8_t  map_col_to_list0[18];
+        int ref_blind_dupe; /* The index of the blind reference frame duplicate. */
     } mb;
 
     /* rate control encoding only */
