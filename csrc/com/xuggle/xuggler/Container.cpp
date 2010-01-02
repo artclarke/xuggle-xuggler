@@ -310,7 +310,7 @@ namespace com { namespace xuggle { namespace xuggler
       outputFormat = containerFormat->getOutputFormat();
     } else {
       // guess it.
-      outputFormat = guess_format(0, url, 0);
+      outputFormat = av_guess_format(0, url, 0);
     }
     if (outputFormat)
     {

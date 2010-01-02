@@ -67,7 +67,7 @@ namespace com { namespace xuggle { namespace xuggler
         (url && *url) ||
         (mimeType && *mimeType))
     {
-      mOutputFormat = guess_format(shortName, url, mimeType);
+      mOutputFormat = av_guess_format(shortName, url, mimeType);
     } else {
       mOutputFormat = NULL;
     }
