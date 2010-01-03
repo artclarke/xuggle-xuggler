@@ -334,34 +334,10 @@ fi
 AC_MSG_CHECKING([if you smiled])
 AC_MSG_RESULT([let us know: info@xuggle.com])
 
-AC_MSG_CHECKING([whether to compile Xuggle with AGPL V3 code])
-AC_ARG_ENABLE([gpl],
-              [AS_HELP_STRING([--enable-gpl],
-                              [whether to enable AGPL V3 dependent code (defaults to yes)])],
-                              [],
-                              [enable_gpl=yes])
+enable_gpl=yes
 VS_ENABLE_GPL=$enable_gpl
 AC_MSG_RESULT([$enable_gpl])
-if test "x$VS_ENABLE_GPL" = "xyes"; then
-  AC_MSG_WARN([Compiling the GNU Affero General Public License version of Xuggle])
-  AC_DEFINE(VS_ENABLE_GPL, 1, AC_PACKAGE_NAME [ will enable any code that depends on GPL code ])
-else
-  AC_MSG_FAILURE([ 
-
-  vvvvvvvvvvvvvvvvvvvvv ERROR vvvvvvvvvvvvvvvvvvvvv
-
-  Xuggler is only available for free with a GNU
-  Affero General Public License.
-
-  If you are interested in a difference license,
-  please see our licensing page or send e-mail to
-  info@xuggle.com
-
-
-  ^^^^^^^^^^^^^^^^^^^^^ ERROR ^^^^^^^^^^^^^^^^^^^^^
-
-  ])
-fi
+AC_DEFINE(VS_ENABLE_GPL, 1, AC_PACKAGE_NAME [ will enable any code that depends on GPL code ])
 AC_SUBST(VS_ENABLE_GPL)
 AM_CONDITIONAL(VS_ENABLE_GPL,
                [ test "x$VS_ENABLE_GPL" = "xyes" ])

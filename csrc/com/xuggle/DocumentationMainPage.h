@@ -1,21 +1,21 @@
-/*
- * Copyright (c) 2008, 2009 by Xuggle Incorporated.  All rights reserved.
- * 
- * This file is part of Xuggler.
- * 
- * You can redistribute Xuggler and/or modify it under the terms of the GNU
- * Affero General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option) any
- * later version.
- * 
- * Xuggler is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero General Public
- * License for more details.
- * 
- * You should have received a copy of the GNU Affero General Public License
- * along with Xuggler.  If not, see <http://www.gnu.org/licenses/>.
- */
+/*******************************************************************************
+ * Copyright (c) 2008, 2010 Xuggle Inc.  All rights reserved.
+ *  
+ * This file is part of Xuggle-Xuggler-Main.
+ *
+ * Xuggle-Xuggler-Main is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Xuggle-Xuggler-Main is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Xuggle-Xuggler-Main.  If not, see <http://www.gnu.org/licenses/>.
+ *******************************************************************************/
 
 /*! \mainpage The Xuggler Open Source Libraries
  *
@@ -36,10 +36,9 @@
  * </p>
  * \section license_sec Licensing
  * All Xuggle Open Source Libraries are released under the
- * <a href="http://www.fsf.org/licensing/licenses/agpl-3.0.html"> GNU
- * Affero General Public License v3 (AGPL)</a>.
- * See the COPYING file in each library for details.  Non-AGPL licenses
- * are available for a fee.  Send e-mail to info@xuggle.com if interested.
+ * <a href="http://www.gnu.org/copyleft/lesser.html"> GNU
+ * Lesser General Public License v3 (LGPL)</a>.
+ * See the COPYING and COPYING.LESSER files in each library for details..
  * \section libraries_sec Libraries
  * Here is a brief summary of the current libraries in this release:
  *
@@ -78,8 +77,8 @@
  * given encoder and we won't do this).
  * </li>
  * </ul>
- * All these things take CPU time and some memory space.  In short, FFMPEG is a faster sharper knife,
- * where as Xuggler is a slower but safer knife.  Still, you can
+ * All these things take CPU time and some memory space.  In short, FFMPEG is a slightly faster but sharper knife,
+ * where as Xuggler is a slightly slower but safer knife.  Still, you can
  * make some real fancy dishes with either.
  * </p>
  *

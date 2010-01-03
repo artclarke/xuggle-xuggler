@@ -1,10 +1,19 @@
-Welcome to Xuggle
+Welcome to Xuggle-Xuggler-Main (a.k.a. Xuggler)
 
-= Licensing Note =
-See the COPYING file for our license.  For the license used
-in libraries in the 'captive' directory, see the captive directory.
+= Licensing =
+
+Xuggler is licensed under the Lesser GNU Public License, but if
+compiled with a GPL version of FFmpeg, then Xuggler assumes
+the GPL license (as required by FFmpeg).
+
+See the COPYING file for our license, along with the amending
+COPYING.LESSER file.
+
+For the license used in libraries in the 'captive' directory,
+see the captive directory.
 
 = What is Xuggler ? =
+
 Xuggler is a Java library that allows you to decode and
 encode a variety of media file formats directly from Java.
 
@@ -29,15 +38,6 @@ People can also use the C++ api directly, but bear in mind three caveats:
   is provided that can do a lot of the release()ing for you, but
   it's no substitute for care on your part.
 
-- If absolute performance is your goal, and you're using the
-  Xuggler CPP API, consider just calling
-  directly to the Ffmpeg API and take Xuggler out of the middle.  The
-  safety we Xuggler provides comes at a cost (e.g. we copy each video
-  picture we decode into another chunk of memory so that other
-  threads can safely access it).  If performance is the goal,
-  Xuggler will NEVER be faster that calling FFMPEG directly; just
-  a little safer.
-
 - Our current build system relies on autoconf and g++, so
   linking this C++ library on Windows can be difficult if you're
   using Microsoft's Visual C++ compiler.
@@ -55,7 +55,7 @@ Once installed, just make sure your Java program references
 xuggle-xuggler.jar, and you should be able to use the API.
 
 = Where can I find documentation? =
-Visit http://www.xuggle.com/
+Visit http://www.xuggle.com/xuggler/doc
 
 or build the documentaiton yourself:
   ant doc
