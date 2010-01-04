@@ -34,7 +34,7 @@
        regenerate the build scripts -->
   <property name="library.version.major" value="3"/>
   <property name="library.version.minor" value="4"/>
-  <property name="license.key" value="AGPL License"/>
+  <property name="license.key" value="LGPL License"/>
   <property name="app.mainclass" value="com.xuggle.xuggler.Converter"/>
   <property name="app.red5.mainclass" value="com.xuggle.xuggler.Global"/>
   <property name="app.red5.mainmethod" value="init"/>
