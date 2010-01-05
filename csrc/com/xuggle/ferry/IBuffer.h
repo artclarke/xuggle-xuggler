@@ -44,6 +44,11 @@ namespace ferry
  * When accessing from C++, you get direct access to
  * the underlying buffer.
  * </p>
+ * <p>
+ * To make an IBuffer object that is not a Xuggler internal object,
+ * pass in null for the RefCounted parameter.
+ *
+ * </p>
  */
 class VS_API_FERRY IBuffer : public com::xuggle::ferry::RefCounted
 {
@@ -71,6 +76,8 @@ public:
 
   /**
    * Allocate a new buffer by wrapping a native buffer.
+   * To make an IBuffer object that is not a Xuggler internal object,
+   * pass in null for the <code>requestor</code> parameter.
    * 
    * @param requestor An optional value telling the IBuffer class what object requested it.  This is used for debugging memory leaks; it's a marker for the FERRY object (e.g. IPacket) that actually requested the buffer.  If you're not an FERRY object, pass in null here.
    * @param bufToWrap Buffer to wrap

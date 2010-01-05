@@ -23,6 +23,11 @@ package com.xuggle.ferry;
  * When accessing from C++, you get direct access to  
  * the underlying buffer.  
  * </p>  
+ * <p>  
+ * To make an IBuffer object that is not a Xuggler internal object, 
+ *  
+ * pass in null for the RefCounted parameter.  
+ * </p>  
  */
 public class IBuffer extends RefCounted {
   // IBuffer.swg: Start generated code
