@@ -50,6 +50,7 @@ echo "Version: ${VERSION}"
 echo ""
 echo "Built by: http://www.xuggle.com"
 echo ""
+if [ -z "\$XUGGLE_AUTOACCEPT_LICENSE" ]; then
 echo -n "Hit Enter to begin installation (must accept license first) or Ctrl-C to abort"
 read ignore
 more << "__END_LICENSE__"
@@ -74,13 +75,18 @@ while [ -z "\$accepts" ]; do
         exit 1;
     esac
 done
+else
+  echo "Auto-accepting ${LICENSEKEY} for ${PRODUCT}"
+fi
 
 installDir=/usr/local/xuggler
 if [ ! -z "\$XUGGLE_HOME" ]; then
     installDir=\$XUGGLE_HOME
 fi
-echo -n "Specify directory to install to: [\$installDir]: "
-read userInstallDir
+if [ -z "\$XUGGLE_AUTOACCEPT_LICENSE" ]; then
+    echo -n "Specify directory to install to: [\$installDir]: "
+    read userInstallDir
+fi
 if [ -z "\$userInstallDir" ]; then
     userInstallDir=\$installDir
 fi
