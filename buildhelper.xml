@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <!--
-  Copyright (c) 2009 by Xuggle Inc.
+  Copyright (c) 2008, 2010 by Xuggle Inc.
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
@@ -961,7 +961,7 @@
         <exclude name="${documentation.excludes}"/>
       </packageset>
       <doctitle><![CDATA[<h1>${documentation.title}</h1>]]></doctitle>
-      <bottom><![CDATA[<i>Copyright &#169; 2009 <a href="http://www.xuggle.com/" target="_blank">Xuggle</a></i>]]></bottom>
+      <bottom><![CDATA[<i>Copyright &#169; 2008, 2010 <a href="http://www.xuggle.com/" target="_blank">Xuggle</a></i>]]></bottom>
     <link href="http://java.sun.com/${javadoc.loc}/docs/api"/>
     <link href="http://mina.apache.org/report/1.1/apidocs"/>
     <link href="http://static.springframework.org/spring/docs/2.0.x/api"/>
@@ -1032,7 +1032,7 @@
       <exclude name="${documentation.excludes}"/>
     </packageset>
     <doctitle><![CDATA[<h1>${documentation.title}</h1>]]></doctitle>
-    <bottom><![CDATA[<i>Copyright &#169; 2009 <a href="http://www.xuggle.com/" target="_blank">Xuggle</a></i>]]></bottom>
+    <bottom><![CDATA[<i>Copyright &#169; 2008, 2010 <a href="http://www.xuggle.com/" target="_blank">Xuggle</a></i>]]></bottom>
   <link href="http://java.sun.com/${javadoc.loc}/docs/api"/>
   <link href="http://mina.apache.org/report/1.1/apidocs"/>
   <link href="http://static.springframework.org/spring/docs/2.0.x/api"/>
