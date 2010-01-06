@@ -198,7 +198,8 @@ namespace com { namespace xuggle { namespace xuggler
   }
 
   void
-  VideoPicture :: copyAVFrame(AVFrame* frame, int32_t width, int32_t height)
+  VideoPicture :: copyAVFrame(AVFrame* frame, IPixelFormat::Type pixel,
+      int32_t width, int32_t height)
   {
     try
     {
@@ -209,6 +210,7 @@ namespace com { namespace xuggle { namespace xuggler
       // resize the frame to the AVFrame
       mWidth = width;
       mHeight = height;
+      mPixelFormat = pixel;
 
       int bufSize = getSize();
       if (bufSize <= 0)
@@ -318,22 +320,26 @@ namespace com { namespace xuggle { namespace xuggler
   )
   {
     try {
-
-      if (format != mPixelFormat)
-        throw std::runtime_error("pixel formats don't match");
-      if (width != -1 && mWidth != -1 && width != mWidth)
-        throw std::runtime_error("width does not match");
-      if (height != -1 && mHeight != -1 && height != mHeight)
-        throw std::runtime_error("height does not match");
-      if (!mFrame)
-        throw std::runtime_error("no AVFrame allocated");
-
       mIsComplete = aIsComplete;
 
       if (mIsComplete)
       {
         setPts(pts);
       }
+
+      if (format != IPixelFormat::NONE && mPixelFormat != IPixelFormat::NONE && format != mPixelFormat)
+        throw std::runtime_error("pixel formats don't match");
+      if (width > 0 && mWidth >0 && width != mWidth)
+        throw std::runtime_error("width does not match");
+      if (height > 0 && mHeight > 0 && height != mHeight)
+        throw std::runtime_error("height does not match");
+      if (!mFrame)
+        throw std::runtime_error("no AVFrame allocated");
+
+      mWidth = width;
+      mHeight = height;
+      mPixelFormat = format;
+
     }
     catch (std::exception& e)
     {

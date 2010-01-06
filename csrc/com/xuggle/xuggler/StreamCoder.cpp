@@ -479,8 +479,10 @@ StreamCoder::getPixelType()
 
     // little check here to see if we have an undefined int32_t.
     type = (int32_t) retval;
-    if (type != mCodecContext->pix_fmt)
+    if (type != mCodecContext->pix_fmt) {
+      VS_LOG_ERROR("Undefined pixel format type: %d", mCodecContext->pix_fmt);
       retval = IPixelFormat::NONE;
+    }
   }
   return retval;
 }
@@ -859,7 +861,7 @@ StreamCoder::decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
   Packet* packet = dynamic_cast<Packet*> (pPacket);
   if (frame)
     // reset the frame
-    frame->setComplete(false, this->getPixelType(), -1, -1, mFakeCurrPts);
+    frame->setComplete(false, IPixelFormat::NONE, -1, -1, mFakeCurrPts);
 
   if (frame && packet && mCodecContext && mOpened && mDirection == DECODING
       && mCodec->canDecode() && getCodecType() == ICodec::CODEC_TYPE_VIDEO)
@@ -911,7 +913,7 @@ StreamCoder::decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
           // copy FFMPEG's buffer into our buffer; don't try to get efficient
           // and reuse the buffer FFMPEG is using; in order to allow our
           // buffers to be thread safe, we must do a copy here.
-          frame->copyAVFrame(avFrame, getWidth(), getHeight());
+          frame->copyAVFrame(avFrame, getPixelType(), getWidth(), getHeight());
           RefPointer<IRational> timeBase = 0;
           timeBase = this->mStream ? this->mStream->getTimeBase() : 0;
           if (!timeBase)

@@ -78,11 +78,13 @@ namespace com { namespace xuggle { namespace xuggler
      * our own buffers.
      * 
      * @param frame The AVFrame that ffmpeg filled in.
+     * @param pixel The pixel type
      * @param width The width of the AVFrame
      * @param height The height of the AVFrame
      * 
      */
-    void copyAVFrame(AVFrame *frame, int32_t width, int32_t height);
+    void copyAVFrame(AVFrame *frame, IPixelFormat::Type pixel,
+        int32_t width, int32_t height);
     
     /**
      * Call to get the raw underlying AVFrame we manage; don't
