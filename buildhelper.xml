@@ -75,6 +75,7 @@
   <property name="captive.name" value="xuggle-ffmpeg"/>
   <property name="documentation.includes" value="**"/>
   <property name="documentation.excludes" value="com/xuggle/not/a/valid/package/**"/>
+  <property name="proguard.obsfucate" value="true"/>
 
   <property environment="env"/>
   <property name="top.dir" location="."/>
@@ -586,7 +587,10 @@
     </jar>
     <if>
       <!-- Check if a Proguard obsfucation instruction set exists -->
-      <available file="${top.dir}/mk/${app.name}.pro"/>
+      <and>
+        <equals arg1="${proguard.obsfucate}" arg2="true" />
+        <available file="${top.dir}/mk/${app.name}.pro"/>
+      </and>
       <then>
         <proguard 
           printmapping="${build.dir}/${app.name}.promap"
