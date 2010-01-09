@@ -432,6 +432,311 @@ avg2_w20_loop:
 .endfunc
 
 
+.macro weight_prologue type
+    push        {r4-r5,lr}
+    ldr         r4,  [sp, #4*3]     // weight_t
+    ldr         ip,  [sp, #4*3+4]   // h
+.ifc \type, full
+    ldr         lr,  [r4, #32]      // denom
+.endif
+    ldrd        r4,  [r4, #32+4]    // scale, offset
+    vdup.16     q0,  r4
+    vdup.16     q1,  r5
+.ifc \type, full
+    rsb         lr,  lr,  #0
+    vdup.16     q2,  lr
+.endif
+.endm
+
+// void mc_weight( uint8_t *src, int src_stride, uint8_t *dst, int dst_stride,
+//                 const x264_weight_t *weight, int height )
+function x264_mc_weight_w20_neon
+    weight_prologue full
+    sub         r1, #16
+weight20_loop:
+    subs        ip,  #2
+    vld1.8      {d17-d19}, [r2], r3
+    vmovl.u8    q10, d17
+    vmovl.u8    q11, d18
+    vmovl.u8    q14, d19
+    vld1.8      {d16-d18}, [r2], r3
+    vmovl.u8    q12, d16
+    vmovl.u8    q13, d17
+    vmovl.u8    q15, d18
+    vmul.s16    q10, q10, q0
+    vmul.s16    q11, q11, q0
+    vmul.s16    q12, q12, q0
+    vmul.s16    q13, q13, q0
+    vmul.s16    d28, d28, d0
+    vmul.s16    d29, d30, d0
+    vrshl.s16   q10, q10, q2
+    vrshl.s16   q11, q11, q2
+    vrshl.s16   q12, q12, q2
+    vrshl.s16   q13, q13, q2
+    vrshl.s16   q14, q14, q2
+    vadd.s16    q10, q10, q1
+    vadd.s16    q11, q11, q1
+    vadd.s16    q12, q12, q1
+    vadd.s16    q13, q13, q1
+    vadd.s16    q14, q14, q1
+    vqmovun.s16 d16, q10
+    vqmovun.s16 d17, q11
+    vqmovun.s16 d18, q12
+    vqmovun.s16 d19, q13
+    vqmovun.s16 d20, q14
+    vst1.8      {d16-d17}, [r0,:128]!
+    vst1.32     {d20[0]},  [r0,:32], r1
+    vst1.8      {d18-d19}, [r0,:128]!
+    vst1.32     {d20[1]},  [r0,:32], r1
+    bgt         weight20_loop
+    pop         {r4-r5,pc}
+.endfunc
+
+function x264_mc_weight_w16_neon
+    weight_prologue full
+weight16_loop:
+    subs        ip,  #2
+    vld1.8      {d16-d17}, [r2], r3
+    vld1.8      {d18-d19}, [r2], r3
+    vmovl.u8    q10, d16
+    vmovl.u8    q11, d17
+    vmovl.u8    q12, d18
+    vmovl.u8    q13, d19
+    vmul.s16    q10, q10, q0
+    vmul.s16    q11, q11, q0
+    vmul.s16    q12, q12, q0
+    vmul.s16    q13, q13, q0
+    vrshl.s16   q10, q10, q2
+    vrshl.s16   q11, q11, q2
+    vrshl.s16   q12, q12, q2
+    vrshl.s16   q13, q13, q2
+    vadd.s16    q10, q10, q1
+    vadd.s16    q11, q11, q1
+    vadd.s16    q12, q12, q1
+    vadd.s16    q13, q13, q1
+    vqmovun.s16 d16, q10
+    vqmovun.s16 d17, q11
+    vqmovun.s16 d18, q12
+    vqmovun.s16 d19, q13
+    vst1.8      {d16-d17}, [r0,:128], r1
+    vst1.8      {d18-d19}, [r0,:128], r1
+    bgt         weight16_loop
+    pop         {r4-r5,pc}
+.endfunc
+
+function x264_mc_weight_w8_neon
+    weight_prologue full
+weight8_loop:
+    subs        ip,  #2
+    vld1.8      {d16}, [r2], r3
+    vld1.8      {d18}, [r2], r3
+    vmovl.u8    q8,  d16
+    vmovl.u8    q9,  d18
+    vmul.s16    q8,  q8,  q0
+    vmul.s16    q9,  q9,  q0
+    vrshl.s16   q8,  q8,  q2
+    vrshl.s16   q9,  q9,  q2
+    vadd.s16    q8,  q8,  q1
+    vadd.s16    q9,  q9,  q1
+    vqmovun.s16 d16, q8
+    vqmovun.s16 d18, q9
+    vst1.8      {d16}, [r0,:64], r1
+    vst1.8      {d18}, [r0,:64], r1
+    bgt         weight8_loop
+    pop         {r4-r5,pc}
+.endfunc
+
+function x264_mc_weight_w4_neon
+    weight_prologue full
+weight4_loop:
+    subs        ip,  #2
+    vld1.32     {d16[]}, [r2], r3
+    vld1.32     {d18[]}, [r2], r3
+    vmovl.u8    q8,  d16
+    vmovl.u8    q9,  d18
+    vmul.s16    d16, d16, d0
+    vmul.s16    d17, d18, d0
+    vrshl.s16   q8,  q8,  q2
+    vadd.s16    q8,  q8,  q1
+    vqmovun.s16 d16, q8
+    vst1.32     {d16[0]}, [r0,:32], r1
+    vst1.32     {d16[1]}, [r0,:32], r1
+    bgt         weight4_loop
+    pop         {r4-r5,pc}
+.endfunc
+
+function x264_mc_weight_w20_nodenom_neon
+    weight_prologue nodenom
+    sub         r1, #16
+weight20_nodenom_loop:
+    subs        ip,  #2
+    vld1.8      {d17-d19}, [r2], r3
+    vmovl.u8    q10, d17
+    vmovl.u8    q11, d18
+    vmovl.u8    q14, d19
+    vld1.8      {d16-d18}, [r2], r3
+    vmovl.u8    q12, d16
+    vmovl.u8    q13, d17
+    vmovl.u8    q15, d18
+    vmov        q8,  q1
+    vmov        q9,  q1
+    vmla.s16    q8,  q10, q0
+    vmla.s16    q9,  q11, q0
+    vmov        q10, q1
+    vmov        q11, q1
+    vmla.s16    q10, q12, q0
+    vmla.s16    q11, q13, q0
+    vmov        q12, q1
+    vmla.s16    d24, d28, d0
+    vmla.s16    d25, d30, d0
+    vqmovun.s16 d16, q8
+    vqmovun.s16 d17, q9
+    vqmovun.s16 d18, q10
+    vqmovun.s16 d19, q11
+    vqmovun.s16 d20, q12
+    vst1.8      {d16-d17}, [r0,:128]!
+    vst1.32     {d20[0]},  [r0,:32], r1
+    vst1.8      {d18-d19}, [r0,:128]!
+    vst1.32     {d20[1]},  [r0,:32], r1
+    bgt         weight20_nodenom_loop
+    pop         {r4-r5,pc}
+.endfunc
+
+function x264_mc_weight_w16_nodenom_neon
+    weight_prologue nodenom
+weight16_nodenom_loop:
+    subs        ip,  #2
+    vld1.8      {d16-d17}, [r2], r3
+    vld1.8      {d18-d19}, [r2], r3
+    vmovl.u8    q12, d16
+    vmovl.u8    q13, d17
+    vmovl.u8    q14, d18
+    vmovl.u8    q15, d19
+    vmov        q8,  q1
+    vmov        q9,  q1
+    vmov        q10, q1
+    vmov        q11, q1
+    vmla.s16    q8,  q12, q0
+    vmla.s16    q9,  q13, q0
+    vmla.s16    q10, q14, q0
+    vmla.s16    q11, q15, q0
+    vqmovun.s16 d16, q8
+    vqmovun.s16 d17, q9
+    vqmovun.s16 d18, q10
+    vqmovun.s16 d19, q11
+    vst1.8      {d16-d17}, [r0,:128], r1
+    vst1.8      {d18-d19}, [r0,:128], r1
+    bgt         weight16_nodenom_loop
+    pop         {r4-r5,pc}
+.endfunc
+
+function x264_mc_weight_w8_nodenom_neon
+    weight_prologue nodenom
+weight8_nodenom_loop:
+    subs        ip,  #2
+    vld1.8      {d16}, [r2], r3
+    vld1.8      {d18}, [r2], r3
+    vmovl.u8    q8,  d16
+    vmovl.u8    q9,  d18
+    vmov        q10, q1
+    vmov        q11, q1
+    vmla.s16    q10, q8,  q0
+    vmla.s16    q11, q9,  q0
+    vqmovun.s16 d16, q10
+    vqmovun.s16 d17, q11
+    vst1.8      {d16}, [r0,:64], r1
+    vst1.8      {d17}, [r0,:64], r1
+    bgt         weight8_nodenom_loop
+    pop         {r4-r5,pc}
+.endfunc
+
+function x264_mc_weight_w4_nodenom_neon
+    weight_prologue nodenom
+weight4_nodenom_loop:
+    subs        ip,  #2
+    vld1.32     {d16[]}, [r2], r3
+    vld1.32     {d18[]}, [r2], r3
+    vmovl.u8    q8,  d16
+    vmovl.u8    q9,  d18
+    vmov        q10, q1
+    vmla.s16    d20, d16, d0
+    vmla.s16    d21, d18, d0
+    vqmovun.s16 d16, q10
+    vst1.32     {d16[0]}, [r0,:32], r1
+    vst1.32     {d16[1]}, [r0,:32], r1
+    bgt         weight4_nodenom_loop
+    pop         {r4-r5,pc}
+.endfunc
+
+.macro weight_simple_prologue
+    push        {lr}
+    ldr         lr,  [sp, #4]       // weight_t
+    ldr         ip,  [sp, #8]       // h
+    ldr         lr,  [lr]           // offset
+    vdup.8      q1,  lr
+.endm
+
+.macro weight_simple name op
+function x264_mc_weight_w20_\name\()_neon
+    weight_simple_prologue
+weight20_\name\()_loop:
+    subs        ip,  #2
+    vld1.8      {d16-d18}, [r2], r3
+    vld1.8      {d19-d21}, [r2], r3
+    \op         q8,  q8,  q1
+    \op         q9,  q9,  q1
+    \op         q10, q10, q1
+    vst1.8      {d16-d18}, [r0,:64], r1
+    vst1.8      {d19-d21}, [r0,:64], r1
+    bgt         weight20_\name\()_loop
+    pop         {pc}
+.endfunc
+
+function x264_mc_weight_w16_\name\()_neon
+    weight_simple_prologue
+weight16_\name\()_loop:
+    subs        ip,  #2
+    vld1.8      {d16-d17}, [r2], r3
+    vld1.8      {d18-d19}, [r2], r3
+    \op         q8,  q8,  q1
+    \op         q9,  q9,  q1
+    vst1.8      {d16-d17}, [r0,:128], r1
+    vst1.8      {d18-d19}, [r0,:128], r1
+    bgt         weight16_\name\()_loop
+    pop         {pc}
+.endfunc
+
+function x264_mc_weight_w8_\name\()_neon
+    weight_simple_prologue
+weight8_\name\()_loop:
+    subs        ip,  #2
+    vld1.8      {d16}, [r2], r3
+    vld1.8      {d17}, [r2], r3
+    \op         q8,  q8,  q1
+    vst1.8      {d16}, [r0,:64], r1
+    vst1.8      {d17}, [r0,:64], r1
+    bgt         weight8_\name\()_loop
+    pop         {pc}
+.endfunc
+
+function x264_mc_weight_w4_\name\()_neon
+    weight_simple_prologue
+weight4_\name\()_loop:
+    subs        ip,  #2
+    vld1.32     {d16[]}, [r2], r3
+    vld1.32     {d17[]}, [r2], r3
+    \op         q8,  q8,  q1
+    vst1.32     {d16[0]}, [r0,:32], r1
+    vst1.32     {d17[0]}, [r0,:32], r1
+    bgt         weight4_\name\()_loop
+    pop         {pc}
+.endfunc
+.endm
+
+weight_simple offsetadd, vqadd.u8
+weight_simple offsetsub, vqsub.u8
+
+
 // void mc_copy( uint8_t *dst, int dst_stride, uint8_t *src, int src_stride, int height )
 function x264_mc_copy_w4_neon
     ldr         ip,  [sp]

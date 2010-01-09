@@ -43,6 +43,48 @@ void x264_pixel_avg2_w8_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int );
 void x264_pixel_avg2_w16_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int );
 void x264_pixel_avg2_w20_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int );
 
+#define MC_WEIGHT(func)\
+void x264_mc_weight_w20##func##_neon( uint8_t *, int, uint8_t *, int, const x264_weight_t *, int );\
+void x264_mc_weight_w16##func##_neon( uint8_t *, int, uint8_t *, int, const x264_weight_t *, int );\
+void x264_mc_weight_w8##func##_neon( uint8_t *, int, uint8_t *, int, const x264_weight_t *, int );\
+void x264_mc_weight_w4##func##_neon( uint8_t *, int, uint8_t *, int, const x264_weight_t *, int );\
+\
+static void (* const x264_mc##func##_wtab_neon[6])( uint8_t *, int, uint8_t *, int, const x264_weight_t *, int ) =\
+{\
+    x264_mc_weight_w4##func##_neon,\
+    x264_mc_weight_w4##func##_neon,\
+    x264_mc_weight_w8##func##_neon,\
+    x264_mc_weight_w16##func##_neon,\
+    x264_mc_weight_w16##func##_neon,\
+    x264_mc_weight_w20##func##_neon,\
+};
+
+MC_WEIGHT()
+MC_WEIGHT(_nodenom)
+MC_WEIGHT(_offsetadd)
+MC_WEIGHT(_offsetsub)
+
+static void x264_weight_cache_neon( x264_t *h, x264_weight_t *w )
+{
+    if( w->i_scale == 1<<w->i_denom )
+    {
+        if( w->i_offset < 0 )
+        {
+            w->weightfn = x264_mc_offsetsub_wtab_neon;
+            w->cachea[0] = -w->i_offset;
+        }
+        else
+        {
+            w->weightfn = x264_mc_offsetadd_wtab_neon;
+            w->cachea[0] = w->i_offset;
+        }
+    }
+    else if( !w->i_denom )
+        w->weightfn = x264_mc_nodenom_wtab_neon;
+    else
+        w->weightfn = x264_mc_wtab_neon;
+}
+
 void x264_mc_copy_w4_neon( uint8_t *, int, uint8_t *, int, int );
 void x264_mc_copy_w8_neon( uint8_t *, int, uint8_t *, int, int );
 void x264_mc_copy_w16_neon( uint8_t *, int, uint8_t *, int, int );
@@ -181,6 +223,11 @@ void x264_mc_init_arm( int cpu, x264_mc_functions_t *pf )
     pf->avg[PIXEL_4x8]   = x264_pixel_avg_4x8_neon;
     pf->avg[PIXEL_4x4]   = x264_pixel_avg_4x4_neon;
     pf->avg[PIXEL_4x2]   = x264_pixel_avg_4x2_neon;
+
+    pf->weight    = x264_mc_wtab_neon;
+    pf->offsetadd = x264_mc_offsetadd_wtab_neon;
+    pf->offsetsub = x264_mc_offsetsub_wtab_neon;
+    pf->weight_cache = x264_weight_cache_neon;
 
 // Apple's gcc stupidly cannot align stack variables, and ALIGNED_ARRAY can't work on structs
 #ifndef SYS_MACOSX
