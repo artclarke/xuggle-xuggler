@@ -1585,7 +1585,7 @@ static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a )
 
 static int x264_mb_analyse_inter_p4x4_chroma( x264_t *h, x264_mb_analysis_t *a, uint8_t **p_fref, int i8x8, int pixel )
 {
-    ALIGNED_8( uint8_t pix1[16*8] );
+    ALIGNED_ARRAY_8( uint8_t, pix1,[16*8] );
     uint8_t *pix2 = pix1+8;
     const int i_stride = h->mb.pic.i_stride[1];
     const int or = 4*(i8x8&1) + 2*(i8x8&2)*i_stride;
@@ -1956,7 +1956,7 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
     uint8_t **p_fref[2] =
         { h->mb.pic.p_fref[0][a->l0.i_ref],
           h->mb.pic.p_fref[1][a->l1.i_ref] };
-    ALIGNED_8( uint8_t pix[2][8*8] );
+    ALIGNED_ARRAY_8( uint8_t, pix,[2],[8*8] );
     int i, l;
 
     /* XXX Needed for x264_mb_predict_mv */
@@ -2089,7 +2089,7 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
     uint8_t **p_fref[2] =
         { h->mb.pic.p_fref[0][a->l0.i_ref],
           h->mb.pic.p_fref[1][a->l1.i_ref] };
-    ALIGNED_8( uint8_t pix[2][8*16] );
+    ALIGNED_ARRAY_8( uint8_t, pix,[2],[8*16] );
     ALIGNED_4( int16_t mvc[2][2] );
     int i, l;
 

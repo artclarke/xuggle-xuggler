@@ -903,8 +903,8 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
     const uint16_t *p_cost_m1x = m1->p_cost_mv - m1->mvp[0];
     const uint16_t *p_cost_m1y = m1->p_cost_mv - m1->mvp[1];
     ALIGNED_ARRAY_16( uint8_t, pixy_buf,[2],[9][16*16] );
-    ALIGNED_8( uint8_t pixu_buf[2][9][8*8] );
-    ALIGNED_8( uint8_t pixv_buf[2][9][8*8] );
+    ALIGNED_ARRAY_8( uint8_t, pixu_buf,[2],[9][8*8] );
+    ALIGNED_ARRAY_8( uint8_t, pixv_buf,[2],[9][8*8] );
     uint8_t *src0[9];
     uint8_t *src1[9];
     uint8_t *pix  = &h->mb.pic.p_fdec[0][(i8>>1)*8*FDEC_STRIDE+(i8&1)*8];

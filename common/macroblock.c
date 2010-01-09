@@ -221,7 +221,7 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
 static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
 {
     int ref[2];
-    ALIGNED_8( int16_t mv[2][2] );
+    ALIGNED_ARRAY_8( int16_t, mv,[2],[2] );
     int i_list;
     int i8;
     const int8_t *l1ref0 = &h->fref1[0]->ref[0][ h->mb.i_b8_xy ];

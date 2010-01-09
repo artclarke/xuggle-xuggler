@@ -122,7 +122,7 @@ static NOINLINE unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, ui
     int i_lines = fenc->i_lines_lowres;
     int i_width = fenc->i_width_lowres;
     uint8_t *fenc_plane = fenc->lowres[0];
-    ALIGNED_8( uint8_t buf[8*8] );
+    ALIGNED_ARRAY_8( uint8_t, buf,[8*8] );
     int pixoff = 0;
     int i_mb = 0;
 
@@ -259,7 +259,7 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     int16_t (*fenc_mvs[2])[2] = { &frames[b]->lowres_mvs[0][b-p0-1][i_mb_xy], &frames[b]->lowres_mvs[1][p1-b-1][i_mb_xy] };
     int (*fenc_costs[2]) = { &frames[b]->lowres_mv_costs[0][b-p0-1][i_mb_xy], &frames[b]->lowres_mv_costs[1][p1-b-1][i_mb_xy] };
 
-    ALIGNED_8( uint8_t pix1[9*FDEC_STRIDE] );
+    ALIGNED_ARRAY_8( uint8_t, pix1,[9*FDEC_STRIDE] );
     uint8_t *pix2 = pix1+8;
     x264_me_t m[2];
     int i_bcost = COST_MAX;
@@ -340,7 +340,7 @@ static int x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     if( b_bidir )
     {
         int16_t *mvr = fref1->lowres_mvs[0][p1-p0-1][i_mb_xy];
-        ALIGNED_8( int16_t dmv[2][2] );
+        ALIGNED_ARRAY_8( int16_t, dmv,[2],[2] );
 
         m[1].i_pixel = PIXEL_8x8;
         m[1].p_cost_mv = a->p_cost_mv;

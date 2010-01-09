@@ -182,7 +182,10 @@ void x264_mc_init_arm( int cpu, x264_mc_functions_t *pf )
     pf->avg[PIXEL_4x4]   = x264_pixel_avg_4x4_neon;
     pf->avg[PIXEL_4x2]   = x264_pixel_avg_4x2_neon;
 
+// Apple's gcc stupidly cannot align stack variables, and ALIGNED_ARRAY can't work on structs
+#ifndef SYS_MACOSX
     pf->memcpy_aligned  = x264_memcpy_aligned_neon;
+#endif
     pf->memzero_aligned = x264_memzero_aligned_neon;
 
     pf->mc_chroma = x264_mc_chroma_neon;

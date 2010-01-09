@@ -54,12 +54,25 @@
 #define ALIGNED_8( var )  DECLARE_ALIGNED( var, 8 )
 #define ALIGNED_4( var )  DECLARE_ALIGNED( var, 4 )
 
-// current arm compilers only maintain 8-byte stack alignment
-// and cannot align stack variables to more than 8-bytes
+// ARM compiliers don't reliably align stack variables
+// - EABI requires only 8 byte stack alignment to be maintained
+// - gcc can't align stack variables to more even if the stack were to be correctly aligned outside the function
+// - armcc can't either, but is nice enough to actually tell you so
+// - Apple gcc only maintains 4 byte alignment
+// - llvm can align the stack, but only in svn and (unrelated) it exposes bugs in all released GNU binutils...
+#if defined(ARCH_ARM) && defined(SYS_MACOSX)
+#define ALIGNED_ARRAY_8( type, name, sub1, ... )\
+    uint8_t name##_u [sizeof(type sub1 __VA_ARGS__) + 7]; \
+    type (*name) __VA_ARGS__ = (void*)((intptr_t)(name##_u+7) & ~7)
+#else
+#define ALIGNED_ARRAY_8( type, name, sub1, ... )\
+    ALIGNED_8( type name sub1 __VA_ARGS__ )
+#endif
+
 #ifdef ARCH_ARM
 #define ALIGNED_ARRAY_16( type, name, sub1, ... )\
-    ALIGNED_8( uint8_t name##_8 [sizeof(type sub1 __VA_ARGS__) + 8] );\
-    type (*name) __VA_ARGS__ = (void*)(name##_8 + ((intptr_t)name##_8 & 8))
+    uint8_t name##_u [sizeof(type sub1 __VA_ARGS__) + 15];\
+    type (*name) __VA_ARGS__ = (void*)((intptr_t)(name##_u+15) & ~15)
 #else
 #define ALIGNED_ARRAY_16( type, name, sub1, ... )\
     ALIGNED_16( type name sub1 __VA_ARGS__ )
