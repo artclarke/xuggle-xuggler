@@ -1447,6 +1447,8 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         return -1;
     }
 
+    x264_encoder_parameters( h, param );
+
     if( output.set_param( opt->hout, param ) )
     {
         fprintf( stderr, "x264 [error]: can't set outfile param\n" );

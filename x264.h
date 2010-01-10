@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 82
+#define X264_BUILD 83
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -483,6 +483,14 @@ x264_t *x264_encoder_open( x264_param_t * );
  *      if the change should apply to some particular frame, use x264_picture_t->param instead.
  *      returns 0 on success, negative on parameter validation error. */
 int     x264_encoder_reconfig( x264_t *, x264_param_t * );
+/* x264_encoder_parameters:
+ *      copies the current internal set of parameters to the pointer provided
+ *      by the caller.  useful when the calling application needs to know
+ *      how x264_encoder_open has changed the parameters, or the current state
+ *      of the encoder after multiple x264_encoder_reconfig calls.
+ *      note that the data accessible through pointers in the returned param struct
+ *      (e.g. filenames) should not be modified by the calling application. */
+void    x264_encoder_parameters( x264_t *, x264_param_t * );
 /* x264_encoder_headers:
  *      return the SPS and PPS that will be used for the whole stream.
  *      if i_nal > 0, returns the total size of all NAL payloads.

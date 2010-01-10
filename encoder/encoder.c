@@ -853,7 +853,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
     if( h->param.rc.psz_stat_in )
         h->param.rc.psz_stat_in = strdup( h->param.rc.psz_stat_in );
 
-    x264_set_aspect_ratio( h, param, 1 );
+    x264_set_aspect_ratio( h, &h->param, 1 );
 
     x264_reduce_fraction( &h->param.i_fps_num, &h->param.i_fps_den );
     x264_reduce_fraction( &h->param.i_timebase_num, &h->param.i_timebase_den );
@@ -941,19 +941,19 @@ x264_t *x264_encoder_open( x264_param_t *param )
     for( i=0; x264_cpu_names[i].flags; i++ )
     {
         if( !strcmp(x264_cpu_names[i].name, "SSE2")
-            && param->cpu & (X264_CPU_SSE2_IS_FAST|X264_CPU_SSE2_IS_SLOW) )
+            && h->param.cpu & (X264_CPU_SSE2_IS_FAST|X264_CPU_SSE2_IS_SLOW) )
             continue;
         if( !strcmp(x264_cpu_names[i].name, "SSE3")
-            && (param->cpu & X264_CPU_SSSE3 || !(param->cpu & X264_CPU_CACHELINE_64)) )
+            && (h->param.cpu & X264_CPU_SSSE3 || !(h->param.cpu & X264_CPU_CACHELINE_64)) )
             continue;
         if( !strcmp(x264_cpu_names[i].name, "SSE4.1")
-            && (param->cpu & X264_CPU_SSE42) )
+            && (h->param.cpu & X264_CPU_SSE42) )
             continue;
-        if( (param->cpu & x264_cpu_names[i].flags) == x264_cpu_names[i].flags
+        if( (h->param.cpu & x264_cpu_names[i].flags) == x264_cpu_names[i].flags
             && (!i || x264_cpu_names[i].flags != x264_cpu_names[i-1].flags) )
             p += sprintf( p, " %s", x264_cpu_names[i].name );
     }
-    if( !param->cpu )
+    if( !h->param.cpu )
         p += sprintf( p, " none!" );
     x264_log( h, X264_LOG_INFO, "%s\n", buf );
 
@@ -1102,6 +1102,14 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     mbcmp_init( h );
 
     return x264_validate_parameters( h );
+}
+
+/****************************************************************************
+ * x264_encoder_parameters:
+ ****************************************************************************/
+void x264_encoder_parameters( x264_t *h, x264_param_t *param )
+{
+    memcpy( param, &h->thread[h->i_thread_phase]->param, sizeof(x264_param_t) );
 }
 
 /* internal usage */
