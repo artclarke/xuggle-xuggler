@@ -1,0 +1,25 @@
+Index: libavformat/rtmpproto.c
+===================================================================
+--- libavformat/rtmpproto.c	(revision 21104)
++++ libavformat/rtmpproto.c	(working copy)
+@@ -456,6 +456,7 @@
+     uint8_t serverdata[RTMP_HANDSHAKE_PACKET_SIZE+1];
+     int i;
+     int server_pos, client_pos;
++    int server_version;
+     uint8_t digest[32];
+ 
+     av_log(LOG_CONTEXT, AV_LOG_DEBUG, "Handshaking...\n");
+@@ -480,8 +481,10 @@
+ 
+     av_log(LOG_CONTEXT, AV_LOG_DEBUG, "Server version %d.%d.%d.%d\n",
+            serverdata[5], serverdata[6], serverdata[7], serverdata[8]);
+-
+-    if (rt->is_input) {
++    server_version = *(int32_t*)(&serverdata[5]);
++    // Red5 sends back a server_version of 0.0.0.0 and incorrectly expects
++    // a simple echo for the final response of the handshake
++    if (rt->is_input && server_version) {
+         server_pos = rtmp_validate_digest(serverdata + 1, 772);
+         if (!server_pos) {
+             server_pos = rtmp_validate_digest(serverdata + 1, 8);
