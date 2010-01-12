@@ -70,5 +70,20 @@ public class ErrorTest
   {
     assertNotNull(IError.make(IError.Type.ERROR_EOF));
   }
+  
+  @Test
+  public void testTypeToErrorNumber()
+  {
+    IError err = IError.make(IError.Type.ERROR_EOF);
+    assertEquals(err.getErrorNumber(), IError.typeToErrorNumber(IError.Type.ERROR_EOF));
+  }
+
+  @Test
+  public void testErrorNumberToType()
+  {
+    IError err = IError.make(IError.Type.ERROR_EOF);
+    assertEquals(IError.Type.ERROR_EOF, IError.errorNumberToType(err.getErrorNumber()));
+  }
+
 
 }

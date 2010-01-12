@@ -52,4 +52,16 @@ IError :: make(Type type)
   return Error::make(type);
 }
 
+int32_t
+IError :: typeToErrorNumber(Type type)
+{
+  return Error::typeToErrorNumber(type);
+}
+
+IError::Type
+IError :: errorNumberToType(int32_t errNo)
+{
+  return Error::errorNumberToType(errNo);
+}
+
 }}}
