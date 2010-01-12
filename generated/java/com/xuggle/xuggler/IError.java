@@ -196,6 +196,24 @@ public class IError extends RefCounted {
     return (cPtr == 0) ? null : new IError(cPtr, false);
   }
 
+/**
+ * Translate an error number to a type.  
+ * @param	errorNo The error returned from Xuggler  
+ * @return	the type  
+ */
+  public static IError.Type errorNumberToType(int errorNo) {
+    return IError.Type.swigToEnum(XugglerJNI.IError_errorNumberToType(errorNo));
+  }
+
+/**
+ * Translate an a type to an error number.  
+ * @param	type The type  
+ * @return	the error number  
+ */
+  public static int typeToErrorNumber(IError.Type type) {
+    return XugglerJNI.IError_typeToErrorNumber(type.swigValue());
+  }
+
   public enum Type {
   /**
    * A set of errors that Xuggler knows about.

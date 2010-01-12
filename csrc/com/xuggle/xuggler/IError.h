@@ -141,6 +141,20 @@ public:
    */
   static IError* make(Type type);
 
+  /**
+   * Translate an error number to a type.
+   * @param errorNo The error returned from Xuggler
+   * @return the type
+   */
+  static Type errorNumberToType(int32_t errorNo);
+
+  /**
+   * Translate an a type to an error number.
+   * @param type The type
+   * @return the error number
+   */
+  static int32_t typeToErrorNumber(Type type);
+
 protected:
   IError();
   virtual ~IError();
