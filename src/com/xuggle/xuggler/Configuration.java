@@ -247,7 +247,7 @@ public class Configuration
    * from a FFmpeg preset file:
    * </p>
    * <pre>
-   *   props.load(new FileReader("location/to/preset/file.preset"));
+   *   props.load(new FileInputStream("location/to/preset/file.preset"));
    *   IStreamCoder coder = IStreamCoder.make(Direction.ENCODING);
    *   int retval = Configuration.configure(props, coder);
    *   if (retval < 0)
