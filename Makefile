@@ -16,6 +16,8 @@ SRCCLI = x264.c input/yuv.c input/y4m.c output/raw.c \
          output/matroska.c output/matroska_ebml.c \
          output/flv.c output/flv_bytestream.c
 
+SRCSO =
+
 MUXERS := $(shell grep -E "(IN|OUT)PUT" config.h)
 
 # Optional muxer module sources
@@ -99,8 +101,15 @@ ifneq ($(HAVE_GETOPT_LONG),1)
 SRCS += extras/getopt.c
 endif
 
+ifneq ($(SONAME),)
+ifeq ($(SYS),MINGW)
+SRCSO += x264dll.c
+endif
+endif
+
 OBJS = $(SRCS:%.c=%.o)
 OBJCLI = $(SRCCLI:%.c=%.o)
+OBJSO = $(SRCSO:%.c=%.o)
 DEP  = depend
 
 .PHONY: all default fprofiled clean distclean install uninstall dox test testclean
@@ -111,8 +120,8 @@ libx264.a: .depend $(OBJS) $(OBJASM)
 	$(AR) rc libx264.a $(OBJS) $(OBJASM)
 	$(RANLIB) libx264.a
 
-$(SONAME): .depend $(OBJS) $(OBJASM)
-	$(CC) -shared -o $@ $(OBJS) $(OBJASM) $(SOFLAGS) $(LDFLAGS)
+$(SONAME): .depend $(OBJS) $(OBJASM) $(OBJSO)
+	$(CC) -shared -o $@ $(OBJS) $(OBJASM) $(OBJSO) $(SOFLAGS) $(LDFLAGS)
 
 x264$(EXE): $(OBJCLI) libx264.a
 	$(CC) -o $@ $+ $(LDFLAGS) $(LDFLAGSCLI)
@@ -130,7 +139,7 @@ checkasm: tools/checkasm.o libx264.a
 
 .depend: config.mak
 	rm -f .depend
-	$(foreach SRC, $(SRCS) $(SRCCLI), $(CC) $(CFLAGS) $(ALTIVECFLAGS) $(SRC) -MT $(SRC:%.c=%.o) -MM -g0 1>> .depend;)
+	$(foreach SRC, $(SRCS) $(SRCCLI) $(SRCSO), $(CC) $(CFLAGS) $(ALTIVECFLAGS) $(SRC) -MT $(SRC:%.c=%.o) -MM -g0 1>> .depend;)
 
 config.mak:
 	./configure
@@ -171,7 +180,7 @@ fprofiled:
 endif
 
 clean:
-	rm -f $(OBJS) $(OBJASM) $(OBJCLI) $(SONAME) *.a x264 x264.exe .depend TAGS
+	rm -f $(OBJS) $(OBJASM) $(OBJCLI) $(OBJSO) $(SONAME) *.a x264 x264.exe .depend TAGS
 	rm -f checkasm checkasm.exe tools/checkasm.o tools/checkasm-a.o
 	rm -f $(SRC2:%.c=%.gcda) $(SRC2:%.c=%.gcno)
 	- sed -e 's/ *-fprofile-\(generate\|use\)//g' config.mak > config.mak2 && mv config.mak2 config.mak
