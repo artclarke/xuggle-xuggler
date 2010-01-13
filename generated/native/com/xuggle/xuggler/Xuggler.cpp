@@ -231,6 +231,18 @@ static void SWIGUNUSED SWIG_JavaThrowException(JNIEnv *jenv, SWIG_JavaExceptionC
 #include <com/xuggle/xuggler/IError.h>
 
 using namespace VS_CPP_NAMESPACE;
+/**
+ * Here to maintain BW-compatibility with Version 3.x of Xuggler;
+ * can be removed when major version goes pass 3.
+ */
+extern "C" {
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1seekKeyFrame_1_1SWIG_10(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jlong jarg3, jint jarg4);
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1seekKeyFrame(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jlong jarg3, jint jarg4)
+{
+  return Java_com_xuggle_xuggler_XugglerJNI_IContainer_1seekKeyFrame_1_1SWIG_10(jenv, jcls, jarg1, jarg1_, jarg2, jarg3, jarg4);
+}
+}
+
 
 extern "C" {
 /*
