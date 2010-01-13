@@ -566,23 +566,12 @@ static inline const int8_t *predict_4x4_mode_available( int i_neighbour )
 /* For trellis=2, we need to do this for both sizes of DCT, for trellis=1 we only need to use it on the chosen mode. */
 static void inline x264_psy_trellis_init( x264_t *h, int do_both_dct )
 {
-    ALIGNED_ARRAY_16( int16_t, dct8x8,[4],[64] );
-    ALIGNED_ARRAY_16( int16_t, dct4x4,[16],[16] );
     ALIGNED_16( static uint8_t zero[16*FDEC_STRIDE] ) = {0};
-    int i;
 
     if( do_both_dct || h->mb.b_transform_8x8 )
-    {
-        h->dctf.sub16x16_dct8( dct8x8, h->mb.pic.p_fenc[0], zero );
-        for( i = 0; i < 4; i++ )
-            h->zigzagf.scan_8x8( h->mb.pic.fenc_dct8[i], dct8x8[i] );
-    }
+        h->dctf.sub16x16_dct8( h->mb.pic.fenc_dct8, h->mb.pic.p_fenc[0], zero );
     if( do_both_dct || !h->mb.b_transform_8x8 )
-    {
-        h->dctf.sub16x16_dct( dct4x4, h->mb.pic.p_fenc[0], zero );
-        for( i = 0; i < 16; i++ )
-            h->zigzagf.scan_4x4( h->mb.pic.fenc_dct4[i], dct4x4[i] );
-    }
+        h->dctf.sub16x16_dct( h->mb.pic.fenc_dct4, h->mb.pic.p_fenc[0], zero );
 }
 
 /* Pre-calculate fenc satd scores for psy RD, minus DC coefficients */

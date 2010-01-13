@@ -516,7 +516,7 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
             /* Psy trellis: bias in favor of higher AC coefficients in the reconstructed frame. */
             if( h->mb.i_psy_trellis && i && !dc && i_ctxBlockCat != DCT_CHROMA_AC )
             {
-                int orig_coef = (i_coefs == 64) ? h->mb.pic.fenc_dct8[idx][i] : h->mb.pic.fenc_dct4[idx][i];
+                int orig_coef = (i_coefs == 64) ? h->mb.pic.fenc_dct8[idx][zigzag[i]] : h->mb.pic.fenc_dct4[idx][zigzag[i]];
                 int predicted_coef = orig_coef - i_coef * signs[i];
                 int psy_value = h->mb.i_psy_trellis * abs(predicted_coef + unquant_abs_level * signs[i]);
                 int psy_weight = (i_coefs == 64) ? x264_dct8_weight_tab[zigzag[i]] : x264_dct4_weight_tab[zigzag[i]];
