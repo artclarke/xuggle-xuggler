@@ -39,6 +39,9 @@ public class ContainerTest extends TestCase
   @Test
   public void testContainerOpenAndClose()
   {
+    // maximize FFmpeg logging
+    log.debug("About to change logging level");
+    Global.setFFmpegLoggingLevel(50);
     // Try getting a new Container
     IContainer container = null;
     IContainerFormat fmt = null;    

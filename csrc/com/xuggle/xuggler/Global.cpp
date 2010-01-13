@@ -19,6 +19,7 @@
 
 #include <cmath>
 #include <cstring>
+//#include <cstdio>
 
 #include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/ferry/Logger.h>
@@ -61,6 +62,12 @@ namespace com { namespace xuggle { namespace xuggler
     static Logger* ffmpegLogger = 0;
     AVClass* avc = ptr ? *(AVClass**)ptr : 0;
 
+    int currentLevel = av_log_get_level();
+//    fprintf(stderr, "current level: %d; log level: %d\n", level, currentLevel);
+    if (level > currentLevel || currentLevel < AV_LOG_PANIC)
+      // just return
+      return;
+
     if (!ffmpegLogger)
     {
       Global::lock();
@@ -69,21 +76,17 @@ namespace com { namespace xuggle { namespace xuggler
       Global::unlock();
     }
 
-    Logger::Level logLevel = Logger::LEVEL_ERROR;
-    if (level == AV_LOG_ERROR ||
-        level == AV_LOG_FATAL)
+    Logger::Level logLevel;
+    if (level <= AV_LOG_ERROR)
       logLevel = Logger::LEVEL_ERROR;
-    else if (level == AV_LOG_WARNING)
+    else if (level <= AV_LOG_WARNING)
       logLevel = Logger::LEVEL_WARN;
-    else if (level == AV_LOG_INFO)
+    else if (level <= AV_LOG_INFO)
       logLevel = Logger::LEVEL_INFO;
-    else if (level == AV_LOG_VERBOSE)
+    else if (level <= AV_LOG_DEBUG)
       logLevel = Logger::LEVEL_DEBUG;
-    else if (level == AV_LOG_DEBUG)
-      // Default FFMPEG debug messages to trace; they're too verbose otherwise
-      logLevel = Logger::LEVEL_TRACE;
     else
-      logLevel = Logger::LEVEL_ERROR;
+      logLevel = Logger::LEVEL_TRACE;
 
     // Revise the format string to add additional useful info
     char revisedFmt[1024];
@@ -156,6 +159,7 @@ namespace com { namespace xuggle { namespace xuggler
     {
       av_lockmgr_register(xuggler_lockmgr_cb);
       av_log_set_callback(xuggler_log_callback);
+      av_log_set_level(AV_LOG_ERROR); // Only log errors by default
       av_register_all();
       // and set up the device library for webcam support
       avdevice_register_all();
@@ -260,4 +264,26 @@ namespace com { namespace xuggle { namespace xuggler
     return AV_STRINGIFY(LIBAVCODEC_VERSION);
   }
 
+  void
+  Global :: setFFmpegLoggingLevel(int32_t level)
+  {
+    Global::init();
+    if (level < AV_LOG_PANIC)
+      av_log_set_level(AV_LOG_QUIET);
+    else if (level < AV_LOG_FATAL)
+      av_log_set_level(AV_LOG_PANIC);
+    else if (level < AV_LOG_ERROR)
+      av_log_set_level(AV_LOG_FATAL);
+    else if (level < AV_LOG_WARNING)
+      av_log_set_level(AV_LOG_ERROR);
+    else if (level < AV_LOG_INFO)
+      av_log_set_level(AV_LOG_WARNING);
+    else if (level < AV_LOG_VERBOSE)
+      av_log_set_level(AV_LOG_INFO);
+    else if (level < AV_LOG_DEBUG)
+      av_log_set_level(AV_LOG_VERBOSE);
+    else
+      av_log_set_level(AV_LOG_DEBUG);
+//    fprintf(stderr, "FFmpeg logging level = %d\n", av_log_get_level());
+  }
 }}}

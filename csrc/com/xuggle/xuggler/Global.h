@@ -145,6 +145,14 @@ namespace com { namespace xuggle { namespace xuggler
      */
     static void init();
 
+    /**
+     * Internal Only.  This method can be used to turn up or
+     * down FFmpeg's logging level.
+     * @param level An integer value for level.  Lower numbers
+     *   mean less logging.  A negative number tells FFmpeg to
+     *   shut up.
+     */
+    static void setFFmpegLoggingLevel(int32_t level);
   private:
     Global();
     ~Global();

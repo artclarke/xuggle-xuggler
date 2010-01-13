@@ -220,6 +220,17 @@ public class Global extends RefCounted {
   }
 
 /**
+ * Internal Only. This method can be used to turn up or  
+ * down FFmpeg's logging level.  
+ * @param	level An integer value for level. Lower numbers  
+ * mean less logging. A negative number tells FFmpeg to  
+ * shut up.  
+ */
+  public static void setFFmpegLoggingLevel(int level) {
+    XugglerJNI.Global_setFFmpegLoggingLevel(level);
+  }
+
+/**
  * A value that means no time stamp is set for a given object.  
  * if the {@link IMediaData#getTimeStamp()} method of an  
  * object returns this value it means the time stamp wasn't set.  
