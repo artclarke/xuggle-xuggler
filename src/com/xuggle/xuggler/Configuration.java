@@ -19,12 +19,20 @@
 package com.xuggle.xuggler;
 
 import java.util.Collection;
+import java.util.Enumeration;
+import java.util.Properties;
 
 /**
  * A global configuration class for Xuggler.  
- * 
- * Today this just includes methods to print out all the
- * available options on this system.
+ * <p>
+ * This object can help print setting options
+ * on {@link IConfigurable} classes, and also
+ * provides a convenient method {@link #configure(Properties, IConfigurable)}
+ * that lets you configure {@link IConfigurable} objects from
+ * a Java properties or FFmpeg preset file.
+ * </p> 
+ * @see #configure(Properties, IConfigurable)
+ * @see IConfigurable
  * 
  * @author aclarke
  *
@@ -56,7 +64,7 @@ public class Configuration
    */
   public static void printHelp(java.io.PrintStream stream)
   {
-    printSupportedFormats(stream);
+    printSupportedContainerFormats(stream);
     printSupportedCodecs(stream);
     printSupportedContainerProperties(stream);
     printSupportedStreamCoderProperties(stream);
@@ -67,7 +75,7 @@ public class Configuration
    * Print out all installed and supported container formats on this system.
    * @param stream stream to print to
    */
-  private static void printSupportedFormats(java.io.PrintStream stream)
+  public static void printSupportedContainerFormats(java.io.PrintStream stream)
   {
     stream.println("=======================================");
     stream.println("  Demuxable Formats");
@@ -95,7 +103,7 @@ public class Configuration
    * Print out all installed and supported codecs on this system.
    * @param stream stream to print to
    */
-  private static void printSupportedCodecs(java.io.PrintStream stream)
+  public static void printSupportedCodecs(java.io.PrintStream stream)
   {
     Collection<ICodec> codecs = ICodec.getInstalledCodecs();
     
@@ -136,7 +144,7 @@ public class Configuration
    * 
    * @param stream stream to print to.
    */
-  private static void printSupportedVideoResamplerProperties(java.io.PrintStream stream)
+  public static void printSupportedVideoResamplerProperties(java.io.PrintStream stream)
   {
     if (IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION))
       printConfigurable(stream, IVideoResampler.make(100,
@@ -152,7 +160,7 @@ public class Configuration
    * 
    * @param stream stream to print to.
    */
-  private static void printSupportedStreamCoderProperties(java.io.PrintStream stream)
+  public static void printSupportedStreamCoderProperties(java.io.PrintStream stream)
   {
     printConfigurable(stream, IStreamCoder.make(IStreamCoder.Direction.ENCODING));
   }
@@ -162,7 +170,7 @@ public class Configuration
    * 
    * @param stream stream to print to.
    */
-  private static void printSupportedContainerProperties(java.io.PrintStream stream)
+  public static void printSupportedContainerProperties(java.io.PrintStream stream)
   {
     printConfigurable(stream, IContainer.make());
   }
@@ -173,7 +181,7 @@ public class Configuration
    * @param stream stream to print to
    * @param configObj {@link IConfigurable} object.
    */
-  private static void printConfigurable(java.io.PrintStream stream,
+  public static void printConfigurable(java.io.PrintStream stream,
       IConfigurable configObj)
   {
     stream.println("=======================================");
@@ -227,4 +235,45 @@ public class Configuration
         prop.getName(),
         prop.getHelp() == null ? "no help available" : prop.getHelp());
   }
+  
+  /**
+   * Configures an {@link IConfigurable} from a set of Java {@link Properties}.
+   * <p>
+   * This is a handy way to configure a Xuggler {@link IConfigurable}
+   * object, and will also work with FFmpeg preset files.
+   * </p>
+   * <p>
+   * Here's some sample code that shows configuring a IStreamCoder
+   * from a FFmpeg preset file:
+   * </p>
+   * <pre>
+   *   props.load(new FileReader("location/to/preset/file.preset"));
+   *   IStreamCoder coder = IStreamCoder.make(Direction.ENCODING);
+   *   int retval = Configuration.configure(props, coder);
+   *   if (retval < 0)
+   *      throw new RuntimeException("Could not configure object");
+   * </pre>
+   * @param properties The properties to use.
+   * @param config The item to configure.
+   * @return <0 on error; >= 0 on success.
+   */
+  @SuppressWarnings("unchecked")
+  public static int configure(final Properties properties, final IConfigurable config)
+  {
+    for (
+        final Enumeration<String> names = (Enumeration<String>) properties.propertyNames();
+        names.hasMoreElements();
+    )
+    {
+      final String name = names.nextElement();
+      final String value = properties.getProperty(name);
+      if (value != null) {
+        final int retval = config.setProperty(name, value);
+        if (retval < 0)
+          return retval;
+      }
+    }
+    return 0;
+  }
+
 }

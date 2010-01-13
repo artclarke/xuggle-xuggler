@@ -23,6 +23,12 @@ package com.xuggle.xuggler;
  * Methods that implement this interface can be configuring
  * using setProperty and getProperty methods, and expose
  * {@link IProperty} meta data about their properties.
+ * <p>
+ * You can use {@link Configuration#configure(java.util.Properties, IConfigurable)}
+ * to easily configure these objects from Java properties or
+ * from a FFmpeg preset file.
+ * </p>
+ * @see Configuration#configure(java.util.Properties, IConfigurable)
  * 
  * @author aclarke
  *
@@ -142,6 +148,5 @@ public interface IConfigurable
    * @return      boolean value of property, or false on error.  
    */
   public boolean getPropertyAsBoolean(String name);
-
 
 }

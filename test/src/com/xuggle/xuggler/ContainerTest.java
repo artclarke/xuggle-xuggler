@@ -389,20 +389,6 @@ public class ContainerTest extends TestCase
   }
 
   @Test
-  public void testSearchTimeStampInIndex()
-  {
-    IContainer container = IContainer.make();
-    
-    int retval = -1;
-    retval = container.open(mSampleFile, IContainer.Type.READ, null);
-    assertTrue("could not open file", retval >= 0);
-
-    retval = container.searchTimeStampInIndex(0,
-        20*1000, 0);
-    assertEquals(-1, retval);
-  }
-
-  @Test
   public void testSeekKeyFrameWithNegativeStream()
   {
     IContainer container = IContainer.make();

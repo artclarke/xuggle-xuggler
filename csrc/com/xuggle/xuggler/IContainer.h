@@ -882,6 +882,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t seekKeyFrame(int32_t streamIndex, int64_t minTimeStamp,
         int64_t targetTimeStamp, int64_t maxTimeStamp, int32_t flags)=0;
 
+#if 0
     /**
      * EXPERIMENTAL - Search for the given time stamp in the key-frame index for this {@link IContainer}.
      * <p>
@@ -911,6 +912,7 @@ namespace com { namespace xuggle { namespace xuggler
      */
     virtual int32_t searchTimeStampInIndex(int32_t streamIndex,
         int64_t wantedTimeStamp, int32_t flags)=0;
+#endif
   };
 }}}
 #endif /*ICONTAINER_H_*/
