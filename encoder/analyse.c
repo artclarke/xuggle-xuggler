@@ -104,7 +104,7 @@ typedef struct
 
     /* Chroma part */
     int i_satd_i8x8chroma;
-    int i_satd_i8x8chroma_dir[4];
+    int i_satd_i8x8chroma_dir[7];
     int i_predict8x8chroma;
 
     /* II: Inter part P/B frame */
@@ -515,136 +515,52 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     }
 }
 
-
-
-/*
- * Handle intra mb
- */
-/* Max = 4 */
-static void predict_16x16_mode_available( unsigned int i_neighbour, int *mode, int *pi_count )
+/* Prediction modes allowed for various combinations of neighbors. */
+/* Terminated by a -1. */
+/* In order, no neighbors, left, top, top/left, top/left/topleft */
+static const int8_t i16x16_mode_available[5][5] =
 {
-    int b_top = i_neighbour & MB_TOP;
-    int b_left = i_neighbour & MB_LEFT;
-    if( b_top && b_left )
-    {
-        /* top and left available */
-        *mode++ = I_PRED_16x16_V;
-        *mode++ = I_PRED_16x16_H;
-        *mode++ = I_PRED_16x16_DC;
-        *pi_count = 3;
-        if( i_neighbour & MB_TOPLEFT )
-        {
-            /* top left available*/
-            *mode++ = I_PRED_16x16_P;
-            *pi_count = 4;
-        }
-    }
-    else if( b_left )
-    {
-        /* left available*/
-        *mode++ = I_PRED_16x16_DC_LEFT;
-        *mode++ = I_PRED_16x16_H;
-        *pi_count = 2;
-    }
-    else if( b_top )
-    {
-        /* top available*/
-        *mode++ = I_PRED_16x16_DC_TOP;
-        *mode++ = I_PRED_16x16_V;
-        *pi_count = 2;
-    }
-    else
-    {
-        /* none available */
-        *mode = I_PRED_16x16_DC_128;
-        *pi_count = 1;
-    }
+    {I_PRED_16x16_DC_128, -1, -1, -1, -1},
+    {I_PRED_16x16_DC_LEFT, I_PRED_16x16_H, -1, -1, -1},
+    {I_PRED_16x16_DC_TOP, I_PRED_16x16_V, -1, -1, -1},
+    {I_PRED_16x16_V, I_PRED_16x16_H, I_PRED_16x16_DC, -1, -1},
+    {I_PRED_16x16_V, I_PRED_16x16_H, I_PRED_16x16_DC, I_PRED_16x16_P, -1},
+};
+
+static const int8_t i8x8chroma_mode_available[5][5] =
+{
+    {I_PRED_CHROMA_DC_128, -1, -1, -1, -1},
+    {I_PRED_CHROMA_DC_LEFT, I_PRED_CHROMA_H, -1, -1, -1},
+    {I_PRED_CHROMA_DC_TOP, I_PRED_CHROMA_V, -1, -1, -1},
+    {I_PRED_CHROMA_V, I_PRED_CHROMA_H, I_PRED_CHROMA_DC, -1, -1},
+    {I_PRED_CHROMA_V, I_PRED_CHROMA_H, I_PRED_CHROMA_DC, I_PRED_CHROMA_P, -1},
+};
+
+static const int8_t i4x4_mode_available[5][10] =
+{
+    {I_PRED_4x4_DC_128, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {I_PRED_4x4_DC_LEFT, I_PRED_4x4_H, I_PRED_4x4_HU, -1, -1, -1, -1, -1, -1, -1},
+    {I_PRED_4x4_DC_TOP, I_PRED_4x4_V, I_PRED_4x4_DDL, I_PRED_4x4_VL, -1, -1, -1, -1, -1, -1},
+    {I_PRED_4x4_DC, I_PRED_4x4_H, I_PRED_4x4_V, I_PRED_4x4_DDL, I_PRED_4x4_VL, I_PRED_4x4_HU, -1, -1, -1, -1},
+    {I_PRED_4x4_DC, I_PRED_4x4_H, I_PRED_4x4_V, I_PRED_4x4_DDL, I_PRED_4x4_DDR, I_PRED_4x4_VR, I_PRED_4x4_HD, I_PRED_4x4_VL, I_PRED_4x4_HU, -1},
+};
+
+static inline const int8_t *predict_16x16_mode_available( int i_neighbour )
+{
+    int idx = i_neighbour & (MB_TOP|MB_LEFT|MB_TOPLEFT);
+    return i16x16_mode_available[(idx&MB_TOPLEFT)?4:idx];
 }
 
-/* Max = 4 */
-static void predict_8x8chroma_mode_available( unsigned int i_neighbour, int *mode, int *pi_count )
+static inline const int8_t *predict_8x8chroma_mode_available( int i_neighbour )
 {
-    int b_top = i_neighbour & MB_TOP;
-    int b_left = i_neighbour & MB_LEFT;
-    if( b_top && b_left )
-    {
-        /* top and left available */
-        *mode++ = I_PRED_CHROMA_V;
-        *mode++ = I_PRED_CHROMA_H;
-        *mode++ = I_PRED_CHROMA_DC;
-        *pi_count = 3;
-        if( i_neighbour & MB_TOPLEFT )
-        {
-            /* top left available */
-            *mode++ = I_PRED_CHROMA_P;
-            *pi_count = 4;
-        }
-    }
-    else if( b_left )
-    {
-        /* left available*/
-        *mode++ = I_PRED_CHROMA_DC_LEFT;
-        *mode++ = I_PRED_CHROMA_H;
-        *pi_count = 2;
-    }
-    else if( b_top )
-    {
-        /* top available*/
-        *mode++ = I_PRED_CHROMA_DC_TOP;
-        *mode++ = I_PRED_CHROMA_V;
-        *pi_count = 2;
-    }
-    else
-    {
-        /* none available */
-        *mode = I_PRED_CHROMA_DC_128;
-        *pi_count = 1;
-    }
+    int idx = i_neighbour & (MB_TOP|MB_LEFT|MB_TOPLEFT);
+    return i8x8chroma_mode_available[(idx&MB_TOPLEFT)?4:idx];
 }
 
-/* MAX = 9 */
-static void predict_4x4_mode_available( unsigned int i_neighbour,
-                                        int *mode, int *pi_count )
+static inline const int8_t *predict_4x4_mode_available( int i_neighbour )
 {
-    int b_top = i_neighbour & MB_TOP;
-    int b_left = i_neighbour & MB_LEFT;
-    if( b_top && b_left )
-    {
-        *pi_count = 6;
-        *mode++ = I_PRED_4x4_DC;
-        *mode++ = I_PRED_4x4_H;
-        *mode++ = I_PRED_4x4_V;
-        *mode++ = I_PRED_4x4_DDL;
-        if( i_neighbour & MB_TOPLEFT )
-        {
-            *mode++ = I_PRED_4x4_DDR;
-            *mode++ = I_PRED_4x4_VR;
-            *mode++ = I_PRED_4x4_HD;
-            *pi_count += 3;
-        }
-        *mode++ = I_PRED_4x4_VL;
-        *mode++ = I_PRED_4x4_HU;
-    }
-    else if( b_left )
-    {
-        *mode++ = I_PRED_4x4_DC_LEFT;
-        *mode++ = I_PRED_4x4_H;
-        *mode++ = I_PRED_4x4_HU;
-        *pi_count = 3;
-    }
-    else if( b_top )
-    {
-        *mode++ = I_PRED_4x4_DC_TOP;
-        *mode++ = I_PRED_4x4_V;
-        *mode++ = I_PRED_4x4_DDL;
-        *mode++ = I_PRED_4x4_VL;
-        *pi_count = 4;
-    }
-    else
-    {
-        *mode++ = I_PRED_4x4_DC_128;
-        *pi_count = 1;
-    }
+    int idx = i_neighbour & (MB_TOP|MB_LEFT|MB_TOPLEFT);
+    return i4x4_mode_available[(idx&MB_TOPLEFT)?4:idx];
 }
 
 /* For trellis=2, we need to do this for both sizes of DCT, for trellis=1 we only need to use it on the chosen mode. */
@@ -701,71 +617,55 @@ static inline void x264_mb_cache_fenc_satd( x264_t *h )
 
 static void x264_mb_analyse_intra_chroma( x264_t *h, x264_mb_analysis_t *a )
 {
-    int i;
-
-    int i_max;
-    int predict_mode[4];
     int b_merged_satd = !!h->pixf.intra_mbcmp_x3_8x8c && !h->mb.b_lossless;
-
-    uint8_t *p_dstc[2], *p_srcc[2];
 
     if( a->i_satd_i8x8chroma < COST_MAX )
         return;
 
-    /* 8x8 prediction selection for chroma */
-    p_dstc[0] = h->mb.pic.p_fdec[1];
-    p_dstc[1] = h->mb.pic.p_fdec[2];
-    p_srcc[0] = h->mb.pic.p_fenc[1];
-    p_srcc[1] = h->mb.pic.p_fenc[2];
+    const int8_t *predict_mode = predict_8x8chroma_mode_available( h->mb.i_neighbour_intra );
 
-    predict_8x8chroma_mode_available( h->mb.i_neighbour_intra, predict_mode, &i_max );
-    a->i_satd_i8x8chroma = COST_MAX;
-    if( i_max == 4 && b_merged_satd )
+    /* 8x8 prediction selection for chroma */
+    if( predict_mode[3] >= 0 && b_merged_satd )
     {
         int satdu[4], satdv[4];
-        h->pixf.intra_mbcmp_x3_8x8c( p_srcc[0], p_dstc[0], satdu );
-        h->pixf.intra_mbcmp_x3_8x8c( p_srcc[1], p_dstc[1], satdv );
-        h->predict_8x8c[I_PRED_CHROMA_P]( p_dstc[0] );
-        h->predict_8x8c[I_PRED_CHROMA_P]( p_dstc[1] );
-        satdu[I_PRED_CHROMA_P] =
-            h->pixf.mbcmp[PIXEL_8x8]( p_dstc[0], FDEC_STRIDE, p_srcc[0], FENC_STRIDE );
-        satdv[I_PRED_CHROMA_P] =
-            h->pixf.mbcmp[PIXEL_8x8]( p_dstc[1], FDEC_STRIDE, p_srcc[1], FENC_STRIDE );
+        h->pixf.intra_mbcmp_x3_8x8c( h->mb.pic.p_fenc[1], h->mb.pic.p_fdec[1], satdu );
+        h->pixf.intra_mbcmp_x3_8x8c( h->mb.pic.p_fenc[2], h->mb.pic.p_fdec[2], satdv );
+        h->predict_8x8c[I_PRED_CHROMA_P]( h->mb.pic.p_fdec[1] );
+        h->predict_8x8c[I_PRED_CHROMA_P]( h->mb.pic.p_fdec[2] );
+        satdu[I_PRED_CHROMA_P] = h->pixf.mbcmp[PIXEL_8x8]( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc[1], FENC_STRIDE );
+        satdv[I_PRED_CHROMA_P] = h->pixf.mbcmp[PIXEL_8x8]( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fenc[2], FENC_STRIDE );
 
-        for( i=0; i<i_max; i++ )
+        for( ; *predict_mode >= 0; predict_mode++ )
         {
-            int i_mode = predict_mode[i];
-            int i_satd = satdu[i_mode] + satdv[i_mode]
-                       + a->i_lambda * bs_size_ue(i_mode);
+            int i_mode = *predict_mode;
+            int i_satd = satdu[i_mode] + satdv[i_mode] + a->i_lambda * bs_size_ue( i_mode );
 
-            a->i_satd_i8x8chroma_dir[i] = i_satd;
+            a->i_satd_i8x8chroma_dir[i_mode] = i_satd;
             COPY2_IF_LT( a->i_satd_i8x8chroma, i_satd, a->i_predict8x8chroma, i_mode );
         }
     }
     else
     {
-        for( i=0; i<i_max; i++ )
+        for( ; *predict_mode >= 0; predict_mode++ )
         {
             int i_satd;
-            int i_mode = predict_mode[i];
+            int i_mode = *predict_mode;
 
             /* we do the prediction */
             if( h->mb.b_lossless )
                 x264_predict_lossless_8x8_chroma( h, i_mode );
             else
             {
-                h->predict_8x8c[i_mode]( p_dstc[0] );
-                h->predict_8x8c[i_mode]( p_dstc[1] );
+                h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[1] );
+                h->predict_8x8c[i_mode]( h->mb.pic.p_fdec[2] );
             }
 
             /* we calculate the cost */
-            i_satd = h->pixf.mbcmp[PIXEL_8x8]( p_dstc[0], FDEC_STRIDE,
-                                               p_srcc[0], FENC_STRIDE ) +
-                     h->pixf.mbcmp[PIXEL_8x8]( p_dstc[1], FDEC_STRIDE,
-                                               p_srcc[1], FENC_STRIDE ) +
+            i_satd = h->pixf.mbcmp[PIXEL_8x8]( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc[1], FENC_STRIDE ) +
+                     h->pixf.mbcmp[PIXEL_8x8]( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fenc[2], FENC_STRIDE ) +
                      a->i_lambda * bs_size_ue( x264_mb_pred_mode8x8c_fix[i_mode] );
 
-            a->i_satd_i8x8chroma_dir[i] = i_satd;
+            a->i_satd_i8x8chroma_dir[i_mode] = i_satd;
             COPY2_IF_LT( a->i_satd_i8x8chroma, i_satd, a->i_predict8x8chroma, i_mode );
         }
     }
@@ -780,16 +680,14 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     uint8_t  *p_dst = h->mb.pic.p_fdec[0];
 
     int i, idx;
-    int i_max;
-    int predict_mode[9];
     int b_merged_satd = !!h->pixf.intra_mbcmp_x3_16x16 && !h->mb.b_lossless;
 
     /*---------------- Try all mode and calculate their score ---------------*/
 
     /* 16x16 prediction selection */
-    predict_16x16_mode_available( h->mb.i_neighbour_intra, predict_mode, &i_max );
+    const int8_t *predict_mode = predict_16x16_mode_available( h->mb.i_neighbour_intra );
 
-    if( b_merged_satd && i_max == 4 )
+    if( b_merged_satd && predict_mode[3] >= 0 )
     {
         h->pixf.intra_mbcmp_x3_16x16( p_src, p_dst, a->i_satd_i16x16_dir );
         h->predict_16x16[I_PRED_16x16_P]( p_dst );
@@ -803,10 +701,10 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     }
     else
     {
-        for( i = 0; i < i_max; i++ )
+        for( ; *predict_mode >= 0; predict_mode++ )
         {
             int i_satd;
-            int i_mode = predict_mode[i];
+            int i_mode = *predict_mode;
 
             if( h->mb.b_lossless )
                 x264_predict_lossless_16x16( h, i_mode );
@@ -849,10 +747,10 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             int i_best = COST_MAX;
             int i_pred_mode = x264_mb_predict_intra4x4_mode( h, 4*idx );
 
-            predict_4x4_mode_available( h->mb.i_neighbour8[idx], predict_mode, &i_max );
+            predict_mode = predict_4x4_mode_available( h->mb.i_neighbour8[idx] );
             h->predict_8x8_filter( p_dst_by, edge, h->mb.i_neighbour8[idx], ALL_NEIGHBORS );
 
-            if( b_merged_satd && i_max == 9 )
+            if( b_merged_satd && predict_mode[8] >= 0 )
             {
                 int satd[9];
                 h->pixf.intra_mbcmp_x3_8x8( p_src_by, edge, satd );
@@ -862,15 +760,13 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                     int cost = a->i_satd_i8x8_dir[i][idx] = satd[i] + 4 * a->i_lambda;
                     COPY2_IF_LT( i_best, cost, a->i_predict8x8[idx], i );
                 }
-                i = 3;
+                predict_mode += 3;
             }
-            else
-                i = 0;
 
-            for( ; i<i_max; i++ )
+            for( ; *predict_mode >= 0; predict_mode++ )
             {
                 int i_satd;
-                int i_mode = predict_mode[i];
+                int i_mode = *predict_mode;
 
                 if( h->mb.b_lossless )
                     x264_predict_lossless_8x8( h, p_dst_by, idx, i_mode, edge );
@@ -942,28 +838,27 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             int i_best = COST_MAX;
             int i_pred_mode = x264_mb_predict_intra4x4_mode( h, idx );
 
-            predict_4x4_mode_available( h->mb.i_neighbour4[idx], predict_mode, &i_max );
+            const int8_t *predict_mode = predict_4x4_mode_available( h->mb.i_neighbour4[idx] );
 
             if( (h->mb.i_neighbour4[idx] & (MB_TOPRIGHT|MB_TOP)) == MB_TOP )
                 /* emulate missing topright samples */
                 M32( &p_dst_by[4 - FDEC_STRIDE] ) = p_dst_by[3 - FDEC_STRIDE] * 0x01010101U;
 
-            if( b_merged_satd && i_max >= 6 )
+            if( b_merged_satd && predict_mode[5] >= 0 )
             {
                 int satd[9];
                 h->pixf.intra_mbcmp_x3_4x4( p_src_by, p_dst_by, satd );
                 satd[i_pred_mode] -= 3 * a->i_lambda;
                 for( i=2; i>=0; i-- )
                     COPY2_IF_LT( i_best, satd[i], a->i_predict4x4[idx], i );
-                i = 3;
+                predict_mode += 3;
             }
-            else
-                i = 0;
 
-            for( ; i<i_max; i++ )
+            for( ; *predict_mode >= 0; predict_mode++ )
             {
                 int i_satd;
-                int i_mode = predict_mode[i];
+                int i_mode = *predict_mode;
+
                 if( h->mb.b_lossless )
                     x264_predict_lossless_4x4( h, p_dst_by, idx, i_mode );
                 else
@@ -1041,21 +936,20 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
 {
     uint8_t  *p_dst = h->mb.pic.p_fdec[0];
 
-    int i, j, idx, x, y;
-    int i_max, i_mode, i_thresh;
+    int i, idx, x, y;
+    int i_mode, i_thresh;
     uint64_t i_satd, i_best;
-    int predict_mode[9];
     h->mb.i_skip_intra = 0;
 
     if( h->mb.i_type == I_16x16 )
     {
         int old_pred_mode = a->i_predict16x16;
+        const int8_t *predict_mode = predict_16x16_mode_available( h->mb.i_neighbour_intra );
         i_thresh = a->i_satd_i16x16_dir[old_pred_mode] * 9/8;
         i_best = a->i_satd_i16x16;
-        predict_16x16_mode_available( h->mb.i_neighbour_intra, predict_mode, &i_max );
-        for( i = 0; i < i_max; i++ )
+        for( ; *predict_mode >= 0; predict_mode++ )
         {
-            int i_mode = predict_mode[i];
+            int i_mode = *predict_mode;
             if( i_mode == old_pred_mode || a->i_satd_i16x16_dir[i_mode] > i_thresh )
                 continue;
             h->mb.i_intra16x16_pred_mode = i_mode;
@@ -1065,18 +959,19 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     }
 
     /* RD selection for chroma prediction */
-    predict_8x8chroma_mode_available( h->mb.i_neighbour_intra, predict_mode, &i_max );
-    if( i_max > 1 )
+    const int8_t *predict_mode = predict_8x8chroma_mode_available( h->mb.i_neighbour_intra );
+    if( predict_mode[1] >= 0 )
     {
+        int8_t predict_mode_sorted[4];
+        int i_max;
         i_thresh = a->i_satd_i8x8chroma * 5/4;
 
-        for( i = j = 0; i < i_max; i++ )
-            if( a->i_satd_i8x8chroma_dir[i] < i_thresh &&
-                predict_mode[i] != a->i_predict8x8chroma )
-            {
-                predict_mode[j++] = predict_mode[i];
-            }
-        i_max = j;
+        for( i_max = 0; *predict_mode >= 0; predict_mode++ )
+        {
+            i_mode = *predict_mode;
+            if( a->i_satd_i8x8chroma_dir[i_mode] < i_thresh && i_mode != a->i_predict8x8chroma )
+                predict_mode_sorted[i_max++] = i_mode;
+        }
 
         if( i_max > 0 )
         {
@@ -1088,7 +983,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
             i_best = x264_rd_cost_i8x8_chroma( h, i_chroma_lambda, a->i_predict8x8chroma, 0 );
             for( i = 0; i < i_max; i++ )
             {
-                i_mode = predict_mode[i];
+                i_mode = predict_mode_sorted[i];
                 if( h->mb.b_lossless )
                     x264_predict_lossless_8x8_chroma( h, i_mode );
                 else
@@ -1116,15 +1011,15 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
             uint8_t *p_dst_by = p_dst + block_idx_xy_fdec[idx];
             i_best = COST_MAX64;
 
-            predict_4x4_mode_available( h->mb.i_neighbour4[idx], predict_mode, &i_max );
+            const int8_t *predict_mode = predict_4x4_mode_available( h->mb.i_neighbour4[idx] );
 
             if( (h->mb.i_neighbour4[idx] & (MB_TOPRIGHT|MB_TOP)) == MB_TOP )
                 /* emulate missing topright samples */
                 M32( &p_dst_by[4 - FDEC_STRIDE] ) = p_dst_by[3 - FDEC_STRIDE] * 0x01010101U;
 
-            for( i = 0; i < i_max; i++ )
+            for( ; *predict_mode >= 0; predict_mode++ )
             {
-                i_mode = predict_mode[i];
+                i_mode = *predict_mode;
                 if( h->mb.b_lossless )
                     x264_predict_lossless_4x4( h, p_dst_by, idx, i_mode );
                 else
@@ -1170,14 +1065,15 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
             y = idx>>1;
 
             p_dst_by = p_dst + 8*x + 8*y*FDEC_STRIDE;
-            predict_4x4_mode_available( h->mb.i_neighbour8[idx], predict_mode, &i_max );
+            const int8_t *predict_mode = predict_4x4_mode_available( h->mb.i_neighbour8[idx] );
             h->predict_8x8_filter( p_dst_by, edge, h->mb.i_neighbour8[idx], ALL_NEIGHBORS );
 
-            for( i = 0; i < i_max; i++ )
+            for( ; *predict_mode >= 0; predict_mode++ )
             {
-                i_mode = predict_mode[i];
+                i_mode = *predict_mode;
                 if( a->i_satd_i8x8_dir[i_mode][idx] > i_thresh )
                     continue;
+
                 if( h->mb.b_lossless )
                     x264_predict_lossless_8x8( h, p_dst_by, idx, i_mode, edge );
                 else
