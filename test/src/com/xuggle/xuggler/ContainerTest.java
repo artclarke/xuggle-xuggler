@@ -361,7 +361,7 @@ public class ContainerTest extends TestCase
   }
 
   @Test
-  public void testSeekKeyFrameWithNegativeStream()
+  public void testSeekKeyFrame2()
   {
     IContainer container = IContainer.make();
     
@@ -374,8 +374,52 @@ public class ContainerTest extends TestCase
     //
     // we happen to know that FLV is in milliseconds (or 1/1000 per second) so
     // we multiply our desired number of seconds by 1,000
-    retval = container.seekKeyFrame(-1, 20*1000, IURLProtocolHandler.SEEK_CUR);
-    assertTrue("should fail", retval <0);
+    retval = container.seekKeyFrame(0, 18*1000, 20*1000, 21*1000,
+        0);
+    assertTrue("could not seek to key frame", retval >=0);
+    
+    long packetsRead = 0;
+    IPacket packet = IPacket.make();
+    while(container.readNextPacket(packet) >= 0)
+    {
+      if (packet.isComplete())
+        ++packetsRead;
+    }
+    assertEquals("got unexpected number of packets in file", 6905, packetsRead);
+  }
+
+  @Test
+  public void testSearchTimeStampInIndex()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+
+    retval = container.searchTimeStampInIndex(0,
+        20*1000, 0);
+    assertEquals(-1, retval);
+  }
+
+  @Test
+  public void testSeekKeyFrameWithNegativeStream()
+  {
+    IContainer container = IContainer.make();
+    
+    int retval = -1;
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+
+    retval = container.seekKeyFrame(-1, 20*1000*1000, IURLProtocolHandler.SEEK_CUR);
+    long packetsRead = 0;
+    IPacket packet = IPacket.make();
+    while(container.readNextPacket(packet) >= 0)
+    {
+      if (packet.isComplete())
+        ++packetsRead;
+    }
+    assertEquals("got unexpected number of packets in file", 6905, packetsRead);
   }
 
   @Test

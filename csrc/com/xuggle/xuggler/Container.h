@@ -117,6 +117,13 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t setForcedVideoCodec(ICodec::ID id);
     virtual int32_t setForcedSubtitleCodec(ICodec::ID id);
     
+    /*
+     * Added for 3.4
+     */
+    virtual int32_t seekKeyFrame(int32_t streamIndex, int64_t minTimeStamp,
+        int64_t targetTimeStamp, int64_t maxTimeStamp, int32_t flags);
+    virtual int32_t searchTimeStampInIndex(int32_t streamIndex,
+        int64_t wantedTimeStamp, int32_t flags);
 
   protected:
     virtual ~Container();

@@ -778,13 +778,13 @@ namespace com { namespace xuggle { namespace xuggler
   }
 
   int32_t
-  Container :: seekKeyFrame(int streamIndex, int64_t timestamp, int32_t flags)
+  Container :: seekKeyFrame(int32_t streamIndex, int64_t timestamp, int32_t flags)
   {
     int32_t retval = -1;
 
     if (mIsOpened)
     {
-      if (streamIndex < 0 || (uint32_t)streamIndex >= mNumStreams)
+      if (streamIndex >= (int32_t)mNumStreams)
         VS_LOG_WARN("Attempt to seek on streamIndex %d but only %d streams known about in container",
             streamIndex, mNumStreams);
       else
@@ -793,6 +793,63 @@ namespace com { namespace xuggle { namespace xuggler
     else
     {
       VS_LOG_WARN("Attempt to seekKeyFrame but container is not open");
+    }
+    XUGGLER_CHECK_INTERRUPT(retval);
+    return retval;
+  }
+
+  int32_t
+  Container :: seekKeyFrame(int32_t streamIndex, int64_t minTimeStamp,
+          int64_t targetTimeStamp, int64_t maxTimeStamp, int32_t flags)
+  {
+    int32_t retval = -1;
+
+    if (mIsOpened)
+    {
+      if (streamIndex >= (int32_t)mNumStreams)
+        VS_LOG_WARN("Attempt to seek on streamIndex %d but only %d streams known about in container",
+            streamIndex, mNumStreams);
+      else
+        retval = avformat_seek_file(mFormatContext, streamIndex,
+            minTimeStamp,
+            targetTimeStamp,
+            maxTimeStamp,
+            flags);
+    }
+    else
+    {
+      VS_LOG_WARN("Attempt to seekKeyFrame but container is not open");
+    }
+    XUGGLER_CHECK_INTERRUPT(retval);
+    return retval;
+  }
+
+  int32_t
+  Container :: searchTimeStampInIndex(int32_t streamIndex,
+      int64_t wantedTimeStamp, int32_t flags)
+  {
+    int32_t retval = -1;
+
+    if (mIsOpened && mFormatContext)
+    {
+      if (streamIndex < 0 || streamIndex >= (int32_t)mNumStreams)
+        VS_LOG_WARN("Attempt to seek on streamIndex %d but only %d streams known about in container",
+            streamIndex, mNumStreams);
+      else {
+        AVStream* stream = mFormatContext->streams[streamIndex];
+        if (stream)
+          retval = av_index_search_timestamp(
+              stream,
+              wantedTimeStamp,
+              flags);
+        else
+          VS_LOG_WARN("Could not find stream at index: %d",
+              streamIndex);
+      }
+    }
+    else
+    {
+      VS_LOG_WARN("Attempt to searchTimeStampInIndex but container is not open");
     }
     XUGGLER_CHECK_INTERRUPT(retval);
     return retval;

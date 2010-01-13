@@ -894,6 +894,11 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  * check {@link IError#getType()} to see if it is  
  * {@link IError.Type#ERROR_INTERRUPTED}.  
  * </p>  
+ * <p>  
+ * <strong>WARNING:</strong>: This method will be deprecated  
+ * in a future Xuggler release and replaced with the new  
+ * API {@link #seekKeyFrame(int, long, long, long, int)}.  
+ * </p>  
  * @param	streamIndex The stream to search for the keyframe in; must 
  *		 be a  
  * stream the IContainer has either queried  
@@ -905,7 +910,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  * @return	>= 0 on success; <0 on failure.  
  */
   public int seekKeyFrame(int streamIndex, long timestamp, int flags) {
-    return XugglerJNI.IContainer_seekKeyFrame(swigCPtr, this, streamIndex, timestamp, flags);
+    return XugglerJNI.IContainer_seekKeyFrame__SWIG_0(swigCPtr, this, streamIndex, timestamp, flags);
   }
 
 /**
@@ -1306,6 +1311,91 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     return XugglerJNI.IContainer_setForcedSubtitleCodec(swigCPtr, this, id.swigValue());
   }
 
+/**
+ * EXPERIMENTAL - Seeks to timestamp in the container.  
+ * <p>  
+ * Seeking will be done so that the point from which all active streams 
+ *  
+ * can be presented successfully will be closest to  
+ * <code>targetTimeStamp</code> and within <code>  
+ * minTimeStamp/maxTimeStamp</code>.  
+ * </p>  
+ * <p>  
+ * If flags contain {@link #SEEK_FLAG_BYTE}, then all time stamps are 
+ * in bytes and  
+ * are the file position (this may not be supported by all demuxers). 
+ *  
+ * If flags contain {@link #SEEK_FLAG_FRAME}, then all time stamps are 
+ * in frames  
+ * in the stream with <code>streamIndex</code> (this may not be supported 
+ * by all demuxers).  
+ * Otherwise all time stamps are in units of the stream selected by 
+ * stream_index  
+ * or if stream_index is -1, in microseconds.  
+ * If flags contain {@link #SEEK_FLAG_ANY}, then non-keyframes are treated 
+ * as  
+ * keyframes (this may not be supported by all demuxers).  
+ * If flags contain {@link #SEEK_FLAG_BACKWARDS}, then we will attempt 
+ * to  
+ * search backwards in the container (this may not be supported by all 
+ *  
+ * demuxers and file protocols).  
+ * </p>  
+ * <p>  
+ * This is part of the new seek API which is still under construction. 
+ *  
+ * It may change in future Xuggler versions.  
+ * </p>  
+ * @param	streamIndex index of the stream which is used as time base 
+ *		 reference  
+ * @param	minTimeStamp smallest acceptable time stamp.  
+ * @param	targetTimeStamp target time stamp.  
+ * @param	maxTimeStamp largest acceptable time stamp.  
+ * @param	flags A bitmask of the <code>SEEK_FLAG_*</code> flags, or 
+ *		 0 to turn  
+ * all flags off.  
+ * @return	>=0 on success, error code otherwise  
+ * @since	3.4  
+ */
+  public int seekKeyFrame(int streamIndex, long minTimeStamp, long targetTimeStamp, long maxTimeStamp, int flags) {
+    return XugglerJNI.IContainer_seekKeyFrame__SWIG_1(swigCPtr, this, streamIndex, minTimeStamp, targetTimeStamp, maxTimeStamp, flags);
+  }
+
+/**
+ * EXPERIMENTAL - Search for the given time stamp in the key-frame index 
+ * for this {@link IContainer}.  
+ * <p>  
+ * Not all {@link IContainerFormat} implementations  
+ * maintain key frame indexes, but if they have one,  
+ * then this method searches in the {@link IContainer} index  
+ * to quickly find the byte-offset of the nearest key-frame to  
+ * the given time stamp.  
+ * </p>  
+ * <p>  
+ * This is part of the new seek API which is still under construction. 
+ *  
+ * It may change in future Xuggler versions.  
+ * </p>  
+ * @param	streamIndex The index of the stream to search in.  
+ * @param	wantedTimeStamp the time stamp wanted, in the stream's  
+ * time base units.  
+ * @param	flags A bitmask of the <code>SEEK_FLAG_*</code> flags, or 
+ *		 0 to turn  
+ * all flags off. If {@link #SEEK_FLAG_BACKWARDS} then the returned 
+ *  
+ * index will correspond to the time stamp which is <=  
+ * the requested one (not supported by all demuxers).  
+ * If {@link #SEEK_FLAG_BACKWARDS} is not set then it will be >=.  
+ * if {@link #SEEK_FLAG_ANY} seek to any frame, only  
+ * keyframes otherwise (not supported by all demuxers).  
+ * @return	The offset in bytes where the packet with the desired  
+ * timeStamp can be found, or -1 if it can't be found.  
+ * @since	3.4  
+ */
+  public int searchTimeStampInIndex(int streamIndex, long wantedTimeStamp, int flags) {
+    return XugglerJNI.IContainer_searchTimeStampInIndex(swigCPtr, this, streamIndex, wantedTimeStamp, flags);
+  }
+
   public enum Type {
   /**
    *
@@ -1395,4 +1485,20 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     }
   }
 
+/**
+ * Flag; Seek backwards  
+ */
+  public final static int SEEK_FLAG_BACKWARDS = XugglerJNI.IContainer_SEEK_FLAG_BACKWARDS_get();
+/**
+ * Flag; Use bytes instead of time stamps for seeking  
+ */
+  public final static int SEEK_FLAG_BYTE = XugglerJNI.IContainer_SEEK_FLAG_BYTE_get();
+/**
+ * Flag; Seek to any frame, even non-keyframes  
+ */
+  public final static int SEEK_FLAG_ANY = XugglerJNI.IContainer_SEEK_FLAG_ANY_get();
+/**
+ * Flag; Seek based on frame number instead of time stamps  
+ */
+  public final static int SEEK_FLAG_FRAME = XugglerJNI.IContainer_SEEK_FLAG_FRAME_get();
 }
