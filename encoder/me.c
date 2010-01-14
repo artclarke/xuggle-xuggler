@@ -652,12 +652,11 @@ me_hex2:
                 }
                 while( nmvsad > limit )
                 {
-                    int bsad = mvsads[0].sad;
                     int bi = 0;
                     for( i=1; i<nmvsad; i++ )
-                        COPY2_IF_GT( bsad, mvsads[i].sad, bi, i );
+                        if( mvsads[i].sad > mvsads[bi].sad )
+                            bi = i;
                     nmvsad--;
-                    mvsads[bi] = mvsads[nmvsad];
                     if( sizeof( mvsad_t ) == sizeof( uint64_t ) )
                         CP64( &mvsads[bi], &mvsads[nmvsad] );
                     else
