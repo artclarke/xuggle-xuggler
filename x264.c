@@ -1127,6 +1127,7 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
                 goto generic_option;
             case OPT_FPS:
                 b_user_fps = 1;
+                param->b_vfr_input = 0;
                 goto generic_option;
             case OPT_INTERLACED:
                 b_user_interlaced = 1;
