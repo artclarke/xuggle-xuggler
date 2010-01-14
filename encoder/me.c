@@ -609,8 +609,8 @@ me_hex2:
                             {
                                 COPY1_IF_LT( bsad, sad );
                                 mvsads[nmvsad].sad = sad + ycost;
-                                mvsads[nmvsad].mx = min_x+xs[i+j];
-                                mvsads[nmvsad].my = my;
+                                mvsads[nmvsad].mv[0] = min_x+xs[i+j];
+                                mvsads[nmvsad].mv[1] = my;
                                 nmvsad++;
                             }
                         }
@@ -624,8 +624,8 @@ me_hex2:
                         {
                             COPY1_IF_LT( bsad, sad );
                             mvsads[nmvsad].sad = sad + ycost;
-                            mvsads[nmvsad].mx = mx;
-                            mvsads[nmvsad].my = my;
+                            mvsads[nmvsad].mv[0] = mx;
+                            mvsads[nmvsad].mv[1] = my;
                             nmvsad++;
                         }
                     }
@@ -641,12 +641,22 @@ me_hex2:
                     for( i=0; i<nmvsad && mvsads[i].sad <= sad_thresh; i++ );
                     for( j=i; j<nmvsad; j++ )
                     {
-                        /* mvsad_t is not guaranteed to be 8 bytes on all archs, so check before using explicit write-combining */
-                        if( sizeof( mvsad_t ) == sizeof( uint64_t ) )
-                            CP64( &mvsads[i], &mvsads[j] );
+                        uint32_t sad;
+                        if( WORD_SIZE == 8 && sizeof(mvsad_t) == 8 )
+                        {
+                            uint64_t mvsad = M64( &mvsads[i] ) = M64( &mvsads[j] );
+#ifdef WORDS_BIGENDIAN
+                            mvsad >>= 32;
+#endif
+                            sad = mvsad;
+                        }
                         else
-                            mvsads[i] = mvsads[j];
-                        i += mvsads[j].sad <= sad_thresh;
+                        {
+                            sad = mvsads[j].sad;
+                            CP32( mvsads[i].mv, mvsads[j].mv );
+                            mvsads[i].sad = sad;
+                        }
+                        i += (sad - (sad_thresh+1)) >> 31;
                     }
                     nmvsad = i;
                 }
@@ -663,7 +673,7 @@ me_hex2:
                         mvsads[bi] = mvsads[nmvsad];
                 }
                 for( i=0; i<nmvsad; i++ )
-                    COST_MV( mvsads[i].mx, mvsads[i].my );
+                    COST_MV( mvsads[i].mv[0], mvsads[i].mv[1] );
             }
             else
             {
