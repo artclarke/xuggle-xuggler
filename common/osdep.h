@@ -203,7 +203,7 @@ static ALWAYS_INLINE uint16_t endian_fix16( uint16_t x )
 static int ALWAYS_INLINE x264_clz( uint32_t x )
 {
     static uint8_t lut[16] = {4,3,2,2,1,1,1,1,0,0,0,0,0,0,0,0};
-    int y, z = ((x - 0x10000) >> 27) & 16;
+    int y, z = (((x >> 16) - 1) >> 27) & 16;
     x >>= z^16;
     z += y = ((x - 0x100) >> 28) & 8;
     x >>= y^8;
