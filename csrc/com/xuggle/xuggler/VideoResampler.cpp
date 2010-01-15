@@ -140,8 +140,14 @@ namespace com { namespace xuggle { namespace xuggler
 
       memset(outAVFrame->data[0], 64*3-1, outAVFrame->linesize[0]);
       */
-      // And do the conversion
-      retval = sws_scale(mContext, inAVFrame->data, inAVFrame->linesize, 0,
+      // And do the conversion; works around FFmpeg checkin r30306
+      const uint8_t* srcFrame[4] = {
+          inAVFrame->data[0],
+          inAVFrame->data[1],
+          inAVFrame->data[2],
+          inAVFrame->data[3],
+      };
+      retval = sws_scale(mContext, srcFrame, inAVFrame->linesize, 0,
           mIHeight, outAVFrame->data, outAVFrame->linesize);
       
       // and go home happy.
