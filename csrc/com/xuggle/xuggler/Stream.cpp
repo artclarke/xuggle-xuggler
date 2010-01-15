@@ -62,6 +62,13 @@ namespace com { namespace xuggle { namespace xuggler
     {
       // when outbound we manage our AVStream context;
       // when inbound, FFMPEG cleans up after itself.
+      if (mStream->parser) {
+        av_parser_close(mStream->parser);
+        av_free_packet(&mStream->cur_pkt);
+      }
+      av_metadata_free(&mStream->metadata);
+      av_free(mStream->index_entries);
+      av_free(mStream->priv_data);
       av_free(mStream);
     }
     mStream = 0;
