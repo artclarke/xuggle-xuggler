@@ -26,6 +26,10 @@
 #include <com/xuggle/xuggler/IIndexEntry.h>
 #include <com/xuggle/xuggler/IContainer.h>
 #include <com/xuggle/xuggler/IStream.h>
+
+// For getenv()
+#include <stdlib.h>
+
 IndexEntryTest :: IndexEntryTest()
 {
 
@@ -70,6 +74,44 @@ IndexEntryTest :: testCreation()
   VS_TUT_ENSURE_EQUALS("", flags, entry->getFlags());
   VS_TUT_ENSURE_EQUALS("", size, entry->getSize());
   VS_TUT_ENSURE_EQUALS("", minDistance, entry->getMinDistance());
+}
+
+void
+IndexEntryTest :: testGetIndexEntry()
+{
+  RefPointer<IContainer> container = IContainer::make();
+
+  char file[2048];
+  const char *fixtureDirectory = getenv("VS_TEST_FIXTUREDIR");
+  const char *sample = "testfile_h264_mp4a_tmcd.mov";
+  if (fixtureDirectory && *fixtureDirectory)
+    snprintf(file, sizeof(file), "%s/%s", fixtureDirectory, sample);
+  else
+    snprintf(file, sizeof(file), "./%s", sample);
+
+  int retval = container->open(file, IContainer::READ, 0);
+  VS_TUT_ENSURE("", retval >= 0);
+  RefPointer<IStream> stream = container->getStream(0);
+  VS_TUT_ENSURE("", stream);
+  if (!stream) return;
+  int32_t numEntries = stream->getNumIndexEntries();
+  VS_TUT_ENSURE_EQUALS("", 2665, numEntries);
+  RefPointer<IIndexEntry> entry = stream->getIndexEntry(numEntries-1);
+  VS_TUT_ENSURE("", entry);
+  VS_TUT_ENSURE_EQUALS("", 11673146, entry->getPosition());
+  VS_TUT_ENSURE_EQUALS("", 332875, entry->getTimeStamp());
+  VS_TUT_ENSURE_EQUALS("should be non-keyframe", 0, entry->getFlags());
+  VS_TUT_ENSURE_EQUALS("", 50, entry->getSize());
+  VS_TUT_ENSURE_EQUALS("", 96, entry->getMinDistance());
+
+  // Bounds checking
+  entry = stream->getIndexEntry(-1);
+  VS_TUT_ENSURE("", !entry);
+  entry = stream->getIndexEntry(numEntries);
+  VS_TUT_ENSURE("", !entry);
+
+  // close the container
+  container->close();
 }
 
 void

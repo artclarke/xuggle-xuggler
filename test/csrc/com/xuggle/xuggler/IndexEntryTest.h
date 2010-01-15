@@ -35,6 +35,7 @@ public:
   void tearDown();
   void testCreation();
   void testAddIndexEntry();
+  void testGetIndexEntry();
 };
 
 #endif /* INDEXENTRYTEST_H_ */
