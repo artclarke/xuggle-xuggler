@@ -32,6 +32,7 @@
 #include <com/xuggle/xuggler/IAudioSamples.h>
 #include <com/xuggle/xuggler/ICodec.h>
 #include <com/xuggle/xuggler/IPacket.h>
+#include <com/xuggle/xuggler/IIndexEntry.h>
 #include <com/xuggle/xuggler/IAudioResampler.h>
 #include <com/xuggle/xuggler/IVideoPicture.h>
 #include <com/xuggle/xuggler/IVideoResampler.h>
@@ -165,6 +166,7 @@ import com.xuggle.ferry.*;
 %include <com/xuggle/xuggler/IAudioResampler.h>
 %include <com/xuggle/xuggler/IVideoResampler.swg>
 %include <com/xuggle/xuggler/IStreamCoder.swg>
+%include <com/xuggle/xuggler/IIndexEntry.swg>
 %include <com/xuggle/xuggler/IStream.swg>
 %include <com/xuggle/xuggler/IContainerParameters.h>
 %include <com/xuggle/xuggler/IContainerFormat.swg>

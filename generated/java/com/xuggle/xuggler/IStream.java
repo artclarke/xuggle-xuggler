@@ -133,8 +133,8 @@ public class IStream extends RefCounted {
   
 
   /**
-   * info about this packet
-   * @return information about this packet
+   * info about this stream
+   * @return information about this stream
    */
    
   @Override
@@ -151,6 +151,26 @@ public class IStream extends RefCounted {
     result.append("direction:"+getDirection()+";");
     result.append("]");
     return result.toString();
+  }
+
+  /**
+   * Get an ordered sequence of index entries in this {@link IStream}.
+   * 
+   * @return A list of entries.  Will always return a non-null
+   *   list, but if there are no entries the list size will be zero.
+   */
+  public java.util.List<IIndexEntry> getIndexEntries()
+  {
+    final int numEntries = getNumIndexEntries();
+    java.util.List<IIndexEntry> retval = new java.util.ArrayList<IIndexEntry>(Math.max(numEntries, 10));
+    for(int i = 0; i < numEntries; i++) {
+      final IIndexEntry entry = getIndexEntry(i);
+      if (entry != null) {
+       retval.add(entry); 
+      }
+    }
+    
+    return retval;
   }
 
 
@@ -257,6 +277,7 @@ public class IStream extends RefCounted {
 /**
  * Get the number of index entries in this stream.  
  * @return	The number of index entries in this stream.  
+ * @see		#getIndexEntry(int)  
  */
   public int getNumIndexEntries() {
     return XugglerJNI.IStream_getNumIndexEntries(swigCPtr, this);
@@ -437,6 +458,115 @@ public class IStream extends RefCounted {
  */
   public int setStreamCoder(IStreamCoder newCoder, boolean assumeOnlyStream) {
     return XugglerJNI.IStream_setStreamCoder__SWIG_1(swigCPtr, this, IStreamCoder.getCPtr(newCoder), newCoder, assumeOnlyStream);
+  }
+
+/**
+ * EXPERIMENTAL - Search for the given time stamp in the key-frame index 
+ * for this {@link IStream}.  
+ * <p>  
+ * Not all {@link IContainerFormat} implementations  
+ * maintain key frame indexes, but if they have one,  
+ * then this method searches in the {@link IStream} index  
+ * to quickly find the byte-offset of the nearest key-frame to  
+ * the given time stamp.  
+ * </p>  
+ * <p>  
+ * This is part of the new seek API which is still under construction. 
+ *  
+ * It may change in future Xuggler versions.  
+ * </p>  
+ * @param	wantedTimeStamp the time stamp wanted, in the stream's  
+ * time base units.  
+ * @param	flags A bitmask of the <code>SEEK_FLAG_*</code> flags, or 
+ *		 0 to turn  
+ * all flags off. If {@link IContainer#SEEK_FLAG_BACKWARDS} then the 
+ * returned  
+ * index will correspond to the time stamp which is <=  
+ * the requested one (not supported by all demuxers).  
+ * If {@link IContainer#SEEK_FLAG_BACKWARDS} is not set then it will 
+ * be >=.  
+ * if {@link IContainer#SEEK_FLAG_ANY} seek to any frame, only  
+ * keyframes otherwise (not supported by all demuxers).  
+ * @return	The {@link IIndexEntry} for the nearest appropriate timestamp 
+ *		  
+ * in the index, or null if it can't be found.  
+ * @since	3.4  
+ */
+  public IIndexEntry findTimeStampEntryInIndex(long wantedTimeStamp, int flags) {
+    long cPtr = XugglerJNI.IStream_findTimeStampEntryInIndex(swigCPtr, this, wantedTimeStamp, flags);
+    return (cPtr == 0) ? null : new IIndexEntry(cPtr, false);
+  }
+
+/**
+ * EXPERIMENTAL - Search for the given time stamp in the key-frame index 
+ * for this {@link IStream}.  
+ * <p>  
+ * Not all {@link IContainerFormat} implementations  
+ * maintain key frame indexes, but if they have one,  
+ * then this method searches in the {@link IStream} index  
+ * to quickly find the index entry position of the nearest key-frame 
+ * to  
+ * the given time stamp.  
+ * </p>  
+ * <p>  
+ * This is part of the new seek API which is still under construction. 
+ *  
+ * It may change in future Xuggler versions.  
+ * </p>  
+ * @param	wantedTimeStamp the time stamp wanted, in the stream's  
+ * time base units.  
+ * @param	flags A bitmask of the <code>SEEK_FLAG_*</code> flags, or 
+ *		 0 to turn  
+ * all flags off. If {@link IContainer#SEEK_FLAG_BACKWARDS} then the 
+ * returned  
+ * index will correspond to the time stamp which is <=  
+ * the requested one (not supported by all demuxers).  
+ * If {@link IContainer#SEEK_FLAG_BACKWARDS} is not set then it will 
+ * be >=.  
+ * if {@link IContainer#SEEK_FLAG_ANY} seek to any frame, only  
+ * keyframes otherwise (not supported by all demuxers).  
+ * @return	The position in this {@link IStream} index, or -1 if it cannot 
+ *		  
+ * be found or an index is not maintained.  
+ * @see		#getIndexEntry(int)  
+ * @since	3.4  
+ */
+  public int findTimeStampPositionInIndex(long wantedTimeStamp, int flags) {
+    return XugglerJNI.IStream_findTimeStampPositionInIndex(swigCPtr, this, wantedTimeStamp, flags);
+  }
+
+/**
+ * Get the {@link IIndexEntry} at the given position in this  
+ * {@link IStream} object's index.  
+ * <p>  
+ * Not all {@link IContainerFormat} types maintain  
+ * {@link IStream} indexes, but if they do,  
+ * this method can return those entries.  
+ * </p>  
+ * <p>  
+ * Do not modify the {@link IContainer} this stream  
+ * is from between calls to this method and  
+ * {@link #getNumIndexEntries()} as indexes may  
+ * be compacted while processing.  
+ * </p>  
+ * @param	position The position in the index table.  
+ * @since	3.4  
+ */
+  public IIndexEntry getIndexEntry(int position) {
+    long cPtr = XugglerJNI.IStream_getIndexEntry(swigCPtr, this, position);
+    return (cPtr == 0) ? null : new IIndexEntry(cPtr, false);
+  }
+
+/**
+ * Adds an index entry into the stream's sorted index list.  
+ * Updates the entry if the list  
+ * already contains it.  
+ * @param	entry The entry to add.  
+ * @return	>=0 on success; <0 on error.  
+ * @since	3.4  
+ */
+  public int addIndexEntry(IIndexEntry entry) {
+    return XugglerJNI.IStream_addIndexEntry(swigCPtr, this, IIndexEntry.getCPtr(entry), entry);
   }
 
   public enum Direction {

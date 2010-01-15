@@ -83,6 +83,13 @@ namespace com { namespace xuggle { namespace xuggler
 
     virtual int32_t stampOutputPacket(IPacket* packet);
     virtual int32_t setStreamCoder(IStreamCoder *newCoder, bool assumeOnlyStream);
+    virtual IIndexEntry* findTimeStampEntryInIndex(
+        int64_t wantedTimeStamp, int32_t flags);
+    virtual int32_t findTimeStampPositionInIndex(
+        int64_t wantedTimeStamp, int32_t flags);
+    virtual IIndexEntry* getIndexEntry(int32_t position);
+    virtual int32_t addIndexEntry(IIndexEntry* entry);
+
   protected:
     Stream();
     virtual ~Stream();

@@ -824,37 +824,6 @@ namespace com { namespace xuggle { namespace xuggler
     return retval;
   }
 
-  int32_t
-  Container :: searchTimeStampInIndex(int32_t streamIndex,
-      int64_t wantedTimeStamp, int32_t flags)
-  {
-    int32_t retval = -1;
-
-    if (mIsOpened && mFormatContext)
-    {
-      if (streamIndex < 0 || streamIndex >= (int32_t)mNumStreams)
-        VS_LOG_WARN("Attempt to seek on streamIndex %d but only %d streams known about in container",
-            streamIndex, mNumStreams);
-      else {
-        AVStream* stream = mFormatContext->streams[streamIndex];
-        if (stream)
-          retval = av_index_search_timestamp(
-              stream,
-              wantedTimeStamp,
-              flags);
-        else
-          VS_LOG_WARN("Could not find stream at index: %d",
-              streamIndex);
-      }
-    }
-    else
-    {
-      VS_LOG_WARN("Attempt to searchTimeStampInIndex but container is not open");
-    }
-    XUGGLER_CHECK_INTERRUPT(retval);
-    return retval;
-  }
-
   int64_t
   Container :: getDuration()
   {

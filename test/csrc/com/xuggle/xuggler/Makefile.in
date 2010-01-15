@@ -40,7 +40,7 @@ check_PROGRAMS = xugglerTestMetaData$(EXEEXT) \
 	xugglerTestAudioResampler$(EXEEXT) xugglerTestCodec$(EXEEXT) \
 	xugglerTestContainerFormat$(EXEEXT) \
 	xugglerTestContainer$(EXEEXT) xugglerTestVideoPicture$(EXEEXT) \
-	xugglerTestHelper$(EXEEXT) \
+	xugglerTestHelper$(EXEEXT) xugglerTestIndexEntry$(EXEEXT) \
 	xugglerTestMediaDataWrapper$(EXEEXT) \
 	xugglerTestMemoryAllocation$(EXEEXT) \
 	xugglerTestPacket$(EXEEXT) xugglerTestPixelFormat$(EXEEXT) \
@@ -133,6 +133,15 @@ nodist_xugglerTestHelper_OBJECTS = HelperTest_CXXRunner.$(OBJEXT)
 xugglerTestHelper_OBJECTS = $(am_xugglerTestHelper_OBJECTS) \
 	$(nodist_xugglerTestHelper_OBJECTS)
 xugglerTestHelper_DEPENDENCIES =  \
+	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
+	$(am__DEPENDENCIES_1)
+am_xugglerTestIndexEntry_OBJECTS = IndexEntryTest.$(OBJEXT) \
+	Main.$(OBJEXT) Helper.$(OBJEXT)
+nodist_xugglerTestIndexEntry_OBJECTS =  \
+	IndexEntryTest_CXXRunner.$(OBJEXT)
+xugglerTestIndexEntry_OBJECTS = $(am_xugglerTestIndexEntry_OBJECTS) \
+	$(nodist_xugglerTestIndexEntry_OBJECTS)
+xugglerTestIndexEntry_DEPENDENCIES =  \
 	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
 	$(am__DEPENDENCIES_1)
 am_xugglerTestMediaDataWrapper_OBJECTS =  \
@@ -299,6 +308,8 @@ SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(xugglerTestError_SOURCES) $(nodist_xugglerTestError_SOURCES) \
 	$(xugglerTestHelper_SOURCES) \
 	$(nodist_xugglerTestHelper_SOURCES) \
+	$(xugglerTestIndexEntry_SOURCES) \
+	$(nodist_xugglerTestIndexEntry_SOURCES) \
 	$(xugglerTestMediaDataWrapper_SOURCES) \
 	$(nodist_xugglerTestMediaDataWrapper_SOURCES) \
 	$(xugglerTestMemoryAllocation_SOURCES) \
@@ -334,6 +345,7 @@ DIST_SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(xugglerTestContainer_SOURCES) \
 	$(xugglerTestContainerFormat_SOURCES) \
 	$(xugglerTestError_SOURCES) $(xugglerTestHelper_SOURCES) \
+	$(xugglerTestIndexEntry_SOURCES) \
 	$(xugglerTestMediaDataWrapper_SOURCES) \
 	$(xugglerTestMemoryAllocation_SOURCES) \
 	$(xugglerTestMetaData_SOURCES) $(xugglerTestPacket_SOURCES) \
@@ -505,6 +517,17 @@ inst_checkdir = $(bindir)
 # Make sure we set the abs_top_srcdir environment variable so the 
 # tests can auto-find their fixtures
 TESTS = $(check_PROGRAMS)
+xugglerTestIndexEntry_SOURCES = \
+  IndexEntryTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestIndexEntry_SOURCES = \
+  IndexEntryTest_CXXRunner.cpp
+
+xugglerTestIndexEntry_LDADD = \
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
 xugglerTestMetaData_SOURCES = \
   MetaDataTest.cpp \
   Main.cpp \
@@ -748,6 +771,7 @@ xugglerTestVideoResampler_LDADD = \
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
 BUILT_SOURCES = \
+  IndexEntryTest_CXXRunner.cpp \
   MetaDataTest_CXXRunner.cpp \
   AudioSamplesTest_CXXRunner.cpp \
   AudioResamplerTest_CXXRunner.cpp \
@@ -772,6 +796,7 @@ BUILT_SOURCES = \
   StreamCoderX264Test_CXXRunner.cpp
 
 noinst_HEADERS = \
+  IndexEntryTest.h \
   MetaDataTest.h \
   AudioResamplerTest.h \
   AudioSamplesTest.h \
@@ -861,6 +886,9 @@ xugglerTestError$(EXEEXT): $(xugglerTestError_OBJECTS) $(xugglerTestError_DEPEND
 xugglerTestHelper$(EXEEXT): $(xugglerTestHelper_OBJECTS) $(xugglerTestHelper_DEPENDENCIES) 
 	@rm -f xugglerTestHelper$(EXEEXT)
 	$(CXXLINK) $(xugglerTestHelper_OBJECTS) $(xugglerTestHelper_LDADD) $(LIBS)
+xugglerTestIndexEntry$(EXEEXT): $(xugglerTestIndexEntry_OBJECTS) $(xugglerTestIndexEntry_DEPENDENCIES) 
+	@rm -f xugglerTestIndexEntry$(EXEEXT)
+	$(CXXLINK) $(xugglerTestIndexEntry_OBJECTS) $(xugglerTestIndexEntry_LDADD) $(LIBS)
 xugglerTestMediaDataWrapper$(EXEEXT): $(xugglerTestMediaDataWrapper_OBJECTS) $(xugglerTestMediaDataWrapper_DEPENDENCIES) 
 	@rm -f xugglerTestMediaDataWrapper$(EXEEXT)
 	$(CXXLINK) $(xugglerTestMediaDataWrapper_OBJECTS) $(xugglerTestMediaDataWrapper_LDADD) $(LIBS)

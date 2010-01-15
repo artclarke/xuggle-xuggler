@@ -17,6 +17,7 @@ check_PROGRAMS=\
   xugglerTestContainer \
   xugglerTestVideoPicture \
   xugglerTestHelper \
+  xugglerTestIndexEntry \
   xugglerTestMediaDataWrapper \
   xugglerTestMemoryAllocation \
   xugglerTestPacket \
@@ -42,6 +43,17 @@ inst_checkdir=$(bindir)
 # Make sure we set the abs_top_srcdir environment variable so the 
 # tests can auto-find their fixtures
 TESTS=$(check_PROGRAMS)
+
+xugglerTestIndexEntry_SOURCES= \
+  IndexEntryTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestIndexEntry_SOURCES= \
+  IndexEntryTest_CXXRunner.cpp
+
+xugglerTestIndexEntry_LDADD= \
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
 xugglerTestMetaData_SOURCES= \
   MetaDataTest.cpp \
@@ -287,6 +299,7 @@ xugglerTestVideoResampler_LDADD=\
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
 BUILT_SOURCES= \
+  IndexEntryTest_CXXRunner.cpp \
   MetaDataTest_CXXRunner.cpp \
   AudioSamplesTest_CXXRunner.cpp \
   AudioResamplerTest_CXXRunner.cpp \
@@ -311,6 +324,7 @@ BUILT_SOURCES= \
   StreamCoderX264Test_CXXRunner.cpp
 
 noinst_HEADERS = \
+  IndexEntryTest.h \
   MetaDataTest.h \
   AudioResamplerTest.h \
   AudioSamplesTest.h \

@@ -425,6 +425,14 @@ class XugglerJNI {
   public final static native int IStreamCoder_setExtraData(long jarg1, IStreamCoder jarg1_, long jarg2, IBuffer jarg2_, int jarg3, int jarg4, boolean jarg5);
   public final static native int IStreamCoder_getExtraData(long jarg1, IStreamCoder jarg1_, long jarg2, IBuffer jarg2_, int jarg3, int jarg4);
   public final static native int IStreamCoder_getExtraDataSize(long jarg1, IStreamCoder jarg1_);
+  public final static native int IIndexEntry_IINDEX_FLAG_KEYFRAME_get();
+  public final static native long IIndexEntry_make(long jarg1, long jarg2, int jarg3, int jarg4, int jarg5);
+  public final static native long IIndexEntry_getPosition(long jarg1, IIndexEntry jarg1_);
+  public final static native long IIndexEntry_getTimeStamp(long jarg1, IIndexEntry jarg1_);
+  public final static native int IIndexEntry_getFlags(long jarg1, IIndexEntry jarg1_);
+  public final static native int IIndexEntry_getSize(long jarg1, IIndexEntry jarg1_);
+  public final static native int IIndexEntry_getMinDistance(long jarg1, IIndexEntry jarg1_);
+  public final static native boolean IIndexEntry_isKeyFrame(long jarg1, IIndexEntry jarg1_);
   public final static native int IStream_getDirection(long jarg1, IStream jarg1_);
   public final static native int IStream_getIndex(long jarg1, IStream jarg1_);
   public final static native int IStream_getId(long jarg1, IStream jarg1_);
@@ -448,6 +456,10 @@ class XugglerJNI {
   public final static native void IStream_setMetaData(long jarg1, IStream jarg1_, long jarg2, IMetaData jarg2_);
   public final static native int IStream_stampOutputPacket(long jarg1, IStream jarg1_, long jarg2, IPacket jarg2_);
   public final static native int IStream_setStreamCoder__SWIG_1(long jarg1, IStream jarg1_, long jarg2, IStreamCoder jarg2_, boolean jarg3);
+  public final static native long IStream_findTimeStampEntryInIndex(long jarg1, IStream jarg1_, long jarg2, int jarg3);
+  public final static native int IStream_findTimeStampPositionInIndex(long jarg1, IStream jarg1_, long jarg2, int jarg3);
+  public final static native long IStream_getIndexEntry(long jarg1, IStream jarg1_, int jarg2);
+  public final static native int IStream_addIndexEntry(long jarg1, IStream jarg1_, long jarg2, IIndexEntry jarg2_);
   public final static native long IContainerParameters_getTimeBase(long jarg1, IContainerParameters jarg1_);
   public final static native void IContainerParameters_setTimeBase(long jarg1, IContainerParameters jarg1_, long jarg2, IRational jarg2_);
   public final static native int IContainerParameters_getAudioSampleRate(long jarg1, IContainerParameters jarg1_);
@@ -616,6 +628,7 @@ class XugglerJNI {
   public final static native long SWIGIAudioResamplerUpcast(long jarg1);
   public final static native long SWIGIVideoResamplerUpcast(long jarg1);
   public final static native long SWIGIStreamCoderUpcast(long jarg1);
+  public final static native long SWIGIIndexEntryUpcast(long jarg1);
   public final static native long SWIGIStreamUpcast(long jarg1);
   public final static native long SWIGIContainerParametersUpcast(long jarg1);
   public final static native long SWIGIContainerFormatUpcast(long jarg1);

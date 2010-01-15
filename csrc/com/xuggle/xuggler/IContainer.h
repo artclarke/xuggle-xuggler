@@ -882,37 +882,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t seekKeyFrame(int32_t streamIndex, int64_t minTimeStamp,
         int64_t targetTimeStamp, int64_t maxTimeStamp, int32_t flags)=0;
 
-#if 0
-    /**
-     * EXPERIMENTAL - Search for the given time stamp in the key-frame index for this {@link IContainer}.
-     * <p>
-     * Not all {@link IContainerFormat} implementations
-     * maintain key frame indexes, but if they have one,
-     * then this method searches in the {@link IContainer} index
-     * to quickly find the byte-offset of the nearest key-frame to
-     * the given time stamp.
-     * </p>
-     * <p>
-     * This is part of the new seek API which is still under construction.
-     *       It may change in future Xuggler versions.
-     * </p>
-     * @param streamIndex The index of the stream to search in.
-     * @param wantedTimeStamp the time stamp wanted, in the stream's
-     *                        time base units.
-     * @param flags A bitmask of the <code>SEEK_FLAG_*</code> flags, or 0 to turn
-     *              all flags off.  If {@link #SEEK_FLAG_BACKWARDS} then the returned
-     *              index will correspond to the time stamp which is <=
-     *              the requested one (not supported by all demuxers).
-     *              If {@link #SEEK_FLAG_BACKWARDS} is not set then it will be >=.
-     *              if {@link #SEEK_FLAG_ANY} seek to any frame, only
-     *              keyframes otherwise (not supported by all demuxers).
-     * @return The offset in bytes where the packet with the desired
-     *   timeStamp can be found, or -1 if it can't be found.
-     * @since 3.4
-     */
-    virtual int32_t searchTimeStampInIndex(int32_t streamIndex,
-        int64_t wantedTimeStamp, int32_t flags)=0;
-#endif
+
   };
 }}}
 #endif /*ICONTAINER_H_*/

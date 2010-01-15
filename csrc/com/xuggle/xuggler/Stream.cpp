@@ -29,6 +29,8 @@
 #include <com/xuggle/xuggler/Container.h>
 #include <com/xuggle/xuggler/MetaData.h>
 #include <com/xuggle/xuggler/Packet.h>
+#include <com/xuggle/xuggler/IIndexEntry.h>
+
 #include "FfmpegIncludes.h"
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);
@@ -446,6 +448,63 @@ namespace com { namespace xuggle { namespace xuggler
 //    VS_LOG_DEBUG("Reset timebase: %d/%d",
 //        thisBase->getNumerator(), thisBase->getDenominator());
     return 0;
+  }
+
+  IIndexEntry*
+  Stream :: findTimeStampEntryInIndex(int64_t wantedTimeStamp, int32_t flags)
+  {
+    int32_t index = findTimeStampPositionInIndex(wantedTimeStamp, flags);
+    // getIndexEntry will check for a negative index and return null if so
+    return getIndexEntry(index);
+  }
+  int32_t
+  Stream :: findTimeStampPositionInIndex(int64_t wantedTimeStamp,
+      int32_t flags)
+  {
+    int retval = -1;
+    if (mStream) {
+      retval = av_index_search_timestamp(
+          mStream,
+          wantedTimeStamp,
+          flags);
+    }
+    return retval;
+  }
+
+  IIndexEntry*
+  Stream :: getIndexEntry(int32_t index)
+  {
+    IIndexEntry* retval = 0;
+    if (mStream->index_entries
+        && index >= 0
+        && index < mStream->nb_index_entries)
+    {
+      AVIndexEntry* entry = &(mStream->index_entries[index]);
+      if (entry) {
+        retval = IIndexEntry::make(
+            entry->pos,
+            entry->timestamp,
+            entry->flags,
+            entry->size,
+            entry->min_distance
+        );
+      }
+    }
+    return retval;
+  }
+  int32_t
+  Stream :: addIndexEntry(IIndexEntry* entry)
+  {
+    if (!entry)
+      return -1;
+    if (!mStream)
+      return -1;
+    return av_add_index_entry(mStream,
+        entry->getPosition(),
+        entry->getTimeStamp(),
+        entry->getSize(),
+        entry->getMinDistance(),
+        entry->getFlags());
   }
 
 }}}

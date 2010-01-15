@@ -32,6 +32,8 @@ libxuggle_xuggler_la_SOURCES= \
   IContainerParameters.cpp \
   IError.cpp \
   IVideoPicture.cpp \
+  IIndexEntry.cpp \
+  IndexEntry.cpp \
   IMediaData.cpp \
   IMediaDataWrapper.cpp \
   IMetaData.cpp \
@@ -79,6 +81,8 @@ libxuggle_xuggler_la_HEADERS= \
   IContainer.swg \
   IError.h \
   IError.swg \
+  IIndexEntry.h \
+  IIndexEntry.swg \
   IVideoPicture.h \
   IVideoPicture.swg \
   IMediaData.h \
@@ -108,6 +112,7 @@ libxuggle_xuggler_la_HEADERS= \
   ContainerParameters.h \
   Container.h \
   Error.h \
+  IndexEntry.h \
   VideoPicture.h \
   MediaDataWrapper.h \
   MetaData.h \

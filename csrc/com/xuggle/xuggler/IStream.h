@@ -28,6 +28,7 @@ namespace com { namespace xuggle { namespace xuggler
   class IRational;
   class IMetaData;
   class IPacket;
+  class IIndexEntry;
   
   /**
    * Represents a stream of similar data (eg video) in a {@link IContainer}.
@@ -133,6 +134,7 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Get the number of index entries in this stream.
      * @return The number of index entries in this stream.
+     * @see #getIndexEntry(int)
      */
     virtual int getNumIndexEntries()=0;
 
@@ -313,7 +315,97 @@ namespace com { namespace xuggle { namespace xuggler
     * @since 3.2
     */
    virtual int32_t setStreamCoder(IStreamCoder *newCoder, bool assumeOnlyStream)=0;
-   
+
+   /*
+    * Added for 3.4
+    */
+   /**
+    * EXPERIMENTAL - Search for the given time stamp in the key-frame index for this {@link IStream}.
+    * <p>
+    * Not all {@link IContainerFormat} implementations
+    * maintain key frame indexes, but if they have one,
+    * then this method searches in the {@link IStream} index
+    * to quickly find the byte-offset of the nearest key-frame to
+    * the given time stamp.
+    * </p>
+    * <p>
+    * This is part of the new seek API which is still under construction.
+    *       It may change in future Xuggler versions.
+    * </p>
+    * @param wantedTimeStamp the time stamp wanted, in the stream's
+    *                        time base units.
+    * @param flags A bitmask of the <code>SEEK_FLAG_*</code> flags, or 0 to turn
+    *              all flags off.  If {@link IContainer#SEEK_FLAG_BACKWARDS} then the returned
+    *              index will correspond to the time stamp which is <=
+    *              the requested one (not supported by all demuxers).
+    *              If {@link IContainer#SEEK_FLAG_BACKWARDS} is not set then it will be >=.
+    *              if {@link IContainer#SEEK_FLAG_ANY} seek to any frame, only
+    *              keyframes otherwise (not supported by all demuxers).
+    * @return The {@link IIndexEntry} for the nearest appropriate timestamp
+    *   in the index, or null if it can't be found.
+    * @since 3.4
+    */
+   virtual IIndexEntry* findTimeStampEntryInIndex(
+       int64_t wantedTimeStamp, int32_t flags)=0;
+   /**
+    * EXPERIMENTAL - Search for the given time stamp in the key-frame index for this {@link IStream}.
+    * <p>
+    * Not all {@link IContainerFormat} implementations
+    * maintain key frame indexes, but if they have one,
+    * then this method searches in the {@link IStream} index
+    * to quickly find the index entry position of the nearest key-frame to
+    * the given time stamp.
+    * </p>
+    * <p>
+    * This is part of the new seek API which is still under construction.
+    *       It may change in future Xuggler versions.
+    * </p>
+    * @param wantedTimeStamp the time stamp wanted, in the stream's
+    *                        time base units.
+    * @param flags A bitmask of the <code>SEEK_FLAG_*</code> flags, or 0 to turn
+    *              all flags off.  If {@link IContainer#SEEK_FLAG_BACKWARDS} then the returned
+    *              index will correspond to the time stamp which is <=
+    *              the requested one (not supported by all demuxers).
+    *              If {@link IContainer#SEEK_FLAG_BACKWARDS} is not set then it will be >=.
+    *              if {@link IContainer#SEEK_FLAG_ANY} seek to any frame, only
+    *              keyframes otherwise (not supported by all demuxers).
+    * @return The position in this {@link IStream} index, or -1 if it cannot
+    *   be found or an index is not maintained.
+    * @see #getIndexEntry(int)
+    * @since 3.4
+    */
+   virtual int32_t findTimeStampPositionInIndex(
+       int64_t wantedTimeStamp, int32_t flags)=0;
+
+   /**
+    * Get the {@link IIndexEntry} at the given position in this
+    * {@link IStream} object's index.
+    * <p>
+    * Not all {@link IContainerFormat} types maintain
+    * {@link IStream} indexes, but if they do,
+    * this method can return those entries.
+    * </p>
+    * <p>
+    * Do not modify the {@link IContainer} this stream
+    * is from between calls to this method and
+    * {@link #getNumIndexEntries()} as indexes may
+    * be compacted while processing.
+    * </p>
+    * @param position The position in the index table.
+    * @since 3.4
+    */
+   virtual IIndexEntry* getIndexEntry(int32_t position)=0;
+
+   /**
+    * Adds an index entry into the stream's sorted index list.
+    * Updates the entry if the list
+    * already contains it.
+    *
+    * @param entry The entry to add.
+    * @return >=0 on success; <0 on error.
+    * @since 3.4
+    */
+   virtual int32_t addIndexEntry(IIndexEntry* entry)=0;
   };
 }}}
 
