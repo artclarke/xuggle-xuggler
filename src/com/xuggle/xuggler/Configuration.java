@@ -282,18 +282,6 @@ public class Configuration
    * This is a handy way to configure a Xuggler {@link IConfigurable}
    * object, and will also work with FFmpeg preset files.
    * </p>
-   * <p>
-   * Here's some sample code that shows configuring a IStreamCoder
-   * from a FFmpeg preset file:
-   * </p>
-   * <pre>
-   *   Property props = new Properties();
-   *   props.load(new FileInputStream("location/to/preset/file.preset"));
-   *   IStreamCoder coder = IStreamCoder.make(Direction.ENCODING);
-   *   int retval = Configuration.configure(props, coder);
-   *   if (retval < 0)
-   *      throw new RuntimeException("Could not configure object");
-   * </pre>
    * @param file A filename for the properties file.
    * @param config The item to configure.
    * @return <0 on error; >= 0 on success.
