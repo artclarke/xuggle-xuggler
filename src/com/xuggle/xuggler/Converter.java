@@ -846,7 +846,7 @@ public class Converter
         /**
          * If you're reading these commends, this does the same thing as the
          * above branch, only for video. I'm going to assume you read those
-         * commends and will only document something substantially different
+         * comments and will only document something substantially different
          * here.
          */
         IStream os = mOContainer.addNewStream(i);
