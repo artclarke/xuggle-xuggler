@@ -732,7 +732,7 @@ void x264_me_refine_qpel( x264_t *h, x264_me_t *m )
     int hpel = subpel_iterations[h->mb.i_subpel_refine][0];
     int qpel = subpel_iterations[h->mb.i_subpel_refine][1];
 
-    if( m->i_pixel <= PIXEL_8x8 && h->sh.i_type == SLICE_TYPE_P )
+    if( m->i_pixel <= PIXEL_8x8 )
         m->cost -= m->i_ref_cost;
 
     refine_subpel( h, m, hpel, qpel, NULL, 1 );
