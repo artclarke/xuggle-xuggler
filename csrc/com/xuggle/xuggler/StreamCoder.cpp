@@ -61,6 +61,10 @@ StreamCoder::StreamCoder() :
   mDefaultAudioFrameSize = 576;
   mNumDroppedFrames = 0;
   mAutomaticallyStampPacketsForStream = true;
+  for(uint32_t i = 0; i < sizeof(mPtsBuffer)/sizeof(mPtsBuffer[0]); i++)
+  {
+    mPtsBuffer[i] = Global::NO_PTS;
+  }
 }
 
 StreamCoder::~StreamCoder()
@@ -652,6 +656,10 @@ StreamCoder::open()
     mNumDroppedFrames = 0;
     mSamplesCoded = mSamplesForEncoding = mLastExternallySetTimeStamp = 0;
     mFakeCurrPts = mFakeNextPts = mLastPtsEncoded = Global::NO_PTS;
+    for(uint32_t i = 0; i < sizeof(mPtsBuffer)/sizeof(mPtsBuffer[0]); i++)
+    {
+      mPtsBuffer[i] = Global::NO_PTS;
+    }
 
     // Do any post open initialization here.
     if (this->getCodecType() == ICodec::CODEC_TYPE_AUDIO)
@@ -1124,6 +1132,49 @@ StreamCoder::encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
         if (retval >= 0)
         {
           int64_t dts = (avFrame ? mLastPtsEncoded : mLastPtsEncoded + 1);
+          int64_t duration = 1;
+          if (retval > 0) {
+            int32_t num = thisTimeBase->getNumerator();
+            int32_t den = thisTimeBase->getDenominator();
+            if (num*1000LL > den)
+            {
+              if (mCodecContext->coded_frame
+                  && mCodecContext->coded_frame->repeat_pict)
+              {
+                num = num * (1+mCodecContext->coded_frame->repeat_pict);
+              }
+            }
+            duration = av_rescale(1,
+                num * (int64_t)den * mCodecContext->ticks_per_frame,
+                den * (int64_t) thisTimeBase->getNumerator());
+
+            // This will be zero if the Codec does not use b-frames;
+            // although we provide space for delaying up to the
+            // max H264 delay, in reality we only need delay by 1 tick.
+            int32_t delay = FFMAX(mCodecContext->has_b_frames,
+                !!mCodecContext->max_b_frames);
+            if (mCodecContext->coded_frame
+                && mCodecContext->coded_frame->pts != Global::NO_PTS)
+            {
+              int64_t pts = mCodecContext->coded_frame->pts;
+              mPtsBuffer[0] = pts;
+              int32_t i;
+              // If first time through set others to some 'sensible' defaults.
+              // If the first PTS is zero, this leads to starting negative
+              // dts values, but FFmpeg allows that so we do too.
+              for(i = 1; i < delay + 1 && mPtsBuffer[i] == Global::NO_PTS; i++)
+                mPtsBuffer[i] = pts + (i-delay-1)*duration;
+              // Order the PTS values in increasing order and the lowest
+              // one will magically be the DTS we should use for this packet.
+              for(i = 0; i < delay && mPtsBuffer[i] > mPtsBuffer[i+1]; i++)
+                FFSWAP(int64_t, mPtsBuffer[i], mPtsBuffer[i+1]);
+              dts = mPtsBuffer[0];
+//              VS_LOG_ERROR("type: %d; output: dts: %lld; pts: %lld",
+//                  mCodecContext->coded_frame->pict_type,
+//                  dts,
+//                  pts);
+            }
+          }
           setPacketParameters(
               packet,
               retval,
@@ -1132,7 +1183,7 @@ StreamCoder::encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
               dts,
               thisTimeBase.value(),
               (mCodecContext->coded_frame ? mCodecContext->coded_frame->key_frame
-                  : 0), -1);
+                  : 0), duration);
         }
         if (avFrame)
           av_free(avFrame);
@@ -1529,10 +1580,6 @@ StreamCoder::setPacketParameters(Packet * packet, int32_t size, int64_t dts,
   // in that case, mark the packet as incomplete so people don't
   // output it.
   packet->setComplete(size > 0, size);
-
-  //  VS_LOG_DEBUG("output: dts: %lld; pts: %lld",
-  //      dts,
-  //      pts);
 
   if (mStream)
   {

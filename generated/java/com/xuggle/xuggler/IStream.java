@@ -461,19 +461,14 @@ public class IStream extends RefCounted {
   }
 
 /**
- * EXPERIMENTAL - Search for the given time stamp in the key-frame index 
- * for this {@link IStream}.  
+ * Search for the given time stamp in the key-frame index for this {@link 
+ * IStream}.  
  * <p>  
  * Not all {@link IContainerFormat} implementations  
  * maintain key frame indexes, but if they have one,  
  * then this method searches in the {@link IStream} index  
  * to quickly find the byte-offset of the nearest key-frame to  
  * the given time stamp.  
- * </p>  
- * <p>  
- * This is part of the new seek API which is still under construction. 
- *  
- * It may change in future Xuggler versions.  
  * </p>  
  * @param	wantedTimeStamp the time stamp wanted, in the stream's  
  * time base units.  
@@ -498,8 +493,8 @@ public class IStream extends RefCounted {
   }
 
 /**
- * EXPERIMENTAL - Search for the given time stamp in the key-frame index 
- * for this {@link IStream}.  
+ * Search for the given time stamp in the key-frame index for this {@link 
+ * IStream}.  
  * <p>  
  * Not all {@link IContainerFormat} implementations  
  * maintain key frame indexes, but if they have one,  
@@ -507,11 +502,6 @@ public class IStream extends RefCounted {
  * to quickly find the index entry position of the nearest key-frame 
  * to  
  * the given time stamp.  
- * </p>  
- * <p>  
- * This is part of the new seek API which is still under construction. 
- *  
- * It may change in future Xuggler versions.  
  * </p>  
  * @param	wantedTimeStamp the time stamp wanted, in the stream's  
  * time base units.  

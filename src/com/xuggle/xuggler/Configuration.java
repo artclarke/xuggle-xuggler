@@ -18,6 +18,9 @@
  *******************************************************************************/
 package com.xuggle.xuggler;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Properties;
@@ -239,15 +242,12 @@ public class Configuration
   /**
    * Configures an {@link IConfigurable} from a set of Java {@link Properties}.
    * <p>
-   * This is a handy way to configure a Xuggler {@link IConfigurable}
-   * object, and will also work with FFmpeg preset files.
-   * </p>
-   * <p>
    * Here's some sample code that shows configuring a IStreamCoder
    * from a FFmpeg preset file:
    * </p>
    * <pre>
-   *   props.load(new FileInputStream("location/to/preset/file.preset"));
+   *   Properties props = new Properties();
+   *   props.load(new FileInputStream(file));
    *   IStreamCoder coder = IStreamCoder.make(Direction.ENCODING);
    *   int retval = Configuration.configure(props, coder);
    *   if (retval < 0)
@@ -274,6 +274,48 @@ public class Configuration
       }
     }
     return 0;
+  }
+  /**
+   * Configures an {@link IConfigurable} from a file.
+   * <p>
+   * This is a handy way to configure a Xuggler {@link IConfigurable}
+   * object, and will also work with FFmpeg preset files.
+   * </p>
+   * <p>
+   * Here's some sample code that shows configuring a IStreamCoder
+   * from a FFmpeg preset file:
+   * </p>
+   * <pre>
+   *   Property props = new Properties();
+   *   props.load(new FileInputStream("location/to/preset/file.preset"));
+   *   IStreamCoder coder = IStreamCoder.make(Direction.ENCODING);
+   *   int retval = Configuration.configure(props, coder);
+   *   if (retval < 0)
+   *      throw new RuntimeException("Could not configure object");
+   * </pre>
+   * @param file A filename for the properties file.
+   * @param config The item to configure.
+   * @return <0 on error; >= 0 on success.
+   */
+  @SuppressWarnings("unchecked")
+  public static int configure(final String file, final IConfigurable config)
+  {
+    Properties props = new Properties();
+    try
+    {
+      props.load(new FileInputStream(file));
+    }
+    catch (FileNotFoundException e)
+    {
+      e.printStackTrace();
+      return -1;
+    }
+    catch (IOException e)
+    {
+      e.printStackTrace();
+      return -1;
+    }
+    return Configuration.configure(props, config);
   }
 
 }

@@ -25,7 +25,7 @@ public class ConfigurationTest
    * Test method for {@link Configuration#configure(Properties, IConfigurable)}.
    */
   @Test
-  public void testConfigure() throws FileNotFoundException, IOException
+  public void testConfigure1() throws FileNotFoundException, IOException
   {
     final String TEST_FILE = "fixtures/"+this.getClass().getName()+".properties";
 
@@ -41,5 +41,22 @@ public class ConfigurationTest
     assertNotSame(defaultValue, coder.getPropertyAsLong("subq"));
     Configuration.printOption(System.out, coder, coder.getPropertyMetaData("subq"));
   }
+
+  @Test
+  public void testConfigure2() throws FileNotFoundException, IOException
+  {
+    final String TEST_FILE = "fixtures/"+this.getClass().getName()+".properties";
+
+    IStreamCoder coder = IStreamCoder.make(Direction.ENCODING);
+    final long defaultValue = coder.getPropertyAsLong("subq");
+    assertEquals(""+defaultValue, coder.getPropertyAsString("subq"));
+    Configuration.printOption(System.out, coder, coder.getPropertyMetaData("subq"));
+    int retval = Configuration.configure(TEST_FILE, coder);
+    assertTrue("should succeed", retval >= 0);
+    assertEquals("7", coder.getPropertyAsString("subq"));
+    assertNotSame(defaultValue, coder.getPropertyAsLong("subq"));
+    Configuration.printOption(System.out, coder, coder.getPropertyMetaData("subq"));
+  }
+
 
 }

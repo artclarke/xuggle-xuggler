@@ -36,6 +36,7 @@ public:
   void testSuccess();
 
   void testDecodingAndEncodingH264Video();
+  void testDecodingAndEncodingH264VideoWithBFrames();
 
 private:
   Helper* h;

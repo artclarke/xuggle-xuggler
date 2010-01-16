@@ -252,12 +252,24 @@ public class Converter
         .withDescription("input container format to use (e.g. \"mov\")");
     Option icontainerFormat = OptionBuilder.create("icontainerformat");    
     
+    OptionBuilder.withArgName("file");
+    OptionBuilder.hasArg(true);
+    OptionBuilder
+        .withDescription("container option presets file");
+    Option cpreset = OptionBuilder.create("cpreset");
+
     /*
      * Audio options
      */
     OptionBuilder.hasArg(false);
     OptionBuilder.withDescription("no audio");
     Option ano = OptionBuilder.create("ano");
+
+    OptionBuilder.withArgName("file");
+    OptionBuilder.hasArg(true);
+    OptionBuilder
+        .withDescription("audio option presets file");
+    Option apreset = OptionBuilder.create("apreset");
 
     OptionBuilder.withArgName("codec");
     OptionBuilder.hasArg(true);
@@ -320,6 +332,12 @@ public class Converter
     OptionBuilder.withDescription("no video");
     Option vno = OptionBuilder.create("vno");
 
+    OptionBuilder.withArgName("file");
+    OptionBuilder.hasArg(true);
+    OptionBuilder
+        .withDescription("video option presets file");
+    Option vpreset = OptionBuilder.create("vpreset");
+
     OptionBuilder.withArgName("codec");
     OptionBuilder.hasArg(true);
     OptionBuilder
@@ -358,7 +376,9 @@ public class Converter
 
     options.addOption(help);
     options.addOption(containerFormat);
+    options.addOption(cpreset);
     options.addOption(ano);
+    options.addOption(apreset);
     options.addOption(acodec);
     options.addOption(asamplerate);
     options.addOption(achannels);
@@ -366,6 +386,7 @@ public class Converter
     options.addOption(astream);
     options.addOption(aquality);
     options.addOption(vno);
+    options.addOption(vpreset);
     options.addOption(vcodec);
     options.addOption(vscaleFactor);
     options.addOption(vbitrate);
@@ -541,6 +562,11 @@ public class Converter
      */
     mIContainer = IContainer.make();
     mOContainer = IContainer.make();
+    
+    String cpreset = cmdLine.getOptionValue("cpreset");
+    if (cpreset != null)
+      Configuration.configure(cpreset, mOContainer);
+    
     IContainerFormat iFmt = null;
     IContainerFormat oFmt = null;
 
@@ -699,6 +725,9 @@ public class Converter
          * as).
          */
         IStreamCoder oc = os.getStreamCoder();
+        String apreset = cmdLine.getOptionValue("apreset");
+        if (apreset != null)
+          Configuration.configure(apreset, oc);
 
         mOStreams[i] = os;
         mOCoders[i] = oc;
@@ -822,6 +851,9 @@ public class Converter
          */
         IStream os = mOContainer.addNewStream(i);
         IStreamCoder oc = os.getStreamCoder();
+        String vpreset = cmdLine.getOptionValue("vpreset");
+        if (vpreset != null)
+          Configuration.configure(vpreset, oc);
 
         mOStreams[i] = os;
         mOCoders[i] = oc;
@@ -860,27 +892,6 @@ public class Converter
         if (vbitratetolerance > 0)
           oc.setBitRateTolerance(vbitratetolerance);
 
-        if (oc.getCodecID() == ICodec.ID.CODEC_ID_H264){
-          // update properties based on latest x264
-          oc.setProperty("coder", "0");
-          oc.setProperty("flags", "+loop");
-          oc.setProperty("cmp", "+chroma");
-          oc.setProperty("partitions", "-parti8x8+parti4x4+partp8x8-partp4x4-partb8x8");
-          oc.setProperty("me_method", "hex");
-          oc.setProperty("subq", "3");
-          oc.setProperty("me_range", "16");
-          oc.setProperty("keyint_min", "25");
-          oc.setProperty("sc_threshold", "40");
-          oc.setProperty("i_qfactor", "0.71");
-          oc.setProperty("b_strategy", "1");
-          oc.setProperty("qcomp", "0.6");
-          oc.setProperty("qmin", "10");
-          oc.setProperty("qmax", "51");
-          oc.setProperty("qdiff", "4");
-          oc.setProperty("directpred", "1");
-          oc.setProperty("flags2", "+fastpskip");
-          oc.setProperty("cqp", "0");
-        }
         int oWidth = ic.getWidth();
         int oHeight = ic.getHeight();
 
@@ -1021,12 +1032,14 @@ public class Converter
       if (mOCoders[i] != null)
       {
         IPacket oPacket = IPacket.make();
-        if (mOCoders[i].getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO)
-          mOCoders[i].encodeAudio(oPacket, null, 0);
-        else
-          mOCoders[i].encodeVideo(oPacket, null, 0);
-        if (oPacket.isComplete())
-          mOContainer.writePacket(oPacket, mForceInterleave);
+        do {
+          if (mOCoders[i].getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO)
+            mOCoders[i].encodeAudio(oPacket, null, 0);
+          else
+            mOCoders[i].encodeVideo(oPacket, null, 0);
+          if (oPacket.isComplete())
+            mOContainer.writePacket(oPacket, mForceInterleave);
+        } while (oPacket.isComplete());
       }
     }
     /**

@@ -10,6 +10,33 @@ package com.xuggle.xuggler;
 import com.xuggle.ferry.*;
 /**
  * An index entry for a {@link IStream}.  
+ * <p>  
+ * Some ContainerFormats can maintain index of where key-frames  
+ * (and other interesting frames) can be found in a byte-stream.  
+ * This is really helpful for implementing efficient seeking (for  
+ * example, you can find all index entries near a desired timestamp, 
+ *  
+ * and you'll find the nearest key-frame).  
+ * </p>  
+ * <p>  
+ * We don't maintain a complete list of all ContainerFormats that support 
+ *  
+ * index, but if they do, you can query the {@link IStream#getNumIndexEntries()} 
+ *  
+ * method to find how many entires are in the index. Some ContainerFormats 
+ * can  
+ * parse the relevant Container message if an index is embedded in the 
+ *  
+ * container (for example, the MOV and MP4 demuxer can do this). Other 
+ *  
+ * ContainerFormats can create an index automatically as they read the 
+ * file,  
+ * even if an index is not embedded in the container (for example the 
+ * FLV  
+ * demuxer does this).  
+ * </p>  
+ * @see		IStream#findTimeStampEntryInIndex(long, int)  
+ * @see		IStream#findTimeStampPositionInIndex(long, int)  
  * @see		IStream#getIndexEntry(int)  
  * @see		IStream#getNumIndexEntries()  
  * @see		IStream#getIndexEntries()  

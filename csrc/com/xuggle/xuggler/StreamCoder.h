@@ -195,6 +195,7 @@ namespace com { namespace xuggle { namespace xuggler
     int32_t mDefaultAudioFrameSize;
     int64_t mNumDroppedFrames;
     bool mAutomaticallyStampPacketsForStream;
+    int64_t mPtsBuffer[MAX_REORDER_DELAY+1];
     
     int32_t calcAudioFrameSize();
 

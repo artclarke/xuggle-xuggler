@@ -320,17 +320,13 @@ namespace com { namespace xuggle { namespace xuggler
     * Added for 3.4
     */
    /**
-    * EXPERIMENTAL - Search for the given time stamp in the key-frame index for this {@link IStream}.
+    * Search for the given time stamp in the key-frame index for this {@link IStream}.
     * <p>
     * Not all {@link IContainerFormat} implementations
     * maintain key frame indexes, but if they have one,
     * then this method searches in the {@link IStream} index
     * to quickly find the byte-offset of the nearest key-frame to
     * the given time stamp.
-    * </p>
-    * <p>
-    * This is part of the new seek API which is still under construction.
-    *       It may change in future Xuggler versions.
     * </p>
     * @param wantedTimeStamp the time stamp wanted, in the stream's
     *                        time base units.
@@ -347,18 +343,15 @@ namespace com { namespace xuggle { namespace xuggler
     */
    virtual IIndexEntry* findTimeStampEntryInIndex(
        int64_t wantedTimeStamp, int32_t flags)=0;
+
    /**
-    * EXPERIMENTAL - Search for the given time stamp in the key-frame index for this {@link IStream}.
+    * Search for the given time stamp in the key-frame index for this {@link IStream}.
     * <p>
     * Not all {@link IContainerFormat} implementations
     * maintain key frame indexes, but if they have one,
     * then this method searches in the {@link IStream} index
     * to quickly find the index entry position of the nearest key-frame to
     * the given time stamp.
-    * </p>
-    * <p>
-    * This is part of the new seek API which is still under construction.
-    *       It may change in future Xuggler versions.
     * </p>
     * @param wantedTimeStamp the time stamp wanted, in the stream's
     *                        time base units.

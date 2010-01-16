@@ -20,7 +20,6 @@
 package com.xuggle.xuggler;
 
 import com.xuggle.xuggler.Converter;
-import com.xuggle.xuggler.IVideoResampler;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
@@ -173,10 +172,6 @@ public class ConverterTest extends TestCase
   @Test
   public void testConversion() throws ParseException
   {
-    // We do this to determine if this version of Xuggler can
-    // support resampling
-    boolean testResampling = IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_IMAGERESCALING);
-    
     String[] args = new String[]{
         "--containerformat",
         "mov",
@@ -193,15 +188,57 @@ public class ConverterTest extends TestCase
         "--vcodec",
         "mpeg4",
         "--vscalefactor",
-        testResampling ? "2.0" : "1.0",
+        "2.0",
         "--vbitrate",
         "300000",
         "--vbitratetolerance",
         "12000000",
         "--vquality",
         "0",
-        "fixtures/testfile.flv",
+        "fixtures/testfile_videoonly_20sec.flv",
         this.getClass().getName() + "_" + this.getName() + ".mov"
+    };
+    converter = new Converter();
+    
+    Options options = converter.defineOptions();
+
+    CommandLine cmdLine = converter.parseOptions(options, args);
+    assertTrue("all commandline options successful", cmdLine != null);
+    
+    converter.run(cmdLine);
+  }
+  @Test
+  public void testPresets() throws ParseException
+  {
+    String[] args = new String[]{
+        "--containerformat",
+        "mp4p",
+        "--cpreset",
+        "fixtures/"+this.getClass().getName()+".cpresets.txt",
+        "--acodec",
+        "libmp3lame",
+        "--asamplerate",
+        "22050",
+        "--achannels",
+        "2",
+        "--abitrate",
+        "64000",
+        "--aquality",
+        "0",
+        "--vcodec",
+        "libx264",
+        "--vpreset",
+        "fixtures/"+this.getClass().getName()+".vpresets.txt",
+        "--vscalefactor",
+        "2.0",
+        "--vbitrate",
+        "300000",
+        "--vbitratetolerance",
+        "12000000",
+        "--vquality",
+        "0",
+        "fixtures/testfile_videoonly_20sec.flv",
+        this.getClass().getName() + "_" + this.getName() + ".mp4"
     };
     converter = new Converter();
     

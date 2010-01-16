@@ -73,10 +73,6 @@ public class ConverterExhaustiveTest extends TestCase
 
   public void testConversionH264() throws ParseException
   {
-    // We do this to determine if this version of Xuggler can
-    // support resampling
-    boolean testResampling = IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_IMAGERESCALING);
-    
     String[] args = new String[]{
         "--containerformat",
         "mov",
@@ -93,7 +89,9 @@ public class ConverterExhaustiveTest extends TestCase
         "--vcodec",
         "libx264",
         "--vscalefactor",
-        testResampling ? "2.0" : "1.0",
+        "2.0",
+        "--vpreset",
+        "fixtures/"+this.getClass().getName()+".vpresets.txt",
         "--vbitrate",
         "300000",
         "--vbitratetolerance",
