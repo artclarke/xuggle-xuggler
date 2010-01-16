@@ -256,6 +256,7 @@ public class Configuration
    * @param properties The properties to use.
    * @param config The item to configure.
    * @return <0 on error; >= 0 on success.
+   * @since 3.4
    */
   @SuppressWarnings("unchecked")
   public static int configure(final Properties properties, final IConfigurable config)
@@ -296,6 +297,7 @@ public class Configuration
    * @param file A filename for the properties file.
    * @param config The item to configure.
    * @return <0 on error; >= 0 on success.
+   * @since 3.4
    */
   @SuppressWarnings("unchecked")
   public static int configure(final String file, final IConfigurable config)
