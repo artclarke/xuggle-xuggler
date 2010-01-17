@@ -223,8 +223,8 @@ static void Help( x264_param_t *defaults, int longhelp )
     H0( "\n" );
     H0( "Presets:\n" );
     H0( "\n" );
-    H0( "      --profile               Force H.264 profile [high]\n" );
-    H0( "                                  Overrides all settings\n" );
+    H0( "      --profile               Force the limits of an H.264 profile [high]\n"
+        "                                  Overrides all settings.\n" );
     H2( "                                  - baseline:\n"
         "                                    --no-8x8dct --bframes 0 --no-cabac\n"
         "                                    --cqm flat --weightp 0 No interlaced\n"
@@ -234,8 +234,8 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                  - high:\n"
         "                                    No lossless\n" );
         else H0( "                                  - baseline,main,high\n" );
-    H0( "      --preset                Use a preset to select encoding settings [medium]\n" );
-    H0( "                                  Overridden by user settings\n" );
+    H0( "      --preset                Use a preset to select encoding settings [medium]\n"
+        "                                  Overridden by user settings.\n" );
     H2( "                                  - ultrafast:\n"
         "                                    --no-8x8dct --aq-mode 0 --b-adapt 0\n"
         "                                    --bframes 0 --no-cabac --no-deblock\n"
@@ -274,23 +274,26 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                    --trellis 2\n" );
     else H0( "                                  - ultrafast,veryfast,faster,fast,medium\n"
              "                                  - slow,slower,veryslow,placebo\n" );
-    H0( "      --tune                  Tune the settings for a particular type of source\n" );
-    H0( "                                  Overridden by user settings\n" );
-    H2( "                                  - film:\n"
+    H0( "      --tune                  Tune the settings for a particular type of source\n"
+        "                              or situation\n"
+        "                                  Overridden by user settings.\n"
+        "                                  Multiple tunings are separated by commas.\n"
+        "                                  Only one psy tuning can be used at a time.\n" );
+    H2( "                                  - film (psy tuning):\n"
         "                                    --deblock -1:-1 --psy-rd <unset>:0.15\n"
-        "                                  - animation:\n"
+        "                                  - animation(psy tuning):\n"
         "                                    --bframes {+2} --deblock 1:1\n"
         "                                    --psy-rd 0.4:<unset> --aq-strength 0.6\n"
         "                                    --ref {Double if >1 else 1}\n"
-        "                                  - grain:\n"
+        "                                  - grain(psy tuning):\n"
         "                                    --aq-strength 0.5 --no-dct-decimate\n"
         "                                    --deadzone-inter 6 --deadzone-intra 6\n"
         "                                    --deblock -2:-2 --ipratio 1.1 \n"
         "                                    --pbratio 1.1 --psy-rd <unset>:0.25\n"
         "                                    --qcomp 0.8\n"
-        "                                  - psnr:\n"
+        "                                  - psnr(psy tuning):\n"
         "                                    --aq-mode 0 --no-psy\n"
-        "                                  - ssim:\n"
+        "                                  - ssim(psy tuning):\n"
         "                                    --aq-mode 2 --no-psy\n"
         "                                  - fastdecode:\n"
         "                                    --no-cabac --no-deblock --no-weightb\n"
@@ -298,13 +301,13 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                  - zerolatency:\n"
         "                                    --bframes 0 --rc-lookahead 0\n"
         "                                    --sync-lookahead 0 --sliced-threads\n"
-        "                                  - touhou:\n"
+        "                                  - touhou(psy tuning):\n"
         "                                    --aq-strength 1.3 --deblock -1:-1\n"
         "                                    --partitions {p4x4 if p8x8 set}\n"
         "                                    --psy-rd <unset>:0.2\n"
         "                                    --ref {Double if >1 else 1}\n" );
-    else H0( "                                  - film,animation,grain,psnr,ssim\n"
-             "                                  - fastdecode,zerolatency\n" );
+    else H0( "                                  - psy tunings: film,animation,grain,psnr,ssim\n"
+             "                                  - other tunings: fastdecode,zerolatency\n" );
     H1( "      --slow-firstpass        Don't use faster settings with --pass 1\n" );
     H0( "\n" );
     H0( "Frame-type options:\n" );
@@ -935,72 +938,95 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
 
         if( c == OPT_TUNE )
         {
-            if( !strcasecmp( optarg, "film" ) )
+            char *s = strtok( optarg, ",./-+" );
+            int psy_tuning_used = 0;
+            while( s )
             {
-                param->i_deblocking_filter_alphac0 = -1;
-                param->i_deblocking_filter_beta = -1;
-                param->analyse.f_psy_trellis = 0.15;
-            }
-            else if( !strcasecmp( optarg, "animation" ) )
-            {
-                param->i_frame_reference = param->i_frame_reference > 1 ? param->i_frame_reference*2 : 1;
-                param->i_deblocking_filter_alphac0 = 1;
-                param->i_deblocking_filter_beta = 1;
-                param->analyse.f_psy_rd = 0.4;
-                param->rc.f_aq_strength = 0.6;
-                param->i_bframe += 2;
-            }
-            else if( !strcasecmp( optarg, "grain" ) )
-            {
-                param->i_deblocking_filter_alphac0 = -2;
-                param->i_deblocking_filter_beta = -2;
-                param->analyse.f_psy_trellis = 0.25;
-                param->analyse.b_dct_decimate = 0;
-                param->rc.f_pb_factor = 1.1;
-                param->rc.f_ip_factor = 1.1;
-                param->rc.f_aq_strength = 0.5;
-                param->analyse.i_luma_deadzone[0] = 6;
-                param->analyse.i_luma_deadzone[1] = 6;
-                param->rc.f_qcompress = 0.8;
-            }
-            else if( !strcasecmp( optarg, "psnr" ) )
-            {
-                param->rc.i_aq_mode = X264_AQ_NONE;
-                param->analyse.b_psy = 0;
-            }
-            else if( !strcasecmp( optarg, "ssim" ) )
-            {
-                param->rc.i_aq_mode = X264_AQ_AUTOVARIANCE;
-                param->analyse.b_psy = 0;
-            }
-            else if( !strcasecmp( optarg, "fastdecode" ) )
-            {
-                param->b_deblocking_filter = 0;
-                param->b_cabac = 0;
-                param->analyse.b_weighted_bipred = 0;
-                param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
-            }
-            else if( !strcasecmp( optarg, "zerolatency" ) )
-            {
-                param->rc.i_lookahead = 0;
-                param->i_sync_lookahead = 0;
-                param->i_bframe = 0;
-                param->b_sliced_threads = 1;
-            }
-            else if( !strcasecmp( optarg, "touhou" ) )
-            {
-                param->i_frame_reference = param->i_frame_reference > 1 ? param->i_frame_reference*2 : 1;
-                param->i_deblocking_filter_alphac0 = -1;
-                param->i_deblocking_filter_beta = -1;
-                param->analyse.f_psy_trellis = 0.2;
-                param->rc.f_aq_strength = 1.3;
-                if( param->analyse.inter & X264_ANALYSE_PSUB16x16 )
-                    param->analyse.inter |= X264_ANALYSE_PSUB8x8;
-            }
-            else
-            {
-                fprintf( stderr, "x264 [error]: invalid tune '%s'\n", optarg );
-                return -1;
+                if( !strncasecmp( s, "film", 4 ) )
+                {
+                    if( psy_tuning_used ) goto psy_failure;
+                    param->i_deblocking_filter_alphac0 = -1;
+                    param->i_deblocking_filter_beta = -1;
+                    param->analyse.f_psy_trellis = 0.15;
+                    psy_tuning_used = 1;
+                }
+                else if( !strncasecmp( s, "animation", 9 ) )
+                {
+                    if( psy_tuning_used ) goto psy_failure;
+                    param->i_frame_reference = param->i_frame_reference > 1 ? param->i_frame_reference*2 : 1;
+                    param->i_deblocking_filter_alphac0 = 1;
+                    param->i_deblocking_filter_beta = 1;
+                    param->analyse.f_psy_rd = 0.4;
+                    param->rc.f_aq_strength = 0.6;
+                    param->i_bframe += 2;
+                    psy_tuning_used = 1;
+                }
+                else if( !strncasecmp( s, "grain", 5 ) )
+                {
+                    if( psy_tuning_used ) goto psy_failure;
+                    param->i_deblocking_filter_alphac0 = -2;
+                    param->i_deblocking_filter_beta = -2;
+                    param->analyse.f_psy_trellis = 0.25;
+                    param->analyse.b_dct_decimate = 0;
+                    param->rc.f_pb_factor = 1.1;
+                    param->rc.f_ip_factor = 1.1;
+                    param->rc.f_aq_strength = 0.5;
+                    param->analyse.i_luma_deadzone[0] = 6;
+                    param->analyse.i_luma_deadzone[1] = 6;
+                    param->rc.f_qcompress = 0.8;
+                    psy_tuning_used = 1;
+                }
+                else if( !strncasecmp( s, "psnr", 4 ) )
+                {
+                    if( psy_tuning_used ) goto psy_failure;
+                    param->rc.i_aq_mode = X264_AQ_NONE;
+                    param->analyse.b_psy = 0;
+                    psy_tuning_used = 1;
+                }
+                else if( !strncasecmp( s, "ssim", 4 ) )
+                {
+                    if( psy_tuning_used ) goto psy_failure;
+                    param->rc.i_aq_mode = X264_AQ_AUTOVARIANCE;
+                    param->analyse.b_psy = 0;
+                    psy_tuning_used = 1;
+                }
+                else if( !strncasecmp( s, "fastdecode", 10 ) )
+                {
+                    param->b_deblocking_filter = 0;
+                    param->b_cabac = 0;
+                    param->analyse.b_weighted_bipred = 0;
+                    param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
+                }
+                else if( !strncasecmp( s, "zerolatency", 11 ) )
+                {
+                    param->rc.i_lookahead = 0;
+                    param->i_sync_lookahead = 0;
+                    param->i_bframe = 0;
+                    param->b_sliced_threads = 1;
+                }
+                else if( !strncasecmp( s, "touhou", 6 ) )
+                {
+                    if( psy_tuning_used ) goto psy_failure;
+                    param->i_frame_reference = param->i_frame_reference > 1 ? param->i_frame_reference*2 : 1;
+                    param->i_deblocking_filter_alphac0 = -1;
+                    param->i_deblocking_filter_beta = -1;
+                    param->analyse.f_psy_trellis = 0.2;
+                    param->rc.f_aq_strength = 1.3;
+                    if( param->analyse.inter & X264_ANALYSE_PSUB16x16 )
+                        param->analyse.inter |= X264_ANALYSE_PSUB8x8;
+                    psy_tuning_used = 1;
+                }
+                else
+                {
+                    fprintf( stderr, "x264 [error]: invalid tune '%s'\n", s );
+                    return -1;
+                }
+                if( 0 )
+                {
+psy_failure:
+                    fprintf( stderr, "x264 [warning]: only 1 psy tuning can be used: ignoring tune %s\n", s );
+                }
+                s = strtok( NULL, ",./-+" );
             }
         }
         else if( c == '?' )
