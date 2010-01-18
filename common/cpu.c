@@ -143,13 +143,17 @@ uint32_t x264_cpu_detect( void )
             if( ecx&0x00000040 ) /* SSE4a */
             {
                 cpu |= X264_CPU_SSE2_IS_FAST;
-                cpu |= X264_CPU_SSE_MISALIGN;
                 cpu |= X264_CPU_LZCNT;
                 cpu |= X264_CPU_SHUFFLE_IS_FAST;
-                x264_cpu_mask_misalign_sse();
             }
             else
                 cpu |= X264_CPU_SSE2_IS_SLOW;
+
+            if( ecx&0x00000080 ) /* Misalign SSE */
+            {
+                cpu |= X264_CPU_SSE_MISALIGN;
+                x264_cpu_mask_misalign_sse();
+            }
         }
     }
 
