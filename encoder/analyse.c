@@ -2592,18 +2592,20 @@ intra_analysis:
             COPY2_IF_LT( i_cost, analysis.i_satd_i4x4, i_type, I_4x4 );
             COPY2_IF_LT( i_cost, analysis.i_satd_pcm, i_type, I_PCM );
 
+            h->mb.i_type = i_type;
+
             if( analysis.b_force_intra && !IS_INTRA(i_type) )
             {
                 /* Intra masking: copy fdec to fenc and re-encode the block as intra in order to make it appear as if
                  * it was an inter block. */
+                x264_analyse_update_cache( h, &analysis );
+                x264_macroblock_encode( h );
                 h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fenc[0], FENC_STRIDE, h->mb.pic.p_fdec[0], FDEC_STRIDE, 16 );
                 h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fenc[1], FENC_STRIDE, h->mb.pic.p_fdec[1], FDEC_STRIDE, 8 );
                 h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fenc[2], FENC_STRIDE, h->mb.pic.p_fdec[2], FDEC_STRIDE, 8 );
                 x264_mb_analyse_init_qp( h, &analysis, X264_MAX( h->mb.i_qp - h->mb.ip_offset, h->param.rc.i_qp_min ) );
                 goto intra_analysis;
             }
-
-            h->mb.i_type = i_type;
 
             if( analysis.i_mbrd >= 2 && h->mb.i_type != I_PCM )
             {
