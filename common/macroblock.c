@@ -326,50 +326,56 @@ int x264_mb_predict_mv_direct16x16( x264_t *h, int *b_changed )
 
     if( b_changed != NULL && b_available )
     {
-        int type_col = h->fref1[0]->mb_type[ h->mb.i_mb_xy ];
-        if( IS_INTRA(type_col) || type_col == P_SKIP )
+        int type_col = h->fref1[0]->mb_type[h->mb.i_mb_xy];
+        int changed = 0;
+
+        if( IS_INTRA( type_col ) || type_col == P_SKIP )
         {
-            *b_changed = h->mb.cache.direct_ref[0][0] != h->mb.cache.ref[0][X264_SCAN8_0]
-                      || h->mb.cache.direct_ref[1][0] != h->mb.cache.ref[1][X264_SCAN8_0]
-                      || M32( h->mb.cache.direct_mv[0][X264_SCAN8_0] ) != M32( h->mb.cache.mv[0][X264_SCAN8_0] )
-                      || M32( h->mb.cache.direct_mv[1][X264_SCAN8_0] ) != M32( h->mb.cache.mv[1][X264_SCAN8_0] );
+            changed |= M32( h->mb.cache.direct_mv[0][0] ) ^ M32( h->mb.cache.mv[0][X264_SCAN8_0] );
+            changed |= M32( h->mb.cache.direct_mv[1][0] ) ^ M32( h->mb.cache.mv[1][X264_SCAN8_0] );
+            changed |= h->mb.cache.direct_ref[0][0] ^ h->mb.cache.ref[0][X264_SCAN8_0];
+            changed |= h->mb.cache.direct_ref[1][0] ^ h->mb.cache.ref[1][X264_SCAN8_0];
         }
         else
         {
-            int i, l;
-            *b_changed = 0;
+            int l;
             for( l = 0; l < 2; l++ )
-                for( i = 0; i < 4; i++ )
-                    *b_changed |= h->mb.cache.direct_ref[l][i] != h->mb.cache.ref[l][x264_scan8[i*4]];
-            *b_changed = *b_changed || memcmp(h->mb.cache.direct_mv, h->mb.cache.mv, sizeof(h->mb.cache.mv));
+            {
+                changed |= M32( h->mb.cache.direct_mv[l][0] ) ^ M32( h->mb.cache.mv[l][x264_scan8[ 0]] );
+                if( changed ) break;
+                changed |= M32( h->mb.cache.direct_mv[l][1] ) ^ M32( h->mb.cache.mv[l][x264_scan8[ 4]] );
+                changed |= M32( h->mb.cache.direct_mv[l][2] ) ^ M32( h->mb.cache.mv[l][x264_scan8[ 8]] );
+                changed |= M32( h->mb.cache.direct_mv[l][3] ) ^ M32( h->mb.cache.mv[l][x264_scan8[12]] );
+                if( changed ) break;
+                changed |= h->mb.cache.direct_ref[l][0] ^ h->mb.cache.ref[l][x264_scan8[ 0]];
+                changed |= h->mb.cache.direct_ref[l][1] ^ h->mb.cache.ref[l][x264_scan8[ 4]];
+                changed |= h->mb.cache.direct_ref[l][2] ^ h->mb.cache.ref[l][x264_scan8[ 8]];
+                changed |= h->mb.cache.direct_ref[l][3] ^ h->mb.cache.ref[l][x264_scan8[12]];
+            }
         }
-        if( !*b_changed )
+        *b_changed = changed;
+        if( !changed )
             return b_available;
     }
 
     /* cache ref & mv */
     if( b_available )
     {
-        int i, l;
+        int l;
         for( l = 0; l < 2; l++ )
-            for( i = 0; i < 4; i++ )
-                h->mb.cache.direct_ref[l][i] = h->mb.cache.ref[l][x264_scan8[i*4]];
-        h->mc.memcpy_aligned(h->mb.cache.direct_mv, h->mb.cache.mv, sizeof(h->mb.cache.mv));
+        {
+            CP32( h->mb.cache.direct_mv[l][0], h->mb.cache.mv[l][x264_scan8[ 0]] );
+            CP32( h->mb.cache.direct_mv[l][1], h->mb.cache.mv[l][x264_scan8[ 4]] );
+            CP32( h->mb.cache.direct_mv[l][2], h->mb.cache.mv[l][x264_scan8[ 8]] );
+            CP32( h->mb.cache.direct_mv[l][3], h->mb.cache.mv[l][x264_scan8[12]] );
+            h->mb.cache.direct_ref[l][0] = h->mb.cache.ref[l][x264_scan8[ 0]];
+            h->mb.cache.direct_ref[l][1] = h->mb.cache.ref[l][x264_scan8[ 4]];
+            h->mb.cache.direct_ref[l][2] = h->mb.cache.ref[l][x264_scan8[ 8]];
+            h->mb.cache.direct_ref[l][3] = h->mb.cache.ref[l][x264_scan8[12]];
+        }
     }
 
     return b_available;
-}
-
-void x264_mb_load_mv_direct8x8( x264_t *h, int idx )
-{
-    const int x = 2*(idx%2);
-    const int y = 2*(idx/2);
-    x264_macroblock_cache_ref( h, x, y, 2, 2, 0, h->mb.cache.direct_ref[0][idx] );
-    x264_macroblock_cache_ref( h, x, y, 2, 2, 1, h->mb.cache.direct_ref[1][idx] );
-    CP64( h->mb.cache.mv[0][x264_scan8[idx*4]+0], h->mb.cache.direct_mv[0][x264_scan8[idx*4]+0] );
-    CP64( h->mb.cache.mv[0][x264_scan8[idx*4]+8], h->mb.cache.direct_mv[0][x264_scan8[idx*4]+8] );
-    CP64( h->mb.cache.mv[1][x264_scan8[idx*4]+0], h->mb.cache.direct_mv[1][x264_scan8[idx*4]+0] );
-    CP64( h->mb.cache.mv[1][x264_scan8[idx*4]+8], h->mb.cache.direct_mv[1][x264_scan8[idx*4]+8] );
 }
 
 /* This just improves encoder performance, it's not part of the spec */

@@ -292,10 +292,6 @@ void x264_mb_predict_mv( x264_t *h, int i_list, int idx, int i_width, int16_t mv
  *      if b_changed != NULL, set it to whether refs or mvs differ from
  *      before this functioncall. */
 int x264_mb_predict_mv_direct16x16( x264_t *h, int *b_changed );
-/* x264_mb_load_mv_direct8x8:
- *      set h->mb.cache.mv and h->mb.cache.ref for B_DIRECT
- *      must be called only after x264_mb_predict_mv_direct16x16 */
-void x264_mb_load_mv_direct8x8( x264_t *h, int idx );
 /* x264_mb_predict_mv_ref16x16:
  *      set mvc with D_16x16 prediction.
  *      uses all neighbors, even those that didn't end up using this ref.

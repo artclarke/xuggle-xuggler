@@ -280,7 +280,7 @@ static inline void x264_macroblock_luma_write_cavlc( x264_t *h, bs_t *s, int i8s
 void x264_macroblock_write_cavlc( x264_t *h, bs_t *s )
 {
     const int i_mb_type = h->mb.i_type;
-    static const int i_offsets[3] = {5,23,0};
+    static const uint8_t i_offsets[3] = {5,23,0};
     int i_mb_i_offset = i_offsets[h->sh.i_type];
     int i;
 

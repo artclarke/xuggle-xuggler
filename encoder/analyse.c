@@ -132,7 +132,7 @@ typedef struct
 } x264_mb_analysis_t;
 
 /* lambda = pow(2,qp/6-2) */
-const int x264_lambda_tab[52] = {
+const uint8_t x264_lambda_tab[52] = {
    1, 1, 1, 1, 1, 1, 1, 1,  /*  0-7 */
    1, 1, 1, 1,              /*  8-11 */
    1, 1, 1, 1, 2, 2, 2, 2,  /* 12-19 */
@@ -220,16 +220,16 @@ static const uint16_t x264_chroma_lambda2_offset_tab[] = {
 };
 
 /* TODO: calculate CABAC costs */
-static const int i_mb_b_cost_table[X264_MBTYPE_MAX] = {
+static const uint8_t i_mb_b_cost_table[X264_MBTYPE_MAX] = {
     9, 9, 9, 9, 0, 0, 0, 1, 3, 7, 7, 7, 3, 7, 7, 7, 5, 9, 0
 };
-static const int i_mb_b16x8_cost_table[17] = {
+static const uint8_t i_mb_b16x8_cost_table[17] = {
     0, 0, 0, 0, 0, 0, 0, 0, 5, 7, 7, 7, 5, 7, 9, 9, 9
 };
-static const int i_sub_mb_b_cost_table[13] = {
+static const uint8_t i_sub_mb_b_cost_table[13] = {
     7, 5, 5, 3, 7, 5, 7, 3, 7, 7, 7, 5, 1
 };
-static const int i_sub_mb_p_cost_table[4] = {
+static const uint8_t i_sub_mb_p_cost_table[4] = {
     5, 3, 3, 1
 };
 
@@ -1771,6 +1771,16 @@ static inline void x264_mb_cache_mv_p8x8( x264_t *h, x264_mb_analysis_t *a, int 
             x264_log( h, X264_LOG_ERROR, "internal error\n" );
             break;
     }
+}
+
+static void x264_mb_load_mv_direct8x8( x264_t *h, int idx )
+{
+    const int x = 2*(idx&1);
+    const int y = 2*(idx>>1);
+    x264_macroblock_cache_ref( h, x, y, 2, 2, 0, h->mb.cache.direct_ref[0][idx] );
+    x264_macroblock_cache_ref( h, x, y, 2, 2, 1, h->mb.cache.direct_ref[1][idx] );
+    x264_macroblock_cache_mv_ptr( h, x, y, 2, 2, 0, h->mb.cache.direct_mv[0][idx] );
+    x264_macroblock_cache_mv_ptr( h, x, y, 2, 2, 1, h->mb.cache.direct_mv[1][idx] );
 }
 
 #define CACHE_MV_BI(x,y,dx,dy,me0,me1,part) \

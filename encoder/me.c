@@ -32,7 +32,7 @@
  * and refine_* are run only on the winner.
  * the subme=8,9 values are much higher because any amount of satd search makes
  * up its time by reducing the number of qpel-rd iterations. */
-static const int subpel_iterations[][4] =
+static const uint8_t subpel_iterations[][4] =
    {{0,0,0,0},
     {1,1,0,0},
     {0,1,1,0},
@@ -46,7 +46,7 @@ static const int subpel_iterations[][4] =
     {0,0,4,10}};
 
 /* (x-1)%6 */
-static const int mod6m1[8] = {5,0,1,2,3,4,5,0};
+static const uint8_t mod6m1[8] = {5,0,1,2,3,4,5,0};
 /* radius 2 hexagon. repeated entries are to avoid having to compute mod6 every time. */
 static const int hex2[8][2] = {{-1,-2}, {-2,0}, {-1,2}, {1,2}, {2,0}, {1,-2}, {-1,-2}, {-2,0}};
 static const int square1[9][2] = {{0,0}, {0,-1}, {0,1}, {-1,0}, {1,0}, {-1,-1}, {-1,1}, {1,-1}, {1,1}};
