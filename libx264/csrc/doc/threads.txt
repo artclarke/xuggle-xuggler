@@ -1,0 +1,70 @@
+Old threading method: slice-based
+application calls x264
+x264 runs B-adapt and ratecontrol (serial)
+split frame into several slices, and spawn a thread for each slice
+wait until all threads are done
+deblock and hpel filter (serial)
+return to application
+In x264cli, there is one additional thread to decode the input.
+
+New threading method: frame-based
+application calls x264
+x264 runs B-adapt and ratecontrol (serial to the application, but parallel to the other x264 threads)
+spawn a thread for this frame
+thread runs encode in 1 slice, deblock, hpel filter
+meanwhile x264 waits for the oldest thread to finish
+return to application, but the rest of the threads continue running in the background
+No additional threads are needed to decode the input, unless decoding+B-adapt is slower than slice+deblock+hpel, in which case an additional input thread would allow decoding in parallel to B-adapt.
+
+
+Penalties for slice-based threading:
+Each slice adds some bitrate (or equivalently reduces quality), for a variety of reasons: the slice header costs some bits, cabac contexts are reset, mvs and intra samples can't be predicted across the slice boundary.
+In CBR mode, we have to allocate bits between slices before encoding them, which may lead to uneven quality.
+Some parts of the encoder are serial, so it doesn't scale well with lots of cpus.
+
+Penalties for frame-base threading:
+To allow encoding of multiple frames in parallel, we have to ensure that any given macroblock uses motion vectors only from pieces of the reference frames that have been encoded already. This is usually not noticeable, but can matter for very fast upward motion.
+We have to commit to one frame type before starting on the frame. Thus scenecut detection must run during the lowres pre-motion-estimation along with B-adapt, which makes it faster but less accurate than re-encoding the whole frame.
+Ratecontrol gets delayed feedback, since it has to plan frame N before frame N-1 finishes.
+
+
+Benchmarks:
+cpu: 4x woodcrest 3GHz
+content: 480p
+
+x264 -B1000 -b2 -m1 -Anone
+threads  speed           psnr
+       old   new      old    new
+1:   1.000x 1.000x   0.000  0.000
+2:   1.168x 1.413x  -0.038 -0.007
+3:   1.208x 1.814x  -0.064 -0.005
+4:   1.293x 2.329x  -0.095 -0.006
+5:          2.526x         -0.007
+6:          2.658x         -0.001
+7:          2.723x         -0.018
+8:          2.712x         -0.019
+
+x264 -B1000 -b2 -m5
+threads  speed           psnr   
+       old   new      old    new
+1:   1.000x 1.000x   0.000  0.000
+2:   1.319x 1.517x  -0.036 -0.006
+3:   1.466x 2.013x  -0.068 -0.005
+4:   1.578x 2.741x  -0.101 -0.004
+5:          3.022x         -0.015
+6:          3.221x         -0.014
+7:          3.331x         -0.020
+8:          3.425x         -0.025
+
+x264 -B1000 -b2 -m6 -r3 -8 --b-rdo
+threads  speed           psnr   
+       old   new      old    new
+1:   1.000x 1.000x   0.000  0.000
+2:   1.531x 1.707x  -0.032 -0.006
+3:   1.866x 2.277x  -0.061 -0.005
+4:   2.097x 3.204x  -0.088 -0.006
+5:          3.468x         -0.013
+6:          3.629x         -0.010
+7:          3.716x         -0.014
+8:          3.745x         -0.018
+
