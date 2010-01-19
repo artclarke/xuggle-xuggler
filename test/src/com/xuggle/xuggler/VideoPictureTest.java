@@ -233,4 +233,36 @@ public class VideoPictureTest extends TestCase
 
   }
 
+  @Test
+  public void testGetDataLineSize()
+  {
+    final int WIDTH = 420;
+    final int HEIGHT= 360;
+    final IPixelFormat.Type TYPE = IPixelFormat.Type.YUV420P;
+    IVideoPicture pic = IVideoPicture.make(TYPE, WIDTH, HEIGHT);
+    pic.setComplete(true, TYPE, WIDTH, HEIGHT, 0);
+    assertEquals(WIDTH, pic.getDataLineSize(0));
+    assertEquals(WIDTH/2, pic.getDataLineSize(1));
+    assertEquals(WIDTH/2, pic.getDataLineSize(2));
+    assertEquals(0, pic.getDataLineSize(3));
+    assertEquals(-1, pic.getDataLineSize(-1));
+    assertEquals(-1, pic.getDataLineSize(4));
+  }
+  
+  @Test
+  public void testGetDataLineSizeFromIBuffer()
+  {
+    final int WIDTH = 420;
+    final int HEIGHT= 360;
+    final IPixelFormat.Type TYPE = IPixelFormat.Type.YUV420P;
+    final IBuffer buf = IBuffer.make(null, (int) (WIDTH*HEIGHT*1.5));
+    IVideoPicture pic = IVideoPicture.make(buf, TYPE, WIDTH, HEIGHT);
+    pic.setComplete(true, TYPE, WIDTH, HEIGHT, 0);
+    assertEquals(WIDTH, pic.getDataLineSize(0));
+    assertEquals(WIDTH/2, pic.getDataLineSize(1));
+    assertEquals(WIDTH/2, pic.getDataLineSize(2));
+    assertEquals(0, pic.getDataLineSize(3));
+    assertEquals(-1, pic.getDataLineSize(-1));
+    assertEquals(-1, pic.getDataLineSize(4));
+  }
 }

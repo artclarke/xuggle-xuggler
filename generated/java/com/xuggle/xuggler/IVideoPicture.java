@@ -371,6 +371,13 @@ public class IVideoPicture extends IMediaData {
  * decode  
  * can continue.  
  * </p>  
+ * <p>  
+ * Due to some decoders assembly optimizations, you should ensure the 
+ *  
+ * IBuffer you pass in has at least 8 more bytes than would typically 
+ *  
+ * be required based on the format, width and height.  
+ * </p>  
  * @param	buffer The {@link com.xuggle.ferry.IBuffer} to wrap.  
  * @param	format The pixel format (for example, YUV420P).  
  * @param	width The width of the picture, in pixels.  

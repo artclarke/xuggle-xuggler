@@ -90,11 +90,23 @@ namespace com { namespace xuggle { namespace xuggler
       if (!retval)
         throw std::bad_alloc();
       
-      if (retval->getSize() > 0 && retval->getSize() > buffer->getBufferSize())
+      int32_t size = retval->getSize();
+      if (size > 0 && size > buffer->getBufferSize())
         throw std::runtime_error("input buffer is not large enough for given picture");
       
       /** Use the buffer */
       retval->mBuffer.reset(buffer, true);
+      /** Set the internal flags */
+      unsigned char* bytes = (unsigned char*)buffer->getBytes(0, size);
+      if (!bytes)
+        throw std::runtime_error("could not access raw memory in buffer");
+
+      (void) avpicture_fill((AVPicture*)retval->mFrame,
+          bytes,
+          (enum PixelFormat) format,
+          width,
+          height);
+
     }
     catch (std::bad_alloc &e)
     {
@@ -262,7 +274,7 @@ namespace com { namespace xuggle { namespace xuggler
   VideoPicture :: getDataLineSize(int lineNo)
   {
     int retval = -1;
-    if (mFrame
+    if (getAVFrame()
         && lineNo >= 0
         && (unsigned int) lineNo < (sizeof(mFrame->linesize)/sizeof(mFrame->linesize[0])))
       retval = mFrame->linesize[lineNo];
@@ -363,18 +375,20 @@ namespace com { namespace xuggle { namespace xuggler
     if (bufSize <= 0)
       throw std::runtime_error("invalid size for frame");
 
-    // Now, it turns out some accelerated assembly functions will
-    // read at least a word past the end of an image buffer, so
-    // we make space for that to happen.
-    // I arbitrarily choose the sizeof a long-long (64 bit).
-    int extraBytes=8;
-    bufSize += extraBytes;
-
     // reuse buffers if we can.
     if (!mBuffer || mBuffer->getBufferSize() < bufSize)
     {
+      // Now, it turns out some accelerated assembly functions will
+      // read at least a word past the end of an image buffer, so
+      // we make space for that to happen.
+      // I arbitrarily choose the sizeof a long-long (64 bit).
+
+      // note that if the user has passed in their own buffer that is
+      // the right 'size' but doesnt have this padding, we let it through anyway.
+      int extraBytes=sizeof(int64_t);
+
       // Make our copy buffer.
-      mBuffer = com::xuggle::ferry::IBuffer::make(this, bufSize);
+      mBuffer = com::xuggle::ferry::IBuffer::make(this, bufSize+extraBytes);
       if (!mBuffer) {
         throw std::bad_alloc();
       }
@@ -387,9 +401,9 @@ namespace com { namespace xuggle { namespace xuggler
       // so I'm going to fake it out here.
       {
         unsigned char * buf =
-          ((unsigned char*)mBuffer->getBytes(0, bufSize));
+          ((unsigned char*)mBuffer->getBytes(0, bufSize+extraBytes));
 
-        memset(buf+bufSize-extraBytes, 0, extraBytes);
+        memset(buf+bufSize, 0, extraBytes);
       }
     }
     uint8_t* buffer = (uint8_t*)mBuffer->getBytes(0, bufSize);
@@ -401,7 +415,7 @@ namespace com { namespace xuggle { namespace xuggler
         (enum PixelFormat) mPixelFormat,
         mWidth,
         mHeight);
-    if (imageSize != bufSize-extraBytes)
+    if (imageSize != bufSize)
       throw std::runtime_error("could not fill picture");
 
     mFrame->type = FF_BUFFER_TYPE_USER;
