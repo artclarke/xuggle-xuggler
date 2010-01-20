@@ -416,7 +416,7 @@ fi
 
 if [ "$lavf_input" = "auto" ] ; then
     lavf_input="no"
-    if [ `pkg-config --exists libavformat libavcodec libswscale 2>$DEVNULL` ] ; then
+    if [ `${cross_prefix}pkg-config --exists libavformat libavcodec libswscale 2>$DEVNULL` ] ; then
         LAVF_LDFLAGS="$LAVF_LDFLAGS $(pkg-config --libs libavformat libavcodec libswscale)"
         LAVF_CFLAGS="$LAVF_CFLAGS $(pkg-config --cflags libavformat libavcodec libswscale)"
     fi
