@@ -756,6 +756,9 @@ CAPTIVE_ENABLE_LIBOGG_TRUE
 CAPTIVE_ENABLE_LIBFAAC
 CAPTIVE_ENABLE_LIBFAAC_FALSE
 CAPTIVE_ENABLE_LIBFAAC_TRUE
+CAPTIVE_ENABLE_LIBOPENCORE_AMR
+CAPTIVE_ENABLE_LIBOPENCORE_AMR_FALSE
+CAPTIVE_ENABLE_LIBOPENCORE_AMR_TRUE
 CAPTIVE_ENABLE_LIBSPEEX
 CAPTIVE_ENABLE_LIBSPEEX_FALSE
 CAPTIVE_ENABLE_LIBSPEEX_TRUE
@@ -908,6 +911,7 @@ enable_gpl
 enable_captive_libx264
 enable_captive_libmp3lame
 enable_captive_libspeex
+enable_captive_libopencore_amr
 enable_captive_libfaac
 enable_captive_libogg
 enable_captive_libvorbis
@@ -1569,6 +1573,9 @@ Optional Features:
   --enable-captive-libspeex
                           use our own captive versions of the Speex library
                           encoder (default is yes)
+  --enable-captive-libopencore-amr
+                          use our own captive versions of the libopencore-amr
+                          library encoder (default is yes)
   --enable-captive-libfaac
                           use our own captive versions of the faac library
                           encoder (default is yes)
@@ -4649,13 +4656,13 @@ if test "${lt_cv_nm_interface+set}" = set; then :
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:4652: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:4659: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4655: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:4662: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4658: output\"" >&5)
+  (eval echo "\"\$as_me:4665: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -5858,7 +5865,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5861 "configure"' > conftest.$ac_ext
+  echo '#line 5868 "configure"' > conftest.$ac_ext
   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7684,11 +7691,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7687: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7694: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7691: \$? = $ac_status" >&5
+   echo "$as_me:7698: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8023,11 +8030,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8026: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8033: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:8030: \$? = $ac_status" >&5
+   echo "$as_me:8037: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8128,11 +8135,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8131: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8138: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8135: \$? = $ac_status" >&5
+   echo "$as_me:8142: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8183,11 +8190,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8186: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8193: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8190: \$? = $ac_status" >&5
+   echo "$as_me:8197: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10550,7 +10557,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10553 "configure"
+#line 10560 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10646,7 +10653,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10649 "configure"
+#line 10656 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -13869,11 +13876,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:13872: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:13879: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:13876: \$? = $ac_status" >&5
+   echo "$as_me:13883: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -13968,11 +13975,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:13971: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:13978: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:13975: \$? = $ac_status" >&5
+   echo "$as_me:13982: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -14020,11 +14027,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14023: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14030: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14027: \$? = $ac_status" >&5
+   echo "$as_me:14034: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -15323,6 +15330,63 @@ fi
 fi
 
 #
+# Captive libopencore-amr support
+#
+# Check whether --enable-captive-libopencore-amr was given.
+if test "${enable_captive_libopencore_amr+set}" = set; then :
+  enableval=$enable_captive_libopencore_amr;
+else
+  enable_captive_libopencore_amr=yes
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to use captive version of libopencore-amr" >&5
+$as_echo_n "checking whether to use captive version of libopencore-amr... " >&6; }
+if test "x$enable_captives" != "xyes"; then
+  enable_captive_libopencore_amr=no
+fi
+if test "x$enable_captive_ffmpeg" != "xyes"; then
+  # no point in making a captive libopencore-amr if we're not
+  # incarcerating ffmpeg
+  enable_captive_libopencore_amr=no
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $enable_captive_libopencore_amr" >&5
+$as_echo "$enable_captive_libopencore_amr" >&6; }
+ if  test "x$enable_captive_libopencore_amr" = "xyes" ; then
+  CAPTIVE_ENABLE_LIBOPENCORE_AMR_TRUE=
+  CAPTIVE_ENABLE_LIBOPENCORE_AMR_FALSE='#'
+else
+  CAPTIVE_ENABLE_LIBOPENCORE_AMR_TRUE='#'
+  CAPTIVE_ENABLE_LIBOPENCORE_AMR_FALSE=
+fi
+
+
+CAPTIVE_ENABLE_LIBOPENCORE_AMR=$enable_captive_libopencore_amr
+
+# libopencore-amr headers
+if test "x$enable_captive_libopencore_amr" != "xyes"; then
+  # We only check for Lame if we're not building it
+for ac_header in opencore-amrnb/interf_enc.h
+do :
+  ac_fn_cxx_check_header_mongrel "$LINENO" "opencore-amrnb/interf_enc.h" "ac_cv_header_opencore_amrnb_interf_enc_h" "$ac_includes_default"
+if test "x$ac_cv_header_opencore_amrnb_interf_enc_h" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_OPENCORE_AMRNB_INTERF_ENC_H 1
+_ACEOF
+ HAVE_LIBOPENCORE_AMR=yes
+else
+  HAVE_LIBOPENCORE_AMR=no
+fi
+
+done
+
+if test "x$HAVE_LIBOPENCORE_AMR" = xno; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cannot find libopencore-amr.  We will likely not be able to encode amr audio" >&5
+$as_echo "$as_me: WARNING: cannot find libopencore-amr.  We will likely not be able to encode amr audio" >&2;}
+fi
+fi
+
+#
 # Captive libfaac support
 #
 # Check whether --enable-captive-libfaac was given.
@@ -15554,7 +15618,7 @@ fi
 fi
 
 
-ac_config_files="$ac_config_files Makefile Makefile.global libogg/Makefile libogg/incarcerate libvorbis/Makefile libvorbis/incarcerate libtheora/Makefile libtheora/incarcerate libspeex/Makefile libspeex/incarcerate libx264/Makefile libx264/incarcerate libmp3lame/Makefile libmp3lame/incarcerate libfaac/Makefile libfaac/incarcerate ffmpeg/Makefile ffmpeg/incarcerate ffmpeg/install.sh ffmpeg/uninstall.sh"
+ac_config_files="$ac_config_files Makefile Makefile.global libopencore-amr/Makefile libopencore-amr/incarcerate libogg/Makefile libogg/incarcerate libvorbis/Makefile libvorbis/incarcerate libtheora/Makefile libtheora/incarcerate libspeex/Makefile libspeex/incarcerate libx264/Makefile libx264/incarcerate libmp3lame/Makefile libmp3lame/incarcerate libfaac/Makefile libfaac/incarcerate ffmpeg/Makefile ffmpeg/incarcerate ffmpeg/install.sh ffmpeg/uninstall.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -15727,6 +15791,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CAPTIVE_ENABLE_LIBSPEEX_TRUE}" && test -z "${CAPTIVE_ENABLE_LIBSPEEX_FALSE}"; then
   as_fn_error "conditional \"CAPTIVE_ENABLE_LIBSPEEX\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${CAPTIVE_ENABLE_LIBOPENCORE_AMR_TRUE}" && test -z "${CAPTIVE_ENABLE_LIBOPENCORE_AMR_FALSE}"; then
+  as_fn_error "conditional \"CAPTIVE_ENABLE_LIBOPENCORE_AMR\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CAPTIVE_ENABLE_LIBFAAC_TRUE}" && test -z "${CAPTIVE_ENABLE_LIBFAAC_FALSE}"; then
@@ -16672,6 +16740,8 @@ do
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "Makefile.global") CONFIG_FILES="$CONFIG_FILES Makefile.global" ;;
+    "libopencore-amr/Makefile") CONFIG_FILES="$CONFIG_FILES libopencore-amr/Makefile" ;;
+    "libopencore-amr/incarcerate") CONFIG_FILES="$CONFIG_FILES libopencore-amr/incarcerate" ;;
     "libogg/Makefile") CONFIG_FILES="$CONFIG_FILES libogg/Makefile" ;;
     "libogg/incarcerate") CONFIG_FILES="$CONFIG_FILES libogg/incarcerate" ;;
     "libvorbis/Makefile") CONFIG_FILES="$CONFIG_FILES libvorbis/Makefile" ;;

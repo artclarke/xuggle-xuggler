@@ -307,6 +307,39 @@ fi
 fi
 
 #
+# Captive libopencore-amr support
+#
+AC_ARG_ENABLE([captive-libopencore-amr],
+              [AS_HELP_STRING([--enable-captive-libopencore-amr],
+                              [use our own captive versions of the libopencore-amr library encoder (default is yes)])],
+                              [],
+                              [enable_captive_libopencore_amr=yes])
+AC_MSG_CHECKING([whether to use captive version of libopencore-amr])
+if test "x$enable_captives" != "xyes"; then
+  enable_captive_libopencore_amr=no
+fi
+if test "x$enable_captive_ffmpeg" != "xyes"; then
+  # no point in making a captive libopencore-amr if we're not
+  # incarcerating ffmpeg
+  enable_captive_libopencore_amr=no
+fi
+
+AC_MSG_RESULT([$enable_captive_libopencore_amr])
+AM_CONDITIONAL(CAPTIVE_ENABLE_LIBOPENCORE_AMR,
+               [ test "x$enable_captive_libopencore_amr" = "xyes" ])
+
+CAPTIVE_ENABLE_LIBOPENCORE_AMR=$enable_captive_libopencore_amr
+AC_SUBST([CAPTIVE_ENABLE_LIBOPENCORE_AMR])
+# libopencore-amr headers
+if test "x$enable_captive_libopencore_amr" != "xyes"; then
+  # We only check for Lame if we're not building it
+AC_CHECK_HEADERS([opencore-amrnb/interf_enc.h], [HAVE_LIBOPENCORE_AMR=yes], [HAVE_LIBOPENCORE_AMR=no])
+if test "x$HAVE_LIBOPENCORE_AMR" = xno; then
+  AC_MSG_WARN([cannot find libopencore-amr.  We will likely not be able to encode amr audio])
+fi
+fi
+
+#
 # Captive libfaac support
 #
 AC_ARG_ENABLE([captive-libfaac],
@@ -443,6 +476,8 @@ fi
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_FILES([Makefile
                  Makefile.global
+                 libopencore-amr/Makefile
+                 libopencore-amr/incarcerate
                  libogg/Makefile
                  libogg/incarcerate
                  libvorbis/Makefile
