@@ -207,7 +207,7 @@ public class ContainerFormatTest extends TestCase
     fmt.setOutputFormat("3gp", null, null);
     assertEquals(ICodec.ID.CODEC_ID_H263,
         fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_VIDEO));
-    assertEquals(ICodec.ID.CODEC_ID_AAC,
+    assertEquals(ICodec.ID.CODEC_ID_AMR_NB,
         fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_AUDIO));
 
     fmt.delete();
