@@ -701,7 +701,6 @@ int x264_macroblock_cache_init( x264_t *h )
 
     /* all coeffs */
     CHECKED_MALLOC( h->mb.non_zero_count, i_mb_count * 24 * sizeof(uint8_t) );
-    CHECKED_MALLOC( h->mb.nnz_backup, h->sps->i_mb_width * 4 * 16 * sizeof(uint8_t) );
 
     if( h->param.b_cabac )
     {
@@ -797,7 +796,6 @@ void x264_macroblock_cache_end( x264_t *h )
     }
     x264_free( h->mb.intra4x4_pred_mode );
     x264_free( h->mb.non_zero_count );
-    x264_free( h->mb.nnz_backup );
     x264_free( h->mb.mb_transform_size );
     x264_free( h->mb.skipbp );
     x264_free( h->mb.cbp );

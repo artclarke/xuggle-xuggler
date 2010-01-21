@@ -1018,7 +1018,9 @@ x264_t *x264_encoder_open( x264_param_t *param )
         int buf_tesa = (h->param.analyse.i_me_method >= X264_ME_ESA) *
             ((me_range*2+18) * sizeof(int16_t) + (me_range+4) * (me_range+1) * 4 * sizeof(mvsad_t));
         int buf_mbtree = h->param.rc.b_mb_tree * ((h->sps->i_mb_width+3)&~3) * sizeof(int);
-        CHECKED_MALLOC( h->thread[i]->scratch_buffer, X264_MAX4( buf_hpel, buf_ssim, buf_tesa, buf_mbtree ) );
+        int buf_nnz = !h->param.b_cabac * h->pps->b_transform_8x8_mode * (h->sps->i_mb_width * 4 * 16 * sizeof(uint8_t));
+        int scratch_size = X264_MAX4( buf_hpel, buf_ssim, buf_tesa, X264_MAX( buf_mbtree, buf_nnz ) );
+        CHECKED_MALLOC( h->thread[i]->scratch_buffer, scratch_size );
     }
 
     if( x264_ratecontrol_new( h ) < 0 )

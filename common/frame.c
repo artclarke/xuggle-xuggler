@@ -661,9 +661,10 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
     int stride2y  = stridey << b_interlaced;
     int strideuv  = h->fdec->i_stride[1];
     int stride2uv = strideuv << b_interlaced;
+    uint8_t (*nnz_backup)[16] = h->scratch_buffer;
 
     if( !h->pps->b_cabac && h->pps->b_transform_8x8_mode )
-        munge_cavlc_nnz( h, mb_y, h->mb.nnz_backup, munge_cavlc_nnz_row );
+        munge_cavlc_nnz( h, mb_y, nnz_backup, munge_cavlc_nnz_row );
 
     for( mb_x = 0; mb_x < h->sps->i_mb_width; mb_x += (~b_interlaced | mb_y)&1, mb_y ^= b_interlaced )
     {
@@ -823,7 +824,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
     }
 
     if( !h->pps->b_cabac && h->pps->b_transform_8x8_mode )
-        munge_cavlc_nnz( h, mb_y, h->mb.nnz_backup, restore_cavlc_nnz_row );
+        munge_cavlc_nnz( h, mb_y, nnz_backup, restore_cavlc_nnz_row );
 }
 
 void x264_frame_deblock( x264_t *h )
