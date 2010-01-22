@@ -210,6 +210,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 
 void x264_sps_write( bs_t *s, x264_sps_t *sps )
 {
+    bs_realign( s );
     bs_write( s, 8, sps->i_profile_idc );
     bs_write( s, 1, sps->b_constraint_set0 );
     bs_write( s, 1, sps->b_constraint_set1 );
@@ -359,6 +360,7 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
     }
 
     bs_rbsp_trailing( s );
+    bs_flush( s );
 }
 
 void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *sps )
@@ -423,6 +425,7 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
 
 void x264_pps_write( bs_t *s, x264_pps_t *pps )
 {
+    bs_realign( s );
     bs_write_ue( s, pps->i_id );
     bs_write_ue( s, pps->i_sps_id );
 
@@ -465,12 +468,14 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
     }
 
     bs_rbsp_trailing( s );
+    bs_flush( s );
 }
 
 void x264_sei_recovery_point_write( x264_t *h, bs_t *s, int recovery_frame_cnt )
 {
     int payload_size;
 
+    bs_realign( s );
     bs_write( s, 8, 0x06 ); // payload_type = Recovery Point
     payload_size = bs_size_ue( recovery_frame_cnt ) + 4;
 
@@ -482,6 +487,7 @@ void x264_sei_recovery_point_write( x264_t *h, bs_t *s, int recovery_frame_cnt )
 
     bs_align_10( s );
     bs_rbsp_trailing( s );
+    bs_flush( s );
 }
 
 int x264_sei_version_write( x264_t *h, bs_t *s )
@@ -505,6 +511,7 @@ int x264_sei_version_write( x264_t *h, bs_t *s )
              X264_BUILD, X264_VERSION, opts );
     length = strlen(version)+1+16;
 
+    bs_realign( s );
     bs_write( s, 8, 0x5 ); // payload_type = user_data_unregistered
     // payload_size
     for( i = 0; i <= length-255; i += 255 )
@@ -517,6 +524,7 @@ int x264_sei_version_write( x264_t *h, bs_t *s )
         bs_write( s, 8, version[i] );
 
     bs_rbsp_trailing( s );
+    bs_flush( s );
 
     x264_free( opts );
     x264_free( version );

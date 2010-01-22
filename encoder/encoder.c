@@ -1206,7 +1206,6 @@ int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
     x264_pps_write( &h->out.bs, h->pps );
     if( x264_nal_end( h ) )
         return -1;
-    bs_flush( &h->out.bs );
 
     frame_size = x264_encoder_encapsulate_nals( h );
 
@@ -1657,6 +1656,7 @@ static int x264_slice_write( x264_t *h )
     /* Assume no more than 3 bytes of NALU escaping. */
     int slice_max_size = h->param.i_slice_max_size > 0 ? (h->param.i_slice_max_size-3-NALU_OVERHEAD)*8 : INT_MAX;
     int starting_bits = bs_pos(&h->out.bs);
+    bs_realign( &h->out.bs );
 
     /* Slice */
     x264_nal_start( h, h->i_nal_type, h->i_nal_ref_idc );
