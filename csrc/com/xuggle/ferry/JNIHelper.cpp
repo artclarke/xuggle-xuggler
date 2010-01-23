@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with Xuggle-Xuggler-Main.  If not, see <http://www.gnu.org/licenses/>.
  *******************************************************************************/
+#include "config.h"
 
 #include "JNIHelper.h"
 
@@ -23,6 +24,12 @@
 
 #include <stdexcept>
 
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#define GET_PROCESS_ID() ((int32_t)getpid())
+#else
+#define GET_PROCESS_ID() (0)
+#endif
 // declare a signature for the memory manager
 extern void VSJNI_MemoryManagerInit(JavaVM* aJVM);
 
@@ -275,7 +282,9 @@ namespace com { namespace xuggle { namespace ferry {
         {
           // It's set to some out put value.  Sit and spin waiting
           // for a debugger.
-          std::cerr << "Waiting for a debugger.  Please attach and set \"JNIHelper::sDebuggerAttached\" to true"
+          int32_t pid = GET_PROCESS_ID();
+
+          std::cerr << "Process " << pid << " waiting for a debugger.  Please attach and set \"JNIHelper::sDebuggerAttached\" to true"
             << " (" << __FILE__ << ":" << __LINE__+1 <<")" << std::endl;
           while (!sDebuggerAttached) ;
         }
