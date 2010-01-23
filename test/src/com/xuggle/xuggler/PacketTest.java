@@ -149,9 +149,10 @@ public class PacketTest extends TestCase
     assertTrue("no audio stream", audioStream >= 0);
     assertTrue("no video stream", videoStream >= 0);
     
+    long lastPosition = -1;
     do {
       retval = h.mContainer.readNextPacket(h.mPacket);
-      if (retval == 0)
+      if (retval == 0 && h.mPacket.isComplete())
       {
         if (h.mPacket.getStreamIndex() == videoStream)
           numVidPkts++;
@@ -159,6 +160,9 @@ public class PacketTest extends TestCase
           numAudPkts++;
         else
           fail ("unexpected stream: " + h.mPacket.getStreamIndex());
+        final long newPosition = h.mPacket.getPosition();
+        assertTrue(newPosition > lastPosition);
+        lastPosition = newPosition;
       }
     } while (retval >= 0);
     log.debug("got {} video packets", numVidPkts);
