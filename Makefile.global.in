@@ -38,7 +38,7 @@ AM_LDFLAGS=-L@abs_top_builddir@/captive@libdir@
 
 # Note we may include includedir twice; most compilers will ignore that if
 # $(DESTDIR) is actually empty
-VS_INCLUDES=$(VS_JNI_INCLUDE) -I$(srcdir) -I$(abs_top_srcdir)/csrc -I$(abs_top_builddir)/csrc -I$(DESTDIR)$(includedir) -I$(includedir) -I"$(XUGGLE_HOME)/include"
+VS_INCLUDES=$(VS_JNI_INCLUDE) -I. -I$(srcdir) -I$(abs_top_srcdir)/csrc -I$(abs_top_builddir)/csrc -I$(DESTDIR)$(includedir) -I$(includedir) -I"$(XUGGLE_HOME)/include"
 AM_CPPFLAGS+=$(VS_CPPFLAGS) $(VS_INCLUDES)
 AM_CFLAGS+=$(VS_CFLAGS) -fno-strict-aliasing
 AM_CXXFLAGS+=$(VS_CXXFLAGS) -fno-strict-aliasing
