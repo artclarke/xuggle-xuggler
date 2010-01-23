@@ -8,6 +8,7 @@ LIBRARY=libopencore-amr
 LIBRARY_OPTIONS=
 LDFLAGS="@LDFLAGS@"
 CFLAGS="@CFLAGS@"
+CXXFLAGS="@CXXFLAGS@"
 HOST_TYPE=@HOST_TYPE@
 HOST_OS=@HOST_OS@
 VS_DEBUG=@VS_DEBUG@
@@ -27,10 +28,12 @@ case $HOST_TYPE in
 esac
 if test "x$VS_ENABLE_64BIT" = "xyes"; then
   CFLAGS="$CFLAGS -m64"
+  CXXFLAGS="$CXXFLAGS -m64"
   LDFLAGS="$LDFLAGS -m64"
   case $HOST_TYPE in
     Mac)
     CFLAGS="$CFLAGS -arch x86_64"
+    CXXFLAGS="$CXXFLAGS -arch x86_64"
     LDFLAGS="$LDFLAGS -arch x86_64"
     ;;
     *)
@@ -59,6 +62,7 @@ cp -r @abs_srcdir@/csrc/* @abs_builddir@/csrc/
 chmod -R u+w @abs_builddir@/csrc/*
 
 echo "Configuring ${LIBRARY} with these options: $LIBRARY_OPTIONS"
+CXXFLAGS="$CXXFLAGS -I'@abs_top_builddir@@includedir@'" \
 CFLAGS="$CFLAGS -I'@abs_top_builddir@@includedir@'" \
 LDFLAGS="$LDFLAGS -L'@abs_top_builddir@@libdir@'" \
    sh @abs_builddir@/csrc/configure \
