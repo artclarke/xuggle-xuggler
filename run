@@ -76,7 +76,7 @@ if [ $VS_JAVA_MEMCHECK ]; then
   export JAVA_OPTS="$JAVA_OPTS -agentlib:hprof=heap=all,lineno=y,thread=y,format=b"
 fi
 if [ $VS_JAVA_WAITFORNATIVEDEBUGGER ]; then
-  JAVA_OPTS="$JAVA_OPTS -com.xuggle.ferry.WaitForDebugger=1"
+  JAVA_OPTS="$JAVA_OPTS -Dcom.xuggle.ferry.WaitForDebugger=1"
 fi
 
 #echo "CLASSPATH=$classpath";
