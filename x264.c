@@ -719,13 +719,11 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
     if( b_regular )
     {
         FILE *f = fopen( filename, "r" );
-        if( !f )
+        if( f )
         {
-            fprintf( stderr, "x264 [error]: could not open input file `%s'\n", filename );
-            return -1;
+            b_regular = x264_is_regular_file( f );
+            fclose( f );
         }
-        b_regular = x264_is_regular_file( f );
-        fclose( f );
     }
     const char *module = b_auto ? ext : demuxer;
 
@@ -756,7 +754,7 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
 #endif
 #ifdef LAVF_INPUT
         if( (b_auto || !strcasecmp( demuxer, "lavf" )) &&
-            (!b_regular || !lavf_input.open_file( filename, p_handle, info, opt )) )
+            !lavf_input.open_file( filename, p_handle, info, opt ) )
         {
             module = "lavf";
             b_auto = 0;
