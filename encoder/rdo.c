@@ -159,10 +159,8 @@ static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
     }
     else
     {
-        bs_t bs_tmp = h->out.bs;
-        bs_tmp.i_bits_encoded = 0;
-        x264_macroblock_size_cavlc( h, &bs_tmp );
-        i_bits = ( bs_tmp.i_bits_encoded * i_lambda2 + 128 ) >> 8;
+        x264_macroblock_size_cavlc( h );
+        i_bits = ( h->out.bs.i_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
 
     h->mb.b_transform_8x8 = b_transform_bak;

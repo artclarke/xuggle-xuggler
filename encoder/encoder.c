@@ -1741,7 +1741,7 @@ static int x264_slice_write( x264_t *h )
                     bs_write_ue( &h->out.bs, i_skip );  /* skip run */
                     i_skip = 0;
                 }
-                x264_macroblock_write_cavlc( h, &h->out.bs );
+                x264_macroblock_write_cavlc( h );
             }
         }
 
