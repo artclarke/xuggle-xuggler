@@ -413,7 +413,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
             int mb_height = h->sps->i_mb_height >> h->sh.b_mbaff;
             int thread_mvy_range = i_fmv_range;
 
-            if( h->param.i_threads > 1 && !h->param.b_sliced_threads )
+            if( h->i_thread_frames > 1 )
             {
                 int pix_y = (h->mb.i_mb_y | h->mb.b_interlaced) * 16;
                 int thresh = pix_y + h->param.analyse.i_mv_range_thread;
@@ -1167,7 +1167,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
         {
             h->mb.i_type = P_SKIP;
             x264_analyse_update_cache( h, a );
-            assert( h->mb.cache.pskip_mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 || h->param.b_sliced_threads );
+            assert( h->mb.cache.pskip_mv[1] <= h->mb.mv_max_spel[1] || h->i_thread_frames == 1 );
             return;
         }
 
@@ -1183,7 +1183,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     }
 
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.me16x16.i_ref );
-    assert( a->l0.me16x16.mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 || h->param.b_sliced_threads );
+    assert( a->l0.me16x16.mv[1] <= h->mb.mv_max_spel[1] || h->i_thread_frames == 1 );
 
     h->mb.i_type = P_L0;
     if( a->i_mbrd )
@@ -2403,7 +2403,7 @@ intra_analysis:
             /* Fast P_SKIP detection */
             if( h->param.analyse.b_fast_pskip )
             {
-                if( h->param.i_threads > 1 && !h->param.b_sliced_threads && h->mb.cache.pskip_mv[1] > h->mb.mv_max_spel[1] )
+                if( h->i_thread_frames > 1 && h->mb.cache.pskip_mv[1] > h->mb.mv_max_spel[1] )
                     // FIXME don't need to check this if the reference frame is done
                     {}
                 else if( h->param.analyse.i_subpel_refine >= 3 )
@@ -2422,7 +2422,7 @@ intra_analysis:
         {
             h->mb.i_type = P_SKIP;
             h->mb.i_partition = D_16x16;
-            assert( h->mb.cache.pskip_mv[1] <= h->mb.mv_max_spel[1] || h->param.i_threads == 1 || h->param.b_sliced_threads );
+            assert( h->mb.cache.pskip_mv[1] <= h->mb.mv_max_spel[1] || h->i_thread_frames == 1 );
         }
         else
         {
@@ -3143,7 +3143,7 @@ static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a  )
     }
 
 #ifndef NDEBUG
-    if( h->param.i_threads > 1 && !h->param.b_sliced_threads && !IS_INTRA(h->mb.i_type) )
+    if( h->i_thread_frames > 1 && !IS_INTRA(h->mb.i_type) )
     {
         int l;
         for( l=0; l <= (h->sh.i_type == SLICE_TYPE_B); l++ )

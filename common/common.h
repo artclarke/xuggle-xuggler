@@ -362,16 +362,12 @@ struct x264_t
 
     /* frame number/poc */
     int             i_frame;
+    int             i_frame_num;
 
-    int             i_frame_offset; /* decoding only */
-    int             i_frame_num;    /* decoding only */
-    int             i_poc_msb;      /* decoding only */
-    int             i_poc_lsb;      /* decoding only */
-    int             i_poc;          /* decoding only */
-
-    int             i_thread_num;   /* threads only */
-    int             i_nal_type;     /* threads only */
-    int             i_nal_ref_idc;  /* threads only */
+    int             i_thread_frames; /* Number of different frames being encoded by threads;
+                                      * 1 when sliced-threads is on. */
+    int             i_nal_type;
+    int             i_nal_ref_idc;
 
     /* We use only one SPS and one PPS */
     x264_sps_t      sps_array[1];
