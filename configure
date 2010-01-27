@@ -416,25 +416,23 @@ fi
 
 if [ "$lavf_input" = "auto" ] ; then
     lavf_input="no"
-    if [ `${cross_prefix}pkg-config --exists libavformat libavcodec libswscale 2>$DEVNULL` ] ; then
-        LAVF_LDFLAGS="$LAVF_LDFLAGS $(pkg-config --libs libavformat libavcodec libswscale)"
-        LAVF_CFLAGS="$LAVF_CFLAGS $(pkg-config --cflags libavformat libavcodec libswscale)"
+    if ${cross_prefix}pkg-config --exists libavformat libavcodec libswscale 2>$DEVNULL; then
+        LAVF_LIBS="$LAVF_LIBS $(${cross_prefix}pkg-config --libs libavformat libavcodec libswscale)"
+        LAVF_CFLAGS="$LAVF_CFLAGS $(${cross_prefix}pkg-config --cflags libavformat libavcodec libswscale)"
     fi
-    if [ -z "$LAVF_LDFLAGS" -a -z "$LAVF_CFLAGS" ]; then
-        LAVF_LDFLAGS="-lavformat -lswscale"
+    if [ -z "$LAVF_LIBS" -a -z "$LAVF_CFLAGS" ]; then
+        LAVF_LIBS="-lavformat -lswscale"
         for lib in -lpostproc -lavcodec -lavutil -lm -lz -lbz2 $libpthread -lavifil32; do
-            cc_check "" $lib && LAVF_LDFLAGS="$LAVF_LDFLAGS $lib"
+            cc_check "" $lib && LAVF_LIBS="$LAVF_LIBS $lib"
         done
     fi
-    LAVF_LDFLAGS="-L. $LAVF_LDFLAGS"
-    if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LDFLAGS" && \
-       cc_check libswscale/swscale.h "$LAVF_CFLAGS $LAVF_LDFLAGS" ; then
+    LAVF_LIBS="-L. $LAVF_LIBS"
+    if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LIBS" && \
+       cc_check libswscale/swscale.h "$LAVF_CFLAGS $LAVF_LIBS" ; then
         # avcodec_decode_video2 is currently the most recently added function that we use; it was added in r18351
-        if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LDFLAGS" "avcodec_decode_video2( NULL, NULL, NULL, NULL );" ; then
+        if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LIBS" "avcodec_decode_video2( NULL, NULL, NULL, NULL );" ; then
             lavf_input="yes"
             echo "#define LAVF_INPUT" >> config.h
-            LDFLAGSCLI="$LDFLAGSCLI $LAVF_LDFLAGS"
-            [ -n "$LAVF_CFLAGS" ] && CFLAGS="$CFLAGS $LAVF_CFLAGS"
         else
             echo "Warning: libavformat is too old, update to ffmpeg r18351+"
         fi
@@ -443,17 +441,27 @@ fi
 
 if [ "$ffms_input" = "auto" ] ; then
     ffms_input="no"
-    if [ "$lavf_input" = "yes" ] ; then
-        if cc_check ffms.h -lFFMS2 "FFMS_DestroyVideoSource(0);" ; then
-           ffms_input="yes"
-           echo "#define FFMS_INPUT" >> config.h
-           LDFLAGSCLI="$LDFLAGSCLI -lFFMS2"
-        elif cc_check ffms.h "-lFFMS2 $LAVF_LDFLAGS -lstdc++" "FFMS_DestroyVideoSource(0);" ; then
-           ffms_input="yes"
-           echo "#define FFMS_INPUT" >> config.h
-           LDFLAGSCLI="-lFFMS2 $LDFLAGSCLI -lstdc++"
-        fi
+    if ${cross_prefix}pkg-config --exists ffms2 2>$DEVNULL; then
+        FFMS2_LIBS="$FFMS2_LIBS $(${cross_prefix}pkg-config --libs ffms2)"
+        FFMS2_CFLAGS="$FFMS2_LIBS $(${cross_prefix}pkg-config --cflags ffms2)"
     fi
+    [ -z "$FFMS2_LIBS" ] && FFMS2_LIBS="-lffms2"
+
+    if cc_check ffms.h "$FFMS2_CFLAGS $FFMS2_LIBS" "FFMS_DestroyVideoSource(0);" ; then
+        ffms_input="yes"
+    elif cc_check ffms.h "$FFMS2_CFLAGS $FFMS2_LIBS -lstdc++ $LAVF_LIBS" "FFMS_DestroyVideoSource(0);" ; then
+        ffms_input="yes"
+        FFMS2_LIBS="$FFMS2_LIBS -lstdc++ $LAVF_LIBS"
+    fi
+fi
+
+if [ "$ffms_input" = "yes" ]; then
+    LDFLAGSCLI="$FFMS2_LIBS $LDFLAGSCLI"
+    [ -n "$FFMS2_CFLAGS" ] && CFLAGS="$CFLAGS $FFMS2_CFLAGS"
+    echo "#define FFMS_INPUT" >> config.h
+elif [ "$lavf_input" = "yes" ]; then
+    LDFLAGSCLI="$LAVF_LIBS $LDFLAGSCLI"
+    [ -n "$LAVF_CFLAGS" ] && CFLAGS="$CFLAGS $LAVF_CFLAGS"
 fi
 
 MP4_LDFLAGS="-lgpac_static"
