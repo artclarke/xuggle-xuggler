@@ -12,6 +12,7 @@
 .depend
 config.h
 config.mak
+config.log
 x264
 checkasm
 

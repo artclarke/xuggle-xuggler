@@ -27,24 +27,77 @@ echo ""
 exit 1
 fi
 
+log_check() {
+    echo -n "checking $1... " >> config.log
+}
+
+log_ok() {
+    echo "yes" >> config.log
+}
+
+log_fail() {
+    echo "no" >> config.log
+}
+
+log_msg() {
+    echo "$1" >> config.log
+}
+
 cc_check() {
+    if [ -z "$3" ]; then
+        if [ -z "$1" ]; then
+            log_check "whether $CC works"
+        else
+            log_check "for $1"
+        fi
+    elif [ -z "$1" ]; then
+        log_check "whether $CC supports $3"
+    else
+        log_check "for $3 on $1";
+    fi
     rm -f conftest.c
     [ -n "$1" ] && echo "#include <$1>" > conftest.c
     echo "int main () { $3 return 0; }" >> conftest.c
-    $CC conftest.c $CFLAGS $LDFLAGS $LDFLAGSCLI $2 -o conftest 2>$DEVNULL
+    if $CC conftest.c $CFLAGS $LDFLAGS $LDFLAGSCLI $2 -o conftest >conftest.log 2>&1; then
+        res=$?
+        log_ok
+    else
+        res=$?
+        log_fail
+        log_msg "Failed commandline was:"
+        log_msg "--------------------------------------------------"
+        log_msg "$CC conftest.c $CFLAGS $LDFLAGS $LDFLAGSCLI $2"
+        cat conftest.log >> config.log
+        log_msg "--------------------------------------------------"
+    fi
+    return $res
 }
 
 as_check() {
+    log_check "whether $AS supports $1"
     echo "$1" > conftest.asm
-    $AS conftest.asm $ASFLAGS $2 -o conftest.o 2>$DEVNULL
+    if $AS conftest.asm $ASFLAGS $2 -o conftest.o >conftest.log 2>&1; then
+        res=$?
+        log_ok
+    else
+        res=$?
+        log_fail
+        log_msg "Failed commandline was:"
+        log_msg "--------------------------------------------------"
+        log_msg "$AS conftest.asm $ASFLAGS $2 -o conftest.o"
+        cat conftest.log >> config.log
+        log_msg "--------------------------------------------------"
+    fi
+    return $res
 }
 
 die() {
+    log_msg "DIED: $@"
     echo "$@"
     exit 1
 }
 
-rm -f config.h config.mak x264.pc conftest*
+rm -f config.h config.mak config.log x264.pc conftest*
 
 prefix='/usr/local'
 exec_prefix='${prefix}'
@@ -320,6 +373,16 @@ case $host_cpu in
     ;;
 esac
 
+log_msg "x264 configure script"
+if [ -n "$*" ]; then
+    msg="Command line options:"
+    for i in $@; do
+        msg="$msg \"$i\""
+    done
+    log_msg "$msg"
+fi
+log_msg ""
+
 # check requirements
 
 cc_check || die "No working C compiler found."
@@ -506,9 +569,9 @@ if [ "$debug" = "yes" ]; then
 elif [ $ARCH = ARM ]; then
     # arm-gcc-4.2 produces incorrect output with -ffast-math
     # and it doesn't save any speed anyway on 4.4, so disable it
-    CFLAGS="-O4 -fno-fast-math $CFLAGS"
+    CFLAGS="-O3 -fno-fast-math $CFLAGS"
 else
-    CFLAGS="-O4 -ffast-math $CFLAGS"
+    CFLAGS="-O3 -ffast-math $CFLAGS"
 fi
 
 if cc_check "stdio.h" "" "fseeko(stdin,0,0);" ; then
@@ -585,20 +648,27 @@ Libs: $pclibs
 Cflags: -I$includedir
 EOF
 
+cat > conftest.log <<EOF
+Platform:   $ARCH
+System:     $SYS
+asm:        $asm
+avs input:  $avs_input
+lavf input: $lavf_input
+ffms input: $ffms_input
+mp4 output: $mp4_output
+pthread:    $pthread
+debug:      $debug
+gprof:      $gprof
+PIC:        $pic
+shared:     $shared
+visualize:  $vis
+EOF
 
-echo "Platform:   $ARCH"
-echo "System:     $SYS"
-echo "asm:        $asm"
-echo "avs input:  $avs_input"
-echo "lavf input: $lavf_input"
-echo "ffms input: $ffms_input"
-echo "mp4 output: $mp4_output"
-echo "pthread:    $pthread"
-echo "debug:      $debug"
-echo "gprof:      $gprof"
-echo "PIC:        $pic"
-echo "shared:     $shared"
-echo "visualize:  $vis"
+echo >> config.log
+cat conftest.log >> config.log
+cat conftest.log
+rm conftest.log
+
 echo
 echo "You can run 'make' or 'make fprofiled' now."
 
