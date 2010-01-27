@@ -34,6 +34,10 @@
 #include <inttypes.h>
 #endif
 
+#ifndef HAVE_LOG2F
+#define log2f(x) (logf((x))/0.693147180559945f)
+#endif
+
 #ifdef _WIN32
 #include <io.h>    // _setmode()
 #include <fcntl.h> // _O_BINARY

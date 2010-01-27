@@ -477,6 +477,10 @@ if test "$pthread" = "yes" ; then
     LDFLAGS="$LDFLAGS $libpthread"
 fi
 
+if cc_check "math.h" "-Werror" "return log2f(2);" ; then
+    CFLAGS="$CFLAGS -DHAVE_LOG2F"
+fi
+
 if [ "$lavf_input" = "auto" ] ; then
     lavf_input="no"
     if ${cross_prefix}pkg-config --exists libavformat libavcodec libswscale 2>$DEVNULL; then
