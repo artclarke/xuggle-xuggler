@@ -157,6 +157,7 @@ void    x264_param_default( x264_param_t *param )
     param->b_annexb = 1;
     param->b_aud = 0;
     param->b_vfr_input = 1;
+    param->b_dts_compress = 0;
 }
 
 static int parse_enum( const char *arg, const char * const *names, int *dst )

@@ -34,11 +34,7 @@ typedef struct
     int i_time_res;
     int64_t i_time_inc;
     int i_numframe;
-    int i_init_delay;
     int i_delay_time;
-
-    int64_t i_prev_timestamps[2];
-    int64_t i_init_delta;
 } mp4_hnd_t;
 
 static void recompute_bitrate_mp4( GF_ISOFile *p_file, int i_track )
@@ -195,8 +191,6 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
     p_mp4->i_time_res = p_param->i_timebase_den;
     p_mp4->i_time_inc = p_param->i_timebase_num;
 
-    p_mp4->i_init_delay = p_param->i_bframe ? (p_param->i_bframe_pyramid ? 2 : 1) : 0;
-
     p_mp4->i_track = gf_isom_new_track( p_mp4->p_file, 0, GF_ISOM_MEDIA_VISUAL,
                                         p_mp4->i_time_res );
 
@@ -282,7 +276,6 @@ static int write_frame( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_
     mp4_hnd_t *p_mp4 = handle;
     int64_t dts;
     int64_t cts;
-    int32_t offset = 0;
 
     memcpy( p_mp4->p_sample->data + p_mp4->p_sample->dataLength, p_nalu, i_size );
     p_mp4->p_sample->dataLength += i_size;
@@ -290,27 +283,12 @@ static int write_frame( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_
     if( !p_mp4->i_numframe )
         p_mp4->i_delay_time = p_picture->i_dts * -1;
 
-    if( !p_mp4->i_init_delay )
-        dts = cts = p_picture->i_pts * p_mp4->i_time_inc;
-    else
-    {
-        if( p_mp4->i_numframe <= p_mp4->i_init_delay )
-            dts = p_picture->i_dts + p_mp4->i_delay_time;
-        else
-            dts = p_mp4->i_prev_timestamps[ (p_mp4->i_numframe - p_mp4->i_init_delay) % p_mp4->i_init_delay ] + p_mp4->i_delay_time;
-
-        // unordered pts
-        p_mp4->i_prev_timestamps[ p_mp4->i_numframe % p_mp4->i_init_delay ] = p_picture->i_dts + p_mp4->i_delay_time;
-
-        dts *= p_mp4->i_time_inc;
-        cts = (p_picture->i_pts + p_mp4->i_delay_time) * p_mp4->i_time_inc;
-
-        offset = cts - dts;
-    }
+    dts = (p_picture->i_dts + p_mp4->i_delay_time) * p_mp4->i_time_inc;
+    cts = (p_picture->i_pts + p_mp4->i_delay_time) * p_mp4->i_time_inc;
 
     p_mp4->p_sample->IsRAP = p_picture->b_keyframe;
     p_mp4->p_sample->DTS = dts;
-    p_mp4->p_sample->CTS_Offset = offset;
+    p_mp4->p_sample->CTS_Offset = (uint32_t)(cts - dts);
     gf_isom_add_sample( p_mp4->p_file, p_mp4->i_track, p_mp4->i_descidx, p_mp4->p_sample );
 
     p_mp4->p_sample->dataLength = 0;

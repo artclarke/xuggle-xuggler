@@ -863,6 +863,18 @@ x264_t *x264_encoder_open( x264_param_t *param )
     h->i_frame = -1;
     h->i_frame_num = 0;
     h->i_idr_pic_id = 0;
+    if( h->param.b_dts_compress )
+    {
+        /* h->i_dts_compress_multiplier == h->frames.i_bframe_delay + 1 */
+        h->i_dts_compress_multiplier = h->param.i_bframe ? (h->param.i_bframe_pyramid ? 3 : 2) : 1;
+        if( h->i_dts_compress_multiplier != 1 )
+            x264_log( h, X264_LOG_DEBUG, "DTS compresion changed timebase: %d/%d -> %d/%d\n",
+                      h->param.i_timebase_num, h->param.i_timebase_den,
+                      h->param.i_timebase_num, h->param.i_timebase_den * h->i_dts_compress_multiplier );
+        h->param.i_timebase_den *= h->i_dts_compress_multiplier;
+    }
+    else
+        h->i_dts_compress_multiplier = 1;
 
     h->sps = &h->sps_array[0];
     x264_sps_init( h->sps, h->param.i_sps_id, &h->param );
@@ -2388,8 +2400,31 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
         pic_out->i_type = X264_TYPE_B;
 
     pic_out->b_keyframe = h->fenc->b_keyframe;
-    pic_out->i_pts = h->fenc->i_pts;
-    pic_out->i_dts = h->fenc->i_dts - h->frames.i_bframe_delay_time;
+
+    pic_out->i_pts = h->fenc->i_pts *= h->i_dts_compress_multiplier;
+    if( h->frames.i_bframe_delay )
+    {
+        int64_t *i_prev_dts = thread_current->frames.i_prev_dts;
+        if( h->i_frame <= h->frames.i_bframe_delay )
+        {
+            if( h->i_dts_compress_multiplier == 1 )
+                pic_out->i_dts = h->fenc->i_reordered_pts - h->frames.i_bframe_delay_time;
+            else
+            {
+                /* DTS compression */
+                if( h->i_frame == 1 )
+                    thread_current->frames.i_init_delta = h->fenc->i_reordered_pts * h->i_dts_compress_multiplier;
+                pic_out->i_dts = h->i_frame * thread_current->frames.i_init_delta / h->i_dts_compress_multiplier;
+            }
+        }
+        else
+            pic_out->i_dts = i_prev_dts[ (h->i_frame - h->frames.i_bframe_delay) % h->frames.i_bframe_delay ];
+        i_prev_dts[ h->i_frame % h->frames.i_bframe_delay ] = h->fenc->i_reordered_pts * h->i_dts_compress_multiplier;
+    }
+    else
+        pic_out->i_dts = h->fenc->i_reordered_pts;
+    assert( pic_out->i_pts >= pic_out->i_dts );
+
     pic_out->img.i_plane = h->fdec->i_plane;
     for(i = 0; i < 3; i++)
     {

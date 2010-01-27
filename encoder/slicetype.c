@@ -1336,10 +1336,10 @@ void x264_slicetype_decide( x264_t *h )
         {
             int idx = index[h->lookahead->next.list[i]->i_type == X264_TYPE_BREF]++;
             frames[idx] = h->lookahead->next.list[i];
-            frames[idx]->i_dts = h->lookahead->next.list[idx]->i_pts;
+            frames[idx]->i_reordered_pts = h->lookahead->next.list[idx]->i_pts;
         }
         frames[0] = h->lookahead->next.list[bframes];
-        frames[0]->i_dts = h->lookahead->next.list[0]->i_pts;
+        frames[0]->i_reordered_pts = h->lookahead->next.list[0]->i_pts;
         memcpy( h->lookahead->next.list, frames, (bframes+1) * sizeof(x264_frame_t*) );
     }
     for( i = 0; i <= bframes; i++ )

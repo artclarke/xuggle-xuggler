@@ -35,7 +35,7 @@ typedef struct x264_frame
     int     i_type;
     int     i_qpplus1;
     int64_t i_pts;
-    int64_t i_dts;
+    int64_t i_reordered_pts;
     x264_param_t *param;
 
     int     i_frame;     /* Presentation frame number */

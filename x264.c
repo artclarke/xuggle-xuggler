@@ -683,6 +683,7 @@ static int select_output( const char *muxer, char *filename, x264_param_t *param
         output = mp4_output;
         param->b_annexb = 0;
         param->b_aud = 0;
+        param->b_dts_compress = 0;
         param->b_repeat_headers = 0;
 #else
         fprintf( stderr, "x264 [error]: not compiled with MP4 output support\n" );
@@ -694,6 +695,7 @@ static int select_output( const char *muxer, char *filename, x264_param_t *param
         output = mkv_output;
         param->b_annexb = 0;
         param->b_aud = 0;
+        param->b_dts_compress = 0;
         param->b_repeat_headers = 0;
     }
     else if( !strcasecmp( ext, "flv" ) )
@@ -701,6 +703,7 @@ static int select_output( const char *muxer, char *filename, x264_param_t *param
         output = flv_output;
         param->b_annexb = 0;
         param->b_aud = 0;
+        param->b_dts_compress = 1;
         param->b_repeat_headers = 0;
     }
     else
@@ -1455,6 +1458,8 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     int64_t second_largest_pts = -1;
     int64_t ticks_per_frame;
     double  duration;
+    int     prev_timebase_den = param->i_timebase_den;
+    int     dts_compress_multiplier;
 
     opt->b_progress &= param->i_log_level < X264_LOG_DEBUG;
     i_frame_total = input.get_frame_total( opt->hin );
@@ -1473,6 +1478,8 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     }
 
     x264_encoder_parameters( h, param );
+
+    dts_compress_multiplier = param->i_timebase_den / prev_timebase_den;
 
     if( output.set_param( opt->hout, param ) )
     {
@@ -1528,7 +1535,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
             {
                 if( h->param.i_log_level >= X264_LOG_DEBUG || pts_warning_cnt < MAX_PTS_WARNING )
                     fprintf( stderr, "x264 [warning]: non-strictly-monotonic pts at frame %d (%"PRId64" <= %"PRId64")\n",
-                             i_frame, pic.i_pts, largest_pts );
+                             i_frame, pic.i_pts * dts_compress_multiplier, largest_pts * dts_compress_multiplier );
                 else if( pts_warning_cnt == MAX_PTS_WARNING )
                     fprintf( stderr, "x264 [warning]: too many nonmonotonic pts warnings, suppressing further ones\n" );
                 pts_warning_cnt++;
@@ -1583,6 +1590,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         duration = (double)param->i_fps_den / param->i_fps_num;
     else
         duration = (double)(2 * largest_pts - second_largest_pts) * param->i_timebase_num / param->i_timebase_den;
+    duration *= dts_compress_multiplier;
 
     i_end = x264_mdate();
     input.picture_clean( &pic );

@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 83
+#define X264_BUILD 84
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -316,6 +316,9 @@ typedef struct x264_param_t
     int b_vfr_input;            /* VFR input */
     int i_timebase_num;         /* Timebase numerator */
     int i_timebase_den;         /* Timebase denominator */
+    int b_dts_compress;         /* DTS compression: this algorithm eliminates negative DTS
+                                 * by compressing them to be less than the second PTS.
+                                 * Warning: this will change the timebase! */
 
     /* Slicing parameters */
     int i_slice_max_size;    /* Max size per slice in bytes; includes estimated NAL overhead. */

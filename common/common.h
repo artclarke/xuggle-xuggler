@@ -376,6 +376,9 @@ struct x264_t
     x264_pps_t      *pps;
     int             i_idr_pic_id;
 
+    /* Timebase multiplier for DTS compression */
+    int             i_dts_compress_multiplier;
+
     /* quantization matrix for decoding, [cqm][qp%6][coef] */
     int             (*dequant4_mf[4])[16];   /* [4][6][16] */
     int             (*dequant8_mf[2])[64];   /* [2][6][64] */
@@ -429,6 +432,8 @@ struct x264_t
         int i_delay;    /* Number of frames buffered for B reordering */
         int     i_bframe_delay;
         int64_t i_bframe_delay_time;
+        int64_t i_init_delta;
+        int64_t i_prev_dts[2];
         int b_have_lowres;  /* Whether 1/2 resolution luma planes are being used */
         int b_have_sub8x8_esa;
     } frames;
