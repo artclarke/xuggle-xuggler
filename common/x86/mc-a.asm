@@ -89,9 +89,9 @@ SECTION .text
 %macro BIWEIGHT_START_MMX 0
     movd    m2, r6m
     SPLATW  m2, m2   ; weight_dst
-    mova    m3, [pw_64 GLOBAL]
+    mova    m3, [pw_64]
     psubw   m3, m2   ; weight_src
-    mova    m4, [pw_32 GLOBAL] ; rounding
+    mova    m4, [pw_32] ; rounding
     pxor    m5, m5
 %endmacro
 
@@ -111,7 +111,7 @@ SECTION .text
     shl    t7d, 8
     add    t6d, t7d
     movd    m3, t6d
-    mova    m4, [pw_32 GLOBAL]
+    mova    m4, [pw_32]
     SPLATW  m3, m3   ; weight_dst,src
 %endmacro
 
@@ -641,7 +641,7 @@ AVG2_W20 sse2_misalign
 %macro INIT_SHIFT 2
     and    eax, 7
     shl    eax, 3
-    movd   %1, [sw_64 GLOBAL]
+    movd   %1, [sw_64]
     movd   %2, eax
     psubw  %1, %2
 %endmacro
@@ -778,10 +778,10 @@ cglobal x264_pixel_avg2_w16_cache64_ssse3
     shl    r6, 4         ;jump = (offset + align*2)*48
 %define avg_w16_addr avg_w16_align1_1_ssse3-(avg_w16_align2_2_ssse3-avg_w16_align1_1_ssse3)
 %ifdef PIC
-    lea   r11, [avg_w16_addr GLOBAL]
+    lea   r11, [avg_w16_addr]
     add    r6, r11
 %else
-    lea    r6, [avg_w16_addr + r6 GLOBAL]
+    lea    r6, [avg_w16_addr + r6]
 %endif
 %ifdef UNIX64
     jmp    r6
@@ -1007,7 +1007,7 @@ cglobal x264_mc_chroma_%1
     SPLATW     m5, m5        ; m5 = dx
     SPLATW     m6, m6        ; m6 = dy
 
-    mova       m4, [pw_8 GLOBAL]
+    mova       m4, [pw_8]
     mova       m0, m4
     psubw      m4, m5        ; m4 = 8-dx
     psubw      m0, m6        ; m0 = 8-dy
@@ -1042,7 +1042,7 @@ cglobal x264_mc_chroma_%1
     punpcklbw  m2, m3
     punpcklbw  m1, m3
 
-    paddw      m0, [pw_32 GLOBAL]
+    paddw      m0, [pw_32]
 
     pmullw     m2, m5        ; line * cB
     pmullw     m1, m7        ; line * cD
@@ -1084,9 +1084,9 @@ cglobal x264_mc_chroma_%1
     movd       m6, r4d
     mov       r5d, 1
 .mc1d:
-    mova       m5, [pw_8 GLOBAL]
+    mova       m5, [pw_8]
     SPLATW     m6, m6
-    mova       m7, [pw_4 GLOBAL]
+    mova       m7, [pw_4]
     psubw      m5, m6
     movifnidn r0,  r0mp
     movifnidn r1d, r1m
@@ -1166,7 +1166,7 @@ cglobal x264_mc_chroma_ssse3%1, 0,6,%2
     imul      r4d, t0d ; (x*255+8)*(8-y)
     cmp dword r6m, 4
     jg .width8
-    mova       m5, [pw_32 GLOBAL]
+    mova       m5, [pw_32]
     movd       m6, r5d
     movd       m7, r4d
     movifnidn  r0, r0mp
@@ -1178,10 +1178,10 @@ cglobal x264_mc_chroma_ssse3%1, 0,6,%2
     and        r2, ~3
     and        r5, 3
 %ifdef PIC
-    lea       r11, [ch_shuffle GLOBAL]
+    lea       r11, [ch_shuffle]
     movu       m5, [r11 + r5*2]
 %else
-    movu       m5, [ch_shuffle + r5*2 GLOBAL]
+    movu       m5, [ch_shuffle + r5*2]
 %endif
     movu       m0, [r2]
     pshufb     m0, m5
@@ -1197,8 +1197,8 @@ cglobal x264_mc_chroma_ssse3%1, 0,6,%2
     pmaddubsw  m1, m6
     pmaddubsw  m2, m7
     pmaddubsw  m3, m6
-    paddw      m0, [pw_32 GLOBAL]
-    paddw      m2, [pw_32 GLOBAL]
+    paddw      m0, [pw_32]
+    paddw      m2, [pw_32]
     paddw      m1, m0
     paddw      m3, m2
     mova       m0, m4
@@ -1228,7 +1228,7 @@ INIT_XMM
     cmp        r5, 0x38
     jge .split
 %endif
-    mova       m5, [pw_32 GLOBAL]
+    mova       m5, [pw_32]
     movh       m0, [r2]
     movh       m1, [r2+1]
     punpcklbw  m0, m1
@@ -1265,18 +1265,18 @@ INIT_XMM
     and        r2, ~7
     and        r5, 7
 %ifdef PIC
-    lea       r11, [ch_shuffle GLOBAL]
+    lea       r11, [ch_shuffle]
     movu       m5, [r11 + r5*2]
 %else
-    movu       m5, [ch_shuffle + r5*2 GLOBAL]
+    movu       m5, [ch_shuffle + r5*2]
 %endif
     movu       m0, [r2]
     pshufb     m0, m5
 %ifdef ARCH_X86_64
-    mova       m8, [pw_32 GLOBAL]
+    mova       m8, [pw_32]
     %define round m8
 %else
-    %define round [pw_32 GLOBAL]
+    %define round [pw_32]
 %endif
 .splitloop8:
     movu       m1, [r2+r3]

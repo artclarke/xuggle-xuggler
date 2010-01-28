@@ -349,7 +349,7 @@ cglobal x264_sub8x8_dct_%1, 3,3
 global x264_sub8x8_dct_%1.skip_prologue
 .skip_prologue:
 %ifnidn %1, sse2
-    mova m7, [hsub_mul GLOBAL]
+    mova m7, [hsub_mul]
 %endif
     LOAD_DIFF8x4 0, 1, 2, 3, 6, 7, r1, r2-4*FDEC_STRIDE
     SPILL r0, 1,2
@@ -393,7 +393,7 @@ global x264_sub8x8_dct8_%1.skip_prologue
     LOAD_DIFF m7, m0, none, [r1+7*FENC_STRIDE], [r2+3*FDEC_STRIDE]
     UNSPILL r0, 0
 %else
-    mova m7, [hsub_mul GLOBAL]
+    mova m7, [hsub_mul]
     LOAD_DIFF8x4 0, 1, 2, 3, 4, 7, r1, r2-4*FDEC_STRIDE
     SPILL r0, 0,1
     SWAP 1, 7
@@ -441,9 +441,9 @@ global x264_add8x8_idct_sse2.skip_prologue
     SPILL r1, 0
     TRANSPOSE2x4x4W 4,5,6,7,0
     UNSPILL r1, 0
-    paddw m0, [pw_32 GLOBAL]
+    paddw m0, [pw_32]
     IDCT4_1D 0,1,2,3,r1
-    paddw m4, [pw_32 GLOBAL]
+    paddw m4, [pw_32]
     IDCT4_1D 4,5,6,7,r1
     SPILL r1, 6,7
     pxor m7, m7
@@ -466,7 +466,7 @@ global x264_add8x8_idct8_sse2.skip_prologue
     IDCT8_1D   0,1,2,3,4,5,6,7,r1
     SPILL r1, 6
     TRANSPOSE8x8W 0,1,2,3,4,5,6,7,[r1+0x60],[r1+0x40],1
-    paddw      m0, [pw_32 GLOBAL]
+    paddw      m0, [pw_32]
     SPILL r1, 0
     IDCT8_1D   0,1,2,3,4,5,6,7,r1
     SPILL r1, 6,7

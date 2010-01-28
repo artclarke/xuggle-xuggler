@@ -125,7 +125,7 @@ cglobal x264_hpel_filter_v_%1, 5,6,%2
 %ifnidn %1, ssse3
     pxor m0, m0
 %else
-    mova m0, [filt_mul51 GLOBAL]
+    mova m0, [filt_mul51]
 %endif
 .loop:
 %ifidn %1, ssse3
@@ -142,8 +142,8 @@ cglobal x264_hpel_filter_v_%1, 5,6,%2
     pmaddubsw m4, m0
     pmaddubsw m2, m0
     pmaddubsw m5, m0
-    pmaddubsw m3, [filt_mul20 GLOBAL]
-    pmaddubsw m6, [filt_mul20 GLOBAL]
+    pmaddubsw m3, [filt_mul20]
+    pmaddubsw m6, [filt_mul20]
     paddw  m1, m2
     paddw  m4, m5
     paddw  m1, m3
@@ -155,7 +155,7 @@ cglobal x264_hpel_filter_v_%1, 5,6,%2
     LOAD_ADD   m6,     [r1+r3*2+mmsize/2], [r5+mmsize/2], m7 ; c1
     FILT_V2
 %endif
-    mova      m7, [pw_16 GLOBAL]
+    mova      m7, [pw_16]
     mova      [r2+r4*2], m1
     mova      [r2+r4*2+mmsize], m4
     paddw     m1, m7
@@ -180,7 +180,7 @@ cglobal x264_hpel_filter_c_mmxext, 3,3
     lea r1, [r1+r2*2]
     neg r2
     %define src r1+r2*2
-    movq m7, [pw_32 GLOBAL]
+    movq m7, [pw_32]
 .loop:
     movq   m1, [src-4]
     movq   m2, [src-2]
@@ -237,7 +237,7 @@ cglobal x264_hpel_filter_h_mmxext, 3,3
     punpcklbw  m7, m0
     punpcklbw  m6, m0
     paddw      m6, m7 ; a1
-    movq       m7, [pw_1 GLOBAL]
+    movq       m7, [pw_1]
     FILT_H2 m1, m2, m3, m4, m5, m6
     FILT_PACK m1, m4, 1
     movntq     [r0+r2], m1
@@ -257,13 +257,13 @@ cglobal x264_hpel_filter_c_%1, 3,3,9
     neg r2
     %define src r1+r2*2
 %ifidn %1, ssse3
-    mova    m7, [pw_32 GLOBAL]
+    mova    m7, [pw_32]
     %define tpw_32 m7
 %elifdef ARCH_X86_64
-    mova    m8, [pw_32 GLOBAL]
+    mova    m8, [pw_32]
     %define tpw_32 m8
 %else
-    %define tpw_32 [pw_32 GLOBAL]
+    %define tpw_32 [pw_32]
 %endif
 .loop:
 %ifidn %1,sse2_misalign
@@ -340,7 +340,7 @@ cglobal x264_hpel_filter_h_sse2, 3,3,8
     punpcklbw  m6, m0
     punpcklbw  m7, m0
     paddw      m6, m7 ; c1
-    mova       m7, [pw_1 GLOBAL] ; FIXME xmm8
+    mova       m7, [pw_1] ; FIXME xmm8
     FILT_H2 m1, m2, m3, m4, m5, m6
     FILT_PACK m1, m4, 1
     movntdq    [r0+r2], m1
@@ -362,7 +362,7 @@ cglobal x264_hpel_filter_h_ssse3, 3,3
     punpcklbw m1, m0         ; 00 -1 00 -2 00 -3 00 -4 00 -5 00 -6 00 -7 00 -8
     movh m2, [src]
     punpcklbw m2, m0
-    mova       m7, [pw_1 GLOBAL]
+    mova       m7, [pw_1]
 .loop:
     movh       m3, [src+8]
     punpcklbw  m3, m0
@@ -436,7 +436,7 @@ HPEL_V ssse3
     mova m3, [r1]
     mova %4, [r1+r2]
     mova m0, [r1+r2*2]
-    mova %2, [filt_mul51 GLOBAL]
+    mova %2, [filt_mul51]
     mova m4, m1
     punpcklbw m1, m2
     punpckhbw m4, m2
@@ -452,8 +452,8 @@ HPEL_V ssse3
     pmaddubsw m4, %2
     pmaddubsw m0, %2
     pmaddubsw m2, %2
-    pmaddubsw m3, [filt_mul20 GLOBAL]
-    pmaddubsw %1, [filt_mul20 GLOBAL]
+    pmaddubsw m3, [filt_mul20]
+    pmaddubsw %1, [filt_mul20]
     psrlw     %3, 8
     psrlw     %4, 8
     paddw m1, m0
@@ -1096,7 +1096,7 @@ cglobal x264_mbtree_propagate_cost_sse2, 6,6
     add r4, r5
     neg r5
     pxor      xmm5, xmm5
-    movdqa    xmm4, [pd_128 GLOBAL]
+    movdqa    xmm4, [pd_128]
 .loop:
     movq      xmm2, [r2+r5] ; intra
     movq      xmm0, [r4+r5] ; invq

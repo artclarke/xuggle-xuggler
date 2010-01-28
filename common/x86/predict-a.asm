@@ -99,7 +99,7 @@ SECTION .text
     pavgb       %2, %3
     pxor        %3, %5
     mov%6       %1, %4
-    pand        %3, [pb_1 GLOBAL]
+    pand        %3, [pb_1]
     psubusb     %2, %3
     pavgb       %1, %2
 %endmacro
@@ -466,7 +466,7 @@ cglobal predict_8x8_dc_mmxext, 2,2
     pxor        mm1, mm1
     psadbw      mm0, [r1+7]
     psadbw      mm1, [r1+16]
-    paddw       mm0, [pw_8 GLOBAL]
+    paddw       mm0, [pw_8]
     paddw       mm0, mm1
     psrlw       mm0, 4
     pshufw      mm0, mm0, 0
@@ -481,7 +481,7 @@ cglobal predict_8x8_dc_mmxext, 2,2
 cglobal %1, 2,2
     pxor        mm0, mm0
     psadbw      mm0, [r1+%2]
-    paddw       mm0, [pw_4 GLOBAL]
+    paddw       mm0, [pw_4]
     psrlw       mm0, 3
     pshufw      mm0, mm0, 0
     packuswb    mm0, mm0
@@ -643,7 +643,7 @@ cglobal predict_8x8_vr_core_mmxext, 2,2
 cglobal predict_8x8c_p_core_mmxext, 1,2
     LOAD_PLANE_ARGS
     movq        mm1, mm2
-    pmullw      mm2, [pw_3210 GLOBAL]
+    pmullw      mm2, [pw_3210]
     psllw       mm1, 2
     paddsw      mm0, mm2        ; mm0 = {i+0*b, i+1*b, i+2*b, i+3*b}
     paddsw      mm1, mm0        ; mm1 = {i+4*b, i+5*b, i+6*b, i+7*b}
@@ -672,7 +672,7 @@ cglobal predict_16x16_p_core_mmxext, 1,2
     LOAD_PLANE_ARGS
     movq        mm5, mm2
     movq        mm1, mm2
-    pmullw      mm5, [pw_3210 GLOBAL]
+    pmullw      mm5, [pw_3210]
     psllw       mm2, 3
     psllw       mm1, 2
     movq        mm3, mm2
@@ -786,7 +786,7 @@ cglobal predict_8x8_vl_sse2, 2,2
 ;-----------------------------------------------------------------------------
 cglobal predict_8x8_vr_sse2, 2,2,7
     movdqu      xmm0, [r1+8]
-    movdqa      xmm6, [pw_ff00 GLOBAL]
+    movdqa      xmm6, [pw_ff00]
     add         r0, 4*FDEC_STRIDE
     movdqa      xmm1, xmm0
     movdqa      xmm2, xmm0
@@ -910,7 +910,7 @@ cglobal predict_8x8_hu_%1, 2,2
     add        r0, 4*FDEC_STRIDE
 %ifidn %1, ssse3
     movq      mm5, [r1+7]
-    movq      mm6, [pb_reverse GLOBAL]
+    movq      mm6, [pb_reverse]
     movq      mm1, mm5
     movq      mm2, mm5
     movq      mm3, mm5
@@ -979,7 +979,7 @@ cglobal predict_8x8c_v_mmx, 1,1
 %macro PRED_8x8C_H 1
 cglobal predict_8x8c_h_%1, 1,1
 %ifidn %1, ssse3
-    mova   m1, [pb_3 GLOBAL]
+    mova   m1, [pb_3]
 %endif
 %assign n 0
 %rep 8
@@ -1018,7 +1018,7 @@ cglobal predict_8x8c_dc_core_mmxext, 1,1
     pshufw      mm2, r2m, 0
 %endif
     psrlw       mm0, 3
-    paddw       mm1, [pw_2 GLOBAL]
+    paddw       mm1, [pw_2]
     movq        mm3, mm2
     pshufw      mm1, mm1, 0
     pshufw      mm0, mm0, 0     ; dc0 (w)
@@ -1065,7 +1065,7 @@ cglobal predict_8x8c_p_core_sse2, 1,1
     punpcklqdq  xmm0, xmm0
     punpcklqdq  xmm2, xmm2
     punpcklqdq  xmm4, xmm4
-    pmullw      xmm2, [pw_76543210 GLOBAL]
+    pmullw      xmm2, [pw_76543210]
     paddsw      xmm0, xmm2        ; xmm0 = {i+0*b, i+1*b, i+2*b, i+3*b, i+4*b, i+5*b, i+6*b, i+7*b}
     movdqa      xmm3, xmm0
     paddsw      xmm3, xmm4
@@ -1107,7 +1107,7 @@ cglobal predict_16x16_p_core_sse2, 1,2,8
     punpcklqdq  xmm1, xmm1
     punpcklqdq  xmm2, xmm2
     movdqa      xmm3, xmm1
-    pmullw      xmm3, [pw_76543210 GLOBAL]
+    pmullw      xmm3, [pw_76543210]
     psllw       xmm1, 3
     paddsw      xmm0, xmm3  ; xmm0 = {i+ 0*b, i+ 1*b, i+ 2*b, i+ 3*b, i+ 4*b, i+ 5*b, i+ 6*b, i+ 7*b}
     paddsw      xmm1, xmm0  ; xmm1 = {i+ 8*b, i+ 9*b, i+10*b, i+11*b, i+12*b, i+13*b, i+14*b, i+15*b}
@@ -1162,7 +1162,7 @@ cglobal predict_16x16_v_sse2, 1,1
 cglobal predict_16x16_h_%1, 1,2
     mov r1, FDEC_STRIDE*12
 %ifidn %1, ssse3
-    mova   m1, [pb_3 GLOBAL]
+    mova   m1, [pb_3]
 %endif
 .vloop:
 %assign n 0
@@ -1214,7 +1214,7 @@ cglobal predict_16x16_dc_core_mmxext, 1,2
     REP_RET
 
 cglobal predict_16x16_dc_top_mmxext, 1,2
-    PRED16x16_DC [pw_8 GLOBAL], 4
+    PRED16x16_DC [pw_8], 4
     REP_RET
 
 cglobal predict_16x16_dc_left_core_mmxext, 1,1
@@ -1247,7 +1247,7 @@ cglobal predict_16x16_dc_core_sse2, 1,1
     RET
 
 cglobal predict_16x16_dc_top_sse2, 1,1
-    PRED16x16_DC_SSE2 [pw_8 GLOBAL], 4
+    PRED16x16_DC_SSE2 [pw_8], 4
     RET
 
 cglobal predict_16x16_dc_left_core_sse2, 1,1

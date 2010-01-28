@@ -80,7 +80,7 @@ cglobal x264_dct4x4dc_mmx, 1,1
     movq   m2, [r0+16]
     movq   m1, [r0+ 8]
     movq   m0, [r0+ 0]
-    movq   m7, [pw_8000 GLOBAL] ; convert to unsigned and back, so that pavgw works
+    movq   m7, [pw_8000] ; convert to unsigned and back, so that pavgw works
     WALSH4_1D  0,1,2,3,4
     TRANSPOSE4x4W 0,1,2,3,4
     SUMSUB_BADC m1, m0, m3, m2, m4
@@ -123,7 +123,7 @@ cglobal x264_sub4x4_dct_%1, 3,3
     LOAD_DIFF  m1, m4, m5, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
     LOAD_DIFF  m2, m4, m5, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
 %else
-    mova m5, [hsub_mul GLOBAL]
+    mova m5, [hsub_mul]
     LOAD_DIFF8x4_SSSE3 0, 3, 1, 2, 4, 5, r1, r2
 %endif
     DCT4_1D 0,1,2,3,4
@@ -151,7 +151,7 @@ cglobal x264_add4x4_idct_mmx, 2,2
     movq  m0, [r1+ 0]
     IDCT4_1D 0,1,2,3,4,5
     TRANSPOSE4x4W 0,1,2,3,4
-    paddw m0, [pw_32 GLOBAL]
+    paddw m0, [pw_32]
     IDCT4_1D 0,1,2,3,4,5
     STORE_DIFF  m0, m4, m7, [r0+0*FDEC_STRIDE]
     STORE_DIFF  m1, m4, m7, [r0+1*FDEC_STRIDE]
@@ -179,7 +179,7 @@ cglobal x264_add4x4_idct_sse4, 2,2,6
     punpckhdq m2, m0
     SWAP 0, 1
 
-    mova      m1, [pw_32_0 GLOBAL]
+    mova      m1, [pw_32_0]
     paddw     m1, m0            ; row1/row0 corrected
     psraw     m0, 1             ; row1>>1/...
     mova      m3, m2            ; row3/row2
@@ -221,7 +221,7 @@ cglobal %1, 3,3,11
     pxor m7, m7
 %else
     add r2, 4*FDEC_STRIDE
-    mova m7, [hsub_mul GLOBAL]
+    mova m7, [hsub_mul]
 %endif
 .skip_prologue:
 %ifdef WIN64
@@ -335,7 +335,7 @@ cglobal x264_add8x8_idct_dc_mmx, 2,2
     movq      mm0, [r1]
     pxor      mm1, mm1
     add        r0, FDEC_STRIDE*4
-    paddw     mm0, [pw_32 GLOBAL]
+    paddw     mm0, [pw_32]
     psraw     mm0, 6
     psubw     mm1, mm0
     packuswb  mm0, mm0
@@ -354,10 +354,10 @@ cglobal x264_add8x8_idct_dc_ssse3, 2,2
     movq      xmm0, [r1]
     pxor      xmm1, xmm1
     add         r0, FDEC_STRIDE*4
-    paddw     xmm0, [pw_32 GLOBAL]
+    paddw     xmm0, [pw_32]
     psraw     xmm0, 6
     psubw     xmm1, xmm0
-    movdqa    xmm5, [pb_idctdc_unpack GLOBAL]
+    movdqa    xmm5, [pb_idctdc_unpack]
     packuswb  xmm0, xmm0
     packuswb  xmm1, xmm1
     pshufb    xmm0, xmm5
@@ -393,7 +393,7 @@ cglobal x264_add16x16_idct_dc_mmx, 2,3
 .loop:
     movq      mm0, [r1]
     pxor      mm1, mm1
-    paddw     mm0, [pw_32 GLOBAL]
+    paddw     mm0, [pw_32]
     psraw     mm0, 6
     psubw     mm1, mm0
     packuswb  mm0, mm0
@@ -447,8 +447,8 @@ cglobal x264_add16x16_idct_dc_sse2, 2,2,8
     punpcklwd xmm2, xmm2
     pxor      xmm1, xmm1
     pxor      xmm3, xmm3
-    paddw     xmm0, [pw_32 GLOBAL]
-    paddw     xmm2, [pw_32 GLOBAL]
+    paddw     xmm0, [pw_32]
+    paddw     xmm2, [pw_32]
     psraw     xmm0, 6
     psraw     xmm2, 6
     psubw     xmm1, xmm0
@@ -477,11 +477,11 @@ cglobal x264_add16x16_idct_dc_ssse3, 2,2,8
     movdqa    xmm0, [r1]
     add       r1, 16
     pxor      xmm1, xmm1
-    paddw     xmm0, [pw_32 GLOBAL]
+    paddw     xmm0, [pw_32]
     psraw     xmm0, 6
     psubw     xmm1, xmm0
-    movdqa    xmm5, [ pb_idctdc_unpack GLOBAL]
-    movdqa    xmm6, [pb_idctdc_unpack2 GLOBAL]
+    movdqa    xmm5, [ pb_idctdc_unpack]
+    movdqa    xmm6, [pb_idctdc_unpack2]
     packuswb  xmm0, xmm0
     packuswb  xmm1, xmm1
     movdqa    xmm2, xmm0
@@ -815,8 +815,8 @@ cglobal x264_zigzag_scan_4x4_frame_mmx, 2,2
 cglobal x264_zigzag_scan_4x4_frame_ssse3, 2,2
     movdqa    xmm1, [r1+16]
     movdqa    xmm0, [r1]
-    pshufb    xmm1, [pb_scan4frameb GLOBAL]
-    pshufb    xmm0, [pb_scan4framea GLOBAL]
+    pshufb    xmm1, [pb_scan4frameb]
+    pshufb    xmm0, [pb_scan4framea]
     movdqa    xmm2, xmm1
     psrldq    xmm1, 6
     palignr   xmm2, xmm0, 6
@@ -963,9 +963,9 @@ cglobal x264_zigzag_sub_4x4%1_%2_ssse3, 3,3,8
     punpcklqdq xmm0, xmm2
     punpcklqdq xmm4, xmm6
 %ifidn %2, frame
-    movdqa    xmm7, [pb_sub4frame GLOBAL]
+    movdqa    xmm7, [pb_sub4frame]
 %else
-    movdqa    xmm7, [pb_sub4field GLOBAL]
+    movdqa    xmm7, [pb_sub4field]
 %endif
     pshufb    xmm0, xmm7
     pshufb    xmm4, xmm7
@@ -980,7 +980,7 @@ cglobal x264_zigzag_sub_4x4%1_%2_ssse3, 3,3,8
     psubw     xmm1, xmm5
 %ifidn %1, ac
     movd       r2d, xmm0
-    pand      xmm0, [pb_subacmask GLOBAL]
+    pand      xmm0, [pb_subacmask]
 %endif
     movdqa    [r0], xmm0
     pxor      xmm2, xmm2
@@ -1039,7 +1039,7 @@ cglobal x264_zigzag_interleave_8x8_cavlc_mmx, 3,3
     packsswb m5, m5
     pxor     m0, m0
     pcmpeqb  m5, m0
-    paddb    m5, [pb_1 GLOBAL]
+    paddb    m5, [pb_1]
     movd    r0d, m5
     mov  [r2+0], r0w
     shr     r0d, 16
@@ -1085,7 +1085,7 @@ cglobal x264_zigzag_interleave_8x8_cavlc_sse2, 3,3,8
     packsswb m2, m2
     packsswb m2, m2
     pcmpeqb  m5, m2
-    paddb    m5, [pb_1 GLOBAL]
+    paddb    m5, [pb_1]
     movd    r0d, m5
     mov  [r2+0], r0w
     shr     r0d, 16

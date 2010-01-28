@@ -239,10 +239,10 @@
 ; %3/%4: source regs
 ; %5/%6: tmp regs
 %ifidn %1, d
-%define mask [mask_10 GLOBAL]
+%define mask [mask_10]
 %define shift 16
 %elifidn %1, q
-%define mask [mask_1100 GLOBAL]
+%define mask [mask_1100]
 %define shift 32
 %endif
 %if %0==6 ; less dependency if we have two tmp

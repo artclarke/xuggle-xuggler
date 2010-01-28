@@ -59,7 +59,7 @@ SECTION .text
 %endmacro
 
 %macro HADDW 2
-    pmaddwd %1, [pw_1 GLOBAL]
+    pmaddwd %1, [pw_1]
     HADDD   %1, %2
 %endmacro
 
@@ -244,9 +244,9 @@ cglobal x264_pixel_ssd_%1x%2_%3, 0,0,0
 %endif
 
 %ifidn %3, ssse3
-    mova    m7, [hsub_mul GLOBAL]
+    mova    m7, [hsub_mul]
 %elifidn %3, sse2
-    mova    m7, [pw_00ff GLOBAL]
+    mova    m7, [pw_00ff]
 %elif %1 >= mmsize
     pxor    m7, m7
 %endif
@@ -310,7 +310,7 @@ SSD  4,  8, ssse3
     pxor  m5, m5    ; sum
     pxor  m6, m6    ; sum squared
 %if %1
-    mova  m7, [pw_00ff GLOBAL]
+    mova  m7, [pw_00ff]
 %else
     pxor  m7, m7    ; zero
 %endif
@@ -482,7 +482,7 @@ cglobal x264_pixel_var2_8x8_sse2, 5,6,8
 cglobal x264_pixel_var2_8x8_ssse3, 5,6,8
     pxor      m5, m5    ; sum
     pxor      m6, m6    ; sum squared
-    mova      m7, [hsub_mul GLOBAL]
+    mova      m7, [hsub_mul]
     mov      r5d, 2
 .loop:
     movq      m0, [r0]
@@ -775,7 +775,7 @@ cglobal x264_pixel_satd_4x4_mmxext, 4,6
 
 %macro SATD_START_SSE2 3
 %ifnidn %1, sse2
-    mova    %3, [hmul_8p GLOBAL]
+    mova    %3, [hmul_8p]
 %endif
     lea     r4, [3*r1]
     lea     r5, [3*r3]
@@ -815,7 +815,7 @@ INIT_XMM
 %ifnidn %1, sse2
 cglobal x264_pixel_satd_4x4_%1, 4, 6, 6
     SATD_START_MMX
-    mova m4, [hmul_4p GLOBAL]
+    mova m4, [hmul_4p]
     LOAD_DUP_2x4P m2, m5, [r2], [r2+r3]
     LOAD_DUP_2x4P m3, m5, [r2+2*r3], [r2+r5]
     LOAD_DUP_2x4P m0, m5, [r0], [r0+r1]
@@ -832,7 +832,7 @@ cglobal x264_pixel_satd_4x4_%1, 4, 6, 6
 cglobal x264_pixel_satd_4x8_%1, 4, 6, 8
     SATD_START_MMX
 %ifnidn %1, sse2
-    mova m7, [hmul_4p GLOBAL]
+    mova m7, [hmul_4p]
 %endif
     movd m4, [r2]
     movd m5, [r2+r3]
@@ -889,14 +889,14 @@ cglobal x264_pixel_satd_16x4_internal_%1
 cglobal x264_pixel_satd_16x8_%1, 4,6,12
     SATD_START_SSE2 %1, m10, m7
 %ifidn %1, sse2
-    mova m7, [pw_00ff GLOBAL]
+    mova m7, [pw_00ff]
 %endif
     jmp x264_pixel_satd_16x8_internal_%1
 
 cglobal x264_pixel_satd_16x16_%1, 4,6,12
     SATD_START_SSE2 %1, m10, m7
 %ifidn %1, sse2
-    mova m7, [pw_00ff GLOBAL]
+    mova m7, [pw_00ff]
 %endif
     call x264_pixel_satd_16x4_internal_%1
     call x264_pixel_satd_16x4_internal_%1
@@ -977,7 +977,7 @@ cglobal x264_pixel_sa8d_8x8_%1, 4,6,12
     lea  r4, [3*r1]
     lea  r5, [3*r3]
 %ifnidn %1, sse2
-    mova m7, [hmul_8p GLOBAL]
+    mova m7, [hmul_8p]
 %endif
     call x264_pixel_sa8d_8x8_internal_%1
     HADDW m0, m1
@@ -990,7 +990,7 @@ cglobal x264_pixel_sa8d_16x16_%1, 4,6,12
     lea  r4, [3*r1]
     lea  r5, [3*r3]
 %ifnidn %1, sse2
-    mova m7, [hmul_8p GLOBAL]
+    mova m7, [hmul_8p]
 %endif
     call x264_pixel_sa8d_8x8_internal_%1 ; pix[0]
     add  r2, 8
@@ -1029,7 +1029,7 @@ cglobal x264_pixel_sa8d_8x8_internal_%1
     paddw m0, m1
     HADAMARD2_2D 2, 6, 3, 7, 5, qdq, amax
 %else ; non-sse2
-    mova m7, [hmul_8p GLOBAL]
+    mova m7, [hmul_8p]
     LOAD_SUMSUB_8x4P 0, 1, 2, 3, 5, 6, 7, r0, r2, 1
     ; could do first HADAMARD4_V here to save spilling later
     ; surprisingly, not a win on conroe or even p4
@@ -1221,7 +1221,7 @@ cglobal x264_intra_sa8d_x3_8x8_core_%1, 3,3,16
     paddusw     m2,  m0
 
     ; 3x HADDW
-    movdqa      m7,  [pw_1 GLOBAL]
+    movdqa      m7,  [pw_1]
     pmaddwd     m2,  m7
     pmaddwd     m14, m7
     pmaddwd     m15, m7
@@ -1650,7 +1650,7 @@ cglobal x264_hadamard_ac_2x2max_mmxext
     ret
 
 cglobal x264_hadamard_ac_8x8_mmxext
-    mova      m6, [mask_ac4 GLOBAL]
+    mova      m6, [mask_ac4]
     pxor      m7, m7
     call x264_hadamard_ac_4x4_mmxext
     add       r0, 4
@@ -1727,7 +1727,7 @@ cglobal x264_pixel_hadamard_ac_%1x%2_mmxext, 2,4
     mova    m3, m0
     paddusw m1, [rsp+0x38]
     pxor    m3, m2
-    pand    m3, [pw_1 GLOBAL]
+    pand    m3, [pw_1]
     pavgw   m0, m2
     psubusw m0, m3
     HADDUW  m0, m2
@@ -1791,7 +1791,7 @@ cglobal x264_hadamard_ac_8x8_%1
 %endif
 %ifnidn %1, sse2
     ;LOAD_INC loads sumsubs
-    mova      m7, [hmul_8p GLOBAL]
+    mova      m7, [hmul_8p]
 %else
     ;LOAD_INC only unpacks to words
     pxor      m7, m7
@@ -1834,9 +1834,9 @@ cglobal x264_hadamard_ac_8x8_%1
     paddw     m1, m2
     SUMSUB_BA m0, m4; m2
 %ifnidn %1, sse2
-    pand      m1, [mask_ac4b GLOBAL]
+    pand      m1, [mask_ac4b]
 %else
-    pand      m1, [mask_ac4 GLOBAL]
+    pand      m1, [mask_ac4]
 %endif
     ABS_MOV   m2, spill0
     paddw     m1, m3
@@ -1878,7 +1878,7 @@ cglobal x264_hadamard_ac_8x8_%1
     paddw m2, m1
     paddw m2, m2
     ABS1      m4, m7
-    pand      m0, [mask_ac8 GLOBAL]
+    pand      m0, [mask_ac8]
     ABS1      m0, m7
     paddw m2, m4
     paddw m0, m2
@@ -2041,7 +2041,7 @@ cglobal x264_pixel_ssim_4x4x2_core_sse2, 4,4,8
     SSIM_ITER 3
     ; PHADDW m1, m2
     ; PHADDD m3, m4
-    movdqa    m7, [pw_1 GLOBAL]
+    movdqa    m7, [pw_1]
     pshufd    m5, m3, 0xb1
     pmaddwd   m1, m7
     pmaddwd   m2, m7
@@ -2086,8 +2086,8 @@ cglobal x264_pixel_ssim_end4_sse2, 3,3,7
     paddd     m1, m2
     paddd     m2, m3
     paddd     m3, m4
-    movdqa    m5, [ssim_c1 GLOBAL]
-    movdqa    m6, [ssim_c2 GLOBAL]
+    movdqa    m5, [ssim_c1]
+    movdqa    m6, [ssim_c2]
     TRANSPOSE4x4D  0, 1, 2, 3, 4
 
 ;   s1=m0, s2=m1, ss=m2, s12=m3
@@ -2117,10 +2117,10 @@ cglobal x264_pixel_ssim_end4_sse2, 3,3,7
     je .skip ; faster only if this is the common case; remove branch if we use ssim on a macroblock level
     neg       r2
 %ifdef PIC
-    lea       r3, [mask_ff + 16 GLOBAL]
+    lea       r3, [mask_ff + 16]
     movdqu    m1, [r3 + r2*4]
 %else
-    movdqu    m1, [mask_ff + r2*4 + 16 GLOBAL]
+    movdqu    m1, [mask_ff + r2*4 + 16]
 %endif
     pand      m4, m1
 .skip:

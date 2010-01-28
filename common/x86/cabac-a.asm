@@ -59,7 +59,7 @@ endstruc
 %macro LOAD_GLOBAL 4
 %ifdef PIC
     ; this would be faster if the arrays were declared in asm, so that I didn't have to duplicate the lea
-    lea   r11, [%2 GLOBAL]
+    lea   r11, [%2]
     %ifnidn %3, 0
     add   r11, %3
     %endif

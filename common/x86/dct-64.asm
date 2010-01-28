@@ -143,7 +143,7 @@ INIT_XMM
 cglobal x264_sub8x8_dct_%1, 3,3,11
     add r2, 4*FDEC_STRIDE
 %ifnidn %1, sse2
-    mova m7, [hsub_mul GLOBAL]
+    mova m7, [hsub_mul]
 %endif
 %ifdef WIN64
     call .skip_prologue
@@ -170,7 +170,7 @@ global x264_sub8x8_dct_%1.skip_prologue
 cglobal x264_sub8x8_dct8_%1, 3,3,11
     add r2, 4*FDEC_STRIDE
 %ifnidn %1, sse2
-    mova m7, [hsub_mul GLOBAL]
+    mova m7, [hsub_mul]
 %endif
 %ifdef WIN64
     call .skip_prologue
@@ -227,7 +227,7 @@ global x264_add8x8_idct8_sse2.skip_prologue
     movdqa  m7, [r1+0x70]
     IDCT8_1D      0,1,2,3,4,5,6,7,8,10
     TRANSPOSE8x8W 0,1,2,3,4,5,6,7,8
-    paddw         m0, [pw_32 GLOBAL] ; rounding for the >>6 at the end
+    paddw         m0, [pw_32] ; rounding for the >>6 at the end
     IDCT8_1D      0,1,2,3,4,5,6,7,8,10
     DIFFx2 m0, m1, m8, m9, [r0-4*FDEC_STRIDE], [r0-3*FDEC_STRIDE]
     DIFFx2 m2, m3, m8, m9, [r0-2*FDEC_STRIDE], [r0-1*FDEC_STRIDE]
@@ -265,9 +265,9 @@ global x264_add8x8_idct_sse2.skip_prologue
     TRANSPOSE2x4x4W 0,1,2,3,8
     IDCT4_1D 4,5,6,7,8,10
     TRANSPOSE2x4x4W 4,5,6,7,8
-    paddw m0, [pw_32 GLOBAL]
+    paddw m0, [pw_32]
     IDCT4_1D 0,1,2,3,8,10
-    paddw m4, [pw_32 GLOBAL]
+    paddw m4, [pw_32]
     IDCT4_1D 4,5,6,7,8,10
     DIFFx2 m0, m1, m8, m9, [r0-4*FDEC_STRIDE], [r0-3*FDEC_STRIDE]
     DIFFx2 m2, m3, m8, m9, [r0-2*FDEC_STRIDE], [r0-1*FDEC_STRIDE]

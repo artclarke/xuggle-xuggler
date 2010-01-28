@@ -86,7 +86,7 @@ SECTION .text
 %endmacro
 
 %macro QUANT_DC_START_SSSE3 0
-    movdqa     m5, [pb_01 GLOBAL]
+    movdqa     m5, [pb_01]
     movd       m6, r1m     ; mf
     movd       m7, r2m     ; bias
     pshufb     m6, m5
@@ -361,7 +361,7 @@ cglobal x264_dequant_%2x%2_%1, 0,3
 .rshift32:
     neg   t0d
     movd  m2, t0d
-    mova  m3, [pd_1 GLOBAL]
+    mova  m3, [pd_1]
     pxor  m4, m4
     pslld m3, m2
     psrld m3, 1
@@ -381,10 +381,10 @@ cglobal x264_dequant_%2x%2_flat16_%1, 0,3
     sub  t2d, t1d   ; i_mf = i_qp % 6
     shl  t2d, %3
 %ifdef PIC
-    lea  r1, [dequant%2_scale GLOBAL]
+    lea  r1, [dequant%2_scale]
     add  r1, t2
 %else
-    lea  r1, [dequant%2_scale + t2 GLOBAL]
+    lea  r1, [dequant%2_scale + t2]
 %endif
     movifnidn r0, r0mp
     movd m4, t0d
@@ -446,7 +446,7 @@ cglobal x264_dequant_4x4dc_%1, 0,3
 .rshift32:
     neg   t0d
     movd  m3, t0d
-    mova  m4, [pw_1 GLOBAL]
+    mova  m4, [pw_1]
     mova  m5, m4
     pslld m4, m3
     psrld m4, 1
@@ -588,15 +588,15 @@ cextern x264_decimate_table8
 ;This is not true for score64.
 cglobal x264_decimate_score%1_%2, 1,3
 %ifdef PIC
-    lea r10, [x264_decimate_table4 GLOBAL]
-    lea r11, [decimate_mask_table4 GLOBAL]
+    lea r10, [x264_decimate_table4]
+    lea r11, [decimate_mask_table4]
     %define table r10
     %define mask_table r11
 %else
     %define table x264_decimate_table4
     %define mask_table decimate_mask_table4
 %endif
-    DECIMATE_MASK edx, eax, r0, [pb_1 GLOBAL], %2, ecx
+    DECIMATE_MASK edx, eax, r0, [pb_1], %2, ecx
     xor   edx, 0xffff
     je   .ret
     test  eax, eax
@@ -640,12 +640,12 @@ DECIMATE4x4 16, ssse3
 %ifdef ARCH_X86_64
 cglobal x264_decimate_score64_%1, 1,4
 %ifdef PIC
-    lea r10, [x264_decimate_table8 GLOBAL]
+    lea r10, [x264_decimate_table8]
     %define table r10
 %else
     %define table x264_decimate_table8
 %endif
-    mova  m5, [pb_1 GLOBAL]
+    mova  m5, [pb_1]
     DECIMATE_MASK r1d, eax, r0, m5, %1, null
     test  eax, eax
     jne  .ret9
@@ -681,7 +681,7 @@ cglobal x264_decimate_score64_%1, 1,6
 %else
 cglobal x264_decimate_score64_%1, 1,5
 %endif
-    mova  m7, [pb_1 GLOBAL]
+    mova  m7, [pb_1]
     DECIMATE_MASK r3, r2, r0, m7, %1, r5
     test  r2, r2
     jne  .ret9

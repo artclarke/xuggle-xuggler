@@ -71,19 +71,19 @@ cglobal x264_checkasm_call, 4,7,16
 %endrep
 %assign i 6
 %rep 16-6
-    movdqa xmm %+ i, [x %+ i GLOBAL]
+    movdqa xmm %+ i, [x %+ i]
     %assign i i+1
 %endrep
-    mov  r4, [n4 GLOBAL]
-    mov  r5, [n5 GLOBAL]
+    mov  r4, [n4]
+    mov  r5, [n5]
     call r6
-    xor  r4, [n4 GLOBAL]
-    xor  r5, [n5 GLOBAL]
+    xor  r4, [n4]
+    xor  r5, [n5]
     or   r4, r5
     pxor xmm5, xmm5
 %assign i 6
 %rep 16-6
-    pxor xmm %+ i, [x %+ i GLOBAL]
+    pxor xmm %+ i, [x %+ i]
     por  xmm5, xmm %+ i
     %assign i i+1
 %endrep
@@ -92,7 +92,7 @@ cglobal x264_checkasm_call, 4,7,16
     or   r4, r5
     jz .ok
     mov  r4, rax
-    lea  r0, [error_message GLOBAL]
+    lea  r0, [error_message]
     call puts
     mov  r1, [rsp+stack_offset+16]
     mov  dword [r1], 0
@@ -132,7 +132,7 @@ cglobal x264_checkasm_call, 1,7
     or   r3, r5
     jz .ok
     mov  r3, eax
-    lea  r1, [error_message GLOBAL]
+    lea  r1, [error_message]
     push r1
     call puts
     add  esp, 4

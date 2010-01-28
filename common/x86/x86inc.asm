@@ -65,28 +65,16 @@
     %endif
 %endmacro
 
-; PIC support macros.
-; x86_64 can't fit 64bit address literals in most instruction types,
-; so shared objects (under the assumption that they might be anywhere
-; in memory) must use an address mode that does fit.
-; So all accesses to global variables must use this macro, e.g.
-;     mov eax, [foo GLOBAL]
-; instead of
-;     mov eax, [foo]
-;
-; x86_32 doesn't require PIC.
-; Some distros prefer shared objects to be PIC, but nothing breaks if
-; the code contains a few textrels, so we'll skip that complexity.
-
 %ifdef WIN64
     %define PIC
 %elifndef ARCH_X86_64
+; x86_32 doesn't require PIC.
+; Some distros prefer shared objects to be PIC, but nothing breaks if
+; the code contains a few textrels, so we'll skip that complexity.
     %undef PIC
 %endif
 %ifdef PIC
-    %define GLOBAL wrt rip
-%else
-    %define GLOBAL
+    default rel
 %endif
 
 ; Macros to eliminate most code duplication between x86_32 and x86_64:
