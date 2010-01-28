@@ -436,8 +436,16 @@ int x264_ratecontrol_new( x264_t *h )
         }
         else if( h->param.rc.i_vbv_max_bitrate == 0 )
         {
-            x264_log( h, X264_LOG_DEBUG, "VBV maxrate unspecified, assuming CBR\n" );
-            h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate;
+            if( h->param.rc.i_rc_method == X264_RC_ABR )
+            {
+                x264_log( h, X264_LOG_INFO, "VBV maxrate unspecified, assuming CBR\n" );
+                h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate;
+            }
+            else
+            {
+                x264_log( h, X264_LOG_INFO, "VBV bufsize set but maxrate unspecified, ignored\n" );
+                h->param.rc.i_vbv_buffer_size = 0;
+            }
         }
     }
     if( h->param.rc.i_vbv_max_bitrate < h->param.rc.i_bitrate &&
