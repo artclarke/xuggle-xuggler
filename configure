@@ -507,10 +507,17 @@ if [ "$lavf_input" = "auto" ] ; then
 fi
 
 if [ "$ffms_input" = "auto" ] ; then
+    ffms_major="2"; ffms_minor="13"; ffms_micro="1"; ffms_bump="0"
+
     ffms_input="no"
-    if ${cross_prefix}pkg-config --exists ffms2 2>$DEVNULL; then
+    [ $ffms_micro -gt 0 -o $ffms_bump -gt 0 ] && vmicro=".$ffms_micro"
+    [ $ffms_bump -gt 0 ] && vbump=".$ffms_bump"
+    if ${cross_prefix}pkg-config --atleast-version="$ffms_major.$ffms_minor$vmicro$vbump" ffms2 2>$DEVNULL; then
         FFMS2_LIBS="$FFMS2_LIBS $(${cross_prefix}pkg-config --libs ffms2)"
         FFMS2_CFLAGS="$FFMS2_LIBS $(${cross_prefix}pkg-config --cflags ffms2)"
+        api_check="no"
+    else
+        api_check="yes"
     fi
     [ -z "$FFMS2_LIBS" ] && FFMS2_LIBS="-lffms2"
 
@@ -519,6 +526,17 @@ if [ "$ffms_input" = "auto" ] ; then
     elif cc_check ffms.h "$FFMS2_CFLAGS $FFMS2_LIBS -lstdc++ $LAVF_LIBS" "FFMS_DestroyVideoSource(0);" ; then
         ffms_input="yes"
         FFMS2_LIBS="$FFMS2_LIBS -lstdc++ $LAVF_LIBS"
+    fi
+
+    if [ $api_check = "yes" -a $ffms_input = "yes" ]; then
+        log_check "whether ffms2 version is at least $ffms_major.$ffms_minor$vmicro$vbump"
+        $CC $CFLAGS $FFMS2_CFLAGS -c -o conftest -x c - >$DEVNULL 2>&1 <<EOF
+#include <ffms.h>
+#if FFMS_VERSION < (($ffms_major << 24) | ($ffms_minor << 16) | ($ffms_micro << 8) | $ffms_bump)
+#error Requires ffms2 version 2.13.1
+#endif
+EOF
+        [ $? = 0 ] && log_ok || { ffms_input="no"; log_fail; }
     fi
 fi
 
