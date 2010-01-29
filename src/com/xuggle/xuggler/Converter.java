@@ -227,6 +227,14 @@ public class Converter
   private final boolean mForceInterleave = true;
 
   /**
+   * Should we attempt to encode 'in real time'
+   */
+  private boolean mRealTimeEncoder;
+
+  private Long mStartClockTime;
+  private Long mStartStreamTime;
+
+  /**
    * Define all the command line options this program can take.
    * 
    * @return The set of accepted options.
@@ -373,6 +381,11 @@ public class Converter
     OptionBuilder
         .withDescription("quality setting to use for video.  0 means same as source; higher numbers are (perversely) lower quality.  Defaults to 0.  If set, then bitrate flags are ignored.");
     Option vquality = OptionBuilder.create("vquality");
+    
+    OptionBuilder.withArgName("realtime");
+    OptionBuilder.hasArg(false);
+    OptionBuilder.withDescription("attempt to encode frames at the realtime rate -- i.e. it encodes when the picture should play");
+    Option realtime = OptionBuilder.create("realtime");
 
     options.addOption(help);
     options.addOption(containerFormat);
@@ -398,6 +411,8 @@ public class Converter
     options.addOption(iacodec);
     options.addOption(iachannels);
     options.addOption(iasamplerate);
+
+    options.addOption(realtime);
     
     return options;
   }
@@ -534,6 +549,8 @@ public class Converter
     mHasAudio = !cmdLine.hasOption("ano");
     mHasVideo = !cmdLine.hasOption("vno");
 
+    mRealTimeEncoder = cmdLine.hasOption("realtime");
+    
     String acodec = cmdLine.getOptionValue("acodec");
     String vcodec = cmdLine.getOptionValue("vcodec");
     String containerFormat = cmdLine.getOptionValue("containerformat");
@@ -1321,21 +1338,11 @@ public class Converter
              * through this loop we encode new audio
              */
             numSamplesConsumed += retval;
-            if (oPacket.isComplete())
-            {
-              log.trace("out packet:{}; samples:{}; offset:{}", new Object[]
-              {
-                  oPacket, outSamples, tsOffset
-              });
+            log.trace("out packet:{}; samples:{}; offset:{}", new Object[]{
+                oPacket, outSamples, tsOffset
+            });
 
-              /**
-               * If we got a complete packet out of the encoder, then go ahead
-               * and write it to the container.
-               */
-              retval = mOContainer.writePacket(oPacket, mForceInterleave);
-              if (retval < 0)
-                throw new RuntimeException("could not write output packet");
-            }
+            writePacket(oPacket);
           }
         }
 
@@ -1390,12 +1397,7 @@ public class Converter
             retval = oc.encodeVideo(oPacket, outFrame, 0);
             if (retval < 0)
               throw new RuntimeException("could not encode video");
-            if (oPacket.isComplete())
-            {
-              retval = mOContainer.writePacket(oPacket, mForceInterleave);
-              if (retval < 0)
-                throw new RuntimeException("could not write video packet");
-            }
+            writePacket(oPacket);
           }
         }
       }
@@ -1415,6 +1417,68 @@ public class Converter
 
     // and cleanup.
     closeStreams();
+  }
+
+  private void writePacket(IPacket oPacket)
+  {
+    int retval;
+    if (oPacket.isComplete())
+    {
+      if (mRealTimeEncoder)
+      {
+        delayForRealTime(oPacket);
+      }
+      /**
+       * If we got a complete packet out of the encoder, then go ahead
+       * and write it to the container.
+       */
+      retval = mOContainer.writePacket(oPacket, mForceInterleave);
+      if (retval < 0)
+        throw new RuntimeException("could not write output packet");
+    }
+  }
+
+  private void delayForRealTime(IPacket oPacket)
+  {
+    // convert packet timestamp to microseconds
+    final IRational timeBase = oPacket.getTimeBase();
+    if (timeBase == null || timeBase.getNumerator() == 0 ||
+        timeBase.getDenominator() == 0)
+      return;
+    long dts = oPacket.getDts();
+    if (dts == Global.NO_PTS)
+      return;
+    
+    final long currStreamTime = IRational.rescale(dts,
+        1,
+        1000000,
+        timeBase.getNumerator(),
+        timeBase.getDenominator(),
+        IRational.Rounding.ROUND_NEAR_INF);
+    if (mStartStreamTime == null)
+      mStartStreamTime = currStreamTime;
+
+    // convert now to microseconds
+    final long currClockTime = System.nanoTime()/1000;
+    if (mStartClockTime == null)
+      mStartClockTime = currClockTime;
+    
+    final long currClockDelta  = currClockTime - mStartClockTime;
+    if (currClockDelta < 0)
+      return;
+    final long currStreamDelta = currStreamTime - mStartStreamTime;
+    if (currStreamDelta < 0)
+      return;
+    final long streamToClockDeltaMilliseconds = (currStreamDelta - currClockDelta)/1000;
+    if (streamToClockDeltaMilliseconds <= 0)
+      return;
+    try
+    {
+      Thread.sleep(streamToClockDeltaMilliseconds);
+    }
+    catch (InterruptedException e)
+    {
+    }
   }
 
   /**
