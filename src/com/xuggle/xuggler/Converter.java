@@ -1438,6 +1438,14 @@ public class Converter
     }
   }
 
+  /**
+   * WARNING for those who want to copy this method and think it'll stream
+   * for them -- it won't.  It doesn't interleave packets from non-interleaved
+   * containers, so instead it'll write chunky data.  But it's useful if you
+   * have previously interleaved data that you want to write out slowly to
+   * a file, or, a socket.
+   * @param oPacket the packet about to be written.
+   */
   private void delayForRealTime(IPacket oPacket)
   {
     // convert packet timestamp to microseconds
