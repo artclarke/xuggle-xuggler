@@ -1498,14 +1498,14 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
 
     i_start = x264_mdate();
     /* ticks/frame = ticks/second / frames/second */
-    ticks_per_frame = (int64_t)h->param.i_timebase_den * h->param.i_fps_den / h->param.i_timebase_num / h->param.i_fps_num;
+    ticks_per_frame = (int64_t)param->i_timebase_den * param->i_fps_den / param->i_timebase_num / param->i_fps_num;
     if( ticks_per_frame < 1 )
     {
         fprintf( stderr, "x264 [error]: ticks_per_frame invalid: %"PRId64"\n", ticks_per_frame );
         return -1;
     }
 
-    if( !h->param.b_repeat_headers )
+    if( !param->b_repeat_headers )
     {
         // Write SPS/PPS/SEI
         x264_nal_t *headers;
@@ -1531,9 +1531,9 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
             pic.i_pts = i_frame;
         if( pic.i_pts <= largest_pts )
         {
-            if( h->param.i_log_level >= X264_LOG_WARNING )
+            if( param->i_log_level >= X264_LOG_WARNING )
             {
-                if( h->param.i_log_level >= X264_LOG_DEBUG || pts_warning_cnt < MAX_PTS_WARNING )
+                if( param->i_log_level >= X264_LOG_DEBUG || pts_warning_cnt < MAX_PTS_WARNING )
                     fprintf( stderr, "x264 [warning]: non-strictly-monotonic pts at frame %d (%"PRId64" <= %"PRId64")\n",
                              i_frame, pic.i_pts * dts_compress_multiplier, largest_pts * dts_compress_multiplier );
                 else if( pts_warning_cnt == MAX_PTS_WARNING )
@@ -1582,7 +1582,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         if( opt->b_progress && i_frame_output % i_update_interval == 0 && i_frame_output )
             Print_status( i_start, i_frame_output, i_frame_total, i_file, param, last_pts );
     }
-    if( pts_warning_cnt >= MAX_PTS_WARNING && h->param.i_log_level < X264_LOG_DEBUG )
+    if( pts_warning_cnt >= MAX_PTS_WARNING && param->i_log_level < X264_LOG_DEBUG )
         fprintf( stderr, "x264 [warning]: %d suppressed nonmonotonic pts warnings\n", pts_warning_cnt-MAX_PTS_WARNING );
 
     /* duration algorithm fails when only 1 frame is output */
