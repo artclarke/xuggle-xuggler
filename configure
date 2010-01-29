@@ -91,6 +91,10 @@ as_check() {
     return $res
 }
 
+define() {
+    echo "#define $1$([ -n "$2" ] && echo " $2")" >> config.h
+}
+
 die() {
     log_msg "DIED: $@"
     echo "$@"
@@ -208,7 +212,7 @@ for opt do
             ;;
         --enable-visualize)
             LDFLAGS="$LDFLAGS -L/usr/X11R6/lib -lX11"
-            CFLAGS="$CFLAGS -DVISUALIZE=1"
+            define VISUALIZE
             vis="yes"
             ;;
         --host=*)
@@ -243,7 +247,7 @@ host_os="${host#*-}"
 case $host_os in
   beos*)
     SYS="BEOS"
-    CFLAGS="$CFLAGS -DHAVE_MALLOC_H"
+    define HAVE_MALLOC_H
     ;;
   darwin*)
     SYS="MACOSX"
@@ -259,7 +263,7 @@ case $host_os in
     ;;
   kfreebsd*-gnu)
     SYS="FREEBSD"
-    CFLAGS="$CFLAGS -DHAVE_MALLOC_H"
+    define HAVE_MALLOC_H
     LDFLAGS="$LDFLAGS -lm"
     ;;
   netbsd*)
@@ -273,7 +277,7 @@ case $host_os in
     ;;
   *linux*)
     SYS="LINUX"
-    CFLAGS="$CFLAGS -DHAVE_MALLOC_H"
+    define HAVE_MALLOC_H
     LDFLAGS="$LDFLAGS -lm"
     ;;
   cygwin*)
@@ -292,7 +296,7 @@ case $host_os in
     ;;
   sunos*|solaris*)
     SYS="SunOS"
-    CFLAGS="$CFLAGS -DHAVE_MALLOC_H"
+    define HAVE_MALLOC_H
     LDFLAGS="$LDFLAGS -lm"
     HAVE_GETOPT_LONG=0
     ;;
@@ -341,7 +345,8 @@ case $host_cpu in
     then
       CFLAGS="$CFLAGS -faltivec -fastf -mcpu=G4"
     else
-      CFLAGS="$CFLAGS -maltivec -mabi=altivec -DHAVE_ALTIVEC_H"
+      CFLAGS="$CFLAGS -maltivec -mabi=altivec"
+      define HAVE_ALTIVEC_H
     fi
     ;;
   sparc)
@@ -407,17 +412,17 @@ if [ $asm = yes -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
         echo "If you really want to compile without asm, configure with --disable-asm."
         exit 1
     fi
-    CFLAGS="$CFLAGS -DHAVE_MMX"
+    define HAVE_MMX
 fi
 
 if [ $asm = yes -a $ARCH = ARM ] ; then
     # set flags so neon is built by default
     echo $CFLAGS | grep -Eq '(-mcpu|-march|-mfpu|-mfloat-abi)' || CFLAGS="$CFLAGS -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp"
 
-    if  cc_check '' '' 'asm("rev ip, ip");' ; then      CFLAGS="$CFLAGS -DHAVE_ARMV6"
-        cc_check '' '' 'asm("movt r0, #0");'         && CFLAGS="$CFLAGS -DHAVE_ARMV6T2"
-        cc_check '' '' 'asm("vadd.i16 q0, q0, q0");' && CFLAGS="$CFLAGS -DHAVE_NEON"
-        ASFLAGS="$ASFLAGS $CFLAGS -c"
+    if  cc_check '' '' 'asm("rev ip, ip");' ; then      define HAVE_ARMV6   && ASFLAGS="$ASFLAGS -DHAVE_ARMV6"
+        cc_check '' '' 'asm("movt r0, #0");'         && define HAVE_ARMV6T2 && ASFLAGS="$ASFLAGS -DHAVE_ARMV6T2"
+        cc_check '' '' 'asm("vadd.i16 q0, q0, q0");' && define HAVE_NEON    && ASFLAGS="$ASFLAGS -DHAVE_NEON"
+        ASFLAGS="$ASFLAGS -c"
     else
         echo "You specified a pre-ARMv6 or Thumb-1 CPU in your CFLAGS."
         echo "If you really want to run on such a CPU, configure with --disable-asm."
@@ -428,12 +433,13 @@ fi
 [ $asm = no ] && AS=""
 [ "x$AS" = x ] && asm="no"
 
-CFLAGS="$CFLAGS -DARCH_$ARCH -DSYS_$SYS"
+define ARCH_$ARCH
+define SYS_$SYS
 
 echo "int i = 0x42494745; double f = 0x1.0656e6469616ep+102;" > conftest.c
 $CC $CFLAGS conftest.c -c -o conftest.o 2>$DEVNULL || die "endian test failed"
 if grep -q BIGE conftest.o && grep -q FPendian conftest.o ; then
-    CFLAGS="$CFLAGS -DWORDS_BIGENDIAN"
+    define WORDS_BIGENDIAN
 elif !(grep -q EGIB conftest.o && grep -q naidnePF conftest.o) ; then
     die "endian test failed"
 fi
@@ -457,11 +463,11 @@ if test "$pthread" = "auto" ; then
             elif cc_check pthread.h "-lpthreadGC2 -lwsock32 -DPTW32_STATIC_LIB" "pthread_create(0,0,0,0);" ; then
                 pthread="yes"
                 libpthread="-lpthreadGC2 -lwsock32"
-                CFLAGS="$CFLAGS -DPTW32_STATIC_LIB"
+                define PTW32_STATIC_LIB
             elif cc_check pthread.h "-lpthreadGC2 -lws2_32 -DPTW32_STATIC_LIB" "pthread_create(0,0,0,0);" ; then
                 pthread="yes"
                 libpthread="-lpthreadGC2 -lws2_32"
-                CFLAGS="$CFLAGS -DPTW32_STATIC_LIB"
+                define PTW32_STATIC_LIB
             fi
             ;;
         OPENBSD)
@@ -473,12 +479,12 @@ if test "$pthread" = "auto" ; then
     esac
 fi
 if test "$pthread" = "yes" ; then
-    CFLAGS="$CFLAGS -DHAVE_PTHREAD"
+    define HAVE_PTHREAD
     LDFLAGS="$LDFLAGS $libpthread"
 fi
 
 if cc_check "math.h" "-Werror" "return log2f(2);" ; then
-    CFLAGS="$CFLAGS -DHAVE_LOG2F"
+    define HAVE_LOG2F
 fi
 
 if [ "$lavf_input" = "auto" ] ; then
@@ -499,7 +505,7 @@ if [ "$lavf_input" = "auto" ] ; then
         # avcodec_decode_video2 is currently the most recently added function that we use; it was added in r18351
         if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LIBS" "avcodec_decode_video2( NULL, NULL, NULL, NULL );" ; then
             lavf_input="yes"
-            echo "#define LAVF_INPUT" >> config.h
+            define LAVF_INPUT
         else
             echo "Warning: libavformat is too old, update to ffmpeg r18351+"
         fi
@@ -543,7 +549,7 @@ fi
 if [ "$ffms_input" = "yes" ]; then
     LDFLAGSCLI="$FFMS2_LIBS $LDFLAGSCLI"
     [ -n "$FFMS2_CFLAGS" ] && CFLAGS="$CFLAGS $FFMS2_CFLAGS"
-    echo "#define FFMS_INPUT" >> config.h
+    define FFMS_INPUT
 elif [ "$lavf_input" = "yes" ]; then
     LDFLAGSCLI="$LAVF_LIBS $LDFLAGSCLI"
     [ -n "$LAVF_CFLAGS" ] && CFLAGS="$CFLAGS $LAVF_CFLAGS"
@@ -558,7 +564,7 @@ if [ "$mp4_output" = "auto" ] ; then
     cc_check gpac/isomedia.h "$MP4_LDFLAGS" && mp4_output="yes"
 fi
 if [ "$mp4_output" = "yes" ] ; then
-    echo "#define MP4_OUTPUT" >> config.h
+    define MP4_OUTPUT
     LDFLAGSCLI="$LDFLAGSCLI $MP4_LDFLAGS"
 fi
 
@@ -566,11 +572,11 @@ if [ "$avs_input" = "auto" ] ; then
     avs_input=no
     if [ $SYS = MINGW ] && cc_check avisynth_c.h ; then
         avs_input="yes"
-        echo "#define AVS_INPUT" >> config.h
-        echo "#define HAVE_AVISYNTH_C_H" >> config.h
+        define AVS_INPUT
+        define HAVE_AVISYNTH_C_H
     elif [ $SYS = MINGW ] && cc_check extras/avisynth_c.h ; then
         avs_input="yes"
-        echo "#define AVS_INPUT" >> config.h
+        define AVS_INPUT
     fi
 fi
 
@@ -597,11 +603,11 @@ else
 fi
 
 if cc_check "stdio.h" "" "fseeko(stdin,0,0);" ; then
-    echo "#define fseek fseeko" >> config.h
-    echo "#define ftell ftello" >> config.h
+    define fseek fseeko
+    define ftell ftello
 elif cc_check "stdio.h" "" "fseeko64(stdin,0,0);" ; then
-    echo "#define fseek fseeko64" >> config.h
-    echo "#define ftell ftello64" >> config.h
+    define fseek fseeko64
+    define ftell ftello64
 fi
 
 rm -f conftest*

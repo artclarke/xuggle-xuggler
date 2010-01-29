@@ -18,26 +18,26 @@ SRCCLI = x264.c input/yuv.c input/y4m.c output/raw.c \
 
 SRCSO =
 
-MUXERS := $(shell grep -E "(IN|OUT)PUT" config.h)
+CONFIG := $(shell cat config.h)
 
 # Optional muxer module sources
-ifneq ($(findstring AVS_INPUT, $(MUXERS)),)
+ifneq ($(findstring AVS_INPUT, $(CONFIG)),)
 SRCCLI += input/avs.c
 endif
 
-ifneq ($(findstring HAVE_PTHREAD, $(CFLAGS)),)
+ifneq ($(findstring HAVE_PTHREAD, $(CONFIG)),)
 SRCCLI += input/thread.c
 endif
 
-ifneq ($(findstring LAVF_INPUT, $(MUXERS)),)
+ifneq ($(findstring LAVF_INPUT, $(CONFIG)),)
 SRCCLI += input/lavf.c
 endif
 
-ifneq ($(findstring FFMS_INPUT, $(MUXERS)),)
+ifneq ($(findstring FFMS_INPUT, $(CONFIG)),)
 SRCCLI += input/ffms.c
 endif
 
-ifneq ($(findstring MP4_OUTPUT, $(MUXERS)),)
+ifneq ($(findstring MP4_OUTPUT, $(CONFIG)),)
 SRCCLI += output/mp4.c
 endif
 

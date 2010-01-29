@@ -102,7 +102,6 @@ typedef union { uint64_t i; uint32_t a[2]; uint16_t b[4]; uint8_t c[8]; } MAY_AL
 #include "dct.h"
 #include "cabac.h"
 #include "quant.h"
-#include "config.h"
 
 /****************************************************************************
  * General functions
