@@ -27,6 +27,7 @@
 #define _LARGEFILE_SOURCE 1
 #define _FILE_OFFSET_BITS 64
 #include <stdio.h>
+#include <sys/stat.h>
 
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
