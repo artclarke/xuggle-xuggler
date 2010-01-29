@@ -507,6 +507,39 @@ static int x264_validate_parameters( x264_t *h )
     }
     h->param.rc.i_qp_max = x264_clip3( h->param.rc.i_qp_max, 0, 51 );
     h->param.rc.i_qp_min = x264_clip3( h->param.rc.i_qp_min, 0, h->param.rc.i_qp_max );
+    if( h->param.rc.i_vbv_buffer_size )
+    {
+        if( h->param.rc.i_rc_method == X264_RC_CQP )
+        {
+            x264_log( h, X264_LOG_WARNING, "VBV is incompatible with constant QP, ignored.\n" );
+            h->param.rc.i_vbv_max_bitrate = 0;
+            h->param.rc.i_vbv_buffer_size = 0;
+        }
+        else if( h->param.rc.i_vbv_max_bitrate == 0 )
+        {
+            if( h->param.rc.i_rc_method == X264_RC_ABR )
+            {
+                x264_log( h, X264_LOG_WARNING, "VBV maxrate unspecified, assuming CBR\n" );
+                h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate;
+            }
+            else
+            {
+                x264_log( h, X264_LOG_WARNING, "VBV bufsize set but maxrate unspecified, ignored\n" );
+                h->param.rc.i_vbv_buffer_size = 0;
+            }
+        }
+        else if( h->param.rc.i_vbv_max_bitrate < h->param.rc.i_bitrate &&
+                 h->param.rc.i_rc_method == X264_RC_ABR )
+        {
+            x264_log( h, X264_LOG_WARNING, "max bitrate less than average bitrate, assuming CBR\n" );
+            h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate;
+        }
+    }
+    else if( h->param.rc.i_vbv_max_bitrate )
+    {
+        x264_log( h, X264_LOG_WARNING, "VBV maxrate specified, but no bufsize, ignored\n" );
+        h->param.rc.i_vbv_max_bitrate = 0;
+    }
 
     int max_slices = (h->param.i_height+((16<<h->param.b_interlaced)-1))/(16<<h->param.b_interlaced);
     if( h->param.b_sliced_threads )
@@ -1071,7 +1104,7 @@ fail:
  ****************************************************************************/
 int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
 {
-    h = h->thread[h->i_thread_phase];
+    h = h->thread[h->thread[0]->i_thread_phase];
     x264_set_aspect_ratio( h, param, 0 );
 #define COPY(var) h->param.var = param->var
     COPY( i_frame_reference ); // but never uses more refs than initially specified
@@ -1110,11 +1143,30 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     COPY( i_slice_max_size );
     COPY( i_slice_max_mbs );
     COPY( i_slice_count );
+    /* VBV can't be turned on if it wasn't on to begin with */
+    if( h->param.rc.i_vbv_max_bitrate > 0 && h->param.rc.i_vbv_buffer_size > 0 &&
+          param->rc.i_vbv_max_bitrate > 0 &&   param->rc.i_vbv_buffer_size > 0 )
+    {
+        COPY( rc.i_vbv_max_bitrate );
+        COPY( rc.i_vbv_buffer_size );
+        COPY( rc.i_bitrate );
+    }
+    COPY( rc.f_rf_constant );
 #undef COPY
 
     mbcmp_init( h );
 
-    return x264_validate_parameters( h );
+    int ret = x264_validate_parameters( h );
+
+    /* Supported reconfiguration options (1-pass only):
+     * vbv-maxrate
+     * vbv-bufsize
+     * crf
+     * bitrate (CBR only) */
+    if( !ret )
+        x264_ratecontrol_init_reconfigurable( h, 0 );
+
+    return ret;
 }
 
 /****************************************************************************

@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 84
+#define X264_BUILD 85
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -480,11 +480,12 @@ typedef struct
 x264_t *x264_encoder_open( x264_param_t * );
 
 /* x264_encoder_reconfig:
- *      analysis-related parameters from x264_param_t are copied.
+ *      various parameters from x264_param_t are copied.
  *      this takes effect immediately, on whichever frame is encoded next;
  *      due to delay, this may not be the next frame passed to encoder_encode.
  *      if the change should apply to some particular frame, use x264_picture_t->param instead.
- *      returns 0 on success, negative on parameter validation error. */
+ *      returns 0 on success, negative on parameter validation error.
+ *      not all parameters can be changed; see the actual function for a detailed breakdown. */
 int     x264_encoder_reconfig( x264_t *, x264_param_t * );
 /* x264_encoder_parameters:
  *      copies the current internal set of parameters to the pointer provided

@@ -388,6 +388,53 @@ static char *x264_strcat_filename( char *input, char *suffix )
     return output;
 }
 
+void x264_ratecontrol_init_reconfigurable( x264_t *h, int b_init )
+{
+    x264_ratecontrol_t *rc = h->rc;
+    if( !b_init && rc->b_2pass )
+        return;
+
+    if( h->param.rc.i_vbv_max_bitrate > 0 && h->param.rc.i_vbv_buffer_size > 0 )
+    {
+        if( h->param.rc.i_vbv_buffer_size < (int)(h->param.rc.i_vbv_max_bitrate / rc->fps) )
+        {
+            h->param.rc.i_vbv_buffer_size = h->param.rc.i_vbv_max_bitrate / rc->fps;
+            x264_log( h, X264_LOG_WARNING, "VBV buffer size cannot be smaller than one frame, using %d kbit\n",
+                      h->param.rc.i_vbv_buffer_size );
+        }
+
+        /* We don't support changing the ABR bitrate right now,
+           so if the stream starts as CBR, keep it CBR. */
+        if( rc->b_vbv_min_rate )
+            h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate;
+        rc->buffer_rate = h->param.rc.i_vbv_max_bitrate * 1000. / rc->fps;
+        rc->buffer_size = h->param.rc.i_vbv_buffer_size * 1000.;
+        rc->single_frame_vbv = rc->buffer_rate * 1.1 > rc->buffer_size;
+        rc->cbr_decay = 1.0 - rc->buffer_rate / rc->buffer_size
+                      * 0.5 * X264_MAX(0, 1.5 - rc->buffer_rate * rc->fps / rc->bitrate);
+        if( b_init )
+        {
+            if( h->param.rc.f_vbv_buffer_init > 1. )
+                h->param.rc.f_vbv_buffer_init = x264_clip3f( h->param.rc.f_vbv_buffer_init / h->param.rc.i_vbv_buffer_size, 0, 1 );
+            h->param.rc.f_vbv_buffer_init = X264_MAX( h->param.rc.f_vbv_buffer_init, rc->buffer_rate / rc->buffer_size );
+            rc->buffer_fill_final = rc->buffer_size * h->param.rc.f_vbv_buffer_init;
+            rc->b_vbv = 1;
+            rc->b_vbv_min_rate = !rc->b_2pass
+                          && h->param.rc.i_rc_method == X264_RC_ABR
+                          && h->param.rc.i_vbv_max_bitrate <= h->param.rc.i_bitrate;
+        }
+    }
+    if( h->param.rc.i_rc_method == X264_RC_CRF )
+    {
+        /* Arbitrary rescaling to make CRF somewhat similar to QP.
+         * Try to compensate for MB-tree's effects as well. */
+        double base_cplx = h->mb.i_mb_count * (h->param.i_bframe ? 120 : 80);
+        double mbtree_offset = h->param.rc.b_mb_tree ? (1.0-h->param.rc.f_qcompress)*13.5 : 0;
+        rc->rate_factor_constant = pow( base_cplx, 1 - rc->qcompress )
+                                 / qp2qscale( h->param.rc.f_rf_constant + mbtree_offset );
+    }
+}
+
 int x264_ratecontrol_new( x264_t *h )
 {
     x264_ratecontrol_t *rc;
@@ -426,60 +473,10 @@ int x264_ratecontrol_new( x264_t *h )
         x264_log(h, X264_LOG_ERROR, "constant rate-factor is incompatible with 2pass.\n");
         return -1;
     }
-    if( h->param.rc.i_vbv_buffer_size )
-    {
-        if( h->param.rc.i_rc_method == X264_RC_CQP )
-        {
-            x264_log(h, X264_LOG_WARNING, "VBV is incompatible with constant QP, ignored.\n");
-            h->param.rc.i_vbv_max_bitrate = 0;
-            h->param.rc.i_vbv_buffer_size = 0;
-        }
-        else if( h->param.rc.i_vbv_max_bitrate == 0 )
-        {
-            if( h->param.rc.i_rc_method == X264_RC_ABR )
-            {
-                x264_log( h, X264_LOG_INFO, "VBV maxrate unspecified, assuming CBR\n" );
-                h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate;
-            }
-            else
-            {
-                x264_log( h, X264_LOG_INFO, "VBV bufsize set but maxrate unspecified, ignored\n" );
-                h->param.rc.i_vbv_buffer_size = 0;
-            }
-        }
-    }
-    if( h->param.rc.i_vbv_max_bitrate < h->param.rc.i_bitrate &&
-        h->param.rc.i_vbv_max_bitrate > 0)
-        x264_log(h, X264_LOG_WARNING, "max bitrate less than average bitrate, ignored.\n");
-    else if( h->param.rc.i_vbv_max_bitrate > 0 &&
-             h->param.rc.i_vbv_buffer_size > 0 )
-    {
-        if( h->param.rc.i_vbv_buffer_size < (int)(h->param.rc.i_vbv_max_bitrate / rc->fps) )
-        {
-            h->param.rc.i_vbv_buffer_size = h->param.rc.i_vbv_max_bitrate / rc->fps;
-            x264_log( h, X264_LOG_WARNING, "VBV buffer size cannot be smaller than one frame, using %d kbit\n",
-                      h->param.rc.i_vbv_buffer_size );
-        }
-        if( h->param.rc.f_vbv_buffer_init > 1. )
-            h->param.rc.f_vbv_buffer_init = x264_clip3f( h->param.rc.f_vbv_buffer_init / h->param.rc.i_vbv_buffer_size, 0, 1 );
-        rc->buffer_rate = h->param.rc.i_vbv_max_bitrate * 1000. / rc->fps;
-        rc->buffer_size = h->param.rc.i_vbv_buffer_size * 1000.;
-        rc->single_frame_vbv = rc->buffer_rate * 1.1 > rc->buffer_size;
-        h->param.rc.f_vbv_buffer_init = X264_MAX( h->param.rc.f_vbv_buffer_init, rc->buffer_rate / rc->buffer_size );
-        rc->buffer_fill_final = rc->buffer_size * h->param.rc.f_vbv_buffer_init;
-        rc->cbr_decay = 1.0 - rc->buffer_rate / rc->buffer_size
-                      * 0.5 * X264_MAX(0, 1.5 - rc->buffer_rate * rc->fps / rc->bitrate);
-        rc->b_vbv = 1;
-        rc->b_vbv_min_rate = !rc->b_2pass
-                          && h->param.rc.i_rc_method == X264_RC_ABR
-                          && h->param.rc.i_vbv_max_bitrate <= h->param.rc.i_bitrate;
-    }
-    else if( h->param.rc.i_vbv_max_bitrate )
-    {
-        x264_log(h, X264_LOG_WARNING, "VBV maxrate specified, but no bufsize.\n");
-        h->param.rc.i_vbv_max_bitrate = 0;
-    }
-    if(rc->rate_tolerance < 0.01)
+
+    x264_ratecontrol_init_reconfigurable( h, 1 );
+
+    if( rc->rate_tolerance < 0.01 )
     {
         x264_log(h, X264_LOG_WARNING, "bitrate tolerance too small, using .01\n");
         rc->rate_tolerance = 0.01;
@@ -497,16 +494,6 @@ int x264_ratecontrol_new( x264_t *h )
         rc->cplxr_sum = .01 * pow( 7.0e5, rc->qcompress ) * pow( h->mb.i_mb_count, 0.5 );
         rc->wanted_bits_window = 1.0 * rc->bitrate / rc->fps;
         rc->last_non_b_pict_type = SLICE_TYPE_I;
-    }
-
-    if( h->param.rc.i_rc_method == X264_RC_CRF )
-    {
-        /* Arbitrary rescaling to make CRF somewhat similar to QP.
-         * Try to compensate for MB-tree's effects as well. */
-        double base_cplx = h->mb.i_mb_count * (h->param.i_bframe ? 120 : 80);
-        double mbtree_offset = h->param.rc.b_mb_tree ? (1.0-h->param.rc.f_qcompress)*13.5 : 0;
-        rc->rate_factor_constant = pow( base_cplx, 1 - rc->qcompress )
-                                 / qp2qscale( h->param.rc.f_rf_constant + mbtree_offset );
     }
 
     rc->ip_offset = 6.0 * log(h->param.rc.f_ip_factor) / log(2.0);
@@ -1577,15 +1564,15 @@ static void update_vbv( x264_t *h, int bits )
     if( rct->buffer_fill_final < 0 )
         x264_log( h, X264_LOG_WARNING, "VBV underflow (frame %d, %.0f bits)\n", h->i_frame, rct->buffer_fill_final );
     rct->buffer_fill_final = X264_MAX( rct->buffer_fill_final, 0 );
-    rct->buffer_fill_final += rct->buffer_rate;
-    rct->buffer_fill_final = X264_MIN( rct->buffer_fill_final, rct->buffer_size );
+    rct->buffer_fill_final += rcc->buffer_rate;
+    rct->buffer_fill_final = X264_MIN( rct->buffer_fill_final, rcc->buffer_size );
 }
 
 // provisionally update VBV according to the planned size of all frames currently in progress
 static void update_vbv_plan( x264_t *h, int overhead )
 {
     x264_ratecontrol_t *rcc = h->rc;
-    rcc->buffer_fill = h->thread[0]->rc->buffer_fill_final - overhead;
+    rcc->buffer_fill = h->thread[0]->rc->buffer_fill_final;
     if( h->i_thread_frames > 1 )
     {
         int j = h->rc - h->thread[0]->rc;
@@ -1603,6 +1590,8 @@ static void update_vbv_plan( x264_t *h, int overhead )
             rcc->buffer_fill = X264_MIN( rcc->buffer_fill, rcc->buffer_size );
         }
     }
+    rcc->buffer_fill = X264_MIN( rcc->buffer_fill, rcc->buffer_size );
+    rcc->buffer_fill -= overhead;
 }
 
 // apply VBV constraints and clip qscale to between lmin and lmax
@@ -2027,8 +2016,7 @@ void x264_thread_sync_ratecontrol( x264_t *cur, x264_t *prev, x264_t *next )
 #define COPY(var) memcpy(&cur->rc->var, &prev->rc->var, sizeof(cur->rc->var))
         /* these vars are updated in x264_ratecontrol_start()
          * so copy them from the context that most recently started (prev)
-         * to the context that's about to start (cur).
-         */
+         * to the context that's about to start (cur). */
         COPY(accum_p_qp);
         COPY(accum_p_norm);
         COPY(last_satd);
@@ -2040,6 +2028,14 @@ void x264_thread_sync_ratecontrol( x264_t *cur, x264_t *prev, x264_t *next )
         COPY(bframes);
         COPY(prev_zone);
         COPY(qpbuf_pos);
+        /* these vars can be updated by x264_ratecontrol_init_reconfigurable */
+        COPY(buffer_rate);
+        COPY(buffer_size);
+        COPY(single_frame_vbv);
+        COPY(cbr_decay);
+        COPY(b_vbv_min_rate);
+        COPY(rate_factor_constant);
+        COPY(bitrate);
 #undef COPY
     }
     if( cur != next )
@@ -2047,8 +2043,7 @@ void x264_thread_sync_ratecontrol( x264_t *cur, x264_t *prev, x264_t *next )
 #define COPY(var) next->rc->var = cur->rc->var
         /* these vars are updated in x264_ratecontrol_end()
          * so copy them from the context that most recently ended (cur)
-         * to the context that's about to end (next)
-         */
+         * to the context that's about to end (next) */
         COPY(cplxr_sum);
         COPY(expected_bits_sum);
         COPY(wanted_bits_window);
