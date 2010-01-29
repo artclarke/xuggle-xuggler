@@ -28,6 +28,59 @@ public class ConverterExhaustiveTest extends TestCase
 {
   private Converter converter=null;
 
+  /**
+   * This test makes sure that real-time writing of data works; this
+   * MUST run at least longer than the file in question, so use a short
+   * file for testing.
+   * @throws ParseException 
+   */
+  public void testRealTimeConversion() throws ParseException
+  {
+    String[] args = new String[]{
+        "--containerformat",
+        "mov",
+        "--acodec",
+        "libfaac",
+        "--asamplerate",
+        "22050",
+        "--achannels",
+        "2",
+        "--abitrate",
+        "64000",
+        "--aquality",
+        "0",
+        "--vcodec",
+        "mpeg4",
+        "--vscalefactor",
+        "1.0",
+        "--vbitrate",
+        "300000",
+        "--vbitratetolerance",
+        "12000000",
+        "--vquality",
+        "0",
+        "--realtime",
+        "fixtures/testfile_videoonly_20sec.flv",
+        this.getClass().getName() + "_" + this.getName() + ".mov"
+    };
+    
+    converter = new Converter();
+    
+    Options options = converter.defineOptions();
+  
+    CommandLine cmdLine = converter.parseOptions(options, args);
+    assertTrue("all commandline options successful", cmdLine != null);
+    
+    final long startTime = System.nanoTime();
+    converter.run(cmdLine);
+    final long endTime = System.nanoTime();
+    final long delta = endTime - startTime;
+    // 20 second test file;
+    assertTrue("did not take long enough", delta >= 18L*1000*1000*1000);
+    System.err.println("Total time taken: " + delta);
+    assertTrue("took too long", delta <= 60L*1000*1000*1000);
+  }
+
   public void testConversionOggVorbisTheora() throws ParseException
   {
     String[] args = new String[]{
