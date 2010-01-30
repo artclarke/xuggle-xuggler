@@ -1458,7 +1458,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     int64_t second_largest_pts = -1;
     int64_t ticks_per_frame;
     double  duration;
-    int     prev_timebase_den = param->i_timebase_den;
+    int     prev_timebase_den = param->i_timebase_den / gcd( param->i_timebase_num, param->i_timebase_den );
     int     dts_compress_multiplier;
 
     opt->b_progress &= param->i_log_level < X264_LOG_DEBUG;
