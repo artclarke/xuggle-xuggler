@@ -632,6 +632,7 @@ namespace com { namespace xuggle { namespace xuggler
       FLAG_GENPTS=0x0001,
       FLAG_IGNIDX=0x0002,
       FLAG_NONBLOCK=0x0004,
+      FLAG_IGNDTS=0x0008
     } Flags;
     
     /**

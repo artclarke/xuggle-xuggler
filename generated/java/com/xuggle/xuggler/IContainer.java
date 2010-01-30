@@ -1410,7 +1410,8 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   public enum Flags {
     FLAG_GENPTS(XugglerJNI.IContainer_FLAG_GENPTS_get()),
     FLAG_IGNIDX(XugglerJNI.IContainer_FLAG_IGNIDX_get()),
-    FLAG_NONBLOCK(XugglerJNI.IContainer_FLAG_NONBLOCK_get());
+    FLAG_NONBLOCK(XugglerJNI.IContainer_FLAG_NONBLOCK_get()),
+    FLAG_IGNDTS(XugglerJNI.IContainer_FLAG_IGNDTS_get());
 
     public final int swigValue() {
       return swigValue;

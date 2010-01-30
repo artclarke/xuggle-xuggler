@@ -562,6 +562,7 @@ class XugglerJNI {
   public final static native int IContainer_FLAG_GENPTS_get();
   public final static native int IContainer_FLAG_IGNIDX_get();
   public final static native int IContainer_FLAG_NONBLOCK_get();
+  public final static native int IContainer_FLAG_IGNDTS_get();
   public final static native int IContainer_getFlags(long jarg1, IContainer jarg1_);
   public final static native void IContainer_setFlags(long jarg1, IContainer jarg1_, int jarg2);
   public final static native boolean IContainer_getFlag(long jarg1, IContainer jarg1_, int jarg2);

@@ -44,7 +44,7 @@ class VS_API_XUGGLER ICodec : public com::xuggle::ferry::RefCounted
 public:
   /**
    * These are the codecs this library currently supports.
-   * These are based on FFMPEG r21173 or later
+   * These are based on FFMPEG r21562 or later
    */
   typedef enum
   {
@@ -190,6 +190,7 @@ public:
     CODEC_ID_CDGRAPHICS,
     CODEC_ID_R210,
     CODEC_ID_ANM,
+    CODEC_ID_BINKVIDEO,
 
     CODEC_ID_PCM_S16LE= 0x10000,
     CODEC_ID_PCM_S16BE,
@@ -307,6 +308,8 @@ public:
     CODEC_ID_TRUEHD,
     CODEC_ID_MP4ALS,
     CODEC_ID_ATRAC1,
+    CODEC_ID_BINKAUDIO_RDFT,
+    CODEC_ID_BINKAUDIO_DCT,
 
     CODEC_ID_DVD_SUBTITLE= 0x17000,
     CODEC_ID_DVB_SUBTITLE,

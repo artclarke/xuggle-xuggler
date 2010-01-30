@@ -587,7 +587,7 @@ public class ICodec extends RefCounted {
   public enum ID {
   /**
    * These are the codecs this library currently supports.
-   * These are based on FFMPEG r21173 or later
+   * These are based on FFMPEG r21562 or later
    */
     CODEC_ID_NONE,
     CODEC_ID_MPEG1VIDEO,
@@ -730,6 +730,7 @@ public class ICodec extends RefCounted {
     CODEC_ID_CDGRAPHICS,
     CODEC_ID_R210,
     CODEC_ID_ANM,
+    CODEC_ID_BINKVIDEO,
     CODEC_ID_PCM_S16LE(XugglerJNI.ICodec_CODEC_ID_PCM_S16LE_get()),
     CODEC_ID_PCM_S16BE,
     CODEC_ID_PCM_U16LE,
@@ -841,6 +842,8 @@ public class ICodec extends RefCounted {
     CODEC_ID_TRUEHD,
     CODEC_ID_MP4ALS,
     CODEC_ID_ATRAC1,
+    CODEC_ID_BINKAUDIO_RDFT,
+    CODEC_ID_BINKAUDIO_DCT,
     CODEC_ID_DVD_SUBTITLE(XugglerJNI.ICodec_CODEC_ID_DVD_SUBTITLE_get()),
     CODEC_ID_DVB_SUBTITLE,
     CODEC_ID_TEXT,
