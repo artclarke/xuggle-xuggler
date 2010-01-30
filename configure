@@ -45,15 +45,17 @@ log_msg() {
 
 cc_check() {
     if [ -z "$3" ]; then
-        if [ -z "$1" ]; then
+        if [ -z "$1$2" ]; then
             log_check "whether $CC works"
+        elif [ -z "$1" ]; then
+            log_check "for $2"
         else
             log_check "for $1"
         fi
     elif [ -z "$1" ]; then
         log_check "whether $CC supports $3"
     else
-        log_check "for $3 on $1";
+        log_check "for $3 in $1";
     fi
     rm -f conftest.c
     [ -n "$1" ] && echo "#include <$1>" > conftest.c
@@ -212,7 +214,7 @@ for opt do
             ;;
         --enable-visualize)
             LDFLAGS="$LDFLAGS -L/usr/X11R6/lib -lX11"
-            define VISUALIZE
+            define HAVE_VISUALIZE
             vis="yes"
             ;;
         --host=*)
@@ -392,6 +394,12 @@ log_msg ""
 
 cc_check || die "No working C compiler found."
 
+if cc_check '' -std=gnu99 ; then
+    CFLAGS="$CFLAGS -std=gnu99"
+elif cc_check '' -std=c99 ; then
+    CFLAGS="$CFLAGS -std=c99 -D_POSIX_C_SOURCE=200112L -D_BSD_SOURCE"
+fi
+
 if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" -o $ARCH = "ARM" \) ] ; then
     pic="yes"
 fi
@@ -404,7 +412,7 @@ if [ $asm = yes -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
         echo "If you really want to compile without asm, configure with --disable-asm."
         exit 1
     fi
-    if ! cc_check '' '' 'asm("pabsw %xmm0, %xmm0");' ; then
+    if ! cc_check '' '' '__asm__("pabsw %xmm0, %xmm0");' ; then
         VER=`(as --version || echo no gnu as) 2>$DEVNULL | head -n 1`
         echo "Found $VER"
         echo "Minimum version is binutils-2.17"
@@ -419,9 +427,9 @@ if [ $asm = yes -a $ARCH = ARM ] ; then
     # set flags so neon is built by default
     echo $CFLAGS | grep -Eq '(-mcpu|-march|-mfpu|-mfloat-abi)' || CFLAGS="$CFLAGS -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp"
 
-    if  cc_check '' '' 'asm("rev ip, ip");' ; then      define HAVE_ARMV6   && ASFLAGS="$ASFLAGS -DHAVE_ARMV6"
-        cc_check '' '' 'asm("movt r0, #0");'         && define HAVE_ARMV6T2 && ASFLAGS="$ASFLAGS -DHAVE_ARMV6T2"
-        cc_check '' '' 'asm("vadd.i16 q0, q0, q0");' && define HAVE_NEON    && ASFLAGS="$ASFLAGS -DHAVE_NEON"
+    if  cc_check '' '' '__asm__("rev ip, ip");' ; then      define HAVE_ARMV6   && ASFLAGS="$ASFLAGS -DHAVE_ARMV6"
+        cc_check '' '' '__asm__("movt r0, #0");'         && define HAVE_ARMV6T2 && ASFLAGS="$ASFLAGS -DHAVE_ARMV6T2"
+        cc_check '' '' '__asm__("vadd.i16 q0, q0, q0");' && define HAVE_NEON    && ASFLAGS="$ASFLAGS -DHAVE_NEON"
         ASFLAGS="$ASFLAGS -c"
     else
         echo "You specified a pre-ARMv6 or Thumb-1 CPU in your CFLAGS."

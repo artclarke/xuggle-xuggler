@@ -739,7 +739,7 @@ struct x264_t
     x264_quant_function_t quantf;
     x264_deblock_function_t loopf;
 
-#if VISUALIZE
+#ifdef HAVE_VISUALIZE
     struct visualize_t *visualize;
 #endif
     x264_lookahead_t *lookahead;

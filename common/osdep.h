@@ -165,6 +165,8 @@ static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(vo
 
 #define WORD_SIZE sizeof(void*)
 
+#define asm __asm__
+
 #if !defined(_WIN64) && !defined(__LP64__)
 #if defined(__INTEL_COMPILER)
 #define BROKEN_STACK_ALIGNMENT /* define it if stack is not mod16 */

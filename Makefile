@@ -138,8 +138,8 @@ checkasm: tools/checkasm.o libx264.a
 	-@ $(STRIP) -x $@ # delete local/anonymous symbols, so they don't show up in oprofile
 
 .depend: config.mak
-	rm -f .depend
-	$(foreach SRC, $(SRCS) $(SRCCLI) $(SRCSO), $(CC) $(CFLAGS) $(ALTIVECFLAGS) $(SRC) -MT $(SRC:%.c=%.o) -MM -g0 1>> .depend;)
+	@rm -f .depend
+	@$(foreach SRC, $(SRCS) $(SRCCLI) $(SRCSO), $(CC) $(CFLAGS) $(SRC) -MT $(SRC:%.c=%.o) -MM -g0 1>> .depend;)
 
 config.mak:
 	./configure
@@ -186,7 +186,7 @@ clean:
 	- sed -e 's/ *-fprofile-\(generate\|use\)//g' config.mak > config.mak2 && mv config.mak2 config.mak
 
 distclean: clean
-	rm -f config.mak config.h x264.pc
+	rm -f config.mak config.h config.log x264.pc
 	rm -rf test/
 
 install: x264$(EXE) $(SONAME)

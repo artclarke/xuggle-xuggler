@@ -21,15 +21,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
+#include "common.h"
+#include "cpu.h"
+
 #include <stdarg.h>
 #include <ctype.h>
 
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
-
-#include "common.h"
-#include "cpu.h"
 
 static void x264_log_default( void *, int, const char *, va_list );
 
@@ -263,7 +263,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         if( b_error )
         {
             char *buf = strdup(value);
-            char *tok, UNUSED *saveptr, *init;
+            char *tok, UNUSED *saveptr=NULL, *init;
             b_error = 0;
             p->cpu = 0;
             for( init=buf; (tok=strtok_r(init, ",", &saveptr)); init=NULL )
@@ -474,7 +474,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     }
     OPT("log")
         p->i_log_level = atoi(value);
-#ifdef VISUALIZE
+#ifdef HAVE_VISUALIZE
     OPT("visualize")
         p->b_visualize = atobool(value);
 #endif

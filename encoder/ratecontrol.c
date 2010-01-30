@@ -818,7 +818,7 @@ fail:
 static int parse_zone( x264_t *h, x264_zone_t *z, char *p )
 {
     int len = 0;
-    char *tok, UNUSED *saveptr;
+    char *tok, UNUSED *saveptr=NULL;
     z->param = NULL;
     z->f_bitrate_factor = 1;
     if( 3 <= sscanf(p, "%u,%u,q=%u%n", &z->i_start, &z->i_end, &z->i_qp, &len) )

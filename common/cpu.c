@@ -22,8 +22,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
+#define _GNU_SOURCE // for sched_getaffinity
+#include "common.h"
+#include "cpu.h"
+
 #if defined(HAVE_PTHREAD) && defined(SYS_LINUX)
-#define _GNU_SOURCE
 #include <sched.h>
 #endif
 #ifdef SYS_BEOS
@@ -38,9 +41,6 @@
 #include <sys/sysctl.h>
 #include <machine/cpu.h>
 #endif
-
-#include "common.h"
-#include "cpu.h"
 
 const x264_cpu_name_t x264_cpu_names[] = {
     {"Altivec", X264_CPU_ALTIVEC},

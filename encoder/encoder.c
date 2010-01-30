@@ -33,7 +33,7 @@
 #include "macroblock.h"
 #include "me.h"
 
-#if VISUALIZE
+#ifdef HAVE_VISUALIZE
 #include "common/visualize.h"
 #endif
 
@@ -1787,7 +1787,7 @@ static int x264_slice_write( x264_t *h )
         else
             h->mb.b_reencode_mb = 0;
 
-#if VISUALIZE
+#ifdef HAVE_VISUALIZE
         if( h->param.b_visualize )
             x264_visualize_mb( h );
 #endif
@@ -1929,7 +1929,7 @@ static void *x264_slices_write( x264_t *h )
         x264_cpu_mask_misalign_sse();
 #endif
 
-#if VISUALIZE
+#ifdef HAVE_VISUALIZE
     if( h->param.b_visualize )
         if( x264_visualize_init( h ) )
             return (void *)-1;
@@ -1956,7 +1956,7 @@ static void *x264_slices_write( x264_t *h )
         h->sh.i_first_mb = h->sh.i_last_mb + 1;
     }
 
-#if VISUALIZE
+#ifdef HAVE_VISUALIZE
     if( h->param.b_visualize )
     {
         x264_visualize_show( h );
