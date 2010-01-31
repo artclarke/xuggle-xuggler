@@ -32,8 +32,8 @@
        you must also make sure you update the major and minor
        revisions in that library's "configure.ac" file, and
        regenerate the build scripts -->
-  <property name="library.version.major" value="3"/>
-  <property name="library.version.minor" value="4"/>
+  <property name="library.version.major" value="4"/>
+  <property name="library.version.minor" value="0"/>
   <property name="license.key" value="LGPL License"/>
   <property name="app.mainclass" value="com.xuggle.xuggler.Converter"/>
   <property name="app.red5.mainclass" value="com.xuggle.xuggler.Global"/>
