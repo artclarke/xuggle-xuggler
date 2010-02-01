@@ -45,8 +45,9 @@ static inline void x264_median_mv_mmxext( int16_t *dst, int16_t *a, int16_t *b, 
 #define x264_predictor_difference x264_predictor_difference_mmxext
 static inline int x264_predictor_difference_mmxext( int16_t (*mvc)[2], intptr_t i_mvc )
 {
-    int sum = 0;
-    uint16_t output[4];
+    int sum;
+    static const uint64_t pw_1 = 0x0001000100010001ULL;
+
     asm(
         "pxor    %%mm4, %%mm4 \n"
         "test    $1, %1       \n"
@@ -56,7 +57,7 @@ static inline int x264_predictor_difference_mmxext( int16_t (*mvc)[2], intptr_t 
         "psubw   %%mm3, %%mm0 \n"
         "jmp 2f               \n"
         "3:                   \n"
-        "sub     $1,    %1    \n"
+        "dec     %1           \n"
         "1:                   \n"
         "movq    -8(%2,%1,4), %%mm0 \n"
         "psubw   -4(%2,%1,4), %%mm0 \n"
@@ -67,11 +68,13 @@ static inline int x264_predictor_difference_mmxext( int16_t (*mvc)[2], intptr_t 
         "pmaxsw  %%mm2, %%mm0 \n"
         "paddusw %%mm0, %%mm4 \n"
         "jg 1b                \n"
-        "movq    %%mm4, %0    \n"
-        :"=m"(output), "+r"(i_mvc)
-        :"r"(mvc), "m"(M64( mvc ))
+        "pmaddwd %4, %%mm4    \n"
+        "pshufw $14, %%mm4, %%mm0 \n"
+        "paddd   %%mm0, %%mm4 \n"
+        "movd    %%mm4, %0    \n"
+        :"=r"(sum), "+r"(i_mvc)
+        :"r"(mvc), "m"(M64( mvc )), "m"(pw_1)
     );
-    sum += output[0] + output[1] + output[2] + output[3];
     return sum;
 }
 #define x264_cabac_amvd_sum x264_cabac_amvd_sum_mmxext
