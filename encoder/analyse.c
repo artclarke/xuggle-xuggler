@@ -2307,9 +2307,10 @@ static inline void x264_mb_analyse_qp_rd( x264_t *h, x264_mb_analysis_t *a )
     int orig_qp = h->mb.i_qp, bqp = h->mb.i_qp;
     int last_qp_tried = 0;
     origcost = bcost = x264_rd_cost_mb( h, a->i_lambda2 );
+    int origcbp = h->mb.cbp[h->mb.i_mb_xy];
 
     /* If CBP is already zero, don't raise the quantizer any higher. */
-    for( direction = h->mb.cbp[h->mb.i_mb_xy] ? 1 : -1; direction >= -1; direction-=2 )
+    for( direction = origcbp ? 1 : -1; direction >= -1; direction-=2 )
     {
         /* Without psy-RD, require monotonicity when moving quant away from previous
          * macroblock's quant; allow 1 failure when moving quant towards previous quant.
@@ -2324,14 +2325,47 @@ static inline void x264_mb_analyse_qp_rd( x264_t *h, x264_mb_analysis_t *a )
         h->mb.i_qp = orig_qp;
         failures = 0;
         prevcost = origcost;
+
+        /* If the current QP results in an empty CBP, it's highly likely that lower QPs
+         * (up to a point) will too.  So, jump down to where the threshold will kick in
+         * and check the QP there.  If the CBP is still empty, skip the main loop.
+         * If it isn't empty, we would have ended up having to check this QP anyways,
+         * so as long as we store it for later lookup, we lose nothing. */
+        int already_checked_qp = -1;
+        int already_checked_cost = COST_MAX;
+        if( direction == -1 )
+        {
+            if( !origcbp )
+            {
+                h->mb.i_qp = X264_MAX( h->mb.i_qp - threshold - 1, h->param.rc.i_qp_min );
+                h->mb.i_chroma_qp = h->chroma_qp_table[h->mb.i_qp];
+                already_checked_cost = x264_rd_cost_mb( h, a->i_lambda2 );
+                if( !h->mb.cbp[h->mb.i_mb_xy] )
+                {
+                    /* If our empty-CBP block is lower QP than the last QP,
+                     * the last QP almost surely doesn't have a CBP either. */
+                    if( h->mb.i_last_qp > h->mb.i_qp )
+                        last_qp_tried = 1;
+                    break;
+                }
+                already_checked_qp = h->mb.i_qp;
+                h->mb.i_qp = orig_qp;
+            }
+        }
+
         h->mb.i_qp += direction;
         while( h->mb.i_qp >= h->param.rc.i_qp_min && h->mb.i_qp <= h->param.rc.i_qp_max )
         {
             if( h->mb.i_last_qp == h->mb.i_qp )
                 last_qp_tried = 1;
-            h->mb.i_chroma_qp = h->chroma_qp_table[h->mb.i_qp];
-            cost = x264_rd_cost_mb( h, a->i_lambda2 );
-            COPY2_IF_LT( bcost, cost, bqp, h->mb.i_qp );
+            if( h->mb.i_qp == already_checked_qp )
+                cost = already_checked_cost;
+            else
+            {
+                h->mb.i_chroma_qp = h->chroma_qp_table[h->mb.i_qp];
+                cost = x264_rd_cost_mb( h, a->i_lambda2 );
+                COPY2_IF_LT( bcost, cost, bqp, h->mb.i_qp );
+            }
 
             /* We can't assume that the costs are monotonic over QPs.
              * Tie case-as-failure seems to give better results. */
