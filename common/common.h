@@ -484,6 +484,7 @@ struct x264_t
         int     b_chroma_me;
         int     b_trellis;
         int     b_noise_reduction;
+        int     b_dct_decimate;
         int     i_psy_rd; /* Psy RD strength--fixed point value*/
         int     i_psy_trellis; /* Psy trellis strength--fixed point value*/
 

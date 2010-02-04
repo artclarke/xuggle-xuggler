@@ -364,6 +364,8 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     h->mb.i_subpel_refine = h->param.analyse.i_subpel_refine;
     h->mb.b_chroma_me = h->param.analyse.b_chroma_me && h->sh.i_type == SLICE_TYPE_P
                         && h->mb.i_subpel_refine >= 5;
+    h->mb.b_dct_decimate = h->sh.i_type == SLICE_TYPE_B ||
+                          (h->param.analyse.b_dct_decimate && h->sh.i_type != SLICE_TYPE_I);
 
     h->mb.b_transform_8x8 = 0;
     h->mb.b_noise_reduction = 0;
