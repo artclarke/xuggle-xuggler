@@ -121,7 +121,7 @@ static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest
         if( mdhd_duration != total_duration )
         {
             uint64_t last_dts = gf_isom_get_sample_dts( p_mp4->p_file, p_mp4->i_track, p_mp4->i_numframe );
-            uint32_t last_duration = (uint32_t)( mdhd_duration > last_dts ? mdhd_duration - last_dts : (largest_pts - second_largest_pts) * p_mp4->i_time_inc  );
+            uint32_t last_duration = (uint32_t)( mdhd_duration > last_dts ? mdhd_duration - last_dts : (largest_pts - second_largest_pts) * p_mp4->i_time_inc );
             gf_isom_set_last_sample_duration( p_mp4->p_file, p_mp4->i_track, last_duration );
             total_duration = gf_isom_get_media_duration( p_mp4->p_file, p_mp4->i_track );
         }
@@ -212,6 +212,7 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
             dw *= sar ;
         else
             dh /= sar;
+        gf_isom_set_pixel_aspect_ratio( p_mp4->p_file, p_mp4->i_track, p_mp4->i_descidx, p_param->vui.i_sar_width, p_param->vui.i_sar_height );
         gf_isom_set_track_layout_info( p_mp4->p_file, p_mp4->i_track, dw, dh, 0, 0, 0 );
     }
 
