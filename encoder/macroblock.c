@@ -42,30 +42,24 @@ static inline void zigzag_scan_2x2_dc( int16_t level[4], int16_t dct[4] )
     int d1 = dct[2] + dct[3]; \
     int d2 = dct[0] - dct[1]; \
     int d3 = dct[2] - dct[3]; \
-    int dmf = dequant_mf[i_qp%6][0]; \
-    int qbits = i_qp/6 - 5; \
-    if( qbits > 0 ) \
-    { \
-        dmf <<= qbits; \
-        qbits = 0; \
-    }
+    int dmf = dequant_mf[i_qp%6][0] << i_qp/6;
 
 static inline void idct_dequant_2x2_dc( int16_t dct[4], int16_t dct4x4[4][16], int dequant_mf[6][16], int i_qp )
 {
     IDCT_DEQUANT_START
-    dct4x4[0][0] = (d0 + d1) * dmf >> -qbits;
-    dct4x4[1][0] = (d0 - d1) * dmf >> -qbits;
-    dct4x4[2][0] = (d2 + d3) * dmf >> -qbits;
-    dct4x4[3][0] = (d2 - d3) * dmf >> -qbits;
+    dct4x4[0][0] = (d0 + d1) * dmf >> 5;
+    dct4x4[1][0] = (d0 - d1) * dmf >> 5;
+    dct4x4[2][0] = (d2 + d3) * dmf >> 5;
+    dct4x4[3][0] = (d2 - d3) * dmf >> 5;
 }
 
 static inline void idct_dequant_2x2_dconly( int16_t out[4], int16_t dct[4], int dequant_mf[6][16], int i_qp )
 {
     IDCT_DEQUANT_START
-    out[0] = (d0 + d1) * dmf >> -qbits;
-    out[1] = (d0 - d1) * dmf >> -qbits;
-    out[2] = (d2 + d3) * dmf >> -qbits;
-    out[3] = (d2 - d3) * dmf >> -qbits;
+    out[0] = (d0 + d1) * dmf >> 5;
+    out[1] = (d0 - d1) * dmf >> 5;
+    out[2] = (d2 + d3) * dmf >> 5;
+    out[3] = (d2 - d3) * dmf >> 5;
 }
 
 static inline void dct2x2dc( int16_t d[4], int16_t dct4x4[4][16] )
