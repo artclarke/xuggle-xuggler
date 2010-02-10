@@ -599,8 +599,6 @@ static int x264_validate_parameters( x264_t *h )
         x264_log( h, X264_LOG_WARNING, "ref > 1 + intra-refresh is not supported\n" );
         h->param.i_frame_reference = 1;
     }
-    if( h->param.b_intra_refresh )
-        h->param.i_keyint_max = X264_MIN( h->param.i_keyint_max, (h->param.i_width+15)/16 - 1 );
     h->param.i_keyint_min = x264_clip3( h->param.i_keyint_min, 1, h->param.i_keyint_max/2+1 );
     h->param.rc.i_lookahead = x264_clip3( h->param.rc.i_lookahead, 0, X264_LOOKAHEAD_MAX );
     {
@@ -2307,22 +2305,22 @@ int     x264_encoder_encode( x264_t *h,
     if( h->param.b_intra_refresh && h->fenc->i_type == X264_TYPE_P )
     {
         int pocdiff = (h->fdec->i_poc - h->fref0[0]->i_poc)/2;
-        float increment = ((float)h->sps->i_mb_width-1) / h->param.i_keyint_max;
+        float increment = X264_MAX( ((float)h->sps->i_mb_width-1) / h->param.i_keyint_max, 1 );
+        int max_position = (int)(increment * h->param.i_keyint_max);
         if( IS_X264_TYPE_I( h->fref0[0]->i_type ) )
             h->fdec->f_pir_position = 0;
         else
         {
-            if( h->fref0[0]->i_pir_end_col == h->sps->i_mb_width - 1 )
+            h->fdec->f_pir_position = h->fref0[0]->f_pir_position;
+            if( h->fdec->f_pir_position+0.5 >= max_position )
             {
                 h->fdec->f_pir_position = 0;
                 h->fenc->b_keyframe = 1;
             }
-            else
-                h->fdec->f_pir_position = h->fref0[0]->f_pir_position;
         }
         h->fdec->i_pir_start_col = h->fdec->f_pir_position+0.5;
         h->fdec->f_pir_position += increment * pocdiff;
-        h->fdec->i_pir_end_col = X264_MIN( h->fdec->f_pir_position+0.5, h->sps->i_mb_width-1 );
+        h->fdec->i_pir_end_col = h->fdec->f_pir_position+0.5;
     }
 
     /* Write SPS and PPS */
@@ -2358,8 +2356,9 @@ int     x264_encoder_encode( x264_t *h,
 
         if( h->fenc->i_type != X264_TYPE_IDR )
         {
+            int time_to_recovery = X264_MIN( h->sps->i_mb_width - 1, h->param.i_keyint_max ) + h->param.i_bframe;
             x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
-            x264_sei_recovery_point_write( h, &h->out.bs, h->param.i_keyint_max );
+            x264_sei_recovery_point_write( h, &h->out.bs, time_to_recovery );
             x264_nal_end( h );
             overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD;
         }
