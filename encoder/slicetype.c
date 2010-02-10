@@ -1394,10 +1394,10 @@ int x264_rc_analyse_slice( x264_t *h )
             int mb_xy = y * h->mb.i_mb_stride;
             for( x = h->fdec->i_pir_start_col; x <= h->fdec->i_pir_end_col; x++, mb_xy++ )
             {
-                int intra_cost = (h->fenc->i_intra_cost[mb_xy] * ip_factor) >> 8;
+                int intra_cost = (h->fenc->i_intra_cost[mb_xy] * ip_factor + 128) >> 8;
                 int inter_cost = h->fenc->lowres_costs[b-p0][p1-b][mb_xy];
                 int diff = intra_cost - inter_cost;
-                h->fdec->i_row_satd[y] += diff;
+                h->fdec->i_row_satd[y] += (diff * frames[b]->i_inv_qscale_factor[mb_xy] + 128) >> 8;
                 cost += diff;
             }
         }

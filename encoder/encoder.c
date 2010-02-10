@@ -2062,6 +2062,8 @@ static int x264_threaded_slices_write( x264_t *h )
     for( i = 0; i <= h->sps->i_mb_height; i++ )
         x264_fdec_filter_row( h, i );
 
+    x264_threads_merge_ratecontrol( h );
+
     for( i = 1; i < h->param.i_threads; i++ )
     {
         x264_t *t = h->thread[i];
@@ -2076,8 +2078,6 @@ static int x264_threaded_slices_write( x264_t *h )
         for( j = 0; j < (offsetof(x264_t,stat.frame.i_ssd) - offsetof(x264_t,stat.frame.i_mv_bits)) / sizeof(int); j++ )
             ((int*)&h->stat.frame)[j] += ((int*)&t->stat.frame)[j];
     }
-
-    x264_threads_merge_ratecontrol( h );
 
     return 0;
 }
