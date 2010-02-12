@@ -190,7 +190,8 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
         const int x8 = i8%2;
         const int y8 = i8/2;
         const int i_part_8x8 = i_mb_8x8 + x8 + y8 * h->mb.i_b8_stride;
-        const int i_ref = map_col_to_list0(h->fref1[0]->ref[0][i_part_8x8]);
+        const int i_ref1_ref = h->fref1[0]->ref[0][i_part_8x8];
+        const int i_ref = (map_col_to_list0(i_ref1_ref>>h->sh.b_mbaff) << h->sh.b_mbaff) + (i_ref1_ref&h->sh.b_mbaff);
 
         if( i_ref >= 0 )
         {
@@ -1238,6 +1239,7 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
         if( h->sh.i_type == SLICE_TYPE_B )
         {
             h->mb.bipred_weight = h->mb.bipred_weight_buf[h->mb.b_interlaced&(i_mb_y&1)];
+            h->mb.dist_scale_factor = h->mb.dist_scale_factor_buf[h->mb.b_interlaced&(i_mb_y&1)];
             if( h->param.b_cabac )
             {
                 uint8_t skipbp;
@@ -1477,9 +1479,7 @@ void x264_macroblock_bipred_init( x264_t *h )
                     dist_scale_factor = x264_clip3( (tb * tx + 32) >> 6, -1024, 1023 );
                 }
 
-                // FIXME: will need this if we ever do temporal MV pred with interlaced
-                if( !h->sh.b_mbaff )
-                    h->mb.dist_scale_factor[i_ref0][i_ref1] = dist_scale_factor;
+                h->mb.dist_scale_factor_buf[field][i_ref0][i_ref1] = dist_scale_factor;
 
                 dist_scale_factor >>= 2;
                 if( h->param.analyse.b_weighted_bipred

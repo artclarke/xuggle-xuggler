@@ -430,11 +430,6 @@ static int x264_validate_parameters( x264_t *h )
             x264_log( h, X264_LOG_WARNING, "interlace + me=esa is not implemented\n" );
             h->param.analyse.i_me_method = X264_ME_UMH;
         }
-        if( h->param.analyse.i_direct_mv_pred > X264_DIRECT_PRED_SPATIAL )
-        {
-            x264_log( h, X264_LOG_WARNING, "interlace + direct=temporal is not implemented\n" );
-            h->param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_SPATIAL;
-        }
         if( h->param.analyse.i_weighted_pred > 0 )
         {
             x264_log( h, X264_LOG_WARNING, "interlace + weightp is not implemented\n" );
