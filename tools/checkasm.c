@@ -1662,13 +1662,13 @@ static int check_all_flags( void )
         cpu1 &= ~X264_CPU_CACHELINE_64;
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE4, "SSE4" );
     }
-#elif ARCH_PPC
+#elif defined(ARCH_PPC)
     if( x264_cpu_detect() & X264_CPU_ALTIVEC )
     {
         fprintf( stderr, "x264: ALTIVEC against C\n" );
         ret = check_all_funcs( 0, X264_CPU_ALTIVEC );
     }
-#elif ARCH_ARM
+#elif defined(ARCH_ARM)
     if( x264_cpu_detect() & X264_CPU_ARMV6 )
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_ARMV6, "ARMv6" );
     if( x264_cpu_detect() & X264_CPU_NEON )
