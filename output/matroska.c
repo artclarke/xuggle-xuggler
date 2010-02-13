@@ -206,4 +206,4 @@ static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest
     return ret;
 }
 
-cli_output_t mkv_output = { open_file, set_param, write_headers, write_frame, close_file };
+const cli_output_t mkv_output = { open_file, set_param, write_headers, write_frame, close_file };

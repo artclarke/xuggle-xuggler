@@ -305,4 +305,4 @@ static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest
     return 0;
 }
 
-cli_output_t flv_output = { open_file, set_param, write_headers, write_frame, close_file };
+const cli_output_t flv_output = { open_file, set_param, write_headers, write_frame, close_file };

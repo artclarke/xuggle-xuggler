@@ -60,11 +60,11 @@ typedef struct
     int (*close_file)( hnd_t handle );
 } cli_input_t;
 
-extern cli_input_t yuv_input;
-extern cli_input_t y4m_input;
-extern cli_input_t avs_input;
+extern const cli_input_t yuv_input;
+extern const cli_input_t y4m_input;
+extern const cli_input_t avs_input;
 extern cli_input_t thread_input;
-extern cli_input_t lavf_input;
-extern cli_input_t ffms_input;
+extern const cli_input_t lavf_input;
+extern const cli_input_t ffms_input;
 
 #endif

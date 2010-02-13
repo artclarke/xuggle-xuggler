@@ -33,9 +33,9 @@ typedef struct
     int (*close_file)( hnd_t handle, int64_t largest_pts, int64_t second_largest_pts );
 } cli_output_t;
 
-extern cli_output_t raw_output;
-extern cli_output_t mkv_output;
-extern cli_output_t mp4_output;
-extern cli_output_t flv_output;
+extern const cli_output_t raw_output;
+extern const cli_output_t mkv_output;
+extern const cli_output_t mp4_output;
+extern const cli_output_t flv_output;
 
 #endif

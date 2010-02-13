@@ -62,5 +62,5 @@ static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest
     return fclose( (FILE*)handle );
 }
 
-cli_output_t raw_output = { open_file, set_param, write_headers, write_frame, close_file };
+const cli_output_t raw_output = { open_file, set_param, write_headers, write_frame, close_file };
 

@@ -298,4 +298,4 @@ static int write_frame( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_
     return i_size;
 }
 
-cli_output_t mp4_output = { open_file, set_param, write_headers, write_frame, close_file };
+const cli_output_t mp4_output = { open_file, set_param, write_headers, write_frame, close_file };

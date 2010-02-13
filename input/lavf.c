@@ -269,4 +269,4 @@ static int close_file( hnd_t handle )
     return 0;
 }
 
-cli_input_t lavf_input = { open_file, get_frame_total, picture_alloc, read_frame, NULL, picture_clean, close_file };
+const cli_input_t lavf_input = { open_file, get_frame_total, picture_alloc, read_frame, NULL, picture_clean, close_file };

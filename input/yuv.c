@@ -125,4 +125,4 @@ static int close_file( hnd_t handle )
     return 0;
 }
 
-cli_input_t yuv_input = { open_file, get_frame_total, x264_picture_alloc, read_frame, NULL, x264_picture_clean, close_file };
+const cli_input_t yuv_input = { open_file, get_frame_total, x264_picture_alloc, read_frame, NULL, x264_picture_clean, close_file };
