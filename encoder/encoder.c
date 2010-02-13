@@ -108,12 +108,24 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
 
     sh->i_redundant_pic_cnt = 0;
 
-    if( !h->mb.b_direct_auto_read )
+    h->mb.b_direct_auto_write = h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_AUTO
+                                && h->param.i_bframe
+                                && ( h->param.rc.b_stat_write || !h->param.rc.b_stat_read );
+
+    if( !h->mb.b_direct_auto_read && sh->i_type == SLICE_TYPE_B )
     {
-        if( h->mb.b_direct_auto_write )
-            sh->b_direct_spatial_mv_pred = ( h->stat.i_direct_score[1] > h->stat.i_direct_score[0] );
+        if( h->fref1[0]->i_poc_l0ref0 == h->fref0[0]->i_poc )
+        {
+            if( h->mb.b_direct_auto_write )
+                sh->b_direct_spatial_mv_pred = ( h->stat.i_direct_score[1] > h->stat.i_direct_score[0] );
+            else
+                sh->b_direct_spatial_mv_pred = ( param->analyse.i_direct_mv_pred == X264_DIRECT_PRED_SPATIAL );
+        }
         else
-            sh->b_direct_spatial_mv_pred = ( param->analyse.i_direct_mv_pred == X264_DIRECT_PRED_SPATIAL );
+        {
+            h->mb.b_direct_auto_write = 0;
+            sh->b_direct_spatial_mv_pred = 1;
+        }
     }
     /* else b_direct_spatial_mv_pred was read from the 2pass statsfile */
 
@@ -622,10 +634,6 @@ static int x264_validate_parameters( x264_t *h )
 #else
     h->param.i_sync_lookahead = 0;
 #endif
-
-    h->mb.b_direct_auto_write = h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_AUTO
-                                && h->param.i_bframe
-                                && ( h->param.rc.b_stat_write || !h->param.rc.b_stat_read );
 
     h->param.i_deblocking_filter_alphac0 = x264_clip3( h->param.i_deblocking_filter_alphac0, -6, 6 );
     h->param.i_deblocking_filter_beta    = x264_clip3( h->param.i_deblocking_filter_beta, -6, 6 );
@@ -2371,6 +2379,9 @@ int     x264_encoder_encode( x264_t *h,
         x264_reference_check_reorder( h );
     }
 
+    if( h->i_ref0 )
+        h->fdec->i_poc_l0ref0 = h->fref0[0]->i_poc;
+
     if( h->sh.i_type == SLICE_TYPE_B )
         x264_macroblock_bipred_init( h );
 
@@ -2806,7 +2817,8 @@ void    x264_encoder_close  ( x264_t *h )
             x264_log( h, X264_LOG_INFO, "8x8 transform intra:%.1f%%%s\n", 100. * i_i8x8 / i_intra, buf );
         }
 
-        if( h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_AUTO
+        if( (h->param.analyse.i_direct_mv_pred == X264_DIRECT_PRED_AUTO ||
+            (h->stat.i_direct_frames[0] && h->stat.i_direct_frames[1]))
             && h->stat.i_frame_count[SLICE_TYPE_B] )
         {
             x264_log( h, X264_LOG_INFO, "direct mvs  spatial:%.1f%% temporal:%.1f%%\n",
