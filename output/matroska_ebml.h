@@ -35,7 +35,7 @@ int mk_writeHeader( mk_writer *w, const char *writing_app,
 
 int mk_start_frame( mk_writer *w );
 int mk_add_frame_data( mk_writer *w, const void *data, unsigned size );
-int mk_set_frame_flags( mk_writer *w, int64_t timestamp, int keyframe );
+int mk_set_frame_flags( mk_writer *w, int64_t timestamp, int keyframe, int skippable );
 int mk_close( mk_writer *w, int64_t last_delta );
 
 #endif

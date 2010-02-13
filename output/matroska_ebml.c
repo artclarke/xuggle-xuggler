@@ -53,9 +53,9 @@ struct mk_writer
     int64_t def_duration;
     int64_t timescale;
     int64_t cluster_tc_scaled;
-    int64_t frame_tc, prev_frame_tc_scaled, max_frame_tc;
+    int64_t frame_tc, max_frame_tc;
 
-    char wrote_header, in_frame, keyframe;
+    char wrote_header, in_frame, keyframe, skippable;
 };
 
 static mk_context *mk_create_context( mk_writer *w, mk_context *parent, unsigned id )
@@ -258,23 +258,6 @@ static int mk_write_uint( mk_context *c, unsigned id, int64_t ui )
     return 0;
 }
 
-static int mk_write_sint( mk_context *c, unsigned id, int64_t si )
-{
-    unsigned char c_si[8] = { si >> 56, si >> 48, si >> 40, si >> 32, si >> 24, si >> 16, si >> 8, si };
-    unsigned i = 0;
-
-    CHECK( mk_write_id( c, id ) );
-    if( si < 0 )
-        while( i < 7 && c_si[i] == 0xff && c_si[i+1] & 0x80 )
-            ++i;
-    else
-        while( i < 7 && c_si[i] == 0 && !(c_si[i+1] & 0x80 ) )
-            ++i;
-    CHECK( mk_write_size( c, 8 - i ) );
-    CHECK( mk_append_context_data( c, c_si+i, 8 - i ) );
-    return 0;
-}
-
 static int mk_write_float_raw( mk_context *c, float f )
 {
     union
@@ -299,34 +282,6 @@ static int mk_write_float( mk_context *c, unsigned id, float f )
     CHECK( mk_write_size( c, 4 ) );
     CHECK( mk_write_float_raw( c, f ) );
     return 0;
-}
-
-static unsigned mk_ebml_size_size( unsigned s )
-{
-    if( s < 0x7f )
-        return 1;
-    if( s < 0x3fff )
-        return 2;
-    if( s < 0x1fffff )
-        return 3;
-    if( s < 0x0fffffff )
-        return 4;
-    return 5;
-}
-
-static unsigned mk_ebml_sint_size( int64_t si )
-{
-    unsigned char c_si[8] = { si >> 56, si >> 48, si >> 40, si >> 32, si >> 24, si >> 16, si >> 8, si };
-    unsigned i = 0;
-
-    if( si < 0 )
-        while( i < 7 && c_si[i] == 0xff && c_si[i+1] & 0x80 )
-            ++i;
-    else
-        while( i < 7 && c_si[i] == 0 && !(c_si[i+1] & 0x80) )
-            ++i;
-
-    return 8 - i;
 }
 
 mk_writer *mk_create_writer( const char *filename )
@@ -446,8 +401,8 @@ static int mk_close_cluster( mk_writer *w )
 
 static int mk_flush_frame( mk_writer *w )
 {
-    int64_t delta, ref = 0;
-    unsigned fsize, bgsize;
+    int64_t delta;
+    unsigned fsize;
     unsigned char c_delta_flags[3];
 
     if( !w->in_frame )
@@ -470,33 +425,22 @@ static int mk_flush_frame( mk_writer *w )
     }
 
     fsize = w->frame ? w->frame->d_cur : 0;
-    bgsize = fsize + 4 + mk_ebml_size_size( fsize + 4 ) + 1;
-    if( !w->keyframe )
-    {
-        ref = w->prev_frame_tc_scaled - w->cluster_tc_scaled - delta;
-        bgsize += 1 + 1 + mk_ebml_sint_size( ref );
-    }
 
-    CHECK( mk_write_id( w->cluster, 0xa0 ) ); // BlockGroup
-    CHECK( mk_write_size( w->cluster, bgsize ) );
-    CHECK( mk_write_id( w->cluster, 0xa1 ) ); // Block
+    CHECK( mk_write_id( w->cluster, 0xa3 ) ); // SimpleBlock
     CHECK( mk_write_size( w->cluster, fsize + 4 ) );
     CHECK( mk_write_size( w->cluster, 1 ) ); // track number
 
     c_delta_flags[0] = delta >> 8;
     c_delta_flags[1] = delta;
-    c_delta_flags[2] = 0;
+    c_delta_flags[2] = (w->keyframe << 7) | w->skippable;
     CHECK( mk_append_context_data( w->cluster, c_delta_flags, 3 ) );
     if( w->frame )
     {
         CHECK( mk_append_context_data( w->cluster, w->frame->data, w->frame->d_cur ) );
         w->frame->d_cur = 0;
     }
-    if( !w->keyframe )
-        CHECK( mk_write_sint( w->cluster, 0xfb, ref ) ); // ReferenceBlock
 
     w->in_frame = 0;
-    w->prev_frame_tc_scaled = w->cluster_tc_scaled + delta;
 
     if( w->cluster->d_cur > CLSIZE )
         CHECK( mk_close_cluster( w ) );
@@ -509,19 +453,21 @@ int mk_start_frame( mk_writer *w )
     if( mk_flush_frame( w ) < 0 )
         return -1;
 
-    w->in_frame = 1;
-    w->keyframe = 0;
+    w->in_frame  = 1;
+    w->keyframe  = 0;
+    w->skippable = 0;
 
     return 0;
 }
 
-int mk_set_frame_flags( mk_writer *w, int64_t timestamp, int keyframe )
+int mk_set_frame_flags( mk_writer *w, int64_t timestamp, int keyframe, int skippable )
 {
     if( !w->in_frame )
         return -1;
 
-    w->frame_tc = timestamp;
-    w->keyframe = keyframe != 0;
+    w->frame_tc  = timestamp;
+    w->keyframe  = keyframe  != 0;
+    w->skippable = skippable != 0;
 
     if( w->max_frame_tc < timestamp )
         w->max_frame_tc = timestamp;
