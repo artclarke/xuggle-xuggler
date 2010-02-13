@@ -1784,13 +1784,15 @@ static float rate_estimate_qscale( x264_t *h )
     }
     else
     {
-        double abr_buffer = 2 * rcc->rate_tolerance * rcc->bitrate * h->i_thread_frames;
+        double abr_buffer = 2 * rcc->rate_tolerance * rcc->bitrate;
 
         if( rcc->b_2pass )
         {
-            //FIXME adjust abr_buffer based on distance to the end of the video
             int64_t diff;
             int64_t predicted_bits = total_bits;
+            /* Adjust ABR buffer based on distance to the end of the video. */
+            if( rcc->num_entries > h->fenc->i_frame )
+                abr_buffer *= 0.5 * sqrt( rcc->num_entries - h->fenc->i_frame );
 
             if( rcc->b_vbv )
             {
