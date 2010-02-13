@@ -147,10 +147,9 @@ static int block_residual_write_cavlc( x264_t *h, int i_ctxBlockCat, int16_t *l,
 
     if( i_trailing < i_total )
     {
-        int16_t val = runlevel.level[i_trailing];
-        int16_t val_original = runlevel.level[i_trailing]+LEVEL_TABLE_SIZE/2;
-        if( i_trailing < 3 )
-            val -= (val>>15)|1; /* as runlevel.level[i] can't be 1 for the first one if i_trailing < 3 */
+        int val = runlevel.level[i_trailing];
+        int val_original = runlevel.level[i_trailing]+LEVEL_TABLE_SIZE/2;
+        val -= ((val>>31)|1) & -(i_trailing < 3); /* as runlevel.level[i] can't be 1 for the first one if i_trailing < 3 */
         val += LEVEL_TABLE_SIZE/2;
 
         if( (unsigned)val_original < LEVEL_TABLE_SIZE )

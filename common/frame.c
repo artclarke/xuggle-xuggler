@@ -472,12 +472,14 @@ static inline void deblock_luma_c( uint8_t *pix, int xstride, int ystride, int a
                 int delta;
                 if( abs( p2 - p0 ) < beta )
                 {
-                    pix[-2*xstride] = p1 + x264_clip3( (( p2 + ((p0 + q0 + 1) >> 1)) >> 1) - p1, -tc0[i], tc0[i] );
+                    if( tc0[i] )
+                        pix[-2*xstride] = p1 + x264_clip3( (( p2 + ((p0 + q0 + 1) >> 1)) >> 1) - p1, -tc0[i], tc0[i] );
                     tc++;
                 }
                 if( abs( q2 - q0 ) < beta )
                 {
-                    pix[ 1*xstride] = q1 + x264_clip3( (( q2 + ((p0 + q0 + 1) >> 1)) >> 1) - q1, -tc0[i], tc0[i] );
+                    if( tc0[i] )
+                        pix[ 1*xstride] = q1 + x264_clip3( (( q2 + ((p0 + q0 + 1) >> 1)) >> 1) - q1, -tc0[i], tc0[i] );
                     tc++;
                 }
 

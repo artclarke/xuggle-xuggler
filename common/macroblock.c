@@ -272,6 +272,9 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
     x264_macroblock_cache_mv_ptr( h, 0, 0, 4, 4, 0, mv[0] );
     x264_macroblock_cache_mv_ptr( h, 0, 0, 4, 4, 1, mv[1] );
 
+    if( !M64( mv ) )
+        return 1;
+
     if( h->param.i_threads > 1
         && ( mv[0][1] > h->mb.mv_max_spel[1]
           || mv[1][1] > h->mb.mv_max_spel[1] ) )
