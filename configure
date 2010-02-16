@@ -584,7 +584,13 @@ if [ $SYS = MINGW ]; then
 fi
 if [ "$mp4_output" = "auto" ] ; then
     mp4_output="no"
-    cc_check gpac/isomedia.h "$MP4_LDFLAGS" && mp4_output="yes"
+    if cc_check gpac/isomedia.h "$MP4_LDFLAGS" ; then
+        if cc_check gpac/isomedia.h "$MP4_LDFLAGS" "gf_isom_set_pixel_aspect_ratio(0,0,0,0,0);" ; then
+            mp4_output="yes"
+        else
+            echo "Warning: gpac is too old, update to 2007-06-21 UTC or later"
+        fi
+    fi
 fi
 if [ "$mp4_output" = "yes" ] ; then
     define MP4_OUTPUT
