@@ -1077,15 +1077,15 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
 
     rc->qpa_rc =
     rc->qpa_aq = 0;
-    h->fdec->f_qp_avg_rc =
-    h->fdec->f_qp_avg_aq =
     rc->qpm =
     rc->qp = x264_clip3( (int)(q + 0.5), 0, 51 );
+    h->fdec->f_qp_avg_rc =
+    h->fdec->f_qp_avg_aq =
     rc->f_qpm = q;
     if( rce )
         rce->new_qp = rc->qp;
 
-    accum_p_qp_update( h, rc->qp );
+    accum_p_qp_update( h, rc->f_qpm );
 
     if( h->sh.i_type != SLICE_TYPE_B )
         rc->last_non_b_pict_type = h->sh.i_type;
