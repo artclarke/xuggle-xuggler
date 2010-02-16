@@ -239,7 +239,7 @@ public class FileProtocolHandlerTest extends TestCase
     // either SEEK_SIZE equals the size of the file, or it returns -1 because this
     // protocol doesn't support it.
     assertTrue("url_seek 1 failed: " + retval, bytesRead == retval
-        || retval == -1);
+        || retval < 0);
     retval = FfmpegIO.url_seek(handle, position,
         IURLProtocolHandler.SEEK_END);
     assertTrue("url_seek 2 failed: " + retval, retval >= 0);
