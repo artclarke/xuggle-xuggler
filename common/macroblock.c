@@ -36,8 +36,6 @@ void x264_mb_predict_mv( x264_t *h, int i_list, int idx, int i_width, int16_t mv
     int     i_refc = h->mb.cache.ref[i_list][i8 - 8 + i_width];
     int16_t *mv_c  = h->mb.cache.mv[i_list][i8 - 8 + i_width];
 
-    int i_count = 0;
-
     if( (idx&3) >= 2 + (i_width&1) || i_refc == -2 )
     {
         i_refc = h->mb.cache.ref[i_list][i8 - 8 - 1];
@@ -83,9 +81,7 @@ void x264_mb_predict_mv( x264_t *h, int i_list, int idx, int i_width, int16_t mv
         }
     }
 
-    if( i_refa == i_ref ) i_count++;
-    if( i_refb == i_ref ) i_count++;
-    if( i_refc == i_ref ) i_count++;
+    int i_count = (i_refa == i_ref) + (i_refb == i_ref) + (i_refc == i_ref);
 
     if( i_count > 1 )
     {
@@ -115,18 +111,13 @@ void x264_mb_predict_mv_16x16( x264_t *h, int i_list, int i_ref, int16_t mvp[2] 
     int16_t *mv_b  = h->mb.cache.mv[i_list][X264_SCAN8_0 - 8];
     int     i_refc = h->mb.cache.ref[i_list][X264_SCAN8_0 - 8 + 4];
     int16_t *mv_c  = h->mb.cache.mv[i_list][X264_SCAN8_0 - 8 + 4];
-
-    int i_count = 0;
-
     if( i_refc == -2 )
     {
         i_refc = h->mb.cache.ref[i_list][X264_SCAN8_0 - 8 - 1];
         mv_c   = h->mb.cache.mv[i_list][X264_SCAN8_0 - 8 - 1];
     }
 
-    if( i_refa == i_ref ) i_count++;
-    if( i_refb == i_ref ) i_count++;
-    if( i_refc == i_ref ) i_count++;
+    int i_count = (i_refa == i_ref) + (i_refb == i_ref) + (i_refc == i_ref);
 
     if( i_count > 1 )
     {
@@ -196,7 +187,7 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
         if( i_ref >= 0 )
         {
             const int dist_scale_factor = h->mb.dist_scale_factor[i_ref][0];
-            const int16_t *mv_col = h->fref1[0]->mv[0][ i_mb_4x4 + 3*x8 + 3*y8 * h->mb.i_b4_stride];
+            const int16_t *mv_col = h->fref1[0]->mv[0][i_mb_4x4 + 3*x8 + 3*y8 * h->mb.i_b4_stride];
             const int l0x = ( dist_scale_factor * mv_col[0] + 128 ) >> 8;
             const int l0y = ( dist_scale_factor * mv_col[1] + 128 ) >> 8;
             if( h->param.i_threads > 1 && (l0y > h->mb.mv_max_spel[1] || l0y-mv_col[1] > h->mb.mv_max_spel[1]) )
@@ -221,58 +212,67 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
 
 static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
 {
-    int ref[2];
+    int8_t ref[2];
     ALIGNED_ARRAY_8( int16_t, mv,[2],[2] );
-    int i_list;
-    int i8;
-    const int8_t *l1ref0 = &h->fref1[0]->ref[0][ h->mb.i_b8_xy ];
-    const int8_t *l1ref1 = &h->fref1[0]->ref[1][ h->mb.i_b8_xy ];
-    const int16_t (*l1mv0)[2] = (const int16_t (*)[2]) &h->fref1[0]->mv[0][ h->mb.i_b4_xy ];
-    const int16_t (*l1mv1)[2] = (const int16_t (*)[2]) &h->fref1[0]->mv[1][ h->mb.i_b4_xy ];
-    const int type_col = h->fref1[0]->mb_type[ h->mb.i_mb_xy ];
+    int i_list, i8, i_ref;
+    const int8_t *l1ref0 = &h->fref1[0]->ref[0][h->mb.i_b8_xy];
+    const int8_t *l1ref1 = &h->fref1[0]->ref[1][h->mb.i_b8_xy];
+    const int16_t (*l1mv[2])[2] = { (const int16_t (*)[2]) &h->fref1[0]->mv[0][h->mb.i_b4_xy],
+                                    (const int16_t (*)[2]) &h->fref1[0]->mv[1][h->mb.i_b4_xy] };
+    const int type_col = h->fref1[0]->mb_type[h->mb.i_mb_xy];
 
-    for( i_list=0; i_list<2; i_list++ )
+    for( i_list = 0; i_list < 2; i_list++ )
     {
-        int i_refa = h->mb.cache.ref[i_list][X264_SCAN8_0 - 1];
-        int i_refb = h->mb.cache.ref[i_list][X264_SCAN8_0 - 8];
-        int i_refc = h->mb.cache.ref[i_list][X264_SCAN8_0 - 8 + 4];
+        int     i_refa = h->mb.cache.ref[i_list][X264_SCAN8_0 - 1];
+        int16_t *mv_a  = h->mb.cache.mv[i_list][X264_SCAN8_0 - 1];
+        int     i_refb = h->mb.cache.ref[i_list][X264_SCAN8_0 - 8];
+        int16_t *mv_b  = h->mb.cache.mv[i_list][X264_SCAN8_0 - 8];
+        int     i_refc = h->mb.cache.ref[i_list][X264_SCAN8_0 - 8 + 4];
+        int16_t *mv_c  = h->mb.cache.mv[i_list][X264_SCAN8_0 - 8 + 4];
         if( i_refc == -2 )
+        {
             i_refc = h->mb.cache.ref[i_list][X264_SCAN8_0 - 8 - 1];
+            mv_c   = h->mb.cache.mv[i_list][X264_SCAN8_0 - 8 - 1];
+        }
 
-        ref[i_list] = i_refa;
-        if( ref[i_list] < 0 || ( i_refb < ref[i_list] && i_refb >= 0 ))
-            ref[i_list] = i_refb;
-        if( ref[i_list] < 0 || ( i_refc < ref[i_list] && i_refc >= 0 ))
-            ref[i_list] = i_refc;
-        if( ref[i_list] < 0 )
-            ref[i_list] = -1;
+        i_ref = X264_MIN3( (unsigned)i_refa, (unsigned)i_refb, (unsigned)i_refc );
+        if( i_ref < 0 )
+        {
+            i_ref = -1;
+            M32( mv[i_list] ) = 0;
+        }
+        else
+        {
+            /* Same as x264_mb_predict_mv_16x16, but simplified to eliminate cases
+             * not relevant to spatial direct. */
+            int i_count = (i_refa == i_ref) + (i_refb == i_ref) + (i_refc == i_ref);
+
+            if( i_count > 1 )
+                x264_median_mv( mv[i_list], mv_a, mv_b, mv_c );
+            else
+            {
+                if( i_refa == i_ref )
+                    CP32( mv[i_list], mv_a );
+                else if( i_refb == i_ref )
+                    CP32( mv[i_list], mv_b );
+                else
+                    CP32( mv[i_list], mv_c );
+            }
+        }
+
+        x264_macroblock_cache_ref( h, 0, 0, 4, 4, i_list, i_ref );
+        x264_macroblock_cache_mv_ptr( h, 0, 0, 4, 4, i_list, mv[i_list] );
+        ref[i_list] = i_ref;
     }
 
-    if( ref[0] < 0 && ref[1] < 0 )
+    if( (M16( ref ) & 0x8080) == 0x8080 ) /* if( ref[0] < 0 && ref[1] < 0 ) */
     {
         x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, 0 );
         x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, 0 );
-        x264_macroblock_cache_mv( h, 0, 0, 4, 4, 0, 0 );
-        x264_macroblock_cache_mv( h, 0, 0, 4, 4, 1, 0 );
         return 1;
     }
 
-    if( ref[0] >= 0 )
-        x264_mb_predict_mv_16x16( h, 0, ref[0], mv[0] );
-    else
-        M32( mv[0] ) = 0;
-
-    if( ref[1] >= 0 )
-        x264_mb_predict_mv_16x16( h, 1, ref[1], mv[1] );
-    else
-        M32( mv[1] ) = 0;
-
-    x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, ref[0] );
-    x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, ref[1] );
-    x264_macroblock_cache_mv_ptr( h, 0, 0, 4, 4, 0, mv[0] );
-    x264_macroblock_cache_mv_ptr( h, 0, 0, 4, 4, 1, mv[1] );
-
-    if( !M64( mv ) )
+    if( !M64( mv ) || IS_INTRA( type_col ) || (ref[0]&&ref[1]) )
         return 1;
 
     if( h->param.i_threads > 1
@@ -287,31 +287,25 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
         return 0;
     }
 
-    if( IS_INTRA( type_col ) || (ref[0]&&ref[1]) )
-        return 1;
-
     /* col_zero_flag */
-    for( i8=0; i8<4; i8++ )
+    for( i8 = 0; i8 < 4; i8++ )
     {
-        const int x8 = i8%2;
-        const int y8 = i8/2;
+        const int x8 = i8&1;
+        const int y8 = i8>>1;
         const int o8 = x8 + y8 * h->mb.i_b8_stride;
         const int o4 = 3*(x8 + y8 * h->mb.i_b4_stride);
+        int idx;
         if( l1ref0[o8] == 0 )
-        {
-            if( abs( l1mv0[o4][0] ) <= 1 && abs( l1mv0[o4][1] ) <= 1 )
-            {
-                if( ref[0] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 0, 0 );
-                if( ref[1] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 1, 0 );
-            }
-        }
+            idx = 0;
         else if( l1ref0[o8] < 0 && l1ref1[o8] == 0 )
+            idx = 1;
+        else
+            continue;
+
+        if( abs( l1mv[idx][o4][0] ) <= 1 && abs( l1mv[idx][o4][1] ) <= 1 )
         {
-            if( abs( l1mv1[o4][0] ) <= 1 && abs( l1mv1[o4][1] ) <= 1 )
-            {
-                if( ref[0] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 0, 0 );
-                if( ref[1] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 1, 0 );
-            }
+            if( ref[0] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 0, 0 );
+            if( ref[1] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 1, 0 );
         }
     }
 
