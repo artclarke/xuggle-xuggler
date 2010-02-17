@@ -714,10 +714,36 @@ StreamCoder::decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
     // reset the samples
     samples->setComplete(false, 0, getSampleRate(), getChannels(),
         (IAudioSamples::Format) mCodecContext->sample_fmt, Global::NO_PTS);
+  if (!samples) {
+    VS_LOG_WARN("Attempting to decode when not ready; no samples");
+    return retval;
+  }
+  if (!packet) {
+    VS_LOG_WARN("Attempting to decode when not ready; no packet");
+    return retval;
+  }
+  if (!mOpened) {
+    VS_LOG_WARN("Attempting to decode when not ready; codec not opened");
+    return retval;
+  }
+  if (!mCodecContext) {
+    VS_LOG_WARN("Attempting to decode when not ready; internal context not allocated");
+    return retval;
+  }
+  if (mDirection != DECODING) {
+    VS_LOG_WARN("Attempting to decode when not ready; StreamCoder is set to encode, not decode");
+    return retval;
+  }
+  if (!mCodec || !mCodec->canDecode()) {
+    VS_LOG_WARN("Attempting to decode when not ready; codec set cannot decode");
+    return retval;
+  }
+  if (getCodecType() != ICodec::CODEC_TYPE_AUDIO) {
+    VS_LOG_WARN("Attempting to decode when not ready; codec set is not an audio codec");
+    return retval;
+  }
 
-  if (samples && packet && mCodecContext && mOpened && mDirection == DECODING
-      && mCodec->canDecode() && getCodecType() == ICodec::CODEC_TYPE_AUDIO)
-  {
+
     int outBufSize = 0;
     int32_t inBufSize = 0;
 
@@ -856,7 +882,7 @@ StreamCoder::decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
             getChannels(), format, mFakeCurrPts);
       }
     }
-  }
+
   return retval;
 }
 
@@ -871,9 +897,35 @@ StreamCoder::decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
     // reset the frame
     frame->setComplete(false, IPixelFormat::NONE, -1, -1, mFakeCurrPts);
 
-  if (frame && packet && mCodecContext && mOpened && mDirection == DECODING
-      && mCodec->canDecode() && getCodecType() == ICodec::CODEC_TYPE_VIDEO)
-  {
+  if (!frame) {
+    VS_LOG_WARN("Attempting to decode when not ready; no frame");
+    return retval;
+  }
+  if (!packet) {
+    VS_LOG_WARN("Attempting to decode when not ready; no packet");
+    return retval;
+  }
+  if (!mOpened) {
+    VS_LOG_WARN("Attempting to decode when not ready; codec not opened");
+    return retval;
+  }
+  if (!mCodecContext) {
+    VS_LOG_WARN("Attempting to decode when not ready; internal context not allocated");
+    return retval;
+  }
+  if (mDirection != DECODING) {
+    VS_LOG_WARN("Attempting to decode when not ready; StreamCoder is set to encode, not decode");
+    return retval;
+  }
+  if (!mCodec || !mCodec->canDecode()) {
+    VS_LOG_WARN("Attempting to decode when not ready; codec set cannot decode");
+    return retval;
+  }
+  if (getCodecType() != ICodec::CODEC_TYPE_VIDEO) {
+    VS_LOG_WARN("Attempting to decode when not ready; codec set is not a video codec");
+    return retval;
+  }
+
     AVFrame *avFrame = avcodec_alloc_frame();
     if (avFrame)
     {
@@ -976,11 +1028,6 @@ StreamCoder::decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
       }
       av_free(avFrame);
     }
-  }
-  else
-  {
-    VS_LOG_WARN("Attempting to decode when not ready");
-  }
 
   return retval;
 }
