@@ -460,6 +460,7 @@ namespace com { namespace xuggle { namespace xuggler
       } else
       {
         retval = url_fclose(mFormatContext->pb);
+        av_metadata_free(&mFormatContext->metadata);
         av_free(mFormatContext);
         mFormatContext = 0;
       }
