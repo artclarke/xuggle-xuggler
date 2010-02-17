@@ -744,144 +744,144 @@ StreamCoder::decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
   }
 
 
-    int outBufSize = 0;
-    int32_t inBufSize = 0;
+  int outBufSize = 0;
+  int32_t inBufSize = 0;
 
-    // When decoding with FFMPEG, ffmpeg needs the sample buffer
-    // to be at least this long.
-    samples->ensureCapacity(AVCODEC_MAX_AUDIO_FRAME_SIZE);
-    outBufSize = samples->getMaxBufferSize();
-    inBufSize = packet->getSize() - startingByte;
+  // When decoding with FFMPEG, ffmpeg needs the sample buffer
+  // to be at least this long.
+  samples->ensureCapacity(AVCODEC_MAX_AUDIO_FRAME_SIZE);
+  outBufSize = samples->getMaxBufferSize();
+  inBufSize = packet->getSize() - startingByte;
 
-    if (inBufSize > 0 && outBufSize > 0)
+  if (inBufSize > 0 && outBufSize > 0)
+  {
+    RefPointer<IBuffer> buffer = packet->getData();
+    uint8_t * inBuf = 0;
+    int16_t * outBuf = 0;
+
+    VS_ASSERT(buffer, "no buffer in packet!");
+    if (buffer)
+      inBuf = (uint8_t*) buffer->getBytes(startingByte, inBufSize);
+
+    outBuf = samples->getRawSamples(0);
+
+    VS_ASSERT(inBuf, "no in buffer");
+    VS_ASSERT(outBuf, "no out buffer");
+    if (outBuf && inBuf)
     {
-      RefPointer<IBuffer> buffer = packet->getData();
-      uint8_t * inBuf = 0;
-      int16_t * outBuf = 0;
+      VS_LOG_TRACE("Attempting decodeAudio(%p, %p, %d, %p, %d);",
+          mCodecContext,
+          outBuf,
+          outBufSize,
+          inBuf,
+          inBufSize);
+      AVPacket pkt;
+      av_init_packet(&pkt);
+      if (packet && packet->getAVPacket())
+        pkt = *packet->getAVPacket();
+      // copy in our buffer
+      pkt.data = inBuf;
+      pkt.size = inBufSize;
 
-      VS_ASSERT(buffer, "no buffer in packet!");
-      if (buffer)
-        inBuf = (uint8_t*) buffer->getBytes(startingByte, inBufSize);
+      mCodecContext->reordered_opaque = packet->getPts();
+      retval
+      = avcodec_decode_audio3(mCodecContext, outBuf, &outBufSize, &pkt);
+      VS_LOG_TRACE("Finished %d decodeAudio(%p, %p, %d, %p, %d);",
+          retval,
+          mCodecContext,
+          outBuf,
+          outBufSize,
+          inBuf,
+          inBufSize);
+    }
+    if (retval >= 0)
+    {
+      // outBufSize is an In-Out parameter
+      if (outBufSize < 0)
+        // this can happen for some MPEG decoders
+        outBufSize = 0;
 
-      outBuf = samples->getRawSamples(0);
+      IAudioSamples::Format format =
+          (IAudioSamples::Format) mCodecContext->sample_fmt;
+      int32_t bytesPerSample = (IAudioSamples::findSampleBitDepth(format) / 8
+          * getChannels());
+      int32_t numSamples = outBufSize / bytesPerSample;
 
-      VS_ASSERT(inBuf, "no in buffer");
-      VS_ASSERT(outBuf, "no out buffer");
-      if (outBuf && inBuf)
+      // The audio decoder doesn't set a PTS, so we need to manufacture one.
+      RefPointer<IRational> timeBase =
+          this->mStream ? this->mStream->getTimeBase() : 0;
+      if (!timeBase)
+        timeBase = this->getTimeBase();
+
+      int64_t packetTs = packet->getPts();
+      if (packetTs == Global::NO_PTS)
+        packetTs = packet->getDts();
+
+      if (packetTs == Global::NO_PTS && mFakeNextPts == Global::NO_PTS)
       {
-        VS_LOG_TRACE("Attempting decodeAudio(%p, %p, %d, %p, %d);",
-            mCodecContext,
-            outBuf,
-            outBufSize,
-            inBuf,
-            inBufSize);
-        AVPacket pkt;
-        av_init_packet(&pkt);
-        if (packet && packet->getAVPacket())
-          pkt = *packet->getAVPacket();
-        // copy in our buffer
-        pkt.data = inBuf;
-        pkt.size = inBufSize;
-
-        mCodecContext->reordered_opaque = packet->getPts();
-        retval
-            = avcodec_decode_audio3(mCodecContext, outBuf, &outBufSize, &pkt);
-        VS_LOG_TRACE("Finished %d decodeAudio(%p, %p, %d, %p, %d);",
-            retval,
-            mCodecContext,
-            outBuf,
-            outBufSize,
-            inBuf,
-            inBufSize);
+        // the container doesn't have time stamps; assume we start
+        // at zero
+        VS_LOG_TRACE("Setting fake pts to 0");
+        mFakeNextPts = 0;
       }
-      if (retval >= 0)
+      if (packetTs != Global::NO_PTS)
       {
-        // outBufSize is an In-Out parameter
-        if (outBufSize < 0)
-          // this can happen for some MPEG decoders
-          outBufSize = 0;
-
-        IAudioSamples::Format format =
-            (IAudioSamples::Format) mCodecContext->sample_fmt;
-        int32_t bytesPerSample = (IAudioSamples::findSampleBitDepth(format) / 8
-            * getChannels());
-        int32_t numSamples = outBufSize / bytesPerSample;
-
-        // The audio decoder doesn't set a PTS, so we need to manufacture one.
-        RefPointer<IRational> timeBase =
-            this->mStream ? this->mStream->getTimeBase() : 0;
-        if (!timeBase)
-          timeBase = this->getTimeBase();
-
-        int64_t packetTs = packet->getPts();
-        if (packetTs == Global::NO_PTS)
-          packetTs = packet->getDts();
-
-        if (packetTs == Global::NO_PTS && mFakeNextPts == Global::NO_PTS)
+        // The packet had a valid stream, and a valid time base
+        if (timeBase->getNumerator() != 0 && timeBase->getDenominator() != 0)
         {
-          // the container doesn't have time stamps; assume we start
-          // at zero
-          VS_LOG_TRACE("Setting fake pts to 0");
-          mFakeNextPts = 0;
-        }
-        if (packetTs != Global::NO_PTS)
-        {
-          // The packet had a valid stream, and a valid time base
-          if (timeBase->getNumerator() != 0 && timeBase->getDenominator() != 0)
+          int64_t tsDelta = Global::NO_PTS;
+          if (mFakeNextPts != Global::NO_PTS)
           {
-            int64_t tsDelta = Global::NO_PTS;
-            if (mFakeNextPts != Global::NO_PTS)
-            {
-              int64_t fakeTsInStreamTimeBase = Global::NO_PTS;
-              // rescale our fake into the time base of stream
-              fakeTsInStreamTimeBase = timeBase->rescale(mFakeNextPts,
-                  mFakePtsTimeBase.value());
-              tsDelta = fakeTsInStreamTimeBase - packetTs;
-            }
+            int64_t fakeTsInStreamTimeBase = Global::NO_PTS;
+            // rescale our fake into the time base of stream
+            fakeTsInStreamTimeBase = timeBase->rescale(mFakeNextPts,
+                mFakePtsTimeBase.value());
+            tsDelta = fakeTsInStreamTimeBase - packetTs;
+          }
 
-            // now, compare it to our internal value;  if our internally calculated value
-            // is within 1 tick of the packet's time stamp (in the packet's time base),
-            // then we're probably right;
-            // otherwise, we should reset the stream's fake time stamp based on this
-            // packet
-            if (mFakeNextPts != Global::NO_PTS && (tsDelta >= -1 && tsDelta
-                <= 1))
-            {
-              // we're the right value; keep our fake next pts
-              VS_LOG_TRACE("Keeping mFakeNextPts: %lld", mFakeNextPts);
-            }
-            else
-            {
-              // rescale to our internal timebase
-              int64_t packetTsInMicroseconds = mFakePtsTimeBase->rescale(
-                  packetTs, timeBase.value());
-              VS_LOG_TRACE("%p Gap in audio (%lld); Resetting calculated ts from %lld to %lld",
-                  this,
-                  tsDelta,
-                  mFakeNextPts,
-                  packetTsInMicroseconds);
-              mLastExternallySetTimeStamp = packetTsInMicroseconds;
-              mSamplesCoded = 0;
-              mFakeNextPts = mLastExternallySetTimeStamp;
-            }
+          // now, compare it to our internal value;  if our internally calculated value
+          // is within 1 tick of the packet's time stamp (in the packet's time base),
+          // then we're probably right;
+          // otherwise, we should reset the stream's fake time stamp based on this
+          // packet
+          if (mFakeNextPts != Global::NO_PTS && (tsDelta >= -1 && tsDelta
+              <= 1))
+          {
+            // we're the right value; keep our fake next pts
+            VS_LOG_TRACE("Keeping mFakeNextPts: %lld", mFakeNextPts);
+          }
+          else
+          {
+            // rescale to our internal timebase
+            int64_t packetTsInMicroseconds = mFakePtsTimeBase->rescale(
+                packetTs, timeBase.value());
+            VS_LOG_TRACE("%p Gap in audio (%lld); Resetting calculated ts from %lld to %lld",
+                this,
+                tsDelta,
+                mFakeNextPts,
+                packetTsInMicroseconds);
+            mLastExternallySetTimeStamp = packetTsInMicroseconds;
+            mSamplesCoded = 0;
+            mFakeNextPts = mLastExternallySetTimeStamp;
           }
         }
-        // Use the last value of the next pts
-        mFakeCurrPts = mFakeNextPts;
-        // adjust our next Pts pointer
-        if (numSamples > 0)
-        {
-          mSamplesCoded += numSamples;
-          mFakeNextPts = mLastExternallySetTimeStamp
-              + IAudioSamples::samplesToDefaultPts(mSamplesCoded,
-                  getSampleRate());
-        }
-
-        // copy the packet PTS
-        samples->setComplete(numSamples > 0, numSamples, getSampleRate(),
-            getChannels(), format, mFakeCurrPts);
       }
+      // Use the last value of the next pts
+      mFakeCurrPts = mFakeNextPts;
+      // adjust our next Pts pointer
+      if (numSamples > 0)
+      {
+        mSamplesCoded += numSamples;
+        mFakeNextPts = mLastExternallySetTimeStamp
+            + IAudioSamples::samplesToDefaultPts(mSamplesCoded,
+                getSampleRate());
+      }
+
+      // copy the packet PTS
+      samples->setComplete(numSamples > 0, numSamples, getSampleRate(),
+          getChannels(), format, mFakeCurrPts);
     }
+  }
 
   return retval;
 }
@@ -926,108 +926,108 @@ StreamCoder::decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
     return retval;
   }
 
-    AVFrame *avFrame = avcodec_alloc_frame();
-    if (avFrame)
+  AVFrame *avFrame = avcodec_alloc_frame();
+  if (avFrame)
+  {
+    RefPointer<IBuffer> buffer = packet->getData();
+    int frameFinished = 0;
+    int32_t inBufSize = 0;
+    uint8_t * inBuf = 0;
+
+    inBufSize = packet->getSize() - byteOffset;
+
+    VS_ASSERT(buffer, "no buffer in packet?");
+    if (buffer)
+      inBuf = (uint8_t*) buffer->getBytes(byteOffset, inBufSize);
+
+    VS_ASSERT(inBuf, "incorrect size or no data in packet");
+
+    if (inBufSize > 0 && inBuf)
     {
-      RefPointer<IBuffer> buffer = packet->getData();
-      int frameFinished = 0;
-      int32_t inBufSize = 0;
-      uint8_t * inBuf = 0;
+      VS_LOG_TRACE("Attempting decodeVideo(%p, %p, %d, %p, %d);",
+          mCodecContext,
+          avFrame,
+          frameFinished,
+          inBuf,
+          inBufSize);
+      AVPacket pkt;
+      av_init_packet(&pkt);
+      if (packet && packet->getAVPacket())
+        pkt = *packet->getAVPacket();
+      // copy in our buffer
+      pkt.data = inBuf;
+      pkt.size = inBufSize;
 
-      inBufSize = packet->getSize() - byteOffset;
-
-      VS_ASSERT(buffer, "no buffer in packet?");
-      if (buffer)
-        inBuf = (uint8_t*) buffer->getBytes(byteOffset, inBufSize);
-
-      VS_ASSERT(inBuf, "incorrect size or no data in packet");
-
-      if (inBufSize > 0 && inBuf)
+      mCodecContext->reordered_opaque = packet->getPts();
+      retval = avcodec_decode_video2(mCodecContext, avFrame, &frameFinished,
+          &pkt);
+      VS_LOG_TRACE("Finished %d decodeVideo(%p, %p, %d, %p, %d);",
+          retval,
+          mCodecContext,
+          avFrame,
+          frameFinished,
+          inBuf,
+          inBufSize);
+      if (frameFinished)
       {
-        VS_LOG_TRACE("Attempting decodeVideo(%p, %p, %d, %p, %d);",
-            mCodecContext,
-            avFrame,
-            frameFinished,
-            inBuf,
-            inBufSize);
-        AVPacket pkt;
-        av_init_packet(&pkt);
-        if (packet && packet->getAVPacket())
-          pkt = *packet->getAVPacket();
-        // copy in our buffer
-        pkt.data = inBuf;
-        pkt.size = inBufSize;
+        // copy FFMPEG's buffer into our buffer; don't try to get efficient
+        // and reuse the buffer FFMPEG is using; in order to allow our
+        // buffers to be thread safe, we must do a copy here.
+        frame->copyAVFrame(avFrame, getPixelType(), getWidth(), getHeight());
+        RefPointer<IRational> timeBase = 0;
+        timeBase = this->mStream ? this->mStream->getTimeBase() : 0;
+        if (!timeBase)
+          timeBase = this->getTimeBase();
 
-        mCodecContext->reordered_opaque = packet->getPts();
-        retval = avcodec_decode_video2(mCodecContext, avFrame, &frameFinished,
-            &pkt);
-        VS_LOG_TRACE("Finished %d decodeVideo(%p, %p, %d, %p, %d);",
-            retval,
-            mCodecContext,
-            avFrame,
-            frameFinished,
-            inBuf,
-            inBufSize);
-        if (frameFinished)
+        int64_t packetTs = avFrame->reordered_opaque;
+        // if none, assume this packet's decode time, since
+        // it's presentation time should have been in reordered_opaque
+        if (packetTs == Global::NO_PTS)
+          packetTs = packet->getDts();
+
+        if (packetTs != Global::NO_PTS)
         {
-          // copy FFMPEG's buffer into our buffer; don't try to get efficient
-          // and reuse the buffer FFMPEG is using; in order to allow our
-          // buffers to be thread safe, we must do a copy here.
-          frame->copyAVFrame(avFrame, getPixelType(), getWidth(), getHeight());
-          RefPointer<IRational> timeBase = 0;
-          timeBase = this->mStream ? this->mStream->getTimeBase() : 0;
-          if (!timeBase)
-            timeBase = this->getTimeBase();
-
-          int64_t packetTs = avFrame->reordered_opaque;
-          // if none, assume this packet's decode time, since
-          // it's presentation time should have been in reordered_opaque
-          if (packetTs == Global::NO_PTS)
-            packetTs = packet->getDts();
-
-          if (packetTs != Global::NO_PTS)
+          if (timeBase->getNumerator() != 0)
           {
-            if (timeBase->getNumerator() != 0)
-            {
-              // The decoder set a PTS, so we let it override us
-              int64_t nextPts = mFakePtsTimeBase->rescale(packetTs,
+            // The decoder set a PTS, so we let it override us
+            int64_t nextPts = mFakePtsTimeBase->rescale(packetTs,
+                timeBase.value());
+            // some youtube videos incorrectly return a packet
+            // with the wrong re-ordered opaque setting.  this
+            // detects that and uses the PTS from the packet instead.
+            // See: http://code.google.com/p/xuggle/issues/detail?id=165
+            // in this way we enforce that timestamps are always
+            // increasing
+            if (nextPts < mFakeNextPts && packet->getPts() != Global::NO_PTS)
+              nextPts = mFakePtsTimeBase->rescale(packet->getPts(),
                   timeBase.value());
-              // some youtube videos incorrectly return a packet
-              // with the wrong re-ordered opaque setting.  this
-              // detects that and uses the PTS from the packet instead.
-              // See: http://code.google.com/p/xuggle/issues/detail?id=165
-              // in this way we enforce that timestamps are always
-              // increasing
-              if (nextPts < mFakeNextPts && packet->getPts() != Global::NO_PTS)
-                nextPts = mFakePtsTimeBase->rescale(packet->getPts(),
-                    timeBase.value());
-              mFakeNextPts = nextPts;
-            }
+            mFakeNextPts = nextPts;
           }
-
-          // Use the last value of the next pts
-          mFakeCurrPts = mFakeNextPts;
-          double frameDelay = av_rescale(timeBase->getNumerator(),
-              AV_TIME_BASE, timeBase->getDenominator());
-          frameDelay += avFrame->repeat_pict * (frameDelay * 0.5);
-
-          // adjust our next Pts pointer
-          mFakeNextPts += (int64_t) frameDelay;
-          //          VS_LOG_DEBUG("frame complete: %s; pts: %lld; packet ts: %lld; opaque ts: %lld; tb: %ld/%ld",
-          //              (frameFinished ? "yes" : "no"),
-          //              mFakeCurrPts,
-          //              (packet ? packet->getDts() : 0),
-          //              packetTs,
-          //              timeBase->getNumerator(),
-          //              timeBase->getDenominator()
-          //          );
         }
-        frame->setComplete(frameFinished, this->getPixelType(),
-            this->getWidth(), this->getHeight(), mFakeCurrPts);
 
+        // Use the last value of the next pts
+        mFakeCurrPts = mFakeNextPts;
+        double frameDelay = av_rescale(timeBase->getNumerator(),
+            AV_TIME_BASE, timeBase->getDenominator());
+        frameDelay += avFrame->repeat_pict * (frameDelay * 0.5);
+
+        // adjust our next Pts pointer
+        mFakeNextPts += (int64_t) frameDelay;
+        //          VS_LOG_DEBUG("frame complete: %s; pts: %lld; packet ts: %lld; opaque ts: %lld; tb: %ld/%ld",
+        //              (frameFinished ? "yes" : "no"),
+        //              mFakeCurrPts,
+        //              (packet ? packet->getDts() : 0),
+        //              packetTs,
+        //              timeBase->getNumerator(),
+        //              timeBase->getDenominator()
+        //          );
       }
-      av_free(avFrame);
+      frame->setComplete(frameFinished, this->getPixelType(),
+          this->getWidth(), this->getHeight(), mFakeCurrPts);
+
     }
+    av_free(avFrame);
+  }
 
   return retval;
 }
