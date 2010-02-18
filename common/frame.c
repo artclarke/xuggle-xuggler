@@ -95,6 +95,7 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
     if( b_fdec ) /* fdec frame */
     {
         CHECKED_MALLOC( frame->mb_type, i_mb_count * sizeof(int8_t));
+        CHECKED_MALLOC( frame->mb_partition, i_mb_count * sizeof(uint8_t));
         CHECKED_MALLOC( frame->mv[0], 2*16 * i_mb_count * sizeof(int16_t) );
         CHECKED_MALLOC( frame->ref[0], 4 * i_mb_count * sizeof(int8_t) );
         if( h->param.i_bframe )

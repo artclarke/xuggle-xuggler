@@ -75,6 +75,7 @@ typedef struct x264_frame
 
     /* motion data */
     int8_t  *mb_type;
+    uint8_t *mb_partition;
     int16_t (*mv[2])[2];
     int16_t (*lowres_mvs[2][X264_BFRAME_MAX+1])[2];
     uint16_t (*lowres_costs[X264_BFRAME_MAX+2][X264_BFRAME_MAX+2]);

@@ -3149,6 +3149,7 @@ static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a  )
 
         case B_SKIP:
         case B_DIRECT:
+            h->mb.i_partition = h->mb.cache.direct_partition;
             x264_mb_load_mv_direct8x8( h, 0 );
             x264_mb_load_mv_direct8x8( h, 1 );
             x264_mb_load_mv_direct8x8( h, 2 );

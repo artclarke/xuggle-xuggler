@@ -165,8 +165,11 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
     int i_mb_8x8 =  4 * h->mb.i_mb_stride * h->mb.i_mb_y + 2 * h->mb.i_mb_x;
     int i8;
     const int type_col = h->fref1[0]->mb_type[h->mb.i_mb_xy];
+    const int partition_col = h->fref1[0]->mb_partition[h->mb.i_mb_xy];
 
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, 0 );
+
+    h->mb.i_partition = partition_col;
 
     if( IS_INTRA( type_col ) )
     {
@@ -176,7 +179,15 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
         return 1;
     }
 
-    for( i8 = 0; i8 < 4; i8++ )
+    /* Don't do any checks other than the ones we have to, based
+     * on the size of the colocated partitions.
+     * Depends on the enum order: D_8x8, D_16x8, D_8x16, D_16x16 */
+    int max_i8 = (D_16x16 - partition_col) + 1;
+    int step = (partition_col == D_16x8) + 1;
+    int width = 4 >> ((D_16x16 - partition_col)&1);
+    int height = 4 >> ((D_16x16 - partition_col)>>1);
+
+    for( i8 = 0; i8 < max_i8; i8 += step )
     {
         const int x8 = i8%2;
         const int y8 = i8/2;
@@ -192,9 +203,9 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
             const int l0y = ( dist_scale_factor * mv_col[1] + 128 ) >> 8;
             if( h->param.i_threads > 1 && (l0y > h->mb.mv_max_spel[1] || l0y-mv_col[1] > h->mb.mv_max_spel[1]) )
                 return 0;
-            x264_macroblock_cache_ref( h, 2*x8, 2*y8, 2, 2, 0, i_ref );
-            x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 0, pack16to32_mask(l0x, l0y) );
-            x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 1, pack16to32_mask(l0x-mv_col[0], l0y-mv_col[1]) );
+            x264_macroblock_cache_ref( h, 2*x8, 2*y8, width, height, 0, i_ref );
+            x264_macroblock_cache_mv( h, 2*x8, 2*y8, width, height, 0, pack16to32_mask(l0x, l0y) );
+            x264_macroblock_cache_mv( h, 2*x8, 2*y8, width, height, 1, pack16to32_mask(l0x-mv_col[0], l0y-mv_col[1]) );
         }
         else
         {
@@ -220,6 +231,9 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
     const int16_t (*l1mv[2])[2] = { (const int16_t (*)[2]) &h->fref1[0]->mv[0][h->mb.i_b4_xy],
                                     (const int16_t (*)[2]) &h->fref1[0]->mv[1][h->mb.i_b4_xy] };
     const int type_col = h->fref1[0]->mb_type[h->mb.i_mb_xy];
+    const int partition_col = h->fref1[0]->mb_partition[h->mb.i_mb_xy];
+
+    h->mb.i_partition = partition_col;
 
     for( i_list = 0; i_list < 2; i_list++ )
     {
@@ -287,8 +301,16 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
         return 0;
     }
 
+    /* Don't do any checks other than the ones we have to, based
+     * on the size of the colocated partitions.
+     * Depends on the enum order: D_8x8, D_16x8, D_8x16, D_16x16 */
+    int max_i8 = (D_16x16 - partition_col) + 1;
+    int step = (partition_col == D_16x8) + 1;
+    int width = 4 >> ((D_16x16 - partition_col)&1);
+    int height = 4 >> ((D_16x16 - partition_col)>>1);
+
     /* col_zero_flag */
-    for( i8 = 0; i8 < 4; i8++ )
+    for( i8 = 0; i8 < max_i8; i8 += step )
     {
         const int x8 = i8&1;
         const int y8 = i8>>1;
@@ -304,8 +326,8 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
 
         if( abs( l1mv[idx][o4][0] ) <= 1 && abs( l1mv[idx][o4][1] ) <= 1 )
         {
-            if( ref[0] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 0, 0 );
-            if( ref[1] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, 2, 2, 1, 0 );
+            if( ref[0] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, width, height, 0, 0 );
+            if( ref[1] == 0 ) x264_macroblock_cache_mv( h, 2*x8, 2*y8, width, height, 1, 0 );
         }
     }
 
@@ -324,32 +346,29 @@ int x264_mb_predict_mv_direct16x16( x264_t *h, int *b_changed )
 
     if( b_changed != NULL && b_available )
     {
-        int type_col = h->fref1[0]->mb_type[h->mb.i_mb_xy];
-        int changed = 0;
+        int changed;
 
-        if( IS_INTRA( type_col ) || type_col == P_SKIP )
+        changed  = M32( h->mb.cache.direct_mv[0][0] ) ^ M32( h->mb.cache.mv[0][x264_scan8[0]] );
+        changed |= M32( h->mb.cache.direct_mv[1][0] ) ^ M32( h->mb.cache.mv[1][x264_scan8[0]] );
+        changed |= h->mb.cache.direct_ref[0][0] ^ h->mb.cache.ref[0][x264_scan8[0]];
+        changed |= h->mb.cache.direct_ref[1][0] ^ h->mb.cache.ref[1][x264_scan8[0]];
+        if( !changed && h->mb.i_partition != D_16x16 )
         {
-            changed |= M32( h->mb.cache.direct_mv[0][0] ) ^ M32( h->mb.cache.mv[0][X264_SCAN8_0] );
-            changed |= M32( h->mb.cache.direct_mv[1][0] ) ^ M32( h->mb.cache.mv[1][X264_SCAN8_0] );
-            changed |= h->mb.cache.direct_ref[0][0] ^ h->mb.cache.ref[0][X264_SCAN8_0];
-            changed |= h->mb.cache.direct_ref[1][0] ^ h->mb.cache.ref[1][X264_SCAN8_0];
+            changed |= M32( h->mb.cache.direct_mv[0][3] ) ^ M32( h->mb.cache.mv[0][x264_scan8[12]] );
+            changed |= M32( h->mb.cache.direct_mv[1][3] ) ^ M32( h->mb.cache.mv[1][x264_scan8[12]] );
+            changed |= h->mb.cache.direct_ref[0][3] ^ h->mb.cache.ref[0][x264_scan8[12]];
+            changed |= h->mb.cache.direct_ref[1][3] ^ h->mb.cache.ref[1][x264_scan8[12]];
         }
-        else
+        if( !changed && h->mb.i_partition == D_8x8 )
         {
-            int l;
-            for( l = 0; l < 2; l++ )
-            {
-                changed |= M32( h->mb.cache.direct_mv[l][0] ) ^ M32( h->mb.cache.mv[l][x264_scan8[ 0]] );
-                if( changed ) break;
-                changed |= M32( h->mb.cache.direct_mv[l][1] ) ^ M32( h->mb.cache.mv[l][x264_scan8[ 4]] );
-                changed |= M32( h->mb.cache.direct_mv[l][2] ) ^ M32( h->mb.cache.mv[l][x264_scan8[ 8]] );
-                changed |= M32( h->mb.cache.direct_mv[l][3] ) ^ M32( h->mb.cache.mv[l][x264_scan8[12]] );
-                if( changed ) break;
-                changed |= h->mb.cache.direct_ref[l][0] ^ h->mb.cache.ref[l][x264_scan8[ 0]];
-                changed |= h->mb.cache.direct_ref[l][1] ^ h->mb.cache.ref[l][x264_scan8[ 4]];
-                changed |= h->mb.cache.direct_ref[l][2] ^ h->mb.cache.ref[l][x264_scan8[ 8]];
-                changed |= h->mb.cache.direct_ref[l][3] ^ h->mb.cache.ref[l][x264_scan8[12]];
-            }
+            changed |= M32( h->mb.cache.direct_mv[0][1] ) ^ M32( h->mb.cache.mv[0][x264_scan8[4]] );
+            changed |= M32( h->mb.cache.direct_mv[1][1] ) ^ M32( h->mb.cache.mv[1][x264_scan8[4]] );
+            changed |= M32( h->mb.cache.direct_mv[0][2] ) ^ M32( h->mb.cache.mv[0][x264_scan8[8]] );
+            changed |= M32( h->mb.cache.direct_mv[1][2] ) ^ M32( h->mb.cache.mv[1][x264_scan8[8]] );
+            changed |= h->mb.cache.direct_ref[0][1] ^ h->mb.cache.ref[0][x264_scan8[4]];
+            changed |= h->mb.cache.direct_ref[1][1] ^ h->mb.cache.ref[1][x264_scan8[4]];
+            changed |= h->mb.cache.direct_ref[0][2] ^ h->mb.cache.ref[0][x264_scan8[8]];
+            changed |= h->mb.cache.direct_ref[1][2] ^ h->mb.cache.ref[1][x264_scan8[8]];
         }
         *b_changed = changed;
         if( !changed )
@@ -370,6 +389,7 @@ int x264_mb_predict_mv_direct16x16( x264_t *h, int *b_changed )
             h->mb.cache.direct_ref[l][1] = h->mb.cache.ref[l][x264_scan8[ 4]];
             h->mb.cache.direct_ref[l][2] = h->mb.cache.ref[l][x264_scan8[ 8]];
             h->mb.cache.direct_ref[l][3] = h->mb.cache.ref[l][x264_scan8[12]];
+            h->mb.cache.direct_partition = h->mb.i_partition;
         }
     }
 
@@ -564,116 +584,93 @@ static NOINLINE void x264_mb_mc_01xywh( x264_t *h, int x, int y, int width, int 
     h->mc.avg[i_mode+3]( &h->mb.pic.p_fdec[2][2*y*FDEC_STRIDE+2*x], FDEC_STRIDE, tmp0, 16, tmp1, 16, weight );
 }
 
-static void x264_mb_mc_direct8x8( x264_t *h, int x, int y )
-{
-    const int i8 = x264_scan8[0] + x + 8*y;
-
-    if( h->mb.cache.ref[0][i8] >= 0 )
-        if( h->mb.cache.ref[1][i8] >= 0 )
-            x264_mb_mc_01xywh( h, x, y, 2, 2 );
-        else
-            x264_mb_mc_0xywh( h, x, y, 2, 2 );
-    else
-        x264_mb_mc_1xywh( h, x, y, 2, 2 );
-}
-
 void x264_mb_mc_8x8( x264_t *h, int i8 )
 {
     const int x = 2*(i8&1);
     const int y = 2*(i8>>1);
-    switch( h->mb.i_sub_partition[i8] )
+
+    if( h->sh.i_type == SLICE_TYPE_P )
     {
-        case D_L0_8x8:
-            x264_mb_mc_0xywh( h, x, y, 2, 2 );
-            break;
-        case D_L0_8x4:
-            x264_mb_mc_0xywh( h, x, y+0, 2, 1 );
-            x264_mb_mc_0xywh( h, x, y+1, 2, 1 );
-            break;
-        case D_L0_4x8:
-            x264_mb_mc_0xywh( h, x+0, y, 1, 2 );
-            x264_mb_mc_0xywh( h, x+1, y, 1, 2 );
-            break;
-        case D_L0_4x4:
-            x264_mb_mc_0xywh( h, x+0, y+0, 1, 1 );
-            x264_mb_mc_0xywh( h, x+1, y+0, 1, 1 );
-            x264_mb_mc_0xywh( h, x+0, y+1, 1, 1 );
-            x264_mb_mc_0xywh( h, x+1, y+1, 1, 1 );
-            break;
-        case D_L1_8x8:
+        switch( h->mb.i_sub_partition[i8] )
+        {
+            case D_L0_8x8:
+                x264_mb_mc_0xywh( h, x, y, 2, 2 );
+                break;
+            case D_L0_8x4:
+                x264_mb_mc_0xywh( h, x, y+0, 2, 1 );
+                x264_mb_mc_0xywh( h, x, y+1, 2, 1 );
+                break;
+            case D_L0_4x8:
+                x264_mb_mc_0xywh( h, x+0, y, 1, 2 );
+                x264_mb_mc_0xywh( h, x+1, y, 1, 2 );
+                break;
+            case D_L0_4x4:
+                x264_mb_mc_0xywh( h, x+0, y+0, 1, 1 );
+                x264_mb_mc_0xywh( h, x+1, y+0, 1, 1 );
+                x264_mb_mc_0xywh( h, x+0, y+1, 1, 1 );
+                x264_mb_mc_0xywh( h, x+1, y+1, 1, 1 );
+                break;
+        }
+    }
+    else
+    {
+        const int i8 = x264_scan8[0] + x + 8*y;
+
+        if( h->mb.cache.ref[0][i8] >= 0 )
+            if( h->mb.cache.ref[1][i8] >= 0 )
+                x264_mb_mc_01xywh( h, x, y, 2, 2 );
+            else
+                x264_mb_mc_0xywh( h, x, y, 2, 2 );
+        else
             x264_mb_mc_1xywh( h, x, y, 2, 2 );
-            break;
-        case D_BI_8x8:
-            x264_mb_mc_01xywh( h, x, y, 2, 2 );
-            break;
-        case D_DIRECT_8x8:
-            x264_mb_mc_direct8x8( h, x, y );
-            break;
     }
 }
 
 void x264_mb_mc( x264_t *h )
 {
-    if( h->mb.i_type == P_L0 )
-    {
-        if( h->mb.i_partition == D_16x16 )
-        {
-            x264_mb_mc_0xywh( h, 0, 0, 4, 4 );
-        }
-        else if( h->mb.i_partition == D_16x8 )
-        {
-            x264_mb_mc_0xywh( h, 0, 0, 4, 2 );
-            x264_mb_mc_0xywh( h, 0, 2, 4, 2 );
-        }
-        else if( h->mb.i_partition == D_8x16 )
-        {
-            x264_mb_mc_0xywh( h, 0, 0, 2, 4 );
-            x264_mb_mc_0xywh( h, 2, 0, 2, 4 );
-        }
-    }
-    else if( h->mb.i_type == P_8x8 || h->mb.i_type == B_8x8 )
+    if( h->mb.i_partition == D_8x8 )
     {
         int i;
         for( i = 0; i < 4; i++ )
             x264_mb_mc_8x8( h, i );
     }
-    else if( h->mb.i_type == B_SKIP || h->mb.i_type == B_DIRECT )
+    else
     {
-        x264_mb_mc_direct8x8( h, 0, 0 );
-        x264_mb_mc_direct8x8( h, 2, 0 );
-        x264_mb_mc_direct8x8( h, 0, 2 );
-        x264_mb_mc_direct8x8( h, 2, 2 );
-    }
-    else    /* B_*x* */
-    {
-        const uint8_t *b_list0 = x264_mb_type_list_table[h->mb.i_type][0];
-        const uint8_t *b_list1 = x264_mb_type_list_table[h->mb.i_type][1];
+        const int ref0a = h->mb.cache.ref[0][x264_scan8[ 0]];
+        const int ref0b = h->mb.cache.ref[0][x264_scan8[12]];
+        const int ref1a = h->mb.cache.ref[1][x264_scan8[ 0]];
+        const int ref1b = h->mb.cache.ref[1][x264_scan8[12]];
 
         if( h->mb.i_partition == D_16x16 )
         {
-            if( b_list0[0] && b_list1[0] ) x264_mb_mc_01xywh( h, 0, 0, 4, 4 );
-            else if( b_list0[0] )          x264_mb_mc_0xywh ( h, 0, 0, 4, 4 );
-            else if( b_list1[0] )          x264_mb_mc_1xywh ( h, 0, 0, 4, 4 );
+            if( ref0a >= 0 )
+                if( ref1a >= 0 ) x264_mb_mc_01xywh( h, 0, 0, 4, 4 );
+                else             x264_mb_mc_0xywh ( h, 0, 0, 4, 4 );
+            else                 x264_mb_mc_1xywh ( h, 0, 0, 4, 4 );
         }
         else if( h->mb.i_partition == D_16x8 )
         {
-            if( b_list0[0] && b_list1[0] ) x264_mb_mc_01xywh( h, 0, 0, 4, 2 );
-            else if( b_list0[0] )          x264_mb_mc_0xywh ( h, 0, 0, 4, 2 );
-            else if( b_list1[0] )          x264_mb_mc_1xywh ( h, 0, 0, 4, 2 );
+            if( ref0a >= 0 )
+                if( ref1a >= 0 ) x264_mb_mc_01xywh( h, 0, 0, 4, 2 );
+                else             x264_mb_mc_0xywh ( h, 0, 0, 4, 2 );
+            else                 x264_mb_mc_1xywh ( h, 0, 0, 4, 2 );
 
-            if( b_list0[1] && b_list1[1] ) x264_mb_mc_01xywh( h, 0, 2, 4, 2 );
-            else if( b_list0[1] )          x264_mb_mc_0xywh ( h, 0, 2, 4, 2 );
-            else if( b_list1[1] )          x264_mb_mc_1xywh ( h, 0, 2, 4, 2 );
+            if( ref0b >= 0 )
+                if( ref1b >= 0 ) x264_mb_mc_01xywh( h, 0, 2, 4, 2 );
+                else             x264_mb_mc_0xywh ( h, 0, 2, 4, 2 );
+            else                 x264_mb_mc_1xywh ( h, 0, 2, 4, 2 );
         }
         else if( h->mb.i_partition == D_8x16 )
         {
-            if( b_list0[0] && b_list1[0] ) x264_mb_mc_01xywh( h, 0, 0, 2, 4 );
-            else if( b_list0[0] )          x264_mb_mc_0xywh ( h, 0, 0, 2, 4 );
-            else if( b_list1[0] )          x264_mb_mc_1xywh ( h, 0, 0, 2, 4 );
+            if( ref0a >= 0 )
+                if( ref1a >= 0 ) x264_mb_mc_01xywh( h, 0, 0, 2, 4 );
+                else             x264_mb_mc_0xywh ( h, 0, 0, 2, 4 );
+            else                 x264_mb_mc_1xywh ( h, 0, 0, 2, 4 );
 
-            if( b_list0[1] && b_list1[1] ) x264_mb_mc_01xywh( h, 2, 0, 2, 4 );
-            else if( b_list0[1] )          x264_mb_mc_0xywh ( h, 2, 0, 2, 4 );
-            else if( b_list1[1] )          x264_mb_mc_1xywh ( h, 2, 0, 2, 4 );
+            if( ref0b >= 0 )
+                if( ref1b >= 0 ) x264_mb_mc_01xywh( h, 2, 0, 2, 4 );
+                else             x264_mb_mc_0xywh ( h, 2, 0, 2, 4 );
+            else                 x264_mb_mc_1xywh ( h, 2, 0, 2, 4 );
         }
     }
 }
@@ -767,10 +764,6 @@ int x264_macroblock_cache_init( x264_t *h )
             h->mb.intra_border_backup[i][j] += 8;
         }
 
-    /* init with not available (for top right idx=7,15) */
-    memset( h->mb.cache.ref[0], -2, X264_SCAN8_SIZE * sizeof( int8_t ) );
-    memset( h->mb.cache.ref[1], -2, X264_SCAN8_SIZE * sizeof( int8_t ) );
-
     return 0;
 fail: return -1;
 }
@@ -808,6 +801,7 @@ void x264_macroblock_slice_init( x264_t *h )
     h->mb.ref[0] = h->fdec->ref[0];
     h->mb.ref[1] = h->fdec->ref[1];
     h->mb.type = h->fdec->mb_type;
+    h->mb.partition = h->fdec->mb_partition;
 
     h->fdec->i_ref[0] = h->i_ref0;
     h->fdec->i_ref[1] = h->i_ref1;
@@ -834,6 +828,10 @@ void x264_macroblock_slice_init( x264_t *h )
     }
     if( h->sh.i_type == SLICE_TYPE_P )
         memset( h->mb.cache.skip, 0, X264_SCAN8_SIZE * sizeof( int8_t ) );
+
+    /* init with not available (for top right idx=7,15) */
+    memset( h->mb.cache.ref[0], -2, X264_SCAN8_SIZE * sizeof( int8_t ) );
+    memset( h->mb.cache.ref[1], -2, X264_SCAN8_SIZE * sizeof( int8_t ) );
 
     setup_inverse_delta_pocs( h );
 
@@ -1304,6 +1302,7 @@ void x264_macroblock_cache_save( x264_t *h )
     x264_prefetch_fenc( h, h->fdec, h->mb.i_mb_x, h->mb.i_mb_y );
 
     h->mb.type[i_mb_xy] = i_mb_type;
+    h->mb.partition[i_mb_xy] = IS_INTRA( i_mb_type ) ? D_16x16 : h->mb.i_partition;
     h->mb.i_mb_prev_xy = i_mb_xy;
 
     /* save intra4x4 */

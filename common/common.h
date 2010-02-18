@@ -519,6 +519,7 @@ struct x264_t
 
         /* mb table */
         int8_t  *type;                      /* mb type */
+        uint8_t *partition;                 /* mb partition */
         int8_t  *qp;                        /* mb qp */
         int16_t *cbp;                       /* mb cbp: 0x0?: luma, 0x?0: chroma, 0x100: luma dc, 0x0200 and 0x0400: chroma dc  (all set for PCM)*/
         int8_t  (*intra4x4_pred_mode)[8];   /* intra4x4 pred mode. for non I4x4 set to I_PRED_4x4_DC(2) */
@@ -627,6 +628,7 @@ struct x264_t
 
             ALIGNED_4( int16_t direct_mv[2][4][2] );
             ALIGNED_4( int8_t  direct_ref[2][4] );
+            int     direct_partition;
             ALIGNED_4( int16_t pskip_mv[2] );
 
             /* number of neighbors (top and left) that used 8x8 dct */
