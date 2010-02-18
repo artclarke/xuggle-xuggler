@@ -447,10 +447,14 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
 #undef SET_MVP
 
     /* temporal predictors */
-    /* FIXME temporal scaling w/ interlace */
-    if( h->fref0[0]->i_ref[0] > 0 && !h->sh.b_mbaff )
+    if( h->fref0[0]->i_ref[0] > 0 )
     {
         x264_frame_t *l0 = h->fref0[0];
+        int field = h->mb.i_mb_y&1;
+        int curpoc = h->fdec->i_poc + field*h->sh.i_delta_poc_bottom;
+        int refpoc = h->fref0[i_ref>>h->sh.b_mbaff]->i_poc;
+        if( h->sh.b_mbaff && field^(i_ref&1) )
+            refpoc += h->sh.i_delta_poc_bottom;
 
 #define SET_TMVP(dx, dy) { \
             int i_b4 = h->mb.i_b4_xy + dx*4 + dy*4*h->mb.i_b4_stride; \
@@ -458,7 +462,7 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
             int ref_col = l0->ref[0][i_b8]; \
             if( ref_col >= 0 ) \
             { \
-                int scale = (h->fdec->i_poc - h->fdec->ref_poc[0][i_ref]) * l0->inv_ref_poc[ref_col];\
+                int scale = (curpoc - refpoc) * l0->inv_ref_poc[h->mb.b_interlaced&field][ref_col];\
                 mvc[i][0] = (l0->mv[0][i_b4][0]*scale + 128) >> 8;\
                 mvc[i][1] = (l0->mv[0][i_b4][1]*scale + 128) >> 8;\
                 i++; \
@@ -479,11 +483,19 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
 /* Set up a lookup table for delta pocs to reduce an IDIV to an IMUL */
 static void setup_inverse_delta_pocs( x264_t *h )
 {
-    int i;
-    for( i = 0; i < h->i_ref0; i++ )
+    int i, field;
+    for( field = 0; field <= h->sh.b_mbaff; field++ )
     {
-        int delta = h->fdec->i_poc - h->fref0[i]->i_poc;
-        h->fdec->inv_ref_poc[i] = (256 + delta/2) / delta;
+        int curpoc = h->fdec->i_poc + field*h->sh.i_delta_poc_bottom;
+        for( i = 0; i < (h->i_ref0<<h->sh.b_mbaff); i++ )
+        {
+            int refpoc = h->fref0[i>>h->sh.b_mbaff]->i_poc;
+            if( h->sh.b_mbaff && field^(i&1) )
+                refpoc += h->sh.i_delta_poc_bottom;
+            int delta = curpoc - refpoc;
+
+            h->fdec->inv_ref_poc[field][i] = (256 + delta/2) / delta;
+        }
     }
 }
 
