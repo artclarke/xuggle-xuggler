@@ -731,6 +731,8 @@ public class ICodec extends RefCounted {
     CODEC_ID_R210,
     CODEC_ID_ANM,
     CODEC_ID_BINKVIDEO,
+    CODEC_ID_IFF_ILBM,
+    CODEC_ID_IFF_BYTERUN1,
     CODEC_ID_PCM_S16LE(XugglerJNI.ICodec_CODEC_ID_PCM_S16LE_get()),
     CODEC_ID_PCM_S16BE,
     CODEC_ID_PCM_U16LE,
