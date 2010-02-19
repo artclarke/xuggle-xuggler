@@ -77,32 +77,26 @@ static inline int x264_predictor_difference_mmxext( int16_t (*mvc)[2], intptr_t 
     );
     return sum;
 }
-#define x264_cabac_amvd_sum x264_cabac_amvd_sum_mmxext
-static ALWAYS_INLINE uint32_t x264_cabac_amvd_sum_mmxext(int16_t *mvdleft, int16_t *mvdtop)
+#define x264_cabac_mvd_sum x264_cabac_mvd_sum_mmxext
+static ALWAYS_INLINE uint16_t x264_cabac_mvd_sum_mmxext(uint8_t *mvdleft, uint8_t *mvdtop)
 {
-    static const uint64_t pw_2    = 0x0002000200020002ULL;
-    static const uint64_t pw_28   = 0x001C001C001C001CULL;
-    static const uint64_t pw_2184 = 0x0888088808880888ULL;
-    /* MIN(((x+28)*2184)>>16,2) = (x>2) + (x>32) */
-    /* 2184 = fix16(1/30) */
-    uint32_t amvd;
+    static const uint64_t pb_2    = 0x0202020202020202ULL;
+    static const uint64_t pb_32   = 0x2020202020202020ULL;
+    int amvd;
     asm(
-        "movd      %1, %%mm0 \n"
-        "movd      %2, %%mm1 \n"
-        "pxor   %%mm2, %%mm2 \n"
-        "pxor   %%mm3, %%mm3 \n"
-        "psubw  %%mm0, %%mm2 \n"
-        "psubw  %%mm1, %%mm3 \n"
-        "pmaxsw %%mm2, %%mm0 \n"
-        "pmaxsw %%mm3, %%mm1 \n"
-        "paddw     %3, %%mm0 \n"
-        "paddw  %%mm1, %%mm0 \n"
-        "pmulhuw   %4, %%mm0 \n"
-        "pminsw    %5, %%mm0 \n"
-        "movd   %%mm0, %0    \n"
+        "movd         %1, %%mm0 \n"
+        "movd         %2, %%mm1 \n"
+        "paddb     %%mm1, %%mm0 \n"
+        "pxor      %%mm2, %%mm2 \n"
+        "movq      %%mm0, %%mm1 \n"
+        "pcmpgtb      %3, %%mm0 \n"
+        "pcmpgtb      %4, %%mm1 \n"
+        "psubb     %%mm0, %%mm2 \n"
+        "psubb     %%mm1, %%mm2 \n"
+        "movd      %%mm2, %0    \n"
         :"=r"(amvd)
-        :"m"(M32( mvdleft )),"m"(M32( mvdtop )),
-         "m"(pw_28),"m"(pw_2184),"m"(pw_2)
+        :"m"(M16( mvdleft )),"m"(M16( mvdtop )),
+         "m"(pb_2),"m"(pb_32)
     );
     return amvd;
 }

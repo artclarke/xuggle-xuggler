@@ -349,7 +349,7 @@ static void x264_cabac_mb_ref( x264_t *h, x264_cabac_t *cb, int i_list, int idx 
     x264_cabac_encode_decision( cb, 54 + ctx, 0 );
 }
 
-static inline void x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int l, int mvd, int ctx )
+static inline int x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int l, int mvd, int ctx )
 {
     const int i_abs = abs( mvd );
     const int ctxbase = l ? 47 : 40;
@@ -408,32 +408,34 @@ static inline void x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int i_lis
         x264_cabac_encode_bypass( cb, mvd < 0 );
     }
 #endif
+    /* Since we don't need to keep track of MVDs larger than 33, just cap the value.
+     * This lets us store MVDs as 8-bit values instead of 16-bit. */
+    return X264_MIN( i_abs, 33 );
 }
 
-static NOINLINE uint32_t x264_cabac_mb_mvd( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int width )
+static NOINLINE uint16_t x264_cabac_mb_mvd( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int width )
 {
     ALIGNED_4( int16_t mvp[2] );
-    uint32_t amvd;
     int mdx, mdy;
 
     /* Calculate mvd */
     x264_mb_predict_mv( h, i_list, idx, width, mvp );
     mdx = h->mb.cache.mv[i_list][x264_scan8[idx]][0] - mvp[0];
     mdy = h->mb.cache.mv[i_list][x264_scan8[idx]][1] - mvp[1];
-    amvd = x264_cabac_amvd_sum(h->mb.cache.mvd[i_list][x264_scan8[idx] - 1],
-                               h->mb.cache.mvd[i_list][x264_scan8[idx] - 8]);
+    uint16_t amvd = x264_cabac_mvd_sum(h->mb.cache.mvd[i_list][x264_scan8[idx] - 1],
+                                       h->mb.cache.mvd[i_list][x264_scan8[idx] - 8]);
 
     /* encode */
-    x264_cabac_mb_mvd_cpn( h, cb, i_list, idx, 0, mdx, amvd&0xFFFF );
-    x264_cabac_mb_mvd_cpn( h, cb, i_list, idx, 1, mdy, amvd>>16 );
+    mdx = x264_cabac_mb_mvd_cpn( h, cb, i_list, idx, 0, mdx, amvd&0xFF );
+    mdy = x264_cabac_mb_mvd_cpn( h, cb, i_list, idx, 1, mdy, amvd>>8 );
 
-    return pack16to32_mask(mdx,mdy);
+    return pack8to16(mdx,mdy);
 }
 
 #define x264_cabac_mb_mvd(h,cb,i_list,idx,width,height)\
 do\
 {\
-    uint32_t mvd = x264_cabac_mb_mvd(h,cb,i_list,idx,width);\
+    uint16_t mvd = x264_cabac_mb_mvd(h,cb,i_list,idx,width);\
     x264_macroblock_cache_mvd( h, block_idx_x[idx], block_idx_y[idx], width, height, i_list, mvd );\
 } while(0)
 

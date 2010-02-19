@@ -171,13 +171,13 @@ static inline int x264_predictor_difference( int16_t (*mvc)[2], intptr_t i_mvc )
     return sum;
 }
 
-static inline uint32_t x264_cabac_amvd_sum( int16_t *mvdleft, int16_t *mvdtop )
+static inline uint16_t x264_cabac_mvd_sum( uint8_t *mvdleft, uint8_t *mvdtop )
 {
     int amvd0 = abs(mvdleft[0]) + abs(mvdtop[0]);
     int amvd1 = abs(mvdleft[1]) + abs(mvdtop[1]);
     amvd0 = (amvd0 > 2) + (amvd0 > 32);
     amvd1 = (amvd1 > 2) + (amvd1 > 32);
-    return amvd0 + (amvd1<<16);
+    return amvd0 + (amvd1<<8);
 }
 
 extern const uint8_t x264_exp2_lut[64];
@@ -527,7 +527,7 @@ struct x264_t
         uint8_t (*non_zero_count)[16+4+4];  /* nzc. for I_PCM set to 16 */
         int8_t  *chroma_pred_mode;          /* chroma_pred_mode. cabac only. for non intra I_PRED_CHROMA_DC(0) */
         int16_t (*mv[2])[2];                /* mb mv. set to 0 for intra mb */
-        int16_t (*mvd[2])[2];               /* mb mv difference with predict. set to 0 if intra. cabac only */
+        uint8_t (*mvd[2])[2];               /* absolute value of mb mv difference with predict, clipped to [0,33]. set to 0 if intra. cabac only */
         int8_t   *ref[2];                   /* mb ref. set to -1 if non used (intra or Lx only) */
         int16_t (*mvr[2][32])[2];           /* 16x16 mv for each possible ref */
         int8_t  *skipbp;                    /* block pattern for SKIP or DIRECT (sub)mbs. B-frames + cabac only */
@@ -621,7 +621,7 @@ struct x264_t
 
             /* 0 if not available */
             ALIGNED_16( int16_t mv[2][X264_SCAN8_SIZE][2] );
-            ALIGNED_8( int16_t mvd[2][X264_SCAN8_SIZE][2] );
+            ALIGNED_8( uint8_t mvd[2][X264_SCAN8_SIZE][2] );
 
             /* 1 if SKIP or DIRECT. set only for B-frames + CABAC */
             ALIGNED_4( int8_t skip[X264_SCAN8_SIZE] );
