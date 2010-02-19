@@ -61,36 +61,44 @@ static uint16_t cabac_size_5ones[128];
 #define COPY_CABAC h->mc.memcpy_aligned( &cabac_tmp.f8_bits_encoded, &h->cabac.f8_bits_encoded, \
         sizeof(x264_cabac_t) - offsetof(x264_cabac_t,f8_bits_encoded) )
 
-
-/* Sum the cached SATDs to avoid repeating them. */
-static inline int sum_satd( x264_t *h, int pixel, int x, int y )
+static inline uint64_t cached_hadamard( x264_t *h, int pixel, int x, int y )
 {
-    int satd = 0;
-    int min_x = x>>2;
-    int min_y = y>>2;
-    int max_x = (x>>2) + (x264_pixel_size[pixel].w>>2);
-    int max_y = (y>>2) + (x264_pixel_size[pixel].h>>2);
-    if( pixel == PIXEL_16x16 )
-        return h->mb.pic.fenc_satd_sum;
-    for( y = min_y; y < max_y; y++ )
-        for( x = min_x; x < max_x; x++ )
-            satd += h->mb.pic.fenc_satd[y][x];
-    return satd;
+    static const uint8_t hadamard_shift_x[4] = {4,   4,   3,   3};
+    static const uint8_t hadamard_shift_y[4] = {4-0, 3-0, 4-1, 3-1};
+    static const uint8_t  hadamard_offset[4] = {0,   1,   3,   5};
+    int cache_index = (x >> hadamard_shift_x[pixel]) + (y >> hadamard_shift_y[pixel])
+                    + hadamard_offset[pixel];
+    uint64_t res = h->mb.pic.fenc_hadamard_cache[cache_index];
+    if( res )
+        return res - 1;
+    else
+    {
+        uint8_t *fenc = h->mb.pic.p_fenc[0] + x + y*FENC_STRIDE;
+        res = h->pixf.hadamard_ac[pixel]( fenc, FENC_STRIDE );
+        h->mb.pic.fenc_hadamard_cache[cache_index] = res + 1;
+        return res;
+    }
 }
 
-static inline int sum_sa8d( x264_t *h, int pixel, int x, int y )
+static inline int cached_satd( x264_t *h, int pixel, int x, int y )
 {
-    int sa8d = 0;
-    int min_x = x>>3;
-    int min_y = y>>3;
-    int max_x = (x>>3) + (x264_pixel_size[pixel].w>>3);
-    int max_y = (y>>3) + (x264_pixel_size[pixel].h>>3);
-    if( pixel == PIXEL_16x16 )
-        return h->mb.pic.fenc_sa8d_sum;
-    for( y = min_y; y < max_y; y++ )
-        for( x = min_x; x < max_x; x++ )
-            sa8d += h->mb.pic.fenc_sa8d[y][x];
-    return sa8d;
+    static const uint8_t satd_shift_x[3] = {3,   2,   2};
+    static const uint8_t satd_shift_y[3] = {2-1, 3-2, 2-2};
+    static const uint8_t  satd_offset[3] = {0,   8,   16};
+    ALIGNED_16( static uint8_t zero[16] );
+    int cache_index = (x >> satd_shift_x[pixel - PIXEL_8x4]) + (y >> satd_shift_y[pixel - PIXEL_8x4])
+                    + satd_offset[pixel - PIXEL_8x4];
+    int res = h->mb.pic.fenc_satd_cache[cache_index];
+    if( res )
+        return res - 1;
+    else
+    {
+        uint8_t *fenc = h->mb.pic.p_fenc[0] + x + y*FENC_STRIDE;
+        int dc = h->pixf.sad[pixel]( fenc, FENC_STRIDE, zero, 0 ) >> 1;
+        res = h->pixf.satd[pixel]( fenc, FENC_STRIDE, zero, 0 ) - dc;
+        h->mb.pic.fenc_satd_cache[cache_index] = res + 1;
+        return res;
+    }
 }
 
 /* Psy RD distortion metric: SSD plus "Absolute Difference of Complexities" */
@@ -113,15 +121,16 @@ static inline int ssd_plane( x264_t *h, int size, int p, int x, int y )
         /* If the plane is smaller than 8x8, we can't do an SA8D; this probably isn't a big problem. */
         if( size <= PIXEL_8x8 )
         {
-            uint64_t acs = h->pixf.hadamard_ac[size]( fdec, FDEC_STRIDE );
-            satd = abs((int32_t)acs - sum_satd( h, size, x, y ))
-                 + abs((int32_t)(acs>>32) - sum_sa8d( h, size, x, y ));
+            uint64_t fdec_acs = h->pixf.hadamard_ac[size]( fdec, FDEC_STRIDE );
+            uint64_t fenc_acs = cached_hadamard( h, size, x, y );
+            satd = abs((int32_t)fdec_acs - (int32_t)fenc_acs)
+                 + abs((int32_t)(fdec_acs>>32) - (int32_t)(fenc_acs>>32));
             satd >>= 1;
         }
         else
         {
             int dc = h->pixf.sad[size]( fdec, FDEC_STRIDE, zero, 0 ) >> 1;
-            satd = abs(h->pixf.satd[size]( fdec, FDEC_STRIDE, zero, 0 ) - dc - sum_satd( h, size, x, y ));
+            satd = abs(h->pixf.satd[size]( fdec, FDEC_STRIDE, zero, 0 ) - dc - cached_satd( h, size, x, y ));
         }
         satd = (satd * h->mb.i_psy_rd * h->mb.i_psy_rd_lambda + 128) >> 8;
     }

@@ -578,34 +578,13 @@ static void inline x264_psy_trellis_init( x264_t *h, int do_both_dct )
         h->dctf.sub16x16_dct( h->mb.pic.fenc_dct4, h->mb.pic.p_fenc[0], zero );
 }
 
-/* Pre-calculate fenc satd scores for psy RD, minus DC coefficients */
-static inline void x264_mb_cache_fenc_satd( x264_t *h )
+/* Reset fenc satd scores cache for psy RD */
+static inline void x264_mb_init_fenc_cache( x264_t *h, int b_satd )
 {
-    ALIGNED_16( static uint8_t zero[16] ) = {0};
-    uint8_t *fenc;
-    int x, y, satd_sum = 0, sa8d_sum = 0;
-    if( h->param.analyse.i_trellis == 2 && h->mb.i_psy_trellis )
-        x264_psy_trellis_init( h, h->param.analyse.b_transform_8x8 );
-    if( !h->mb.i_psy_rd )
-        return;
-    for( y = 0; y < 4; y++ )
-        for( x = 0; x < 4; x++ )
-        {
-            fenc = h->mb.pic.p_fenc[0]+x*4+y*4*FENC_STRIDE;
-            h->mb.pic.fenc_satd[y][x] = h->pixf.satd[PIXEL_4x4]( zero, 0, fenc, FENC_STRIDE )
-                                      - (h->pixf.sad[PIXEL_4x4]( zero, 0, fenc, FENC_STRIDE )>>1);
-            satd_sum += h->mb.pic.fenc_satd[y][x];
-        }
-    for( y = 0; y < 2; y++ )
-        for( x = 0; x < 2; x++ )
-        {
-            fenc = h->mb.pic.p_fenc[0]+x*8+y*8*FENC_STRIDE;
-            h->mb.pic.fenc_sa8d[y][x] = h->pixf.sa8d[PIXEL_8x8]( zero, 0, fenc, FENC_STRIDE )
-                                      - (h->pixf.sad[PIXEL_8x8]( zero, 0, fenc, FENC_STRIDE )>>2);
-            sa8d_sum += h->mb.pic.fenc_sa8d[y][x];
-        }
-    h->mb.pic.fenc_satd_sum = satd_sum;
-    h->mb.pic.fenc_sa8d_sum = sa8d_sum;
+    /* Writes beyond the end of the array, but not a problem since fenc_satd_cache is right after. */
+    h->mc.memzero_aligned( h->mb.pic.fenc_hadamard_cache, sizeof(h->mb.pic.fenc_hadamard_cache) );
+    if( b_satd )
+        h->mc.memzero_aligned( h->mb.pic.fenc_satd_cache, sizeof(h->mb.pic.fenc_satd_cache) );
 }
 
 static void x264_mb_analyse_intra_chroma( x264_t *h, x264_mb_analysis_t *a )
@@ -1193,7 +1172,7 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
     h->mb.i_type = P_L0;
     if( a->i_mbrd )
     {
-        x264_mb_cache_fenc_satd( h );
+        x264_mb_init_fenc_cache( h, a->i_mbrd >= 2 || h->param.analyse.inter & X264_ANALYSE_PSUB8x8 );
         if( a->l0.me16x16.i_ref == 0 && M32( a->l0.me16x16.mv ) == M32( h->mb.cache.pskip_mv ) && !a->b_force_intra )
         {
             h->mb.i_partition = D_16x16;
@@ -2432,7 +2411,7 @@ void x264_macroblock_analyse( x264_t *h )
     {
 intra_analysis:
         if( analysis.i_mbrd )
-            x264_mb_cache_fenc_satd( h );
+            x264_mb_init_fenc_cache( h, analysis.i_mbrd >= 2 );
         x264_mb_analyse_intra( h, &analysis, COST_MAX );
         if( analysis.i_mbrd )
             x264_intra_rd( h, &analysis, COST_MAX );
@@ -2749,7 +2728,7 @@ intra_analysis:
         int b_skip = 0;
 
         if( analysis.i_mbrd )
-            x264_mb_cache_fenc_satd( h );
+            x264_mb_init_fenc_cache( h, analysis.i_mbrd >= 2 );
 
         h->mb.i_type = B_SKIP;
         if( h->mb.b_direct_auto_write )

@@ -731,15 +731,17 @@ cglobal x264_memcpy_aligned_sse2, 3,3
 ;-----------------------------------------------------------------------------
 %macro MEMZERO 1
 cglobal x264_memzero_aligned_%1, 2,2
+    add  r0, r1
+    neg  r1
     pxor m0, m0
 .loop:
-    sub r1d, mmsize*8
 %assign i 0
 %rep 8
     mova [r0 + r1 + i], m0
 %assign i i+mmsize
 %endrep
-    jg .loop
+    add r1d, mmsize*8
+    jl .loop
     REP_RET
 %endmacro
 

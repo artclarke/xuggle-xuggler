@@ -583,11 +583,9 @@ struct x264_t
             ALIGNED_16( int16_t fenc_dct8[4][64] );
             ALIGNED_16( int16_t fenc_dct4[16][16] );
 
-            /* Psy RD SATD scores */
-            int fenc_satd[4][4];
-            int fenc_satd_sum;
-            int fenc_sa8d[2][2];
-            int fenc_sa8d_sum;
+            /* Psy RD SATD/SA8D scores cache */
+            ALIGNED_16( uint64_t fenc_hadamard_cache[9] );
+            ALIGNED_16( uint32_t fenc_satd_cache[32] );
 
             /* pointer over mb of the frame to be compressed */
             uint8_t *p_fenc[3];
