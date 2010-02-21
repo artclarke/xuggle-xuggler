@@ -246,17 +246,20 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame )
 
     if( h->param.rc.i_aq_mode == X264_AQ_AUTOVARIANCE )
     {
+        float avg_adj_pow2 = 0.f;
         for( mb_y = 0; mb_y < h->sps->i_mb_height; mb_y++ )
             for( mb_x = 0; mb_x < h->sps->i_mb_width; mb_x++ )
             {
                 uint32_t energy = ac_energy_mb( h, mb_x, mb_y, frame );
-                float qp_adj = x264_log2( energy + 2 );
-                qp_adj *= qp_adj;
+                float qp_adj = powf( energy + 1, 0.125f );
                 frame->f_qp_offset[mb_x + mb_y*h->mb.i_mb_stride] = qp_adj;
                 avg_adj += qp_adj;
+                avg_adj_pow2 += qp_adj * qp_adj;
             }
         avg_adj /= h->mb.i_mb_count;
-        strength = h->param.rc.f_aq_strength * avg_adj * (1.f / 6000.f);
+        avg_adj_pow2 /= h->mb.i_mb_count;
+        strength = h->param.rc.f_aq_strength * avg_adj;
+        avg_adj = avg_adj - 0.5f * (avg_adj_pow2 - 14.f) / avg_adj;
     }
     else
         strength = h->param.rc.f_aq_strength * 1.0397f;
