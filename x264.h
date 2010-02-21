@@ -35,14 +35,14 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 85
+#define X264_BUILD 86
 
 /* x264_t:
  *      opaque handler for encoder */
 typedef struct x264_t x264_t;
 
 /****************************************************************************
- * Initialisation structure and function.
+ * Encoder parameters
  ****************************************************************************/
 /* CPU flags
  */
@@ -332,6 +332,10 @@ typedef struct x264_param_t
     void (*param_free)( void* );
 } x264_param_t;
 
+/****************************************************************************
+ * H.264 level restriction information
+ ****************************************************************************/
+
 typedef struct {
     int level_idc;
     int mbps;        /* max macroblock processing rate (macroblocks/sec) */
@@ -350,6 +354,10 @@ typedef struct {
 /* all of the levels defined in the standard, terminated by .level_idc=0 */
 extern const x264_level_t x264_levels[];
 
+/****************************************************************************
+ * Basic parameter handling functions
+ ****************************************************************************/
+
 /* x264_param_default:
  *      fill x264_param_t with default values and do CPU detection */
 void    x264_param_default( x264_param_t * );
@@ -366,15 +374,73 @@ void    x264_param_default( x264_param_t * );
 int x264_param_parse( x264_param_t *, const char *name, const char *value );
 
 /****************************************************************************
- * Picture structures and functions.
+ * Advanced parameter handling functions
+ ****************************************************************************/
+
+/* These functions expose the full power of x264's preset-tune-profile system for
+ * easy adjustment of large numbers of internal parameters.
+ *
+ * In order to replicate x264CLI's option handling, these functions MUST be called
+ * in the following order:
+ * 1) x264_param_default_preset
+ * 2) Custom user options (via param_parse or directly assigned variables)
+ * 3) x264_param_apply_fastfirstpass
+ * 4) x264_param_apply_profile
+ *
+ * Additionally, x264CLI does not apply step 3 if the preset chosen is "placebo"
+ * or --slow-firstpass is set. */
+
+/* x264_param_default_preset:
+ *      The same as x264_param_default, but also use the passed preset and tune
+ *      to modify the default settings.
+ *      (either can be NULL, which implies no preset or no tune, respectively)
+ *
+ *      Currently available presets are, ordered from fastest to slowest: */
+static const char * const x264_preset_names[] = { "ultrafast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo", 0 };
+
+/*      Warning: the speed of these presets scales dramatically.  Ultrafast is a full
+ *      100 times faster than placebo!
+ *
+ *      Currently available tunings are: */
+static const char * const x264_tune_names[] = { "film", "animation", "grain", "psnr", "ssim", "fastdecode", "zerolatency", 0 };
+
+/*      Multiple tunings can be used if separated by a delimiter in ",./-+",
+ *      however multiple psy tunings cannot be used.
+ *      film, animation, grain, psnr, and ssim are psy tunings.
+ *
+ *      returns 0 on success, negative on failure (e.g. invalid preset/tune name). */
+int     x264_param_default_preset( x264_param_t *, const char *preset, const char *tune );
+
+/* x264_param_apply_fastfirstpass:
+ *      If first-pass mode is set (rc.b_stat_read == 1, rc.b_stat_write == 0),
+ *      modify the encoder settings to disable options generally not useful on
+ *      the first pass. */
+void    x264_param_apply_fastfirstpass( x264_param_t * );
+
+/* x264_param_apply_profile:
+ *      Applies the restrictions of the given profile.
+ *      Currently available profiles are, from most to least restrictive: */
+static const char * const x264_profile_names[] = { "baseline", "main", "high", 0 };
+
+/*      (can be NULL, in which case the function will do nothing)
+ *
+ *      Does NOT guarantee that the given profile will be used: if the restrictions
+ *      of "High" are applied to settings that are already Baseline-compatible, the
+ *      stream will remain baseline.  In short, it does not increase settings, only
+ *      decrease them.
+ *
+ *      returns 0 on success, negative on failure (e.g. invalid profile name). */
+int     x264_param_apply_profile( x264_param_t *, const char *profile );
+
+/****************************************************************************
+ * Picture structures and functions
  ****************************************************************************/
 typedef struct
 {
-    int     i_csp;
-
-    int     i_plane;
-    int     i_stride[4];
-    uint8_t *plane[4];
+    int     i_csp;       /* Colorspace */
+    int     i_plane;     /* Number of image planes */
+    int     i_stride[4]; /* Strides for each plane */
+    uint8_t *plane[4];   /* Pointers to each plane */
 } x264_image_t;
 
 typedef struct
@@ -421,9 +487,9 @@ int x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_heigh
 void x264_picture_clean( x264_picture_t *pic );
 
 /****************************************************************************
- * NAL structure and functions:
+ * NAL structure and functions
  ****************************************************************************/
-/* nal */
+
 enum nal_unit_type_e
 {
     NAL_UNKNOWN = 0,
@@ -465,7 +531,7 @@ typedef struct
 } x264_nal_t;
 
 /****************************************************************************
- * Encoder functions:
+ * Encoder functions
  ****************************************************************************/
 
 /* Force a link error in the case of linking against an incompatible API version.
@@ -497,16 +563,16 @@ int     x264_encoder_reconfig( x264_t *, x264_param_t * );
 void    x264_encoder_parameters( x264_t *, x264_param_t * );
 /* x264_encoder_headers:
  *      return the SPS and PPS that will be used for the whole stream.
- *      if i_nal > 0, returns the total size of all NAL payloads.
+ *      *pi_nal is the number of NAL units outputted in pp_nal.
  *      returns negative on error.
  *      the payloads of all output NALs are guaranteed to be sequential in memory. */
-int     x264_encoder_headers( x264_t *, x264_nal_t **, int * );
+int     x264_encoder_headers( x264_t *, x264_nal_t **pp_nal, int *pi_nal );
 /* x264_encoder_encode:
  *      encode one picture.
- *      if i_nal > 0, returns the total size of all NAL payloads.
+ *      *pi_nal is the number of NAL units outputted in pp_nal.
  *      returns negative on error, zero if no NAL units returned.
  *      the payloads of all output NALs are guaranteed to be sequential in memory. */
-int     x264_encoder_encode ( x264_t *, x264_nal_t **, int *, x264_picture_t *, x264_picture_t * );
+int     x264_encoder_encode( x264_t *, x264_nal_t **pp_nal, int *pi_nal, x264_picture_t *pic_in, x264_picture_t *pic_out );
 /* x264_encoder_close:
  *      close an encoder handler */
 void    x264_encoder_close  ( x264_t * );

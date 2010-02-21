@@ -36,7 +36,7 @@ static void x264_log_default( void *, int, const char *, va_list );
 /****************************************************************************
  * x264_param_default:
  ****************************************************************************/
-void    x264_param_default( x264_param_t *param )
+void x264_param_default( x264_param_t *param )
 {
     /* */
     memset( param, 0, sizeof( x264_param_t ) );
@@ -158,6 +158,270 @@ void    x264_param_default( x264_param_t *param )
     param->b_aud = 0;
     param->b_vfr_input = 1;
     param->b_dts_compress = 0;
+}
+
+static int x264_param_apply_preset( x264_param_t *param, const char *preset )
+{
+    if( !strcasecmp( preset, "ultrafast" ) )
+    {
+        param->i_frame_reference = 1;
+        param->i_scenecut_threshold = 0;
+        param->b_deblocking_filter = 0;
+        param->b_cabac = 0;
+        param->i_bframe = 0;
+        param->analyse.intra = 0;
+        param->analyse.inter = 0;
+        param->analyse.b_transform_8x8 = 0;
+        param->analyse.i_me_method = X264_ME_DIA;
+        param->analyse.i_subpel_refine = 0;
+        param->rc.i_aq_mode = 0;
+        param->analyse.b_mixed_references = 0;
+        param->analyse.i_trellis = 0;
+        param->i_bframe_adaptive = X264_B_ADAPT_NONE;
+        param->rc.b_mb_tree = 0;
+        param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
+    }
+    else if( !strcasecmp( preset, "veryfast" ) )
+    {
+        param->analyse.inter = X264_ANALYSE_I8x8|X264_ANALYSE_I4x4;
+        param->analyse.i_me_method = X264_ME_DIA;
+        param->analyse.i_subpel_refine = 1;
+        param->i_frame_reference = 1;
+        param->analyse.b_mixed_references = 0;
+        param->analyse.i_trellis = 0;
+        param->rc.b_mb_tree = 0;
+        param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
+    }
+    else if( !strcasecmp( preset, "faster" ) )
+    {
+        param->analyse.b_mixed_references = 0;
+        param->i_frame_reference = 2;
+        param->analyse.i_subpel_refine = 4;
+        param->rc.b_mb_tree = 0;
+        param->analyse.i_weighted_pred = X264_WEIGHTP_BLIND;
+    }
+    else if( !strcasecmp( preset, "fast" ) )
+    {
+        param->i_frame_reference = 2;
+        param->analyse.i_subpel_refine = 6;
+        param->rc.i_lookahead = 30;
+    }
+    else if( !strcasecmp( preset, "medium" ) )
+    {
+        /* Default is medium */
+    }
+    else if( !strcasecmp( preset, "slow" ) )
+    {
+        param->analyse.i_me_method = X264_ME_UMH;
+        param->analyse.i_subpel_refine = 8;
+        param->i_frame_reference = 5;
+        param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;
+        param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_AUTO;
+        param->rc.i_lookahead = 50;
+    }
+    else if( !strcasecmp( preset, "slower" ) )
+    {
+        param->analyse.i_me_method = X264_ME_UMH;
+        param->analyse.i_subpel_refine = 9;
+        param->i_frame_reference = 8;
+        param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;
+        param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_AUTO;
+        param->analyse.inter |= X264_ANALYSE_PSUB8x8;
+        param->analyse.i_trellis = 2;
+        param->rc.i_lookahead = 60;
+    }
+    else if( !strcasecmp( preset, "veryslow" ) )
+    {
+        param->analyse.i_me_method = X264_ME_UMH;
+        param->analyse.i_subpel_refine = 10;
+        param->analyse.i_me_range = 24;
+        param->i_frame_reference = 16;
+        param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;
+        param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_AUTO;
+        param->analyse.inter |= X264_ANALYSE_PSUB8x8;
+        param->analyse.i_trellis = 2;
+        param->i_bframe = 8;
+        param->rc.i_lookahead = 60;
+    }
+    else if( !strcasecmp( preset, "placebo" ) )
+    {
+        param->analyse.i_me_method = X264_ME_TESA;
+        param->analyse.i_subpel_refine = 10;
+        param->analyse.i_me_range = 24;
+        param->i_frame_reference = 16;
+        param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;
+        param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_AUTO;
+        param->analyse.inter |= X264_ANALYSE_PSUB8x8;
+        param->analyse.b_fast_pskip = 0;
+        param->analyse.i_trellis = 2;
+        param->i_bframe = 16;
+        param->rc.i_lookahead = 60;
+    }
+    else
+    {
+        fprintf( stderr, "x264 [error]: invalid preset '%s'\n", preset );
+        return -1;
+    }
+    return 0;
+}
+
+static int x264_param_apply_tune( x264_param_t *param, const char *tune )
+{
+    char *tmp = x264_malloc( strlen( tune ) );
+    if( !tmp )
+        return -1;
+    tmp = strcpy( tmp, tune );
+    char *s = strtok( tmp, ",./-+" );
+    int psy_tuning_used = 0;
+    while( s )
+    {
+        if( !strncasecmp( s, "film", 4 ) )
+        {
+            if( psy_tuning_used++ ) goto psy_failure;
+            param->i_deblocking_filter_alphac0 = -1;
+            param->i_deblocking_filter_beta = -1;
+            param->analyse.f_psy_trellis = 0.15;
+        }
+        else if( !strncasecmp( s, "animation", 9 ) )
+        {
+            if( psy_tuning_used++ ) goto psy_failure;
+            param->i_frame_reference = param->i_frame_reference > 1 ? param->i_frame_reference*2 : 1;
+            param->i_deblocking_filter_alphac0 = 1;
+            param->i_deblocking_filter_beta = 1;
+            param->analyse.f_psy_rd = 0.4;
+            param->rc.f_aq_strength = 0.6;
+            param->i_bframe += 2;
+        }
+        else if( !strncasecmp( s, "grain", 5 ) )
+        {
+            if( psy_tuning_used++ ) goto psy_failure;
+            param->i_deblocking_filter_alphac0 = -2;
+            param->i_deblocking_filter_beta = -2;
+            param->analyse.f_psy_trellis = 0.25;
+            param->analyse.b_dct_decimate = 0;
+            param->rc.f_pb_factor = 1.1;
+            param->rc.f_ip_factor = 1.1;
+            param->rc.f_aq_strength = 0.5;
+            param->analyse.i_luma_deadzone[0] = 6;
+            param->analyse.i_luma_deadzone[1] = 6;
+            param->rc.f_qcompress = 0.8;
+        }
+        else if( !strncasecmp( s, "psnr", 4 ) )
+        {
+            if( psy_tuning_used++ ) goto psy_failure;
+            param->rc.i_aq_mode = X264_AQ_NONE;
+            param->analyse.b_psy = 0;
+        }
+        else if( !strncasecmp( s, "ssim", 4 ) )
+        {
+            if( psy_tuning_used++ ) goto psy_failure;
+            param->rc.i_aq_mode = X264_AQ_AUTOVARIANCE;
+            param->analyse.b_psy = 0;
+        }
+        else if( !strncasecmp( s, "fastdecode", 10 ) )
+        {
+            param->b_deblocking_filter = 0;
+            param->b_cabac = 0;
+            param->analyse.b_weighted_bipred = 0;
+            param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
+        }
+        else if( !strncasecmp( s, "zerolatency", 11 ) )
+        {
+            param->rc.i_lookahead = 0;
+            param->i_sync_lookahead = 0;
+            param->i_bframe = 0;
+            param->b_sliced_threads = 1;
+        }
+        else if( !strncasecmp( s, "touhou", 6 ) )
+        {
+            if( psy_tuning_used++ ) goto psy_failure;
+            param->i_frame_reference = param->i_frame_reference > 1 ? param->i_frame_reference*2 : 1;
+            param->i_deblocking_filter_alphac0 = -1;
+            param->i_deblocking_filter_beta = -1;
+            param->analyse.f_psy_trellis = 0.2;
+            param->rc.f_aq_strength = 1.3;
+            if( param->analyse.inter & X264_ANALYSE_PSUB16x16 )
+                param->analyse.inter |= X264_ANALYSE_PSUB8x8;
+        }
+        else
+        {
+            fprintf( stderr, "x264 [error]: invalid tune '%s'\n", s );
+            return -1;
+        }
+        if( 0 )
+        {
+    psy_failure:
+            fprintf( stderr, "x264 [warning]: only 1 psy tuning can be used: ignoring tune %s\n", s );
+        }
+        s = strtok( NULL, ",./-+" );
+    }
+    return 0;
+}
+
+int x264_param_default_preset( x264_param_t *param, const char *preset, const char *tune )
+{
+    x264_param_default( param );
+
+    if( preset && x264_param_apply_preset( param, preset ) < 0 )
+        return -1;
+    if( tune && x264_param_apply_tune( param, tune ) < 0 )
+        return -1;
+    return 0;
+}
+
+void x264_param_apply_fastfirstpass( x264_param_t *param )
+{
+    /* Set faster options in case of turbo firstpass. */
+    if( param->rc.b_stat_read && !param->rc.b_stat_write )
+    {
+        param->i_frame_reference = 1;
+        param->analyse.b_transform_8x8 = 0;
+        param->analyse.inter = 0;
+        param->analyse.i_me_method = X264_ME_DIA;
+        param->analyse.i_subpel_refine = X264_MIN( 2, param->analyse.i_subpel_refine );
+        param->analyse.i_trellis = 0;
+    }
+}
+
+int x264_param_apply_profile( x264_param_t *param, const char *profile )
+{
+    if( !profile )
+        return 0;
+
+    if( !strcasecmp( profile, "baseline" ) )
+    {
+        param->analyse.b_transform_8x8 = 0;
+        param->b_cabac = 0;
+        param->i_cqm_preset = X264_CQM_FLAT;
+        param->i_bframe = 0;
+        param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
+        if( param->b_interlaced )
+        {
+            fprintf( stderr, "x264 [error]: baseline profile doesn't support interlacing\n" );
+            return -1;
+        }
+    }
+    else if( !strcasecmp( profile, "main" ) )
+    {
+        param->analyse.b_transform_8x8 = 0;
+        param->i_cqm_preset = X264_CQM_FLAT;
+    }
+    else if( !strcasecmp( profile, "high" ) )
+    {
+        /* Default */
+    }
+    else
+    {
+        fprintf( stderr, "x264 [error]: invalid profile: %s\n", profile );
+        return -1;
+    }
+    if( (param->rc.i_rc_method == X264_RC_CQP && param->rc.i_qp_constant == 0) ||
+        (param->rc.i_rc_method == X264_RC_CRF && param->rc.f_rf_constant == 0) )
+    {
+        fprintf( stderr, "x264 [error]: %s profile doesn't support lossless\n", profile );
+        return -1;
+    }
+    return 0;
 }
 
 static int parse_enum( const char *arg, const char * const *names, int *dst )
