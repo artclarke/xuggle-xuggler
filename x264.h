@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 87
+#define X264_BUILD 88
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -346,6 +346,7 @@ typedef struct {
     int mv_range;    /* max vertical mv component range (pixels) */
     int mvs_per_2mb; /* max mvs per 2 consecutive mbs. */
     int slice_rate;  /* ?? */
+    int mincr;       /* min compression ratio */
     int bipred8x8;   /* limit bipred to >=8x8 */
     int direct8x8;   /* limit b_direct to >=8x8 */
     int frame_only;  /* forbid interlacing */
