@@ -338,8 +338,8 @@ int mk_writeHeader( mk_writer *w, const char *writing_app,
     CHECK( mk_write_uint( c, 0x42f2, 4 ) ); // EBMLMaxIDLength
     CHECK( mk_write_uint( c, 0x42f3, 8 ) ); // EBMLMaxSizeLength
     CHECK( mk_write_string( c, 0x4282, "matroska") ); // DocType
-    CHECK( mk_write_uint( c, 0x4287, 1 ) ); // DocTypeVersion
-    CHECK( mk_write_uint( c, 0x4285, 1 ) ); // DocTypeReadversion
+    CHECK( mk_write_uint( c, 0x4287, 2 ) ); // DocTypeVersion
+    CHECK( mk_write_uint( c, 0x4285, 2 ) ); // DocTypeReadversion
     CHECK( mk_close_context( c, 0 ) );
 
     if( !(c = mk_create_context( w, w->root, 0x18538067 )) ) // Segment
