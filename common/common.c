@@ -75,7 +75,7 @@ void x264_param_default( x264_param_t *param )
     param->i_scenecut_threshold = 40;
     param->i_bframe_adaptive = X264_B_ADAPT_FAST;
     param->i_bframe_bias = 0;
-    param->i_bframe_pyramid = 0;
+    param->i_bframe_pyramid = X264_B_PYRAMID_NORMAL;
     param->b_interlaced = 0;
     param->b_constrained_intra = 0;
 
@@ -637,7 +637,14 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     OPT("b-bias")
         p->i_bframe_bias = atoi(value);
     OPT("b-pyramid")
+    {
         b_error |= parse_enum( value, x264_b_pyramid_names, &p->i_bframe_pyramid );
+        if( b_error )
+        {
+            b_error = 0;
+            p->i_bframe_pyramid = atoi(value);
+        }
+    }
     OPT("nf")
         p->b_deblocking_filter = !atobool(value);
     OPT2("filter", "deblock")
