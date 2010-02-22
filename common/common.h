@@ -121,7 +121,7 @@ int64_t x264_mdate( void );
  * the encoding options */
 char *x264_param2string( x264_param_t *p, int b_res );
 
-int x264_nal_encode( uint8_t *dst, int b_annexb, x264_nal_t *nal );
+int x264_nal_encode( uint8_t *dst, x264_nal_t *nal, int b_annexb, int b_long_startcode );
 
 /* log */
 void x264_log( x264_t *h, int i_level, const char *psz_fmt, ... );

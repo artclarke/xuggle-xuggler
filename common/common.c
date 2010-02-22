@@ -985,17 +985,17 @@ void x264_picture_clean( x264_picture_t *pic )
 /****************************************************************************
  * x264_nal_encode:
  ****************************************************************************/
-int x264_nal_encode( uint8_t *dst, int b_annexb, x264_nal_t *nal )
+int x264_nal_encode( uint8_t *dst, x264_nal_t *nal, int b_annexb, int b_long_startcode )
 {
     uint8_t *src = nal->p_payload;
     uint8_t *end = nal->p_payload + nal->i_payload;
     uint8_t *orig_dst = dst;
     int i_count = 0, size;
 
-    /* long nal start code (we always use long ones) */
     if( b_annexb )
     {
-        *dst++ = 0x00;
+        if( b_long_startcode )
+            *dst++ = 0x00;
         *dst++ = 0x00;
         *dst++ = 0x00;
         *dst++ = 0x01;
