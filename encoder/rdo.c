@@ -131,7 +131,7 @@ static inline int ssd_plane( x264_t *h, int size, int p, int x, int y )
 static inline int ssd_mb( x264_t *h )
 {
     int chromassd = ssd_plane(h, PIXEL_8x8, 1, 0, 0) + ssd_plane(h, PIXEL_8x8, 2, 0, 0);
-    chromassd = (chromassd * h->mb.i_chroma_lambda2_offset + 128) >> 8;
+    chromassd = ((uint64_t)chromassd * h->mb.i_chroma_lambda2_offset + 128) >> 8;
     return ssd_plane(h, PIXEL_16x16, 0, 0, 0) + chromassd;
 }
 
@@ -223,7 +223,7 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i4, int i_pixel )
 
     chromassd = ssd_plane( h, i_pixel+3, 1, (i8&1)*4, (i8>>1)*4 )
               + ssd_plane( h, i_pixel+3, 2, (i8&1)*4, (i8>>1)*4 );
-    chromassd = (chromassd * h->mb.i_chroma_lambda2_offset + 128) >> 8;
+    chromassd = ((uint64_t)chromassd * h->mb.i_chroma_lambda2_offset + 128) >> 8;
     i_ssd = ssd_plane( h, i_pixel,   0, (i8&1)*8, (i8>>1)*8 ) + chromassd;
 
     if( h->param.b_cabac )
