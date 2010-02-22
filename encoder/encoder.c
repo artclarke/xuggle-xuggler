@@ -1055,7 +1055,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
     /* Allocate scratch buffer */
     for( i = 0; i < h->param.i_threads + !!h->param.i_sync_lookahead; i++ )
     {
-        int buf_hpel = (h->param.i_width+48) * sizeof(int16_t);
+        int buf_hpel = (h->fdec->i_width[0]+48) * sizeof(int16_t);
         int buf_ssim = h->param.analyse.b_ssim * 8 * (h->param.i_width/4+3) * sizeof(int);
         int me_range = X264_MIN(h->param.analyse.i_me_range, h->param.analyse.i_mv_range);
         int buf_tesa = (h->param.analyse.i_me_method >= X264_ME_ESA) *
