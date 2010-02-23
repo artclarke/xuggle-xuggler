@@ -818,16 +818,15 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
         if( c == -1 )
             break;
         if( c == OPT_PRESET )
-        {
             preset = optarg;
-            if( !strcmp( preset, "placebo" ) )
-                b_turbo = 0;
-        }
         if( c == OPT_TUNE )
             tune = optarg;
         else if( c == '?' )
             return -1;
     }
+
+    if( preset && !strcmp( preset, "placebo" ) )
+        b_turbo = 0;
 
     if( x264_param_default_preset( param, preset, tune ) < 0 )
         return -1;

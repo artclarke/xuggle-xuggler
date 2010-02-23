@@ -413,7 +413,7 @@ static const char * const x264_tune_names[] = { "film", "animation", "grain", "p
 int     x264_param_default_preset( x264_param_t *, const char *preset, const char *tune );
 
 /* x264_param_apply_fastfirstpass:
- *      If first-pass mode is set (rc.b_stat_read == 1, rc.b_stat_write == 0),
+ *      If first-pass mode is set (rc.b_stat_read == 0, rc.b_stat_write == 1),
  *      modify the encoder settings to disable options generally not useful on
  *      the first pass. */
 void    x264_param_apply_fastfirstpass( x264_param_t * );

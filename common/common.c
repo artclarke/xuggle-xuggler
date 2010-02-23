@@ -374,7 +374,7 @@ int x264_param_default_preset( x264_param_t *param, const char *preset, const ch
 void x264_param_apply_fastfirstpass( x264_param_t *param )
 {
     /* Set faster options in case of turbo firstpass. */
-    if( param->rc.b_stat_read && !param->rc.b_stat_write )
+    if( param->rc.b_stat_write && !param->rc.b_stat_read )
     {
         param->i_frame_reference = 1;
         param->analyse.b_transform_8x8 = 0;
