@@ -389,9 +389,9 @@ static void Help( x264_param_t *defaults, int longhelp )
                                        strtable_lookup( x264_direct_pred_names, defaults->analyse.i_direct_mv_pred ) );
     H2( "      --no-weightb            Disable weighted prediction for B-frames\n" );
     H1( "      --weightp <integer>     Weighted prediction for P-frames [%d]\n"
-        "                              - 0: Disabled\n"
-        "                              - 1: Blind offset\n"
-        "                              - 2: Smart analysis\n", defaults->analyse.i_weighted_pred );
+        "                                  - 0: Disabled\n"
+        "                                  - 1: Blind offset\n"
+        "                                  - 2: Smart analysis\n", defaults->analyse.i_weighted_pred );
     H1( "      --me <string>           Integer pixel motion estimation method [\"%s\"]\n",
                                        strtable_lookup( x264_motion_est_names, defaults->analyse.i_me_method ) );
     H2( "                                  - dia: diamond search, radius 1 (fast)\n"
@@ -825,7 +825,7 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
             return -1;
     }
 
-    if( preset && !strcmp( preset, "placebo" ) )
+    if( preset && !strcasecmp( preset, "placebo" ) )
         b_turbo = 0;
 
     if( x264_param_default_preset( param, preset, tune ) < 0 )

@@ -78,18 +78,6 @@ static inline void dct2x2dc( int16_t d[4], int16_t dct4x4[4][16] )
     dct4x4[3][0] = 0;
 }
 
-static inline void dct2x2dc_dconly( int16_t d[4] )
-{
-    int d0 = d[0] + d[1];
-    int d1 = d[2] + d[3];
-    int d2 = d[0] - d[1];
-    int d3 = d[2] - d[3];
-    d[0] = d0 + d1;
-    d[2] = d2 + d3;
-    d[1] = d0 - d1;
-    d[3] = d2 - d3;
-}
-
 static ALWAYS_INLINE int x264_quant_4x4( x264_t *h, int16_t dct[16], int i_qp, int i_ctxBlockCat, int b_intra, int idx )
 {
     int i_quant_cat = b_intra ? CQM_4IY : CQM_4PY;
