@@ -1228,14 +1228,11 @@ static int x264_encoder_encapsulate_nals( x264_t *h )
     }
 
     uint8_t *nal_buffer = h->nal_buffer;
-    int long_startcode = 1;
 
     for( i = 0; i < h->out.i_nal; i++ )
     {
+        int long_startcode = !i || h->out.nal[i].i_type == NAL_SPS || h->out.nal[i].i_type == NAL_PPS;
         int size = x264_nal_encode( nal_buffer, &h->out.nal[i], h->param.b_annexb, long_startcode );
-        /* Don't use long startcodes for any slice beyond the first. */
-        if( h->out.nal[i].i_type >= NAL_SLICE && h->out.nal[i].i_type <= NAL_SLICE_IDR )
-            long_startcode = 0;
         h->out.nal[i].i_payload = size;
         h->out.nal[i].p_payload = nal_buffer;
         nal_buffer += size;
@@ -1720,8 +1717,8 @@ static int x264_slice_write( x264_t *h )
     x264_cabac_t cabac_bak;
     uint8_t cabac_prevbyte_bak = 0; /* Shut up GCC. */
     /* Assume no more than 3 bytes of NALU escaping.
-     * Slices other than the first use a 3-byte startcode. */
-    int overhead_guess = (NALU_OVERHEAD - (h->param.b_annexb && h->sh.i_first_mb)) + 3;
+     * NALUs other than the first use a 3-byte startcode. */
+    int overhead_guess = (NALU_OVERHEAD - (h->param.b_annexb && h->out.i_nal)) + 3;
     int slice_max_size = h->param.i_slice_max_size > 0 ? (h->param.i_slice_max_size-overhead_guess)*8 : INT_MAX;
     int starting_bits = bs_pos(&h->out.bs);
     bs_realign( &h->out.bs );
