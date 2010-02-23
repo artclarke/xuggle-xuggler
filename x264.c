@@ -827,7 +827,8 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
             return -1;
     }
 
-    x264_param_default_preset( param, preset, tune );
+    if( x264_param_default_preset( param, preset, tune ) < 0 )
+        return -1;
 
     /* Parse command line options */
     for( optind = 0;; )
@@ -987,7 +988,8 @@ generic_option:
         x264_param_apply_fastfirstpass( param );
 
     /* Apply profile restrictions. */
-    x264_param_apply_profile( param, profile );
+    if( x264_param_apply_profile( param, profile ) < 0 )
+        return -1;
 
     /* Get the file name */
     if( optind > argc - 1 || !output_filename )
