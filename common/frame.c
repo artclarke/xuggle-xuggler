@@ -202,6 +202,7 @@ void x264_frame_delete( x264_frame_t *frame )
         x264_free( frame->i_row_bits );
         x264_free( frame->i_row_qp );
         x264_free( frame->mb_type );
+        x264_free( frame->mb_partition );
         x264_free( frame->mv[0] );
         x264_free( frame->mv[1] );
         x264_free( frame->ref[0] );

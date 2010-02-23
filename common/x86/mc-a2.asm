@@ -740,7 +740,7 @@ cglobal x264_memzero_aligned_%1, 2,2
     mova [r0 + r1 + i], m0
 %assign i i+mmsize
 %endrep
-    add r1d, mmsize*8
+    add r1, mmsize*8
     jl .loop
     REP_RET
 %endmacro

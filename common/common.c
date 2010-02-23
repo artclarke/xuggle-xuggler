@@ -346,6 +346,7 @@ static int x264_param_apply_tune( x264_param_t *param, const char *tune )
         else
         {
             fprintf( stderr, "x264 [error]: invalid tune '%s'\n", s );
+            x264_free( tmp );
             return -1;
         }
         if( 0 )
@@ -355,6 +356,7 @@ static int x264_param_apply_tune( x264_param_t *param, const char *tune )
         }
         s = strtok( NULL, ",./-+" );
     }
+    x264_free( tmp );
     return 0;
 }
 

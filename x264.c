@@ -793,7 +793,7 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
     const char *demuxer = demuxer_names[0];
     char *output_filename = NULL;
     const char *muxer = muxer_names[0];
-    x264_param_t defaults = *param;
+    x264_param_t defaults;
     char *profile = NULL;
     int b_thread_input = 0;
     int b_turbo = 1;
@@ -804,6 +804,8 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
     cli_input_opt_t input_opt;
     char *preset = NULL;
     char *tune = NULL;
+
+    x264_param_default( &defaults );
 
     memset( opt, 0, sizeof(cli_opt_t) );
     memset( &input_opt, 0, sizeof(cli_input_opt_t) );
