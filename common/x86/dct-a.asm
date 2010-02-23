@@ -509,28 +509,43 @@ cglobal x264_add16x16_idct_dc_ssse3, 2,2,8
     movq      m1, m2
     punpckldq m2, m3
     punpckhdq m1, m3
-    psadbw    %1, m7
-    psadbw    %2, m7
-    psadbw    m2, m7
-    psadbw    m1, m7
+    pxor      m3, m3
+    psadbw    %1, m3
+    psadbw    %2, m3
+    psadbw    m2, m3
+    psadbw    m1, m3
     psubw     %1, m2
     psubw     %2, m1
 %endmacro
 
+%macro DCT2x2 2 ; reg s1/s0 (!=m1), reg s3/s2
+    pshufw    mm1, %1, 10100000b  ;  s1  s1  s0  s0
+    pshufw    mm0, %2, 10110001b  ;  s3  __  s2  __
+    paddw     mm1, %2             ;  s1 s13  s0 s02
+    psubw     mm1, mm0            ; d13 s13 d02 s02
+    pshufw    mm0, mm1, 01000100b ; d02 s02 d02 s02
+    psrlq     mm1, 32             ;  __  __ d13 s13
+    paddw     mm0, mm1            ; d02 s02 d02+d13 s02+s13
+    psllq     mm1, 32             ; d13 s13
+    psubw     mm0, mm1            ; d02-d13 s02-s13 d02+d13 s02+s13
+%endmacro
+
 INIT_MMX
 cglobal x264_sub8x8_dct_dc_mmxext, 3,3
-    pxor      m7, m7
-    call .loop
-    add       r1, FENC_STRIDE*4
-    add       r2, FDEC_STRIDE*4
-    add       r0, 4
-.loop:
     DCTDC_2ROW_MMX m0, m4, 0
     DCTDC_2ROW_MMX m5, m6, 2
     paddw     m0, m5
     paddw     m4, m6
-    punpcklwd m0, m4
-    movd    [r0], m0
+    punpckldq m0, m4
+    add       r1, FENC_STRIDE*4
+    add       r2, FDEC_STRIDE*4
+    DCTDC_2ROW_MMX m7, m4, 0
+    DCTDC_2ROW_MMX m5, m6, 2
+    paddw     m7, m5
+    paddw     m4, m6
+    punpckldq m7, m4
+    DCT2x2    m0, m7
+    movq    [r0], m0
     ret
 
 INIT_XMM
@@ -558,13 +573,16 @@ cglobal x264_sub8x8_dct_dc_sse2, 3,3,8
     DCTDC_2ROW_SSE2 2, 1, m4
     add      r1, FENC_STRIDE*4
     add      r2, FDEC_STRIDE*4
-    psubq    m4, m6
+    psubd    m4, m6
     DCTDC_2ROW_SSE2 0, 0, m5
     DCTDC_2ROW_SSE2 2, 1, m5
-    psubq    m5, m6
+    psubd    m5, m6
     packssdw m4, m5
-    packssdw m4, m4
-    movq   [r0], m4
+    movhlps  m5, m4
+    movdq2q mm0, m4
+    movdq2q mm7, m5
+    DCT2x2  mm0, mm7
+    movq   [r0], mm0
     RET
 
 ;-----------------------------------------------------------------------------

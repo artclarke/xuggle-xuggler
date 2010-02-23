@@ -365,7 +365,6 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
                 if( ssd[ch] > thresh )
                 {
                     h->dctf.sub8x8_dct_dc( dct2x2, h->mb.pic.p_fenc[1+ch], h->mb.pic.p_fdec[1+ch] );
-                    dct2x2dc_dconly( dct2x2 );
                     if( h->mb.b_trellis )
                         nz_dc = x264_quant_dc_trellis( h, dct2x2, CQM_4IC+b_inter, i_qp, DCT_CHROMA_DC, !b_inter, 1 );
                     else
@@ -980,10 +979,10 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
         if( ssd < thresh )
             continue;
 
-        h->dctf.sub8x8_dct( dct4x4, p_src, p_dst );
+        /* The vast majority of chroma checks will terminate during the DC check or the higher
+         * threshold check, so we can save time by doing a DC-only DCT. */
+        h->dctf.sub8x8_dct_dc( dct2x2, p_src, p_dst );
 
-        /* calculate dct DC */
-        dct2x2dc( dct2x2, dct4x4 );
         if( h->quantf.quant_2x2_dc( dct2x2, h->quant4_mf[CQM_4PC][i_qp][0]>>1, h->quant4_bias[CQM_4PC][i_qp][0]<<1 ) )
             return 0;
 
@@ -991,9 +990,15 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
         if( ssd < thresh*4 )
             continue;
 
+        h->dctf.sub8x8_dct( dct4x4, p_src, p_dst );
+
         /* calculate dct coeffs */
         for( i4x4 = 0, i_decimate_mb = 0; i4x4 < 4; i4x4++ )
         {
+            /* We don't need to zero the DC coefficient before quantization because we already
+             * checked that all the DCs were zero above at twice the precision that quant4x4
+             * uses.  This applies even though the DC here is being quantized before the 2x2
+             * transform. */
             if( !h->quantf.quant_4x4( dct4x4[i4x4], h->quant4_mf[CQM_4PC][i_qp], h->quant4_bias[CQM_4PC][i_qp] ) )
                 continue;
             h->zigzagf.scan_4x4( dctscan, dct4x4[i4x4] );

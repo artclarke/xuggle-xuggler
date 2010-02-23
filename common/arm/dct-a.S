@@ -639,12 +639,20 @@ function x264_sub8x8_dct_dc_neon
     vld1.64         {d30}, [r1,:64], r3
     vadd.s16        q1,  q12, q13
     vld1.64         {d31}, [r2,:64], ip
-    vpadd.s16       d0,  d0,  d1
-    vadd.s16        q1,  q1,  q14
     vsubl.u8        q15, d30, d31
+    vadd.s16        q1,  q1,  q14
+
+    vadd.s16        d4,  d0,  d1
     vadd.s16        q1,  q1,  q15
-    vpadd.s16       d2,  d2,  d3
+    vsub.s16        d5,  d0,  d1
+    vadd.s16        d6,  d2,  d3
+    vsub.s16        d7,  d2,  d3
+    vadd.s16        q0,  q2,  q3
+    vsub.s16        q1,  q2,  q3
+
     vpadd.s16       d0,  d0,  d2
+    vpadd.s16       d1,  d1,  d3
+    vpadd.s16       d0,  d0,  d1
     vst1.64         {d0}, [r0,:64]
     bx              lr
 .endfunc

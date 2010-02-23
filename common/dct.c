@@ -184,10 +184,21 @@ static int sub4x4_dct_dc( uint8_t *pix1, uint8_t *pix2 )
 
 static void sub8x8_dct_dc( int16_t dct[4], uint8_t *pix1, uint8_t *pix2 )
 {
+    int d0, d1, d2, d3;
     dct[0] = sub4x4_dct_dc( &pix1[0], &pix2[0] );
     dct[1] = sub4x4_dct_dc( &pix1[4], &pix2[4] );
     dct[2] = sub4x4_dct_dc( &pix1[4*FENC_STRIDE+0], &pix2[4*FDEC_STRIDE+0] );
     dct[3] = sub4x4_dct_dc( &pix1[4*FENC_STRIDE+4], &pix2[4*FDEC_STRIDE+4] );
+
+    /* 2x2 DC transform */
+    d0 = dct[0] + dct[1];
+    d1 = dct[2] + dct[3];
+    d2 = dct[0] - dct[1];
+    d3 = dct[2] - dct[3];
+    dct[0] = d0 + d1;
+    dct[2] = d2 + d3;
+    dct[1] = d0 - d1;
+    dct[3] = d2 - d3;
 }
 
 static void add4x4_idct( uint8_t *p_dst, int16_t dct[16] )
