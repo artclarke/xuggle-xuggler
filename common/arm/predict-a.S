@@ -4,6 +4,7 @@
  * Copyright (C) 2009 x264 project
  *
  * Authors: David Conrad <lessen42@gmail.com>
+ *          Mans Rullgard <mans@mansr.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,9 +28,32 @@
 .section .rodata
 .align 4
 
-pw_76543210: .short 7,6,5,4,3,2,1,0
+p16weight: .short 1,2,3,4,5,6,7,8
 
 .text
+
+.macro ldcol.8  rd,  rs,  rt,  n=8,  hi=0
+.if \n == 8 || \hi == 0
+    vld1.8          {\rd[0]}, [\rs], \rt
+    vld1.8          {\rd[1]}, [\rs], \rt
+    vld1.8          {\rd[2]}, [\rs], \rt
+    vld1.8          {\rd[3]}, [\rs], \rt
+.endif
+.if \n == 8 || \hi == 1
+    vld1.8          {\rd[4]}, [\rs], \rt
+    vld1.8          {\rd[5]}, [\rs], \rt
+    vld1.8          {\rd[6]}, [\rs], \rt
+    vld1.8          {\rd[7]}, [\rs], \rt
+.endif
+.endm
+
+.macro add16x8  dq,  dl,  dh,  rl,  rh
+    vaddl.u8        \dq, \rl, \rh
+    vadd.u16        \dl, \dl, \dh
+    vpadd.u16       \dl, \dl, \dl
+    vpadd.u16       \dl, \dl, \dl
+.endm
+
 
 // because gcc doesn't believe in using the free shift in add
 function x264_predict_4x4_h_armv6
@@ -161,7 +185,6 @@ function x264_predict_8x8_dc_neon
     pop    {r4-r5,pc}
 .endfunc
 
-
 function x264_predict_8x8_h_neon
     add         r1, r1, #7
     mov         ip, #FDEC_STRIDE
@@ -182,6 +205,58 @@ function x264_predict_8x8_h_neon
     vdup.8      d7, d16[0]
     vst1.64     {d6}, [r0,:64], ip
     vst1.64     {d7}, [r0,:64], ip
+    bx          lr
+.endfunc
+
+
+function x264_predict_8x8c_dc_top_neon
+    sub         r2,  r0,  #FDEC_STRIDE
+    mov         r1,  #FDEC_STRIDE
+    vld1.8      {d0}, [r2,:64]
+    vpaddl.u8   d0,  d0
+    vpadd.u16   d0,  d0,  d0
+    vrshrn.u16  d0,  q0,  #2
+    vdup.8      d1,  d0[1]
+    vdup.8      d0,  d0[0]
+    vtrn.32     d0,  d1
+    b           pred8x8_dc_end
+    .endfunc
+
+function x264_predict_8x8c_dc_left_neon
+    mov         r1,  #FDEC_STRIDE
+    sub         r2,  r0,  #1
+    ldcol.8     d0,  r2,  r1
+    vpaddl.u8   d0,  d0
+    vpadd.u16   d0,  d0,  d0
+    vrshrn.u16  d0,  q0,  #2
+    vdup.8      d1,  d0[1]
+    vdup.8      d0,  d0[0]
+    b           pred8x8_dc_end
+.endfunc
+
+function x264_predict_8x8c_dc_neon
+    sub         r2,  r0,  #FDEC_STRIDE
+    mov         r1,  #FDEC_STRIDE
+    vld1.8      {d0}, [r2,:64]
+    sub         r2,  r0,  #1
+    ldcol.8     d1,  r2,  r1
+    vtrn.32     d0,  d1
+    vpaddl.u8   q0,  q0
+    vpadd.u16   d0,  d0,  d1
+    vpadd.u16   d1,  d0,  d0
+    vrshrn.u16  d2,  q0,  #3
+    vrshrn.u16  d3,  q0,  #2
+    vdup.8      d0,  d2[4]
+    vdup.8      d1,  d3[3]
+    vdup.8      d4,  d3[2]
+    vdup.8      d5,  d2[5]
+    vtrn.32     q0,  q2
+pred8x8_dc_end:
+    add         r2,  r0,  r1,  lsl #2
+.rept 4
+    vst1.8      {d0}, [r0,:64], r1
+    vst1.8      {d1}, [r2,:64], r1
+.endr
     bx          lr
 .endfunc
 
@@ -207,6 +282,80 @@ function x264_predict_8x8c_v_neon
     bx          lr
 .endfunc
 
+function x264_predict_8x8c_p_neon
+    sub         r3,  r0,  #FDEC_STRIDE
+    mov         r1,  #FDEC_STRIDE
+    add         r2,  r3,  #4
+    sub         r3,  r3,  #1
+    vld1.32     {d0[0]}, [r3]
+    vld1.32     {d2[0]}, [r2,:32], r1
+    ldcol.8     d0,  r3,  r1,  4,  hi=1
+    add         r3,  r3,  r1
+    ldcol.8     d3,  r3,  r1,  4
+    vaddl.u8    q8,  d2,  d3
+    vrev32.8    d0,  d0
+    vtrn.32     d2,  d3
+    vsubl.u8    q2,  d2,  d0
+    movrel      r3,  p16weight
+    vld1.16     {q0}, [r3,:128]
+    vmul.s16    d4,  d4,  d0
+    vmul.s16    d5,  d5,  d0
+    vpadd.i16   d4,  d4,  d5
+    vpaddl.s16  d4,  d4
+    vshl.i32    d5,  d4,  #4
+    vadd.s32    d4,  d4,  d5
+    vrshrn.s32  d4,  q2,  #5
+    mov         r3,  #0
+    vtrn.16     d4,  d5
+    vadd.i16    d2,  d4,  d5
+    vshl.i16    d3,  d2,  #2
+    vrev64.16   d16, d16
+    vsub.i16    d3,  d3,  d2
+    vadd.i16    d16, d16, d0
+    vshl.i16    d2,  d16, #4
+    vsub.i16    d2,  d2,  d3
+    vshl.i16    d3,  d4,  #3
+    vext.16     q0,  q0,  q0,  #7
+    vsub.i16    d6,  d5,  d3
+    vmov.16     d0[0], r3
+    vmul.i16    q0,  q0,  d4[0]
+    vdup.16     q1,  d2[0]
+    vdup.16     q2,  d4[0]
+    vdup.16     q3,  d6[0]
+    vshl.i16    q2,  q2,  #3
+    vadd.i16    q1,  q1,  q0
+    vadd.i16    q3,  q3,  q2
+    mov         r3,  #8
+1:
+    vqshrun.s16 d0,  q1,  #5
+    vadd.i16    q1,  q1,  q3
+    vst1.8      {d0}, [r0,:64], r1
+    subs        r3,  r3,  #1
+    bne         1b
+    bx          lr
+.endfunc
+
+
+function x264_predict_16x16_dc_top_neon
+    sub         r2,  r0,  #FDEC_STRIDE
+    mov         r1,  #FDEC_STRIDE
+    vld1.8      {q0}, [r2,:128]
+    add16x8     q0,  d0,  d1,  d0,  d1
+    vrshrn.u16  d0,  q0,  #4
+    vdup.8      q0,  d0[0]
+    b           pred16x16_dc_end
+.endfunc
+
+function x264_predict_16x16_dc_left_neon
+    mov         r1,  #FDEC_STRIDE
+    sub         r2,  r0,  #1
+    ldcol.8     d0,  r2,  r1
+    ldcol.8     d1,  r2,  r1
+    add16x8     q0,  d0,  d1,  d0,  d1
+    vrshrn.u16  d0,  q0,  #4
+    vdup.8      q0,  d0[0]
+    b           pred16x16_dc_end
+.endfunc
 
 function x264_predict_16x16_dc_neon
     sub         r3, r0, #FDEC_STRIDE
@@ -235,12 +384,13 @@ function x264_predict_16x16_dc_neon
     add         ip, ip, r3
     vdup.16     d1, ip
     vadd.u16    d0, d0, d1
-    mov         ip, #FDEC_STRIDE
+    mov         r1, #FDEC_STRIDE
     add         r0, r0, #1
     vrshr.u16   d0, d0, #5
     vdup.8      q0, d0[0]
+pred16x16_dc_end:
 .rept 16
-    vst1.64     {d0-d1}, [r0,:64], ip
+    vst1.64     {d0-d1}, [r0,:128], r1
 .endr
     bx          lr
 .endfunc
@@ -266,5 +416,62 @@ function x264_predict_16x16_v_neon
 .rept 16
     vst1.64     {d0-d1}, [r0,:128], ip
 .endr
+    bx          lr
+.endfunc
+
+function x264_predict_16x16_p_neon
+    sub         r3,  r0,  #FDEC_STRIDE
+    mov         r1,  #FDEC_STRIDE
+    add         r2,  r3,  #8
+    sub         r3,  r3,  #1
+    vld1.8      {d0}, [r3]
+    vld1.8      {d2}, [r2,:64], r1
+    ldcol.8     d1,  r3,  r1
+    add         r3,  r3,  r1
+    ldcol.8     d3,  r3,  r1
+    vrev64.8    q0,  q0
+    vaddl.u8    q8,  d2,  d3
+    vsubl.u8    q2,  d2,  d0
+    vsubl.u8    q3,  d3,  d1
+    movrel      r3,  p16weight
+    vld1.8      {q0}, [r3,:128]
+    vmul.s16    q2,  q2,  q0
+    vmul.s16    q3,  q3,  q0
+    vadd.i16    d4,  d4,  d5
+    vadd.i16    d5,  d6,  d7
+    vpadd.i16   d4,  d4,  d5
+    vpadd.i16   d4,  d4,  d4
+    vshl.i16    d5,  d4,  #2
+    vaddl.s16   q2,  d4,  d5
+    vrshrn.s32  d4,  q2,  #6
+    mov         r3,  #0
+    vtrn.16     d4,  d5
+    vadd.i16    d2,  d4,  d5
+    vshl.i16    d3,  d2,  #3
+    vrev64.16   d16, d17
+    vsub.i16    d3,  d3,  d2
+    vadd.i16    d16, d16, d0
+    vshl.i16    d2,  d16, #4
+    vsub.i16    d2,  d2,  d3
+    vshl.i16    d3,  d4,  #4
+    vext.16     q0,  q0,  q0,  #7
+    vsub.i16    d6,  d5,  d3
+    vmov.16     d0[0], r3
+    vmul.i16    q0,  q0,  d4[0]
+    vdup.16     q1,  d2[0]
+    vdup.16     q2,  d4[0]
+    vdup.16     q3,  d6[0]
+    vshl.i16    q2,  q2,  #3
+    vadd.i16    q1,  q1,  q0
+    vadd.i16    q3,  q3,  q2
+    mov         r3,  #16
+1:
+    vqshrun.s16 d0,  q1,  #5
+    vadd.i16    q1,  q1,  q2
+    vqshrun.s16 d1,  q1,  #5
+    vadd.i16    q1,  q1,  q3
+    vst1.8      {q0}, [r0,:128], r1
+    subs        r3,  r3,  #1
+    bne         1b
     bx          lr
 .endfunc

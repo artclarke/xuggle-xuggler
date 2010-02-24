@@ -29,15 +29,22 @@ void x264_predict_4x4_h_armv6( uint8_t *src );
 void x264_predict_4x4_ddr_armv6( uint8_t *src );
 void x264_predict_4x4_ddl_neon( uint8_t *src );
 
+void x264_predict_8x8c_dc_neon( uint8_t *src );
+void x264_predict_8x8c_dc_top_neon( uint8_t *src );
+void x264_predict_8x8c_dc_left_neon( uint8_t *src );
 void x264_predict_8x8c_h_neon( uint8_t *src );
 void x264_predict_8x8c_v_neon( uint8_t *src );
+void x264_predict_8x8c_p_neon( uint8_t *src );
 
 void x264_predict_8x8_dc_neon( uint8_t *src, uint8_t edge[33] );
 void x264_predict_8x8_h_neon( uint8_t *src, uint8_t edge[33] );
 
 void x264_predict_16x16_dc_neon( uint8_t *src );
+void x264_predict_16x16_dc_top_neon( uint8_t *src );
+void x264_predict_16x16_dc_left_neon( uint8_t *src );
 void x264_predict_16x16_h_neon( uint8_t *src );
 void x264_predict_16x16_v_neon( uint8_t *src );
+void x264_predict_16x16_p_neon( uint8_t *src );
 
 void x264_predict_4x4_init_arm( int cpu, x264_predict_t pf[12] )
 {
@@ -59,8 +66,12 @@ void x264_predict_8x8c_init_arm( int cpu, x264_predict_t pf[7] )
     if (!(cpu&X264_CPU_NEON))
         return;
 
+    pf[I_PRED_CHROMA_DC]      = x264_predict_8x8c_dc_neon;
+    pf[I_PRED_CHROMA_DC_TOP]  = x264_predict_8x8c_dc_top_neon;
+    pf[I_PRED_CHROMA_DC_LEFT] = x264_predict_8x8c_dc_left_neon;
     pf[I_PRED_CHROMA_H] = x264_predict_8x8c_h_neon;
     pf[I_PRED_CHROMA_V] = x264_predict_8x8c_v_neon;
+    pf[I_PRED_CHROMA_P] = x264_predict_8x8c_p_neon;
 }
 
 void x264_predict_8x8_init_arm( int cpu, x264_predict8x8_t pf[12], x264_predict_8x8_filter_t *predict_filter )
@@ -78,6 +89,9 @@ void x264_predict_16x16_init_arm( int cpu, x264_predict_t pf[7] )
         return;
 
     pf[I_PRED_16x16_DC ]    = x264_predict_16x16_dc_neon;
+    pf[I_PRED_16x16_DC_TOP] = x264_predict_16x16_dc_top_neon;
+    pf[I_PRED_16x16_DC_LEFT]= x264_predict_16x16_dc_left_neon;
     pf[I_PRED_16x16_H ]     = x264_predict_16x16_h_neon;
     pf[I_PRED_16x16_V ]     = x264_predict_16x16_v_neon;
+    pf[I_PRED_16x16_P ]     = x264_predict_16x16_p_neon;
 }
