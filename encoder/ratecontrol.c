@@ -1808,6 +1808,7 @@ static float rate_estimate_qscale( x264_t *h )
         /* For row SATDs */
         if( rcc->b_vbv )
             rcc->last_satd = x264_rc_analyse_slice( h );
+        rcc->qp_novbv = q;
         return qp2qscale(q);
     }
     else
@@ -1921,13 +1922,18 @@ static float rate_estimate_qscale( x264_t *h )
 
                 q = get_qscale( h, &rce, rcc->wanted_bits_window / rcc->cplxr_sum, h->fenc->i_frame );
 
-                // FIXME is it simpler to keep track of wanted_bits in ratecontrol_end?
-                wanted_bits = i_frame_done * rcc->bitrate / rcc->fps;
-                if( wanted_bits > 0 )
+                /* ABR code can potentially be counterproductive in CBR, so just don't bother.
+                 * Don't run it if the frame complexity is zero either. */
+                if( !rcc->b_vbv_min_rate && rcc->last_satd )
                 {
-                    abr_buffer *= X264_MAX( 1, sqrt(i_frame_done/25) );
-                    overflow = x264_clip3f( 1.0 + (total_bits - wanted_bits) / abr_buffer, .5, 2 );
-                    q *= overflow;
+                    // FIXME is it simpler to keep track of wanted_bits in ratecontrol_end?
+                    wanted_bits = i_frame_done * rcc->bitrate / rcc->fps;
+                    if( wanted_bits > 0 )
+                    {
+                        abr_buffer *= X264_MAX( 1, sqrt(i_frame_done/25) );
+                        overflow = x264_clip3f( 1.0 + (total_bits - wanted_bits) / abr_buffer, .5, 2 );
+                        q *= overflow;
+                    }
                 }
             }
 
