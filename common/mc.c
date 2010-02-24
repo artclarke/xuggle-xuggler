@@ -317,7 +317,7 @@ MC_COPY( 16 )
 MC_COPY( 8 )
 MC_COPY( 4 )
 
-static void plane_copy( uint8_t *dst, int i_dst,
+void x264_plane_copy_c( uint8_t *dst, int i_dst,
                         uint8_t *src, int i_src, int w, int h)
 {
     while( h-- )
@@ -483,7 +483,7 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->copy[PIXEL_8x8]   = mc_copy_w8;
     pf->copy[PIXEL_4x4]   = mc_copy_w4;
 
-    pf->plane_copy = plane_copy;
+    pf->plane_copy = x264_plane_copy_c;
     pf->hpel_filter = hpel_filter;
 
     pf->prefetch_fenc = prefetch_fenc_null;

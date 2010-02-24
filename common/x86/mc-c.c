@@ -88,7 +88,8 @@ extern void x264_mc_chroma_ssse3( uint8_t *src, int i_src_stride,
 extern void x264_mc_chroma_ssse3_cache64( uint8_t *src, int i_src_stride,
                                   uint8_t *dst, int i_dst_stride,
                                   int dx, int dy, int i_width, int i_height );
-extern void x264_plane_copy_mmxext( uint8_t *, int, uint8_t *, int, int w, int h);
+extern void x264_plane_copy_core_mmxext( uint8_t *, int, uint8_t *, int, int w, int h);
+extern void x264_plane_copy_c( uint8_t *, int, uint8_t *, int, int w, int h);
 extern void *x264_memcpy_aligned_mmx( void * dst, const void * src, size_t n );
 extern void *x264_memcpy_aligned_sse2( void * dst, const void * src, size_t n );
 extern void x264_memzero_aligned_mmx( void * dst, int n );
@@ -339,9 +340,22 @@ void x264_hpel_filter_ssse3( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_
 #else
 HPEL(16, sse2, sse2, sse2, sse2)
 HPEL(16, ssse3, ssse3, ssse3, ssse3)
-
 #endif
 HPEL(16, sse2_misalign, sse2, sse2_misalign, sse2)
+
+static void x264_plane_copy_mmxext( uint8_t *dst, int i_dst, uint8_t *src, int i_src, int w, int h)
+{
+    if( w < 256 ) { // tiny resolutions don't want non-temporal hints. dunno the exact threshold.
+        x264_plane_copy_c( dst, i_dst, src, i_src, w, h );
+    } else if(i_src > 0) {
+        // have to use plain memcpy on the last line (in memory order) to avoid overreading src
+        x264_plane_copy_core_mmxext( dst, i_dst, src, i_src, (w+15)&~15, h-1 );
+        memcpy( dst+i_dst*(h-1), src+i_src*(h-1), w );
+    } else {
+        memcpy( dst, src, w );
+        x264_plane_copy_core_mmxext( dst+i_dst, i_dst, src+i_src, i_src, (w+15)&~15, h-1 );
+    }
+}
 
 void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 {
